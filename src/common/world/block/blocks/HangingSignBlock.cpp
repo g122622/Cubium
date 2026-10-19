@@ -119,6 +119,13 @@ const BlockState& CeilingHangingSignBlock::rotate(const BlockState& state, Rotat
     return state.with(BlockStateProperties::ROTATION_0_15(), newRotation);
 }
 
+const BlockState& CeilingHangingSignBlock::mirror(const BlockState& state, Mirror mirror) const
+{
+    i32 currentRotation = state.get(BlockStateProperties::ROTATION_0_15());
+    i32 newRotation = Directions::mirrorRotation(currentRotation, mirror, 16);
+    return state.with(BlockStateProperties::ROTATION_0_15(), newRotation);
+}
+
 const CollisionShape& CeilingHangingSignBlock::getShape(const BlockState& state) const
 {
     MC_UNUSED(state);

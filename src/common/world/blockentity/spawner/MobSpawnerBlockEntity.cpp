@@ -653,7 +653,10 @@ bool MobSpawnerBlockEntity::_isValidSpawnPosition(
     // ——该门是 isDarkEnoughToSpawn 的第一阶段，谓词接口不暴露原始天空光故无法在谓词内实现。
     // 两阶段合起来即完整的 isDarkEnoughToSpawn；谓词的 <=7 项被 isValidLightLevel 的
     // light <= random(0..7) 蕴含，不引入额外限制。
-    // 注：仅 Monster 分类查光照；Ambient（蝙蝠）等分类的刷怪笼光照规则暂未对齐（TODO），按现状放行。
+    // 注：仅 Monster 分类查光照；Ambient（蝙蝠）等分类放行不做光照检查——与原版一致：
+    //   SpawnPlacements.checkSpawnRules 只执行实体类型注册的谓词，BAT 未注册谓词（DATA_BY_TYPE 为空），
+    //   故任何刷怪原因下都不做光照限制。仅当新增 Ambient 实体注册了带光照判定的谓词时，
+    //   TODO 才需要在此按分类/类型补齐对应谓词。
     if (entityType.classification() == entity::EntityClassification::Monster) {
         math::Random lightRng(world.seed() ^ world.getGameTime() ^
             (static_cast<i64>(spawnPos.x) * 341873128712ULL + static_cast<i64>(spawnPos.z) * 132897987541ULL));

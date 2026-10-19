@@ -123,10 +123,10 @@ function playerInventoryKeptWithKeepInventory(test: Test): void {
   // 创造玩家执行管理命令设 keepInventory=true（permLevel=4）。第三参省略默认创造（1）。
   // 实际这里用 Survival 玩家也可（chat permLevel 固定=4，与游戏模式解耦），但 setItem 需 Survival
   // 才有真实库存——Survival 玩家 chat 同样可设 keepInventory。
-  player.chat("/gamerule keepInventory true");
+  player.chat("/gamerule keepInventory boolean true");
   // runOnFinish 恢复 false 防污染后续批次（keepInventory 世界级跨测试持久化）。
   test.runOnFinish(() => {
-    player.chat("/gamerule keepInventory false");
+    player.chat("/gamerule keepInventory boolean false");
   });
 
   // tick 1 放主手物品，tick 8 杀死（keepInventory=true 守卫拦截掉落，区域无 item）。
@@ -167,10 +167,10 @@ function playerInventoryDropsEvenWhenDoMobLootFalse(test: Test): void {
   const player = test.spawnSimulatedPlayer({ x: 1, y: 2, z: 3 }, "victim", 0 as any);
 
   // doMobLoot 默认 true，显式设 false。Survival 玩家 chat permLevel=4 可执行。
-  player.chat("/gamerule doMobLoot false");
+  player.chat("/gamerule doMobLoot boolean false");
   // runOnFinish 恢复 true 防污染后续批次（doMobLoot 世界级跨测试持久化）。
   test.runOnFinish(() => {
-    player.chat("/gamerule doMobLoot true");
+    player.chat("/gamerule doMobLoot boolean true");
   });
 
   // tick 1 放主手物品，tick 10 杀死（留 doMobLoot=false 命令生效 tick 延迟）。

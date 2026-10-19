@@ -41,6 +41,7 @@
 #include <memory>
 #include <optional>
 #include <string>
+#include <string_view>
 #include <unordered_map>
 #include <vector>
 
@@ -65,6 +66,18 @@ public:
     virtual void visitBoolean(const BooleanGameRuleKey& key, const BooleanGameRuleType& type) = 0;
     virtual void visitInteger(const IntegerGameRuleKey& key, const IntegerGameRuleType& type) = 0;
 };
+
+/**
+ * @brief 规则值类名
+ *
+ * 两个名称分别取自 vanilla GameRuleType.BOOLEAN/GAME_RULE_TYPE_INTEGER.value()。vanilla 的
+ * /gamerule 命令按规则值的类名区分「查询」与「设置」两个字面量子节点，故这里同样以类名
+ * 而非 Boolean/Integer 枚举区分。
+ */
+namespace GameRuleClassNames {
+inline constexpr std::string_view BOOLEAN = "boolean";
+inline constexpr std::string_view INTEGER = "integer";
+} // namespace GameRuleClassNames
 
 // ============================================================================
 // 游戏规则键定义（静态常量）
@@ -187,6 +200,16 @@ extern const BooleanGameRuleKey DO_WEATHER_CYCLE;
 
 /// 雪层最大堆积高度（0=不允许堆积，1-8=最大雪层数）
 extern const IntegerGameRuleKey MAX_SNOW_ACCUMULATION_HEIGHT;
+
+/// 火焰蔓延的玩家半径门控（-1=不限制，其余=仅当该半径（含）内存在非旁观者玩家时火焰才 tick）
+/// 参考: net.minecraft.world.level.gamerules.GameRules.FIRE_SPREAD_RADIUS_AROUND_PLAYER
+extern const IntegerGameRuleKey FIRE_SPREAD_RADIUS_AROUND_PLAYER;
+
+/// 下界传送门默认权重延迟（tick）
+extern const IntegerGameRuleKey PLAYERS_NETHER_PORTAL_DEFAULT_DELAY;
+
+/// 下界传送门创造模式权重延迟（tick）
+extern const IntegerGameRuleKey PLAYERS_NETHER_PORTAL_CREATIVE_DELAY;
 
 // ============================================================================
 // 聊天相关 (Chat)
@@ -361,14 +384,22 @@ public:
     void setInt(const IntegerGameRuleKey& key, i32 value, server::MinecraftServer* server = nullptr);
 
     /**
-     * @brief 从字符串设置规则值
+     * @brief 按规则值类名从字符串设置规则值
+     *
+     * 对应 vanilla GameRuleType.deserialize：规则名与值的类名必须同时匹配（例如
+     * "randomTickSpeed" 只接受 boolean=false 的查询、不接受 boolean=true 的设置）。
+     * 整型值超出规则注册的 [min, max] 时视为无效值。
+     *
      * @param ruleName 规则名称
+     * @param valueClassName 值的类名（"boolean" / "integer"，见 GameRuleClassNames）
      * @param value 字符串值
-     * @param server Minecraft 服务器实例（可选）
-     * @return 是否设置成功（规则存在且值有效）
+     * @param server Minecraft 服务器实例（可选，用于触发变更监听器）
+     * @return 是否设置成功（规则存在、类名匹配且值有效）
      */
-    bool setFromString(
-        const std::string& ruleName, const std::string& value, server::MinecraftServer* server = nullptr);
+    bool setTypedFromString(const std::string& ruleName,
+        const std::string& valueClassName,
+        const std::string& value,
+        server::MinecraftServer* server = nullptr);
 
     // ============================================================================
     // 序列化
@@ -425,6 +456,24 @@ public:
      * @return 规则类型（如果不存在返回 std::nullopt）
      */
     [[nodiscard]] static std::optional<GameRuleValueType> getRuleType(const std::string& ruleName);
+
+    /**
+     * @brief 获取规则值类名
+     * @param ruleName 规则名称
+     * @return "boolean" / "integer"；规则不存在返回 std::nullopt
+     */
+    [[nodiscard]] static std::optional<std::string_view> getRuleClass(const std::string& ruleName);
+
+    /**
+     * @brief 获取规则默认值的字符串表示
+     *
+     * 供 /gamerule 查询反馈拼接 "(default: ...)"（vanilla getValueMessage 在当前值
+     * 不同于默认值时才展示默认值）。
+     *
+     * @param ruleName 规则名称
+     * @return 默认值字符串；规则不存在返回空串
+     */
+    [[nodiscard]] static std::string getDefaultValueAsString(const std::string& ruleName);
 
     // ============================================================================
     // 重置

@@ -401,3 +401,21 @@ TEST_F(UpdateFromNeighbourShapesTest, ReturnsNewBlockState_NotReference)
     // 原始状态不应被修改
     EXPECT_EQ(stoneState.stateId(), originalStateId);
 }
+
+TEST_F(UpdateFromNeighbourShapesTest, StateBecomingAirStaysAir)
+{
+    // 灌木类方块在失去下方支撑时 updatePostPlacement 返回空气；此后继续迭代的方向
+    // 不能让空气的 updatePostPlacement 把状态"写回"原方块。UPDATE_SHAPE_ORDER 中
+    // DOWN 位于最后两位，构造"先清空为空气、随后仍有邻居"的场景。
+    Block* shortGrass = VanillaBlocks::SHORT_GRASS;
+    ASSERT_NE(shortGrass, nullptr);
+
+    const BlockPos pos(0, 64, 0);
+    // 下方为空气（无支撑），其余方向放实心方块以触发后续方向的更新
+    world.setBlockDirectly(pos.offset(Direction::West), &VanillaBlocks::STONE->defaultState());
+    world.setBlockDirectly(pos.offset(Direction::East), &VanillaBlocks::STONE->defaultState());
+    world.setBlockDirectly(pos.offset(Direction::Up), &VanillaBlocks::STONE->defaultState());
+
+    BlockState result = Block::updateFromNeighbourShapes(shortGrass->defaultState(), world, pos);
+    EXPECT_TRUE(result.isAir()) << "Vegetation without support must resolve to air, got " << result.toString();
+}

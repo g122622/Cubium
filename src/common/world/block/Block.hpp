@@ -702,6 +702,13 @@ public:
      * @return 地图颜色ID
      *
      * 参考: net.minecraft.block.Block#getDefaultMaterialColor
+     *
+     * TODO(map-color): 项目当前没有任何方块注册点调用 BlockProperties::mapColor()，且
+     *   Material::materialColor 恒为 0（AIR），因此 getMapColor 对所有方块都返回 AIR，
+     *   填充地图不会渲染地表。align: 需按 vanilla 1.21.11 逐个方块补 mapColor（数据可从
+     *   net/minecraft/world/level/block/Blocks.java 的字节码注释中提取
+     *   `getstatic .../material/MapColor.XXX`），并为 RotatedPillarBlock（按轴）、
+     *   LeavesBlock（PLANT）等实现状态相关颜色，同时对草的生物群系染色走 getMapColor(state, world, pos)。
      */
     [[nodiscard]] virtual world::map::MaterialColorId getMapColor(
         const BlockState& state, IWorld* world = nullptr, const BlockPos* pos = nullptr) const
@@ -2008,6 +2015,22 @@ public:
      */
     [[nodiscard]] virtual const BlockState& mirror(const BlockState& state, Mirror mirror) const;
 
+    /**
+     * @brief 计算活塞推动后的实际落地状态
+     *
+     * MC 1.21.11 在 PistonMovingBlockEntity.finalTick 中调用 Block.updateFromNeighbourShapes
+     * 计算被推动方块落地后的状态；部分方块的 updateShape 除邻居形状更新外，还承担按推动方向
+     * 旋转的语义（如釉面陶瓦：推动轴与朝向轴相同时顺时针 90°，垂直时保持朝向）。
+     *
+     * Cubium 的 updatePostPlacement 没有设置上下文与方向参数，无法获知推动方向，故单独抽象出
+     * 本方法，仅由活塞落地路径调用。默认实现返回原状态。
+     *
+     * @param state 被移动方块的状态
+     * @param pushDirection 推动方向（伸出为活塞朝向，收回为其反方向）
+     * @return 落地状态
+     */
+    [[nodiscard]] virtual const BlockState& getStateForMovement(const BlockState& state, Direction pushDirection) const;
+
     // ========================================================================
     // 静态辅助方法
     // ========================================================================
@@ -2174,7 +2197,11 @@ public:
      * @brief 根据邻居方块状态更新当前方块的形状
      *
      * 遍历 UPDATE_SHAPE_ORDER 中的 6 个方向，对每个方向调用 updatePostPlacement，
-     * 累积结果并返回最终状态。用于区块后处理生成、结构放置、活塞移动等场景。
+     * 累积结果并返回最终状态。累积过程中状态一旦变为空气即提前结束：
+     * 原版在 airState 上继续迭代时 updateShape 恒返回自身，Cubium 直接短路可得到相同结果，
+     * 且避免 `state = air.updatePostPlacement(...)` 把状态重新写回非空气值。
+     *
+     * 用于区块后处理生成、结构放置、活塞移动等场景。
      *
      * @param state 当前方块状态
      * @param world 世界接口

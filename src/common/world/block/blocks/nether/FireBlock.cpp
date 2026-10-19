@@ -280,23 +280,28 @@ void FireBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state, math
     // 驱动的核心——onBlockAdded 首次调度，tick 内自我续期，形成 30~39 tick 周期的 tick 链。
     world.tickManager().scheduleBlockTick(pos, *this, getFireTickDelay(random));
 
-    // 1. 检查位置有效性
+    // 1. 玩家半径门控（vanilla FireBlock.java:145 的 canSpreadFireAround 外层层级）：
+    //    fire_spread_radius_around_player 为 -1 时不限制，否则该位置附近（严格小于半径的
+    //    欧氏距离）必须有非旁观者玩家。门控不通过时本 tick 完全不处理——既不熄灭也不蔓延；
+    //    计划刻已在上方自续期，玩家靠近后火焰自然恢复演进。
+    if (!world.canSpreadFireAround(pos)) {
+        return;
+    }
+
+    // 2. 位置有效性与 doFireTick 规则（vanilla 通过 survive() 的 canSurvive 与 ServerLevel
+    //    的 scheduleTicks 判定，效果等价：无效位置直接移除，规则关闭时不推进）
     IBlockReader& blockReader = static_cast<IBlockReader&>(world);
     if (!isValidPosition(state, blockReader, pos)) {
         world.setBlockState(pos, nullptr, world::BlockUpdateFlags::UPDATE_ALL);
         return;
     }
 
-    // 2. 检查游戏规则
+    // 3. 检查游戏规则
     if (!world.doFireTick()) {
         return;
     }
 
-    // TODO: canSpreadFireAround 玩家半径门控（vanilla FireBlock.java:145、ServerLevel.java:1793）。
-    //   vanilla 用 FIRE_SPREAD_RADIUS_AROUND_PLAYER 游戏规则把火焰蔓延限制在玩家附近，
-    //   Cubium 的 IWorld::canSpreadFireAround 尚未实现，此处暂不门控（默认放行，等价 radius=-1）。
-
-    // 3. 检查是否为无限火源（对齐 vanilla FireBlock.java:151：blockstate.is(dimensionType().infiniburn())）
+    // 4. 检查是否为无限火源（对齐 vanilla FireBlock.java:151：blockstate.is(dimensionType().infiniburn())）
     //    vanilla 按当前维度的 infiniburn 标签查询下方方块：主世界→infiniburn_overworld，
     //    下界→infiniburn_nether，末地→infiniburn_end。成员集：overworld/nether={netherrack, magma_block}，
     //    end={netherrack, magma_block, bedrock}。在这些方块上的火为无限火源（永不熄灭、不检查有效位置、
@@ -309,7 +314,7 @@ void FireBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state, math
         isFireSource = infiniburnTag.contains(*belowState);
     }
 
-    // 4. 下雨熄灭检查（vanilla FireBlock.java:153-154：!flag && isRaining && isNearRain
+    // 5. 下雨熄灭检查（vanilla FireBlock.java:153-154：!flag && isRaining && isNearRain
     //    && nextFloat < 0.2 + age*0.03 → removeBlock）
     i32 age = getAge(state);
     if (!isFireSource && world.isRaining() && canDie(world, pos)) {
@@ -321,7 +326,7 @@ void FireBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state, math
         }
     }
 
-    // 5. 火焰年龄增长（对齐 vanilla FireBlock.java:156-160：j = min(15, i + nextInt(3)/2)，
+    // 6. 火焰年龄增长（对齐 vanilla FireBlock.java:156-160：j = min(15, i + nextInt(3)/2)，
     //    仅 i != j 时 setBlock）。nextInt(3)/2 取值为 0（概率 2/3）或 1（概率 1/3），
     //    即 2/3 概率 age 不变、1/3 概率 +1。此前 Cubium 用 nextInt(3)==0（1/3 概率 +1）
     //    概率分布错误，且无条件 setBlock。
@@ -335,7 +340,7 @@ void FireBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state, math
         }
     }
 
-    // 6. 无可燃邻居时的处理（vanilla FireBlock.java:162-176：!flag 时检查 isValidFireLocation
+    // 7. 无可燃邻居时的处理（vanilla FireBlock.java:162-176：!flag 时检查 isValidFireLocation
     //    与 age==15 概率熄灭）
     if (!isFireSource) {
         if (!areNeighborsFlammable(blockReader, pos)) {
@@ -359,7 +364,7 @@ void FireBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state, math
         }
     }
 
-    // 7. 尝试蔓延（trySpread 内部含 INCREASED_FIRE_BURNOUT 折半逻辑，当前 flag1=false）
+    // 8. 尝试蔓延（trySpread 内部含 INCREASED_FIRE_BURNOUT 折半逻辑，当前 flag1=false）
     trySpread(world, pos, age, random);
 }
 

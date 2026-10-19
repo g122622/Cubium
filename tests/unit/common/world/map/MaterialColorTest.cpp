@@ -64,6 +64,36 @@ TEST_F(MaterialColorTest, ComputeMapColor)
     EXPECT_GT(grassColor2, grassColor0);
 }
 
+TEST_F(MaterialColorTest, PaletteMatchesVanillaMapColor)
+{
+    // 抽查若干与 vanilla MapColor 一致的色值（1.21.11）
+    EXPECT_EQ(MaterialColor::getById(MaterialColorId::GRASS).rgb(), 0x7FB238u);
+    EXPECT_EQ(MaterialColor::getById(MaterialColorId::WATER).rgb(), 0x4040FFu);
+    EXPECT_EQ(MaterialColor::getById(MaterialColorId::QUARTZ).rgb(), 0xFFFCF5u);
+    EXPECT_EQ(MaterialColor::getById(MaterialColorId::PURPLE).rgb(), 0x7F3FB2u);
+    EXPECT_EQ(MaterialColor::getById(MaterialColorId::CRIMSON_NYLIUM).rgb(), 0xBD3031u);
+    EXPECT_EQ(MaterialColor::getById(MaterialColorId::CRIMSON_STEM).rgb(), 0x943F61u);
+    EXPECT_EQ(MaterialColor::getById(MaterialColorId::WARPED_STEM).rgb(), 0x3A8E8Cu);
+    EXPECT_EQ(MaterialColor::getById(MaterialColorId::DEEPSLATE).rgb(), 0x646464u);
+    EXPECT_EQ(MaterialColor::getById(MaterialColorId::RAW_IRON).rgb(), 0xD8AF93u);
+    EXPECT_EQ(MaterialColor::getById(MaterialColorId::GLOW_LICHEN).rgb(), 0x7FA796u);
+}
+
+TEST_F(MaterialColorTest, VanillaIdEncodingRoundTrips)
+{
+    // vanilla 客户端按 byte = (id << 2) | brightness 解码，新增颜色必须沿用该编码
+    EXPECT_EQ(static_cast<u8>(MaterialColorId::DEEPSLATE), 59u);
+    EXPECT_EQ(static_cast<u8>(MaterialColorId::RAW_IRON), 60u);
+    EXPECT_EQ(static_cast<u8>(MaterialColorId::GLOW_LICHEN), 61u);
+    EXPECT_EQ(static_cast<u8>(MaterialColorId::COUNT), 62u);
+
+    const u8 pixel = static_cast<u8>(MaterialColorId::GLOW_LICHEN) * 4 + 2;
+    EXPECT_EQ(pixel >> 2, 61u);
+    EXPECT_EQ(pixel & 0x03, 2u);
+    EXPECT_EQ(MaterialColor::pixelToArgb(pixel),
+        MaterialColor::computeMapColor(static_cast<u8>(MaterialColorId::GLOW_LICHEN), 2));
+}
+
 TEST_F(MaterialColorTest, PixelToArgb)
 {
     // AIR 像素应该返回0（完全透明）

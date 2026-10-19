@@ -429,9 +429,8 @@ void registerColoredBlocks()
         &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:black_terracotta"), terracottaProps);
 
     // ========== 釉面陶瓦注册 (16色) ==========
-    // GlazedTerracottaBlock 带 HORIZONTAL_FACING 属性（可旋转、不可被活塞拉动）。
+    // GlazedTerracottaBlock 带 HORIZONTAL_FACING 属性，可被活塞推动并沿推动方向旋转。
     // 硬度/阻抗与普通陶瓦一致（vanilla 1.4 / 4.2），材质 ROCK。
-    // TODO: vanilla 釉面陶瓦不可被活塞推动（PistonBlockBehavior），项目活塞体系暂未区分，留待补全。
     BlockProperties glazedTerracottaProps = BlockProperties(Material::ROCK).hardness(1.4f).resistance(4.2f);
     ColoredBlocks::WHITE_GLAZED_TERRACOTTA = &registry.registerBlock<blocks::GlazedTerracottaBlock>(
         ResourceLocation("minecraft:white_glazed_terracotta"), glazedTerracottaProps);

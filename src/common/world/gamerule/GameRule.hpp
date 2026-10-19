@@ -40,10 +40,13 @@
 #pragma once
 
 #include "common/core/Types.hpp"
+#include "common/util/assert/AssertAll.hpp"
 #include <cstddef>
 #include <functional>
+#include <limits>
 #include <memory>
 #include <string>
+#include <type_traits>
 #include <utility>
 #include <variant>
 
@@ -53,6 +56,32 @@ class MinecraftServer;
 }
 
 namespace mc::world::gamerule {
+
+namespace detail {
+
+/// 无界规则的下界/上界（仅整型有意义；bool 返回 false）
+template <typename T>
+constexpr T _unboundedRuleMin()
+{
+    if constexpr (std::is_integral_v<T> && !std::is_same_v<T, bool>) {
+        return std::numeric_limits<T>::lowest();
+    } else {
+        return T{};
+    }
+}
+
+/// 无界规则的上界（仅整型有意义；bool 返回 false）
+template <typename T>
+constexpr T _unboundedRuleMax()
+{
+    if constexpr (std::is_integral_v<T> && !std::is_same_v<T, bool>) {
+        return std::numeric_limits<T>::max();
+    } else {
+        return T{};
+    }
+}
+
+} // namespace detail
 
 /**
  * @brief 游戏规则分类
@@ -155,20 +184,49 @@ private:
 template <typename T>
 class GameRuleType {
 public:
+    // 不设边界时的范围常量，供注册表构造无界规则使用（仅整型有意义）
+    inline static constexpr T UNBOUNDED_MIN = detail::_unboundedRuleMin<T>();
+    inline static constexpr T UNBOUNDED_MAX = detail::_unboundedRuleMax<T>();
+
     /**
      * @brief 构造规则类型
      * @param defaultValue 默认值
+     * @param minValue 允许的最小值（布尔与无界整型取越界常量）
+     * @param maxValue 允许的最大值（布尔与无界整型取越界常量）
      * @param changeListener 变更监听器（可选）
+     *
+     * vanilla 的布尔规则允许任意布尔值、整型规则在同一注册函数中携带各自的取值范围
+     * （如 maxCommandChainLength [0, 65536]、spawnRadius [0, ...]），故范围挂在规则类型上。
      */
-    GameRuleType(T defaultValue, GameRuleChangeListener<T> changeListener = nullptr)
+    GameRuleType(T defaultValue, T minValue, T maxValue, GameRuleChangeListener<T> changeListener = nullptr)
         : m_defaultValue(defaultValue)
+        , m_minValue(minValue)
+        , m_maxValue(maxValue)
         , m_changeListener(std::move(changeListener))
-    {}
+    {
+        MC_ASSERT_RELEASE_MSG(
+            m_minValue <= m_defaultValue && m_defaultValue <= m_maxValue, "Game rule default value out of range");
+    }
 
     /**
      * @brief 获取默认值
      */
     [[nodiscard]] T getDefaultValue() const noexcept { return m_defaultValue; }
+
+    /**
+     * @brief 获取允许的最小值
+     */
+    [[nodiscard]] T getMinValue() const noexcept { return m_minValue; }
+
+    /**
+     * @brief 获取允许的最大值
+     */
+    [[nodiscard]] T getMaxValue() const noexcept { return m_maxValue; }
+
+    /**
+     * @brief 值是否落在允许范围内（含边界）
+     */
+    [[nodiscard]] bool isValueInRange(T value) const noexcept { return m_minValue <= value && value <= m_maxValue; }
 
     /**
      * @brief 获取变更监听器
@@ -182,6 +240,8 @@ public:
 
 private:
     T m_defaultValue;
+    T m_minValue;
+    T m_maxValue;
     GameRuleChangeListener<T> m_changeListener;
 };
 

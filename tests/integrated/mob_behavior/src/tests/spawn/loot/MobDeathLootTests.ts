@@ -139,10 +139,10 @@ function zombieDropsItemsOnDeath(test: Test): void {
 function mobDeathDropsDisabledWhenDoMobLootFalse(test: Test): void {
   // 创造玩家执行管理命令（permLevel=4 ≥2）。doMobLoot 默认 true，显式设 false。
   const player = test.spawnSimulatedPlayer({ x: 3, y: 2, z: 3 }, "op");
-  player.chat("/gamerule doMobLoot false");
+  player.chat("/gamerule doMobLoot boolean false");
   // runOnFinish 恢复 true 防污染后续批次（doMobLoot 世界级跨测试持久化）。
   test.runOnFinish(() => {
-    player.chat("/gamerule doMobLoot true");
+    player.chat("/gamerule doMobLoot boolean true");
   });
 
   const cow = test.spawn("minecraft:cow", { x: 4, y: 2, z: 4 });

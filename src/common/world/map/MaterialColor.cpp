@@ -43,7 +43,7 @@ void MaterialColor::initialize()
         return;
     }
 
-    // RGB值与Minecraft 1.16.5 MaterialColor完全对应
+    // RGB 值与 vanilla 1.21.11 MapColor.MATERIAL_COLORS 逐项一致（id 即枚举值）
     s_colors[static_cast<size_t>(MaterialColorId::AIR)] = MaterialColor(MaterialColorId::AIR, 0x000000);
     s_colors[static_cast<size_t>(MaterialColorId::GRASS)] = MaterialColor(MaterialColorId::GRASS, 0x7FB238);
     s_colors[static_cast<size_t>(MaterialColorId::SAND)] = MaterialColor(MaterialColorId::SAND, 0xF7E9A3);
@@ -56,9 +56,9 @@ void MaterialColor::initialize()
     s_colors[static_cast<size_t>(MaterialColorId::CLAY)] = MaterialColor(MaterialColorId::CLAY, 0xA4A8B8);
     s_colors[static_cast<size_t>(MaterialColorId::DIRT)] = MaterialColor(MaterialColorId::DIRT, 0x976D4D);
     s_colors[static_cast<size_t>(MaterialColorId::STONE)] = MaterialColor(MaterialColorId::STONE, 0x707070);
-    s_colors[static_cast<size_t>(MaterialColorId::WATER)] = MaterialColor(MaterialColorId::WATER, 0x4040CF);
+    s_colors[static_cast<size_t>(MaterialColorId::WATER)] = MaterialColor(MaterialColorId::WATER, 0x4040FF);
     s_colors[static_cast<size_t>(MaterialColorId::WOOD)] = MaterialColor(MaterialColorId::WOOD, 0x8F7748);
-    s_colors[static_cast<size_t>(MaterialColorId::QUARTZ)] = MaterialColor(MaterialColorId::QUARTZ, 0xFFFFD5);
+    s_colors[static_cast<size_t>(MaterialColorId::QUARTZ)] = MaterialColor(MaterialColorId::QUARTZ, 0xFFFCF5);
     s_colors[static_cast<size_t>(MaterialColorId::ADOBE)] = MaterialColor(MaterialColorId::ADOBE, 0xD87F33);
 
     // 16种染料颜色
@@ -70,7 +70,7 @@ void MaterialColor::initialize()
     s_colors[static_cast<size_t>(MaterialColorId::GRAY)] = MaterialColor(MaterialColorId::GRAY, 0x4C4C4C);
     s_colors[static_cast<size_t>(MaterialColorId::LIGHT_GRAY)] = MaterialColor(MaterialColorId::LIGHT_GRAY, 0x999999);
     s_colors[static_cast<size_t>(MaterialColorId::CYAN)] = MaterialColor(MaterialColorId::CYAN, 0x4C7F99);
-    s_colors[static_cast<size_t>(MaterialColorId::PURPLE)] = MaterialColor(MaterialColorId::PURPLE, 0x7F66B2);
+    s_colors[static_cast<size_t>(MaterialColorId::PURPLE)] = MaterialColor(MaterialColorId::PURPLE, 0x7F3FB2);
     s_colors[static_cast<size_t>(MaterialColorId::BLUE)] = MaterialColor(MaterialColorId::BLUE, 0x334CB2);
     s_colors[static_cast<size_t>(MaterialColorId::BROWN)] = MaterialColor(MaterialColorId::BROWN, 0x664C33);
     s_colors[static_cast<size_t>(MaterialColorId::GREEN)] = MaterialColor(MaterialColorId::GREEN, 0x667F33);
@@ -82,7 +82,7 @@ void MaterialColor::initialize()
     s_colors[static_cast<size_t>(MaterialColorId::DIAMOND)] = MaterialColor(MaterialColorId::DIAMOND, 0x5CDBD5);
     s_colors[static_cast<size_t>(MaterialColorId::LAPIS)] = MaterialColor(MaterialColorId::LAPIS, 0x4A80FF);
     s_colors[static_cast<size_t>(MaterialColorId::EMERALD)] = MaterialColor(MaterialColorId::EMERALD, 0x00D93A);
-    s_colors[static_cast<size_t>(MaterialColorId::OBSIDIAN)] = MaterialColor(MaterialColorId::OBSIDIAN, 0x815E31);
+    s_colors[static_cast<size_t>(MaterialColorId::OBSIDIAN)] = MaterialColor(MaterialColorId::OBSIDIAN, 0x815631);
     s_colors[static_cast<size_t>(MaterialColorId::NETHERRACK)] = MaterialColor(MaterialColorId::NETHERRACK, 0x700200);
 
     // 16种陶瓦颜色
@@ -97,7 +97,7 @@ void MaterialColor::initialize()
     s_colors[static_cast<size_t>(MaterialColorId::YELLOW_TERRACOTTA)] =
         MaterialColor(MaterialColorId::YELLOW_TERRACOTTA, 0xBA8524);
     s_colors[static_cast<size_t>(MaterialColorId::LIME_TERRACOTTA)] =
-        MaterialColor(MaterialColorId::LIME_TERRACOTTA, 0x677521);
+        MaterialColor(MaterialColorId::LIME_TERRACOTTA, 0x677535);
     s_colors[static_cast<size_t>(MaterialColorId::PINK_TERRACOTTA)] =
         MaterialColor(MaterialColorId::PINK_TERRACOTTA, 0xA04D4E);
     s_colors[static_cast<size_t>(MaterialColorId::GRAY_TERRACOTTA)] =
@@ -109,35 +109,35 @@ void MaterialColor::initialize()
     s_colors[static_cast<size_t>(MaterialColorId::PURPLE_TERRACOTTA)] =
         MaterialColor(MaterialColorId::PURPLE_TERRACOTTA, 0x7A4958);
     s_colors[static_cast<size_t>(MaterialColorId::BLUE_TERRACOTTA)] =
-        MaterialColor(MaterialColorId::BLUE_TERRACOTTA, 0x4C3E51);
+        MaterialColor(MaterialColorId::BLUE_TERRACOTTA, 0x4C3E5C);
     s_colors[static_cast<size_t>(MaterialColorId::BROWN_TERRACOTTA)] =
         MaterialColor(MaterialColorId::BROWN_TERRACOTTA, 0x4C3223);
     s_colors[static_cast<size_t>(MaterialColorId::GREEN_TERRACOTTA)] =
         MaterialColor(MaterialColorId::GREEN_TERRACOTTA, 0x4C522A);
     s_colors[static_cast<size_t>(MaterialColorId::RED_TERRACOTTA)] =
-        MaterialColor(MaterialColorId::RED_TERRACOTTA, 0x8E3D2E);
+        MaterialColor(MaterialColorId::RED_TERRACOTTA, 0x8E3C2E);
     s_colors[static_cast<size_t>(MaterialColorId::BLACK_TERRACOTTA)] =
         MaterialColor(MaterialColorId::BLACK_TERRACOTTA, 0x251610);
 
     // 下界1.16新增颜色
     s_colors[static_cast<size_t>(MaterialColorId::CRIMSON_NYLIUM)] =
-        MaterialColor(MaterialColorId::CRIMSON_NYLIUM, 0xBD5851);
+        MaterialColor(MaterialColorId::CRIMSON_NYLIUM, 0xBD3031);
     s_colors[static_cast<size_t>(MaterialColorId::CRIMSON_STEM)] =
-        MaterialColor(MaterialColorId::CRIMSON_STEM, 0x94654D);
+        MaterialColor(MaterialColorId::CRIMSON_STEM, 0x943F61);
     s_colors[static_cast<size_t>(MaterialColorId::CRIMSON_HYPHAE)] =
-        MaterialColor(MaterialColorId::CRIMSON_HYPHAE, 0x5C2B3D);
+        MaterialColor(MaterialColorId::CRIMSON_HYPHAE, 0x5C191D);
     s_colors[static_cast<size_t>(MaterialColorId::WARPED_NYLIUM)] =
         MaterialColor(MaterialColorId::WARPED_NYLIUM, 0x167E86);
-    s_colors[static_cast<size_t>(MaterialColorId::WARPED_STEM)] = MaterialColor(MaterialColorId::WARPED_STEM, 0x3A8F8C);
+    s_colors[static_cast<size_t>(MaterialColorId::WARPED_STEM)] = MaterialColor(MaterialColorId::WARPED_STEM, 0x3A8E8C);
     s_colors[static_cast<size_t>(MaterialColorId::WARPED_HYPHAE)] =
-        MaterialColor(MaterialColorId::WARPED_HYPHAE, 0x563B4E);
+        MaterialColor(MaterialColorId::WARPED_HYPHAE, 0x562C3E);
     s_colors[static_cast<size_t>(MaterialColorId::WARPED_WART)] = MaterialColor(MaterialColorId::WARPED_WART, 0x14B485);
 
-    // TODO: 上述 RGB 值整体参考 Minecraft 1.16.5 MaterialColor（见 line 46 注释）。Cubium 目标对齐
-    // Java 1.21.11，1.20.5+ 对部分 mapColor 做过调整（如 grass/foliage/water 系列微调），须逐色核对
-    // 1.21.11 MaterialColors.java 迁移。当前值可保证地图不渲染为纯黑（接入 initialize 修复的核心缺陷），
-    // 但与 1.21.11 vanilla 存在颜色偏差。因 MapRenderer 是客户端渲染路径，GameTest 服务端无头无法集成
-    // 测试验证，须靠像素级人工核对。
+    // 1.21.11 新增颜色
+    s_colors[static_cast<size_t>(MaterialColorId::DEEPSLATE)] = MaterialColor(MaterialColorId::DEEPSLATE, 0x646464);
+    s_colors[static_cast<size_t>(MaterialColorId::RAW_IRON)] = MaterialColor(MaterialColorId::RAW_IRON, 0xD8AF93);
+    s_colors[static_cast<size_t>(MaterialColorId::GLOW_LICHEN)] = MaterialColor(MaterialColorId::GLOW_LICHEN, 0x7FA796);
+
     s_initialized = true;
 }
 

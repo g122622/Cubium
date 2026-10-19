@@ -80,5 +80,15 @@ const BlockState& GlazedTerracottaBlock::mirror(const BlockState& state, Mirror 
     return state.with(BlockStateProperties::HORIZONTAL_FACING(), newFacing);
 }
 
+const BlockState& GlazedTerracottaBlock::getStateForMovement(const BlockState& state, Direction pushDirection) const
+{
+    // 推动方向与被推动方块朝向同轴时顺时针转 90°；垂直推动保持朝向不变，此时返回原状态对象。
+    Direction facing = state.get(BlockStateProperties::HORIZONTAL_FACING());
+    if (Directions::getAxis(pushDirection) != Directions::getAxis(facing)) {
+        return state;
+    }
+    return rotate(state, Rotation::Clockwise90);
+}
+
 } // namespace blocks
 } // namespace mc

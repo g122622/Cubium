@@ -2177,6 +2177,30 @@ const Player* ServerWorld::getClosestPlayer(const Vector3& pos, f32 maxDistance,
     return closestPlayer;
 }
 
+bool ServerWorld::anyPlayerCloseEnoughTo(const BlockPos& pos, i32 radius) const
+{
+    // 以方块坐标（而非中心点）为原点，距离严格小于 radius；旁观者不计入
+    const Vector3 origin = pos.toVector3();
+    for (const Entity* entity : m_entityManager.getPlayers()) {
+        // 玩家专表只存玩家实体；类型转换失败说明实体表被破坏，断言后跳过以免解引用空指针
+        const Player* player = dynamic_cast<const Player*>(entity);
+        MC_ASSERT_RELEASE(player != nullptr);
+        if (player == nullptr) {
+            continue;
+        }
+
+        if (player->isSpectator()) {
+            continue;
+        }
+
+        if (player->position().distance(origin) < static_cast<f32>(radius)) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
 f64 ServerWorld::getClosestPlayerDistanceSq(const Vector3& pos) const
 {
     f64 closestDistSq = std::numeric_limits<f64>::max();
@@ -2769,6 +2793,11 @@ Difficulty ServerWorld::difficulty() const
 bool ServerWorld::isPvpAllowed() const
 {
     return m_gameRules.getBoolean(world::gamerule::GameRuleKeys::PVP);
+}
+
+bool ServerWorld::doFireTick() const
+{
+    return m_gameRules.getBoolean(world::gamerule::GameRuleKeys::DO_FIRE_TICK);
 }
 
 i32 ServerWorld::getMinBuildHeight() const noexcept

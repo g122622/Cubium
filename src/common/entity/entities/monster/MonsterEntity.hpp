@@ -76,6 +76,14 @@ public:
 
     [[nodiscard]] sound::SoundCategory getSoundCategory() const override { return sound::SoundCategory::Hostile; }
 
+    /**
+     * @brief 怪物恒可掉落经验
+     *
+     * 对齐 vanilla Monster.shouldDropExperience 恒返回 true：基类的 `!isChild()` 会让幼年
+     * 敌对生物（僵尸幼体、苦力怕幼体等）不掉经验，与原版不符。
+     */
+    [[nodiscard]] bool shouldDropExperience() const override { return true; }
+
     // 禁止拷贝
     MonsterEntity(const MonsterEntity&) = delete;
     MonsterEntity& operator=(const MonsterEntity&) = delete;

@@ -32,7 +32,7 @@
  * - ItemFrameItem：侧面放置生成展示框、贴顶/底面失败、荧光变体标记
  * - SpyglassItem：UseAction::Spyglass、使用时长 1200
  * - GoatHornItem：UseAction::TootHorn、使用时长 140、8 音色变体
- * - TadpoleEntity：实体注册、桶物品、音效、成长计时
+ * - TadpoleEntity：实体注册、桶物品、音效、成长计时、死亡不掉经验
  * - LivingEntity 不死图腾死亡保护：持图腾不死、消耗图腾、无图腾正常死亡、BYPASSES_INVULNERABILITY 不被救
  */
 
@@ -506,6 +506,14 @@ TEST_F(TadpoleEntityTest, GrowthTimer)
     tadpole.ageUp(1); // +20 tick
     EXPECT_EQ(tadpole.getAge(), 20);
     EXPECT_EQ(tadpole.getTicksLeftUntilAdult(), TadpoleEntity::TICKS_TO_BE_FROG - 20);
+}
+
+TEST_F(TadpoleEntityTest, NeverDropsExperience)
+{
+    // 对齐 vanilla Tadpole.shouldDropExperience 恒返回 false：蝌蚪被玩家击杀也不掉经验，
+    // 同时也不向幽匿催化剂提供经验（其同样以 shouldDropExperience 为准）
+    TadpoleEntity tadpole(EntityInstanceId(1), mc::test::testEcsRegistry());
+    EXPECT_FALSE(tadpole.shouldDropExperience());
 }
 
 TEST_F(TadpoleEntityTest, Sounds)

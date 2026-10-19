@@ -46,7 +46,7 @@ namespace mc {
 namespace item::items {
 
 EnderEyeItem::EnderEyeItem(ItemProperties properties)
-    : Item(std::move(properties))
+    : Item(properties)
 {}
 
 ActionResultType EnderEyeItem::onItemUse(ItemUseContext& context)
@@ -125,9 +125,13 @@ ActionResultType EnderEyeItem::onItemUse(ItemUseContext& context)
                 for (i32 i = 0; i < 3; ++i) {
                     for (i32 j = 0; j < 3; ++j) {
                         const BlockPos portalPos = match->getBlock(1 + i, 1 + j, 0).pos();
-                        // TODO: 对齐 MC Java level.destroyBlock(portalPos, true, null) —
-                        //   放置 END_PORTAL 前需先销毁该位置的方块（掉落物 + 移除）。
-                        //   Cubium 目前缺少 destroyBlock 等价接口，暂直接覆盖放置。
+                        // 等价原版 level.destroyBlock(portalPos, true, null)：先掉落原方块的资源
+                        // （含 spawnAfterBreak 额外效果），再写入传送门方块。原版 destroyBlock 对空气
+                        // 与不可破坏方块返回 false 且不产生掉落，这里同样跳过。
+                        const BlockState* existingState = world.getBlockState(portalPos);
+                        if (existingState != nullptr && !existingState->isAir() && existingState->hardness() >= 0.0f) {
+                            Block::dropResources(world, portalPos, *existingState);
+                        }
                         world.setBlockState(portalPos, endPortalState, world::BlockUpdateFlags::UPDATE_CLIENTS);
                     }
                 }

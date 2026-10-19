@@ -139,6 +139,27 @@ public:
     [[nodiscard]] static Direction getFacing(const BlockState& state) noexcept;
 
     /**
+     * @brief 获取按钮附着的方块方向（附面方向）
+     *
+     * 地板按钮附在上方方块（Up），天花板按钮附在下方方块（Down），墙按钮附在 FACING 方向。
+     * 该方向与 getConnectedDirection().opposite() 等价。
+     *
+     * @param state 方块状态
+     * @return 附着方向
+     */
+    [[nodiscard]] static Direction getAttachDirection(const BlockState& state) noexcept;
+
+    /**
+     * @brief 获取按钮信号输出所面向的方向（原版 getConnectedDirection）
+     *
+     * 与附着方向相反：地板按钮输出到 Up，天花板按钮输出到 Down，墙按钮输出到 FACING 的反方向。
+     *
+     * @param state 方块状态
+     * @return 输出方向
+     */
+    [[nodiscard]] static Direction getOutputDirection(const BlockState& state) noexcept;
+
+    /**
      * @brief 按下按钮
      *
      * @param world 世界引用
@@ -173,9 +194,8 @@ protected:
      *
      * @param world 世界引用
      * @param pos 方块位置
-     * @param facing 附着方向
      */
-    void notifyNeighbors(IWorld& world, const BlockPos& pos, Direction facing);
+    void notifyNeighbors(IWorld& world, const BlockPos& pos);
 };
 
 } // namespace blocks

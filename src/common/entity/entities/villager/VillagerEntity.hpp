@@ -642,6 +642,10 @@ public:
      */
     void setLlamaCount(i32 count) { m_llamaCount = count; }
 
+    // TODO: 以下羊驼字段与 spawnLlamas() 目前无调用方：流浪商人自然生成器
+    //   尚未实现，需新增 WanderingTraderSpawner（按原版周期在玩家附近随机地点生成，
+    //   生成时设置 llamaCount=2 并调用 spawnLlamas()，商人消失时联动羊驼）后接入。
+
     /**
      * @brief 获取游荡目标位置
      */

@@ -8,6 +8,8 @@
 #include <filesystem>
 #include <fstream>
 #include <future>
+#include <memory>
+#include <optional>
 #include <thread>
 #include <gtest/gtest.h>
 
@@ -212,6 +214,61 @@ TEST_F(SingleLevelStorageManagerTest, AsyncLoadPreparesHeightmapsBeforeCallback)
     mc::world::chunk::ChunkPrimer primer(std::make_unique<ChunkData>(std::move(*result.value())));
     EXPECT_EQ(
         primer.getHeightmapFirstAvailable(HeightmapType::WorldSurface, 2, 7), world::sectionToY(sectionIndex) + 6);
+    storage.close();
+}
+
+TEST_F(SingleLevelStorageManagerTest, AsyncLoadAfterSaveReadsSavedDataWithSingleIoThread)
+{
+    VanillaBlocks::initialize();
+    // 单线程 IO 池：保存与加载共用，若加载在池线程内阻塞等待保存会直接死锁
+    util::UniversalWorkerPool ioPool(1, "SaveThenLoadIO", 911);
+    util::UniversalWorkerPool computePool(1, "SaveThenLoadCompute", 912);
+    SingleLevelStorageManager storage;
+    SingleLevelStorageConfig config;
+    ASSERT_TRUE(storage.open(testDir, config).success());
+    storage.setIoWorkerPool(&ioPool);
+    storage.setComputeWorkerPool(&computePool);
+    ioPool.start();
+    computePool.start();
+
+    auto chunk = std::make_shared<ChunkData>(5, -6);
+    const i32 sectionIndex = world::toSectionIndex(64);
+    chunk->createSection(sectionIndex)->setBlockState(2, 5, 7, &VanillaBlocks::STONE->defaultState());
+    chunk->setLoaded(true);
+    chunk->setFullyGenerated(true);
+
+    // 保存尚未完成就立刻发起同区块的异步加载
+    std::promise<bool> saveDone;
+    auto saveFuture = saveDone.get_future();
+    storage.saveChunkAsyncCallback(
+        chunk, 0, [&saveDone](std::optional<ChunkPos>, Result<void> result) { saveDone.set_value(result.success()); });
+
+    std::promise<Result<std::optional<ChunkData>>> loadDone;
+    auto loadFuture = loadDone.get_future();
+    storage.loadChunkAsyncCallback(
+        5,
+        -6,
+        0,
+        [&loadDone](ChunkCoord, ChunkCoord, DimensionId, Result<std::optional<ChunkData>> result) {
+            loadDone.set_value(std::move(result));
+        },
+        nullptr,
+        util::TaskPriority::Normal);
+
+    ASSERT_EQ(saveFuture.wait_for(std::chrono::seconds(10)), std::future_status::ready);
+    EXPECT_TRUE(saveFuture.get());
+    ASSERT_EQ(loadFuture.wait_for(std::chrono::seconds(10)), std::future_status::ready);
+    auto result = loadFuture.get();
+    ASSERT_TRUE(result.success()) << result.error().message();
+    ASSERT_TRUE(result.value().has_value());
+    const ChunkSection* loaded = result.value()->getSection(sectionIndex);
+    ASSERT_NE(loaded, nullptr);
+    const BlockState* blockState = loaded->getBlockState(2, 5, 7);
+    ASSERT_NE(blockState, nullptr);
+    EXPECT_EQ(blockState->blockId(), VanillaBlocks::STONE->defaultState().blockId());
+
+    ioPool.shutdown();
+    computePool.shutdown();
     storage.close();
 }
 
@@ -677,6 +734,55 @@ TEST_F(SingleLevelStorageManagerTest, ReadonlySaveOperationsAreSilentAndDoNotPer
     ASSERT_TRUE(loadResult.success());
     EXPECT_FALSE(loadResult.value().has_value());
     reopened.close();
+}
+
+TEST_F(SingleLevelStorageManagerTest, SaveChunkAsyncCallbackReportsUnknownPositionForNullChunk)
+{
+    SingleLevelStorageManager storage;
+    SingleLevelStorageConfig config;
+    auto result = storage.open(testDir, config);
+    ASSERT_TRUE(result.success()) << result.error().message();
+
+    // 空区块没有真实坐标：回调必须回传空坐标而不是伪造的 (0, 0)
+    bool called = false;
+    std::optional<ChunkPos> reportedPos = ChunkPos(1, 1);
+    storage.saveChunkAsyncCallback(nullptr, 0, [&](std::optional<ChunkPos> pos, Result<void> saveResult) {
+        called = true;
+        reportedPos = pos;
+        ASSERT_TRUE(saveResult.failed());
+        EXPECT_EQ(saveResult.error().code(), ErrorCode::InvalidArgument);
+    });
+
+    EXPECT_TRUE(called);
+    EXPECT_FALSE(reportedPos.has_value());
+    storage.close();
+}
+
+TEST_F(SingleLevelStorageManagerTest, SaveChunkAsyncCallbackReportsChunkPosition)
+{
+    SingleLevelStorageManager storage;
+    SingleLevelStorageConfig config;
+    auto result = storage.open(testDir, config);
+    ASSERT_TRUE(result.success()) << result.error().message();
+
+    auto chunk = std::make_shared<ChunkData>(3, -4);
+    bool called = false;
+    std::optional<ChunkPos> reportedPos;
+    storage.saveChunkAsyncCallback(chunk, 0, [&](std::optional<ChunkPos> pos, Result<void> saveResult) {
+        called = true;
+        reportedPos = pos;
+        EXPECT_TRUE(saveResult.success()) << saveResult.error().message();
+    });
+
+    EXPECT_TRUE(called);
+    if (!reportedPos.has_value()) {
+        ADD_FAILURE() << "save callback did not report a position";
+        storage.close();
+        return;
+    }
+    EXPECT_EQ(reportedPos->x, 3);
+    EXPECT_EQ(reportedPos->z, -4);
+    storage.close();
 }
 
 TEST_F(SingleLevelStorageManagerTest, CloseDoesNotPersistLevelDataWithoutExplicitSave)

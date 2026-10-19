@@ -38,6 +38,7 @@
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/block/BlockState.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/dimension/end/EndDragonFight.hpp"
 #include <memory>
 
 namespace mc {
@@ -101,8 +102,12 @@ ActionResultType EndCrystalItem::onItemUse(ItemUseContext& context)
         }
         world.spawnEntity(std::move(crystal));
 
-        // TODO: 末影龙战斗系统接入后调用 EndDragonFight::tryRespawn()（对齐 vanilla
-        //   EndCrystalItem#useOn 末尾的 ((ServerLevel)level).getDragonFight().tryRespawn()）。
+        // 放置水晶后尝试触发末影龙重生（原版 EndCrystalItem.useOn 末尾
+        // ((ServerLevel)level).getDragonFight().tryRespawn()）：仅在龙已死亡且未在重生中、
+        // 且出口传送门四向 2 格外都有水晶时启动重生序列，其余情况 tryRespawn 内部直接返回。
+        if (auto* dragonFight = world.dragonFight()) {
+            dragonFight->tryRespawn(world);
+        }
     }
 
     // 消耗物品（创造模式由外层统一处理）

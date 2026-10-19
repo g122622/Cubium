@@ -310,6 +310,23 @@ TEST_F(VillagerEntityTest, Remove_ReleasesPOI)
     EXPECT_TRUE(m_villager->isRemoved());
 }
 
+TEST_F(VillagerEntityTest, Remove_UnloadedToChunk_KeepsPOI)
+{
+    // 区块卸载（UnloadedToChunk）属于保留类移除原因：村民重新加载后应仍持有原 POI，
+    // 因此 onRemoval 不得释放 POI（对齐 vanilla remove() 不重写、卸载不释放 POI 的语义）。
+    auto& poiStorage = m_world->villageManager()->getPOIStorage();
+    BlockPos bedPos(5, 64, 5);
+    ASSERT_TRUE(poiStorage.registerPOI(bedPos, world::village::poi::PointOfInterestType::BedRed));
+    ASSERT_TRUE(poiStorage.acquirePOI(bedPos, 1, 100));
+
+    m_villager->remove(RemovalReason::UnloadedToChunk);
+
+    EXPECT_TRUE(m_villager->isRemoved());
+    const auto* poi = poiStorage.getPOI(bedPos);
+    ASSERT_NE(poi, nullptr);
+    EXPECT_TRUE(poi->isOccupied());
+}
+
 TEST_F(VillagerEntityTest, Remove_Idempotent_DoubleCallSafe)
 {
     // 注册 POI 并让村民占用

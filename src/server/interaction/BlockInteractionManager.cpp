@@ -64,6 +64,7 @@
 #include "server/core/OpListManager.hpp"
 #include "server/core/PlayerManager.hpp"
 #include "server/core/ServerPlayerData.hpp"
+#include "server/dimension/ServerDimensionManager.hpp"
 #include "server/player/ServerPlayer.hpp"
 #include "server/world/ServerWorld.hpp"
 #include "server/world/drop/BlockDropHandler.hpp"
@@ -192,11 +193,25 @@ bool BlockInteractionManager::_anyHandHasItem(PlayerId playerId) const noexcept
 
 Player* BlockInteractionManager::_getPlayerEntity(PlayerId playerId, ServerWorld& world) const noexcept
 {
+    (void)world;
     if (m_server == nullptr) {
         return nullptr;
     }
 
-    return m_server->playerEntityManager().getPlayerEntity(playerId, world);
+    // 玩家实体只存在于其所在维度的 EntityManager 中：玩家仍停留在 A 维度而方块交互被派发到
+    // B 维度时，用目标世界查找必然失败，进而退化到占位 Player（缺少真实物品栏/游戏模式）。
+    // 因此先按玩家所在维度取世界，再在该世界查找实体。玩家未注册维度时退回目标世界，
+    // 保证 SimulatedPlayer 等不经过维度注册的场景仍可解析。
+    auto& dimensionManager = m_server->dimensionManager();
+    const DimensionId playerDimensionId = dimensionManager.getPlayerDimension(playerId);
+    ServerWorld* searchWorld = &world;
+    if (playerDimensionId >= 0) {
+        ServerDimension* playerDimension = dimensionManager.getDimension(playerDimensionId);
+        if (playerDimension != nullptr && playerDimension->world() != nullptr) {
+            searchWorld = playerDimension->world();
+        }
+    }
+    return m_server->playerEntityManager().getPlayerEntity(playerId, *searchWorld);
 }
 
 u32 BlockInteractionManager::_setBlockToAir(
@@ -560,9 +575,10 @@ std::optional<BlockUseResult> BlockInteractionManager::_dispatchBlockUse(PlayerI
             return withItem ? block->useItemOn(authoritative, *state, world, pos, *realPlayer, hand, hitResult)
                             : block->useWithoutItem(*state, world, pos, *realPlayer, hitResult);
         }
-        // 回退路径：无法获取真实玩家实体时使用临时 Player（保持向后兼容）
-        // ECS 迁移：占位 Player 构造需要 registry 句柄，此处无 world 上下文故配静态 registry。
-        // TODO: 占位 Player 是临时方案，后续应重构为不构造完整 Player。
+        // 回退路径：玩家实体在维度管理器中不可解析时使用临时 Player，保证方块交互不中断。
+        // ECS 迁移：占位 Player 构造需要 registry 句柄，此处无世界上下文故配静态 registry。
+        // TODO: 占位 Player 是临时方案，后续应重构为不构造完整 Player；正常在线玩家经
+        //   _getPlayerEntity 按所在维度解析后不会走到这里。
         static ecs::EntityRegistry s_interactionPlayerRegistry{"block-interaction"};
         Player interactionPlayer(playerId, playerData->username, s_interactionPlayerRegistry);
         return withItem ? block->useItemOn(authoritative, *state, world, pos, interactionPlayer, hand, hitResult)

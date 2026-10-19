@@ -207,9 +207,40 @@ void AbstractButtonBlock::tick(IWorld& world, const BlockPos& pos, BlockState& s
         playClickSound(world, pos, false);
 
         // 通知相邻方块更新
-        Direction facing = getFacing(state);
-        notifyNeighbors(world, pos, facing);
+        notifyNeighbors(world, pos);
     }
+}
+
+namespace {
+
+/// 按钮按下时的弱信号强度（原版按钮按下输出 15）
+constexpr i32 BUTTON_SIGNAL_POWER = 15;
+
+/// 判断查询方向是否与按钮输出方向一致
+bool _isSignalSide(const BlockState& state, Direction side)
+{
+    return side != Direction::None && side == AbstractButtonBlock::getOutputDirection(state);
+}
+
+} // namespace
+
+Direction AbstractButtonBlock::getAttachDirection(const BlockState& state) noexcept
+{
+    const AttachFace attachFace = state.get(BlockStateProperties::ATTACH_FACE());
+    switch (attachFace) {
+        case AttachFace::Ceiling:
+            return Direction::Up;
+        case AttachFace::Floor:
+            return Direction::Down;
+        case AttachFace::Wall:
+        default:
+            return getFacing(state);
+    }
+}
+
+Direction AbstractButtonBlock::getOutputDirection(const BlockState& state) noexcept
+{
+    return Directions::opposite(getAttachDirection(state));
 }
 
 i32 AbstractButtonBlock::getWeakPower(
@@ -217,10 +248,13 @@ i32 AbstractButtonBlock::getWeakPower(
 {
     MC_UNUSED(world);
     MC_UNUSED(pos);
-    MC_UNUSED(side);
 
-    // 按钮按下时向所有方向输出弱信号
-    return isPowered(state) ? world::redstone::RedstonePower::MAX_POWER : 0;
+    // 按钮是非导体信号源：仅向附着面相反方向（输出方向）提供强度 15 的弱信号，
+    // 其他方向以及 off 状态一律为 0。
+    if (!isPowered(state) || !_isSignalSide(state, side)) {
+        return 0;
+    }
+    return BUTTON_SIGNAL_POWER;
 }
 
 i32 AbstractButtonBlock::getStrongPower(
@@ -228,13 +262,11 @@ i32 AbstractButtonBlock::getStrongPower(
 {
     MC_UNUSED(world);
     MC_UNUSED(pos);
+    MC_UNUSED(state);
     MC_UNUSED(side);
 
-    // 基岩版红石语义：按钮按下时向所有方向输出强信号（基岩红石是方块充能模型，
-    // 不区分 attach face 的方向性强输出）。minecraft-gametests 行为包的 floor 按钮
-    // 需激活水平相邻的红石线，故此处全向输出 MAX_POWER。
-    // TODO: Java 红石体系就绪后，按 attachFace/facing 精确输出（仅 outputDir 方向）。
-    return isPowered(state) ? world::redstone::RedstonePower::MAX_POWER : 0;
+    // 按钮不提供强信号，不能充能相邻导体
+    return 0;
 }
 
 const CollisionShape& AbstractButtonBlock::getShape(const BlockState& state) const
@@ -296,8 +328,7 @@ void AbstractButtonBlock::press(IWorld& world, const BlockPos& pos, const BlockS
     playClickSound(world, pos, true);
 
     // 通知相邻方块更新
-    Direction facing = getFacing(state);
-    notifyNeighbors(world, pos, facing);
+    notifyNeighbors(world, pos);
 
     // 调度弹起
     world.tickManager().scheduleBlockTick(pos, *this, m_ticksToStayPressed, world::tick::TickPriority::High);
@@ -309,34 +340,25 @@ bool AbstractButtonBlock::canAttachToFace(Direction facing) const
     return Directions::isHorizontal(facing);
 }
 
-void AbstractButtonBlock::notifyNeighbors(IWorld& world, const BlockPos& pos, Direction facing)
+void AbstractButtonBlock::notifyNeighbors(IWorld& world, const BlockPos& pos)
 {
-    // 获取按钮输出方向
     const BlockState* state = world.getBlockState(pos);
-    if (!state) {
+    if (state == nullptr) {
         return;
     }
 
-    // 基岩版红石语义：按钮 press 后向所有 6 向相邻方块输出红石信号（基岩红石是方块充能模型，
-    // 不区分 attach face 的方向性输出，区别于 Java 按钮仅向 outputDir + supportDir 输出）。
-    // minecraft-gametests 行为包的按钮结构（如 clone_command 的 floor 按钮 fd=1）据此设计：
-    // floor 按钮需激活水平相邻的红石线以触发命令方块。项目 Java 红石完整实现尚未就绪，
-    // 此处采用基岩语义以打通 GameTest；Java 语义对齐留待红石体系完善时处理。
-    // TODO: Java 红石体系就绪后，按 attachFace/facing 精确输出（outputDir + supportDir）。
-    static const std::array<Direction, 6> kAllDirections = {
-        Direction::Down, Direction::Up, Direction::North, Direction::South, Direction::West, Direction::East};
+    // 按钮状态变化只影响信号输出方向上的方块（例如输出方向的红石线）及其附着侧方块
+    // （附着方块可能因红石线连接形状变化而需要更新），与其余四个方向无关。
+    const Direction outputDirection = getOutputDirection(*state);
+    const std::array<Direction, 2> affectedDirections = {outputDirection, getAttachDirection(*state)};
 
-    for (Direction dir : kAllDirections) {
-        BlockPos neighborPos = pos.offset(dir);
+    for (const Direction dir : affectedDirections) {
+        const BlockPos neighborPos = pos.offset(dir);
         const BlockState* neighborState = world.getBlockState(neighborPos);
-        if (neighborState && !neighborState->isAir()) {
-            Block& neighborBlock = neighborState->getBlockMutable();
-            neighborBlock.neighborChanged(world, neighborPos, *this, pos, false);
+        if (neighborState != nullptr && !neighborState->isAir()) {
+            neighborState->getBlockMutable().neighborChanged(world, neighborPos, *this, pos, false);
         }
     }
-
-    // 保留 facing 参数引用（基岩语义下不依赖 facing，但签名保留以兼容调用方）
-    MC_UNUSED(facing);
 }
 
 } // namespace blocks

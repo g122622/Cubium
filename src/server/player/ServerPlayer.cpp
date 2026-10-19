@@ -1325,7 +1325,11 @@ void ServerPlayer::die(DamageSource& cause)
     // PLAYER_KILLS/MOB_KILLS 统计（见 ServerPlayer::awardKillScore）。
     // createWitherRose（LivingEntity.java:1453）已由基类 LivingEntity::die 在
     //   killedEntity 守卫内调用（ServerPlayer 走同一 die 链路），此处无需重复。
-    // TODO: awardStat(ENTITY_KILLED_BY)——"被实体击杀"统计，待 ENTITY_KILLED_BY 常量补全后接入。
+    // awardStat(ENTITY_KILLED_BY)：原版按击杀者实体类型计入 minecraft.killed_by:<entity_type>
+    // （Stats.ENTITY_KILLED_BY.get(livingentity.getType())）。
+    if (LivingEntity* killCredit = getKillCredit(); killCredit != nullptr) {
+        m_statistics.incrementKilledBy(ResourceLocation(killCredit->getTypeId()));
+    }
 
     // 8. broadcastEntityState((byte)3) 已由 LivingEntity::die 处理（ServerPlayer.java:929 在基类处理）
 
@@ -1336,9 +1340,10 @@ void ServerPlayer::die(DamageSource& cause)
     m_statistics.reset(server::stats::StatType::Custom, ResourceLocation(stats::TIME_SINCE_REST));
 
     // 10. clearFire() + setTicksFrozen(0) + setSharedFlagOnFire(false)（ServerPlayer.java:933-935）
-    //     clearFire 已由 Player::die 处理；此处补充冰冻重置。
+    //     clearFire 已由 Player::die 处理；此处补充冰冻重置与共享标志清除。
     setTicksFrozen(0);
-    // TODO: setSharedFlagOnFire(false) — Cubium 无 setSharedFlag，等价 removeFlag(EntityFlags::OnFire)。
+    // Cubium 以实体标志位等价原版 setSharedFlagOnFire(false)：清除客户端可见的着火标志。
+    removeFlag(EntityFlags::OnFire);
 
     // 11. getCombatTracker().recheckStatus()（ServerPlayer.java:936）
     combatTracker().recheckStatus();

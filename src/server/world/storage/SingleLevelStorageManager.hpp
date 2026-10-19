@@ -42,6 +42,7 @@
 #include "server/world/storage/player/PlayerSaveData.hpp"
 #include "server/world/storage/section/SectionManager.hpp"
 #include "server/world/storage/snapshot/BackupManager.hpp"
+#include "server/world/storage/task/StorageTask.hpp"
 #include "server/world/storage/task/StorageTaskManager.hpp"
 #include <atomic>
 #include <filesystem>
@@ -101,6 +102,31 @@ struct SingleLevelStorageConfig {
  * 该类不负责存档发现、世界列表和目录选择；
  * 这类跨存档能力应由 `GlobalStorageManager` 负责。
  */
+/**
+ * @brief 一次进行中的区块卸载保存
+ *
+ * 作为保存任务的句柄在完成时移除追踪表中的条目：owner 的标识与表中的条目比对，
+ * 确保只移除本次保存的条目（同一区块可能已被新的保存覆盖），随后唤醒等待该区块读盘的加载任务。
+ */
+struct PendingChunkSave {
+    /// 区块坐标按 (x, z, dimension) 记录；读盘任务以同样的键登记等待
+    struct Owner {
+        ChunkCoord x = 0;
+        ChunkCoord z = 0;
+        DimensionId dimension = 0;
+    };
+
+    std::shared_ptr<const Owner> owner;
+
+    [[nodiscard]] bool empty() const noexcept { return owner == nullptr; }
+};
+
+/// 追踪表中等待某个区块保存结束后再读盘的加载任务
+struct PendingChunkSaveEntry {
+    std::shared_ptr<const PendingChunkSave::Owner> save;
+    std::vector<std::unique_ptr<StorageTask>> waiters;
+};
+
 class SingleLevelStorageManager {
     friend class mc::scoreboard::ScoreboardDataManager;
 
@@ -258,12 +284,14 @@ public:
      *
      * @param chunk 区块数据（共享所有权，保存期间不可变）
      * @param dimension 目标维度
-     * @param callback 完成回调（ServerIO 线程；无池降级时为调用线程）
+     * @param callback 完成回调（ServerIO 线程；无池降级时为调用线程）。参数为
+     *        保存失败区块的坐标与结果；入参为空区块时没有可用的真实坐标，
+     *        第一个参数为空 optional，调用方应据此区分"坐标未知的失败"
      * @param priority 任务优先级，传播到 ServerIO 线程池任务
      */
     void saveChunkAsyncCallback(std::shared_ptr<const ChunkData> chunk,
         DimensionId dimension,
-        std::function<void(ChunkCoord, ChunkCoord, Result<void>)> callback,
+        std::function<void(std::optional<ChunkPos>, Result<void>)> callback,
         util::TaskPriority priority = util::TaskPriority::Normal);
 
     /**
@@ -478,14 +506,18 @@ private:
         util::TaskPriority priority = util::TaskPriority::Normal);
 
     /// 注册一个进行中的区块卸载保存（saveChunkAsyncCallback 调用）。
-    /// 返回该保存的完成 promise（shared_ptr），由调用方持有并在保存完成时 set_value()。
-    /// 后续对同一区块的 loadChunkAsync 在读盘前会 _waitPendingChunkSave 等待此 promise，
+    /// 登记条目并返回该保存的句柄，由保存任务在完成时调用 _completePendingChunkSave 唤醒等待者。
+    /// 后续对同一区块的 loadChunkAsync 在读盘前会等待该保存完成，
     /// 确保读到保存后的新数据（对齐 Moonrise GenericDataLoadTask 等待 UnloadTask）。
-    std::shared_ptr<std::promise<void>> _registerPendingChunkSave(ChunkCoord x, ChunkCoord z, DimensionId dimension);
+    PendingChunkSave _registerPendingChunkSave(ChunkCoord x, ChunkCoord z, DimensionId dimension);
 
-    /// 等待指定区块的进行中卸载保存完成（若存在）。在 ServerIO 线程调用，不阻塞主线程。
-    /// 条目清理由 _removePendingChunkSave 在 ServerChunkManager stage3（保存完成）调用。
-    void _waitPendingChunkSave(ChunkCoord x, ChunkCoord z, DimensionId dimension);
+    /// 保存任务完成时调用（ServerIO 线程，任何成功/失败/取消路径都必经）。
+    /// 移除条目并把等待该区块读盘的加载任务投递到 ServerIO 池；
+    /// 没有等待者时直接移除条目。
+    void _completePendingChunkSave(PendingChunkSave save);
+
+    /// 保存任务从未启动时的兜底清理（池未启动/队列被清空清空），唤醒等待者避免永久挂起。
+    void _abandonPendingChunkSave(PendingChunkSave save);
 
     /// 移除指定区块的进行中卸载保存条目（保存完成后由 ServerChunkManager stage3 调用）。
     /// 仅在 ServerChunkManager 保证该区块保存已完成且无新保存启动时调用（主线程 stage3）。
@@ -519,12 +551,12 @@ private:
     mutable std::mutex m_foreignReadMutex;
 
     /// 进行中的区块卸载保存追踪表（对齐 Moonrise NewChunkHolder.chunkDataUnload）。
-    /// key = 区块描述 SectionKey{x, z, 0, dimension}，value = 完成信号 shared_future。
-    /// saveChunkAsyncCallback 注册条目（_registerPendingChunkSave 返回 promise，ServerIO 保存任务完成时 set_value）；
-    /// loadChunkAsync 的 section 读取路径在读盘前 _waitPendingChunkSave 等待，确保读到保存后的新数据。
-    /// 线程安全：由 m_pendingChunkSavesMutex 保护（主线程注册、ServerIO 等待）。
+    /// key = 区块描述 SectionKey{x, z, 0, dimension}，value = 等待该区块读盘的任务列表。
+    /// 加载的 section 读任务在池线程里登记等待者而不阻塞，保存任务完成时在回调里把
+    /// 等待者重新投递到 ServerIO，避免池线程自阻塞导致线程饥饿死锁。
+    /// 线程安全：由 m_pendingChunkSavesMutex 保护。
     mutable std::mutex m_pendingChunkSavesMutex;
-    std::unordered_map<SectionKey, std::shared_future<void>, SectionKey::Hash> m_pendingChunkSaves;
+    std::unordered_map<SectionKey, PendingChunkSaveEntry, SectionKey::Hash> m_pendingChunkSaves;
 
     [[nodiscard]] RocksDBDatabase* _database() { return m_db.get(); }
     [[nodiscard]] const RocksDBDatabase* _database() const { return m_db.get(); }

@@ -552,6 +552,8 @@ add_executable(mc_tests
     common/world/gamerule/GameRulesTest.cpp
     # PVP 游戏规则测试
     common/world/gamerule/PvpGameRuleTest.cpp
+    # 游戏规则注册表完整性、取值范围与按类名设置测试
+    common/world/gamerule/GameRuleTypedValueTest.cpp
     # GameEvent 游戏事件测试
     common/world/gameevent/GameEventTest.cpp
     common/world/gameevent/GameEventSystemTest.cpp
@@ -650,6 +652,8 @@ add_executable(mc_tests
     common/world/block/blocks/decorative/CampfireBlockTest.cpp
     # CandleBlock 蜡烛方块测试
     common/world/block/blocks/decorative/CandleBlockTest.cpp
+    # GlazedTerracottaBlock 釉面陶瓦活塞推动旋转测试
+    common/world/block/blocks/decorative/GlazedTerracottaBlockTest.cpp
     common/world/block/blocks/functional/BellBlockTest.cpp
     common/world/block/blocks/functional/BedBlockTest.cpp
     common/world/block/blocks/functional/GrindstoneBlockTest.cpp
@@ -1057,6 +1061,8 @@ add_executable(mc_tests
     common/command/arguments/ItemArgumentTest.cpp
     common/command/arguments/ItemSlotArgumentTest.cpp
     common/command/arguments/NbtPathTest.cpp
+    # NBT 标签赋值语义测试
+    common/util/nbt/NbtTagAssignmentTest.cpp
     common/command/arguments/TimeArgumentTest.cpp
     common/command/arguments/Vec2ArgumentTest.cpp
     server/world/player/ServerPlayerEntityManagerTest.cpp
@@ -1330,6 +1336,8 @@ add_executable(mc_tests
     common/world/block/blocks/building/WallBlockTest.cpp
     common/world/block/blocks/redstone/NoteBlockTest.cpp
     common/world/block/blocks/redstone/TNTBlockTest.cpp
+    # 按钮红石信号方向性测试
+    common/world/block/blocks/redstone/ButtonBlockSignalTest.cpp
     common/world/block/blocks/redstone/PistonBlockTest.cpp
     common/world/block/blocks/redstone/PistonHeadBlockTest.cpp
     common/world/block/blocks/redstone/TripWireTest.cpp

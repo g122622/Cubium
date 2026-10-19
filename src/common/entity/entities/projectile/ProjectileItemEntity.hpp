@@ -263,9 +263,12 @@ public:
      */
     void setExperience(i32 exp);
 
-protected:
+    /**
+     * @brief 命中处理：先经基类 dispatch，再按原版破裂并释放经验球
+     */
     void onImpact(const RayTraceResult& result) override;
 
+protected:
     // 批次6 子目标2 Step4：m_experience 迁入 ecs::ExperienceBottleComponent。
 };
 

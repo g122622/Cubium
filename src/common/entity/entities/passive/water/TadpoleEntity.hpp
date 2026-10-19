@@ -79,9 +79,13 @@ public:
 
     [[nodiscard]] f32 eyeHeight() const override { return 0.3f * 0.5f; }
 
-    // TODO: 蝌蚪不跌落经验（对齐 vanilla Tadpole.shouldDropExperience = false），
-    //   但 Cubium 的 LivingEntity::shouldDropExperienceOnDeath 非虚，无法 override；
-    //   待该方法改为虚函数后补 override 返回 false。
+    /**
+     * @brief 蝌蚪死亡不掉落经验
+     *
+     * 覆盖 LivingEntity::shouldDropExperience 的 `!isChild()` 语义：蝌蚪永远处于幼体形态，
+     * 但按 vanilla Tadpole.shouldDropExperience 恒返回 false，被玩家击杀也不掉经验球。
+     */
+    [[nodiscard]] bool shouldDropExperience() const override { return false; }
 
     // ========== 音效 ==========
 

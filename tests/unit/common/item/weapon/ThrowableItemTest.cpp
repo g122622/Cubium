@@ -23,10 +23,14 @@
 
 #include <gtest/gtest.h>
 
+#include <algorithm>
+
 #include "common/TestWorldHelper.hpp"
 #include "common/core/Constants.hpp"
+#include "common/entity/entities/orb/ExperienceOrbEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/entities/projectile/ProjectileItemEntity.hpp"
+#include "common/entity/registry/VanillaEntities.hpp"
 #include "common/item/Items.hpp"
 #include "common/item/items/weapon/ThrowableItems.hpp"
 #include "common/particle/ParticleTypes.hpp"
@@ -310,6 +314,59 @@ TEST_F(ThrowableItemTest, ExperienceBottleEntity_GetDefaultItem)
     Items::initialize();
     entity::ExperienceBottleEntity bottle(EntityInstanceId(1), mc::test::testEcsRegistry());
     EXPECT_EQ(bottle.getDefaultItem(), Items::EXPERIENCE_BOTTLE);
+}
+
+// ============================================================================
+// 经验瓶命中：dispatch 与经验球生成
+// ============================================================================
+
+TEST_F(ThrowableItemTest, ExperienceBottle_OnImpact_Block_SpawnsOrbsWithExpectedTotal)
+{
+    entity::VanillaEntities::registerAll();
+    entity::ExperienceBottleEntity bottle(EntityInstanceId(7), mc::test::testEcsRegistry());
+    bottle.setWorld(&m_world);
+    bottle.setPosition(3.0f, 64.0f, 5.0f);
+
+    const entity::RayTraceResult hit =
+        entity::RayTraceResult::block(Vector3(3.5f, 64.5f, 5.0f), BlockPos(3, 64, 5), Direction::East);
+    bottle.onImpact(hit);
+
+    // 原版经验瓶：3 + nextInt(5) + nextInt(5)，按 getXPSplit 拆分，单个经验球值不超过 7。
+    // 旧实现 nextInt(3, 11) 生成单个经验球（值 3~10），取值区间与本实现存在可区分窗口。
+    i32 orbCount = 0;
+    i32 maxValue = 0;
+    for (const auto& spawned : m_world.spawnedEntities()) {
+        const auto* orb = dynamic_cast<const ExperienceOrbEntity*>(spawned.get());
+        if (orb != nullptr) {
+            ++orbCount;
+            maxValue = std::max(maxValue, orb->getXpValue());
+        }
+    }
+    ASSERT_GE(orbCount, 1);
+    EXPECT_LE(maxValue, 7);
+    EXPECT_TRUE(bottle.isRemoved());
+}
+
+TEST_F(ThrowableItemTest, ExperienceBottle_OnImpact_Entity_DoesNotHurtTarget)
+{
+    entity::ExperienceBottleEntity bottle(EntityInstanceId(8), mc::test::testEcsRegistry());
+    bottle.setWorld(&m_world);
+    bottle.setPosition(0.0f, 64.0f, 0.0f);
+
+    Player target(EntityInstanceId(9), "Target", mc::test::testEcsRegistry());
+    target.setWorld(&m_world);
+    target.setPosition(0.0f, 64.0f, 0.0f);
+    const f32 hpBefore = target.health();
+
+    entity::RayTraceResult hit;
+    hit.type = entity::RayTraceResultType::Entity;
+    hit.hitPosition = Vector3(0.0f, 64.0f, 0.0f);
+    hit.hitEntity = &target;
+    bottle.onImpact(hit);
+
+    // 经验瓶命中实体不造成伤害（原版 ThrownExperienceBottle 无 onHitEntity 伤害）
+    EXPECT_FLOAT_EQ(target.health(), hpBefore);
+    EXPECT_TRUE(bottle.isRemoved());
 }
 
 } // namespace

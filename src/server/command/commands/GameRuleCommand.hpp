@@ -25,9 +25,11 @@
  * @file GameRuleCommand.hpp
  * @brief /gamerule 命令
  *
- * 用法：
- *   /gamerule <rule>           - 查询规则值
- *   /gamerule <rule> <value>   - 设置规则值
+ * 用法（规则值类名与 vanilla 一致，作为字面量子节点）：
+ *   /gamerule <rule> boolean          - 查询布尔规则值
+ *   /gamerule <rule> boolean <value>  - 设置布尔规则值
+ *   /gamerule <rule> integer          - 查询整型规则值
+ *   /gamerule <rule> integer <value>  - 设置整型规则值
  */
 
 #pragma once
@@ -55,6 +57,14 @@ public:
     static void registerTo(CommandDispatcher<ServerCommandSource>& dispatcher);
 
 private:
+    /**
+     * @brief 从当前字面量节点读取规则值类名（"boolean"/"integer"）
+     * @param context 命令上下文
+     * @return 类名字符串
+     * @throws CommandException 当前节点缺失时
+     */
+    static std::string _requireValueClassName(const CommandContext<ServerCommandSource>& context);
+
     /**
      * @brief 执行查询规则
      * @param context 命令上下文

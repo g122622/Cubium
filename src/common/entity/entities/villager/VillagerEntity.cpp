@@ -382,13 +382,13 @@ bool VillagerEntity::_tryConvertToZombieVillager(DamageSource& cause)
 
 void VillagerEntity::onRemoval(RemovalReason reason)
 {
-    // 村民被移除时释放 POI 并通知村庄。村民不会因距离远而消失，但当确实被移除时
-    // （死亡动画结束、区块卸载等）需要清理 POI 占用。
-    // TODO: 对齐 vanilla 语义——vanilla 在 Villager.die 内释放 POI（Villager.java:616），
-    //   remove() 无重写，即区块卸载（UNLOADED_TO_CHUNK）不释放 POI（重新加载后仍持原 POI）。
-    //   当前在 onRemoval 无条件释放，卸载场景会提前放弃 POI。待 POI 生命周期与区块加载路径
-    //   核对后改为按 shouldDestroy(reason) 门控（或迁至 die()）。
-    releaseAllPois();
+    // 村民正常死亡时已在 die() 内释放 POI（对齐 vanilla Villager.die）；这里仅对"摧毁类"
+    // 移除原因（Killed/Discarded）兜底释放，覆盖未经 die() 的强制移除路径。
+    // 区块卸载（UNLOADED_TO_CHUNK）等保留类原因不释放：实体重新加载后仍应持有原 POI，
+    // 与 vanilla remove() 不重写、卸载不释放 POI 的语义一致。
+    if (shouldDestroy(reason)) {
+        releaseAllPois();
+    }
 
     // 调用父类清理
     AbstractVillagerEntity::onRemoval(reason);

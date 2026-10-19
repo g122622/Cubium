@@ -33,6 +33,8 @@
 #include "common/util/assert/AssertAll.hpp"
 #include "common/util/nbt/Nbt.hpp"
 #include "common/world/gamerule/GameRule.hpp"
+#include <algorithm>
+#include <charconv>
 #include <memory>
 #include <optional>
 #include <string>
@@ -51,13 +53,30 @@ namespace {
 // 布尔规则类型定义（无监听器）
 BooleanGameRuleType createBooleanType(bool defaultValue)
 {
-    return BooleanGameRuleType(defaultValue);
+    // 布尔值只有 false/true 两种取值，范围恒为其全域
+    return BooleanGameRuleType(defaultValue, false, true);
 }
 
 // 整数规则类型定义（无监听器）
-IntegerGameRuleType createIntegerType(i32 defaultValue)
+IntegerGameRuleType createIntegerType(i32 defaultValue, i32 minValue, i32 maxValue)
 {
-    return IntegerGameRuleType(defaultValue);
+    return IntegerGameRuleType(defaultValue, minValue, maxValue);
+}
+
+// 判断字符串是否为十进制整数：可选单个 '-' 符号后跟数字（允许前导零，与 vanilla readInt 一致）。
+bool _isCanonicalDecimalInteger(std::string_view value)
+{
+    if (value.empty()) {
+        return false;
+    }
+
+    const bool negative = value.front() == '-';
+    const std::string_view digits = negative ? value.substr(1) : value;
+    if (digits.empty()) {
+        return false;
+    }
+
+    return std::all_of(digits.begin(), digits.end(), [](char c) { return c >= '0' && c <= '9'; });
 }
 
 // 规则类型注册表
@@ -116,8 +135,6 @@ struct RuleRegistry {
         registerBoolean("doFireTick", GameRuleCategory::Updates, true);
         registerBoolean("doDaylightCycle", GameRuleCategory::Updates, true);
         registerBoolean("doWeatherCycle", GameRuleCategory::Updates, true);
-        registerInteger("randomTickSpeed", GameRuleCategory::Updates, 3);
-        registerInteger("snowAccumulationHeight", GameRuleCategory::Updates, 1);
 
         // 聊天相关
         registerBoolean("commandBlockOutput", GameRuleCategory::Chat, true);
@@ -131,22 +148,29 @@ struct RuleRegistry {
         registerBoolean("tntExplodes", GameRuleCategory::Misc, true);
         registerBoolean("spawnerBlocksWork", GameRuleCategory::Misc, true);
         registerBoolean("globalSoundEvents", GameRuleCategory::Misc, true);
-        registerInteger("max_minecart_speed", GameRuleCategory::Misc, 8);
     }
 
+    // 默认值与取值范围取自 vanilla GameRules：未给出上界的规则上界为 INT_MAX。
+    // 整型规则必须只在此处注册——m_booleanRules 与 m_integerRules 分表存储，
+    // getInt/setInt 只查整数表，误注册到布尔表会让该规则静默失效。
     void registerIntegerRules()
     {
         // 玩家相关
-        registerInteger("spawnRadius", GameRuleCategory::Player, 10);
+        registerInteger("spawnRadius", GameRuleCategory::Player, 10, 0, INT32_MAX);
+        registerInteger("playersNetherPortalDefaultDelay", GameRuleCategory::Player, 80, 0, INT32_MAX);
+        registerInteger("playersNetherPortalCreativeDelay", GameRuleCategory::Player, 0, 0, INT32_MAX);
 
         // 生物相关
-        registerInteger("maxEntityCramming", GameRuleCategory::Mobs, 24);
+        registerInteger("maxEntityCramming", GameRuleCategory::Mobs, 24, 0, INT32_MAX);
 
         // 更新相关
-        registerInteger("randomTickSpeed", GameRuleCategory::Updates, 3);
+        registerInteger("randomTickSpeed", GameRuleCategory::Updates, 3, 0, INT32_MAX);
+        registerInteger("snowAccumulationHeight", GameRuleCategory::Updates, 1, 0, 8);
+        registerInteger("fire_spread_radius_around_player", GameRuleCategory::Updates, 128, -1, INT32_MAX);
 
         // 杂项
-        registerInteger("maxCommandChainLength", GameRuleCategory::Misc, 65536);
+        registerInteger("maxCommandChainLength", GameRuleCategory::Misc, 65536, 0, INT32_MAX);
+        registerInteger("max_minecart_speed", GameRuleCategory::Misc, 8, 1, 1000);
     }
 
     void registerBoolean(const std::string& name, GameRuleCategory category, bool defaultValue)
@@ -156,9 +180,10 @@ struct RuleRegistry {
         ruleNames.push_back(name);
     }
 
-    void registerInteger(const std::string& name, GameRuleCategory category, i32 defaultValue)
+    void registerInteger(
+        const std::string& name, GameRuleCategory category, i32 defaultValue, i32 minValue, i32 maxValue)
     {
-        integerTypes.emplace(name, createIntegerType(defaultValue));
+        integerTypes.emplace(name, createIntegerType(defaultValue, minValue, maxValue));
         categories.emplace(name, category);
         ruleNames.push_back(name);
     }
@@ -184,6 +209,10 @@ const BooleanGameRuleKey KEEP_INVENTORY("keepInventory", GameRuleCategory::Playe
 const BooleanGameRuleKey LOCATOR_BAR("locator_bar", GameRuleCategory::Player);
 const BooleanGameRuleKey NATURAL_REGENERATION("naturalRegeneration", GameRuleCategory::Player);
 const IntegerGameRuleKey SPAWN_RADIUS("spawnRadius", GameRuleCategory::Player);
+const IntegerGameRuleKey PLAYERS_NETHER_PORTAL_DEFAULT_DELAY(
+    "playersNetherPortalDefaultDelay", GameRuleCategory::Player);
+const IntegerGameRuleKey PLAYERS_NETHER_PORTAL_CREATIVE_DELAY(
+    "playersNetherPortalCreativeDelay", GameRuleCategory::Player);
 const BooleanGameRuleKey SPECTATORS_GENERATE_CHUNKS("spectatorsGenerateChunks", GameRuleCategory::Player);
 const BooleanGameRuleKey DISABLE_ELYTRA_MOVEMENT_CHECK("disableElytraMovementCheck", GameRuleCategory::Player);
 const BooleanGameRuleKey DO_IMMEDIATE_RESPAWN("doImmediateRespawn", GameRuleCategory::Player);
@@ -220,6 +249,8 @@ const BooleanGameRuleKey DO_DAYLIGHT_CYCLE("doDaylightCycle", GameRuleCategory::
 const IntegerGameRuleKey RANDOM_TICK_SPEED("randomTickSpeed", GameRuleCategory::Updates);
 const BooleanGameRuleKey DO_WEATHER_CYCLE("doWeatherCycle", GameRuleCategory::Updates);
 const IntegerGameRuleKey MAX_SNOW_ACCUMULATION_HEIGHT("snowAccumulationHeight", GameRuleCategory::Updates);
+const IntegerGameRuleKey FIRE_SPREAD_RADIUS_AROUND_PLAYER(
+    "fire_spread_radius_around_player", GameRuleCategory::Updates);
 
 // 聊天相关
 const BooleanGameRuleKey COMMAND_BLOCK_OUTPUT("commandBlockOutput", GameRuleCategory::Chat);
@@ -390,21 +421,81 @@ void GameRules::setInt(const IntegerGameRuleKey& key, i32 value, server::Minecra
     }
 }
 
-bool GameRules::setFromString(const std::string& ruleName, const std::string& value, server::MinecraftServer* server)
+bool GameRules::setTypedFromString(const std::string& ruleName,
+    const std::string& valueClassName,
+    const std::string& value,
+    server::MinecraftServer* server)
 {
-    // 检查布尔规则
-    auto boolIt = m_booleanRules.find(ruleName);
-    if (boolIt != m_booleanRules.end()) {
-        return boolIt->second.fromString(value);
+    const auto& registry = getRegistry();
+
+    // 布尔规则：类名必须为 boolean
+    if (registry.booleanTypes.count(ruleName) > 0) {
+        const auto valueIt = m_booleanRules.find(ruleName);
+        MC_ASSERT_RELEASE(valueIt != m_booleanRules.end());
+
+        if (valueClassName != GameRuleClassNames::BOOLEAN) {
+            return false;
+        }
+
+        // 在副本上解析，解析失败不得污染既有值（GameRuleValue::fromString 失败时会把值置 false/0）
+        GameRuleValue<bool> candidate = valueIt->second.clone();
+        if (!candidate.fromString(value)) {
+            return false;
+        }
+        valueIt->second.set(candidate.get(), server);
+        return true;
     }
 
-    // 检查整数规则
-    auto intIt = m_integerRules.find(ruleName);
-    if (intIt != m_integerRules.end()) {
-        return intIt->second.fromString(value);
+    // 整型规则：类名必须为 integer，且解析结果落在注册的 [min, max] 内
+    if (const auto typeIt = registry.integerTypes.find(ruleName); typeIt != registry.integerTypes.end()) {
+        const auto& type = typeIt->second;
+        const auto valueIt = m_integerRules.find(ruleName);
+        MC_ASSERT_RELEASE(valueIt != m_integerRules.end());
+
+        if (valueClassName != GameRuleClassNames::INTEGER) {
+            return false;
+        }
+
+        // 整型规则值必须是完整的十进制整数。"1.5"、"3abc" 与超出 i32 的数值都视为无效值，
+        // 不能像 std::stoi 那样静默截断。vanilla 通过 readInt() 复用整数读取器，同样不接受
+        // 前导 '+'、前导零与尾随空白。
+        if (!_isCanonicalDecimalInteger(value)) {
+            return false;
+        }
+        i32 parsedValue = 0;
+        const auto [end, parseError] = std::from_chars(value.data(), value.data() + value.size(), parsedValue);
+        if (parseError != std::errc{} || end != value.data() + value.size() || !type.isValueInRange(parsedValue)) {
+            return false;
+        }
+        m_integerRules.at(ruleName).set(parsedValue, server);
+        return true;
     }
 
-    return false; // 规则不存在
+    return false;
+}
+
+std::string GameRules::getDefaultValueAsString(const std::string& ruleName)
+{
+    const auto& registry = getRegistry();
+    if (const auto boolIt = registry.booleanTypes.find(ruleName); boolIt != registry.booleanTypes.end()) {
+        return boolIt->second.getDefaultValue() ? "true" : "false";
+    }
+    if (const auto intIt = registry.integerTypes.find(ruleName); intIt != registry.integerTypes.end()) {
+        return std::to_string(intIt->second.getDefaultValue());
+    }
+    return {};
+}
+
+std::optional<std::string_view> GameRules::getRuleClass(const std::string& ruleName)
+{
+    const auto& registry = getRegistry();
+    if (registry.booleanTypes.count(ruleName) > 0) {
+        return GameRuleClassNames::BOOLEAN;
+    }
+    if (registry.integerTypes.count(ruleName) > 0) {
+        return GameRuleClassNames::INTEGER;
+    }
+    return std::nullopt;
 }
 
 // ============================================================================
@@ -568,7 +659,8 @@ bool GameRules::_getBooleanFromNbt(const nbt::tags::compound_tag& nbt, const std
             const auto& strTag = dynamic_cast<const nbt::tags::string_tag&>(*it->second);
             if (strTag.value == "true" || strTag.value == "TRUE" || strTag.value == "1") {
                 return true;
-            } else if (strTag.value == "false" || strTag.value == "FALSE" || strTag.value == "0") {
+            }
+            if (strTag.value == "false" || strTag.value == "FALSE" || strTag.value == "0") {
                 return false;
             }
         }

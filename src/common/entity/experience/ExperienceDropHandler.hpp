@@ -91,6 +91,22 @@ public:
     static i32 spawnExperienceOrbs(Entity* entity, i32 totalXp, math::IRandom* rng = nullptr);
 
     /**
+     * @brief 按指定方向发射经验球
+     *
+     * 经验球按拆分规则分裂为多个，初始速度由随机量与 direction 对齐：
+     * 若 speed 与 instantaneousDirection 点积为负则整体取反，保证经验球朝指定方向散开。
+     * 位置在 origin 基础上沿方向推进半个包围盒尺寸。
+     *
+     * @param world 世界指针
+     * @param origin 经验球生成原点
+     * @param direction 散开方向（零向量表示无方向约束）
+     * @param totalXp 总经验值
+     * @return 生成的经验球数量
+     */
+    static i32 spawnExperienceOrbsWithDirection(
+        IWorld* world, const Vector3& origin, const Vector3& direction, i32 totalXp);
+
+    /**
      * @brief 生成玩家死亡掉落的经验
      *
      * 计算玩家死亡时掉落的经验值并在位置生成经验球。
