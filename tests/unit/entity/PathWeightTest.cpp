@@ -272,6 +272,13 @@ protected:
     PathWeightTestWorld world;
 };
 
+TEST_F(MonsterEntityPathWeightTest, AlwaysDropsExperience)
+{
+    // vanilla Monster.shouldDropExperience 恒返回 true
+    TestMonsterEntity monster;
+    EXPECT_TRUE(monster.shouldDropExperience());
+}
+
 TEST_F(MonsterEntityPathWeightTest, PrefersDarkness)
 {
     TestMonsterEntity monster;

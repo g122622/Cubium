@@ -282,6 +282,10 @@ public:
 
     [[nodiscard]] bool isBaby() const { return m_isBaby; }
     [[nodiscard]] bool isChild() const override { return m_isBaby; }
+
+    /// 对齐 vanilla Hoglin.shouldDropExperience 恒返回 true：幼年猪灵兽被击杀同样掉经验
+    [[nodiscard]] bool shouldDropExperience() const override { return true; }
+
     void setBaby(bool baby)
     {
         if (m_isBaby == baby) {

@@ -639,6 +639,18 @@ TEST_F(HoglinPathWeightTest, ReturnsZeroOnNonCrimsonNylium)
     EXPECT_FLOAT_EQ(weight, 0.0f);
 }
 
+TEST_F(HoglinPathWeightTest, BabyStillDropsExperience)
+{
+    // vanilla Hoglin.shouldDropExperience 恒返回 true：基类 `!isChild()` 会让幼年猪灵兽
+    // 被玩家击杀时不掉经验，此处钉住覆写行为
+    HoglinEntity hoglin(EntityInstanceId(80), mc::test::testEcsRegistry());
+    EXPECT_TRUE(hoglin.shouldDropExperience());
+
+    hoglin.setBaby(true);
+    EXPECT_TRUE(hoglin.isChild());
+    EXPECT_TRUE(hoglin.shouldDropExperience());
+}
+
 TEST_F(HoglinPathWeightTest, ReturnsZeroWhenNoWorld)
 {
     // 没有世界时返回 0.0f
