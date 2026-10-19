@@ -147,7 +147,11 @@ Java Edition 的 NBT 文件（如 level.dat）通常使用 gzip 压缩，需要�
 
 `NbtInternal.hpp` 仅供 `Nbt.cpp` 内部使用，包含 VarNum/Zint 模板实现细节，外部代码不应直接引用。
 
-### 8. 深度比较标签时使用 equals 方法
+### 8. compound_tag 拷贝赋值是“整体覆盖”
+
+`compound_tag::operator=` 会先清空目标再逐键深拷贝，目标上源标签没有的键会被移除。标准容器把 `unique_ptr<tag>` 槽位整体替换时依赖这一点（例如复合列表 `erase` 后的元素搬移），不要改回 `emplace`（`emplace` 命中已有键时不会覆盖，会导致搬移后的元素保留旧值）。
+
+### 9. 深度比较标签时使用 equals 方法
 
 `tag` 基类提供了 `virtual bool equals(const tag& other) const` 虚方法，支持所有标签类型的深度递归比较。对于 `compound_tag`，会递归比较所有键值对；对于 `list_tag`，按顺序比较所有元素；对于基本类型标签，直接比较值。同时提供了 `operator==` 和 `operator!=` 自由函数。
 

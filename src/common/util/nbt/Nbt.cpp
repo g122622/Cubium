@@ -1075,7 +1075,14 @@ std::unique_ptr<tag> compound_tag::copy() const
 
 compound_tag& compound_tag::operator=(const compound_tag& other)
 {
+    if (this == &other) {
+        return *this;
+    }
+
     is_root = other.is_root;
+    // 整体拷贝赋值：目标原有的键必须被覆盖（而不是保留旧值），
+    // 因此逐键 insert_or_assign 而非 emplace
+    value.clear();
     for (const auto& pair : other.value)
         value.emplace(pair.first, pair.second->copy());
     return *this;

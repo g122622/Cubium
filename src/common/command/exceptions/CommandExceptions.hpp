@@ -73,6 +73,7 @@ enum class CommandErrorType {
     NbtPathMultipleResults,  // NBT 路径匹配多个结果
     NbtPathInvalidType,      // NBT 路径类型不匹配
     NbtPathIndexOutOfBounds, // NBT 列表索引越界
+    NbtPathDataTooDeep,      // 待写入的数据叠加路径深度后超过 NBT 最大嵌套深度
     InvalidNbtPath,          // 无效的 NBT 路径语法
 
     // 权限错误

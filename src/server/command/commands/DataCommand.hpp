@@ -153,6 +153,11 @@ private:
      * @brief 发送错误消息
      */
     static void _sendError(ServerCommandSource& source, const std::string& message);
+
+    /**
+     * @brief 按异常类型发送错误提示
+     */
+    static void _sendCommandError(ServerCommandSource& source, const CommandException& error);
 };
 
 } // namespace command
