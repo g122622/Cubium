@@ -1475,10 +1475,12 @@ void ServerWorld::tick()
 /// 维度级环境属性系统的持有者：系统一经装配即长期存活
 class ServerWorld::_EnvironmentAttributes {
 public:
-    _EnvironmentAttributes(
-        const DimensionType& dimensionType, std::function<i64()> dayTimeGetter, std::function<i64()> gameTimeGetter)
+    _EnvironmentAttributes(const DimensionType& dimensionType,
+        std::function<i64()> dayTimeGetter,
+        std::function<i64()> gameTimeGetter,
+        const world::attribute::DimensionAttributes::BiomeResolver& biomeResolver)
         : m_system(world::attribute::DimensionAttributes::createSystem(
-              dimensionType, std::move(dayTimeGetter), std::move(gameTimeGetter)))
+              dimensionType, std::move(dayTimeGetter), std::move(gameTimeGetter), biomeResolver))
     {}
 
     [[nodiscard]] const world::attribute::EnvironmentAttributeSystem& system() const { return *m_system; }
@@ -1494,9 +1496,26 @@ const world::attribute::EnvironmentAttributeSystem& ServerWorld::environmentAttr
         // 周期时间线以 dayTime 驱动、无周期时间线以 gameTime 驱动（与 vanilla 一致）；
         // dayTimeOfDay 在固定时间维度（下界/末地）返回维度固定的时刻。
         m_environmentAttributes = std::make_unique<_EnvironmentAttributes>(
-            getDimensionType(), [this] { return dayTimeOfDay(); }, [this] { return dayTimeOfDay(); });
+            getDimensionType(),
+            [this] { return dayTimeOfDay(); },
+            [this] { return dayTimeOfDay(); },
+            [this](const Vector3& pos) { return _biomeAt(pos); });
     }
     return m_environmentAttributes->system();
+}
+
+BiomeId ServerWorld::_biomeAt(const Vector3& pos) const
+{
+    // 对齐 vanilla Level.getBiome(pos)：按 Voronoi 抖动缩放的群系查询（不依赖区块是否加载）
+    if (m_chunkManager == nullptr) {
+        return world::biome::Biomes::Plains;
+    }
+    const auto* noiseGenerator = dynamic_cast<const NoiseChunkGenerator*>(m_chunkManager->generator());
+    if (noiseGenerator == nullptr) {
+        return world::biome::Biomes::Plains;
+    }
+    return noiseGenerator->getBiomeAtWorldPosition(
+        static_cast<i32>(std::floor(pos.x)), static_cast<i32>(std::floor(pos.y)), static_cast<i32>(std::floor(pos.z)));
 }
 
 void ServerWorld::invalidateEnvironmentAttributeCache()

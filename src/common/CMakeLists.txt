@@ -706,7 +706,9 @@ add_library(mc_common STATIC
     # World - Attribute
     world/attribute/AttributeTypes.cpp
     world/attribute/EnvironmentAttributes.cpp
+    world/attribute/EnvironmentAttributeMap.cpp
     world/attribute/EnvironmentAttributeRegistry.cpp
+    world/attribute/EnvironmentAttributeValueJson.cpp
     world/attribute/EnvironmentAttributeSystem.cpp
     world/attribute/DimensionAttributes.cpp
 

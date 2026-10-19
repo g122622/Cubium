@@ -38,6 +38,7 @@
 #include "common/world/IWorldWriter.hpp"
 #include "common/world/WorldConfig.hpp"
 #include "common/world/WorldConstants.hpp"
+#include "common/world/biome/BiomeIds.hpp"
 #include "common/world/border/WorldBorder.hpp"
 #include "common/world/chunk/base/SectionPos.hpp"
 #include "common/world/chunk/data/ChunkData.hpp"
@@ -388,7 +389,7 @@ public:
      * 维度声明的各时间线层），每 tick 结束时失效一次 tick 缓存。查询结果按 tick 缓存，
      * 因此同一 tick 内重复查询不会重复采样关键帧轨道。
      */
-    [[nodiscard]] const world::attribute::EnvironmentAttributeSystem& environmentAttributes() const;
+    [[nodiscard]] const world::attribute::EnvironmentAttributeSystem& environmentAttributes() const override;
 
     /**
      * @brief 失效环境属性系统的 tick 缓存
@@ -1631,6 +1632,9 @@ private:
     /// worker 完成的 dirty section 待主线程 flush 队列（③-1：worker 传播→主线程 flush visible）
     std::mutex m_pendingLightFlushesMutex;
     std::vector<std::pair<LightType, SectionPos>> m_pendingLightFlushes;
+
+    /// 世界坐标（含小数）处的群系（Voronoi 抖动缩放，对齐 vanilla Level.getBiome）
+    [[nodiscard]] BiomeId _biomeAt(const Vector3& pos) const;
 
     /// 区块加载光照完成后的区块发送续延队列（③-2b：worker 光照→主线程 send）。
     /// worker 在 _drainPendingLightFlushes 之后 drain：send serialize 读已 flush nibble + removeLightTicket。

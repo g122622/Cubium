@@ -29,6 +29,7 @@
 #include "BiomeGenerationSettings.hpp"
 #include "common/core/Types.hpp"
 #include "common/util/cache/Long2FloatLRUCache.hpp"
+#include "common/world/attribute/EnvironmentAttributeMap.hpp"
 #include "common/world/spawn/MobSpawnInfo.hpp"
 #include <string>
 #include <string_view>
@@ -304,20 +305,24 @@ public:
      * @brief 是否为"火焰加速熄灭"群系（vanilla EnvironmentAttributes.INCREASED_FIRE_BURNOUT）
      *
      * 对齐 vanilla 1.21.11 FireBlock.checkBurnOut（FireBlock.java:178-179）：在潮湿/特殊群系
-     * 中火焰蔓延时基础概率减 50、远距离点燃几率折半。由 BiomeLoader 解析群系 JSON 的
-     * attributes["minecraft:gameplay/increased_fire_burnout"] 注入（数据驱动，vanilla 共 8 个
-     * 群系置 true：swamp/mangrove_swamp/jungle/bamboo_jungle/mushroom_fields/frozen_peaks/
-     * jagged_peaks/snowy_slopes）。
-     *
-     * TODO: 完整 EnvironmentAttributes 系统（EnvironmentAttribute/Map/System/Timeline/Codec/
-     * 网络同步）实现后，本标志应迁移到 world.environmentAttributes().getValue(
-     * EnvironmentAttributes::INCREASED_FIRE_BURNOUT, pos)，支持维度级 override 与空间插值。
-     * 群系层标志届时作为该环境属性的数据源之一。
+     * 中火焰蔓延时基础概率减 50、远距离点燃几率折半。本标志是**无世界上下文**时的群系级
+     * 默认值（由 BiomeLoader 从 `biome.attributes` 的同一属性同步）；有世界上下文时应查询
+     * `IWorld::environmentAttributes().getValue(INCREASED_FIRE_BURNOUT, pos)`，
+     * 以纳入维度常量层与其它层的数据包覆盖。
      *
      * @return 是否为火焰加速熄灭群系
      */
     [[nodiscard]] bool isIncreasedFireBurnout() const noexcept { return m_increasedFireBurnout; }
     void setIncreasedFireBurnout(bool value) noexcept { m_increasedFireBurnout = value; }
+
+    /**
+     * @brief 群系声明的环境属性表（vanilla 1.21.11 Biome.getAttributes）
+     *
+     * 由 BiomeLoader 从数据包 `biome.attributes` 解析；维度级环境属性系统把它作为位置层，
+     * 按查询位置的群系应用，与维度常量层、时间线层叠加。
+     */
+    [[nodiscard]] const world::attribute::EnvironmentAttributeMap& attributes() const noexcept { return m_attributes; }
+    void setAttributes(world::attribute::EnvironmentAttributeMap attributes) { m_attributes = std::move(attributes); }
     void setSurfaceBlock(const BlockState* block) { m_surfaceBlock = block; }
     void setSubSurfaceBlock(const BlockState* block) { m_subSurfaceBlock = block; }
     void setUnderWaterBlock(const BlockState* block) { m_underWaterBlock = block; }
@@ -408,6 +413,9 @@ private:
 
     // 环境属性：火焰加速熄灭标志（vanilla EnvironmentAttributes.INCREASED_FIRE_BURNOUT）
     bool m_increasedFireBurnout = false;
+
+    // 群系声明的环境属性表（vanilla Biome.attributes，数据包驱动）
+    world::attribute::EnvironmentAttributeMap m_attributes;
 
     // 方块设置 - 使用BlockState指针，运行时从VanillaBlocks获取
     const BlockState* m_surfaceBlock = nullptr;

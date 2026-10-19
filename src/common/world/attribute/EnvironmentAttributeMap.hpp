@@ -23,16 +23,21 @@
 
 #pragma once
 
+#include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
 #include "common/util/assert/AssertAll.hpp"
 #include "common/world/attribute/AttributeModifier.hpp"
 #include "common/world/attribute/EnvironmentAttribute.hpp"
+#include "common/world/attribute/EnvironmentAttributeRegistry.hpp"
 
 #include <functional>
 #include <map>
 #include <memory>
+#include <string_view>
 #include <utility>
 #include <vector>
+
+#include <nlohmann/json_fwd.hpp>
 
 namespace mc {
 namespace world {
@@ -100,6 +105,14 @@ public:
         }
     }
 
+    /// 按属性类型直接改写（覆写语义），值类型必须与属性一致
+    template <typename Value>
+    void set(const EnvironmentAttribute<Value>& attribute, Value value)
+    {
+        m_entries[&attribute] = std::make_shared<const Entry>(AttributeModifierOperation::Override,
+            [argument = std::move(value)](void* target, const void*) { *static_cast<Value*>(target) = argument; });
+    }
+
     [[nodiscard]] bool empty() const noexcept { return m_entries.empty(); }
     [[nodiscard]] size_t size() const noexcept { return m_entries.size(); }
 
@@ -152,10 +165,44 @@ public:
                 attribute.type().isAllowedModifier(operation), "EnvironmentAttributeMap: modifier not allowed");
             m_entries[&attribute] = std::make_shared<const Entry>(
                 operation, [&attribute, operation, argument = std::move(argument)](void* value, const void*) {
+                    // 覆写直接取参数；其余修改器以属性默认值为基础值（与 vanilla
+                    // EnvironmentAttributeSystem 的常量层折叠一致：层总是从默认值开始求值）
                     auto* typedValue = static_cast<Value*>(value);
-                    *typedValue = _apply(attribute, operation, *typedValue, argument);
+                    *typedValue = _apply(attribute, operation, attribute.defaultValue(), argument);
                 });
             return *this;
+        }
+
+        /**
+         * @brief 按数据包写法的属性名与 JSON 参数设置条目
+         *
+         * 数据包中属性的键形如 `minecraft:visual/sky_color`。参数按属性值类型的 JSON 表示解析
+         * （见 `EnvironmentAttributeValueJson.hpp`）：默认以覆写方式设置，若写法为
+         * `{"modifier": "...", "argument": ...}` 则按该修改器应用到条目当前值上。
+         *
+         * @param name 属性注册名（`minecraft:` 前缀可省略）
+         * @param argument 参数 JSON；若为 `{"modifier": "...", "argument": ...}` 则按该修改器应用，
+         *                 否则等价于覆写
+         * @return 成功时登记条目；属性未注册/修改器不允许/参数无法解析时返回错误
+         */
+        Result<void> setFromJson(std::string_view name, const nlohmann::json& argument);
+
+        /**
+         * @brief 以类型擦除的参数登记条目
+         *
+         * 供注册表在按 JSON 解析出参数后调用：参数内存与属性值类型一致。
+         *
+         * @param attribute 属性对象地址
+         * @param operation 修改器操作
+         * @param argument 参数值（指向属性值类型）
+         * @param kind 属性类型（用于把参数按可插值性绑定到对应写入函数）
+         * @return 成功时条目已登记
+         */
+        template <typename Value>
+        void modifyFromTypedArgument(
+            const EnvironmentAttribute<Value>& attribute, AttributeModifierOperation operation, Value argument)
+        {
+            modify(attribute, operation, std::move(argument));
         }
 
         /**

@@ -30,6 +30,8 @@
 #include "common/resource/ResourceLocation.hpp"
 #include "common/resource/pack/IResourcePack.hpp"
 #include "common/resource/repository/DataPackRepository.hpp"
+#include "common/world/attribute/EnvironmentAttributeMap.hpp"
+#include "common/world/attribute/EnvironmentAttributes.hpp"
 #include "common/world/biome/Biome.hpp"
 #include "common/world/biome/BiomeClimate.hpp"
 #include "common/world/biome/BiomeEffects.hpp"
@@ -274,29 +276,37 @@ void applyClimate(Biome& biome, const nlohmann::json& jsonObj)
 // ============================================================================
 //
 // 对齐 vanilla EnvironmentAttributes：群系 JSON 的 attributes 对象以 "minecraft:<路径>" 为键
-// 存储环境属性。本函数仅解析当前已接入消费方的属性（INCREASED_FIRE_BURNOUT），其余
-// （fog/water/sky/cloud 等视觉属性、audio/background_music 等）待完整 EnvironmentAttributes
-// 系统实现后再解析。
+// 存储环境属性（visual/*、audio/*、gameplay/* 等）。每个条目的写法为：
+//   1. 直接给出参数（等价于 override），或
+//   2. {"modifier": "<操作名>", "argument": <参数>}，按属性类型允许的修改器应用。
+// 属性名解析、参数解析与修改器应用统一由 EnvironmentAttributeMap::Builder::setFromJson 完成，
+// 解析出的属性表挂到 Biome::attributes()，再由维度级环境属性系统的群系位置层按位置消费。
+// 未注册的属性、不允许的修改器、无法解析的参数均告警并跳过该条目（与 vanilla 数据包容错一致）。
 
 void applyAttributes(Biome& biome, const nlohmann::json& jsonObj)
 {
     if (!jsonObj.contains("attributes") || !jsonObj["attributes"].is_object()) {
         return; // attributes 可选
     }
-    const auto& attrs = jsonObj["attributes"];
 
-    // vanilla: "minecraft:gameplay/increased_fire_burnout": true
-    // 由 FireBlock::getIncreasedFireBurnout 运行时按位置查询消费（见 FireBlock.cpp）。
-    constexpr const char* INCREASED_FIRE_BURNOUT_KEY = "minecraft:gameplay/increased_fire_burnout";
-    if (attrs.contains(INCREASED_FIRE_BURNOUT_KEY)) {
-        const auto& value = attrs[INCREASED_FIRE_BURNOUT_KEY];
-        if (value.is_boolean()) {
-            biome.setIncreasedFireBurnout(value.get<bool>());
+    attribute::EnvironmentAttributeMap::Builder builder;
+    for (const auto& [name, argument] : jsonObj["attributes"].items()) {
+        if (Result<void> result = builder.setFromJson(name, argument); !result.success()) {
+            spdlog::warn(
+                "biome '{}': skipping environment attribute '{}': {}", biome.name(), name, result.error().message());
         }
     }
+    attribute::EnvironmentAttributeMap attributes = builder.build();
 
-    // TODO: 完整 EnvironmentAttributes 系统实现后，解析其余 attributes 键（visual/*、
-    // audio/* 等），由 EnvironmentAttributeSystem 按 pos 查询并空间插值。
+    // 兼容旧字段：火焰加速熄灭标志曾以独立的 Biome 字段承载并直接被 FireBlock 消费，
+    // 现由环境属性表驱动；这里同步该字段，保证无维度上下文的查询路径行为不变。
+    bool increasedFireBurnout = false;
+    if (attributes.contains(&attribute::EnvironmentAttributes::INCREASED_FIRE_BURNOUT())) {
+        attributes.applyModifier(&attribute::EnvironmentAttributes::INCREASED_FIRE_BURNOUT(), &increasedFireBurnout);
+    }
+    biome.setIncreasedFireBurnout(increasedFireBurnout);
+
+    biome.setAttributes(std::move(attributes));
 }
 
 // ============================================================================

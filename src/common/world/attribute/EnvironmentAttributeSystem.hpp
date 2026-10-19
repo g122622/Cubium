@@ -34,10 +34,10 @@
 #include "common/world/timeline/AttributeTrackSampler.hpp"
 
 #include <any>
+#include <concepts>
 #include <functional>
 #include <map>
 #include <memory>
-#include <concepts>
 #include <optional>
 #include <utility>
 #include <vector>
@@ -86,8 +86,7 @@ public:
      */
     template <typename Value>
     EnvironmentAttributeSystemBuilder& addPositionalLayer(
-        const EnvironmentAttribute<Value>& attribute,
-        std::function<Value(const Value&, const Vector3&)> apply);
+        const EnvironmentAttribute<Value>& attribute, std::function<Value(const Value&, const Vector3&)> apply);
 
     /**
      * @brief 追加时间线层（属性轨道采样器）
@@ -101,8 +100,7 @@ public:
      * @return 构建器自身
      */
     template <typename Value, typename Argument>
-    EnvironmentAttributeSystemBuilder& addTimeBasedLayer(
-        const EnvironmentAttribute<Value>& attribute,
+    EnvironmentAttributeSystemBuilder& addTimeBasedLayer(const EnvironmentAttribute<Value>& attribute,
         std::unique_ptr<timeline::AttributeTrackSampler<Value, Argument>> sampler);
 
     /**
@@ -117,22 +115,22 @@ public:
         requires requires(Layer& layer) {
             { layer.applyConstant(std::declval<Value>()) } -> std::same_as<Value>;
         }
-    EnvironmentAttributeSystemBuilder& addLayer(const EnvironmentAttribute<Value>& attribute,
-        std::shared_ptr<const Layer> layer);
+    EnvironmentAttributeSystemBuilder& addLayer(
+        const EnvironmentAttribute<Value>& attribute, std::shared_ptr<const Layer> layer);
 
     template <typename Value, typename Layer>
         requires requires(Layer& layer) {
             { layer.applyTimeBased(std::declval<Value>(), i64{}) } -> std::same_as<Value>;
         }
-    EnvironmentAttributeSystemBuilder& addLayer(const EnvironmentAttribute<Value>& attribute,
-        std::shared_ptr<const Layer> layer);
+    EnvironmentAttributeSystemBuilder& addLayer(
+        const EnvironmentAttribute<Value>& attribute, std::shared_ptr<const Layer> layer);
 
     template <typename Value, typename Layer>
         requires requires(Layer& layer) {
             { layer.applyPositional(std::declval<Value>(), std::declval<const Vector3&>()) } -> std::same_as<Value>;
         }
-    EnvironmentAttributeSystemBuilder& addLayer(const EnvironmentAttribute<Value>& attribute,
-        std::shared_ptr<const Layer> layer);
+    EnvironmentAttributeSystemBuilder& addLayer(
+        const EnvironmentAttribute<Value>& attribute, std::shared_ptr<const Layer> layer);
 
     /// 单次求值的上下文
     struct _EvalContext {

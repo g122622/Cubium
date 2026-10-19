@@ -37,6 +37,8 @@
 #include "common/util/property/StateContainer.hpp"
 #include "common/util/property/StateHolder.hpp"
 #include "common/world/IWorld.hpp"
+#include "common/world/attribute/EnvironmentAttributeSystem.hpp"
+#include "common/world/attribute/EnvironmentAttributes.hpp"
 #include "common/world/biome/BiomeRegistry.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockRegistry.hpp"
@@ -601,11 +603,23 @@ bool FireBlock::canDieAt(IWorld& world, const BlockPos& pos) const
 
 bool FireBlock::getIncreasedFireBurnout(IWorld& world, const BlockPos& pos) const
 {
-    // 对齐 vanilla Level.getBiome(pos) 运行时查 chunk biome palette 的语义：
-    // 经 world.chunkManager() 取已生成区块的 ChunkData，再查其 BiomeContainer（O(1) 数组索引，
-    // 无 Voronoi 重算，等价 vanilla 运行时精度）。chunk 未加载时返回 false——火焰在未加载
-    // 区块的蔓延本就不会发生，跳过即可。
-    // 注意：ChunkData::getBiomeAtBlock 期望 chunk 局部 x/z（0-15）+ 世界绝对 y。
+    // 对齐 vanilla FireBlock.checkBurnOut：Level.getBiome(pos) → biome.getAttributes()。
+    // 群系是位置层的来源：环境属性系统按位置解析群系后应用其属性表，数据包对
+    // `increased_fire_burnout` 的声明即由此生效（也纳入维度常量层等其它层的覆盖）。
+    // 世界未提供环境属性系统（如生成期/测试夹具）时退回区块群系表的群系标志，
+    // 与运行时的 Voronoi 抖动群系查询在区块已加载时结果一致。
+    const world::attribute::EnvironmentAttributeSystem& environmentAttributes = world.environmentAttributes();
+    const Vector3 queryPos(static_cast<f32>(pos.x), static_cast<f32>(pos.y), static_cast<f32>(pos.z));
+    if (environmentAttributes.attributeCount() != 0) {
+        return environmentAttributes.getValue(
+            world::attribute::EnvironmentAttributes::INCREASED_FIRE_BURNOUT(), queryPos);
+    }
+
+    // 回退路径：直接查区块的群系表（ChunkData::getBiomeAtBlock 期望 chunk 局部 x/z + 世界绝对 y）。
+    // 区块未加载时返回 false——火焰在未加载区块的蔓延本就不会发生，跳过即可。
+    if (world.chunkManager() == nullptr) {
+        return false;
+    }
     const ChunkData* chunk = world.chunkManager()->tryToGetChunkInMem(pos.x >> 4, pos.z >> 4);
     if (chunk == nullptr) {
         return false;
