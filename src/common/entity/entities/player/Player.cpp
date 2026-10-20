@@ -1654,10 +1654,10 @@ bool Player::canBlockDamageSource(DamageSource& source) const
     // 且伤害来源不绕过盾牌（DamageTypeTags::BYPASSES_SHIELD）时，可以格挡该伤害。
     // 基类 LivingEntity::canBlockDamageSource 恒返回 false，由本重写接入盾牌格挡。
     //
-    // 注意：Java 1.21.11 进一步用 BlocksAttacks 组件校验伤害来源方向（cos 夹角），
-    // 这里简化为方向无关的格挡判定（只要举盾即格挡任意方向近战/投射物），对齐
-    // 1.21.11 之前版本的行为。方向校验留 TODO 待 BlocksAttacks 组件体系接入后补全。
-    // TODO: 接入 BlocksAttacks 组件的方向夹角校验（calculateViewVector vs sourcePosition）。
+    // 方向校验：vanilla BlocksAttacks.resolveBlockedDamage 对每条伤害减免规则比较
+    // 「受伤者头部水平朝向」与「伤害来源位置」的水平夹角，超过规则角度则不减伤
+    // （水平阻挡角默认 90°，破釜盾 80°，即背后来的攻击挡不住）。本方法只回答
+    // "是否尝试格挡"，夹角判定与据此折算的减伤见 LivingEntity::actuallyHurt。
     if (!isUsingItem()) {
         return false;
     }
@@ -1670,6 +1670,28 @@ bool Player::canBlockDamageSource(DamageSource& source) const
         return false;
     }
     return true;
+}
+
+std::optional<f32> Player::blockingSourceAngle(const DamageSource& source) const
+{
+    // 来源位置缺失时 vanilla 取 PI（背向，任何角度限制下都不减伤）。
+    const std::optional<math::Vector3f> rawPosition = source.sourcePosition();
+    if (!rawPosition.has_value()) {
+        return std::nullopt;
+    }
+    const Vector3f origin = position();
+    const Vector3f offset(rawPosition->x - origin.x, 0.0f, rawPosition->z - origin.z);
+    const f32 horizontalLength = std::sqrt(offset.x * offset.x + offset.z * offset.z);
+    if (!(horizontalLength > 1.0e-6f)) {
+        // 来源与受伤者水平重合（如贴身命中）：方向不可判定，按 vanilla 的角度公式得 acos(0)=PI/2。
+        return math::PI / 2.0f;
+    }
+    const Vector3f direction(offset.x / horizontalLength, 0.0f, offset.z / horizontalLength);
+    // 头部水平朝向（calculateViewVector(0, getYHeadRot()) 的水平分量，本项目 yaw 0 指向 +X）
+    const f32 yawRad = math::toRadians(rotationYawHead());
+    const Vector3f view(std::cos(yawRad), 0.0f, std::sin(yawRad));
+    const f32 dot = std::clamp(direction.x * view.x + direction.z * view.z, -1.0f, 1.0f);
+    return std::acos(dot);
 }
 
 void Player::damageShield(f32 amount)

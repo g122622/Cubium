@@ -477,6 +477,8 @@ add_executable(mc_tests
     server/advancement/VillageReputationTest.cpp
     # 乐器数据驱动体系（注册表/数据包定义/乐器标签/山羊角吹奏/set_instrument）
     server/item/instrument/InstrumentDataDrivenTest.cpp
+    # 盾牌方向校验（来袭方向与头部朝向夹角超过阻挡角时不格挡）
+    common/entity/player/ShieldBlockingAngleTest.cpp
     # ItemDropHelper 测试
     common/entity/utils/ItemDropHelperTest.cpp
     # 经验系统测试

@@ -107,7 +107,24 @@ using physics::DRAG_AIR;
 using physics::DRAG_GROUND;
 using physics::GRAVITY;
 using physics::MOTION_THRESHOLD;
+
+/// 盾牌默认水平阻挡角（度）。vanilla BlocksAttacks.DamageReduction 的 horizontal_blocking_angle
+/// 缺省值 90：来袭方向与头部水平朝向夹角超过 90° 即视为从背后攻击，不再减伤。
+constexpr f32 DEFAULT_SHIELD_HORIZONTAL_BLOCKING_ANGLE_DEGREES = 90.0f;
 } // namespace
+
+bool LivingEntity::_isWithinShieldBlockingAngle(const DamageSource& source) const
+{
+    // 只有实现了方向查询的受伤者（当前为玩家）才做角度校验；其余生物直接沿用格挡结果。
+    const auto* directionAware = dynamic_cast<const Player*>(this);
+    if (directionAware == nullptr) {
+        return true;
+    }
+    const std::optional<f32> angle = directionAware->blockingSourceAngle(source);
+    // 来源位置缺失时 vanilla 按 PI 处理：任何角度限制下都不减伤。
+    const f32 sourceAngle = angle.value_or(static_cast<f32>(math::PI));
+    return sourceAngle <= math::toRadians(DEFAULT_SHIELD_HORIZONTAL_BLOCKING_ANGLE_DEGREES);
+}
 
 // ============================================================================
 // 静态数据参数定义（通过 createKey 自动分配唯一 ID，避免跨类 ID 冲突）
@@ -448,7 +465,9 @@ void LivingEntity::actuallyHurt(DamageSource& source, f32 amount)
     auto* healthState = m_entityContext->tryGetComponent<ecs::HealthComponent>();
 
     // 1. 盾牌格挡检查（子类可重写）
-    if (canBlockDamageSource(source)) {
+    // 方向校验（对齐 vanilla BlocksAttacks.resolveBlockedDamage）：来袭方向与头部水平朝向夹角
+    // 超过盾牌水平阻挡角（默认 90°，背面来的攻击挡不住）时不再格挡，伤害照常结算。
+    if (canBlockDamageSource(source) && _isWithinShieldBlockingAngle(source)) {
         damageShield(amount);
 
         // 破盾判定（对齐 MC Java 1.21.11 Player.blockUsingItem:727-730 破盾分支）：

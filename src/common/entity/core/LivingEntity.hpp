@@ -310,6 +310,20 @@ public:
      */
     [[nodiscard]] virtual bool canBlockDamageSource(DamageSource& source) const;
 
+private:
+    /**
+     * @brief 盾牌方向校验（对齐 vanilla BlocksAttacks.DamageReduction 的水平夹角判定）
+     *
+     * 只有实现了方向查询的受伤者（当前为 Player::blockingSourceAngle）参与角度校验；
+     * 来袭方向与头部水平朝向夹角超过默认水平阻挡角 90°（从背后攻击）时不格挡。
+     * 来源位置缺失按 vanilla 语义取 PI，视为任何角度限制下都不减伤。
+     *
+     * @param source 伤害来源
+     * @return 可格挡返回 true
+     */
+    [[nodiscard]] bool _isWithinShieldBlockingAngle(const DamageSource& source) const;
+
+public:
     /**
      * @brief 受伤时损坏护甲
      *
