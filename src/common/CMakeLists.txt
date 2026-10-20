@@ -508,6 +508,7 @@ add_library(mc_common STATIC
     item/component/DataComponentPatchNbt.cpp
     item/component/DataComponentPatchWire.cpp
     item/component/FireworkExplosion.cpp
+    item/component/DeathProtection.cpp
 
     # Item System - Core
     item/core/AdventureModePredicate.cpp

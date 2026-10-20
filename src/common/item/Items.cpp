@@ -28,6 +28,7 @@
 #include "common/entity/entities/vehicle/BoatEntity.hpp"
 #include "common/entity/entities/vehicle/MinecartEntity.hpp"
 #include "common/item/armor/ArmorMaterial.hpp"
+#include "common/item/component/DataComponentMap.hpp"
 #include "common/item/core/Item.hpp"
 #include "common/item/core/ItemRegistry.hpp"
 #include "common/item/food/Foods.hpp"
@@ -2558,9 +2559,14 @@ void Items::_registerMisc()
     SPYGLASS = &registry.registerItem<item::items::SpyglassItem>(
         ResourceLocation("minecraft:spyglass"), ItemProperties().maxStackSize(1));
 
-    // 不死图腾 - 死亡时消耗以保命（见 LivingEntity::_checkTotemDeathProtection）
-    TOTEM_OF_UNDYING = &registry.registerItem(
-        ResourceLocation("minecraft:totem_of_undying"), ItemProperties().maxStackSize(1).rarity(ItemRarity::Uncommon));
+    // 不死图腾 - 死亡时消耗以保命（见 LivingEntity::_checkTotemDeathProtection）。
+    // 默认携带 death_protection 数据组件（对齐 vanilla Items.TOTEM_OF_UNDYING 的 component 注册），
+    // 数据包可经 set_components 覆盖为自定义死亡效果。
+    TOTEM_OF_UNDYING = &registry.registerItem(ResourceLocation("minecraft:totem_of_undying"),
+        ItemProperties()
+            .maxStackSize(1)
+            .rarity(ItemRarity::Uncommon)
+            .deathProtection(item::component::totemOfUndyingDeathProtection()));
 
     // 鞍 - 用于装备可骑乘实体（猪、炽足兽、马等）
     SADDLE = &registry.registerItem<item::items::SaddleItem>(

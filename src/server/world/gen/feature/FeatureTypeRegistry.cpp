@@ -1178,6 +1178,9 @@ Result<void> parseRootPlacerCommon(const nlohmann::json& rootJson, RootPlacerCon
     return {};
 }
 
+/// 数据包 muddy_roots_in 方块列表在运行期内置标签名（见 parseMangroveRootPlacement）。
+constexpr const char* kMangroveMuddyRootsInTag = "mangrove_muddy_roots_in";
+
 /// 解析 mangrove_root_placement（标签 + 泥根提供者 + 宽度/长度/偏斜概率）。
 Result<void> parseMangroveRootPlacement(const nlohmann::json& placementJson, MangroveRootPlacement& out)
 {
@@ -1190,8 +1193,8 @@ Result<void> parseMangroveRootPlacement(const nlohmann::json& placementJson, Man
     }
     out.canGrowThrough = tagResult.value();
 
-    // muddy_roots_in 在数据包中以方块标签或方块列表出现；项目仅需判定 Mud / MuddyMangroveRoots，
-    // 以标签形式承载（见 TODO(mangrove-muddy-roots)）。
+    // muddy_roots_in：数据包以方块列表（mud / muddy_mangrove_roots）或标签字符串给出，统一登记为
+    // 运行时标签 "mangrove_muddy_roots_in"，供 TreeFeature 以 contains 判定。
     if (placementJson.contains("muddy_roots_in")) {
         const auto& muddyJson = placementJson["muddy_roots_in"];
         if (muddyJson.is_string()) {
@@ -1200,9 +1203,20 @@ Result<void> parseMangroveRootPlacement(const nlohmann::json& placementJson, Man
                 return muddyTagResult.error();
             }
             out.muddyRootsIn = muddyTagResult.value();
+        } else if (muddyJson.is_array()) {
+            BlockTag& muddyTag = BlockTags::registerTag(ResourceLocation("minecraft", kMangroveMuddyRootsInTag));
+            // 同一配置可能被重复解析（池化/重载），先清空再登记避免条目累积。
+            muddyTag.clear();
+            for (const auto& entry : muddyJson) {
+                if (!entry.is_string()) {
+                    return Error(ErrorCode::InvalidData, "muddy_roots_in entries must be strings");
+                }
+                muddyTag.add(ResourceLocation(entry.get<std::string>()));
+            }
+            out.muddyRootsIn = &muddyTag;
+        } else {
+            return Error(ErrorCode::InvalidData, "muddy_roots_in must be a tag string or block list");
         }
-        // TODO(mangrove-muddy-roots): 方块列表形式（mud / muddy_mangrove_roots）尚未建表，
-        //   当前退化为按方块名匹配（见 TreeFeature::_placeRootBlocks）。
     }
 
     if (placementJson.contains("muddy_roots_provider")) {

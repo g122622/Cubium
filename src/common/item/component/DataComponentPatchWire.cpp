@@ -37,9 +37,11 @@
 #include "common/item/enchantment/EnchantmentContainer.hpp"
 #include "common/item/items/special/bundle/BundleContents.hpp"
 #include "common/network/backend/java/codecs/ItemEnchantmentsCodec.hpp"
+#include "common/network/backend/java/codecs/MobEffectInstanceCodec.hpp"
 #include "common/network/backend/java/codecs/PotionContentsCodec.hpp"
 #include "common/network/backend/java/mappings/JavaBannerPatternIds.hpp"
 #include "common/network/backend/java/mappings/JavaItemIdMap.hpp"
+#include "common/network/backend/java/mappings/JavaMobEffectIdMap.hpp"
 #include "common/network/buffer/ByteBuf.hpp"
 #include "common/network/buffer/NbtIo.hpp"
 #include "common/util/crypto/Crc32c.hpp"
@@ -63,6 +65,20 @@ namespace item {
 namespace component {
 
 namespace {
+
+/// ConsumeEffect.Type 的 wire 枚举序号（vanilla ConsumeEffect.Type 注册顺序）
+enum class _ConsumeEffectWireType : i32 {
+    ApplyEffects = 0,
+    RemoveEffects = 1,
+    ClearAllEffects = 2,
+    TeleportRandomly = 3,
+    PlaySound = 4,
+};
+
+/// 写单个 ConsumeEffect（vanilla ConsumeEffect.STREAM_CODEC dispatch）。
+[[nodiscard]] Result<void> _writeConsumeEffect(network::buffer::ByteBuf& buf, const ConsumeEffectEntry& entry);
+/// 读单个 ConsumeEffect（类型分派，载荷与写入对称）。
+[[nodiscard]] Result<ConsumeEffectEntry> _readConsumeEffect(network::buffer::ByteBuf& buf);
 
 thread_local usize _patchDepth = 0;
 struct _PatchDepthGuard {
@@ -297,6 +313,18 @@ void _writeColorList(network::buffer::ByteBuf& buf, const std::vector<i32>& colo
             if (written) buf.writeBool(book.value("resolved", false));
             return {};
         }
+        case DataComponentType::DeathProtection: {
+            // DeathProtection.STREAM_CODEC = composite(
+            //   ConsumeEffect.STREAM_CODEC.apply(ByteBufCodecs.list()), deathEffects)。
+            // ConsumeEffect 为带 type 分派的 data_result 类型：VarInt(typeId) + 各 type 专属载荷。
+            // typeId 取 vanilla ConsumeEffect.Type 枚举序号（与注册顺序一致）。
+            const auto& deathProtection = std::get<DeathProtectionPayload>(payload);
+            buf.writeVarInt(static_cast<i32>(deathProtection.effects.size()));
+            for (const auto& entry : deathProtection.effects) {
+                MC_TRY(_writeConsumeEffect(buf, entry));
+            }
+            return {};
+        }
         case DataComponentType::BannerPatterns: {
             const auto& layers = std::get<nlohmann::json>(payload);
             buf.writeVarInt(static_cast<i32>(layers.size()));
@@ -511,6 +539,23 @@ void _writeColorList(network::buffer::ByteBuf& buf, const std::vector<i32>& colo
             }
             return DataComponentPayload{std::in_place_index<ComponentPayloadIndex::Json>, std::move(book)};
         }
+        case DataComponentType::DeathProtection: {
+            i32 count = 0;
+            MC_TRY_ASSIGN(count, buf.readVarInt());
+            if (count < 0 || static_cast<usize>(count) > buf.readableBytes()) {
+                return Error(ErrorCode::InvalidData, "Invalid death protection effect count");
+            }
+            DeathProtectionPayload deathProtection;
+            for (i32 i = 0; i < count; ++i) {
+                auto entry = _readConsumeEffect(buf);
+                if (entry.failed()) {
+                    return entry.error();
+                }
+                deathProtection.effects.push_back(std::move(entry.value()));
+            }
+            return DataComponentPayload{
+                std::in_place_index<ComponentPayloadIndex::DeathProtection>, std::move(deathProtection)};
+        }
         case DataComponentType::BannerPatterns: {
             i32 count = 0;
             MC_TRY_ASSIGN(count, buf.readVarInt());
@@ -590,6 +635,113 @@ void _writeColorList(network::buffer::ByteBuf& buf, const std::vector<i32>& colo
         default:
             return Error(ErrorCode::Unsupported, "Component is not supported on wire");
     }
+}
+
+// ============================================================================
+// ConsumeEffect wire 编解码（death_protection 组件载荷）
+// ============================================================================
+
+Result<void> _writeConsumeEffect(network::buffer::ByteBuf& buf, const ConsumeEffectEntry& entry)
+{
+    using network::backend::java::writeMobEffectInstance;
+    switch (entry.kind) {
+        case ConsumeEffectKind::ApplyEffects:
+            buf.writeVarInt(static_cast<i32>(_ConsumeEffectWireType::ApplyEffects));
+            buf.writeVarInt(static_cast<i32>(entry.effects.size()));
+            for (const auto& effectEntry : entry.effects) {
+                if (!effectEntry.instance.has_value()) {
+                    // 数据包条目缺少合法效果 id：vanilla codec 会丢弃该条目，此处同样跳过
+                    continue;
+                }
+                writeMobEffectInstance(buf, *effectEntry.instance);
+                // MobEffectInstance.CODEC 的条目级字段：probability（可选，显式写出以保持对称）
+                buf.writeF32(effectEntry.chance);
+                buf.writeVarInt(0); // hiddenEffect：optional 的 present 标记（0 = 无）
+            }
+            return {};
+        case ConsumeEffectKind::RemoveEffects:
+            buf.writeVarInt(static_cast<i32>(_ConsumeEffectWireType::RemoveEffects));
+            buf.writeVarInt(static_cast<i32>(entry.removedEffects.size()));
+            for (const auto& type : entry.removedEffects) {
+                buf.writeVarInt(
+                    static_cast<i32>(network::backend::java::JavaMobEffectIdMap::instance().toJavaRegistryId(type)));
+            }
+            return {};
+        case ConsumeEffectKind::ClearAllEffects:
+            buf.writeVarInt(static_cast<i32>(_ConsumeEffectWireType::ClearAllEffects));
+            return {};
+        case ConsumeEffectKind::TeleportRandomly:
+            buf.writeVarInt(static_cast<i32>(_ConsumeEffectWireType::TeleportRandomly));
+            buf.writeF32(entry.teleportDiameter);
+            return {};
+        case ConsumeEffectKind::PlaySound:
+            buf.writeVarInt(static_cast<i32>(_ConsumeEffectWireType::PlaySound));
+            buf.writeString(entry.soundId);
+            return {};
+    }
+    return Error(ErrorCode::InvalidData, "Unknown consume effect kind");
+}
+
+Result<ConsumeEffectEntry> _readConsumeEffect(network::buffer::ByteBuf& buf)
+{
+    using network::backend::java::readMobEffectInstance;
+    i32 typeId = 0;
+    MC_TRY_ASSIGN(typeId, buf.readVarInt());
+    ConsumeEffectEntry entry{};
+    switch (static_cast<_ConsumeEffectWireType>(typeId)) {
+        case _ConsumeEffectWireType::ApplyEffects: {
+            entry.kind = ConsumeEffectKind::ApplyEffects;
+            i32 count = 0;
+            MC_TRY_ASSIGN(count, buf.readVarInt());
+            if (count < 0) {
+                return Error(ErrorCode::InvalidData, "Negative consume effect count");
+            }
+            for (i32 i = 0; i < count; ++i) {
+                auto instance = readMobEffectInstance(buf);
+                if (instance.failed()) {
+                    return instance.error();
+                }
+                ConsumeEffectEntry::EffectEntry effectEntry{};
+                effectEntry.instance = std::move(instance.value());
+                MC_TRY_ASSIGN(effectEntry.chance, buf.readF32());
+                // hiddenEffect 的 present 标记（写入端恒为 0）：读后丢弃
+                i32 hiddenPresent = 0;
+                MC_TRY_ASSIGN(hiddenPresent, buf.readVarInt());
+                (void)hiddenPresent;
+                entry.effects.push_back(std::move(effectEntry));
+            }
+            return entry;
+        }
+        case _ConsumeEffectWireType::RemoveEffects: {
+            entry.kind = ConsumeEffectKind::RemoveEffects;
+            i32 count = 0;
+            MC_TRY_ASSIGN(count, buf.readVarInt());
+            if (count < 0) {
+                return Error(ErrorCode::InvalidData, "Negative remove effect count");
+            }
+            for (i32 i = 0; i < count; ++i) {
+                i32 effectId = 0;
+                MC_TRY_ASSIGN(effectId, buf.readVarInt());
+                // 映射未初始化/未知 id 时 fromJavaRegistryId 回退 Speed（与其余效果 wire 读取一致）
+                entry.removedEffects.push_back(
+                    network::backend::java::JavaMobEffectIdMap::instance().fromJavaRegistryId(
+                        static_cast<u32>(effectId)));
+            }
+            return entry;
+        }
+        case _ConsumeEffectWireType::ClearAllEffects:
+            entry.kind = ConsumeEffectKind::ClearAllEffects;
+            return entry;
+        case _ConsumeEffectWireType::TeleportRandomly:
+            entry.kind = ConsumeEffectKind::TeleportRandomly;
+            MC_TRY_ASSIGN(entry.teleportDiameter, buf.readF32());
+            return entry;
+        case _ConsumeEffectWireType::PlaySound:
+            entry.kind = ConsumeEffectKind::PlaySound;
+            MC_TRY_ASSIGN(entry.soundId, buf.readString());
+            return entry;
+    }
+    return Error(ErrorCode::InvalidData, "Unknown consume effect type");
 }
 
 } // namespace

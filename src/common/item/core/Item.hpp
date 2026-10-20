@@ -27,6 +27,7 @@
 #include "UseAction.hpp"
 #include "common/core/Constants.hpp"
 #include "common/core/Types.hpp"
+#include "common/item/component/DataComponentMap.hpp"
 #include "common/item/core/ItemRarity.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include <functional>
@@ -152,6 +153,14 @@ public:
      */
     ItemProperties& group(const ItemGroup* group);
 
+    /**
+     * @brief 设置物品的默认 death_protection 组件
+     *
+     * 对齐 Java 1.21.11 Item.Properties.component(DataComponents.DEATH_PROTECTION, ...)：
+     * 物品栈未覆盖该组件时，LivingEntity::_checkTotemDeathProtection 读到此处默认值。
+     */
+    ItemProperties& deathProtection(item::component::DeathProtectionPayload value);
+
     // Getters
     [[nodiscard]] i32 maxStackSize() const { return m_maxStackSize; }
     [[nodiscard]] i32 maxDamage() const { return m_maxDamage; }
@@ -161,6 +170,10 @@ public:
     [[nodiscard]] bool isRepairable() const { return m_repairable; }
     [[nodiscard]] const item::food::Food* food() const { return m_food; }
     [[nodiscard]] const ItemGroup* group() const { return m_creativeTab; }
+    [[nodiscard]] const std::optional<item::component::DeathProtectionPayload>& deathProtection() const
+    {
+        return m_deathProtection;
+    }
 
 private:
     friend class Item;
@@ -173,6 +186,7 @@ private:
     bool m_repairable = true;
     const item::food::Food* m_food = nullptr;
     const ItemGroup* m_creativeTab = nullptr;
+    std::optional<item::component::DeathProtectionPayload> m_deathProtection;
 };
 
 // ============================================================================
@@ -292,6 +306,18 @@ public:
      * @brief 是否可修复
      */
     [[nodiscard]] bool isRepairable() const { return m_repairable; }
+
+    /**
+     * @brief 获取物品的默认 death_protection 组件（对齐 vanilla Item.components().get(DEATH_PROTECTION)）
+     *
+     * 物品栈覆盖值优先（见 ItemStack::getDeathProtection），此处为物品类型默认值。
+     *
+     * @return 默认死亡保护定义，未设置返回 nullopt
+     */
+    [[nodiscard]] const std::optional<item::component::DeathProtectionPayload>& defaultDeathProtection() const
+    {
+        return m_defaultDeathProtection;
+    }
 
     /**
      * @brief 获取物品基础附魔能力
@@ -809,8 +835,9 @@ protected:
     bool m_repairable = true;
 
     // 新增成员变量
-    const item::food::Food* m_food = nullptr; ///< 食物属性（非食物为nullptr）
-    const ItemGroup* m_creativeTab = nullptr; ///< 创造模式物品组
+    const item::food::Food* m_food = nullptr;                                        ///< 食物属性（非食物为nullptr）
+    const ItemGroup* m_creativeTab = nullptr;                                        ///< 创造模式物品组
+    std::optional<item::component::DeathProtectionPayload> m_defaultDeathProtection; ///< 默认 death_protection 组件
 };
 
 } // namespace mc

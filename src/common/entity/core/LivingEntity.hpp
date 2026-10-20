@@ -268,6 +268,16 @@ public:
     [[nodiscard]] bool _checkTotemDeathProtection(DamageSource& source);
 
     /**
+     * @brief 按死亡保护定义施加消耗效果（对齐 vanilla DeathProtection.applyEffects）
+     *
+     * 依次应用 death_effects 中的 ConsumeEffect（清空效果 / 按概率施加 / 移除 / 播放音效 / 随机传送）。
+     * 随机传送仅在服务端生效。
+     *
+     * @param deathProtection 死亡保护组件值
+     */
+    void _applyDeathProtectionEffects(const item::component::DeathProtectionPayload& deathProtection);
+
+    /**
      * @brief 在死亡位置生成凋零玫瑰（对齐 vanilla LivingEntity.createWitherRose）
      *
      * 对齐 MC Java 1.21.11 LivingEntity.createWitherRose（LivingEntity.java:1463-1482）。

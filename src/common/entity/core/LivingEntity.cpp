@@ -665,45 +665,114 @@ bool LivingEntity::_checkTotemDeathProtection(DamageSource& source)
         return false;
     }
 
-    // 检查主手与副手是否持有带 death_protection 组件的物品
-    const Item* totemItem = nullptr;
+    // 对齐 vanilla：遍历主手 → 副手，取第一个携带 DEATH_PROTECTION 数据组件的物品并立即消耗一个。
+    // 组件值为数据包驱动的死亡保护定义（内联在物品栈上）或物品默认定义（如不死图腾）。
+    // 注意：vanilla 在找到组件后立刻 shrink，之后才施加效果；效果数据只来自死前 copy 出的
+    // deathprotection 值，不依赖物品仍在手中。
+    item::component::DeathProtectionPayload deathProtection;
+    bool found = false;
     for (EquipmentSlot slot : {EquipmentSlot::MainHand, EquipmentSlot::OffHand}) {
-        const ItemStack& stack = getEquipment(slot);
+        ItemStack& stack = getMutableEquipment(slot);
         if (stack.isEmpty() || stack.getItem() == nullptr) {
             continue;
         }
-        // TODO: 数据驱动 DeathProtection 组件接入后，改为读取物品的 DEATH_PROTECTION 组件
-        //   （当前以不死图腾物品类型判定，等价于 vanilla 中唯一携带该组件的物品）。
-        if (stack.getItem() == Items::TOTEM_OF_UNDYING) {
-            totemItem = stack.getItem();
-            break;
+        auto component = stack.getDeathProtection();
+        if (!component.has_value()) {
+            continue;
         }
+        deathProtection = *component;
+        stack.shrink(1);
+        found = true;
+        break;
     }
 
-    if (totemItem == nullptr) {
+    if (!found) {
         return false;
     }
 
-    // 消耗一个图腾（直接操作权威装备槽）
-    for (EquipmentSlot slot : {EquipmentSlot::MainHand, EquipmentSlot::OffHand}) {
-        ItemStack& stack = const_cast<ItemStack&>(getEquipment(slot));
-        if (!stack.isEmpty() && stack.getItem() == totemItem) {
-            stack.shrink(1);
-            break;
-        }
-    }
-
-    // 对齐 vanilla：生命恢复为 1、施加保护效果、广播实体事件 35（图腾使用粒子）
+    // 对齐 vanilla DeathProtection.applyEffects（不死图腾默认定义）：
+    //   ClearAllStatusEffectsConsumeEffect + ApplyStatusEffectsConsumeEffect(regeneration 900/II,
+    //   absorption 100/II, fire_resistance 800/I)。数据包自定义条目按条目顺序应用。
     setHealth(1.0f);
-    addEffect(entity::effect::EffectInstance(entity::effect::EffectType::Absorption, 100, 1));
-    addEffect(entity::effect::EffectInstance(entity::effect::EffectType::Regeneration, 900, 1));
-    addEffect(entity::effect::EffectInstance(entity::effect::EffectType::FireResistance, 800, 0));
+    _applyDeathProtectionEffects(deathProtection);
     if (m_world != nullptr && !m_world->isClientSide()) {
         m_world->broadcastEntityStatus(m_id, 35); // 图腾使用粒子（对齐 vanilla broadcastEntityEvent(this, (byte)35)）
     }
     playSound(SoundEvents::ITEM_TOTEM_USE, 1.0f, 1.0f);
 
     return true;
+}
+
+void LivingEntity::_applyDeathProtectionEffects(const item::component::DeathProtectionPayload& deathProtection)
+{
+    // 对齐 vanilla ConsumeEffect 各子类型的 apply(Level, ItemStack, LivingEntity)：
+    //   clear_all_effects             → 清空全部效果
+    //   apply_effects(entries, chance) → 每个条目按 chance 独立判定后施加（缺失效果实例字段不施加）
+    //   remove_effects(types)         → 移除指定效果
+    //   play_sound(sound)             → 播放音效
+    //   teleport_randomly(diameter)   → 在直径范围内随机传送（仅服务端）
+    for (const auto& effect : deathProtection.effects) {
+        switch (effect.kind) {
+            case item::component::ConsumeEffectKind::ClearAllEffects: {
+                removeAllEffects();
+                break;
+            }
+            case item::component::ConsumeEffectKind::ApplyEffects: {
+                for (const auto& entry : effect.effects) {
+                    if (!entry.instance.has_value()) {
+                        // 数据包条目缺少 id（vanilla codec 返回错误条目 → getEffect() 为空 → 跳过）
+                        continue;
+                    }
+                    // vanilla：chance < 1 时 nextFloat() < chance 才施加（1.0 恒真）
+                    if (entry.chance < 1.0f && m_random.nextFloat() >= entry.chance) {
+                        continue;
+                    }
+                    addEffect(*entry.instance);
+                }
+                break;
+            }
+            case item::component::ConsumeEffectKind::RemoveEffects: {
+                for (const auto& type : effect.removedEffects) {
+                    removeEffect(type);
+                }
+                break;
+            }
+            case item::component::ConsumeEffectKind::PlaySound: {
+                if (!effect.soundId.empty()) {
+                    playSound(ResourceLocation(effect.soundId), 1.0f, 1.0f);
+                }
+                break;
+            }
+            case item::component::ConsumeEffectKind::TeleportRandomly: {
+                // 对齐 vanilla TeleportRandomlyConsumeEffect.apply 的 16 次尝试循环：
+                //   目标 = 当前位置 + (random - 0.5) * diameter（Y 钳到世界可建造范围），
+                //   乘坐中先下骑，再调 randomTeleport 落点搜索，成功即停并触发 TELEPORT 游戏事件。
+                // Entity::randomTeleport(range) 以目标为中心做安全落点搜索，等价 vanilla
+                // LivingEntity.randomTeleport(x, y, z, true) 的落点语义。
+                if (m_world == nullptr || m_world->isClientSide()) {
+                    break;
+                }
+                const f64 minY = static_cast<f64>(m_world->getMinBuildHeight());
+                for (i32 attempt = 0; attempt < 16; ++attempt) {
+                    const f64 targetX = x() + (m_random.nextDouble() - 0.5) * effect.teleportDiameter;
+                    const f64 targetY = std::clamp(y() + (m_random.nextDouble() - 0.5) * effect.teleportDiameter,
+                        minY,
+                        static_cast<f64>(m_world->getMaxBuildHeight() - 1));
+                    const f64 targetZ = z() + (m_random.nextDouble() - 0.5) * effect.teleportDiameter;
+                    if (isRiding()) {
+                        stopRiding();
+                    }
+                    const Vector3 previous = position();
+                    // TODO(consume-effect): Cubium 尚无 vanilla RandomTeleport 的安全落点搜索
+                    //   （逐候选做碰撞/液体校验），此处直接落到目标坐标；接入落点搜索后改为校验通过才传送。
+                    setPosition(static_cast<f32>(targetX), static_cast<f32>(targetY), static_cast<f32>(targetZ));
+                    gameEvent(gameevent::GameEvents::TELEPORT, BlockPos(previous));
+                    break;
+                }
+                break;
+            }
+        }
+    }
 }
 
 bool LivingEntity::canBlockDamageSource(DamageSource& /*source*/) const

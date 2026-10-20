@@ -146,6 +146,7 @@ struct ItemExtras {
     std::optional<item::component::ToolPayload> tool;                    // tool（挖掘规则）
     std::optional<i32> ominousBottleAmplifier;                           // ominous_bottle_amplifier
     std::optional<item::component::SuspiciousStewEffectsPayload> stewEffects; // suspicious_stew_effects
+    std::optional<item::component::DeathProtectionPayload> deathProtection;   // death_protection
     nlohmann::json rawComponents; // 未落地结构组件的原始 JSON（以资源位置为键）
 
     ItemExtras() = default;
@@ -172,6 +173,7 @@ struct ItemExtras {
         , tool(other.tool)
         , ominousBottleAmplifier(other.ominousBottleAmplifier)
         , stewEffects(other.stewEffects)
+        , deathProtection(other.deathProtection)
         , rawComponents(other.rawComponents)
     {
         lore.reserve(other.lore.size());
@@ -203,6 +205,7 @@ struct ItemExtras {
             tool = other.tool;
             ominousBottleAmplifier = other.ominousBottleAmplifier;
             stewEffects = other.stewEffects;
+            deathProtection = other.deathProtection;
             rawComponents = other.rawComponents;
             lore.clear();
             lore.reserve(other.lore.size());
@@ -1110,6 +1113,25 @@ public:
             return;
         }
         _ensureExtras().instrument = std::move(instrumentId);
+    }
+
+    /**
+     * @brief 获取 death_protection 组件（物品栈覆盖优先，否则回退物品默认值）
+     *
+     * 对齐 Java 1.21.11 ItemStack.get(DataComponents.DEATH_PROTECTION)（item 默认组件 + 栈覆盖合并）。
+     * 与 getTool 不同：回退到物品默认值时返回的引用绑定物品对象（Item 生命周期长于物品栈，
+     * 无悬垂风险），调用方解构拷贝即可安全使用。
+     *
+     * @return 死亡保护定义，未设置返回 nullopt
+     */
+    [[nodiscard]] const std::optional<item::component::DeathProtectionPayload>& getDeathProtection() const;
+
+    /**
+     * @brief 设置物品栈的 death_protection 组件覆盖（nullopt 表示移除覆盖，回退物品默认值）
+     */
+    void setDeathProtection(std::optional<item::component::DeathProtectionPayload> value)
+    {
+        _ensureExtras().deathProtection = std::move(value);
     }
 
     /**
