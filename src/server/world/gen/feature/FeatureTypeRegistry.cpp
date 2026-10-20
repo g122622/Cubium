@@ -1142,6 +1142,113 @@ Result<std::unique_ptr<ConfiguredFeatureBase>> createOre(const nlohmann::json& c
     return toBase(std::make_unique<ConfiguredOreFeature>(std::move(config), "ore"));
 }
 
+/// 解析 RootPlacer 的通用的 trunk_offset_y / root_provider。
+Result<void> parseRootPlacerCommon(const nlohmann::json& rootJson, RootPlacerConfig& out)
+{
+    if (!rootJson.contains("trunk_offset_y")) {
+        return Error(ErrorCode::InvalidData, "root_placer missing 'trunk_offset_y' IntProvider");
+    }
+    auto offsetResult = valueprovider::IntProviderParser::parse(rootJson["trunk_offset_y"]);
+    if (!offsetResult.success()) {
+        return offsetResult.error();
+    }
+    out.trunkOffsetY = std::move(offsetResult).value();
+
+    if (!rootJson.contains("root_provider")) {
+        return Error(ErrorCode::InvalidData, "root_placer missing 'root_provider'");
+    }
+    auto rootProviderResult = parser::BlockStateProviderParser::parse(rootJson["root_provider"]);
+    if (!rootProviderResult.success()) {
+        return rootProviderResult.error();
+    }
+    out.rootProvider = std::move(rootProviderResult).value();
+
+    if (rootJson.contains("above_root_placement")) {
+        const auto& aboveJson = rootJson["above_root_placement"];
+        if (!aboveJson.contains("above_root_provider") || !aboveJson.contains("above_root_placement_chance")) {
+            return Error(ErrorCode::InvalidData, "above_root_placement missing provider/chance");
+        }
+        auto aboveProviderResult = parser::BlockStateProviderParser::parse(aboveJson["above_root_provider"]);
+        if (!aboveProviderResult.success()) {
+            return aboveProviderResult.error();
+        }
+        out.aboveRootPlacement = std::make_unique<AboveRootPlacement>(
+            std::move(aboveProviderResult).value(), aboveJson["above_root_placement_chance"].get<f32>());
+    }
+    return {};
+}
+
+/// 解析 mangrove_root_placement（标签 + 泥根提供者 + 宽度/长度/偏斜概率）。
+Result<void> parseMangroveRootPlacement(const nlohmann::json& placementJson, MangroveRootPlacement& out)
+{
+    if (!placementJson.contains("can_grow_through") || !placementJson["can_grow_through"].is_string()) {
+        return Error(ErrorCode::InvalidData, "mangrove_root_placement missing 'can_grow_through' tag");
+    }
+    auto tagResult = parseBlockTag(placementJson["can_grow_through"].get<std::string>());
+    if (!tagResult.success()) {
+        return tagResult.error();
+    }
+    out.canGrowThrough = tagResult.value();
+
+    // muddy_roots_in 在数据包中以方块标签或方块列表出现；项目仅需判定 Mud / MuddyMangroveRoots，
+    // 以标签形式承载（见 TODO(mangrove-muddy-roots)）。
+    if (placementJson.contains("muddy_roots_in")) {
+        const auto& muddyJson = placementJson["muddy_roots_in"];
+        if (muddyJson.is_string()) {
+            auto muddyTagResult = parseBlockTag(muddyJson.get<std::string>());
+            if (!muddyTagResult.success()) {
+                return muddyTagResult.error();
+            }
+            out.muddyRootsIn = muddyTagResult.value();
+        }
+        // TODO(mangrove-muddy-roots): 方块列表形式（mud / muddy_mangrove_roots）尚未建表，
+        //   当前退化为按方块名匹配（见 TreeFeature::_placeRootBlocks）。
+    }
+
+    if (placementJson.contains("muddy_roots_provider")) {
+        auto muddyProviderResult = parser::BlockStateProviderParser::parse(placementJson["muddy_roots_provider"]);
+        if (!muddyProviderResult.success()) {
+            return muddyProviderResult.error();
+        }
+        out.muddyRootsProvider = std::move(muddyProviderResult).value();
+    }
+
+    out.maxRootWidth = placementJson.value("max_root_width", 8);
+    out.maxRootLength = placementJson.value("max_root_length", 15);
+    out.randomSkewChance = placementJson.value("random_skew_chance", 0.0f);
+    return {};
+}
+
+/**
+ * @brief 解析 root_placer（目前仅支持 minecraft:mangrove_root_placer）。
+ */
+Result<std::unique_ptr<RootPlacerConfig>> parseRootPlacer(const nlohmann::json& rootJson)
+{
+    if (!rootJson.is_object()) {
+        return Error(ErrorCode::InvalidData, "root_placer must be an object");
+    }
+    const std::string type = rootJson.value("type", "");
+    if (type != "minecraft:mangrove_root_placer") {
+        return Error(ErrorCode::InvalidData, "unsupported root_placer type: " + type);
+    }
+
+    auto config = std::make_unique<RootPlacerConfig>();
+    if (auto commonResult = parseRootPlacerCommon(rootJson, *config); !commonResult.success()) {
+        return commonResult.error();
+    }
+
+    if (!rootJson.contains("mangrove_root_placement")) {
+        return Error(ErrorCode::InvalidData, "mangrove_root_placer missing 'mangrove_root_placement'");
+    }
+    auto placement = std::make_unique<MangroveRootPlacement>();
+    if (auto placementResult = parseMangroveRootPlacement(rootJson["mangrove_root_placement"], *placement);
+        !placementResult.success()) {
+        return placementResult.error();
+    }
+    config->mangroveRootPlacement = std::move(placement);
+    return config;
+}
+
 /**
  * @brief tree 工厂：trunk_provider/foliage_provider → trunkBlock/foliageBlock(或 foliageProvider)，
  *        trunk_placer/foliage_placer → 放置器；ignore_vines/force_dirt/max_water_depth/minimum_size。
@@ -1187,13 +1294,15 @@ Result<std::unique_ptr<ConfiguredFeatureBase>> createTree(const nlohmann::json& 
         }
         config->foliagePlacer = foliageResult.value();
     }
-    // TODO: root_placer 尚未实现。数据包中 mangrove / tall_mangrove 的 config 带
-    // "root_placer": {"type": "minecraft:mangrove_root_placer", ...}（红树林的支柱根），
-    // 本工厂目前不解析该字段，故红树林能生成但**不长根**。该项是"数据包使用但未注册"
-    // 类型里唯一剩余者（placement/carver/decorator 三类已全部补齐），
-    // 需要时按原版 MangroveRootPlacer 实现：以上方原木为起点做随机游走铺根，
-    // 并按 above_root_placement 概率在根上方放置方块。当前三个 parity 测试区块
-    // 均无 mangrove_swamp，故不影响其对比结果。
+    // root_placer：红树林支柱根（MC 1.21.11 MangroveRootPlacer）。
+    // 目前唯一的数据包类型是 minecraft:mangrove_root_placer，未知类型按错误处理，避免静默少根。
+    if (configJson.contains("root_placer")) {
+        auto rootResult = parseRootPlacer(configJson["root_placer"]);
+        if (!rootResult.success()) {
+            return rootResult.error();
+        }
+        config->rootPlacer = std::move(rootResult).value();
+    }
 
     // decorators：树体放置完成后依次执行的装饰器（蜂巢/落叶/藤蔓等）。
     // MC BaseTreeFeatureConfig.decorators 为可选，缺省为空列表。

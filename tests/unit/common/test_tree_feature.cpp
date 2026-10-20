@@ -454,6 +454,59 @@ TEST_F(TreeFeaturePlacementWorldTest, ExistingLogsAllowSpaceProbeButRemainUnchan
     EXPECT_TRUE(m_region->getBlockState(8, 4, 8)->is(VanillaBlocks::OAK_LOG));
 }
 
+// 红树林树根：树干原点按 trunk_offset_y 上移，树根沿水平方向铺设，根上方按概率放 moss_carpet。
+TEST_F(TreeFeaturePlacementWorldTest, MangroveRootsGrowBelowRaisedTrunkOrigin)
+{
+    TreeFeature feature;
+    auto config = makeFixedOakConfig();
+    auto rootPlacer = std::make_unique<RootPlacerConfig>();
+    rootPlacer->trunkOffsetY = world::gen::valueprovider::ConstantInt::create(2);
+    rootPlacer->rootProvider = std::make_unique<world::gen::feature::state::SimpleBlockStateProvider>(
+        &VanillaBlocks::MANGROVE_ROOTS->defaultState());
+    auto placement = std::make_unique<MangroveRootPlacement>();
+    placement->maxRootWidth = 8;
+    placement->maxRootLength = 15;
+    placement->randomSkewChance = 0.2f;
+    rootPlacer->mangroveRootPlacement = std::move(placement);
+    config.rootPlacer = std::move(rootPlacer);
+
+    math::JavaLegacyRandom rng(12345);
+    ASSERT_TRUE(feature.place(*m_region, rng, BlockPos(8, 1, 8), config));
+    // 树干从 y=3 开始（起始 y=1 + trunkOffsetY=2）。
+    EXPECT_TRUE(m_region->getBlockState(8, 4, 8)->is(VanillaBlocks::OAK_LOG));
+
+    // 竖直区间（标记位置 y=1 与 y=2）的树根在树干落位时被原木/泥土覆盖，这是 vanilla 同序行为的
+    // 直接结果；这里只校验树干侧根存在，且 y=2 已不是空气（被根或泥土占据）。
+    EXPECT_FALSE(m_region->getBlockState(8, 2, 8)->isAir());
+
+    // 四个水平方向的正前方必须落根。
+    for (const BlockPos& offset : {BlockPos(1, 0, 0), BlockPos(-1, 0, 0), BlockPos(0, 0, 1), BlockPos(0, 0, -1)}) {
+        const BlockState* state = m_region->getBlockState(8 + offset.x, 3, 8 + offset.z);
+        ASSERT_NE(state, nullptr);
+        EXPECT_TRUE(state->is(VanillaBlocks::MANGROVE_ROOTS)) << "offset " << offset.x << "," << offset.z;
+    }
+}
+
+// trunk_offset_y 区间为空/非法时：树干原点与根按采样值上移，根无法落位（上方被阻断）则整棵树失败。
+TEST_F(TreeFeaturePlacementWorldTest, MangroveRootsRejectedWhenVerticalSpanBlocked)
+{
+    // 在 mark 与 trunkOrigin 之间的两格填入石头，树根无法通过。
+    setWorldBlock(8, 1, 8, &VanillaBlocks::STONE->defaultState());
+    setWorldBlock(8, 2, 8, &VanillaBlocks::STONE->defaultState());
+
+    TreeFeature feature;
+    auto config = makeFixedOakConfig();
+    auto rootPlacer = std::make_unique<RootPlacerConfig>();
+    rootPlacer->trunkOffsetY = world::gen::valueprovider::ConstantInt::create(2);
+    rootPlacer->rootProvider = std::make_unique<world::gen::feature::state::SimpleBlockStateProvider>(
+        &VanillaBlocks::MANGROVE_ROOTS->defaultState());
+    rootPlacer->mangroveRootPlacement = std::make_unique<MangroveRootPlacement>();
+    config.rootPlacer = std::move(rootPlacer);
+
+    math::JavaLegacyRandom rng(12345);
+    EXPECT_FALSE(feature.place(*m_region, rng, BlockPos(8, 1, 8), config));
+}
+
 TEST_F(TreeFeaturePlacementWorldTest, CanopyReplacesTaggedVegetationAndPreservesPersistentLeaves)
 {
     TreeFeature feature;
