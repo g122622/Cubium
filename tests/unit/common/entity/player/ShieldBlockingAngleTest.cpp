@@ -163,3 +163,37 @@ TEST_F(ShieldBlockingAngleTest, NoSourcePositionFallsBackToPiAngle)
     player.actuallyHurt(source, 4.0f);
     EXPECT_LT(player.health(), healthBefore);
 }
+
+TEST_F(ShieldBlockingAngleTest, AxeTagItemsDisableShieldForFiveSeconds)
+{
+    ShieldTestPlayer defender;
+    defender.setWorld(&m_world);
+    _equipRaisedShield(defender);
+    ASSERT_TRUE(defender.isUsingItem());
+
+    ShieldTestPlayer axeAttacker;
+    axeAttacker.setWorld(&m_world);
+    axeAttacker.getHeldItem(Hand::MainHand) = ItemStack(*Items::IRON_AXE, 1);
+    EXPECT_FLOAT_EQ(axeAttacker.getSecondsToDisableBlocking(), 5.0f);
+
+    // 破盾：盾牌进入 100 tick 冷却并停止举盾
+    defender.onShieldDisabled(axeAttacker);
+    EXPECT_TRUE(defender.cooldownTracker().hasCooldown(Items::SHIELD));
+    EXPECT_FALSE(defender.isUsingItem());
+}
+
+TEST_F(ShieldBlockingAngleTest, NonAxeWeaponDoesNotDisableShield)
+{
+    ShieldTestPlayer defender;
+    defender.setWorld(&m_world);
+    _equipRaisedShield(defender);
+
+    ShieldTestPlayer swordAttacker;
+    swordAttacker.setWorld(&m_world);
+    swordAttacker.getHeldItem(Hand::MainHand) = ItemStack(*Items::IRON_SWORD, 1);
+    EXPECT_FLOAT_EQ(swordAttacker.getSecondsToDisableBlocking(), 0.0f);
+
+    defender.onShieldDisabled(swordAttacker);
+    EXPECT_FALSE(defender.cooldownTracker().hasCooldown(Items::SHIELD));
+    EXPECT_TRUE(defender.isUsingItem());
+}

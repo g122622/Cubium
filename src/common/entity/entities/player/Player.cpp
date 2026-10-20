@@ -66,10 +66,10 @@
 #include "common/item/enchantment/enchantments/mace/WindBurstEnchantment.hpp"
 #include "common/item/enchantment/enchantments/tool/EfficiencyEnchantment.hpp"
 #include "common/item/items/armor/ArmorItem.hpp"
-#include "common/item/items/tool/AxeItem.hpp"
 #include "common/item/items/tool/SwordItem.hpp"
 #include "common/item/items/trial/MaceItem.hpp"
 #include "common/item/items/weapon/ShieldItem.hpp"
+#include "common/item/tag/ItemTags.hpp"
 #include "common/mod/bedrock/addon/component/ItemComponentEvents.hpp"
 #include "common/mod/bedrock/addon/component/ItemComponentRegistry.hpp"
 #include "common/network/protocol/EntityEvents.hpp"
@@ -1730,19 +1730,21 @@ void Player::damageShield(f32 amount)
 
 f32 Player::getSecondsToDisableBlocking() const noexcept
 {
+    // vanilla 斧类武器的 disable_blocking_for_seconds 固定 5.0。
+    constexpr f32 AXE_DISABLE_BLOCKING_SECONDS = 5.0f;
+
     // 对齐 MC Java 1.21.11 LivingEntity.getSecondsToDisableBlocking（LivingEntity.java:3826-3830）+
     // Weapon.disableBlockingForSeconds：攻击者主手武器带 WEAPON 组件且 disableBlockingForSeconds>0
     // 时返回该值（斧头 5.0F）。
     //
-    // Cubium 暂无 WEAPON 数据组件体系，改为检测主手是否为 AxeItem——斧头攻击破盾是 wiki 明确行为
-    // （"用斧攻击盾牌可使盾牌失效 5 秒"），斧头 disableBlockingForSeconds=5.0F 是 vanilla 默认值。
-    // TODO: 接入 WEAPON 数据组件体系后，统一走组件 disableBlockingForSeconds 而非 dynamic_cast<AxeItem>。
+    // Cubium 暂无 WEAPON 数据组件体系，改为按物品标签判定：vanilla 1.21.11 物品定义中
+    // 斧头（含数据包新增的 copper_axe）都带 Weapon(disables_blocking=true, disable_blocking_for_seconds=5.0)，
+    // 判定"主手属于 minecraft:axes 标签"即等价于吃到该武器属性；数据包扩充斧类物品时自动生效。
     const ItemStack& mainHand = getHeldItem(Hand::MainHand);
     if (mainHand.isEmpty()) {
         return 0.0f;
     }
-    const auto* axe = dynamic_cast<const item::tool::AxeItem*>(mainHand.getItem());
-    return axe != nullptr ? 5.0f : 0.0f;
+    return mainHand.getItem()->isIn(item::tag::ItemTags::AXES()) ? AXE_DISABLE_BLOCKING_SECONDS : 0.0f;
 }
 
 void Player::onShieldDisabled(LivingEntity& attacker)
