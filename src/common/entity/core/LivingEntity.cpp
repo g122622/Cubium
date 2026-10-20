@@ -41,6 +41,8 @@
 #include "common/entity/ecs/components/HurtStateComponent.hpp"
 #include "common/entity/effect/EffectInstance.hpp"
 #include "common/entity/effect/EffectType.hpp"
+#include "common/entity/entities/passive/tamable/TameableEntity.hpp"
+#include "common/entity/entities/passive/tamable/WolfEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/registry/VanillaEntityTypeKeys.hpp"
 #include "common/entity/serialization/EntityNbtKeys.hpp"
@@ -382,9 +384,17 @@ bool LivingEntity::hurt(DamageSource& source, f32 amount)
             //     即 mob_attack_no_aggro 由玩家造成时仍记 lastHurtByPlayer（用于死亡经验掉落守卫，
             //     见 shouldDropExperienceOnDeath / dropAllDeathLoot），但不激怒（2.5a 的 lastHurtByMob
             //     被 NO_ANGER 门控挡住）。
-            //     TODO: 驯服狼代攻时归属其玩家主人（vanilla wolf.getOwnerReference 分支）未实现。
-            if (dynamic_cast<Player*>(trueSource) != nullptr) {
-                setLastHurtByPlayerMemoryTime(100);
+            //     驯服狼代攻（vanilla resolvePlayerResponsibleForDamage 的 Wolf 分支，
+            //     LivingEntity.java:1336-1343）：真凶为已驯服的狼时，把功劳归属其主人玩家；
+            //     狼已驯服但主人引用为空（主人 UUID 缺失/离线）时按 vanilla 清空归属并归零记忆窗口。
+            if (auto* player = dynamic_cast<Player*>(trueSource)) {
+                setLastHurtByPlayer(player, 100);
+            } else if (auto* wolf = dynamic_cast<WolfEntity*>(trueSource); wolf != nullptr && wolf->isTamed()) {
+                if (Player* owner = wolf->getOwner()) {
+                    setLastHurtByPlayer(owner, 100);
+                } else {
+                    setLastHurtByPlayer(nullptr, 0);
+                }
             }
         }
     }
@@ -839,14 +849,28 @@ f32 LivingEntity::computeFinalDamage(DamageSource& source, f32 damage)
     return damage;
 }
 
+Player* LivingEntity::getLastHurtByPlayer()
+{
+    return m_lastHurtByPlayer.get();
+}
+
+void LivingEntity::setLastHurtByPlayer(Player* player, i32 time)
+{
+    m_lastHurtByPlayer = player;
+    m_lastHurtByPlayerMemoryTime = time;
+}
+
 LivingEntity* LivingEntity::getKillCredit()
 {
     // 对齐 MC Java 1.21.11 LivingEntity.getKillCredit（LivingEntity.java:1886-1892）：
     //   if (this.lastHurtByPlayer != null) return this.lastHurtByPlayer.getEntity(...);
     //   else return this.lastHurtByMob != null ? ... : null;
-    // Cubium 没有 lastHurtByPlayer 实体引用，改用 CombatTracker::getBestAttacker()——
-    // 这与原版 ServerPlayer.die 中 awardKillScore 的取值来源一致。
-    return m_combatTracker.getBestAttackerLiving();
+    // 优先玩家归属（含玩家驯服狼代攻），使击杀记分/经验归属到最近伤害的玩家；
+    // 无玩家归属时回退到最近攻击生物（lastHurtByMob）。
+    if (Player* player = m_lastHurtByPlayer.get()) {
+        return player;
+    }
+    return m_lastHurtBy.get();
 }
 
 void LivingEntity::die(DamageSource& cause)
@@ -1009,11 +1033,8 @@ void LivingEntity::dropAllDeathLoot(DamageSource& cause)
     // 在玩家造成伤害时设 100、每 tick 递减。注：resolvePlayerResponsibleForDamage 对 Player 无
     // NO_ANGER 门控，故 mob_attack_no_aggro 由玩家造成时仍记 memoryTime（用于掉落守卫），但不
     // 激怒（lastHurtByMob 被 NO_ANGER 门控挡住）。
-    // KILLER_PLAYER loot 参数仍从 m_lastHurtBy 取具体 Player 实体（见 dropFromLootTable:835）：
-    // Cubium 暂无独立的 lastHurtByPlayer 实体引用字段（仅 memoryTime 计数器），用 m_lastHurtBy
-    // 近似。TODO: 引入 lastHurtByPlayer 实体引用（对齐 vanilla EntityReference<Player>）后，
-    //       KILLER_PLAYER 改从该引用取，覆盖"玩家打残后非玩家补刀"场景（此时 m_lastHurtBy 是
-    //       补刀的非玩家，但 memoryTime>0 仍应归属原玩家）。
+    // KILLER_PLAYER loot 参数从 m_lastHurtByPlayer 实体引用取（见 dropFromLootTable）：
+    // 覆盖"玩家打残后非玩家补刀"场景（此时 m_lastHurtBy 是补刀的非玩家，但记忆窗口内仍归属原玩家）。
     const bool recentlyHitByPlayer = (m_lastHurtByPlayerMemoryTime > 0);
 
     // 1. shouldDropLoot 守卫（doMobLoot gamerule + 非幼体）：守卫包住物品掉落
@@ -1151,7 +1172,7 @@ void LivingEntity::dropFromLootTable(DamageSource& cause, bool recentlyHitByPlay
     // 击杀玩家（KILLER_PLAYER）：仅当最近被玩家伤害时设，并应用该玩家的 luck。
     // 对应 vanilla `if (flag && player != null) withParameter(LAST_DAMAGE_PLAYER, player).withLuck(player.getLuck())`。
     if (recentlyHitByPlayer) {
-        Player* player = dynamic_cast<Player*>(m_lastHurtBy.get());
+        Player* player = m_lastHurtByPlayer.get();
         if (player != nullptr) {
             builder.withParameter(loot::LootParams::KILLER_PLAYER, player);
             // 应用击杀玩家的幸运值（generic.luck 属性，经幸运/霉运效果改变）。对齐 vanilla player.getLuck()。
@@ -1726,8 +1747,12 @@ void LivingEntity::tick()
 
     // 递减"最近被玩家伤害"记忆时间（对齐 vanilla LivingEntity.aiStep:466-470）。
     // 归零后玩家伤害记忆失效，影响死亡经验掉落守卫（普通生物需此值>0 才掉经验）。
+    // 归零时同步清空玩家引用（vanilla aiStep:466-469 的 else 分支），避免记忆窗口过期后
+    // getLastHurtByPlayer / getKillCredit 仍返回陈旧玩家。
     if (m_lastHurtByPlayerMemoryTime > 0) {
         m_lastHurtByPlayerMemoryTime--;
+    } else {
+        m_lastHurtByPlayer = nullptr;
     }
 
     // 更新受伤动画计时器

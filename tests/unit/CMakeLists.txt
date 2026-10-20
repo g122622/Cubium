@@ -530,6 +530,8 @@ add_executable(mc_tests
     common/entity/combat/DamagesHelmetTest.cpp
     # NO_ANGER/NO_ANGER_FROM_WIND_CHARGE 标签查询测试（mob_attack_no_aggro/风弹不激怒）
     common/entity/combat/NoAngerTest.cpp
+    # lastHurtByPlayer 实体引用归属测试（玩家直接攻击/驯服狼代攻/记忆窗口到期/击杀归属）
+    common/entity/combat/HurtByPlayerAttributionTest.cpp
     # AVOIDS_GUARDIAN_THORNS 标签查询测试（守卫者荆棘反伤，魔法/爆炸/荆棘不反伤）
     common/entity/combat/GuardianThornsTest.cpp
     # CAN_BREATHE_UNDER_WATER 标签查询测试（守卫者水下呼吸，修复硬编码致溺水）
