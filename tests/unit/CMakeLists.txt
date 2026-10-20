@@ -475,6 +475,10 @@ add_executable(mc_tests
     server/event/SummonedEntityEventTest.cpp
     # 村庄声望治愈僵尸村民测试
     server/advancement/VillageReputationTest.cpp
+    # 乐器数据驱动体系（注册表/数据包定义/乐器标签/山羊角吹奏/set_instrument）
+    server/item/instrument/InstrumentDataDrivenTest.cpp
+    # 盾牌方向校验（来袭方向与头部朝向夹角超过阻挡角时不格挡）
+    common/entity/player/ShieldBlockingAngleTest.cpp
     # ItemDropHelper 测试
     common/entity/utils/ItemDropHelperTest.cpp
     # 经验系统测试
@@ -2070,6 +2074,9 @@ target_sources(mc_tests
         # 注册表装配门面：MinecraftServer::initializeRegistries 转调 RegistryBootstrap，
         # mc_tests 编译 MinecraftServer.cpp 故须登记（与 server/CMakeLists.txt 一致）。
         ${CMAKE_SOURCE_DIR}/src/server/registry/RegistryBootstrap.cpp
+        # 数据包驱动的物品定义加载器（乐器），RegistryBootstrap 直接调用
+        ${CMAKE_SOURCE_DIR}/src/server/item/instrument/InstrumentLoader.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/item/instrument/InstrumentTagLoader.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/chunk/data/ChunkData.cpp
         ${CMAKE_SOURCE_DIR}/src/common/util/NibbleArray.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/chunk/load/ChunkDistanceGraph.cpp

@@ -442,7 +442,8 @@ public:
      */
     virtual void globalLevelEvent(i32 eventId, const BlockPos& pos, i32 data)
     {
-        // TODO: 默认实现降级为普通 playEvent（对齐原版 GLOBAL_SOUND_EVENTS=false 时的降级行为）
+        // 默认降级为普通 playEvent（等价 vanilla globalSoundEvents=false 时的行为）；
+        // 服务端世界覆写本方法，按 gamerule 选择全局广播或普通事件。
         playEvent(eventId, pos, data);
     }
 
@@ -1037,10 +1038,8 @@ public:
      * 控制嘎枝之心的 AWAKE/DORMANT 选择：活跃时为 AWAKE（生成嘎枝、激活外观），
      * 否则为 DORMANT。vanilla 由维度类型 + 生物群系（苍白花园）驱动，且受昼夜周期影响。
      *
-     * Cubium 尚无环境属性（EnvironmentAttributes）体系，默认返回 false（即 DORMANT），
-     * 与 vanilla 在非苍白花园环境的取值一致。
-     *
-     * TODO: 待 EnvironmentAttributes 体系落地后，改为按维度/生物群系/时间查询真实属性值。
+     * 服务端世界按维度级环境属性系统求值；默认实现返回 false（DORMANT），与 vanilla 在
+     * 非苍白花园环境的取值一致。
      */
     [[nodiscard]] virtual bool isCreakingActive(const BlockPos& /*pos*/) const { return false; }
 

@@ -573,7 +573,8 @@ public:
      *
      * 注：vanilla ArmorStand 继承 LivingEntity（maxHealth=2，有 causeDamage/kill/brokenByAnybody 装备
      * 掉落体系）。Cubium ArmorStandEntity 继承 Entity 无 health/装备体系，此处自带 m_health 模拟
-     * health 语义（默认 2.0），装备掉落/mobGriefing 守卫/creativePlayer/5tick 节流留 TODO。
+     * health 语义（默认 2.0）。销毁链路（破坏音效 / 木板碎屑粒子 / 盔甲架本体掉落）已按 vanilla 补齐；
+     * 穿戴装备的掉落依赖尚未实现的实体装备体系，故暂不实现。
      */
     bool hurt(DamageSource& source, f32 amount) override;
 
@@ -590,17 +591,59 @@ private:
     static constexpr f32 ARMOR_STAND_MAX_HEALTH = 2.0f;
     f32 m_health = ARMOR_STAND_MAX_HEALTH;
 
-    // 对齐 vanilla ArmorStand.lastHit（5 tick 破坏节流）。Cubium 暂用 tickCount 近似。
-    // TODO: 完整对齐 vanilla 5 tick 节流（gameTime - lastHit > 5）需世界 gameTime，当前简化。
-    i64 m_lastHit = -6;
+    /// 近战破坏节流窗口（tick）：两次受击间隔不超过该值时直接破坏（vanilla 常量 5）。
+    static constexpr i64 ARMOR_STAND_HIT_COOLDOWN_TICKS = 5;
+    /// 破坏粒子数量（vanilla showBreakingParticles 固定 10 个方块碎屑）。
+    static constexpr i32 ARMOR_STAND_BREAK_PARTICLE_COUNT = 10;
+
+    // 对齐 vanilla ArmorStand.lastHit（5 tick 破坏节流），读写世界游戏时间。
+    // lastHit 从对象构造时刻起算为空（m_hasLastHit=false），首次受击必然通过节流。
+    i64 m_lastHit = 0;
+    bool m_hasLastHit = false;
 
     /**
      * @brief 扣血辅助（对齐 vanilla ArmorStand.causeDamage）
      *
-     * 从 m_health 扣除伤害值，扣至 0 及以下时销毁实体（对齐 vanilla causeDamage 在 health<=0 调 kill）。
+     * 从 m_health 扣除伤害值，扣至 0.5 及以下时走 brokenByAnything + kill；
+     * 否则仅更新生命值并触发 ENTITY_DAMAGE 游戏事件。
      * 与普通 LivingEntity 不同，盔甲架不经过护甲/附魔减伤链路（vanilla causeDamage 直接 setHealth）。
      */
-    void causeDamage(f32 damage);
+    void causeDamage(f32 damage, const DamageSource& source);
+
+    /**
+     * @brief 销毁辅助（对齐 vanilla ArmorStand.kill）
+     *
+     * 以 KILLED 原因移除实体（经 onRemoval 播放破坏音效）并触发 ENTITY_DIE 游戏事件。
+     */
+    void kill();
+
+    /**
+     * @brief 任意方式破坏（对齐 vanilla ArmorStand.brokenByAnything）
+     *
+     * 播放破坏音效并掉出盔甲架本体；穿戴装备的掉落依赖未实现的实体装备体系。
+     */
+    void brokenByAnything(const DamageSource& source);
+
+    /**
+     * @brief 被玩家破坏（对齐 vanilla ArmorStand.brokenByPlayer）
+     *
+     * 先掉出带自定义名的盔甲架本体，再走 brokenByAnything。
+     */
+    void brokenByPlayer(const DamageSource& source);
+
+    /**
+     * @brief 播放破坏音效（对齐 vanilla ArmorStand.playBrokenSound）
+     */
+    void playBrokenSound();
+
+    /**
+     * @brief 显示破坏粒子（对齐 vanilla ArmorStand.showBreakingParticles）
+     *
+     * 广播 10 个携带橡木木板方块状态的碎屑粒子，位置抬升到碰撞箱 2/3 高度处。
+     */
+    void showBreakingParticles();
+
+    void onRemoval(RemovalReason reason) override;
 
     bool m_hasGravity = true;
     bool m_invisible = false;

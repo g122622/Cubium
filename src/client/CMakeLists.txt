@@ -665,6 +665,9 @@ add_executable(minecraft-client
     ${CMAKE_SOURCE_DIR}/src/server/function/MacroFunction.cpp
     ${CMAKE_SOURCE_DIR}/src/server/function/StringTemplate.cpp
     ${CMAKE_SOURCE_DIR}/src/server/function/TimerQueue.cpp
+    # 数据包驱动的物品定义加载器（乐器），内置服 RegistryBootstrap 直接调用
+    ${CMAKE_SOURCE_DIR}/src/server/item/instrument/InstrumentLoader.cpp
+    ${CMAKE_SOURCE_DIR}/src/server/item/instrument/InstrumentTagLoader.cpp
 )
 
 target_link_libraries(minecraft-client

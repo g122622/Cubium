@@ -2550,10 +2550,9 @@ void Items::_registerMisc()
     END_CRYSTAL = &registry.registerItem<item::items::EndCrystalItem>(
         ResourceLocation("minecraft:end_crystal"), ItemProperties().maxStackSize(64));
 
-    // 山羊角 - 吹奏乐器。vanilla 中单一物品 id，音色由 INSTRUMENT 数据组件决定（8 种变体）。
-    // TODO: 接入 Instrument 数据组件后，按组件读取音色（当前固定为变体 0）。
+    // 山羊角 - 吹奏乐器。音色由物品的 instrument 数据组件决定（数据包 instrument/ 中的乐器定义）。
     GOAT_HORN = &registry.registerItem<item::items::GoatHornItem>(
-        ResourceLocation("minecraft:goat_horn"), 0, ItemProperties().maxStackSize(1));
+        ResourceLocation("minecraft:goat_horn"), ItemProperties().maxStackSize(1));
 
     // 望远镜 - 右键进入缩放视角
     SPYGLASS = &registry.registerItem<item::items::SpyglassItem>(

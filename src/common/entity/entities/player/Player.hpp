@@ -1260,6 +1260,18 @@ public:
     [[nodiscard]] bool canBlockDamageSource(DamageSource& source) const override;
 
     /**
+     * @brief 计算伤害来源相对头部水平朝向的夹角（对齐 vanilla BlocksAttacks.resolveBlockedDamage 的角度输入）
+     *
+     * 以受伤者头部水平朝向（rotationYawHead，等价 vanilla calculateViewVector(0, getYHeadRot()) 的水平分量）
+     * 与「来源位置 - 受伤者位置」水平分量的夹角返回弧度值。来源位置缺失时返回 nullopt，
+     * 调用方按 vanilla 语义取 PI（任何角度限制下都不减伤）。
+     *
+     * @param source 伤害来源
+     * @return 夹角（弧度，取值 [0, PI]）；来源位置缺失返回 nullopt
+     */
+    [[nodiscard]] std::optional<f32> blockingSourceAngle(const DamageSource& source) const;
+
+    /**
      * @brief 格挡成功后消耗盾牌耐久（对齐 MC Java 1.21.11 BlocksAttacks.hurtBlockingItem）
      *
      * 基类 LivingEntity::damageShield 空实现。玩家格挡成功时消耗正在使用的盾牌的耐久度

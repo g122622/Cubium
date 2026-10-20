@@ -276,6 +276,9 @@ add_subdirectory(world/storage)
 
 add_executable(minecraft-server
     main.cpp
+    # 数据包驱动的物品定义加载器（乐器；注册表与标签容器位于 common）
+    item/instrument/InstrumentLoader.cpp
+    item/instrument/InstrumentTagLoader.cpp
     application/StandaloneServer.cpp
     application/IntegratedServer.cpp
     application/MinecraftServer.cpp

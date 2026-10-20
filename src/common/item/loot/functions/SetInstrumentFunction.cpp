@@ -23,39 +23,16 @@
 
 #include "SetInstrumentFunction.hpp"
 #include "common/item/core/ItemStack.hpp"
+#include "common/item/instrument/InstrumentTags.hpp"
 #include "common/item/loot/context/LootContext.hpp"
 #include "common/item/loot/functions/LootFunction.hpp"
 #include "common/util/math/random/Random.hpp"
 #include <memory>
 #include <string>
-#include <unordered_map>
+#include <utility>
 
 namespace mc {
 namespace loot {
-
-namespace {
-
-std::unordered_map<ResourceLocation, std::vector<ResourceLocation>>& _instrumentTags()
-{
-    static std::unordered_map<ResourceLocation, std::vector<ResourceLocation>> tags = {
-        // 原版 data/minecraft/tags/instrument/regular_goat_horns.json
-        {ResourceLocation("minecraft:regular_goat_horns"),
-            {ResourceLocation("minecraft:ponder_goat_horn"),
-                ResourceLocation("minecraft:sing_goat_horn"),
-                ResourceLocation("minecraft:seek_goat_horn"),
-                ResourceLocation("minecraft:feel_goat_horn"),
-                ResourceLocation("minecraft:admire_goat_horn"),
-                ResourceLocation("minecraft:call_goat_horn"),
-                ResourceLocation("minecraft:yearn_goat_horn"),
-                ResourceLocation("minecraft:dream_goat_horn")}},
-        // data/minecraft/tags/instrument/screaming_goat_horns.json
-        {ResourceLocation("minecraft:screaming_goat_horns"),
-            {ResourceLocation("minecraft:seek_goat_horn"), ResourceLocation("minecraft:feel_goat_horn")}},
-    };
-    return tags;
-}
-
-} // namespace
 
 SetInstrumentFunction::SetInstrumentFunction(ResourceLocation instrumentTagId)
     : m_instrumentTagId(std::move(instrumentTagId))
@@ -66,12 +43,15 @@ ItemStack SetInstrumentFunction::apply(ItemStack stack, LootContext& context) co
     if (stack.isEmpty()) {
         return stack;
     }
-    const auto* tag = getInstrumentTag(m_instrumentTagId);
-    if (tag == nullptr || tag->empty()) {
+    // 成员来自乐器标签注册表（内置占位 + 数据包 tags/instrument 加载结果）
+    const auto& registry = item::instrument::InstrumentTags::instance();
+    const item::instrument::InstrumentTag* tag = registry.getTag(m_instrumentTagId);
+    if (tag == nullptr || tag->size() == 0) {
         return stack;
     }
-    const i32 index = context.getRandom().nextInt(static_cast<i32>(tag->size()));
-    stack.setInstrument((*tag)[static_cast<usize>(index)].toString());
+    const auto& members = tag->members();
+    const i32 index = context.getRandom().nextInt(static_cast<i32>(members.size()));
+    stack.setInstrument(members[static_cast<usize>(index)].toString());
     return stack;
 }
 
@@ -84,24 +64,10 @@ std::unique_ptr<LootFunction> SetInstrumentFunction::clone() const noexcept
     return func;
 }
 
-void SetInstrumentFunction::clearInstruments()
-{
-    _instrumentTags().clear();
-}
-
-void SetInstrumentFunction::registerInstrument(const ResourceLocation& tagId, const ResourceLocation& instrumentId)
-{
-    auto& members = _instrumentTags()[tagId];
-    if (std::find(members.begin(), members.end(), instrumentId) == members.end()) {
-        members.push_back(instrumentId);
-    }
-}
-
 const std::vector<ResourceLocation>* SetInstrumentFunction::getInstrumentTag(const ResourceLocation& tagId)
 {
-    const auto& tags = _instrumentTags();
-    auto it = tags.find(tagId);
-    return it == tags.end() ? nullptr : &it->second;
+    const item::instrument::InstrumentTag* tag = item::instrument::InstrumentTags::instance().getTag(tagId);
+    return tag == nullptr ? nullptr : &tag->members();
 }
 
 } // namespace loot
