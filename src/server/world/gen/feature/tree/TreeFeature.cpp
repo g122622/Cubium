@@ -33,6 +33,8 @@
 #include "common/world/block/registry/CherryBlocks.hpp"
 #include "common/world/block/registry/PaleGardenBlocks.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/fluid/Fluid.hpp"
+#include "common/world/fluid/FluidTags.hpp"
 #include "foliage/BlobFoliagePlacer.hpp"
 #include "foliage/CherryFoliagePlacer.hpp"
 #include "foliage/FoliagePlacers.hpp"
@@ -49,6 +51,7 @@
 #include "trunk/StraightTrunkPlacer.hpp"
 #include "trunk/TrunkPlacers.hpp"
 #include <algorithm>
+#include <array>
 #include <map>
 #include <memory>
 #include <queue>
@@ -124,10 +127,26 @@ bool TreeFeature::place(WorldGenRegion& world,
         }
     }
 
+    // 树根放置器：树干原点沿 trunkOffsetY 上移（对齐 vanilla TreeFeature.doPlace：
+    // blockpos = rootPlacer.getTrunkOrigin(pos)，高度检查与树干放置均以 blockpos 为基准）。
+    // 根位置先模拟校验；与 vanilla 先落根不同，本实现把落位推迟到树体成形之后，
+    // 以免后续树干裁剪失败留下孤立树根。
+    BlockPos trunkOrigin = startPos;
+    std::vector<BlockPos> rootPositions;
+    if (config.rootPlacer != nullptr) {
+        if (config.rootPlacer->trunkOffsetY == nullptr) {
+            return false;
+        }
+        trunkOrigin = startPos.up(config.rootPlacer->trunkOffsetY->sample(random));
+        if (!_simulateMangroveRoots(world, random, startPos, trunkOrigin, *config.rootPlacer, rootPositions)) {
+            return false;
+        }
+    }
+
     // 放置树干
     std::set<BlockPos> trunkBlocks;
     std::vector<FoliagePosition> foliagePositions =
-        config.trunkPlacer->placeTrunk(world, random, trunkHeight, startPos, trunkBlocks, config.trunkBlock);
+        config.trunkPlacer->placeTrunk(world, random, trunkHeight, trunkOrigin, trunkBlocks, config.trunkBlock);
 
     if (foliagePositions.empty()) {
         return false;
@@ -147,6 +166,11 @@ bool TreeFeature::place(WorldGenRegion& world,
     // 设置树叶距离属性（用于树叶腐烂机制）
     _setFoliageDistance(world, trunkBlocks, foliageBlocks);
 
+    // 树根落位（在树干与树叶全部成形之后，避免后续裁剪失败留下孤立树根）。
+    if (config.rootPlacer != nullptr) {
+        _placeRootBlocks(world, random, rootPositions, *config.rootPlacer);
+    }
+
     // 树木装饰器（MC BaseTreeFeatureConfig.decorators）
     //
     // 必须在树干与树叶全部落位之后、且**共用同一条随机流**执行：原版在 doPlace 的
@@ -154,7 +178,7 @@ bool TreeFeature::place(WorldGenRegion& world,
     // 影响同一棵树后续装饰器的取点。顺序或时机一旦不同，多装饰器树型的落点即错开。
     //
     // Context 的 logs/leaves 直接取自本轮已放置集合（构造时按 Y 升序排序），
-    // roots 留空——Cubium 的 TreeFeature 不含红树林式树根（那由独立 feature 处理）。
+    // roots 取自树根放置器收集的位置（无 root_placer 时为空）。
     if (!config.decorators.empty()) {
         world::gen::feature::tree::decorator::TreeDecoratorContext::DecorationSetter setter =
             [&world](const BlockPos& pos, const BlockState* state) {
@@ -164,8 +188,14 @@ bool TreeFeature::place(WorldGenRegion& world,
             };
         std::vector<BlockPos> logPositions(trunkBlocks.begin(), trunkBlocks.end());
         std::vector<BlockPos> leafPositions(foliageBlocks.begin(), foliageBlocks.end());
-        world::gen::feature::tree::decorator::TreeDecoratorContext context(
-            world, chunk, generator, setter, random, std::move(logPositions), std::move(leafPositions), {});
+        world::gen::feature::tree::decorator::TreeDecoratorContext context(world,
+            chunk,
+            generator,
+            setter,
+            random,
+            std::move(logPositions),
+            std::move(leafPositions),
+            std::move(rootPositions));
         for (const auto& decoratorInstance : config.decorators) {
             decoratorInstance->place(context);
         }
@@ -640,6 +670,215 @@ TreeFeatureConfig TreeFeatures::azaleaConfig()
     config.minimumSize = std::make_unique<TwoLayersFeatureSize>(1, 0, 1);
     config.minHeight = 4;
     return config;
+}
+
+// ============================================================================
+// 树根放置（MangroveRootPlacer）
+// ============================================================================
+
+namespace {
+
+/// 水平四个方向（对齐 vanilla Direction.Plane.HORIZONTAL 的遍历顺序：North, East, South, West）。
+const std::array<Direction, 4>& horizontalPlane()
+{
+    static const std::array<Direction, 4> kDirections = {
+        Direction::North, Direction::East, Direction::South, Direction::West};
+    return kDirections;
+}
+
+/// 方块状态是否可被树根穿过：空气/可被树替换，或命中 can_grow_through 标签。
+bool canPlaceRootAt(WorldGenRegion& world, const BlockPos& pos, const MangroveRootPlacement* placement)
+{
+    if (pos.y < world::MIN_BUILD_HEIGHT || pos.y >= world::MAX_BUILD_HEIGHT) {
+        return false;
+    }
+    if (TreeFeature::isReplaceableAt(world, pos)) {
+        return true;
+    }
+    if (placement != nullptr && placement->canGrowThrough != nullptr) {
+        const BlockState* state = world.getBlockState(pos.x, pos.y, pos.z);
+        return state != nullptr && placement->canGrowThrough->contains(*state);
+    }
+    return false;
+}
+
+/// 该位置流体是否为水（MC Level.isFluidAtPosition(pos, fluid -> fluid.is(FluidTags.WATER))）。
+bool isWaterFluidAt(WorldGenRegion& world, const BlockPos& pos)
+{
+    const fluid::FluidState* fluidState = world.getFluidState(pos.x, pos.y, pos.z);
+    return fluidState != nullptr && !fluidState->isEmpty() && fluidState->getFluid().isIn(fluid::FluidTags::WATER());
+}
+
+/// 默认树根宽度/长度上限（vanilla MangroveRootPlacer.ROOT_WIDTH_LIMIT / ROOT_LENGTH_LIMIT）。
+constexpr i32 kDefaultRootWidthLimit = 8;
+constexpr i32 kDefaultRootLengthLimit = 15;
+
+/// 曼哈顿距离（vanilla BlockPos.distManhattan）。
+i32 distManhattan(const BlockPos& lhs, const BlockPos& rhs)
+{
+    return std::abs(lhs.x - rhs.x) + std::abs(lhs.y - rhs.y) + std::abs(lhs.z - rhs.z);
+}
+
+} // namespace
+
+bool TreeFeature::placeRoots(WorldGenRegion& world,
+    math::IRandom& random,
+    const BlockPos& mark,
+    const BlockPos& trunkOrigin,
+    const RootPlacerConfig& placer)
+{
+    std::vector<BlockPos> positions;
+    if (!_simulateMangroveRoots(world, random, mark, trunkOrigin, placer, positions)) {
+        return false;
+    }
+    _placeRootBlocks(world, random, positions, placer);
+    return true;
+}
+
+bool TreeFeature::_simulateMangroveRoots(WorldGenRegion& world,
+    math::IRandom& random,
+    const BlockPos& mark,
+    const BlockPos& trunkOrigin,
+    const RootPlacerConfig& placer,
+    std::vector<BlockPos>& out)
+{
+    // 对齐 vanilla MangroveRootPlacer.placeRoots：先校验 mark → trunkOrigin 竖直区间可放根。
+    for (i32 height = mark.y; height < trunkOrigin.y; ++height) {
+        if (!canPlaceRootAt(world, BlockPos(mark.x, height, mark.z), placer.mangroveRootPlacement.get())) {
+            return false;
+        }
+    }
+
+    out.clear();
+    out.push_back(trunkOrigin.down());
+
+    for (Direction direction : horizontalPlane()) {
+        std::vector<BlockPos> branch;
+        if (!_simulateRootBranch(world,
+                random,
+                trunkOrigin.offset(direction),
+                direction,
+                trunkOrigin,
+                placer.mangroveRootPlacement.get(),
+                branch,
+                0)) {
+            return false;
+        }
+        out.insert(out.end(), branch.begin(), branch.end());
+        out.push_back(trunkOrigin.offset(direction));
+    }
+    return true;
+}
+
+bool TreeFeature::_simulateRootBranch(WorldGenRegion& world,
+    math::IRandom& random,
+    const BlockPos& start,
+    Direction direction,
+    const BlockPos& trunkOrigin,
+    const MangroveRootPlacement* placement,
+    std::vector<BlockPos>& out,
+    i32 depth)
+{
+    const i32 maxLength = placement != nullptr ? placement->maxRootLength : kDefaultRootLengthLimit;
+    if (depth == maxLength || static_cast<i32>(out.size()) > maxLength) {
+        return false;
+    }
+
+    const i32 width = placement != nullptr ? placement->maxRootWidth : kDefaultRootWidthLimit;
+    const f32 skewChance = placement != nullptr ? placement->randomSkewChance : 0.0F;
+    const i32 distance = distManhattan(start, trunkOrigin);
+    const BlockPos below = start.down();
+    const BlockPos forward = start.offset(direction);
+
+    // 对齐 vanilla potentialRootPositions：按到树干原点的曼哈顿距离决定候选根位置。
+    std::array<BlockPos, 2> candidates{};
+    size_t candidateCount = 0;
+    if (distance > width - 3 && distance <= width) {
+        if (random.nextFloat() < skewChance) {
+            candidates[candidateCount++] = below;
+            candidates[candidateCount++] = forward.down();
+        } else {
+            candidates[candidateCount++] = below;
+        }
+    } else if (distance > width) {
+        candidates[candidateCount++] = below;
+    } else if (random.nextFloat() < skewChance) {
+        candidates[candidateCount++] = below;
+    } else {
+        candidates[candidateCount++] = random.nextBoolean() ? forward : below;
+    }
+
+    for (size_t i = 0; i < candidateCount; ++i) {
+        const BlockPos& pos = candidates[i];
+        if (canPlaceRootAt(world, pos, placement)) {
+            out.push_back(pos);
+            if (!_simulateRootBranch(world, random, pos, direction, trunkOrigin, placement, out, depth + 1)) {
+                return false;
+            }
+        }
+    }
+    return true;
+}
+
+void TreeFeature::_placeRootBlocks(WorldGenRegion& world,
+    math::IRandom& random,
+    const std::vector<BlockPos>& positions,
+    const RootPlacerConfig& placer)
+{
+    if (placer.rootProvider == nullptr) {
+        return;
+    }
+    const MangroveRootPlacement* placement = placer.mangroveRootPlacement.get();
+    for (const BlockPos& pos : positions) {
+        // 对齐 vanilla RootPlacer.placeRoot：可放根时写入（含水则置 waterlogged），
+        // 并按 above_root_placement 概率在根上方空气处放置附属方块。
+        if (!canPlaceRootAt(world, pos, placement)) {
+            continue;
+        }
+
+        // 泥根：根所在方块命中 muddy_roots_in 时改用 muddy_roots_provider（对齐 MangroveRootPlacer.placeRoot）。
+        // muddy_roots_in 目前以方块标签承载；数据包给的是方块列表（mud / muddy_mangrove_roots），
+        // 列表形式尚未建表，此处额外按方块类型判定以保证数据包语义不被丢失。
+        // TODO(mangrove-muddy-roots): 标签加载器支持方块列表后移除下面的方块分支。
+        const BlockState* state = nullptr;
+        if (placement != nullptr && placement->muddyRootsProvider != nullptr) {
+            const BlockState* current = world.getBlockState(pos.x, pos.y, pos.z);
+            const bool inMuddy = current != nullptr &&
+                ((placement->muddyRootsIn != nullptr && placement->muddyRootsIn->contains(*current)) ||
+                    current->is(VanillaBlocks::MUD) || current->is(VanillaBlocks::MUDDY_MANGROVE_ROOTS));
+            if (inMuddy) {
+                state = placement->muddyRootsProvider->getState(world, random, pos.x, pos.y, pos.z);
+            }
+        }
+        if (state == nullptr) {
+            state = placer.rootProvider->getState(world, random, pos.x, pos.y, pos.z);
+        }
+        if (state != nullptr) {
+            if (state->hasProperty(BlockStateProperties::WATERLOGGED())) {
+                state = &state->with(BlockStateProperties::WATERLOGGED(), isWaterFluidAt(world, pos));
+            }
+            world.setBlockState(pos, state, ::mc::world::BlockUpdateFlags::UPDATE_ALL);
+        }
+
+        if (placer.aboveRootPlacement == nullptr || placer.aboveRootPlacement->aboveRootProvider == nullptr) {
+            continue;
+        }
+        const BlockPos above = pos.up();
+        if (random.nextFloat() < placer.aboveRootPlacement->chance) {
+            if (!TreeFeature::isReplaceableAt(world, above)) {
+                continue;
+            }
+            const BlockState* aboveState =
+                placer.aboveRootPlacement->aboveRootProvider->getState(world, random, above.x, above.y, above.z);
+            if (aboveState == nullptr) {
+                continue;
+            }
+            if (aboveState->hasProperty(BlockStateProperties::WATERLOGGED())) {
+                aboveState = &aboveState->with(BlockStateProperties::WATERLOGGED(), isWaterFluidAt(world, above));
+            }
+            world.setBlockState(above, aboveState, ::mc::world::BlockUpdateFlags::UPDATE_ALL);
+        }
+    }
 }
 
 } // namespace mc
