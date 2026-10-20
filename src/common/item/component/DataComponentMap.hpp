@@ -115,6 +115,69 @@ struct ToolPayload {
 using SuspiciousStewEffectsPayload = std::vector<entity::effect::EffectInstance>;
 
 /**
+ * @brief 消耗效果（ConsumeEffect）类型
+ *
+ * 对应 Java 1.21.11 net.minecraft.world.item.consume_effects.ConsumeEffect 的 5 种实现。
+ * death_protection 组件的 death_effects 与食物组件的 consume_effects 共用此结构。
+ */
+enum class ConsumeEffectKind : u8 {
+    ApplyEffects,     ///< apply_effects：按概率施加效果列表
+    RemoveEffects,    ///< remove_effects：移除指定效果
+    ClearAllEffects,  ///< clear_all_effects：清空全部效果
+    TeleportRandomly, ///< teleport_randomly：随机传送
+    PlaySound,        ///< play_sound：播放音效
+};
+
+/**
+ * @brief 单条消耗效果
+ *
+ * 字段按 kind 取用，未使用字段保持默认值：
+ * - ApplyEffects    → effects（条目内 chance 为独立施加概率）
+ * - RemoveEffects   → removedEffects
+ * - TeleportRandomly→ teleportDiameter（vanilla 默认 16.0）
+ * - PlaySound       → soundId（音效资源位置）
+ */
+struct ConsumeEffectEntry {
+    /// apply_effects 的单个效果条目：instance 缺失（数据包条目解析失败）时不施加。
+    struct EffectEntry {
+        std::optional<entity::effect::EffectInstance> instance;
+        f32 chance = 1.0f; ///< 该条目独立施加概率（vanilla MobEffectInstance 条目默认 1.0）
+    };
+
+    ConsumeEffectKind kind = ConsumeEffectKind::ApplyEffects;
+    std::vector<EffectEntry> effects;                       ///< apply_effects
+    std::vector<entity::effect::EffectType> removedEffects; ///< remove_effects
+    f32 teleportDiameter = 16.0f;                           ///< teleport_randomly
+    std::string soundId;                                    ///< play_sound
+};
+
+/**
+ * @brief death_protection 组件载荷
+ *
+ * 对应 Java 1.21.11 DeathProtection(List<ConsumeEffect> deathEffects)：
+ * 物品持有者在致死伤害时消耗一件，并把 death_effects 依次施加到持有者身上。
+ * 不死图腾的默认值见 item::component::totemOfUndyingDeathProtection()。
+ */
+struct DeathProtectionPayload {
+    std::vector<ConsumeEffectEntry> effects;
+};
+
+/// 解析 ConsumeEffect 列表（vanilla ConsumeEffect.CODEC.listOf()）。
+/// 条目缺少 type 或条目结构非法时，对应条目被丢弃（对齐 vanilla Codec 的条目级容错）。
+[[nodiscard]] std::vector<ConsumeEffectEntry> consumeEffectsFromJson(const nlohmann::json& json);
+
+/// 序列化 ConsumeEffect 列表（与 consumeEffectsFromJson 互逆）。
+[[nodiscard]] nlohmann::json consumeEffectsToJson(const std::vector<ConsumeEffectEntry>& effects);
+
+/**
+ * @brief 不死图腾的默认 death_protection 组件值
+ *
+ * 对齐 Java 1.21.11 DeathProtection.TOTEM_OF_UNDYING：
+ *   ClearAllStatusEffects + ApplyStatusEffects{regeneration 900/II, absorption 100/II, fire_resistance 800/I}
+ */
+[[nodiscard]] DeathProtectionPayload totemOfUndyingDeathProtection();
+
+/**
  * @brief 单个数据组件的异构值载荷
  *
  * variant 以 std::monostate 起始，区分"未设置"与"显式设置为某值"。
@@ -141,7 +204,8 @@ using DataComponentPayload = std::variant<std::monostate,
     InstrumentPayload,                                  // Instrument
     std::optional<i32>,                                 // OminousBottleAmplifier / MapId 等可选整数
     ToolPayload,                                        // Tool
-    SuspiciousStewEffectsPayload>;                      // SuspiciousStewEffects
+    SuspiciousStewEffectsPayload,                       // SuspiciousStewEffects
+    DeathProtectionPayload>;                            // DeathProtection
 
 /**
  * @brief DataComponentPayload 各备选项索引
@@ -167,6 +231,7 @@ constexpr usize Instrument = 14;        // InstrumentPayload
 constexpr usize OptionalInt = 15;       // optional<i32>
 constexpr usize Tool = 16;              // ToolPayload
 constexpr usize StewEffects = 17;       // SuspiciousStewEffectsPayload
+constexpr usize DeathProtection = 18;   // DeathProtectionPayload
 } // namespace ComponentPayloadIndex
 
 /**

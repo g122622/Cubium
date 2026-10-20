@@ -201,6 +201,7 @@ add_executable(mc_tests
     common/item/core/AdventureModeIntegrationTest.cpp
     common/item/core/ItemStackComponentRoundTripTest.cpp
     common/item/core/ItemComponentOverridesTest.cpp
+    common/item/core/DeathProtectionComponentTest.cpp
     common/item/core/ProjectileItemTest.cpp
     common/item/enchantment/EnchantmentTest.cpp
     common/item/enchantment/EnchantmentCallbackTest.cpp

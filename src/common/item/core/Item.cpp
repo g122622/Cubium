@@ -107,6 +107,12 @@ ItemProperties& ItemProperties::group(const ItemGroup* group)
     return *this;
 }
 
+ItemProperties& ItemProperties::deathProtection(item::component::DeathProtectionPayload value)
+{
+    m_deathProtection = std::move(value);
+    return *this;
+}
+
 // ============================================================================
 // Item
 // ============================================================================
@@ -120,6 +126,7 @@ Item::Item(ItemProperties properties)
     , m_repairable(properties.isRepairable())
     , m_food(properties.food())
     , m_creativeTab(properties.group())
+    , m_defaultDeathProtection(properties.deathProtection())
 {}
 
 Item* Item::getItem(ItemId itemId)

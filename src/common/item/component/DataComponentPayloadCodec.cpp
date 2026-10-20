@@ -321,6 +321,16 @@ std::unique_ptr<nbt::tags::tag> payloadToNbt(DataComponentType type, const DataC
             }
             return list;
         }
+        case DataComponentType::DeathProtection: {
+            // DeathProtection.CODEC：{ death_effects: [ConsumeEffect...] }（可选，默认空列表）
+            const auto& deathProtection = std::get<DeathProtectionPayload>(payload);
+            auto compound = std::make_unique<compound_tag>();
+            auto encoded = nbt::jsonToNbtStrictInt(consumeEffectsToJson(deathProtection.effects));
+            if (encoded != nullptr) {
+                compound->value.emplace("death_effects", std::move(encoded));
+            }
+            return compound;
+        }
         case DataComponentType::OminousBottleAmplifier:
         case DataComponentType::MapId: {
             // 可选整数：未设置时写空 compound（vanilla optionalFieldOf 的空值表示）
@@ -484,6 +494,19 @@ DataComponentPayload nbtToPayload(DataComponentType type, const nbt::tags::tag& 
                 }
             }
             return DataComponentPayload{std::in_place_index<ComponentPayloadIndex::StewEffects>, std::move(effects)};
+        }
+        case DataComponentType::DeathProtection: {
+            // DeathProtection.CODEC：{ death_effects: [ConsumeEffect...] }；缺省或非 compound 时为空列表。
+            DeathProtectionPayload deathProtection;
+            if (tag.id() == TagId::Compound) {
+                const auto& c = dynamic_cast<const compound_tag&>(tag);
+                auto effectsIt = c.value.find("death_effects");
+                if (effectsIt != c.value.end()) {
+                    deathProtection.effects = consumeEffectsFromJson(nbt::nbtToJson(*effectsIt->second));
+                }
+            }
+            return DataComponentPayload{
+                std::in_place_index<ComponentPayloadIndex::DeathProtection>, std::move(deathProtection)};
         }
         case DataComponentType::OminousBottleAmplifier:
         case DataComponentType::MapId: {
