@@ -167,10 +167,17 @@ Result<void> SectionCodec::restore(std::span<const u8> bytes, ChunkData& chunk, 
     }
     // 存档是外部输入：计数虽然范围合法，也不能让错误计数把有方块的段当成空段。
     // 只读取位数组进行验证，不展开数据、不分配暂存容器、不修改已恢复的哈希槽位。
+    const auto packed = states.packedView();
+    // 每种状态只查询一次注册表；栈上只缓存一字节计数属性，不展开方块数据。
+    std::array<u8, ChunkSection::VOLUME> paletteFlags;
+    const bool cacheFits = packed.palette.size() <= paletteFlags.size();
     u8 allFlags = _blockFlag | _tickFlag | _fluidFlag;
     u8 anyFlags = 0;
-    for (u32 stateId : states.packedView().palette) {
-        const u8 flags = _stateFlags(stateId, _blockFlag | _tickFlag | _fluidFlag);
+    for (size_t index = 0; index < packed.palette.size(); ++index) {
+        const u8 flags = _stateFlags(packed.palette[index], _blockFlag | _tickFlag | _fluidFlag);
+        if (cacheFits) {
+            paletteFlags[index] = flags;
+        }
         allFlags &= flags;
         anyFlags |= flags;
     }
@@ -181,7 +188,21 @@ Result<void> SectionCodec::restore(std::span<const u8> bytes, ChunkData& chunk, 
     // 均匀段，以及所有调色板值拥有相同计数属性的段，都不需要遍历 4096 个位置。
     if (varyingFlags != 0) {
         for (i32 index = 0; index < ChunkSection::VOLUME; ++index) {
-            const u8 flags = _stateFlags(states.get(index), varyingFlags);
+            u8 flags;
+            if (cacheFits) {
+                const i32 bitIndex = index * packed.bits;
+                const size_t word = static_cast<size_t>(bitIndex / 64);
+                const i32 shift = bitIndex % 64;
+                u64 paletteIndex = packed.storage[word] >> shift;
+                if (shift + packed.bits > 64) {
+                    paletteIndex |= packed.storage[word + 1] << (64 - shift);
+                }
+                paletteIndex &= (u64{1} << packed.bits) - 1;
+                flags = paletteFlags[static_cast<size_t>(paletteIndex)] & varyingFlags;
+            } else {
+                // 反复修改可能累计超过段容量的调色板条目；此时直接查询，不扩大暂存内存。
+                flags = _stateFlags(states.get(index), varyingFlags);
+            }
             blockCount += (flags & _blockFlag) != 0 ? 1 : 0;
             blockTickCount += (flags & _tickFlag) != 0 ? 1 : 0;
             fluidCount += (flags & _fluidFlag) != 0 ? 1 : 0;
