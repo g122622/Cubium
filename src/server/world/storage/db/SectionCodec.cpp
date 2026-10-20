@@ -25,6 +25,7 @@
 #include "common/profiler/TraceCategories.hpp"
 #include "common/profiler/TraceEvents.hpp"
 #include "common/util/assert/AssertMacros.hpp"
+#include "common/world/fluid/Fluid.hpp"
 #include <array>
 #include <bit>
 #include <cstring>
@@ -43,6 +44,32 @@ constexpr size_t _headerWords = 8;
 constexpr size_t _headerSize = _headerWords * sizeof(u32);
 constexpr size_t _biomeBytes = BiomeContainer::SECTION_BIOME_SIZE * sizeof(BiomeId);
 
+constexpr u8 _blockFlag = 1;
+constexpr u8 _tickFlag = 2;
+constexpr u8 _fluidFlag = 4;
+
+u8 _stateFlags(u32 stateId, u8 fields)
+{
+    const BlockState* state = Block::getBlockState(stateId);
+    if (state == nullptr) {
+        return 0;
+    }
+    u8 flags = 0;
+    if ((fields & _blockFlag) != 0 && !state->isAir()) {
+        flags |= _blockFlag;
+    }
+    if ((fields & _tickFlag) != 0 && state->getBlock().ticksRandomly()) {
+        flags |= _tickFlag;
+    }
+    if ((fields & _fluidFlag) != 0) {
+        const auto* fluid = state->getFluidState();
+        if (fluid != nullptr && !fluid->isEmpty()) {
+            flags |= _fluidFlag;
+        }
+    }
+    return flags;
+}
+
 template <typename T, size_t Extent>
 rocksdb::Slice _slice(std::span<T, Extent> values)
 {
@@ -51,9 +78,12 @@ rocksdb::Slice _slice(std::span<T, Extent> values)
 
 } // namespace
 
-size_t SectionCodec::encodedSize(const ChunkSection& section)
+size_t SectionCodec::encodedSize(const ChunkSection* section)
 {
-    const auto packed = section.blockStates().packedView();
+    if (section == nullptr) {
+        return _headerSize + _biomeBytes;
+    }
+    const auto packed = section->blockStates().packedView();
     return _headerSize + _biomeBytes + packed.palette.size_bytes() + packed.storage.size_bytes() +
         packed.hashMap.size_bytes();
 }
@@ -68,8 +98,8 @@ Result<void> SectionCodec::appendToBatch(rocksdb::WriteBatch& batch,
     MC_ASSERT_RELEASE(sectionIndex >= 0);
     MC_ASSERT_RELEASE(sectionIndex < world::CHUNK_SECTIONS);
     const ChunkSection* section = chunk.getSection(sectionIndex);
-    MC_ASSERT_RELEASE(section != nullptr);
-    const auto packed = section->blockStates().packedView();
+    const auto packed = section == nullptr ? world::chunk::PalettedContainer::PackedView{0, {}, {}, {}}
+                                           : section->blockStates().packedView();
     MC_ASSERT_RELEASE(packed.palette.size() <= std::numeric_limits<u32>::max());
     MC_ASSERT_RELEASE(packed.hashMap.size() <= std::numeric_limits<u32>::max());
     const std::array<u32, _headerWords> header{_formatMagic,
@@ -77,9 +107,9 @@ Result<void> SectionCodec::appendToBatch(rocksdb::WriteBatch& batch,
         static_cast<u32>(packed.palette.size()),
         static_cast<u32>(packed.storage.size()),
         static_cast<u32>(packed.hashMap.size()),
-        section->getBlockCount(),
-        section->blockTickRefCount(),
-        section->fluidRefCount()};
+        section == nullptr ? 0u : section->getBlockCount(),
+        section == nullptr ? 0u : section->blockTickRefCount(),
+        section == nullptr ? 0u : section->fluidRefCount()};
     const auto keyBytes = key.serialize();
     const std::array<rocksdb::Slice, 1> keyParts{_slice(std::span(keyBytes))};
     const std::array<rocksdb::Slice, 5> valueParts{_slice(std::span(header)),
@@ -116,6 +146,13 @@ Result<void> SectionCodec::restore(std::span<const u8> bytes, ChunkData& chunk, 
     if (_headerSize + paletteBytes + storageBytes + hashBytes + _biomeBytes != bytes.size()) {
         return Error(ErrorCode::InvalidData, "Compact section length does not match header");
     }
+    if (header[2] == 0) {
+        if (header[1] != 0 || header[3] != 0 || header[4] != 0 || header[5] != 0 || header[6] != 0 || header[7] != 0) {
+            return Error(ErrorCode::InvalidData, "Biome-only section contains block data");
+        }
+        std::memcpy(chunk.getBiomes().sectionData(sectionIndex).data(), bytes.data() + _headerSize, _biomeBytes);
+        return {};
+    }
     size_t offset = _headerSize;
     const auto palette = bytes.subspan(offset, static_cast<size_t>(paletteBytes));
     offset += static_cast<size_t>(paletteBytes);
@@ -127,6 +164,31 @@ Result<void> SectionCodec::restore(std::span<const u8> bytes, ChunkData& chunk, 
     auto result = states.restorePacked(static_cast<i32>(header[1]), palette, storage, hashMap);
     if (result.failed()) {
         return result.error();
+    }
+    // 存档是外部输入：计数虽然范围合法，也不能让错误计数把有方块的段当成空段。
+    // 只读取位数组进行验证，不展开数据、不分配暂存容器、不修改已恢复的哈希槽位。
+    u8 allFlags = _blockFlag | _tickFlag | _fluidFlag;
+    u8 anyFlags = 0;
+    for (u32 stateId : states.packedView().palette) {
+        const u8 flags = _stateFlags(stateId, _blockFlag | _tickFlag | _fluidFlag);
+        allFlags &= flags;
+        anyFlags |= flags;
+    }
+    u32 blockCount = (allFlags & _blockFlag) != 0 ? ChunkSection::VOLUME : 0;
+    u32 blockTickCount = (allFlags & _tickFlag) != 0 ? ChunkSection::VOLUME : 0;
+    u32 fluidCount = (allFlags & _fluidFlag) != 0 ? ChunkSection::VOLUME : 0;
+    const u8 varyingFlags = anyFlags ^ allFlags;
+    // 均匀段，以及所有调色板值拥有相同计数属性的段，都不需要遍历 4096 个位置。
+    if (varyingFlags != 0) {
+        for (i32 index = 0; index < ChunkSection::VOLUME; ++index) {
+            const u8 flags = _stateFlags(states.get(index), varyingFlags);
+            blockCount += (flags & _blockFlag) != 0 ? 1 : 0;
+            blockTickCount += (flags & _tickFlag) != 0 ? 1 : 0;
+            fluidCount += (flags & _fluidFlag) != 0 ? 1 : 0;
+        }
+    }
+    if (blockCount != header[5] || blockTickCount != header[6] || fluidCount != header[7]) {
+        return Error(ErrorCode::InvalidData, "Compact section counters do not match block states");
     }
     auto* section = chunk.createSection(sectionIndex);
     section->restoreBlockStates(

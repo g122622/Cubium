@@ -36,7 +36,7 @@ namespace mc::world::storage {
 class SectionCodec {
 public:
     /** @brief 紧凑值的精确字节数，供调用方预分配最终批次。 */
-    [[nodiscard]] static size_t encodedSize(const ChunkSection& section);
+    [[nodiscard]] static size_t encodedSize(const ChunkSection* section);
 
     /** @brief 将段内数组直接收集进批次；返回前批次已拥有完整快照。 */
     [[nodiscard]] static Result<void> appendToBatch(rocksdb::WriteBatch& batch,

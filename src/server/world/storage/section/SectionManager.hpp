@@ -34,12 +34,8 @@ namespace mc::world::storage {
 /** @brief 单维度段批量读写；批次持有快照，读取句柄短期固定底层缓冲区，不设常驻缓存。 */
 class SectionManager {
 public:
-    struct Config {
-        ConsistencyMode consistencyMode;
-    };
-
     /** @brief 绑定数据库、维度与一致性配置。 */
-    SectionManager(RocksDBDatabase& db, DimensionId dimension, const Config& config);
+    SectionManager(RocksDBDatabase& db, DimensionId dimension, ConsistencyMode consistencyMode);
 
     /** @brief 按输入顺序批量读取；空 optional 只表示该段不存在。 */
     [[nodiscard]] Result<PinnedValues> loadSectionsSync(std::span<const SectionKey> keys);
@@ -54,7 +50,7 @@ private:
     RocksDBDatabase& m_db;
     DimensionId m_dimension;
     std::string m_cfName;
-    Config m_config;
+    ConsistencyMode m_consistencyMode;
 };
 
 } // namespace mc::world::storage

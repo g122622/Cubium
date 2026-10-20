@@ -60,7 +60,7 @@ void _capture(::benchmark::State& state)
     size_t batchBytes = 0;
     for (auto iteration : state) {
         MC_UNUSED(iteration);
-        rocksdb::WriteBatch batch(SectionCodec::encodedSize(*chunk.getSection(0)) + 44);
+        rocksdb::WriteBatch batch(SectionCodec::encodedSize(chunk.getSection(0)) + 44);
         auto result = SectionCodec::appendToBatch(batch, nullptr, key, chunk, 0);
         MC_ASSERT_RELEASE(result.success());
         batchBytes = batch.GetDataSize();
@@ -74,7 +74,7 @@ void _capture(::benchmark::State& state)
 void _restore(::benchmark::State& state)
 {
     const auto chunk = _makeChunk(static_cast<i32>(state.range(0)));
-    rocksdb::WriteBatch batch(SectionCodec::encodedSize(*chunk.getSection(0)) + 44);
+    rocksdb::WriteBatch batch(SectionCodec::encodedSize(chunk.getSection(0)) + 44);
     const SectionKey key(0, 0, world::MIN_SECTION_Y, 0);
     MC_ASSERT_RELEASE(SectionCodec::appendToBatch(batch, nullptr, key, chunk, 0).success());
     _capturedValue capture;

@@ -248,6 +248,34 @@ TEST_F(SectionCodecTest, RejectsInvalidHeadersTruncationAndTrailingBytes)
     EXPECT_TRUE(SectionCodec::restore(trailing, restored, 0).failed());
 }
 
+TEST_F(SectionCodecTest, RejectsInRangeCountersThatDisagreeWithBlocks)
+{
+    ChunkData source(0, 0);
+    source.createSection(0)->fill(100);
+    const auto original = _encode(source, 0);
+    for (size_t word : {5u, 6u, 7u}) {
+        auto bytes = original;
+        u32 counter;
+        std::memcpy(&counter, bytes.data() + word * sizeof(u32), sizeof(counter));
+        _setWord(bytes, word * sizeof(u32), counter == 0 ? 1 : counter - 1);
+        ChunkData restored(0, 0);
+        EXPECT_TRUE(SectionCodec::restore(bytes, restored, 0).failed());
+        EXPECT_EQ(restored.getSection(0), nullptr);
+    }
+}
+
+TEST_F(SectionCodecTest, BiomeOnlyRecordsDoNotAllocateBlockSections)
+{
+    ChunkData source(0, 0);
+    source.getBiomes().sectionData(0).front() = 23;
+    const auto bytes = _encode(source, 0);
+    EXPECT_EQ(bytes.size(), 8 * sizeof(u32) + BiomeContainer::SECTION_BIOME_SIZE * sizeof(BiomeId));
+    ChunkData restored(0, 0);
+    ASSERT_TRUE(SectionCodec::restore(bytes, restored, 0).success());
+    EXPECT_EQ(restored.getSection(0), nullptr);
+    EXPECT_EQ(restored.getBiomes().sectionData(0).front(), 23);
+}
+
 TEST_F(SectionCodecTest, RejectsCorruptHashSlotsAndUnreachableEntries)
 {
     ChunkData source(0, 0);

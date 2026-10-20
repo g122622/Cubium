@@ -4,6 +4,7 @@
 #include "core/Types.hpp"
 #include "server/world/gen/chunk/ChunkPrimer.hpp"
 #include "server/world/storage/db/SectionKey.hpp"
+#include <algorithm>
 #include <array>
 #include <chrono>
 #include <filesystem>
@@ -287,6 +288,131 @@ TEST_F(SingleLevelStorageManagerTest, CloseWaitsForPinnedReadAssemblyBeforeDestr
     EXPECT_EQ(restoredChunk->getSection(0)->getBlockStateIdFast(0), 100u);
     ioPool.shutdown();
     computePool.shutdown();
+}
+
+TEST_F(SingleLevelStorageManagerTest, CloseDoesNotWaitForUnrelatedSharedPoolTasks)
+{
+    util::UniversalWorkerPool ioPool(1, "UnrelatedIO", 922);
+    util::UniversalWorkerPool computePool(1, "UnrelatedCompute", 923);
+    SingleLevelStorageManager storage;
+    SingleLevelStorageConfig config;
+    ASSERT_TRUE(storage.open(testDir, config).success());
+    storage.setIoWorkerPool(&ioPool);
+    storage.setComputeWorkerPool(&computePool);
+    ioPool.start();
+    computePool.start();
+    std::promise<void> release;
+    auto gate = release.get_future().share();
+    const auto blocker = [gate](const std::atomic<bool>&) {
+        gate.wait();
+        return true;
+    };
+    ioPool.submit(
+        std::make_unique<util::FunctionTask>(util::TaskType::ChunkLoad, "UnrelatedIO", blocker, "storage.test"),
+        nullptr,
+        util::TaskPriority::Normal,
+        nullptr);
+    computePool.submit(
+        std::make_unique<util::FunctionTask>(util::TaskType::ChunkLoad, "UnrelatedCompute", blocker, "storage.test"),
+        nullptr,
+        util::TaskPriority::Normal,
+        nullptr);
+    auto closing = std::async(std::launch::async, [&storage] { storage.close(); });
+    const auto status = closing.wait_for(std::chrono::seconds(1));
+    release.set_value();
+    EXPECT_EQ(status, std::future_status::ready);
+    closing.get();
+    ioPool.shutdown();
+    computePool.shutdown();
+}
+
+TEST_F(SingleLevelStorageManagerTest, RejectedLoadsCompleteAndAllowClose)
+{
+    util::UniversalWorkerPool ioPool(1, "RejectedLoadIO", 924);
+    util::UniversalWorkerPool computePool(1, "RejectedLoadCompute", 925);
+    SingleLevelStorageManager storage;
+    SingleLevelStorageConfig config;
+    ASSERT_TRUE(storage.open(testDir, config).success());
+    storage.setIoWorkerPool(&ioPool);
+    storage.setComputeWorkerPool(&computePool);
+    auto loaded = storage.loadChunkAsync(0, 0, 0, nullptr, util::TaskPriority::Normal);
+    ASSERT_EQ(loaded.wait_for(std::chrono::seconds(1)), std::future_status::ready);
+    EXPECT_TRUE(loaded.get().failed());
+    storage.close();
+}
+
+TEST_F(SingleLevelStorageManagerTest, RejectedComputeRestoresInlineAndReleasesPinnedValues)
+{
+    util::UniversalWorkerPool ioPool(1, "FallbackLoadIO", 926);
+    util::UniversalWorkerPool computePool(1, "FallbackLoadCompute", 927);
+    SingleLevelStorageManager storage;
+    SingleLevelStorageConfig config;
+    ASSERT_TRUE(storage.open(testDir, config).success());
+    ChunkData source(0, 0);
+    source.createSection(0)->fill(100);
+    ASSERT_TRUE(storage.saveChunk(source, 0).success());
+    storage.setIoWorkerPool(&ioPool);
+    storage.setComputeWorkerPool(&computePool);
+    ioPool.start();
+    auto loaded = storage.loadChunkAsync(0, 0, 0, nullptr, util::TaskPriority::Normal);
+    ASSERT_EQ(loaded.wait_for(std::chrono::seconds(10)), std::future_status::ready);
+    EXPECT_TRUE(loaded.get().success());
+    storage.close();
+    ioPool.shutdown();
+}
+
+TEST_F(SingleLevelStorageManagerTest, BiomesSurviveAcrossAbsentSectionsAndEmptyChunks)
+{
+    SingleLevelStorageManager storage;
+    SingleLevelStorageConfig config;
+    ASSERT_TRUE(storage.open(testDir, config).success());
+    for (bool withBlocks : {false, true}) {
+        ChunkData source(withBlocks ? 1 : 0, 0);
+        if (withBlocks) {
+            source.createSection(0)->fill(100);
+        }
+        for (i32 section = 0; section < world::CHUNK_SECTIONS; ++section) {
+            std::ranges::fill(source.getBiomes().sectionData(section), static_cast<BiomeId>(section + 5));
+        }
+        ASSERT_TRUE(storage.saveChunk(source, 0).success());
+    }
+    storage.close();
+    ASSERT_TRUE(storage.open(testDir, config).success());
+    for (i32 x : {0, 1}) {
+        auto result = storage.loadChunk(x, 0, 0);
+        ASSERT_TRUE(result.success());
+        const auto& loaded = result.value();
+        if (!loaded.has_value()) {
+            FAIL() << "A saved biome-only chunk must exist";
+        }
+        for (i32 section = 0; section < world::CHUNK_SECTIONS; ++section) {
+            EXPECT_EQ(loaded->getBiomes().getBiome(section, 0, 0, 0), section + 5);
+            if (section != 0 || x == 0) {
+                EXPECT_EQ(loaded->getSection(section), nullptr);
+            }
+        }
+    }
+}
+
+TEST_F(SingleLevelStorageManagerTest, OpeningUnversionedSectionRecordsFailsWithoutOverwritingData)
+{
+    const auto keyBytes = SectionKey(0, 0, world::MIN_SECTION_Y, 0).serialize();
+    const rocksdb::Slice key(reinterpret_cast<const char*>(keyBytes.data()), keyBytes.size());
+    {
+        auto opened = RocksDBDatabase::open(testDir / "db");
+        ASSERT_TRUE(opened.success());
+        ASSERT_TRUE(
+            opened.value()->put(cf::SECTIONS_OVERWORLD, key, rocksdb::Slice("unsupported-record"), true).success());
+    }
+    SingleLevelStorageManager storage;
+    SingleLevelStorageConfig config;
+    EXPECT_TRUE(storage.open(testDir, config).failed());
+    EXPECT_FALSE(storage.isOpen());
+    auto reopened = RocksDBDatabase::open(testDir / "db");
+    ASSERT_TRUE(reopened.success());
+    auto record = reopened.value()->get(cf::SECTIONS_OVERWORLD, key);
+    ASSERT_TRUE(record.success());
+    EXPECT_EQ(std::string(record.value().begin(), record.value().end()), "unsupported-record");
 }
 
 TEST_F(SingleLevelStorageManagerTest, SynchronousLoadPreparesHeightmaps)
@@ -639,7 +765,7 @@ TEST_F(SingleLevelStorageManagerTest, SaveSectionsBatchPersistsEverySectionAcros
     constexpr i32 CHUNK_COUNT = 12;
     constexpr i8 SECTION_Y = 3;
     constexpr u32 FILL_BASE = 1000;
-    const size_t expectedSections = static_cast<size_t>(CHUNK_COUNT) * 2;
+    const size_t expectedSections = static_cast<size_t>(CHUNK_COUNT) * 2 * world::CHUNK_SECTIONS;
 
     auto writeAll = [&storage]() {
         size_t written = 0;

@@ -14,6 +14,7 @@
 #include "server/world/gen/chunk/NoiseChunkGenerator.hpp"
 #include "server/world/gen/settings/DimensionSettings.hpp"
 #include "server/world/storage/SingleLevelStorageManager.hpp"
+#include "server/world/storage/db/RocksDBDatabase.hpp"
 #include "server/world/storage/entity/EntityStorageManager.hpp"
 #include <filesystem>
 #include <functional>
@@ -93,6 +94,35 @@ protected:
     std::filesystem::path m_testDir;
     world::storage::SingleLevelStorageManager m_storage;
 };
+
+TEST_F(ServerWorldPersistenceTest, CorruptStoredChunkFailsWithoutRegeneration)
+{
+    ChunkData source(3, 4);
+    source.createSection(0)->fill(100);
+    ASSERT_TRUE(m_storage.saveChunk(source, 0).success());
+    m_storage.close();
+    const auto keyBytes = world::storage::SectionKey(3, 4, world::MIN_SECTION_Y, 0).serialize();
+    const rocksdb::Slice key(reinterpret_cast<const char*>(keyBytes.data()), keyBytes.size());
+    {
+        auto opened = world::storage::RocksDBDatabase::open(m_testDir / "db");
+        ASSERT_TRUE(opened.success());
+        ASSERT_TRUE(opened.value()
+                ->put(world::storage::cf::SECTIONS_OVERWORLD, key, rocksdb::Slice("corrupted"), true)
+                .success());
+    }
+    world::storage::SingleLevelStorageConfig config;
+    ASSERT_TRUE(m_storage.open(m_testDir, config).success());
+    auto runtimeWorld = createWorld();
+    EXPECT_EQ(runtimeWorld->chunkManager()->requestFullChunkSync(3, 4), nullptr);
+    EXPECT_FALSE(runtimeWorld->chunkManager()->hasChunkInMem(3, 4));
+    runtimeWorld->shutdown();
+    m_storage.close();
+    auto opened = world::storage::RocksDBDatabase::open(m_testDir / "db");
+    ASSERT_TRUE(opened.success());
+    auto record = opened.value()->get(world::storage::cf::SECTIONS_OVERWORLD, key);
+    ASSERT_TRUE(record.success());
+    EXPECT_EQ(std::string(record.value().begin(), record.value().end()), "corrupted");
+}
 
 TEST_F(ServerWorldPersistenceTest, SaveAllPersistsRuntimeEntitiesAndBlockEntities)
 {

@@ -224,7 +224,7 @@ NoiseChunkGenerator::randomState()  →  RandomState
 
 ### 测试夹具必须注入存储线程池
 
-`SingleLevelStorageManager` 在未注入 ServerIO/ServerCompute 池时会降级为**在调用线程内联**读写存档。卸载按保底批量推进（每 tick 至少 `max(50, 候选数×5%)` 个区块），同步写盘（24 个 section 的快照序列化 + ZSTD + RocksDB 写）会把 tick 线程垄断到秒级，进而饿死每 tick 只执行一次的 `_drainPendingLoadCompletes`，表现为大批 holder 长期停在 `ResolvingStorage`、生成请求迟迟不完成。使用 `ServerChunkManager` 的测试夹具须与生产（`MinecraftServer`）一样注入两个池，并注意池创建后必须 `start()`。
+`SingleLevelStorageManager` 在未注入 ServerIO/ServerCompute 池时会降级为**在调用线程内联**读写存档。卸载按保底批量推进（每 tick 至少 `max(50, 候选数×5%)` 个区块），同步写盘（紧凑数组快照捕获与 RocksDB 写入，压缩由数据库自身处理）会把 tick 线程垄断到秒级，进而饿死每 tick 只执行一次的 `_drainPendingLoadCompletes`，表现为大批 holder 长期停在 `ResolvingStorage`、生成请求迟迟不完成。使用 `ServerChunkManager` 的测试夹具须与生产（`MinecraftServer`）一样注入两个池，并注意池创建后必须 `start()`。
 
 ### 区块需求、结果交接与世界后处理分开推进
 
@@ -398,3 +398,5 @@ data/end_dragon_fight.json
 ### 隔导体的比较器通知
 
 模拟输出方块发生状态变化、放置或移除时，除普通邻居通知外，还须通知隔一块红石导体的比较器。只通知紧邻方块会使容器输出变化后比较器保留旧值。
+
+存档读取损坏或 I/O 错误必须完成请求为失败，不能进入缺失区块的生成与覆盖保存路径。

@@ -31,11 +31,11 @@ using namespace mc::trace;
 
 namespace mc::world::storage {
 
-SectionManager::SectionManager(RocksDBDatabase& db, DimensionId dimension, const Config& config)
+SectionManager::SectionManager(RocksDBDatabase& db, DimensionId dimension, ConsistencyMode consistencyMode)
     : m_db(db)
     , m_dimension(dimension)
     , m_cfName(cf::getSectionCF(dimension))
-    , m_config(config)
+    , m_consistencyMode(consistencyMode)
 {}
 
 Result<PinnedValues> SectionManager::loadSectionsSync(std::span<const SectionKey> keys)
@@ -63,9 +63,6 @@ Result<void> SectionManager::appendChunk(rocksdb::WriteBatch& batch, const Chunk
     // 主线程串行写入方块；调用方在交给后台线程之前完成本次批次快照。
     const auto lock = chunk.lockForLightRead();
     for (i32 index = 0; index < world::CHUNK_SECTIONS; ++index) {
-        if (chunk.getSection(index) == nullptr) {
-            continue;
-        }
         const SectionKey key(chunk.x(), chunk.z(), static_cast<i8>(world::sectionIndexToCoord(index)), m_dimension);
         auto result = SectionCodec::appendToBatch(batch, columnFamily, key, chunk, index);
         if (result.failed()) {
@@ -81,7 +78,7 @@ Result<size_t> SectionManager::saveBatch(rocksdb::WriteBatch& batch, bool sync)
     if (batch.Count() == 0) {
         return size_t{0};
     }
-    auto result = m_db.writeBatch(batch, sync || consistencyModeSyncsEveryWrite(m_config.consistencyMode));
+    auto result = m_db.writeBatch(batch, sync || consistencyModeSyncsEveryWrite(m_consistencyMode));
     if (result.failed()) {
         return result.error();
     }

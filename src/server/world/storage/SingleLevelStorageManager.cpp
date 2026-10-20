@@ -79,6 +79,38 @@ using namespace mc::trace;
 namespace mc::world::storage {
 namespace {
 
+Result<void> _validateSectionFormat(RocksDBDatabase& database, bool readonly)
+{
+    const rocksdb::Slice key("native-section-format");
+    constexpr std::string_view format = "compact-v1";
+    auto marker = database.get(cf::META, key);
+    if (marker.success()) {
+        const auto& value = marker.value();
+        if (std::string_view(reinterpret_cast<const char*>(value.data()), value.size()) == format) {
+            return {};
+        }
+        return Error(ErrorCode::InvalidData, "Unsupported native section storage format");
+    }
+    if (marker.error().code() != ErrorCode::NotFound) {
+        return marker.error();
+    }
+    for (const auto* name : {cf::SECTIONS_OVERWORLD, cf::SECTIONS_NETHER, cf::SECTIONS_THE_END}) {
+        auto iterator = database.newIterator(name);
+        iterator->SeekToFirst();
+        if (iterator->Valid()) {
+            return Error(ErrorCode::InvalidData,
+                "Native section format marker is missing; existing section records are unsupported");
+        }
+        if (!iterator->status().ok()) {
+            return Error(ErrorCode::FileReadFailed, iterator->status().ToString());
+        }
+    }
+    if (readonly) {
+        return Error(ErrorCode::InvalidData, "Native section format marker is missing");
+    }
+    return database.put(cf::META, key, rocksdb::Slice(format.data(), format.size()), true);
+}
+
 Result<rocksdb::WriteBatch> _captureSections(SectionManager& manager, std::span<const ChunkData* const> chunks)
 {
     // 一次预留最终批次，避免追加大量段时反复扩容和复制已捕获的数据。
@@ -88,9 +120,7 @@ Result<rocksdb::WriteBatch> _captureSections(SectionManager& manager, std::span<
         MC_ASSERT_RELEASE(chunk != nullptr);
         const auto lock = chunk->lockForLightRead();
         for (i32 index = 0; index < world::CHUNK_SECTIONS; ++index) {
-            if (const auto* section = chunk->getSection(index)) {
-                reservedBytes += SectionCodec::encodedSize(*section) + 32;
-            }
+            reservedBytes += SectionCodec::encodedSize(chunk->getSection(index)) + 32;
         }
     }
     rocksdb::WriteBatch batch(reservedBytes);
@@ -236,6 +266,13 @@ Result<void> SingleLevelStorageManager::_openNativeFormat(const std::filesystem:
     }
     m_db = dbResult.value();
 
+    auto formatResult = _validateSectionFormat(*m_db, m_config.readonly);
+    if (formatResult.failed()) {
+        m_db.reset();
+        m_sessionLock.reset();
+        return formatResult.error();
+    }
+
     if (m_config.enableBackup && !m_config.readonly) {
         auto backupResult = BackupManager::open(backupPath);
         if (backupResult.success()) {
@@ -300,6 +337,21 @@ Result<void> SingleLevelStorageManager::_openForeignFormat(const std::filesystem
     return {};
 }
 
+void SingleLevelStorageManager::_beginAsyncOperation()
+{
+    std::lock_guard lock(m_asyncOperationMutex);
+    ++m_asyncOperationCount;
+}
+
+void SingleLevelStorageManager::_finishAsyncOperation()
+{
+    std::lock_guard lock(m_asyncOperationMutex);
+    MC_ASSERT_RELEASE(m_asyncOperationCount > 0);
+    if (--m_asyncOperationCount == 0) {
+        m_asyncOperationCondition.notify_all();
+    }
+}
+
 void SingleLevelStorageManager::close()
 {
     if (!isOpen()) {
@@ -308,13 +360,10 @@ void SingleLevelStorageManager::close()
 
     MC_TRACE_SCOPED_EVENT(TraceEvents.Server.World, "SingleLevelStorageManager::close");
 
-    // 关闭前调用方停止提交请求。先排空 I/O，再排空恢复任务，确保所有固定读取句柄
-    // 在数据库销毁之前释放；两个池由外部持有，本方法不停止它们。
-    if (m_taskManager) {
-        m_taskManager->waitForCompletion();
-    }
-    if (m_computeWorkerPool != nullptr) {
-        m_computeWorkerPool->waitForCompletion();
+    // 只等待本存档请求，不排空外部共享池；完成计数覆盖固定读取句柄的整个生命周期。
+    {
+        std::unique_lock lock(m_asyncOperationMutex);
+        m_asyncOperationCondition.wait(lock, [this] { return m_asyncOperationCount == 0; });
     }
 
     {
@@ -610,6 +659,7 @@ void SingleLevelStorageManager::saveChunkAsyncCallback(std::shared_ptr<const Chu
 
     // 注册进行中保存：后续对同一区块的 loadChunkAsync 在读盘前等待此 promise，
     // 确保读到保存后的新数据（对齐 Moonrise GenericDataLoadTask 等待 UnloadTask）。
+    _beginAsyncOperation();
     PendingChunkSave pendingSave = _registerPendingChunkSave(x, z, dimension);
 
     // ServerIO 只提交已经拥有数据的批次，不再进行拼接或区块访问。
@@ -629,6 +679,7 @@ void SingleLevelStorageManager::saveChunkAsyncCallback(std::shared_ptr<const Chu
     util::TaskCallback onSaveDone = [this, pendingSave, x, z, cb = std::move(callback)](
                                         bool success, util::ITask* /*task*/) {
         _completePendingChunkSave(pendingSave);
+        _finishAsyncOperation();
         if (cb) {
             cb(ChunkPos(x, z),
                 success ? Result<void>::ok() : Error(ErrorCode::InvalidState, "Save chunk failed or cancelled"));
@@ -705,10 +756,12 @@ void SingleLevelStorageManager::_loadChunkAsyncCore(ChunkCoord x,
 
     // 在加载线程独占数据时补齐高度图。回传后主线程只需安装区块与发布状态，
     // 不再在一次登录中串行扫描整个视距的存档区块；外来格式已有的高度值保持不变。
-    completion = [callback = std::move(completion)](Result<std::optional<ChunkData>> result) {
+    _beginAsyncOperation();
+    completion = [this, callback = std::move(completion)](Result<std::optional<ChunkData>> result) {
         if (result.success() && result.value().has_value()) {
             result.value()->initializeMissingHeightmaps();
         }
+        _finishAsyncOperation();
         callback(std::move(result));
     };
 
@@ -869,10 +922,12 @@ void SingleLevelStorageManager::_loadChunkAsyncCore(ChunkCoord x,
             // 且 _assemble 会按已收集到的取消结果（sectionResult 为错误）正常产出失败结果；
             // 若绑定取消信号，被取消的加载会跳过组装从而永不通知提交方，提交方将永久停留在
             // "存档解析在途"状态（区块请求再也无法完成）。
-            m_computeWorkerPool->submit(std::move(computeTask),
-                /*callback=*/nullptr,
-                priority,
-                nullptr);
+            const auto taskId = m_computeWorkerPool->submit(std::move(computeTask), nullptr, priority, nullptr);
+            if (taskId == 0) {
+                // 恢复是收尾操作：池拒绝提交时内联执行，释放固定读取句柄并结清请求。
+                std::lock_guard lock(state->mutex);
+                _assemble();
+            }
         } else {
             // 降级：无 Compute 池，在当前线程（ServerIO worker 或测试线程）内联组装。
             std::atomic<bool> dummySig{false};
@@ -1193,10 +1248,7 @@ SectionManager* SingleLevelStorageManager::_createSectionManager(DimensionId dim
         "dimension",
         static_cast<i32>(dimension));
 
-    SectionManager::Config config;
-    config.consistencyMode = m_config.consistencyMode;
-
-    auto manager = std::make_unique<SectionManager>(*m_db, dimension, config);
+    auto manager = std::make_unique<SectionManager>(*m_db, dimension, m_config.consistencyMode);
 
     std::lock_guard<std::mutex> lock(m_sectionManagersMutex);
     auto [it, inserted] = m_sectionManagers.emplace(dimension, std::move(manager));

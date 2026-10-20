@@ -588,6 +588,28 @@ void ServerChunkManager::_onChunkLoadComplete(ChunkCoord x,
     auto currentHolder = _findLifecycleManagerShared(x, z);
     const bool ownerAlive = (currentHolder != nullptr && currentHolder.get() == lifecycleHolder.get());
 
+    if (result.failed() && result.error().code() != ErrorCode::InvalidState) {
+        // 有记录但无法读取绝不能当作缺失，否则重新生成后会覆盖原有存档。
+        spdlog::error("Stored chunk could not be loaded ({}, {}): {}", x, z, result.error().message());
+        const auto fail = [this](SingleChunkLifecycleManager& holder) {
+            if (auto* scheduler = getTaskScheduler()) {
+                scheduler->onChunkGenFailed(holder);
+            } else {
+                holder.markFailed();
+                _failWaiters(holder.takeAllWaiters());
+            }
+        };
+        if (ownerAlive) {
+            fail(*lifecycleHolder);
+        }
+        for (auto& waiter : entry.attachedWaiters) {
+            if (waiter.lifecycle != nullptr && _findLifecycleManager(x, z) == waiter.lifecycle.get()) {
+                fail(*waiter.lifecycle);
+            }
+        }
+        return;
+    }
+
     // owner 结果处理（仅在 owner 仍存活时推进 owner SCLM 状态）。
     bool hit = false;
     if (ownerAlive) {

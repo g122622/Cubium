@@ -45,6 +45,7 @@
 #include "server/world/storage/task/StorageTask.hpp"
 #include "server/world/storage/task/StorageTaskManager.hpp"
 #include <atomic>
+#include <condition_variable>
 #include <filesystem>
 #include <functional>
 #include <future>
@@ -473,6 +474,15 @@ public:
     friend class mc::server::ServerChunkManager;
 
 private:
+    /** @brief 登记由本存档持有的异步请求，覆盖读盘、恢复与保存收尾。 */
+    void _beginAsyncOperation();
+    /** @brief 请求不再访问存档或持有固定读取句柄后通知关闭等待者。 */
+    void _finishAsyncOperation();
+
+    std::mutex m_asyncOperationMutex;
+    std::condition_variable m_asyncOperationCondition;
+    size_t m_asyncOperationCount = 0;
+
     SectionManager& _sectionManager(DimensionId dimension);
     const SectionManager& _sectionManager(DimensionId dimension) const;
     [[nodiscard]] bool _hasSectionManager(DimensionId dimension) const;
