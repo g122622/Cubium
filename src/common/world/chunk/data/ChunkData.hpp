@@ -48,6 +48,7 @@
 #include "common/world/chunk/data/IChunk.hpp"
 #include "common/world/chunk/data/light/SWMRNibbleArray.hpp"
 #include "common/world/gameevent/GameEventListenerRegistry.hpp"
+#include "common/world/tick/base/TickPriority.hpp"
 #include <array>
 #include <atomic>
 #include <cstring>
@@ -66,6 +67,20 @@ class ChunkPrimer;
 // ============================================================================
 // 区块数据
 // ============================================================================
+
+/**
+ * @brief 生成期调度、尚未转交给世界 TickManager 的方块刻
+ *
+ * WorldGenRegion 在生成阶段调度方块刻时无法直接写入世界的 TickManager（主线程独占），
+ * 因此记录在区块中，区块发布后由 ServerChunkManager 在主线程转交给 TickManager。
+ */
+struct PendingBlockTick {
+    BlockPos pos;                       ///< 方块绝对位置
+    const Block* block;                 ///< 目标方块
+    u64 scheduledTick;                  ///< 调度时的世界游戏刻
+    i32 delay;                          ///< 延迟 tick 数（从 scheduledTick 起算）
+    world::tick::TickPriority priority; ///< 执行优先级
+};
 
 class ChunkData : public IChunk {
 public:
@@ -497,6 +512,27 @@ public:
      *
      * @param sectionIndex 区块段索引
      */
+    /**
+     * @brief 待执行方块刻（生成期调度，尚未转交 TickManager）
+     */
+    [[nodiscard]] const std::vector<PendingBlockTick>& pendingBlockTicks() const noexcept
+    {
+        return m_pendingBlockTicks;
+    }
+
+    /**
+     * @brief 追加待执行方块刻（从 ChunkPrimer 转移）
+     */
+    void addPendingBlockTicks(const std::vector<PendingBlockTick>& ticks)
+    {
+        m_pendingBlockTicks.insert(m_pendingBlockTicks.end(), ticks.begin(), ticks.end());
+    }
+
+    /**
+     * @brief 清空待执行方块刻（转交 TickManager 后调用）
+     */
+    void clearPendingBlockTicks() noexcept { m_pendingBlockTicks.clear(); }
+
     void clearPostProcessingForSection(i32 sectionIndex);
 
     /**
@@ -683,6 +719,9 @@ private:
     // 后处理位置（按区块段索引存储）
     // 每个短整型编码段内本地坐标：bits[3:0]=x, bits[7:4]=y, bits[11:8]=z
     std::array<std::vector<u16>, mc::world::CHUNK_SECTIONS> m_postProcessingSections;
+
+    // 生成期调度的待执行方块刻（ChunkPrimer::toChunkData 转移；发布后清空）
+    std::vector<PendingBlockTick> m_pendingBlockTicks;
 
     // 后处理是否已完成（_postProcessChunk 执行后置 true）。保证主线程后处理至多执行一次。
     // 不持久化：存档区块后处理位置为空且 needsPostProcess=false，重新加载后为 false 安全。

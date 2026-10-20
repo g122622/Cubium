@@ -86,6 +86,7 @@ enum class EntityStatus : u8 {
     FireworkExplosion = 17,
     GuardianAttack = 21,       // 守卫者攻击音效
     ArrowHit = 30,             // 箭矢命中音效
+    ArmorStandHit = 32,        // 盔甲架受击音效（MC 1.21.11 ArmorStand.handleEntityEvent 的 byte 32）
     TotemActivate = 35,        // 不死图腾激活
     Dolphin = 38,              // 海豚寻宝粒子
     OcelotTrustFailed = 40,    // 豹猫信任失败（烟雾粒子）

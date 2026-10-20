@@ -27,6 +27,7 @@
 #include "common/core/Types.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/biome/BiomeGenerationSettings.hpp"
+#include "common/world/biome/BiomeIds.hpp"
 #include "common/world/biome/BiomeManager.hpp"
 #include "common/world/biome/BiomeSource.hpp"
 #include "common/world/chunk/data/Heightmap.hpp"
@@ -107,6 +108,18 @@ public:
     [[nodiscard]] i32 getMinY() const override { return m_settings.noise.minY; }
 
     // === 生物群系源 ===
+
+    /**
+     * @brief 按世界坐标查询该位置所属群系（带 Voronoi 抖动缩放）
+     *
+     * 等价于 vanilla Level.getBiome(pos)：供需要"运行时群系"的子系统（环境属性群系层等）
+     * 查询，不依赖区块是否加载。
+     */
+    [[nodiscard]] BiomeId getBiomeAtWorldPosition(i32 blockX, i32 blockY, i32 blockZ) const
+    {
+        return m_biomeManager != nullptr ? m_biomeManager->getBiome(blockX, blockY, blockZ)
+                                         : world::biome::Biomes::Plains;
+    }
 
     [[nodiscard]] world::biome::IBiomeSource* getBiomeSource() override { return m_biomeSource.get(); }
     [[nodiscard]] const world::biome::IBiomeSource* getBiomeSource() const override { return m_biomeSource.get(); }

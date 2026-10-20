@@ -31,6 +31,7 @@
 #include "common/world/biome/BiomeRegistry.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/chunk/data/ChunkData.hpp"
+#include "common/world/timeline/Timelines.hpp"
 #include "core/Constants.hpp"
 #include "entity/combat/DifficultyHelper.hpp"
 #include "server/world/gen/biome/BiomeLoader.hpp"
@@ -1445,6 +1446,8 @@ protected:
     {
         VanillaBlocks::initialize();
         world::biome::BiomeRegistry::instance().initialize();
+        // attributes 按属性注册名解析，需先登记内置环境属性
+        world::timeline::Timelines::bootstrap();
     }
 
     // 构造最小 biome JSON，仅含 attributes 字段中的 increased_fire_burnout。

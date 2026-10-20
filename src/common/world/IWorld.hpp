@@ -39,6 +39,7 @@
 #include "common/util/math/Vector2.hpp"
 #include "common/util/math/Vector3.hpp"
 #include "common/util/math/random/Random.hpp"
+#include "common/world/attribute/EnvironmentAttributeSystem.hpp"
 #include "common/world/chunk/IChunkManager.hpp"
 #include "explosion/ExplosionContext.hpp"
 #include "explosion/ExplosionMode.hpp"
@@ -441,7 +442,8 @@ public:
      */
     virtual void globalLevelEvent(i32 eventId, const BlockPos& pos, i32 data)
     {
-        // TODO: 默认实现降级为普通 playEvent（对齐原版 GLOBAL_SOUND_EVENTS=false 时的降级行为）
+        // 默认降级为普通 playEvent（等价 vanilla globalSoundEvents=false 时的行为）；
+        // 服务端世界覆写本方法，按 gamerule 选择全局广播或普通事件。
         playEvent(eventId, pos, data);
     }
 
@@ -625,6 +627,20 @@ public:
             skyLight = 0;
         }
         return std::max(blockLight, skyLight);
+    }
+
+    /**
+     * @brief 当前世界维度的环境属性系统
+     *
+     * vanilla `Level.environmentAttributes()`。服务端世界持有维度级系统实例（维度常量层 +
+     * 群系位置层 + 时间线层），结果按 tick 缓存，同一 tick 内重复查询不会重复采样。
+     *
+     * @return 环境属性系统（默认实现返回空的系统，属性查询退回其默认值）
+     */
+    [[nodiscard]] virtual const world::attribute::EnvironmentAttributeSystem& environmentAttributes() const
+    {
+        static const world::attribute::EnvironmentAttributeSystem EMPTY;
+        return EMPTY;
     }
 
     /**
@@ -1022,10 +1038,8 @@ public:
      * 控制嘎枝之心的 AWAKE/DORMANT 选择：活跃时为 AWAKE（生成嘎枝、激活外观），
      * 否则为 DORMANT。vanilla 由维度类型 + 生物群系（苍白花园）驱动，且受昼夜周期影响。
      *
-     * Cubium 尚无环境属性（EnvironmentAttributes）体系，默认返回 false（即 DORMANT），
-     * 与 vanilla 在非苍白花园环境的取值一致。
-     *
-     * TODO: 待 EnvironmentAttributes 体系落地后，改为按维度/生物群系/时间查询真实属性值。
+     * 服务端世界按维度级环境属性系统求值；默认实现返回 false（DORMANT），与 vanilla 在
+     * 非苍白花园环境的取值一致。
      */
     [[nodiscard]] virtual bool isCreakingActive(const BlockPos& /*pos*/) const { return false; }
 

@@ -34,8 +34,11 @@
 #include "common/world/block/GameMasterBlock.hpp"
 #include "common/world/gen/jigsaw/JigsawOrientation.hpp"
 
+#include <string>
+
 namespace mc {
 
+class BlockItemUseContext;
 class IWorld;
 class Player;
 
@@ -58,6 +61,15 @@ public:
 
     [[nodiscard]] bool isGameMaster() const noexcept override { return true; }
 
+    // ========== 放置 ==========
+
+    /**
+     * @brief 放置时按点击面与玩家朝向推导 ORIENTATION（对齐 vanilla JigsawBlock.getStateForPlacement）
+     *
+     * 点击面为竖直轴时，front 取点击面、top 取玩家水平朝向的反方向；否则 front 取点击面、top 取 Up。
+     */
+    [[nodiscard]] BlockState getStateForPlacement(BlockItemUseContext& context) override;
+
     // ========== 旋转和镜像 ==========
 
     [[nodiscard]] const BlockState& rotate(const BlockState& state, Rotation rotation) const override;
@@ -71,6 +83,37 @@ public:
         const BlockPos& pos,
         Player& player,
         const BlockRaycastResult& hit) override;
+
+    // ========== 结构生成辅助 ==========
+
+    /**
+     * @brief 判断两个拼图方块连接点是否可以对接（对齐 vanilla JigsawBlock.canAttach）
+     *
+     * 条件：前朝向互为反方向；连接类型为 rollable，或两侧 top 朝向相同；且前者的 target
+     * 等于后者的 name。
+     *
+     * @param sourceOrientation 源连接点朝向与名称信息
+     * @param sourceTarget 源连接点的 target 名称
+     * @param targetOrientation 目标连接点朝向
+     * @param targetName 目标连接点的 name 名称
+     * @param sourceJointRollable 源连接点是否为 rollable（否则为 aligned）
+     * @return 是否可以对接
+     */
+    [[nodiscard]] static bool canAttach(world::gen::jigsaw::JigsawOrientation sourceOrientation,
+        const std::string& sourceTarget,
+        world::gen::jigsaw::JigsawOrientation targetOrientation,
+        const std::string& targetName,
+        bool sourceJointRollable);
+
+    /**
+     * @brief 获取拼图方块的 front 朝向（ORIENTATION 的主方向，对齐 vanilla JigsawBlock.getFrontFacing）
+     */
+    [[nodiscard]] static Direction getFrontFacing(const BlockState& state);
+
+    /**
+     * @brief 获取拼图方块的 top 朝向（ORIENTATION 的旋转方向，对齐 vanilla JigsawBlock.getTopFacing）
+     */
+    [[nodiscard]] static Direction getTopFacing(const BlockState& state);
 };
 
 } // namespace blocks

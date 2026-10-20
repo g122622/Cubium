@@ -179,3 +179,16 @@ BiomeLoader 从数据包 biome JSON 加载 climate/effects/spawners/spawn_costs/
 ### 13. 区块群系与噪声源共用缩放选择
 
 `BiomeManager::selectQuartPosition` 只选择带抖动的 quart 角点。噪声查询随后读取 `IBiomeSource`，生成区域查询随后读取区块群系；两者共用算法和缩放种子，避免放置过滤器使用未经缩放的格子边界。
+
+### 14. 群系 attributes 的解析与消费
+
+`biome.attributes` 由 `BiomeLoader::applyAttributes` 交给 `EnvironmentAttributeMap::Builder::setFromJson` 解析：
+键为属性注册名（如 `minecraft:gameplay/increased_fire_burnout`），值可直接给出参数（等价覆写），
+也可写成 `{"modifier": "<操作名>", "argument": <参数>}`。未注册的属性、类型不允许的修改器、
+无法解析的参数都只告警并跳过，不影响其它条目。结果挂在 `Biome::attributes()`，由维度级环境属性系统
+的**群系位置层**按查询位置的群系应用——因此新增属性只需在 `EnvironmentAttributes` 中登记属性并提供
+JSON 表示（`EnvironmentAttributeValueJson.cpp`），无需改动群系或加载器代码。
+
+`Biome::isIncreasedFireBurnout()` 保留为旧的无世界上下文查询路径（与属性表同步），
+有世界上下文时应改用 `world.environmentAttributes().getValue(INCREASED_FIRE_BURNOUT, pos)`。
+

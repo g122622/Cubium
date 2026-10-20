@@ -63,6 +63,7 @@
 #include "common/world/WorldConstants.hpp"
 #include "common/world/attribute/DimensionAttributes.hpp"
 #include "common/world/attribute/EnvironmentAttributeSystem.hpp"
+#include "common/world/attribute/EnvironmentAttributes.hpp"
 #include "common/world/biome/Biome.hpp"
 #include "common/world/biome/BiomeClimate.hpp"
 #include "common/world/biome/BiomeRegistry.hpp"
@@ -525,6 +526,13 @@ void ServerWorld::playEvent(i32 eventId, const BlockPos& pos, i32 data)
 
 void ServerWorld::globalLevelEvent(i32 eventId, const BlockPos& pos, i32 data)
 {
+    // 对齐 vanilla ServerLevel.globalLevelEvent：gamerule globalSoundEvents=false 时降级为
+    // 普通 levelEvent（仅广播给事件位置附近的玩家，而非按玩家位置钳制的全局事件）。
+    if (!getGameRules().getBoolean(world::gamerule::GameRuleKeys::GLOBAL_SOUND_EVENTS)) {
+        playEvent(eventId, pos, data);
+        return;
+    }
+
     if (m_onBroadcastGlobalLevelEvent) {
         // 传入本世界维度：广播侧据此判断每个玩家是否与事件同维度（同维度用真实事件位置，
         // 跨维度用玩家自身位置），对齐 vanilla ServerLevel.globalLevelEvent 的 p.level()==this 判定。
@@ -1475,10 +1483,12 @@ void ServerWorld::tick()
 /// 维度级环境属性系统的持有者：系统一经装配即长期存活
 class ServerWorld::_EnvironmentAttributes {
 public:
-    _EnvironmentAttributes(
-        const DimensionType& dimensionType, std::function<i64()> dayTimeGetter, std::function<i64()> gameTimeGetter)
+    _EnvironmentAttributes(const DimensionType& dimensionType,
+        std::function<i64()> dayTimeGetter,
+        std::function<i64()> gameTimeGetter,
+        const world::attribute::DimensionAttributes::BiomeResolver& biomeResolver)
         : m_system(world::attribute::DimensionAttributes::createSystem(
-              dimensionType, std::move(dayTimeGetter), std::move(gameTimeGetter)))
+              dimensionType, std::move(dayTimeGetter), std::move(gameTimeGetter), biomeResolver))
     {}
 
     [[nodiscard]] const world::attribute::EnvironmentAttributeSystem& system() const { return *m_system; }
@@ -1494,9 +1504,37 @@ const world::attribute::EnvironmentAttributeSystem& ServerWorld::environmentAttr
         // 周期时间线以 dayTime 驱动、无周期时间线以 gameTime 驱动（与 vanilla 一致）；
         // dayTimeOfDay 在固定时间维度（下界/末地）返回维度固定的时刻。
         m_environmentAttributes = std::make_unique<_EnvironmentAttributes>(
-            getDimensionType(), [this] { return dayTimeOfDay(); }, [this] { return dayTimeOfDay(); });
+            getDimensionType(),
+            [this] { return dayTimeOfDay(); },
+            [this] { return dayTimeOfDay(); },
+            [this](const Vector3& pos) { return _biomeAt(pos); });
     }
     return m_environmentAttributes->system();
+}
+
+bool ServerWorld::isCreakingActive(const BlockPos& pos) const
+{
+    // 对齐 vanilla CreakingHeartBlock：读维度级环境属性 CREAKING_ACTIVE
+    // （维度常量层 → 群系位置层 → 时间线层）。仅苍白花园且处于活跃时段时为真。
+    const world::attribute::EnvironmentAttributeSystem& system = environmentAttributes();
+    if (system.attributeCount() == 0) {
+        return false;
+    }
+    return system.getValue(world::attribute::EnvironmentAttributes::CREAKING_ACTIVE(), pos.center());
+}
+
+BiomeId ServerWorld::_biomeAt(const Vector3& pos) const
+{
+    // 对齐 vanilla Level.getBiome(pos)：按 Voronoi 抖动缩放的群系查询（不依赖区块是否加载）
+    if (m_chunkManager == nullptr) {
+        return world::biome::Biomes::Plains;
+    }
+    const auto* noiseGenerator = dynamic_cast<const NoiseChunkGenerator*>(m_chunkManager->generator());
+    if (noiseGenerator == nullptr) {
+        return world::biome::Biomes::Plains;
+    }
+    return noiseGenerator->getBiomeAtWorldPosition(
+        static_cast<i32>(std::floor(pos.x)), static_cast<i32>(std::floor(pos.y)), static_cast<i32>(std::floor(pos.z)));
 }
 
 void ServerWorld::invalidateEnvironmentAttributeCache()

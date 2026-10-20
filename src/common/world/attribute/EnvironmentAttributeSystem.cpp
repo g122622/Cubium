@@ -33,13 +33,11 @@ namespace attribute {
 
     for (const auto& [attribute, spec] : m_layers) {
         const std::vector<std::function<std::any(const std::any&, const _EvalContext&)>> layers = spec.layers;
-        const auto resetTickCaches =
-            std::make_shared<std::vector<std::function<void()>>>(spec.resetTickCaches);
+        const auto resetTickCaches = std::make_shared<std::vector<std::function<void()>>>(spec.resetTickCaches);
 
         // 求值函数由 std::function 承载，各层返回值类型与属性值类型一致（由构建期约束保证），
         // 因此 std::bad_any_cast 只会在层与属性类型不匹配的编程错误时抛出；此处不吞掉该异常。
-        EnvironmentAttributeSystem::AttributeEntry entry{
-            // NOLINTNEXTLINE(bugprone-exception-escape)
+        EnvironmentAttributeSystem::AttributeEntry entry{// NOLINTNEXTLINE(bugprone-exception-escape)
             [layers](const std::any& base, const _EvalContext& context) -> std::any {
                 std::any value = base;
                 for (const auto& layer : layers) {

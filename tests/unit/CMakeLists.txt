@@ -71,6 +71,7 @@ add_executable(mc_tests
     # common/test_collision.cpp  # 暂时禁用 - 依赖旧的碰撞系统
     common/test_property.cpp
     common/util/StateHolderTest.cpp
+    common/util/DirectionTest.cpp
     common/util/text/Utf8Test.cpp
     common/TestWorldHelper.cpp
     common/BaseTestServer.cpp
@@ -474,6 +475,10 @@ add_executable(mc_tests
     server/event/SummonedEntityEventTest.cpp
     # 村庄声望治愈僵尸村民测试
     server/advancement/VillageReputationTest.cpp
+    # 乐器数据驱动体系（注册表/数据包定义/乐器标签/山羊角吹奏/set_instrument）
+    server/item/instrument/InstrumentDataDrivenTest.cpp
+    # 盾牌方向校验（来袭方向与头部朝向夹角超过阻挡角时不格挡）
+    common/entity/player/ShieldBlockingAngleTest.cpp
     # ItemDropHelper 测试
     common/entity/utils/ItemDropHelperTest.cpp
     # 经验系统测试
@@ -510,6 +515,7 @@ add_executable(mc_tests
     entity/MobEntityAggressiveFlagTest.cpp
     # MobEntity dropPreservedEquipment 测试（装备掉落保留逻辑、绑定诅咒、保留/非保留装备处理）
     common/entity/core/DropPreservedEquipmentTest.cpp
+    common/entity/core/EquipItemIfPossibleTest.cpp
     # Entity::getLootTableId() 及其子类覆写测试
     common/entity/core/GetLootTableIdTest.cpp
     # 战斗追踪器测试
@@ -524,6 +530,8 @@ add_executable(mc_tests
     common/entity/combat/DamagesHelmetTest.cpp
     # NO_ANGER/NO_ANGER_FROM_WIND_CHARGE 标签查询测试（mob_attack_no_aggro/风弹不激怒）
     common/entity/combat/NoAngerTest.cpp
+    # lastHurtByPlayer 实体引用归属测试（玩家直接攻击/驯服狼代攻/记忆窗口到期/击杀归属）
+    common/entity/combat/HurtByPlayerAttributionTest.cpp
     # AVOIDS_GUARDIAN_THORNS 标签查询测试（守卫者荆棘反伤，魔法/爆炸/荆棘不反伤）
     common/entity/combat/GuardianThornsTest.cpp
     # CAN_BREATHE_UNDER_WATER 标签查询测试（守卫者水下呼吸，修复硬编码致溺水）
@@ -591,6 +599,10 @@ add_executable(mc_tests
     common/world/block/blocks/ShulkerBoxBlockTest.cpp
     # CommandBlockEntity 命令方块实体测试（命令执行、红石触发、连锁执行、条件检测）
     common/world/blockentity/CommandBlockEntityTest.cpp
+    # 命令方块执行链路（tick/条件/连锁/setAuto/setPlacedBy）测试
+    common/world/block/blocks/redstone/CommandBlockExecutionTest.cpp
+    # 拼图方块测试（放置朝向、连接点对接规则、front/top 朝向）
+    common/world/block/blocks/special/JigsawBlockTest.cpp
     # BannerEntity 旗帜方块实体测试（图案存储、底色、自定义名称、NBT序列化）
     common/world/blockentity/BannerEntityTest.cpp
     # JukeboxEntity 唱片机方块实体测试（播放/停止、比较器信号、序列化、tick）
@@ -649,6 +661,8 @@ add_executable(mc_tests
     common/world/block/blocks/decorative/DecorativeBlockTest.cpp
     common/world/block/blocks/decorative/StainedGlassBlockTest.cpp
     common/world/block/blocks/decorative/ScaffoldingBlockTest.cpp
+    # LadderBlock 梯子方块测试（朝向、附着支撑、邻居更新）
+    common/world/block/blocks/decorative/LadderBlockTest.cpp
     common/world/block/blocks/decorative/TorchBlockTest.cpp
     # CampfireBlock 营火方块测试
     common/world/block/blocks/decorative/CampfireBlockTest.cpp
@@ -709,6 +723,8 @@ add_executable(mc_tests
     common/world/block/blocks/cave/BigDripleafBlockTest.cpp
     common/world/block/blocks/cave/BigDripleafStemBlockTest.cpp
     common/world/block/blocks/cave/PointedDripstoneBlockTest.cpp
+    # FrogspawnBlock 青蛙卵：存活判定、邻居更新、孵化生成蝌蚪
+    common/world/block/blocks/cave/FrogspawnBlockTest.cpp
     common/world/block/blocks/pale_garden/PaleHangingMossBlockTest.cpp
     common/world/block/blocks/pale_garden/EyeblossomBlockTest.cpp
     common/world/block/blocks/pale_garden/CreakingHeartBlockTest.cpp
@@ -1204,6 +1220,8 @@ add_executable(mc_tests
     common/advancement/AdvancementLoaderTest.cpp
     # EffectType 工具函数测试
     common/entity/effect/EffectTypeTest.cpp
+    # 效果移除回调测试（织网生成蜘蛛网/渗浆生成史莱姆/风弹爆炸上下文）
+    common/entity/effect/EffectOnRemovalTest.cpp
     # AnimationState 动画状态机工具类测试（start/stop/startIfStopped/animateWhen/copyFrom）
     common/entity/AnimationStateTest.cpp
     # EffectAttributeModifiers 效果属性修改器测试
@@ -2062,6 +2080,9 @@ target_sources(mc_tests
         # 注册表装配门面：MinecraftServer::initializeRegistries 转调 RegistryBootstrap，
         # mc_tests 编译 MinecraftServer.cpp 故须登记（与 server/CMakeLists.txt 一致）。
         ${CMAKE_SOURCE_DIR}/src/server/registry/RegistryBootstrap.cpp
+        # 数据包驱动的物品定义加载器（乐器），RegistryBootstrap 直接调用
+        ${CMAKE_SOURCE_DIR}/src/server/item/instrument/InstrumentLoader.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/item/instrument/InstrumentTagLoader.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/chunk/data/ChunkData.cpp
         ${CMAKE_SOURCE_DIR}/src/common/util/NibbleArray.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/chunk/load/ChunkDistanceGraph.cpp

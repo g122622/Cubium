@@ -40,7 +40,10 @@
 #include "common/entity/ecs/components/HealthComponent.hpp"
 #include "common/entity/ecs/components/HurtStateComponent.hpp"
 #include "common/entity/effect/EffectInstance.hpp"
+#include "common/entity/effect/EffectOnRemoval.hpp"
 #include "common/entity/effect/EffectType.hpp"
+#include "common/entity/entities/passive/tamable/TameableEntity.hpp"
+#include "common/entity/entities/passive/tamable/WolfEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/registry/VanillaEntityTypeKeys.hpp"
 #include "common/entity/serialization/EntityNbtKeys.hpp"
@@ -107,7 +110,24 @@ using physics::DRAG_AIR;
 using physics::DRAG_GROUND;
 using physics::GRAVITY;
 using physics::MOTION_THRESHOLD;
+
+/// 盾牌默认水平阻挡角（度）。vanilla BlocksAttacks.DamageReduction 的 horizontal_blocking_angle
+/// 缺省值 90：来袭方向与头部水平朝向夹角超过 90° 即视为从背后攻击，不再减伤。
+constexpr f32 DEFAULT_SHIELD_HORIZONTAL_BLOCKING_ANGLE_DEGREES = 90.0f;
 } // namespace
+
+bool LivingEntity::_isWithinShieldBlockingAngle(const DamageSource& source) const
+{
+    // 只有实现了方向查询的受伤者（当前为玩家）才做角度校验；其余生物直接沿用格挡结果。
+    const auto* directionAware = dynamic_cast<const Player*>(this);
+    if (directionAware == nullptr) {
+        return true;
+    }
+    const std::optional<f32> angle = directionAware->blockingSourceAngle(source);
+    // 来源位置缺失时 vanilla 按 PI 处理：任何角度限制下都不减伤。
+    const f32 sourceAngle = angle.value_or(static_cast<f32>(math::PI));
+    return sourceAngle <= math::toRadians(DEFAULT_SHIELD_HORIZONTAL_BLOCKING_ANGLE_DEGREES);
+}
 
 // ============================================================================
 // 静态数据参数定义（通过 createKey 自动分配唯一 ID，避免跨类 ID 冲突）
@@ -260,6 +280,17 @@ bool LivingEntity::hurt(DamageSource& source, f32 amount)
         return false;
     }
 
+    // 1.2 盾牌格挡（对齐 vanilla LivingEntity.hurtServer:1175-1177 的 applyItemBlocking）：
+    //     在无敌帧判定之前扣减被格挡的伤害量，后续流程（markHurt / 击退 / indicateDamage）据
+    //     flag 分支处理。applyItemBlocking 内部负责消耗盾牌耐久并回调 makeStuckInBlock 等副作用。
+    f32 blockedAmount = 0.0f;
+    if (amount > 0.0f && canBlockDamageSource(source) && _isWithinShieldBlockingAngle(source)) {
+        blockedAmount = amount;
+        amount = 0.0f;
+    }
+    m_lastBlockedDamage = blockedAmount;
+    const bool blocked = blockedAmount > 0.0f;
+
     // 1.5 抗火药水免疫火焰伤害（对齐 vanilla LivingEntity.hurtServer:1162：
     //   p_376460_.is(DamageTypeTags.IS_FIRE) && this.hasEffect(MobEffects.FIRE_RESISTANCE) → return false）。
     // 持有 FireResistance 效果的实体对所有 IS_FIRE 伤害源免疫（in_fire/campfire/on_fire/lava/hot_floor/
@@ -293,12 +324,20 @@ bool LivingEntity::hurt(DamageSource& source, f32 amount)
         m_lastDamage = amount;
         m_hurtResistantTime = MAX_HURT_RESISTANT_TIME;
         // LivingEntity.hurtServer：hurtTime = hurtDuration = maxHurtTime(10)。
-        if (auto* c = m_entityContext->tryGetComponent<ecs::HurtStateComponent>()) {
-            c->m_hurtTime = c->m_maxHurtTime;
+        // 格挡且伤害被全额挡下时 vanilla 的 markHurt 不执行，受击闪红同样不启动。
+        if (auto* c = m_entityContext->tryGetComponent<ecs::HurtStateComponent>(); !blocked || amount > 0.0f) {
+            if (c != nullptr) {
+                c->m_hurtTime = c->m_maxHurtTime;
+            }
         }
-        // 完整格挡不产生伤害事件，无敌帧内的差额伤害也不重复启动受伤表现。
-        if (m_world != nullptr && !canBlockDamageSource(source)) {
-            m_world->broadcastDamageEvent(m_id, source);
+        // 完整格挡不产生伤害事件，无敌帧内的差额伤害也不重复启动受伤表现（vanilla：flag 时不广播，
+        // 改为 BlocksAttacks.onBlocked 播放格挡音效）。
+        if (m_world != nullptr) {
+            if (blocked) {
+                playBlockSound();
+            } else {
+                m_world->broadcastDamageEvent(m_id, source);
+            }
         }
         actuallyHurt(source, amount);
     }
@@ -346,9 +385,17 @@ bool LivingEntity::hurt(DamageSource& source, f32 amount)
             //     即 mob_attack_no_aggro 由玩家造成时仍记 lastHurtByPlayer（用于死亡经验掉落守卫，
             //     见 shouldDropExperienceOnDeath / dropAllDeathLoot），但不激怒（2.5a 的 lastHurtByMob
             //     被 NO_ANGER 门控挡住）。
-            //     TODO: 驯服狼代攻时归属其玩家主人（vanilla wolf.getOwnerReference 分支）未实现。
-            if (dynamic_cast<Player*>(trueSource) != nullptr) {
-                setLastHurtByPlayerMemoryTime(100);
+            //     驯服狼代攻（vanilla resolvePlayerResponsibleForDamage 的 Wolf 分支，
+            //     LivingEntity.java:1336-1343）：真凶为已驯服的狼时，把功劳归属其主人玩家；
+            //     狼已驯服但主人引用为空（主人 UUID 缺失/离线）时按 vanilla 清空归属并归零记忆窗口。
+            if (auto* player = dynamic_cast<Player*>(trueSource)) {
+                setLastHurtByPlayer(player, 100);
+            } else if (auto* wolf = dynamic_cast<WolfEntity*>(trueSource); wolf != nullptr && wolf->isTamed()) {
+                if (Player* owner = wolf->getOwner()) {
+                    setLastHurtByPlayer(owner, 100);
+                } else {
+                    setLastHurtByPlayer(nullptr, 0);
+                }
             }
         }
     }
@@ -360,7 +407,8 @@ bool LivingEntity::hurt(DamageSource& source, f32 amount)
     // 内处理），此处简化为 !source.is(NO_IMPACT)。NO_IMPACT = {Drown}（DamageTypeTags.cpp:649）：
     // 溺水伤害不触发受击标记（不产生受击动画/速度同步），对齐 vanilla——溺水是渐进缺氧，无受击反馈。
     // 此前 Cubium 无条件 markHurt，溺水也触发受击标记，偏离 vanilla。
-    if (!source.is(DamageTypeTags::NO_IMPACT())) {
+    // vanilla 条件：!NO_IMPACT && (!flag || amount > 0)。格挡且伤害被全额挡下时不标记受击。
+    if (!source.is(DamageTypeTags::NO_IMPACT()) && (!blocked || amount > 0.0f)) {
         markHurt();
     }
 
@@ -379,9 +427,6 @@ bool LivingEntity::hurt(DamageSource& source, f32 amount)
     // Projectile 方向：vanilla calculateHorizontalHurtKnockbackDirection 返回投射物 deltaMovement 的 x/z，
     //   hurtServer 取反（d0=-vx, d1=-vz），即击退方向 = 投射物飞行方向（投射物从A飞向victim，victim被
     //   推向A的反方向=继续远离投射物来源）。Cubium ProjectileEntity 经 directSource() 取 velocity 对齐。
-    // TODO: flag（盾牌格挡）门控——vanilla 格挡时仍 knockback 但不 indicateDamage。Cubium hurt 入口无 flag
-    //   概念（格挡在 actuallyHurt 内 canBlockDamageSource 命中后 return），此处无法区分格挡，简化为总是
-    //   indicateDamage。格挡时 indicateDamage 的视觉偏差待接入 BlocksAttacks flag 后修正。
     if (m_world != nullptr && amount > 0.0f && !source.is(DamageTypeTags::NO_KNOCKBACK())) {
         f64 d0 = 0.0;
         f64 d1 = 0.0;
@@ -401,10 +446,30 @@ bool LivingEntity::hurt(DamageSource& source, f32 amount)
 
         // 通用击退（对受害者，强度 0.4，受 KNOCKBACK_RESISTANCE 减免）。
         applyKnockback(0.4f, d0, d1);
-        indicateDamage(d0, d1);
+        // 格挡时仍施加强制击退，但不指示受击方向（vanilla：if (!flag) indicateDamage(d0, d1)）。
+        if (!blocked) {
+            indicateDamage(d0, d1);
+        }
     }
 
     return true;
+}
+
+bool LivingEntity::hasPlayedBlockSoundThisTick() const noexcept
+{
+    return m_world != nullptr && m_blockSoundPlayedTick == m_world->getGameTime();
+}
+
+void LivingEntity::playBlockSound()
+{
+    // 对齐 vanilla BlocksAttacks.onBlocked：同一 tick 内只播放一次格挡音效
+    // （多段伤害同帧命中盾牌时避免叠加）。
+    if (m_world == nullptr || hasPlayedBlockSoundThisTick()) {
+        return;
+    }
+    m_blockSoundPlayedTick = m_world->getGameTime();
+    m_world->playSound(
+        SoundEvents::ITEM_SHIELD_BLOCK, sound::SoundCategory::Players, position(), getSoundVolume(), getSoundPitch());
 }
 
 void LivingEntity::indicateDamage(f64 d0, f64 d1)
@@ -447,8 +512,21 @@ void LivingEntity::actuallyHurt(DamageSource& source, f32 amount)
     // 生命值组件局部指针复用（避免热路径多次 try_get）
     auto* healthState = m_entityContext->tryGetComponent<ecs::HealthComponent>();
 
+    // 0. 效果受击回调（对齐 vanilla LivingEntity.actuallyHurt:1106-1108：
+    //    for (MobEffectInstance e : activeEffects.values()) e.onMobHurt(level, this, amplifier, source, amount)）。
+    //    当前仅有 INFESTED 实现 onMobHurt（10% 概率生成 1~2 只蠹虫，InfestedMobEffect）。
+    //    Cubium 仅对该效果类型分派，其余效果无受击行为。
+    if (m_world != nullptr && !m_world->isClientSide() &&
+        m_effectManager.hasEffect(entity::effect::EffectType::Infested)) {
+        if (m_world->getRandom().nextFloat() <= game::INFESTED_SPAWN_CHANCE) {
+            entity::effect::onremoval::spawnInfestedSilverfish(*m_world, *this);
+        }
+    }
+
     // 1. 盾牌格挡检查（子类可重写）
-    if (canBlockDamageSource(source)) {
+    // 方向校验（对齐 vanilla BlocksAttacks.resolveBlockedDamage）：来袭方向与头部水平朝向夹角
+    // 超过盾牌水平阻挡角（默认 90°，背面来的攻击挡不住）时不再格挡，伤害照常结算。
+    if (canBlockDamageSource(source) && _isWithinShieldBlockingAngle(source)) {
         damageShield(amount);
 
         // 破盾判定（对齐 MC Java 1.21.11 Player.blockUsingItem:727-730 破盾分支）：
@@ -494,8 +572,7 @@ void LivingEntity::actuallyHurt(DamageSource& source, f32 amount)
     // （坠落铁砧/坠落方块/坠落钟乳石）命中戴头盔的实体时，伤害 ×0.75（减免 1/4），并回调
     // hurtHelmet 消耗头盔耐久。此分支独立于护甲减伤（在护甲减伤之前，无 bypassesArmor 门控），
     // 对齐 vanilla 位置（hurtServer 主流程，getDamageAfterArmorAbsorb 之前）。
-    // 注：vanilla LivingEntity.hurtHelmet 基类为空实现（耐久消耗由 doHurtEquipment 统一处理），
-    // Cubium hurtHelmet 基类同样空实现，耐久消耗留待装备耐久体系完善后补全（TODO）。
+    // 基类 hurtHelmet 对头盔槽调用 doHurtEquipment 消耗耐久（见其实现注释）。
     if (source.is(DamageTypeTags::DAMAGES_HELMET()) && !getEquipment(EquipmentSlot::Head).isEmpty()) {
         hurtHelmet(source, amount);
         amount *= 0.75f;
@@ -645,11 +722,33 @@ void LivingEntity::damageShield(f32 /*amount*/)
     // 默认空实现，由 Player 子类重写
 }
 
-void LivingEntity::hurtHelmet(DamageSource& /*source*/, f32 /*amount*/)
+void LivingEntity::hurtHelmet(DamageSource& source, f32 amount)
 {
-    // 对齐 vanilla LivingEntity.hurtHelmet:1793 基类空实现。DAMAGES_HELMET 伤害（坠落铁砧/方块/
-    // 钟乳石）命中头盔时由 actuallyHurt 的 DAMAGES_HELMET 分支调用，基类不消耗耐久。
-    // TODO: 装备耐久体系完善后补全头盔耐久消耗（对齐 vanilla doHurtEquipment 统一耐久逻辑）。
+    // 对齐 vanilla Player.hurtHelmet：doHurtEquipment(source, amount, EquipmentSlot.HEAD)。
+    // vanilla LivingEntity 基类为空实现，但非玩家的非人形生物在 vanilla 中本就不会经由
+    // hurtHelmet 消耗耐久（doHurtEquipment 仅由 Player/Wolf/Horse 覆写调用）；Cubium 在
+    // actuallyHurt 的 DAMAGES_HELMET 分支统一调用，故基类直接对头盔槽消耗耐久，
+    // 使所有戴头盔的实体行为一致。
+    doHurtEquipment(source, amount, {EquipmentSlot::Head});
+}
+
+void LivingEntity::doHurtEquipment(DamageSource& source, f32 amount, std::initializer_list<EquipmentSlot> slots)
+{
+    // 对齐 vanilla LivingEntity.doHurtEquipment（LivingEntity.java:1796-1808）。
+    if (amount <= 0.0f) {
+        return;
+    }
+    // vanilla: (int)Math.max(1.0F, amount / 4.0F)
+    const i32 durabilityLoss = static_cast<i32>(std::max(1.0f, amount / 4.0f));
+    for (EquipmentSlot slot : slots) {
+        ItemStack& equipment = getMutableEquipment(slot);
+        // TODO(equippable-component): vanilla 还要求 Equippable.damageOnHurt 为 true
+        //   （默认 true，可被数据包关闭）。Cubium 未实现 EQUIPPABLE 组件，此处按默认值处理。
+        if (equipment.isEmpty() || !equipment.isDamageable() || !equipment.canBeHurtBy(source)) {
+            continue;
+        }
+        hurtAndBreak(equipment, durabilityLoss, this, slot);
+    }
 }
 
 void LivingEntity::blockedByItem(LivingEntity& victim)
@@ -762,14 +861,28 @@ f32 LivingEntity::computeFinalDamage(DamageSource& source, f32 damage)
     return damage;
 }
 
+Player* LivingEntity::getLastHurtByPlayer()
+{
+    return m_lastHurtByPlayer.get();
+}
+
+void LivingEntity::setLastHurtByPlayer(Player* player, i32 time)
+{
+    m_lastHurtByPlayer = player;
+    m_lastHurtByPlayerMemoryTime = time;
+}
+
 LivingEntity* LivingEntity::getKillCredit()
 {
     // 对齐 MC Java 1.21.11 LivingEntity.getKillCredit（LivingEntity.java:1886-1892）：
     //   if (this.lastHurtByPlayer != null) return this.lastHurtByPlayer.getEntity(...);
     //   else return this.lastHurtByMob != null ? ... : null;
-    // Cubium 没有 lastHurtByPlayer 实体引用，改用 CombatTracker::getBestAttacker()——
-    // 这与原版 ServerPlayer.die 中 awardKillScore 的取值来源一致。
-    return m_combatTracker.getBestAttackerLiving();
+    // 优先玩家归属（含玩家驯服狼代攻），使击杀记分/经验归属到最近伤害的玩家；
+    // 无玩家归属时回退到最近攻击生物（lastHurtByMob）。
+    if (Player* player = m_lastHurtByPlayer.get()) {
+        return player;
+    }
+    return m_lastHurtBy.get();
 }
 
 void LivingEntity::die(DamageSource& cause)
@@ -932,11 +1045,8 @@ void LivingEntity::dropAllDeathLoot(DamageSource& cause)
     // 在玩家造成伤害时设 100、每 tick 递减。注：resolvePlayerResponsibleForDamage 对 Player 无
     // NO_ANGER 门控，故 mob_attack_no_aggro 由玩家造成时仍记 memoryTime（用于掉落守卫），但不
     // 激怒（lastHurtByMob 被 NO_ANGER 门控挡住）。
-    // KILLER_PLAYER loot 参数仍从 m_lastHurtBy 取具体 Player 实体（见 dropFromLootTable:835）：
-    // Cubium 暂无独立的 lastHurtByPlayer 实体引用字段（仅 memoryTime 计数器），用 m_lastHurtBy
-    // 近似。TODO: 引入 lastHurtByPlayer 实体引用（对齐 vanilla EntityReference<Player>）后，
-    //       KILLER_PLAYER 改从该引用取，覆盖"玩家打残后非玩家补刀"场景（此时 m_lastHurtBy 是
-    //       补刀的非玩家，但 memoryTime>0 仍应归属原玩家）。
+    // KILLER_PLAYER loot 参数从 m_lastHurtByPlayer 实体引用取（见 dropFromLootTable）：
+    // 覆盖"玩家打残后非玩家补刀"场景（此时 m_lastHurtBy 是补刀的非玩家，但记忆窗口内仍归属原玩家）。
     const bool recentlyHitByPlayer = (m_lastHurtByPlayerMemoryTime > 0);
 
     // 1. shouldDropLoot 守卫（doMobLoot gamerule + 非幼体）：守卫包住物品掉落
@@ -1074,7 +1184,7 @@ void LivingEntity::dropFromLootTable(DamageSource& cause, bool recentlyHitByPlay
     // 击杀玩家（KILLER_PLAYER）：仅当最近被玩家伤害时设，并应用该玩家的 luck。
     // 对应 vanilla `if (flag && player != null) withParameter(LAST_DAMAGE_PLAYER, player).withLuck(player.getLuck())`。
     if (recentlyHitByPlayer) {
-        Player* player = dynamic_cast<Player*>(m_lastHurtBy.get());
+        Player* player = m_lastHurtByPlayer.get();
         if (player != nullptr) {
             builder.withParameter(loot::LootParams::KILLER_PLAYER, player);
             // 应用击杀玩家的幸运值（generic.luck 属性，经幸运/霉运效果改变）。对齐 vanilla player.getLuck()。
@@ -1122,12 +1232,23 @@ void LivingEntity::onRemoval(RemovalReason reason)
     // EntityManager 销毁路径亦统一生效。
     item::enchant::EnchantmentHelper::stopAllLocationBasedEffects(*this);
 
-    // TODO: 对齐 vanilla LivingEntity.remove（LivingEntity.java:703-712）的 triggerOnDeathMobEffects：
-    //   shouldDestroy(reason) 时遍历所有活跃效果调 MobEffect.onMobRemoved 回调并清空效果列表。
-    //   当前效果系统（EffectInstance）无 onMobRemoved 钩子，且 Oozing/Weaving/WindCharged/Infested
-    //   的移除行为未实现（见 EffectType.cpp），待效果系统完善后在此补全（须以 shouldDestroy(reason) 门控，
-    //   卸载类原因不清空效果以免丢失存档中的效果状态）。
-    (void)reason;
+    // 对齐 vanilla LivingEntity.remove（LivingEntity.java:701-709）的 triggerOnDeathMobEffects：
+    //   (reason == KILLED || reason == DISCARDED) 且处于服务端时，遍历所有活跃效果调
+    //   MobEffectInstance.onMobRemoved 回调，随后清空效果列表。
+    // 卸载类原因（UnloadedToChunk / UnloadedWithPlayer / ChangedDimension）不清空效果，避免丢失
+    // 存档中的效果状态（chunk 卸载走写盘路径，效果随 NBT 保存）。
+    // 效果回调的具体行为（织网生成蜘蛛网 / 渗浆生成史莱姆 / 风充能风弹爆炸）在
+    // entity::effect::onremoval::applyOnMobRemoved 中按效果类型分派。
+    if (m_world != nullptr && !m_world->isClientSide() && shouldDestroy(reason)) {
+        auto& effects = m_effectManager.getAllEffects();
+        const std::vector<entity::effect::EffectInstance> snapshot = effects;
+        for (const auto& effect : snapshot) {
+            entity::effect::onremoval::applyOnMobRemoved(*m_world, *this, effect.type(), effect.amplifier(), reason);
+        }
+        if (!snapshot.empty()) {
+            m_effectManager.removeAllEffects(*this);
+        }
+    }
 
     Entity::onRemoval(reason);
 }
@@ -1649,8 +1770,12 @@ void LivingEntity::tick()
 
     // 递减"最近被玩家伤害"记忆时间（对齐 vanilla LivingEntity.aiStep:466-470）。
     // 归零后玩家伤害记忆失效，影响死亡经验掉落守卫（普通生物需此值>0 才掉经验）。
+    // 归零时同步清空玩家引用（vanilla aiStep:466-469 的 else 分支），避免记忆窗口过期后
+    // getLastHurtByPlayer / getKillCredit 仍返回陈旧玩家。
     if (m_lastHurtByPlayerMemoryTime > 0) {
         m_lastHurtByPlayerMemoryTime--;
+    } else {
+        m_lastHurtByPlayer = nullptr;
     }
 
     // 更新受伤动画计时器
@@ -3315,19 +3440,27 @@ bool LivingEntity::isPotionApplicable(const entity::effect::EffectInstance& effe
     //   - IGNORES_POISON_AND_REGEN（亡灵 13 种 + iron_golem）免疫 REGENERATION + POISON
     //   - IMMUNE_TO_INFESTED 免疫 INFESTED；IMMUNE_TO_OOZING 免疫 OOZING
     // Cubium EntityTypeTags::IGNORES_POISON_AND_REGEN 标签成员与 vanilla 完全一致
-    // （EntityTypeTags.cpp:629-645，13 亡灵 + iron_golem）。此处实现 Poison/Regen 免疫；
-    // INFESTED/OOZING 效果 Cubium 暂未实现，留 TODO 待效果就绪后补 IMMUNE_TO_* 标签判定。
+    // （EntityTypeTags.cpp:629-645，13 亡灵 + iron_golem）。IMMUNE_TO_INFESTED / IMMUNE_TO_OOZING
+    // 亦按原版互斥分支顺序判定（效果本体行为见 entity/effect/EffectOnRemoval 与 Infested 的 onMobHurt TODO）。
     //
     // 亡灵免疫 Poison/Regen 是 vanilla 核心语义：亡灵被中毒效果不应扣血、被再生效果不应治疗。
     // 此前 Cubium EffectManager::addEffect 不调 isPotionApplicable，亡灵会被中毒扣血——与 vanilla 相反。
+    // vanilla canBeAffected 为互斥分支：命中 IMMUNE_TO_INFESTED 只拒绝 INFESTED，
+    // 命中 IMMUNE_TO_OOZING 只拒绝 OOZING，二者都不命中才查 IGNORES_POISON_AND_REGEN。
+    // 当前实体类型数据集中 IMMUNE_TO_INFESTED 与 IMMUNE_TO_OOZING 无交集，分支互斥性不影响结果，
+    // 但保持原版判定顺序以便后续数据包扩展成员时行为一致。
+    if (EntityTypeTags::IMMUNE_TO_INFESTED().contains(getTypeId())) {
+        return effect.type() != entity::effect::EffectType::Infested;
+    }
+    if (EntityTypeTags::IMMUNE_TO_OOZING().contains(getTypeId())) {
+        return effect.type() != entity::effect::EffectType::Oozing;
+    }
     if (EntityTypeTags::IGNORES_POISON_AND_REGEN().contains(getTypeId())) {
         if (effect.type() == entity::effect::EffectType::Poison ||
             effect.type() == entity::effect::EffectType::Regeneration) {
             return false;
         }
     }
-    // TODO: 对齐 vanilla IMMUNE_TO_INFESTED（免疫 INFESTED）/ IMMUNE_TO_OOZING（免疫 OOZING）标签判定，
-    //       待 Infested/Oozing 效果实现后补全（EntityTypeTags::IMMUNE_TO_INFESTED/IMMUNE_TO_OOZING 已定义）。
     return true;
 }
 

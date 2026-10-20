@@ -58,6 +58,7 @@
 
 #include <array>
 #include <cstddef>
+#include <initializer_list>
 #include <limits>
 #include <memory>
 #include <optional>
@@ -309,6 +310,20 @@ public:
      */
     [[nodiscard]] virtual bool canBlockDamageSource(DamageSource& source) const;
 
+private:
+    /**
+     * @brief 盾牌方向校验（对齐 vanilla BlocksAttacks.DamageReduction 的水平夹角判定）
+     *
+     * 只有实现了方向查询的受伤者（当前为 Player::blockingSourceAngle）参与角度校验；
+     * 来袭方向与头部水平朝向夹角超过默认水平阻挡角 90°（从背后攻击）时不格挡。
+     * 来源位置缺失按 vanilla 语义取 PI，视为任何角度限制下都不减伤。
+     *
+     * @param source 伤害来源
+     * @return 可格挡返回 true
+     */
+    [[nodiscard]] bool _isWithinShieldBlockingAngle(const DamageSource& source) const;
+
+public:
     /**
      * @brief 受伤时损坏护甲
      *
@@ -323,9 +338,9 @@ public:
      * @brief DAMAGES_HELMET 伤害命中头盔时消耗头盔耐久（对齐 vanilla
      *        LivingEntity.hurtHelmet:1793）
      *
-     * vanilla 基类为空实现（耐久消耗由 doHurtEquipment 统一处理）。Cubium 基类同样空实现，
-     * 在 actuallyHurt 的 DAMAGES_HELMET 分支中调用（戴头盔受坠落铁砧/方块/钟乳石伤害时）。
-     * 耐久消耗逻辑留待装备耐久体系完善后补全。
+     * vanilla 基类为空实现（耐久消耗由 doHurtEquipment 统一处理）；Cubium 基类对头盔槽调用
+     * doHurtEquipment（与玩家等子类的护甲槽版本保持一致），在 actuallyHurt 的 DAMAGES_HELMET
+     * 分支中调用（戴头盔受坠落铁砧/方块/钟乳石伤害时）。
      *
      * @param source 伤害来源
      * @param amount 伤害量（减伤前的原值）
@@ -472,10 +487,30 @@ public:
     [[nodiscard]] i32 lastHurtByPlayerMemoryTime() const { return m_lastHurtByPlayerMemoryTime; }
 
     /**
-     * @brief 设置"最近被玩家伤害"记忆时间（受玩家伤害时调用，置 100）
+     * @brief 获取"最近伤害该实体的玩家"
+     *
+     * 对齐 MC Java 1.21.11 LivingEntity.getLastHurtByPlayer（LivingEntity.java:602-604）：
+     * 返回 lastHurtByPlayer 实体引用解析结果。引用在 100 tick 记忆窗口到期、或驯服狼失去主人时
+     * 被清空，因此返回值非空即表示"最近一次伤害仍归属于该玩家"。
+     *
+     * @return 最近伤害该实体的玩家，无则返回 nullptr
+     */
+    [[nodiscard]] Player* getLastHurtByPlayer();
+
+    /**
+     * @brief 设置"最近伤害该实体的玩家"（受玩家伤害时调用，置 100 tick 记忆窗口）
      *
      * 对齐 MC Java 1.21.11 LivingEntity.setLastHurtByPlayer（LivingEntity.java:616-626）：
-     * 受玩家直接伤害（或驯服狼代攻）时设为 100 tick 记忆窗口。
+     * 受玩家直接伤害、或受该玩家驯服的狼代攻时调用。time 同时也是记忆窗口时长。
+     */
+    void setLastHurtByPlayer(Player* player, i32 time);
+
+    /**
+     * @brief 设置"最近被玩家伤害"记忆时间（不改变玩家引用）
+     *
+     * 仅调整记忆窗口计数器，保留已记录的玩家引用。生产代码应使用
+     * setLastHurtByPlayer(Player*, i32) 同时写入两者；本方法仅供需要单独
+     * 调整窗口（或清空窗口而暂时保留引用）的场景使用。
      */
     void setLastHurtByPlayerMemoryTime(i32 time) { m_lastHurtByPlayerMemoryTime = time; }
 
@@ -1025,6 +1060,34 @@ public:
     }
 
     /**
+     * @brief 清除受击闪红计时（测试用：消除"举盾前一次使用物品带来的受击表现残留"）
+     */
+    void clearHurtTime()
+    {
+        if (auto* c = m_entityContext->tryGetComponent<ecs::HurtStateComponent>()) {
+            c->m_hurtTime = 0;
+        }
+    }
+
+    /**
+     * @brief 本次 hurt 调用中伤害被盾牌格挡的量（对齐 vanilla hurtServer 的 flag/applyItemBlocking 结果）
+     *
+     * 由 hurt() 入口在 applyItemBlocking 阶段写入，供格挡音效、markHurt 与 indicateDamage 门控使用
+     * （vanilla：格挡时仍施加强制击退但不指示受击方向）。
+     */
+    [[nodiscard]] f32 lastBlockedDamage() const noexcept { return m_lastBlockedDamage; }
+
+    /**
+     * @brief 本 tick 内是否已播放过盾牌格挡音效（BlocksAttacks.onBlocked 的每 tick 去重）
+     */
+    [[nodiscard]] bool hasPlayedBlockSoundThisTick() const noexcept;
+
+    /**
+     * @brief 播放盾牌格挡音效并记录本 tick 已播放（对齐 vanilla BlocksAttacks.onBlocked）
+     */
+    void playBlockSound();
+
+    /**
      * @brief 记录受伤方向并触发网络同步（LivingEntity.indicateDamage）
      *
      * 基类仅设置 m_hurtDir，不做网络广播；ServerPlayer 重写以发包给受击玩家。
@@ -1517,9 +1580,8 @@ public:
      * @brief 获取击杀贡献者（对齐 vanilla LivingEntity.getKillCredit）
      *
      * 原版优先返回 lastHurtByPlayer，否则返回 lastHurtByMob。
-     * Cubium 没有 lastHurtByPlayer 实体引用（仅有 memoryTime 计数器），
-     * 改用 CombatTracker::getBestAttacker() 作为击杀贡献者——这与原版
-     * ServerPlayer.die 中 awardKillScore 的语义一致（取造成最多伤害的实体）。
+     * lastHurtByPlayer 为最近伤害该实体的玩家引用（含其驯服狼代攻），
+     * 记忆窗口（100 tick）过期后清空。
      *
      * @return 击杀贡献者，无则返回 nullptr
      */
@@ -2070,6 +2132,19 @@ protected:
     [[nodiscard]] f32 computeFinalDamage(DamageSource& source, f32 damage);
 
     /**
+     * @brief 受伤时消耗指定装备槽的耐久（对齐 vanilla LivingEntity.doHurtEquipment）
+     *
+     * 耐久消耗量 = max(1, floor(amount / 4))；仅对可损伤、且未被该伤害源免疫（canBeHurtBy）
+     * 的物品调用 hurtAndBreak。vanilla 的 damageOnHurt 组件 Cubium 尚未实现，所有盔甲均按
+     * 默认值 true 处理。
+     *
+     * @param source 伤害来源
+     * @param amount 伤害量
+     * @param slots 需要消耗耐久的装备槽
+     */
+    void doHurtEquipment(DamageSource& source, f32 amount, std::initializer_list<EquipmentSlot> slots);
+
+    /**
      * @brief 进入战斗状态
      *
      * 子类可重写以发送数据包通知客户端。
@@ -2111,6 +2186,8 @@ protected:
     // m_hurtTime / m_maxHurtTime 已迁移至 ecs::HurtStateComponent（见 hurtTime/maxHurtTime/hurtDuration）
     static constexpr i32 MAX_HURT_RESISTANT_TIME = 20; // 最大无敌帧（20 tick = 1秒）
     f32 m_lastDamage = 0.0f;                           // 最近伤害量（用于累积伤害）
+    f32 m_lastBlockedDamage = 0.0f;                    // 本次 hurt 被盾牌格挡的伤害量
+    u64 m_blockSoundPlayedTick = static_cast<u64>(-1); // 上次播放格挡音效的 tick（每 tick 去重）
     std::unique_ptr<DamageSource> m_lastDamageSource;  // 最近伤害来源
     // 最近伤害来源的真凶实体 id（对齐 vanilla LivingEntity.lastDamageSource 的安全取攻击者需求）。
     // m_lastDamageSource 经 clone 持真凶裸 Entity* 指针，真凶析构后 getTrueSource() 返回悬垂指针，
@@ -2179,8 +2256,12 @@ protected:
     LivingEntity* m_lastHurtTarget = nullptr;   // 该实体最近攻击的目标
     i32 m_lastHurtTargetTimestamp = 0;          // 攻击目标时间戳
 
+    // 最近伤害该实体的玩家（对齐 vanilla lastHurtByPlayer，LivingEntity.java:230）。
+    // 受玩家直接伤害或其驯服狼代攻时写入，用于 getKillCredit 归属与掉落表的 KILLER_PLAYER 参数。
+    EntityReference<Player> m_lastHurtByPlayer;
     // 最近被玩家伤害的记忆时间（对齐 vanilla lastHurtByPlayerMemoryTime，LivingEntity.java:231）。
-    // 受玩家伤害时设为 100，每 tick 递减；普通生物死亡需此值>0 才掉经验（dropExperience 守卫）。
+    // 受玩家伤害时设为 100，每 tick 递减；归零时同时清空 m_lastHurtByPlayer（vanilla aiStep:466-470）。
+    // 普通生物死亡需此值>0 才掉经验（dropExperience 守卫）。
     i32 m_lastHurtByPlayerMemoryTime = 0;
     // 经验是否已被消费（防重复掉落，对齐 vanilla skipDropExperience，LivingEntity.java:1639-1645）。
     bool m_skipDropExperience = false;

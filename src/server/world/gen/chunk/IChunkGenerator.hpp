@@ -38,6 +38,7 @@
 #include "common/world/chunk/gen/ChunkStatus.hpp"
 #include "common/world/chunk/gen/ChunkStep.hpp"
 #include "common/world/dimension/DimensionType.hpp"
+#include "common/world/tick/base/TickPriority.hpp"
 #include "server/world/gen/chunk/ChunkPrimer.hpp"
 #include "server/world/gen/settings/DimensionSettings.hpp"
 #include "server/world/gen/structure/Structure.hpp"
@@ -705,6 +706,33 @@ public:
      * @brief 清除当前正在生成的结构/特性名称
      */
     void clearCurrentlyGenerating() { m_currentlyGenerating.clear(); }
+
+    // ========================================================================
+    // 生成期方块刻调度
+    // ========================================================================
+
+    /**
+     * @brief 调度方块刻（对齐 vanilla WorldGenRegion.scheduleTick）
+     *
+     * WorldGenRegion 是临时对象，而方块刻需要保留到区块发布并由世界 tick 列表执行，
+     * 因此此处不立即入队，而是把请求记录到目标区块（中心区块或其半径内的邻居）的
+     * ChunkPrimer 待执行刻列表中，随区块发布由 ServerChunkManager 转交给世界 TickManager。
+     * 同一位置同一方块只记录一次（重复调度保留最早的一条，与 ServerTickList 语义一致）。
+     *
+     * @param pos 方块位置
+     * @param block 目标方块
+     * @param delay 延迟 tick 数（<=0 视为 0）
+     * @param priority 执行优先级
+     */
+    void scheduleTick(const BlockPos& pos, const Block& block, i32 delay, world::tick::TickPriority priority);
+
+    /**
+     * @brief 调度方块刻（普通优先级）
+     */
+    void scheduleTick(const BlockPos& pos, const Block& block, i32 delay)
+    {
+        scheduleTick(pos, block, delay, world::tick::TickPriority::Normal);
+    }
 
     /**
      * @brief 获取当前正在生成的结构/特性名称

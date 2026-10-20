@@ -26,6 +26,8 @@
 #include "common/entity/ai/brain/schedule/Activity.hpp"
 #include "common/util/TriState.hpp"
 #include "common/world/attribute/EnvironmentAttributes.hpp"
+#include "common/world/biome/Biome.hpp"
+#include "common/world/biome/BiomeRegistry.hpp"
 #include "common/world/dimension/DimensionType.hpp"
 #include "common/world/level/MoonPhase.hpp"
 #include "common/world/timeline/TimelineRegistry.hpp"
@@ -41,60 +43,26 @@
 namespace mc {
 namespace world {
 namespace attribute {
-namespace {
+namespace {} // namespace
 
-/// 支持时间线驱动的属性值类型（与预定义属性集一致）
-template <typename Value>
-constexpr bool _isTimelineValue()
+namespace detail {
+
+bool anyBiomeDeclaresAttribute(const void* attribute)
 {
-    return std::is_same_v<Value, bool> || std::is_same_v<Value, f32> || std::is_same_v<Value, i32>
-           || std::is_same_v<Value, util::TriState> || std::is_same_v<Value, MoonPhase>
-           || std::is_same_v<Value, entity::ai::brain::schedule::Activity>;
-}
-
-/**
- * @brief 为单个属性追加"常量层 + 时间线层"
- *
- * 时间线以属性地址为键存储类型擦除的轨道，轨道的值/参数类型只有属性本身知道，
- * 因此这里以属性自身的值类型实例化：
- * 1. 常量层：属性出现在维度属性表中时，按表声明的修改器修改默认值；
- * 2. 时间线层：维度声明了该属性所属时间线且时间线内含此属性轨道时，创建轨道采样器。
- *
- * 层序与 vanilla 一致：常量层先于时间线层。
- */
-template <typename Value>
-void _addAttributeLayers(EnvironmentAttributeSystemBuilder& builder,
-    const EnvironmentAttribute<Value>& attribute,
-    const EnvironmentAttributeMap& constants,
-    const std::vector<const timeline::Timeline*>& timelines,
-    const std::function<i64()>& dayTimeGetter,
-    const std::function<i64()>& gameTimeGetter)
-{
-    if (constants.contains(&attribute)) {
-        builder.addConstantLayer(attribute, constants);
-    }
-
-    for (const timeline::Timeline* timeline : timelines) {
-        if (!timeline->hasTrack(&attribute)) {
-            continue;
-        }
-
-        if constexpr (_isTimelineValue<Value>()) {
-            const i64 periodTicks = timeline->periodTicks().value_or(0);
-            const std::function<i64()>& clock = periodTicks > 0 ? dayTimeGetter : gameTimeGetter;
-            builder.addTimeBasedLayer(attribute, timeline->createTrackSampler<Value, Value>(attribute, clock));
-        } else {
-            spdlog::warn(
-                "Environment attribute '{}' has an unsupported value type for timeline layers", attribute.name());
+    for (const biome::Biome& biome : biome::BiomeRegistry::instance().allBiomes()) {
+        if (biome.attributes().contains(attribute)) {
+            return true;
         }
     }
+    return false;
 }
 
-} // namespace
+} // namespace detail
 
 std::unique_ptr<EnvironmentAttributeSystem> DimensionAttributes::createSystem(const DimensionType& dimensionType,
     std::function<i64()> dayTimeGetter,
-    std::function<i64()> gameTimeGetter)
+    std::function<i64()> gameTimeGetter,
+    const BiomeResolver& biomeResolver)
 {
     EnvironmentAttributeSystemBuilder builder;
     const EnvironmentAttributeMap& constants = dimensionType.attributes();
@@ -111,9 +79,10 @@ std::unique_ptr<EnvironmentAttributeSystem> DimensionAttributes::createSystem(co
         timelines.push_back(entry->timeline);
     }
 
-    // 逐属性装配：常量层在前、时间线层在后
+    // 预定义属性集合：显式列举保证顺序稳定
     const auto add = [&](const auto& attribute) {
-        _addAttributeLayers(builder, attribute, constants, timelines, dayTimeGetter, gameTimeGetter);
+        detail::appendAttributeLayers(
+            builder, attribute, constants, timelines, dayTimeGetter, gameTimeGetter, biomeResolver);
     };
 
     add(EnvironmentAttributes::FOG_COLOR());

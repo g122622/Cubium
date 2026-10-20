@@ -1183,6 +1183,20 @@ void ServerChunkManager::_publishGeneratedChunk(SingleChunkLifecycleManager& hol
 
 void ServerChunkManager::_postProcessChunk(ChunkData& chunk)
 {
+    // 生成期调度的方块刻：主线程转交世界 TickManager（世界 tick 列表为主线程独占状态）。
+    // 延迟自调度时刻起算；此处把已流逝的游戏刻折算进剩余延迟，避免生成耗时时长改变刻的执行时机。
+    if (m_world != nullptr && !chunk.pendingBlockTicks().empty()) {
+        const u64 now = m_world->currentTick();
+        for (const world::chunk::PendingBlockTick& tick : chunk.pendingBlockTicks()) {
+            const u64 scheduledAt = static_cast<u64>(tick.scheduledTick);
+            const u64 dueTick = scheduledAt + static_cast<u64>(tick.delay);
+            const i32 remainingDelay =
+                now >= dueTick ? 0 : static_cast<i32>(std::min<u64>(dueTick - now, static_cast<u64>(INT32_MAX)));
+            m_world->tickManager().scheduleBlockTick(tick.pos, *tick.block, remainingDelay, tick.priority);
+        }
+    }
+    chunk.clearPendingBlockTicks();
+
     // LevelChunk.postProcessGeneration(ServerLevel)
     // 遍历所有后处理位置，调度流体 tick 和方块形状更新
     const ChunkCoord chunkX = chunk.x();

@@ -37,6 +37,12 @@ item/
 │   ├── ItemTags.hpp/cpp          # 物品标签注册表（FLOWERS、DAMPENS_VIBRATIONS、FIRE_RESISTANT、CHAINS、BARS、WOODEN_SHELVES、SHULKER_BOXES等）
 │   ├── ItemTagLoader.hpp/cpp     # 物品标签数据包加载器（从JSON加载标签）
 │   └── README.md
+├── instrument/                   # 乐器注册表与乐器标签
+│   ├── InstrumentDefinition.hpp/cpp # 乐器定义（音效、吹奏时长、可听距离、显示名）
+│   ├── InstrumentRegistry.hpp/cpp   # 乐器注册表单例（内置八种山羊角，数据包可覆盖）
+│   ├── InstrumentTag.hpp/cpp        # 单个乐器标签（有序资源名集合）
+│   ├── InstrumentTags.hpp/cpp       # 乐器标签注册表与内置占位初始化
+│   └── README.md
 ├── items/                        # 具体物品实现
 │   ├── food/                     # 食物物品
 │   │   ├── FoodItem.hpp/cpp      # 食物基类

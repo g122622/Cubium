@@ -632,12 +632,9 @@ public:
     /**
      * @brief 生物是否能持有该物品（对齐 vanilla Mob.canHoldItem）
      *
-     * 基类默认实现：装备槽为空时可拾取任何可装备物品。子类（如 Fox）覆写为
-     * 手持物品语义。vanilla Mob.canHoldItem 默认检查装备槽可替换性。
-     *
-     * TODO: 基类版仅做装备槽空位检查的简化判定，vanilla 完整 canHoldItem 还含
-     *   dropChances 守卫（dropChance<=1 才允许拾取装备）与 canReplaceCurrentItem
-     *   装备对比替换逻辑，待装备拾取链路完整补全后对齐。
+     * vanilla Mob 基类实现恒为 true（Mob.java:623），真正的可持有性由
+     * equipItemIfPossible 中的 getEquipmentSlotForItem/isEquippableInSlot/
+     * canReplaceCurrentItem 三重判定决定。子类（如 Fox）覆写为手持物品语义。
      *
      * @param itemStack 待判定物品堆
      * @return 是否能持有
@@ -645,15 +642,79 @@ public:
     [[nodiscard]] virtual bool canHoldItem(const ItemStack& itemStack) const;
 
     /**
+     * @brief 获取物品应装备到的槽位（对齐 vanilla LivingEntity.getEquipmentSlotForItem）
+     *
+     * 盔甲物品按其护甲槽位（Head/Chest/Legs/Feet/Body）返回，其余物品一律返回主手。
+     *
+     * @param itemStack 待判定物品堆
+     * @return 装备槽位
+     */
+    [[nodiscard]] EquipmentSlot getEquipmentSlotForItem(const ItemStack& itemStack) const;
+
+    /**
+     * @brief 物品是否可以装备到指定槽位（对齐 vanilla LivingEntity.isEquippableInSlot）
+     *
+     * 非盔甲物品只能进入主手；盔甲只能进入其对应的护甲槽位。
+     *
+     * @param itemStack 待判定物品堆
+     * @param slot 目标槽位
+     * @return 是否可装备
+     */
+    [[nodiscard]] bool isEquippableInSlot(const ItemStack& itemStack, EquipmentSlot slot) const;
+
+    /**
+     * @brief 尝试把物品装备到合适槽位（对齐 vanilla Mob.equipItemIfPossible）
+     *
+     * 流程：按 getEquipmentSlotForItem 选槽 → isEquippableInSlot 校验 →
+     * canReplaceCurrentItem 判定替换 → 护甲不可替换时退回主手空槽判定 →
+     * canHoldItem 终审 → 按掉落概率随机丢弃被替换物品 → 写入槽位并设为保整掉落。
+     *
+     * @param stack 待装备物品（其 count 会被该槽位容量裁剪）
+     * @return 实际写入槽位的物品；无法装备时返回空堆
+     */
+    ItemStack equipItemIfPossible(ItemStack stack);
+
+    /**
+     * @brief 判断新物品能否替换当前装备（对齐 vanilla Mob.canReplaceCurrentItem）
+     *
+     * 当前装备为空 → 可替换；护甲比较护甲值/韧性；主手比较攻击伤害与实际攻击伤害。
+     * 其他槽位不可替换。
+     *
+     * @param candidate 待装备的新物品
+     * @param current 当前槽位物品
+     * @param slot 目标槽位
+     * @return 是否允许替换
+     */
+    [[nodiscard]] virtual bool canReplaceCurrentItem(
+        const ItemStack& candidate, const ItemStack& current, EquipmentSlot slot) const;
+
+    /**
+     * @brief 属性值相同时的次级比较（对齐 vanilla Mob.canReplaceEqualItem）
+     *
+     * 依次比较附魔数量、耐久度（剩余耐久多者胜）、自定义名字。
+     */
+    [[nodiscard]] bool canReplaceEqualItem(const ItemStack& candidate, const ItemStack& current) const;
+
+    /**
      * @brief 拾取物品实体（对齐 vanilla Mob.pickUpItem）
      *
      * 由 MobEntity::tick 的 looting 扫描段在 AABB.inflate(getPickupReach) 内发现
-     * 可拾取 ItemEntity 且 wantsToPickUp 为真时调用。基类默认实现走装备槽拾取
-     * （equipItemIfPossible 语义），子类（如 Fox）覆写为手持物品语义。
+     * 可拾取 ItemEntity 且 wantsToPickUp 为真时调用。基类走装备槽拾取
+     * （equipItemIfPossible），子类（如 Fox）覆写为手持物品语义。
      *
      * @param itemEntity 被拾取的物品实体
      */
     virtual void pickUpItem(ItemEntity& itemEntity);
+
+    /**
+     * @brief 拾取物品后的通知（对齐 vanilla LivingEntity.onItemPickup）
+     *
+     * 物品实体由玩家投掷（owner 为 Player）时触发
+     * THROWN_ITEM_PICKED_UP_BY_ENTITY 进度触发器。
+     *
+     * @param itemEntity 被拾取的物品实体
+     */
+    virtual void onItemPickup(const ItemEntity& itemEntity);
 
     // ========== 掉落概率 (DropChances) ==========
 

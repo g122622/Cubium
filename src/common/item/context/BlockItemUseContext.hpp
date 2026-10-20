@@ -110,7 +110,8 @@ public:
     /**
      * @brief 获取玩家水平朝向
      *
-     * 根据玩家的 yaw 角度计算面向的方向。
+     * 按 MC 约定 0=南、90=东、180=北、270=西 由 yaw 计算面向的方向，
+     * 等价原版 Entity.getDirection()（Direction.fromYRot）；yaw 为 NaN 时返回 North。
      * 返回 NORTH, SOUTH, EAST 或 WEST。
      *
      * @return 水平方向

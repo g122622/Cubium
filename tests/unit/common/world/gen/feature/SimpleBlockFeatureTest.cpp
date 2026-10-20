@@ -29,6 +29,7 @@
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/block/blocks/vegetation/DoublePlantBlock.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/chunk/data/ChunkData.hpp"
 #include "common/world/chunk/gen/ChunkStatus.hpp"
 #include "server/world/gen/chunk/ChunkPrimer.hpp"
 #include "server/world/gen/chunk/IChunkGenerator.hpp"
@@ -217,6 +218,42 @@ TEST_F(SimpleBlockFeatureTest, WeightedProviderBlocksPlacementWhenNonReplaceable
     const BlockState* s = m_region->getBlockState(pos.x, pos.y, pos.z);
     ASSERT_NE(s, nullptr);
     EXPECT_TRUE(s->is(VanillaBlocks::STONE)) << "原石头不应被覆盖";
+}
+
+TEST_F(SimpleBlockFeatureTest, ScheduleTickRecordsPendingBlockTickOnPlacedBlock)
+{
+    // 对齐 vanilla SimpleBlockFeature：scheduleTick 为 true 时以延迟 1 调度放置后方块的刻。
+    // 配置化特征默认不调度刻，此处直接构造配置并调用底层 place。
+    const cave::SimpleBlockConfig config(&VanillaBlocks::SAND->defaultState(), /*tick=*/true);
+    const BlockPos pos(5, 64, 5);
+    math::Random random(3);
+    ASSERT_TRUE(cave::SimpleBlockFeature::place(*m_region, random, pos, config));
+
+    const auto& ticks = centerChunk().pendingBlockTicks();
+    ASSERT_EQ(ticks.size(), 1u);
+    EXPECT_EQ(ticks[0].pos, pos);
+    EXPECT_EQ(ticks[0].block, VanillaBlocks::SAND);
+    EXPECT_EQ(ticks[0].delay, 1);
+    EXPECT_EQ(ticks[0].priority, world::tick::TickPriority::Normal);
+
+    // 写入区块数据后，待执行刻转移到 ChunkData（区块发布时由主线程转交 TickManager）。
+    auto data = centerChunk().toChunkData();
+    ASSERT_NE(data, nullptr);
+    ASSERT_EQ(data->pendingBlockTicks().size(), 1u);
+    EXPECT_EQ(data->pendingBlockTicks()[0].block, VanillaBlocks::SAND);
+    EXPECT_TRUE(centerChunk().pendingBlockTicks().empty());
+    data->clearPendingBlockTicks();
+    EXPECT_TRUE(data->pendingBlockTicks().empty());
+}
+
+TEST_F(SimpleBlockFeatureTest, WithoutScheduleTickNoPendingBlockTick)
+{
+    // 默认 scheduleTick=false：放置后不产生任何待执行刻。
+    const cave::SimpleBlockConfig config(&VanillaBlocks::SAND->defaultState());
+    const BlockPos pos(6, 64, 6);
+    math::Random random(4);
+    ASSERT_TRUE(cave::SimpleBlockFeature::place(*m_region, random, pos, config));
+    EXPECT_TRUE(centerChunk().pendingBlockTicks().empty());
 }
 
 TEST_F(SimpleBlockFeatureTest, PlacesBothHalvesOfTallFlower)

@@ -27,7 +27,10 @@
 #include "common/entity/serialization/NbtHelper.hpp" // nbt_helper::tryGetString/tryGetBool/tryGetByte/tryGetInt/tryGetLong
 #include "common/util/Direction.hpp"
 #include "common/util/math/Vector3.hpp"
+#include "common/util/property/Properties.hpp"
+#include "common/world/block/blocks/special/CommandBlock.hpp"
 #include "common/world/blockentity/BlockEntityType.hpp"
+#include "common/world/tick/manager/TickManager.hpp"
 #include "util/assert/AssertAll.hpp"
 #include "world/IWorld.hpp"
 #include "world/block/Block.hpp"
@@ -111,12 +114,8 @@ CommandBlockEntity::CommandBlockEntity(const BlockPos& pos, CommandBlockMode mod
     , m_command("")
     , m_customName("@")
     , m_mode(mode)
-{
-    // 循环命令方块默认为自动执行
-    if (mode == CommandBlockMode::Auto) {
-        m_auto = true;
-    }
-}
+    , m_auto(mode == CommandBlockMode::Auto)
+{}
 
 // ============================================================================
 // BlockEntity 接口实现
@@ -305,26 +304,14 @@ void CommandBlockEntity::save(nlohmann::json& data) const
 
 void CommandBlockEntity::tick(IWorld& world)
 {
-    // 循环命令方块在 tick 中执行
-    if (m_mode != CommandBlockMode::Auto) {
-        return;
-    }
-
-    // 检查是否应该执行
-    // 循环命令方块需要被供电或设置为自动执行
-    if (!m_powered && !m_auto) {
-        return;
-    }
-
-    // 检查条件
-    if (!m_conditionMet) {
-        m_successCount = 0;
-        return;
-    }
-
-    // 执行命令
-    if (!m_command.empty()) {
-        trigger(world);
+    // 注意：命令方块的实际执行由 CommandBlock::tick（计划刻）承担，与 vanilla 一致
+    // （vanilla CommandBlockEntity 没有每 tick tick() 覆写）。此处保留的实体级 tick
+    // 仅服务于项目内按 tick 驱动实体的路径，因此只刷新条件状态，不重复执行命令，
+    // 避免与计划刻路径双重执行（trigger 的 lastExecution 守卫在二者同刻时才会拦截）。
+    // TODO(entity-tick-parity): 确认命令方块实体无需每 tick tick 后，删除 needsTick/tick
+    //   覆写（CommandBlock.needsTick 恒为 false 时本方法不会被项目驱动调用）。
+    if (m_mode == CommandBlockMode::Auto) {
+        markConditionMet(world);
     }
 }
 
@@ -425,6 +412,77 @@ void CommandBlockEntity::setPowered(bool powered)
         m_powered = powered;
         setChanged();
     }
+}
+
+bool CommandBlockEntity::markConditionMet(IWorld& world)
+{
+    // 对齐 vanilla CommandBlockEntity.markConditionMet：总是把 conditionMet 刷新为当前判定结果。
+    m_conditionMet = true;
+    if (!isConditional()) {
+        return m_conditionMet;
+    }
+    const BlockState* state = world.getBlockState(m_pos);
+    if (state == nullptr) {
+        m_conditionMet = false;
+        return m_conditionMet;
+    }
+    // 背后 = FACING 的反方向；背后必须是命令方块（含连锁），其成功计数 > 0 时条件成立。
+    // 命令方块（含连锁）的状态恒含 FACING 属性；世界在自身位置返回其它方块状态时视为无方向，
+    // 直接判定条件不满足（避免对不含该属性的状态取值）。
+    const auto facing = state->getOptional(BlockStateProperties::FACING());
+    if (!facing.has_value()) {
+        m_conditionMet = false;
+        return m_conditionMet;
+    }
+    const BlockPos behindPos = m_pos.offset(Directions::opposite(*facing));
+    const BlockState* behindState = world.getBlockState(behindPos);
+    const bool behindIsCommandBlock =
+        behindState != nullptr && (dynamic_cast<const blocks::CommandBlock*>(&behindState->getBlock()) != nullptr);
+    if (!behindIsCommandBlock) {
+        m_conditionMet = false;
+        return m_conditionMet;
+    }
+    BlockEntity* behindEntity = world.getBlockEntity(behindPos);
+    m_conditionMet = behindEntity != nullptr && behindEntity->getType() == BlockEntityType::CommandBlock &&
+        static_cast<CommandBlockEntity*>(behindEntity)->getSuccessCount() > 0;
+    return m_conditionMet;
+}
+
+bool CommandBlockEntity::isConditional() const
+{
+    // 对齐 vanilla CommandBlockEntity.isConditional：读取方块状态的 CONDITIONAL 属性。
+    // 该查询依赖世界状态，故在实现中按需读取（无世界时视为非条件）。
+    if (m_world == nullptr) {
+        return false;
+    }
+    const BlockState* state = m_world->getBlockState(m_pos);
+    if (state == nullptr) {
+        return false;
+    }
+    // 仅命令方块（含连锁）拥有 CONDITIONAL 属性；其它方块状态视为非条件。
+    return state->getOptional(BlockStateProperties::CONDITIONAL()).value_or(false);
+}
+
+void CommandBlockEntity::setAuto(bool autoExec)
+{
+    const bool wasAuto = m_auto;
+    m_auto = autoExec;
+    // 对齐 vanilla CommandBlockEntity.setAutomatic：开启自动执行且此前未开启、当前未被供电、
+    // 且模式不为连锁时，调度 1 tick 后的方块刻（循环命令方块开启后立即执行首轮）。
+    // 条件状态由方块刻内 CommandBlock::tick 的 markConditionMet 刷新，此处不提前刷新。
+    if (!wasAuto && autoExec && !m_powered && m_world != nullptr && m_mode != CommandBlockMode::Sequence) {
+        const BlockState* state = m_world->getBlockState(m_pos);
+        if (state != nullptr) {
+            m_world->tickManager().scheduleBlockTick(m_pos, state->getBlock(), 1, world::tick::TickPriority::High);
+        }
+    }
+}
+
+void CommandBlockEntity::reapplyAutomatic()
+{
+    // 对齐 vanilla CommandBlock.setPlacedBy：放置/创建时以方块类型的自动执行标志覆盖实体设置。
+    // 对齐 vanilla CommandBlock.newBlockEntity：创建实体时直接设定（不走 setAutomatic 的调度分支）。
+    m_auto = m_mode == CommandBlockMode::Auto;
 }
 
 bool CommandBlockEntity::checkCondition(IWorld& world, Direction facing, bool isConditional)

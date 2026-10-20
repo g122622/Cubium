@@ -26,6 +26,7 @@
 #include "common/core/BlockRaycastResult.hpp"
 #include "common/core/Types.hpp"
 #include "common/entity/entities/player/Player.hpp"
+#include "common/item/context/BlockItemUseContext.hpp"
 #include "common/item/core/ActionResult.hpp"
 #include "common/item/core/BlockActionResult.hpp"
 #include "common/util/Direction.hpp"
@@ -35,6 +36,8 @@
 #include "common/util/property/StateHolder.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/Block.hpp"
+#include "common/world/blockentity/BlockEntity.hpp"
+#include "common/world/blockentity/BlockEntityType.hpp"
 #include "common/world/gen/jigsaw/JigsawOrientation.hpp"
 #include <cstddef>
 #include <memory>
@@ -68,6 +71,18 @@ JigsawBlock::JigsawBlock(const BlockProperties& properties)
         defaultState().with(BlockStateProperties::ORIENTATION(), world::gen::jigsaw::JigsawOrientation::NorthUp));
 }
 
+BlockState JigsawBlock::getStateForPlacement(BlockItemUseContext& context)
+{
+    // 对齐 vanilla JigsawBlock.getStateForPlacement：front 取点击面；点击面为竖直轴时 top 取玩家
+    // 水平朝向的反方向（方块顶面背对玩家），否则 top 为 Up。
+    const Direction clickedFace = context.getClickedFace();
+    const Direction top = Directions::getAxis(clickedFace) == Axis::Y
+        ? Directions::opposite(context.horizontalDirection())
+        : Direction::Up;
+    return defaultState().with(BlockStateProperties::ORIENTATION(),
+        world::gen::jigsaw::JigsawOrientations::fromFacingAndRotation(clickedFace, top));
+}
+
 const BlockState& JigsawBlock::rotate(const BlockState& state, Rotation rotation) const
 {
     world::gen::jigsaw::JigsawOrientation orientation = state.get(BlockStateProperties::ORIENTATION());
@@ -97,8 +112,50 @@ BlockActionResult JigsawBlock::useWithoutItem(
         return ActionResultType::Fail;
     }
 
-    // TODO: 打开拼图方块界面
+    // 对齐 vanilla JigsawBlock.useWithoutItem：缺失拼图方块实体（结构生成 NBT 注入管道未接入）
+    // 或无权限时返回 PASS/FAIL，仅当两者都满足时打开界面。
+    BlockEntity* entity = world.getBlockEntity(pos);
+    if (entity == nullptr || entity->getType() != BlockEntityType::JigsawBlock || !player.canUseGameMasterBlocks()) {
+        return ActionResultType::Pass;
+    }
+
+    // TODO(jigsaw-screen): 对齐 vanilla Player.openJigsawBlock 打开拼图方块编辑界面，
+    //   服务端需接入容器菜单/界面同步体系后在此打开；当前仅返回 SUCCESS。
     return ActionResultType::Success;
+}
+
+bool JigsawBlock::canAttach(world::gen::jigsaw::JigsawOrientation sourceOrientation,
+    const std::string& sourceTarget,
+    world::gen::jigsaw::JigsawOrientation targetOrientation,
+    const std::string& targetName,
+    bool sourceJointRollable)
+{
+    // 对齐 vanilla JigsawBlock.canAttach：
+    //   front 互为反方向，且（rollable 或两侧 top 相同），且 source.target == target.name。
+    namespace jigsaw = world::gen::jigsaw;
+    const Direction sourceFront = jigsaw::JigsawOrientations::getFacing(sourceOrientation);
+    const Direction targetFront = jigsaw::JigsawOrientations::getFacing(targetOrientation);
+    if (sourceFront != Directions::opposite(targetFront)) {
+        return false;
+    }
+    if (!sourceJointRollable) {
+        const Direction sourceTop = jigsaw::JigsawOrientations::getRotation(sourceOrientation);
+        const Direction targetTop = jigsaw::JigsawOrientations::getRotation(targetOrientation);
+        if (sourceTop != targetTop) {
+            return false;
+        }
+    }
+    return sourceTarget == targetName;
+}
+
+Direction JigsawBlock::getFrontFacing(const BlockState& state)
+{
+    return world::gen::jigsaw::JigsawOrientations::getFacing(state.get(BlockStateProperties::ORIENTATION()));
+}
+
+Direction JigsawBlock::getTopFacing(const BlockState& state)
+{
+    return world::gen::jigsaw::JigsawOrientations::getRotation(state.get(BlockStateProperties::ORIENTATION()));
 }
 
 } // namespace blocks

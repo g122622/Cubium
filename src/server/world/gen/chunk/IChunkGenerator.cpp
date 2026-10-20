@@ -118,6 +118,26 @@ WorldGenRegion::WorldGenRegion(ChunkCoord mainX,
     MC_ASSERT_RELEASE(static_cast<i32>(m_chunks.size()) == m_chunkDiameter * m_chunkDiameter);
 }
 
+void WorldGenRegion::scheduleTick(
+    const BlockPos& pos, const Block& block, i32 delay, world::tick::TickPriority priority)
+{
+    // 对齐 vanilla WorldGenRegion.scheduleTick：写入生成区块的待执行刻容器。
+    // 生成期只允许本区域（中心区块及其半径内邻居）内的位置；区域外的调度在 vanilla 中会写入
+    // 邻居区块的 proto chunk，本实现同样交给对应区块的 ChunkPrimer 记录。
+    const ChunkCoord cx = static_cast<ChunkCoord>(pos.x >> 4);
+    const ChunkCoord cz = static_cast<ChunkCoord>(pos.z >> 4);
+    // getIChunk 本身返回可变指针，无需 const_cast。
+    auto* primer = dynamic_cast<ChunkPrimer*>(getIChunk(cx, cz));
+    if (primer == nullptr) {
+        // 目标区块不是生成中的 proto chunk（例如已发布区块）：无 proto 容器可记录，
+        // 且生成期不允许写入世界 TickManager（主线程独占），因此直接丢弃。
+        // TODO(gen-schedule-outside-region): vanilla 对已加载邻居走 ServerLevel.scheduleTick，
+        //   本项目的区域外调度场景（特性跨区块放置）尚未出现，出现后需补充。
+        return;
+    }
+    primer->addPendingBlockTick(pos, block, currentTick(), delay, priority);
+}
+
 IChunk* WorldGenRegion::getChunkAt(i32 relX, i32 relZ)
 {
     // 边界检查

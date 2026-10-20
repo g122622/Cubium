@@ -45,6 +45,87 @@ namespace mc {
 
 // 前向声明
 class BlockState;
+class BlockTag;
+
+namespace world::gen::valueprovider {
+class IntProvider;
+}
+
+/**
+ * @brief 树根上方附属方块配置（MC 1.21.11 AboveRootPlacement）
+ *
+ * 在每根树根上方以 aboveRootPlacementChance 概率放置 aboveRootProvider 提供的方块。
+ */
+struct AboveRootPlacement {
+    std::unique_ptr<world::gen::feature::state::BlockStateProvider> aboveRootProvider;
+    f32 chance = 0.0f;
+
+    AboveRootPlacement() = default;
+    AboveRootPlacement(std::unique_ptr<world::gen::feature::state::BlockStateProvider> provider, f32 probability)
+        : aboveRootProvider(std::move(provider))
+        , chance(probability)
+    {}
+
+    [[nodiscard]] std::unique_ptr<AboveRootPlacement> clone() const
+    {
+        auto copy = std::make_unique<AboveRootPlacement>();
+        copy->aboveRootProvider = aboveRootProvider ? aboveRootProvider->clone() : nullptr;
+        copy->chance = chance;
+        return copy;
+    }
+};
+
+/**
+ * @brief 红树林树根放置配置（MC 1.21.11 MangroveRootPlacement）
+ *
+ * canGrowThrough / muddyRootsIn 为数据包标签（未解析到时为 nullptr，此时退化为仅接受空气/可替换方块）。
+ */
+struct MangroveRootPlacement {
+    const BlockTag* canGrowThrough = nullptr; ///< 树根可以穿过的方块标签（#mangrove_roots_can_grow_through）
+    const BlockTag* muddyRootsIn = nullptr;   ///< 泥根替换对象标签（mud / muddy_mangrove_roots）
+    std::unique_ptr<world::gen::feature::state::BlockStateProvider> muddyRootsProvider;
+    i32 maxRootWidth = 8;
+    i32 maxRootLength = 15;
+    f32 randomSkewChance = 0.0f;
+
+    MangroveRootPlacement() = default;
+
+    [[nodiscard]] std::unique_ptr<MangroveRootPlacement> clone() const
+    {
+        auto copy = std::make_unique<MangroveRootPlacement>();
+        copy->canGrowThrough = canGrowThrough;
+        copy->muddyRootsIn = muddyRootsIn;
+        copy->muddyRootsProvider = muddyRootsProvider ? muddyRootsProvider->clone() : nullptr;
+        copy->maxRootWidth = maxRootWidth;
+        copy->maxRootLength = maxRootLength;
+        copy->randomSkewChance = randomSkewChance;
+        return copy;
+    }
+};
+
+/**
+ * @brief 树根放置器配置（MC 1.21.11 RootPlacer / MangroveRootPlacer）
+ *
+ * 树干原点 = 起始位置上方 trunkOffsetY 采样的高度；树根从原点向下随机游走铺开。
+ */
+struct RootPlacerConfig {
+    std::unique_ptr<world::gen::valueprovider::IntProvider> trunkOffsetY;
+    std::unique_ptr<world::gen::feature::state::BlockStateProvider> rootProvider;
+    std::unique_ptr<AboveRootPlacement> aboveRootPlacement;
+    std::unique_ptr<MangroveRootPlacement> mangroveRootPlacement;
+
+    RootPlacerConfig() = default;
+
+    [[nodiscard]] std::unique_ptr<RootPlacerConfig> clone() const
+    {
+        auto copy = std::make_unique<RootPlacerConfig>();
+        copy->trunkOffsetY = trunkOffsetY ? trunkOffsetY->clone() : nullptr;
+        copy->rootProvider = rootProvider ? rootProvider->clone() : nullptr;
+        copy->aboveRootPlacement = aboveRootPlacement ? aboveRootPlacement->clone() : nullptr;
+        copy->mangroveRootPlacement = mangroveRootPlacement ? mangroveRootPlacement->clone() : nullptr;
+        return copy;
+    }
+};
 
 /**
  * @brief 树木特征配置
@@ -97,6 +178,10 @@ struct TreeFeatureConfig : public IFeatureConfig {
     /// 最小高度
     i32 minHeight = 4;
 
+    /// 树根放置器（MC TreeConfiguration.rootPlacer），为空时不放置树根。
+    /// 非空时树干原点为起始位置上方 trunkOffsetY 处，树叶/树干仍从该原点开始生长。
+    std::unique_ptr<RootPlacerConfig> rootPlacer;
+
     TreeFeatureConfig() = default;
 
     TreeFeatureConfig(const BlockState* trunk,
@@ -135,6 +220,10 @@ struct TreeFeatureConfig : public IFeatureConfig {
         if (other.minimumSize) {
             minimumSize = other.minimumSize->clone();
         }
+        // 深拷贝树根放置器
+        if (other.rootPlacer) {
+            rootPlacer = other.rootPlacer->clone();
+        }
     }
 
     /**
@@ -169,6 +258,11 @@ struct TreeFeatureConfig : public IFeatureConfig {
             } else {
                 minimumSize.reset();
             }
+            if (other.rootPlacer) {
+                rootPlacer = other.rootPlacer->clone();
+            } else {
+                rootPlacer.reset();
+            }
         }
         return *this;
     }
@@ -187,6 +281,7 @@ struct TreeFeatureConfig : public IFeatureConfig {
         , ignoreVines(other.ignoreVines)
         , forcePlacement(other.forcePlacement)
         , minHeight(other.minHeight)
+        , rootPlacer(std::move(other.rootPlacer))
     {}
 
     /**
@@ -205,6 +300,7 @@ struct TreeFeatureConfig : public IFeatureConfig {
             ignoreVines = other.ignoreVines;
             forcePlacement = other.forcePlacement;
             minHeight = other.minHeight;
+            rootPlacer = std::move(other.rootPlacer);
         }
         return *this;
     }
@@ -306,6 +402,25 @@ public:
      */
     [[nodiscard]] static bool isWaterAt(WorldGenRegion& world, const BlockPos& pos);
 
+    /**
+     * @brief 放置树根（对齐 MC 1.21.11 MangroveRootPlacer.placeRoots）
+     *
+     * 先校验 mark 到 trunkOrigin 之间的每一格都可放根；再从 trunkOrigin 向下方的四个水平方向
+     * 做递归随机游走收集树根位置，最后统一落位（含水自动改为 waterlogged）。
+     *
+     * @param world 世界区域
+     * @param random 随机数生成器
+     * @param mark 起始标记位置（树根从其上方开始生长）
+     * @param trunkOrigin 树干原点（起始标记 + trunkOffsetY）
+     * @param placer 树根放置配置
+     * @return 全部树根位置均可放置时为 true，否则 false（调用方应放弃整棵树）
+     */
+    [[nodiscard]] static bool placeRoots(WorldGenRegion& world,
+        math::IRandom& random,
+        const BlockPos& mark,
+        const BlockPos& trunkOrigin,
+        const RootPlacerConfig& placer);
+
 private:
     /**
      * @brief 计算可用的树干高度
@@ -333,6 +448,45 @@ private:
      */
     void _setFoliageDistance(
         WorldGenRegion& world, const std::set<BlockPos>& trunkBlocks, const std::set<BlockPos>& foliageBlocks);
+
+    /**
+     * @brief 模拟红树林树根生长（对齐 vanilla MangroveRootPlacer.placeRoots 的收集阶段）
+     *
+     * @param world 世界区域
+     * @param random 随机数生成器
+     * @param mark 起始标记位置
+     * @param trunkOrigin 树干原点
+     * @param placer 树根放置配置
+     * @param out 输出的树根位置列表
+     * @return 所有根位置均可放置时为 true
+     */
+    [[nodiscard]] static bool _simulateMangroveRoots(WorldGenRegion& world,
+        math::IRandom& random,
+        const BlockPos& mark,
+        const BlockPos& trunkOrigin,
+        const RootPlacerConfig& placer,
+        std::vector<BlockPos>& out);
+
+    /**
+     * @brief 沿单个水平方向递归模拟树根分支（对齐 vanilla MangroveRootPlacer.simulateRoots）
+     */
+    [[nodiscard]] static bool _simulateRootBranch(WorldGenRegion& world,
+        math::IRandom& random,
+        const BlockPos& start,
+        Direction direction,
+        const BlockPos& trunkOrigin,
+        const MangroveRootPlacement* placement,
+        std::vector<BlockPos>& out,
+        i32 depth);
+
+    /**
+     * @brief 将收集到的树根位置写入世界（对齐 vanilla RootPlacer.placeRoot），
+     *        并按 above_root_placement 概率放置根上方附属方块。
+     */
+    static void _placeRootBlocks(WorldGenRegion& world,
+        math::IRandom& random,
+        const std::vector<BlockPos>& positions,
+        const RootPlacerConfig& placer);
 };
 
 /**

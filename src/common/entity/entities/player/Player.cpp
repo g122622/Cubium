@@ -66,10 +66,10 @@
 #include "common/item/enchantment/enchantments/mace/WindBurstEnchantment.hpp"
 #include "common/item/enchantment/enchantments/tool/EfficiencyEnchantment.hpp"
 #include "common/item/items/armor/ArmorItem.hpp"
-#include "common/item/items/tool/AxeItem.hpp"
 #include "common/item/items/tool/SwordItem.hpp"
 #include "common/item/items/trial/MaceItem.hpp"
 #include "common/item/items/weapon/ShieldItem.hpp"
+#include "common/item/tag/ItemTags.hpp"
 #include "common/mod/bedrock/addon/component/ItemComponentEvents.hpp"
 #include "common/mod/bedrock/addon/component/ItemComponentRegistry.hpp"
 #include "common/network/protocol/EntityEvents.hpp"
@@ -554,7 +554,17 @@ ItemEntity* Player::drop(bool dropAll)
 
 void Player::damageArmor(DamageSource& source, f32 amount)
 {
-    m_inventory.damageArmor(source, amount);
+    // 对齐 vanilla Player.hurtArmor：doHurtEquipment(source, amount, FEET, LEGS, CHEST, HEAD)。
+    // 与 PlayerInventory::damageArmor 的 1.16.5 分摊逻辑（每件 1/4）不同，1.21 对四个护甲槽
+    // 各自消耗 max(1, floor(amount/4)) 点耐久。
+    doHurtEquipment(
+        source, amount, {EquipmentSlot::Feet, EquipmentSlot::Legs, EquipmentSlot::Chest, EquipmentSlot::Head});
+}
+
+void Player::hurtHelmet(DamageSource& source, f32 amount)
+{
+    // 对齐 vanilla Player.hurtHelmet：doHurtEquipment(source, amount, EquipmentSlot.HEAD)。
+    doHurtEquipment(source, amount, {EquipmentSlot::Head});
 }
 
 // ============================================================================
@@ -1644,10 +1654,10 @@ bool Player::canBlockDamageSource(DamageSource& source) const
     // 且伤害来源不绕过盾牌（DamageTypeTags::BYPASSES_SHIELD）时，可以格挡该伤害。
     // 基类 LivingEntity::canBlockDamageSource 恒返回 false，由本重写接入盾牌格挡。
     //
-    // 注意：Java 1.21.11 进一步用 BlocksAttacks 组件校验伤害来源方向（cos 夹角），
-    // 这里简化为方向无关的格挡判定（只要举盾即格挡任意方向近战/投射物），对齐
-    // 1.21.11 之前版本的行为。方向校验留 TODO 待 BlocksAttacks 组件体系接入后补全。
-    // TODO: 接入 BlocksAttacks 组件的方向夹角校验（calculateViewVector vs sourcePosition）。
+    // 方向校验：vanilla BlocksAttacks.resolveBlockedDamage 对每条伤害减免规则比较
+    // 「受伤者头部水平朝向」与「伤害来源位置」的水平夹角，超过规则角度则不减伤
+    // （水平阻挡角默认 90°，破釜盾 80°，即背后来的攻击挡不住）。本方法只回答
+    // "是否尝试格挡"，夹角判定与据此折算的减伤见 LivingEntity::actuallyHurt。
     if (!isUsingItem()) {
         return false;
     }
@@ -1660,6 +1670,28 @@ bool Player::canBlockDamageSource(DamageSource& source) const
         return false;
     }
     return true;
+}
+
+std::optional<f32> Player::blockingSourceAngle(const DamageSource& source) const
+{
+    // 来源位置缺失时 vanilla 取 PI（背向，任何角度限制下都不减伤）。
+    const std::optional<math::Vector3f> rawPosition = source.sourcePosition();
+    if (!rawPosition.has_value()) {
+        return std::nullopt;
+    }
+    const Vector3f origin = position();
+    const Vector3f offset(rawPosition->x - origin.x, 0.0f, rawPosition->z - origin.z);
+    const f32 horizontalLength = std::sqrt(offset.x * offset.x + offset.z * offset.z);
+    if (!(horizontalLength > 1.0e-6f)) {
+        // 来源与受伤者水平重合（如贴身命中）：方向不可判定，按 vanilla 的角度公式得 acos(0)=PI/2。
+        return math::PI / 2.0f;
+    }
+    const Vector3f direction(offset.x / horizontalLength, 0.0f, offset.z / horizontalLength);
+    // 头部水平朝向（calculateViewVector(0, getYHeadRot()) 的水平分量，本项目 yaw 0 指向 +X）
+    const f32 yawRad = math::toRadians(rotationYawHead());
+    const Vector3f view(std::cos(yawRad), 0.0f, std::sin(yawRad));
+    const f32 dot = std::clamp(direction.x * view.x + direction.z * view.z, -1.0f, 1.0f);
+    return std::acos(dot);
 }
 
 void Player::damageShield(f32 amount)
@@ -1698,19 +1730,21 @@ void Player::damageShield(f32 amount)
 
 f32 Player::getSecondsToDisableBlocking() const noexcept
 {
+    // vanilla 斧类武器的 disable_blocking_for_seconds 固定 5.0。
+    constexpr f32 AXE_DISABLE_BLOCKING_SECONDS = 5.0f;
+
     // 对齐 MC Java 1.21.11 LivingEntity.getSecondsToDisableBlocking（LivingEntity.java:3826-3830）+
     // Weapon.disableBlockingForSeconds：攻击者主手武器带 WEAPON 组件且 disableBlockingForSeconds>0
     // 时返回该值（斧头 5.0F）。
     //
-    // Cubium 暂无 WEAPON 数据组件体系，改为检测主手是否为 AxeItem——斧头攻击破盾是 wiki 明确行为
-    // （"用斧攻击盾牌可使盾牌失效 5 秒"），斧头 disableBlockingForSeconds=5.0F 是 vanilla 默认值。
-    // TODO: 接入 WEAPON 数据组件体系后，统一走组件 disableBlockingForSeconds 而非 dynamic_cast<AxeItem>。
+    // Cubium 暂无 WEAPON 数据组件体系，改为按物品标签判定：vanilla 1.21.11 物品定义中
+    // 斧头（含数据包新增的 copper_axe）都带 Weapon(disables_blocking=true, disable_blocking_for_seconds=5.0)，
+    // 判定"主手属于 minecraft:axes 标签"即等价于吃到该武器属性；数据包扩充斧类物品时自动生效。
     const ItemStack& mainHand = getHeldItem(Hand::MainHand);
     if (mainHand.isEmpty()) {
         return 0.0f;
     }
-    const auto* axe = dynamic_cast<const item::tool::AxeItem*>(mainHand.getItem());
-    return axe != nullptr ? 5.0f : 0.0f;
+    return mainHand.getItem()->isIn(item::tag::ItemTags::AXES()) ? AXE_DISABLE_BLOCKING_SECONDS : 0.0f;
 }
 
 void Player::onShieldDisabled(LivingEntity& attacker)

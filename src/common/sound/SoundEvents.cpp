@@ -944,6 +944,7 @@ const ResourceLocation ENTITY_TADPOLE_DEATH("minecraft:entity.tadpole.death");
 const ResourceLocation ENTITY_TADPOLE_FLOP("minecraft:entity.tadpole.flop");
 const ResourceLocation ENTITY_TADPOLE_GROW_UP("minecraft:entity.tadpole.grow_up");
 const ResourceLocation ENTITY_TADPOLE_HURT("minecraft:entity.tadpole.hurt");
+const ResourceLocation FROGSPAWN_HATCH("minecraft:block.frogspawn.hatch");
 
 const ResourceLocation ENTITY_SALMON_AMBIENT("minecraft:entity.salmon.ambient");
 const ResourceLocation ENTITY_SALMON_DEATH("minecraft:entity.salmon.death");

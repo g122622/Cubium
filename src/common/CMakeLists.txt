@@ -115,6 +115,7 @@ add_library(mc_common STATIC
     entity/effect/EffectInstance.cpp
     entity/effect/EffectManager.cpp
     entity/effect/EffectAttributeModifiers.cpp
+    entity/effect/EffectOnRemoval.cpp
     entity/enchantment/LocationEnchantmentTracker.cpp
     # Entity - Food
     entity/food/FoodStats.cpp
@@ -546,6 +547,12 @@ add_library(mc_common STATIC
     item/tag/ItemTagLoader.cpp
     item/tag/ItemTags.cpp
 
+    # Item System - Instrument（乐器注册表与乐器标签，乐器定义由服务端数据包加载）
+    item/instrument/InstrumentDefinition.cpp
+    item/instrument/InstrumentRegistry.cpp
+    item/instrument/InstrumentTag.cpp
+    item/instrument/InstrumentTags.cpp
+
     # Item System - Block Items
     item/items/block/BedItem.cpp
     item/items/block/BlockItem.cpp
@@ -706,7 +713,9 @@ add_library(mc_common STATIC
     # World - Attribute
     world/attribute/AttributeTypes.cpp
     world/attribute/EnvironmentAttributes.cpp
+    world/attribute/EnvironmentAttributeMap.cpp
     world/attribute/EnvironmentAttributeRegistry.cpp
+    world/attribute/EnvironmentAttributeValueJson.cpp
     world/attribute/EnvironmentAttributeSystem.cpp
     world/attribute/DimensionAttributes.cpp
 

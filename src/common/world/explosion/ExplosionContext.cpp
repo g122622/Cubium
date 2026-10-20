@@ -114,6 +114,39 @@ std::optional<f32> EntityExplosionContext::getExplosionResistance(
     return ExplosionContext::getExplosionResistance(blockState, fluidState);
 }
 
+// ========== WindChargeExplosionContext ==========
+
+WindChargeExplosionContext::WindChargeExplosionContext(const Entity* source)
+    : EntityExplosionContext(source)
+{}
+
+std::optional<f32> WindChargeExplosionContext::getExplosionResistance(
+    const BlockState& blockState, const fluid::FluidState* fluidState) const
+{
+    // 对齐 vanilla SimpleExplosionDamageCalculator.getBlockExplosionResistance 的 immuneBlocks 分支：
+    // 标签内方块直接返回无穷大抗性（vanilla 3.6e6），射线追踪不消耗爆炸强度。
+    if (BlockTags::BLOCKS_WIND_CHARGE_EXPLOSIONS().contains(blockState)) {
+        return 3600000.0f;
+    }
+    return EntityExplosionContext::getExplosionResistance(blockState, fluidState);
+}
+
+bool WindChargeExplosionContext::canDestroyBlock(const BlockState& blockState, f32 explosionPower) const
+{
+    // 对齐 vanilla explodeBlocks=false：风弹爆炸不破坏任何方块。
+    MC_UNUSED(blockState);
+    MC_UNUSED(explosionPower);
+    return false;
+}
+
+bool WindChargeExplosionContext::shouldDamageEntity(const Explosion& explosion, const Entity& entity) const
+{
+    // 对齐 vanilla damagesEntities=false：风弹爆炸不直接造成伤害（仍保留击退）。
+    MC_UNUSED(explosion);
+    MC_UNUSED(entity);
+    return false;
+}
+
 bool EntityExplosionContext::canDestroyBlock(const BlockState& blockState, f32 explosionPower) const
 {
 
