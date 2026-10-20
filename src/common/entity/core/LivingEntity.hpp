@@ -253,6 +253,22 @@ public:
     virtual void die(DamageSource& cause);
 
     /**
+     * @brief 是否处于睡眠状态（对齐 vanilla LivingEntity.isSleeping）
+     *
+     * 基类以同步数据参数 SLEEPING_POS（非空即入睡）承载，与 Player 自身的睡眠标志保持一致。
+     *
+     * @return true 表示正在睡觉
+     */
+    [[nodiscard]] virtual bool isSleeping() const;
+
+    /**
+     * @brief 停止睡眠（对齐 vanilla LivingEntity.stopSleeping）
+     *
+     * 基类清除睡眠位置并切换回站立姿态，玩家额外通知世界重算睡眠状态（Player 重写）。
+     */
+    virtual void stopSleeping();
+
+    /**
      * @brief 死亡保护检查（不死图腾）
      *
      * 对齐 vanilla LivingEntity.checkTotemDeathProtection（LivingEntity.java:1358-1391）：

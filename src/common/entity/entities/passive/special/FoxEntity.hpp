@@ -203,7 +203,7 @@ public:
     /**
      * @brief 是否正在睡眠
      */
-    [[nodiscard]] bool isSleeping() const { return (m_stateFlags & FLAG_SLEEPING) != 0; }
+    [[nodiscard]] bool isSleeping() const override { return (m_stateFlags & FLAG_SLEEPING) != 0; }
 
     /**
      * @brief 设置睡眠状态

@@ -865,7 +865,7 @@ public:
      */
     [[nodiscard]] bool isSneaking() const override { return m_isSneaking; }
     [[nodiscard]] bool isSwimming() const { return m_isSwimming; }
-    [[nodiscard]] bool isSleeping() const { return m_isSleeping; }
+    [[nodiscard]] bool isSleeping() const override { return m_isSleeping; }
 
     /**
      * @brief 获取玩家是否正在输入潜行
@@ -979,7 +979,7 @@ public:
      * - 客户端：用于接收服务端唤醒状态更新
      * - 服务端：应使用 ServerPlayer::stopSleepInBed() 或 wakeUp() 进行完整唤醒流程
      */
-    void stopSleeping();
+    void stopSleeping() override;
 
     // ========== 重生点系统 ==========
 
