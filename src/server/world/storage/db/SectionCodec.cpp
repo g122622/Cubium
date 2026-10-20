@@ -194,7 +194,7 @@ Result<void> SectionCodec::restore(std::span<const u8> bytes, ChunkData& chunk, 
                 const size_t word = static_cast<size_t>(bitIndex / 64);
                 const i32 shift = bitIndex % 64;
                 u64 paletteIndex = packed.storage[word] >> shift;
-                if (shift + packed.bits > 64) {
+                if (shift != 0 && shift + packed.bits > 64) {
                     paletteIndex |= packed.storage[word + 1] << (64 - shift);
                 }
                 paletteIndex &= (u64{1} << packed.bits) - 1;
