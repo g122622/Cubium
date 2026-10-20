@@ -58,6 +58,7 @@
 
 #include <array>
 #include <cstddef>
+#include <initializer_list>
 #include <limits>
 #include <memory>
 #include <optional>
@@ -323,9 +324,9 @@ public:
      * @brief DAMAGES_HELMET 伤害命中头盔时消耗头盔耐久（对齐 vanilla
      *        LivingEntity.hurtHelmet:1793）
      *
-     * vanilla 基类为空实现（耐久消耗由 doHurtEquipment 统一处理）。Cubium 基类同样空实现，
-     * 在 actuallyHurt 的 DAMAGES_HELMET 分支中调用（戴头盔受坠落铁砧/方块/钟乳石伤害时）。
-     * 耐久消耗逻辑留待装备耐久体系完善后补全。
+     * vanilla 基类为空实现（耐久消耗由 doHurtEquipment 统一处理）；Cubium 基类对头盔槽调用
+     * doHurtEquipment（与玩家等子类的护甲槽版本保持一致），在 actuallyHurt 的 DAMAGES_HELMET
+     * 分支中调用（戴头盔受坠落铁砧/方块/钟乳石伤害时）。
      *
      * @param source 伤害来源
      * @param amount 伤害量（减伤前的原值）
@@ -2068,6 +2069,19 @@ protected:
      * @return 最终伤害
      */
     [[nodiscard]] f32 computeFinalDamage(DamageSource& source, f32 damage);
+
+    /**
+     * @brief 受伤时消耗指定装备槽的耐久（对齐 vanilla LivingEntity.doHurtEquipment）
+     *
+     * 耐久消耗量 = max(1, floor(amount / 4))；仅对可损伤、且未被该伤害源免疫（canBeHurtBy）
+     * 的物品调用 hurtAndBreak。vanilla 的 damageOnHurt 组件 Cubium 尚未实现，所有盔甲均按
+     * 默认值 true 处理。
+     *
+     * @param source 伤害来源
+     * @param amount 伤害量
+     * @param slots 需要消耗耐久的装备槽
+     */
+    void doHurtEquipment(DamageSource& source, f32 amount, std::initializer_list<EquipmentSlot> slots);
 
     /**
      * @brief 进入战斗状态

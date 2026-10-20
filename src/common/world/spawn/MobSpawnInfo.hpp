@@ -434,6 +434,8 @@ public:
     // ========== 工厂方法 ==========
 
     // 默认实例限制常量（公开以便工厂实现复用）
+    // 取值对齐原版 MobCategory：MONSTER 70、CREATURE 10、AMBIENT 15、AXOLOTLS 5、
+    // UNDERGROUND_WATER_CREATURE 5、WATER_CREATURE 5、WATER_AMBIENT 20（均为每区块上限）。
     static constexpr i32 DEFAULT_MAX_MONSTERS = 70;
     static constexpr i32 DEFAULT_MAX_CREATURES = 10;
     static constexpr i32 DEFAULT_MAX_AMBIENT = 15;
@@ -451,6 +453,72 @@ public:
      * @brief 创建森林生物群系的生成信息
      */
     static MobSpawnInfo createForest();
+
+    /**
+     * @brief 创建花森林生物群系的生成信息
+     * 动物：farmAnimals + 兔子(4, 2-3)；其余为 commonSpawns
+     */
+    static MobSpawnInfo createFlowerForest();
+
+    /**
+     * @brief 创建桦木森林/原始桦木森林生物群系的生成信息
+     * 动物：farmAnimals；其余为 commonSpawns（无狼、无兔）
+     */
+    static MobSpawnInfo createBirchForest();
+
+    /**
+     * @brief 创建深色森林生物群系的生成信息
+     * 动物：farmAnimals；其余为 commonSpawns
+     */
+    static MobSpawnInfo createDarkForest();
+
+    /**
+     * @brief 创建苍园生物群系的生成信息
+     * 不生成动物，仅 commonSpawns（对应 OverworldBiomes.darkForest(paleGarden=true)）
+     */
+    static MobSpawnInfo createPaleGarden();
+
+    /**
+     * @brief 创建恶地/侵蚀恶地生物群系的生成信息
+     * 动物：farmAnimals；其余为 commonSpawns；creatureGenerationProbability 0.03
+     */
+    static MobSpawnInfo createBadlands();
+
+    /**
+     * @brief 创建疏林恶地生物群系的生成信息
+     * 在恶地基础上追加狼(2, 4-8)，creatureGenerationProbability 0.04
+     */
+    static MobSpawnInfo createWoodedBadlands();
+
+    /**
+     * @brief 创建雪坡生物群系的生成信息
+     * 动物：兔子(4, 2-3)；其余为 commonSpawns
+     */
+    static MobSpawnInfo createSnowySlopes();
+
+    /**
+     * @brief 创建蘑菇岛生物群系的生成信息
+     * 动物：哞菇(8, 4-8)；环境生物：蝙蝠；地下水生生物：发光鱿鱼
+     */
+    static MobSpawnInfo createMushroomFields();
+
+    /**
+     * @brief 创建石岸生物群系的生成信息
+     * 无海龟，仅 commonSpawns
+     */
+    static MobSpawnInfo createStoneShore();
+
+    /**
+     * @brief 创建冻河生物群系的生成信息
+     * 与河流一致，但溺尸权重降为 1
+     */
+    static MobSpawnInfo createFrozenRiver();
+
+    /**
+     * @brief 创建红树林沼泽生物群系的生成信息
+     * 沼泽刷怪表（无 farmAnimals）+ 热带鱼(25, 8-8)
+     */
+    static MobSpawnInfo createMangroveSwamp();
 
     /**
      * @brief 创建沙漠生物群系的生成信息
@@ -518,9 +586,11 @@ public:
     static MobSpawnInfo createBambooJungle();
 
     /**
-     * @brief 创建热带草原生物群系的生成信息
+     * @brief 创建热带草原系生物群系的生成信息（对应 OverworldBiomes.savanna）
+     * @param llamaAndWolves true 时为热带草原高原（追加 llama(8,4,4) 与 wolf(8,4,8)），
+     *                       false 时为普通/破碎热带草原
      */
-    static MobSpawnInfo createSavanna();
+    static MobSpawnInfo createSavanna(bool llamaAndWolves = false);
 
     /**
      * @brief 创建热带草原高原生物群系的生成信息
@@ -543,6 +613,12 @@ public:
     static MobSpawnInfo createMountains();
 
     /**
+     * @brief 创建带森林的疾风丘陵生物群系的生成信息
+     * 与疾风丘陵（createMountains）一致，仅地形生成不同
+     */
+    static MobSpawnInfo createWindsweptForest();
+
+    /**
      * @brief 创建雪地生物群系的生成信息
      */
     static MobSpawnInfo createSnowy();
@@ -551,6 +627,48 @@ public:
      * @brief 创建积雪沙滩生物群系的生成信息
      */
     static MobSpawnInfo createSnowyBeach();
+
+    /**
+     * @brief 创建沙滩生物群系的生成信息
+     * 生物：海龟(5, 2-5)；其余为 commonSpawns
+     */
+    static MobSpawnInfo createBeach();
+
+    /**
+     * @brief 创建河流生物群系的生成信息
+     * 水生生物：鱿鱼(2, 1-4)；水生环境生物：鲑鱼(5, 1-5)；怪物：溺尸(100, 1) + commonSpawns
+     */
+    static MobSpawnInfo createRiver();
+
+    /**
+     * @brief 创建草甸生物群系的生成信息
+     * 生物：驴(1, 1-2)、兔子(2, 2-6)、羊(2, 2-4)；其余为 commonSpawns
+     */
+    static MobSpawnInfo createMeadow();
+
+    /**
+     * @brief 创建樱花树林生物群系的生成信息
+     * 生物：猪(1, 1-2)、兔子(2, 2-6)、羊(2, 2-4)；其余为 commonSpawns
+     */
+    static MobSpawnInfo createCherryGrove();
+
+    /**
+     * @brief 创建雪林（Grove）生物群系的生成信息
+     * 生物：狼(1, 1)、兔子(8, 2-3)、狐狸(4, 2-4)；其余为 commonSpawns
+     */
+    static MobSpawnInfo createGrove();
+
+    /**
+     * @brief 创建尖峭山峰类生物群系（尖峭峰/冰封峰/裸岩峰）的生成信息
+     * 山羊尚未实现，当前仅有 commonSpawns
+     */
+    static MobSpawnInfo createGoatPeaks();
+
+    /**
+     * @brief 创建溶洞生物群系的生成信息
+     * 怪物：commonSpawns + 溺尸(95, 4-4)
+     */
+    static MobSpawnInfo createDripstoneCaves();
 
     /**
      * @brief 创建默认（空）生成信息
@@ -563,31 +681,32 @@ public:
 
     /**
      * @brief 创建下界荒地生物群系的生成信息
-     * 生物：猪灵(15)、僵尸猪灵(5)、恶魂(10)、岩浆怪(3)、末影人(1)、炽足兽(60)
+     * 怪物：恶魂(50, 4-4)、僵尸猪灵(100, 4-4)、岩浆怪(2, 4-4)、末影人(1, 4-4)、猪灵(15, 4-4)；动物：炽足兽(60, 1-2)
      */
     static MobSpawnInfo createNetherWastes();
 
     /**
      * @brief 创建灵魂沙谷生物群系的生成信息
-     * 生物：骷髅(20)、恶魂(50)、末影人(4)、炽足兽(60)
+     * 怪物：骷髅(20, 5-5)、恶魂(50, 4-4)、末影人(1, 4-4)；动物：炽足兽(60, 1-2)；生成成本 energyBudget 0.7 / charge
+     * 0.15
      */
     static MobSpawnInfo createSoulSandValley();
 
     /**
      * @brief 创建绯红森林生物群系的生成信息
-     * 生物：猪灵(15)、僵尸猪灵(1)、疣猪兽(9)、炽足兽(60)
+     * 怪物：僵尸猪灵(1, 2-4)、疣猪兽(9, 3-4)、猪灵(5, 3-4)；动物：炽足兽(60, 1-2)
      */
     static MobSpawnInfo createCrimsonForest();
 
     /**
      * @brief 创建诡异森林生物群系的生成信息
-     * 生物：末影人(80)、炽足兽(60)
+     * 怪物：末影人(1, 4-4)；动物：炽足兽(60, 1-2)；生成成本 energyBudget 1.0 / charge 0.12
      */
     static MobSpawnInfo createWarpedForest();
 
     /**
      * @brief 创建玄武岩三角洲生物群系的生成信息
-     * 生物：岩浆怪(80)、恶魂(2)、炽足兽(60)
+     * 怪物：恶魂(40, 1-1)、岩浆怪(100, 2-5)；动物：炽足兽(60, 1-2)
      */
     static MobSpawnInfo createBasaltDeltas();
 

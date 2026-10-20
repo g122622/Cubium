@@ -50,6 +50,7 @@
 #include "common/item/core/ItemStack.hpp"
 #include "common/item/enchantment/EnchantmentHelper.hpp"
 #include "common/item/enchantment/enchantments/AllEnchantments.hpp"
+#include "common/item/items/armor/ArmorItem.hpp"
 #include "common/item/items/special/NameTagItem.hpp"
 #include "common/item/items/special/SpawnEggItem.hpp"
 #include "common/profiler/TraceEvents.hpp"
@@ -354,10 +355,8 @@ void MobEntity::tick()
     // canPickUpLoot() && isAlive() && !dead && mobGriefing 游戏规则 时，扫描
     // getBoundingBox().inflate(getPickupReach()) 内的 ItemEntity，对每个未移除、
     // 非空、可拾取（pickupDelay<=0）且 wantsToPickUp 的物品实体调用 pickUpItem。
-    // pickUpItem 由子类覆写（Fox→手持物品语义；基类→装备槽语义）。
-    // TODO: vanilla 还检查 serverlevel.getGameRules().get(MOB_GRIEFING)，本实现已对齐。
-    //   基类 pickUpItem 的装备槽替换逻辑（equipItemIfPossible/canReplaceCurrentItem）为简化实现，
-    //   待装备拾取链路完整补全后对齐。
+    // pickUpItem 由子类覆写（Fox→手持物品语义；基类→装备槽语义，见 equipItemIfPossible）。
+    // 原版该段还会检查 MOB_GRIEFING 游戏规则，已通过下方 getBoolean 条件对齐。
     if (m_world != nullptr && canPickUpLoot() && isAlive() && !isDead() &&
         m_world->getGameRules().getBoolean(world::gamerule::GameRuleKeys::MOB_GRIEFING)) {
         const Vector3i reach = getPickupReach();
@@ -670,8 +669,10 @@ void MobEntity::burnUndead()
 
                 protectionItem.setDamage(newDamage);
 
-                // 物品损坏时触发回调：广播装备破损动画、播放音效
+                // 物品损坏时触发回调：广播装备破损动画、播放音效，并清空槽位
+                // （对齐 vanilla Mob.burnUndead：setItemSlot(equipmentslot, ItemStack.EMPTY)）
                 if (brokenItem != nullptr) {
+                    setEquipment(protectionSlot, ItemStack());
                     onEquippedItemBroken(*brokenItem, protectionSlot);
                 }
             }
@@ -1450,21 +1451,229 @@ bool MobEntity::wantsToPickUp(const ItemStack& itemStack) const
     return canHoldItem(itemStack);
 }
 
-bool MobEntity::canHoldItem(const ItemStack& itemStack) const
+bool MobEntity::canHoldItem(const ItemStack& /*itemStack*/) const
 {
-    // 简化实现：物品非空即视为可持有（基类无装备槽语义时保守允许）。
-    // TODO: vanilla Mob.canHoldItem 默认检查装备槽可替换性（getEquipmentSlotForItem +
-    //   canReplaceCurrentItem + dropChances 守卫），待装备拾取链路完整补全后对齐。
-    //   子类（如 FoxEntity）覆写为手持物品语义，不依赖本基类实现。
-    return !itemStack.isEmpty();
+    // 对齐 vanilla Mob.canHoldItem（Mob.java:623）：基类恒为 true，
+    // 可持有性由 equipItemIfPossible 的槽位/替换判定决定。
+    return true;
+}
+
+EquipmentSlot MobEntity::getEquipmentSlotForItem(const ItemStack& itemStack) const
+{
+    // 对齐 vanilla LivingEntity.getEquipmentSlotForItem：读取 EQUIPPABLE 组件的槽位。
+    // Cubium 未实现 EQUIPPABLE 数据组件，以 Item::isArmor + ArmorItem 的护甲槽位作为等价信息源：
+    // 盔甲物品映射到对应槽位，其余物品（含非护甲物品）一律进主手。
+    const Item* item = itemStack.getItem();
+    if (item == nullptr || !item->isArmor()) {
+        return EquipmentSlot::MainHand;
+    }
+    const auto* armorItem = dynamic_cast<const item::items::ArmorItem*>(item);
+    if (armorItem == nullptr) {
+        return EquipmentSlot::MainHand;
+    }
+    switch (armorItem->getSlot()) {
+        case item::armor::ArmorSlot::Head:
+            return EquipmentSlot::Head;
+        case item::armor::ArmorSlot::Chest:
+            return EquipmentSlot::Chest;
+        case item::armor::ArmorSlot::Legs:
+            return EquipmentSlot::Legs;
+        case item::armor::ArmorSlot::Feet:
+            return EquipmentSlot::Feet;
+        case item::armor::ArmorSlot::Body:
+            return EquipmentSlot::Body;
+    }
+    return EquipmentSlot::MainHand;
+}
+
+bool MobEntity::isEquippableInSlot(const ItemStack& itemStack, EquipmentSlot slot) const
+{
+    // 对齐 vanilla LivingEntity.isEquippableInSlot：非盔甲物品只能进主手，
+    // 盔甲物品只能进其自身声明的护甲槽位（canBeEquippedBy 对所有生物均为 true）。
+    if (!itemStack.getItem() || !itemStack.getItem()->isArmor()) {
+        return slot == EquipmentSlot::MainHand;
+    }
+    return getEquipmentSlotForItem(itemStack) == slot;
+}
+
+namespace {
+
+/// 计算物品对实体某属性的近似最终值（对齐 vanilla Mob.getApproximateAttributeWith）：
+/// 实体属性基础值 + 物品在该槽位提供的属性修饰器（仅应用加法与基于基础值的乘法操作）。
+f64 approximateAttributeWith(
+    const LivingEntity& entity, const ItemStack& stack, const std::string& attributeName, EquipmentSlot slot)
+{
+    const Item* item = stack.getItem();
+    if (item == nullptr) {
+        return 0.0;
+    }
+    const auto& attributeMap = entity.attributes();
+    f64 base = attributeMap.hasAttribute(attributeName) ? attributeMap.getBaseValue(attributeName, 0.0) : 0.0;
+    f64 total = base;
+    const item::ItemAttributeModifiers modifiers = item->getAttributeModifiers(static_cast<i32>(slot));
+    for (const auto& entry : modifiers.getModifiersForSlot(static_cast<i32>(slot))) {
+        if (entry.attributeName != attributeName) {
+            continue;
+        }
+        switch (entry.modifier.operation()) {
+            case entity::attribute::Operation::Addition:
+                total += entry.modifier.amount();
+                break;
+            case entity::attribute::Operation::MultiplyBase:
+                total += base * entry.modifier.amount();
+                break;
+            case entity::attribute::Operation::MultiplyTotal:
+                // 乘法总计修饰器以当前总值为基准（vanilla compute 的第三阶段），
+                // 仅影响后续修饰器，因此直接对 total 施加。
+                total *= (1.0 + entry.modifier.amount());
+                break;
+        }
+    }
+    return total;
+}
+
+} // namespace
+
+bool MobEntity::canReplaceCurrentItem(const ItemStack& candidate, const ItemStack& current, EquipmentSlot slot) const
+{
+    // 对齐 vanilla Mob.canReplaceCurrentItem（Mob.java:562-585）。
+    if (current.isEmpty()) {
+        return true;
+    }
+    if (slot == EquipmentSlot::Head || slot == EquipmentSlot::Chest || slot == EquipmentSlot::Legs ||
+        slot == EquipmentSlot::Feet || slot == EquipmentSlot::Body) {
+        // 绑定诅咒（PREVENT_ARMOR_CHANGE）使护甲无法被替换。
+        if (item::enchant::EnchantmentHelper::hasBindingCurse(current)) {
+            return false;
+        }
+        // 先比较护甲值，再比较护甲韧性，完全相同时走 canReplaceEqualItem。
+        const f64 candidateArmor =
+            approximateAttributeWith(*this, candidate, entity::attribute::Attributes::ARMOR, slot);
+        const f64 currentArmor = approximateAttributeWith(*this, current, entity::attribute::Attributes::ARMOR, slot);
+        if (candidateArmor != currentArmor) {
+            return candidateArmor > currentArmor;
+        }
+        const f64 candidateToughness =
+            approximateAttributeWith(*this, candidate, entity::attribute::Attributes::ARMOR_TOUGHNESS, slot);
+        const f64 currentToughness =
+            approximateAttributeWith(*this, current, entity::attribute::Attributes::ARMOR_TOUGHNESS, slot);
+        if (candidateToughness != currentToughness) {
+            return candidateToughness > currentToughness;
+        }
+        return canReplaceEqualItem(candidate, current);
+    }
+    if (slot == EquipmentSlot::MainHand) {
+        // TODO(weapon-preference): vanilla Mob.compareWeapons 先按 getPreferredWeaponType()
+        //   的标签优先级判定（如骷髅偏好弓），Cubium 尚无该标签覆写，直接比较攻击伤害。
+        // TODO(weapon-attribute): Cubium 的武器攻击伤害以 ItemAttributeModifiers 的加法修饰器
+        //   表达，而 vanilla 为 ADD_MULTIPLIED_TOTAL 修饰器；此处暂直接取加法量作为比较依据，
+        //   待属性修饰器操作类型对齐后再改用 approximateAttributeWith(ATTACK_DAMAGE)。
+        double candidateAttack = 0.0;
+        double currentAttack = 0.0;
+        if (const Item* item = candidate.getItem()) {
+            for (const auto& entry :
+                item->getAttributeModifiers(static_cast<i32>(slot)).getModifiersForSlot(static_cast<i32>(slot))) {
+                if (entry.attributeName == entity::attribute::Attributes::ATTACK_DAMAGE) {
+                    candidateAttack += entry.modifier.amount();
+                }
+            }
+        }
+        if (const Item* item = current.getItem()) {
+            for (const auto& entry :
+                item->getAttributeModifiers(static_cast<i32>(slot)).getModifiersForSlot(static_cast<i32>(slot))) {
+                if (entry.attributeName == entity::attribute::Attributes::ATTACK_DAMAGE) {
+                    currentAttack += entry.modifier.amount();
+                }
+            }
+        }
+        return candidateAttack != currentAttack ? candidateAttack > currentAttack
+                                                : canReplaceEqualItem(candidate, current);
+    }
+    return false;
+}
+
+bool MobEntity::canReplaceEqualItem(const ItemStack& candidate, const ItemStack& current) const
+{
+    // 对齐 vanilla Mob.canReplaceEqualItem（Mob.java:614-620）：
+    //   附魔条目数多者优先 → 耐久度剩余多者优先 → 带自定义名字者优先。
+    const size_t candidateEnchants = item::enchant::EnchantmentHelper::getEnchantments(candidate).size();
+    const size_t currentEnchants = item::enchant::EnchantmentHelper::getEnchantments(current).size();
+    if (candidateEnchants != currentEnchants) {
+        return candidateEnchants > currentEnchants;
+    }
+    const i32 candidateDamage = candidate.getDamage();
+    const i32 currentDamage = current.getDamage();
+    if (candidateDamage != currentDamage) {
+        return candidateDamage < currentDamage;
+    }
+    return candidate.hasCustomName() && !current.hasCustomName();
+}
+
+ItemStack MobEntity::equipItemIfPossible(ItemStack stack)
+{
+    // 对齐 vanilla Mob.equipItemIfPossible（Mob.java:520-551）。
+    EquipmentSlot slot = getEquipmentSlotForItem(stack);
+    if (!isEquippableInSlot(stack, slot)) {
+        return ItemStack();
+    }
+    const ItemStack current = getEquipment(slot);
+    bool canReplace = canReplaceCurrentItem(stack, current, slot);
+    if ((slot == EquipmentSlot::Head || slot == EquipmentSlot::Chest || slot == EquipmentSlot::Legs ||
+            slot == EquipmentSlot::Feet || slot == EquipmentSlot::Body) &&
+        !canReplace) {
+        // 护甲不可替换时退回主手：主手为空则换成主手。
+        slot = EquipmentSlot::MainHand;
+        canReplace = getEquipment(slot).isEmpty();
+    }
+    if (!canReplace || !canHoldItem(stack)) {
+        return ItemStack();
+    }
+
+    const ItemStack previous = getEquipment(slot);
+    const f32 dropChance = getEquipmentDropChance(slot);
+    // vanilla: Math.max(random.nextFloat() - 0.1F, 0.0F) < dropChance 时掉落被替换物品。
+    if (!previous.isEmpty() && std::max(getRandom().nextFloat() - 0.1f, 0.0f) < dropChance) {
+        ItemDropHelper::spawnItemAtEntity(this, previous, 0.5f, getRandom(), ItemDropHelper::DEFAULT_PICKUP_DELAY);
+    }
+
+    // 槽位容量裁剪（vanilla EquipmentSlot.limit）：主手/副手按物品堆叠上限，护甲槽固定 1。
+    i32 limit = 1;
+    if (slot == EquipmentSlot::MainHand || slot == EquipmentSlot::OffHand) {
+        limit = stack.getMaxStackSize();
+    }
+    if (stack.getCount() > limit) {
+        ItemStack limited(stack);
+        limited.setCount(limit);
+        stack = std::move(limited);
+    }
+    setEquipment(slot, stack);
+    setGuaranteedDrop(slot);
+    enablePersistence();
+    return stack;
 }
 
 void MobEntity::pickUpItem(ItemEntity& itemEntity)
 {
-    // 基类默认实现：装备槽拾取语义（对齐 vanilla Mob.pickUpItem→equipItemIfPossible）。
-    // TODO: 完整装备拾取链路（equipItemIfPossible/canReplaceCurrentItem/getEquipmentSlotForItem
-    //   /onItemPickup/take）尚未实现，基类暂不处理。子类（如 FoxEntity）覆写 pickUpItem
-    //   实现具体拾取逻辑（手持物品）。待装备槽拾取链路补全后在此对齐 vanilla。
+    // 对齐 vanilla Mob.pickUpItem（Mob.java:507-518）。
+    ItemStack stack = itemEntity.getItemStack();
+    const ItemStack equipped = equipItemIfPossible(ItemStack(stack));
+    if (equipped.isEmpty()) {
+        return;
+    }
+    onItemPickup(itemEntity);
+    stack.shrink(equipped.getCount());
+    itemEntity.setItemStack(stack);
+    if (stack.isEmpty()) {
+        itemEntity.discard();
+    }
+}
+
+void MobEntity::onItemPickup(const ItemEntity& itemEntity)
+{
+    // 对齐 vanilla LivingEntity.onItemPickup（LivingEntity.java:3168-3173）：
+    // 物品所有者是玩家时触发 THROWN_ITEM_PICKED_UP_BY_ENTITY 进度触发器。
+    // TODO(advancements): Cubium 进度触发器系统尚未接入 CriteriaTriggers，接入后在此触发
+    //   THROWN_ITEM_PICKED_UP_BY_ENTITY(owner, itemEntity.getItem(), this)。
     (void)itemEntity;
 }
 

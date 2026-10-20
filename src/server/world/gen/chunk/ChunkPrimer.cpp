@@ -339,6 +339,19 @@ void ChunkPrimer::addPackedPostProcessing(const std::vector<u16>& packedPosition
     }
 }
 
+void ChunkPrimer::addPendingBlockTick(
+    const BlockPos& pos, const Block& block, u64 scheduledTick, i32 delay, world::tick::TickPriority priority)
+{
+    // 对齐 ServerTickList::scheduleTick 的去重语义：同一位置 + 同一方块只保留最早的一条，
+    // 重复调度忽略（保留已有条目的时间与优先级）。
+    for (const auto& tick : m_pendingBlockTicks) {
+        if (tick.pos == pos && tick.block == &block) {
+            return;
+        }
+    }
+    m_pendingBlockTicks.push_back(PendingBlockTick{pos, &block, scheduledTick, delay > 0 ? delay : 0, priority});
+}
+
 void ChunkPrimer::primeHeightmaps(HeightmapFlag types)
 {
     // FEATURES 之前调用，本地高度图必然仍在
@@ -384,6 +397,10 @@ std::shared_ptr<ChunkData> ChunkPrimer::toChunkData()
         section.clear();
         section.shrink_to_fit();
     }
+
+    // 将待执行方块刻转移到 ChunkData（区块发布后由 ServerChunkManager 转交 TickManager）
+    m_data->addPendingBlockTicks(m_pendingBlockTicks);
+    m_pendingBlockTicks.clear();
 
     // 设置状态
     m_status = ChunkLoadStatus::Generated;

@@ -800,12 +800,24 @@ public:
     /**
      * @brief 受伤时损坏护甲
      *
-     * 重写 LivingEntity::damageArmor()，委托给 PlayerInventory::damageArmor()。
+     * 重写 LivingEntity::damageArmor()：对四个护甲槽调用 doHurtEquipment
+     * （对齐 vanilla Player.hurtArmor）。
      *
      * @param source 伤害来源
      * @param amount 伤害量
      */
     void damageArmor(DamageSource& source, f32 amount) override;
+
+    /**
+     * @brief DAMAGES_HELMET 伤害损坏头盔
+     *
+     * 重写 LivingEntity::hurtHelmet()：对头盔槽调用 doHurtEquipment
+     * （对齐 vanilla Player.hurtHelmet）。
+     *
+     * @param source 伤害来源
+     * @param amount 伤害量
+     */
+    void hurtHelmet(DamageSource& source, f32 amount) override;
 
     // ========== XP 冷却 ==========
 
