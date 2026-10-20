@@ -247,6 +247,22 @@ bool jsonToComponentPayload(DataComponentType type, const nlohmann::json& json, 
             return _readEnchantments(json, out);
         case DataComponentType::PotionContents:
             return _readPotionContents(json, out);
+        case DataComponentType::DeathProtection: {
+            // { death_effects: [ConsumeEffect...] } —— ConsumeEffect 以 type 分派，走专属解析
+            if (!json.is_object()) {
+                return false;
+            }
+            DeathProtectionPayload payload;
+            auto it = json.find("death_effects");
+            if (it != json.end()) {
+                if (!it->is_array()) {
+                    return false;
+                }
+                payload.effects = consumeEffectsFromJson(*it);
+            }
+            out = DataComponentPayload{std::in_place_index<ComponentPayloadIndex::DeathProtection>, std::move(payload)};
+            return true;
+        }
         case DataComponentType::Tool: {
             // tool 的 blocks 列表含 "#tag" 元素：先按 JSON 结构校验，再走通用解码
             if (!json.is_object() || !json.contains("rules") || !json["rules"].is_array()) {

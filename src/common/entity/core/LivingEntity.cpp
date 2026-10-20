@@ -40,7 +40,10 @@
 #include "common/entity/ecs/components/HealthComponent.hpp"
 #include "common/entity/ecs/components/HurtStateComponent.hpp"
 #include "common/entity/effect/EffectInstance.hpp"
+#include "common/entity/effect/EffectOnRemoval.hpp"
 #include "common/entity/effect/EffectType.hpp"
+#include "common/entity/entities/passive/tamable/TameableEntity.hpp"
+#include "common/entity/entities/passive/tamable/WolfEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/registry/VanillaEntityTypeKeys.hpp"
 #include "common/entity/serialization/EntityNbtKeys.hpp"
@@ -382,9 +385,17 @@ bool LivingEntity::hurt(DamageSource& source, f32 amount)
             //     即 mob_attack_no_aggro 由玩家造成时仍记 lastHurtByPlayer（用于死亡经验掉落守卫，
             //     见 shouldDropExperienceOnDeath / dropAllDeathLoot），但不激怒（2.5a 的 lastHurtByMob
             //     被 NO_ANGER 门控挡住）。
-            //     TODO: 驯服狼代攻时归属其玩家主人（vanilla wolf.getOwnerReference 分支）未实现。
-            if (dynamic_cast<Player*>(trueSource) != nullptr) {
-                setLastHurtByPlayerMemoryTime(100);
+            //     驯服狼代攻（vanilla resolvePlayerResponsibleForDamage 的 Wolf 分支，
+            //     LivingEntity.java:1336-1343）：真凶为已驯服的狼时，把功劳归属其主人玩家；
+            //     狼已驯服但主人引用为空（主人 UUID 缺失/离线）时按 vanilla 清空归属并归零记忆窗口。
+            if (auto* player = dynamic_cast<Player*>(trueSource)) {
+                setLastHurtByPlayer(player, 100);
+            } else if (auto* wolf = dynamic_cast<WolfEntity*>(trueSource); wolf != nullptr && wolf->isTamed()) {
+                if (Player* owner = wolf->getOwner()) {
+                    setLastHurtByPlayer(owner, 100);
+                } else {
+                    setLastHurtByPlayer(nullptr, 0);
+                }
             }
         }
     }
@@ -500,6 +511,17 @@ void LivingEntity::actuallyHurt(DamageSource& source, f32 amount)
 
     // 生命值组件局部指针复用（避免热路径多次 try_get）
     auto* healthState = m_entityContext->tryGetComponent<ecs::HealthComponent>();
+
+    // 0. 效果受击回调（对齐 vanilla LivingEntity.actuallyHurt:1106-1108：
+    //    for (MobEffectInstance e : activeEffects.values()) e.onMobHurt(level, this, amplifier, source, amount)）。
+    //    当前仅有 INFESTED 实现 onMobHurt（10% 概率生成 1~2 只蠹虫，InfestedMobEffect）。
+    //    Cubium 仅对该效果类型分派，其余效果无受击行为。
+    if (m_world != nullptr && !m_world->isClientSide() &&
+        m_effectManager.hasEffect(entity::effect::EffectType::Infested)) {
+        if (m_world->getRandom().nextFloat() <= game::INFESTED_SPAWN_CHANCE) {
+            entity::effect::onremoval::spawnInfestedSilverfish(*m_world, *this);
+        }
+    }
 
     // 1. 盾牌格挡检查（子类可重写）
     // 方向校验（对齐 vanilla BlocksAttacks.resolveBlockedDamage）：来袭方向与头部水平朝向夹角
@@ -643,45 +665,114 @@ bool LivingEntity::_checkTotemDeathProtection(DamageSource& source)
         return false;
     }
 
-    // 检查主手与副手是否持有带 death_protection 组件的物品
-    const Item* totemItem = nullptr;
+    // 对齐 vanilla：遍历主手 → 副手，取第一个携带 DEATH_PROTECTION 数据组件的物品并立即消耗一个。
+    // 组件值为数据包驱动的死亡保护定义（内联在物品栈上）或物品默认定义（如不死图腾）。
+    // 注意：vanilla 在找到组件后立刻 shrink，之后才施加效果；效果数据只来自死前 copy 出的
+    // deathprotection 值，不依赖物品仍在手中。
+    item::component::DeathProtectionPayload deathProtection;
+    bool found = false;
     for (EquipmentSlot slot : {EquipmentSlot::MainHand, EquipmentSlot::OffHand}) {
-        const ItemStack& stack = getEquipment(slot);
+        ItemStack& stack = getMutableEquipment(slot);
         if (stack.isEmpty() || stack.getItem() == nullptr) {
             continue;
         }
-        // TODO: 数据驱动 DeathProtection 组件接入后，改为读取物品的 DEATH_PROTECTION 组件
-        //   （当前以不死图腾物品类型判定，等价于 vanilla 中唯一携带该组件的物品）。
-        if (stack.getItem() == Items::TOTEM_OF_UNDYING) {
-            totemItem = stack.getItem();
-            break;
+        auto component = stack.getDeathProtection();
+        if (!component.has_value()) {
+            continue;
         }
+        deathProtection = *component;
+        stack.shrink(1);
+        found = true;
+        break;
     }
 
-    if (totemItem == nullptr) {
+    if (!found) {
         return false;
     }
 
-    // 消耗一个图腾（直接操作权威装备槽）
-    for (EquipmentSlot slot : {EquipmentSlot::MainHand, EquipmentSlot::OffHand}) {
-        ItemStack& stack = const_cast<ItemStack&>(getEquipment(slot));
-        if (!stack.isEmpty() && stack.getItem() == totemItem) {
-            stack.shrink(1);
-            break;
-        }
-    }
-
-    // 对齐 vanilla：生命恢复为 1、施加保护效果、广播实体事件 35（图腾使用粒子）
+    // 对齐 vanilla DeathProtection.applyEffects（不死图腾默认定义）：
+    //   ClearAllStatusEffectsConsumeEffect + ApplyStatusEffectsConsumeEffect(regeneration 900/II,
+    //   absorption 100/II, fire_resistance 800/I)。数据包自定义条目按条目顺序应用。
     setHealth(1.0f);
-    addEffect(entity::effect::EffectInstance(entity::effect::EffectType::Absorption, 100, 1));
-    addEffect(entity::effect::EffectInstance(entity::effect::EffectType::Regeneration, 900, 1));
-    addEffect(entity::effect::EffectInstance(entity::effect::EffectType::FireResistance, 800, 0));
+    _applyDeathProtectionEffects(deathProtection);
     if (m_world != nullptr && !m_world->isClientSide()) {
         m_world->broadcastEntityStatus(m_id, 35); // 图腾使用粒子（对齐 vanilla broadcastEntityEvent(this, (byte)35)）
     }
     playSound(SoundEvents::ITEM_TOTEM_USE, 1.0f, 1.0f);
 
     return true;
+}
+
+void LivingEntity::_applyDeathProtectionEffects(const item::component::DeathProtectionPayload& deathProtection)
+{
+    // 对齐 vanilla ConsumeEffect 各子类型的 apply(Level, ItemStack, LivingEntity)：
+    //   clear_all_effects             → 清空全部效果
+    //   apply_effects(entries, chance) → 每个条目按 chance 独立判定后施加（缺失效果实例字段不施加）
+    //   remove_effects(types)         → 移除指定效果
+    //   play_sound(sound)             → 播放音效
+    //   teleport_randomly(diameter)   → 在直径范围内随机传送（仅服务端）
+    for (const auto& effect : deathProtection.effects) {
+        switch (effect.kind) {
+            case item::component::ConsumeEffectKind::ClearAllEffects: {
+                removeAllEffects();
+                break;
+            }
+            case item::component::ConsumeEffectKind::ApplyEffects: {
+                for (const auto& entry : effect.effects) {
+                    if (!entry.instance.has_value()) {
+                        // 数据包条目缺少 id（vanilla codec 返回错误条目 → getEffect() 为空 → 跳过）
+                        continue;
+                    }
+                    // vanilla：chance < 1 时 nextFloat() < chance 才施加（1.0 恒真）
+                    if (entry.chance < 1.0f && m_random.nextFloat() >= entry.chance) {
+                        continue;
+                    }
+                    addEffect(*entry.instance);
+                }
+                break;
+            }
+            case item::component::ConsumeEffectKind::RemoveEffects: {
+                for (const auto& type : effect.removedEffects) {
+                    removeEffect(type);
+                }
+                break;
+            }
+            case item::component::ConsumeEffectKind::PlaySound: {
+                if (!effect.soundId.empty()) {
+                    playSound(ResourceLocation(effect.soundId), 1.0f, 1.0f);
+                }
+                break;
+            }
+            case item::component::ConsumeEffectKind::TeleportRandomly: {
+                // 对齐 vanilla TeleportRandomlyConsumeEffect.apply 的 16 次尝试循环：
+                //   目标 = 当前位置 + (random - 0.5) * diameter（Y 钳到世界可建造范围），
+                //   乘坐中先下骑，再调 randomTeleport 落点搜索，成功即停并触发 TELEPORT 游戏事件。
+                // Entity::randomTeleport(range) 以目标为中心做安全落点搜索，等价 vanilla
+                // LivingEntity.randomTeleport(x, y, z, true) 的落点语义。
+                if (m_world == nullptr || m_world->isClientSide()) {
+                    break;
+                }
+                const f64 minY = static_cast<f64>(m_world->getMinBuildHeight());
+                for (i32 attempt = 0; attempt < 16; ++attempt) {
+                    const f64 targetX = x() + (m_random.nextDouble() - 0.5) * effect.teleportDiameter;
+                    const f64 targetY = std::clamp(y() + (m_random.nextDouble() - 0.5) * effect.teleportDiameter,
+                        minY,
+                        static_cast<f64>(m_world->getMaxBuildHeight() - 1));
+                    const f64 targetZ = z() + (m_random.nextDouble() - 0.5) * effect.teleportDiameter;
+                    if (isRiding()) {
+                        stopRiding();
+                    }
+                    const Vector3 previous = position();
+                    // TODO(consume-effect): Cubium 尚无 vanilla RandomTeleport 的安全落点搜索
+                    //   （逐候选做碰撞/液体校验），此处直接落到目标坐标；接入落点搜索后改为校验通过才传送。
+                    setPosition(static_cast<f32>(targetX), static_cast<f32>(targetY), static_cast<f32>(targetZ));
+                    gameEvent(gameevent::GameEvents::TELEPORT, BlockPos(previous));
+                    break;
+                }
+                break;
+            }
+        }
+    }
 }
 
 bool LivingEntity::canBlockDamageSource(DamageSource& /*source*/) const
@@ -839,14 +930,28 @@ f32 LivingEntity::computeFinalDamage(DamageSource& source, f32 damage)
     return damage;
 }
 
+Player* LivingEntity::getLastHurtByPlayer()
+{
+    return m_lastHurtByPlayer.get();
+}
+
+void LivingEntity::setLastHurtByPlayer(Player* player, i32 time)
+{
+    m_lastHurtByPlayer = player;
+    m_lastHurtByPlayerMemoryTime = time;
+}
+
 LivingEntity* LivingEntity::getKillCredit()
 {
     // 对齐 MC Java 1.21.11 LivingEntity.getKillCredit（LivingEntity.java:1886-1892）：
     //   if (this.lastHurtByPlayer != null) return this.lastHurtByPlayer.getEntity(...);
     //   else return this.lastHurtByMob != null ? ... : null;
-    // Cubium 没有 lastHurtByPlayer 实体引用，改用 CombatTracker::getBestAttacker()——
-    // 这与原版 ServerPlayer.die 中 awardKillScore 的取值来源一致。
-    return m_combatTracker.getBestAttackerLiving();
+    // 优先玩家归属（含玩家驯服狼代攻），使击杀记分/经验归属到最近伤害的玩家；
+    // 无玩家归属时回退到最近攻击生物（lastHurtByMob）。
+    if (Player* player = m_lastHurtByPlayer.get()) {
+        return player;
+    }
+    return m_lastHurtBy.get();
 }
 
 void LivingEntity::die(DamageSource& cause)
@@ -1009,11 +1114,8 @@ void LivingEntity::dropAllDeathLoot(DamageSource& cause)
     // 在玩家造成伤害时设 100、每 tick 递减。注：resolvePlayerResponsibleForDamage 对 Player 无
     // NO_ANGER 门控，故 mob_attack_no_aggro 由玩家造成时仍记 memoryTime（用于掉落守卫），但不
     // 激怒（lastHurtByMob 被 NO_ANGER 门控挡住）。
-    // KILLER_PLAYER loot 参数仍从 m_lastHurtBy 取具体 Player 实体（见 dropFromLootTable:835）：
-    // Cubium 暂无独立的 lastHurtByPlayer 实体引用字段（仅 memoryTime 计数器），用 m_lastHurtBy
-    // 近似。TODO: 引入 lastHurtByPlayer 实体引用（对齐 vanilla EntityReference<Player>）后，
-    //       KILLER_PLAYER 改从该引用取，覆盖"玩家打残后非玩家补刀"场景（此时 m_lastHurtBy 是
-    //       补刀的非玩家，但 memoryTime>0 仍应归属原玩家）。
+    // KILLER_PLAYER loot 参数从 m_lastHurtByPlayer 实体引用取（见 dropFromLootTable）：
+    // 覆盖"玩家打残后非玩家补刀"场景（此时 m_lastHurtBy 是补刀的非玩家，但记忆窗口内仍归属原玩家）。
     const bool recentlyHitByPlayer = (m_lastHurtByPlayerMemoryTime > 0);
 
     // 1. shouldDropLoot 守卫（doMobLoot gamerule + 非幼体）：守卫包住物品掉落
@@ -1151,7 +1253,7 @@ void LivingEntity::dropFromLootTable(DamageSource& cause, bool recentlyHitByPlay
     // 击杀玩家（KILLER_PLAYER）：仅当最近被玩家伤害时设，并应用该玩家的 luck。
     // 对应 vanilla `if (flag && player != null) withParameter(LAST_DAMAGE_PLAYER, player).withLuck(player.getLuck())`。
     if (recentlyHitByPlayer) {
-        Player* player = dynamic_cast<Player*>(m_lastHurtBy.get());
+        Player* player = m_lastHurtByPlayer.get();
         if (player != nullptr) {
             builder.withParameter(loot::LootParams::KILLER_PLAYER, player);
             // 应用击杀玩家的幸运值（generic.luck 属性，经幸运/霉运效果改变）。对齐 vanilla player.getLuck()。
@@ -1199,12 +1301,23 @@ void LivingEntity::onRemoval(RemovalReason reason)
     // EntityManager 销毁路径亦统一生效。
     item::enchant::EnchantmentHelper::stopAllLocationBasedEffects(*this);
 
-    // TODO: 对齐 vanilla LivingEntity.remove（LivingEntity.java:703-712）的 triggerOnDeathMobEffects：
-    //   shouldDestroy(reason) 时遍历所有活跃效果调 MobEffect.onMobRemoved 回调并清空效果列表。
-    //   当前效果系统（EffectInstance）无 onMobRemoved 钩子，且 Oozing/Weaving/WindCharged/Infested
-    //   的移除行为未实现（见 EffectType.cpp），待效果系统完善后在此补全（须以 shouldDestroy(reason) 门控，
-    //   卸载类原因不清空效果以免丢失存档中的效果状态）。
-    (void)reason;
+    // 对齐 vanilla LivingEntity.remove（LivingEntity.java:701-709）的 triggerOnDeathMobEffects：
+    //   (reason == KILLED || reason == DISCARDED) 且处于服务端时，遍历所有活跃效果调
+    //   MobEffectInstance.onMobRemoved 回调，随后清空效果列表。
+    // 卸载类原因（UnloadedToChunk / UnloadedWithPlayer / ChangedDimension）不清空效果，避免丢失
+    // 存档中的效果状态（chunk 卸载走写盘路径，效果随 NBT 保存）。
+    // 效果回调的具体行为（织网生成蜘蛛网 / 渗浆生成史莱姆 / 风充能风弹爆炸）在
+    // entity::effect::onremoval::applyOnMobRemoved 中按效果类型分派。
+    if (m_world != nullptr && !m_world->isClientSide() && shouldDestroy(reason)) {
+        auto& effects = m_effectManager.getAllEffects();
+        const std::vector<entity::effect::EffectInstance> snapshot = effects;
+        for (const auto& effect : snapshot) {
+            entity::effect::onremoval::applyOnMobRemoved(*m_world, *this, effect.type(), effect.amplifier(), reason);
+        }
+        if (!snapshot.empty()) {
+            m_effectManager.removeAllEffects(*this);
+        }
+    }
 
     Entity::onRemoval(reason);
 }
@@ -1726,8 +1839,12 @@ void LivingEntity::tick()
 
     // 递减"最近被玩家伤害"记忆时间（对齐 vanilla LivingEntity.aiStep:466-470）。
     // 归零后玩家伤害记忆失效，影响死亡经验掉落守卫（普通生物需此值>0 才掉经验）。
+    // 归零时同步清空玩家引用（vanilla aiStep:466-469 的 else 分支），避免记忆窗口过期后
+    // getLastHurtByPlayer / getKillCredit 仍返回陈旧玩家。
     if (m_lastHurtByPlayerMemoryTime > 0) {
         m_lastHurtByPlayerMemoryTime--;
+    } else {
+        m_lastHurtByPlayer = nullptr;
     }
 
     // 更新受伤动画计时器
@@ -3392,19 +3509,27 @@ bool LivingEntity::isPotionApplicable(const entity::effect::EffectInstance& effe
     //   - IGNORES_POISON_AND_REGEN（亡灵 13 种 + iron_golem）免疫 REGENERATION + POISON
     //   - IMMUNE_TO_INFESTED 免疫 INFESTED；IMMUNE_TO_OOZING 免疫 OOZING
     // Cubium EntityTypeTags::IGNORES_POISON_AND_REGEN 标签成员与 vanilla 完全一致
-    // （EntityTypeTags.cpp:629-645，13 亡灵 + iron_golem）。此处实现 Poison/Regen 免疫；
-    // INFESTED/OOZING 效果 Cubium 暂未实现，留 TODO 待效果就绪后补 IMMUNE_TO_* 标签判定。
+    // （EntityTypeTags.cpp:629-645，13 亡灵 + iron_golem）。IMMUNE_TO_INFESTED / IMMUNE_TO_OOZING
+    // 亦按原版互斥分支顺序判定（效果本体行为见 entity/effect/EffectOnRemoval 与 Infested 的 onMobHurt TODO）。
     //
     // 亡灵免疫 Poison/Regen 是 vanilla 核心语义：亡灵被中毒效果不应扣血、被再生效果不应治疗。
     // 此前 Cubium EffectManager::addEffect 不调 isPotionApplicable，亡灵会被中毒扣血——与 vanilla 相反。
+    // vanilla canBeAffected 为互斥分支：命中 IMMUNE_TO_INFESTED 只拒绝 INFESTED，
+    // 命中 IMMUNE_TO_OOZING 只拒绝 OOZING，二者都不命中才查 IGNORES_POISON_AND_REGEN。
+    // 当前实体类型数据集中 IMMUNE_TO_INFESTED 与 IMMUNE_TO_OOZING 无交集，分支互斥性不影响结果，
+    // 但保持原版判定顺序以便后续数据包扩展成员时行为一致。
+    if (EntityTypeTags::IMMUNE_TO_INFESTED().contains(getTypeId())) {
+        return effect.type() != entity::effect::EffectType::Infested;
+    }
+    if (EntityTypeTags::IMMUNE_TO_OOZING().contains(getTypeId())) {
+        return effect.type() != entity::effect::EffectType::Oozing;
+    }
     if (EntityTypeTags::IGNORES_POISON_AND_REGEN().contains(getTypeId())) {
         if (effect.type() == entity::effect::EffectType::Poison ||
             effect.type() == entity::effect::EffectType::Regeneration) {
             return false;
         }
     }
-    // TODO: 对齐 vanilla IMMUNE_TO_INFESTED（免疫 INFESTED）/ IMMUNE_TO_OOZING（免疫 OOZING）标签判定，
-    //       待 Infested/Oozing 效果实现后补全（EntityTypeTags::IMMUNE_TO_INFESTED/IMMUNE_TO_OOZING 已定义）。
     return true;
 }
 

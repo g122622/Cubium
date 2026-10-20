@@ -339,6 +339,15 @@ BlockTag& BlockTags::SOUL_FIRE_BASE_BLOCKS()
     return *tag;
 }
 
+BlockTag& BlockTags::BLOCKS_WIND_CHARGE_EXPLOSIONS()
+{
+    static BlockTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "blocks_wind_charge_explosions"));
+    }
+    return *tag;
+}
+
 BlockTag& BlockTags::WITHER_SUMMON_BASE_BLOCKS()
 {
     static BlockTag* tag = nullptr;
@@ -3806,6 +3815,16 @@ void BlockTags::initialize()
         merged.push_back(ResourceLocation("minecraft", "cobweb"));
         fallDamageResetting->addAll(merged);
         tags[fallDamageResetting->getId()] = std::move(fallDamageResetting);
+    }
+
+    // 创建 BLOCKS_WIND_CHARGE_EXPLOSIONS 标签（风弹爆炸免疫方块）
+    // vanilla 定义（blocks_wind_charge_explosions.json）：#barrier + bedrock（该标签无嵌套引用）。
+    // 运行时消费：风充能效果击杀附体实体时的风弹式爆炸把这些方块视为抗性无穷大。
+    {
+        auto windChargeImmune =
+            std::make_unique<BlockTag>(ResourceLocation("minecraft", "blocks_wind_charge_explosions"));
+        windChargeImmune->addAll({ResourceLocation("minecraft", "barrier"), ResourceLocation("minecraft", "bedrock")});
+        tags[windChargeImmune->getId()] = std::move(windChargeImmune);
     }
 
     s_initialized = true;

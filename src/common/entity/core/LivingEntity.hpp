@@ -268,6 +268,16 @@ public:
     [[nodiscard]] bool _checkTotemDeathProtection(DamageSource& source);
 
     /**
+     * @brief 按死亡保护定义施加消耗效果（对齐 vanilla DeathProtection.applyEffects）
+     *
+     * 依次应用 death_effects 中的 ConsumeEffect（清空效果 / 按概率施加 / 移除 / 播放音效 / 随机传送）。
+     * 随机传送仅在服务端生效。
+     *
+     * @param deathProtection 死亡保护组件值
+     */
+    void _applyDeathProtectionEffects(const item::component::DeathProtectionPayload& deathProtection);
+
+    /**
      * @brief 在死亡位置生成凋零玫瑰（对齐 vanilla LivingEntity.createWitherRose）
      *
      * 对齐 MC Java 1.21.11 LivingEntity.createWitherRose（LivingEntity.java:1463-1482）。
@@ -487,10 +497,30 @@ public:
     [[nodiscard]] i32 lastHurtByPlayerMemoryTime() const { return m_lastHurtByPlayerMemoryTime; }
 
     /**
-     * @brief 设置"最近被玩家伤害"记忆时间（受玩家伤害时调用，置 100）
+     * @brief 获取"最近伤害该实体的玩家"
+     *
+     * 对齐 MC Java 1.21.11 LivingEntity.getLastHurtByPlayer（LivingEntity.java:602-604）：
+     * 返回 lastHurtByPlayer 实体引用解析结果。引用在 100 tick 记忆窗口到期、或驯服狼失去主人时
+     * 被清空，因此返回值非空即表示"最近一次伤害仍归属于该玩家"。
+     *
+     * @return 最近伤害该实体的玩家，无则返回 nullptr
+     */
+    [[nodiscard]] Player* getLastHurtByPlayer();
+
+    /**
+     * @brief 设置"最近伤害该实体的玩家"（受玩家伤害时调用，置 100 tick 记忆窗口）
      *
      * 对齐 MC Java 1.21.11 LivingEntity.setLastHurtByPlayer（LivingEntity.java:616-626）：
-     * 受玩家直接伤害（或驯服狼代攻）时设为 100 tick 记忆窗口。
+     * 受玩家直接伤害、或受该玩家驯服的狼代攻时调用。time 同时也是记忆窗口时长。
+     */
+    void setLastHurtByPlayer(Player* player, i32 time);
+
+    /**
+     * @brief 设置"最近被玩家伤害"记忆时间（不改变玩家引用）
+     *
+     * 仅调整记忆窗口计数器，保留已记录的玩家引用。生产代码应使用
+     * setLastHurtByPlayer(Player*, i32) 同时写入两者；本方法仅供需要单独
+     * 调整窗口（或清空窗口而暂时保留引用）的场景使用。
      */
     void setLastHurtByPlayerMemoryTime(i32 time) { m_lastHurtByPlayerMemoryTime = time; }
 
@@ -1560,9 +1590,8 @@ public:
      * @brief 获取击杀贡献者（对齐 vanilla LivingEntity.getKillCredit）
      *
      * 原版优先返回 lastHurtByPlayer，否则返回 lastHurtByMob。
-     * Cubium 没有 lastHurtByPlayer 实体引用（仅有 memoryTime 计数器），
-     * 改用 CombatTracker::getBestAttacker() 作为击杀贡献者——这与原版
-     * ServerPlayer.die 中 awardKillScore 的语义一致（取造成最多伤害的实体）。
+     * lastHurtByPlayer 为最近伤害该实体的玩家引用（含其驯服狼代攻），
+     * 记忆窗口（100 tick）过期后清空。
      *
      * @return 击杀贡献者，无则返回 nullptr
      */
@@ -2237,8 +2266,12 @@ protected:
     LivingEntity* m_lastHurtTarget = nullptr;   // 该实体最近攻击的目标
     i32 m_lastHurtTargetTimestamp = 0;          // 攻击目标时间戳
 
+    // 最近伤害该实体的玩家（对齐 vanilla lastHurtByPlayer，LivingEntity.java:230）。
+    // 受玩家直接伤害或其驯服狼代攻时写入，用于 getKillCredit 归属与掉落表的 KILLER_PLAYER 参数。
+    EntityReference<Player> m_lastHurtByPlayer;
     // 最近被玩家伤害的记忆时间（对齐 vanilla lastHurtByPlayerMemoryTime，LivingEntity.java:231）。
-    // 受玩家伤害时设为 100，每 tick 递减；普通生物死亡需此值>0 才掉经验（dropExperience 守卫）。
+    // 受玩家伤害时设为 100，每 tick 递减；归零时同时清空 m_lastHurtByPlayer（vanilla aiStep:466-470）。
+    // 普通生物死亡需此值>0 才掉经验（dropExperience 守卫）。
     i32 m_lastHurtByPlayerMemoryTime = 0;
     // 经验是否已被消费（防重复掉落，对齐 vanilla skipDropExperience，LivingEntity.java:1639-1645）。
     bool m_skipDropExperience = false;

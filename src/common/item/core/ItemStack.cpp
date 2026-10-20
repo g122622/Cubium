@@ -332,6 +332,16 @@ void ItemStack::setFireworkExplosion(item::component::FireworkExplosion explosio
     _ensureExtras().fireworkExplosion = std::move(explosion);
 }
 
+const std::optional<item::component::DeathProtectionPayload>& ItemStack::getDeathProtection() const
+{
+    // 对齐 vanilla ItemStack.get(DEATH_PROTECTION)：物品栈覆盖优先，未覆盖时取物品默认组件。
+    if (m_extras != nullptr && m_extras->deathProtection.has_value()) {
+        return m_extras->deathProtection;
+    }
+    static const std::optional<item::component::DeathProtectionPayload> EMPTY;
+    return m_item != nullptr ? m_item->defaultDeathProtection() : EMPTY;
+}
+
 void ItemStack::setFireworks(item::component::Fireworks fireworks)
 {
     // 本方法是所有写入路径（JSON/wire/NBT 读取与直接调用）的唯一收口，在此统一规范化，
@@ -1295,6 +1305,11 @@ item::component::DataComponentPatch ItemStack::toComponentPatch() const
             patch.add(DataComponentType::SuspiciousStewEffects,
                 DataComponentPayload{std::in_place_index<ComponentPayloadIndex::StewEffects>, *m_extras->stewEffects});
         }
+        if (m_extras->deathProtection.has_value()) {
+            patch.add(DataComponentType::DeathProtection,
+                DataComponentPayload{
+                    std::in_place_index<ComponentPayloadIndex::DeathProtection>, *m_extras->deathProtection});
+        }
         if (m_extras->rawComponents.is_object()) {
             for (const auto& [componentKey, value] : m_extras->rawComponents.items()) {
                 auto type = componentTypeByName(componentKey);
@@ -1475,6 +1490,10 @@ void ItemStack::applyComponentPatch(const item::component::DataComponentPatch& p
                 _ensureExtras().stewEffects = std::get<SuspiciousStewEffectsPayload>(entry.value);
                 break;
             }
+            case DataComponentType::DeathProtection: {
+                _ensureExtras().deathProtection = std::get<item::component::DeathProtectionPayload>(entry.value);
+                break;
+            }
             case DataComponentType::ChargedProjectiles:
                 // 同 container：元素为 ItemStack 指针，不经 DataComponentPayload 承载
                 break;
@@ -1575,6 +1594,11 @@ void ItemStack::applyComponentPatch(const item::component::DataComponentPatch& p
             case DataComponentType::SuspiciousStewEffects:
                 if (m_extras) {
                     m_extras->stewEffects.reset();
+                }
+                break;
+            case DataComponentType::DeathProtection:
+                if (m_extras) {
+                    m_extras->deathProtection.reset();
                 }
                 break;
             case DataComponentType::ChargedProjectiles:

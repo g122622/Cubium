@@ -231,6 +231,13 @@ public:
     /// 在这些方块上可以点燃灵魂火
     static BlockTag& SOUL_FIRE_BASE_BLOCKS();
 
+    /// 风弹爆炸免疫方块标签（屏障、基岩）
+    /// 对齐 vanilla BlockTags.BLOCKS_WIND_CHARGE_EXPLOSIONS，成员对齐数据包
+    /// blocks_wind_charge_explosions.json = {barrier, bedrock}。
+    /// 运行时消费场景：风充能效果击杀附体实体时的风弹式爆炸（不破坏方块、不伤实体），
+    /// 这些方块被视为抗性无穷大，不被扣除爆炸强度。
+    static BlockTag& BLOCKS_WIND_CHARGE_EXPLOSIONS();
+
     /// 凋灵召唤基座方块标签（灵魂沙、灵魂土）
     /// 对齐 vanilla BlockTags.WITHER_SUMMON_BASE_BLOCKS，成员对齐数据包
     /// wither_summon_base_blocks.json = {soul_sand, soul_soil}。

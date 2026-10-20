@@ -201,6 +201,7 @@ add_executable(mc_tests
     common/item/core/AdventureModeIntegrationTest.cpp
     common/item/core/ItemStackComponentRoundTripTest.cpp
     common/item/core/ItemComponentOverridesTest.cpp
+    common/item/core/DeathProtectionComponentTest.cpp
     common/item/core/ProjectileItemTest.cpp
     common/item/enchantment/EnchantmentTest.cpp
     common/item/enchantment/EnchantmentCallbackTest.cpp
@@ -530,6 +531,8 @@ add_executable(mc_tests
     common/entity/combat/DamagesHelmetTest.cpp
     # NO_ANGER/NO_ANGER_FROM_WIND_CHARGE 标签查询测试（mob_attack_no_aggro/风弹不激怒）
     common/entity/combat/NoAngerTest.cpp
+    # lastHurtByPlayer 实体引用归属测试（玩家直接攻击/驯服狼代攻/记忆窗口到期/击杀归属）
+    common/entity/combat/HurtByPlayerAttributionTest.cpp
     # AVOIDS_GUARDIAN_THORNS 标签查询测试（守卫者荆棘反伤，魔法/爆炸/荆棘不反伤）
     common/entity/combat/GuardianThornsTest.cpp
     # CAN_BREATHE_UNDER_WATER 标签查询测试（守卫者水下呼吸，修复硬编码致溺水）
@@ -1218,6 +1221,8 @@ add_executable(mc_tests
     common/advancement/AdvancementLoaderTest.cpp
     # EffectType 工具函数测试
     common/entity/effect/EffectTypeTest.cpp
+    # 效果移除回调测试（织网生成蜘蛛网/渗浆生成史莱姆/风弹爆炸上下文）
+    common/entity/effect/EffectOnRemovalTest.cpp
     # AnimationState 动画状态机工具类测试（start/stop/startIfStopped/animateWhen/copyFrom）
     common/entity/AnimationStateTest.cpp
     # EffectAttributeModifiers 效果属性修改器测试
