@@ -494,8 +494,7 @@ void LivingEntity::actuallyHurt(DamageSource& source, f32 amount)
     // （坠落铁砧/坠落方块/坠落钟乳石）命中戴头盔的实体时，伤害 ×0.75（减免 1/4），并回调
     // hurtHelmet 消耗头盔耐久。此分支独立于护甲减伤（在护甲减伤之前，无 bypassesArmor 门控），
     // 对齐 vanilla 位置（hurtServer 主流程，getDamageAfterArmorAbsorb 之前）。
-    // 注：vanilla LivingEntity.hurtHelmet 基类为空实现（耐久消耗由 doHurtEquipment 统一处理），
-    // Cubium hurtHelmet 基类同样空实现，耐久消耗留待装备耐久体系完善后补全（TODO）。
+    // 基类 hurtHelmet 对头盔槽调用 doHurtEquipment 消耗耐久（见其实现注释）。
     if (source.is(DamageTypeTags::DAMAGES_HELMET()) && !getEquipment(EquipmentSlot::Head).isEmpty()) {
         hurtHelmet(source, amount);
         amount *= 0.75f;
@@ -645,11 +644,33 @@ void LivingEntity::damageShield(f32 /*amount*/)
     // 默认空实现，由 Player 子类重写
 }
 
-void LivingEntity::hurtHelmet(DamageSource& /*source*/, f32 /*amount*/)
+void LivingEntity::hurtHelmet(DamageSource& source, f32 amount)
 {
-    // 对齐 vanilla LivingEntity.hurtHelmet:1793 基类空实现。DAMAGES_HELMET 伤害（坠落铁砧/方块/
-    // 钟乳石）命中头盔时由 actuallyHurt 的 DAMAGES_HELMET 分支调用，基类不消耗耐久。
-    // TODO: 装备耐久体系完善后补全头盔耐久消耗（对齐 vanilla doHurtEquipment 统一耐久逻辑）。
+    // 对齐 vanilla Player.hurtHelmet：doHurtEquipment(source, amount, EquipmentSlot.HEAD)。
+    // vanilla LivingEntity 基类为空实现，但非玩家的非人形生物在 vanilla 中本就不会经由
+    // hurtHelmet 消耗耐久（doHurtEquipment 仅由 Player/Wolf/Horse 覆写调用）；Cubium 在
+    // actuallyHurt 的 DAMAGES_HELMET 分支统一调用，故基类直接对头盔槽消耗耐久，
+    // 使所有戴头盔的实体行为一致。
+    doHurtEquipment(source, amount, {EquipmentSlot::Head});
+}
+
+void LivingEntity::doHurtEquipment(DamageSource& source, f32 amount, std::initializer_list<EquipmentSlot> slots)
+{
+    // 对齐 vanilla LivingEntity.doHurtEquipment（LivingEntity.java:1796-1808）。
+    if (amount <= 0.0f) {
+        return;
+    }
+    // vanilla: (int)Math.max(1.0F, amount / 4.0F)
+    const i32 durabilityLoss = static_cast<i32>(std::max(1.0f, amount / 4.0f));
+    for (EquipmentSlot slot : slots) {
+        ItemStack& equipment = getMutableEquipment(slot);
+        // TODO(equippable-component): vanilla 还要求 Equippable.damageOnHurt 为 true
+        //   （默认 true，可被数据包关闭）。Cubium 未实现 EQUIPPABLE 组件，此处按默认值处理。
+        if (equipment.isEmpty() || !equipment.isDamageable() || !equipment.canBeHurtBy(source)) {
+            continue;
+        }
+        hurtAndBreak(equipment, durabilityLoss, this, slot);
+    }
 }
 
 void LivingEntity::blockedByItem(LivingEntity& victim)

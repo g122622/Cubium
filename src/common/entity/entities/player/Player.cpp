@@ -554,7 +554,17 @@ ItemEntity* Player::drop(bool dropAll)
 
 void Player::damageArmor(DamageSource& source, f32 amount)
 {
-    m_inventory.damageArmor(source, amount);
+    // 对齐 vanilla Player.hurtArmor：doHurtEquipment(source, amount, FEET, LEGS, CHEST, HEAD)。
+    // 与 PlayerInventory::damageArmor 的 1.16.5 分摊逻辑（每件 1/4）不同，1.21 对四个护甲槽
+    // 各自消耗 max(1, floor(amount/4)) 点耐久。
+    doHurtEquipment(
+        source, amount, {EquipmentSlot::Feet, EquipmentSlot::Legs, EquipmentSlot::Chest, EquipmentSlot::Head});
+}
+
+void Player::hurtHelmet(DamageSource& source, f32 amount)
+{
+    // 对齐 vanilla Player.hurtHelmet：doHurtEquipment(source, amount, EquipmentSlot.HEAD)。
+    doHurtEquipment(source, amount, {EquipmentSlot::Head});
 }
 
 // ============================================================================
