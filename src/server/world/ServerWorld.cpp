@@ -63,6 +63,7 @@
 #include "common/world/WorldConstants.hpp"
 #include "common/world/attribute/DimensionAttributes.hpp"
 #include "common/world/attribute/EnvironmentAttributeSystem.hpp"
+#include "common/world/attribute/EnvironmentAttributes.hpp"
 #include "common/world/biome/Biome.hpp"
 #include "common/world/biome/BiomeClimate.hpp"
 #include "common/world/biome/BiomeRegistry.hpp"
@@ -1502,6 +1503,17 @@ const world::attribute::EnvironmentAttributeSystem& ServerWorld::environmentAttr
             [this](const Vector3& pos) { return _biomeAt(pos); });
     }
     return m_environmentAttributes->system();
+}
+
+bool ServerWorld::isCreakingActive(const BlockPos& pos) const
+{
+    // 对齐 vanilla CreakingHeartBlock：读维度级环境属性 CREAKING_ACTIVE
+    // （维度常量层 → 群系位置层 → 时间线层）。仅苍白花园且处于活跃时段时为真。
+    const world::attribute::EnvironmentAttributeSystem& system = environmentAttributes();
+    if (system.attributeCount() == 0) {
+        return false;
+    }
+    return system.getValue(world::attribute::EnvironmentAttributes::CREAKING_ACTIVE(), pos.center());
 }
 
 BiomeId ServerWorld::_biomeAt(const Vector3& pos) const

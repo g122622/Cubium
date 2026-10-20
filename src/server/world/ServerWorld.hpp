@@ -431,6 +431,11 @@ public:
 
     [[nodiscard]] DimensionId dimension() const noexcept override { return m_config.dimension; }
     [[nodiscard]] bool isUltraWarm() const noexcept override { return getDimensionType().ultraWarm(); }
+
+    /**
+     * @brief 指定位置的 CREAKING_ACTIVE 环境属性（维度 + 群系 + 时间线驱动）
+     */
+    [[nodiscard]] bool isCreakingActive(const BlockPos& pos) const override;
     [[nodiscard]] DimensionType getDimensionType() const;
     [[nodiscard]] u64 seed() const noexcept override { return m_config.seed; }
     [[nodiscard]] bool isHardcore() const noexcept override { return false; }

@@ -535,4 +535,30 @@ TEST(DimensionAttributesTest, BiomeLayerAppliesBiomeAttributesByPosition)
     registry.getMutable(Biomes::Plains).setAttributes(original);
 }
 
+TEST(DimensionAttributesTest, CreakingActiveResolvesFromBiomeLayer)
+{
+    timeline::Timelines::bootstrap();
+
+    // 服务端 ServerWorld::isCreakingActive 读维度级 CREAKING_ACTIVE；此处验证该属性的
+    // 群系层求值链路：苍白花园取声明值，其他群系保持默认 false。
+    auto& registry = world::biome::BiomeRegistry::instance();
+    registry.initialize();
+    const EnvironmentAttributeMap original = registry.get(Biomes::PaleGarden).attributes();
+
+    auto builder = EnvironmentAttributeMap::Builder();
+    ASSERT_TRUE(builder.setFromJson("minecraft:gameplay/creaking_active", nlohmann::json(true)).success());
+    registry.getMutable(Biomes::PaleGarden).setAttributes(builder.build());
+
+    const DimensionAttributes::BiomeResolver resolver = [](const Vector3& pos) {
+        return pos.x >= 0.0f ? Biomes::PaleGarden : Biomes::Plains;
+    };
+    const std::unique_ptr<EnvironmentAttributeSystem> system = DimensionAttributes::createSystem(
+        DimensionType::overworld(), [] { return i64{0}; }, [] { return i64{0}; }, resolver);
+
+    EXPECT_TRUE(system->getValue(EnvironmentAttributes::CREAKING_ACTIVE(), Vector3(4.0f, 64.0f, 4.0f)));
+    EXPECT_FALSE(system->getValue(EnvironmentAttributes::CREAKING_ACTIVE(), Vector3(-4.0f, 64.0f, 4.0f)));
+
+    registry.getMutable(Biomes::PaleGarden).setAttributes(original);
+}
+
 } // namespace mc::world::attribute
