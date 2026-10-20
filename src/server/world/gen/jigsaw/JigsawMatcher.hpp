@@ -22,6 +22,7 @@
 #include "JigsawTypes.hpp"
 #include "common/core/Types.hpp"
 #include "common/util/Direction.hpp"
+#include "common/world/block/blocks/special/JigsawBlock.hpp"
 #include "common/world/gen/jigsaw/JigsawOrientation.hpp"
 #include <optional>
 #include <string>
@@ -78,23 +79,10 @@ public:
     static bool canConnectOrientation(
         JigsawOrientation sourceOrientation, JigsawOrientation targetOrientation, JigsawJointType sourceJointType)
     {
-        Direction sourceFacing = JigsawOrientations::getFacing(sourceOrientation);
-        Direction targetFacing = JigsawOrientations::getFacing(targetOrientation);
-
-        // 条件1: facing 必须相反（面对面）
-        if (Directions::opposite(sourceFacing) != targetFacing) {
-            return false;
-        }
-
-        // 如果是 rollable 类型，只需 facing 相反
-        if (sourceJointType == JigsawJointType::Rollable) {
-            return true;
-        }
-
-        // aligned 类型：rotation 方向也必须相同
-        Direction sourceRotation = JigsawOrientations::getRotation(sourceOrientation);
-        Direction targetRotation = JigsawOrientations::getRotation(targetOrientation);
-        return sourceRotation == targetRotation;
+        // 方向对接规则与名称无关，是方块侧 canAttach 的朝向子集：统一由 JigsawBlock::canAttach 承载，
+        // 避免两处规则漂移（此处名称检查由调用方另行完成）。
+        return blocks::JigsawBlock::canAttach(
+            sourceOrientation, "", targetOrientation, "", sourceJointType == JigsawJointType::Rollable);
     }
 
     /**
