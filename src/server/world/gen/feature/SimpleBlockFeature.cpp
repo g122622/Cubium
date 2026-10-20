@@ -71,7 +71,6 @@ bool SimpleBlockFeature::place(
         return false;
     }
 
-    // TODO: 将 scheduleTick 请求保存到生成区块的待执行方块刻。
     // 双层植物必须先验证上方为空气，再同时写入两部分，不能留下单独的下半部分。
     if (dynamic_cast<const blocks::DoublePlantBlock*>(&block) != nullptr) {
         if (pos.y >= world::MAX_BUILD_HEIGHT - 1) {
@@ -84,6 +83,13 @@ bool SimpleBlockFeature::place(
         return blocks::DoublePlantBlock::placeAt(region, pos, *toPlace, world::BlockUpdateFlags::UPDATE_CLIENTS);
     }
     region.setBlockState(pos, toPlace, world::BlockUpdateFlags::UPDATE_CLIENTS);
+
+    // 对齐 vanilla SimpleBlockFeature.place：配置要求调度刻时，以延迟 1 调度放置后方块的刻
+    // （读取放置后的方块状态；放置失败的情形已在上面提前返回）。
+    // 方块刻记录在区块的待执行列表中，区块发布后由 ServerChunkManager 转交 TickManager。
+    if (config.scheduleTick) {
+        region.scheduleTick(pos, block, 1);
+    }
     return true;
 }
 
