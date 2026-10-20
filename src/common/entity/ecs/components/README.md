@@ -5,6 +5,7 @@
 ```text
 components/
 ├── AABBShapeComponent.hpp # 轴对齐包围盒组件
+├── ArmorStandStateComponent.hpp # 盔甲架状态组件（不可见/小型/手臂/禁用槽位/底座/姿态）
 ├── ArrowEffectsComponent.hpp # 药水箭效果组件
 ├── ArrowStateComponent.hpp # 箭矢/蜂针状态组件
 ├── AttributeComponent.hpp # 属性状态组件
