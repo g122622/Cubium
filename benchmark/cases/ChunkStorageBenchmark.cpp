@@ -43,7 +43,7 @@ ChunkData _makeChunk(i32 values)
     return chunk;
 }
 
-class _CapturedValue final : public rocksdb::WriteBatch::Handler {
+class _capturedValue final : public rocksdb::WriteBatch::Handler {
 public:
     std::string bytes;
     rocksdb::Status PutCF(uint32_t, const rocksdb::Slice&, const rocksdb::Slice& value) override
@@ -58,7 +58,8 @@ void _capture(::benchmark::State& state)
     const auto chunk = _makeChunk(static_cast<i32>(state.range(0)));
     const SectionKey key(0, 0, world::MIN_SECTION_Y, 0);
     size_t batchBytes = 0;
-    for (auto _ : state) {
+    for (auto iteration : state) {
+        MC_UNUSED(iteration);
         rocksdb::WriteBatch batch(SectionCodec::encodedSize(*chunk.getSection(0)) + 44);
         auto result = SectionCodec::appendToBatch(batch, nullptr, key, chunk, 0);
         MC_ASSERT_RELEASE(result.success());
@@ -76,9 +77,10 @@ void _restore(::benchmark::State& state)
     rocksdb::WriteBatch batch(SectionCodec::encodedSize(*chunk.getSection(0)) + 44);
     const SectionKey key(0, 0, world::MIN_SECTION_Y, 0);
     MC_ASSERT_RELEASE(SectionCodec::appendToBatch(batch, nullptr, key, chunk, 0).success());
-    _CapturedValue capture;
+    _capturedValue capture;
     MC_ASSERT_RELEASE(batch.Iterate(&capture).ok());
-    for (auto _ : state) {
+    for (auto iteration : state) {
+        MC_UNUSED(iteration);
         ChunkData restored(0, 0);
         auto result = SectionCodec::restore(
             {reinterpret_cast<const u8*>(capture.bytes.data()), capture.bytes.size()}, restored, 0);

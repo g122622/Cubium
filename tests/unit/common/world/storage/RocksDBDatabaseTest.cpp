@@ -263,13 +263,16 @@ TEST_F(RocksDBDatabaseTest, PinnedMultiGetDistinguishesEmptyMissingAndOwnsReadVe
         auto result = db->multiGetPinned(cf::META, keys);
         ASSERT_TRUE(result.success());
         ASSERT_EQ(result.value().size(), 3u);
-        ASSERT_TRUE(result.value()[0].has_value());
-        EXPECT_EQ(result.value()[0]->ToString(), "before");
+        const auto& first = result.value()[0];
+        const auto& empty = result.value()[2];
+        if (!first.has_value() || !empty.has_value()) {
+            FAIL() << "Existing keys must return values, including an empty value";
+        }
+        EXPECT_EQ(first->ToString(), "before");
         EXPECT_FALSE(result.value()[1].has_value());
-        ASSERT_TRUE(result.value()[2].has_value());
-        EXPECT_TRUE(result.value()[2]->empty());
+        EXPECT_TRUE(empty->empty());
         ASSERT_TRUE(db->put(cf::META, rocksdb::Slice("value"), rocksdb::Slice("after"), false).success());
-        EXPECT_EQ(result.value()[0]->ToString(), "before");
+        EXPECT_EQ(first->ToString(), "before");
         ASSERT_TRUE(db->put(cf::META, rocksdb::Slice("value"), rocksdb::Slice("before"), false).success());
     }
     EXPECT_TRUE(db->multiGetPinned(cf::META, {}).success());

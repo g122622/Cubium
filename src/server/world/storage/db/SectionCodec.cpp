@@ -38,10 +38,10 @@ namespace {
 
 // 所有数值数组固定采用小端布局；当前支持的平台均可直接复制，无逐元素字节序转换。
 static_assert(std::endian::native == std::endian::little);
-constexpr u32 _FORMAT_MAGIC = 0x31534343;
-constexpr size_t _HEADER_WORDS = 8;
-constexpr size_t _HEADER_SIZE = _HEADER_WORDS * sizeof(u32);
-constexpr size_t _BIOME_BYTES = BiomeContainer::SECTION_BIOME_SIZE * sizeof(BiomeId);
+constexpr u32 _formatMagic = 0x31534343;
+constexpr size_t _headerWords = 8;
+constexpr size_t _headerSize = _headerWords * sizeof(u32);
+constexpr size_t _biomeBytes = BiomeContainer::SECTION_BIOME_SIZE * sizeof(BiomeId);
 
 template <typename T, size_t Extent>
 rocksdb::Slice _slice(std::span<T, Extent> values)
@@ -54,7 +54,7 @@ rocksdb::Slice _slice(std::span<T, Extent> values)
 size_t SectionCodec::encodedSize(const ChunkSection& section)
 {
     const auto packed = section.blockStates().packedView();
-    return _HEADER_SIZE + _BIOME_BYTES + packed.palette.size_bytes() + packed.storage.size_bytes() +
+    return _headerSize + _biomeBytes + packed.palette.size_bytes() + packed.storage.size_bytes() +
         packed.hashMap.size_bytes();
 }
 
@@ -65,13 +65,14 @@ Result<void> SectionCodec::appendToBatch(rocksdb::WriteBatch& batch,
     i32 sectionIndex)
 {
     MC_TRACE_SCOPED_EVENT(TraceEvents.Storage.Db, "SectionCodec::appendToBatch");
-    MC_ASSERT_RELEASE(sectionIndex >= 0 && sectionIndex < world::CHUNK_SECTIONS);
+    MC_ASSERT_RELEASE(sectionIndex >= 0);
+    MC_ASSERT_RELEASE(sectionIndex < world::CHUNK_SECTIONS);
     const ChunkSection* section = chunk.getSection(sectionIndex);
     MC_ASSERT_RELEASE(section != nullptr);
     const auto packed = section->blockStates().packedView();
     MC_ASSERT_RELEASE(packed.palette.size() <= std::numeric_limits<u32>::max());
     MC_ASSERT_RELEASE(packed.hashMap.size() <= std::numeric_limits<u32>::max());
-    const std::array<u32, _HEADER_WORDS> header{_FORMAT_MAGIC,
+    const std::array<u32, _headerWords> header{_formatMagic,
         static_cast<u32>(packed.bits),
         static_cast<u32>(packed.palette.size()),
         static_cast<u32>(packed.storage.size()),
@@ -98,23 +99,24 @@ Result<void> SectionCodec::appendToBatch(rocksdb::WriteBatch& batch,
 Result<void> SectionCodec::restore(std::span<const u8> bytes, ChunkData& chunk, i32 sectionIndex)
 {
     MC_TRACE_SCOPED_EVENT(TraceEvents.Storage.Db, "SectionCodec::restore", "size", bytes.size());
-    MC_ASSERT_RELEASE(sectionIndex >= 0 && sectionIndex < world::CHUNK_SECTIONS);
-    if (bytes.size() < _HEADER_SIZE + _BIOME_BYTES) {
+    MC_ASSERT_RELEASE(sectionIndex >= 0);
+    MC_ASSERT_RELEASE(sectionIndex < world::CHUNK_SECTIONS);
+    if (bytes.size() < _headerSize + _biomeBytes) {
         return Error(ErrorCode::InvalidData, "Truncated compact section header");
     }
-    std::array<u32, _HEADER_WORDS> header;
-    std::memcpy(header.data(), bytes.data(), _HEADER_SIZE);
-    if (header[0] != _FORMAT_MAGIC || header[1] > 31 || header[5] > ChunkSection::VOLUME ||
+    std::array<u32, _headerWords> header;
+    std::memcpy(header.data(), bytes.data(), _headerSize);
+    if (header[0] != _formatMagic || header[1] > 31 || header[5] > ChunkSection::VOLUME ||
         header[6] > ChunkSection::VOLUME || header[7] > ChunkSection::VOLUME) {
         return Error(ErrorCode::InvalidData, "Invalid compact section header");
     }
     const u64 paletteBytes = static_cast<u64>(header[2]) * sizeof(u32);
     const u64 storageBytes = static_cast<u64>(header[3]) * sizeof(u64);
     const u64 hashBytes = static_cast<u64>(header[4]) * sizeof(u32);
-    if (_HEADER_SIZE + paletteBytes + storageBytes + hashBytes + _BIOME_BYTES != bytes.size()) {
+    if (_headerSize + paletteBytes + storageBytes + hashBytes + _biomeBytes != bytes.size()) {
         return Error(ErrorCode::InvalidData, "Compact section length does not match header");
     }
-    size_t offset = _HEADER_SIZE;
+    size_t offset = _headerSize;
     const auto palette = bytes.subspan(offset, static_cast<size_t>(paletteBytes));
     offset += static_cast<size_t>(paletteBytes);
     const auto storage = bytes.subspan(offset, static_cast<size_t>(storageBytes));
@@ -129,7 +131,7 @@ Result<void> SectionCodec::restore(std::span<const u8> bytes, ChunkData& chunk, 
     auto* section = chunk.createSection(sectionIndex);
     section->restoreBlockStates(
         std::move(states), static_cast<u16>(header[5]), static_cast<u16>(header[6]), static_cast<u16>(header[7]));
-    std::memcpy(chunk.getBiomes().sectionData(sectionIndex).data(), bytes.data() + offset, _BIOME_BYTES);
+    std::memcpy(chunk.getBiomes().sectionData(sectionIndex).data(), bytes.data() + offset, _biomeBytes);
     return {};
 }
 

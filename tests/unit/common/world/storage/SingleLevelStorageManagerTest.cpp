@@ -233,7 +233,7 @@ TEST_F(SingleLevelStorageManagerTest, RejectedSaveCallsCompletionExactlyOnce)
     storage.saveChunkAsyncCallback(
         chunk,
         0,
-        [&completions](std::optional<ChunkPos> position, Result<void> result) {
+        [&completions](std::optional<ChunkPos> position, const Result<void>& result) {
             ++completions;
             EXPECT_TRUE(position.has_value());
             EXPECT_TRUE(result.failed());
@@ -280,8 +280,11 @@ TEST_F(SingleLevelStorageManagerTest, CloseWaitsForPinnedReadAssemblyBeforeDestr
     ASSERT_EQ(loaded.wait_for(std::chrono::seconds(10)), std::future_status::ready);
     auto result = loaded.get();
     ASSERT_TRUE(result.success()) << result.error().message();
-    ASSERT_TRUE(result.value().has_value());
-    EXPECT_EQ(result.value()->getSection(0)->getBlockStateIdFast(0), 100u);
+    const auto& restoredChunk = result.value();
+    if (!restoredChunk.has_value()) {
+        FAIL() << "The existing chunk must finish restoring before close returns";
+    }
+    EXPECT_EQ(restoredChunk->getSection(0)->getBlockStateIdFast(0), 100u);
     ioPool.shutdown();
     computePool.shutdown();
 }

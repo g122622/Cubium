@@ -112,7 +112,7 @@ protected:
     void SetUp() override { mc::VanillaBlocks::initialize(); }
 };
 
-class _CapturedValue final : public rocksdb::WriteBatch::Handler {
+class _capturedValue final : public rocksdb::WriteBatch::Handler {
 public:
     std::string bytes;
     rocksdb::Status PutCF(uint32_t, const rocksdb::Slice&, const rocksdb::Slice& value) override
@@ -128,7 +128,7 @@ std::vector<u8> _encode(const ChunkData& chunk, i32 index)
     const SectionKey key(chunk.x(), chunk.z(), static_cast<i8>(world::sectionIndexToCoord(index)), 0);
     auto result = SectionCodec::appendToBatch(batch, nullptr, key, chunk, index);
     EXPECT_TRUE(result.success()) << result.error().message();
-    _CapturedValue capture;
+    _capturedValue capture;
     EXPECT_TRUE(batch.Iterate(&capture).ok());
     return {capture.bytes.begin(), capture.bytes.end()};
 }
@@ -217,7 +217,7 @@ TEST_F(SectionCodecTest, BatchOwnsSnapshotAfterSourceChanges)
     ASSERT_TRUE(
         SectionCodec::appendToBatch(batch, nullptr, SectionKey(0, 0, world::MIN_SECTION_Y, 0), source, 0).success());
     source.getSection(0)->fill(101);
-    _CapturedValue capture;
+    _capturedValue capture;
     ASSERT_TRUE(batch.Iterate(&capture).ok());
     ChunkData restored(0, 0);
     ASSERT_TRUE(
