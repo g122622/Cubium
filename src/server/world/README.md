@@ -286,7 +286,7 @@ NoiseChunkGenerator::randomState()  →  RandomState
 `ServerChunkManager::shutdown()` 会直接 `m_chunks.clear()`，之后世界里的任何修改都不再可能落盘。所以**关服落盘一律发生在它之前**：`MinecraftServer::shutdownManagers()` 先调 `saveAllWorldData(true)`，`ServerWorld::shutdown()` 再保存本维度实体，最后才轮到区块管理器关闭。任何"先关区块管理器再保存"的改动都会静默丢掉玩家最后一段时间的建造。
 
 ### 区块保存由区块层驱动，存储层没有数据
-存储层不再缓存任何段数据，`SingleLevelStorageManager::saveSections()` 只是"把调用方给的段批量写进 RocksDB"。要保存什么必须由区块层决定：`ServerWorld::saveDirtyChunks(sync)` 遍历内存区块表中 `isDirty()` 且已完全生成的区块，逐段序列化后**把所有脏区块的段攒进同一个批次**一次性提交。不要在存储层重新引入段缓存来"让保存有数据源"——读写路径访问同一批段的概率极低，缓存只会常驻内存而不命中。
+存储层不再缓存任何段数据，`SingleLevelStorageManager::saveChunks()` 从调用方提供的区块直接捕获紧凑数组。要保存什么必须由区块层决定：`ServerWorld::saveDirtyChunks(sync)` 遍历内存区块表中 `isDirty()` 且已完全生成的区块，将区块列表交给存储门面，**把所有脏区块的段攒进同一个批次**一次性提交。不要在存储层重新引入段缓存来"让保存有数据源"——读写路径访问同一批段的概率极低，缓存只会常驻内存而不命中。
 
 ### 共享存储下的保存由 MinecraftServer 统一执行
 三个 `ServerWorld` 共享存储，各自保存自己的区块不会重复（区块按维度归属），但玩家数据与 level.dat 只应落盘一次，因此统一收口在 `MinecraftServer::saveAllWorldData()`；`ServerWorld::shutdown()` 只额外落盘**本维度自己**的实体。

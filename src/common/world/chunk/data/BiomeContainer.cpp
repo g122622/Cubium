@@ -76,6 +76,20 @@ BiomeId BiomeContainer::getBiomeAtBlock(i32 x, i32 y, i32 z) const
     return getBiome(sectionIndex, biomeX, biomeY, biomeZ);
 }
 
+std::span<const BiomeId, BiomeContainer::SECTION_BIOME_SIZE> BiomeContainer::sectionData(i32 sectionIndex) const
+{
+    MC_ASSERT_RELEASE(sectionIndex >= 0 && sectionIndex < SECTION_COUNT);
+    return std::span<const BiomeId, SECTION_BIOME_SIZE>(
+        m_biomes.data() + static_cast<size_t>(sectionIndex) * SECTION_BIOME_SIZE, SECTION_BIOME_SIZE);
+}
+
+std::span<BiomeId, BiomeContainer::SECTION_BIOME_SIZE> BiomeContainer::sectionData(i32 sectionIndex)
+{
+    MC_ASSERT_RELEASE(sectionIndex >= 0 && sectionIndex < SECTION_COUNT);
+    return std::span<BiomeId, SECTION_BIOME_SIZE>(
+        m_biomes.data() + static_cast<size_t>(sectionIndex) * SECTION_BIOME_SIZE, SECTION_BIOME_SIZE);
+}
+
 std::vector<u8> BiomeContainer::serialize() const
 {
     std::vector<u8> data;

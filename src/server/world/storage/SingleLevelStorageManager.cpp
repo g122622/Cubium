@@ -53,6 +53,7 @@
 #include "server/world/storage/snapshot/BackupManager.hpp"
 #include "server/world/storage/task/StorageTask.hpp"
 #include "server/world/storage/task/StorageTaskManager.hpp"
+#include <array>
 #include <atomic>
 #include <cstddef>
 #include <exception>
@@ -76,6 +77,33 @@
 using namespace mc::trace;
 
 namespace mc::world::storage {
+namespace {
+
+Result<rocksdb::WriteBatch> _captureSections(SectionManager& manager, std::span<const ChunkData* const> chunks)
+{
+    // 一次预留最终批次，避免追加大量段时反复扩容和复制已捕获的数据。
+    // 每条额外预留 32 字节，覆盖标签、列族、键与长度变长整数；批头占 12 字节。
+    size_t reservedBytes = 12;
+    for (const ChunkData* chunk : chunks) {
+        MC_ASSERT_RELEASE(chunk != nullptr);
+        const auto lock = chunk->lockForLightRead();
+        for (i32 index = 0; index < world::CHUNK_SECTIONS; ++index) {
+            if (const auto* section = chunk->getSection(index)) {
+                reservedBytes += SectionCodec::encodedSize(*section) + 32;
+            }
+        }
+    }
+    rocksdb::WriteBatch batch(reservedBytes);
+    for (const ChunkData* chunk : chunks) {
+        auto result = manager.appendChunk(batch, *chunk);
+        if (result.failed()) {
+            return result.error();
+        }
+    }
+    return batch;
+}
+
+} // namespace
 
 SingleLevelStorageManager::SingleLevelStorageManager() = default;
 
@@ -280,6 +308,15 @@ void SingleLevelStorageManager::close()
 
     MC_TRACE_SCOPED_EVENT(TraceEvents.Server.World, "SingleLevelStorageManager::close");
 
+    // 关闭前调用方停止提交请求。先排空 I/O，再排空恢复任务，确保所有固定读取句柄
+    // 在数据库销毁之前释放；两个池由外部持有，本方法不停止它们。
+    if (m_taskManager) {
+        m_taskManager->waitForCompletion();
+    }
+    if (m_computeWorkerPool != nullptr) {
+        m_computeWorkerPool->waitForCompletion();
+    }
+
     {
         std::lock_guard<std::mutex> lock(m_sectionManagersMutex);
         m_sectionManagers.clear();
@@ -294,6 +331,7 @@ void SingleLevelStorageManager::close()
     m_backend.reset();
     m_taskManager.reset();
     m_ioWorkerPool = nullptr;
+    m_computeWorkerPool = nullptr;
     m_sessionLock.reset();
 
     spdlog::info("SingleLevelStorageManager closed");
@@ -301,24 +339,22 @@ void SingleLevelStorageManager::close()
     m_worldPath.clear();
 }
 
-Result<size_t> SingleLevelStorageManager::saveSections(
-    DimensionId dimension, const std::vector<SectionWrite>& writes, bool sync)
+Result<size_t> SingleLevelStorageManager::saveChunks(
+    DimensionId dimension, std::span<const ChunkData* const> chunks, bool sync)
 {
-    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.World, "SingleLevelStorageManager::saveSections", "count", writes.size());
-
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.World, "SingleLevelStorageManager::saveChunks", "count", chunks.size());
     if (!isOpen()) {
         return Error(ErrorCode::InvalidState, "Storage not open");
     }
-
-    if (m_config.readonly) {
-        return Result<size_t>(0);
+    if (m_config.readonly || m_backend || chunks.empty()) {
+        return size_t{0};
     }
-
-    if (writes.empty()) {
-        return 0;
+    auto& manager = _sectionManager(dimension);
+    auto captured = _captureSections(manager, chunks);
+    if (captured.failed()) {
+        return captured.error();
     }
-
-    return _sectionManager(dimension).saveSectionsBatch(writes, sync);
+    return manager.saveBatch(captured.value(), sync);
 }
 
 Result<size_t> SingleLevelStorageManager::flushPlayerData()
@@ -356,27 +392,12 @@ Result<void> SingleLevelStorageManager::saveChunk(const ChunkData& chunk, Dimens
 
     auto& manager = _sectionManager(dimension);
 
-    const std::vector<BiomeId> biomes = SectionCodec::extractBiomes(chunk.getBiomes());
-
-    // 全部段聚合成一个批次：逐段落盘会让每段各付一次 WAL fsync。
-    std::vector<SectionWrite> writes;
-    writes.reserve(world::CHUNK_SECTIONS);
-
-    for (i8 sectionY = 0; sectionY < world::CHUNK_SECTIONS; ++sectionY) {
-        const ChunkSection* section = chunk.getSection(sectionY);
-        if (!section) {
-            continue;
-        }
-
-        SectionKey key(chunk.x(), chunk.z(), static_cast<i8>(world::sectionIndexToCoord(sectionY)), dimension);
-        auto bytesResult = SectionCodec::serializeFromChunkSection(chunk, sectionY, *section, key, biomes);
-        if (bytesResult.failed()) {
-            return bytesResult.error();
-        }
-        writes.push_back(SectionWrite{key, std::move(bytesResult.value())});
+    const std::array<const ChunkData*, 1> chunks{&chunk};
+    auto captured = _captureSections(manager, chunks);
+    if (captured.failed()) {
+        return captured.error();
     }
-
-    auto saveResult = manager.saveSectionsBatch(writes);
+    auto saveResult = manager.saveBatch(captured.value(), false);
     if (saveResult.failed()) {
         return saveResult.error();
     }
@@ -419,8 +440,6 @@ Result<std::optional<ChunkData>> SingleLevelStorageManager::loadChunk(ChunkCoord
     auto& manager = _sectionManager(dimension);
     ChunkData chunk(x, z);
     bool hasAnySection = false;
-    bool hasBiomes = false;
-    BiomeContainer biomeContainer;
 
     std::vector<SectionKey> keys;
     keys.reserve(world::CHUNK_SECTIONS);
@@ -442,35 +461,9 @@ Result<std::optional<ChunkData>> SingleLevelStorageManager::loadChunk(ChunkCoord
             continue;
         }
 
-        if (sectionData->biomes.size() == SectionData::BIOME_COUNT) {
-            const i32 biomeSectionIndex = world::sectionCoordToIndex(static_cast<i32>(keys[i].sectionY));
-            if (biomeSectionIndex >= 0 && biomeSectionIndex < BiomeContainer::SECTION_COUNT) {
-                for (i32 biomeY = 0; biomeY < BiomeContainer::VERT_SIZE; ++biomeY) {
-                    for (i32 biomeZ = 0; biomeZ < BiomeContainer::HORIZ_SIZE; ++biomeZ) {
-                        for (i32 biomeX = 0; biomeX < BiomeContainer::HORIZ_SIZE; ++biomeX) {
-                            const size_t biomeIndex =
-                                static_cast<size_t>(biomeY * BiomeContainer::HORIZ_SIZE * BiomeContainer::HORIZ_SIZE +
-                                    biomeZ * BiomeContainer::HORIZ_SIZE + biomeX);
-                            biomeContainer.setBiome(
-                                biomeSectionIndex, biomeX, biomeY, biomeZ, sectionData->biomes[biomeIndex]);
-                        }
-                    }
-                }
-                hasBiomes = true;
-            }
-        }
-
         const i32 sectionIndex = world::sectionCoordToIndex(static_cast<i32>(keys[i].sectionY));
-        if (sectionIndex < 0 || sectionIndex >= world::CHUNK_SECTIONS) {
-            return Error(ErrorCode::ChunkCorrupted,
-                fmt::format("Section coord {} maps outside chunk section range [0, {})",
-                    static_cast<i32>(keys[i].sectionY),
-                    world::CHUNK_SECTIONS));
-        }
-
-        ChunkSection* section = chunk.createSection(sectionIndex);
-        MC_ASSERT_RELEASE(section != nullptr);
-        auto applyResult = SectionCodec::toChunkSection(*sectionData, *section);
+        auto applyResult = SectionCodec::restore(
+            {reinterpret_cast<const u8*>(sectionData->data()), sectionData->size()}, chunk, sectionIndex);
         if (applyResult.failed()) {
             return applyResult.error();
         }
@@ -480,10 +473,6 @@ Result<std::optional<ChunkData>> SingleLevelStorageManager::loadChunk(ChunkCoord
 
     if (!hasAnySection) {
         return std::optional<ChunkData>{};
-    }
-
-    if (hasBiomes) {
-        chunk.setBiomes(std::move(biomeContainer));
     }
 
     // 加载方块实体
@@ -586,33 +575,20 @@ void SingleLevelStorageManager::saveChunkAsyncCallback(std::shared_ptr<const Chu
         return;
     }
 
-    // stage1（调用线程，主线程）：逐段序列化区块为落盘快照（每段只有压缩后的字节）。
-    // 序列化读取 ChunkData，与 setBlockState 等 chunk 修改者均在主线程串行执行，无数据竞争。
-    // 快照只保存压缩字节，脱离 ChunkData 后后续修改不影响已捕获的数据；不保留
-    // SectionData 中间态，避免整列 24 段同时存活时的峰值分配（详见 SectionCodec）。
-    const std::vector<BiomeId> biomes = SectionCodec::extractBiomes(chunk->getBiomes());
-
-    std::vector<SectionWrite> sectionSnapshot;
-    sectionSnapshot.reserve(world::CHUNK_SECTIONS);
-
-    for (i8 sectionY = 0; sectionY < world::CHUNK_SECTIONS; ++sectionY) {
-        const ChunkSection* section = chunk->getSection(sectionY);
-        if (!section) {
-            continue;
+    // 调用线程完成唯一一次快照拷贝：直接从紧凑数组收集进 WriteBatch。
+    // 批次拥有数据，交接后后台线程不再触碰 ChunkData。
+    const std::array<const ChunkData*, 1> chunks{chunk.get()};
+    auto captured = _captureSections(_sectionManager(dimension), chunks);
+    if (captured.failed()) {
+        if (callback) {
+            callback(ChunkPos(x, z), captured.error());
         }
-        SectionKey key(x, z, static_cast<i8>(world::sectionIndexToCoord(sectionY)), dimension);
-        auto bytesResult = SectionCodec::serializeFromChunkSection(*chunk, sectionY, *section, key, biomes);
-        if (bytesResult.failed()) {
-            if (callback) {
-                callback(ChunkPos(x, z), bytesResult.error());
-            }
-            return;
-        }
-        sectionSnapshot.push_back(SectionWrite{key, std::move(bytesResult.value())});
+        return;
     }
+    auto sectionSnapshot = std::make_shared<rocksdb::WriteBatch>(std::move(captured.value()));
 
     // 方块实体：在主线程同步保存。方块实体数量少（每区块通常 < 50），NBT 序列化 + 单条 RocksDB put
-    // 开销远小于 24 section 的 ZSTD+WriteBatch；同步保存避免在 ServerIO 读取 ChunkData 的方块实体表
+    // 开销远小于整列区块的持久化工作；同步保存避免在 ServerIO 读取 ChunkData 的方块实体表
     // 与 setBlockState 修改方块实体表的数据竞争。
     Result<void> blockEntityResult = Result<void>::ok();
     if (m_blockEntityStorage) {
@@ -636,15 +612,14 @@ void SingleLevelStorageManager::saveChunkAsyncCallback(std::shared_ptr<const Chu
     // 确保读到保存后的新数据（对齐 Moonrise GenericDataLoadTask 等待 UnloadTask）。
     PendingChunkSave pendingSave = _registerPendingChunkSave(x, z, dimension);
 
-    // stage2（ServerIO）：把整列快照聚合成**一个** WriteBatch 落盘（ZSTD 压缩在 stage1 已完成）。
-    // 仅触及快照与 SectionManager，不触及 ChunkData，与主线程 chunk 修改无数据竞争。
+    // ServerIO 只提交已经拥有数据的批次，不再进行拼接或区块访问。
     auto& sectionManager = _sectionManager(dimension);
     auto executor = [sectionSnapshot = std::move(sectionSnapshot), &sectionManager, x, z](
                         const std::atomic<bool>& abortSig) -> bool {
         if (abortSig.load(std::memory_order::acquire)) {
             return false;
         }
-        return sectionManager.saveSectionsBatch(sectionSnapshot).success();
+        return sectionManager.saveBatch(*sectionSnapshot, false).success();
     };
 
     SectionKey descKey{x, z, 0, dimension};
@@ -659,14 +634,8 @@ void SingleLevelStorageManager::saveChunkAsyncCallback(std::shared_ptr<const Chu
                 success ? Result<void>::ok() : Error(ErrorCode::InvalidState, "Save chunk failed or cancelled"));
         }
     };
-    const u64 taskId = m_taskManager->submit(std::move(task), priority, std::move(onSaveDone), nullptr);
-    if (taskId == 0) {
-        // 池不接受任务时不会执行回调：这里不会再有回调，直接唤醒等待者并报告失败
-        _abandonPendingChunkSave(pendingSave);
-        if (callback) {
-            callback(ChunkPos(x, z), Error(ErrorCode::InvalidState, "Save chunk task rejected"));
-        }
-    }
+    // 线程池拒绝提交时同样立即执行失败回调，由同一个收尾入口清理保存追踪。
+    m_taskManager->submit(std::move(task), priority, std::move(onSaveDone), nullptr);
 }
 
 PendingChunkSave SingleLevelStorageManager::_registerPendingChunkSave(ChunkCoord x, ChunkCoord z, DimensionId dimension)
@@ -799,8 +768,7 @@ void SingleLevelStorageManager::_loadChunkAsyncCore(ChunkCoord x,
     struct AsyncLoadState {
         std::atomic<i32> pending;
         std::mutex mutex;
-        Result<std::vector<std::shared_ptr<const SectionData>>> sectionResult{
-            Error(ErrorCode::Unknown, "uninitialized")};
+        Result<PinnedValues> sectionResult{Error(ErrorCode::Unknown, "uninitialized")};
         bool sectionReady = false;
         Result<std::vector<std::unique_ptr<BlockEntity>>> blockEntityResult{Error(ErrorCode::Unknown, "uninitialized")};
         bool blockEntityReady = false;
@@ -835,8 +803,6 @@ void SingleLevelStorageManager::_loadChunkAsyncCore(ChunkCoord x,
 
             ChunkData chunk(state->x, state->z);
             bool hasAnySection = false;
-            bool hasBiomes = false;
-            BiomeContainer biomeContainer;
 
             for (size_t i = 0; i < sections.size(); ++i) {
                 const auto& sectionData = sections[i];
@@ -844,35 +810,9 @@ void SingleLevelStorageManager::_loadChunkAsyncCore(ChunkCoord x,
                     continue;
                 }
 
-                if (sectionData->biomes.size() == SectionData::BIOME_COUNT) {
-                    const i32 biomeSectionIndex = world::sectionCoordToIndex(static_cast<i32>(state->keys[i].sectionY));
-                    if (biomeSectionIndex >= 0 && biomeSectionIndex < BiomeContainer::SECTION_COUNT) {
-                        for (i32 biomeY = 0; biomeY < BiomeContainer::VERT_SIZE; ++biomeY) {
-                            for (i32 biomeZ = 0; biomeZ < BiomeContainer::HORIZ_SIZE; ++biomeZ) {
-                                for (i32 biomeX = 0; biomeX < BiomeContainer::HORIZ_SIZE; ++biomeX) {
-                                    const size_t biomeIndex = static_cast<size_t>(
-                                        biomeY * BiomeContainer::HORIZ_SIZE * BiomeContainer::HORIZ_SIZE +
-                                        biomeZ * BiomeContainer::HORIZ_SIZE + biomeX);
-                                    biomeContainer.setBiome(
-                                        biomeSectionIndex, biomeX, biomeY, biomeZ, sectionData->biomes[biomeIndex]);
-                                }
-                            }
-                        }
-                        hasBiomes = true;
-                    }
-                }
-
                 const i32 sectionIndex = world::sectionCoordToIndex(static_cast<i32>(state->keys[i].sectionY));
-                if (sectionIndex < 0 || sectionIndex >= world::CHUNK_SECTIONS) {
-                    return Error(ErrorCode::ChunkCorrupted,
-                        fmt::format("Section coord {} maps outside chunk section range [0, {})",
-                            static_cast<i32>(state->keys[i].sectionY),
-                            world::CHUNK_SECTIONS));
-                }
-
-                ChunkSection* section = chunk.createSection(sectionIndex);
-                MC_ASSERT_RELEASE(section != nullptr);
-                auto applyResult = SectionCodec::toChunkSection(*sectionData, *section);
+                auto applyResult = SectionCodec::restore(
+                    {reinterpret_cast<const u8*>(sectionData->data()), sectionData->size()}, chunk, sectionIndex);
                 if (applyResult.failed()) {
                     return applyResult.error();
                 }
@@ -882,10 +822,6 @@ void SingleLevelStorageManager::_loadChunkAsyncCore(ChunkCoord x,
 
             if (!hasAnySection) {
                 return std::optional<ChunkData>{};
-            }
-
-            if (hasBiomes) {
-                chunk.setBiomes(std::move(biomeContainer));
             }
 
             // 路径 B 结果：方块实体（失败不影响区块加载，与同步 loadChunk 行为一致）
@@ -905,12 +841,12 @@ void SingleLevelStorageManager::_loadChunkAsyncCore(ChunkCoord x,
             return std::optional<ChunkData>(std::move(chunk));
         }();
 
+        state->sectionResult = PinnedValues{};
         state->completion(std::move(result));
     };
 
     // 完成检查：减少 pending 计数，归零者把组装（反序列化）投递到 ServerCompute 线程池。
-    // 反序列化（SectionCodec::toChunkSection × 24 + biomes 组装）是 CPU 密集型，放在 ServerCompute
-    // 与 ServerIO 读盘分离（对齐 Moonrise ProcessOffMainTask 跑在 loadExecutor）。
+    // 紧凑数组恢复与缺失高度图重建在 ServerCompute 执行，与 ServerIO 读盘分离。
     // 无 Compute 池（测试/独立模式）时降级为在 ServerIO worker 内联组装。
     // abortSignal 透传给 Compute 任务，使 SCLM 取消能中断组装阶段。
     auto checkComplete = [this, state, _assemble, priority]() {
@@ -946,7 +882,7 @@ void SingleLevelStorageManager::_loadChunkAsyncCore(ChunkCoord x,
 
     // 路径 A：section 数据。提交 StorageTask 到 ServerIO，内部同步调 loadSectionsSync。
     auto sectionExecutor = [this, state, keys = std::move(keys), checkComplete, x, z, dimension](
-                               const std::atomic<bool>& abortSig) {
+                               const std::atomic<bool>& abortSig) mutable {
         if (abortSig.load(std::memory_order::acquire)) {
             {
                 std::lock_guard<std::mutex> lock(state->mutex);

@@ -26,8 +26,10 @@
 #include "common/util/assert/AssertMacros.hpp"
 
 #include <algorithm>
+#include <bit>
 #include <cstddef>
 #include <functional>
+#include <limits>
 #include <utility>
 #include <vector>
 
@@ -414,6 +416,92 @@ void PalettedContainer::fromFlat(const u32* data, i32 count)
         MC_ASSERT_RELEASE(paletteIndex >= 0);
         _writeBits(i, paletteIndex);
     }
+}
+
+PalettedContainer::PackedView PalettedContainer::packedView() const noexcept
+{
+    return {m_data.bits,
+        std::span<const u32>(m_data.palette.data(), static_cast<size_t>(m_data.paletteSize)),
+        m_data.storage,
+        m_data.hashMap};
+}
+
+Result<void> PalettedContainer::restorePacked(
+    i32 bits, std::span<const u8> paletteBytes, std::span<const u8> storageBytes, std::span<const u8> hashMapBytes)
+{
+    if (bits < 0 || bits > 31 || paletteBytes.empty() || paletteBytes.size() % sizeof(u32) != 0 ||
+        hashMapBytes.size() % sizeof(u32) != 0) {
+        return Error(ErrorCode::InvalidData, "Invalid packed palette layout");
+    }
+    const size_t paletteSize = paletteBytes.size() / sizeof(u32);
+    const size_t hashCapacity = hashMapBytes.size() / sizeof(u32);
+    if (paletteSize > static_cast<size_t>(std::numeric_limits<i32>::max()) ||
+        hashCapacity > static_cast<size_t>(std::numeric_limits<i32>::max()) ||
+        bits != _calculateBitsForCount(static_cast<i32>(paletteSize)) ||
+        storageBytes.size() != static_cast<size_t>(_storageWordCount(bits)) * sizeof(u64)) {
+        return Error(ErrorCode::InvalidData, "Packed palette dimensions do not match bit width");
+    }
+    if ((bits == 0 && hashCapacity != 0) ||
+        (bits != 0 && (!std::has_single_bit(hashCapacity) || paletteSize * 4 > hashCapacity * 3))) {
+        return Error(ErrorCode::InvalidData, "Invalid packed palette hash capacity");
+    }
+
+    // 这些数组就是恢复后的最终存储；校验成功后仅移动所有权，不分配展开态或重建哈希表。
+    Data restored;
+    restored.bits = bits;
+    restored.paletteSize = static_cast<i32>(paletteSize);
+    restored.hashMapCapacity = static_cast<i32>(hashCapacity);
+    restored.hashMapMask = hashCapacity == 0 ? 0 : static_cast<i32>(hashCapacity - 1);
+    restored.palette.resize(paletteSize);
+    restored.storage.resize(storageBytes.size() / sizeof(u64));
+    restored.hashMap.resize(hashCapacity);
+    std::memcpy(restored.palette.data(), paletteBytes.data(), paletteBytes.size());
+    if (!storageBytes.empty()) {
+        std::memcpy(restored.storage.data(), storageBytes.data(), storageBytes.size());
+        std::memcpy(restored.hashMap.data(), hashMapBytes.data(), hashMapBytes.size());
+    }
+    size_t occupied = 0;
+    for (u32 entry : restored.hashMap) {
+        if (entry > paletteSize) {
+            return Error(ErrorCode::InvalidData, "Packed hash slot references an invalid palette index");
+        }
+        occupied += entry != 0 ? 1 : 0;
+    }
+    if (bits != 0 && occupied != paletteSize) {
+        return Error(ErrorCode::InvalidData, "Packed hash slot count does not match palette");
+    }
+    for (size_t i = 0; bits != 0 && i < paletteSize; ++i) {
+        const u32 value = restored.palette[i];
+        size_t slot = static_cast<size_t>(value * 2654435761u) & (hashCapacity - 1);
+        size_t probes = 0;
+        while (restored.hashMap[slot] != 0 && restored.palette[restored.hashMap[slot] - 1] != value &&
+            probes < hashCapacity) {
+            slot = (slot + 1) & (hashCapacity - 1);
+            ++probes;
+        }
+        if (restored.hashMap[slot] != i + 1) {
+            return Error(ErrorCode::InvalidData, "Invalid packed hash probe chain or duplicate palette value");
+        }
+    }
+
+    // 非二次幂的调色板存在未使用编码，必须在发布数据前排除越界索引。
+    if (bits != 0 && !std::has_single_bit(paletteSize)) {
+        const u64 mask = (u64{1} << bits) - 1;
+        for (i32 i = 0; i < VOLUME; ++i) {
+            const i32 bitIndex = i * bits;
+            const size_t word = static_cast<size_t>(bitIndex / 64);
+            const i32 shift = bitIndex % 64;
+            u64 index = restored.storage[word] >> shift;
+            if (shift + bits > 64) {
+                index |= restored.storage[word + 1] << (64 - shift);
+            }
+            if ((index & mask) >= paletteSize) {
+                return Error(ErrorCode::InvalidData, "Packed storage references an invalid palette index");
+            }
+        }
+    }
+    m_data = std::move(restored);
+    return {};
 }
 
 // ============================================================================

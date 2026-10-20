@@ -157,6 +157,16 @@ const BlockState* ChunkSection::getBlockState(i32 x, i32 y, i32 z) const
     return Block::getBlockState(stateId);
 }
 
+void ChunkSection::restoreBlockStates(PalettedContainer states, u16 blockCount, u16 blockTickCount, u16 fluidCount)
+{
+    MC_ASSERT_RELEASE(blockCount <= VOLUME && blockTickCount <= VOLUME && fluidCount <= VOLUME);
+    m_blockStates = std::move(states);
+    m_blockCount = blockCount;
+    m_blockTickRefCount = blockTickCount;
+    m_fluidRefCount = fluidCount;
+    m_needsRecalculate = false;
+}
+
 void ChunkSection::rebuildTickCounters()
 {
     m_blockTickRefCount = 0;

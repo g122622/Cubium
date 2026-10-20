@@ -4,6 +4,7 @@
 #include "core/Types.hpp"
 #include "server/world/gen/chunk/ChunkPrimer.hpp"
 #include "server/world/storage/db/SectionKey.hpp"
+#include <array>
 #include <chrono>
 #include <filesystem>
 #include <fstream>
@@ -44,77 +45,24 @@ protected:
     }
 
     void TearDown() override { mc::test::removeTestDir(testDir); }
-
-    SectionData createTestSectionData(ChunkCoord x, ChunkCoord z, i8 sectionY, DimensionId dim, u32 fillBlockId = 1)
-    {
-        SectionData data;
-        data.key = SectionKey(x, z, sectionY, dim);
-        data.initializeDefaults();
-
-        for (size_t i = 0; i < 100; ++i) {
-            data.blockStates[i] = fillBlockId;
-        }
-        data.nonEmptyBlockCount = 100;
-        data.biomes.resize(64, TestBiomes::PLAINS);
-        return data;
-    }
 };
 
 class SingleLevelStorageManagerTest : public StorageTestBase {};
 
-/**
- * @brief 按区块层的实际做法把整个区块落盘
- *
- * 存储层不再持有任何缓存，待写段必须由调用方从 `ChunkData` 序列化后传入。
- * 这里复刻 `ServerWorld::saveDirtyChunks` 的序列化与聚批路径，保证测试覆盖的是
- * 生产路径而非一条只存在于测试里的捷径。
- */
-[[nodiscard]] size_t saveChunkSectionsForCount(
-    SingleLevelStorageManager& storage, const ChunkData& chunk, DimensionId dimension);
-
 void saveChunkSections(
     SingleLevelStorageManager& storage, const ChunkData& chunk, DimensionId dimension, bool sync = false)
 {
-    const std::vector<BiomeId> biomes = SectionCodec::extractBiomes(chunk.getBiomes());
-
-    std::vector<SectionWrite> writes;
-    for (i8 sectionY = 0; sectionY < mc::world::CHUNK_SECTIONS; ++sectionY) {
-        const ChunkSection* section = chunk.getSection(sectionY);
-        if (section == nullptr) {
-            continue;
-        }
-        SectionKey key(chunk.x(), chunk.z(), static_cast<i8>(mc::world::sectionIndexToCoord(sectionY)), dimension);
-        auto bytesResult = SectionCodec::serializeFromChunkSection(chunk, sectionY, *section, key, biomes);
-        ASSERT_TRUE(bytesResult.success()) << bytesResult.error().message();
-        writes.push_back(SectionWrite{key, std::move(bytesResult.value())});
-    }
-
-    auto saveResult = storage.saveSections(dimension, writes, sync);
-    ASSERT_TRUE(saveResult.success()) << saveResult.error().message();
+    const std::array<const ChunkData*, 1> chunks{&chunk};
+    auto result = storage.saveChunks(dimension, chunks, sync);
+    ASSERT_TRUE(result.success()) << result.error().message();
 }
 
 size_t saveChunkSectionsForCount(SingleLevelStorageManager& storage, const ChunkData& chunk, DimensionId dimension)
 {
-    const std::vector<BiomeId> biomes = SectionCodec::extractBiomes(chunk.getBiomes());
-
-    std::vector<SectionWrite> writes;
-    for (i8 sectionY = 0; sectionY < mc::world::CHUNK_SECTIONS; ++sectionY) {
-        const ChunkSection* section = chunk.getSection(sectionY);
-        if (section == nullptr) {
-            continue;
-        }
-        SectionKey key(chunk.x(), chunk.z(), static_cast<i8>(mc::world::sectionIndexToCoord(sectionY)), dimension);
-        auto bytesResult = SectionCodec::serializeFromChunkSection(chunk, sectionY, *section, key, biomes);
-        EXPECT_TRUE(bytesResult.success()) << bytesResult.error().message();
-        if (bytesResult.failed()) {
-            return 0;
-        }
-        writes.push_back(SectionWrite{key, std::move(bytesResult.value())});
-    }
-
-    auto saveResult = storage.saveSections(dimension, writes, false);
-    EXPECT_TRUE(saveResult.success()) << saveResult.error().message();
-    return saveResult.success() ? saveResult.value() : 0;
+    const std::array<const ChunkData*, 1> chunks{&chunk};
+    auto result = storage.saveChunks(dimension, chunks, false);
+    EXPECT_TRUE(result.success()) << result.error().message();
+    return result.success() ? result.value() : 0;
 }
 
 TEST_F(SingleLevelStorageManagerTest, OpenClose)
@@ -270,6 +218,72 @@ TEST_F(SingleLevelStorageManagerTest, AsyncLoadAfterSaveReadsSavedDataWithSingle
     ioPool.shutdown();
     computePool.shutdown();
     storage.close();
+}
+
+TEST_F(SingleLevelStorageManagerTest, RejectedSaveCallsCompletionExactlyOnce)
+{
+    util::UniversalWorkerPool ioPool(1, "RejectedSaveIO", 919);
+    SingleLevelStorageManager storage;
+    SingleLevelStorageConfig config;
+    ASSERT_TRUE(storage.open(testDir, config).success());
+    storage.setIoWorkerPool(&ioPool);
+    auto chunk = std::make_shared<ChunkData>(3, 4);
+    chunk->createSection(0)->fill(100);
+    i32 completions = 0;
+    storage.saveChunkAsyncCallback(
+        chunk,
+        0,
+        [&completions](std::optional<ChunkPos> position, Result<void> result) {
+            ++completions;
+            EXPECT_TRUE(position.has_value());
+            EXPECT_TRUE(result.failed());
+        },
+        util::TaskPriority::Normal);
+    EXPECT_EQ(completions, 1);
+    storage.close();
+}
+
+TEST_F(SingleLevelStorageManagerTest, CloseWaitsForPinnedReadAssemblyBeforeDestroyingDatabase)
+{
+    VanillaBlocks::initialize();
+    util::UniversalWorkerPool ioPool(1, "PinnedCloseIO", 920);
+    util::UniversalWorkerPool computePool(1, "PinnedCloseCompute", 921);
+    SingleLevelStorageManager storage;
+    SingleLevelStorageConfig config;
+    ASSERT_TRUE(storage.open(testDir, config).success());
+    storage.setIoWorkerPool(&ioPool);
+    storage.setComputeWorkerPool(&computePool);
+    ChunkData source(3, 4);
+    source.createSection(0)->fill(100);
+    ASSERT_TRUE(storage.saveChunk(source, 0).success());
+    ioPool.start();
+    computePool.start();
+
+    std::promise<void> releaseCompute;
+    auto gate = releaseCompute.get_future().share();
+    auto blocker = std::make_unique<util::FunctionTask>(
+        util::TaskType::ChunkLoad,
+        "PinnedCloseGate",
+        [gate](const std::atomic<bool>&) {
+            gate.wait();
+            return true;
+        },
+        "storage.test");
+    computePool.submit(std::move(blocker), nullptr, util::TaskPriority::High, nullptr);
+    auto loaded = storage.loadChunkAsync(3, 4, 0, nullptr, util::TaskPriority::Normal);
+    ioPool.waitForCompletion();
+    auto closing = std::async(std::launch::async, [&storage] { storage.close(); });
+    EXPECT_EQ(closing.wait_for(std::chrono::milliseconds(20)), std::future_status::timeout);
+    releaseCompute.set_value();
+    ASSERT_EQ(closing.wait_for(std::chrono::seconds(10)), std::future_status::ready);
+    closing.get();
+    ASSERT_EQ(loaded.wait_for(std::chrono::seconds(10)), std::future_status::ready);
+    auto result = loaded.get();
+    ASSERT_TRUE(result.success()) << result.error().message();
+    ASSERT_TRUE(result.value().has_value());
+    EXPECT_EQ(result.value()->getSection(0)->getBlockStateIdFast(0), 100u);
+    ioPool.shutdown();
+    computePool.shutdown();
 }
 
 TEST_F(SingleLevelStorageManagerTest, SynchronousLoadPreparesHeightmaps)
@@ -709,14 +723,8 @@ TEST_F(SingleLevelStorageManagerTest, ReadonlySaveOperationsAreSilentAndDoNotPer
     ASSERT_TRUE(saveResult.success()) << saveResult.error().message();
 
     // 只读模式下批量落盘与玩家数据刷盘都必须静默成功且不写入任何数据。
-    const std::vector<BiomeId> biomes = SectionCodec::extractBiomes(chunk.getBiomes());
-    std::vector<SectionWrite> readonlyWrites;
-    SectionKey readonlyKey(1, 2, 0, 0);
-    auto readonlyBytes = SectionCodec::serializeFromChunkSection(chunk, 0, *section, readonlyKey, biomes);
-    ASSERT_TRUE(readonlyBytes.success()) << readonlyBytes.error().message();
-    readonlyWrites.push_back(SectionWrite{readonlyKey, std::move(readonlyBytes.value())});
-
-    auto readonlySaveResult = storage.saveSections(0, readonlyWrites, true);
+    const std::array<const ChunkData*, 1> readonlyChunks{&chunk};
+    auto readonlySaveResult = storage.saveChunks(0, readonlyChunks, true);
     ASSERT_TRUE(readonlySaveResult.success()) << readonlySaveResult.error().message();
     EXPECT_EQ(readonlySaveResult.value(), 0u);
 
