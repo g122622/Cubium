@@ -164,6 +164,35 @@ private:
     bool m_isDangerous;
 };
 
+/**
+ * @brief 风弹式爆炸上下文（对齐 vanilla SimpleExplosionDamageCalculator）
+ *
+ * 用于风充能效果击杀附体实体时触发的"风弹爆炸"（WindChargedMobEffect.onMobRemoved）：
+ * - 不破坏方块（对齐 vanilla explodeBlocks=false）；
+ * - 不直接伤害实体（对齐 vanilla damagesEntities=false），但以默认击退倍率推开附近实体；
+ * - 大小为 BLOCKS_WIND_CHARGE_EXPLOSIONS 标签（屏障/基岩）的方块抗性视为无穷大，
+ *   不被扣除爆炸强度（对齐 vanilla immuneBlocks 分支返回 3.6e6）。
+ *
+ * 与 vanilla 的唯一偏差：vanilla 风弹爆炸使用 TRIGGER 触发式交互（触发 TNT/风弹链式引爆），
+ * Cubium Explosion 尚无该模式，此处以 ExplosionMode::None 实现（不破坏、不燃火），
+ * 风弹链式引爆待 Explosion 引入 Trigger 模式后补齐（见 Explosion::_shouldAffectBlocklikeEntities 的 TODO）。
+ */
+class WindChargeExplosionContext : public EntityExplosionContext {
+public:
+    /**
+     * @brief 构造风弹式爆炸上下文
+     * @param source 爆炸源实体（可能为空）
+     */
+    explicit WindChargeExplosionContext(const Entity* source);
+
+    [[nodiscard]] std::optional<f32> getExplosionResistance(
+        const BlockState& blockState, const fluid::FluidState* fluidState) const override;
+
+    [[nodiscard]] bool canDestroyBlock(const BlockState& blockState, f32 explosionPower) const override;
+
+    [[nodiscard]] bool shouldDamageEntity(const Explosion& explosion, const Entity& entity) const override;
+};
+
 } // namespace explosion
 } // namespace world
 } // namespace mc

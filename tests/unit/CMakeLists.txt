@@ -1220,6 +1220,8 @@ add_executable(mc_tests
     common/advancement/AdvancementLoaderTest.cpp
     # EffectType 工具函数测试
     common/entity/effect/EffectTypeTest.cpp
+    # 效果移除回调测试（织网生成蜘蛛网/渗浆生成史莱姆/风弹爆炸上下文）
+    common/entity/effect/EffectOnRemovalTest.cpp
     # AnimationState 动画状态机工具类测试（start/stop/startIfStopped/animateWhen/copyFrom）
     common/entity/AnimationStateTest.cpp
     # EffectAttributeModifiers 效果属性修改器测试

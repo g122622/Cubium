@@ -82,6 +82,11 @@ inline constexpr i32 secondsToTicks(i32 seconds)
     return seconds * TICKS_PER_SECOND;
 }
 
+// 药水效果
+/// INFESTED 效果在附体实体受击时生成蠹虫的概率
+/// 参考: vanilla MobEffects.INFESTED 注册参数 InfestedMobEffect(..., 0.1F, ...)
+constexpr f32 INFESTED_SPAWN_CHANCE = 0.1f;
+
 } // namespace game
 
 // ============================================================================

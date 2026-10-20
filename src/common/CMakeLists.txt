@@ -115,6 +115,7 @@ add_library(mc_common STATIC
     entity/effect/EffectInstance.cpp
     entity/effect/EffectManager.cpp
     entity/effect/EffectAttributeModifiers.cpp
+    entity/effect/EffectOnRemoval.cpp
     entity/enchantment/LocationEnchantmentTracker.cpp
     # Entity - Food
     entity/food/FoodStats.cpp

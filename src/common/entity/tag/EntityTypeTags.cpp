@@ -753,7 +753,7 @@ void EntityTypeTags::initialize()
     // 免疫蠹虫效果（infested 附魔：被击杀生物生成蠹虫；蠹虫自身免疫防递归）
     // 对齐 vanilla 1.21.11 EntityTypeTagsProvider.IMMUNE_TO_INFESTED（line 178，仅 silverfish）。
     // 此前误加 spider/cave_spider/endermite（vanilla 仅 silverfish 免疫，其他节肢不免疫）。
-    // 本标签当前未在运行时查询（Infested 效果未实现，LivingEntity.cpp:2634 TODO），仅作数据对齐。
+    // 运行时消费：LivingEntity::isPotionApplicable（canBeAffected）据此拒绝 INFESTED 效果。
     IMMUNE_TO_INFESTED().addAll({
         ResourceLocation("minecraft:silverfish"),
     });
@@ -761,7 +761,7 @@ void EntityTypeTags::initialize()
     // 免疫渗出效果（oozing 附魔：被击杀生物生成史莱姆；史莱姆自身免疫防递归）
     // 对齐 vanilla 1.21.11 EntityTypeTagsProvider.IMMUNE_TO_OOZING（line 179，仅 slime）。
     // 此前误加 magma_cube（vanilla 仅 slime 免疫，岩浆怪不免疫）。
-    // 本标签当前未在运行时查询（Oozing 效果未实现，LivingEntity.cpp:2634 TODO），仅作数据对齐。
+    // 运行时消费：LivingEntity::isPotionApplicable（canBeAffected）据此拒绝 OOZING 效果。
     IMMUNE_TO_OOZING().addAll({
         ResourceLocation("minecraft:slime"),
     });

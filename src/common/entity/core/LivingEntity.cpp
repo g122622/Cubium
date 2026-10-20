@@ -40,6 +40,7 @@
 #include "common/entity/ecs/components/HealthComponent.hpp"
 #include "common/entity/ecs/components/HurtStateComponent.hpp"
 #include "common/entity/effect/EffectInstance.hpp"
+#include "common/entity/effect/EffectOnRemoval.hpp"
 #include "common/entity/effect/EffectType.hpp"
 #include "common/entity/entities/passive/tamable/TameableEntity.hpp"
 #include "common/entity/entities/passive/tamable/WolfEntity.hpp"
@@ -510,6 +511,17 @@ void LivingEntity::actuallyHurt(DamageSource& source, f32 amount)
 
     // 生命值组件局部指针复用（避免热路径多次 try_get）
     auto* healthState = m_entityContext->tryGetComponent<ecs::HealthComponent>();
+
+    // 0. 效果受击回调（对齐 vanilla LivingEntity.actuallyHurt:1106-1108：
+    //    for (MobEffectInstance e : activeEffects.values()) e.onMobHurt(level, this, amplifier, source, amount)）。
+    //    当前仅有 INFESTED 实现 onMobHurt（10% 概率生成 1~2 只蠹虫，InfestedMobEffect）。
+    //    Cubium 仅对该效果类型分派，其余效果无受击行为。
+    if (m_world != nullptr && !m_world->isClientSide() &&
+        m_effectManager.hasEffect(entity::effect::EffectType::Infested)) {
+        if (m_world->getRandom().nextFloat() <= game::INFESTED_SPAWN_CHANCE) {
+            entity::effect::onremoval::spawnInfestedSilverfish(*m_world, *this);
+        }
+    }
 
     // 1. 盾牌格挡检查（子类可重写）
     // 方向校验（对齐 vanilla BlocksAttacks.resolveBlockedDamage）：来袭方向与头部水平朝向夹角
@@ -1220,12 +1232,23 @@ void LivingEntity::onRemoval(RemovalReason reason)
     // EntityManager 销毁路径亦统一生效。
     item::enchant::EnchantmentHelper::stopAllLocationBasedEffects(*this);
 
-    // TODO: 对齐 vanilla LivingEntity.remove（LivingEntity.java:703-712）的 triggerOnDeathMobEffects：
-    //   shouldDestroy(reason) 时遍历所有活跃效果调 MobEffect.onMobRemoved 回调并清空效果列表。
-    //   当前效果系统（EffectInstance）无 onMobRemoved 钩子，且 Oozing/Weaving/WindCharged/Infested
-    //   的移除行为未实现（见 EffectType.cpp），待效果系统完善后在此补全（须以 shouldDestroy(reason) 门控，
-    //   卸载类原因不清空效果以免丢失存档中的效果状态）。
-    (void)reason;
+    // 对齐 vanilla LivingEntity.remove（LivingEntity.java:701-709）的 triggerOnDeathMobEffects：
+    //   (reason == KILLED || reason == DISCARDED) 且处于服务端时，遍历所有活跃效果调
+    //   MobEffectInstance.onMobRemoved 回调，随后清空效果列表。
+    // 卸载类原因（UnloadedToChunk / UnloadedWithPlayer / ChangedDimension）不清空效果，避免丢失
+    // 存档中的效果状态（chunk 卸载走写盘路径，效果随 NBT 保存）。
+    // 效果回调的具体行为（织网生成蜘蛛网 / 渗浆生成史莱姆 / 风充能风弹爆炸）在
+    // entity::effect::onremoval::applyOnMobRemoved 中按效果类型分派。
+    if (m_world != nullptr && !m_world->isClientSide() && shouldDestroy(reason)) {
+        auto& effects = m_effectManager.getAllEffects();
+        const std::vector<entity::effect::EffectInstance> snapshot = effects;
+        for (const auto& effect : snapshot) {
+            entity::effect::onremoval::applyOnMobRemoved(*m_world, *this, effect.type(), effect.amplifier(), reason);
+        }
+        if (!snapshot.empty()) {
+            m_effectManager.removeAllEffects(*this);
+        }
+    }
 
     Entity::onRemoval(reason);
 }
@@ -3417,19 +3440,27 @@ bool LivingEntity::isPotionApplicable(const entity::effect::EffectInstance& effe
     //   - IGNORES_POISON_AND_REGEN（亡灵 13 种 + iron_golem）免疫 REGENERATION + POISON
     //   - IMMUNE_TO_INFESTED 免疫 INFESTED；IMMUNE_TO_OOZING 免疫 OOZING
     // Cubium EntityTypeTags::IGNORES_POISON_AND_REGEN 标签成员与 vanilla 完全一致
-    // （EntityTypeTags.cpp:629-645，13 亡灵 + iron_golem）。此处实现 Poison/Regen 免疫；
-    // INFESTED/OOZING 效果 Cubium 暂未实现，留 TODO 待效果就绪后补 IMMUNE_TO_* 标签判定。
+    // （EntityTypeTags.cpp:629-645，13 亡灵 + iron_golem）。IMMUNE_TO_INFESTED / IMMUNE_TO_OOZING
+    // 亦按原版互斥分支顺序判定（效果本体行为见 entity/effect/EffectOnRemoval 与 Infested 的 onMobHurt TODO）。
     //
     // 亡灵免疫 Poison/Regen 是 vanilla 核心语义：亡灵被中毒效果不应扣血、被再生效果不应治疗。
     // 此前 Cubium EffectManager::addEffect 不调 isPotionApplicable，亡灵会被中毒扣血——与 vanilla 相反。
+    // vanilla canBeAffected 为互斥分支：命中 IMMUNE_TO_INFESTED 只拒绝 INFESTED，
+    // 命中 IMMUNE_TO_OOZING 只拒绝 OOZING，二者都不命中才查 IGNORES_POISON_AND_REGEN。
+    // 当前实体类型数据集中 IMMUNE_TO_INFESTED 与 IMMUNE_TO_OOZING 无交集，分支互斥性不影响结果，
+    // 但保持原版判定顺序以便后续数据包扩展成员时行为一致。
+    if (EntityTypeTags::IMMUNE_TO_INFESTED().contains(getTypeId())) {
+        return effect.type() != entity::effect::EffectType::Infested;
+    }
+    if (EntityTypeTags::IMMUNE_TO_OOZING().contains(getTypeId())) {
+        return effect.type() != entity::effect::EffectType::Oozing;
+    }
     if (EntityTypeTags::IGNORES_POISON_AND_REGEN().contains(getTypeId())) {
         if (effect.type() == entity::effect::EffectType::Poison ||
             effect.type() == entity::effect::EffectType::Regeneration) {
             return false;
         }
     }
-    // TODO: 对齐 vanilla IMMUNE_TO_INFESTED（免疫 INFESTED）/ IMMUNE_TO_OOZING（免疫 OOZING）标签判定，
-    //       待 Infested/Oozing 效果实现后补全（EntityTypeTags::IMMUNE_TO_INFESTED/IMMUNE_TO_OOZING 已定义）。
     return true;
 }
 
