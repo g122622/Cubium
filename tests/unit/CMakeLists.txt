@@ -810,6 +810,8 @@ add_executable(mc_tests
     entity/EatGrassGoalTest.cpp
     entity/CreeperSwellGoalTest.cpp
     entity/AreaEffectCloudEntityTest.cpp
+    # 盔甲架装备交互/装备掉落/存档往返测试（对齐 vanilla ArmorStand）
+    entity/ArmorStandEntityTest.cpp
     entity/BlazeFireballAttackGoalTest.cpp
     entity/BlazeHoverBehaviorTest.cpp
     # 旋风人动画状态机测试（Pose 转换、resetTask 守卫、AnimationState 访问器）

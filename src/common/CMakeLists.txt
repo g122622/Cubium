@@ -103,6 +103,7 @@ add_library(mc_common STATIC
     entity/serialization/EntityDeserializer.cpp
     entity/serialization/EquipmentSlotNames.cpp
     entity/serialization/NbtHelper.cpp
+    entity/serialization/components/ArmorStandComponentSerialization.cpp
     entity/serialization/components/ComponentSerializerRegistry.cpp
     entity/serialization/components/EntityComponentSerialization.cpp
     entity/serialization/components/HorseComponentSerialization.cpp

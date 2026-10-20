@@ -12,6 +12,7 @@ src/common/entity/serialization/
 ├── NbtHelper.hpp/cpp                   # NBT 辅助工具函数
 ├── components/                          # 组件序列化器注册表（批次6 子目标1）
 │   ├── ComponentSerializerRegistry.hpp/cpp        # 注册表（进程单例，entt::type_id 键 + 裸函数指针）
+│   ├── ArmorStandComponentSerialization.hpp/cpp   # 盔甲架状态组件（Invisible/Small/ShowArms/DisabledSlots/NoBasePlate/Pose）
 │   ├── EntityComponentSerialization.hpp/cpp        # Entity 层 13 字段（Pos/Motion/Rotation/.../FallFlying）
 │   ├── LivingEntityComponentSerialization.hpp/cpp  # LivingEntity 层 5 字段（Health/.../Equipment）
 │   ├── PlayerComponentSerialization.hpp/cpp        # Player 层 Score

@@ -22,6 +22,7 @@
  */
 
 #include "common/entity/serialization/components/ComponentSerializerRegistry.hpp"
+#include "common/entity/serialization/components/ArmorStandComponentSerialization.hpp"
 
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/serialization/components/EntityComponentSerialization.hpp"
@@ -90,6 +91,10 @@ void ComponentSerializerRegistry::registerAll()
     // Status=10 后 load（tame/bred/saddle/eating 走 setter 写 STATUS_PARAM），Attribute=20
     // 最后 load（speed/horseHealth 同步 AttributeMap）。
     registerHorseComponentSerializers(*this);
+
+    // 注册盔甲架状态组件序列化器（Small/ShowArms/DisabledSlots/NoBasePlate/Pose）。
+    // 序列化器内部 dynamic_cast<ArmorStandEntity*> 早退。
+    registerArmorStandComponentSerializers(*this);
 
     // load 按 priority 升序遍历（本批全 0 无序；未来 Attributes=100/ActiveEffects=200）
     std::stable_sort(

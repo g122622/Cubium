@@ -32,6 +32,8 @@
 #include "common/entity/core/MobEntity.hpp"
 #include "common/entity/damage/DamageSource.hpp"
 #include "common/entity/damage/tag/DamageTypeTags.hpp"
+#include "common/entity/ecs/components/ArmorStandStateComponent.hpp"
+#include "common/entity/ecs/components/EquipmentComponent.hpp"
 #include "common/entity/effect/EffectType.hpp"
 #include "common/entity/entities/boss/EnderDragonEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
@@ -40,6 +42,7 @@
 #include "common/entity/serialization/NbtHelper.hpp"
 #include "common/entity/utils/ItemDropHelper.hpp"
 #include "common/item/Items.hpp"
+#include "common/item/items/armor/ArmorItem.hpp"
 #include "common/item/items/special/FlintAndSteelItem.hpp"
 #include "common/network/protocol/EntityEvents.hpp"
 #include "common/particle/ParticleTypes.hpp"
@@ -968,7 +971,16 @@ Result<void> AreaEffectCloudEntity::readAdditionalSaveData(const nbt::tags::comp
 
 ArmorStandEntity::ArmorStandEntity(ecs::EntityRegistry& registry)
     : Entity(EntityInstanceId(0), nullptr, registry)
-{}
+{
+    // 盔甲架继承 Entity 而非 LivingEntity，装备组件需自行挂载：装备读写与 equipment 复合标签
+    // 存档均经 EquipmentComponent 完成（LivingEntity 在其构造函数中挂载）。状态组件承载
+    // 不可见/小型/手臂/禁用槽位/底座/姿态。
+    m_entityContext->enttRegistry().emplace<ecs::EquipmentComponent>(m_entityContext->entity());
+    m_entityContext->enttRegistry().emplace<ecs::ArmorStandStateComponent>(m_entityContext->entity());
+
+    // 装备默认空、禁用掩码为 0，显式推送一次标志，保证首帧下发的元数据携带默认客户端标志。
+    _syncClientFlags();
+}
 
 std::unique_ptr<Entity> ArmorStandEntity::create(IWorld* /*world*/, ecs::EntityRegistry& registry)
 {
@@ -1010,34 +1022,54 @@ bool ArmorStandEntity::ignoreExplosion(const world::explosion::ExplosionImmunity
     return ctx.shouldAffectBlocklikeEntities ? isInvisible() : true;
 }
 
+const ecs::ArmorStandStateComponent& ArmorStandEntity::armorStandState() const
+{
+    const auto* state = m_entityContext->tryGetComponent<ecs::ArmorStandStateComponent>();
+    MC_ASSERT_RELEASE(state != nullptr);
+    return *state;
+}
+
+ecs::ArmorStandStateComponent& ArmorStandEntity::mutableArmorStandState()
+{
+    auto* state = m_entityContext->tryGetComponent<ecs::ArmorStandStateComponent>();
+    MC_ASSERT_RELEASE(state != nullptr);
+    return *state;
+}
+
 void ArmorStandEntity::setHeadRotation(f32 x, f32 y, f32 z)
 {
-    m_head = {x, y, z};
+    mutableArmorStandState().m_pose.head = {x, y, z};
+    _syncClientPose();
 }
 
 void ArmorStandEntity::setBodyRotation(f32 x, f32 y, f32 z)
 {
-    m_body = {x, y, z};
+    mutableArmorStandState().m_pose.body = {x, y, z};
+    _syncClientPose();
 }
 
 void ArmorStandEntity::setLeftArmRotation(f32 x, f32 y, f32 z)
 {
-    m_leftArm = {x, y, z};
+    mutableArmorStandState().m_pose.leftArm = {x, y, z};
+    _syncClientPose();
 }
 
 void ArmorStandEntity::setRightArmRotation(f32 x, f32 y, f32 z)
 {
-    m_rightArm = {x, y, z};
+    mutableArmorStandState().m_pose.rightArm = {x, y, z};
+    _syncClientPose();
 }
 
 void ArmorStandEntity::setLeftLegRotation(f32 x, f32 y, f32 z)
 {
-    m_leftLeg = {x, y, z};
+    mutableArmorStandState().m_pose.leftLeg = {x, y, z};
+    _syncClientPose();
 }
 
 void ArmorStandEntity::setRightLegRotation(f32 x, f32 y, f32 z)
 {
-    m_rightLeg = {x, y, z};
+    mutableArmorStandState().m_pose.rightLeg = {x, y, z};
+    _syncClientPose();
 }
 
 void ArmorStandEntity::causeDamage(f32 damage, const DamageSource& source)
@@ -1063,10 +1095,337 @@ void ArmorStandEntity::kill()
 void ArmorStandEntity::brokenByAnything(const DamageSource& source)
 {
     playBrokenSound();
-    // vanilla 在此先 dropAllDeathLoot（盔甲架本身不配战利品表，故无额外物品），
-    // 再逐个 popResource 掉出穿戴装备。
-    // TODO: 尚未实现实体装备体系，穿戴装备的掉落（vanilla 遍历 EquipmentSlot 逐个 popResource）待装备体系落地后补全。
+    // vanilla 此处先 dropAllDeathLoot；盔甲架不配战利品表，该调用不产出物品，故无需等价实现。
+    // 随后遍历全部装备槽位，逐个清空并把非空物品掉到方块位上方（盔甲架本身不在此掉落，
+    // 只有玩家破坏路径 brokenByPlayer 才额外掉出盔甲架本体）。
     MC_UNUSED(source);
+    for (u8 i = 0; i < static_cast<u8>(EquipmentSlot::Count); ++i) {
+        const auto slot = static_cast<EquipmentSlot>(i);
+        ItemStack item = getEquipment(slot);
+        setEquipment(slot, ItemStack());
+        if (!item.isEmpty()) {
+            _popResourceAboveBlock(item);
+        }
+    }
+}
+
+const ItemStack& ArmorStandEntity::getEquipment(EquipmentSlot slot) const
+{
+    const auto* equipment = m_entityContext->tryGetComponent<ecs::EquipmentComponent>();
+    MC_ASSERT_RELEASE(equipment != nullptr);
+    const size_t index = static_cast<size_t>(slot);
+    MC_ASSERT_RELEASE(index < equipment->m_equipment.size());
+    return equipment->m_equipment[index];
+}
+
+void ArmorStandEntity::setEquipment(EquipmentSlot slot, const ItemStack& stack)
+{
+    auto* equipment = m_entityContext->tryGetComponent<ecs::EquipmentComponent>();
+    MC_ASSERT_RELEASE(equipment != nullptr);
+    const size_t index = static_cast<size_t>(slot);
+    MC_ASSERT_RELEASE(index < equipment->m_equipment.size());
+    const ItemStack previous = equipment->m_equipment[index];
+    equipment->m_equipment[index] = stack;
+    _playEquipSound(slot, previous, stack);
+}
+
+void ArmorStandEntity::_popResourceAboveBlock(const ItemStack& stack)
+{
+    if (m_world == nullptr) {
+        return;
+    }
+    // 掉落点取实体方块位的正上方一格（vanilla blockPosition().above()）。
+    const BlockPos blockPos = onPos();
+    ItemDropHelper::spawnItemEntity(m_world,
+        stack,
+        static_cast<f64>(blockPos.x) + 0.5,
+        static_cast<f64>(blockPos.y) + 1.0,
+        static_cast<f64>(blockPos.z) + 0.5,
+        getRandom(),
+        ItemDropHelper::DEFAULT_PICKUP_DELAY);
+}
+
+void ArmorStandEntity::_playEquipSound(EquipmentSlot slot, const ItemStack& previous, const ItemStack& current) const
+{
+    // 对齐 vanilla LivingEntity.onEquipItem：仅在服务端、非旁观者、物品确实变化、且新物品声明了
+    // 与目标槽位一致的护甲槽时播放。Cubium 无 EQUIPPABLE 通用组件，护甲物品经 ArmorItem 承载
+    // 槽位信息（鞘翅为无形的胸甲位护甲）；非盔甲物品（名称牌、木棍等）不播放音效。
+    if (m_world == nullptr || m_world->isClientSide()) {
+        return;
+    }
+    if (!LivingEntity::equipmentHasChanged(previous, current)) {
+        return;
+    }
+    const Item* item = current.getItem();
+    if (item == nullptr) {
+        return;
+    }
+
+    ResourceLocation equipSound;
+    if (const auto* armorItem = dynamic_cast<const item::items::ArmorItem*>(item)) {
+        switch (armorItem->getSlot()) {
+            case item::armor::ArmorSlot::Head:
+                if (slot != EquipmentSlot::Head) {
+                    return;
+                }
+                break;
+            case item::armor::ArmorSlot::Chest:
+                if (slot != EquipmentSlot::Chest) {
+                    return;
+                }
+                break;
+            case item::armor::ArmorSlot::Legs:
+                if (slot != EquipmentSlot::Legs) {
+                    return;
+                }
+                break;
+            case item::armor::ArmorSlot::Feet:
+                if (slot != EquipmentSlot::Feet) {
+                    return;
+                }
+                break;
+            case item::armor::ArmorSlot::Body:
+                if (slot != EquipmentSlot::Body) {
+                    return;
+                }
+                break;
+        }
+        equipSound = armorItem->getMaterial().getEquipSound().getId();
+    } else if (item == Items::ELYTRA) {
+        if (slot != EquipmentSlot::Chest) {
+            return;
+        }
+        equipSound = SoundEvents::ITEM_ARMOR_EQUIP_ELYTRA;
+    } else if (item == Items::WOLF_ARMOR) {
+        if (slot != EquipmentSlot::Body) {
+            return;
+        }
+        equipSound = SoundEvents::ITEM_ARMOR_EQUIP_WOLF;
+    } else {
+        return;
+    }
+
+    playSound(equipSound, 1.0f, 1.0f);
+}
+
+bool ArmorStandEntity::canUseSlot(EquipmentSlot slot) const
+{
+    // 对齐 vanilla ArmorStand.canUseSlot：盔甲架不使用 Body/Saddle 槽位，其余槽位受禁用掩码控制。
+    return slot != EquipmentSlot::Body && slot != EquipmentSlot::Saddle && !isDisabled(slot);
+}
+
+bool ArmorStandEntity::isDisabled(EquipmentSlot slot) const
+{
+    // 对齐 vanilla ArmorStand.isDisabled：
+    //   (disabledSlots & 1 << slot.getFilterBit(0)) != 0  —— 该槽位"放入"位被禁用
+    //   或手部槽位且未启用 ShowArms
+    // 其中 getFilterBit(inGroupBit) = slotIndex * 16 + inGroupBit；取出位为组内 +8。
+    // 盔甲架不使用 Body/Saddle 槽位，直接视为禁用。
+    if (slot == EquipmentSlot::Body || slot == EquipmentSlot::Saddle) {
+        return true;
+    }
+    if ((slot == EquipmentSlot::MainHand || slot == EquipmentSlot::OffHand) && !hasArms()) {
+        return true;
+    }
+    return (static_cast<u32>(disabledSlots()) & _disabledPlaceMask(slot)) != 0;
+}
+
+EquipmentSlot ArmorStandEntity::getClickedSlot(const Vector3& hitPosition) const
+{
+    // 对齐 vanilla ArmorStand.getClickedSlot。命中点 y 为实体局部坐标（相对脚底面），
+    // 因盔甲架缩放恒为 1，d0 与绝对高度比例等价；小型盔甲架只影响各段判定窗口的高度。
+    const f64 d0 = static_cast<f64>(hitPosition.y);
+    const bool small = isSmall();
+
+    if (d0 >= 0.1 && d0 < 0.1 + (small ? 0.8 : 0.45) && !getEquipment(EquipmentSlot::Feet).isEmpty()) {
+        return EquipmentSlot::Feet;
+    }
+    if (d0 >= 0.9 + (small ? 0.3 : 0.0) && d0 < 0.9 + (small ? 1.0 : 0.7) &&
+        !getEquipment(EquipmentSlot::Chest).isEmpty()) {
+        return EquipmentSlot::Chest;
+    }
+    if (d0 >= 0.4 && d0 < 0.4 + (small ? 1.0 : 0.8) && !getEquipment(EquipmentSlot::Legs).isEmpty()) {
+        return EquipmentSlot::Legs;
+    }
+    if (d0 >= 1.6 && !getEquipment(EquipmentSlot::Head).isEmpty()) {
+        return EquipmentSlot::Head;
+    }
+    if (getEquipment(EquipmentSlot::MainHand).isEmpty() && !getEquipment(EquipmentSlot::OffHand).isEmpty()) {
+        return EquipmentSlot::OffHand;
+    }
+    return EquipmentSlot::MainHand;
+}
+
+bool ArmorStandEntity::swapItem(const Player& player, EquipmentSlot slot, ItemStack& slotStack, ItemStack& heldStack)
+{
+    // 对齐 vanilla ArmorStand.swapItem：
+    //   1. 槽内有物品且"取出"位被禁用 → 拒绝
+    //   2. 槽内为空且"放入"位被禁用 → 拒绝
+    //   3. 创造模式玩家无限材料：槽位放入手持物品副本（数量 1），手持不变
+    //   4. 手持为空或只有 1 个 → 直接交换
+    //   5. 手持多于 1 个且槽位非空 → 拒绝
+    //   6. 手持多于 1 个且槽位为空 → 从手持堆中拆分 1 个放入，手持保留剩余
+    // 槽位禁用位组：位号 = 槽位序号 * 16 + 组内偏移（0=放入、8=取出）。位号可能超过 31，
+    // 故按位号拆成"低位部分 + 高位移位"两段计算，与 _disabledPlaceMask 同法。
+    const u32 disabledMask = static_cast<u32>(disabledSlots());
+    const auto bitMask = [](i32 bitIndex) -> u32 { return static_cast<u32>(1u << (bitIndex & 31)) << (bitIndex >> 5); };
+    if (!slotStack.isEmpty() && (disabledMask & bitMask(_disableBit(slot, ARMOR_STAND_SLOT_BIT_REMOVE))) != 0) {
+        return false;
+    }
+    if (slotStack.isEmpty() && (disabledMask & bitMask(_disableBit(slot, ARMOR_STAND_SLOT_BIT_PLACE))) != 0) {
+        return false;
+    }
+    if (player.isCreative() && slotStack.isEmpty() && !heldStack.isEmpty()) {
+        ItemStack infiniteCopy = heldStack.copy();
+        infiniteCopy.setCount(1);
+        slotStack = infiniteCopy;
+        return true;
+    }
+    if (heldStack.isEmpty() || heldStack.getCount() <= 1) {
+        const ItemStack previous = slotStack;
+        slotStack = heldStack;
+        heldStack = previous;
+        return true;
+    }
+    if (!slotStack.isEmpty()) {
+        return false;
+    }
+    slotStack = heldStack.split(1);
+    return true;
+}
+
+entity::DataParameter<i8> ArmorStandEntity::DATA_ARMOR_STAND_FLAGS_PARAM = entity::EntityDataManager::createKey<i8>();
+entity::DataParameter<entity::Vector3f> ArmorStandEntity::DATA_ARMOR_STAND_HEAD_POSE_PARAM =
+    entity::EntityDataManager::createKey<entity::Vector3f>();
+entity::DataParameter<entity::Vector3f> ArmorStandEntity::DATA_ARMOR_STAND_BODY_POSE_PARAM =
+    entity::EntityDataManager::createKey<entity::Vector3f>();
+entity::DataParameter<entity::Vector3f> ArmorStandEntity::DATA_ARMOR_STAND_LEFT_ARM_POSE_PARAM =
+    entity::EntityDataManager::createKey<entity::Vector3f>();
+entity::DataParameter<entity::Vector3f> ArmorStandEntity::DATA_ARMOR_STAND_RIGHT_ARM_POSE_PARAM =
+    entity::EntityDataManager::createKey<entity::Vector3f>();
+entity::DataParameter<entity::Vector3f> ArmorStandEntity::DATA_ARMOR_STAND_LEFT_LEG_POSE_PARAM =
+    entity::EntityDataManager::createKey<entity::Vector3f>();
+entity::DataParameter<entity::Vector3f> ArmorStandEntity::DATA_ARMOR_STAND_RIGHT_LEG_POSE_PARAM =
+    entity::EntityDataManager::createKey<entity::Vector3f>();
+
+void ArmorStandEntity::registerData()
+{
+    Entity::registerData();
+
+    // 注册顺序必须与 vanilla ArmorStand.defineId 一致（DATA_CLIENT_FLAGS → 六个部位姿态），
+    // 客户端按 wire index 解析，顺序错位会导致真 Java 客户端解析失败。
+    m_dataManager.registerParam(DATA_ARMOR_STAND_FLAGS_PARAM, static_cast<i8>(0));
+    const entity::Vector3f defaultPose{0.0f, 0.0f, 0.0f};
+    m_dataManager.registerParam(DATA_ARMOR_STAND_HEAD_POSE_PARAM, defaultPose);
+    m_dataManager.registerParam(DATA_ARMOR_STAND_BODY_POSE_PARAM, defaultPose);
+    m_dataManager.registerParam(DATA_ARMOR_STAND_LEFT_ARM_POSE_PARAM, defaultPose);
+    m_dataManager.registerParam(DATA_ARMOR_STAND_RIGHT_ARM_POSE_PARAM, defaultPose);
+    m_dataManager.registerParam(DATA_ARMOR_STAND_LEFT_LEG_POSE_PARAM, defaultPose);
+    m_dataManager.registerParam(DATA_ARMOR_STAND_RIGHT_LEG_POSE_PARAM, defaultPose);
+}
+
+void ArmorStandEntity::_syncClientFlags()
+{
+    i8 flags = 0;
+    if (isSmall()) {
+        flags |= ARMOR_STAND_CLIENT_FLAG_SMALL;
+    }
+    if (hasArms()) {
+        flags |= ARMOR_STAND_CLIENT_FLAG_SHOW_ARMS;
+    }
+    if (!hasBasePlate()) {
+        flags |= ARMOR_STAND_CLIENT_FLAG_NO_BASE_PLATE;
+    }
+    if (isInvisible()) {
+        flags |= ARMOR_STAND_CLIENT_FLAG_INVISIBLE;
+    }
+    m_dataManager.set(DATA_ARMOR_STAND_FLAGS_PARAM, flags);
+}
+
+void ArmorStandEntity::_syncClientPose()
+{
+    const auto& pose = armorStandState().m_pose;
+    // 各部位按 vanilla 顺序更新六个姿态参数；未变化的数据参数若已可标记，此处直接覆盖写入。
+    m_dataManager.set(DATA_ARMOR_STAND_HEAD_POSE_PARAM, entity::Vector3f(pose.head[0], pose.head[1], pose.head[2]));
+    m_dataManager.set(DATA_ARMOR_STAND_BODY_POSE_PARAM, entity::Vector3f(pose.body[0], pose.body[1], pose.body[2]));
+    m_dataManager.set(
+        DATA_ARMOR_STAND_LEFT_ARM_POSE_PARAM, entity::Vector3f(pose.leftArm[0], pose.leftArm[1], pose.leftArm[2]));
+    m_dataManager.set(
+        DATA_ARMOR_STAND_RIGHT_ARM_POSE_PARAM, entity::Vector3f(pose.rightArm[0], pose.rightArm[1], pose.rightArm[2]));
+    m_dataManager.set(
+        DATA_ARMOR_STAND_LEFT_LEG_POSE_PARAM, entity::Vector3f(pose.leftLeg[0], pose.leftLeg[1], pose.leftLeg[2]));
+    m_dataManager.set(
+        DATA_ARMOR_STAND_RIGHT_LEG_POSE_PARAM, entity::Vector3f(pose.rightLeg[0], pose.rightLeg[1], pose.rightLeg[2]));
+}
+
+ActionResultType ArmorStandEntity::applyPlayerInteraction(Player& player, const Vector3& hitPosition, Hand hand)
+{
+    // 对齐 vanilla ArmorStand.interactAt：标记模式与命名牌交还给后续处理器；旁观者不消费物品。
+    // Cubium 只在服务端调用本方法（客户端已停止维护），故 vanilla 中的 isClientSide 分支
+    // 合并为服务端 SUCCESS_SERVER。
+    const ItemStack heldStack = player.getHeldItem(hand);
+    if (isMarker() || (!heldStack.isEmpty() && heldStack.getItem() == Items::NAME_TAG)) {
+        return ActionResultType::Pass;
+    }
+    if (player.isSpectator()) {
+        return ActionResultType::Success;
+    }
+    if (m_world == nullptr || m_world->isClientSide()) {
+        return ActionResultType::SuccessServer;
+    }
+
+    // 按物品决定目标槽位（vanilla LivingEntity.getEquipmentSlotForItem）：盔甲物品进其自身
+    // 声明的护甲槽，其余物品（不可装备或无对应护甲槽）一律进主手。
+    EquipmentSlot targetSlot = EquipmentSlot::MainHand;
+    if (const auto* armorItem = dynamic_cast<const item::items::ArmorItem*>(heldStack.getItem())) {
+        // 盔甲架不继承 MobEntity，按 ArmorItem 声明的护甲槽选择目标槽位。
+        switch (armorItem->getSlot()) {
+            case item::armor::ArmorSlot::Head:
+                targetSlot = EquipmentSlot::Head;
+                break;
+            case item::armor::ArmorSlot::Chest:
+                targetSlot = EquipmentSlot::Chest;
+                break;
+            case item::armor::ArmorSlot::Legs:
+                targetSlot = EquipmentSlot::Legs;
+                break;
+            case item::armor::ArmorSlot::Feet:
+                targetSlot = EquipmentSlot::Feet;
+                break;
+            case item::armor::ArmorSlot::Body:
+                targetSlot = EquipmentSlot::Body;
+                break;
+        }
+    }
+
+    const bool holdingItem = !heldStack.isEmpty();
+    if (!holdingItem) {
+        // 空手：按命中点选中槽位；该槽位被禁用时退回物品自然槽位。
+        EquipmentSlot clickedSlot = getClickedSlot(hitPosition);
+        EquipmentSlot effectiveSlot = isDisabled(clickedSlot) ? targetSlot : clickedSlot;
+        ItemStack slotStack = getEquipment(effectiveSlot);
+        ItemStack newHeld = heldStack;
+        if (!slotStack.isEmpty() && swapItem(player, effectiveSlot, slotStack, newHeld)) {
+            setEquipment(effectiveSlot, slotStack);
+            player.getHeldItem(hand) = newHeld;
+            return ActionResultType::SuccessServer;
+        }
+        return ActionResultType::Pass;
+    }
+
+    // 目标槽位不可放入（禁用掩码或手部槽位未开启手臂）：装备动作失败，物品留在玩家手中。
+    if (isDisabled(targetSlot)) {
+        return ActionResultType::Fail;
+    }
+
+    ItemStack slotStack = getEquipment(targetSlot);
+    ItemStack newHeld = heldStack;
+    if (swapItem(player, targetSlot, slotStack, newHeld)) {
+        setEquipment(targetSlot, slotStack);
+        player.getHeldItem(hand) = newHeld;
+        return ActionResultType::SuccessServer;
+    }
+    return ActionResultType::Pass;
 }
 
 void ArmorStandEntity::brokenByPlayer(const DamageSource& source)
@@ -1149,7 +1508,7 @@ bool ArmorStandEntity::hurt(DamageSource& source, f32 amount)
     }
 
     // 4. isInvulnerableTo || invisible || marker → 拒绝。
-    if (isInvulnerableTo(source) || m_invisible || m_marker) {
+    if (isInvulnerableTo(source) || isInvisible() || m_marker) {
         return false;
     }
 
