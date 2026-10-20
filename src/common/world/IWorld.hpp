@@ -442,7 +442,8 @@ public:
      */
     virtual void globalLevelEvent(i32 eventId, const BlockPos& pos, i32 data)
     {
-        // TODO: 默认实现降级为普通 playEvent（对齐原版 GLOBAL_SOUND_EVENTS=false 时的降级行为）
+        // 默认降级为普通 playEvent（等价 vanilla globalSoundEvents=false 时的行为）；
+        // 服务端世界覆写本方法，按 gamerule 选择全局广播或普通事件。
         playEvent(eventId, pos, data);
     }
 

@@ -212,6 +212,26 @@ TEST_F(ServerWorldBroadcastBlockEntityTest, GlobalLevelEventPassesDimensionAndCo
     EXPECT_EQ(capturedData, 7);
 }
 
+TEST_F(ServerWorldBroadcastBlockEntityTest, GlobalLevelEventFallsBackToPlayEventWhenRuleOff)
+{
+    // globalSoundEvents=false：全局事件降级为普通 playEvent，不再走全局广播回调
+    world->getGameRules().setBoolean(world::gamerule::GameRuleKeys::GLOBAL_SOUND_EVENTS, false);
+
+    bool globalInvoked = false;
+    bool playInvoked = false;
+    world->setOnBroadcastGlobalLevelEvent([&](DimensionId, i32, i32, i32, i32, i32) { globalInvoked = true; });
+    world->setOnBroadcastWorldEvent([&](i32, i32, i32, i32, i32) { playInvoked = true; });
+
+    world->globalLevelEvent(1028, BlockPos(1, 2, 3), 0);
+    EXPECT_FALSE(globalInvoked);
+    EXPECT_TRUE(playInvoked);
+
+    // 规则恢复默认（true）后重新走全局广播
+    world->getGameRules().setBoolean(world::gamerule::GameRuleKeys::GLOBAL_SOUND_EVENTS, true);
+    world->globalLevelEvent(1028, BlockPos(1, 2, 3), 0);
+    EXPECT_TRUE(globalInvoked);
+}
+
 TEST_F(ServerWorldBroadcastBlockEntityTest, GlobalLevelEventWithoutCallbackDoesNotCrash)
 {
     EXPECT_NO_THROW(world->globalLevelEvent(2001, BlockPos(0, 0, 0), 0));

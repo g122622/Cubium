@@ -526,6 +526,13 @@ void ServerWorld::playEvent(i32 eventId, const BlockPos& pos, i32 data)
 
 void ServerWorld::globalLevelEvent(i32 eventId, const BlockPos& pos, i32 data)
 {
+    // 对齐 vanilla ServerLevel.globalLevelEvent：gamerule globalSoundEvents=false 时降级为
+    // 普通 levelEvent（仅广播给事件位置附近的玩家，而非按玩家位置钳制的全局事件）。
+    if (!getGameRules().getBoolean(world::gamerule::GameRuleKeys::GLOBAL_SOUND_EVENTS)) {
+        playEvent(eventId, pos, data);
+        return;
+    }
+
     if (m_onBroadcastGlobalLevelEvent) {
         // 传入本世界维度：广播侧据此判断每个玩家是否与事件同维度（同维度用真实事件位置，
         // 跨维度用玩家自身位置），对齐 vanilla ServerLevel.globalLevelEvent 的 p.level()==this 判定。
