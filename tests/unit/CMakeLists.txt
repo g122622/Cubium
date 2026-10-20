@@ -593,6 +593,8 @@ add_executable(mc_tests
     common/world/block/blocks/ShulkerBoxBlockTest.cpp
     # CommandBlockEntity 命令方块实体测试（命令执行、红石触发、连锁执行、条件检测）
     common/world/blockentity/CommandBlockEntityTest.cpp
+    # 命令方块执行链路（tick/条件/连锁/setAuto/setPlacedBy）测试
+    common/world/block/blocks/redstone/CommandBlockExecutionTest.cpp
     # BannerEntity 旗帜方块实体测试（图案存储、底色、自定义名称、NBT序列化）
     common/world/blockentity/BannerEntityTest.cpp
     # JukeboxEntity 唱片机方块实体测试（播放/停止、比较器信号、序列化、tick）

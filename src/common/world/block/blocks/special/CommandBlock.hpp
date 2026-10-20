@@ -69,12 +69,17 @@ public:
 
     // ========== 状态属性 ==========
 
-    [[nodiscard]] Direction getFacing(const BlockState& state) const;
-    [[nodiscard]] bool isConditional(const BlockState& state) const;
-
     // ========== 放置逻辑 ==========
 
     [[nodiscard]] BlockState getStateForPlacement(BlockItemUseContext& context) override;
+
+    /**
+     * @brief 放置后初始化命令方块（对齐 vanilla CommandBlock.setPlacedBy）
+     *
+     * 未携带方块实体数据时，按 sendCommandFeedback 游戏规则设置追踪输出，并重新应用本方块类型的
+     * 自动执行标志（脉冲/连锁为 false，循环为 true）；随后刷新供电状态并在上升沿调度执行。
+     */
+    void onBlockPlacedBy(IWorld& world, const BlockPos& pos, const BlockState& state, const ItemStack& stack) override;
 
     // ========== 红石 ==========
 
@@ -147,6 +152,23 @@ protected:
      * @param facing 连锁方向
      */
     void executeChain(IWorld& world, const BlockPos& pos, Direction facing);
+
+    /**
+     * @brief 本方块类型在实体创建/放置时应用的自动执行标志
+     *
+     * 对齐 vanilla CommandBlock 构造参数 automatic：脉冲与连锁为 false，循环为 true。
+     * 派生类（RepeatingCommandBlock）重写返回 true。
+     */
+    [[nodiscard]] virtual bool defaultAutomatic() const noexcept { return false; }
+
+    /**
+     * @brief 刷新供电状态并在供电上升沿调度执行（对齐 vanilla CommandBlock.setPoweredAndUpdate）
+     *
+     * @param world 世界引用
+     * @param pos 方块位置
+     * @param entity 命令方块实体
+     */
+    void setPoweredAndUpdate(IWorld& world, const BlockPos& pos, blockentity::CommandBlockEntity& entity);
 };
 
 } // namespace blocks

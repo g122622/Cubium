@@ -46,6 +46,10 @@ public:
     void tick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random) override;
 
     [[nodiscard]] std::unique_ptr<BlockEntity> createBlockEntity(const BlockPos& pos) override;
+
+protected:
+    /// 循环命令方块自动执行（对齐 vanilla new CommandBlock(true, ...)）。
+    [[nodiscard]] bool defaultAutomatic() const noexcept override { return true; }
 };
 
 } // namespace blocks

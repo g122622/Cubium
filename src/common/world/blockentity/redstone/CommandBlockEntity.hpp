@@ -198,9 +198,22 @@ public:
 
     /**
      * @brief 设置自动执行
+     *
+     * 对齐 vanilla CommandBlockEntity.setAutomatic：由 false 变为 true、且未被供电、
+     * 且模式不是连锁时，主动调度 1 tick 后的方块刻，使循环命令方块开启后立即开始执行。
+     * 需要方块实体已关联世界（未关联时只更新标志）。
+     *
      * @param autoExec 是否自动执行
      */
-    void setAuto(bool autoExec) { m_auto = autoExec; }
+    void setAuto(bool autoExec);
+
+    /**
+     * @brief 按模式重新应用自动执行标志（不触发调度）
+     *
+     * 对齐 vanilla CommandBlock.newBlockEntity / setPlacedBy：使用方块类型自身的 automatic 标志
+     * 直接覆盖实体设置。循环模式为 true，脉冲与连锁为 false。
+     */
+    void reapplyAutomatic();
 
     /**
      * @brief 检查是否被红石供电
@@ -234,6 +247,24 @@ public:
      * @return 条件是否满足
      */
     bool checkCondition(IWorld& world, Direction facing, bool isConditional);
+
+    /**
+     * @brief 刷新条件满足状态并返回（对齐 vanilla CommandBlockEntity.markConditionMet）
+     *
+     * 条件方块：检查 FACING 反方向（背后）的命令方块成功计数 > 0；
+     * 背后的目标不是命令方块时条件不满足。非条件方块恒为满足。
+     *
+     * @param world 世界引用
+     * @return 条件是否满足
+     */
+    bool markConditionMet(IWorld& world);
+
+    /**
+     * @brief 是否为条件方块（对齐 vanilla CommandBlockEntity.isConditional）
+     *
+     * 读取方块状态的 CONDITIONAL 属性；未关联世界时返回 false。
+     */
+    [[nodiscard]] bool isConditional() const;
 
     // ========== 命令执行 ==========
 

@@ -41,6 +41,7 @@
 #include "common/world/blockentity/BlockEntity.hpp"
 #include "common/world/blockentity/BlockEntityType.hpp"
 #include "common/world/blockentity/redstone/CommandBlockEntity.hpp"
+#include "common/world/gamerule/GameRules.hpp"
 #include "common/world/redstone/RedstonePower.hpp"
 #include "common/world/redstone/RedstoneSystem.hpp"
 #include "common/world/tick/base/TickPriority.hpp"
@@ -83,16 +84,6 @@ CommandBlock::CommandBlock(const BlockProperties& properties)
             .with(BlockStateProperties::CONDITIONAL(), false));
 }
 
-Direction CommandBlock::getFacing(const BlockState& state) const
-{
-    return state.get(BlockStateProperties::FACING());
-}
-
-bool CommandBlock::isConditional(const BlockState& state) const
-{
-    return state.get(BlockStateProperties::CONDITIONAL());
-}
-
 BlockState CommandBlock::getStateForPlacement(BlockItemUseContext& context)
 {
     Direction facing = Directions::opposite(context.getClickedFace());
@@ -111,44 +102,57 @@ void CommandBlock::neighborChanged(
         return;
     }
 
-    // 获取方块实体
     BlockEntity* entity = world.getBlockEntity(pos);
     if (entity == nullptr || entity->getType() != BlockEntityType::CommandBlock) {
         return;
     }
 
-    auto* commandEntity = static_cast<blockentity::CommandBlockEntity*>(entity);
+    // 对齐 vanilla CommandBlock.neighborChanged → setPoweredAndUpdate：
+    // 仅供电状态变化时处理；上升沿时自动执行（循环）与连锁模式不调度（前者由自身方块刻自驱，
+    // 后者只由 executeChain 驱动），其余模式刷新条件并在 1 tick 后执行。
+    setPoweredAndUpdate(world, pos, *static_cast<blockentity::CommandBlockEntity*>(entity));
+}
 
-    // 检测红石信号
-    bool isPowered = world::redstone::RedstonePower::isPowered(world, pos);
-    bool wasPowered = commandEntity->isPowered();
+void CommandBlock::onBlockPlacedBy(IWorld& world, const BlockPos& pos, const BlockState& state, const ItemStack& stack)
+{
+    MC_UNUSED(state);
 
-    // 更新供电状态
-    commandEntity->setPowered(isPowered);
-
-    // 获取命令方块模式
-    blockentity::CommandBlockMode mode = commandEntity->getMode();
-
-    // 只处理脉冲模式（REDSTONE）的红石上升沿触发
-    // 循环模式（AUTO）和连锁模式（SEQUENCE）不通过红石直接触发
-    if (mode == blockentity::CommandBlockMode::Redstone) {
-        // 上升沿触发：从不供电变为供电
-        if (isPowered && !wasPowered) {
-            // 检查条件模式
-            commandEntity->checkCondition(
-                world, getFacing(*world.getBlockState(pos)), isConditional(*world.getBlockState(pos)));
-
-            // 延迟 1 tick 后执行
-            world.tickManager().scheduleBlockTick(pos, *this, 1, world::tick::TickPriority::High);
-        }
+    BlockEntity* entity = world.getBlockEntity(pos);
+    if (entity == nullptr || entity->getType() != BlockEntityType::CommandBlock) {
+        return;
     }
+    auto& commandEntity = *static_cast<blockentity::CommandBlockEntity*>(entity);
 
-    // 循环模式：如果被供电或设置为自动执行，调度 tick
-    if (mode == blockentity::CommandBlockMode::Auto) {
-        if ((isPowered || commandEntity->isAuto()) && !world.tickManager().isBlockTickScheduled(pos, *this)) {
-            world.tickManager().scheduleBlockTick(pos, *this, 1, world::tick::TickPriority::High);
-        }
+    // 对齐 vanilla CommandBlock.setPlacedBy：物品未携带 block_entity_data 时，用游戏规则与方块类型
+    // 自身的自动执行标志初始化实体。
+    // TODO(command-block-item-data): 项目 ItemStack 尚未暴露 block_entity_data 组件查询，
+    //   且放置流程先于 onBlockPlacedBy 应用方块实体 NBT；此处暂按"无组件"处理，
+    //   待组件 API 补齐后改为读取组件存在性，避免覆盖物品携带的 auto / TrackOutput。
+    commandEntity.setTrackOutput(world.getGameRules().getBoolean(world::gamerule::GameRuleKeys::SEND_COMMAND_FEEDBACK));
+    commandEntity.reapplyAutomatic();
+
+    // 放置时若已被邻居供电，按供电上升沿处理（与 neighborChanged 一致）。
+    commandEntity.setPowered(false);
+    setPoweredAndUpdate(world, pos, commandEntity);
+}
+
+void CommandBlock::setPoweredAndUpdate(IWorld& world, const BlockPos& pos, blockentity::CommandBlockEntity& entity)
+{
+    // 对齐 vanilla CommandBlock.setPoweredAndUpdate（CommandBlock.java:113-125）。
+    const bool powered = world::redstone::RedstonePower::isPowered(world, pos);
+    const bool wasPowered = entity.isPowered();
+    if (powered == wasPowered) {
+        return;
     }
+    entity.setPowered(powered);
+    if (!powered) {
+        return;
+    }
+    if (entity.isAuto() || entity.getMode() == blockentity::CommandBlockMode::Sequence) {
+        return;
+    }
+    entity.markConditionMet(world);
+    world.tickManager().scheduleBlockTick(pos, *this, 1, world::tick::TickPriority::High);
 }
 
 i32 CommandBlock::getWeakPower(
@@ -178,28 +182,50 @@ void CommandBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state, m
 {
     MC_UNUSED(random);
 
-    // 获取方块实体
     BlockEntity* entity = world.getBlockEntity(pos);
     if (entity == nullptr || entity->getType() != BlockEntityType::CommandBlock) {
         return;
     }
+    auto& commandEntity = *static_cast<blockentity::CommandBlockEntity*>(entity);
 
-    auto* commandEntity = static_cast<blockentity::CommandBlockEntity*>(entity);
+    // 对齐 vanilla CommandBlock.tick（CommandBlock.java:127-153）：
+    //   循环模式：先刷新条件，再以"调度前的条件结果"决定是否执行；执行后若仍被供电/自动则继续调度下一刻。
+    //   脉冲模式：以调度前的条件结果决定是否执行。
+    //   连锁模式：由 executeChain 直接驱动，不单独调度方块刻。
+    const blockentity::CommandBlockMode mode = commandEntity.getMode();
+    const bool conditionMet = commandEntity.markConditionMet(world);
 
-    // 脉冲模式（REDSTONE）：由红石信号上升沿触发的 tick 执行
-    if (commandEntity->getMode() == blockentity::CommandBlockMode::Redstone) {
-        // 检查条件
-        bool conditional = isConditional(state);
-        if (!commandEntity->checkCondition(world, getFacing(state), conditional)) {
-            commandEntity->setSuccessCount(0);
-        } else {
-            // 执行命令
-            execute(world, pos, state, commandEntity);
+    auto executeOrReset = [&]() {
+        if (!conditionMet) {
+            // 条件不满足：条件方块清空成功计数（对齐 vanilla execute 的 setSuccessCount(0) 分支）
+            commandEntity.setSuccessCount(0);
+            return;
         }
+        execute(world, pos, state, &commandEntity);
+    };
 
-        // 无条件通知比较器更新信号（无论条件是否满足，成功计数可能已变化）
-        world::redstone::RedstoneSystem::instance().updateComparators(world, pos);
+    if (mode == blockentity::CommandBlockMode::Auto) {
+        // 循环方块只在被供电或开启自动执行时运行；两者都不满足时既空闲也不续期。
+        const bool active = commandEntity.isPowered() || commandEntity.isAuto();
+        if (!active) {
+            // 空闲：仅条件方块需要清空成功计数，避免比较器残留信号。
+            if (commandEntity.isConditional()) {
+                commandEntity.setSuccessCount(0);
+            }
+        } else {
+            if (conditionMet) {
+                execute(world, pos, state, &commandEntity);
+            } else if (commandEntity.isConditional()) {
+                commandEntity.setSuccessCount(0);
+            }
+            world.tickManager().scheduleBlockTick(pos, *this, 1, world::tick::TickPriority::High);
+        }
+    } else if (mode == blockentity::CommandBlockMode::Redstone) {
+        executeOrReset();
     }
+
+    // 通知比较器更新信号（成功计数变化；无论何种模式，vanilla 都会更新输出信号）
+    world::redstone::RedstoneSystem::instance().updateComparators(world, pos);
 }
 
 const BlockState& CommandBlock::rotate(const BlockState& state, Rotation rotation) const
@@ -225,18 +251,23 @@ BlockActionResult CommandBlock::useWithoutItem(
     MC_UNUSED(pos);
     MC_UNUSED(hit);
 
-    // 游戏管理员方块需要权限才能交互
-    if (!player.canUseGameMasterBlocks()) {
-        return ActionResultType::Fail;
+    // 对齐 vanilla CommandBlock.useWithoutItem：存在命令方块实体且玩家拥有 GameMaster 权限时
+    // 打开命令方块界面并返回 SUCCESS，否则返回 PASS（而非 Fail）。
+    const BlockEntity* entity = world.getBlockEntity(pos);
+    if (entity != nullptr && entity->getType() == BlockEntityType::CommandBlock && player.canUseGameMasterBlocks()) {
+        // TODO(command-block-screen): 对齐 vanilla Player.openCommandBlock 打开命令方块编辑界面，
+        //   服务端需接入容器菜单/界面同步体系后在此打开；当前仅返回 SUCCESS。
+        return ActionResultType::Success;
     }
-
-    // TODO: 打开命令方块界面
-    return ActionResultType::Success;
+    return ActionResultType::Pass;
 }
 
 std::unique_ptr<BlockEntity> CommandBlock::createBlockEntity(const BlockPos& pos)
 {
-    return std::make_unique<blockentity::CommandBlockEntity>(pos, blockentity::CommandBlockMode::Redstone);
+    auto entity = std::make_unique<blockentity::CommandBlockEntity>(pos, blockentity::CommandBlockMode::Redstone);
+    // 对齐 vanilla CommandBlock.newBlockEntity：创建实体时按方块类型设定自动执行标志。
+    entity->setAuto(defaultAutomatic());
+    return entity;
 }
 
 void CommandBlock::execute(
@@ -246,91 +277,64 @@ void CommandBlock::execute(
         return;
     }
 
-    // 检查条件
-    bool conditional = isConditional(state);
-    if (!commandEntity->checkCondition(world, getFacing(state), conditional)) {
-        // 条件不满足时重置成功计数
-        commandEntity->setSuccessCount(0);
-        return;
-    }
-
-    // 执行命令
+    // 对齐 vanilla CommandBlock.execute：条件结果由调用方（tick/executeChain）先行刷新，
+    // 此处只负责执行命令（空命令视为失败但继续链）并在执行后驱动连锁。
     if (!commandEntity->getCommand().empty()) {
         commandEntity->trigger(world);
+    } else {
+        commandEntity->setSuccessCount(0);
     }
 
-    // 触发连锁命令方块
-    executeChain(world, pos, getFacing(state));
+    executeChain(world, pos, state.get(BlockStateProperties::FACING()));
 }
 
+// executeChain 保持成员函数形态：与 Block 家族其它 tick 侧辅助方法一致，便于后续按方块类型覆写。
+// NOLINTNEXTLINE(readability-convert-member-functions-to-static)
 void CommandBlock::executeChain(IWorld& world, const BlockPos& pos, Direction facing)
 {
-    // 沿着 FACING 方向查找并触发连锁命令方块
-
-    // 最大链长度限制
-    constexpr i32 MAX_CHAIN_LENGTH = 65536;
-
+    // 对齐 vanilla CommandBlock.executeChain：沿 FACING 逐格查找连锁命令方块，
+    // 每格以自身 FACING 决定下一步方向；条件不满足时清空成功计数并继续，命令失败时中断整条链。
     BlockPos currentPos = pos;
     Direction currentFacing = facing;
 
-    for (i32 i = 0; i < MAX_CHAIN_LENGTH; ++i) {
-        // 移动到下一个位置
+    // 链长度上限由 maxCommandChainLength 游戏规则决定（默认 65536）。
+    i32 remaining = world.getGameRules().getInt(world::gamerule::GameRuleKeys::MAX_COMMAND_CHAIN_LENGTH);
+    while (remaining-- > 0) {
         currentPos = currentPos.offset(currentFacing);
 
-        // 获取方块状态
         const BlockState* nextState = world.getBlockState(currentPos);
         if (nextState == nullptr) {
             break;
         }
-
-        // 检查是否为连锁命令方块（通过检查是否有 ChainCommandBlock 类型的方法）
-        const Block& nextBlock = nextState->getBlock();
-        // 检查是否是 ChainCommandBlock（通过 dynamic_cast）
-        const ChainCommandBlock* chainBlock = dynamic_cast<const ChainCommandBlock*>(&nextBlock);
+        const auto* chainBlock = dynamic_cast<const ChainCommandBlock*>(&nextState->getBlock());
         if (chainBlock == nullptr) {
             break;
         }
 
-        // 获取方块实体
         BlockEntity* entity = world.getBlockEntity(currentPos);
         if (entity == nullptr || entity->getType() != BlockEntityType::CommandBlock) {
             break;
         }
-
-        auto* chainEntity = static_cast<blockentity::CommandBlockEntity*>(entity);
-
-        // 连锁模式必须是 SEQUENCE
-        if (chainEntity->getMode() != blockentity::CommandBlockMode::Sequence) {
+        auto& chainEntity = *static_cast<blockentity::CommandBlockEntity*>(entity);
+        if (chainEntity.getMode() != blockentity::CommandBlockMode::Sequence) {
+            break;
+        }
+        // 未被供电且非自动执行的连锁方块不参与执行（对齐 vanilla isPowered() || isAutomatic()）。
+        if (!chainEntity.isPowered() && !chainEntity.isAuto()) {
             break;
         }
 
-        // 检查是否被供电或设置为自动执行
-        if (!chainEntity->isPowered() && !chainEntity->isAuto()) {
-            break;
-        }
-
-        // 检查条件
-        Direction blockFacing = chainBlock->getFacing(*nextState);
-        bool conditional = chainBlock->isConditional(*nextState);
-        if (!chainEntity->checkCondition(world, blockFacing, conditional)) {
-            // 条件不满足，继续链但不执行
-            chainEntity->setSuccessCount(0);
-            currentFacing = blockFacing;
-            continue;
-        }
-
-        // 执行命令
-        if (!chainEntity->getCommand().empty()) {
-            if (!chainEntity->trigger(world)) {
-                // 执行失败，停止链
+        const Direction blockFacing = nextState->get(BlockStateProperties::FACING());
+        if (chainEntity.markConditionMet(world)) {
+            if (!chainEntity.getCommand().empty() && !chainEntity.trigger(world)) {
+                // 命令执行失败：中断整条链（vanilla performCommand 返回 false 时 break）。
                 break;
             }
+            world::redstone::RedstoneSystem::instance().updateComparators(world, currentPos);
+        } else if (chainEntity.isConditional()) {
+            chainEntity.setSuccessCount(0);
         }
 
-        // 通知周围比较器更新信号（连锁命令方块的成功计数可作为比较器输入）
-        world::redstone::RedstoneSystem::instance().updateComparators(world, currentPos);
-
-        // 继续链
         currentFacing = blockFacing;
     }
 }

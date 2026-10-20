@@ -23,17 +23,12 @@
 
 #include "RepeatingCommandBlock.hpp"
 
-#include "common/util/assert/AssertMacros.hpp"
 #include "common/util/math/random/IRandom.hpp"
 #include "common/world/IWorld.hpp"
-#include "common/world/block/Block.hpp"
+#include "common/world/block/BlockState.hpp"
 #include "common/world/block/blocks/special/CommandBlock.hpp"
-#include "common/world/blockentity/BlockEntity.hpp"
 #include "common/world/blockentity/BlockEntityType.hpp"
 #include "common/world/blockentity/redstone/CommandBlockEntity.hpp"
-#include "common/world/redstone/RedstoneSystem.hpp"
-#include "common/world/tick/base/TickPriority.hpp"
-#include "common/world/tick/manager/TickManager.hpp"
 #include <memory>
 
 namespace mc {
@@ -47,35 +42,10 @@ RepeatingCommandBlock::RepeatingCommandBlock(const BlockProperties& properties)
 
 void RepeatingCommandBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random)
 {
-    MC_UNUSED(random);
-
-    // 获取方块实体
-    BlockEntity* entity = world.getBlockEntity(pos);
-    if (entity == nullptr || entity->getType() != BlockEntityType::CommandBlock) {
-        return;
-    }
-
-    auto* commandEntity = static_cast<blockentity::CommandBlockEntity*>(entity);
-
-    // 循环模式（AUTO）：每 tick 执行
-    if (commandEntity->getMode() == blockentity::CommandBlockMode::Auto) {
-        // 检查条件
-        bool conditional = isConditional(state);
-        if (!commandEntity->checkCondition(world, getFacing(state), conditional)) {
-            commandEntity->setSuccessCount(0);
-        } else {
-            // 执行命令
-            execute(world, pos, state, commandEntity);
-        }
-
-        // 无条件通知比较器更新信号
-        world::redstone::RedstoneSystem::instance().updateComparators(world, pos);
-
-        // 如果仍然被供电或自动执行，重新调度下一 tick
-        if (commandEntity->isPowered() || commandEntity->isAuto()) {
-            world.tickManager().scheduleBlockTick(pos, *this, 1, world::tick::TickPriority::High);
-        }
-    }
+    // 对齐 vanilla：循环命令方块与脉冲/连锁共用 BlockStateBase.tick（CommandBlock::tick），
+    // 由方块实体持有的模式决定行为，方块类自身不拆出独立实现。
+    // 循环方块通过 createBlockEntity 创建 Auto 模式的实体，因此这里不会退化为脉冲语义。
+    CommandBlock::tick(world, pos, state, random);
 }
 
 std::unique_ptr<BlockEntity> RepeatingCommandBlock::createBlockEntity(const BlockPos& pos)
