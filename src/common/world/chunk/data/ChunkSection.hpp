@@ -90,6 +90,9 @@ public:
      */
     [[nodiscard]] const PalettedContainer& blockStates() const noexcept { return m_blockStates; }
 
+    /** @brief 接管已验证的紧凑方块数组与持久化计数，不逐方块重建。 */
+    void restoreBlockStates(PalettedContainer states, u16 blockCount, u16 blockTickCount, u16 fluidCount);
+
     void rebuildTickCounters();
     [[nodiscard]] bool needsRecalculate() const { return m_needsRecalculate; }
     void setNeedsRecalculate(bool value) { m_needsRecalculate = value; }
@@ -108,9 +111,7 @@ public:
     // （skyNibbles()/blockNibbles()），段索引经 world::sectionIndexToCoord 换算到光照段坐标后
     // 取 LIGHT_SECTIONS 数组中的对应项。
     //
-    // 历史上本类内联了两份 NibbleArray（各 2048 B/段），由 ServerWorld::_syncLightDataToChunk
-    // 从 SWMR 复制进来、仅供 SectionCodec 落盘读取，服务端从不读回——单玩家 1225 区块实测
-    // 约 11.4 MB 纯冗余。删除后光照只有 SWMR 一份权威副本。
+    // 光照只有 SWMR 一份权威副本，原生存档不保存加载时会被重算覆盖的光照。
 
     // 序列化
     [[nodiscard]] std::vector<u8> serialize() const;

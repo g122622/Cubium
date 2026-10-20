@@ -38,7 +38,8 @@ namespace mc::world::chunk {
 
 void BiomeContainer::setBiome(i32 sectionIndex, i32 x, i32 y, i32 z, BiomeId biome)
 {
-    MC_ASSERT_RELEASE(sectionIndex >= 0 && sectionIndex < SECTION_COUNT);
+    MC_ASSERT_RELEASE(sectionIndex >= 0);
+    MC_ASSERT_RELEASE(sectionIndex < SECTION_COUNT);
     if (x >= 0 && x < HORIZ_SIZE && y >= 0 && y < VERT_SIZE && z >= 0 && z < HORIZ_SIZE) {
         const i32 index = sectionIndex * SECTION_BIOME_SIZE + y * HORIZ_SIZE * HORIZ_SIZE + z * HORIZ_SIZE + x;
         m_biomes[static_cast<size_t>(index)] = biome;
@@ -47,7 +48,8 @@ void BiomeContainer::setBiome(i32 sectionIndex, i32 x, i32 y, i32 z, BiomeId bio
 
 BiomeId BiomeContainer::getBiome(i32 sectionIndex, i32 x, i32 y, i32 z) const
 {
-    MC_ASSERT_RELEASE(sectionIndex >= 0 && sectionIndex < SECTION_COUNT);
+    MC_ASSERT_RELEASE(sectionIndex >= 0);
+    MC_ASSERT_RELEASE(sectionIndex < SECTION_COUNT);
     if (x >= 0 && x < HORIZ_SIZE && y >= 0 && y < VERT_SIZE && z >= 0 && z < HORIZ_SIZE) {
         const i32 index = sectionIndex * SECTION_BIOME_SIZE + y * HORIZ_SIZE * HORIZ_SIZE + z * HORIZ_SIZE + x;
         return m_biomes[static_cast<size_t>(index)];
@@ -74,6 +76,22 @@ BiomeId BiomeContainer::getBiomeAtBlock(i32 x, i32 y, i32 z) const
     const i32 biomeY = (yOffset % mc::world::CHUNK_SECTION_HEIGHT) >> 2;
 
     return getBiome(sectionIndex, biomeX, biomeY, biomeZ);
+}
+
+std::span<const BiomeId, BiomeContainer::SECTION_BIOME_SIZE> BiomeContainer::sectionData(i32 sectionIndex) const
+{
+    MC_ASSERT_RELEASE(sectionIndex >= 0);
+    MC_ASSERT_RELEASE(sectionIndex < SECTION_COUNT);
+    return std::span<const BiomeId, SECTION_BIOME_SIZE>(
+        m_biomes.data() + static_cast<size_t>(sectionIndex) * SECTION_BIOME_SIZE, SECTION_BIOME_SIZE);
+}
+
+std::span<BiomeId, BiomeContainer::SECTION_BIOME_SIZE> BiomeContainer::sectionData(i32 sectionIndex)
+{
+    MC_ASSERT_RELEASE(sectionIndex >= 0);
+    MC_ASSERT_RELEASE(sectionIndex < SECTION_COUNT);
+    return std::span<BiomeId, SECTION_BIOME_SIZE>(
+        m_biomes.data() + static_cast<size_t>(sectionIndex) * SECTION_BIOME_SIZE, SECTION_BIOME_SIZE);
 }
 
 std::vector<u8> BiomeContainer::serialize() const

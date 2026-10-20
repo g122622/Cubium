@@ -127,7 +127,6 @@
 #include "server/world/player/ServerPlayerEntityManager.hpp"
 #include "server/world/storage/blockentity/BlockEntityStorageManager.hpp"
 #include "server/world/storage/core/LevelDatCodec.hpp"
-#include "server/world/storage/db/SectionCodec.hpp"
 #include "server/world/storage/entity/EntityStorageManager.hpp"
 #include "server/world/storage/section/SectionManager.hpp"
 #include "server/world/structure/StructureLocator.hpp"
@@ -297,49 +296,19 @@ Result<size_t> ServerWorld::saveDirtyChunks(bool sync)
         return 0;
     }
 
-    // 收集所有脏区块的段并序列化。
-    std::vector<world::storage::SectionWrite> writes;
-    size_t dirtyChunkCount = 0;
-
+    std::vector<const ChunkData*> dirtyChunks;
     m_chunkManager->forEachLoadedChunk([&](ChunkData& chunk) {
-        if (!chunk.isDirty() || !chunk.isFullyGenerated()) {
-            return true;
-        }
-        ++dirtyChunkCount;
-
-        const std::vector<BiomeId> biomes = world::storage::SectionCodec::extractBiomes(chunk.getBiomes());
-        writes.reserve(writes.size() + world::CHUNK_SECTIONS);
-
-        for (i8 sectionY = 0; sectionY < world::CHUNK_SECTIONS; ++sectionY) {
-            const ChunkSection* section = chunk.getSection(sectionY);
-            if (section == nullptr) {
-                continue;
-            }
-            world::storage::SectionKey key(
-                chunk.x(), chunk.z(), static_cast<i8>(world::sectionIndexToCoord(sectionY)), m_config.dimension);
-            auto bytesResult =
-                world::storage::SectionCodec::serializeFromChunkSection(chunk, sectionY, *section, key, biomes);
-            if (bytesResult.failed()) {
-                spdlog::error("Failed to serialize section ({}, {}, {}) of dimension {}: {}",
-                    key.chunkX,
-                    key.chunkZ,
-                    static_cast<i32>(key.sectionY),
-                    static_cast<i32>(m_config.dimension),
-                    bytesResult.error().message());
-                continue;
-            }
-            writes.push_back(world::storage::SectionWrite{key, std::move(bytesResult.value())});
+        if (chunk.isDirty() && chunk.isFullyGenerated()) {
+            dirtyChunks.push_back(&chunk);
         }
         return true;
     });
-
-    if (writes.empty()) {
-        return 0;
+    if (dirtyChunks.empty()) {
+        return size_t{0};
     }
 
-    // 全部脏区块的段聚合成一个批次：逐区块各自提交会让每个区块都付出独立的 WAL fsync，
-    // 视野距离 16 下上千个区块是数量级的差异。
-    auto saveResult = m_storage->saveSections(m_config.dimension, writes, sync);
+    // 所有脏区块共享一个 WriteBatch，存储门面直接从紧凑数组捕获数据。
+    auto saveResult = m_storage->saveChunks(m_config.dimension, dirtyChunks, sync);
     if (saveResult.failed()) {
         return saveResult.error();
     }
@@ -354,7 +323,7 @@ Result<size_t> ServerWorld::saveDirtyChunks(bool sync)
 
     spdlog::info("Saved {} sections from {} dirty chunks in dimension {}",
         saveResult.value(),
-        dirtyChunkCount,
+        dirtyChunks.size(),
         static_cast<i32>(m_config.dimension));
 
     return saveResult.value();

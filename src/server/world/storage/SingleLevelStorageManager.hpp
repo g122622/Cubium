@@ -45,6 +45,7 @@
 #include "server/world/storage/task/StorageTask.hpp"
 #include "server/world/storage/task/StorageTaskManager.hpp"
 #include <atomic>
+#include <condition_variable>
 #include <filesystem>
 #include <functional>
 #include <future>
@@ -79,7 +80,6 @@ struct SingleLevelStorageConfig {
     ConsistencyMode consistencyMode = ConsistencyMode::Eventual;
     bool enableBackup = true;
     std::optional<RocksDBConfig> rocksdbConfig;
-    bool computeHash = false;
     bool readonly = false;
     SaveFormatInfo formatInfo;
 };
@@ -178,17 +178,12 @@ public:
     [[nodiscard]] bool isOpen() const { return m_db != nullptr || m_backend != nullptr; }
 
     /**
-     * @brief 把指定维度的待写段批量落盘
-     *
-     * 自身不产生数据：待写段由调用方（区块层）从 `ChunkData` 直接序列化后传入，
-     * 全部段聚合成**一个** `WriteBatch` 提交，一次调用只付一次 WAL fsync。
-     *
-     * @param dimension 维度 ID
-     * @param writes 待写段列表
-     * @param sync 是否要求本次提交等待 fsync 落盘；为 false 时由一致性模式决定
-     * @return 成功写回的段数
+     * @brief 从内存区块直接构建一个批次并提交，返回保存的段数。
+     * @param dimension 目标维度
+     * @param chunks 当前调用期间保持稳定的区块列表
+     * @param sync 是否等待持久化完成
      */
-    Result<size_t> saveSections(DimensionId dimension, const std::vector<SectionWrite>& writes, bool sync);
+    Result<size_t> saveChunks(DimensionId dimension, std::span<const ChunkData* const> chunks, bool sync);
 
     /**
      * @brief 把玩家数据缓存中标记为脏的条目落盘
@@ -218,7 +213,7 @@ public:
      * @brief 异步读取完整区块（Moonrise 式异步 I/O）
      *
      * Native 格式：两路并行提交到 ServerIO 线程池——
-     *   路径 A：区块 section 数据（SectionManager::loadSectionsAsync，24 个 section 批量读取）
+     *   路径 A：区块 section 数据（SectionManager::loadSectionsSync，24 个 section 批量读取）
      *   路径 B：方块实体（BlockEntityStorageManager::loadBlockEntitiesInChunk）
      * 两路 I/O 完成后在调用方线程（通常 Compute 池）组装 ChunkData。
      * 外来格式（JavaAnvil/BedrockLDB）：在 ServerIO worker 内加 m_foreignReadMutex 串行同步执行 m_backend->loadChunk。
@@ -270,17 +265,10 @@ public:
     /**
      * @brief 异步保存完整区块（回调版本）
      *
-     * 与 saveChunk 的区别：saveChunk 在调用线程同步阻塞；saveChunkAsyncCallback 立即返回，
-     * 序列化（SectionCodec::fromChunkSection × 24 + biomes）+ 写盘（saveSectionSync × 24 +
-     * 方块实体）在 ServerIO 线程执行，不阻塞主线程。完成时通过 callback 回传结果。
-     *
-     * 线程语义：Native 格式下整个保存（序列化+写盘）作为单个 StorageTask 投递到 ServerIO 池，
-     * callback 在 ServerIO 线程调用。无 taskManager（测试/独立模式）时降级为当前线程同步执行。
-     * 外来格式：saveChunk 对外来后端为只读空操作，直接在调用线程同步完成。
-     *
-     * 调用方负责在回调中把结果投递回主线程（如通过 ServerChunkManager 的 _pendingUnloadFinishes 队列）。
-     * 区块数据以 shared_ptr<const ChunkData> 共享，避免 600KB 深拷贝；保存期间区块不得被修改
-     * （由上层卸载流程保证：卸载候选已 isSafeToUnload，无 worker/主线程写者）。
+     * 在调用线程读取区块紧凑数组并直接构建拥有数据的 WriteBatch 快照，随后交给
+     * ServerIO 提交；后台任务不借用区块数组，主线程后续修改不影响已捕获的数据。
+     * 无 taskManager 时在调用线程同步保存；外来后端仍为只读空操作。
+     * 回调由 ServerIO 调用，调用方负责将结果投递回主线程。
      *
      * @param chunk 区块数据（共享所有权，保存期间不可变）
      * @param dimension 目标维度
@@ -486,6 +474,15 @@ public:
     friend class mc::server::ServerChunkManager;
 
 private:
+    /** @brief 登记由本存档持有的异步请求，覆盖读盘、恢复与保存收尾。 */
+    void _beginAsyncOperation();
+    /** @brief 请求不再访问存档或持有固定读取句柄后通知关闭等待者。 */
+    void _finishAsyncOperation();
+
+    std::mutex m_asyncOperationMutex;
+    std::condition_variable m_asyncOperationCondition;
+    size_t m_asyncOperationCount = 0;
+
     SectionManager& _sectionManager(DimensionId dimension);
     const SectionManager& _sectionManager(DimensionId dimension) const;
     [[nodiscard]] bool _hasSectionManager(DimensionId dimension) const;
@@ -534,7 +531,7 @@ private:
     util::UniversalWorkerPool* m_ioWorkerPool = nullptr;
     std::unique_ptr<StorageTaskManager> m_taskManager;
 
-    /// 反序列化线程池（ServerCompute）。loadChunkAsync 的 SectionCodec::toChunkSection +
+    /// 区块恢复线程池（ServerCompute）。loadChunkAsync 的紧凑数组恢复与
     /// biomes 组装 + ChunkData 合并阶段在此池执行。nullptr 时降级为 IO worker 内联。
     util::UniversalWorkerPool* m_computeWorkerPool = nullptr;
 

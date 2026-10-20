@@ -28,6 +28,7 @@
 #include "common/world/WorldConstants.hpp"
 #include <array>
 #include <cstddef>
+#include <span>
 #include <vector>
 
 namespace mc::world::chunk {
@@ -80,6 +81,12 @@ public:
      * 自动将世界 Y 坐标映射到正确的 section 和 biome Y 索引。
      */
     [[nodiscard]] BiomeId getBiomeAtBlock(i32 x, i32 y, i32 z) const;
+
+    /** @brief 借用指定段的连续生物群系数组。 */
+    [[nodiscard]] std::span<const BiomeId, SECTION_BIOME_SIZE> sectionData(i32 sectionIndex) const;
+
+    /** @brief 获取指定段的最终生物群系存储，供批量恢复。 */
+    [[nodiscard]] std::span<BiomeId, SECTION_BIOME_SIZE> sectionData(i32 sectionIndex);
 
     /**
      * @brief 序列化
