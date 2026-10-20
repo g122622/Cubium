@@ -27,6 +27,7 @@
 #include <memory>
 
 #include "common/core/Types.hpp"
+#include "common/entity/ai/controller/MovementController.hpp"
 #include "common/entity/ai/controller/RabbitJumpControl.hpp"
 #include "common/entity/ai/controller/RabbitMoveControl.hpp"
 #include "common/entity/ai/goal/GoalSelector.hpp"
@@ -343,6 +344,49 @@ void RabbitEntity::startJumping()
     if (auto* worldPtr = world(); worldPtr != nullptr) {
         worldPtr->broadcastEntityStatus(id(), static_cast<u8>(network::EntityStatus::RabbitJump));
     }
+}
+
+f32 RabbitEntity::getRabbitJumpScale() const
+{
+    // 对应 vanilla Rabbit.getJumpPower 中的 f 值计算。
+    f32 scale = 0.3f;
+
+    const entity::ai::controller::MovementController* move = moveController();
+
+    // 移动速度修正 <= 0.6 时使用慢速跳跃（vanilla moveControl.getSpeedModifier()）。
+    if (move != nullptr && move->speed() <= 0.6) {
+        scale = 0.2f;
+    }
+
+    // 路径下一节点高于当前位置 0.5 格：需要跳上台阶（vanilla path.getNextEntityPos）。
+    if (const auto* nav = navigator(); nav != nullptr && !nav->isDone()) {
+        if (const entity::ai::pathfinding::Path* path = nav->getPath(); path != nullptr) {
+            if (const entity::ai::pathfinding::PathPoint* next = path->getCurrentTarget(); next != nullptr) {
+                if (static_cast<f64>(next->y()) > y() + 0.5) {
+                    scale = 0.5f;
+                }
+            }
+        }
+    }
+
+    // 水平碰撞，或正在跳跃且移动控制器目标高于当前位置 0.5 格：蓄力跳跃。
+    if (collidedHorizontally() || (isJumping() && move != nullptr && move->getY() > y() + 0.5)) {
+        scale = 0.5f;
+    }
+
+    return scale;
+}
+
+f32 RabbitEntity::getJumpPower() const
+{
+    // 对应 vanilla Rabbit.getJumpPower：
+    //   return super.getJumpPower(f / 0.42F);
+    // super.getJumpPower(x) = JUMP_STRENGTH * x * blockJumpFactor + jumpBoostPower，
+    // 即缩放因子只作用于 JUMP_STRENGTH 项；跳跃提升药水加成不随 f 缩放（原版同样如此：
+    // LivingEntity.getJumpPower(float) 的 +getJumpBoostPower() 在乘法之外）。
+    // 默认 JUMP_STRENGTH=0.42，故 f=0.3 时得到 0.3，慢速 0.2，蓄力 0.5。
+    const f64 jumpStrength = getAttributeValue(entity::attribute::Attributes::JUMP_STRENGTH, 0.42);
+    return static_cast<f32>(jumpStrength) * getRabbitJumpScale() * getBlockJumpFactor() + getJumpBoostPower();
 }
 
 f32 RabbitEntity::getJumpCompletion(f32 partialTick) const

@@ -1364,4 +1364,42 @@ TEST_F(RabbitEntityTest, RaidGardenGoal_ShouldMoveTo_AcceptsMatureCarrotOnFarmla
 }
 
 } // namespace
+
+// ========== getJumpPower（对齐 vanilla Rabbit.getJumpPower）==========
+
+// 静止（移动控制器速度 1.0、无路径、无碰撞）：默认跳跃力 0.42（JUMP_STRENGTH 默认值）。
+TEST_F(RabbitEntityTest, GetJumpPower_DefaultUsesScaleThreeTenths)
+{
+    RabbitEntity rabbit(EntityInstanceId(1), mc::test::testEcsRegistry());
+    rabbit.setWorld(&m_world);
+
+    EXPECT_FLOAT_EQ(rabbit.getRabbitJumpScale(), 0.3f);
+    // JUMP_STRENGTH(0.42) * f(0.3) * blockJumpFactor(1.0) + jumpBoost(0) = 0.126。
+    EXPECT_FLOAT_EQ(rabbit.getJumpPower(), 0.126f);
+}
+
+// 移动控制器速度 <= 0.6：慢速跳跃 0.2。
+TEST_F(RabbitEntityTest, GetJumpPower_SlowSpeedUsesTwoTenths)
+{
+    RabbitEntity rabbit(EntityInstanceId(1), mc::test::testEcsRegistry());
+    rabbit.setWorld(&m_world);
+
+    rabbit.moveController()->setMoveTo(0.0, 64.0, 0.0, 0.5);
+    EXPECT_LE(rabbit.moveController()->speed(), 0.6);
+    EXPECT_FLOAT_EQ(rabbit.getRabbitJumpScale(), 0.2f);
+    EXPECT_FLOAT_EQ(rabbit.getJumpPower(), 0.084f);
+}
+
+// 跳跃提升效果：在兔子基础跳跃力上叠加 getJumpBoostPower。
+TEST_F(RabbitEntityTest, GetJumpPower_IncludesJumpBoostPower)
+{
+    RabbitEntity rabbit(EntityInstanceId(1), mc::test::testEcsRegistry());
+    rabbit.setWorld(&m_world);
+
+    const f32 base = rabbit.getJumpPower();
+    ASSERT_TRUE(rabbit.addEffect(entity::effect::EffectInstance(entity::effect::EffectType::JumpBoost, 200, 1)));
+    EXPECT_FLOAT_EQ(rabbit.getJumpBoostPower(), 0.2f);
+    EXPECT_FLOAT_EQ(rabbit.getJumpPower(), base + 0.2f);
+}
+
 } // namespace mc

@@ -275,6 +275,27 @@ public:
      */
     void updateAITasks() override;
 
+    /**
+     * @brief 计算起跳垂直初速度（对应 MC 1.21.11 Rabbit.getJumpPower）
+     *
+     * vanilla：
+     *   float f = 0.3F;
+     *   if (moveControl.getSpeedModifier() <= 0.6) f = 0.2F;
+     *   if (路径未完成 && 下一路径点 y > 当前 y + 0.5) f = 0.5F;
+     *   if (horizontalCollision || (jumping && moveControl.getWantedY() > y + 0.5)) f = 0.5F;
+     *   return super.getJumpPower(f / 0.42F);
+     * 即普通跳跃 0.3、慢速跳跃 0.2、需要越过方块/撞墙时的蓄力跳跃 0.5，
+     * 并保留 JUMP_STRENGTH 属性、蜂蜜块跳跃因子与跳跃提升药水的加成。
+     */
+    [[nodiscard]] f32 getJumpPower() const override;
+
+    /**
+     * @brief 按原版公式计算免跳跃力缩放的基础跳跃力（供测试与内部换算使用）
+     *
+     * 返回 Rabbit.getJumpPower 中 `f / 0.42F` 之前的 f 值（0.2 / 0.3 / 0.5）。
+     */
+    [[nodiscard]] f32 getRabbitJumpScale() const;
+
 protected:
     // ========== AI 目标注册 ==========
     void registerGoals() override;
