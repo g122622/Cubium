@@ -31,7 +31,7 @@
  * - EndCrystalItem：黑曜石/基岩上放置、非黑曜石失败、上方非空气失败
  * - ItemFrameItem：侧面放置生成展示框、贴顶/底面失败、荧光变体标记
  * - SpyglassItem：UseAction::Spyglass、使用时长 1200
- * - GoatHornItem：UseAction::TootHorn、使用时长 140、8 音色变体
+ * - GoatHornItem：UseAction::TootHorn（使用时长与音色由 instrument 数据组件决定）
  * - TadpoleEntity：实体注册、桶物品、音效、成长计时、死亡不掉经验
  * - LivingEntity 不死图腾死亡保护：持图腾不死、消耗图腾、无图腾正常死亡、BYPASSES_INVULNERABILITY 不被救
  */
@@ -455,18 +455,13 @@ TEST_F(SpyglassAndGoatHornTest, SpyglassUseActionAndDuration)
 
 TEST_F(SpyglassAndGoatHornTest, GoatHornUseActionAndDuration)
 {
+    // 使用动作固定为吹号角；使用时长与音色来自物品的 instrument 数据组件
+    // （组件解析与吹奏链路由 InstrumentDataDrivenTest 覆盖）。
     ItemStack stack(*Items::GOAT_HORN, 1);
     EXPECT_EQ(Items::GOAT_HORN->getUseAction(stack), UseAction::TootHorn);
-    EXPECT_EQ(Items::GOAT_HORN->getUseDuration(stack), item::items::GoatHornItem::USE_DURATION_TICKS);
-    EXPECT_EQ(item::items::GoatHornItem::USE_DURATION_TICKS, 140);
-}
 
-TEST_F(SpyglassAndGoatHornTest, GoatHornVariantIndex)
-{
     auto* horn = dynamic_cast<item::items::GoatHornItem*>(Items::GOAT_HORN);
     ASSERT_NE(horn, nullptr);
-    EXPECT_GE(horn->variantIndex(), 0);
-    EXPECT_LT(horn->variantIndex(), 8);
 }
 
 // ============================================================================

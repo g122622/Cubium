@@ -546,6 +546,12 @@ add_library(mc_common STATIC
     item/tag/ItemTagLoader.cpp
     item/tag/ItemTags.cpp
 
+    # Item System - Instrument（乐器注册表与乐器标签，乐器定义由服务端数据包加载）
+    item/instrument/InstrumentDefinition.cpp
+    item/instrument/InstrumentRegistry.cpp
+    item/instrument/InstrumentTag.cpp
+    item/instrument/InstrumentTags.cpp
+
     # Item System - Block Items
     item/items/block/BedItem.cpp
     item/items/block/BlockItem.cpp

@@ -29,6 +29,7 @@
 #include "common/entity/core/EntitySize.hpp"
 #include "common/entity/core/EntityType.hpp"
 #include "common/entity/core/LivingEntity.hpp"
+#include "common/entity/core/MobEntity.hpp"
 #include "common/entity/damage/DamageSource.hpp"
 #include "common/entity/damage/tag/DamageTypeTags.hpp"
 #include "common/entity/effect/EffectType.hpp"
@@ -37,7 +38,11 @@
 #include "common/entity/registry/VanillaEntityTypeKeys.hpp"
 #include "common/entity/serialization/EntityNbtKeys.hpp"
 #include "common/entity/serialization/NbtHelper.hpp"
+#include "common/entity/utils/ItemDropHelper.hpp"
+#include "common/item/Items.hpp"
 #include "common/item/items/special/FlintAndSteelItem.hpp"
+#include "common/network/protocol/EntityEvents.hpp"
+#include "common/particle/ParticleTypes.hpp"
 #include "common/sound/SoundCategory.hpp"
 #include "common/sound/SoundEvents.hpp"
 #include "common/util/UuidUtils.hpp"
@@ -46,9 +51,11 @@
 #include "common/world/IWorld.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockState.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/dimension/end/EndDragonFight.hpp"
 #include "common/world/explosion/ExplosionImmunityContext.hpp"
 #include "common/world/explosion/ExplosionMode.hpp"
+#include "common/world/gameevent/GameEvents.hpp"
 #include "common/world/gamerule/GameRules.hpp"
 #include <array>
 #include <chrono>
@@ -999,8 +1006,7 @@ void ArmorStandEntity::tick()
 bool ArmorStandEntity::ignoreExplosion(const world::explosion::ExplosionImmunityContext& ctx) const
 {
     // 仅当爆炸影响方块类实体时才受影响；不可见盔甲架忽略爆炸。
-    // TODO: vanilla 用 Entity.isInvisible()（共享 flags），Cubium Entity 暂无通用 isInvisible，
-    //       此处用 ArmorStand 自身 isInvisible() 近似，未来 Entity 引入通用 invisible 后切换。
+    // 注：项目 Entity 暂无可跨实体共享的 invisible 状态，故以盔甲架自身的不可见标志判定。
     return ctx.shouldAffectBlocklikeEntities ? isInvisible() : true;
 }
 
@@ -1034,15 +1040,79 @@ void ArmorStandEntity::setRightLegRotation(f32 x, f32 y, f32 z)
     m_rightLeg = {x, y, z};
 }
 
-void ArmorStandEntity::causeDamage(f32 damage)
+void ArmorStandEntity::causeDamage(f32 damage, const DamageSource& source)
 {
-    // 对齐 vanilla ArmorStand.causeDamage：直接 setHealth(health - damage)，health<=0 调 kill。
-    // 盔甲架不经过护甲/附魔减伤链路。Cubium 用自带 m_health 模拟，扣至 0 及以下销毁。
-    m_health -= damage;
-    if (m_health <= 0.0f) {
-        m_health = 0.0f;
-        remove();
+    // 盔甲架不经过护甲/附魔减伤链路，直接扣血；扣至 0.5 及以下即按"任意方式破坏"销毁。
+    const f32 remaining = m_health - damage;
+    if (remaining <= 0.5f) {
+        brokenByAnything(source);
+        kill();
+        return;
     }
+    m_health = remaining;
+    gameEvent(gameevent::GameEvents::ENTITY_DAMAGE, onPos());
+}
+
+void ArmorStandEntity::kill()
+{
+    // 以 KILLED 原因移除：破坏音效由 onRemoval 统一播放，此处只补 ENTITY_DIE 游戏事件。
+    remove(RemovalReason::Killed);
+    gameEvent(gameevent::GameEvents::ENTITY_DIE, onPos());
+}
+
+void ArmorStandEntity::brokenByAnything(const DamageSource& source)
+{
+    playBrokenSound();
+    // vanilla 在此先 dropAllDeathLoot（盔甲架本身不配战利品表，故无额外物品），
+    // 再逐个 popResource 掉出穿戴装备。
+    // TODO: 尚未实现实体装备体系，穿戴装备的掉落（vanilla 遍历 EquipmentSlot 逐个 popResource）待装备体系落地后补全。
+    MC_UNUSED(source);
+}
+
+void ArmorStandEntity::brokenByPlayer(const DamageSource& source)
+{
+    // 玩家破坏时先掉出带自定义名的盔甲架本体，再走通用破坏流程。
+    ItemStack standStack(*Items::ARMOR_STAND, 1);
+    const text::ITextComponent* customName = getCustomNameComponent();
+    if (customName != nullptr) {
+        standStack.setCustomNameComponent(customName->deepCopy());
+    }
+    ItemDropHelper::spawnItemEntity(
+        m_world, standStack, x(), y(), z(), getRandom(), ItemDropHelper::DEFAULT_PICKUP_DELAY);
+    brokenByAnything(source);
+}
+
+void ArmorStandEntity::playBrokenSound()
+{
+    if (m_world == nullptr) {
+        return;
+    }
+    m_world->playSound(SoundEvents::ENTITY_ARMOR_STAND_BREAK, sound::SoundCategory::Neutral, position(), 1.0f, 1.0f);
+}
+
+void ArmorStandEntity::showBreakingParticles()
+{
+    if (m_world == nullptr) {
+        return;
+    }
+    // 碎屑使用橡木木板作为粒子贴图来源，位置抬升到碰撞箱 2/3 高度处（vanilla getY(0.6666...)）。
+    const Vector3 center(x(), y() + static_cast<f64>(height()) * (2.0 / 3.0), z());
+    const f32 spreadX = width() / 4.0f;
+    const f32 spreadY = height() / 4.0f;
+    const Vector3 velocity(spreadX, spreadY, spreadX);
+    for (i32 i = 0; i < ARMOR_STAND_BREAK_PARTICLE_COUNT; ++i) {
+        m_world->addBlockParticle(
+            particle::ParticleTypeId::Block, center, velocity, VanillaBlocks::OAK_PLANKS->defaultState());
+    }
+}
+
+void ArmorStandEntity::onRemoval(RemovalReason reason)
+{
+    // 任何导致实体被摧毁的移除都会广播破坏音效（vanilla cmdKill 经 kill 走到同一销毁路径）。
+    if (shouldDestroy(reason)) {
+        playBrokenSound();
+    }
+    Entity::onRemoval(reason);
 }
 
 bool ArmorStandEntity::hurt(DamageSource& source, f32 amount)
@@ -1057,50 +1127,52 @@ bool ArmorStandEntity::hurt(DamageSource& source, f32 amount)
     //   7. BURNS_ARMOR_STANDS && health>0.5 → causeDamage(4.0)
     //   8. CAN_BREAK/ALWAYS_KILLS：mayBuild 守卫、creativePlayer→kill、5tick 节流/brokenByPlayer→kill
     //
-    // 架构差异：vanilla ArmorStand 继承 LivingEntity（maxHealth=2、有 causeDamage/kill/brokenByAnybody
-    // 装备掉落体系）。Cubium ArmorStandEntity 继承 Entity 无 health/装备体系，此处用自带 m_health
-    // 模拟 causeDamage（扣血）与 kill（销毁）。装备掉落（brokenByAnything/brokenByPlayer）、mobGriefing
-    // Mob 守卫、creativePlayer、5tick 节流等依赖未实现体系的分支加 TODO 简化或守卫。
+    // 架构差异：vanilla ArmorStand 继承 LivingEntity（maxHealth=2）。Cubium ArmorStandEntity 继承
+    // Entity 无 LivingEntity 的 health 体系，故用自带 m_health 模拟（初始 2.0，causeDamage 直接扣减）。
+    // amount 参数不参与计算：盔甲架各分支的伤害值由伤害类型标签决定（0.15 / 4.0），与原版一致。
     MC_UNUSED(amount);
 
     if (isRemoved()) {
         return false;
     }
 
-    // 2. mobGriefing 守卫：伤害来源是 Mob 且 mobGriefing=false 时拒绝（vanilla :269）。
-    // TODO: 完整对齐需 dynamic_cast<MobEntity>(source.getEntity())，当前简化为无条件放行（测试不涉及 mob 攻击盔甲架）。
-
-    // 3. BYPASSES_INVULNERABILITY → kill（销毁，对齐 vanilla :271-273）。
-    if (source.is(DamageTypeTags::BYPASSES_INVULNERABILITY())) {
-        remove();
+    // 2. mobGriefing 守卫：伤害来源是 Mob 且 mobGriefing=false 时拒绝。
+    if (!m_world->getGameRules().getBoolean(world::gamerule::GameRuleKeys::MOB_GRIEFING) &&
+        dynamic_cast<MobEntity*>(source.getEntity()) != nullptr) {
         return false;
     }
 
-    // 4. isInvulnerableTo || invisible || marker → 拒绝（对齐 vanilla :274）。
+    // 3. BYPASSES_INVULNERABILITY → kill（销毁）。
+    if (source.is(DamageTypeTags::BYPASSES_INVULNERABILITY())) {
+        kill();
+        return false;
+    }
+
+    // 4. isInvulnerableTo || invisible || marker → 拒绝。
     if (isInvulnerableTo(source) || m_invisible || m_marker) {
         return false;
     }
 
-    // 5. IS_EXPLOSION → brokenByAnything + kill（对齐 vanilla :276-279）。
-    // TODO: brokenByAnything 应掉落盔甲架穿戴的装备（依赖未实现的装备体系），当前仅销毁。
+    // 5. IS_EXPLOSION → brokenByAnything + kill。
     if (source.is(DamageTypeTags::IS_EXPLOSION())) {
-        remove();
+        brokenByAnything(source);
+        kill();
         return false;
     }
 
-    // 6. IGNITES_ARMOR_STANDS：着火则受 0.15 伤害，未着火则点燃 5 秒（对齐 vanilla :280-287）。
+    // 6. IGNITES_ARMOR_STANDS：着火则受 0.15 伤害，未着火则点燃 5 秒。
     if (source.is(DamageTypeTags::IGNITES_ARMOR_STANDS())) {
         if (isOnFire()) {
-            causeDamage(0.15f);
+            causeDamage(0.15f, source);
         } else {
             igniteForSeconds(5.0f);
         }
         return false;
     }
 
-    // 7. BURNS_ARMOR_STANDS（on_fire）&& health>0.5 → causeDamage(4.0)（对齐 vanilla :288-290）。
+    // 7. BURNS_ARMOR_STANDS（on_fire）&& health>0.5 → causeDamage(4.0)。
     if (source.is(DamageTypeTags::BURNS_ARMOR_STANDS()) && m_health > 0.5f) {
-        causeDamage(4.0f);
+        causeDamage(4.0f, source);
         return false;
     }
 
@@ -1118,28 +1190,30 @@ bool ArmorStandEntity::hurt(DamageSource& source, f32 amount)
         return false;
     }
 
-    // creativePlayer：创造模式直接破坏销毁，不进入节流（vanilla :298-302）。
-    // 注：vanilla isCreativePlayer() = getEntity() instanceof Player && abilities.instabuild。
-    // Cubium DamageSource 无 isCreativePlayer()，用 source.getEntity() dynamic_cast<Player> + isCreative() 近似。
+    // creativePlayer：创造模式玩家直接破坏（破坏音效 + 碎屑粒子 + kill），不进入节流。
     if (player != nullptr && player->isCreative()) {
-        // TODO: playBrokenSound + showBreakingParticles（纯客户端效果，依赖未实现的音效/粒子体系）。
-        remove();
+        playBrokenSound();
+        showBreakingParticles();
+        kill();
         return true;
     }
 
-    // 5 tick 节流：距上次受击 >5 tick 才记录（广播受击事件），否则 brokenByPlayer 销毁（vanilla :304-313）。
-    // TODO: vanilla 用 level.getGameTime() - lastHit > 5，Cubium 用 ticksExisted() 近似（无独立 gameTime 缓存）。
-    //       ALWAYS_KILLS 标签跳过节流直接销毁（vanilla :305 !flag1）。
-    const u64 currentTick = m_world != nullptr ? m_world->getGameTime() : ticksExisted();
-    if (!alwaysKills && currentTick - static_cast<u64>(m_lastHit) > 5ULL) {
-        m_lastHit = static_cast<i64>(currentTick);
-        // TODO: 广播 EntityEvent(32) 受击音效 + gameEvent(ENTITY_DAMAGE)（依赖未实现的事件广播体系）。
+    // 5 tick 节流：距上次受击超过 5 tick 才记录（广播受击事件），否则真正破坏（vanilla :304-313）。
+    // ALWAYS_KILLS 标签（箭、三叉戟等）跳过节流直接销毁。
+    const i64 currentTick = static_cast<i64>(m_world->getGameTime());
+    const bool throttled = m_hasLastHit && currentTick - m_lastHit <= ARMOR_STAND_HIT_COOLDOWN_TICKS;
+    if (!alwaysKills && !throttled) {
+        m_world->broadcastEntityStatus(m_id, static_cast<u8>(network::EntityStatus::ArmorStandHit));
+        gameEvent(gameevent::GameEvents::ENTITY_DAMAGE, onPos());
+        m_lastHit = currentTick;
+        m_hasLastHit = true;
         return true;
     }
 
-    // brokenByPlayer + showBreakingParticles + kill（vanilla :310-312）。
-    // TODO: brokenByPlayer 应掉落盔甲架穿戴的装备（依赖未实现的装备体系），当前仅销毁。
-    remove();
+    // 节流内再次受击，或 ALWAYS_KILLS：按"被玩家破坏"流程销毁。
+    brokenByPlayer(source);
+    showBreakingParticles();
+    kill();
     return true;
 }
 

@@ -25,47 +25,57 @@
 
 #include "common/core/Types.hpp"
 #include "common/entity/entities/player/Player.hpp"
+#include "common/item/Items.hpp"
 #include "common/item/core/ActionResult.hpp"
 #include "common/item/core/Item.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/item/core/UseAction.hpp"
+#include "common/item/instrument/InstrumentRegistry.hpp"
 #include "common/resource/ResourceLocation.hpp"
-#include "common/sound/SoundEvents.hpp"
+#include "common/sound/SoundCategory.hpp"
 #include "common/util/assert/AssertMacros.hpp"
 #include "common/world/IWorld.hpp"
-#include <array>
+#include "common/world/gameevent/GameEvent.hpp"
+#include "common/world/gameevent/GameEvents.hpp"
+
+#include <string>
 #include <utility>
 
 namespace mc {
 namespace item::items {
 
-namespace {
+GoatHornItem::GoatHornItem(ItemProperties properties)
+    : Item(std::move(properties))
+{}
 
-/// 8 种山羊角音色（对齐 vanilla SoundEvents.GOAT_HORN_SOUND_VARIANTS = item.goat_horn.sound.0-7）
-const std::array<const ResourceLocation*, 8>& _goatHornSounds()
+const instrument::InstrumentDefinition* GoatHornItem::getInstrument(const ItemStack& stack)
 {
-    static const std::array<const ResourceLocation*, 8> s_sounds = {&SoundEvents::ITEM_GOAT_HORN_SOUND_0,
-        &SoundEvents::ITEM_GOAT_HORN_SOUND_1,
-        &SoundEvents::ITEM_GOAT_HORN_SOUND_2,
-        &SoundEvents::ITEM_GOAT_HORN_SOUND_3,
-        &SoundEvents::ITEM_GOAT_HORN_SOUND_4,
-        &SoundEvents::ITEM_GOAT_HORN_SOUND_5,
-        &SoundEvents::ITEM_GOAT_HORN_SOUND_6,
-        &SoundEvents::ITEM_GOAT_HORN_SOUND_7};
-    return s_sounds;
+    const std::string instrumentId = stack.getInstrument();
+    if (instrumentId.empty()) {
+        return nullptr;
+    }
+    return instrument::InstrumentRegistry::instance().get(ResourceLocation(instrumentId));
 }
 
-} // namespace
-
-GoatHornItem::GoatHornItem(i32 variantIndex, ItemProperties properties)
-    : Item(std::move(properties))
-    , m_variantIndex(variantIndex)
-{}
+ItemStack GoatHornItem::createStack(const instrument::InstrumentDefinition& instrument)
+{
+    // 乐器资源名由注册表反查得到：调用方按指针持有定义，这里通过指针身份定位其资源名。
+    const auto& registry = instrument::InstrumentRegistry::instance();
+    for (const auto& [id, registered] : registry.getAll()) {
+        if (registered == &instrument) {
+            ItemStack stack(*Items::GOAT_HORN, 1);
+            stack.setInstrument(id.toString());
+            return stack;
+        }
+    }
+    MC_ASSERT_RELEASE_MSG(false, "GoatHornItem::createStack: instrument is not registered");
+    return ItemStack(*Items::GOAT_HORN, 1);
+}
 
 i32 GoatHornItem::getUseDuration(const ItemStack& stack) const
 {
-    MC_UNUSED(stack);
-    return USE_DURATION_TICKS;
+    const instrument::InstrumentDefinition* instrumentDefinition = getInstrument(stack);
+    return instrumentDefinition != nullptr ? instrumentDefinition->useDurationTicks() : 0;
 }
 
 UseAction GoatHornItem::getUseAction(const ItemStack& stack) const
@@ -81,22 +91,31 @@ ItemActionResult GoatHornItem::onItemRightClick(IWorld& world, Player& player, H
         return ItemActionResult::fail(held);
     }
 
-    // 冷却中不可吹奏（对齐 vanilla InstrumentItem#use 的 addCooldown 门控由上层检查）
+    // 无乐器定义（缺 instrument 组件或资源名未注册）时不可吹奏。
+    const instrument::InstrumentDefinition* instrumentDefinition = getInstrument(held);
+    if (instrumentDefinition == nullptr) {
+        return ItemActionResult::fail(held);
+    }
+
+    // 冷却中不可吹奏（对应 vanilla ItemCooldowns 门控）
     if (player.cooldownTracker().hasCooldown(held.getItem())) {
         return ItemActionResult::fail(held);
     }
 
-    // 对齐 vanilla InstrumentItem#use：开始使用 + 立即播放音色 + 进入冷却
     player.setActiveHand(hand);
 
-    const i32 index = (m_variantIndex >= 0 && m_variantIndex < 8) ? m_variantIndex : 0;
-    // 对齐 vanilla：range/16 作为音量倍率（默认 range=16 → 音量 1.0）
-    player.playSound(*_goatHornSounds()[index], 1.0f, 1.0f);
+    // 以玩家为音源播放乐器音效，音量取 range/16，音调 1.0。
+    world.playSound(instrumentDefinition->soundEvent(),
+        sound::SoundCategory::Records,
+        player.position(),
+        instrumentDefinition->volume(),
+        1.0f);
 
-    // 对齐 vanilla：Mth.floor(useDuration * 20.0F) = 140 tick 冷却
-    player.setItemCooldown(held.getItem(), USE_DURATION_TICKS);
+    player.gameEvent(gameevent::GameEvents::INSTRUMENT_PLAY);
 
-    MC_UNUSED(world);
+    // 冷却时长 = 吹奏时长（秒）× 20（vanilla Mth.floor(useDuration * 20.0F)）
+    player.setItemCooldown(held.getItem(), instrumentDefinition->useDurationTicks());
+
     return ItemActionResult::success(held);
 }
 

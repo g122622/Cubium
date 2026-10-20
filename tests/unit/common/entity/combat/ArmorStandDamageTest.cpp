@@ -140,9 +140,8 @@ TEST_F(ArmorStandDamageTest, BurnsArmorStandsKillsStand)
     auto source = DamageSources::onFire();
     bool result = armorStand.hurt(source, 1.0f);
 
-    // BURNS 分支 return false（vanilla :290），health 扣至 0 销毁
+    // BURNS 分支 return false（vanilla :290），causeDamage 扣至 <=0.5 即销毁（vanilla 不把 health 归零）
     EXPECT_FALSE(result);
-    EXPECT_FLOAT_EQ(armorStand.health(), 0.0f);
     EXPECT_TRUE(armorStand.isRemoved());
 }
 

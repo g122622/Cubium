@@ -23,6 +23,7 @@
 
 #include "advancement/trigger/conditions/ItemPredicate.hpp"
 #include "common/TestWorldHelper.hpp"
+#include "common/item/instrument/InstrumentTags.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "core/Constants.hpp"
 #include "entity/core/Entity.hpp"
@@ -1789,6 +1790,13 @@ TEST_F(LootTest, SetFireworksFunction_MergesExplosions)
 
 TEST_F(LootTest, SetInstrumentFunction_PicksFromTag)
 {
+    // 乐器标签来自乐器标签注册表（内置占位 + 数据包 tags/instrument）；
+    // 本测试不走服务端启动流程，显式登记成员以覆盖抽取逻辑。
+    auto& regular = item::instrument::InstrumentTags::REGULAR_GOAT_HORNS();
+    regular.clear();
+    regular.add(ResourceLocation("minecraft:ponder_goat_horn"));
+    regular.add(ResourceLocation("minecraft:sing_goat_horn"));
+
     SetInstrumentFunction func(ResourceLocation("minecraft:regular_goat_horns"));
     const Item* horn = ItemRegistry::instance().getItem(ResourceLocation("minecraft:goat_horn"));
     ASSERT_NE(horn, nullptr);

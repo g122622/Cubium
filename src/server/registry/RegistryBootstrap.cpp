@@ -36,6 +36,8 @@
 #include "common/item/crafting/RecipeLoader.hpp"
 #include "common/item/crafting/RecipeManager.hpp"
 #include "common/item/enchantment/EnchantmentRegistry.hpp"
+#include "common/item/instrument/InstrumentRegistry.hpp"
+#include "common/item/instrument/InstrumentTags.hpp"
 #include "common/item/items/block/BlockItemRegistry.hpp"
 #include "common/item/loot/LootPredicateLoader.hpp"
 #include "common/item/loot/LootPredicateManager.hpp"
@@ -72,6 +74,8 @@
 #include "common/world/village/trade/VillagerTrades.hpp"
 #include "server/function/FunctionLoader.hpp"
 #include "server/function/FunctionManager.hpp"
+#include "server/item/instrument/InstrumentLoader.hpp"
+#include "server/item/instrument/InstrumentTagLoader.hpp"
 #include "server/network/handshake/EnchantmentNbtBuilder.hpp"
 #include "server/network/handshake/RegistryDataBuilder.hpp"
 #include "server/world/gen/biome/BiomeLoader.hpp"
@@ -200,7 +204,7 @@ void RegistryBootstrap::initializeAll(bool registerEntities)
     // 初始化附魔注册表
     {
         MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Initialization, "RegistryBootstrap::initializeAll::Enchantments");
-        item::enchant::EnchantmentRegistry::initialize();
+        mc::item::enchant::EnchantmentRegistry::initialize();
     }
     spdlog::info("Enchantments initialized");
 
@@ -214,14 +218,14 @@ void RegistryBootstrap::initializeAll(bool registerEntities)
     // 初始化物品标签（必须在所有物品注册后）
     {
         MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Initialization, "RegistryBootstrap::initializeAll::ItemTags");
-        item::tag::ItemTags::initialize();
+        mc::item::tag::ItemTags::initialize();
     }
     spdlog::info("Item tags initialized");
 
     // 从数据包加载物品标签（追加到或替换内置默认值）
     {
         MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Initialization, "RegistryBootstrap::initializeAll::ItemTagLoader");
-        auto dataPackLoadResult = item::tag::ItemTagLoader::loadFromDataPackRepository(m_dataPackList);
+        auto dataPackLoadResult = mc::item::tag::ItemTagLoader::loadFromDataPackRepository(m_dataPackList);
         if (dataPackLoadResult.failed()) {
             spdlog::error("Failed to load item tags from data packs: {}", dataPackLoadResult.error().toString());
         } else {
@@ -232,6 +236,30 @@ void RegistryBootstrap::initializeAll(bool registerEntities)
     // 注册 enchantment 内联 NBT 构建所需的 datapack 源。须在 ItemTags 加载之后（enchantment
     // 的 supported_items/primary_items 展平依赖 ItemTags::getTag），握手阶段才会懒构建。
     mc::server::net::setEnchantmentDatapackSource(m_dataPackList);
+
+    // 乐器注册表与乐器标签。顺序：先登记内置定义与内置标签占位，再由数据包覆盖定义
+    // （同名条目以数据包为准）、追加标签成员。战利品表 set_instrument 在其后加载，
+    // 解析 "#minecraft:regular_goat_horns" 时需要标签成员已就绪。
+    {
+        MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Initialization, "RegistryBootstrap::initializeAll::Instruments");
+        mc::item::instrument::InstrumentRegistry::instance().clear();
+        mc::item::instrument::InstrumentRegistry::instance().initialize();
+        mc::item::instrument::initializeVanillaInstrumentTags();
+
+        auto instrumentResult = mc::server::item::InstrumentLoader::loadFromDataPackRepository(m_dataPackList);
+        if (instrumentResult.failed()) {
+            spdlog::error("Failed to load instruments from data packs: {}", instrumentResult.error().toString());
+        } else {
+            spdlog::info("Loaded {} instruments from data packs", instrumentResult.value());
+        }
+
+        auto instrumentTagResult = mc::server::item::InstrumentTagLoader::loadFromDataPackRepository(m_dataPackList);
+        if (instrumentTagResult.failed()) {
+            spdlog::error("Failed to load instrument tags from data packs: {}", instrumentTagResult.error().toString());
+        } else {
+            spdlog::info("Loaded {} instrument tags from data packs", instrumentTagResult.value());
+        }
+    }
 
     // 初始化发射器行为注册表
     {

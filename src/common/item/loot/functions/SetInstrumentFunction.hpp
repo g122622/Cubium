@@ -40,6 +40,8 @@ namespace loot {
  * 对应原版 SetInstrumentFunction：从乐器标签（如 "#minecraft:regular_goat_horns"）
  * 中随机选择一个设置到 instrument 组件。
  *
+ * 标签成员取自 `item::instrument::InstrumentTags`（内置占位 + 数据包 `tags/instrument/` 加载结果）。
+ *
  * JSON：{ "options": "#minecraft:regular_goat_horns" }
  */
 class SetInstrumentFunction : public LootFunction {
@@ -52,14 +54,16 @@ public:
 
     [[nodiscard]] const ResourceLocation& getOptionsTag() const { return m_instrumentTagId; }
 
+    /**
+     * @brief 查询乐器标签的成员列表
+     *
+     * @param tagId 乐器标签资源位置
+     * @return 成员列表指针（按资源名升序）；标签未登记时返回 nullptr
+     */
+    [[nodiscard]] static const std::vector<ResourceLocation>* getInstrumentTag(const ResourceLocation& tagId);
+
 private:
     ResourceLocation m_instrumentTagId;
-
-public:
-    /// 内置乐器标签的注册表（与数据包标签合并后的结果）
-    static void clearInstruments();
-    static void registerInstrument(const ResourceLocation& tagId, const ResourceLocation& instrumentId);
-    [[nodiscard]] static const std::vector<ResourceLocation>* getInstrumentTag(const ResourceLocation& tagId);
 };
 
 } // namespace loot

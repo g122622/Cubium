@@ -24,38 +24,49 @@
 #pragma once
 
 #include "common/item/core/Item.hpp"
+#include "common/item/instrument/InstrumentDefinition.hpp"
 
 namespace mc {
 namespace item::items {
 
 /**
- * @brief 山羊角物品
+ * @brief 山羊角物品（对应 vanilla `InstrumentItem`）
  *
- * 右键吹奏：播放一种山羊角音色（8 种变体），并进入约 7 秒（140 tick）冷却，
- * 冷却期间不可再次吹奏。吹奏时长与范围取决于所选音色。
+ * 右键吹奏：按物品 `instrument` 数据组件解析乐器定义（音效、吹奏时长、可听距离），
+ * 播放音效后进入 `floor(use_duration * 20)` tick 冷却，冷却期间不可再次吹奏。
+ * 未携带 `instrument` 组件的山羊角（创造模式物品栏直接取出的裸物品）无法吹奏。
+ *
+ * 乐器定义由数据包 `instrument/` 目录提供（`InstrumentLoader`），组件值即乐器资源名。
  *
  * 参考: net.minecraft.world.item.InstrumentItem
- *
- * TODO: 对齐 vanilla 的 Instrument 数据驱动体系——8 种音色（item.goat_horn.sound.0-7）
- *   应作为 Instrument 注册表项挂到物品的 INSTRUMENT 数据组件上，由数据包定义
- *   sound_event/use_duration/range。当前项目尚无 Instrument 注册表与组件，
- *   故以固定的音色索引（构造函数传入）与硬编码时长近似实现，待组件体系接入后迁移。
  */
 class GoatHornItem : public Item {
 public:
-    /// 吹奏时长（tick），对齐 vanilla Instrument 默认 use_duration=7.0 秒
-    static constexpr i32 USE_DURATION_TICKS = 140;
-
     /**
      * @brief 构造山羊角物品
-     * @param variantIndex 音色变体索引（0-7，对应 item.goat_horn.sound.N）
      * @param properties 物品属性
      */
-    GoatHornItem(i32 variantIndex, ItemProperties properties);
+    explicit GoatHornItem(ItemProperties properties);
     ~GoatHornItem() override = default;
 
     /**
-     * @brief 获取使用时长（吹奏时长）
+     * @brief 解析物品携带的乐器定义
+     *
+     * @param stack 山羊角物品堆
+     * @return 乐器定义；未携带组件或资源名未注册时返回 nullptr
+     */
+    [[nodiscard]] static const instrument::InstrumentDefinition* getInstrument(const ItemStack& stack);
+
+    /**
+     * @brief 创建携带指定乐器的山羊角物品堆（对应 vanilla `InstrumentItem.create`）
+     *
+     * @param instrument 乐器定义
+     * @return 已挂载 `instrument` 组件的物品堆
+     */
+    [[nodiscard]] static ItemStack createStack(const instrument::InstrumentDefinition& instrument);
+
+    /**
+     * @brief 获取使用时长（吹奏时长，tick）；无乐器定义时为 0（不可使用）
      */
     [[nodiscard]] i32 getUseDuration(const ItemStack& stack) const override;
 
@@ -65,17 +76,9 @@ public:
     [[nodiscard]] UseAction getUseAction(const ItemStack& stack) const override;
 
     /**
-     * @brief 右键使用：吹奏并进入冷却
+     * @brief 右键使用：开始吹奏、播放音色并进入冷却
      */
     ItemActionResult onItemRightClick(IWorld& world, Player& player, Hand hand) override;
-
-    /**
-     * @brief 获取音色变体索引
-     */
-    [[nodiscard]] i32 variantIndex() const noexcept { return m_variantIndex; }
-
-private:
-    i32 m_variantIndex; ///< 音色变体索引（0-7）
 };
 
 } // namespace item::items
