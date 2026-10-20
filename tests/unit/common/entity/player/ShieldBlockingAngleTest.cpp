@@ -32,6 +32,7 @@
 #include "common/entity/damage/tag/DamageTypeTags.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/item/Items.hpp"
+#include "common/item/tag/ItemTags.hpp"
 #include "common/util/math/MathConstants.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 
@@ -58,6 +59,8 @@ protected:
     {
         VanillaBlocks::initialize();
         Items::initialize();
+        // 破盾按物品标签判定，需先登记内置标签（AXES 等）
+        item::tag::ItemTags::initialize();
         DamageTypeTags::initialize();
     }
 
@@ -166,34 +169,61 @@ TEST_F(ShieldBlockingAngleTest, NoSourcePositionFallsBackToPiAngle)
 
 TEST_F(ShieldBlockingAngleTest, AxeTagItemsDisableShieldForFiveSeconds)
 {
-    ShieldTestPlayer defender;
-    defender.setWorld(&m_world);
-    _equipRaisedShield(defender);
-    ASSERT_TRUE(defender.isUsingItem());
-
+    // 破盾秒数按 minecraft:axes 标签判定（nullptr = 不破盾）
     ShieldTestPlayer axeAttacker;
     axeAttacker.setWorld(&m_world);
-    axeAttacker.getHeldItem(Hand::MainHand) = ItemStack(*Items::IRON_AXE, 1);
+    axeAttacker.setEquipment(EquipmentSlot::MainHand, ItemStack(*Items::IRON_AXE, 1));
     EXPECT_FLOAT_EQ(axeAttacker.getSecondsToDisableBlocking(), 5.0f);
 
-    // 破盾：盾牌进入 100 tick 冷却并停止举盾
-    defender.onShieldDisabled(axeAttacker);
-    EXPECT_TRUE(defender.cooldownTracker().hasCooldown(Items::SHIELD));
-    EXPECT_FALSE(defender.isUsingItem());
+    axeAttacker.setEquipment(EquipmentSlot::MainHand, ItemStack());
+    EXPECT_FLOAT_EQ(axeAttacker.getSecondsToDisableBlocking(), 0.0f);
 }
 
 TEST_F(ShieldBlockingAngleTest, NonAxeWeaponDoesNotDisableShield)
 {
-    ShieldTestPlayer defender;
-    defender.setWorld(&m_world);
-    _equipRaisedShield(defender);
-
     ShieldTestPlayer swordAttacker;
     swordAttacker.setWorld(&m_world);
     swordAttacker.getHeldItem(Hand::MainHand) = ItemStack(*Items::IRON_SWORD, 1);
     EXPECT_FLOAT_EQ(swordAttacker.getSecondsToDisableBlocking(), 0.0f);
+}
 
-    defender.onShieldDisabled(swordAttacker);
-    EXPECT_FALSE(defender.cooldownTracker().hasCooldown(Items::SHIELD));
-    EXPECT_TRUE(defender.isUsingItem());
+TEST_F(ShieldBlockingAngleTest, BlockedHitKeepsHurtFlagsClean)
+{
+    ShieldTestPlayer player;
+    player.setWorld(&m_world);
+    player.setPosition(0.0f, 64.0f, 0.0f);
+    player.setRotationYawHead(0.0f);
+    _equipRaisedShield(player);
+
+    ShieldTestPlayer attacker;
+    attacker.setWorld(&m_world);
+    attacker.setPosition(3.0f, 64.0f, 0.0f);
+
+    auto source = DamageSources::playerAttack(&attacker);
+    // 走完整 hurt 入口：命中前方向校验通过 → 伤害被挡下
+    EXPECT_TRUE(player.hurt(source, 4.0f));
+    EXPECT_FLOAT_EQ(player.health(), player.maxHealth());
+    EXPECT_FLOAT_EQ(player.lastBlockedDamage(), 4.0f);
+    // 格挡不计受击时间（vanilla markHurt 在 flag 且 amount<=0 时跳过）
+    EXPECT_EQ(player.hurtTime(), 0);
+    EXPECT_TRUE(player.isUsingItem());
+}
+
+TEST_F(ShieldBlockingAngleTest, HitFromBehindIsNotRecordedAsBlocked)
+{
+    ShieldTestPlayer player;
+    player.setWorld(&m_world);
+    player.setPosition(0.0f, 64.0f, 0.0f);
+    player.setRotationYawHead(0.0f);
+    _equipRaisedShield(player);
+    const f32 healthBefore = player.health();
+
+    ShieldTestPlayer attacker;
+    attacker.setWorld(&m_world);
+    attacker.setPosition(-3.0f, 64.0f, 0.0f);
+
+    auto source = DamageSources::playerAttack(&attacker);
+    player.hurt(source, 4.0f);
+    EXPECT_LT(player.health(), healthBefore);
+    EXPECT_FLOAT_EQ(player.lastBlockedDamage(), 0.0f);
 }

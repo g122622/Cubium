@@ -277,6 +277,17 @@ bool LivingEntity::hurt(DamageSource& source, f32 amount)
         return false;
     }
 
+    // 1.2 盾牌格挡（对齐 vanilla LivingEntity.hurtServer:1175-1177 的 applyItemBlocking）：
+    //     在无敌帧判定之前扣减被格挡的伤害量，后续流程（markHurt / 击退 / indicateDamage）据
+    //     flag 分支处理。applyItemBlocking 内部负责消耗盾牌耐久并回调 makeStuckInBlock 等副作用。
+    f32 blockedAmount = 0.0f;
+    if (amount > 0.0f && canBlockDamageSource(source) && _isWithinShieldBlockingAngle(source)) {
+        blockedAmount = amount;
+        amount = 0.0f;
+    }
+    m_lastBlockedDamage = blockedAmount;
+    const bool blocked = blockedAmount > 0.0f;
+
     // 1.5 抗火药水免疫火焰伤害（对齐 vanilla LivingEntity.hurtServer:1162：
     //   p_376460_.is(DamageTypeTags.IS_FIRE) && this.hasEffect(MobEffects.FIRE_RESISTANCE) → return false）。
     // 持有 FireResistance 效果的实体对所有 IS_FIRE 伤害源免疫（in_fire/campfire/on_fire/lava/hot_floor/
@@ -310,12 +321,20 @@ bool LivingEntity::hurt(DamageSource& source, f32 amount)
         m_lastDamage = amount;
         m_hurtResistantTime = MAX_HURT_RESISTANT_TIME;
         // LivingEntity.hurtServer：hurtTime = hurtDuration = maxHurtTime(10)。
-        if (auto* c = m_entityContext->tryGetComponent<ecs::HurtStateComponent>()) {
-            c->m_hurtTime = c->m_maxHurtTime;
+        // 格挡且伤害被全额挡下时 vanilla 的 markHurt 不执行，受击闪红同样不启动。
+        if (auto* c = m_entityContext->tryGetComponent<ecs::HurtStateComponent>(); !blocked || amount > 0.0f) {
+            if (c != nullptr) {
+                c->m_hurtTime = c->m_maxHurtTime;
+            }
         }
-        // 完整格挡不产生伤害事件，无敌帧内的差额伤害也不重复启动受伤表现。
-        if (m_world != nullptr && !canBlockDamageSource(source)) {
-            m_world->broadcastDamageEvent(m_id, source);
+        // 完整格挡不产生伤害事件，无敌帧内的差额伤害也不重复启动受伤表现（vanilla：flag 时不广播，
+        // 改为 BlocksAttacks.onBlocked 播放格挡音效）。
+        if (m_world != nullptr) {
+            if (blocked) {
+                playBlockSound();
+            } else {
+                m_world->broadcastDamageEvent(m_id, source);
+            }
         }
         actuallyHurt(source, amount);
     }
@@ -377,7 +396,8 @@ bool LivingEntity::hurt(DamageSource& source, f32 amount)
     // 内处理），此处简化为 !source.is(NO_IMPACT)。NO_IMPACT = {Drown}（DamageTypeTags.cpp:649）：
     // 溺水伤害不触发受击标记（不产生受击动画/速度同步），对齐 vanilla——溺水是渐进缺氧，无受击反馈。
     // 此前 Cubium 无条件 markHurt，溺水也触发受击标记，偏离 vanilla。
-    if (!source.is(DamageTypeTags::NO_IMPACT())) {
+    // vanilla 条件：!NO_IMPACT && (!flag || amount > 0)。格挡且伤害被全额挡下时不标记受击。
+    if (!source.is(DamageTypeTags::NO_IMPACT()) && (!blocked || amount > 0.0f)) {
         markHurt();
     }
 
@@ -396,9 +416,6 @@ bool LivingEntity::hurt(DamageSource& source, f32 amount)
     // Projectile 方向：vanilla calculateHorizontalHurtKnockbackDirection 返回投射物 deltaMovement 的 x/z，
     //   hurtServer 取反（d0=-vx, d1=-vz），即击退方向 = 投射物飞行方向（投射物从A飞向victim，victim被
     //   推向A的反方向=继续远离投射物来源）。Cubium ProjectileEntity 经 directSource() 取 velocity 对齐。
-    // TODO: flag（盾牌格挡）门控——vanilla 格挡时仍 knockback 但不 indicateDamage。Cubium hurt 入口无 flag
-    //   概念（格挡在 actuallyHurt 内 canBlockDamageSource 命中后 return），此处无法区分格挡，简化为总是
-    //   indicateDamage。格挡时 indicateDamage 的视觉偏差待接入 BlocksAttacks flag 后修正。
     if (m_world != nullptr && amount > 0.0f && !source.is(DamageTypeTags::NO_KNOCKBACK())) {
         f64 d0 = 0.0;
         f64 d1 = 0.0;
@@ -418,10 +435,30 @@ bool LivingEntity::hurt(DamageSource& source, f32 amount)
 
         // 通用击退（对受害者，强度 0.4，受 KNOCKBACK_RESISTANCE 减免）。
         applyKnockback(0.4f, d0, d1);
-        indicateDamage(d0, d1);
+        // 格挡时仍施加强制击退，但不指示受击方向（vanilla：if (!flag) indicateDamage(d0, d1)）。
+        if (!blocked) {
+            indicateDamage(d0, d1);
+        }
     }
 
     return true;
+}
+
+bool LivingEntity::hasPlayedBlockSoundThisTick() const noexcept
+{
+    return m_world != nullptr && m_blockSoundPlayedTick == m_world->getGameTime();
+}
+
+void LivingEntity::playBlockSound()
+{
+    // 对齐 vanilla BlocksAttacks.onBlocked：同一 tick 内只播放一次格挡音效
+    // （多段伤害同帧命中盾牌时避免叠加）。
+    if (m_world == nullptr || hasPlayedBlockSoundThisTick()) {
+        return;
+    }
+    m_blockSoundPlayedTick = m_world->getGameTime();
+    m_world->playSound(
+        SoundEvents::ITEM_SHIELD_BLOCK, sound::SoundCategory::Players, position(), getSoundVolume(), getSoundPitch());
 }
 
 void LivingEntity::indicateDamage(f64 d0, f64 d1)

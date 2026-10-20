@@ -1040,6 +1040,34 @@ public:
     }
 
     /**
+     * @brief 清除受击闪红计时（测试用：消除"举盾前一次使用物品带来的受击表现残留"）
+     */
+    void clearHurtTime()
+    {
+        if (auto* c = m_entityContext->tryGetComponent<ecs::HurtStateComponent>()) {
+            c->m_hurtTime = 0;
+        }
+    }
+
+    /**
+     * @brief 本次 hurt 调用中伤害被盾牌格挡的量（对齐 vanilla hurtServer 的 flag/applyItemBlocking 结果）
+     *
+     * 由 hurt() 入口在 applyItemBlocking 阶段写入，供格挡音效、markHurt 与 indicateDamage 门控使用
+     * （vanilla：格挡时仍施加强制击退但不指示受击方向）。
+     */
+    [[nodiscard]] f32 lastBlockedDamage() const noexcept { return m_lastBlockedDamage; }
+
+    /**
+     * @brief 本 tick 内是否已播放过盾牌格挡音效（BlocksAttacks.onBlocked 的每 tick 去重）
+     */
+    [[nodiscard]] bool hasPlayedBlockSoundThisTick() const noexcept;
+
+    /**
+     * @brief 播放盾牌格挡音效并记录本 tick 已播放（对齐 vanilla BlocksAttacks.onBlocked）
+     */
+    void playBlockSound();
+
+    /**
      * @brief 记录受伤方向并触发网络同步（LivingEntity.indicateDamage）
      *
      * 基类仅设置 m_hurtDir，不做网络广播；ServerPlayer 重写以发包给受击玩家。
@@ -2139,6 +2167,8 @@ protected:
     // m_hurtTime / m_maxHurtTime 已迁移至 ecs::HurtStateComponent（见 hurtTime/maxHurtTime/hurtDuration）
     static constexpr i32 MAX_HURT_RESISTANT_TIME = 20; // 最大无敌帧（20 tick = 1秒）
     f32 m_lastDamage = 0.0f;                           // 最近伤害量（用于累积伤害）
+    f32 m_lastBlockedDamage = 0.0f;                    // 本次 hurt 被盾牌格挡的伤害量
+    u64 m_blockSoundPlayedTick = static_cast<u64>(-1); // 上次播放格挡音效的 tick（每 tick 去重）
     std::unique_ptr<DamageSource> m_lastDamageSource;  // 最近伤害来源
     // 最近伤害来源的真凶实体 id（对齐 vanilla LivingEntity.lastDamageSource 的安全取攻击者需求）。
     // m_lastDamageSource 经 clone 持真凶裸 Entity* 指针，真凶析构后 getTrueSource() 返回悬垂指针，
