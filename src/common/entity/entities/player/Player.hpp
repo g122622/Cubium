@@ -1573,16 +1573,25 @@ public:
      * @param strafe 左右移动 (-1到1，负为左)
      * @param jumping 是否跳跃
      * @param sneaking 是否潜行
+     * @param speedMultiplier 输入缩放倍率（sim 侧 speed 参数；负值时输入方向反转，用于后退）
      */
-    void handleMovementInput(f32 forward, f32 strafe, bool jumping, bool sneaking);
+    void handleMovementInput(f32 forward, f32 strafe, bool jumping, bool sneaking, f32 speedMultiplier = 1.0f);
+
+    /**
+     * @brief 当前缓存的移动输入（供调用方核对手动驱动输入的生效情况，如 GameTest 模拟玩家）
+     */
+    [[nodiscard]] f32 movementInputForward() const { return m_inputForward; }
+    [[nodiscard]] f32 movementInputStrafe() const { return m_inputStrafe; }
 
     /**
      * @brief 执行跳跃
      *
      * 只有在地面上且跳跃冷却为0时才能跳跃。
      * 跳跃后设置冷却为 JUMP_COOLDOWN (10 ticks)。
+     *
+     * @return 是否真的起跳（地面且跳跃冷却为 0 时为 true）
      */
-    void jump();
+    [[nodiscard]] bool jump();
 
     /**
      * @brief 更新玩家物理

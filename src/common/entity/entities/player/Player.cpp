@@ -911,10 +911,12 @@ void Player::update()
  *
  * 重要：MC中 moveRelative 是将速度**添加**到当前速度，而不是替换！
  */
-void Player::handleMovementInput(f32 forward, f32 strafe, bool jumping, bool sneaking)
+void Player::handleMovementInput(f32 forward, f32 strafe, bool jumping, bool sneaking, f32 speedMultiplier)
 {
-    m_inputForward = forward;
-    m_inputStrafe = strafe;
+    // 输入按 speedMultiplier 缩放：正向放大移动分量（行走输入向量），负向时输入方向反转为后退。
+    // 零输入保持为零，对齐 Java Player.travel 的 input 向量（Amount/ZERO）语义。
+    m_inputForward = forward * speedMultiplier;
+    m_inputStrafe = strafe * speedMultiplier;
     m_inputJumping = jumping;
     m_inputSneaking = sneaking;
     m_isJumping = jumping;
@@ -1004,7 +1006,7 @@ void Player::_applyCachedMovementInput(f32 groundSlipperiness)
         }
     } else {
         if (jumping && m_builtIn.physicsState->m_onGround && m_jumpTicks == 0) {
-            jump();
+            static_cast<void>(jump());
         }
     }
 }
@@ -1161,7 +1163,7 @@ void Player::_handleLavaMovement(f32 forward, f32 strafe, bool jumping, bool sne
     _clampMotion();
 }
 
-void Player::jump()
+bool Player::jump()
 {
     if (m_builtIn.physicsState->m_onGround && m_jumpTicks == 0) {
         // 起跳垂直初速度由 getJumpPower() 决定（JUMP_STRENGTH 属性 * blockJumpFactor + JumpBoost 加成）
@@ -1175,7 +1177,9 @@ void Player::jump()
         } else {
             addExhaustion(EXHAUSTION_JUMP);
         }
+        return true;
     }
+    return false;
 }
 
 void Player::_clampMotion()
@@ -1362,7 +1366,7 @@ void Player::updatePhysics()
             if (moveDistSq > 0.0001f && m_physicsEngine) {
                 auto result = m_autoJump.check(*this, *m_physicsEngine, actualMovement);
                 if (result.shouldJump) {
-                    jump();
+                    static_cast<void>(jump());
                 }
             }
         }

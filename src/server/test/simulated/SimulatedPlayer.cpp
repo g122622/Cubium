@@ -24,6 +24,7 @@
 #include "server/world/ServerWorld.hpp"
 #include "server/world/player/ServerPlayerEntityManager.hpp" // ServerPlayerEntityManager::registerExistingPlayerEntity（打通命令系统实体解析）
 
+#include <array>
 #include <cmath>
 #include <utility>
 #include <spdlog/spdlog.h>
@@ -119,7 +120,6 @@ SimulatedPlayer* SimulatedPlayer::spawn(
 void SimulatedPlayer::moveToLocation(BlockPos relativePos, f32 speed)
 {
     MC_ASSERT_RELEASE_MSG(m_helper != nullptr, "SimulatedPlayer::moveToLocation: helper not bound");
-    (void)speed; // TODO: speed 倍率需在 handleMovementInput/物理步长中体现（当前固定单步）
 
     const BlockPos worldPos = m_helper->worldBlockPosition(relativePos);
     // 当前位置 → 目标水平向量
@@ -136,8 +136,9 @@ void SimulatedPlayer::moveToLocation(BlockPos relativePos, f32 speed)
     const f32 yawDeg = mc::math::toDegrees(static_cast<f32>(std::atan2(-dx, dz)));
     setRotation(yawDeg, pitch());
 
-    // 向前走一步（直线，不绕障；TODO: 接 PathNavigator 实现真实寻路）
-    handleMovementInput(1.0f, 0.0f, false, false);
+    // 向前走一步（直线，不绕障；TODO: 接 PathNavigator 实现真实寻路）。
+    // speed 作为输入缩放倍率：1.0=正常速度，<1 放慢逼近，<0 后退（对齐基岩 speed 参数语义）。
+    handleMovementInput(1.0f, 0.0f, false, false, speed);
 }
 
 void SimulatedPlayer::lookAtLocation(BlockPos relativePos)
@@ -191,10 +192,8 @@ void SimulatedPlayer::moveToBlock(BlockPos relativePos, f32 speed)
 
 bool SimulatedPlayer::jump()
 {
-    // Player::jump 返 void（地面 + 冷却为 0 才跳）。基岩返 bool 表示是否真跳，
-    // 此处返 true 占位（调用方语义=已请求跳跃）。TODO: Player::jump 改返 bool 后回填真实判定。
-    Player::jump();
-    return true;
+    // Player::jump 返回是否真的起跳（地面且跳跃冷却为 0），直接作为基岩 jump() 的布尔结果。
+    return Player::jump();
 }
 
 void SimulatedPlayer::setFoodLevel(i32 level)
@@ -214,19 +213,56 @@ void SimulatedPlayer::disconnect()
 bool SimulatedPlayer::giveItem(mc::ItemStack stack, bool selectSlot)
 {
     // PlayerInventory::add 尝试合并再放空槽，返回剩余未添加数。剩余 0=完全添加。
-    // selectSlot 当前忽略（TODO: add 后定位该物所在槽并 setSelectedSlot）。
-    (void)selectSlot;
+    // 先在加入前记录各槽内容，加入后找出首个"内容变化"的槽：优先新增物品所在槽，
+    // 其次是被合并增量的同类槽（对齐基岩 selectSlot 让玩家立即手持刚获得的物品）。
+    std::array<mc::ItemStack, mc::PlayerInventory::TOTAL_SIZE> before{};
+    if (selectSlot) {
+        for (i32 i = 0; i < mc::PlayerInventory::TOTAL_SIZE; ++i) {
+            before[static_cast<std::size_t>(i)] = inventory().getItem(i);
+        }
+    }
+    // add 会就地 shrink 入参，物品指针须在调用前取出。
+    const mc::Item* item = stack.getItem();
+
     const i32 remaining = inventory().add(stack);
-    return remaining == 0;
+    const bool fullyAdded = remaining == 0;
+
+    if (selectSlot && item != nullptr) {
+        i32 targetSlot = -1;
+        for (i32 i = 0; i < mc::PlayerInventory::TOTAL_SIZE; ++i) {
+            // getItem() 按值返回临时对象，必须绑定到值变量：绑定 const& 会悬垂，且后续
+            // getItem() 的返回值落在同一临时存储上，比较结果被静默破坏。
+            const mc::ItemStack now = inventory().getItem(i);
+            const mc::ItemStack was = before[static_cast<std::size_t>(i)];
+            if (now.isEmpty() || now.getItem() != item) {
+                continue;
+            }
+            const bool wasEmpty = was.isEmpty();
+            const bool countGrew = !wasEmpty && now.getCount() > was.getCount();
+            if (wasEmpty || countGrew) {
+                targetSlot = i;
+                if (wasEmpty) {
+                    break; // 新增槽优先于合并槽
+                }
+            }
+        }
+        if (targetSlot >= 0) {
+            inventory().setSelectedSlot(std::min(targetSlot, static_cast<i32>(mc::PlayerInventory::HOTBAR_SIZE - 1)));
+        }
+    }
+    return fullyAdded;
 }
 
 bool SimulatedPlayer::setItem(mc::ItemStack stack, i32 slot, bool selectSlot)
 {
-    // PlayerInventory::setItem 直接设槽（越界由 PlayerInventory 内部钳制）。
+    // 槽位越界直接拒绝（基岩 setItem 返回是否成功，不静默钳制）。
+    if (slot < 0 || slot >= mc::PlayerInventory::TOTAL_SIZE) {
+        return false;
+    }
     // selectSlot 为 true 时同步选中该槽，使主手立即持有该物品（用于诱惑/喂食等手持判定）。
-    // TODO: 槽位越界校验返 false（当前 setItem 内部处理，恒返 true）。
+    // 仅快捷栏槽位（0-8）可作为选中槽，其余槽位置上物品但无法手持。
     inventory().setItem(slot, stack);
-    if (selectSlot) {
+    if (selectSlot && slot < mc::PlayerInventory::HOTBAR_SIZE) {
         inventory().setSelectedSlot(slot);
     }
     return true;

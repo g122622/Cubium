@@ -97,7 +97,8 @@ public:
      * 到达阈值内即停。不绕障——遇墙卡住（TODO: 接 PathNavigator 实现真实寻路）。
      *
      * @param relativePos 结构相对坐标（经 helper 变换为世界绝对坐标）。
-     * @param speed 行走速度倍率（1.0=默认；当前阶段忽略，固定单步）。
+     * @param speed 行走速度倍率（1.0=默认）：作为移动输入缩放传入 handleMovementInput，
+     *        <1 放慢逼近、<0 后退；物理推进仍由每 tick 的 updatePhysics 完成。
      */
     void moveToLocation(BlockPos relativePos, f32 speed);
 
@@ -137,17 +138,16 @@ public:
      * 语义等同 moveToLocation（直线单步驱动）。options（maxStraightLineReach 等）当前忽略，TODO。
      *
      * @param relativePos 结构相对坐标。
-     * @param speed 行走速度倍率（当前忽略，固定单步）。
+     * @param speed 行走速度倍率（语义同 moveToLocation）。
      */
     void moveToBlock(BlockPos relativePos, f32 speed);
 
     /**
      * @brief 使模拟玩家跳跃（对齐基岩 SimulatedPlayer::jump）。
      *
-     * 转发 Player::jump（地面 + 冷却为 0 才跳）。基岩返 bool 表示是否真的跳了，
-     * 项目 Player::jump 返 void，此处返 true 占位（TODO: Player::jump 改返 bool 后回填真实判定）。
+     * 转发 Player::jump（地面 + 冷却为 0 才跳），返回是否真的起跳。
      *
-     * @return 是否执行了跳跃（当前恒 true 占位）。
+     * @return 是否执行了跳跃。
      */
     bool jump();
 
@@ -174,10 +174,11 @@ public:
     /**
      * @brief 给模拟玩家物品（对齐基岩 SimulatedPlayer::giveItem）。
      *
-     * 经 PlayerInventory::add 注入物品栈（尝试合并再放空槽）。selectSlot 当前忽略（TODO: 设选中槽）。
+     * 经 PlayerInventory::add 注入物品栈（尝试合并再放空槽）。selectSlot 为 true 时把首个接收该物品的
+     * 快捷栏/背包槽设为选中槽（优先新增槽，其次被合并增量的同类槽），使玩家立即手持新获得的物品。
      *
      * @param stack 物品栈（按值传入，add 内部按需修改/拷贝）。
-     * @param selectSlot 是否设为选中槽（当前忽略）。
+     * @param selectSlot 是否把首个接收该物品的快捷栏槽设为选中槽。
      * @return 是否完全添加（add 返回剩余 0 即完全添加）。
      */
     bool giveItem(mc::ItemStack stack, bool selectSlot);
@@ -185,12 +186,13 @@ public:
     /**
      * @brief 设模拟玩家指定槽位的物品（对齐基岩 SimulatedPlayer::setItem）。
      *
-     * 经 PlayerInventory::setItem 直接设槽。selectSlot 当前忽略（TODO）。
+     * 经 PlayerInventory::setItem 直接设槽；槽位越界直接返回 false（不静默钳制）。
+     * selectSlot 为 true 且槽位属于快捷栏（0..8）时同步选中该槽。
      *
      * @param stack 物品栈。
      * @param slot 槽位索引（0..40）。
-     * @param selectSlot 是否设为选中槽（当前忽略）。
-     * @return 是否设置成功（当前恒 true，TODO: 槽位越界校验后回填）。
+     * @param selectSlot 是否同步选中该槽（仅快捷栏槽位生效）。
+     * @return 是否设置成功（槽位越界为 false）。
      */
     bool setItem(mc::ItemStack stack, i32 slot, bool selectSlot);
 
