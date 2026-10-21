@@ -453,8 +453,8 @@ void VanillaEntities::doRegisterAll()
 
     // 青蛙 - 由蝌蚪变态而来；分类沿用水生环境生物（原版 Frog/蝌蚪均属 WATER_AMBIENT 类别）。
     // 尺寸取 FrogEntity::WIDTH/HEIGHT（0.5 x 0.5），与实体 getDimensions 保持一致。
-    // TODO(frog-ai): 原版青蛙自然生成规则（checkFrogSpawnRules + FROGS_SPAWNABLE_ON）与
-    //   frog_variant 变体注册表尚未接入，当前变体按生成位置气候标签选择。
+    // 自然生成规则见 EntitySpawnPlacementRegistry 的 Frog 放置谓词（#frogs_spawnable_on + 亮度）。
+    // TODO(frog-ai): frog_variant 变体注册表尚未接入，当前变体按生成位置气候标签选择。
     registry.registerType(EntityTypeKeys::FROG,
         EntityType::Builder(&FrogEntity::create, EntityClassification::WaterAmbient)
             .size(FrogEntity::WIDTH, FrogEntity::HEIGHT)

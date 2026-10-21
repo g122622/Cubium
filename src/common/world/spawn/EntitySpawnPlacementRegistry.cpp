@@ -31,6 +31,7 @@
 #include "world/WorldConstants.hpp"
 #include "world/biome/BiomeTags.hpp"
 #include "world/block/Block.hpp"
+#include "world/block/BlockTags.hpp"
 #include "world/block/Material.hpp"
 #include "world/block/registry/VanillaBlocks.hpp"
 #include "world/lighting/InternalLightUtils.hpp"
@@ -298,6 +299,27 @@ bool EntitySpawnPlacementRegistry::_blockPreventsSpawn(const BlockState* state)
 namespace {
 
 /**
+ * @brief 青蛙生成条件检查
+ *
+ * 对应 vanilla Myers 1.21.11 `Frog.checkFrogSpawnRules`：
+ *   - 下方方块属于 #minecraft:frogs_spawnable_on 标签；
+ *   - 位置亮度足够（`isBrightEnoughToSpawn`：原始亮度 > 8）。
+ */
+bool _canFrogSpawn(const ISpawnWorldReader& world,
+    const Vector3i& pos,
+    const std::string& /*entityTypeId*/,
+    math::IRandom& /*random*/,
+    SpawnReason /*reason*/)
+{
+    const BlockState* below = world.getBlockState(pos.x, pos.y - 1, pos.z);
+    if (below == nullptr || !BlockTags::FROGS_SPAWNABLE_ON().contains(*below)) {
+        return false;
+    }
+    constexpr i32 MIN_SPAWN_BRIGHTNESS = 8;
+    return world.getMaxLocalRawBrightness(pos.x, pos.y, pos.z) > MIN_SPAWN_BRIGHTNESS;
+}
+
+/**
  * @brief 蝙蝠生成条件检查
  *
  * 蝙蝠只能在光照等级 < 4 的地方生成。
@@ -545,6 +567,7 @@ void EntitySpawnPlacementRegistry::initializeDefaults()
     registerPlacement("minecraft:cow", PlacementType::OnGround, HeightmapType::MotionBlockingNoLeaves);
     registerPlacement("minecraft:sheep", PlacementType::OnGround, HeightmapType::MotionBlockingNoLeaves);
     registerPlacement("minecraft:chicken", PlacementType::OnGround, HeightmapType::MotionBlockingNoLeaves);
+    registerPlacement("minecraft:frog", PlacementType::OnGround, HeightmapType::MotionBlockingNoLeaves, _canFrogSpawn);
     registerPlacement("minecraft:horse", PlacementType::OnGround, HeightmapType::MotionBlockingNoLeaves);
     registerPlacement("minecraft:donkey", PlacementType::OnGround, HeightmapType::MotionBlockingNoLeaves);
     registerPlacement("minecraft:mule", PlacementType::OnGround, HeightmapType::MotionBlockingNoLeaves);

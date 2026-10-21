@@ -896,3 +896,67 @@ TEST_F(CanSlimeSpawnTest, NaturalRejectsUndergroundInNonSlimeChunk)
 
 } // namespace test
 } // namespace mc
+
+// ============================================================================
+// 青蛙生成谓词（Frog.checkFrogSpawnRules）
+// ============================================================================
+
+namespace {
+
+/// 青蛙专用夹具：显式初始化方块标签（#frogs_spawnable_on 需要）
+class CanFrogSpawnTest : public ::testing::Test {
+protected:
+    void SetUp() override
+    {
+        VanillaBlocks::initialize();
+        EntitySpawnPlacementRegistry::initializeDefaults();
+    }
+};
+
+} // namespace
+
+TEST_F(CanFrogSpawnTest, SpawnsOnTaggedGroundWhenBright)
+{
+    mc::test::MockSpawnWorld world;
+    const i32 spawnY = 64;
+    world.setBlockState(0, spawnY - 1, 0, &VanillaBlocks::GRASS_BLOCK->defaultState());
+    world.setBlockState(0, spawnY, 0, &VanillaBlocks::AIR->defaultState());
+    world.setBlockState(0, spawnY + 1, 0, &VanillaBlocks::AIR->defaultState());
+    world.m_maxBrightness = 15; // 亮度 > 8
+
+    Vector3i pos(0, spawnY, 0);
+    math::Random random(1);
+    EXPECT_TRUE(
+        EntitySpawnPlacementRegistry::canSpawnEntity("minecraft:frog", world, SpawnReason::Natural, pos, random));
+}
+
+TEST_F(CanFrogSpawnTest, RejectedOnUntaggedGround)
+{
+    mc::test::MockSpawnWorld world;
+    const i32 spawnY = 64;
+    // 石头不在 #frogs_spawnable_on 中
+    world.setBlockState(0, spawnY - 1, 0, &VanillaBlocks::STONE->defaultState());
+    world.setBlockState(0, spawnY, 0, &VanillaBlocks::AIR->defaultState());
+    world.setBlockState(0, spawnY + 1, 0, &VanillaBlocks::AIR->defaultState());
+    world.m_maxBrightness = 15;
+
+    Vector3i pos(0, spawnY, 0);
+    math::Random random(1);
+    EXPECT_FALSE(
+        EntitySpawnPlacementRegistry::canSpawnEntity("minecraft:frog", world, SpawnReason::Natural, pos, random));
+}
+
+TEST_F(CanFrogSpawnTest, RejectedWhenTooDark)
+{
+    mc::test::MockSpawnWorld world;
+    const i32 spawnY = 64;
+    world.setBlockState(0, spawnY - 1, 0, &VanillaBlocks::GRASS_BLOCK->defaultState());
+    world.setBlockState(0, spawnY, 0, &VanillaBlocks::AIR->defaultState());
+    world.setBlockState(0, spawnY + 1, 0, &VanillaBlocks::AIR->defaultState());
+    world.m_maxBrightness = 8; // 亮度必须 > 8
+
+    Vector3i pos(0, spawnY, 0);
+    math::Random random(1);
+    EXPECT_FALSE(
+        EntitySpawnPlacementRegistry::canSpawnEntity("minecraft:frog", world, SpawnReason::Natural, pos, random));
+}
