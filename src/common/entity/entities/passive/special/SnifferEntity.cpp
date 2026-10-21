@@ -55,6 +55,8 @@
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/block/BlockSoundType.hpp"
 #include "common/world/block/BlockState.hpp"
+
+#include <algorithm>
 #include <cmath>
 #include <memory>
 #include <optional>
@@ -125,6 +127,12 @@ void SnifferEntity::setChild(bool baby)
 
 void SnifferEntity::transitionTo(State state)
 {
+    // 对齐 vanilla Sniffer 的 transitionTo：切换状态时一并处理该状态的伴随语义。
+    // 进入 Digging 表示嗅探目标已被挖掘点兑现，标记随之消费（对齐 Brain 在 FinishedDigging 擦除
+    // SNIFFER_DIGGING 记忆；此处提前到进入挖掘时，避免挖掘中途被打断后重复使用同一目标）。
+    if (state == State::Digging) {
+        m_hasSniffingTarget = false;
+    }
     // 对齐 MC Sniffer.transitionTo：根据目标状态播放对应声音。
     switch (state) {
         case State::Idling:
@@ -158,6 +166,64 @@ void SnifferEntity::transitionTo(State state)
             playSound(SoundEvents::SNIFFER_DIGGING_STOP, 1.0f, 1.0f);
             setState(State::Rising);
             break;
+    }
+}
+
+// ========== 嗅探状态机 ==========
+
+bool SnifferEntity::canSniff() const
+{
+    // 对齐 vanilla Sniffer.canSniff：
+    //   !isTempted() && !isPanicking() && !isInWater() && !isInLove() && onGround()
+    //   && !isPassenger() && !isLeashed()
+    auto* self = const_cast<SnifferEntity*>(this);
+    return !entity::ai::goal::sniffer::isTempted(self) && !entity::ai::goal::sniffer::isPanicking(self) &&
+        !isInWater() && !isInLove() && onGround() && getVehicle() == 0 && !self->isLeashed();
+}
+
+bool SnifferEntity::canDig() const
+{
+    // 对齐 vanilla Sniffer.canDig 的非方块部分（方块标签与已探索位置由 SnifferDigGoal::shouldMoveTo 判定）。
+    auto* self = const_cast<SnifferEntity*>(this);
+    return !entity::ai::goal::sniffer::isPanicking(self) && !entity::ai::goal::sniffer::isTempted(self) && !isChild() &&
+        !isInWater() && onGround() && getVehicle() == 0;
+}
+
+bool SnifferEntity::consumeShouldDropSeed()
+{
+    const bool value = m_shouldDropSeed;
+    m_shouldDropSeed = false;
+    // 直接掉种时绕过 DATA_DROP_SEED_AT_TICK 的时序门控（该字段仅表达挖掘链路的掉种时刻）。
+    m_dropSeedPending = value;
+    return value;
+}
+
+void SnifferEntity::setSniffCooldownTicks(u64 ticks)
+{
+    m_sniffCooldownUntil = static_cast<u64>(ticksExisted()) + ticks;
+    m_hasSniffingTarget = false;
+}
+
+bool SnifferEntity::isSniffCoolingDown() const noexcept
+{
+    return static_cast<u64>(ticksExisted()) < m_sniffCooldownUntil;
+}
+
+bool SnifferEntity::isExploredPosition(const BlockPos& pos) const
+{
+    return std::find(m_exploredPositions.begin(), m_exploredPositions.end(), pos) != m_exploredPositions.end();
+}
+
+void SnifferEntity::storeExploredPosition(const BlockPos& pos)
+{
+    // 对齐 vanilla Sniffer.storeExploredPosition：最新在前，最多保留 20 个。
+    const auto existing = std::find(m_exploredPositions.begin(), m_exploredPositions.end(), pos);
+    if (existing != m_exploredPositions.end()) {
+        m_exploredPositions.erase(existing);
+    }
+    m_exploredPositions.insert(m_exploredPositions.begin(), pos);
+    if (m_exploredPositions.size() > MAX_EXPLORED_POSITIONS) {
+        m_exploredPositions.resize(MAX_EXPLORED_POSITIONS);
     }
 }
 
@@ -251,7 +317,12 @@ void SnifferEntity::tick()
 {
     // 对齐 MC Sniffer.tick：
     // - Searching 状态：客户端每 20 tick 播放 SNIFFER_SEARCHING 音效
-    // - Digging 状态：emitDiggingParticles + dropSeed（当前未实现）
+    // - Digging 状态：emitDiggingParticles + dropSeed
+    // - 嗅探（Sniffing）自然结束后由 SnifferSniffGoal 置位掉种标记，于本 tick 消耗并触发一次
+    //   dropSeed（对齐 vanilla Sniffing.stop 在 timedOut 时设置嗅探目标的行为效果）。
+    if (consumeShouldDropSeed()) {
+        dropSeed();
+    }
     if (getState() == State::Searching) {
         // 对齐 MC Sniffer.playSearchingSound：仅客户端 + tickCount % 20 == 0
         if (m_world != nullptr && m_world->isClientSide() && ticksExisted() % 20 == 0) {
@@ -305,13 +376,17 @@ i32 SnifferEntity::ticksUntilDropSeed() const
 
 void SnifferEntity::dropSeed()
 {
-    // 对齐 MC Sniffer.dropSeed：仅服务端、且掉种时刻恰好为当前 tick 时生效。
+    // 对齐 MC Sniffer.dropSeed：仅服务端生效。
     if (m_world == nullptr || m_world->isClientSide()) {
         return;
     }
-    if (m_dataManager.get(DATA_DROP_SEED_AT_TICK_PARAM) != static_cast<i32>(ticksExisted())) {
+    // 挖掘链路：掉种时刻必须恰好为当前 tick（DATA_DROP_SEED_AT_TICK 由 transitionTo(Digging) 设置）；
+    // 嗅探链路：SnifferSniffGoal 自然结束时直接置位掉种标记，由 tick() 消费后调用本方法。
+    const bool diggingDropDue = m_dataManager.get(DATA_DROP_SEED_AT_TICK_PARAM) == static_cast<i32>(ticksExisted());
+    if (!diggingDropDue && !m_dropSeedPending) {
         return;
     }
+    m_dropSeedPending = false;
 
     const loot::LootTableManager* lootTables = m_world->lootTableManager();
     if (lootTables == nullptr) {
@@ -373,8 +448,10 @@ void SnifferEntity::registerGoals()
     // 优先级 0: 游泳（最高优先级，防止溺水）
     m_goalSelector.addGoal(0, std::make_unique<entity::ai::goal::SwimGoal>(this));
 
-    // 优先级 1: 恐慌逃跑
-    m_goalSelector.addGoal(1, std::make_unique<entity::ai::goal::PanicGoal>(this, 2.0));
+    // 优先级 1: 恐慌逃跑（中断挖掘时需擦除嗅探目标，对齐 vanilla Digging.stop 的 resetSniffing）
+    auto panicGoal = std::make_unique<entity::ai::goal::PanicGoal>(this, 2.0);
+    m_panicGoal = panicGoal.get();
+    m_goalSelector.addGoal(1, std::move(panicGoal));
 
     // 优先级 2: 繁殖
     m_goalSelector.addGoal(2, std::make_unique<entity::ai::goal::BreedGoal>(this, 1.0));
@@ -395,6 +472,7 @@ void SnifferEntity::registerGoals()
             return false;
         },
         false);
+    m_temptGoal = temptGoal.get();
     m_goalSelector.addGoal(3, std::move(temptGoal));
 
     // 优先级 4: 跟随父母（幼年嗅探兽）
@@ -409,15 +487,20 @@ void SnifferEntity::registerGoals()
     // 优先级 7: 随机看向
     m_goalSelector.addGoal(7, std::make_unique<entity::ai::goal::LookRandomlyGoal>(this));
 
-    // 挖掘（优先级 3）：嗅探兽特有的核心行为，对齐 SnifferAi.DiggingAndRise 的挖掘段。
+    // 嗅探兽特有行为（对齐 MC SnifferAi.makeBrain 的 IDLE / SNIFF / DIG 活动，因项目无 Brain
+    // 系统改用 GoalSelector）。优先级顺序对应 vanilla 活动的行为顺序：
+    //   DIG   : Digging / FinishedDigging
+    //   SNIFF : Searching
+    //   IDLE  : FeelingHappy → Scenting / Sniffing
+    // 优先级 3: 挖掘（对齐 SnifferAi.Digging + FinishedDigging），依赖嗅探目标已完成搜索。
     m_goalSelector.addGoal(3, std::make_unique<entity::ai::goal::SnifferDigGoal>(this, 1.0));
-
-    // TODO(sniffer-brain): 待 Brain 系统或等效 Goal 系统实现后，补充其余嗅探兽特有 AI：
-    //   - ScentingGoal（闻气味，对齐 SnifferAi.Scenting）
-    //   - SniffingGoal（嗅探，对齐 SnifferAi.Sniffing）
-    //   - SearchingGoal（搜索挖掘点并记忆已探索位置，对齐 SnifferAi.Searching）
-    //   - FeelingHappyGoal（繁殖后开心，对齐 SnifferAi.FeelingHappy）
-    // 挖掘后的 Rising 状态已由 SnifferDigGoal 在挖掘完毕时切换。
+    // 优先级 3: 搜索挖掘点（对齐 SnifferAi.Searching），找到后交接给挖掘目标。
+    m_goalSelector.addGoal(3, std::make_unique<entity::ai::goal::SnifferSearchGoal>(this));
+    // 优先级 3: 开心（对齐 SnifferAi.FeelingHappy），挖掘完成或繁殖后执行一次。
+    m_goalSelector.addGoal(3, std::make_unique<entity::ai::goal::SnifferHappyGoal>(this));
+    // 优先级 3: 闻气味 / 嗅探（对齐 SnifferAi.Scenting 与 Sniffing）。
+    m_goalSelector.addGoal(3, std::make_unique<entity::ai::goal::SnifferScentGoal>(this));
+    m_goalSelector.addGoal(3, std::make_unique<entity::ai::goal::SnifferSniffGoal>(this));
 }
 
 // ========== 属性注册 ==========

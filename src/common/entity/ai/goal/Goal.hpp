@@ -135,6 +135,17 @@ public:
     virtual void startExecuting() {}
 
     /**
+     * @brief 目标是否正在执行（由 GoalSelector 在启动/停止时维护）
+     *
+     * 用于实体侧查询“某个行为当前是否活跃”，对齐 vanilla Brain 的 Activity 查询
+     * （如 Sniffer.isTempted / isPanicking 读取 IS_TEMPTED / IS_PANICKING 记忆）。
+     */
+    [[nodiscard]] bool isRunning() const noexcept { return m_running; }
+
+    /// 设置执行状态（仅供 GoalSelector 调用）
+    void setRunning(bool running) noexcept { m_running = running; }
+
+    /**
      * @brief 重置任务
      *
      * 当目标被中断时调用。
@@ -182,6 +193,7 @@ protected:
     {}
 
     EnumSet<GoalFlag> m_flags; // 互斥标志
+    bool m_running = false;    // 是否正在执行（由 GoalSelector 经 PrioritizedGoal 维护）
 };
 
 } // namespace mc::entity::ai

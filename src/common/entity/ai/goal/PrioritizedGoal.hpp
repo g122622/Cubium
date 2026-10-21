@@ -137,6 +137,7 @@ public:
     {
         if (m_inner && !m_running) {
             m_running = true;
+            m_inner->setRunning(true);
             m_inner->startExecuting();
         }
     }
@@ -145,6 +146,7 @@ public:
     {
         if (m_inner && m_running) {
             m_running = false;
+            m_inner->setRunning(false);
             m_inner->resetTask();
         }
     }
