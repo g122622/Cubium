@@ -23,10 +23,14 @@
 
 #include <gtest/gtest.h>
 
+#include "common/TestWorldHelper.hpp"
 #include "common/advancement/MinMaxBounds.hpp"
 #include "common/advancement/trigger/CriterionTriggers.hpp"
 #include "common/advancement/trigger/conditions/ItemPredicate.hpp"
 #include "common/advancement/trigger/impl/ItemTriggers.hpp"
+#include "common/entity/core/EntityRegistry.hpp"
+#include "common/entity/entities/passive/basic/CowEntity.hpp"
+#include "common/entity/entities/passive/basic/PigEntity.hpp"
 #include "common/item/Items.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/resource/ResourceLocation.hpp"
@@ -34,6 +38,7 @@
 
 using namespace mc;
 using namespace mc::advancement;
+using namespace mc::entity;
 
 /**
  * @brief ItemTriggers 单元测试
@@ -552,6 +557,48 @@ TEST_F(ItemTriggersTest, ThrownItemPickedUpByEntity_ConditionsRoundtrip)
 
     const nlohmann::json serialized = instance->conditionsToJson();
     EXPECT_TRUE(serialized.contains("item"));
+}
+
+TEST_F(ItemTriggersTest, ThrownItemPickedUpByEntity_EntityConditionMatchesPicker)
+{
+    auto* trigger = CriterionTriggers::instance().getTrigger<ThrownItemPickedUpByEntityTrigger>();
+    ASSERT_NE(trigger, nullptr);
+
+    // entity 条件匹配拾取者类型（对齐 vanilla 的 entity 谓词）。
+    auto result = trigger->fromJson(R"({"entity": {"type": "minecraft:pig"}})"_json);
+    ASSERT_TRUE(result.success());
+    auto instance = std::dynamic_pointer_cast<ThrownItemPickedUpByEntityTriggerInstance>(result.value());
+    ASSERT_NE(instance, nullptr);
+
+    Items::initialize();
+    const ItemStack apple(Items::APPLE, 1);
+
+    PigEntity pig(EntityInstanceId(1), mc::test::testEcsRegistry());
+    pig.setTypeId(EntityTypeKeys::PIG);
+    CowEntity cow(EntityInstanceId(2), mc::test::testEcsRegistry());
+    cow.setTypeId(EntityTypeKeys::COW);
+
+    // 物品条件为空：仅按拾取者判定。
+    EXPECT_TRUE(instance->test(apple, &pig));
+    EXPECT_FALSE(instance->test(apple, &cow));
+    // 拾取者缺失时不满足 entity 条件。
+    EXPECT_FALSE(instance->test(apple, nullptr));
+}
+
+TEST_F(ItemTriggersTest, ThrownItemPickedUpByEntity_EntityConditionRoundtrip)
+{
+    auto* trigger = CriterionTriggers::instance().getTrigger<ThrownItemPickedUpByEntityTrigger>();
+    ASSERT_NE(trigger, nullptr);
+
+    auto result =
+        trigger->fromJson(R"({"item": {"items": ["minecraft:apple"]}, "entity": {"type": "minecraft:pig"}})"_json);
+    ASSERT_TRUE(result.success());
+    auto instance = std::dynamic_pointer_cast<ThrownItemPickedUpByEntityTriggerInstance>(result.value());
+    ASSERT_NE(instance, nullptr);
+
+    const nlohmann::json serialized = instance->conditionsToJson();
+    EXPECT_TRUE(serialized.contains("item"));
+    EXPECT_TRUE(serialized.contains("entity"));
 }
 
 // main 函数由 gtest_main 库提供

@@ -813,9 +813,16 @@ private:
         if (advancements == nullptr) {
             return;
         }
+
+        // 拾取者实体：entity 条件按拾取者匹配（对齐 vanilla PickedUpItemTrigger 的 LootContext）。
+        const mc::Entity* picker = nullptr;
+        if (mc::server::ServerWorld* world = serverPlayer->getWorld(); world != nullptr) {
+            picker = world->getEntity(e.entityId);
+        }
+
         trigger->AbstractCriterionTrigger<mc::advancement::ThrownItemPickedUpByEntityTriggerInstance>::trigger(
-            *advancements, [&e](const mc::advancement::ThrownItemPickedUpByEntityTriggerInstance& instance) {
-                return instance.test(e.item);
+            *advancements, [&e, picker](const mc::advancement::ThrownItemPickedUpByEntityTriggerInstance& instance) {
+                return instance.test(e.item, picker);
             });
     }
 

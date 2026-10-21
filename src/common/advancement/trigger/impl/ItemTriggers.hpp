@@ -25,6 +25,7 @@
 
 #include "common/advancement/MinMaxBounds.hpp"
 #include "common/advancement/trigger/CriterionTrigger.hpp"
+#include "common/advancement/trigger/conditions/EntityPredicate.hpp"
 #include "common/advancement/trigger/conditions/ItemPredicate.hpp"
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
@@ -211,13 +212,27 @@ public:
     ThrownItemPickedUpByEntityTriggerInstance() noexcept = default;
     explicit ThrownItemPickedUpByEntityTriggerInstance(ItemPredicate item);
 
+    /**
+     * @brief 检查被拾取物品是否满足条件
+     *
+     * 仅校验 item 条件；拾取者条件由 test(item, picker) 校验。
+     */
     [[nodiscard]] bool test(const ItemStack& item) const;
+
+    /**
+     * @brief 检查物品与拾取者是否同时满足条件
+     *
+     * 对齐 vanilla PickedUpItemTrigger.TriggerInstance#matches：item 条件不满足即失败；
+     * entity 条件存在时还要求拾取者匹配该实体谓词，picker 为空视为不匹配。
+     */
+    [[nodiscard]] bool test(const ItemStack& item, const class Entity* picker) const;
 
     Result<void> fromJson(const nlohmann::json& json);
     [[nodiscard]] nlohmann::json conditionsToJson() const;
 
 private:
     ItemPredicate m_item;
+    EntityPredicate m_entity;
 };
 
 } // namespace mc::advancement
