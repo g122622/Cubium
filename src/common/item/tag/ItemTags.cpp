@@ -25,8 +25,10 @@
 #include "common/item/core/ItemRegistry.hpp"
 #include "common/item/tag/ItemTag.hpp"
 #include "common/resource/ResourceLocation.hpp"
+#include "common/util/assert/AssertMacros.hpp"
 #include <functional>
 #include <memory>
+#include <mutex>
 #include <string>
 #include <unordered_map>
 #include <utility>
@@ -416,19 +418,68 @@ ItemTag& ItemTags::VILLAGER_PLANTABLE_SEEDS()
 
 ItemTag& ItemTags::SNIFFER_FOOD()
 {
-    static ItemTag* tag = nullptr;
-    if (tag == nullptr) {
-        tag = getTag(ResourceLocation("minecraft", "sniffer_food"));
-    }
+    // 首次访问时构建：本标签不加入 initialize() 的内置建表流程，避免在物品尚未注册时
+    // 只生成空标签；同时保证访问点必然发生在物品注册之后。
+    static std::once_flag once;
+    std::call_once(once, [] {
+        auto tag = std::make_unique<ItemTag>(ResourceLocation("minecraft", "sniffer_food"), false);
+        tag->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "torchflower_seeds")));
+        tag->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "pitcher_pod")));
+        tags()[tag->getId()] = std::move(tag);
+    });
+    ItemTag* tag = getTag(ResourceLocation("minecraft", "sniffer_food"));
+    MC_ASSERT_RELEASE_MSG(tag != nullptr, "item tag 'sniffer_food' must be built on first access");
     return *tag;
 }
 
 ItemTag& ItemTags::FROG_FOOD()
 {
-    static ItemTag* tag = nullptr;
-    if (tag == nullptr) {
-        tag = getTag(ResourceLocation("minecraft", "frog_food"));
-    }
+    // 首次访问时构建：本标签不加入 initialize() 的内置建表流程，避免在物品尚未注册时
+    // 只生成空标签；同时保证访问点必然发生在物品注册之后。
+    static std::once_flag once;
+    std::call_once(once, [] {
+        auto tag = std::make_unique<ItemTag>(ResourceLocation("minecraft", "frog_food"), false);
+        tag->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "slime_ball")));
+        tags()[tag->getId()] = std::move(tag);
+    });
+    ItemTag* tag = getTag(ResourceLocation("minecraft", "frog_food"));
+    MC_ASSERT_RELEASE_MSG(tag != nullptr, "item tag 'frog_food' must be built on first access");
+    return *tag;
+}
+
+ItemTag& ItemTags::HAPPY_GHAST_FOOD()
+{
+    // 首次访问时构建：本标签不加入 initialize() 的内置建表流程，避免在物品尚未注册时
+    // 只生成空标签；同时保证访问点必然发生在物品注册之后。
+    static std::once_flag once;
+    std::call_once(once, [] {
+        auto tag = std::make_unique<ItemTag>(ResourceLocation("minecraft", "happy_ghast_food"), false);
+        tag->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "snowball")));
+        tags()[tag->getId()] = std::move(tag);
+    });
+    ItemTag* tag = getTag(ResourceLocation("minecraft", "happy_ghast_food"));
+    MC_ASSERT_RELEASE_MSG(tag != nullptr, "item tag 'happy_ghast_food' must be built on first access");
+    return *tag;
+}
+
+ItemTag& ItemTags::HAPPY_GHAST_TEMPT_ITEMS()
+{
+    // 首次访问时构建：原版内容为 #happy_ghast_food + #harnesses，此处展开为具体物品成员。
+    static std::once_flag once;
+    std::call_once(once, [] {
+        auto tag = std::make_unique<ItemTag>(ResourceLocation("minecraft", "happy_ghast_tempt_items"), false);
+        for (const auto* item : ItemTags::HAPPY_GHAST_FOOD().getItems()) {
+            tag->add(item);
+        }
+        if (const ItemTag* harnesses = getTag(ResourceLocation("minecraft", "harnesses")); harnesses != nullptr) {
+            for (const auto* item : harnesses->getItems()) {
+                tag->add(item);
+            }
+        }
+        tags()[tag->getId()] = std::move(tag);
+    });
+    ItemTag* tag = getTag(ResourceLocation("minecraft", "happy_ghast_tempt_items"));
+    MC_ASSERT_RELEASE_MSG(tag != nullptr, "item tag 'happy_ghast_tempt_items' must be built on first access");
     return *tag;
 }
 
@@ -1210,25 +1261,6 @@ void ItemTags::initialize()
     villagerPlantableSeeds->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "torchflower_seeds")));
     villagerPlantableSeeds->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "pitcher_pod")));
     allTags[villagerPlantableSeeds->getId()] = std::move(villagerPlantableSeeds);
-
-    // 创建 SNIFFER_FOOD 标签
-    // 包含可诱引、繁殖嗅探兽并加速幼体成长的物品（火把花种子、瓶草荚果）。
-    // 对应 MC 原版标签 minecraft:sniffer_food。
-    // 参考: datapacks/Vanilla/data/minecraft/tags/item/sniffer_food.json
-    // （MC 1.21.11 Sniffer#isFood 通过 ItemStack.is(ItemTags.SNIFFER_FOOD) 判断）
-    auto snifferFood = std::make_unique<ItemTag>(ResourceLocation("minecraft", "sniffer_food"), false);
-    snifferFood->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "torchflower_seeds")));
-    snifferFood->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "pitcher_pod")));
-    allTags[snifferFood->getId()] = std::move(snifferFood);
-
-    // 创建 FROG_FOOD 标签
-    // 包含可诱引、繁殖青蛙并加速蝌蚪变态的物品（黏液球）。
-    // 对应 MC 原版标签 minecraft:frog_food。
-    // 参考: datapacks/Vanilla/data/minecraft/tags/item/frog_food.json
-    // （MC 1.21.11 Frog#isFood 通过 ItemStack.is(ItemTags.FROG_FOOD) 判断）
-    auto frogFood = std::make_unique<ItemTag>(ResourceLocation("minecraft", "frog_food"), false);
-    frogFood->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "slime_ball")));
-    allTags[frogFood->getId()] = std::move(frogFood);
 
     // 创建 CREEPER_IGNITERS 标签
     // 包含可用于点燃苦力怕的物品（打火石、火焰弹）。
