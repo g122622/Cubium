@@ -263,6 +263,15 @@ public:
      * 返回方块光照和有效天空光照中的最大值。
      */
     [[nodiscard]] virtual i32 getMaxLocalRawBrightness(i32 x, i32 y, i32 z) const = 0;
+
+    /**
+     * @brief 获取指定位置的原始天空光（未经 dayTime 衰减）
+     *
+     * 对应 vanilla `isDarkEnoughToSpawn` 第一阶段使用的 `getSkyDarken` 之外的快速拒绝门：
+     * `skyLight > random(32)` 时直接判定过亮。默认实现返回 15（视为天空光充足、不拒绝），
+     * 无光照信息的生成期适配器可保持默认。
+     */
+    [[nodiscard]] virtual i32 getRawSkyLight(i32 x, i32 y, i32 z) const { return 15; }
 };
 
 /**

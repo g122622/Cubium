@@ -89,6 +89,8 @@ public:
         return InternalLightUtils::calculateRawBrightness(blockLight, skyLight, skyDarkening);
     }
 
+    [[nodiscard]] i32 getRawSkyLight(i32 x, i32 y, i32 z) const override { return m_region.getSkyLight(x, y, z); }
+
 private:
     WorldGenRegion& m_region;
 };

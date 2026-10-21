@@ -361,24 +361,23 @@ bool _canNautilusSpawn(const ISpawnWorldReader& world,
 /**
  * @brief 怪物生成条件检查（带光照）
  *
- * 怪物要求所在位置的「最大局部原始亮度」不超过 7，即 Monster.isDarkEnoughToSpawn 的
- * 判定。亮度取 getMaxLocalRawBrightness（已含天空光按 dayTime 的时间衰减与方块光取大），
- * 因此白天露天的怪物生成会被拒绝，而夜晚露天与洞穴内可通过。
+ * 完整复刻 vanilla `Monster.isDarkEnoughToSpawn` 的两阶段判定：
+ *   1. 原始天空光快速拒绝：`getRawSkyLight(pos) > random(32)` 时直接判定过亮；
+ *   2. 有效亮度判定：`getMaxLocalRawBrightness(pos) <= 7`
+ *      （该值已含 dayTime 驱动的天空光衰减与方块光取大）。
  *
- * 该判定原先是 NaturalSpawner 按实体注册分类统一追加的，现下沉到放置谓词，
- * 使谓词成为光照门槛的唯一来源，与原始版把生成规则挂在 SpawnPlacements 上的结构一致。
- *
- * TODO: 原始版 isDarkEnoughToSpawn 是两阶段判定——先以「原始天空光 > random(32)」快速拒绝，
- * 再比对亮度阈值。本谓词只实现亮度阈值部分，因为 ISpawnWorldReader 未暴露原始天空光读数；
- * 该阶段目前仅由刷怪笼路径（MobSpawnerBlockEntity）单独补做，自然生成路径缺此阶段。
- * 若要让两条路径完全统一，需给 ISpawnWorldReader 增加原始天空光访问器并在本谓词内实现两阶段。
+ * 两阶段都放在谓词内，使谓词成为光照门槛的唯一来源：刷怪笼与自然生成走同一份逻辑，
+ * 不再各自补做第一阶段。
  */
 bool _canMonsterSpawnInLightPredicate(const ISpawnWorldReader& world,
     const Vector3i& pos,
     const std::string& /*entityTypeId*/,
-    math::IRandom& /*random*/,
+    math::IRandom& random,
     SpawnReason /*reason*/)
 {
+    if (world.getRawSkyLight(pos.x, pos.y, pos.z) > random.nextInt(32)) {
+        return false;
+    }
     constexpr i32 MONSTER_SPAWN_LIGHT_LIMIT = 7;
     return world.getMaxLocalRawBrightness(pos.x, pos.y, pos.z) <= MONSTER_SPAWN_LIGHT_LIMIT;
 }

@@ -409,7 +409,7 @@ TEST_F(NaturalSpawnerTest, SpawnCosts_ZeroCharge)
 //
 // 期望值逐项对应 MC Java 1.21.11 net/minecraft/data/worldgen/BiomeDefaultFeatures.java 与
 // net/minecraft/data/worldgen/biome/{OverworldBiomes,NetherBiomes}.java。
-// 尚未实现的实体（armadillo/camel/frog/goat/parched）不在内部刷怪表中出现。
+// 尚未实现的实体（armadillo/camel/goat/parched）不在内部刷怪表中出现。
 
 namespace {
 
@@ -793,9 +793,10 @@ TEST_F(NaturalSpawnerTest, MobSpawnInfo_Beach)
 
 TEST_F(NaturalSpawnerTest, MobSpawnInfo_Swamp)
 {
-    // 沼泽：farmAnimals + swampSpawns(70) = commonSpawns(70) + slime(1,1,1) + bogged(30,4,4)
+    // 沼泽：farmAnimals + swampSpawns(70) = commonSpawns(70) + slime(1,1,1) + bogged(30,4,4) + frog(10,2,5)
     auto info = world::spawn::MobSpawnInfo::createSwamp();
-    EXPECT_EQ(info.getCreatureSpawns().size(), 4u); // farmAnimals
+    EXPECT_EQ(info.getCreatureSpawns().size(), 5u); // farmAnimals + 青蛙
+    expectSpawn(info.getCreatureSpawns(), "minecraft:frog", 10, 2, 5);
 
     expectCaveSpawns(info);
     expectSpawn(info.getMonsterSpawns(), "minecraft:skeleton", 70, 4, 4);
@@ -810,9 +811,10 @@ TEST_F(NaturalSpawnerTest, MobSpawnInfo_Swamp)
     EXPECT_EQ(slimeCount, 2);
     EXPECT_EQ(info.getMonsterSpawns().size(), 10u);
 
-    // 红树林沼泽：无 farmAnimals，额外热带鱼
+    // 红树林沼泽：无 farmAnimals，额外热带鱼与青蛙
     auto mangrove = world::spawn::MobSpawnInfo::createMangroveSwamp();
-    EXPECT_TRUE(mangrove.getCreatureSpawns().empty());
+    EXPECT_EQ(mangrove.getCreatureSpawns().size(), 1u);
+    expectSpawn(mangrove.getCreatureSpawns(), "minecraft:frog", 10, 2, 5);
     expectSpawn(mangrove.getWaterAmbientSpawns(), "minecraft:tropical_fish", 25, 8, 8);
     expectSpawn(mangrove.getMonsterSpawns(), "minecraft:bogged", 30, 4, 4);
 }

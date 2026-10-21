@@ -42,8 +42,7 @@ namespace spawn {
 //   1) camel（沙漠 CREATURE 1,1,1）——CamelEntity 未实现；
 //   2) armadillo（热带草原 CREATURE 10,2,3；恶地 CREATURE 6,1,2）——ArmadilloEntity 未实现；
 //   3) parched（沙漠 MONSTER 50,4,4）——ParchedEntity 未实现；
-//   4) frog（沼泽/红树林沼泽 CREATURE 10,2,5）——FrogEntity 未实现（蝌蚪与青蛙卵已实现）；
-//   5) goat（尖峭峰/冰封峰/裸岩峰 CREATURE 5,1,3；雪坡 CREATURE 5,1,3）——GoatEntity 未实现。
+//   4) goat（尖峭峰/冰封峰/裸岩峰 CREATURE 5,1,3；雪坡 CREATURE 5,1,3）——GoatEntity 未实现。
 //   上述条目若写入刷怪表，会占用权重并在抽取后被 NaturalSpawner 跳过，使实际生成分布偏离原版，
 //   因此暂不加入（内置刷怪表与数据包口径保持一致）。
 // TODO(spawn-list-entities): 上述实体实现并注册后，在此补齐对应 spawn list，并删除本条注释中的相应条目。
@@ -62,6 +61,7 @@ using entity::EntityTypeKeys::DONKEY;
 using entity::EntityTypeKeys::DROWNED;
 using entity::EntityTypeKeys::ENDERMAN;
 using entity::EntityTypeKeys::FOX;
+using entity::EntityTypeKeys::FROG;
 using entity::EntityTypeKeys::GHAST;
 using entity::EntityTypeKeys::GLOW_SQUID;
 using entity::EntityTypeKeys::HOGLIN;
@@ -158,7 +158,7 @@ void _addSwampSpawns(MobSpawnInfo& info, i32 skeletonWeight)
     _addCommonSpawns(info, skeletonWeight);
     info.addMonsterSpawn(SpawnEntry(SLIME, 1, 1, 1));
     info.addMonsterSpawn(SpawnEntry(BOGGED, 30, 4, 4));
-    // TODO(spawn-list-entities): frog（CREATURE 10,2,5）——FrogEntity 未实现。
+    info.addCreatureSpawn(SpawnEntry(FROG, 10, 2, 5));
 }
 
 /// BiomeDefaultFeatures.oceanSpawns(builder, squidWeight, squidPack, codWeight)：水生生物 + commonSpawns + 溺尸。

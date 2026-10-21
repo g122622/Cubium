@@ -627,6 +627,11 @@ bool MobSpawnerBlockEntity::_isValidSpawnPosition(
             return m_world.getMaxLocalRawBrightness(BlockPos(x, y, z));
         }
 
+        [[nodiscard]] i32 getRawSkyLight(i32 x, i32 y, i32 z) const override
+        {
+            return m_world.getSkyLight(BlockPos(x, y, z));
+        }
+
     private:
         IWorld& m_world;
     };
@@ -642,28 +647,15 @@ bool MobSpawnerBlockEntity::_isValidSpawnPosition(
         return false;
     }
 
-    // 光照检查：对应 MC Java BaseSpawner.serverTick() 无 CustomSpawnRules 分支调用
+    // 光照检查：对应 vanilla BaseSpawner.serverTick() 无 CustomSpawnRules 分支调用
     // SpawnPlacements.checkSpawnRules(entityType, level, SPAWNER, pos, random)，对 Monster
-    // 分类走 Monster.checkMonsterSpawnRules，其逻辑为
+    // 分类走 Monster.checkMonsterSpawnRules：
     //   difficulty != PEACEFUL && (ignoresLightRequirements(reason) || isDarkEnoughToSpawn(...))
-    // 关键：EntitySpawnReason.ignoresLightRequirements(SPAWNER)=false（仅 TRIAL_SPAWNER 忽略光照），
-    // 故普通刷怪笼生成的怪物仍需通过 isDarkEnoughToSpawn 光照检查。
-    // 上面 canSpawnEntity 已使怪物谓词 _canMonsterSpawnInLightPredicate 生效（"最大局部原始亮度
-    // <= 7"），此处再补 isValidLightLevel 的**天空光随机门**（skyLight > random(32) 直接拒绝）
-    // ——该门是 isDarkEnoughToSpawn 的第一阶段，谓词接口不暴露原始天空光故无法在谓词内实现。
-    // 两阶段合起来即完整的 isDarkEnoughToSpawn；谓词的 <=7 项被 isValidLightLevel 的
-    // light <= random(0..7) 蕴含，不引入额外限制。
-    // 注：仅 Monster 分类查光照；Ambient（蝙蝠）等分类放行不做光照检查——与原版一致：
-    //   SpawnPlacements.checkSpawnRules 只执行实体类型注册的谓词，BAT 未注册谓词（DATA_BY_TYPE 为空），
-    //   故任何刷怪原因下都不做光照限制。仅当新增 Ambient 实体注册了带光照判定的谓词时，
-    //   TODO 才需要在此按分类/类型补齐对应谓词。
-    if (entityType.classification() == entity::EntityClassification::Monster) {
-        math::Random lightRng(world.seed() ^ world.getGameTime() ^
-            (static_cast<i64>(spawnPos.x) * 341873128712ULL + static_cast<i64>(spawnPos.z) * 132897987541ULL));
-        if (!mc::MonsterEntity::isValidLightLevel(world, spawnPos, lightRng)) {
-            return false;
-        }
-    }
+    // EntitySpawnReason.ignoresLightRequirements(SPAWNER)=false（仅 TRIAL_SPAWNER 忽略光照），
+    // 故普通刷怪笼生成的怪物仍需通过完整两阶段的 isDarkEnoughToSpawn——该判定已整体下沉到
+    // _canMonsterSpawnInLightPredicate（上方 canSpawnEntity 调用），此处不再重复补做天空光随机门。
+    // 注：仅注册了光照谓词的实体受此门控（如 Monster）；BAT 等未注册谓词的实体不受光照限制，
+    // 与原版 SpawnPlacements 只执行实体类型自身谓词的口径一致。
 
     return true;
 }

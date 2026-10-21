@@ -808,6 +808,11 @@ bool NaturalSpawner::_canSpawnAt(
             return InternalLightUtils::calculateRawBrightness(blockLight, skyLight, skyDarkening);
         }
 
+        [[nodiscard]] i32 getRawSkyLight(i32 bx, i32 by, i32 bz) const override
+        {
+            return m_world.getSkyLight(bx, by, bz);
+        }
+
     private:
         mc::server::ServerWorld& m_world;
     };
