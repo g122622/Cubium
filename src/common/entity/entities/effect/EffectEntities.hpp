@@ -52,6 +52,23 @@ struct ExplosionImmunityContext;
 namespace entity {
 
 /**
+ * @brief 应用瞬间效果到目标实体
+ *
+ * 对应 vanilla MobEffect#applyInstantenousEffect：瞬间治疗/伤害按施放者归属伤害源
+ * （存在施放者时为 indirectMagic，否则为 magic），并按 multiplier 缩放后四舍五入。
+ * 用于喷溅药水、药水云等场景。
+ *
+ * @param type 效果类型（必须是瞬间效果，否则无操作）
+ * @param source 效果来源实体（投掷物或药水云自身）
+ * @param caster 效果施放者（拥有者，如投掷药水的玩家），可为空
+ * @param target 目标生物
+ * @param amplifier 效果等级（0 = I, 1 = II）
+ * @param multiplier 效果乘数（通常为距离因子 0..1）
+ */
+void applyInstantEffect(
+    effect::EffectType type, Entity& source, LivingEntity* caster, LivingEntity& target, i32 amplifier, f32 multiplier);
+
+/**
  * @brief 末影水晶实体
  *
  * 在末地生成，用于治愈末影龙。

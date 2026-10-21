@@ -1239,6 +1239,8 @@ add_executable(mc_tests
     common/entity/effect/EffectInstanceEndsWithinTest.cpp
     # 饱和效果测试
     common/entity/effect/SaturationEffectTest.cpp
+    # 瞬间效果应用（治疗/伤害基数、距离缩放、亡灵反转）测试
+    common/entity/effect/ApplyInstantEffectTest.cpp
     # FoodStats 饥饿系统 tick 行为测试（消耗/回血/饿死对齐 vanilla FoodData.tick）
     common/entity/food/FoodStatsTest.cpp
     common/world/gen/WorldGenSpawnerTest.cpp
