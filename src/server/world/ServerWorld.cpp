@@ -37,6 +37,7 @@
 #include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/core/MobEntity.hpp"
 #include "common/entity/entities/effect/EffectEntities.hpp"
+#include "common/entity/entities/passive/horse/SkeletonHorseEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/entities/player/SpawnLocationHelper.hpp"
 #include "common/entity/inventory/ContainerTypes.hpp"
@@ -71,6 +72,7 @@
 #include "common/world/block/BlockRegistry.hpp"
 #include "common/world/block/BlockState.hpp"
 #include "common/world/block/BlockUpdateFlags.hpp"
+#include "common/world/block/blocks/LightningRodBlock.hpp"
 #include "common/world/block/blocks/ice/SnowBlock.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/blockentity/BlockEntity.hpp"
@@ -105,6 +107,7 @@
 #include "common/world/tick/base/TickPriority.hpp"
 #include "common/world/village/VillageManager.hpp"
 #include "common/world/village/raid/RaidManager.hpp"
+#include "common/world/weather/WeatherConstants.hpp"
 #include "common/world/weather/WeatherUtils.hpp"
 #include "server/application/IServer.hpp"
 #include "server/core/OpListManager.hpp"
@@ -1397,8 +1400,42 @@ void ServerWorld::tick()
             if (registry == nullptr) {
                 return;
             }
+
+            // 对齐 vanilla ServerLevel.tickThunder：闪电落点按区域难度判定是否生成陷阱骷髅马，
+            // 生成时闪电只作视觉效果（不再伤害/点燃）。
+            bool skeletonTrap = false;
+            if (m_gameRules.getBoolean(world::gamerule::GameRuleKeys::DO_MOB_SPAWNING)) {
+                const f64 difficulty =
+                    static_cast<f64>(entity::combat::DifficultyInstance::at(*this, pos).getEffectiveDifficulty()) *
+                    static_cast<f64>(mc::weather::WeatherConstants::SKELETON_HORSE_TRAP_CHANCE);
+                // 对齐 vanilla：落点下方是避雷针时不生成陷阱马（避雷针把闪电引走）。
+                const BlockState* belowState =
+                    pos.y > world::MIN_BUILD_HEIGHT ? getBlockState(pos.down().x, pos.down().y, pos.down().z) : nullptr;
+                const bool belowLightningRod = belowState != nullptr &&
+                    dynamic_cast<const mc::blocks::LightningRodBlock*>(&belowState->getBlock()) != nullptr;
+                skeletonTrap = getRandom().nextDouble() < difficulty && !belowLightningRod;
+            }
+            if (skeletonTrap) {
+                const auto* skeletonHorseType = entity::VanillaEntityTypeKeys::SKELETON_HORSE;
+                std::unique_ptr<Entity> horse =
+                    skeletonHorseType != nullptr ? skeletonHorseType->create(this, *registry) : nullptr;
+                if (horse != nullptr) {
+                    if (auto* skeletonHorse = dynamic_cast<SkeletonHorseEntity*>(horse.get())) {
+                        // 对齐 vanilla：陷阱马成年（setAge(0)）并开启陷阱（玩家靠近 10 格触发骑手）。
+                        skeletonHorse->setChild(false);
+                        skeletonHorse->setTrap(true);
+                    }
+                    horse->setPosition(
+                        static_cast<f32>(pos.x) + 0.5f, static_cast<f32>(pos.y), static_cast<f32>(pos.z) + 0.5f);
+                    (void)spawnEntity(std::move(horse));
+                }
+            }
+
             auto bolt = entity::LightningBoltEntity::create(this, *registry);
+            auto* boltEntity = static_cast<entity::LightningBoltEntity*>(bolt.get());
             bolt->setPosition(static_cast<f32>(pos.x) + 0.5f, static_cast<f32>(pos.y), static_cast<f32>(pos.z) + 0.5f);
+            // 陷阱闪电只作视觉效果（对齐 vanilla LightningBolt.setVisualOnly(true)）。
+            boltEntity->setEffectOnly(skeletonTrap);
             EntityInstanceId boltId = spawnEntity(std::move(bolt));
             if (boltId == 0) {
                 spdlog::warn("Failed to spawn lightning bolt at ({}, {}, {})", pos.x, pos.y, pos.z);

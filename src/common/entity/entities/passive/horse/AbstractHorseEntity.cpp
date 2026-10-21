@@ -718,10 +718,10 @@ void AbstractHorseEntity::tick()
         anim->m_tailCounter = 0;
     }
 
-    // 冲刺计数器：递增，超过 300 tick 后重置
-    // TODO: m_sprintCounter 的初始触发由客户端渲染/动画系统设置，
-    // MC 原版中由 HorseRenderer 等渲染器在外部设置 m_sprintCounter > 0，
-    // 服务端 tick() 仅负责递增和超时重置逻辑。待客户端渲染系统实现后补全触发逻辑。
+    // 冲刺计数器：递增，超过 300 tick 后重置。
+    // 对齐 vanilla AbstractHorse.tick（AbstractHorse.java:592-596）：服务端只做递增与超时重置；
+    // 计数器的置位点（骑乘加速动画的生命周期）属于客户端渲染层，本项目客户端不维护，
+    // 服务端此处保持原版"仅递增"语义即可，无需额外触发逻辑。
     if (anim->m_sprintCounter > 0) {
         ++anim->m_sprintCounter;
         if (anim->m_sprintCounter > 300) {
