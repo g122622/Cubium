@@ -23,11 +23,13 @@
 
 #pragma once
 
+#include "common/core/Result.hpp"
 #include "common/entity/core/EntityClassRegistry.hpp"
 #include "common/entity/damage/DamageSource.hpp"
 #include "common/entity/entities/passive/fish/AbstractFishEntity.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/resource/ResourceLocation.hpp"
+#include "common/util/nbt/Nbt.hpp"
 
 #include <memory>
 #include <optional>
@@ -107,7 +109,19 @@ public:
 protected:
     void registerAttributes() override;
 
+    void addAdditionalSaveData(nbt::tags::compound_tag& tag) const override;
+    Result<void> readAdditionalSaveData(const nbt::tags::compound_tag& tag) override;
+
 private:
+    /**
+     * @brief 变态为青蛙（对齐 vanilla Tadpole.ageUp → convertTo(FROG, ...)）
+     *
+     * 经 Entity::convertTo 创建青蛙实体并送入世界，随后执行 finalizeSpawn(CONVERSION)、
+     * 持久化标记、尺寸修正与 TADPOLE_GROW_UP 音效；蝌蚪本身被静默移除。
+     * 仅在服务端生效；无世界或已在移除流程中时不做任何事。
+     */
+    void _metamorphoseIntoFrog();
+
     i32 m_age = 0; ///< 年龄（tick），达到 TICKS_TO_BE_FROG 时转化为青蛙
 };
 

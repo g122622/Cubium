@@ -75,6 +75,7 @@ add_library(mc_common STATIC
 
     # Entity Core
     entity/core/Entity.cpp
+    entity/core/ConversionParams.cpp
     entity/utils/EntityUtils.cpp
     entity/utils/ItemDropHelper.cpp
     entity/core/EntityType.cpp
@@ -144,6 +145,8 @@ add_library(mc_common STATIC
     entity/entities/passive/tamable/CatEntity.cpp
     entity/entities/passive/tamable/OcelotEntity.cpp
     entity/entities/passive/tamable/ParrotEntity.cpp
+    # Entity - Passive Animals (frog)
+    entity/entities/passive/frog/FrogEntity.cpp
     # Entity - Passive Animals (special)
     entity/entities/passive/special/FoxEntity.cpp
     entity/entities/passive/special/PandaEntity.cpp

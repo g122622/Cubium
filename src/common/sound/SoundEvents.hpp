@@ -1083,6 +1083,15 @@ extern const ResourceLocation ENTITY_TADPOLE_FLOP;
 extern const ResourceLocation ENTITY_TADPOLE_GROW_UP;
 extern const ResourceLocation ENTITY_TADPOLE_HURT;
 
+/// 青蛙
+/// 对应 MC Java: SoundEvents.FROG_AMBIENT/DEATH/EAT/HURT/STEP/TONGUE
+extern const ResourceLocation FROG_AMBIENT;
+extern const ResourceLocation FROG_DEATH;
+extern const ResourceLocation FROG_EAT;
+extern const ResourceLocation FROG_HURT;
+extern const ResourceLocation FROG_STEP;
+extern const ResourceLocation FROG_TONGUE;
+
 /// 青蛙卵
 /// 对应 MC Java: SoundEvents.FROGSPAWN_HATCH
 extern const ResourceLocation FROGSPAWN_HATCH;

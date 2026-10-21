@@ -423,6 +423,15 @@ ItemTag& ItemTags::SNIFFER_FOOD()
     return *tag;
 }
 
+ItemTag& ItemTags::FROG_FOOD()
+{
+    static ItemTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "frog_food"));
+    }
+    return *tag;
+}
+
 ItemTag& ItemTags::CREEPER_IGNITERS()
 {
     static ItemTag* tag = nullptr;
@@ -1211,6 +1220,15 @@ void ItemTags::initialize()
     snifferFood->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "torchflower_seeds")));
     snifferFood->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "pitcher_pod")));
     allTags[snifferFood->getId()] = std::move(snifferFood);
+
+    // 创建 FROG_FOOD 标签
+    // 包含可诱引、繁殖青蛙并加速蝌蚪变态的物品（黏液球）。
+    // 对应 MC 原版标签 minecraft:frog_food。
+    // 参考: datapacks/Vanilla/data/minecraft/tags/item/frog_food.json
+    // （MC 1.21.11 Frog#isFood 通过 ItemStack.is(ItemTags.FROG_FOOD) 判断）
+    auto frogFood = std::make_unique<ItemTag>(ResourceLocation("minecraft", "frog_food"), false);
+    frogFood->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "slime_ball")));
+    allTags[frogFood->getId()] = std::move(frogFood);
 
     // 创建 CREEPER_IGNITERS 标签
     // 包含可用于点燃苦力怕的物品（打火石、火焰弹）。

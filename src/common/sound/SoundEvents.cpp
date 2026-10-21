@@ -944,6 +944,15 @@ const ResourceLocation ENTITY_TADPOLE_DEATH("minecraft:entity.tadpole.death");
 const ResourceLocation ENTITY_TADPOLE_FLOP("minecraft:entity.tadpole.flop");
 const ResourceLocation ENTITY_TADPOLE_GROW_UP("minecraft:entity.tadpole.grow_up");
 const ResourceLocation ENTITY_TADPOLE_HURT("minecraft:entity.tadpole.hurt");
+
+// 青蛙
+const ResourceLocation FROG_AMBIENT("minecraft:entity.frog.ambient");
+const ResourceLocation FROG_DEATH("minecraft:entity.frog.death");
+const ResourceLocation FROG_EAT("minecraft:entity.frog.eat");
+const ResourceLocation FROG_HURT("minecraft:entity.frog.hurt");
+const ResourceLocation FROG_STEP("minecraft:entity.frog.step");
+const ResourceLocation FROG_TONGUE("minecraft:entity.frog.tongue");
+
 const ResourceLocation FROGSPAWN_HATCH("minecraft:block.frogspawn.hatch");
 
 const ResourceLocation ENTITY_SALMON_AMBIENT("minecraft:entity.salmon.ambient");

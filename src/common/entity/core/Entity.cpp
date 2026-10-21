@@ -229,6 +229,65 @@ void Entity::remove(RemovalReason reason)
     onRemoval(reason);
 }
 
+Entity* Entity::convertTo(
+    const std::string& targetType, const ConversionParams& params, const std::function<void(Entity&)>& onConverted)
+{
+    // 转化必然产生新实体并移除旧实体，只在服务端执行。
+    if (m_world == nullptr || m_world->isClientSide()) {
+        return nullptr;
+    }
+    auto* ecsRegistry = m_world->entityRegistry();
+    if (ecsRegistry == nullptr) {
+        spdlog::warn("Entity::convertTo: world has no entity registry, entity id={}", static_cast<u64>(id()));
+        return nullptr;
+    }
+    const entity::EntityType* target = entity::EntityRegistry::instance().getType(targetType);
+    if (target == nullptr) {
+        spdlog::warn(
+            "Entity::convertTo: unknown target entity type '{}', entity id={}", targetType, static_cast<u64>(id()));
+        return nullptr;
+    }
+    auto converted = target->create(m_world, *ecsRegistry);
+    if (!converted) {
+        spdlog::warn("Entity::convertTo: failed to create entity of type '{}'", targetType);
+        return nullptr;
+    }
+
+    // 以下状态必须在 remove() 置位之前读取（原实体此时仍然有效）。
+    const bool silence = isSilent();
+    const std::string customName = customNameText();
+
+    converted->setPosition(x(), y(), z());
+    converted->setRotation(yaw(), pitch());
+    converted->setVelocity(velocity());
+    if (!customName.empty()) {
+        converted->setCustomName(customName);
+    }
+    if (isInvulnerable()) {
+        converted->setInvulnerable(true);
+    }
+    if (silence) {
+        converted->setSilent(true);
+    }
+    // TODO(convert-equipment): preserveEquipment 需要通用装备快照复制（LivingEntity 各槽位
+    //   读写）。当前所有转化调用点均为非生物→生物（蝌蚪→青蛙）或未传 true，先留空实现。
+    MC_UNUSED(params);
+    // TODO(convert-copy-nbt): copyNbt 需要"合并式"读入（目标实体已初始化字段，不能整体
+    //   readAdditionalSaveData 覆盖）。当前调用点均不传该参数，待需要时补充逐键合并。
+
+    Entity* convertedPtr = converted.get();
+    m_world->spawnEntity(std::move(converted));
+
+    convertedPtr->onConversion(params.source, params.playerDamager);
+    if (onConverted) {
+        onConverted(*convertedPtr);
+    }
+
+    // 原实体静默移除（不掉落、不触发死亡；对齐 vanilla convertTo 的 discard）。
+    discard();
+    return convertedPtr;
+}
+
 void Entity::registerData()
 {
     // 标记当前正在注册 Entity 类的字段，使 registerParam 沿 Entity 继承链分配 id。

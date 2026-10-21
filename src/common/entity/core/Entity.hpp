@@ -32,6 +32,7 @@
 #include "common/command/ICommandSource.hpp"
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
+#include "common/entity/core/ConversionParams.hpp"
 #include "common/entity/core/DataParameter.hpp"
 #include "common/entity/core/EntityClassRegistry.hpp"
 #include "common/entity/ecs/components/BuiltInEntityComponents.hpp"
@@ -77,6 +78,7 @@ class IWorld;
 class EntityManager;
 class BlockState;
 class DamageSource;
+class LivingEntity;
 
 namespace entity {
 
@@ -1162,6 +1164,38 @@ public:
      * 对齐 vanilla Entity.discard()（`public final`，转调 remove(DISCARDED)）。
      */
     void discard() { remove(RemovalReason::Discarded); }
+
+    /**
+     * @brief 转化为另一种实体类型（原实体被静默移除）
+     *
+     * 对齐 vanilla Entity.convertTo：通过实体类型工厂创建目标实体，按转化参数复制位置、
+     * 朝向、速度（目标类型未指定速度时）、自定义名称、无敌状态、静默标志及可选装备/额外 NBT，
+     * 先送入世界，随后把原实体静默移除（Discarded，不掉落、不触发死亡）。转化后处理
+     * （finalizeSpawn、持久化、尺寸变化后的位置修正等）由调用方在 onConverted 回调中完成。
+     *
+     * @param targetType 目标实体类型标识（如 EntityTypeKeys::FROG）
+     * @param params 转化参数
+     * @param onConverted 新实体送入世界后、原实体移除前执行的回调（可为空）
+     * @return 新实体指针；仅在服务端且创建/生成成功时非空
+     */
+    Entity* convertTo(const std::string& targetType,
+        const ConversionParams& params,
+        const std::function<void(Entity&)>& onConverted = {});
+
+    /**
+     * @brief 转化完成钩子（新实体侧）
+     *
+     * 在 convertTo 把新实体送入世界后、原实体移除前调用，供子类承接转化参数中的
+     * 伤害来源等语义（如村民转化为僵尸村民后承担玩家的攻击仇恨）。默认空实现。
+     *
+     * @param source 触发转化的伤害来源（非伤害触发时为空）
+     * @param playerDamager 触发转化的伤害者（可能为空）
+     */
+    virtual void onConversion(const DamageSource* source, LivingEntity* playerDamager)
+    {
+        (void)source;
+        (void)playerDamager;
+    }
 
     /**
      * @brief 子类移除清理钩子
