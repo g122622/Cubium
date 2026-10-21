@@ -510,6 +510,15 @@ BlockTag& BlockTags::VALID_SWEET_BERRY_BUSH_GROUND()
     return *tag;
 }
 
+BlockTag& BlockTags::CORALS()
+{
+    static BlockTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "corals"));
+    }
+    return *tag;
+}
+
 BlockTag& BlockTags::WALL_CORALS()
 {
     static BlockTag* tag = nullptr;
@@ -1787,6 +1796,23 @@ void BlockTags::initialize()
         ResourceLocation("minecraft", "crimson_nylium"),
         ResourceLocation("minecraft", "warped_nylium")});
     tags[mushroomGrowBlock->getId()] = std::move(mushroomGrowBlock);
+
+    // 创建 CORALS 标签（珊瑚植物与珊瑚扇）
+    // 包含所有活的和死的珊瑚扇；数据包中的 corals.json 还会并入 coral_plants 引用。
+    auto corals = std::make_unique<BlockTag>(ResourceLocation("minecraft", "corals"));
+    corals->addAll({// 活的珊瑚扇
+        ResourceLocation("minecraft", "tube_coral_fan"),
+        ResourceLocation("minecraft", "brain_coral_fan"),
+        ResourceLocation("minecraft", "bubble_coral_fan"),
+        ResourceLocation("minecraft", "fire_coral_fan"),
+        ResourceLocation("minecraft", "horn_coral_fan"),
+        // 死的珊瑚扇
+        ResourceLocation("minecraft", "dead_tube_coral_fan"),
+        ResourceLocation("minecraft", "dead_brain_coral_fan"),
+        ResourceLocation("minecraft", "dead_bubble_coral_fan"),
+        ResourceLocation("minecraft", "dead_fire_coral_fan"),
+        ResourceLocation("minecraft", "dead_horn_coral_fan")});
+    tags[corals->getId()] = std::move(corals);
 
     // 创建 WALL_CORALS 标签（墙珊瑚扇）
     // 包含所有活的和死的墙珊瑚扇

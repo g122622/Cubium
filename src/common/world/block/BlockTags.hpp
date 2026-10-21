@@ -329,6 +329,9 @@ public:
 
     // ========== 珊瑚和水下骨粉标签 ==========
 
+    /// 珊瑚标签（珊瑚植物与珊瑚扇，包括死的和活的）
+    static BlockTag& CORALS();
+
     /// 墙珊瑚标签（所有墙珊瑚扇，包括死的和活的）
     static BlockTag& WALL_CORALS();
 
