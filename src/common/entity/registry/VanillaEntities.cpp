@@ -73,6 +73,7 @@
 #include "common/entity/entities/passive/fish/PufferfishEntity.hpp"
 #include "common/entity/entities/passive/fish/SalmonEntity.hpp"
 #include "common/entity/entities/passive/fish/TropicalFishEntity.hpp"
+#include "common/entity/entities/passive/frog/FrogEntity.hpp"
 #include "common/entity/entities/passive/golem/CopperGolemEntity.hpp"
 #include "common/entity/entities/passive/golem/IronGolemEntity.hpp"
 #include "common/entity/entities/passive/golem/SnowGolemEntity.hpp"
@@ -446,6 +447,18 @@ void VanillaEntities::doRegisterAll()
         EntityType::Builder(&TadpoleEntity::create, EntityClassification::WaterAmbient)
             .size(0.4f, 0.3f)
             .trackingRange(8)
+            .updateInterval(3)
+            .canSummon(true)
+            .build());
+
+    // 青蛙 - 由蝌蚪变态而来；分类沿用水生环境生物（原版 Frog/蝌蚪均属 WATER_AMBIENT 类别）。
+    // 尺寸取 FrogEntity::WIDTH/HEIGHT（0.5 x 0.5），与实体 getDimensions 保持一致。
+    // TODO(frog-ai): 原版青蛙自然生成规则（checkFrogSpawnRules + FROGS_SPAWNABLE_ON）与
+    //   frog_variant 变体注册表尚未接入，当前变体按生成位置气候标签选择。
+    registry.registerType(EntityTypeKeys::FROG,
+        EntityType::Builder(&FrogEntity::create, EntityClassification::WaterAmbient)
+            .size(FrogEntity::WIDTH, FrogEntity::HEIGHT)
+            .trackingRange(10)
             .updateInterval(3)
             .canSummon(true)
             .build());

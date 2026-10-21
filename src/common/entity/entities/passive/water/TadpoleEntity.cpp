@@ -25,8 +25,14 @@
 
 #include "common/core/Types.hpp"
 #include "common/entity/attribute/Attributes.hpp"
+#include "common/entity/combat/DifficultyInstance.hpp"
+#include "common/entity/core/ConversionParams.hpp"
 #include "common/entity/core/EntityClassRegistry.hpp"
+#include "common/entity/core/EntityRegistry.hpp"
+#include "common/entity/core/MobEntity.hpp"
 #include "common/entity/damage/DamageSource.hpp"
+#include "common/entity/serialization/EntityNbtKeys.hpp"
+#include "common/entity/serialization/NbtHelper.hpp"
 #include "common/item/Items.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/sound/SoundEvents.hpp"
@@ -77,12 +83,48 @@ void TadpoleEntity::tick()
 void TadpoleEntity::setAge(i32 age)
 {
     m_age = age;
-    // 对齐 vanilla：达到成年年龄时转化为青蛙
+    // 对齐 vanilla Tadpole.setAge：达到成体年龄即变态为青蛙。
     if (m_age >= TICKS_TO_BE_FROG) {
-        // TODO: 转化为青蛙实体（对齐 vanilla Tadpole.ageUp → convertTo(EntityType.FROG)）。
-        //   青蛙实体（FrogEntity）尚未在本项目实现（VanillaEntities 未注册 minecraft:frog），
-        //   待青蛙实体实现后补 convertTo + finalizeSpawn + TADPOLE_GROW_UP 音效。
+        _metamorphoseIntoFrog();
     }
+}
+
+void TadpoleEntity::_metamorphoseIntoFrog()
+{
+    // 对齐 vanilla Tadpole.ageUp（Tadpole.java:221-230）：
+    //   convertTo(EntityType.FROG, ConversionParams.single(this, false, false), frog -> {
+    //       frog.finalizeSpawn(serverlevel, getCurrentDifficultyAt(frog.blockPosition()), CONVERSION, null);
+    //       frog.setPersistenceRequired();
+    //       frog.fudgePositionAfterSizeChange(getDimensions(getPose()));
+    //       playSound(TADPOLE_GROW_UP, 0.15F, 1.0F);
+    //   });
+    // 原实体由 convertTo 静默移除（不掉落、不产生死亡经验）。
+    IWorld* world = m_world;
+    if (world == nullptr || world->isClientSide()) {
+        return;
+    }
+    // 已在移除流程中（重复触发/区块卸载）时不再转化
+    if (isRemoved()) {
+        return;
+    }
+
+    const ConversionParams params = ConversionParams::single(*this, false, false);
+    (void)convertTo(std::string(entity::EntityTypeKeys::FROG), params, [this, world](Entity& frog) {
+        auto* frogMob = dynamic_cast<MobEntity*>(&frog);
+        if (frogMob == nullptr) {
+            // 目标类型不是生物（注册表损坏），直接结束，避免访问空成员
+            return;
+        }
+        entity::combat::DifficultyInstance difficulty = entity::combat::DifficultyInstance::at(*world, frog.onPos());
+        frogMob->finalizeSpawn(*world, difficulty, world::spawn::SpawnReason::Conversion);
+        // 转化产生的实体必须持久化，避免被消失管理器立刻清除
+        frogMob->enablePersistence();
+        // 尺寸变化后的位置修正：以原实体中心为基准重新贴地（vanilla fudgePositionAfterSizeChange）
+        frogMob->refreshDimensions();
+        // 音效由原实体播放：tick 推进的转化发生在原实体生命周期的最后一刻，
+        // 位置一致，保持与原版的发声来源相同。
+        playSound(SoundEvents::ENTITY_TADPOLE_GROW_UP, 0.15f, 1.0f);
+    });
 }
 
 i32 TadpoleEntity::getTicksLeftUntilAdult() const noexcept
@@ -113,6 +155,27 @@ std::optional<ResourceLocation> TadpoleEntity::getHurtSound(DamageSource& /*sour
 ItemStack TadpoleEntity::getBucketItemStack() const
 {
     return ItemStack(Items::TADPOLE_BUCKET, 1);
+}
+
+// ========== NBT ==========
+
+void TadpoleEntity::addAdditionalSaveData(nbt::tags::compound_tag& tag) const
+{
+    AbstractFishEntity::addAdditionalSaveData(tag);
+    // 对齐 vanilla Tadpole.addAdditionalSaveData：putInt("Age", age)。
+    tag.put(entity::serialization::nbt_keys::TADPOLE_AGE, m_age);
+}
+
+Result<void> TadpoleEntity::readAdditionalSaveData(const nbt::tags::compound_tag& tag)
+{
+    using namespace entity::serialization;
+    MC_TRY(AbstractFishEntity::readAdditionalSaveData(tag));
+    // 对齐 vanilla Tadpole.readAdditionalSaveData：getIntOr("Age", 0) → setAge（达到阈值即变态）。
+    if (const auto age =
+            entity::serialization::nbt_helper::tryGetInt(tag, entity::serialization::nbt_keys::TADPOLE_AGE)) {
+        setAge(*age);
+    }
+    return Result<void>::ok();
 }
 
 } // namespace mc

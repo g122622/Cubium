@@ -128,6 +128,11 @@ constexpr const char* THROWER = "Thrower";
 constexpr const char* FORCED_AGE = "ForcedAge";
 constexpr const char* IN_LOVE = "InLove";
 
+// ========== TadpoleEntity 键 ==========
+// 对齐 vanilla Tadpole：独立的 "Age" 记录变态进度（与年龄系统的 m_growingAge 无关）。
+
+constexpr const char* TADPOLE_AGE = "Age";
+
 // ========== AnimalEntity 键 ==========
 
 constexpr const char* LOVE_CAUSE = "LoveCause";

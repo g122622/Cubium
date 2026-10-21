@@ -388,6 +388,17 @@ public:
     static ItemTag& SNIFFER_FOOD();
 
     /**
+     * @brief 蛙类食物标签
+     *
+     * 包含可诱引、繁殖青蛙并加速蝌蚪变态的物品（黏液球）。
+     * 对应 MC 原版标签 minecraft:frog_food（数据包键 "frog_food"）。
+     *
+     * 参考: net.minecraft.world.entity.animal.frog.Frog#isFood
+     * （MC 1.21.11 通过 ItemStack.is(ItemTags.FROG_FOOD) 判断）
+     */
+    static ItemTag& FROG_FOOD();
+
+    /**
      * @brief 苦力怕点燃器标签
      *
      * 包含可用于点燃苦力怕的物品（打火石、火焰弹）。
