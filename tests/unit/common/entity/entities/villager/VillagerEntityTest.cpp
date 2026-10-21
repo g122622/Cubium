@@ -415,6 +415,35 @@ TEST_F(VillagerEntityTest, EatUntilFull_ConsumesInventoryFood)
     EXPECT_EQ(m_villager->foodLevel(), 0);
 }
 
+TEST_F(VillagerEntityTest, FoodLevelRoundTripsThroughNbt)
+{
+    m_villager->setFoodLevel(9);
+
+    nbt::CompoundTag tag;
+    m_villager->addAdditionalSaveData(tag);
+
+    VillagerEntity restored(EntityInstanceId(2), mc::test::testEcsRegistry());
+    ASSERT_TRUE(restored.readAdditionalSaveData(tag).success());
+    EXPECT_EQ(restored.foodLevel(), 9);
+}
+
+TEST_F(VillagerEntityTest, FoodLevelPersistsAlongsideOffers)
+{
+    m_villager->setFoodLevel(4);
+    // 直接设置交易列表（updateOffers 为 protected），验证两侧 NBT 字段互不覆盖。
+    m_villager->setOffers(world::village::trade::MerchantOffers{});
+
+    nbt::CompoundTag tag;
+    m_villager->addAdditionalSaveData(tag);
+
+    // 有交易列表时写出 Offers 键；食物点数独立保存，互不覆盖。
+    EXPECT_NE(tag.value.find("Offers"), tag.value.end());
+
+    VillagerEntity restored(EntityInstanceId(3), mc::test::testEcsRegistry());
+    ASSERT_TRUE(restored.readAdditionalSaveData(tag).success());
+    EXPECT_EQ(restored.foodLevel(), 4);
+}
+
 } // namespace
 } // namespace test
 } // namespace entity

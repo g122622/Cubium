@@ -780,6 +780,12 @@ void VillagerEntity::addAdditionalSaveData(nbt::tags::compound_tag& tag) const
     AbstractVillagerEntity::addAdditionalSaveData(tag);
     // vanilla 以 Byte 写入 FoodLevel（Villager.addAdditionalSaveData）。
     tag.put("FoodLevel", static_cast<i8>(m_foodLevel));
+
+    // 交易列表：在役村民总是写出（vanilla AbstractVillager 以 !isEmpty() 门控，
+    // 项目没有 isEmpty 访问器，空列表写入空 Offers 列表在读侧等价于未设置）。
+    if (m_offers != nullptr) {
+        m_offers->serialize(tag);
+    }
 }
 
 Result<void> VillagerEntity::readAdditionalSaveData(const nbt::tags::compound_tag& tag)
@@ -787,6 +793,10 @@ Result<void> VillagerEntity::readAdditionalSaveData(const nbt::tags::compound_ta
     MC_TRY(AbstractVillagerEntity::readAdditionalSaveData(tag));
     if (auto level = entity::serialization::nbt_helper::tryGetByte(tag, "FoodLevel"); level.has_value()) {
         m_foodLevel = std::max(0, static_cast<i32>(*level));
+    }
+
+    if (tag.value.find("Offers") != tag.value.end()) {
+        setOffers(world::village::trade::MerchantOffers::deserialize(tag));
     }
     return Result<void>::ok();
 }
