@@ -283,6 +283,12 @@ public:
     [[nodiscard]] bool isBaby() const { return m_isBaby; }
     [[nodiscard]] bool isChild() const override { return m_isBaby; }
 
+    // 猪灵偏好武器（对齐 Java Piglin.getPreferredWeaponType）：成年猪灵偏好弩与金矛，幼年猪灵无偏好。
+    [[nodiscard]] std::string getPreferredWeaponType() const override
+    {
+        return m_isBaby ? std::string() : std::string("minecraft:piglin_preferred_weapons");
+    }
+
     /// 对齐 vanilla Hoglin.shouldDropExperience 恒返回 true：幼年猪灵兽被击杀同样掉经验
     [[nodiscard]] bool shouldDropExperience() const override { return true; }
 

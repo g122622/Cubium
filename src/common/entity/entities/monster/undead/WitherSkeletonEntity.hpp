@@ -64,6 +64,9 @@ public:
 
     static std::unique_ptr<Entity> create(IWorld* world, ecs::EntityRegistry& registry);
 
+    // 凋灵骷髅无偏好武器（对齐 Java WitherSkeleton.getPreferredWeaponType 返回 null）。
+    [[nodiscard]] std::string getPreferredWeaponType() const override { return {}; }
+
     /// 凋零效果持续时间（ticks），200 ticks = 10 秒
     static constexpr i32 WITHER_DURATION_TICKS = 200;
 

@@ -57,6 +57,9 @@ public:
      */
     static std::unique_ptr<Entity> create(IWorld* world, ecs::EntityRegistry& registry);
 
+    // 掠夺者偏好武器（对齐 Java Pillager.getPreferredWeaponType）：拾取时优先保留弩。
+    [[nodiscard]] std::string getPreferredWeaponType() const override { return "minecraft:pillager_preferred_weapons"; }
+
     /**
      * @brief 构造函数
      * @param id 实体ID
