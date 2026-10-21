@@ -50,6 +50,7 @@
 #include "common/entity/ecs/components/HorseTamingComponent.hpp"
 #include "common/entity/effect/EffectType.hpp"
 #include "common/entity/entities/player/Player.hpp"
+#include "common/entity/inventory/container/HorseInventoryMenu.hpp"
 #include "common/entity/registry/VanillaEntityTypeKeys.hpp"
 #include "common/entity/serialization/EntityNbtKeys.hpp"
 #include "common/entity/serialization/NbtHelper.hpp"
@@ -597,18 +598,44 @@ ActionResultType AbstractHorseEntity::interactMob(Player& player, Hand hand)
 
 void AbstractHorseEntity::openInventory(Player& player)
 {
-    // 条件：服务端 && (无骑乘者 || 骑乘者是自身) && 已驯服
+    // 条件：服务端 && (无骑乘者 || 骑乘者是自身) && 已驯服（对齐 vanilla AbstractHorse.openInventory）。
     if (m_world != nullptr && !m_world->isClientSide()) {
         if (!isBeingRidden() || isPassenger(player.id())) {
             if (isTame()) {
-                // TODO: 当马背包 ContainerMenu 系统实现后，在此打开马背包 GUI。
-                // 当前马背包 SimpleInventory 已存在（HorseInventoryComponent.m_inventory），
-                // 但尚未实现 HorseContainer（类似 HorseInventoryMenu）来连接马装备栏与玩家背包。
-                // 注：实体容器打开链路（ServerWorld::openEntityContainer → ContainerManager
-                //  → OpenScreen）已接通，待 HorseContainer 就位后此处调 player.openContainer(*this) 即可。
+                // 经实体容器链路打开马匹背包（ServerWorld::openEntityContainer → ContainerManager
+                // → OpenScreen），菜单由 createMenu 按马库存规模构建（鞍/马铠/箱马箱子 + 玩家背包）。
+                static_cast<void>(player.openContainer(*this));
             }
         }
     }
+}
+
+std::unique_ptr<AbstractContainerMenu> AbstractHorseEntity::createMenu(i32 containerId, Player& player)
+{
+    // 对齐 vanilla AbstractHorse.createMenu：仅已驯服的马可打开；菜单持有马的库存与实体引用。
+    if (!isTame()) {
+        return nullptr;
+    }
+    auto* inv = tryGetComponent<ecs::HorseInventoryComponent>();
+    if (inv == nullptr || inv->m_inventory == nullptr) {
+        return nullptr;
+    }
+    return std::make_unique<HorseInventoryMenu>(containerId, &player.inventory(), *this, inv->m_inventory.get());
+}
+
+std::string AbstractHorseEntity::getDisplayName() const
+{
+    // 对齐 vanilla AbstractHorse.getDisplayName：有自定义名用自定义名，否则用实体类型名的翻译键。
+    if (const auto* customName = getCustomNameComponent(); customName != nullptr) {
+        return "[" + customName->getUnformattedText() + "]";
+    }
+    const std::string typeId = getTypeId();
+    return typeId.empty() ? "EntityHorse" : ("entity.minecraft." + typeId.substr(typeId.find(':') + 1));
+}
+
+ContainerType AbstractHorseEntity::getMenuType() const
+{
+    return ContainerType::GenericHorse;
 }
 
 void AbstractHorseEntity::equipArmor(Player& player, ItemStack& itemStack)

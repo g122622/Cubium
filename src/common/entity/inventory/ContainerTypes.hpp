@@ -96,6 +96,8 @@ enum class ContainerType : u8 {
     Smoker = 22,       // 烟熏炉
     Cartography = 23,  // 制图台
     Stonecutter = 24,  // 切石机
+    /// 马匹背包界面（1.21.11 通用马界面，对齐 vanilla MenuType.GENERIC_HORSE 的注册表顺序 25）
+    GenericHorse = 25,
     // 玩家背包使用特殊值
     Player = 255 // 玩家背包（特殊类型）
 };

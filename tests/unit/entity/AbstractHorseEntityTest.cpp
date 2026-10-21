@@ -25,14 +25,18 @@
 
 #include "common/TestWorldHelper.hpp"
 #include "common/entity/attribute/Attributes.hpp"
+#include "common/entity/ecs/components/HorseInventoryComponent.hpp"
 #include "common/entity/entities/passive/horse/AbstractHorseEntity.hpp"
 #include "common/entity/entities/passive/horse/HorseEntity.hpp"
 #include "common/entity/entities/passive/horse/LlamaEntity.hpp"
 #include "common/entity/entities/passive/horse/SkeletonHorseEntity.hpp"
 #include "common/entity/entities/passive/horse/ZombieHorseEntity.hpp"
+#include "common/entity/inventory/PlayerInventory.hpp"
+#include "common/entity/inventory/container/HorseInventoryMenu.hpp"
 #include "common/entity/registry/VanillaEntities.hpp"
 #include "common/entity/serialization/EntityNbtKeys.hpp"
 #include "common/entity/serialization/NbtHelper.hpp"
+#include "common/item/Items.hpp"
 #include "common/util/UuidUtils.hpp"
 #include "common/util/nbt/Nbt.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
@@ -920,6 +924,83 @@ TEST(AbstractHorseAiStepTest, AiStep_EatingStopsAfter50Ticks)
         }
     }
     EXPECT_TRUE(eatingStopped) << "Eating did not stop after 50+ ticks";
+}
+
+// ============================================================================
+// 马匹背包菜单（HorseInventoryMenu）槽位布局与准入
+// ============================================================================
+
+namespace {
+
+class HorseInventoryMenuTest : public ::testing::Test {
+protected:
+    static void SetUpTestSuite()
+    {
+        static bool s_initialized = false;
+        if (!s_initialized) {
+            Items::initialize();
+            VanillaBlocks::initialize();
+            entity::VanillaEntities::registerAll();
+            s_initialized = true;
+        }
+    }
+
+    void SetUp() override
+    {
+        m_world = std::make_unique<AbstractHorseTestWorld>();
+        m_horse = std::make_unique<HorseEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
+        m_horse->setWorld(m_world.get());
+        m_playerInventory = std::make_unique<PlayerInventory>(nullptr);
+    }
+
+    std::unique_ptr<AbstractHorseTestWorld> m_world;
+    std::unique_ptr<HorseEntity> m_horse;
+    std::unique_ptr<PlayerInventory> m_playerInventory;
+};
+
+} // namespace
+
+TEST_F(HorseInventoryMenuTest, Layout_HorseSlotsThenPlayerInventory)
+{
+    auto* horseInv = m_horse->tryGetComponent<ecs::HorseInventoryComponent>();
+    ASSERT_NE(horseInv, nullptr);
+    ASSERT_NE(horseInv->m_inventory, nullptr);
+    auto* inv = horseInv->m_inventory.get();
+    HorseInventoryMenu menu(1, m_playerInventory.get(), *m_horse, inv);
+
+    // 未装箱的马：鞍 + 马铠两槽，其后为玩家 3×9 主背包与 9 格快捷栏。
+    EXPECT_EQ(inv->getContainerSize(), 2);
+    EXPECT_EQ(menu.getSlotCount(), 2 + 27 + 9);
+}
+
+TEST_F(HorseInventoryMenuTest, SaddleSlot_OnlyAcceptsSaddle)
+{
+    auto* horseInv = m_horse->tryGetComponent<ecs::HorseInventoryComponent>();
+    ASSERT_NE(horseInv, nullptr);
+    ASSERT_NE(horseInv->m_inventory, nullptr);
+    auto* inv = horseInv->m_inventory.get();
+    HorseInventoryMenu menu(1, m_playerInventory.get(), *m_horse, inv);
+
+    const Slot* saddleSlot = menu.getSlot(0);
+    ASSERT_NE(saddleSlot, nullptr);
+    EXPECT_TRUE(saddleSlot->mayPlace(ItemStack(Items::SADDLE, 1)));
+    EXPECT_FALSE(saddleSlot->mayPlace(ItemStack(Items::STONE, 1)));
+    EXPECT_TRUE(saddleSlot->mayPlace(ItemStack()));
+}
+
+TEST_F(HorseInventoryMenuTest, ArmorSlot_UsesHorseValidation)
+{
+    auto* horseInv = m_horse->tryGetComponent<ecs::HorseInventoryComponent>();
+    ASSERT_NE(horseInv, nullptr);
+    ASSERT_NE(horseInv->m_inventory, nullptr);
+    auto* inv = horseInv->m_inventory.get();
+    HorseInventoryMenu menu(1, m_playerInventory.get(), *m_horse, inv);
+
+    const Slot* armorSlot = menu.getSlot(1);
+    ASSERT_NE(armorSlot, nullptr);
+    // 马铠槽由马实体判定：普通马接受马铠，拒绝普通方块。
+    EXPECT_TRUE(armorSlot->mayPlace(ItemStack(Items::DIAMOND_HORSE_ARMOR, 1)));
+    EXPECT_FALSE(armorSlot->mayPlace(ItemStack(Items::STONE, 1)));
 }
 
 } // namespace

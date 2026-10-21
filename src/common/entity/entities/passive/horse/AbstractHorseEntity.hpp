@@ -40,6 +40,7 @@
 #include "common/entity/entities/passive/basic/AnimalEntity.hpp"
 #include "common/entity/interfaces/IEquipable.hpp"
 #include "common/entity/interfaces/IJumpingMount.hpp"
+#include "common/entity/inventory/INamedContainerProvider.hpp"
 #include "common/item/core/ActionResult.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/nbt/Nbt.hpp"
@@ -67,7 +68,10 @@ class LivingEntity;
  *
  * 参考 MC 1.16.5 AbstractHorseEntity
  */
-class AbstractHorseEntity : public AnimalEntity, public entity::IJumpingMount, public entity::IEquipable {
+class AbstractHorseEntity : public AnimalEntity,
+                            public entity::IJumpingMount,
+                            public entity::IEquipable,
+                            public INamedContainerProvider {
 public:
     /**
      * @brief 构造函数
@@ -497,6 +501,17 @@ public:
      * @param player 打开背包的玩家
      */
     virtual void openInventory(Player& player);
+
+    // ========== INamedContainerProvider 接口实现（马匹背包界面）==========
+
+    /// 创建马匹背包菜单（对齐 vanilla AbstractHorse.createMenu）
+    [[nodiscard]] std::unique_ptr<AbstractContainerMenu> createMenu(i32 containerId, Player& player) override;
+
+    /// 菜单标题（对齐 vanilla AbstractHorse.getDisplayName）
+    [[nodiscard]] std::string getDisplayName() const override;
+
+    /// 菜单网络类型：1.21.11 马匹使用通用马界面（对齐 vanilla MenuType.GENERIC_HORSE）
+    [[nodiscard]] ContainerType getMenuType() const override;
 
     /**
      * @brief 装备马铠/装饰到槽位 1
