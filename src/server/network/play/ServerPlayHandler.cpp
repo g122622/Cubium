@@ -69,7 +69,8 @@ bool _isPlayerActionPacket(const mc::network::ir::PlayPacket& play)
         std::holds_alternative<irplay::ChatCommand>(play) || std::holds_alternative<irplay::PlayerCommand>(play) ||
         std::holds_alternative<irplay::Interact>(play) || std::holds_alternative<irplay::ContainerClick>(play) ||
         std::holds_alternative<irplay::PlaceRecipe>(play) || std::holds_alternative<irplay::SignUpdate>(play) ||
-        std::holds_alternative<irplay::Swing>(play) || std::holds_alternative<irplay::ContainerButtonClick>(play);
+        std::holds_alternative<irplay::Swing>(play) || std::holds_alternative<irplay::ContainerButtonClick>(play) ||
+        std::holds_alternative<irplay::SetCommandBlock>(play);
 }
 
 } // namespace
@@ -140,6 +141,9 @@ void ServerPlayHandler::route(PlayerId playerId, const mc::network::ir::IrPacket
             break;
         case _playPacketIndex<irplay::SignUpdate>():
             m_blockAction.handleUpdateSignPacket(playerId, packet);
+            break;
+        case _playPacketIndex<irplay::SetCommandBlock>():
+            m_blockAction.handleSetCommandBlockPacket(playerId, packet);
             break;
         case _playPacketIndex<irplay::PlayerInput>():
             m_movement.handlePlayerInputPacket(playerId, packet);

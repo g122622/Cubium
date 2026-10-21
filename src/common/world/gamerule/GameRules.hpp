@@ -237,6 +237,9 @@ extern const BooleanGameRuleKey ANNOUNCE_ADVANCEMENTS;
 /// 是否减少调试信息
 extern const BooleanGameRuleKey REDUCED_DEBUG_INFO;
 
+/// 命令方块是否可用（关闭时命令方块不再执行命令，编辑也仅保存不执行）
+extern const BooleanGameRuleKey COMMAND_BLOCKS_WORK;
+
 /// TNT 是否允许爆炸（控制 TNT 方块点燃、TNT 实体爆炸、TNT 矿车引爆等）
 extern const BooleanGameRuleKey TNT_EXPLODES;
 

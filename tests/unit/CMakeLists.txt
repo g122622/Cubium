@@ -1058,6 +1058,8 @@ add_executable(mc_tests
     server/command/TellRawCommandTest.cpp
     server/command/ExperienceCommandTest.cpp
     server/command/AttributeCommandTest.cpp
+    # /bossbar 命令测试（add/remove/list/set/get 全子命令）
+    server/command/BossBarCommandTest.cpp
     server/command/EnchantCommandTest.cpp
     server/command/SpawnPointCommandTest.cpp
     server/command/SetWorldSpawnCommandTest.cpp

@@ -32,6 +32,7 @@
 #include "common/item/core/BlockActionResult.hpp"
 #include "common/util/Direction.hpp"
 #include "common/util/assert/AssertMacros.hpp"
+
 #include "common/util/math/random/IRandom.hpp"
 #include "common/util/property/Properties.hpp"
 #include "common/util/property/StateContainer.hpp"
@@ -155,6 +156,19 @@ void CommandBlock::setPoweredAndUpdate(IWorld& world, const BlockPos& pos, block
     world.tickManager().scheduleBlockTick(pos, *this, 1, world::tick::TickPriority::High);
 }
 
+void CommandBlock::onUpdated(
+    IWorld& world, const BlockPos& pos, const BlockState& state, blockentity::CommandBlockEntity& entity)
+{
+    MC_UNUSED(state);
+    // 对齐 vanilla CommandBlock.onUpdated（CommandBlock.java:onUpdated）：
+    // 重新按方块类型的自动执行标志设置实体，再按"循环模式或自动执行"决定是否重新调度方块刻。
+    entity.setAuto(defaultAutomatic());
+    if (entity.getMode() == blockentity::CommandBlockMode::Auto || entity.isAuto()) {
+        entity.markConditionMet(world);
+        world.tickManager().scheduleBlockTick(pos, *this, 1, world::tick::TickPriority::High);
+    }
+}
+
 i32 CommandBlock::getWeakPower(
     const BlockState& state, IWorld& world, const BlockPos& pos, Direction side) const noexcept
 {
@@ -251,12 +265,14 @@ BlockActionResult CommandBlock::useWithoutItem(
     MC_UNUSED(pos);
     MC_UNUSED(hit);
 
-    // 对齐 vanilla CommandBlock.useWithoutItem：存在命令方块实体且玩家拥有 GameMaster 权限时
-    // 打开命令方块界面并返回 SUCCESS，否则返回 PASS（而非 Fail）。
+    // 对齐 vanilla CommandBlock.useWithoutItem：命令方块被 commandBlocksWork 游戏规则禁用时直接 PASS；
+    // 存在命令方块实体且玩家拥有 GameMaster 权限时打开命令方块界面并返回 SUCCESS，否则返回 PASS。
+    if (!world.getGameRules().getBoolean(world::gamerule::GameRuleKeys::COMMAND_BLOCKS_WORK)) {
+        return ActionResultType::Pass;
+    }
     const BlockEntity* entity = world.getBlockEntity(pos);
     if (entity != nullptr && entity->getType() == BlockEntityType::CommandBlock && player.canUseGameMasterBlocks()) {
-        // TODO(command-block-screen): 对齐 vanilla Player.openCommandBlock 打开命令方块编辑界面，
-        //   服务端需接入容器菜单/界面同步体系后在此打开；当前仅返回 SUCCESS。
+        player.openCommandBlock(pos);
         return ActionResultType::Success;
     }
     return ActionResultType::Pass;

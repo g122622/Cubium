@@ -1906,6 +1906,45 @@ inline void writeExplosionParticleList(B& buf, const std::vector<ir::play::Explo
         });
 }
 
+/**
+ * @brief 命令方块编辑结果（C→S，id=53）
+ *
+ * 对齐 ServerboundSetCommandBlockPacket.STREAM_CODEC：BlockPos(long) + Utf(command) +
+ * VarInt(mode) + Byte(标志位 TrackOutput=1 / Conditional=2 / Automatic=4)。
+ */
+[[nodiscard]] inline auto setCommandBlockCodec()
+{
+    return makeCodec<ir::play::SetCommandBlock>(
+        [](B& buf, const ir::play::SetCommandBlock& v) {
+            buf.writeI64(v.blockPosPacked);
+            buf.writeString(v.command);
+            buf.writeVarInt(v.mode);
+            u8 flags = 0;
+            if (v.trackOutput) {
+                flags |= 1;
+            }
+            if (v.conditional) {
+                flags |= 2;
+            }
+            if (v.automatic) {
+                flags |= 4;
+            }
+            buf.writeU8(flags);
+        },
+        [](B& buf) -> Result<ir::play::SetCommandBlock> {
+            ir::play::SetCommandBlock v{};
+            MC_TRY_ASSIGN(v.blockPosPacked, buf.readI64());
+            MC_TRY_ASSIGN(v.command, buf.readString());
+            MC_TRY_ASSIGN(v.mode, buf.readVarInt());
+            u8 flags = 0;
+            MC_TRY_ASSIGN(flags, buf.readU8());
+            v.trackOutput = (flags & 1) != 0;
+            v.conditional = (flags & 2) != 0;
+            v.automatic = (flags & 4) != 0;
+            return v;
+        });
+}
+
 /** @brief 报价选择为一个 VarInt 索引，范围由当前报价列表验证。 */
 [[nodiscard]] inline auto selectTradeCodec()
 {

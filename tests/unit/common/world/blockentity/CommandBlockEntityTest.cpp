@@ -682,3 +682,44 @@ TEST_F(CommandBlockEntityEdgeCaseTest, SetUnicodeCustomName)
     entity_->setCustomName("命令方块 #1");
     EXPECT_EQ(entity_->getCustomName(), "命令方块 #1");
 }
+
+// ========== 编辑界面写入语义（set_command_block 处理器依赖） ==========
+
+TEST_F(CommandBlockEntityEdgeCaseTest, ClearCommand_ResetsCommandAndSuccessCount)
+{
+    entity_->setCommand("say hello");
+    entity_->setSuccessCount(7);
+
+    entity_->clearCommand();
+
+    // 对齐 vanilla CommandBlockEntity.setCommand(null)：命令清空且成功计数归零
+    EXPECT_TRUE(entity_->getCommand().empty());
+    EXPECT_EQ(entity_->getSuccessCount(), 0);
+}
+
+TEST_F(CommandBlockEntityEdgeCaseTest, SetCommand_ResetsSuccessCount)
+{
+    entity_->setSuccessCount(5);
+    entity_->setCommand("time set day");
+    EXPECT_EQ(entity_->getSuccessCount(), 0);
+}
+
+TEST_F(CommandBlockEntityEdgeCaseTest, SetTrackOutput_ToggleRoundTrip)
+{
+    entity_->setTrackOutput(false);
+    EXPECT_FALSE(entity_->shouldTrackOutput());
+    EXPECT_FALSE(entity_->shouldReceiveFeedback());
+
+    entity_->setTrackOutput(true);
+    EXPECT_TRUE(entity_->shouldTrackOutput());
+    EXPECT_TRUE(entity_->shouldReceiveFeedback());
+}
+
+TEST_F(CommandBlockEntityEdgeCaseTest, SetLastOutput_EmptyString_ClearsOutput)
+{
+    entity_->setTrackOutput(true);
+    entity_->setLastOutput("previous output");
+    ASSERT_EQ(entity_->getLastOutput(), "previous output");
+    entity_->setLastOutput("");
+    EXPECT_TRUE(entity_->getLastOutput().empty());
+}

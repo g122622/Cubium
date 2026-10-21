@@ -260,6 +260,22 @@ TEST(GameRulesTest, BooleanRuleDefaultValues)
     EXPECT_TRUE(rules.getBoolean(GameRuleKeys::DO_TILE_DROPS));   // Default true in 1.16.5
 }
 
+TEST(GameRulesTest, CommandBlocksWork_RegisteredWithVanillaDefault)
+{
+    GameRules rules;
+
+    // 对齐 vanilla GameRules.COMMAND_BLOCKS_WORK：类别 misc，默认开启
+    EXPECT_TRUE(rules.getBoolean(GameRuleKeys::COMMAND_BLOCKS_WORK));
+
+    bool found = false;
+    for (const auto& name : GameRules::getRuleNames()) {
+        if (name == "commandBlocksWork") {
+            found = true;
+        }
+    }
+    EXPECT_TRUE(found);
+}
+
 TEST(GameRulesTest, IntegerRuleDefaultValues)
 {
     GameRules rules;

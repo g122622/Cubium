@@ -265,6 +265,33 @@ void ServerPlayer::openSignEditor(const BlockPos& pos, bool isFrontSide)
     }
 }
 
+void ServerPlayer::openCommandBlock(const BlockPos& pos)
+{
+    // 对齐 vanilla ServerPlayer.openCommandBlock：仅下发命令方块实体的 BlockEntityData，
+    // 客户端据 BlockEntityType 自行打开编辑界面（无独立 GUI 包）。
+    IWorld* worldPtr = world();
+    if (worldPtr == nullptr) {
+        return;
+    }
+    const BlockEntity* entity = worldPtr->getBlockEntity(pos);
+    if (entity == nullptr || entity->getType() != BlockEntityType::CommandBlock) {
+        spdlog::warn(
+            "ServerPlayer: no command block entity at ({}, {}, {}) (player={})", pos.x, pos.y, pos.z, username());
+        return;
+    }
+    auto tag = std::make_shared<nbt::CompoundTag>(entity->getUpdateTag());
+    mc::network::ir::play::BlockEntityData bePkt;
+    bePkt.blockPosPacked = pos.asLong();
+    bePkt.blockEntityType = static_cast<i32>(entity->getType());
+    bePkt.tag = std::move(tag);
+    if (!_sendIrPacket(mc::network::ir::IrPacket{
+            mc::network::protocol::ConnectionProtocol::Play, mc::network::ir::PlayPacket{std::move(bePkt)}})) {
+        spdlog::warn("ServerPlayer: command block data packet not sent (player={}, no connection)", username());
+    }
+    // 记录编辑位置：随后的 set_command_block 须与之匹配（对齐 vanilla ServerPlayer.commandBlock）。
+    setCommandBlock(pos);
+}
+
 void ServerPlayer::sendStatusMessage(const std::string& message, bool actionBar)
 {
     // actionBar 参数用于控制消息显示位置：
@@ -1628,6 +1655,12 @@ void ServerPlayer::tick()
             playerData->tickClientLoadTimeout();
         }
     }
+    // 对齐 vanilla ServerPlayer.tickServer：引导中的命令方块被卸载/移除或自身不再拥有编辑权限时清空编辑锁，
+    // 使后续 set_command_block 被拒绝（客户端随之关闭界面）。
+    if (commandBlock().has_value() && !isValidCommandBlockEditing(*commandBlock())) {
+        clearCommandBlock();
+    }
+
     Player::tick();
     tickSpectator();
 
@@ -1759,6 +1792,26 @@ void ServerPlayer::resetCamera()
     if (isSpectating()) {
         setCamera(nullptr);
     }
+}
+
+bool ServerPlayer::isValidCommandBlockEditing(const BlockPos& pos) const
+{
+    // 对齐 vanilla CommandBlockEntity.isValidPlayerEditor：
+    // 玩家仍在线、仍拥有 GameMaster 权限、对应区块处于活跃状态，且距离方块不超过 4 格。
+    if (isRemoved() || !canUseGameMasterBlocks()) {
+        return false;
+    }
+    IWorld* currentWorld = const_cast<ServerPlayer*>(this)->world();
+    if (currentWorld == nullptr) {
+        return false;
+    }
+    const auto* chunks = currentWorld->chunkManager();
+    if (chunks == nullptr || !chunks->hasChunkInMem(world::toChunkCoord(pos.x), world::toChunkCoord(pos.z))) {
+        return false;
+    }
+    const Vector3 blockCenter(
+        static_cast<f64>(pos.x) + 0.5, static_cast<f64>(pos.y) + 0.5, static_cast<f64>(pos.z) + 0.5);
+    return position().distanceSquared(blockCenter) <= 4.0 * 4.0;
 }
 
 void ServerPlayer::tickSpectator()
