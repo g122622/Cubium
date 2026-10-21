@@ -104,6 +104,75 @@ TEST_F(TeamCommandTest, TeamCommandIsRegistered)
     EXPECT_TRUE(found) << "team command should be registered";
 }
 
+// ========== 命令执行路径测试（翻译键 + unchanged 分支） ==========
+
+TEST_F(TeamCommandTest, AddTeamViaCommand_ReturnsTeamCount)
+{
+    const auto result = m_server.commandRegistry().execute("team add red", m_console);
+    ASSERT_TRUE(result.success());
+    EXPECT_EQ(result.value(), 1);
+    EXPECT_TRUE(m_server.scoreboard().hasTeam("red"));
+}
+
+TEST_F(TeamCommandTest, AddDuplicateTeamViaCommand_Fails)
+{
+    ASSERT_TRUE(m_server.commandRegistry().execute("team add red", m_console).success());
+    const auto result = m_server.commandRegistry().execute("team add red", m_console);
+    ASSERT_TRUE(result.success());
+    // 同名队伍已存在：原版抛 duplicate 错误，此处返回 0
+    EXPECT_EQ(result.value(), 0);
+}
+
+TEST_F(TeamCommandTest, RemoveTeamViaCommand_RemovesTeam)
+{
+    ASSERT_TRUE(m_server.commandRegistry().execute("team add red", m_console).success());
+    const auto result = m_server.commandRegistry().execute("team remove red", m_console);
+    ASSERT_TRUE(result.success());
+    EXPECT_EQ(result.value(), 0);
+    EXPECT_FALSE(m_server.scoreboard().hasTeam("red"));
+}
+
+TEST_F(TeamCommandTest, ListTeamsViaCommand_ReturnsCount)
+{
+    ASSERT_TRUE(m_server.commandRegistry().execute("team add red", m_console).success());
+    ASSERT_TRUE(m_server.commandRegistry().execute("team add blue", m_console).success());
+    const auto result = m_server.commandRegistry().execute("team list", m_console);
+    ASSERT_TRUE(result.success());
+    EXPECT_EQ(result.value(), 2);
+}
+
+TEST_F(TeamCommandTest, ModifyColorTwice_SecondFailsAsUnchanged)
+{
+    ASSERT_TRUE(m_server.commandRegistry().execute("team add red", m_console).success());
+    // 默认颜色为 white，改为 red 成功
+    const auto first = m_server.commandRegistry().execute("team modify red color red", m_console);
+    ASSERT_TRUE(first.success());
+    EXPECT_EQ(first.value(), 0);
+    // 再次设为 red：原版抛 unchanged 异常，此处返回 0
+    const auto second = m_server.commandRegistry().execute("team modify red color red", m_console);
+    ASSERT_TRUE(second.success());
+    EXPECT_EQ(second.value(), 0);
+    EXPECT_EQ(m_server.scoreboard().getTeam("red")->getColor(), text::TextFormatting::Red);
+}
+
+TEST_F(TeamCommandTest, ModifyVisibilityTwice_SecondFailsAsUnchanged)
+{
+    ASSERT_TRUE(m_server.commandRegistry().execute("team add red", m_console).success());
+    const auto first = m_server.commandRegistry().execute("team modify red nametagVisibility never", m_console);
+    ASSERT_TRUE(first.success());
+    EXPECT_EQ(first.value(), 0);
+    const auto second = m_server.commandRegistry().execute("team modify red nametagVisibility never", m_console);
+    ASSERT_TRUE(second.success());
+    EXPECT_EQ(second.value(), 0);
+}
+
+TEST_F(TeamCommandTest, ModifyUnknownTeam_Fails)
+{
+    const auto result = m_server.commandRegistry().execute("team modify nope color red", m_console);
+    ASSERT_TRUE(result.success());
+    EXPECT_EQ(result.value(), 0);
+}
+
 // ========== addTeam 测试 ==========
 
 TEST_F(TeamCommandTest, AddTeamCreatesTeam)

@@ -29,6 +29,7 @@
 #include "common/command/arguments/ArgumentType.hpp"
 #include "common/command/arguments/EntityArgument.hpp"
 #include "common/core/Types.hpp"
+#include "common/resource/LanguageManager.hpp"
 #include "common/scoreboard/core/ScorePlayerTeam.hpp"
 #include "common/scoreboard/core/TeamEnums.hpp"
 #include "common/util/text/StringTextComponent.hpp"
@@ -39,7 +40,6 @@
 #include "server/command/support/PlayerResolver.hpp"
 #include "server/scoreboard/ServerScoreboard.hpp"
 #include <memory>
-#include <sstream>
 #include <string>
 #include <vector>
 
@@ -49,37 +49,70 @@ namespace command {
 // 使用 mc::server 命名空间中的 ServerScoreboard
 using ::mc::server::ServerScoreboard;
 
-// TODO: 本文件各子命令的反馈消息目前是硬编码英文文本（如 "Removed team 'red'"），
-// 原版使用 Component.translatable("commands.team.*")，且成功消息中的队伍名取自
-// PlayerTeam#getFormattedDisplayName()（形如 "[red]"）。待项目引入可翻译文本组件后统一替换。
+namespace {
 
-// 辅助函数：获取服务端记分板
-static ServerScoreboard* getScoreboard(ServerCommandSource& source)
+/// 语言文件加载器（反馈文本复用原版 commands.team.* / team.visibility.* / team.collision.* 键）
+const LanguageManager& _lang()
+{
+    return LanguageManager::instance();
+}
+
+/// 获取服务端记分板
+ServerScoreboard* _scoreboard(ServerCommandSource& source)
 {
     auto* server = source.server();
-    if (!server) {
-        return nullptr;
+    return server != nullptr ? &server->scoreboard() : nullptr;
+}
+
+/**
+ * @brief 队伍格式化显示名（对齐 vanilla PlayerTeam.getFormattedDisplayName）
+ *
+ * 形如 "[显示名]"，已带队伍颜色的格式码，用于反馈文本中的 %s 参数。
+ */
+std::string _formattedTeamName(const scoreboard::ScorePlayerTeam& team)
+{
+    return team.getFormattedDisplayName()->getFormattedText();
+}
+
+/// 可见性显示名（对齐 vanilla Team.Visibility.getDisplayName）
+std::string _visibilityDisplayName(scoreboard::TeamVisibility visibility)
+{
+    return _lang().get(std::string("team.visibility.") + scoreboard::teamVisibilityToString(visibility));
+}
+
+/// 碰撞规则显示名（对齐 vanilla Team.CollisionRule.getDisplayName）
+std::string _collisionDisplayName(scoreboard::TeamCollisionRule rule)
+{
+    return _lang().get(std::string("team.collision.") + scoreboard::teamCollisionRuleToString(rule));
+}
+
+/// 列表格式化（对齐 vanilla ComponentUtils.formatList：以 ", " 连接）
+std::string _joinList(const std::vector<std::string>& items)
+{
+    std::string joined;
+    for (size_t i = 0; i < items.size(); ++i) {
+        if (i != 0) {
+            joined += ", ";
+        }
+        joined += items[i];
     }
-    return &server->scoreboard();
+    return joined;
 }
 
-// 辅助函数：从字符串解析颜色
-static text::TextFormatting parseColor(const std::string& name)
+/**
+ * @brief 解析队伍；不存在时发送未知队伍错误
+ */
+scoreboard::ScorePlayerTeam* _findTeam(
+    ServerCommandSource& source, ServerScoreboard& scoreboard, const std::string& name)
 {
-    return text::fromName(name);
+    auto* team = scoreboard.getTeam(name);
+    if (team == nullptr) {
+        source.sendError("Unknown team '" + name + "'");
+    }
+    return team;
 }
 
-// 辅助函数：从字符串解析可见性
-static scoreboard::TeamVisibility parseVisibility(const std::string& name)
-{
-    return scoreboard::teamVisibilityFromString(name);
-}
-
-// 辅助函数：从字符串解析碰撞规则
-static scoreboard::TeamCollisionRule parseCollisionRule(const std::string& name)
-{
-    return scoreboard::teamCollisionRuleFromString(name);
-}
+} // namespace
 
 void TeamCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
 {
@@ -144,54 +177,11 @@ void TeamCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
     leaveNode->addChild(leaveMembersArg);
     teamNode->addChild(leaveNode);
 
-    // /team modify <team> <property> <value>
+    // /team modify <team> <option> <value>
     auto modifyNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("modify");
     auto modifyTeamArg =
         std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>("team", StringArgumentType::string());
 
-    // modify <team> color <color>
-    // 值参数名须与 _modifyTeam 的 hasArgument/getArgument 名一致（"color"），否则 hasArgument("color")
-    // 查不到 ArgumentCommandNode（原统一用 "value" 致 modify 全分支静默跳过，属性永不修改）。
-    auto colorNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("color");
-    auto colorValueArg =
-        std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>("color", StringArgumentType::string());
-    colorValueArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _modifyTeam(ctx); });
-    colorNode->addChild(colorValueArg);
-    modifyTeamArg->addChild(colorNode);
-
-    // modify <team> friendlyFire <true|false>
-    auto friendlyFireNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("friendlyFire");
-    auto friendlyFireArg =
-        std::make_shared<ArgumentCommandNode<ServerCommandSource, bool>>("friendlyFire", BoolArgumentType::boolArg());
-    friendlyFireArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _modifyTeam(ctx); });
-    friendlyFireNode->addChild(friendlyFireArg);
-    modifyTeamArg->addChild(friendlyFireNode);
-
-    // modify <team> seeFriendlyInvisibles <true|false>
-    auto seeInvisNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("seeFriendlyInvisibles");
-    auto seeInvisArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, bool>>(
-        "seeFriendlyInvisibles", BoolArgumentType::boolArg());
-    seeInvisArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _modifyTeam(ctx); });
-    seeInvisNode->addChild(seeInvisArg);
-    modifyTeamArg->addChild(seeInvisNode);
-
-    // modify <team> prefix <prefix>
-    auto prefixNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("prefix");
-    auto prefixArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
-        "prefix", StringArgumentType::greedyString());
-    prefixArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _modifyTeam(ctx); });
-    prefixNode->addChild(prefixArg);
-    modifyTeamArg->addChild(prefixNode);
-
-    // modify <team> suffix <suffix>
-    auto suffixNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("suffix");
-    auto suffixArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
-        "suffix", StringArgumentType::greedyString());
-    suffixArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _modifyTeam(ctx); });
-    suffixNode->addChild(suffixArg);
-    modifyTeamArg->addChild(suffixNode);
-
-    // modify <team> displayName <displayName>
     auto displayNameNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("displayName");
     auto displayNameValueArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
         "displayName", StringArgumentType::greedyString());
@@ -199,29 +189,62 @@ void TeamCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
     displayNameNode->addChild(displayNameValueArg);
     modifyTeamArg->addChild(displayNameNode);
 
-    // modify <team> nametagVisibility <visibility>
-    auto nametagVisNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("nametagVisibility");
-    auto nametagVisArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
+    auto colorNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("color");
+    auto colorArg =
+        std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>("color", StringArgumentType::string());
+    colorArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _modifyTeam(ctx); });
+    colorNode->addChild(colorArg);
+    modifyTeamArg->addChild(colorNode);
+
+    auto friendlyFireNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("friendlyFire");
+    auto friendlyFireArg =
+        std::make_shared<ArgumentCommandNode<ServerCommandSource, bool>>("friendlyFire", BoolArgumentType::boolArg());
+    friendlyFireArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _modifyTeam(ctx); });
+    friendlyFireNode->addChild(friendlyFireArg);
+    modifyTeamArg->addChild(friendlyFireNode);
+
+    auto seeFriendlyInvisiblesNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("seeFriendlyInvisibles");
+    auto seeFriendlyInvisiblesArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, bool>>(
+        "seeFriendlyInvisibles", BoolArgumentType::boolArg());
+    seeFriendlyInvisiblesArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _modifyTeam(ctx); });
+    seeFriendlyInvisiblesNode->addChild(seeFriendlyInvisiblesArg);
+    modifyTeamArg->addChild(seeFriendlyInvisiblesNode);
+
+    auto nametagVisibilityNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("nametagVisibility");
+    auto nametagVisibilityArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
         "nametagVisibility", StringArgumentType::string());
-    nametagVisArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _modifyTeam(ctx); });
-    nametagVisNode->addChild(nametagVisArg);
-    modifyTeamArg->addChild(nametagVisNode);
+    nametagVisibilityArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _modifyTeam(ctx); });
+    nametagVisibilityNode->addChild(nametagVisibilityArg);
+    modifyTeamArg->addChild(nametagVisibilityNode);
 
-    // modify <team> deathMessageVisibility <visibility>
-    auto deathMsgVisNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("deathMessageVisibility");
-    auto deathMsgVisArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
+    auto deathMessageVisibilityNode =
+        std::make_shared<LiteralCommandNode<ServerCommandSource>>("deathMessageVisibility");
+    auto deathMessageVisibilityArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
         "deathMessageVisibility", StringArgumentType::string());
-    deathMsgVisArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _modifyTeam(ctx); });
-    deathMsgVisNode->addChild(deathMsgVisArg);
-    modifyTeamArg->addChild(deathMsgVisNode);
+    deathMessageVisibilityArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _modifyTeam(ctx); });
+    deathMessageVisibilityNode->addChild(deathMessageVisibilityArg);
+    modifyTeamArg->addChild(deathMessageVisibilityNode);
 
-    // modify <team> collisionRule <rule>
-    auto collisionNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("collisionRule");
+    auto collisionRuleNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("collisionRule");
     auto collisionArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
         "collisionRule", StringArgumentType::string());
     collisionArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _modifyTeam(ctx); });
-    collisionNode->addChild(collisionArg);
-    modifyTeamArg->addChild(collisionNode);
+    collisionRuleNode->addChild(collisionArg);
+    modifyTeamArg->addChild(collisionRuleNode);
+
+    auto prefixNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("prefix");
+    auto prefixArg =
+        std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>("prefix", StringArgumentType::string());
+    prefixArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _modifyTeam(ctx); });
+    prefixNode->addChild(prefixArg);
+    modifyTeamArg->addChild(prefixNode);
+
+    auto suffixNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("suffix");
+    auto suffixArg =
+        std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>("suffix", StringArgumentType::string());
+    suffixArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _modifyTeam(ctx); });
+    suffixNode->addChild(suffixArg);
+    modifyTeamArg->addChild(suffixNode);
 
     modifyNode->addChild(modifyTeamArg);
     teamNode->addChild(modifyNode);
@@ -232,192 +255,147 @@ void TeamCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
 i32 TeamCommand::_addTeam(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
-    auto* scoreboard = getScoreboard(source);
-    if (!scoreboard) {
+    auto* scoreboard = _scoreboard(source);
+    if (scoreboard == nullptr) {
         source.sendError("Scoreboard is not available");
         return 0;
     }
 
     const std::string teamName = context.getArgument<std::string>("team");
-
-    // 检查名称长度
     if (teamName.length() > scoreboard::ScorePlayerTeam::MAX_NAME_LENGTH) {
-        std::ostringstream ss;
-        ss << "Team name '" << teamName << "' is too long (max " << scoreboard::ScorePlayerTeam::MAX_NAME_LENGTH
-           << " characters)";
-        source.sendError(ss.str());
+        source.sendError("Team name '" + teamName + "' is too long (max " +
+            std::to_string(scoreboard::ScorePlayerTeam::MAX_NAME_LENGTH) + " characters)");
         return 0;
     }
 
-    // 检查是否已存在
+    // 对齐 vanilla：同名队伍已存在时抛出 duplicate 错误。
     if (scoreboard->hasTeam(teamName)) {
-        std::ostringstream ss;
-        ss << "A team with the name '" << teamName << "' already exists";
-        source.sendError(ss.str());
+        source.sendError(_lang().get("commands.team.add.duplicate"));
         return 0;
     }
 
-    // 创建队伍
     auto* team = scoreboard->createTeam(teamName);
-    if (!team) {
-        source.sendError("Failed to create team");
+    if (team == nullptr) {
+        source.sendError(_lang().get("commands.team.add.duplicate"));
         return 0;
     }
 
-    // 设置显示名称（如果提供）
+    // 显示名缺省为队伍名本身（vanilla createTeam 的二参版本传 Component.literal(name)）。
     if (context.hasArgument("displayName")) {
-        const std::string displayName = context.getArgument<std::string>("displayName");
-        team->setDisplayName(std::make_unique<text::StringTextComponent>(displayName));
+        team->setDisplayName(
+            std::make_unique<text::StringTextComponent>(context.getArgument<std::string>("displayName")));
     }
 
-    std::ostringstream ss;
-    ss << "Created team '" << teamName << "'";
-    source.sendMessage(ss.str());
-
-    return 1;
+    source.sendMessage(_lang().get("commands.team.add.success", {_formattedTeamName(*team)}));
+    return static_cast<i32>(scoreboard->getTeams().size());
 }
 
 i32 TeamCommand::_removeTeam(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
-    auto* scoreboard = getScoreboard(source);
-    if (!scoreboard) {
+    auto* scoreboard = _scoreboard(source);
+    if (scoreboard == nullptr) {
         source.sendError("Scoreboard is not available");
         return 0;
     }
 
     const std::string teamName = context.getArgument<std::string>("team");
-
-    // 查找队伍
-    auto* team = scoreboard->getTeam(teamName);
-    if (!team) {
-        std::ostringstream ss;
-        ss << "Unknown team '" << teamName << "'";
-        source.sendError(ss.str());
+    auto* team = _findTeam(source, *scoreboard, teamName);
+    if (team == nullptr) {
         return 0;
     }
 
-    // 移除队伍
+    const std::string displayName = _formattedTeamName(*team);
     scoreboard->removeTeam(*team);
-
-    std::ostringstream ss;
-    ss << "Removed team '" << teamName << "'";
-    source.sendMessage(ss.str());
-
+    source.sendMessage(_lang().get("commands.team.remove.success", {displayName}));
     return static_cast<i32>(scoreboard->getTeams().size());
 }
 
 i32 TeamCommand::_listTeams(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
-    auto* scoreboard = getScoreboard(source);
-    if (!scoreboard) {
+    auto* scoreboard = _scoreboard(source);
+    if (scoreboard == nullptr) {
         source.sendError("Scoreboard is not available");
         return 0;
     }
 
     if (context.hasArgument("team")) {
-        // 列出指定队伍的成员
+        // /team list <team>：列出该队伍成员
         const std::string teamName = context.getArgument<std::string>("team");
-        auto* team = scoreboard->getTeam(teamName);
-        if (!team) {
-            std::ostringstream ss;
-            ss << "Unknown team '" << teamName << "'";
-            source.sendError(ss.str());
+        auto* team = _findTeam(source, *scoreboard, teamName);
+        if (team == nullptr) {
             return 0;
         }
 
         const auto& members = team->getMembers();
+        const std::string displayName = _formattedTeamName(*team);
         if (members.empty()) {
-            std::ostringstream ss;
-            ss << "Team '" << teamName << "' has no members";
-            source.sendMessage(ss.str());
+            source.sendMessage(_lang().get("commands.team.list.members.empty", {displayName}));
             return 0;
         }
 
-        std::ostringstream ss;
-        ss << "Members of team '" << teamName << "': ";
-        bool first = true;
-        for (const auto& member : members) {
-            if (!first) {
-                ss << ", ";
-            }
-            ss << member;
-            first = false;
-        }
-        source.sendMessage(ss.str());
+        const std::vector<std::string> memberNames(members.begin(), members.end());
+        source.sendMessage(_lang().get("commands.team.list.members.success",
+            {displayName, std::to_string(members.size()), _joinList(memberNames)}));
         return static_cast<i32>(members.size());
-    } else {
-        // 列出所有队伍
-        auto teams = scoreboard->getTeams();
-        if (teams.empty()) {
-            source.sendMessage("There are no teams");
-            return 0;
-        }
-
-        std::ostringstream ss;
-        ss << "There are " << teams.size() << " teams: ";
-        bool first = true;
-        for (const auto* team : teams) {
-            if (!first) {
-                ss << ", ";
-            }
-            ss << team->getName();
-            first = false;
-        }
-        source.sendMessage(ss.str());
-        return static_cast<i32>(teams.size());
     }
+
+    // /team list：列出全部队伍
+    const auto teams = scoreboard->getTeams();
+    if (teams.empty()) {
+        source.sendMessage(_lang().get("commands.team.list.teams.empty"));
+        return 0;
+    }
+
+    std::vector<std::string> teamNames;
+    teamNames.reserve(teams.size());
+    for (const auto* team : teams) {
+        if (team != nullptr) {
+            teamNames.push_back(_formattedTeamName(*team));
+        }
+    }
+    source.sendMessage(
+        _lang().get("commands.team.list.teams.success", {std::to_string(teams.size()), _joinList(teamNames)}));
+    return static_cast<i32>(teams.size());
 }
 
 i32 TeamCommand::_emptyTeam(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
-    auto* scoreboard = getScoreboard(source);
-    if (!scoreboard) {
+    auto* scoreboard = _scoreboard(source);
+    if (scoreboard == nullptr) {
         source.sendError("Scoreboard is not available");
         return 0;
     }
 
     const std::string teamName = context.getArgument<std::string>("team");
-
-    // 查找队伍
-    auto* team = scoreboard->getTeam(teamName);
-    if (!team) {
-        std::ostringstream ss;
-        ss << "Unknown team '" << teamName << "'";
-        source.sendError(ss.str());
+    auto* team = _findTeam(source, *scoreboard, teamName);
+    if (team == nullptr) {
         return 0;
     }
 
-    // 复制成员列表（因为我们会修改它）
-    const auto& members = team->getMembers();
-    std::vector<std::string> membersCopy(members.begin(), members.end());
-
-    if (membersCopy.empty()) {
-        std::ostringstream ss;
-        ss << "Team '" << teamName << "' is already empty";
-        source.sendMessage(ss.str());
+    const std::string displayName = _formattedTeamName(*team);
+    // 复制成员列表，避免在遍历中修改成员集合。
+    const std::vector<std::string> members(team->getMembers().begin(), team->getMembers().end());
+    if (members.empty()) {
+        source.sendError(_lang().get("commands.team.empty.unchanged"));
         return 0;
     }
 
-    // 移除所有成员
-    for (const auto& member : membersCopy) {
+    for (const auto& member : members) {
         scoreboard->removePlayerFromTeam(member, *team);
     }
 
-    std::ostringstream ss;
-    ss << "Emptied team '" << teamName << "' (removed " << membersCopy.size() << " member(s))";
-    source.sendMessage(ss.str());
-
-    return static_cast<i32>(membersCopy.size());
+    source.sendMessage(_lang().get("commands.team.empty.success", {std::to_string(members.size()), displayName}));
+    return static_cast<i32>(members.size());
 }
 
 i32 TeamCommand::_joinTeam(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
-    auto* scoreboard = getScoreboard(source);
-    if (!scoreboard) {
+    auto* scoreboard = _scoreboard(source);
+    if (scoreboard == nullptr) {
         source.sendError("Scoreboard is not available");
         return 0;
     }
@@ -425,291 +403,211 @@ i32 TeamCommand::_joinTeam(CommandContext<ServerCommandSource>& context)
     const std::string teamName = context.getArgument<std::string>("team");
     const EntitySelector& selector = context.getArgument<EntitySelector>("members");
 
-    // 查找队伍
-    auto* team = scoreboard->getTeam(teamName);
-    if (!team) {
-        std::ostringstream ss;
-        ss << "Unknown team '" << teamName << "'";
-        source.sendError(ss.str());
+    auto* team = _findTeam(source, *scoreboard, teamName);
+    if (team == nullptr) {
         return 0;
     }
 
-    // 解析玩家
-    auto playerIds = support::resolvePlayerIds(source, selector);
+    const auto playerIds = support::resolvePlayerIds(source, selector);
     if (playerIds.empty()) {
         source.sendError("No entities matched the selector");
         return 0;
     }
 
-    // 添加成员
-    i32 successCount = 0;
+    std::vector<std::string> names;
+    names.reserve(playerIds.size());
     for (PlayerId playerId : playerIds) {
-        std::string playerName = support::resolvePlayerName(source, playerId);
-        if (scoreboard->addPlayerToTeam(playerName, *team)) {
-            successCount++;
-        }
+        const std::string playerName = support::resolvePlayerName(source, playerId);
+        scoreboard->addPlayerToTeam(playerName, *team);
+        names.push_back(playerName);
     }
 
-    if (successCount == 1) {
-        std::ostringstream ss;
-        ss << "Added 1 member to team '" << teamName << "'";
-        source.sendMessage(ss.str());
+    const std::string displayName = _formattedTeamName(*team);
+    if (playerIds.size() == 1) {
+        source.sendMessage(_lang().get("commands.team.join.success.single", {names.front(), displayName}));
     } else {
-        std::ostringstream ss;
-        ss << "Added " << successCount << " members to team '" << teamName << "'";
-        source.sendMessage(ss.str());
+        source.sendMessage(
+            _lang().get("commands.team.join.success.multiple", {std::to_string(playerIds.size()), displayName}));
     }
-
-    return successCount;
+    return static_cast<i32>(playerIds.size());
 }
 
 i32 TeamCommand::_leaveTeam(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
-    auto* scoreboard = getScoreboard(source);
-    if (!scoreboard) {
+    auto* scoreboard = _scoreboard(source);
+    if (scoreboard == nullptr) {
         source.sendError("Scoreboard is not available");
         return 0;
     }
 
     const EntitySelector& selector = context.getArgument<EntitySelector>("members");
-
-    // 解析玩家
-    auto playerIds = support::resolvePlayerIds(source, selector);
+    const auto playerIds = support::resolvePlayerIds(source, selector);
     if (playerIds.empty()) {
         source.sendError("No entities matched the selector");
         return 0;
     }
 
-    // 移除成员（从所有队伍移除）
-    i32 successCount = 0;
+    // 对齐 vanilla leaveTeam：从各自队伍移除（不在任何队伍中的玩家不算失败）。
+    std::vector<std::string> names;
+    names.reserve(playerIds.size());
     for (PlayerId playerId : playerIds) {
-        std::string playerName = support::resolvePlayerName(source, playerId);
-        auto* currentTeam = scoreboard->getPlayersTeam(playerName);
-        if (currentTeam) {
-            if (scoreboard->removePlayerFromTeam(playerName, *currentTeam)) {
-                successCount++;
-            }
-        }
+        const std::string playerName = support::resolvePlayerName(source, playerId);
+        scoreboard->removePlayerFromTeam(playerName);
+        names.push_back(playerName);
     }
 
-    if (successCount == 0) {
-        source.sendMessage("No members were removed from any team");
-        return 0;
+    if (playerIds.size() == 1) {
+        source.sendMessage(_lang().get("commands.team.leave.success.single", {names.front()}));
+    } else {
+        source.sendMessage(_lang().get("commands.team.leave.success.multiple", {std::to_string(playerIds.size())}));
     }
-
-    std::ostringstream ss;
-    ss << "Removed " << successCount << " member(s) from their teams";
-    source.sendMessage(ss.str());
-
-    return successCount;
+    return static_cast<i32>(playerIds.size());
 }
 
 i32 TeamCommand::_modifyTeam(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
-    auto* scoreboard = getScoreboard(source);
-    if (!scoreboard) {
+    auto* scoreboard = _scoreboard(source);
+    if (scoreboard == nullptr) {
         source.sendError("Scoreboard is not available");
         return 0;
     }
 
     const std::string teamName = context.getArgument<std::string>("team");
+    auto* team = _findTeam(source, *scoreboard, teamName);
+    if (team == nullptr) {
+        return 0;
+    }
+    const std::string displayName = _formattedTeamName(*team);
 
-    // 查找队伍
-    auto* team = scoreboard->getTeam(teamName);
-    if (!team) {
-        std::ostringstream ss;
-        ss << "Unknown team '" << teamName << "'";
-        source.sendError(ss.str());
+    if (context.hasArgument("color")) {
+        const std::string colorStr = context.getArgument<std::string>("color");
+        const text::TextFormatting color = text::fromName(colorStr);
+        if (color == text::TextFormatting::None) {
+            source.sendError("Unknown color '" + colorStr + "'");
+            return 0;
+        }
+        if (team->getColor() == color) {
+            source.sendError(_lang().get("commands.team.option.color.unchanged"));
+            return 0;
+        }
+        team->setColor(color);
+        source.sendMessage(_lang().get("commands.team.option.color.success", {displayName, text::toName(color)}));
         return 0;
     }
 
-    // 判断修改类型
-    if (context.hasArgument("color")) {
-        // 修改颜色
-        const std::string colorStr = context.getArgument<std::string>("color");
-        text::TextFormatting color = parseColor(colorStr);
-
-        if (color == text::TextFormatting::None) {
-            std::ostringstream ss;
-            ss << "Invalid color '" << colorStr << "'";
-            source.sendError(ss.str());
-            return 0;
-        }
-
-        if (team->getColor() == color) {
-            std::ostringstream ss;
-            ss << "Team '" << teamName << "' already has color '" << colorStr << "'";
-            source.sendError(ss.str());
-            return 0;
-        }
-
-        team->setColor(color);
-        std::ostringstream ss;
-        ss << "Set color of team '" << teamName << "' to '" << colorStr << "'";
-        source.sendMessage(ss.str());
-        return 1;
-    }
-
     if (context.hasArgument("friendlyFire")) {
-        // 修改友军伤害
-        const bool value = context.getArgument<bool>("friendlyFire");
-
-        if (team->getAllowFriendlyFire() == value) {
-            std::ostringstream ss;
-            ss << "Team '" << teamName << "' already has friendly fire " << (value ? "enabled" : "disabled");
-            source.sendError(ss.str());
+        const bool enabled = context.getArgument<bool>("friendlyFire");
+        if (team->getAllowFriendlyFire() == enabled) {
+            source.sendError(_lang().get(enabled ? "commands.team.option.friendlyfire.alreadyEnabled"
+                                                 : "commands.team.option.friendlyfire.alreadyDisabled"));
             return 0;
         }
-
-        team->setAllowFriendlyFire(value);
-        std::ostringstream ss;
-        ss << "Set friendly fire of team '" << teamName << "' to " << (value ? "true" : "false");
-        source.sendMessage(ss.str());
-        return 1;
+        team->setAllowFriendlyFire(enabled);
+        source.sendMessage(_lang().get(
+            enabled ? "commands.team.option.friendlyfire.enabled" : "commands.team.option.friendlyfire.disabled",
+            {displayName}));
+        return 0;
     }
 
     if (context.hasArgument("seeFriendlyInvisibles")) {
-        // 修改是否能看到隐身队友
-        const bool value = context.getArgument<bool>("seeFriendlyInvisibles");
-
-        if (team->canSeeFriendlyInvisibles() == value) {
-            std::ostringstream ss;
-            ss << "Team '" << teamName << "' already has see friendly invisibles " << (value ? "enabled" : "disabled");
-            source.sendError(ss.str());
+        const bool enabled = context.getArgument<bool>("seeFriendlyInvisibles");
+        if (team->canSeeFriendlyInvisibles() == enabled) {
+            source.sendError(_lang().get(enabled ? "commands.team.option.seeFriendlyInvisibles.alreadyEnabled"
+                                                 : "commands.team.option.seeFriendlyInvisibles.alreadyDisabled"));
             return 0;
         }
+        team->setSeeFriendlyInvisibles(enabled);
+        source.sendMessage(_lang().get(enabled ? "commands.team.option.seeFriendlyInvisibles.enabled"
+                                               : "commands.team.option.seeFriendlyInvisibles.disabled",
+            {displayName}));
+        return 0;
+    }
 
-        team->setSeeFriendlyInvisibles(value);
-        std::ostringstream ss;
-        ss << "Set see friendly invisibles of team '" << teamName << "' to " << (value ? "true" : "false");
-        source.sendMessage(ss.str());
-        return 1;
+    if (context.hasArgument("nametagVisibility")) {
+        const std::string visStr = context.getArgument<std::string>("nametagVisibility");
+        const auto visibility = scoreboard::teamVisibilityFromString(visStr);
+        // teamVisibilityFromString 对未知值回退 Always，用原字符串核对以拒绝非法输入。
+        if (scoreboard::teamVisibilityToString(visibility) != visStr) {
+            source.sendError(
+                "Unknown visibility '" + visStr + "'. Valid values: always, never, hideForOtherTeams, hideForOwnTeam");
+            return 0;
+        }
+        if (team->getNameTagVisibility() == visibility) {
+            source.sendError(_lang().get("commands.team.option.nametagVisibility.unchanged"));
+            return 0;
+        }
+        team->setNameTagVisibility(visibility);
+        source.sendMessage(_lang().get(
+            "commands.team.option.nametagVisibility.success", {displayName, _visibilityDisplayName(visibility)}));
+        return 0;
+    }
+
+    if (context.hasArgument("deathMessageVisibility")) {
+        const std::string visStr = context.getArgument<std::string>("deathMessageVisibility");
+        const auto visibility = scoreboard::teamVisibilityFromString(visStr);
+        if (scoreboard::teamVisibilityToString(visibility) != visStr) {
+            source.sendError(
+                "Unknown visibility '" + visStr + "'. Valid values: always, never, hideForOtherTeams, hideForOwnTeam");
+            return 0;
+        }
+        if (team->getDeathMessageVisibility() == visibility) {
+            source.sendError(_lang().get("commands.team.option.deathMessageVisibility.unchanged"));
+            return 0;
+        }
+        team->setDeathMessageVisibility(visibility);
+        source.sendMessage(_lang().get(
+            "commands.team.option.deathMessageVisibility.success", {displayName, _visibilityDisplayName(visibility)}));
+        return 0;
+    }
+
+    if (context.hasArgument("collisionRule")) {
+        const std::string ruleStr = context.getArgument<std::string>("collisionRule");
+        const auto rule = scoreboard::teamCollisionRuleFromString(ruleStr);
+        if (scoreboard::teamCollisionRuleToString(rule) != ruleStr) {
+            source.sendError(
+                "Unknown collision rule '" + ruleStr + "'. Valid values: always, never, pushOtherTeams, pushOwnTeam");
+            return 0;
+        }
+        if (team->getCollisionRule() == rule) {
+            source.sendError(_lang().get("commands.team.option.collisionRule.unchanged"));
+            return 0;
+        }
+        team->setCollisionRule(rule);
+        source.sendMessage(
+            _lang().get("commands.team.option.collisionRule.success", {displayName, _collisionDisplayName(rule)}));
+        return 0;
     }
 
     if (context.hasArgument("prefix")) {
-        // 修改前缀
         const std::string prefix = context.getArgument<std::string>("prefix");
         team->setPrefix(std::make_unique<text::StringTextComponent>(prefix));
-
-        std::ostringstream ss;
-        ss << "Set prefix of team '" << teamName << "'";
-        source.sendMessage(ss.str());
+        source.sendMessage(_lang().get("commands.team.option.prefix.success", {prefix}));
         return 1;
     }
 
     if (context.hasArgument("suffix")) {
-        // 修改后缀
         const std::string suffix = context.getArgument<std::string>("suffix");
         team->setSuffix(std::make_unique<text::StringTextComponent>(suffix));
-
-        std::ostringstream ss;
-        ss << "Set suffix of team '" << teamName << "'";
-        source.sendMessage(ss.str());
+        source.sendMessage(_lang().get("commands.team.option.suffix.success", {suffix}));
         return 1;
     }
 
     if (context.hasArgument("displayName")) {
-        // 修改显示名称
-        const std::string displayName = context.getArgument<std::string>("displayName");
-        team->setDisplayName(std::make_unique<text::StringTextComponent>(displayName));
-
-        std::ostringstream ss;
-        ss << "Set display name of team '" << teamName << "'";
-        source.sendMessage(ss.str());
-        return 1;
+        const std::string newDisplayName = context.getArgument<std::string>("displayName");
+        const text::ITextComponent* current = team->getDisplayName();
+        if (current != nullptr && current->getFormattedText() == newDisplayName) {
+            source.sendError(_lang().get("commands.team.option.name.unchanged"));
+            return 0;
+        }
+        team->setDisplayName(std::make_unique<text::StringTextComponent>(newDisplayName));
+        source.sendMessage(_lang().get("commands.team.option.name.success", {displayName}));
+        return 0;
     }
 
-    if (context.hasArgument("nametagVisibility")) {
-        // 修改名称标签可见性
-        const std::string visStr = context.getArgument<std::string>("nametagVisibility");
-        scoreboard::TeamVisibility visibility = parseVisibility(visStr);
-
-        if (visibility == scoreboard::TeamVisibility::Always && visStr != "always") {
-            // 解析失败
-            std::ostringstream ss;
-            ss << "Invalid visibility '" << visStr << "'. Valid values: always, never, hideForOtherTeams, "
-               << "hideForOwnTeam";
-            source.sendError(ss.str());
-            return 0;
-        }
-
-        if (team->getNameTagVisibility() == visibility) {
-            std::ostringstream ss;
-            ss << "Team '" << teamName << "' already has nametag visibility '" << visStr << "'";
-            source.sendError(ss.str());
-            return 0;
-        }
-
-        team->setNameTagVisibility(visibility);
-        std::ostringstream ss;
-        ss << "Set nametag visibility of team '" << teamName << "' to '" << visStr << "'";
-        source.sendMessage(ss.str());
-        return 1;
-    }
-
-    if (context.hasArgument("deathMessageVisibility")) {
-        // 修改死亡消息可见性
-        const std::string visStr = context.getArgument<std::string>("deathMessageVisibility");
-        scoreboard::TeamVisibility visibility = parseVisibility(visStr);
-
-        if (visibility == scoreboard::TeamVisibility::Always && visStr != "always") {
-            // 解析失败
-            std::ostringstream ss;
-            ss << "Invalid visibility '" << visStr << "'. Valid values: always, never, hideForOtherTeams, "
-               << "hideForOwnTeam";
-            source.sendError(ss.str());
-            return 0;
-        }
-
-        if (team->getDeathMessageVisibility() == visibility) {
-            std::ostringstream ss;
-            ss << "Team '" << teamName << "' already has death message visibility '" << visStr << "'";
-            source.sendError(ss.str());
-            return 0;
-        }
-
-        team->setDeathMessageVisibility(visibility);
-        std::ostringstream ss;
-        ss << "Set death message visibility of team '" << teamName << "' to '" << visStr << "'";
-        source.sendMessage(ss.str());
-        return 1;
-    }
-
-    if (context.hasArgument("collisionRule")) {
-        // 修改碰撞规则
-        const std::string ruleStr = context.getArgument<std::string>("collisionRule");
-        scoreboard::TeamCollisionRule rule = parseCollisionRule(ruleStr);
-
-        if (rule == scoreboard::TeamCollisionRule::Always && ruleStr != "always") {
-            // 解析失败
-            std::ostringstream ss;
-            ss << "Invalid collision rule '" << ruleStr << "'. Valid values: always, never, pushOtherTeams, "
-               << "pushOwnTeam";
-            source.sendError(ss.str());
-            return 0;
-        }
-
-        if (team->getCollisionRule() == rule) {
-            std::ostringstream ss;
-            ss << "Team '" << teamName << "' already has collision rule '" << ruleStr << "'";
-            source.sendError(ss.str());
-            return 0;
-        }
-
-        team->setCollisionRule(rule);
-        std::ostringstream ss;
-        ss << "Set collision rule of team '" << teamName << "' to '" << ruleStr << "'";
-        source.sendMessage(ss.str());
-        return 1;
-    }
-
-    std::ostringstream ss;
-    ss << "Modified team '" << teamName << "'";
-    source.sendMessage(ss.str());
-
-    return 1;
+    source.sendError("No team option was specified");
+    return 0;
 }
 
 } // namespace command

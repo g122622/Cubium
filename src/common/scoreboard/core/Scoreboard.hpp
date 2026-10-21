@@ -327,6 +327,16 @@ public:
     bool removePlayerFromTeam(const std::string& playerName, ScorePlayerTeam& team);
 
     /**
+     * @brief 把玩家从其当前所属队伍移除（没有队伍时无操作）
+     *
+     * 对齐 vanilla Scoreboard.removePlayerFromTeam(String)：/team leave 不要求玩家确实
+     * 隶属于某个队伍，未入队玩家同样计入命令的成功计数。
+     *
+     * @param playerName 玩家记分板名称
+     */
+    void removePlayerFromTeam(const std::string& playerName);
+
+    /**
      * @brief 获取玩家所在的队伍
      *
      * @param playerName 玩家名称

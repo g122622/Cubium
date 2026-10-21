@@ -447,6 +447,14 @@ bool Scoreboard::removePlayerFromTeam(const std::string& playerName, ScorePlayer
     return false;
 }
 
+void Scoreboard::removePlayerFromTeam(const std::string& playerName)
+{
+    ScorePlayerTeam* currentTeam = getPlayersTeam(playerName);
+    if (currentTeam != nullptr) {
+        removePlayerFromTeam(playerName, *currentTeam);
+    }
+}
+
 ScorePlayerTeam* Scoreboard::getPlayersTeam(const std::string& playerName) const
 {
     auto it = m_teamMemberships.find(playerName);
