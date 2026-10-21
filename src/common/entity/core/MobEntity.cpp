@@ -444,14 +444,14 @@ std::optional<ResourceLocation> MobEntity::getAmbientSound() const
     // 必须 override 本方法返回正确常量或 std::nullopt，否则 SoundEngine 会打印
     // "Sound event not found" 告警。vanilla Mob 默认返回 null（不播放），与本实现不同。
     //
-    // TODO: 以下实体尚未在 Cubium 实现，待后续补齐实体类时一并 override getAmbientSound：
+    // TODO: 以下实体尚未在 Cubium 实现（VanillaEntities 未注册），待补齐实体类时一并 override
+    //       getAmbientSound：
     //   - allay        悦灵        有手物品→ALLAY_AMBIENT_WITH_ITEM / 无→ALLAY_AMBIENT_WITHOUT_ITEM
-    //   - armadillo    犧狳        受惊(scared)→nullopt / 否则→ARMADILLO_AMBIENT
+    //   - armadillo    犰狳        受惊(scared)→nullopt / 否则→ARMADILLO_AMBIENT
     //   - camel        骆驼        CAMEL_AMBIENT（声音键 entity.camel.ambient）
-    //   - frog         青蛙        按变种 swamp/jungle/cold→FROG_AMBIENT_*（不同变种不同音）
     //   - goat         山羊        GOAT_AMBIENT / 幼体尖叫概率→GOAT_SCREAMING_AMBIENT
     //   - creaking     嘎枝        CREAKING_AMBIENT（1.21 新实体，声音键 entity.creaking.ambient）
-    //   - happy_ghast  快乐恶魂    HAPPY_GHAST_AMBIENT（1.21 新实体）
+    // 已实现并各自 override 的实体：frog（FrogEntity）、happy_ghast（HappyGhastEntity）。
     return makeSoundEventId("ambient");
 }
 

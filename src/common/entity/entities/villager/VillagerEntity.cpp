@@ -1720,5 +1720,10 @@ void WanderingTraderEntity::updateOffers()
     m_offers = WanderingTraderTrades::generateOffers(seed);
 }
 
+std::optional<ResourceLocation> WanderingTraderEntity::getAmbientSound() const
+{
+    return isTrading() ? SoundEvents::ENTITY_WANDERING_TRADER_TRADE : SoundEvents::ENTITY_WANDERING_TRADER_AMBIENT;
+}
+
 } // namespace entity
 } // namespace mc

@@ -108,10 +108,13 @@ public:
 
     // ========== 繁殖 ==========
 
-    /// 快乐恶魂不吃普通繁殖食物（对齐 vanilla 无 isFood 重写，仅物品标签驱动诱惑/繁殖）
+    /// 繁殖/食物判定：HAPPY_GHAST_FOOD 标签（雪球），对齐 vanilla HappyGhast.isFood
     [[nodiscard]] bool isBreedingItem(const ItemStack& itemStack) const override;
 
     [[nodiscard]] bool canMateWith(const AnimalEntity& other) const override;
+
+    /// 快乐恶魂不能繁殖（对齐 vanilla HappyGhast.canFallInLove = false 与 getBreedOffspring 的产卵语义）
+    [[nodiscard]] bool canBreed() const override;
 
     /**
      * @brief 生成幼体
@@ -140,6 +143,9 @@ public:
     [[nodiscard]] std::optional<ResourceLocation> getHurtSound(DamageSource& source) const override;
 
     [[nodiscard]] std::optional<ResourceLocation> getDeathSound() const override;
+
+    /// 音量：幼体 1.0，成体 4.0（对齐 vanilla HappyGhast.getSoundVolume）
+    [[nodiscard]] f32 getSoundVolume() const override;
 
 protected:
     // ========== AI 目标注册 ==========

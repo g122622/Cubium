@@ -828,6 +828,8 @@ add_executable(mc_tests
     entity/SnifferBreedingTest.cpp
     # 蝌蚪变态为青蛙、青蛙变体/繁殖物品/尺寸对齐 1.21.11 测试（Entity::convertTo 转化流程）
     entity/FrogMetamorphosisTest.cpp
+    # 快乐恶魂食物标签/幼体成体音效分流/繁殖门槛对齐 1.21.11 测试
+    entity/HappyGhastTest.cpp
     entity/SnifferBrainGoalsTest.cpp
     # 火球类投射物测试（伤害、爆炸、区域效果云）
     entity/FireballEntityTest.cpp

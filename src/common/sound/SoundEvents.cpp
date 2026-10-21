@@ -1714,6 +1714,13 @@ const ResourceLocation DRIED_GHAST_PLACE("minecraft:block.dried_ghast.place");
 const ResourceLocation DRIED_GHAST_PLACE_IN_WATER("minecraft:block.dried_ghast.place_in_water");
 const ResourceLocation DRIED_GHAST_TRANSITION("minecraft:block.dried_ghast.transition");
 const ResourceLocation GHASTLING_SPAWN("minecraft:entity.ghastling.spawn");
+const ResourceLocation GHASTLING_AMBIENT("minecraft:entity.ghastling.ambient");
+const ResourceLocation GHASTLING_HURT("minecraft:entity.ghastling.hurt");
+const ResourceLocation GHASTLING_DEATH("minecraft:entity.ghastling.death");
+
+const ResourceLocation HAPPY_GHAST_AMBIENT("minecraft:entity.happy_ghast.ambient");
+const ResourceLocation HAPPY_GHAST_HURT("minecraft:entity.happy_ghast.hurt");
+const ResourceLocation HAPPY_GHAST_DEATH("minecraft:entity.happy_ghast.death");
 
 // ============================================================================
 // 初始化

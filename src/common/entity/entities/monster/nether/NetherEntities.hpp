@@ -122,6 +122,12 @@ public:
 protected:
     void registerGoals() override;
     void registerAttributes() override;
+    /**
+     * @brief 环境音效
+     *
+     * 对齐 vanilla Ghast.getAmbientSound：GHAST_AMBIENT。
+     */
+    [[nodiscard]] std::optional<ResourceLocation> getAmbientSound() const override;
 
 private:
     /**
@@ -345,6 +351,14 @@ public:
 protected:
     void registerGoals() override;
     void registerAttributes() override;
+    /**
+     * @brief 环境音效
+     *
+     * 对齐 vanilla Piglin.getAmbientSound：战斗时 PIGLIN_ANGRY，其余 PIGLIN_AMBIENT。
+     * 原版其余活动音效（钦佩物品、庆祝、嫉妒、退缩）依赖 Brain 活跃活动，尚未建模。
+     * TODO(piglin-ai): Brain 活动音效（PIGLIN_ADMIRING_ITEM/CELEBRATE/JEALOUS/RETREAT）待接入。
+     */
+    [[nodiscard]] std::optional<ResourceLocation> getAmbientSound() const override;
 
 private:
     bool m_isBaby = false;
@@ -483,6 +497,14 @@ public:
 protected:
     void registerGoals() override;
     void registerAttributes() override;
+    /**
+     * @brief 环境音效
+     *
+     * 对齐 vanilla Hoglin.getAmbientSound：战斗时 HOGLIN_ANGRY，其余 HOGLIN_AMBIENT。
+     * 原版躲避（AVOID）与转化中返回 HOGLIN_RETREAT，依赖 Brain 活动，尚未建模。
+     * TODO(hoglin-ai): Brain 活动音效（HOGLIN_RETREAT）待接入。
+     */
+    [[nodiscard]] std::optional<ResourceLocation> getAmbientSound() const override;
 
 private:
     bool m_immuneToFire = true;

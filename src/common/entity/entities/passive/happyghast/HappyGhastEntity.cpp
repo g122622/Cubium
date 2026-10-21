@@ -24,12 +24,15 @@
 #include "HappyGhastEntity.hpp"
 #include "common/core/Types.hpp"
 #include "common/entity/ai/controller/GhastMovementController.hpp"
+#include "common/entity/ai/goal/goals/TemptGoal.hpp"
 #include "common/entity/ai/goal/goals/special/GhastGoals.hpp"
 #include "common/entity/attribute/Attributes.hpp"
 #include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/damage/DamageSource.hpp"
 #include "common/entity/entities/passive/basic/AnimalEntity.hpp"
+#include "common/item/core/Item.hpp"
 #include "common/item/core/ItemStack.hpp"
+#include "common/item/tag/ItemTags.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/sound/SoundEvents.hpp"
 #include "common/world/IWorld.hpp"
@@ -84,10 +87,18 @@ f32 HappyGhastEntity::getBaseHeight() const
 
 bool HappyGhastEntity::isBreedingItem(const ItemStack& itemStack) const
 {
-    // 对齐 vanilla HappyGhast：动物繁殖由物品标签（HAPPY_GHAST_FOOD）驱动，vanilla 未重写 isFood；
-    // 本项目保留繁殖契约但未接入该物品标签（项目无物品标签体系），故不认任何繁殖物品。
-    // TODO: ItemTags::HAPPY_GHAST_FOOD 接入后改为查询标签。
-    MC_UNUSED(itemStack);
+    // 对齐 vanilla HappyGhast.isFood：ItemStack.is(ItemTags.HAPPY_GHAST_FOOD)（雪球）。
+    const Item* item = itemStack.getItem();
+    if (item == nullptr) {
+        return false;
+    }
+    return item->isIn(item::tag::ItemTags::HAPPY_GHAST_FOOD());
+}
+
+bool HappyGhastEntity::canBreed() const
+{
+    // 对齐 vanilla HappyGhast.canFallInLove = false：快乐恶魂不能进入发情状态。
+    // 喂食雪球只用于诱惑/加速幼体成长，幼体只能由干燥恶魂方块孵化产生。
     return false;
 }
 
@@ -147,21 +158,26 @@ void HappyGhastEntity::handleFallDamage(f32 /*distance*/, f32 /*damageMultiplier
 
 std::optional<ResourceLocation> HappyGhastEntity::getAmbientSound() const
 {
-    // vanilla 快乐恶魂使用独立的 HAPPY_GHAST_AMBIENT 音效；
-    // TODO: 待 SoundEvents::HAPPY_GHAST_AMBIENT 常量补齐后改为返回该常量。
-    return std::nullopt;
+    // 对齐 vanilla HappyGhast.getAmbientSound：幼体用 GHASTLING_AMBIENT，成体用 HAPPY_GHAST_AMBIENT。
+    return isChild() ? SoundEvents::GHASTLING_AMBIENT : SoundEvents::HAPPY_GHAST_AMBIENT;
 }
 
 std::optional<ResourceLocation> HappyGhastEntity::getHurtSound(DamageSource& /*source*/) const
 {
-    // TODO: 待 SoundEvents::HAPPY_GHAST_HURT 常量补齐后改为返回该常量。
-    return std::nullopt;
+    // 对齐 vanilla HappyGhast.getHurtSound：幼体 GHASTLING_HURT，成体 HAPPY_GHAST_HURT。
+    return isChild() ? SoundEvents::GHASTLING_HURT : SoundEvents::HAPPY_GHAST_HURT;
 }
 
 std::optional<ResourceLocation> HappyGhastEntity::getDeathSound() const
 {
-    // TODO: 待 SoundEvents::HAPPY_GHAST_DEATH 常量补齐后改为返回该常量。
-    return std::nullopt;
+    // 对齐 vanilla HappyGhast.getDeathSound：幼体 GHASTLING_DEATH，成体 HAPPY_GHAST_DEATH。
+    return isChild() ? SoundEvents::GHASTLING_DEATH : SoundEvents::HAPPY_GHAST_DEATH;
+}
+
+f32 HappyGhastEntity::getSoundVolume() const
+{
+    // 对齐 vanilla HappyGhast.getSoundVolume：幼体 1.0，成体 4.0。
+    return isChild() ? 1.0f : 4.0f;
 }
 
 // ========== AI 目标注册 ==========
@@ -172,9 +188,30 @@ void HappyGhastEntity::registerGoals()
 
     // 对齐 vanilla HappyGhast.registerGoals（registerGoals 内的目标优先级）：
     //   3: FloatGoal（幼体持续上浮）——vanilla 的 HappyGhastFloatGoal + FlyingMoveControl(180, true)
+    //   4: TemptGoal（TemptGoal.ForNonPathfinders，速度 1.0）
     //   5: Ghast.RandomFloatAroundGoal（16 格半径随机巡游）——此处复用成年随机飞行目标
     // 本项目无 Brain，vanilla HappyGhastAi 的其余行为（跟随拴绳持有者、载客等）尚未实现（见类注释 TODO）。
     m_goalSelector.addGoal(3, std::make_unique<entity::ai::goal::GhastHappyFloatGoal>(this));
+
+    // 优先级 4: 食物诱惑（对齐 vanilla TemptGoal.ForNonPathfinders，速度 1.0）。原版判据：
+    //   未装备身体防具（挽具）且为成体 → HAPPY_GHAST_TEMPT_ITEMS（食物 + 挽具）；
+    //   其余（幼体或已装备挽具）→ HAPPY_GHAST_FOOD（雪球）。
+    m_goalSelector.addGoal(4,
+        std::make_unique<entity::ai::goal::TemptGoal>(
+            this,
+            1.0,
+            [this](const ItemStack& stack) -> bool {
+                const Item* item = stack.getItem();
+                if (item == nullptr) {
+                    return false;
+                }
+                if (!isWearingBodyArmor() && !isChild()) {
+                    return item->isIn(item::tag::ItemTags::HAPPY_GHAST_TEMPT_ITEMS());
+                }
+                return item->isIn(item::tag::ItemTags::HAPPY_GHAST_FOOD());
+            },
+            false));
+
     m_goalSelector.addGoal(5, std::make_unique<entity::ai::goal::GhastRandomFlyGoal>(this));
 }
 

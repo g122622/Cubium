@@ -22,6 +22,7 @@
  */
 
 #include "RabbitEntity.hpp"
+#include "common/sound/SoundEvents.hpp"
 
 #include <cmath>
 #include <memory>
@@ -586,6 +587,11 @@ void RabbitEntity::facePoint(f64 targetX, f64 targetZ)
     //   setYRot((f32)(Mth.atan2(targetZ - getZ(), targetX - getX()) * 180.0 / PI) - 90.0F);
     f32 targetYaw = static_cast<f32>(std::atan2(targetZ - z(), targetX - x()) * math::RAD_TO_DEG - 90.0);
     setYaw(math::wrapDegrees(targetYaw));
+}
+
+std::optional<ResourceLocation> RabbitEntity::getAmbientSound() const
+{
+    return SoundEvents::ENTITY_RABBIT_AMBIENT;
 }
 
 sound::SoundCategory RabbitEntity::getSoundCategory() const

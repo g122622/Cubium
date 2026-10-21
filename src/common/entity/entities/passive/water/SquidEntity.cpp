@@ -32,6 +32,7 @@
 #include "common/entity/core/MobEntity.hpp"
 #include "common/entity/damage/DamageSource.hpp"
 #include "common/entity/entities/passive/water/WaterMobEntity.hpp"
+#include "common/sound/SoundEvents.hpp"
 #include "common/util/math/Vector3.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
@@ -195,6 +196,13 @@ void SquidEntity::registerAttributes()
     // 鱿鱼的属性
     attributes().setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 10.0);
     attributes().setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.3);
+}
+
+// ========== 音效 ==========
+
+std::optional<ResourceLocation> SquidEntity::getAmbientSound() const
+{
+    return SoundEvents::ENTITY_SQUID_AMBIENT;
 }
 
 } // namespace mc

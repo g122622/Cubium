@@ -1906,6 +1906,18 @@ extern const ResourceLocation DRIED_GHAST_TRANSITION;
 /// 对应 MC Java: SoundEvents.GHASTLING_SPAWN = "entity.ghastling.spawn"
 extern const ResourceLocation GHASTLING_SPAWN;
 
+/// 幼年恶魂环境/受伤/死亡音效
+/// 对应 MC Java: SoundEvents.GHASTLING_AMBIENT/HURT/DEATH（快乐恶魂幼体使用）
+extern const ResourceLocation GHASTLING_AMBIENT;
+extern const ResourceLocation GHASTLING_HURT;
+extern const ResourceLocation GHASTLING_DEATH;
+
+/// 快乐恶魂环境/受伤/死亡音效
+/// 对应 MC Java: SoundEvents.HAPPY_GHAST_AMBIENT/HURT/DEATH（成年快乐恶魂使用）
+extern const ResourceLocation HAPPY_GHAST_AMBIENT;
+extern const ResourceLocation HAPPY_GHAST_HURT;
+extern const ResourceLocation HAPPY_GHAST_DEATH;
+
 // ============================================================================
 // 初始化
 // ============================================================================

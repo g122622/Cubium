@@ -399,6 +399,27 @@ public:
     static ItemTag& FROG_FOOD();
 
     /**
+     * @brief 快乐恶魂食物标签
+     *
+     * 包含可喂食、诱引快乐恶魂的物品（雪球）。
+     * 对应 MC 原版标签 minecraft:happy_ghast_food（数据包键 "happy_ghast_food"）。
+     *
+     * 参考: net.minecraft.world.entity.animal.happyghast.HappyGhast#isFood
+     * （MC 1.21.11 通过 ItemStack.is(ItemTags.HAPPY_GHAST_FOOD) 判断）
+     */
+    static ItemTag& HAPPY_GHAST_FOOD();
+
+    /**
+     * @brief 快乐恶魂诱惑物品标签
+     *
+     * 包含可诱引"未装备挽具的成年快乐恶魂"的物品（食物 + 挽具），
+     * 对应 MC 原版标签 minecraft:happy_ghast_tempt_items。
+     *
+     * 参考: HappyGhast#registerGoals 的 TemptGoal.ForNonPathfinders 判据
+     */
+    static ItemTag& HAPPY_GHAST_TEMPT_ITEMS();
+
+    /**
      * @brief 苦力怕点燃器标签
      *
      * 包含可用于点燃苦力怕的物品（打火石、火焰弹）。
