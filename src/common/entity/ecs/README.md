@@ -37,7 +37,7 @@ src/common/entity/ecs/
 │   ├── ProjectileArrowStateComponent.hpp    # AbstractArrow 13 字段含 dealtDamage（第六批 6.2，Arrow/SpectralArrow/Trident/Spear 共用；与 LivingEntity ArrowStateComponent 重名故加 Projectile 前缀）
 │   ├── TridentStateComponent.hpp            # tridentStack(unique_ptr)/hitBlock/returning/hitBlockPos/loyaltyLevel/returningTicks（第六批 6.2，仅 Trident；dealtDamage 复用父类 ProjectileArrowStateComponent）
 │   ├── DamagingProjectileComponent.hpp      # accelerationXYZ/damage（第六批 6.2，DamagingProjectile 子树=火球族）
-│   ├── FireballStateComponent.hpp           # explosionPower/blue（第六批 6.2，Fireball+WitherSkull 共用）
+│   ├── FireballStateComponent.hpp           # itemStack/explosionPower/blue（Fireball+WitherSkull 共用）
 │   ├── ArrowEffectsComponent.hpp            # color/glowing/effects(unique_ptr<vector>)（第六批 6.2，仅 ArrowEntity 药水箭）
 │   ├── SpectralArrowComponent.hpp           # glowDuration（第六批 6.2，仅 SpectralArrow）
 │   ├── ProjectileItemComponent.hpp          # itemStack(unique_ptr)（第六批 6.2，ProjectileItemEntity 子树+Spear 共用）
