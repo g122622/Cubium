@@ -330,6 +330,16 @@ void ZombieVillagerEntity::finishConverting()
     // 继承村民数据
     villager->setVillagerData(m_villagerData);
 
+    // 交还感染期间保留的交易列表与声誉流言（对齐 vanilla ZombieVillager.finishConversion 的
+    // setGossips/setTradeOffers），使治愈后价格与声誉与感染前一致。
+    if (m_offers != nullptr) {
+        // MerchantOffers 持有 unique_ptr<MerchantOffer> 不可拷贝，经 NBT 序列化做深拷贝。
+        nbt::tags::compound_tag offersTag;
+        m_offers->serialize(offersTag);
+        villager->setOffers(world::village::trade::MerchantOffers::deserialize(offersTag));
+    }
+    villager->gossips() = m_gossips;
+
     // 处理装备（对应 MC Java 的 ZombieVillager.finishConversion 中的 dropPreservedEquipment 逻辑）
     //
     // MC Java 的逻辑：
