@@ -48,9 +48,7 @@ constexpr std::array<_VanillaGoatHorn, 8> VANILLA_GOAT_HORNS = {{
     {"minecraft:call_goat_horn", &mc::SoundEvents::ITEM_GOAT_HORN_SOUND_5, "instrument.minecraft.call_goat_horn"},
     {"minecraft:dream_goat_horn", &mc::SoundEvents::ITEM_GOAT_HORN_SOUND_7, "instrument.minecraft.dream_goat_horn"},
     {"minecraft:feel_goat_horn", &mc::SoundEvents::ITEM_GOAT_HORN_SOUND_3, "instrument.minecraft.feel_goat_horn"},
-    {"minecraft:ponder_goat_horn",
-        &mc::SoundEvents::ITEM_GOAT_HORN_SOUND_0,
-        "instrument.minecraft.ponder_goat_horn"},
+    {"minecraft:ponder_goat_horn", &mc::SoundEvents::ITEM_GOAT_HORN_SOUND_0, "instrument.minecraft.ponder_goat_horn"},
     {"minecraft:seek_goat_horn", &mc::SoundEvents::ITEM_GOAT_HORN_SOUND_2, "instrument.minecraft.seek_goat_horn"},
     {"minecraft:sing_goat_horn", &mc::SoundEvents::ITEM_GOAT_HORN_SOUND_1, "instrument.minecraft.sing_goat_horn"},
     {"minecraft:yearn_goat_horn", &mc::SoundEvents::ITEM_GOAT_HORN_SOUND_6, "instrument.minecraft.yearn_goat_horn"},
@@ -90,7 +88,8 @@ void InstrumentRegistry::clear()
     m_indexById.clear();
 }
 
-void InstrumentRegistry::registerInstrument(const ResourceLocation& id, std::unique_ptr<InstrumentDefinition> instrument)
+void InstrumentRegistry::registerInstrument(
+    const ResourceLocation& id, std::unique_ptr<InstrumentDefinition> instrument)
 {
     MC_ASSERT_RELEASE_MSG(instrument != nullptr, "InstrumentRegistry: registering null instrument");
     const auto existing = m_indexById.find(id);

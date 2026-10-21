@@ -161,7 +161,7 @@ TEST_F(BrewingStandBlockPlacedByTest, TransfersCustomNameWhenStackHasName)
 
     // 执行：调用 onBlockPlacedBy
     const BlockState& state = brewingStandBlock_->defaultState();
-    brewingStandBlock_->onBlockPlacedBy(world, pos, state, stack);
+    brewingStandBlock_->onBlockPlacedBy(world, pos, state, nullptr, stack);
 
     // 验证：自定义名称已传递到方块实体
     EXPECT_EQ(entityPtr->getCustomName(), "My Brewing Stand");
@@ -180,7 +180,7 @@ TEST_F(BrewingStandBlockPlacedByTest, DoesNotSetNameWhenStackHasNoCustomName)
 
     // 执行
     const BlockState& state = brewingStandBlock_->defaultState();
-    brewingStandBlock_->onBlockPlacedBy(world, pos, state, stack);
+    brewingStandBlock_->onBlockPlacedBy(world, pos, state, nullptr, stack);
 
     // 验证：方块实体未获得自定义名称
     EXPECT_TRUE(entityPtr->getCustomName().empty());
@@ -195,7 +195,7 @@ TEST_F(BrewingStandBlockPlacedByTest, DoesNotCrashWhenNoBlockEntity)
 
     // 执行：不应崩溃，且应无副作用
     const BlockState& state = brewingStandBlock_->defaultState();
-    EXPECT_NO_THROW(brewingStandBlock_->onBlockPlacedBy(world, pos, state, stack));
+    EXPECT_NO_THROW(brewingStandBlock_->onBlockPlacedBy(world, pos, state, nullptr, stack));
 
     // 验证：没有方块实体被创建（仍为 nullptr）
     EXPECT_EQ(world.getBlockEntity(pos), nullptr);
@@ -219,7 +219,7 @@ TEST_F(BrewingStandBlockPlacedByTest, DoesNotTransferNameToWrongEntityType)
     stack.setCustomName("Valid Transfer");
 
     const BlockState& state = brewingStandBlock_->defaultState();
-    brewingStandBlock_->onBlockPlacedBy(world, pos, state, stack);
+    brewingStandBlock_->onBlockPlacedBy(world, pos, state, nullptr, stack);
 
     // 验证：名称成功传递（类型匹配）
     EXPECT_EQ(entityPtr->getCustomName(), "Valid Transfer");

@@ -114,8 +114,10 @@ BlockState DoorBlock::getStateForPlacement(BlockItemUseContext& context)
         .with(BlockStateProperties::DOUBLE_BLOCK_HALF(), BlockStateProperties::DoubleBlockHalf::Lower);
 }
 
-void DoorBlock::onBlockPlacedBy(IWorld& world, const BlockPos& pos, const BlockState& state, const ItemStack& stack)
+void DoorBlock::onBlockPlacedBy(
+    IWorld& world, const BlockPos& pos, const BlockState& state, const Entity* placer, const ItemStack& stack)
 {
+    MC_UNUSED(placer);
     MC_UNUSED(stack);
 
     BlockPos abovePos = pos.up();

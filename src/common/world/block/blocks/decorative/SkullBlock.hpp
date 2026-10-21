@@ -35,6 +35,7 @@
 #include "common/world/block/Material.hpp"
 
 namespace mc {
+class Entity;
 namespace blocks {
 
 /**
@@ -181,7 +182,11 @@ class PlayerHeadBlock : public SkullBlock {
 public:
     explicit PlayerHeadBlock(const BlockProperties& properties);
 
-    void onBlockPlacedBy(IWorld& world, const BlockPos& pos, const BlockState& state, const ItemStack& stack) override;
+    void onBlockPlacedBy(IWorld& world,
+        const BlockPos& pos,
+        const BlockState& state,
+        const Entity* placer,
+        const ItemStack& stack) override;
 };
 
 /**
@@ -191,7 +196,11 @@ class PlayerWallHeadBlock : public WallSkullBlock {
 public:
     explicit PlayerWallHeadBlock(const BlockProperties& properties);
 
-    void onBlockPlacedBy(IWorld& world, const BlockPos& pos, const BlockState& state, const ItemStack& stack) override;
+    void onBlockPlacedBy(IWorld& world,
+        const BlockPos& pos,
+        const BlockState& state,
+        const Entity* placer,
+        const ItemStack& stack) override;
 };
 
 /**
@@ -205,7 +214,11 @@ class WitherSkullBlock : public SkullBlock {
 public:
     explicit WitherSkullBlock(const BlockProperties& properties);
 
-    void onBlockPlacedBy(IWorld& world, const BlockPos& pos, const BlockState& state, const ItemStack& stack) override;
+    void onBlockPlacedBy(IWorld& world,
+        const BlockPos& pos,
+        const BlockState& state,
+        const Entity* placer,
+        const ItemStack& stack) override;
 
     /**
      * @brief 检测并生成凋灵
@@ -222,7 +235,11 @@ class WitherWallSkullBlock : public WallSkullBlock {
 public:
     explicit WitherWallSkullBlock(const BlockProperties& properties);
 
-    void onBlockPlacedBy(IWorld& world, const BlockPos& pos, const BlockState& state, const ItemStack& stack) override;
+    void onBlockPlacedBy(IWorld& world,
+        const BlockPos& pos,
+        const BlockState& state,
+        const Entity* placer,
+        const ItemStack& stack) override;
 };
 
 /**

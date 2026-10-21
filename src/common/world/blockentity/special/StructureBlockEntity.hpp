@@ -35,6 +35,8 @@
 
 namespace mc {
 
+class Entity;
+
 namespace blockentity {
 
 /**
@@ -81,6 +83,16 @@ public:
 
     [[nodiscard]] const std::string& getAuthor() const noexcept { return m_author; }
     void setAuthor(const std::string& author) { m_author = author; }
+
+    /**
+     * @brief 记录放置者是本结构的创建者
+     *
+     * 取放置者的显示名（优先自定义名，否则为玩家名/实体默认名）写入 author 字段。对应
+     * StructureBlockEntity.createdBy：非玩家实体放置时同样记录其显示名。
+     *
+     * @param placer 放置该方块的实体
+     */
+    void createdBy(const Entity& placer);
 
     [[nodiscard]] const std::string& getMetaData() const noexcept { return m_metaData; }
     void setMetaData(const std::string& metaData) { m_metaData = metaData; }

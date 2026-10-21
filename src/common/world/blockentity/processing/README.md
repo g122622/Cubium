@@ -158,7 +158,8 @@
 放置时由 `BrewingStandBlock::onBlockPlacedBy()` 从放置物品继承自定义名称（对应 MC Java `BaseContainerBlockEntity.applyImplicitComponents` 机制）：
 
 ```cpp
-void BrewingStandBlock::onBlockPlacedBy(IWorld& world, const BlockPos& pos, const BlockState& state, const ItemStack& stack)
+void BrewingStandBlock::onBlockPlacedBy(IWorld& world,
+    const BlockPos& pos, const BlockState& state, const Entity* placer, const ItemStack& stack)
 {
     if (stack.hasCustomName()) {
         BlockEntity* entity = world.getBlockEntity(pos);

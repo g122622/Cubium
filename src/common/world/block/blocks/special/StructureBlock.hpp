@@ -36,6 +36,7 @@ namespace mc {
 
 class IWorld;
 class Player;
+class Entity;
 class BlockItemUseContext;
 
 namespace blocks {
@@ -82,10 +83,13 @@ public:
     /**
      * @brief 方块被放置后的回调
      *
-     * 对齐 vanilla StructureBlock.setPlacedBy 的"记录作者"语义：当前先委托基类，
-     * 放置者写入实体 author 字段待方块放置回调携带放置者后补全（见实现内 TODO）。
+     * "记录作者"语义：放置者为实体时，将其显示名写入结构方块实体的 author 字段。
      */
-    void onBlockPlacedBy(IWorld& world, const BlockPos& pos, const BlockState& state, const ItemStack& stack) override;
+    void onBlockPlacedBy(IWorld& world,
+        const BlockPos& pos,
+        const BlockState& state,
+        const Entity* placer,
+        const ItemStack& stack) override;
 
     // ========== 放置逻辑 ==========
 

@@ -517,8 +517,7 @@ TEST_F(DriedGhastBlockTest, HappyGhast_RegisteredWithBabyScaleDimensions)
     EXPECT_FLOAT_EQ(static_cast<f32>(adultBox.maxX - adultBox.minX), 4.0f);
     ghast->setChild(true);
     const AxisAlignedBB babyBox = ghast->getDimensions(EntityPose::Standing).makeBoundingBox(0.0, 0.0, 0.0);
-    EXPECT_FLOAT_EQ(
-        static_cast<f32>(babyBox.maxX - babyBox.minX), 4.0f * HappyGhastEntity::HAPPY_GHAST_BABY_SCALE);
+    EXPECT_FLOAT_EQ(static_cast<f32>(babyBox.maxX - babyBox.minX), 4.0f * HappyGhastEntity::HAPPY_GHAST_BABY_SCALE);
 }
 
 TEST_F(DriedGhastBlockTest, ReceiveFluid_SetsWaterloggedAndPlaysSound)

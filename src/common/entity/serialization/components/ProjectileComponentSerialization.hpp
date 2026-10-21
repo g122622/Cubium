@@ -47,8 +47,8 @@ namespace mc::entity::serialization::components {
  * FireworkRocket |
  * lifetime/lifeTime/fireworkItem/shotFromCrossbow | Life/LifeTime/FireworksItem/ShotAtAngle | | EvokerFangsComponent |
  * EvokerFangs | warmupDelay + ownerUuid | Warmup + OwnerUUIDMost/Least | | ShulkerBulletComponent | ShulkerBullet |
- * targetUuid/direction/flightSteps/targetDelta | Target/Dir/Steps/TXD/TYD/TZD | | EyeOfEnderComponent | EyeOfEnder | itemStack |
- * Item | | ProjectileItemComponent | ThrowableItemProjectile/Spear | itemStack | item |
+ * targetUuid/direction/flightSteps/targetDelta | Target/Dir/Steps/TXD/TYD/TZD | | EyeOfEnderComponent | EyeOfEnder |
+ * itemStack | Item | | ProjectileItemComponent | ThrowableItemProjectile/Spear | itemStack | item |
  *
  * load 顺序（priority）：TridentStateComponent=0 先 load（读 item 后由 setItemStack 重算 loyalty），
  * ProjectileArrowStateComponent=10 后 load（读 dealtDamage，依赖父类字段已就位）。

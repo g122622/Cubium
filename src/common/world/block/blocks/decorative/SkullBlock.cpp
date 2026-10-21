@@ -474,9 +474,10 @@ PlayerHeadBlock::PlayerHeadBlock(const BlockProperties& properties)
 {}
 
 void PlayerHeadBlock::onBlockPlacedBy(
-    IWorld& world, const BlockPos& pos, const BlockState& state, const ItemStack& stack)
+    IWorld& world, const BlockPos& pos, const BlockState& state, const Entity* placer, const ItemStack& stack)
 {
     MC_UNUSED(state);
+    MC_UNUSED(placer);
     // 从物品的 SkullOwner 组件恢复档案写入方块实体（对齐 vanilla PlayerHeadBlock.setPlacedBy）
     if (BlockEntity* be = world.getBlockEntity(pos)) {
         auto* skull = dynamic_cast<blockentity::SkullBlockEntity*>(be);
@@ -497,9 +498,10 @@ PlayerWallHeadBlock::PlayerWallHeadBlock(const BlockProperties& properties)
 {}
 
 void PlayerWallHeadBlock::onBlockPlacedBy(
-    IWorld& world, const BlockPos& pos, const BlockState& state, const ItemStack& stack)
+    IWorld& world, const BlockPos& pos, const BlockState& state, const Entity* placer, const ItemStack& stack)
 {
     MC_UNUSED(state);
+    MC_UNUSED(placer);
     if (BlockEntity* be = world.getBlockEntity(pos)) {
         auto* skull = dynamic_cast<blockentity::SkullBlockEntity*>(be);
         if (skull != nullptr) {
@@ -523,9 +525,10 @@ WitherSkullBlock::WitherSkullBlock(const BlockProperties& properties)
 {}
 
 void WitherSkullBlock::onBlockPlacedBy(
-    IWorld& world, const BlockPos& pos, const BlockState& state, const ItemStack& stack)
+    IWorld& world, const BlockPos& pos, const BlockState& state, const Entity* placer, const ItemStack& stack)
 {
     MC_UNUSED(state);
+    MC_UNUSED(placer);
     MC_UNUSED(stack);
     checkSpawn(world, pos);
 }
@@ -606,9 +609,10 @@ WitherWallSkullBlock::WitherWallSkullBlock(const BlockProperties& properties)
 {}
 
 void WitherWallSkullBlock::onBlockPlacedBy(
-    IWorld& world, const BlockPos& pos, const BlockState& state, const ItemStack& stack)
+    IWorld& world, const BlockPos& pos, const BlockState& state, const Entity* placer, const ItemStack& stack)
 {
     MC_UNUSED(state);
+    MC_UNUSED(placer);
     MC_UNUSED(stack);
     WitherSkullBlock::checkSpawn(world, pos);
 }

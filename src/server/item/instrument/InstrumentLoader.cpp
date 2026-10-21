@@ -90,7 +90,8 @@ Result<std::unique_ptr<mc::item::instrument::InstrumentDefinition>> _parseInstru
         return Error(ErrorCode::InvalidData, "instrument '" + location.toString() + "': invalid description");
     }
 
-    return std::make_unique<mc::item::instrument::InstrumentDefinition>(soundEvent, useDuration, range, std::move(description));
+    return std::make_unique<mc::item::instrument::InstrumentDefinition>(
+        soundEvent, useDuration, range, std::move(description));
 }
 
 /**
@@ -155,10 +156,9 @@ Result<size_t> InstrumentLoader::loadFromDataPackRepository(const resource::Data
         if (!listResult.success()) {
             continue;
         }
-        loadedCount += _loadFromResourcePaths(
-            namespace_, listResult.value(), [&dataPackList](const std::string& path) {
-                return dataPackList.readTextResource(path);
-            });
+        loadedCount += _loadFromResourcePaths(namespace_, listResult.value(), [&dataPackList](const std::string& path) {
+            return dataPackList.readTextResource(path);
+        });
     }
 
     if (loadedCount > 0) {
@@ -181,10 +181,9 @@ Result<size_t> InstrumentLoader::loadFromResourcePack(const resource::IResourceP
         if (!listResult.success()) {
             continue;
         }
-        loadedCount += _loadFromResourcePaths(
-            namespace_, listResult.value(), [&pack](const std::string& path) {
-                return pack.readTextResource(resource::PackType::ServerData, path);
-            });
+        loadedCount += _loadFromResourcePaths(namespace_, listResult.value(), [&pack](const std::string& path) {
+            return pack.readTextResource(resource::PackType::ServerData, path);
+        });
     }
     return loadedCount;
 }

@@ -148,9 +148,10 @@ BlockActionResult BrewingStandBlock::useWithoutItem(
 }
 
 void BrewingStandBlock::onBlockPlacedBy(
-    IWorld& world, const BlockPos& pos, const BlockState& state, const ItemStack& stack)
+    IWorld& world, const BlockPos& pos, const BlockState& state, const Entity* placer, const ItemStack& stack)
 {
     MC_UNUSED(state);
+    MC_UNUSED(placer);
 
     // 从放置物品继承自定义名称（对应 MC Java BaseContainerBlockEntity.applyImplicitComponents）
     // 铁砧重命名后的物品 hasCustomName() 为 true，将名称传递给方块实体。

@@ -114,9 +114,11 @@ void CommandBlock::neighborChanged(
     setPoweredAndUpdate(world, pos, *static_cast<blockentity::CommandBlockEntity*>(entity));
 }
 
-void CommandBlock::onBlockPlacedBy(IWorld& world, const BlockPos& pos, const BlockState& state, const ItemStack& stack)
+void CommandBlock::onBlockPlacedBy(
+    IWorld& world, const BlockPos& pos, const BlockState& state, const Entity* placer, const ItemStack& stack)
 {
     MC_UNUSED(state);
+    MC_UNUSED(placer);
 
     BlockEntity* entity = world.getBlockEntity(pos);
     if (entity == nullptr || entity->getType() != BlockEntityType::CommandBlock) {

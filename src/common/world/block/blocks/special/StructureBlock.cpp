@@ -85,12 +85,17 @@ std::unique_ptr<BlockEntity> StructureBlock::createBlockEntity(const BlockPos& p
 }
 
 void StructureBlock::onBlockPlacedBy(
-    IWorld& world, const BlockPos& pos, const BlockState& state, const ItemStack& stack)
+    IWorld& world, const BlockPos& pos, const BlockState& state, const Entity* placer, const ItemStack& stack)
 {
-    Block::onBlockPlacedBy(world, pos, state, stack);
-    // TODO: 对齐 vanilla StructureBlock.setPlacedBy 的记录作者语义（放置者写入实体 author 字段）。
-    //   本项目方块放置回调不携带放置者实体，需先扩展 Block::onBlockPlacedBy 签名后再接入。
-    MC_UNUSED(pos);
+    Block::onBlockPlacedBy(world, pos, state, placer, stack);
+    // 记录创建者：仅放置者为实体时写入实体 author 字段（取放置者显示名）。
+    if (placer == nullptr) {
+        return;
+    }
+    auto* entity = world.getBlockEntity(pos);
+    if (entity != nullptr && entity->getType() == BlockEntityType::StructureBlock) {
+        static_cast<blockentity::StructureBlockEntity*>(entity)->createdBy(*placer);
+    }
 }
 
 BlockActionResult StructureBlock::useWithoutItem(

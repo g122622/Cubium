@@ -35,6 +35,7 @@
 #include <unordered_map>
 
 namespace mc {
+class Entity;
 
 class IWorld;
 class IBlockReader;
@@ -94,7 +95,11 @@ public:
      *
      * @param stack 放置该方块的物品堆（可能携带自定义名称等组件）
      */
-    void onBlockPlacedBy(IWorld& world, const BlockPos& pos, const BlockState& state, const ItemStack& stack) override;
+    void onBlockPlacedBy(IWorld& world,
+        const BlockPos& pos,
+        const BlockState& state,
+        const Entity* placer,
+        const ItemStack& stack) override;
 
     // ========== 渲染属性 ==========
 

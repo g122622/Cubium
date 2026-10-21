@@ -59,11 +59,12 @@ std::unique_ptr<BlockEntity> AbstractBannerBlock::createBlockEntity(const BlockP
 }
 
 void AbstractBannerBlock::onBlockPlacedBy(
-    IWorld& world, const BlockPos& pos, const BlockState& state, const ItemStack& stack)
+    IWorld& world, const BlockPos& pos, const BlockState& state, const Entity* placer, const ItemStack& stack)
 {
     MC_UNUSED(world);
     MC_UNUSED(pos);
     MC_UNUSED(state);
+    MC_UNUSED(placer);
     MC_UNUSED(stack);
     // 图案数据和自定义名称通过 BannerItem 的放置逻辑和方块实体NBT加载处理
 }

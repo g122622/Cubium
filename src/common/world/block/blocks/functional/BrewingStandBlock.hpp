@@ -36,6 +36,7 @@
 #include <memory>
 
 namespace mc {
+class Entity;
 
 class IWorld;
 class IBlockReader;
@@ -153,7 +154,11 @@ public:
      * 对应 MC Java 的 BaseContainerBlockEntity.applyImplicitComponents 机制：
      * 物品通过 setPlacedBy 传递给方块实体，自定义名称通过 Component 引用拷贝。
      */
-    void onBlockPlacedBy(IWorld& world, const BlockPos& pos, const BlockState& state, const ItemStack& stack) override;
+    void onBlockPlacedBy(IWorld& world,
+        const BlockPos& pos,
+        const BlockState& state,
+        const Entity* placer,
+        const ItemStack& stack) override;
 
     /**
      * @brief 方块移除时回调

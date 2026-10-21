@@ -135,8 +135,9 @@
 玩家放置床时，`BedItem.getStateForPlacement()` 返回 FOOT 部分的状态，然后 `BedBlock::onBlockPlacedBy()` 在脚部前方自动放置 HEAD 部分方块：
 
 ```cpp
-void BedBlock::onBlockPlacedBy(IWorld& world, const BlockPos& pos, const BlockState& state, const ItemStack& stack)
+void BedBlock::onBlockPlacedBy(IWorld& world, const BlockPos& pos, const BlockState& state, const Entity* placer, const ItemStack& stack)
 {
+    MC_UNUSED(placer);
     MC_UNUSED(stack);
 
     Direction facing = state.get(BlockStateProperties::HORIZONTAL_FACING());

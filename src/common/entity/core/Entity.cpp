@@ -393,7 +393,9 @@ std::unique_ptr<text::ITextComponent> Entity::getDisplayName() const
     if (c->m_customName) {
         return c->m_customName->deepCopy();
     }
-    // 返回默认名称
+    // 无自定义名时返回默认名称。
+    // TODO: 此处返回占位名 "entity"，未按实体类型生成可翻译的默认名称（应按实体类型描述符
+    //   "entity.<type>.name" 翻译得到）。待翻译键体系覆盖实体类型后改为按 entityType() 生成默认名。
     return std::make_unique<text::StringTextComponent>("entity");
 }
 

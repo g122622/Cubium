@@ -633,12 +633,14 @@ BlockState Block::getStateForPlacement(BlockItemUseContext& context)
     return defaultState();
 }
 
-void Block::onBlockPlacedBy(IWorld& world, const BlockPos& pos, const BlockState& state, const ItemStack& stack)
+void Block::onBlockPlacedBy(
+    IWorld& world, const BlockPos& pos, const BlockState& state, const Entity* placer, const ItemStack& stack)
 {
     // 默认实现：空操作
     (void)world;
     (void)pos;
     (void)state;
+    (void)placer;
     (void)stack;
 }
 

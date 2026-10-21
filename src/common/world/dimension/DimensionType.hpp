@@ -28,12 +28,12 @@
 #include "common/util/math/Vector3.hpp"
 #include "common/world/WorldConstants.hpp"
 #include "common/world/attribute/EnvironmentAttributeMap.hpp"
-#include "common/world/attribute/EnvironmentAttributeSystem.hpp"
 #include "common/world/attribute/EnvironmentAttributeRegistry.hpp"
+#include "common/world/attribute/EnvironmentAttributeSystem.hpp"
 #include <optional>
-#include <vector>
 #include <string>
 #include <utility>
+#include <vector>
 
 namespace mc {
 

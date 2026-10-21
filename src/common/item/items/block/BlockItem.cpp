@@ -163,10 +163,8 @@ ActionResultType BlockItem::tryPlace(BlockItemUseContext& context) const
         static_cast<void>(onBlockPlaced(pos, world, player, stack, *actualState));
 
         // 调用实际写入方块的 onBlockPlacedBy：转换场景（如 DirtPathBlock → 泥土）须由转换后的方块
-        // 承担放置后处理，而非物品自身的方块。
-        // 调用实际写入方块的 onBlockPlacedBy：转换场景（如 DirtPathBlock → 泥土）须由转换后的方块
-        // 承担放置后处理，而非物品自身的方块。
-        actualState->getBlockMutable().onBlockPlacedBy(world, pos, *actualState, stack);
+        // 承担放置后处理，而非物品自身的方块。放置者随上下文传入（结构方块据此记录作者等）。
+        actualState->getBlockMutable().onBlockPlacedBy(world, pos, *actualState, player, stack);
 
         // 派发自定义方块组件回调 - onPlace
         if (blockCompReg.hasPlaceCallback(blockTypeId)) {

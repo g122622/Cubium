@@ -153,9 +153,11 @@ TEST_F(GlazedTerracottaBlockTest, PushDirectionSignDoesNotMatter)
 {
     // 同轴的相反推动方向都触发旋转且结果一致
     const BlockState& north = _stateFacing(Direction::North);
-    EXPECT_EQ(glazedFacing(block_registry::ColoredBlocks::WHITE_GLAZED_TERRACOTTA->getStateForMovement(north, Direction::South)),
+    EXPECT_EQ(glazedFacing(
+                  block_registry::ColoredBlocks::WHITE_GLAZED_TERRACOTTA->getStateForMovement(north, Direction::South)),
         Direction::East);
-    EXPECT_EQ(glazedFacing(block_registry::ColoredBlocks::WHITE_GLAZED_TERRACOTTA->getStateForMovement(north, Direction::North)),
+    EXPECT_EQ(glazedFacing(
+                  block_registry::ColoredBlocks::WHITE_GLAZED_TERRACOTTA->getStateForMovement(north, Direction::North)),
         Direction::East);
 }
 
@@ -164,9 +166,11 @@ TEST_F(GlazedTerracottaBlockTest, PushDirectionSignDoesNotMatter)
 TEST_F(GlazedTerracottaBlockTest, VerticalPushKeepsFacing)
 {
     const BlockState& north = _stateFacing(Direction::North);
-    EXPECT_EQ(glazedFacing(block_registry::ColoredBlocks::WHITE_GLAZED_TERRACOTTA->getStateForMovement(north, Direction::Up)),
+    EXPECT_EQ(
+        glazedFacing(block_registry::ColoredBlocks::WHITE_GLAZED_TERRACOTTA->getStateForMovement(north, Direction::Up)),
         Direction::North);
-    EXPECT_EQ(glazedFacing(block_registry::ColoredBlocks::WHITE_GLAZED_TERRACOTTA->getStateForMovement(north, Direction::Down)),
+    EXPECT_EQ(glazedFacing(
+                  block_registry::ColoredBlocks::WHITE_GLAZED_TERRACOTTA->getStateForMovement(north, Direction::Down)),
         Direction::North);
 }
 

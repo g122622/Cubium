@@ -29,13 +29,16 @@
 //   - NBT 往返（saveToNBT → loadFromNBT）
 //   - JSON 往返（save → 字段）
 //   - 实体注册（BlockEntityRegistry 能创建 StructureBlockEntity）
+//   - createdBy 记录创建者作者（玩家名/自定义名/显示名）
 //
 // Ref: net.minecraft.world.level.block.entity.StructureBlockEntity
 
+#include "common/world/blockentity/special/StructureBlockEntity.hpp"
 #include "common/TestWorldHelper.hpp"
+#include "common/entity/core/Entity.hpp"
+#include "common/entity/entities/player/Player.hpp"
 #include "common/world/blockentity/BlockEntityType.hpp"
 #include "common/world/blockentity/core/BlockEntityRegistry.hpp"
-#include "common/world/blockentity/special/StructureBlockEntity.hpp"
 
 #include <gtest/gtest.h>
 #include <nlohmann/json.hpp>
@@ -166,4 +169,44 @@ TEST_F(StructureBlockEntityTest, Registry_CreatesStructureBlockEntity)
     auto entity = registry.create(BlockEntityType::StructureBlock, BlockPos(1, 2, 3));
     ASSERT_NE(entity, nullptr);
     EXPECT_NE(dynamic_cast<StructureBlockEntity*>(entity.get()), nullptr);
+}
+// ========== createdBy（记录创建者作者） ==========
+
+TEST_F(StructureBlockEntityTest, CreatedBy_PlayerWritesUsername)
+{
+    // 玩家放置时取玩家名（vanilla getPlainTextName 对玩家返回用户名）。
+    Player placer(EntityInstanceId{1}, std::string("Steve"), mc::test::testEcsRegistry());
+    m_entity->createdBy(placer);
+    EXPECT_EQ(m_entity->getAuthor(), "Steve");
+}
+
+TEST_F(StructureBlockEntityTest, CreatedBy_PlayerPrefersCustomName)
+{
+    // 有自定义名时优先取自定义名（vanilla getPlainTextName 取显示名）。
+    Player placer(EntityInstanceId{2}, std::string("Alex"), mc::test::testEcsRegistry());
+    placer.setCustomName("Builder");
+    m_entity->createdBy(placer);
+    EXPECT_EQ(m_entity->getAuthor(), "Builder");
+}
+
+TEST_F(StructureBlockEntityTest, CreatedBy_NonPlayerUsesDisplayName)
+{
+    // 非玩家实体取显示名；无自定义名时为基类占位显示名（项目尚未按实体类型生成默认名，
+    // 故对齐基类 Entity.getDisplayName 的占位语义）。
+    Entity marker(EntityInstanceId{3}, nullptr, mc::test::testEcsRegistry());
+    m_entity->createdBy(marker);
+    EXPECT_EQ(m_entity->getAuthor(), "entity");
+}
+
+TEST_F(StructureBlockEntityTest, CreatedBy_AuthorSurvivesNbtRoundTrip)
+{
+    Player placer(EntityInstanceId{4}, std::string("Herobrine"), mc::test::testEcsRegistry());
+    m_entity->createdBy(placer);
+
+    nbt::CompoundTag tag;
+    m_entity->saveToNBT(tag);
+
+    StructureBlockEntity restored(BlockPos(10, 20, 30));
+    ASSERT_TRUE(restored.loadFromNBT(tag));
+    EXPECT_EQ(restored.getAuthor(), "Herobrine");
 }

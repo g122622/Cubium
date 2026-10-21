@@ -1530,9 +1530,11 @@ public:
      * @param world 世界
      * @param pos 方块位置
      * @param state 方块状态
+     * @param placer 放置者（玩家、生物或发射器等放置方块的实体；非实体来源放置时为 nullptr）
      * @param stack 放置该方块所用的物品堆（始终非空，数量尚未扣除）
      */
-    virtual void onBlockPlacedBy(IWorld& world, const BlockPos& pos, const BlockState& state, const ItemStack& stack);
+    virtual void onBlockPlacedBy(
+        IWorld& world, const BlockPos& pos, const BlockState& state, const Entity* placer, const ItemStack& stack);
 
     /**
      * @brief 方块更新后处理

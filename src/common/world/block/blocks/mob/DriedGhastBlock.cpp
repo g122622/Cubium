@@ -121,8 +121,9 @@ BlockState DriedGhastBlock::getStateForPlacement(BlockItemUseContext& context)
 }
 
 void DriedGhastBlock::onBlockPlacedBy(
-    IWorld& world, const BlockPos& pos, const BlockState& state, const ItemStack& stack)
+    IWorld& world, const BlockPos& pos, const BlockState& state, const Entity* placer, const ItemStack& stack)
 {
+    MC_UNUSED(placer);
     MC_UNUSED(stack);
     // 播放放置音效（含水/无水区分，对齐 vanilla setPlacedBy）
     const ResourceLocation& sound = state.get(BlockStateProperties::WATERLOGGED())

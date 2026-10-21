@@ -132,7 +132,7 @@ public:
     void placeBlock(const Block& block, const BlockPos& pos)
     {
         const_cast<Block&>(block).onBlockPlacedBy(
-            *this, pos, *getBlockState(pos.x, pos.y, pos.z), ItemStack(Items::STONE, 1));
+            *this, pos, *getBlockState(pos.x, pos.y, pos.z), nullptr, ItemStack(Items::STONE, 1));
     }
 
     /// 模拟调度刻执行。vanilla 在计划刻触发时会从世界重新读取方块状态；

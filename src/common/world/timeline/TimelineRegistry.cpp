@@ -87,8 +87,9 @@ Result<void> TimelineRegistry::_register(
         timeline = storage.owned.back().get();
     }
 
-    const auto it = std::find_if(
-        storage.entries.begin(), storage.entries.end(), [&qualified](const Entry& entry) { return entry.name == qualified; });
+    const auto it = std::find_if(storage.entries.begin(), storage.entries.end(), [&qualified](const Entry& entry) {
+        return entry.name == qualified;
+    });
 
     if (it != storage.entries.end()) {
         // 数据包覆盖内置项时替换指针；内置项重复登记时保持原状

@@ -40,6 +40,7 @@ namespace mc {
 
 class IWorld;
 class Player;
+class Entity;
 class BlockItemUseContext;
 
 namespace blockentity {
@@ -79,7 +80,11 @@ public:
      * 未携带方块实体数据时，按 sendCommandFeedback 游戏规则设置追踪输出，并重新应用本方块类型的
      * 自动执行标志（脉冲/连锁为 false，循环为 true）；随后刷新供电状态并在上升沿调度执行。
      */
-    void onBlockPlacedBy(IWorld& world, const BlockPos& pos, const BlockState& state, const ItemStack& stack) override;
+    void onBlockPlacedBy(IWorld& world,
+        const BlockPos& pos,
+        const BlockState& state,
+        const Entity* placer,
+        const ItemStack& stack) override;
 
     // ========== 红石 ==========
 

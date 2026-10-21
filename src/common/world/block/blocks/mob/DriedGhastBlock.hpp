@@ -37,6 +37,7 @@
 #include "common/world/block/Material.hpp"
 
 namespace mc {
+class Entity;
 namespace blocks {
 
 /**
@@ -75,7 +76,11 @@ public:
 
     [[nodiscard]] BlockState getStateForPlacement(BlockItemUseContext& context) override;
 
-    void onBlockPlacedBy(IWorld& world, const BlockPos& pos, const BlockState& state, const ItemStack& stack) override;
+    void onBlockPlacedBy(IWorld& world,
+        const BlockPos& pos,
+        const BlockState& state,
+        const Entity* placer,
+        const ItemStack& stack) override;
 
     [[nodiscard]] BlockState updatePostPlacement(const BlockState& state,
         Direction facing,

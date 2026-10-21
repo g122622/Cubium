@@ -78,10 +78,9 @@ Result<void> EnvironmentAttributeMap::Builder::setFromJson(std::string_view name
     }
 
     const std::vector<EnvironmentAttributeEntry>& registered = EnvironmentAttributeRegistry::attributes();
-    const auto entryIt = std::find_if(
-        registered.begin(), registered.end(), [attribute](const EnvironmentAttributeEntry& entry) {
-            return entry.attribute == attribute;
-        });
+    const auto entryIt = std::find_if(registered.begin(),
+        registered.end(),
+        [attribute](const EnvironmentAttributeEntry& entry) { return entry.attribute == attribute; });
     MC_ASSERT_RELEASE_MSG(entryIt != registered.end(), "EnvironmentAttributeMap: attribute missing from registry");
     const EnvironmentAttributeEntry& entry = *entryIt;
 
@@ -105,8 +104,8 @@ Result<void> EnvironmentAttributeMap::Builder::setFromJson(std::string_view name
 
     if (!entry.allowModifier(operation)) {
         return Error(ErrorCode::InvalidData,
-            "Modifier '" + std::string(attributeModifierOperationName(operation)) + "' is not allowed for attribute "
-                + entry.name);
+            "Modifier '" + std::string(attributeModifierOperationName(operation)) + "' is not allowed for attribute " +
+                entry.name);
     }
     if (!entry.applyJsonArgument) {
         return Error(ErrorCode::InvalidData, "Attribute value type has no JSON representation: " + entry.name);
