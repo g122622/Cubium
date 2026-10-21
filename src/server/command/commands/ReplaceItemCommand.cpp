@@ -31,6 +31,8 @@
 #include "common/command/arguments/ItemSlotArgument.hpp"
 #include "common/command/coordinates/Coordinates.hpp"
 #include "common/core/Types.hpp"
+#include "common/entity/entities/passive/horse/AbstractHorseEntity.hpp"
+#include "common/entity/entities/villager/AbstractVillagerEntity.hpp"
 #include "common/entity/inventory/AbstractContainerMenu.hpp"
 #include "common/entity/inventory/InventorySlotMapping.hpp"
 #include "common/entity/inventory/PlayerEnderChestInventory.hpp"
@@ -50,6 +52,7 @@
 #include "server/application/IServer.hpp"
 #include "server/command/ServerCommandSource.hpp"
 #include "server/command/support/CommandMetadata.hpp"
+#include "server/command/support/EntityResolver.hpp"
 #include "server/command/support/PlayerResolver.hpp"
 #include "server/core/ConnectionManager.hpp"
 #include "server/core/PlayerManager.hpp"
@@ -152,18 +155,13 @@ bool setEntitySlotItem(ServerCommandSource& source, PlayerId playerId, const Ite
         return true;
     }
 
-    // 马匹槽位 (500-514)：需要解析目标马匹实体
-    // TODO: 当前 /replaceitem entity 仅支持玩家选择器，马匹槽位需要实体选择器支持
-    if (slot.isHorseSlot()) {
-        source.sendError("Horse inventory slots require entity targeting (not yet supported in player-only mode)");
-        return false;
-    }
+    // 马匹槽位 (500-514) 与合成槽位 (500-503) 编号重叠：玩家无法承载马匹槽位，
+    // 500-503 落到下方合成槽位分支报"未支持"，504 以上落入"未知槽位"返回 false。
 
     // 玩家光标槽位 (499)：访问当前打开的容器菜单的 carried item，
     // 若无打开的容器菜单则使用 PlayerInventory 的 carried item。
-    // 注意：player.cursor (499) 与 horse.chest (499) 编号重叠，
-    // 当前 /replaceitem entity 仅支持玩家选择器，因此优先匹配光标槽位。
-    // isHorseChestSlot() 也对 499 返回 true，但在玩家上下文中光标槽位优先。
+    // 注意：player.cursor (499) 与 horse.chest (499) 编号重叠。玩家目标的 499 是光标槽位；
+    // 马匹目标的 499 在 AbstractHorse.getSlot 中不存在（马匹库存从 500 起），由实体槽位判定返回未命中。
     if (slot.isCursorSlot()) {
         auto* world = source.world();
         if (world == nullptr) {
@@ -194,31 +192,11 @@ bool setEntitySlotItem(ServerCommandSource& source, PlayerId playerId, const Ite
         return false;
     }
 
-    // 村民槽位 (300-307)：需要访问村民交易界面
-    // TODO: 当村民交易系统集成后实现
-    if (slot.isVillagerSlot()) {
-        source.sendError("Villager trade slots are not yet supported");
-        return false;
-    }
+    // 村民槽位 (300-307) 不存在于玩家自身：落入下方"未知槽位"返回 false，
+    // 由各实体自身的槽位判定（setNonPlayerEntitySlotItem）决定是否写入。
 
     // 未知槽位
     return false;
-}
-
-/**
- * @brief 描述目标玩家
- */
-[[nodiscard]] std::string describeTargets(
-    const ServerCommandSource& source, const std::vector<PlayerId>& targetPlayerIds)
-{
-    if (targetPlayerIds.size() == 1 && source.server() != nullptr) {
-        const auto* playerData = source.server()->playerManager().getPlayer(targetPlayerIds.front());
-        if (playerData != nullptr) {
-            return playerData->username;
-        }
-    }
-
-    return std::to_string(targetPlayerIds.size()) + " players";
 }
 
 /**
@@ -314,6 +292,64 @@ bool setBlockSlotItem(
     return true;
 }
 
+/**
+ * @brief 按槽位编号把物品写入实体自身槽位（对齐 vanilla /item replace entity → Entity.getSlot）
+ *
+ * 非玩家实体的槽位编号与玩家相同：
+ * - 98-106 装备槽（LivingEntity.getSlot → createEquipmentSlotAccess）
+ * - 500-514 马匹库存（AbstractHorse.getSlot → inventory.getSlot(i)，i = 槽位 - 500，含箱马箱子）
+ * - 300-307 村民交易库存（AbstractVillager.getSlot → inventory.getSlot(i)，i = 槽位 - 300）
+ * 优先顺序与 getSlot 覆写链一致：装备先于动物库存，马匹先于村民；槽位在实体上不存在时返回 false。
+ *
+ * @return 是否写入成功（槽位不存在或物品不符合该槽位规则时为 false）
+ */
+bool setNonPlayerEntitySlotItem(Entity& entity, const ItemSlot& slot, const ItemStack& stack)
+{
+    const i32 slotIndex = slot.slotIndex();
+
+    if (slot.isEquipmentSlot()) {
+        auto* living = dynamic_cast<LivingEntity*>(&entity);
+        if (living == nullptr) {
+            return false;
+        }
+        const i32 enumIndex = slot.toEquipmentSlotIndex();
+        if (enumIndex < 0 || enumIndex >= static_cast<i32>(EquipmentSlot::Count)) {
+            // 100/101/102/103/105 之外的装备槽（如 104 不存在）在 vanilla 无对应槽位。
+            return false;
+        }
+        living->setEquipment(static_cast<EquipmentSlot>(enumIndex), stack);
+        return true;
+    }
+
+    if (auto* horse = dynamic_cast<AbstractHorseEntity*>(&entity)) {
+        const i32 horseSlot = slot.isHorseSlot() ? slot.toHorseSlot() : -1;
+        if (horseSlot >= 0 && horseSlot < horse->getInventorySize()) {
+            // 空物品表示清空槽位；非空时按鞍/马铠规则校验（对齐 AbstractHorse.replaceItemInInventory）。
+            if (!stack.isEmpty() && !horse->canEquip(stack, horseSlot)) {
+                return false;
+            }
+            horse->setEquipment(horseSlot, stack);
+            return true;
+        }
+    }
+
+    if (slot.isVillagerSlot()) {
+        auto* villager = dynamic_cast<entity::AbstractVillagerEntity*>(&entity);
+        if (villager == nullptr) {
+            return false;
+        }
+        const i32 villagerSlot = slot.toVillagerSlot();
+        if (villagerSlot < 0 || villagerSlot >= villager->inventory().getContainerSize()) {
+            return false;
+        }
+        villager->inventory().setItem(villagerSlot, stack);
+        return true;
+    }
+
+    // 槽位在实体上不存在：对齐 vanilla getSlot 返回 null（若该实体不是玩家则无其它兜底槽位）。
+    return false;
+}
+
 } // namespace
 
 void ReplaceItemCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
@@ -330,7 +366,7 @@ void ReplaceItemCommand::registerTo(CommandDispatcher<ServerCommandSource>& disp
     // /replaceitem entity <targets> <slot> <item> [count]
     auto entityNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("entity");
     auto targetsArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, EntitySelector>>(
-        "targets", EntityArgumentType::players());
+        "targets", EntityArgumentType::entities());
     auto slotArg =
         std::make_shared<ArgumentCommandNode<ServerCommandSource, ItemSlot>>("slot", ItemSlotArgumentType::itemSlot());
     auto itemArg =
@@ -404,9 +440,13 @@ i32 ReplaceItemCommand::_replaceEntityItem(CommandContext<ServerCommandSource>& 
         }
     }
 
-    // 解析目标玩家
-    auto playerIds = support::resolvePlayerIds(source, selector);
-    if (playerIds.empty()) {
+    // 创建物品堆（air 时用空堆清空槽位，对齐 vanilla /item replace entity ... air）
+    const ItemStack stack = isAirClear ? ItemStack() : ItemStack(item, count);
+
+    // 解析目标实体：对齐 vanilla ItemCommands.setEntityItem 的 Collection<Entity> 语义，
+    // @e 可命中马匹（500-514 库存）、村民（300-307 交易栏）等非玩家实体。
+    const std::vector<Entity*> targets = support::EntityResolver::resolve(source, selector);
+    if (targets.empty()) {
         source.sendError("No entities matched the selector");
         return 0;
     }
@@ -417,75 +457,52 @@ i32 ReplaceItemCommand::_replaceEntityItem(CommandContext<ServerCommandSource>& 
         return 0;
     }
 
-    // 检查槽位类型是否支持实体操作
-    if (!slot.isPlayerInventorySlot() && !slot.isEquipmentSlot() && !slot.isEnderChestSlot() && !slot.isCursorSlot()) {
-        if (slot.isHorseSlot()) {
-            source.sendError("Horse inventory slots require entity targeting with @e selector");
-            return 0;
+    // 玩家槽位之外的槽位只可能存在于非玩家实体（马匹/村民）上，但玩家自身也可能作为
+    // @e 目标；两者都按同一套「槽位在实体上是否存在」判定处理。
+    std::vector<Entity*> changedEntities;
+    for (Entity* entity : targets) {
+        if (entity == nullptr || entity->isRemoved()) {
+            continue;
         }
-        if (slot.isHorseChestSlot()) {
-            source.sendError("Horse chest slot requires entity targeting with @e selector");
-            return 0;
+
+        bool success = false;
+        auto* playerEntity = dynamic_cast<Player*>(entity);
+        if (playerEntity != nullptr) {
+            const PlayerId playerId = playerEntity->playerId();
+            success = setEntitySlotItem(source, playerId, slot, stack);
+            if (success) {
+                syncInventoryToClient(source, playerId);
+            }
+        } else {
+            success = setNonPlayerEntitySlotItem(*entity, slot, stack);
         }
-        if (slot.isCraftingSlot()) {
-            source.sendError("Crafting slots are not yet supported for entity replacement");
-            return 0;
+
+        if (success) {
+            changedEntities.push_back(entity);
         }
-        if (slot.isVillagerSlot()) {
-            source.sendError("Villager trade slots are not yet supported");
-            return 0;
-        }
-        source.sendError("Slot " + describeSlot(slot) + " is not valid for entities");
+    }
+
+    // 对齐 vanilla：无任何实体槽位被写入时报错（ERROR_TARGET_NO_CHANGES_KNOWN_ITEM）。
+    if (changedEntities.empty()) {
+        source.sendError("No entities had slot " + describeSlot(slot) + " to replace");
         return 0;
     }
 
-    i32 successCount = 0;
-    for (PlayerId playerId : playerIds) {
-        if (playerId == 0) {
-            continue;
-        }
-
-        // 获取玩家背包（经 support::resolvePlayerInventory 回退实体层，对 SimulatedPlayer 生效）。
-        auto* server = source.server();
-        if (server == nullptr) {
-            continue;
-        }
-
-        PlayerInventory* inventory = support::resolvePlayerInventory(source, playerId);
-        if (inventory == nullptr) {
-            continue;
-        }
-
-        // 创建物品堆（air 时用空堆清空槽位，对齐 vanilla /replaceitem ... air）
-        ItemStack stack = isAirClear ? ItemStack() : ItemStack(item, count);
-
-        // 设置物品到指定槽位
-        bool success = setEntitySlotItem(source, playerId, slot, stack);
-        if (!success) {
-            continue;
-        }
-
-        // 同步背包到客户端
-        syncInventoryToClient(source, playerId);
-        successCount++;
-    }
-
-    // 发送反馈消息
-    if (successCount <= 0) {
-        source.sendError("No items were replaced");
-        return 0;
-    }
-
+    // 反馈消息（对齐 vanilla commands.item.entity.set.success.single / .multiple 语义）。
     std::ostringstream ss;
     if (isAirClear) {
-        ss << "Cleared slot " << describeSlot(slot) << " for " << describeTargets(source, playerIds);
+        ss << "Cleared slot " << describeSlot(slot) << " for ";
     } else {
-        ss << "Replaced slot " << describeSlot(slot) << " with " << count << "x " << item->getName() << " for "
-           << describeTargets(source, playerIds);
+        ss << "Replaced slot " << describeSlot(slot) << " with " << count << "x " << item->getName() << " for ";
+    }
+    if (changedEntities.size() == 1) {
+        ss << changedEntities.front()->getDisplayName()->getFormattedText();
+    } else {
+        ss << changedEntities.size() << " entities";
     }
     source.sendMessage(ss.str());
 
-    return successCount;
+    return static_cast<i32>(changedEntities.size());
 }
 
 i32 ReplaceItemCommand::_replaceBlockItem(CommandContext<ServerCommandSource>& context)

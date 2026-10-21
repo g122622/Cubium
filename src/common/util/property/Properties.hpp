@@ -1217,7 +1217,7 @@ public:
         Dragon = 19,
         WitherSkeleton = 20,
         Piglin = 21,
-        CustomHead = 22
+        CustomHead = 22,
     };
 
     /**

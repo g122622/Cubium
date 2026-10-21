@@ -119,6 +119,35 @@ public:
     static ItemTag& SWORDS();
 
     /**
+     * @brief 骷髅偏好武器标签（弓）
+     *
+     * 对齐 vanilla ItemTags.SKELETON_PREFERRED_WEAPONS（数据包键 "skeleton_preferred_weapons"）。
+     * 骷髅拾取主手物品时，属于该标签的物品优先于其它物品（即使其它物品攻击伤害更高）。
+     */
+    static ItemTag& SKELETON_PREFERRED_WEAPONS();
+
+    /**
+     * @brief 掠夺者偏好武器标签（弩）
+     *
+     * 对齐 vanilla ItemTags.PILLAGER_PREFERRED_WEAPONS。
+     */
+    static ItemTag& PILLAGER_PREFERRED_WEAPONS();
+
+    /**
+     * @brief 溺尸偏好武器标签（三叉戟）
+     *
+     * 对齐 vanilla ItemTags.DROWNED_PREFERRED_WEAPONS。
+     */
+    static ItemTag& DROWNED_PREFERRED_WEAPONS();
+
+    /**
+     * @brief 猪灵偏好武器标签（弩、金矛）
+     *
+     * 对齐 vanilla ItemTags.PIGLIN_PREFERRED_WEAPONS。
+     */
+    static ItemTag& PIGLIN_PREFERRED_WEAPONS();
+
+    /**
      * @brief 斧标签
      *
      * 包含所有材质的斧物品。

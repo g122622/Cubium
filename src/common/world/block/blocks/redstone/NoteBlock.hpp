@@ -141,6 +141,17 @@ public:
      */
     void triggerNote(IWorld& world, const BlockPos& pos, const BlockState& state);
 
+    /**
+     * @brief 按方块类型推导音符盒乐器（对齐 vanilla 1.20 及以前的 NoteBlockInstrument.byState）
+     *
+     * 1.21.11 起 vanilla 在各方块注册期显式给出 instrument 属性，规则与本表一致；
+     * 本表用于未显式设置属性的方块。
+     *
+     * @param block 方块指针
+     * @return 对应乐器
+     */
+    [[nodiscard]] static BlockProperties::Instrument blockInstrumentByType(const Block* block);
+
 private:
     /**
      * @brief 获取当前生效的乐器类型（读取 INSTRUMENT 状态属性）
@@ -150,9 +161,6 @@ private:
      * @return 乐器类型ID
      */
     [[nodiscard]] i32 _getInstrumentType(IWorld& world, const BlockPos& pos, const BlockState& state) const;
-
-    /// 依据下方方块决定乐器（方块类型 + 材质映射，复刻 vanilla NoteBlockInstrument.byState）
-    [[nodiscard]] static BlockStateProperties::NoteBlockInstrument belowInstrumentFor(const BlockState& belowState);
 
     /// 乐器是否为可调音乐器（BASE_BLOCK 类，决定音高与音符粒子）
     [[nodiscard]] static bool _isTunableInstrument(i32 instrument);

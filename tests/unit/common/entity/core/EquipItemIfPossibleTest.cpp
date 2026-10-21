@@ -30,6 +30,7 @@
 #include "common/item/Items.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/item/enchantment/enchantments/AllEnchantments.hpp"
+#include "common/item/tag/ItemTags.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 
 #include <memory>
@@ -49,6 +50,19 @@ public:
         registerAttributes();
         setHealth(maxHealth());
     }
+};
+
+/// 带偏好武器标签的测试生物（模拟骷髅/掠夺者等覆写 getPreferredWeaponType 的子类）。
+class PreferredWeaponTestMobEntity : public MobEntity {
+public:
+    PreferredWeaponTestMobEntity()
+        : MobEntity(EntityInstanceId(2), mc::test::testEcsRegistry())
+    {
+        registerAttributes();
+        setHealth(maxHealth());
+    }
+
+    [[nodiscard]] std::string getPreferredWeaponType() const override { return "minecraft:skeleton_preferred_weapons"; }
 };
 
 class PickupTestWorld final : public mc::test::BaseTestWorld {
@@ -74,6 +88,7 @@ protected:
         static bool s_initialized = false;
         if (!s_initialized) {
             Items::initialize();
+            item::tag::ItemTags::initialize();
             VanillaBlocks::initialize();
             s_initialized = true;
         }
@@ -190,6 +205,56 @@ TEST_F(EquipItemIfPossibleTest, EquipWeapon_ComparesAttackDamage)
     EXPECT_EQ(m_entity->getEquipment(EquipmentSlot::MainHand).getItem(), Items::IRON_AXE);
 
     EXPECT_TRUE(m_entity->equipItemIfPossible(ItemStack(Items::WOODEN_SWORD, 1)).isEmpty());
+}
+
+// 偏好武器标签优先于攻击伤害：已持有弓的骷髅拒绝伤害更高的剑，且弓不会被剑替换。
+TEST_F(EquipItemIfPossibleTest, EquipWeapon_PreferredTagBeatsAttackDamage)
+{
+    auto entity = std::make_unique<PreferredWeaponTestMobEntity>();
+    entity->setWorld(m_world.get());
+    entity->setPosition(0.0, 64.0, 0.0);
+
+    ASSERT_FALSE(entity->equipItemIfPossible(ItemStack(Items::BOW, 1)).isEmpty());
+    EXPECT_EQ(entity->getEquipment(EquipmentSlot::MainHand).getItem(), Items::BOW);
+
+    // 钻石剑攻击伤害远高于弓，但生物偏好弓：不得替换。
+    EXPECT_TRUE(entity->equipItemIfPossible(ItemStack(Items::DIAMOND_SWORD, 1)).isEmpty());
+    EXPECT_EQ(entity->getEquipment(EquipmentSlot::MainHand).getItem(), Items::BOW);
+
+    // 无偏好标签的生物按攻击伤害比较：钻石剑可替换弓。
+    EXPECT_FALSE(m_entity->equipItemIfPossible(ItemStack(Items::BOW, 1)).isEmpty());
+    EXPECT_EQ(m_entity->getEquipment(EquipmentSlot::MainHand).getItem(), Items::BOW);
+    const ItemStack sword = m_entity->equipItemIfPossible(ItemStack(Items::DIAMOND_SWORD, 1));
+    ASSERT_FALSE(sword.isEmpty());
+    EXPECT_EQ(m_entity->getEquipment(EquipmentSlot::MainHand).getItem(), Items::DIAMOND_SWORD);
+}
+
+// 偏好标签的优先级双向成立：手持非偏好武器时，偏好武器即使伤害更低也胜出。
+TEST_F(EquipItemIfPossibleTest, EquipWeapon_PreferredTagReplacesStrongerNonPreferred)
+{
+    auto entity = std::make_unique<PreferredWeaponTestMobEntity>();
+    entity->setWorld(m_world.get());
+    entity->setPosition(0.0, 64.0, 0.0);
+
+    ASSERT_FALSE(entity->equipItemIfPossible(ItemStack(Items::DIAMOND_SWORD, 1)).isEmpty());
+    const ItemStack bow = entity->equipItemIfPossible(ItemStack(Items::BOW, 1));
+    ASSERT_FALSE(bow.isEmpty());
+    EXPECT_EQ(entity->getEquipment(EquipmentSlot::MainHand).getItem(), Items::BOW);
+}
+
+// 偏好武器标签已在 ItemTags 注册，成员与原版标签文件一致。
+TEST(PreferredWeaponTagsTest, VanillaMembersRegistered)
+{
+    Items::initialize();
+    item::tag::ItemTags::initialize();
+    EXPECT_TRUE(item::tag::ItemTags::SKELETON_PREFERRED_WEAPONS().contains(ItemStack(Items::BOW, 1)));
+    EXPECT_TRUE(item::tag::ItemTags::PILLAGER_PREFERRED_WEAPONS().contains(ItemStack(Items::CROSSBOW, 1)));
+    EXPECT_TRUE(item::tag::ItemTags::DROWNED_PREFERRED_WEAPONS().contains(ItemStack(Items::TRIDENT, 1)));
+    EXPECT_TRUE(item::tag::ItemTags::PIGLIN_PREFERRED_WEAPONS().contains(ItemStack(Items::CROSSBOW, 1)));
+    EXPECT_TRUE(item::tag::ItemTags::PIGLIN_PREFERRED_WEAPONS().contains(ItemStack(Items::GOLDEN_SPEAR, 1)));
+    // 交叉校验：偏好弓的标签不含剑，偏好三叉戟的标签不含弩。
+    EXPECT_FALSE(item::tag::ItemTags::SKELETON_PREFERRED_WEAPONS().contains(ItemStack(Items::IRON_SWORD, 1)));
+    EXPECT_FALSE(item::tag::ItemTags::DROWNED_PREFERRED_WEAPONS().contains(ItemStack(Items::CROSSBOW, 1)));
 }
 
 // 攻击伤害相同时按耐久度比较：剩余耐久更多（伤害值更小）者胜出。

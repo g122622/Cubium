@@ -153,6 +153,42 @@ ItemTag& ItemTags::SWORDS()
     return *tag;
 }
 
+ItemTag& ItemTags::SKELETON_PREFERRED_WEAPONS()
+{
+    static ItemTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "skeleton_preferred_weapons"));
+    }
+    return *tag;
+}
+
+ItemTag& ItemTags::PILLAGER_PREFERRED_WEAPONS()
+{
+    static ItemTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "pillager_preferred_weapons"));
+    }
+    return *tag;
+}
+
+ItemTag& ItemTags::DROWNED_PREFERRED_WEAPONS()
+{
+    static ItemTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "drowned_preferred_weapons"));
+    }
+    return *tag;
+}
+
+ItemTag& ItemTags::PIGLIN_PREFERRED_WEAPONS()
+{
+    static ItemTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "piglin_preferred_weapons"));
+    }
+    return *tag;
+}
+
 ItemTag& ItemTags::AXES()
 {
     static ItemTag* tag = nullptr;
@@ -675,6 +711,29 @@ void ItemTags::initialize()
     swords->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "diamond_sword")));
     swords->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "netherite_sword")));
     allTags[swords->getId()] = std::move(swords);
+
+    // 创建各生物偏好武器标签（数据包未加载时的回退默认值与 vanilla 标签文件一致，
+    // 对齐 ItemTags.SKELETON_PREFERRED_WEAPONS / PILLAGER_PREFERRED_WEAPONS /
+    // DROWNED_PREFERRED_WEAPONS / PIGLIN_PREFERRED_WEAPONS）。
+    auto skeletonPreferred =
+        std::make_unique<ItemTag>(ResourceLocation("minecraft", "skeleton_preferred_weapons"), false);
+    skeletonPreferred->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "bow")));
+    allTags[skeletonPreferred->getId()] = std::move(skeletonPreferred);
+
+    auto pillagerPreferred =
+        std::make_unique<ItemTag>(ResourceLocation("minecraft", "pillager_preferred_weapons"), false);
+    pillagerPreferred->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "crossbow")));
+    allTags[pillagerPreferred->getId()] = std::move(pillagerPreferred);
+
+    auto drownedPreferred =
+        std::make_unique<ItemTag>(ResourceLocation("minecraft", "drowned_preferred_weapons"), false);
+    drownedPreferred->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "trident")));
+    allTags[drownedPreferred->getId()] = std::move(drownedPreferred);
+
+    auto piglinPreferred = std::make_unique<ItemTag>(ResourceLocation("minecraft", "piglin_preferred_weapons"), false);
+    piglinPreferred->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "crossbow")));
+    piglinPreferred->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "golden_spear")));
+    allTags[piglinPreferred->getId()] = std::move(piglinPreferred);
 
     // 创建 AXES 标签
     // 包含所有材质的斧物品

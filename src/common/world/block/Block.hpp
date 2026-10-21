@@ -142,22 +142,29 @@ public:
      * 参考: net.minecraft.world.level.block.NoteBlockInstrument
      */
     enum class Instrument : u8 {
-        Harp = 0,           ///< 竖琴（默认）
-        BaseDrum = 1,       ///< 大鼓（石头类方块）
-        Snare = 2,          ///< 小军鼓（沙子类方块）
-        Hat = 3,            ///< 踩镲（玻璃类方块）
-        Bass = 4,           ///< 贝斯（木材类方块）
-        Flute = 5,          ///< 长笛（泥土类方块）
-        Bell = 6,           ///< 钟（金块）
-        Guitar = 7,         ///< 吉他（羊毛类方块）
-        Chime = 8,          ///< 风铃（冰类方块）
-        Xylophone = 9,      ///< 木琴（骨块）
-        IronXylophone = 10, ///< 铁琴（铁块）
-        CowBell = 11,       ///< 牛铃（灵魂沙）
-        Didgeridoo = 12,    ///< 迪吉里杜管（南瓜类）
-        Bit = 13,           ///< 电子音（绿宝石块）
-        Banjo = 14,         ///< 班卓琴（干草块）
-        Pling = 15          ///< 电钢琴（萤石）
+        Harp = 0,            ///< 竖琴（默认）
+        BaseDrum = 1,        ///< 大鼓（石头类方块）
+        Snare = 2,           ///< 小军鼓（沙子类方块）
+        Hat = 3,             ///< 踩镲（玻璃类方块）
+        Bass = 4,            ///< 贝斯（木材类方块）
+        Flute = 5,           ///< 长笛（泥土类方块）
+        Bell = 6,            ///< 钟（金块）
+        Guitar = 7,          ///< 吉他（羊毛类方块）
+        Chime = 8,           ///< 风铃（冰类方块）
+        Xylophone = 9,       ///< 木琴（骨块）
+        IronXylophone = 10,  ///< 铁琴（铁块）
+        CowBell = 11,        ///< 牛铃（灵魂沙）
+        Didgeridoo = 12,     ///< 迪吉里杜管（南瓜类）
+        Bit = 13,            ///< 电子音（绿宝石块）
+        Banjo = 14,          ///< 班卓琴（干草块）
+        Pling = 15,          ///< 电钢琴（萤石）
+        Zombie = 16,         ///< 僵尸头（MOB_HEAD，仅在音符盒上方生效）
+        Skeleton = 17,       ///< 骷髅头（MOB_HEAD）
+        Creeper = 18,        ///< 苦力怕头（MOB_HEAD）
+        Dragon = 19,         ///< 龙首（MOB_HEAD）
+        WitherSkeleton = 20, ///< 凋灵骷髅头（MOB_HEAD）
+        Piglin = 21,         ///< 猪灵头（MOB_HEAD）
+        CustomHead = 22      ///< 玩家头（CUSTOM，音色来自方块实体）
     };
 
     /**
@@ -507,7 +514,7 @@ public:
     [[nodiscard]] bool hasMapColor() const noexcept { return m_hasMapColor; }
     [[nodiscard]] bool isIgnitedByLava() const noexcept { return m_ignitedByLava; }
     [[nodiscard]] OffsetType getOffsetType() const noexcept { return m_offsetType; }
-    [[nodiscard]] Instrument getInstrument() const noexcept { return m_instrument; }
+    [[nodiscard]] Instrument getInstrument() const noexcept { return m_instrument.value_or(Instrument::Harp); }
 
 private:
     friend class Block;
@@ -538,7 +545,7 @@ private:
     bool m_hasMapColor = false;                                                // 是否显式设置了地图颜色
     bool m_ignitedByLava = false;                                              // 是否可被岩浆点燃
     OffsetType m_offsetType = OffsetType::None;                                // 模型偏移类型
-    Instrument m_instrument = Instrument::Harp;                                // 音符盒乐器
+    std::optional<Instrument> m_instrument;                                    // 音符盒乐器（未设置时按材质推导）
 };
 
 /**
@@ -1457,11 +1464,25 @@ public:
     /**
      * @brief 获取音符盒乐器
      *
-     * 当音符盒放置在此方块上方时演奏的乐器。
+     * 当音符盒放置在此方块上方时演奏的乐器。显式设置的属性优先（如头颅、熔炉）；
+     * 未显式设置时由音符盒按方块类型默认规则推导（NoteBlock::blockInstrumentByType）。
      *
      * 参考: net.minecraft.block.Block.getInstrument
      */
-    [[nodiscard]] BlockProperties::Instrument getInstrument() const noexcept { return m_instrument; }
+    [[nodiscard]] BlockProperties::Instrument getInstrument() const noexcept
+    {
+        return m_instrument.value_or(BlockProperties::Instrument::Harp);
+    }
+
+    /**
+     * @brief 在方块构造期（非虚调用）设置音符盒乐器
+     *
+     * 用于子类构造函数中覆盖音符盒乐器（如头颅按种类设定），不依赖虚派发。
+     */
+    void setNonVirtualInstrument(BlockProperties::Instrument instrument) noexcept { m_instrument = instrument; }
+
+    /// 是否显式设置了音符盒乐器（否则由音符盒按方块类型默认规则推导）
+    [[nodiscard]] bool hasExplicitInstrument() const noexcept { return m_instrument.has_value(); }
 
     // ========================================================================
     // 方块状态
@@ -2485,7 +2506,8 @@ protected:
     // 1.17+ 扩展属性
     bool m_ignitedByLava = false;                                                 // 是否可被岩浆点燃
     BlockProperties::OffsetType m_offsetType = BlockProperties::OffsetType::None; // 模型偏移类型
-    BlockProperties::Instrument m_instrument = BlockProperties::Instrument::Harp; // 音符盒乐器
+    /// 音符盒乐器：未显式设置时按材质推导（见 getInstrument）
+    std::optional<BlockProperties::Instrument> m_instrument;
 
     // 由createBlockState设置
     std::unique_ptr<StateContainer<Block, BlockState>> m_stateContainer;

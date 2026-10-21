@@ -37,7 +37,9 @@ namespace command {
  * 权限: 2 (游戏管理员)
  *
  * 支持两种目标类型：
- * - entity: 替换实体（玩家）物品栏中的物品
+ * - entity: 替换实体物品栏中的物品。目标选择器为任意实体（对齐 vanilla
+ *   /item replace entity 的 Collection<Entity>）；玩家按背包/装备/末影箱槽位写入，
+ *   其它实体按自身槽位表写入（装备槽、马匹库存 500-514、村民交易栏 300-307）
  * - block: 替换方块容器（如箱子）中的物品
  *
  * 槽位名称参考 ItemSlotArgumentType 支持的格式，
