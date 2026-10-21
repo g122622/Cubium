@@ -94,6 +94,13 @@ TEST(PillagerEntityTest, Construction)
     EXPECT_FALSE(pillager.isChargingCrossbow());
 }
 
+TEST(PillagerEntityTest, Construction_PicksUpLoot)
+{
+    // 对齐 vanilla Pillager 构造函数：掠夺者会拾取地上的装备。
+    PillagerEntity pillager(EntityInstanceId(1), mc::test::testEcsRegistry());
+    EXPECT_TRUE(pillager.canPickUpLoot());
+}
+
 TEST(PillagerEntityTest, Attributes)
 {
     PillagerEntity pillager(EntityInstanceId(1), mc::test::testEcsRegistry());

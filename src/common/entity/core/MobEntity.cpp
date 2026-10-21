@@ -1717,7 +1717,6 @@ void MobEntity::finalizeSpawn(
     //   其他 mob 默认 canPickUpLoot=false（不拾取）。
     // 此前基类在此随机 setCanPickUpLoot(true) 是偏差——会覆盖 Villager 构造函数确定的 true
     // （导致村民拾取不确定），也会让本不该拾取的 mob 随机获得拾取能力。已移除，由子类各自对齐。
-    // TODO: Piglin/Pillager 的 setCanPickUpLoot(true) 待相关实体实现时补齐。
     (void)difficulty;
 
     // 填充默认装备（基于难度）
