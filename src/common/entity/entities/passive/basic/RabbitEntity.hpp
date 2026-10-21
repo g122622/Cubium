@@ -156,6 +156,14 @@ public:
      */
     void playAttackSound(LivingEntity& target) override;
 
+    /**
+     * @brief 获取环境音效
+     *
+     * 对齐 vanilla Rabbit.getAmbientSound：由 mob 类型拼出的 entity.rabbit.ambient 未必与
+     * 原版常量一致，此处显式返回 RABBIT_AMBIENT。
+     */
+    [[nodiscard]] std::optional<ResourceLocation> getAmbientSound() const override;
+
     // ========== 跳跃动画状态机 ==========
 
     /**

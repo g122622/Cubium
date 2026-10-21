@@ -1277,4 +1277,23 @@ bool ZoglinEntity::canAttackType(const entity::EntityType& type) const
     return MonsterEntity::canAttackType(type);
 }
 
+// ========== 环境音效 ==========
+
+std::optional<ResourceLocation> GhastEntity::getAmbientSound() const
+{
+    return SoundEvents::ENTITY_GHAST_AMBIENT;
+}
+
+std::optional<ResourceLocation> PiglinEntity::getAmbientSound() const
+{
+    // 对齐 vanilla Piglin.getAmbientSound：战斗（有攻击目标）时猪灵愤怒音，否则普通环境音。
+    return attackTarget() != nullptr ? SoundEvents::ENTITY_PIGLIN_ANGRY : SoundEvents::ENTITY_PIGLIN_AMBIENT;
+}
+
+std::optional<ResourceLocation> HoglinEntity::getAmbientSound() const
+{
+    // 对齐 vanilla Hoglin.getAmbientSound：战斗（有攻击目标）时疣猪兽愤怒音，否则普通环境音。
+    return attackTarget() != nullptr ? SoundEvents::ENTITY_HOGLIN_ANGRY : SoundEvents::ENTITY_HOGLIN_AMBIENT;
+}
+
 } // namespace mc

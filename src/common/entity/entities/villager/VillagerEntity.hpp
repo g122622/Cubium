@@ -669,6 +669,14 @@ public:
      */
     void rewardTradeXp(MerchantOffer& offer) override;
 
+    /**
+     * @brief 环境音效
+     *
+     * 对齐 vanilla WanderingTrader.getAmbientSound：交易中播放 WANDERING_TRADER_TRADE，
+     * 否则播放 WANDERING_TRADER_AMBIENT。
+     */
+    [[nodiscard]] std::optional<ResourceLocation> getAmbientSound() const override;
+
 protected:
     void registerGoals() override;
     void registerAttributes() override;

@@ -180,6 +180,11 @@ public:
      */
     [[nodiscard]] f32 eyeHeight() const override { return 0.4f; }
 
+    // ========== 音效 ==========
+
+    /// 环境音效（对齐 vanilla Squid.getAmbientSound → SQUID_AMBIENT）
+    [[nodiscard]] std::optional<ResourceLocation> getAmbientSound() const override;
+
     // ========== 生命周期 ==========
 
     void tick() override;
