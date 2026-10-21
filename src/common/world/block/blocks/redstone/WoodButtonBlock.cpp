@@ -36,7 +36,7 @@ namespace blocks {
 static constexpr i32 WOOD_BUTTON_PRESS_TIME = 30;
 
 WoodButtonBlock::WoodButtonBlock(const BlockProperties& properties)
-    : AbstractButtonBlock(properties, WOOD_BUTTON_PRESS_TIME)
+    : AbstractButtonBlock(properties, WOOD_BUTTON_PRESS_TIME, true)
 {}
 
 void WoodButtonBlock::playClickSound(IWorld& world, const BlockPos& pos, bool pressed) const

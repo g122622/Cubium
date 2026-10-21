@@ -23,8 +23,10 @@
 
 #include "AbstractButtonBlock.hpp"
 #include "common/core/Types.hpp"
+#include "common/entity/entities/projectile/AbstractArrowEntity.hpp"
 #include "common/item/context/BlockItemUseContext.hpp"
 #include "common/physics/collision/CollisionShape.hpp"
+#include "common/util/AxisAlignedBB.hpp"
 #include "common/util/Direction.hpp"
 #include "common/util/assert/AssertMacros.hpp"
 #include "common/util/math/random/IRandom.hpp"
@@ -50,10 +52,12 @@ namespace blocks {
 
 // 使用 BlockStateProperties 中的 AttachFace
 using AttachFace = BlockStateProperties::AttachFace;
+using entity::AbstractArrowEntity;
 
-AbstractButtonBlock::AbstractButtonBlock(const BlockProperties& properties, i32 ticksToStayPressed)
+AbstractButtonBlock::AbstractButtonBlock(const BlockProperties& properties, i32 ticksToStayPressed, bool arrowSensitive)
     : Block(properties)
     , m_ticksToStayPressed(ticksToStayPressed)
+    , m_arrowSensitive(arrowSensitive)
 {
 
     // 创建状态容器
@@ -131,20 +135,20 @@ void AbstractButtonBlock::onBlockAdded(IWorld& world, const BlockPos& pos, const
     // 按钮放置时不触发信号
 }
 
-void AbstractButtonBlock::neighborChanged(
-    IWorld& world, const BlockPos& pos, Block& neighborBlock, const BlockPos& neighborPos, bool isMoving)
+void AbstractButtonBlock::_updateNeighbours(IWorld& world, const BlockPos& pos)
 {
-    MC_UNUSED(world);
-    MC_UNUSED(neighborBlock);
-    MC_UNUSED(neighborPos);
-    MC_UNUSED(isMoving);
+    // 手柄输出方向反向即附着（支撑）方向：方块型按钮为 Up（下方支撑），贴墙按钮为 FACING 反向。
+    const BlockState* state = world.getBlockState(pos);
+    if (state == nullptr) {
+        return;
+    }
+    const Direction supportDirection = Directions::opposite(getAttachDirection(*state));
 
-    // 按钮（FaceAttachedHorizontalDirectionalBlock）不在 neighborChanged 中检查支撑——
-    // 支撑检查在 updatePostPlacement（形状更新）中，该路径受 setBlockState 的
-    // UPDATE_NEIGHBORS 门控；结构放置不带该位，故不触发自毁。
-    // 此前项目把支撑自毁放在 neighborChanged，而红石线 _notifyWireNeighbors 会绕过 flags
-    // 直接调 neighborChanged，导致结构放置时按钮在支撑（红石线）尚未放置前被通知自毁。
-    // TODO: vanilla 按钮继承默认 neighborChanged（无 override）；项目保留空实现以兼容现有调用约定。
+    // 按钮状态变化要使自身六个方向邻居重算形状，并额外通知支撑方块本身，
+    // 覆盖紧贴支撑的红石导线等元件。与按下/弹起时的 setBlockState(UPDATE_CLIENTS)
+    // 分开执行：该次写入只同步客户端，邻居通知统一在此完成。
+    world.updateNeighbors(pos, *this);
+    world.updateNeighbors(pos.offset(supportDirection), *this);
 }
 
 BlockState AbstractButtonBlock::updatePostPlacement(const BlockState& state,
@@ -198,16 +202,88 @@ BlockState AbstractButtonBlock::updatePostPlacement(const BlockState& state,
 void AbstractButtonBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random)
 {
     MC_UNUSED(random);
+    if (!isPowered(state)) {
+        return;
+    }
+
+    // 计时到期：重查是否仍有箭矢停留在按钮内。有则维持按下并续期（木按钮可被箭持续触发），
+    // 无则弹起。与实体碰撞入口共用 checkPressed，避免两条路径行为分叉。
+    checkPressed(world, pos, state);
+}
+
+BlockActionResult AbstractButtonBlock::useWithoutItem(
+    const BlockState& state, IWorld& world, const BlockPos& pos, Player& player, const BlockRaycastResult& hit)
+{
+    MC_UNUSED(player);
+    MC_UNUSED(hit);
+
+    // 已按下的按钮不再响应，避免重复调度与重复音效。
     if (isPowered(state)) {
-        // 按钮弹起
-        BlockState newState = withPowered(state, false);
+        return ActionResultType::Consume;
+    }
+    if (!world.isClientSide()) {
+        press(world, pos, state);
+    }
+    return ActionResultType::Success;
+}
+
+void AbstractButtonBlock::onEntityCollision(
+    const BlockState& state, IWorld& world, const BlockPos& pos, Entity& entity) const
+{
+    // 仅木按钮可被箭矢触发；已按下的续期由计划刻负责。
+    if (!m_arrowSensitive || world.isClientSide() || isPowered(state)) {
+        return;
+    }
+    if (dynamic_cast<const AbstractArrowEntity*>(&entity) == nullptr) {
+        return;
+    }
+    // onEntityCollision 为 const 回调，而状态写入需要非 const 实例（与 updatePostPlacement 同语义）。
+    const_cast<AbstractButtonBlock*>(this)->checkPressed(world, pos, state);
+}
+
+/// 判断包围盒内是否停留着（未被移除的）箭矢
+bool _containsArrow(const IWorld& world, const AxisAlignedBB& box)
+{
+    for (const Entity* candidate : world.getEntitiesInAABB(box)) {
+        if (candidate == nullptr || candidate->isRemoved()) {
+            continue;
+        }
+        if (dynamic_cast<const AbstractArrowEntity*>(candidate) != nullptr) {
+            return true;
+        }
+    }
+    return false;
+}
+
+void AbstractButtonBlock::checkPressed(IWorld& world, const BlockPos& pos, const BlockState& state)
+{
+    bool arrowInside = false;
+    if (m_arrowSensitive) {
+        // 以按钮形状所有局部盒的并集判定"箭矢停留在按钮内"：按钮形状单盒，取首个盒即可，
+        // 静止在地面的箭矢同样算作持续按下。
+        const CollisionShape& shape = getShape(state);
+        if (shape.boxCount() > 0) {
+            const AxisAlignedBB local = shape.boxes().front();
+            const AxisAlignedBB box = AxisAlignedBB(static_cast<f32>(pos.x) + local.minX,
+                static_cast<f32>(pos.y) + local.minY,
+                static_cast<f32>(pos.z) + local.minZ,
+                static_cast<f32>(pos.x) + local.maxX,
+                static_cast<f32>(pos.y) + local.maxY,
+                static_cast<f32>(pos.z) + local.maxZ);
+            arrowInside = _containsArrow(world, box);
+        }
+    }
+
+    if (arrowInside != isPowered(state)) {
+        BlockState newState = withPowered(state, arrowInside);
         world.setBlockState(pos, &newState, world::BlockUpdateFlags::UPDATE_CLIENTS);
+        _updateNeighbours(world, pos);
+        playClickSound(world, pos, arrowInside);
+    }
 
-        // 播放弹起音效
-        playClickSound(world, pos, false);
-
-        // 通知相邻方块更新
-        notifyNeighbors(world, pos);
+    // 仍处于按下状态则续期，下一个计划刻再复查；否则本次即为弹起。
+    if (arrowInside) {
+        world.tickManager().scheduleBlockTick(pos, *this, m_ticksToStayPressed, world::tick::TickPriority::High);
     }
 }
 
@@ -328,7 +404,7 @@ void AbstractButtonBlock::press(IWorld& world, const BlockPos& pos, const BlockS
     playClickSound(world, pos, true);
 
     // 通知相邻方块更新
-    notifyNeighbors(world, pos);
+    _updateNeighbours(world, pos);
 
     // 调度弹起
     world.tickManager().scheduleBlockTick(pos, *this, m_ticksToStayPressed, world::tick::TickPriority::High);
@@ -338,27 +414,6 @@ bool AbstractButtonBlock::canAttachToFace(Direction facing) const
 {
     // 按钮可以附着在任何水平方向
     return Directions::isHorizontal(facing);
-}
-
-void AbstractButtonBlock::notifyNeighbors(IWorld& world, const BlockPos& pos)
-{
-    const BlockState* state = world.getBlockState(pos);
-    if (state == nullptr) {
-        return;
-    }
-
-    // 按钮状态变化只影响信号输出方向上的方块（例如输出方向的红石线）及其附着侧方块
-    // （附着方块可能因红石线连接形状变化而需要更新），与其余四个方向无关。
-    const Direction outputDirection = getOutputDirection(*state);
-    const std::array<Direction, 2> affectedDirections = {outputDirection, getAttachDirection(*state)};
-
-    for (const Direction dir : affectedDirections) {
-        const BlockPos neighborPos = pos.offset(dir);
-        const BlockState* neighborState = world.getBlockState(neighborPos);
-        if (neighborState != nullptr && !neighborState->isAir()) {
-            neighborState->getBlockMutable().neighborChanged(world, neighborPos, *this, pos, false);
-        }
-    }
 }
 
 } // namespace blocks

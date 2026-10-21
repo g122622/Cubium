@@ -30,6 +30,8 @@
  */
 
 #include "common/TestWorldHelper.hpp"
+#include "common/entity/entities/player/Player.hpp"
+#include "common/item/core/ActionResult.hpp"
 #include "common/util/Direction.hpp"
 #include "common/util/property/Properties.hpp"
 #include "common/world/IWorld.hpp"
@@ -39,10 +41,16 @@
 #include "common/world/block/blocks/redstone/StoneButtonBlock.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/redstone/RedstonePower.hpp"
+#include "common/world/tick/manager/TickManager.hpp"
 #include <gtest/gtest.h>
 
+#include <algorithm>
+#include <cstddef>
 #include <memory>
+#include <string>
 #include <unordered_map>
+#include <utility>
+#include <vector>
 
 namespace mc {
 namespace blocks {
@@ -53,7 +61,12 @@ namespace {
 /// 记录方块状态的最小测试世界
 class ButtonTestWorld final : public ::mc::test::BaseTestWorld {
 public:
+    ButtonTestWorld() { m_tickManager = std::make_unique<world::tick::TickManager>(*this); }
+
     using IWorld::getBlockState;
+
+    [[nodiscard]] world::tick::TickManager& tickManager() override { return *m_tickManager; }
+    [[nodiscard]] const world::tick::TickManager& tickManager() const override { return *m_tickManager; }
 
     [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override
     {
@@ -73,8 +86,24 @@ public:
 
     void setBlockAt(const BlockPos& pos, const BlockState* state) { setBlockState(pos.x, pos.y, pos.z, state); }
 
+    /// 记录每一次邻居更新通知（位置 + 触发源方块）
+    void updateNeighbors(const BlockPos& pos, Block& sourceBlock) override
+    {
+        m_updates.emplace_back(pos, &sourceBlock);
+    }
+
+    [[nodiscard]] bool wasUpdated(const BlockPos& pos) const
+    {
+        return std::any_of(
+            m_updates.begin(), m_updates.end(), [&pos](const auto& entry) { return entry.first == pos; });
+    }
+
+    [[nodiscard]] std::size_t updateCount() const { return m_updates.size(); }
+
 private:
+    std::vector<std::pair<BlockPos, Block*>> m_updates;
     std::unordered_map<BlockPos, const BlockState*> m_blocks;
+    std::unique_ptr<world::tick::TickManager> m_tickManager;
 };
 
 using AttachFace = BlockStateProperties::AttachFace;
@@ -176,6 +205,50 @@ TEST_F(ButtonBlockSignalTest, PoweredButtonPowersBlockOnOutputSideOnly)
     // 背面（北侧方块看向南）读不到信号。
     EXPECT_EQ(world::redstone::RedstonePower::getSignal(world, buttonPos, Direction::South), 15);
     EXPECT_EQ(world::redstone::RedstonePower::getSignal(world, buttonPos, Direction::North), 0);
+}
+
+// ========== 交互按下 ==========
+
+TEST_F(ButtonBlockSignalTest, UseWithoutItem_PressesButtonAndSchedulesRelease)
+{
+    ButtonTestWorld world;
+    const BlockPos buttonPos(0, 64, 0);
+    const BlockState unpressed = _button(Direction::North, AttachFace::Wall, false);
+    world.setBlockAt(buttonPos, &unpressed);
+
+    Player player(EntityInstanceId{2}, std::string("Tester"), mc::test::testEcsRegistry());
+    VanillaBlocks::STONE_BUTTON->useWithoutItem(unpressed, world, buttonPos, player, BlockRaycastResult{});
+
+    // 交互入口必须真正把按钮置为按下（此前方块从未被任何交互路径按下）。
+    EXPECT_TRUE(world.getBlockState(buttonPos)->get(BlockStateProperties::POWERED()));
+
+    // 已按下时再次交互应被消费且不改变状态。
+    const BlockActionResult second = VanillaBlocks::STONE_BUTTON->useWithoutItem(
+        *world.getBlockState(buttonPos), world, buttonPos, player, BlockRaycastResult{});
+    EXPECT_EQ(second.getType(), ActionResultType::Consume);
+}
+
+// ========== 按下/弹起时的邻居更新范围 ==========
+
+TEST_F(ButtonBlockSignalTest, PressUpdatesFullNeighbourhoodAndSupport)
+{
+    ButtonTestWorld world;
+    const BlockPos buttonPos(0, 64, 0);
+    const BlockPos supportPos(0, 64, 1); // 墙按钮朝北，支撑在其南侧
+
+    const BlockState unpressed = _button(Direction::North, AttachFace::Wall, false);
+    world.setBlockAt(buttonPos, &unpressed);
+
+    Player player(EntityInstanceId{1}, std::string("Tester"), mc::test::testEcsRegistry());
+    const BlockActionResult result =
+        VanillaBlocks::STONE_BUTTON->useWithoutItem(unpressed, world, buttonPos, player, BlockRaycastResult{});
+    EXPECT_EQ(result.getType(), ActionResultType::Success);
+
+    // 按钮自身位置与支撑方块位置各获得一次邻居更新发起（RedstoneSystem 再据此逐个通知
+    // 六向邻居并调用其 neighborChanged）。此前实现只挑输出方向与附着侧两个方向直接调用。
+    EXPECT_TRUE(world.wasUpdated(buttonPos));
+    EXPECT_TRUE(world.wasUpdated(supportPos));
+    EXPECT_TRUE(world.getBlockState(buttonPos)->get(BlockStateProperties::POWERED()));
 }
 
 } // namespace test

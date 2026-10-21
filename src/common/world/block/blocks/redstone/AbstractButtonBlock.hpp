@@ -60,8 +60,9 @@ public:
      * @brief 构造函数
      * @param properties 方块属性
      * @param ticksToStayPressed 按压持续时间（tick）
+     * @param arrowSensitive 是否可被箭矢持续触发（木按钮为 true，石质按钮为 false）
      */
-    AbstractButtonBlock(const BlockProperties& properties, i32 ticksToStayPressed);
+    AbstractButtonBlock(const BlockProperties& properties, i32 ticksToStayPressed, bool arrowSensitive);
 
     // ========== Block 接口实现 ==========
 
@@ -74,10 +75,15 @@ public:
 
     void onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state, bool movedByPiston) override;
 
-    void neighborChanged(
-        IWorld& world, const BlockPos& pos, Block& neighborBlock, const BlockPos& neighborPos, bool isMoving) override;
-
     void tick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random) override;
+
+    [[nodiscard]] BlockActionResult useWithoutItem(const BlockState& state,
+        IWorld& world,
+        const BlockPos& pos,
+        Player& player,
+        const BlockRaycastResult& hit) override;
+
+    void onEntityCollision(const BlockState& state, IWorld& world, const BlockPos& pos, Entity& entity) const override;
 
     [[nodiscard]] BlockState updatePostPlacement(const BlockState& state,
         Direction facing,
@@ -172,6 +178,9 @@ protected:
     /// 按压持续时间（tick）
     i32 m_ticksToStayPressed;
 
+    /// 是否可被箭矢触发（木按钮为 true，石质按钮为 false）
+    bool m_arrowSensitive;
+
     /**
      * @brief 播放点击音效
      *
@@ -190,12 +199,27 @@ protected:
     [[nodiscard]] bool canAttachToFace(Direction facing) const;
 
     /**
-     * @brief 通知相邻方块更新
+     * @brief 按"是否有箭矢停留在按钮内"重算 POWERED 状态
+     *
+     * 对应 vanilla ButtonBlock.checkPressed：状态变化时写回方块并通知邻居、播放音效；
+     * 仍为按下时重排计划刻，使箭矢停留期间持续续期。
+     *
+     * @param world 世界引用
+     * @param pos 方块位置
+     * @param state 当前方块状态
+     */
+    void checkPressed(IWorld& world, const BlockPos& pos, const BlockState& state);
+
+    /**
+     * @brief 按钮按下/弹起后通知相邻方块更新
+     *
+     * 更新按钮自身六个方向的邻居，并额外更新支撑方块位置的邻居（覆盖紧贴支撑的
+     * 红石导线等元件）。
      *
      * @param world 世界引用
      * @param pos 方块位置
      */
-    void notifyNeighbors(IWorld& world, const BlockPos& pos);
+    void _updateNeighbours(IWorld& world, const BlockPos& pos);
 };
 
 } // namespace blocks

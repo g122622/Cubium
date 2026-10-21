@@ -36,7 +36,7 @@ namespace blocks {
 static constexpr i32 STONE_BUTTON_PRESS_TIME = 20;
 
 StoneButtonBlock::StoneButtonBlock(const BlockProperties& properties)
-    : AbstractButtonBlock(properties, STONE_BUTTON_PRESS_TIME)
+    : AbstractButtonBlock(properties, STONE_BUTTON_PRESS_TIME, false)
 {}
 
 void StoneButtonBlock::playClickSound(IWorld& world, const BlockPos& pos, bool pressed) const
