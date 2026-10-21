@@ -69,16 +69,12 @@
 
 namespace mc {
 
-// 本文件收敛了原 RabbitEntity 的 TODO：实现了兔子专属的 RabbitJumpControl /
-// RabbitMoveControl 控制器、jumpDelayTicks/wasOnGround 着陆延迟状态机、
-// updateAITasks()（对应 MC customServerAiStep）以及杀手兔变种的属性与 AI 目标切换。
-// RaidGardenGoal（偷胡萝卜）+ CarrotBlock 年龄递减逻辑已实现，详见
-// ai/goal/goals/special/RaidGardenGoal.{hpp,cpp}。
-//
-// 仍保留为 TODO 的项目：
-// - getJumpPower() 重写：MC 中 Rabbit 重写了 getJumpPower() 根据移动速度和路径
-//   调整跳跃高度（0.2/0.3/0.5）。getJumpPower() 现已是虚函数，Rabbit 可直接重写，
-//   待实现。
+// 兔子专属实现概览：
+// - RabbitJumpControl / RabbitMoveControl 控制器，以及 jumpDelayTicks/wasOnGround 着陆延迟状态机；
+// - updateAITasks()（对应 MC customServerAiStep）与杀手兔变种的属性 / AI 目标切换；
+// - getJumpPower()（经 getRabbitJumpScale 按移动速度、下一路径点与水平碰撞取 0.2/0.3/0.5）；
+// - RaidGardenGoal（偷胡萝卜）+ CarrotBlock 年龄递减，详见
+//   ai/goal/goals/special/RaidGardenGoal.{hpp,cpp}。
 
 RabbitEntity::RabbitEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
     : AnimalEntity(id, registry)

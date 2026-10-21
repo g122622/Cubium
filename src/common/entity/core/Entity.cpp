@@ -31,6 +31,7 @@
 #include "common/entity/core/EntityClassRegistry.hpp"
 #include "common/entity/core/EntityDataManager.hpp"
 #include "common/entity/core/EntitySize.hpp"
+#include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/core/MoverType.hpp"
 #include "common/entity/damage/DamageSource.hpp"
 #include "common/entity/damage/tag/DamageTypeTags.hpp"
@@ -254,26 +255,69 @@ Entity* Entity::convertTo(
     }
 
     // 以下状态必须在 remove() 置位之前读取（原实体此时仍然有效）。
-    const bool silence = isSilent();
+    // 复制清单对齐 vanilla ConversionType.SINGLE.convert + convertCommon（1.21.11）。
     const std::string customName = customNameText();
+    const bool customNameVisible = isCustomNameVisible();
+    const f32 savedYBodyRot = yBodyRot();
+    const f32 savedFallDistance = fallDistance();
+    const bool savedOnGround = onGround();
+    const bool savedFallFlying = isElytraFlying();
+    const auto savedVehicle = m_vehicle;
+    const auto savedPassengers = m_passengers;
+    const i32 savedPortalCooldown = portalCooldown();
+    const i32 savedRemainingFireTicks = getRemainingFireTicks();
+    const bool savedInvulnerable = isInvulnerable();
+    const bool savedSilent = isSilent();
+    const bool savedNoGravity = hasNoGravity();
 
+    // ---- 位置 / 朝向 / 速度 / 落地（vanilla copyPosition / setDeltaMovement 等） ----
     converted->setPosition(x(), y(), z());
     converted->setRotation(yaw(), pitch());
     converted->setVelocity(velocity());
+    converted->setYBodyRot(savedYBodyRot);
+    converted->setFallDistance(savedFallDistance);
+    converted->setOnGround(savedOnGround);
+    if (savedFallFlying) {
+        converted->addFlag(EntityFlags::FallFlying);
+    }
+
+    // ---- 通用状态（vanilla convertCommon 的 Entity 部分） ----
     if (!customName.empty()) {
         converted->setCustomName(customName);
     }
-    if (isInvulnerable()) {
-        converted->setInvulnerable(true);
+    converted->setCustomNameVisible(customNameVisible);
+    converted->setInvulnerable(savedInvulnerable);
+    converted->setSilent(savedSilent);
+    converted->setNoGravity(savedNoGravity);
+    converted->setPortalCooldown(savedPortalCooldown);
+    converted->setRemainingFireTicks(savedRemainingFireTicks);
+
+    // ---- 生物 / 生物体状态（vanilla convertCommon 的 LivingEntity / Mob 部分） ----
+    // 注意：Entity 只 include 了基础实体头文件，生物相关转换逻辑委托给 LivingEntity 的钩子实现。
+    copyConversionStateTo(*converted, params);
+
+    // ---- 骑乘关系（vanilla ConversionType.convert 的乘客/载具迁移） ----
+    // 原实体首个乘客改乘新实体；原实体的载具关系转移给新实体；新实体自带的乘客被清空。
+    if (!savedPassengers.empty()) {
+        Entity* rider = m_world->getEntity(savedPassengers.front());
+        if (rider != nullptr) {
+            if (rider->getVehicle() == id()) {
+                rider->stopRiding();
+            }
+            rider->startRiding(*converted);
+        } else {
+            // TODO(convert-passengers): 原版会逐个迁移全部乘客；首个乘客已失效时此处直接跳过。
+        }
     }
-    if (silence) {
-        converted->setSilent(true);
+    if (savedVehicle != INVALID_ENTITY_ID) {
+        if (Entity* vehicle = m_world->getEntity(savedVehicle); vehicle != nullptr && !vehicle->isRemoved()) {
+            // 原实体与新实体同属该载具：先让原实体下车，再把新实体放上去。
+            if (getVehicle() == vehicle->id()) {
+                stopRiding();
+            }
+            converted->startRiding(*vehicle);
+        }
     }
-    // TODO(convert-equipment): preserveEquipment 需要通用装备快照复制（LivingEntity 各槽位
-    //   读写）。当前所有转化调用点均为非生物→生物（蝌蚪→青蛙）或未传 true，先留空实现。
-    MC_UNUSED(params);
-    // TODO(convert-copy-nbt): copyNbt 需要"合并式"读入（目标实体已初始化字段，不能整体
-    //   readAdditionalSaveData 覆盖）。当前调用点均不传该参数，待需要时补充逐键合并。
 
     Entity* convertedPtr = converted.get();
     m_world->spawnEntity(std::move(converted));

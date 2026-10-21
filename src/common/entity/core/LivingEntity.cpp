@@ -27,10 +27,12 @@
 #include "common/entity/attribute/AttributeModifier.hpp"
 #include "common/entity/attribute/Attributes.hpp"
 #include "common/entity/combat/CombatRules.hpp"
+#include "common/entity/core/AgeableEntity.hpp"
 #include "common/entity/core/DataParameter.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/core/EntityClassRegistry.hpp"
 #include "common/entity/core/EntityDataManager.hpp"
+#include "common/entity/core/MobEntity.hpp"
 #include "common/entity/damage/CombatTracker.hpp"
 #include "common/entity/damage/DamageSource.hpp"
 #include "common/entity/damage/tag/DamageTypeTags.hpp"
@@ -250,6 +252,13 @@ void LivingEntity::setAbsorptionAmount(f32 amount)
     const f32 maxAbsorption = static_cast<f32>(getAttributeValue(entity::attribute::Attributes::MAX_ABSORPTION, 0.0));
     if (auto* c = m_entityContext->tryGetComponent<ecs::HurtStateComponent>()) {
         c->m_absorption = std::max(0.0f, std::min(amount, maxAbsorption));
+    }
+}
+
+void LivingEntity::internalSetAbsorptionAmount(f32 amount)
+{
+    if (auto* c = m_entityContext->tryGetComponent<ecs::HurtStateComponent>()) {
+        c->m_absorption = amount;
     }
 }
 
@@ -2903,6 +2912,72 @@ f64 LivingEntity::getEffectiveGravity() const
 // ============================================================================
 // 效果系统
 // ============================================================================
+
+void LivingEntity::copyConversionStateTo(Entity& converted, const ConversionParams& params)
+{
+    auto* toLiving = dynamic_cast<LivingEntity*>(&converted);
+    if (toLiving == nullptr) {
+        return;
+    }
+
+    // 吸收伤害（vanilla convertCommon 首项）。
+    // 不能走 setAbsorptionAmount：该接口会把数值 clamp 到 MAX_ABSORPTION 属性上限，而原版
+    // clamp 只在属性变化（onAttributeUpdated）时发生。转化目标实体在 finalizeSpawn 之前
+    // 尚未获得属性（如僵尸 MAX_ABSORPTION = MAX_HEALTH），直接 set 会把吸收值截断为 0。
+    toLiving->internalSetAbsorptionAmount(std::max(0.0f, absorptionAmount()));
+    for (const entity::effect::EffectInstance& effect : m_effectManager.getAllEffects()) {
+        toLiving->addEffect(effect);
+    }
+    // 受击表现延续（与原版一样直接把 hurtTime 抄给新实体）
+    toLiving->setHurtTime(hurtTime());
+
+    if (params.preserveEquipment) {
+        for (i32 slotIndex = 0; slotIndex < static_cast<i32>(EquipmentSlot::Count); ++slotIndex) {
+            const auto slot = static_cast<EquipmentSlot>(slotIndex);
+            const ItemStack& stack = getEquipment(slot);
+            if (!stack.isEmpty()) {
+                toLiving->setEquipment(slot, stack);
+            }
+        }
+        auto* fromMob = dynamic_cast<MobEntity*>(this);
+        auto* toMob = dynamic_cast<MobEntity*>(toLiving);
+        if (fromMob != nullptr && toMob != nullptr) {
+            for (i32 slotIndex = 0; slotIndex < static_cast<i32>(EquipmentSlot::Count); ++slotIndex) {
+                const auto slot = static_cast<EquipmentSlot>(slotIndex);
+                toMob->setEquipmentDropChance(slot, fromMob->getEquipmentDropChance(slot));
+            }
+        }
+    }
+    if (params.preserveAttributes) {
+        toLiving->attributes().copyFrom(attributes());
+    }
+
+    // 年龄 / 幼体状态：双方都能读具体年龄时按原版复制年龄，否则退化为布尔幼体标记。
+    auto* fromAgeable = dynamic_cast<AgeableEntity*>(this);
+    auto* toAgeable = dynamic_cast<AgeableEntity*>(toLiving);
+    if (fromAgeable != nullptr && toAgeable != nullptr) {
+        toAgeable->setGrowingAge(fromAgeable->getGrowingAge());
+    } else if (auto* toChildHolder = dynamic_cast<AgeableEntity*>(toLiving); isChild() && toChildHolder != nullptr) {
+        toChildHolder->setChild(true);
+    }
+    // TODO(convert-forced-age): AgeableEntity 的 m_forcedAge / m_forcedAgeTimer 为私有且无
+    //   访问器，vanilla copyDataFrom 会一并复制；待补充 getter/setter 后在此复制。
+
+    auto* fromMob = dynamic_cast<MobEntity*>(this);
+    auto* toMob = dynamic_cast<MobEntity*>(toLiving);
+    if (fromMob == nullptr || toMob == nullptr) {
+        return;
+    }
+    if (params.preserveCanPickUpLoot) {
+        toMob->setCanPickUpLoot(fromMob->canPickUpLoot());
+    }
+    // TODO(convert-left-handed): MobEntity 尚无 isLeftHanded 状态接口；vanilla convertCommon
+    //   会复制 Mob 的左手标志，待该字段落地后补上。
+    toMob->setNoAi(fromMob->isNoAi());
+    if (fromMob->isNoDespawnRequired()) {
+        toMob->enablePersistence();
+    }
+}
 
 bool LivingEntity::addEffect(entity::effect::EffectInstance effect)
 {
