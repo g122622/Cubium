@@ -34,8 +34,10 @@
 #include "common/util/nbt/Nbt.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/chunk/data/IChunk.hpp"
+#include <cstddef>
 #include <memory>
 #include <optional>
+#include <vector>
 
 namespace mc {
 
@@ -57,11 +59,17 @@ class DamageSource;
  *
  * 参考：net.minecraft.world.entity.animal.sniffer.Sniffer
  *
- * @note 当前实现为最小可玩版本：完整的属性/声音/NBT/数据同步/繁殖/孵化集成，
- *       但复杂的 Brain AI 状态机（嗅探→搜索→挖掘→掉落种子）暂未实现，
- *       后续可在此基础上扩展。原版使用 Brain + MemoryModuleType.SNIFFER_EXPLORED_POSITIONS
- *       管理挖掘状态，本项目使用 GoalSelector，需要单独设计对应的 Goal。
+ * @note 原版使用 Brain + MemoryModuleType（SNIFFER_SNIFFING_TARGET / SNIFFER_DIGGING /
+ *       SNIFFER_HAPPY / SNIFF_COOLDOWN / SNIFFER_EXPLORED_POSITIONS）驱动状态机；本项目无 Brain
+ *       系统，改以 GoalSelector 上的 SnifferSniffGoal（嗅探）→ SnifferSearchGoal（搜索）→
+ *       SnifferDigGoal（挖掘）→ SnifferHappyGoal（开心）链式衔接，并以实体字段承载上述记忆语义
+ *       （hasSniffingTarget / isHappy / isSniffCoolingDown / 已探索位置列表）。
  */
+namespace entity::ai::goal {
+class PanicGoal;
+class TemptGoal;
+} // namespace entity::ai::goal
+
 class SnifferEntity : public AnimalEntity {
 public:
     /**
@@ -167,6 +175,46 @@ public:
      * @return 生成的幼体实体
      */
     std::unique_ptr<AnimalEntity> spawnBaby(AnimalEntity& partner) override;
+
+    // ========== 嗅探状态机（对齐 vanilla Sniffer 的 can* 判定与记忆模块） ==========
+
+    /// 是否可以嗅探（对齐 vanilla Sniffer.canSniff）
+    [[nodiscard]] bool canSniff() const;
+
+    /// 是否可以挖掘（对齐 vanilla Sniffer.canDig 的实体侧前置条件，方块侧由 SnifferDigGoal 判定）
+    [[nodiscard]] bool canDig() const;
+
+    /**
+     * @brief 是否已有嗅探目标（对齐 vanilla MemoryModuleType.SNIFFER_SNIFFING_TARGET 存在）
+     *
+     * 目标存在时嗅探兽不进入挖掘，而是先寻路到该目标。
+     */
+    [[nodiscard]] bool hasSniffingTarget() const noexcept { return m_hasSniffingTarget; }
+    void setSniffingTarget(bool value) noexcept { m_hasSniffingTarget = value; }
+
+    /// 标记下次嗅探结束时掉种（对齐 vanilla onDiggingComplete(timedOut) 的效果）
+    void setShouldDropSeed(bool value) noexcept { m_shouldDropSeed = value; }
+    /// 取出并清除“本次嗅探结束时掉种”标记
+    [[nodiscard]] bool consumeShouldDropSeed();
+
+    /// 开心标记（对齐 vanilla MemoryModuleType.SNIFFER_HAPPY）
+    [[nodiscard]] bool isHappy() const noexcept { return m_happy; }
+    void setHappy(bool value) noexcept { m_happy = value; }
+
+    /// 设置嗅探冷却 tick（对齐 vanilla SNIFF_COOLDOWN，挖掘超时后 9600 tick）
+    void setSniffCooldownTicks(u64 ticks);
+    /// 是否处于嗅探冷却中
+    [[nodiscard]] bool isSniffCoolingDown() const noexcept;
+
+    /// 该位置是否已挖掘过（对齐 vanilla SNIFFER_EXPLORED_POSITIONS 记忆）
+    [[nodiscard]] bool isExploredPosition(const BlockPos& pos) const;
+    /// 记录已挖掘位置（对齐 vanilla Sniffer.storeExploredPosition，最多 20 个）
+    void storeExploredPosition(const BlockPos& pos);
+
+    /// 食物诱惑目标（对齐 vanilla TEMPTING_PLAYER / IS_TEMPTED 记忆）
+    [[nodiscard]] entity::ai::goal::TemptGoal* temptGoal() const noexcept { return m_temptGoal; }
+    /// 恐慌逃跑目标（对齐 vanilla IS_PANICKING 记忆）
+    [[nodiscard]] entity::ai::goal::PanicGoal* panicGoal() const noexcept { return m_panicGoal; }
 
     // ========== 声音 ==========
 
@@ -304,8 +352,24 @@ protected:
     static const entity::EntityClassInfo& classInfo();
 
 private:
-    /// 状态机最小持续时间（用于 Searching 状态播放音效，对齐 MC Sniffer.tick 中的 playSearchingSound）
-    /// @note 当前仅用于 tick() 中 Searching 状态的客户端音效触发，未实际使用。
+    /// vanilla Sniffer：已探索位置记忆最多保留 20 个
+    static constexpr std::size_t MAX_EXPLORED_POSITIONS = 20;
+
+    /// 嗅探目标是否已确定（对齐 vanilla MemoryModuleType.SNIFFER_SNIFFING_TARGET 存在）
+    bool m_hasSniffingTarget = false;
+    /// 下次嗅探结束时是否掉种（对齐 vanilla Sniffer.onDiggingComplete(timedOut) 的效果）
+    bool m_shouldDropSeed = false;
+    /// 本次调用 dropSeed 是否绕开 DATA_DROP_SEED_AT_TICK 时序门控（嗅探后直接掉种）
+    bool m_dropSeedPending = false;
+    /// 开心标记（对齐 vanilla MemoryModuleType.SNIFFER_HAPPY）
+    bool m_happy = false;
+    /// 嗅探冷却截止时刻（对齐 vanilla MemoryModuleType.SNIFF_COOLDOWN）
+    u64 m_sniffCooldownUntil = 0;
+    /// 已探索位置（世界坐标，最新在前，最多 MAX_EXPLORED_POSITIONS 个）
+    std::vector<BlockPos> m_exploredPositions;
+    /// AI 目标指针（查询执行中状态用，生命周期随 m_goalSelector）
+    entity::ai::goal::TemptGoal* m_temptGoal = nullptr;
+    entity::ai::goal::PanicGoal* m_panicGoal = nullptr;
 };
 
 } // namespace mc

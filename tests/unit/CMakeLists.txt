@@ -822,6 +822,7 @@ add_executable(mc_tests
     entity/BreezeIsInvulnerableToTest.cpp
     # SnifferEntity::die 对齐 1.21.11 测试（死亡时状态机重置为 Idling）
     entity/SnifferDieTest.cpp
+    entity/SnifferBrainGoalsTest.cpp
     # 火球类投射物测试（伤害、爆炸、区域效果云）
     entity/FireballEntityTest.cpp
     # 风弹实体风爆效果测试（玩家击退收集、旁观/创造飞行过滤、broadcastExplosion 调用）
