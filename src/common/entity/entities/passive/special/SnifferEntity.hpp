@@ -222,9 +222,27 @@ public:
      */
     static constexpr i32 SNIFFER_BABY_AGE_TICKS = 48000;
 
+    /// 挖掘开始到掉出种子的延迟 tick（对齐 vanilla Sniffer.DIGGING_DROP_SEED_OFFSET_TICKS）
+    static constexpr i32 DIGGING_DROP_SEED_OFFSET_TICKS = 120;
+
     // ========== 生命周期 ==========
 
     void tick() override;
+
+    /**
+     * @brief 距离掉种的剩余 tick（DATA_DROP_SEED_AT_TICK − 当前 tick；未安排掉种时无意义）
+     *
+     * 供测试与调试观察挖掘时序，避免暴露同步参数本身。
+     */
+    [[nodiscard]] i32 ticksUntilDropSeed() const;
+
+    /**
+     * @brief 挖掘到点后从嗅探兽战利品表掉出物品（对齐 vanilla Sniffer.dropSeed）
+     *
+     * 仅在服务端、当前状态为 Digging 且 DATA_DROP_SEED_AT_TICK 等于当前 tick 时生效；
+     * 掉落物生成在头部方块位置，并播放 SNIFFER_DROP_SEED 音效。
+     */
+    void dropSeed();
 
     /**
      * @brief 死亡时重置状态机
