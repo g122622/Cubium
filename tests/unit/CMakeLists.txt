@@ -1838,6 +1838,7 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/server/world/spawn/NaturalSpawner.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/spawn/DespawnManager.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/spawn/VillageSiege.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/world/spawn/WanderingTraderSpawner.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/spawn/SpawnConditions.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/weather/WeatherManager.cpp
         # 结构定位算法门面：ServerWorld::findNearestStructure/findNearestMapStructure 委托，

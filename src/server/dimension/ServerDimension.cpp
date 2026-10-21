@@ -39,6 +39,7 @@
 #include "server/world/spawn/DespawnManager.hpp"
 #include "server/world/spawn/NaturalSpawner.hpp"
 #include "server/world/spawn/VillageSiege.hpp"
+#include "server/world/spawn/WanderingTraderSpawner.hpp"
 #include <algorithm>
 #include <limits>
 #include <memory>
@@ -103,6 +104,7 @@ Result<void> ServerDimension::initialize()
     m_naturalSpawner = std::make_unique<world::spawn::NaturalSpawner>();
     m_despawnManager = std::make_unique<world::spawn::DespawnManager>();
     m_villageSiege = std::make_unique<server::spawn::VillageSiege>();
+    m_wanderingTraderSpawner = std::make_unique<server::spawn::WanderingTraderSpawner>();
 
     m_initialized = true;
     return {};
@@ -192,6 +194,11 @@ void ServerDimension::tick()
         if (!m_world->isDebugWorld() && hostile) {
             MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Tick, "ServerDimension::tick::VillageSiege");
             m_villageSiege->tick(*m_world, true);
+        }
+
+        // 流浪商人：仅主世界，由 doTraderSpawning 游戏规则门控（规则判定在生成器内部）。
+        if (!m_world->isDebugWorld() && id() == DimensionManager::OVERWORLD) {
+            m_wanderingTraderSpawner->tick(*m_world);
         }
     }
 }

@@ -148,6 +148,7 @@ target_sources(mc_benchmark
         ${CMAKE_SOURCE_DIR}/src/server/world/spawn/SpawnConditions.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/spawn/DespawnManager.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/spawn/VillageSiege.cpp
+    ${CMAKE_SOURCE_DIR}/src/server/world/spawn/WanderingTraderSpawner.cpp
         # 传送管理（ServerPlayer 引用）
         ${CMAKE_SOURCE_DIR}/src/server/core/TeleportManager.cpp
         ${CMAKE_SOURCE_DIR}/src/server/core/GameModeManager.cpp

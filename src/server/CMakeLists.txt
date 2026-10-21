@@ -354,6 +354,7 @@ add_executable(minecraft-server
     world/spawn/SpawnConditions.cpp
     world/spawn/DespawnManager.cpp
     world/spawn/VillageSiege.cpp
+    world/spawn/WanderingTraderSpawner.cpp
     world/entity/EntityTracker.cpp
     world/entity/waypoint/WaypointManager.cpp
     world/entity/ItemPickupManager.cpp

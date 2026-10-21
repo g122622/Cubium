@@ -49,6 +49,7 @@ class BlockUpdateSyncManager;
 } // namespace sync
 namespace spawn {
 class VillageSiege;
+class WanderingTraderSpawner;
 } // namespace spawn
 } // namespace server
 
@@ -181,6 +182,18 @@ public:
     [[nodiscard]] server::spawn::VillageSiege* villageSiege() { return m_villageSiege.get(); }
     [[nodiscard]] const server::spawn::VillageSiege* villageSiege() const { return m_villageSiege.get(); }
 
+    /**
+     * @brief 获取流浪商人自然生成器
+     */
+    [[nodiscard]] server::spawn::WanderingTraderSpawner* wanderingTraderSpawner()
+    {
+        return m_wanderingTraderSpawner.get();
+    }
+    [[nodiscard]] const server::spawn::WanderingTraderSpawner* wanderingTraderSpawner() const
+    {
+        return m_wanderingTraderSpawner.get();
+    }
+
     // ========== 玩家追踪 ==========
 
     /**
@@ -254,6 +267,7 @@ private:
     std::unique_ptr<world::spawn::NaturalSpawner> m_naturalSpawner;
     std::unique_ptr<world::spawn::DespawnManager> m_despawnManager;
     std::unique_ptr<server::spawn::VillageSiege> m_villageSiege;
+    std::unique_ptr<server::spawn::WanderingTraderSpawner> m_wanderingTraderSpawner;
 
     std::vector<PlayerId> m_players;
     std::unordered_set<u64> m_portalPositions; // 使用哈希的 BlockPos

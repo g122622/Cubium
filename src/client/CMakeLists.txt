@@ -510,6 +510,7 @@ add_executable(minecraft-client
     ${CMAKE_SOURCE_DIR}/src/server/world/spawn/NaturalSpawner.cpp
     ${CMAKE_SOURCE_DIR}/src/server/world/spawn/DespawnManager.cpp
     ${CMAKE_SOURCE_DIR}/src/server/world/spawn/VillageSiege.cpp
+    ${CMAKE_SOURCE_DIR}/src/server/world/spawn/WanderingTraderSpawner.cpp
     ${CMAKE_SOURCE_DIR}/src/server/world/entity/EntityTracker.cpp
     ${CMAKE_SOURCE_DIR}/src/server/world/entity/waypoint/WaypointManager.cpp
     ${CMAKE_SOURCE_DIR}/src/server/world/entity/ItemPickupManager.cpp
