@@ -90,7 +90,7 @@ AnimalEntity
 
 | 方法 | 所在类 | 说明 |
 |------|--------|------|
-| `openInventory(Player&)` | AbstractHorseEntity | 打开马背包 GUI（TODO: 等 ContainerMenu 系统实现） |
+| `openInventory(Player&)` | AbstractHorseEntity | 打开马背包 GUI（经 `INamedContainerProvider::createMenu` 建 `HorseInventoryMenu`） |
 | `equipArmor(Player&, ItemStack&)` | AbstractHorseEntity | 装备马铠/地毯到槽位 1 |
 | `doPlayerRide(Player&)` | AbstractHorseEntity | 让玩家骑乘马匹 |
 | `equipChest(Player&, ItemStack&)` | AbstractChestedHorseEntity | 装备箱子，重建背包 |
@@ -147,7 +147,10 @@ AnimalEntity
 
 `triggerTrap()` 触发时会在骷髅马位置生成一个纯视觉效果的闪电实体（`LightningBoltEntity`，`setEffectOnly(true)`），该闪电不造成伤害、不点燃方块。困难模式下额外生成 3 只骷髅马+骑手，普通/简单模式只生成 1 只骷髅骑手骑原马。
 
-**尚未接通**：雷暴闪电按区域难度概率生成陷阱骷髅马的上游链路没有实现（`WeatherConstants::SKELETON_HORSE_TRAP_CHANCE` 无调用点），因此骷髅马当前**没有任何自然生成途径**，只能经命令、刷怪蛋或 GameTest 的 `set_trap` 事件获得。详见该常量处的 TODO。
+雷暴闪电按区域难度概率生成陷阱骷髅马：`ServerWorld::tick` 在闪电落点以
+`DifficultyInstance::getEffectiveDifficulty() * WeatherConstants::SKELETON_HORSE_TRAP_CHANCE` 概率生成
+已驯服的成年陷阱骷髅马（对齐 vanilla `ServerLevel.tickThunder`），此时闪电只作视觉效果；玩家靠近
+10 格内由 `TriggerSkeletonTrapGoal` 触发骑手生成。落点下方为避雷针或 `doMobSpawning` 关闭时不生成。
 
 ### #4. 僵尸马的生成分类与光照门槛
 
@@ -234,7 +237,7 @@ MC 1.21.11 的 `AbstractHorse.tick()` 和 `aiStep()` 管理以下动画计数器
 | 张嘴计数器 | `m_openMouthCounter` | `openMouth()` | 从 1 递增，>30 时关闭嘴巴 |
 | 扬蹄计数器 | `m_jumpRearingCounter` | `makeHorseRear()` 设为 20 | 递减，≤0 时清除扬蹄 |
 | 尾巴计数器 | `m_tailCounter` | `aiStep()` 中 1/200 概率 | 从 1 递增，>8 时重置 |
-| 冲刺计数器 | `m_sprintCounter` | 由渲染/动画系统外部触发 | 递增，>300 时重置 |
+| 冲刺计数器 | `m_sprintCounter` | 客户端渲染层置位（服务端不维护） | 递增，>300 时重置（对齐 AbstractHorse.tick） |
 | 吃草计数器 | `m_eatingCounter` | `aiStep()` 中吃草条件满足时 | 递增，>50 时停止吃草 |
 
 吃草触发条件（在 `aiStep()` 中，仅服务端）：
