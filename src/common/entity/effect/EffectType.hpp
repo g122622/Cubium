@@ -91,14 +91,41 @@ enum class EffectType : u8 {
 };
 
 /**
+ * @brief 效果类别
+ *
+ * 与原版的 MobEffectCategory 一致：BENEFICIAL 与 NEUTRAL 在提示文本中均使用蓝色，
+ * HARMFUL 使用红色。中立效果（发光、不祥之兆、试炼之兆、袭击之兆）既不是有益也不是有害，
+ * 因此判定"是否存在有害效果"时不得把它们计入。
+ */
+enum class EffectCategory : u8 {
+    Beneficial = 0, // 有益
+    Harmful = 1,    // 有害
+    Neutral = 2     // 中立
+};
+
+/**
  * @brief 获取效果名称
  */
 [[nodiscard]] const char* getEffectName(EffectType type) noexcept;
 
 /**
+ * @brief 获取效果类别
+ */
+[[nodiscard]] EffectCategory getEffectCategory(EffectType type) noexcept;
+
+/**
  * @brief 检查效果是否有益
+ *
+ * 仅当类别为 Beneficial 时返回 true；中立效果返回 false，且同样不属于有害效果。
  */
 [[nodiscard]] bool isBeneficialEffect(EffectType type) noexcept;
+
+/**
+ * @brief 检查效果是否有害
+ *
+ * 仅当类别为 Harmful 时返回 true；中立效果既非有益也非有害。
+ */
+[[nodiscard]] bool isHarmfulEffect(EffectType type) noexcept;
 
 /**
  * @brief 获取效果默认颜色

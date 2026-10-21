@@ -329,3 +329,28 @@ TEST_F(EffectManagerMergeTest, IsAppliedFalseAfterRemove)
     // 效果已从列表中移除，无法检查 isApplied
     EXPECT_FALSE(mgr.hasEffect(EffectType::Strength));
 }
+
+// ============================================================================
+// 效果类别判定
+// ============================================================================
+
+TEST_F(EffectManagerMergeTest, NeutralEffectsAreNeitherBeneficialNorHarmful)
+{
+    EffectManager& mgr = m_entity->effectManager();
+
+    // 发光属于中立效果：既不是有益也不是有害
+    mgr.addEffect(EffectInstance(EffectType::Glowing, 600, 0), *m_entity);
+    EXPECT_FALSE(mgr.hasBeneficialEffect());
+    EXPECT_FALSE(mgr.hasHarmfulEffect());
+
+    // 不祥之兆同样为中立效果
+    mgr.removeEffect(EffectType::Glowing, *m_entity);
+    mgr.addEffect(EffectInstance(EffectType::BadOmen, 600, 0), *m_entity);
+    EXPECT_FALSE(mgr.hasBeneficialEffect());
+    EXPECT_FALSE(mgr.hasHarmfulEffect());
+
+    // 再叠加一个有害效果后，有害判定才应为真
+    mgr.addEffect(EffectInstance(EffectType::Poison, 600, 0), *m_entity);
+    EXPECT_TRUE(mgr.hasHarmfulEffect());
+    EXPECT_FALSE(mgr.hasBeneficialEffect());
+}

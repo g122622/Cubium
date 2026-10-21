@@ -4,7 +4,7 @@
 
 ```
 effect/
-├── EffectType.hpp/cpp           # 效果类型枚举和工具函数（ID转换、资源位置映射）
+├── EffectType.hpp/cpp           # 效果类型枚举、三态类别与工具函数（ID转换、资源位置映射）
 ├── EffectInstance.hpp/cpp       # 效果实例（持续时间、等级、tick逻辑、到期查询）
 ├── EffectManager.hpp/cpp        # 效果管理器（实体身上的效果集合）
 ├── EffectAttributeModifiers.hpp/cpp # 效果属性修改器定义（UUID、修改量计算）
@@ -100,9 +100,12 @@ EffectType ←── EffectInstance ←── EffectManager
 - `EffectType` 枚举（新值必须插在 `Count` 之前）
 - `s_effectResourceNames[]`（名称表长度由 `static_assert` 校验，遗漏会在编译期报错）
 - `s_effectResourceNameMap`（资源位置 → 枚举的反查表）
-- `getEffectName()` / `getEffectColor()` / `isBeneficialEffect()` 的 switch 分支
+- `getEffectName()` / `getEffectColor()` / `getEffectCategory()` 的 switch 分支
 
-注意：`isBeneficialEffect()` 目前是布尔判断，无法表达原版的三态类别（BENEFICIAL / HARMFUL / NEUTRAL），因此 `Glowing`、`BadOmen`、`TrialOmen`、`RaidOmen` 这些中性效果会被 `EffectManager::hasHarmfulEffect()` 当作有害效果（见 `EffectType.cpp` 中的 TODO）。
+效果类别是**三态**（`EffectCategory::Beneficial` / `Harmful` / `Neutral`），`isBeneficialEffect()` /
+`isHarmfulEffect()` 都只是 `getEffectCategory()` 的派生命题：中立效果（`Glowing`、`BadOmen`、
+`TrialOmen`、`RaidOmen`）两者皆假。判定「是否存在有害效果」必须用 `isHarmfulEffect()`，不能取
+`!isBeneficialEffect()` 的反面，否则中立效果会被误判成有害。
 
 如果新效果有属性修改器，还需在 `EffectAttributeModifiers` 中添加映射条目，并在 `AttributeModifierIds.hpp` 中定义对应 id 常量。
 

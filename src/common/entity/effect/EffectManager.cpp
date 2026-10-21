@@ -188,8 +188,10 @@ bool EffectManager::hasBeneficialEffect() const
 
 bool EffectManager::hasHarmfulEffect() const
 {
+    // 中立效果（发光/不祥之兆/试炼之兆/袭击之兆）既非有益也非有害，因此不能简单地取
+    // "非有益"的反面，必须显式按有害类别判定。
     for (const auto& effect : m_effects) {
-        if (!isBeneficialEffect(effect.type())) {
+        if (isHarmfulEffect(effect.type())) {
             return true;
         }
     }

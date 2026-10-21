@@ -246,3 +246,69 @@ TEST_F(EffectTypeTest, IsBeneficialEffect_NonBeneficialEffects)
     EXPECT_FALSE(isBeneficialEffect(EffectType::Oozing));
     EXPECT_FALSE(isBeneficialEffect(EffectType::Infested));
 }
+
+// ============================================================================
+// 三态效果类别测试
+// ============================================================================
+
+TEST_F(EffectTypeTest, GetEffectCategory_NeutralEffects)
+{
+    // 中立效果：既不是有益也不是有害
+    for (EffectType type : {EffectType::Glowing, EffectType::BadOmen, EffectType::TrialOmen, EffectType::RaidOmen}) {
+        EXPECT_EQ(getEffectCategory(type), EffectCategory::Neutral);
+        EXPECT_FALSE(isBeneficialEffect(type));
+        EXPECT_FALSE(isHarmfulEffect(type));
+    }
+}
+
+TEST_F(EffectTypeTest, GetEffectCategory_HarmfulEffects)
+{
+    for (EffectType type : {EffectType::Slowness,
+             EffectType::MiningFatigue,
+             EffectType::InstantDamage,
+             EffectType::Nausea,
+             EffectType::Blindness,
+             EffectType::Hunger,
+             EffectType::Weakness,
+             EffectType::Poison,
+             EffectType::Wither,
+             EffectType::Levitation,
+             EffectType::BadLuck,
+             EffectType::Darkness,
+             EffectType::WindCharged,
+             EffectType::Weaving,
+             EffectType::Oozing,
+             EffectType::Infested}) {
+        EXPECT_EQ(getEffectCategory(type), EffectCategory::Harmful);
+        EXPECT_TRUE(isHarmfulEffect(type));
+        EXPECT_FALSE(isBeneficialEffect(type));
+    }
+}
+
+TEST_F(EffectTypeTest, GetEffectCategory_BeneficialEffects)
+{
+    for (EffectType type : {EffectType::Speed,
+             EffectType::Haste,
+             EffectType::Strength,
+             EffectType::InstantHealth,
+             EffectType::JumpBoost,
+             EffectType::Regeneration,
+             EffectType::Resistance,
+             EffectType::FireResistance,
+             EffectType::WaterBreathing,
+             EffectType::Invisibility,
+             EffectType::NightVision,
+             EffectType::HealthBoost,
+             EffectType::Absorption,
+             EffectType::Saturation,
+             EffectType::Luck,
+             EffectType::SlowFalling,
+             EffectType::ConduitPower,
+             EffectType::DolphinsGrace,
+             EffectType::HeroOfTheVillage,
+             EffectType::BreathOfTheNautilus}) {
+        EXPECT_EQ(getEffectCategory(type), EffectCategory::Beneficial);
+        EXPECT_TRUE(isBeneficialEffect(type));
+        EXPECT_FALSE(isHarmfulEffect(type));
+    }
+}

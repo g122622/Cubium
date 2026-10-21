@@ -233,12 +233,10 @@ const char* getEffectName(EffectType type) noexcept
     }
 }
 
-bool isBeneficialEffect(EffectType type) noexcept
+EffectCategory getEffectCategory(EffectType type) noexcept
 {
-    // TODO: 效果类别在原版是三态（BENEFICIAL / HARMFUL / NEUTRAL），此处只有布尔值，
-    //       导致 Glowing、BadOmen、TrialOmen、RaidOmen 这些中性效果被归入"有害"。
-    //       需要引入类别枚举后由 EffectManager::hasHarmfulEffect() 一并修正。
     switch (type) {
+        // 有益
         case EffectType::Speed:
         case EffectType::Haste:
         case EffectType::Strength:
@@ -259,11 +257,47 @@ bool isBeneficialEffect(EffectType type) noexcept
         case EffectType::DolphinsGrace:
         case EffectType::HeroOfTheVillage:
         case EffectType::BreathOfTheNautilus:
-            return true;
+            return EffectCategory::Beneficial;
+
+        // 中立：既非有益也非有害
+        case EffectType::Glowing:
+        case EffectType::BadOmen:
+        case EffectType::TrialOmen:
+        case EffectType::RaidOmen:
+            return EffectCategory::Neutral;
+
+        // 有害
+        case EffectType::Slowness:
+        case EffectType::MiningFatigue:
+        case EffectType::InstantDamage:
+        case EffectType::Nausea:
+        case EffectType::Blindness:
+        case EffectType::Hunger:
+        case EffectType::Weakness:
+        case EffectType::Poison:
+        case EffectType::Wither:
+        case EffectType::Levitation:
+        case EffectType::BadLuck:
         case EffectType::Darkness:
+        case EffectType::WindCharged:
+        case EffectType::Weaving:
+        case EffectType::Oozing:
+        case EffectType::Infested:
+            return EffectCategory::Harmful;
+
         default:
-            return false;
+            return EffectCategory::Harmful;
     }
+}
+
+bool isBeneficialEffect(EffectType type) noexcept
+{
+    return getEffectCategory(type) == EffectCategory::Beneficial;
+}
+
+bool isHarmfulEffect(EffectType type) noexcept
+{
+    return getEffectCategory(type) == EffectCategory::Harmful;
 }
 
 u32 getEffectColor(EffectType type) noexcept
