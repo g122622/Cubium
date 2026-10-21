@@ -158,7 +158,9 @@ const BlockState& PitcherCropBlock::withAge(i32 age) const
 
 BlockState PitcherCropBlock::getStateForPlacement(BlockItemUseContext& context)
 {
-    // 瓶草作物初始放置时为下半部分、年龄 0
+    // 对齐 vanilla PitcherCropBlock.getStateForPlacement：放置结果恒为默认状态
+    // （AGE=0、HALF=Lower），与放置上下文无关。
+    MC_UNUSED(context);
     return defaultState();
 }
 
