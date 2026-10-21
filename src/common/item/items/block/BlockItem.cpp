@@ -328,9 +328,13 @@ bool BlockItem::onBlockPlaced(
 
 bool BlockItem::setTileEntityNBT(IWorld& world, Player* player, const BlockPos& pos, const ItemStack& stack) const
 {
-    // 检查物品堆是否有 BlockEntityTag
+    // 数据来源有两条：1.20.5+ 的 block_entity_data 组件，以及旧式 BlockEntityTag 子标签。
+    // 两者都存在时以组件为准（组件是正式语义，旧标签仅作兼容），且双方合并到同一份数据上，
+    // 由旧式路径统一完成"保存→合并→加载→失败回滚"，避免两套代码各自处理回滚。
     const nlohmann::json* blockEntityTag = stack.getChildTag("BlockEntityTag");
-    if (blockEntityTag == nullptr || !blockEntityTag->is_object()) {
+    const bool hasLegacyTag = blockEntityTag != nullptr && blockEntityTag->is_object();
+    const bool hasComponent = stack.hasBlockEntityData();
+    if (!hasLegacyTag && !hasComponent) {
         return false;
     }
 
@@ -369,10 +373,15 @@ bool BlockItem::setTileEntityNBT(IWorld& world, Player* player, const BlockPos& 
     nlohmann::json currentData;
     blockEntity->save(currentData);
 
-    // 合并 BlockEntityTag 到当前数据
+    // 合并方块实体数据到当前数据（先旧标签，再组件覆盖同名键）
     // 注意：移除 "id" 字段，因为它是类型标识符而非数据
     nlohmann::json mergedData = currentData;
-    ItemStack::mergeJsonObjects(mergedData, *blockEntityTag);
+    if (hasLegacyTag) {
+        ItemStack::mergeJsonObjects(mergedData, *blockEntityTag);
+    }
+    if (hasComponent) {
+        ItemStack::mergeJsonObjects(mergedData, stack.getBlockEntityData());
+    }
     mergedData.erase("id");
 
     // 尝试加载合并后的数据

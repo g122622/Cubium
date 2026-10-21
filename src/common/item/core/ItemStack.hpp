@@ -147,7 +147,8 @@ struct ItemExtras {
     std::optional<i32> ominousBottleAmplifier;                           // ominous_bottle_amplifier
     std::optional<item::component::SuspiciousStewEffectsPayload> stewEffects; // suspicious_stew_effects
     std::optional<item::component::DeathProtectionPayload> deathProtection;   // death_protection
-    nlohmann::json rawComponents; // 未落地结构组件的原始 JSON（以资源位置为键）
+    nlohmann::json blockEntityData; // block_entity_data 组件（放置时写入方块实体）
+    nlohmann::json rawComponents;   // 未落地结构组件的原始 JSON（以资源位置为键）
 
     ItemExtras() = default;
 
@@ -206,6 +207,7 @@ struct ItemExtras {
             ominousBottleAmplifier = other.ominousBottleAmplifier;
             stewEffects = other.stewEffects;
             deathProtection = other.deathProtection;
+            blockEntityData = other.blockEntityData;
             rawComponents = other.rawComponents;
             lore.clear();
             lore.reserve(other.lore.size());
@@ -1058,6 +1060,40 @@ public:
     [[nodiscard]] const nlohmann::json& getCustomModelData() const
     {
         return m_extras ? m_extras->customModelData : _emptyJson();
+    }
+
+    /**
+     * @brief 获取 block_entity_data 组件
+     *
+     * 物品被放置为方块时写入该方块实体（对应 vanilla `minecraft:block_entity_data`）。
+     * 未设置时返回空对象。与旧式 `BlockEntityTag` 不同，该组件是 1.20.5+ 的正式数据组件，
+     * 且对方块实体受 `onlyOpsCanSetNbt` 门控的来源同样生效。
+     */
+    [[nodiscard]] const nlohmann::json& getBlockEntityData() const
+    {
+        return m_extras ? m_extras->blockEntityData : _emptyJson();
+    }
+
+    /**
+     * @brief 是否携带 block_entity_data 组件
+     */
+    [[nodiscard]] bool hasBlockEntityData() const
+    {
+        return m_extras != nullptr && m_extras->blockEntityData.is_object() && !m_extras->blockEntityData.empty();
+    }
+
+    /**
+     * @brief 设置 block_entity_data 组件（传空对象表示移除）
+     */
+    void setBlockEntityData(nlohmann::json data)
+    {
+        if (!data.is_object() || data.empty()) {
+            if (m_extras) {
+                m_extras->blockEntityData = nlohmann::json{};
+            }
+            return;
+        }
+        _ensureExtras().blockEntityData = std::move(data);
     }
 
     /**

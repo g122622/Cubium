@@ -22,6 +22,7 @@
  */
 
 #include <gtest/gtest.h>
+#include <nlohmann/json.hpp>
 
 #include "common/TestWorldHelper.hpp"
 #include "common/item/Items.hpp"
@@ -133,6 +134,16 @@ public:
     {
         const_cast<Block&>(block).onBlockPlacedBy(
             *this, pos, *getBlockState(pos.x, pos.y, pos.z), nullptr, ItemStack(Items::STONE, 1));
+    }
+
+    /// 模拟携带 block_entity_data 组件的物品放置（方块实体数据已先写入实体）。
+    void placeBlockWithEntityData(const Block& block, const BlockPos& pos)
+    {
+        ItemStack stack(Items::STONE, 1);
+        nlohmann::json data = nlohmann::json::object();
+        data["Command"] = "say placed";
+        stack.setBlockEntityData(data);
+        const_cast<Block&>(block).onBlockPlacedBy(*this, pos, *getBlockState(pos.x, pos.y, pos.z), nullptr, stack);
     }
 
     /// 模拟调度刻执行。vanilla 在计划刻触发时会从世界重新读取方块状态；
@@ -416,6 +427,20 @@ TEST_F(CommandBlockExecutionTest, PlacedBy_RepeatingBlockDefaultsToAutomatic)
 
     world.placeBlock(*repeatingBlock, pos);
     EXPECT_TRUE(entity.isAuto());
+}
+
+// 放置：物品携带 block_entity_data 时不得用游戏规则/方块类型标志覆盖实体已有数据。
+TEST_F(CommandBlockExecutionTest, PlacedBy_WithEntityDataComponentKeepsAutoFlag)
+{
+    const BlockPos pos(0, 64, 0);
+    // 方块类型为脉冲命令方块（automatic=false），实体模式设为 Auto。
+    CommandBlockEntity& entity = world.placeCommandBlock(*commandBlock, pos, CommandBlockMode::Auto, false);
+    entity.setAuto(false);
+
+    world.placeBlockWithEntityData(*commandBlock, pos);
+
+    // 组件存在时不得按方块类型/模式重置 auto（reapplyAutomatic 会把它改为 false）。
+    EXPECT_FALSE(entity.isAuto());
 }
 
 // 创建实体：脉冲方块创建的实体不自动执行，循环方块创建的可自动执行。

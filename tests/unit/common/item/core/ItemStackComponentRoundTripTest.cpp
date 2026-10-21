@@ -357,3 +357,69 @@ TEST_F(ItemStackComponentRoundTripTest, CopyPreservesRepairCostAndAllComponentSt
     EXPECT_EQ(original.getTag()->at("custom").at("n"), 42);
     EXPECT_NE(copied, original);
 }
+
+// ============================================================================
+// block_entity_data 组件
+// ============================================================================
+
+TEST_F(ItemStackComponentRoundTripTest, BlockEntityData_DefaultsToAbsent)
+{
+    ItemStack stack(*m_sword, 1);
+    EXPECT_FALSE(stack.hasBlockEntityData());
+    EXPECT_TRUE(stack.getBlockEntityData().empty());
+}
+
+TEST_F(ItemStackComponentRoundTripTest, BlockEntityData_SetAndReadBack)
+{
+    ItemStack stack(*m_sword, 1);
+    nlohmann::json data = nlohmann::json::object();
+    data["Command"] = "say hi";
+    data["auto"] = 1;
+    stack.setBlockEntityData(data);
+
+    EXPECT_TRUE(stack.hasBlockEntityData());
+    EXPECT_EQ(stack.getBlockEntityData().at("Command"), "say hi");
+    EXPECT_EQ(stack.getBlockEntityData().at("auto"), 1);
+
+    // 传空对象表示移除。
+    stack.setBlockEntityData(nlohmann::json::object());
+    EXPECT_FALSE(stack.hasBlockEntityData());
+}
+
+TEST_F(ItemStackComponentRoundTripTest, BlockEntityData_SurvivesComponentPatchRoundTrip)
+{
+    ItemStack stack(*m_sword, 1);
+    nlohmann::json data = nlohmann::json::object();
+    data["Command"] = "time set day";
+    stack.setBlockEntityData(data);
+
+    const auto patch = stack.toComponentPatch();
+    bool found = false;
+    for (const auto& entry : patch.added()) {
+        if (entry.typeId == item::component::componentTypeId(item::component::DataComponentType::BlockEntityData)) {
+            found = true;
+        }
+    }
+    ASSERT_TRUE(found) << "block_entity_data 必须进入组件补丁";
+
+    ItemStack restored(*m_sword, 1);
+    restored.applyComponentPatch(patch);
+    EXPECT_TRUE(restored.hasBlockEntityData());
+    EXPECT_EQ(restored.getBlockEntityData().at("Command"), "time set day");
+}
+
+TEST_F(ItemStackComponentRoundTripTest, BlockEntityData_CopyIsIndependent)
+{
+    ItemStack stack(*m_sword, 1);
+    nlohmann::json data = nlohmann::json::object();
+    data["Command"] = "say a";
+    stack.setBlockEntityData(data);
+
+    ItemStack copied = stack.copy();
+    nlohmann::json changed = nlohmann::json::object();
+    changed["Command"] = "say b";
+    copied.setBlockEntityData(changed);
+
+    EXPECT_EQ(stack.getBlockEntityData().at("Command"), "say a");
+    EXPECT_EQ(copied.getBlockEntityData().at("Command"), "say b");
+}

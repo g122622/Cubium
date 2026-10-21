@@ -126,13 +126,14 @@ void CommandBlock::onBlockPlacedBy(
     }
     auto& commandEntity = *static_cast<blockentity::CommandBlockEntity*>(entity);
 
-    // 对齐 vanilla CommandBlock.setPlacedBy：物品未携带 block_entity_data 时，用游戏规则与方块类型
-    // 自身的自动执行标志初始化实体。
-    // TODO(command-block-item-data): 项目 ItemStack 尚未暴露 block_entity_data 组件查询，
-    //   且放置流程先于 onBlockPlacedBy 应用方块实体 NBT；此处暂按"无组件"处理，
-    //   待组件 API 补齐后改为读取组件存在性，避免覆盖物品携带的 auto / TrackOutput。
-    commandEntity.setTrackOutput(world.getGameRules().getBoolean(world::gamerule::GameRuleKeys::SEND_COMMAND_FEEDBACK));
-    commandEntity.reapplyAutomatic();
+    // 物品携带 block_entity_data 时，方块实体数据已由放置流程写入实体，此处不得再用游戏规则
+    // 与方块类型自身的自动执行标志覆盖它（否则命令 / TrackOutput 会被冲掉）。
+    // 未携带组件时，才按 SEND_COMMAND_FEEDBACK 游戏规则与方块类型的 automatic 标志初始化。
+    if (!stack.hasBlockEntityData()) {
+        commandEntity.setTrackOutput(
+            world.getGameRules().getBoolean(world::gamerule::GameRuleKeys::SEND_COMMAND_FEEDBACK));
+        commandEntity.reapplyAutomatic();
+    }
 
     // 放置时若已被邻居供电，按供电上升沿处理（与 neighborChanged 一致）。
     commandEntity.setPowered(false);

@@ -1310,6 +1310,10 @@ item::component::DataComponentPatch ItemStack::toComponentPatch() const
                 DataComponentPayload{
                     std::in_place_index<ComponentPayloadIndex::DeathProtection>, *m_extras->deathProtection});
         }
+        if (m_extras->blockEntityData.is_object() && !m_extras->blockEntityData.empty()) {
+            patch.add(DataComponentType::BlockEntityData,
+                DataComponentPayload{std::in_place_index<ComponentPayloadIndex::Json>, m_extras->blockEntityData});
+        }
         if (m_extras->rawComponents.is_object()) {
             for (const auto& [componentKey, value] : m_extras->rawComponents.items()) {
                 auto type = componentTypeByName(componentKey);
@@ -1497,6 +1501,10 @@ void ItemStack::applyComponentPatch(const item::component::DataComponentPatch& p
             case DataComponentType::ChargedProjectiles:
                 // 同 container：元素为 ItemStack 指针，不经 DataComponentPayload 承载
                 break;
+            case DataComponentType::BlockEntityData: {
+                _ensureExtras().blockEntityData = std::get<nlohmann::json>(entry.value);
+                break;
+            }
             case DataComponentType::Bees:
             case DataComponentType::Trim:
             case DataComponentType::Recipes: {
@@ -1603,6 +1611,11 @@ void ItemStack::applyComponentPatch(const item::component::DataComponentPatch& p
                 break;
             case DataComponentType::ChargedProjectiles:
                 m_chargedProjectiles.reset();
+                break;
+            case DataComponentType::BlockEntityData:
+                if (m_extras) {
+                    m_extras->blockEntityData = nlohmann::json{};
+                }
                 break;
             case DataComponentType::Bees:
             case DataComponentType::Trim:
