@@ -224,6 +224,10 @@ public:
 
     /// 挖掘开始到掉出种子的延迟 tick（对齐 vanilla Sniffer.DIGGING_DROP_SEED_OFFSET_TICKS）
     static constexpr i32 DIGGING_DROP_SEED_OFFSET_TICKS = 120;
+    /// 挖掘粒子开始延迟 / 结束时刻 / 每 tick 数量（对齐 vanilla Sniffer 同名常量）
+    static constexpr i32 DIGGING_PARTICLES_DELAY_TICKS = 1700;
+    static constexpr i32 DIGGING_PARTICLES_DURATION_TICKS = 6000;
+    static constexpr i32 DIGGING_PARTICLES_AMOUNT = 30;
 
     // ========== 生命周期 ==========
 
@@ -235,6 +239,16 @@ public:
      * 供测试与调试观察挖掘时序，避免暴露同步参数本身。
      */
     [[nodiscard]] i32 ticksUntilDropSeed() const;
+
+    /**
+     * @brief 挖掘中在头部方块位置喷出方块粒子（对齐 vanilla Sniffer.emitDiggingParticles）
+     *
+     * 仅在挖掘开始后 DIGGING_PARTICLES_DELAY_TICKS ~ DIGGING_PARTICLES_DURATION_TICKS 区间内生效，
+     * 每 tick 喷出 DIGGING_PARTICLES_AMOUNT 个方块粒子，每 10 tick 播放一次方块击打音效。
+     *
+     * @param diggingTicks 进入挖掘状态后经过的 tick 数
+     */
+    void emitDiggingParticles(i32 diggingTicks);
 
     /**
      * @brief 挖掘到点后从嗅探兽战利品表掉出物品（对齐 vanilla Sniffer.dropSeed）
