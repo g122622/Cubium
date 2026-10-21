@@ -98,6 +98,11 @@ public:
     }
 
 protected:
+    /**
+     * @brief 头颅种类对应的音符盒乐器（对齐 vanilla 头颅注册的 instrument 属性）
+     */
+    [[nodiscard]] static BlockProperties::Instrument _instrumentForSkullType(SkullType type) noexcept;
+
     SkullType m_type;
 };
 

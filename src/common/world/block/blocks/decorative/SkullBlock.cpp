@@ -212,10 +212,37 @@ void _clearWitherPattern(IWorld& world, const BlockPos& centerSkullPos, bool for
 // AbstractSkullBlock
 // ============================================================================
 
+BlockProperties::Instrument AbstractSkullBlock::_instrumentForSkullType(SkullType type) noexcept
+{
+    switch (type) {
+        case SkullType::Skeleton:
+            return BlockProperties::Instrument::Skeleton;
+        case SkullType::WitherSkeleton:
+            return BlockProperties::Instrument::WitherSkeleton;
+        case SkullType::Zombie:
+            return BlockProperties::Instrument::Zombie;
+        case SkullType::Creeper:
+            return BlockProperties::Instrument::Creeper;
+        case SkullType::Dragon:
+            return BlockProperties::Instrument::Dragon;
+        case SkullType::Piglin:
+            return BlockProperties::Instrument::Piglin;
+        case SkullType::Player:
+            return BlockProperties::Instrument::CustomHead;
+        default:
+            return BlockProperties::Instrument::Harp;
+    }
+}
+
 AbstractSkullBlock::AbstractSkullBlock(SkullType type, const BlockProperties& properties)
     : Block(properties)
     , m_type(type)
 {
+    // 头颅的乐器：音符盒放在其下方时演奏对应的生物头颅音色。
+    // 对齐 vanilla Blocks.SKULL 等注册时的 .instrument(NoteBlockInstrument.SKELETON/ZOMBIE/...)
+    // 与 .instrument(NoteBlockInstrument.CUSTOM)（玩家头）；两者均为 worksAboveNoteBlock 类。
+    setNonVirtualInstrument(_instrumentForSkullType(type));
+
     auto container =
         StateContainer<Block, BlockState>::Builder(*this)
             .add(BlockStateProperties::POWERED())
