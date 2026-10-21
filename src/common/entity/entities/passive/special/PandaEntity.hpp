@@ -340,20 +340,26 @@ public:
      * 对齐 MC Java 1.21.11 Panda.sit（Panda.java:132-134）：
      *   public void sit(boolean p_478676_) { this.setFlag(8, p_478676_); }
      * vanilla 用 DATA_FLAGS bit8（1<<8=256）标记坐下。Cubium DATA_FLAGS 为 i8（仅 8 bit，
-     * 无法存 bit8），且 Panda 坐下行为整体未实现（无 LayDownGoal 等下游消费方），
-     * 故用独立成员 m_sitting 承载状态。
-     * TODO: Panda 坐下行为（LayDownGoal/坐下动画/客户端姿态）尚未实现，m_sitting 当前
-     * 无下游消费方，sit(false) 在 hurt 中为预备性对齐（未来补坐下行为时自动生效）。
+     * 无法存 bit8），故用独立成员 m_sitting 承载状态。
+     *
+     * 坐下状态只记录"是否坐着"，驱动方是本类 tick 中的担忧雷暴分支与喂食交互（tryToSit）。
+     * TODO: 客户端坐下动画与姿态同步（ride/sit 类姿态数据）尚未接入，服务端状态已正确维护。
      *
      * @param sit 是否坐下
      */
     void sit(bool sit);
 
     /**
+     * @brief 尝试坐下（对齐 vanilla Panda.tryToSit）
+     *
+     * 水中不坐下；否则停止寻路并置为坐下。用于玩家喂食竹子等交互。
+     */
+    void tryToSit();
+
+    /**
      * @brief 是否处于坐下状态
      *
      * 对齐 vanilla Panda.isSitting（getFlag(8)）。
-     * TODO: 同 sit(bool)，下游消费方未实现。
      */
     [[nodiscard]] bool isSitting() const { return m_sitting; }
 
@@ -386,6 +392,15 @@ protected:
 
     // ========== 刻更新 ==========
     void tick() override;
+
+    /**
+     * @brief 与玩家交互
+     *
+     * 熊猫在之先交给 AnimalEntity（喂食繁殖/成长）处理；若喂的是食物且熊猫已成体
+     * 但未进入求爱（已在求爱中或不可繁殖），则接过食物、停止移动并坐下进食——对应
+     * vanilla Panda.mobInteract 的 tryToSit() + eat(true) 分支。
+     */
+    [[nodiscard]] ActionResultType interactMob(Player& player, Hand hand) override;
 
     /**
      * @brief 打喷嚏完成时调用

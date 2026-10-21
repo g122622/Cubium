@@ -37,6 +37,7 @@
 #include "common/entity/attribute/Attributes.hpp"
 #include "common/entity/core/MobEntity.hpp"
 #include "common/entity/damage/DamageSource.hpp"
+#include "common/entity/entities/player/Player.hpp"
 #include "common/entity/utils/ItemDropHelper.hpp"
 #include "common/item/Items.hpp"
 #include "common/item/core/ItemStack.hpp"
@@ -249,6 +250,22 @@ void PandaEntity::tick()
 {
     AnimalEntity::tick();
 
+    // 担忧型熊猫在雷暴中会坐下（并停止进食）；雷暴结束后若未在进食则起身。
+    // 其余动作（进食/打滚/躺下/打喷嚏）的状态机不受此影响。
+    if (isWorried()) {
+        if (world() != nullptr && world()->isThundering() && !isInWater()) {
+            sit(true);
+            m_eating = false;
+        } else if (!isEating()) {
+            sit(false);
+        }
+    }
+
+    // 坐下时保持视线水平（vanilla Panda.tick 中 isSitting() 时 setXRot(0)）。
+    if (m_sitting) {
+        setRotation(yaw(), 0.0f);
+    }
+
     // 更新打滚物理
     if (m_rolling) {
         _updateRoll();
@@ -459,9 +476,49 @@ bool PandaEntity::hurt(DamageSource& source, f32 amount)
 
 void PandaEntity::sit(bool sit)
 {
-    // 对齐 vanilla Panda.sit（Panda.java:132-134）：setFlag(8, sit)。
-    // Cubium 用 m_sitting 成员承载（DATA_FLAGS i8 无法存 bit8，见 hpp TODO）。
+    // vanilla Panda.sit 只写标志位；下坐动作（停止寻路、清除移动输入）由 tryToSit 负责，
+    // 状态位本身由 AI（担忧雷暴 / 玩家喂食）驱动。
     m_sitting = sit;
+}
+
+ActionResultType PandaEntity::interactMob(Player& player, Hand hand)
+{
+    ItemStack& stack = player.getHeldItem(hand);
+    const bool isFood = isBreedingItem(stack);
+    const bool wasInLove = isInLove();
+
+    const ActionResultType result = AnimalEntity::interactMob(player, hand);
+
+    // 食物已被 AnimalEntity 消费（进入求爱或加速成长）时不再追加坐下。
+    if (result == ActionResultType::Success) {
+        return result;
+    }
+
+    if (!isFood || isChild() || isInWater()) {
+        return result;
+    }
+
+    // 成体喂食但未进入求爱：停下、坐下并进入进食状态。
+    // wasInLove 为真说明正处求爱中，原版同样允许继续喂食并坐下进食。
+    if (wasInLove || !canBreed()) {
+        if (!player.abilities().creativeMode) {
+            stack.shrink(1);
+        }
+        tryToSit();
+        m_eating = true;
+        return ActionResultType::Success;
+    }
+    return result;
+}
+
+void PandaEntity::tryToSit()
+{
+    // 对齐 vanilla Panda.tryToSit：水中不坐下，否则停止寻路并坐下。
+    if (isInWater()) {
+        return;
+    }
+    clearNavigation();
+    sit(true);
 }
 
 void PandaEntity::playSneezeSound()

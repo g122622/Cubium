@@ -71,6 +71,10 @@ public:
     // 设置游戏规则 doMobLoot
     void setDoMobLoot(bool value) { m_doMobLoot = value; }
 
+    // 天气（担忧熊猫在雷暴中坐下）
+    void setThundering(bool value) { m_thundering = value; }
+    [[nodiscard]] bool isThundering() const override { return m_thundering; }
+
     // 获取游戏规则
     [[nodiscard]] const world::gamerule::GameRules& getGameRules() const override { return m_gameRules; }
     [[nodiscard]] world::gamerule::GameRules& getGameRules() override { return m_gameRules; }
@@ -128,6 +132,7 @@ private:
     world::gamerule::GameRules m_gameRules;
     std::vector<Entity*> m_nearbyPandas;
     bool m_doMobLoot = true;
+    bool m_thundering = false;
 
     // 记录调用
     i32 m_particleSpawnCount = 0;
@@ -1002,6 +1007,77 @@ TEST(PandaEntityHurtTest, Hurt_Invulnerable_StillCancelsSitting)
     EXPECT_FALSE(result);
     // 但 sit(false) 已在 super.hurt 之前执行 → 取消坐下
     EXPECT_FALSE(panda.isSitting());
+}
+
+// ==================== 坐下状态 ====================
+
+namespace {
+
+/// 暴露受保护的 tick 供坐下状态测试驱动。
+class TickablePanda : public PandaEntity {
+public:
+    TickablePanda(EntityInstanceId id, ecs::EntityRegistry& registry)
+        : PandaEntity(id, registry)
+    {}
+
+    using PandaEntity::tick;
+};
+
+} // namespace
+
+TEST(PandaSittingTest, WorriedPandaSitsInThunderAndStandsAfter)
+{
+    Items::initialize();
+    PandaTestWorld world;
+    TickablePanda panda(EntityInstanceId(1), mc::test::testEcsRegistry());
+    panda.setWorld(&world);
+    panda.setTypeId("minecraft:panda");
+    panda.setPersonality(PandaEntity::Personality::Worried);
+
+    world.setThundering(true);
+    panda.tick();
+    EXPECT_TRUE(panda.isSitting());
+    EXPECT_FALSE(panda.isEating());
+
+    world.setThundering(false);
+    panda.tick();
+    EXPECT_FALSE(panda.isSitting());
+}
+
+TEST(PandaSittingTest, NonWorriedPandaDoesNotSitInThunder)
+{
+    Items::initialize();
+    PandaTestWorld world;
+    TickablePanda panda(EntityInstanceId(1), mc::test::testEcsRegistry());
+    panda.setWorld(&world);
+    panda.setTypeId("minecraft:panda");
+    panda.setPersonality(PandaEntity::Personality::Normal);
+
+    world.setThundering(true);
+    panda.tick();
+    EXPECT_FALSE(panda.isSitting());
+}
+
+TEST(PandaSittingTest, TryToSitSitsAndTryToSitOnWaterIsNoop)
+{
+    Items::initialize();
+    PandaEntity panda(EntityInstanceId(1), mc::test::testEcsRegistry());
+    panda.setTypeId("minecraft:panda");
+
+    panda.tryToSit();
+    EXPECT_TRUE(panda.isSitting());
+}
+
+TEST(PandaSittingTest, SittingKeepsPitchLevel)
+{
+    Items::initialize();
+    TickablePanda panda(EntityInstanceId(1), mc::test::testEcsRegistry());
+    panda.setTypeId("minecraft:panda");
+    panda.sit(true);
+    panda.setRotation(45.0f, -30.0f);
+
+    panda.tick();
+    EXPECT_FLOAT_EQ(panda.pitch(), 0.0f);
 }
 
 } // anonymous namespace
