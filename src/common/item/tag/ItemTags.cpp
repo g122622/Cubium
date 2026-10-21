@@ -414,6 +414,15 @@ ItemTag& ItemTags::VILLAGER_PLANTABLE_SEEDS()
     return *tag;
 }
 
+ItemTag& ItemTags::SNIFFER_FOOD()
+{
+    static ItemTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "sniffer_food"));
+    }
+    return *tag;
+}
+
 ItemTag& ItemTags::CREEPER_IGNITERS()
 {
     static ItemTag* tag = nullptr;
@@ -1192,6 +1201,16 @@ void ItemTags::initialize()
     villagerPlantableSeeds->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "torchflower_seeds")));
     villagerPlantableSeeds->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "pitcher_pod")));
     allTags[villagerPlantableSeeds->getId()] = std::move(villagerPlantableSeeds);
+
+    // 创建 SNIFFER_FOOD 标签
+    // 包含可诱引、繁殖嗅探兽并加速幼体成长的物品（火把花种子、瓶草荚果）。
+    // 对应 MC 原版标签 minecraft:sniffer_food。
+    // 参考: datapacks/Vanilla/data/minecraft/tags/item/sniffer_food.json
+    // （MC 1.21.11 Sniffer#isFood 通过 ItemStack.is(ItemTags.SNIFFER_FOOD) 判断）
+    auto snifferFood = std::make_unique<ItemTag>(ResourceLocation("minecraft", "sniffer_food"), false);
+    snifferFood->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "torchflower_seeds")));
+    snifferFood->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "pitcher_pod")));
+    allTags[snifferFood->getId()] = std::move(snifferFood);
 
     // 创建 CREEPER_IGNITERS 标签
     // 包含可用于点燃苦力怕的物品（打火石、火焰弹）。

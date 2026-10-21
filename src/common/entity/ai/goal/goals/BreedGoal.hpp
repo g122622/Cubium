@@ -59,17 +59,24 @@ public:
 
     [[nodiscard]] std::string getTypeName() const override { return "BreedGoal"; }
 
+    /**
+     * @brief 执行一次繁殖产出与繁殖后处理
+     *
+     * 对齐 vanilla BreedGoal.tick 在 loveTime 达到阈值后的繁殖分支：先经
+     * AnimalEntity::spawnChildFromBreeding 产出（幼体或物品），再统一执行发情重置、
+     * 繁殖冷却、繁殖事件、爱心粒子与经验球。
+     *
+     * @note 要求 m_targetMate 非空（由 shouldExecute 定位）；tick() 在满足倒计时与
+     *       距离条件后调用。
+     */
+    void spawnBaby();
+
 protected:
     /**
      * @brief 寻找附近的配偶
      * @return 附近的配偶，如果没有则返回 nullptr
      */
     [[nodiscard]] AnimalEntity* findNearbyMate();
-
-    /**
-     * @brief 生成幼体
-     */
-    void spawnBaby();
 
     AnimalEntity* m_animal;
     f64 m_speed;

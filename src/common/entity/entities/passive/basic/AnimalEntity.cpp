@@ -87,6 +87,33 @@ bool AnimalEntity::isBreedingItem(const ItemStack& itemStack) const
     return !itemStack.isEmpty() && itemStack.getItem() == Items::WHEAT;
 }
 
+AnimalEntity* AnimalEntity::spawnChildFromBreeding(AnimalEntity& partner)
+{
+    // 对齐 vanilla Animal.spawnChildFromBreeding：
+    //   AgeableMob ageablemob = this.getBreedOffspring(serverLevel, partner);
+    //   ageablemob.setBaby(true);
+    //   ageablemob.snapTo(this.getX(), this.getY(), this.getZ(), 0, 0);
+    //   this.finalizeSpawnChildFromBreeding(serverLevel, partner, ageablemob);
+    //   serverLevel.addFreshEntityWithPassengers(ageablemob);
+    // 本项目把 getBreedOffspring + setBaby 合并在 spawnBaby() 内，此处负责投射到本动物位置
+    // 并送入世界；幼体类型由 spawnBaby 自身设置，不在此以父母 typeId 覆写（避免掉蛋类产物被误改为幼体）。
+    auto baby = spawnBaby(partner);
+    if (!baby) {
+        return nullptr;
+    }
+    baby->setPosition(x(), y(), z());
+    baby->setRotation(0.0f, 0.0f);
+    baby->setChild(true);
+
+    if (m_world == nullptr) {
+        // 无世界时幼体无处可去，直接丢弃（对齐 addFreshEntity 不可用语义）
+        return nullptr;
+    }
+    AnimalEntity* spawned = baby.get();
+    m_world->spawnEntity(std::move(baby));
+    return spawned;
+}
+
 ActionResultType AnimalEntity::interactMob(Player& player, Hand hand)
 {
     // 与 MC 1.16.5 AnimalEntity.func_230254_b_(mobInteract) 对齐：

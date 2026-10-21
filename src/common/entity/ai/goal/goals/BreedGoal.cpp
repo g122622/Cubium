@@ -145,84 +145,68 @@ void BreedGoal::spawnBaby()
 {
     if (!m_animal || !m_targetMate) return;
 
-    // 重置爱心状态
+    IWorld* world = m_animal->world();
+    if (world == nullptr) return;
+
+    // 先取出双方繁殖发起者（重置发情状态会改写 loveCause）：
+    // 对齐 vanilla finalizeSpawnChildFromBreeding 的
+    //   getLoveCause() || partner.getLoveCause() → awardStat + BRED_ANIMALS 触发。
+    u64 loveCause = m_animal->getLoveCause();
+    if (loveCause == 0) {
+        loveCause = m_targetMate->getLoveCause();
+    }
+
+    // 产出阶段：默认生成幼体，子类可覆盖为物品产出（如嗅探兽掉蛋）。
+    // 对齐 vanilla Animal.spawnChildFromBreeding：先生成产物并送入世界，再执行
+    // finalizeSpawnChildFromBreeding（奖励统计/进度、播放爱心实体事件、经验球、重置发情与冷却）。
+    AnimalEntity* baby = m_animal->spawnChildFromBreeding(*m_targetMate);
+
+    // 对幼体做基于难度的初始化（使用位置感知的区域难度）
+    if (baby != nullptr) {
+        auto* babyMob = dynamic_cast<MobEntity*>(baby);
+        if (babyMob != nullptr) {
+            entity::combat::DifficultyInstance difficultyInstance =
+                entity::combat::DifficultyInstance::at(*world, baby->onPos());
+            babyMob->finalizeSpawn(*world, difficultyInstance, world::spawn::SpawnReason::Breeding);
+        }
+    }
+
+    // 重置爱心状态 + 设置繁殖冷却 (6000 ticks = 5分钟)
     m_animal->resetInLove();
     m_targetMate->resetInLove();
-
-    // 设置繁殖冷却 (6000 ticks = 5分钟)
     m_animal->setGrowingAge(AgeableEntity::BREEDING_COOLDOWN);
     m_targetMate->setGrowingAge(AgeableEntity::BREEDING_COOLDOWN);
 
-    // 生成幼体
-    auto baby = m_animal->spawnBaby(*m_targetMate);
-    if (baby) {
-        baby->setTypeId(m_animal->getTypeId());
+    // 触发繁殖事件（用于成就触发）；物品产出时 child 为 nullptr，与 vanilla 传入 null AgeableMob 一致
+    if (loveCause != 0) {
+        world->onBredAnimals(static_cast<PlayerId>(loveCause), baby, m_animal, m_targetMate.get());
+    }
 
-        IWorld* world = m_animal->world();
-        if (world) {
-            // 设置幼体位置（在父母之间随机偏移）
-            mc::math::IRandom& rng = m_animal->getRandom();
-            f32 babyX = static_cast<f32>(m_animal->x() + (rng.nextDouble() - 0.5) * 2.0);
-            f32 babyY = static_cast<f32>(m_animal->y());
-            f32 babyZ = static_cast<f32>(m_animal->z() + (rng.nextDouble() - 0.5) * 2.0);
-            baby->setPosition(babyX, babyY, babyZ);
+    // 生成爱心粒子效果（对齐 vanilla broadcastEntityEvent(this, (byte)18)）
+    m_animal->spawnHeartParticles();
+    m_targetMate->spawnHeartParticles();
 
-            // 设置幼体年龄
-            baby->setGrowingAge(AgeableEntity::BABY_AGE);
+    // 生成 1-7 个经验球（对齐 vanilla finalizeSpawnChildFromBreeding 的 ExperienceOrb 生成）
+    // ECS 迁移：实体构造需要 registry 句柄（world 已判空，此处 registry 必非空）
+    auto* registry = world->entityRegistry();
+    if (registry == nullptr) {
+        return;
+    }
+    mc::math::IRandom& rng = m_animal->getRandom();
+    i32 xpCount = 1 + rng.nextInt(7);
+    for (i32 i = 0; i < xpCount; ++i) {
+        auto xpOrb =
+            std::make_unique<ExperienceOrbEntity>(world, m_animal->x(), m_animal->y(), m_animal->z(), 1, *registry);
 
-            // 对 MobEntity 调用 finalizeSpawn 进行基于难度的初始化（使用位置感知的区域难度）
-            auto* babyMob = dynamic_cast<MobEntity*>(baby.get());
-            if (babyMob != nullptr) {
-                entity::combat::DifficultyInstance difficultyInstance = entity::combat::DifficultyInstance::at(*world,
-                    BlockPos(static_cast<i32>(std::floor(babyX)),
-                        static_cast<i32>(babyY),
-                        static_cast<i32>(std::floor(babyZ))));
-                babyMob->finalizeSpawn(*world, difficultyInstance, world::spawn::SpawnReason::Breeding);
-            }
+        // 直接构造的实体需要显式设置 typeId（注册表路径会自动设置）
+        xpOrb->setTypeId(EntityTypeKeys::EXPERIENCE_ORB);
 
-            // 获取繁殖发起者玩家（优先从第一个动物获取 loveCause，如果为空则从第二个动物获取）
-            u64 loveCause = m_animal->getLoveCause();
-            if (loveCause == 0) {
-                loveCause = m_targetMate->getLoveCause();
-            }
-
-            // 保存幼体指针（spawnEntity 后 unique_ptr 会被移动）
-            Entity* babyPtr = baby.get();
-
-            // 生成到世界中
-            world->spawnEntity(std::move(baby));
-
-            // 触发繁殖事件（用于成就触发）
-            if (loveCause != 0) {
-                world->onBredAnimals(static_cast<PlayerId>(loveCause), babyPtr, m_animal, m_targetMate.get());
-            }
-
-            // 生成爱心粒子效果
-            m_animal->spawnHeartParticles();
-            m_targetMate->spawnHeartParticles();
-
-            // 生成 1-7 个经验球
-            // ECS 迁移：实体构造需要 registry 句柄（world 已判空，此处 registry 必非空）
-            auto* registry = world->entityRegistry();
-            if (registry == nullptr) {
-                return;
-            }
-            i32 xpCount = 1 + rng.nextInt(7);
-            for (i32 i = 0; i < xpCount; ++i) {
-                auto xpOrb = std::make_unique<ExperienceOrbEntity>(
-                    world, m_animal->x(), m_animal->y(), m_animal->z(), 1, *registry);
-
-                // 直接构造的实体需要显式设置 typeId（注册表路径会自动设置）
-                xpOrb->setTypeId(EntityTypeKeys::EXPERIENCE_ORB);
-
-                // 添加随机速度
-                f32 vx = (rng.nextFloat() - 0.5f) * 0.2f;
-                f32 vy = rng.nextFloat() * 0.2f;
-                f32 vz = (rng.nextFloat() - 0.5f) * 0.2f;
-                xpOrb->setVelocity(vx, vy, vz);
-                world->spawnEntity(std::move(xpOrb));
-            }
-        }
+        // 添加随机速度
+        f32 vx = (rng.nextFloat() - 0.5f) * 0.2f;
+        f32 vy = rng.nextFloat() * 0.2f;
+        f32 vz = (rng.nextFloat() - 0.5f) * 0.2f;
+        xpOrb->setVelocity(vx, vy, vz);
+        world->spawnEntity(std::move(xpOrb));
     }
 }
 

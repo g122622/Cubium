@@ -121,9 +121,9 @@ AnimalEntity (passive/basic/AnimalEntity.hpp)
 ### SnifferEntity 嗅探兽
 1. **幼年期长度特殊**：嗅探兽幼年期为 48000 tick（40 分钟），是普通动物（24000 tick / 20 分钟）的两倍。`setChild(bool)` 覆盖了 `AgeableEntity::setChild`，设置 `SNIFFER_BABY_AGE_TICKS = -48000`。`AgeableEntity::setChild` 因此被改为 `virtual` 以允许此覆盖。
 2. **状态机同步**：`DATA_STATE_PARAM` 使用 `DataParameter<i8>`（对齐 MC SNIFFER_STATE BYTE 序列化器），`getState()`/`setState()` 负责 `State↔i8` 转换。`transitionTo(state)` 在切换状态时播放对应音效（happy/scenting/sniffing/digging_stop）。
-3. **繁殖物品**：`isBreedingItem` 识别 `TORCHFLOWER_SEEDS` 和 `PITCHER_POD`（MC 原版使用 `ItemTags.SNIFFER_FOOD` 标签，项目无物品标签系统故直接判断）。
+3. **繁殖物品**：`isBreedingItem` 查询 `ItemTags::SNIFFER_FOOD`（数据包键 `minecraft:sniffer_food`，可被数据包覆写），不可硬编码为火把花种子/瓶草荚果。
 4. **繁殖状态限制**：`canMateWith` 要求双方 `SnifferEntity` 且状态在 `{Idling, Scenting, FeelingHappy}` 集合内才可繁殖。
-5. **繁殖掉蛋而非幼体**：MC 原版 `Sniffer.spawnChildFromBreeding` 实际掉落 `SNIFFER_EGG` 物品而非直接生成幼体。当前项目 `Items::SNIFFER_EGG` 尚未实现，`spawnBaby` 返回幼体嗅探兽作为占位实现（TODO 待物品实现后改为掉落蛋物品）。
+5. **繁殖掉蛋而非幼体**：繁殖产出在 `spawnChildFromBreeding` 覆盖为掉落 `SNIFFER_EGG` 物品（原版默认动量、默认拾取延迟、播放 `SNIFFER_EGG_PLOP`），`spawnBaby` 恒返回 nullptr。发情重置、繁殖冷却、繁殖事件（child 传 nullptr）、爱心粒子与经验球由 `BreedGoal::spawnBaby()` 统一处理，新增掉蛋类动物时须同时覆盖 `spawnChildFromBreeding`，不可依赖调用方对幼体做 `setTypeId(父母)` 等覆写。
 6. **挖掘 AI 未实现**：MC 原版使用 Brain + MemoryModuleType.SNIFFER_EXPLORED_POSITIONS 管理挖掘状态，项目无 Brain 系统且挖掘 Goal 未实现。`transitionTo(Digging)` 中的 `DATA_DROP_SEED_AT_TICK` 设置与粒子广播留有 TODO 注释。
 7. **孵化入口**：`SnifferEggBlock::randomTick`（位于 `world/block/blocks/functional/TrailsBlocks.cpp`）在孵化等级达到 2 时调用 `setChild(true)` + `setPosition(pos.center())` + `setRotation(wrapDegrees(random*360), 0)` + `finalizeSpawn` + `spawnEntity` 生成幼体嗅探兽。
 8. **属性常量**：`MOVEMENT_SPEED = 0.1`、`MAX_HEALTH = 14.0`、`FOLLOW_RANGE = 16.0`、`SNIFFER_STEP_VOLUME = 0.15`，均对齐 MC 1.21.11 `Sniffer.createAttributes` 与 `playStepSound`。

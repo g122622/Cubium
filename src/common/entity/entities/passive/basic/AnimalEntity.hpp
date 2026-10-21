@@ -123,6 +123,23 @@ public:
      */
     virtual std::unique_ptr<AnimalEntity> spawnBaby(AnimalEntity& partner) = 0;
 
+    /**
+     * @brief 繁殖产出（对齐 vanilla Animal.spawnChildFromBreeding 的可覆盖产物阶段）
+     *
+     * 负责在双方重置发情、设置繁殖冷却之前，把本次繁殖的产物（幼体实体或物品）送入世界：
+     * - 默认实现：调用 spawnBaby() 生成幼体，投射到本动物位置、setChild(true) 后
+     *   spawnEntity（对齐 vanilla 的 setBaby + snapTo + addFreshEntityWithPassengers）；
+     * - 子类可覆盖为物品产出（如嗅探兽掉落嗅探兽蛋），此时不产生幼体。
+     *
+     * 进度 `bred_animals` 的 child 条件只匹配幼体实体：物品产出时 child 为 nullptr
+     * （对齐 vanilla 向 BredAnimalsTrigger 传入 null AgeableMob）。
+     *
+     * @param partner 交配伙伴
+     * @return 本次繁殖生成的幼体实体（未被移除）；物品产出或无幼体时返回 nullptr
+     * @note 调用方（BreedGoal / AnimalMakeLove）只在繁殖确已发生时调用本方法一次。
+     */
+    virtual AnimalEntity* spawnChildFromBreeding(AnimalEntity& partner);
+
     // ========== 爱心状态 ==========
 
     /**
