@@ -27,6 +27,8 @@
 #include "common/core/Types.hpp"
 #include "common/entity/effect/EffectType.hpp"
 #include "common/entity/entities/projectile/AbstractFireballEntity.hpp"
+#include "common/item/Items.hpp"
+#include "common/item/core/ItemStack.hpp"
 
 using namespace mc;
 using namespace mc::entity;
@@ -37,6 +39,12 @@ using namespace mc::entity;
 
 class FireballEntityTest : public ::testing::Test {
 protected:
+    static void SetUpTestSuite()
+    {
+        // 火球默认物品为火焰弹，需先完成物品注册。
+        Items::initialize();
+    }
+
     void SetUp() override
     {
         // 创建 FireballEntity
@@ -253,4 +261,47 @@ TEST_F(FireballConstantsTest, EffectAmplifier_MatchesMC1165)
     constexpr i32 INSTANT_DAMAGE_AMPLIFIER = 1; // II级
     EXPECT_EQ(WITHER_EFFECT_AMPLIFIER, 1);
     EXPECT_EQ(INSTANT_DAMAGE_AMPLIFIER, 1);
+}
+
+// ============================================================================
+// 火球物品字段（vanilla Fireball 的 Item 字段）
+// ============================================================================
+
+TEST_F(FireballEntityTest, Item_DefaultsToFireCharge)
+{
+    // vanilla Fireball#getDefaultItem 返回火焰弹
+    ASSERT_NE(Items::FIRE_CHARGE, nullptr);
+    const ItemStack item = m_fireball->getItem();
+    EXPECT_EQ(item.getItem(), Items::FIRE_CHARGE);
+    EXPECT_EQ(item.getCount(), 1);
+}
+
+TEST_F(FireballEntityTest, SetItem_NormalizesCountToOne)
+{
+    // 非空物品一律取 1 个
+    ItemStack stack(*Items::FIRE_CHARGE, 16);
+    m_fireball->setItem(stack);
+
+    const ItemStack stored = m_fireball->getItem();
+    EXPECT_EQ(stored.getItem(), Items::FIRE_CHARGE);
+    EXPECT_EQ(stored.getCount(), 1);
+}
+
+TEST_F(FireballEntityTest, SetItem_EmptyFallsBackToDefault)
+{
+    // 空物品回退为默认火焰弹
+    m_fireball->setItem(ItemStack());
+    const ItemStack stored = m_fireball->getItem();
+    ASSERT_NE(stored.getItem(), nullptr);
+    EXPECT_EQ(stored.getItem(), Items::FIRE_CHARGE);
+}
+
+TEST_F(FireballEntityTest, SetItem_MirrorsSyncedData)
+{
+    // setItem 须同步镜像到 DATA_ITEM_STACK，供客户端渲染飞行中的火球物品
+    m_fireball->setItem(ItemStack(*Items::FIRE_CHARGE, 1));
+    const auto view =
+        m_fireball->dataManager().get<network::ir::play::ItemStackView>(FireballEntity::DATA_ITEM_STACK_PARAM);
+    EXPECT_GT(view.itemId, 0u);
+    EXPECT_EQ(view.count, 1);
 }

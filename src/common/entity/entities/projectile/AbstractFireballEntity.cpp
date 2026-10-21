@@ -35,6 +35,8 @@
 #include "common/entity/entities/effect/EffectEntities.hpp"
 #include "common/entity/entities/projectile/DamagingProjectileEntity.hpp"
 #include "common/entity/entities/projectile/ProjectileEntity.hpp"
+#include "common/item/Items.hpp"
+#include "common/item/core/Item.hpp"
 #include "common/network/ir/ItemStackBridge.hpp"
 #include "common/network/ir/packets/play/ItemStackView.hpp"
 #include "common/particle/ParticleTypes.hpp"
@@ -84,13 +86,14 @@ FireballEntity::FireballEntity(EntityInstanceId id, ecs::EntityRegistry& registr
     : AbstractFireballEntity(id, registry)
 {
     setDamage(6.0f);
-    // 批次6 子目标2 Step1：attach FireballStateComponent（火球族状态，本类用 m_explosionPower）。
-    // Step4 将把 m_explosionPower 读写改走组件；Step5 补 DATA_ITEM_STACK 同步字段对齐 vanilla。
+    // attach FireballStateComponent（火球族状态，本类用 m_explosionPower 与 m_itemStack）。
     m_entityContext->enttRegistry().emplace<ecs::FireballStateComponent>(m_entityContext->entity());
-    // 注册同步字段 DATA_ITEM_STACK（id8，占位空 ItemStackView）。C++ 虚函数在构造函数不派生，
+    // 注册同步字段 DATA_ITEM_STACK（id8）。C++ 虚函数在构造函数不派生，
     // AbstractFireballEntity 构造调用的 registerData 不会派生到 Fireball，故此处显式调用本类
     // registerData 注册火球专属同步字段。
     registerData();
+    // 物品字段初值与 vanilla 一致：默认火焰弹（组件与同步参数一并就位）。
+    setItem(ItemStack());
 }
 
 void FireballEntity::registerData()
@@ -105,9 +108,32 @@ void FireballEntity::registerData()
     entity::EntityDataManager::ClassRegisterGuard guard(m_dataManager, classInfo());
 
     // 注册火球专属同步参数（id8，对应 vanilla Fireball.DATA_ITEM_STACK）。
-    // TODO: 项目 FireballEntity 当前无 item 字段，占位空 ItemStackView 保持 wire 位置对齐；
-    // 补齐物品字段后镜像真实物品。
-    m_dataManager.registerParam(DATA_ITEM_STACK_PARAM, network::ir::toItemStackView(ItemStack()));
+    // 初值与 vanilla defineSynchedData 一致：默认火焰弹物品。
+    m_dataManager.registerParam(DATA_ITEM_STACK_PARAM, network::ir::toItemStackView(ItemStack(*getDefaultItem())));
+}
+
+const Item* FireballEntity::getDefaultItem() const
+{
+    return Items::FIRE_CHARGE;
+}
+
+ItemStack FireballEntity::getItem() const
+{
+    const auto* c = tryGetComponent<ecs::FireballStateComponent>();
+    return (c != nullptr && c->m_itemStack != nullptr) ? *c->m_itemStack : ItemStack(*getDefaultItem());
+}
+
+void FireballEntity::setItem(const ItemStack& stack)
+{
+    // 对齐 vanilla Fireball#setItem：空物品回退默认物品，非空物品一律取 1 个。
+    ItemStack normalized = stack.isEmpty() ? ItemStack(*getDefaultItem()) : ItemStack(stack.getItem(), 1);
+
+    auto* c = tryGetComponent<ecs::FireballStateComponent>();
+    if (c != nullptr && c->m_itemStack != nullptr) {
+        *c->m_itemStack = normalized;
+    }
+    // 镜像到同步参数，供客户端渲染飞行中的火球物品。
+    m_dataManager.set(DATA_ITEM_STACK_PARAM, network::ir::toItemStackView(normalized));
 }
 
 std::unique_ptr<Entity> FireballEntity::create(IWorld* /*world*/, ecs::EntityRegistry& registry)

@@ -24,6 +24,7 @@
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
 #include "common/entity/core/Entity.hpp"
+#include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/core/PickupStatus.hpp"
 #include "common/entity/ecs/components/DamagingProjectileComponent.hpp"
 #include "common/entity/ecs/components/EvokerFangsComponent.hpp"
@@ -326,12 +327,13 @@ static Result<void> loadDamagingProjectile(Entity& entity, const nbt::tags::comp
 }
 
 // ============================================================================
-// FireballStateComponent — Fireball(ExplosionPower) / WitherSkull(dangerous)
+// FireballStateComponent — Fireball(Item) / WitherSkull(dangerous)
 // 对齐 vanilla 1.21.11 Fireball/WitherSkull。
-// Fireball 与 WitherSkull 共用此组件：m_explosionPower(Fireball)/m_blue(WitherSkull)。
-// 按实体类型分发键名：WitherSkull 存 dangerous(m_blue)，其余(Fireball)存 ExplosionPower(m_explosionPower)。
-// 注意：vanilla Fireball 存 Item 不存 ExplosionPower（ExplosionPower 是 LargeFireball/恶魂的键）；
-// 项目 FireballEntity 用 m_explosionPower 作爆炸威力，此为项目既有设计差异，沿用项目现状。
+// Fireball 与 WitherSkull 共用此组件：m_itemStack(Fireball)/m_blue(WitherSkull)。
+// 按实体类型精确分发键名：WitherSkull 存 dangerous(m_blue)，Fireball 存 Item(m_itemStack)。
+// 注意：ExplosionPower 在 vanilla 属于 LargeFireball（恶魂）而非 Fireball；项目 FireballEntity
+// 用 m_explosionPower 作为爆炸威力（项目既有设计差异），仍写入 ExplosionPower 键以保持
+// 存档自洽，但不与 WitherSkull 的 dangerous 键混写。
 // ============================================================================
 
 static void saveFireballState(const Entity& entity, nbt::tags::compound_tag& tag)
@@ -340,15 +342,20 @@ static void saveFireballState(const Entity& entity, nbt::tags::compound_tag& tag
     if (c == nullptr) {
         return;
     }
-    // 判定是否为凋灵之首：FireballEntity 无 m_blue 语义（恒 false），WitherSkull 用 m_blue。
-    // 用组件内 m_blue 是否被设置过不可靠（Fireball 的 m_blue 恒 false），改用实体类型名判定。
-    // 简化：m_explosionPower 默认 1（Fireball 构造 setDamage(6) 不改 explosionPower），
-    // WitherSkull 构造也不改 explosionPower。两者都用 m_explosionPower=1 默认值，无法区分。
-    // 故按 entity 是否能 cast 到 WitherSkull 分发——但此处避免引入 WitherSkullEntity 依赖，
-    // 改用 typeId 字符串判定。
-    // TODO: 补 WitherSkullEntity 的 typeId 判定后精确分发；当前两键都写（vanilla 客户端按类型只读其一）。
+
+    if (entity.getTypeId() == EntityTypeKeys::WITHER_SKULL) {
+        // 凋灵之首：只写 dangerous，不写 Fireball 专属键。
+        tag.put(WITHER_SKULL_DANGEROUS, static_cast<i8>(c->m_blue ? 1 : 0));
+        return;
+    }
+
+    // 火球：写爆炸威力与携带物品。
     tag.put(FIREBALL_EXPLOSION_POWER, static_cast<i8>(c->m_explosionPower));
-    tag.put(WITHER_SKULL_DANGEROUS, static_cast<i8>(c->m_blue ? 1 : 0));
+    if (c->m_itemStack != nullptr && !c->m_itemStack->isEmpty()) {
+        nbt::tags::compound_tag itemTag;
+        c->m_itemStack->toNbt(itemTag);
+        tag.value.emplace(ITEM, std::make_unique<nbt::tags::compound_tag>(std::move(itemTag)));
+    }
 }
 
 static Result<void> loadFireballState(Entity& entity, const nbt::tags::compound_tag& tag)
@@ -357,11 +364,22 @@ static Result<void> loadFireballState(Entity& entity, const nbt::tags::compound_
     if (c == nullptr) {
         return {};
     }
+
+    if (entity.getTypeId() == EntityTypeKeys::WITHER_SKULL) {
+        if (auto val = tryGetBool(tag, WITHER_SKULL_DANGEROUS)) {
+            c->m_blue = *val;
+        }
+        return {};
+    }
+
     if (auto val = tryGetByte(tag, FIREBALL_EXPLOSION_POWER)) {
         c->m_explosionPower = *val;
     }
-    if (auto val = tryGetBool(tag, WITHER_SKULL_DANGEROUS)) {
-        c->m_blue = *val;
+    if (const nbt::tags::compound_tag* itemTag = tryGetCompound(tag, ITEM); itemTag != nullptr) {
+        auto stackResult = ItemStack::fromNbt(*itemTag);
+        if (stackResult.success() && c->m_itemStack != nullptr) {
+            *c->m_itemStack = stackResult.value();
+        }
     }
     return {};
 }
