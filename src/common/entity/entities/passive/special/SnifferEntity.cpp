@@ -32,6 +32,7 @@
 #include "common/entity/ai/goal/goals/RandomWalkingGoal.hpp"
 #include "common/entity/ai/goal/goals/SwimGoal.hpp"
 #include "common/entity/ai/goal/goals/TemptGoal.hpp"
+#include "common/entity/ai/goal/goals/special/SnifferGoals.hpp"
 #include "common/entity/attribute/Attributes.hpp"
 #include "common/entity/core/DataParameter.hpp"
 #include "common/entity/core/EntityClassRegistry.hpp"
@@ -40,13 +41,17 @@
 #include "common/entity/damage/DamageSource.hpp"
 #include "common/entity/serialization/EntityNbtKeys.hpp"
 #include "common/entity/serialization/NbtHelper.hpp"
+#include "common/entity/utils/ItemDropHelper.hpp"
 #include "common/item/Items.hpp"
 #include "common/item/core/ItemStack.hpp"
+#include "common/item/loot/LootTableManager.hpp"
+#include "common/item/loot/context/LootContextBuilder.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/sound/SoundEvents.hpp"
 #include "common/util/nbt/Nbt.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/BlockPos.hpp"
+#include <cmath>
 #include <memory>
 #include <optional>
 
@@ -138,13 +143,14 @@ void SnifferEntity::transitionTo(State state)
             setState(State::Searching);
             break;
         case State::Digging:
-            // TODO: 对齐 MC Sniffer.onDiggingStart：
-            //   1. 设置 DATA_DROP_SEED_AT_TICK = tickCount + 120
-            //   2. 广播实体状态 (byte)63 触发客户端挖掘粒子
-            //   3. 通过 Brain + MemoryModuleType.SNIFFER_EXPLORED_POSITIONS 管理挖掘位置
-            // 当前项目无 Brain 系统且挖掘 AI 未实现，此处仅切换状态。
-            // 后续实现挖掘 Goal 时需在此补充掉落种子时序逻辑。
+            // 对齐 MC Sniffer.onDiggingStart：记录掉种时刻（tickCount + 120），切换挖掘状态。
+            // 视觉层面的实体状态广播（byte 63，客户端挖掘粒子）由数据中心同步包装，见 setState。
+            // TODO(sniffer-particles): 客户端挖掘粒子（BlockParticleOption）依赖尚未接入的粒子系统，
+            //   接入后在此广播实体状态事件并补充 emitDiggingParticles 的本地音效。
+            m_dataManager.set(
+                DATA_DROP_SEED_AT_TICK_PARAM, static_cast<i32>(ticksExisted()) + DIGGING_DROP_SEED_OFFSET_TICKS);
             setState(State::Digging);
+            playSound(SoundEvents::SNIFFER_DIGGING, 1.0f, 1.0f);
             break;
         case State::Rising:
             playSound(SoundEvents::SNIFFER_DIGGING_STOP, 1.0f, 1.0f);
@@ -251,9 +257,63 @@ void SnifferEntity::tick()
             playSound(SoundEvents::SNIFFER_SEARCHING, 1.0f, 1.0f);
         }
     }
-    // TODO: Digging 状态的 emitDiggingParticles + dropSeed 逻辑待挖掘 AI 实现后补充。
+    // 对齐 MC Sniffer.tick：挖掘到 DATA_DROP_SEED_AT_TICK 时刻从嗅探兽战利品表掉出物品。
+    if (getState() == State::Digging) {
+        dropSeed();
+    }
 
     AnimalEntity::tick();
+}
+
+i32 SnifferEntity::ticksUntilDropSeed() const
+{
+    return m_dataManager.get(DATA_DROP_SEED_AT_TICK_PARAM) - static_cast<i32>(ticksExisted());
+}
+
+void SnifferEntity::dropSeed()
+{
+    // 对齐 MC Sniffer.dropSeed：仅服务端、且掉种时刻恰好为当前 tick 时生效。
+    if (m_world == nullptr || m_world->isClientSide()) {
+        return;
+    }
+    if (m_dataManager.get(DATA_DROP_SEED_AT_TICK_PARAM) != static_cast<i32>(ticksExisted())) {
+        return;
+    }
+
+    const loot::LootTableManager* lootTables = m_world->lootTableManager();
+    if (lootTables == nullptr) {
+        return;
+    }
+    const loot::LootTable* table = lootTables->getTable("minecraft:gameplay/sniffer_digging");
+    if (table == nullptr) {
+        return;
+    }
+
+    // 掉落在头部方块（嗅探兽正下方的可挖掘方块中心），对齐 vanilla getHeadBlock()。
+    const BlockPos dropPos(
+        static_cast<i32>(std::floor(x())), static_cast<i32>(std::floor(y())) - 1, static_cast<i32>(std::floor(z())));
+
+    auto context = loot::LootContextBuilder(*m_world)
+                       .withRandom(getRandom())
+                       .withParameter(loot::LootParams::THIS_ENTITY, static_cast<Entity*>(this))
+                       .withOwnedValue(loot::LootParams::BLOCK_POS, dropPos)
+                       .withLootTableResolver([lootTables](const std::string& id) -> const loot::LootTable* {
+                           return lootTables->getTable(id);
+                       })
+                       .withPredicateResolver([lootTables](const std::string& id) -> const loot::LootCondition* {
+                           return lootTables->getPredicate(id);
+                       })
+                       .build(loot::LootParameterSets::gift());
+    if (context == nullptr) {
+        return;
+    }
+
+    for (const auto& stack : table->generate(*context)) {
+        if (!stack.isEmpty()) {
+            ItemDropHelper::spawnItemEntity(m_world, stack, x(), y(), z(), getRandom());
+        }
+    }
+    playSound(SoundEvents::SNIFFER_DROP_SEED, 1.0f, 1.0f);
 }
 
 // ========== 死亡 ==========
@@ -316,14 +376,15 @@ void SnifferEntity::registerGoals()
     // 优先级 7: 随机看向
     m_goalSelector.addGoal(7, std::make_unique<entity::ai::goal::LookRandomlyGoal>(this));
 
-    // TODO: 待 Brain 系统或等效 Goal 系统实现后，补充以下嗅探兽特有 AI：
+    // 挖掘（优先级 3）：嗅探兽特有的核心行为，对齐 SnifferAi.DiggingAndRise 的挖掘段。
+    m_goalSelector.addGoal(3, std::make_unique<entity::ai::goal::SnifferDigGoal>(this, 1.0));
+
+    // TODO(sniffer-brain): 待 Brain 系统或等效 Goal 系统实现后，补充其余嗅探兽特有 AI：
     //   - ScentingGoal（闻气味，对齐 SnifferAi.Scenting）
     //   - SniffingGoal（嗅探，对齐 SnifferAi.Sniffing）
-    //   - SearchingGoal（搜索挖掘点，对齐 SnifferAi.Searching）
-    //   - DiggingGoal（挖掘并掉落种子，对齐 SnifferAi.DiggingAndRise）
-    //   - RisingGoal（挖掘结束抬头，对齐 SnifferAi.DiggingAndRise.Rising）
+    //   - SearchingGoal（搜索挖掘点并记忆已探索位置，对齐 SnifferAi.Searching）
     //   - FeelingHappyGoal（繁殖后开心，对齐 SnifferAi.FeelingHappy）
-    // 当前实现仅提供基础动物 AI，保证嗅探兽可被繁殖、跟随父母、随机漫步。
+    // 挖掘后的 Rising 状态已由 SnifferDigGoal 在挖掘完毕时切换。
 }
 
 // ========== 属性注册 ==========

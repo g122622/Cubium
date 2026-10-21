@@ -140,3 +140,49 @@ TEST_F(SnifferDieTest, DieFromSearchingState_ResetsToIdling)
         << "sniffer should reset to Idling state on death regardless of prior state";
     EXPECT_EQ(sniffer.deathTime(), 0);
 }
+
+// ============================================================================
+// 挖掘状态与掉种时序（对齐 vanilla Sniffer.onDiggingStart / dropSeed）
+// ============================================================================
+
+namespace {
+using InspectableSniffer = SnifferEntity;
+} // namespace
+
+TEST_F(SnifferDieTest, TransitionToDigging_SchedulesDropSeedAtTickCountPlus120)
+{
+    InspectableSniffer sniffer(EntityInstanceId(1), mc::test::testEcsRegistry());
+    sniffer.setWorld(&m_world);
+    sniffer.setHealth(sniffer.maxHealth());
+
+    sniffer.transitionTo(SnifferEntity::State::Digging);
+
+    EXPECT_EQ(sniffer.getState(), SnifferEntity::State::Digging);
+    // 对齐 vanilla Sniffer.onDiggingStart：DATA_DROP_SEED_AT_TICK = tickCount + 120。
+    EXPECT_EQ(sniffer.ticksUntilDropSeed(), 120);
+}
+
+TEST_F(SnifferDieTest, DropSeed_BeforeScheduledTick_NoOp)
+{
+    InspectableSniffer sniffer(EntityInstanceId(1), mc::test::testEcsRegistry());
+    sniffer.setWorld(&m_world);
+    sniffer.setHealth(sniffer.maxHealth());
+
+    sniffer.transitionTo(SnifferEntity::State::Digging);
+    ASSERT_GT(sniffer.ticksUntilDropSeed(), 0);
+
+    // 未到掉种时刻：调用不崩溃（无战利品表管理器时同样安全返回）。
+    sniffer.dropSeed();
+    SUCCEED();
+}
+
+TEST_F(SnifferDieTest, DiggingState_DoesNotPlayAmbientSound)
+{
+    InspectableSniffer sniffer(EntityInstanceId(1), mc::test::testEcsRegistry());
+    sniffer.setWorld(&m_world);
+    sniffer.setHealth(sniffer.maxHealth());
+    sniffer.setState(SnifferEntity::State::Digging);
+
+    // 对齐 vanilla Sniffer.getAmbientSound：Digging 状态不播放环境音。
+    EXPECT_FALSE(sniffer.getAmbientSound().has_value());
+}
