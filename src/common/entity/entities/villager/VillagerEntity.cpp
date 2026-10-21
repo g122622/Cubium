@@ -324,6 +324,17 @@ bool VillagerEntity::_tryConvertToZombieVillager(DamageSource& cause)
     // 3. 继承村民数据（职业/类型/等级/经验）——对齐 Java setVillagerData(getVillagerData())
     zombieVillager->setVillagerData(m_villagerData);
 
+    // 3b. 交易列表与流言：对齐 convertVillagerToZombieVillager 的 setGossips/setTradeOffers，
+    //     治愈后原样归还，使价格与声誉不因感染而丢失。
+    if (m_offers != nullptr) {
+        // MerchantOffers 持有 unique_ptr<MerchantOffer> 不可拷贝，经其 NBT 序列化做深拷贝。
+        nbt::tags::compound_tag offersTag;
+        m_offers->serialize(offersTag);
+        zombieVillager->setOffers(std::make_unique<world::village::trade::MerchantOffers>(
+            world::village::trade::MerchantOffers::deserialize(offersTag)));
+    }
+    zombieVillager->gossips() = m_gossips;
+
     // 4. 复制婴儿状态（村民 isChild → 僵尸村民 setBaby，对齐 finishConverting 反向 setChild(isBaby())）
     zombieVillager->setBaby(isChild());
 
@@ -786,6 +797,9 @@ void VillagerEntity::addAdditionalSaveData(nbt::tags::compound_tag& tag) const
     if (m_offers != nullptr) {
         m_offers->serialize(tag);
     }
+
+    // 村庄流言（键 "Gossips"）：与僵尸村民侧同格式，感染/治愈往返不丢失声誉。
+    m_gossips.serialize(tag);
 }
 
 Result<void> VillagerEntity::readAdditionalSaveData(const nbt::tags::compound_tag& tag)
@@ -798,6 +812,7 @@ Result<void> VillagerEntity::readAdditionalSaveData(const nbt::tags::compound_ta
     if (tag.value.find("Offers") != tag.value.end()) {
         setOffers(world::village::trade::MerchantOffers::deserialize(tag));
     }
+    m_gossips.deserialize(tag);
     return Result<void>::ok();
 }
 

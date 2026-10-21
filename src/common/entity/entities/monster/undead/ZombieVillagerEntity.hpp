@@ -33,6 +33,9 @@
 #include "common/entity/entities/villager/AbstractVillagerEntity.hpp"
 #include "common/entity/entities/villager/VillagerEntity.hpp"
 #include "common/resource/ResourceLocation.hpp"
+#include "common/util/nbt/Nbt.hpp"
+#include "common/world/village/VillageGossip.hpp"
+#include "common/world/village/trade/Merchant.hpp"
 #include <memory>
 #include <optional>
 #include <string>
@@ -116,6 +119,20 @@ public:
      * @brief 设置村民数据
      */
     void setVillagerData(const entity::VillagerData& data);
+
+    // ========== 交易与流言（治愈后交还村民） ==========
+
+    /// 交易列表；未设置时返回 nullptr（对应 vanilla ZombieVillager.getOffers 的惰性创建）
+    [[nodiscard]] const world::village::trade::MerchantOffers* offers() const { return m_offers.get(); }
+
+    /// 整体设置交易列表（nullptr 表示清空）
+    void setOffers(std::unique_ptr<world::village::trade::MerchantOffers> offers) { m_offers = std::move(offers); }
+
+    [[nodiscard]] const world::village::VillageGossipManager& gossips() const { return m_gossips; }
+    [[nodiscard]] world::village::VillageGossipManager& gossips() { return m_gossips; }
+
+    void addAdditionalSaveData(nbt::tags::compound_tag& tag) const override;
+    Result<void> readAdditionalSaveData(const nbt::tags::compound_tag& tag) override;
 
     /**
      * @brief 获取村民职业
@@ -272,13 +289,11 @@ private:
     // 村民数据
     entity::VillagerData m_villagerData;
 
-    // 交易数据（NBT 存储）
-    // 注意：当前未实现完整的 MerchantOffers 序列化
-    // std::unique_ptr<MerchantOffers> m_offers;
+    // 交易数据（NBT 存储，键 "Offers"）：治愈后原样交还村民。
+    std::unique_ptr<world::village::trade::MerchantOffers> m_offers;
 
-    // 流言数据（NBT 存储）
-    // 注意：当前未实现完整的 Gossips 序列化
-    // nbt::CompoundTag m_gossips;
+    // 流言数据（NBT 存储，键 "Gossips"）：复用村庄侧流言管理器的序列化格式。
+    world::village::VillageGossipManager m_gossips;
 
     // 治愈状态
     bool m_converting = false;

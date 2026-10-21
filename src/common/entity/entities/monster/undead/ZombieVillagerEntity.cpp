@@ -154,6 +154,33 @@ void ZombieVillagerEntity::syncMetadataFromDataManager()
     m_villagerData.setLevel(vd.level);
 }
 
+void ZombieVillagerEntity::addAdditionalSaveData(nbt::tags::compound_tag& tag) const
+{
+    ZombieEntity::addAdditionalSaveData(tag);
+
+    // 对齐 vanilla ZombieVillager.addAdditionalSaveData：仅在服务端且列表非空时写出 Offers；
+    // Gossips 在服务端总是写出。
+    const bool serverSide = world() != nullptr && !world()->isClientSide();
+    if (m_offers != nullptr && serverSide) {
+        m_offers->serialize(tag);
+    }
+    if (serverSide) {
+        m_gossips.serialize(tag);
+    }
+}
+
+Result<void> ZombieVillagerEntity::readAdditionalSaveData(const nbt::tags::compound_tag& tag)
+{
+    MC_TRY(ZombieEntity::readAdditionalSaveData(tag));
+
+    if (tag.value.find("Offers") != tag.value.end()) {
+        m_offers = std::make_unique<world::village::trade::MerchantOffers>(
+            world::village::trade::MerchantOffers::deserialize(tag));
+    }
+    m_gossips.deserialize(tag);
+    return Result<void>::ok();
+}
+
 void ZombieVillagerEntity::setVillagerData(const entity::VillagerData& data)
 {
     m_villagerData = data;

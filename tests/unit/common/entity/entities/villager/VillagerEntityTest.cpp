@@ -444,6 +444,21 @@ TEST_F(VillagerEntityTest, FoodLevelPersistsAlongsideOffers)
     EXPECT_EQ(restored.foodLevel(), 4);
 }
 
+TEST_F(VillagerEntityTest, GossipsAndOffersRoundTripThroughNbt)
+{
+    m_villager->gossips().addGossip(42, world::village::VillageGossipType::Trading, 5);
+    m_villager->setOffers(world::village::trade::MerchantOffers{});
+
+    nbt::CompoundTag tag;
+    m_villager->addAdditionalSaveData(tag);
+    EXPECT_NE(tag.value.find("Gossips"), tag.value.end());
+    EXPECT_NE(tag.value.find("Offers"), tag.value.end());
+
+    VillagerEntity restored(EntityInstanceId(4), mc::test::testEcsRegistry());
+    ASSERT_TRUE(restored.readAdditionalSaveData(tag).success());
+    EXPECT_EQ(restored.gossips().getReputation(42), m_villager->gossips().getReputation(42));
+}
+
 } // namespace
 } // namespace test
 } // namespace entity

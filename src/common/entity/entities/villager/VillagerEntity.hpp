@@ -31,6 +31,7 @@
 #include "common/entity/inventory/IInventory.hpp"
 #include "common/util/nbt/Nbt.hpp"
 #include "common/world/block/BlockPos.hpp"
+#include "common/world/village/VillageGossip.hpp"
 #include <memory>
 #include <optional>
 #include <unordered_map>
@@ -405,9 +406,16 @@ public:
     /// 已摄取但尚未消化的食物点数（对齐 vanilla Villager.foodLevel，随 NBT 持久化）
     i32 m_foodLevel = 0;
 
+    /// 该村民对其他玩家的声誉（对流言键 "Gossips"，与僵尸村民侧同格式）
+    world::village::VillageGossipManager m_gossips;
+
     // ========== NBT ==========
 
 public:
+    /// 该村民的声誉流言（治愈后由僵尸村民交还，随 NBT 持久化）
+    [[nodiscard]] const world::village::VillageGossipManager& gossips() const { return m_gossips; }
+    [[nodiscard]] world::village::VillageGossipManager& gossips() { return m_gossips; }
+
     void addAdditionalSaveData(nbt::tags::compound_tag& tag) const override;
     Result<void> readAdditionalSaveData(const nbt::tags::compound_tag& tag) override;
 
@@ -601,8 +609,7 @@ private:
      * 9. 播放感染音效 ENTITY_ZOMBIE_INFECT（对齐 Java levelEvent 1026）
      * 10. 清空原村民装备（防死亡掉落）+ remove() 移除原村民
      *
-     * TODO: VillagerData 之外的 Gossips（流言）与 TradeOffers（交易列表）当前未实现完整序列化
-     * （见 ZombieVillagerEntity.hpp 私有成员注释），故转化时暂不复制，待序列化就绪后补全
+     * Gossips（流言）与 TradeOffers（交易列表）随转化复制到僵尸村民，治愈后原样交还
      * （对齐 Java convertVillagerToZombieVillager 的 setGossips/setTradeOffers）。
      *
      * @param cause 死亡伤害来源（用于提取攻击者）
