@@ -67,7 +67,7 @@ void EndPortalBlock::onEntityCollision(
     // 经虚派发触发真实传送：
     // - ServerPlayer（含 SimulatedPlayer）override 调真实 changeDimension，内部按目标维度
     //   处理末地固定出生点 (100,49,0)+黑曜石平台、末地→主世界用 transformPosition。
-    // - 非玩家实体基类返回 false（当前不支持，留 TODO）。
+    // - 非玩家实体委托 ServerWorld::transferEntityToDimension，用同一套目标坐标规则完成迁移。
     // 触发后立即 return：changeDimension 内会迁移 EntityManager 并改 m_world，
     // 本回调返回后 doBlockCollisions 三层 for 循环不再读已变更的 m_world（本格已处理完）。
     entity.changeDimension(targetDim);

@@ -964,6 +964,16 @@ void Entity::baseTick()
     }
 }
 
+bool Entity::changeDimension(DimensionId targetDim)
+{
+    // 传送门语义的跨维度迁移由所在世界负责（目标坐标计算 + EntityManager 归属迁移）。
+    // 客户端世界/测试世界不实现，返回 false。
+    if (m_world == nullptr) {
+        return false;
+    }
+    return m_world->transferEntityToDimension(*this, targetDim);
+}
+
 bool Entity::onPortalTriggered()
 {
     // 基类实现：默认不做任何事

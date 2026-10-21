@@ -1079,6 +1079,15 @@ public:
      * @param reason 移除原因（决定是否执行摧毁类副作用与是否存档）
      */
     void destroyEntity(EntityInstanceId id, RemovalReason reason);
+
+    /**
+     * @brief 跨维度迁移非玩家实体（传送门语义）
+     *
+     * 计算目标坐标（末地固定出生点 / 下界与主世界搜索或创建传送门 / 其余按坐标缩放），
+     * 重置传送门状态，再把实体从本源世界的 EntityManager 交给目标维度接管。
+     * 玩家由 ServerPlayer::changeDimension 自行处理，不走本方法。
+     */
+    bool transferEntityToDimension(Entity& entity, DimensionId targetDim) override;
     [[nodiscard]] EntityInstanceId spawnEntity(std::unique_ptr<Entity> entity) override;
     [[nodiscard]] Entity* getEntity(EntityInstanceId id) override;
     [[nodiscard]] const Entity* getEntity(EntityInstanceId id) const override;

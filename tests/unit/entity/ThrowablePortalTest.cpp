@@ -391,6 +391,29 @@ TEST(ThrowablePortalTest, EmptySpaceDoesNotTriggerPortal)
  *
  * 末地传送门方块会立即传送实体，但不通过 ThrowableEntity::tick() 处理
  */
+// 末地传送门对非玩家实体：经 Entity::changeDimension 委托给所在世界，
+// 世界不支持跨维度（测试世界）时返回 false，但传送冷却与目标维度已按传送门语义设置。
+TEST(ThrowablePortalTest, EndPortalBlock_NonPlayerDelegatesToWorldDimensionTransfer)
+{
+    ThrowablePortalTestWorld world;
+    ASSERT_NE(VanillaBlocks::END_PORTAL, nullptr);
+
+    const BlockPos pos(2, 64, 2);
+    world.setBlockState(pos.x, pos.y, pos.z, &VanillaBlocks::END_PORTAL->defaultState());
+
+    TestThrowableEntity throwable(1);
+    throwable.setWorld(&world);
+    throwable.setDimension(0);
+    throwable.setPosition(2.5f, 64.5f, 2.5f);
+
+    VanillaBlocks::END_PORTAL->onEntityCollision(VanillaBlocks::END_PORTAL->defaultState(), world, pos, throwable);
+
+    // 测试世界未实现跨维度迁移：实体留在原维度。
+    EXPECT_EQ(throwable.dimension(), 0);
+    // 但传送门冷却已生效，避免每帧重复触发。
+    EXPECT_GT(throwable.portalCooldown(), 0);
+}
+
 TEST(ThrowablePortalTest, EndPortalBlockNotHandledByThrowable)
 {
     ThrowablePortalTestWorld world;

@@ -88,6 +88,7 @@
 #include "common/world/dimension/DimensionManager.hpp"
 #include "common/world/dimension/DimensionType.hpp"
 #include "common/world/dimension/end/EndDragonFight.hpp"
+#include "common/world/dimension/teleport/Teleporter.hpp"
 #include "common/world/explosion/Explosion.hpp"
 #include "common/world/explosion/ExplosionContext.hpp"
 #include "common/world/explosion/ExplosionMode.hpp"
@@ -112,6 +113,8 @@
 #include "server/application/IServer.hpp"
 #include "server/core/OpListManager.hpp"
 #include "server/core/TimeManager.hpp"
+#include "server/dimension/ServerDimension.hpp"
+#include "server/dimension/ServerDimensionManager.hpp"
 #include "server/event/ServerEventBus.hpp"
 #include "server/event/events/ServerEvents.hpp"
 #include "server/network/outbound/MapPacketBuilder.hpp"
@@ -2306,6 +2309,82 @@ EntityInstanceId ServerWorld::spawnEntity(std::unique_ptr<Entity> entity)
     }
 
     return id;
+}
+
+bool ServerWorld::transferEntityToDimension(Entity& entity, DimensionId targetDim)
+{
+    // 玩家不走本方法：连接、区块票据、背包同步等副作用由 ServerPlayer::changeDimension 负责。
+    if (entity.entityType() == entity::VanillaEntityTypeKeys::PLAYER) {
+        return false;
+    }
+
+    const DimensionId currentDim = entity.dimension();
+    if (targetDim == currentDim) {
+        return false;
+    }
+
+    if (m_server == nullptr) {
+        spdlog::warn(
+            "ServerWorld::transferEntityToDimension: no server reference, cannot resolve dimension {}", targetDim);
+        return false;
+    }
+    ServerDimension* targetDimension = m_server->dimensionManager().getDimension(targetDim);
+    if (targetDimension == nullptr || targetDimension->world() == nullptr) {
+        spdlog::warn("ServerWorld::transferEntityToDimension: target dimension {} has no world", targetDim);
+        return false;
+    }
+    ServerWorld* targetWorld = targetDimension->world();
+
+    const Vector3d currentPos(entity.position().x, entity.position().y, entity.position().z);
+    Vector3d targetPos =
+        Teleporter::transformPosition(currentPos, DimensionType::fromId(currentDim), DimensionType::fromId(targetDim));
+
+    if (targetDim == DimensionManager::THE_END) {
+        // 末地：固定出生点，并保证出生平台存在（非玩家实体同样落在平台上）。
+        targetPos = Teleporter::getEndSpawnPosition();
+        EndTeleporter::createEndSpawnPlatform(*targetWorld);
+    } else if (targetDim == DimensionManager::NETHER || currentDim == DimensionManager::NETHER) {
+        // 下界与主世界互通：优先复用已存在的传送门，否则在目标位置创建。
+        NetherTeleporter teleporter;
+        auto portalInfo = teleporter.findPortal(*targetWorld, targetPos);
+        if (portalInfo.has_value() && portalInfo->valid) {
+            targetPos = portalInfo->position;
+        } else {
+            PortalInfo newPortal = teleporter.createPortal(*targetWorld, targetPos);
+            if (newPortal.valid) {
+                targetPos = newPortal.position;
+                targetDimension->recordPortalPosition(BlockPos(math::floorTo<BlockCoord>(targetPos.x),
+                    math::floorTo<BlockCoord>(targetPos.y),
+                    math::floorTo<BlockCoord>(targetPos.z)));
+            }
+        }
+    }
+
+    // 与玩家路径一致：清空进入状态并进入传送冷却，避免到达后立刻被再次触发。
+    entity.setInPortal(false);
+    entity.resetPortalTime();
+    entity.triggerPortalCooldown();
+
+    // 先把实体字段切到目标维度语义，再移交 EntityManager 归属。
+    entity.setDimension(targetDim);
+    entity.setPosition(static_cast<f32>(targetPos.x), static_cast<f32>(targetPos.y), static_cast<f32>(targetPos.z));
+    entity.setWorld(targetWorld);
+
+    // 本回调可能在源 EntityManager 的 _tickEntities 遍历中触发（方块碰撞 → 传送门），
+    // 同步 erase 会使遍历迭代器失效，故入队延迟到遍历完成后再移交所有权。
+    EntityInstanceId entityId = entity.id();
+    EntityManager& sourceEntityManager = m_entityManager;
+    EntityManager& targetEntityManager = targetWorld->entityManager();
+    sourceEntityManager.requestDimensionTransfer([entityId, &sourceEntityManager, &targetEntityManager]() {
+        auto entityPtr = sourceEntityManager.takeEntity(entityId);
+        if (entityPtr == nullptr) {
+            spdlog::warn("ServerWorld::transferEntityToDimension: takeEntity returned null for entity {}", entityId);
+            return;
+        }
+        [[maybe_unused]] EntityInstanceId newId = targetEntityManager.addEntity(std::move(entityPtr));
+    });
+
+    return true;
 }
 
 // 注意：此方法不仅销毁实体，还负责取消追踪。

@@ -1023,6 +1023,26 @@ public:
     [[nodiscard]] virtual DimensionId dimension() const = 0;
 
     /**
+     * @brief 跨维度迁移一个非玩家实体
+     *
+     * 服务端世界实现真实迁移：计算目标坐标、从源 EntityManager 取出实体、
+     * 写入目标维度并交给目标 EntityManager 接管。
+     *
+     * 玩家不在本接口处理——玩家还需要连接、区块票据、背包同步等副作用，
+     * 走 ServerPlayer::changeDimension 自己的实现。
+     *
+     * @param entity 要迁移的实体
+     * @param targetDim 目标维度 ID
+     * @return true 如果迁移成功；基类默认 false（非服务端世界不支持跨维度）
+     */
+    virtual bool transferEntityToDimension(Entity& entity, DimensionId targetDim)
+    {
+        (void)entity;
+        (void)targetDim;
+        return false;
+    }
+
+    /**
      * @brief 是否为超热维度
      *
      * 下界是超热维度，水会蒸发。
