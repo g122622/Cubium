@@ -34,7 +34,9 @@
 #include "common/world/WorldConstants.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockPos.hpp"
+#include "common/world/block/BlockRegistry.hpp"
 #include "common/world/block/BlockState.hpp"
+#include "common/world/block/BlockTags.hpp"
 #include "common/world/block/blocks/coral/CoralBlock.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/chunk/data/Heightmap.hpp"
@@ -195,6 +197,36 @@ bool isWaterAt(WorldGenRegion& world, const BlockPos& pos)
     return state != nullptr && VanillaBlocks::WATER != nullptr && state->is(VanillaBlocks::WATER);
 }
 
+/**
+ * @brief 从方块标签中按均匀分布随机取一个方块
+ *
+ * 对应 vanilla `BuiltInRegistries.BLOCK.getRandomElementOf(tag, random)`。
+ * 标签未初始化或标签为空时返回 nullptr。
+ */
+const Block* _randomBlockFromTag(BlockTag& tag, math::IRandom& random)
+{
+    if (!BlockTags::isInitialized()) {
+        return nullptr;
+    }
+    const auto& blockIds = tag.getBlockIds();
+    if (blockIds.empty()) {
+        return nullptr;
+    }
+    auto it = blockIds.begin();
+    std::advance(it, random.nextInt(static_cast<i32>(blockIds.size())));
+    return BlockRegistry::instance().getBlock(*it);
+}
+
+/**
+ * @brief 判断方块状态是否属于指定标签
+ *
+ * 标签系统未初始化时返回 false（此时无法判定成员关系）。
+ */
+bool _stateInTag(const BlockState& state, BlockTag& tag)
+{
+    return BlockTags::isInitialized() && tag.contains(state);
+}
+
 i32 findOceanFloorY(WorldGenRegion& world, i32 x, i32 z)
 {
     i32 oceanFloorY = world.getTopBlockY(x, z, HeightmapType::OceanFloorWG);
@@ -220,10 +252,19 @@ i32 findOceanFloorY(WorldGenRegion& world, i32 x, i32 z)
 
 bool placeCoralBase(WorldGenRegion& world, const BlockPos& pos, blocks::CoralColor color, bool isDead)
 {
-    // TODO: 放置前置条件与原版不一致：原版要求「当前位置为水或已是珊瑚（CORALS 方块标签）」，
-    // 且「正上方必须为水」；此处仅校验当前位置为水，故珊瑚可能贴着非水格的方块向上生长。
+    // 对应 vanilla CoralFeature.placeCoralBlock 的前置条件：
+    //   当前位置为水或已是珊瑚（CORALS 方块标签），且正上方必须为水。
     const BlockState* coralState = getCoralBlockState(color, isDead);
-    if (coralState == nullptr || !isWaterAt(world, pos)) {
+    if (coralState == nullptr) {
+        return false;
+    }
+
+    const BlockState* currentState = world.getBlockState(pos);
+    if (currentState == nullptr) {
+        return false;
+    }
+    const bool canGrowHere = isWaterAt(world, pos) || _stateInTag(*currentState, BlockTags::CORALS());
+    if (!canGrowHere || !isWaterAt(world, BlockPos(pos.x, pos.y + 1, pos.z))) {
         return false;
     }
 
@@ -244,19 +285,17 @@ void placeCoralDecorations(WorldGenRegion& world,
 
     const BlockPos topPos(pos.x, pos.y + 1, pos.z);
     if (isWaterAt(world, topPos)) {
-        // TODO: 顶部装饰的掷骰结构与原版不一致：原版为「先掷 0.25 放置随机珊瑚植物/扇，
-        // 否则再掷 0.05 放置海泡菜」两分支互斥；此处把海泡菜掷骰嵌在 0.25 分支内部，
-        // 导致海泡菜生成概率显著偏低。同时原版从 CORALS 方块标签随机取装饰方块，
-        // 此处固定使用配置颜色对应的珊瑚扇，待方块标签基建可用后再收敛。
+        // 对应 vanilla CoralFeature.placeCoralBlock 顶部装饰的两分支互斥掷骰：
+        //   先掷 0.25 放置随机珊瑚植物（CORALS 标签），否则再掷 0.05 放置海泡菜。
         if (random.nextFloat() < 0.25f) {
-            if (VanillaBlocks::SEA_PICKLE != nullptr && random.nextFloat() < 0.05f) {
-                const i32 pickleCount = random.nextInt(4) + 1;
-                const BlockState* pickleState =
-                    &VanillaBlocks::SEA_PICKLE->defaultState().with(BlockStateProperties::PICKLES_1_4(), pickleCount);
-                world.setBlockState(topPos, pickleState);
-            } else if (const BlockState* fanState = getCoralFanState(color, isDead); fanState != nullptr) {
-                world.setBlockState(topPos, fanState);
+            if (const Block* coralBlock = _randomBlockFromTag(BlockTags::CORALS(), random); coralBlock != nullptr) {
+                world.setBlockState(topPos, &coralBlock->defaultState());
             }
+        } else if (VanillaBlocks::SEA_PICKLE != nullptr && random.nextFloat() < 0.05f) {
+            const i32 pickleCount = random.nextInt(4) + 1;
+            const BlockState* pickleState =
+                &VanillaBlocks::SEA_PICKLE->defaultState().with(BlockStateProperties::PICKLES_1_4(), pickleCount);
+            world.setBlockState(topPos, pickleState);
         }
     }
 
@@ -271,9 +310,16 @@ void placeCoralDecorations(WorldGenRegion& world,
             continue;
         }
 
-        if (const BlockState* wallFanState = getCoralWallFanState(color, horizontal, isDead); wallFanState != nullptr) {
-            world.setBlockState(sidePos, wallFanState);
+        // 对应 vanilla：从 WALL_CORALS 标签随机取墙珊瑚扇，有 FACING 属性时按该方向设置。
+        const Block* wallCoralBlock = _randomBlockFromTag(BlockTags::WALL_CORALS(), random);
+        if (wallCoralBlock == nullptr) {
+            continue;
         }
+        const BlockState* wallCoralState = &wallCoralBlock->defaultState();
+        if (wallCoralState->hasProperty(BlockStateProperties::FACING())) {
+            wallCoralState = &wallCoralState->with(BlockStateProperties::FACING(), horizontal);
+        }
+        world.setBlockState(sidePos, wallCoralState);
     }
 }
 

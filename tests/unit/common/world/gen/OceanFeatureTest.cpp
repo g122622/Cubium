@@ -23,6 +23,7 @@
 
 #include <gtest/gtest.h>
 
+#include "common/world/block/BlockTags.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/chunk/gen/ChunkStatus.hpp"
 #include "core/Constants.hpp"
@@ -46,6 +47,8 @@ protected:
     void SetUp() override
     {
         VanillaBlocks::initialize();
+        // 珊瑚基础的放置前置条件与装饰随机取块依赖 CORALS/WALL_CORALS 方块标签。
+        BlockTags::initialize();
 
         m_chunks.resize(9);
         for (i32 relZ = -1; relZ <= 1; ++relZ) {
@@ -355,4 +358,48 @@ TEST_F(OceanFeatureWorldTest, BlueIceFeatureFailsWithoutPackedIceNeighbor)
     math::Random random(1234567);
 
     EXPECT_FALSE(feature.place(*m_region, random, BlockPos(0, 0, 0), config, 63));
+}
+
+// ============================================================================
+// placeCoralBase 放置前置条件（对齐 vanilla CoralFeature.placeCoralBlock）
+// ============================================================================
+
+TEST_F(OceanFeatureWorldTest, PlaceCoralBase_RejectsNonWaterAbove)
+{
+    // 正上方不是水时不得放置。
+    setWorldBlock(2, 42, 2, &VanillaBlocks::SAND->defaultState());
+
+    ASSERT_NE(VanillaBlocks::TUBE_CORAL_BLOCK, nullptr);
+    EXPECT_FALSE(placeCoralBase(*m_region, BlockPos(2, 42, 2), blocks::CoralColor::Tube, false));
+
+    const BlockState* originState = getWorldBlock(2, 42, 2);
+    ASSERT_NE(originState, nullptr);
+    EXPECT_TRUE(originState->is(VanillaBlocks::SAND));
+}
+
+TEST_F(OceanFeatureWorldTest, PlaceCoralBase_AcceptsWaterWithWaterAbove)
+{
+    // 基础场景：y=42 为水，y=43 为水。
+    ASSERT_NE(VanillaBlocks::TUBE_CORAL_BLOCK, nullptr);
+    EXPECT_TRUE(placeCoralBase(*m_region, BlockPos(2, 42, 2), blocks::CoralColor::Tube, false));
+
+    const BlockState* originState = getWorldBlock(2, 42, 2);
+    ASSERT_NE(originState, nullptr);
+    EXPECT_TRUE(originState->is(VanillaBlocks::TUBE_CORAL_BLOCK));
+}
+
+TEST_F(OceanFeatureWorldTest, PlaceCoralBase_AcceptsExistingCoralTagBlock)
+{
+    // 当前位置为珊瑚（CORALS 标签成员）且上方为水时允许继续生长。
+    ASSERT_NE(VanillaBlocks::TUBE_CORAL_FAN, nullptr);
+    setWorldBlock(3, 42, 3, &VanillaBlocks::TUBE_CORAL_FAN->defaultState());
+
+    ASSERT_TRUE(BlockTags::CORALS().contains(VanillaBlocks::TUBE_CORAL_FAN->defaultState()));
+
+    ASSERT_NE(VanillaBlocks::BRAIN_CORAL_BLOCK, nullptr);
+    EXPECT_TRUE(placeCoralBase(*m_region, BlockPos(3, 42, 3), blocks::CoralColor::Brain, false));
+
+    const BlockState* originState = getWorldBlock(3, 42, 3);
+    ASSERT_NE(originState, nullptr);
+    EXPECT_TRUE(originState->is(VanillaBlocks::BRAIN_CORAL_BLOCK));
 }
