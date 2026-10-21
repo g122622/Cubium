@@ -39,6 +39,7 @@ class ConsumeItemTriggerInstance;
 class ItemDurabilityTriggerInstance;
 class EnchantedItemTriggerInstance;
 class FilledBucketTriggerInstance;
+class ThrownItemPickedUpByEntityTriggerInstance;
 
 /**
  * @brief 消耗物品触发器
@@ -177,6 +178,40 @@ public:
     explicit FilledBucketTriggerInstance(ItemPredicate item);
 
     [[nodiscard]] bool test(const class ItemStack& item) const;
+
+    Result<void> fromJson(const nlohmann::json& json);
+    [[nodiscard]] nlohmann::json conditionsToJson() const;
+
+private:
+    ItemPredicate m_item;
+};
+
+/**
+ * @brief 投掷物被实体拾取触发器（对齐 vanilla ThrownItemPickedUpByEntityTrigger）
+ *
+ * 玩家投掷的物品（owner 为玩家）被某个实体拾取时触发。
+ * 条件：item（被拾取的物品）+ entity（拾取者，可选，实体谓词）。
+ */
+class ThrownItemPickedUpByEntityTrigger : public AbstractCriterionTrigger<ThrownItemPickedUpByEntityTriggerInstance> {
+public:
+    static constexpr const char* TRIGGER_ID = "minecraft:thrown_item_picked_up_by_entity";
+
+    [[nodiscard]] ResourceLocation getId() const override { return ResourceLocation(TRIGGER_ID); }
+
+    [[nodiscard]] Result<std::shared_ptr<ICriterionInstance>> fromJson(const nlohmann::json& json) override;
+};
+
+/**
+ * @brief 投掷物被实体拾取触发器实例（对齐 vanilla TriggerInstance）
+ */
+class ThrownItemPickedUpByEntityTriggerInstance : public CriterionInstance<ThrownItemPickedUpByEntityTriggerInstance> {
+public:
+    static constexpr const char* TRIGGER_ID = "minecraft:thrown_item_picked_up_by_entity";
+
+    ThrownItemPickedUpByEntityTriggerInstance() noexcept = default;
+    explicit ThrownItemPickedUpByEntityTriggerInstance(ItemPredicate item);
+
+    [[nodiscard]] bool test(const ItemStack& item) const;
 
     Result<void> fromJson(const nlohmann::json& json);
     [[nodiscard]] nlohmann::json conditionsToJson() const;

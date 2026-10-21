@@ -1682,10 +1682,20 @@ void MobEntity::pickUpItem(ItemEntity& itemEntity)
 void MobEntity::onItemPickup(const ItemEntity& itemEntity)
 {
     // 对齐 vanilla LivingEntity.onItemPickup（LivingEntity.java:3168-3173）：
-    // 物品所有者是玩家时触发 THROWN_ITEM_PICKED_UP_BY_ENTITY 进度触发器。
-    // TODO(advancements): Cubium 进度触发器系统尚未接入 CriteriaTriggers，接入后在此触发
-    //   THROWN_ITEM_PICKED_UP_BY_ENTITY(owner, itemEntity.getItem(), this)。
-    (void)itemEntity;
+    // 物品所有者（owner）为玩家时触发 THROWN_ITEM_PICKED_UP_BY_ENTITY 进度触发器。
+    // 进度系统位于服务端层，公共实体层经 world->onItemPickedUpByEntity 转发，
+    // 由 ServerWorld 发布 ItemPickedUpByEntityEvent（对齐 CriteriaTriggers.onItemPickedUpByEntity）。
+    if (m_world == nullptr) {
+        return;
+    }
+    if (itemEntity.ownerUuid().empty()) {
+        return;
+    }
+    auto* owner = dynamic_cast<Player*>(m_world->getEntityByUuid(itemEntity.ownerUuid()));
+    if (owner == nullptr) {
+        return;
+    }
+    m_world->onItemPickedUpByEntity(owner->playerId(), itemEntity.getItemStack(), id());
 }
 
 // ============================================================================
@@ -1707,7 +1717,6 @@ void MobEntity::finalizeSpawn(
     //   其他 mob 默认 canPickUpLoot=false（不拾取）。
     // 此前基类在此随机 setCanPickUpLoot(true) 是偏差——会覆盖 Villager 构造函数确定的 true
     // （导致村民拾取不确定），也会让本不该拾取的 mob 随机获得拾取能力。已移除，由子类各自对齐。
-    // TODO: Piglin/Pillager 的 setCanPickUpLoot(true) 待相关实体实现时补齐。
     (void)difficulty;
 
     // 填充默认装备（基于难度）

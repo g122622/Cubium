@@ -71,6 +71,12 @@ protected:
     std::unique_ptr<PiglinEntity> piglin;
 };
 
+TEST_F(PiglinEntityAngerTest, Construction_PicksUpLoot)
+{
+    // 对齐 vanilla Piglin 构造函数：猪灵会拾取地上的金质物品/装备。
+    EXPECT_TRUE(piglin->canPickUpLoot());
+}
+
 TEST_F(PiglinEntityAngerTest, DefaultState_NotAngry)
 {
     // 猪灵初始状态应该不愤怒

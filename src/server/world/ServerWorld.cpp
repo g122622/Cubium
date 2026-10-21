@@ -3122,6 +3122,13 @@ void ServerWorld::onConsumeItem(PlayerId playerId, const ItemStack& item)
     event::ServerEventBus::instance().publish(consumeEvent);
 }
 
+void ServerWorld::onItemPickedUpByEntity(PlayerId ownerPlayerId, const ItemStack& item, EntityInstanceId pickerEntityId)
+{
+    // 发布 ItemPickedUpByEntityEvent 用于进度触发（对齐 CriteriaTriggers.THROWN_ITEM_PICKED_UP_BY_ENTITY）。
+    event::ItemPickedUpByEntityEvent pickupEvent{currentTick(), ownerPlayerId, item, pickerEntityId};
+    event::ServerEventBus::instance().publish(pickupEvent);
+}
+
 void ServerWorld::onItemDurabilityChange(PlayerId playerId, const ItemStack& item, i32 oldDurability, i32 newDurability)
 {
     // 发布 ItemDurabilityEvent 用于进度触发

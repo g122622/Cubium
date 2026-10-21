@@ -302,4 +302,54 @@ void FilledBucketTrigger::trigger(ServerPlayer& player, const ItemStack& item)
     MC_UNUSED(item);
 }
 
+// ========== ThrownItemPickedUpByEntityTrigger ==========
+
+ThrownItemPickedUpByEntityTriggerInstance::ThrownItemPickedUpByEntityTriggerInstance(ItemPredicate item)
+    : m_item(std::move(item))
+{}
+
+bool ThrownItemPickedUpByEntityTriggerInstance::test(const ItemStack& item) const
+{
+    // TODO(advancement-entity-predicate): 对齐 vanilla 的 entity 条件（EntityPredicate 子集匹配）。
+    //   Cubium 尚无实体谓词，当前只校验物品；数据包中带 entity 条件的进度会放宽为"任意拾取者"。
+    return m_item.test(item);
+}
+
+Result<void> ThrownItemPickedUpByEntityTriggerInstance::fromJson(const nlohmann::json& json)
+{
+    if (json.is_null()) {
+        return {};
+    }
+    if (json.contains("item")) {
+        auto result = ItemPredicate::fromJson(json["item"]);
+        if (result.failed()) {
+            return result.error();
+        }
+        m_item = result.value();
+    }
+    if (json.contains("entity")) {
+        // 见 test()：实体谓词未实现。
+        // TODO(advancement-entity-predicate): 解析 entity 条件并参与匹配。
+    }
+    return {};
+}
+
+nlohmann::json ThrownItemPickedUpByEntityTriggerInstance::conditionsToJson() const
+{
+    if (!m_item.isAny()) {
+        return {{"item", m_item.toJson()}};
+    }
+    return nullptr;
+}
+
+Result<std::shared_ptr<ICriterionInstance>> ThrownItemPickedUpByEntityTrigger::fromJson(const nlohmann::json& json)
+{
+    auto instance = std::make_shared<ThrownItemPickedUpByEntityTriggerInstance>();
+    auto result = instance->fromJson(json);
+    if (result.failed()) {
+        return result.error();
+    }
+    return instance;
+}
+
 } // namespace mc::advancement

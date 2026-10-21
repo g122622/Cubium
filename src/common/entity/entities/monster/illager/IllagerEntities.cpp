@@ -156,6 +156,9 @@ PillagerEntity::PillagerEntity(EntityInstanceId id, ecs::EntityRegistry& registr
     if (getEquipment(EquipmentSlot::MainHand).isEmpty() && Items::CROSSBOW != nullptr) {
         setEquipment(EquipmentSlot::MainHand, ItemStack(*Items::CROSSBOW, 1));
     }
+
+    // 对齐 vanilla Pillager 构造函数：掠夺者会拾取地上的弩等装备（Mob.canPickUpLoot 默认 false）。
+    setCanPickUpLoot(true);
 }
 
 void PillagerEntity::attackEntityWithRangedAttack(LivingEntity* target, f32 charge)

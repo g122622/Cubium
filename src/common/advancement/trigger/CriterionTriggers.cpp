@@ -128,6 +128,7 @@ void CriterionTriggers::registerBuiltinTriggers()
     registerTrigger(std::make_unique<ItemDurabilityTrigger>());
     registerTrigger(std::make_unique<EnchantedItemTrigger>());
     registerTrigger(std::make_unique<FilledBucketTrigger>());
+    registerTrigger(std::make_unique<ThrownItemPickedUpByEntityTrigger>());
 
     // 注册振动相关触发器
     registerTrigger(std::make_unique<AvoidVibrationTrigger>());

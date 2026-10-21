@@ -1879,6 +1879,23 @@ public:
     }
 
     /**
+     * @brief 通知世界：玩家投掷的物品被实体拾取（对齐 vanilla CriteriaTriggers.THROWN_ITEM_PICKED_UP_BY_ENTITY）
+     *
+     * 由 LivingEntity/Mob 拾取 ItemEntity 后调用，ServerWorld 重写以发布
+     * ItemPickedUpByEntityEvent 供进度系统检测。
+     *
+     * @param ownerPlayerId 物品实体 owner 对应的玩家
+     * @param item 被拾取的物品堆
+     * @param pickerEntityId 拾取者实体实例 id
+     */
+    virtual void onItemPickedUpByEntity(PlayerId ownerPlayerId, const ItemStack& item, EntityInstanceId pickerEntityId)
+    {
+        (void)ownerPlayerId;
+        (void)item;
+        (void)pickerEntityId;
+    }
+
+    /**
      * @brief 通知世界玩家消耗物品
      *
      * 当玩家消耗物品（如吃食物、喝药水）时调用，用于触发进度检测。

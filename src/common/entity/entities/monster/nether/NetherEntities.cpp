@@ -440,6 +440,9 @@ PiglinEntity::PiglinEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
     // 近战 / 避敌目标。
     registerGoals();
     registerAttributes();
+
+    // 对齐 vanilla Piglin 构造函数：猪灵会拾取地上的金质物品与弩等装备（Mob.canPickUpLoot 默认 false）。
+    setCanPickUpLoot(true);
 }
 
 void PiglinEntity::attackEntityWithRangedAttack(LivingEntity* target, f32 charge)

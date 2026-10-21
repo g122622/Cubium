@@ -155,6 +155,11 @@ public:
         m_consumeItemSubscription = event::ServerEventBus::instance().makeSubscription<event::ConsumeItemEvent>(
             [this](const event::ConsumeItemEvent& e) { _onConsumeItem(e); });
 
+        // 订阅玩家投掷物品被实体拾取事件
+        m_itemPickedUpByEntitySubscription =
+            event::ServerEventBus::instance().makeSubscription<event::ItemPickedUpByEntityEvent>(
+                [this](const event::ItemPickedUpByEntityEvent& e) { _onItemPickedUpByEntity(e); });
+
         // 订阅物品耐久变化事件
         m_itemDurabilitySubscription = event::ServerEventBus::instance().makeSubscription<event::ItemDurabilityEvent>(
             [this](const event::ItemDurabilityEvent& e) { _onItemDurability(e); });
@@ -789,6 +794,32 @@ private:
     }
 
     /**
+     * @brief 处理玩家投掷物品被实体拾取事件
+     *
+     * 触发 ThrownItemPickedUpByEntityTrigger（对齐 CriteriaTriggers.THROWN_ITEM_PICKED_UP_BY_ENTITY）。
+     */
+    void _onItemPickedUpByEntity(const event::ItemPickedUpByEntityEvent& e)
+    {
+        auto* trigger = mc::advancement::CriterionTriggers::instance()
+                            .getTrigger<mc::advancement::ThrownItemPickedUpByEntityTrigger>();
+        if (trigger == nullptr) {
+            return;
+        }
+        mc::ServerPlayer* serverPlayer = _getServerPlayer(e.playerId);
+        if (serverPlayer == nullptr) {
+            return;
+        }
+        auto* advancements = serverPlayer->getAdvancements();
+        if (advancements == nullptr) {
+            return;
+        }
+        trigger->AbstractCriterionTrigger<mc::advancement::ThrownItemPickedUpByEntityTriggerInstance>::trigger(
+            *advancements, [&e](const mc::advancement::ThrownItemPickedUpByEntityTriggerInstance& instance) {
+                return instance.test(e.item);
+            });
+    }
+
+    /**
      * @brief 处理物品耐久变化事件
      *
      * 触发 ItemDurabilityTrigger。
@@ -1258,6 +1289,7 @@ private:
     event::ServerEventBus::Subscription<event::ChanneledLightningEvent> m_channeledLightningSubscription;
     event::ServerEventBus::Subscription<event::ConsumeItemEvent> m_consumeItemSubscription;
     event::ServerEventBus::Subscription<event::ItemDurabilityEvent> m_itemDurabilitySubscription;
+    event::ServerEventBus::Subscription<event::ItemPickedUpByEntityEvent> m_itemPickedUpByEntitySubscription;
     event::ServerEventBus::Subscription<event::EnchantItemEvent> m_enchantItemSubscription;
     event::ServerEventBus::Subscription<event::FilledBucketEvent> m_filledBucketSubscription;
     event::ServerEventBus::Subscription<event::EnterBlockEvent> m_enterBlockSubscription;

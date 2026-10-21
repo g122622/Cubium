@@ -1434,6 +1434,9 @@ public:
      */
     void onConsumeItem(PlayerId playerId, const ItemStack& item) override;
 
+    void onItemPickedUpByEntity(
+        PlayerId ownerPlayerId, const ItemStack& item, EntityInstanceId pickerEntityId) override;
+
     /**
      * @brief 通知世界物品耐久度变化
      *
