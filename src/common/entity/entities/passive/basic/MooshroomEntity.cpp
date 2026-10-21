@@ -363,41 +363,29 @@ std::unique_ptr<AnimalEntity> MooshroomEntity::spawnBaby(AnimalEntity& partner)
 
 // ========== 雷击 ==========
 
-void MooshroomEntity::onStruckByLightning(entity::LightningBoltEntity* lightning)
+void MooshroomEntity::onStruckByLightning(entity::LightningBoltEntity* /*lightning*/)
 {
-    // 对齐 vanilla MushroomCow#thunderHit（MushroomCow.java:76-83）：不调 super.thunderHit，
-    // 故不受伤、不引燃，仅红↔棕变色 + 音效 + 粒子。wiki tech_闪电束.txt#转化生物：哞菇被闪电击中
-    // 仅变色。基类 Entity::onStruckByLightning 默认 hurt(5)+引燃，此处不调基类避免哞菇误伤。
-    (void)lightning; // 哞菇变色不依赖闪电实体
+    // 对齐 vanilla MushroomCow#thunderHit：不调 super.thunderHit，故哞菇既不受伤也不引燃。
+    // 红↔棕变色本身在 applyInstigatorEffects 中完成（那里才能拿到闪电 UUID 做去重）。
+}
 
-    // 红色哞菇 -> 棕色哞菇
-    // 棕色哞菇 -> 红色哞菇
-    // 播放转换音效并生成粒子效果
-
-    // 切换类型
-    MooshroomType newType = isRed() ? MooshroomType::Brown : MooshroomType::Red;
-    setMooshroomType(newType);
-
-    // 播放转换音效
-    playSound(SoundEvents::ENTITY_MOOSHROOM_CONVERT, 2.0f, 1.0f);
-
-    // 生成爆炸粒子效果（客户端）
-    if (world() != nullptr && world()->isClientSide()) {
-        using namespace mc::particle;
-        math::IRandom& random = world()->getRandom();
-
-        // 生成多个爆炸粒子
-        constexpr i32 particleCount = 20;
-        for (i32 i = 0; i < particleCount; ++i) {
-            f32 offsetX = (random.nextFloat() - 0.5f) * width();
-            f32 offsetY = random.nextFloat() * height();
-            f32 offsetZ = (random.nextFloat() - 0.5f) * width();
-
-            world()->addParticle(ParticleTypeId::Explosion,
-                Vector3(x() + offsetX, y() + offsetY, z() + offsetZ),
-                Vector3(0.0f, 0.0f, 0.0f));
-        }
+void MooshroomEntity::applyInstigatorEffects(const std::string& instigatorUuid)
+{
+    // 对齐 vanilla MushroomCow#thunderHit：
+    //   if (!uuid.equals(lastLightningBoltUUID)) { setVariant(...); lastLightningBoltUUID = uuid;
+    //                                               playSound(MOOSHROOM_CONVERT, 2.0F, 1.0F); }
+    // 同一道闪电只触发一次变色。
+    if (instigatorUuid == m_lastLightningBoltUuid) {
+        return;
     }
+    // 难度门槛：和平难度闪电不产生生物转化效果（适用于所有闪电转化实体）。
+    if (m_world == nullptr || m_world->isClientSide() || m_world->difficulty() == Difficulty::Peaceful) {
+        return;
+    }
+    m_lastLightningBoltUuid = instigatorUuid;
+
+    setMooshroomType(isRed() ? MooshroomType::Brown : MooshroomType::Red);
+    playSound(SoundEvents::ENTITY_MOOSHROOM_CONVERT, 2.0f, 1.0f);
 }
 
 void MooshroomEntity::registerGoals()

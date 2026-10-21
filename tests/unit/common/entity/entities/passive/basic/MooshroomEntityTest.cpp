@@ -29,6 +29,7 @@
 #include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/damage/DamageSource.hpp"
 #include "common/entity/effect/EffectType.hpp"
+#include "common/entity/entities/effect/EffectEntities.hpp"
 #include "common/entity/entities/passive/basic/CowEntity.hpp"
 #include "common/entity/entities/passive/basic/MooshroomEntity.hpp"
 #include "common/entity/interfaces/IShearable.hpp"
@@ -201,52 +202,93 @@ TEST_F(MooshroomEntityTest, SetMooshroomType_ChangesType)
 }
 
 // ==================== 雷击转换测试 ====================
+//
+// 雷击契约（对齐 vanilla MushroomCow#thunderHit）：
+//   - thunderHit 本身不受伤/不引燃（onStruckByLightning 为空实现）；
+//   - 红↔棕变色在 applyInstigatorEffects 中完成，并以闪电 UUID 去重（同一道闪电只变一次）；
+//   - 和平难度不产生转化；视觉专用闪电（getEffectOnly）不进入伤害循环。
 
-TEST_F(MooshroomEntityTest, OnStruckByLightning_RedToBrown)
+namespace {
+
+/// 构造一道击杀范围可用的闪电（effectOnly=false 表示真实闪电）
+std::unique_ptr<entity::LightningBoltEntity> makeBolt(bool effectOnly)
+{
+    auto bolt = std::make_unique<entity::LightningBoltEntity>(mc::test::testEcsRegistry());
+    bolt->setTypeId(entity::EntityTypeKeys::LIGHTNING_BOLT);
+    bolt->setEffectOnly(effectOnly);
+    return bolt;
+}
+
+} // namespace
+
+TEST_F(MooshroomEntityTest, ThunderHit_DoesNotChangeVariantByItself)
 {
     MooshroomEntity mooshroom(EntityInstanceId(1), mc::test::testEcsRegistry());
-    m_world.setClientSide(false); // 服务端不生成粒子
+    m_world.setClientSide(false);
     mooshroom.setWorld(&m_world);
-    mooshroom.setPosition(100.0, 64.0, 100.0);
-
-    // 初始为红色
     mooshroom.setMooshroomType(MooshroomEntity::MooshroomType::Red);
-    EXPECT_TRUE(mooshroom.isRed());
 
-    // 雷击后变为棕色
+    // thunderHit 阶段本身不变色（变色与去重都在施加者效果阶段）。
     mooshroom.onStruckByLightning(nullptr);
-    EXPECT_TRUE(mooshroom.isBrown());
-    EXPECT_EQ(mooshroom.getMooshroomType(), MooshroomEntity::MooshroomType::Brown);
+    EXPECT_TRUE(mooshroom.isRed());
 }
 
-TEST_F(MooshroomEntityTest, OnStruckByLightning_BrownToRed)
+TEST_F(MooshroomEntityTest, ApplyInstigatorEffects_RedToBrown)
 {
     MooshroomEntity mooshroom(EntityInstanceId(1), mc::test::testEcsRegistry());
     m_world.setClientSide(false);
     mooshroom.setWorld(&m_world);
     mooshroom.setPosition(100.0, 64.0, 100.0);
+    mooshroom.setMooshroomType(MooshroomEntity::MooshroomType::Red);
 
-    // 初始为棕色
+    auto bolt = makeBolt(false);
+    mooshroom.applyInstigatorEffects(bolt->uuid());
+    EXPECT_TRUE(mooshroom.isBrown());
+}
+
+TEST_F(MooshroomEntityTest, ApplyInstigatorEffects_BrownToRed)
+{
+    MooshroomEntity mooshroom(EntityInstanceId(1), mc::test::testEcsRegistry());
+    m_world.setClientSide(false);
+    mooshroom.setWorld(&m_world);
     mooshroom.setMooshroomType(MooshroomEntity::MooshroomType::Brown);
-    EXPECT_TRUE(mooshroom.isBrown());
 
-    // 雷击后变为红色
-    mooshroom.onStruckByLightning(nullptr);
+    auto bolt = makeBolt(false);
+    mooshroom.applyInstigatorEffects(bolt->uuid());
     EXPECT_TRUE(mooshroom.isRed());
-    EXPECT_EQ(mooshroom.getMooshroomType(), MooshroomEntity::MooshroomType::Red);
 }
 
-TEST_F(MooshroomEntityTest, OnStruckByLightning_PlaysConvertSound)
+TEST_F(MooshroomEntityTest, ApplyInstigatorEffects_SameBoltOnlyConvertsOnce)
+{
+    MooshroomEntity mooshroom(EntityInstanceId(1), mc::test::testEcsRegistry());
+    m_world.setClientSide(false);
+    mooshroom.setWorld(&m_world);
+    mooshroom.setMooshroomType(MooshroomEntity::MooshroomType::Red);
+
+    auto bolt = makeBolt(false);
+    mooshroom.applyInstigatorEffects(bolt->uuid());
+    ASSERT_TRUE(mooshroom.isBrown());
+
+    // 同一道闪电再次生效时不翻转回来。
+    mooshroom.applyInstigatorEffects(bolt->uuid());
+    EXPECT_TRUE(mooshroom.isBrown());
+
+    // 另一道闪电可以再次翻转。
+    auto otherBolt = makeBolt(false);
+    mooshroom.applyInstigatorEffects(otherBolt->uuid());
+    EXPECT_TRUE(mooshroom.isRed());
+}
+
+TEST_F(MooshroomEntityTest, ApplyInstigatorEffects_PlaysConvertSound)
 {
     MooshroomEntity mooshroom(EntityInstanceId(1), mc::test::testEcsRegistry());
     m_world.setClientSide(false);
     mooshroom.setWorld(&m_world);
     mooshroom.setPosition(100.0, 64.0, 100.0);
 
-    // 执行雷击
-    mooshroom.onStruckByLightning(nullptr);
+    auto bolt = makeBolt(false);
+    mooshroom.applyInstigatorEffects(bolt->uuid());
 
-    // 验证播放了转换音效
     EXPECT_EQ(m_world.soundCount(), 1u);
     const auto& sound = m_world.sounds()[0];
     EXPECT_EQ(sound.sound.toString(), "minecraft:entity.mooshroom.convert");
@@ -254,78 +296,16 @@ TEST_F(MooshroomEntityTest, OnStruckByLightning_PlaysConvertSound)
     EXPECT_FLOAT_EQ(sound.pitch, 1.0f);
 }
 
-TEST_F(MooshroomEntityTest, OnStruckByLightning_GeneratesParticles_ClientSide)
-{
-    MooshroomEntity mooshroom(EntityInstanceId(1), mc::test::testEcsRegistry());
-    m_world.setClientSide(true); // 客户端生成粒子
-    mooshroom.setWorld(&m_world);
-    mooshroom.setPosition(100.0, 64.0, 100.0);
-
-    // 执行雷击
-    mooshroom.onStruckByLightning(nullptr);
-
-    // 验证生成了爆炸粒子
-    // 生成 20 个 Explosion 粒子
-    EXPECT_EQ(m_world.particleCount(), 20u);
-
-    // 验证粒子类型
-    for (const auto& particle : m_world.particles()) {
-        EXPECT_EQ(particle.type, particle::ParticleTypeId::Explosion);
-    }
-}
-
-TEST_F(MooshroomEntityTest, OnStruckByLightning_NoParticles_ServerSide)
-{
-    MooshroomEntity mooshroom(EntityInstanceId(1), mc::test::testEcsRegistry());
-    m_world.setClientSide(false); // 服务端不生成粒子
-    mooshroom.setWorld(&m_world);
-    mooshroom.setPosition(100.0, 64.0, 100.0);
-
-    // 执行雷击
-    mooshroom.onStruckByLightning(nullptr);
-
-    // 服务端不应该生成粒子
-    EXPECT_EQ(m_world.particleCount(), 0u);
-
-    // 但类型应该改变
-    EXPECT_TRUE(mooshroom.isBrown());
-}
-
-TEST_F(MooshroomEntityTest, OnStruckByLightning_ParticlePosition_WithinEntityBounds)
+TEST_F(MooshroomEntityTest, ApplyInstigatorEffects_NoConversionOnClient)
 {
     MooshroomEntity mooshroom(EntityInstanceId(1), mc::test::testEcsRegistry());
     m_world.setClientSide(true);
     mooshroom.setWorld(&m_world);
+    mooshroom.setMooshroomType(MooshroomEntity::MooshroomType::Red);
 
-    const f64 posX = 100.0;
-    const f64 posY = 64.0;
-    const f64 posZ = 200.0;
-    mooshroom.setPosition(posX, posY, posZ);
-
-    // 执行雷击
-    mooshroom.onStruckByLightning(nullptr);
-
-    // 验证粒子位置在实体范围内
-    // 哞菇继承自牛，碰撞箱宽度 0.9，高度 1.4
-    constexpr f64 EXPECTED_WIDTH = 0.9;
-    constexpr f64 EXPECTED_HEIGHT = 1.4;
-
-    for (const auto& particle : m_world.particles()) {
-        // X 偏移应在 [-width/2, width/2] 范围内
-        f64 offsetX = particle.pos.x - posX;
-        EXPECT_GE(offsetX, -EXPECTED_WIDTH / 2.0);
-        EXPECT_LE(offsetX, EXPECTED_WIDTH / 2.0);
-
-        // Y 偏移应在 [0, height] 范围内
-        f64 offsetY = particle.pos.y - posY;
-        EXPECT_GE(offsetY, 0.0);
-        EXPECT_LE(offsetY, EXPECTED_HEIGHT);
-
-        // Z 偏移应在 [-width/2, width/2] 范围内
-        f64 offsetZ = particle.pos.z - posZ;
-        EXPECT_GE(offsetZ, -EXPECTED_WIDTH / 2.0);
-        EXPECT_LE(offsetZ, EXPECTED_WIDTH / 2.0);
-    }
+    auto bolt = makeBolt(false);
+    mooshroom.applyInstigatorEffects(bolt->uuid());
+    EXPECT_TRUE(mooshroom.isRed());
 }
 
 // ==================== 继承测试 ====================

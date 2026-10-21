@@ -2502,6 +2502,16 @@ public:
     virtual void onStruckByLightning(entity::LightningBoltEntity* lightning);
 
     /**
+     * @brief 记录闪电施加者（对齐 vanilla LivingEntity.applyInstigatorEffects）
+     *
+     * 由 LightningBoltEntity 在实体经 thunderHit 处理完毕后调用，子类可据此记录"最近一次
+     * 施加效果的闪电"，用于同一道闪电只生效一次（如哞菇 red↔brown 变色）。
+     *
+     * @param instigatorUuid 闪电实体 UUID
+     */
+    virtual void applyInstigatorEffects(const std::string& instigatorUuid) { (void)instigatorUuid; }
+
+    /**
      * @brief 被爆炸击中时调用
      *
      * 在爆炸对实体施加击退和伤害之后调用，允许实体对爆炸做出额外响应。

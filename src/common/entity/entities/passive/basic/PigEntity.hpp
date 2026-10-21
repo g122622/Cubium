@@ -182,17 +182,15 @@ public:
     // ========== 雷击 ==========
 
     /**
-     * @brief 被闪电击中时的回调
+     * @brief 闪电施加者效果：非和平难度转化为僵尸猪灵
      *
-     * 对齐 vanilla Pig#thunderHit（Pig.java:196-208）：和平难度不转化直接 return；
-     * 非和平难度经 convertTo(ZOMBIFIED_PIGLIN) 转化为僵尸猪灵——convertTo 成功时 vanilla 不调
-     * super.thunderHit（转化后实体不受伤）、转化原体 discard；convertTo 失败回退基类 thunderHit
-     * （受 5 闪电伤害 + 引燃）。wiki tech_猪.txt#闪电：猪被闪电击中在非和平难度转化为僵尸猪灵。
-     * Cubium 基类 Entity::onStruckByLightning 默认 hurt(5)+引燃，转化成功时不调基类避免转化体误伤。
+     * 对齐 vanilla 1.20.5 之后的设计：thunderHit（5 闪电伤害 + 引燃）由基类统一执行，
+     * 生物专属的闪电转化下沉到 applyInstigatorEffects（等价旧版 Pig#thunderHit 中的
+     * convertTo(ZOMBIFIED_PIGLIN, ConversionParams.single(this, false, true), ...)）。
      *
-     * @param lightning 击中此实体的闪电实体（用于基类伤害源构造）
+     * @param instigatorUuid 闪电实体 UUID（猪的转化不依赖该值）
      */
-    void onStruckByLightning(entity::LightningBoltEntity* lightning) override;
+    void applyInstigatorEffects(const std::string& instigatorUuid) override;
 
 protected:
     void registerGoals() override;

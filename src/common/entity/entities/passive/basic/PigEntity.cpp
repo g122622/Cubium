@@ -32,8 +32,10 @@
 #include "common/entity/ai/goal/goals/TemptGoal.hpp"
 #include "common/entity/attribute/Attributes.hpp"
 #include "common/entity/core/AgeableEntity.hpp"
+#include "common/entity/core/ConversionParams.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/core/EntityRegistry.hpp"
+#include "common/entity/core/MobEntity.hpp"
 #include "common/entity/damage/DamageSource.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/utils/ItemDropHelper.hpp"
@@ -376,69 +378,33 @@ bool PigEntity::canEquip(const ItemStack& item, i32 slot) const
 
 // ========== 雷击 ==========
 
-void PigEntity::onStruckByLightning(entity::LightningBoltEntity* lightning)
+void PigEntity::applyInstigatorEffects(const std::string& /*instigatorUuid*/)
 {
-    // 客户端不执行实体转化逻辑
-    if (m_world == nullptr || m_world->isClientSide()) {
-        return;
-    }
-
-    // 对齐 vanilla Pig#thunderHit（Pig.java:176-188）：
+    // 对齐 vanilla 1.20.5 之后的设计：thunderHit 由基类统一执行（5 闪电伤害 + 引燃），
+    // 生物专属的闪电转化下沉到 applyInstigatorEffects。
     //   if (level.getDifficulty() != PEACEFUL) {
-    //       ZombifiedPiglin z = convertTo(ZOMBIFIED_PIGLIN, ..., p -> {...setPersistenceRequired...});
-    //       if (z == null) super.thunderHit(level, lightning);   // 转化失败回退基类（受5+引燃）
-    //   } else {
-    //       super.thunderHit(level, lightning);                  // 和平难度也调基类受5伤害
+    //       ZombifiedPiglin z = convertTo(ZOMBIFIED_PIGLIN, ConversionParams.single(this, false, true), ...);
     //   }
-    // 注意：vanilla 转化成功时不调 super（转化体不受伤），原体经 convertTo 内部 discard。
-    // Cubium 基类 Entity::onStruckByLightning 默认 hurt(5)+引燃，此处仅在转化失败/和平分支调基类。
-    if (m_world->difficulty() == Difficulty::Peaceful) {
-        AnimalEntity::onStruckByLightning(lightning);
+    // 仅非和平难度转化；视觉专用闪电（陷阱马等）不产生转化。
+    IWorld* world = m_world;
+    if (world == nullptr || world->isClientSide()) {
         return;
     }
-
-    // ECS 迁移：实体构造需要 registry 句柄，ClientWorld 返回 nullptr 表客户端不接入 ECS
-    auto* registry = m_world->entityRegistry();
-    if (registry == nullptr) {
-        // 无 registry 无法构造转化体，回退基类受 5 伤害（vanilla convertTo 失败同语义）
-        AnimalEntity::onStruckByLightning(lightning);
+    if (world->difficulty() == Difficulty::Peaceful) {
         return;
     }
+    // 转化本身会生成并移除实体，必须在 tick 之外执行（见 LightningBoltEntity::_damageEntities）；
+    // 该路径下当前实体必然未移除。
+    MC_ASSERT_RELEASE(!isRemoved());
 
-    // 经 EntityType 工厂创建僵尸猪灵，避免本目录反向依赖 monster/nether 目录
-    const entity::EntityType* type =
-        entity::EntityRegistry::instance().getType(entity::EntityTypeKeys::ZOMBIFIED_PIGLIN);
-    if (type == nullptr) {
-        // 转化实体未注册，回退基类受 5 伤害（vanilla convertTo 返 null 同语义）
-        AnimalEntity::onStruckByLightning(lightning);
-        return;
-    }
-    auto piglin = type->create(m_world, *registry);
-    if (piglin == nullptr) {
-        // 转化实体构造失败，回退基类受 5 伤害
-        AnimalEntity::onStruckByLightning(lightning);
-        return;
-    }
-
-    // 继承位置与朝向
-    piglin->setPosition(x(), y(), z());
-    piglin->setRotation(yaw(), pitch());
-
-    // 继承自定义名
-    if (hasCustomName()) {
-        piglin->setCustomName(customNameText());
-        piglin->setCustomNameVisible(isCustomNameVisible());
-    }
-
-    // 闪电转化的僵尸猪灵需持久化留存
-    MobEntity* piglinMob = dynamic_cast<MobEntity*>(piglin.get());
-    if (piglinMob != nullptr) {
-        piglinMob->enablePersistence();
-    }
-
-    // 生成僵尸猪灵并移除原猪（对齐 vanilla convertTo 成功：不调 super、discard 原体）
-    m_world->spawnEntity(std::move(piglin));
-    discard();
+    const ConversionParams params = ConversionParams::single(*this, false, true);
+    (void)convertTo(std::string(entity::EntityTypeKeys::ZOMBIFIED_PIGLIN), params, [this, world](Entity& converted) {
+        auto* zombified = dynamic_cast<MobEntity*>(&converted);
+        if (zombified != nullptr) {
+            // 闪电转化的僵尸猪灵需持久化留存（对齐 vanilla p -> setPersistenceRequired()）
+            zombified->enablePersistence();
+        }
+    });
 }
 
 } // namespace mc

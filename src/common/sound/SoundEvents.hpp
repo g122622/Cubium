@@ -1321,6 +1321,11 @@ extern const ResourceLocation ENTITY_ENDERMAN_SCREAM;
 extern const ResourceLocation ENTITY_ENDERMAN_STARE;
 extern const ResourceLocation ENTITY_ENDERMAN_TELEPORT;
 
+/// 玩家传送音效
+/// 对应 MC Java: SoundEvents.PLAYER_TELEPORT = "entity.player.teleport"
+/// （末影珍珠命中后由命中的实体播放；此前以末影人传送音效近似）
+extern const ResourceLocation PLAYER_TELEPORT;
+
 /// 末影螨
 extern const ResourceLocation ENTITY_ENDERMITE_AMBIENT;
 extern const ResourceLocation ENTITY_ENDERMITE_DEATH;
