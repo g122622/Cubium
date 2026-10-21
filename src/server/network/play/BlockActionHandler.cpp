@@ -48,10 +48,14 @@
 #include "common/util/text/TranslationTextComponent.hpp"
 #include "common/world/WorldConstants.hpp"
 #include "common/world/block/BlockPos.hpp"
+#include "common/world/block/blocks/special/CommandBlock.hpp"
+#include "common/world/block/registry/BuildingVariantBlocks.hpp"
 #include "common/world/blockentity/BlockEntity.hpp"
 #include "common/world/blockentity/BlockEntityType.hpp"
 #include "common/world/blockentity/interactive/SignEntity.hpp"
+#include "common/world/blockentity/redstone/CommandBlockEntity.hpp"
 #include "common/world/entity/EntityManager.hpp"
+#include "common/world/gamerule/GameRules.hpp"
 #include "server/application/MinecraftServer.hpp"
 #include "server/core/PlayerManager.hpp"
 #include "server/core/ServerPlayerData.hpp"
@@ -545,6 +549,134 @@ void BlockActionHandler::handleUpdateSignPacket(PlayerId playerId, const mc::net
     world->broadcastBlockEntity(signPos);
 
     spdlog::info("UpdateSign: player {} updated sign at ({}, {}, {})", playerId, signPos.x, signPos.y, signPos.z);
+}
+
+void BlockActionHandler::handleSetCommandBlockPacket(PlayerId playerId, const mc::network::ir::IrPacket& packet)
+{
+    auto* playerData = m_server.playerManager().getPlayer(playerId);
+    if (!playerData || !playerData->loggedIn) {
+        return;
+    }
+    ServerWorld* world = m_server.getPlayerWorld(playerId);
+    if (world == nullptr) {
+        spdlog::warn("SetCommandBlock: player {} has no world", playerId);
+        return;
+    }
+    auto* playerEntity = m_server.playerEntityManager().getPlayerEntity(playerId, *world);
+    auto* player = playerEntity != nullptr ? playerEntity->asServerPlayer() : nullptr;
+    if (player == nullptr) {
+        return;
+    }
+
+    const auto& play = std::get<mc::network::ir::PlayPacket>(packet.packet);
+    const auto* pkt = std::get_if<mc::network::ir::play::SetCommandBlock>(&play);
+    if (pkt == nullptr) {
+        return;
+    }
+
+    // 对齐 vanilla ServerGamePacketListenerImpl.handleSetCommandBlock：无 GameMaster 权限直接拒绝。
+    if (!player->canUseGameMasterBlocks()) {
+        player->sendSystemMessage(mc::text::TranslationTextComponent("advMode.notAllowed"));
+        return;
+    }
+
+    const BlockPos pos = BlockPos::fromLong(pkt->blockPosPacked);
+
+    // 对齐 vanilla：只接受服务端仍认为"正在被该玩家编辑"且仍有效的命令方块，校验后清空编辑锁。
+    const auto& editingPos = player->commandBlock();
+    if (!editingPos.has_value() || *editingPos != pos || !player->isValidCommandBlockEditing(pos)) {
+        return;
+    }
+    player->clearCommandBlock();
+
+    BlockEntity* blockEntity = world->getBlockEntity(pos);
+    if (blockEntity == nullptr || blockEntity->getType() != BlockEntityType::CommandBlock) {
+        spdlog::warn(
+            "SetCommandBlock: no command block entity at ({}, {}, {}) for player {}", pos.x, pos.y, pos.z, playerId);
+        return;
+    }
+    auto* commandEntity = static_cast<blockentity::CommandBlockEntity*>(blockEntity);
+
+    const BlockState* oldState = world->getBlockState(pos);
+    if (oldState == nullptr) {
+        return;
+    }
+
+    // 对齐 vanilla：无效模式值视为链式连锁方块；各模式对应不同方块类型，切换时整体替换方块状态。
+    blockentity::CommandBlockMode mode = blockentity::CommandBlockMode::Sequence;
+    if (pkt->mode == 0) {
+        mode = blockentity::CommandBlockMode::Sequence;
+    } else if (pkt->mode == 1) {
+        mode = blockentity::CommandBlockMode::Auto;
+    } else if (pkt->mode == 2) {
+        mode = blockentity::CommandBlockMode::Redstone;
+    }
+
+    const Block* newBlock = block_registry::BuildingVariantBlocks::CHAIN_COMMAND_BLOCK;
+    if (mode == blockentity::CommandBlockMode::Auto) {
+        newBlock = block_registry::BuildingVariantBlocks::REPEATING_COMMAND_BLOCK;
+    } else if (mode == blockentity::CommandBlockMode::Redstone) {
+        newBlock = block_registry::BuildingVariantBlocks::COMMAND_BLOCK;
+    }
+    if (newBlock == nullptr) {
+        spdlog::warn("SetCommandBlock: command block types not registered");
+        return;
+    }
+    if (dynamic_cast<const blocks::CommandBlock*>(&oldState->getBlock()) == nullptr) {
+        spdlog::warn("SetCommandBlock: block at ({}, {}, {}) is not a command block", pos.x, pos.y, pos.z);
+        return;
+    }
+
+    const BlockState& newState =
+        newBlock->defaultState()
+            .with(BlockStateProperties::FACING(), oldState->get(BlockStateProperties::FACING()))
+            .with(BlockStateProperties::CONDITIONAL(), pkt->conditional);
+
+    // 对齐 vanilla：方块状态未变化时不重复写入（保持实体与状态一致）。
+    if (&newState != oldState) {
+        world->setBlockState(pos, &newState);
+    }
+
+    // 写入新状态后重新取实体：方块类型变化时 setBlockState 已按新方块重建实体。
+    blockEntity = world->getBlockEntity(pos);
+    if (blockEntity == nullptr || blockEntity->getType() != BlockEntityType::CommandBlock) {
+        spdlog::warn(
+            "SetCommandBlock: command block entity lost after mode switch at ({}, {}, {})", pos.x, pos.y, pos.z);
+        return;
+    }
+    commandEntity = static_cast<blockentity::CommandBlockEntity*>(blockEntity);
+
+    // 对齐 vanilla onModeSwitch：换模式时先清空旧命令再写新命令，避免旧命令在切换窗口内被执行。
+    if (commandEntity->getMode() != mode) {
+        commandEntity->clearCommand();
+    }
+    commandEntity->setCommand(pkt->command);
+    commandEntity->setTrackOutput(pkt->trackOutput);
+    // 对齐 vanilla：输出必须清空（Java 传 null，读回为空字符串）。
+    commandEntity->setLastOutput("");
+    commandEntity->setMode(mode);
+    commandEntity->setAuto(pkt->automatic);
+
+    // 对齐 vanilla：命令方块可用时立即按新状态刷新（重新调度/条件判定），否则只保存不执行。
+    if (world->getGameRules().getBoolean(world::gamerule::GameRuleKeys::COMMAND_BLOCKS_WORK)) {
+        auto& commandBlock = static_cast<blocks::CommandBlock&>(const_cast<Block&>(oldState->getBlock()));
+        commandBlock.onUpdated(*world, pos, newState, *commandEntity);
+    }
+
+    // 本地化反馈（advMode.setCommand.success / advMode.setCommand.disabled），非空命令才提示。
+    if (!pkt->command.empty()) {
+        mc::text::TranslationTextComponent msg(
+            world->getGameRules().getBoolean(world::gamerule::GameRuleKeys::COMMAND_BLOCKS_WORK)
+                ? "advMode.setCommand.success"
+                : "advMode.setCommand.disabled");
+        msg.addParam(std::make_unique<mc::text::StringTextComponent>(pkt->command));
+        player->sendSystemMessage(msg);
+    }
+
+    // 命令方块数据变化同步给附近客户端（LastOutput / 模式等）。
+    world->broadcastBlockEntity(pos);
+
+    spdlog::info("SetCommandBlock: player {} updated command block at ({}, {}, {})", playerId, pos.x, pos.y, pos.z);
 }
 
 void BlockActionHandler::_triggerAnyBlockUse(Player& player)

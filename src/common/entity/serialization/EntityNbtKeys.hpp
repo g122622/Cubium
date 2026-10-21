@@ -356,4 +356,20 @@ constexpr const char* WEATHER_STATE = "weather_state"; ///< 氧化等级（字�
 constexpr const char* SNIFFER_STATE = "state";                         ///< 嗅探兽状态机当前状态（i8，0-6）
 constexpr const char* SNIFFER_DROP_SEED_AT_TICK = "drop_seed_at_tick"; ///< 挖掘掉落种子的 tick（i32）
 
+// ========== ArmorStandEntity 键 ==========
+// 对应 MC 1.21.11 ArmorStand.addAdditionalSaveData/readAdditionalSaveData
+
+constexpr const char* ARMOR_STAND_INVISIBLE = "Invisible";          ///< 不可见（bool）
+constexpr const char* ARMOR_STAND_SMALL = "Small";                  ///< 小型盔甲架（bool）
+constexpr const char* ARMOR_STAND_SHOW_ARMS = "ShowArms";           ///< 显示手臂（bool）
+constexpr const char* ARMOR_STAND_DISABLED_SLOTS = "DisabledSlots"; ///< 禁用槽位掩码（i32）
+constexpr const char* ARMOR_STAND_NO_BASE_PLATE = "NoBasePlate";    ///< 无底座（bool，存盘值为 !hasBasePlate）
+constexpr const char* ARMOR_STAND_POSE = "Pose";                    ///< 姿态复合标签（六个部位各存 [x, y, z] 浮点列表）
+constexpr const char* ARMOR_STAND_POSE_HEAD = "Head";               ///< 姿态子键：头部
+constexpr const char* ARMOR_STAND_POSE_BODY = "Body";               ///< 姿态子键：身体
+constexpr const char* ARMOR_STAND_POSE_LEFT_ARM = "LeftArm";        ///< 姿态子键：左臂
+constexpr const char* ARMOR_STAND_POSE_RIGHT_ARM = "RightArm";      ///< 姿态子键：右臂
+constexpr const char* ARMOR_STAND_POSE_LEFT_LEG = "LeftLeg";        ///< 姿态子键：左腿
+constexpr const char* ARMOR_STAND_POSE_RIGHT_LEG = "RightLeg";      ///< 姿态子键：右腿
+
 } // namespace mc::entity::serialization::nbt_keys

@@ -696,6 +696,16 @@ public:
     [[nodiscard]] bool canReplaceEqualItem(const ItemStack& candidate, const ItemStack& current) const;
 
     /**
+     * @brief 本生物偏好的武器物品标签（对齐 vanilla Mob.getPreferredWeaponType）
+     *
+     * 主手物品比较时，属于该标签的物品优先于不属于该标签的物品，与攻击伤害无关
+     * （如骷髅永远偏好弓而非伤害更高的剑）。基类返回空字符串表示无偏好。
+     *
+     * @return 物品标签 id（如 "minecraft:skeleton_preferred_weapons"），空串表示无偏好
+     */
+    [[nodiscard]] virtual std::string getPreferredWeaponType() const { return {}; }
+
+    /**
      * @brief 拾取物品实体（对齐 vanilla Mob.pickUpItem）
      *
      * 由 MobEntity::tick 的 looting 扫描段在 AABB.inflate(getPickupReach) 内发现

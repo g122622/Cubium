@@ -24,6 +24,8 @@
 #include "common/core/Types.hpp"
 #include "common/entity/core/DataParameter.hpp"
 #include "common/entity/core/Entity.hpp"
+#include "common/entity/core/EquipmentSlot.hpp"
+#include "common/entity/ecs/components/ArmorStandStateComponent.hpp"
 #include "common/entity/effect/EffectInstance.hpp"
 #include "common/entity/serialization/NbtHelper.hpp"
 #include "common/resource/ResourceLocation.hpp"
@@ -31,6 +33,7 @@
 #include "common/util/AxisAlignedBB.hpp"
 #include "common/util/nbt/Nbt.hpp"
 #include "common/world/block/BlockPos.hpp"
+#include <array>
 #include <map>
 #include <memory>
 #include <string>
@@ -505,7 +508,7 @@ public:
      * @brief 判断盔甲架是否忽略此次爆炸
      *
      * 仅当爆炸影响方块类实体时（shouldAffectBlocklikeEntities）才受爆炸影响，
-     * 且不可见盔甲架（m_invisible）忽略爆炸。
+     * 且不可见盔甲架忽略爆炸。
      */
     [[nodiscard]] bool ignoreExplosion(const world::explosion::ExplosionImmunityContext& ctx) const override;
 
@@ -516,18 +519,22 @@ public:
     void setGravity(bool gravity) { m_hasGravity = gravity; }
 
     /**
-     * @brief 检查是否可见（非标记模式）
+     * @brief 检查是否可见（非不可见、非标记模式）
      */
-    [[nodiscard]] bool isVisible() const { return !m_invisible && !m_marker; }
+    [[nodiscard]] bool isVisible() const { return !isInvisible() && !m_marker; }
 
     /**
-     * @brief 检查是否为不可见状态
+     * @brief 不可见状态（存放在 ArmorStandStateComponent）
      *
-     * 不可见盔甲架在 shouldAffectBlocklikeEntities 为真时仍忽略爆炸（对齐 Java
+     * 不可见盔甲架在 shouldAffectBlocklikeEntities 为真时仍忽略爆炸（vanilla
      * ArmorStand.ignoreExplosion 用 Entity.isInvisible() 判定）。
      */
-    [[nodiscard]] bool isInvisible() const { return m_invisible; }
-    void setInvisible(bool invisible) { m_invisible = invisible; }
+    [[nodiscard]] bool isInvisible() const { return armorStandState().m_invisible; }
+    void setInvisible(bool invisible)
+    {
+        mutableArmorStandState().m_invisible = invisible;
+        _syncClientFlags();
+    }
 
     /**
      * @brief 检查是否为标记模式
@@ -538,17 +545,49 @@ public:
     /**
      * @brief 检查是否有底座
      */
-    [[nodiscard]] bool hasBasePlate() const { return m_basePlate; }
-    void setBasePlate(bool basePlate) { m_basePlate = basePlate; }
+    [[nodiscard]] bool hasBasePlate() const { return armorStandState().m_basePlate; }
+    void setBasePlate(bool basePlate)
+    {
+        mutableArmorStandState().m_basePlate = basePlate;
+        _syncClientFlags();
+    }
 
     /**
-     * @brief 检查是否显示手臂
+     * @brief 盔甲架状态组件（只读）
+     *
+     * 承载不可见/小型/显示手臂/禁用槽位掩码/底座/六部位姿态。
      */
-    [[nodiscard]] bool hasArms() const { return m_arms; }
-    void setArms(bool arms) { m_arms = arms; }
+    [[nodiscard]] const ecs::ArmorStandStateComponent& armorStandState() const;
 
     /**
-     * @brief 设置头部旋转
+     * @brief 盔甲架状态组件（可变）
+     */
+    ecs::ArmorStandStateComponent& mutableArmorStandState();
+
+    /**
+     * @brief 设置原始禁用槽位掩码（读盘与 NBT 驱动场景）
+     *
+     * 不做任何位重写，保存后原样读回。掩码的位组语义见 isDisabled/swapItem。
+     */
+    void setDisabledSlots(i32 disabledSlots)
+    {
+        mutableArmorStandState().m_disabledSlots = disabledSlots;
+        _syncClientFlags();
+    }
+    [[nodiscard]] i32 disabledSlots() const { return armorStandState().m_disabledSlots; }
+
+    /**
+     * @brief 检查是否显示手臂（为 false 时手部槽位不可交互）
+     */
+    [[nodiscard]] bool hasArms() const { return armorStandState().m_arms; }
+    void setArms(bool arms)
+    {
+        mutableArmorStandState().m_arms = arms;
+        _syncClientFlags();
+    }
+
+    /**
+     * @brief 设置各部位姿态（单位：度，写入 ArmorStandStateComponent::m_pose）
      */
     void setHeadRotation(f32 x, f32 y, f32 z);
     void setBodyRotation(f32 x, f32 y, f32 z);
@@ -560,8 +599,12 @@ public:
     /**
      * @brief 检查是否是小型
      */
-    [[nodiscard]] bool isSmall() const { return m_small; }
-    void setSmall(bool small) { m_small = small; }
+    [[nodiscard]] bool isSmall() const { return armorStandState().m_small; }
+    void setSmall(bool small)
+    {
+        mutableArmorStandState().m_small = small;
+        _syncClientFlags();
+    }
 
     /**
      * @brief 受伤入口（对齐 vanilla ArmorStand.hurtServer:266-318）
@@ -571,10 +614,9 @@ public:
      * 受 4.0 伤害（health>0.5 时）；CAN_BREAK_ARMOR_STAND/ALWAYS_KILLS_ARMOR_STANDS 近战/箭破坏。
      * 详见 ArmorStandEntity.cpp hurt 实现注释。
      *
-     * 注：vanilla ArmorStand 继承 LivingEntity（maxHealth=2，有 causeDamage/kill/brokenByAnybody 装备
-     * 掉落体系）。Cubium ArmorStandEntity 继承 Entity 无 health/装备体系，此处自带 m_health 模拟
-     * health 语义（默认 2.0）。销毁链路（破坏音效 / 木板碎屑粒子 / 盔甲架本体掉落）已按 vanilla 补齐；
-     * 穿戴装备的掉落依赖尚未实现的实体装备体系，故暂不实现。
+     * 注：vanilla ArmorStand 继承 LivingEntity（maxHealth=2）。Cubium ArmorStandEntity 继承 Entity 无
+     * health 体系，此处自带 m_health 模拟 health 语义（默认 2.0）。销毁链路（破坏音效 / 木板碎屑粒子 /
+     * 盔甲架本体掉落 / 穿戴装备逐个掉出）按 vanilla 补齐；装备读写经 EquipmentComponent 承载。
      */
     bool hurt(DamageSource& source, f32 amount) override;
 
@@ -584,6 +626,79 @@ public:
     [[nodiscard]] f32 health() const { return m_health; }
     void setHealth(f32 health) { m_health = health; }
     [[nodiscard]] f32 maxHealth() const { return ARMOR_STAND_MAX_HEALTH; }
+
+    /**
+     * @brief 可交互槽位判定（对齐 vanilla ArmorStand.canUseSlot）
+     *
+     * 盔甲架不接受 Body（身体护甲）与 Saddle（鞍）槽位；其余槽位是否可交互由禁用槽位掩码决定
+     * （见 isDisabled）。
+     */
+    [[nodiscard]] bool canUseSlot(EquipmentSlot slot) const;
+
+    /**
+     * @brief 读取指定装备槽位的物品（只读）
+     */
+    [[nodiscard]] const ItemStack& getEquipment(EquipmentSlot slot) const;
+
+    /**
+     * @brief 写入指定装备槽位的物品（新物品与槽内物品不同时播放装备音效）
+     */
+    void setEquipment(EquipmentSlot slot, const ItemStack& stack);
+
+    /**
+     * @brief 按命中点计算被点击的槽位（对齐 vanilla ArmorStand.getClickedSlot）
+     *
+     * 空手交互或槽位被禁用时的回退选择：按点击点相对实体高度的比例确定部位，并对每个候选
+     * 槽位校验"槽内有物品"；全部不满足时回退主手，主手无物品而副手有物品时回退副手。
+     *
+     * @param hitPosition 命中点（相对实体脚的局部坐标，y 分量可以是任意实体坐标值）
+     * @return 被点击的装备槽位
+     */
+    [[nodiscard]] EquipmentSlot getClickedSlot(const Vector3& hitPosition) const;
+
+    /**
+     * @brief 槽位是否被禁用（对齐 vanilla ArmorStand.isDisabled）
+     *
+     * 低位启用掩码覆盖 MainHand/OffHand/Feet/Legs/Chest/Head；手部槽位在未开启手臂（ShowArms=false）
+     * 时恒禁用。Body/Saddle 槽位不受掩码控制，直接视为禁用。
+     */
+    [[nodiscard]] bool isDisabled(EquipmentSlot slot) const;
+
+    /**
+     * @brief 装备/替换/取出槽位物品（对齐 vanilla ArmorStand.swapItem）
+     *
+     * 交换后双方物品都通过参数回写：槽位内原物品写回 slotStack，玩家手持物品写回 heldStack。
+     * 处理四种情形：取走物品、创造模式无限材料复制、数量为 1 的直接交换、数量大于 1 时
+     * 仅在目标槽位为空的情况下取出 1 个放入。
+     *
+     * @param player 交互玩家（只读，用于创造模式判断）
+     * @param slot 目标槽位
+     * @param slotStack 输入/输出：槽位物品；成功时更新为之后留在槽位中的物品
+     * @param heldStack 输入/输出：玩家手持物品；成功时更新为交互后玩家应手持的物品
+     * @return 成功返回 true；取出与放入均被禁用槽位掩码锁定时返回 false 且不修改任何状态
+     */
+    [[nodiscard]] bool swapItem(const Player& player, EquipmentSlot slot, ItemStack& slotStack, ItemStack& heldStack);
+
+    /**
+     * @brief 带命中点的玩家交互（对齐 vanilla ArmorStand.interactAt）
+     *
+     * - 标记模式或手持命名牌：Pass
+     * - 旁观者：Success（不消费物品）
+     * - 空手：按命中点选槽，槽内有物品则取出
+     * - 持物：按物品决定目标槽位，禁用则 Fail，手部槽位在未开启手臂时 Fail
+     *
+     * 服务端直接调用（不依赖 firstTick/level().isClientSide 门控），成功回写为 SuccessServer。
+     */
+    ActionResultType applyPlayerInteraction(Player& player, const Vector3& hitPosition, Hand hand) override;
+
+    /**
+     * @brief 把状态组件的全部字段推送到客户端数据参数（标志 + 六部位姿态）
+     */
+    void syncClientState()
+    {
+        _syncClientFlags();
+        _syncClientPose();
+    }
 
 private:
     // 对齐 vanilla ArmorStand.MAX_HEALTH=2（ArmorStand.java）。Cubium ArmorStandEntity 继承 Entity
@@ -595,6 +710,26 @@ private:
     static constexpr i64 ARMOR_STAND_HIT_COOLDOWN_TICKS = 5;
     /// 破坏粒子数量（vanilla showBreakingParticles 固定 10 个方块碎屑）。
     static constexpr i32 ARMOR_STAND_BREAK_PARTICLE_COUNT = 10;
+
+    /// 槽位位组内"放入物品"禁用位（vanilla EquipmentSlot.getFilterBit(0) → id * 16 + 0）。
+    static constexpr i32 ARMOR_STAND_SLOT_BIT_PLACE = 0;
+    /// 槽位位组内"取出/替换物品"禁用位（vanilla EquipmentSlot.getFilterBit(8) → id * 16 + 8）。
+    static constexpr i32 ARMOR_STAND_SLOT_BIT_REMOVE = 8;
+    /// 槽位位组内"创建时默认禁用"位（vanilla EquipmentSlot.getFilterBit(16) → id * 16 + 16）。
+    static constexpr i32 ARMOR_STAND_SLOT_BIT_DEFAULT = 16;
+
+    /// 计算指定槽位在禁用掩码中的位偏移：槽位序号 * 16 + 组内偏移。
+    [[nodiscard]] static i32 _disableBit(EquipmentSlot slot, i32 inGroupBit)
+    {
+        return static_cast<i32>(slot) * 16 + inGroupBit;
+    }
+
+    /// 计算禁用掩码中指定槽位"放入"位（组内 +0）对应的位掩码
+    [[nodiscard]] static u32 _disabledPlaceMask(EquipmentSlot slot)
+    {
+        const i32 bitIndex = _disableBit(slot, ARMOR_STAND_SLOT_BIT_PLACE);
+        return static_cast<u32>(1u << (bitIndex & 31)) << (bitIndex >> 5);
+    }
 
     // 对齐 vanilla ArmorStand.lastHit（5 tick 破坏节流），读写世界游戏时间。
     // lastHit 从对象构造时刻起算为空（m_hasLastHit=false），首次受击必然通过节流。
@@ -620,9 +755,23 @@ private:
     /**
      * @brief 任意方式破坏（对齐 vanilla ArmorStand.brokenByAnything）
      *
-     * 播放破坏音效并掉出盔甲架本体；穿戴装备的掉落依赖未实现的实体装备体系。
+     * 播放破坏音效，随后遍历全部装备槽位逐个清空并把非空物品掉出（落点在方块位上方）。
+     * 盔甲架本体掉落只发生在 brokenByPlayer（玩家破坏）。
      */
     void brokenByAnything(const DamageSource& source);
+
+    /**
+     * @brief 在方块位上方掉出一个物品（对齐 vanilla Block.popResource(level, blockPosition().above(), stack)）
+     */
+    void _popResourceAboveBlock(const ItemStack& stack);
+
+    /**
+     * @brief 装备变更音效（对齐 vanilla LivingEntity.onEquipItem 的音效分支）
+     *
+     * 仅当新旧物品不同且新物品确有护甲槽时播放，音效按护甲材质选取（皮革/锁链/铜/金/铁/钻石/
+     * 下界合金/龟壳），非盔甲物品（如名称牌、木棍）不播放。
+     */
+    void _playEquipSound(EquipmentSlot slot, const ItemStack& previous, const ItemStack& current) const;
 
     /**
      * @brief 被玩家破坏（对齐 vanilla ArmorStand.brokenByPlayer）
@@ -645,17 +794,45 @@ private:
 
     void onRemoval(RemovalReason reason) override;
 
-    bool m_hasGravity = true;
-    bool m_invisible = false;
-    bool m_marker = false;
-    bool m_basePlate = true;
-    bool m_arms = false;
-    bool m_small = false;
+    /**
+     * @brief 数据参数注册（向 EntityDataManager 登记客户端标志与各部位姿态参数）
+     */
+    void registerData() override;
 
-    // 身体部位旋转（欧拉角）
-    struct EulerAngles {
-        f32 x = 0.0f, y = 0.0f, z = 0.0f;
-    } m_head, m_body, m_leftArm, m_rightArm, m_leftLeg, m_rightLeg;
+    /**
+     * @brief 把状态组件同步到客户端标志数据参数（不可见/小型/显示手臂/无底座）
+     *
+     * 对应 vanilla ArmorStand.setInvisible/setSmall/setShowArms/setNoBasePlate 对
+     * DATA_CLIENT_FLAGS 的位写入，供客户端渲染读取。
+     */
+    void _syncClientFlags();
+
+    /**
+     * @brief 把姿态组件同步到客户端姿态数据参数（头/身/双臂/双腿三轴旋转）
+     */
+    void _syncClientPose();
+
+    // 物理/交互相关状态（不可见、小型、手臂、禁用槽位、底座、姿态）已迁移至
+    // ecs::ArmorStandStateComponent，经 armorStandState()/mutableArmorStandState() 访问。
+    bool m_hasGravity = true;
+    bool m_marker = false;
+
+private:
+    // 客户端标志位定义（对齐 vanilla ArmorStand DATA_CLIENT_FLAGS 的同一 bit 布局）。
+    static constexpr i8 ARMOR_STAND_CLIENT_FLAG_SMALL = 1;
+    static constexpr i8 ARMOR_STAND_CLIENT_FLAG_SHOW_ARMS = 4;
+    static constexpr i8 ARMOR_STAND_CLIENT_FLAG_NO_BASE_PLATE = 8;
+    static constexpr i8 ARMOR_STAND_CLIENT_FLAG_INVISIBLE = 16;
+
+    /// 客户端标志（i8，位布局同上，经 DATA_ARMOR_STAND_FLAGS_PARAM 下发）
+    static entity::DataParameter<i8> DATA_ARMOR_STAND_FLAGS_PARAM;
+    /// 各部位姿态（Vector3f，三轴旋转，经 6 个姿态参数下发）
+    static entity::DataParameter<entity::Vector3f> DATA_ARMOR_STAND_HEAD_POSE_PARAM;
+    static entity::DataParameter<entity::Vector3f> DATA_ARMOR_STAND_BODY_POSE_PARAM;
+    static entity::DataParameter<entity::Vector3f> DATA_ARMOR_STAND_LEFT_ARM_POSE_PARAM;
+    static entity::DataParameter<entity::Vector3f> DATA_ARMOR_STAND_RIGHT_ARM_POSE_PARAM;
+    static entity::DataParameter<entity::Vector3f> DATA_ARMOR_STAND_LEFT_LEG_POSE_PARAM;
+    static entity::DataParameter<entity::Vector3f> DATA_ARMOR_STAND_RIGHT_LEG_POSE_PARAM;
 };
 
 } // namespace entity

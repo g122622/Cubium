@@ -141,6 +141,14 @@ public:
     void setCommand(const std::string& command);
 
     /**
+     * @brief 清空存储的命令并重置成功计数
+     *
+     * 对齐 vanilla CommandBlockEntity.setCommand(null)：模式切换时由方块侧调用，
+     * 随后立即写入新命令，避免新旧命令在同一执行窗口内串用。
+     */
+    void clearCommand();
+
+    /**
      * @brief 获取成功计数
      *
      * 成功计数用于比较器输出信号强度。
@@ -283,7 +291,13 @@ public:
      * @brief 设置追踪输出标志
      * @param track 是否追踪输出
      */
-    void setTrackOutput(bool track) { m_trackOutput = track; }
+    void setTrackOutput(bool track)
+    {
+        if (m_trackOutput != track) {
+            m_trackOutput = track;
+            setChanged();
+        }
+    }
 
     /**
      * @brief 检查是否追踪输出

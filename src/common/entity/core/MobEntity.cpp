@@ -53,6 +53,7 @@
 #include "common/item/items/armor/ArmorItem.hpp"
 #include "common/item/items/special/NameTagItem.hpp"
 #include "common/item/items/special/SpawnEggItem.hpp"
+#include "common/item/tag/ItemTags.hpp"
 #include "common/profiler/TraceEvents.hpp"
 #include "common/sound/SoundEvents.hpp"
 #include "common/util/math/random/Random.hpp"
@@ -1563,8 +1564,18 @@ bool MobEntity::canReplaceCurrentItem(const ItemStack& candidate, const ItemStac
         return canReplaceEqualItem(candidate, current);
     }
     if (slot == EquipmentSlot::MainHand) {
-        // TODO(weapon-preference): vanilla Mob.compareWeapons 先按 getPreferredWeaponType()
-        //   的标签优先级判定（如骷髅偏好弓），Cubium 尚无该标签覆写，直接比较攻击伤害。
+        // 对齐 vanilla Mob.compareWeapons：先按生物偏好武器标签判定（如骷髅偏好弓、溺尸偏好三叉戟），
+        // 一方偏好一方不偏好时直接由偏好者胜出，双方偏好性相同时再比较攻击伤害。
+        const std::string preferredTag = getPreferredWeaponType();
+        if (const item::tag::ItemTag* tag =
+                preferredTag.empty() ? nullptr : item::tag::ItemTags::getTag(ResourceLocation(preferredTag))) {
+            const bool currentPreferred = tag->contains(current);
+            const bool candidatePreferred = tag->contains(candidate);
+            if (currentPreferred != candidatePreferred) {
+                return candidatePreferred;
+            }
+        }
+
         // TODO(weapon-attribute): Cubium 的武器攻击伤害以 ItemAttributeModifiers 的加法修饰器
         //   表达，而 vanilla 为 ADD_MULTIPLIED_TOTAL 修饰器；此处暂直接取加法量作为比较依据，
         //   待属性修饰器操作类型对齐后再改用 approximateAttributeWith(ATTACK_DAMAGE)。

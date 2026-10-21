@@ -106,6 +106,14 @@ public:
      * @param isFrontSide 是否编辑正面
      */
     void openSignEditor(const BlockPos& pos, bool isFrontSide) override;
+    void openCommandBlock(const BlockPos& pos) override;
+
+    /**
+     * @brief 校验玩家是否仍可编辑给定位置的命令方块（对齐 vanilla CommandBlockEntity.isValidPlayerEditor）
+     *
+     * 条件：玩家未移除、仍拥有 GameMaster 权限、区块已加载，且与方块中心距离不超过 4 格。
+     */
+    [[nodiscard]] bool isValidCommandBlockEditing(const BlockPos& pos) const;
 
     /**
      * @brief 发送状态消息给玩家（重写 Player 基类）。

@@ -76,6 +76,10 @@ public:
     // 等亡灵特性失效。子类 SkeletonEntity/StrayEntity/WitherSkeletonEntity/BoggedEntity 继承此覆写。
     [[nodiscard]] CreatureAttribute getCreatureAttribute() const override { return CreatureAttribute::Undead; }
 
+    // 骷髅偏好武器（对齐 Java AbstractSkeleton.getPreferredWeaponType）：拾取主手物品时优先保留弓，
+    // 即使别的武器攻击伤害更高。WitherSkeleton 覆写返回空（无偏好）。
+    [[nodiscard]] std::string getPreferredWeaponType() const override { return "minecraft:skeleton_preferred_weapons"; }
+
     // ========== 常量 ==========
     /// 这些常量在测试中需要访问
 

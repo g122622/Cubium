@@ -78,6 +78,9 @@ public:
      */
     static std::unique_ptr<Entity> create(IWorld* world, ecs::EntityRegistry& registry);
 
+    // 溺尸偏好武器（对齐 Java Drowned.getPreferredWeaponType）：拾取时优先保留三叉戟。
+    [[nodiscard]] std::string getPreferredWeaponType() const override { return "minecraft:drowned_preferred_weapons"; }
+
     // ========== 水中生活 ==========
 
     /**

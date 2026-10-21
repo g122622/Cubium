@@ -29,6 +29,7 @@
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/ecs/components/HealthComponent.hpp"
 #include "common/entity/ecs/components/HurtStateComponent.hpp"
+#include "common/entity/entities/effect/EffectEntities.hpp"
 #include "common/entity/serialization/EntityNbtKeys.hpp"
 #include "common/entity/serialization/EquipmentSlotNames.hpp"
 #include "common/entity/serialization/NbtHelper.hpp"
@@ -109,20 +110,45 @@ static Result<void> loadHurtState(Entity& entity, const nbt::tags::compound_tag&
 
 // ============================================================================
 // EquipmentComponent — Equipment（装备，MC 1.21.11 equipment 复合标签）
+// LivingEntity 从自身装备槽读写；ArmorStandEntity 不继承 LivingEntity，但构造期同样挂载
+// EquipmentComponent，经其公开装备访问器读写。两者共用同一套 NBT 表示。
 // ============================================================================
+
+namespace {
+
+/// 装备槽读取适配：返回指定实体在指定槽位的装备
+const ItemStack& _equipmentOf(const Entity& entity, EquipmentSlot slot)
+{
+    if (const auto* living = dynamic_cast<const LivingEntity*>(&entity)) {
+        return living->getEquipment(slot);
+    }
+    const auto* armorStand = dynamic_cast<const ArmorStandEntity*>(&entity);
+    MC_ASSERT_RELEASE(armorStand != nullptr);
+    return armorStand->getEquipment(slot);
+}
+
+/// 装备槽写入适配
+void _setEquipmentOf(Entity& entity, EquipmentSlot slot, const ItemStack& stack)
+{
+    if (auto* living = dynamic_cast<LivingEntity*>(&entity)) {
+        living->setEquipment(slot, stack);
+        return;
+    }
+    auto* armorStand = dynamic_cast<ArmorStandEntity*>(&entity);
+    MC_ASSERT_RELEASE(armorStand != nullptr);
+    armorStand->setEquipment(slot, stack);
+}
+
+} // namespace
 
 static void saveEquipment(const Entity& entity, nbt::tags::compound_tag& tag)
 {
-    auto* living = dynamic_cast<const LivingEntity*>(&entity);
-    if (living == nullptr) {
-        return;
-    }
     // MC 1.21.11 新格式：使用 "equipment" 复合标签，键名为 EquipmentSlot 序列化名，
     // 空槽位不写入（与 MC 原版 EntityEquipment.CODEC 一致）。
     nbt::tags::compound_tag equipmentTag;
     for (u8 i = 0; i < static_cast<u8>(EquipmentSlot::Count); ++i) {
         auto slot = static_cast<EquipmentSlot>(i);
-        const ItemStack& stack = living->getEquipment(slot);
+        const ItemStack& stack = _equipmentOf(entity, slot);
         if (!stack.isEmpty()) {
             nbt::tags::compound_tag itemTag;
             stack.toNbt(itemTag);
@@ -137,10 +163,6 @@ static void saveEquipment(const Entity& entity, nbt::tags::compound_tag& tag)
 
 static Result<void> loadEquipment(Entity& entity, const nbt::tags::compound_tag& tag)
 {
-    auto* living = dynamic_cast<LivingEntity*>(&entity);
-    if (living == nullptr) {
-        return {};
-    }
     // MC 1.21.11 格式：从 equipment 复合标签读取，键名为 EquipmentSlot 序列化名，
     // 空槽位在标签中不存在（与 MC 原版 EntityEquipment.CODEC 一致）。
     if (auto* equipmentTag = nbt_helper::tryGetCompound(tag, nbt_keys::EQUIPMENT)) {
@@ -150,7 +172,7 @@ static Result<void> loadEquipment(Entity& entity, const nbt::tags::compound_tag&
             if (auto* itemCompound = nbt_helper::tryGetCompound(*equipmentTag, name)) {
                 auto stackResult = ItemStack::fromNbt(*itemCompound);
                 if (stackResult.success()) {
-                    living->setEquipment(slot, stackResult.value());
+                    _setEquipmentOf(entity, slot, stackResult.value());
                 }
             }
         }
@@ -166,7 +188,23 @@ void registerLivingEntityComponentSerializers(ComponentSerializerRegistry& regis
 {
     registry.registerSerializer<ecs::HealthComponent>(saveHealth, loadHealth);
     registry.registerSerializer<ecs::HurtStateComponent>(saveHurtState, loadHurtState);
-    registry.registerSerializer<ecs::EquipmentComponent>(saveEquipment, loadEquipment);
+
+    // EquipmentComponent 同时挂在 LivingEntity（构造期）与 ArmorStandEntity（不继承 LivingEntity，
+    // 构造期自行挂载）上。序列化器以 Entity& 调用，按实体类型分派到对应实现：
+    // LivingEntity 走通用装备读写，盔甲架走其自有槽位存储。
+    auto saveEquipmentForEntity = [](const Entity& entity, nbt::tags::compound_tag& tag) {
+        if (dynamic_cast<const LivingEntity*>(&entity) != nullptr ||
+            dynamic_cast<const ArmorStandEntity*>(&entity) != nullptr) {
+            saveEquipment(entity, tag);
+        }
+    };
+    auto loadEquipmentForEntity = [](Entity& entity, const nbt::tags::compound_tag& tag) -> Result<void> {
+        if (dynamic_cast<LivingEntity*>(&entity) == nullptr && dynamic_cast<ArmorStandEntity*>(&entity) == nullptr) {
+            return {};
+        }
+        return loadEquipment(entity, tag);
+    };
+    registry.registerSerializer<ecs::EquipmentComponent>(saveEquipmentForEntity, loadEquipmentForEntity);
 }
 
 } // namespace mc::entity::serialization::components

@@ -128,6 +128,22 @@ public:
 
     [[nodiscard]] std::unique_ptr<BlockEntity> createBlockEntity(const BlockPos& pos) override;
 
+    // ========== 编辑 ==========
+
+    /**
+     * @brief 命令方块被编辑后刷新（对齐 vanilla CommandBlock.onUpdated）
+     *
+     * 换模式后重新设定自动执行标志并启动执行链：循环模式（或已开启自动执行）重新调度方块刻，
+     * 其余模式刷新条件状态。须在改块状态写入（换方块类型）之后调用。
+     *
+     * @param world 世界引用
+     * @param pos 方块位置
+     * @param state 当前方块状态
+     * @param entity 命令方块实体
+     */
+    void onUpdated(
+        IWorld& world, const BlockPos& pos, const BlockState& state, blockentity::CommandBlockEntity& entity);
+
 protected:
     /**
      * @brief 执行命令

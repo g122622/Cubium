@@ -30,6 +30,8 @@
 #include "common/core/Types.hpp"
 #include <filesystem>
 #include <memory>
+#include <optional>
+#include <span>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -41,6 +43,9 @@
 #include <rocksdb/write_batch.h>
 
 namespace mc::world::storage {
+
+/// 读取句柄在解码完成后释放；不可跨越数据库关闭。
+using PinnedValues = std::vector<std::optional<rocksdb::PinnableSlice>>;
 
 /**
  * @brief RocksDB数据库封装
@@ -186,8 +191,7 @@ public:
      * @param keys 键列表
      * @return 与输入顺序一致的读取结果列表
      */
-    Result<std::vector<Result<std::vector<u8>>>> multiGet(
-        const std::string& cfName, const std::vector<std::vector<u8>>& keys);
+    Result<PinnedValues> multiGetPinned(const std::string& cfName, std::span<const rocksdb::Slice> keys);
 
     // ========================================================================
     // 范围操作

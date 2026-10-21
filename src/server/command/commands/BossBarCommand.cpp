@@ -29,6 +29,7 @@
 #include "common/command/arguments/ArgumentType.hpp"
 #include "common/command/arguments/EntityArgument.hpp"
 #include "common/core/Types.hpp"
+#include "common/resource/LanguageManager.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/text/StringTextComponent.hpp"
 #include "server/application/IServer.hpp"
@@ -42,14 +43,60 @@
 #include "server/player/ServerPlayer.hpp"
 #include "server/world/ServerWorld.hpp"
 #include "server/world/player/ServerPlayerEntityManager.hpp"
+#include <algorithm>
 #include <memory>
-#include <sstream>
 #include <string>
 #include <utility>
 #include <vector>
 
 namespace mc {
 namespace command {
+
+namespace {
+
+/// 语言文件加载器（反馈文本复用原版 commands.bossbar.* 键）
+const LanguageManager& _lang()
+{
+    return LanguageManager::instance();
+}
+
+/**
+ * @brief 查找 Boss 栏；不存在时向命令源发送未知 ID 错误
+ */
+server::CustomServerBossInfo* _findBossBar(ServerCommandSource& source, const std::string& idStr)
+{
+    ResourceLocation id(idStr);
+    auto* bossInfo = source.server()->bossBarManager().get(id);
+    if (bossInfo == nullptr) {
+        source.sendError(_lang().get("commands.bossbar.unknown", {idStr}));
+    }
+    return bossInfo;
+}
+
+/**
+ * @brief Boss 栏的显示名（带方括号格式，与原版 CustomBossEvent.getDisplayName 一致）
+ */
+std::string _displayName(const server::CustomServerBossInfo& bossInfo)
+{
+    return "[" + bossInfo.formattedName()->getFormattedText() + "]";
+}
+
+/**
+ * @brief 解析玩家名列表文本，形如 "a, b, c"
+ */
+std::string _joinPlayerNames(const std::vector<std::string>& names)
+{
+    std::string joined;
+    for (size_t i = 0; i < names.size(); ++i) {
+        if (i != 0) {
+            joined += ", ";
+        }
+        joined += names[i];
+    }
+    return joined;
+}
+
+} // namespace
 
 void BossBarCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
 {
@@ -61,13 +108,13 @@ void BossBarCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatch
 
     // /bossbar add <id> <name>
     auto addNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("add");
-    auto idArg =
+    auto addIdArg =
         std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>("id", StringArgumentType::string());
-    auto nameArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
-        "name", StringArgumentType::greedyString());
-    nameArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _addBossBar(ctx); });
-    idArg->addChild(nameArg);
-    addNode->addChild(idArg);
+    auto addNameArg =
+        std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>("name", StringArgumentType::string());
+    addNameArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _addBossBar(ctx); });
+    addIdArg->addChild(addNameArg);
+    addNode->addChild(addIdArg);
     bossbarNode->addChild(addNode);
 
     // /bossbar remove <id>
@@ -83,70 +130,68 @@ void BossBarCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatch
     listNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _listBossBars(ctx); });
     bossbarNode->addChild(listNode);
 
-    // /bossbar set <id> <property> <value>
+    // /bossbar set <id> <property> ...
     auto setNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("set");
     auto setIdArg =
         std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>("id", StringArgumentType::string());
 
-    // set name
-    auto nameNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("name");
-    auto nameValueArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
-        "name", StringArgumentType::greedyString());
-    nameValueArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _setName(ctx); });
-    nameNode->addChild(nameValueArg);
-    setIdArg->addChild(nameNode);
+    // /bossbar set <id> name <name>
+    auto setNameNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("name");
+    auto setNameArg =
+        std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>("name", StringArgumentType::string());
+    setNameArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _setName(ctx); });
+    setNameNode->addChild(setNameArg);
+    setIdArg->addChild(setNameNode);
 
-    // set color
-    auto colorNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("color");
-    for (const auto& colorName : {"pink", "blue", "red", "green", "yellow", "purple", "white"}) {
-        auto colorValueNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>(colorName);
-        colorValueNode->setCommand(
-            [colorName](CommandContext<ServerCommandSource>& ctx) { return _setColor(ctx, std::string(colorName)); });
-        colorNode->addChild(colorValueNode);
-    }
-    setIdArg->addChild(colorNode);
+    // /bossbar set <id> color <color>
+    auto setColorNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("color");
+    auto setColorArg =
+        std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>("color", StringArgumentType::string());
+    setColorArg->setCommand(
+        [](CommandContext<ServerCommandSource>& ctx) { return _setColor(ctx, ctx.getArgument<std::string>("color")); });
+    setColorNode->addChild(setColorArg);
+    setIdArg->addChild(setColorNode);
 
-    // set style (overlay)
-    auto styleNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("style");
-    for (const auto& styleName : {"progress", "notched_6", "notched_10", "notched_12", "notched_20"}) {
-        auto styleValueNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>(styleName);
-        styleValueNode->setCommand(
-            [styleName](CommandContext<ServerCommandSource>& ctx) { return _setStyle(ctx, std::string(styleName)); });
-        styleNode->addChild(styleValueNode);
-    }
-    setIdArg->addChild(styleNode);
+    // /bossbar set <id> style <style>
+    auto setStyleNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("style");
+    auto setStyleArg =
+        std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>("style", StringArgumentType::string());
+    setStyleArg->setCommand(
+        [](CommandContext<ServerCommandSource>& ctx) { return _setStyle(ctx, ctx.getArgument<std::string>("style")); });
+    setStyleNode->addChild(setStyleArg);
+    setIdArg->addChild(setStyleNode);
 
-    // set value
-    auto valueNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("value");
-    auto valueArg =
+    // /bossbar set <id> value <value>
+    auto setValueNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("value");
+    auto setValueArg =
         std::make_shared<ArgumentCommandNode<ServerCommandSource, i32>>("value", IntegerArgumentType::integer(0));
-    valueArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _setValue(ctx); });
-    valueNode->addChild(valueArg);
-    setIdArg->addChild(valueNode);
+    setValueArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _setValue(ctx); });
+    setValueNode->addChild(setValueArg);
+    setIdArg->addChild(setValueNode);
 
-    // set max
-    auto maxNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("max");
-    auto maxArg =
+    // /bossbar set <id> max <max>
+    auto setMaxNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("max");
+    auto setMaxArg =
         std::make_shared<ArgumentCommandNode<ServerCommandSource, i32>>("max", IntegerArgumentType::integer(1));
-    maxArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _setMax(ctx); });
-    maxNode->addChild(maxArg);
-    setIdArg->addChild(maxNode);
+    setMaxArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _setMax(ctx); });
+    setMaxNode->addChild(setMaxArg);
+    setIdArg->addChild(setMaxNode);
 
-    // set visible
-    auto visibleNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("visible");
-    auto visibleArg =
+    // /bossbar set <id> visible <visible>
+    auto setVisibleNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("visible");
+    auto setVisibleArg =
         std::make_shared<ArgumentCommandNode<ServerCommandSource, bool>>("visible", BoolArgumentType::boolArg());
-    visibleArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _setVisible(ctx); });
-    visibleNode->addChild(visibleArg);
-    setIdArg->addChild(visibleNode);
+    setVisibleArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _setVisible(ctx); });
+    setVisibleNode->addChild(setVisibleArg);
+    setIdArg->addChild(setVisibleNode);
 
-    // set players
-    auto playersNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("players");
-    auto playersArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, EntitySelector>>(
+    // /bossbar set <id> players <targets>
+    auto setPlayersNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("players");
+    auto setPlayersArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, EntitySelector>>(
         "targets", EntityArgumentType::players());
-    playersArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _setPlayers(ctx); });
-    playersNode->addChild(playersArg);
-    setIdArg->addChild(playersNode);
+    setPlayersArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _setPlayers(ctx); });
+    setPlayersNode->addChild(setPlayersArg);
+    setIdArg->addChild(setPlayersNode);
 
     setNode->addChild(setIdArg);
     bossbarNode->addChild(setNode);
@@ -185,29 +230,23 @@ i32 BossBarCommand::_addBossBar(CommandContext<ServerCommandSource>& context)
     const std::string nameStr = context.getArgument<std::string>("name");
 
     ResourceLocation id(idStr);
-    auto name = std::make_unique<text::StringTextComponent>(nameStr);
-
     auto& manager = source.server()->bossBarManager();
 
-    // 检查是否已存在
+    // vanilla：ID 已存在时抛 create.failed（不覆盖既有 Boss 栏）。
     if (manager.get(id) != nullptr) {
-        source.sendError("Boss bar with ID '" + idStr + "' already exists");
+        source.sendError(_lang().get("commands.bossbar.create.failed", {idStr}));
         return 0;
     }
 
-    // 创建新的 Boss 栏
+    auto name = std::make_unique<text::StringTextComponent>(nameStr);
     auto bossInfo = manager.create(id, std::move(name));
     if (bossInfo == nullptr) {
-        source.sendError("Failed to create boss bar '" + idStr + "'");
+        source.sendError(_lang().get("commands.bossbar.create.failed", {idStr}));
         return 0;
     }
 
     manager.add(std::move(bossInfo));
-
-    std::ostringstream ss;
-    ss << "Created custom bossbar [" << idStr << "]";
-    source.sendMessage(ss.str());
-
+    source.sendMessage(_lang().get("commands.bossbar.create.success", {_displayName(*manager.get(id))}));
     return static_cast<i32>(manager.size());
 }
 
@@ -216,18 +255,16 @@ i32 BossBarCommand::_removeBossBar(CommandContext<ServerCommandSource>& context)
     auto& source = context.getSource();
     const std::string idStr = context.getArgument<std::string>("id");
 
-    ResourceLocation id(idStr);
-    auto& manager = source.server()->bossBarManager();
-
-    auto* bossInfo = manager.get(id);
+    auto* bossInfo = _findBossBar(source, idStr);
     if (bossInfo == nullptr) {
-        source.sendError("Unknown boss bar: " + idStr);
         return 0;
     }
 
+    const std::string displayName = _displayName(*bossInfo);
+    auto& manager = source.server()->bossBarManager();
     manager.remove(*bossInfo);
 
-    source.sendMessage("Removed boss bar '" + idStr + "'");
+    source.sendMessage(_lang().get("commands.bossbar.remove.success", {displayName}));
     return static_cast<i32>(manager.size());
 }
 
@@ -236,30 +273,23 @@ i32 BossBarCommand::_listBossBars(CommandContext<ServerCommandSource>& context)
     auto& source = context.getSource();
     auto& manager = source.server()->bossBarManager();
 
-    auto ids = manager.getIds();
+    const auto ids = manager.getIds();
     if (ids.empty()) {
-        source.sendMessage("There are no custom bossbars");
+        source.sendMessage(_lang().get("commands.bossbar.list.bars.none"));
         return 0;
     }
 
-    std::ostringstream ss;
-    ss << "There are " << ids.size() << " custom bossbar" << (ids.size() == 1 ? "" : "s") << ": ";
-
-    bool first = true;
+    std::vector<std::string> names;
+    names.reserve(ids.size());
     for (const auto& id : ids) {
-        if (!first) {
-            ss << ", ";
-        }
-        auto* bossInfo = manager.get(id);
+        const auto* bossInfo = manager.get(id);
         if (bossInfo != nullptr) {
-            ss << bossInfo->formattedName()->getFormattedText();
-        } else {
-            ss << "[" << id.toString() << "]";
+            names.push_back(_displayName(*bossInfo));
         }
-        first = false;
     }
 
-    source.sendMessage(ss.str());
+    source.sendMessage(
+        _lang().get("commands.bossbar.list.bars.some", {std::to_string(ids.size()), _joinPlayerNames(names)}));
     return static_cast<i32>(ids.size());
 }
 
@@ -269,19 +299,21 @@ i32 BossBarCommand::_setName(CommandContext<ServerCommandSource>& context)
     const std::string idStr = context.getArgument<std::string>("id");
     const std::string nameStr = context.getArgument<std::string>("name");
 
-    ResourceLocation id(idStr);
-    auto& manager = source.server()->bossBarManager();
-
-    auto* bossInfo = manager.get(id);
+    auto* bossInfo = _findBossBar(source, idStr);
     if (bossInfo == nullptr) {
-        source.sendError("Unknown boss bar: " + idStr);
         return 0;
     }
 
+    // vanilla：名称未变化时抛 set.name.unchanged。
     auto newName = std::make_unique<text::StringTextComponent>(nameStr);
-    bossInfo->setName(std::move(newName));
+    if (bossInfo->name().getFormattedText() == newName->getFormattedText()) {
+        source.sendError(_lang().get("commands.bossbar.set.name.unchanged"));
+        return 0;
+    }
 
-    source.sendMessage("Changed name of boss bar '" + idStr + "'");
+    const std::string displayName = _displayName(*bossInfo);
+    bossInfo->setName(std::move(newName));
+    source.sendMessage(_lang().get("commands.bossbar.set.name.success", {displayName}));
     return 0;
 }
 
@@ -290,19 +322,22 @@ i32 BossBarCommand::_setColor(CommandContext<ServerCommandSource>& context, cons
     auto& source = context.getSource();
     const std::string idStr = context.getArgument<std::string>("id");
 
-    ResourceLocation id(idStr);
-    auto& manager = source.server()->bossBarManager();
-
-    auto* bossInfo = manager.get(id);
+    auto* bossInfo = _findBossBar(source, idStr);
     if (bossInfo == nullptr) {
-        source.sendError("Unknown boss bar: " + idStr);
         return 0;
     }
 
-    server::BossInfoColor color = server::bossInfoColorFromName(colorStr);
-    bossInfo->setColor(color);
+    // 颜色名在命令树层已由 StringArgumentType 解析；未知名称回退为 White，
+    // 若与当前颜色相同则按原版语义报告 unchanged。
+    const server::BossInfoColor color = server::bossInfoColorFromName(colorStr);
+    if (bossInfo->color() == color) {
+        source.sendError(_lang().get("commands.bossbar.set.color.unchanged"));
+        return 0;
+    }
 
-    source.sendMessage("Changed color of boss bar '" + idStr + "'");
+    const std::string displayName = _displayName(*bossInfo);
+    bossInfo->setColor(color);
+    source.sendMessage(_lang().get("commands.bossbar.set.color.success", {displayName}));
     return 0;
 }
 
@@ -311,19 +346,20 @@ i32 BossBarCommand::_setStyle(CommandContext<ServerCommandSource>& context, cons
     auto& source = context.getSource();
     const std::string idStr = context.getArgument<std::string>("id");
 
-    ResourceLocation id(idStr);
-    auto& manager = source.server()->bossBarManager();
-
-    auto* bossInfo = manager.get(id);
+    auto* bossInfo = _findBossBar(source, idStr);
     if (bossInfo == nullptr) {
-        source.sendError("Unknown boss bar: " + idStr);
         return 0;
     }
 
-    server::BossInfoOverlay overlay = server::bossInfoOverlayFromName(styleStr);
-    bossInfo->setOverlay(overlay);
+    const server::BossInfoOverlay overlay = server::bossInfoOverlayFromName(styleStr);
+    if (bossInfo->overlay() == overlay) {
+        source.sendError(_lang().get("commands.bossbar.set.style.unchanged"));
+        return 0;
+    }
 
-    source.sendMessage("Changed style of boss bar '" + idStr + "'");
+    const std::string displayName = _displayName(*bossInfo);
+    bossInfo->setOverlay(overlay);
+    source.sendMessage(_lang().get("commands.bossbar.set.style.success", {displayName}));
     return 0;
 }
 
@@ -333,20 +369,19 @@ i32 BossBarCommand::_setValue(CommandContext<ServerCommandSource>& context)
     const std::string idStr = context.getArgument<std::string>("id");
     const i32 value = context.getArgument<i32>("value");
 
-    ResourceLocation id(idStr);
-    auto& manager = source.server()->bossBarManager();
-
-    auto* bossInfo = manager.get(id);
+    auto* bossInfo = _findBossBar(source, idStr);
     if (bossInfo == nullptr) {
-        source.sendError("Unknown boss bar: " + idStr);
         return 0;
     }
 
-    bossInfo->setValue(value);
+    if (bossInfo->value() == value) {
+        source.sendError(_lang().get("commands.bossbar.set.value.unchanged"));
+        return 0;
+    }
 
-    std::ostringstream ss;
-    ss << "Set value of boss bar '" << idStr << "' to " << value;
-    source.sendMessage(ss.str());
+    const std::string displayName = _displayName(*bossInfo);
+    bossInfo->setValue(value);
+    source.sendMessage(_lang().get("commands.bossbar.set.value.success", {displayName, std::to_string(value)}));
     return value;
 }
 
@@ -356,20 +391,19 @@ i32 BossBarCommand::_setMax(CommandContext<ServerCommandSource>& context)
     const std::string idStr = context.getArgument<std::string>("id");
     const i32 max = context.getArgument<i32>("max");
 
-    ResourceLocation id(idStr);
-    auto& manager = source.server()->bossBarManager();
-
-    auto* bossInfo = manager.get(id);
+    auto* bossInfo = _findBossBar(source, idStr);
     if (bossInfo == nullptr) {
-        source.sendError("Unknown boss bar: " + idStr);
         return 0;
     }
 
-    bossInfo->setMax(max);
+    if (bossInfo->max() == max) {
+        source.sendError(_lang().get("commands.bossbar.set.max.unchanged"));
+        return 0;
+    }
 
-    std::ostringstream ss;
-    ss << "Set max of boss bar '" << idStr << "' to " << max;
-    source.sendMessage(ss.str());
+    const std::string displayName = _displayName(*bossInfo);
+    bossInfo->setMax(max);
+    source.sendMessage(_lang().get("commands.bossbar.set.max.success", {displayName, std::to_string(max)}));
     return max;
 }
 
@@ -379,20 +413,22 @@ i32 BossBarCommand::_setVisible(CommandContext<ServerCommandSource>& context)
     const std::string idStr = context.getArgument<std::string>("id");
     const bool visible = context.getArgument<bool>("visible");
 
-    ResourceLocation id(idStr);
-    auto& manager = source.server()->bossBarManager();
-
-    auto* bossInfo = manager.get(id);
+    auto* bossInfo = _findBossBar(source, idStr);
     if (bossInfo == nullptr) {
-        source.sendError("Unknown boss bar: " + idStr);
         return 0;
     }
 
-    bossInfo->setVisible(visible);
+    if (bossInfo->visible() == visible) {
+        source.sendError(_lang().get(visible ? "commands.bossbar.set.visibility.unchanged.visible"
+                                             : "commands.bossbar.set.visibility.unchanged.hidden"));
+        return 0;
+    }
 
-    std::ostringstream ss;
-    ss << "Set visibility of boss bar '" << idStr << "' to " << (visible ? "visible" : "hidden");
-    source.sendMessage(ss.str());
+    const std::string displayName = _displayName(*bossInfo);
+    bossInfo->setVisible(visible);
+    source.sendMessage(_lang().get(
+        visible ? "commands.bossbar.set.visible.success.visible" : "commands.bossbar.set.visible.success.hidden",
+        {displayName}));
     return 0;
 }
 
@@ -402,50 +438,40 @@ i32 BossBarCommand::_setPlayers(CommandContext<ServerCommandSource>& context)
     const std::string idStr = context.getArgument<std::string>("id");
     const EntitySelector& selector = context.getArgument<EntitySelector>("targets");
 
-    ResourceLocation id(idStr);
-    auto& manager = source.server()->bossBarManager();
-
-    auto* bossInfo = manager.get(id);
+    auto* bossInfo = _findBossBar(source, idStr);
     if (bossInfo == nullptr) {
-        source.sendError("Unknown boss bar: " + idStr);
         return 0;
     }
 
-    auto playerIds = support::resolvePlayerIds(source, selector);
-    if (playerIds.empty()) {
-        // 清空玩家列表
-        bossInfo->removeAllPlayers();
-        source.sendMessage("Removed all players from boss bar '" + idStr + "'");
-        return 0;
-    }
-
-    // 获取玩家实体列表
+    // 解析目标选择器到在线玩家实体（旁观者不参与 Boss 栏可见列表，与 vanilla 一致）。
     std::vector<ServerPlayer*> players;
-    for (PlayerId playerId : playerIds) {
+    std::vector<std::string> names;
+    for (PlayerId playerId : support::resolvePlayerIds(source, selector)) {
         Player* player = source.server()->playerEntityManager().getPlayerEntity(playerId, *source.world());
-        if (player != nullptr) {
-            ServerPlayer* serverPlayer = player->asServerPlayer();
-            if (serverPlayer != nullptr) {
-                players.push_back(serverPlayer);
-            }
+        if (player == nullptr) {
+            continue;
         }
+        ServerPlayer* serverPlayer = player->asServerPlayer();
+        if (serverPlayer == nullptr || serverPlayer->isSpectator()) {
+            continue;
+        }
+        players.push_back(serverPlayer);
+        const server::ServerPlayerData* data = source.server()->playerManager().getPlayer(playerId);
+        names.push_back(data != nullptr ? data->username : std::string());
     }
 
-    bool changed = bossInfo->setPlayers(players);
-
-    if (!changed) {
-        source.sendError("Players unchanged for boss bar '" + idStr + "'");
+    const std::string displayName = _displayName(*bossInfo);
+    if (!bossInfo->setPlayers(players)) {
+        source.sendError(_lang().get("commands.bossbar.set.players.unchanged"));
         return 0;
     }
 
-    std::ostringstream ss;
     if (players.empty()) {
-        ss << "Removed all players from boss bar '" << idStr << "'";
+        source.sendMessage(_lang().get("commands.bossbar.set.players.success.none", {displayName}));
     } else {
-        ss << "Set players of boss bar '" << idStr << "' to " << players.size() << " player"
-           << (players.size() == 1 ? "" : "s");
+        source.sendMessage(_lang().get("commands.bossbar.set.players.success.some",
+            {displayName, std::to_string(players.size()), _joinPlayerNames(names)}));
     }
-    source.sendMessage(ss.str());
     return static_cast<i32>(players.size());
 }
 
@@ -454,18 +480,13 @@ i32 BossBarCommand::_getValue(CommandContext<ServerCommandSource>& context)
     auto& source = context.getSource();
     const std::string idStr = context.getArgument<std::string>("id");
 
-    ResourceLocation id(idStr);
-    auto& manager = source.server()->bossBarManager();
-
-    auto* bossInfo = manager.get(id);
+    auto* bossInfo = _findBossBar(source, idStr);
     if (bossInfo == nullptr) {
-        source.sendError("Unknown boss bar: " + idStr);
         return 0;
     }
 
-    std::ostringstream ss;
-    ss << bossInfo->formattedName()->getFormattedText() << " has value " << bossInfo->value();
-    source.sendMessage(ss.str());
+    source.sendMessage(
+        _lang().get("commands.bossbar.get.value", {_displayName(*bossInfo), std::to_string(bossInfo->value())}));
     return bossInfo->value();
 }
 
@@ -474,18 +495,13 @@ i32 BossBarCommand::_getMax(CommandContext<ServerCommandSource>& context)
     auto& source = context.getSource();
     const std::string idStr = context.getArgument<std::string>("id");
 
-    ResourceLocation id(idStr);
-    auto& manager = source.server()->bossBarManager();
-
-    auto* bossInfo = manager.get(id);
+    auto* bossInfo = _findBossBar(source, idStr);
     if (bossInfo == nullptr) {
-        source.sendError("Unknown boss bar: " + idStr);
         return 0;
     }
 
-    std::ostringstream ss;
-    ss << bossInfo->formattedName()->getFormattedText() << " has max " << bossInfo->max();
-    source.sendMessage(ss.str());
+    source.sendMessage(
+        _lang().get("commands.bossbar.get.max", {_displayName(*bossInfo), std::to_string(bossInfo->max())}));
     return bossInfo->max();
 }
 
@@ -494,23 +510,16 @@ i32 BossBarCommand::_getVisible(CommandContext<ServerCommandSource>& context)
     auto& source = context.getSource();
     const std::string idStr = context.getArgument<std::string>("id");
 
-    ResourceLocation id(idStr);
-    auto& manager = source.server()->bossBarManager();
-
-    auto* bossInfo = manager.get(id);
+    auto* bossInfo = _findBossBar(source, idStr);
     if (bossInfo == nullptr) {
-        source.sendError("Unknown boss bar: " + idStr);
         return 0;
     }
 
-    std::ostringstream ss;
-    if (bossInfo->visible()) {
-        ss << bossInfo->formattedName()->getFormattedText() << " is currently visible";
-    } else {
-        ss << bossInfo->formattedName()->getFormattedText() << " is currently hidden";
-    }
-    source.sendMessage(ss.str());
-    return bossInfo->visible() ? 1 : 0;
+    const bool visible = bossInfo->visible();
+    source.sendMessage(
+        _lang().get(visible ? "commands.bossbar.get.visible.visible" : "commands.bossbar.get.visible.hidden",
+            {_displayName(*bossInfo)}));
+    return visible ? 1 : 0;
 }
 
 i32 BossBarCommand::_getPlayers(CommandContext<ServerCommandSource>& context)
@@ -518,41 +527,30 @@ i32 BossBarCommand::_getPlayers(CommandContext<ServerCommandSource>& context)
     auto& source = context.getSource();
     const std::string idStr = context.getArgument<std::string>("id");
 
-    ResourceLocation id(idStr);
-    auto& manager = source.server()->bossBarManager();
-
-    auto* bossInfo = manager.get(id);
+    auto* bossInfo = _findBossBar(source, idStr);
     if (bossInfo == nullptr) {
-        source.sendError("Unknown boss bar: " + idStr);
         return 0;
     }
 
-    auto& players = bossInfo->players();
-    if (players.empty()) {
-        std::ostringstream ss;
-        ss << "No players are currently tracking boss bar '" << idStr << "'";
-        source.sendMessage(ss.str());
+    const std::string displayName = _displayName(*bossInfo);
+    const auto& playerIds = bossInfo->players();
+    if (playerIds.empty()) {
+        source.sendMessage(_lang().get("commands.bossbar.get.players.none", {displayName}));
         return 0;
     }
 
-    std::ostringstream ss;
-    ss << bossInfo->formattedName()->getFormattedText() << " has " << players.size() << " player"
-       << (players.size() == 1 ? "" : "s") << ": ";
-
-    bool first = true;
-    for (PlayerId playerId : players) {
-        if (!first) {
-            ss << ", ";
+    std::vector<std::string> names;
+    names.reserve(playerIds.size());
+    for (PlayerId playerId : playerIds) {
+        const server::ServerPlayerData* data = source.server()->playerManager().getPlayer(playerId);
+        if (data != nullptr) {
+            names.push_back(data->username);
         }
-        auto* playerData = source.server()->playerManager().getPlayer(playerId);
-        if (playerData != nullptr) {
-            ss << playerData->username;
-        }
-        first = false;
     }
 
-    source.sendMessage(ss.str());
-    return static_cast<i32>(players.size());
+    source.sendMessage(_lang().get(
+        "commands.bossbar.get.players.some", {displayName, std::to_string(playerIds.size()), _joinPlayerNames(names)}));
+    return static_cast<i32>(playerIds.size());
 }
 
 } // namespace command

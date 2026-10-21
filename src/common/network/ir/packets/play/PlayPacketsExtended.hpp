@@ -1475,6 +1475,23 @@ struct RenameItem {
     [[nodiscard]] friend bool operator==(const RenameItem&, const RenameItem&) noexcept = default;
 };
 
+/**
+ * @brief 命令方块编辑结果上报（C→S，id=53）
+ *
+ * 对齐 vanilla 1.21.11 ServerboundSetCommandBlockPacket：blockPosPacked + command（String）+
+ * mode（VarInt 枚举：0=Sequence / 1=Auto / 2=Redstone）+ 标志字节
+ * （bit0 TrackOutput / bit1 Conditional / bit2 Automatic）。
+ */
+struct SetCommandBlock {
+    i64 blockPosPacked;
+    std::string command;
+    i32 mode;
+    bool trackOutput;
+    bool conditional;
+    bool automatic;
+    [[nodiscard]] friend bool operator==(const SetCommandBlock&, const SetCommandBlock&) noexcept = default;
+};
+
 /** @brief 选择商人报价（C→S，id=50）。 */
 struct SelectTrade {
     i32 index;
