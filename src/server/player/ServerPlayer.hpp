@@ -37,6 +37,7 @@
 #include "common/util/text/ITextComponentFwd.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/block/BlockState.hpp"
+#include "common/world/blockentity/BlockEntityType.hpp"
 #include "server/network/base/ServerClientConnection.hpp"
 #include "server/stats/StatisticsManager.hpp"
 #include <algorithm>
@@ -123,6 +124,12 @@ public:
      * 客户端据其 name/target/pool 等字段打开编辑界面（无独立 GUI 包）。
      */
     void openJigsawBlock(const BlockPos& pos) override;
+
+    /// 打开测试方块编辑界面（重写 Player 基类，下发测试方块实体数据）
+    void openTestBlock(const BlockPos& pos) override;
+
+    /// 打开测试实例方块编辑界面（重写 Player 基类，下发测试实例方块实体数据）
+    void openTestInstanceBlock(const BlockPos& pos) override;
 
     /**
      * @brief 校验玩家是否仍可编辑给定位置的命令方块（对齐 vanilla CommandBlockEntity.isValidPlayerEditor）
@@ -747,6 +754,18 @@ public:
     [[nodiscard]] Vector3d findSharedSpawnPosition();
 
 private:
+    /**
+     * @brief 方块实体编辑界面数据下发
+     *
+     * 管理员方块（结构方块/拼图方块/测试方块/测试实例方块）的编辑界面没有独立 GUI 包：
+     * 服务端只下发方块实体更新 NBT，客户端据 BlockEntityType 自行打开编辑界面。
+     *
+     * @param pos 方块位置
+     * @param expectedType 期望的方块实体类型（不匹配时仅记录告警）
+     * @param kind 日志用类型名
+     */
+    void _sendBlockEntityEditorData(const BlockPos& pos, BlockEntityType expectedType, const char* kind);
+
     /**
      * @brief 在指定世界的共享出生点附近搜索落点（findSharedSpawnPosition 的实现体）
      */

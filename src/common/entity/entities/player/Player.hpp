@@ -1778,6 +1778,27 @@ public:
     virtual void openJigsawBlock(const BlockPos& pos) { MC_UNUSED(pos); }
 
     /**
+     * @brief 打开测试方块编辑界面
+     *
+     * 对齐 vanilla Player.openTestBlock：把测试方块实体的更新 NBT（模式、消息、充能状态）
+     * 下发给客户端以打开编辑界面。基类默认空实现，ServerPlayer 重写以发送 BlockEntityData 包。
+     *
+     * @param pos 测试方块位置
+     */
+    virtual void openTestBlock(const BlockPos& pos) { MC_UNUSED(pos); }
+
+    /**
+     * @brief 打开测试实例方块编辑界面
+     *
+     * 对齐 vanilla Player.openTestInstanceBlock：把测试实例方块实体的更新 NBT（测试标识、
+     * 结构尺寸、旋转、状态、错误标记）下发给客户端以打开编辑界面。基类默认空实现，
+     * ServerPlayer 重写以发送 BlockEntityData 包。
+     *
+     * @param pos 测试实例方块位置
+     */
+    virtual void openTestInstanceBlock(const BlockPos& pos) { MC_UNUSED(pos); }
+
+    /**
      * @brief 当前正在编辑的命令方块位置（对齐 vanilla ServerPlayer.commandBlock 字段）
      *
      * 玩家打开命令方块界面时记录位置，服务端收到 set_command_block 时校验一致性，

@@ -317,6 +317,41 @@ void ServerPlayer::openStructureBlock(const BlockPos& pos)
     }
 }
 
+void ServerPlayer::_sendBlockEntityEditorData(const BlockPos& pos, BlockEntityType expectedType, const char* kind)
+{
+    // 对齐 vanilla ServerPlayer.openXxxBlock 的统一形态：管理员方块界面没有独立 GUI 包，
+    // 服务端只下发方块实体的更新 NBT，客户端据 BlockEntityType 自行打开编辑界面。
+    IWorld* worldPtr = world();
+    if (worldPtr == nullptr) {
+        return;
+    }
+    const BlockEntity* entity = worldPtr->getBlockEntity(pos);
+    if (entity == nullptr || entity->getType() != expectedType) {
+        spdlog::warn(
+            "ServerPlayer: no {} block entity at ({}, {}, {}) (player={})", kind, pos.x, pos.y, pos.z, username());
+        return;
+    }
+    auto tag = std::make_shared<nbt::CompoundTag>(entity->getUpdateTag());
+    mc::network::ir::play::BlockEntityData bePkt;
+    bePkt.blockPosPacked = pos.asLong();
+    bePkt.blockEntityType = static_cast<i32>(entity->getType());
+    bePkt.tag = std::move(tag);
+    if (!_sendIrPacket(mc::network::ir::IrPacket{
+            mc::network::protocol::ConnectionProtocol::Play, mc::network::ir::PlayPacket{std::move(bePkt)}})) {
+        spdlog::warn("ServerPlayer: {} block data packet not sent (player={}, no connection)", kind, username());
+    }
+}
+
+void ServerPlayer::openTestBlock(const BlockPos& pos)
+{
+    _sendBlockEntityEditorData(pos, BlockEntityType::TestBlock, "test");
+}
+
+void ServerPlayer::openTestInstanceBlock(const BlockPos& pos)
+{
+    _sendBlockEntityEditorData(pos, BlockEntityType::TestInstanceBlock, "test instance");
+}
+
 void ServerPlayer::openJigsawBlock(const BlockPos& pos)
 {
     // 对齐 vanilla Player.openJigsawBlock：下发拼图方块实体的 BlockEntityData，

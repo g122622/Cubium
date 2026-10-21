@@ -54,18 +54,13 @@ BlockActionResult TestInstanceBlock::useWithoutItem(
     MC_UNUSED(state);
     MC_UNUSED(hit);
 
-    if (world.getBlockEntity(pos) == nullptr) {
+    // 对齐 vanilla TestInstanceBlock#useWithoutItem：无测试实例实体或无管理员权限返回 PASS；
+    // 否则打开测试实例方块编辑界面并返回 SUCCESS（客户端据下发的实体数据自行打开）。
+    if (world.getBlockEntity(pos) == nullptr || !player.canUseGameMasterBlocks()) {
         return ActionResultType::Pass;
     }
 
-    // 对齐 vanilla TestInstanceBlock#useWithoutItem：无管理员权限返回 PASS；
-    // 否则客户端打开测试实例界面（GUI 尚未实现，服务端返回 SUCCESS）。
-    if (!player.canUseGameMasterBlocks()) {
-        return ActionResultType::Pass;
-    }
-
-    // TODO: 打开测试实例界面（对齐 vanilla Player.openTestInstanceBlock → TestInstanceBlockEditScreen），
-    //   当前仅返回成功，GUI 待命令方块界面体系接入后补全。
+    player.openTestInstanceBlock(pos);
     return ActionResultType::Success;
 }
 
