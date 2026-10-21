@@ -22,711 +22,200 @@
  */
 
 #include "SectionCodec.hpp"
-#include "common/core/Result.hpp"
-#include "common/core/Types.hpp"
 #include "common/profiler/TraceCategories.hpp"
 #include "common/profiler/TraceEvents.hpp"
-#include "common/world/block/Block.hpp"
-#include "common/world/block/BlockState.hpp"
-#include "common/world/chunk/data/ChunkData.hpp"
-#include "server/world/storage/db/SectionKey.hpp"
-#include <algorithm>
+#include "common/util/assert/AssertMacros.hpp"
+#include "common/world/fluid/Fluid.hpp"
+#include <array>
+#include <bit>
 #include <cstring>
-#include <utility>
-#include <vector>
-#include <fmt/format.h>
-#include <spdlog/spdlog.h>
-#include <zstd.h>
+#include <limits>
+#include <rocksdb/slice.h>
 
 using namespace mc::trace;
 
 namespace mc::world::storage {
-
 namespace {
 
-/**
- * @brief 判断一个方块状态是否属于空气
- *
- * 方块状态 0/1/2 分别是空气、洞穴空气、虚空空气，**它们都是空气**；仅凭 `stateId != 0`
- * 判断会把后两者误认为实体方块。方块注册表未就绪（测试环境）时查不到状态，此时退化为
- * 只认 stateId 0——调用方不应在注册表未初始化的前提下依赖精确计数。
- */
-[[nodiscard]] bool isAirBlockState(u32 stateId)
+// 所有数值数组固定采用小端布局；当前支持的平台均可直接复制，无逐元素字节序转换。
+static_assert(std::endian::native == std::endian::little);
+constexpr u32 _formatMagic = 0x31534343;
+constexpr size_t _headerWords = 8;
+constexpr size_t _headerSize = _headerWords * sizeof(u32);
+constexpr size_t _biomeBytes = BiomeContainer::SECTION_BIOME_SIZE * sizeof(BiomeId);
+
+constexpr u8 _blockFlag = 1;
+constexpr u8 _tickFlag = 2;
+constexpr u8 _fluidFlag = 4;
+
+u8 _stateFlags(u32 stateId, u8 fields)
 {
-    if (stateId == 0) {
-        return true;
-    }
     const BlockState* state = Block::getBlockState(stateId);
-    return state == nullptr || state->isAir();
+    if (state == nullptr) {
+        return 0;
+    }
+    u8 flags = 0;
+    if ((fields & _blockFlag) != 0 && !state->isAir()) {
+        flags |= _blockFlag;
+    }
+    if ((fields & _tickFlag) != 0 && state->getBlock().ticksRandomly()) {
+        flags |= _tickFlag;
+    }
+    if ((fields & _fluidFlag) != 0) {
+        const auto* fluid = state->getFluidState();
+        if (fluid != nullptr && !fluid->isEmpty()) {
+            flags |= _fluidFlag;
+        }
+    }
+    return flags;
 }
 
-[[nodiscard]] Result<void> validateSectionDataLayout(const SectionData& data, const char* context)
+template <typename T, size_t Extent>
+rocksdb::Slice _slice(std::span<T, Extent> values)
 {
-    if (data.blockStates.size() != SectionData::VOLUME) {
-        spdlog::error("[{}] blockStates size mismatch: expected {}, got {}",
-            context,
-            SectionData::VOLUME,
-            data.blockStates.size());
-        return Error(ErrorCode::InvalidData,
-            fmt::format("{}: blockStates size mismatch (expected {}, got {})",
-                context,
-                SectionData::VOLUME,
-                data.blockStates.size()));
-    }
-
-    if (data.biomes.size() != SectionData::BIOME_COUNT) {
-        spdlog::error(
-            "[{}] biomes size mismatch: expected {}, got {}", context, SectionData::BIOME_COUNT, data.biomes.size());
-        return Error(ErrorCode::InvalidData,
-            fmt::format("{}: biomes size mismatch (expected {}, got {})",
-                context,
-                SectionData::BIOME_COUNT,
-                data.biomes.size()));
-    }
-
-    if (data.nonEmptyBlockCount > SectionData::VOLUME) {
-        spdlog::error("[{}] nonEmptyBlockCount out of range: expected <= {}, got {}",
-            context,
-            SectionData::VOLUME,
-            data.nonEmptyBlockCount);
-        return Error(ErrorCode::InvalidData,
-            fmt::format("{}: nonEmptyBlockCount out of range ({} > {})",
-                context,
-                data.nonEmptyBlockCount,
-                SectionData::VOLUME));
-    }
-
-    // 计数为 0 时序列化会整段跳过 blockStates（见 SectionData::serialize 的 IsEmpty 分支），
-    // 因此"计数为 0 但实际有方块"会静默丢光整段数据、读回全是空气且毫无报错。这里是该分支
-    // 唯一的守门点，必须在数据被丢掉之前拦下——这是数据完整性不变量，不是性能优化。
-    MC_ASSERT_RELEASE_MSG(data.nonEmptyBlockCount > 0 || data.isAllAir(),
-        "SectionData block count is zero but block states contain non-air blocks; "
-        "serializing would silently discard the whole section");
-
-    if (data.skyLight.has_value() && data.skyLight->size() != SectionCodec::LIGHT_DATA_SIZE) {
-        spdlog::error("[{}] skyLight size mismatch: expected {}, got {}",
-            context,
-            SectionCodec::LIGHT_DATA_SIZE,
-            data.skyLight->size());
-        return Error(ErrorCode::InvalidData,
-            fmt::format("{}: skyLight size mismatch (expected {}, got {})",
-                context,
-                SectionCodec::LIGHT_DATA_SIZE,
-                data.skyLight->size()));
-    }
-
-    if (data.blockLight.has_value() && data.blockLight->size() != SectionCodec::LIGHT_DATA_SIZE) {
-        spdlog::error("[{}] blockLight size mismatch: expected {}, got {}",
-            context,
-            SectionCodec::LIGHT_DATA_SIZE,
-            data.blockLight->size());
-        return Error(ErrorCode::InvalidData,
-            fmt::format("{}: blockLight size mismatch (expected {}, got {})",
-                context,
-                SectionCodec::LIGHT_DATA_SIZE,
-                data.blockLight->size()));
-    }
-
-    return {};
+    return rocksdb::Slice(values.empty() ? "" : reinterpret_cast<const char*>(values.data()), values.size_bytes());
 }
-
-// 反序列化解压暂存缓冲区（thread_local 复用）。
-// decompressInto 仅在 SectionData::deserialize 内部调用，结果在同一函数内立即 memcpy 到
-// result.blockStates 后即弃用，不会跨另一次 decompress 调用存活，故 thread_local 安全。
-// 复用避免每区块 24 次 16KB 堆分配（ServerCompute 反序列化热路径）。
-thread_local std::vector<u8> g_decompressScratch;
 
 } // namespace
 
-// ============================================================================
-// SectionData 实现
-// ============================================================================
-
-SectionData::SectionData()
+size_t SectionCodec::encodedSize(const ChunkSection* section)
 {
-    initializeDefaults();
+    if (section == nullptr) {
+        return _headerSize + _biomeBytes;
+    }
+    const auto packed = section->blockStates().packedView();
+    return _headerSize + _biomeBytes + packed.palette.size_bytes() + packed.storage.size_bytes() +
+        packed.hashMap.size_bytes();
 }
 
-SectionData::SectionData(const SectionKey& key)
-    : key(key)
-{
-    initializeDefaults();
-}
-
-SectionData::SectionData(i32 chunkX, i32 chunkZ, i8 sectionY, DimensionId dimension)
-    : key(chunkX, chunkZ, sectionY, dimension)
-{
-    initializeDefaults();
-}
-
-SectionData::SectionData(const SectionData& other)
-    : key(other.key)
-    , blockStates(other.blockStates)
-    , nonEmptyBlockCount(other.nonEmptyBlockCount)
-    , biomes(other.biomes)
-    , skyLight(other.skyLight)
-    , blockLight(other.blockLight)
-    , dataVersion(other.dataVersion)
-    , contentHash(other.contentHash)
-{}
-
-SectionData::SectionData(SectionData&& other) noexcept
-    : key(other.key)
-    , blockStates(std::move(other.blockStates))
-    , nonEmptyBlockCount(other.nonEmptyBlockCount)
-    , biomes(std::move(other.biomes))
-    , skyLight(std::move(other.skyLight))
-    , blockLight(std::move(other.blockLight))
-    , dataVersion(other.dataVersion)
-    , contentHash(other.contentHash)
-{}
-
-SectionData& SectionData::operator=(SectionData&& other) noexcept
-{
-    if (this != &other) {
-        key = other.key;
-        blockStates = std::move(other.blockStates);
-        nonEmptyBlockCount = other.nonEmptyBlockCount;
-        biomes = std::move(other.biomes);
-        skyLight = std::move(other.skyLight);
-        blockLight = std::move(other.blockLight);
-        dataVersion = other.dataVersion;
-        contentHash = other.contentHash;
-    }
-    return *this;
-}
-
-void SectionData::initializeDefaults()
-{
-    // 初始化方块状态数组（全为空气，stateId=0）
-    blockStates.resize(VOLUME, 0);
-    nonEmptyBlockCount = 0;
-
-    // 初始化生物群系数组（默认为平原 biome_id=1）
-    biomes.resize(BIOME_COUNT, 1);
-
-    // 光照数据不初始化（可选）
-    skyLight.reset();
-    blockLight.reset();
-
-    // 数据版本
-    dataVersion = CURRENT_DATA_VERSION;
-    contentHash = 0;
-}
-
-void SectionData::clear()
-{
-    std::fill(blockStates.begin(), blockStates.end(), 0);
-    nonEmptyBlockCount = 0;
-    std::fill(biomes.begin(), biomes.end(), 1);
-    skyLight.reset();
-    blockLight.reset();
-    contentHash = 0;
-}
-
-// ============================================================================
-// 数据访问
-// ============================================================================
-
-u32 SectionData::getBlockStateId(i32 x, i32 y, i32 z) const
-{
-    if (x < 0 || x >= SIZE || y < 0 || y >= SIZE || z < 0 || z >= SIZE) {
-        return 0;
-    }
-    return blockStates[static_cast<size_t>(_blockIndex(x, y, z))];
-}
-
-void SectionData::setBlockStateId(i32 x, i32 y, i32 z, u32 stateId)
-{
-    if (x < 0 || x >= SIZE || y < 0 || y >= SIZE || z < 0 || z >= SIZE) {
-        return;
-    }
-
-    i32 idx = _blockIndex(x, y, z);
-    u32 oldStateId = blockStates[static_cast<size_t>(idx)];
-
-    // 更新非空方块计数。判据必须与 ChunkSection::_updateCounters 一致地走 isAir()：
-    // 方块状态 1/2 分别是洞穴空气与虚空空气，它们本身就是空气，按 stateId != 0 判定会把它们
-    // 误计为非空气，使同一份数据在 SectionData 与 ChunkSection 两侧得到不同的计数。而该计数是
-    // isEmpty() 的唯一判据、isEmpty() 又决定 serialize() 是否整段跳过方块数据，两侧不一致会把
-    // 数据直接送进静默丢弃分支。
-    const bool oldIsAir = isAirBlockState(oldStateId);
-    const bool newIsAir = isAirBlockState(stateId);
-    if (oldIsAir && !newIsAir) {
-        ++nonEmptyBlockCount;
-    } else if (!oldIsAir && newIsAir) {
-        --nonEmptyBlockCount;
-    }
-
-    blockStates[static_cast<size_t>(idx)] = stateId;
-}
-
-BiomeId SectionData::getBiome(i32 x, i32 y, i32 z) const
-{
-    if (x < 0 || x >= SIZE || y < 0 || y >= SIZE || z < 0 || z >= SIZE) {
-        return 1; // 默认平原
-    }
-    return biomes[static_cast<size_t>(_biomeIndex(x, y, z))];
-}
-
-void SectionData::setBiome(i32 x, i32 y, i32 z, BiomeId biome)
-{
-    if (x < 0 || x >= SIZE || y < 0 || y >= SIZE || z < 0 || z >= SIZE) {
-        return;
-    }
-    biomes[static_cast<size_t>(_biomeIndex(x, y, z))] = biome;
-}
-
-bool SectionData::isAllAir() const
-{
-    for (u32 stateId : blockStates) {
-        if (!isAirBlockState(stateId)) {
-            return false;
-        }
-    }
-    return true;
-}
-
-// ============================================================================
-// 序列化
-// ============================================================================
-
-Result<std::vector<u8>> SectionData::serialize() const
-{
-    MC_TRACE_SCOPED_EVENT(TraceEvents.Storage.Db, "SectionData::serialize", "sectionY", static_cast<i32>(key.sectionY));
-
-    auto validationResult = validateSectionDataLayout(*this, "SectionData::serialize");
-    if (validationResult.failed()) {
-        return validationResult.error();
-    }
-
-    std::vector<u8> output;
-
-    // 计算标志位
-    SectionFlags flags = SectionFlags::None;
-    if (!biomes.empty()) {
-        flags |= SectionFlags::HasBiomes;
-    }
-    if (skyLight.has_value()) {
-        flags |= SectionFlags::HasSkyLight;
-    }
-    if (blockLight.has_value()) {
-        flags |= SectionFlags::HasBlockLight;
-    }
-    if (isEmpty()) {
-        flags |= SectionFlags::IsEmpty;
-    }
-
-    // Header (12字节)
-    // - version (u16)
-    // - flags (u16)
-    // - blockCount (u16)
-    // - reserved (u16)
-    // - contentHash (u32)
-    output.resize(12);
-
-    // 版本
-    u16 version = static_cast<u16>(SectionFormatVersion::Current);
-    output[0] = static_cast<u8>(version >> 8);
-    output[1] = static_cast<u8>(version & 0xFF);
-
-    // 标志位
-    u16 flagsValue = static_cast<u16>(flags);
-    output[2] = static_cast<u8>(flagsValue >> 8);
-    output[3] = static_cast<u8>(flagsValue & 0xFF);
-
-    // 非空方块数
-    output[4] = static_cast<u8>(nonEmptyBlockCount >> 8);
-    output[5] = static_cast<u8>(nonEmptyBlockCount & 0xFF);
-
-    // 保留
-    output[6] = 0;
-    output[7] = 0;
-
-    // 内容哈希低32位
-    u32 hashLow = static_cast<u32>(contentHash & 0xFFFFFFFF);
-    output[8] = static_cast<u8>(hashLow >> 24);
-    output[9] = static_cast<u8>(hashLow >> 16);
-    output[10] = static_cast<u8>(hashLow >> 8);
-    output[11] = static_cast<u8>(hashLow & 0xFF);
-
-    // 方块状态数据
-    if (!isEmpty()) {
-        // 压缩方块状态
-        auto compressResult =
-            SectionCodec::compress(reinterpret_cast<const u8*>(blockStates.data()), blockStates.size() * sizeof(u32));
-
-        if (!compressResult.success()) {
-            return compressResult.error();
-        }
-
-        const auto& compressed = compressResult.value();
-
-        // 写入压缩大小（u32）
-        u32 compressedSize = static_cast<u32>(compressed.size());
-        output.push_back(static_cast<u8>(compressedSize >> 24));
-        output.push_back(static_cast<u8>(compressedSize >> 16));
-        output.push_back(static_cast<u8>(compressedSize >> 8));
-        output.push_back(static_cast<u8>(compressedSize & 0xFF));
-
-        // 写入压缩数据
-        output.insert(output.end(), compressed.begin(), compressed.end());
-    }
-
-    // 生物群系数据（每个BiomeId是u16，需要逐字节序列化）
-    if (hasFlag(flags, SectionFlags::HasBiomes) && !biomes.empty()) {
-        // 按大端序序列化每个 BiomeId (u16)
-        for (BiomeId biome : biomes) {
-            output.push_back(static_cast<u8>(biome >> 8));   // 高字节
-            output.push_back(static_cast<u8>(biome & 0xFF)); // 低字节
-        }
-    }
-
-    // 天空光照
-    if (hasFlag(flags, SectionFlags::HasSkyLight) && skyLight.has_value()) {
-        output.insert(output.end(), skyLight->begin(), skyLight->end());
-    }
-
-    // 方块光照
-    if (hasFlag(flags, SectionFlags::HasBlockLight) && blockLight.has_value()) {
-        output.insert(output.end(), blockLight->begin(), blockLight->end());
-    }
-
-    return output;
-}
-
-Result<SectionData> SectionData::deserialize(const u8* data, size_t size)
-{
-    MC_TRACE_SCOPED_EVENT(TraceEvents.Storage.Db, "SectionData::deserialize", "size", size);
-
-    if (size < 12) {
-        return Error(ErrorCode::InvalidData, "Section data too small for header");
-    }
-
-    SectionData result;
-
-    // 解析Header
-    u16 version = (static_cast<u16>(data[0]) << 8) | data[1];
-    if (version > static_cast<u16>(SectionFormatVersion::Current)) {
-        return Error(ErrorCode::InvalidData, fmt::format("Unsupported section format version: {}", version));
-    }
-
-    SectionFlags flags = static_cast<SectionFlags>((static_cast<u16>(data[2]) << 8) | data[3]);
-    result.nonEmptyBlockCount = (static_cast<u16>(data[4]) << 8) | data[5];
-    // data[6], data[7] reserved
-    result.contentHash = (static_cast<u64>(data[8]) << 24) | (static_cast<u64>(data[9]) << 16) |
-        (static_cast<u64>(data[10]) << 8) | static_cast<u64>(data[11]);
-
-    if (result.nonEmptyBlockCount > VOLUME) {
-        return Error(ErrorCode::InvalidData,
-            fmt::format("Section data has invalid block count: {} > {}", result.nonEmptyBlockCount, VOLUME));
-    }
-
-    size_t offset = 12;
-
-    // 方块状态数据
-    if (!hasFlag(flags, SectionFlags::IsEmpty)) {
-        if (offset + 4 > size) {
-            return Error(ErrorCode::InvalidData, "Section data truncated at compressed size");
-        }
-
-        // 读取压缩大小
-        u32 compressedSize = (static_cast<u32>(data[offset]) << 24) | (static_cast<u32>(data[offset + 1]) << 16) |
-            (static_cast<u32>(data[offset + 2]) << 8) | static_cast<u32>(data[offset + 3]);
-        offset += 4;
-
-        if (offset + compressedSize > size) {
-            return Error(ErrorCode::InvalidData, "Section data truncated at compressed data");
-        }
-
-        // 解压缩到 thread_local 暂存缓冲区（复用，避免 16KB 堆分配）
-        if (g_decompressScratch.size() < SectionCodec::UNCOMPRESSED_BLOCK_STATES_SIZE) {
-            g_decompressScratch.resize(SectionCodec::UNCOMPRESSED_BLOCK_STATES_SIZE);
-        }
-        auto decompressResult = SectionCodec::decompressInto(
-            data + offset, compressedSize, g_decompressScratch.data(), SectionCodec::UNCOMPRESSED_BLOCK_STATES_SIZE);
-
-        if (!decompressResult.success()) {
-            return decompressResult.error();
-        }
-
-        // 复制方块状态
-        result.blockStates.resize(VOLUME);
-        std::memcpy(result.blockStates.data(), g_decompressScratch.data(), VOLUME * sizeof(u32));
-
-        offset += compressedSize;
-    } else {
-        // 空Section，全为空气
-        result.blockStates.assign(VOLUME, 0);
-    }
-
-    // 生物群系数据（每个BiomeId是u16，需要逐字节反序列化）
-    if (hasFlag(flags, SectionFlags::HasBiomes)) {
-        if (offset + SectionCodec::BIOME_DATA_SIZE > size) {
-            return Error(ErrorCode::InvalidData, "Section data truncated at biomes");
-        }
-        result.biomes.resize(SectionData::BIOME_COUNT);
-        // 按大端序读取每个 BiomeId (u16)
-        for (size_t i = 0; i < SectionData::BIOME_COUNT; ++i) {
-            u8 high = data[offset++];
-            u8 low = data[offset++];
-            result.biomes[i] = static_cast<BiomeId>((static_cast<u16>(high) << 8) | low);
-        }
-    } else {
-        // 默认平原生物群系
-        result.biomes.assign(SectionData::BIOME_COUNT, 1);
-    }
-
-    // 天空光照
-    if (hasFlag(flags, SectionFlags::HasSkyLight)) {
-        if (offset + SectionCodec::LIGHT_DATA_SIZE > size) {
-            return Error(ErrorCode::InvalidData, "Section data truncated at sky light");
-        }
-        result.skyLight = std::vector<u8>(data + offset, data + offset + SectionCodec::LIGHT_DATA_SIZE);
-        offset += SectionCodec::LIGHT_DATA_SIZE;
-    }
-
-    // 方块光照
-    if (hasFlag(flags, SectionFlags::HasBlockLight)) {
-        if (offset + SectionCodec::LIGHT_DATA_SIZE > size) {
-            return Error(ErrorCode::InvalidData, "Section data truncated at block light");
-        }
-        result.blockLight = std::vector<u8>(data + offset, data + offset + SectionCodec::LIGHT_DATA_SIZE);
-        offset += SectionCodec::LIGHT_DATA_SIZE;
-    }
-
-    auto validationResult = validateSectionDataLayout(result, "SectionData::deserialize");
-    if (validationResult.failed()) {
-        return validationResult.error();
-    }
-
-    return result;
-}
-
-// ============================================================================
-// 哈希计算
-// ============================================================================
-
-void SectionData::computeHash()
-{
-    // 使用简单的FNV-1a哈希
-    // 注意：这是一个简化的哈希实现，生产环境可能需要更强的哈希如xxHash或SipHash
-
-    constexpr u64 FNV_OFFSET_BASIS = 14695981039346656037ULL;
-    constexpr u64 FNV_PRIME = 1099511628211ULL;
-
-    u64 hash = FNV_OFFSET_BASIS;
-
-    // 哈希方块状态
-    for (u32 state : blockStates) {
-        hash ^= static_cast<u64>(state) & 0xFF;
-        hash *= FNV_PRIME;
-        hash ^= (static_cast<u64>(state) >> 8) & 0xFF;
-        hash *= FNV_PRIME;
-        hash ^= (static_cast<u64>(state) >> 16) & 0xFF;
-        hash *= FNV_PRIME;
-        hash ^= (static_cast<u64>(state) >> 24) & 0xFF;
-        hash *= FNV_PRIME;
-    }
-
-    // 哈希生物群系
-    for (BiomeId biome : biomes) {
-        hash ^= static_cast<u64>(biome);
-        hash *= FNV_PRIME;
-    }
-
-    contentHash = hash;
-}
-
-// ============================================================================
-// SectionCodec 实现
-// ============================================================================
-
-Result<SectionData> SectionCodec::fromChunkSection(const ChunkData& chunk,
-    i32 sectionIndex,
-    const ChunkSection& section,
+Result<void> SectionCodec::appendToBatch(rocksdb::WriteBatch& batch,
+    rocksdb::ColumnFamilyHandle* columnFamily,
     const SectionKey& key,
-    const std::vector<BiomeId>& biomes)
-{
-    MC_TRACE_SCOPED_EVENT(TraceEvents.Storage.Db, "SectionCodec::fromChunkSection");
-
-    SectionData data(key);
-    _captureChunkSection(data, chunk, sectionIndex, section, biomes);
-    return data;
-}
-
-std::vector<BiomeId> SectionCodec::extractBiomes(const BiomeContainer& biomes)
-{
-    const auto bytes = biomes.serialize();
-
-    std::vector<BiomeId> result;
-    result.reserve(bytes.size() / 2);
-    for (size_t i = 0; i + 1 < bytes.size(); i += 2) {
-        const u16 low = static_cast<u16>(bytes[i]);
-        const u16 high = static_cast<u16>(bytes[i + 1]);
-        result.push_back(static_cast<BiomeId>(low | (high << 8)));
-    }
-    return result;
-}
-
-Result<std::vector<u8>> SectionCodec::serializeFromChunkSection(const ChunkData& chunk,
-    i32 sectionIndex,
-    const ChunkSection& section,
-    const SectionKey& key,
-    const std::vector<BiomeId>& biomes)
-{
-    MC_TRACE_SCOPED_EVENT(TraceEvents.Storage.Db, "SectionCodec::serializeFromChunkSection");
-
-    // 与 fromChunkSection 走同一段抓取逻辑，保证两条路径产出的字节完全一致；
-    // 差别只在本函数不把 SectionData 交还给调用方，其生命周期止于本作用域。
-    SectionData data(key);
-    _captureChunkSection(data, chunk, sectionIndex, section, biomes);
-    return data.serialize();
-}
-
-void SectionCodec::_captureChunkSection(SectionData& data,
     const ChunkData& chunk,
-    i32 sectionIndex,
-    const ChunkSection& section,
-    const std::vector<BiomeId>& biomes)
+    i32 sectionIndex)
 {
-    // 复制方块状态
-    data.blockStates.resize(SectionData::VOLUME);
-    for (i32 i = 0; i < SectionData::VOLUME; ++i) {
-        data.blockStates[static_cast<size_t>(i)] = section.getBlockStateIdFast(i);
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Storage.Db, "SectionCodec::appendToBatch");
+    MC_ASSERT_RELEASE(sectionIndex >= 0);
+    MC_ASSERT_RELEASE(sectionIndex < world::CHUNK_SECTIONS);
+    const ChunkSection* section = chunk.getSection(sectionIndex);
+    const auto packed = section == nullptr ? world::chunk::PalettedContainer::PackedView{0, {}, {}, {}}
+                                           : section->blockStates().packedView();
+    MC_ASSERT_RELEASE(packed.palette.size() <= std::numeric_limits<u32>::max());
+    MC_ASSERT_RELEASE(packed.hashMap.size() <= std::numeric_limits<u32>::max());
+    const std::array<u32, _headerWords> header{_formatMagic,
+        static_cast<u32>(packed.bits),
+        static_cast<u32>(packed.palette.size()),
+        static_cast<u32>(packed.storage.size()),
+        static_cast<u32>(packed.hashMap.size()),
+        section == nullptr ? 0u : section->getBlockCount(),
+        section == nullptr ? 0u : section->blockTickRefCount(),
+        section == nullptr ? 0u : section->fluidRefCount()};
+    const auto keyBytes = key.serialize();
+    const std::array<rocksdb::Slice, 1> keyParts{_slice(std::span(keyBytes))};
+    const std::array<rocksdb::Slice, 5> valueParts{_slice(std::span(header)),
+        _slice(packed.palette),
+        _slice(packed.storage),
+        _slice(packed.hashMap),
+        _slice(chunk.getBiomes().sectionData(sectionIndex))};
+    const auto status = batch.Put(columnFamily,
+        rocksdb::SliceParts(keyParts.data(), static_cast<int>(keyParts.size())),
+        rocksdb::SliceParts(valueParts.data(), static_cast<int>(valueParts.size())));
+    if (!status.ok()) {
+        return Error(ErrorCode::FileWriteFailed, status.ToString());
     }
-
-    // 复制非空方块计数。这里刻意直接采信 ChunkSection 的计数而不重算：它与 blockStates 同源，
-    // 重算一遍只是重复劳动。但"计数为 0 而实际有方块"会让 serialize() 整段丢弃方块数据，
-    // 因此在离开本函数前必须验一次，把失同步拦在写盘之前。
-    data.nonEmptyBlockCount = section.getBlockCount();
-    MC_ASSERT_RELEASE_MSG(data.nonEmptyBlockCount > 0 || data.isAllAir(),
-        "ChunkSection block count is zero but block states contain non-air blocks; "
-        "saving would silently discard the whole section");
-
-    // 复制生物群系：由调用方提供 4x4x4 采样数据，未提供时退回默认平原
-    if (!biomes.empty() && biomes.size() == SectionData::BIOME_COUNT) {
-        data.biomes = biomes;
-    } else {
-        data.biomes.assign(SectionData::BIOME_COUNT, 1);
-    }
-
-    // 复制光照数据（仅当非默认值时）。
-    //
-    // 光照的权威副本在 ChunkData 的 SWMRNibbleArray（ChunkSection 不再持有光照），故此处
-    // 从区块按段索引取。索引换算由 ChunkData::skyNibbleAt/blockNibbleAt 负责（光照数组
-    // LIGHT_SECTIONS = CHUNK_SECTIONS + 2，比区块段多留一段上下缓冲，故整体偏移 1）。
-    //
-    // 默认值语义与落盘格式的约定一致：
-    //   天空光：默认全 15（日光），仅当存在非 15 值时才写该段
-    //   方块光：默认全 0（无光），仅当存在非 0 值时才写该段
-    // nibble 处于 Null/Uninit（该段无光照数据）时按默认值处理，不落盘。
-    {
-        alignas(8) std::array<u8, LIGHT_DATA_SIZE> skyScratch{};
-        if (chunk.skyNibbleAt(sectionIndex).copyVisibleTo(skyScratch.data())) {
-            const bool hasNonDefaultSkyLight = std::any_of(skyScratch.begin(), skyScratch.end(), [](u8 byte) {
-                return byte != 0xFF;
-            }); // 0xFF = 两个 nibble 都是 15
-            if (hasNonDefaultSkyLight) {
-                data.skyLight = std::vector<u8>(skyScratch.begin(), skyScratch.end());
-            }
-        }
-
-        alignas(8) std::array<u8, LIGHT_DATA_SIZE> blockScratch{};
-        if (chunk.blockNibbleAt(sectionIndex).copyVisibleTo(blockScratch.data())) {
-            const bool hasNonDefaultBlockLight =
-                std::any_of(blockScratch.begin(), blockScratch.end(), [](u8 byte) { return byte != 0; });
-            if (hasNonDefaultBlockLight) {
-                data.blockLight = std::vector<u8>(blockScratch.begin(), blockScratch.end());
-            }
-        }
-    }
-
-    // 计算哈希
-    data.computeHash();
-}
-
-Result<void> SectionCodec::toChunkSection(const SectionData& data, ChunkSection& section)
-{
-    MC_TRACE_SCOPED_EVENT(TraceEvents.Storage.Db, "SectionCodec::toChunkSection");
-
-    auto validationResult = validateSectionDataLayout(data, "SectionCodec::toChunkSection");
-    if (validationResult.failed()) {
-        return validationResult.error();
-    }
-
-    // 设置方块状态
-    for (i32 i = 0; i < SectionData::VOLUME; ++i) {
-        section.setBlockStateIdFast(i, data.blockStates[static_cast<size_t>(i)]);
-    }
-
-    // 设置非空方块计数
-    section.setBlockCount(data.nonEmptyBlockCount);
-
-    // TODO: 落盘的光照（data.skyLight / data.blockLight）目前在加载路径被丢弃——ChunkSection
-    //   不再持有光照，而 ChunkData 的 SWMRNibbleArray 也没有从这里填充；ChunkData::m_lightCorrect
-    //   默认 false，ChunkLoadLightTask 因此必然走全量重算分支（ChunkLoadLightTask.cpp 的 else 分支），
-    //   算完即覆盖。于是"从磁盘解码光照"这一步当前是纯开销（CPU + 每段两次 vector 分配）。
-    //   两条收敛路径：(1) 若确认永不使用落盘光照，则连同 SectionData 的 skyLight/blockLight
-    //   字段与 SectionFlags::HasSkyLight/HasBlockLight 一并删除；(2) 若要做"光照已正确则跳过重算"，
-    //   则在此处把 nibble 灌进 chunk.skyNibbleAt(sectionIndex)/blockNibbleAt(sectionIndex) 并置
-    //   setLightCorrect(true)，同时需要处理落盘光照与方块数据不同步（外部工具改档）的校验。
-    //   当前保留字段与解码逻辑，仅为不改变落盘格式。
-
-    // 标记需要重新计算
-    section.setNeedsRecalculate(true);
-
     return {};
 }
 
-// ============================================================================
-// 压缩工具
-// ============================================================================
-
-Result<std::vector<u8>> SectionCodec::compress(const u8* data, size_t size, i32 compressionLevel)
+Result<void> SectionCodec::restore(std::span<const u8> bytes, ChunkData& chunk, i32 sectionIndex)
 {
-    MC_TRACE_SCOPED_EVENT(TraceEvents.Storage.Db, "SectionCodec::compress", "size", size, "level", compressionLevel);
-
-    // 获取压缩后最大大小
-    size_t bound = ZSTD_compressBound(size);
-    std::vector<u8> compressed(bound);
-
-    // 执行压缩
-    size_t result = ZSTD_compress(compressed.data(), compressed.size(), data, size, compressionLevel);
-
-    if (ZSTD_isError(result)) {
-        return Error(
-            ErrorCode::CompressionFailed, fmt::format("ZSTD compression failed: {}", ZSTD_getErrorName(result)));
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Storage.Db, "SectionCodec::restore", "size", bytes.size());
+    MC_ASSERT_RELEASE(sectionIndex >= 0);
+    MC_ASSERT_RELEASE(sectionIndex < world::CHUNK_SECTIONS);
+    if (bytes.size() < _headerSize + _biomeBytes) {
+        return Error(ErrorCode::InvalidData, "Truncated compact section header");
     }
-
-    // 调整到实际大小
-    compressed.resize(result);
-
-    return compressed;
-}
-
-Result<void> SectionCodec::decompressInto(const u8* compressedData, size_t compressedSize, u8* out, size_t expectedSize)
-{
-    MC_TRACE_SCOPED_EVENT(TraceEvents.Storage.Db,
-        "SectionCodec::decompressInto",
-        "compressedSize",
-        compressedSize,
-        "expectedSize",
-        expectedSize);
-
-    size_t result = ZSTD_decompress(out, expectedSize, compressedData, compressedSize);
-
-    if (ZSTD_isError(result)) {
-        return Error(
-            ErrorCode::DecompressionFailed, fmt::format("ZSTD decompression failed: {}", ZSTD_getErrorName(result)));
+    std::array<u32, _headerWords> header;
+    std::memcpy(header.data(), bytes.data(), _headerSize);
+    if (header[0] != _formatMagic || header[1] > 31 || header[5] > ChunkSection::VOLUME ||
+        header[6] > ChunkSection::VOLUME || header[7] > ChunkSection::VOLUME) {
+        return Error(ErrorCode::InvalidData, "Invalid compact section header");
     }
-
-    if (result != expectedSize) {
-        return Error(ErrorCode::DecompressionFailed,
-            fmt::format("Decompressed size mismatch: expected {}, got {}", expectedSize, result));
+    const u64 paletteBytes = static_cast<u64>(header[2]) * sizeof(u32);
+    const u64 storageBytes = static_cast<u64>(header[3]) * sizeof(u64);
+    const u64 hashBytes = static_cast<u64>(header[4]) * sizeof(u32);
+    if (_headerSize + paletteBytes + storageBytes + hashBytes + _biomeBytes != bytes.size()) {
+        return Error(ErrorCode::InvalidData, "Compact section length does not match header");
     }
-
-    return Result<void>::ok();
+    if (header[2] == 0) {
+        if (header[1] != 0 || header[3] != 0 || header[4] != 0 || header[5] != 0 || header[6] != 0 || header[7] != 0) {
+            return Error(ErrorCode::InvalidData, "Biome-only section contains block data");
+        }
+        std::memcpy(chunk.getBiomes().sectionData(sectionIndex).data(), bytes.data() + _headerSize, _biomeBytes);
+        return {};
+    }
+    size_t offset = _headerSize;
+    const auto palette = bytes.subspan(offset, static_cast<size_t>(paletteBytes));
+    offset += static_cast<size_t>(paletteBytes);
+    const auto storage = bytes.subspan(offset, static_cast<size_t>(storageBytes));
+    offset += static_cast<size_t>(storageBytes);
+    const auto hashMap = bytes.subspan(offset, static_cast<size_t>(hashBytes));
+    offset += static_cast<size_t>(hashBytes);
+    world::chunk::PalettedContainer states;
+    auto result = states.restorePacked(static_cast<i32>(header[1]), palette, storage, hashMap);
+    if (result.failed()) {
+        return result.error();
+    }
+    // 存档是外部输入：计数虽然范围合法，也不能让错误计数把有方块的段当成空段。
+    // 只读取位数组进行验证，不展开数据、不分配暂存容器、不修改已恢复的哈希槽位。
+    const auto packed = states.packedView();
+    // 每种状态只查询一次注册表；栈上只缓存一字节计数属性，不展开方块数据。
+    std::array<u8, ChunkSection::VOLUME> paletteFlags;
+    const bool cacheFits = packed.palette.size() <= paletteFlags.size();
+    u8 allFlags = _blockFlag | _tickFlag | _fluidFlag;
+    u8 anyFlags = 0;
+    for (size_t index = 0; index < packed.palette.size(); ++index) {
+        const u8 flags = _stateFlags(packed.palette[index], _blockFlag | _tickFlag | _fluidFlag);
+        if (cacheFits) {
+            paletteFlags[index] = flags;
+        }
+        allFlags &= flags;
+        anyFlags |= flags;
+    }
+    u32 blockCount = (allFlags & _blockFlag) != 0 ? ChunkSection::VOLUME : 0;
+    u32 blockTickCount = (allFlags & _tickFlag) != 0 ? ChunkSection::VOLUME : 0;
+    u32 fluidCount = (allFlags & _fluidFlag) != 0 ? ChunkSection::VOLUME : 0;
+    const u8 varyingFlags = anyFlags ^ allFlags;
+    // 均匀段，以及所有调色板值拥有相同计数属性的段，都不需要遍历 4096 个位置。
+    if (varyingFlags != 0) {
+        for (i32 index = 0; index < ChunkSection::VOLUME; ++index) {
+            u8 flags;
+            if (cacheFits) {
+                const i32 bitIndex = index * packed.bits;
+                const size_t word = static_cast<size_t>(bitIndex / 64);
+                const i32 shift = bitIndex % 64;
+                u64 paletteIndex = packed.storage[word] >> shift;
+                if (shift != 0 && shift + packed.bits > 64) {
+                    paletteIndex |= packed.storage[word + 1] << (64 - shift);
+                }
+                paletteIndex &= (u64{1} << packed.bits) - 1;
+                flags = paletteFlags[static_cast<size_t>(paletteIndex)] & varyingFlags;
+            } else {
+                // 反复修改可能累计超过段容量的调色板条目；此时直接查询，不扩大暂存内存。
+                flags = _stateFlags(states.get(index), varyingFlags);
+            }
+            blockCount += (flags & _blockFlag) != 0 ? 1 : 0;
+            blockTickCount += (flags & _tickFlag) != 0 ? 1 : 0;
+            fluidCount += (flags & _fluidFlag) != 0 ? 1 : 0;
+        }
+    }
+    if (blockCount != header[5] || blockTickCount != header[6] || fluidCount != header[7]) {
+        return Error(ErrorCode::InvalidData, "Compact section counters do not match block states");
+    }
+    auto* section = chunk.createSection(sectionIndex);
+    section->restoreBlockStates(
+        std::move(states), static_cast<u16>(header[5]), static_cast<u16>(header[6]), static_cast<u16>(header[7]));
+    std::memcpy(chunk.getBiomes().sectionData(sectionIndex).data(), bytes.data() + offset, _biomeBytes);
+    return {};
 }
 
 } // namespace mc::world::storage

@@ -247,8 +247,7 @@ Result<void> JavaChunkReader::readBlockStates(const compound_tag& sectionNbt, Ch
     // 读取光照数据
     // TODO: Java 存档的 SkyLight/BlockLight 当前不导入——ChunkSection 不再持有光照
     //   （归 ChunkData 的 SWMRNibbleArray），且加载后 ChunkData::m_lightCorrect 默认为 false，
-    //   ChunkLoadLightTask 必然全量重算并覆盖，导入即被丢弃。与 SectionCodec::toChunkSection
-    //   的 TODO 同源。若日后要做"光照已正确则跳过重算"，需在此把 nibble 灌进
+    //   ChunkLoadLightTask 必然全量重算并覆盖，导入即被丢弃。若日后要做"光照已正确则跳过重算"，需在此把 nibble 灌进
     //   chunk.skyNibbleAt(sectionIndex)/blockNibbleAt(sectionIndex) 并置 setLightCorrect(true)。
 
     return {};

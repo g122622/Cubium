@@ -23,6 +23,7 @@
 
 #pragma once
 
+#include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
 #include "common/profiler/MemoryTracking.hpp"
 
@@ -30,6 +31,7 @@
 #include <cstring>
 #include <functional>
 #include <memory>
+#include <span>
 #include <vector>
 
 namespace mc::world::chunk {
@@ -59,12 +61,8 @@ using PaletteAlloc = ::mc::profiler::TracyTrackingAlloc<T, "ChunkPalette">;
 // 均匀态（唯一值个数 == 1）：bits = 0 且 **不分配 storage / hashMap**，整段按
 // palette[0] 取值——空气段与"整段同一方块"因此零额外内存（fill() 也是 O(1) 释放）。
 //
-// 磁盘/网络格式与本内部表示无关：读写方（JavaChunkReader / ChunkSerializer /
-// VanillaChunkWire）各自按 MC 规则重新计算位数与打包方式，本类的 bits 只用于内部
-// 内存布局。
-//
-// 参考: net.minecraft.world.level.chunk.PalettedContainer
-//       ca.spottedleaf.moonrise.mixin.fast_palette
+// 原生存档直接保存此紧凑表示；网络及外来存档按各自格式处理。
+// packedView 提供数组借用，restorePacked 验证并直接恢复最终存储。
 // ============================================================================
 
 class PalettedContainer {
@@ -151,6 +149,21 @@ public:
      * @param count 元素数量（必须为 VOLUME）
      */
     void fromFlat(const u32* data, i32 count);
+
+    /** @brief 内部紧凑数组的只读视图，生命周期由容器及其修改操作决定。 */
+    struct PackedView {
+        i32 bits;
+        std::span<const u32> palette;
+        std::span<const u64> storage;
+        std::span<const u32> hashMap;
+    };
+
+    /** @brief 借用有效调色板、位数组及完整哈希槽位，不展开方块。 */
+    [[nodiscard]] PackedView packedView() const noexcept;
+
+    /** @brief 从可能未对齐的紧凑字节直接恢复最终数组，并验证索引与哈希探测链。 */
+    [[nodiscard]] Result<void> restorePacked(
+        i32 bits, std::span<const u8> paletteBytes, std::span<const u8> storageBytes, std::span<const u8> hashMapBytes);
 
     // ========================================================================
     // 遍历

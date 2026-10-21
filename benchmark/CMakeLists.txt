@@ -4,6 +4,7 @@ add_executable(mc_benchmark
     MemoryProfiler.cpp
     PerfettoProfilerAdapter.hpp
     PerfettoProfilerAdapter.cpp
+    cases/ChunkStorageBenchmark.cpp
     cases/ChunkGenerationBenchmark.cpp
     cases/EntityRangeSeekBenchmark.cpp
     cases/LightingBenchmark.cpp

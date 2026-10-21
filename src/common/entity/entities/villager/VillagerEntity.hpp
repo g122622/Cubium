@@ -457,7 +457,7 @@ public:
      * @brief 检查是否正在睡眠
      * @return 是否正在睡眠
      */
-    [[nodiscard]] bool isSleeping() const;
+    [[nodiscard]] bool isSleeping() const override;
 
     /**
      * @brief 获取睡眠位置
@@ -474,7 +474,7 @@ public:
     /**
      * @brief 停止睡眠
      */
-    void stopSleeping();
+    void stopSleeping() override;
 
     /**
      * @brief 检查是否在夜间时间

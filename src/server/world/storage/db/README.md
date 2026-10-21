@@ -9,7 +9,7 @@ src/server/world/storage/db/
 ├── ColumnFamilies.hpp         # 列族名常量与 16 个列族的创建/命名规范
 ├── ConsistencyMode.hpp        # 一致性模式枚举，唯一决定"默认写入是否等 WAL fsync"
 ├── SectionKey.hpp             # Section 键结构（维度 + 区块坐标 + 段 Y，13 字节编码）
-├── SectionCodec.hpp/cpp       # SectionData 定义与序列化（ZSTD 压缩、内容哈希）
+├── SectionCodec.hpp/cpp       # 紧凑数组直接写入批次与恢复
 └── README.md                  # 本文档
 ```
 
@@ -40,7 +40,6 @@ flowchart LR
 ### 下游（这个模块依赖了谁）
 
 - `rocksdb` - 键值存储引擎
-- `zstd` - Section 压缩
 - `common/core/Result.hpp`、`common/core/Types.hpp`
 - `common/profiler/TraceEvents.hpp` - `TraceEvents.Storage.Db` 追踪
 - `spdlog` - 日志
@@ -55,3 +54,12 @@ flowchart LR
 6. **`WriteBatch` 内按插入顺序生效**：批内各条目获得递增序列号，因此"先 `DeleteRange` 整段删除、再 `Put` 新行"会得到"旧行消失、新行存活"的结果；顺序写反则新行会被自己的删除指令抹掉。
 7. **`close()` 会等待 flush 完成**：本层写入默认不逐条 fsync，`close()` 若不等待就把 memtable 交给析构，这次会话的数据就只剩 WAL 一条退路。
 8. **按区块读取使用 `readRange`**：边界必须交给底层迭代器；Seek 返回后再检查结束键，无法限制寻找下一条可见记录时越过大量已删除键的开销。方法内部管理边界与迭代器的生命周期，并检查最终读取状态，返回值拥有自己的字节存储。
+
+9. **原生段只接受当前紧凑布局**：调色板顺序、位数组、完整反向哈希槽位与段计数原样保存；不展开方块、不进行业务层压缩或内容哈希。
+10. **读取句柄必须及时释放**：`multiGetPinned` 的空 optional 表示不存在，存在但零长度的值仍需报损坏；句柄只能在数据库存活期间使用，恢复到最终区块数组后即释放。
+11. **数组不能强制转换为对象指针**：读取地址可能未对齐；头部与数值数组经 memcpy 恢复，布局固定为小端。
+
+12. **关闭顺序**：停止提交请求后只等待本存档的异步请求计数，不排空共享池的其他工作；所有固定读取句柄释放之后才能销毁数据库。
+
+13. **格式门禁在打开阶段执行**：META 中的 native-section-format 必须匹配当前布局；缺少标记但已有段记录时直接拒绝打开，不迁移、不解码旧格式。
+14. **未分配的空气段也保存生物群系**：零长度调色板表示仅生物群系的段，加载时不创建 ChunkSection。已分配段的持久化计数须与实际状态一致。

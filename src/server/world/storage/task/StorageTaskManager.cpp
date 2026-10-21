@@ -46,15 +46,28 @@ u64 StorageTaskManager::submit(std::unique_ptr<StorageTask> task,
     util::TaskCallback callback,
     std::shared_ptr<std::atomic<bool>> abortSignal)
 {
-    // 空指针检查：作为公共接口，需要验证外部输入
     if (!m_workerPool || !task) {
+        if (task) {
+            task->onCancel();
+        }
         if (callback) {
             callback(false, nullptr);
         }
         return 0;
     }
 
-    return m_workerPool->submit(std::move(task), std::move(callback), priority, std::move(abortSignal));
+    // 拒绝提交时池会在销毁 task 之前同步调用 callback(false, nullptr)。
+    // 只在此分支补上取消收尾；正常执行与正常取消由 worker 负责，不能执行两次。
+    auto* submittedTask = task.get();
+    auto onDone = [submittedTask, cb = std::move(callback)](bool success, util::ITask* completedTask) {
+        if (completedTask == nullptr) {
+            submittedTask->onCancel();
+        }
+        if (cb) {
+            cb(success, completedTask);
+        }
+    };
+    return m_workerPool->submit(std::move(task), std::move(onDone), priority, std::move(abortSignal));
 }
 
 bool StorageTaskManager::cancel(u64 taskId)

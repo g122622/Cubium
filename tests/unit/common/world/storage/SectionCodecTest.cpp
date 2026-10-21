@@ -32,6 +32,10 @@
 #include "core/Types.hpp"
 #include "server/world/storage/db/SectionKey.hpp"
 #include "world/chunk/data/ChunkData.hpp"
+#include <algorithm>
+#include <array>
+#include <cstring>
+#include <limits>
 #include <gtest/gtest.h>
 
 #undef BYTE_SIZE // Re-undef after includes which may re-define BYTE_SIZE
@@ -105,359 +109,210 @@ TEST_F(SectionKeyTest, SectionYRange)
 
 class SectionCodecTest : public ::testing::Test {
 protected:
-    // 方块状态的 isAir 判定与 stateId 分配都依赖方块注册表，必须先初始化。
     void SetUp() override { mc::VanillaBlocks::initialize(); }
 };
 
-/**
- * @brief 在指定区块上创建段并返回引用
- *
- * 段编码需要 ChunkData 提供光照权威副本（光照归 chunk 层，ChunkSection 不再持有），
- * 故本文件所有段编码用例都必须先有区块。
- */
-[[nodiscard]] ChunkSection& makeSection(ChunkData& chunk, i32 sectionIndex = 0)
-{
-    ChunkSection* section = chunk.createSection(sectionIndex);
-    MC_ASSERT_RELEASE(section != nullptr);
-    return *section;
-}
-
-SectionData makeMalformedSectionData()
-{
-    SectionData data;
-    data.blockStates.clear();
-    data.biomes.clear();
-    data.skyLight = std::vector<u8>{};
-    data.blockLight.reset();
-    data.nonEmptyBlockCount = 3558;
-    return data;
-}
-
-/**
- * 非空气方块计数的判定必须用 isAir()，不能只看 stateId 是否为 0
- *
- * 方块状态 0/1/2 分别是空气、洞穴空气、虚空空气，**三者都是空气**。该计数是
- * `SectionData::isEmpty()` 的唯一判据，而 `isEmpty()` 决定 `serialize()` 是否整段
- * 跳过方块数据；把洞穴空气/虚空空气误计为非空气，会让"全空气的段"在落盘时带上
- * 一整块压缩后的方块数据，反过来若判据方向相反则可能直接丢数据。
- */
-TEST_F(SectionCodecTest, AirVariantsDoNotCountAsNonAirBlocks)
-{
-    SectionData data(SectionKey(0, 0, 0, 0));
-
-    data.setBlockStateId(0, 0, 0, block_registry::BaseBlocks::AIR->defaultState().stateId());
-    EXPECT_EQ(data.nonEmptyBlockCount, 0u);
-    EXPECT_TRUE(data.isEmpty());
-
-    data.setBlockStateId(1, 0, 0, block_registry::BaseBlocks::CAVE_AIR->defaultState().stateId());
-    EXPECT_EQ(data.nonEmptyBlockCount, 0u) << "洞穴空气被误计为非空气方块";
-    EXPECT_TRUE(data.isEmpty());
-
-    data.setBlockStateId(2, 0, 0, block_registry::BaseBlocks::VOID_AIR->defaultState().stateId());
-    EXPECT_EQ(data.nonEmptyBlockCount, 0u) << "虚空空气被误计为非空气方块";
-    EXPECT_TRUE(data.isEmpty());
-
-    // 换成真正的方块才计数
-    data.setBlockStateId(3, 0, 0, block_registry::BaseBlocks::STONE->defaultState().stateId());
-    EXPECT_EQ(data.nonEmptyBlockCount, 1u);
-    EXPECT_FALSE(data.isEmpty());
-
-    // 再换回空气变体，计数回落
-    data.setBlockStateId(3, 0, 0, block_registry::BaseBlocks::CAVE_AIR->defaultState().stateId());
-    EXPECT_EQ(data.nonEmptyBlockCount, 0u);
-    EXPECT_TRUE(data.isEmpty());
-}
-
-TEST_F(SectionCodecTest, EmptySection)
-{
-    ChunkData chunk(0, 0);
-    ChunkSection& section = makeSection(chunk);
-
-    SectionKey key(0, 0, 0, 0);
-    auto result = SectionCodec::fromChunkSection(chunk, 0, section, key);
-    ASSERT_TRUE(result.success());
-
-    SectionData& data = result.value();
-    EXPECT_EQ(data.key.chunkX, 0);
-    EXPECT_EQ(data.key.chunkZ, 0);
-    EXPECT_EQ(data.key.sectionY, 0);
-    EXPECT_EQ(data.nonEmptyBlockCount, 0u);
-}
-
-TEST_F(SectionCodecTest, SingleBlock)
-{
-    ChunkData chunk(0, 0);
-    ChunkSection& section = makeSection(chunk);
-    section.setBlockStateId(0, 0, 0, 1); // Set a single block
-    section.setBlockCount(1);            // 手动设置方块数量
-
-    SectionKey key(5, 10, 3, 0);
-    auto result = SectionCodec::fromChunkSection(chunk, 0, section, key);
-    ASSERT_TRUE(result.success());
-
-    SectionData& data = result.value();
-    EXPECT_EQ(data.key.chunkX, 5);
-    EXPECT_EQ(data.key.chunkZ, 10);
-    EXPECT_EQ(data.key.sectionY, 3);
-    // nonEmptyBlockCount 会在 fromChunkSection 中计算
-}
-
-TEST_F(SectionCodecTest, MultipleBlocks)
-{
-    ChunkData chunk(0, 0);
-    ChunkSection& section = makeSection(chunk);
-
-    // Set some blocks
-    u16 blockCount = 0;
-    for (int y = 0; y < 4; ++y) {
-        for (int z = 0; z < 4; ++z) {
-            for (int x = 0; x < 4; ++x) {
-                section.setBlockStateId(x, y, z, 2); // Grass block
-                ++blockCount;
-            }
-        }
+class _capturedValue final : public rocksdb::WriteBatch::Handler {
+public:
+    std::string bytes;
+    rocksdb::Status PutCF(uint32_t, const rocksdb::Slice&, const rocksdb::Slice& value) override
+    {
+        bytes.assign(value.data(), value.size());
+        return rocksdb::Status::OK();
     }
-    section.setBlockCount(blockCount);
+};
 
-    SectionKey key(0, 0, 0, 0);
-    auto result = SectionCodec::fromChunkSection(chunk, 0, section, key);
-    ASSERT_TRUE(result.success());
-
-    SectionData& data = result.value();
-    // fromChunkSection 会计算非空方块数
+std::vector<u8> _encode(const ChunkData& chunk, i32 index)
+{
+    rocksdb::WriteBatch batch;
+    const SectionKey key(chunk.x(), chunk.z(), static_cast<i8>(world::sectionIndexToCoord(index)), 0);
+    auto result = SectionCodec::appendToBatch(batch, nullptr, key, chunk, index);
+    EXPECT_TRUE(result.success()) << result.error().message();
+    _capturedValue capture;
+    EXPECT_TRUE(batch.Iterate(&capture).ok());
+    return {capture.bytes.begin(), capture.bytes.end()};
 }
 
-TEST_F(SectionCodecTest, SerializeDeserialize)
+void _setWord(std::vector<u8>& bytes, size_t offset, u32 value)
 {
-    ChunkData chunk(0, 0);
-    ChunkSection& original = makeSection(chunk);
-    original.setBlockStateId(5, 10, 15, 42);
-    original.setBlockStateId(7, 8, 9, 100);
-    original.setBlockCount(2);
-
-    SectionKey key(100, -200, 7, 1); // Nether
-    auto encodeResult = SectionCodec::fromChunkSection(chunk, 0, original, key);
-    ASSERT_TRUE(encodeResult.success());
-
-    auto& data = encodeResult.value();
-
-    // key 应该被正确设置
-    EXPECT_EQ(data.key.chunkX, 100);
-    EXPECT_EQ(data.key.chunkZ, -200);
-    EXPECT_EQ(data.key.sectionY, 7);
-    EXPECT_EQ(data.key.dimension, 1);
-
-    auto serializedResult = data.serialize();
-    ASSERT_TRUE(serializedResult.success()) << "serialize failed: " << serializedResult.error().message();
-    auto& serialized = serializedResult.value();
-    ASSERT_FALSE(serialized.empty());
-
-    // 注意：key 作为 RocksDB 键单独存储，不包含在序列化数据中
-    auto decodeResult = SectionData::deserialize(serialized.data(), serialized.size());
-    ASSERT_TRUE(decodeResult.success()) << "deserialize failed: " << decodeResult.error().message();
-
-    SectionData& decoded = decodeResult.value();
-
-    // 解码后的 key 需要单独设置（通常从 RocksDB 键恢复）
-    decoded.key = key;
-
-    EXPECT_EQ(decoded.key.chunkX, 100);
-    EXPECT_EQ(decoded.key.chunkZ, -200);
-    EXPECT_EQ(decoded.key.sectionY, 7);
-    EXPECT_EQ(decoded.key.dimension, 1);
-
-    // Verify block states
-    EXPECT_EQ(decoded.getBlockStateId(5, 10, 15), 42u);
-    EXPECT_EQ(decoded.getBlockStateId(7, 8, 9), 100u);
+    std::memcpy(bytes.data() + offset, &value, sizeof(value));
 }
 
-TEST_F(SectionCodecTest, RoundTripWithBiomes)
+TEST_F(SectionCodecTest, PreservesCompactArraysAcrossWidthsAndAllowsFurtherMutation)
 {
-    ChunkData chunk(0, 0);
-    ChunkSection& section = makeSection(chunk);
-    section.setBlockStateId(0, 0, 0, 1);
-    section.setBlockCount(1);
-
-    // Create biome data (4x4x4 = 64 biomes)
-    std::vector<BiomeId> biomes(64, TestBiomes::PLAINS);
-    biomes[0] = TestBiomes::DESERT;
-    biomes[63] = TestBiomes::FOREST;
-
-    SectionKey key(0, 0, 0, 0);
-    auto encodeResult = SectionCodec::fromChunkSection(chunk, 0, section, key, biomes);
-    ASSERT_TRUE(encodeResult.success());
-
-    auto serializedResult = encodeResult.value().serialize();
-    ASSERT_TRUE(serializedResult.success());
-
-    auto decodeResult = SectionData::deserialize(serializedResult.value().data(), serializedResult.value().size());
-    ASSERT_TRUE(decodeResult.success());
-
-    SectionData& decoded = decodeResult.value();
-    EXPECT_FALSE(decoded.biomes.empty());
-    EXPECT_EQ(decoded.biomes[0], TestBiomes::DESERT);
-    EXPECT_EQ(decoded.biomes[63], TestBiomes::FOREST);
-}
-
-TEST_F(SectionCodecTest, ToChunkSection)
-{
-    ChunkData chunk(0, 0);
-    ChunkSection& original = makeSection(chunk);
-    original.setBlockStateId(3, 5, 7, 123);
-    original.setBlockStateId(10, 12, 14, 456);
-    original.setBlockCount(2);
-
-    SectionKey key(0, 0, 0, 0);
-    auto encodeResult = SectionCodec::fromChunkSection(chunk, 0, original, key);
-    ASSERT_TRUE(encodeResult.success());
-
-    auto serializedResult = encodeResult.value().serialize();
-    ASSERT_TRUE(serializedResult.success());
-
-    auto decodeResult = SectionData::deserialize(serializedResult.value().data(), serializedResult.value().size());
-    ASSERT_TRUE(decodeResult.success());
-
-    ChunkSection restored;
-    auto applyResult = SectionCodec::toChunkSection(decodeResult.value(), restored);
-    ASSERT_TRUE(applyResult.success());
-
-    EXPECT_EQ(restored.getBlockStateId(3, 5, 7), 123u);
-    EXPECT_EQ(restored.getBlockStateId(10, 12, 14), 456u);
-}
-
-TEST_F(SectionCodecTest, SerializeRejectsMalformedLayout)
-{
-    auto data = makeMalformedSectionData();
-
-    auto serializedResult = data.serialize();
-
-    ASSERT_TRUE(serializedResult.failed());
-    EXPECT_EQ(serializedResult.error().code(), ErrorCode::InvalidData);
-}
-
-TEST_F(SectionCodecTest, ToChunkSectionRejectsMalformedLayout)
-{
-    auto data = makeMalformedSectionData();
-    ChunkSection restored;
-
-    auto applyResult = SectionCodec::toChunkSection(data, restored);
-
-    ASSERT_TRUE(applyResult.failed());
-    EXPECT_EQ(applyResult.error().code(), ErrorCode::InvalidData);
-}
-
-// 段反序列化只还原方块数据；落盘的光照（SectionData::blockLight）当前被丢弃
-// （ChunkSection 不再持有光照，ChunkData 侧也没有从这里填充——见 toChunkSection 的 TODO）。
-TEST_F(SectionCodecTest, ToChunkSectionIgnoresStoredLightBytes)
-{
-    SectionData data;
-    data.key = SectionKey(0, 0, 0, 0);
-    data.blockStates.assign(SectionData::VOLUME, 0);
-    data.biomes.assign(SectionData::BIOME_COUNT, TestBiomes::PLAINS);
-    data.nonEmptyBlockCount = 0;
-    data.blockLight = std::vector<u8>(NibbleArray::BYTE_SIZE, 0);
-    data.blockLight->at(0) = 0x5A;
-
-    ChunkSection restored;
-    auto applyResult = SectionCodec::toChunkSection(data, restored);
-
-    ASSERT_TRUE(applyResult.success());
-    // 方块数据按原样还原（此处全空气），光照字节不影响段状态。
-    EXPECT_EQ(restored.getBlockCount(), 0u);
-    EXPECT_TRUE(restored.isEmpty());
-}
-
-TEST_F(SectionCodecTest, DeserializeRejectsImpossibleBlockCount)
-{
-    ChunkData chunk(0, 0);
-    ChunkSection& original = makeSection(chunk);
-    original.setBlockStateId(0, 0, 0, 1);
-    original.setBlockCount(1);
-
-    SectionKey key(0, 0, 0, 0);
-    auto encodeResult = SectionCodec::fromChunkSection(chunk, 0, original, key);
-    ASSERT_TRUE(encodeResult.success());
-
-    auto serializedResult = encodeResult.value().serialize();
-    ASSERT_TRUE(serializedResult.success());
-
-    auto serialized = serializedResult.value();
-    serialized[4] = 0x10;
-    serialized[5] = 0x01;
-
-    auto decodeResult = SectionData::deserialize(serialized.data(), serialized.size());
-
-    ASSERT_TRUE(decodeResult.failed());
-    EXPECT_EQ(decodeResult.error().code(), ErrorCode::InvalidData);
-}
-
-TEST_F(SectionCodecTest, LargeBlockStateIds)
-{
-    ChunkData chunk(0, 0);
-    ChunkSection& section = makeSection(chunk);
-
-    // Test large block state IDs (beyond 12 bits, used in modern versions)
-    section.setBlockStateId(0, 0, 0, 10000);
-    section.setBlockStateId(15, 15, 15, 50000);
-    section.setBlockCount(2);
-
-    SectionKey key(0, 0, 0, 0);
-    auto encodeResult = SectionCodec::fromChunkSection(chunk, 0, section, key);
-    ASSERT_TRUE(encodeResult.success());
-
-    auto serializedResult = encodeResult.value().serialize();
-    ASSERT_TRUE(serializedResult.success());
-
-    auto decodeResult = SectionData::deserialize(serializedResult.value().data(), serializedResult.value().size());
-    ASSERT_TRUE(decodeResult.success());
-
-    ChunkSection restored;
-    auto applyResult = SectionCodec::toChunkSection(decodeResult.value(), restored);
-    ASSERT_TRUE(applyResult.success());
-
-    EXPECT_EQ(restored.getBlockStateId(0, 0, 0), 10000u);
-    EXPECT_EQ(restored.getBlockStateId(15, 15, 15), 50000u);
-}
-
-TEST_F(SectionCodecTest, FullSection)
-{
-    ChunkData chunk(0, 0);
-    ChunkSection& section = makeSection(chunk);
-
-    // Fill entire section with blocks
-    for (u32 y = 0; y < 16; ++y) {
-        for (u32 z = 0; z < 16; ++z) {
-            for (u32 x = 0; x < 16; ++x) {
-                u32 blockId = (x + y + z) % 1000 + 1;
-                section.setBlockStateId(x, y, z, blockId);
-            }
+    for (u32 values : {1u, 2u, 3u, 7u, 16u, 17u, 65u, 4096u}) {
+        SCOPED_TRACE(values);
+        ChunkData source(-12, 34);
+        auto* original = source.createSection(0);
+        original->fill(100);
+        for (i32 i = 0; i < ChunkSection::VOLUME; ++i) {
+            original->setBlockStateIdFast(i, 100 + static_cast<u32>(i) % values);
         }
-    }
-    section.setBlockCount(4096);
-
-    SectionKey key(0, 0, 0, 0);
-    auto encodeResult = SectionCodec::fromChunkSection(chunk, 0, section, key);
-    ASSERT_TRUE(encodeResult.success());
-
-    auto serializedResult = encodeResult.value().serialize();
-    ASSERT_TRUE(serializedResult.success());
-
-    auto decodeResult = SectionData::deserialize(serializedResult.value().data(), serializedResult.value().size());
-    ASSERT_TRUE(decodeResult.success());
-
-    ChunkSection restored;
-    auto applyResult = SectionCodec::toChunkSection(decodeResult.value(), restored);
-    ASSERT_TRUE(applyResult.success());
-
-    // Verify all blocks
-    for (u32 y = 0; y < 16; ++y) {
-        for (u32 z = 0; z < 16; ++z) {
-            for (u32 x = 0; x < 16; ++x) {
-                u32 expected = (x + y + z) % 1000 + 1;
-                EXPECT_EQ(restored.getBlockStateId(x, y, z), expected);
-            }
+        const auto packed = original->blockStates().packedView();
+        auto bytes = _encode(source, 0);
+        EXPECT_EQ(bytes.size(),
+            8 * sizeof(u32) + packed.palette.size_bytes() + packed.storage.size_bytes() + packed.hashMap.size_bytes() +
+                BiomeContainer::SECTION_BIOME_SIZE * sizeof(BiomeId));
+        // 缓冲区故意错开一个字节，验证恢复不依赖数据库返回地址的对齐。
+        bytes.insert(bytes.begin(), 0);
+        ChunkData restored(-12, 34);
+        auto result = SectionCodec::restore(std::span<const u8>(bytes).subspan(1), restored, 0);
+        ASSERT_TRUE(result.success()) << result.error().message();
+        auto* actual = restored.getSection(0);
+        ASSERT_NE(actual, nullptr);
+        const auto actualPacked = actual->blockStates().packedView();
+        EXPECT_TRUE(std::ranges::equal(packed.palette, actualPacked.palette));
+        EXPECT_TRUE(std::ranges::equal(packed.storage, actualPacked.storage));
+        EXPECT_TRUE(std::ranges::equal(packed.hashMap, actualPacked.hashMap));
+        EXPECT_EQ(original->getBlockCount(), actual->getBlockCount());
+        EXPECT_EQ(original->blockTickRefCount(), actual->blockTickRefCount());
+        EXPECT_EQ(original->fluidRefCount(), actual->fluidRefCount());
+        for (i32 i = 0; i < ChunkSection::VOLUME; ++i) {
+            EXPECT_EQ(actual->getBlockStateIdFast(i), original->getBlockStateIdFast(i));
         }
+        const i32 before = actual->blockStates().paletteSize();
+        actual->setBlockStateIdFast(0, 100);
+        EXPECT_EQ(actual->blockStates().paletteSize(), before);
+        actual->setBlockStateIdFast(1, 50000);
+        EXPECT_EQ(actual->getBlockStateIdFast(1), 50000u);
+        EXPECT_EQ(actual->blockStates().paletteSize(), before + 1);
     }
+}
+
+TEST_F(SectionCodecTest, UniformAirVariantsRemainExact)
+{
+    for (u32 state : {0u, 1u, 2u}) {
+        ChunkData source(0, 0);
+        source.createSection(0)->fill(state);
+        auto bytes = _encode(source, 0);
+        ChunkData restored(0, 0);
+        ASSERT_TRUE(SectionCodec::restore(bytes, restored, 0).success());
+        EXPECT_TRUE(restored.getSection(0)->isEmpty());
+        EXPECT_EQ(restored.getSection(0)->getBlockStateIdFast(2048), state);
+        EXPECT_TRUE(restored.getSection(0)->blockStates().packedView().hashMap.empty());
+    }
+}
+
+TEST_F(SectionCodecTest, BiomesAreSavedPerSectionWithoutFlatteningWholeChunk)
+{
+    ChunkData source(0, 0);
+    ChunkData restored(0, 0);
+    for (i32 index : {0, world::CHUNK_SECTIONS - 1}) {
+        source.createSection(index)->fill(100);
+        auto biomes = source.getBiomes().sectionData(index);
+        for (size_t i = 0; i < biomes.size(); ++i) {
+            biomes[i] = static_cast<BiomeId>(index * 100 + static_cast<i32>(i));
+        }
+        auto bytes = _encode(source, index);
+        ASSERT_TRUE(SectionCodec::restore(bytes, restored, index).success());
+        EXPECT_TRUE(std::ranges::equal(source.getBiomes().sectionData(index), restored.getBiomes().sectionData(index)));
+    }
+}
+
+TEST_F(SectionCodecTest, BatchOwnsSnapshotAfterSourceChanges)
+{
+    ChunkData source(0, 0);
+    source.createSection(0)->fill(100);
+    rocksdb::WriteBatch batch;
+    ASSERT_TRUE(
+        SectionCodec::appendToBatch(batch, nullptr, SectionKey(0, 0, world::MIN_SECTION_Y, 0), source, 0).success());
+    source.getSection(0)->fill(101);
+    _capturedValue capture;
+    ASSERT_TRUE(batch.Iterate(&capture).ok());
+    ChunkData restored(0, 0);
+    ASSERT_TRUE(
+        SectionCodec::restore({reinterpret_cast<const u8*>(capture.bytes.data()), capture.bytes.size()}, restored, 0)
+            .success());
+    EXPECT_EQ(restored.getSection(0)->getBlockStateIdFast(0), 100u);
+}
+
+TEST_F(SectionCodecTest, RejectsInvalidHeadersTruncationAndTrailingBytes)
+{
+    ChunkData source(0, 0);
+    source.createSection(0)->fill(100);
+    const auto bytes = _encode(source, 0);
+    for (size_t length = 0; length < bytes.size(); ++length) {
+        ChunkData restored(0, 0);
+        EXPECT_TRUE(SectionCodec::restore(std::span<const u8>(bytes).first(length), restored, 0).failed());
+        EXPECT_EQ(restored.getSection(0), nullptr);
+    }
+    for (size_t word : {0u, 1u, 2u, 3u, 4u, 5u, 6u, 7u}) {
+        auto malformed = bytes;
+        _setWord(malformed, word * sizeof(u32), std::numeric_limits<u32>::max());
+        ChunkData restored(0, 0);
+        EXPECT_TRUE(SectionCodec::restore(malformed, restored, 0).failed());
+    }
+    auto trailing = bytes;
+    trailing.push_back(0);
+    ChunkData restored(0, 0);
+    EXPECT_TRUE(SectionCodec::restore(trailing, restored, 0).failed());
+}
+
+TEST_F(SectionCodecTest, RejectsInRangeCountersThatDisagreeWithBlocks)
+{
+    ChunkData source(0, 0);
+    source.createSection(0)->fill(100);
+    const auto original = _encode(source, 0);
+    for (size_t word : {5u, 6u, 7u}) {
+        auto bytes = original;
+        u32 counter;
+        std::memcpy(&counter, bytes.data() + word * sizeof(u32), sizeof(counter));
+        _setWord(bytes, word * sizeof(u32), counter == 0 ? 1 : counter - 1);
+        ChunkData restored(0, 0);
+        EXPECT_TRUE(SectionCodec::restore(bytes, restored, 0).failed());
+        EXPECT_EQ(restored.getSection(0), nullptr);
+    }
+}
+
+TEST_F(SectionCodecTest, BiomeOnlyRecordsDoNotAllocateBlockSections)
+{
+    ChunkData source(0, 0);
+    source.getBiomes().sectionData(0).front() = 23;
+    const auto bytes = _encode(source, 0);
+    EXPECT_EQ(bytes.size(), 8 * sizeof(u32) + BiomeContainer::SECTION_BIOME_SIZE * sizeof(BiomeId));
+    ChunkData restored(0, 0);
+    ASSERT_TRUE(SectionCodec::restore(bytes, restored, 0).success());
+    EXPECT_EQ(restored.getSection(0), nullptr);
+    EXPECT_EQ(restored.getBiomes().sectionData(0).front(), 23);
+}
+
+TEST_F(SectionCodecTest, RejectsCorruptHashSlotsAndUnreachableEntries)
+{
+    ChunkData source(0, 0);
+    auto* section = source.createSection(0);
+    section->fill(100);
+    section->setBlockStateIdFast(1, 101);
+    const auto packed = section->blockStates().packedView();
+    const size_t hashOffset = 8 * sizeof(u32) + packed.palette.size_bytes() + packed.storage.size_bytes();
+    auto bytes = _encode(source, 0);
+    _setWord(bytes, hashOffset, std::numeric_limits<u32>::max());
+    ChunkData restored(0, 0);
+    EXPECT_TRUE(SectionCodec::restore(bytes, restored, 0).failed());
+    bytes = _encode(source, 0);
+    std::fill(bytes.begin() + static_cast<ptrdiff_t>(hashOffset),
+        bytes.begin() + static_cast<ptrdiff_t>(hashOffset + packed.hashMap.size_bytes()),
+        0);
+    _setWord(bytes, hashOffset, 1);
+    _setWord(bytes, hashOffset + sizeof(u32), 2);
+    EXPECT_TRUE(SectionCodec::restore(bytes, restored, 0).failed());
+}
+
+TEST_F(SectionCodecTest, RejectsUnusedPackedIndexAndDuplicatePalette)
+{
+    ChunkData source(0, 0);
+    auto* section = source.createSection(0);
+    section->fill(100);
+    section->setBlockStateIdFast(1, 101);
+    section->setBlockStateIdFast(2, 102);
+    auto bytes = _encode(source, 0);
+    const auto packed = section->blockStates().packedView();
+    const size_t storageOffset = 8 * sizeof(u32) + packed.palette.size_bytes();
+    bytes[storageOffset] |= 3;
+    ChunkData restored(0, 0);
+    EXPECT_TRUE(SectionCodec::restore(bytes, restored, 0).failed());
+    bytes = _encode(source, 0);
+    _setWord(bytes, 8 * sizeof(u32) + sizeof(u32), 100);
+    EXPECT_TRUE(SectionCodec::restore(bytes, restored, 0).failed());
 }
 
 } // namespace

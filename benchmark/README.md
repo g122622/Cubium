@@ -11,6 +11,7 @@ benchmark/
 ├── PerfettoProfilerAdapter.hpp/.cpp  # ProfilerManager 适配器（每用例/每重复一个 .perfetto-trace，默认不注册）
 ├── CMakeLists.txt                    # mc_benchmark 目标（源闭包参照 mc_tests 的登记方式）
 ├── cases/
+│   ├── ChunkStorageBenchmark.cpp     # 原生段紧凑数组批次捕获与直接恢复
 │   ├── ChunkGenerationBenchmark.cpp  # 区块生成吞吐（生产级生成系统，线程数×批量多档）
 │   ├── EntityRangeSeekBenchmark.cpp  # 含范围删除记录的有界/无界实体查询对比
 │   ├── LightingBenchmark.cpp         # 光照引擎本体（16×16 整层批量方块光更新）

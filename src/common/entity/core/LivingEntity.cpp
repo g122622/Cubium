@@ -813,6 +813,13 @@ void LivingEntity::doHurtEquipment(DamageSource& source, f32 amount, std::initia
         ItemStack& equipment = getMutableEquipment(slot);
         // TODO(equippable-component): vanilla 还要求 Equippable.damageOnHurt 为 true
         //   （默认 true，可被数据包关闭）。Cubium 未实现 EQUIPPABLE 组件，此处按默认值处理。
+        //   新发现的缺陷（待同一改造解决）：本函数还会对主手工具等非装备物品磨损耐久，而 vanilla
+        //   只有 Player.hurtArmor 传入的四个护甲槽与 hurtHelmet 传入的头盔槽会走到这里；护甲槽内
+        //   的非护甲物品（如头盔槽里的南瓜）在 vanilla 无 EQUIPPABLE 组件 → 不磨损。
+        //   落地顺序：① EQUIPPABLE 结构化载荷 + 编解码（slot/equip_sound/damage_on_hurt 等）
+        //   → ② 物品默认组件注册（护甲/鞘翅/wolf_armor）→ ③ 此处改读 stack.get(Equippable)，
+        //   并同步修正 MobEntity::getEquipmentSlotForItem 的「未落地组件→护甲槽位」近似
+        //   （MobEntity.cpp:1463）。
         if (equipment.isEmpty() || !equipment.isDamageable() || !equipment.canBeHurtBy(source)) {
             continue;
         }
@@ -983,8 +990,11 @@ void LivingEntity::die(DamageSource& cause)
     }
 
     // 2. stopSleeping（LivingEntity.java:1438-1439）
-    // TODO: isSleeping()/stopSleeping() 在 Cubium 中仅 Player 子类实现，
-    //       LivingEntity 基类无此方法。待 LivingEntity 引入睡眠状态后补此调用。
+    //    isSleeping/stopSleeping 已提升到 LivingEntity 基类（由 SLEEPING_POS 数据参数承载，
+    //    Player 重写为自身睡眠标志并在停止时通知世界重算全员睡眠状态）。
+    if (isSleeping()) {
+        stopSleeping();
+    }
 
     // 3. stopUsingItem（LivingEntity.java:1442）
     //    Cubium 等价方法为 stopActiveHand()。
@@ -1284,6 +1294,26 @@ void LivingEntity::dropFromLootTable(DamageSource& cause, bool recentlyHitByPlay
             continue;
         }
         ItemDropHelper::spawnItemAtEntity(this, stack, 0.5f, rng);
+    }
+}
+
+bool LivingEntity::isSleeping() const
+{
+    // 对齐 vanilla LivingEntity.isSleeping：同步数据参数中的睡眠位置非空即视为睡眠中。
+    // Cubium 的 Player 另行维护 m_isSleeping/被动姿态，Player 重写本方法以保持与自身状态一致。
+    return m_dataManager.get<entity::OptionalBlockPosValue>(DATA_SLEEPING_POS_PARAM).present;
+}
+
+void LivingEntity::stopSleeping()
+{
+    // 对齐 vanilla LivingEntity.stopSleeping 的状态机部分：清除睡眠位置并回到站立姿态。
+    // 原版还会把床方块的 OCCUPIED 置回 false 并计算起身位置；Cubium 的床占用状态由
+    // Player/ServerPlayer 的睡眠流程维护，基类仅处理通用状态。
+    // TODO(bed-sleep): 床方块 OCCUPIED 复位与 findStandUpPosition 起身落点随床方块体系落地后
+    //   在此补全（vanilla LivingEntity.stopSleeping:3654-3671），并供非玩家实体复用。
+    m_dataManager.set(DATA_SLEEPING_POS_PARAM, entity::OptionalBlockPosValue{false, {}});
+    if (pose() == EntityPose::Sleeping) {
+        setPose(EntityPose::Standing);
     }
 }
 

@@ -26,6 +26,7 @@
 #include "server/world/storage/db/ColumnFamilies.hpp"
 #include "server/world/storage/db/ConsistencyMode.hpp"
 #include "server/world/storage/db/RocksDBConfig.hpp"
+#include <array>
 #include <filesystem>
 #include <string>
 #include <vector>
@@ -245,6 +246,40 @@ TEST_F(RocksDBDatabaseTest, DimensionAwareColumnFamilies)
 // ============================================================================
 // 基础读写操作
 // ============================================================================
+
+TEST_F(RocksDBDatabaseTest, PinnedMultiGetDistinguishesEmptyMissingAndOwnsReadVersion)
+{
+    auto opened = RocksDBDatabase::open(getDbPath("pinned_read"));
+    ASSERT_TRUE(opened.success());
+    auto db = std::move(opened.value());
+    ASSERT_TRUE(db->put(cf::META, rocksdb::Slice("empty"), rocksdb::Slice(""), false).success());
+    ASSERT_TRUE(db->put(cf::META, rocksdb::Slice("value"), rocksdb::Slice("before"), false).success());
+    const std::array<rocksdb::Slice, 3> keys{
+        rocksdb::Slice("value"), rocksdb::Slice("missing"), rocksdb::Slice("empty")};
+    for (bool flush : {false, true}) {
+        if (flush) {
+            ASSERT_TRUE(db->flush().success());
+        }
+        auto result = db->multiGetPinned(cf::META, keys);
+        ASSERT_TRUE(result.success());
+        ASSERT_EQ(result.value().size(), 3u);
+        const auto& first = result.value()[0];
+        const auto& empty = result.value()[2];
+        if (!first.has_value() || !empty.has_value()) {
+            FAIL() << "Existing keys must return values, including an empty value";
+        }
+        EXPECT_EQ(first->ToString(), "before");
+        EXPECT_FALSE(result.value()[1].has_value());
+        EXPECT_TRUE(empty->empty());
+        ASSERT_TRUE(db->put(cf::META, rocksdb::Slice("value"), rocksdb::Slice("after"), false).success());
+        EXPECT_EQ(first->ToString(), "before");
+        ASSERT_TRUE(db->put(cf::META, rocksdb::Slice("value"), rocksdb::Slice("before"), false).success());
+    }
+    EXPECT_TRUE(db->multiGetPinned(cf::META, {}).success());
+    EXPECT_TRUE(db->multiGetPinned("missing-cf", keys).failed());
+    db->close();
+    EXPECT_TRUE(db->multiGetPinned(cf::META, keys).failed());
+}
 
 TEST_F(RocksDBDatabaseTest, PutAndGet)
 {

@@ -88,7 +88,7 @@ DataComponentPatch readPatchFromNbt(const nbt::tags::compound_tag& tag)
         if (!type.has_value()) {
             continue; // 未知组件名：跳过
         }
-        // 本实现未落地解码的组件（如 food/equippable/blocks_attacks）跳过；
+        // 本实现未落地解码的组件（如 food/equippable/blocks_attacks）跳过（返回空载荷，不写入补丁）；
         // tool/bees/trim/recipes 以载荷形式承载，正常参与往返
         DataComponentPayload payload = detail::nbtToPayload(*type, *valueTag);
         patch.add(*type, std::move(payload));
@@ -108,6 +108,31 @@ bool _isTagReference(const std::string& text)
 std::string _normalizeId(const std::string& text)
 {
     return text.find(':') == std::string::npos ? "minecraft:" + text : text;
+}
+
+/// 把 JSON 中数值字段整体转为 double。
+/// nbt::jsonToNbt* 的数值分派只接受 double（整数类型会落到未处理分支返回 nullptr），
+/// 而 vanilla Codec.INT / Codec.FLOAT 的 JSON 形态是普通整数，故转换前统一提升。
+nlohmann::json _normalizeNumbers(const nlohmann::json& value)
+{
+    if (value.is_number_integer() || value.is_number_unsigned()) {
+        return value.get<f64>();
+    }
+    if (value.is_array()) {
+        nlohmann::json out = nlohmann::json::array();
+        for (const auto& item : value) {
+            out.push_back(_normalizeNumbers(item));
+        }
+        return out;
+    }
+    if (value.is_object()) {
+        nlohmann::json out = nlohmann::json::object();
+        for (const auto& [key, item] : value.items()) {
+            out[key] = _normalizeNumbers(item);
+        }
+        return out;
+    }
+    return value;
 }
 
 /// 方块标签（去掉 '#' 前缀）或方块 ID 列表
@@ -281,10 +306,12 @@ bool jsonToComponentPayload(DataComponentType type, const nlohmann::json& json, 
     }
 
     // 标量组件值（bool/数值/字符串）直接用单值转换；对象/数组走 jsonToNbtStrictInt
-    // （整数不窄化到 byte，与 vanilla Codec.INT 的 NBT 形态一致）
+    // （整数不窄化到 byte，与 vanilla Codec.INT 的 NBT 形态一致）。
+    // 数值先提升为 double：jsonToNbt 的数值分派只认浮点，整数输入会得到空 tag，
+    // 使带数值字段的对象型组件（如 equippable 的 slot 枚举、damage_on_hurt）整体解析失败。
     std::unique_ptr<nbt::tags::tag> tag;
     if (json.is_object() || json.is_array()) {
-        tag = nbt::jsonToNbtStrictInt(json);
+        tag = nbt::jsonToNbtStrictInt(_normalizeNumbers(json));
     } else {
         auto compound = nbt::jsonToNbt(nlohmann::json::object({{"v", json}}));
         if (compound != nullptr) {
