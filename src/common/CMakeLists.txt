@@ -152,6 +152,8 @@ add_library(mc_common STATIC
     entity/entities/passive/special/BeeEntity.cpp
     entity/entities/passive/special/StriderEntity.cpp
     entity/entities/passive/special/SnifferEntity.cpp
+    # Entity - Passive Animals (happy ghast)
+    entity/entities/passive/happyghast/HappyGhastEntity.cpp
     # Entity - Passive Animals (water)
     entity/entities/passive/water/WaterMobEntity.cpp
     entity/entities/passive/water/AgeableWaterCreatureEntity.cpp

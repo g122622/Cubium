@@ -30,6 +30,7 @@
 #include "common/entity/core/EntityType.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/entities/monster/nether/NetherEntities.hpp"
+#include "common/entity/entities/passive/happyghast/HappyGhastEntity.hpp"
 #include "common/util/assert/AssertAll.hpp"
 #include "common/util/math/MathUtils.hpp"
 #include "common/util/math/random/Random.hpp"
@@ -51,13 +52,27 @@ GhastRandomFlyGoal::GhastRandomFlyGoal(GhastEntity* ghast)
     MC_ASSERT_RELEASE(ghast != nullptr);
 }
 
+GhastRandomFlyGoal::GhastRandomFlyGoal(HappyGhastEntity* ghast)
+    : Goal(EnumSet<GoalFlag>{GoalFlag::Move})
+    , m_ghast(nullptr)
+    , m_happyGhast(ghast)
+{
+    MC_ASSERT_RELEASE(ghast != nullptr);
+}
+
+MobEntity* GhastRandomFlyGoal::_host() const
+{
+    return m_ghast != nullptr ? static_cast<MobEntity*>(m_ghast) : static_cast<MobEntity*>(m_happyGhast);
+}
+
 bool GhastRandomFlyGoal::shouldExecute()
 {
-    if (m_ghast == nullptr || m_ghast->moveController() == nullptr) {
+    MobEntity* host = _host();
+    if (host == nullptr || host->moveController() == nullptr) {
         return false;
     }
 
-    auto* moveController = m_ghast->moveController();
+    auto* moveController = host->moveController();
 
     // 条件1: 移动控制器空闲（没有目标）
     if (!moveController->isUpdating()) {
@@ -65,9 +80,9 @@ bool GhastRandomFlyGoal::shouldExecute()
     }
 
     // 条件2: 目标距离太近（小于1格）
-    f64 dx = moveController->getX() - m_ghast->x();
-    f64 dy = moveController->getY() - m_ghast->y();
-    f64 dz = moveController->getZ() - m_ghast->z();
+    f64 dx = moveController->getX() - host->x();
+    f64 dy = moveController->getY() - host->y();
+    f64 dz = moveController->getZ() - host->z();
     f64 distSq = dx * dx + dy * dy + dz * dz;
 
     if (distSq < MIN_DISTANCE_SQ) {
@@ -84,19 +99,68 @@ bool GhastRandomFlyGoal::shouldExecute()
 
 void GhastRandomFlyGoal::startExecuting()
 {
-    if (m_ghast == nullptr || m_ghast->moveController() == nullptr) {
+    MobEntity* host = _host();
+    if (host == nullptr || host->moveController() == nullptr) {
         return;
     }
 
     // 在当前位置周围选择随机目标点
-    math::IRandom& rng = m_ghast->getRandom();
+    math::IRandom& rng = host->getRandom();
 
     // 目标范围: 当前位置 ±16格
-    f64 targetX = m_ghast->x() + (rng.nextFloat() * 2.0 - 1.0) * WANDER_RANGE;
-    f64 targetY = m_ghast->y() + (rng.nextFloat() * 2.0 - 1.0) * WANDER_RANGE;
-    f64 targetZ = m_ghast->z() + (rng.nextFloat() * 2.0 - 1.0) * WANDER_RANGE;
+    f64 targetX = host->x() + (rng.nextFloat() * 2.0 - 1.0) * WANDER_RANGE;
+    f64 targetY = host->y() + (rng.nextFloat() * 2.0 - 1.0) * WANDER_RANGE;
+    f64 targetZ = host->z() + (rng.nextFloat() * 2.0 - 1.0) * WANDER_RANGE;
 
-    m_ghast->moveController()->setMoveTo(targetX, targetY, targetZ, 1.0);
+    host->moveController()->setMoveTo(targetX, targetY, targetZ, 1.0);
+}
+
+// ============================================================================
+// GhastHappyFloatGoal
+// ============================================================================
+
+GhastHappyFloatGoal::GhastHappyFloatGoal(HappyGhastEntity* ghast)
+    : Goal(EnumSet<GoalFlag>{GoalFlag::Move})
+    , m_ghast(ghast)
+{
+    MC_ASSERT_RELEASE(ghast != nullptr);
+}
+
+bool GhastHappyFloatGoal::shouldExecute()
+{
+    if (m_ghast == nullptr || !m_ghast->isChild() || m_ghast->moveController() == nullptr) {
+        return false;
+    }
+    // 仅在移动控制器空闲时接管（成年切换为随机飞行后不再漂浮）。
+    return !m_ghast->moveController()->isUpdating();
+}
+
+bool GhastHappyFloatGoal::shouldContinueExecuting()
+{
+    return m_ghast != nullptr && m_ghast->isChild();
+}
+
+void GhastHappyFloatGoal::startExecuting()
+{
+    m_hasTarget = false;
+}
+
+void GhastHappyFloatGoal::tick()
+{
+    if (m_ghast == nullptr) {
+        return;
+    }
+    // 对齐 vanilla HappyGhast 的幼体悬浮：持续向上加速直到接近目标高度。
+    // 目标高度在首次接管时以当前位置为基准固定，上升速度上限 0.4（近似 FlyingMoveControl
+    // 的 8 格活动半径约束），越过目标高度后不再继续加速，避免无限上升。
+    if (!m_hasTarget) {
+        m_targetY = static_cast<f32>(m_ghast->y()) + FLOAT_HEIGHT;
+        m_hasTarget = true;
+    }
+    if (static_cast<f32>(m_ghast->y()) < m_targetY && m_ghast->velocity().y < MAX_RISE_SPEED) {
+        const Vector3 velocity = m_ghast->velocity();
+        m_ghast->setVelocity(velocity.x, velocity.y + FLOAT_SPEED, velocity.z);
+    }
 }
 
 // ============================================================================

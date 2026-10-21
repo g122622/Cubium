@@ -27,6 +27,7 @@
 #include "common/entity/core/EntitySize.hpp"
 #include "common/entity/core/EntityType.hpp"
 #include "common/entity/entities/monster/nether/NetherEntities.hpp"
+#include "common/entity/entities/passive/happyghast/HappyGhastEntity.hpp"
 #include "common/util/assert/AssertAll.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
@@ -42,6 +43,21 @@ GhastMovementController::GhastMovementController(GhastEntity* ghast)
     MC_ASSERT_RELEASE(ghast != nullptr);
 }
 
+GhastMovementController::GhastMovementController(HappyGhastEntity* ghast)
+    : MovementController(ghast)
+    , m_ghast(nullptr)
+    , m_happyGhast(ghast)
+    , m_courseChangeCooldown(0)
+{
+    MC_ASSERT_RELEASE(ghast != nullptr);
+}
+
+/// 当前宿主实体（恶魂或快乐恶魂，二者互斥）
+MobEntity* GhastMovementController::_host() const
+{
+    return m_ghast != nullptr ? static_cast<MobEntity*>(m_ghast) : static_cast<MobEntity*>(m_happyGhast);
+}
+
 void GhastMovementController::tick()
 {
     if (m_action != MoveAction::MoveTo) {
@@ -54,13 +70,13 @@ void GhastMovementController::tick()
     }
 
     // 每次更新后添加随机冷却，避免频繁调整
-    math::IRandom& rng = m_ghast->getRandom();
+    math::IRandom& rng = _host()->getRandom();
     m_courseChangeCooldown = rng.nextInt(5) + 2; // 2-6 ticks
 
     // 计算到目标位置的向量
-    f64 dx = m_posX - m_ghast->x();
-    f64 dy = m_posY - m_ghast->y();
-    f64 dz = m_posZ - m_ghast->z();
+    f64 dx = m_posX - _host()->x();
+    f64 dy = m_posY - _host()->y();
+    f64 dz = m_posZ - _host()->z();
     f64 distance = std::sqrt(dx * dx + dy * dy + dz * dz);
 
     if (distance < 0.0001) {
@@ -77,11 +93,11 @@ void GhastMovementController::tick()
     i32 stepsToCheck = static_cast<i32>(std::ceil(distance));
     if (_isPathSafe(direction, stepsToCheck)) {
         // 路径安全，添加速度
-        Vector3 velocity = m_ghast->velocity();
+        Vector3 velocity = _host()->velocity();
         velocity.x += direction.x * 0.1f;
         velocity.y += direction.y * 0.1f;
         velocity.z += direction.z * 0.1f;
-        m_ghast->setVelocity(velocity);
+        _host()->setVelocity(velocity);
     } else {
         // 路径不安全，停止移动
         m_action = MoveAction::Wait;
@@ -91,13 +107,13 @@ void GhastMovementController::tick()
 bool GhastMovementController::_isPathSafe(const Vector3f& direction, i32 distance) const
 {
     // 检查从当前位置到目标位置的路径是否安全
-    IWorld* world = m_ghast->world();
+    IWorld* world = _host()->world();
     if (world == nullptr) {
         return false;
     }
 
     // 获取恶魂的碰撞箱
-    AxisAlignedBB currentBox = m_ghast->boundingBox();
+    AxisAlignedBB currentBox = _host()->boundingBox();
 
     // 沿路径逐步检查碰撞
     for (i32 i = 1; i <= distance; ++i) {

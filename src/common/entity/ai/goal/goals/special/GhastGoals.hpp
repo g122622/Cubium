@@ -40,7 +40,9 @@
 
 namespace mc {
 
+class MobEntity;
 class GhastEntity;
+class HappyGhastEntity;
 class LivingEntity;
 
 namespace entity::ai::goal {
@@ -59,6 +61,12 @@ public:
      * @param ghast 恶魂实体指针
      */
     explicit GhastRandomFlyGoal(GhastEntity* ghast);
+
+    /**
+     * @brief 构造函数（快乐恶魂宿主）
+     * @param ghast 快乐恶魂实体指针（成年随机巡游复用同一目标逻辑）
+     */
+    explicit GhastRandomFlyGoal(HappyGhastEntity* ghast);
 
     /**
      * @brief 检查是否应该执行
@@ -84,11 +92,52 @@ public:
     std::string getTypeName() const override { return "GhastRandomFlyGoal"; }
 
 private:
+    /// 当前宿主实体（恶魂或快乐恶魂，二者互斥且非空）
+    [[nodiscard]] MobEntity* _host() const;
+
+    /// 宿主恶魂（快乐恶魂复用时为空）
     GhastEntity* m_ghast;
+    /// 宿主快乐恶魂（恶魂复用时为空）
+    HappyGhastEntity* m_happyGhast = nullptr;
 
     static constexpr f64 WANDER_RANGE = 16.0;      ///< 随机漫游范围（格）
     static constexpr f64 MIN_DISTANCE_SQ = 1.0;    ///< 最小目标距离平方
     static constexpr f64 MAX_DISTANCE_SQ = 3600.0; ///< 最大目标距离平方（60^2）
+};
+
+/**
+ * @brief 快乐恶魂幼体漂浮目标（对齐 vanilla HappyGhastAi 的 IDLE 活动）
+ *
+ * 幼年快乐恶魂不会寻路飞行，而是持续给自己的速度施加向上的加速度，
+ * 仅在升到目标高度附近时减弱，从而在出生点上方缓慢悬浮（对齐 vanilla
+ * HappyGhast.FloatGoal：每 tick moveRelative 向上 0.05，且 FLOATING_GOAL separateY 逻辑）。
+ */
+class GhastHappyFloatGoal : public Goal {
+public:
+    /**
+     * @brief 构造函数
+     * @param ghast 快乐恶魂实体指针
+     */
+    explicit GhastHappyFloatGoal(HappyGhastEntity* ghast);
+
+    [[nodiscard]] bool shouldExecute() override;
+    [[nodiscard]] bool shouldContinueExecuting() override;
+    void startExecuting() override;
+    void tick() override;
+
+    [[nodiscard]] std::string getTypeName() const override { return "GhastHappyFloatGoal"; }
+
+    /// 每 tick 施加的向上速度（对齐 vanilla FloatGoal 的 0.05）
+    static constexpr f32 FLOAT_SPEED = 0.05f;
+    /// 目标悬浮高度（相对首次接管位置的格数，对齐 FlyingMoveControl 的 8 格活动半径）
+    static constexpr f32 FLOAT_HEIGHT = 8.0f;
+    /// 上升速度上限（避免持续加速导致速度失控）
+    static constexpr f32 MAX_RISE_SPEED = 0.4f;
+
+private:
+    HappyGhastEntity* m_ghast;
+    f32 m_targetY = 0.0f;
+    bool m_hasTarget = false;
 };
 
 /**

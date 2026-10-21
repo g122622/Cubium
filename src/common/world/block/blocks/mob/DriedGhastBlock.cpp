@@ -24,6 +24,8 @@
 #include "DriedGhastBlock.hpp"
 
 #include "common/core/Types.hpp"
+#include "common/entity/core/EntityRegistry.hpp"
+#include "common/entity/entities/passive/happyghast/HappyGhastEntity.hpp"
 #include "common/item/context/BlockItemUseContext.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/particle/ParticleTypes.hpp"
@@ -191,6 +193,27 @@ void DriedGhastBlock::_tickWaterlogged(IWorld& world, const BlockPos& pos, Block
     }
 }
 
+namespace {
+
+/// 水平朝向对应的实体 yaw（对齐 vanilla Direction.getYRot）
+f32 _directionYaw(Direction direction)
+{
+    switch (direction) {
+        case Direction::South:
+            return 0.0f;
+        case Direction::West:
+            return 90.0f;
+        case Direction::North:
+            return 180.0f;
+        case Direction::East:
+            return -90.0f;
+        default:
+            return 0.0f;
+    }
+}
+
+} // namespace
+
 void DriedGhastBlock::_spawnGhastling(IWorld& world, const BlockPos& pos, const BlockState& state)
 {
     MC_UNUSED(state);
@@ -200,17 +223,24 @@ void DriedGhastBlock::_spawnGhastling(IWorld& world, const BlockPos& pos, const 
         world.setBlockState(pos, airState, world::BlockUpdateFlags::UPDATE_ALL);
     }
 
-    // TODO: 生成幼年快乐恶魂（HappyGhast, baby=true）并播放 GHASTLING_SPAWN 音效。
-    //   当前 happy_ghast 实体尚未在 VanillaEntities 注册，EntityRegistry 查不到该类型，
-    //   待快乐恶魂实体实现后补全：
-    //     auto* type = EntityRegistry::instance().getType("minecraft:happy_ghast");
-    //     auto* ecs = world.entityRegistry();
-    //     if (type != nullptr && ecs != nullptr) {
-    //         auto entity = type->create(&world, *ecs);
-    //         // 设为幼年、朝向 FACING、置于 pos 底部中心
-    //         world.spawnEntity(std::move(entity));
-    //         world.playSound(SoundEvents::GHASTLING_SPAWN, SoundCategory::Blocks, pos.center(), 1.0f, 1.0f);
-    //     }
+    // 对齐 vanilla DriedGhastBlock.spawnGhastling：
+    //   创建快乐恶魂幼体 → 置于方块底部中心、朝向取方块 FACING → 生成实体并播放下崽音效。
+    auto* type = entity::EntityRegistry::instance().getType(entity::EntityTypeKeys::HAPPY_GHAST);
+    auto* ecs = world.entityRegistry();
+    if (type == nullptr || ecs == nullptr) {
+        return;
+    }
+    auto entity = type->create(&world, *ecs);
+    auto* ghastling = dynamic_cast<HappyGhastEntity*>(entity.get());
+    if (ghastling == nullptr) {
+        return;
+    }
+    ghastling->setChild(true);
+    // 对齐 vanilla Direction.getYRot：North=180、South=0、West=90、East=-90。
+    const f32 yaw = _directionYaw(state.get(BlockStateProperties::HORIZONTAL_FACING()));
+    ghastling->setRotation(yaw, 0.0f);
+    ghastling->setPosition(static_cast<f64>(pos.x) + 0.5, static_cast<f64>(pos.y), static_cast<f64>(pos.z) + 0.5);
+    world.spawnEntity(std::move(entity));
     world.playSound(SoundEvents::GHASTLING_SPAWN, sound::SoundCategory::Blocks, pos.center(), 1.0f, 1.0f);
 }
 

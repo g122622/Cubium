@@ -15,6 +15,8 @@ entities/
 │   │   ├── ChickenEntity.hpp/cpp   # 鸡
 │   │   ├── RabbitEntity.hpp/cpp    # 兔子
 │   │   └── MooshroomEntity.hpp/cpp # 哞菇
+│   ├── happyghast/             # 快乐恶魂
+│   │   └── HappyGhastEntity.hpp/cpp  # 快乐恶魂（干燥恶魂方块孵化，飞行被动生物）
 │   ├── tamable/                # 可驯服动物
 │   │   ├── TameableEntity.hpp/cpp  # 可驯服基类
 │   │   ├── WolfEntity.hpp/cpp      # 狼

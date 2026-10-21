@@ -81,6 +81,7 @@
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/entity/JavaEntityTypeIdMap.hpp"
 #include "common/world/spawn/EntitySpawnPlacementRegistry.hpp"
+#include "server/dimension/ServerDimensionManager.hpp"
 #include "server/world/ServerChunkManager.hpp"
 #include "server/world/gen/RandomState.hpp"
 #include "server/world/gen/biome/source/MultiNoiseBiomeSource.hpp"
@@ -149,8 +150,15 @@ public:
         return m_playerEntityManager;
     }
 
+    // BlockInteractionManager::_getPlayerWorld/_getPlayerEntity 会调用 dimensionManager()
+    // 解析玩家所在维度；基类桩抛异常且调用点是 noexcept，会触发 std::terminate。
+    // 返回空维度管理器：玩家未注册维度时回退到 m_playerWorld（构造时注入的测试世界）。
+    [[nodiscard]] ServerDimensionManager& dimensionManager() override { return m_dimensionManager; }
+    [[nodiscard]] const ServerDimensionManager& dimensionManager() const override { return m_dimensionManager; }
+
 private:
     server::ServerPlayerEntityManager m_playerEntityManager;
+    ServerDimensionManager m_dimensionManager{nullptr};
 };
 
 // 从捕获的 IrPacket 列表中提取首个 AddEntity 包指针（未找到返回 nullptr）

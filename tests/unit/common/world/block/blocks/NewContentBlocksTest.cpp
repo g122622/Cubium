@@ -24,6 +24,9 @@
 #include <gtest/gtest.h>
 
 #include "common/TestWorldHelper.hpp"
+#include "common/entity/core/EntityRegistry.hpp"
+#include "common/entity/entities/passive/happyghast/HappyGhastEntity.hpp"
+#include "common/entity/registry/VanillaEntities.hpp"
 #include "common/item/Items.hpp"
 #include "common/item/core/ItemRegistry.hpp"
 #include "common/item/items/block/BlockItem.hpp"
@@ -139,9 +142,25 @@ public:
 
     void clearSounds() { m_playedSounds.clear(); }
 
+    EntityInstanceId spawnEntity(std::unique_ptr<Entity> entity) override
+    {
+        // 干燥恶魂孵化测试：记录被生成的实体（不在真实世界中登记，仅保留类型与状态）。
+        m_spawnedEntities.push_back(std::move(entity));
+        return static_cast<EntityInstanceId>(m_spawnedEntities.size());
+    }
+
+    void clearSpawnedEntities() { m_spawnedEntities.clear(); }
+
+    /// 最近一次生成的实体（无则 nullptr）
+    [[nodiscard]] Entity* lastSpawnedEntity() const
+    {
+        return m_spawnedEntities.empty() ? nullptr : m_spawnedEntities.back().get();
+    }
+
 private:
     std::unordered_map<BlockPos, std::unique_ptr<BlockState>> m_blocks;
     std::vector<ResourceLocation> m_playedSounds;
+    std::vector<std::unique_ptr<Entity>> m_spawnedEntities;
     std::unique_ptr<world::tick::TickManager> m_tickManager;
 };
 
@@ -456,6 +475,50 @@ TEST_F(DriedGhastBlockTest, Tick_Waterlogged_ReadyToSpawn_RemovesBlock)
     EXPECT_TRUE(after->isAir());
     // 播放幼年恶魂生成音效
     EXPECT_TRUE(world.hasPlayedSound(SoundEvents::GHASTLING_SPAWN));
+}
+
+TEST_F(DriedGhastBlockTest, Tick_Waterlogged_ReadyToSpawn_SpawnsBabyHappyGhastFacingBlock)
+{
+    entity::VanillaEntities::registerAll();
+    const BlockPos pos(2, 1, 2);
+    BlockState state = m_block->defaultState()
+                           .with(BlockStateProperties::DRIED_GHAST_HYDRATION_LEVELS(), 3)
+                           .with(BlockStateProperties::WATERLOGGED(), true)
+                           .with(BlockStateProperties::HORIZONTAL_FACING(), Direction::West);
+    world.setBlockAt(pos, &state);
+    world.clearSpawnedEntities();
+
+    math::Random rng(12345);
+    m_block->tick(world, pos, state, rng);
+
+    // 对齐 vanilla DriedGhastBlock.spawnGhastling：生成幼年快乐恶魂、置于方块底部中心、
+    // yaw 取方块朝向（West = 90°）。
+    Entity* spawned = world.lastSpawnedEntity();
+    ASSERT_NE(spawned, nullptr);
+    auto* ghastling = dynamic_cast<HappyGhastEntity*>(spawned);
+    ASSERT_NE(ghastling, nullptr);
+    EXPECT_TRUE(ghastling->isChild());
+    EXPECT_FLOAT_EQ(ghastling->y(), 1.0f);
+    EXPECT_FLOAT_EQ(ghastling->yaw(), 90.0f);
+}
+
+TEST_F(DriedGhastBlockTest, HappyGhast_RegisteredWithBabyScaleDimensions)
+{
+    entity::VanillaEntities::registerAll();
+    auto& registry = entity::EntityRegistry::instance();
+    const auto* type = registry.getType(entity::EntityTypeKeys::HAPPY_GHAST);
+    ASSERT_NE(type, nullptr);
+
+    auto entity = type->create(nullptr, mc::test::testEcsRegistry());
+    auto* ghast = dynamic_cast<HappyGhastEntity*>(entity.get());
+    ASSERT_NE(ghast, nullptr);
+    // 成体 4×4；幼体按 vanilla BABY_SCALE = 0.2375 缩放（经公开的 getDimensions 读取碰撞箱尺寸）。
+    const AxisAlignedBB adultBox = ghast->getDimensions(EntityPose::Standing).makeBoundingBox(0.0, 0.0, 0.0);
+    EXPECT_FLOAT_EQ(static_cast<f32>(adultBox.maxX - adultBox.minX), 4.0f);
+    ghast->setChild(true);
+    const AxisAlignedBB babyBox = ghast->getDimensions(EntityPose::Standing).makeBoundingBox(0.0, 0.0, 0.0);
+    EXPECT_FLOAT_EQ(
+        static_cast<f32>(babyBox.maxX - babyBox.minX), 4.0f * HappyGhastEntity::HAPPY_GHAST_BABY_SCALE);
 }
 
 TEST_F(DriedGhastBlockTest, ReceiveFluid_SetsWaterloggedAndPlaysSound)

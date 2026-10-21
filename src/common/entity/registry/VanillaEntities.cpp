@@ -76,6 +76,7 @@
 #include "common/entity/entities/passive/golem/CopperGolemEntity.hpp"
 #include "common/entity/entities/passive/golem/IronGolemEntity.hpp"
 #include "common/entity/entities/passive/golem/SnowGolemEntity.hpp"
+#include "common/entity/entities/passive/happyghast/HappyGhastEntity.hpp"
 #include "common/entity/entities/passive/horse/DonkeyEntity.hpp"
 #include "common/entity/entities/passive/horse/HorseEntity.hpp"
 #include "common/entity/entities/passive/horse/LlamaEntity.hpp"
@@ -307,6 +308,17 @@ void VanillaEntities::doRegisterAll()
     registry.registerType(EntityTypeKeys::SNIFFER,
         EntityType::Builder(&SnifferEntity::create, EntityClassification::Creature)
             .size(1.9f, 1.75f)
+            .trackingRange(10)
+            .updateInterval(3)
+            .canSummon(true)
+            .build());
+
+    // 快乐恶魂
+    // MC 1.21.11 HappyGhast.getDefaultDimensions(): 宽 4.0f, 高 4.0f（幼体经 BABY_SCALE=0.2375 缩放）
+    // 由干燥恶魂方块在水中孵化（幼年个体）
+    registry.registerType(EntityTypeKeys::HAPPY_GHAST,
+        EntityType::Builder(&HappyGhastEntity::create, EntityClassification::Creature)
+            .size(4.0f, 4.0f)
             .trackingRange(10)
             .updateInterval(3)
             .canSummon(true)

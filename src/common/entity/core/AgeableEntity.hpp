@@ -220,6 +220,13 @@ protected:
     [[nodiscard]] virtual f32 getBaseWidth() const { return CreatureEntity::width(); }
 
     /**
+     * @brief 幼体缩放比例（对齐 vanilla AgeableMob.getBabyScale）
+     *
+     * vanilla 默认 0.5；个别生物不同（如快乐恶魂 HappyGhast.BABY_SCALE = 0.2375）。
+     */
+    [[nodiscard]] virtual f32 babyScale() const { return BABY_SCALE; }
+
+    /**
      * @brief 获取基础高度（子类应重写）
      * @return 成体的高度
      */
@@ -228,12 +235,12 @@ protected:
     /**
      * @brief 获取实体宽度（考虑幼体缩放）
      */
-    [[nodiscard]] f32 width() const override { return getBaseWidth() * (isChild() ? BABY_SCALE : 1.0f); }
+    [[nodiscard]] f32 width() const override { return getBaseWidth() * (isChild() ? babyScale() : 1.0f); }
 
     /**
      * @brief 获取实体高度（考虑幼体缩放）
      */
-    [[nodiscard]] f32 height() const override { return getBaseHeight() * (isChild() ? BABY_SCALE : 1.0f); }
+    [[nodiscard]] f32 height() const override { return getBaseHeight() * (isChild() ? babyScale() : 1.0f); }
 
     /**
      * @brief 幼体变成成体时调用

@@ -30,7 +30,9 @@
 namespace mc {
 
 // Forward declaration
+class MobEntity;
 class GhastEntity;
+class HappyGhastEntity;
 
 namespace entity::ai::controller {
 
@@ -49,6 +51,12 @@ public:
     explicit GhastMovementController(GhastEntity* ghast);
 
     /**
+     * @brief 以快乐恶魂为宿主构造（快乐恶魂与恶魂共用同一套飞行物理，但无继承关系）
+     * @param ghast 快乐恶魂实体指针
+     */
+    explicit GhastMovementController(HappyGhastEntity* ghast);
+
+    /**
      * @brief 刻更新
      *
      * 每tick调用，更新恶魂的飞行移动。
@@ -65,7 +73,13 @@ private:
      */
     bool _isPathSafe(const math::Vector3f& direction, i32 distance) const;
 
+    /// 当前宿主实体（恶魂或快乐恶魂，二者互斥且非空）
+    [[nodiscard]] MobEntity* _host() const;
+
+    /// 宿主恶魂（快乐恶魂复用时为空）
     GhastEntity* m_ghast;
+    /// 宿主快乐恶魂（恶魂复用时为空）
+    HappyGhastEntity* m_happyGhast = nullptr;
     i32 m_courseChangeCooldown = 0;
 };
 
