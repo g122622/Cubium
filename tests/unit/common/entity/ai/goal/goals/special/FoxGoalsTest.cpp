@@ -116,6 +116,49 @@ TEST_F(FoxGoalsTest, FoxFollowTargetGoal_ShouldContinueExecutingWithoutTarget)
 
 // ==================== FoxPounceGoal 测试 ====================
 
+namespace {
+
+/// 暴露蹲伏量推进（私有）供门控链路测试驱动。
+class CrouchTestFox : public FoxEntity {
+public:
+    CrouchTestFox(EntityInstanceId id, ecs::EntityRegistry& registry)
+        : FoxEntity(id, registry)
+    {}
+
+    /// 推进一轮蹲伏量累积（等价于一次 tick 的状态更新）。
+    void advanceCrouch() { _updateCrouchAmount(); }
+};
+
+} // namespace
+
+// 蹲伏链路：follow 结束后 resetTask 置 crouching，_updateCrouchAmount 累积到 3.0 后
+// isFullyCrouched 成立，FoxPounceGoal 的前置门控才可能通过（回归：曾误判该链路断裂）。
+TEST_F(FoxGoalsTest, FoxFollowTargetGoal_ResetTaskStartsCrouchChain)
+{
+    // 无目标时 resetTask 走"路径不可用"分支，清除蹲伏状态。
+    entity::ai::goal::FoxFollowTargetGoal goal(fox.get());
+    fox->setInterested(true);
+    fox->setCrouching(true);
+    goal.resetTask();
+    EXPECT_FALSE(fox->isCrouching());
+    EXPECT_FALSE(fox->isInterested());
+}
+
+TEST_F(FoxGoalsTest, FoxEntity_FullyCrouchedRequiresAccumulatedCrouch)
+{
+    CrouchTestFox crouchingFox(EntityInstanceId(2), mc::test::testEcsRegistry());
+    crouchingFox.setCrouching(false);
+    crouchingFox.advanceCrouch();
+    EXPECT_FALSE(crouchingFox.isFullyCrouched());
+
+    crouchingFox.setCrouching(true);
+    // 每次推进累积 0.15，达到 3.0 需要 20 次以上。
+    for (i32 i = 0; i < 21; ++i) {
+        crouchingFox.advanceCrouch();
+    }
+    EXPECT_TRUE(crouchingFox.isFullyCrouched());
+}
+
 TEST_F(FoxGoalsTest, FoxPounceGoal_Construction)
 {
     auto goal = std::make_unique<entity::ai::goal::FoxPounceGoal>(fox.get());

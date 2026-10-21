@@ -547,13 +547,9 @@ void FoxEntity::tick()
             worldPtr->playEvent(world::WorldEvents::BREAK_BLOCK_EFFECTS, pos, static_cast<i32>(state->stateId()));
         }
     }
-    // TODO: fox 攻击 AI 链路未完全闭环（simpleMobTest 超时）。移动系统已修复（见 memory:
-    // mobentity-navigator-pathfinder-null-global-bug，MobEntity 寻路三层接线 + WorldRegion），
-    // fox 现能寻路接近 chicken。剩余缺口：FoxFollowTargetGoal START_FOLLOW_DISTANCE_SQ=36(6格)
-    // 致近距离(<6格)猎物不启动 follow → fox 永不 crouch → FoxPounceGoal(isFullyCrouched 门控)
-    // 永不启动（FoxGoals.hpp:130-131）。vanilla 对应类为 StalkPreyGoal，距离阈值逻辑一致但
-    // 项目缺蹲伏触发链路。另:setFoxAggroed() 零调用点，vanilla 设 attackTarget 时应同步设
-    // aggroed flag（FoxEntity.hpp:231）。详见 memory: fox-ai-follow-distance-threshold-bug。
+    // 攻击链路：跟随目标（>6 格启动）→ 接近至 6 格内 follow 结束，resetTask 置 crouching →
+    // _updateCrouchAmount 每 tick +0.15 直到 3.0 → FoxPounceGoal 以 isFullyCrouched 门控启动。
+    // 与 vanilla StalkPreyGoal.stop() 的蹲伏触发语义一致。
 }
 
 // ========== AI 目标注册 ==========

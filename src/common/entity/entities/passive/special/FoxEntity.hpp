@@ -412,10 +412,17 @@ protected:
     // ========== 刻更新 ==========
     void tick() override;
 
-private:
     // ========== 状态更新 ==========
+
+    /**
+     * @brief 推进蹲伏量（每 tick 调用）
+     *
+     * 蹲伏时每次 +0.15 直到 3.0，否则每次 -0.15 直到 0；
+     * isFullyCrouched() 以 >= 3.0 门控 FoxPounceGoal 的启动。
+     */
     void _updateCrouchAmount();
 
+private:
     // ========== 数据成员 ==========
 
     // 皮肤类型
