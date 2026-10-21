@@ -935,6 +935,8 @@ add_executable(mc_tests
     common/entity/entities/projectile/ShulkerBulletParticleTest.cpp
     # TridentEntity 忠诚附魔逻辑测试
     common/entity/entities/projectile/TridentEntityTest.cpp
+    # EyeOfEnderEntity 物品字段（默认值/归一化/同步镜像）测试
+    common/entity/entities/projectile/EyeOfEnderItemTest.cpp
     entity/SkeletonSupportTypesTest.cpp
     entity/SpellcastingIllagerSupportTypesTest.cpp
     entity/SpawnLocationHelperTest.cpp

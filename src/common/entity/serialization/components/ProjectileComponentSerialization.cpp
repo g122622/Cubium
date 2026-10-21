@@ -525,21 +525,32 @@ static Result<void> loadShulkerBullet(Entity& entity, const nbt::tags::compound_
 }
 
 // ============================================================================
-// EyeOfEnderComponent — vanilla 存 Item（项目无 item 字段）
+// EyeOfEnderComponent — Item
 // 对齐 vanilla 1.21.11 EyeOfEnder.addAdditionalSaveData()：仅存 Item，不调 super（不存 Owner）。
-// 项目 EyeOfEnderEntity 当前无 item 字段（运行时算），此序列化器仅占位标 TODO，
-// 不读写任何键（待补 item 字段后镜像）。
 // ============================================================================
 
-static void saveEyeOfEnder(const Entity& /*entity*/, nbt::tags::compound_tag& /*tag*/)
+static void saveEyeOfEnder(const Entity& entity, nbt::tags::compound_tag& tag)
 {
-    // TODO: 项目 EyeOfEnderEntity 当前无 item 字段，vanilla EyeOfEnder 持久化 "Item" 键。
-    // 补齐 item 字段后此处写 EYE_OF_ENDER_ITEM。
+    const auto* c = entity.tryGetComponent<ecs::EyeOfEnderComponent>();
+    if (c == nullptr || c->m_itemStack == nullptr || c->m_itemStack->isEmpty()) {
+        return;
+    }
+    nbt::tags::compound_tag itemTag;
+    c->m_itemStack->toNbt(itemTag);
+    tag.value.emplace(EYE_OF_ENDER_ITEM, std::make_unique<nbt::tags::compound_tag>(std::move(itemTag)));
 }
 
-static Result<void> loadEyeOfEnder(Entity& /*entity*/, const nbt::tags::compound_tag& /*tag*/)
+static Result<void> loadEyeOfEnder(Entity& entity, const nbt::tags::compound_tag& tag)
 {
-    // TODO: 同 save，待补 item 字段后读 EYE_OF_ENDER_ITEM。
+    auto* c = entity.tryGetComponent<ecs::EyeOfEnderComponent>();
+    const nbt::tags::compound_tag* itemTag = tryGetCompound(tag, EYE_OF_ENDER_ITEM);
+    if (c == nullptr || c->m_itemStack == nullptr || itemTag == nullptr) {
+        return {};
+    }
+    auto stackResult = ItemStack::fromNbt(*itemTag);
+    if (stackResult.success()) {
+        *c->m_itemStack = stackResult.value();
+    }
     return {};
 }
 
