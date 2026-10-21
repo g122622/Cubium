@@ -481,55 +481,35 @@ private:
             return;
         }
 
-        // 重置双方发情状态
-        animal->resetInLove();
-        partnerAnimal->resetInLove();
-
-        // 设置繁殖冷却
-        animal->setGrowingAge(AgeableEntity::BREEDING_COOLDOWN);
-        partnerAnimal->setGrowingAge(AgeableEntity::BREEDING_COOLDOWN);
-
-        // 生成后代
-        auto baby = animal->spawnBaby(*partnerAnimal);
-        if (!baby) {
-            return;
-        }
-
-        // 设置类型ID
-        baby->setTypeId(animal->getTypeId());
-
-        // 设置位置（在父方附近随机偏移）
-        math::IRandom& rng = owner->getRandom();
-        f64 babyX = static_cast<f64>(owner->x()) + (rng.nextDouble() - 0.5) * 2.0;
-        f64 babyY = static_cast<f64>(owner->y());
-        f64 babyZ = static_cast<f64>(owner->z()) + (rng.nextDouble() - 0.5) * 2.0;
-        baby->setPosition(static_cast<f32>(babyX), static_cast<f32>(babyY), static_cast<f32>(babyZ));
-
-        // 设置幼年年龄
-        baby->setGrowingAge(AgeableEntity::BABY_AGE);
-
-        // 初始化生成属性
-        auto* babyMob = dynamic_cast<MobEntity*>(baby.get());
-        if (babyMob) {
-            auto difficultyInstance = combat::DifficultyInstance::at(*world,
-                BlockPos(
-                    static_cast<i32>(std::floor(babyX)), static_cast<i32>(babyY), static_cast<i32>(std::floor(babyZ))));
-            babyMob->finalizeSpawn(*world, difficultyInstance, world::spawn::SpawnReason::Breeding);
-        }
-
-        // 解析触发繁殖的玩家
+        // 先取出双方繁殖发起者（重置发情状态会改写 loveCause）
         u64 loveCause = animal->getLoveCause();
         if (loveCause == 0) {
             loveCause = partnerAnimal->getLoveCause();
         }
 
-        // 生成实体到世界
-        Entity* babyPtr = baby.get();
-        world->spawnEntity(std::move(baby));
+        // 产出阶段：默认生成幼体，子类可覆盖为物品产出（如嗅探兽掉蛋）
+        AnimalEntity* baby = animal->spawnChildFromBreeding(*partnerAnimal);
 
-        // 触发繁殖事件（用于成就系统等）
+        // 初始化生成属性（使用位置感知的区域难度）
+        if (baby != nullptr) {
+            auto* babyMob = dynamic_cast<MobEntity*>(baby);
+            if (babyMob) {
+                auto difficultyInstance = combat::DifficultyInstance::at(*world, baby->onPos());
+                babyMob->finalizeSpawn(*world, difficultyInstance, world::spawn::SpawnReason::Breeding);
+            }
+        }
+
+        // 重置双方发情状态 + 设置繁殖冷却
+        animal->resetInLove();
+        partnerAnimal->resetInLove();
+        animal->setGrowingAge(AgeableEntity::BREEDING_COOLDOWN);
+        partnerAnimal->setGrowingAge(AgeableEntity::BREEDING_COOLDOWN);
+
+        math::IRandom& rng = owner->getRandom();
+
+        // 触发繁殖事件（用于成就系统等）；物品产出时 child 为 nullptr
         if (loveCause != 0) {
-            world->onBredAnimals(loveCause, babyPtr, animal, partnerAnimal);
+            world->onBredAnimals(loveCause, baby, animal, partnerAnimal);
         }
 
         // 双方播放爱心粒子

@@ -39,13 +39,16 @@
 #include "common/entity/core/EntityDataManager.hpp"
 #include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/damage/DamageSource.hpp"
+#include "common/entity/entities/item/ItemEntity.hpp"
 #include "common/entity/serialization/EntityNbtKeys.hpp"
 #include "common/entity/serialization/NbtHelper.hpp"
 #include "common/entity/utils/ItemDropHelper.hpp"
 #include "common/item/Items.hpp"
+#include "common/item/core/Item.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/item/loot/LootTableManager.hpp"
 #include "common/item/loot/context/LootContextBuilder.hpp"
+#include "common/item/tag/ItemTags.hpp"
 #include "common/particle/ParticleTypes.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/sound/SoundEvents.hpp"
@@ -231,20 +234,13 @@ void SnifferEntity::storeExploredPosition(const BlockPos& pos)
 
 bool SnifferEntity::isBreedingItem(const ItemStack& itemStack) const
 {
-    // 对齐 MC Sniffer.isFood：使用 ItemTags.SNIFFER_FOOD 标签。
-    // 当前项目无物品标签系统，直接判断 TORCHFLOWER_SEEDS 或 PITCHER_POD。
+    // 对齐 MC Sniffer.isFood：ItemStack.is(ItemTags.SNIFFER_FOOD)。
     const Item* item = itemStack.getItem();
     if (item == nullptr) {
         return false;
     }
-    // Items 可能在初始化期间为 nullptr，需防御性检查
-    if (Items::TORCHFLOWER_SEEDS != nullptr && item == Items::TORCHFLOWER_SEEDS) {
-        return true;
-    }
-    if (Items::PITCHER_POD != nullptr && item == Items::PITCHER_POD) {
-        return true;
-    }
-    return false;
+    // 数据包可覆写该标签，故必须经标签系统查询而非硬编码物品常量。
+    return item->isIn(item::tag::ItemTags::SNIFFER_FOOD());
 }
 
 bool SnifferEntity::canMateWith(const AnimalEntity& other) const
@@ -271,22 +267,52 @@ bool SnifferEntity::canMateWith(const AnimalEntity& other) const
     return AnimalEntity::canMateWith(other);
 }
 
-std::unique_ptr<AnimalEntity> SnifferEntity::spawnBaby(AnimalEntity& /*partner*/)
+AnimalEntity* SnifferEntity::spawnChildFromBreeding(AnimalEntity& /*partner*/)
 {
-    // ECS 迁移：实体构造需要 registry 句柄，ClientWorld 返回 nullptr 表客户端不接入 ECS
-    auto* registry = &ecsRegistry();
+    // 对齐 MC Sniffer.spawnChildFromBreeding（Sniffer.java:337-344）：
+    //   ItemStack itemstack = new ItemStack(Items.SNIFFER_EGG);
+    //   ItemEntity itementity = new ItemEntity(level, getX(), getY(), getZ(), itemstack);
+    //   itementity.setDefaultPickUpDelay();
+    //   finalizeSpawnChildFromBreeding(level, partner, null);
+    //   playSound(SNIFFER_EGG_PLOP, 1.0F, (random.nextFloat() - random.nextFloat()) * 0.2F + 0.5F);
+    //   level.addFreshEntity(itementity);
+    // finalizeSpawnChildFromBreeding 中与产物无关的部分（发情重置、繁殖冷却、繁殖事件、
+    // 爱心粒子、经验球）由 BreedGoal::spawnBaby() 在本方法返回后统一执行。
+    IWorld* world = m_world;
+    if (world == nullptr || world->isClientSide()) {
+        // 繁殖产物只在服务端生成（vanilla spawnChildFromBreeding 仅经 ServerLevel 调用）
+        return nullptr;
+    }
+    auto* registry = world->entityRegistry();
     if (registry == nullptr) {
         return nullptr;
     }
 
-    // 创建幼体嗅探兽
-    auto baby = std::make_unique<SnifferEntity>(0, *registry);
-    baby->setTypeId(entity::EntityTypeKeys::SNIFFER); // 工厂绕过补救：直接构造缺 typeId
-    // 设置为幼体（-48000 tick，40 分钟）
-    baby->setChild(true);
-    // 设置位置（在父体位置附近）
-    baby->setPosition(x(), y(), z());
-    return baby;
+    // 物品实体使用原版三参构造的默认动量 (rand*0.2-0.1, 0.2, rand*0.2-0.1)。
+    // ItemEntity 构造函数已把拾取延迟初始化为 DEFAULT_PICKUP_DELAY(10)，
+    // 等价 vanilla setDefaultPickUpDelay()。
+    math::IRandom& rng = getRandom();
+    auto itemEntity = std::make_unique<ItemEntity>(EntityInstanceId(0),
+        ItemStack(Items::SNIFFER_EGG),
+        x(),
+        y(),
+        z(),
+        static_cast<f32>(rng.nextDouble() * 0.2 - 0.1),
+        0.2f,
+        static_cast<f32>(rng.nextDouble() * 0.2 - 0.1),
+        *registry);
+    // 直接构造的实体需要显式设置 typeId（注册表路径会自动设置）
+    itemEntity->setTypeId(entity::EntityTypeKeys::ITEM);
+
+    playSound(SoundEvents::SNIFFER_EGG_PLOP, 1.0f, (rng.nextFloat() - rng.nextFloat()) * 0.2f + 0.5f);
+    world->spawnEntity(std::move(itemEntity));
+    return nullptr;
+}
+
+std::unique_ptr<AnimalEntity> SnifferEntity::spawnBaby(AnimalEntity& /*partner*/)
+{
+    // 嗅探兽繁殖产出为掉蛋（见 spawnChildFromBreeding），不生成幼体。
+    return nullptr;
 }
 
 // ========== 声音 ==========

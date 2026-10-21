@@ -156,23 +156,35 @@ public:
     /**
      * @brief 检查物品是否可用于繁殖
      *
-     * 对齐 MC Sniffer.isFood：使用 ItemTags.SNIFFER_FOOD 标签。
-     * 当前项目无物品标签系统，直接判断 TORCHFLOWER_SEEDS 或 PITCHER_POD。
+     * 对齐 MC Sniffer.isFood：使用 ItemTags.SNIFFER_FOOD 标签（数据包键 minecraft:sniffer_food）。
      */
     [[nodiscard]] bool isBreedingItem(const ItemStack& itemStack) const override;
 
     [[nodiscard]] bool canMateWith(const AnimalEntity& other) const override;
 
+    // ========== 繁殖产出 ==========
+
     /**
-     * @brief 生成幼体
+     * @brief 繁殖产出：在本体位置掉落一枚嗅探兽蛋（不生成幼体）
      *
-     * @note MC 原版 Sniffer.spawnChildFromBreeding 实际掉落 SNIFFER_EGG 物品而非直接生成幼体。
-     *       当前项目 Items::SNIFFER_EGG 尚未实现，且 BreedGoal 契约要求返回幼体，
-     *       因此本方法返回幼体嗅探兽作为占位实现。
-     *       TODO: 待 Items::SNIFFER_EGG 实现后，改为覆盖 spawnChildFromBreeding 掉落蛋物品。
+     * 对齐 MC 1.21.11 Sniffer.spawnChildFromBreeding（Sniffer.java:337-344）：繁殖产物是
+     * SNIFFER_EGG 物品实体而非幼体；物品按原版默认动量在本体位置生成，拾取延迟为默认值，
+     * 并播放 SNIFFER_EGG_PLOP 音效（音高 (nextFloat - nextFloat) * 0.2 + 0.5）。
+     *
+     * @param partner 交配伙伴（原版此处未使用）
+     * @return 恒为 nullptr（本次繁殖不产生幼体实体，`bred_animals` 进度因此不会命中 child 条件）
+     * @note 本轮繁殖的发情重置、繁殖冷却、爱心粒子与经验球由 BreedGoal::spawnBaby() 统一处理。
+     */
+    AnimalEntity* spawnChildFromBreeding(AnimalEntity& partner) override;
+
+    /**
+     * @brief 生成幼体（BreedGoal 的纯生成契约）
+     *
+     * 嗅探兽的繁殖产出被 spawnChildFromBreeding 覆盖为掉蛋，本方法不参与生产繁殖链路，
+     * 仅保留契约以满足 AnimalEntity 的纯虚接口；返回值恒为 nullptr。
      *
      * @param partner 交配伙伴
-     * @return 生成的幼体实体
+     * @return 恒为 nullptr
      */
     std::unique_ptr<AnimalEntity> spawnBaby(AnimalEntity& partner) override;
 
