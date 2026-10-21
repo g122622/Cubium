@@ -42,13 +42,13 @@ namespace mc::entity::serialization::components {
  * life/shake/inGround/pickup/damage/crit/PierceLevel/item(+)dealtDamage |
  * life/shake/inGround/pickup/damage/crit/PierceLevel/item/DealtDamage | | TridentStateComponent | ThrownTrident |
  * tridentStack(item) | Trident | | DamagingProjectileComponent | AbstractHurtingProjectile | accelerationX/Y/Z |
- * acceleration_power | | FireballStateComponent | Fireball/WitherSkull | explosionPower(Fireball)/blue(WitherSkull) |
- * ExplosionPower/dangerous | | FireworkRocketComponent | FireworkRocket |
+ * acceleration_power | | FireballStateComponent | Fireball/WitherSkull |
+ * itemStack+explosionPower(火球)/blue(WitherSkull) | Item+ExplosionPower / dangerous | | FireworkRocketComponent |
+ * FireworkRocket |
  * lifetime/lifeTime/fireworkItem/shotFromCrossbow | Life/LifeTime/FireworksItem/ShotAtAngle | | EvokerFangsComponent |
  * EvokerFangs | warmupDelay + ownerUuid | Warmup + OwnerUUIDMost/Least | | ShulkerBulletComponent | ShulkerBullet |
- * targetUuid/direction/flightSteps/targetDelta | Target/Dir/Steps/TXD/TYD/TZD | | EyeOfEnderComponent | EyeOfEnder |
- * (vanilla 存 Item，项目无 item 字段) | 标 TODO 占位 | | ProjectileItemComponent | ThrowableItemProjectile/Spear |
- * itemStack | item |
+ * targetUuid/direction/flightSteps/targetDelta | Target/Dir/Steps/TXD/TYD/TZD | | EyeOfEnderComponent | EyeOfEnder | itemStack |
+ * Item | | ProjectileItemComponent | ThrowableItemProjectile/Spear | itemStack | item |
  *
  * load 顺序（priority）：TridentStateComponent=0 先 load（读 item 后由 setItemStack 重算 loyalty），
  * ProjectileArrowStateComponent=10 后 load（读 dealtDamage，依赖父类字段已就位）。

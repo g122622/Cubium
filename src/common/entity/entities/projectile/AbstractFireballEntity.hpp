@@ -29,6 +29,7 @@
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/core/EntityClassRegistry.hpp"
 #include "common/entity/entities/projectile/ProjectileEntity.hpp"
+#include "common/item/core/ItemStack.hpp"
 
 #include <memory>
 
@@ -75,12 +76,25 @@ public:
     [[nodiscard]] i32 explosionPower() const;
     void setExplosionPower(i32 power);
 
+    // ========== 火球物品 ==========
+    /**
+     * @brief 获取火球携带的物品
+     *
+     * 对应 vanilla Fireball#getItem()。默认返回火焰弹物品。
+     */
+    [[nodiscard]] ItemStack getItem() const;
+
+    /**
+     * @brief 设置火球携带的物品
+     *
+     * 对应 vanilla Fireball#setItem()：传入空物品时回退为默认火焰弹物品，
+     * 非空物品一律取数量 1 后镜像到同步参数 DATA_ITEM_STACK。
+     */
+    void setItem(const ItemStack& stack);
+
     // ========== 网络同步数据参数 ==========
     // 对齐 vanilla 1.21.11 Fireball.defineSynchedData(): DATA_ITEM_STACK(ItemStack, id8)。
-    // vanilla 火球同步其物品本体（发射者蓄力时手持火球物品）；项目 FireballEntity 当前
-    // 无 item 字段（m_explosionPower 是运行时计算），此处注册占位空 ItemStackView 保持
-    // wire 字段位置对齐，避免客户端按 id8 反序列化时类型/数量校验失败。
-    // TODO: 补齐 FireballEntity 的物品字段后，镜像真实物品到 DATA_ITEM_STACK。
+    // 火球同步其物品本体（发射者手持火焰弹发射时写入），客户端据此渲染飞行中的物品。
     static entity::DataParameter<network::ir::play::ItemStackView> DATA_ITEM_STACK_PARAM;
 
     [[nodiscard]] static u16 getItemStackParamId() { return DATA_ITEM_STACK_PARAM.id(); }
@@ -99,6 +113,13 @@ protected:
 
     /// 本类继承链标识（parent = AbstractFireballEntity::classInfo()）。见 Entity::classInfo()。
     static const EntityClassInfo& classInfo();
+
+    /**
+     * @brief 获取默认物品
+     *
+     * 对应 vanilla Fireball#getDefaultItem()：火焰弹。
+     */
+    [[nodiscard]] const Item* getDefaultItem() const;
 
     // 批次6 子目标2 Step4：m_explosionPower 迁入 ecs::FireballStateComponent（与 WitherSkull 共用）。
 };

@@ -237,10 +237,9 @@ constexpr const char* TRIDENT_ITEM = "Trident";             ///< 三叉戟物品
 constexpr const char* TRIDENT_DEALT_DAMAGE = "DealtDamage"; ///< 是否已造成伤害（bool）
 
 // ========== Fireball 族键 ==========
-// 参考 MC 1.21.11 Fireball.addAdditionalSaveData()(Item) / WitherSkull(dangerous)。
-// 项目 FireballStateComponent 为 Fireball+WitherSkull 共用：m_explosionPower(Fireball)/m_blue(WitherSkull)。
-// 注意：vanilla Fireball 存 Item，ExplosionPower 是 LargeFireball(恶魂) 的键；项目 FireballEntity
-// 用 m_explosionPower 作爆炸威力，此为项目既有设计差异，沿用项目现状持久化 explosionPower。
+// 参考 MC 1.21.11 Fireball.addAdditionalSaveData()(Item) / LargeFireball(ExplosionPower) / WitherSkull(dangerous)。
+// 项目 FireballStateComponent 为 Fireball+WitherSkull 共用：m_itemStack 与 m_explosionPower(火球)/m_blue(凋灵之首)。
+// 序列化按实体类型精确分发：凋灵之首只写 dangerous，火球写 Item 与 ExplosionPower。
 
 constexpr const char* FIREBALL_EXPLOSION_POWER = "ExplosionPower"; ///< 火球爆炸威力（byte，项目用 i32）
 constexpr const char* WITHER_SKULL_DANGEROUS = "dangerous";        ///< 凋灵之首是否蓝色（bool）

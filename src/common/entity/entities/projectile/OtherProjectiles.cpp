@@ -1592,9 +1592,31 @@ void EyeOfEnderEntity::registerData()
     entity::EntityDataManager::ClassRegisterGuard guard(m_dataManager, classInfo());
 
     // 注册末影之眼专属同步参数（id8，对应 vanilla EyeOfEnder.DATA_ITEM_STACK）。
-    // TODO: 项目 EyeOfEnderEntity 当前无 item 字段，占位空 ItemStackView 保持 wire 位置对齐；
-    // 补齐物品字段后镜像真实物品。
-    m_dataManager.registerParam(DATA_ITEM_STACK_PARAM, network::ir::toItemStackView(ItemStack()));
+    // 初值与 vanilla defineSynchedData 一致：默认末影之眼物品。
+    m_dataManager.registerParam(DATA_ITEM_STACK_PARAM, network::ir::toItemStackView(ItemStack(*getDefaultItem())));
+}
+
+const Item* EyeOfEnderEntity::getDefaultItem() const
+{
+    return Items::ENDER_EYE;
+}
+
+ItemStack EyeOfEnderEntity::getItem() const
+{
+    const auto* c = tryGetComponent<ecs::EyeOfEnderComponent>();
+    return (c != nullptr && c->m_itemStack != nullptr) ? *c->m_itemStack : ItemStack(*getDefaultItem());
+}
+
+void EyeOfEnderEntity::setItem(const ItemStack& stack)
+{
+    // 对齐 vanilla EyeOfEnder#setItem：空物品回退默认物品，非空物品一律取 1 个。
+    ItemStack normalized = stack.isEmpty() ? ItemStack(*getDefaultItem()) : ItemStack(stack.getItem(), 1);
+
+    auto* c = tryGetComponent<ecs::EyeOfEnderComponent>();
+    if (c != nullptr && c->m_itemStack != nullptr) {
+        *c->m_itemStack = normalized;
+    }
+    m_dataManager.set(DATA_ITEM_STACK_PARAM, network::ir::toItemStackView(normalized));
 }
 
 EyeOfEnderEntity::EyeOfEnderEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
@@ -1608,6 +1630,8 @@ EyeOfEnderEntity::EyeOfEnderEntity(EntityInstanceId id, ecs::EntityRegistry& reg
     // C++ 虚函数在构造函数中不会派生到子类，故 Entity 基类构造调用的 registerData()
     // 只执行 Entity::registerData()。此处显式调用注册末影之眼专属同步字段（id8）。
     registerData();
+    // 物品字段初值与 vanilla 一致：默认末影之眼（组件与同步参数一并就位）。
+    setItem(ItemStack());
 }
 
 std::unique_ptr<Entity> EyeOfEnderEntity::create(IWorld* /*world*/, ecs::EntityRegistry& registry)

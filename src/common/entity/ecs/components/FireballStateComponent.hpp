@@ -1,6 +1,8 @@
 #pragma once
 
 #include "common/core/Types.hpp"
+#include "common/item/core/ItemStack.hpp"
+#include <memory>
 
 namespace mc::ecs {
 
@@ -20,10 +22,17 @@ namespace mc::ecs {
  * 字段语义：
  * - m_explosionPower：爆炸威力（Fireball 默认 1，可由发射者蓄力提升）。
  * - m_blue：凋灵之首是否为蓝色（危险变体，破坏方块范围更大/同步 DATA_DANGEROUS）。
+ * - m_itemStack：火球本体携带的物品（vanilla Fireball 的 Item 字段）。发射者手持火焰弹
+ *   发射时写入，命中消亡时作为掉落物返还玩家。WitherSkull 不使用此字段。
  */
 struct FireballStateComponent {
     i32 m_explosionPower{1};
     bool m_blue{false};
+    std::unique_ptr<ItemStack> m_itemStack;
+
+    FireballStateComponent()
+        : m_itemStack(std::make_unique<ItemStack>())
+    {}
 };
 
 } // namespace mc::ecs

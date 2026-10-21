@@ -576,11 +576,25 @@ public:
      */
     [[nodiscard]] bool shouldBreak() const;
 
+    // ========== 末影之眼物品 ==========
+    /**
+     * @brief 获取末影之眼携带的物品
+     *
+     * 对应 vanilla EyeOfEnder#getItem()，默认返回末影之眼物品。
+     */
+    [[nodiscard]] ItemStack getItem() const;
+
+    /**
+     * @brief 设置末影之眼携带的物品
+     *
+     * 对应 vanilla EyeOfEnder#setItem()：空物品回退默认末影之眼，非空物品取数量 1，
+     * 并镜像到同步参数 DATA_ITEM_STACK。
+     */
+    void setItem(const ItemStack& stack);
+
     // ========== 网络同步数据参数 ==========
     // 对齐 vanilla 1.21.11 EyeOfEnder.defineSynchedData(): DATA_ITEM_STACK(ItemStack, id8)。
-    // vanilla 末影之眼同步其物品本体（玩家手持的末影之眼物品）；项目 EyeOfEnderEntity 当前
-    // 无 item 字段，此处注册占位空 ItemStackView 保持 wire 字段位置对齐。
-    // TODO: 补齐 EyeOfEnderEntity 的物品字段后，镜像真实物品到 DATA_ITEM_STACK。
+    // 末影之眼同步其物品本体（玩家手持的末影之眼物品），客户端据此渲染飞行中的物品。
     static entity::DataParameter<network::ir::play::ItemStackView> DATA_ITEM_STACK_PARAM;
 
     [[nodiscard]] static u16 getItemStackParamId() { return DATA_ITEM_STACK_PARAM.id(); }
@@ -598,6 +612,13 @@ public:
     static const EntityClassInfo& classInfo();
 
 private:
+    /**
+     * @brief 获取默认物品
+     *
+     * 对应 vanilla EyeOfEnder#getDefaultItem()：末影之眼。
+     */
+    [[nodiscard]] const Item* getDefaultItem() const;
+
     // 批次6 子目标2 Step4：m_targetX/m_targetZ/m_lifetime/m_break 迁入 ecs::EyeOfEnderComponent。
 };
 
