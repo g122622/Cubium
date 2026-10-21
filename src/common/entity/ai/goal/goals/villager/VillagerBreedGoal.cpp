@@ -254,11 +254,10 @@ void VillagerBreedGoal::_spawnChild()
                 m_villager->world()->broadcastEntityStatus(
                     entity->id(), static_cast<u8>(network::EntityStatus::VillagerAngry));
 
-                // MC原版在tryToGiveBirth之前就对双方调用eatAndDigestFood()消耗食物意愿。
-                // 本项目使用布尔标志m_willingToBreed替代食物点数系统，
-                // 因此需要同时重置配偶的繁殖意愿，防止配偶立即再次尝试繁殖。
-                VillagerEntity* partnerVillager = dynamic_cast<VillagerEntity*>(entity);
-                if (partnerVillager != nullptr) {
+                // 对齐 vanilla VillagerMakeLove.tick：繁殖判定达成时双方都 eatAndDigestFood()
+                // （吃饱后扣 12 点），消耗掉本次繁殖的食物开销。
+                if (auto* partnerVillager = dynamic_cast<VillagerEntity*>(entity); partnerVillager != nullptr) {
+                    partnerVillager->eatAndDigestFood();
                     partnerVillager->resetBreedWillingness();
                 }
             }
@@ -275,6 +274,10 @@ void VillagerBreedGoal::_spawnChild()
             m_villager->world()->broadcastEntityStatus(childId, static_cast<u8>(network::EntityStatus::VillagerHeart));
         }
     }
+
+    // 对齐 vanilla VillagerMakeLove.tick：无论是否成功产子，双方都已完成 eatAndDigestFood。
+    // 主角在 _spawnChild 返回前统一进食消化，避免食物点数永不消耗导致村民无限繁殖。
+    m_villager->eatAndDigestFood();
 
     // 重置
     m_partnerId = 0;

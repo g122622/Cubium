@@ -29,6 +29,7 @@
 #include "common/entity/core/DataParameter.hpp"
 #include "common/entity/entities/villager/AbstractVillagerEntity.hpp"
 #include "common/entity/inventory/IInventory.hpp"
+#include "common/util/nbt/Nbt.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include <memory>
 #include <optional>
@@ -293,13 +294,10 @@ public:
      * 全部装入则移除 ItemEntity，部分装入则把剩余 count 写回 ItemEntity（对齐 Java InventoryCarrier.pickUpItem
      * 的 discard/setCount 分支）。
      *
-     * 拾取后若库存食物点数（countFoodPointsInInventory）达到繁殖门槛（WANTS_MORE_FOOD_THRESHOLD=12），
-     * 调 setWillingToBreed(true) 标记繁殖意愿。这是用布尔标志模拟 Java 1.21.11 Villager.canBreed()
-     * 的 `foodLevel + countFoodPointsInInventory() >= 12` 食物门槛——Cubium 暂未实现 foodLevel
-     * 字段与 eatAndDigestFood 链路，故以 willingToBreed 布尔替代，使自动拾取食物能驱动 VillagerBreedGoal。
-     *
-     * TODO: 对齐 Java 1.21.11 完整食物点数链路（foodLevel 字段 + eatUntilFull/eatAndDigestFood/
-     *   digestFood + canBreed 基于 foodLevel 阈值判定），届时可移除 willingToBreed 布尔替代。
+     * 拾取后按 `foodLevel + countFoodPointsInInventory() >= 12`（hasEnoughFoodToBreed）检查，
+     * 满足则调 setWillingToBreed(true) 标记繁殖意愿。willingToBreed 仅作为 BreedGoal 的
+     * 入口门控标志，真实食物点数由 foodLevel 字段与库存共同维护，繁殖时经
+     * eatAndDigestFood 消耗。
      */
     void pickUpItem(ItemEntity& itemEntity) override;
 
@@ -356,9 +354,62 @@ public:
      */
     [[nodiscard]] bool wantsMoreFood() const;
 
+    /**
+     * @brief 村民自身的食物点数（已吃下、尚未消化的部分）
+     *
+     * 对应 vanilla Villager.foodLevel：繁殖判定的另一半，与库存食物点数相加后
+     * 与 WANTS_MORE_FOOD_THRESHOLD 比较。
+     */
+    [[nodiscard]] i32 foodLevel() const noexcept { return m_foodLevel; }
+    void setFoodLevel(i32 level) noexcept { m_foodLevel = std::max(0, level); }
+
+    /**
+     * @brief 是否饥饿（对齐 vanilla Villager.hungry：foodLevel < 12）
+     */
+    [[nodiscard]] bool isHungry() const noexcept { return m_foodLevel < WANTS_MORE_FOOD_THRESHOLD; }
+
+    /**
+     * @brief 是否满足繁殖的食物与年龄条件（对齐 vanilla Villager.canBreed 的食物部分）
+     *
+     * vanilla 还要求 !isSleeping() 与 age==0；睡眠由调用方的 goal 判定，年龄由
+     * AgeableEntity::canBreed 判定，故这里只负责食物阈值。
+     */
+    [[nodiscard]] bool hasEnoughFoodToBreed() const noexcept
+    {
+        return m_foodLevel + countFoodPointsInInventory() >= WANTS_MORE_FOOD_THRESHOLD;
+    }
+
+    /**
+     * @brief 依次吃下库存中的食物直到吃饱（对齐 vanilla Villager.eatUntilFull）
+     *
+     * 逐个物品、逐个数量地累加 foodLevel，吃饱即停止；被吃掉的数量从库存移除。
+     */
+    void eatUntilFull();
+
+    /**
+     * @brief 进食并消化（对齐 vanilla Villager.eatAndDigestFood）
+     *
+     * 先吃饱，再扣除 12 点（一次繁殖的消耗）。
+     */
+    void eatAndDigestFood();
+
+    /**
+     * @brief 扣除食物点数（对齐 vanilla Villager.digestFood）
+     */
+    void digestFood(i32 amount) noexcept { m_foodLevel = std::max(0, m_foodLevel - amount); }
+
     [[nodiscard]] bool isBreedingItem(const ItemStack& itemStack) const;
 
     std::unique_ptr<AgeableEntity> createChild();
+
+    /// 已摄取但尚未消化的食物点数（对齐 vanilla Villager.foodLevel，随 NBT 持久化）
+    i32 m_foodLevel = 0;
+
+    // ========== NBT ==========
+
+public:
+    void addAdditionalSaveData(nbt::tags::compound_tag& tag) const override;
+    Result<void> readAdditionalSaveData(const nbt::tags::compound_tag& tag) override;
 
     // ========== 其他 ==========
 

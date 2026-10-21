@@ -377,6 +377,44 @@ TEST_F(VillagerEntityTest, ReleaseAllPois_ReleasesMultiplePOIs)
     EXPECT_FALSE(poiStorage.getPOI(workstationPos)->isOccupied());
 }
 
+// ========== 食物点数（foodLevel / eatAndDigestFood）测试 ==========
+
+TEST_F(VillagerEntityTest, FoodLevel_DefaultsToZeroAndClampsNegative)
+{
+    EXPECT_EQ(m_villager->foodLevel(), 0);
+    EXPECT_TRUE(m_villager->isHungry());
+
+    m_villager->setFoodLevel(15);
+    EXPECT_EQ(m_villager->foodLevel(), 15);
+    EXPECT_FALSE(m_villager->isHungry());
+
+    // 消化扣除不回绕成负数。
+    m_villager->digestFood(100);
+    EXPECT_EQ(m_villager->foodLevel(), 0);
+}
+
+TEST_F(VillagerEntityTest, FoodLevel_ContributesToBreedingThreshold)
+{
+    // 库存无食物、食物点数为 0：不满足繁殖门槛。
+    EXPECT_FALSE(m_villager->hasEnoughFoodToBreed());
+
+    // 仅 foodLevel 达到 12 即满足（vanilla foodLevel + 库存点数 >= 12）。
+    m_villager->setFoodLevel(VillagerEntity::WANTS_MORE_FOOD_THRESHOLD);
+    EXPECT_TRUE(m_villager->hasEnoughFoodToBreed());
+}
+
+TEST_F(VillagerEntityTest, EatUntilFull_ConsumesInventoryFood)
+{
+    EXPECT_TRUE(m_villager->isHungry());
+
+    // 空库存时进食不产生任何变化。
+    m_villager->eatUntilFull();
+    EXPECT_EQ(m_villager->foodLevel(), 0);
+
+    m_villager->eatAndDigestFood();
+    EXPECT_EQ(m_villager->foodLevel(), 0);
+}
+
 } // namespace
 } // namespace test
 } // namespace entity

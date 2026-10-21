@@ -24,18 +24,18 @@
 #include "WanderingTraderSpawner.hpp"
 
 #include "common/entity/core/Entity.hpp"
-#include "common/entity/entities/player/Player.hpp"
-#include "common/entity/core/EntityType.hpp"
 #include "common/entity/core/EntityRegistry.hpp"
+#include "common/entity/core/EntityType.hpp"
 #include "common/entity/entities/passive/horse/TraderLlamaEntity.hpp"
+#include "common/entity/entities/player/Player.hpp"
 #include "common/entity/entities/villager/VillagerEntity.hpp"
 #include "common/util/assert/AssertMacros.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
+#include "common/world/biome/BiomeIds.hpp"
 #include "common/world/biome/BiomeTags.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/block/BlockState.hpp"
-#include "common/world/biome/BiomeIds.hpp"
 #include "common/world/chunk/data/ChunkData.hpp"
 #include "common/world/gamerule/GameRules.hpp"
 #include "common/world/spawn/EntitySpawnPlacementRegistry.hpp"
@@ -65,7 +65,8 @@ public:
 
     [[nodiscard]] i32 getHeight(HeightmapType type, i32 x, i32 z) const override
     {
-        const ChunkData* chunk = m_world.chunkManager()->tryToGetChunkInMem(world::toChunkCoord(x), world::toChunkCoord(z));
+        const ChunkData* chunk =
+            m_world.chunkManager()->tryToGetChunkInMem(world::toChunkCoord(x), world::toChunkCoord(z));
         return chunk != nullptr ? chunk->getTopBlockY(type, world::toLocalCoord(x), world::toLocalCoord(z)) : -1;
     }
 
@@ -149,11 +150,9 @@ bool WanderingTraderSpawner::trySpawn(server::ServerWorld& world)
     }
 
     // 群系禁止出生时放弃（如蘑菇岛等 #without_wandering_trader_spawns）。
-    const ChunkData* spawnChunk =
-        world.chunkManager()->tryToGetChunkInMem(spawnPos->chunkX(), spawnPos->chunkZ());
+    const ChunkData* spawnChunk = world.chunkManager()->tryToGetChunkInMem(spawnPos->chunkX(), spawnPos->chunkZ());
     if (spawnChunk != nullptr) {
-        const BiomeId biomeId =
-            spawnChunk->getBiomeAtBlock(spawnPos->localX(), spawnPos->y, spawnPos->localZ());
+        const BiomeId biomeId = spawnChunk->getBiomeAtBlock(spawnPos->localX(), spawnPos->y, spawnPos->localZ());
         if (world::biome::BiomeTags::WITHOUT_WANDERING_TRADER_SPAWNS().contains(biomeId)) {
             return false;
         }
@@ -169,7 +168,8 @@ bool WanderingTraderSpawner::trySpawn(server::ServerWorld& world)
     if (traderEntity == nullptr) {
         return false;
     }
-    traderEntity->setPosition(static_cast<f32>(spawnPos->x), static_cast<f32>(spawnPos->y), static_cast<f32>(spawnPos->z));
+    traderEntity->setPosition(
+        static_cast<f32>(spawnPos->x), static_cast<f32>(spawnPos->y), static_cast<f32>(spawnPos->z));
     auto* trader = dynamic_cast<entity::WanderingTraderEntity*>(traderEntity.get());
     if (trader != nullptr) {
         trader->setDespawnDelay(DESPAWN_DELAY);
@@ -204,10 +204,8 @@ bool WanderingTraderSpawner::trySpawn(server::ServerWorld& world)
         }
     }
 
-    spdlog::info("WanderingTraderSpawner: spawned wandering trader at ({}, {}, {})",
-        spawnPos->x,
-        spawnPos->y,
-        spawnPos->z);
+    spdlog::info(
+        "WanderingTraderSpawner: spawned wandering trader at ({}, {}, {})", spawnPos->x, spawnPos->y, spawnPos->z);
     return true;
 }
 
@@ -220,10 +218,8 @@ std::optional<BlockPos> WanderingTraderSpawner::_findSpawnPositionNear(
         const i32 z = center.z + world.getRandom().nextInt(radius * 2) - radius;
         const i32 y = world.getHeight(x, z);
         const BlockPos candidate(x, y, z);
-        if (world::spawn::EntitySpawnPlacementRegistry::canSpawnAtLocation(world::spawn::PlacementType::OnGround,
-                adapter,
-                Vector3i(x, y, z),
-                "minecraft:wandering_trader")) {
+        if (world::spawn::EntitySpawnPlacementRegistry::canSpawnAtLocation(
+                world::spawn::PlacementType::OnGround, adapter, Vector3i(x, y, z), "minecraft:wandering_trader")) {
             return candidate;
         }
     }

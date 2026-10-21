@@ -775,6 +775,57 @@ i32 VillagerEntity::countFoodPointsInInventory() const
     return total;
 }
 
+void VillagerEntity::addAdditionalSaveData(nbt::tags::compound_tag& tag) const
+{
+    AbstractVillagerEntity::addAdditionalSaveData(tag);
+    // vanilla 以 Byte 写入 FoodLevel（Villager.addAdditionalSaveData）。
+    tag.put("FoodLevel", static_cast<i8>(m_foodLevel));
+}
+
+Result<void> VillagerEntity::readAdditionalSaveData(const nbt::tags::compound_tag& tag)
+{
+    MC_TRY(AbstractVillagerEntity::readAdditionalSaveData(tag));
+    if (auto level = entity::serialization::nbt_helper::tryGetByte(tag, "FoodLevel"); level.has_value()) {
+        m_foodLevel = std::max(0, static_cast<i32>(*level));
+    }
+    return Result<void>::ok();
+}
+
+void VillagerEntity::eatUntilFull()
+{
+    // 对齐 vanilla Villager.eatUntilFull：饥饿且有库存食物时，逐槽逐件吃下，
+    // 每件累加其点数并移除 1 个，吃饱即停。
+    if (!isHungry() || countFoodPointsInInventory() == 0) {
+        return;
+    }
+    IInventory& inv = inventory();
+    for (i32 slot = 0; slot < inv.getContainerSize(); ++slot) {
+        const ItemStack stack = inv.getItem(slot);
+        if (stack.isEmpty()) {
+            continue;
+        }
+        const auto it = foodPoints().find(stack.getItem());
+        if (it == foodPoints().end()) {
+            continue;
+        }
+        const i32 points = it->second;
+        for (i32 remaining = stack.getCount(); remaining > 0; --remaining) {
+            m_foodLevel += points;
+            inv.removeItem(slot, 1);
+            if (!isHungry()) {
+                return;
+            }
+        }
+    }
+}
+
+void VillagerEntity::eatAndDigestFood()
+{
+    // 对齐 vanilla Villager.eatAndDigestFood：先吃饱，再消化掉一次繁殖的开销。
+    eatUntilFull();
+    digestFood(WANTS_MORE_FOOD_THRESHOLD);
+}
+
 bool VillagerEntity::hasExcessFood() const
 {
     return countFoodPointsInInventory() >= EXCESS_FOOD_THRESHOLD;
@@ -858,10 +909,9 @@ void VillagerEntity::pickUpItem(ItemEntity& itemEntity)
         itemEntity.setItemStack(remainder);
     }
 
-    // 拾取后检查繁殖意愿：库存食物点数 >= 繁殖门槛（WANTS_MORE_FOOD_THRESHOLD=12）则标记愿意繁殖。
-    // 对齐 Java 1.21.11 Villager.canBreed() 的 `foodLevel + countFoodPointsInInventory() >= 12` 门槛
-    // （Cubium 暂无 foodLevel 字段，用 willingToBreed 布尔替代，参见头文件 TODO）。
-    if (countFoodPointsInInventory() >= WANTS_MORE_FOOD_THRESHOLD) {
+    // 拾取后检查繁殖意愿：对齐 vanilla Villager.canBreed 的
+    // `foodLevel + countFoodPointsInInventory() >= 12` 食物门槛。
+    if (hasEnoughFoodToBreed()) {
         setWillingToBreed(true);
     }
 }
