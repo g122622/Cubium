@@ -230,10 +230,40 @@ public:
     // attack(entity) 已实现：转发 Player::attack(target) 走完整玩家攻击伤害链
     // （playerAttack source → target.hurt → actuallyHurt → setLastHurtBy → 群体仇恨触发）。
     void attack(mc::Entity& target) override;
-    // TODO: interact(entity/block)（依赖交互管理器 handleItemUseOn 完整化）
-    // TODO: breakBlock(pos)（依赖 destroyBlock + 战利品表，见 GameTestHelper::destroyBlock 同类 TODO）
-    // TODO: placeBlock(pos, block)（依赖方块放置 + 玩家朝向）
-    // TODO: jump / sprint 切换（jump 已有 Player::jump；sprint 切换待封装）
+
+    /**
+     * @brief 破坏方块（对齐基岩 SimulatedPlayer::breakBlock）
+     *
+     * 走服务端权威破坏链路 BlockInteractionManager::handleBlockBreak（与玩家挖掘完成后的
+     * 处理完全一致）：出生点保护/可破坏判定、掉落物生成（创造模式不掉落）、工具
+     * onBlockDestroyed 耐久与附魔、粒子与声音、方块实体移除等。
+     *
+     * @param relativePos 结构相对坐标（经 helper 变换为世界绝对坐标）。
+     * @return 方块是否被破坏成功。
+     */
+    bool breakBlock(BlockPos relativePos);
+
+    /**
+     * @brief 在指定位置放置方块（对齐基岩 SimulatedPlayer::placeBlock）
+     *
+     * 使用当前手持物品走放置链路（Player::placeItem → BlockItem::onItemUse → canPlaceAt 等），
+     * 与玩家右键放置一致：创造模式以外消耗手持数量、触发方块放置回调与邻居更新。
+     * 放置朝向取模拟玩家当前 yaw/pitch（调用方应先 lookAtLocation 指定视角）。
+     *
+     * @param relativePos 结构相对坐标。
+     * @param block 要放置的方块类型（如 "minecraft:stone"；无法解析的 id 视为失败）。
+     * @return 是否放置成功（目标位置变为该方块）。
+     */
+    bool placeBlock(BlockPos relativePos, const std::string& block);
+
+    /**
+     * @brief 切换疾跑状态（对齐基岩 SimulatedPlayer::setSprint）。
+     *
+     * 转发 Player::setSprinting：疾跑改变移动速度倍率与跳跃/冲刺消耗。
+     *
+     * @param sprinting 是否疾跑。
+     */
+    void setSprint(bool sprinting);
 
     // === 物品使用（对齐基岩 SimulatedPlayer::useItem/useItemOnBlock/useItemInSlot/useItemInSlotOnBlock）===
     // 经 ItemUseContext + Item::onItemUse/onItemRightClick 派发，支持骨粉/桶/锄头/斧头等所有非 block-item
