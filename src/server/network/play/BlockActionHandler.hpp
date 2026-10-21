@@ -67,6 +67,9 @@ public:
     /// SignUpdate：告示牌文本编辑（编辑者校验 + 涂蜡拒改 + 变更广播）
     void handleUpdateSignPacket(PlayerId playerId, const mc::network::ir::IrPacket& packet);
 
+    /// SetCommandBlock：命令方块编辑结果（权限校验 + 模式换块 + 命令/输出/自动执行写入）
+    void handleSetCommandBlockPacket(PlayerId playerId, const mc::network::ir::IrPacket& packet);
+
 private:
     /// 触发 default_block_use 成就（任意方块使用/放置成功后调用，无条件触发所有监听实例）。
     void _triggerAnyBlockUse(Player& player);

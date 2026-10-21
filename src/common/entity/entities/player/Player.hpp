@@ -1717,6 +1717,35 @@ public:
     }
 
     /**
+     * @brief 打开命令方块编辑界面
+     *
+     * 对齐 vanilla Player.openCommandBlock：把命令方块的方块实体数据（命令、模式、追踪输出等）
+     * 下发给客户端以打开编辑界面。基类默认空实现（客户端无网络能力），
+     * ServerPlayer 重写以发送 BlockEntityData 包。
+     *
+     * @param pos 命令方块位置
+     */
+    virtual void openCommandBlock(const BlockPos& pos) { MC_UNUSED(pos); }
+
+    /**
+     * @brief 当前正在编辑的命令方块位置（对齐 vanilla ServerPlayer.commandBlock 字段）
+     *
+     * 玩家打开命令方块界面时记录位置，服务端收到 set_command_block 时校验一致性，
+     * 防止客户端在未打开界面时远程改写任意命令方块。
+     */
+    [[nodiscard]] const std::optional<BlockPos>& commandBlock() const { return m_commandBlock; }
+
+    /**
+     * @brief 设置正在编辑的命令方块位置
+     */
+    void setCommandBlock(std::optional<BlockPos> pos) { m_commandBlock = std::move(pos); }
+
+    /**
+     * @brief 清空正在编辑的命令方块位置
+     */
+    void clearCommandBlock() { m_commandBlock.reset(); }
+
+    /**
      * @brief 获取手持物品
      * @param hand 主手或副手
      * @return 物品堆引用
@@ -2243,6 +2272,7 @@ private:
     PlayerInventory m_inventory{this};               // 玩家背包
     PlayerEnderChestInventory m_enderChestInventory; // 末影箱物品栏
     AbstractContainerMenu* m_openContainerMenu = nullptr;
+    std::optional<BlockPos> m_commandBlock; ///< 正在编辑的命令方块位置（对齐 vanilla ServerPlayer.commandBlock）
 
     // m_score 已迁入 ecs::PlayerScoreComponent（真相源），DATA_PLAYER_SCORE_PARAM 退为同步镜像。
     // 经 getScore()/setScore()/increaseScore() 读写（见 m_entityContext->tryGetComponent）。

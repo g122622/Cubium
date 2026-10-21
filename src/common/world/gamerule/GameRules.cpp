@@ -145,6 +145,7 @@ struct RuleRegistry {
 
         // 杂项
         registerBoolean("reducedDebugInfo", GameRuleCategory::Misc, false);
+        registerBoolean("commandBlocksWork", GameRuleCategory::Misc, true);
         registerBoolean("tntExplodes", GameRuleCategory::Misc, true);
         registerBoolean("spawnerBlocksWork", GameRuleCategory::Misc, true);
         registerBoolean("globalSoundEvents", GameRuleCategory::Misc, true);
@@ -261,6 +262,7 @@ const BooleanGameRuleKey ANNOUNCE_ADVANCEMENTS("announceAdvancements", GameRuleC
 
 // 杂项
 const BooleanGameRuleKey REDUCED_DEBUG_INFO("reducedDebugInfo", GameRuleCategory::Misc);
+const BooleanGameRuleKey COMMAND_BLOCKS_WORK("commandBlocksWork", GameRuleCategory::Misc);
 const BooleanGameRuleKey TNT_EXPLODES("tntExplodes", GameRuleCategory::Misc);
 const BooleanGameRuleKey SPAWNER_BLOCKS_WORK("spawnerBlocksWork", GameRuleCategory::Misc);
 const BooleanGameRuleKey GLOBAL_SOUND_EVENTS("globalSoundEvents", GameRuleCategory::Misc);

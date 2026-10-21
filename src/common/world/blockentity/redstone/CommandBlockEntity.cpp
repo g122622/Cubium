@@ -386,6 +386,13 @@ void CommandBlockEntity::setCommand(const std::string& command)
     setChanged();
 }
 
+void CommandBlockEntity::clearCommand()
+{
+    m_command.clear();
+    m_successCount = 0;
+    setChanged();
+}
+
 void CommandBlockEntity::setSuccessCount(i32 count)
 {
     m_successCount = std::clamp(count, 0, 15);
