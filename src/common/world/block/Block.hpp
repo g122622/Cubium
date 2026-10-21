@@ -1566,6 +1566,18 @@ public:
     [[nodiscard]] virtual bool isValidPosition(const BlockState& state, IBlockReader& world, const BlockPos& pos) const;
 
     /**
+     * @brief 放置前的严格判定（对齐 vanilla Block#getStateForPlacement 返回 null 的放弃语义）
+     *
+     * 默认实现返回 true：绝大多数方块的放置可行性由 isValidPosition（canSurvive）完整表达。
+     * 少数方块（如梯子）的放置依赖上下文（点击面/相邻方块）且无法用单个状态 + canSurvive 表达，
+     * 可重写此方法，在 BlockItem 计算放置状态之前给出精确判定。
+     *
+     * @param context 放置上下文
+     * @return 可以放置返回 true
+     */
+    [[nodiscard]] virtual bool canPlaceAt(const BlockItemUseContext& context) const;
+
+    /**
      * @brief 检查方块是否可被替换
      *
      * 当玩家使用物品点击方块时调用，判断是否可以替换该方块。

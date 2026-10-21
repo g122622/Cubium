@@ -61,6 +61,21 @@ public:
      */
     BlockState getStateForPlacement(BlockItemUseContext& context) override;
 
+    /**
+     * @brief 严格放置判定（对齐 vanilla LadderBlock.getStateForPlacement 返回 null 的两处放弃条件）
+     *
+     * 1. 未替换点击方块（贴在方块侧面）时，若点击位置内侧方块是朝向点击面的同种梯子，则放弃；
+     * 2. getStateForPlacement 选出的候选状态必须能存活（canSurvive），否则放弃。
+     *
+     * 基类 BlockItem::canPlace 以 canSurvive 校验 `state.owner()`，而在"全部候选都不能存活"时
+     * getStateForPlacement 只能回退默认朝向（其 owner 仍是本方块），故基类校验无法表达"放弃放置"。
+     * 本方法在 BlockItem 计算放置状态之前给出精确判定。
+     *
+     * @param context 放置上下文
+     * @return 可以放置返回 true
+     */
+    [[nodiscard]] bool canPlaceAt(const BlockItemUseContext& context) const override;
+
     // ========== 放置检测 ==========
 
     /**
