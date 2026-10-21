@@ -425,6 +425,25 @@ struct ConsumeItemEvent : ServerEvent {
 };
 
 /**
+ * @brief 玩家投掷的物品被实体拾取事件（对齐 vanilla CriteriaTriggers.THROWN_ITEM_PICKED_UP_BY_ENTITY）
+ *
+ * owner/thrower 为玩家的 ItemEntity 被某个实体（任何生物/玩家）拾取时发布，
+ * 用于触发进度检测。
+ */
+struct ItemPickedUpByEntityEvent : ServerEvent {
+    PlayerId playerId;         ///< 投掷该物品的玩家（物品实体 owner）
+    ItemStack item;            ///< 被拾取的物品堆
+    EntityInstanceId entityId; ///< 拾取者实体实例 id（避免跨 tick 裸指针）
+
+    ItemPickedUpByEntityEvent(u64 tick, PlayerId pid, const ItemStack& i, EntityInstanceId eid)
+        : ServerEvent(tick)
+        , playerId(pid)
+        , item(i)
+        , entityId(eid)
+    {}
+};
+
+/**
  * @brief 物品耐久变化事件
  */
 struct ItemDurabilityEvent : ServerEvent {

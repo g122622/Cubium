@@ -495,6 +495,63 @@ TEST_F(ItemTriggersTest, TriggerIdConstants)
 
     EXPECT_STREQ(FilledBucketTrigger::TRIGGER_ID, "minecraft:filled_bucket");
     EXPECT_STREQ(FilledBucketTriggerInstance::TRIGGER_ID, "minecraft:filled_bucket");
+
+    EXPECT_STREQ(ThrownItemPickedUpByEntityTrigger::TRIGGER_ID, "minecraft:thrown_item_picked_up_by_entity");
+    EXPECT_STREQ(ThrownItemPickedUpByEntityTriggerInstance::TRIGGER_ID, "minecraft:thrown_item_picked_up_by_entity");
+}
+
+// ========== ThrownItemPickedUpByEntityTrigger（拾取投掷物） ==========
+
+TEST_F(ItemTriggersTest, ThrownItemPickedUpByEntity_Registered)
+{
+    auto* trigger = CriterionTriggers::instance().getTrigger<ThrownItemPickedUpByEntityTrigger>();
+    ASSERT_NE(trigger, nullptr);
+    EXPECT_EQ(trigger->getId().toString(), "minecraft:thrown_item_picked_up_by_entity");
+}
+
+TEST_F(ItemTriggersTest, ThrownItemPickedUpByEntity_ItemConditionMatches)
+{
+    auto* trigger = CriterionTriggers::instance().getTrigger<ThrownItemPickedUpByEntityTrigger>();
+    ASSERT_NE(trigger, nullptr);
+
+    // 对齐 vanilla：条件为 {"item": {...}}，仅匹配指定物品。
+    auto result = trigger->fromJson(R"({"item": {"items": ["minecraft:apple"]}})"_json);
+    ASSERT_TRUE(result.success());
+    auto instance = std::dynamic_pointer_cast<ThrownItemPickedUpByEntityTriggerInstance>(result.value());
+    ASSERT_NE(instance, nullptr);
+
+    Items::initialize();
+    EXPECT_TRUE(instance->test(ItemStack(Items::APPLE, 1)));
+    EXPECT_FALSE(instance->test(ItemStack(Items::STONE, 1)));
+}
+
+TEST_F(ItemTriggersTest, ThrownItemPickedUpByEntity_NoConditionsMatchesAnyItem)
+{
+    auto* trigger = CriterionTriggers::instance().getTrigger<ThrownItemPickedUpByEntityTrigger>();
+    ASSERT_NE(trigger, nullptr);
+
+    auto result = trigger->fromJson(nullptr);
+    ASSERT_TRUE(result.success());
+    auto instance = std::dynamic_pointer_cast<ThrownItemPickedUpByEntityTriggerInstance>(result.value());
+    ASSERT_NE(instance, nullptr);
+
+    Items::initialize();
+    EXPECT_TRUE(instance->test(ItemStack(Items::STONE, 1)));
+    EXPECT_TRUE(instance->test(ItemStack(Items::APPLE, 1)));
+}
+
+TEST_F(ItemTriggersTest, ThrownItemPickedUpByEntity_ConditionsRoundtrip)
+{
+    auto* trigger = CriterionTriggers::instance().getTrigger<ThrownItemPickedUpByEntityTrigger>();
+    ASSERT_NE(trigger, nullptr);
+
+    auto result = trigger->fromJson(R"({"item": {"items": ["minecraft:apple"]}})"_json);
+    ASSERT_TRUE(result.success());
+    auto instance = std::dynamic_pointer_cast<ThrownItemPickedUpByEntityTriggerInstance>(result.value());
+    ASSERT_NE(instance, nullptr);
+
+    const nlohmann::json serialized = instance->conditionsToJson();
+    EXPECT_TRUE(serialized.contains("item"));
 }
 
 // main 函数由 gtest_main 库提供
