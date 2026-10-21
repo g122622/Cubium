@@ -292,6 +292,31 @@ void ServerPlayer::openCommandBlock(const BlockPos& pos)
     setCommandBlock(pos);
 }
 
+void ServerPlayer::openStructureBlock(const BlockPos& pos)
+{
+    // 对齐 vanilla ServerPlayer 下发的 ClientboundBlockEntityDataPacket（结构方块无独立 GUI 包，
+    // 客户端据 BlockEntityType=structure_block 自行打开编辑界面）。
+    IWorld* worldPtr = world();
+    if (worldPtr == nullptr) {
+        return;
+    }
+    const BlockEntity* entity = worldPtr->getBlockEntity(pos);
+    if (entity == nullptr || entity->getType() != BlockEntityType::StructureBlock) {
+        spdlog::warn(
+            "ServerPlayer: no structure block entity at ({}, {}, {}) (player={})", pos.x, pos.y, pos.z, username());
+        return;
+    }
+    auto tag = std::make_shared<nbt::CompoundTag>(entity->getUpdateTag());
+    mc::network::ir::play::BlockEntityData bePkt;
+    bePkt.blockPosPacked = pos.asLong();
+    bePkt.blockEntityType = static_cast<i32>(entity->getType());
+    bePkt.tag = std::move(tag);
+    if (!_sendIrPacket(mc::network::ir::IrPacket{
+            mc::network::protocol::ConnectionProtocol::Play, mc::network::ir::PlayPacket{std::move(bePkt)}})) {
+        spdlog::warn("ServerPlayer: structure block data packet not sent (player={}, no connection)", username());
+    }
+}
+
 void ServerPlayer::sendStatusMessage(const std::string& message, bool actionBar)
 {
     // actionBar 参数用于控制消息显示位置：

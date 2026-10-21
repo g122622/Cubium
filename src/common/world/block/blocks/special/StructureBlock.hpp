@@ -71,6 +71,22 @@ public:
      */
     [[nodiscard]] Mode getMode(const BlockState& state) const;
 
+    // ========== 方块实体 ==========
+
+    /// 结构方块带方块实体（保存结构名/坐标/尺寸等编辑状态）
+    [[nodiscard]] bool hasBlockEntity() const noexcept override { return true; }
+
+    /// 创建结构方块实体
+    [[nodiscard]] std::unique_ptr<BlockEntity> createBlockEntity(const BlockPos& pos) override;
+
+    /**
+     * @brief 方块被放置后的回调
+     *
+     * 对齐 vanilla StructureBlock.setPlacedBy 的"记录作者"语义：当前先委托基类，
+     * 放置者写入实体 author 字段待方块放置回调携带放置者后补全（见实现内 TODO）。
+     */
+    void onBlockPlacedBy(IWorld& world, const BlockPos& pos, const BlockState& state, const ItemStack& stack) override;
+
     // ========== 放置逻辑 ==========
 
     /**

@@ -109,6 +109,14 @@ public:
     void openCommandBlock(const BlockPos& pos) override;
 
     /**
+     * @brief 打开结构方块编辑界面（重写 Player 基类）
+     *
+     * 对齐 vanilla Player.openStructureBlock：仅下发结构方块实体的 BlockEntityData，
+     * 客户端据其结构名/坐标/尺寸/模式打开编辑界面（无独立 GUI 包）。
+     */
+    void openStructureBlock(const BlockPos& pos) override;
+
+    /**
      * @brief 校验玩家是否仍可编辑给定位置的命令方块（对齐 vanilla CommandBlockEntity.isValidPlayerEditor）
      *
      * 条件：玩家未移除、仍拥有 GameMaster 权限、区块已加载，且与方块中心距离不超过 4 格。

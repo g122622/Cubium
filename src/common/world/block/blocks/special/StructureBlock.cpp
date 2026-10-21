@@ -35,6 +35,7 @@
 #include "common/util/property/StateHolder.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/Block.hpp"
+#include "common/world/blockentity/special/StructureBlockEntity.hpp"
 #include <cstddef>
 #include <memory>
 #include <utility>
@@ -78,20 +79,34 @@ BlockState StructureBlock::getStateForPlacement(BlockItemUseContext& context)
     return defaultState();
 }
 
+std::unique_ptr<BlockEntity> StructureBlock::createBlockEntity(const BlockPos& pos)
+{
+    return std::make_unique<blockentity::StructureBlockEntity>(pos);
+}
+
+void StructureBlock::onBlockPlacedBy(
+    IWorld& world, const BlockPos& pos, const BlockState& state, const ItemStack& stack)
+{
+    Block::onBlockPlacedBy(world, pos, state, stack);
+    // TODO: 对齐 vanilla StructureBlock.setPlacedBy 的记录作者语义（放置者写入实体 author 字段）。
+    //   本项目方块放置回调不携带放置者实体，需先扩展 Block::onBlockPlacedBy 签名后再接入。
+    MC_UNUSED(pos);
+}
+
 BlockActionResult StructureBlock::useWithoutItem(
     const BlockState& state, IWorld& world, const BlockPos& pos, Player& player, const BlockRaycastResult& hit)
 {
     MC_UNUSED(state);
-    MC_UNUSED(world);
-    MC_UNUSED(pos);
     MC_UNUSED(hit);
 
-    // 游戏管理员方块需要权限才能交互
-    if (!player.canUseGameMasterBlocks()) {
-        return ActionResultType::Fail;
+    // 对齐 vanilla StructureBlockEntity.usedBy：无实体或无管理员权限返回 PASS。
+    auto* entity = dynamic_cast<blockentity::StructureBlockEntity*>(world.getBlockEntity(pos));
+    if (entity == nullptr || !player.canUseGameMasterBlocks()) {
+        return ActionResultType::Pass;
     }
 
-    // TODO: 打开结构方块界面
+    // 对齐 vanilla：客户端据下发的方块实体数据自行打开编辑界面（无独立 GUI 包）。
+    player.openStructureBlock(pos);
     return ActionResultType::Success;
 }
 

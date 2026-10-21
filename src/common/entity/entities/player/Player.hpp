@@ -1756,6 +1756,17 @@ public:
     virtual void openCommandBlock(const BlockPos& pos) { MC_UNUSED(pos); }
 
     /**
+     * @brief 打开结构方块编辑界面
+     *
+     * 对齐 vanilla Player.openStructureBlock：把结构方块实体的编辑状态（结构名、坐标偏移、尺寸、
+     * 镜像/旋转、模式、完整度、种子等）下发给客户端以打开编辑界面。基类默认空实现（客户端无网络
+     * 能力），ServerPlayer 重写以发送 BlockEntityData 包。
+     *
+     * @param pos 结构方块位置
+     */
+    virtual void openStructureBlock(const BlockPos& pos) { MC_UNUSED(pos); }
+
+    /**
      * @brief 当前正在编辑的命令方块位置（对齐 vanilla ServerPlayer.commandBlock 字段）
      *
      * 玩家打开命令方块界面时记录位置，服务端收到 set_command_block 时校验一致性，
