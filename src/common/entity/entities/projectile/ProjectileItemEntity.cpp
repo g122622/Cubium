@@ -416,8 +416,7 @@ void EnderPearlEntity::teleportOwnerOnImpact()
     // 非玩家 mob 分支：仅传送，不施加伤害（对齐 vanilla 非 ServerPlayer 分支无 hurtServer）。
 
     // 传送音效。对齐 vanilla playSound(SoundEvents.PLAYER_TELEPORT)。
-    // TODO(音效缺失): Cubium 未定义 PLAYER_TELEPORT，暂用末影人传送音效近似。
-    playSound(SoundEvents::ENTITY_ENDERMAN_TELEPORT, 1.0f, 1.0f);
+    playSound(SoundEvents::PLAYER_TELEPORT, 1.0f, 1.0f);
 
     remove();
 }

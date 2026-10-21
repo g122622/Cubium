@@ -204,6 +204,16 @@ public:
      */
     void onStruckByLightning(entity::LightningBoltEntity* lightning) override;
 
+    /**
+     * @brief 闪电施加者效果：同一道闪电只变色一次（对齐 vanilla lastLightningBoltUUID）
+     *
+     * 原版在 thunderHit 内比对闪电 UUID，此处由 LightningBoltEntity 在 thunderHit 之后回调，
+     * 效果与判定合并到本钩子，避免闪电实体自身进入判定循环（UUID 恒等导致永不变色）。
+     *
+     * @param instigatorUuid 闪电实体 UUID
+     */
+    void applyInstigatorEffects(const std::string& instigatorUuid) override;
+
     // ========== NBT序列化 ==========
 
     void addAdditionalSaveData(nbt::tags::compound_tag& tag) const override;
@@ -225,6 +235,10 @@ protected:
 private:
     // 哞菇类型
     MooshroomType m_mooshroomType = MooshroomType::Red;
+
+    /// 最近一次触发变色的闪电 UUID（对齐 vanilla MushroomCow.lastLightningBoltUUID，
+    /// 保证同一道闪电只变色一次；空串表示尚未被闪电击中过）
+    std::string m_lastLightningBoltUuid;
 
     // 迷之炖菜效果（棕色哞菇用）
     // 当棕色哞菇被喂食花朵时，存储花朵对应的效果；

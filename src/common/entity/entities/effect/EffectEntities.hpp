@@ -184,6 +184,9 @@ public:
     void setEffectOnly(bool effectOnly) { m_effectOnly = effectOnly; }
     [[nodiscard]] bool isEffectOnly() const { return m_effectOnly; }
 
+    /// 视觉专用闪电（对齐 vanilla LightningBolt.getEffectOnly()）
+    [[nodiscard]] bool getEffectOnly() const { return m_effectOnly; }
+
     /**
      * @brief 设置触发者（用于引雷附魔等）
      * @param casterId 触发者的玩家ID

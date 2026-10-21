@@ -1179,6 +1179,7 @@ const ResourceLocation ENTITY_ENDERMAN_HURT("minecraft:entity.enderman.hurt");
 const ResourceLocation ENTITY_ENDERMAN_SCREAM("minecraft:entity.enderman.scream");
 const ResourceLocation ENTITY_ENDERMAN_STARE("minecraft:entity.enderman.stare");
 const ResourceLocation ENTITY_ENDERMAN_TELEPORT("minecraft:entity.enderman.teleport");
+const ResourceLocation PLAYER_TELEPORT("minecraft:entity.player.teleport");
 
 // 末影螨
 const ResourceLocation ENTITY_ENDERMITE_AMBIENT("minecraft:entity.endermite.ambient");
