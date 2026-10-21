@@ -408,8 +408,6 @@ void MobEntity::updateMovementGoalFlags()
     //
     // 控制乘客判定：getControllingPassenger() 返回首名乘客（Entity 基类默认），查实体类型。
     // 控制乘客为 Player → flag=true（启用）；为 Mob（非玩家生物）→ flag=false（禁用）；无乘客 → flag=true。
-    // 船辆特例（JUMP flag 额外受 vehicle 是否船影响）暂不对齐：Cubium 船骑乘体系未完整，且仅影响
-    // JUMP flag 边缘场景，留 TODO 待船体系就绪。
     bool controllingIsMob = false;
     EntityInstanceId controllingId = getControllingPassenger();
     if (controllingId != INVALID_ENTITY_ID && m_world != nullptr) {
@@ -418,11 +416,25 @@ void MobEntity::updateMovementGoalFlags()
             controllingIsMob = true;
         }
     }
-    bool canMove = !controllingIsMob;
+    const bool canMove = !controllingIsMob;
+
+    // 载具特例：骑乘船时无论乘客是谁都禁用 JUMP flag（对齐 vanilla
+    // `flag1 = !(getVehicle() instanceof AbstractBoat)`，Mob.java:335）。
+    const bool canJump = canMove && !_isRidingBoat();
 
     m_goalSelector.setFlag(entity::ai::GoalFlag::Move, canMove);
-    m_goalSelector.setFlag(entity::ai::GoalFlag::Jump, canMove);
+    m_goalSelector.setFlag(entity::ai::GoalFlag::Jump, canJump);
     m_goalSelector.setFlag(entity::ai::GoalFlag::Look, canMove);
+}
+
+bool MobEntity::_isRidingBoat() const
+{
+    const EntityInstanceId vehicleId = getVehicle();
+    if (vehicleId == INVALID_ENTITY_ID || m_world == nullptr) {
+        return false;
+    }
+    // 箱子船继承 BoatEntity，此处覆盖全部船类载具。
+    return dynamic_cast<entity::BoatEntity*>(m_world->getEntity(vehicleId)) != nullptr;
 }
 
 std::optional<ResourceLocation> MobEntity::getAmbientSound() const

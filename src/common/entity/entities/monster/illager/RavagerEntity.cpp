@@ -192,10 +192,11 @@ void RavagerEntity::updateMovementGoalFlags()
         }
     }
 
-    // 船辆特例（JUMP flag 额外受 vehicle 是否船影响）暂不对齐，留 TODO（基类 MobEntity 同）。
-    // TODO: 船骑乘体系就绪后对齐 JUMP flag 的 `!(getVehicle() instanceof AbstractBoat)` 特例。
+    // 载具特例：骑乘船时禁用 JUMP flag（与基类一致，对齐 vanilla
+    // `flag1 = !(getVehicle() instanceof AbstractBoat)`）。
+    const bool canJump = canMove && !_isRidingBoat();
     m_goalSelector.setFlag(entity::ai::GoalFlag::Move, canMove);
-    m_goalSelector.setFlag(entity::ai::GoalFlag::Jump, canMove);
+    m_goalSelector.setFlag(entity::ai::GoalFlag::Jump, canJump);
     m_goalSelector.setFlag(entity::ai::GoalFlag::Look, canMove);
     // 对齐 vanilla Ravager.updateControlFlags 设 TARGET flag（基类 MobEntity 未设，属基类级偏差，
     // 此处 Ravager 重写补齐——灾厄村民骑乘时 Ravager 仍可自主选目标）。

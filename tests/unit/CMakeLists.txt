@@ -920,6 +920,8 @@ add_executable(mc_tests
     entity/ProjectileHelperTest.cpp
     # ThrowableEntity 传送门处理测试（下界传送门、末地折跃门）
     entity/ThrowablePortalTest.cpp
+    # 生物骑乘船的 JUMP flag 门控测试（对齐 vanilla Mob.updateControlFlags）
+    entity/MobRidingBoatJumpFlagTest.cpp
     # FishingBobberEntity 钩住实体测试
     common/entity/entities/projectile/FishingBobberHookEntityTest.cpp
     # FishingBobberEntity 开放水域检测测试

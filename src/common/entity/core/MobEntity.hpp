@@ -312,6 +312,14 @@ public:
      */
     virtual void updateMovementGoalFlags();
 
+    /**
+     * @brief 当前载具是否为船
+     *
+     * 对齐 vanilla `getVehicle() instanceof AbstractBoat` 判定，供 updateMovementGoalFlags
+     * 决定是否禁用 JUMP flag（船内生物不能跳跃）。箱子船继承 BoatEntity，一并覆盖。
+     */
+    [[nodiscard]] bool _isRidingBoat() const;
+
     // ========== AI 辅助方法 ==========
 
     /**
