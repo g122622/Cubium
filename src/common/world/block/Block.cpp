@@ -946,6 +946,12 @@ bool Block::isFaceFull(const CollisionShape& shape, Direction direction)
     return faceShape.coversFullBlock();
 }
 
+bool Block::canPlaceAt(const BlockItemUseContext& /*context*/) const
+{
+    // 默认：放置可行性交由 isValidPosition（canSurvive）在 BlockItem::canPlace 中判定。
+    return true;
+}
+
 bool Block::isExceptionForConnection(const BlockState& state)
 {
     // 参考: net.minecraft.block.Block#isExceptionForConnection

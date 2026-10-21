@@ -95,6 +95,12 @@ ActionResultType BlockItem::tryPlace(BlockItemUseContext& context) const
     // 获取放置上下文（子类可重写）
     BlockItemUseContext blockContext = getBlockItemUseContext(context);
 
+    // 方块侧严格放置判定（对齐 vanilla Block#getStateForPlacement 返回 null 的放弃语义）：
+    // 少数方块的可行性依赖点击面/相邻方块，无法由单个状态 + canSurvive 表达，交由方块自判。
+    if (!m_block->canPlaceAt(blockContext)) {
+        return ActionResultType::Fail;
+    }
+
     // 获取放置状态
     const BlockState* state = getStateForPlacement(blockContext);
     if (state == nullptr) {

@@ -245,3 +245,40 @@ TEST_F(LadderAttachmentTest, RotateAndMirror_UpdatesFacing)
     const BlockState& mirrored = ladder.mirror(state, Mirror::LeftRight);
     EXPECT_EQ(facingOf(mirrored), Direction::East);
 }
+
+// ============================================================================
+// 严格放置判定（对齐 vanilla LadderBlock.getStateForPlacement 返回 null 的放弃语义）
+// ============================================================================
+
+// 无任何可存活候选（四周无支撑）→ canPlaceAt 为假，拒绝放置
+TEST_F(LadderAttachmentTest, CanPlaceAt_NoSupportingNeighborRejectsPlacement)
+{
+    auto& ladder = *VanillaBlocks::LADDER;
+    // 点击位置 (0,64,0) 上方空气，周围无任何方块：所有候选 FACING 都无附着面。
+    auto context = makeContext(world, BlockPos(0, 64, 0), Direction::Up, 0.0f, 90.0f);
+    EXPECT_FALSE(ladder.canPlaceAt(context));
+}
+
+// 点击位置下方为石头（俯视放置）：FACING 取玩家水平朝向，倚靠下方石头所在侧面即可存活
+TEST_F(LadderAttachmentTest, CanPlaceAt_SupportedByClickedBlock)
+{
+    auto& ladder = *VanillaBlocks::LADDER;
+    // 南侧有墙，梯子朝向玩家水平朝向（South）并倚靠南墙。玩家视线必须为竖直：
+    // 水平视线下 BlockItemUseContext 会把"点击面反向"（Down）提到候选首位，而梯子只接受水平候选，
+    // 随后才按视线顺序尝试水平方向，便可能选中无支撑的一侧（与 vanilla 相同）。
+    world.set(BlockPos(0, 64, 1), solidBlock());
+    auto context = makeContext(world, BlockPos(0, 64, 0), Direction::Up, 0.0f, 90.0f);
+    EXPECT_TRUE(ladder.canPlaceAt(context));
+}
+
+// 紧贴同种梯子的背面（点击侧面、点击位置内侧为朝向该面的梯子）→ 放弃放置
+TEST_F(LadderAttachmentTest, CanPlaceAt_BackToBackSameLadderRejected)
+{
+    auto& ladder = *VanillaBlocks::LADDER;
+    // 点击石头东面：放置位置 (1,64,0)，内侧方块 (0,64,0) 为朝向 East 的梯子
+    world.set(
+        BlockPos(0, 64, 0), ladder.defaultState().with(BlockStateProperties::HORIZONTAL_FACING(), Direction::East));
+    auto context = makeContext(world, BlockPos(0, 64, 0), Direction::East, 90.0f, 0.0f);
+    ASSERT_EQ(context.placementPos(), BlockPos(1, 64, 0));
+    EXPECT_FALSE(ladder.canPlaceAt(context));
+}

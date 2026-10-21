@@ -108,10 +108,8 @@ public:
      *
      * 瓶草作物只能通过种子放置，初始为下半部分、年龄 0。
      *
-     * TODO: 此方法重写 Block::getStateForPlacement(BlockItemUseContext&)，
-     * 但 SeedsItem 的放置路径通过 BlockItem::getStateForPlacement 返回 defaultState()，
-     * 由于 defaultState() 已经是 AGE=0, HALF=Lower，功能上无影响。
-     * 若将来需要根据放置上下文返回不同状态，需同步修改 BlockItem 放置路径。
+     * 与 vanilla PitcherCropBlock.getStateForPlacement 一致：无视放置上下文恒返回默认状态
+     * （AGE=0、HALF=Lower）。种子物品经 BlockItem::getStateForPlacement 委托到本方法。
      */
     [[nodiscard]] BlockState getStateForPlacement(BlockItemUseContext& context) override;
 
