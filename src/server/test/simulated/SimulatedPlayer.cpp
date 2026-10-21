@@ -16,9 +16,11 @@
 #include "common/util/math/MathUtils.hpp"              // toDegrees / toRadians / clamp
 #include "common/world/IWorld.hpp"                     // onItemRightClick / ItemUseContext 取 IWorld&
 #include "common/world/block/Block.hpp"                // Block::getBlock（方块侧交互解析）
+#include "common/world/block/BlockRegistry.hpp"        // BlockRegistry::getBlock（placeBlock 解析方块 id）
 #include "common/world/block/BlockState.hpp"           // BlockState::blockId/isAir
 #include "common/world/dimension/DimensionManager.hpp" // DimensionManager::OVERWORLD（spawn 维度注册）
-#include "server/application/IServer.hpp"              // IServer::dimensionManager（ServerWorld::server 返回 IServer*）
+#include "server/application/IServer.hpp"
+#include "server/interaction/BlockInteractionManager.hpp"              // IServer::dimensionManager（ServerWorld::server 返回 IServer*）
 #include "server/core/PlayerManager.hpp" // PlayerManager::nextPlayerId（SimulatedPlayer 分配全局唯一 PlayerId）
 #include "server/dimension/ServerDimensionManager.hpp" // ServerDimensionManager::playerJoinDimension
 #include "server/world/ServerWorld.hpp"
@@ -314,6 +316,77 @@ void SimulatedPlayer::attack(mc::Entity& target)
     // SimulatedPlayer 经 ServerPlayer→Player 继承，无网络连接时发包路径 no-op（setConnection(nullptr)）。
     // 直接调 Player::attack（非 ServerPlayer::attack）以跳过 ServerPlayer 的旁观者 setCamera 网络路径。
     Player::attack(target);
+}
+
+// === 方块破坏 / 放置 / 疾跑（对齐基岩 SimulatedPlayer::breakBlock/placeBlock/setSprint）===
+
+bool SimulatedPlayer::breakBlock(BlockPos relativePos)
+{
+    MC_ASSERT_RELEASE_MSG(m_helper != nullptr, "SimulatedPlayer::breakBlock: helper not bound");
+    auto& world = static_cast<mc::server::ServerWorld&>(m_helper->world());
+    const BlockPos worldPos = m_helper->worldBlockPosition(relativePos);
+
+    // 走服务端权威破坏链路：与真实玩家挖掘结束后的处理一致（出生点保护、可破坏判定、
+    // 掉落物、工具耐久、粒子/声音、方块实体移除），而非直接置 air。
+    auto* server = world.server();
+    if (server == nullptr) {
+        return false;
+    }
+    const auto result =
+        const_cast<mc::server::IServer*>(server)->blockInteractionManager().handleBlockBreak(playerId(), worldPos);
+    return result.success() && result.value().blockBroken;
+}
+
+bool SimulatedPlayer::placeBlock(BlockPos relativePos, const std::string& block)
+{
+    MC_ASSERT_RELEASE_MSG(m_helper != nullptr, "SimulatedPlayer::placeBlock: helper not bound");
+    auto& world = static_cast<mc::server::ServerWorld&>(m_helper->world());
+    const BlockPos worldPos = m_helper->worldBlockPosition(relativePos);
+
+    const mc::Block* blockType = mc::BlockRegistry::instance().getBlock(mc::ResourceLocation(block));
+    if (blockType == nullptr) {
+        return false;
+    }
+
+    // 手持权威槽换成目标方块物品：放置链路从选中槽取物品并消耗。
+    // 方块物品的注册 id 与方块 id 相同（见 BlockItemRegistry），经物品注册表反查。
+    const mc::Item* blockItem = mc::ItemRegistry::instance().getItem(blockType->blockLocation());
+    if (blockItem == nullptr) {
+        return false;
+    }
+    const i32 selectedSlot = inventory().getSelectedSlot();
+    inventory().setItem(selectedSlot, mc::ItemStack(blockItem, 1));
+
+    // 放置以"下方支撑方块 + 命中其顶面"表达：击中面为 Up，放置位置即目标格。
+    const mc::BlockState* supportState = world.getBlockState(worldPos.down());
+    if (supportState == nullptr || supportState->isAir()) {
+        return false;
+    }
+    const mc::BlockPos placementPos = worldPos;
+    const mc::BlockState* before = world.getBlockState(placementPos);
+    if (before != nullptr && !before->isAir() && !before->getBlock().isReplaceable()) {
+        return false;
+    }
+
+    auto* server = world.server();
+    if (server == nullptr) {
+        return false;
+    }
+    const mc::Vector3 hitPos(
+        static_cast<f32>(worldPos.x) + 0.5f, static_cast<f32>(worldPos.y), static_cast<f32>(worldPos.z) + 0.5f);
+    const auto useResult = const_cast<mc::server::IServer*>(server)->blockInteractionManager().handleBlockUse(
+        playerId(), worldPos.down(), mc::Hand::MainHand, hitPos, mc::Direction::Up);
+    if (useResult.failed() || !useResult.value().success) {
+        return false;
+    }
+
+    const mc::BlockState* after = world.getBlockState(placementPos);
+    return after != nullptr && &after->getBlock() == blockType;
+}
+
+void SimulatedPlayer::setSprint(bool sprinting)
+{
+    setSprinting(sprinting);
 }
 
 // === 物品使用 ===
