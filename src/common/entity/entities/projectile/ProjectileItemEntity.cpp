@@ -273,8 +273,9 @@ void EggEntity::_spawnHatchedChicken()
     //   chicken.setAge(-24000);  // 幼年
     //   chicken.snapTo(x, y, z, yRot, 0);
     //   level.addFreshEntity(chicken);
-    // 注：vanilla 还从物品 DataComponents 读 CHICKEN_VARIANT 设鸡变种（:76-78），Cubium 物品组件
-    //   体系暂未支持 CHICKEN_VARIANT，TODO 待物品 DataComponents 接入后补全。
+    // 注：vanilla 还从物品 DataComponents 读 CHICKEN_VARIANT 设鸡变种（:76-78）；Cubium 目前两边都缺：
+    //   物品侧 DataComponentMap 未承载 ChickenVariant 值（DataComponentType 仅有枚举与名称映射），
+    //   实体侧 ChickenEntity 也尚无变种字段/同步参数。补齐任一缺失项后在此接入变种传递。
     auto* registry = &ecsRegistry();
     if (registry == nullptr) {
         return;
@@ -291,7 +292,10 @@ void EggEntity::_spawnHatchedChicken()
     chicken->setChild(true);
 
     // TODO(CHICKEN_VARIANT): 对齐 vanilla 从鸡蛋物品 DataComponents.CHICKEN_VARIANT 读取并设置鸡变种
-    //   （ThrownEgg.java:76-78）。Cubium 物品 DataComponents 体系暂未支持 CHICKEN_VARIANT，待接入后补全。
+    //   （ThrownEgg.java:76-78）。阻塞点有两处，需一并补齐：
+    //   1. 物品侧：DataComponentMap 未承载 ChickenVariant 组件值（仅 DataComponentType 枚举 + 名称映射）；
+    //   2. 实体侧：ChickenEntity 没有变种字段与 DataParameter，无法接受 setVariant。
+    //   补齐后此处改为 getItemStack().getChickenVariant() 并传入小鸡。
 
     m_world->spawnEntity(std::move(chicken));
 }
@@ -487,6 +491,9 @@ void PotionEntity::onImpact(const RayTraceResult& result)
     // 喷溅药水影响范围为 4.0 格
     constexpr f32 SPLASH_RADIUS = 4.0f;
 
+    // 投掷者（伤害归属）：对齐 vanilla AbstractThrownPotion.getEffectSource()/getOwner()。
+    LivingEntity* livingShooter = dynamic_cast<LivingEntity*>(getShooter());
+
     if (m_world) {
         // 播放破裂音效
         math::Random rng = createRandomFromEntity(*this);
@@ -535,16 +542,16 @@ void PotionEntity::onImpact(const RayTraceResult& result)
                 f32 distance = std::sqrt(distanceSq);
                 f32 intensity = 1.0f - (distance / SPLASH_RADIUS);
 
-                // 应用每个效果
-                // TODO: InstantDamage/InstantHealth 经 addEffect→applyInstantly→hurt(DamageSources::magic())
-                // 伤害源为 EnvironmentalDamage（getEntity()==nullptr），丢失投掷者信息。Java 的
-                // ThrownSplashPotion 用 IndirectMagic 伤害源（owner=投掷者），故女巫自投伤害药水溅回自身时
-                // source.getEntity()==女巫→WitchEntity.applyPotionDamageCalculations 自伤检查返0免疫；
-                // cubium 当前 magic() 无 owner，女巫自伤检查不触发，走 85% 减免后自伤 0.6（Java 为0）。
-                // 修复需让 InstantDamage 携带投掷者（改 applyInstantly 签名传 owner，或此处对 InstantDamage
-                // 特殊处理用 DamageSources::indirectMagic(this, getShooter()) 直接 hurt）。偏差轻微（罕见溅回
-                // 自身场景 + 仅 0.6 自伤），暂不修，待 applyInstantly owner 体系完善。
+                // 应用每个效果。对齐 vanilla ThrownSplashPotion.onHitAsPotion:55-68：
+                // 瞬间效果走 applyInstantenousEffect（按距离因子缩放并以投掷者为伤害归属），
+                // 非瞬间效果才创建带缩放持续时间的效果实例，且 endsWithin(20) 时不施加。
                 for (const auto& effect : effects) {
+                    if (isInstantEffect(effect.type())) {
+                        entity::applyInstantEffect(
+                            effect.type(), *this, livingShooter, *living, effect.amplifier(), intensity);
+                        continue;
+                    }
+
                     // 计算持续时间（距离越近持续时间越长）
                     i32 duration = static_cast<i32>(effect.duration() * intensity);
                     if (duration < 20) { // 最少 1 秒
@@ -558,6 +565,11 @@ void PotionEntity::onImpact(const RayTraceResult& result)
                         effect.isAmbient(),
                         effect.isVisible(),
                         effect.showIcon());
+
+                    // 对齐 vanilla：剩余时间不超过 20 tick 的效果不施加。
+                    if (scaledEffect.endsWithin(20)) {
+                        continue;
+                    }
 
                     living->addEffect(scaledEffect);
                 }
@@ -583,12 +595,8 @@ void PotionEntity::onImpact(const RayTraceResult& result)
             cloud->setPosition(x(), y(), z());
 
             // 设置拥有者（投射物的发射者）
-            Entity* shooter = getShooter();
-            if (shooter != nullptr) {
-                LivingEntity* livingShooter = dynamic_cast<LivingEntity*>(shooter);
-                if (livingShooter != nullptr) {
-                    cloud->setOwner(livingShooter);
-                }
+            if (livingShooter != nullptr) {
+                cloud->setOwner(livingShooter);
             }
 
             // 设置区域效果云参数

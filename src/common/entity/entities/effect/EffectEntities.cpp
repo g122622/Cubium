@@ -71,13 +71,11 @@
 namespace mc {
 namespace entity {
 
-namespace {
-
 /**
  * @brief 应用瞬间效果到目标实体
  *
- * 用于药水云、喷溅药水等场景中瞬间效果的应用。
- * 瞬间效果（治疗、伤害、饱和）使用 affectEntity 模式而非 addEffect。
+ * 对应 vanilla MobEffect#applyInstantenousEffect，用于药水云、喷溅药水等瞬间效果场景。
+ * 瞬间效果（治疗、伤害、饱和）不走 addEffect 的合并逻辑。具体签名见头文件声明。
  *
  * @param type 效果类型（必须是瞬间效果）
  * @param source 效果来源实体（AreaEffectCloud 自身）
@@ -145,8 +143,6 @@ void applyInstantEffect(
             break;
     }
 }
-
-} // namespace
 
 // ==================== EnderCrystalEntity ====================
 
