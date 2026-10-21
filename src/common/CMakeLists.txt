@@ -1122,6 +1122,7 @@ add_library(mc_common STATIC
     world/blockentity/interactive/JukeboxEntity.cpp
     # BlockEntity - Special
     world/blockentity/special/StructureBlockEntity.cpp
+    world/blockentity/special/JigsawBlockEntity.cpp
     world/blockentity/interactive/LecternEntity.cpp
     world/blockentity/interactive/ShelfBlockEntity.cpp
     world/blockentity/interactive/SkullBlockEntity.cpp

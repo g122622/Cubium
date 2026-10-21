@@ -34,6 +34,7 @@
 #include "common/world/block/GameMasterBlock.hpp"
 #include "common/world/gen/jigsaw/JigsawOrientation.hpp"
 
+#include <memory>
 #include <string>
 
 namespace mc {
@@ -75,6 +76,14 @@ public:
     [[nodiscard]] const BlockState& rotate(const BlockState& state, Rotation rotation) const override;
 
     [[nodiscard]] const BlockState& mirror(const BlockState& state, Mirror mirror) const override;
+
+    // ========== 方块实体 ==========
+
+    /// 拼图方块带方块实体（保存 name/target/pool/joint/final_state/优先级）
+    [[nodiscard]] bool hasBlockEntity() const noexcept override { return true; }
+
+    /// 创建拼图方块实体
+    [[nodiscard]] std::unique_ptr<BlockEntity> createBlockEntity(const BlockPos& pos) override;
 
     // ========== 交互 ==========
 

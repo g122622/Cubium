@@ -1767,6 +1767,17 @@ public:
     virtual void openStructureBlock(const BlockPos& pos) { MC_UNUSED(pos); }
 
     /**
+     * @brief 打开拼图方块编辑界面
+     *
+     * 对齐 vanilla Player.openJigsawBlock：把拼图方块实体的连接信息（name/target/pool/joint/
+     * final_state/优先级）下发给客户端以打开编辑界面。基类默认空实现，ServerPlayer 重写以发送
+     * BlockEntityData 包。
+     *
+     * @param pos 拼图方块位置
+     */
+    virtual void openJigsawBlock(const BlockPos& pos) { MC_UNUSED(pos); }
+
+    /**
      * @brief 当前正在编辑的命令方块位置（对齐 vanilla ServerPlayer.commandBlock 字段）
      *
      * 玩家打开命令方块界面时记录位置，服务端收到 set_command_block 时校验一致性，

@@ -117,6 +117,14 @@ public:
     void openStructureBlock(const BlockPos& pos) override;
 
     /**
+     * @brief 打开拼图方块编辑界面（重写 Player 基类）
+     *
+     * 对齐 vanilla Player.openJigsawBlock：仅下发拼图方块实体的 BlockEntityData，
+     * 客户端据其 name/target/pool 等字段打开编辑界面（无独立 GUI 包）。
+     */
+    void openJigsawBlock(const BlockPos& pos) override;
+
+    /**
      * @brief 校验玩家是否仍可编辑给定位置的命令方块（对齐 vanilla CommandBlockEntity.isValidPlayerEditor）
      *
      * 条件：玩家未移除、仍拥有 GameMaster 权限、区块已加载，且与方块中心距离不超过 4 格。

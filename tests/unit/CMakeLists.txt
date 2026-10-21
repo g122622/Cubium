@@ -601,6 +601,7 @@ add_executable(mc_tests
     # CommandBlockEntity 命令方块实体测试（命令执行、红石触发、连锁执行、条件检测）
     common/world/blockentity/CommandBlockEntityTest.cpp
     common/world/blockentity/StructureBlockEntityTest.cpp
+    common/world/blockentity/JigsawBlockEntityTest.cpp
     # 命令方块执行链路（tick/条件/连锁/setAuto/setPlacedBy）测试
     common/world/block/blocks/redstone/CommandBlockExecutionTest.cpp
     # 拼图方块测试（放置朝向、连接点对接规则、front/top 朝向）

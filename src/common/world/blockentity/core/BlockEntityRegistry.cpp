@@ -58,6 +58,7 @@
 #include "world/blockentity/sculk/SculkSensorBlockEntity.hpp"
 #include "world/blockentity/sculk/SculkShriekerBlockEntity.hpp"
 #include "world/blockentity/spawner/MobSpawnerBlockEntity.hpp"
+#include "world/blockentity/special/JigsawBlockEntity.hpp"
 #include "world/blockentity/special/StructureBlockEntity.hpp"
 #include "world/blockentity/storage/BarrelEntity.hpp"
 #include "world/blockentity/storage/ChestEntity.hpp"
@@ -157,6 +158,10 @@ void BlockEntityRegistry::registerBuiltinTypes()
     // 注册结构方块实体
     registerType(BlockEntityType::StructureBlock,
         [](const BlockPos& pos) { return std::make_unique<blockentity::StructureBlockEntity>(pos); });
+
+    // 注册拼图方块实体
+    registerType(BlockEntityType::JigsawBlock,
+        [](const BlockPos& pos) { return std::make_unique<blockentity::JigsawBlockEntity>(pos); });
 
     // 注册酿造台方块实体
     registerType(BlockEntityType::BrewingStand,

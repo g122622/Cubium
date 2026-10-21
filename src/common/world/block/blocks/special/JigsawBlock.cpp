@@ -22,6 +22,7 @@
  */
 
 #include "JigsawBlock.hpp"
+#include "common/world/blockentity/special/JigsawBlockEntity.hpp"
 
 #include "common/core/BlockRaycastResult.hpp"
 #include "common/core/Types.hpp"
@@ -99,28 +100,24 @@ const BlockState& JigsawBlock::mirror(const BlockState& state, Mirror mirror) co
     return state.with(BlockStateProperties::ORIENTATION(), newOrientation);
 }
 
+std::unique_ptr<BlockEntity> JigsawBlock::createBlockEntity(const BlockPos& pos)
+{
+    return std::make_unique<blockentity::JigsawBlockEntity>(pos);
+}
+
 BlockActionResult JigsawBlock::useWithoutItem(
     const BlockState& state, IWorld& world, const BlockPos& pos, Player& player, const BlockRaycastResult& hit)
 {
     MC_UNUSED(state);
-    MC_UNUSED(world);
-    MC_UNUSED(pos);
     MC_UNUSED(hit);
 
-    // 游戏管理员方块需要权限才能交互
-    if (!player.canUseGameMasterBlocks()) {
-        return ActionResultType::Fail;
-    }
-
-    // 对齐 vanilla JigsawBlock.useWithoutItem：缺失拼图方块实体（结构生成 NBT 注入管道未接入）
-    // 或无权限时返回 PASS/FAIL，仅当两者都满足时打开界面。
-    BlockEntity* entity = world.getBlockEntity(pos);
-    if (entity == nullptr || entity->getType() != BlockEntityType::JigsawBlock || !player.canUseGameMasterBlocks()) {
+    // 对齐 vanilla JigsawBlock.useWithoutItem：无拼图方块实体或无管理员权限时返回 PASS。
+    if (world.getBlockEntity(pos) == nullptr || !player.canUseGameMasterBlocks()) {
         return ActionResultType::Pass;
     }
 
-    // TODO(jigsaw-screen): 对齐 vanilla Player.openJigsawBlock 打开拼图方块编辑界面，
-    //   服务端需接入容器菜单/界面同步体系后在此打开；当前仅返回 SUCCESS。
+    // 对齐 vanilla：客户端据下发的方块实体数据自行打开编辑界面（无独立 GUI 包）。
+    player.openJigsawBlock(pos);
     return ActionResultType::Success;
 }
 
