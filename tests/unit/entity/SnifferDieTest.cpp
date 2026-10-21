@@ -78,6 +78,20 @@ namespace {
 class TestWorld final : public mc::test::BaseTestWorld {
 public:
     TestWorld() = default;
+
+    /// 头部下方返回草方块（可挖掘方块），供挖掘粒子测试使用。
+    [[nodiscard]] const BlockState* getBlockState(i32, i32, i32) const override
+    {
+        return &VanillaBlocks::GRASS_BLOCK->defaultState();
+    }
+
+    /// 记录挖掘粒子生成次数（emitDiggingParticles 的方块粒子）。
+    void addBlockParticle(particle::ParticleTypeId, const Vector3&, const Vector3&, const BlockState&) override
+    {
+        ++blockParticles;
+    }
+
+    i32 blockParticles = 0;
 };
 
 } // namespace
@@ -185,4 +199,23 @@ TEST_F(SnifferDieTest, DiggingState_DoesNotPlayAmbientSound)
 
     // 对齐 vanilla Sniffer.getAmbientSound：Digging 状态不播放环境音。
     EXPECT_FALSE(sniffer.getAmbientSound().has_value());
+}
+
+TEST_F(SnifferDieTest, EmitDiggingParticles_OnlyWithinDiggingWindow)
+{
+    InspectableSniffer sniffer(EntityInstanceId(1), mc::test::testEcsRegistry());
+    sniffer.setWorld(&m_world);
+    sniffer.setHealth(sniffer.maxHealth());
+    sniffer.setPosition(0.5, 64.0, 0.5);
+    sniffer.setState(SnifferEntity::State::Digging);
+
+    // 延迟窗口内（1700 < ticks < 6000）：每 tick 喷出 30 个方块粒子。
+    sniffer.emitDiggingParticles(2000);
+    EXPECT_EQ(m_world.blockParticles, SnifferEntity::DIGGING_PARTICLES_AMOUNT);
+
+    // 窗口之外：不生成粒子。
+    const i32 before = m_world.blockParticles;
+    sniffer.emitDiggingParticles(SnifferEntity::DIGGING_PARTICLES_DELAY_TICKS);
+    sniffer.emitDiggingParticles(SnifferEntity::DIGGING_PARTICLES_DURATION_TICKS);
+    EXPECT_EQ(m_world.blockParticles, before);
 }

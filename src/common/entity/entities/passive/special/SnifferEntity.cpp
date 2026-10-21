@@ -46,11 +46,15 @@
 #include "common/item/core/ItemStack.hpp"
 #include "common/item/loot/LootTableManager.hpp"
 #include "common/item/loot/context/LootContextBuilder.hpp"
+#include "common/particle/ParticleTypes.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/sound/SoundEvents.hpp"
 #include "common/util/nbt/Nbt.hpp"
 #include "common/world/IWorld.hpp"
+#include "common/world/block/Block.hpp"
 #include "common/world/block/BlockPos.hpp"
+#include "common/world/block/BlockSoundType.hpp"
+#include "common/world/block/BlockState.hpp"
 #include <cmath>
 #include <memory>
 #include <optional>
@@ -144,9 +148,7 @@ void SnifferEntity::transitionTo(State state)
             break;
         case State::Digging:
             // 对齐 MC Sniffer.onDiggingStart：记录掉种时刻（tickCount + 120），切换挖掘状态。
-            // 视觉层面的实体状态广播（byte 63，客户端挖掘粒子）由数据中心同步包装，见 setState。
-            // TODO(sniffer-particles): 客户端挖掘粒子（BlockParticleOption）依赖尚未接入的粒子系统，
-            //   接入后在此广播实体状态事件并补充 emitDiggingParticles 的本地音效。
+            // 挖掘过程中的方块粒子与击打音效由 tick() 内的 emitDiggingParticles 负责。
             m_dataManager.set(
                 DATA_DROP_SEED_AT_TICK_PARAM, static_cast<i32>(ticksExisted()) + DIGGING_DROP_SEED_OFFSET_TICKS);
             setState(State::Digging);
@@ -257,12 +259,43 @@ void SnifferEntity::tick()
             playSound(SoundEvents::SNIFFER_SEARCHING, 1.0f, 1.0f);
         }
     }
-    // 对齐 MC Sniffer.tick：挖掘到 DATA_DROP_SEED_AT_TICK 时刻从嗅探兽战利品表掉出物品。
+    // 对齐 MC Sniffer.tick：挖掘期间喷出方块粒子，到 DATA_DROP_SEED_AT_TICK 时刻掉出种子。
     if (getState() == State::Digging) {
+        const i32 dropAtTick = m_dataManager.get(DATA_DROP_SEED_AT_TICK_PARAM);
+        const i32 diggingTicks = DIGGING_PARTICLES_DURATION_TICKS - (dropAtTick - static_cast<i32>(ticksExisted()));
+        emitDiggingParticles(diggingTicks);
         dropSeed();
     }
 
     AnimalEntity::tick();
+}
+
+void SnifferEntity::emitDiggingParticles(i32 diggingTicks)
+{
+    // 对齐 vanilla Sniffer.emitDiggingParticles：仅在 1700~6000 毫秒（挖掘动画中段）喷粒子。
+    if (m_world == nullptr || diggingTicks <= DIGGING_PARTICLES_DELAY_TICKS ||
+        diggingTicks >= DIGGING_PARTICLES_DURATION_TICKS) {
+        return;
+    }
+
+    // 头部方块 = 嗅探兽脚下方块；粒子从方块中心略下方喷出。
+    const BlockPos headPos(
+        static_cast<i32>(std::floor(x())), static_cast<i32>(std::floor(y())) - 1, static_cast<i32>(std::floor(z())));
+    const BlockState* state = m_world->getBlockState(headPos);
+    if (state == nullptr) {
+        return;
+    }
+
+    const Vector3 center(
+        static_cast<f64>(headPos.x) + 0.5, static_cast<f64>(headPos.y) + 0.35, static_cast<f64>(headPos.z) + 0.5);
+    for (i32 i = 0; i < DIGGING_PARTICLES_AMOUNT; ++i) {
+        m_world->addBlockParticle(particle::ParticleTypeId::Block, center, Vector3(0.0, 0.0, 0.0), *state);
+    }
+
+    // 每 10 tick 播放一次方块击打音效（对齐 vanilla playLocalSound(..., 0.5F, 0.5F)）。
+    if (ticksExisted() % 10 == 0) {
+        playSound(state->getSoundType().getHitSound(), 0.5f, 0.5f);
+    }
 }
 
 i32 SnifferEntity::ticksUntilDropSeed() const

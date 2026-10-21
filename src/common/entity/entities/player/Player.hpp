@@ -1056,6 +1056,25 @@ public:
      */
     void toggleFlying();
 
+    /**
+     * @brief 直接设置飞行状态（对齐 vanilla Player.setFlying）
+     *
+     * 无飞行能力（非创造/旁观）时忽略。模拟玩家等非客户端驱动路径据此进入飞行物理分支。
+     */
+    void setFlying(bool flying)
+    {
+        if (!m_abilities.canFly) {
+            return;
+        }
+        m_abilities.flying = flying;
+    }
+
+    /// 当前是否处于飞行状态（创造/旁观玩家双击空格后的飞行）
+    [[nodiscard]] bool isFlying() const { return m_abilities.flying; }
+
+    /// 是否拥有飞行能力（创造/旁观模式）
+    [[nodiscard]] bool canFly() const { return m_abilities.canFly; }
+
     // ========== 重写尺寸方法 ==========
 
     [[nodiscard]] f32 width() const override { return PLAYER_WIDTH; }

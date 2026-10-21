@@ -203,6 +203,51 @@ TEST(SimulatedPlayerTest, MoveToLocation_SpeedScalesMovementInput)
 // 跳跃返回值
 // ============================================================================
 
+// ============================================================================
+// 飞行：flyToLocation
+// ============================================================================
+
+TEST(SimulatedPlayerTest, FlyToLocation_IgnoredWithoutFlightAbility)
+{
+    mc::Items::initialize();
+    auto player = std::make_unique<mc::test::SimulatedPlayer>(
+        static_cast<mc::EntityInstanceId>(1011), std::string{"SurvivalBot"}, mc::test::testEcsRegistry());
+    ASSERT_NE(player, nullptr);
+    mc::test::NullGameTestHelper helper;
+    player->setHelper(helper);
+    player->setGameMode(mc::GameMode::Survival);
+
+    ASSERT_FALSE(player->canFly());
+    player->flyToLocation(BlockPos{0, 70, 10}, 1.0f);
+    // 无飞行能力时不开飞行、不产生移动输入。
+    EXPECT_FALSE(player->isFlying());
+    EXPECT_FLOAT_EQ(player->movementInputForward(), 0.0f);
+}
+
+TEST(SimulatedPlayerTest, FlyToLocation_CreativeEntersFlightTowardTarget)
+{
+    mc::Items::initialize();
+    auto player = std::make_unique<mc::test::SimulatedPlayer>(
+        static_cast<mc::EntityInstanceId>(1012), std::string{"FlyBot"}, mc::test::testEcsRegistry());
+    ASSERT_NE(player, nullptr);
+    mc::test::NullGameTestHelper helper;
+    player->setHelper(helper);
+    player->setGameMode(mc::GameMode::Creative);
+    player->setPosition(0.5, 64.0, 0.5);
+
+    ASSERT_TRUE(player->canFly());
+    // 目标在 +Z 且更高：应开飞行、向前并有上升输入。
+    player->flyToLocation(BlockPos{0, 70, 10}, 1.0f);
+    EXPECT_TRUE(player->isFlying());
+    EXPECT_FLOAT_EQ(player->movementInputForward(), 1.0f);
+
+    // 已到达目标附近：直接返回，不再改写移动输入（缓存保持上一轮的值），仍保持飞行状态。
+    player->setPosition(0.5, 70.5, 10.5);
+    player->flyToLocation(BlockPos{0, 70, 10}, 1.0f);
+    EXPECT_FLOAT_EQ(player->movementInputForward(), 1.0f);
+    EXPECT_TRUE(player->isFlying());
+}
+
 TEST(SimulatedPlayerTest, Jump_ReportsWhetherJumpHappened)
 {
     mc::Items::initialize();

@@ -20,14 +20,15 @@
 #include "common/world/block/BlockState.hpp"           // BlockState::blockId/isAir
 #include "common/world/dimension/DimensionManager.hpp" // DimensionManager::OVERWORLD（spawn 维度注册）
 #include "server/application/IServer.hpp"
-#include "server/interaction/BlockInteractionManager.hpp"              // IServer::dimensionManager（ServerWorld::server 返回 IServer*）
 #include "server/core/PlayerManager.hpp" // PlayerManager::nextPlayerId（SimulatedPlayer 分配全局唯一 PlayerId）
-#include "server/dimension/ServerDimensionManager.hpp" // ServerDimensionManager::playerJoinDimension
+#include "server/dimension/ServerDimensionManager.hpp"    // ServerDimensionManager::playerJoinDimension
+#include "server/interaction/BlockInteractionManager.hpp" // IServer::dimensionManager（ServerWorld::server 返回 IServer*）
 #include "server/world/ServerWorld.hpp"
 #include "server/world/player/ServerPlayerEntityManager.hpp" // ServerPlayerEntityManager::registerExistingPlayerEntity（打通命令系统实体解析）
 
 #include <array>
 #include <cmath>
+#include <cstdlib>
 #include <utility>
 #include <spdlog/spdlog.h>
 
@@ -302,9 +303,39 @@ void SimulatedPlayer::respawn()
 
 void SimulatedPlayer::flyToLocation(BlockPos relativePos, f32 speed)
 {
-    // TODO: 飞行物理（abilities.flying=true + travel 飞行分支），依赖 LivingEntity fall-flying 状态机细化
-    (void)relativePos;
-    (void)speed;
+    MC_ASSERT_RELEASE_MSG(m_helper != nullptr, "SimulatedPlayer::flyToLocation: helper not bound");
+
+    const BlockPos worldPos = m_helper->worldBlockPosition(relativePos);
+    const f64 dx = static_cast<f64>(worldPos.x) + 0.5 - static_cast<f64>(x());
+    const f64 dy = static_cast<f64>(worldPos.y) + 0.5 - static_cast<f64>(y());
+    const f64 dz = static_cast<f64>(worldPos.z) + 0.5 - static_cast<f64>(z());
+    const f64 horizDist = std::sqrt(dx * dx + dz * dz);
+
+    // 到达阈值内即停（避免抖动）
+    if (horizDist < 0.5 && std::abs(dy) < 0.5) {
+        return;
+    }
+
+    // 飞行需要创造/旁观模式的飞行能力（对齐 vanilla Player.abilities.flying）。
+    if (!canFly()) {
+        return;
+    }
+    setFlying(true);
+
+    // 水平飞行：转向目标后以 speed 为输入倍率前进（飞行分支在 _applyCachedMovementInput 中生效）。
+    if (horizDist >= 0.5) {
+        const f32 yawDeg = mc::math::toDegrees(static_cast<f32>(std::atan2(-dx, dz)));
+        setRotation(yawDeg, pitch());
+        handleMovementInput(1.0f, 0.0f, false, false, speed);
+    }
+
+    // 垂直飞行：朝目标高度升降（正向 speed 靠近，负向远离），经由飞行输入的上/下分量。
+    if (std::abs(dy) >= 0.5) {
+        const bool ascend = (dy > 0.0) == (speed >= 0.0f);
+        handleMovementInput(horizDist >= 0.5 ? 1.0f : 0.0f, 0.0f, ascend, !ascend, std::abs(speed));
+    }
+
+    // 飞行不触发坠落伤害与跳跃消耗：落地判定由物理引擎在飞行分支外维持。
 }
 
 void SimulatedPlayer::attack(mc::Entity& target)

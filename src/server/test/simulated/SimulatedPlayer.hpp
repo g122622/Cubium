@@ -225,8 +225,18 @@ public:
 
     // === TODO stub（依赖未就绪体系）===
 
-    // TODO: flyToLocation / glide / swim（飞行/滑翔/游泳物理，依赖 LivingEntity fall-flying 状态机细化）
+    /**
+     * @brief 飞到目标方块位置（对齐基岩 SimulatedPlayer::flyToLocation）
+     *
+     * 需要创造/旁观模式（拥有 flight 能力）：按 vanilla 飞行输入（前进 + 上/下分量）逐 tick 逼近，
+     * 水平与垂直分别以 0.5 格为到达阈值；speed 为输入倍率（负值反向）。
+     *
+     * @param relativePos 结构相对坐标。
+     * @param speed 飞行速度倍率。
+     */
     void flyToLocation(BlockPos relativePos, f32 speed);
+
+    // TODO: glide / swim（滑翔/游泳物理，依赖 LivingEntity fall-flying 状态机细化）
     // attack(entity) 已实现：转发 Player::attack(target) 走完整玩家攻击伤害链
     // （playerAttack source → target.hurt → actuallyHurt → setLastHurtBy → 群体仇恨触发）。
     void attack(mc::Entity& target) override;
