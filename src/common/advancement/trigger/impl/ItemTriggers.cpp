@@ -310,9 +310,20 @@ ThrownItemPickedUpByEntityTriggerInstance::ThrownItemPickedUpByEntityTriggerInst
 
 bool ThrownItemPickedUpByEntityTriggerInstance::test(const ItemStack& item) const
 {
-    // TODO(advancement-entity-predicate): 对齐 vanilla 的 entity 条件（EntityPredicate 子集匹配）。
-    //   Cubium 尚无实体谓词，当前只校验物品；数据包中带 entity 条件的进度会放宽为"任意拾取者"。
     return m_item.test(item);
+}
+
+bool ThrownItemPickedUpByEntityTriggerInstance::test(const ItemStack& item, const Entity* picker) const
+{
+    // 对齐 vanilla PickedUpItemTrigger.TriggerInstance#matches：
+    //   !item.test(stack) → false；否则 !entity.isPresent() || entity.matches(context)。
+    if (!m_item.test(item)) {
+        return false;
+    }
+    if (m_entity.isAny()) {
+        return true;
+    }
+    return picker != nullptr && m_entity.test(*picker);
 }
 
 Result<void> ThrownItemPickedUpByEntityTriggerInstance::fromJson(const nlohmann::json& json)
@@ -328,18 +339,25 @@ Result<void> ThrownItemPickedUpByEntityTriggerInstance::fromJson(const nlohmann:
         m_item = result.value();
     }
     if (json.contains("entity")) {
-        // 见 test()：实体谓词未实现。
-        // TODO(advancement-entity-predicate): 解析 entity 条件并参与匹配。
+        auto entityResult = EntityPredicate::fromJson(json["entity"]);
+        if (entityResult.failed()) {
+            return entityResult.error();
+        }
+        m_entity = entityResult.value();
     }
     return {};
 }
 
 nlohmann::json ThrownItemPickedUpByEntityTriggerInstance::conditionsToJson() const
 {
+    nlohmann::json result = nlohmann::json::object();
     if (!m_item.isAny()) {
-        return {{"item", m_item.toJson()}};
+        result["item"] = m_item.toJson();
     }
-    return nullptr;
+    if (!m_entity.isAny()) {
+        result["entity"] = m_entity.toJson();
+    }
+    return result.empty() ? nlohmann::json(nullptr) : result;
 }
 
 Result<std::shared_ptr<ICriterionInstance>> ThrownItemPickedUpByEntityTrigger::fromJson(const nlohmann::json& json)
