@@ -38,6 +38,7 @@
 #include "common/entity/entities/player/Player.hpp"
 #include "common/sound/SoundCategory.hpp"
 #include "common/sound/SoundEvents.hpp"
+#include "common/util/core/CoordConverter.hpp"
 #include "common/util/math/MathConstants.hpp"
 #include "common/util/math/MathUtils.hpp"
 #include "common/util/math/Vector3.hpp"
@@ -492,6 +493,90 @@ void BeePollinateGoal::_moveToNextTarget()
     if (auto* moveCtrl = m_bee->moveController()) {
         moveCtrl->setMoveTo(m_nextTarget.x, m_nextTarget.y, m_nextTarget.z, 1.0);
     }
+}
+
+// ============================================================================
+// BeeValidateHiveGoal / BeeValidateFlowerGoal - 校验已记录目标
+// ============================================================================
+
+namespace {
+/// 校验冷却 20~40 tick（对齐 vanilla Mth.nextInt(random, 20, 40)）
+i32 _randomValidateCooldown(BeeEntity* bee)
+{
+    IWorld* world = bee->world();
+    math::IRandom& rng = world != nullptr ? world->getRandom() : bee->getRandom();
+    return rng.nextInt(20, 40);
+}
+
+/// 目标位置所在区块是否已加载（对齐 vanilla Level.isLoaded(pos)）
+bool _isPositionLoaded(BeeEntity* bee, const BlockPos& pos)
+{
+    IWorld* world = bee->world();
+    if (world == nullptr || world->chunkManager() == nullptr) {
+        return false;
+    }
+    return world->chunkManager()->hasChunkInMem(
+        mc::util::core::CoordConverter::blockToChunk(pos.x), mc::util::core::CoordConverter::blockToChunk(pos.z));
+}
+} // namespace
+
+BeeValidateHiveGoal::BeeValidateHiveGoal(BeeEntity* bee)
+    : BeePassiveGoal(bee)
+    , m_cooldown(_randomValidateCooldown(bee))
+{}
+
+bool BeeValidateHiveGoal::canBeeStart()
+{
+    IWorld* world = m_bee->world();
+    const i64 gameTime = world != nullptr ? static_cast<i64>(world->getGameTime()) : 0;
+    return gameTime > m_lastValidateTick + m_cooldown;
+}
+
+bool BeeValidateHiveGoal::canBeeContinue()
+{
+    return false;
+}
+
+void BeeValidateHiveGoal::startExecuting()
+{
+    IWorld* world = m_bee->world();
+    if (m_bee->hasHive()) {
+        const BlockPos hivePos = m_bee->getHivePos();
+        if (_isPositionLoaded(m_bee, hivePos) && !m_bee->isHiveValid()) {
+            m_bee->dropHive();
+        }
+    }
+    m_lastValidateTick = world != nullptr ? static_cast<i64>(world->getGameTime()) : 0;
+}
+
+BeeValidateFlowerGoal::BeeValidateFlowerGoal(BeeEntity* bee)
+    : BeePassiveGoal(bee)
+    , m_cooldown(_randomValidateCooldown(bee))
+{}
+
+bool BeeValidateFlowerGoal::canBeeStart()
+{
+    IWorld* world = m_bee->world();
+    const i64 gameTime = world != nullptr ? static_cast<i64>(world->getGameTime()) : 0;
+    return gameTime > m_lastValidateTick + m_cooldown;
+}
+
+bool BeeValidateFlowerGoal::canBeeContinue()
+{
+    return false;
+}
+
+void BeeValidateFlowerGoal::startExecuting()
+{
+    IWorld* world = m_bee->world();
+    if (m_bee->hasFlower()) {
+        const BlockPos flowerPos = m_bee->getFlowerPos();
+        const BlockState* state = world != nullptr ? world->getBlockState(flowerPos) : nullptr;
+        if (_isPositionLoaded(m_bee, flowerPos) && (state == nullptr || !BeeEntity::attractsBees(*state))) {
+            m_bee->dropFlower();
+        }
+    }
+    m_lastValidateTick = world != nullptr ? static_cast<i64>(world->getGameTime()) : 0;
 }
 
 // ============================================================================

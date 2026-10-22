@@ -438,8 +438,13 @@ void BeeEntity::registerGoals()
     // 优先级 8: 随机飞行
     m_goalSelector.addGoal(8, std::make_unique<entity::ai::goal::BeeWanderGoal>(this));
 
-    // 优先级 9: 游泳
+    // 优先级 9: 游泳（vanilla FloatGoal）
     m_goalSelector.addGoal(9, std::make_unique<entity::ai::goal::SwimGoal>(this));
+
+    // 优先级 3: 校验已记录的蜂巢/花朵是否仍有效（对齐 vanilla ValidateHiveGoal / ValidateFlowerGoal，
+    //   两者优先级均为 3；无效则走 dropHive/dropFlower）。冷却 20~40 tick 随机值。
+    m_goalSelector.addGoal(3, std::make_unique<entity::ai::goal::BeeValidateHiveGoal>(this));
+    m_goalSelector.addGoal(3, std::make_unique<entity::ai::goal::BeeValidateFlowerGoal>(this));
 
     // ========== Target Selector (目标选择) ==========
 

@@ -215,6 +215,47 @@ private:
 };
 
 /**
+ * @brief 蜜蜂校验已记录蜂巢目标（对齐 vanilla Bee.ValidateHiveGoal）
+ *
+ * 每 20~40 tick 检查一次：已记录的蜂巢方块仍加载但不是有效蜂巢时丢弃它（dropHive）。
+ * 一次性目标（canBeeContinue 恒 false）。
+ */
+class BeeValidateHiveGoal : public BeePassiveGoal {
+public:
+    explicit BeeValidateHiveGoal(BeeEntity* bee);
+
+    [[nodiscard]] bool canBeeStart() override;
+    [[nodiscard]] bool canBeeContinue() override;
+    void startExecuting() override;
+
+    [[nodiscard]] std::string getTypeName() const override { return "BeeValidateHiveGoal"; }
+
+private:
+    i32 m_cooldown;
+    i64 m_lastValidateTick = -1;
+};
+
+/**
+ * @brief 蜜蜂校验已记录花朵目标（对齐 vanilla Bee.ValidateFlowerGoal）
+ *
+ * 每 20~40 tick 检查一次：已记录的花朵方块仍加载但不再吸引蜜蜂时丢弃它（dropFlower）。
+ */
+class BeeValidateFlowerGoal : public BeePassiveGoal {
+public:
+    explicit BeeValidateFlowerGoal(BeeEntity* bee);
+
+    [[nodiscard]] bool canBeeStart() override;
+    [[nodiscard]] bool canBeeContinue() override;
+    void startExecuting() override;
+
+    [[nodiscard]] std::string getTypeName() const override { return "BeeValidateFlowerGoal"; }
+
+private:
+    i32 m_cooldown;
+    i64 m_lastValidateTick = -1;
+};
+
+/**
  * @brief 蜜蜂更新蜂巢位置目标（对齐 vanilla Bee.BeeLocateHiveGoal）
  *
  * 冷却结束、没有蜂巢且此时想回巢（wantsToEnterHive）时，搜索附近有空位的蜂巢并记录其一。

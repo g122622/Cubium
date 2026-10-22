@@ -727,6 +727,57 @@ TEST_F(BeeUpdateHiveGoalTest, TypeName_ReturnsCorrectName)
     EXPECT_EQ(goal->getTypeName(), "BeeUpdateHiveGoal");
 }
 
+// ==================== BeeValidateHiveGoal / BeeValidateFlowerGoal Tests ====================
+
+class BeeValidateGoalTest : public ::testing::Test {
+protected:
+    void SetUp() override
+    {
+        bee = std::make_unique<BeeEntity>(EntityInstanceId(0), mc::test::testEcsRegistry());
+        world = std::make_unique<BeeGoalTestWorld>();
+        bee->setWorld(world.get());
+    }
+
+    void TearDown() override
+    {
+        bee.reset();
+        world.reset();
+    }
+
+    std::unique_ptr<BeeEntity> bee;
+    std::unique_ptr<BeeGoalTestWorld> world;
+};
+
+TEST_F(BeeValidateGoalTest, OneShotAndTypeNames)
+{
+    BeeValidateHiveGoal hiveGoal(bee.get());
+    BeeValidateFlowerGoal flowerGoal(bee.get());
+    // 一次性目标（对齐 vanilla ValidateHiveGoal/ValidateFlowerGoal 的 canBeeContinueToUse=false）
+    EXPECT_FALSE(hiveGoal.canBeeContinue());
+    EXPECT_FALSE(flowerGoal.canBeeContinue());
+    EXPECT_EQ(hiveGoal.getTypeName(), "BeeValidateHiveGoal");
+    EXPECT_EQ(flowerGoal.getTypeName(), "BeeValidateFlowerGoal");
+}
+
+TEST_F(BeeValidateGoalTest, UnloadedHiveIsNotDropped)
+{
+    bee->setHivePos(BlockPos(100, 64, 200));
+    ASSERT_TRUE(bee->hasHive());
+    // 测试世界未提供区块 → Level.isLoaded(pos) 为假，校验不应丢弃蜂巢。
+    BeeValidateHiveGoal goal(bee.get());
+    goal.startExecuting();
+    EXPECT_TRUE(bee->hasHive()) << "区块未加载时不应丢弃蜂巢记录";
+}
+
+TEST_F(BeeValidateGoalTest, UnloadedFlowerIsNotDropped)
+{
+    bee->setFlowerPos(BlockPos(5, 64, 5));
+    ASSERT_TRUE(bee->hasFlower());
+    BeeValidateFlowerGoal goal(bee.get());
+    goal.startExecuting();
+    EXPECT_TRUE(bee->hasFlower()) << "区块未加载时不应丢弃花朵记录";
+}
+
 // ==================== BeeFindHiveGoal Tests ====================
 
 class BeeFindHiveGoalTest : public ::testing::Test {
