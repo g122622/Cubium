@@ -266,8 +266,11 @@ void FrogEntity::finalizeSpawn(
 
 void FrogEntity::die(DamageSource& source)
 {
-    // 青蛙死亡时舌击目标失去意义，清除同步值避免残留（对齐 vanilla 死亡时清空 tongue target）。
+    // 对齐 vanilla：死亡时舌击目标失去意义，清理舌击目标同步值并结束突舌状态
+    // （攻击目标、USING_TONGUE 姿态由 FrogTongueGoal::resetTask 复位；此处直接兜底复位）。
     eraseTongueTarget();
+    setAttackTarget(nullptr);
+    setPose(EntityPose::Standing);
     AnimalEntity::die(source);
 }
 

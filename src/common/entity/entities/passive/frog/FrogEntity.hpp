@@ -192,7 +192,7 @@ public:
     /**
      * @brief 死亡时将状态复位
      *
-     * TODO(frog-ai): 原版青蛙死亡时清除舌击目标并结束姿态动画，待舌击/姿态系统落地后补充。
+     * 清除舌击目标、结束突舌状态机（舌击目标 resetTask 已复位攻击目标与姿态）。
      */
     void die(DamageSource& source) override;
 

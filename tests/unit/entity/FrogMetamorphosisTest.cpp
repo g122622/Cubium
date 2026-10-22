@@ -268,6 +268,25 @@ TEST_F(FrogMetamorphosisTest, FrogTongueGoal_IgnoresBreeding)
     EXPECT_TRUE(targetGoal.shouldExecute()) << "非繁殖期应保留现有可捕食目标";
 }
 
+// 对齐 vanilla：死亡时清除舌击目标并复位姿态。
+TEST_F(FrogMetamorphosisTest, Frog_DeathClearsTongueState)
+{
+    FrogEntity frog(EntityInstanceId(40), mc::test::testEcsRegistry());
+    frog.setWorld(&m_world);
+    LivingEntity slime(EntityInstanceId(41), nullptr, mc::test::testEcsRegistry());
+    slime.setTypeId("minecraft:slime");
+    frog.setAttackTarget(&slime);
+    frog.setTongueTarget(slime.id());
+    frog.setPose(EntityPose::UsingTongue);
+
+    EnvironmentalDamage source = DamageSources::generic();
+    frog.die(source);
+
+    EXPECT_FALSE(frog.tongueTargetId().has_value());
+    EXPECT_EQ(frog.attackTarget(), nullptr);
+    EXPECT_EQ(frog.pose(), EntityPose::Standing);
+}
+
 // 青蛙可被 /summon 创建并拥有正确的类型键（注册表完整性）。
 TEST_F(FrogMetamorphosisTest, Frog_RegisteredInVanillaEntities)
 {
