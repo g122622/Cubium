@@ -153,6 +153,7 @@ add_library(mc_common STATIC
     entity/entities/passive/special/PolarBearEntity.cpp
     entity/entities/passive/special/TurtleEntity.cpp
     entity/entities/passive/special/ArmadilloEntity.cpp
+    entity/entities/passive/special/CamelEntity.cpp
     entity/entities/passive/special/GoatEntity.cpp
     entity/entities/passive/special/BeeEntity.cpp
     entity/entities/passive/special/StriderEntity.cpp
@@ -429,6 +430,7 @@ add_library(mc_common STATIC
     entity/ai/goal/goals/special/SlimeGoals.cpp
     entity/ai/goal/goals/special/BatGoals.cpp
     entity/ai/goal/goals/special/FrogGoals.cpp
+    entity/ai/goal/goals/special/CamelSitGoal.cpp
     entity/ai/goal/goals/special/GoatRamGoal.cpp
     entity/ai/goal/goals/special/DolphinGoals.cpp
     entity/ai/goal/goals/special/GuardianAttackGoal.cpp

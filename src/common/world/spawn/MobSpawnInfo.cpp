@@ -39,7 +39,6 @@ namespace spawn {
 // 权重、最小/最大群组数量、分类与生物群系属性（creatureGenerationProbability、spawn cost）一一对应。
 //
 // 与原版的已知偏差（对应实体尚未实现，无法进入 spawn list）：
-//   1) camel（沙漠 CREATURE 1,1,1）——CamelEntity 未实现；
 //   3) parched（沙漠 MONSTER 50,4,4）——ParchedEntity 未实现；
 //   上述条目若写入刷怪表，会占用权重并在抽取后被 NaturalSpawner 跳过，使实际生成分布偏离原版，
 //   因此暂不加入（内置刷怪表与数据包口径保持一致）。
@@ -48,6 +47,7 @@ namespace spawn {
 namespace {
 
 using entity::EntityTypeKeys::ARMADILLO;
+using entity::EntityTypeKeys::CAMEL;
 using entity::EntityTypeKeys::GOAT;
 using entity::EntityTypeKeys::AXOLOTL;
 using entity::EntityTypeKeys::BAT;
@@ -309,7 +309,7 @@ MobSpawnInfo MobSpawnInfo::createDesert()
     info.m_creatureSpawnProbability = 0.1f;
 
     info.addCreatureSpawn(SpawnEntry(RABBIT, 12, 2, 3));
-    // TODO(spawn-list-entities): camel（CREATURE 1,1,1）——CamelEntity 未实现。
+    info.addCreatureSpawn(SpawnEntry(CAMEL, 1, 1, 1));
 
     _addCaveSpawns(info);
     // desertSpawns 不走 commonSpawns，而是直接 monsters(19, 1, 0, 50)。

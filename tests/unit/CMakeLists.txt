@@ -254,6 +254,7 @@ add_executable(mc_tests
     # BeeEntity 花朵繁殖、幼体生成、花粉/螫刺状态测试
     common/entity/entities/passive/special/ArmadilloEntityTest.cpp
     common/entity/entities/passive/special/GoatEntityTest.cpp
+    common/entity/entities/passive/special/CamelEntityTest.cpp
     common/entity/entities/passive/special/BeeEntityTest.cpp
     # TurtleEntity 下蛋逻辑测试
     common/entity/entities/passive/special/TurtleEntityTest.cpp

@@ -88,6 +88,7 @@
 #include "common/entity/entities/passive/nautilus/NautilusEntity.hpp"
 #include "common/entity/entities/passive/nautilus/ZombieNautilusEntity.hpp"
 #include "common/entity/entities/passive/special/ArmadilloEntity.hpp"
+#include "common/entity/entities/passive/special/CamelEntity.hpp"
 #include "common/entity/entities/passive/special/GoatEntity.hpp"
 #include "common/entity/entities/passive/special/BeeEntity.hpp"
 #include "common/entity/entities/passive/special/FoxEntity.hpp"
@@ -331,6 +332,16 @@ void VanillaEntities::doRegisterAll()
     registry.registerType(EntityTypeKeys::GOAT,
         EntityType::Builder(&GoatEntity::create, EntityClassification::Creature)
             .size(0.9f, 1.3f)
+            .trackingRange(10)
+            .updateInterval(3)
+            .canSummon(true)
+            .build());
+
+    // 骆驼
+    // MC 1.21.11 Camel：继承 AbstractHorse，尺寸 1.7 x 2.375（幼体经 getAgeScale=0.45 缩放）
+    registry.registerType(EntityTypeKeys::CAMEL,
+        EntityType::Builder(&CamelEntity::create, EntityClassification::Creature)
+            .size(1.7f, 2.375f)
             .trackingRange(10)
             .updateInterval(3)
             .canSummon(true)

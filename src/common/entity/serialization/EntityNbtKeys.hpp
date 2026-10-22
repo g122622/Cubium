@@ -327,6 +327,8 @@ constexpr const char* IS_SCREAMING_GOAT = "IsScreamingGoat";
 constexpr const char* HAS_LEFT_HORN = "HasLeftHorn";
 /// 山羊右角是否存在（对齐 vanilla Goat 的 "HasRightHorn"）
 constexpr const char* HAS_RIGHT_HORN = "HasRightHorn";
+/// 骆驼上次姿态变化时间戳（对齐 vanilla Camel 的 "LastPoseTick"，负值表示坐姿）
+constexpr const char* LAST_POSE_TICK = "LastPoseTick";
 
 // ========== DolphinEntity 键 ==========
 // 参考 MC 1.21.11 Dolphin.addAdditionalSaveData()/readAdditionalSaveData()。

@@ -905,13 +905,14 @@ TEST_F(NaturalSpawnerTest, MobSpawnInfo_WindsweptHills)
 
 TEST_F(NaturalSpawnerTest, MobSpawnInfo_Desert)
 {
-    // desertSpawns：rabbit(12,2,3) + caveSpawns + monsters(19,1,0,50) + husk(80,4,4)
-    //   camel / parched 未实现，不进入刷怪表
+    // desertSpawns：rabbit(12,2,3) + camel(1,1,1) + caveSpawns + monsters(19,1,0,50) + husk(80,4,4)
+    //   parched 未实现，不进入刷怪表
     auto info = world::spawn::MobSpawnInfo::createDesert();
     EXPECT_FLOAT_EQ(info.getCreatureSpawnProbability(), 0.1f);
 
     expectSpawn(info.getCreatureSpawns(), "minecraft:rabbit", 12, 2, 3);
-    EXPECT_EQ(info.getCreatureSpawns().size(), 1u);
+    expectSpawn(info.getCreatureSpawns(), "minecraft:camel", 1, 1, 1);
+    EXPECT_EQ(info.getCreatureSpawns().size(), 2u);
 
     expectCaveSpawns(info);
     expectSpawn(info.getMonsterSpawns(), "minecraft:zombie", 19, 4, 4);

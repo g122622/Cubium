@@ -70,6 +70,7 @@ constexpr SpawnListClassificationCase kSpawnListClassifications[] = {
     {"minecraft:axolotl", EntityClassification::Axolotls},
     {"minecraft:bat", EntityClassification::Ambient},
     {"minecraft:bogged", EntityClassification::Monster},
+    {"minecraft:camel", EntityClassification::Creature},
     {"minecraft:chicken", EntityClassification::Creature},
     {"minecraft:cod", EntityClassification::WaterAmbient},
     {"minecraft:cow", EntityClassification::Creature},
@@ -125,7 +126,6 @@ constexpr SpawnListClassificationCase kSpawnListClassifications[] = {
  * 避免实现后遗忘分类口径核对。
  */
 constexpr std::string_view kKnownUnregisteredSpawnTypes[] = {
-    "minecraft:camel",
     "minecraft:parched",
 };
 

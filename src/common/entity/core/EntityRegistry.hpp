@@ -228,6 +228,7 @@ constexpr const char* STRIDER = "minecraft:strider";
 constexpr const char* SNIFFER = "minecraft:sniffer";
 constexpr const char* ARMADILLO = "minecraft:armadillo";
 constexpr const char* GOAT = "minecraft:goat";
+constexpr const char* CAMEL = "minecraft:camel";
 constexpr const char* HAPPY_GHAST = "minecraft:happy_ghast";
 
 // 马类
