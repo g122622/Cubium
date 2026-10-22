@@ -144,6 +144,8 @@ public:
     [[nodiscard]] static const EnvironmentAttribute<f32>& CAT_WAKING_UP_GIFT_CHANCE();
     /// 蜜蜂是否留守蜂巢
     [[nodiscard]] static const EnvironmentAttribute<bool>& BEES_STAY_IN_HIVE();
+    /// 被骑乘的鹦鹉螺是否入水（对齐 vanilla EnvironmentAttributes.NAUTILUS_ENTERS_WATER_WHEN_RIDDEN）
+    [[nodiscard]] static const EnvironmentAttribute<bool>& NAUTILUS_ENTERS_WATER_WHEN_RIDDEN();
     /// 怪物是否在日光下燃烧
     [[nodiscard]] static const EnvironmentAttribute<bool>& MONSTERS_BURN();
     /// 能否生成劫掠巡逻队

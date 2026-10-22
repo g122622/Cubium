@@ -32,6 +32,7 @@
 #include "common/entity/entities/passive/tamable/TameableEntity.hpp"
 #include "common/entity/interfaces/IEquipable.hpp"
 #include "common/entity/interfaces/IJumpingMount.hpp"
+#include "common/entity/inventory/INamedContainerProvider.hpp"
 #include "common/item/core/ActionResult.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/nbt/Nbt.hpp"
@@ -72,7 +73,10 @@ class LivingEntity;
  * - 冷却时间 40 tick
  * - 水中冲刺力度 1.2，陆地冲刺力度 0.5
  */
-class AbstractNautilusEntity : public TameableEntity, public entity::IJumpingMount, public entity::IEquipable {
+class AbstractNautilusEntity : public TameableEntity,
+                               public entity::IJumpingMount,
+                               public entity::IEquipable,
+                               public INamedContainerProvider {
 public:
     /**
      * @brief 构造函数
@@ -274,6 +278,51 @@ public:
      * 条件：服务端 && (无骑乘者 || 骑乘者是自身) && 已驯服
      */
     virtual void openInventory(Player& player);
+
+    // ========== INamedContainerProvider 接口实现（鹦鹉螺背包界面）==========
+
+    /// 创建鹦鹉螺背包菜单（对齐 vanilla AbstractNautilus.openCustomInventoryScreen 的菜单构造）
+    [[nodiscard]] std::unique_ptr<AbstractContainerMenu> createMenu(i32 containerId, Player& player) override;
+
+    /// 菜单标题（对齐 vanilla AbstractNautilus.getDisplayName）
+    [[nodiscard]] std::string getDisplayName() const override;
+
+    /// 菜单网络类型：1.21.11 鹦鹉螺复用通用坐骑界面（对齐 vanilla MenuType.GENERIC_HORSE）
+    [[nodiscard]] ContainerType getMenuType() const override;
+
+    /**
+     * @brief 被骑乘时是否应主动入水
+     *
+     * 查环境属性 `EnvironmentAttributes.NAUTILUS_ENTERS_WATER_WHEN_RIDDEN`
+     * （维度属性层给出，默认 false；海洋维度为真）。环境属性系统未就绪
+     * （生成期/测试夹具）时回退到"非下界、非末地"的近似判定。
+     *
+     * 说明：vanilla 1.21.11 的 AbstractNautilus 本身没有入水开关，本条对齐的是
+     * "被骑乘鹦鹉螺按维度决定是否入水"的环境属性语义。
+     */
+    [[nodiscard]] virtual bool canEnterWater() const;
+
+    /**
+     * @brief 装备库存变更后同步到装备槽数据
+     *
+     * 菜单（NautilusInventoryMenu）直接读写 m_inventory，不经过 setEquipment；
+     * 由 SimpleInventory 的变更回调转发到此处，保证 EquipmentSlot::Saddle/Body
+     * 与库存内容一致（客户端渲染、isSaddled、骑乘判定依赖这些槽位）。
+     */
+    void _onEquipmentInventoryChanged();
+
+    /// 鹦鹉螺库存指针（菜单有效性校验用：库存被重建即视为原菜单失效）
+    [[nodiscard]] blockentity::SimpleInventory* inventoryPtr() const { return m_inventory.get(); }
+
+    /// IEquipable 槽位索引 → EquipmentSlot 映射（0 = Saddle，1 = Body）
+    [[nodiscard]] static EquipmentSlot equipmentSlotForContainerSlot(i32 slot);
+
+    /**
+     * @brief 像素级碰撞是否按水的判定放宽（水 / 气泡柱视为可穿行）
+     *
+     * 对齐 vanilla Entity.isPushedByFluid / 骑乘路径下的地面检测放宽。
+     */
+    [[nodiscard]] bool isUnderWaterVehicle() const;
 
     // ========== NBT 序列化 ==========
 

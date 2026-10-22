@@ -382,6 +382,12 @@ _AttributeName& _name_BEES_STAY_IN_HIVE()
     return name;
 }
 
+_AttributeName& _name_NAUTILUS_ENTERS_WATER_WHEN_RIDDEN()
+{
+    static _AttributeName name("gameplay/nautilus_enters_water_when_ridden");
+    return name;
+}
+
 _AttributeName& _name_MONSTERS_BURN()
 {
     static _AttributeName name("gameplay/monsters_burn");
@@ -685,6 +691,14 @@ const EnvironmentAttribute<bool>& EnvironmentAttributes::BEES_STAY_IN_HIVE()
     return instance;
 }
 
+const EnvironmentAttribute<bool>& EnvironmentAttributes::NAUTILUS_ENTERS_WATER_WHEN_RIDDEN()
+{
+    // 默认 false：仅海洋维度把它置为 true（对齐 vanilla EnvironmentAttributes 的维度属性层）。
+    static const EnvironmentAttribute<bool> instance =
+        _gameplayBoolean(_name_NAUTILUS_ENTERS_WATER_WHEN_RIDDEN(), false);
+    return instance;
+}
+
 const EnvironmentAttribute<bool>& EnvironmentAttributes::MONSTERS_BURN()
 {
     static const EnvironmentAttribute<bool> instance = _gameplayBoolean(_name_MONSTERS_BURN(), false);
@@ -804,6 +818,7 @@ Result<size_t> EnvironmentAttributes::registerAll()
     registerOne(_name_SURFACE_SLIME_SPAWN_CHANCE(), SURFACE_SLIME_SPAWN_CHANCE());
     registerOne(_name_CAT_WAKING_UP_GIFT_CHANCE(), CAT_WAKING_UP_GIFT_CHANCE());
     registerOne(_name_BEES_STAY_IN_HIVE(), BEES_STAY_IN_HIVE());
+    registerOne(_name_NAUTILUS_ENTERS_WATER_WHEN_RIDDEN(), NAUTILUS_ENTERS_WATER_WHEN_RIDDEN());
     registerOne(_name_MONSTERS_BURN(), MONSTERS_BURN());
     registerOne(_name_CAN_PILLAGER_PATROL_SPAWN(), CAN_PILLAGER_PATROL_SPAWN());
     registerOne(_name_VILLAGER_ACTIVITY(), VILLAGER_ACTIVITY());

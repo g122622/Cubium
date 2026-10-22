@@ -46,6 +46,7 @@
 #include "common/entity/effect/EffectType.hpp"
 #include "common/entity/entities/passive/tamable/TameableEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
+#include "common/entity/inventory/container/NautilusInventoryMenu.hpp"
 #include "common/entity/registry/VanillaEntityTypeKeys.hpp"
 #include "common/entity/serialization/EntityNbtKeys.hpp"
 #include "common/entity/serialization/NbtHelper.hpp"
@@ -63,7 +64,9 @@
 #include "common/util/math/random/Random.hpp"
 #include "common/util/nbt/Nbt.hpp"
 #include "common/world/IWorld.hpp"
+#include "common/world/attribute/EnvironmentAttributes.hpp"
 #include "common/world/blockentity/core/SimpleInventory.hpp"
+#include "common/world/dimension/DimensionManager.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -127,6 +130,27 @@ void AbstractNautilusEntity::createInventory()
 {
     // 创建物品栏：槽位 0 = 鞍，槽位 1 = 鹦鹉螺铠甲
     m_inventory = std::make_unique<blockentity::SimpleInventory>(getEquipmentSlotCount());
+    // 菜单直接写槽位时不经过 setEquipment，需由库存变更回调回写装备同步数据，
+    // 否则客户端鞍/铠甲外观与骑乘判定（isSaddled）不会随 GUI 操作更新。
+    m_inventory->setOnChanged([this]() { _onEquipmentInventoryChanged(); });
+}
+
+void AbstractNautilusEntity::_onEquipmentInventoryChanged()
+{
+    if (m_inventory == nullptr) {
+        return;
+    }
+    for (i32 slot = 0; slot < getEquipmentSlotCount(); ++slot) {
+        const ItemStack& stack = m_inventory->getItem(slot);
+        // 同步装备槽数据（供客户端渲染与 EquipmentSlot 查询），不触发本回调。
+        LivingEntity::setEquipment(equipmentSlotForContainerSlot(slot), stack);
+    }
+}
+
+EquipmentSlot AbstractNautilusEntity::equipmentSlotForContainerSlot(i32 slot)
+{
+    // IEquipable 槽位映射：0 = Saddle，1 = Body（与 AbstractNautilusEntity 头文件说明一致）。
+    return slot == 0 ? EquipmentSlot::Saddle : EquipmentSlot::Body;
 }
 
 // ============================================================================
@@ -632,21 +656,69 @@ ActionResultType AbstractNautilusEntity::interactMob(Player& player, Hand hand)
 
 void AbstractNautilusEntity::openInventory(Player& player)
 {
-    // 条件：服务端 && (无骑乘者 || 骑乘者是自身) && 已驯服
+    // 条件：服务端 && (无骑乘者 || 骑乘者是自身) && 已驯服（对齐 vanilla AbstractNautilus.openCustomInventoryScreen）。
     if (m_world != nullptr && !m_world->isClientSide()) {
         if (!isBeingRidden() || isPassenger(player.id())) {
             if (isTamed()) {
-                // TODO: 当实体背包 ContainerMenu 系统实现后，在此打开鹦鹉螺背包 GUI。
-                // 当前物品栏 SimpleInventory 已存在（m_inventory），但实体背包 GUI 链路尚未打通，
-                // 缺失以下关键组件：
-                //   1. ContainerManager 不支持实体背包菜单（需新增背包类菜单，参考 ChestContainer 模式）
-                //   2. ContainerType 枚举无动物背包类型
-                //   3. 客户端 OpenContainerPacket 处理器不支持实体背包分支
-                //   4. 客户端 NautilusInventoryScreen 未实现
-                // 与 AbstractHorseEntity::openInventory 的 TODO 是同一阻塞点，应一起收敛。
+                // 经实体容器链路打开鹦鹉螺背包（IWorld::openEntityContainer → ContainerManager
+                // → OpenScreen），菜单由 createMenu 构建（鞍槽 + 鹦鹉螺铠甲槽 + 玩家背包）。
+                static_cast<void>(player.openContainer(*this));
             }
         }
     }
+}
+
+std::unique_ptr<AbstractContainerMenu> AbstractNautilusEntity::createMenu(i32 containerId, Player& player)
+{
+    // 对齐 vanilla ServerPlayer.openNautilusInventory：仅已驯服的鹦鹉螺可打开菜单。
+    if (!isTamed()) {
+        return nullptr;
+    }
+    if (m_inventory == nullptr) {
+        return nullptr;
+    }
+    return std::make_unique<NautilusInventoryMenu>(containerId, &player.inventory(), *this, m_inventory.get());
+}
+
+std::string AbstractNautilusEntity::getDisplayName() const
+{
+    // 对齐 vanilla Nautilus.getDisplayName：有自定义名用自定义名，否则用实体类型名的翻译键。
+    if (const auto* customName = getCustomNameComponent(); customName != nullptr) {
+        return "[" + customName->getUnformattedText() + "]";
+    }
+    const std::string typeId = getTypeId();
+    return typeId.empty() ? "EntityNautilus" : ("entity.minecraft." + typeId.substr(typeId.find(':') + 1));
+}
+
+ContainerType AbstractNautilusEntity::getMenuType() const
+{
+    // vanilla 1.21.11 通过 ClientboundMountScreenOpenPacket 打开，客户端在 mount 分支里按实体
+    // 类型建 NautilusInventoryMenu（与马共用同一个网络层入口），Cubium 对应 ContainerType::GenericHorse。
+    return ContainerType::GenericHorse;
+}
+
+bool AbstractNautilusEntity::canEnterWater() const
+{
+    const IWorld* worldPtr = world();
+    if (worldPtr == nullptr) {
+        return false;
+    }
+    // 对齐 vanilla 环境属性层：被骑乘的鹦鹉螺是否入水由维度属性给出。
+    const world::attribute::EnvironmentAttributeSystem& attributes = worldPtr->environmentAttributes();
+    const math::Vector3 queryPos(static_cast<f32>(x()), static_cast<f32>(y()), static_cast<f32>(z()));
+    if (attributes.attributeCount() != 0) {
+        return attributes.getValue(
+            world::attribute::EnvironmentAttributes::NAUTILUS_ENTERS_WATER_WHEN_RIDDEN(), queryPos);
+    }
+    // 环境属性系统未就绪（生成期/测试夹具）时回退到"非下界、非末地"的近似判定
+    // （与 BEES_STAY_IN_HIVE 的回退分支同样属于属性系统就绪前的权宜路径）。
+    const DimensionId dimensionId = worldPtr->dimension();
+    return dimensionId != DimensionManager::NETHER && dimensionId != DimensionManager::THE_END;
+}
+
+bool AbstractNautilusEntity::isUnderWaterVehicle() const
+{
+    return canEnterWater();
 }
 
 void AbstractNautilusEntity::tryToTame(Player& player)

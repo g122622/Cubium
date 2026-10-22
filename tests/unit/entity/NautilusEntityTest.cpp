@@ -517,3 +517,32 @@ TEST_F(NautilusEquipmentTest, SetEquipment_ArmorSlot)
     EXPECT_FALSE(stack.isEmpty());
     EXPECT_EQ(stack.getItem(), Items::IRON_NAUTILUS_ARMOR);
 }
+
+/**
+ * @brief 库存被直接写入（菜单路径）时，装备槽数据须同步
+ *
+ * NautilusInventoryMenu 的槽位直接读写 m_inventory，不经过 setEquipment；
+ * 若不同步到 EquipmentSlot::Saddle/Body，客户端外观与 isSaddled 会与库存不一致。
+ */
+TEST_F(NautilusEquipmentTest, DirectInventoryWrite_SyncsEquipmentSlotData)
+{
+    NautilusEntity n(EntityInstanceId(1), mc::test::testEcsRegistry());
+    ASSERT_NE(Items::SADDLE, nullptr);
+    ASSERT_NE(Items::IRON_NAUTILUS_ARMOR, nullptr);
+
+    // 只有已驯服成体才允许装备
+    n.setTamed(true);
+
+    blockentity::SimpleInventory* inventory = n.inventoryPtr();
+    ASSERT_NE(inventory, nullptr);
+    inventory->setItem(0, ItemStack(*Items::SADDLE, 1));
+    inventory->setItem(1, ItemStack(*Items::IRON_NAUTILUS_ARMOR, 1));
+
+    EXPECT_EQ(n.getEquipment(EquipmentSlot::Saddle).getItem(), Items::SADDLE);
+    EXPECT_EQ(n.getEquipment(EquipmentSlot::Body).getItem(), Items::IRON_NAUTILUS_ARMOR);
+
+    // 清空同样须同步
+    inventory->setItem(0, ItemStack());
+    EXPECT_TRUE(n.getEquipment(EquipmentSlot::Saddle).isEmpty());
+    EXPECT_FALSE(n.isSaddled());
+}

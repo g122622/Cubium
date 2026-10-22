@@ -499,6 +499,7 @@ add_library(mc_common STATIC
     entity/inventory/container/HorseInventoryMenu.cpp
     entity/inventory/container/FurnaceContainer.cpp
     entity/inventory/container/ItemPickerMenu.cpp
+    entity/inventory/container/NautilusInventoryMenu.cpp
     entity/inventory/container/EnchantmentContainer.cpp
     entity/inventory/container/CartographyContainer.cpp
     entity/inventory/container/BrewingStandContainer.cpp

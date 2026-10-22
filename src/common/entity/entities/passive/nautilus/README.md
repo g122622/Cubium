@@ -73,7 +73,11 @@ AbstractNautilusEntity (继承 TameableEntity + IJumpingMount + IEquipable)
 8. **`getLookAngle()` 是 `LivingEntity` 的 protected 方法**，不是 `Entity` 的方法。在 `executeRidersJump`
    中使用时需通过 `Player&`（继承自 `LivingEntity`）访问。
 
-9. **鹦鹉螺背包 GUI 未实现** - `openInventory` 仍为 TODO，阻塞点：`ServerWorld::openEntityContainer`
-   恒返回 false（实体容器回调从未接线，setter 已移除）、`ContainerManager` 不支持实体容器、
-   `NautilusContainer` 菜单类未实现、客户端 Screen 未实现。
-   与 `AbstractHorseEntity::openInventory` 的 TODO 是同一阻塞点，应一起收敛。
+9. **鹦鹉螺背包 GUI** - 已接通实体容器链路：`AbstractNautilusEntity` 实现 `INamedContainerProvider`，
+   `openInventory` 走 `player.openContainer(*this)`（`IWorld::openEntityContainer` → `ContainerManager`
+   → OpenScreen），菜单为 `entity/inventory/container/NautilusInventoryMenu`（鞍槽 (8,18)、身体槽 (8,36)、
+   玩家背包起点 (8,84)，网络类型 `ContainerType::GenericHorse`，对齐 vanilla `NautilusInventoryMenu`
+   继承 `AbstractMountInventoryMenu` 并与马共用 `ClientboundMountScreenOpenPacket`）。
+   菜单直接写库存时经 `SimpleInventory` 变更回调同步 `EquipmentSlot::Saddle/Body`。
+   未实现部分：vanilla 鹦鹉螺的宝藏库存槽（`getInventoryColumns()` 当前为 0，Cubium 库存仅 2 格），
+   已在菜单构造函数留 TODO；客户端 Screen 随客户端停维护不再实现。
