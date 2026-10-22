@@ -165,7 +165,9 @@ void SnowballEntity::onImpact(const RayTraceResult& result)
 
     // 命中即破裂（对齐 vanilla Snowball.onHit：broadcastEntityEvent(3) 广播破裂粒子 + discard）。
     // 注：被偏转（deflection）时基类 onImpact 已 return 不调 onEntityHit，但雪球仍应破裂消失
-    // （vanilla 偏转后不 discard，但 Cubium 偏转体系简化，统一破裂；TODO: 偏转后保留待对齐）。
+    // （vanilla 中弹射物被偏转后不执行 onHit，不会被 discard 而是继续飞行；本实现未区分偏转路径，
+    // 偏转后仍按命中处理，行为上有差异，后续需让 ProjectileEntity::onImpact 返回是否被偏转，
+    // 再在此分流（偏转时不破裂）。
     if (m_world) {
         m_world->addParticle(particle::ParticleTypeId::Snowflake,
             m_builtIn.stateVector->m_pos,
@@ -687,8 +689,9 @@ void PotionEntity::_dowseFire(const BlockPos& pos)
     } else if (blocks::CampfireBlock::isLitCampfire(*state)) {
         // 营火：levelEvent(1009 熄灭音效) + dowse(owner, level, pos, state) + setBlock(LIT=false)。
         // Cubium CampfireBlock::extinguish 内部已做 setBlock(LIT=false) + 播放熄灭音效，
-        // 等价合并 vanilla dowse + setBlockAndUpdate。owner 信息丢失（vanilla dowse 仅记伤害归属，
-        // 营火无掉落影响轻微），TODO 待 CampfireBlock::dowse 接入 owner。
+        // 等价合并 vanilla dowse + setBlockAndUpdate。vanilla dowse 对 owner 仅用于
+        // gameEvent(GameEvent.BLOCK_CHANGE) 的振动归属，营火不产生掉落、无伤害归属语义，
+        // 因此这里无需额外传入 owner。
         BlockState mutableState = *state;
         blocks::CampfireBlock::extinguish(*m_world, pos, mutableState);
     }
