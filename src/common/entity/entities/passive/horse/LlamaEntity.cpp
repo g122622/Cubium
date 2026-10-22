@@ -343,16 +343,12 @@ void LlamaEntity::_spit(LivingEntity* target)
     // 设置发射者
     spitEntity->setShooter(this);
 
-    // 计算发射位置：从羊驼眼睛高度发射，稍微偏向前方
-    // vanilla LlamaSpit.java:30-32 用 yBodyRot（身体朝向）计算偏移；Cubium 等价字段为
-    // m_renderYawOffset。但 Cubium 目前未实现 vanilla Mob.aiStep/MoveControl 对 yBodyRot 的
-    // 通用平滑更新（仅 Drowned/Phantom/Vex/Ghast 等少数实体在各自 controller 更新），普通羊驼的
-    // m_renderYawOffset 恒为首帧值（spawn/结构放置时设置），用它会得到固定死值致口水偏移方向错误。
-    // 故此处暂用 yaw()（至少跟随 look/move 更新）作为近似。待 yBodyRot 通用更新机制补全后改回。
-    // TODO: 待 Cubium 实现 Mob yBodyRot 通用平滑更新后，改用 renderYawOffset() 对齐 vanilla yBodyRot。
-    f32 renderYawOffset = yaw();
-    f32 sinYaw = std::sin(renderYawOffset * math::DEG_TO_RAD);
-    f32 cosYaw = std::cos(renderYawOffset * math::DEG_TO_RAD);
+    // 计算发射位置：从羊驼眼睛高度发射，并稍微偏向前方。以身体朝向（renderYawOffset）为准，
+    // 与 vanilla LlamaSpit 使用 yBodyRot 一致；身体朝向由 MobEntity::updateBodyRotation
+    // 在迈步期间跟随 yaw 更新。
+    const f32 bodyYaw = renderYawOffset();
+    const f32 sinYaw = std::sin(bodyYaw * math::DEG_TO_RAD);
+    const f32 cosYaw = std::cos(bodyYaw * math::DEG_TO_RAD);
 
     f32 spawnX = static_cast<f32>(x()) - (width() + 1.0f) * 0.5f * sinYaw;
     f32 spawnY = static_cast<f32>(getEyeY()) - 0.1f;

@@ -283,6 +283,18 @@ void MobEntity::lookAt(f64 x, f64 y, f64 z, f32 deltaYaw, f32 deltaPitch)
     }
 }
 
+void MobEntity::updateBodyRotation()
+{
+    // 对齐 vanilla BodyRotationControl.clientTick 的移动分支：迈步期间身体朝向对齐 yaw。
+    // 未迈步时保持上一帧身体朝向（静止分支见头文件 TODO）。
+    constexpr f32 MOVING_EPSILON = 1.0e-3f;
+    const Vector3 motion = velocity();
+    const f32 horizontalMotionSq = static_cast<f32>(motion.x * motion.x + motion.z * motion.z);
+    if (horizontalMotionSq > MOVING_EPSILON) {
+        setRenderYawOffset(yaw());
+    }
+}
+
 void MobEntity::tick()
 {
     // 更新父类（LivingEntity::tick() 已经调用 aiStep()）
@@ -290,6 +302,8 @@ void MobEntity::tick()
         MC_TRACE_SCOPED_EVENT(::mc::trace::TraceEvents.Game.Entity, "MobEntity::livingTick");
         LivingEntity::tick();
     }
+
+    updateBodyRotation();
 
     // 空闲时间在 tick 开头递增
     ++m_idleTime;

@@ -659,9 +659,12 @@ Result<void> ItemEntity::readAdditionalSaveData(const nbt::tags::compound_tag& t
         m_health = static_cast<i32>(*val);
     }
 
-    // Age (i16) - 实体年龄。原版以 Short 存储，故按 Short 读取。
+    // Age：原版以 Short 存储，但项目早期版本曾写成 Int。两种编码都要能读回，
+    // 否则旧存档中掉落物的年龄会被整体重置。
     if (auto val = nbt_helper::tryGetShort(tag, nbt_keys::AGE)) {
         m_age = static_cast<i32>(*val);
+    } else if (auto intVal = nbt_helper::tryGetInt(tag, nbt_keys::AGE)) {
+        m_age = *intVal;
     }
 
     // PickupDelay (i32) - 拾取延迟

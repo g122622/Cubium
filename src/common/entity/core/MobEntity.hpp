@@ -281,6 +281,19 @@ public:
 
     void tick() override;
 
+    /**
+     * @brief 通用身体朝向更新（对齐 vanilla Mob.createBodyControl 的 BodyRotationControl）
+     *
+     * vanilla BodyRotationControl.clientTick 在实体移动时令身体偏航角直接对齐朝向，
+     * 停下时再按头部偏转量渐进转向。项目只实现了移动分支：迈步期间身体朝向跟随 yaw，
+     * 使依赖身体朝向的算法（如羊驼口水发射点）不再读到出生时固定不变的值。
+     *
+     * TODO: 静止分支（头部偏移超过 15° 时身体渐进转向、否则头逐渐回正）尚未实现，
+     *   需要 headStableTime/lastStableYHeadRot 两个状态，待相关消费方（客户端渲染已停更）
+     *   需要时补齐。
+     */
+    void updateBodyRotation();
+
     // ========== 属性注册 ==========
 
     /**
