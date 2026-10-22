@@ -448,8 +448,22 @@ void BeeEntity::registerGoals()
 
     // ========== Target Selector (目标选择) ==========
 
-    // 优先级 1: 愤怒复仇（被攻击时召唤其他蜜蜂）
-    m_targetSelector.addGoal(1, std::make_unique<entity::ai::goal::BeeAngerGoal>(this));
+    // 优先级 1: 愤怒复仇（被攻击时召唤其他蜜蜂）。只警醒能看见攻击者的同伴
+    //   （对齐 vanilla BeeBeeHurtByOtherGoal.alertOther：p instanceof Bee && mob.hasLineOfSight(target)）。
+    auto angerGoal = std::make_unique<entity::ai::goal::BeeAngerGoal>(this);
+    angerGoal->setAlertOthers([](const LivingEntity* ally) -> bool {
+        // 谓词返回 true 表示"跳过该盟友"；这里只跳过看不见当前复仇目标的盟友。
+        const auto* beeAlly = dynamic_cast<const BeeEntity*>(ally);
+        if (beeAlly == nullptr) {
+            return true;
+        }
+        const LivingEntity* revenge = beeAlly->getRevengeTarget();
+        if (revenge == nullptr) {
+            return true;
+        }
+        return !beeAlly->canSee(*revenge);
+    });
+    m_targetSelector.addGoal(1, std::move(angerGoal));
 
     // 优先级 2: 攻击玩家
     m_targetSelector.addGoal(2, std::make_unique<entity::ai::goal::BeeAttackPlayerGoal>(this, 10));

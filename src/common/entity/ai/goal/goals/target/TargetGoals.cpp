@@ -343,6 +343,11 @@ void HurtByTargetGoal::startExecuting()
         IWorld* world = m_mob->world();
         if (!world) return;
 
+        // 先让发起者记录复仇目标（对齐 vanilla TargetGoal.start → mob.setTarget(target)，
+        // alertOthers 在目标写入后执行）。Cubium 的蜜蜂把"受击即愤怒"落在 setRevengeTarget，
+        // 子类 override 会在其后执行，故此处经虚派发先写入，保证盟友能在警报谓词里读到攻击者。
+        m_mob->setAttackTarget(m_target.get());
+
         // 获取实体的碰撞箱并扩展
         AxisAlignedBB alertBox = m_mob->boundingBox().expand(16.0, 4.0, 16.0);
 

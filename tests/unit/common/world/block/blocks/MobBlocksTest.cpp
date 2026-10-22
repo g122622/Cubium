@@ -30,6 +30,7 @@
 #include "core/Constants.hpp"
 #include "entity/core/Entity.hpp"
 #include "entity/core/EntityRegistry.hpp"
+#include "entity/core/EntityType.hpp"
 #include "entity/core/LivingEntity.hpp"
 #include "entity/damage/DamageSource.hpp"
 #include "entity/entities/monster/arthropod/EndermiteEntity.hpp"
@@ -487,10 +488,32 @@ private:
  */
 class MockLivingEntity : public LivingEntity {
 public:
-    MockLivingEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
+    /// 显式指定 typeId：踩踏判定按 typeId 区分僵尸/尸壳/玩家等，未设置时依赖全局注册表
+    /// 状态（同进程先跑过 *Bee* 等套件后 EntityType 映射差异会导致误判）。
+    MockLivingEntity(EntityInstanceId id, ecs::EntityRegistry& registry, std::string typeId = "")
         : LivingEntity(id, nullptr, registry)
+        , m_typeIdOverride(std::move(typeId))
     {}
 
+    [[nodiscard]] std::string getTypeId() const override
+    {
+        return m_typeIdOverride.empty() ? LivingEntity::getTypeId() : m_typeIdOverride;
+    }
+
+    /// 显式设置实体类型：踩踏判定等按 entityType() 指针比较，而直接构造的实体
+    /// 未经注册表工厂 setTypeId，entityType() 为空。走公开的 setTypeId + 立即查表。
+    void applyEntityType(const std::string& typeId)
+    {
+        setTypeId(typeId);
+        (void)entityType();
+    }
+
+    void setTypeIdOverride(std::string typeId) { m_typeIdOverride = std::move(typeId); }
+
+private:
+    std::string m_typeIdOverride;
+
+public:
     void tick() override {}
     [[nodiscard]] f32 width() const override { return 0.6f; }
     [[nodiscard]] f32 height() const override { return 1.8f; }
@@ -581,7 +604,8 @@ TEST_F(TurtleEggBlockTrampleTest, OnFallenUpon_ZombieDoesNotTrample)
     world_.setBlockAt(eggPos, &eggState);
 
     // 创建僵尸实体（僵尸不会踩破海龟蛋）
-    MockLivingEntity zombie(EntityInstanceId(1), mc::test::testEcsRegistry());
+    MockLivingEntity zombie(EntityInstanceId(1), mc::test::testEcsRegistry(), "minecraft:zombie");
+    zombie.applyEntityType("minecraft:zombie");
     zombie.setPosition(5.5f, 5.0f, 5.5f);
 
     // 僵尸摔落在蛋上
@@ -603,7 +627,8 @@ TEST_F(TurtleEggBlockTrampleTest, OnFallenUpon_HuskDoesNotTrample)
     world_.setBlockAt(eggPos, &eggState);
 
     // 创建尸壳实体（僵尸变种，不会踩破海龟蛋）
-    MockLivingEntity husk(EntityInstanceId(1), mc::test::testEcsRegistry());
+    MockLivingEntity husk(EntityInstanceId(1), mc::test::testEcsRegistry(), "minecraft:husk");
+    husk.applyEntityType("minecraft:husk");
     husk.setPosition(5.5f, 5.0f, 5.5f);
 
     // 尸壳摔落在蛋上

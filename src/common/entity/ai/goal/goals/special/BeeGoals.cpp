@@ -464,10 +464,14 @@ bool BeePollinateGoal::_findFlower()
     math::Vector3 beePos = m_bee->position();
     BlockPos centerPos(static_cast<i32>(beePos.x), static_cast<i32>(beePos.y), static_cast<i32>(beePos.z));
 
-    // 搜索5格范围内的花朵
+    // 对齐 vanilla BeePollinateGoal.findNearbyFlower：以 blockPosition 为中心做曼哈顿半径 5 的
+    // 立方体扫描，命中第一朵可达花朵即返回。
     for (i32 dx = -5; dx <= 5; ++dx) {
-        for (i32 dy = -2; dy <= 2; ++dy) {
+        for (i32 dy = -5; dy <= 5; ++dy) {
             for (i32 dz = -5; dz <= 5; ++dz) {
+                if (std::abs(dx) + std::abs(dy) + std::abs(dz) > 5) {
+                    continue;
+                }
                 BlockPos checkPos(centerPos.x + dx, centerPos.y + dy, centerPos.z + dz);
 
                 if (_isFlower(checkPos)) {
@@ -484,6 +488,8 @@ bool BeePollinateGoal::_findFlower()
         }
     }
 
+    // 对齐 vanilla：搜索不到花朵时把寻花冷却设为 20~60 tick，避免每 tick 全量扫描。
+    m_bee->setFlowerCooldown(world->getRandom().nextInt(20, 60));
     return false;
 }
 
