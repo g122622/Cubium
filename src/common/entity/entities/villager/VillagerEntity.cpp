@@ -1559,7 +1559,7 @@ void WanderingTraderEntity::rewardTradeXp(MerchantOffer& offer)
 }
 
 // 由 WanderingTraderSpawner 调用：商人生成后以 llamaCount=2 触发本方法，
-// 在商人附近生成 2 只拴绳贸易羊驼（见 server/world/spawn/WanderingTraderSpawner.cpp）。
+// 在商人附近生成 2 只拴绳贸易羊驼（见 src/server/world/spawn/WanderingTraderSpawner.cpp）。
 // 注意：羊驼目标位置不参与本方法的内部选址（采用随机偏移），与 vanilla 的逐只选址略有差异。
 void WanderingTraderEntity::spawnLlamas()
 {
@@ -1589,7 +1589,9 @@ void WanderingTraderEntity::spawnLlamas()
         auto llama = std::make_unique<TraderLlamaEntity>(EntityInstanceId(0), *registry);
         llama->setTypeId(EntityTypeKeys::TRADER_LLAMA); // 工厂绕过补救：直接构造缺 typeId
         llama->setPosition(spawnX, spawnY, spawnZ);
-        llama->setDespawnDelay(m_despawnDelay - 1); // 羊驼比商人早消失1 tick
+        // 羊驼与商人同刻消失：若减 1，羊驼会先于商人消失而触发"末位羊驼离开导致商人缩时"，
+        // 商人的剩余时间被提前压到 1 tick，偏离 vanilla（商人与羊驼同 48000 tick 倒计时）。
+        llama->setDespawnDelay(m_despawnDelay);
 
         // 生成羊驼并在生成后将拴绳绑定到流浪商人
         // 注意：setLeashedToEntity 需要实体已拥有有效的 UUID，
