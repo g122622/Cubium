@@ -56,6 +56,8 @@
 #include <algorithm>
 #include <cmath>
 #include <memory>
+#include <string>
+#include <utility>
 #include <vector>
 
 namespace mc {
@@ -226,6 +228,45 @@ bool AbstractArrowEntity::shotFromCrossbow() const
 {
     const auto* c = tryGetComponent<ecs::ProjectileArrowStateComponent>();
     return (c != nullptr) ? c->m_shotFromCrossbow : false;
+}
+
+const std::string& AbstractArrowEntity::soundEventId() const
+{
+    static const std::string empty;
+    const auto* c = tryGetComponent<ecs::ProjectileArrowStateComponent>();
+    return c != nullptr ? c->m_soundEvent : empty;
+}
+
+void AbstractArrowEntity::setSoundEventId(std::string soundEventId)
+{
+    if (auto* c = tryGetComponent<ecs::ProjectileArrowStateComponent>(); c != nullptr) {
+        c->m_soundEvent = std::move(soundEventId);
+    }
+}
+
+const ItemStack& AbstractArrowEntity::firedFromWeapon() const
+{
+    static const ItemStack emptyStack;
+    const auto* c = tryGetComponent<ecs::ProjectileArrowStateComponent>();
+    return (c != nullptr && c->m_firedFromWeapon != nullptr) ? *c->m_firedFromWeapon : emptyStack;
+}
+
+void AbstractArrowEntity::setFiredFromWeapon(const ItemStack& weapon)
+{
+    if (auto* c = tryGetComponent<ecs::ProjectileArrowStateComponent>(); c != nullptr) {
+        c->m_firedFromWeapon = weapon.isEmpty() ? nullptr : std::make_unique<ItemStack>(weapon);
+    }
+}
+
+ResourceLocation AbstractArrowEntity::getDefaultHitGroundSoundEvent() const
+{
+    return SoundEvents::ENTITY_ARROW_HIT_GROUND;
+}
+
+ResourceLocation AbstractArrowEntity::resolveHitGroundSound() const
+{
+    const std::string& id = soundEventId();
+    return id.empty() ? getDefaultHitGroundSoundEvent() : ResourceLocation(id);
 }
 
 void AbstractArrowEntity::setShotFromCrossbow(bool fromCrossbow)
@@ -609,9 +650,10 @@ void AbstractArrowEntity::onBlockHit(const RayTraceResult& result)
     comp->m_pierceLevel = 0;
     clearPiercedEntities();
 
-    // 播放命中地面音效
+    // 播放命中地面音效（对齐 vanilla AbstractArrow:486 playSound(this.soundEvent)）。
+    // soundEvent 可由射出方指定（如三叉戟为其专属音效），为空时用默认落地音效。
     math::Random rng = createRandomFromEntity(*this);
-    playSound(SoundEvents::ENTITY_ARROW_HIT_GROUND, 1.0f, 1.2f / (rng.nextFloat() * 0.2f + 0.9f));
+    playSound(resolveHitGroundSound(), 1.0f, 1.2f / (rng.nextFloat() * 0.2f + 0.9f));
 
     // 通知命中方块有投射物命中（对齐 vanilla Projectile.onHit → onProjectileHit 链路）。
     // 标靶方块（TargetBlock）等重写 onProjectileHit 的方块依赖此回调计算红石输出。

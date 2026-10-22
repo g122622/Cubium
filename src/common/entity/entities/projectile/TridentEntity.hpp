@@ -163,6 +163,9 @@ protected:
     void onEntityHit(const RayTraceResult& result) override;
     void onBlockHit(const RayTraceResult& result) override;
 
+    /// 对齐 vanilla ThrownTrident.getDefaultHitGroundSoundEvent：三叉戟专属落地音效。
+    [[nodiscard]] ResourceLocation getDefaultHitGroundSoundEvent() const override;
+
     /**
      * @brief 三叉戟在方块中的tick处理
      */

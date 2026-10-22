@@ -95,6 +95,31 @@ enum class MetadataSerializerId : i32 {
 //   10:PoseValue 11:OptionalComponentValue 12:OptionalBlockPosValue 13:ParticlesValue
 //   14:OptionalBlockStateValue 15:BlockStateValue 16:DirectionValue 17:OptionalUnsignedIntValue
 //   18:HolderVariantValue 19:VillagerDataValue
+/// 把 HolderVariantValue::serializerId 映射为线格式枚举值（非法取值兜底 CAT_VARIANT）。
+MetadataSerializerId holderVariantSerializerId(i32 serializerId)
+{
+    switch (serializerId) {
+        case static_cast<i32>(MetadataSerializerId::CatVariant):
+            return MetadataSerializerId::CatVariant;
+        case static_cast<i32>(MetadataSerializerId::CowVariant):
+            return MetadataSerializerId::CowVariant;
+        case static_cast<i32>(MetadataSerializerId::WolfVariant):
+            return MetadataSerializerId::WolfVariant;
+        case static_cast<i32>(MetadataSerializerId::WolfSoundVariant):
+            return MetadataSerializerId::WolfSoundVariant;
+        case static_cast<i32>(MetadataSerializerId::FrogVariant):
+            return MetadataSerializerId::FrogVariant;
+        case static_cast<i32>(MetadataSerializerId::PigVariant):
+            return MetadataSerializerId::PigVariant;
+        case static_cast<i32>(MetadataSerializerId::ChickenVariant):
+            return MetadataSerializerId::ChickenVariant;
+        case static_cast<i32>(MetadataSerializerId::ZombieNautilusVariant):
+            return MetadataSerializerId::ZombieNautilusVariant;
+        default:
+            return MetadataSerializerId::CatVariant;
+    }
+}
+
 MetadataSerializerId getSerializerId(const entity::DataValue& value)
 {
     switch (value.index()) {
@@ -134,10 +159,10 @@ MetadataSerializerId getSerializerId(const entity::DataValue& value)
         case 17:
             return MetadataSerializerId::OptionalUnsignedInt; // OptionalUnsignedIntValue（serializerId 19）
         case 18:
-            // HolderVariantValue：本次统一映射到 CAT_VARIANT(serializerId 21)。
-            // TODO(复合类型分批): Wolf/Cat/Cow/Pig/Chicken variant 各有独立 serializer id
-            // (21/23/22/26/27)，逐实体落地时按字段所属实体精确区分。
-            return MetadataSerializerId::CatVariant;
+            // HolderVariantValue：serializerId 由字段自身携带（vanilla 中各变体 registry 的
+            // serializer 各不相同，真客户端按字段声明类型校验，用错会拒绝整包）。
+            // 0 视为未设置，兜底 CAT_VARIANT(21)。
+            return holderVariantSerializerId(value.get<entity::HolderVariantValue>().serializerId);
         case 19:
             return MetadataSerializerId::VillagerData; // VillagerDataValue（serializerId 18）
         case 20:
@@ -341,10 +366,7 @@ void EntityMetadataSerializer::serializeEntry(u16 id, const entity::DataValue& v
             }
             break;
         }
-        case 18: { // HolderVariantValue → Holder variant（本次统一 serializerId 21 CAT_VARIANT）
-            // VarInt(registryId)。Holder 引用模式，0 也是合法 id。
-            // TODO(复合类型分批): 逐实体区分 serializerId（21 Cat/22 Cow/23 Wolf/24 WolfSound/
-            // 25 Frog/26 Pig/27 Chicken/28 ZombieNautilus）。当前 getSerializerId 统一返回 21。
+        case 18: { // HolderVariantValue → Holder variant（VarInt(registryId)，0 也是合法 id）
             const auto hv = value.get<entity::HolderVariantValue>();
             _writeVarInt(hv.registryId, output);
             break;
@@ -624,8 +646,10 @@ bool EntityMetadataSerializer::deserialize(const std::vector<u8>& data, entity::
             case MetadataSerializerId::ChickenVariant:
             case MetadataSerializerId::ZombieNautilusVariant: {
                 // 所有 Holder<Variant> 系列 wire 一致：VarInt(registryId)。
+                // 同时写回 serializerId，使后续重发该字段时保持与对端声明一致的类型。
                 const i32 id = _readVarInt(data.data(), data.size(), offset);
-                (void)manager.setRaw(index, entity::DataValue(entity::HolderVariantValue{id}));
+                (void)manager.setRaw(
+                    index, entity::DataValue(entity::HolderVariantValue{static_cast<i32>(serializerId), id}));
                 manager.clearDirty(index);
                 break;
             }

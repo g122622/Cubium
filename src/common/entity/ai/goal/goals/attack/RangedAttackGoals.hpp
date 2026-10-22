@@ -63,6 +63,10 @@ public:
     void resetTask() override;
     void tick() override;
 
+    // 对齐 vanilla RangedAttackGoal.requiresUpdateEveryTick()=true：该 goal 每 tick 运行 tick()
+    // （vanilla Mob.serverAiStep 在半 tick 帧用 tickRunningGoals(false) 只更新这些 goal）。
+    [[nodiscard]] bool requiresUpdateEveryTick() const override { return true; }
+
     [[nodiscard]] std::string getTypeName() const override { return "RangedAttackGoal"; }
 
 protected:
@@ -109,6 +113,10 @@ public:
     void startExecuting() override;
     void resetTask() override;
     void tick() override;
+
+    // 对齐 vanilla RangedBowAttackGoal.requiresUpdateEveryTick()=true：该 goal 每 tick 运行 tick()
+    // （vanilla Mob.serverAiStep 在半 tick 帧用 tickRunningGoals(false) 只更新这些 goal）。
+    [[nodiscard]] bool requiresUpdateEveryTick() const override { return true; }
 
     [[nodiscard]] std::string getTypeName() const override { return "RangedBowAttackGoal"; }
 
@@ -184,6 +192,10 @@ public:
     void startExecuting() override;
     void resetTask() override;
     void tick() override;
+
+    // 对齐 vanilla RangedCrossbowAttackGoal.requiresUpdateEveryTick()=true：该 goal 每 tick 运行 tick()
+    // （vanilla Mob.serverAiStep 在半 tick 帧用 tickRunningGoals(false) 只更新这些 goal）。
+    [[nodiscard]] bool requiresUpdateEveryTick() const override { return true; }
 
     [[nodiscard]] std::string getTypeName() const override { return "RangedCrossbowAttackGoal"; }
 

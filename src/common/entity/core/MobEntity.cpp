@@ -326,13 +326,27 @@ void MobEntity::tick()
     // 2. 目标选择器 (先于 goalSelector)
     // 3. 行为目标选择器
     if (m_aiEnabled) {
+        // 对齐 vanilla Mob.serverAiStep：按 (tickCount + entityId) % 2 门控——
+        // 整除帧做完整评估（canUse/canContinueToUse/start），半 tick 帧只更新
+        // requiresUpdateEveryTick() 的运行中 goal。tickCount 为 0 或 1 时强制完整评估，
+        // 避免实体刚生成的头两 tick 只有半 tick 帧而始终不评估目标。
+        const bool fullEvaluation =
+            (static_cast<i32>(m_ticksExisted) + static_cast<i32>(static_cast<u64>(id())) % 2) % 2 == 0;
         {
             MC_TRACE_SCOPED_EVENT(::mc::trace::TraceEvents.Game.Entity, "MobEntity::targetSelector");
-            m_targetSelector.tick();
+            if (fullEvaluation) {
+                m_targetSelector.tick();
+            } else {
+                m_targetSelector.tickRunningGoalsEveryTick();
+            }
         }
         {
             MC_TRACE_SCOPED_EVENT(::mc::trace::TraceEvents.Game.Entity, "MobEntity::goalSelector");
-            m_goalSelector.tick();
+            if (fullEvaluation) {
+                m_goalSelector.tick();
+            } else {
+                m_goalSelector.tickRunningGoalsEveryTick();
+            }
         }
 
         // 4. 导航器更新

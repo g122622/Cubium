@@ -61,6 +61,7 @@ using nbt_helper::tryGetDouble;
 using nbt_helper::tryGetFloat;
 using nbt_helper::tryGetInt;
 using nbt_helper::tryGetLong;
+using nbt_helper::tryGetString;
 
 // ============================================================================
 // ProjectileOwnerComponent — owner UUID(双 long) + LeftOwner + HasBeenShot
@@ -143,9 +144,10 @@ static Result<void> loadProjectileOwner(Entity& entity, const nbt::tags::compoun
 }
 
 // ============================================================================
-// ProjectileArrowStateComponent — AbstractArrow 8 字段 + dealtDamage
+// ProjectileArrowStateComponent — AbstractArrow 10 字段 + dealtDamage
 // 对齐 vanilla 1.21.11 AbstractArrow.addAdditionalSaveData()。
-// 字段：life/shake/inGround/pickup/damage/crit/PierceLevel/item/dealtDamage。
+// 字段：life/shake/inGround/pickup/damage/crit/PierceLevel/item/SoundEvent/weapon/dealtDamage。
+// inBlockState 单独走 lastState 键（见下方），vanilla 亦单独存 "inBlockState"。
 // dealtDamage 是 ThrownTrident 的字段但复用父类 ProjectileArrowStateComponent.m_dealtDamage，
 // 故归入本序列化器（vanilla ThrownTrident 单独存 DealtDamage，项目统一进父组件）。
 // priority=10：晚于 TridentState(priority=0) load，确保三叉戟 item 先读以重算 loyalty。
@@ -164,6 +166,16 @@ static void saveArrowState(const Entity& entity, nbt::tags::compound_tag& tag)
     tag.put(ARROW_DAMAGE, c->m_damage);
     tag.put(ARROW_CRIT, static_cast<i8>(c->m_critical ? 1 : 0));
     tag.put(ARROW_PIERCE_LEVEL, static_cast<i8>(c->m_pierceLevel));
+    // SoundEvent：vanilla 恒写出（默认音效也落盘），此处仅在非默认时写出，
+    // 读取侧缺键时回落到 getDefaultHitGroundSoundEvent()，语义等价。
+    if (!c->m_soundEvent.empty()) {
+        tag.put(ARROW_SOUND_EVENT, c->m_soundEvent);
+    }
+    if (c->m_firedFromWeapon != nullptr && !c->m_firedFromWeapon->isEmpty()) {
+        nbt::tags::compound_tag weaponTag;
+        c->m_firedFromWeapon->toNbt(weaponTag);
+        tag.value.emplace(ARROW_WEAPON, std::make_unique<nbt::tags::compound_tag>(std::move(weaponTag)));
+    }
     tag.put(TRIDENT_DEALT_DAMAGE, static_cast<i8>(c->m_dealtDamage ? 1 : 0));
 }
 
@@ -196,6 +208,21 @@ static Result<void> loadArrowState(Entity& entity, const nbt::tags::compound_tag
     }
     if (auto val = tryGetByte(tag, ARROW_PIERCE_LEVEL)) {
         c->m_pierceLevel = static_cast<u8>(*val);
+    }
+    if (auto val = tryGetString(tag, ARROW_SOUND_EVENT)) {
+        c->m_soundEvent = *val;
+    } else {
+        c->m_soundEvent.clear(); // 缺键 / 非法值 → 使用子类默认落地音效
+    }
+    if (const nbt::tags::compound_tag* weaponTag = tryGetCompound(tag, ARROW_WEAPON); weaponTag != nullptr) {
+        if (auto stackResult = ItemStack::fromNbt(*weaponTag);
+            stackResult.success() && !stackResult.value().isEmpty()) {
+            c->m_firedFromWeapon = std::make_unique<ItemStack>(stackResult.value());
+        } else {
+            c->m_firedFromWeapon = nullptr;
+        }
+    } else {
+        c->m_firedFromWeapon = nullptr;
     }
     if (auto val = tryGetBool(tag, TRIDENT_DEALT_DAMAGE)) {
         c->m_dealtDamage = *val;

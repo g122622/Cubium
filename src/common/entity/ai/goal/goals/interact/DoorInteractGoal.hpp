@@ -64,6 +64,10 @@ public:
     void startExecuting() override;
     void tick() override;
 
+    // 对齐 vanilla DoorInteractGoal.requiresUpdateEveryTick()=true：该 goal 每 tick 运行 tick()
+    // （vanilla Mob.serverAiStep 在半 tick 帧用 tickRunningGoals(false) 只更新这些 goal）。
+    [[nodiscard]] bool requiresUpdateEveryTick() const override { return true; }
+
 protected:
     /**
      * @brief 检查门是否处于打开状态

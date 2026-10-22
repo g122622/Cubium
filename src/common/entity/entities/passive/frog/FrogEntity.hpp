@@ -188,6 +188,9 @@ protected:
     Result<void> readAdditionalSaveData(const nbt::tags::compound_tag& tag) override;
 
 private:
+    /// vanilla EntityDataSerializers 中 FROG_VARIANT 的注册序号（Hub 字段序列化器 id）。
+    static constexpr i32 VANILLA_FROG_VARIANT_SERIALIZER_ID = 25;
+
     /// 对齐 vanilla Frog.DATA_VARIANT_ID（FROG_VARIANT 序列化器）
     static entity::DataParameter<entity::HolderVariantValue> DATA_VARIANT_ID_PARAM;
     /// 对齐 vanilla Frog.DATA_TONGUE_TARGET_ID（OPTIONAL_UNSIGNED_INT 序列化器）

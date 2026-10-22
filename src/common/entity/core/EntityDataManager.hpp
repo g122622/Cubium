@@ -285,17 +285,15 @@ struct OptionalUnsignedIntValue {
  * 对齐 vanilla 1.21.11 的各类 Holder 变体 serializer（CAT_VARIANT id=21、
  * WOLF_VARIANT id=23、COW_VARIANT、PIG_VARIANT、CHICKEN_VARIANT 等）。
  * 这些 serializer 共用同一 wire 格式：VarInt(registryId)（holder 引用模式，
- * 0 也是合法 id）。本包装以 registryId 承载，serializerId 由具体 DataParameter
- * 的注册侧决定（同一 variant 类型复用本结构，序列化层按 variant index 写 id=21
- * 占位——实际每个实体类的 variant serializer id 在序列化层需区分，当前统一映射
- * 到 HOLDER_VARIANT，详细见 EntityMetadataSerializer 注释）。
- *
- * TODO(复合类型分批): 当前统一映射 Holder variant → HOLDER_VARIANT(serializerId 21)。
- * 真实 vanilla 中 Wolf/Cat/Cow/Pig/Chicken 各有独立 serializer id(21/23/22/26/27)，
- * 待逐实体落地时在序列化层按字段所属实体精确区分 id。本次先用 21 占位保证
- * Wolf(最常见驯服生物)可通过；其余 Holder variant 字段在补齐前以 TODO 标注。
+ * 0 也是合法 id），但各自的 serializerId 不同（vanilla EntityDataSerializers 注册顺序：
+ * CAT=21 / COW=22 / WOLF=23 / WOLF_SOUND=24 / FROG=25 / PIG=26 / CHICKEN=27 /
+ * ZOMBIE_NAUTILUS=28）。真客户端按字段声明时的 serializer 做类型校验，id 用错会直接
+ * 拒绝整包（"Expected … got …"）。因此本包装携带 VariantSerializer，由字段所属实体的
+ * 注册侧经 registerParam 设置，序列化层据其写正确的 serializerId。
  */
 struct HolderVariantValue {
+    /// 该字段在 vanilla EntityDataSerializers 中的 serializerId（见上方枚举取值）。
+    i32 serializerId{0};
     i32 registryId{0};
 
     HolderVariantValue() = default;
@@ -303,7 +301,16 @@ struct HolderVariantValue {
         : registryId(id)
     {}
 
-    bool operator==(const HolderVariantValue& other) const noexcept { return registryId == other.registryId; }
+    /// 同时指定线格式 serializerId 与 registry id。
+    HolderVariantValue(i32 serializer, i32 registry) noexcept
+        : serializerId(serializer)
+        , registryId(registry)
+    {}
+
+    bool operator==(const HolderVariantValue& other) const noexcept
+    {
+        return serializerId == other.serializerId && registryId == other.registryId;
+    }
     bool operator!=(const HolderVariantValue& other) const noexcept { return !(*this == other); }
 };
 
@@ -369,7 +376,9 @@ public:
     //   12:OptionalBlockPosValue(→OptionalBlockPos id11) 13:ParticlesValue(→Particles id17)
     //   14:OptionalBlockStateValue(→OptionalBlockState id15) 15:BlockStateValue(→BlockState id14)
     //   16:DirectionValue(→Direction id12) 17:OptionalUnsignedIntValue(→OptionalUnsignedInt id19)
-    //   18:HolderVariantValue(→Holder variant,本次统一 id21 占位,见 TODO) 19:VillagerDataValue(→VillagerData id18)
+    //   18:HolderVariantValue(→Holder variant,serializerId 由字段自身携带:
+    //      21 Cat/22 Cow/23 Wolf/24 WolfSound/25 Frog/26 Pig/27 Chicken/28 ZombieNautilus)
+    //      19:VillagerDataValue(→VillagerData id18)
     //   20:HumanoidArmValue(→HumanoidArm id38,Player.MAIN_HAND)
     //   21:OptionalUuidValue(→OptionalLivingEntityRef id13,TamableAnimal.DATA_OWNERUUID)
     //   22:SnifferStateValue(→SnifferState id31,Sniffer.DATA_STATE)

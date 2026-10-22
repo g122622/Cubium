@@ -367,7 +367,10 @@ void CatEntity::registerData()
     //   DATA_COLLAR_COLOR(22) Int 默认 14=Red
     // TODO: vanilla Cat 默认变体为 BLACK(id=1),项目历史默认 Tabby(0);此处 wire 默认值取 Black(1)
     //       对齐 vanilla,但构造时 setRandomCatType() 会立即覆盖为随机值,故默认值仅影响瞬态。
-    m_dataManager.registerParam(DATA_VARIANT_ID_PARAM, entity::HolderVariantValue{static_cast<i32>(CatType::Black)});
+    // serializerId 21 = CAT_VARIANT（vanilla EntityDataSerializers 注册顺序）。
+    m_dataManager.registerParam(DATA_VARIANT_ID_PARAM,
+        entity::HolderVariantValue{
+            static_cast<i32>(VANILLA_CAT_VARIANT_SERIALIZER_ID), static_cast<i32>(CatType::Black)});
     m_dataManager.registerParam(DATA_LYING_PARAM, false);
     m_dataManager.registerParam(DATA_RELAX_STATE_ONE_PARAM, false);
     m_dataManager.registerParam(DATA_COLLAR_COLOR_PARAM, static_cast<i32>(DyeColor::Red));

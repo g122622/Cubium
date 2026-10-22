@@ -261,5 +261,123 @@ TEST_F(GoalSelectorBasicTest, HasRunningGoals_ReturnsCorrectStatus)
     EXPECT_TRUE(selector.hasRunningGoals());
 }
 
+// ==================== GoalSelector 半 tick 门控 / 启动停止顺序 ====================
+
+namespace {
+
+/**
+ * @brief 计数型测试目标（可选择是否需要每 tick 更新）
+ */
+class CountingGoal final : public entity::ai::Goal {
+public:
+    explicit CountingGoal(bool everyTick)
+        : m_everyTick(everyTick)
+    {
+        setMutexFlags(EnumSet<entity::ai::GoalFlag>{entity::ai::GoalFlag::Move});
+    }
+
+    [[nodiscard]] bool shouldExecute() override
+    {
+        ++canUseCalls;
+        return m_canUse;
+    }
+    [[nodiscard]] bool shouldContinueExecuting() override { return true; }
+    void tick() override { ++tickCalls; }
+    void resetTask() override { ++resetCalls; }
+    [[nodiscard]] bool requiresUpdateEveryTick() const override { return m_everyTick; }
+    [[nodiscard]] std::string getTypeName() const override { return "CountingGoal"; }
+
+    i32 canUseCalls = 0;
+    i32 tickCalls = 0;
+    i32 resetCalls = 0;
+    bool m_canUse = true;
+
+private:
+    bool m_everyTick;
+};
+
+} // namespace
+
+class GoalSelectorTickGateTest : public ::testing::Test {
+protected:
+    void SetUp() override { pig = std::make_unique<PigEntity>(EntityInstanceId(1), mc::test::testEcsRegistry()); }
+    void TearDown() override { pig.reset(); }
+
+    std::unique_ptr<PigEntity> pig;
+};
+
+// tickRunningGoalsEveryTick 只更新 requiresUpdateEveryTick() 的运行中目标。
+TEST_F(GoalSelectorTickGateTest, HalfTickUpdatesOnlyEveryTickGoals)
+{
+    entity::ai::GoalSelector selector;
+    auto perTick = std::make_unique<CountingGoal>(true);
+    auto* perTickRaw = perTick.get();
+    selector.addGoal(1, std::move(perTick));
+
+    entity::ai::GoalSelector other;
+    auto slow = std::make_unique<CountingGoal>(false);
+    auto* slowRaw = slow.get();
+    other.addGoal(1, std::move(slow));
+
+    // 两个 selector 都先做一次完整评估让目标进入运行状态。
+    // DEFAULT_TICK_RATE 为 2：CountingGoal 的 shouldExecute 不读取随机数、不过 adjustedTickDelay，
+    // 因此每次低频评估都会重新通过，这里把 tickRate 设为 1 让首次 tick 即完成评估。
+    selector.setTickRate(1);
+    other.setTickRate(1);
+    selector.tick();
+    other.tick();
+    ASSERT_TRUE(selector.getAllGoals().front().isRunning());
+    ASSERT_TRUE(other.getAllGoals().front().isRunning());
+
+    perTickRaw->tickCalls = 0;
+    slowRaw->tickCalls = 0;
+    selector.tickRunningGoalsEveryTick();
+    other.tickRunningGoalsEveryTick();
+
+    EXPECT_EQ(perTickRaw->tickCalls, 1) << "requiresUpdateEveryTick 的 goal 应在半 tick 帧 tick";
+    EXPECT_EQ(slowRaw->tickCalls, 0) << "普通 goal 在半 tick 帧不应 tick";
+    // 半 tick 帧不做 canUse 评估。
+    EXPECT_EQ(perTickRaw->canUseCalls, 1);
+    EXPECT_EQ(slowRaw->canUseCalls, 1);
+}
+
+// 启动后 canUse 评估先于 startExecuting：vanilla 在 canUse 通过后才 start()，
+// 因此启动帧的 tick() 必须在 startExecuting 之后、下一次完整评估之前发生。
+TEST_F(GoalSelectorTickGateTest, StartedGoalTicksInSameFullEvaluation)
+{
+    entity::ai::GoalSelector selector;
+    auto goal = std::make_unique<CountingGoal>(false);
+    auto* raw = goal.get();
+    selector.addGoal(1, std::move(goal));
+    selector.setTickRate(1);
+
+    selector.tick();
+    EXPECT_EQ(raw->canUseCalls, 1);
+    EXPECT_EQ(raw->tickCalls, 1) << "完整评估帧在启动后应立即 tick 一次";
+    EXPECT_TRUE(selector.getAllGoals().front().isRunning());
+}
+
+// 被更高优先级同标志目标抢占时，低优先级目标应被 stop（resetTask 恰好一次）。
+TEST_F(GoalSelectorTickGateTest, PreemptionStopsLowerPriorityOnce)
+{
+    entity::ai::GoalSelector selector;
+    auto low = std::make_unique<CountingGoal>(false);
+    auto* lowRaw = low.get();
+    selector.addGoal(5, std::move(low));
+    selector.tick();
+    ASSERT_TRUE(selector.getAllGoals().front().isRunning());
+
+    auto high = std::make_unique<CountingGoal>(false);
+    auto* highRaw = high.get();
+    selector.addGoal(1, std::move(high));
+    selector.tick();
+
+    EXPECT_EQ(lowRaw->resetCalls, 1) << "低优先级目标被抢占时应停止一次";
+    EXPECT_EQ(highRaw->canUseCalls, 1);
+    i32 running = 0;
+    selector.forEachRunningGoal([&running](entity::ai::PrioritizedGoal&) { ++running; });
+    EXPECT_EQ(running, 1) << "同一时刻同标志只允许一个目标运行";
+}
+
 } // namespace test
 } // namespace mc
