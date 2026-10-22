@@ -36,6 +36,7 @@
 #include "common/entity/entities/monster/basic/SlimeEntity.hpp"
 #include "common/entity/entities/passive/basic/SheepEntity.hpp"
 #include "common/entity/entities/passive/frog/FrogEntity.hpp"
+#include "common/entity/entities/projectile/OtherProjectiles.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/assert/AssertAll.hpp"
 #include "common/world/IWorld.hpp"
@@ -132,10 +133,17 @@ bool EntityPredicate::_testTypeSpecific(const Entity& entity, const EntityTypeSp
         return true;
     }
 
-    // TODO(entity-type-specific-predicate): raider.is_captain / fishing_hook.in_open_water
-    //   分别依赖袭击队长标记与钓鱼钩开放水域判定，项目对应状态字段尚未暴露；对这两类
-    //   先按"不匹配"处理（而非静默恒真），待状态接口接入后补齐。
-    if (typeId == "minecraft:raider" || typeId == "minecraft:fishing_hook") {
+    if (typeId == "minecraft:fishing_hook") {
+        const auto* bobber = dynamic_cast<const entity::FishingBobberEntity*>(&entity);
+        if (bobber == nullptr) {
+            return false;
+        }
+        return !specific.inOpenWater.has_value() || bobber->isInOpenWater() == specific.inOpenWater.value();
+    }
+
+    // TODO(entity-type-specific-predicate): raider.is_captain 依赖"袭击队长"标记，
+    //   项目尚未为 AbstractRaiderEntity 暴露该状态，先按"不匹配"处理（而非静默恒真）。
+    if (typeId == "minecraft:raider") {
         return false;
     }
 
