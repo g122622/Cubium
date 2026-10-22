@@ -34,6 +34,7 @@
 #include "common/entity/ai/goal/goals/SwimGoal.hpp"
 #include "common/entity/ai/goal/goals/TemptGoal.hpp"
 #include "common/entity/ai/goal/goals/special/FrogGoals.hpp"
+#include "common/entity/ai/goal/goals/special/FrogLongJumpGoal.hpp"
 #include "common/entity/attribute/Attributes.hpp"
 #include "common/entity/combat/DifficultyInstance.hpp"
 #include "common/entity/core/DataParameter.hpp"
@@ -327,8 +328,8 @@ void FrogEntity::registerGoals()
     // 青蛙 AI 优先级（参考 MC FrogAi.makeBrain，因项目无 Brain 系统改用 GoalSelector）：
     //   突舌捕食（IDLE/SWIM 活动的 StartAttacking + TONGUE 活动的 ShootTongue）已以
     //   FrogAttackTargetGoal + FrogTongueGoal 等效实现。
-    // TODO(frog-ai): 长跳（LONG_JUMP）与产卵（LAY_SPAWN → Frogspawn）仍依赖 Brain 记忆，
-    //   待 Brain 版青蛙 AI 落地时补齐。
+    //   长跳（LONG_JUMP）由 FrogLongJumpGoal 等效实现；产卵（LAY_SPAWN → Frogspawn）
+    //   仍依赖 Brain 记忆，待 Brain 版青蛙 AI 落地时补齐。
 
     // 优先级 0: 游泳（最高优先级，防止溺水）
     m_goalSelector.addGoal(0, std::make_unique<entity::ai::goal::SwimGoal>(this));
@@ -368,6 +369,10 @@ void FrogEntity::registerGoals()
     // 优先级 4: 寻找可捕食目标（对齐 vanilla StartAttacking + NEAREST_ATTACKABLE）：
     //   范围内最近的 FROG_FOOD 实体（默认 5% 概率/次评估搜索）。
     m_goalSelector.addGoal(4, std::make_unique<entity::ai::goal::FrogAttackTargetGoal>(this, FROG_FOLLOW_RANGE, 0.05f));
+
+    // 优先级 8: 随机长跳（对齐 FrogAi LONG_JUMP 活动的 LongJumpToPreferredBlock +
+    //   LongJumpMidJump；优先级最低，不抢占捕食/繁殖/漫步）
+    m_goalSelector.addGoal(8, std::make_unique<entity::ai::goal::FrogLongJumpGoal>(this));
 }
 
 void FrogEntity::registerAttributes()

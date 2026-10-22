@@ -40,7 +40,9 @@
 #include <gtest/gtest.h>
 
 #include "common/TestWorldHelper.hpp"
+#include "common/entity/ai/goal/GoalSelector.hpp"
 #include "common/entity/ai/goal/goals/special/FrogGoals.hpp"
+#include "common/entity/ai/goal/goals/special/FrogLongJumpGoal.hpp"
 #include "common/entity/core/MobEntity.hpp"
 #include "common/entity/entities/passive/frog/FrogEntity.hpp"
 #include "common/entity/entities/passive/water/TadpoleEntity.hpp"
@@ -295,4 +297,43 @@ TEST_F(FrogMetamorphosisTest, Frog_RegisteredInVanillaEntities)
     auto created = type->create(&m_world, mc::test::testEcsRegistry());
     ASSERT_NE(created, nullptr);
     EXPECT_NE(dynamic_cast<FrogEntity*>(created.get()), nullptr);
+}
+
+// ============================================================================
+// 青蛙长跳（对齐 FrogAi LONG_JUMP 活动）
+// ============================================================================
+
+TEST_F(FrogMetamorphosisTest, Frog_LongJumpGoalRegistered)
+{
+    FrogEntity frog(EntityInstanceId(1), mc::test::testEcsRegistry());
+    bool found = false;
+    for (const auto& pg : frog.goalSelector().getAllGoals()) {
+        if (pg.getGoal() != nullptr && pg.getGoal()->getTypeName() == "FrogLongJumpGoal") {
+            found = true;
+            EXPECT_EQ(pg.getPriority(), 8);
+        }
+    }
+    EXPECT_TRUE(found);
+}
+
+TEST_F(FrogMetamorphosisTest, Frog_LongJumpCooldownRangeMatchesVanilla)
+{
+    // vanilla TIME_BETWEEN_LONG_JUMPS = UniformInt.of(100, 140)
+    EXPECT_EQ(entity::ai::goal::FrogLongJumpGoal::COOLDOWN_MIN_TICKS, 100);
+    EXPECT_EQ(entity::ai::goal::FrogLongJumpGoal::COOLDOWN_MAX_TICKS, 140);
+    // 搜索范围 vanilla MAX_LONG_JUMP_WIDTH=4 / MAX_LONG_JUMP_HEIGHT=2
+    EXPECT_EQ(entity::ai::goal::FrogLongJumpGoal::MAX_JUMP_WIDTH, 4);
+    EXPECT_EQ(entity::ai::goal::FrogLongJumpGoal::MAX_JUMP_HEIGHT, 2);
+}
+
+TEST_F(FrogMetamorphosisTest, Frog_LongJumpVectorSolvesShortHop)
+{
+    FrogEntity frog(EntityInstanceId(1), mc::test::testEcsRegistry());
+    entity::ai::goal::FrogLongJumpGoal goal(&frog);
+
+    // 2 格水平、等高：应求出向上且朝 +X 的初速度
+    const auto velocity = goal.calculateJumpVector(Vector3(0.0, 64.0, 0.0), Vector3(2.5, 64.0, 0.5), 3.5714288, 65);
+    ASSERT_TRUE(velocity.has_value());
+    EXPECT_GT(velocity->y, 0.0);
+    EXPECT_GT(velocity->x, 0.0);
 }

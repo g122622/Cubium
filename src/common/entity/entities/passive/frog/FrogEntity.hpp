@@ -52,8 +52,10 @@ class BlockState;
  * - 属性、音效、坠落下限、水中移动、可食用判定与繁殖产物；
  * - NBT 存读（variant）。
  *
- * TODO(frog-ai): 长跳（LONG_JUMPING）、突舌攻击（ShootTongue + TONGUE 姿态 +
- *   黏液球/岩浆怪掉落蛙明灯）与产卵（IS_PREGNANT → Frogspawn）依赖 Brain 记忆系统，
+ * 长跳（LONG_JUMPING）与突舌攻击（ShootTongue + TONGUE 姿态）已以
+ * FrogLongJumpGoal / FrogTongueGoal 等效实现。
+ *
+ * TODO(frog-ai): 产卵（IS_PREGNANT → Frogspawn）与黏液球/岩浆怪掉落蛙明灯依赖 Brain 记忆系统，
  *   待 Brain 版青蛙 AI 实现时补齐。
  */
 class FrogEntity : public AnimalEntity {
