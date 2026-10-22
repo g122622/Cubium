@@ -166,6 +166,9 @@ public:
      */
     bool attackEntityAsMob(LivingEntity& target) override;
 
+    /// 蛰刺伤害源使用 damageSources().sting(this)（对齐 vanilla Bee.doHurtTarget）
+    [[nodiscard]] EntityDamageSource getAttackDamageSource() override;
+
     // ========== 受击处理（对齐 Java Bee.hurtServer） ==========
 
     /**

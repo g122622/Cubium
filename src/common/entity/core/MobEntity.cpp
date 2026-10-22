@@ -736,6 +736,11 @@ bool MobEntity::canAttackType(const entity::EntityType& type) const
     return &type != entity::VanillaEntityTypeKeys::GHAST;
 }
 
+EntityDamageSource MobEntity::getAttackDamageSource()
+{
+    return DamageSources::mobAttack(this);
+}
+
 bool MobEntity::attackEntityAsMob(LivingEntity& target)
 {
     // 1. 获取攻击伤害属性
@@ -756,8 +761,8 @@ bool MobEntity::attackEntityAsMob(LivingEntity& target)
             mainHand, &item::enchant::AllEnchantments::FIRE_ASPECT);
     }
 
-    // 4. 创建伤害来源并应用伤害
-    EntityDamageSource damageSource = DamageSources::mobAttack(this);
+    // 4. 创建伤害来源并应用伤害（子类可覆盖为专属伤害类型，如蜜蜂的 sting）
+    EntityDamageSource damageSource = getAttackDamageSource();
 
     // 如果有火焰附加，在攻击前点燃目标 1 秒（用于燃烧传递）
     if (fireAspectLevel > 0) {

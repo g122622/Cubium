@@ -1193,6 +1193,14 @@ public:
      */
     virtual bool attackEntityAsMob(LivingEntity& target);
 
+    /**
+     * @brief 近战攻击造成的伤害来源（默认通用 mobAttack）
+     *
+     * 对齐 vanilla Mob.doHurtTarget 的 damageSources() 间接性：蜜蜂等子类使用专属伤害类型
+     * （如 damageSources().sting(this)）。子类可覆盖以改用专属 DamageType。
+     */
+    [[nodiscard]] virtual EntityDamageSource getAttackDamageSource();
+
     // ========== 掉落 ==========
 
     /**

@@ -685,6 +685,22 @@ TEST_F(BeeEntityTest, Sting_IncrementsTargetStingerCount)
     EXPECT_TRUE(bee.hasStung());
 }
 
+TEST_F(BeeEntityTest, Sting_UsesStingDamageType)
+{
+    // 对齐 Java Bee.doHurtTarget：damageSources().sting(this)（死亡消息 death.attack.sting）
+    BeeEntity bee(EntityInstanceId(1), mc::test::testEcsRegistry());
+    bee.setPosition(0.0f, 64.0f, 0.0f);
+
+    LivingEntity target(EntityInstanceId(2), nullptr, mc::test::testEcsRegistry());
+    target.setPosition(0.5f, 64.0f, 0.0f);
+    target.setHealth(20.0f);
+
+    ASSERT_TRUE(bee.attackEntityAsMob(target));
+    DamageSource* source = target.lastDamageSource();
+    ASSERT_NE(source, nullptr);
+    EXPECT_EQ(source->type(), DamageType::Sting);
+}
+
 // ============================================================================
 // 飞行状态测试
 // ============================================================================
