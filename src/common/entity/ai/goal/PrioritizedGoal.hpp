@@ -133,6 +133,13 @@ public:
 
     [[nodiscard]] bool isPreemptible() const noexcept override { return !m_inner || m_inner->isPreemptible(); }
 
+    // 必须转发到内部目标：GoalSelector::tickRunningGoalsEveryTick 经包装器查询，
+    // 遗漏转发会使所有 goal 都被当成"不必每 tick 更新"，半 tick 帧永不 tick。
+    [[nodiscard]] bool requiresUpdateEveryTick() const override
+    {
+        return m_inner != nullptr && m_inner->requiresUpdateEveryTick();
+    }
+
     void startExecuting() override
     {
         if (m_inner && !m_running) {

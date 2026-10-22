@@ -118,9 +118,13 @@ public:
      */
     [[nodiscard]] static constexpr i32 reducedTickDelay(i32 serverTicks) noexcept { return (serverTicks + 1) / 2; }
 
+    // GoalSelector 现已按 vanilla Mob.serverAiStep 的 (tickCount+id)%2 门控（见
+    // GoalSelector::tickRunningGoalsEveryTick），requiresUpdateEveryTick() 的语义与 vanilla 一致：
+    // true 的 goal 每 tick 调 tick()，false 的 goal 每 2 tick 调一次。
     // TODO: 全仓 goal 概率/tick 计时对齐 vanilla adjustedTickDelay/reducedTickDelay 的工作尚未完成。
     // 已对齐核心 goal（EatGrass/RandomWalking/RandomSwimming/LookAt/LookRandomly/MeleeAttack/
-    // Breed/FollowParent/Tempt/Swim/NearestAttackableTarget/TargetGoal.unseenMemory）。
+    // Breed/FollowParent/Tempt/Swim/NearestAttackableTarget/TargetGoal.unseenMemory/CreeperSwell/
+    // MoveToBlock/RangedAttack/RangedBowAttack/RangedCrossbowAttack/DoorInteract）。
     // special 类 goal（FoxGoals/BeeGoals/CatGoals/DolphinGoals/PhantomGoals/SlimeGoals/ShulkerGoals/
     // VexGoals/TurtleGoals/EndermanGoals/IronGolemGoals/BatGoals/RangedAttackGoals 及 villager 系列）
     // 多为项目自创逻辑或与 vanilla 对应关系复杂，其 shouldExecute 概率与 tick 计时器仍用裸值，

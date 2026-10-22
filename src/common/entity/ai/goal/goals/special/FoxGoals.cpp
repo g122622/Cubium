@@ -1115,26 +1115,12 @@ bool FoxStuckInSnowGoal::shouldContinueExecuting()
 
 void FoxStuckInSnowGoal::startExecuting()
 {
-    // 卡住持续 40 真实 tick（2 秒）。对齐 vanilla Fox.FaceplantGoal.start (Fox.java:799)
-    // 的真实时长：vanilla countdown = adjustedTickDelay(40) = reducedTickDelay(40) = 20，
-    // 但 vanilla Mob.serverAiStep (Mob.java:678-691) 对非 requiresUpdateEveryTick 的 goal
-    // 经 (tickCount+id)%2 门控每 2 真实 tick 才调一次 goalSelector.tick()→tickRunningGoals(true)
-    // →goal.tick()，故 countdown 从 20 减到 0 跨 40 真实 tick。
-    //
-    // Cubium GoalSelector Phase 3 (GoalSelector.hpp:211-217) 每 tick 无条件调 goal.tick()，
-    // 无 (tickCount+id)%2 门控，故 countdown 每 tick 递减。若沿用 adjustedTickDelay(40)=20
-    // 只会持续 20 真实 tick（vanilla 的一半），偏离 vanilla。
-    // 直接用 STUCK_DURATION(40) 即对齐 vanilla 的 40 真实 tick。
-    //
-    // TODO(goal-architecture): adjustedTickDelay/reducedTickDelay 仅对 shouldExecute 内的
-    // 概率/冷却门槛正确（Phase 2 的 shouldUpdateGoals 节流确为每 2 tick），对 tick() 内的
-    // 运行中计时器错误（Phase 3 每 tick 调 tick）。这是 GoalSelector 架构与 vanilla 的系统性
-    // 偏差（vanilla 用 (tickCount+id)%2 门控 tick 频率，Cubium 用 m_tickRate 仅节流 shouldExecute）。
-    // 同类受影响 goal：EatGrassGoal（m_eatingGrassTimer=adjustedTickDelay(EAT_DURATION) 羊吃草动画
-    // 减半）、MeleeAttackGoal（m_attackCooldown=adjustedTickDelay(ATTACK_COOLDOWN) 近战冷却减半
-    // 致攻击频率翻倍）。完整修复须改 GoalSelector Phase 3 对齐 vanilla (tickCount+id)%2 门控，
-    // 影响全仓 goal tick 频率，须独立架构审计任务处理（本次仅修 FoxStuckInSnowGoal 收敛单例）。
-    m_countdown = STUCK_DURATION;
+    // 卡住持续 40 真实 tick（2 秒），对齐 vanilla Fox.FaceplantGoal.start (Fox.java:799)
+    // 的 adjustedTickDelay(40) = reducedTickDelay(40) = 20。
+    // Cubium 的 GoalSelector 现已按 vanilla Mob.serverAiStep 的 (tickCount+id)%2 门控：
+    // 该 goal 的 requiresUpdateEveryTick() 为 false，只在完整评估帧 tick 一次，
+    // 故 countdown 每 2 真实 tick 减 1，20 次递减跨 40 真实 tick。
+    m_countdown = adjustedTickDelay(STUCK_DURATION);
 }
 
 void FoxStuckInSnowGoal::resetTask()

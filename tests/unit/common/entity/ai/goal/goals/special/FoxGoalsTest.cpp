@@ -1158,9 +1158,11 @@ TEST_F(FoxGoalsTest, FoxStuckInSnowGoal_TickDecrementsCountdown)
     fox->setStuck(true);
     goal->startExecuting();
 
-    // 倒计时 40 tick，逐 tick 递减
-    for (int i = 0; i < 39; ++i) {
-        EXPECT_TRUE(goal->shouldContinueExecuting()) << "Still continuing at tick " << i;
+    // 对齐 vanilla Fox.FaceplantGoal：倒计时初值为 adjustedTickDelay(40) = 20，
+    // 而 GoalSelector 对 requiresUpdateEveryTick() 为 false 的 goal 每 2 tick 才调一次 tick()，
+    // 故 20 次递减跨 40 真实 tick。
+    for (int i = 0; i < 19; ++i) {
+        EXPECT_TRUE(goal->shouldContinueExecuting()) << "Still continuing at goal tick " << i;
         goal->tick();
     }
 

@@ -31,10 +31,12 @@
 
 #include <algorithm>
 #include <functional>
+#include <iterator>
 #include <list>
 #include <memory>
 #include <unordered_map>
 #include <utility>
+#include <vector>
 
 namespace mc::entity::ai {
 
@@ -105,11 +107,15 @@ public:
      */
     void removeGoal(Goal* goal)
     {
-        // 先停止所有运行中的匹配目标
+        // 先停止所有运行中的匹配目标：先收集再 resetTask（resetTask 可能改动 m_goals）。
+        std::vector<PrioritizedGoal*> goalsToStop;
         for (auto& pg : m_goals) {
             if (pg.getGoal() == goal && pg.isRunning()) {
-                pg.resetTask();
+                goalsToStop.push_back(&pg);
             }
+        }
+        for (PrioritizedGoal* pg : goalsToStop) {
+            pg->resetTask();
         }
         // 再移除所有匹配目标（同步清理 flagGoals 悬垂指针）
         m_goals.remove_if([goal](const PrioritizedGoal& pg) { return pg.getGoal() == goal; });
@@ -120,10 +126,15 @@ public:
      */
     void removeAllGoals()
     {
+        // 先收集再 resetTask：resetTask 中的自定义清理可能改动 m_goals。
+        std::vector<PrioritizedGoal*> goalsToStop;
         for (auto& prioritizedGoal : m_goals) {
             if (prioritizedGoal.isRunning()) {
-                prioritizedGoal.resetTask();
+                goalsToStop.push_back(&prioritizedGoal);
             }
+        }
+        for (PrioritizedGoal* prioritizedGoal : goalsToStop) {
+            prioritizedGoal->resetTask();
         }
         m_goals.clear();
         m_flagGoals.clear();
@@ -140,11 +151,15 @@ public:
     template <typename GoalType>
     void removeGoalsOfType()
     {
-        // 先停止所有匹配的运行中目标
+        // 先停止所有匹配的运行中目标：先收集再 resetTask（resetTask 可能改动 m_goals）。
+        std::vector<PrioritizedGoal*> goalsToStop;
         for (auto& pg : m_goals) {
             if (dynamic_cast<GoalType*>(pg.getGoal()) != nullptr && pg.isRunning()) {
-                pg.resetTask();
+                goalsToStop.push_back(&pg);
             }
+        }
+        for (PrioritizedGoal* pg : goalsToStop) {
+            pg->resetTask();
         }
         // 移除所有匹配目标（同步清理 flagGoals 悬垂指针）
         m_goals.remove_if(
@@ -153,7 +168,26 @@ public:
     }
 
     /**
-     * @brief 刻更新
+     * @brief 半 tick 刻更新（等价 vanilla GoalSelector.tickRunningGoals(false)）
+     *
+     * 对齐 vanilla Mob.serverAiStep 的 (tickCount+id)%2 门控：
+     * - 需完整评估的帧调用 tick()（goalCleanup + goalUpdate + goalTick）；
+     * - 半 tick 帧调用本方法，只对那些 requiresUpdateEveryTick() 的运行中目标调 tick()，
+     *   其余目标（默认每秒评估一次的那种）保持不动。
+     *
+     * 调用方（MobEntity）按实体自身的错峰相位选择调用哪一个。
+     */
+    void tickRunningGoalsEveryTick()
+    {
+        for (auto& goal : m_goals) {
+            if (goal.isRunning() && goal.requiresUpdateEveryTick()) {
+                goal.tick();
+            }
+        }
+    }
+
+    /**
+     * @brief 刻更新（等价 vanilla GoalSelector.tick，仅在完整评估帧调用）
      *
      * 执行流程：
      * 1. goalCleanup: 停止不应继续的目标
@@ -173,17 +207,18 @@ public:
 
         // ========== Phase 1: goalCleanup ==========
         // 停止不应继续运行的目标
+        // 对齐 vanilla GoalSelector.tick 的 goalCleanup：先遍历判定，再统一 stop。
+        // vanilla 在 for 遍历中对 availableGoals 调 wrappedgoal.stop()（TreeSet，元素稳定），
+        // 本项目的 resetTask() 可能经 removeGoal/removeGoalsOfType 改动 m_goals（std::list），
+        // 边遍历边修改会让迭代器失效，故先收集再停止。
+        std::vector<PrioritizedGoal*> goalsToStop;
         for (auto& goal : m_goals) {
-            if (goal.isRunning()) {
-                // 检查是否应该继续执行
-                bool shouldContinue = goal.shouldContinueExecuting();
-                // 检查是否有禁用的标志
-                bool hasDisabledFlagResult = _checkDisabledFlags(goal.getMutexFlags());
-
-                if (!shouldContinue || hasDisabledFlagResult) {
-                    goal.resetTask();
-                }
+            if (goal.isRunning() && (!goal.shouldContinueExecuting() || _checkDisabledFlags(goal.getMutexFlags()))) {
+                goalsToStop.push_back(&goal);
             }
+        }
+        for (PrioritizedGoal* goal : goalsToStop) {
+            goal->resetTask();
         }
 
         // 清理 flagGoals 中已停止的目标
@@ -197,16 +232,32 @@ public:
 
         // ========== Phase 2: goalUpdate ==========
         // 启动新目标（仅当 tickRate 允许时）
-        if (shouldUpdateGoals) {
-            for (auto& goal : m_goals) {
-                if (!goal.isRunning()) {
-                    // 检查是否可以启动
-                    if (_canStartGoal(goal)) {
-                        // 抢占共享相同标志的低优先级目标
-                        _startGoal(goal);
-                    }
-                }
+        //
+        // 对齐 vanilla GoalSelector.tick 的 goalUpdate：在同一趟遍历中"判定 → 停止被替换者
+        // → 启动"。_canStartGoal 内部会调用 shouldExecute()，其副作用依赖"此刻"的标志占用
+        // 情况；若先收集全部候选再统一启动，后序目标的 shouldExecute 会看到前序目标尚未
+        // 入住的状态。为兼容"启动过程中 m_goals 被 resetTask 改动"的情形，改用前向游标 +
+        // 元素身份校验，而非 list 迭代器直接遍历。
+        for (std::list<PrioritizedGoal>::iterator it = m_goals.begin(); it != m_goals.end();) {
+            PrioritizedGoal* goal = &*it;
+            if (goal->isRunning() || !_canStartGoal(*goal)) {
+                ++it;
+                continue;
             }
+            // 先定位下一个候选元素：_startGoal 的 resetTask 可能移除后续元素，届时按身份在
+            // 链表中重新定位（找不到说明已被移除，从表尾继续）。
+            PrioritizedGoal* nextGoal = nullptr;
+            if (std::next(it) != m_goals.end()) {
+                nextGoal = &*std::next(it);
+            }
+            _startGoal(*goal);
+            if (nextGoal == nullptr) {
+                it = m_goals.end();
+                continue;
+            }
+            auto found = std::find_if(
+                m_goals.begin(), m_goals.end(), [nextGoal](const PrioritizedGoal& pg) { return &pg == nextGoal; });
+            it = found;
         }
 
         // ========== Phase 3: goalTick ==========
@@ -339,14 +390,28 @@ private:
      */
     void _startGoal(PrioritizedGoal& goal)
     {
-        // 停止共享相同标志的正在运行的目标
+        // 停止共享相同标志的正在运行的目标（对齐 vanilla goalCanBeReplacedForAllFlags 后逐个 stop）。
+        // 正向遍历 m_goals 而非按 flag 逐个停止：resetTask 可能移除其它同标志目标，
+        // 使 m_flagGoals 中尚未处理的条目变成悬垂指针。
         const auto& flags = goal.getMutexFlags();
-        flags.forEach([this](GoalFlag flag) {
-            auto it = m_flagGoals.find(flag);
-            if (it != m_flagGoals.end() && it->second->isRunning()) {
-                it->second->resetTask();
+        std::vector<PrioritizedGoal*> goalsToStop;
+        for (auto& candidate : m_goals) {
+            if (&candidate == &goal || !candidate.isRunning()) {
+                continue;
             }
-        });
+            bool sharesFlag = false;
+            flags.forEach([&candidate, &sharesFlag](GoalFlag flag) {
+                if (candidate.getMutexFlags().test(flag)) {
+                    sharesFlag = true;
+                }
+            });
+            if (sharesFlag) {
+                goalsToStop.push_back(&candidate);
+            }
+        }
+        for (PrioritizedGoal* candidate : goalsToStop) {
+            candidate->resetTask();
+        }
 
         // 更新 flagGoals
         flags.forEach([this, &goal](GoalFlag flag) { m_flagGoals[flag] = &goal; });
