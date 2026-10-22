@@ -124,7 +124,9 @@ FrogEntity::Variant FrogEntity::getVariant() const
 
 void FrogEntity::setVariant(Variant variant)
 {
-    m_dataManager.set(DATA_VARIANT_ID_PARAM, entity::HolderVariantValue{static_cast<i32>(variant)});
+    // serializerId 25 = FROG_VARIANT（vanilla EntityDataSerializers 注册顺序）。
+    m_dataManager.set(DATA_VARIANT_ID_PARAM,
+        entity::HolderVariantValue{static_cast<i32>(VANILLA_FROG_VARIANT_SERIALIZER_ID), static_cast<i32>(variant)});
 }
 
 FrogEntity::Variant FrogEntity::selectVariantForPosition(const IWorld* world, const BlockPos& pos)
@@ -340,7 +342,9 @@ void FrogEntity::registerData()
     // 对齐 vanilla Frog.defineSynchedData：
     //   DATA_VARIANT_ID = 可用变体中的默认值（此处 TEMPERATE）
     //   DATA_TONGUE_TARGET_ID = OptionalInt.empty()
-    m_dataManager.registerParam(DATA_VARIANT_ID_PARAM, entity::HolderVariantValue{static_cast<i32>(DEFAULT_VARIANT)});
+    m_dataManager.registerParam(DATA_VARIANT_ID_PARAM,
+        entity::HolderVariantValue{
+            static_cast<i32>(VANILLA_FROG_VARIANT_SERIALIZER_ID), static_cast<i32>(DEFAULT_VARIANT)});
     m_dataManager.registerParam(DATA_TONGUE_TARGET_ID_PARAM, entity::OptionalUnsignedIntValue{false, 0});
 }
 

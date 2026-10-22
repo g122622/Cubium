@@ -59,6 +59,7 @@
 #include "entity/entities/passive/fish/PufferfishEntity.hpp"
 #include "entity/entities/passive/fish/SalmonEntity.hpp"
 #include "entity/entities/passive/fish/TropicalFishEntity.hpp"
+#include "entity/entities/passive/frog/FrogEntity.hpp"
 #include "entity/entities/passive/nautilus/NautilusEntity.hpp"
 #include "entity/entities/passive/tamable/CatEntity.hpp"
 #include "entity/entities/passive/tamable/WolfEntity.hpp"
@@ -641,4 +642,65 @@ TEST(EntityMetadataIdGoldenTest, OptionalLivingEntityRefCodecRoundTrip)
     const auto restored = raw->get<entity::OptionalUuidValue>();
     EXPECT_TRUE(restored.present);
     EXPECT_EQ(restored.uuid, uuid);
+}
+
+// ============================================================================
+// 链5c: Holder<Variant> 字段按所属 registry 写出正确的 serializerId
+//   vanilla EntityDataSerializers 注册顺序：CAT=21 / COW=22 / WOLF=23 / WOLF_SOUND=24 /
+//   FROG=25 / PIG=26 / CHICKEN=27 / ZOMBIE_NAUTILUS=28。真客户端按字段声明时的 serializer
+//   做类型校验，把青蛙变体错发成 CAT_VARIANT(21) 会直接拒绝整包。
+// ============================================================================
+using namespace mc::network;
+
+TEST(EntityMetadataIdGoldenTest, HolderVariantSerializerIdFollowsFieldOwner)
+{
+    auto serializeSerializerId = [](const entity::DataValue& value) -> i32 {
+        std::vector<u8> out;
+        EntityMetadataSerializer::serializeEntry(1, value, out);
+        // wire：index(1 byte) + VarInt(serializerId) + value（此处 id 均 < 0xFF 走单字节 VarInt）
+        EXPECT_GE(out.size(), 2u);
+        return out.size() >= 2 ? static_cast<i32>(out[1]) : -1;
+    };
+
+    constexpr i32 kCatVariant = 21;
+    constexpr i32 kCowVariant = 22;
+    constexpr i32 kWolfVariant = 23;
+    constexpr i32 kWolfSoundVariant = 24;
+    constexpr i32 kFrogVariant = 25;
+    constexpr i32 kPigVariant = 26;
+    constexpr i32 kChickenVariant = 27;
+    constexpr i32 kZombieNautilusVariant = 28;
+
+    EXPECT_EQ(serializeSerializerId(entity::DataValue(entity::HolderVariantValue{kCatVariant, 3})), kCatVariant);
+    EXPECT_EQ(serializeSerializerId(entity::DataValue(entity::HolderVariantValue{kCowVariant, 3})), kCowVariant);
+    EXPECT_EQ(serializeSerializerId(entity::DataValue(entity::HolderVariantValue{kWolfVariant, 3})), kWolfVariant);
+    EXPECT_EQ(
+        serializeSerializerId(entity::DataValue(entity::HolderVariantValue{kWolfSoundVariant, 3})), kWolfSoundVariant);
+    EXPECT_EQ(serializeSerializerId(entity::DataValue(entity::HolderVariantValue{kFrogVariant, 3})), kFrogVariant);
+    EXPECT_EQ(serializeSerializerId(entity::DataValue(entity::HolderVariantValue{kPigVariant, 3})), kPigVariant);
+    EXPECT_EQ(
+        serializeSerializerId(entity::DataValue(entity::HolderVariantValue{kChickenVariant, 3})), kChickenVariant);
+    EXPECT_EQ(serializeSerializerId(entity::DataValue(entity::HolderVariantValue{kZombieNautilusVariant, 3})),
+        kZombieNautilusVariant);
+    // 未设置 serializerId 时兜底 CAT_VARIANT，避免写出 VarInt 0（BYTE）导致对端解析错位。
+    EXPECT_EQ(serializeSerializerId(entity::DataValue(entity::HolderVariantValue{0, 3})), kCatVariant);
+
+    // 青蛙 / 猫实体的变体字段必须分别携带 FROG_VARIANT(25) / CAT_VARIANT(21)。
+    // 变体字段位于各类继承链末尾，按其 id 从元数据表取回原始值直接序列化。
+    auto serializeEntityVariantField = [&serializeSerializerId](auto& entity, i32 expectedSerializerId) {
+        const auto& entries = entity.dataManager().getAllEntries();
+        bool found = false;
+        for (size_t id = 0; id < entries.size(); ++id) {
+            if (!entries[id].present || entries[id].value.index() != 18u) { // 18 = HolderVariantValue
+                continue;
+            }
+            found = true;
+            EXPECT_EQ(serializeSerializerId(entries[id].value), expectedSerializerId);
+        }
+        EXPECT_TRUE(found) << "entity should have a HolderVariantValue field with correct serializerId";
+    };
+    FrogEntity frog(EntityInstanceId(2), mc::test::testEcsRegistry());
+    serializeEntityVariantField(frog, kFrogVariant);
+    CatEntity cat(EntityInstanceId(3), mc::test::testEcsRegistry());
+    serializeEntityVariantField(cat, kCatVariant);
 }

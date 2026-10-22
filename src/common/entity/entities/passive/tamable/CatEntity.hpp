@@ -430,6 +430,9 @@ private:
     //   DATA_COLLAR_COLOR(22, Int 默认 14=Red)
     // 旧实现仅注册 lying/relax 两个字段,致 wire 19 错发 Boolean,真客户端期望 CatVariant
     // 类型校验崩;补 variant/collar 两个 wire 字段并对齐顺序修复。
+    /// vanilla EntityDataSerializers 中 CAT_VARIANT 的注册序号（Holder 变体序列化器 id）。
+    static constexpr i32 VANILLA_CAT_VARIANT_SERIALIZER_ID = 21;
+
     static entity::DataParameter<entity::HolderVariantValue> DATA_VARIANT_ID_PARAM;
     static entity::DataParameter<bool> DATA_LYING_PARAM;
     static entity::DataParameter<bool> DATA_RELAX_STATE_ONE_PARAM;
