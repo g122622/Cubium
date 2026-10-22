@@ -25,6 +25,7 @@
 
 #include "common/TestWorldHelper.hpp"
 #include "common/core/Constants.hpp"
+#include "common/entity/ai/goal/goals/special/PandaGoals.hpp"
 #include "common/entity/ai/goal/goals/target/TargetGoals.hpp"
 #include "common/entity/damage/DamageSource.hpp"
 #include "common/entity/entities/monster/undead/ZombieEntity.hpp"
@@ -1135,6 +1136,59 @@ TEST(PandaRetaliationTest, HurtByTargetGoalStopsAfterBamboo)
     for (i32 i = 0; i < 4; ++i) {
         panda.testTick();
     }
+}
+
+// ==================== 仰躺 / 逃避性格 goal ====================
+
+TEST(PandaPersonalityGoalTest, LazyPandaCanLieOnBack)
+{
+    Items::initialize();
+    PandaTestWorld world;
+    TickablePanda panda(EntityInstanceId(1), mc::test::testEcsRegistry());
+    panda.setWorld(&world);
+    panda.setTypeId("minecraft:panda");
+    panda.setPersonality(PandaEntity::Personality::Lazy);
+
+    // 对齐 vanilla Panda.setOnBack / isOnBack
+    EXPECT_FALSE(panda.isOnBack());
+    panda.setOnBack(true);
+    EXPECT_TRUE(panda.isOnBack());
+    panda.setOnBack(false);
+    EXPECT_FALSE(panda.isOnBack());
+}
+
+TEST(PandaPersonalityGoalTest, LieOnBackGoalOnlyForLazyPanda)
+{
+    Items::initialize();
+    PandaTestWorld world;
+
+    // 忧愁熊猫不进入仰躺状态
+    TickablePanda worried(EntityInstanceId(1), mc::test::testEcsRegistry());
+    worried.setWorld(&world);
+    worried.setTypeId("minecraft:panda");
+    worried.setPersonality(PandaEntity::Personality::Worried);
+
+    entity::ai::goal::PandaLieOnBackGoal goal(&worried);
+    // 概率型 canUse：不满足懒惰条件时恒 false
+    for (i32 i = 0; i < 20; ++i) {
+        EXPECT_FALSE(goal.shouldExecute());
+    }
+    EXPECT_FALSE(worried.isOnBack());
+}
+
+TEST(PandaPersonalityGoalTest, AvoidGoalOnlyForWorriedPanda)
+{
+    Items::initialize();
+    PandaTestWorld world;
+
+    TickablePanda normal(EntityInstanceId(1), mc::test::testEcsRegistry());
+    normal.setWorld(&world);
+    normal.setTypeId("minecraft:panda");
+    normal.setPersonality(PandaEntity::Personality::Normal);
+
+    entity::ai::goal::PandaAvoidGoal goal(&normal, 8.0f, 2.0, 2.0, [](const LivingEntity*) -> bool { return true; });
+    // 非忧愁性格不逃避（对齐 vanilla PandaAvoidGoal.canUse 的 isWorried 门控）
+    EXPECT_FALSE(goal.shouldExecute());
 }
 
 } // anonymous namespace

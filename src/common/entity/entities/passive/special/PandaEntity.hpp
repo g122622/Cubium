@@ -363,6 +363,12 @@ public:
      */
     [[nodiscard]] bool isSitting() const { return m_sitting; }
 
+    // ========== 仰躺状态（对齐 vanilla Panda.isOnBack / setOnBack） ==========
+
+    /// 是否四脚朝天仰躺（懒惰熊猫 PandaLieOnBackGoal 驱动）
+    [[nodiscard]] bool isOnBack() const { return m_onBack; }
+    void setOnBack(bool onBack) { m_onBack = onBack; }
+
     // ========== 反击终止标志（对齐 vanilla Panda.gotBamboo / didBite） ==========
 
     /// 被反击中的熊猫收到食物时置位：下次 canContinueToUse 终止反击（Panda.java:846-853）
@@ -455,6 +461,7 @@ private:
 
     // 反击终止标志（对齐 vanilla Panda.gotBamboo / didBite，none 随 NBT 持久化——
     // vanilla 亦不序列化这两个瞬时字段）。
+    bool m_onBack = false; // 对齐 vanilla Panda.DATA_ON_BACK（flag 16 的等价独立字段）
     bool m_gotBamboo = false;
     bool m_didBite = false;
 

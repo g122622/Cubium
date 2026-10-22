@@ -26,6 +26,7 @@
 #include "common/core/Types.hpp"
 #include "common/entity/ai/goal/Goal.hpp"
 #include "common/entity/ai/goal/GoalFlag.hpp"
+#include "common/entity/ai/goal/goals/AvoidEntityGoal.hpp"
 #include "common/entity/ai/goal/goals/MeleeAttackGoal.hpp"
 #include <string>
 
@@ -167,6 +168,57 @@ public:
     [[nodiscard]] bool shouldExecute() override;
 
     [[nodiscard]] std::string getTypeName() const noexcept override { return "PandaAttackGoal"; }
+
+private:
+    PandaEntity* m_panda;
+};
+
+/**
+ * @brief 懒惰熊猫仰躺目标（对齐 vanilla Panda.PandaLieOnBackGoal）
+ *
+ * 行为：
+ * - canUse：冷却结束 + 懒惰性格 + canPerformAction + 1/400 概率
+ * - canContinueToUse：不在水中，且（仍是懒惰 或 未触发 1/600 概率）时，
+ *   再以 1/2000 概率结束（简化自 vanilla 的复合条件）
+ * - start/stop 设置/清除 Entity::isOnBack 标志，stop 后 200 tick 冷却
+ */
+class PandaLieOnBackGoal : public Goal {
+public:
+    explicit PandaLieOnBackGoal(PandaEntity* panda);
+
+    ~PandaLieOnBackGoal() override = default;
+
+    [[nodiscard]] bool shouldExecute() override;
+
+    [[nodiscard]] bool shouldContinueExecuting() override;
+
+    void startExecuting() override;
+
+    void resetTask() override;
+
+    [[nodiscard]] std::string getTypeName() const noexcept override { return "PandaLieOnBackGoal"; }
+
+private:
+    PandaEntity* m_panda;
+    i32 m_cooldown = 0;
+};
+
+/**
+ * @brief 忧愁熊猫逃避目标（对齐 vanilla Panda.PandaAvoidGoal）
+ *
+ * 仅在忧愁性格且 canPerformAction 时委托 AvoidEntityGoal 的逃避逻辑；
+ * 玩家与敌对生物的逃避距离/速度由构造参数给出。
+ */
+class PandaAvoidGoal : public AvoidEntityGoal {
+public:
+    PandaAvoidGoal(
+        PandaEntity* panda, f32 avoidDistance, f64 farSpeed, f64 nearSpeed, AvoidEntityGoal::EntityPredicate predicate);
+
+    ~PandaAvoidGoal() override = default;
+
+    [[nodiscard]] bool shouldExecute() override;
+
+    [[nodiscard]] std::string getTypeName() const noexcept override { return "PandaAvoidGoal"; }
 
 private:
     PandaEntity* m_panda;

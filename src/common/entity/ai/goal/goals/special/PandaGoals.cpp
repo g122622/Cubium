@@ -207,4 +207,62 @@ bool PandaAttackGoal::shouldExecute()
     return MeleeAttackGoal::shouldExecute();
 }
 
+// ============================================================================
+// PandaLieOnBackGoal
+// ============================================================================
+
+PandaLieOnBackGoal::PandaLieOnBackGoal(PandaEntity* panda)
+    : m_panda(panda)
+{}
+
+bool PandaLieOnBackGoal::shouldExecute()
+{
+    // 对齐 vanilla PandaLieOnBackGoal.canUse：
+    //   cooldown < tickCount && isLazy() && canPerformAction() && 1/400
+    if (m_panda == nullptr || m_cooldown >= static_cast<i32>(m_panda->ticksExisted())) {
+        return false;
+    }
+    return m_panda->isLazy() && m_panda->canPerformAction() && m_panda->getRandom().nextInt(400) == 1;
+}
+
+bool PandaLieOnBackGoal::shouldContinueExecuting()
+{
+    // 对齐 vanilla canContinueToUse：不在水中 && (懒惰 || 1/600 != 1) ? 1/2000 != 1 : false
+    if (m_panda == nullptr || m_panda->isInWater()) {
+        return false;
+    }
+    const bool stayLazy = m_panda->isLazy() || m_panda->getRandom().nextInt(600) != 1;
+    return stayLazy && m_panda->getRandom().nextInt(2000) != 1;
+}
+
+void PandaLieOnBackGoal::startExecuting()
+{
+    m_panda->setOnBack(true);
+}
+
+void PandaLieOnBackGoal::resetTask()
+{
+    m_panda->setOnBack(false);
+    m_cooldown = static_cast<i32>(m_panda->ticksExisted()) + 200;
+}
+
+// ============================================================================
+// PandaAvoidGoal
+// ============================================================================
+
+PandaAvoidGoal::PandaAvoidGoal(
+    PandaEntity* panda, f32 avoidDistance, f64 farSpeed, f64 nearSpeed, AvoidEntityGoal::EntityPredicate predicate)
+    : AvoidEntityGoal(panda, avoidDistance, farSpeed, nearSpeed, std::move(predicate))
+    , m_panda(panda)
+{}
+
+bool PandaAvoidGoal::shouldExecute()
+{
+    // 对齐 vanilla PandaAvoidGoal.canUse：isWorried() && canPerformAction() && super.canUse()
+    if (m_panda == nullptr || !m_panda->isWorried() || !m_panda->canPerformAction()) {
+        return false;
+    }
+    return AvoidEntityGoal::shouldExecute();
+}
+
 } // namespace mc::entity::ai::goal

@@ -37,6 +37,7 @@
 #include "common/entity/attribute/Attributes.hpp"
 #include "common/entity/core/MobEntity.hpp"
 #include "common/entity/damage/DamageSource.hpp"
+#include "common/entity/entities/monster/MonsterEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/utils/ItemDropHelper.hpp"
 #include "common/item/Items.hpp"
@@ -367,6 +368,21 @@ void PandaEntity::registerGoals()
     //   此前 _onSneezeComplete 已实现但无 goal 触发（死代码），本注册激活打喷嚏链路。
     m_goalSelector.addGoal(8, std::make_unique<entity::ai::goal::PandaSneezeGoal>(this));
 
+    // 优先级 8: 仰躺（懒惰熊猫四脚朝天；对齐 vanilla PandaLieOnBackGoal）
+    m_goalSelector.addGoal(8, std::make_unique<entity::ai::goal::PandaLieOnBackGoal>(this));
+
+    // 优先级 6: 忧愁熊猫逃避玩家/敌对生物（对齐 vanilla PandaAvoidGoal 两条注册）
+    m_goalSelector.addGoal(6,
+        std::make_unique<entity::ai::goal::PandaAvoidGoal>(
+            this, 8.0f, 2.0, 2.0, [](const LivingEntity* entity) -> bool {
+                return dynamic_cast<const Player*>(entity) != nullptr;
+            }));
+    m_goalSelector.addGoal(6,
+        std::make_unique<entity::ai::goal::PandaAvoidGoal>(
+            this, 4.0f, 2.0, 2.0, [](const LivingEntity* entity) -> bool {
+                return dynamic_cast<const MonsterEntity*>(entity) != nullptr;
+            }));
+
     // 优先级 12: 打滚目标（顽皮熊猫或幼年熊猫）
     m_goalSelector.addGoal(12, std::make_unique<entity::ai::goal::PandaRollGoal>(this));
 
@@ -419,11 +435,11 @@ void PandaEntity::registerGoals()
     });
     m_targetSelector.addGoal(1, std::move(hurtByTarget));
 
-    // TODO: 待补全 Panda 特有 AI（对齐 vanilla PandaAi）：
-    //   - PandaLieOnBackGoal（懒惰性格躺仰，对齐 LazyPandaGoal）
-    //   - PandaLookAtPlayerGoal / PandaAvoidGoal（忧愁熊猫逃避，对齐 PandaAvoidGoal）等性格相关 goal
-    //   当前补全基础动物 AI + 打滚 + 打喷嚏 + 好斗反击链路（PandaAttackGoal + PandaHurtByTargetGoal），
-    //   保证繁殖/诱惑/漫步/打喷嚏/好斗反击等核心行为可测。
+    // 已实现的性格相关 goal：仰躺（懒惰，PandaLieOnBackGoal）、逃避玩家/敌对生物（忧愁，
+    // PandaAvoidGoal）、打滚（顽皮/幼体，PandaRollGoal）、好斗反击（PandaAttackGoal +
+    // PandaHurtByTargetGoal）。
+    // TODO: 仍缺 Panda 专属 PandaLookAtPlayerGoal（时间戳记忆语义的看向玩家目标）与
+    //   PandaSitGoal（坐下状态的 goal 化驱动，当前由担忧雷暴分支与喂食交互直接驱动）。
 }
 
 void PandaEntity::registerAttributes()
