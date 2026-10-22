@@ -36,12 +36,15 @@
 #include "common/entity/core/MobEntity.hpp"
 #include "common/entity/damage/DamageSource.hpp"
 #include "common/entity/damage/tag/DamageTypeTags.hpp"
+#include "common/entity/effect/EffectInstance.hpp"
+#include "common/entity/effect/EffectType.hpp"
 #include "common/entity/entities/boss/WardenAngerLevel.hpp"
 #include "common/entity/entities/monster/MonsterEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/registry/VanillaEntityTypeKeys.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/sound/SoundEvents.hpp"
+#include "common/world/IWorld.hpp"
 #include "common/world/explosion/ExplosionImmunityContext.hpp"
 #include <algorithm>
 #include <memory>
@@ -294,7 +297,6 @@ void WardenEntity::registerGoals()
     // - Digging: 钻入地面动画（消失前 4 秒，期间免疫伤害）
     // - Roar: 怒吼动画（首次锁定目标时播放）
     // - Sniff: 嗅闻动画（无目标时定期播放）
-    // - Darkness: 周期性给附近玩家施加黑暗效果（每 6 秒）
     // - 心跳音效：根据怒气等级调整心跳频率
     // - 触碰怒气：实体触碰监守者时增加怒气（20 tick 冷却）
     // 这些子系统依赖 Brain 系统、MemoryModuleType、Pose 系统等尚未实现的基建，
@@ -304,6 +306,37 @@ void WardenEntity::registerGoals()
 // ============================================================================
 // AI 任务更新（怒气衰减与同步）
 // ============================================================================
+
+void WardenEntity::_applyDarknessAround()
+{
+    // 对齐 vanilla Warden.applyDarknessAround + MobEffectUtil.addEffectToPlayersAround：
+    // 仅生存模式玩家；玩家已处于黑暗且剩余时长充足时不重复施加（避免每 120 tick 刷新特效）。
+    IWorld* worldPtr = world();
+    if (worldPtr == nullptr || worldPtr->isClientSide()) {
+        return;
+    }
+    constexpr i32 DARKNESS_REFRESH_WINDOW = DARKNESS_DISPLAY_LIMIT - 1;
+    const Vector3 center(x(), y(), z());
+
+    for (Entity* entity : worldPtr->getPlayers()) {
+        auto* player = dynamic_cast<Player*>(entity);
+        if (player == nullptr || !player->isSurvival()) {
+            continue;
+        }
+        const f32 dx = static_cast<f32>(player->x()) - center.x;
+        const f32 dy = static_cast<f32>(player->y()) - center.y;
+        const f32 dz = static_cast<f32>(player->z()) - center.z;
+        if (dx * dx + dy * dy + dz * dz > DARKNESS_RADIUS * DARKNESS_RADIUS) {
+            continue;
+        }
+        const auto* existing = player->effectManager().getEffect(entity::effect::EffectType::Darkness);
+        if (existing != nullptr && existing->duration() > DARKNESS_REFRESH_WINDOW) {
+            continue;
+        }
+        player->addEffect(
+            entity::effect::EffectInstance(entity::effect::EffectType::Darkness, DARKNESS_DURATION, 0, false, false));
+    }
+}
 
 void WardenEntity::updateAITasks()
 {
@@ -318,7 +351,13 @@ void WardenEntity::updateAITasks()
     //
     // 简化版：每 ANGERMANAGEMENT_TICK_DELAY (20) tick 衰减怒气并同步客户端。
     // 衰减率对应 MC AngerManagement.tick 中对每条怒气记录的 -1 衰减。
+    // 对齐 vanilla Warden.customServerAiStep：每 (tickCount + id) % 120 == 0 时，
+    // 给周围 20 格内（且不在黑暗效果有效期内的）生存模式玩家施加 260 tick 的黑暗。
     const u32 currentTick = ticksExisted();
+    if ((static_cast<i64>(currentTick) + static_cast<i64>(static_cast<u64>(id()))) % DARKNESS_INTERVAL == 0) {
+        _applyDarknessAround();
+    }
+
     if (currentTick > 0 && currentTick % static_cast<u32>(ANGERMANAGEMENT_TICK_DELAY) == 0) {
         if (m_anger > 0) {
             m_anger = std::max(m_anger - ANGER_DECAY_PER_TICK_INTERVAL, 0);
