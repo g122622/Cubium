@@ -78,8 +78,10 @@
 #include "common/entity/entities/projectile/OtherProjectiles.hpp"
 #include "common/entity/entities/projectile/ProjectileItemEntity.hpp"
 #include "common/entity/registry/VanillaEntityTypeKeys.hpp"
+#include "common/entity/serialization/EntityNbtKeys.hpp"
 #include "common/util/AxisAlignedBB.hpp"
 #include "common/util/Direction.hpp"
+#include "common/util/nbt/Nbt.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 
@@ -167,8 +169,6 @@ void setupOpenShulker(ShulkerHitTestWorld& world, ShulkerEntity& shulker)
     shulker.setHealth(30.0f);
     openShellFully(shulker);
 }
-
-} // namespace
 
 // ============================================================================
 // hitByShulkerBullet 守卫与繁殖测试
@@ -281,4 +281,5 @@ TEST(ShulkerBulletHitTest, BulletHitBreedsSameColorShulker)
     EXPECT_TRUE(found) << "未找到使潜影弹命中繁殖成功的种子（1024 种子内无瞬移成功者）";
 }
 
+} // namespace
 } // namespace mc
