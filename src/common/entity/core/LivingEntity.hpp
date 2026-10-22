@@ -168,6 +168,17 @@ public:
     }
 
     /**
+     * @brief 绕过上限 clamp 直接写入吸收伤害值（对齐 vanilla internalSetAbsorptionAmount）
+     *
+     * vanilla 的 setAbsorptionAmount 会把数值 clamp 到 MAX_ABSORPTION 属性上限，而属性变化时
+     * 的 onAttributeUpdated 才负责把现有吸收值向下修正。实体转化等"原样搬运状态"的场景必须
+     * 使用本接口，否则在新实体尚未获得属性（如僵尸 MAX_ABSORPTION = MAX_HEALTH）时吸收值会被
+     * 截断为 0。
+     *
+     * @param amount 新的吸收值（调用方负责非负）
+     */
+    void internalSetAbsorptionAmount(f32 amount);
+    /**
      * @brief 设置吸收伤害值
      * @param amount 新的吸收值，会被限制在 [0, maxAbsorption] 范围内
      *
@@ -1096,6 +1107,20 @@ public:
     }
 
     /**
+     * @brief 设置受击闪红计时（对齐 vanilla LivingEntity.hurtTime 可直接赋值）
+     *
+     * 实体转化时用于把原实体的受击表现延续到新实体。
+     *
+     * @param time 新的受击闪红剩余 tick
+     */
+    void setHurtTime(i32 time)
+    {
+        if (auto* c = m_entityContext->tryGetComponent<ecs::HurtStateComponent>()) {
+            c->m_hurtTime = time;
+        }
+    }
+
+    /**
      * @brief 本次 hurt 调用中伤害被盾牌格挡的量（对齐 vanilla hurtServer 的 flag/applyItemBlocking 结果）
      *
      * 由 hurt() 入口在 applyItemBlocking 阶段写入，供格挡音效、markHurt 与 indicateDamage 门控使用
@@ -1274,6 +1299,7 @@ public:
      * @param yaw 身体偏航角（度）
      */
     void setYBodyRot(f32 yaw) override { m_renderYawOffset = yaw; }
+    [[nodiscard]] f32 yBodyRot() const override { return m_renderYawOffset; }
 
     /**
      * @brief 获取头部旋转
@@ -2183,6 +2209,19 @@ protected:
      * 子类可重写以发送数据包通知客户端。
      */
     virtual void sendEndCombat() {}
+
+    /**
+     * @brief 转化时复制生物专属状态（vanilla convertCommon 的 LivingEntity 部分）
+     *
+     * 由 Entity::convertTo 在复制完 Entity 级状态、迁移骑乘关系之前调用。复制内容：
+     * 吸收伤害、全部状态效果、受击时间；当转化参数要求时还复制装备（各槽位物品与
+     * 生物装备掉落率）、属性与"能否拾取战利品"。对齐 vanilla
+     * LivingEntity.copyDataFrom / Mob.copyDataFrom。
+     *
+     * @param converted 新创建的目标实体（尚未送入世界）
+     * @param params 转化参数
+     */
+    void copyConversionStateTo(Entity& converted, const ConversionParams& params) override;
 
     // 生命值
     // m_health / m_lastHealth / m_healthSynced 已迁移至 ecs::HealthComponent（见

@@ -659,6 +659,14 @@ public:
     virtual void setYBodyRot(f32 yaw) { (void)yaw; }
 
     /**
+     * @brief 获取身体偏航角（对齐 MC 1.21.11 Entity#getYBodyRot）
+     *
+     * 基类返回头部偏航角；LivingEntity 重写后返回分离于头部朝向的身体朝向。
+     * 用于实体转化时把原实体的身体朝向带给新实体。
+     */
+    [[nodiscard]] virtual f32 yBodyRot() const { return yaw(); }
+
+    /**
      * @brief 设置头部偏航角（默认空实现，LivingEntity 重写以持久化字段）
      *
      * 对齐 MC 1.21.11 Entity#setYHeadRot：基类为空操作，子类（LivingEntity）
@@ -1168,10 +1176,13 @@ public:
     /**
      * @brief 转化为另一种实体类型（原实体被静默移除）
      *
-     * 对齐 vanilla Entity.convertTo：通过实体类型工厂创建目标实体，按转化参数复制位置、
-     * 朝向、速度（目标类型未指定速度时）、自定义名称、无敌状态、静默标志及可选装备/额外 NBT，
-     * 先送入世界，随后把原实体静默移除（Discarded，不掉落、不触发死亡）。转化后处理
-     * （finalizeSpawn、持久化、尺寸变化后的位置修正等）由调用方在 onConverted 回调中完成。
+     * 对齐 vanilla Entity.convertTo / ConversionType.SINGLE.convert + convertCommon：
+     * 通过实体类型工厂创建目标实体，复制位置、朝向、速度、落地与滑翔标志、自定义名称及其可见性、
+     * 无敌、静默、无重力、传送冷却、剩余燃烧时间，迁移乘客与载具关系；生物专属状态
+     * （吸收值、状态效果、受击时间、装备与掉落率、属性、年龄、拾取战利品、AI 开关、持久化、
+     * 左手标志等）由 copyConversionStateTo 钩子复制。随后把原实体静默移除
+     * （Discarded，不掉落、不触发死亡）。转化后处理（finalizeSpawn、持久化、尺寸变化后的
+     * 位置修正等）由调用方在 onConverted 回调中完成。
      *
      * @param targetType 目标实体类型标识（如 EntityTypeKeys::FROG）
      * @param params 转化参数
@@ -1195,6 +1206,21 @@ public:
     {
         (void)source;
         (void)playerDamager;
+    }
+
+    /**
+     * @brief 转化时复制生物专属状态（vanilla convertCommon 的 LivingEntity / Mob 部分）
+     *
+     * 在 convertTo 复制完 Entity 级状态后、迁移骑乘关系前调用。Entity 层无法直接访问
+     * LivingEntity / MobEntity / AgeableEntity 的成员，故由子类重写实现。默认空实现。
+     *
+     * @param converted 新创建的目标实体（尚未送入世界，但已可访问其状态）
+     * @param params 转化参数（装备/战利品抄取/属性是否复制）
+     */
+    virtual void copyConversionStateTo(Entity& converted, const ConversionParams& params)
+    {
+        (void)converted;
+        (void)params;
     }
 
     /**

@@ -827,6 +827,7 @@ add_executable(mc_tests
     # SnifferEntity 繁殖掉蛋对齐 1.21.11 测试（spawnChildFromBreeding 掉落嗅探兽蛋、BreedGoal 冷却与经验球）
     entity/SnifferBreedingTest.cpp
     # 蝌蚪变态为青蛙、青蛙变体/繁殖物品/尺寸对齐 1.21.11 测试（Entity::convertTo 转化流程）
+    entity/ConvertToStateTest.cpp
     entity/FrogMetamorphosisTest.cpp
     # 快乐恶魂食物标签/幼体成体音效分流/繁殖门槛对齐 1.21.11 测试
     entity/HappyGhastTest.cpp

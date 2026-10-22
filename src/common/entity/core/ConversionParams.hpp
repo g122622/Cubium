@@ -63,6 +63,8 @@ struct ConversionParams {
     bool preserveEquipment = false;
     /// 新实体继承原实体"可拾取物品"标志（对齐 preserveCanPickUpLoot）
     bool preserveCanPickUpLoot = false;
+    /// 新实体继承原实体属性值（对齐 preserveAttributes）
+    bool preserveAttributes = false;
     /// 复制到新实体上的额外 NBT（对齐 copyCustomFormat）
     std::optional<nbt::tags::compound_tag> copyNbt;
     /// 触发本次转化的伤害来源（无则视为非伤害触发）
