@@ -24,6 +24,7 @@
 #pragma once
 
 #include "common/core/Types.hpp"
+#include "common/entity/core/DataParameter.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/entities/monster/MonsterEntity.hpp"
 #include "common/resource/ResourceLocation.hpp"
@@ -191,16 +192,19 @@ public:
     /**
      * @brief 是否正在移动（对齐 vanilla Guardian.isMoving:101-103）
      *
-     * vanilla 读 DATA_ID_MOVING 同步参数，由 GuardianMoveControl.tick 在 MoveControl 为
-     * MOVE_TO 且导航未完成时设 true（Guardian.java:451/482-485）。Cubium 未实现 GuardianMoveControl，
-     * 此处用 moveController()->isUpdating() && !navigator()->noPath() 近似（对齐 vanilla 判定
-     * operation==MOVE_TO && !navigation.isDone()）。
-     * TODO: 完整对齐需实现 GuardianMoveControl + DATA_ID_MOVING 同步参数体系（当前用 moveControl
-     *       状态近似，静态场景（无 AI 驱动移动）下返 false 与 vanilla 一致）。
+     * 读 DATA_ID_MOVING 同步参数，由 GuardianMoveControl.tick 在 MoveControl 为 MOVE_TO
+     * 且导航未完成时置 true（Guardian.java:451/482-485）。该状态同时下发给客户端
+     * （尖刺/游动动画依据），并作为荆棘反伤的门控条件。
      */
     [[nodiscard]] bool isMoving() const;
 
+    /// 设置移动状态（对齐 vanilla Guardian.setMoving，仅由 GuardianMoveControl 调用）
+    void setMoving(bool moving);
+
 protected:
+    // ========== 数据同步 ==========
+    void registerData() override;
+
     // ========== AI 目标注册 ==========
     void registerGoals() override;
 
@@ -208,6 +212,9 @@ protected:
     void registerAttributes() override;
 
 private:
+    /// 对齐 vanilla Guardian.DATA_ID_MOVING（布尔同步参数）
+    static entity::DataParameter<bool> DATA_ID_MOVING_PARAM;
+
     // 随机漫步目标（非拥有；由 goalSelector 持有 lifetime）。受击时触发其 makeUpdate
     // 以强制下一次随机漫步（对齐 vanilla Guardian.hurtServer 中 randomStrollGoal.trigger()）。
     entity::ai::goal::RandomWalkingGoal* m_randomStrollGoal = nullptr;

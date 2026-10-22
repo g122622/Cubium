@@ -23,6 +23,7 @@
 
 #include "GuardianEntity.hpp"
 #include "common/core/Types.hpp"
+#include "common/entity/ai/controller/GuardianMoveControl.hpp"
 #include "common/entity/ai/controller/MovementController.hpp"
 #include "common/entity/ai/goal/GoalSelector.hpp"
 #include "common/entity/ai/goal/goals/LookAtGoal.hpp"
@@ -57,6 +58,31 @@ GuardianEntity::GuardianEntity(EntityInstanceId id, ecs::EntityRegistry& registr
 
     // 注册属性
     registerAttributes();
+
+    // 补调 registerData（基类构造期 vtable 指向基类，派生 override 不执行）
+    registerData();
+
+    // 对齐 vanilla Guardian 构造：moveControl = new GuardianMoveControl(this)
+    m_moveController = std::make_unique<entity::ai::controller::GuardianMoveControl>(this);
+}
+
+void GuardianEntity::setMoving(bool moving)
+{
+    m_dataManager.set(DATA_ID_MOVING_PARAM, moving);
+}
+
+entity::DataParameter<bool> GuardianEntity::DATA_ID_MOVING_PARAM = entity::EntityDataManager::createKey<bool>();
+
+void GuardianEntity::registerData()
+{
+    MonsterEntity::registerData();
+    // 对齐 vanilla Guardian.defineSynchedData：DATA_ID_MOVING = false
+    m_dataManager.registerParam(DATA_ID_MOVING_PARAM, false);
+}
+
+bool GuardianEntity::isMoving() const
+{
+    return m_dataManager.get(DATA_ID_MOVING_PARAM);
 }
 
 std::unique_ptr<Entity> GuardianEntity::create(IWorld* /*world*/, ecs::EntityRegistry& registry)
@@ -84,19 +110,6 @@ void GuardianEntity::tick()
         m_spikeTimer = 0;
         m_spikesRetracted = !m_spikesRetracted;
     }
-}
-
-bool GuardianEntity::isMoving() const
-{
-    // 对齐 vanilla Guardian.isMoving:101-103（DATA_ID_MOVING 同步参数，由 GuardianMoveControl 在
-    // operation==MOVE_TO && !navigation.isDone() 时设 true）。Cubium 未实现 GuardianMoveControl，
-    // 用 moveController 状态近似。见头文件 TODO。
-    auto* ctrl = moveController();
-    if (ctrl == nullptr || !ctrl->isUpdating()) {
-        return false;
-    }
-    auto* nav = navigator();
-    return nav == nullptr || !nav->noPath();
 }
 
 bool GuardianEntity::hurt(DamageSource& source, f32 amount)

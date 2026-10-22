@@ -50,12 +50,13 @@
 //     directSource=attacker）→ 不反伤（attacker health 仍 20）。证明荆棘不递归。
 //
 // 注：guardian maxHealth=30，受 5 点伤害不死（30→25）；attacker maxHealth=20，受 2.0 反伤不死
-// （20→18）。guardian 静态构造（无 AI tick 驱动移动）isMoving() 返 false（moveController 无
-// setMoveTo），符合 vanilla 静止场景语义。actuallyHurt 路径用 BaseTestWorld 吸收 playSound。
+// （20→18）。guardian 静态构造（未运行 GuardianMoveControl）isMoving() 返 false
+// （DATA_ID_MOVING 保持默认 false），符合 vanilla 静止场景语义。
+// actuallyHurt 路径用 BaseTestWorld 吸收 playSound。
 //
 // Ref: vanilla Guardian.java:314-326（hurtServer 荆棘分支）
 // Ref: vanilla Guardian.java:101-103（isMoving）/ :451,482-485（GuardianMoveControl 设 DATA_ID_MOVING）
-// Ref: GuardianEntity.cpp（hurt override + isMoving 近似）
+// Ref: GuardianEntity.cpp（hurt override + isMoving 读 DATA_ID_MOVING）
 // Ref: DamageTypeTags.cpp:794（AVOIDS_GUARDIAN_THORNS 成员集）
 // Ref: DamageSource.hpp:916（DamageSources::thorns 工厂）
 

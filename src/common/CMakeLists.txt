@@ -383,6 +383,7 @@ add_library(mc_common STATIC
     entity/ai/controller/MovementController.cpp
     entity/ai/controller/JumpController.cpp
     entity/ai/controller/FlyingMovementController.cpp
+    entity/ai/controller/GuardianMoveControl.cpp
     entity/ai/controller/VexMovementController.cpp
     entity/ai/controller/GhastMovementController.cpp
     entity/ai/controller/PhantomMovementController.cpp
