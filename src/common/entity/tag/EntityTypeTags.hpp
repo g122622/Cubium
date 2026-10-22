@@ -170,6 +170,10 @@ public:
     /// 查询本标签决定是否可为目标装备挽具。
     static EntityTypeTag& CAN_EQUIP_HARNESS();
 
+    /// 青蛙食物标签（slime / magma_cube）
+    /// 对应 MC 1.21.11 标签 minecraft:frog_food，Frog.canEat 据此判定突舌可捕食的目标。
+    static EntityTypeTag& FROG_FOOD();
+
     /**
      * @brief 初始化所有内置标签
      *

@@ -113,6 +113,24 @@ public:
     /// 当前舌击目标 id（无目标时为空，对齐 vanilla getTongueTarget 的 OptionalInt 语义）
     [[nodiscard]] std::optional<EntityInstanceId> tongueTargetId() const;
 
+    // ========== 突舌捕食（对齐 vanilla Frog.canEat / FrogFood 判定） ==========
+
+    /**
+     * @brief 青蛙能否捕食该实体（对齐 vanilla Frog.canEat）
+     *
+     * 对应 MC 1.21.11 Frog.canEat：体型不为 1 的史莱姆不可捕食，
+     * 其余实体按 EntityTypeTags.FROG_FOOD（slime / magma_cube）判定。
+     */
+    [[nodiscard]] static bool canEat(const LivingEntity& entity);
+
+    /**
+     * @brief 捕食结算（对齐 vanilla ShootTongue.eatEntity）
+     *
+     * 播放 FROG_EAT、对舌击目标造成一次近战攻击；目标被击杀后走常规移除流程
+     * （掉落物/蛙明灯由实体的 death 链路处理）。
+     */
+    void eatTongueTarget();
+
     // ========== 繁殖 ==========
 
     /**

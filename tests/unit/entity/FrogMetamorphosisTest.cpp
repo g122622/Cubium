@@ -44,6 +44,7 @@
 #include "common/entity/entities/passive/frog/FrogEntity.hpp"
 #include "common/entity/entities/passive/water/TadpoleEntity.hpp"
 #include "common/entity/registry/VanillaEntities.hpp"
+#include "common/entity/tag/EntityTypeTags.hpp"
 #include "common/item/Items.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/item/tag/ItemTags.hpp"
@@ -231,6 +232,20 @@ TEST_F(FrogMetamorphosisTest, Frog_TongueTargetSetAndErase)
     EXPECT_EQ(*frog.tongueTargetId(), EntityInstanceId(99));
     frog.eraseTongueTarget();
     EXPECT_FALSE(frog.tongueTargetId().has_value());
+}
+
+// 对齐 vanilla Frog.canEat：只有 FROG_FOOD 标签内的实体（除体型>1 的史莱姆）可被突舌捕食。
+TEST_F(FrogMetamorphosisTest, Frog_CanEatOnlyFrogFoodEntities)
+{
+    EntityTypeTags::initialize();
+
+    LivingEntity slime(EntityInstanceId(20), nullptr, mc::test::testEcsRegistry());
+    slime.setTypeId("minecraft:slime");
+    EXPECT_TRUE(FrogEntity::canEat(slime)) << "体型 1 的史莱姆可被吃掉";
+
+    LivingEntity cow(EntityInstanceId(21), nullptr, mc::test::testEcsRegistry());
+    cow.setTypeId("minecraft:cow");
+    EXPECT_FALSE(FrogEntity::canEat(cow));
 }
 
 // 青蛙可被 /summon 创建并拥有正确的类型键（注册表完整性）。

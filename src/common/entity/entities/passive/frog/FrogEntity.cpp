@@ -40,8 +40,10 @@
 #include "common/entity/core/EntityDataManager.hpp"
 #include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/damage/DamageSource.hpp"
+#include "common/entity/entities/monster/basic/SlimeEntity.hpp"
 #include "common/entity/serialization/EntityNbtKeys.hpp"
 #include "common/entity/serialization/NbtHelper.hpp"
+#include "common/entity/tag/EntityTypeTags.hpp"
 #include "common/item/core/Item.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/item/tag/ItemTags.hpp"
@@ -191,6 +193,41 @@ std::optional<EntityInstanceId> FrogEntity::tongueTargetId() const
         return std::nullopt;
     }
     return EntityInstanceId(static_cast<u64>(value.value));
+}
+
+bool FrogEntity::canEat(const LivingEntity& entity)
+{
+    // 对齐 vanilla Frog.canEat：!(entity instanceof Slime slime && slime.getSize() != 1) && type.is(FROG_FOOD)
+    if (auto* slime = dynamic_cast<const SlimeEntity*>(&entity); slime != nullptr && slime->getSlimeSize() != 1) {
+        return false;
+    }
+    if (!EntityTypeTags::isInitialized()) {
+        // 标签未初始化（测试夹具/早期生成）：按 vanilla 默认成员直接判定
+        const std::string typeId = entity.getTypeId();
+        return typeId == "minecraft:slime" || typeId == "minecraft:magma_cube";
+    }
+    return EntityTypeTags::FROG_FOOD().contains(ResourceLocation(entity.getTypeId()));
+}
+
+void FrogEntity::eatTongueTarget()
+{
+    if (m_world == nullptr) {
+        return;
+    }
+    playSound(SoundEvents::FROG_EAT, 2.0f, 1.0f);
+
+    const std::optional<EntityInstanceId> targetId = tongueTargetId();
+    if (!targetId.has_value()) {
+        return;
+    }
+    auto* target = dynamic_cast<LivingEntity*>(m_world->getEntity(*targetId));
+    if (target == nullptr || !target->isAlive()) {
+        return;
+    }
+    if (attackEntityAsMob(*target) && !target->isAlive()) {
+        target->remove(RemovalReason::Killed);
+    }
+    eraseTongueTarget();
 }
 
 // ========== 繁殖 ==========

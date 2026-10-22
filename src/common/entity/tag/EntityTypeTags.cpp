@@ -401,6 +401,17 @@ EntityTypeTag& EntityTypeTags::CANDIDATE_FOR_IRON_GOLEM_GIFT()
 
 // ========== 快乐恶魂挽具标签 ==========
 
+EntityTypeTag& EntityTypeTags::FROG_FOOD()
+{
+    static EntityTypeTag* tag = nullptr;
+    if (tag == nullptr) {
+        auto t = std::make_unique<EntityTypeTag>(ResourceLocation("minecraft:frog_food"));
+        tag = t.get();
+        _getTags()[ResourceLocation("minecraft:frog_food")] = std::move(t);
+    }
+    return *tag;
+}
+
 EntityTypeTag& EntityTypeTags::CAN_EQUIP_HARNESS()
 {
     static EntityTypeTag* tag = nullptr;
@@ -455,6 +466,7 @@ void EntityTypeTags::initialize()
     ACCEPTS_IRON_GOLEM_GIFT();
     CANDIDATE_FOR_IRON_GOLEM_GIFT();
     CAN_EQUIP_HARNESS();
+    FROG_FOOD();
 
     // ========== 硬编码默认标签成员 ==========
     // 这些默认值将在数据包加载时被覆盖或合并。
@@ -857,6 +869,14 @@ void EntityTypeTags::initialize()
     // 运行时查询点：HarnessItem::itemInteractionForEntity 判定目标能否装备 Body 槽挽具。
     CAN_EQUIP_HARNESS().addAll({
         ResourceLocation("minecraft:happy_ghast"),
+    });
+
+    // 青蛙食物
+    // 对齐 vanilla 1.21.11 EntityTypeTagsProvider.FROG_FOOD：slime / magma_cube。
+    // 运行时查询点：FrogEntity::canEat（突舌捕食目标判定）。
+    FROG_FOOD().addAll({
+        ResourceLocation("minecraft:slime"),
+        ResourceLocation("minecraft:magma_cube"),
     });
 
     s_initialized = true;
