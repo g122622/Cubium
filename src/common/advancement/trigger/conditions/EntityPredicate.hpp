@@ -50,6 +50,14 @@ class IWorld;
 namespace mc::advancement {
 
 /**
+ * @brief 单个实体组件过滤项（vanilla EntityPredicate.components 的一项）
+ */
+struct EntityComponentFilter {
+    ResourceLocation id; ///< 组件 ID（如 "minecraft:frog/variant"）
+    std::string value;   ///< 期望值（字符串形式，如 "minecraft:warm"）
+};
+
+/**
  * @brief 实体谓词
  *
  * 用于匹配实体的条件谓词，检查实体类型、位置、效果、装备、NBT等。
@@ -114,6 +122,7 @@ public:
     [[nodiscard]] const NBTPredicate& getNbt() const noexcept { return m_nbt; }
     [[nodiscard]] const EntityFlagsPredicate& getFlags() const noexcept { return m_flags; }
     [[nodiscard]] const EntityEquipmentPredicate& getEquipment() const noexcept { return m_equipment; }
+    [[nodiscard]] const std::vector<EntityComponentFilter>& getComponents() const noexcept { return m_components; }
 
     // ========== Setters ==========
 
@@ -156,6 +165,9 @@ public:
 private:
     void _updateIsAny();
 
+    /// 检查单个数据组件过滤项（对齐 vanilla EntityPredicate.components）
+    [[nodiscard]] bool _testComponent(const Entity& entity, const EntityComponentFilter& component) const;
+
     std::optional<ResourceLocation> m_type; ///< 实体类型（如 "minecraft:zombie"）
     DistancePredicate m_distance;           ///< 距离谓词（与参考点的距离）
     LocationPredicate m_location;           ///< 位置谓词（生物群系、维度等）
@@ -163,13 +175,24 @@ private:
     NBTPredicate m_nbt;                     ///< NBT谓词
     EntityFlagsPredicate m_flags;           ///< 标志谓词（燃烧、潜行等）
     EntityEquipmentPredicate m_equipment;   ///< 装备谓词
+    /// 组件过滤（vanilla EntityPredicate.components，如 {"minecraft:frog/variant": "minecraft:warm"}）
+    std::vector<EntityComponentFilter> m_components;
     bool m_isAny = true;
+};
+
+/**
+ * @brief 伤害类型标签过滤（vanilla DamageTypePredicate::TagPredicate 的 {id, expected} 结构）
+ */
+struct DamageTypeTagFilter {
+    ResourceLocation id;  ///< 伤害类型标签 ID（如 "minecraft:is_projectile"）
+    bool expected = true; ///< 期望是否属于该标签（false 表示取反）
 };
 
 /**
  * @brief 伤害源谓词
  *
- * 用于匹配伤害源的条件谓词，检查伤害类型标志。
+ * 用于匹配伤害源的条件谓词，检查伤害类型标志，以及造成者/直接来源实体、
+ * 伤害类型 ID 与伤害类型标签（对齐 vanilla DamageSourcePredicate）。
  */
 class DamageSourcePredicate {
 public:
@@ -214,7 +237,7 @@ public:
     [[nodiscard]] const std::optional<EntityPredicate>& sourceEntity() const noexcept { return m_sourceEntity; }
     [[nodiscard]] const std::optional<EntityPredicate>& directEntity() const noexcept { return m_directEntity; }
     [[nodiscard]] const std::optional<ResourceLocation>& type() const noexcept { return m_type; }
-    [[nodiscard]] const std::optional<ResourceLocation>& typeTag() const noexcept { return m_typeTag; }
+    [[nodiscard]] const std::vector<DamageTypeTagFilter>& typeTags() const noexcept { return m_typeTags; }
 
 private:
     std::optional<bool> m_isProjectile;            ///< 是否为投射物伤害
@@ -231,8 +254,8 @@ private:
     std::optional<EntityPredicate> m_directEntity;
     /// 伤害类型 ID（vanilla type，如 "minecraft:mob_attack"）
     std::optional<ResourceLocation> m_type;
-    /// 伤害类型标签（vanilla tags）
-    std::optional<ResourceLocation> m_typeTag;
+    /// 伤害类型标签过滤（vanilla tags：[{id, expected}]，expected=false 表示取反）
+    std::vector<DamageTypeTagFilter> m_typeTags;
     bool m_isAny = true;
 };
 

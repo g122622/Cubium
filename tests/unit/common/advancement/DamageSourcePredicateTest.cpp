@@ -37,6 +37,7 @@
 #include "common/advancement/trigger/conditions/EntityPredicate.hpp"
 #include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/damage/DamageSource.hpp"
+#include "common/entity/entities/passive/frog/FrogEntity.hpp"
 #include "common/resource/ResourceLocation.hpp"
 
 #include <nlohmann/json.hpp>
@@ -95,6 +96,45 @@ TEST_F(FrogFroglightDamageSourcePredicateTest, DamageTypeId_MatchesMobAttack)
     EntityDamageSource fall(DamageType::Fall, nullptr);
     EXPECT_TRUE(predicate.value().test(mobAttack));
     EXPECT_FALSE(predicate.value().test(fall));
+}
+
+TEST_F(FrogFroglightDamageSourcePredicateTest, SourceEntityComponents_MatchFrogVariant)
+{
+    // 对齐数据包岩浆怪掉落表：
+    //   {"source_entity": {"type": "minecraft:frog",
+    //                      "components": {"minecraft:frog/variant": "minecraft:warm"}}}
+    FrogEntity warmFrog(EntityInstanceId(1), mc::test::testEcsRegistry());
+    warmFrog.setTypeId(entity::EntityTypeKeys::FROG); // 绕过工厂直接构造时 m_typeId 为空
+    warmFrog.setVariant(FrogEntity::Variant::Warm);
+    EntityDamageSource warmAttack(DamageType::MobAttack, &warmFrog);
+
+    FrogEntity coldFrog(EntityInstanceId(2), mc::test::testEcsRegistry());
+    coldFrog.setTypeId(entity::EntityTypeKeys::FROG);
+    coldFrog.setVariant(FrogEntity::Variant::Cold);
+    EntityDamageSource coldAttack(DamageType::MobAttack, &coldFrog);
+
+    const nlohmann::json json = {{"source_entity",
+        {{"type", entity::EntityTypeKeys::FROG}, {"components", {{"minecraft:frog/variant", "minecraft:warm"}}}}}};
+    const auto predicate = advancement::DamageSourcePredicate::fromJson(json);
+    ASSERT_TRUE(predicate.success());
+
+    // 温暖青蛙捕食掉珠光蛙明灯；寒冷青蛙不掉
+    EXPECT_TRUE(predicate.value().test(warmAttack));
+    EXPECT_FALSE(predicate.value().test(coldAttack));
+}
+
+TEST_F(FrogFroglightDamageSourcePredicateTest, TypeTags_ObjectFormMatches)
+{
+    EntityDamageSource mobAttack(DamageType::MobAttack, nullptr);
+    EntityDamageSource fall(DamageType::Fall, nullptr);
+
+    // vanilla tags 结构：[{"id": "minecraft:is_projectile", "expected": true}]
+    const nlohmann::json projectileJson = {
+        {"tags", nlohmann::json::array({{{"id", "minecraft:is_projectile"}, {"expected", true}}})}};
+    const auto projectilePredicate = advancement::DamageSourcePredicate::fromJson(projectileJson);
+    ASSERT_TRUE(projectilePredicate.success());
+    EXPECT_FALSE(projectilePredicate.value().isAny());
+    EXPECT_FALSE(projectilePredicate.value().test(fall));
 }
 
 TEST_F(FrogFroglightDamageSourcePredicateTest, BooleanOnlyJson_StillAnyWhenNoFields)

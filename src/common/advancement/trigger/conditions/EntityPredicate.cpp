@@ -33,6 +33,7 @@
 #include "common/entity/damage/DamageSource.hpp"
 #include "common/entity/damage/tag/DamageTypeTag.hpp"
 #include "common/entity/damage/tag/DamageTypeTags.hpp"
+#include "common/entity/entities/passive/frog/FrogEntity.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/assert/AssertAll.hpp"
 #include "common/world/IWorld.hpp"
@@ -83,10 +84,29 @@ bool EntityPredicate::test(const Entity& entity) const
         return false;
     }
 
+    // 6. 检查数据组件（vanilla EntityPredicate.components）
+    for (const auto& component : m_components) {
+        if (!_testComponent(entity, component)) {
+            return false;
+        }
+    }
+
     // 注意：距离和位置检查需要参考位置，在无参考位置版本中跳过。
     // 需要距离和位置检查的调用者应使用 test(world, x, y, z, entity) 重载。
 
     return true;
+}
+
+bool EntityPredicate::_testComponent(const Entity& entity, const EntityComponentFilter& component) const
+{
+    // 目前仅支持实体同步字段暴露为组件的场景（如青蛙变体 minecraft:frog/variant）。
+    const auto* frog = dynamic_cast<const FrogEntity*>(&entity);
+    if (frog != nullptr && component.id.toString() == "minecraft:frog/variant") {
+        return component.value == FrogEntity::variantIdName(frog->getVariant());
+    }
+    // TODO(entity-components-predicate): 其余实体组件（如村名、熊猫基因）待组件读取接口
+    //   统一暴露后接入；当前对未知组件按"不匹配"处理，避免谓词静默恒真。
+    return false;
 }
 
 bool EntityPredicate::test(const IWorld& world, f64 x, f64 y, f64 z, const Entity& entity) const
@@ -218,6 +238,13 @@ Result<EntityPredicate> EntityPredicate::fromJson(const nlohmann::json& json)
     }
 
     predicate._updateIsAny();
+    if (json.contains("components") && json["components"].is_object()) {
+        for (const auto& [componentId, value] : json["components"].items()) {
+            predicate.m_components.push_back(EntityComponentFilter{
+                ResourceLocation(componentId), value.is_string() ? value.get<std::string>() : value.dump()});
+        }
+    }
+
     return predicate;
 }
 
@@ -319,9 +346,10 @@ bool DamageSourcePredicate::test(const DamageSource& source) const
     if (m_type.has_value() && DamageTypeNames::getResourceLocation(source.type()) != m_type.value()) {
         return false;
     }
-    if (m_typeTag.has_value()) {
-        const DamageTypeTag* tag = DamageTypeTags::getTag(m_typeTag.value());
-        if (tag == nullptr || !tag->contains(source)) {
+    for (const auto& filter : m_typeTags) {
+        const DamageTypeTag* tag = DamageTypeTags::getTag(filter.id);
+        const bool inTag = tag != nullptr && tag->contains(source);
+        if (inTag != filter.expected) {
             return false;
         }
     }
@@ -388,10 +416,19 @@ Result<DamageSourcePredicate> DamageSourcePredicate::fromJson(const nlohmann::js
         predicate.m_type = ResourceLocation(json["type"].get<std::string>());
     }
     if (json.contains("tags")) {
-        // vanilla 的 tags 是伤害类型标签数组；Cubium 伤害类型标签表未接入，暂取第一项占位。
+        // vanilla 的 tags 形如 [{"id": "minecraft:is_projectile", "expected": true}]，
+        // expected 缺省为 true，false 表示"不属于该标签"。
         const auto& tags = json["tags"];
-        if (tags.is_array() && !tags.empty()) {
-            predicate.m_typeTag = ResourceLocation(tags[0].get<std::string>());
+        if (tags.is_array()) {
+            for (const auto& entry : tags) {
+                if (!entry.is_object() || !entry.contains("id")) {
+                    continue;
+                }
+                DamageTypeTagFilter filter;
+                filter.id = ResourceLocation(entry["id"].get<std::string>());
+                filter.expected = entry.value("expected", true);
+                predicate.m_typeTags.push_back(std::move(filter));
+            }
         }
     }
 
@@ -400,7 +437,7 @@ Result<DamageSourcePredicate> DamageSourcePredicate::fromJson(const nlohmann::js
         !predicate.m_bypassesArmor.has_value() && !predicate.m_bypassesInvulnerability.has_value() &&
         !predicate.m_bypassesMagic.has_value() && !predicate.m_isFire.has_value() && !predicate.m_isMagic.has_value() &&
         !predicate.m_isLightning.has_value() && !predicate.m_sourceEntity.has_value() &&
-        !predicate.m_directEntity.has_value() && !predicate.m_type.has_value() && !predicate.m_typeTag.has_value();
+        !predicate.m_directEntity.has_value() && !predicate.m_type.has_value() && predicate.m_typeTags.empty();
 
     return predicate;
 }

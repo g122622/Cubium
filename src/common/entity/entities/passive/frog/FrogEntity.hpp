@@ -216,8 +216,11 @@ private:
     /// 对齐 vanilla Frog.DATA_TONGUE_TARGET_ID（OPTIONAL_UNSIGNED_INT 序列化器）
     static entity::DataParameter<entity::OptionalUnsignedIntValue> DATA_TONGUE_TARGET_ID_PARAM;
 
+public:
     /// 变体注册表 id 名（minecraft:temperate / minecraft:warm / minecraft:cold）
     [[nodiscard]] static const char* variantIdName(Variant variant);
+
+private:
     /// 由注册表 id 名解析变体（未知名称返回空）
     [[nodiscard]] static std::optional<Variant> variantFromName(const std::string& name);
 };
