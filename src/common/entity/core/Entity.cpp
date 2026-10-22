@@ -1912,14 +1912,15 @@ bool Entity::addPassenger(Entity& passenger)
     // m_rideCooldown 已整体移除（见 canBeRidden / baseTick / removePassenger），TODO 若未来确需
     // 防抖应在载具侧按 vanilla 的 mount/dismount 动画时序实现，而非全局骑乘冷却。
 
-    // 触发回调
-    // 子类可重写 onAddedPassenger() 来处理特殊逻辑
-
     // 服务端：乘客列表已变更，广播 SetPassengers 给追踪本载具的玩家，
     // 补齐客户端骑乘渲染同步（旧实现仅改服务端模型无网络发包，客户端看不到骑乘关系）。
     if (isServerSide) {
         m_world->broadcastPassengersChanged(m_id);
     }
+
+    // 触发回调：子类可重写 onPassengerAdded() 处理上下客相关的载具副作用
+    // （如快乐恶魂在首个乘客上车时播放 HARNESS_GOGGLES_DOWN）。
+    onPassengerAdded(passenger);
 
     return true;
 }
@@ -1957,13 +1958,15 @@ void Entity::removePassenger(Entity& passenger)
         // 对齐 vanilla：removePassenger 不设置骑乘冷却（vanilla Entity.removePassenger 无此机制）。
         // m_rideCooldown 已整体移除（详见 addPassenger 注释），此处不再设置。
 
-        // 触发回调
-
         // 服务端：乘客列表已变更，广播 SetPassengers 给追踪本载具的玩家，
         // 补齐客户端骑乘渲染同步（旧实现仅改服务端模型无网络发包，客户端看不到骑乘关系）。
         if (m_world && !m_world->isClientSide()) {
             m_world->broadcastPassengersChanged(m_id);
         }
+
+        // 触发回调：子类可重写 onPassengerRemoved() 处理下客相关的载具副作用
+        // （如快乐恶魂在最后一名乘客离开时播放下车音效并清空 home）。
+        onPassengerRemoved(passenger);
     }
 }
 
@@ -2021,9 +2024,12 @@ bool Entity::startRiding(Entity& vehicle)
         }
     }
 
-    // 5. 检查是否可骑乘（潜行状态、冷却等）
-    // 对应 MC Java 的 canRide() + canAddPassenger()
-    if (!canBeRidden(vehicle)) {
+    // 5. 检查载具是否接受本乘客（潜行状态、挽具前提等）
+    // vanilla 对应 Entity.canRide()：它是乘客侧方法（检查 this 是否潜行），
+    // 而本项目的虚派发落在载具上（vehicle.canBeRidden(*this)），故此处必须显式检查
+    // 乘客自身状态——否则载具的覆写会用自己的 isSneaking() 代替乘客判断，潜行上乘的
+    // 语义永远不生效。
+    if (isSneaking() || !vehicle.canBeRidden(*this)) {
         return false;
     }
 

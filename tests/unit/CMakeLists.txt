@@ -247,6 +247,8 @@ add_executable(mc_tests
     common/entity/entities/passive/special/FoxEntityTest.cpp
     # PandaEntity 打喷嚏、性格、状态测试
     common/entity/entities/passive/special/PandaEntityTest.cpp
+    # HappyGhastEntity 挽具装备/剪下/骑乘与 CAN_EQUIP_HARNESS 标签测试
+    common/entity/entities/passive/happyghast/HappyGhastHarnessTest.cpp
     # PolarBearEntity IAngerable接口、站立警告、声音测试
     common/entity/entities/passive/special/PolarBearEntityTest.cpp
     # BeeEntity 花朵繁殖、幼体生成、花粉/螫刺状态测试

@@ -163,6 +163,13 @@ public:
     /// 对应 MC 1.21.11 标签 minecraft:candidate_for_iron_golem_gift。
     static EntityTypeTag& CANDIDATE_FOR_IRON_GOLEM_GIFT();
 
+    /// 可装备快乐恶魂挽具的实体标签（happy_ghast）
+    /// 对应 MC 1.21.11 标签 minecraft:can_equip_harness，被
+    /// Equippable.harness(color) 的 setAllowedEntities 引用。
+    /// Cubium 无数据组件 Equippable 体系，由 HarnessItem::itemInteractionForEntity
+    /// 查询本标签决定是否可为目标装备挽具。
+    static EntityTypeTag& CAN_EQUIP_HARNESS();
+
     /**
      * @brief 初始化所有内置标签
      *

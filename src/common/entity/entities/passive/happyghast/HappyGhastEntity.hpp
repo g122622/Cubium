@@ -26,7 +26,9 @@
 #include "common/core/Types.hpp"
 #include "common/entity/ai/goal/Goal.hpp"
 #include "common/entity/core/Entity.hpp"
+#include "common/entity/core/EquipmentSlot.hpp"
 #include "common/entity/entities/passive/basic/AnimalEntity.hpp"
+#include "common/item/core/ItemStack.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/world/chunk/data/IChunk.hpp"
 
@@ -56,10 +58,13 @@ class Goal;
  * @note 本项目无 Brain 系统，vanilla HappyGhastAi 的 IDLE 活动改以 GoalSelector 的
  *       GhastHappyFloatGoal（幼体漂浮）+ GhastRandomFlyGoal（成年随机飞行）实现，
  *       与恶魂共用同一套飞行移动控制器与飞行物理（travelFlying）。
+ * @note 已实现：挽具（HARNESS）装备槽语义（右键装备、剪刀剪下、必须装备挽具才能骑乘）、
+ *       多人载客上限 4，以及挽具驱动的载客/离座音效。
  * @note 未实现（TODO）：
- *       - 骑乘/多人载客（MAX_PASSANGERS）与鞍具（HARNESS）装备槽语义；
- *       - 静止超时（serverStillTimeout / STAYS_STILL 同步字段）与头盔装饰音效；
- *       - 成年/幼年切换时的移动控制与 goal 集合切换（ageBoundaryReached）。
+ *       - 静止超时（serverStillTimeout / STAYS_STILL 同步字段）：vanilla 在无玩家于其上方时
+ *         累计静止时间并禁止乘客操控，本类尚无对应的数据同步字段；
+ *       - 成年/幼年切换时的移动控制与 goal 集合切换（ageBoundaryReached）；
+ *       - 挽具颜色同步给客户端渲染（客户端已停止维护，服务端只保存挽具物品本身）。
  */
 class HappyGhastEntity : public AnimalEntity {
 public:
@@ -147,12 +152,65 @@ public:
     /// 音量：幼体 1.0，成体 4.0（对齐 vanilla HappyGhast.getSoundVolume）
     [[nodiscard]] f32 getSoundVolume() const override;
 
+    // ========== 挽具 / 骑乘 ==========
+
+    /// 是否已装备挽具（对齐 vanilla HappyGhast.isWearingBodyArmor 的挽具语义）
+    [[nodiscard]] bool hasHarness() const;
+
+    /// 挽具物品堆（未装备时为空堆），供掉落/剪下与测试断言使用
+    [[nodiscard]] const ItemStack& harnessStack() const;
+
+    /**
+     * @brief 乘客上限 4（对齐 vanilla HappyGhast.canAddPassenger：passengers.size() < 4）
+     */
+    [[nodiscard]] i32 getMaxPassengers() const override { return 4; }
+
+    /**
+     * @brief 能否被玩家骑乘（对齐 vanilla HappyGhast.getControllingPassenger 的挽具前提）
+     *
+     * vanilla 的玩家骑乘入口是 mobInteract 中 isWearingBodyArmor() 的上车分支
+     * （HappyGhast.java:278-280），而非 Entity.canRide 的载体检查；对应到 Cubium 即为
+     * 本虚方法：只有装备了挽具的成体才承载玩家。幼体与未装备挽具的成体不可被骑。
+     */
+    [[nodiscard]] bool canBeRidden(const Entity& vehicle) const override;
+
 protected:
     // ========== AI 目标注册 ==========
     void registerGoals() override;
 
     // ========== 属性注册 ==========
     void registerAttributes() override;
+
+    // ========== 交互 ==========
+
+    /**
+     * @brief 右键交互（对齐 vanilla HappyGhast.mobInteract:266-285）
+     *
+     * 幼体：交基类（喂食雪球加速成长）。
+     * 成体：手持物品时先走物品的 itemInteractionForEntity，可执行则结束（装备挽具）；
+     *       已装备挽具且玩家未潜行时让玩家骑乘；否则交基类。
+     */
+    [[nodiscard]] ActionResultType interactMob(Player& player, Hand hand) override;
+
+    // ========== 装备槽语义 ==========
+
+    /// 挽具可右键装备到 Body 槽（对齐 vanilla Equippable.harness 的 equipOnInteract +
+    /// allowedEntities=CAN_EQUIP_HARNESS；实体侧等价判定见 canEquipItemOnInteract 注释）
+    [[nodiscard]] bool canEquipItemOnInteract(const ItemStack& stack, EquipmentSlot slot) const override;
+
+    /// Body 槽（挽具）被剪下时使用 HARNESS_UNEQUIP（vanilla Equippable.harness 的 shearingSound）
+    [[nodiscard]] std::optional<ResourceLocation> shearingSoundForSlot(EquipmentSlot slot) const override;
+
+    /// Body 槽被清空（挽具被剪下）时清空 home 位置（对齐 vanilla HappyGhast.removePassenger 的 clearHome）
+    void onSlotCleared(EquipmentSlot slot) override;
+
+    // ========== 乘客 ==========
+
+    /// 首个乘客上船时播放 HARNESS_GOGGLES_DOWN（对齐 vanilla HappyGhast.addPassenger:294-299）
+    void onPassengerAdded(Entity& passenger) override;
+
+    /// 最后一个乘客离开时播放 HARNESS_GOGGLES_UP（对齐 vanilla HappyGhast.removePassenger:309-320）
+    void onPassengerRemoved(Entity& passenger) override;
 };
 
 } // namespace mc

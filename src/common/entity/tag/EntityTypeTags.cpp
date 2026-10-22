@@ -399,6 +399,19 @@ EntityTypeTag& EntityTypeTags::CANDIDATE_FOR_IRON_GOLEM_GIFT()
     return *tag;
 }
 
+// ========== 快乐恶魂挽具标签 ==========
+
+EntityTypeTag& EntityTypeTags::CAN_EQUIP_HARNESS()
+{
+    static EntityTypeTag* tag = nullptr;
+    if (tag == nullptr) {
+        auto t = std::make_unique<EntityTypeTag>(ResourceLocation("minecraft:can_equip_harness"));
+        tag = t.get();
+        _getTags()[ResourceLocation("minecraft:can_equip_harness")] = std::move(t);
+    }
+    return *tag;
+}
+
 // ============================================================================
 // 初始化
 // ============================================================================
@@ -441,6 +454,7 @@ void EntityTypeTags::initialize()
     POWDER_SNOW_WALKABLE_MOBS();
     ACCEPTS_IRON_GOLEM_GIFT();
     CANDIDATE_FOR_IRON_GOLEM_GIFT();
+    CAN_EQUIP_HARNESS();
 
     // ========== 硬编码默认标签成员 ==========
     // 这些默认值将在数据包加载时被覆盖或合并。
@@ -835,6 +849,14 @@ void EntityTypeTags::initialize()
         ResourceLocation("minecraft:villager"),
         // #minecraft:accepts_iron_golem_gift 子标签成员（= copper_golem）
         ResourceLocation("minecraft:copper_golem"),
+    });
+
+    // 快乐恶魂挽具
+    // 对齐 vanilla 1.21.11 EntityTypeTagsProvider.CAN_EQUIP_HARNESS：
+    //   happy_ghast（Equippable.harness 的 allowedEntities）。
+    // 运行时查询点：HarnessItem::itemInteractionForEntity 判定目标能否装备 Body 槽挽具。
+    CAN_EQUIP_HARNESS().addAll({
+        ResourceLocation("minecraft:happy_ghast"),
     });
 
     s_initialized = true;

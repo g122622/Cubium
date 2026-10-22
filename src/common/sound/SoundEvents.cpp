@@ -1505,6 +1505,10 @@ const ResourceLocation ITEM_ARMOR_EQUIP_TURTLE("minecraft:item.armor.equip_turtl
 const ResourceLocation ITEM_ARMOR_EQUIP_WOLF("minecraft:item.armor.equip_wolf");
 const ResourceLocation ITEM_ARMOR_UNEQUIP_WOLF("minecraft:item.armor.unequip_wolf");
 
+// 快乐恶魂挽具
+const ResourceLocation HARNESS_EQUIP("minecraft:item.harness.equip");
+const ResourceLocation HARNESS_UNEQUIP("minecraft:item.harness.unequip");
+
 // 鞘翅
 const ResourceLocation ITEM_ELYTRA_FLYING("minecraft:item.elytra.flying");
 
@@ -1722,6 +1726,8 @@ const ResourceLocation GHASTLING_DEATH("minecraft:entity.ghastling.death");
 const ResourceLocation HAPPY_GHAST_AMBIENT("minecraft:entity.happy_ghast.ambient");
 const ResourceLocation HAPPY_GHAST_HURT("minecraft:entity.happy_ghast.hurt");
 const ResourceLocation HAPPY_GHAST_DEATH("minecraft:entity.happy_ghast.death");
+const ResourceLocation HARNESS_GOGGLES_DOWN("minecraft:entity.happy_ghast.harness_goggles_down");
+const ResourceLocation HARNESS_GOGGLES_UP("minecraft:entity.happy_ghast.harness_goggles_up");
 
 // ============================================================================
 // 初始化

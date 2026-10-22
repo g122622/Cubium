@@ -871,6 +871,42 @@ public:
      */
     bool attemptToShearEquipment(Player& player, Hand hand, ItemStack& shears);
 
+    /**
+     * @brief 指定装备槽被剪下时所播的卸下音效（对齐 vanilla Equippable.shearingSound）
+     *
+     * 注意 attemptToShearEquipment 在调用本方法前已把装备移出槽位，故签名只接收槽位、
+     * 不接收物品堆。基类返回 nullopt，此时回退到 ITEM_ARMOR_UNEQUIP_WOLF（狼铠等未声明
+     * 专用音效的装备）。子类按槽位声明专用音效，例如快乐恶魂 Body 槽挽具 → HARNESS_UNEQUIP。
+     *
+     * @param slot 被剪下的装备槽
+     * @return 卸下音效；nullopt 表示用基类默认音效
+     */
+    [[nodiscard]] virtual std::optional<ResourceLocation> shearingSoundForSlot(EquipmentSlot slot) const;
+
+    /**
+     * @brief 该物品能否通过右键交互装备到指定装备槽（对齐 vanilla Equippable.equipOnInteract）
+     *
+     * vanilla 由物品侧数据组件 Equippable 的 allowedEntities 标签 + equipOnInteract 标志判定；
+     * Cubium 无数据组件 Equippable 体系，改由实体侧覆写本方法给出同样的判定
+     * （例如快乐恶魂对挽具返回 true）。返回 true 时 processInitialInteract 会把
+     * 本次交互交给物品的 itemInteractionForEntity 处理。
+     *
+     * @param stack 玩家手持物品
+     * @param slot 待装备的槽位
+     * @return 是否允许以此物品右键装备到该槽
+     */
+    [[nodiscard]] virtual bool canEquipItemOnInteract(const ItemStack& stack, EquipmentSlot slot) const;
+
+    /**
+     * @brief 装备槽内容被清空后的派发钩子
+     *
+     * 仅由需要感知"某槽位装备消失"的子类覆写（例如快乐恶魂在挽具被剪下后清空 home 位置，
+     * 对齐 vanilla HappyGhast.removePassenger 中的 clearHome）。
+     *
+     * @param slot 被清空的装备槽
+     */
+    virtual void onSlotCleared(EquipmentSlot slot);
+
     // ========== 掉落表 (DeathLootTable) ==========
 
     /**

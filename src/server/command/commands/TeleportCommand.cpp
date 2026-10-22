@@ -200,7 +200,9 @@ struct DestinationInfo {
                 continue;
             }
             // teleportToDimension 是 Entity 虚函数，ServerPlayer（含 SimulatedPlayer）override 做真实迁移。
-            // 非 ServerPlayer 实体基类返回 false（非玩家跨维度 TODO 未实现）。
+            // TODO: 非玩家实体目前不进入本路径（目标选择器仍限定为 players()）；待 /tp 支持
+            //   EntityArgumentType::entities() 后，非玩家跨维度应改走 Entity::changeDimension
+            //   （已由 ServerWorld::transferEntityToDimension 实现通用迁移）。
             if (playerEntity->teleportToDimension(targetDim, position, rotation)) {
                 ++teleportedCount;
             }

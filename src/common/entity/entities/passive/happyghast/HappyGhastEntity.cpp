@@ -30,6 +30,9 @@
 #include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/damage/DamageSource.hpp"
 #include "common/entity/entities/passive/basic/AnimalEntity.hpp"
+#include "common/entity/entities/player/Player.hpp"
+#include "common/entity/tag/EntityTypeTags.hpp"
+#include "common/item/Items.hpp"
 #include "common/item/core/Item.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/item/tag/ItemTags.hpp"
@@ -178,6 +181,111 @@ f32 HappyGhastEntity::getSoundVolume() const
 {
     // 对齐 vanilla HappyGhast.getSoundVolume：幼体 1.0，成体 4.0。
     return isChild() ? 1.0f : 4.0f;
+}
+
+// ========== 乘客 ==========
+
+void HappyGhastEntity::onPassengerAdded(Entity& passenger)
+{
+    // 对齐 vanilla HappyGhast.addPassenger:294-299：首个乘客上车时播放护目镜放下音效。
+    if (m_world != nullptr && !m_world->isClientSide() && getPassengers().size() == 1) {
+        playSound(SoundEvents::HARNESS_GOGGLES_DOWN, 1.0f, 1.0f);
+    }
+    AnimalEntity::onPassengerAdded(passenger);
+}
+
+void HappyGhastEntity::onPassengerRemoved(Entity& passenger)
+{
+    // 对齐 vanilla HappyGhast.removePassenger:309-320：最后一名乘客离开时清空 home 并
+    // 播放护目镜抬起音效。挽具被剪下（onSlotCleared）走同一 clearHome 清理。
+    if (m_world != nullptr && !m_world->isClientSide() && getPassengers().empty()) {
+        clearHome();
+        playSound(SoundEvents::HARNESS_GOGGLES_UP, 1.0f, 1.0f);
+    }
+    AnimalEntity::onPassengerRemoved(passenger);
+}
+
+// ========== 挽具 / 骑乘 ==========
+
+bool HappyGhastEntity::hasHarness() const
+{
+    return !getEquipment(EquipmentSlot::Body).isEmpty();
+}
+
+const ItemStack& HappyGhastEntity::harnessStack() const
+{
+    return getEquipment(EquipmentSlot::Body);
+}
+
+bool HappyGhastEntity::canBeRidden(const Entity& vehicle) const
+{
+    // 注意：本方法问的是"载具是否可被骑"，不是"乘客能否上载具"——vanilla Entity.canRide
+    // 是乘客侧方法（检查乘客潜行状态），对应 Cubium 的 Entity::canBeRidden(passenger)，
+    // 但 Cubium 的虚派发落在载具上，不能把基类的乘客侧条件（!this->isSneaking()）转调进来，
+    // 否则乘客潜行状态永远不会被检查（实体会用载具自身状态判断）。
+    //
+    // 对齐 vanilla HappyGhast：只有"存活 + 非幼体 + 已装备挽具"的成体承载玩家。
+    (void)vehicle;
+    return isAlive() && !isChild() && hasHarness();
+}
+
+ActionResultType HappyGhastEntity::interactMob(Player& player, Hand hand)
+{
+    // 对齐 vanilla HappyGhast.mobInteract（HappyGhast.java:266-285）：
+    //   幼体 → 交基类（AnimalEntity 喂食雪球加速成长）；
+    //   成体 → 手持物品先走 item.interactLivingEntity（装备挽具），可执行则结束；
+    //          已装备挽具且玩家未潜行（isSecondaryUseActive=false）→ 让玩家骑乘；
+    //          否则交基类。
+    if (!isChild()) {
+        // 装备挽具的入口由 MobEntity::processInitialInteract 的第 4 步统一提供
+        // （canEquipItemOnInteract 判定），此处只处理"已装备 → 骑乘"分支。
+        // vanilla 在 mobInteract 内重复调用 interactLivingEntity 属冗余，行为等价。
+
+        if (hasHarness() && !player.isSneaking()) {
+            if (m_world != nullptr && !m_world->isClientSide()) {
+                player.startRiding(*this);
+            }
+            return ActionResultType::Success;
+        }
+    }
+
+    return AnimalEntity::interactMob(player, hand);
+}
+
+bool HappyGhastEntity::canEquipItemOnInteract(const ItemStack& stack, EquipmentSlot slot) const
+{
+    // 对齐 vanilla Equippable.harness：slot=BODY、equivOnInteract=true、
+    // allowedEntities=CAN_EQUIP_HARNESS。Cubium 以实体侧判定等价表达：
+    // 目标必须是可装备挽具的实体（实时查标签，数据包扩展成员自动生效），
+    // 且挽具只能装到 Body 槽。
+    const Item* item = stack.getItem();
+    if (item == nullptr || slot != EquipmentSlot::Body) {
+        return false;
+    }
+    // 标签未初始化时按"不可装备"处理（拒绝而非越权装备）。
+    if (!EntityTypeTags::isInitialized()) {
+        return false;
+    }
+    return EntityTypeTags::CAN_EQUIP_HARNESS().contains(getTypeId());
+}
+
+std::optional<ResourceLocation> HappyGhastEntity::shearingSoundForSlot(EquipmentSlot slot) const
+{
+    // vanilla Equippable.harness 的 setShearingSound(HARNESS_UNEQUIP)。快乐恶魂只有 Body 槽
+    // 会装挽具（CAN_EQUIP_HARNESS 范畴内 Body 槽即为挽具槽），其余槽位沿用基类默认音效。
+    if (slot == EquipmentSlot::Body) {
+        return SoundEvents::HARNESS_UNEQUIP;
+    }
+    return std::nullopt;
+}
+
+void HappyGhastEntity::onSlotCleared(EquipmentSlot slot)
+{
+    // 对齐 vanilla HappyGhast.removePassenger:316-317：挽具被剪下后清空 home 位置
+    // （快乐恶魂不再有"归巢"目的地，需重新建立一个）。
+    if (slot == EquipmentSlot::Body) {
+        clearHome();
+    }
 }
 
 // ========== AI 目标注册 ==========

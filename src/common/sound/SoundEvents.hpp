@@ -1651,6 +1651,12 @@ extern const ResourceLocation ITEM_ARMOR_EQUIP_TURTLE;
 extern const ResourceLocation ITEM_ARMOR_EQUIP_WOLF;
 extern const ResourceLocation ITEM_ARMOR_UNEQUIP_WOLF;
 
+/// 快乐恶魂挽具（HappyGhast harness）装备 / 剪下
+/// 对应 MC Java: SoundEvents.HARNESS_EQUIP / HARNESS_UNEQUIP
+/// （Equippable.harness 的 setEquipSound / setShearingSound 所引用）
+extern const ResourceLocation HARNESS_EQUIP;
+extern const ResourceLocation HARNESS_UNEQUIP;
+
 /// 鞘翅
 extern const ResourceLocation ITEM_ELYTRA_FLYING;
 
@@ -1922,6 +1928,12 @@ extern const ResourceLocation GHASTLING_DEATH;
 extern const ResourceLocation HAPPY_GHAST_AMBIENT;
 extern const ResourceLocation HAPPY_GHAST_HURT;
 extern const ResourceLocation HAPPY_GHAST_DEATH;
+
+/// 快乐恶魂挽具护目镜：乘客上车 / 下车音效
+/// 对应 MC Java: SoundEvents.HARNESS_GOGGLES_DOWN / HARNESS_GOGGLES_UP
+/// （HappyGhast.addPassenger / removePassenger）
+extern const ResourceLocation HARNESS_GOGGLES_DOWN;
+extern const ResourceLocation HARNESS_GOGGLES_UP;
 
 // ============================================================================
 // 初始化

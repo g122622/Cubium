@@ -65,8 +65,11 @@ protected:
     {
         VanillaBlocks::initialize();
         entity::VanillaEntities::registerAll();
-        // 食物标签由首次访问时构建，这里只需保证物品注册完成即可查询标签成员。
         Items::initialize();
+        // #harnesses / #happy_ghast_tempt_items 等物品标签的成员由 ItemTags::initialize()
+        // 生成，Items::initialize() 只注册物品本身。缺少此调用时 TemptItemTagsRegistered
+        // 是否通过取决于其它测试套件是否先初始化过物品标签（测试执行顺序依赖）。
+        item::tag::ItemTags::initialize();
     }
 
     HappyGhastTestWorld m_world;

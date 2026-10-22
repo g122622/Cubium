@@ -25,6 +25,9 @@
 
 #include "core/Item.hpp"
 #include "core/ItemRegistry.hpp"
+// 挽具类需在实体交互链（MobEntity/HappyGhastEntity/ShearsItem）中做具体类型判定，
+// 统一经 Items.hpp 暴露，避免各处重复包含具体物品头文件。
+#include "items/special/HarnessItem.hpp"
 
 namespace mc {
 

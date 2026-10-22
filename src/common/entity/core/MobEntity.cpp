@@ -883,7 +883,7 @@ ActionResultType MobEntity::processInitialInteract(Player& player, Hand hand)
                 enablePersistence();
 
                 // 消耗一个拴绳物品
-                if (!player.abilities().creativeMode) {
+                if (!player.isCreative()) {
                     heldItem.shrink(1);
                 }
 
@@ -901,12 +901,41 @@ ActionResultType MobEntity::processInitialInteract(Player& player, Hand hand)
         return ActionResultType::Pass;
     }
 
-    // 4. 剪刀剪切装备（如狼铠）
+    // 4. 物品驱动的右键装备（如快乐恶魂挽具）
+    //    对齐 vanilla Entity.interactOn 中 itemstack.interactLivingEntity(...) 早于 mobInteract 的调用顺序：
+    //    由实体侧判定"该物品能否装到某装备槽"，能则交给物品的 itemInteractionForEntity
+    //    执行装备与消耗，成功即结束本次交互（失败则继续往下走，含剪刀分支与 interactMob）。
+    if (item != nullptr) {
+        for (size_t i = 0; i < static_cast<size_t>(EquipmentSlot::Count); ++i) {
+            const EquipmentSlot slot = static_cast<EquipmentSlot>(i);
+            if (!canEquipItemOnInteract(heldItem, slot)) {
+                continue;
+            }
+            if (m_world != nullptr && !m_world->isClientSide()) {
+                if (const_cast<Item*>(item)->itemInteractionForEntity(heldItem, player, *this, hand)) {
+                    return ActionResultType::Success;
+                }
+            } else {
+                // 客户端预测成功（服务端为准）
+                return ActionResultType::Success;
+            }
+            break;
+        }
+    }
+
+    // 5. 剪刀剪切装备（狼铠、快乐恶魂挽具）
     //    参考: net.minecraft.world.entity.Entity.interact() 中的剪刀分支
-    //    条件：手持剪刀 + canShearEquipment + 玩家未蹲下 + 身体护甲非空
+    //    条件：手持剪刀 + canShearEquipment + 玩家未蹲下 + Body 槽装有"可被剪下"的装备
+    //    vanilla 用 Equippable.canBeSheared 判定；Cubium 无该数据组件，此前仅接受
+    //    ArmorItem，致快乐恶魂挽具（HarnessItem，非护甲）永远剪不下来。
+    //    现按"该槽位声明了卸下音效（shearingSoundForSlot 非空，如快乐恶魂挽具）或 ArmorItem"判定。
     //    在 interactMob 之前处理，与 MC 原版一致
     if (item != nullptr && item == Items::SHEARS && !player.isSneaking()) {
-        if (canShearEquipment(player) && isWearingBodyArmor()) {
+        const ItemStack& bodyEquipment = getEquipment(EquipmentSlot::Body);
+        const bool shearableBodyEquipment = !bodyEquipment.isEmpty() &&
+            (dynamic_cast<const item::items::ArmorItem*>(bodyEquipment.getItem()) != nullptr ||
+                shearingSoundForSlot(EquipmentSlot::Body).has_value());
+        if (canShearEquipment(player) && shearableBodyEquipment) {
             if (m_world != nullptr && !m_world->isClientSide()) {
                 if (attemptToShearEquipment(player, hand, heldItem)) {
                     return ActionResultType::Success;
@@ -1072,6 +1101,7 @@ bool MobEntity::attemptToShearEquipment(Player& player, Hand hand, ItemStack& sh
     // 取出身体护甲并清空槽位
     ItemStack droppedArmor = bodyArmor;
     setEquipment(EquipmentSlot::Body, ItemStack{});
+    onSlotCleared(EquipmentSlot::Body);
 
     // 在实体位置生成掉落物
     if (m_world != nullptr) {
@@ -1087,10 +1117,33 @@ bool MobEntity::attemptToShearEquipment(Player& player, Hand hand, ItemStack& sh
             nullptr);
     }
 
-    // 播放剪切音效（狼铠使用 ARMOR_UNEQUIP_WOLF 音效）
-    playSound(SoundEvents::ITEM_ARMOR_UNEQUIP_WOLF, 1.0f, 1.0f);
+    // 播放剪切音效（vanilla Equippable.shearingSound）：物品已在上一行从槽位移除，
+    // 故按槽位询问子类（快乐恶魂挽具 → HARNESS_UNEQUIP），缺省回退 ARMOR_UNEQUIP_WOLF
+    // （狼铠等未声明专用卸下音效的装备）。
+    playSound(shearingSoundForSlot(EquipmentSlot::Body).value_or(SoundEvents::ITEM_ARMOR_UNEQUIP_WOLF), 1.0f, 1.0f);
 
     return true;
+}
+
+std::optional<ResourceLocation> MobEntity::shearingSoundForSlot(EquipmentSlot slot) const
+{
+    // 基类不声明任何卸下音效，由装备了"可被剪下"装备的子类覆写（如快乐恶魂挽具）。
+    (void)slot;
+    return std::nullopt;
+}
+
+bool MobEntity::canEquipItemOnInteract(const ItemStack& stack, EquipmentSlot slot) const
+{
+    // vanilla 的判定是物品侧 Equippable.allowedEntities 标签 + equipOnInteract 标志；
+    // Cubium 无数据组件 Equippable，改由实体侧覆写决定"能否用该物品通过右键装备到该槽"。
+    (void)stack;
+    (void)slot;
+    return false;
+}
+
+void MobEntity::onSlotCleared(EquipmentSlot slot)
+{
+    (void)slot;
 }
 
 std::string MobEntity::getLootTableId() const

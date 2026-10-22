@@ -2667,6 +2667,28 @@ public:
     [[nodiscard]] virtual bool canBeRiddenInWater() const { return true; }
 
     /**
+     * @brief 乘客上车后的派发钩子（对齐 vanilla Entity.addPassenger 子类覆写点）
+     *
+     * 在乘客已进入 m_passengers 列表、且已广播 SetPassengers 之后调用。
+     * 默认空实现；需要感知上下客的载具覆写（例如快乐恶魂在首个乘客上车时播放
+     * HARNESS_GOGGLES_DOWN 音效）。
+     *
+     * @param passenger 刚上车的乘客
+     */
+    virtual void onPassengerAdded(Entity& passenger) { (void)passenger; }
+
+    /**
+     * @brief 乘客下车后的派发钩子（对齐 vanilla Entity.removePassenger 子类覆写点）
+     *
+     * 在乘客已从 m_passengers 列表移除、且已广播 SetPassengers 之后调用。
+     * 默认空实现；需要感知上下客的载具覆写（例如快乐恶魂在最后一名乘客离开时
+     * 播放下车音效并清空 home）。
+     *
+     * @param passenger 刚下车的乘客
+     */
+    virtual void onPassengerRemoved(Entity& passenger) { (void)passenger; }
+
+    /**
      * @brief 检查此载具实体是否在水中强制乘客下坐骑
      * @return 如果乘客在水中会被强制下坐骑返回true
      *
