@@ -58,6 +58,23 @@ struct EntityComponentFilter {
 };
 
 /**
+ * @brief 类型专属谓词（vanilla EntityPredicate.type_specific，如 sheep / slime / raider）
+ */
+struct EntityTypeSpecificPredicate {
+    /// 谓词种类 ID（如 "minecraft:sheep"）
+    ResourceLocation type;
+    /// 羊毛是否被剪（sheep）
+    std::optional<bool> sheared;
+    /// 史莱姆/岩浆怪尺寸（slime，按 min/max 区间）
+    std::optional<i32> sizeMin;
+    std::optional<i32> sizeMax;
+    /// 是否为袭击队长（raider）
+    std::optional<bool> isCaptain;
+    /// 是否在开放水域（fishing_hook）
+    std::optional<bool> inOpenWater;
+};
+
+/**
  * @brief 实体谓词
  *
  * 用于匹配实体的条件谓词，检查实体类型、位置、效果、装备、NBT等。
@@ -123,6 +140,10 @@ public:
     [[nodiscard]] const EntityFlagsPredicate& getFlags() const noexcept { return m_flags; }
     [[nodiscard]] const EntityEquipmentPredicate& getEquipment() const noexcept { return m_equipment; }
     [[nodiscard]] const std::vector<EntityComponentFilter>& getComponents() const noexcept { return m_components; }
+    [[nodiscard]] const std::optional<EntityTypeSpecificPredicate>& getTypeSpecific() const noexcept
+    {
+        return m_typeSpecific;
+    }
 
     // ========== Setters ==========
 
@@ -165,6 +186,9 @@ public:
 private:
     void _updateIsAny();
 
+    /// 检查类型专属谓词（对齐 vanilla EntityPredicate.type_specific）
+    [[nodiscard]] bool _testTypeSpecific(const Entity& entity, const EntityTypeSpecificPredicate& specific) const;
+
     /// 检查单个数据组件过滤项（对齐 vanilla EntityPredicate.components）
     [[nodiscard]] bool _testComponent(const Entity& entity, const EntityComponentFilter& component) const;
 
@@ -177,6 +201,8 @@ private:
     EntityEquipmentPredicate m_equipment;   ///< 装备谓词
     /// 组件过滤（vanilla EntityPredicate.components，如 {"minecraft:frog/variant": "minecraft:warm"}）
     std::vector<EntityComponentFilter> m_components;
+    /// 类型专属谓词（vanilla type_specific）
+    std::optional<EntityTypeSpecificPredicate> m_typeSpecific;
     bool m_isAny = true;
 };
 

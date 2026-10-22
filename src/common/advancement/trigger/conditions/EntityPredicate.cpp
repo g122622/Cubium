@@ -33,6 +33,8 @@
 #include "common/entity/damage/DamageSource.hpp"
 #include "common/entity/damage/tag/DamageTypeTag.hpp"
 #include "common/entity/damage/tag/DamageTypeTags.hpp"
+#include "common/entity/entities/monster/basic/SlimeEntity.hpp"
+#include "common/entity/entities/passive/basic/SheepEntity.hpp"
 #include "common/entity/entities/passive/frog/FrogEntity.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/assert/AssertAll.hpp"
@@ -47,7 +49,7 @@ namespace mc::advancement {
 void EntityPredicate::_updateIsAny()
 {
     m_isAny = !m_type.has_value() && m_distance.isAny() && m_location.isAny() && m_effects.isAny() && m_nbt.isAny() &&
-        m_flags.isAny() && m_equipment.isAny();
+        m_flags.isAny() && m_equipment.isAny() && m_components.empty() && !m_typeSpecific.has_value();
 }
 
 bool EntityPredicate::test(const Entity& entity) const
@@ -84,7 +86,12 @@ bool EntityPredicate::test(const Entity& entity) const
         return false;
     }
 
-    // 6. 检查数据组件（vanilla EntityPredicate.components）
+    // 6. 类型专属谓词（vanilla type_specific）
+    if (m_typeSpecific.has_value() && !_testTypeSpecific(entity, *m_typeSpecific)) {
+        return false;
+    }
+
+    // 7. 检查数据组件（vanilla EntityPredicate.components）
     for (const auto& component : m_components) {
         if (!_testComponent(entity, component)) {
             return false;
@@ -95,6 +102,44 @@ bool EntityPredicate::test(const Entity& entity) const
     // 需要距离和位置检查的调用者应使用 test(world, x, y, z, entity) 重载。
 
     return true;
+}
+
+bool EntityPredicate::_testTypeSpecific(const Entity& entity, const EntityTypeSpecificPredicate& specific) const
+{
+    const std::string& typeId = specific.type.toString();
+
+    if (typeId == "minecraft:sheep") {
+        const auto* sheep = dynamic_cast<const SheepEntity*>(&entity);
+        if (sheep == nullptr) {
+            return false;
+        }
+        return !specific.sheared.has_value() || sheep->isSheared() == specific.sheared.value();
+    }
+
+    if (typeId == "minecraft:slime") {
+        // 史莱姆与岩浆怪共用该谓词（vanilla SlimeishPredicate）
+        const auto* slime = dynamic_cast<const SlimeEntity*>(&entity);
+        if (slime == nullptr) {
+            return false;
+        }
+        const i32 size = slime->getSlimeSize();
+        if (specific.sizeMin.has_value() && size < specific.sizeMin.value()) {
+            return false;
+        }
+        if (specific.sizeMax.has_value() && size > specific.sizeMax.value()) {
+            return false;
+        }
+        return true;
+    }
+
+    // TODO(entity-type-specific-predicate): raider.is_captain / fishing_hook.in_open_water
+    //   分别依赖袭击队长标记与钓鱼钩开放水域判定，项目对应状态字段尚未暴露；对这两类
+    //   先按"不匹配"处理（而非静默恒真），待状态接口接入后补齐。
+    if (typeId == "minecraft:raider" || typeId == "minecraft:fishing_hook") {
+        return false;
+    }
+
+    return false;
 }
 
 bool EntityPredicate::_testComponent(const Entity& entity, const EntityComponentFilter& component) const
@@ -237,7 +282,6 @@ Result<EntityPredicate> EntityPredicate::fromJson(const nlohmann::json& json)
         predicate.m_equipment = result.value();
     }
 
-    predicate._updateIsAny();
     if (json.contains("components") && json["components"].is_object()) {
         for (const auto& [componentId, value] : json["components"].items()) {
             predicate.m_components.push_back(EntityComponentFilter{
@@ -245,6 +289,37 @@ Result<EntityPredicate> EntityPredicate::fromJson(const nlohmann::json& json)
         }
     }
 
+    if (json.contains("type_specific") && json["type_specific"].is_object()) {
+        const auto& specific = json["type_specific"];
+        EntityTypeSpecificPredicate parsed;
+        if (specific.contains("type")) {
+            parsed.type = ResourceLocation(specific["type"].get<std::string>());
+        }
+        if (specific.contains("sheared")) {
+            parsed.sheared = specific["sheared"].get<bool>();
+        }
+        if (specific.contains("size") && specific["size"].is_object()) {
+            const auto& size = specific["size"];
+            if (size.contains("min")) {
+                parsed.sizeMin = size["min"].get<i32>();
+            }
+            if (size.contains("max")) {
+                parsed.sizeMax = size["max"].get<i32>();
+            }
+        } else if (specific.contains("size") && specific["size"].is_number_integer()) {
+            const i32 size = specific["size"].get<i32>();
+            parsed.sizeMin = size;
+            parsed.sizeMax = size;
+        }
+        if (specific.contains("is_captain")) {
+            parsed.isCaptain = specific["is_captain"].get<bool>();
+        }
+        if (specific.contains("in_open_water")) {
+            parsed.inOpenWater = specific["in_open_water"].get<bool>();
+        }
+        predicate.m_typeSpecific = std::move(parsed);
+    }
+    predicate._updateIsAny();
     return predicate;
 }
 

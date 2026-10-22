@@ -37,6 +37,8 @@
 #include "common/advancement/trigger/conditions/EntityPredicate.hpp"
 #include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/damage/DamageSource.hpp"
+#include "common/entity/entities/monster/basic/SlimeEntity.hpp"
+#include "common/entity/entities/passive/basic/SheepEntity.hpp"
 #include "common/entity/entities/passive/frog/FrogEntity.hpp"
 #include "common/resource/ResourceLocation.hpp"
 
@@ -135,6 +137,40 @@ TEST_F(FrogFroglightDamageSourcePredicateTest, TypeTags_ObjectFormMatches)
     ASSERT_TRUE(projectilePredicate.success());
     EXPECT_FALSE(projectilePredicate.value().isAny());
     EXPECT_FALSE(projectilePredicate.value().test(fall));
+}
+
+TEST_F(FrogFroglightDamageSourcePredicateTest, TypeSpecific_SlimeSizeRange)
+{
+    // 对齐数据包岩浆怪掉落表：{"type_specific": {"type": "minecraft:slime", "size": {"min": 2}}}
+    SlimeEntity bigSlime(EntityInstanceId(1), mc::test::testEcsRegistry());
+    bigSlime.setTypeId(entity::EntityTypeKeys::SLIME);
+    bigSlime.setSlimeSize(3, false);
+    SlimeEntity smallSlime(EntityInstanceId(2), mc::test::testEcsRegistry());
+    smallSlime.setTypeId(entity::EntityTypeKeys::SLIME);
+    smallSlime.setSlimeSize(1, false);
+
+    const nlohmann::json json = {{"type_specific", {{"type", "minecraft:slime"}, {"size", {{"min", 2}}}}}};
+    const auto predicate = advancement::EntityPredicate::fromJson(json);
+    ASSERT_TRUE(predicate.success());
+    EXPECT_FALSE(predicate.value().isAny());
+    EXPECT_TRUE(predicate.value().test(bigSlime));
+    EXPECT_FALSE(predicate.value().test(smallSlime));
+}
+
+TEST_F(FrogFroglightDamageSourcePredicateTest, TypeSpecific_SheepSheared)
+{
+    SheepEntity sheep(EntityInstanceId(1), mc::test::testEcsRegistry());
+    sheep.setTypeId(entity::EntityTypeKeys::SHEEP);
+    sheep.setSheared(false);
+
+    // 对齐数据包绵羊毛掉落表：{"type_specific": {"type": "minecraft:sheep", "sheared": false}}
+    const nlohmann::json json = {{"type_specific", {{"type", "minecraft:sheep"}, {"sheared", false}}}};
+    const auto predicate = advancement::EntityPredicate::fromJson(json);
+    ASSERT_TRUE(predicate.success());
+    EXPECT_TRUE(predicate.value().test(sheep));
+
+    sheep.setSheared(true);
+    EXPECT_FALSE(predicate.value().test(sheep));
 }
 
 TEST_F(FrogFroglightDamageSourcePredicateTest, BooleanOnlyJson_StillAnyWhenNoFields)
