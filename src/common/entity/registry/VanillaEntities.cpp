@@ -54,6 +54,7 @@
 #include "common/entity/entities/monster/ocean/ElderGuardianEntity.hpp"
 #include "common/entity/entities/monster/ocean/GuardianEntity.hpp"
 #include "common/entity/entities/monster/undead/BoggedEntity.hpp"
+#include "common/entity/entities/monster/undead/CamelHuskEntity.hpp"
 #include "common/entity/entities/monster/undead/DrownedEntity.hpp"
 #include "common/entity/entities/monster/undead/HuskEntity.hpp"
 #include "common/entity/entities/monster/undead/ParchedEntity.hpp"
@@ -342,6 +343,16 @@ void VanillaEntities::doRegisterAll()
     // MC 1.21.11 Camel：继承 AbstractHorse，尺寸 1.7 x 2.375（幼体经 getAgeScale=0.45 缩放）
     registry.registerType(EntityTypeKeys::CAMEL,
         EntityType::Builder(&CamelEntity::create, EntityClassification::Creature)
+            .size(1.7f, 2.375f)
+            .trackingRange(10)
+            .updateInterval(3)
+            .canSummon(true)
+            .build());
+
+    // 骆驼尸壳（敌对骆驼，由尸壳召唤骑乘）
+    // vanilla EntityType.CAMEL_HUSK 未调用 notInPeaceful()（与绝大多数怪物不同），此处保持一致。
+    registry.registerType(EntityTypeKeys::CAMEL_HUSK,
+        EntityType::Builder(&CamelHuskEntity::create, EntityClassification::Monster)
             .size(1.7f, 2.375f)
             .trackingRange(10)
             .updateInterval(3)

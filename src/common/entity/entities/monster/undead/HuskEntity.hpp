@@ -89,8 +89,33 @@ public:
      */
     bool attackEntityAsMob(LivingEntity& target) override;
 
+    // ========== 骆驼骑兵生成 ==========
+
+    /// 自然生成的尸壳召唤骆驼尸壳 + 干枯骷髅骑兵的概率（对齐 vanilla Husk.finalizeSpawn:0.1F）
+    static constexpr f32 CAMEL_HUSK_JOCKEY_CHANCE = 0.1f;
+
+    /**
+     * @brief 生成初始化：含骆驼尸壳骑兵分支
+     *
+     * 对齐 vanilla Husk.finalizeSpawn（Husk.java:90-122）：父类初始化后，若为自然生成且
+     * 本组尚未尝试过、且当前位置可容纳骆驼尸壳（无碰撞），则 10% 概率：
+     * 主手换铁长矛 → 生成骆驼尸壳并让本尸壳骑上 → 生成干枯骷髅作为骆驼的第二个乘客。
+     *
+     * 组数据（vanilla Husk.HuskGroupData.triedToSpawnCamelHusk，保证同组只尝试一次）在
+     * Cubium 的 finalizeSpawn 签名中没有 SpawnGroupData 参数，故以"每次自然生成都尝试"
+     * 近似；该偏差只影响同一刷怪组内出现骑兵的组数上限，不影响骑兵本身的生成逻辑。
+     */
+    void finalizeSpawn(mc::IWorld& world,
+        const mc::entity::combat::DifficultyInstance& difficulty,
+        mc::world::spawn::SpawnReason spawnReason) override;
+
 protected:
     void registerAttributes() override;
+
+    /// 执行骆驼尸壳骑兵生成（失败时静默返回，对齐 vanilla 各判空分支）
+    void _trySpawnCamelHuskJockey(mc::IWorld& world,
+        const mc::entity::combat::DifficultyInstance& difficulty,
+        mc::world::spawn::SpawnReason spawnReason);
 };
 
 } // namespace mc

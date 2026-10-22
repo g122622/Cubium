@@ -513,10 +513,10 @@ void EntityTypeTags::initialize()
     });
 
     // 僵尸类
-    // 对齐 vanilla 1.21.11 EntityTypeTagsProvider.ZOMBIES（含 zombie_horse、zombie_nautilus）。
-    // camel_husk 实体尚未注册（CamelHuskEntity 未实现），暂不加入（TODO：实体实现后补此成员）。
+    // 对齐 vanilla 1.21.11 EntityTypeTagsProvider.ZOMBIES（含 zombie_horse、camel_husk、zombie_nautilus）。
     ZOMBIES().addAll({
         ResourceLocation("minecraft:zombie_horse"),
+        ResourceLocation("minecraft:camel_husk"),
         ResourceLocation("minecraft:zombie"),
         ResourceLocation("minecraft:zombie_villager"),
         ResourceLocation("minecraft:zombified_piglin"),
@@ -538,6 +538,7 @@ void EntityTypeTags::initialize()
         ResourceLocation("minecraft:parched"),
         // #minecraft:zombies 子标签成员
         ResourceLocation("minecraft:zombie_horse"),
+        ResourceLocation("minecraft:camel_husk"),
         ResourceLocation("minecraft:zombie"),
         ResourceLocation("minecraft:zombie_villager"),
         ResourceLocation("minecraft:zombified_piglin"),

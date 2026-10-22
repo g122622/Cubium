@@ -339,6 +339,7 @@ add_executable(mc_tests
     # AbstractSkeletonEntity 拉弓状态（DATA_CHARGING_BOW_PARAM）注册与读写测试
     common/entity/entities/monster/undead/SkeletonChargingBowTest.cpp
     common/entity/entities/monster/undead/ParchedEntityTest.cpp
+    common/entity/entities/monster/undead/CamelHuskEntityTest.cpp
     # VexEntity 穿墙能力和生命周期测试
     common/entity/entities/monster/illager/VexEntityTest.cpp
     # EvokerEntity 尖牙攻击和召唤恼鬼测试

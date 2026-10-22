@@ -6016,14 +6016,13 @@ void Items::_registerSpawnEggs()
             0x88B1BFFF,
             ItemProperties().maxStackSize(64));
 
-    // TODO: 以下 3 种刷怪蛋对应的实体类型尚未在项目中注册，刷怪蛋物品本身已注册成功，
+    // TODO: 以下 2 种刷怪蛋对应的实体类型尚未在项目中注册，刷怪蛋物品本身已注册成功，
     // 但实际使用时（右键方块/右键生物生成幼体）MobEntity::_spawnOffspringFromSpawnEgg 或
     // SpawnEggItem::spawnEntity 通过 EntityRegistry::getType(name)->create() 查找实体会返回
     // nullptr，导致无法生成实体，功能不完整：
-    //   - camel_husk_spawn_egg     → 依赖 CamelHuskEntity
     //   - creaking_spawn_egg       → 依赖 CreakingEntity
     //   - happy_ghast_spawn_egg    → 依赖 HappyGhastEntity
-    // （nautilus / zombie_nautilus / parched 的实体已在 VanillaEntities 注册，不在此列）
+    // （nautilus / zombie_nautilus / parched / camel_husk 的实体已在 VanillaEntities 注册，不在此列）
     // 待上述实体类型实现并在 VanillaEntities::registerAll() 中注册后，刷怪蛋功能自动生效。
 }
 

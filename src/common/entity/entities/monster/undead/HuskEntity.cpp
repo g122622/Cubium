@@ -26,9 +26,15 @@
 #include "common/entity/combat/DifficultyInstance.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/core/EntityClassRegistry.hpp"
+#include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/effect/EffectInstance.hpp"
 #include "common/entity/effect/EffectType.hpp"
+#include "common/entity/entities/monster/undead/CamelHuskEntity.hpp"
+#include "common/entity/entities/monster/undead/ParchedEntity.hpp"
 #include "common/entity/entities/monster/undead/ZombieEntity.hpp"
+#include "common/item/Items.hpp"
+#include "common/item/core/ItemStack.hpp"
+#include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include <memory>
@@ -101,6 +107,87 @@ bool HuskEntity::attackEntityAsMob(LivingEntity& target)
     }
 
     return true;
+}
+
+// ============================================================================
+// 生成初始化：骆驼尸壳骑兵
+// ============================================================================
+
+void HuskEntity::finalizeSpawn(mc::IWorld& world,
+    const mc::entity::combat::DifficultyInstance& difficulty,
+    mc::world::spawn::SpawnReason spawnReason)
+{
+    ZombieEntity::finalizeSpawn(world, difficulty, spawnReason);
+
+    // 对齐 vanilla Husk.finalizeSpawn：仅自然生成时尝试召唤骆驼尸壳骑兵。
+    if (spawnReason != mc::world::spawn::SpawnReason::Natural) {
+        return;
+    }
+    _trySpawnCamelHuskJockey(world, difficulty, spawnReason);
+}
+
+void HuskEntity::_trySpawnCamelHuskJockey(mc::IWorld& world,
+    const mc::entity::combat::DifficultyInstance& difficulty,
+    mc::world::spawn::SpawnReason spawnReason)
+{
+    // 1. 空间检查（对齐 vanilla p_481590_.noCollision(CAMEL_HUSK.getSpawnAABB(...))）。
+    const entity::EntityType* camelHuskType =
+        entity::EntityRegistry::instance().getType(entity::EntityTypeKeys::CAMEL_HUSK);
+    if (camelHuskType == nullptr) {
+        return;
+    }
+    const entity::EntitySize camelSize = camelHuskType->size();
+    const f32 x = this->x();
+    const f32 y = this->y();
+    const f32 z = this->z();
+    if (!world.hasNoCollisions(
+            camelSize.makeBoundingBox(static_cast<f64>(x), static_cast<f64>(y), static_cast<f64>(z)))) {
+        return;
+    }
+
+    // 2. 10% 概率触发（对齐 vanilla randomsource.nextFloat() < 0.1F）。
+    math::IRandom& rng = getRandom();
+    if (rng.nextFloat() >= CAMEL_HUSK_JOCKEY_CHANCE) {
+        return;
+    }
+
+    ecs::EntityRegistry& registry = ecsRegistry();
+
+    // 3. 主手换铁长矛（对齐 vanilla setItemSlot(MAINHAND, new ItemStack(Items.IRON_SPEAR))）。
+    if (Items::IRON_SPEAR != nullptr) {
+        setEquipment(EquipmentSlot::MainHand, ItemStack(*Items::IRON_SPEAR, 1));
+    }
+
+    // 4. 生成骆驼尸壳（与本尸壳同位置）。
+    auto camelHusk = std::make_unique<CamelHuskEntity>(EntityInstanceId(0), registry);
+    camelHusk->setTypeId(entity::EntityTypeKeys::CAMEL_HUSK);
+    camelHusk->setPosition(x, y, z);
+    camelHusk->finalizeSpawn(world, difficulty, spawnReason);
+    const EntityInstanceId camelHuskId = world.spawnEntity(std::move(camelHusk));
+    if (camelHuskId == INVALID_ENTITY_ID) {
+        return;
+    }
+
+    // 5. 本尸壳骑上骆驼尸壳（对齐 vanilla startRiding(camelhusk, true, true)）。
+    Entity* spawnedCamelHusk = world.getEntity(camelHuskId);
+    if (spawnedCamelHusk == nullptr) {
+        return;
+    }
+    startRiding(*spawnedCamelHusk);
+
+    // 6. 生成干枯骷髅作为骆驼的第二个乘客（对齐 vanilla PARCHED.create + snapTo + startRiding）。
+    auto parched = std::make_unique<ParchedEntity>(EntityInstanceId(0), registry);
+    parched->setTypeId(entity::EntityTypeKeys::PARCHED);
+    parched->setPosition(x, y, z);
+    parched->setRotation(yaw(), 0.0f);
+    parched->finalizeSpawn(world, difficulty, spawnReason);
+    const EntityInstanceId parchedId = world.spawnEntity(std::move(parched));
+    if (parchedId == INVALID_ENTITY_ID) {
+        return;
+    }
+    if (Entity* spawnedParched = world.getEntity(parchedId); spawnedParched != nullptr) {
+        spawnedParched->startRiding(*spawnedCamelHusk);
+    }
 }
 
 } // namespace mc

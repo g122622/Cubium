@@ -283,6 +283,7 @@ constexpr const char* BOGGED = "minecraft:bogged";
 constexpr const char* PARCHED = "minecraft:parched";
 constexpr const char* WITHER_SKELETON = "minecraft:wither_skeleton";
 constexpr const char* PHANTOM = "minecraft:phantom";
+constexpr const char* CAMEL_HUSK = "minecraft:camel_husk";
 constexpr const char* ZOMBIE_VILLAGER = "minecraft:zombie_villager";
 constexpr const char* ZOMBIFIED_PIGLIN = "minecraft:zombified_piglin";
 // 节肢动物变种
