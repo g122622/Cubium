@@ -143,12 +143,12 @@ std::unique_ptr<entity::ProjectileEntity> FireChargeItem::asProjectile(IWorld& w
     auto entity = entity::SmallFireballEntity::create(&world, *registry);
     if (entity) {
         entity->setPosition(position.x, position.y, position.z);
-        // 火焰弹使用加速度驱动（而非速度），设置加速度方向
+        // 火焰弹以方向驱动飞行（vanilla ProjectileDispenseBehavior 的 shoot 由基础抛射逻辑给出初速度）
         auto* fireball = dynamic_cast<entity::SmallFireballEntity*>(entity.get());
         if (fireball) {
-            // 加速度 = 方向 * 力度
-            auto config = getDispenseConfig();
-            fireball->setAcceleration(directionX * config.power, directionY * config.power, directionZ * config.power);
+            // 方向决定飞行轨迹；加速力保持 vanilla AbstractHurtingProjectile 默认值 0.1
+            // （fireCharge 配置的 power=1.0 是通用投掷力度，与火球加速力语义不同）。
+            fireball->setAcceleration(directionX, directionY, directionZ);
         }
         entity->setTypeId(entity::EntityTypeKeys::SMALL_FIREBALL);
     }

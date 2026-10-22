@@ -255,9 +255,8 @@ void GhastEntity::shootFireball()
     fireball->setShooter(this);
     fireball->setPosition(Vector3(fireballX, fireballY, fireballZ));
 
-    // 设置加速度方向
-    // FireballEntity 构造函数中设置加速度
-    // accelerationX/Y/Z 每tick累加到速度上
+    // 指定飞行方向：对齐 vanilla Ghast.shoot 构造期 assignDirectionalMovement，
+    // 初速度 = normalize(direction) * accelerationPower，此后每 tick 沿速度方向加速。
     fireball->setAcceleration(dx, dy, dz);
 
     // 设置爆炸威力
