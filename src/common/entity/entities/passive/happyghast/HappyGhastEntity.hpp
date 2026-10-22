@@ -61,8 +61,9 @@ class Goal;
  * @note 已实现：挽具（HARNESS）装备槽语义（右键装备、剪刀剪下、必须装备挽具才能骑乘）、
  *       多人载客上限 4、挽具驱动的载客/离座音效、静止超时（serverStillTimeout，
  *       玩家不再停在其上方时禁止载客驾驶）与降水回血。
+ * @note 已实现：成年/幼年切换时的移动控制与目标集合切换（setChild → ageBoundaryReached，
+ *       幼体用 FlyingMoveControl(180, true) 且无目标、成体恢复恶魂式飞行控制器与目标集合）。
  * @note 未实现（TODO）：
- *       - 成年/幼年切换时的移动控制与 goal 集合切换（ageBoundaryReached）；
  *       - 挽具颜色同步给客户端渲染（客户端已停止维护，服务端只保存挽具物品本身）。
  */
 class HappyGhastEntity : public AnimalEntity {
@@ -207,6 +208,10 @@ public:
      *        aiStep:423-431 的 continuousHeal）
      */
     void tick() override;
+
+public:
+    /// 幼体 → 成体或成体 → 幼体切换时重建移动控制与目标集合（对齐 vanilla ageBoundaryReached）
+    void setChild(bool child) override;
 
 protected:
     // ========== AI 目标注册 ==========

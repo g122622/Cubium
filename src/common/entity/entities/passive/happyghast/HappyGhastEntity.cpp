@@ -23,6 +23,7 @@
 
 #include "HappyGhastEntity.hpp"
 #include "common/core/Types.hpp"
+#include "common/entity/ai/controller/FlyingMovementController.hpp"
 #include "common/entity/ai/controller/GhastMovementController.hpp"
 #include "common/entity/ai/goal/goals/TemptGoal.hpp"
 #include "common/entity/ai/goal/goals/special/GhastGoals.hpp"
@@ -69,6 +70,7 @@ HappyGhastEntity::HappyGhastEntity(EntityInstanceId id, ecs::EntityRegistry& reg
 
     // 补调 registerGoals / registerAttributes：AnimalEntity 构造期间 vtable 指向基类，
     // 派生 override 永不执行，须在派生类构造显式调用。
+    // 构造期尚无幼体/成体信息（NBT 年龄在之后才读入），registerGoals 内部按 isChild() 过滤。
     registerGoals();
     registerAttributes();
 }
@@ -85,6 +87,31 @@ f32 HappyGhastEntity::getBaseWidth() const
 f32 HappyGhastEntity::getBaseHeight() const
 {
     return 4.0f;
+}
+
+// ========== 年龄切换 ==========
+
+void HappyGhastEntity::setChild(bool child)
+{
+    // 先判定是否真的跨越"幼体/成体"边界（对齐 vanilla AgeableMob.setAge 只在变化时调
+    // ageBoundaryReached）。
+    const bool wasChild = isChild();
+    AgeableEntity::setChild(child);
+    if (wasChild == isChild()) {
+        return;
+    }
+
+    // ageBoundaryReached：
+    //   幼体 → FlyingMoveControl(180, true) + 无目标 + 静止超时清零；
+    //   成体 → Ghast.GhastMoveControl（Cubium 为 GhastMovementController）+ 恢复目标集合。
+    m_goalSelector.removeAllGoals();
+    if (isChild()) {
+        m_moveController = std::make_unique<entity::ai::controller::FlyingMovementController>(this, 180, true);
+        _setServerStillTimeout(0);
+    } else {
+        m_moveController = std::make_unique<entity::ai::controller::GhastMovementController>(this);
+        registerGoals();
+    }
 }
 
 // ========== 繁殖 ==========
@@ -423,6 +450,11 @@ void HappyGhastEntity::registerGoals()
     //   4: TemptGoal（TemptGoal.ForNonPathfinders，速度 1.0）
     //   5: Ghast.RandomFloatAroundGoal（16 格半径随机巡游）——此处复用成年随机飞行目标
     // 本项目无 Brain，vanilla HappyGhastAi 的其余行为（跟随拴绳持有者、载客等）尚未实现（见类注释 TODO）。
+    // 幼体没有目标（vanilla babyGhastSetup 清空 goalSelector），只有成体注册上述集合；
+    // 幼体 NBT 在构造后才读入，与 vanilla（saveAdditional 读入后由 ageBoundaryReached 处理）等价。
+    if (isChild()) {
+        return;
+    }
     m_goalSelector.addGoal(3, std::make_unique<entity::ai::goal::GhastHappyFloatGoal>(this));
 
     // 优先级 4: 食物诱惑（对齐 vanilla TemptGoal.ForNonPathfinders，速度 1.0）。原版判据：

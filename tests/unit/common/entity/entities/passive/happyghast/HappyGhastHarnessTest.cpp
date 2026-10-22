@@ -444,6 +444,37 @@ TEST_F(HappyGhastHarnessTest, DismountSetsStillTimeout)
 }
 
 // ============================================================================
+// 幼体/成体切换（ageBoundaryReached）
+// ============================================================================
+
+TEST_F(HappyGhastHarnessTest, BabyHasNoGoalsAndAdultRestoresThem)
+{
+    auto ghast = makeGhast(EntityInstanceId(1));
+    // 成体：注册了 Float/Tempt/RandomFly 三个目标
+    const std::size_t adultGoals = ghast->goalSelector().getAllGoals().size();
+    EXPECT_GT(adultGoals, 0u);
+
+    ghast->setChild(true);
+    EXPECT_EQ(ghast->goalSelector().getAllGoals().size(), 0u) << "幼体不应持有任何目标（vanilla babyGhastSetup）";
+    // 幼体切回成体时恢复目标集合
+    ghast->setChild(false);
+    EXPECT_EQ(ghast->goalSelector().getAllGoals().size(), adultGoals);
+}
+
+TEST_F(HappyGhastHarnessTest, BabyTransitionClearsStillTimeout)
+{
+    auto ghast = makeGhast(EntityInstanceId(1));
+    auto player = makePlayer(EntityInstanceId(2));
+    ghast->setEquipment(EquipmentSlot::Body, ItemStack(Items::WHITE_HARNESS, 1));
+    ASSERT_TRUE(player->startRiding(*ghast));
+    player->stopRiding();
+    ASSERT_EQ(ghast->serverStillTimeout(), 10);
+
+    ghast->setChild(true);
+    EXPECT_EQ(ghast->serverStillTimeout(), 0) << "转为幼体时静止超时应清零（vanilla babyGhastSetup）";
+}
+
+// ============================================================================
 // 降水回血
 // ============================================================================
 
