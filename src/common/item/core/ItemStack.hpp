@@ -1352,6 +1352,24 @@ public:
     void applyComponentPatch(const item::component::DataComponentPatch& patch);
 
     /**
+     * @brief 读取尚未结构化落地的原始组件值（JSON）
+     *
+     * 仅对以 rawComponents 承载的组件有意义（如 chicken/variant 的 EitherHolder 序列化形态）。
+     * 未设置该组件时返回 nullptr。
+     */
+    [[nodiscard]] const nlohmann::json* rawComponent(item::component::DataComponentType type) const;
+
+    /**
+     * @brief 读取 chicken/variant 组件（EitherHolder<ChickenVariant>）解析出的变种 id
+     *
+     * 返回 ChickenEntity.hpp 中 ChickenVariant 枚举值（Temperate=0/Warm=1/Cold=2）；
+     * 组件缺失或无法解析时返回 nullopt。
+     * 文档态形如 {"id":"minecraft:warm"} 或直接 "minecraft:warm"；均按注册表顺序
+     * 映射到枚举值（Temperate=0 / Warm=1 / Cold=2）。未设置或无法解析时返回 nullopt。
+     */
+    [[nodiscard]] std::optional<i32> chickenVariantId() const;
+
+    /**
      * @brief 设置单个组件（覆盖物品基础默认值）
      */
     void setComponent(item::component::DataComponentType type, item::component::DataComponentPayload value);
