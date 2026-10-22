@@ -39,7 +39,6 @@ namespace spawn {
 // 权重、最小/最大群组数量、分类与生物群系属性（creatureGenerationProbability、spawn cost）一一对应。
 //
 // 与原版的已知偏差（对应实体尚未实现，无法进入 spawn list）：
-//   3) parched（沙漠 MONSTER 50,4,4）——ParchedEntity 未实现；
 //   上述条目若写入刷怪表，会占用权重并在抽取后被 NaturalSpawner 跳过，使实际生成分布偏离原版，
 //   因此暂不加入（内置刷怪表与数据包口径保持一致）。
 // TODO(spawn-list-entities): 上述实体实现并注册后，在此补齐对应 spawn list，并删除本条注释中的相应条目。
@@ -47,11 +46,10 @@ namespace spawn {
 namespace {
 
 using entity::EntityTypeKeys::ARMADILLO;
-using entity::EntityTypeKeys::CAMEL;
-using entity::EntityTypeKeys::GOAT;
 using entity::EntityTypeKeys::AXOLOTL;
 using entity::EntityTypeKeys::BAT;
 using entity::EntityTypeKeys::BOGGED;
+using entity::EntityTypeKeys::CAMEL;
 using entity::EntityTypeKeys::CHICKEN;
 using entity::EntityTypeKeys::COD;
 using entity::EntityTypeKeys::COW;
@@ -64,6 +62,7 @@ using entity::EntityTypeKeys::FOX;
 using entity::EntityTypeKeys::FROG;
 using entity::EntityTypeKeys::GHAST;
 using entity::EntityTypeKeys::GLOW_SQUID;
+using entity::EntityTypeKeys::GOAT;
 using entity::EntityTypeKeys::HOGLIN;
 using entity::EntityTypeKeys::HORSE;
 using entity::EntityTypeKeys::HUSK;
@@ -73,6 +72,7 @@ using entity::EntityTypeKeys::MOOSHROOM;
 using entity::EntityTypeKeys::NAUTILUS;
 using entity::EntityTypeKeys::OCELOT;
 using entity::EntityTypeKeys::PANDA;
+using entity::EntityTypeKeys::PARCHED;
 using entity::EntityTypeKeys::PARROT;
 using entity::EntityTypeKeys::PIG;
 using entity::EntityTypeKeys::PIGLIN;
@@ -315,7 +315,7 @@ MobSpawnInfo MobSpawnInfo::createDesert()
     // desertSpawns 不走 commonSpawns，而是直接 monsters(19, 1, 0, 50)。
     _addMonsters(info, 19, 1, 0, 50);
     info.addMonsterSpawn(SpawnEntry(HUSK, 80, 4, 4));
-    // TODO(spawn-list-entities): parched（MONSTER 50,4,4）——ParchedEntity 未实现。
+    info.addMonsterSpawn(SpawnEntry(PARCHED, 50, 4, 4));
 
     return info;
 }

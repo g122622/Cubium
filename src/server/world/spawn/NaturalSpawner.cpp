@@ -102,9 +102,7 @@ std::unordered_set<std::string>& unregisteredTypeWarned()
  * 都会被跳过。若不告警则属于静默失败（问题不可见），若每次抽取都告警则会淹没日志，
  * 故按类型名去重，仅首次告警。
  *
- * TODO: 补齐这些实体的注册与行为实现，使数据包生成列表条目全部生效。当前已知未注册
- * 但被数据包引用的类型包括 armadillo、camel、goat、parched（MobSpawnInfo 工厂为避免
- * 污染随机权重分布同样未把这些条目写入内置刷怪表）。补齐后本告警不再触发。
+ * 当前 armadillo、camel、goat、parched 等已实现并注册，数据包生成列表条目不再被跳过。
  */
 void warnUnregisteredSpawnType(const std::string& entityTypeId)
 {

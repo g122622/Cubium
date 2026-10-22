@@ -409,7 +409,7 @@ TEST_F(NaturalSpawnerTest, SpawnCosts_ZeroCharge)
 //
 // 期望值逐项对应 MC Java 1.21.11 net/minecraft/data/worldgen/BiomeDefaultFeatures.java 与
 // net/minecraft/data/worldgen/biome/{OverworldBiomes,NetherBiomes}.java。
-// 尚未实现的实体（camel/goat/parched）不在内部刷怪表中出现。
+// 尚未实现的实体不在内部刷怪表中出现（当前均已实现，列表为空）。
 
 namespace {
 
@@ -905,8 +905,8 @@ TEST_F(NaturalSpawnerTest, MobSpawnInfo_WindsweptHills)
 
 TEST_F(NaturalSpawnerTest, MobSpawnInfo_Desert)
 {
-    // desertSpawns：rabbit(12,2,3) + camel(1,1,1) + caveSpawns + monsters(19,1,0,50) + husk(80,4,4)
-    //   parched 未实现，不进入刷怪表
+    // desertSpawns：rabbit(12,2,3) + camel(1,1,1) + caveSpawns + monsters(19,1,0,50)
+    //   + husk(80,4,4) + parched(50,4,4)
     auto info = world::spawn::MobSpawnInfo::createDesert();
     EXPECT_FLOAT_EQ(info.getCreatureSpawnProbability(), 0.1f);
 
@@ -919,8 +919,8 @@ TEST_F(NaturalSpawnerTest, MobSpawnInfo_Desert)
     expectSpawn(info.getMonsterSpawns(), "minecraft:zombie_villager", 1, 1, 1);
     expectSpawn(info.getMonsterSpawns(), "minecraft:skeleton", 50, 4, 4);
     expectSpawn(info.getMonsterSpawns(), "minecraft:husk", 80, 4, 4);
-    EXPECT_EQ(info.getMonsterSpawns().size(), 9u);
-    EXPECT_EQ(findSpawn(info.getMonsterSpawns(), "minecraft:parched"), nullptr);
+    expectSpawn(info.getMonsterSpawns(), "minecraft:parched", 50, 4, 4);
+    EXPECT_EQ(info.getMonsterSpawns().size(), 10u);
 }
 
 TEST_F(NaturalSpawnerTest, MobSpawnInfo_Savanna)

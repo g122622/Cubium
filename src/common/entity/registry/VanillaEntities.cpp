@@ -56,6 +56,7 @@
 #include "common/entity/entities/monster/undead/BoggedEntity.hpp"
 #include "common/entity/entities/monster/undead/DrownedEntity.hpp"
 #include "common/entity/entities/monster/undead/HuskEntity.hpp"
+#include "common/entity/entities/monster/undead/ParchedEntity.hpp"
 #include "common/entity/entities/monster/undead/SkeletonEntity.hpp"
 #include "common/entity/entities/monster/undead/StrayEntity.hpp"
 #include "common/entity/entities/monster/undead/WitherSkeletonEntity.hpp"
@@ -88,10 +89,10 @@
 #include "common/entity/entities/passive/nautilus/NautilusEntity.hpp"
 #include "common/entity/entities/passive/nautilus/ZombieNautilusEntity.hpp"
 #include "common/entity/entities/passive/special/ArmadilloEntity.hpp"
-#include "common/entity/entities/passive/special/CamelEntity.hpp"
-#include "common/entity/entities/passive/special/GoatEntity.hpp"
 #include "common/entity/entities/passive/special/BeeEntity.hpp"
+#include "common/entity/entities/passive/special/CamelEntity.hpp"
 #include "common/entity/entities/passive/special/FoxEntity.hpp"
+#include "common/entity/entities/passive/special/GoatEntity.hpp"
 #include "common/entity/entities/passive/special/PandaEntity.hpp"
 #include "common/entity/entities/passive/special/PolarBearEntity.hpp"
 #include "common/entity/entities/passive/special/SnifferEntity.hpp"
@@ -676,6 +677,16 @@ void VanillaEntities::doRegisterAll()
     // 沼骸骨
     registry.registerType(EntityTypeKeys::BOGGED,
         EntityType::Builder(&BoggedEntity::create, EntityClassification::Monster)
+            .size(0.6f, 1.99f)
+            .trackingRange(8)
+            .updateInterval(3)
+            .canSummon(true)
+            .notInPeaceful()
+            .build());
+
+    // 干枯骷髅（沙漠骷髅变种）
+    registry.registerType(EntityTypeKeys::PARCHED,
+        EntityType::Builder(&ParchedEntity::create, EntityClassification::Monster)
             .size(0.6f, 1.99f)
             .trackingRange(8)
             .updateInterval(3)

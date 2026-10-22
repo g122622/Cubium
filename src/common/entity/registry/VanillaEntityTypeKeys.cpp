@@ -112,6 +112,7 @@ const EntityType* ELDER_GUARDIAN = nullptr;
 const EntityType* HUSK = nullptr;
 const EntityType* DROWNED = nullptr;
 const EntityType* STRAY = nullptr;
+const EntityType* PARCHED = nullptr;
 const EntityType* WITHER_SKELETON = nullptr;
 const EntityType* PHANTOM = nullptr;
 const EntityType* ZOMBIE_VILLAGER = nullptr;
@@ -303,6 +304,7 @@ void initialize()
     HUSK = registry.getType(EntityTypeKeys::HUSK);
     DROWNED = registry.getType(EntityTypeKeys::DROWNED);
     STRAY = registry.getType(EntityTypeKeys::STRAY);
+    PARCHED = registry.getType(EntityTypeKeys::PARCHED);
     WITHER_SKELETON = registry.getType(EntityTypeKeys::WITHER_SKELETON);
     PHANTOM = registry.getType(EntityTypeKeys::PHANTOM);
     ZOMBIE_VILLAGER = registry.getType(EntityTypeKeys::ZOMBIE_VILLAGER);
@@ -454,6 +456,7 @@ void reset()
     HUSK = nullptr;
     DROWNED = nullptr;
     STRAY = nullptr;
+    PARCHED = nullptr;
     WITHER_SKELETON = nullptr;
     PHANTOM = nullptr;
     ZOMBIE_VILLAGER = nullptr;

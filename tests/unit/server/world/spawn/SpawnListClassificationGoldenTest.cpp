@@ -94,6 +94,7 @@ constexpr SpawnListClassificationCase kSpawnListClassifications[] = {
     // 该差异属原版既有设计（豹猫按敌对逻辑参与丛林刷怪），故期望值取实体自身的 CREATURE。
     {"minecraft:ocelot", EntityClassification::Creature},
     {"minecraft:panda", EntityClassification::Creature},
+    {"minecraft:parched", EntityClassification::Monster},
     {"minecraft:parrot", EntityClassification::Creature},
     {"minecraft:pig", EntityClassification::Creature},
     {"minecraft:piglin", EntityClassification::Monster},
@@ -125,9 +126,7 @@ constexpr SpawnListClassificationCase kSpawnListClassifications[] = {
  * 它们不参与分类断言，但本测试会断言其"仍未注册"，以便在实现它们时强制更新本文件，
  * 避免实现后遗忘分类口径核对。
  */
-constexpr std::string_view kKnownUnregisteredSpawnTypes[] = {
-    "minecraft:parched",
-};
+constexpr std::string_view kKnownUnregisteredSpawnTypes[] = {};
 
 } // namespace
 

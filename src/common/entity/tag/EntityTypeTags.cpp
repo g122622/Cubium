@@ -509,6 +509,7 @@ void EntityTypeTags::initialize()
         ResourceLocation("minecraft:wither_skeleton"),
         ResourceLocation("minecraft:skeleton_horse"),
         ResourceLocation("minecraft:bogged"),
+        ResourceLocation("minecraft:parched"),
     });
 
     // 僵尸类
@@ -527,8 +528,6 @@ void EntityTypeTags::initialize()
 
     // 亡灵（包含 #minecraft:skeletons 和 #minecraft:zombies 子标签）
     // 对齐 vanilla 1.21.11 EntityTypeTagsProvider.UNDEAD（= SKELETONS + ZOMBIES + wither + phantom）。
-    // parched 实体尚未注册（ParchedEntity 未实现），vanilla SKELETONS 含 parched，暂不加入
-    // （TODO：实体实现后补入 SKELETONS 与此处）。
     UNDEAD().addAll({
         // #minecraft:skeletons 子标签成员
         ResourceLocation("minecraft:skeleton"),
@@ -536,6 +535,7 @@ void EntityTypeTags::initialize()
         ResourceLocation("minecraft:wither_skeleton"),
         ResourceLocation("minecraft:skeleton_horse"),
         ResourceLocation("minecraft:bogged"),
+        ResourceLocation("minecraft:parched"),
         // #minecraft:zombies 子标签成员
         ResourceLocation("minecraft:zombie_horse"),
         ResourceLocation("minecraft:zombie"),

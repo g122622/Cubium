@@ -128,6 +128,7 @@ extern const EntityType* ELDER_GUARDIAN;
 extern const EntityType* HUSK;
 extern const EntityType* DROWNED;
 extern const EntityType* STRAY;
+extern const EntityType* PARCHED;
 extern const EntityType* WITHER_SKELETON;
 extern const EntityType* PHANTOM;
 extern const EntityType* ZOMBIE_VILLAGER;

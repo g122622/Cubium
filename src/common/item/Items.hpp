@@ -1573,7 +1573,7 @@ public:
     static Item* OCELOT_SPAWN_EGG;           // 豹猫刷怪蛋
     static Item* PANDA_SPAWN_EGG;            // 熊猫刷怪蛋
     static Item* PARROT_SPAWN_EGG;           // 鹦鹉刷怪蛋
-    static Item* PARCHED_SPAWN_EGG;          // 干涸者刷怪蛋
+    static Item* PARCHED_SPAWN_EGG;          // 干枯骷髅刷怪蛋
     static Item* PHANTOM_SPAWN_EGG;          // 幻翼刷怪蛋
     static Item* PIG_SPAWN_EGG;              // 猪刷怪蛋
     static Item* PIGLIN_SPAWN_EGG;           // 猪灵刷怪蛋
