@@ -40,6 +40,7 @@
 #include <gtest/gtest.h>
 
 #include "common/TestWorldHelper.hpp"
+#include "common/entity/ai/goal/goals/special/FrogGoals.hpp"
 #include "common/entity/core/MobEntity.hpp"
 #include "common/entity/entities/passive/frog/FrogEntity.hpp"
 #include "common/entity/entities/passive/water/TadpoleEntity.hpp"
@@ -246,6 +247,25 @@ TEST_F(FrogMetamorphosisTest, Frog_CanEatOnlyFrogFoodEntities)
     LivingEntity cow(EntityInstanceId(21), nullptr, mc::test::testEcsRegistry());
     cow.setTypeId("minecraft:cow");
     EXPECT_FALSE(FrogEntity::canEat(cow));
+}
+
+// 对齐 vanilla FrogAi.canAttack：求爱（繁殖）期间不捕食。
+TEST_F(FrogMetamorphosisTest, FrogTongueGoal_IgnoresBreeding)
+{
+    FrogEntity frog(EntityInstanceId(30), mc::test::testEcsRegistry());
+    frog.setWorld(&m_world);
+    LivingEntity slime(EntityInstanceId(31), nullptr, mc::test::testEcsRegistry());
+    slime.setTypeId("minecraft:slime");
+    frog.setAttackTarget(&slime);
+    frog.setLoveTimer(600);
+
+    entity::ai::goal::FrogAttackTargetGoal targetGoal(&frog, 16.0f, 1.0f);
+    entity::ai::goal::FrogTongueGoal tongueGoal(&frog);
+    EXPECT_FALSE(targetGoal.shouldExecute());
+    EXPECT_FALSE(tongueGoal.shouldExecute());
+
+    frog.resetLove();
+    EXPECT_TRUE(targetGoal.shouldExecute()) << "非繁殖期应保留现有可捕食目标";
 }
 
 // 青蛙可被 /summon 创建并拥有正确的类型键（注册表完整性）。
