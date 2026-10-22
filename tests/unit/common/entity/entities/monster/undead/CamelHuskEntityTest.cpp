@@ -161,6 +161,16 @@ TEST_F(CamelHuskEntityTest, FoodIsRabbitFootUnlikeCamel)
     EXPECT_FALSE(camel.isFoodItem(ItemStack(*Items::RABBIT_FOOT, 1)));
 }
 
+TEST_F(CamelHuskEntityTest, ChargeSpeedModifierIsFour)
+{
+    CamelHuskEntity camelHusk(EntityInstanceId(1), mc::test::testEcsRegistry());
+    CamelEntity camel(EntityInstanceId(2), mc::test::testEcsRegistry());
+
+    // 对齐 vanilla CamelHusk.chargeSpeedModifier = 4.0F（契约基类默认 1.0F）
+    EXPECT_FLOAT_EQ(camelHusk.chargeSpeedModifier(), 4.0f);
+    EXPECT_FLOAT_EQ(camel.chargeSpeedModifier(), 1.0f);
+}
+
 TEST_F(CamelHuskEntityTest, HuskJockeyChanceMatchesVanilla)
 {
     // 对齐 vanilla Husk.finalizeSpawn: randomsource.nextFloat() < 0.1F

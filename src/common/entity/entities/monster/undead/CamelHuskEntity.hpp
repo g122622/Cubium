@@ -44,9 +44,9 @@ namespace mc {
  * - 任意玩家交互即标记为持久化（不退场）
  * - 食物为骆驼尸壳食物标签，声音全部使用 entity.camel_husk.*
  *
- * TODO: 冲锋速度修正 chargeSpeedModifier()=4.0（vanilla CamelHusk:124）依赖长矛
- *       （SpearApproach/SpearAttack/SpearRetreat/SpearUseGoal）与长矛物品体系，
- *       项目尚未实现长矛，待该子系统就绪后接入。
+ * TODO: 冲锋速度修正 chargeSpeedModifier()=4.0 已提供，但消费方（vanilla 的
+ *       SpearApproach/SpearAttack/SpearRetreat/SpearUseGoal 长矛 AI）项目尚未实现，
+ *       待长矛 AI 目标落地后该倍率才会生效。
  */
 class CamelHuskEntity : public CamelEntity {
 public:
@@ -63,6 +63,8 @@ public:
     /// 本类继承链标识（parent = CamelEntity::classInfo()）。见 Entity::classInfo()。
     static const entity::EntityClassInfo& classInfo();
 
+    /// 长矛冲锋时的移动速度倍率（vanilla CamelHusk.chargeSpeedModifier）
+    static constexpr f32 CHARGE_SPEED_MODIFIER = 4.0f;
     /// 步骤音效音量（vanilla CamelHusk.playStepSound 用 0.4F，与 AbstractSkeleton 同）
     static constexpr f32 STEP_VOLUME = 0.4f;
 
@@ -92,6 +94,9 @@ public:
 
     /// 任意玩家交互都标记持久化（对齐 vanilla CamelHusk.interact）
     ActionResultType interactMob(Player& player, Hand hand) override;
+
+    /// 冲锋速度修正（对齐 vanilla CamelHusk.chargeSpeedModifier = 4.0F）
+    [[nodiscard]] f32 chargeSpeedModifier() const override { return CHARGE_SPEED_MODIFIER; }
 
     /// 食物：#minecraft:camel_husk_food（兔子脚，与骆驼的 #camel_food 不同）
     [[nodiscard]] bool isFoodItem(const ItemStack& itemStack) const override;

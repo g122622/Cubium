@@ -461,6 +461,16 @@ public:
     [[nodiscard]] virtual f32 getFaceRotSpeed() const { return 10.0f; }
 
     /**
+     * @brief 冲锋（长矛）时的移动速度修正倍率
+     *
+     * 对齐 MC 1.21.11 Mob.chargeSpeedModifier()（默认 1.0F）：持长矛的生物（骑乘骆驼类）在
+     * SpearUseGoal / SpearApproach / SpearAttack / SpearRetreat 中，把导航速度乘以本倍率。
+     * Cubium 尚未实现上述长矛 AI 目标，长矛投掷/近战本身已由 SpearItem + SpearEntity 承担；
+     * 待长矛 AI 目标落地后由这些目标消费本虚函数。
+     */
+    [[nodiscard]] virtual f32 chargeSpeedModifier() const { return 1.0f; }
+
+    /**
      * @brief 清除导航路径
      *
      * 安全地清除导航器的路径，内部处理空指针检查。
