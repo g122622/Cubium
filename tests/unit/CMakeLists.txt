@@ -496,6 +496,7 @@ add_executable(mc_tests
     # ArrowEntity 药水箭测试（效果、颜色、NBT标签）
     common/entity/ArrowEntityTest.cpp
     common/entity/ArrowNbtPersistTest.cpp
+    common/entity/EggChickenVariantTest.cpp
     common/entity/MobBodyRotationTest.cpp
     # ArrowEntity 修复验证测试（拾取状态、伤害公式、isPlayer判断）
     common/entity/ArrowEntityFixTest.cpp

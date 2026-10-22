@@ -288,19 +288,13 @@ void EggEntity::_spawnHatchedChicken()
     // setAge(-24000) 设幼年（对齐 vanilla setAge(-24000)）。setChild(true) 等价设 BABY_AGE=-24000。
     chicken->setChild(true);
 
-    // 变种传递：vanilla 从物品 DataComponents.CHICKEN_VARIANT 读取可空 Holder 覆盖鸡变种
-    // （ThrownEgg.java:76-78），未设置时保留小鸡默认的 TEMPERATE。Cubium 物品侧 DataComponentMap
-    // 尚未承载 ChickenVariant 组件值（仅 DataComponentType 枚举 + 名称映射），故当前等价于"恒未设置"：
-    // 白蛋孵化出 TEMPERATE 鸡，棕蛋/蓝蛋按物品自身种类映射到对应变种（与数据包产蛋表一致）。
-    // TODO(CHICKEN_VARIANT): 物品侧 DataComponentMap 补齐 ChickenVariant 值后，改为读取组件值覆盖，
-    //   组件缺省时再回落到下述按物品种类的映射。
-    if (chicken->getVariant() == ChickenVariant::Temperate) {
-        const Item* eggItem = getDefaultItem();
-        if (eggItem == Items::BROWN_EGG) {
-            chicken->setVariant(ChickenVariant::Warm);
-        } else if (eggItem == Items::BLUE_EGG) {
-            chicken->setVariant(ChickenVariant::Cold);
-        }
+    // 变种传递：对齐 vanilla ThrownEgg.onHit（ThrownEgg.java:78-80）——从物品的
+    // DataComponents.CHICKEN_VARIANT（可空 Holder<ChickenVariant>）读取并覆盖鸡变种，
+    // 组件缺省时保留小鸡默认的 TEMPERATE。
+    if (const auto variantId = getItemStack().chickenVariantId(); variantId.has_value() &&
+        *variantId >= static_cast<i32>(ChickenVariant::Temperate) &&
+        *variantId <= static_cast<i32>(ChickenVariant::Cold)) {
+        chicken->setVariant(static_cast<ChickenVariant>(*variantId));
     }
 
     m_world->spawnEntity(std::move(chicken));

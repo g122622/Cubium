@@ -49,6 +49,7 @@
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/block/BlockTags.hpp"
 #include <algorithm>
+#include <array>
 #include <chrono>
 #include <cstddef>
 #include <memory>
@@ -1507,7 +1508,8 @@ void ItemStack::applyComponentPatch(const item::component::DataComponentPatch& p
             }
             case DataComponentType::Bees:
             case DataComponentType::Trim:
-            case DataComponentType::Recipes: {
+            case DataComponentType::Recipes:
+            case DataComponentType::ChickenVariant: {
                 auto name = componentName(*type);
                 if (name.has_value()) {
                     _ensureExtras().rawComponents[std::string(*name)] = std::get<nlohmann::json>(entry.value);
@@ -1673,6 +1675,48 @@ void ItemStack::applyComponentPatch(const item::component::DataComponentPatch& p
                 break;
         }
     }
+}
+
+const nlohmann::json* ItemStack::rawComponent(item::component::DataComponentType type) const
+{
+    using namespace item::component;
+    if (m_extras == nullptr || !m_extras->rawComponents.is_object()) {
+        return nullptr;
+    }
+    const auto name = componentName(type);
+    if (!name.has_value()) {
+        return nullptr;
+    }
+    const auto it = m_extras->rawComponents.find(std::string(*name));
+    return it != m_extras->rawComponents.end() ? &*it : nullptr;
+}
+
+std::optional<i32> ItemStack::chickenVariantId() const
+{
+    // 与 ChickenEntity.hpp 的 ChickenVariant 枚举一致：Temperate=0 / Warm=1 / Cold=2（同时为实体 NBT "variant" 取值）。
+    constexpr std::array<const char*, 3> VARIANT_ORDER{"temperate", "warm", "cold"};
+    const nlohmann::json* component = rawComponent(item::component::DataComponentType::ChickenVariant);
+    if (component == nullptr) {
+        return std::nullopt;
+    }
+    // EitherHolder 文档态：{"id":"minecraft:warm"} 或直接 "minecraft:warm"。
+    std::string variantName;
+    if (component->is_string()) {
+        variantName = component->get<std::string>();
+    } else if (component->is_object() && component->contains("id") && (*component)["id"].is_string()) {
+        variantName = (*component)["id"].get<std::string>();
+    } else {
+        return std::nullopt;
+    }
+    const auto colon = variantName.find(':');
+    const std::string_view path =
+        colon == std::string::npos ? std::string_view(variantName) : std::string_view(variantName).substr(colon + 1);
+    for (usize i = 0; i < VARIANT_ORDER.size(); ++i) {
+        if (path == VARIANT_ORDER[i]) {
+            return static_cast<i32>(i);
+        }
+    }
+    return std::nullopt;
 }
 
 void ItemStack::setComponent(item::component::DataComponentType type, item::component::DataComponentPayload value)

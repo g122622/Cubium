@@ -119,6 +119,9 @@ public:
 
     [[nodiscard]] const Item* getDefaultItem() const override;
 
+    /// 立即按当前物品执行一次孵化（供测试验证变种传递，绕过 1/8 概率判定）。
+    void hatchChickenForTest() { _spawnHatchedChicken(); }
+
 protected:
     void onEntityHit(const RayTraceResult& result) override;
     void onImpact(const RayTraceResult& result) override;
