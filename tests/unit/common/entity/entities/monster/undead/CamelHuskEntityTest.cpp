@@ -126,6 +126,26 @@ TEST_F(CamelHuskEntityTest, DespawnsEvenWhenRidden)
     EXPECT_TRUE(camelHusk.canBeLeashed());
 }
 
+TEST_F(CamelHuskEntityTest, GoalsReplacedWithMonsterSet)
+{
+    CamelHuskEntity camelHusk(EntityInstanceId(1), mc::test::testEcsRegistry());
+
+    bool hasMelee = false;
+    bool hasBreed = false;
+    for (const auto& pg : camelHusk.goalSelector().getAllGoals()) {
+        const std::string name = pg.getGoal() != nullptr ? pg.getGoal()->getTypeName() : std::string();
+        hasMelee = hasMelee || name == "MeleeAttackGoal";
+        hasBreed = hasBreed || name == "BreedGoal";
+    }
+    // 骆驼尸壳为敌对生物：保留近战攻击目标，剔除被动坐骑的繁殖目标
+    EXPECT_TRUE(hasMelee);
+    EXPECT_FALSE(hasBreed);
+
+    // TargetGoals 系列（HurtByTargetGoal / NearestAttackableTargetGoal）未覆写 getTypeName，
+    // 故按目标选择器的条目数量判定：被攻击反击 + 攻击玩家 = 2 条。
+    EXPECT_EQ(camelHusk.targetSelector().getAllGoals().size(), 2u);
+}
+
 TEST_F(CamelHuskEntityTest, HuskJockeyChanceMatchesVanilla)
 {
     // 对齐 vanilla Husk.finalizeSpawn: randomsource.nextFloat() < 0.1F

@@ -23,11 +23,19 @@
 
 #include "CamelHuskEntity.hpp"
 
+#include "common/entity/ai/goal/GoalSelector.hpp"
+#include "common/entity/ai/goal/goals/LookAtGoal.hpp"
+#include "common/entity/ai/goal/goals/MeleeAttackGoal.hpp"
+#include "common/entity/ai/goal/goals/SwimGoal.hpp"
+#include "common/entity/ai/goal/goals/movement/MovementGoals.hpp"
+#include "common/entity/ai/goal/goals/target/TargetGoals.hpp"
 #include "common/entity/core/EntityClassRegistry.hpp"
+
 #include "common/entity/damage/DamageSource.hpp"
 #include "common/entity/ecs/components/MobFlagComponent.hpp"
 #include "common/entity/entities/monster/MonsterEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
+#include "common/entity/registry/VanillaEntityTypeKeys.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/world/IWorld.hpp"
 
@@ -57,12 +65,23 @@ std::unique_ptr<Entity> CamelHuskEntity::create(IWorld* /*world*/, ecs::EntityRe
 
 void CamelHuskEntity::registerGoals()
 {
-    // TODO: 敌对骆驼缺乏 monster 基类目标（近战/目标选择/随机张望的怪物版）。
-    //       registerGoals 由 CamelEntity 构造函数（此时虚派发仍落在 CamelEntity）调用过一次，
-    //       且 GoalSelector 不提供"清空全部目标"的公开接口，故此处只能补注册。
-    //       CamelHusk 真正需要的目标集（MeleeAttackGoal / NearestAttackableTargetGoal 等）
-    //       待 GoalSelector 支持移除全部目标后按 vanilla Monster 重新装配。
-    (void)0;
+    // CamelEntity 构造函数按"被动坐骑"注册了繁殖/诱惑/跟随父母/随机坐下等目标
+    // （构造期虚派发落在 CamelEntity，无法直接跳过）。骆驼尸壳是敌对生物，须整体替换为
+    // 怪物目标集：先清空两个选择器，再按 vanilla Monster/Zombie 的口径重装。
+    m_goalSelector.removeAllGoals();
+    m_targetSelector.removeAllGoals();
+
+    m_goalSelector.addGoal(0, std::make_unique<entity::ai::goal::SwimGoal>(this));
+    m_goalSelector.addGoal(2, std::make_unique<entity::ai::goal::MeleeAttackGoal>(this, 1.0, false));
+    m_goalSelector.addGoal(7, std::make_unique<entity::ai::goal::WaterAvoidingRandomWalkingGoal>(this, 1.0));
+    m_goalSelector.addGoal(
+        8, std::make_unique<entity::ai::goal::LookAtGoal>(this, 8.0f, 0.02f, [](const LivingEntity* entity) -> bool {
+            return entity != nullptr && entity->entityType() == entity::VanillaEntityTypeKeys::PLAYER;
+        }));
+    m_goalSelector.addGoal(8, std::make_unique<entity::ai::goal::LookRandomlyGoal>(this));
+
+    m_targetSelector.addGoal(1, std::make_unique<entity::ai::goal::HurtByTargetGoal>(this, true));
+    m_targetSelector.addGoal(2, std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<Player>>(this, true));
 }
 
 void CamelHuskEntity::registerAttributes()
