@@ -627,4 +627,61 @@ void EntityHurtPlayerTrigger::trigger(
     MC_UNUSED(blocked);
 }
 
+// ========== ChangedDimensionTrigger ==========
+
+bool ChangedDimensionTriggerInstance::test(const ResourceLocation& from, const ResourceLocation& to) const
+{
+    if (m_from.has_value() && m_from.value() != from) {
+        return false;
+    }
+    return !m_to.has_value() || m_to.value() == to;
+}
+
+Result<void> ChangedDimensionTriggerInstance::fromJson(const nlohmann::json& json)
+{
+    m_from.reset();
+    m_to.reset();
+    if (json.is_null()) {
+        return {};
+    }
+    if (json.contains("from") && json["from"].is_string()) {
+        m_from = ResourceLocation(json["from"].get<std::string>());
+    }
+    if (json.contains("to") && json["to"].is_string()) {
+        m_to = ResourceLocation(json["to"].get<std::string>());
+    }
+    // TODO(player-predicate): vanilla 条件还含可选的 player（ContextAwarePredicate）字段，暂忽略。
+    return {};
+}
+
+nlohmann::json ChangedDimensionTriggerInstance::conditionsToJson() const
+{
+    nlohmann::json json;
+    if (m_from.has_value()) {
+        json["from"] = m_from->toString();
+    }
+    if (m_to.has_value()) {
+        json["to"] = m_to->toString();
+    }
+    return json;
+}
+
+Result<std::shared_ptr<ICriterionInstance>> ChangedDimensionTrigger::fromJson(const nlohmann::json& json)
+{
+    auto instance = std::make_shared<ChangedDimensionTriggerInstance>();
+    auto result = instance->fromJson(json);
+    if (result.failed()) {
+        return result.error();
+    }
+    return instance;
+}
+
+void ChangedDimensionTrigger::trigger(ServerPlayer& player, const ResourceLocation& from, const ResourceLocation& to)
+{
+    // 实际派发由 ServerPlayer::triggerChangedDimension 经模板方法完成
+    MC_UNUSED(player);
+    MC_UNUSED(from);
+    MC_UNUSED(to);
+}
+
 } // namespace mc::advancement

@@ -1229,6 +1229,20 @@ bool ServerPlayer::teleportToDimension(DimensionId targetDim, const Vector3d& po
     return true;
 }
 
+void ServerPlayer::triggerChangedDimension(const ResourceLocation& from, const ResourceLocation& to)
+{
+    if (m_advancements == nullptr) {
+        return;
+    }
+    auto* trigger = advancement::CriterionTriggers::instance().getTrigger<advancement::ChangedDimensionTrigger>();
+    if (trigger == nullptr) {
+        return;
+    }
+    trigger->advancement::AbstractCriterionTrigger<advancement::ChangedDimensionTriggerInstance>::trigger(
+        *m_advancements,
+        [&from, &to](const advancement::ChangedDimensionTriggerInstance& instance) { return instance.test(from, to); });
+}
+
 void ServerPlayer::setWorld(server::ServerWorld* world)
 {
     Entity::setWorld(world);
@@ -1313,6 +1327,12 @@ bool ServerPlayer::_performDimensionTransfer(DimensionId targetDim, const Vector
         }
         if (targetWorld != nullptr) {
             targetWorld->entityTracker().sendActiveEffects(*m_server, playerId(), *this);
+        }
+
+        // 跨维度进度（对齐 vanilla ServerPlayer.changeDimension → CriteriaTriggers.CHANGED_DIMENSION）
+        if (sourceWorld != nullptr) {
+            triggerChangedDimension(ResourceLocation(DimensionType::fromId(sourceWorld->dimension()).name()),
+                ResourceLocation(DimensionType::fromId(targetDim).name()));
         }
     }
 

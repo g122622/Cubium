@@ -190,5 +190,53 @@ TEST_F(PlayerHurtEntityTriggerTest, EntityHurtPlayer_NoDamageMatchesAny)
     EXPECT_TRUE(instance->test(source, 1.0f, 1.0f, false));
 }
 
+TEST_F(PlayerHurtEntityTriggerTest, ChangedDimension_Registered)
+{
+    EXPECT_TRUE(advancement::CriterionTriggers::instance().hasTrigger(ResourceLocation("minecraft:changed_dimension")));
+}
+
+TEST_F(PlayerHurtEntityTriggerTest, ChangedDimension_ToOnly)
+{
+    // 数据包 end/root：{"to": "minecraft:the_end"}
+    const nlohmann::json json = {
+        {"trigger", "minecraft:changed_dimension"},
+        {"conditions", {{"to", "minecraft:the_end"}}},
+    };
+    auto criterion = advancement::Criterion::fromJson("entered_end", json);
+    ASSERT_TRUE(criterion.success());
+    auto instance =
+        std::dynamic_pointer_cast<advancement::ChangedDimensionTriggerInstance>(criterion.value().getTriggerInstance());
+    ASSERT_NE(instance, nullptr);
+
+    const ResourceLocation overworld("minecraft:overworld");
+    const ResourceLocation nether("minecraft:the_nether");
+    const ResourceLocation end("minecraft:the_end");
+    EXPECT_TRUE(instance->test(overworld, end));
+    EXPECT_TRUE(instance->test(nether, end));
+    EXPECT_FALSE(instance->test(overworld, nether));
+}
+
+TEST_F(PlayerHurtEntityTriggerTest, ChangedDimension_FromAndTo)
+{
+    advancement::ChangedDimensionTriggerInstance instance;
+    ASSERT_TRUE(
+        instance.fromJson(nlohmann::json{{"from", "minecraft:the_nether"}, {"to", "minecraft:overworld"}}).success());
+
+    const ResourceLocation overworld("minecraft:overworld");
+    const ResourceLocation nether("minecraft:the_nether");
+    EXPECT_TRUE(instance.test(nether, overworld));
+    EXPECT_FALSE(instance.test(overworld, nether));
+}
+
+TEST_F(PlayerHurtEntityTriggerTest, ChangedDimension_NoConditionsMatchesAny)
+{
+    advancement::ChangedDimensionTriggerInstance instance;
+    ASSERT_TRUE(instance.fromJson(nlohmann::json::object()).success());
+    const ResourceLocation overworld("minecraft:overworld");
+    EXPECT_TRUE(instance.test(overworld, overworld));
+    const nlohmann::json roundTrip = instance.conditionsToJson();
+    EXPECT_TRUE(roundTrip.empty());
+}
+
 } // namespace
 } // namespace mc

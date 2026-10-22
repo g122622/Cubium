@@ -49,6 +49,7 @@ class VillagerTradeTriggerInstance;
 class PlayerInteractedWithEntityTriggerInstance;
 class PlayerHurtEntityTriggerInstance;
 class EntityHurtPlayerTriggerInstance;
+class ChangedDimensionTriggerInstance;
 
 /**
  * @brief 驯服动物触发器
@@ -348,6 +349,46 @@ public:
 
 private:
     std::optional<DamagePredicate> m_damage;
+};
+
+/**
+ * @brief 维度切换触发器（对齐 vanilla ChangeDimensionTrigger）
+ *
+ * 玩家跨维度迁移成功时触发（主世界↔下界↔末地、数据包自定义维度）。
+ * 条件可选 from / to 两个维度资源位置。数据包 end/root、nether 目录下的 loot_* 进度依赖它。
+ */
+class ChangedDimensionTrigger : public AbstractCriterionTrigger<ChangedDimensionTriggerInstance> {
+public:
+    static constexpr const char* TRIGGER_ID = "minecraft:changed_dimension";
+
+    [[nodiscard]] ResourceLocation getId() const override { return ResourceLocation(TRIGGER_ID); }
+
+    [[nodiscard]] Result<std::shared_ptr<ICriterionInstance>> fromJson(const nlohmann::json& json) override;
+
+    void trigger(class ServerPlayer& player, const ResourceLocation& from, const ResourceLocation& to);
+};
+
+/**
+ * @brief 维度切换触发器实例
+ */
+class ChangedDimensionTriggerInstance : public CriterionInstance<ChangedDimensionTriggerInstance> {
+public:
+    static constexpr const char* TRIGGER_ID = "minecraft:changed_dimension";
+
+    ChangedDimensionTriggerInstance() = default;
+
+    /// vanilla matches(from, to)：from 不匹配即失败；to 缺省则匹配任意目标维度
+    [[nodiscard]] bool test(const ResourceLocation& from, const ResourceLocation& to) const;
+
+    Result<void> fromJson(const nlohmann::json& json);
+    [[nodiscard]] nlohmann::json conditionsToJson() const;
+
+    [[nodiscard]] const std::optional<ResourceLocation>& getFrom() const noexcept { return m_from; }
+    [[nodiscard]] const std::optional<ResourceLocation>& getTo() const noexcept { return m_to; }
+
+private:
+    std::optional<ResourceLocation> m_from;
+    std::optional<ResourceLocation> m_to;
 };
 
 } // namespace advancement

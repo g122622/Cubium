@@ -714,6 +714,20 @@ public:
     }
 
     /**
+     * @brief 跨维度迁移成功后触发进度（对齐 vanilla CriteriaTriggers.CHANGED_DIMENSION）
+     *
+     * @param from 迁移前的维度资源位置（如 minecraft:overworld）
+     * @param to 迁移后的维度资源位置
+     *
+     * 基类为空实现（仅服务端玩家处理进度）。
+     */
+    virtual void triggerChangedDimension(const ResourceLocation& from, const ResourceLocation& to)
+    {
+        MC_UNUSED(from);
+        MC_UNUSED(to);
+    }
+
+    /**
      * @brief 增加自定义统计
      *
      * 当玩家触发自定义统计事件时调用（如打开容器、与方块交互等）。

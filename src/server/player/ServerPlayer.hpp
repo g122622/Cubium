@@ -557,6 +557,9 @@ public:
     /// 触发 entity_hurt_player 进度（对齐 vanilla CriteriaTriggers.ENTITY_HURT_PLAYER）
     void triggerEntityHurtPlayer(const DamageSource& source, f32 dealt, f32 taken, bool blocked) override;
 
+    /// 触发 changed_dimension 进度（对齐 vanilla CriteriaTriggers.CHANGED_DIMENSION）
+    void triggerChangedDimension(const ResourceLocation& from, const ResourceLocation& to) override;
+
     /**
      * @brief 解锁配方（重写 Player 基类）
      *
