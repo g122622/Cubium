@@ -31,6 +31,8 @@
 #include "common/core/Types.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/damage/DamageSource.hpp"
+#include "common/entity/damage/tag/DamageTypeTag.hpp"
+#include "common/entity/damage/tag/DamageTypeTags.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/assert/AssertAll.hpp"
 #include "common/world/IWorld.hpp"
@@ -297,6 +299,33 @@ bool DamageSourcePredicate::test(const DamageSource& source) const
         return false;
     }
 
+    // 造成者实体（vanilla source_entity）：对应 DamageSource::getTrueSource
+    if (m_sourceEntity.has_value()) {
+        const Entity* causingEntity = source.getTrueSource();
+        if (causingEntity == nullptr || !m_sourceEntity->test(*causingEntity)) {
+            return false;
+        }
+    }
+
+    // 直接来源实体（vanilla direct_entity）：对应 DamageSource::directSource
+    if (m_directEntity.has_value()) {
+        const Entity* direct = source.directSource();
+        if (direct == nullptr || !m_directEntity->test(*direct)) {
+            return false;
+        }
+    }
+
+    // 伤害类型 ID / 标签（vanilla type / tags）
+    if (m_type.has_value() && DamageTypeNames::getResourceLocation(source.type()) != m_type.value()) {
+        return false;
+    }
+    if (m_typeTag.has_value()) {
+        const DamageTypeTag* tag = DamageTypeTags::getTag(m_typeTag.value());
+        if (tag == nullptr || !tag->contains(source)) {
+            return false;
+        }
+    }
+
     // 检查是否为闪电伤害
     if (m_isLightning.has_value()) {
         bool isLightning = (source.type() == DamageType::LightningBolt);
@@ -341,12 +370,37 @@ Result<DamageSourcePredicate> DamageSourcePredicate::fromJson(const nlohmann::js
     if (json.contains("is_lightning")) {
         predicate.m_isLightning = json["is_lightning"].get<bool>();
     }
+    if (json.contains("source_entity")) {
+        const Result<EntityPredicate> sourceEntity = EntityPredicate::fromJson(json["source_entity"]);
+        if (!sourceEntity.success()) {
+            return sourceEntity.error();
+        }
+        predicate.m_sourceEntity = sourceEntity.value();
+    }
+    if (json.contains("direct_entity")) {
+        const Result<EntityPredicate> directEntity = EntityPredicate::fromJson(json["direct_entity"]);
+        if (!directEntity.success()) {
+            return directEntity.error();
+        }
+        predicate.m_directEntity = directEntity.value();
+    }
+    if (json.contains("type")) {
+        predicate.m_type = ResourceLocation(json["type"].get<std::string>());
+    }
+    if (json.contains("tags")) {
+        // vanilla 的 tags 是伤害类型标签数组；Cubium 伤害类型标签表未接入，暂取第一项占位。
+        const auto& tags = json["tags"];
+        if (tags.is_array() && !tags.empty()) {
+            predicate.m_typeTag = ResourceLocation(tags[0].get<std::string>());
+        }
+    }
 
     // 计算是否为任意匹配
     predicate.m_isAny = !predicate.m_isProjectile.has_value() && !predicate.m_isExplosion.has_value() &&
         !predicate.m_bypassesArmor.has_value() && !predicate.m_bypassesInvulnerability.has_value() &&
         !predicate.m_bypassesMagic.has_value() && !predicate.m_isFire.has_value() && !predicate.m_isMagic.has_value() &&
-        !predicate.m_isLightning.has_value();
+        !predicate.m_isLightning.has_value() && !predicate.m_sourceEntity.has_value() &&
+        !predicate.m_directEntity.has_value() && !predicate.m_type.has_value() && !predicate.m_typeTag.has_value();
 
     return predicate;
 }

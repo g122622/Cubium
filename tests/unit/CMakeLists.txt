@@ -1243,6 +1243,7 @@ add_executable(mc_tests
     common/entity/loot/LootParameterSetValidationTest.cpp
     # BlockPredicate 和 StatePropertiesPredicate 测试
     common/advancement/BlockPredicateTest.cpp
+    common/advancement/DamageSourcePredicateTest.cpp
     # AdvancementVisibilityEvaluator 成就可见性评估器测试
     common/advancement/AdvancementVisibilityEvaluatorTest.cpp
     # AdvancementLoader 成就加载器测试

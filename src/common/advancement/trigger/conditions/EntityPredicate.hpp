@@ -211,6 +211,10 @@ public:
         return m_bypassesInvulnerability;
     }
     [[nodiscard]] const std::optional<bool>& bypassesMagic() const noexcept { return m_bypassesMagic; }
+    [[nodiscard]] const std::optional<EntityPredicate>& sourceEntity() const noexcept { return m_sourceEntity; }
+    [[nodiscard]] const std::optional<EntityPredicate>& directEntity() const noexcept { return m_directEntity; }
+    [[nodiscard]] const std::optional<ResourceLocation>& type() const noexcept { return m_type; }
+    [[nodiscard]] const std::optional<ResourceLocation>& typeTag() const noexcept { return m_typeTag; }
 
 private:
     std::optional<bool> m_isProjectile;            ///< 是否为投射物伤害
@@ -221,6 +225,14 @@ private:
     std::optional<bool> m_bypassesArmor;           ///< 是否绕过护甲
     std::optional<bool> m_bypassesInvulnerability; ///< 是否绕过无敌模式
     std::optional<bool> m_bypassesMagic;           ///< 是否绕过魔法保护
+    /// 造成者实体谓词（vanilla source_entity，对应 Cubium DamageSource::getTrueSource）
+    std::optional<EntityPredicate> m_sourceEntity;
+    /// 直接来源实体谓词（vanilla direct_entity，对应 Cubium DamageSource::directSource）
+    std::optional<EntityPredicate> m_directEntity;
+    /// 伤害类型 ID（vanilla type，如 "minecraft:mob_attack"）
+    std::optional<ResourceLocation> m_type;
+    /// 伤害类型标签（vanilla tags）
+    std::optional<ResourceLocation> m_typeTag;
     bool m_isAny = true;
 };
 
