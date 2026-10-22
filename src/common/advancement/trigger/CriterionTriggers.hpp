@@ -165,6 +165,7 @@ constexpr const char* AVOID_VIBRATION = "minecraft:avoid_vibration";
 constexpr const char* IMPOSSIBLE = "minecraft:impossible";
 constexpr const char* TICK = "minecraft:tick";
 constexpr const char* RECIPE_UNLOCKED = "minecraft:recipe_unlocked";
+constexpr const char* RECIPE_CRAFTED = "minecraft:recipe_crafted";
 constexpr const char* CONSTRUCT_BEACON = "minecraft:construct_beacon";
 constexpr const char* USED_ENDER_EYE = "minecraft:used_ender_eye";
 constexpr const char* USED_TOTEM = "minecraft:used_totem";

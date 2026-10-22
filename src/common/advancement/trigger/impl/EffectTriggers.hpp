@@ -35,6 +35,7 @@ namespace mc::advancement {
 
 // Forward declarations
 class RecipeUnlockedTriggerInstance;
+class RecipeCraftedTriggerInstance;
 class EffectsChangedTriggerInstance;
 class BrewedPotionTriggerInstance;
 
@@ -70,6 +71,45 @@ public:
 
 private:
     ResourceLocation m_recipe;
+};
+
+/**
+ * @brief 配方制作触发器（对齐 vanilla RecipeCraftedTrigger）
+ *
+ * 玩家在合成台/工作台完成一次配方时触发，条件可限定 recipe_id 与 ingredients。
+ */
+class RecipeCraftedTrigger : public AbstractCriterionTrigger<RecipeCraftedTriggerInstance> {
+public:
+    static constexpr const char* TRIGGER_ID = "minecraft:recipe_crafted";
+
+    [[nodiscard]] ResourceLocation getId() const override { return ResourceLocation(TRIGGER_ID); }
+
+    [[nodiscard]] Result<std::shared_ptr<ICriterionInstance>> fromJson(const nlohmann::json& json) override;
+
+    /// 触发（本次合成的配方 id 与消耗的原料列表）
+    void trigger(class ServerPlayer& player,
+        const ResourceLocation& recipeId,
+        const class std::vector<class ItemStack>& ingredients);
+};
+
+/**
+ * @brief 配方制作触发器实例
+ */
+class RecipeCraftedTriggerInstance : public CriterionInstance<RecipeCraftedTriggerInstance> {
+public:
+    static constexpr const char* TRIGGER_ID = "minecraft:recipe_crafted";
+
+    RecipeCraftedTriggerInstance() = default;
+
+    /// 配方 ID 与原料共同匹配（原料按多重集合匹配，逐个消耗）
+    [[nodiscard]] bool test(const ResourceLocation& recipeId, const std::vector<class ItemStack>& ingredients) const;
+
+    Result<void> fromJson(const nlohmann::json& json);
+    [[nodiscard]] nlohmann::json conditionsToJson() const;
+
+private:
+    ResourceLocation m_recipeId;
+    std::vector<advancement::ItemPredicate> m_ingredients;
 };
 
 /**

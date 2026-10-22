@@ -24,8 +24,12 @@
 #include "EffectTriggers.hpp"
 #include "common/advancement/trigger/CriterionTrigger.hpp"
 #include "common/advancement/trigger/conditions/EntityPredicate.hpp"
+#include "common/advancement/trigger/conditions/ItemPredicate.hpp"
 #include "common/advancement/trigger/conditions/MobEffectsPredicate.hpp"
 #include "common/core/Result.hpp"
+#include "common/item/core/Item.hpp"
+#include "common/item/core/ItemStack.hpp"
+#include "common/item/tag/ItemTags.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/assert/AssertAll.hpp"
 #include <memory>
@@ -80,6 +84,95 @@ Result<std::shared_ptr<ICriterionInstance>> RecipeUnlockedTrigger::fromJson(cons
 }
 
 // Note: RecipeUnlockedTrigger::trigger() is implemented in server layer via include of TriggerInstantiation.hpp
+
+// ========== RecipeCraftedTrigger ==========
+
+bool RecipeCraftedTriggerInstance::test(
+    const ResourceLocation& recipeId, const std::vector<ItemStack>& ingredients) const
+{
+    // 配方 ID 必须一致；空 ID 表示"任意配方"（对齐 vanilla 条件中 recipe_id 必填，这里放宽以兼容）。
+    if (!m_recipeId.path().empty() && m_recipeId != recipeId) {
+        return false;
+    }
+
+    // 原料按多重集合匹配：每个谓词须能消耗掉一个尚未匹配的原料（对齐 vanilla matches）。
+    std::vector<const ItemStack*> remaining;
+    remaining.reserve(ingredients.size());
+    for (const auto& stack : ingredients) {
+        if (!stack.isEmpty()) {
+            remaining.push_back(&stack);
+        }
+    }
+    for (const auto& predicate : m_ingredients) {
+        bool matched = false;
+        for (auto it = remaining.begin(); it != remaining.end(); ++it) {
+            if (predicate.test(**it)) {
+                remaining.erase(it);
+                matched = true;
+                break;
+            }
+        }
+        if (!matched) {
+            return false;
+        }
+    }
+    return true;
+}
+
+Result<void> RecipeCraftedTriggerInstance::fromJson(const nlohmann::json& json)
+{
+    if (json.is_null()) {
+        return {};
+    }
+    if (json.contains("recipe_id")) {
+        m_recipeId = ResourceLocation(json["recipe_id"].get<std::string>());
+    }
+    if (json.contains("ingredients") && json["ingredients"].is_array()) {
+        for (const auto& entry : json["ingredients"]) {
+            auto predicate = advancement::ItemPredicate::fromJson(entry);
+            if (predicate.failed()) {
+                return predicate.error();
+            }
+            m_ingredients.push_back(std::move(predicate.value()));
+        }
+    }
+    return {};
+}
+
+nlohmann::json RecipeCraftedTriggerInstance::conditionsToJson() const
+{
+    nlohmann::json json;
+    if (!m_recipeId.path().empty()) {
+        json["recipe_id"] = m_recipeId.toString();
+    }
+    if (!m_ingredients.empty()) {
+        nlohmann::json ingredients = nlohmann::json::array();
+        for (const auto& predicate : m_ingredients) {
+            ingredients.push_back(predicate.toJson());
+        }
+        json["ingredients"] = std::move(ingredients);
+    }
+    return json;
+}
+
+void RecipeCraftedTrigger::trigger(
+    ServerPlayer& player, const ResourceLocation& recipeId, const std::vector<ItemStack>& ingredients)
+{
+    // 实际触发逻辑在服务端（TriggerInstantiation.hpp 的模板实现），此接口供 ServerPlayer 调用。
+    MC_UNUSED(player);
+    MC_UNUSED(recipeId);
+    MC_UNUSED(ingredients);
+}
+
+Result<std::shared_ptr<ICriterionInstance>> RecipeCraftedTrigger::fromJson(const nlohmann::json& json)
+{
+    auto instance = std::make_shared<RecipeCraftedTriggerInstance>();
+    auto result = instance->fromJson(json);
+    if (result.failed()) {
+        return result.error();
+    }
+    return instance;
+}
 
 // ========== EffectsChangedTrigger ==========
 

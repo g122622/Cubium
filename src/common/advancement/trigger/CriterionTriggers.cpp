@@ -96,6 +96,7 @@ void CriterionTriggers::registerBuiltinTriggers()
     registerTrigger(std::make_unique<InventoryChangedTrigger>());
     registerTrigger(std::make_unique<TickTrigger>());
     registerTrigger(std::make_unique<RecipeUnlockedTrigger>());
+    registerTrigger(std::make_unique<RecipeCraftedTrigger>());
     registerTrigger(std::make_unique<EffectsChangedTrigger>());
     registerTrigger(std::make_unique<BrewedPotionTrigger>());
 

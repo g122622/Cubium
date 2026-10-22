@@ -520,6 +520,22 @@ void ServerPlayer::onItemCrafted(ItemStack& stack, i32 amount)
     }
 }
 
+void ServerPlayer::triggerRecipeCrafted(const ResourceLocation& recipeId, const std::vector<ItemStack>& ingredients)
+{
+    if (m_advancements == nullptr) {
+        return;
+    }
+    // 直接经基类模板方法派发（与 AdvancementEventHandler 各触发点写法一致）
+    auto* trigger = advancement::CriterionTriggers::instance().getTrigger<advancement::RecipeCraftedTrigger>();
+    if (trigger == nullptr) {
+        return;
+    }
+    trigger->advancement::AbstractCriterionTrigger<advancement::RecipeCraftedTriggerInstance>::trigger(
+        *m_advancements, [&recipeId, &ingredients](const advancement::RecipeCraftedTriggerInstance& instance) {
+            return instance.test(recipeId, ingredients);
+        });
+}
+
 void ServerPlayer::unlockRecipe(const ResourceLocation& recipeId)
 {
     // 触发配方解锁成就

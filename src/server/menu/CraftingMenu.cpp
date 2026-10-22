@@ -260,8 +260,9 @@ void CraftingMenu::updateResult()
 
     if (m_currentRecipe != nullptr) {
         m_result.setResultItem(m_currentRecipe->assemble(m_craftingGrid));
-        // 设置当前使用的配方，用于配方解锁
+        // 设置当前使用的配方，用于配方解锁与 recipe_crafted 进度（含本次原料）
         m_result.setCraftingRecipeUsed(m_currentRecipe);
+        m_result.setCraftingIngredients(m_craftingGrid.getItems());
     } else {
         m_result.clear();
         m_result.setCraftingRecipeUsed(nullptr);
@@ -471,8 +472,9 @@ void InventoryCraftingMenu::updateResult()
 
     if (m_currentRecipe != nullptr) {
         m_result.setResultItem(m_currentRecipe->assemble(m_craftingGrid));
-        // 设置当前使用的配方，用于配方解锁
+        // 设置当前使用的配方，用于配方解锁与 recipe_crafted 进度（含本次原料）
         m_result.setCraftingRecipeUsed(m_currentRecipe);
+        m_result.setCraftingIngredients(m_craftingGrid.getItems());
     } else {
         m_result.clear();
         m_result.setCraftingRecipeUsed(nullptr);

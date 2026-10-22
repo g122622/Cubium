@@ -319,6 +319,9 @@ public:
      * @param recipe 合成配方指针，nullptr表示清除
      * @note 使用 crafting::CraftingRecipe 类型（IRecipe<CraftingInventory> 的别名）
      */
+    /// 记录本次合成的原料（供 recipe_crafted 进度的 ingredients 条件匹配）
+    void setCraftingIngredients(std::vector<ItemStack> ingredients);
+
     void setCraftingRecipeUsed(const crafting::IRecipe<mc::CraftingInventory>* recipe)
     {
         m_craftingRecipeUsed = recipe;
@@ -342,7 +345,9 @@ public:
 
 private:
     ItemStack m_result;
-    const crafting::IRecipe<mc::CraftingInventory>* m_craftingRecipeUsed = nullptr; ///< 当前使用的合成配方
+    const crafting::IRecipe<mc::CraftingInventory>* m_craftingRecipeUsed = nullptr;
+    /// 本次合成的原料（recipe_crafted 进度的 ingredients 条件用）
+    std::vector<ItemStack> m_craftingIngredients;
 };
 
 } // namespace mc

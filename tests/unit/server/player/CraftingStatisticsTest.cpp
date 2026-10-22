@@ -41,8 +41,10 @@
 #include "common/entity/inventory/IInventory.hpp"
 #include "common/entity/inventory/Slot.hpp"
 #include "common/item/Items.hpp"
+#include "common/item/core/ItemRegistry.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/item/items/block/BlockItemRegistry.hpp"
+#include "common/item/tag/ItemTags.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "server/player/ServerPlayer.hpp"
@@ -133,6 +135,8 @@ protected:
         // 初始化方块和物品注册表
         VanillaBlocks::initialize();
         Items::initialize();
+        // 物品标签（#decorated_pot_sherds 等）按需构建，使用标签的触发器实例须先初始化
+        item::tag::ItemTags::initialize();
         BlockItemRegistry::instance().initializeVanillaBlockItems();
 
         // 注册内置触发器
@@ -526,6 +530,62 @@ TEST_F(CraftingStatisticsTest, OnItemCrafted_StackLargerThanCraftedCount)
     const auto& stats = m_player->getStats();
     // 统计应该使用传入的数量，而不是物品堆数量
     EXPECT_EQ(stats.getValue(server::stats::StatType::Crafted, ResourceLocation("minecraft:diamond")), 5);
+}
+
+// ========== RecipeCraftedTrigger 测试（对齐 vanilla RecipeCraftedTrigger） ==========
+
+TEST_F(CraftingStatisticsTest, RecipeCraftedTrigger_IsRegistered)
+{
+    auto* trigger = advancement::CriterionTriggers::instance().getTrigger<advancement::RecipeCraftedTrigger>();
+    ASSERT_NE(trigger, nullptr);
+}
+
+TEST_F(CraftingStatisticsTest, RecipeCraftedTrigger_MatchesRecipeAndIngredients)
+{
+    // 对齐数据包 craft_decorated_pot_using_only_sherds 的写法
+    nlohmann::json json = R"({
+        "recipe_id": "minecraft:decorated_pot",
+        "ingredients": [
+            {"items": "minecraft:brick"},
+            {"items": "#minecraft:decorated_pot_sherds"}
+        ]
+    })"_json;
+    auto* trigger = advancement::CriterionTriggers::instance().getTrigger<advancement::RecipeCraftedTrigger>();
+    ASSERT_NE(trigger, nullptr);
+    auto result = trigger->fromJson(json);
+    ASSERT_TRUE(result.success());
+    auto instance = std::dynamic_pointer_cast<advancement::RecipeCraftedTriggerInstance>(result.value());
+    ASSERT_NE(instance, nullptr);
+    const nlohmann::json roundTrip = instance->conditionsToJson();
+    ASSERT_TRUE(roundTrip.contains("ingredients")) << "解析后未保留 ingredients：" << roundTrip.dump();
+
+    ASSERT_NE(Items::BRICK, nullptr) << "BRICK 未注册";
+    const ResourceLocation recipeId("minecraft:decorated_pot");
+    std::vector<ItemStack> ingredients;
+    ingredients.emplace_back(*Items::BRICK, 1);
+    const Item* sherd = ItemRegistry::instance().getItem(ResourceLocation("minecraft:heart_pottery_sherd"));
+    if (sherd == nullptr) {
+        GTEST_SKIP() << "decorated_pot_sherds 相关物品不可用";
+    }
+    ingredients.emplace_back(*sherd, 1);
+
+    // 配方与材料都满足 → 匹配
+    EXPECT_TRUE(instance->test(recipeId, ingredients));
+    // 配方不同 → 不匹配
+    EXPECT_FALSE(instance->test(ResourceLocation("minecraft:crafter"), ingredients));
+
+    // 缺少砖头 → 不匹配
+    std::vector<ItemStack> missingBrick{ingredients.back()};
+    EXPECT_FALSE(instance->test(recipeId, missingBrick));
+}
+
+TEST_F(CraftingStatisticsTest, RecipeCraftedTrigger_EmptyRecipeIdMatchesAny)
+{
+    nlohmann::json json = R"({"recipe_id": ""})"_json;
+    auto instance = std::make_shared<advancement::RecipeCraftedTriggerInstance>();
+    ASSERT_TRUE(instance->fromJson(json).success());
+    // 空 recipe_id 视为"任意配方"
+    EXPECT_TRUE(instance->test(ResourceLocation("minecraft:stick"), {}));
 }
 
 } // namespace

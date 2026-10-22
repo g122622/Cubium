@@ -272,9 +272,17 @@ void CraftResultInventory::onCrafting(Player& player)
 {
     if (m_craftingRecipeUsed != nullptr && !m_craftingRecipeUsed->isDynamic()) {
         ResourceLocation recipeId = m_craftingRecipeUsed->getId();
+        // 对齐 vanilla ServerPlayer.triggerRecipeCrafted：解锁配方同时触发"制作了某配方"进度。
+        player.triggerRecipeCrafted(recipeId, m_craftingIngredients);
         player.unlockRecipe(recipeId);
         m_craftingRecipeUsed = nullptr;
     }
+    m_craftingIngredients.clear();
+}
+
+void CraftResultInventory::setCraftingIngredients(std::vector<ItemStack> ingredients)
+{
+    m_craftingIngredients = std::move(ingredients);
 }
 
 ResourceLocation CraftResultInventory::getRecipeUsedId() const

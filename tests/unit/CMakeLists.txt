@@ -1059,6 +1059,8 @@ add_executable(mc_tests
     server/player/ServerPlayerPvpTest.cpp
     # ServerPlayer 客户端 tick 运动量记账测试（client_tick_end 收口的状态机）
     server/player/ServerPlayerClientMovementTest.cpp
+    # 合成统计与配方进度触发器测试
+    server/player/CraftingStatisticsTest.cpp
     # 维度管理器测试
     server/dimension/ServerDimensionManagerTest.cpp
     server/weather/WeatherManagerTest.cpp

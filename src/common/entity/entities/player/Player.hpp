@@ -63,6 +63,7 @@
 #include <optional>
 #include <string>
 #include <utility>
+#include <vector>
 
 namespace mc {
 
@@ -638,6 +639,20 @@ public:
         MC_UNUSED(stack);
         MC_UNUSED(amount);
         // 基类默认空实现
+    }
+
+    /**
+     * @brief 合成完成时触发配方制作触发器（对齐 vanilla ServerPlayer.triggerRecipeCrafted）
+     *
+     * @param recipeId 本次使用的配方 ID
+     * @param ingredients 参与合成的原料（按槽位顺序）
+     *
+     * 基类为空实现（仅服务端玩家处理进度）。
+     */
+    virtual void triggerRecipeCrafted(const ResourceLocation& recipeId, const std::vector<ItemStack>& ingredients)
+    {
+        MC_UNUSED(recipeId);
+        MC_UNUSED(ingredients);
     }
 
     /**
