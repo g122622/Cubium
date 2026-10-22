@@ -25,6 +25,7 @@
 
 #include "common/advancement/MinMaxBounds.hpp"
 #include "common/advancement/trigger/conditions/EnchantmentPredicate.hpp"
+#include "common/advancement/trigger/conditions/ItemPredicate.hpp"
 #include "common/item/enchantment/EnchantmentContainer.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include <nlohmann/json.hpp>
@@ -407,4 +408,23 @@ TEST_F(EnchantmentPredicateTest, RoundTripLevelsOnly)
     EnchantmentContainer enchants;
     enchants.set("minecraft:sharpness", 5);
     EXPECT_TRUE(result.value().test(enchants));
+}
+
+// ============================================================================
+// ItemPredicate 的 vanilla DataComponentMatchers 写法
+// （装备谓词 {"mainhand": {"predicates": {"minecraft:enchantments": [...]}}}）
+// ============================================================================
+
+TEST_F(EnchantmentPredicateTest, ItemPredicate_PredicatesWrapperParsesEnchantments)
+{
+    // 对齐数据包"熔炼掉落"条件：直接攻击者主手物品带 #smelts_loot 附魔
+    const nlohmann::json json = {{"predicates",
+        {{"minecraft:enchantments", nlohmann::json::array({{{"enchantments", "#minecraft:smelts_loot"}}})}}}};
+
+    auto result = ItemPredicate::fromJson(json);
+    ASSERT_TRUE(result.success());
+    EXPECT_TRUE(result.value().isWrappedPredicates());
+    EXPECT_FALSE(result.value().isAny());
+    const auto& enchantments = result.value().getEnchantments();
+    ASSERT_EQ(enchantments.size(), 1u);
 }

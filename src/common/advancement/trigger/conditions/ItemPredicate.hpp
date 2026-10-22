@@ -158,6 +158,8 @@ public:
         return m_storedEnchantments;
     }
     [[nodiscard]] const NBTPredicate& getNbt() const noexcept { return m_nbt; }
+    /// 是否由 `predicates` 包装字段构造（vanilla 装备谓词的 DataComponentMatchers 写法）
+    [[nodiscard]] bool isWrappedPredicates() const noexcept { return m_fromPredicates; }
 
     // ========== Setters ==========
 
@@ -190,7 +192,9 @@ private:
     std::vector<EnchantmentPredicate> m_enchantments;       ///< 附魔谓词列表
     std::vector<EnchantmentPredicate> m_storedEnchantments; ///< 存储附魔谓词列表（附魔书）
     NBTPredicate m_nbt;                                     ///< NBT谓词
-    bool m_isAny = true;                                    ///< 是否匹配任意物品
+    /// 由 `{"predicates": {...}}` 包装形式构造（仅保留附魔部分谓词）
+    bool m_fromPredicates = false;
+    bool m_isAny = true; ///< 是否匹配任意物品
 };
 
 } // namespace mc::advancement

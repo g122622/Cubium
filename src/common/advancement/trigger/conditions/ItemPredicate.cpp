@@ -179,6 +179,47 @@ Result<ItemPredicate> ItemPredicate::fromJson(const nlohmann::json& json)
         return ItemPredicate{};
     }
 
+    // vanilla DataComponentMatchers 写法：{"predicates": {"minecraft:enchantments": [...]}}。
+    // 数据包的"熔炼掉落"条件用它判断直接攻击者的主手物品是否带 #smelts_loot 附魔，
+    // 旧版直接写 enchantments；两种写法都要识别。
+    if (json.is_object() && json.contains("predicates") && json["predicates"].is_object()) {
+        std::vector<EnchantmentPredicate> enchantments;
+        std::vector<EnchantmentPredicate> storedEnchantments;
+        const auto& partial = json["predicates"];
+        const auto parseList = [](const nlohmann::json& list, std::vector<EnchantmentPredicate>& out) -> Result<void> {
+            if (!list.is_array()) {
+                return Result<void>::ok();
+            }
+            for (const auto& entry : list) {
+                auto parsed = EnchantmentPredicate::fromJson(entry);
+                if (parsed.failed()) {
+                    return parsed.error();
+                }
+                out.push_back(parsed.value());
+            }
+            return Result<void>::ok();
+        };
+        if (partial.contains("minecraft:enchantments")) {
+            MC_TRY(parseList(partial["minecraft:enchantments"], enchantments));
+        }
+        if (partial.contains("minecraft:stored_enchantments")) {
+            MC_TRY(parseList(partial["minecraft:stored_enchantments"], storedEnchantments));
+        }
+        // TODO(item-predicate-components): 其余组件部分谓词（damage / potions / custom_data /
+        //   container 等）尚未接入，当前按"未提供"处理，不影响已识别的附魔条件。
+        ItemPredicate predicate(std::nullopt,
+            std::nullopt,
+            IntBounds(),
+            IntBounds(),
+            std::nullopt,
+            std::move(enchantments),
+            std::move(storedEnchantments),
+            NBTPredicate());
+        predicate.m_fromPredicates = true;
+        predicate._updateIsAny();
+        return predicate;
+    }
+
     std::optional<ResourceLocation> item;
     std::optional<ResourceLocation> tag;
     IntBounds count;
