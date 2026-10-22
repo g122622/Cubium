@@ -23,6 +23,7 @@
 
 #include "BeeEntity.hpp"
 #include "common/core/Types.hpp"
+#include "common/entity/ai/controller/FlyingMovementController.hpp"
 #include "common/entity/ai/goal/GoalSelector.hpp"
 #include "common/entity/ai/goal/goals/BreedGoal.hpp"
 #include "common/entity/ai/goal/goals/FollowParentGoal.hpp"
@@ -31,6 +32,7 @@
 #include "common/entity/ai/goal/goals/TemptGoal.hpp"
 #include "common/entity/ai/goal/goals/special/BeeGoals.hpp"
 #include "common/entity/ai/pathfinding/PathNavigator.hpp"
+#include "common/entity/ai/pathfinding/PathNodeType.hpp"
 #include "common/entity/ai/util/RandomPositionGenerator.hpp"
 #include "common/entity/attribute/Attributes.hpp"
 #include "common/entity/core/DataParameter.hpp"
@@ -98,6 +100,18 @@ BeeEntity::BeeEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
     // 构造期间指向 AnimalEntity，派生 override 永不执行），须在派生类构造显式调用。
     // Bee 的 registerData 注册 DATA_FLAGS / ANGER_TIME 等同步参数。
     registerData();
+
+    // 对齐 vanilla Bee 构造：飞行移动控制器 FlyingMoveControl(this, 20, true)
+    // （最大俯仰变化 20 度/tick，无目标时原地悬停不落重力）。
+    m_moveController = std::make_unique<entity::ai::controller::FlyingMovementController>(this, 20, true);
+
+    // 对齐 vanilla Bee 构造的寻路代价：DANGER_FIRE / WATER / COCOA / FENCE 不可通行，
+    // WATER_BORDER 代价 16。
+    setPathfindingMalus(entity::ai::pathfinding::PathNodeType::DangerFire, -1.0f);
+    setPathfindingMalus(entity::ai::pathfinding::PathNodeType::Water, -1.0f);
+    setPathfindingMalus(entity::ai::pathfinding::PathNodeType::WaterBorder, 16.0f);
+    setPathfindingMalus(entity::ai::pathfinding::PathNodeType::Cocoa, -1.0f);
+    setPathfindingMalus(entity::ai::pathfinding::PathNodeType::Fence, -1.0f);
 }
 
 std::unique_ptr<Entity> BeeEntity::create(IWorld* /*world*/, ecs::EntityRegistry& registry)
