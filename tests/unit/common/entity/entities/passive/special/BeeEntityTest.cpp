@@ -915,8 +915,10 @@ TEST_F(BeeEntityTest, DropHive_ClearsHiveAndSetsCooldown)
 
     EXPECT_FALSE(bee.hasHive());
     EXPECT_EQ(bee.getHivePos(), BlockPos::zero());
-    // dropHive 设置 200 tick 冷却
-    EXPECT_EQ(bee.getStayOutOfHiveCountdown(), 200);
+    // 对齐 vanilla Bee.dropHive：设置 200 tick 的"寻找新蜂巢"冷却，
+    // 而不是"不进入蜂巢"倒计时（后者由 removePassenger 等离巢路径设置）。
+    EXPECT_EQ(bee.getHiveLocateCooldown(), 200);
+    EXPECT_EQ(bee.getStayOutOfHiveCountdown(), 0);
 }
 
 TEST_F(BeeEntityTest, DropHive_WhenNoHive_SetsCooldown)
@@ -928,7 +930,22 @@ TEST_F(BeeEntityTest, DropHive_WhenNoHive_SetsCooldown)
     bee.dropHive();
 
     EXPECT_FALSE(bee.hasHive());
-    EXPECT_EQ(bee.getStayOutOfHiveCountdown(), 200);
+    EXPECT_EQ(bee.getHiveLocateCooldown(), 200);
+}
+
+TEST_F(BeeEntityTest, DropFlower_ClearsFlowerAndSetsRandomCooldown)
+{
+    BeeEntity bee(EntityInstanceId(1), mc::test::testEcsRegistry());
+    bee.setFlowerPos(BlockPos(5, 64, 5));
+    ASSERT_TRUE(bee.hasFlower());
+
+    bee.dropFlower();
+
+    // 对齐 vanilla Bee.dropFlower：清空花朵位置，并把寻花冷却重置为 20~60 tick
+    EXPECT_FALSE(bee.hasFlower());
+    EXPECT_EQ(bee.getFlowerPos(), BlockPos::zero());
+    EXPECT_GE(bee.getFlowerCooldown(), 20);
+    EXPECT_LE(bee.getFlowerCooldown(), 60);
 }
 
 TEST_F(BeeEntityTest, TicksWithoutNectar_DefaultZero)
@@ -1357,7 +1374,7 @@ TEST_F(BeeHiveInteractionTest, DropHive_ClearsHivePosition)
 
     EXPECT_FALSE(bee.hasHive());
     EXPECT_EQ(bee.getHivePos(), BlockPos::zero());
-    EXPECT_EQ(bee.getStayOutOfHiveCountdown(), 200);
+    EXPECT_EQ(bee.getHiveLocateCooldown(), 200);
 }
 
 // ============================================================================

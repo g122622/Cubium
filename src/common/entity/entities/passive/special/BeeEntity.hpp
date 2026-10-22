@@ -254,6 +254,13 @@ public:
     void dropHive();
 
     /**
+     * @brief 忘记已记录的花朵位置（对齐 vanilla Bee.dropFlower）
+     *
+     * 同时把"寻找新花朵"冷却重置为 20~60 tick 的随机值。
+     */
+    void dropFlower();
+
+    /**
      * @brief 设置不进入蜂巢的倒计时
      */
     void setStayOutOfHiveCountdown(i32 countdown) { m_stayOutOfHiveCountdown = countdown; }

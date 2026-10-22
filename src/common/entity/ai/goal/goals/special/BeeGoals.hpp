@@ -289,8 +289,8 @@ private:
     std::vector<BlockPos> m_possibleHives; ///< 可能的蜂巢列表
     i32 m_stuckCounter = 0;                ///< 路径卡住计数器
 
-    static constexpr i32 MAX_NAVIGATION_TIME = 600; ///< 最大导航时间
-    static constexpr i32 STUCK_THRESHOLD = 60;      ///< 路径卡住阈值
+    static constexpr i32 MAX_NAVIGATION_TIME = 2400; ///< 最大导航时间（vanilla BeeGoToHiveGoal MAX_TRAVELLING_TICKS）
+    static constexpr i32 STUCK_THRESHOLD = 60;       ///< 路径卡住阈值
 };
 
 /**
@@ -319,7 +319,8 @@ private:
 
     i32 m_ticks = 0; ///< 计时器
 
-    static constexpr i32 MAX_NAVIGATION_TIME = 600;            ///< 最大导航时间
+    static constexpr i32 MAX_NAVIGATION_TIME =
+        2400; ///< 最大导航时间（vanilla BeeGoToKnownFlowerGoal MAX_TRAVELLING_TICKS）
     static constexpr i32 TICKS_WITHOUT_NECTAR_THRESHOLD = 600; ///< 30秒无花粉阈值，超过此值蜜蜂尝试飞向已知花朵
 };
 

@@ -581,9 +581,19 @@ bool BeeEntity::isHiveNearFire() const
 
 void BeeEntity::dropHive()
 {
+    // 对齐 vanilla Bee.dropHive：只清空蜂巢位置并设置 200 tick 的寻巢冷却。
     m_hivePos = BlockPos::zero();
     m_hasHive = false;
-    m_stayOutOfHiveCountdown = 200; // 10秒冷却
+    m_remainingCooldownBeforeLocatingNewHive = 200;
+}
+
+void BeeEntity::dropFlower()
+{
+    // 对齐 vanilla Bee.dropFlower：清空花朵位置并把寻花冷却重置为 20~60 tick。
+    m_flowerPos = BlockPos::zero();
+    m_hasFlower = false;
+    const i32 cooldown = m_world != nullptr ? m_world->getRandom().nextInt(20, 60) : getRandom().nextInt(20, 60);
+    m_remainingCooldownBeforeLocatingNewFlower = cooldown;
 }
 
 // ============================================================================

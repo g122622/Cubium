@@ -332,9 +332,9 @@ void BeePollinateGoal::tick()
     }
 
     if (m_totalTicks > MAX_POLLINATION_TIME) {
-        // 对齐 vanilla：dropFlower() + pollinating=false + 花朵冷却 200。
+        // 对齐 vanilla：dropFlower() + 花朵冷却 200 + pollinating=false。
         // 此后本 tick 的 canBeeContinueToUse 返回 false，下一帧由 GoalSelector 调 stop()。
-        m_bee->setFlowerPos(BlockPos::zero());
+        m_bee->dropFlower();
         m_bee->setFlowerCooldown(200);
         m_running = false;
         m_bee->setPollinating(false);
@@ -674,8 +674,9 @@ void BeeFindHiveGoal::tick()
     ++m_ticks;
 
     // 对应 MC 1.21.11 BeeGoToHiveGoal.tick()
-    // 超时检查：2400 tick（120秒）仍未到达则放弃并拉黑蜂巢
-    if (m_ticks > MAX_NAVIGATION_TIME) {
+    // 超时检查：adjustedTickDelay(2400)（本 goal 未置 requiresUpdateEveryTick，故折半）
+    // 仍未到达则放弃并拉黑蜂巢
+    if (m_ticks > adjustedTickDelay(MAX_NAVIGATION_TIME)) {
         // 放弃当前蜂巢并加入黑名单
         m_possibleHives.push_back(m_bee->getHivePos());
         m_bee->setHivePos(BlockPos::zero());
@@ -762,8 +763,9 @@ BeeFindFlowerGoal::BeeFindFlowerGoal(BeeEntity* bee)
 
 bool BeeFindFlowerGoal::canBeeStart()
 {
-    // 有花朵位置时执行
-    if (!m_bee->hasFlower()) {
+    // 对齐 vanilla BeeGoToKnownFlowerGoal.canBeeUse：有记录的花朵、没有蜂巢（未在归巢途中）、
+    // 离巢无花粉超过 600 tick 且距离花朵超过 2 格时，才飞向已知花朵。
+    if (!m_bee->hasFlower() || m_bee->hasHive()) {
         return false;
     }
 
@@ -809,7 +811,8 @@ void BeeFindFlowerGoal::startExecuting()
 
 void BeeFindFlowerGoal::resetTask()
 {
-    m_bee->setFlowerPos(BlockPos::zero());
+    // 对齐 vanilla BeeGoToKnownFlowerGoal.stop：放弃花朵走 dropFlower（含 20~60 tick 冷却）。
+    m_bee->dropFlower();
     // MC 1.21.11: BeeGoToKnownFlowerGoal.stop() 中重置 maxVisitedNodesMultiplier 为默认值 1.0F
     if (auto* nav = m_bee->navigator()) {
         nav->resetMaxVisitedNodesMultiplier();
@@ -825,9 +828,10 @@ void BeeFindFlowerGoal::tick()
     ++m_ticks;
 
     // 对应 MC 1.21.11 BeeGoToKnownFlowerGoal.tick()
-    // 超时检查：2400 tick（120秒）仍未到达则放弃花朵
-    if (m_ticks > MAX_NAVIGATION_TIME) {
-        m_bee->setFlowerPos(BlockPos::zero());
+    // 超时检查：adjustedTickDelay(2400)（本 goal 未置 requiresUpdateEveryTick，故折半）
+    // 仍未到达则放弃花朵。
+    if (m_ticks > adjustedTickDelay(MAX_NAVIGATION_TIME)) {
+        m_bee->dropFlower();
         return;
     }
 
@@ -837,7 +841,7 @@ void BeeFindFlowerGoal::tick()
         if (!nav->isInProgress()) {
             // 检查是否太远（对应 MC: isTooFarAway → !closerThan(48)）
             if (_isTooFar(flowerPos)) {
-                m_bee->setFlowerPos(BlockPos::zero());
+                m_bee->dropFlower();
             } else {
                 // 使用 pathfindRandomlyTowards 漂移飞行
                 (void)m_bee->pathfindRandomlyTowards(flowerPos);
