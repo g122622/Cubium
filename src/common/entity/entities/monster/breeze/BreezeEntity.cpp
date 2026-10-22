@@ -106,7 +106,8 @@ void BreezeEntity::tick()
     // 滑行 → 滑行回弹动画过渡
     updateSlideBackAnimation();
 
-    // 呼啸音效随机播放
+    // 呼啸音效：倒计时归零时重新取随机间隔
+    // （对齐 vanilla Breeze.tick：soundTick = soundTick == 0 ? random.nextIntBetweenInclusive(1, 80) : soundTick - 1）
     if (m_soundTick == 0) {
         m_soundTick = getRandom().nextInt(WHIRL_SOUND_FREQUENCY_MIN, WHIRL_SOUND_FREQUENCY_MAX);
     } else {
@@ -169,7 +170,14 @@ void BreezeEntity::emitGroundParticles(i32 count)
     const BlockPos belowPos(static_cast<i32>(std::floor(groundPos.x)),
         static_cast<i32>(std::floor(groundPos.y)) - 1,
         static_cast<i32>(std::floor(groundPos.z)));
-    const BlockState* blockState = m_world->getBlockState(belowPos);
+    // 先取实体身体所在的方块（对齐 vanilla getInBlockState），空气时退回脚下方块
+    const BlockPos inPos(static_cast<i32>(std::floor(center.x)),
+        static_cast<i32>(std::floor(center.y)),
+        static_cast<i32>(std::floor(center.z)));
+    const BlockState* blockState = m_world->getBlockState(inPos);
+    if (blockState == nullptr || blockState->isAir()) {
+        blockState = m_world->getBlockState(belowPos);
+    }
     if (blockState == nullptr || blockState->isAir()) {
         return;
     }
