@@ -997,6 +997,21 @@ std::unique_ptr<Entity> ShulkerBulletEntity::create(IWorld* /*world*/, ecs::Enti
     return std::make_unique<ShulkerBulletEntity>(0, registry);
 }
 
+const std::string& ShulkerBulletEntity::targetUuid() const
+{
+    static const std::string empty;
+    const auto* c = tryGetComponent<ecs::ShulkerBulletComponent>();
+    return c != nullptr ? c->m_targetUuid : empty;
+}
+
+void ShulkerBulletEntity::setTargetUuid(std::string uuid)
+{
+    if (auto* c = tryGetComponent<ecs::ShulkerBulletComponent>(); c != nullptr) {
+        c->m_targetUuid = std::move(uuid);
+        c->m_target = nullptr; // 指针经 UUID 懒加载
+    }
+}
+
 void ShulkerBulletEntity::setTarget(Entity* target)
 {
     auto* bullet = tryGetComponent<ecs::ShulkerBulletComponent>();

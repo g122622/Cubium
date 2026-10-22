@@ -378,6 +378,14 @@ public:
     [[nodiscard]] Entity* target() const;
 
     /**
+     * @brief 获取/设置目标实体 UUID（vanilla ShulkerBullet.getTarget / setTarget 的持久化半边）
+     *
+     * 目标指针不持久，存档只保存 UUID；读档后由 tick() 按 UUID 重新查找。
+     */
+    [[nodiscard]] const std::string& targetUuid() const;
+    void setTargetUuid(std::string uuid);
+
+    /**
      * @brief 获取当前移动方向
      */
     [[nodiscard]] Direction direction() const;

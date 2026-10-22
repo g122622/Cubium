@@ -113,6 +113,39 @@ static std::string readOwnerUuid(const nbt::tags::compound_tag& tag)
     return util::uuidToString(uuidBytes);
 }
 
+/// 以 NBT long 数组 [MSB, LSB] 的形式写单个 UUID（同 vanilla UUIDUtil.CODEC 布局）。
+static void writeUuidAsLongArray(nbt::tags::compound_tag& tag, const char* key, i64 most, i64 least)
+{
+    nbt::tags::longarray_tag array;
+    array.value = {most, least};
+    tag.value.insert_or_assign(key, std::make_unique<nbt::tags::longarray_tag>(std::move(array)));
+}
+
+/// 读取 [MSB, LSB] long 数组形式的 UUID；键缺失或长度不足时返回空串。
+static std::string readUuidFromLongArray(const nbt::tags::compound_tag& tag, const char* key)
+{
+    const auto it = tag.value.find(key);
+    if (it == tag.value.end()) {
+        return {};
+    }
+    const auto* array = dynamic_cast<const nbt::tags::longarray_tag*>(it->second.get());
+    if (array == nullptr || array->value.size() < 2) {
+        return {};
+    }
+    i64 most = array->value[0];
+    i64 least = array->value[1];
+    std::array<u8, 16> uuidBytes{};
+    for (i32 k = 7; k >= 0; --k) {
+        uuidBytes[k] = static_cast<u8>(most & 0xFF);
+        most >>= 8;
+    }
+    for (i32 k = 15; k >= 8; --k) {
+        uuidBytes[k] = static_cast<u8>(least & 0xFF);
+        least >>= 8;
+    }
+    return util::uuidToString(uuidBytes);
+}
+
 static void saveProjectileOwner(const Entity& entity, nbt::tags::compound_tag& tag)
 {
     const auto* c = entity.tryGetComponent<ecs::ProjectileOwnerComponent>();
@@ -498,9 +531,19 @@ static void saveShulkerBullet(const Entity& entity, nbt::tags::compound_tag& tag
         return;
     }
     if (!c->m_targetUuid.empty()) {
-        writeOwnerUuid(tag, c->m_targetUuid);
-        // TODO: vanilla Target 键是单一 UUID（EntityReference），项目用双 long 复用 writeOwnerUuid。
-        // 键名复用 OwnerUUIDMost/Least（与 owner 同格式），vanilla 客户端按 ShulkerBullet 类型读取。
+        // vanilla ShulkerBullet 用 "Target" 键存单一 UUID（UUIDUtil.CODEC = 两个大端 i64）。
+        if (auto uuidBytes = util::uuidFromString(c->m_targetUuid); uuidBytes.size() == 16) {
+            // 以两个大端 i64 承载 UUID，布局同 vanilla UUIDUtil.CODEC 的 MSB/LSB。
+            i64 most = 0;
+            i64 least = 0;
+            for (i32 i = 0; i < 8; ++i) {
+                most = (most << 8) | static_cast<i64>(uuidBytes[i]);
+            }
+            for (i32 i = 8; i < 16; ++i) {
+                least = (least << 8) | static_cast<i64>(uuidBytes[i]);
+            }
+            writeUuidAsLongArray(tag, SHULKER_BULLET_TARGET, most, least);
+        }
     }
     if (c->m_direction != Direction::None) {
         tag.put(SHULKER_BULLET_DIR, static_cast<i8>(c->m_direction));
@@ -517,7 +560,11 @@ static Result<void> loadShulkerBullet(Entity& entity, const nbt::tags::compound_
     if (c == nullptr) {
         return {};
     }
-    c->m_targetUuid = readOwnerUuid(tag);
+    // vanilla "Target" 优先（UUIDUtil.CODEC 双 i64）；缺失时兼容旧的 OwnerUUIDMost/Least 布局。
+    c->m_targetUuid = readUuidFromLongArray(tag, SHULKER_BULLET_TARGET);
+    if (c->m_targetUuid.empty()) {
+        c->m_targetUuid = readOwnerUuid(tag);
+    }
     c->m_target = nullptr; // 运行时指针经 UUID 懒加载查找。
     if (auto val = tryGetByte(tag, SHULKER_BULLET_DIR)) {
         i8 v = *val;
