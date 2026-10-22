@@ -28,6 +28,7 @@
 #include "common/entity/ai/goal/goals/special/PandaGoals.hpp"
 #include "common/entity/ai/goal/goals/target/TargetGoals.hpp"
 #include "common/entity/damage/DamageSource.hpp"
+#include "common/entity/entities/item/ItemEntity.hpp"
 #include "common/entity/entities/monster/undead/ZombieEntity.hpp"
 #include "common/entity/entities/passive/special/PandaEntity.hpp"
 #include "common/entity/registry/VanillaEntities.hpp"
@@ -1189,6 +1190,96 @@ TEST(PandaPersonalityGoalTest, AvoidGoalOnlyForWorriedPanda)
     entity::ai::goal::PandaAvoidGoal goal(&normal, 8.0f, 2.0, 2.0, [](const LivingEntity*) -> bool { return true; });
     // 非忧愁性格不逃避（对齐 vanilla PandaAvoidGoal.canUse 的 isWorried 门控）
     EXPECT_FALSE(goal.shouldExecute());
+}
+
+// ==================== 坐下吃食物（PandaSitGoal） ====================
+
+TEST(PandaSitGoalTest, SitsWhenHoldingFoodInMainHand)
+{
+    Items::initialize();
+    PandaTestWorld world;
+    TickablePanda panda(EntityInstanceId(1), mc::test::testEcsRegistry());
+    panda.setWorld(&world);
+    panda.setTypeId("minecraft:panda");
+    panda.setPersonality(PandaEntity::Personality::Normal);
+
+    entity::ai::goal::PandaSitGoal goal(&panda);
+    EXPECT_FALSE(goal.shouldExecute()) << "主手与周围都没有食物时不应坐下";
+
+    panda.setMainHandItem(ItemStack(Items::BAMBOO, 1));
+    EXPECT_TRUE(goal.shouldExecute()) << "主手持有食物时满足坐下条件";
+
+    goal.startExecuting();
+    EXPECT_TRUE(panda.isSitting()) << "startExecuting 应让主手有食物的熊猫坐下";
+    goal.tick();
+    EXPECT_TRUE(panda.isSitting());
+}
+
+TEST(PandaSitGoalTest, BabyPandaNeverSitsThroughGoal)
+{
+    Items::initialize();
+    PandaTestWorld world;
+    TickablePanda panda(EntityInstanceId(1), mc::test::testEcsRegistry());
+    panda.setWorld(&world);
+    panda.setTypeId("minecraft:panda");
+    panda.setMainHandItem(ItemStack(Items::BAMBOO, 1));
+    panda.setChild(true);
+
+    // 对齐 vanilla canUse 的 isBaby 前置门控
+    entity::ai::goal::PandaSitGoal goal(&panda);
+    EXPECT_FALSE(goal.shouldExecute());
+}
+
+TEST(PandaSitGoalTest, SeesNearbyEdibleItemEntity)
+{
+    Items::initialize();
+    PandaTestWorld world;
+    TickablePanda panda(EntityInstanceId(1), mc::test::testEcsRegistry());
+    panda.setWorld(&world);
+    panda.setTypeId("minecraft:panda");
+
+    auto bamboo = std::make_unique<ItemEntity>(
+        EntityInstanceId(2), ItemStack(Items::BAMBOO, 2), 1.0f, 0.0f, 0.0f, mc::test::testEcsRegistry());
+    bamboo->setWorld(&world);
+    world.setNearbyPandas({bamboo.get()});
+
+    entity::ai::goal::PandaSitGoal goal(&panda);
+    EXPECT_TRUE(goal.shouldExecute()) << "附近有竹子物品实体时应满足坐下条件";
+
+    // 非食物物品不触发（对齐 vanilla Panda.canPickUpAndEat 的物品白名单）
+    auto stone = std::make_unique<ItemEntity>(
+        EntityInstanceId(3), ItemStack(Items::STONE, 1), 1.0f, 0.0f, 0.0f, mc::test::testEcsRegistry());
+    stone->setWorld(&world);
+    world.setNearbyPandas({stone.get()});
+    EXPECT_FALSE(goal.shouldExecute());
+}
+
+TEST(PandaSitGoalTest, ResetDropsFoodAndStandsUp)
+{
+    Items::initialize();
+    PandaTestWorld world;
+    TickablePanda panda(EntityInstanceId(1), mc::test::testEcsRegistry());
+    panda.setWorld(&world);
+    panda.setTypeId("minecraft:panda");
+    panda.setMainHandItem(ItemStack(Items::BAMBOO, 1));
+
+    entity::ai::goal::PandaSitGoal goal(&panda);
+    goal.startExecuting();
+    ASSERT_TRUE(panda.isSitting());
+
+    goal.resetTask();
+    EXPECT_FALSE(panda.isSitting()) << "resetTask 后熊猫应站起";
+    EXPECT_TRUE(panda.getMainHandItem().isEmpty()) << "resetTask 应清空主手食物";
+    EXPECT_EQ(world.getSpawnedEntityCount(), 1) << "手中食物应被丢回世界";
+    const auto& spawned = world.getSpawnedEntities();
+    if (!spawned.empty()) {
+        const auto* dropped = dynamic_cast<const ItemEntity*>(spawned.front().get());
+        ASSERT_NE(dropped, nullptr);
+        EXPECT_EQ(dropped->getItemStack().getItem(), Items::BAMBOO);
+    }
+
+    // 冷却期内不再触发（10~160 秒）
+    EXPECT_FALSE(goal.shouldExecute()) << "resetTask 后应进入冷却";
 }
 
 } // anonymous namespace

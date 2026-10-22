@@ -204,6 +204,44 @@ private:
 };
 
 /**
+ * @brief 熊猫坐下进食目标（对齐 vanilla Panda.PandaSitGoal）
+ *
+ * 行为：
+ * - canUse：冷却结束 + 非幼体 + 不在水中 + canPerformAction + 主手为空或附近有
+ *   可吃物品时成立（Cubium Panda 无 "unhappyCounter"，该门控省略）
+ * - tick：坐下后若主手仍有食物则继续尝试坐下
+ * - start：主手有食物立即坐下；否则走向最近的可吃物品
+ * - stop：把手里的食物丢回地上、清空主手、按性格设置 10~60 / 10~160 秒冷却，并站起
+ *
+ * 互斥标志：MOVE
+ */
+class PandaSitGoal : public Goal {
+public:
+    explicit PandaSitGoal(PandaEntity* panda);
+
+    ~PandaSitGoal() override = default;
+
+    [[nodiscard]] bool shouldExecute() override;
+
+    [[nodiscard]] bool shouldContinueExecuting() override;
+
+    void startExecuting() override;
+
+    void resetTask() override;
+
+    void tick() override;
+
+    [[nodiscard]] std::string getTypeName() const noexcept override { return "PandaSitGoal"; }
+
+private:
+    /// 附近 6/8 格内是否有熊猫能吃的物品（对齐 vanilla canPickUpAndEat 过滤）
+    [[nodiscard]] bool _hasNearbyEdibleItem(f32 inflate) const;
+
+    PandaEntity* m_panda;
+    i32 m_cooldown = 0;
+};
+
+/**
  * @brief 忧愁熊猫逃避目标（对齐 vanilla Panda.PandaAvoidGoal）
  *
  * 仅在忧愁性格且 canPerformAction 时委托 AvoidEntityGoal 的逃避逻辑；

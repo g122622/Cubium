@@ -357,8 +357,13 @@ void PandaEntity::registerGoals()
     // 优先级 6: 看向玩家
     m_goalSelector.addGoal(6, std::make_unique<entity::ai::goal::LookAtGoal>(this, 6.0f));
 
-    // 优先级 7: 随机看向
-    m_goalSelector.addGoal(7, std::make_unique<entity::ai::goal::LookRandomlyGoal>(this));
+    // 优先级 7: 坐下吃食物（对齐 vanilla Panda.registerGoals:281 的 PandaSitGoal，
+    //   Flag.MOVE）。主手有食物或附近有可吃物品时坐下慢慢吃，结束时把食物丢回世界
+    //   并进入冷却；懒散熊猫冷却更短。
+    m_goalSelector.addGoal(7, std::make_unique<entity::ai::goal::PandaSitGoal>(this));
+
+    // 优先级 9: 随机看向（原为 7，为 Vanilla 的 PandaSitGoal 让位后顺延）
+    m_goalSelector.addGoal(9, std::make_unique<entity::ai::goal::LookRandomlyGoal>(this));
 
     // 优先级 8: 打喷嚏（幼年熊猫随机打喷嚏，对齐 vanilla Panda.registerGoals:270）
     //   vanilla PandaSneezeGoal：isBaby && canPerformAction 时，isWeak 1/500 概率，否则 1/6000 概率，
@@ -438,8 +443,7 @@ void PandaEntity::registerGoals()
     // 已实现的性格相关 goal：仰躺（懒惰，PandaLieOnBackGoal）、逃避玩家/敌对生物（忧愁，
     // PandaAvoidGoal）、打滚（顽皮/幼体，PandaRollGoal）、好斗反击（PandaAttackGoal +
     // PandaHurtByTargetGoal）。
-    // TODO: 仍缺 Panda 专属 PandaLookAtPlayerGoal（时间戳记忆语义的看向玩家目标）与
-    //   PandaSitGoal（坐下状态的 goal 化驱动，当前由担忧雷暴分支与喂食交互直接驱动）。
+    // TODO: 仍缺 Panda 专属 PandaLookAtPlayerGoal（时间戳记忆语义的看向玩家目标）。
 }
 
 void PandaEntity::registerAttributes()

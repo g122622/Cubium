@@ -25,8 +25,11 @@
 
 #include "common/core/EnumSet.hpp"
 #include "common/entity/ai/goal/GoalFlag.hpp"
+#include "common/entity/ai/pathfinding/PathNavigator.hpp"
 #include "common/entity/core/EntityType.hpp"
+#include "common/entity/entities/item/ItemEntity.hpp"
 #include "common/entity/entities/passive/special/PandaEntity.hpp"
+#include "common/entity/utils/ItemDropHelper.hpp"
 #include "common/util/math/MathUtils.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
@@ -244,6 +247,114 @@ void PandaLieOnBackGoal::resetTask()
 {
     m_panda->setOnBack(false);
     m_cooldown = static_cast<i32>(m_panda->ticksExisted()) + 200;
+}
+
+// ============================================================================
+// PandaSitGoal
+// ============================================================================
+
+PandaSitGoal::PandaSitGoal(PandaEntity* panda)
+    : m_panda(panda)
+{
+    setMutexFlags(EnumSet<GoalFlag>{GoalFlag::Move});
+}
+
+bool PandaSitGoal::_hasNearbyEdibleItem(f32 inflate) const
+{
+    if (m_panda == nullptr || m_panda->world() == nullptr) {
+        return false;
+    }
+    const AxisAlignedBB searchBox = m_panda->boundingBox().expand(inflate, inflate, inflate);
+    for (const Entity* entity : m_panda->world()->getEntitiesInAABB(searchBox, m_panda)) {
+        if (entity == nullptr) {
+            continue;
+        }
+        const auto* itemEntity = dynamic_cast<const ItemEntity*>(entity);
+        if (itemEntity == nullptr || !itemEntity->isAlive()) {
+            continue;
+        }
+        // 对齐 vanilla Panda.canPickUpAndEat：只认可繁殖/可吃物品（竹子）。
+        if (m_panda->isBreedingItem(itemEntity->getItemStack())) {
+            return true;
+        }
+    }
+    return false;
+}
+
+bool PandaSitGoal::shouldExecute()
+{
+    // 对齐 vanilla PandaSitGoal.canUse（Panda.java:1043-1060）。
+    if (m_panda == nullptr || m_cooldown > static_cast<i32>(m_panda->ticksExisted())) {
+        return false;
+    }
+    if (m_panda->isChild() || m_panda->isInWater() || !m_panda->canPerformAction()) {
+        return false;
+    }
+    // 注意：Cubium 尚无 unhappyCounter（vanilla Panda 收到玩家过近时会提高它并驱散坐下）。
+    if (!m_panda->getMainHandItem().isEmpty()) {
+        return true;
+    }
+    return _hasNearbyEdibleItem(6.0f);
+}
+
+bool PandaSitGoal::shouldContinueExecuting()
+{
+    // 对齐 vanilla canContinueToUse：不在水中 && (懒惰 || 1/600 != 1) ? 1/2000 != 1 : false
+    if (m_panda == nullptr || m_panda->isInWater()) {
+        return false;
+    }
+    const bool staySitting = m_panda->isLazy() || m_panda->getRandom().nextInt(600) != 1;
+    return staySitting && m_panda->getRandom().nextInt(2000) != 1;
+}
+
+void PandaSitGoal::startExecuting()
+{
+    if (m_panda->getMainHandItem().isEmpty()) {
+        // 主手为空：走向最近的可吃物品（vanilla 取 inflate(8) 列表的首个元素）。
+        if (m_panda->world() != nullptr) {
+            const AxisAlignedBB searchBox = m_panda->boundingBox().expand(8.0f, 8.0f, 8.0f);
+            for (Entity* entity : m_panda->world()->getEntitiesInAABB(searchBox, m_panda)) {
+                const auto* itemEntity = dynamic_cast<const ItemEntity*>(entity);
+                if (itemEntity != nullptr && itemEntity->isAlive() &&
+                    m_panda->isBreedingItem(itemEntity->getItemStack())) {
+                    (void)m_panda->navigator()->moveTo(*itemEntity, 1.2);
+                    break;
+                }
+            }
+        }
+    } else {
+        m_panda->tryToSit();
+    }
+    m_cooldown = 0;
+}
+
+void PandaSitGoal::resetTask()
+{
+    // 对齐 vanilla PandaSitGoal.stop（Panda.java:1088-1099）：把手里的食物丢回世界、
+    // 清空主手，并按性格设置 10~60 / 10~160 秒冷却，最后站起。
+    if (m_panda == nullptr) {
+        return;
+    }
+    const ItemStack& held = m_panda->getMainHandItem();
+    if (!held.isEmpty()) {
+        const ItemStack dropped = held;
+        if (m_panda->world() != nullptr) {
+            ItemDropHelper::spawnItemAtEntity(m_panda, dropped, 0.5f, m_panda->getRandom());
+        }
+        m_panda->setMainHandItem(ItemStack{});
+        const i32 seconds =
+            m_panda->isLazy() ? m_panda->getRandom().nextInt(50) + 10 : m_panda->getRandom().nextInt(150) + 10;
+        m_cooldown = static_cast<i32>(m_panda->ticksExisted()) + seconds * 20;
+    }
+    m_panda->sit(false);
+}
+
+void PandaSitGoal::tick()
+{
+    // 对齐 vanilla PandaSitGoal.tick:1071-1075。
+    if (m_panda != nullptr && !m_panda->isSitting() && !m_panda->getMainHandItem().isEmpty()) {
+        m_panda->tryToSit();
+    }
 }
 
 // ============================================================================
