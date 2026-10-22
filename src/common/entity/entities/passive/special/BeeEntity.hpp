@@ -48,6 +48,7 @@ class BeehiveBlockEntity;
 
 namespace entity::ai::goal {
 class BeePollinateGoal;
+class TemptGoal;
 class BeeFindHiveGoal;
 class BeeFindFlowerGoal;
 } // namespace entity::ai::goal
@@ -112,6 +113,9 @@ public:
      * @return 是否吸引蜜蜂
      */
     [[nodiscard]] static bool attractsBees(const BlockState& state);
+
+    /// 诱惑目标实例（供催熟判定查询是否正被玩家用花朵吸引）
+    entity::ai::goal::TemptGoal* m_temptGoal = nullptr;
 
     // ========== 花粉状态 ==========
 
@@ -259,6 +263,16 @@ public:
      * 同时把"寻找新花朵"冷却重置为 20~60 tick 的随机值。
      */
     void dropFlower();
+
+    /**
+     * @brief 是否为吸引蜜蜂的诱惑物品（对齐 vanilla TemptGoal 的 ItemTags.BEE_FOOD 谓词）
+     */
+    [[nodiscard]] static bool isTemptingItem(const ItemStack& stack);
+
+    /**
+     * @brief 诱惑目标是否正在运行（对齐 vanilla Bee.isTempted：beePollinateGoal 之外共用）
+     */
+    [[nodiscard]] bool isTempted() const;
 
     /**
      * @brief 设置不进入蜂巢的倒计时

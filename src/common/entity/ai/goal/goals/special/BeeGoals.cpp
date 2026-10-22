@@ -887,9 +887,16 @@ bool BeeFindPollinationTargetGoal::canBeeStart()
         return false;
     }
 
-    // 30% 概率
+    // 对齐 vanilla BeeGrowCropGoal.canBeeUse：30% 概率跳过；10% 概率拒绝当次检查。
     IWorld* world = m_bee->world();
     if (world == nullptr || world->getRandom().nextFloat() >= 0.3f) {
+        return false;
+    }
+
+    // vanilla: random.nextFloat() < 0.3F ? false : (hasNectar() && isHiveValid())
+    // 即 30% 概率本 tick 不催熟；其余 70% 中再按 hasNectar && isHiveValid 判定。
+    // 已被玩家用花朵吸引时不催熟（对齐 Bee.isTempted 的门控）。
+    if (m_bee->isTempted()) {
         return false;
     }
 
@@ -1098,15 +1105,16 @@ math::Vector3f BeeWanderGoal::_getRandomLocation()
     f64 dirX = 0.0;
     f64 dirZ = 0.0;
 
-    if (m_bee->hasHive()) {
+    if (m_bee->isHiveValid()) {
         BlockPos hivePos = m_bee->getHivePos();
         f64 dx = m_bee->x() - static_cast<f64>(hivePos.x);
         f64 dz = m_bee->z() - static_cast<f64>(hivePos.z);
         f64 distSq = dx * dx + dz * dz;
 
-        // 对应 MC 1.21.11 Bee.WanderGoal.getWanderThreshold()
-        // 有蜂巢/花朵时阈值=24格，无时阈值=32格
-        i32 wanderThreshold = m_bee->hasFlower() ? 24 : 32;
+        // 对应 MC 1.21.11 Bee.WanderGoal.getWanderThreshold()：
+        //   有蜂巢或有已记录花朵 → 48 - 24 = 24 格；两者皆无 → 48 - 16 = 32 格。
+        const bool hasHiveOrFlower = m_bee->hasHive() || m_bee->hasFlower();
+        const i32 wanderThreshold = hasHiveOrFlower ? 24 : 32;
         f64 thresholdSq = static_cast<f64>(wanderThreshold * wanderThreshold);
 
         if (distSq > thresholdSq) {

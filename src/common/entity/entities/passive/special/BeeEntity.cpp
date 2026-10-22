@@ -294,6 +294,16 @@ bool BeeEntity::isBreedingItem(const ItemStack& itemStack) const
     return item->isIn(item::tag::ItemTags::FLOWERS());
 }
 
+bool BeeEntity::isTemptingItem(const ItemStack& stack)
+{
+    // 对齐 vanilla Bee.registerGoals 的 TemptGoal 谓词：stack.is(ItemTags.BEE_FOOD)。
+    const Item* item = stack.getItem();
+    if (item == nullptr) {
+        return false;
+    }
+    return item->isIn(item::tag::ItemTags::BEE_FOOD());
+}
+
 std::unique_ptr<AnimalEntity> BeeEntity::spawnBaby(AnimalEntity& /*partner*/)
 {
     // ECS 迁移：实体构造需要 registry 句柄，ClientWorld 返回 nullptr 表客户端不接入 ECS
@@ -396,16 +406,13 @@ void BeeEntity::registerGoals()
     // 优先级 2: 繁殖
     m_goalSelector.addGoal(2, std::make_unique<entity::ai::goal::BreedGoal>(this, 1.0));
 
-    // 优先级 3: 花朵诱惑（使用花朵物品）
-    m_goalSelector.addGoal(3,
-        std::make_unique<entity::ai::goal::TemptGoal>(
-            this,
-            1.25,
-            [](const ItemStack& stack) -> bool {
-                const Item* item = stack.getItem();
-                return item != nullptr && item->isIn(item::tag::ItemTags::FLOWERS());
-            },
-            false));
+    // 优先级 3: 花朵诱惑（对齐 vanilla TemptGoal(this, 1.25, stack -> stack.is(ItemTags.BEE_FOOD))）。
+    // 保留原始指针供 FindPollinationTargetGoal 判定"已被玩家用花朵吸引"，此时不催熟作物
+    // （对齐 vanilla Bee.isTempted 读 TemptGoal 是否在跑）。
+    auto temptGoal = std::make_unique<entity::ai::goal::TemptGoal>(
+        this, 1.25, [](const ItemStack& stack) -> bool { return isTemptingItem(stack); }, false);
+    m_temptGoal = temptGoal.get();
+    m_goalSelector.addGoal(3, std::move(temptGoal));
 
     // 优先级 4: 授粉
     // 保留原始指针供 hurt override 调 stopPollinating（对齐 vanilla Bee.beePollinateGoal 字段）。
@@ -585,6 +592,11 @@ void BeeEntity::dropHive()
     m_hivePos = BlockPos::zero();
     m_hasHive = false;
     m_remainingCooldownBeforeLocatingNewHive = 200;
+}
+
+bool BeeEntity::isTempted() const
+{
+    return m_temptGoal != nullptr && m_temptGoal->isRunning();
 }
 
 void BeeEntity::dropFlower()

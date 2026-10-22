@@ -388,6 +388,14 @@ public:
     static ItemTag& SNIFFER_FOOD();
 
     /**
+     * @brief 蜜蜂食物标签
+     *
+     * 包含可诱惑蜜蜂的物品（蒲公英、牧草、火把花、瓶草花、樱花花瓣等）。
+     * 对应 MC 原版标签 minecraft:bee_food（数据包键 "bee_food"）。
+     */
+    static ItemTag& BEE_FOOD();
+
+    /**
      * @brief 蛙类食物标签
      *
      * 包含可诱引、繁殖青蛙并加速蝌蚪变态的物品（黏液球）。

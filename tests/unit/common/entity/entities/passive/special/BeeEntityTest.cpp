@@ -31,6 +31,7 @@
 #include "common/item/core/ItemStack.hpp"
 #include "common/item/items/block/BlockItemRegistry.hpp"
 #include "common/item/tag/ItemTags.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/util/property/Properties.hpp"
 #include "common/world/IWorld.hpp"
@@ -946,6 +947,15 @@ TEST_F(BeeEntityTest, DropFlower_ClearsFlowerAndSetsRandomCooldown)
     EXPECT_EQ(bee.getFlowerPos(), BlockPos::zero());
     EXPECT_GE(bee.getFlowerCooldown(), 20);
     EXPECT_LE(bee.getFlowerCooldown(), 60);
+}
+
+TEST_F(BeeEntityTest, BeeFoodTag_MatchesVanillaMembers)
+{
+    // 对齐数据包 minecraft:bee_food：包含蒲公英/罂粟/开放眼眸花与各类花卉，不含普通食物。
+    EXPECT_TRUE(BeeEntity::isTemptingItem(ItemStack(Items::POPPY, 1)));
+    EXPECT_TRUE(BeeEntity::isTemptingItem(ItemStack(Items::OPEN_EYEBLOSSOM, 1)));
+    EXPECT_TRUE(BeeEntity::isTemptingItem(ItemStack(Items::DANDELION, 1)));
+    EXPECT_FALSE(BeeEntity::isTemptingItem(ItemStack(Items::BREAD, 1)));
 }
 
 TEST_F(BeeEntityTest, TicksWithoutNectar_DefaultZero)

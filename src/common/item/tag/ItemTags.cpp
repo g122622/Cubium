@@ -432,6 +432,52 @@ ItemTag& ItemTags::SNIFFER_FOOD()
     return *tag;
 }
 
+ItemTag& ItemTags::BEE_FOOD()
+{
+    // 首次访问时构建（同 SNIFFER_FOOD 的惰性建表范式），对齐 vanilla
+    // ItemTags.BEE_FOOD = dandelion / open_eyeblossom / poppy / torchflower / pitcher_plant / pink_petals ...
+    static std::once_flag once;
+    std::call_once(once, [] {
+        auto tag = std::make_unique<ItemTag>(ResourceLocation("minecraft", "bee_food"), false);
+        // 成员与数据包 minecraft:bee_food 完全一致（29 项，含樱花树叶/野花等非花物品）。
+        for (const char* id : {"dandelion",
+                 "open_eyeblossom",
+                 "poppy",
+                 "blue_orchid",
+                 "allium",
+                 "azure_bluet",
+                 "red_tulip",
+                 "orange_tulip",
+                 "white_tulip",
+                 "pink_tulip",
+                 "oxeye_daisy",
+                 "cornflower",
+                 "lily_of_the_valley",
+                 "wither_rose",
+                 "torchflower",
+                 "sunflower",
+                 "lilac",
+                 "peony",
+                 "rose_bush",
+                 "pitcher_plant",
+                 "flowering_azalea_leaves",
+                 "flowering_azalea",
+                 "mangrove_propagule",
+                 "cherry_leaves",
+                 "pink_petals",
+                 "wildflowers",
+                 "chorus_flower",
+                 "spore_blossom",
+                 "cactus_flower"}) {
+            tag->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", id)));
+        }
+        tags()[tag->getId()] = std::move(tag);
+    });
+    ItemTag* tag = getTag(ResourceLocation("minecraft", "bee_food"));
+    MC_ASSERT_RELEASE_MSG(tag != nullptr, "item tag 'bee_food' must be built on first access");
+    return *tag;
+}
+
 ItemTag& ItemTags::FROG_FOOD()
 {
     // 首次访问时构建：本标签不加入 initialize() 的内置建表流程，避免在物品尚未注册时
