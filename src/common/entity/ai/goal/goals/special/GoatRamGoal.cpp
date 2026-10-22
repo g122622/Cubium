@@ -52,6 +52,8 @@ constexpr f32 BLOCKED_KNOCKBACK_FACTOR = 0.5f;
 constexpr f32 RAM_SPEED_CLAMP_MIN = 0.2f;
 constexpr f32 RAM_SPEED_CLAMP_MAX = 3.0f;
 constexpr f32 RAM_SPEED_FORCE_FACTOR = 1.65f;
+/// 撞上可撞碎方块后的反弹速度（vanilla RamTarget：0.35 倍反向）
+constexpr f32 RAM_BOUNCE_SPEED = 0.35f;
 } // namespace
 
 GoatRamGoal::GoatRamGoal(GoatEntity* goat)
@@ -208,10 +210,17 @@ void GoatRamGoal::tick()
                     static_cast<i32>(std::floor(ahead.y)),
                     static_cast<i32>(std::floor(ahead.z)));
                 const BlockState* state = m_goat->world()->getBlockState(aheadPos);
-                if (state != nullptr) {
-                    // TODO(goat-horn-block-tag): vanilla 用 BlockTags.SNAPS_GOAT_HORN 判定；
-                    // Cubium 方块标签表尚未收录该标签，暂以"整个方块可撞碎"等价处理为不掉角。
-                    (void)state;
+                // 对齐 vanilla RamTarget.tick：撞上 #snaps_goat_horn 方块时掉落山羊角并以
+                // 0.35 倍速反向弹开（至此冲撞结束）。
+                if (state != nullptr && BlockTags::SNAPS_GOAT_HORN().contains(*state)) {
+                    if (m_goat->dropHorn()) {
+                        m_goat->setVelocity(-m_ramDirection.x * RAM_BOUNCE_SPEED,
+                            m_goat->velocity().y,
+                            -m_ramDirection.z * RAM_BOUNCE_SPEED);
+                    }
+                    m_goat->setLoweringHead(false);
+                    m_phase = Phase::Idle;
+                    m_goat->setRamCooldown(m_goat->pickNextRamCooldown());
                 }
             }
             return;

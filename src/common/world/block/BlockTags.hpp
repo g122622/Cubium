@@ -506,6 +506,10 @@ public:
     /// 主世界自然原木标签
     static BlockTag& OVERWORLD_NATURAL_LOGS();
 
+    /// 山羊冲撞可撞碎（掉落山羊角）的方块：主世界自然原木 + 石头/浮冰/铁煤铜绿矿石
+    /// （对齐 vanilla BlockTags.SNAPS_GOAT_HORN）
+    static BlockTag& SNAPS_GOAT_HORN();
+
     /// 雪标签（雪、雪块、细雪）
     static BlockTag& SNOW();
 

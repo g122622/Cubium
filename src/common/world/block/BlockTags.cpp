@@ -887,6 +887,15 @@ BlockTag& BlockTags::OVERWORLD_NATURAL_LOGS()
     return *tag;
 }
 
+BlockTag& BlockTags::SNAPS_GOAT_HORN()
+{
+    static BlockTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "snaps_goat_horn"));
+    }
+    return *tag;
+}
+
 BlockTag& BlockTags::SNOW()
 {
     static BlockTag* tag = nullptr;
@@ -2732,6 +2741,21 @@ void BlockTags::initialize()
         ResourceLocation("minecraft", "cherry_log"),
         ResourceLocation("minecraft", "pale_oak_log")});
     tags[overworldNaturalLogs->getId()] = std::move(overworldNaturalLogs);
+
+    // 山羊冲撞可撞碎的方块（vanilla VanillaBlockTagsProvider.SNAPS_GOAT_HORN：
+    // #overworld_natural_logs + stone / packed_ice / iron_ore / coal_ore / copper_ore / emerald_ore）
+    // BlockTag 是扁平集合，无法表达 #tag 引用，故手动并入 overworld_natural_logs 的成员。
+    auto snapsGoatHorn = std::make_unique<BlockTag>(ResourceLocation("minecraft", "snaps_goat_horn"));
+    for (const auto& id : tags.at(ResourceLocation("minecraft", "overworld_natural_logs")).get()->getBlockIds()) {
+        snapsGoatHorn->add(id);
+    }
+    snapsGoatHorn->addAll({ResourceLocation("minecraft", "stone"),
+        ResourceLocation("minecraft", "packed_ice"),
+        ResourceLocation("minecraft", "iron_ore"),
+        ResourceLocation("minecraft", "coal_ore"),
+        ResourceLocation("minecraft", "copper_ore"),
+        ResourceLocation("minecraft", "emerald_ore")});
+    tags[snapsGoatHorn->getId()] = std::move(snapsGoatHorn);
 
     // 雪标签
     auto snow = std::make_unique<BlockTag>(ResourceLocation("minecraft", "snow"));

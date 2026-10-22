@@ -1581,3 +1581,29 @@ TEST_F(BlockTagsTest, BeeAttractiveDoesNotContainNonFlowerBlocks)
     EXPECT_FALSE(BlockTags::BEE_ATTRACTIVE().contains(*VanillaBlocks::GRASS_BLOCK));
     EXPECT_FALSE(BlockTags::BEE_ATTRACTIVE().contains(*VanillaBlocks::DIRT));
 }
+
+// ============================================================================
+// SNAPS_GOAT_HORN Tests（山羊冲撞可撞碎、可掉角的方块）
+// ============================================================================
+
+TEST_F(BlockTagsTest, SnapsGoatHornContainsVanillaMembers)
+{
+    // 对齐 vanilla VanillaBlockTagsProvider.SNAPS_GOAT_HORN 的直接成员
+    EXPECT_TRUE(BlockTags::SNAPS_GOAT_HORN().contains(ResourceLocation("minecraft", "stone")));
+    EXPECT_TRUE(BlockTags::SNAPS_GOAT_HORN().contains(ResourceLocation("minecraft", "packed_ice")));
+    EXPECT_TRUE(BlockTags::SNAPS_GOAT_HORN().contains(ResourceLocation("minecraft", "iron_ore")));
+    EXPECT_TRUE(BlockTags::SNAPS_GOAT_HORN().contains(ResourceLocation("minecraft", "coal_ore")));
+    EXPECT_TRUE(BlockTags::SNAPS_GOAT_HORN().contains(ResourceLocation("minecraft", "copper_ore")));
+    EXPECT_TRUE(BlockTags::SNAPS_GOAT_HORN().contains(ResourceLocation("minecraft", "emerald_ore")));
+}
+
+TEST_F(BlockTagsTest, SnapsGoatHornMergesOverworldNaturalLogs)
+{
+    // vanilla .addTag(OVERWORLD_NATURAL_LOGS)：自然原木成员须并入
+    EXPECT_TRUE(BlockTags::SNAPS_GOAT_HORN().contains(ResourceLocation("minecraft", "oak_log")));
+    EXPECT_TRUE(BlockTags::SNAPS_GOAT_HORN().contains(ResourceLocation("minecraft", "cherry_log")));
+    // 去皮木材不属于自然原木
+    EXPECT_FALSE(BlockTags::SNAPS_GOAT_HORN().contains(ResourceLocation("minecraft", "stripped_oak_log")));
+    // 泥土不属于该标签
+    EXPECT_FALSE(BlockTags::SNAPS_GOAT_HORN().contains(ResourceLocation("minecraft", "dirt")));
+}
