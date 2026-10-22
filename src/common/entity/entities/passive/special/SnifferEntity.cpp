@@ -158,18 +158,43 @@ void SnifferEntity::transitionTo(State state)
             setState(State::Searching);
             break;
         case State::Digging:
-            // 对齐 MC Sniffer.onDiggingStart：记录掉种时刻（tickCount + 120），切换挖掘状态。
-            // 挖掘过程中的方块粒子与击打音效由 tick() 内的 emitDiggingParticles 负责。
-            m_dataManager.set(
-                DATA_DROP_SEED_AT_TICK_PARAM, static_cast<i32>(ticksExisted()) + DIGGING_DROP_SEED_OFFSET_TICKS);
+            // 对齐 MC Sniffer.transitionTo(DIGGING)：先切状态，再执行 onDiggingStart
+            // （记录掉种时刻与广播实体状态 63）。挖掘过程中的方块粒子与击打音效由
+            // tick() 内的 emitDiggingParticles 负责；SNIFFER_DIGGING 循环音效由客户端
+            // 收到实体状态 63 后播放（对齐 ClientPacketListener case 63 → SnifferSoundInstance）。
             setState(State::Digging);
-            playSound(SoundEvents::SNIFFER_DIGGING, 1.0f, 1.0f);
+            _onDiggingStart();
+            refreshDimensions();
             break;
         case State::Rising:
             playSound(SoundEvents::SNIFFER_DIGGING_STOP, 1.0f, 1.0f);
             setState(State::Rising);
+            refreshDimensions();
             break;
     }
+}
+
+void SnifferEntity::_onDiggingStart()
+{
+    // 对齐 MC Sniffer.onDiggingStart：DATA_DROP_SEED_AT_TICK = tickCount + 120，
+    // 并向追踪玩家广播实体状态 63（客户端据此播放 SNIFFER_DIGGING 循环音效）。
+    m_dataManager.set(DATA_DROP_SEED_AT_TICK_PARAM, static_cast<i32>(ticksExisted()) + DIGGING_DROP_SEED_OFFSET_TICKS);
+    if (m_world != nullptr && !m_world->isClientSide()) {
+        m_world->broadcastEntityStatus(m_id, DIGGING_ENTITY_STATUS);
+    }
+}
+
+entity::EntitySize SnifferEntity::getDimensions(EntityPose pose) const
+{
+    // 对齐 MC Sniffer.getDefaultDimensions：挖掘状态下使用 DIGGING_DIMENSIONS
+    // （宽不变、高 −0.4、眼高 0.81），并按幼体缩放。
+    if (getState() == State::Digging) {
+        const entity::EntitySize digging(
+            getBaseWidth(), getBaseHeight() - DIGGING_HEIGHT_REDUCTION, DIGGING_EYE_HEIGHT, false);
+        const f32 ageScale = isChild() ? babyScale() : 1.0f;
+        return ageScale == 1.0f ? digging : digging.scale(ageScale);
+    }
+    return AnimalEntity::getDimensions(pose);
 }
 
 // ========== 嗅探状态机 ==========

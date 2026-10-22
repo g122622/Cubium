@@ -687,6 +687,49 @@ TEST_F(SnifferEntityTest, IsBreedingItem_EmptyStack_ReturnsFalse)
     EXPECT_FALSE(sniffer->isBreedingItem(empty));
 }
 
+TEST_F(SnifferEntityTest, TransitionToDigging_BroadcastsStatus63AndShrinksDimensions)
+{
+    // 捕获实体状态广播（实体状态 63 = 客户端播放 SNIFFER_DIGGING 循环音效）
+    class StatusCaptureWorld final : public mc::test::BaseTestWorld {
+    public:
+        [[nodiscard]] bool isClientSide() const override { return false; }
+        void broadcastEntityStatus(EntityInstanceId entityId, u8 status) override
+        {
+            m_entityId = entityId;
+            m_statuses.push_back(status);
+        }
+        std::vector<u8> m_statuses;
+        EntityInstanceId m_entityId = INVALID_ENTITY_ID;
+    };
+
+    StatusCaptureWorld world;
+    auto sniffer = std::make_unique<SnifferEntity>(EntityInstanceId(7), mc::test::testEcsRegistry());
+    sniffer->setWorld(&world);
+
+    const f32 idleEyeHeight = sniffer->eyeHeight();
+    const f32 idleHeight = sniffer->getDimensions(sniffer->pose()).height();
+
+    sniffer->transitionTo(SnifferEntity::State::Digging);
+
+    ASSERT_EQ(sniffer->getState(), SnifferEntity::State::Digging);
+    // 对齐 vanilla Sniffer.onDiggingStart：broadcastEntityEvent(this, (byte)63)
+    ASSERT_EQ(world.m_statuses.size(), 1u);
+    EXPECT_EQ(world.m_statuses.front(), SnifferEntity::DIGGING_ENTITY_STATUS);
+    EXPECT_EQ(world.m_entityId, EntityInstanceId(7));
+    // 挖掘状态尺寸：高度 −0.4、眼高 0.81（vanilla DIGGING_DIMENSIONS）
+    EXPECT_FLOAT_EQ(
+        sniffer->getDimensions(sniffer->pose()).height(), idleHeight - SnifferEntity::DIGGING_HEIGHT_REDUCTION);
+    EXPECT_FLOAT_EQ(sniffer->eyeHeight(), SnifferEntity::DIGGING_EYE_HEIGHT);
+    EXPECT_GT(idleEyeHeight, sniffer->eyeHeight());
+
+    // 进入 Rising 后恢复常规尺寸与眼高
+    sniffer->transitionTo(SnifferEntity::State::Rising);
+    EXPECT_FLOAT_EQ(sniffer->getDimensions(sniffer->pose()).height(), idleHeight);
+    EXPECT_FLOAT_EQ(sniffer->eyeHeight(), idleEyeHeight);
+    // 掉种时刻已按 tickCount + 120 安排
+    EXPECT_EQ(sniffer->ticksUntilDropSeed(), SnifferEntity::DIGGING_DROP_SEED_OFFSET_TICKS);
+}
+
 TEST_F(SnifferEntityTest, EyeHeight_AdultReturns105)
 {
     auto sniffer = std::make_unique<SnifferEntity>(EntityInstanceId(0), mc::test::testEcsRegistry());

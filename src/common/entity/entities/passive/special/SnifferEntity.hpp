@@ -29,6 +29,7 @@
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/core/EntityClassRegistry.hpp"
 #include "common/entity/core/EntityDataManager.hpp"
+#include "common/entity/core/EntitySize.hpp"
 #include "common/entity/entities/passive/basic/AnimalEntity.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/nbt/Nbt.hpp"
@@ -144,8 +145,8 @@ public:
      * - Sniffing: SNIFFER_SNIFFING
      * - Rising: SNIFFER_DIGGING_STOP
      *
-     * @note Digging 状态的原版逻辑（设置 DROP_SEED_AT_TICK、广播实体状态）暂未实现，
-     *       详见 onDiggingStart() 的 TODO 注释。
+     * @note Digging 状态额外执行 onDiggingStart：设置 DROP_SEED_AT_TICK 时刻、广播
+     *       实体状态 63（客户端据此播放挖掘循环音效），并刷新碰撞箱/眼高。
      *
      * @param state 目标状态
      */
@@ -253,12 +254,39 @@ public:
      * @brief 获取眼睛高度
      *
      * 对齐 MC Sniffer 默认 1.05F（基类 AnimalEntity 的眼睛高度）。
-     * @note 原版 DIGGING_DIMENSIONS 使用 0.81F 眼高，当前未实现挖掘尺寸切换。
+     * 挖掘状态下改用 DIGGING_DIMENSIONS 的 0.81F 眼高（见 getDimensions）。
      */
-    [[nodiscard]] f32 eyeHeight() const override { return isChild() ? 0.525f : 1.05f; }
+    [[nodiscard]] f32 eyeHeight() const override
+    {
+        // 默认成体 1.05 / 幼体 0.525（对齐 vanilla Animal.getDefaultDimensions 的眼高）；
+        // 挖掘状态下由 getDimensions 提供 DIGGING_DIMENSIONS 的 0.81。
+        if (getState() == State::Digging) {
+            return isChild() ? DIGGING_EYE_HEIGHT * babyScale() : DIGGING_EYE_HEIGHT;
+        }
+        return isChild() ? 0.525f : 1.05f;
+    }
 
     [[nodiscard]] f32 getBaseWidth() const override { return 1.9f; }
     [[nodiscard]] f32 getBaseHeight() const override { return 1.75f; }
+
+    /**
+     * @brief 实体尺寸
+     *
+     * 对齐 MC Sniffer.getDefaultDimensions：挖掘状态使用 DIGGING_DIMENSIONS
+     * （高度 −0.4、眼高 0.81），并按幼体缩放。状态切换时由 transitionTo 刷新。
+     */
+    [[nodiscard]] entity::EntitySize getDimensions(EntityPose pose) const override;
+
+    /**
+     * @brief 是否可播放挖掘循环音效（对齐 vanilla Sniffer.canPlayDiggingSound）
+     *
+     * 挖掘与搜索状态为真；客户端收到实体状态 63 后据此决定是否维持音效。
+     */
+    [[nodiscard]] bool canPlayDiggingSound() const
+    {
+        const State state = getState();
+        return state == State::Digging || state == State::Searching;
+    }
 
     // ========== 幼体设置 ==========
 
@@ -284,6 +312,11 @@ public:
 
     /// 挖掘开始到掉出种子的延迟 tick（对齐 vanilla Sniffer.DIGGING_DROP_SEED_OFFSET_TICKS）
     static constexpr i32 DIGGING_DROP_SEED_OFFSET_TICKS = 120;
+    /// 挖掘开始时向客户端广播的实体状态（对齐 vanilla broadcastEntityEvent(this, (byte)63)）
+    static constexpr u8 DIGGING_ENTITY_STATUS = 63;
+    /// 挖掘状态高度减少量 / 眼高（对齐 vanilla Sniffer.DIGGING_DIMENSIONS）
+    static constexpr f32 DIGGING_HEIGHT_REDUCTION = 0.4f;
+    static constexpr f32 DIGGING_EYE_HEIGHT = 0.81f;
     /// 挖掘粒子开始延迟 / 结束时刻 / 每 tick 数量（对齐 vanilla Sniffer 同名常量）
     static constexpr i32 DIGGING_PARTICLES_DELAY_TICKS = 1700;
     static constexpr i32 DIGGING_PARTICLES_DURATION_TICKS = 6000;
@@ -350,13 +383,21 @@ protected:
     Result<void> readAdditionalSaveData(const nbt::tags::compound_tag& tag) override;
 
 private:
+    /**
+     * @brief 进入挖掘状态时的初始化（对齐 vanilla Sniffer.onDiggingStart）
+     *
+     * 记录 DROP_SEED_AT_TICK = tickCount + 120，并向追踪玩家广播实体状态 63
+     * （客户端据此播放 SNIFFER_DIGGING 循环音效）。
+     */
+    void _onDiggingStart();
+
     // ========== 数据同步参数 ==========
     /// 对齐 MC Sniffer.DATA_STATE（SNIFFER_STATE 序列化器 id=31, wire=VarInt(State.id)）
     /// @note vanilla 1.21.11 SNIFFER_STATE 是独立 serializer(VarInt),非 Byte。旧实现误用 i8(BYTE)
     ///       致真客户端类型校验崩,改为 SnifferStateValue 对齐。getState/setState 做 State↔id 互转。
     static entity::DataParameter<entity::SnifferStateValue> DATA_STATE_PARAM;
     /// 对齐 MC Sniffer.DATA_DROP_SEED_AT_TICK（INT 序列化器）
-    /// @note 用于挖掘完成后掉落种子的时序控制，当前未使用，保留以兼容原版 NBT。
+    /// @note 挖掘链路写入"掉落种子时刻"，由 dropSeed 在该 tick 兑现。
     static entity::DataParameter<i32> DATA_DROP_SEED_AT_TICK_PARAM;
 
 protected:
