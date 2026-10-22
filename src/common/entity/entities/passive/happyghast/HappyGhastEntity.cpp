@@ -31,6 +31,7 @@
 #include "common/entity/damage/DamageSource.hpp"
 #include "common/entity/entities/passive/basic/AnimalEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
+#include "common/entity/registry/VanillaEntityTypeKeys.hpp"
 #include "common/entity/tag/EntityTypeTags.hpp"
 #include "common/item/Items.hpp"
 #include "common/item/core/Item.hpp"
@@ -187,22 +188,145 @@ f32 HappyGhastEntity::getSoundVolume() const
 
 void HappyGhastEntity::onPassengerAdded(Entity& passenger)
 {
-    // 对齐 vanilla HappyGhast.addPassenger:294-299：首个乘客上车时播放护目镜放下音效。
-    if (m_world != nullptr && !m_world->isClientSide() && getPassengers().size() == 1) {
-        playSound(SoundEvents::HARNESS_GOGGLES_DOWN, 1.0f, 1.0f);
+    // 对齐 vanilla HappyGhast.addPassenger:294-307：首个乘客上车时播放护目镜放下音效；
+    // 若上方没有玩家则立即取消静止超时，否则把超时压到 10 tick 内。
+    if (m_world != nullptr && !m_world->isClientSide()) {
+        if (getPassengers().size() == 1) {
+            playSound(SoundEvents::HARNESS_GOGGLES_DOWN, 1.0f, 1.0f);
+        }
+        if (!scanPlayerAbove()) {
+            _setServerStillTimeout(0);
+        } else if (m_serverStillTimeout > 10) {
+            _setServerStillTimeout(10);
+        }
     }
     AnimalEntity::onPassengerAdded(passenger);
 }
 
 void HappyGhastEntity::onPassengerRemoved(Entity& passenger)
 {
-    // 对齐 vanilla HappyGhast.removePassenger:309-320：最后一名乘客离开时清空 home 并
-    // 播放护目镜抬起音效。挽具被剪下（onSlotCleared）走同一 clearHome 清理。
-    if (m_world != nullptr && !m_world->isClientSide() && getPassengers().empty()) {
-        clearHome();
-        playSound(SoundEvents::HARNESS_GOGGLES_UP, 1.0f, 1.0f);
+    // 对齐 vanilla HappyGhast.removePassenger:309-320：任何乘客下车都把静止超时设为 10
+    // （避免刚下车又被立即驾驶）；最后一名乘客离开时清空 home 并播放护目镜抬起音效。
+    // 挽具被剪下（onSlotCleared）走同一 clearHome 清理。
+    if (m_world != nullptr && !m_world->isClientSide()) {
+        _setServerStillTimeout(10);
+        if (getPassengers().empty()) {
+            clearHome();
+            playSound(SoundEvents::HARNESS_GOGGLES_UP, 1.0f, 1.0f);
+        }
     }
     AnimalEntity::onPassengerRemoved(passenger);
+}
+
+// ========== 静止超时 ==========
+
+void HappyGhastEntity::_setServerStillTimeout(i32 ticks)
+{
+    // vanilla 在 0 → 正数（刚进入静止）时向追踪玩家补发一次位置同步
+    // （ClientboundEntityPositionSyncPacket），使客户端立即收敛到服务端位置。
+    // Cubium 尚无独立的该类包，位置同步依赖常规实体追踪包，故此处只维护计数。
+    // TODO: 待 ClientboundEntityPositionSyncPacket 实现后在此补发位置同步。
+    m_serverStillTimeout = std::max(0, ticks);
+}
+
+bool HappyGhastEntity::scanPlayerAbove() const
+{
+    // 对齐 vanilla HappyGhast.scanPlayerAboveGhast:532-546。
+    if (m_world == nullptr) {
+        return false;
+    }
+
+    const AxisAlignedBB box = boundingBox();
+    const f64 height = box.maxY - box.minY;
+    const AxisAlignedBB scanBox(
+        box.minX - 1.0, box.maxY - 1.0e-5, box.minZ - 1.0, box.maxX + 1.0, box.maxY + height / 2.0, box.maxZ + 1.0);
+
+    for (Entity* playerEntity : m_world->getPlayers()) {
+        if (playerEntity == nullptr || playerEntity->isSpectator()) {
+            continue;
+        }
+
+        // 玩家所在"根载具"（骑乘链最底层实体；未骑乘时即玩家本身）
+        Entity* root = const_cast<Entity*>(playerEntity->getLowestRidingEntity());
+        if (root == nullptr || root == this) {
+            continue;
+        }
+        if (scanBox.contains(root->position())) {
+            return true;
+        }
+    }
+    return false;
+}
+
+void HappyGhastEntity::_stopInPlace()
+{
+    // 对齐 vanilla Ghast.GhastMoveControl：shouldBeStopped 为真时 operation=WAIT 并
+    // stopInPlace()。Cubium 的飞行控制器没有"停住"开关，这里清空速度并中断导航，
+    // 让快乐恶魂原地悬停。
+    setVelocity(Vector3(0.0, 0.0, 0.0));
+    clearNavigation();
+}
+
+EntityInstanceId HappyGhastEntity::getControllingPassenger() const
+{
+    // 对齐 vanilla HappyGhast.getControllingPassenger（HappyGhast.java:328-332）：
+    //   装备挽具 && 非静止超时 && 首名乘客是玩家 → 该玩家可驾驶，否则回退基类。
+    if (hasHarness() && !isOnStillTimeout() && m_world != nullptr) {
+        const EntityInstanceId first = getFirstPassenger();
+        if (first != INVALID_ENTITY_ID) {
+            const Entity* passenger = m_world->getEntity(first);
+            if (passenger != nullptr && passenger->entityType() == entity::VanillaEntityTypeKeys::PLAYER) {
+                return first;
+            }
+        }
+    }
+    return Entity::getControllingPassenger();
+}
+
+void HappyGhastEntity::tick()
+{
+    AnimalEntity::tick();
+
+    if (m_world == nullptr || m_world->isClientSide()) {
+        return;
+    }
+
+    // 对齐 vanilla HappyGhast.tick:409-419：
+    //   serverStillTimeout > 0 时自 tickCount>60 起每 tick 递减；之后若仍有玩家停在上方，
+    //   把超时重置为 10（持续骑乘期间保持可驾驶）。
+    if (m_serverStillTimeout > 0 && ticksExisted() > 60) {
+        _setServerStillTimeout(m_serverStillTimeout - 1);
+    }
+    if (scanPlayerAbove()) {
+        _setServerStillTimeout(10);
+    }
+
+    // 刚进入静止超时时原地停住（vanilla 由 GhastMoveControl 每 tick 检查，效果等价）。
+    const bool onStillTimeout = isOnStillTimeout();
+    if (onStillTimeout && !m_wasOnStillTimeout) {
+        _stopInPlace();
+    }
+    m_wasOnStillTimeout = onStillTimeout;
+
+    // 对齐 vanilla HappyGhast.aiStep:430 的 continuousHeal。
+    _continuousHeal();
+}
+
+void HappyGhastEntity::_continuousHeal()
+{
+    if (m_world == nullptr || !isAlive() || isDead() || health() >= maxHealth()) {
+        return;
+    }
+
+    // 云层中或该位置正在降水 → 每 20 tick 回 1 点，否则每 600 tick 回 1 点。
+    // vanilla 用 precipitationAt(...) != NONE（雨雪皆算），故此处同样不区分雨雪。
+    const bool inClouds = m_world->isInCloudLayer(y(), y() + height());
+    const bool precipitating = inClouds ||
+        m_world->precipitationAt(BlockPos(x(), y(), z())) != world::biome::BiomeClimate::Precipitation::None;
+    const i64 interval = precipitating ? 20 : 600;
+    if (static_cast<i64>(ticksExisted()) % interval == 0) {
+        heal(1.0f);
+    }
 }
 
 // ========== 挽具 / 骑乘 ==========

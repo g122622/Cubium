@@ -25,6 +25,7 @@
 
 #include "IWorldWriter.hpp"
 #include "WorldConstants.hpp"
+#include "biome/BiomeClimate.hpp"
 #include "block/BlockPos.hpp"
 #include "border/WorldBorder.hpp"
 #include "common/core/Types.hpp"
@@ -1206,6 +1207,33 @@ public:
      * @return 是否正在雷暴
      */
     [[nodiscard]] virtual bool isThundering() const { return false; }
+
+    /**
+     * @brief 该方块位置是否正在降水（对齐 vanilla Level.precipitationAt）
+     *
+     * 判定顺序（任一不满足即 NONE）：未下雨 → 看不到天空 → 上方存在运动阻挡方块
+     * （MOTION_BLOCKING 高度图高于该位置）→ 群系降水类型（雨/雪，None 表示无降水）。
+     * 不区分雨雪，供"有降水即可"的消费方使用（如快乐恶魂降水回血）。
+     *
+     * @param pos 方块位置
+     * @return 降水类型；无降水时返回 Precipitation::None
+     */
+    [[nodiscard]] virtual world::biome::BiomeClimate::Precipitation precipitationAt(const BlockPos& pos) const
+    {
+        (void)pos;
+        return world::biome::BiomeClimate::Precipitation::None;
+    }
+
+    /**
+     * @brief 该方块位置是否处于云层中（对齐 vanilla Entity.isInClouds）
+     *
+     * 云层高度以下（含 4 格厚度）且该维度云层可见时返回 true。
+     *
+     * @param y 实体包围盒上下端的参考高度（原版取实体脚部 y 与顶部 y）
+     * @param entityTopY 实体包围盒顶部 y
+     * @return 是否位于云层内
+     */
+    [[nodiscard]] virtual bool isInCloudLayer(f64 /*y*/, f64 /*entityTopY*/) const { return false; }
 
     /**
      * @brief 获取降雨强度

@@ -102,6 +102,21 @@ public:
         return count;
     }
 
+    /// 世界中可见的玩家列表（供快乐恶魂 scanPlayerAbove 扫描）
+    [[nodiscard]] std::vector<Entity*> getPlayers() const override { return m_players; }
+    void setPlayers(std::vector<Entity*> players) { m_players = std::move(players); }
+
+    /// 该位置是否正在降水（供 continuousHeal 判定）
+    [[nodiscard]] world::biome::BiomeClimate::Precipitation precipitationAt(const BlockPos& pos) const override
+    {
+        (void)pos;
+        return m_precipitation;
+    }
+    void setPrecipitation(world::biome::BiomeClimate::Precipitation precipitation) { m_precipitation = precipitation; }
+
+    [[nodiscard]] bool isInCloudLayer(f64, f64) const override { return m_inClouds; }
+    void setInCloudLayer(bool inClouds) { m_inClouds = inClouds; }
+
     [[nodiscard]] const std::vector<ResourceLocation>& sounds() const { return m_playedSounds; }
 
     [[nodiscard]] i32 gameEventCount() const { return static_cast<i32>(m_gameEvents.size()); }
@@ -109,6 +124,9 @@ public:
 private:
     std::vector<ResourceLocation> m_playedSounds;
     std::vector<const gameevent::GameEvent*> m_gameEvents;
+    std::vector<Entity*> m_players;
+    world::biome::BiomeClimate::Precipitation m_precipitation = world::biome::BiomeClimate::Precipitation::None;
+    bool m_inClouds = false;
 };
 
 class HappyGhastHarnessTest : public ::testing::Test {
@@ -343,6 +361,115 @@ TEST_F(HappyGhastHarnessTest, CanReEquipAfterShearing)
     player->getHeldItem(Hand::MainHand) = ItemStack(Items::BLACK_HARNESS, 1);
     EXPECT_EQ(ghast->processInitialInteract(*player, Hand::MainHand), ActionResultType::Success);
     EXPECT_EQ(ghast->harnessStack().getItem(), Items::BLACK_HARNESS);
+}
+
+// ============================================================================
+// 静止超时（serverStillTimeout）
+// ============================================================================
+
+TEST_F(HappyGhastHarnessTest, PlayerAboveGhastIsDetected)
+{
+    auto ghast = makeGhast(EntityInstanceId(1));
+    auto player = makePlayer(EntityInstanceId(2));
+    ghast->setPosition(0.0, 64.0f, 0.0);
+    ASSERT_FALSE(ghast->scanPlayerAbove()) << "无玩家时不应扫描到上方玩家";
+
+    // 玩家站在快乐恶魂的顶面上方（成体高 4 格，顶面 y=68，扫描区域向上延伸到 70）
+    player->setPosition(0.0f, 68.5f, 0.0f);
+    m_world->setPlayers({player.get()});
+    EXPECT_TRUE(ghast->scanPlayerAbove());
+
+    // 高出扫描区域（顶面 + 2 格以上）则不再命中
+    player->setPosition(0.0f, 71.0f, 0.0f);
+    EXPECT_FALSE(ghast->scanPlayerAbove());
+}
+
+TEST_F(HappyGhastHarnessTest, SpectatorAboveDoesNotCount)
+{
+    auto ghast = makeGhast(EntityInstanceId(1));
+    auto player = makePlayer(EntityInstanceId(2));
+    ghast->setPosition(0.0, 64.0f, 0.0);
+    player->setPosition(0.0f, 68.5f, 0.0f);
+    player->setGameMode(GameMode::Spectator);
+    m_world->setPlayers({player.get()});
+
+    // 对齐 vanilla scanPlayerAboveGhast：!player.isSpectator()
+    EXPECT_FALSE(ghast->scanPlayerAbove());
+}
+
+TEST_F(HappyGhastHarnessTest, StayStillDisablesControllingPassenger)
+{
+    auto ghast = makeGhast(EntityInstanceId(1));
+    ghast->setEquipment(EquipmentSlot::Body, ItemStack(Items::WHITE_HARNESS, 1));
+    auto player = makePlayer(EntityInstanceId(2));
+    ASSERT_TRUE(player->startRiding(*ghast));
+    // startRiding → onPassengerAdded 只在"上方无玩家"时清除静止超时；此处上方有玩家，
+    // 按 vanilla 该状态保持为 0（不设置），直到 tick 检测到上方玩家再压到 10。
+    ASSERT_EQ(ghast->serverStillTimeout(), 0);
+
+    // 有玩家（未骑乘，根载具即其本身）停在快乐恶魂上方时，静止超时被持续重置为 10，
+    // 此时乘客可驾驶。vanilla 扫描的是玩家"根载具"坐标，故用独立玩家实体表达该场景。
+    auto stander = makePlayer(EntityInstanceId(3));
+    m_world->setPlayers({stander.get()});
+    // 快乐恶魂顶面 y=68，扫描区向上延伸 2 格 → 站立玩家落在 68..70 内
+    stander->setPosition(0.0f, ghast->boundingBox().maxY + 0.5f, 0.0f);
+    ghast->tick();
+    EXPECT_TRUE(ghast->isOnStillTimeout()) << "上方有玩家时静止超时应被重置为 10";
+    EXPECT_EQ(ghast->getControllingPassenger(), player->id());
+
+    // 玩家离开上方后（tickCount 已过 60），静止超时每 tick 递减直至归零，
+    // 归零后快乐恶魂不再接受该乘客操控（vanilla 同序）。
+    m_world->setPlayers({});
+    stander->setPosition(200.0f, 64.0f, 200.0f);
+    i32 ticksUntilReleased = 0;
+    while (ghast->isOnStillTimeout() && ticksUntilReleased < 200) {
+        ghast->tick();
+        ++ticksUntilReleased;
+    }
+    EXPECT_LT(ticksUntilReleased, 200) << "玩家离开上方后静止超时必须最终归零";
+    EXPECT_FALSE(ghast->isOnStillTimeout());
+}
+
+TEST_F(HappyGhastHarnessTest, DismountSetsStillTimeout)
+{
+    auto ghast = makeGhast(EntityInstanceId(1));
+    ghast->setEquipment(EquipmentSlot::Body, ItemStack(Items::WHITE_HARNESS, 1));
+    auto player = makePlayer(EntityInstanceId(2));
+    ASSERT_TRUE(player->startRiding(*ghast));
+    EXPECT_EQ(ghast->serverStillTimeout(), 0);
+
+    // 对齐 vanilla removePassenger：任何乘客下车都把静止超时设为 10
+    player->stopRiding();
+    EXPECT_EQ(ghast->serverStillTimeout(), 10);
+}
+
+// ============================================================================
+// 降水回血
+// ============================================================================
+
+TEST_F(HappyGhastHarnessTest, PrecipitationHealsEveryTwentyTicks)
+{
+    auto ghast = makeGhast(EntityInstanceId(1));
+    ghast->setHealth(10.0f);
+    m_world->setPrecipitation(world::biome::BiomeClimate::Precipitation::Rain);
+
+    // 对齐 vanilla continuousHeal：降水时 tickCount % 20 == 0 回 1 点
+    for (i32 i = 0; i < 20; ++i) {
+        ghast->tick();
+    }
+    EXPECT_GT(ghast->health(), 10.0f);
+}
+
+TEST_F(HappyGhastHarnessTest, NoPrecipitationHealsSlowly)
+{
+    auto ghast = makeGhast(EntityInstanceId(1));
+    ghast->setHealth(10.0f);
+
+    // 无云层、无降水：600 tick 才回 1 点，前 100 tick 不应回血
+    for (i32 i = 0; i < 100; ++i) {
+        ghast->tick();
+    }
+    EXPECT_FLOAT_EQ(ghast->health(), 10.0f);
 }
 
 } // namespace

@@ -2026,6 +2026,27 @@ bool ServerWorld::canRainAt(const BlockPos& pos) const
     return m_weatherManager ? mc::weather::WeatherUtils::canRainAt(*this, pos) : false;
 }
 
+world::biome::BiomeClimate::Precipitation ServerWorld::precipitationAt(const BlockPos& pos) const
+{
+    // 对齐 vanilla Level.precipitationAt：未下雨 / 看不到天空 / 上方有运动阻挡方块
+    // 时均无降水，否则按群系在该位置的降水类型（雨或雪）返回。
+    if (!isRaining() || !canSeeSky(pos)) {
+        return world::biome::BiomeClimate::Precipitation::None;
+    }
+    // getHeight 返回最高运动阻挡方块上方的空气层 Y；高于该位置即被遮挡。
+    if (getHeight(pos.x, pos.z) > pos.y) {
+        return world::biome::BiomeClimate::Precipitation::None;
+    }
+
+    const auto* chunk = chunkManager()->tryToGetChunkInMem(pos.chunkX(), pos.chunkZ());
+    if (chunk == nullptr) {
+        return world::biome::BiomeClimate::Precipitation::None;
+    }
+    const BiomeId biomeId = chunk->getBiomeAtBlock(pos.localX(), pos.y, pos.localZ());
+    const world::biome::Biome& biome = world::biome::BiomeRegistry::instance().get(biomeId);
+    return biome.getPrecipitationAt(pos.x, pos.y, pos.z, world::SEA_LEVEL);
+}
+
 // ============================================================================
 // 碰撞检测
 // ============================================================================

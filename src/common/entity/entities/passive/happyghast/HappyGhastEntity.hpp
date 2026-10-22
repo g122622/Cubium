@@ -59,10 +59,9 @@ class Goal;
  *       GhastHappyFloatGoal（幼体漂浮）+ GhastRandomFlyGoal（成年随机飞行）实现，
  *       与恶魂共用同一套飞行移动控制器与飞行物理（travelFlying）。
  * @note 已实现：挽具（HARNESS）装备槽语义（右键装备、剪刀剪下、必须装备挽具才能骑乘）、
- *       多人载客上限 4，以及挽具驱动的载客/离座音效。
+ *       多人载客上限 4、挽具驱动的载客/离座音效、静止超时（serverStillTimeout，
+ *       玩家不再停在其上方时禁止载客驾驶）与降水回血。
  * @note 未实现（TODO）：
- *       - 静止超时（serverStillTimeout / STAYS_STILL 同步字段）：vanilla 在无玩家于其上方时
- *         累计静止时间并禁止乘客操控，本类尚无对应的数据同步字段；
  *       - 成年/幼年切换时的移动控制与 goal 集合切换（ageBoundaryReached）；
  *       - 挽具颜色同步给客户端渲染（客户端已停止维护，服务端只保存挽具物品本身）。
  */
@@ -174,6 +173,41 @@ public:
      */
     [[nodiscard]] bool canBeRidden(const Entity& vehicle) const override;
 
+    // ========== 静止超时 ==========
+
+    /**
+     * @brief 是否处于静止超时（对齐 vanilla HappyGhast.isOnStillTimeout 背后的
+     *        serverStillTimeout > 0）
+     *
+     * 静止超时期间快乐恶魂拒绝乘客的操控（vanilla 把 getControllingPassenger 置空），
+     * 由 tick 在检测到"上方无玩家"时累计、检测到玩家时重置。
+     */
+    [[nodiscard]] bool isOnStillTimeout() const { return m_serverStillTimeout > 0; }
+
+    /// 静止超时剩余 tick 数（测试与调试断言用）
+    [[nodiscard]] i32 serverStillTimeout() const { return m_serverStillTimeout; }
+
+    /// 控制乘客：vanilla 仅在"装备挽具 + 非静止超时 + 首名乘客是玩家"时返回该玩家，
+    /// 否则回退基类（HappyGhast.java:328-332）。静止超时时乘客无法驾驶。
+    [[nodiscard]] EntityInstanceId getControllingPassenger() const override;
+
+    /**
+     * @brief 玩家（或其坐骑的根载具）是否停在快乐恶魂上方
+     *
+     * 对齐 vanilla HappyGhast.scanPlayerAboveGhast:532-546：取包围盒向两侧各外扩 1 格、
+     * 向上延伸到"顶面 + 高度/2"的区域，区域内有任意非观察者玩家的根载具（且该根载具
+     * 不是快乐恶魂本身）即返回 true。
+     */
+    [[nodiscard]] bool scanPlayerAbove() const;
+
+    // ========== 刻更新 ==========
+
+    /**
+     * @brief 每 tick：维护静止超时与降水回血（对齐 vanilla HappyGhast.tick:401-421 /
+     *        aiStep:423-431 的 continuousHeal）
+     */
+    void tick() override;
+
 protected:
     // ========== AI 目标注册 ==========
     void registerGoals() override;
@@ -206,11 +240,41 @@ protected:
 
     // ========== 乘客 ==========
 
-    /// 首个乘客上船时播放 HARNESS_GOGGLES_DOWN（对齐 vanilla HappyGhast.addPassenger:294-299）
+    /// 首个乘客上船时播放 HARNESS_GOGGLES_DOWN 并按上方是否有玩家设定静止超时
+    /// （对齐 vanilla HappyGhast.addPassenger:293-307）
     void onPassengerAdded(Entity& passenger) override;
 
-    /// 最后一个乘客离开时播放 HARNESS_GOGGLES_UP（对齐 vanilla HappyGhast.removePassenger:309-320）
+    /// 最后一个乘客离开时播放 HARNESS_GOGGLES_UP 并清空 home；任何乘客下车都把
+    /// 静止超时设为 10（对齐 vanilla HappyGhast.removePassenger:309-320）
     void onPassengerRemoved(Entity& passenger) override;
+
+private:
+    /**
+     * @brief 设置静止超时（对齐 vanilla HappyGhast.setServerStillTimeout:77-85）
+     */
+    void _setServerStillTimeout(i32 ticks);
+
+    /**
+     * @brief 静止超时时快乐恶魂"原地停住"（对齐 vanilla GhastMoveControl 在
+     *        shouldBeStopped 为真时调用 stopInPlace）
+     *
+     * 注意：Cubium 的 GoalSelector 仍会驱动飞行控制器，故这里把速度清零并清空导航，
+     * 等价于 vanilla 的 stopInPlace。
+     */
+    void _stopInPlace();
+
+    /**
+     * @brief 降水/云层回血（对齐 vanilla HappyGhast.continuousHeal:446-453）
+     *
+     * 处于云层中或所处位置正在降水时每 20 tick 回 1 点，否则每 600 tick 回 1 点。
+     */
+    void _continuousHeal();
+
+    /// 静止超时计数（对齐 vanilla HappyGhast.serverStillTimeout）
+    i32 m_serverStillTimeout = 0;
+
+    /// 上一帧是否为静止超时（用于检测"刚进入静止"以执行一次停住）
+    bool m_wasOnStillTimeout = false;
 };
 
 } // namespace mc

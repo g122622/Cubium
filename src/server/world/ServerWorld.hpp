@@ -509,8 +509,9 @@ public:
     [[nodiscard]] f32 rainStrength(f32 partialTick = 0.0f) const override;
     [[nodiscard]] f32 thunderStrength(f32 partialTick = 0.0f) const override;
     [[nodiscard]] bool canRainAt(const BlockPos& pos) const override;
+    [[nodiscard]] world::biome::BiomeClimate::Precipitation precipitationAt(const BlockPos& pos) const override;
 
-    // ========== 声音播放 ==========
+    // ========== 声音播放 ============
 
     void setOnPlaySound(
         std::function<void(const ResourceLocation&, sound::SoundCategory, const Vector3&, f32, f32)> callback)
