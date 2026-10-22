@@ -908,13 +908,13 @@ bool BeeFindFlowerGoal::canBeeStart()
         return false;
     }
 
-    // 检查是否已经足够近
-    math::Vector3 beePos = m_bee->position();
-    BlockPos flowerPos = m_bee->getFlowerPos();
-    f64 distSq = (beePos.x - flowerPos.x - 0.5) * (beePos.x - flowerPos.x - 0.5) +
-        (beePos.z - flowerPos.z - 0.5) * (beePos.z - flowerPos.z - 0.5);
-
-    return distSq > 4.0; // 超过2格距离
+    // 检查是否已经足够近（对齐 vanilla !closerThan(flowerPos, 2)：完整三维距离）
+    const math::Vector3 beePos = m_bee->position();
+    const BlockPos flowerPos = m_bee->getFlowerPos();
+    const f64 dx = beePos.x - (static_cast<f64>(flowerPos.x) + 0.5);
+    const f64 dy = beePos.y - static_cast<f64>(flowerPos.y);
+    const f64 dz = beePos.z - (static_cast<f64>(flowerPos.z) + 0.5);
+    return dx * dx + dy * dy + dz * dz > 4.0;
 }
 
 bool BeeFindFlowerGoal::canBeeContinue()
