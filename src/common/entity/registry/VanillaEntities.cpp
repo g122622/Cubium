@@ -88,6 +88,7 @@
 #include "common/entity/entities/passive/nautilus/NautilusEntity.hpp"
 #include "common/entity/entities/passive/nautilus/ZombieNautilusEntity.hpp"
 #include "common/entity/entities/passive/special/ArmadilloEntity.hpp"
+#include "common/entity/entities/passive/special/GoatEntity.hpp"
 #include "common/entity/entities/passive/special/BeeEntity.hpp"
 #include "common/entity/entities/passive/special/FoxEntity.hpp"
 #include "common/entity/entities/passive/special/PandaEntity.hpp"
@@ -320,6 +321,16 @@ void VanillaEntities::doRegisterAll()
     registry.registerType(EntityTypeKeys::ARMADILLO,
         EntityType::Builder(&ArmadilloEntity::create, EntityClassification::Creature)
             .size(0.7f, 0.85f)
+            .trackingRange(10)
+            .updateInterval(3)
+            .canSummon(true)
+            .build());
+
+    // 山羊
+    // MC 1.21.11 Goat：Animal 默认尺寸 0.9 x 1.3（幼体经 getAgeScale=0.5 缩放）
+    registry.registerType(EntityTypeKeys::GOAT,
+        EntityType::Builder(&GoatEntity::create, EntityClassification::Creature)
+            .size(0.9f, 1.3f)
             .trackingRange(10)
             .updateInterval(3)
             .canSummon(true)

@@ -876,13 +876,15 @@ TEST_F(NaturalSpawnerTest, MobSpawnInfo_GroveAndSlopes)
     expectSpawn(grove.getCreatureSpawns(), "minecraft:fox", 4, 2, 4);
     EXPECT_EQ(grove.getCreatureSpawns().size(), 3u);
 
-    // 雪坡：rabbit(4,2,3)（山羊未实现）
+    // 雪坡：rabbit(4,2,3) + goat(5,1,3)
     auto slopes = world::spawn::MobSpawnInfo::createSnowySlopes();
     expectSpawn(slopes.getCreatureSpawns(), "minecraft:rabbit", 4, 2, 3);
-    EXPECT_EQ(slopes.getCreatureSpawns().size(), 1u);
-    // 山峰：仅有 commonSpawns（山羊未实现）
+    expectSpawn(slopes.getCreatureSpawns(), "minecraft:goat", 5, 1, 3);
+    EXPECT_EQ(slopes.getCreatureSpawns().size(), 2u);
+    // 山峰：goat(5,1,3) + commonSpawns
     auto peaks = world::spawn::MobSpawnInfo::createGoatPeaks();
-    EXPECT_TRUE(peaks.getCreatureSpawns().empty());
+    expectSpawn(peaks.getCreatureSpawns(), "minecraft:goat", 5, 1, 3);
+    EXPECT_EQ(peaks.getCreatureSpawns().size(), 1u);
     expectCommonMonsters(peaks.getMonsterSpawns());
 }
 

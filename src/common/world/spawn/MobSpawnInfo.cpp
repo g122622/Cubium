@@ -41,7 +41,6 @@ namespace spawn {
 // 与原版的已知偏差（对应实体尚未实现，无法进入 spawn list）：
 //   1) camel（沙漠 CREATURE 1,1,1）——CamelEntity 未实现；
 //   3) parched（沙漠 MONSTER 50,4,4）——ParchedEntity 未实现；
-//   4) goat（尖峭峰/冰封峰/裸岩峰 CREATURE 5,1,3；雪坡 CREATURE 5,1,3）——GoatEntity 未实现。
 //   上述条目若写入刷怪表，会占用权重并在抽取后被 NaturalSpawner 跳过，使实际生成分布偏离原版，
 //   因此暂不加入（内置刷怪表与数据包口径保持一致）。
 // TODO(spawn-list-entities): 上述实体实现并注册后，在此补齐对应 spawn list，并删除本条注释中的相应条目。
@@ -49,6 +48,7 @@ namespace spawn {
 namespace {
 
 using entity::EntityTypeKeys::ARMADILLO;
+using entity::EntityTypeKeys::GOAT;
 using entity::EntityTypeKeys::AXOLOTL;
 using entity::EntityTypeKeys::BAT;
 using entity::EntityTypeKeys::BOGGED;
@@ -600,7 +600,7 @@ MobSpawnInfo MobSpawnInfo::createGoatPeaks()
     _setDefaultMaxInstances(info);
     info.m_creatureSpawnProbability = 0.1f;
 
-    // TODO(spawn-list-entities): goat（CREATURE 5,1,3）——GoatEntity 未实现。
+    info.addCreatureSpawn(SpawnEntry(GOAT, 5, 1, 3));
     _addCommonSpawns(info);
 
     return info;
@@ -614,7 +614,7 @@ MobSpawnInfo MobSpawnInfo::createSnowySlopes()
     info.m_creatureSpawnProbability = 0.1f;
 
     info.addCreatureSpawn(SpawnEntry(RABBIT, 4, 2, 3));
-    // TODO(spawn-list-entities): goat（CREATURE 5,1,3）——GoatEntity 未实现。
+    info.addCreatureSpawn(SpawnEntry(GOAT, 5, 1, 3));
     _addCommonSpawns(info);
 
     return info;

@@ -321,6 +321,12 @@ constexpr const char* CHICKEN_VARIANT = "variant";
 constexpr const char* ARMADILLO_STATE = "state";
 /// 犰狳下次自然掉落鳞甲倒计时（对齐 vanilla Armadillo 的 "scute_time"）
 constexpr const char* SCUTE_TIME = "scute_time";
+/// 尖叫山羊（对齐 vanilla Goat 的 "IsScreamingGoat"）
+constexpr const char* IS_SCREAMING_GOAT = "IsScreamingGoat";
+/// 山羊左角是否存在（对齐 vanilla Goat 的 "HasLeftHorn"）
+constexpr const char* HAS_LEFT_HORN = "HasLeftHorn";
+/// 山羊右角是否存在（对齐 vanilla Goat 的 "HasRightHorn"）
+constexpr const char* HAS_RIGHT_HORN = "HasRightHorn";
 
 // ========== DolphinEntity 键 ==========
 // 参考 MC 1.21.11 Dolphin.addAdditionalSaveData()/readAdditionalSaveData()。

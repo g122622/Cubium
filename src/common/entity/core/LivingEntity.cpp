@@ -2270,7 +2270,9 @@ void LivingEntity::causeFallDamage(f32 distance, f32 damageMultiplier, const Dam
     const f32 fallDamageMultiplier =
         static_cast<f32>(attributes().getValue(entity::attribute::Attributes::FALL_DAMAGE_MULTIPLIER, 1.0));
     const f32 fallPower = distance + 1.0e-6f - safeFallDistance;
-    const i32 damage = static_cast<i32>(std::floor(fallPower * damageMultiplier * fallDamageMultiplier));
+    const i32 rawDamage = static_cast<i32>(std::floor(fallPower * damageMultiplier * fallDamageMultiplier));
+    // 子类减免（对齐 vanilla calculateFallDamage 的 `super.calculateFallDamage(...) - 减免`，山羊 -10）。
+    const i32 damage = rawDamage - fallDamageReduction();
 
     if (damage > 0) {
         auto sourceClone = source.clone();

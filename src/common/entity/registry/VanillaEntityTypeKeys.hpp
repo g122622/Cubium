@@ -71,6 +71,7 @@ extern const EntityType* BEE;
 extern const EntityType* STRIDER;
 extern const EntityType* SNIFFER;
 extern const EntityType* ARMADILLO;
+extern const EntityType* GOAT;
 
 // 马类
 extern const EntityType* HORSE;

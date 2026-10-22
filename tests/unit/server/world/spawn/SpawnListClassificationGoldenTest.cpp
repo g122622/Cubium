@@ -126,7 +126,6 @@ constexpr SpawnListClassificationCase kSpawnListClassifications[] = {
  */
 constexpr std::string_view kKnownUnregisteredSpawnTypes[] = {
     "minecraft:camel",
-    "minecraft:goat",
     "minecraft:parched",
 };
 

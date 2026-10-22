@@ -2014,6 +2014,14 @@ public:
      */
     void causeFallDamage(f32 distance, f32 damageMultiplier, const DamageSource& source) override;
 
+    /**
+     * @brief 摔落伤害减免量（对齐 vanilla LivingEntity.calculateFallDamage 的减法项）
+     *
+     * vanilla `calculateFallDamage(distance, multiplier) = super.calculateFallDamage(...) - 减免`；
+     * 山羊重写为 -10（GOAT_FALL_DAMAGE_REDUCTION）。基类默认 0。
+     */
+    [[nodiscard]] virtual i32 fallDamageReduction() const { return 0; }
+
     // ========== NBT 序列化 ==========
 
     /**
