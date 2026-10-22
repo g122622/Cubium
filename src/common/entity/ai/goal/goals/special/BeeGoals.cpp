@@ -390,6 +390,7 @@ void BeePollinateGoal::tick()
 
     ++m_pollinationTicks;
 
+    // 授粉进度（vanilla successfulPollinatingTicks）在抵达悬停点后逐 tick 递增
     // 授粉音效：5% 概率且距上次播放超过 60 tick（对齐 vanilla tick 内判定）
     if (world->getRandom().nextFloat() < 0.05f && m_pollinationTicks > m_lastSoundTick + 60) {
         m_lastSoundTick = m_pollinationTicks;

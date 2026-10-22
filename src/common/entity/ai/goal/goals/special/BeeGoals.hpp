@@ -196,10 +196,10 @@ private:
     /// 悬停点水平随机偏移量（对齐 vanilla getOffset）
     [[nodiscard]] f32 _hoverOffset();
 
-    /// 检查是否完成授粉
-    [[nodiscard]] bool _completedPollination() const { return m_pollinationTicks > 400; }
+    /// 检查是否完成授粉（对齐 vanilla hasPollinatedLongEnough：successfulPollinatingTicks > 400）
+    [[nodiscard]] bool _completedPollination() const { return m_pollinationTicks > POLLINATION_DURATION; }
 
-    i32 m_pollinationTicks = 0;  ///< 授粉进度
+    i32 m_pollinationTicks = 0;  ///< 成功授粉 tick（vanilla successfulPollinatingTicks）
     i32 m_lastSoundTick = 0;     ///< 上次播放声音的tick
     i32 m_totalTicks = 0;        ///< 总计时间
     bool m_running = false;      ///< 是否正在授粉
