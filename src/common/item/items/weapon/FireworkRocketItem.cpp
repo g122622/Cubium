@@ -23,8 +23,10 @@
 #include "FireworkRocketItem.hpp"
 #include "common/core/Types.hpp"
 #include "common/entity/core/EntityRegistry.hpp"
+#include "common/entity/entities/player/Player.hpp"
 #include "common/entity/entities/projectile/OtherProjectiles.hpp"
 #include "common/entity/entities/projectile/ProjectileEntity.hpp"
+#include "common/item/context/ItemUseContext.hpp"
 #include "common/item/core/Item.hpp"
 #include "common/item/core/ProjectileItem.hpp"
 #include "common/util/math/Vector3.hpp"
@@ -70,6 +72,48 @@ std::unique_ptr<entity::ProjectileEntity> FireworkRocketItem::asProjectile(IWorl
 ProjectileDispenseConfig FireworkRocketItem::getDispenseConfig() const
 {
     return ProjectileDispenseConfig::fireworkRocket();
+}
+
+ItemActionResult FireworkRocketItem::onItemRightClick(IWorld& world, Player& player, Hand hand)
+{
+    // 对齐 vanilla FireworkRocketItem.use：只有滑翔中才生成附着推进火箭，
+    // 否则返回 Pass（交给对着方块点火的 onItemUse 路径）。
+    if (!player.isElytraFlying()) {
+        return ItemActionResult::pass(player.getHeldItem(hand));
+    }
+    if (world.isClientSide()) {
+        return ItemActionResult::success(player.getHeldItem(hand));
+    }
+
+    // 火箭附着到玩家自身（vanilla `new FireworkRocketEntity(level, stack, player)`），
+    // 位置对齐玩家脚底，随后每 tick 由附着逻辑跟随玩家。
+    auto projectile = asProjectile(world, player.position(), player.getHeldItem(hand), 0.0f, 0.0f, 0.0f);
+    if (projectile == nullptr) {
+        return ItemActionResult::pass(player.getHeldItem(hand));
+    }
+    auto* rocket = dynamic_cast<entity::FireworkRocketEntity*>(projectile.get());
+    if (rocket == nullptr) {
+        return ItemActionResult::pass(player.getHeldItem(hand));
+    }
+    rocket->setShooter(&player);
+    rocket->setAttachedToEntity(&player);
+    world.spawnEntity(std::move(projectile));
+
+    // 消耗物品（对齐 vanilla itemstack.consume(1, player)）
+    ItemStack& heldStack = player.getHeldItem(hand);
+    if (!player.isCreative()) {
+        heldStack.shrink(1);
+    }
+    return ItemActionResult::success(heldStack);
+}
+
+ActionResultType FireworkRocketItem::onItemUse(ItemUseContext& context)
+{
+    // 对齐 vanilla FireworkRocketItem.useOn：滑翔中不对着方块点火。
+    if (context.getPlayer() != nullptr && context.getPlayer()->isElytraFlying()) {
+        return ActionResultType::Pass;
+    }
+    return Item::onItemUse(context);
 }
 
 } // namespace item

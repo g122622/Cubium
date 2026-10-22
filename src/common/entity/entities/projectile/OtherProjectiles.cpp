@@ -1731,8 +1731,8 @@ bool EyeOfEnderEntity::shouldBreak() const
 // （Entity 8 字段后 → id8/9/10，ProjectileEntity 无同步字段不占 id）。
 entity::DataParameter<network::ir::play::ItemStackView> FireworkRocketEntity::DATA_FIREWORKS_ITEM_PARAM =
     entity::EntityDataManager::createKey<network::ir::play::ItemStackView>();
-entity::DataParameter<i32> FireworkRocketEntity::DATA_ATTACHED_TO_TARGET_PARAM =
-    entity::EntityDataManager::createKey<i32>();
+entity::DataParameter<entity::OptionalUnsignedIntValue> FireworkRocketEntity::DATA_ATTACHED_TO_TARGET_PARAM =
+    entity::EntityDataManager::createKey<entity::OptionalUnsignedIntValue>();
 entity::DataParameter<bool> FireworkRocketEntity::DATA_SHOT_AT_ANGLE_PARAM =
     entity::EntityDataManager::createKey<bool>();
 
@@ -1751,9 +1751,9 @@ void FireworkRocketEntity::registerData()
 
     // 注册烟花火箭专属同步参数（id8/9/10，对应 vanilla FireworkRocket）。
     m_dataManager.registerParam(DATA_FIREWORKS_ITEM_PARAM, network::ir::toItemStackView(ItemStack()));
-    // DATA_ATTACHED_TO_TARGET：vanilla OptionalInt，absent=0/present=id+1。项目无附着目标机制，
-    // 占位 -1 表 absent（TODO 待补 OptionalInt 序列化器后改精确编码）。
-    m_dataManager.registerParam(DATA_ATTACHED_TO_TARGET_PARAM, static_cast<i32>(-1));
+    // DATA_ATTACHED_TO_TARGET：vanilla OptionalInt（OPTIONAL_UNSIGNED_INT），absent=0/present=id+1，
+    // 由 OptionalUnsignedIntValue 在序列化层精确编码（EntityMetadataSerializer id19 分支）。
+    m_dataManager.registerParam(DATA_ATTACHED_TO_TARGET_PARAM, entity::OptionalUnsignedIntValue{false, 0});
     m_dataManager.registerParam(DATA_SHOT_AT_ANGLE_PARAM, false);
 }
 
@@ -1828,9 +1828,84 @@ i32 FireworkRocketEntity::getExplosionCount() const
     return static_cast<i32>(fireworks->explosions.size());
 }
 
+void FireworkRocketEntity::setAttachedToEntity(LivingEntity* target)
+{
+    // 对齐 vanilla `new FireworkRocketEntity(level, stack, LivingEntity)`：
+    // DATA_ATTACHED_TO_TARGET = OptionalInt.of(id)，并缓存引用（目标卸载后由 tick 重新解析）。
+    if (target == nullptr) {
+        m_attachedToEntity = nullptr;
+        m_dataManager.set(DATA_ATTACHED_TO_TARGET_PARAM, entity::OptionalUnsignedIntValue{false, 0});
+        return;
+    }
+    m_attachedToEntity = target;
+    m_dataManager.set(
+        DATA_ATTACHED_TO_TARGET_PARAM, entity::OptionalUnsignedIntValue{true, static_cast<i32>(target->id())});
+}
+
+bool FireworkRocketEntity::isAttachedToEntity() const
+{
+    // 对齐 vanilla isAttachedToEntity：只看数据参数是否存在（客户端亦据此隐藏火箭渲染）。
+    return m_dataManager.get(DATA_ATTACHED_TO_TARGET_PARAM).present;
+}
+
+void FireworkRocketEntity::_tickAttached()
+{
+    // 对齐 vanilla FireworkRocketEntity.tick 的 attachedToEntity 分支。
+    if (m_attachedToEntity == nullptr) {
+        // 目标缓存在客户端/重载后失效：按数据参数中的 entityId 重新解析（须为 LivingEntity）。
+        if (m_world == nullptr) {
+            return;
+        }
+        const entity::OptionalUnsignedIntValue attached = m_dataManager.get(DATA_ATTACHED_TO_TARGET_PARAM);
+        if (!attached.present) {
+            return;
+        }
+        Entity* resolved = m_world->getEntity(static_cast<EntityInstanceId>(attached.value));
+        auto* living = dynamic_cast<LivingEntity*>(resolved);
+        if (living == nullptr) {
+            return;
+        }
+        m_attachedToEntity = living;
+    }
+
+    Vector3 offset(0.0, 0.0, 0.0);
+    if (m_attachedToEntity->isElytraFlying()) {
+        // 滑翔中：按目标视线方向助推，并把火箭放到目标手持烟花位置（近似为原点偏移，
+        // vanilla getHandHoldingItemAngle(FIREWORK_ROCKET)：主手持烟花时为 (0, 0.5, -0.7)）。
+        // LivingEntity::getLookAngle 为 protected 段方法，此处按 yaw/pitch 复算（同 EffectOnRemoval 范式）。
+        const f32 yawRad = math::toRadians(m_attachedToEntity->yaw());
+        const f32 pitchRad = math::toRadians(m_attachedToEntity->pitch());
+        const Vector3 look(
+            -std::sin(yawRad) * std::cos(pitchRad), -std::sin(pitchRad), std::cos(yawRad) * std::cos(pitchRad));
+        // vanilla d0=1.5（期望速度）、d1=0.1（加速度）：cur += look*d1 + (look*1.5 - cur)*0.5
+        constexpr f64 LOOK_DRIVE = 1.5;
+        constexpr f64 ACCELERATION = 0.1;
+        constexpr f64 SMOOTHING = 0.5;
+        const Vector3 current = m_attachedToEntity->velocity();
+        const Vector3 boosted(look.x * ACCELERATION + (look.x * LOOK_DRIVE - current.x) * SMOOTHING,
+            look.y * ACCELERATION + (look.y * LOOK_DRIVE - current.y) * SMOOTHING,
+            look.z * ACCELERATION + (look.z * LOOK_DRIVE - current.z) * SMOOTHING);
+        // 实体 baseTick 末尾会用自身分量重算速度，此处经 addVelocity 叠加到同一累积器。
+        m_attachedToEntity->addVelocity(boosted - current);
+        offset = Vector3(0.0, 0.5, -0.7);
+    }
+
+    setPosition(
+        m_attachedToEntity->x() + offset.x, m_attachedToEntity->y() + offset.y, m_attachedToEntity->z() + offset.z);
+    setVelocity(m_attachedToEntity->velocity());
+}
+
 void FireworkRocketEntity::tick()
 {
-    ProjectileEntity::tick();
+    if (isAttachedToEntity()) {
+        // 附着模式：Projectile 基类 tick 会按速度积分并射线检测，与 vanilla 附着分支冲突
+        // （vanilla 附着分支直接同步目标位置，再单独做一次射线检测）。此处同步后由
+        // canHitEntity 排除附着目标本身，其余命中实体照常爆炸。
+        _tickAttached();
+        Entity::tick();
+    } else {
+        ProjectileEntity::tick();
+    }
 
     auto* fw = tryGetComponent<ecs::FireworkRocketComponent>();
     if (fw == nullptr) {
@@ -1872,14 +1947,40 @@ void FireworkRocketEntity::tick()
     }
 }
 
+void FireworkRocketEntity::onEntityHit(const RayTraceResult& result)
+{
+    // 对齐 vanilla FireworkRocketEntity.onEntityHit：先走基类的命中副作用（onProjectileHit 等），
+    // 命中实体即爆炸（无论是否弩射、是否有爆炸效果）。
+    ProjectileEntity::onEntityHit(result);
+    _explode();
+}
+
+void FireworkRocketEntity::onBlockHit(const RayTraceResult& result)
+{
+    // 对齐 vanilla FireworkRocketEntity.onBlockHit：先走基类（清零速度 + 方块自身的
+    // onProjectileHit），仅当烟花带爆炸效果（hasExplosion）时才在撞墙时爆炸。
+    // 无爆炸效果的火箭穿墙式撞击不引爆，继续飞行至生命结束。
+    ProjectileEntity::onBlockHit(result);
+    if (getExplosionCount() > 0) {
+        _explode();
+    }
+}
+
+bool FireworkRocketEntity::canHitEntity(const mc::Entity& target) const
+{
+    // 对齐 vanilla FireworkRocketEntity.onHit 的 attachedToEntity 短路：附着火箭不会命中目标。
+    if (m_attachedToEntity != nullptr && &target == static_cast<const mc::Entity*>(m_attachedToEntity)) {
+        return false;
+    }
+    return ProjectileEntity::canHitEntity(target);
+}
+
 void FireworkRocketEntity::_explode()
 {
-    auto* fw = tryGetComponent<ecs::FireworkRocketComponent>();
-
-    // 如果从弩射出，对周围实体造成伤害
-    if (fw != nullptr && fw->m_shotFromCrossbow) {
-        dealExplosionDamage();
-    }
+    // 对齐 vanilla FireworkRocketEntity.explode：无论是否弩射，爆炸都结算伤害
+    // （dealExplosionDamage 内部按爆炸效果数量判断，无效果则造成 0 伤害）。
+    // 此前仅在 m_shotFromCrossbow 时结算，导致手放烟花命中/到期不伤害任何实体。
+    dealExplosionDamage();
 
     // 生成爆炸粒子
     if (m_world != nullptr && m_world->isClientSide()) {
@@ -2016,14 +2117,12 @@ void FireworkRocketEntity::dealExplosionDamage()
         return;
     }
 
-    // 获取爆炸效果数量（无爆炸效果时不造成伤害）
-    i32 explosionCount = getExplosionCount();
-    if (explosionCount <= 0) {
-        return;
-    }
+    // 对齐 vanilla getExplosions().size()：无冒烟 fireworks 组件的烟花也保有 1 个爆炸效果
+    // （数据组件 Fireworks 的 explosions 恒非空），故以下限 1 作为基准。
+    const i32 explosionCount = std::max(1, getExplosionCount());
 
     // 计算基础伤害：5 + 爆炸效果数量 * 2
-    f32 baseDamage = 5.0f + static_cast<f32>(explosionCount * 2);
+    const f32 baseDamage = 5.0f + static_cast<f32>(explosionCount * 2);
 
     // 爆炸半径 5 格
     constexpr f32 EXPLOSION_RADIUS = 5.0f;
@@ -2033,14 +2132,29 @@ void FireworkRocketEntity::dealExplosionDamage()
     AxisAlignedBB searchBox = boundingBox().grow(EXPLOSION_RADIUS);
     std::vector<Entity*> entities = m_world->getEntitiesInAABB(searchBox, this);
 
-    // 获取发射者（用于伤害源）
-    Entity* shooter = getShooter();
-    bool isPlayer = (shooter != nullptr && dynamic_cast<Player*>(shooter) != nullptr);
+    // 解析附着目标（本实体自身即伤害来源，对齐 vanilla damageSources().fireworks(this, getOwner())）。
+    LivingEntity* attached = m_attachedToEntity;
+    if (attached == nullptr && isAttachedToEntity()) {
+        const entity::OptionalUnsignedIntValue value = m_dataManager.get(DATA_ATTACHED_TO_TARGET_PARAM);
+        attached = value.present
+            ? dynamic_cast<LivingEntity*>(m_world->getEntity(static_cast<EntityInstanceId>(value.value)))
+            : nullptr;
+    }
+
+    // 对齐 vanilla：附着目标无论是否在半径内、视线是否通畅都承受全额伤害。
+    if (attached != nullptr && attached->isAlive()) {
+        EnvironmentalDamage fireworksSource = DamageSources::fireworks();
+        attached->hurt(fireworksSource, baseDamage);
+    }
 
     for (Entity* entity : entities) {
         // 只对 LivingEntity 造成伤害
         LivingEntity* livingTarget = dynamic_cast<LivingEntity*>(entity);
         if (livingTarget == nullptr || !livingTarget->isAlive()) {
+            continue;
+        }
+        // 对齐 vanilla：附着目标已在上面按全额伤害结算，不再参与半径循环（避免双重伤害）。
+        if (livingTarget == attached) {
             continue;
         }
 
@@ -2061,7 +2175,7 @@ void FireworkRocketEntity::dealExplosionDamage()
 
         if (damage > 0.0f) {
             // 创建烟花伤害源
-            auto damageSource = DamageSources::fireworks();
+            EnvironmentalDamage damageSource = DamageSources::fireworks();
 
             // 对目标造成伤害
             livingTarget->hurt(damageSource, damage);

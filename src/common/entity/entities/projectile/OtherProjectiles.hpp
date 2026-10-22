@@ -708,6 +708,28 @@ public:
      */
     void setShotFromCrossbow(bool value);
 
+    // ========== 附着目标（对齐 vanilla FireworkRocketEntity 的 attachedToEntity）==========
+
+    /**
+     * @brief 附着到目标（鞘翅助力火箭）
+     *
+     * 对齐 vanilla `new FireworkRocketEntity(level, stack, LivingEntity)`：
+     * `DATA_ATTACHED_TO_TARGET = OptionalInt.of(target.getId())` 并缓存目标引用。
+     * 附着后火箭每 tick 跟随目标位置/速度，滑翔中时按视线方向助推
+     * （vanilla FireworkRocketEntity.tick 的 attachedToEntity 分支）。
+     */
+    void setAttachedToEntity(LivingEntity* target);
+
+    /**
+     * @brief 是否附着到实体（对齐 vanilla isAttachedToEntity：OptionalInt 存在即为真）
+     */
+    [[nodiscard]] bool isAttachedToEntity() const;
+
+    /**
+     * @brief 获取附着目标（可能为 nullptr：目标已卸载/未解析）
+     */
+    [[nodiscard]] LivingEntity* attachedToEntity() const { return m_attachedToEntity; }
+
     /**
      * @brief 获取飞行时间
      */
@@ -767,10 +789,10 @@ public:
     //   DATA_FIREWORKS_ITEM(ItemStack, id8) / DATA_ATTACHED_TO_TARGET(OptionalInt, id9) /
     //   DATA_SHOT_AT_ANGLE(Boolean, id10)
     // 真相源为 FireworkRocketComponent：m_fireworkItem/m_shotFromCrossbow；DATA_ATTACHED_TO_TARGET
-    // 项目当前无附着目标机制，占位 -1（vanilla OptionalInt absent=0，present=id+1；此处用 i32=-1
-    // 表 absent，TODO 待补 OptionalInt 序列化器后改精确编码）。
+    // 为 OptionalUnsignedInt（vanilla OPTIONAL_UNSIGNED_INT，serializerId 19）：absent 编码 VarInt 0，
+    // present 编码 entityId + 1（对齐 vanilla OptionalInt 的 wire 约定）。
     static entity::DataParameter<network::ir::play::ItemStackView> DATA_FIREWORKS_ITEM_PARAM;
-    static entity::DataParameter<i32> DATA_ATTACHED_TO_TARGET_PARAM;
+    static entity::DataParameter<entity::OptionalUnsignedIntValue> DATA_ATTACHED_TO_TARGET_PARAM;
     static entity::DataParameter<bool> DATA_SHOT_AT_ANGLE_PARAM;
 
     [[nodiscard]] static u16 getFireworksItemParamId() { return DATA_FIREWORKS_ITEM_PARAM.id(); }
@@ -789,6 +811,15 @@ public:
     /// 本类继承链标识（parent = ProjectileEntity::classInfo()）。见 Entity::classInfo()。
     static const EntityClassInfo& classInfo();
 
+    // ========== 命中（对齐 vanilla FireworkRocketEntity.onHitEntity / onHitBlock）==========
+
+    void onEntityHit(const RayTraceResult& result) override;
+
+    void onBlockHit(const RayTraceResult& result) override;
+
+    /// 附着火箭不命中其附着目标（对齐 vanilla onHit 的 attachedToEntity 短路）
+    [[nodiscard]] bool canHitEntity(const mc::Entity& target) const override;
+
 private:
     /**
      * @brief 爆炸
@@ -803,6 +834,14 @@ private:
      * （NBT 反序列化后已恢复），则跳过计算。
      */
     void _ensureLifeTimeComputed();
+
+    /**
+     * @brief 附着模式下跟随目标并处理滑翔助推（vanilla tick 的 attachedToEntity 分支）
+     */
+    void _tickAttached();
+
+    /// 附着目标（对齐 vanilla attachedToEntity 字段；数据参数存在但目标未解析时为 nullptr）
+    LivingEntity* m_attachedToEntity = nullptr;
 
     // 批次6 子目标2 Step4：m_fireworkItem/m_flightTime/m_lifetime/m_lifeTime/m_shotFromCrossbow
     // 迁入 ecs::FireworkRocketComponent。

@@ -87,6 +87,26 @@ public:
      * @return 烟花火箭配置（power=0.5, uncertainty=1.0）
      */
     [[nodiscard]] ProjectileDispenseConfig getDispenseConfig() const override;
+
+    // ============================================================================
+    // Item 接口重写
+    // ============================================================================
+
+    /**
+     * @brief 右键使用物品：滑翔中时生成附着到玩家自身的推进火箭
+     *
+     * 对齐 vanilla FireworkRocketItem.use：仅当玩家正在鞘翅滑翔时生效，
+     * 火箭附着到玩家（DATA_ATTACHED_TO_TARGET）并随之推进；非滑翔状态返回 Pass，
+     * 交由其它交互路径（对着方块右键点火）处理。
+     */
+    [[nodiscard]] ItemActionResult onItemRightClick(IWorld& world, Player& player, Hand hand) override;
+
+    /**
+     * @brief 对着方块右键：滑翔中不点火
+     *
+     * 对齐 vanilla FireworkRocketItem.useOn 的 `player.isFallFlying() -> PASS` 门控。
+     */
+    ActionResultType onItemUse(ItemUseContext& context) override;
 };
 
 } // namespace item

@@ -657,9 +657,14 @@ TEST_F(FireworkRocketDamageApplicationTest, MoreExplosionsIncreaseDamage)
 }
 
 /**
- * @brief 测试无爆炸效果的烟花不造成伤害
+ * @brief 无爆炸效果的烟花仍造成基础伤害（对齐 vanilla 的 5 + size*2 下限）
+ *
+ * vanilla FireworkRocketEntity.getExplosions()：无冒烟 fireworks 组件的烟花保有 1 个
+ * 爆炸效果（`this.explosions().size() >= 1`），故 dealExplosionDamage 的基础伤害
+ * 恒为 5 + 1*2 = 7。此前 Cubium 以"爆炸数量为 0 则不伤害"实现，与 vanilla 冲突，
+ * 本用例锚定修正后的行为（旧断言 EXPECT_FALSE(wasHurt) 固化了该偏差）。
  */
-TEST_F(FireworkRocketDamageApplicationTest, NoExplosionNoDamage)
+TEST_F(FireworkRocketDamageApplicationTest, NoExplosionStillDealsBaseDamage)
 {
     auto& firework = m_world->addEntity<entity::FireworkRocketEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
     firework.setPosition(0.0, 0.0, 0.0);
@@ -678,9 +683,11 @@ TEST_F(FireworkRocketDamageApplicationTest, NoExplosionNoDamage)
     // 执行爆炸伤害
     firework.dealExplosionDamage();
 
-    // 无爆炸效果不应该造成伤害
-    EXPECT_FALSE(target.wasHurt);
-    EXPECT_FLOAT_EQ(target.health(), initialHealth);
+    // 1 个爆炸效果 → 基础伤害 7，按距离 2 衰减（sqrt((5-2)/5)）
+    EXPECT_TRUE(target.wasHurt);
+    EXPECT_EQ(target.lastDamageType, DamageType::Fireworks);
+    EXPECT_FLOAT_EQ(target.lastDamage, 7.0f * static_cast<f32>(std::sqrt(3.0 / 5.0)));
+    EXPECT_LT(target.health(), initialHealth);
 }
 
 /**
@@ -1044,6 +1051,99 @@ TEST_F(FireworkRocketNbtTestFixture, EmptyFireworkItemNotSerialized)
 
     using namespace mc::entity::serialization::nbt_keys;
     EXPECT_FALSE(mc::entity::serialization::nbt_helper::tryGetCompound(savedTag, FIREWORKS_ITEM) != nullptr);
+}
+
+// ============================================================================
+// 附着目标（鞘翅助力火箭）
+// ============================================================================
+
+/**
+ * @brief 附着目标的同步数据与伤害结算
+ *
+ * 对齐 vanilla：DATA_ATTACHED_TO_TARGET 为 OptionalUnsignedInt（absent=0/present=id+1），
+ * 附着目标在爆炸时承受全额伤害，且不参与半径循环（不双重受伤）。
+ */
+TEST_F(FireworkRocketDamageApplicationTest, AttachedTarget_TakesFullDamageOnce)
+{
+    auto& firework = m_world->addEntity<entity::FireworkRocketEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
+    firework.setPosition(0.0, 0.0, 0.0);
+
+    auto& target = m_world->addEntity<FireworkTestLivingEntity>();
+    target.setPosition(0.0, 0.0, 0.0);
+
+    EXPECT_FALSE(firework.isAttachedToEntity());
+    firework.setAttachedToEntity(&target);
+    EXPECT_TRUE(firework.isAttachedToEntity());
+    EXPECT_EQ(firework.attachedToEntity(), &target);
+
+    // wire 值：OptionalUnsignedIntValue{present=true, value=id}
+    const auto attached = firework.dataManager().get(entity::FireworkRocketEntity::DATA_ATTACHED_TO_TARGET_PARAM);
+    EXPECT_TRUE(attached.present);
+    EXPECT_EQ(attached.value, static_cast<i32>(target.id()));
+
+    ItemStack stack = _makeFireworkRocketItem(1, 1);
+    firework.setFireworkItem(stack);
+
+    const f32 initialHealth = target.health();
+    firework.dealExplosionDamage();
+
+    EXPECT_TRUE(target.wasHurt);
+    EXPECT_EQ(target.lastDamageType, DamageType::Fireworks);
+    // 1 个爆炸效果 → 全额伤害 5 + 1*2 = 7（附着目标不吃距离衰减，也不因半径循环重复受伤）。
+    EXPECT_FLOAT_EQ(target.lastDamage, 7.0f);
+    EXPECT_FLOAT_EQ(target.health(), initialHealth - 7.0f);
+}
+
+/**
+ * @brief 未附着时数据参数为 absent
+ */
+TEST_F(FireworkRocketDamageApplicationTest, DetachedTarget_ParamIsAbsent)
+{
+    auto& firework = m_world->addEntity<entity::FireworkRocketEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
+
+    auto& target = m_world->addEntity<FireworkTestLivingEntity>();
+    firework.setAttachedToEntity(&target);
+    ASSERT_TRUE(firework.isAttachedToEntity());
+
+    firework.setAttachedToEntity(nullptr);
+    EXPECT_FALSE(firework.isAttachedToEntity());
+    EXPECT_EQ(firework.attachedToEntity(), nullptr);
+    const auto attached = firework.dataManager().get(entity::FireworkRocketEntity::DATA_ATTACHED_TO_TARGET_PARAM);
+    EXPECT_FALSE(attached.present);
+}
+
+/**
+ * @brief 附着火箭不命中其附着目标（对齐 vanilla onHit 的 attachedToEntity 短路）
+ */
+TEST_F(FireworkRocketDamageApplicationTest, CanHitEntity_ExcludesAttachedTarget)
+{
+    auto& firework = m_world->addEntity<entity::FireworkRocketEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
+    auto& target = m_world->addEntity<FireworkTestLivingEntity>();
+
+    firework.setAttachedToEntity(&target);
+    EXPECT_FALSE(firework.canHitEntity(target));
+
+    firework.setAttachedToEntity(nullptr);
+    EXPECT_TRUE(firework.canHitEntity(target));
+}
+
+/**
+ * @brief 无爆炸效果的手放烟花仍对范围内实体造成 5 点基础伤害（对齐 vanilla 下限）
+ */
+TEST_F(FireworkRocketDamageApplicationTest, NoExplosions_StillDealsBaseDamage)
+{
+    auto& firework = m_world->addEntity<entity::FireworkRocketEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
+    firework.setPosition(0.0, 0.0, 0.0);
+    // 不设置烟花物品 → getExplosionCount()==0
+
+    auto& target = m_world->addEntity<FireworkTestLivingEntity>();
+    target.setPosition(0.5, 0.0, 0.0);
+
+    firework.dealExplosionDamage();
+
+    EXPECT_TRUE(target.wasHurt);
+    EXPECT_EQ(target.lastDamageType, DamageType::Fireworks);
+    EXPECT_GT(target.lastDamage, 0.0f);
 }
 
 } // namespace
