@@ -55,6 +55,7 @@
 #include "common/world/block/blocks/agricultural/StemBlock.hpp"
 #include "common/world/block/blocks/vegetation/DoublePlantBlock.hpp"
 #include "common/world/block/blocks/vegetation/SweetBerryBushBlock.hpp"
+#include "common/world/block/registry/CaveBlocks.hpp"
 #include "common/world/block/registry/VegetationBlocks.hpp"
 #include "common/world/blockentity/BlockEntityType.hpp"
 #include "common/world/blockentity/interactive/BeehiveBlockEntity.hpp"
@@ -1069,7 +1070,8 @@ bool BeeFindPollinationTargetGoal::_isPollinationTarget(const BlockPos& pos) con
         return false;
     }
 
-    // 检查是否是可授粉作物
+    // 对齐 vanilla BeeGrowCropGoal：HAS_NECTAR 的符号是"已采到花蜜、正在传播"，与
+    // FALLING_NECTAR 粒子一致；而 BeeGrowCropGoal 只对 BEE_GROWABLES 标签内的作物生效。
     return BlockTags::BEE_GROWABLES().contains(*state);
 }
 
@@ -1088,61 +1090,28 @@ bool BeeFindPollinationTargetGoal::_growCrop(const BlockPos& pos)
     const Block& block = state->owner();
     const BlockState* newState = nullptr;
 
-    // 蜜蜂授粉只增加1个生长阶段（而非骨粉的2-5个阶段）
-
-    // 1. CropBlock（小麦、胡萝卜、马铃薯、甜菜根等农作物）：
-    //    如果未到最大年龄，age + 1
-    auto* cropBlock = dynamic_cast<const blocks::CropBlock*>(&block);
-    if (cropBlock != nullptr) {
+    // 对齐 vanilla BeeGrowCropGoal：作物 +1 龄、茎 +1、甜浆果丛 +1、洞穴藤蔓按可催熟逻辑生长。
+    if (const auto* cropBlock = dynamic_cast<const blocks::CropBlock*>(&block)) {
         if (!cropBlock->isMaxAge(*state)) {
-            i32 newAge = cropBlock->getAge(*state) + 1;
-            newState = &cropBlock->withAge(newAge);
+            newState = &cropBlock->withAge(cropBlock->getAge(*state) + 1);
         }
-    }
-
-    // 2. StemBlock（西瓜茎、南瓜茎）：如果 age < 7，age + 1
-    if (newState == nullptr) {
-        auto* stemBlock = dynamic_cast<const blocks::StemBlock*>(&block);
-        if (stemBlock != nullptr) {
-            i32 age = state->get(BlockStateProperties::AGE_0_7());
-            if (age < 7) {
-                newState = &state->with(BlockStateProperties::AGE_0_7(), age + 1);
-            }
+    } else if (dynamic_cast<const blocks::StemBlock*>(&block) != nullptr) {
+        const i32 age = state->get(BlockStateProperties::AGE_0_7());
+        if (age < 7) {
+            newState = &state->with(BlockStateProperties::AGE_0_7(), age + 1);
         }
-    }
-
-    // 3. SweetBerryBushBlock：如果 age < maxAge，age + 1
-    // 注意：SweetBerryBushBlock 虽然实现了 IGrowable，但 MC 原版 BeeGrowCropGoal
-    // 对其直接 age+1 而非调用 performBonemeal/grow，此处与原版行为保持一致
-    if (newState == nullptr) {
-        auto* sweetBerryBlock = dynamic_cast<const blocks::SweetBerryBushBlock*>(&block);
-        if (sweetBerryBlock != nullptr) {
-            i32 age = state->get(BlockStateProperties::AGE_0_3());
-            if (age < sweetBerryBlock->getMaxAge()) {
-                newState = &state->with(BlockStateProperties::AGE_0_3(), age + 1);
-            }
+    } else if (state->is(block_registry::VegetationBlocks::SWEET_BERRY_BUSH)) {
+        const i32 age = state->get(BlockStateProperties::AGE_0_3());
+        if (age < 3) {
+            newState = &state->with(BlockStateProperties::AGE_0_3(), age + 1);
         }
-    }
-
-    // 4. CaveVines / CaveVinesPlant（洞穴藤蔓）：
-    //    使用 IGrowable 接口，调用 canGrow + grow
-    if (newState == nullptr) {
+    } else if (state->is(block_registry::CaveBlocks::CAVE_VINES) ||
+        state->is(block_registry::CaveBlocks::CAVE_VINES_PLANT)) {
         auto* growable = const_cast<IGrowable*>(dynamic_cast<const IGrowable*>(&block));
-        if (growable != nullptr) {
-            if (growable->canGrow(static_cast<IBlockReader&>(*world), pos, *state, world->isClientSide())) {
-                growable->grow(*world, world->getRandom(), pos, *state);
-                // 对于洞穴藤蔓，grow() 会直接更新方块状态，
-                // 需要读取更新后的状态判断是否成功
-                const BlockState* updatedState = world->getBlockState(pos);
-                if (updatedState == nullptr || updatedState == state) {
-                    // 状态未变化，说明生长未成功
-                    return false;
-                }
-                // 蜜蜂授粉促进生长：使用 PLANT_GROWTH_PARTICLES(2011) 而非 BONEMEAL_PARTICLES(2005)，
-                // 区别是不播放骨粉使用音效
-                world->playEvent(world::WorldEvents::PLANT_GROWTH_PARTICLES, pos, 15);
-                return true;
-            }
+        if (growable != nullptr &&
+            growable->canGrow(static_cast<IBlockReader&>(*world), pos, *state, world->isClientSide())) {
+            growable->grow(*world, world->getRandom(), pos, *state);
+            newState = world->getBlockState(pos);
         }
     }
 
