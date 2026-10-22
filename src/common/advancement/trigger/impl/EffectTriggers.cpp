@@ -266,4 +266,41 @@ Result<std::shared_ptr<ICriterionInstance>> BrewedPotionTrigger::fromJson(const 
 
 // Note: BrewedPotionTrigger::trigger() is implemented via TriggerInstantiation.hpp in server layer
 
+// ========== LootTableTrigger ==========
+
+LootTableTriggerInstance::LootTableTriggerInstance(const ResourceLocation& lootTable)
+    : m_lootTable(lootTable)
+{}
+
+Result<void> LootTableTriggerInstance::fromJson(const nlohmann::json& json)
+{
+    if (json.is_null()) {
+        // vanilla 中 loot_table 为必填字段；缺失时保留空 ID，永不匹配任何战利品表
+        return {};
+    }
+    if (!json.contains("loot_table") || !json["loot_table"].is_string()) {
+        return Error::invalidArgument("LootTableTrigger 条件缺少必填字段 loot_table");
+    }
+    m_lootTable = ResourceLocation(json["loot_table"].get<std::string>());
+    return {};
+}
+
+nlohmann::json LootTableTriggerInstance::conditionsToJson() const
+{
+    return {{"loot_table", m_lootTable.toString()}};
+}
+
+Result<std::shared_ptr<ICriterionInstance>> LootTableTrigger::fromJson(const nlohmann::json& json)
+{
+    auto instance = std::make_shared<LootTableTriggerInstance>();
+    auto result = instance->fromJson(json);
+    if (result.failed()) {
+        return result.error();
+    }
+    return instance;
+}
+
+// Note: LootTableTrigger::trigger() is implemented in PacketHandlers via
+// AbstractCriterionTrigger<LootTableTriggerInstance>::trigger (see TriggerInstantiation.hpp)
+
 } // namespace mc::advancement

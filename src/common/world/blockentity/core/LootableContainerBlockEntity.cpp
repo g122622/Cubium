@@ -330,6 +330,13 @@ bool LootableContainerBlockEntity::fillWithLootFromTable(loot::LootTableManager&
         return false;
     }
 
+    // 在真正填充之前派发 player_generates_container_loot 进度
+    // （对齐 vanilla RandomizableContainer.unpackLootTable：先 trigger 再 setLootTable(null)，
+    // 且仅当打开者是 ServerPlayer 时派发）。基类 Player 为空实现，非玩家实体不会进入这里。
+    if (player != nullptr) {
+        player->triggerLootTableGenerated(m_lootTable);
+    }
+
     // 清除战利品表标记（在填充之前，防止递归）
     m_hasLootTable = false;
     m_lootFilled = true;

@@ -541,6 +541,9 @@ public:
     /// 触发 recipe_crafted 进度（对齐 vanilla ServerPlayer.triggerRecipeCrafted）
     void triggerRecipeCrafted(const ResourceLocation& recipeId, const std::vector<ItemStack>& ingredients) override;
 
+    /// 触发 player_generates_container_loot 进度（对齐 vanilla CriteriaTriggers.GENERATE_LOOT）
+    void triggerLootTableGenerated(const ResourceLocation& lootTableId) override;
+
     /**
      * @brief 解锁配方（重写 Player 基类）
      *

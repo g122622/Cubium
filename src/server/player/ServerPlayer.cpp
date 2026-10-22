@@ -536,6 +536,19 @@ void ServerPlayer::triggerRecipeCrafted(const ResourceLocation& recipeId, const 
         });
 }
 
+void ServerPlayer::triggerLootTableGenerated(const ResourceLocation& lootTableId)
+{
+    if (m_advancements == nullptr) {
+        return;
+    }
+    auto* trigger = advancement::CriterionTriggers::instance().getTrigger<advancement::LootTableTrigger>();
+    if (trigger == nullptr) {
+        return;
+    }
+    trigger->advancement::AbstractCriterionTrigger<advancement::LootTableTriggerInstance>::trigger(*m_advancements,
+        [&lootTableId](const advancement::LootTableTriggerInstance& instance) { return instance.test(lootTableId); });
+}
+
 void ServerPlayer::unlockRecipe(const ResourceLocation& recipeId)
 {
     // 触发配方解锁成就

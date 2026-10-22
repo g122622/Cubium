@@ -38,6 +38,7 @@ class RecipeUnlockedTriggerInstance;
 class RecipeCraftedTriggerInstance;
 class EffectsChangedTriggerInstance;
 class BrewedPotionTriggerInstance;
+class LootTableTriggerInstance;
 
 /**
  * @brief 配方解锁触发器
@@ -110,6 +111,49 @@ public:
 private:
     ResourceLocation m_recipeId;
     std::vector<advancement::ItemPredicate> m_ingredients;
+};
+
+/**
+ * @brief 容器战利品生成触发器（对齐 vanilla LootTableTrigger）
+ *
+ * 玩家首次打开带战利品表的容器（箱子/木桶/发射器/运输矿车/可疑的沙子等）时，
+ * 在真正填充物品之前触发，条件以 loot_table 指定战利品表资源位置。
+ *
+ * vanilla 对应条目 minecraft:player_generates_container_loot，数据包进度
+ * story/loot_* 系列依赖它。
+ */
+class LootTableTrigger : public AbstractCriterionTrigger<LootTableTriggerInstance> {
+public:
+    static constexpr const char* TRIGGER_ID = "minecraft:player_generates_container_loot";
+
+    [[nodiscard]] ResourceLocation getId() const override { return ResourceLocation(TRIGGER_ID); }
+
+    [[nodiscard]] Result<std::shared_ptr<ICriterionInstance>> fromJson(const nlohmann::json& json) override;
+
+    /// 触发（本次生成的战利品表资源位置）
+    void trigger(class ServerPlayer& player, const ResourceLocation& lootTableId);
+};
+
+/**
+ * @brief 容器战利品生成触发器实例
+ */
+class LootTableTriggerInstance : public CriterionInstance<LootTableTriggerInstance> {
+public:
+    static constexpr const char* TRIGGER_ID = "minecraft:player_generates_container_loot";
+
+    LootTableTriggerInstance() = default;
+    explicit LootTableTriggerInstance(const ResourceLocation& lootTable);
+
+    /// 战利品表资源位置一致即匹配（vanilla TriggerInstance.matches）
+    [[nodiscard]] bool test(const ResourceLocation& lootTableId) const { return m_lootTable == lootTableId; }
+
+    [[nodiscard]] const ResourceLocation& lootTable() const noexcept { return m_lootTable; }
+
+    Result<void> fromJson(const nlohmann::json& json);
+    [[nodiscard]] nlohmann::json conditionsToJson() const;
+
+private:
+    ResourceLocation m_lootTable;
 };
 
 /**

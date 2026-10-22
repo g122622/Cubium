@@ -59,7 +59,10 @@ Result<Criterion> Criterion::fromJson(const std::string& name, const nlohmann::j
         return Criterion(name, std::make_shared<ImpossibleTriggerInstance>());
     }
 
-    auto instanceResult = trigger->fromJson(json);
+    // 条件实例只关心 conditions 内的字段（对齐 vanilla：条件实例的 codec 描述的是 conditions 对象），
+    // 触发器 ID 已单独取出，故将 conditions 解包后传入。缺省 conditions 时传原对象。
+    const nlohmann::json& conditions = json.contains("conditions") ? json["conditions"] : json;
+    auto instanceResult = trigger->fromJson(conditions);
     if (instanceResult.failed()) {
         return instanceResult.error();
     }

@@ -656,6 +656,16 @@ public:
     }
 
     /**
+     * @brief 玩家首次打开带战利品表的容器时触发进度（对齐 vanilla
+     * RandomizableContainer.unpackLootTable 中的 CriteriaTriggers.GENERATE_LOOT）
+     *
+     * @param lootTableId 本次生成的战利品表资源位置
+     *
+     * 基类为空实现（仅服务端玩家处理进度）。
+     */
+    virtual void triggerLootTableGenerated(const ResourceLocation& lootTableId) { MC_UNUSED(lootTableId); }
+
+    /**
      * @brief 增加自定义统计
      *
      * 当玩家触发自定义统计事件时调用（如打开容器、与方块交互等）。
