@@ -30,6 +30,7 @@
 #include "common/resource/ResourceLocation.hpp"
 #include <optional>
 #include <string>
+#include <vector>
 #include <nlohmann/json.hpp>
 #include <nlohmann/json_fwd.hpp>
 
@@ -63,6 +64,12 @@ public:
         std::optional<ResourceLocation> block, std::optional<ResourceLocation> tag, StatePropertiesPredicate state);
 
     /**
+     * @brief 构造"方块集合"谓词（vanilla blocks 字段：字符串或字符串数组，命中其一即匹配）
+     */
+    BlockPredicate(
+        std::vector<ResourceLocation> blocks, std::optional<ResourceLocation> tag, StatePropertiesPredicate state);
+
+    /**
      * @brief 检查方块是否匹配
      * @param state 方块状态
      * @return 是否匹配
@@ -88,10 +95,12 @@ public:
 
     [[nodiscard]] const std::optional<ResourceLocation>& getBlock() const noexcept { return m_block; }
     [[nodiscard]] const std::optional<ResourceLocation>& getTag() const noexcept { return m_tag; }
+    [[nodiscard]] const std::vector<ResourceLocation>& getBlocks() const noexcept { return m_blocks; }
     [[nodiscard]] const StatePropertiesPredicate& getState() const noexcept { return m_state; }
 
 private:
-    std::optional<ResourceLocation> m_block; ///< 方块ID
+    std::optional<ResourceLocation> m_block; ///< 方块ID（单值，保留兼容）
+    std::vector<ResourceLocation> m_blocks;  ///< 方块集合（vanilla blocks 字段）
     std::optional<ResourceLocation> m_tag;   ///< 方块标签
     StatePropertiesPredicate m_state;        ///< 状态属性谓词
     bool m_isAny = true;                     ///< 是否匹配任意方块

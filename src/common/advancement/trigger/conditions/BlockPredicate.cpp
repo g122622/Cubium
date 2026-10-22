@@ -48,6 +48,14 @@ BlockPredicate::BlockPredicate(
     , m_isAny(!m_block.has_value() && !m_tag.has_value() && m_state.isEmpty())
 {}
 
+BlockPredicate::BlockPredicate(
+    std::vector<ResourceLocation> blocks, std::optional<ResourceLocation> tag, StatePropertiesPredicate state)
+    : m_blocks(std::move(blocks))
+    , m_tag(std::move(tag))
+    , m_state(std::move(state))
+    , m_isAny(m_blocks.empty() && !m_tag.has_value() && m_state.isEmpty())
+{}
+
 bool BlockPredicate::test(const BlockState& state) const
 {
     if (m_isAny) {
@@ -62,6 +70,21 @@ bool BlockPredicate::test(const BlockState& state) const
             return false;
         }
         if (&state.getBlock() != expectedBlock) {
+            return false;
+        }
+    }
+
+    // 检查方块集合（vanilla blocks：命中其一即可）
+    if (!m_blocks.empty()) {
+        bool matched = false;
+        for (const auto& id : m_blocks) {
+            const Block* expectedBlock = BlockRegistry::instance().getBlock(id);
+            if (expectedBlock != nullptr && &state.getBlock() == expectedBlock) {
+                matched = true;
+                break;
+            }
+        }
+        if (!matched) {
             return false;
         }
     }
@@ -106,6 +129,21 @@ Result<BlockPredicate> BlockPredicate::fromJson(const nlohmann::json& json)
         block = ResourceLocation(json["block"].get<std::string>());
     }
 
+    // vanilla blocks 字段：字符串或字符串数组
+    std::vector<ResourceLocation> blocks;
+    if (json.contains("blocks")) {
+        const auto& blocksJson = json["blocks"];
+        if (blocksJson.is_string()) {
+            blocks.emplace_back(blocksJson.get<std::string>());
+        } else if (blocksJson.is_array()) {
+            for (const auto& entry : blocksJson) {
+                if (entry.is_string()) {
+                    blocks.emplace_back(entry.get<std::string>());
+                }
+            }
+        }
+    }
+
     if (json.contains("tag")) {
         tag = ResourceLocation(json["tag"].get<std::string>());
     }
@@ -118,6 +156,9 @@ Result<BlockPredicate> BlockPredicate::fromJson(const nlohmann::json& json)
         state = std::move(stateResult.value());
     }
 
+    if (!blocks.empty()) {
+        return BlockPredicate(std::move(blocks), std::move(tag), std::move(state));
+    }
     return BlockPredicate(std::move(block), std::move(tag), std::move(state));
 }
 

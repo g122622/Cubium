@@ -149,7 +149,15 @@ bool LocationPredicate::test(const IWorld& world, f64 x, f64 y, f64 z) const
 
 bool LocationPredicate::test(const IWorld& world, const BlockPos& pos) const
 {
-    return test(world, static_cast<f64>(pos.x) + 0.5, static_cast<f64>(pos.y) + 0.5, static_cast<f64>(pos.z) + 0.5);
+    if (!test(world, static_cast<f64>(pos.x) + 0.5, static_cast<f64>(pos.y) + 0.5, static_cast<f64>(pos.z) + 0.5)) {
+        return false;
+    }
+    // 方块谓词：只有方块坐标重载能取到方块状态（浮点重载无此能力）
+    if (m_block.has_value()) {
+        const BlockState* state = world.getBlockState(pos);
+        return state != nullptr && m_block->test(*state);
+    }
+    return true;
 }
 
 Result<LocationPredicate> LocationPredicate::fromJson(const nlohmann::json& json)
@@ -168,6 +176,16 @@ Result<LocationPredicate> LocationPredicate::fromJson(const nlohmann::json& json
 
     if (json.contains("dimension")) {
         dimension = ResourceLocation(json["dimension"].get<std::string>());
+    }
+
+    // vanilla location 谓词的 block 字段（蕨/高草上下半判定、方块位置判断依赖它）
+    std::optional<BlockPredicate> block;
+    if (json.contains("block")) {
+        const Result<BlockPredicate> blockResult = BlockPredicate::fromJson(json["block"]);
+        if (!blockResult.success()) {
+            return blockResult.error();
+        }
+        block = blockResult.value();
     }
 
     if (json.contains("position")) {
@@ -197,11 +215,13 @@ Result<LocationPredicate> LocationPredicate::fromJson(const nlohmann::json& json
     LocationPredicate predicate;
     predicate.m_biome = std::move(biome);
     predicate.m_dimension = std::move(dimension);
+    predicate.m_block = std::move(block);
     predicate.m_x = std::move(x);
     predicate.m_y = std::move(y);
     predicate.m_z = std::move(z);
     predicate.m_isAny = !predicate.m_biome.has_value() && !predicate.m_dimension.has_value() &&
-        predicate.m_x.isUnbounded() && predicate.m_y.isUnbounded() && predicate.m_z.isUnbounded();
+        !predicate.m_block.has_value() && predicate.m_x.isUnbounded() && predicate.m_y.isUnbounded() &&
+        predicate.m_z.isUnbounded();
     return predicate;
 }
 

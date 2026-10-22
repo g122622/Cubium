@@ -23,6 +23,7 @@
 
 #pragma once
 
+#include "BlockPredicate.hpp"
 #include "common/advancement/MinMaxBounds.hpp"
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
@@ -95,6 +96,7 @@ public:
     [[nodiscard]] const DoubleBounds& getX() const noexcept { return m_x; }
     [[nodiscard]] const DoubleBounds& getY() const noexcept { return m_y; }
     [[nodiscard]] const DoubleBounds& getZ() const noexcept { return m_z; }
+    [[nodiscard]] const std::optional<BlockPredicate>& getBlock() const noexcept { return m_block; }
 
 private:
     std::optional<ResourceLocation> m_biome;     ///< 生物群系（如 "minecraft:plains"）
@@ -102,6 +104,8 @@ private:
     DoubleBounds m_x;                            ///< X坐标范围
     DoubleBounds m_y;                            ///< Y坐标范围
     DoubleBounds m_z;                            ///< Z坐标范围
+    /// 方块谓词（vanilla block 字段，如 {"blocks":"minecraft:large_fern","state":{"half":"upper"}}）
+    std::optional<BlockPredicate> m_block;
     bool m_isAny = true;
 };
 

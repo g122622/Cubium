@@ -529,3 +529,37 @@ TEST_F(FluidPredicateTest, WaterMatchesFlowingWater)
     const BlockState* fallingWater = &waterSource->with(levelProp, 10); // level=10 表示下落的水
     EXPECT_TRUE(predicate.test(*fallingWater));
 }
+
+// ============================================================================
+// vanilla blocks 字段（字符串或字符串数组）
+// ============================================================================
+
+TEST_F(BlockPredicateTest, FromJsonBlocksArray_MatchesEitherBlock)
+{
+    // 数据包写法：{"blocks": ["minecraft:tall_grass", "minecraft:large_fern"], "state": {...}}
+    const nlohmann::json json = {{"blocks", nlohmann::json::array({"minecraft:stone", "minecraft:dirt"})}};
+    auto result = BlockPredicate::fromJson(json);
+    ASSERT_TRUE(result.success());
+    EXPECT_FALSE(result.value().isAny());
+    EXPECT_EQ(result.value().getBlocks().size(), 2u);
+
+    const BlockState* stone = BlockRegistry::instance().get(ResourceLocation("minecraft:stone"));
+    const BlockState* dirt = BlockRegistry::instance().get(ResourceLocation("minecraft:dirt"));
+    const BlockState* sand = BlockRegistry::instance().get(ResourceLocation("minecraft:sand"));
+    ASSERT_NE(stone, nullptr);
+    ASSERT_NE(dirt, nullptr);
+    ASSERT_NE(sand, nullptr);
+    EXPECT_TRUE(result.value().test(*stone));
+    EXPECT_TRUE(result.value().test(*dirt));
+    EXPECT_FALSE(result.value().test(*sand));
+}
+
+TEST_F(BlockPredicateTest, FromJsonBlocksString_MatchesBlock)
+{
+    const nlohmann::json json = {{"blocks", "minecraft:stone"}};
+    auto result = BlockPredicate::fromJson(json);
+    ASSERT_TRUE(result.success());
+    const BlockState* stone = BlockRegistry::instance().get(ResourceLocation("minecraft:stone"));
+    ASSERT_NE(stone, nullptr);
+    EXPECT_TRUE(result.value().test(*stone));
+}
