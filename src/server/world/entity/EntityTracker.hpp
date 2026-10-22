@@ -298,6 +298,14 @@ public:
     void broadcastPassengers(IServer& server, ServerWorld& world, EntityInstanceId vehicleId);
 
     /**
+     * @brief 向追踪该实体的玩家发送一次绝对位置快照（cb EntityPositionSync）。
+     *
+     * 对齐 vanilla ChunkMap.sendToTrackingPlayers(ClientboundEntityPositionSyncPacket)：
+     * 用于服务端主动要求客户端立即收敛位置的场景（如快乐恶魂进入静止状态）。
+     */
+    void sendPositionSyncToTrackingPlayers(IServer& server, const Entity& entity);
+
+    /**
      * @brief 向当前追踪该实体的所有玩家广播装备变更（cb SetEquipment）。
      *
      * 在 `LivingEntity::detectEquipmentUpdates` 检测到装备槽变化后调用（经

@@ -3091,6 +3091,18 @@ void ServerWorld::broadcastDamageEvent(EntityInstanceId entityId, const DamageSo
     m_entityTracker.broadcastPacketAndSelf(*m_server, entityId, packet);
 }
 
+void ServerWorld::sendPositionSyncToTrackingPlayers(EntityInstanceId entityId)
+{
+    if (m_server == nullptr) {
+        return;
+    }
+    const Entity* entity = m_entityManager.getEntity(entityId);
+    if (entity == nullptr) {
+        return;
+    }
+    m_entityTracker.sendPositionSyncToTrackingPlayers(*m_server, *entity);
+}
+
 void ServerWorld::broadcastEquipmentChanged(EntityInstanceId entityId, const std::vector<EquipmentSlot>& changedSlots)
 {
     if (m_server != nullptr) {
