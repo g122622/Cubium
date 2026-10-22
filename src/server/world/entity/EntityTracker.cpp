@@ -376,6 +376,39 @@ void EntityTracker::broadcastPacketAndSelf(
     }
 }
 
+void EntityTracker::sendPositionSyncToTrackingPlayers(IServer& server, const Entity& entity)
+{
+    // 对齐 vanilla ChunkMap.sendToTrackingPlayers(ClientboundEntityPositionSyncPacket.of(entity))。
+    std::vector<PlayerId> trackingPlayers;
+    {
+        std::lock_guard<std::mutex> lock(m_mutex);
+        if (auto it = m_trackedEntities.find(entity.id()); it != m_trackedEntities.end()) {
+            trackingPlayers.assign(it->second.trackingPlayers.begin(), it->second.trackingPlayers.end());
+        }
+    }
+    if (trackingPlayers.empty()) {
+        return;
+    }
+    mc::network::ir::play::EntityPositionSync pkt;
+    pkt.entityId = static_cast<i32>(entity.id());
+    pkt.x = static_cast<f64>(entity.x());
+    pkt.y = static_cast<f64>(entity.y());
+    pkt.z = static_cast<f64>(entity.z());
+    pkt.deltaX = entity.velocity().x;
+    pkt.deltaY = entity.velocity().y;
+    pkt.deltaZ = entity.velocity().z;
+    pkt.yRot = entity.yaw();
+    pkt.xRot = entity.pitch();
+    pkt.onGround = entity.onGround();
+    const auto packet = _makePlayPacket(mc::network::ir::PlayPacket{pkt});
+    for (const auto playerId : trackingPlayers) {
+        auto* player = server.playerManager().getPlayer(playerId);
+        if (player != nullptr && player->hasConnection()) {
+            player->send(packet);
+        }
+    }
+}
+
 void EntityTracker::broadcastEquipment(
     IServer& server, ServerWorld& world, EntityInstanceId entityId, const std::vector<EquipmentSlot>& slots)
 {

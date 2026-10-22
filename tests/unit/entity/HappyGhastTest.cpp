@@ -46,6 +46,7 @@
 
 #include <memory>
 #include <optional>
+#include <vector>
 
 using namespace mc;
 
@@ -55,6 +56,11 @@ namespace {
 class HappyGhastTestWorld final : public mc::test::BaseTestWorld {
 public:
     HappyGhastTestWorld() = default;
+
+    void sendPositionSyncToTrackingPlayers(EntityInstanceId id) override { syncedIds.push_back(id); }
+
+    /// 记录服务端要求补发绝对位置快照的实体（快乐恶魂静止超时入口）。
+    std::vector<EntityInstanceId> syncedIds;
 };
 
 } // namespace
@@ -131,6 +137,28 @@ TEST_F(HappyGhastTest, HurtAndDeathSoundsDependOnAge)
     adult.setChild(false);
     EXPECT_EQ(adult.getHurtSound(source), std::optional<ResourceLocation>(SoundEvents::HAPPY_GHAST_HURT));
     EXPECT_EQ(adult.getDeathSound(), std::optional<ResourceLocation>(SoundEvents::HAPPY_GHAST_DEATH));
+}
+
+// 进入静止超时（0 → 正数）时向追踪玩家下发一次位置快照（对齐 vanilla setServerStillTimeout）。
+TEST_F(HappyGhastTest, EnteringStillTimeoutSendsPositionSync)
+{
+    m_world.syncedIds.clear();
+
+    HappyGhastEntity ghast(EntityInstanceId(11), mc::test::testEcsRegistry());
+    ghast.setWorld(&m_world);
+
+    ghast.setServerStillTimeoutForTest(10);
+    ASSERT_EQ(m_world.syncedIds.size(), 1U) << "0 → 正数应补发一次位置快照";
+    EXPECT_EQ(m_world.syncedIds.front(), ghast.id());
+
+    // 再次设置正数（非 0 → 正数的跨越）不应重复下发。
+    ghast.setServerStillTimeoutForTest(10);
+    EXPECT_EQ(m_world.syncedIds.size(), 1U);
+
+    // 归零后再进入静止仍会下发。
+    ghast.setServerStillTimeoutForTest(0);
+    ghast.setServerStillTimeoutForTest(10);
+    EXPECT_EQ(m_world.syncedIds.size(), 2U);
 }
 
 // 诱惑物品：成体取 HAPPY_GHAST_TEMPT_ITEMS（雪球 + 挽具），幼体取 HAPPY_GHAST_FOOD。

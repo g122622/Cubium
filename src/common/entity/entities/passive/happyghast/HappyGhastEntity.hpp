@@ -188,6 +188,9 @@ public:
     /// 静止超时剩余 tick 数（测试与调试断言用）
     [[nodiscard]] i32 serverStillTimeout() const { return m_serverStillTimeout; }
 
+    /// 测试入口：直接设置静止超时（触发 0 → 正数时的位置快照下发）。
+    void setServerStillTimeoutForTest(i32 ticks) { _setServerStillTimeout(ticks); }
+
     /// 控制乘客：vanilla 仅在"装备挽具 + 非静止超时 + 首名乘客是玩家"时返回该玩家，
     /// 否则回退基类（HappyGhast.java:328-332）。静止超时时乘客无法驾驶。
     [[nodiscard]] EntityInstanceId getControllingPassenger() const override;

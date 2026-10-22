@@ -1761,6 +1761,14 @@ public:
      * @param entityId 装备发生变化的实体
      * @param changedSlots 发生变化的内部槽位（仅这些槽位需要下发）
      */
+    /**
+     * @brief 向追踪该实体的玩家发送一次绝对位置快照（cb EntityPositionSync）
+     *
+     * 对齐 vanilla ChunkMap.sendToTrackingPlayers(ClientboundEntityPositionSyncPacket)：
+     * 用于服务端主动要求客户端立即收敛位置的场景（如快乐恶魂进入静止状态）。
+     */
+    virtual void sendPositionSyncToTrackingPlayers(EntityInstanceId entityId) { (void)entityId; }
+
     virtual void broadcastEquipmentChanged(EntityInstanceId entityId, const std::vector<EquipmentSlot>& changedSlots)
     {
         (void)entityId;

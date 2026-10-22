@@ -251,8 +251,9 @@ void HappyGhastEntity::_setServerStillTimeout(i32 ticks)
 {
     // vanilla 在 0 → 正数（刚进入静止）时向追踪玩家补发一次位置同步
     // （ClientboundEntityPositionSyncPacket），使客户端立即收敛到服务端位置。
-    // Cubium 尚无独立的该类包，位置同步依赖常规实体追踪包，故此处只维护计数。
-    // TODO: 待 ClientboundEntityPositionSyncPacket 实现后在此补发位置同步。
+    if (m_serverStillTimeout <= 0 && ticks > 0 && m_world != nullptr && !m_world->isClientSide()) {
+        m_world->sendPositionSyncToTrackingPlayers(id());
+    }
     m_serverStillTimeout = std::max(0, ticks);
 }
 
