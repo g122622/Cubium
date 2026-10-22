@@ -148,6 +148,8 @@ public:
     [[nodiscard]] static const EnvironmentAttribute<bool>& NAUTILUS_ENTERS_WATER_WHEN_RIDDEN();
     /// 怪物是否在日光下燃烧
     [[nodiscard]] static const EnvironmentAttribute<bool>& MONSTERS_BURN();
+    /// 犰狳鳞甲脱落间隔（秒，unit float；对齐 vanilla EnvironmentAttributes.ARMADILLO_SCUTE_DROP_INTERVAL）
+    [[nodiscard]] static const EnvironmentAttribute<f32>& ARMADILLO_SCUTE_DROP_INTERVAL();
     /// 能否生成劫掠巡逻队
     [[nodiscard]] static const EnvironmentAttribute<bool>& CAN_PILLAGER_PATROL_SPAWN();
     /// 成年村民活动

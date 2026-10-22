@@ -388,6 +388,12 @@ _AttributeName& _name_NAUTILUS_ENTERS_WATER_WHEN_RIDDEN()
     return name;
 }
 
+_AttributeName& _name_ARMADILLO_SCUTE_DROP_INTERVAL()
+{
+    static _AttributeName name("gameplay/armadillo_scute_drop_interval");
+    return name;
+}
+
 _AttributeName& _name_MONSTERS_BURN()
 {
     static _AttributeName name("gameplay/monsters_burn");
@@ -699,6 +705,13 @@ const EnvironmentAttribute<bool>& EnvironmentAttributes::NAUTILUS_ENTERS_WATER_W
     return instance;
 }
 
+const EnvironmentAttribute<f32>& EnvironmentAttributes::ARMADILLO_SCUTE_DROP_INTERVAL()
+{
+    // 默认 1200 秒（20 分钟）；单位与 vanilla 一致为秒，由调用方换算为 tick。
+    static const EnvironmentAttribute<f32> instance = _unitFloat(_name_ARMADILLO_SCUTE_DROP_INTERVAL(), 1200.0f);
+    return instance;
+}
+
 const EnvironmentAttribute<bool>& EnvironmentAttributes::MONSTERS_BURN()
 {
     static const EnvironmentAttribute<bool> instance = _gameplayBoolean(_name_MONSTERS_BURN(), false);
@@ -819,6 +832,7 @@ Result<size_t> EnvironmentAttributes::registerAll()
     registerOne(_name_CAT_WAKING_UP_GIFT_CHANCE(), CAT_WAKING_UP_GIFT_CHANCE());
     registerOne(_name_BEES_STAY_IN_HIVE(), BEES_STAY_IN_HIVE());
     registerOne(_name_NAUTILUS_ENTERS_WATER_WHEN_RIDDEN(), NAUTILUS_ENTERS_WATER_WHEN_RIDDEN());
+    registerOne(_name_ARMADILLO_SCUTE_DROP_INTERVAL(), ARMADILLO_SCUTE_DROP_INTERVAL());
     registerOne(_name_MONSTERS_BURN(), MONSTERS_BURN());
     registerOne(_name_CAN_PILLAGER_PATROL_SPAWN(), CAN_PILLAGER_PATROL_SPAWN());
     registerOne(_name_VILLAGER_ACTIVITY(), VILLAGER_ACTIVITY());

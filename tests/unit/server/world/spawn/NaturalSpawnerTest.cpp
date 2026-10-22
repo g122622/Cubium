@@ -409,7 +409,7 @@ TEST_F(NaturalSpawnerTest, SpawnCosts_ZeroCharge)
 //
 // 期望值逐项对应 MC Java 1.21.11 net/minecraft/data/worldgen/BiomeDefaultFeatures.java 与
 // net/minecraft/data/worldgen/biome/{OverworldBiomes,NetherBiomes}.java。
-// 尚未实现的实体（armadillo/camel/goat/parched）不在内部刷怪表中出现。
+// 尚未实现的实体（camel/goat/parched）不在内部刷怪表中出现。
 
 namespace {
 
@@ -556,10 +556,11 @@ TEST_F(NaturalSpawnerTest, MobSpawnInfo_DarkForest_AndPaleGarden)
 
 TEST_F(NaturalSpawnerTest, MobSpawnInfo_Badlands)
 {
-    // 恶地：creatureGenerationProbability 0.03；farmAnimals + commonSpawns（armadillo 未实现）
+    // 恶地：creatureGenerationProbability 0.03；farmAnimals + commonSpawns + armadillo(6,1,2)
     auto badlands = world::spawn::MobSpawnInfo::createBadlands();
     EXPECT_FLOAT_EQ(badlands.getCreatureSpawnProbability(), 0.03f);
-    EXPECT_EQ(badlands.getCreatureSpawns().size(), 4u);
+    EXPECT_EQ(badlands.getCreatureSpawns().size(), 5u);
+    expectSpawn(badlands.getCreatureSpawns(), "minecraft:armadillo", 6, 1, 2);
     expectCommonMonsters(badlands.getMonsterSpawns());
 
     // 疏林恶地：概率 0.04，追加 wolf(2,4,8)
@@ -921,7 +922,7 @@ TEST_F(NaturalSpawnerTest, MobSpawnInfo_Desert)
 
 TEST_F(NaturalSpawnerTest, MobSpawnInfo_Savanna)
 {
-    // 普通/破碎热带草原：horse(1,2,6) + donkey(1,1,1) + commonSpawnWithZombieHorse；
+    // 普通/破碎热带草原：horse(1,2,6) + donkey(1,1,1) + armadillo(10,2,3) + commonSpawnWithZombieHorse；
     //   1.21.11 不再调用 farmAnimals，也没有 llama / wolf
     auto info = world::spawn::MobSpawnInfo::createSavanna();
     EXPECT_TRUE(info.isPlayerSpawnFriendly());
@@ -929,12 +930,13 @@ TEST_F(NaturalSpawnerTest, MobSpawnInfo_Savanna)
 
     expectSpawn(info.getCreatureSpawns(), "minecraft:horse", 1, 2, 6);
     expectSpawn(info.getCreatureSpawns(), "minecraft:donkey", 1, 1, 1);
-    EXPECT_EQ(info.getCreatureSpawns().size(), 2u);
+    expectSpawn(info.getCreatureSpawns(), "minecraft:armadillo", 10, 2, 3);
+    EXPECT_EQ(info.getCreatureSpawns().size(), 3u);
 
     expectCommonMonstersWithZombieHorse(info.getMonsterSpawns());
 
     auto shattered = world::spawn::MobSpawnInfo::createShatteredSavanna();
-    EXPECT_EQ(shattered.getCreatureSpawns().size(), 2u);
+    EXPECT_EQ(shattered.getCreatureSpawns().size(), 3u);
 }
 
 TEST_F(NaturalSpawnerTest, MobSpawnInfo_SavannaPlateau)
@@ -945,7 +947,8 @@ TEST_F(NaturalSpawnerTest, MobSpawnInfo_SavannaPlateau)
 
     expectSpawn(info.getCreatureSpawns(), "minecraft:llama", 8, 4, 4);
     expectSpawn(info.getCreatureSpawns(), "minecraft:wolf", 8, 4, 8);
-    EXPECT_EQ(info.getCreatureSpawns().size(), 4u);
+    expectSpawn(info.getCreatureSpawns(), "minecraft:armadillo", 10, 2, 3);
+    EXPECT_EQ(info.getCreatureSpawns().size(), 5u);
     expectCommonMonstersWithZombieHorse(info.getMonsterSpawns());
 }
 

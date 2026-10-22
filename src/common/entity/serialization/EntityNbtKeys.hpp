@@ -317,6 +317,10 @@ constexpr const char* EGG_LAY_TIME = "EggLayTime";
 constexpr const char* IS_CHICKEN_JOCKEY = "IsChickenJockey";
 /// 鸡变种（对齐 vanilla VariantUtils.writeVariant/readVariant 的 "variant" 键，值为注册表 id）
 constexpr const char* CHICKEN_VARIANT = "variant";
+/// 犰狳状态（对齐 vanilla Armadillo.addAdditionalSaveData 的 "state"，值为状态名）
+constexpr const char* ARMADILLO_STATE = "state";
+/// 犰狳下次自然掉落鳞甲倒计时（对齐 vanilla Armadillo 的 "scute_time"）
+constexpr const char* SCUTE_TIME = "scute_time";
 
 // ========== DolphinEntity 键 ==========
 // 参考 MC 1.21.11 Dolphin.addAdditionalSaveData()/readAdditionalSaveData()。

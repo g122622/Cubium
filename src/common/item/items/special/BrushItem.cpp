@@ -26,6 +26,7 @@
 #include "common/core/BlockRaycastResult.hpp"
 #include "common/core/Types.hpp"
 #include "common/entity/core/LivingEntity.hpp"
+#include "common/entity/entities/passive/special/ArmadilloEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/item/context/ItemUseContext.hpp"
 #include "common/item/core/ActionResult.hpp"
@@ -251,23 +252,19 @@ void BrushItem::spawnDustParticles(IWorld& world,
 
 bool BrushItem::itemInteractionForEntity(ItemStack& stack, Player& player, LivingEntity& target, Hand hand)
 {
-    // TODO: 当 ArmadilloEntity 实现后，在此处添加刷犰狳的逻辑：
-    // 1. 检查 target 是否为 ArmadilloEntity
-    // 2. 检查犰狳是否处于可刷状态（scuteCooldown == 0 且非幼年）
-    // 3. 掉落 armadillo_scute 物品
-    // 4. 播放刷犰狳音效 (ARMADILLO_BRUSH)
-    // 5. 消耗 ARMADILLO_DURABILITY_COST (16) 耐久:
-    //    LivingEntity::hurtAndBreak(stack, ARMADILLO_DURABILITY_COST, &player,
-    //        LivingEntity::handToEquipmentSlot(hand));
-    // 6. 设置犰狳的 scuteCooldown
-    //
-    // MC原版逻辑参考: Armadillo.mobInteract() 和 DispenseItemBehavior 中的刷子逻辑
-
-    MC_UNUSED(stack);
-    MC_UNUSED(player);
-    MC_UNUSED(target);
-    MC_UNUSED(hand);
-    return false;
+    // 对齐 vanilla 1.21.11 BrushItem.useOn（生物分支）/ Armadillo.mobInteract：
+    //   目标为犰狳且刷鳞甲成功（成体）→ 消耗 ARMADILLO_DURABILITY_COST(16) 点耐久，返回 true；
+    //   幼年犰狳不刷、其他实体不处理。
+    auto* armadillo = dynamic_cast<ArmadilloEntity*>(&target);
+    if (armadillo == nullptr) {
+        return false;
+    }
+    if (!armadillo->brushOffScute(&player)) {
+        return false;
+    }
+    (void)LivingEntity::hurtAndBreak(
+        stack, ARMADILLO_DURABILITY_COST, &player, LivingEntity::handToEquipmentSlot(hand));
+    return true;
 }
 
 i32 BrushItem::getUseDuration(const ItemStack& /*stack*/) const

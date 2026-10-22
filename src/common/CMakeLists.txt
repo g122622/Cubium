@@ -152,6 +152,7 @@ add_library(mc_common STATIC
     entity/entities/passive/special/PandaEntity.cpp
     entity/entities/passive/special/PolarBearEntity.cpp
     entity/entities/passive/special/TurtleEntity.cpp
+    entity/entities/passive/special/ArmadilloEntity.cpp
     entity/entities/passive/special/BeeEntity.cpp
     entity/entities/passive/special/StriderEntity.cpp
     entity/entities/passive/special/SnifferEntity.cpp

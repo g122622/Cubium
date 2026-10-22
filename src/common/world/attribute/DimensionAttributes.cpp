@@ -126,6 +126,7 @@ std::unique_ptr<EnvironmentAttributeSystem> DimensionAttributes::createSystem(co
     add(EnvironmentAttributes::CAT_WAKING_UP_GIFT_CHANCE());
     add(EnvironmentAttributes::BEES_STAY_IN_HIVE());
     add(EnvironmentAttributes::NAUTILUS_ENTERS_WATER_WHEN_RIDDEN());
+    add(EnvironmentAttributes::ARMADILLO_SCUTE_DROP_INTERVAL());
     add(EnvironmentAttributes::MONSTERS_BURN());
     add(EnvironmentAttributes::CAN_PILLAGER_PATROL_SPAWN());
     add(EnvironmentAttributes::VILLAGER_ACTIVITY());

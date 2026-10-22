@@ -40,7 +40,6 @@ namespace spawn {
 //
 // 与原版的已知偏差（对应实体尚未实现，无法进入 spawn list）：
 //   1) camel（沙漠 CREATURE 1,1,1）——CamelEntity 未实现；
-//   2) armadillo（热带草原 CREATURE 10,2,3；恶地 CREATURE 6,1,2）——ArmadilloEntity 未实现；
 //   3) parched（沙漠 MONSTER 50,4,4）——ParchedEntity 未实现；
 //   4) goat（尖峭峰/冰封峰/裸岩峰 CREATURE 5,1,3；雪坡 CREATURE 5,1,3）——GoatEntity 未实现。
 //   上述条目若写入刷怪表，会占用权重并在抽取后被 NaturalSpawner 跳过，使实际生成分布偏离原版，
@@ -49,6 +48,7 @@ namespace spawn {
 
 namespace {
 
+using entity::EntityTypeKeys::ARMADILLO;
 using entity::EntityTypeKeys::AXOLOTL;
 using entity::EntityTypeKeys::BAT;
 using entity::EntityTypeKeys::BOGGED;
@@ -330,7 +330,7 @@ MobSpawnInfo MobSpawnInfo::createBadlands()
 
     _addFarmAnimals(info);
     _addCommonSpawns(info);
-    // TODO(spawn-list-entities): armadillo（CREATURE 6,1,2）——ArmadilloEntity 未实现。
+    info.addCreatureSpawn(SpawnEntry(ARMADILLO, 6, 1, 2));
 
     return info;
 }
@@ -524,7 +524,7 @@ MobSpawnInfo MobSpawnInfo::createSavanna(bool llamaAndWolves)
 
     info.addCreatureSpawn(SpawnEntry(HORSE, 1, 2, 6));
     info.addCreatureSpawn(SpawnEntry(DONKEY, 1, 1, 1));
-    // TODO(spawn-list-entities): armadillo（CREATURE 10,2,3）——ArmadilloEntity 未实现。
+    info.addCreatureSpawn(SpawnEntry(ARMADILLO, 10, 2, 3));
     if (llamaAndWolves) {
         info.addCreatureSpawn(SpawnEntry(LLAMA, 8, 4, 4));
         info.addCreatureSpawn(SpawnEntry(WOLF, 8, 4, 8));

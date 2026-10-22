@@ -54,6 +54,7 @@ const EntityType* TURTLE = nullptr;
 const EntityType* BEE = nullptr;
 const EntityType* STRIDER = nullptr;
 const EntityType* SNIFFER = nullptr;
+const EntityType* ARMADILLO = nullptr;
 
 // 马类
 const EntityType* HORSE = nullptr;
@@ -246,6 +247,7 @@ void initialize()
     BEE = registry.getType(EntityTypeKeys::BEE);
     STRIDER = registry.getType(EntityTypeKeys::STRIDER);
     SNIFFER = registry.getType(EntityTypeKeys::SNIFFER);
+    ARMADILLO = registry.getType(EntityTypeKeys::ARMADILLO);
 
     // 被动生物 - 马类
     HORSE = registry.getType(EntityTypeKeys::HORSE);
@@ -408,6 +410,7 @@ void reset()
     BEE = nullptr;
     STRIDER = nullptr;
     SNIFFER = nullptr;
+    ARMADILLO = nullptr;
     HORSE = nullptr;
     DONKEY = nullptr;
     MULE = nullptr;

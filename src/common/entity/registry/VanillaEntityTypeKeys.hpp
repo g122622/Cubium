@@ -70,6 +70,7 @@ extern const EntityType* TURTLE;
 extern const EntityType* BEE;
 extern const EntityType* STRIDER;
 extern const EntityType* SNIFFER;
+extern const EntityType* ARMADILLO;
 
 // 马类
 extern const EntityType* HORSE;

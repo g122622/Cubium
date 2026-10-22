@@ -87,6 +87,7 @@
 #include "common/entity/entities/passive/horse/ZombieHorseEntity.hpp"
 #include "common/entity/entities/passive/nautilus/NautilusEntity.hpp"
 #include "common/entity/entities/passive/nautilus/ZombieNautilusEntity.hpp"
+#include "common/entity/entities/passive/special/ArmadilloEntity.hpp"
 #include "common/entity/entities/passive/special/BeeEntity.hpp"
 #include "common/entity/entities/passive/special/FoxEntity.hpp"
 #include "common/entity/entities/passive/special/PandaEntity.hpp"
@@ -309,6 +310,16 @@ void VanillaEntities::doRegisterAll()
     registry.registerType(EntityTypeKeys::SNIFFER,
         EntityType::Builder(&SnifferEntity::create, EntityClassification::Creature)
             .size(1.9f, 1.75f)
+            .trackingRange(10)
+            .updateInterval(3)
+            .canSummon(true)
+            .build());
+
+    // 犰狳
+    // MC 1.21.11 Armadillo（Animal 默认尺寸 0.7 x 0.85，幼体经 BABY_SCALE=0.6 缩放）
+    registry.registerType(EntityTypeKeys::ARMADILLO,
+        EntityType::Builder(&ArmadilloEntity::create, EntityClassification::Creature)
+            .size(0.7f, 0.85f)
             .trackingRange(10)
             .updateInterval(3)
             .canSummon(true)

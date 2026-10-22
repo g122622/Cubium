@@ -252,6 +252,7 @@ add_executable(mc_tests
     # PolarBearEntity IAngerable接口、站立警告、声音测试
     common/entity/entities/passive/special/PolarBearEntityTest.cpp
     # BeeEntity 花朵繁殖、幼体生成、花粉/螫刺状态测试
+    common/entity/entities/passive/special/ArmadilloEntityTest.cpp
     common/entity/entities/passive/special/BeeEntityTest.cpp
     # TurtleEntity 下蛋逻辑测试
     common/entity/entities/passive/special/TurtleEntityTest.cpp
