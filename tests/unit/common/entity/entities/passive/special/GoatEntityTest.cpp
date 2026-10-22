@@ -32,11 +32,14 @@
  * 4. 摔落伤害减免 10
  * 5. NBT：IsScreamingGoat / HasLeftHorn / HasRightHorn 往返
  * 6. 低头计时：setLoweringHead 后每 tick +1，取消后每 tick -2（0..20 夹取）
+ * 7. 长跳：抛射初速度计算、长跳中姿态碰撞箱缩放、长跳目标已注册
  */
 
 #include <gtest/gtest.h>
 
 #include "common/TestWorldHelper.hpp"
+#include "common/entity/ai/goal/GoalSelector.hpp"
+#include "common/entity/ai/goal/goals/special/GoatLongJumpGoal.hpp"
 #include "common/entity/entities/item/ItemEntity.hpp"
 #include "common/entity/entities/passive/special/GoatEntity.hpp"
 #include "common/entity/serialization/NbtHelper.hpp"
@@ -45,6 +48,7 @@
 #include "common/world/IWorld.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 
+#include <cmath>
 #include <memory>
 
 namespace mc {
@@ -191,6 +195,64 @@ TEST_F(GoatEntityTest, LowerHeadTick_ClampsAtTwenty)
         goat.tick();
     }
     EXPECT_EQ(goat.lowerHeadTick(), GoatEntity::RAM_PREPARE_TIME);
+}
+
+// ============================================================================
+// 长跳
+// ============================================================================
+
+TEST_F(GoatEntityTest, LongJumpGoal_RegisteredWithLowestPriority)
+{
+    GoatEntity goat(EntityInstanceId(1), mc::test::testEcsRegistry());
+    bool found = false;
+    for (const auto& pg : goat.goalSelector().getAllGoals()) {
+        if (pg.getGoal() != nullptr && pg.getGoal()->getTypeName() == "GoatLongJumpGoal") {
+            found = true;
+            // 长跳优先级最低（9），不抢占冲撞/繁殖/漫步
+            EXPECT_EQ(pg.getPriority(), 9);
+        }
+    }
+    EXPECT_TRUE(found);
+}
+
+TEST_F(GoatEntityTest, LongJump_DimensionsShrinkToSeventyPercent)
+{
+    GoatEntity goat(EntityInstanceId(1), mc::test::testEcsRegistry());
+    const entity::EntitySize standing = goat.getDimensions(EntityPose::Standing);
+    const entity::EntitySize jumping = goat.getDimensions(EntityPose::LongJumping);
+
+    // 对齐 vanilla Goat.LONG_JUMPING_DIMENSIONS = 0.9x1.3 scale 0.7
+    EXPECT_NEAR(jumping.width(), standing.width() * GoatEntity::LONG_JUMPING_SCALE, 1e-5f);
+    EXPECT_NEAR(jumping.height(), standing.height() * GoatEntity::LONG_JUMPING_SCALE, 1e-5f);
+}
+
+TEST_F(GoatEntityTest, LongJumpVector_SolvesFlatShortJump)
+{
+    GoatEntity goat(EntityInstanceId(1), mc::test::testEcsRegistry());
+    entity::ai::goal::GoatLongJumpGoal goal(&goat);
+
+    // 水平 3 格、等高的小跳：应能求出向上且朝 +X 的初速度
+    const Vector3 from(0.0, 64.0, 0.0);
+    const Vector3 to(3.5, 64.0, 0.5);
+    const auto velocity = goal.calculateJumpVector(from, to, 3.5714288, 65);
+
+    ASSERT_TRUE(velocity.has_value());
+    EXPECT_GT(velocity->y, 0.0);
+    EXPECT_GT(velocity->x, 0.0);
+    // 初速度不超过 JUMP_STRENGTH * 倍率
+    const f64 speed = std::sqrt(velocity->x * velocity->x + velocity->y * velocity->y + velocity->z * velocity->z);
+    EXPECT_LE(speed, 3.5714288 + 1e-6);
+}
+
+TEST_F(GoatEntityTest, LongJumpVector_RejectsUnreachableDistance)
+{
+    GoatEntity goat(EntityInstanceId(1), mc::test::testEcsRegistry());
+    entity::ai::goal::GoatLongJumpGoal goal(&goat);
+
+    // 低速上限（0.1）下 3 格小跳也无解，验证"求解速度 > 上限即拒绝"
+    const Vector3 from(0.0, 64.0, 0.0);
+    const Vector3 to(3.5, 64.0, 0.5);
+    EXPECT_FALSE(goal.calculateJumpVector(from, to, 0.1, 65).has_value());
 }
 
 } // namespace

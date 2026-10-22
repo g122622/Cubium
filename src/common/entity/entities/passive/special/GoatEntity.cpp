@@ -31,6 +31,7 @@
 #include "common/entity/ai/goal/goals/SwimGoal.hpp"
 #include "common/entity/ai/goal/goals/TemptGoal.hpp"
 #include "common/entity/ai/goal/goals/movement/MovementGoals.hpp"
+#include "common/entity/ai/goal/goals/special/GoatLongJumpGoal.hpp"
 #include "common/entity/ai/goal/goals/special/GoatRamGoal.hpp"
 #include "common/entity/attribute/Attributes.hpp"
 #include "common/entity/core/AgeableEntity.hpp"
@@ -133,9 +134,20 @@ void GoatEntity::registerGoals()
     // 优先级 8：随机看向
     m_goalSelector.addGoal(8, std::make_unique<entity::ai::goal::LookRandomlyGoal>(this));
 
-    // TODO(goat-long-jump): vanilla GoatAi 还有 LONG_JUMP 活动（LongJumpToRandomPos：600~1200 tick
-    // 冷却、水平/垂直 5 格、速度倍率 3.5714288）。Cubium 尚无通用长跳 goal，待通用长跳行为落地后
-    // 在此注册，并给 GoatEntity 补 LONG_JUMPING 姿态尺寸（vanilla LONG_JUMPING_DIMENSIONS）。
+    // 优先级 9：随机长跳（对齐 GoatAi LONG_JUMP 活动的 LongJumpToRandomPos + LongJumpMidJump；
+    // 优先级最低，不影响冲撞/繁殖/漫步等既有行为）
+    m_goalSelector.addGoal(9, std::make_unique<entity::ai::goal::GoatLongJumpGoal>(this));
+}
+
+entity::EntitySize GoatEntity::getDimensions(EntityPose pose) const
+{
+    // 长跳中碰撞箱缩放 0.7（vanilla LONG_JUMPING_DIMENSIONS.scale(getAgeScale())），
+    // 幼体缩放由 width()/height() 内部承担。
+    const entity::EntitySize base = entity::EntitySize(width(), height(), eyeHeight(), false);
+    if (pose == EntityPose::LongJumping) {
+        return base.scale(LONG_JUMPING_SCALE, LONG_JUMPING_SCALE);
+    }
+    return base;
 }
 
 // ============================================================================

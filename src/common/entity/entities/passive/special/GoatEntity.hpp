@@ -61,7 +61,8 @@ class GoatRamGoal;
  *
  * 与 vanilla 的差异（Brain → GoalSelector 迁移）：vanilla 的 GoatAi 由 RAM / LONG_JUMP /
  * IDLE 三个活动驱动；Cubium 用 GoatRamGoal 以计时器实现 RAM 活动（蓄力→冲撞→冷却），
- * 长跳（LONG_JUMP 活动）尚未实现，见 TODO。
+ * 长跳（LONG_JUMP 活动）由 GoatLongJumpGoal 实现；长跳中姿态为 LongJumping，
+ * 碰撞箱缩放为 0.7 倍（vanilla LONG_JUMPING_DIMENSIONS）。
  */
 class GoatEntity : public AnimalEntity {
 public:
@@ -139,6 +140,12 @@ public:
 
     /// 冲撞冷却剩余 tick（对齐 vanilla RAM_COOLDOWN_TICKS 记忆）
     [[nodiscard]] i32 ramCooldown() const { return m_ramCooldown; }
+
+    /// 长跳中的姿态缩放（vanilla Goat.LONG_JUMPING_DIMENSIONS = 0.9x1.3 scale 0.7）
+    static constexpr f32 LONG_JUMPING_SCALE = 0.7f;
+
+    /// 长跳中收缩碰撞箱（对齐 vanilla Goat.getDefaultDimensions 的 Pose.LONG_JUMPING 分支）
+    [[nodiscard]] entity::EntitySize getDimensions(EntityPose pose) const override;
     void setRamCooldown(i32 ticks);
     /// 采样一次冲撞冷却（尖叫山羊 100~300，普通 600~6000）
     [[nodiscard]] i32 pickNextRamCooldown() const;
