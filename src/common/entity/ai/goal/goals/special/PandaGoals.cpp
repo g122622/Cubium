@@ -27,8 +27,10 @@
 #include "common/entity/ai/goal/GoalFlag.hpp"
 #include "common/entity/ai/pathfinding/PathNavigator.hpp"
 #include "common/entity/core/EntityType.hpp"
+#include "common/entity/core/EntityUtils.hpp"
 #include "common/entity/entities/item/ItemEntity.hpp"
 #include "common/entity/entities/passive/special/PandaEntity.hpp"
+#include "common/entity/entities/player/Player.hpp"
 #include "common/entity/utils/ItemDropHelper.hpp"
 #include "common/util/math/MathUtils.hpp"
 #include "common/util/math/random/Random.hpp"
@@ -250,6 +252,67 @@ void PandaLieOnBackGoal::resetTask()
 }
 
 // ============================================================================
+// PandaLookAtPlayerGoal
+// ============================================================================
+
+PandaLookAtPlayerGoal::PandaLookAtPlayerGoal(PandaEntity* panda, f32 lookDistance)
+    : LookAtGoal(panda, lookDistance, DEFAULT_LOOK_CHANCE)
+    , m_panda(panda)
+{
+    // vanilla PandaLookAtPlayerGoal 只看向玩家（lookAtType = Player.class）。
+    m_filter = [](const LivingEntity* entity) -> bool { return dynamic_cast<const Player*>(entity) != nullptr; };
+}
+
+void PandaLookAtPlayerGoal::setLookTarget(LivingEntity* target)
+{
+    m_lookTarget = target;
+}
+
+bool PandaLookAtPlayerGoal::shouldExecute()
+{
+    // 对齐 vanilla PandaLookAtPlayerGoal.canUse:918-946：已锁定目标时跳过搜索，
+    // 但仍需要满足 canPerformAction 与目标有效。
+    if (m_panda == nullptr) {
+        return false;
+    }
+    if (m_panda->getRandom().nextFloat() >= m_chance) {
+        return false;
+    }
+
+    LivingEntity* locked = m_lookTarget.get();
+    if (locked == nullptr) {
+        // 只搜索玩家（对齐 serverlevel.getNearestPlayer），而非任意 LivingEntity。
+        locked = EntityUtils::findClosestEntity<Player>(
+            m_panda->world(), m_panda->position(), m_maxDistance, m_panda, [](Player* player) -> bool {
+                return player != nullptr && player->isAlive() && !player->isSpectator();
+            });
+        if (locked == nullptr) {
+            return false;
+        }
+        m_lookTarget = locked;
+    }
+
+    return m_panda->canPerformAction();
+}
+
+bool PandaLookAtPlayerGoal::shouldContinueExecuting()
+{
+    if (!m_lookTarget) {
+        return false;
+    }
+    return LookAtGoal::shouldContinueExecuting();
+}
+
+void PandaLookAtPlayerGoal::tick()
+{
+    // 对齐 vanilla：引用失效（目标被移除）时不 tick，避免解引用悬垂指针。
+    if (!m_lookTarget) {
+        return;
+    }
+    LookAtGoal::tick();
+}
+
+// ============================================================================
 // PandaSitGoal
 // ============================================================================
 
@@ -287,10 +350,11 @@ bool PandaSitGoal::shouldExecute()
     if (m_panda == nullptr || m_cooldown > static_cast<i32>(m_panda->ticksExisted())) {
         return false;
     }
-    if (m_panda->isChild() || m_panda->isInWater() || !m_panda->canPerformAction()) {
+    // 不满状态（繁殖前找不到竹子）期间不坐下，对齐 vanilla PandaSitGoal.canUse 的
+    // getUnhappyCounter() > 0 门控。
+    if (m_panda->isChild() || m_panda->isInWater() || !m_panda->canPerformAction() || m_panda->unhappyCounter() > 0) {
         return false;
     }
-    // 注意：Cubium 尚无 unhappyCounter（vanilla Panda 收到玩家过近时会提高它并驱散坐下）。
     if (!m_panda->getMainHandItem().isEmpty()) {
         return true;
     }

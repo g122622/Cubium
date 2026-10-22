@@ -31,6 +31,7 @@
 #include "common/entity/entities/item/ItemEntity.hpp"
 #include "common/entity/entities/monster/undead/ZombieEntity.hpp"
 #include "common/entity/entities/passive/special/PandaEntity.hpp"
+#include "common/entity/entities/player/Player.hpp"
 #include "common/entity/registry/VanillaEntities.hpp"
 #include "common/item/Items.hpp"
 #include "common/item/core/ItemStack.hpp"
@@ -1280,6 +1281,71 @@ TEST(PandaSitGoalTest, ResetDropsFoodAndStandsUp)
 
     // 冷却期内不再触发（10~160 秒）
     EXPECT_FALSE(goal.shouldExecute()) << "resetTask 后应进入冷却";
+}
+
+// ==================== 看向玩家 / 不满计时器（PandaLookAtPlayerGoal） ====================
+
+TEST(PandaLookAtPlayerGoalTest, LockedLookTargetOverridesNearestPlayerSearch)
+{
+    Items::initialize();
+    PandaTestWorld world;
+    TickablePanda panda(EntityInstanceId(1), mc::test::testEcsRegistry());
+    panda.setWorld(&world);
+    panda.setTypeId("minecraft:panda");
+
+    auto player = std::make_unique<Player>(EntityInstanceId(2), "Target", mc::test::testEcsRegistry());
+    player->setWorld(&world);
+    world.setNearbyPandas({player.get()});
+
+    entity::ai::goal::PandaLookAtPlayerGoal goal(&panda);
+    goal.setLookTarget(player.get());
+
+    // 2% 概率：多试几十次必定命中，且命中时必定是不满/可行动状态下的"看到玩家"。
+    bool triggered = false;
+    for (i32 i = 0; i < 500 && !triggered; ++i) {
+        triggered = goal.shouldExecute();
+    }
+    EXPECT_TRUE(triggered) << "锁定目标后应有概率触发看向玩家";
+    // startExecuting 之后才有 lookTime（对齐 vanilla LookAtPlayerGoal.start）
+    goal.startExecuting();
+    EXPECT_TRUE(goal.shouldContinueExecuting());
+}
+
+TEST(PandaLookAtPlayerGoalTest, RespectsUnhappyCounter)
+{
+    Items::initialize();
+    PandaTestWorld world;
+    TickablePanda panda(EntityInstanceId(1), mc::test::testEcsRegistry());
+    panda.setWorld(&world);
+    panda.setTypeId("minecraft:panda");
+
+    ASSERT_EQ(panda.unhappyCounter(), 0);
+    panda.setUnhappyCounter(32);
+    EXPECT_EQ(panda.unhappyCounter(), 32);
+
+    // tick 递减（对齐 vanilla Panda.tick 中 setUnhappyCounter(getUnhappyCounter()-1)）
+    panda.testTick();
+    EXPECT_EQ(panda.unhappyCounter(), 31);
+
+    for (i32 i = 0; i < 40; ++i) {
+        panda.testTick();
+    }
+    EXPECT_EQ(panda.unhappyCounter(), 0) << "不满计时器不应跌破 0";
+}
+
+TEST(PandaSitGoalTest, UnhappyPandaDoesNotSit)
+{
+    Items::initialize();
+    PandaTestWorld world;
+    TickablePanda panda(EntityInstanceId(1), mc::test::testEcsRegistry());
+    panda.setWorld(&world);
+    panda.setTypeId("minecraft:panda");
+    panda.setMainHandItem(ItemStack(Items::BAMBOO, 1));
+    panda.setUnhappyCounter(32);
+
+    // 对齐 vanilla PandaSitGoal.canUse 的 getUnhappyCounter() > 0 门控
+    entity::ai::goal::PandaSitGoal goal(&panda);
+    EXPECT_FALSE(goal.shouldExecute());
 }
 
 } // anonymous namespace

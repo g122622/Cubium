@@ -37,6 +37,9 @@
 namespace mc {
 
 // Forward declarations
+namespace entity::ai::goal {
+class PandaLookAtPlayerGoal;
+}
 class Player;
 class ItemStack;
 class DamageSource;
@@ -277,6 +280,25 @@ public:
      */
     std::unique_ptr<AnimalEntity> spawnBaby(AnimalEntity& partner) override;
 
+    // ========== 看向玩家目标 ==========
+
+    /// 看向玩家目标实例（未注册时为空；供 PandaBreedGoal 预置"不满"时的注视对象）
+    [[nodiscard]] entity::ai::goal::PandaLookAtPlayerGoal* lookAtPlayerGoal() const { return m_lookAtPlayerGoal; }
+
+    // ========== 不满计时器（对齐 vanilla Panda.unhappyCounter） ==========
+
+    /**
+     * @brief 剩余的"不满"tick 数（对齐 vanilla Panda.getUnhappyCounter）
+     *
+     * 熊猫想繁殖时附近没有竹子，会进入不满状态：tick 期间盯住当前攻击目标、
+     * 在第 29 / 14 tick 播放 PANDA_CANT_BREED，同时阻止坐下（PandaSitGoal）
+     * 与再次发起繁殖尝试（PandaBreedGoal）。
+     */
+    [[nodiscard]] i32 unhappyCounter() const { return m_unhappyCounter; }
+
+    /// 设置不满计时器（对齐 vanilla Panda.setUnhappyCounter）
+    void setUnhappyCounter(i32 value) { m_unhappyCounter = value; }
+
     // ========== 属性 ==========
 
     /**
@@ -473,6 +495,12 @@ private:
 
     // 打滚速度向量
     Vector3 m_rollVelocity{0.0, 0.0, 0.0};
+
+    // 看向玩家目标（生存期与 goalSelector 一致，供 PandaBreedGoal 预置看向目标用）
+    entity::ai::goal::PandaLookAtPlayerGoal* m_lookAtPlayerGoal = nullptr;
+    // 不满计时器（对齐 vanilla Panda.unhappyCounter：繁殖前附近找不到竹子时设 32，
+    // 期间每 tick 盯住攻击目标并播放 PANDA_CANT_BREED，同时阻止坐下与再次繁殖）
+    i32 m_unhappyCounter = 0;
 
     // 基因（用于遗传）
     u8 m_mainGene = 0;

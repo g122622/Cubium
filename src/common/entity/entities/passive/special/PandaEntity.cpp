@@ -35,6 +35,7 @@
 #include "common/entity/ai/goal/goals/special/PandaGoals.hpp"
 #include "common/entity/ai/goal/goals/target/TargetGoals.hpp" // HurtByTargetGoal
 #include "common/entity/attribute/Attributes.hpp"
+#include "common/entity/core/EntityUtils.hpp"
 #include "common/entity/core/MobEntity.hpp"
 #include "common/entity/damage/DamageSource.hpp"
 #include "common/entity/entities/monster/MonsterEntity.hpp"
@@ -46,6 +47,7 @@
 #include "common/util/math/MathUtils.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/gamerule/GameRules.hpp"
 
 #include "common/entity/core/AgeableEntity.hpp"
@@ -262,6 +264,18 @@ void PandaEntity::tick()
         }
     }
 
+    // 不满状态（对齐 vanilla Panda.tick:350-360）：盯住攻击目标、在第 29/14 tick
+    // 播放"不能繁殖"音效，然后递减计时器。
+    if (m_unhappyCounter > 0) {
+        if (LivingEntity* target = attackTarget(); target != nullptr) {
+            lookAt(*target, 90.0f, 90.0f);
+        }
+        if (m_unhappyCounter == 29 || m_unhappyCounter == 14) {
+            playSound(SoundEvents::ENTITY_PANDA_CANT_BREED, 1.0f, 1.0f);
+        }
+        --m_unhappyCounter;
+    }
+
     // 坐下时保持视线水平（vanilla Panda.tick 中 isSitting() 时 setXRot(0)）。
     if (m_sitting) {
         setRotation(yaw(), 0.0f);
@@ -322,8 +336,9 @@ void PandaEntity::registerGoals()
     // 优先级 1: 恐慌逃跑
     m_goalSelector.addGoal(1, std::make_unique<entity::ai::goal::PanicGoal>(this, 2.0));
 
-    // 优先级 2: 繁殖（喂竹子进入爱心后 BreedGoal 驱动靠近配偶并 spawnBaby）
-    m_goalSelector.addGoal(2, std::make_unique<entity::ai::goal::BreedGoal>(this, 1.0));
+    // 优先级 2: 繁殖（喂竹子进入爱心后 BreedGoal 驱动靠近配偶并 spawnBaby）。
+    //   使用熊猫专属子类（找不到竹子时进入不满状态）。因该类是本地类，注册语句
+    //   放在其定义之后（本函数末尾的目标选择器段落）。
 
     // 优先级 3: 近战攻击（好斗熊猫被攻击后反击）。对齐 vanilla Panda.registerGoals:264。
     //   vanilla PandaAttackGoal(this, 1.2F, true)：canUse = canPerformAction() && super.canUse()，
@@ -362,8 +377,13 @@ void PandaEntity::registerGoals()
     //   并进入冷却；懒散熊猫冷却更短。
     m_goalSelector.addGoal(7, std::make_unique<entity::ai::goal::PandaSitGoal>(this));
 
-    // 优先级 9: 随机看向（原为 7，为 Vanilla 的 PandaSitGoal 让位后顺延）
-    m_goalSelector.addGoal(9, std::make_unique<entity::ai::goal::LookRandomlyGoal>(this));
+    // 优先级 9: 看向玩家（对齐 vanilla Panda.registerGoals:271-272，只看玩家、2% 概率）
+    auto lookAtPlayer = std::make_unique<entity::ai::goal::PandaLookAtPlayerGoal>(this);
+    m_lookAtPlayerGoal = lookAtPlayer.get();
+    m_goalSelector.addGoal(9, std::move(lookAtPlayer));
+
+    // 优先级 12: 随机看向（对齐 vanilla RandomLookAroundGoal；原为 7，为上面两个目标让位后顺延）
+    m_goalSelector.addGoal(12, std::make_unique<entity::ai::goal::LookRandomlyGoal>(this));
 
     // 优先级 8: 打喷嚏（幼年熊猫随机打喷嚏，对齐 vanilla Panda.registerGoals:270）
     //   vanilla PandaSneezeGoal：isBaby && canPerformAction 时，isWeak 1/500 概率，否则 1/6000 概率，
@@ -406,6 +426,78 @@ void PandaEntity::registerGoals()
     //   gotBamboo 由"反击中收到食物"置位（Panda.mobInteract:615-618），didBite 由
     //   "非好斗熊猫咬到目标"置位（Panda.doHurtTarget:316-320），二者随目标清空归零。
     // 熊猫专用子类：反击中收到食物/咬中目标后立即放弃反击（vanilla PandaHurtByTargetGoal）。
+    // 熊猫专属繁殖目标（对齐 vanilla Panda.PandaBreedGoal，Panda.java:786-829）：
+    //   - canUse：基类条件不满足，或处于不满状态时拒绝；
+    //     附近（3×8×8 的层叠扫描）找不到竹子方块时，若冷却已过则把不满计时器设为 32、
+    //     冷却设为 600 tick，并让看向玩家目标锁定最近的玩家。
+    //   - canFindBamboo：扫描蘑菇煲/草方块等之外唯一的熊猫食物来源——竹子方块。
+    class PandaBreedGoal final : public entity::ai::goal::BreedGoal {
+    public:
+        PandaBreedGoal(PandaEntity* panda, f64 speed)
+            : BreedGoal(panda, speed)
+            , m_panda(panda)
+        {}
+
+        [[nodiscard]] bool shouldExecute() override
+        {
+            if (!BreedGoal::shouldExecute() || m_panda->unhappyCounter() != 0) {
+                return false;
+            }
+            if (canFindBamboo()) {
+                return true;
+            }
+            const i32 now = static_cast<i32>(m_panda->ticksExisted());
+            if (m_unhappyCooldown <= now) {
+                m_panda->setUnhappyCounter(32);
+                m_unhappyCooldown = now + 600;
+                if (!m_panda->isNoAi()) {
+                    Player* player = EntityUtils::findClosestEntity<Player>(m_panda->world(),
+                        m_panda->position(),
+                        32.0f, // vanilla Panda.BREED_TARGETING 的追踪范围（同 FOLLOW_RANGE）
+                        m_panda,
+                        [](Player* candidate) -> bool {
+                            return candidate != nullptr && candidate->isAlive() && !candidate->isSpectator();
+                        });
+                    if (m_panda->lookAtPlayerGoal() != nullptr) {
+                        m_panda->lookAtPlayerGoal()->setLookTarget(player);
+                    }
+                }
+            }
+            return false;
+        }
+
+        /// 以自身方块位置为原点做 3×8×8 的层叠扫描寻找竹子（vanilla canFindBamboo）
+        [[nodiscard]] bool canFindBamboo() const
+        {
+            IWorld* world = m_panda->world();
+            if (world == nullptr) {
+                return false;
+            }
+            const BlockPos origin = BlockPos(static_cast<i32>(std::floor(m_panda->x())),
+                static_cast<i32>(std::floor(m_panda->y())),
+                static_cast<i32>(std::floor(m_panda->z())));
+            for (i32 i = 0; i < 3; ++i) {
+                for (i32 j = 0; j < 8; ++j) {
+                    // vanilla 用 k 在 [-j, j] 上按 0, 1, -1, 2, -2 ... 顺序逼近，这里等价覆盖全区间。
+                    for (i32 k = -j; k <= j; ++k) {
+                        for (i32 l = -j; l <= j; ++l) {
+                            const BlockPos pos(origin.x + k, origin.y + i, origin.z + l);
+                            const BlockState* state = world->getBlockState(pos);
+                            if (state != nullptr && &state->getBlock() == VanillaBlocks::BAMBOO) {
+                                return true;
+                            }
+                        }
+                    }
+                }
+            }
+            return false;
+        }
+
+    private:
+        PandaEntity* m_panda;
+        i32 m_unhappyCooldown = 0;
+    };
+
     class PandaHurtByTargetGoal final : public entity::ai::goal::HurtByTargetGoal {
     public:
         explicit PandaHurtByTargetGoal(PandaEntity* panda)
@@ -428,6 +520,9 @@ void PandaEntity::registerGoals()
         PandaEntity* m_panda;
     };
 
+    // 优先级 2: 繁殖。置于此处是因为 PandaBreedGoal 是本地类，须先定义后使用。
+    m_goalSelector.addGoal(2, std::make_unique<PandaBreedGoal>(this, 1.0));
+
     auto hurtByTarget = std::make_unique<PandaHurtByTargetGoal>(this);
     hurtByTarget->setAlertOthers([](const LivingEntity* ally) -> bool {
         // 谓词返回 true = 不警醒该盟友。对齐 vanilla alertOther 的 isAggressive() 门控：
@@ -442,8 +537,7 @@ void PandaEntity::registerGoals()
 
     // 已实现的性格相关 goal：仰躺（懒惰，PandaLieOnBackGoal）、逃避玩家/敌对生物（忧愁，
     // PandaAvoidGoal）、打滚（顽皮/幼体，PandaRollGoal）、好斗反击（PandaAttackGoal +
-    // PandaHurtByTargetGoal）。
-    // TODO: 仍缺 Panda 专属 PandaLookAtPlayerGoal（时间戳记忆语义的看向玩家目标）。
+    // PandaHurtByTargetGoal）、看到玩家（PandaLookAtPlayerGoal）、坐下吃食物（PandaSitGoal）。
 }
 
 void PandaEntity::registerAttributes()

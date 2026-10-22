@@ -27,6 +27,7 @@
 #include "common/entity/ai/goal/Goal.hpp"
 #include "common/entity/ai/goal/GoalFlag.hpp"
 #include "common/entity/ai/goal/goals/AvoidEntityGoal.hpp"
+#include "common/entity/ai/goal/goals/LookAtGoal.hpp"
 #include "common/entity/ai/goal/goals/MeleeAttackGoal.hpp"
 #include <string>
 
@@ -207,14 +208,56 @@ private:
  * @brief 熊猫坐下进食目标（对齐 vanilla Panda.PandaSitGoal）
  *
  * 行为：
- * - canUse：冷却结束 + 非幼体 + 不在水中 + canPerformAction + 主手为空或附近有
- *   可吃物品时成立（Cubium Panda 无 "unhappyCounter"，该门控省略）
+ * - canUse：冷却结束 + 非幼体 + 不在水中 + canPerformAction + 非不满状态，并且
+ *   主手有食物或附近有可吃物品时成立
  * - tick：坐下后若主手仍有食物则继续尝试坐下
  * - start：主手有食物立即坐下；否则走向最近的可吃物品
  * - stop：把手里的食物丢回地上、清空主手、按性格设置 10~60 / 10~160 秒冷却，并站起
  *
  * 互斥标志：MOVE
  */
+/**
+ * @brief 熊猫看向玩家目标（对齐 vanilla Panda.PandaLookAtPlayerGoal）
+ *
+ * 与基类 LookAtGoal 的差异：
+ * - canUse：沿用 2% 概率与"自己找最近的玩家"（不是攻击目标、不是任意生物），
+ *   但额外要求 canPerformAction()（打喷嚏/进食/仰躺/打滚时不看人）；
+ *   已通过 setLookTarget 预置目标时不再重新搜索。
+ * - canContinueToUse：除基类的"存活 + 距离 + 剩余时间"外，还要求引用未失效。
+ * - tick：引用失效时不继续——避免目标被移除后解引用空指针。
+ *
+ * 互斥标志：LOOK（继承自基类）
+ * 优先级：9
+ */
+class PandaLookAtPlayerGoal : public LookAtGoal {
+public:
+    /**
+     * @brief 构造熊猫看向玩家的目标
+     * @param panda 熊猫实例
+     * @param lookDistance 最大看向距离（vanilla 传 6.0）
+     */
+    explicit PandaLookAtPlayerGoal(PandaEntity* panda, f32 lookDistance = 6.0f);
+
+    ~PandaLookAtPlayerGoal() override = default;
+
+    [[nodiscard]] bool shouldExecute() override;
+    [[nodiscard]] bool shouldContinueExecuting() override;
+    void tick() override;
+
+    /**
+     * @brief 预先锁定看向目标（对齐 vanilla PandaLookAtPlayerGoal.setTarget）
+     *
+     * 由 PandaBreedGoal 在附近找不到竹子时调用：把最近的玩家写进来，
+     * 使熊猫在原地"不满地"盯着玩家看。写入引用可自动跟随实体销毁失效。
+     */
+    void setLookTarget(LivingEntity* target);
+
+    [[nodiscard]] std::string getTypeName() const override { return "PandaLookAtPlayerGoal"; }
+
+private:
+    PandaEntity* m_panda;
+};
+
 class PandaSitGoal : public Goal {
 public:
     explicit PandaSitGoal(PandaEntity* panda);
