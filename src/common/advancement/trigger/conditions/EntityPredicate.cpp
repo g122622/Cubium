@@ -34,6 +34,7 @@
 #include "common/entity/damage/tag/DamageTypeTag.hpp"
 #include "common/entity/damage/tag/DamageTypeTags.hpp"
 #include "common/entity/entities/monster/basic/SlimeEntity.hpp"
+#include "common/entity/entities/monster/illager/AbstractRaiderEntity.hpp"
 #include "common/entity/entities/passive/basic/SheepEntity.hpp"
 #include "common/entity/entities/passive/frog/FrogEntity.hpp"
 #include "common/entity/entities/projectile/OtherProjectiles.hpp"
@@ -141,10 +142,15 @@ bool EntityPredicate::_testTypeSpecific(const Entity& entity, const EntityTypeSp
         return !specific.inOpenWater.has_value() || bobber->isInOpenWater() == specific.inOpenWater.value();
     }
 
-    // TODO(entity-type-specific-predicate): raider.is_captain 依赖"袭击队长"标记，
-    //   项目尚未为 AbstractRaiderEntity 暴露该状态，先按"不匹配"处理（而非静默恒真）。
     if (typeId == "minecraft:raider") {
-        return false;
+        // 对齐 vanilla Raider.isCaptain = 巡逻队长 && 头戴不祥旗帜。
+        // Cubium 尚未实现不祥旗帜（Ominous Banner）物品组件，故以巡逻队长标记近似；
+        // TODO(ominous-banner): 旗帜图案组件落地后改为"队长 && 头戴不祥旗帜"的精确判定。
+        const auto* raider = dynamic_cast<const AbstractRaiderEntity*>(&entity);
+        if (raider == nullptr) {
+            return false;
+        }
+        return !specific.isCaptain.has_value() || raider->isLeader() == specific.isCaptain.value();
     }
 
     return false;
