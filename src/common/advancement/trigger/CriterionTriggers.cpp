@@ -98,6 +98,8 @@ void CriterionTriggers::registerBuiltinTriggers()
     registerTrigger(std::make_unique<RecipeUnlockedTrigger>());
     registerTrigger(std::make_unique<RecipeCraftedTrigger>());
     registerTrigger(std::make_unique<LootTableTrigger>());
+    registerTrigger(std::make_unique<UsedTotemTrigger>());
+    registerTrigger(std::make_unique<UsingItemTrigger>());
     registerTrigger(std::make_unique<EffectsChangedTrigger>());
     registerTrigger(std::make_unique<BrewedPotionTrigger>());
 

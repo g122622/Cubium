@@ -34,9 +34,11 @@
 #include "common/item/items/special/EnchantedBookItem.hpp"
 #include "common/item/potion/Potion.hpp"
 #include "common/item/potion/PotionUtils.hpp"
+#include "common/item/tag/ItemTag.hpp"
 #include "common/item/tag/ItemTags.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/assert/AssertAll.hpp"
+#include <algorithm>
 #include <optional>
 #include <string>
 #include <utility>
@@ -100,6 +102,14 @@ bool ItemPredicate::test(const ItemStack& stack) const
             return false;
         }
         if (item->itemLocation() != m_item.value()) {
+            return false;
+        }
+    }
+
+    // 检查物品集合（vanilla items 字段：多元素 items 数组 / 混合标签，成员已展开）
+    if (!m_items.empty()) {
+        const Item* item = stack.getItem();
+        if (item == nullptr || std::find(m_items.begin(), m_items.end(), item->itemLocation()) == m_items.end()) {
             return false;
         }
     }
@@ -222,6 +232,7 @@ Result<ItemPredicate> ItemPredicate::fromJson(const nlohmann::json& json)
 
     std::optional<ResourceLocation> item;
     std::optional<ResourceLocation> tag;
+    std::vector<ResourceLocation> items_Expanded;
     IntBounds count;
     IntBounds durability;
     std::optional<ResourceLocation> potion;
@@ -256,12 +267,39 @@ Result<ItemPredicate> ItemPredicate::fromJson(const nlohmann::json& json)
             } else {
                 item = ResourceLocation(text);
             }
-        } else if (items.is_array() && items.size() == 1 && items[0].is_string()) {
-            const std::string text = items[0].get<std::string>();
-            if (!text.empty() && text[0] == '#') {
-                tag = ResourceLocation(text.substr(1));
+        } else if (items.is_array()) {
+            // vanilla items 是 HolderSet<Item>：可同时列出多个物品 ID 与 "#标签"。
+            // 单元素时退化为 item/tag；多元素时全部展开为具体物品 ID 集合。
+            if (items.size() == 1 && items[0].is_string()) {
+                const std::string text = items[0].get<std::string>();
+                if (!text.empty() && text[0] == '#') {
+                    tag = ResourceLocation(text.substr(1));
+                } else {
+                    item = ResourceLocation(text);
+                }
             } else {
-                item = ResourceLocation(text);
+                for (const auto& entry : items) {
+                    if (!entry.is_string()) {
+                        continue;
+                    }
+                    const std::string text = entry.get<std::string>();
+                    if (!text.empty() && text[0] == '#') {
+                        const ResourceLocation tagId(text.substr(1));
+                        item::tag::ItemTag* itemTag = item::tag::ItemTags::getTag(tagId);
+                        if (itemTag == nullptr) {
+                            // TODO(tag-not-initialized): 物品标签未初始化时无法展开成员，
+                            //  该标签条目被忽略；调用方（服务端启动流程）须保证先初始化标签。
+                            continue;
+                        }
+                        for (const Item* member : itemTag->getItems()) {
+                            if (member != nullptr) {
+                                items_Expanded.push_back(member->itemLocation());
+                            }
+                        }
+                    } else {
+                        items_Expanded.push_back(ResourceLocation(text));
+                    }
+                }
             }
         }
     }
@@ -310,7 +348,7 @@ Result<ItemPredicate> ItemPredicate::fromJson(const nlohmann::json& json)
         }
     }
 
-    return ItemPredicate(std::move(item),
+    ItemPredicate predicate(std::move(item),
         std::move(tag),
         std::move(count),
         std::move(durability),
@@ -318,12 +356,32 @@ Result<ItemPredicate> ItemPredicate::fromJson(const nlohmann::json& json)
         std::move(enchantments),
         std::move(storedEnchantments),
         std::move(nbt));
+    predicate.m_items = std::move(items_Expanded);
+    predicate._updateIsAny();
+    return predicate;
 }
 
 nlohmann::json ItemPredicate::toJson() const
 {
     if (m_isAny) {
         return nullptr;
+    }
+
+    // 多元素 items 集合（标签成员已展开为具体物品 ID）原样还原
+    if (!m_items.empty()) {
+        nlohmann::json items = nlohmann::json::array();
+        for (const auto& id : m_items) {
+            items.push_back(id.toString());
+        }
+        nlohmann::json json = nlohmann::json::object();
+        json["items"] = std::move(items);
+        if (!m_count.isUnbounded()) {
+            json["count"] = m_count.toJson();
+        }
+        if (!m_durability.isUnbounded()) {
+            json["durability"] = m_durability.toJson();
+        }
+        return json;
     }
 
     nlohmann::json json;
@@ -364,8 +422,9 @@ nlohmann::json ItemPredicate::toJson() const
 
 void ItemPredicate::_updateIsAny()
 {
-    m_isAny = !m_item.has_value() && !m_tag.has_value() && m_count.isUnbounded() && m_durability.isUnbounded() &&
-        !m_potion.has_value() && m_enchantments.empty() && m_storedEnchantments.empty() && m_nbt.isAny();
+    m_isAny = !m_item.has_value() && !m_tag.has_value() && m_items.empty() && m_count.isUnbounded() &&
+        m_durability.isUnbounded() && !m_potion.has_value() && m_enchantments.empty() && m_storedEnchantments.empty() &&
+        m_nbt.isAny();
 }
 
 bool ItemPredicate::_testEnchantments(

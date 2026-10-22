@@ -184,8 +184,11 @@ private:
     static bool _testEnchantments(
         const std::vector<EnchantmentPredicate>& predicates, const item::enchant::EnchantmentContainer& enchantments);
 
-    std::optional<ResourceLocation> m_item;                 ///< 物品ID
-    std::optional<ResourceLocation> m_tag;                  ///< 物品标签ID（与 m_item 互斥）
+    std::optional<ResourceLocation> m_item; ///< 物品ID
+    std::optional<ResourceLocation> m_tag;  ///< 物品标签ID（与 m_item 互斥）
+    /// 物品集合（vanilla ItemPredicate.items = HolderSet<Item>：多元素 items 数组写法）
+    /// 为空表示未提供；非空时物品须属于该集合，标签成员也已展开并入。
+    std::vector<ResourceLocation> m_items;
     IntBounds m_count;                                      ///< 数量范围
     IntBounds m_durability;                                 ///< 耐久范围
     std::optional<ResourceLocation> m_potion;               ///< 药水类型

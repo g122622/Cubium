@@ -25,10 +25,12 @@
 
 #include "common/advancement/trigger/CriterionTrigger.hpp"
 #include "common/advancement/trigger/conditions/EntityPredicate.hpp"
+#include "common/advancement/trigger/conditions/ItemPredicate.hpp"
 #include "common/advancement/trigger/conditions/MobEffectsPredicate.hpp"
 #include "common/core/Result.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include <memory>
+#include <optional>
 #include <nlohmann/json_fwd.hpp>
 
 namespace mc::advancement {
@@ -39,6 +41,8 @@ class RecipeCraftedTriggerInstance;
 class EffectsChangedTriggerInstance;
 class BrewedPotionTriggerInstance;
 class LootTableTriggerInstance;
+class UsedTotemTriggerInstance;
+class UsingItemTriggerInstance;
 
 /**
  * @brief 配方解锁触发器
@@ -111,6 +115,78 @@ public:
 private:
     ResourceLocation m_recipeId;
     std::vector<advancement::ItemPredicate> m_ingredients;
+};
+
+/**
+ * @brief 使用图腾触发器（对齐 vanilla UsedTotemTrigger）
+ *
+ * 图腾生效（替玩家挡下致命伤害）时触发，条件以 item 指定使用的图腾物品。
+ */
+class UsedTotemTrigger : public AbstractCriterionTrigger<UsedTotemTriggerInstance> {
+public:
+    static constexpr const char* TRIGGER_ID = "minecraft:used_totem";
+
+    [[nodiscard]] ResourceLocation getId() const override { return ResourceLocation(TRIGGER_ID); }
+
+    [[nodiscard]] Result<std::shared_ptr<ICriterionInstance>> fromJson(const nlohmann::json& json) override;
+
+    /// 触发（本次消耗的图腾物品堆）
+    void trigger(class ServerPlayer& player, const class ItemStack& totem);
+};
+
+/**
+ * @brief 使用图腾触发器实例
+ */
+class UsedTotemTriggerInstance : public CriterionInstance<UsedTotemTriggerInstance> {
+public:
+    static constexpr const char* TRIGGER_ID = "minecraft:used_totem";
+
+    UsedTotemTriggerInstance() = default;
+
+    /// 物品谓词匹配（vanilla：item 为可选的 ItemPredicate，缺省即任意物品）
+    [[nodiscard]] bool test(const class ItemStack& totem) const;
+
+    Result<void> fromJson(const nlohmann::json& json);
+    [[nodiscard]] nlohmann::json conditionsToJson() const;
+
+private:
+    /// 缺省时为 std::nullopt（任意物品）
+    std::optional<advancement::ItemPredicate> m_item;
+};
+
+/**
+ * @brief 正在使用物品触发器（对齐 vanilla UsingItemTrigger）
+ *
+ * 玩家每 tick 持续使用（拉弓、举盾、进食、吹号角等）时触发，条件为 item 物品谓词。
+ */
+class UsingItemTrigger : public AbstractCriterionTrigger<UsingItemTriggerInstance> {
+public:
+    static constexpr const char* TRIGGER_ID = "minecraft:using_item";
+
+    [[nodiscard]] ResourceLocation getId() const override { return ResourceLocation(TRIGGER_ID); }
+
+    [[nodiscard]] Result<std::shared_ptr<ICriterionInstance>> fromJson(const nlohmann::json& json) override;
+
+    /// 触发（当前正在使用的物品堆）
+    void trigger(class ServerPlayer& player, const class ItemStack& usedItem);
+};
+
+/**
+ * @brief 正在使用物品触发器实例
+ */
+class UsingItemTriggerInstance : public CriterionInstance<UsingItemTriggerInstance> {
+public:
+    static constexpr const char* TRIGGER_ID = "minecraft:using_item";
+
+    UsingItemTriggerInstance() = default;
+
+    [[nodiscard]] bool test(const class ItemStack& usedItem) const;
+
+    Result<void> fromJson(const nlohmann::json& json);
+    [[nodiscard]] nlohmann::json conditionsToJson() const;
+
+private:
+    std::optional<advancement::ItemPredicate> m_item;
 };
 
 /**

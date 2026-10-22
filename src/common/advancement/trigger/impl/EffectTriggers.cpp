@@ -300,6 +300,97 @@ Result<std::shared_ptr<ICriterionInstance>> LootTableTrigger::fromJson(const nlo
     return instance;
 }
 
+// ========== UsedTotemTrigger ==========
+
+bool UsedTotemTriggerInstance::test(const ItemStack& totem) const
+{
+    // vanilla TriggerInstance.matches(itemStack)：无 item 条件时任意物品都匹配
+    if (!m_item.has_value()) {
+        return true;
+    }
+    return m_item->test(totem);
+}
+
+Result<void> UsedTotemTriggerInstance::fromJson(const nlohmann::json& json)
+{
+    m_item.reset();
+    if (json.is_null()) {
+        return {};
+    }
+    if (json.contains("item")) {
+        auto result = advancement::ItemPredicate::fromJson(json["item"]);
+        if (result.failed()) {
+            return result.error();
+        }
+        m_item = result.value();
+    }
+    return {};
+}
+
+nlohmann::json UsedTotemTriggerInstance::conditionsToJson() const
+{
+    nlohmann::json json = nlohmann::json::object();
+    if (m_item.has_value()) {
+        json["item"] = m_item->toJson();
+    }
+    return json;
+}
+
+Result<std::shared_ptr<ICriterionInstance>> UsedTotemTrigger::fromJson(const nlohmann::json& json)
+{
+    auto instance = std::make_shared<UsedTotemTriggerInstance>();
+    auto result = instance->fromJson(json);
+    if (result.failed()) {
+        return result.error();
+    }
+    return instance;
+}
+
+// ========== UsingItemTrigger ==========
+
+bool UsingItemTriggerInstance::test(const ItemStack& usedItem) const
+{
+    if (!m_item.has_value()) {
+        return true;
+    }
+    return m_item->test(usedItem);
+}
+
+Result<void> UsingItemTriggerInstance::fromJson(const nlohmann::json& json)
+{
+    m_item.reset();
+    if (json.is_null()) {
+        return {};
+    }
+    if (json.contains("item")) {
+        auto result = advancement::ItemPredicate::fromJson(json["item"]);
+        if (result.failed()) {
+            return result.error();
+        }
+        m_item = result.value();
+    }
+    return {};
+}
+
+nlohmann::json UsingItemTriggerInstance::conditionsToJson() const
+{
+    nlohmann::json json = nlohmann::json::object();
+    if (m_item.has_value()) {
+        json["item"] = m_item->toJson();
+    }
+    return json;
+}
+
+Result<std::shared_ptr<ICriterionInstance>> UsingItemTrigger::fromJson(const nlohmann::json& json)
+{
+    auto instance = std::make_shared<UsingItemTriggerInstance>();
+    auto result = instance->fromJson(json);
+    if (result.failed()) {
+        return result.error();
+    }
+    return instance;
+}
+
 // Note: LootTableTrigger::trigger() is implemented in PacketHandlers via
 // AbstractCriterionTrigger<LootTableTriggerInstance>::trigger (see TriggerInstantiation.hpp)
 

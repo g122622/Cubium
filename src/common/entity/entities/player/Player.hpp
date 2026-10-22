@@ -666,6 +666,15 @@ public:
     virtual void triggerLootTableGenerated(const ResourceLocation& lootTableId) { MC_UNUSED(lootTableId); }
 
     /**
+     * @brief 消耗不死图腾时触发进度（对齐 vanilla CriteriaTriggers.USED_TOTEM）
+     *
+     * @param totem 被消耗的图腾物品堆（消耗前的副本）
+     *
+     * 基类为空实现（仅服务端玩家处理进度）。
+     */
+    virtual void triggerUsedTotem(const ItemStack& totem) { MC_UNUSED(totem); }
+
+    /**
      * @brief 增加自定义统计
      *
      * 当玩家触发自定义统计事件时调用（如打开容器、与方块交互等）。

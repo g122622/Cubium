@@ -1804,8 +1804,12 @@ public:
      * @brief 更新物品使用
      *
      * 每tick调用，递减使用计时器。
+     * 对齐 vanilla LivingEntity.updateUsingItem（virtual，ServerPlayer 重写以派发 using_item 进度）。
      */
-    void updateActiveItem();
+    virtual void updateActiveItem();
+
+    /// 使用中物品的每 tick 回调（vanilla ServerPlayer.updateUsingItem 派发 USING_ITEM 的挂点）
+    virtual void _onUsingItemTick(const class ItemStack& activeItem);
 
     /**
      * @brief 获取效果等级

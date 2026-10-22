@@ -25,6 +25,7 @@
 
 #include "common/advancement/trigger/conditions/ItemPredicate.hpp"
 #include "common/item/Items.hpp"
+#include "common/item/core/ItemRegistry.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/item/potion/PotionUtils.hpp"
 #include "common/item/potion/Potions.hpp"
@@ -589,4 +590,45 @@ TEST_F(ItemPredicateTest, RoundTrip_TagSerialization)
     EXPECT_TRUE(restored.getTag().has_value());
     EXPECT_EQ(restored.getTag().value().toString(), "minecraft:logs");
     EXPECT_FALSE(restored.getItem().has_value());
+}
+
+TEST_F(ItemPredicateTest, MultipleItemsArray_MatchesOnlyListedItems)
+{
+    // vanilla 写法：items 为 HolderSet<Item>，可同时列出多个物品 ID。
+    // 此前多元素数组被静默忽略，谓词退化为"任意物品"（如 using_item 持钻石也被判为正在使用弓）。
+    auto result = ItemPredicate::fromJson(
+        nlohmann::json{{"items", nlohmann::json::array({"minecraft:bow", "minecraft:crossbow"})}});
+    ASSERT_TRUE(result.success());
+    const ItemPredicate predicate = result.value();
+    EXPECT_FALSE(predicate.isAny());
+
+    ASSERT_NE(Items::BOW, nullptr);
+    ASSERT_NE(Items::CROSSBOW, nullptr);
+    ASSERT_NE(Items::DIAMOND, nullptr);
+    EXPECT_TRUE(predicate.test(ItemStack(*Items::BOW, 1)));
+    EXPECT_TRUE(predicate.test(ItemStack(*Items::CROSSBOW, 1)));
+    EXPECT_FALSE(predicate.test(ItemStack(*Items::DIAMOND, 1)));
+}
+
+TEST_F(ItemPredicateTest, MultipleItemsArray_ExpandsTagMembers)
+{
+    // 混合写法：具体物品 + 标签，标签成员展开为具体物品 ID
+    item::tag::ItemTags::initialize();
+    auto* tag = item::tag::ItemTags::getTag(ResourceLocation("minecraft:decorated_pot_sherds"));
+    ASSERT_NE(tag, nullptr);
+    ASSERT_FALSE(tag->getItems().empty());
+
+    auto result = ItemPredicate::fromJson(
+        nlohmann::json{{"items", nlohmann::json::array({"minecraft:brick", "#minecraft:decorated_pot_sherds"})}});
+    ASSERT_TRUE(result.success());
+    const ItemPredicate predicate = result.value();
+    EXPECT_FALSE(predicate.isAny());
+
+    ASSERT_NE(Items::BRICK, nullptr);
+    EXPECT_TRUE(predicate.test(ItemStack(*Items::BRICK, 1)));
+    const Item* sherd = ItemRegistry::instance().getItem(ResourceLocation("minecraft:heart_pottery_sherd"));
+    ASSERT_NE(sherd, nullptr);
+    EXPECT_TRUE(predicate.test(ItemStack(*sherd, 1)));
+    ASSERT_NE(Items::DIAMOND, nullptr);
+    EXPECT_FALSE(predicate.test(ItemStack(*Items::DIAMOND, 1)));
 }

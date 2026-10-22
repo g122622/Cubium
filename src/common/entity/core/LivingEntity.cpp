@@ -679,6 +679,7 @@ bool LivingEntity::_checkTotemDeathProtection(DamageSource& source)
     // 注意：vanilla 在找到组件后立刻 shrink，之后才施加效果；效果数据只来自死前 copy 出的
     // deathprotection 值，不依赖物品仍在手中。
     item::component::DeathProtectionPayload deathProtection;
+    ItemStack consumedTotem;
     bool found = false;
     for (EquipmentSlot slot : {EquipmentSlot::MainHand, EquipmentSlot::OffHand}) {
         ItemStack& stack = getMutableEquipment(slot);
@@ -690,6 +691,9 @@ bool LivingEntity::_checkTotemDeathProtection(DamageSource& source)
             continue;
         }
         deathProtection = *component;
+        // 先拷贝一份消耗前的物品堆：vanilla 用 copy() 保留完整物品（含数量）供 USED_TOTEM 触发器使用，
+        // 之后才 shrink 真实堆。
+        consumedTotem = stack.copy();
         stack.shrink(1);
         found = true;
         break;
@@ -697,6 +701,11 @@ bool LivingEntity::_checkTotemDeathProtection(DamageSource& source)
 
     if (!found) {
         return false;
+    }
+
+    // 对齐 vanilla：服务端玩家消耗图腾时派发 used_totem 进度（vanilla LivingEntity.java:1374）
+    if (auto* player = dynamic_cast<Player*>(this); player != nullptr) {
+        player->triggerUsedTotem(consumedTotem);
     }
 
     // 对齐 vanilla DeathProtection.applyEffects（不死图腾默认定义）：
@@ -3322,11 +3331,20 @@ void LivingEntity::stopActiveHand()
     m_activeItemUseCount = 0;
 }
 
+void LivingEntity::_onUsingItemTick(const ItemStack& activeItem)
+{
+    // 基类无进度系统，服务端玩家在 ServerPlayer 中重写
+    MC_UNUSED(activeItem);
+}
+
 void LivingEntity::updateActiveItem()
 {
     if (!isUsingItem()) {
         return;
     }
+
+    // 正在使用物品的进度（对齐 vanilla ServerPlayer.updateUsingItem 先派发 USING_ITEM 再调基类）
+    _onUsingItemTick(m_activeItem);
 
     // 递减使用计时器
     m_activeItemUseCount--;

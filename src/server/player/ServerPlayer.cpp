@@ -549,6 +549,32 @@ void ServerPlayer::triggerLootTableGenerated(const ResourceLocation& lootTableId
         [&lootTableId](const advancement::LootTableTriggerInstance& instance) { return instance.test(lootTableId); });
 }
 
+void ServerPlayer::triggerUsedTotem(const ItemStack& totem)
+{
+    if (m_advancements == nullptr) {
+        return;
+    }
+    auto* trigger = advancement::CriterionTriggers::instance().getTrigger<advancement::UsedTotemTrigger>();
+    if (trigger == nullptr) {
+        return;
+    }
+    trigger->advancement::AbstractCriterionTrigger<advancement::UsedTotemTriggerInstance>::trigger(*m_advancements,
+        [&totem](const advancement::UsedTotemTriggerInstance& instance) { return instance.test(totem); });
+}
+
+void ServerPlayer::_onUsingItemTick(const ItemStack& activeItem)
+{
+    if (m_advancements == nullptr || activeItem.isEmpty()) {
+        return;
+    }
+    auto* trigger = advancement::CriterionTriggers::instance().getTrigger<advancement::UsingItemTrigger>();
+    if (trigger == nullptr) {
+        return;
+    }
+    trigger->advancement::AbstractCriterionTrigger<advancement::UsingItemTriggerInstance>::trigger(*m_advancements,
+        [&activeItem](const advancement::UsingItemTriggerInstance& instance) { return instance.test(activeItem); });
+}
+
 void ServerPlayer::unlockRecipe(const ResourceLocation& recipeId)
 {
     // 触发配方解锁成就

@@ -544,6 +544,12 @@ public:
     /// 触发 player_generates_container_loot 进度（对齐 vanilla CriteriaTriggers.GENERATE_LOOT）
     void triggerLootTableGenerated(const ResourceLocation& lootTableId) override;
 
+    /// 触发 used_totem 进度（对齐 vanilla CriteriaTriggers.USED_TOTEM）
+    void triggerUsedTotem(const ItemStack& totem) override;
+
+    /// 每 tick 使用物品时派发 using_item 进度（对齐 vanilla ServerPlayer.updateUsingItem）
+    void _onUsingItemTick(const ItemStack& activeItem) override;
+
     /**
      * @brief 解锁配方（重写 Player 基类）
      *
