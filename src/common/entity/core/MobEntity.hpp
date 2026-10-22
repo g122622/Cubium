@@ -282,17 +282,39 @@ public:
     void tick() override;
 
     /**
-     * @brief 通用身体朝向更新（对齐 vanilla Mob.createBodyControl 的 BodyRotationControl）
+     * @brief 通用身体朝向更新（对齐 vanilla BodyRotationControl.clientTick）
      *
-     * vanilla BodyRotationControl.clientTick 在实体移动时令身体偏航角直接对齐朝向，
-     * 停下时再按头部偏转量渐进转向。项目只实现了移动分支：迈步期间身体朝向跟随 yaw，
-     * 使依赖身体朝向的算法（如羊驼口水发射点）不再读到出生时固定不变的值。
+     * - 移动中：身体偏航角直接对齐朝向（yaw），头部限制在身体最大头转范围内，并重置稳定基准；
+     * - 静止且未背载 Mob 乘客：头部相对稳定基准偏转超过 15° 时身体追击头部，
+     *   否则稳定计数超过 10 tick 后身体逐步回正（10 tick 内头转上限线性收缩到 0）。
      *
-     * TODO: 静止分支（头部偏移超过 15° 时身体渐进转向、否则头逐渐回正）尚未实现，
-     *   需要 headStableTime/lastStableYHeadRot 两个状态，待相关消费方（客户端渲染已停更）
-     *   需要时补齐。
+     * 使依赖身体朝向的算法（如羊驼口水发射点、抛物线朝向）拿到与 vanilla 一致的朝向。
      */
     void updateBodyRotation();
+
+    /// 设置/读取静止分支的头部稳定状态（对齐 vanilla BodyRotationControl 私有字段，供测试构造场景）。
+    void setHeadStableState(i32 headStableTime, f32 lastStableYHeadRot);
+    [[nodiscard]] i32 headStableTime() const;
+    [[nodiscard]] f32 lastStableYHeadRot() const;
+
+    /**
+     * @brief 把 sourceAngle 拉向 targetAngle，偏移量限制在 ±maxChange（对齐 Mth.rotateIfNecessary）
+     */
+    [[nodiscard]] f32 _rotateIfNecessary(f32 sourceAngle, f32 targetAngle, f32 maxChange) const;
+
+    /**
+     * @brief 同上，maxChange 取本生物的最大头转角度（getHorizontalFaceSpeed）
+     */
+    [[nodiscard]] f32 _rotateIfNecessary(f32 sourceAngle, f32 targetAngle) const;
+
+    /**
+     * @brief 首个乘客是否为 Mob（对齐 BodyRotationControl.notCarryingMobPassengers）
+     */
+    [[nodiscard]] bool _isCarryingMobPassenger() const;
+
+    /// 静止分支状态（对齐 vanilla BodyRotationControl.headStableTime / lastStableYHeadRot）。
+    i32 m_headStableTime = 0;
+    f32 m_lastStableYHeadRot = 0.0f;
 
     // ========== 属性注册 ==========
 
