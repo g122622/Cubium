@@ -1508,6 +1508,14 @@ public:
 
     [[nodiscard]] u32 ticksExisted() const { return m_ticksExisted; }
 
+    /**
+     * @brief 取得存活 tick 计数的可写引用（仅供测试构造 tick 相位）
+     *
+     * 生产代码只应通过 tick() 递增该计数。测试需要验证依赖 (tickCount + id) 错峰的
+     * 逻辑（如监守者黑暗效果施加）时，可直接推进计数而无需跑满整个 Tick 循环。
+     */
+    [[nodiscard]] u32& ticksExistedRef() { return m_ticksExisted; }
+
     // ========== 随机数 ==========
 
     /**

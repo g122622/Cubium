@@ -51,8 +51,11 @@
 #include "common/entity/core/MobEntity.hpp"
 #include "common/entity/damage/DamageSource.hpp"
 #include "common/entity/damage/tag/DamageTypeTags.hpp"
+#include "common/entity/effect/EffectInstance.hpp"
+#include "common/entity/effect/EffectType.hpp"
 #include "common/entity/entities/boss/WardenAngerLevel.hpp"
 #include "common/entity/entities/boss/WardenEntity.hpp"
+#include "common/entity/entities/player/Player.hpp"
 #include "common/entity/registry/VanillaEntityTypeKeys.hpp"
 #include "common/sound/SoundEvents.hpp"
 #include "common/util/math/random/Random.hpp"
@@ -523,4 +526,85 @@ TEST_F(WardenEntityTest, GetAmbientSound_RoaringPose_ReturnsNull)
 }
 
 } // namespace
+
+// ============================================================================
+// Darkness：对齐 vanilla Warden.customServerAiStep 每 (tickCount+id)%120==0 给周围
+// 20 格内的生存模式玩家施加 260 tick 黑暗；已处于黑暗且剩余充足时不重复施加。
+// ============================================================================
+namespace {
+
+/// 暴露 protected 的 AI 更新入口与私有常数，供黑暗效果测试驱动一次 customServerAiStep。
+class WardenDarknessProbe final : public entity::WardenEntity {
+public:
+    using WardenEntity::WardenEntity;
+
+    using WardenEntity::updateAITasks;
+};
+
+class WardenDarknessTestWorld final : public mc::test::BaseTestWorld {
+public:
+    void addPlayer(Player* player) { m_players.push_back(player); }
+
+    [[nodiscard]] std::vector<Entity*> getPlayers() const override
+    {
+        std::vector<Entity*> result;
+        result.reserve(m_players.size());
+        for (Player* player : m_players) {
+            result.push_back(player);
+        }
+        return result;
+    }
+
+private:
+    std::vector<Player*> m_players;
+};
+
+} // namespace
+
+TEST_F(WardenEntityTest, ApplyDarknessAround_AppliesToNearbySurvivalPlayer)
+{
+    WardenDarknessTestWorld world;
+    WardenDarknessProbe warden(EntityInstanceId(4), mc::test::testEcsRegistry());
+    warden.setWorld(&world);
+    warden.setPosition(0.0f, 64.0f, 0.0f);
+    // (tickCount + id) % 120 == 0 时施加黑暗：id=4 → 第 116 tick。
+    while ((warden.ticksExisted() + 4u) % 120u != 0u) {
+        ++warden.ticksExistedRef();
+    }
+
+    Player player(EntityInstanceId(5), "Survivor", mc::test::testEcsRegistry());
+    player.setWorld(&world);
+    player.setPosition(10.0f, 64.0f, 0.0f);
+    world.addPlayer(&player);
+
+    warden.updateAITasks();
+
+    const auto* darkness = player.effectManager().getEffect(entity::effect::EffectType::Darkness);
+    ASSERT_NE(darkness, nullptr) << "20 格内的生存玩家应获得黑暗效果";
+    // vanilla DARKNESS_DURATION = 260 tick。
+    EXPECT_EQ(darkness->duration(), 260);
+}
+
+TEST_F(WardenEntityTest, ApplyDarknessAround_DoesNotRefreshFreshDarkness)
+{
+    WardenDarknessTestWorld world;
+    WardenDarknessProbe warden(EntityInstanceId(6), mc::test::testEcsRegistry());
+    warden.setWorld(&world);
+    while ((warden.ticksExisted() + 6u) % 120u != 0u) {
+        ++warden.ticksExistedRef();
+    }
+
+    Player player(EntityInstanceId(7), "Survivor", mc::test::testEcsRegistry());
+    player.setWorld(&world);
+    player.setPosition(1.0f, 64.0f, 0.0f);
+    world.addPlayer(&player);
+    player.addEffect(entity::effect::EffectInstance(entity::effect::EffectType::Darkness, 250, 0, false, false));
+
+    warden.updateAITasks();
+
+    const auto* darkness = player.effectManager().getEffect(entity::effect::EffectType::Darkness);
+    ASSERT_NE(darkness, nullptr);
+    EXPECT_EQ(darkness->duration(), 250) << "剩余时长充足时不应重置为 DARKNESS_DURATION";
+}
+
 } // namespace mc

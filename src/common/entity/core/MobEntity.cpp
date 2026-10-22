@@ -285,14 +285,85 @@ void MobEntity::lookAt(f64 x, f64 y, f64 z, f32 deltaYaw, f32 deltaPitch)
 
 void MobEntity::updateBodyRotation()
 {
-    // 对齐 vanilla BodyRotationControl.clientTick 的移动分支：迈步期间身体朝向对齐 yaw。
-    // 未迈步时保持上一帧身体朝向（静止分支见头文件 TODO）。
-    constexpr f32 MOVING_EPSILON = 1.0e-3f;
+    // 对齐 vanilla BodyRotationControl.clientTick（BodyRotationControl.java:21-36）。
+    constexpr f32 MOVING_THRESHOLD_SQ = 2.5000003e-7f; // vanilla isMoving: dx²+dz² > 2.5000003E-7F
+    constexpr f32 HEAD_STABLE_ANGLE = 15.0f;
+    constexpr i32 DELAY_UNTIL_STARTING_TO_FACE_FORWARD = 10;
+    constexpr i32 HOW_LONG_IT_TAKES_TO_FACE_FORWARD = 10;
+
     const Vector3 motion = velocity();
     const f32 horizontalMotionSq = static_cast<f32>(motion.x * motion.x + motion.z * motion.z);
-    if (horizontalMotionSq > MOVING_EPSILON) {
+    if (horizontalMotionSq > MOVING_THRESHOLD_SQ) {
+        // 移动分支：身体直接对齐朝向，并把头限制在身体可转范围内；随后记录"稳定"基准。
         setRenderYawOffset(yaw());
+        setYHeadRot(_rotateIfNecessary(rotationYawHead(), renderYawOffset()));
+        m_lastStableYHeadRot = rotationYawHead();
+        m_headStableTime = 0;
+        return;
     }
+
+    // 静止分支：背着 Mob 乘客时不转身体（乘客的朝向由乘客自己驱动）。
+    if (_isCarryingMobPassenger()) {
+        return;
+    }
+    const f32 headYaw = rotationYawHead();
+    if (std::abs(math::wrapDegrees(headYaw - m_lastStableYHeadRot)) > HEAD_STABLE_ANGLE) {
+        // 头偏转超过 15°：身体追击头部（限制在最大头转范围内），重置稳定计时。
+        m_headStableTime = 0;
+        m_lastStableYHeadRot = headYaw;
+        setRenderYawOffset(_rotateIfNecessary(renderYawOffset(), headYaw));
+    } else {
+        ++m_headStableTime;
+        if (m_headStableTime > DELAY_UNTIL_STARTING_TO_FACE_FORWARD) {
+            // 头已稳定足够久：身体逐步回正，头部随之被拉回。
+            const f32 progress = std::clamp(static_cast<f32>(m_headStableTime - DELAY_UNTIL_STARTING_TO_FACE_FORWARD) /
+                    static_cast<f32>(HOW_LONG_IT_TAKES_TO_FACE_FORWARD),
+                0.0f,
+                1.0f);
+            const f32 maxOffset = getHorizontalFaceSpeed() * (1.0f - progress);
+            setRenderYawOffset(_rotateIfNecessary(renderYawOffset(), headYaw, maxOffset));
+        }
+    }
+}
+
+f32 MobEntity::_rotateIfNecessary(f32 sourceAngle, f32 targetAngle) const
+{
+    return _rotateIfNecessary(sourceAngle, targetAngle, getHorizontalFaceSpeed());
+}
+
+f32 MobEntity::_rotateIfNecessary(f32 sourceAngle, f32 targetAngle, f32 maxChange) const
+{
+    // 对齐 Mth.rotateIfNecessary：把 sourceAngle 拉向 targetAngle，偏移量限制在 ±maxChange。
+    //   f = degreesDifference(source, target) = wrapDegrees(target - source)
+    //   结果 = target - clamp(f, -max, max)
+    const f32 difference = math::wrapDegrees(targetAngle - sourceAngle);
+    return targetAngle - std::clamp(difference, -maxChange, maxChange);
+}
+
+bool MobEntity::_isCarryingMobPassenger() const
+{
+    // 对齐 BodyRotationControl.notCarryingMobPassengers：首个乘客是 Mob 时不转身体。
+    if (m_passengers.empty() || m_world == nullptr) {
+        return false;
+    }
+    const Entity* passenger = m_world->getEntity(m_passengers.front());
+    return passenger != nullptr && dynamic_cast<const MobEntity*>(passenger) != nullptr;
+}
+
+void MobEntity::setHeadStableState(i32 headStableTime, f32 lastStableYHeadRot)
+{
+    m_headStableTime = headStableTime;
+    m_lastStableYHeadRot = lastStableYHeadRot;
+}
+
+i32 MobEntity::headStableTime() const
+{
+    return m_headStableTime;
+}
+
+f32 MobEntity::lastStableYHeadRot() const
+{
+    return m_lastStableYHeadRot;
 }
 
 void MobEntity::tick()

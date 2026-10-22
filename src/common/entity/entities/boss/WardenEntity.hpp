@@ -74,7 +74,7 @@ namespace entity {
  *       （单一聚合 m_anger + WardenAngerLevel 枚举）。完整的监守者行为系统
  *       （VibrationSystem 振动感知、AngerManagement 按目标怒气管理、
  *       SonicBoom 音爆攻击、Emerging/Digging 钻地动画、Roar 怒吼、
- *       Sniff 嗅闻、Darkness 黑暗效果、心跳音效等）暂未实现，
+ *       Sniff 嗅闻、心跳音效等）暂未实现，
  *       相关位置均留有显式 TODO 注释，便于后续逐项收敛。
  */
 class WardenEntity : public MonsterEntity {
@@ -338,6 +338,20 @@ private:
     // ========== 怒气相关常量（参考 MC 1.21.11 Warden / AngerLevel） ==========
     /// 怒气管理 tick 间隔（对应 MC ANGERMANAGEMENT_TICK_DELAY = 20）
     static constexpr i32 ANGERMANAGEMENT_TICK_DELAY = 20;
+
+    /// 黑暗效果周长（vanilla DARKNESS_DURATION = 260 tick）。
+    static constexpr i32 DARKNESS_DURATION = 260;
+    /// 黑暗现有效果剩余时长不超过该值时才刷新（vanilla DARKNESS_DISPLAY_LIMIT - 1 = 199）。
+    static constexpr i32 DARKNESS_DISPLAY_LIMIT = 200;
+    /// 黑暗施加间隔（vanilla DARKNESS_INTERVAL = 120，按 tickCount+id 错峰）。
+    static constexpr i64 DARKNESS_INTERVAL = 120;
+    /// 黑暗作用半径（vanilla DARKNESS_RADIUS = 20）。
+    static constexpr f32 DARKNESS_RADIUS = 20.0f;
+
+    /**
+     * @brief 给周围玩家施加黑暗（对齐 vanilla Warden.applyDarknessAround）
+     */
+    void _applyDarknessAround();
     /// 怒气上限（防止怒气无限增长，MC 中 AngerManagement 内部同样有上限）
     static constexpr i32 ANGER_LIMIT = 150;
     /// 每个 ANGERMANAGEMENT_TICK_DELAY 衰减的怒气量（对应 MC AngerManagement.tick 的衰减率）

@@ -104,9 +104,23 @@ public:
         return result;
     }
 
-    [[nodiscard]] std::vector<Entity*> getEntitiesInRange(const Vector3&, f32, const Entity*) const override
+    [[nodiscard]] std::vector<Entity*> getEntitiesInRange(
+        const Vector3& center, f32 radius, const Entity* exclude) const override
     {
-        return {};
+        // 半径平方比较（与生产实现一致：以实体位置到中心的球距筛选）。
+        std::vector<Entity*> result;
+        for (auto& entity : m_entities) {
+            if (entity.get() == exclude) {
+                continue;
+            }
+            const f32 dx = static_cast<f32>(entity->x()) - static_cast<f32>(center.x);
+            const f32 dy = static_cast<f32>(entity->y()) - static_cast<f32>(center.y);
+            const f32 dz = static_cast<f32>(entity->z()) - static_cast<f32>(center.z);
+            if (dx * dx + dy * dy + dz * dz <= radius * radius) {
+                result.push_back(entity.get());
+            }
+        }
+        return result;
     }
 
     Entity* getEntity(EntityInstanceId id) override
@@ -1339,4 +1353,86 @@ TEST_F(EnderDragonEntityTest, DeathUpdate_DragonRisesDuringDeathAnimation)
 }
 
 } // namespace
+
+// ========== 末影龙水晶回血对齐 vanilla checkCrystals ==========
+
+// 每 10 tick 且未满血时恢复 1 点生命（vanilla EnderDragon.checkCrystals:370-372）。
+TEST_F(EnderDragonEntityTest, CheckCrystals_HealsEveryTenTicksWhileNotFull)
+{
+    entity::EnderDragonEntity dragon(EntityInstanceId(1), mc::test::testEcsRegistry());
+    dragon.setWorld(m_world.get());
+    dragon.setHealth(100.0f);
+
+    auto crystal = std::make_unique<entity::EnderCrystalEntity>(mc::test::testEcsRegistry());
+    crystal->setWorld(m_world.get());
+    crystal->setPosition(dragon.x() + 4.0f, dragon.y(), dragon.z());
+    m_world->spawnEntity(std::move(crystal));
+
+    // 首次搜索有 1/10 概率命中，跑若干 tick 确保绑定到水晶。
+    entity::EnderCrystalEntity* bound = nullptr;
+    for (i32 i = 0; i < 40 && bound == nullptr; ++i) {
+        dragon.tick();
+        bound = dragon.closestEnderCrystal();
+    }
+    ASSERT_NE(bound, nullptr) << "龙应在半径 32 内绑定最近的水晶";
+
+    // 绑定后按 tickCount % 10 回血：每 10 tick 恰好 +1。
+    const f32 before = dragon.health();
+    for (i32 i = 0; i < 10; ++i) {
+        dragon.tick();
+    }
+    EXPECT_FLOAT_EQ(dragon.health() - before, 1.0f);
+}
+
+// 满血时不回血（vanilla getHealth() < getMaxHealth() 门控）。
+TEST_F(EnderDragonEntityTest, CheckCrystals_NoHealWhenFullHealth)
+{
+    entity::EnderDragonEntity dragon(EntityInstanceId(1), mc::test::testEcsRegistry());
+    dragon.setWorld(m_world.get());
+    dragon.setHealth(dragon.maxHealth());
+
+    auto crystal = std::make_unique<entity::EnderCrystalEntity>(mc::test::testEcsRegistry());
+    crystal->setWorld(m_world.get());
+    crystal->setPosition(dragon.x() + 2.0f, dragon.y(), dragon.z());
+    m_world->spawnEntity(std::move(crystal));
+
+    for (i32 i = 0; i < 40 && dragon.closestEnderCrystal() == nullptr; ++i) {
+        dragon.tick();
+    }
+    ASSERT_NE(dragon.closestEnderCrystal(), nullptr);
+
+    for (i32 i = 0; i < 30; ++i) {
+        dragon.tick();
+    }
+    EXPECT_FLOAT_EQ(dragon.health(), dragon.maxHealth());
+}
+
+// 最近水晶被移除后清空绑定，不再回血。
+TEST_F(EnderDragonEntityTest, CheckCrystals_ClearsRemovedCrystal)
+{
+    entity::EnderDragonEntity dragon(EntityInstanceId(1), mc::test::testEcsRegistry());
+    dragon.setWorld(m_world.get());
+    dragon.setHealth(100.0f);
+
+    auto crystal = std::make_unique<entity::EnderCrystalEntity>(mc::test::testEcsRegistry());
+    auto* crystalPtr = crystal.get();
+    crystal->setWorld(m_world.get());
+    crystal->setPosition(dragon.x() + 2.0f, dragon.y(), dragon.z());
+    m_world->spawnEntity(std::move(crystal));
+
+    for (i32 i = 0; i < 40 && dragon.closestEnderCrystal() == nullptr; ++i) {
+        dragon.tick();
+    }
+    ASSERT_EQ(dragon.closestEnderCrystal(), crystalPtr);
+
+    crystalPtr->remove();
+    // 绑定清除需要一次 tick；随后即使 tick 数满足 %10 也不再回血。
+    const f32 before = dragon.health();
+    for (i32 i = 0; i < 20; ++i) {
+        dragon.tick();
+    }
+    EXPECT_EQ(dragon.closestEnderCrystal(), nullptr);
+    EXPECT_FLOAT_EQ(dragon.health(), before);
+}
+
 } // namespace mc
