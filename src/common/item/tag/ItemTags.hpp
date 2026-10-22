@@ -418,6 +418,26 @@ public:
     static ItemTag& HAPPY_GHAST_FOOD();
 
     /**
+     * @brief 骆驼食物标签
+     *
+     * 包含可喂食、诱引骆驼繁殖的物品（仙人掌）。
+     * 对应 MC 原版标签 minecraft:camel_food。
+     *
+     * 参考: net.minecraft.world.entity.animal.camel.Camel#isFood
+     */
+    static ItemTag& CAMEL_FOOD();
+
+    /**
+     * @brief 骆驼尸壳食物标签
+     *
+     * 包含可喂食骆驼尸壳的物品（兔子脚）。
+     * 对应 MC 原版标签 minecraft:camel_husk_food。
+     *
+     * 参考: net.minecraft.world.entity.animal.camel.CamelHusk#isFood
+     */
+    static ItemTag& CAMEL_HUSK_FOOD();
+
+    /**
      * @brief 快乐恶魂诱惑物品标签
      *
      * 包含可诱引"未装备挽具的成年快乐恶魂"的物品（食物 + 挽具），

@@ -40,7 +40,9 @@
 #include "common/entity/serialization/EntityNbtKeys.hpp"
 #include "common/entity/serialization/NbtHelper.hpp"
 #include "common/item/Items.hpp"
+#include "common/item/core/Item.hpp"
 #include "common/item/core/ItemStack.hpp"
+#include "common/item/tag/ItemTags.hpp"
 #include "common/util/math/Vector3.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/BlockPos.hpp"
@@ -104,7 +106,14 @@ void CamelEntity::registerGoals()
     m_goalSelector.addGoal(2, std::make_unique<entity::ai::goal::BreedGoal>(this, 1.0));
     m_goalSelector.addGoal(3,
         std::make_unique<entity::ai::goal::TemptGoal>(
-            this, 2.5, [](const ItemStack& stack) { return stack.getItem() == Items::CACTUS; }, false));
+            this,
+            2.5,
+            [](const ItemStack& stack) {
+                // 对齐 vanilla Camel.temptGoal → ItemTags.CAMEL_FOOD
+                const Item* item = stack.getItem();
+                return item != nullptr && !stack.isEmpty() && item->isIn(item::tag::ItemTags::CAMEL_FOOD());
+            },
+            false));
     m_goalSelector.addGoal(4, std::make_unique<entity::ai::goal::FollowParentGoal>(this, 2.5));
     m_goalSelector.addGoal(5, std::make_unique<entity::ai::goal::WaterAvoidingRandomWalkingGoal>(this, 2.0));
     m_goalSelector.addGoal(6, std::make_unique<entity::ai::goal::LookAtGoal>(this, 6.0f));
@@ -301,7 +310,8 @@ std::optional<ResourceLocation> CamelEntity::getEatSound() const
 bool CamelEntity::isFoodItem(const ItemStack& itemStack) const
 {
     // 对齐 vanilla Camel.isFood：ItemTags.CAMEL_FOOD（仙人掌）。
-    return itemStack.getItem() == Items::CACTUS && !itemStack.isEmpty();
+    const Item* item = itemStack.getItem();
+    return item != nullptr && !itemStack.isEmpty() && item->isIn(item::tag::ItemTags::CAMEL_FOOD());
 }
 
 std::unique_ptr<AnimalEntity> CamelEntity::spawnBaby(AnimalEntity& /*partner*/)

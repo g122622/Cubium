@@ -493,6 +493,36 @@ ItemTag& ItemTags::FROG_FOOD()
     return *tag;
 }
 
+ItemTag& ItemTags::CAMEL_FOOD()
+{
+    // 首次访问时构建：本标签不加入 initialize() 的内置建表流程，避免在物品尚未注册时
+    // 只生成空标签；同时保证访问点必然发生在物品注册之后。
+    static std::once_flag once;
+    std::call_once(once, [] {
+        auto tag = std::make_unique<ItemTag>(ResourceLocation("minecraft", "camel_food"), false);
+        tag->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "cactus")));
+        tags()[tag->getId()] = std::move(tag);
+    });
+    ItemTag* tag = getTag(ResourceLocation("minecraft", "camel_food"));
+    MC_ASSERT_RELEASE_MSG(tag != nullptr, "item tag 'camel_food' must be built on first access");
+    return *tag;
+}
+
+ItemTag& ItemTags::CAMEL_HUSK_FOOD()
+{
+    // 首次访问时构建：本标签不加入 initialize() 的内置建表流程，避免在物品尚未注册时
+    // 只生成空标签；同时保证访问点必然发生在物品注册之后。
+    static std::once_flag once;
+    std::call_once(once, [] {
+        auto tag = std::make_unique<ItemTag>(ResourceLocation("minecraft", "camel_husk_food"), false);
+        tag->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "rabbit_foot")));
+        tags()[tag->getId()] = std::move(tag);
+    });
+    ItemTag* tag = getTag(ResourceLocation("minecraft", "camel_husk_food"));
+    MC_ASSERT_RELEASE_MSG(tag != nullptr, "item tag 'camel_husk_food' must be built on first access");
+    return *tag;
+}
+
 ItemTag& ItemTags::HAPPY_GHAST_FOOD()
 {
     // 首次访问时构建：本标签不加入 initialize() 的内置建表流程，避免在物品尚未注册时

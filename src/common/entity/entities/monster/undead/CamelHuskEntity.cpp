@@ -36,7 +36,9 @@
 #include "common/entity/entities/monster/MonsterEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/registry/VanillaEntityTypeKeys.hpp"
+#include "common/item/core/Item.hpp"
 #include "common/item/core/ItemStack.hpp"
+#include "common/item/tag/ItemTags.hpp"
 #include "common/world/IWorld.hpp"
 
 #include <memory>
@@ -105,11 +107,12 @@ ActionResultType CamelHuskEntity::interactMob(Player& player, Hand hand)
     return CamelEntity::interactMob(player, hand);
 }
 
-bool CamelHuskEntity::isFoodItem(const ItemStack& /*itemStack*/) const
+bool CamelHuskEntity::isFoodItem(const ItemStack& itemStack) const
 {
-    // TODO: 对齐 vanilla CamelHusk.isFood → ItemTags.CAMEL_HUSK_FOOD。项目物品标签体系
-    //       尚未定义该标签，暂不识别任何食物，待标签补齐后按 camel_husk_food 判定。
-    return false;
+    // 对齐 vanilla CamelHusk.isFood：ItemTags.CAMEL_HUSK_FOOD（兔子脚），
+    // 与被动骆驼的 CAMEL_FOOD（仙人掌）不同。
+    const Item* item = itemStack.getItem();
+    return item != nullptr && !itemStack.isEmpty() && item->isIn(item::tag::ItemTags::CAMEL_HUSK_FOOD());
 }
 
 // ============================================================================

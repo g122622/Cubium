@@ -45,6 +45,7 @@
 #include "common/entity/registry/VanillaEntities.hpp"
 #include "common/entity/tag/EntityTypeTags.hpp"
 #include "common/item/Items.hpp"
+#include "common/item/core/ItemStack.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 
 #include <memory>
@@ -144,6 +145,20 @@ TEST_F(CamelHuskEntityTest, GoalsReplacedWithMonsterSet)
     // TargetGoals 系列（HurtByTargetGoal / NearestAttackableTargetGoal）未覆写 getTypeName，
     // 故按目标选择器的条目数量判定：被攻击反击 + 攻击玩家 = 2 条。
     EXPECT_EQ(camelHusk.targetSelector().getAllGoals().size(), 2u);
+}
+
+TEST_F(CamelHuskEntityTest, FoodIsRabbitFootUnlikeCamel)
+{
+    CamelHuskEntity camelHusk(EntityInstanceId(1), mc::test::testEcsRegistry());
+    CamelEntity camel(EntityInstanceId(2), mc::test::testEcsRegistry());
+
+    ASSERT_NE(Items::RABBIT_FOOT, nullptr);
+    ASSERT_NE(Items::CACTUS, nullptr);
+    // 对齐 vanilla：#camel_husk_food = {rabbit_foot}，#camel_food = {cactus}
+    EXPECT_TRUE(camelHusk.isFoodItem(ItemStack(*Items::RABBIT_FOOT, 1)));
+    EXPECT_FALSE(camelHusk.isFoodItem(ItemStack(*Items::CACTUS, 1)));
+    EXPECT_TRUE(camel.isFoodItem(ItemStack(*Items::CACTUS, 1)));
+    EXPECT_FALSE(camel.isFoodItem(ItemStack(*Items::RABBIT_FOOT, 1)));
 }
 
 TEST_F(CamelHuskEntityTest, HuskJockeyChanceMatchesVanilla)
