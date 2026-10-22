@@ -43,6 +43,7 @@
 #include "common/item/core/Item.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/item/tag/ItemTags.hpp"
+#include "common/particle/ParticleTypes.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/sound/SoundEvents.hpp"
 #include "common/util/math/MathConstants.hpp"
@@ -351,6 +352,22 @@ void BeeEntity::tick()
     // 与是否还记着蜂巢无关——离巢后蜂巢记录可能已被丢弃，计时仍需继续）。
     if (!hasNectar()) {
         ++m_ticksWithoutNectarSinceExitingHive;
+    }
+
+    // 携带花粉时偶尔洒落花粉粒子（对齐 vanilla Bee.tick：hasNectar && cropsGrown < 10
+    // 且 5% 概率时，在身体周围随机位置生成 1~2 个 FALLING_NECTAR 粒子）。
+    if (m_world != nullptr && hasNectar() && getCropsGrownSincePollination() < 10) {
+        math::IRandom& rng = m_world->getRandom();
+        if (rng.nextFloat() < 0.05f) {
+            const i32 count = rng.nextInt(2) + 1;
+            for (i32 i = 0; i < count; ++i) {
+                const f64 px = x() - 0.3 + rng.nextDouble() * 0.6;
+                const f64 pz = z() - 0.3 + rng.nextDouble() * 0.6;
+                m_world->addParticle(particle::ParticleTypeId::FallingNectar,
+                    Vector3(px, y() + height() * 0.5, pz),
+                    Vector3(0.0, 0.0, 0.0));
+            }
+        }
     }
 
     // 螫刺后逐渐死亡
