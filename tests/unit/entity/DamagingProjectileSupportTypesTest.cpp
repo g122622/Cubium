@@ -50,17 +50,49 @@ TEST(DamagingProjectileSupportTypesTest, TickAppliesAccelerationUsingVanillaStyl
 {
     entity::FireballEntity fireball(EntityInstanceId(1), mc::test::testEcsRegistry());
     fireball.setPosition(0.0f, 64.0f, 0.0f);
+    // 对齐 vanilla AbstractHurtingProjectile 构造：assignDirectionalMovement 先给初速度。
+    fireball.setAcceleration(1.0f, 0.0f, 0.0f);
     fireball.setVelocity(1.0f, 0.0f, 0.0f);
-    fireball.setAcceleration(0.1f, 0.0f, 0.0f);
 
     fireball.tick();
 
+    // vanilla：setDeltaMovement(v.add(v.normalize() * accelerationPower).scale(0.95))
+    // = (1.0 + 1.0 * 0.1) * 0.95 = 1.045
     EXPECT_FLOAT_EQ(fireball.x(), 1.0f);
     EXPECT_FLOAT_EQ(fireball.y(), 64.0f);
     EXPECT_FLOAT_EQ(fireball.z(), 0.0f);
     EXPECT_NEAR(fireball.velocityX(), 1.045f, 1.0e-4f);
     EXPECT_FLOAT_EQ(fireball.velocityY(), 0.0f);
     EXPECT_FLOAT_EQ(fireball.velocityZ(), 0.0f);
+}
+
+// 对齐 vanilla assignDirectionalMovement：初速度 = normalize(direction) * accelerationPower。
+TEST(DamagingProjectileSupportTypesTest, SetAccelerationAssignsNormalizedInitialVelocity)
+{
+    entity::FireballEntity fireball(EntityInstanceId(2), mc::test::testEcsRegistry());
+
+    // 斜向方向 (3,4,0) 的模为 5，归一化后 (0.6,0.8,0)，乘以默认加速力 0.1。
+    fireball.setAcceleration(3.0f, 4.0f, 0.0f);
+    EXPECT_NEAR(fireball.velocityX(), 0.06f, 1.0e-5f);
+    EXPECT_NEAR(fireball.velocityY(), 0.08f, 1.0e-5f);
+    EXPECT_FLOAT_EQ(fireball.velocityZ(), 0.0f);
+    EXPECT_FLOAT_EQ(fireball.accelerationPower(), 0.1f);
+    // 方向分量原样保留（供方向语义查询）。
+    EXPECT_FLOAT_EQ(fireball.accelerationX(), 3.0f);
+    EXPECT_FLOAT_EQ(fireball.accelerationY(), 4.0f);
+
+    // 零向量方向：速度置零，不产生 NaN。
+    fireball.setAcceleration(0.0f, 0.0f, 0.0f);
+    EXPECT_FLOAT_EQ(fireball.velocityX(), 0.0f);
+    EXPECT_FLOAT_EQ(fireball.velocityY(), 0.0f);
+    EXPECT_FLOAT_EQ(fireball.velocityZ(), 0.0f);
+
+    // 加速力可单独调整，影响下一 tick 的速度增量。
+    fireball.setVelocity(1.0f, 0.0f, 0.0f);
+    fireball.setAccelerationPower(0.2f);
+    fireball.tick();
+    // (1.0 + 0.2) * 0.95 = 1.14
+    EXPECT_NEAR(fireball.velocityX(), 1.14f, 1.0e-4f);
 }
 
 } // namespace

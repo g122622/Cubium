@@ -55,10 +55,21 @@ public:
 
     void tick() override;
 
+    /// 发射方向（vanilla AbstractHurtingProjectile 构造参数 direction 的分量）。
     [[nodiscard]] f32 accelerationX() const;
     [[nodiscard]] f32 accelerationY() const;
     [[nodiscard]] f32 accelerationZ() const;
 
+    /// 加速力大小（vanilla AbstractHurtingProjectile.accelerationPower，默认 0.1）。
+    [[nodiscard]] f32 accelerationPower() const;
+    void setAccelerationPower(f32 power);
+
+    /**
+     * @brief 指定飞行方向并按该方向给出初速度（对齐 vanilla assignDirectionalMovement）
+     *
+     * 速度取 `normalize(dir) * accelerationPower`，随后每 tick 由 tick() 按
+     * `(v + normalize(v) * power) * inertia` 加速与衰减。零向量方向视为静止。
+     */
     void setAcceleration(f32 x, f32 y, f32 z);
 
     [[nodiscard]] f32 damage() const;
@@ -72,6 +83,9 @@ protected:
 
     [[nodiscard]] virtual bool isFiery() const { return true; }
     [[nodiscard]] virtual f32 getMotionFactor() const { return 0.95f; }
+
+    /// 水中衰减系数（对齐 vanilla AbstractHurtingProjectile.getLiquidInertia = 0.8）。
+    [[nodiscard]] virtual f32 getLiquidInertia() const { return 0.8f; }
 
     /**
      * @brief 获取拖尾粒子类型

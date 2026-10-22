@@ -41,7 +41,7 @@ namespace mc::entity::serialization::components {
  * LeftOwner + HasBeenShot | | ProjectileArrowStateComponent | AbstractArrow |
  * life/shake/inGround/pickup/damage/crit/PierceLevel/item(+)dealtDamage |
  * life/shake/inGround/pickup/damage/crit/PierceLevel/item/DealtDamage | | TridentStateComponent | ThrownTrident |
- * tridentStack(item) | Trident | | DamagingProjectileComponent | AbstractHurtingProjectile | accelerationX/Y/Z |
+ * tridentStack(item) | Trident | | DamagingProjectileComponent | AbstractHurtingProjectile | acceleration_power |
  * acceleration_power | | FireballStateComponent | Fireball/WitherSkull |
  * itemStack+explosionPower(火球)/blue(WitherSkull) | Item+ExplosionPower / dangerous | | FireworkRocketComponent |
  * FireworkRocket |

@@ -76,7 +76,7 @@ struct ProjectileDispenseConfig {
      *
      * power = 1.0（较慢），uncertainty = 6.0
      * 火焰弹不需要设置初速度（shoot() 为空操作），
-     * 在 asProjectile() 中通过 setAcceleration 直接设置加速度。
+     * 在 asProjectile() 中通过 setAcceleration 指定飞行方向，加速力取 vanilla 默认 0.1。
      */
     static ProjectileDispenseConfig fireCharge() { return {.power = 1.0f, .uncertainty = 6.0f}; }
 

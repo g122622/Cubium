@@ -58,28 +58,52 @@ DamagingProjectileEntity::DamagingProjectileEntity(EntityInstanceId id, ecs::Ent
 f32 DamagingProjectileEntity::accelerationX() const
 {
     const auto* c = tryGetComponent<ecs::DamagingProjectileComponent>();
-    return (c != nullptr) ? c->m_accelerationX : 0.0f;
+    return (c != nullptr) ? c->m_directionX : 0.0f;
 }
 
 f32 DamagingProjectileEntity::accelerationY() const
 {
     const auto* c = tryGetComponent<ecs::DamagingProjectileComponent>();
-    return (c != nullptr) ? c->m_accelerationY : 0.0f;
+    return (c != nullptr) ? c->m_directionY : 0.0f;
 }
 
 f32 DamagingProjectileEntity::accelerationZ() const
 {
     const auto* c = tryGetComponent<ecs::DamagingProjectileComponent>();
-    return (c != nullptr) ? c->m_accelerationZ : 0.0f;
+    return (c != nullptr) ? c->m_directionZ : 0.0f;
+}
+
+f32 DamagingProjectileEntity::accelerationPower() const
+{
+    const auto* c = tryGetComponent<ecs::DamagingProjectileComponent>();
+    return (c != nullptr) ? c->m_accelerationPower : 0.1f;
+}
+
+void DamagingProjectileEntity::setAccelerationPower(f32 power)
+{
+    if (auto* c = tryGetComponent<ecs::DamagingProjectileComponent>(); c != nullptr) {
+        c->m_accelerationPower = power;
+    }
 }
 
 void DamagingProjectileEntity::setAcceleration(f32 x, f32 y, f32 z)
 {
     auto* c = tryGetComponent<ecs::DamagingProjectileComponent>();
-    if (c != nullptr) {
-        c->m_accelerationX = x;
-        c->m_accelerationY = y;
-        c->m_accelerationZ = z;
+    if (c == nullptr) {
+        return;
+    }
+    c->m_directionX = x;
+    c->m_directionY = y;
+    c->m_directionZ = z;
+    // 对齐 vanilla AbstractHurtingProjectile.assignDirectionalMovement：
+    // 初速度 = normalize(direction) * accelerationPower，零向量时速度置零。
+    const Vector3 direction(x, y, z);
+    const f32 length = direction.length();
+    if (length > 1.0e-6f) {
+        c->m_accelerationPower = 0.1f; // vanilla 构造期即默认值，方向重设时同步复位
+        m_builtIn.velocity->m_velocity = direction * (c->m_accelerationPower / length);
+    } else {
+        m_builtIn.velocity->m_velocity = Vector3(0.0f, 0.0f, 0.0f);
     }
 }
 
@@ -122,17 +146,29 @@ void DamagingProjectileEntity::tick()
 
     f32 motionFactor = getMotionFactor();
     if (isInWater()) {
-        motionFactor = 0.8f;
+        motionFactor = getLiquidInertia();
         // 水中生成气泡粒子尾迹
         spawnWaterParticles();
     }
 
-    const auto* dmg = tryGetComponent<ecs::DamagingProjectileComponent>();
-    const f32 ax = dmg ? dmg->m_accelerationX : 0.0f;
-    const f32 ay = dmg ? dmg->m_accelerationY : 0.0f;
-    const f32 az = dmg ? dmg->m_accelerationZ : 0.0f;
-    m_builtIn.velocity->m_velocity =
-        Vector3((velocity.x + ax) * motionFactor, (velocity.y + ay) * motionFactor, (velocity.z + az) * motionFactor);
+    // 对齐 vanilla AbstractHurtingProjectile：
+    //   setDeltaMovement(v.add(v.normalize().scale(accelerationPower)).scale(f))
+    // 即沿"当前速度方向"施加加速力，而非固定发射方向；零速度时不加速。
+    const f32 power = accelerationPower();
+    f32 accelX = 0.0f;
+    f32 accelY = 0.0f;
+    f32 accelZ = 0.0f;
+    const Vector3 currentVelocity = velocity;
+    const f32 velocityLength = currentVelocity.length();
+    if (velocityLength > 1.0e-6f) {
+        const f32 scale = power / velocityLength;
+        accelX = currentVelocity.x * scale;
+        accelY = currentVelocity.y * scale;
+        accelZ = currentVelocity.z * scale;
+    }
+    m_builtIn.velocity->m_velocity = Vector3((velocity.x + accelX) * motionFactor,
+        (velocity.y + accelY) * motionFactor,
+        (velocity.z + accelZ) * motionFactor);
 
     // 生成拖尾粒子，位置 Y+0.5 偏移
     spawnTrailParticles(Vector3(nextPosition.x, nextPosition.y + 0.5f, nextPosition.z));

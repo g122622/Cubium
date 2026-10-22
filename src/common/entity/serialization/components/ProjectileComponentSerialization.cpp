@@ -317,10 +317,9 @@ static Result<void> loadProjectileItem(Entity& entity, const nbt::tags::compound
 
 // ============================================================================
 // DamagingProjectileComponent — acceleration_power
-// 对齐 vanilla 1.21.11 AbstractHurtingProjectile.addAdditionalSaveData()。
-// vanilla 存单一 acceleration_power(f64)，项目分 XYZ 三分量（运行时加速度向量）。
-// 存盘取三分量模长写 acceleration_power；读盘按模长无法还原分量方向，故读盘时均分到三分量
-// （TODO: 项目与 vanilla 字段结构差异，方向信息存盘后丢失，待统一字段结构后修正）。
+// 对齐 vanilla 1.21.11 AbstractHurtingProjectile.addAdditionalSaveData()：只存加速力大小。
+// 飞行方向是发射时的构造参数，vanilla 同样不单独存盘——方向信息已并入速度向量，
+// 读档后 tick() 沿速度方向加速，与原版语义一致。
 // ============================================================================
 
 static void saveDamagingProjectile(const Entity& entity, nbt::tags::compound_tag& tag)
@@ -329,11 +328,7 @@ static void saveDamagingProjectile(const Entity& entity, nbt::tags::compound_tag
     if (c == nullptr) {
         return;
     }
-    // 模长 = sqrt(x^2+y^2+z^2)，对齐 vanilla acceleration_power 语义（加速力大小）。
-    f64 power = std::sqrt(static_cast<f64>(c->m_accelerationX) * c->m_accelerationX +
-        static_cast<f64>(c->m_accelerationY) * c->m_accelerationY +
-        static_cast<f64>(c->m_accelerationZ) * c->m_accelerationZ);
-    tag.put(ACCELERATION_POWER, power);
+    tag.put(ACCELERATION_POWER, static_cast<f64>(c->m_accelerationPower));
 }
 
 static Result<void> loadDamagingProjectile(Entity& entity, const nbt::tags::compound_tag& tag)
@@ -342,14 +337,8 @@ static Result<void> loadDamagingProjectile(Entity& entity, const nbt::tags::comp
     if (c == nullptr) {
         return {};
     }
-    if (auto val = tryGetDouble(tag, ACCELERATION_POWER)) {
-        // TODO: 项目 DamagingProjectile 用 XYZ 三分量，vanilla 用单一 acceleration_power。
-        // 读盘时方向信息丢失，均分到三分量（近似，待字段结构统一后修正）。
-        f32 comp = static_cast<f32>(*val / 3.0);
-        c->m_accelerationX = comp;
-        c->m_accelerationY = comp;
-        c->m_accelerationZ = comp;
-    }
+    // vanilla 缺键时回落到 0.1（AbstractHurtingProjectile 默认加速力）。
+    c->m_accelerationPower = static_cast<f32>(tryGetDouble(tag, ACCELERATION_POWER).value_or(0.1));
     return {};
 }
 

@@ -262,9 +262,9 @@ void BlazeFireballAttackGoal::_performFireballAttack(LivingEntity* target, f64 d
             f64 accelY = dy;
             f64 accelZ = dz + rng.nextGaussian() * static_cast<f64>(spread);
 
-            // 小火球使用加速度而非速度，加速度 = 方向 * 0.1
-            fireball->setAcceleration(
-                static_cast<f32>(accelX * 0.1), static_cast<f32>(accelY * 0.1), static_cast<f32>(accelZ * 0.1));
+            // 对齐 vanilla BlazeAttackGoal：小火球以 normalize(direction) 为飞行方向，
+            // 加速力用默认 0.1（setAcceleration 内部按 normalize(dir) * power 设置初速度）。
+            fireball->setAcceleration(static_cast<f32>(accelX), static_cast<f32>(accelY), static_cast<f32>(accelZ));
 
             // 在世界中生成火球
             if (m_blaze->world()) {
