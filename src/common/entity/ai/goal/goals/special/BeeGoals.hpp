@@ -326,9 +326,18 @@ private:
     /// 检查是否太远
     [[nodiscard]] bool _isTooFar(const BlockPos& pos) const;
 
-    i32 m_ticks = 0;                       ///< 计时器
+    /// 是否已抵达蜂巢（2 格内，或最后一段路径目标为蜂巢且已完成；对齐 vanilla hasReachedTarget）
+    [[nodiscard]] bool _hasReachedTarget(const BlockPos& pos) const;
+
+    /// 放弃当前蜂巢并加入黑名单（对齐 vanilla dropAndBlacklistHive）
+    void _dropAndBlacklistHive();
+
+    i32 m_ticks = 0;                       ///< 计时器（vanilla travellingTicks）
     std::vector<BlockPos> m_possibleHives; ///< 可能的蜂巢列表
     i32 m_stuckCounter = 0;                ///< 路径卡住计数器
+
+    /// 上一帧使用的路径（对齐 vanilla lastPath：同一路径重复出现即视为卡住）
+    std::vector<BlockPos> m_lastPath;
 
     static constexpr i32 MAX_NAVIGATION_TIME = 2400; ///< 最大导航时间（vanilla BeeGoToHiveGoal MAX_TRAVELLING_TICKS）
     static constexpr i32 STUCK_THRESHOLD = 60;       ///< 路径卡住阈值

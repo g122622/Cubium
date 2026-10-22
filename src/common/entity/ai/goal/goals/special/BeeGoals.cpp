@@ -29,6 +29,7 @@
 #include "common/entity/ai/goal/GoalFlag.hpp"
 #include "common/entity/ai/goal/goals/MeleeAttackGoal.hpp"
 #include "common/entity/ai/goal/goals/target/TargetGoals.hpp"
+#include "common/entity/ai/pathfinding/Path.hpp"
 #include "common/entity/ai/pathfinding/PathNavigator.hpp"
 #include "common/entity/ai/util/RandomPositionGenerator.hpp"
 #include "common/entity/core/EntitySize.hpp"
@@ -701,33 +702,52 @@ BeeFindHiveGoal::BeeFindHiveGoal(BeeEntity* bee)
 
 bool BeeFindHiveGoal::canBeeStart()
 {
-    // 有蜂巢位置且需要返回
+    // 对齐 vanilla BeeGoToHiveGoal.canBeeUse：
+    //   有蜂巢位置 && 未太远 && 没有"家" && 想回巢 && 未抵达 && 该位置仍是 BEEHIVES 方块。
     if (!m_bee->hasHive()) {
         return false;
     }
-
-    // 检查蜜蜂是否想进入蜂巢
-    if (!m_bee->wantsToEnterHive()) {
+    const BlockPos hivePos = m_bee->getHivePos();
+    if (_isTooFar(hivePos) || m_bee->hasHome() || !m_bee->wantsToEnterHive() || _hasReachedTarget(hivePos)) {
         return false;
     }
-
-    // 检查是否已经在蜂巢附近
-    if (_isCloseEnough(m_bee->getHivePos())) {
-        return false;
-    }
-
-    // 检查蜂巢是否有效
-    if (!m_bee->isHiveValid()) {
-        m_bee->dropHive();
-        return false;
-    }
-
-    return true;
+    IWorld* world = m_bee->world();
+    const BlockState* state = world != nullptr ? world->getBlockState(hivePos) : nullptr;
+    return state != nullptr && !state->isAir() && BlockTags::BEEHIVES().contains(*state);
 }
 
 bool BeeFindHiveGoal::canBeeContinue()
 {
-    return m_bee->hasHive() && !_isCloseEnough(m_bee->getHivePos());
+    return canBeeStart();
+}
+
+bool BeeFindHiveGoal::_hasReachedTarget(const BlockPos& pos) const
+{
+    if (_isCloseEnough(pos)) {
+        return true;
+    }
+    // 最后一段路径的终点即蜂巢且已完成（对齐 vanilla path.getTarget().equals(pos) && canReach && isDone）
+    if (auto* nav = m_bee->navigator()) {
+        const pathfinding::Path* path = nav->getPath();
+        if (path != nullptr && path->getTarget() == pos && path->reachesTarget() && nav->isDone()) {
+            return true;
+        }
+    }
+    return false;
+}
+
+void BeeFindHiveGoal::_dropAndBlacklistHive()
+{
+    if (m_bee->hasHive()) {
+        const BlockPos hivePos = m_bee->getHivePos();
+        if (std::find(m_possibleHives.begin(), m_possibleHives.end(), hivePos) == m_possibleHives.end()) {
+            if (m_possibleHives.size() >= BeeUpdateHiveGoal::MAX_BLACKLIST_SIZE) {
+                m_possibleHives.erase(m_possibleHives.begin());
+            }
+            m_possibleHives.push_back(hivePos);
+        }
+    }
+    m_bee->dropHive();
 }
 
 void BeeFindHiveGoal::startExecuting()
@@ -769,10 +789,7 @@ void BeeFindHiveGoal::tick()
     // 超时检查：adjustedTickDelay(2400)（本 goal 未置 requiresUpdateEveryTick，故折半）
     // 仍未到达则放弃并拉黑蜂巢
     if (m_ticks > adjustedTickDelay(MAX_NAVIGATION_TIME)) {
-        // 放弃当前蜂巢并加入黑名单
-        m_possibleHives.push_back(m_bee->getHivePos());
-        m_bee->setHivePos(BlockPos::zero());
-        m_bee->setHasHive(false);
+        _dropAndBlacklistHive();
         return;
     }
 
@@ -799,22 +816,30 @@ void BeeFindHiveGoal::tick()
                 // 近距离（16格内）：使用精确导航
                 bool foundPath = m_bee->pathfindDirectlyTowards(hivePos);
                 if (!foundPath) {
-                    // 无法找到路径，放弃蜂巢
-                    m_possibleHives.push_back(m_bee->getHivePos());
-                    m_bee->setHivePos(BlockPos::zero());
-                    m_bee->setHasHive(false);
+                    // 无法找到路径，放弃蜂巢并拉黑
+                    _dropAndBlacklistHive();
                 } else {
-                    // 卡住检测：如果多次导航到同一路径仍未到达，可能卡住了
-                    ++m_stuckCounter;
-                    if (m_stuckCounter > STUCK_THRESHOLD) {
-                        m_bee->dropHive();
-                        m_stuckCounter = 0;
+                    // 卡住检测（对齐 vanilla）：连续两次生成的路径完全相同说明卡住，
+                    // 每 2 tick 评估一次下 60 次约合 120 tick，超过即丢弃蜂巢。
+                    std::vector<BlockPos> currentPath;
+                    if (const pathfinding::Path* path = nav->getPath(); path != nullptr) {
+                        const std::vector<pathfinding::PathPoint>& points = path->getPoints();
+                        currentPath.reserve(points.size());
+                        for (const pathfinding::PathPoint& point : points) {
+                            currentPath.push_back(BlockPos(point.x(), point.y(), point.z()));
+                        }
+                    }
+                    if (!m_lastPath.empty() && currentPath == m_lastPath) {
+                        ++m_stuckCounter;
+                        if (m_stuckCounter > STUCK_THRESHOLD) {
+                            m_bee->dropHive();
+                            m_stuckCounter = 0;
+                        }
+                    } else {
+                        m_lastPath = std::move(currentPath);
                     }
                 }
             }
-        } else {
-            // 有路径，重置卡住计数
-            m_stuckCounter = 0;
         }
     }
 }

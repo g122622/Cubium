@@ -798,6 +798,20 @@ protected:
     std::unique_ptr<BeeFindHiveGoal> goal;
 };
 
+TEST_F(BeeFindHiveGoalTest, CanBeeStart_RequiresHiveBlockStillPresent)
+{
+    // 对齐 vanilla BeeGoToHiveGoal.canBeeUse：目标位置必须仍是 #beehives 方块。
+    bee->setHasHive(true);
+    bee->setHivePos(BlockPos(10, 64, 20));
+    bee->setStayOutOfHiveCountdown(0);
+    bee->setHasNectar(true); // 想回巢
+    EXPECT_FALSE(goal->canBeeStart()) << "目标位置是空气时不应继续前往";
+
+    // 目标位置太远（>48 格）同样不前往
+    bee->setHivePos(BlockPos(1000, 64, 1000));
+    EXPECT_FALSE(goal->canBeeStart());
+}
+
 TEST_F(BeeFindHiveGoalTest, CanBeeStart_ReturnsFalseWhenNoHive)
 {
     bee->setAngry(false);
