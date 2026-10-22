@@ -623,9 +623,13 @@ void LivingEntity::actuallyHurt(DamageSource& source, f32 amount)
     //    vanilla 也会在 actuallyHurt 末尾无条件派发）。dealt 与 taken 在 vanilla 调用点
     //    均为扣减后的实受伤量 p_376610_（方块撞击等 BlockedDamage 场景再叠加预格挡量 f）。
     if (m_world != nullptr && !m_world->isClientSide()) {
+        const f32 registeredDamage = amount + m_pendingBlockedDamage;
         if (auto* attackerPlayer = dynamic_cast<Player*>(source.getTrueSource()); attackerPlayer != nullptr) {
-            const f32 registeredDamage = amount + m_pendingBlockedDamage;
             attackerPlayer->triggerPlayerHurtEntity(*this, source, registeredDamage, registeredDamage, false);
+        }
+        // 受伤的是玩家时，同时派发 entity_hurt_player（vanilla 两条触发器在同一处成对调用）。
+        if (auto* victimPlayer = dynamic_cast<Player*>(this); victimPlayer != nullptr) {
+            victimPlayer->triggerEntityHurtPlayer(source, registeredDamage, registeredDamage, false);
         }
     }
 

@@ -592,6 +592,22 @@ void ServerPlayer::triggerPlayerHurtEntity(
         });
 }
 
+void ServerPlayer::triggerEntityHurtPlayer(const DamageSource& source, f32 dealt, f32 taken, bool blocked)
+{
+    if (m_advancements == nullptr) {
+        return;
+    }
+    auto* trigger = advancement::CriterionTriggers::instance().getTrigger<advancement::EntityHurtPlayerTrigger>();
+    if (trigger == nullptr) {
+        return;
+    }
+    trigger->advancement::AbstractCriterionTrigger<advancement::EntityHurtPlayerTriggerInstance>::trigger(
+        *m_advancements,
+        [&source, dealt, taken, blocked](const advancement::EntityHurtPlayerTriggerInstance& instance) {
+            return instance.test(source, dealt, taken, blocked);
+        });
+}
+
 void ServerPlayer::unlockRecipe(const ResourceLocation& recipeId)
 {
     // 触发配方解锁成就

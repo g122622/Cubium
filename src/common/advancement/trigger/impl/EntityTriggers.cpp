@@ -573,4 +573,58 @@ void PlayerHurtEntityTrigger::trigger(
     MC_UNUSED(blocked);
 }
 
+// ========== EntityHurtPlayerTrigger ==========
+
+bool EntityHurtPlayerTriggerInstance::test(const DamageSource& source, f32 dealt, f32 taken, bool blocked) const
+{
+    return !m_damage.has_value() || m_damage->test(source, dealt, taken, blocked);
+}
+
+Result<void> EntityHurtPlayerTriggerInstance::fromJson(const nlohmann::json& json)
+{
+    m_damage.reset();
+    if (json.is_null()) {
+        return {};
+    }
+    if (json.contains("damage")) {
+        auto result = DamagePredicate::fromJson(json["damage"]);
+        if (result.failed()) {
+            return result.error();
+        }
+        m_damage = std::move(result.value());
+    }
+    // TODO(player-predicate): vanilla 条件还含可选的 player（ContextAwarePredicate）字段，暂忽略。
+    return {};
+}
+
+nlohmann::json EntityHurtPlayerTriggerInstance::conditionsToJson() const
+{
+    nlohmann::json json;
+    if (m_damage.has_value() && !m_damage->isAny()) {
+        json["damage"] = m_damage->toJson();
+    }
+    return json;
+}
+
+Result<std::shared_ptr<ICriterionInstance>> EntityHurtPlayerTrigger::fromJson(const nlohmann::json& json)
+{
+    auto instance = std::make_shared<EntityHurtPlayerTriggerInstance>();
+    auto result = instance->fromJson(json);
+    if (result.failed()) {
+        return result.error();
+    }
+    return instance;
+}
+
+void EntityHurtPlayerTrigger::trigger(
+    ServerPlayer& player, const DamageSource& source, f32 dealt, f32 taken, bool blocked)
+{
+    // 实际派发由 ServerPlayer::triggerEntityHurtPlayer 经模板方法完成
+    MC_UNUSED(player);
+    MC_UNUSED(source);
+    MC_UNUSED(dealt);
+    MC_UNUSED(taken);
+    MC_UNUSED(blocked);
+}
+
 } // namespace mc::advancement

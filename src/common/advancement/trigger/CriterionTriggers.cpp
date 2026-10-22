@@ -114,6 +114,7 @@ void CriterionTriggers::registerBuiltinTriggers()
     registerTrigger(std::make_unique<ChanneledLightningTrigger>());
     registerTrigger(std::make_unique<VillagerTradeTrigger>());
     registerTrigger(std::make_unique<PlayerHurtEntityTrigger>());
+    registerTrigger(std::make_unique<EntityHurtPlayerTrigger>());
 
     // 注册方块相关触发器
     registerTrigger(std::make_unique<PlacedBlockTrigger>());

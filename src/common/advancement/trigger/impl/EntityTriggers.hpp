@@ -48,6 +48,7 @@ class CuredZombieVillagerTriggerInstance;
 class VillagerTradeTriggerInstance;
 class PlayerInteractedWithEntityTriggerInstance;
 class PlayerHurtEntityTriggerInstance;
+class EntityHurtPlayerTriggerInstance;
 
 /**
  * @brief 驯服动物触发器
@@ -312,6 +313,41 @@ public:
 private:
     std::optional<DamagePredicate> m_damage;
     std::optional<EntityPredicate> m_entity;
+};
+
+/**
+ * @brief 实体伤害玩家触发器（对齐 vanilla EntityHurtPlayerTrigger）
+ *
+ * 玩家受到任意伤害时触发（与 player_hurt_entity 成对，vanilla 同在
+ * LivingEntity.hurtServer 末尾派发）。条件为可选的 damage 谓词。
+ */
+class EntityHurtPlayerTrigger : public AbstractCriterionTrigger<EntityHurtPlayerTriggerInstance> {
+public:
+    static constexpr const char* TRIGGER_ID = "minecraft:entity_hurt_player";
+
+    [[nodiscard]] ResourceLocation getId() const override { return ResourceLocation(TRIGGER_ID); }
+
+    [[nodiscard]] Result<std::shared_ptr<ICriterionInstance>> fromJson(const nlohmann::json& json) override;
+
+    void trigger(class ServerPlayer& player, const class DamageSource& source, f32 dealt, f32 taken, bool blocked);
+};
+
+/**
+ * @brief 实体伤害玩家触发器实例
+ */
+class EntityHurtPlayerTriggerInstance : public CriterionInstance<EntityHurtPlayerTriggerInstance> {
+public:
+    static constexpr const char* TRIGGER_ID = "minecraft:entity_hurt_player";
+
+    EntityHurtPlayerTriggerInstance() = default;
+
+    [[nodiscard]] bool test(const class DamageSource& source, f32 dealt, f32 taken, bool blocked) const;
+
+    Result<void> fromJson(const nlohmann::json& json);
+    [[nodiscard]] nlohmann::json conditionsToJson() const;
+
+private:
+    std::optional<DamagePredicate> m_damage;
 };
 
 } // namespace advancement

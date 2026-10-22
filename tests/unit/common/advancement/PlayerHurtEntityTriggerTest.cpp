@@ -154,5 +154,41 @@ TEST_F(PlayerHurtEntityTriggerTest, ConditionsToJsonRoundTrip)
     ASSERT_TRUE(roundTrip["damage"].contains("dealt"));
 }
 
+TEST_F(PlayerHurtEntityTriggerTest, EntityHurtPlayer_Registered)
+{
+    EXPECT_TRUE(
+        advancement::CriterionTriggers::instance().hasTrigger(ResourceLocation("minecraft:entity_hurt_player")));
+}
+
+TEST_F(PlayerHurtEntityTriggerTest, EntityHurtPlayer_DamageCondition)
+{
+    // 与 player_hurt_entity 成对，条件只有可选的 damage 谓词
+    const nlohmann::json json = {
+        {"trigger", "minecraft:entity_hurt_player"},
+        {"conditions", {{"damage", {{"dealt", {{"min", 4.0}}}}}}},
+    };
+    auto criterion = advancement::Criterion::fromJson("hurt_by_zombie", json);
+    ASSERT_TRUE(criterion.success());
+    auto instance =
+        std::dynamic_pointer_cast<advancement::EntityHurtPlayerTriggerInstance>(criterion.value().getTriggerInstance());
+    ASSERT_NE(instance, nullptr);
+
+    EntityDamageSource source(DamageType::MobAttack, nullptr);
+    EXPECT_TRUE(instance->test(source, 5.0f, 5.0f, false));
+    EXPECT_FALSE(instance->test(source, 3.0f, 3.0f, false));
+}
+
+TEST_F(PlayerHurtEntityTriggerTest, EntityHurtPlayer_NoDamageMatchesAny)
+{
+    auto* trigger = advancement::CriterionTriggers::instance().getTrigger<advancement::EntityHurtPlayerTrigger>();
+    ASSERT_NE(trigger, nullptr);
+    auto result = trigger->fromJson(nlohmann::json::object());
+    ASSERT_TRUE(result.success());
+    auto instance = std::dynamic_pointer_cast<advancement::EntityHurtPlayerTriggerInstance>(result.value());
+    ASSERT_NE(instance, nullptr);
+    EntityDamageSource source(DamageType::Fall, nullptr);
+    EXPECT_TRUE(instance->test(source, 1.0f, 1.0f, false));
+}
+
 } // namespace
 } // namespace mc
