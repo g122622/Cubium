@@ -57,11 +57,14 @@ public:
     /**
      * @brief 实体目标类型
      */
+    /// 目标实体（对齐 vanilla LootContext.EntityTarget 的六个取值）
     enum class EntityTarget {
-        This,         // 当前实体
-        Killer,       // 击杀者
-        DirectKiller, // 直接击杀者
-        KillerPlayer  // 击杀玩家
+        This,             // this：被掉落实体
+        Attacker,         // attacker：造成者（vanilla ATTACKING_ENTITY）
+        DirectAttacker,   // direct_attacker：直接来源（投射物本身或近战攻击者）
+        AttackingPlayer,  // attacking_player：最后造成伤害的玩家
+        TargetEntity,     // target_entity：被攻击目标（暂无参数，恒不匹配）
+        InteractingEntity // interacting_entity：交互实体（暂无参数，恒不匹配）
     };
 
     EntityPropertiesCondition() = default;

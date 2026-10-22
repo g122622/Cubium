@@ -1810,3 +1810,36 @@ TEST_F(LootSerializersTest, ParseCondition_MatchTool_WithItemAndTag)
     auto condition = result.value();
     EXPECT_EQ("match_tool", condition->getType());
 }
+
+// ============================================================================
+// entity_properties 目标名称（对齐 vanilla LootContext.EntityTarget）
+// ============================================================================
+
+TEST_F(LootSerializersTest, ParseCondition_EntityProperties_DirectAttackerTarget)
+{
+    // 数据包"熔炼掉落"用 direct_attacker 指代直接来源（投射物本身或近战攻击者）
+    nlohmann::json json = {{"condition", "minecraft:entity_properties"},
+        {"entity", "direct_attacker"},
+        {"predicate", {{"equipment", {{"mainhand", "minecraft:iron_sword"}}}}}};
+
+    auto result = LootSerializers::parseCondition(json);
+    ASSERT_TRUE(result.success());
+    auto conditionPtr = result.value(); // value() 是转移所有权语义，必须只取一次
+    auto* condition = dynamic_cast<loot::EntityPropertiesCondition*>(conditionPtr.get());
+    ASSERT_NE(condition, nullptr);
+    EXPECT_EQ(condition->getTarget(), loot::EntityPropertiesCondition::EntityTarget::DirectAttacker);
+}
+
+TEST_F(LootSerializersTest, ParseCondition_EntityProperties_AttackerTarget)
+{
+    nlohmann::json json = {{"condition", "minecraft:entity_properties"},
+        {"entity", "attacker"},
+        {"predicate", {{"type", "minecraft:player"}}}};
+
+    auto result = LootSerializers::parseCondition(json);
+    ASSERT_TRUE(result.success());
+    auto conditionPtr = result.value(); // value() 是转移所有权语义，必须只取一次
+    auto* condition = dynamic_cast<loot::EntityPropertiesCondition*>(conditionPtr.get());
+    ASSERT_NE(condition, nullptr);
+    EXPECT_EQ(condition->getTarget(), loot::EntityPropertiesCondition::EntityTarget::Attacker);
+}

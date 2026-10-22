@@ -136,10 +136,17 @@ namespace loot {
 
 namespace {
 
+/**
+ * @brief 将派生类 unique_ptr 转换为基类 unique_ptr
+ *
+ * 必须经由 unique_ptr 的隐式派生→基转换构造函数（即隐式 upcast），不能直接
+ * `std::unique_ptr<Base>(ptr.release())`：后者由裸指针构造，ncv 下多继承或含虚基类的
+ * 派生对象会得到错位的 this 指针（实测 dynamic_cast 返回非空但字段全错）。
+ */
 template <typename Derived, typename Base>
 std::unique_ptr<Base> castToBase(std::unique_ptr<Derived> ptr)
 {
-    return std::unique_ptr<Base>(ptr.release());
+    return ptr;
 }
 
 } // anonymous namespace

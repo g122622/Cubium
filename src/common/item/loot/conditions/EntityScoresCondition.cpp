@@ -46,14 +46,17 @@ Entity* getConditionTargetEntity(LootContext& context, EntityPropertiesCondition
     switch (target) {
         case EntityPropertiesCondition::EntityTarget::This:
             return context.get<Entity>(LootParams::THIS_ENTITY);
-        case EntityPropertiesCondition::EntityTarget::Killer:
+        case EntityPropertiesCondition::EntityTarget::Attacker:
             return context.get<Entity>(LootParams::KILLER_ENTITY);
-        case EntityPropertiesCondition::EntityTarget::DirectKiller:
+        case EntityPropertiesCondition::EntityTarget::DirectAttacker:
             return context.get<Entity>(LootParams::DIRECT_KILLER);
-        case EntityPropertiesCondition::EntityTarget::KillerPlayer: {
+        case EntityPropertiesCondition::EntityTarget::AttackingPlayer: {
             auto* player = context.get<Player>(LootParams::KILLER_PLAYER);
             return static_cast<Entity*>(player);
         }
+        case EntityPropertiesCondition::EntityTarget::TargetEntity:
+        case EntityPropertiesCondition::EntityTarget::InteractingEntity:
+            return nullptr;
     }
     return nullptr;
 }

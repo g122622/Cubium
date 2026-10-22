@@ -43,14 +43,19 @@ const Entity* getConditionTargetEntity(LootContext& context, EntityPropertiesCon
     switch (target) {
         case EntityPropertiesCondition::EntityTarget::This:
             return context.get<Entity>(LootParams::THIS_ENTITY);
-        case EntityPropertiesCondition::EntityTarget::Killer:
+        case EntityPropertiesCondition::EntityTarget::Attacker:
             return context.get<Entity>(LootParams::KILLER_ENTITY);
-        case EntityPropertiesCondition::EntityTarget::DirectKiller:
+        case EntityPropertiesCondition::EntityTarget::DirectAttacker:
             return context.get<Entity>(LootParams::DIRECT_KILLER);
-        case EntityPropertiesCondition::EntityTarget::KillerPlayer: {
+        case EntityPropertiesCondition::EntityTarget::AttackingPlayer: {
             auto* player = context.get<Player>(LootParams::KILLER_PLAYER);
             return static_cast<const Entity*>(player);
         }
+        case EntityPropertiesCondition::EntityTarget::TargetEntity:
+        case EntityPropertiesCondition::EntityTarget::InteractingEntity:
+            // TODO(loot-context-targets): TARGET_ENTITY / INTERACTING_ENTITY 参数尚未在
+            //   LootContext 中提供，按"目标实体不存在"处理（条件不匹配），避免误用 this。
+            return nullptr;
     }
     return nullptr;
 }
@@ -92,16 +97,29 @@ std::unique_ptr<LootCondition> EntityPropertiesCondition::clone() const noexcept
 
 EntityPropertiesCondition::EntityTarget EntityPropertiesCondition::parseEntityTarget(const std::string& str)
 {
+    // 对齐 vanilla LootContext.EntityTarget 名称；"killer" / "direct_killer" /
+    // "killer_player" 为旧版（1.16）名称，保留兼容映射。
     if (str == "this") {
         return EntityTarget::This;
-    } else if (str == "killer") {
-        return EntityTarget::Killer;
-    } else if (str == "direct_killer") {
-        return EntityTarget::DirectKiller;
-    } else if (str == "killer_player") {
-        return EntityTarget::KillerPlayer;
     }
-    return EntityTarget::This;
+    if (str == "attacker" || str == "killer") {
+        return EntityTarget::Attacker;
+    }
+    if (str == "direct_attacker" || str == "direct_killer") {
+        return EntityTarget::DirectAttacker;
+    }
+    if (str == "attacking_player" || str == "killer_player") {
+        return EntityTarget::AttackingPlayer;
+    }
+    if (str == "target_entity") {
+        return EntityTarget::TargetEntity;
+    }
+    if (str == "interacting_entity") {
+        return EntityTarget::InteractingEntity;
+    }
+    // 未知目标：返回 This 会静默改变语义，故显式按"目标缺失"处理。
+    // TODO(loot-context-targets): 数据包新增目标类型时在此补充映射。
+    return EntityTarget::TargetEntity;
 }
 
 std::string EntityPropertiesCondition::entityTargetToString(EntityTarget target)
@@ -109,12 +127,16 @@ std::string EntityPropertiesCondition::entityTargetToString(EntityTarget target)
     switch (target) {
         case EntityTarget::This:
             return "this";
-        case EntityTarget::Killer:
-            return "killer";
-        case EntityTarget::DirectKiller:
-            return "direct_killer";
-        case EntityTarget::KillerPlayer:
-            return "killer_player";
+        case EntityTarget::Attacker:
+            return "attacker";
+        case EntityTarget::DirectAttacker:
+            return "direct_attacker";
+        case EntityTarget::AttackingPlayer:
+            return "attacking_player";
+        case EntityTarget::TargetEntity:
+            return "target_entity";
+        case EntityTarget::InteractingEntity:
+            return "interacting_entity";
         default:
             return "this";
     }
