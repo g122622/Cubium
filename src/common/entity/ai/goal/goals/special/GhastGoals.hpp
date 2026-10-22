@@ -40,6 +40,7 @@
 
 namespace mc {
 
+class Entity;
 class MobEntity;
 class GhastEntity;
 class HappyGhastEntity;
@@ -106,11 +107,42 @@ private:
 };
 
 /**
- * @brief 快乐恶魂幼体漂浮目标（对齐 vanilla HappyGhastAi 的 IDLE 活动）
+ * @brief 被拴绳牵引时跟随拴绳持有者（对齐 vanilla HappyGhastAi 的拴绳跟随行为）
  *
- * 幼年快乐恶魂不会寻路飞行，而是持续给自己的速度施加向上的加速度，
- * 仅在升到目标高度附近时减弱，从而在出生点上方缓慢悬浮（对齐 vanilla
- * HappyGhast.FloatGoal：每 tick moveRelative 向上 0.05，且 FLOATING_GOAL separateY 逻辑）。
+ * vanilla 由 Brain 的 leash 传感器把持有者写入记忆，IDLE 活动里以 1.0 倍速走向持有者。
+ * 本项目以本目标等效：仅在拴在实体上（而非栅栏拴绳结）时接管，保持与持有者的距离
+ * 不超过 FOLLOW_DISTANCE，超出即让飞行控制器飞向持有者。
+ *
+ * 优先级：2
+ * 互斥标志：Move
+ */
+class GhastFollowLeashHolderGoal : public Goal {
+public:
+    explicit GhastFollowLeashHolderGoal(HappyGhastEntity* ghast);
+
+    ~GhastFollowLeashHolderGoal() override = default;
+
+    [[nodiscard]] bool shouldExecute() override;
+    [[nodiscard]] bool shouldContinueExecuting() override;
+    void startExecuting() override;
+    void tick() override;
+
+    [[nodiscard]] std::string getTypeName() const override { return "GhastFollowLeashHolderGoal"; }
+
+private:
+    [[nodiscard]] Entity* _resolveHolder() const;
+
+    HappyGhastEntity* m_ghast;
+
+    /// 允许离持有者的最大距离（vanilla 拴绳长度约 10 格，留出飞行惯性余量）
+    static constexpr f64 FOLLOW_DISTANCE = 8.0;
+};
+
+/**
+ * @brief 快乐恶魂幼体漂浮目标（对齐 vanilla HappyGhast.FloatGoal）
+ *
+ * 幼年快乐恶魂不会寻路飞行，而是每 tick 向速度施加向上的加速度（moveRelative 向上 0.05），
+ * 仅在升到目标高度附近时减弱，从而在出生点上方缓慢悬浮。
  */
 class GhastHappyFloatGoal : public Goal {
 public:

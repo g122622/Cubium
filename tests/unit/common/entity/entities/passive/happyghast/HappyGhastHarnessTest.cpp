@@ -31,6 +31,7 @@
 #include <gtest/gtest.h>
 
 #include "common/TestWorldHelper.hpp"
+#include "common/entity/ai/goal/goals/special/GhastGoals.hpp"
 #include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/core/EquipmentSlot.hpp"
 #include "common/entity/entities/passive/basic/PigEntity.hpp"
@@ -47,6 +48,7 @@
 #include "common/world/gameevent/GameEvents.hpp"
 
 #include <memory>
+#include <unordered_map>
 #include <vector>
 
 namespace mc {
@@ -102,6 +104,19 @@ public:
         return count;
     }
 
+    /// 按 UUID 反查实体（供拴绳跟随目标解析）：测试世界只登记少量实体，线性扫描即可。
+    [[nodiscard]] Entity* getEntityByUuid(const std::string& uuid) override
+    {
+        for (Entity* entity : m_knownEntities) {
+            if (entity != nullptr && entity->uuid() == uuid) {
+                return entity;
+            }
+        }
+        return nullptr;
+    }
+
+    void setKnownEntities(std::vector<Entity*> entities) { m_knownEntities = std::move(entities); }
+
     /// 世界中可见的玩家列表（供快乐恶魂 scanPlayerAbove 扫描）
     [[nodiscard]] std::vector<Entity*> getPlayers() const override { return m_players; }
     void setPlayers(std::vector<Entity*> players) { m_players = std::move(players); }
@@ -122,6 +137,7 @@ public:
     [[nodiscard]] i32 gameEventCount() const { return static_cast<i32>(m_gameEvents.size()); }
 
 private:
+    std::vector<Entity*> m_knownEntities;
     std::vector<ResourceLocation> m_playedSounds;
     std::vector<const gameevent::GameEvent*> m_gameEvents;
     std::vector<Entity*> m_players;
@@ -441,6 +457,32 @@ TEST_F(HappyGhastHarnessTest, DismountSetsStillTimeout)
     // 对齐 vanilla removePassenger：任何乘客下车都把静止超时设为 10
     player->stopRiding();
     EXPECT_EQ(ghast->serverStillTimeout(), 10);
+}
+
+// ============================================================================
+// 拴绳牵引
+// ============================================================================
+
+TEST_F(HappyGhastHarnessTest, LeashedGhastFollowsHolderInsteadOfWandering)
+{
+    auto ghast = makeGhast(EntityInstanceId(1));
+    auto player = makePlayer(EntityInstanceId(2));
+
+    ghast->setPosition(0.0f, 64.0f, 0.0f);
+    player->setPosition(0.0f, 64.0f, 30.0f);
+    ghast->setLeashedToEntity(player->uuid());
+    m_world->setKnownEntities({ghast.get(), player.get()});
+
+    entity::ai::goal::GhastFollowLeashHolderGoal leashGoal(ghast.get());
+    entity::ai::goal::GhastRandomFlyGoal wanderGoal(ghast.get());
+
+    EXPECT_TRUE(leashGoal.shouldExecute()) << "离持有者超过跟随距离时应由拴绳牵引";
+    // 被拴在实体上时不走随机巡游（vanilla IDLE 的随机步行不接管拴绳实体）
+    EXPECT_FALSE(wanderGoal.shouldExecute());
+
+    // 拉近到跟随距离内：放弃牵引
+    player->setPosition(0.0f, 64.0f, 2.0f);
+    EXPECT_FALSE(leashGoal.shouldExecute());
 }
 
 // ============================================================================

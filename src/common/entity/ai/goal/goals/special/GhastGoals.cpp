@@ -38,6 +38,7 @@
 #include "common/world/WorldEvents.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include <cmath>
+#include <optional>
 
 namespace mc::entity::ai::goal {
 
@@ -73,6 +74,12 @@ bool GhastRandomFlyGoal::shouldExecute()
     }
 
     auto* moveController = host->moveController();
+
+    // 条件0: 被拴在实体上时由拴绳牵引目标负责，不走随机巡游
+    // （对齐 vanilla HappyGhastAi：跟随拴绳持有者优先于 IDLE 的随机飞行）。
+    if (host->isLeashed() && host->leashHolderUuid().has_value()) {
+        return false;
+    }
 
     // 条件1: 移动控制器空闲（没有目标）
     if (!moveController->isUpdating()) {
@@ -113,6 +120,61 @@ void GhastRandomFlyGoal::startExecuting()
     f64 targetZ = host->z() + (rng.nextFloat() * 2.0 - 1.0) * WANDER_RANGE;
 
     host->moveController()->setMoveTo(targetX, targetY, targetZ, 1.0);
+}
+
+// ============================================================================
+// GhastFollowLeashHolderGoal
+// ============================================================================
+
+GhastFollowLeashHolderGoal::GhastFollowLeashHolderGoal(HappyGhastEntity* ghast)
+    : Goal(EnumSet<GoalFlag>{GoalFlag::Move})
+    , m_ghast(ghast)
+{
+    MC_ASSERT_RELEASE(ghast != nullptr);
+}
+
+Entity* GhastFollowLeashHolderGoal::_resolveHolder() const
+{
+    if (m_ghast == nullptr || m_ghast->world() == nullptr || !m_ghast->isLeashed()) {
+        return nullptr;
+    }
+    const std::optional<std::string>& holderUuid = m_ghast->leashHolderUuid();
+    if (!holderUuid.has_value()) {
+        return nullptr;
+    }
+    return m_ghast->world()->getEntityByUuid(*holderUuid);
+}
+
+bool GhastFollowLeashHolderGoal::shouldExecute()
+{
+    Entity* holder = _resolveHolder();
+    if (holder == nullptr || m_ghast->moveController() == nullptr) {
+        return false;
+    }
+    return m_ghast->distanceTo(*holder) > FOLLOW_DISTANCE;
+}
+
+bool GhastFollowLeashHolderGoal::shouldContinueExecuting()
+{
+    Entity* holder = _resolveHolder();
+    if (holder == nullptr) {
+        return false;
+    }
+    return m_ghast->distanceTo(*holder) > FOLLOW_DISTANCE * 0.75;
+}
+
+void GhastFollowLeashHolderGoal::startExecuting()
+{
+    tick();
+}
+
+void GhastFollowLeashHolderGoal::tick()
+{
+    Entity* holder = _resolveHolder();
+    if (holder == nullptr || m_ghast->moveController() == nullptr) {
+        return;
+    }
+    m_ghast->moveController()->setMoveTo(holder->x(), holder->y(), holder->z(), 1.0);
 }
 
 // ============================================================================

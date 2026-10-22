@@ -449,12 +449,15 @@ void HappyGhastEntity::registerGoals()
     //   3: FloatGoal（幼体持续上浮）——vanilla 的 HappyGhastFloatGoal + FlyingMoveControl(180, true)
     //   4: TemptGoal（TemptGoal.ForNonPathfinders，速度 1.0）
     //   5: Ghast.RandomFloatAroundGoal（16 格半径随机巡游）——此处复用成年随机飞行目标
-    // 本项目无 Brain，vanilla HappyGhastAi 的其余行为（跟随拴绳持有者、载客等）尚未实现（见类注释 TODO）。
+    // 本项目无 Brain：拴绳跟随（GhastFollowLeashHolderGoal）与载客/静止超时改由 Goal 与 tick 实现。
     // 幼体没有目标（vanilla babyGhastSetup 清空 goalSelector），只有成体注册上述集合；
     // 幼体 NBT 在构造后才读入，与 vanilla（saveAdditional 读入后由 ageBoundaryReached 处理）等价。
     if (isChild()) {
         return;
     }
+    // 优先级 2: 被拴绳牵引时跟随持有者（vanilla Brain 的拴绳跟随行为）
+    m_goalSelector.addGoal(2, std::make_unique<entity::ai::goal::GhastFollowLeashHolderGoal>(this));
+
     m_goalSelector.addGoal(3, std::make_unique<entity::ai::goal::GhastHappyFloatGoal>(this));
 
     // 优先级 4: 食物诱惑（对齐 vanilla TemptGoal.ForNonPathfinders，速度 1.0）。原版判据：
