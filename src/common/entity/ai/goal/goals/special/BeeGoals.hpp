@@ -159,6 +159,9 @@ public:
     void resetTask() override;
     void tick() override;
 
+    /// 对齐 vanilla BeePollinateGoal.requiresUpdateEveryTick() = true
+    [[nodiscard]] bool requiresUpdateEveryTick() const override;
+
     [[nodiscard]] std::string getTypeName() const override { return "BeePollinateGoal"; }
 
     /// 检查是否正在授粉
@@ -187,6 +190,12 @@ private:
     /// 移动到下一个目标位置
     void _moveToNextTarget();
 
+    /// 以 HOVER_SPEED_MODIFIER 飞向当前悬停点（对齐 vanilla setWantedPos）
+    void _setWantedPos();
+
+    /// 悬停点水平随机偏移量（对齐 vanilla getOffset）
+    [[nodiscard]] f32 _hoverOffset();
+
     /// 检查是否完成授粉
     [[nodiscard]] bool _completedPollination() const { return m_pollinationTicks > 400; }
 
@@ -195,10 +204,14 @@ private:
     i32 m_totalTicks = 0;        ///< 总计时间
     bool m_running = false;      ///< 是否正在授粉
     math::Vector3f m_nextTarget; ///< 下一个飞向目标
+    math::Vector3f m_hoverPos;   ///< 当前悬停点（对齐 vanilla hoverPos）
 
-    static constexpr f32 FLOWER_SEARCH_RANGE = 5.0f; ///< 花朵搜索范围
-    static constexpr i32 POLLINATION_DURATION = 400; ///< 授粉所需时间
-    static constexpr i32 MAX_POLLINATION_TIME = 600; ///< 最大授粉时间
+    static constexpr f32 FLOWER_SEARCH_RANGE = 5.0f;     ///< 花朵搜索范围
+    static constexpr i32 POLLINATION_DURATION = 400;     ///< 授粉所需时间（vanilla MIN_POLLINATION_TICKS）
+    static constexpr i32 MAX_POLLINATION_TIME = 600;     ///< 最大授粉时间（vanilla MAX_POLLINATING_TICKS）
+    static constexpr f64 ARRIVAL_THRESHOLD = 0.1;        ///< 抵达悬停点的距离阈值（vanilla）
+    static constexpr f32 HOVER_SPEED_MODIFIER = 0.35f;   ///< 悬停飞行速度（vanilla SPEED_MODIFIER）
+    static constexpr f32 HOVER_POS_OFFSET = 0.33333334f; ///< 悬停点随机偏移幅度（vanilla HOVER_POS_OFFSET）
 };
 
 /**

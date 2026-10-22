@@ -125,8 +125,9 @@ public:
     // 已对齐核心 goal（EatGrass/RandomWalking/RandomSwimming/LookAt/LookRandomly/MeleeAttack/
     // Breed/FollowParent/Tempt/Swim/NearestAttackableTarget/TargetGoal.unseenMemory/CreeperSwell/
     // MoveToBlock/RangedAttack/RangedBowAttack/RangedCrossbowAttack/DoorInteract）。
-    // special 类 goal（FoxGoals/BeeGoals/CatGoals/DolphinGoals/PhantomGoals/SlimeGoals/ShulkerGoals/
-    // VexGoals/TurtleGoals/EndermanGoals/IronGolemGoals/BatGoals/RangedAttackGoals 及 villager 系列）
+    // special 类 goal（FoxGoals/CatGoals/DolphinGoals/PhantomGoals/SlimeGoals/ShulkerGoals/
+    // VexGoals/TurtleGoals/EndermanGoals/IronGolemGoals/BatGoals/RangedAttackGoals 及 villager 系列；
+    // BeeGoals 的 BeePollinateGoal 已按 vanilla requiresUpdateEveryTick 补齐）
     // 多为项目自创逻辑或与 vanilla 对应关系复杂，其 shouldExecute 概率与 tick 计时器仍用裸值，
     // 待后续逐一核对 vanilla 源码后用 adjustedTickDelay/reducedTickDelay 补偿。
 

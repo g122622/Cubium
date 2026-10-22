@@ -23,6 +23,7 @@
 
 #include "BeeGoals.hpp"
 #include "common/core/EnumSet.hpp"
+#include "common/entity/ai/controller/LookController.hpp"
 #include "common/entity/ai/controller/MovementController.hpp"
 #include "common/entity/ai/goal/Goal.hpp"
 #include "common/entity/ai/goal/GoalFlag.hpp"
@@ -236,12 +237,7 @@ bool BeePollinateGoal::canBeeStart()
         return false;
     }
 
-    // 30% 概率执行
-    if (world == nullptr || world->getRandom().nextFloat() >= 0.3f) {
-        return false;
-    }
-
-    // 寻找花朵
+    // 寻找花朵（vanilla BeePollinateGoal.canBeeUse 无随机门控：冷却结束即搜索）
     return _findFlower();
 }
 
@@ -282,6 +278,15 @@ void BeePollinateGoal::startExecuting()
     m_lastSoundTick = 0;
     m_running = true;
     m_bee->setPollinating(true);
+    // 对齐 vanilla BeePollinateGoal.start：resetTicksWithoutNectarSinceExitingHive()
+    m_bee->resetTicksWithoutNectar();
+}
+
+bool BeePollinateGoal::requiresUpdateEveryTick() const
+{
+    // 对齐 vanilla BeePollinateGoal.requiresUpdateEveryTick() = true：授粉是逐 tick 驱动的
+    // 悬停状态机（600 tick 超时、悬停偏移、音效节流均以 tick 计时），不能按半 tick 节流。
+    return true;
 }
 
 void BeePollinateGoal::resetTask()
@@ -316,16 +321,23 @@ void BeePollinateGoal::stopPollinating()
 
 void BeePollinateGoal::tick()
 {
+    // 对齐 vanilla BeePollinateGoal.tick（Bee.java:1178-1229）：
+    //   有花朵位置时 pollinatingTicks 才递增；超过 600 tick 丢花并置 200 冷却；
+    //   离花心超过 1 格则悬停在花上方 0.6 处；抵达后 1/25 概率随机偏移并停止导航，
+    //   期间计数成功授粉 tick 并按 5% 概率（间隔 60 tick）播放授粉音效。
     ++m_totalTicks;
 
-    // 超时检查
-    if (m_totalTicks > MAX_POLLINATION_TIME) {
-        m_bee->setFlowerPos(BlockPos::zero());
+    if (!m_bee->hasFlower()) {
         return;
     }
 
-    // 检查花朵位置
-    if (!m_bee->hasFlower()) {
+    if (m_totalTicks > MAX_POLLINATION_TIME) {
+        // 对齐 vanilla：dropFlower() + pollinating=false + 花朵冷却 200。
+        // 此后本 tick 的 canBeeContinueToUse 返回 false，下一帧由 GoalSelector 调 stop()。
+        m_bee->setFlowerPos(BlockPos::zero());
+        m_bee->setFlowerCooldown(200);
+        m_running = false;
+        m_bee->setPollinating(false);
         return;
     }
 
@@ -339,26 +351,75 @@ void BeePollinateGoal::tick()
         (beePos.z - flowerCenter.z) * (beePos.z - flowerCenter.z);
 
     if (distSq > 1.0) {
-        // 飞向花朵
-        m_nextTarget = flowerCenter;
-        _moveToNextTarget();
-    } else {
-        // 在花朵附近徘徊授粉
-        ++m_pollinationTicks;
+        // 飞向花朵上方悬停点
+        m_hoverPos = flowerCenter;
+        _setWantedPos();
+        return;
+    }
 
-        // 播放授粉声音
-        IWorld* world = m_bee->world();
-        if (world != nullptr) {
-            if (world->getRandom().nextFloat() < 0.05f && m_pollinationTicks > m_lastSoundTick + 60) {
-                m_lastSoundTick = m_pollinationTicks;
-                world->playSound(SoundEvents::ENTITY_BEE_POLLINATE,
-                    sound::SoundCategory::Neutral,
-                    m_bee->position(),
-                    1.0f,
-                    1.0f + (world->getRandom().nextFloat() - world->getRandom().nextFloat()) * 0.2f);
+    // 在花朵上方悬停授粉
+    m_hoverPos = flowerCenter;
+    IWorld* world = m_bee->world();
+    if (world == nullptr) {
+        return;
+    }
+
+    const f64 hoverDx = beePos.x - static_cast<f64>(m_hoverPos.x);
+    const f64 hoverDy = beePos.y - static_cast<f64>(m_hoverPos.y);
+    const f64 hoverDz = beePos.z - static_cast<f64>(m_hoverPos.z);
+    const bool arrived =
+        (hoverDx * hoverDx + hoverDy * hoverDy + hoverDz * hoverDz) <= ARRIVAL_THRESHOLD * ARRIVAL_THRESHOLD;
+
+    if (arrived) {
+        // 1/25 概率重新选取悬停点（花心水平随机偏移），并停止导航就地悬停
+        math::IRandom& rng = world->getRandom();
+        if (rng.nextInt(25) == 0) {
+            m_hoverPos.x = flowerCenter.x + _hoverOffset();
+            m_hoverPos.z = flowerCenter.z + _hoverOffset();
+            if (auto* nav = m_bee->navigator()) {
+                nav->clearPath();
             }
+            _setWantedPos();
+        }
+        // 悬停时始终注视花朵
+        if (auto* lookCtrl = m_bee->lookController()) {
+            lookCtrl->setLookPosition(
+                static_cast<f64>(flowerCenter.x), static_cast<f64>(flowerCenter.y), static_cast<f64>(flowerCenter.z));
         }
     }
+
+    ++m_pollinationTicks;
+
+    // 授粉音效：5% 概率且距上次播放超过 60 tick（对齐 vanilla tick 内判定）
+    if (world->getRandom().nextFloat() < 0.05f && m_pollinationTicks > m_lastSoundTick + 60) {
+        m_lastSoundTick = m_pollinationTicks;
+        world->playSound(SoundEvents::ENTITY_BEE_POLLINATE,
+            sound::SoundCategory::Neutral,
+            m_bee->position(),
+            1.0f,
+            1.0f + (world->getRandom().nextFloat() - world->getRandom().nextFloat()) * 0.2f);
+    }
+}
+
+void BeePollinateGoal::_setWantedPos()
+{
+    // 对齐 vanilla setWantedPos：以 0.35 速度飞向悬停点。
+    if (auto* moveCtrl = m_bee->moveController()) {
+        moveCtrl->setMoveTo(static_cast<f64>(m_hoverPos.x),
+            static_cast<f64>(m_hoverPos.y),
+            static_cast<f64>(m_hoverPos.z),
+            HOVER_SPEED_MODIFIER);
+    }
+}
+
+f32 BeePollinateGoal::_hoverOffset()
+{
+    // 对齐 vanilla getOffset：(random.nextFloat() * 2 - 1) * 0.33333334
+    IWorld* world = m_bee->world();
+    if (world == nullptr) {
+        return 0.0f;
+    }
+    return (world->getRandom().nextFloat() * 2.0f - 1.0f) * HOVER_POS_OFFSET;
 }
 
 bool BeePollinateGoal::_isFlower(const BlockPos& pos) const

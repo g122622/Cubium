@@ -2159,16 +2159,20 @@ TEST_F(BeeEntityCooldownTest, FlowerCooldown_DoesNotDecrementOnClient)
     EXPECT_EQ(clientBee->getFlowerCooldown(), 200);
 }
 
-TEST_F(BeeEntityCooldownTest, Cooldowns_DoNotDecrementBelowZero)
+TEST_F(BeeEntityCooldownTest, Cooldowns_AreNonNegativeAfterTicks)
 {
-    // 服务端：冷却为 0 时不应变为负数
+    // 服务端：冷却从 0 出发，无论 goal 是否在同 tick 重新开始授粉/寻巢，都不应变为负数
     serverBee->setStayOutOfHiveCountdown(0);
     serverBee->setHiveLocateCooldown(0);
     serverBee->setFlowerCooldown(0);
-    serverBee->tick();
-    EXPECT_EQ(serverBee->getStayOutOfHiveCountdown(), 0);
-    EXPECT_EQ(serverBee->getHiveLocateCooldown(), 0);
-    EXPECT_EQ(serverBee->getFlowerCooldown(), 0);
+    for (i32 i = 0; i < 5; ++i) {
+        serverBee->tick();
+        EXPECT_GE(serverBee->getStayOutOfHiveCountdown(), 0);
+        EXPECT_GE(serverBee->getHiveLocateCooldown(), 0) << "第 " << i << " tick 后花粉冷却为负";
+    }
+    // 花朵冷却归零后，BeePollinateGoal 可在同一 tick 内重新搜索到花朵并开始授粉，
+    // 其 resetTask 会把冷却设为 200（对齐 vanilla 冷却语义）。
+    EXPECT_GE(serverBee->getFlowerCooldown(), 0) << "花粉冷却不应变为负数";
 }
 
 TEST_F(BeeEntityCooldownTest, MultipleCooldowns_DecrementTogetherOnServer)
