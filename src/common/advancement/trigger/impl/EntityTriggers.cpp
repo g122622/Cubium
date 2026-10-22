@@ -23,9 +23,12 @@
 
 #include "EntityTriggers.hpp"
 #include "common/advancement/trigger/CriterionTrigger.hpp"
+#include "common/advancement/trigger/conditions/DamagePredicate.hpp"
 #include "common/advancement/trigger/conditions/EntityPredicate.hpp"
 #include "common/advancement/trigger/conditions/ItemPredicate.hpp"
 #include "common/core/Result.hpp"
+#include "common/entity/core/Entity.hpp"
+#include "common/entity/damage/DamageSource.hpp"
 #include "common/util/assert/AssertAll.hpp"
 #include <memory>
 #include <utility>
@@ -492,6 +495,82 @@ void PlayerInteractedWithEntityTrigger::trigger(ServerPlayer& player, const Item
     MC_UNUSED(player);
     MC_UNUSED(item);
     MC_UNUSED(entity);
+}
+
+// ========== PlayerHurtEntityTrigger ==========
+
+bool PlayerHurtEntityTriggerInstance::test(
+    const DamageSource& source, f32 dealt, f32 taken, bool blocked, const Entity& entity) const
+{
+    // 对齐 vanilla matches：damage 不匹配直接失败；entity 缺省则匹配任意实体
+    if (m_damage.has_value() && !m_damage->test(source, dealt, taken, blocked)) {
+        return false;
+    }
+    if (m_entity.has_value() && !m_entity->test(entity)) {
+        return false;
+    }
+    return true;
+}
+
+Result<void> PlayerHurtEntityTriggerInstance::fromJson(const nlohmann::json& json)
+{
+    m_damage.reset();
+    m_entity.reset();
+    if (json.is_null()) {
+        return {};
+    }
+    if (json.contains("damage")) {
+        auto result = DamagePredicate::fromJson(json["damage"]);
+        if (result.failed()) {
+            return result.error();
+        }
+        m_damage = std::move(result.value());
+    }
+    if (json.contains("entity")) {
+        auto result = EntityPredicate::fromJson(json["entity"]);
+        if (result.failed()) {
+            return result.error();
+        }
+        m_entity = std::move(result.value());
+    }
+    // TODO(player-predicate): vanilla 条件还含可选的 player（ContextAwarePredicate）字段，
+    //  项目尚未实现基于玩家状态（等级/游戏模式/统计）的玩家谓词，暂忽略。
+    return {};
+}
+
+nlohmann::json PlayerHurtEntityTriggerInstance::conditionsToJson() const
+{
+    nlohmann::json json;
+    if (m_damage.has_value() && !m_damage->isAny()) {
+        json["damage"] = m_damage->toJson();
+    }
+    if (m_entity.has_value() && !m_entity->isAny()) {
+        json["entity"] = m_entity->toJson();
+    }
+    return json;
+}
+
+Result<std::shared_ptr<ICriterionInstance>> PlayerHurtEntityTrigger::fromJson(const nlohmann::json& json)
+{
+    auto instance = std::make_shared<PlayerHurtEntityTriggerInstance>();
+    auto result = instance->fromJson(json);
+    if (result.failed()) {
+        return result.error();
+    }
+    return instance;
+}
+
+void PlayerHurtEntityTrigger::trigger(
+    ServerPlayer& player, const Entity& entity, const DamageSource& source, f32 dealt, f32 taken, bool blocked)
+{
+    // 与其它触发器一致：实际派发在 ServerPlayer::triggerPlayerHurtEntity 经
+    // AbstractCriterionTrigger<PlayerHurtEntityTriggerInstance>::trigger 完成。
+    MC_UNUSED(player);
+    MC_UNUSED(entity);
+    MC_UNUSED(source);
+    MC_UNUSED(dealt);
+    MC_UNUSED(taken);
+    MC_UNUSED(blocked);
 }
 
 } // namespace mc::advancement

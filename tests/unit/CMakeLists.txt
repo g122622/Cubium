@@ -1247,6 +1247,7 @@ add_executable(mc_tests
     common/advancement/BlockPredicateTest.cpp
     common/advancement/LootTableTriggerTest.cpp
     common/advancement/UsedTotemAndUsingItemTriggerTest.cpp
+    common/advancement/PlayerHurtEntityTriggerTest.cpp
     common/advancement/DamageSourcePredicateTest.cpp
     # AdvancementVisibilityEvaluator 成就可见性评估器测试
     common/advancement/AdvancementVisibilityEvaluatorTest.cpp

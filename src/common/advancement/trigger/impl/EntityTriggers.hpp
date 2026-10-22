@@ -24,11 +24,13 @@
 #pragma once
 
 #include "common/advancement/trigger/CriterionTrigger.hpp"
+#include "common/advancement/trigger/conditions/DamagePredicate.hpp"
 #include "common/advancement/trigger/conditions/EntityPredicate.hpp"
 #include "common/advancement/trigger/conditions/ItemPredicate.hpp"
 #include "common/core/Result.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include <memory>
+#include <optional>
 #include <nlohmann/json_fwd.hpp>
 
 namespace mc {
@@ -45,6 +47,7 @@ class SummonedEntityTriggerInstance;
 class CuredZombieVillagerTriggerInstance;
 class VillagerTradeTriggerInstance;
 class PlayerInteractedWithEntityTriggerInstance;
+class PlayerHurtEntityTriggerInstance;
 
 /**
  * @brief 驯服动物触发器
@@ -263,6 +266,52 @@ public:
 private:
     ItemPredicate m_item;
     EntityPredicate m_entity;
+};
+
+/**
+ * @brief 玩家造成伤害触发器（对齐 vanilla PlayerHurtEntityTrigger）
+ *
+ * 玩家（伤害的真正造成者）对某实体造成伤害时触发。条件含：
+ *  - damage：DamagePredicate（本次造成的伤害、受击方承受的伤害、造成者实体、是否格挡、伤害源）；
+ *  - entity：受击实体谓词。
+ *
+ * 数据包 adventure/overoverkill（重锤一击 100 点）、shoot_arrow、throw_trident 依赖它。
+ */
+class PlayerHurtEntityTrigger : public AbstractCriterionTrigger<PlayerHurtEntityTriggerInstance> {
+public:
+    static constexpr const char* TRIGGER_ID = "minecraft:player_hurt_entity";
+
+    [[nodiscard]] ResourceLocation getId() const override { return ResourceLocation(TRIGGER_ID); }
+
+    [[nodiscard]] Result<std::shared_ptr<ICriterionInstance>> fromJson(const nlohmann::json& json) override;
+
+    /// 触发（受击实体、伤害源、造成与承受的伤害、是否被格挡）
+    void trigger(class ServerPlayer& player,
+        const class Entity& entity,
+        const class DamageSource& source,
+        f32 dealt,
+        f32 taken,
+        bool blocked);
+};
+
+/**
+ * @brief 玩家造成伤害触发器实例
+ */
+class PlayerHurtEntityTriggerInstance : public CriterionInstance<PlayerHurtEntityTriggerInstance> {
+public:
+    static constexpr const char* TRIGGER_ID = "minecraft:player_hurt_entity";
+
+    PlayerHurtEntityTriggerInstance() = default;
+
+    [[nodiscard]] bool test(
+        const class DamageSource& source, f32 dealt, f32 taken, bool blocked, const class Entity& entity) const;
+
+    Result<void> fromJson(const nlohmann::json& json);
+    [[nodiscard]] nlohmann::json conditionsToJson() const;
+
+private:
+    std::optional<DamagePredicate> m_damage;
+    std::optional<EntityPredicate> m_entity;
 };
 
 } // namespace advancement

@@ -2264,6 +2264,9 @@ protected:
     static constexpr i32 MAX_HURT_RESISTANT_TIME = 20; // 最大无敌帧（20 tick = 1秒）
     f32 m_lastDamage = 0.0f;                           // 最近伤害量（用于累积伤害）
     f32 m_lastBlockedDamage = 0.0f;                    // 本次 hurt 被盾牌格挡的伤害量
+    /// 本次 hurt 调用中由 applyItemBlocking 预先扣下的伤害量，供 actuallyHurt 派发
+    /// player_hurt_entity 时计算"造成/承受伤害"（对齐 vanilla hurtServer 的 f 参数）。
+    f32 m_pendingBlockedDamage = 0.0f;
     u64 m_blockSoundPlayedTick = static_cast<u64>(-1); // 上次播放格挡音效的 tick（每 tick 去重）
     std::unique_ptr<DamageSource> m_lastDamageSource;  // 最近伤害来源
     // 最近伤害来源的真凶实体 id（对齐 vanilla LivingEntity.lastDamageSource 的安全取攻击者需求）。

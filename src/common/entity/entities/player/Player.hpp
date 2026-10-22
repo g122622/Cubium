@@ -675,6 +675,27 @@ public:
     virtual void triggerUsedTotem(const ItemStack& totem) { MC_UNUSED(totem); }
 
     /**
+     * @brief 玩家对实体造成伤害时触发进度（对齐 vanilla CriteriaTriggers.PLAYER_HURT_ENTITY）
+     *
+     * @param entity 受击实体
+     * @param source 伤害源
+     * @param dealt 本次造成的伤害
+     * @param taken 受击方实际承受的伤害
+     * @param blocked 是否被格挡
+     *
+     * 基类为空实现（仅服务端玩家处理进度）。
+     */
+    virtual void triggerPlayerHurtEntity(
+        const Entity& entity, const DamageSource& source, f32 dealt, f32 taken, bool blocked)
+    {
+        MC_UNUSED(entity);
+        MC_UNUSED(source);
+        MC_UNUSED(dealt);
+        MC_UNUSED(taken);
+        MC_UNUSED(blocked);
+    }
+
+    /**
      * @brief 增加自定义统计
      *
      * 当玩家触发自定义统计事件时调用（如打开容器、与方块交互等）。

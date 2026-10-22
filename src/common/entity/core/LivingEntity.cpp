@@ -300,6 +300,10 @@ bool LivingEntity::hurt(DamageSource& source, f32 amount)
     m_lastBlockedDamage = blockedAmount;
     const bool blocked = blockedAmount > 0.0f;
 
+    // 本 tick 由预先格挡扣下的伤害量，供 actuallyHurt 末尾派发 player_hurt_entity 时
+    // 作为"造成/承受伤害"参数（对齐 vanilla hurtServer 传入的 f 与 p_376610_）。
+    m_pendingBlockedDamage = blockedAmount;
+
     // 1.5 抗火药水免疫火焰伤害（对齐 vanilla LivingEntity.hurtServer:1162：
     //   p_376460_.is(DamageTypeTags.IS_FIRE) && this.hasEffect(MobEffects.FIRE_RESISTANCE) → return false）。
     // 持有 FireResistance 效果的实体对所有 IS_FIRE 伤害源免疫（in_fire/campfire/on_fire/lava/hot_floor/
@@ -612,6 +616,17 @@ void LivingEntity::actuallyHurt(DamageSource& source, f32 amount)
     if (healthState != nullptr) {
         healthState->m_health -= amount;
         healthState->m_lastHealth = healthState->m_health;
+    }
+
+    // 5.5 受击进度（对齐 vanilla LivingEntity.hurtServer:1272-1274）：
+    //    伤害的真正造成者是玩家时派发 player_hurt_entity（即便伤害被护甲/吸收完全抵消，
+    //    vanilla 也会在 actuallyHurt 末尾无条件派发）。dealt 与 taken 在 vanilla 调用点
+    //    均为扣减后的实受伤量 p_376610_（方块撞击等 BlockedDamage 场景再叠加预格挡量 f）。
+    if (m_world != nullptr && !m_world->isClientSide()) {
+        if (auto* attackerPlayer = dynamic_cast<Player*>(source.getTrueSource()); attackerPlayer != nullptr) {
+            const f32 registeredDamage = amount + m_pendingBlockedDamage;
+            attackerPlayer->triggerPlayerHurtEntity(*this, source, registeredDamage, registeredDamage, false);
+        }
     }
 
     // 6. 记录到战斗追踪器

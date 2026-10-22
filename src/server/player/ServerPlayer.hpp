@@ -550,6 +550,10 @@ public:
     /// 每 tick 使用物品时派发 using_item 进度（对齐 vanilla ServerPlayer.updateUsingItem）
     void _onUsingItemTick(const ItemStack& activeItem) override;
 
+    /// 触发 player_hurt_entity 进度（对齐 vanilla CriteriaTriggers.PLAYER_HURT_ENTITY）
+    void triggerPlayerHurtEntity(
+        const Entity& entity, const DamageSource& source, f32 dealt, f32 taken, bool blocked) override;
+
     /**
      * @brief 解锁配方（重写 Player 基类）
      *

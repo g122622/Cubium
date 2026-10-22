@@ -575,6 +575,23 @@ void ServerPlayer::_onUsingItemTick(const ItemStack& activeItem)
         [&activeItem](const advancement::UsingItemTriggerInstance& instance) { return instance.test(activeItem); });
 }
 
+void ServerPlayer::triggerPlayerHurtEntity(
+    const Entity& entity, const DamageSource& source, f32 dealt, f32 taken, bool blocked)
+{
+    if (m_advancements == nullptr) {
+        return;
+    }
+    auto* trigger = advancement::CriterionTriggers::instance().getTrigger<advancement::PlayerHurtEntityTrigger>();
+    if (trigger == nullptr) {
+        return;
+    }
+    trigger->advancement::AbstractCriterionTrigger<advancement::PlayerHurtEntityTriggerInstance>::trigger(
+        *m_advancements,
+        [&entity, &source, dealt, taken, blocked](const advancement::PlayerHurtEntityTriggerInstance& instance) {
+            return instance.test(source, dealt, taken, blocked, entity);
+        });
+}
+
 void ServerPlayer::unlockRecipe(const ResourceLocation& recipeId)
 {
     // 触发配方解锁成就
