@@ -379,10 +379,35 @@ void PandaEntity::registerGoals()
     //       if (p_478126_ instanceof Panda && p_478126_.isAggressive()) p_478126_.setTarget(p_480501_);
     //     即只警醒好斗熊猫。alertOthers 已通过 entityType() 同类型过滤保证 instanceof Panda，
     //     谓词返回 !isAggressive() 排除非好斗熊猫（不警醒），等价于 vanilla 的 isAggressive() 门控。
-    //   TODO: vanilla PandaHurtByTargetGoal.canContinueToUse 在 gotBamboo/didBite 时 setTarget(null)
-    //   并终止（Panda.java:846-853）。Cubium 暂无 gotBamboo/didBite 字段，该边缘终止未实现；
-    //   若未来补全熊猫进食状态机，需在此子类化 HurtByTargetGoal 覆盖 canContinueToUse。
-    auto hurtByTarget = std::make_unique<entity::ai::goal::HurtByTargetGoal>(this, true);
+    //   终止条件对齐 vanilla PandaHurtByTargetGoal.canContinueToUse（Panda.java:846-853）：
+    //     if (!panda.gotBamboo && !panda.didBite) return super.canContinueToUse();
+    //     else { panda.setTarget(null); return false; }
+    //   gotBamboo 由"反击中收到食物"置位（Panda.mobInteract:615-618），didBite 由
+    //   "非好斗熊猫咬到目标"置位（Panda.doHurtTarget:316-320），二者随目标清空归零。
+    // 熊猫专用子类：反击中收到食物/咬中目标后立即放弃反击（vanilla PandaHurtByTargetGoal）。
+    class PandaHurtByTargetGoal final : public entity::ai::goal::HurtByTargetGoal {
+    public:
+        explicit PandaHurtByTargetGoal(PandaEntity* panda)
+            // setTargetOnStart=true：本目标被放在目标选择器里，选中后需把攻击者写入
+            // 熊猫的 attackTarget（vanilla TargetGoal.start → mob.setTarget(target)）。
+            : HurtByTargetGoal(panda, true, TargetWriteMode::WriteOnStart)
+            , m_panda(panda)
+        {}
+
+        [[nodiscard]] bool shouldContinueExecuting() override
+        {
+            if (!m_panda->gotBamboo() && !m_panda->didBite()) {
+                return HurtByTargetGoal::shouldContinueExecuting();
+            }
+            m_panda->setAttackTarget(nullptr);
+            return false;
+        }
+
+    private:
+        PandaEntity* m_panda;
+    };
+
+    auto hurtByTarget = std::make_unique<PandaHurtByTargetGoal>(this);
     hurtByTarget->setAlertOthers([](const LivingEntity* ally) -> bool {
         // 谓词返回 true = 不警醒该盟友。对齐 vanilla alertOther 的 isAggressive() 门控：
         // 非好斗熊猫不警醒。ally 经 entityType 过滤已是熊猫。
@@ -474,6 +499,33 @@ bool PandaEntity::hurt(DamageSource& source, f32 amount)
     return AnimalEntity::hurt(source, amount);
 }
 
+bool PandaEntity::attackEntityAsMob(LivingEntity& target)
+{
+    // 对齐 vanilla Panda.doHurtTarget（Panda.java:316-320）：非好斗熊猫咬到目标时置位
+    // didBite，使 PandaHurtByTargetGoal 在下一次 canContinueToUse 终止反击。
+    if (!isAggressive()) {
+        m_didBite = true;
+    }
+    return AnimalEntity::attackEntityAsMob(target);
+}
+
+void PandaEntity::playAttackSound(LivingEntity& target)
+{
+    // 对齐 vanilla Panda.playAttackSound：PANDA_BITE。
+    (void)target;
+    playBiteSound();
+}
+
+void PandaEntity::setAttackTarget(LivingEntity* target)
+{
+    // 对齐 vanilla Panda.tick:341-345：目标为空时清零 gotBamboo / didBite。
+    if (target == nullptr) {
+        m_gotBamboo = false;
+        m_didBite = false;
+    }
+    AnimalEntity::setAttackTarget(target);
+}
+
 void PandaEntity::sit(bool sit)
 {
     // vanilla Panda.sit 只写标志位；下坐动作（停止寻路、清除移动输入）由 tryToSit 负责，
@@ -486,6 +538,12 @@ ActionResultType PandaEntity::interactMob(Player& player, Hand hand)
     ItemStack& stack = player.getHeldItem(hand);
     const bool isFood = isBreedingItem(stack);
     const bool wasInLove = isInLove();
+
+    // 对齐 vanilla Panda.mobInteract:615-618：正在反击（有攻击目标）时收到食物，
+    // 置 gotBamboo，使 PandaHurtByTargetGoal 下次 canContinueToUse 终止反击。
+    if (isFood && attackTarget() != nullptr) {
+        m_gotBamboo = true;
+    }
 
     const ActionResultType result = AnimalEntity::interactMob(player, hand);
 

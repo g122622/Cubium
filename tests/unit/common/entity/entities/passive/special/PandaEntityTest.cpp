@@ -27,6 +27,7 @@
 #include "common/core/Constants.hpp"
 #include "common/entity/ai/goal/goals/target/TargetGoals.hpp"
 #include "common/entity/damage/DamageSource.hpp"
+#include "common/entity/entities/monster/undead/ZombieEntity.hpp"
 #include "common/entity/entities/passive/special/PandaEntity.hpp"
 #include "common/entity/registry/VanillaEntities.hpp"
 #include "common/item/Items.hpp"
@@ -1021,6 +1022,11 @@ public:
     {}
 
     using PandaEntity::tick;
+    void testTick() { tick(); }
+
+    /// 直接驱动目标选择器一轮完整评估（绕过 MobEntity::tick 的错峰门控与其它 AI 副作用），
+    /// 用于验证目标自身的 canContinueToUse 语义。
+    void testTickTargetSelector() { targetSelector().tick(); }
 };
 
 } // namespace
@@ -1078,6 +1084,57 @@ TEST(PandaSittingTest, SittingKeepsPitchLevel)
 
     panda.tick();
     EXPECT_FLOAT_EQ(panda.pitch(), 0.0f);
+}
+
+// ==================== 反击终止标志（gotBamboo / didBite） ====================
+
+TEST(PandaRetaliationTest, ClearingTargetResetsBothFlags)
+{
+    Items::initialize();
+    PandaEntity panda(EntityInstanceId(1), mc::test::testEcsRegistry());
+    panda.setTypeId("minecraft:panda");
+
+    panda.setGotBamboo(true);
+    panda.setDidBite(true);
+    EXPECT_TRUE(panda.gotBamboo());
+    EXPECT_TRUE(panda.didBite());
+
+    // 对齐 vanilla Panda.tick:341-345：目标为空时清零两个终止标志
+    panda.setAttackTarget(nullptr);
+    EXPECT_FALSE(panda.gotBamboo());
+    EXPECT_FALSE(panda.didBite());
+}
+
+TEST(PandaRetaliationTest, HurtByTargetGoalStopsAfterBamboo)
+{
+    Items::initialize();
+    PandaTestWorld world;
+    TickablePanda panda(EntityInstanceId(1), mc::test::testEcsRegistry());
+    panda.setWorld(&world);
+    panda.setTypeId("minecraft:panda");
+    entity::VanillaEntities::registerAll();
+
+    auto attacker = std::make_unique<ZombieEntity>(EntityInstanceId(2), mc::test::testEcsRegistry());
+    attacker->setWorld(&world);
+    attacker->setTypeId("minecraft:zombie");
+    world.registerEntityForLookup(attacker.get());
+
+    // 走真实反击入口：先推进 tick 让 lastHurtBy 时间戳非零，再被僵尸攻击
+    for (i32 i = 0; i < 10; ++i) {
+        panda.testTick();
+    }
+    EntityDamageSource source = DamageSources::mobAttack(attacker.get());
+    ASSERT_TRUE(panda.hurt(source, 1.0f));
+    for (i32 i = 0; i < 4 && panda.attackTarget() == nullptr; ++i) {
+        panda.testTick();
+    }
+    ASSERT_EQ(panda.attackTarget(), attacker.get());
+
+    // 收到食物（gotBamboo）后，目标选择器里的熊猫反击目标在完整评估帧放弃反击
+    panda.setGotBamboo(true);
+    for (i32 i = 0; i < 4; ++i) {
+        panda.testTick();
+    }
 }
 
 } // anonymous namespace

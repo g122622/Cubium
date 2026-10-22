@@ -298,6 +298,12 @@ bool HurtByTargetGoal::shouldExecute()
     return true;
 }
 
+HurtByTargetGoal::HurtByTargetGoal(MobEntity* mob, bool alertAllies, TargetWriteMode mode)
+    : TargetGoal(mob, true)
+    , m_alertAllies(alertAllies)
+    , m_setTargetOnStart(mode == TargetWriteMode::WriteOnStart)
+{}
+
 HurtByTargetGoal& HurtByTargetGoal::setAlertOthers(TargetPredicate ignoreAlertPredicate)
 {
     m_alertAllies = true;
@@ -308,6 +314,11 @@ HurtByTargetGoal& HurtByTargetGoal::setAlertOthers(TargetPredicate ignoreAlertPr
 void HurtByTargetGoal::startExecuting()
 {
     TargetGoal::startExecuting();
+
+    // 对齐 vanilla TargetGoal.start（goal.start(); if target != null mob.setTarget(target)）
+    if (m_setTargetOnStart && m_mob != nullptr && m_target != nullptr) {
+        m_mob->setAttackTarget(m_target.get());
+    }
 
     // MC Java: HurtByTargetGoal.start() 中设置 unseenMemoryTicks = 300
     // 被攻击后的反击目标记忆时间更长（15秒），即使失去视线也会持续追踪攻击者

@@ -198,6 +198,35 @@ public:
      */
     HurtByTargetGoal(MobEntity* mob, bool alertAllies, TargetPredicate ignoreDamagePredicate);
 
+    /**
+     * @brief 目标写入模式标记（供"选择器自管目标写入"的派生类使用）
+     *
+     * 部分实体（如熊猫）不走 GoalSelector 的"提出 → 写入地上目标"流程，而是把
+     * HurtByTargetGoal 作为独立选择器的实现，其 startExecuting 需要把选中的攻击者
+     * 明确写入实体（vanilla TargetGoal.start → mob.setTarget(target)）。
+     *
+     * @param mob 拥有此目标的生物
+     * @param alertAllies 是否警醒盟友
+     * @param setTargetOnStart true 表示 startExecuting 时把选中目标写入实体
+     */
+    enum class TargetWriteMode : u8 {
+        Default,      ///< 不写入实体目标（调用方自行消费）
+        WriteOnStart, ///< startExecuting 时把选中目标写入实体（vanilla TargetGoal.start 语义）
+    };
+
+    /**
+     * @brief 构造并指定目标写入模式
+     *
+     * 部分实体的目标选择器不经过"提出目标 → 写入"流程（如熊猫用独立选择器），
+     * 此时需要本构造让 startExecuting 把选中的攻击者写入实体（等价 vanilla
+     * TargetGoal.start → mob.setTarget(target)）。
+     *
+     * @param mob 拥有此目标的生物
+     * @param alertAllies 是否警醒盟友
+     * @param mode 目标写入模式
+     */
+    HurtByTargetGoal(MobEntity* mob, bool alertAllies, TargetWriteMode mode);
+
     ~HurtByTargetGoal() override = default;
 
     [[nodiscard]] bool shouldExecute() override;
@@ -225,6 +254,7 @@ public:
 
 private:
     bool m_alertAllies;
+    bool m_setTargetOnStart = false;
     i32 m_timestamp = 0;
     TargetPredicate m_ignoreDamagePredicate; ///< 攻击者排除谓词（对应 MC toIgnoreDamage）
     TargetPredicate m_ignoreAlertPredicate;  ///< 盟友排除谓词（对应 MC toIgnoreAlert）

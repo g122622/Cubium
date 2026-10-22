@@ -363,6 +363,19 @@ public:
      */
     [[nodiscard]] bool isSitting() const { return m_sitting; }
 
+    // ========== 反击终止标志（对齐 vanilla Panda.gotBamboo / didBite） ==========
+
+    /// 被反击中的熊猫收到食物时置位：下次 canContinueToUse 终止反击（Panda.java:846-853）
+    [[nodiscard]] bool gotBamboo() const { return m_gotBamboo; }
+    void setGotBamboo(bool gotBamboo) { m_gotBamboo = gotBamboo; }
+
+    /// 非好斗熊猫咬到目标时置位：同样终止反击（Panda.doHurtTarget:316-320）
+    [[nodiscard]] bool didBite() const { return m_didBite; }
+    void setDidBite(bool didBite) { m_didBite = didBite; }
+
+    /// 攻击目标变更钩子：目标被清空时同时清零两个终止标志（Panda.tick:341-345）
+    void setAttackTarget(LivingEntity* target) override;
+
     // 打喷嚏计时常量（public 供测试断言）。对齐 vanilla Panda：sneezeCounter 0→21，
     // ==1 播预喷嚏，>20 触发 afterSneeze。Cubium 用递减模型：sneeze(true) 设 timer=SNEEZE_DURATION，
     // tick 递减；timer==SNEEZE_DURATION-1 播预喷嚏（对应 counter==1），timer 到 0 触发 _onSneezeComplete。
@@ -386,6 +399,12 @@ public:
 protected:
     // ========== AI 目标注册 ==========
     void registerGoals() override;
+
+    /// 攻击命中：非好斗熊猫咬到目标后置 didBite（对齐 vanilla Panda.doHurtTarget）
+    bool attackEntityAsMob(LivingEntity& target) override;
+
+    /// 攻击音效：PANDA_BITE（对齐 vanilla Panda.playAttackSound）
+    void playAttackSound(LivingEntity& target) override;
 
     // ========== 属性注册 ==========
     void registerAttributes() override;
@@ -432,7 +451,12 @@ private:
     bool m_sneezing = false;
     bool m_eating = false;
     bool m_lying = false;
-    bool m_sitting = false; // 对齐 vanilla Panda.sit (flag 8)；TODO: 下游坐下行为未实现
+    bool m_sitting = false; // 对齐 vanilla Panda.sit (flag 8)；下游坐姿动画见上方 TODO
+
+    // 反击终止标志（对齐 vanilla Panda.gotBamboo / didBite，none 随 NBT 持久化——
+    // vanilla 亦不序列化这两个瞬时字段）。
+    bool m_gotBamboo = false;
+    bool m_didBite = false;
 
     // 计时器
     i32 m_rollTimer = 0;
