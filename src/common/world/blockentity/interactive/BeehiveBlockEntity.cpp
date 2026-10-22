@@ -20,6 +20,7 @@
  */
 
 #include "BeehiveBlockEntity.hpp"
+#include "common/world/attribute/EnvironmentAttributes.hpp"
 
 #include "common/core/Types.hpp"
 #include "common/entity/entities/passive/special/BeeEntity.hpp"
@@ -226,9 +227,16 @@ bool BeehiveBlockEntity::_releaseOccupant(
 
     BeeOccupant occupant = m_bees[occupantIndex];
 
-    // 天气/夜间检查：非紧急释放时，雨天/雷暴/夜间蜜蜂留在巢内
+    // 天气/夜间检查：非紧急释放时，环境属性 BEES_STAY_IN_HIVE 为真（雨天/雷暴/夜间，
+    // 由维度与群系属性层给出，对齐 vanilla BeehiveBlockEntity.releaseOccupant 的
+    // EnvironmentAttributes.BEES_STAY_IN_HIVE）时蜜蜂留在巢内。属性系统未就绪时退回直接判定。
     if (releaseStatus != BeeReleaseStatus::Emergency) {
-        if (world.isRaining() || world.isThundering() || !world.isDaytime()) {
+        const world::attribute::EnvironmentAttributeSystem& environmentAttributes = world.environmentAttributes();
+        const math::Vector3 queryPos(static_cast<f32>(m_pos.x), static_cast<f32>(m_pos.y), static_cast<f32>(m_pos.z));
+        const bool stayInHive = environmentAttributes.attributeCount() != 0
+            ? environmentAttributes.getValue(world::attribute::EnvironmentAttributes::BEES_STAY_IN_HIVE(), queryPos)
+            : (world.isRaining() || world.isThundering() || !world.isDaytime());
+        if (stayInHive) {
             return false;
         }
     }

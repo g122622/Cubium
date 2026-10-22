@@ -71,7 +71,7 @@ AnimalEntity (passive/basic/AnimalEntity.hpp)
 5. **授粉状态管理**：`BeePollinateGoal::startExecuting()` 调用 `setPollinating(true)`，`resetTask()` 调用 `setPollinating(false)` 并设置花朵冷却 200 tick。
 6. **天气/夜间回巢逻辑（BEES_STAY_IN_HIVE）**：MC 原版通过 `EnvironmentAttributes.BEES_STAY_IN_HIVE` 统一管理蜜蜂在雨天/雷暴/夜间回巢的行为。该逻辑体现在两处：
    - `BeeEntity::wantsToEnterHive()`：查询 `IWorld::environmentAttributes()` 的 `BEES_STAY_IN_HIVE`（环境属性系统未就绪时退回 `isRaining()`/`isThundering()`/`!isDaytime()` 直接判定）
-   - `BeehiveBlockEntity::_releaseOccupant()`：雨天/雷暴/夜间不放出蜜蜂（紧急释放除外）
+   - `BeehiveBlockEntity::_releaseOccupant()`：查询同一环境属性，为真（雨天/雷暴/夜间）时不放出蜜蜂（紧急释放除外）
 7. **寻找花蜜阈值**：`isTiredOfLookingForNectar()` 使用 3600 tick 阈值（MC 原版值），`BeeFindFlowerGoal` 使用 600 tick 阈值触发寻找已知花朵（MC 原版 `wantsToGoToKnownFlower` 逻辑）。
 8. **导航方法**：`pathfindRandomlyTowards()` 和 `pathfindDirectlyTowards()` 实现了蜜蜂特有的漂移飞行导航：
    - `pathfindRandomlyTowards()` 对应 MC 的 `Bee.pathfindRandomlyTowards()`，在目标方向 18 度锥形内生成随机空中航点（使用 `findAirPositionTowards`），近距离时自动缩小搜索范围，产生蜜蜂漂移飞行效果。被 `BeeFindHiveGoal`（远距离）和 `BeeFindFlowerGoal` 调用。
