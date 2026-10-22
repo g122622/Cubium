@@ -48,8 +48,11 @@
 #include "common/world/IWorld.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 
+#include <algorithm>
 #include <cmath>
+#include <iterator>
 #include <memory>
+#include <string>
 
 namespace mc {
 namespace {
@@ -195,6 +198,53 @@ TEST_F(GoatEntityTest, LowerHeadTick_ClampsAtTwenty)
         goat.tick();
     }
     EXPECT_EQ(goat.lowerHeadTick(), GoatEntity::RAM_PREPARE_TIME);
+}
+
+// ============================================================================
+// 山羊角乐器
+// ============================================================================
+
+TEST_F(GoatEntityTest, CreateHorn_CarriesInstrumentComponent)
+{
+    GoatEntity goat(EntityInstanceId(1), mc::test::testEcsRegistry());
+    goat.setUuid("00000000-0000-0000-0000-000000000001");
+
+    const ItemStack horn = goat.createHorn();
+    ASSERT_FALSE(horn.isEmpty());
+    // 对齐 vanilla Goat.createHorn：从乐器标签随机取音色写入 instrument 组件
+    const std::string instrument = horn.getInstrument();
+    EXPECT_FALSE(instrument.empty());
+    EXPECT_NE(instrument.find("minecraft:"), std::string::npos);
+}
+
+TEST_F(GoatEntityTest, CreateHorn_InstrumentsDifferByScreaming)
+{
+    GoatEntity regular(EntityInstanceId(1), mc::test::testEcsRegistry());
+    GoatEntity screaming(EntityInstanceId(2), mc::test::testEcsRegistry());
+    screaming.setScreamingGoat(true);
+    regular.setUuid("11111111-2222-3333-4444-555555555555");
+    screaming.setUuid("11111111-2222-3333-4444-555555555555");
+
+    const std::string regularInstrument = regular.createHorn().getInstrument();
+    const std::string screamingInstrument = screaming.createHorn().getInstrument();
+    ASSERT_FALSE(regularInstrument.empty());
+    ASSERT_FALSE(screamingInstrument.empty());
+
+    // 两个标签互斥：普通山羊角音色 {ponder,sing,seek,feel}，尖叫 {admire,call,yearn,dream}
+    static const char* const kRegular[] = {
+        "minecraft:ponder_goat_horn",
+        "minecraft:sing_goat_horn",
+        "minecraft:seek_goat_horn",
+        "minecraft:feel_goat_horn",
+    };
+    static const char* const kScreaming[] = {
+        "minecraft:admire_goat_horn",
+        "minecraft:call_goat_horn",
+        "minecraft:yearn_goat_horn",
+        "minecraft:dream_goat_horn",
+    };
+    EXPECT_TRUE(std::find(std::begin(kRegular), std::end(kRegular), regularInstrument) != std::end(kRegular));
+    EXPECT_TRUE(std::find(std::begin(kScreaming), std::end(kScreaming), screamingInstrument) != std::end(kScreaming));
 }
 
 // ============================================================================

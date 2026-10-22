@@ -144,6 +144,9 @@ public:
     /// 长跳中的姿态缩放（vanilla Goat.LONG_JUMPING_DIMENSIONS = 0.9x1.3 scale 0.7）
     static constexpr f32 LONG_JUMPING_SCALE = 0.7f;
 
+    /// 按 UUID 哈希从乐器标签挑选山羊角音色（对齐 vanilla Goat.createHorn）
+    [[nodiscard]] ResourceLocation pickHornInstrument() const;
+
     /// 长跳中收缩碰撞箱（对齐 vanilla Goat.getDefaultDimensions 的 Pose.LONG_JUMPING 分支）
     [[nodiscard]] entity::EntitySize getDimensions(EntityPose pose) const override;
     void setRamCooldown(i32 ticks);
@@ -202,6 +205,9 @@ protected:
     void registerAttributes() override;
 
 private:
+    /// Java String.hashCode（山羊角音色种子，对齐 vanilla RandomSource.create(uuid.hashCode())）
+    static i32 _javaStringHashCode(const std::string& text);
+
     /// 吃草音效（尖叫山羊用 screaming_eat）
     void _playEatingSound();
 

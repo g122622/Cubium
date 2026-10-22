@@ -44,12 +44,17 @@
 #include "common/entity/utils/ItemDropHelper.hpp"
 #include "common/item/Items.hpp"
 #include "common/item/core/ItemStack.hpp"
+#include "common/item/instrument/InstrumentRegistry.hpp"
+#include "common/util/math/random/JavaLegacyRandom.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockPos.hpp"
 
+#include <array>
+#include <cstddef>
 #include <memory>
+#include <string>
 #include <utility>
 
 namespace mc {
@@ -188,13 +193,60 @@ void GoatEntity::removeHorns()
 
 ItemStack GoatEntity::createHorn() const
 {
-    // TODO(instrument-registry): vanilla 从 InstrumentTags.SCREAMING_GOAT_HORNS / REGULAR_GOAT_HORNS
-    // 随机取乐器（种子 = UUID 哈希）构造带 Instrument 组件的山羊角；Cubium 乐器注册表未接入，
-    // 这里返回普通山羊角物品，待乐器体系落地后补组件。
+    // 对齐 vanilla Goat.createHorn：
+    //   RandomSource.create(uuid.hashCode()) 后从
+    //   SCREAMING_GOAT_HORNS / REGULAR_GOAT_HORNS 标签中随机取一个乐器，
+    //   并写入山羊角的 instrument 数据组件。
     if (Items::GOAT_HORN == nullptr) {
         return ItemStack();
     }
-    return ItemStack(*Items::GOAT_HORN, 1);
+    ItemStack horn(*Items::GOAT_HORN, 1);
+    const ResourceLocation instrumentId = pickHornInstrument();
+    if (!instrumentId.toString().empty()) {
+        horn.setInstrument(instrumentId.toString());
+    }
+    return horn;
+}
+
+ResourceLocation GoatEntity::pickHornInstrument() const
+{
+    // 乐器注册表须先初始化（幂等，重复调用无副作用）。
+    item::instrument::InstrumentRegistry& registry = item::instrument::InstrumentRegistry::instance();
+    registry.initialize();
+
+    // 乐器标签（对齐 InstrumentTagsProvider.REGULAR_GOAT_HORNS / SCREAMING_GOAT_HORNS）。
+    static const std::array<const char*, 4> REGULAR = {
+        "minecraft:ponder_goat_horn",
+        "minecraft:sing_goat_horn",
+        "minecraft:seek_goat_horn",
+        "minecraft:feel_goat_horn",
+    };
+    static const std::array<const char*, 4> SCREAMING = {
+        "minecraft:admire_goat_horn",
+        "minecraft:call_goat_horn",
+        "minecraft:yearn_goat_horn",
+        "minecraft:dream_goat_horn",
+    };
+    const auto& candidates = isScreamingGoat() ? SCREAMING : REGULAR;
+
+    // 种子 = UUID 字符串的 Java String.hashCode（对齐 vanilla RandomSource.create(uuid.hashCode())）。
+    math::JavaLegacyRandom random;
+    random.setSeed(static_cast<u64>(static_cast<u32>(_javaStringHashCode(uuid()))));
+    const i32 index = random.nextInt(static_cast<i32>(candidates.size()));
+    const ResourceLocation candidate(candidates[static_cast<std::size_t>(index)]);
+    if (registry.get(candidate) == nullptr) {
+        return ResourceLocation();
+    }
+    return candidate;
+}
+
+i32 GoatEntity::_javaStringHashCode(const std::string& text)
+{
+    i32 hash = 0;
+    for (const char ch : text) {
+        hash = 31 * hash + static_cast<u8>(ch);
+    }
+    return hash;
 }
 
 bool GoatEntity::dropHorn()
