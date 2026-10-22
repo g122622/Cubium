@@ -347,8 +347,9 @@ void BeeEntity::tick()
         }
     }
 
-    // 离巢后无花粉计时递增
-    if (!hasNectar() && m_hasHive) {
+    // 无花粉计时递增（对齐 vanilla customServerAiStep：只要当前无花粉就累加，
+    // 与是否还记着蜂巢无关——离巢后蜂巢记录可能已被丢弃，计时仍需继续）。
+    if (!hasNectar()) {
         ++m_ticksWithoutNectarSinceExitingHive;
     }
 
