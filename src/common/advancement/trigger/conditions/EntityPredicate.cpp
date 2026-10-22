@@ -51,7 +51,8 @@ namespace mc::advancement {
 void EntityPredicate::_updateIsAny()
 {
     m_isAny = !m_type.has_value() && m_distance.isAny() && m_location.isAny() && m_effects.isAny() && m_nbt.isAny() &&
-        m_flags.isAny() && m_equipment.isAny() && m_components.empty() && !m_typeSpecific.has_value();
+        m_flags.isAny() && m_equipment.isAny() && m_components.empty() && !m_typeSpecific.has_value() &&
+        m_vehicle == nullptr;
 }
 
 bool EntityPredicate::test(const Entity& entity) const
@@ -105,6 +106,42 @@ bool EntityPredicate::test(const Entity& entity) const
 
     return true;
 }
+
+EntityPredicate::EntityPredicate(const EntityPredicate& other)
+    : m_type(other.m_type)
+    , m_distance(other.m_distance)
+    , m_location(other.m_location)
+    , m_effects(other.m_effects)
+    , m_nbt(other.m_nbt)
+    , m_flags(other.m_flags)
+    , m_equipment(other.m_equipment)
+    , m_components(other.m_components)
+    , m_vehicle(other.m_vehicle != nullptr ? std::make_unique<EntityPredicate>(*other.m_vehicle) : nullptr)
+    , m_typeSpecific(other.m_typeSpecific)
+    , m_isAny(other.m_isAny)
+{}
+
+EntityPredicate& EntityPredicate::operator=(const EntityPredicate& other)
+{
+    if (this == &other) {
+        return *this;
+    }
+    m_type = other.m_type;
+    m_distance = other.m_distance;
+    m_location = other.m_location;
+    m_effects = other.m_effects;
+    m_nbt = other.m_nbt;
+    m_flags = other.m_flags;
+    m_equipment = other.m_equipment;
+    m_components = other.m_components;
+    m_vehicle = other.m_vehicle != nullptr ? std::make_unique<EntityPredicate>(*other.m_vehicle) : nullptr;
+    m_typeSpecific = other.m_typeSpecific;
+    m_isAny = other.m_isAny;
+    return *this;
+}
+
+DamageSourcePredicate::DamageSourcePredicate(const DamageSourcePredicate& other) = default;
+DamageSourcePredicate& DamageSourcePredicate::operator=(const DamageSourcePredicate& other) = default;
 
 bool EntityPredicate::_testTypeSpecific(const Entity& entity, const EntityTypeSpecificPredicate& specific) const
 {
@@ -216,6 +253,14 @@ bool EntityPredicate::test(const IWorld& world, f64 x, f64 y, f64 z, const Entit
         return false;
     }
 
+    // 8. 检查载具（vanilla vehicle：劫掠兽骑兵、骆驼尸壳骑兵等掉落判定依赖）
+    if (m_vehicle != nullptr) {
+        const Entity* vehicle = world.getEntity(entity.getVehicle());
+        if (vehicle == nullptr || !m_vehicle->test(*vehicle)) {
+            return false;
+        }
+    }
+
     return true;
 }
 
@@ -303,6 +348,13 @@ Result<EntityPredicate> EntityPredicate::fromJson(const nlohmann::json& json)
         }
     }
 
+    if (json.contains("vehicle") && json["vehicle"].is_object()) {
+        const Result<EntityPredicate> vehicle = EntityPredicate::fromJson(json["vehicle"]);
+        if (!vehicle.success()) {
+            return vehicle.error();
+        }
+        predicate.m_vehicle = std::make_unique<EntityPredicate>(vehicle.value());
+    }
     if (json.contains("type_specific") && json["type_specific"].is_object()) {
         const auto& specific = json["type_specific"];
         EntityTypeSpecificPredicate parsed;

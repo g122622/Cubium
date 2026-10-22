@@ -140,6 +140,12 @@ public:
     [[nodiscard]] const EntityFlagsPredicate& getFlags() const noexcept { return m_flags; }
     [[nodiscard]] const EntityEquipmentPredicate& getEquipment() const noexcept { return m_equipment; }
     [[nodiscard]] const std::vector<EntityComponentFilter>& getComponents() const noexcept { return m_components; }
+    [[nodiscard]] const EntityPredicate* getVehicle() const noexcept { return m_vehicle.get(); }
+
+    EntityPredicate(const EntityPredicate& other);
+    EntityPredicate& operator=(const EntityPredicate& other);
+    EntityPredicate(EntityPredicate&&) noexcept = default;
+    EntityPredicate& operator=(EntityPredicate&&) noexcept = default;
     [[nodiscard]] const std::optional<EntityTypeSpecificPredicate>& getTypeSpecific() const noexcept
     {
         return m_typeSpecific;
@@ -201,6 +207,8 @@ private:
     EntityEquipmentPredicate m_equipment;   ///< 装备谓词
     /// 组件过滤（vanilla EntityPredicate.components，如 {"minecraft:frog/variant": "minecraft:warm"}）
     std::vector<EntityComponentFilter> m_components;
+    /// 载具谓词（vanilla vehicle：骑乘中的实体须匹配该谓词；用 unique_ptr 规避不完整类型）
+    std::unique_ptr<EntityPredicate> m_vehicle;
     /// 类型专属谓词（vanilla type_specific）
     std::optional<EntityTypeSpecificPredicate> m_typeSpecific;
     bool m_isAny = true;
@@ -262,6 +270,11 @@ public:
     [[nodiscard]] const std::optional<bool>& bypassesMagic() const noexcept { return m_bypassesMagic; }
     [[nodiscard]] const std::optional<EntityPredicate>& sourceEntity() const noexcept { return m_sourceEntity; }
     [[nodiscard]] const std::optional<EntityPredicate>& directEntity() const noexcept { return m_directEntity; }
+
+    DamageSourcePredicate(const DamageSourcePredicate& other);
+    DamageSourcePredicate& operator=(const DamageSourcePredicate& other);
+    DamageSourcePredicate(DamageSourcePredicate&&) noexcept = default;
+    DamageSourcePredicate& operator=(DamageSourcePredicate&&) noexcept = default;
     [[nodiscard]] const std::optional<ResourceLocation>& type() const noexcept { return m_type; }
     [[nodiscard]] const std::vector<DamageTypeTagFilter>& typeTags() const noexcept { return m_typeTags; }
 

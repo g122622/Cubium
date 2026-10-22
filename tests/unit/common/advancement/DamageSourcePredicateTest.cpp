@@ -55,6 +55,9 @@ public:
     {}
 };
 
+/// BaseTestWorld 构造函数为 protected，测试以派生类实例化。
+class VehicleTestWorld final : public mc::test::BaseTestWorld {};
+
 class FrogFroglightDamageSourcePredicateTest : public ::testing::Test {};
 
 TEST_F(FrogFroglightDamageSourcePredicateTest, SourceEntity_MatchesFrogAttacker)
@@ -171,6 +174,22 @@ TEST_F(FrogFroglightDamageSourcePredicateTest, TypeSpecific_SheepSheared)
 
     sheep.setSheared(true);
     EXPECT_FALSE(predicate.value().test(sheep));
+}
+
+TEST_F(FrogFroglightDamageSourcePredicateTest, Vehicle_MatchesRiddenEntity)
+{
+    // 对齐数据包：尸壳掉落表 {"vehicle": {"type": "minecraft:camel_husk"}}
+    const nlohmann::json json = {{"vehicle", {{"type", "minecraft:camel_husk"}}}};
+    const auto predicate = advancement::EntityPredicate::fromJson(json);
+    ASSERT_TRUE(predicate.success());
+    EXPECT_FALSE(predicate.value().isAny());
+    ASSERT_NE(predicate.value().getVehicle(), nullptr);
+
+    // 无载具的实体不匹配（世界桩 getEntity 返回 nullptr）
+    FakeAttacker husk(EntityInstanceId(1), mc::test::testEcsRegistry());
+    husk.setTypeId(entity::EntityTypeKeys::HUSK);
+    VehicleTestWorld world;
+    EXPECT_FALSE(predicate.value().test(world, 0.0, 64.0, 0.0, husk));
 }
 
 TEST_F(FrogFroglightDamageSourcePredicateTest, BooleanOnlyJson_StillAnyWhenNoFields)
