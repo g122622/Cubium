@@ -44,13 +44,13 @@ namespace entity::ai::goal {
  * 2. 目标点不可用或到达（距离<2）或1/30概率时更换目标点
  * 3. 平滑转向朝目标点飞行
  */
-class BatRandomFlyGoal : public Goal {
+class BatFloatGoal : public Goal {
 public:
     /**
      * @brief 构造函数
      * @param bat 蝙蝠实体指针
      */
-    explicit BatRandomFlyGoal(BatEntity* bat);
+    explicit BatFloatGoal(BatEntity* bat);
 
     /**
      * @brief 检查是否应该执行
@@ -85,7 +85,7 @@ public:
     /**
      * @brief 获取目标名称
      */
-    std::string getTypeName() const override { return "BatRandomFlyGoal"; }
+    std::string getTypeName() const override { return "BatFloatGoal"; }
 
 private:
     /**

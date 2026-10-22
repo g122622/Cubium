@@ -72,7 +72,7 @@
 ├── PuffGoal ─────────────────────── 河豚膨胀
 ├── SquidMoveRandomGoal ──────────── 鱿鱼随机游泳
 ├── SquidFleeGoal ────────────────── 鱿鱼逃跑
-├── BatRandomFlyGoal ─────────────── 蝙蝠随机飞行
+├── BatFloatGoal ─────────────────── 蝙蝠悬停（对齐 vanilla Bat.tick 飞行逻辑）
 ├── BatRestGoal ──────────────────── 蝙蝠挂墙休息
 ├── DolphinJumpGoal ──────────────── 海豚跳跃
 ├── SwimToTreasureGoal ───────────── 海豚引导玩家到宝藏

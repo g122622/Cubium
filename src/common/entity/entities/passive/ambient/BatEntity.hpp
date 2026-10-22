@@ -26,8 +26,10 @@
 #include "AmbientEntity.hpp"
 #include "common/core/Types.hpp"
 #include "common/entity/core/Entity.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include <memory>
+#include <optional>
 
 namespace mc {
 
@@ -43,7 +45,7 @@ namespace mc {
  * - 睡眠：白天睡眠，夜间活动
  *
  * AI 目标：
- * - BatRandomFlyGoal: 随机飞行目标（优先级0）
+ * - BatFloatGoal: 悬停飞行目标（优先级 0，对齐 vanilla Bat.tick 的随机目标点飞行）
  * - BatRestGoal: 挂墙休息目标（优先级1）
  */
 class BatEntity : public AmbientEntity {
@@ -114,9 +116,24 @@ public:
      */
     [[nodiscard]] bool doesEntityNotTriggerPressurePlate() const override { return true; }
 
+    /// 蝙蝠不参与实体推挤（对齐 vanilla Bat.isPushable=false / pushEntities 空实现）
+    [[nodiscard]] bool isPushable() const override { return false; }
+
+    /// 是否正在扇翅（对齐 vanilla Bat.isFlapping：非休息且 tickCount % 10 == 0）
+    [[nodiscard]] bool isFlapping() const;
+
     // ========== 生命周期 ==========
 
     void tick() override;
+
+    /// 环境音：休息时 3/4 概率无声（对齐 vanilla Bat.getAmbientSound）
+    [[nodiscard]] std::optional<ResourceLocation> getAmbientSound() const override;
+
+    /// 音量 0.1（对齐 vanilla Bat.getSoundVolume）
+    [[nodiscard]] f32 getSoundVolume() const override { return 0.1f; }
+
+    /// 受击时若在休息则立即起飞（对齐 vanilla Bat.hurtServer）
+    bool hurt(DamageSource& source, f32 amount) override;
 
 protected:
     // ========== AI 目标注册 ==========
@@ -134,7 +151,7 @@ private:
     BlockPos m_restPos;
     f32 m_restAngle = 0.0f;
 
-    // 飞行计时器
+    // 休息状态的转头计时器（动态转头由 BatRestGoal 驱动）
     i32 m_flyTimer = 0;
 
     // 常量

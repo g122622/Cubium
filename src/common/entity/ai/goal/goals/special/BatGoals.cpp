@@ -54,10 +54,10 @@ f64 signum(f64 x)
 } // namespace
 
 // ============================================================================
-// BatRandomFlyGoal
+// BatFloatGoal
 // ============================================================================
 
-BatRandomFlyGoal::BatRandomFlyGoal(BatEntity* bat)
+BatFloatGoal::BatFloatGoal(BatEntity* bat)
     : Goal(EnumSet<GoalFlag>{GoalFlag::Move})
     , m_bat(bat)
     , m_targetPos(0, 0, 0)
@@ -67,7 +67,7 @@ BatRandomFlyGoal::BatRandomFlyGoal(BatEntity* bat)
     MC_ASSERT_RELEASE(bat != nullptr);
 }
 
-bool BatRandomFlyGoal::shouldExecute()
+bool BatFloatGoal::shouldExecute()
 {
     if (m_bat == nullptr) {
         return false;
@@ -77,7 +77,7 @@ bool BatRandomFlyGoal::shouldExecute()
     return !m_bat->isResting();
 }
 
-bool BatRandomFlyGoal::shouldContinueExecuting()
+bool BatFloatGoal::shouldContinueExecuting()
 {
     if (m_bat == nullptr) {
         return false;
@@ -87,20 +87,20 @@ bool BatRandomFlyGoal::shouldContinueExecuting()
     return !m_bat->isResting();
 }
 
-void BatRandomFlyGoal::startExecuting()
+void BatFloatGoal::startExecuting()
 {
     // 选择初始目标点
     _selectNewTarget();
     m_cooldown = 0;
 }
 
-void BatRandomFlyGoal::resetTask()
+void BatFloatGoal::resetTask()
 {
     m_hasTarget = false;
     m_cooldown = 0;
 }
 
-void BatRandomFlyGoal::tick()
+void BatFloatGoal::tick()
 {
     if (m_bat == nullptr || m_bat->world() == nullptr) {
         return;
@@ -179,7 +179,7 @@ void BatRandomFlyGoal::tick()
     }
 }
 
-void BatRandomFlyGoal::_selectNewTarget()
+void BatFloatGoal::_selectNewTarget()
 {
     if (m_bat == nullptr || m_bat->world() == nullptr) {
         m_hasTarget = false;
@@ -216,7 +216,7 @@ void BatRandomFlyGoal::_selectNewTarget()
     m_hasTarget = false;
 }
 
-bool BatRandomFlyGoal::_isTargetValid(const BlockPos& pos) const
+bool BatFloatGoal::_isTargetValid(const BlockPos& pos) const
 {
     if (m_bat == nullptr || m_bat->world() == nullptr) {
         return false;

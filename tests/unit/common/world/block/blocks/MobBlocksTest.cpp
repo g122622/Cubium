@@ -649,7 +649,8 @@ TEST_F(TurtleEggBlockTrampleTest, OnFallenUpon_DrownedDoesNotTrample)
     world_.setBlockAt(eggPos, &eggState);
 
     // 创建溺尸实体（僵尸变种，不会踩破海龟蛋）
-    MockLivingEntity drowned(EntityInstanceId(1), mc::test::testEcsRegistry());
+    MockLivingEntity drowned(EntityInstanceId(1), mc::test::testEcsRegistry(), "minecraft:drowned");
+    drowned.applyEntityType("minecraft:drowned");
     drowned.setPosition(5.5f, 5.0f, 5.5f);
 
     // 溺尸摔落在蛋上
@@ -670,7 +671,8 @@ TEST_F(TurtleEggBlockTrampleTest, OnFallenUpon_BatCannotTrample)
     world_.setBlockAt(eggPos, &eggState);
 
     // 创建蝙蝠实体（蝙蝠不能踩破蛋）
-    MockLivingEntity bat(EntityInstanceId(1), mc::test::testEcsRegistry());
+    MockLivingEntity bat(EntityInstanceId(1), mc::test::testEcsRegistry(), "minecraft:bat");
+    bat.applyEntityType("minecraft:bat");
     bat.setPosition(5.5f, 5.0f, 5.5f);
 
     // 蝙蝠摔落在蛋上

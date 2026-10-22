@@ -25,13 +25,14 @@
  * @file BatGoalsTest.cpp
  * @brief 蝙蝠 AI 目标单元测试
  *
- * 测试 BatRandomFlyGoal 和 BatRestGoal 的关键方法：
- * - BatRandomFlyGoal: shouldExecute, shouldContinueExecuting, tick
+ * 测试 BatFloatGoal 和 BatRestGoal 的关键方法：
+ * - BatFloatGoal: shouldExecute, shouldContinueExecuting, tick
  * - BatRestGoal: shouldExecute, shouldContinueExecuting, tick
  * - BatEntity: isFlying, isResting, canRest
  */
 
 #include "entity/ai/goal/goals/special/BatGoals.hpp"
+#include "entity/damage/DamageSource.hpp"
 #include "entity/entities/passive/ambient/BatEntity.hpp"
 #include <gtest/gtest.h>
 
@@ -97,14 +98,55 @@ TEST_F(BatEntityTest, EyeHeight_ReturnsSmallValue)
     EXPECT_FLOAT_EQ(bat->eyeHeight(), 0.1f);
 }
 
-// ==================== BatRandomFlyGoal Tests ====================
+TEST_F(BatEntityTest, RestingTickSnapsToCeilingAndStops)
+{
+    // 对齐 vanilla Bat.tick：休息中速度清零，并贴合到"头顶方块底面"
+    bat->setResting(true);
+    bat->setPosition(5.5f, 64.3f, 5.5f);
+    const f32 expectedY = 65.0f - bat->height();
 
-class BatRandomFlyGoalTest : public ::testing::Test {
+    bat->tick();
+
+    // 休息 tick 末尾位置被吸附到头顶方块底面（默认测试世界无重力/无碰撞，位置保持）
+    EXPECT_NEAR(bat->y(), expectedY, 0.05f);
+}
+
+TEST_F(BatEntityTest, HurtWhileRestingStopsResting)
+{
+    // 对齐 vanilla Bat.hurtServer：受击先退出休息
+    bat->setResting(true);
+    EnvironmentalDamage source = DamageSources::generic();
+    bat->hurt(source, 1.0f);
+    EXPECT_FALSE(bat->isResting());
+}
+
+TEST_F(BatEntityTest, IsFlappingOnlyEveryTenTicksWhenAwake)
+{
+    // 对齐 vanilla Bat.isFlapping：!isResting() && tickCount % 10 == 0
+    bat->setResting(false);
+    for (i32 i = 0; i < 20; ++i) {
+        const bool expected = bat->ticksExisted() % 10 == 0;
+        EXPECT_EQ(bat->isFlapping(), expected);
+        bat->tick();
+    }
+    bat->setResting(true);
+    EXPECT_FALSE(bat->isFlapping());
+}
+
+TEST_F(BatEntityTest, NotPushable)
+{
+    // 对齐 vanilla Bat.isPushable = false
+    EXPECT_FALSE(bat->isPushable());
+}
+
+// ==================== BatFloatGoal Tests ====================
+
+class BatFloatGoalTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
         bat = std::make_unique<BatEntity>(EntityInstanceId(0), mc::test::testEcsRegistry());
-        goal = std::make_unique<BatRandomFlyGoal>(bat.get());
+        goal = std::make_unique<BatFloatGoal>(bat.get());
     }
 
     void TearDown() override
@@ -114,10 +156,10 @@ protected:
     }
 
     std::unique_ptr<BatEntity> bat;
-    std::unique_ptr<BatRandomFlyGoal> goal;
+    std::unique_ptr<BatFloatGoal> goal;
 };
 
-TEST_F(BatRandomFlyGoalTest, ShouldExecute_ReturnsTrueWhenFlying)
+TEST_F(BatFloatGoalTest, ShouldExecute_ReturnsTrueWhenFlying)
 {
     // 蝙蝠在飞行状态时应执行飞行目标
     bat->setFlying(true);
@@ -125,7 +167,7 @@ TEST_F(BatRandomFlyGoalTest, ShouldExecute_ReturnsTrueWhenFlying)
     EXPECT_TRUE(goal->shouldExecute());
 }
 
-TEST_F(BatRandomFlyGoalTest, ShouldExecute_ReturnsFalseWhenResting)
+TEST_F(BatFloatGoalTest, ShouldExecute_ReturnsFalseWhenResting)
 {
     // 蝙蝠在休息状态时不应执行飞行目标
     bat->setFlying(false);
@@ -133,7 +175,7 @@ TEST_F(BatRandomFlyGoalTest, ShouldExecute_ReturnsFalseWhenResting)
     EXPECT_FALSE(goal->shouldExecute());
 }
 
-TEST_F(BatRandomFlyGoalTest, ShouldContinueExecuting_ReturnsTrueWhenFlying)
+TEST_F(BatFloatGoalTest, ShouldContinueExecuting_ReturnsTrueWhenFlying)
 {
     // 蝙蝠在飞行状态时应继续执行飞行目标
     bat->setFlying(true);
@@ -141,7 +183,7 @@ TEST_F(BatRandomFlyGoalTest, ShouldContinueExecuting_ReturnsTrueWhenFlying)
     EXPECT_TRUE(goal->shouldContinueExecuting());
 }
 
-TEST_F(BatRandomFlyGoalTest, ShouldContinueExecuting_ReturnsFalseWhenResting)
+TEST_F(BatFloatGoalTest, ShouldContinueExecuting_ReturnsFalseWhenResting)
 {
     // 蝙蝠在休息状态时不应继续执行飞行目标
     bat->setFlying(false);
@@ -149,12 +191,12 @@ TEST_F(BatRandomFlyGoalTest, ShouldContinueExecuting_ReturnsFalseWhenResting)
     EXPECT_FALSE(goal->shouldContinueExecuting());
 }
 
-TEST_F(BatRandomFlyGoalTest, TypeName_ReturnsCorrectName)
+TEST_F(BatFloatGoalTest, TypeName_ReturnsCorrectName)
 {
-    EXPECT_EQ(goal->getTypeName(), "BatRandomFlyGoal");
+    EXPECT_EQ(goal->getTypeName(), "BatFloatGoal");
 }
 
-TEST_F(BatRandomFlyGoalTest, StartExecuting_InitializesGoal)
+TEST_F(BatFloatGoalTest, StartExecuting_InitializesGoal)
 {
     bat->setFlying(true);
     bat->setResting(false);
@@ -163,7 +205,7 @@ TEST_F(BatRandomFlyGoalTest, StartExecuting_InitializesGoal)
     EXPECT_NO_THROW(goal->startExecuting());
 }
 
-TEST_F(BatRandomFlyGoalTest, ResetTask_ClearsTarget)
+TEST_F(BatFloatGoalTest, ResetTask_ClearsTarget)
 {
     // resetTask 不应抛出异常
     EXPECT_NO_THROW(goal->resetTask());
@@ -242,9 +284,9 @@ TEST_F(BatRestGoalTest, ResetTask_SetsFlyingState)
 
 // ==================== Goal Flag Tests ====================
 
-TEST_F(BatRandomFlyGoalTest, HasCorrectMutexFlags)
+TEST_F(BatFloatGoalTest, HasCorrectMutexFlags)
 {
-    // BatRandomFlyGoal 应使用 Move 标志
+    // BatFloatGoal 应使用 Move 标志
     // 这样它不会与 Look 等其他目标冲突
     // 实际标志检查需要访问 Goal 的内部方法
     // 这里只验证目标创建成功
@@ -266,7 +308,7 @@ protected:
     void SetUp() override
     {
         bat = std::make_unique<BatEntity>(EntityInstanceId(0), mc::test::testEcsRegistry());
-        flyGoal = std::make_unique<BatRandomFlyGoal>(bat.get());
+        flyGoal = std::make_unique<BatFloatGoal>(bat.get());
         restGoal = std::make_unique<BatRestGoal>(bat.get());
     }
 
@@ -278,7 +320,7 @@ protected:
     }
 
     std::unique_ptr<BatEntity> bat;
-    std::unique_ptr<BatRandomFlyGoal> flyGoal;
+    std::unique_ptr<BatFloatGoal> flyGoal;
     std::unique_ptr<BatRestGoal> restGoal;
 };
 

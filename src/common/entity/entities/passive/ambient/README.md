@@ -25,10 +25,10 @@ flowchart TD
     end
 
     subgraph AI目标系统
-        Goal[Goal 基类] --> BatRandomFlyGoal[BatRandomFlyGoal<br/>随机飞行]
+        Goal[Goal 基类] --> BatFloatGoal[BatFloatGoal<br/>随机飞行]
         Goal --> BatRestGoal[BatRestGoal<br/>挂墙休息]
         BatEntity --> GoalSelector[目标选择器]
-        GoalSelector --> BatRandomFlyGoal
+        GoalSelector --> BatFloatGoal
         GoalSelector --> BatRestGoal
     end
 
@@ -45,7 +45,7 @@ flowchart TD
     style AmbientEntity fill:#90be6d,stroke:#2f6f3e,color:#111
     style BatEntity fill:#f4a261,stroke:#b45309,color:#111
     style Goal fill:#cdb4db,stroke:#6d28d9,color:#111
-    style BatRandomFlyGoal fill:#e9c46a,stroke:#a16207,color:#111
+    style BatFloatGoal fill:#e9c46a,stroke:#a16207,color:#111
     style BatRestGoal fill:#e9c46a,stroke:#a16207,color:#111
 ```
 
@@ -87,8 +87,8 @@ if (m_flying && !m_resting) {
 
 ### 3. 蝙蝠AI目标的互斥标志
 
-**问题**: `BatRandomFlyGoal` 和 `BatRestGoal` 可能同时执行。
+**问题**: `BatFloatGoal` 和 `BatRestGoal` 可能同时执行。
 
 **解决**: 设置正确的互斥标志：
-- `BatRandomFlyGoal`: `GoalFlag::Move`
+- `BatFloatGoal`: `GoalFlag::Move`
 - `BatRestGoal`: `GoalFlag::Move | GoalFlag::Look`

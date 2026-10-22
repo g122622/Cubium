@@ -26,6 +26,7 @@
 #include "common/entity/ai/goal/goals/special/BatGoals.hpp"
 #include "common/entity/attribute/Attributes.hpp"
 #include "common/entity/entities/passive/ambient/AmbientEntity.hpp"
+#include "common/sound/SoundEvents.hpp"
 #include "common/util/math/Vector3.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/Block.hpp"
@@ -72,19 +73,44 @@ void BatEntity::tick()
 {
     AmbientEntity::tick();
 
-    // 蝙蝠的飞行行为由AI目标系统控制
-    // BatRandomFlyGoal 和 BatRestGoal 处理所有行为
-
-    // 飞行时Y轴速度保留60%（垂直阻尼效果）
-    if (m_flying && !m_resting) {
-        math::Vector3 vel = velocity();
-        setVelocity(vel.x, vel.y * 0.6f, vel.z);
-    }
-
-    // 休息状态下保持静止
+    // 飞行行为由 BatFloatGoal（随机目标点悬停）与 BatRestGoal（倒挂）驱动。
+    //
+    // 对齐 vanilla Bat.tick：
+    //   休息中 → 速度清零并贴合到倒挂位置（头顶方块的底面）；
+    //   飞行中 → Y 速度每 tick 保留 60%（垂直阻尼）。
     if (m_resting) {
-        setVelocity(math::Vector3(0.0f, 0.0f, 0.0f));
+        setVelocity(Vector3(0.0, 0.0, 0.0));
+        const f32 hangY = static_cast<f32>(std::floor(y())) + 1.0f - height();
+        setPosition(x(), hangY, z());
+    } else {
+        math::Vector3 vel = velocity();
+        setVelocity(vel.x, vel.y * 0.6, vel.z);
     }
+}
+
+bool BatEntity::isFlapping() const
+{
+    // 对齐 vanilla Bat.isFlapping：!isResting() && tickCount % 10 == 0
+    return !m_resting && ticksExisted() % 10 == 0;
+}
+
+std::optional<ResourceLocation> BatEntity::getAmbientSound() const
+{
+    // 对齐 vanilla Bat.getAmbientSound：休息时 3/4 概率不发声
+    if (m_resting && getRandom().nextInt(4) != 0) {
+        return std::nullopt;
+    }
+    return SoundEvents::ENTITY_BAT_AMBIENT;
+}
+
+bool BatEntity::hurt(DamageSource& source, f32 amount)
+{
+    // 对齐 vanilla Bat.hurtServer：受击先中断休息状态，再走基类受伤链路。
+    if (isResting()) {
+        setResting(false);
+        setFlying(true);
+    }
+    return AmbientEntity::hurt(source, amount);
 }
 
 void BatEntity::registerGoals()
@@ -93,7 +119,7 @@ void BatEntity::registerGoals()
 
     // 优先级 0: 随机飞行目标
     // 飞行时选择随机目标点，平滑转向飞行
-    m_goalSelector.addGoal(0, std::make_unique<entity::ai::goal::BatRandomFlyGoal>(this));
+    m_goalSelector.addGoal(0, std::make_unique<entity::ai::goal::BatFloatGoal>(this));
 
     // 优先级 1: 挂墙休息目标
     // 白天尝试挂墙休息，玩家靠近或失去支撑时飞走
