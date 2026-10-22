@@ -463,6 +463,62 @@ TEST_F(ActivatorRailCallbackTest, FurnaceMinecart_UpdatesPushDirectionOnPowered)
     furnace.onActivatorRailPass(0, 0, 0, false);
 }
 
+// ============================================================================
+// 命令方块矿车的命令源朝向：vanilla MinecartCommandBlock.createCommandSourceStack 用矿车
+// 自身位置与朝向，使 `^` 局部坐标按矿车朝向解析；此前项目固定传 (0,0)。
+// ============================================================================
+namespace {
+
+class CommandSourceRotationWorld final : public mc::test::BaseTestWorld {
+public:
+    CommandSourceRotationWorld() = default;
+
+    i32 executeCommand(const std::string& command,
+        const Vector3d& position,
+        i32 permissionLevel,
+        const Vector2f& rotation,
+        Player* /*player*/ = nullptr) override
+    {
+        m_lastCommand = command;
+        m_lastPosition = position;
+        m_lastPermissionLevel = permissionLevel;
+        m_lastRotation = rotation;
+        return 1;
+    }
+
+    [[nodiscard]] const Vector2f& lastRotation() const { return m_lastRotation; }
+    [[nodiscard]] const Vector3d& lastPosition() const { return m_lastPosition; }
+    [[nodiscard]] i32 lastPermissionLevel() const { return m_lastPermissionLevel; }
+
+private:
+    std::string m_lastCommand;
+    Vector3d m_lastPosition{};
+    i32 m_lastPermissionLevel = 0;
+    Vector2f m_lastRotation{};
+};
+
+} // namespace
+
+TEST_F(ActivatorRailCallbackTest, CommandBlockMinecart_ExecutesWithItsOwnRotation)
+{
+    CommandSourceRotationWorld world;
+    CommandBlockMinecartEntity cmd(EntityInstanceId(1), mc::test::testEcsRegistry());
+    cmd.setWorld(&world);
+    cmd.setPosition(1.5f, 64.0f, -2.5f);
+    cmd.setRotation(90.0f, 15.0f); // yaw, pitch
+    cmd.setCommand("summon pig ^ ^ ^2");
+
+    cmd.onActivatorRailPass(0, 0, 0, true);
+
+    // 位置取矿车自身，旋转按项目约定为 (yaw, pitch)，权限级别 2（GAMEMASTER）。
+    EXPECT_FLOAT_EQ(world.lastPosition().x, 1.5);
+    EXPECT_FLOAT_EQ(world.lastPosition().y, 64.0);
+    EXPECT_FLOAT_EQ(world.lastPosition().z, -2.5);
+    EXPECT_FLOAT_EQ(world.lastRotation().x, 90.0f) << "rotation.x 应为矿车 yaw";
+    EXPECT_FLOAT_EQ(world.lastRotation().y, 15.0f) << "rotation.y 应为矿车 pitch";
+    EXPECT_EQ(world.lastPermissionLevel(), 2);
+}
+
 } // namespace test
 } // namespace entity
 } // namespace mc
