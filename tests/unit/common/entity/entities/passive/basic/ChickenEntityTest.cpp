@@ -168,5 +168,93 @@ TEST_F(ChickenEntityTest, ChickenJockeyRestoresAndSuppressesEggDrop)
     EXPECT_TRUE(restored.isChickenJockey());
 }
 
+// ============================================================================
+// 变种（对齐 vanilla ChickenVariants + 数据包 gameplay/chicken_lay 产蛋表）
+// ============================================================================
+
+TEST_F(ChickenEntityTest, Variant_DefaultsToTemperate)
+{
+    ChickenEntity chicken(EntityInstanceId(1), mc::test::testEcsRegistry());
+    EXPECT_EQ(chicken.getVariant(), ChickenVariant::Temperate);
+    EXPECT_EQ(ChickenEntity::eggItemForVariant(ChickenVariant::Temperate), Items::EGG);
+}
+
+TEST_F(ChickenEntityTest, Variant_SetAndSync_UpdatesWireParam)
+{
+    ChickenEntity chicken(EntityInstanceId(1), mc::test::testEcsRegistry());
+    chicken.setVariant(ChickenVariant::Cold);
+
+    EXPECT_EQ(chicken.getVariant(), ChickenVariant::Cold);
+    // wire 值须携带 CHICKEN_VARIANT 的 serializerId（27），否则真客户端整包拒绝。
+    const auto& wire = chicken.dataManager().get(ChickenEntity::DATA_VARIANT_ID_PARAM);
+    EXPECT_EQ(wire.serializerId, ChickenEntity::VANILLA_CHICKEN_VARIANT_SERIALIZER_ID);
+    EXPECT_EQ(wire.registryId, static_cast<i32>(ChickenVariant::Cold));
+}
+
+TEST_F(ChickenEntityTest, Variant_EggItemMapping)
+{
+    EXPECT_EQ(ChickenEntity::eggItemForVariant(ChickenVariant::Temperate), Items::EGG);
+    EXPECT_EQ(ChickenEntity::eggItemForVariant(ChickenVariant::Warm), Items::BROWN_EGG);
+    EXPECT_EQ(ChickenEntity::eggItemForVariant(ChickenVariant::Cold), Items::BLUE_EGG);
+
+    ChickenEntity warm(EntityInstanceId(1), mc::test::testEcsRegistry());
+    warm.setVariant(ChickenVariant::Warm);
+    EXPECT_EQ(warm.getEggItemStack().getItem(), Items::BROWN_EGG);
+}
+
+TEST_F(ChickenEntityTest, Variant_DecidesLaidEggItem)
+{
+    ChickenEntity chicken(EntityInstanceId(1), mc::test::testEcsRegistry());
+    chicken.setWorld(&m_world);
+    chicken.setPosition(0.5f, 64.0f, 0.5f);
+    chicken.setVariant(ChickenVariant::Cold);
+
+    const i32 eggTimer = chicken.getEggTimer();
+    for (i32 i = 0; i < eggTimer; ++i) {
+        chicken.tick();
+    }
+
+    ASSERT_EQ(m_world.spawnedStacks().size(), 1u);
+    EXPECT_EQ(m_world.spawnedStacks().front().getItem(), Items::BLUE_EGG);
+}
+
+TEST_F(ChickenEntityTest, Variant_NbtRoundTrip)
+{
+    ChickenEntity chicken(EntityInstanceId(1), mc::test::testEcsRegistry());
+    chicken.setVariant(ChickenVariant::Warm);
+
+    nbt::tags::compound_tag tag;
+    chicken.addAdditionalSaveData(tag);
+
+    ChickenEntity restored(EntityInstanceId(2), mc::test::testEcsRegistry());
+    ASSERT_TRUE(restored.readAdditionalSaveData(tag).success());
+    EXPECT_EQ(restored.getVariant(), ChickenVariant::Warm);
+}
+
+TEST_F(ChickenEntityTest, Variant_InvalidNbtValue_KeepsDefault)
+{
+    ChickenEntity chicken(EntityInstanceId(1), mc::test::testEcsRegistry());
+    nbt::tags::compound_tag tag;
+    tag.put("variant", i32{99});
+    ASSERT_TRUE(chicken.readAdditionalSaveData(tag).success());
+    EXPECT_EQ(chicken.getVariant(), ChickenVariant::Temperate);
+}
+
+TEST_F(ChickenEntityTest, Variant_OffspringInheritsFromOneParent)
+{
+    ChickenEntity warm(EntityInstanceId(1), mc::test::testEcsRegistry());
+    warm.setVariant(ChickenVariant::Warm);
+    ChickenEntity cold(EntityInstanceId(2), mc::test::testEcsRegistry());
+    cold.setVariant(ChickenVariant::Cold);
+
+    auto baby = warm.spawnBaby(cold);
+    ASSERT_NE(baby, nullptr);
+    auto* babyChicken = dynamic_cast<ChickenEntity*>(baby.get());
+    ASSERT_NE(babyChicken, nullptr);
+    const ChickenVariant variant = babyChicken->getVariant();
+    EXPECT_TRUE(variant == ChickenVariant::Warm || variant == ChickenVariant::Cold);
+    EXPECT_TRUE(babyChicken->isChild());
+}
+
 } // namespace
 } // namespace mc

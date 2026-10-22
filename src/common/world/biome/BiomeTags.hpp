@@ -194,6 +194,10 @@ public:
     static BiomeTag& SPAWNS_COLD_VARIANT_FROGS();
     /// 生成温暖变体青蛙的生物群系
     static BiomeTag& SPAWNS_WARM_VARIANT_FROGS();
+    /// 生成寒冷变体农畜（鸡/牛/猪）的生物群系
+    static BiomeTag& SPAWNS_COLD_VARIANT_FARM_ANIMALS();
+    /// 生成温暖变体农畜（鸡/牛/猪）的生物群系
+    static BiomeTag& SPAWNS_WARM_VARIANT_FARM_ANIMALS();
     /// 无僵尸围城的生物群系
     static BiomeTag& WITHOUT_ZOMBIE_SIEGES();
     /// 无流浪商人生成的生物群系

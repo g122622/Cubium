@@ -315,6 +315,8 @@ constexpr const char* STRAY_CONVERSION_TIME = "StrayConversionTime";
 
 constexpr const char* EGG_LAY_TIME = "EggLayTime";
 constexpr const char* IS_CHICKEN_JOCKEY = "IsChickenJockey";
+/// 鸡变种（对齐 vanilla VariantUtils.writeVariant/readVariant 的 "variant" 键，值为注册表 id）
+constexpr const char* CHICKEN_VARIANT = "variant";
 
 // ========== DolphinEntity 键 ==========
 // 参考 MC 1.21.11 Dolphin.addAdditionalSaveData()/readAdditionalSaveData()。

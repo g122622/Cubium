@@ -545,6 +545,24 @@ BiomeTag& BiomeTags::SPAWNS_WARM_VARIANT_FROGS()
     return *tag;
 }
 
+BiomeTag& BiomeTags::SPAWNS_COLD_VARIANT_FARM_ANIMALS()
+{
+    static BiomeTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "spawns_cold_variant_farm_animals"));
+    }
+    return *tag;
+}
+
+BiomeTag& BiomeTags::SPAWNS_WARM_VARIANT_FARM_ANIMALS()
+{
+    static BiomeTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "spawns_warm_variant_farm_animals"));
+    }
+    return *tag;
+}
+
 BiomeTag& BiomeTags::WITHOUT_ZOMBIE_SIEGES()
 {
     static BiomeTag* tag = nullptr;

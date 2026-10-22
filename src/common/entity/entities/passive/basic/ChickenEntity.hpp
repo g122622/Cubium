@@ -29,11 +29,25 @@
 #include "AnimalEntity.hpp"
 #include "common/core/Types.hpp"
 #include "common/entity/core/Entity.hpp"
+#include "common/entity/core/EntityDataManager.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/chunk/data/IChunk.hpp"
 
 namespace mc {
+
+/**
+ * @brief 鸡变种（对齐 vanilla ChickenVariants 注册表，registry id 即数据包加载顺序）
+ *
+ * - Temperate(0)：温带（默认），产蛋 minecraft:egg
+ * - Warm(1)：温暖，产蛋 minecraft:brown_egg
+ * - Cold(2)：寒冷（cold 模型），产蛋 minecraft:blue_egg
+ */
+enum class ChickenVariant : i32 {
+    Temperate = 0, // 温带（默认）
+    Warm = 1,      // 温暖
+    Cold = 2,      // 寒冷
+};
 
 /**
  * @brief 鸡实体
@@ -43,6 +57,14 @@ namespace mc {
  */
 class ChickenEntity : public AnimalEntity {
 public:
+    /// DATA_VARIANT_ID 的 wire serializerId（vanilla EntityDataSerializers.CHICKEN_VARIANT == 27）
+    static constexpr i32 VANILLA_CHICKEN_VARIANT_SERIALIZER_ID = 27;
+    /// 默认变种（vanilla ChickenVariants.DEFAULT == TEMPERATE）
+    static constexpr ChickenVariant DEFAULT_VARIANT = ChickenVariant::Temperate;
+
+    /// 本类继承链标识（parent = AnimalEntity::classInfo()）。见 Entity::classInfo()。
+    static const entity::EntityClassInfo& classInfo();
+
     ChickenEntity(EntityInstanceId id, ecs::EntityRegistry& registry);
     ~ChickenEntity() noexcept override = default;
 
@@ -135,6 +157,63 @@ public:
      * @brief 设置是否是鸡骑士
      */
     void setChickenJockey(bool jockey) { m_chickenJockey = jockey; }
+
+    // ========== 变种 ==========
+
+    /**
+     * @brief 获取变种
+     *
+     * 对齐 vanilla Chicken.getVariant：值由 DATA_VARIANT_ID 同步数据承载
+     * （wire serializerId 27 = CHICKEN_VARIANT，值为注册表 id）。
+     */
+    [[nodiscard]] ChickenVariant getVariant() const
+    {
+        return static_cast<ChickenVariant>(m_dataManager.get(DATA_VARIANT_ID_PARAM).registryId);
+    }
+
+    /**
+     * @brief 设置变种
+     */
+    void setVariant(ChickenVariant variant);
+
+    /**
+     * @brief 获取 DATA_VARIANT_ID 的参数 id（测试/诊断用）
+     */
+    [[nodiscard]] static u16 getVariantParamId() { return DATA_VARIANT_ID_PARAM.id(); }
+
+    /**
+     * @brief 按群系为位置选择变种（对齐 vanilla VariantUtils.selectVariantToSpawn）
+     *
+     * 群系属于 #spawns_warm_variant_farm_animals → Warm；
+     * 属于 #spawns_cold_variant_farm_animals → Cold；否则 Temperate。
+     */
+    [[nodiscard]] static ChickenVariant selectVariantForPosition(const IWorld* world, const BlockPos& pos);
+
+    /**
+     * @brief 生成初始化：按生成位置的农畜变种群系标签选择变种
+     *
+     * 对齐 vanilla Chicken.finalizeSpawn 的 VariantUtils.selectVariantToSpawn 分支。
+     */
+    void finalizeSpawn(IWorld& world,
+        const entity::combat::DifficultyInstance& difficulty,
+        world::spawn::SpawnReason spawnReason) override;
+
+    /**
+     * @brief 该变种对应的产蛋物品（对齐数据包 gameplay/chicken_lay 战利品表）
+     */
+    [[nodiscard]] static const Item* eggItemForVariant(ChickenVariant variant);
+
+    /**
+     * @brief 按当前变种生成产蛋物品堆（数量 1）
+     */
+    [[nodiscard]] ItemStack getEggItemStack() const;
+
+    /// 同步数据参数：DATA_VARIANT_ID（wire 27 = CHICKEN_VARIANT，对齐 vanilla Chicken.defineSynchedData）
+    static entity::DataParameter<entity::HolderVariantValue> DATA_VARIANT_ID_PARAM;
+
+    // DataParameter 的 id 由 registerData 沿继承链分配；基类构造期 vtable 指向基类，
+    // 故派生类构造函数须显式调用本方法（WolfEntity / FrogEntity 同范式）。
+    void registerData() override;
 
 protected:
     void registerGoals() override;

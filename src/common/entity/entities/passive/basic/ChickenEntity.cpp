@@ -44,13 +44,81 @@
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/Block.hpp"
+#include "common/world/biome/BiomeIds.hpp"
+#include "common/world/biome/BiomeTags.hpp"
 #include "common/world/block/BlockPos.hpp"
+#include "common/world/chunk/IChunkManager.hpp"
+#include "common/world/chunk/data/ChunkData.hpp"
 
 #include <memory>
 #include <optional>
 #include <utility>
 
 namespace mc {
+
+entity::DataParameter<entity::HolderVariantValue> ChickenEntity::DATA_VARIANT_ID_PARAM =
+    entity::EntityDataManager::createKey<entity::HolderVariantValue>();
+
+const entity::EntityClassInfo& ChickenEntity::classInfo()
+{
+    static const entity::EntityClassInfo s_classInfo{"ChickenEntity", &AnimalEntity::classInfo()};
+    return s_classInfo;
+}
+
+void ChickenEntity::registerData()
+{
+    // 先注册父类字段，保证 DATA_VARIANT_ID 的 id 续接 AnimalEntity 继承链。
+    AnimalEntity::registerData();
+
+    entity::EntityDataManager::ClassRegisterGuard guard(m_dataManager, classInfo());
+
+    // 对齐 vanilla Chicken.defineSynchedData：
+    //   DATA_VARIANT_ID = CHICKEN_VARIANT（serializerId 27），默认 TEMPERATE(0)。
+    m_dataManager.registerParam(DATA_VARIANT_ID_PARAM,
+        entity::HolderVariantValue{
+            static_cast<i32>(VANILLA_CHICKEN_VARIANT_SERIALIZER_ID), static_cast<i32>(DEFAULT_VARIANT)});
+}
+
+namespace {
+/**
+ * @brief 按群系判定是否为农畜暖/寒变种群系（数据包标签未就绪时的回退）
+ *
+ * 对齐数据包标签内容：
+ *   #spawns_warm_variant_farm_animals = 沙漠 / 暖水海洋 / #is_jungle / #is_savanna / 下界 /
+ *                                       #is_badlands / 红树林沼泽 / 温和海洋
+ *   #spawns_cold_variant_farm_animals = 雪原 / 冰刺 / 冻峰 / 尖峭山峰 / 雪坡 / 冻洋 / 深冻洋 /
+ *                                       树林 / 深暗之域 / 冻河 / 积雪针叶林 / 雪滩 / 末地 / 冷水海洋 /
+ *                                       深冷水海洋 / 原始松林 / 原始云杉林 / 针叶林 / 风袭森林 /
+ *                                       风袭砂砾丘陵 / 风袭丘陵 / 石峰
+ */
+bool _isWarmFarmAnimalBiome(BiomeId biomeId)
+{
+    using namespace world::biome;
+    return biomeId == Biomes::Desert || biomeId == Biomes::WarmOcean || biomeId == Biomes::DeepWarmOcean ||
+        biomeId == Biomes::LukewarmOcean || biomeId == Biomes::DeepLukewarmOcean || biomeId == Biomes::MangroveSwamp ||
+        biomeId == Biomes::Jungle || biomeId == Biomes::JungleHills || biomeId == Biomes::JungleEdge ||
+        biomeId == Biomes::ModifiedJungle || biomeId == Biomes::ModifiedJungleEdge || biomeId == Biomes::BambooJungle ||
+        biomeId == Biomes::BambooJungleHills || biomeId == Biomes::Savanna || biomeId == Biomes::SavannaPlateau ||
+        biomeId == Biomes::ShatteredSavanna || biomeId == Biomes::ShatteredSavannaPlateau ||
+        biomeId == Biomes::Badlands || biomeId == Biomes::WoodedBadlandsPlateau || biomeId == Biomes::BadlandsPlateau ||
+        biomeId == Biomes::ModifiedWoodedBadlandsPlateau || biomeId == Biomes::ModifiedBadlandsPlateau ||
+        biomeId == Biomes::ErodedBadlands;
+}
+
+bool _isColdFarmAnimalBiome(BiomeId biomeId)
+{
+    using namespace world::biome;
+    return biomeId == Biomes::SnowyPlains || biomeId == Biomes::IceSpikes || biomeId == Biomes::FrozenPeaks ||
+        biomeId == Biomes::JaggedPeaks || biomeId == Biomes::SnowySlopes || biomeId == Biomes::FrozenOcean ||
+        biomeId == Biomes::DeepFrozenOcean || biomeId == Biomes::Grove || biomeId == Biomes::DeepDark ||
+        biomeId == Biomes::FrozenRiver || biomeId == Biomes::SnowyTaiga || biomeId == Biomes::SnowyTaigaHills ||
+        biomeId == Biomes::SnowyTaigaMountains || biomeId == Biomes::SnowyBeach || biomeId == Biomes::ColdOcean ||
+        biomeId == Biomes::DeepColdOcean || biomeId == Biomes::OldGrowthPineTaiga ||
+        biomeId == Biomes::OldGrowthSpruceTaiga || biomeId == Biomes::Taiga || biomeId == Biomes::TaigaHills ||
+        biomeId == Biomes::TaigaMountains || biomeId == Biomes::WindsweptForest ||
+        biomeId == Biomes::WindsweptGravellyHills || biomeId == Biomes::WindsweptHills || biomeId == Biomes::StonyPeaks;
+}
+} // namespace
 
 std::unique_ptr<Entity> ChickenEntity::create(IWorld* /*world*/, ecs::EntityRegistry& registry)
 {
@@ -62,12 +130,87 @@ std::unique_ptr<Entity> ChickenEntity::create(IWorld* /*world*/, ecs::EntityRegi
 ChickenEntity::ChickenEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
     : AnimalEntity(id, registry)
 {
+    // 注册同步数据参数（DATA_VARIANT_ID）。须先于任何 setVariant 调用。
+    registerData();
     // 注册属性
     registerAttributes();
     // 注册 AI 目标
     registerGoals();
     // 初始化下蛋计时器
     resetEggTimer();
+}
+
+void ChickenEntity::setVariant(ChickenVariant variant)
+{
+    // 对齐 vanilla Chicken.setVariant：值直接写入 DATA_VARIANT_ID（Holder<ChickenVariant>）。
+    m_dataManager.set(DATA_VARIANT_ID_PARAM,
+        entity::HolderVariantValue{static_cast<i32>(VANILLA_CHICKEN_VARIANT_SERIALIZER_ID), static_cast<i32>(variant)});
+}
+
+void ChickenEntity::finalizeSpawn(
+    IWorld& world, const entity::combat::DifficultyInstance& difficulty, world::spawn::SpawnReason spawnReason)
+{
+    // 对齐 vanilla Chicken.finalizeSpawn：先按生成位置选择变种，再执行通用初始化。
+    setVariant(selectVariantForPosition(&world, onPos()));
+    AnimalEntity::finalizeSpawn(world, difficulty, spawnReason);
+}
+
+ChickenVariant ChickenEntity::selectVariantForPosition(const IWorld* world, const BlockPos& pos)
+{
+    // 对齐 vanilla VariantUtils.selectVariantToSpawn(SpawnContext, Registries.CHICKEN_VARIANT)：
+    // 按群系 spawn_conditions 选中变种。数据包 warm/cold 变种均为 priority 1 的群系条件，
+    // temperate 为 priority 0 的兜底项。
+    if (world == nullptr) {
+        return DEFAULT_VARIANT;
+    }
+    const auto* chunkManager = world->chunkManager();
+    if (chunkManager == nullptr) {
+        return DEFAULT_VARIANT;
+    }
+    const ChunkData* chunk = chunkManager->tryToGetChunkInMem(pos.chunkX(), pos.chunkZ());
+    if (chunk == nullptr) {
+        return DEFAULT_VARIANT;
+    }
+    const BiomeId biomeId = chunk->getBiomeAtBlock(pos.localX(), pos.y, pos.localZ());
+
+    if (world::biome::BiomeTags::SPAWNS_WARM_VARIANT_FARM_ANIMALS().contains(biomeId)) {
+        return ChickenVariant::Warm;
+    }
+    if (world::biome::BiomeTags::SPAWNS_COLD_VARIANT_FARM_ANIMALS().contains(biomeId)) {
+        return ChickenVariant::Cold;
+    }
+    // 数据包未提供农畜变种标签时，按原版标签内容回退为群系直接判定（与青蛙变种选择同一范式）。
+    if (_isWarmFarmAnimalBiome(biomeId)) {
+        return ChickenVariant::Warm;
+    }
+    if (_isColdFarmAnimalBiome(biomeId)) {
+        return ChickenVariant::Cold;
+    }
+    return DEFAULT_VARIANT;
+}
+
+ItemStack ChickenEntity::getEggItemStack() const
+{
+    const Item* eggItem = eggItemForVariant(getVariant());
+    // 物品注册未完成时（单元测试/早期初始化）回退到白蛋，避免空堆静默丢蛋。
+    if (eggItem == nullptr) {
+        eggItem = Items::EGG;
+    }
+    return eggItem != nullptr ? ItemStack(*eggItem, 1) : ItemStack();
+}
+
+const Item* ChickenEntity::eggItemForVariant(ChickenVariant variant)
+{
+    // 对齐数据包 gameplay/chicken_lay：temperate → egg，warm → brown_egg，cold → blue_egg。
+    switch (variant) {
+        case ChickenVariant::Warm:
+            return Items::BROWN_EGG;
+        case ChickenVariant::Cold:
+            return Items::BLUE_EGG;
+        case ChickenVariant::Temperate:
+        default:
+            return Items::EGG;
+    }
 }
 
 void ChickenEntity::resetEggTimer()
@@ -81,6 +224,8 @@ void ChickenEntity::addAdditionalSaveData(nbt::tags::compound_tag& tag) const
     AnimalEntity::addAdditionalSaveData(tag);
     tag.put(entity::serialization::nbt_keys::EGG_LAY_TIME, m_eggTimer);
     tag.put(entity::serialization::nbt_keys::IS_CHICKEN_JOCKEY, static_cast<i8>(m_chickenJockey));
+    // 变种对齐 vanilla VariantUtils.writeVariant：存注册表 id（非资源位置）。
+    tag.put(entity::serialization::nbt_keys::CHICKEN_VARIANT, static_cast<i32>(getVariant()));
 }
 
 Result<void> ChickenEntity::readAdditionalSaveData(const nbt::tags::compound_tag& tag)
@@ -90,6 +235,13 @@ Result<void> ChickenEntity::readAdditionalSaveData(const nbt::tags::compound_tag
     m_chickenJockey = nbt_helper::tryGetBool(tag, nbt_keys::IS_CHICKEN_JOCKEY).value_or(false);
     if (const auto timer = nbt_helper::tryGetInt(tag, nbt_keys::EGG_LAY_TIME)) {
         m_eggTimer = *timer;
+    }
+    if (const auto variant = nbt_helper::tryGetInt(tag, nbt_keys::CHICKEN_VARIANT)) {
+        // 越界/未知 id 回退默认变种（对齐 vanilla readVariant 解不出时保持原值）。
+        if (*variant >= static_cast<i32>(ChickenVariant::Temperate) &&
+            *variant <= static_cast<i32>(ChickenVariant::Cold)) {
+            setVariant(static_cast<ChickenVariant>(*variant));
+        }
     }
     return Result<void>::ok();
 }
@@ -137,7 +289,7 @@ bool ChickenEntity::canMateWith(const AnimalEntity& other) const
     return AnimalEntity::canMateWith(other);
 }
 
-std::unique_ptr<AnimalEntity> ChickenEntity::spawnBaby(AnimalEntity& /*partner*/)
+std::unique_ptr<AnimalEntity> ChickenEntity::spawnBaby(AnimalEntity& partner)
 {
     // ECS 迁移：实体构造需要 registry 句柄，ClientWorld 返回 nullptr 表客户端不接入 ECS
     auto* registry = &ecsRegistry();
@@ -147,6 +299,11 @@ std::unique_ptr<AnimalEntity> ChickenEntity::spawnBaby(AnimalEntity& /*partner*/
 
     // 创建小鸡
     auto baby = std::make_unique<ChickenEntity>(0, *registry);
+
+    // 对齐 vanilla Chicken.getBreedOffspring：一半概率继承本鸡变种，另一半取配偶变种。
+    const auto* partnerChicken = dynamic_cast<const ChickenEntity*>(&partner);
+    const ChickenVariant partnerVariant = partnerChicken != nullptr ? partnerChicken->getVariant() : DEFAULT_VARIANT;
+    baby->setVariant(getRandom().nextBoolean() ? getVariant() : partnerVariant);
 
     // 设置为幼体
     baby->setChild(true);
@@ -253,7 +410,8 @@ void ChickenEntity::tick()
                 resetEggTimer();
                 return;
             }
-            eggEntity->setItemStack(ItemStack(Items::EGG, 1));
+            // 对齐数据包 gameplay/chicken_lay：变种决定产蛋种类。
+            eggEntity->setItemStack(getEggItemStack());
             eggEntity->setPosition(x(), y() + 0.2f, z());
 
             // 播放下蛋音效
