@@ -212,7 +212,7 @@ public:
      * 用 `entityType() != PLAYER` 近似 `instanceof Mob`（玩家视为非 Mob），再叠加 RAIDERS 析取。
      * 标签未初始化时回退到基类行为（仅 !PLAYER 判定）避免回归。
      *
-     * 船辆特例（JUMP flag 额外受 vehicle 是否船影响）暂不对齐，留 TODO（基类同）。
+     * 船载特例（JUMP flag 额外受 vehicle 是否船影响）由基类 _isRidingBoat() 提供，与本类一致。
      */
     void updateMovementGoalFlags() override;
 
