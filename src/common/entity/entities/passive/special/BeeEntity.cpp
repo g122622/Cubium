@@ -671,9 +671,11 @@ bool BeeEntity::pathfindRandomlyTowards(const BlockPos& targetPos)
     f64 targetY = static_cast<f64>(targetPos.y);
     f64 targetZ = static_cast<f64>(targetPos.z) + 0.5;
 
-    // 计算Y轴高度差偏移
+    // 计算Y轴高度差偏移（对齐 vanilla：目标方块 y 与蜜蜂所在方块 y 之差）
     math::Vector3f beePos = position();
-    i32 yDiff = static_cast<i32>(targetY - beePos.y);
+    const i32 targetBlockY = static_cast<i32>(std::floor(targetY));
+    const i32 beeBlockY = static_cast<i32>(std::floor(static_cast<f64>(beePos.y)));
+    const i32 yDiff = targetBlockY - beeBlockY;
     i32 yOffset = 0;
     if (yDiff > 2) {
         yOffset = 4;
@@ -682,11 +684,13 @@ bool BeeEntity::pathfindRandomlyTowards(const BlockPos& targetPos)
     }
 
     // 计算搜索范围：近距离时缩小范围
-    // 对应 MC 的 i1 = distManhattan, if (i1 < 15) { k = i1/2; l = i1/2; }
+    // 对应 MC 的 i1 = blockPosition().distManhattan(target)，if (i1 < 15) { k = i1/2; l = i1/2; }
     i32 k = 6; // xzRange
     i32 l = 8; // yRange
-    i32 manhattanDist =
-        static_cast<i32>(std::abs(beePos.x - targetX) + std::abs(beePos.y - targetY) + std::abs(beePos.z - targetZ));
+    const i32 beeBlockX = static_cast<i32>(std::floor(static_cast<f64>(beePos.x)));
+    const i32 beeBlockZ = static_cast<i32>(std::floor(static_cast<f64>(beePos.z)));
+    const i32 manhattanDist =
+        std::abs(beeBlockX - targetPos.x) + std::abs(beeBlockY - targetPos.y) + std::abs(beeBlockZ - targetPos.z);
     if (manhattanDist < 15) {
         k = manhattanDist / 2;
         l = manhattanDist / 2;
