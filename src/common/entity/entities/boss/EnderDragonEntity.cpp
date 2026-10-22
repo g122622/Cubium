@@ -522,43 +522,50 @@ void EnderDragonEntity::_updateDragonParts()
 
 void EnderDragonEntity::_updateDragonEnderCrystal()
 {
-    // 更新末影水晶链接
-    // 寻找最近的末影水晶用于回血
+    // 对齐 vanilla EnderDragon.checkCrystals（EnderDragon.java:366-390）：
+    //   1. 已有最近水晶且未被移除时，每 10 tick 恢复 1 点生命（仅未满血）；
+    //   2. 每 tick 以 1/10 概率在半径 32 的碰撞箱范围内重新挑选最近的水晶。
+    // 此前实现每 tick 全量搜索并按 20 tick 周期固定回血，既偏离回血节奏，也与"最近水晶"
+    // 这一用于栖息阶段判定的语义不一致。
+    if (m_closestEnderCrystal != nullptr) {
+        if (m_closestEnderCrystal->isRemoved()) {
+            m_closestEnderCrystal = nullptr;
+        } else if (ticksExisted() % 10 == 0 && health() < maxHealth()) {
+            setHealth(health() + 1.0f);
+        }
+    }
+
+    if (getRandom().nextInt(10) != 0) {
+        return;
+    }
 
     IWorld* worldPtr = world();
     if (!worldPtr) {
         return;
     }
 
-    // 在范围内搜索末影水晶
+    // 在 32 格范围内搜索末影水晶（vanilla getBoundingBox().inflate(32.0) 的球形近似）
     constexpr f32 CRYSTAL_SEARCH_RANGE = 32.0f;
-    Vector3 pos(x(), y(), z());
-
+    const Vector3 pos(x(), y(), z());
     std::vector<Entity*> entities = worldPtr->getEntitiesInRange(pos, CRYSTAL_SEARCH_RANGE, this);
 
     EnderCrystalEntity* nearestCrystal = nullptr;
-    f32 nearestDistSq = CRYSTAL_SEARCH_RANGE * CRYSTAL_SEARCH_RANGE;
-
+    f32 nearestDistSq = std::numeric_limits<f32>::max();
     for (Entity* entity : entities) {
-        if (entity && entity->entityType() == entity::VanillaEntityTypeKeys::END_CRYSTAL) {
-            f32 dx = static_cast<f32>(entity->x() - x());
-            f32 dy = static_cast<f32>(entity->y() - y());
-            f32 dz = static_cast<f32>(entity->z() - z());
-            f32 distSq = dx * dx + dy * dy + dz * dz;
-
-            if (distSq < nearestDistSq) {
-                nearestDistSq = distSq;
-                nearestCrystal = static_cast<EnderCrystalEntity*>(entity);
-            }
+        if (entity == nullptr || entity->entityType() != entity::VanillaEntityTypeKeys::END_CRYSTAL) {
+            continue;
+        }
+        const f32 dx = static_cast<f32>(entity->x() - x());
+        const f32 dy = static_cast<f32>(entity->y() - y());
+        const f32 dz = static_cast<f32>(entity->z() - z());
+        const f32 distSq = dx * dx + dy * dy + dz * dz;
+        if (distSq < nearestDistSq) {
+            nearestDistSq = distSq;
+            nearestCrystal = static_cast<EnderCrystalEntity*>(entity);
         }
     }
 
     m_closestEnderCrystal = nearestCrystal;
-
-    // 如果附近有水晶，每秒回复 1 点生命
-    if (nearestCrystal && ticksExisted() % 20 == 0) {
-        heal(1.0f);
-    }
 }
 
 void EnderDragonEntity::_collideWithEntities()
