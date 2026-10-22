@@ -416,3 +416,26 @@ TEST_F(EntityPredicateTest, ToJsonRoundTrip)
     EXPECT_FALSE(result2.value().getDistance().isAny());
     EXPECT_FALSE(result2.value().getFlags().isAny());
 }
+
+TEST_F(EntityFlagsPredicateTest, VanillaFields_OnGroundInWaterFallFlying)
+{
+    // 对齐 vanilla EntityFlagsPredicate 全集：is_on_ground / is_in_water / is_fall_flying / is_flying
+    nlohmann::json json = {
+        {"is_on_ground", true}, {"is_in_water", false}, {"is_fall_flying", true}, {"is_flying", true}};
+    auto result = EntityFlagsPredicate::fromJson(json);
+    ASSERT_TRUE(result.success());
+    EXPECT_FALSE(result.value().isAny());
+    EXPECT_TRUE(result.value().isOnGround().value());
+    EXPECT_FALSE(result.value().isInWater().value());
+    EXPECT_TRUE(result.value().isFallFlying().value());
+    EXPECT_TRUE(result.value().isFlying().value());
+
+    // toJson 往返保留全部字段
+    const nlohmann::json serialized = result.value().toJson();
+    auto roundTrip = EntityFlagsPredicate::fromJson(serialized);
+    ASSERT_TRUE(roundTrip.success());
+    EXPECT_EQ(roundTrip.value().isOnGround(), result.value().isOnGround());
+    EXPECT_EQ(roundTrip.value().isInWater(), result.value().isInWater());
+    EXPECT_EQ(roundTrip.value().isFallFlying(), result.value().isFallFlying());
+    EXPECT_EQ(roundTrip.value().isFlying(), result.value().isFlying());
+}

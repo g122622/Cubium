@@ -24,6 +24,7 @@
 #include "EntityFlagsPredicate.hpp"
 #include "common/core/Result.hpp"
 #include "common/entity/core/Entity.hpp"
+#include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include <nlohmann/json_fwd.hpp>
 
@@ -78,6 +79,41 @@ bool EntityFlagsPredicate::test(const Entity& entity) const
         }
     }
 
+    // 检查是否着地
+    if (m_isOnGround.has_value() && entity.onGround() != m_isOnGround.value()) {
+        return false;
+    }
+
+    // 检查是否飞行（对齐 vanilla：LivingEntity 的滑翔，或创造模式玩家的 abilities.flying）
+    if (m_isFlying.has_value()) {
+        bool isFlying = false;
+        if (const auto* living = dynamic_cast<const LivingEntity*>(&entity); living != nullptr) {
+            isFlying = living->isElytraFlying();
+        }
+        if (!isFlying) {
+            if (const auto* player = dynamic_cast<const Player*>(&entity); player != nullptr) {
+                isFlying = player->isFlying();
+            }
+        }
+        if (isFlying != m_isFlying.value()) {
+            return false;
+        }
+    }
+
+    // 检查是否在水中
+    if (m_isInWater.has_value() && entity.isInWater() != m_isInWater.value()) {
+        return false;
+    }
+
+    // 检查是否鞘翅滑翔
+    if (m_isFallFlying.has_value()) {
+        const auto* living = dynamic_cast<const LivingEntity*>(&entity);
+        const bool isFallFlying = living != nullptr && living->isElytraFlying();
+        if (isFallFlying != m_isFallFlying.value()) {
+            return false;
+        }
+    }
+
     return true;
 }
 
@@ -109,6 +145,18 @@ Result<EntityFlagsPredicate> EntityFlagsPredicate::fromJson(const nlohmann::json
     if (json.contains("is_baby")) {
         predicate.m_isBaby = json["is_baby"].get<bool>();
     }
+    if (json.contains("is_on_ground")) {
+        predicate.m_isOnGround = json["is_on_ground"].get<bool>();
+    }
+    if (json.contains("is_flying")) {
+        predicate.m_isFlying = json["is_flying"].get<bool>();
+    }
+    if (json.contains("is_in_water")) {
+        predicate.m_isInWater = json["is_in_water"].get<bool>();
+    }
+    if (json.contains("is_fall_flying")) {
+        predicate.m_isFallFlying = json["is_fall_flying"].get<bool>();
+    }
 
     predicate._updateIsAny();
     return predicate;
@@ -137,6 +185,18 @@ nlohmann::json EntityFlagsPredicate::toJson() const
     if (m_isBaby.has_value()) {
         json["is_baby"] = m_isBaby.value();
     }
+    if (m_isOnGround.has_value()) {
+        json["is_on_ground"] = m_isOnGround.value();
+    }
+    if (m_isFlying.has_value()) {
+        json["is_flying"] = m_isFlying.value();
+    }
+    if (m_isInWater.has_value()) {
+        json["is_in_water"] = m_isInWater.value();
+    }
+    if (m_isFallFlying.has_value()) {
+        json["is_fall_flying"] = m_isFallFlying.value();
+    }
 
     return json;
 }
@@ -144,7 +204,8 @@ nlohmann::json EntityFlagsPredicate::toJson() const
 void EntityFlagsPredicate::_updateIsAny()
 {
     m_isAny = !m_isOnFire.has_value() && !m_isSneaking.has_value() && !m_isSprinting.has_value() &&
-        !m_isSwimming.has_value() && !m_isBaby.has_value();
+        !m_isSwimming.has_value() && !m_isBaby.has_value() && !m_isOnGround.has_value() && !m_isFlying.has_value() &&
+        !m_isInWater.has_value() && !m_isFallFlying.has_value();
 }
 
 } // namespace mc::advancement

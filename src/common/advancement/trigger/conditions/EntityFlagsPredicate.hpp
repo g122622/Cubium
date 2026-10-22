@@ -77,6 +77,10 @@ public:
     [[nodiscard]] const std::optional<bool>& isSprinting() const noexcept { return m_isSprinting; }
     [[nodiscard]] const std::optional<bool>& isSwimming() const noexcept { return m_isSwimming; }
     [[nodiscard]] const std::optional<bool>& isBaby() const noexcept { return m_isBaby; }
+    [[nodiscard]] const std::optional<bool>& isOnGround() const noexcept { return m_isOnGround; }
+    [[nodiscard]] const std::optional<bool>& isFlying() const noexcept { return m_isFlying; }
+    [[nodiscard]] const std::optional<bool>& isInWater() const noexcept { return m_isInWater; }
+    [[nodiscard]] const std::optional<bool>& isFallFlying() const noexcept { return m_isFallFlying; }
 
     // ========== Setters ==========
 
@@ -109,11 +113,15 @@ public:
 private:
     void _updateIsAny();
 
-    std::optional<bool> m_isOnFire;    ///< 是否燃烧
-    std::optional<bool> m_isSneaking;  ///< 是否潜行
-    std::optional<bool> m_isSprinting; ///< 是否疾跑
-    std::optional<bool> m_isSwimming;  ///< 是否游泳
-    std::optional<bool> m_isBaby;      ///< 是否幼年
+    std::optional<bool> m_isOnFire;     ///< 是否燃烧
+    std::optional<bool> m_isSneaking;   ///< 是否潜行
+    std::optional<bool> m_isSprinting;  ///< 是否疾跑
+    std::optional<bool> m_isSwimming;   ///< 是否游泳
+    std::optional<bool> m_isBaby;       ///< 是否幼年
+    std::optional<bool> m_isOnGround;   ///< 是否着地（vanilla is_on_ground）
+    std::optional<bool> m_isFlying;     ///< 是否飞行（滑翔 或 创造模式飞行，vanilla is_flying）
+    std::optional<bool> m_isInWater;    ///< 是否在水中（vanilla is_in_water）
+    std::optional<bool> m_isFallFlying; ///< 是否鞘翅滑翔（vanilla is_fall_flying）
     bool m_isAny = true;
 };
 
