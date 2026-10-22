@@ -490,6 +490,7 @@ add_executable(mc_tests
     common/entity/ArrowPickupTest.cpp
     # ArrowEntity 药水箭测试（效果、颜色、NBT标签）
     common/entity/ArrowEntityTest.cpp
+    common/entity/ArrowNbtPersistTest.cpp
     # ArrowEntity 修复验证测试（拾取状态、伤害公式、isPlayer判断）
     common/entity/ArrowEntityFixTest.cpp
     # ArrowEntity/SpectralArrowEntity doPostHurtEffects 测试（任务 #285：hurt 成功后施加药水/发光效果）

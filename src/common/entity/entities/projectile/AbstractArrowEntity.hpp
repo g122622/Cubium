@@ -31,10 +31,13 @@
 #include "common/entity/damage/DamageSource.hpp"
 #include "common/entity/effect/EffectInstance.hpp"
 #include "common/entity/entities/projectile/ProjectileEntity.hpp"
+#include "common/item/core/ItemStack.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockState.hpp"
 #include <memory>
 #include <optional>
+#include <string>
 #include <unordered_set>
 #include <vector>
 
@@ -121,6 +124,23 @@ public:
      * @brief 设置拾取状态
      */
     void setPickupStatus(PickupStatus status);
+
+    /**
+     * @brief 命中音效 registry 名（vanilla AbstractArrow.soundEvent）
+     *
+     * 非空时覆盖默认落地音效；空表示使用 getDefaultHitGroundSoundEvent()。
+     */
+    [[nodiscard]] const std::string& soundEventId() const;
+    void setSoundEventId(std::string soundEventId);
+
+    /**
+     * @brief 射出该箭矢的武器（vanilla AbstractArrow.firedFromWeapon）
+     *
+     * 仅用于击退附魔加成与击杀进度判定；箭矢本身不据此改变拾取物。
+     * @return 武器物品堆；未设置时返回空栈
+     */
+    [[nodiscard]] const ItemStack& firedFromWeapon() const;
+    void setFiredFromWeapon(const ItemStack& weapon);
 
     /**
      * @brief 是否从弩射出
@@ -262,6 +282,19 @@ protected:
      * @return 如果箭矢应该脱落返回true
      */
     bool checkInBlockEmpty();
+
+    /**
+     * @brief 默认落地命中音效（对齐 vanilla AbstractArrow.getDefaultHitGroundSoundEvent）
+     *
+     * 未显式设置 soundEvent 时使用该音效。子类按 vanilla 覆写
+     * （如三叉戟默认 ENTITY_TRIDENT_HIT_GROUND）。
+     */
+    [[nodiscard]] virtual ResourceLocation getDefaultHitGroundSoundEvent() const;
+
+    /**
+     * @brief 实际使用的落地命中音效（soundEvent 已设置则优先）
+     */
+    [[nodiscard]] ResourceLocation resolveHitGroundSound() const;
 
     /**
      * @brief 箭矢脱落时的弹射处理

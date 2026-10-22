@@ -2,10 +2,12 @@
 
 #include "common/core/Types.hpp"
 #include "common/entity/core/PickupStatus.hpp"
+#include "common/item/core/ItemStack.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockState.hpp"
 #include <memory>
 #include <optional>
+#include <string>
 #include <unordered_set>
 
 namespace mc::ecs {
@@ -41,6 +43,8 @@ namespace mc::ecs {
  * - m_pickupStatus：拾取状态（vanilla "pickup" byte）。
  * - m_shotFromCrossbow：是否从弩射出。
  * - m_dealtDamage：是否已造成伤害（三叉戟用，vanilla ThrownTrident "DealtDamage"）。
+ * - m_soundEvent：命中音效 registry 名（vanilla "SoundEvent"），空表示用子类默认音效。
+ * - m_firedFromWeapon：射出武器（vanilla "weapon"），用于击退附魔与进度判定。
  */
 struct ProjectileArrowStateComponent {
     f32 m_damage{2.0f};
@@ -54,6 +58,12 @@ struct ProjectileArrowStateComponent {
     entity::PickupStatus m_pickupStatus{entity::PickupStatus::Disallowed};
     bool m_shotFromCrossbow{false};
     bool m_dealtDamage{false};
+    /// 命中音效（vanilla AbstractArrow.soundEvent，NBT 键 "SoundEvent"，registry 名）。
+    /// 空表示使用子类的默认落地音效 getDefaultHitGroundSoundEvent()。
+    std::string m_soundEvent;
+    /// 射出该箭矢的武器（vanilla firedFromWeapon，NBT 键 "weapon"）；空表示无。
+    /// 用于击退附魔加成与 "killed_by_arrow" 进度判定。
+    std::unique_ptr<ItemStack> m_firedFromWeapon;
 
     std::unique_ptr<std::unordered_set<EntityInstanceId>> m_piercedEntities;
     std::unique_ptr<std::optional<BlockState>> m_inBlockState;

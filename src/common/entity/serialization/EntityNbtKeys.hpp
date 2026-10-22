@@ -222,7 +222,8 @@ constexpr const char* PROJECTILE_HAS_BEEN_SHOT = "HasBeenShot";       ///< 是�
 
 // ========== AbstractArrow 键 ==========
 // 参考 MC 1.21.11 AbstractArrow.addAdditionalSaveData()/readAdditionalSaveData()。
-// 项目 AbstractArrow 持久化 8 字段（vanilla 11 字段中 SoundEvent/weapon 标 TODO 暂不持久化）。
+// 项目 AbstractArrow 持久化 10 字段（另含 ThrownTrident 的 DealtDamage），对齐 vanilla 的
+// life/inBlockState/shake/inGround/pickup/damage/crit/PierceLevel/SoundEvent/item/weapon。
 
 constexpr const char* ARROW_LIFE = "life";                ///< 在地里存活 tick（short）
 constexpr const char* ARROW_SHAKE = "shake";              ///< 抖动时间（byte）
@@ -232,7 +233,8 @@ constexpr const char* ARROW_DAMAGE = "damage";            ///< 基础伤害（f3
 constexpr const char* ARROW_CRIT = "crit";                ///< 是否暴击（bool）
 constexpr const char* ARROW_PIERCE_LEVEL = "PierceLevel"; ///< 穿透等级（byte）
 constexpr const char* ARROW_ITEM = "item";                ///< 拾取物品堆（compound，ItemStack::toNbt）
-// TODO: ARROW_SOUND_EVENT / ARROW_WEAPON（vanilla 持久化，项目暂无对应字段，待补）
+constexpr const char* ARROW_SOUND_EVENT = "SoundEvent";   ///< 命中音效 registry 名（vanilla soundEvent）
+constexpr const char* ARROW_WEAPON = "weapon";            ///< 射出武器物品堆（compound，vanilla firedFromWeapon）
 
 // ========== ThrownTrident 键 ==========
 // 参考 MC 1.21.11 ThrownTrident.addAdditionalSaveData()/readAdditionalSaveData()。

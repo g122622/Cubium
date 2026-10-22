@@ -376,8 +376,13 @@ void TridentEntity::onBlockHit(const RayTraceResult& result)
     setPierceLevel(0);
     clearPiercedEntities();
 
-    // 三叉戟有特殊的命中地面音效
-    playSound(SoundEvents::ITEM_TRIDENT_HIT_GROUND, 1.0f, 1.0f);
+    // 三叉戟有特殊的命中地面音效（soundEvent 未显式设置时即默认的 ITEM_TRIDENT_HIT_GROUND）
+    playSound(resolveHitGroundSound(), 1.0f, 1.0f);
+}
+
+ResourceLocation TridentEntity::getDefaultHitGroundSoundEvent() const
+{
+    return SoundEvents::ITEM_TRIDENT_HIT_GROUND;
 }
 
 f32 TridentEntity::getWaterDrag() const
