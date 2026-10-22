@@ -51,6 +51,7 @@
 #include "common/util/math/random/Random.hpp"
 #include "common/util/property/Properties.hpp"
 #include "common/world/IWorld.hpp"
+#include "common/world/attribute/EnvironmentAttributes.hpp"
 #include "common/world/block/BlockState.hpp"
 #include "common/world/block/BlockTags.hpp"
 #include "common/world/block/blocks/vegetation/DoublePlantBlock.hpp"
@@ -533,11 +534,10 @@ bool BeeEntity::wantsToEnterHive() const
         return false;
     }
 
-    // 检查是否满足进入蜂巢的条件：
+    // 检查是否满足进入蜂巢的条件（对齐 vanilla Bee.wantsToEnterHive）：
     // 1. 有花粉 → 回巢存放
     // 2. 寻找花蜜超过 3600 tick（3分钟）→ 疲惫回巢
-    // 3. 雨天或雷暴 → 天气恶劣回巢
-    // 4. 夜间 → 天黑回巢
+    // 3. 环境属性 BEES_STAY_IN_HIVE 为真（雨天/雷暴/夜间，由维度与群系属性层给出）
     bool shouldEnter = hasNectar();
     if (!shouldEnter) {
         shouldEnter = isTiredOfLookingForNectar();
@@ -545,7 +545,17 @@ bool BeeEntity::wantsToEnterHive() const
     if (!shouldEnter) {
         const IWorld* worldPtr = world();
         if (worldPtr != nullptr) {
-            shouldEnter = worldPtr->isRaining() || worldPtr->isThundering() || !worldPtr->isDaytime();
+            const world::attribute::EnvironmentAttributeSystem& environmentAttributes =
+                worldPtr->environmentAttributes();
+            const math::Vector3 queryPos(static_cast<f32>(x()), static_cast<f32>(y()), static_cast<f32>(z()));
+            if (environmentAttributes.attributeCount() != 0) {
+                shouldEnter = environmentAttributes.getValue(
+                    world::attribute::EnvironmentAttributes::BEES_STAY_IN_HIVE(), queryPos);
+            } else {
+                // 环境属性系统未就绪（生成期/测试夹具）：退回天气与时段的直接判定
+                // （与 BEES_STAY_IN_HIVE 的维度默认来源等价）。
+                shouldEnter = worldPtr->isRaining() || worldPtr->isThundering() || !worldPtr->isDaytime();
+            }
         }
     }
 

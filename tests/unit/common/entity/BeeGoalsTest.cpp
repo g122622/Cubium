@@ -49,6 +49,7 @@
 #include "common/entity/entities/passive/special/BeeEntity.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/WorldEvents.hpp"
+#include "common/world/block/BlockPos.hpp"
 #include "common/world/block/BlockTags.hpp"
 #include "common/world/block/IGrowable.hpp"
 #include "common/world/block/blocks/agricultural/CropBlock.hpp"
@@ -693,6 +694,26 @@ TEST_F(BeeUpdateHiveGoalTest, CanBeeStart_ReturnsFalseWhenHasHive)
     bee->setAngerTime(0);
     bee->setHasHive(true);
     EXPECT_FALSE(goal->canBeeStart());
+}
+
+TEST_F(BeeUpdateHiveGoalTest, CanBeeStart_RequiresWantsToEnterHive)
+{
+    // 对齐 vanilla BeeLocateHiveGoal.canBeeUse：无蜂巢且冷却为 0 还不够，
+    // 必须此刻想回巢（有花粉 / 疲惫 / BEES_STAY_IN_HIVE）。
+    bee->setHasHive(false);
+    bee->setHiveLocateCooldown(0);
+    bee->setHasNectar(false);
+    bee->setStayOutOfHiveCountdown(0);
+    EXPECT_FALSE(goal->canBeeStart()) << "无花粉且不疲惫时不应寻找新蜂巢";
+
+    bee->setHasNectar(true);
+    EXPECT_TRUE(goal->canBeeStart());
+}
+
+TEST_F(BeeUpdateHiveGoalTest, BlacklistDefaultsEmpty)
+{
+    EXPECT_FALSE(goal->isBlacklisted(BlockPos(1, 64, 1)));
+    EXPECT_EQ(BeeUpdateHiveGoal::MAX_BLACKLIST_SIZE, 5u);
 }
 
 TEST_F(BeeUpdateHiveGoalTest, CanBeeContinue_ReturnsFalse)

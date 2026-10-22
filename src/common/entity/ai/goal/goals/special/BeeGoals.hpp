@@ -215,9 +215,10 @@ private:
 };
 
 /**
- * @brief 蜜蜂更新蜂巢位置目标
+ * @brief 蜜蜂更新蜂巢位置目标（对齐 vanilla Bee.BeeLocateHiveGoal）
  *
- * 当蜜蜂没有蜂巢时，搜索附近可用的蜂巢。
+ * 冷却结束、没有蜂巢且此时想回巢（wantsToEnterHive）时，搜索附近有空位的蜂巢并记录其一。
+ * 冷却 200 tick（vanilla COOLDOWN_BEFORE_LOCATING_NEW_HIVE）。
  *
  * 优先级: 5
  */
@@ -229,6 +230,15 @@ public:
     [[nodiscard]] bool canBeeContinue() override;
     void startExecuting() override;
 
+    /// 技能的蜂巢是否在"到达失败"黑名单中（对齐 vanilla BeeGoToHiveGoal.isTargetBlacklisted）
+    [[nodiscard]] bool isBlacklisted(const BlockPos& pos) const;
+
+    /// 清空黑名单（对齐 vanilla BeeGoToHiveGoal.clearBlacklist）
+    void clearBlacklist() { m_blacklist.clear(); }
+
+    /// 黑名单上限（对齐 vanilla BeeGoToHiveGoal.blackList 最多保留 5 项）
+    static constexpr std::size_t MAX_BLACKLIST_SIZE = 5;
+
     [[nodiscard]] std::string getTypeName() const override { return "BeeUpdateHiveGoal"; }
 
 private:
@@ -237,6 +247,9 @@ private:
 
     /// 检查蜂巢是否有空间
     [[nodiscard]] bool _doesHiveHaveSpace(const BlockPos& pos) const;
+
+    /// 导航失败/超时的蜂巢（对齐 vanilla BeeGoToHiveGoal.blackList）
+    std::vector<BlockPos> m_blacklist;
 };
 
 /**

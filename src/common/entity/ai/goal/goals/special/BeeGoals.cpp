@@ -503,13 +503,11 @@ BeeUpdateHiveGoal::BeeUpdateHiveGoal(BeeEntity* bee)
 
 bool BeeUpdateHiveGoal::canBeeStart()
 {
-    // 检查冷却
-    if (m_bee->getHiveLocateCooldown() > 0) {
+    // 对齐 vanilla BeeLocateHiveGoal.canBeeUse：冷却为 0 && 无蜂巢 && 想回巢
+    if (m_bee->getHiveLocateCooldown() > 0 || m_bee->hasHive()) {
         return false;
     }
-
-    // 没有蜂巢位置时执行
-    return !m_bee->hasHive();
+    return m_bee->wantsToEnterHive();
 }
 
 bool BeeUpdateHiveGoal::canBeeContinue()
@@ -520,16 +518,27 @@ bool BeeUpdateHiveGoal::canBeeContinue()
 
 void BeeUpdateHiveGoal::startExecuting()
 {
-    // 搜索附近可用的蜂巢
-    auto hives = _findNearbyFreeHives();
-
-    if (!hives.empty()) {
-        // 设置最近的蜂巢
-        m_bee->setHivePos(hives[0]);
-    }
-
-    // 设置冷却（10秒 = 200 tick）
+    // 对齐 vanilla BeeLocateHiveGoal.start：先置 200 冷却，再取首个不在黑名单中的蜂巢；
+    // 全在黑名单中时清空黑名单并回退到首个蜂巢。
     m_bee->setHiveLocateCooldown(200);
+
+    auto hives = _findNearbyFreeHives();
+    if (hives.empty()) {
+        return;
+    }
+    for (const BlockPos& hive : hives) {
+        if (!isBlacklisted(hive)) {
+            m_bee->setHivePos(hive);
+            return;
+        }
+    }
+    clearBlacklist();
+    m_bee->setHivePos(hives[0]);
+}
+
+bool BeeUpdateHiveGoal::isBlacklisted(const BlockPos& pos) const
+{
+    return std::find(m_blacklist.begin(), m_blacklist.end(), pos) != m_blacklist.end();
 }
 
 std::vector<BlockPos> BeeUpdateHiveGoal::_findNearbyFreeHives() const
@@ -638,6 +647,17 @@ void BeeFindHiveGoal::startExecuting()
 
 void BeeFindHiveGoal::resetTask()
 {
+    // 对齐 vanilla BeeGoToHiveGoal.stop：把未能到达的蜂巢加入黑名单（限长 5），
+    // 并重置寻路最大访问节点倍数。dropHive 内部含 200 tick 的离巢冷却。
+    if (m_bee->hasHive()) {
+        const BlockPos hivePos = m_bee->getHivePos();
+        if (std::find(m_possibleHives.begin(), m_possibleHives.end(), hivePos) == m_possibleHives.end()) {
+            if (m_possibleHives.size() >= BeeUpdateHiveGoal::MAX_BLACKLIST_SIZE) {
+                m_possibleHives.erase(m_possibleHives.begin());
+            }
+            m_possibleHives.push_back(hivePos);
+        }
+    }
     m_bee->dropHive();
     // MC 1.21.11: BeeGoToHiveGoal.stop() 中重置 maxVisitedNodesMultiplier 为默认值 1.0F
     if (auto* nav = m_bee->navigator()) {
@@ -883,8 +903,9 @@ void BeeFindPollinationTargetGoal::tick()
         return;
     }
 
-    // 30 tick 检查一次
-    if (world->getRandom().nextInt(30) != 0) {
+    // 对齐 vanilla BeeGrowCropGoal.tick：random.nextInt(adjustedTickDelay(30)) == 0
+    // （本 goal 未置 requiresUpdateEveryTick，故 30 按半 tick 补偿为 15）
+    if (world->getRandom().nextInt(adjustedTickDelay(30)) != 0) {
         return;
     }
 
