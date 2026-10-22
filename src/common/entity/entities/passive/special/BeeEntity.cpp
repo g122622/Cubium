@@ -709,6 +709,9 @@ bool BeeEntity::attackEntityAsMob(LivingEntity& target)
     // 对齐 Java 1.21.11 Bee.doHurtTarget（Bee.java:227-252）。
     // 1. 调父类执行基础 sting 伤害（ATTACK_DAMAGE=2.0 + 附魔加成 + 击退 + setLastHurtBy + 音效）。
     //    AnimalEntity 无 override，解析到 MobEntity::attackEntityAsMob 基类完整攻击链。
+    // TODO: vanilla 此处伤害源为 damageSources().sting(this)（死亡消息 death.attack.sting），
+    //   而基类使用通用 mobAttack 源；补齐 sting 源需在 MobEntity 提供可覆盖的伤害源工厂，
+    //   届时此处改为传递 sting 源。
     if (!AnimalEntity::attackEntityAsMob(target)) {
         return false;
     }
