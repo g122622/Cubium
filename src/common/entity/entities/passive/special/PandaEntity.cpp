@@ -74,6 +74,70 @@ PandaEntity::PandaEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
 
     // 注册属性
     registerAttributes();
+
+    // 补调 registerData：AnimalEntity 构造期间 vtable 指向基类，派生 override 不执行，
+    // 须在派生类构造显式调用（同 BeeEntity）。
+    registerData();
+}
+
+entity::DataParameter<i8> PandaEntity::DATA_PANDA_FLAGS_PARAM = entity::EntityDataManager::createKey<i8>();
+
+void PandaEntity::registerData()
+{
+    AnimalEntity::registerData();
+    // 对齐 vanilla Panda.DATA_ID_FLAGS（Byte，默认 0）：同步标志位字节。
+    m_dataManager.registerParam(DATA_PANDA_FLAGS_PARAM, static_cast<i8>(0));
+}
+
+bool PandaEntity::_getPandaFlag(i8 flag) const
+{
+    return (static_cast<u8>(m_dataManager.get(DATA_PANDA_FLAGS_PARAM)) & static_cast<u8>(flag)) != 0;
+}
+
+void PandaEntity::_setPandaFlag(i8 flag, bool value)
+{
+    u8 flags = static_cast<u8>(m_dataManager.get(DATA_PANDA_FLAGS_PARAM));
+    if (value) {
+        flags = static_cast<u8>(flags | static_cast<u8>(flag));
+    } else {
+        flags = static_cast<u8>(flags & ~static_cast<u8>(flag));
+    }
+    m_dataManager.set(DATA_PANDA_FLAGS_PARAM, static_cast<i8>(flags));
+}
+
+bool PandaEntity::isSneezing() const
+{
+    return _getPandaFlag(PANDA_FLAG_SNEEZING);
+}
+
+void PandaEntity::setSneezing(bool sneezing)
+{
+    _setPandaFlag(PANDA_FLAG_SNEEZING, sneezing);
+}
+
+bool PandaEntity::isEating() const
+{
+    return m_eating;
+}
+
+void PandaEntity::setEating(bool eating)
+{
+    m_eating = eating;
+}
+
+bool PandaEntity::isSitting() const
+{
+    return _getPandaFlag(PANDA_FLAG_SITTING);
+}
+
+bool PandaEntity::isOnBack() const
+{
+    return _getPandaFlag(PANDA_FLAG_ON_BACK);
+}
+
+void PandaEntity::setOnBack(bool onBack)
+{
+    _setPandaFlag(PANDA_FLAG_ON_BACK, onBack);
 }
 
 std::unique_ptr<Entity> PandaEntity::create(IWorld* /*world*/, ecs::EntityRegistry& registry)
@@ -277,7 +341,7 @@ void PandaEntity::tick()
     }
 
     // 坐下时保持视线水平（vanilla Panda.tick 中 isSitting() 时 setXRot(0)）。
-    if (m_sitting) {
+    if (isSitting()) {
         setRotation(yaw(), 0.0f);
     }
 
@@ -289,7 +353,7 @@ void PandaEntity::tick()
     }
 
     // 更新打喷嚏计时器
-    if (m_sneezing && m_sneezeTimer > 0) {
+    if (isSneezing() && m_sneezeTimer > 0) {
         m_sneezeTimer--;
 
         // 第1 tick播放预喷嚏音效
@@ -298,7 +362,7 @@ void PandaEntity::tick()
         }
 
         if (m_sneezeTimer <= 0) {
-            m_sneezing = false;
+            setSneezing(false);
             // 打喷嚏完成，执行效果
             _onSneezeComplete();
         }
@@ -592,9 +656,10 @@ void PandaEntity::playEatSound()
 void PandaEntity::sneeze(bool sneeze)
 {
     // 对齐 vanilla Panda.sneeze:160：setFlag(2, sneeze)；!sneeze 时 setSneezeCounter(0)。
-    // Cubium 用 m_sneezing + m_sneezeTimer 递减模型：开始时初始化 timer=SNEEZE_DURATION，
+    // 状态位经 DATA_PANDA_FLAGS 同步，供客户端播放喷嚏动画。
+    // Cubium 用标记位 + m_sneezeTimer 递减模型：开始时初始化 timer=SNEEZE_DURATION，
     // 由 tick() 递减驱动预喷嚏音效（timer==19）与 _onSneezeComplete（timer 到 0）。
-    m_sneezing = sneeze;
+    setSneezing(sneeze);
     if (sneeze) {
         m_sneezeTimer = SNEEZE_DURATION;
     } else {
@@ -643,8 +708,8 @@ void PandaEntity::setAttackTarget(LivingEntity* target)
 void PandaEntity::sit(bool sit)
 {
     // vanilla Panda.sit 只写标志位；下坐动作（停止寻路、清除移动输入）由 tryToSit 负责，
-    // 状态位本身由 AI（担忧雷暴 / 玩家喂食）驱动。
-    m_sitting = sit;
+    // 状态位本身由 AI（担忧雷暴 / 喂食 / PandaSitGoal）驱动。
+    _setPandaFlag(PANDA_FLAG_SITTING, sit);
 }
 
 ActionResultType PandaEntity::interactMob(Player& player, Hand hand)

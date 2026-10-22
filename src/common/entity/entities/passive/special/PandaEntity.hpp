@@ -24,6 +24,7 @@
 #pragma once
 
 #include "common/core/Types.hpp"
+#include "common/entity/core/DataParameter.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/entities/passive/basic/AnimalEntity.hpp"
 #include "common/resource/ResourceLocation.hpp"
@@ -231,12 +232,12 @@ public:
     /**
      * @brief 是否正在打喷嚏
      */
-    [[nodiscard]] bool isSneezing() const { return m_sneezing; }
+    [[nodiscard]] bool isSneezing() const;
 
     /**
      * @brief 设置打喷嚏状态
      */
-    void setSneezing(bool sneezing) { m_sneezing = sneezing; }
+    void setSneezing(bool sneezing);
 
     /**
      * @brief 获取打喷嚏计时器
@@ -251,12 +252,12 @@ public:
     /**
      * @brief 是否正在吃东西
      */
-    [[nodiscard]] bool isEating() const { return m_eating; }
+    [[nodiscard]] bool isEating() const;
 
     /**
      * @brief 设置吃东西状态
      */
-    void setEating(bool eating) { m_eating = eating; }
+    void setEating(bool eating);
 
     /**
      * @brief 是否正在躺着
@@ -362,10 +363,10 @@ public:
      * 对齐 MC Java 1.21.11 Panda.sit（Panda.java:132-134）：
      *   public void sit(boolean p_478676_) { this.setFlag(8, p_478676_); }
      * vanilla 用 DATA_FLAGS bit8（1<<8=256）标记坐下。Cubium DATA_FLAGS 为 i8（仅 8 bit，
-     * 无法存 bit8），故用独立成员 m_sitting 承载状态。
+     * 无法存 bit8），故用独立的同步参数 DATA_PANDA_FLAGS 承载（u8，整个字节下发，
+     * 客户端可见），不与实体通用标志位复用。
      *
-     * 坐下状态只记录"是否坐着"，驱动方是本类 tick 中的担忧雷暴分支与喂食交互（tryToSit）。
-     * TODO: 客户端坐下动画与姿态同步（ride/sit 类姿态数据）尚未接入，服务端状态已正确维护。
+     * 驱动方：担忧雷暴分支、玩家喂食交互（tryToSit）与 PandaSitGoal。
      *
      * @param sit 是否坐下
      */
@@ -383,13 +384,13 @@ public:
      *
      * 对齐 vanilla Panda.isSitting（getFlag(8)）。
      */
-    [[nodiscard]] bool isSitting() const { return m_sitting; }
+    [[nodiscard]] bool isSitting() const;
 
     // ========== 仰躺状态（对齐 vanilla Panda.isOnBack / setOnBack） ==========
 
     /// 是否四脚朝天仰躺（懒惰熊猫 PandaLieOnBackGoal 驱动）
-    [[nodiscard]] bool isOnBack() const { return m_onBack; }
-    void setOnBack(bool onBack) { m_onBack = onBack; }
+    [[nodiscard]] bool isOnBack() const;
+    void setOnBack(bool onBack);
 
     // ========== 反击终止标志（对齐 vanilla Panda.gotBamboo / didBite） ==========
 
@@ -425,6 +426,9 @@ public:
     void playBiteSound();
 
 protected:
+    // ========== 数据同步 ==========
+    void registerData() override;
+
     // ========== AI 目标注册 ==========
     void registerGoals() override;
 
@@ -471,19 +475,27 @@ protected:
     void _updateRoll();
 
 private:
-    // 性格
+    /// 熊猫同步标志位字节（对齐 vanilla Panda.DATA_ID_FLAGS）
+    static entity::DataParameter<i8> DATA_PANDA_FLAGS_PARAM;
+
+    // 对齐 vanilla Panda 的同步标志位（DATA_ID_FLAGS 字节，Panda.java:78 / 208-228）
+    static constexpr i8 PANDA_FLAG_SNEEZING = 2; // 1 << 1
+    static constexpr i8 PANDA_FLAG_SITTING = 1 << 3;
+    static constexpr i8 PANDA_FLAG_ON_BACK = 1 << 4;
+
+    [[nodiscard]] bool _getPandaFlag(i8 flag) const;
+    void _setPandaFlag(i8 flag, bool value);
+
+    /// 性格基因
     Personality m_personality = Personality::Normal;
 
-    // 行为状态
+    // 行为状态（打喷嚏/坐下/仰躺经 DATA_PANDA_FLAGS 同步给客户端；其余为本地瞬时状态）
     bool m_rolling = false;
-    bool m_sneezing = false;
     bool m_eating = false;
     bool m_lying = false;
-    bool m_sitting = false; // 对齐 vanilla Panda.sit (flag 8)；下游坐姿动画见上方 TODO
 
-    // 反击终止标志（对齐 vanilla Panda.gotBamboo / didBite，none 随 NBT 持久化——
+    // 反击终止标志（对齐 vanilla Panda.gotBamboo / didBite，不随 NBT 持久化——
     // vanilla 亦不序列化这两个瞬时字段）。
-    bool m_onBack = false; // 对齐 vanilla Panda.DATA_ON_BACK（flag 16 的等价独立字段）
     bool m_gotBamboo = false;
     bool m_didBite = false;
 

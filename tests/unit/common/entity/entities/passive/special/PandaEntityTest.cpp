@@ -1348,5 +1348,36 @@ TEST(PandaSitGoalTest, UnhappyPandaDoesNotSit)
     EXPECT_FALSE(goal.shouldExecute());
 }
 
+// ==================== 同步标志位（DATA_PANDA_FLAGS） ====================
+
+TEST(PandaSyncedFlagsTest, SitAndSneezeAndOnBackAreSynced)
+{
+    Items::initialize();
+    PandaTestWorld world;
+    TickablePanda panda(EntityInstanceId(1), mc::test::testEcsRegistry());
+    panda.setWorld(&world);
+    panda.setTypeId("minecraft:panda");
+
+    // 对齐 vanilla Panda.DATA_ID_FLAGS：bit1 喷嚏、bit3 坐下、bit4 仰躺，三者互不干扰
+    EXPECT_FALSE(panda.isSitting());
+    panda.sit(true);
+    EXPECT_TRUE(panda.isSitting());
+    EXPECT_FALSE(panda.isSneezing());
+    EXPECT_FALSE(panda.isOnBack());
+
+    panda.setOnBack(true);
+    EXPECT_TRUE(panda.isOnBack());
+    EXPECT_TRUE(panda.isSitting()) << "不同标志位之间不应互相覆盖";
+
+    panda.setSneezing(true);
+    EXPECT_TRUE(panda.isSneezing());
+    EXPECT_TRUE(panda.isOnBack());
+
+    panda.sit(false);
+    EXPECT_FALSE(panda.isSitting());
+    EXPECT_TRUE(panda.isOnBack());
+    EXPECT_TRUE(panda.isSneezing());
+}
+
 } // anonymous namespace
 } // namespace mc
