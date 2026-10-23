@@ -22,6 +22,7 @@ add_library(mc_bedrock_addon STATIC
     # Modules - @minecraft/server模块绑定
     modules/MinecraftModuleFactory.cpp
     modules/system/ScriptSystemBinding.cpp
+    modules/entity/ScriptEntityPropertiesBinding.cpp
     modules/ScriptCustomComponentBinding.cpp
     modules/ScriptEventBinding.cpp
     modules/types/ScriptWorldAccessor.cpp
@@ -58,6 +59,9 @@ add_library(mc_bedrock_addon STATIC
     lifecycle/ScriptWatchdog.cpp
     lifecycle/ScriptLogger.cpp
     lifecycle/ScriptScheduler.cpp
+
+    # Content - 行为包数据与实体状态
+    content/entity/state/EntityAddonState.cpp
 
     # Component - 自定义组件
     component/BlockComponentRegistry.cpp

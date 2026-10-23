@@ -31,6 +31,7 @@
 #include "common/entity/serialization/components/MinecartComponentSerialization.hpp"
 #include "common/entity/serialization/components/PlayerComponentSerialization.hpp"
 #include "common/entity/serialization/components/ProjectileComponentSerialization.hpp"
+#include "common/mod/bedrock/addon/content/entity/state/EntityAddonState.hpp"
 #include <algorithm>
 
 namespace mc::entity::serialization::components {
@@ -96,9 +97,13 @@ void ComponentSerializerRegistry::registerAll()
     // 序列化器内部 dynamic_cast<ArmorStandEntity*> 早退。
     registerArmorStandComponentSerializers(*this);
 
+    // addon 数据与实体一起保存和恢复，不使用进程级表延长实体状态的寿命。
+    mc::mod::bedrock::addon::registerEntityAddonStateSerializer(*this);
+
     // load 按 priority 升序遍历（本批全 0 无序；未来 Attributes=100/ActiveEffects=200）
-    std::stable_sort(
-        m_entries.begin(), m_entries.end(), [](const Entry& a, const Entry& b) { return a.priority < b.priority; });
+    std::stable_sort(m_entries.begin(), m_entries.end(), [](const Entry& a, const Entry& b) {
+        return a.priority < b.priority;
+    });
 }
 
 void ComponentSerializerRegistry::saveAll(const Entity& entity, nbt::tags::compound_tag& tag) const

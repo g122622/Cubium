@@ -1,62 +1,29 @@
-# @minecraft/server模块绑定
+# Minecraft 脚本模块绑定
 
-实现基岩版@minecraft/server API的C++→JS绑定。
+## 目录结构树
 
-## 目录结构
-
-```
+```text
 modules/
-├── MinecraftModuleFactory.hpp/.cpp      # 模块工厂，注册所有@minecraft/server绑定
-├── ScriptCustomComponentBinding.hpp/.cpp # 自定义组件JS绑定（方块/物品组件注册）
-├── ScriptEventBinding.hpp/.cpp          # 事件绑定（beforeEvents/afterEvents）
-└── types/                               # 脚本类型包装类
-    ├── ScriptColor.hpp/.cpp             # RGBA颜色类型（JS↔C++转换）
-    ├── ScriptVec2.hpp/.cpp              # 2D向量类型
-    ├── ScriptVec3.hpp/.cpp              # 3D向量/坐标类型
-    └── ScriptWorldAccessor.hpp/.cpp     # world全局对象访问器接口
+├── MinecraftModuleFactory.hpp/cpp # 注册 Minecraft 原生脚本模块及游戏对象
+├── ScriptCustomComponentBinding.hpp/cpp # startup 提供的自定义组件注册入口
+├── ScriptEventBinding.hpp/cpp # 事件信号订阅、取消和脚本消息
+├── system/ # System 调度、生成器任务和脚本消息方法
+├── entity/ # Entity 声明属性与包作用域动态属性
+└── types/ # 向量、颜色转换和世界访问抽象
 ```
 
 ## 内部模块关系
 
-```
-MinecraftModuleFactory
-    ├── 注册System/World/Dimension/Entity/Player/Block/ItemStack类到JS
-    ├── 注册Entity组件类（RideableComponent/HealthComponent/MovementComponent/EquippableComponent/OnFireComponent）
-    │   └── Entity.getComponent(componentId) 派发到对应组件类，opaque 持同一 mc::Entity*
-    ├── 注册blockComponentRegistry/itemComponentRegistry全局对象
-    │   └── ScriptCustomComponentBinding — 解析JS回调并注册到C++ Registry
-    ├── 注册world.beforeEvents/afterEvents
-    │   └── ScriptEventBinding — 创建事件信号对象并桥接到ScriptEventBus
-    └── 使用types/中的类型进行JS↔C++值转换
+模块工厂创建类原型和模块导出，按职责调用 System、Entity 和事件绑定。Player 从 Entity 继承，游戏对象统一经 binding 层包装。
 
-ScriptWorldAccessor (单例)
-    └── 抽象接口，由服务端注入实现，提供currentTick/getAllPlayerNames/sendMessage
+## 上下游外部依赖关系
 
-types/
-    ├── ScriptVec2/ScriptVec3 — 坐标转换，支持fromJs/toJs
-    ├── ScriptColor — RGBA颜色转换
-    └── ScriptWorldAccessor — world对象后端接口
-```
-
-## 外部依赖关系
-
-### 依赖
-- `../binding/` — NativeModuleBuilder、ClassRegistrar、ScriptObjectRegistry
-- `../component/` — BlockComponentRegistry、ItemComponentRegistry
-- `../event/` — ScriptEventBus（事件信号发布）
-- `../engine/` — IScriptBindingContext（引擎抽象）
-- `../lifecycle/` — ScriptScheduler（system.run/runInterval/runTimeout）
-- `src/common/world/` — BlockPos、Vector3f/d（类型转换）
-- `src/server/` — ServerScriptManager注入ScriptWorldAccessor实现
-
-### 被依赖
-- `src/server/mod/bedrock/addon/ServerScriptManager` — 初始化并调用MinecraftModuleFactory
+由脚本生命周期管理器注册；服务端通过 ScriptWorldAccessor 注入世界访问回调。绑定依赖公共世界、实体、物品、事件和调度设施，不依赖服务端实现。
 
 ## 容易踩的坑
 
-- 所有类与原型从当前 IScriptBindingContext 的 classRegistry 查找，禁止复用其他插件的类注册结果。
-- 定时及生成器调度由 system/ScriptSystemBinding 实现，参数句柄跨 tick 保存时必须复制。
-- getComponent 的组件名、返回类型和写回行为必须同时符合目标 API，不能用普通属性快照替代可写组件。
-- 模块内容以实际绑定和行为测试为准，不能根据类名导出推断完整 API 支持。
-
-- 自定义组件注册表通过 system.beforeEvents.startup 的事件对象提供，各插件只持有本上下文的注册入口。脚本消息按命名空间过滤并在后置事件批次中分发。
+- 类和原型从当前上下文的 classRegistry 查找，不可跨插件复用。
+- 跨 tick 保存参数必须持有独立值句柄，不能保存临时参数包装地址。
+- 自定义组件注册表通过 startup 事件提供，每个插件只持有本上下文入口。
+- Entity 属性延迟应用，动态属性即时写入；动态属性的作用域来自清单 UUID。
+- getComponent 的返回类型和写回行为需要同时成立，普通属性快照无法替代可写组件。

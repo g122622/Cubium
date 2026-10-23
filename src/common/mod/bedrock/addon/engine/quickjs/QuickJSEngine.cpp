@@ -154,6 +154,7 @@ std::unique_ptr<IScriptContext> QuickJSEngine::createContext(const ModuleDescrip
 
     // 注入模块源码提供者：相对路径 import（如 "./Utilities"）经 moduleLoader 回调调此 provider 取源码。
     // loader（ScriptPluginSource）由 ScriptPluginManager 持有，生命周期长于本上下文，引用安全。
+    context->bindingContext().setPackId(descriptor.uuid);
     auto* qjsContext = static_cast<QuickJSContext*>(context.get());
     qjsContext->setModuleSourceProvider([&loader](const std::string& moduleName) -> std::string {
         auto data = loader.loadScript(moduleName);

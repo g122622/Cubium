@@ -24,6 +24,7 @@
 #include "common/mod/bedrock/addon/modules/MinecraftModuleFactory.hpp"
 #include "common/mod/bedrock/addon/binding/ScriptGameObjects.hpp"
 #include "common/mod/bedrock/addon/event/ScriptEventData.hpp"
+#include "common/mod/bedrock/addon/modules/entity/ScriptEntityPropertiesBinding.hpp"
 #include "common/mod/bedrock/addon/modules/system/ScriptSystemBinding.hpp"
 
 #include "common/core/Types.hpp"
@@ -1239,6 +1240,7 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
     ctx.classRegistry().registerClass(entityClassId, entityProto, "Entity");
 
     ClassRegistrar<void> entityReg(ctx, entityClassId, entityProto);
+    registerEntityPropertyBindings(ctx, entityProto);
     entityReg.readonlyProperty("dimension", [](IScriptBindingContext& ctx, void* value) -> void* {
         auto* entity = static_cast<mc::Entity*>(ScriptObjectRegistry::unwrap(ctx, value, 0));
 

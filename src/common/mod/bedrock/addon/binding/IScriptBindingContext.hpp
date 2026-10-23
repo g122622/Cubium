@@ -119,6 +119,18 @@ public:
         return m_classRegistry;
     }
 
+    /** @brief 设置行为包身份，动态属性使用该身份隔离命名空间。 */
+    void setPackId(std::string identity)
+    {
+        m_packId = std::move(identity);
+    }
+
+    /** @brief 获取当前行为包身份。 */
+    [[nodiscard]] const std::string& packId() const
+    {
+        return m_packId;
+    }
+
     /** @brief 登记必须在底层脚本上下文释放前执行的清理操作。 */
     [[nodiscard]] u64 onDispose(std::function<void()> cleanup)
     {
@@ -459,6 +471,7 @@ private:
     std::unordered_map<u64, std::function<void()>> m_cleanupCallbacks;
     u64 m_nextCleanupId = 1;
     ScriptClassRegistry m_classRegistry;
+    std::string m_packId;
 };
 
 } // namespace mc::mod::bedrock::addon

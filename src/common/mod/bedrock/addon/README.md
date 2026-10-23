@@ -8,6 +8,7 @@ addon/
 ├── engine/      # QuickJS 后端与模块加载
 ├── binding/     # 值句柄、类型注册、对象包装和生命周期
 ├── modules/     # Minecraft 脚本模块绑定
+├── content/     # 行为包内容与实体持久状态
 ├── component/   # 方块和物品自定义组件回调
 ├── plugin/      # 脚本插件实例与执行分组
 ├── pack/        # 行为包清单、资源读取和依赖
