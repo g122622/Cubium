@@ -17,7 +17,7 @@ add_library(mc_bedrock_addon STATIC
     binding/ScriptHandleRegistry.cpp
     binding/ScriptEntityReference.cpp
     binding/ScriptGameObjects.cpp
-    binding/ScriptDamageCause.cpp
+    content/base/damage/BedrockDamageCause.cpp
 
     # Modules - @minecraft/server模块绑定
     modules/MinecraftModuleFactory.cpp

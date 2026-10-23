@@ -26,6 +26,7 @@
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
 #include "common/mod/bedrock/addon/content/entity/events/EntityEventProgram.hpp"
+#include "common/mod/bedrock/addon/content/entity/events/EntityEventTrigger.hpp"
 #include "common/mod/bedrock/addon/content/entity/state/timer/EntityTimerState.hpp"
 #include <map>
 #include <memory>
@@ -37,6 +38,7 @@
 
 namespace mc {
 class Entity;
+class DamageSource;
 
 namespace entity::serialization::components {
 class ComponentSerializerRegistry;
@@ -59,6 +61,10 @@ public:
     void applyPending(mc::Entity& entity);
     /** @brief 在实体自身更新之后推进计时器，到期事件的修改留到后续 tick。 */
     void tickTimers(mc::Entity& entity);
+    /** @brief 已确认死亡时执行一次活动死亡触发器，返回是否首次处理。 */
+    bool onDeath(mc::Entity& entity, mc::DamageSource& source);
+    /** @brief 活动即时移除组件要求移除时使用无掉落的 discard 路径。 */
+    bool despawnIfRequested(mc::Entity& entity) const;
     /** @brief 查询当前是否存在指定组件。 */
     [[nodiscard]] bool has(const std::string& name) const;
     /** @brief 返回当前有效组件配置，缺失时返回 nullptr。 */
@@ -80,6 +86,8 @@ private:
     std::set<std::string> m_activeGroups;
     std::vector<EntityComponentGroupChange> m_pending;
     std::optional<EntityTimerState> m_timer;
+    std::optional<EntityEventTrigger> m_onDeath;
+    bool m_deathHandled;
 };
 
 /** @brief 将活动组件状态接入实体序列化，先于生命值等组件恢复。 */

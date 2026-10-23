@@ -68,7 +68,12 @@ const std::string& EntityEventTrigger::eventId() const
 
 Result<void> EntityEventTrigger::fire(mc::Entity& entity) const
 {
-    const EntityFilterContext context{entity, nullptr, nullptr, nullptr, nullptr, nullptr};
+    return fire(EntityFilterContext{entity, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr});
+}
+
+Result<void> EntityEventTrigger::fire(const EntityFilterContext& context) const
+{
+    auto& entity = context.self;
     if (m_filter) {
         auto matches = m_filter->matches(context);
         if (matches.failed()) {

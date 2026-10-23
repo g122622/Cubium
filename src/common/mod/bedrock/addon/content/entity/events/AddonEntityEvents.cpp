@@ -39,7 +39,7 @@ AddonEntityEvents::AddonEntityEvents(
 
 Result<void> AddonEntityEvents::trigger(mc::Entity& entity, const std::string& eventId)
 {
-    return trigger(EntityFilterContext{entity, nullptr, nullptr, nullptr, nullptr, nullptr}, eventId);
+    return trigger(EntityFilterContext{entity, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr}, eventId);
 }
 
 Result<void> AddonEntityEvents::trigger(const EntityFilterContext& context, const std::string& eventId)

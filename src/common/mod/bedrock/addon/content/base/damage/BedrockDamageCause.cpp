@@ -21,7 +21,7 @@
  *
  */
 
-#include "common/mod/bedrock/addon/binding/ScriptDamageCause.hpp"
+#include "common/mod/bedrock/addon/content/base/damage/BedrockDamageCause.hpp"
 #include "common/entity/damage/DamageSource.hpp"
 #include "common/util/assert/AssertAll.hpp"
 #include <array>
@@ -94,6 +94,24 @@ std::string_view damageCauseName(mc::DamageType type)
     MC_ASSERT_RELEASE_MSG(false, "Unmapped damage cause");
 
     return "none";
+}
+
+std::string damageFilterCauseName(mc::DamageType type)
+{
+    const auto source = damageCauseName(type);
+    if (source == "entityAttack" || source == "maceSmash") {
+        return "attack";
+    }
+    std::string name;
+    for (const char letter : source) {
+        if (letter >= 'A' && letter <= 'Z') {
+            name.push_back('_');
+            name.push_back(static_cast<char>(letter - 'A' + 'a'));
+        } else {
+            name.push_back(letter);
+        }
+    }
+    return name;
 }
 
 std::optional<mc::DamageType> parseDamageCause(std::string_view name)

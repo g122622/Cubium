@@ -110,6 +110,9 @@ public:
         auto* components = tryGetComponent<AddonEntityComponents>();
         MC_ASSERT_RELEASE(components != nullptr);
         components->applyPending(*this);
+        if (components->despawnIfRequested(*this)) {
+            return;
+        }
         mc::Entity::tick();
         components->tickTimers(*this);
     }
@@ -154,6 +157,9 @@ public:
         auto* components = tryGetComponent<AddonEntityComponents>();
         MC_ASSERT_RELEASE(components != nullptr);
         components->applyPending(*this);
+        if (components->despawnIfRequested(*this)) {
+            return;
+        }
         mc::CreatureEntity::tick();
         components->tickTimers(*this);
     }
@@ -171,6 +177,19 @@ public:
             return false;
         }
         return mc::CreatureEntity::hurt(source, amount);
+    }
+
+    void die(mc::DamageSource& source) override
+    {
+        if (!isDead() || isRemoved()) {
+            return;
+        }
+        auto* components = tryGetComponent<AddonEntityComponents>();
+        MC_ASSERT_RELEASE(components != nullptr);
+        if (!components->onDeath(*this, source)) {
+            return;
+        }
+        mc::CreatureEntity::die(source);
     }
 
 private:
@@ -245,7 +264,7 @@ Result<AddonEntityDefinition> AddonEntityDefinition::parse(const nlohmann::json&
     result.m_events = std::make_shared<const EntityEventProgram>(std::move(events.value()));
 
     // 组件结构校验完成后，再验证其事件引用能在整个实体定义中解析。
-    const auto validateTimerEvent = [&result](const nlohmann::json& components) -> Result<void> {
+    const auto validateComponentEvents = [&result](const nlohmann::json& components) -> Result<void> {
         if (const auto timer = components.find("minecraft:timer"); timer != components.end()) {
             const auto& trigger = (*timer)["time_down_event"];
             const auto name = trigger.is_string() ? trigger.get<std::string>() : trigger["event"].get<std::string>();
@@ -253,11 +272,17 @@ Result<AddonEntityDefinition> AddonEntityDefinition::parse(const nlohmann::json&
                 return Error(ErrorCode::InvalidData, "Timer references an unknown entity event: " + name);
             }
         }
+        if (const auto death = components.find("minecraft:on_death"); death != components.end()) {
+            const auto name = (*death)["event"].get<std::string>();
+            if (!result.m_events->contains(name)) {
+                return Error(ErrorCode::InvalidData, "Death trigger references an unknown entity event: " + name);
+            }
+        }
         return Result<void>::ok();
     };
-    MC_TRY(validateTimerEvent(result.m_components));
+    MC_TRY(validateComponentEvents(result.m_components));
     for (const auto& [name, group] : result.m_componentGroups.items()) {
-        MC_TRY(validateTimerEvent(group));
+        MC_TRY(validateComponentEvents(group));
     }
 
     const auto collision = result.m_components.find("minecraft:collision_box");
@@ -296,6 +321,19 @@ Result<void> AddonEntityDefinition::validateComponents(const nlohmann::json& com
             MC_TRY(_number(component, "value", bounds->minValue(), bounds->maxValue()));
         } else if (name == "minecraft:timer") {
             MC_TRY(EntityTimerState::validateDefinition(component));
+        } else if (name == "minecraft:on_death") {
+            MC_TRY(_members(component, {"event", "target", "filters"}));
+            auto trigger = EntityEventTrigger::compile(component);
+            if (trigger.failed()) {
+                return trigger.error();
+            }
+        } else if (name == "minecraft:instant_despawn") {
+            MC_TRY(_members(component, {"remove_child_entities"}));
+            MC_TRY(_boolean(component, "remove_child_entities"));
+            if (component.value("remove_child_entities", false)) {
+                // TODO: 接入基岩子实体关系，包括被拴住的实体，不能用骑乘列表代替。
+                return Error(ErrorCode::Unsupported, "Despawning linked child entities is not implemented");
+            }
         } else if (name == "minecraft:fire_immune") {
             MC_TRY(_members(component, {}));
         } else if (name == "minecraft:variant" || name == "minecraft:mark_variant") {

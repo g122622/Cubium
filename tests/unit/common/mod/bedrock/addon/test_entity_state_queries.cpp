@@ -92,7 +92,7 @@ TEST_F(AddonEntityStateQueryTest, HandDomainsAndUnqualifiedItemNamesReadActualEq
 {
     Player player(EntityInstanceId(1), "Equipment", registry);
     Entity caller(EntityInstanceId(2), nullptr, registry);
-    EntityFilterContext context{caller, &player, nullptr, nullptr, nullptr, nullptr};
+    EntityFilterContext context{caller, &player, nullptr, nullptr, nullptr, nullptr, nullptr};
     player.setEquipment(EquipmentSlot::OffHand, ItemStack(*item, 1));
     check(context, {{"test", "has_equipment"}, {"subject", "other"}, {"domain", "hand"}, {"value", "stick"}}, true);
     check(
@@ -110,7 +110,7 @@ TEST_F(AddonEntityStateQueryTest, HandDomainsAndUnqualifiedItemNamesReadActualEq
 TEST_F(AddonEntityStateQueryTest, ArmorBodyAndInventoryDomainsDoNotOverlap)
 {
     LivingEntity entity(EntityInstanceId(1), nullptr, registry);
-    EntityFilterContext context{entity, nullptr, nullptr, nullptr, nullptr, nullptr};
+    EntityFilterContext context{entity, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr};
     for (const auto& [name, slot] : {std::pair{"head", EquipmentSlot::Head},
              std::pair{"torso", EquipmentSlot::Chest},
              std::pair{"leg", EquipmentSlot::Legs},
@@ -145,7 +145,7 @@ TEST_F(AddonEntityStateQueryTest, OwnerFilterUsesCallerOwnershipAndCanonicalUuid
     Entity stranger(EntityInstanceId(3), nullptr, registry);
     owner.setUuid("12345678-1234-4234-8234-123456789abc");
     tameable.setOwnerId(util::uuidFromString(owner.uuid()));
-    EntityFilterContext context{tameable, &owner, nullptr, nullptr, nullptr, nullptr};
+    EntityFilterContext context{tameable, &owner, nullptr, nullptr, nullptr, nullptr, nullptr};
     check(context, {{"test", "is_owner"}, {"subject", "other"}}, true);
     check(context, {{"test", "is_owner"}}, false);
     context.other = &stranger;
@@ -158,7 +158,7 @@ TEST_F(AddonEntityStateQueryTest, OwnerFilterUsesCallerOwnershipAndCanonicalUuid
 
     HorseEntity horse(EntityInstanceId(4), registry);
     horse.setOwnerUuid("12345678123442348234123456789abc");
-    EntityFilterContext horseContext{horse, &owner, nullptr, nullptr, nullptr, nullptr};
+    EntityFilterContext horseContext{horse, &owner, nullptr, nullptr, nullptr, nullptr, nullptr};
     check(horseContext, {{"test", "is_owner"}, {"subject", "other"}}, true);
     horse.clearOwnerUuid();
     check(horseContext, {{"test", "is_owner"}, {"subject", "other"}}, false);
@@ -167,7 +167,7 @@ TEST_F(AddonEntityStateQueryTest, OwnerFilterUsesCallerOwnershipAndCanonicalUuid
 TEST_F(AddonEntityStateQueryTest, ContainerFilterFollowsRealMenuOpenAndClose)
 {
     Player player(EntityInstanceId(1), "Container", registry);
-    EntityFilterContext context{player, nullptr, nullptr, nullptr, nullptr, nullptr};
+    EntityFilterContext context{player, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr};
     check(context, {{"test", "has_container_open"}, {"value", "false"}}, true);
     CraftingInventory inventory(3, 3);
     blockentity::ChestContainer menu(1, &player.inventory(), &inventory, 1);
@@ -180,7 +180,7 @@ TEST_F(AddonEntityStateQueryTest, ContainerFilterFollowsRealMenuOpenAndClose)
 TEST_F(AddonEntityStateQueryTest, NativeMarkerComponentsFollowTamingAndChargingTransitions)
 {
     WolfEntity tameable(EntityInstanceId(1), registry);
-    EntityFilterContext context{tameable, nullptr, nullptr, nullptr, nullptr, nullptr};
+    EntityFilterContext context{tameable, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr};
     check(context, {{"test", "has_component"}, {"value", "is_tamed"}, {"operator", "not"}}, true);
     tameable.setTamed(true);
     check(context, {{"test", "has_component"}, {"value", "minecraft:is_tamed"}}, true);
@@ -202,7 +202,7 @@ TEST_F(AddonEntityStateQueryTest, VariantsFollowGroupsAndNbtRoundTripWithoutRest
     ASSERT_NE(entity, nullptr);
     auto* components = entity->tryGetComponent<AddonEntityComponents>();
     ASSERT_NE(components, nullptr);
-    EntityFilterContext context{*entity, nullptr, nullptr, nullptr, nullptr, nullptr};
+    EntityFilterContext context{*entity, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr};
     check(context, {{"test", "is_variant"}, {"value", "2"}}, true);
     check(context, {{"test", "is_mark_variant"}, {"value", 0}}, true);
     components->queue({{true, "changed"}});

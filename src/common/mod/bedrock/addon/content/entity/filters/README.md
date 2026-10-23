@@ -26,3 +26,5 @@ filters/
 
 - 装备物品名称补齐 minecraft 命名空间；inventory 域不混入护甲和副手，any 域可以匹配背包。
 - has_container_open 只读取玩家当前菜单；缺失主体不能因 value=false 变成匹配。
+
+- has_damage 只作用于本次伤害的受害者，fatal 来自已确认的死亡结果；没有伤害上下文时不匹配，包括不等比较。

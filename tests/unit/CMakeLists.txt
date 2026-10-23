@@ -1793,6 +1793,7 @@ add_executable(mc_tests
     common/mod/bedrock/addon/test_property_definitions.cpp
     common/mod/bedrock/addon/test_entity_filters.cpp
     common/mod/bedrock/addon/test_entity_state_queries.cpp
+    common/mod/bedrock/addon/test_entity_lifecycle.cpp
     server/mod/bedrock/addon/test_event_bridge.cpp
     common/mod/bedrock/addon/test_binding_handle_lifetime.cpp
     common/mod/bedrock/addon/test_block_component_registry.cpp

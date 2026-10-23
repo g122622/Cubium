@@ -169,3 +169,12 @@
 - 过滤与脚本共享原生 is_charged/is_tamed 存在条件；is_tamed 改为仅已驯服时存在，并移除非标准 value 属性。现有五份集成测试改用组件存在性判断。
 - 新增测试文件已登记 CMake。修正测试构造接口和村民命名空间后，构建成功（40 秒）；213 个 addon 针对性测试全部通过，报告位于 build/addon-entity-state-query-tests.xml。
 - 全量实服玩法、原生变种、addon 驯服及背包、其余实体组件和 Java 呈现仍未完成，继续实施。
+
+
+### 死亡事件、伤害上下文与即时移除
+
+- minecraft:on_death 读取活动触发器，在已确认死亡后触发一次；组件和事件动作过滤器均获得真实攻击者与本次致死伤害信息。图腾救活不触发，死亡处理标志保存到 NBT，恢复后不重复执行。
+- has_damage 接入当前受害者、伤害原因和 fatal 结果。脚本与 JSON 共用伤害映射，公共映射从 binding 移入 content/base/damage，避免内容层依赖脚本绑定；JSON 和脚本名称保留各自官方拼写。
+- minecraft:instant_despawn 通过 discard 移除实体，在组件组应用后停止同 tick 的实体和计时器更新，不触发死亡事件。remove_child_entities=true 仍明确返回 Unsupported，等待基岩子实体关系实现。
+- 新增生命周期测试文件已登记 CMake；构建成功（45 秒），222 个 addon 针对性测试全部通过，报告位于 build/addon-entity-lifecycle-tests.xml。
+- damage_sensor 的伤害修正和事件时序、其他实体组件、原生变种和背包、Java 呈现及参考插件实服验收继续实施。

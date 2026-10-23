@@ -11,7 +11,6 @@ binding/
 ├── ScriptHandleRegistry.hpp/cpp  # 实体拥有的非拥有句柄失效管理
 ├── ScriptEntityReference.hpp/cpp # 排队事件的非拥有实体引用
 ├── ScriptGameObjects.hpp/cpp     # 实体、维度和物品的统一脚本包装
-├── ScriptDamageCause.hpp/cpp     # 游戏伤害类型与脚本原因映射
 ├── ScriptBlockRef.hpp            # 方块位置及状态包装
 ├── ScriptValueHandle.hpp         # 持久脚本值的独立引用与上下文失效
 └── ScriptCallbackHolder.hpp      # 回调函数的持有与调用

@@ -25,7 +25,7 @@
 
 #include "common/entity/damage/DamageSource.hpp"
 #include "common/entity/entities/player/Player.hpp"
-#include "common/mod/bedrock/addon/binding/ScriptDamageCause.hpp"
+#include "common/mod/bedrock/addon/content/base/damage/BedrockDamageCause.hpp"
 #include "common/mod/bedrock/addon/event/ScriptEventBus.hpp"
 #include "common/mod/bedrock/addon/event/ScriptEventData.hpp"
 #include "common/mod/bedrock/addon/modules/types/ScriptWorldAccessor.hpp"

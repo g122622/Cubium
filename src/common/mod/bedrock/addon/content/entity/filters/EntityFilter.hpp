@@ -24,13 +24,22 @@
 #pragma once
 
 #include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
 #include <nlohmann/json.hpp>
 
 namespace mc {
 class Entity;
-}
+enum class DamageType : u8;
+} // namespace mc
 
 namespace mc::mod::bedrock::addon {
+
+/** @brief 仅在当前伤害调用栈内有效的受害者、原因和最终致死结果。 */
+struct EntityFilterDamage {
+    const mc::Entity* victim;
+    mc::DamageType type;
+    bool fatal;
+};
 
 /** @brief 同步过滤求值的实体上下文，缺失的交互参与者显式传 nullptr。 */
 struct EntityFilterContext {
@@ -40,6 +49,7 @@ struct EntityFilterContext {
     const mc::Entity* parent;
     const mc::Entity* damager;
     const mc::Entity* target;
+    const EntityFilterDamage* damage;
 };
 
 /** @brief 已校验的实体过滤条件，可由事件、行为和实体查询复用。 */

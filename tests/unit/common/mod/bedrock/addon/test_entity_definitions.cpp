@@ -1018,8 +1018,8 @@ TEST_F(AddonEntityDefinitionTest, FamilyFiltersUseTheCurrentlyActiveFamilyCompon
     entity->tick();
     auto originalFamily = EntityFilter::compile({{"test", "is_family"}, {"value", "maid"}});
     ASSERT_TRUE(originalFamily.success());
-    auto matches =
-        originalFamily.value().matches(EntityFilterContext{*entity, nullptr, nullptr, nullptr, nullptr, nullptr});
+    auto matches = originalFamily.value().matches(
+        EntityFilterContext{*entity, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr});
     ASSERT_TRUE(matches.success());
     EXPECT_FALSE(matches.value());
 }
@@ -1043,8 +1043,9 @@ TEST_F(AddonEntityDefinitionTest, EventFiltersReceiveExplicitOtherEntityContext)
     ASSERT_TRUE(events->trigger(*entity, "test:interact").success());
     entity->tick();
     EXPECT_EQ(entity->getOrAddComponent<EntityAddonState>().getProperty("test:count"), nlohmann::json(3));
-    ASSERT_TRUE(
-        events->trigger(EntityFilterContext{*entity, other.get(), nullptr, nullptr, nullptr, nullptr}, "test:interact")
+    ASSERT_TRUE(events
+            ->trigger(
+                EntityFilterContext{*entity, other.get(), nullptr, nullptr, nullptr, nullptr, nullptr}, "test:interact")
             .success());
     entity->tick();
     EXPECT_EQ(entity->getOrAddComponent<EntityAddonState>().getProperty("test:count"), nlohmann::json(12));
@@ -1068,7 +1069,7 @@ TEST_F(AddonEntityDefinitionTest, FilterEvaluationFailureAbortsTheWholeEventTran
     auto* components = entity->tryGetComponent<AddonEntityComponents>();
     const auto before = components->save();
     EXPECT_TRUE(entity->tryGetComponent<AddonEntityEvents>()
-            ->trigger(EntityFilterContext{*entity, &other, nullptr, nullptr, nullptr, nullptr}, "test:fail")
+            ->trigger(EntityFilterContext{*entity, &other, nullptr, nullptr, nullptr, nullptr, nullptr}, "test:fail")
             .failed());
     EXPECT_EQ(components->save(), before);
     EXPECT_EQ(entity->getOrAddComponent<EntityAddonState>().getProperty("test:count"), nlohmann::json(3));

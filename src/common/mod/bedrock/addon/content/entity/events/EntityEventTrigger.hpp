@@ -42,6 +42,8 @@ public:
     [[nodiscard]] const std::string& eventId() const;
     /** @brief 过滤通过后向实体自己的事件程序提交触发。 */
     Result<void> fire(mc::Entity& entity) const;
+    /** @brief 在死亡或交互调用栈中保留参与者与伤害上下文。 */
+    Result<void> fire(const EntityFilterContext& context) const;
 
 private:
     std::string m_eventId;

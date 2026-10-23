@@ -26,6 +26,8 @@
 #include "common/entity/attribute/Attributes.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/core/LivingEntity.hpp"
+#include "common/entity/damage/DamageSource.hpp"
+#include "common/entity/entities/player/Player.hpp"
 #include "common/entity/serialization/components/ComponentSerializerRegistry.hpp"
 #include "common/mod/bedrock/addon/content/entity/definition/AddonEntityDefinition.hpp"
 #include "common/util/assert/AssertMacros.hpp"
@@ -60,6 +62,7 @@ Result<void> _load(mc::Entity& entity, const mc::nbt::tags::compound_tag& tag)
 
 AddonEntityComponents::AddonEntityComponents(std::shared_ptr<const AddonEntityDefinition> definition)
     : m_definition(std::move(definition))
+    , m_deathHandled(false)
 {
     MC_ASSERT_RELEASE(m_definition != nullptr);
     for (const auto& [name, value] : m_definition->baseComponents().items()) {
@@ -69,8 +72,12 @@ AddonEntityComponents::AddonEntityComponents(std::shared_ptr<const AddonEntityDe
 
 void AddonEntityComponents::initialize(mc::Entity& entity)
 {
-    for (const char* name :
-        {"minecraft:collision_box", "minecraft:physics", "minecraft:health", "minecraft:movement", "minecraft:timer"}) {
+    for (const char* name : {"minecraft:collision_box",
+             "minecraft:physics",
+             "minecraft:health",
+             "minecraft:movement",
+             "minecraft:timer",
+             "minecraft:on_death"}) {
         _apply(entity, name);
     }
 }
@@ -147,6 +154,14 @@ void AddonEntityComponents::_apply(mc::Entity& entity, const std::string& name)
             MC_ASSERT_RELEASE(timer.success());
             m_timer = std::move(timer.value());
         }
+    } else if (name == "minecraft:on_death") {
+        if (value == nullptr) {
+            m_onDeath.reset();
+        } else {
+            auto trigger = EntityEventTrigger::compile(*value);
+            MC_ASSERT_RELEASE(trigger.success());
+            m_onDeath = std::move(trigger.value());
+        }
     } else if (auto* living = dynamic_cast<mc::LivingEntity*>(&entity)) {
         if (name == "minecraft:health") {
             living->attributes().setBaseValue(
@@ -170,6 +185,7 @@ nlohmann::json AddonEntityComponents::save() const
     return {{"sources", m_sources},
         {"active", m_activeGroups},
         {"pending", std::move(pending)},
+        {"death", m_deathHandled ? "handled" : "alive"},
         {"timer", m_timer ? m_timer->save() : nlohmann::json{{"state", "absent"}}}};
 }
 
@@ -177,7 +193,8 @@ Result<void> AddonEntityComponents::load(mc::Entity& entity, const nlohmann::jso
 {
     if (!saved.is_object() || !saved.contains("sources") || !saved["sources"].is_object() ||
         !saved.contains("active") || !saved["active"].is_array() || !saved.contains("pending") ||
-        !saved["pending"].is_array() || !saved.contains("timer") || !saved["timer"].is_object()) {
+        !saved["pending"].is_array() || !saved.contains("timer") || !saved["timer"].is_object() ||
+        !saved.contains("death") || (saved["death"] != "handled" && saved["death"] != "alive")) {
         return Error(ErrorCode::InvalidData, "Invalid saved addon component state");
     }
     std::map<std::string, std::string> sources;
@@ -221,6 +238,7 @@ Result<void> AddonEntityComponents::load(mc::Entity& entity, const nlohmann::jso
     m_sources = std::move(sources);
     m_activeGroups = std::move(active);
     m_pending = std::move(pending);
+    m_deathHandled = saved["death"] == "handled";
     initialize(entity);
     if (m_timer) {
         auto restored = m_timer->load(saved["timer"]);
@@ -244,6 +262,35 @@ void AddonEntityComponents::tickTimers(mc::Entity& entity)
     if (result.failed()) {
         spdlog::warn("Failed to execute timer event for '{}': {}", entity.getTypeId(), result.error().message());
     }
+}
+
+bool AddonEntityComponents::onDeath(mc::Entity& entity, mc::DamageSource& source)
+{
+    if (m_deathHandled) {
+        return false;
+    }
+    // 在进入事件程序前置位，避免事件通知引起重入后重复执行死亡和掉落。
+    m_deathHandled = true;
+    if (m_onDeath) {
+        const auto* attacker = source.getTrueSource();
+        const EntityFilterDamage damage{&entity, source.type(), true};
+        const EntityFilterContext context{
+            entity, attacker, dynamic_cast<const mc::Player*>(attacker), nullptr, attacker, nullptr, &damage};
+        auto result = m_onDeath->fire(context);
+        if (result.failed()) {
+            spdlog::warn("Failed to execute death event for '{}': {}", entity.getTypeId(), result.error().message());
+        }
+    }
+    return true;
+}
+
+bool AddonEntityComponents::despawnIfRequested(mc::Entity& entity) const
+{
+    if (!has("minecraft:instant_despawn")) {
+        return false;
+    }
+    entity.discard();
+    return true;
 }
 
 } // namespace mc::mod::bedrock::addon

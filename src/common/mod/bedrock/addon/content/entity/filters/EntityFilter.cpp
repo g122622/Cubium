@@ -26,6 +26,7 @@
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/core/MobEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
+#include "common/mod/bedrock/addon/content/base/damage/BedrockDamageCause.hpp"
 #include "common/mod/bedrock/addon/content/entity/filters/base/VanillaEntityFamilies.hpp"
 #include "common/mod/bedrock/addon/content/entity/query/EntityStateQuery.hpp"
 #include "common/mod/bedrock/addon/content/entity/state/AddonEntityComponents.hpp"
@@ -125,11 +126,12 @@ Result<void> _validate(nlohmann::json& filter, std::size_t depth, std::size_t& c
         "has_container_open",
         "is_variant",
         "is_mark_variant",
+        "has_damage",
         "is_daytime",
         "weather",
         "distance_to_nearest_player"};
     if (!supported.contains(test)) {
-        // TODO: 接入伤害上下文和生物群系温度等过滤测试。
+        // TODO: 接入生物群系温度等过滤测试。
         return Error(ErrorCode::Unsupported, "Entity filter test is not implemented: " + test);
     }
     if (!filter.contains("subject")) {
@@ -237,6 +239,38 @@ Result<void> _validate(nlohmann::json& filter, std::size_t depth, std::size_t& c
     }
     if (test == "weather" && value != "clear" && value != "precipitation" && value != "thunderstorm") {
         return Error(ErrorCode::Unsupported, "Entity weather filter value is not implemented");
+    }
+    if (test == "has_damage") {
+        static const std::set<std::string> causes = {"anvil",
+            "attack",
+            "block_explosion",
+            "contact",
+            "drowning",
+            "entity_explosion",
+            "fall",
+            "falling_block",
+            "fatal",
+            "fire",
+            "fire_tick",
+            "fly_into_wall",
+            "lava",
+            "magic",
+            "none",
+            "override",
+            "piston",
+            "projectile",
+            "self_destruct",
+            "sonic_boom",
+            "stalactite",
+            "stalagmite",
+            "starve",
+            "suffocation",
+            "thorns",
+            "void",
+            "wither"};
+        if (!causes.contains(value.get<std::string>())) {
+            return Error(ErrorCode::InvalidData, "Unknown entity damage filter cause");
+        }
     }
     return Result<void>::ok();
 }
@@ -372,6 +406,15 @@ Result<bool> _test(const nlohmann::json& filter, const EntityFilterContext& cont
     }
     if (test == "is_alive") {
         return _compare(entity->isAlive(), expected, operation);
+    }
+    if (test == "has_damage") {
+        if (context.damage == nullptr || context.damage->victim != entity) {
+            return false;
+        }
+        const bool actual = expected == "fatal"
+            ? context.damage->fatal
+            : damageFilterCauseName(context.damage->type) == expected.get<std::string>();
+        return _compare(actual, true, operation);
     }
     if (test == "is_sneaking") {
         return _compare(entity->isSneaking(), expected, operation);

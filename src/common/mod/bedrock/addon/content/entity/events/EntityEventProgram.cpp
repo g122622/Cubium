@@ -183,7 +183,7 @@ Result<EntityEventProgram> EntityEventProgram::compile(
 
 Result<EntityEventExecution> EntityEventProgram::execute(mc::Entity& entity, const std::string& eventId) const
 {
-    return execute(EntityFilterContext{entity, nullptr, nullptr, nullptr, nullptr, nullptr}, eventId);
+    return execute(EntityFilterContext{entity, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr}, eventId);
 }
 
 Result<EntityEventExecution> EntityEventProgram::execute(

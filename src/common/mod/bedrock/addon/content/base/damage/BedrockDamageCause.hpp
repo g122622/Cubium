@@ -25,6 +25,7 @@
 
 #include "common/core/Types.hpp"
 #include <optional>
+#include <string>
 #include <string_view>
 
 namespace mc {
@@ -35,6 +36,8 @@ namespace mc::mod::bedrock::addon {
 
 /** @brief 将游戏伤害类型转换为官方脚本伤害原因。 */
 [[nodiscard]] std::string_view damageCauseName(mc::DamageType type);
+/** @brief 将游戏伤害类型转换为 JSON 过滤器使用的下划线命名。 */
+[[nodiscard]] std::string damageFilterCauseName(mc::DamageType type);
 /** @brief 将脚本伤害原因解析为游戏伤害类型。 */
 [[nodiscard]] std::optional<mc::DamageType> parseDamageCause(std::string_view name);
 

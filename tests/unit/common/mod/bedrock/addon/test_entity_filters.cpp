@@ -234,7 +234,7 @@ protected:
 
     ecs::EntityRegistry registry{"entity-filter-test"};
     Entity entity{EntityInstanceId(1), nullptr, registry};
-    EntityFilterContext context{entity, nullptr, nullptr, nullptr, nullptr, nullptr};
+    EntityFilterContext context{entity, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr};
 };
 } // namespace
 
