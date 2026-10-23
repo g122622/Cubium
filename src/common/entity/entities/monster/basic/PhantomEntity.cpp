@@ -174,9 +174,11 @@ void PhantomEntity::registerAttributes()
 
     // 幻翼属性：生命值20，移动速度0（飞行生物不使用地面速度），攻击力6，追踪距离64
     attributes().setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 20.0);
-    attributes().setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.0);
+    // 原版 Phantom 的属性工厂就是 Monster.createMonsterAttributes（速度 0.7、跟随 16），
+    // 它靠 PhantomMoveControl 飞行，不靠地面移动速度。
+    attributes().setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.7);
     attributes().setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, BASE_ATTACK_DAMAGE);
-    attributes().setBaseValue(entity::attribute::Attributes::FOLLOW_RANGE, 64.0);
+    attributes().setBaseValue(entity::attribute::Attributes::FOLLOW_RANGE, 16.0);
 }
 
 void PhantomEntity::_clientTickBodyRotation()

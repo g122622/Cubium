@@ -1763,9 +1763,9 @@ void WanderingTraderEntity::registerAttributes()
 {
     AgeableEntity::registerAttributes();
 
-    // 流浪商人属性
+    // 流浪商人：原版用 Mob.createMobAttributes()，不覆盖移动速度（LivingEntity 默认 0.7）。
     attributes().setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 20.0);
-    attributes().setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.5);
+    attributes().setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.7);
 }
 
 void WanderingTraderEntity::updateOffers()

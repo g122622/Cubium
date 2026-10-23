@@ -208,8 +208,10 @@ void HorseEntity::registerGoals()
 void HorseEntity::registerAttributes()
 {
     AbstractHorseEntity::registerAttributes();
-    attributes().setBaseValue(entity::attribute::Attributes::MAX_HEALTH, getHorseHealth());
-    attributes().setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, getSpeed());
+    // 与基类一致：属性工厂默认值（生命 53 / 速度 0.225）。随机属性只在生成时
+    // 由 applyRandomAttributes() 改写（见 AbstractHorseEntity）。
+    attributes().setBaseValue(entity::attribute::Attributes::MAX_HEALTH, BASE_MAX_HEALTH);
+    attributes().setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, BASE_MOVEMENT_SPEED);
 }
 
 std::optional<ResourceLocation> HorseEntity::getAmbientSound() const

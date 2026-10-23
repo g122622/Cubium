@@ -800,6 +800,8 @@ void AbstractNautilusEntity::registerAttributes()
     // 鹦鹉螺基础属性
     attributes().setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 15.0f);
     attributes().setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 1.0f);
+    // 原版 Nautilus.createAttributes 自带 ATTACK_DAMAGE 3。
+    attributes().registerAttribute(*entity::attribute::Attributes::attackDamage());
     attributes().setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, 3.0f);
     attributes().setBaseValue(entity::attribute::Attributes::KNOCKBACK_RESISTANCE, 0.3f);
 }

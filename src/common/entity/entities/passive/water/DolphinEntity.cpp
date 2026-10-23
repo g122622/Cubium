@@ -452,6 +452,8 @@ void DolphinEntity::registerAttributes()
     // 攻击伤害: 3.0
     attributes().setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 10.0);
     attributes().setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 1.2);
+    // 原版 Dolphin.createAttributes 自带 ATTACK_DAMAGE 3。
+    attributes().registerAttribute(*entity::attribute::Attributes::attackDamage());
     attributes().setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, 3.0);
 }
 

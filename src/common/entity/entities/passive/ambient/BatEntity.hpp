@@ -155,7 +155,8 @@ private:
     i32 m_flyTimer = 0;
 
     // 常量
-    static constexpr f32 FLY_SPEED = 0.1f;
+    /** 飞行速度（原版 Bat 的移动速度就是 LivingEntity 默认的 0.7，不能拿它当飞行速度）。 */
+    static constexpr f32 FLY_SPEED = 0.7f;
 };
 
 } // namespace mc

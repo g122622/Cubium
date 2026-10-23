@@ -447,11 +447,10 @@ void LlamaEntity::registerGoals()
 void LlamaEntity::registerAttributes()
 {
     AbstractChestedHorseEntity::registerAttributes();
-    // 羊驼生命值 = 15 + strength * 5
-    attributes().setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 15.0f + static_cast<f32>(m_strength) * 5.0f);
-    attributes().setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.175f);
-    // 羊驼的跟随范围是 40 格
-    attributes().setBaseValue(entity::attribute::Attributes::FOLLOW_RANGE, 40.0f);
+    // 羊驼沿用 AbstractChestedHorse 的属性工厂：生命 53、速度 0.175、跳跃力 0.5；
+    // 强度只影响可携带箱子的数量与驯服速度，不改基础生命值（原版 Llama 没有这层换算）。
+    attributes().setBaseValue(entity::attribute::Attributes::MAX_HEALTH, BASE_MAX_HEALTH);
+    attributes().setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, BASE_CHESTED_SPEED);
 }
 
 bool LlamaEntity::isValidArmorForSlot(const ItemStack& item) const

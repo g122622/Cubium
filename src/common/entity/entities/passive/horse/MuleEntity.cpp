@@ -58,10 +58,9 @@ void MuleEntity::registerGoals()
 void MuleEntity::registerAttributes()
 {
     AbstractChestedHorseEntity::registerAttributes();
-    const f32 health = getHorseHealth();
-    const f32 speed = getSpeed();
-    attributes().setBaseValue(entity::attribute::Attributes::MAX_HEALTH, health > 0 ? health : 20.0f);
-    attributes().setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, speed > 0 ? speed : 0.175f);
+    // 原版 AbstractChestedHorse.createBaseChestedHorseAttributes：生命 53、速度 0.175。
+    attributes().setBaseValue(entity::attribute::Attributes::MAX_HEALTH, BASE_MAX_HEALTH);
+    attributes().setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, BASE_CHESTED_SPEED);
 }
 
 } // namespace mc

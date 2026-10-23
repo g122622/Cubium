@@ -298,11 +298,13 @@ void GhastEntity::registerAttributes()
 {
     MonsterEntity::registerAttributes();
 
-    // 恶魂有极远的追踪范围
+    // 对齐原版 Ghast.createAttributes：生命值 10、追踪范围 100、飞行速度 0.06；
+    // 它不覆盖移动速度，沿用 LivingEntity 默认的 0.7（飞行由 GhastMoveControl 驱动）。
     attributes().setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 10.0);
     attributes().setBaseValue(entity::attribute::Attributes::FOLLOW_RANGE, 100.0);
-    attributes().setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.0);
-    attributes().setBaseValue(entity::attribute::Attributes::FLYING_SPEED, 0.9);
+    attributes().setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.7);
+    attributes().registerAttribute(*entity::attribute::Attributes::flyingSpeed());
+    attributes().setBaseValue(entity::attribute::Attributes::FLYING_SPEED, 0.06);
 }
 
 // MagmaCubeEntity
@@ -834,10 +836,12 @@ void PiglinBruteEntity::registerAttributes()
 {
     AbstractPiglinEntity::registerAttributes();
 
-    // 猪灵蛮兵属性（金斧额外 +4 伤害）
+    // 猪灵蛮兵属性（金斧额外 +4 伤害）。对齐原版 PiglinBrute.createAttributes：
+    // 追踪范围收窄到 12（普通猪灵是 16）。
     attributes().setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 50.0);
     attributes().setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.35);
     attributes().setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, 7.0);
+    attributes().setBaseValue(entity::attribute::Attributes::FOLLOW_RANGE, 12.0);
 }
 
 // ZombifiedPiglinEntity
@@ -901,9 +905,13 @@ void ZombifiedPiglinEntity::registerAttributes()
 {
     MonsterEntity::registerAttributes();
 
+    // 原版 ZombifiedPiglin.createAttributes 基于 Zombie.createAttributes（所以跟随范围 35、
+    // 护甲 2），再加速度 0.23 / 攻击力 5 / 增援概率 0。生命值、跟随范围、护甲都沿用僵尸。
     attributes().setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 20.0);
     attributes().setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.23);
     attributes().setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, 5.0);
+    attributes().setBaseValue(entity::attribute::Attributes::FOLLOW_RANGE, 35.0);
+    attributes().setBaseValue(entity::attribute::Attributes::ARMOR, 2.0);
 }
 
 // HoglinEntity

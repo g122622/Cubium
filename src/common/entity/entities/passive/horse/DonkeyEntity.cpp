@@ -123,10 +123,10 @@ void DonkeyEntity::registerGoals()
 void DonkeyEntity::registerAttributes()
 {
     AbstractChestedHorseEntity::registerAttributes();
-    const f32 health = getHorseHealth();
-    const f32 speed = getSpeed();
-    attributes().setBaseValue(entity::attribute::Attributes::MAX_HEALTH, health > 0 ? health : 15.0f);
-    attributes().setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, speed > 0 ? speed : 0.175f);
+    // 原版 AbstractChestedHorse.createBaseChestedHorseAttributes：生命 53、速度 0.175。
+    // 随机值只在生成时由 applyRandomAttributes() 改写（见 AbstractHorseEntity）。
+    attributes().setBaseValue(entity::attribute::Attributes::MAX_HEALTH, BASE_MAX_HEALTH);
+    attributes().setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, BASE_CHESTED_SPEED);
 }
 
 } // namespace mc

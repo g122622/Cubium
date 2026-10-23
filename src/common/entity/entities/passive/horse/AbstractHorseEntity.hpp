@@ -29,6 +29,7 @@
 #include "common/entity/core/DataParameter.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/core/EntityClassRegistry.hpp"
+#include "common/entity/combat/DifficultyInstance.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/ecs/components/HorseAnimationComponent.hpp"
 #include "common/entity/ecs/components/HorseAttributeComponent.hpp"
@@ -45,6 +46,7 @@
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/nbt/Nbt.hpp"
 #include "common/world/blockentity/core/SimpleInventory.hpp"
+#include "common/world/spawn/EntitySpawnPlacementRegistry.hpp"
 #include <memory>
 #include <optional>
 #include <string>
@@ -652,6 +654,37 @@ protected:
     void initRandomAttributes();
 
     /**
+     * @brief 生成初始化：把随机属性写回 AttributeMap
+     *
+     * 对齐 vanilla AbstractHorse.finalizeSpawn 里先 randomizeAttributes 再 super 的顺序。
+     */
+    void finalizeSpawn(IWorld& world,
+        const entity::combat::DifficultyInstance& difficulty,
+        world::spawn::SpawnReason spawnReason) override;
+
+    // ========== 属性工厂默认值（原版 createBaseHorseAttributes 系列） ==========
+
+    /**
+     * 马的「默认」生命值。
+     *
+     * 原版只在 finalizeSpawn 用随机数覆盖生命值/速度/跳跃力，所以「刚创建」的实体拿到
+     * 的是属性工厂里的默认值（先于任何随机改写）。
+     */
+    static constexpr f32 BASE_MAX_HEALTH = 53.0f;
+    /** 马族默认移动速度：AbstractHorse.createBaseHorseAttributes。 */
+    static constexpr f32 BASE_MOVEMENT_SPEED = 0.225f;
+    /** 箱型马（驴/骡/羊驼）默认移动速度：AbstractChestedHorse.createBaseChestedHorseAttributes。 */
+    static constexpr f32 BASE_CHESTED_SPEED = 0.175f;
+
+    /**
+     * @brief 把组件里随机生成的生命值/速度/跳跃力写回 AttributeMap
+     *
+     * 对应原版 AbstractHorse.finalizeSpawn 里 randomizeAttributes() 的副作用：
+     * 只有真的「生成」出来才改写属性，`new` 出来的实体保留属性工厂的默认值。
+     */
+    void applyRandomAttributes();
+
+    /**
      * @brief 初始化马背包
      * MC 1.16.5: initHorseChest()
      */
@@ -684,12 +717,6 @@ public:
 
 private:
     // 常量
-    static constexpr f32 MIN_SPEED = 0.1127f;      // 最小速度
-    static constexpr f32 MAX_SPEED = 0.3375f;      // 最大速度
-    static constexpr f32 MIN_JUMP = 0.4f;          // 最小跳跃
-    static constexpr f32 MAX_JUMP = 1.0f;          // 最大跳跃
-    static constexpr f32 MIN_HEALTH = 15.0f;       // 最小生命值
-    static constexpr f32 MAX_HEALTH = 30.0f;       // 最大生命值
     static constexpr i32 MAX_BOOST_TIME = 300;     // 最大加速时间（ticks）
     static constexpr f32 JUMP_POWER_SCALE = 0.98f; // 跳跃蓄力缩放
 };

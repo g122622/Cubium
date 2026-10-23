@@ -488,16 +488,13 @@ TEST_F(WolfEntityTestFixture, OnTamed_IncreasesAttackDamage)
 {
     WolfEntity wolf(EntityInstanceId(0), mc::test::testEcsRegistry());
 
-    // 驯服前攻击力为 2
-    // 注意：需要使用 getAttributeValueUnsafe 或检查属性是否存在
+    // 原版 Wolf.createAttributes 的 ATTACK_DAMAGE 固定为 4，驯服前后一致（1.21 起不再加压）。
     f32 baseDamage = wolf.getAttributeValue(entity::attribute::Attributes::ATTACK_DAMAGE, -1.0f);
-    // 如果属性未注册，默认值为 -1，跳过此测试
     if (baseDamage < 0) {
         GTEST_SKIP() << "Attack damage attribute not registered in test fixture";
     }
-    EXPECT_NEAR(baseDamage, 2.0f, 0.1f);
+    EXPECT_NEAR(baseDamage, 4.0f, 0.1f);
 
-    // 驯服后攻击力为 4
     wolf.setTamed(true);
     f32 tamedDamage = wolf.getAttributeValue(entity::attribute::Attributes::ATTACK_DAMAGE, -1.0f);
     EXPECT_NEAR(tamedDamage, 4.0f, 0.1f);

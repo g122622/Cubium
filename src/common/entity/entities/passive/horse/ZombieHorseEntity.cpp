@@ -70,9 +70,9 @@ void ZombieHorseEntity::registerAttributes()
 {
     AbstractHorseEntity::registerAttributes();
 
-    // 僵尸马的属性
-    attributes().setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 15.0f);
-    attributes().setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.2f);
+    // 原版 ZombieHorse.createAttributes：基础马属性 + 生命 25 + 速度 0.225；僵尸马不随机化。
+    attributes().setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 25.0f);
+    attributes().setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.225f);
 }
 
 } // namespace mc

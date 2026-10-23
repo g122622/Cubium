@@ -232,6 +232,8 @@ void AxolotlEntity::registerAttributes()
     // 攻击伤害: 2.0 (1颗心)
     attributes().setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 14.0);
     attributes().setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 1.0);
+    // WaterMob 继承链上没有攻击伤害属性，原版 Axolotl.createAttributes 自带 ATTACK_DAMAGE 2。
+    attributes().registerAttribute(*entity::attribute::Attributes::attackDamage());
     attributes().setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, 2.0);
 }
 

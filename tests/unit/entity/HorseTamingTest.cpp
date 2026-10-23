@@ -481,10 +481,10 @@ TEST(HorseTamingTest, Speed_IsInitialized)
     HorseEntity horse(EntityInstanceId(1), mc::test::testEcsRegistry());
     horse.setWorld(&world);
 
-    // 速度应该在 MIN_SPEED 和 MAX_SPEED 之间
+    // 原版 AbstractHorse.generateSpeed 的值域是 [0.1125, 0.3375)
     f32 speed = horse.getSpeed();
-    EXPECT_GT(speed, 0.0f);
-    EXPECT_LT(speed, 1.0f);
+    EXPECT_GE(speed, 0.1125f);
+    EXPECT_LT(speed, 0.3375f);
 }
 
 // ============================================================================

@@ -72,8 +72,11 @@ void WitherSkeletonEntity::registerAttributes()
 {
     AbstractSkeletonEntity::registerAttributes();
 
-    // 凋灵骷髅攻击伤害为 4.0（比普通骷髅的 2.0 高）
-    attributes().setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, 4.0);
+    // 基础值沿用骨架的 2.0：原版 WitherSkeleton 在 finalizeSpawn 里才把 ATTACK_DAMAGE
+    // 设成 4.0（见 WitherSkeleton.finalizeSpawn），属性工厂保持 Monster 默认。
+    // 本实现把 4.0 写进 registerAttributes 会让「刚创建」的凋灵骷髅就带 4 点伤害，
+    // 因此这里显式改回抽象骨架的默认值。
+    attributes().setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, 2.0);
 }
 
 void WitherSkeletonEntity::populateDefaultEquipmentSlots(

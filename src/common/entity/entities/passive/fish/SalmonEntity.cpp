@@ -91,8 +91,8 @@ std::unique_ptr<Entity> SalmonEntity::create(IWorld* /*world*/, ecs::EntityRegis
 void SalmonEntity::registerAttributes()
 {
     AbstractGroupFishEntity::registerAttributes();
+    // 原版 Salmon 不覆盖移动速度（沿用 AbstractFish/LivingEntity 的 0.7）。
     attributes().setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 3.0);
-    attributes().setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.35);
 }
 
 std::optional<ResourceLocation> SalmonEntity::getFlopSound() const

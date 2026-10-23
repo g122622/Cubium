@@ -141,7 +141,7 @@ harness 决定。`runner.ts` 负责按 `key` 对齐两侧输出、规范化、�
 
 ## 当前状态
 
-四个能力全部对齐（`node tests/diff/harness/runner.ts run all` 退出码 0）：
+七个能力全部对齐（`node tests/diff/harness/runner.ts run all` 退出码 0）：
 
 | harness | 参照实现 | 单元 | 结果 | 已知缺口 |
 |---|---|---|---|---|
@@ -151,6 +151,8 @@ harness 决定。`runner.ts` 负责按 `key` 对齐两侧输出、规范化、�
 | `entity_shape` | 原版 jar `EntityShapeOracle` | 125 | 全部一致 | 32 个实体类型未注册 |
 | `enchantment_table` | 原版 jar `EnchantmentExport` | 40 | 全部一致 | 3 个附魔未实现 |
 | `block_properties` | 原版 jar `BlockPropertiesOracle` | 1166 | 全部一致 | — |
+| `mob_category` | 原版 jar `MobCategoryOracle` | 8 | 全部一致 | — |
+| `entity_attributes` | 参考表 + 原版 jar `EntityAttributesOracle` | 73 | 全部一致 | 2 个实体类型未对齐（盔甲架、凋灵） |
 
 第一次跑通就查出并修掉的实打实的错误（都是手抄数据/公式出错）：
 
@@ -167,9 +169,27 @@ harness 决定。`runner.ts` 负责按 `key` 对齐两侧输出、规范化、�
   - 水/岩浆 0、刷怪笼 -1（生存模式永远挖不动）、命令/结构/拼图方块本应不可破坏；
   - 幽匿感测体与宝库的 1/6 级光照未注册、只有红蘑菇发光 1（红蘑菇被误设 1）。
 
+`entity_attributes` 首轮查出并修掉的属性错误（全部是手抄/想当然的默认值）：
+
+- 鱼（鳕鱼/鲑鱼/河豚/热带鱼）、鱿鱼、蝙蝠、流浪商人：1.21 起原版不再覆盖移动速度，
+  沿用 `LivingEntity` 默认的 0.7，Cubium 还停留在 0.25~0.35 的旧值；
+- 蜜蜂跟随范围 48 → 16、巨人 40 → 16、羊驼/商人羊驼 40 → 16、幻翼 64 → 16 且速度
+  0 → 0.7、潜影贝 18 → 16 且速度 0 → 0.7、猪灵蛮兵 16 → 12；
+- 史莱姆/岩浆怪的默认属性就是 20 血、2 伤害、速度 0.7 / 0.2（尺寸缩放是在
+  `finalizeSpawn` 里另算的），此前把「尺寸 1」的值当成了默认值；
+- 恶魂：飞行速度 0.9 → 0.06，移动速度 0 → 0.7；
+- 鱼、鱿鱼之外还有 8 种生物（美西螈、海豚、鹦鹉螺、熊猫、北极熊、山羊、青蛙、
+  凋灵骷髅）**没有注册** `ATTACK_DAMAGE`，`setBaseValue` 静默失败，攻击伤害落在
+  属性缺失的默认值上；狼的驯服加成把 4 改成了 2；
+- 马族：默认值应是属性工厂的 53 血 / 0.225 速度（驴/骡/羊驼 0.175），随机化发生在
+  `finalizeSpawn`；僵尸马固定 25 血 / 0.225 速度；随机公式也对齐了原版
+  `generateSpeed` / `generateMaxHealth` / `generateJumpStrength`；
+- 僵尸猪灵沿用僵尸的跟随范围 35 与护甲 2。
+
 ### 已知缺口清单
 
-`known_missing_items.ts`、`entity_shape.ts`、`enchantment_table.ts` 里的 `KNOWN_MISSING`
+`known_missing_items.ts`、`entity_shape.ts`、`enchantment_table.ts`、
+`known_missing_entity_attributes.ts` 里的 `KNOWN_MISSING`
 列的是「原版有、本项目尚未实现」的条目——**实现缺口，不是参照数据缺失**。清单显式列出、
 每次运行输出条数，实现补齐后必须删掉对应条目，否则会出现「豁免了原版也有的项」的假一致。
 
@@ -200,6 +220,23 @@ harness 决定。`runner.ts` 负责按 `key` 对齐两侧输出、规范化、�
 | `resistance`（爆炸抗性） | 几十个方块为 0 | `BlockProperties::hardness()` 不像原版那样同时作为抗性默认值 |
 | `opacity` / `opaque` | 半砖、门、栅栏等被当成 15 档全遮挡 | 同上：`m_opacity` 默认 15，未逐类设置 |
 | `solid` / `replaceable` | 门、栅栏门、树叶、植物等判定相反 | 同上：取自材质 `m_isSolid` / `isReplaceable` |
+
+### `entity_attributes` 的比对基准
+
+生物属性不能简单拿 oracle 输出当基准：原版不少生物在「创建」时改写属性，
+`DefaultAttributes` 的默认供应器与实体实例并不相同（史莱姆尺寸 1 只有 1 点血，
+而默认供应器是 20）。所以这条 harness 的基准是
+`harness/harnesses/entity_attributes_reference.ts`：
+
+- 表里 73 个生物的期望值取自原版 `DefaultAttributes`（`javap -c` 读字节码常量，
+  与 `Minecraft wiki` 一致），是**属性工厂的默认值**；
+- `RUNTIME_DIVERGENT`（史莱姆/岩浆怪/幻翼）的运行时值以尺寸/状态改写，oracle 只报
+  `missing`，基准仍取参考表；
+- 表外的生物（例如 Cubium 有、原版没有的类型）仍由 oracle 的默认供应器兜底；
+- 只比较两侧都建模的 6 个属性（生命/移速/跟随/攻击/护甲/击退抗性）；原版别的属性
+  （`SPAWN_REINFORCEMENTS_CHANCE`、`ATTACK_KNOCKBACK`……）Cubium 尚未建模，不混入比对；
+- 表面数据可用 `node tests/diff/harness/scripts/export_entity_attributes_reference.ts`
+  用 oracle 重新导出（不带 `--write` 只打印，便于 diff）。
 
 ## 下一步候选能力
 

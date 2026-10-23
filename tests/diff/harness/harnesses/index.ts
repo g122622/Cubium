@@ -40,6 +40,11 @@ import { KNOWN_MISSING as enchantmentKnownMissing } from "./enchantment_table.ts
 import { KNOWN_MISSING as entityKnownMissing, createEntityShapeHarness } from "./entity_shape.ts";
 import { createItemSummaryHarness } from "./item_summary.ts";
 import { KNOWN_MISSING as itemsKnownMissing } from "./known_missing_items.ts";
+import { KNOWN_MISSING as entityAttributesKnownMissing } from "./known_missing_entity_attributes.ts";
+import {
+    RUNTIME_DIVERGENT as entityAttributesRuntimeDivergent,
+    VANILLA_ENTITY_ATTRIBUTES,
+} from "./entity_attributes_reference.ts";
 
 /**
  * 已登记、使用 minecraft-data 的声明式 harness。
@@ -83,6 +88,23 @@ const JAVA_HARNESSES: ReadonlyArray<() => JavaHarness> = [
             oracleMissing: entityKnownMissing,
         };
     },
+    () => ({
+        name: "entity_attributes",
+        oracle: "EntityAttributesOracle",
+        // 单元取参考表：Cubium 有、但 oracle 没列的生物（原版没有的）也照样测。
+        units: () => [...VANILLA_ENTITY_ATTRIBUTES.keys()],
+        input: (unit: string) => ({ entity: unit }),
+        key: "entity",
+        // 非生物实体（展示实体、船、投射物……）在 Cubium 尚未注册；
+        // 运行时改写属性的生物（史莱姆按尺寸、马按随机数）oracle 不给默认值，以参考表为准。
+        oracleMissing: [...entityAttributesKnownMissing, ...entityAttributesRuntimeDivergent],
+    }),
+    () => ({
+        name: "mob_category",
+        oracle: "MobCategoryOracle",
+        input: (unit: string) => ({ category: unit }),
+        key: "category",
+    }),
     () => ({
         name: "block_properties",
         oracle: "BlockPropertiesOracle",

@@ -93,6 +93,8 @@ export interface JavaOracleOutcome {
     readonly oracle: string;
     readonly result: HarnessResult;
     readonly exitCode: number;
+    /** oracle 这一侧的输出文件（JSONL），供生成参考表的脚本复用。 */
+    readonly oracleOutputPath: string;
 }
 
 /**
@@ -241,7 +243,12 @@ export function runJavaOracle(options: JavaOracleOptions): JavaOracleOutcome {
         const more = dropped.length > 3 ? " 等" : "";
         console.log(`  另有 ${dropped.length} 个单元属于已知缺口（原版有、本项目尚未实现），未计入：${sample}${more}`);
     }
-    return { oracle: options.oracle, result, exitCode: differences.length === 0 ? 0 : 1 };
+    return {
+        oracle: options.oracle,
+        result,
+        exitCode: differences.length === 0 ? 0 : 1,
+        oracleOutputPath: oracleOutput,
+    };
 }
 
 /**

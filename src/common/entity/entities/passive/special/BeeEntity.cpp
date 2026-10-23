@@ -522,7 +522,7 @@ void BeeEntity::registerAttributes()
     attributes().setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.3);
     attributes().setBaseValue(entity::attribute::Attributes::FLYING_SPEED, 0.6);
     attributes().setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, 2.0);
-    attributes().setBaseValue(entity::attribute::Attributes::FOLLOW_RANGE, 48.0);
+    // 原版 Bee 用 Mob.createMobAttributes 的默认跟随范围 16，没有 48。
 }
 
 std::optional<ResourceLocation> BeeEntity::getAmbientSound() const

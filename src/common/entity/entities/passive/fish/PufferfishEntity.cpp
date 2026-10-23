@@ -256,8 +256,8 @@ void PufferfishEntity::registerAttributes()
     AbstractFishEntity::registerAttributes();
 
     // 河豚属性
+    // 原版 Pufferfish 不覆盖移动速度（沿用 AbstractFish/LivingEntity 的 0.7）。
     attributes().setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 3.0);
-    attributes().setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.25);
 }
 
 void PufferfishEntity::registerData()

@@ -130,7 +130,8 @@ void BatEntity::registerAttributes()
 {
     AmbientEntity::registerAttributes();
 
-    // 蝙蝠属性：低生命值，固定飞行速度
+    // 对齐原版 Bat.createAttributes：只覆盖生命值 6，其余沿用 LivingEntity 默认值。
+    // 蝙蝠用 MOVEMENT_SPEED（不是 FLYING_SPEED）驱动飞行，原版是 0.7；早期实现误设成 0.1。
     attributes().setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 6.0);
     attributes().setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, FLY_SPEED);
     attributes().setBaseValue(entity::attribute::Attributes::FLYING_SPEED, FLY_SPEED);

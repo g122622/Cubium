@@ -844,8 +844,8 @@ TEST_F(BeeEntityTest, Attributes_HasFollowRange)
 {
     BeeEntity bee(EntityInstanceId(1), mc::test::testEcsRegistry());
 
-    // MC 1.16.5: 蜜蜂跟随范围为 48.0
-    EXPECT_DOUBLE_EQ(bee.getAttributeValue("generic.follow_range", 0.0), 48.0);
+    // 1.21.11 Bee 用 Mob.createMobAttributes 的默认跟随范围 16（不是旧版的 48）。
+    EXPECT_DOUBLE_EQ(bee.getAttributeValue("generic.follow_range", 0.0), 16.0);
 }
 
 TEST_F(BeeEntityTest, Attributes_FlyingSpeedIsSet)
