@@ -62,7 +62,8 @@ PaleHangingMossBlock::PaleHangingMossBlock(const BlockProperties& properties)
     createBlockState(std::move(container));
 
     // 设置默认状态
-    setDefaultState(defaultState().with(BlockStateProperties::TIP(), false));
+    // 原版苍白垂苔默认是顶端（tip=true）。
+    setDefaultState(defaultState().with(BlockStateProperties::TIP(), true));
 
     // 创建形状
     // 非末端：box(2, 0, 2, 14, 16, 14)

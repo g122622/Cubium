@@ -119,6 +119,12 @@ const JAVA_HARNESSES: ReadonlyArray<() => JavaHarness> = [
         oracleMissing: enchantmentKnownMissing,
     }),
     () => ({
+        name: "block_state_names",
+        oracle: "BlockStateNamesOracle",
+        input: (unit: string) => ({ block: unit }),
+        key: "block",
+    }),
+    () => ({
         name: "item_components",
         oracle: "ItemComponentsOracle",
         input: (unit: string) => ({ item: unit }),

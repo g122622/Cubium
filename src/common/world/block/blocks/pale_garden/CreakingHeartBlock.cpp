@@ -64,6 +64,7 @@ CreakingHeartBlock::CreakingHeartBlock(const BlockProperties& properties)
     createBlockState(std::move(container));
 
     setDefaultState(defaultState()
+            .with(BlockStateProperties::AXIS(), Axis::Y)
             .with(BlockStateProperties::CREAKING_HEART_STATE(), BlockStateProperties::CreakingHeartState::Uprooted)
             .with(BlockStateProperties::NATURAL(), false));
 }

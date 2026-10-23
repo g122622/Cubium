@@ -141,7 +141,7 @@ harness 决定。`runner.ts` 负责按 `key` 对齐两侧输出、规范化、�
 
 ## 当前状态
 
-七个能力全部对齐（`node tests/diff/harness/runner.ts run all` 退出码 0）：
+八个能力全部对齐（`node tests/diff/harness/runner.ts run all` 退出码 0）：
 
 | harness | 参照实现 | 单元 | 结果 | 已知缺口 |
 |---|---|---|---|---|
@@ -153,6 +153,7 @@ harness 决定。`runner.ts` 负责按 `key` 对齐两侧输出、规范化、�
 | `block_properties` | 原版 jar `BlockPropertiesOracle` | 1166 | 全部一致 | — |
 | `mob_category` | 原版 jar `MobCategoryOracle` | 8 | 全部一致 | — |
 | `entity_attributes` | 参考表 + 原版 jar `EntityAttributesOracle` | 73 | 全部一致 | 2 个实体类型未对齐（盔甲架、凋灵） |
+| `block_state_names` | 原版 jar `BlockStateNamesOracle` | 1166 | 全部一致 | — |
 
 第一次跑通就查出并修掉的实打实的错误（都是手抄数据/公式出错）：
 
@@ -185,6 +186,14 @@ harness 决定。`runner.ts` 负责按 `key` 对齐两侧输出、规范化、�
   `finalizeSpawn`；僵尸马固定 25 血 / 0.225 速度；随机公式也对齐了原版
   `generateSpeed` / `generateMaxHealth` / `generateJumpStrength`；
 - 僵尸猪灵沿用僵尸的跟随范围 35 与护甲 2。
+
+`block_state_names` 首轮查出 33 个方块的**默认状态**与原版不同（状态集合本身全对）：
+
+- 避雷针（含 8 个氧化/打蜡变体）默认朝北，原版朝上；
+- 珊瑚扇与墙扇（含 20 个死亡变体）默认 `waterlogged=false`，原版是 `true`；
+- 气泡柱默认 `drag=false`，原版 `true`；苍白垂苔默认 `tip=false`，原版 `true`；
+- 鬼木之心默认轴是 X，原版 Y；结构方块默认 `mode=data`，原版 `load`；
+- 测试方块默认 `mode=fail`，原版 `start`。
 
 ### 已知缺口清单
 

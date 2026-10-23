@@ -72,7 +72,8 @@ BubbleColumnBlock::BubbleColumnBlock(const BlockProperties& properties)
     createBlockState(std::move(container));
 
     // 设置默认状态
-    setDefaultState(defaultState().with(BlockStateProperties::DRAG(), false));
+    // 原版气泡柱的默认状态是 drag=true（向上涌流由状态在放置时改写）。
+    setDefaultState(defaultState().with(BlockStateProperties::DRAG(), true));
 }
 
 // ========== 静态方法实现 ==========

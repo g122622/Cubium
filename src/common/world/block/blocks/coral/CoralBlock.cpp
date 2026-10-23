@@ -181,8 +181,8 @@ CoralFanBlock::CoralFanBlock(CoralColor color, u32 deadBlock, const BlockPropert
             });
     createBlockState(std::move(container));
 
-    // 设置默认状态
-    setDefaultState(defaultState().with(BlockStateProperties::WATERLOGGED(), false));
+    // 设置默认状态：原版珊瑚扇（含水下形态）的默认状态是 waterlogged=true。
+    setDefaultState(defaultState().with(BlockStateProperties::WATERLOGGED(), true));
 }
 
 BlockState CoralFanBlock::getStateForPlacement(BlockItemUseContext& context)
@@ -300,8 +300,9 @@ CoralWallFanBlock::CoralWallFanBlock(CoralColor color, u32 deadBlock, const Bloc
     createBlockState(std::move(container));
 
     // 设置默认状态
+    // 默认状态对齐原版：waterlogged=true、facing=north。
     setDefaultState(defaultState()
-            .with(BlockStateProperties::WATERLOGGED(), false)
+            .with(BlockStateProperties::WATERLOGGED(), true)
             .with(BlockStateProperties::HORIZONTAL_FACING(), Direction::North));
 }
 
