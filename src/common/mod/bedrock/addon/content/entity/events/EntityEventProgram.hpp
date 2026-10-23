@@ -24,8 +24,10 @@
 #pragma once
 
 #include "common/core/Result.hpp"
+#include "common/mod/bedrock/addon/content/molang/MolangExpression.hpp"
 #include <memory>
 #include <string>
+#include <unordered_map>
 #include <vector>
 #include <nlohmann/json.hpp>
 
@@ -66,6 +68,8 @@ public:
 
 private:
     nlohmann::json m_events;
+    nlohmann::json m_properties;
+    std::unordered_map<std::string, MolangExpression> m_expressions;
 };
 
 } // namespace mc::mod::bedrock::addon

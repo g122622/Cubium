@@ -71,6 +71,9 @@ add_library(mc_bedrock_addon STATIC
     content/entity/events/AddonEntityEvents.cpp
     content/entity/state/EntityAddonState.cpp
     content/entity/state/AddonEntityComponents.cpp
+    content/molang/MolangExpression.cpp
+    content/molang/syntax/MolangParser.cpp
+    content/molang/eval/MolangEvaluator.cpp
     content/item/ItemAddonProperties.cpp
     content/base/properties/AddonDynamicProperties.cpp
     content/base/properties/AddonPropertyValue.cpp

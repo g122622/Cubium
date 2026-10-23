@@ -7,7 +7,8 @@ content/
 ├── AddonContentManager.hpp/cpp # 行为包内容验证、注册和批次撤销
 ├── base/ # 属性校验、包作用域容器与类型编码
 ├── entity/ # 数据驱动实体定义与实例状态
-└── item/ # 基于物品 custom_data 的属性读写
+├── item/ # 基于物品 custom_data 的属性读写
+└── molang/ # 引擎无关表达式编译、查询和数学求值
 ```
 
 ## 内部模块关系

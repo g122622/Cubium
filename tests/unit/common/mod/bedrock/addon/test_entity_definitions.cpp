@@ -289,7 +289,7 @@ TEST_F(AddonEntityDefinitionTest, UnsupportedComponentsAndEventSectionsAreExplic
     EXPECT_EQ(result.error().code(), mc::ErrorCode::Unsupported);
     definition = _definition("addon_test:unsupported");
     definition["minecraft:entity"]["events"]["test:change"] = {
-        {"set_property", {{"test:count", "query.property('test:count') + 1"}}}};
+        {"set_property", {{"test:count", "variable.counter + 1"}}}};
     result = AddonEntityDefinition::parse(definition);
     ASSERT_TRUE(result.failed());
     EXPECT_EQ(result.error().code(), mc::ErrorCode::Unsupported);
@@ -812,4 +812,94 @@ TEST_F(AddonEntityDefinitionTest, ScriptModifiersDescribeGroupChangesAndInactive
         "group-health.js",
         EvalFlags::None);
     ASSERT_TRUE(check.success()) << check.errorMessage();
+}
+
+TEST_F(AddonEntityDefinitionTest, MolangPropertyQueriesReadCommittedStateWithinTheSameTick)
+{
+    const auto directory = pack("molang-events", _PACK, std::nullopt);
+    auto definition = _definition("addon_test:molang_events");
+    definition["minecraft:entity"]["events"]["test:increment"] = {
+        {"set_property", {{"test:count", "q.property('test:count') + 1"}}}};
+    write(directory / "entities/entity.json", definition);
+    const auto loaded = manager.loadPacks("", root.string());
+    ASSERT_TRUE(loaded.success()) << loaded.error().message();
+    auto entity = create("addon_test:molang_events");
+    ASSERT_NE(entity, nullptr);
+    auto* events = entity->tryGetComponent<AddonEntityEvents>();
+    auto& state = entity->getOrAddComponent<EntityAddonState>();
+    ASSERT_TRUE(events->trigger(*entity, "test:increment").success());
+    ASSERT_TRUE(events->trigger(*entity, "test:increment").success());
+    EXPECT_EQ(state.getProperty("test:count"), nlohmann::json(3));
+    entity->tick();
+    EXPECT_EQ(state.getProperty("test:count"), nlohmann::json(4));
+    ASSERT_TRUE(events->trigger(*entity, "test:increment").success());
+    entity->tick();
+    EXPECT_EQ(state.getProperty("test:count"), nlohmann::json(5));
+}
+
+TEST_F(AddonEntityDefinitionTest, MaidTimerAndProgressExpressionsUseMolangArithmetic)
+{
+    const auto directory = pack("maid-expressions", _PACK, std::nullopt);
+    auto definition = _definition("addon_test:maid_expressions");
+    auto& properties = definition["minecraft:entity"]["description"]["properties"];
+    properties["thlm:time"] = {{"type", "int"}, {"range", {0, 1000}}, {"default", 10}};
+    properties["thlm:total_time"] = {{"type", "int"}, {"range", {0, 1000}}, {"default", 20}};
+    properties["thlm:progress"] = {{"type", "float"}, {"range", {0, 1}}, {"default", 0}};
+    definition["minecraft:entity"]["events"]["test:update"] = {{"set_property",
+        {{"thlm:time", "q.property('thlm:time')+1"},
+            {"thlm:progress", "q.property('thlm:time')/q.property('thlm:total_time')"}}}};
+    write(directory / "entities/entity.json", definition);
+    ASSERT_TRUE(manager.loadPacks("", root.string()).success());
+    auto entity = create("addon_test:maid_expressions");
+    ASSERT_NE(entity, nullptr);
+    auto* events = entity->tryGetComponent<AddonEntityEvents>();
+    ASSERT_TRUE(events->trigger(*entity, "test:update").success());
+    entity->tick();
+    const auto& state = entity->getOrAddComponent<EntityAddonState>();
+    EXPECT_EQ(state.getProperty("thlm:time"), nlohmann::json(11));
+    EXPECT_EQ(state.getProperty("thlm:progress"), nlohmann::json(0.5));
+}
+
+TEST_F(AddonEntityDefinitionTest, MolangBooleanAndEnumResultsMatchTheirPropertyTypes)
+{
+    const auto directory = pack("typed-expressions", _PACK, std::nullopt);
+    auto definition = _definition("addon_test:typed_expressions");
+    auto& properties = definition["minecraft:entity"]["description"]["properties"];
+    properties["test:enabled"] = {{"type", "bool"}, {"default", false}};
+    properties["test:mode"] = {{"type", "enum"}, {"values", {"idle", "work"}}, {"default", "idle"}};
+    definition["minecraft:entity"]["events"]["test:update"] = {{"set_property",
+        {{"test:enabled", "q.property('test:count') > 2"},
+            {"test:mode", "q.property('test:mode') == 'idle' ? 'work' : 'idle'"}}}};
+    write(directory / "entities/entity.json", definition);
+    ASSERT_TRUE(manager.loadPacks("", root.string()).success());
+    auto entity = create("addon_test:typed_expressions");
+    ASSERT_NE(entity, nullptr);
+    ASSERT_TRUE(entity->tryGetComponent<AddonEntityEvents>()->trigger(*entity, "test:update").success());
+    entity->tick();
+    const auto& state = entity->getOrAddComponent<EntityAddonState>();
+    EXPECT_EQ(state.getProperty("test:enabled"), nlohmann::json(true));
+    EXPECT_EQ(state.getProperty("test:mode"), nlohmann::json("work"));
+}
+
+TEST_F(AddonEntityDefinitionTest, MolangRuntimeFailureCommitsNeitherPropertiesNorComponentGroups)
+{
+    const auto directory = pack("expression-failure", _PACK, std::nullopt);
+    auto definition = _definition("addon_test:expression_failure");
+    definition["minecraft:entity"]["component_groups"]["large"] = {
+        {"minecraft:collision_box", {{"width", 2}, {"height", 3}}}};
+    definition["minecraft:entity"]["events"]["test:fail"] = {{"sequence",
+        {{{"add", {{"component_groups", {"large"}}}}, {"set_property", {{"test:count", 90}}}},
+            {{"set_property", {{"test:count", "math.sqrt(-1)"}}}}}}};
+    write(directory / "entities/entity.json", definition);
+    ASSERT_TRUE(manager.loadPacks("", root.string()).success());
+    auto entity = create("addon_test:expression_failure");
+    ASSERT_NE(entity, nullptr);
+    auto& state = entity->getOrAddComponent<EntityAddonState>();
+    auto* components = entity->tryGetComponent<AddonEntityComponents>();
+    const auto beforeState = state.save();
+    const auto beforeComponents = components->save();
+    EXPECT_TRUE(entity->tryGetComponent<AddonEntityEvents>()->trigger(*entity, "test:fail").failed());
+    EXPECT_EQ(state.save(), beforeState);
+    EXPECT_EQ(components->save(), beforeComponents);
+    EXPECT_FALSE(manager.eventBus().hasPendingAfterEvents());
 }

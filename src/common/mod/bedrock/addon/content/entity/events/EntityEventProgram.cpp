@@ -38,11 +38,39 @@ namespace {
 constexpr std::size_t _MAX_EVENT_DEPTH = 64;
 constexpr std::size_t _MAX_EVENT_STEPS = 4096;
 
+Result<void> _limitPropertyNumber(const std::string& name, nlohmann::json& value, const nlohmann::json& definition)
+{
+    const auto& type = definition["type"];
+    if (value.is_number() && (type == "int" || type == "float")) {
+        double number = value.get<double>();
+        if (!std::isfinite(number)) {
+            return Error(ErrorCode::InvalidData, "Entity event property must be finite: " + name);
+        }
+        // JSON 事件赋值将数值限制在声明范围，脚本 setProperty 则报告越界。
+        double minimum = type == "int" ? static_cast<double>(std::numeric_limits<mc::i32>::min())
+                                       : -static_cast<double>(std::numeric_limits<mc::f32>::max());
+        double maximum = type == "int" ? static_cast<double>(std::numeric_limits<mc::i32>::max())
+                                       : static_cast<double>(std::numeric_limits<mc::f32>::max());
+        if (definition.contains("range")) {
+            const auto& range = definition["range"];
+            minimum = range[0].get<double>();
+            maximum = range[1].get<double>();
+        }
+        number = std::clamp(number, minimum, maximum);
+        if (type == "int") {
+            number = std::trunc(number);
+        }
+        value = number;
+    }
+    return Result<void>::ok();
+}
+
 Result<void> _compileAction(nlohmann::json& action,
     const nlohmann::json& events,
     const nlohmann::json& properties,
     const nlohmann::json& groups,
     EntityAddonState& validator,
+    std::unordered_map<std::string, MolangExpression>& expressions,
     std::size_t depth)
 {
     if (!action.is_object() || depth >= _MAX_EVENT_DEPTH) {
@@ -86,31 +114,24 @@ Result<void> _compileAction(nlohmann::json& action,
                 return Error(ErrorCode::InvalidData, "Entity event property is not declared: " + name);
             }
             const auto& type = (*definition)["type"];
-            if (value.is_string() && type != "enum") {
-                // TODO: 通过 Molang 计算数值和布尔属性表达式。
-                return Error(ErrorCode::Unsupported, "Entity event Molang expressions are not implemented: " + name);
+            if (value.is_string()) {
+                const bool literalEnum = type == "enum" &&
+                    std::find((*definition)["values"].begin(), (*definition)["values"].end(), value) !=
+                        (*definition)["values"].end();
+                if (!literalEnum) {
+                    const auto source = value.get<std::string>();
+                    if (!expressions.contains(source)) {
+                        auto compiled = MolangExpression::compile(source);
+                        if (compiled.failed()) {
+                            return compiled.error();
+                        }
+                        expressions.emplace(source, std::move(compiled.value()));
+                    }
+                    value = {{"$molang", source}};
+                    continue;
+                }
             }
-            if (value.is_number() && (type == "int" || type == "float")) {
-                double number = value.get<double>();
-                if (!std::isfinite(number)) {
-                    return Error(ErrorCode::InvalidData, "Entity event property must be finite: " + name);
-                }
-                // JSON 事件赋值将数值限制在声明范围，脚本 setProperty 则报告越界。
-                double minimum = type == "int" ? static_cast<double>(std::numeric_limits<mc::i32>::min())
-                                               : -static_cast<double>(std::numeric_limits<mc::f32>::max());
-                double maximum = type == "int" ? static_cast<double>(std::numeric_limits<mc::i32>::max())
-                                               : static_cast<double>(std::numeric_limits<mc::f32>::max());
-                if (definition->contains("range")) {
-                    const auto& range = (*definition)["range"];
-                    minimum = range[0].get<double>();
-                    maximum = range[1].get<double>();
-                }
-                number = std::clamp(number, minimum, maximum);
-                if (type == "int") {
-                    number = std::trunc(number);
-                }
-                value = number;
-            }
+            MC_TRY(_limitPropertyNumber(name, value, *definition));
             MC_TRY(validator.setProperty(name, value));
         }
     }
@@ -124,7 +145,7 @@ Result<void> _compileAction(nlohmann::json& action,
         }
         double totalWeight = 0;
         for (auto& child : children) {
-            MC_TRY(_compileAction(child, events, properties, groups, validator, depth + 1));
+            MC_TRY(_compileAction(child, events, properties, groups, validator, expressions, depth + 1));
             totalWeight += child.value("weight", 1.0);
         }
         if (std::string_view(branch) == "randomize" && (!std::isfinite(totalWeight) || totalWeight <= 0)) {
@@ -166,11 +187,12 @@ Result<EntityEventProgram> EntityEventProgram::compile(
     MC_TRY(validator.defineProperties(properties));
     EntityEventProgram result;
     result.m_events = events;
+    result.m_properties = properties;
     for (auto& [name, action] : result.m_events.items()) {
         if (name.empty()) {
             return Error(ErrorCode::InvalidData, "Entity event name cannot be empty");
         }
-        MC_TRY(_compileAction(action, events, properties, groups, validator, 0));
+        MC_TRY(_compileAction(action, events, properties, groups, validator, result.m_expressions, 0));
     }
     return result;
 }
@@ -180,6 +202,24 @@ Result<EntityEventExecution> EntityEventProgram::execute(mc::Entity& entity, con
     if (!contains(eventId)) {
         return Error(ErrorCode::NotFound, "Entity event is not defined: " + eventId);
     }
+    auto* state = entity.tryGetComponent<EntityAddonState>();
+    MC_ASSERT_RELEASE(state != nullptr);
+    EntityAddonState validator;
+    MC_TRY(validator.defineProperties(m_properties));
+    MolangEvaluationContext evaluation{
+        entity.getRandom(), [state](std::string_view name) -> std::optional<MolangValue> {
+            const auto value = state->getProperty(std::string(name));
+            if (!value) {
+                return std::nullopt;
+            }
+            if (value->is_boolean()) {
+                return MolangValue(value->get<bool>() ? 1.0f : 0.0f);
+            }
+            if (value->is_string()) {
+                return MolangValue(value->get<std::string>());
+            }
+            return MolangValue(value->get<mc::f32>());
+        }};
     std::vector<std::pair<std::string, nlohmann::json>> writes;
     EntityEventExecution execution;
     std::size_t steps = 0;
@@ -239,14 +279,29 @@ Result<EntityEventExecution> EntityEventProgram::execute(mc::Entity& entity, con
         }
         if (const auto properties = action.find("set_property"); properties != action.end()) {
             for (const auto& [name, value] : properties->items()) {
-                writes.emplace_back(name, value);
+                nlohmann::json resolved = value;
+                if (value.is_object()) {
+                    const auto expression = m_expressions.find(value["$molang"].get<std::string>());
+                    MC_ASSERT_RELEASE(expression != m_expressions.end());
+                    auto evaluated = expression->second.evaluate(evaluation);
+                    if (evaluated.failed()) {
+                        return evaluated.error();
+                    }
+                    if (const auto* number = std::get_if<mc::f32>(&evaluated.value())) {
+                        resolved = m_properties[name]["type"] == "bool" ? nlohmann::json(*number != 0)
+                                                                        : nlohmann::json(*number);
+                    } else {
+                        resolved = std::get<std::string>(evaluated.value());
+                    }
+                }
+                MC_TRY(_limitPropertyNumber(name, resolved, m_properties[name]));
+                MC_TRY(validator.setProperty(name, resolved));
+                writes.emplace_back(name, std::move(resolved));
             }
         }
         return Result<void>::ok();
     };
     MC_TRY(executeEvent(eventId, 0));
-    auto* state = entity.tryGetComponent<EntityAddonState>();
-    MC_ASSERT_RELEASE(state != nullptr);
     // 先完成整个动作计算，避免递归失败留下部分属性写入。
     for (const auto& [name, value] : writes) {
         auto written = state->setProperty(name, value);
