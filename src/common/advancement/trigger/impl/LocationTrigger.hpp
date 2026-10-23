@@ -24,6 +24,7 @@
 #pragma once
 
 #include "common/advancement/trigger/CriterionTrigger.hpp"
+#include "common/advancement/trigger/conditions/CriterionContext.hpp"
 #include "common/advancement/trigger/conditions/LocationPredicate.hpp"
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
@@ -109,6 +110,13 @@ public:
     [[nodiscard]] bool test(const class IWorld& world, f64 x, f64 y, f64 z) const;
 
     /**
+     * @brief 携带上下文判定（"player" 条件支持 ContextAwarePredicate 条件列表写法，
+     *        如 [{"condition":"minecraft:entity_properties","entity":"this",
+     *              "predicate":{"location":{"biomes":"minecraft:badlands"}}}]）
+     */
+    [[nodiscard]] bool test(const CriterionContext& context) const;
+
+    /**
      * @brief 从JSON解析
      */
     Result<void> fromJson(const nlohmann::json& json);
@@ -124,6 +132,8 @@ public:
 
 private:
     LocationPredicate m_location;
+    /// "player" 条件的上下文写法（数据包 adventuring_time 等使用）
+    ContextAwarePredicate m_playerContext;
 };
 
 /**

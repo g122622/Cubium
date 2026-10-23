@@ -23,6 +23,7 @@
 
 #include "LocationTrigger.hpp"
 #include "common/advancement/trigger/CriterionTrigger.hpp"
+#include "common/advancement/trigger/conditions/CriterionContext.hpp"
 #include "common/advancement/trigger/conditions/LocationPredicate.hpp"
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
@@ -55,17 +56,46 @@ Result<void> LocationTriggerInstance::fromJson(const nlohmann::json& json)
         return {};
     }
 
+    // 条件列表写法（ContextAwarePredicate）：[{"condition": "minecraft:entity_properties", ...}]
+    if (json.is_array()) {
+        auto contextResult = ContextAwarePredicate::fromJson(json);
+        if (contextResult.failed()) {
+            return contextResult.error();
+        }
+        m_playerContext = std::move(contextResult.value());
+        return {};
+    }
+
     auto result = LocationPredicate::fromJson(json);
     if (result.failed()) {
         return result.error();
     }
     m_location = result.value();
+
+    // 数据包写法：{"player": [{"condition": "minecraft:entity_properties", ...}]}
+    if (json.contains("player")) {
+        auto contextResult = ContextAwarePredicate::fromJson(json["player"]);
+        if (contextResult.failed()) {
+            return contextResult.error();
+        }
+        m_playerContext = std::move(contextResult.value());
+    }
     return {};
+}
+
+bool LocationTriggerInstance::test(const CriterionContext& context) const
+{
+    return m_playerContext.test(context);
 }
 
 nlohmann::json LocationTriggerInstance::conditionsToJson() const
 {
-    return m_location.toJson();
+    if (m_playerContext.isAny()) {
+        return m_location.toJson();
+    }
+    nlohmann::json json = nlohmann::json::object();
+    json["player"] = m_playerContext.toJson();
+    return json;
 }
 
 // ========== LocationTrigger ==========

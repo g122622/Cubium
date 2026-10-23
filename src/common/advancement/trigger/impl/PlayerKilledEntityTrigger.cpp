@@ -23,6 +23,7 @@
 
 #include "PlayerKilledEntityTrigger.hpp"
 #include "common/advancement/trigger/CriterionTrigger.hpp"
+#include "common/advancement/trigger/conditions/CriterionContext.hpp"
 #include "common/advancement/trigger/conditions/EntityPredicate.hpp"
 #include "common/core/Result.hpp"
 #include "common/entity/core/Entity.hpp"
@@ -61,6 +62,14 @@ bool PlayerKilledEntityTriggerInstance::test(const Entity& entity, const DamageS
     return true;
 }
 
+bool PlayerKilledEntityTriggerInstance::test(const CriterionContext& context, const DamageSource& source) const
+{
+    if (!m_killingBlow.test(source)) {
+        return false;
+    }
+    return m_entityContext.test(context);
+}
+
 Result<void> PlayerKilledEntityTriggerInstance::fromJson(const nlohmann::json& json)
 {
     if (json.is_null()) {
@@ -68,11 +77,19 @@ Result<void> PlayerKilledEntityTriggerInstance::fromJson(const nlohmann::json& j
     }
 
     if (json.contains("entity")) {
-        auto result = EntityPredicate::fromJson(json["entity"]);
-        if (result.failed()) {
-            return result.error();
+        // 兼容两种写法：裸 EntityPredicate 对象，或 ContextAwarePredicate 条件列表
+        auto contextResult = ContextAwarePredicate::fromJson(json["entity"]);
+        if (contextResult.failed()) {
+            return contextResult.error();
         }
-        m_entity = result.value();
+        m_entityContext = std::move(contextResult.value());
+        if (json["entity"].is_object()) {
+            auto result = EntityPredicate::fromJson(json["entity"]);
+            if (result.failed()) {
+                return result.error();
+            }
+            m_entity = result.value();
+        }
     }
 
     if (json.contains("killing_blow")) {

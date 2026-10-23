@@ -24,6 +24,7 @@
 #pragma once
 
 #include "common/advancement/trigger/CriterionTrigger.hpp"
+#include "common/advancement/trigger/conditions/CriterionContext.hpp"
 #include "common/advancement/trigger/conditions/EntityPredicate.hpp"
 #include "common/advancement/trigger/conditions/LocationPredicate.hpp"
 #include "common/core/Result.hpp"
@@ -104,6 +105,9 @@ public:
      */
     [[nodiscard]] bool test(const Entity& entity, const DamageSource& source) const;
 
+    /// 携带上下文判定（entity 条件支持 ContextAwarePredicate 条件列表写法）
+    [[nodiscard]] bool test(const CriterionContext& context, const DamageSource& source) const;
+
     /**
      * @brief 从JSON解析
      */
@@ -116,6 +120,8 @@ public:
 
 private:
     EntityPredicate m_entity;
+    /// entity 条件的上下文写法（裸谓词对象同样兼容）
+    ContextAwarePredicate m_entityContext;
     DamageSourcePredicate m_killingBlow;
 };
 

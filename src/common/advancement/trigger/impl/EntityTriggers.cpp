@@ -55,6 +55,11 @@ bool TameAnimalTriggerInstance::test(const Entity& entity) const
     return m_entity.test(entity);
 }
 
+bool TameAnimalTriggerInstance::test(const CriterionContext& context) const
+{
+    return m_entityContext.test(context);
+}
+
 Result<void> TameAnimalTriggerInstance::fromJson(const nlohmann::json& json)
 {
     if (json.is_null()) {
@@ -62,11 +67,18 @@ Result<void> TameAnimalTriggerInstance::fromJson(const nlohmann::json& json)
     }
 
     if (json.contains("entity")) {
-        auto result = EntityPredicate::fromJson(json["entity"]);
-        if (result.failed()) {
-            return result.error();
+        auto contextResult = ContextAwarePredicate::fromJson(json["entity"]);
+        if (contextResult.failed()) {
+            return contextResult.error();
         }
-        m_entity = result.value();
+        m_entityContext = std::move(contextResult.value());
+        if (json["entity"].is_object()) {
+            auto result = EntityPredicate::fromJson(json["entity"]);
+            if (result.failed()) {
+                return result.error();
+            }
+            m_entity = result.value();
+        }
     }
 
     return {};
@@ -126,10 +138,43 @@ bool BredAnimalsTriggerInstance::test(const Entity& child, const Entity& parent,
     return true;
 }
 
+bool BredAnimalsTriggerInstance::test(const CriterionContext& childContext,
+    const CriterionContext& parentContext,
+    const CriterionContext& partnerContext) const
+{
+    return m_childContext.test(childContext) && m_parentContext.test(parentContext) &&
+        m_partnerContext.test(partnerContext);
+}
+
 Result<void> BredAnimalsTriggerInstance::fromJson(const nlohmann::json& json)
 {
     if (json.is_null()) {
         return {};
+    }
+
+    // 条件列表写法（ContextAwarePredicate）优先解析到对应上下文
+    const auto parseContext = [](const nlohmann::json& value, ContextAwarePredicate& out) -> Result<void> {
+        auto result = ContextAwarePredicate::fromJson(value);
+        if (result.failed()) {
+            return result.error();
+        }
+        out = std::move(result.value());
+        return {};
+    };
+    if (json.contains("child")) {
+        if (auto r = parseContext(json["child"], m_childContext); r.failed()) {
+            return r.error();
+        }
+    }
+    if (json.contains("parent")) {
+        if (auto r = parseContext(json["parent"], m_parentContext); r.failed()) {
+            return r.error();
+        }
+    }
+    if (json.contains("partner")) {
+        if (auto r = parseContext(json["partner"], m_partnerContext); r.failed()) {
+            return r.error();
+        }
     }
 
     if (json.contains("child")) {
@@ -218,14 +263,26 @@ Result<void> SummonedEntityTriggerInstance::fromJson(const nlohmann::json& json)
     }
 
     if (json.contains("entity")) {
-        auto result = EntityPredicate::fromJson(json["entity"]);
-        if (result.failed()) {
-            return result.error();
+        auto contextResult = ContextAwarePredicate::fromJson(json["entity"]);
+        if (contextResult.failed()) {
+            return contextResult.error();
         }
-        m_entity = result.value();
+        m_entityContext = std::move(contextResult.value());
+        if (json["entity"].is_object()) {
+            auto result = EntityPredicate::fromJson(json["entity"]);
+            if (result.failed()) {
+                return result.error();
+            }
+            m_entity = result.value();
+        }
     }
 
     return {};
+}
+
+bool SummonedEntityTriggerInstance::test(const CriterionContext& context) const
+{
+    return m_entityContext.test(context);
 }
 
 nlohmann::json SummonedEntityTriggerInstance::conditionsToJson() const
@@ -277,6 +334,12 @@ bool CuredZombieVillagerTriggerInstance::test(const Entity& zombie, const Entity
     return true;
 }
 
+bool CuredZombieVillagerTriggerInstance::test(
+    const CriterionContext& zombieContext, const CriterionContext& villagerContext) const
+{
+    return m_zombieContext.test(zombieContext) && m_villagerContext.test(villagerContext);
+}
+
 Result<void> CuredZombieVillagerTriggerInstance::fromJson(const nlohmann::json& json)
 {
     if (json.is_null()) {
@@ -284,19 +347,33 @@ Result<void> CuredZombieVillagerTriggerInstance::fromJson(const nlohmann::json& 
     }
 
     if (json.contains("zombie")) {
-        auto result = EntityPredicate::fromJson(json["zombie"]);
-        if (result.failed()) {
-            return result.error();
+        auto contextResult = ContextAwarePredicate::fromJson(json["zombie"]);
+        if (contextResult.failed()) {
+            return contextResult.error();
         }
-        m_zombie = result.value();
+        m_zombieContext = std::move(contextResult.value());
+        if (json["zombie"].is_object()) {
+            auto result = EntityPredicate::fromJson(json["zombie"]);
+            if (result.failed()) {
+                return result.error();
+            }
+            m_zombie = result.value();
+        }
     }
 
     if (json.contains("villager")) {
-        auto result = EntityPredicate::fromJson(json["villager"]);
-        if (result.failed()) {
-            return result.error();
+        auto contextResult = ContextAwarePredicate::fromJson(json["villager"]);
+        if (contextResult.failed()) {
+            return contextResult.error();
         }
-        m_villager = result.value();
+        m_villagerContext = std::move(contextResult.value());
+        if (json["villager"].is_object()) {
+            auto result = EntityPredicate::fromJson(json["villager"]);
+            if (result.failed()) {
+                return result.error();
+            }
+            m_villager = result.value();
+        }
     }
 
     return {};

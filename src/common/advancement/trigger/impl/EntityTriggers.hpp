@@ -85,11 +85,16 @@ public:
 
     [[nodiscard]] bool test(const class Entity& entity) const;
 
+    /// 携带上下文判定（支持 ContextAwarePredicate 条件列表写法）
+    [[nodiscard]] bool test(const CriterionContext& context) const;
+
     Result<void> fromJson(const nlohmann::json& json);
     [[nodiscard]] nlohmann::json conditionsToJson() const;
 
 private:
     EntityPredicate m_entity;
+    /// 实体谓词的上下文写法（裸谓词对象同样兼容）
+    ContextAwarePredicate m_entityContext;
 };
 
 /**
@@ -122,6 +127,11 @@ public:
 
     [[nodiscard]] bool test(const class Entity& child, const class Entity& parent, const class Entity& partner) const;
 
+    /// 携带上下文判定（parent/partner/child 映射到 this 与 killer 槽位）
+    [[nodiscard]] bool test(const CriterionContext& childContext,
+        const CriterionContext& parentContext,
+        const CriterionContext& partnerContext) const;
+
     Result<void> fromJson(const nlohmann::json& json);
     [[nodiscard]] nlohmann::json conditionsToJson() const;
 
@@ -129,6 +139,10 @@ private:
     EntityPredicate m_child;
     EntityPredicate m_parent;
     EntityPredicate m_partner;
+    /// 三个实体的上下文写法（裸谓词对象同样兼容）
+    ContextAwarePredicate m_childContext;
+    ContextAwarePredicate m_parentContext;
+    ContextAwarePredicate m_partnerContext;
 };
 
 /**
@@ -159,11 +173,16 @@ public:
 
     [[nodiscard]] bool test(const class Entity& entity) const;
 
+    /// 携带上下文判定（支持 ContextAwarePredicate 条件列表写法）
+    [[nodiscard]] bool test(const CriterionContext& context) const;
+
     Result<void> fromJson(const nlohmann::json& json);
     [[nodiscard]] nlohmann::json conditionsToJson() const;
 
 private:
     EntityPredicate m_entity;
+    /// 实体谓词的上下文写法（裸谓词对象同样兼容）
+    ContextAwarePredicate m_entityContext;
 };
 
 /**
@@ -194,12 +213,18 @@ public:
 
     [[nodiscard]] bool test(const class Entity& zombie, const class Entity& villager) const;
 
+    /// 携带上下文判定（zombie 为 killer 槽位，villager 为 this 槽位）
+    [[nodiscard]] bool test(const CriterionContext& zombieContext, const CriterionContext& villagerContext) const;
+
     Result<void> fromJson(const nlohmann::json& json);
     [[nodiscard]] nlohmann::json conditionsToJson() const;
 
 private:
     EntityPredicate m_zombie;
     EntityPredicate m_villager;
+    /// zombie / villager 的上下文写法（裸谓词对象同样兼容）
+    ContextAwarePredicate m_zombieContext;
+    ContextAwarePredicate m_villagerContext;
 };
 
 /**
