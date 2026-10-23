@@ -24,6 +24,7 @@
 #pragma once
 
 #include "common/advancement/trigger/CriterionTrigger.hpp"
+#include "common/advancement/trigger/conditions/CriterionContext.hpp"
 #include "common/core/Result.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/assert/AssertAll.hpp"
@@ -54,6 +55,22 @@ public:
 };
 
 /**
+ * @brief 物品作用于方块触发器（对齐 vanilla ItemUsedOnLocationTrigger）
+ *
+ * 玩家手持物品对某方块完成交互时触发（点燃 TNT、用药水喂食幼崽、给铜块打蜡等）。
+ * 条件为 location（ContextAwarePredicate：location_check / block_state_property），
+ * 数据包 adventure/lighten_up 等 10 处依赖它。
+ */
+class ItemUsedOnBlockTrigger : public AbstractCriterionTrigger<AnyBlockUseTriggerInstance> {
+public:
+    static constexpr const char* TRIGGER_ID = "minecraft:item_used_on_block";
+
+    [[nodiscard]] ResourceLocation getId() const override { return ResourceLocation(TRIGGER_ID); }
+
+    [[nodiscard]] Result<std::shared_ptr<ICriterionInstance>> fromJson(const nlohmann::json& json) override;
+};
+
+/**
  * @brief 任意方块使用触发器实例
  *
  * 无条件实例，test 恒返回 true。
@@ -65,14 +82,23 @@ public:
     AnyBlockUseTriggerInstance() = default;
 
     /**
-     * @brief 检查条件是否满足
-     * @return 恒返回 true（无条件触发器）
+     * @brief 检查条件是否满足（无 location 条件时恒真）
      */
     [[nodiscard]] bool test() const { return true; }
+
+    /**
+     * @brief 携带上下文判定（location 条件支持 ContextAwarePredicate 条件列表写法）
+     * @note 不带 location 条件的实例（default_block_use）恒真
+     */
+    [[nodiscard]] bool test(const CriterionContext& context) const;
 
     Result<void> fromJson(const nlohmann::json& json);
 
     [[nodiscard]] nlohmann::json conditionsToJson() const;
+
+private:
+    /// location 条件（default_block_use 无条件时为空）
+    ContextAwarePredicate m_locationContext;
 };
 
 } // namespace mc::advancement

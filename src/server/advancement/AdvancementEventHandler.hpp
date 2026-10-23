@@ -404,9 +404,14 @@ private:
         const mc::ItemStack item = e.item != nullptr ? *e.item : mc::ItemStack();
 
         // 触发检测 - 使用基类模板方法
+        // 上下文：this = 放置方块的玩家本身（location 条件列表按玩家位置判定），world = 所在世界
+        mc::advancement::CriterionContext context;
+        context.entity = serverPlayer;
+        context.world = world;
+        context.item = &item;
         trigger->AbstractCriterionTrigger<mc::advancement::PlacedBlockTriggerInstance>::trigger(
-            *advancements, [&e, world, &item](const mc::advancement::PlacedBlockTriggerInstance& instance) {
-                return instance.test(*e.state, *world, e.pos, item);
+            *advancements, [&e, world, &item, &context](const mc::advancement::PlacedBlockTriggerInstance& instance) {
+                return instance.test(*e.state, *world, e.pos, item) && instance.testContext(context);
             });
     }
 
@@ -964,9 +969,13 @@ private:
         }
 
         // 触发检测 - 使用基类模板方法
+        // 上下文：this = 玩家本身（location 条件列表按玩家位置判定），world = 所在世界
+        mc::advancement::CriterionContext context;
+        context.entity = serverPlayer;
+        context.world = world;
         trigger->AbstractCriterionTrigger<mc::advancement::EnterBlockTriggerInstance>::trigger(
-            *advancements, [&e, world](const mc::advancement::EnterBlockTriggerInstance& instance) {
-                return instance.test(*e.state, *world, e.pos);
+            *advancements, [&e, world, &context](const mc::advancement::EnterBlockTriggerInstance& instance) {
+                return instance.test(*e.state, *world, e.pos) && instance.testContext(context);
             });
     }
 

@@ -46,14 +46,43 @@ Result<std::shared_ptr<ICriterionInstance>> AnyBlockUseTrigger::fromJson(const n
 
 Result<void> AnyBlockUseTriggerInstance::fromJson(const nlohmann::json& json)
 {
-    // 任意方块使用触发器没有任何条件
-    MC_UNUSED(json);
+    if (json.is_null()) {
+        return {};
+    }
+    // item_used_on_block 的条件：{"location": [{"condition": "minecraft:location_check", ...}]}
+    if (json.contains("location")) {
+        auto result = ContextAwarePredicate::fromJson(json["location"]);
+        if (result.failed()) {
+            return result.error();
+        }
+        m_locationContext = std::move(result.value());
+    }
     return {};
+}
+
+bool AnyBlockUseTriggerInstance::test(const CriterionContext& context) const
+{
+    return m_locationContext.test(context);
 }
 
 nlohmann::json AnyBlockUseTriggerInstance::conditionsToJson() const
 {
-    return nullptr; // 无条件
+    if (m_locationContext.isAny()) {
+        return nullptr; // 无条件（default_block_use）
+    }
+    return nlohmann::json{{"location", m_locationContext.toJson()}};
+}
+
+// ========== ItemUsedOnBlockTrigger ==========
+
+Result<std::shared_ptr<ICriterionInstance>> ItemUsedOnBlockTrigger::fromJson(const nlohmann::json& json)
+{
+    auto instance = std::make_shared<AnyBlockUseTriggerInstance>();
+    auto result = instance->fromJson(json);
+    if (result.failed()) {
+        return result.error();
+    }
+    return instance;
 }
 
 } // namespace mc::advancement

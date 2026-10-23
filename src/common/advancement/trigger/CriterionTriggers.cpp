@@ -125,6 +125,7 @@ void CriterionTriggers::registerBuiltinTriggers()
     registerTrigger(std::make_unique<SlideDownBlockTrigger>());
     registerTrigger(std::make_unique<BeeNestDestroyedTrigger>());
     registerTrigger(std::make_unique<AnyBlockUseTrigger>());
+    registerTrigger(std::make_unique<ItemUsedOnBlockTrigger>());
 
     // 注册位置相关触发器
     registerTrigger(std::make_unique<LocationTrigger>());

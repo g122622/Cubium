@@ -29,11 +29,14 @@
 #include "common/core/Types.hpp"
 #include <memory>
 #include <optional>
+#include <utility>
 #include <vector>
 #include <nlohmann/json_fwd.hpp>
 
 namespace mc {
 
+class StatePropertiesPredicate;
+class BlockPos;
 class Entity;
 class ItemStack;
 class IWorld;
@@ -63,6 +66,9 @@ struct CriterionContext {
     const ItemStack* item = nullptr;
     /// 世界（位置相关条件需要）
     const IWorld* world = nullptr;
+    /// 显式方块位置（方块使用类触发器：location_check / block_state_property 判定该方块，
+    /// 而非实体所在方块；为空时按实体位置取方块，对齐 vanilla 的 LevelLocation 上下文）
+    const BlockPos* blockPos = nullptr;
 
     [[nodiscard]] const Entity* resolveEntity(const std::string& name) const;
     [[nodiscard]] const ItemStack* resolveItem(const std::string& name) const;
@@ -96,6 +102,7 @@ private:
         EntityProperties,
         LocationCheck,
         MatchTool,
+        BlockStateProperty,
         AllOf,
         AnyOf,
         Inverted,
@@ -103,6 +110,10 @@ private:
 
     struct Condition {
         Kind kind = Kind::EntityProperties;
+        /// block_state_property 的方块 ID
+        ResourceLocation blockId;
+        /// block_state_property 期望的方块状态（复用战利品侧 StatePropertiesPredicate）
+        std::optional<class StatePropertiesPredicate> blockState;
         /// entity_properties / location_check 的检查对象名（"this" / "killer" 等）
         std::string target;
         /// entity_properties 的实体谓词

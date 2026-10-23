@@ -30,6 +30,11 @@
 // 定义在 mc 命名空间；必须在 mc 下前向声明，若放到 mc::server::net 会遮蔽真实类型。
 namespace mc {
 class Player;
+class BlockPos;
+class ItemStack;
+namespace server {
+class ServerWorld;
+} // namespace server
 } // namespace mc
 
 namespace mc::server::net {
@@ -72,7 +77,8 @@ public:
 
 private:
     /// 触发 default_block_use 成就（任意方块使用/放置成功后调用，无条件触发所有监听实例）。
-    void _triggerAnyBlockUse(Player& player);
+    void _triggerAnyBlockUse(
+        Player& player, mc::server::ServerWorld* world, const BlockPos& pos, const ItemStack& usedItem);
 };
 
 } // namespace mc::server::net

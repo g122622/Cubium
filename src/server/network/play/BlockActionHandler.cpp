@@ -368,7 +368,7 @@ void BlockActionHandler::handleBlockPlacementPacket(PlayerId playerId, const mc:
     // 对齐 vanilla ServerGamePacketListenerImpl.java:1319-1321 consumesAction 时触发
     // ANY_BLOCK_USE（任意方块使用成就）。
     if (placementPlayer != nullptr) {
-        _triggerAnyBlockUse(*placementPlayer);
+        _triggerAnyBlockUse(*placementPlayer, placementWorld, pos, heldStack);
     }
 
     // 对齐 vanilla :1329-1332 swingSource == SERVER 时服务端主动挥臂并广播。
@@ -679,11 +679,13 @@ void BlockActionHandler::handleSetCommandBlockPacket(PlayerId playerId, const mc
     spdlog::info("SetCommandBlock: player {} updated command block at ({}, {}, {})", playerId, pos.x, pos.y, pos.z);
 }
 
-void BlockActionHandler::_triggerAnyBlockUse(Player& player)
+void BlockActionHandler::_triggerAnyBlockUse(
+    Player& player, mc::server::ServerWorld* world, const BlockPos& pos, const ItemStack& usedItem)
 {
     // 触发 default_block_use 成就（对齐 vanilla CriteriaTriggers.DEFAULT_BLOCK_USE）。
     // 任意方块使用时无条件触发，vanilla 在 consumesAction 时触发，
-    // 此处近似为放置/使用方块成功后触发。
+    // 此处近似为放置/使用方块执行完成后触发，并同时触发 item_used_on_block
+    // （vanilla ItemUsedOnLocationTrigger.ITEM_USED_ON_BLOCK 在 useOn 成功时触发）。
     auto* serverPlayer = player.asServerPlayer();
     if (serverPlayer == nullptr) {
         return;
@@ -696,11 +698,26 @@ void BlockActionHandler::_triggerAnyBlockUse(Player& player)
     if (trigger == nullptr) {
         return;
     }
-    trigger->AbstractCriterionTrigger<mc::advancement::AnyBlockUseTriggerInstance>::trigger(
-        *advancements, [](const mc::advancement::AnyBlockUseTriggerInstance& instance) {
-            (void)instance;
-            return true;
-        });
+    // 上下文（vanilla ItemUsedOnLocationTrigger.trigger：LevelLocation context + 交互物品）：
+    // location_check / block_state_property 条件作用于本实体位置，故实体上下文取
+    // "被点击方块中心处的虚拟判定点"。Cubium 的 CriterionContext 以实体位置取方块，
+    // 这里直接携带世界与物品，位置条件按方块坐标由 Condition 侧读取——见下方说明。
+    mc::advancement::CriterionContext context;
+    context.world = world;
+    context.item = &usedItem;
+    context.blockPos = &pos;
+    context.entity = &player;
+    trigger->AbstractCriterionTrigger<mc::advancement::AnyBlockUseTriggerInstance>::trigger(*advancements,
+        [&context](const mc::advancement::AnyBlockUseTriggerInstance& instance) { return instance.test(context); });
+
+    // item_used_on_block：与 default_block_use 同一触发点（vanilla 两条在 useOn 成功处相邻触发）
+    auto* itemUsedTrigger =
+        mc::advancement::CriterionTriggers::instance().getTrigger<mc::advancement::ItemUsedOnBlockTrigger>();
+    if (itemUsedTrigger == nullptr) {
+        return;
+    }
+    itemUsedTrigger->AbstractCriterionTrigger<mc::advancement::AnyBlockUseTriggerInstance>::trigger(*advancements,
+        [&context](const mc::advancement::AnyBlockUseTriggerInstance& instance) { return instance.test(context); });
 }
 
 } // namespace mc::server::net

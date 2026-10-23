@@ -26,6 +26,7 @@
 #include "common/advancement/MinMaxBounds.hpp"
 #include "common/advancement/trigger/CriterionTrigger.hpp"
 #include "common/advancement/trigger/conditions/BlockPredicate.hpp"
+#include "common/advancement/trigger/conditions/CriterionContext.hpp"
 #include "common/advancement/trigger/conditions/ItemPredicate.hpp"
 #include "common/advancement/trigger/conditions/LocationPredicate.hpp"
 #include "common/core/Result.hpp"
@@ -93,12 +94,18 @@ public:
      */
     [[nodiscard]] bool test(const BlockState& state, const IWorld& world, const BlockPos& pos) const;
 
+    /// 携带上下文判定（location 条件支持 ContextAwarePredicate 条件列表写法，
+    /// 如 [{"condition":"minecraft:location_check","predicate":{...}}] /
+    ///    [{"condition":"minecraft:block_state_property","block":"..."}]）
+    [[nodiscard]] bool testContext(const CriterionContext& context) const;
+
     Result<void> fromJson(const nlohmann::json& json);
     [[nodiscard]] nlohmann::json conditionsToJson() const;
 
 private:
     BlockPredicate m_block;
     LocationPredicate m_location;
+    ContextAwarePredicate m_locationContext;
 };
 
 /**
@@ -130,6 +137,11 @@ public:
     [[nodiscard]] bool test(
         const BlockState& state, const IWorld& world, const BlockPos& pos, const ItemStack& item) const;
 
+    /// 携带上下文判定（location 条件支持 ContextAwarePredicate 条件列表写法，
+    /// 如 [{"condition":"minecraft:location_check","predicate":{...}}] /
+    ///    [{"condition":"minecraft:block_state_property","block":"..."}]）
+    [[nodiscard]] bool testContext(const CriterionContext& context) const;
+
     Result<void> fromJson(const nlohmann::json& json);
     [[nodiscard]] nlohmann::json conditionsToJson() const;
 
@@ -137,6 +149,7 @@ private:
     BlockPredicate m_block;
     LocationPredicate m_location;
     ItemPredicate m_item;
+    ContextAwarePredicate m_locationContext;
 };
 
 /**

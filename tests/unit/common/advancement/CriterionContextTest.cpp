@@ -38,6 +38,10 @@
 #include "common/item/Items.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/resource/ResourceLocation.hpp"
+#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/BlockState.hpp"
+#include "common/world/block/registry/PaleGardenBlocks.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 
 #include <gtest/gtest.h>
 
@@ -45,6 +49,18 @@
 
 namespace mc {
 namespace {
+
+/// 方块查询桩：指定位置返回固定方块状态，其余位置返回 nullptr。
+class BlockProbeWorld final : public mc::test::BaseTestWorld {
+public:
+    BlockPos pos{0, 0, 0};
+    const BlockState* state = nullptr;
+
+    [[nodiscard]] const BlockState* getBlockState(const BlockPos& query) const override
+    {
+        return (query == pos) ? state : nullptr;
+    }
+};
 
 class CriterionContextTest : public ::testing::Test {
 protected:
@@ -192,6 +208,79 @@ TEST_F(CriterionContextTest, UnsupportedConditionIsRejected)
     const nlohmann::json json = nlohmann::json::array({{{"condition", "minecraft:unknown_condition"}}});
     auto result = advancement::ContextAwarePredicate::fromJson(json);
     EXPECT_TRUE(result.failed());
+}
+
+TEST_F(CriterionContextTest, BlockStateProperty_UsesExplicitBlockPos)
+{
+    // 对齐数据包 adventure/heart_transplanter 的 block_state_property 条件：
+    //   [{"condition":"minecraft:block_state_property","block":"minecraft:creaking_heart",
+    //     "properties":{"creaking_heart_state":"uprooted"}}]
+    // 嘎枝之心注册在 PaleGardenBlocks 命名空间（默认状态 Uprooted）。
+    VanillaBlocks::initialize();
+    Block* creakingHeart = block_registry::PaleGardenBlocks::CREAKING_HEART;
+    ASSERT_NE(creakingHeart, nullptr);
+    const BlockState& uprooted = creakingHeart->defaultState();
+
+    BlockProbeWorld world;
+    world.pos = BlockPos(3, 64, -2);
+    world.state = &uprooted;
+
+    const BlockPos explicitPos(3, 64, -2);
+    advancement::CriterionContext context;
+    context.world = &world;
+    context.blockPos = &explicitPos;
+
+    // 属性值匹配 → 通过
+    const nlohmann::json matchJson = nlohmann::json::array({{{"condition", "minecraft:block_state_property"},
+        {"block", "minecraft:creaking_heart"},
+        {"properties", {{"creaking_heart_state", "uprooted"}}}}});
+    auto matched = advancement::ContextAwarePredicate::fromJson(matchJson);
+    ASSERT_TRUE(matched.success());
+    EXPECT_TRUE(matched.value().test(context));
+
+    // 属性值不匹配（要求 awake）→ 失败
+    const nlohmann::json awakeJson = nlohmann::json::array({{{"condition", "minecraft:block_state_property"},
+        {"block", "minecraft:creaking_heart"},
+        {"properties", {{"creaking_heart_state", "awake"}}}}});
+    auto awake = advancement::ContextAwarePredicate::fromJson(awakeJson);
+    ASSERT_TRUE(awake.success());
+    EXPECT_FALSE(awake.value().test(context));
+
+    // 方块类型不匹配 → 失败
+    const nlohmann::json stoneJson = nlohmann::json::array({{{"condition", "minecraft:block_state_property"},
+        {"block", "minecraft:stone"},
+        {"properties", {{"creaking_heart_state", "uprooted"}}}}});
+    auto stone = advancement::ContextAwarePredicate::fromJson(stoneJson);
+    ASSERT_TRUE(stone.success());
+    EXPECT_FALSE(stone.value().test(context));
+
+    // 位置不同（查询返回 nullptr）→ 失败
+    const BlockPos otherPos(9, 64, 9);
+    advancement::CriterionContext wrong;
+    wrong.world = &world;
+    wrong.blockPos = &otherPos;
+    EXPECT_FALSE(matched.value().test(wrong));
+}
+
+TEST_F(CriterionContextTest, LocationCheck_UsesExplicitBlockPos)
+{
+    // adventure/lighten_up 等：location_check 判定被点击方块的方块名
+    const nlohmann::json json = nlohmann::json::array(
+        {{{"condition", "minecraft:location_check"}, {"predicate", {{"block", {{"blocks", "minecraft:stone"}}}}}}});
+    auto result = advancement::ContextAwarePredicate::fromJson(json);
+    ASSERT_TRUE(result.success());
+
+    VanillaBlocks::initialize();
+    ASSERT_NE(VanillaBlocks::STONE, nullptr);
+    BlockProbeWorld world;
+    world.pos = BlockPos(1, 2, 3);
+    world.state = &VanillaBlocks::STONE->defaultState();
+
+    const BlockPos explicitPos(1, 2, 3);
+    advancement::CriterionContext context;
+    context.world = &world;
+    context.blockPos = &explicitPos;
+    EXPECT_TRUE(result.value().test(context));
 }
 
 } // namespace

@@ -25,6 +25,7 @@
 #include "common/advancement/MinMaxBounds.hpp"
 #include "common/advancement/trigger/CriterionTrigger.hpp"
 #include "common/advancement/trigger/conditions/BlockPredicate.hpp"
+#include "common/advancement/trigger/conditions/CriterionContext.hpp"
 #include "common/advancement/trigger/conditions/ItemPredicate.hpp"
 #include "common/advancement/trigger/conditions/LocationPredicate.hpp"
 #include "common/core/Result.hpp"
@@ -59,6 +60,11 @@ bool EnterBlockTriggerInstance::test(const BlockState& state, const IWorld& worl
     return true;
 }
 
+bool EnterBlockTriggerInstance::testContext(const CriterionContext& context) const
+{
+    return m_locationContext.test(context);
+}
+
 Result<void> EnterBlockTriggerInstance::fromJson(const nlohmann::json& json)
 {
     if (json.is_null()) {
@@ -74,11 +80,20 @@ Result<void> EnterBlockTriggerInstance::fromJson(const nlohmann::json& json)
     }
 
     if (json.contains("location")) {
-        auto result = LocationPredicate::fromJson(json["location"]);
-        if (result.failed()) {
-            return result.error();
+        // 兼容两种写法：裸 LocationPredicate，或 ContextAwarePredicate 条件列表
+        // （如 [{"condition":"minecraft:location_check","predicate":{...}}]）
+        auto contextResult = ContextAwarePredicate::fromJson(json["location"]);
+        if (contextResult.failed()) {
+            return contextResult.error();
         }
-        m_location = result.value();
+        m_locationContext = std::move(contextResult.value());
+        if (json["location"].is_object()) {
+            auto result = LocationPredicate::fromJson(json["location"]);
+            if (result.failed()) {
+                return result.error();
+            }
+            m_location = result.value();
+        }
     }
 
     return {};
@@ -149,6 +164,11 @@ bool PlacedBlockTriggerInstance::test(
     return true;
 }
 
+bool PlacedBlockTriggerInstance::testContext(const CriterionContext& context) const
+{
+    return m_locationContext.test(context);
+}
+
 Result<void> PlacedBlockTriggerInstance::fromJson(const nlohmann::json& json)
 {
     if (json.is_null()) {
@@ -164,11 +184,20 @@ Result<void> PlacedBlockTriggerInstance::fromJson(const nlohmann::json& json)
     }
 
     if (json.contains("location")) {
-        auto result = LocationPredicate::fromJson(json["location"]);
-        if (result.failed()) {
-            return result.error();
+        // 兼容两种写法：裸 LocationPredicate，或 ContextAwarePredicate 条件列表
+        // （如 [{"condition":"minecraft:location_check","predicate":{...}}]）
+        auto contextResult = ContextAwarePredicate::fromJson(json["location"]);
+        if (contextResult.failed()) {
+            return contextResult.error();
         }
-        m_location = result.value();
+        m_locationContext = std::move(contextResult.value());
+        if (json["location"].is_object()) {
+            auto result = LocationPredicate::fromJson(json["location"]);
+            if (result.failed()) {
+                return result.error();
+            }
+            m_location = result.value();
+        }
     }
 
     if (json.contains("item")) {

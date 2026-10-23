@@ -26,8 +26,13 @@
 #include "common/advancement/trigger/conditions/ItemPredicate.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/item/core/ItemStack.hpp"
+#include "common/item/loot/StatePropertiesPredicate.hpp"
 #include "common/world/IWorld.hpp"
+#include "common/world/block/Block.hpp"
+#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/BlockState.hpp"
 
+#include <cmath>
 #include <string>
 #include <utility>
 #include <nlohmann/json.hpp>
@@ -66,14 +71,44 @@ bool ContextAwarePredicate::test(const CriterionContext& context) const
                 break;
             }
             case Kind::LocationCheck: {
-                const Entity* target = context.resolveEntity(condition->target);
-                if (target == nullptr || context.world == nullptr || !condition->locationPredicate.has_value()) {
+                if (context.world == nullptr || !condition->locationPredicate.has_value()) {
                     return false;
                 }
-                if (!condition->locationPredicate->test(*context.world,
+                // 方块使用类触发器显式给出方块位置时，location_check 判定该方块
+                // （对齐 vanilla LevelLocation = 使用目标的方块中心）；否则按实体位置判定
+                if (context.blockPos != nullptr) {
+                    if (!condition->locationPredicate->test(*context.world, *context.blockPos)) {
+                        return false;
+                    }
+                    break;
+                }
+                const Entity* target = context.resolveEntity(condition->target);
+                if (target == nullptr ||
+                    !condition->locationPredicate->test(*context.world,
                         static_cast<f64>(target->x()),
                         static_cast<f64>(target->y()),
                         static_cast<f64>(target->z()))) {
+                    return false;
+                }
+                break;
+            }
+            case Kind::BlockStateProperty: {
+                // 判定显式方块位置或实体所在位置的方块（如 heart_transplanter 的
+                // creaking_heart_state=awake）
+                const Entity* target = context.resolveEntity(condition->target);
+                if (context.world == nullptr || (target == nullptr && context.blockPos == nullptr)) {
+                    return false;
+                }
+                const BlockPos targetPos = context.blockPos != nullptr
+                    ? *context.blockPos
+                    : BlockPos(static_cast<i32>(std::floor(target->x())),
+                          static_cast<i32>(std::floor(target->y())),
+                          static_cast<i32>(std::floor(target->z())));
+                const BlockState* state = context.world->getBlockState(targetPos);
+                if (state == nullptr || state->getBlock().blockLocation() != condition->blockId) {
+                    return false;
+                }
+                if (condition->blockState.has_value() && !condition->blockState->matches(*state)) {
                     return false;
                 }
                 break;
@@ -193,6 +228,21 @@ Result<std::shared_ptr<ContextAwarePredicate::Condition>> ContextAwarePredicate:
                 return result.error();
             }
             condition->locationPredicate = std::move(result.value());
+        }
+        return condition;
+    }
+
+    if (type == "minecraft:block_state_property" || type == "block_state_property") {
+        condition->kind = Kind::BlockStateProperty;
+        if (json.contains("block") && json["block"].is_string()) {
+            condition->blockId = ResourceLocation(json["block"].get<std::string>());
+        }
+        if (json.contains("properties") && json["properties"].is_object()) {
+            auto result = StatePropertiesPredicate::fromJson(json["properties"]);
+            if (result.failed()) {
+                return result.error();
+            }
+            condition->blockState = std::move(result.value());
         }
         return condition;
     }
