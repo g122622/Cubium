@@ -23,6 +23,7 @@
 
 #include "common/mod/bedrock/addon/content/molang/MolangExpression.hpp"
 #include "common/mod/bedrock/addon/content/molang/syntax/MolangProgram.hpp"
+#include <algorithm>
 
 namespace mc::mod::bedrock::addon {
 MolangExpression::MolangExpression(std::shared_ptr<const detail::MolangProgram> program)
@@ -41,5 +42,13 @@ Result<MolangExpression> MolangExpression::compile(std::string_view source)
 Result<MolangValue> MolangExpression::evaluate(MolangEvaluationContext& context) const
 {
     return detail::evaluateMolang(*m_program, context);
+}
+
+bool MolangExpression::usesPropertyQueries() const
+{
+    return std::any_of(m_program->nodes.begin(), m_program->nodes.end(), [](const detail::MolangNode& node) {
+        return node.kind == detail::MolangNodeKind::Call &&
+            (node.text == "query.property" || node.text == "query.has_property");
+    });
 }
 } // namespace mc::mod::bedrock::addon

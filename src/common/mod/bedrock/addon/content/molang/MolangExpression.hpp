@@ -41,6 +41,9 @@ public:
     /** @brief 使用本次调用提供的属性和随机数入口求值。 */
     [[nodiscard]] Result<MolangValue> evaluate(MolangEvaluationContext& context) const;
 
+    /** @brief 默认值等受限求值位置可据此禁止实体属性查询。 */
+    [[nodiscard]] bool usesPropertyQueries() const;
+
 private:
     /** @brief 仅由编译入口接收完整有效的程序。 */
     explicit MolangExpression(std::shared_ptr<const detail::MolangProgram> program);

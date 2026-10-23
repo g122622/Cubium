@@ -40,6 +40,7 @@ class EntityRegistry;
 } // namespace mc
 
 namespace mc::mod::bedrock::addon {
+class EntityPropertyDefinitions;
 
 /** @brief 已验证的实体定义，供注册工厂和实例共用。 */
 class AddonEntityDefinition {
@@ -72,10 +73,10 @@ public:
 
 private:
     /** @brief 安装预先校验过的声明属性和基础组件状态。 */
-    void _initialize(mc::Entity& entity) const;
+    Result<void> _initialize(mc::Entity& entity) const;
 
     nlohmann::json m_document;
-    nlohmann::json m_properties;
+    std::shared_ptr<const EntityPropertyDefinitions> m_properties;
     nlohmann::json m_components;
     nlohmann::json m_componentGroups;
     std::shared_ptr<const EntityEventProgram> m_events;

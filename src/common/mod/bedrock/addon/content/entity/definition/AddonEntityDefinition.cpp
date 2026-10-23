@@ -26,10 +26,12 @@
 #include "common/entity/attribute/Attributes.hpp"
 #include "common/entity/core/CreatureEntity.hpp"
 #include "common/mod/bedrock/addon/content/entity/events/EntityEventProgram.hpp"
+#include "common/mod/bedrock/addon/content/entity/properties/EntityPropertyDefinitions.hpp"
 #include "common/mod/bedrock/addon/content/entity/state/AddonEntityComponents.hpp"
 #include "common/mod/bedrock/addon/content/entity/state/EntityAddonState.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/assert/AssertMacros.hpp"
+#include <spdlog/spdlog.h>
 
 #include <algorithm>
 #include <cmath>
@@ -207,9 +209,11 @@ Result<AddonEntityDefinition> AddonEntityDefinition::parse(const nlohmann::json&
     result.m_document = document;
     result.m_identifier = id;
     result.m_canSummon = description.value("is_summonable", false);
-    result.m_properties = description.value("properties", nlohmann::json::object());
-    EntityAddonState validated;
-    MC_TRY(validated.defineProperties(result.m_properties));
+    auto properties = EntityPropertyDefinitions::compile(description.value("properties", nlohmann::json::object()));
+    if (properties.failed()) {
+        return properties.error();
+    }
+    result.m_properties = std::make_shared<const EntityPropertyDefinitions>(std::move(properties.value()));
     result.m_components = entity.value("components", nlohmann::json::object());
     if (!result.m_components.is_object()) {
         return Error(ErrorCode::InvalidData, "Entity components must be an object");
@@ -229,8 +233,9 @@ Result<AddonEntityDefinition> AddonEntityDefinition::parse(const nlohmann::json&
     if (hasMovement && !result.isLiving()) {
         return Error(ErrorCode::Unsupported, "Moving addon actors without health are not implemented");
     }
-    auto events = EntityEventProgram::compile(
-        entity.value("events", nlohmann::json::object()), result.m_properties, result.m_componentGroups);
+    auto events = EntityEventProgram::compile(entity.value("events", nlohmann::json::object()),
+        result.m_properties->literalSchema(),
+        result.m_componentGroups);
     if (events.failed()) {
         return events.error();
     }
@@ -292,7 +297,12 @@ std::unique_ptr<mc::Entity> AddonEntityDefinition::create(std::shared_ptr<const 
     } else {
         entity = std::make_unique<_AddonActor>(definition, world, registry);
     }
-    definition->_initialize(*entity);
+    auto initialized = definition->_initialize(*entity);
+    if (initialized.failed()) {
+        spdlog::warn(
+            "Failed to initialize addon entity '{}': {}", definition->identifier(), initialized.error().message());
+        return nullptr;
+    }
     auto& components = entity->getOrAddComponent<AddonEntityComponents>(definition);
     components.initialize(*entity);
     static_cast<void>(
@@ -300,12 +310,16 @@ std::unique_ptr<mc::Entity> AddonEntityDefinition::create(std::shared_ptr<const 
     return entity;
 }
 
-void AddonEntityDefinition::_initialize(mc::Entity& entity) const
+Result<void> AddonEntityDefinition::_initialize(mc::Entity& entity) const
 {
-    auto defined = entity.getOrAddComponent<EntityAddonState>().defineProperties(m_properties);
-    MC_ASSERT_RELEASE(defined.success());
+    auto definitions = m_properties->instantiate(entity.getRandom());
+    if (definitions.failed()) {
+        return definitions.error();
+    }
+    MC_TRY(entity.getOrAddComponent<EntityAddonState>().defineProperties(definitions.value()));
     // TODO: 为 Java 客户端实现自定义类型投影、资源包模型与 client_sync 属性同步。
     // TODO: 按 is_spawnable 生成对应的自定义刷怪蛋及生成规则关联。
+    return Result<void>::ok();
 }
 
 const std::string& AddonEntityDefinition::identifier() const

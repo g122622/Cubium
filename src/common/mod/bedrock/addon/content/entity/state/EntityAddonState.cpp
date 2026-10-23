@@ -151,7 +151,7 @@ Result<void> EntityAddonState::defineProperties(const nlohmann::json& definition
             return Error(ErrorCode::InvalidData, "Entity property client_sync must be boolean: " + name);
         }
 
-        // TODO: 将非枚举属性的字符串默认值接入 Molang 求值；当前显式拒绝表达式。
+        // 表达式由 EntityPropertyDefinitions 在创建实例时求值，这里只安装实际默认值。
         MC_TRY(_validateProperty(name, definition, definition["default"]));
         if (definition["type"] == "enum") {
             if (definition["values"].size() > 16) {

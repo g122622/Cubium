@@ -903,3 +903,60 @@ TEST_F(AddonEntityDefinitionTest, MolangRuntimeFailureCommitsNeitherPropertiesNo
     EXPECT_EQ(components->save(), beforeComponents);
     EXPECT_FALSE(manager.eventBus().hasPendingAfterEvents());
 }
+
+TEST_F(AddonEntityDefinitionTest, FactoryEvaluatesDefaultExpressionsBeforeEntityUse)
+{
+    const auto directory = pack("default-expressions", _PACK, std::nullopt);
+    auto definition = _definition("addon_test:default_expressions");
+    auto& properties = definition["minecraft:entity"]["description"]["properties"];
+    properties["test:count"]["default"] = "math.random_integer(7, 7)";
+    properties["test:flag"] = {{"type", "bool"}, {"default", "math.sin(90)"}};
+    properties["test:mode"] = {{"type", "enum"}, {"values", {"idle", "work"}}, {"default", "'work'"}};
+    definition["minecraft:entity"]["events"]["test:increment"] = {
+        {"set_property", {{"test:count", "q.property('test:count') + 1"}}}};
+    write(directory / "entities/entity.json", definition);
+    const auto result = manager.loadPacks("", root.string());
+    ASSERT_TRUE(result.success()) << result.error().message();
+    auto entity = create("addon_test:default_expressions");
+    ASSERT_NE(entity, nullptr);
+    auto& state = entity->getOrAddComponent<EntityAddonState>();
+    EXPECT_EQ(state.getProperty("test:count"), nlohmann::json(7));
+    EXPECT_EQ(state.getProperty("test:flag"), nlohmann::json(true));
+    EXPECT_EQ(state.getProperty("test:mode"), nlohmann::json("work"));
+    ASSERT_TRUE(entity->tryGetComponent<AddonEntityEvents>()->trigger(*entity, "test:increment").success());
+    entity->tick();
+    EXPECT_EQ(state.getProperty("test:count"), nlohmann::json(8));
+    EXPECT_EQ(state.resetProperty("test:count"), nlohmann::json(7));
+}
+
+TEST_F(AddonEntityDefinitionTest, SavedPropertyValuesOverrideExpressionDefaultsDuringRestore)
+{
+    mc::entity::serialization::components::ComponentSerializerRegistry::instance().registerAll();
+    const auto directory = pack("saved-defaults", _PACK, std::nullopt);
+    auto definition = _definition("addon_test:saved_defaults");
+    definition["minecraft:entity"]["description"]["properties"]["test:count"]["default"] = "math.random_integer(7, 7)";
+    write(directory / "entities/entity.json", definition);
+    ASSERT_TRUE(manager.loadPacks("", root.string()).success());
+    auto entity = create("addon_test:saved_defaults");
+    ASSERT_NE(entity, nullptr);
+    ASSERT_TRUE(entity->getOrAddComponent<EntityAddonState>().setProperty("test:count", 42).success());
+    auto saved = mc::entity::serialization::EntityDeserializer::serializeToBinary(*entity);
+    ASSERT_TRUE(saved.success());
+    auto loaded = mc::entity::serialization::EntityDeserializer::deserializeFromBinary(saved.value(), entities);
+    ASSERT_TRUE(loaded.success()) << loaded.error().message();
+    auto restored = loaded.value();
+    ASSERT_NE(restored, nullptr);
+    EXPECT_EQ(restored->getOrAddComponent<EntityAddonState>().getProperty("test:count"), nlohmann::json(42));
+}
+
+TEST_F(AddonEntityDefinitionTest, InvalidDefaultExpressionEvaluationRejectsEntityCreation)
+{
+    const auto directory = pack("invalid-default", _PACK, std::nullopt);
+    auto definition = _definition("addon_test:invalid_default");
+    definition["minecraft:entity"]["description"]["properties"]["test:count"]["default"] = "math.sqrt(-1)";
+    write(directory / "entities/entity.json", definition);
+    ASSERT_TRUE(manager.loadPacks("", root.string()).success());
+    const auto* type = mc::entity::EntityRegistry::instance().getType("addon_test:invalid_default");
+    ASSERT_NE(type, nullptr);
+    EXPECT_EQ(type->create(nullptr, entities), nullptr);
+}

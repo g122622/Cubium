@@ -5,6 +5,7 @@
 ```text
 entity/
 ├── events/ # 数据驱动事件程序、实例入口与触发通知
+├── properties/ # 属性声明、逐实例默认值和 Molang 类型转换
 ├── definition/ # 实体 JSON、基础组件及实例工厂
 └── state/ # 实体属性、待应用写入与存档编码
 ```

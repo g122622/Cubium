@@ -23,6 +23,7 @@
 
 #include "common/mod/bedrock/addon/content/entity/events/EntityEventProgram.hpp"
 #include "common/entity/core/Entity.hpp"
+#include "common/mod/bedrock/addon/content/entity/properties/EntityPropertyValue.hpp"
 #include "common/mod/bedrock/addon/content/entity/state/EntityAddonState.hpp"
 #include "common/util/assert/AssertMacros.hpp"
 
@@ -37,33 +38,6 @@ namespace mc::mod::bedrock::addon {
 namespace {
 constexpr std::size_t _MAX_EVENT_DEPTH = 64;
 constexpr std::size_t _MAX_EVENT_STEPS = 4096;
-
-Result<void> _limitPropertyNumber(const std::string& name, nlohmann::json& value, const nlohmann::json& definition)
-{
-    const auto& type = definition["type"];
-    if (value.is_number() && (type == "int" || type == "float")) {
-        double number = value.get<double>();
-        if (!std::isfinite(number)) {
-            return Error(ErrorCode::InvalidData, "Entity event property must be finite: " + name);
-        }
-        // JSON 事件赋值将数值限制在声明范围，脚本 setProperty 则报告越界。
-        double minimum = type == "int" ? static_cast<double>(std::numeric_limits<mc::i32>::min())
-                                       : -static_cast<double>(std::numeric_limits<mc::f32>::max());
-        double maximum = type == "int" ? static_cast<double>(std::numeric_limits<mc::i32>::max())
-                                       : static_cast<double>(std::numeric_limits<mc::f32>::max());
-        if (definition.contains("range")) {
-            const auto& range = definition["range"];
-            minimum = range[0].get<double>();
-            maximum = range[1].get<double>();
-        }
-        number = std::clamp(number, minimum, maximum);
-        if (type == "int") {
-            number = std::trunc(number);
-        }
-        value = number;
-    }
-    return Result<void>::ok();
-}
 
 Result<void> _compileAction(nlohmann::json& action,
     const nlohmann::json& events,
@@ -131,7 +105,7 @@ Result<void> _compileAction(nlohmann::json& action,
                     continue;
                 }
             }
-            MC_TRY(_limitPropertyNumber(name, value, *definition));
+            MC_TRY(limitEntityPropertyNumber(name, value, *definition));
             MC_TRY(validator.setProperty(name, value));
         }
     }
@@ -287,14 +261,13 @@ Result<EntityEventExecution> EntityEventProgram::execute(mc::Entity& entity, con
                     if (evaluated.failed()) {
                         return evaluated.error();
                     }
-                    if (const auto* number = std::get_if<mc::f32>(&evaluated.value())) {
-                        resolved = m_properties[name]["type"] == "bool" ? nlohmann::json(*number != 0)
-                                                                        : nlohmann::json(*number);
-                    } else {
-                        resolved = std::get<std::string>(evaluated.value());
+                    auto cast = castMolangPropertyValue(name, m_properties[name], evaluated.value());
+                    if (cast.failed()) {
+                        return cast.error();
                     }
+                    resolved = std::move(cast.value());
                 }
-                MC_TRY(_limitPropertyNumber(name, resolved, m_properties[name]));
+                MC_TRY(limitEntityPropertyNumber(name, resolved, m_properties[name]));
                 MC_TRY(validator.setProperty(name, resolved));
                 writes.emplace_back(name, std::move(resolved));
             }

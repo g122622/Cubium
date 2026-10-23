@@ -67,6 +67,8 @@ add_library(mc_bedrock_addon STATIC
     # Content - 行为包数据与实体状态
     content/AddonContentManager.cpp
     content/entity/definition/AddonEntityDefinition.cpp
+    content/entity/properties/EntityPropertyDefinitions.cpp
+    content/entity/properties/EntityPropertyValue.cpp
     content/entity/events/EntityEventProgram.cpp
     content/entity/events/AddonEntityEvents.cpp
     content/entity/state/EntityAddonState.cpp

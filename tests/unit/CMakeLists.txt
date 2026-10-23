@@ -1790,6 +1790,7 @@ add_executable(mc_tests
     common/mod/bedrock/addon/test_item_properties.cpp
     common/mod/bedrock/addon/test_entity_definitions.cpp
     common/mod/bedrock/addon/test_molang.cpp
+    common/mod/bedrock/addon/test_property_definitions.cpp
     server/mod/bedrock/addon/test_event_bridge.cpp
     common/mod/bedrock/addon/test_binding_handle_lifetime.cpp
     common/mod/bedrock/addon/test_block_component_registry.cpp
