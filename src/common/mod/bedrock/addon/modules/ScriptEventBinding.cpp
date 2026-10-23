@@ -25,6 +25,7 @@
 
 #include "common/core/Types.hpp"
 #include "common/mod/bedrock/addon/binding/IScriptBindingContext.hpp"
+#include "common/mod/bedrock/addon/binding/ScriptCallbackHolder.hpp"
 #include "common/mod/bedrock/addon/binding/ScriptClassBinding.hpp"
 #include "common/mod/bedrock/addon/event/AfterEventSignal.hpp"
 #include "common/mod/bedrock/addon/event/BeforeEventSignal.hpp"
@@ -53,18 +54,21 @@ struct SignalData {
 // 创建信号JS对象
 // ============================================================================
 
-static void* createSignalObject(
-    IScriptBindingContext& ctx, u64 signalClassId, ScriptEventBus& eventBus, std::type_index eventType, bool isBefore)
+static void* createSignalObject(IScriptBindingContext& ctx,
+    u64 signalClassId,
+    void* signalProto,
+    ScriptEventBus& eventBus,
+    std::type_index eventType,
+    bool isBefore)
 {
     // 必须经 ScriptObjectRegistry::wrap 创建：EventSignal 类的 finalizer 会把 opaque 无条件
     // 按 ObjectData* 解释，若直接 setOpaque 一个 SignalData*，字段偏移将完全错位——会把
     // bindingCtx 当作 destroy 函数指针调用，并越界读取 entityId。owned=true 使 GC 时经
     // destroy 回调释放 SignalData。
     auto* data = std::make_unique<SignalData>(&eventBus, eventType, isBefore, &ctx).release();
-    return ScriptObjectRegistry::wrap(
-        ctx, signalClassId, ctx.createClassProto(signalClassId), data, true, "EventSignal", [](void* p) {
-            delete static_cast<SignalData*>(p);
-        });
+    return ScriptObjectRegistry::wrap(ctx, signalClassId, signalProto, data, true, "EventSignal", [](void* p) {
+        delete static_cast<SignalData*>(p);
+    });
 }
 
 // ============================================================================
@@ -90,13 +94,12 @@ void registerEventBindings(
                 return ctx.throwTypeError("subscribe requires a function argument");
             }
 
-            auto* data = static_cast<SignalData*>(ctx.getOpaque(thisVal, 0));
+            auto* data = static_cast<SignalData*>(ScriptObjectRegistry::unwrap(ctx, thisVal, 0));
             if (!data || !data->eventBus) {
                 return ctx.throwInternalError("Invalid event signal");
             }
 
-            void* callback = args[0];
-            ctx.retainValue(callback);
+            ScriptCallbackHolder callback(ctx, args[0]);
             auto* bindingCtx = data->bindingCtx;
             auto* eventBus = data->eventBus;
             std::type_index eventType = data->eventType;
@@ -109,7 +112,7 @@ void registerEventBindings(
                         bindingCtx->setPropertyBool(eventObj, "cancel", false);
 
                         void* undef = bindingCtx->createUndefined();
-                        void* ret = bindingCtx->callFunction1(callback, undef, eventObj);
+                        void* ret = callback.call(eventObj);
 
                         if (bindingCtx->isException(ret)) {
                             void* exc = bindingCtx->getException();
@@ -118,11 +121,15 @@ void registerEventBindings(
                             bindingCtx->releaseValue(exc);
                         }
 
+                        const bool cancelled = bindingCtx->getPropertyBool(eventObj, "cancel").value_or(false);
                         bindingCtx->releaseValue(ret);
                         bindingCtx->releaseValue(undef);
                         bindingCtx->releaseValue(eventObj);
+                        return cancelled;
                     });
 
+                static_cast<void>(
+                    ctx.onDispose([eventBus, handle]() { eventBus->beforeEvents().unsubscribe(handle); }));
                 void* handleObj = bindingCtx->createObject();
                 bindingCtx->setPropertyInt(handleObj, "id", static_cast<i32>(handle.id));
                 return handleObj;
@@ -132,7 +139,7 @@ void registerEventBindings(
                         void* eventObj = bindingCtx->createObject();
 
                         void* undef = bindingCtx->createUndefined();
-                        void* ret = bindingCtx->callFunction1(callback, undef, eventObj);
+                        void* ret = callback.call(eventObj);
 
                         if (bindingCtx->isException(ret)) {
                             void* exc = bindingCtx->getException();
@@ -146,6 +153,7 @@ void registerEventBindings(
                         bindingCtx->releaseValue(eventObj);
                     });
 
+                static_cast<void>(ctx.onDispose([eventBus, handle]() { eventBus->afterEvents().unsubscribe(handle); }));
                 void* handleObj = bindingCtx->createObject();
                 bindingCtx->setPropertyInt(handleObj, "id", static_cast<i32>(handle.id));
                 return handleObj;
@@ -162,7 +170,7 @@ void registerEventBindings(
                 return ctx.throwTypeError("unsubscribe requires a handle object");
             }
 
-            auto* data = static_cast<SignalData*>(ctx.getOpaque(thisVal, 0));
+            auto* data = static_cast<SignalData*>(ScriptObjectRegistry::unwrap(ctx, thisVal, 0));
             if (!data || !data->eventBus) {
                 return ctx.createUndefined();
             }
@@ -190,7 +198,7 @@ void registerEventBindings(
     void* afterEventsObj = ctx.createObject();
 
     for (const auto& info : signals) {
-        void* signal = createSignalObject(ctx, signalClassId, eventBus, info.typeIdx, info.isBefore);
+        void* signal = createSignalObject(ctx, signalClassId, signalProto, eventBus, info.typeIdx, info.isBefore);
 
         if (info.isBefore) {
             ctx.setProperty(beforeEventsObj, info.name.c_str(), signal);

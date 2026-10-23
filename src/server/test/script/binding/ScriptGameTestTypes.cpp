@@ -18,6 +18,7 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
+ *
  */
 
 #include "server/test/script/binding/ScriptGameTestTypes.hpp"
@@ -67,7 +68,7 @@ void registerGameTestTypesClasses(
     // --- SculkSpreader 类（opaque 持 mc::blocks::SculkSpreader* owned）---
     u64 sculkClassId = ScriptObjectRegistry::allocateClassId(ctx);
     void* sculkProto = builder.exportClass(kSculkSpreaderClassName, sculkClassId);
-    ScriptClassRegistry::instance().registerClass(sculkClassId, sculkProto, kSculkSpreaderClassName);
+    ctx.classRegistry().registerClass(sculkClassId, sculkProto, kSculkSpreaderClassName);
 
     ClassRegistrar<void> sculkReg(ctx, sculkClassId, sculkProto);
     sculkReg.readonlyProperty(
@@ -162,7 +163,7 @@ void registerGameTestTypesClasses(
     {
         u64 fenceClassId = ScriptObjectRegistry::allocateClassId(ctx);
         void* fenceProto = builder.exportClass(kFenceConnectivityClassName, fenceClassId);
-        ScriptClassRegistry::instance().registerClass(fenceClassId, fenceProto, kFenceConnectivityClassName);
+        ctx.classRegistry().registerClass(fenceClassId, fenceProto, kFenceConnectivityClassName);
         // 无方法/属性：实例字段构造时设，原型仅作 instanceof 锚点。
     }
 
@@ -172,7 +173,7 @@ void registerGameTestTypesClasses(
     {
         u64 navClassId = ScriptObjectRegistry::allocateClassId(ctx);
         void* navProto = builder.exportClass(kNavigationResultClassName, navClassId);
-        ScriptClassRegistry::instance().registerClass(navClassId, navProto, kNavigationResultClassName);
+        ctx.classRegistry().registerClass(navClassId, navProto, kNavigationResultClassName);
         // 无方法/属性：实例字段构造时设，原型仅作 instanceof 锚点。
     }
 

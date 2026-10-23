@@ -1,135 +1,73 @@
-// Copyright (c) 2024 Cubium Project
-// SPDX-License-Identifier: MIT
+/*
+ * Copyright (c) 2026 Guo Yi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ */
 
 #pragma once
 
-#include "common/mod/bedrock/addon/binding/IScriptBindingContext.hpp"
-
-#include <utility>
+#include "common/mod/bedrock/addon/binding/ScriptValueHandle.hpp"
 
 namespace mc::mod::bedrock::addon {
 
-/**
- * @brief 引擎无关的脚本回调持有器
- *
- * 持有JS函数引用的生命周期管理包装。
- * 构造时retainValue，析构时releaseValue。
- * 替代QuickJS特定的JSCallbackHolder。
- *
- * 使用模式：
- *   void* funcHandle = ctx.getProperty(obj, "onTick");
- *   if (ctx.isFunction(funcHandle)) {
- *       ScriptCallbackHolder holder(ctx, funcHandle);
- *       // holder在生命周期内持有函数引用
- *       ctx.releaseValue(funcHandle); // 释放getProperty的引用
- *   }
- */
+/** @brief 管理回调的独立句柄及上下文失效，不持有调用方的临时句柄地址。 */
 class ScriptCallbackHolder {
 public:
     ScriptCallbackHolder() = default;
 
-    /**
-     * @brief 从函数句柄构造持有器
-     *
-     * 调用retainValue增加引用计数。
-     *
-     * @param ctx 绑定上下文
-     * @param func 函数句柄（必须是有效的函数值）
-     */
-    ScriptCallbackHolder(IScriptBindingContext& ctx, void* func)
-        : m_ctx(&ctx)
-    {
-        if (func && ctx.isFunction(func)) {
-            ctx.retainValue(func);
-            m_func = func;
-        }
-    }
+    /** @brief 复制一个已验证的函数值。 */
+    ScriptCallbackHolder(IScriptBindingContext& context, void* function)
+        : m_function(context, function)
+    {}
 
-    ~ScriptCallbackHolder()
+    /** @brief 调用带一个参数的回调，返回值由调用者释放。 */
+    [[nodiscard]] void* call(void* argument) const
     {
-        if (m_ctx && m_func) {
-            m_ctx->releaseValue(m_func);
-        }
-    }
-
-    // 不可复制
-    ScriptCallbackHolder(const ScriptCallbackHolder&) = delete;
-    ScriptCallbackHolder& operator=(const ScriptCallbackHolder&) = delete;
-
-    // 可移动
-    ScriptCallbackHolder(ScriptCallbackHolder&& other) noexcept
-        : m_ctx(other.m_ctx)
-        , m_func(other.m_func)
-    {
-        other.m_ctx = nullptr;
-        other.m_func = nullptr;
-    }
-
-    ScriptCallbackHolder& operator=(ScriptCallbackHolder&& other) noexcept
-    {
-        if (this != &other) {
-            if (m_ctx && m_func) {
-                m_ctx->releaseValue(m_func);
-            }
-            m_ctx = other.m_ctx;
-            m_func = other.m_func;
-            other.m_ctx = nullptr;
-            other.m_func = nullptr;
-        }
-        return *this;
-    }
-
-    /**
-     * @brief 调用回调，传入一个参数
-     *
-     * @param arg0 第一个参数句柄
-     * @return 返回值句柄（调用者拥有所有权），异常时返回异常句柄
-     */
-    [[nodiscard]] void* call(void* arg0)
-    {
-        if (!m_ctx || !m_func) {
-            return nullptr;
-        }
-        void* undef = m_ctx->createUndefined();
-        void* result = m_ctx->callFunction1(m_func, undef, arg0);
-        m_ctx->releaseValue(undef);
+        auto* bindings = context();
+        void* receiver = bindings->createUndefined();
+        void* result = bindings->callFunction1(func(), receiver, argument);
+        bindings->releaseValue(receiver);
         return result;
     }
 
-    /**
-     * @brief 调用回调，无参数
-     *
-     * @return 返回值句柄（调用者拥有所有权），异常时返回异常句柄
-     */
-    [[nodiscard]] void* call0()
+    /** @brief 调用无参数回调，返回值由调用者释放。 */
+    [[nodiscard]] void* call0() const
     {
-        if (!m_ctx || !m_func) {
-            return nullptr;
-        }
-        void* undef = m_ctx->createUndefined();
-        void* result = m_ctx->callFunction0(m_func, undef);
-        m_ctx->releaseValue(undef);
+        auto* bindings = context();
+        void* receiver = bindings->createUndefined();
+        void* result = bindings->callFunction0(func(), receiver);
+        bindings->releaseValue(receiver);
         return result;
     }
 
-    /**
-     * @brief 检查回调是否有效
-     */
-    [[nodiscard]] bool isValid() const { return m_ctx != nullptr && m_func != nullptr; }
+    /** @brief 回调及所属上下文是否仍然存活。 */
+    [[nodiscard]] bool isValid() const { return m_function.value() != nullptr; }
 
-    /**
-     * @brief 获取函数句柄（不转移所有权）
-     */
-    [[nodiscard]] void* func() const { return m_func; }
+    /** @brief 获取借用的函数值。 */
+    [[nodiscard]] void* func() const { return m_function.value(); }
 
-    /**
-     * @brief 获取绑定上下文
-     */
-    [[nodiscard]] IScriptBindingContext* context() const { return m_ctx; }
+    /** @brief 获取存活的上下文。 */
+    [[nodiscard]] IScriptBindingContext* context() const { return m_function.context(); }
 
 private:
-    IScriptBindingContext* m_ctx = nullptr;
-    void* m_func = nullptr;
+    ScriptValueHandle m_function;
 };
 
 } // namespace mc::mod::bedrock::addon

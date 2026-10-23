@@ -5,7 +5,7 @@
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permitted persons to whom the Software is
+ * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
  *
  * The above copyright notice and this permission notice shall be included in all
@@ -22,15 +22,8 @@
  */
 
 #include "common/mod/bedrock/addon/binding/ScriptClassRegistry.hpp"
-#include "common/mod/bedrock/addon/binding/ScriptHandleRegistry.hpp"
 
 namespace mc::mod::bedrock::addon {
-
-ScriptClassRegistry& ScriptClassRegistry::instance() noexcept
-{
-    static ScriptClassRegistry s_instance;
-    return s_instance;
-}
 
 void ScriptClassRegistry::registerClass(u64 classId, void* proto, std::string_view name) noexcept
 {
@@ -86,11 +79,6 @@ void ScriptClassRegistry::clear() noexcept
 {
     m_byId.clear();
     m_idByName.clear();
-
-    // 引擎重建（脚本上下文销毁）时，旧 JS 对象的 ObjectData 全部失效（其 proto/classId 已被清）。
-    // 同步清 ScriptHandleRegistry，避免持有指向已 delete ObjectData* 的悬垂条目（引擎重建后
-    // finalizer 可能尚未跑完，注册表残留 data* 后续被 invalidateAll 解引用即 UAF）。
-    ScriptHandleRegistry::instance().clear();
 }
 
 } // namespace mc::mod::bedrock::addon

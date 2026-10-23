@@ -22,6 +22,7 @@
  */
 
 #include "common/mod/bedrock/addon/modules/MinecraftModuleFactory.hpp"
+#include "common/mod/bedrock/addon/modules/system/ScriptSystemBinding.hpp"
 
 #include "common/core/Types.hpp"
 #include "common/entity/attribute/AttributeMap.hpp"
@@ -105,9 +106,9 @@ namespace {
 
 /// ItemStack JS 类 classId 缓存（首次 unwrap 时惰性查 ScriptClassRegistry，避免每调用查表）。
 /// 注：本 TU 跨多个回调共享，故用静态局部；引擎重建后 classId 变化，每次仍回查注册表校正。
-u64 resolveItemStackClassId()
+u64 resolveItemStackClassId(IScriptBindingContext& ctx)
 {
-    return ScriptClassRegistry::instance().classIdByName("ItemStack");
+    return ctx.classRegistry().classIdByName("ItemStack");
 }
 
 } // namespace
@@ -152,149 +153,7 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
     u64 systemClassId = ScriptObjectRegistry::allocateClassId(ctx);
     void* systemProto = builder.exportClass("System", systemClassId);
 
-    ClassRegistrar<void> systemReg(ctx, systemClassId, systemProto);
-
-    ScriptScheduler* scheduler = m_scheduler;
-
-    systemReg.method(
-        "run",
-        [scheduler](IScriptBindingContext& ctx, void* thisVal, i32 argc, void** args) -> void* {
-            if (argc < 1 || !ctx.isFunction(args[0])) {
-                return ctx.throwTypeError("system.run requires a function argument");
-            }
-            if (!scheduler) {
-                return ctx.throwInternalError("Script scheduler not available");
-            }
-
-            // 保留回调引用（持久化到调度执行时）
-            void* callback = args[0];
-            ctx.retainValue(callback);
-            auto* ctxPtr = &ctx;
-
-            auto runId = scheduler->run([ctxPtr, callback]() {
-                void* undef = ctxPtr->createUndefined();
-                void* result = ctxPtr->callFunction0(callback, undef);
-                if (ctxPtr->isException(result)) {
-                    void* exc = ctxPtr->getException();
-                    auto msg = ctxPtr->getExceptionMessage(exc);
-                    spdlog::warn("[BedrockAddon] system.run callback error: {}", msg);
-                    ctxPtr->releaseValue(exc);
-                }
-                ctxPtr->releaseValue(result);
-                ctxPtr->releaseValue(undef);
-                ctxPtr->releaseValue(callback);
-            });
-
-            return ctx.createInt32(static_cast<i32>(runId));
-        },
-        1);
-
-    systemReg.method(
-        "runInterval",
-        [scheduler](IScriptBindingContext& ctx, void* thisVal, i32 argc, void** args) -> void* {
-            if (argc < 1 || !ctx.isFunction(args[0])) {
-                return ctx.throwTypeError("system.runInterval requires a function argument");
-            }
-
-            u32 tickInterval = 1;
-            if (argc >= 2 && ctx.isNumber(args[1])) {
-                auto interval = ctx.toInt32(args[1]);
-                if (interval && *interval > 0) {
-                    tickInterval = static_cast<u32>(*interval);
-                }
-            }
-
-            if (!scheduler) {
-                return ctx.throwInternalError("Script scheduler not available");
-            }
-
-            void* callback = args[0];
-            ctx.retainValue(callback);
-            auto* ctxPtr = &ctx;
-
-            auto runId = scheduler->runInterval(
-                [ctxPtr, callback]() {
-                    void* undef = ctxPtr->createUndefined();
-                    void* result = ctxPtr->callFunction0(callback, undef);
-                    if (ctxPtr->isException(result)) {
-                        void* exc = ctxPtr->getException();
-                        auto msg = ctxPtr->getExceptionMessage(exc);
-                        spdlog::warn("[BedrockAddon] system.runInterval callback error: {}", msg);
-                        ctxPtr->releaseValue(exc);
-                    }
-                    ctxPtr->releaseValue(result);
-                    ctxPtr->releaseValue(undef);
-                },
-                tickInterval);
-
-            return ctx.createInt32(static_cast<i32>(runId));
-        },
-        2);
-
-    systemReg.method(
-        "runTimeout",
-        [scheduler](IScriptBindingContext& ctx, void* thisVal, i32 argc, void** args) -> void* {
-            if (argc < 1 || !ctx.isFunction(args[0])) {
-                return ctx.throwTypeError("system.runTimeout requires a function argument");
-            }
-
-            u32 tickDelay = 1;
-            if (argc >= 2 && ctx.isNumber(args[1])) {
-                auto delay = ctx.toInt32(args[1]);
-                if (delay && *delay > 0) {
-                    tickDelay = static_cast<u32>(*delay);
-                }
-            }
-
-            if (!scheduler) {
-                return ctx.throwInternalError("Script scheduler not available");
-            }
-
-            void* callback = args[0];
-            ctx.retainValue(callback);
-            auto* ctxPtr = &ctx;
-
-            auto runId = scheduler->runTimeout(
-                [ctxPtr, callback]() {
-                    void* undef = ctxPtr->createUndefined();
-                    void* result = ctxPtr->callFunction0(callback, undef);
-                    if (ctxPtr->isException(result)) {
-                        void* exc = ctxPtr->getException();
-                        auto msg = ctxPtr->getExceptionMessage(exc);
-                        spdlog::warn("[BedrockAddon] system.runTimeout callback error: {}", msg);
-                        ctxPtr->releaseValue(exc);
-                    }
-                    ctxPtr->releaseValue(result);
-                    ctxPtr->releaseValue(undef);
-                    ctxPtr->releaseValue(callback);
-                },
-                tickDelay);
-
-            return ctx.createInt32(static_cast<i32>(runId));
-        },
-        2);
-
-    systemReg.method(
-        "clearRun",
-        [scheduler](IScriptBindingContext& ctx, void* thisVal, i32 argc, void** args) -> void* {
-            if (argc < 1 || !ctx.isNumber(args[0])) {
-                return ctx.throwTypeError("system.clearRun requires a run ID argument");
-            }
-            if (!scheduler) {
-                return ctx.createUndefined();
-            }
-            auto runId = ctx.toInt32(args[0]);
-            if (!runId) {
-                return ctx.createUndefined();
-            }
-            scheduler->clearRun(static_cast<ScriptScheduler::RunId>(*runId));
-            return ctx.createUndefined();
-        },
-        1);
-
-    systemReg.readonlyProperty("currentTick", [](IScriptBindingContext& ctx, void* thisVal) -> void* {
-        return ctx.createInt64(static_cast<i64>(ScriptWorldAccessor::instance().currentTick()));
-    });
+    registerSystemBindings(ctx, systemProto, m_scheduler);
 
     // --- World类 ---
     u64 worldClassId = ScriptObjectRegistry::allocateClassId(ctx);
@@ -319,8 +178,8 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
         if (world == nullptr) {
             return ctx.createUndefined(); // 维度不存在或回调未注册
         }
-        const u64 dimClassId = ScriptClassRegistry::instance().classIdByName("Dimension");
-        void* dimProto = ScriptClassRegistry::instance().proto(dimClassId);
+        const u64 dimClassId = ctx.classRegistry().classIdByName("Dimension");
+        void* dimProto = ctx.classRegistry().proto(dimClassId);
         if (dimProto == nullptr) {
             return ctx.createUndefined(); // Dimension 类未注册（模块未加载）
         }
@@ -356,8 +215,8 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
         if (scoreboard == nullptr) {
             return ctx.createUndefined(); // 回调未注册（非服务器环境）
         }
-        const u64 sbClassId = ScriptClassRegistry::instance().classIdByName("Scoreboard");
-        void* sbProto = ScriptClassRegistry::instance().proto(sbClassId);
+        const u64 sbClassId = ctx.classRegistry().classIdByName("Scoreboard");
+        void* sbProto = ctx.classRegistry().proto(sbClassId);
         if (sbProto == nullptr) {
             return ctx.createUndefined(); // Scoreboard 类未注册
         }
@@ -370,8 +229,8 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
     // 供 /bossbar 命令测试经 world.bossbar.get(id).value/color/... 读取属性做断言。
     worldReg.readonlyProperty("bossbar", [](IScriptBindingContext& ctx, void* thisVal) -> void* {
         MC_UNUSED(thisVal);
-        const u64 mgrClassId = ScriptClassRegistry::instance().classIdByName("BossBarManager");
-        void* mgrProto = ScriptClassRegistry::instance().proto(mgrClassId);
+        const u64 mgrClassId = ctx.classRegistry().classIdByName("BossBarManager");
+        void* mgrProto = ctx.classRegistry().proto(mgrClassId);
         if (mgrProto == nullptr) {
             return ctx.createUndefined(); // BossBarManager 类未注册
         }
@@ -415,8 +274,8 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
         if (world == nullptr) {
             return ctx.createUndefined(); // 维度不存在或回调未注册
         }
-        const u64 borderClassId = ScriptClassRegistry::instance().classIdByName("WorldBorder");
-        void* borderProto = ScriptClassRegistry::instance().proto(borderClassId);
+        const u64 borderClassId = ctx.classRegistry().classIdByName("WorldBorder");
+        void* borderProto = ctx.classRegistry().proto(borderClassId);
         if (borderProto == nullptr) {
             return ctx.createUndefined(); // WorldBorder 类未注册（模块未加载）
         }
@@ -431,7 +290,7 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
     // （assert.ts 取 from 角点为 location、to-from 为 volume），基岩 BDS 实测同此语义。
     u64 dimensionClassId = ScriptObjectRegistry::allocateClassId(ctx);
     void* dimensionProto = builder.exportClass("Dimension", dimensionClassId);
-    ScriptClassRegistry::instance().registerClass(dimensionClassId, dimensionProto, "Dimension");
+    ctx.classRegistry().registerClass(dimensionClassId, dimensionProto, "Dimension");
 
     ClassRegistrar<void> dimensionReg(ctx, dimensionClassId, dimensionProto);
     dimensionReg.readonlyProperty("id", [dimensionClassId](IScriptBindingContext& ctx, void* thisVal) -> void* {
@@ -526,8 +385,8 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
                     auto entities = world->getEntitiesInAABB(box, nullptr);
                     void* arr = ctx.createArray();
                     u32 outIdx = 0;
-                    const u64 entClassId = ScriptClassRegistry::instance().classIdByName("Entity");
-                    void* entProto = ScriptClassRegistry::instance().proto(entClassId);
+                    const u64 entClassId = ctx.classRegistry().classIdByName("Entity");
+                    void* entProto = ctx.classRegistry().proto(entClassId);
                     for (auto* ent : entities) {
                         if (ent == nullptr) {
                             continue;
@@ -554,8 +413,8 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
                 auto entities = world->getEntitiesByType(normalizedType);
                 void* arr = ctx.createArray();
                 u32 outIdx = 0;
-                const u64 entClassId = ScriptClassRegistry::instance().classIdByName("Entity");
-                void* entProto = ScriptClassRegistry::instance().proto(entClassId);
+                const u64 entClassId = ctx.classRegistry().classIdByName("Entity");
+                void* entProto = ctx.classRegistry().proto(entClassId);
                 for (auto* ent : entities) {
                     if (ent == nullptr || entProto == nullptr) {
                         continue;
@@ -707,7 +566,7 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
     // 供 /worldborder set/center/damage/warning 命令测试读取边界状态做断言。
     u64 worldBorderClassId = ScriptObjectRegistry::allocateClassId(ctx);
     void* worldBorderProto = builder.exportClass("WorldBorder", worldBorderClassId);
-    ScriptClassRegistry::instance().registerClass(worldBorderClassId, worldBorderProto, "WorldBorder");
+    ctx.classRegistry().registerClass(worldBorderClassId, worldBorderProto, "WorldBorder");
 
     ClassRegistrar<void> worldBorderReg(ctx, worldBorderClassId, worldBorderProto);
     // size：当前边界直径（getSize，渐变中为实时插值值）。/worldborder set/add 修改。
@@ -777,7 +636,7 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
     // 见 [[scoreboard-script-binding-and-command-tests]]），故 getScore/getParticipants 用字符串名索引。
     u64 scoreboardClassId = ScriptObjectRegistry::allocateClassId(ctx);
     void* scoreboardProto = builder.exportClass("Scoreboard", scoreboardClassId);
-    ScriptClassRegistry::instance().registerClass(scoreboardClassId, scoreboardProto, "Scoreboard");
+    ctx.classRegistry().registerClass(scoreboardClassId, scoreboardProto, "Scoreboard");
 
     ClassRegistrar<void> scoreboardReg(ctx, scoreboardClassId, scoreboardProto);
     scoreboardReg.method(
@@ -799,8 +658,8 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
             if (objective == nullptr) {
                 return ctx.createUndefined(); // 目标不存在
             }
-            const u64 objClassId = ScriptClassRegistry::instance().classIdByName("Objective");
-            void* objProto = ScriptClassRegistry::instance().proto(objClassId);
+            const u64 objClassId = ctx.classRegistry().classIdByName("Objective");
+            void* objProto = ctx.classRegistry().proto(objClassId);
             if (objProto == nullptr) {
                 return ctx.createUndefined(); // Objective 类未注册
             }
@@ -815,8 +674,8 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
             if (scoreboard == nullptr) {
                 return ctx.createArray();
             }
-            const u64 objClassId = ScriptClassRegistry::instance().classIdByName("Objective");
-            void* objProto = ScriptClassRegistry::instance().proto(objClassId);
+            const u64 objClassId = ctx.classRegistry().classIdByName("Objective");
+            void* objProto = ctx.classRegistry().proto(objClassId);
             void* arr = ctx.createArray();
             if (objProto == nullptr) {
                 return arr; // Objective 类未注册，返回空数组
@@ -851,8 +710,8 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
             if (team == nullptr) {
                 return ctx.createUndefined(); // 队伍不存在
             }
-            const u64 teamClassId = ScriptClassRegistry::instance().classIdByName("Team");
-            void* teamProto = ScriptClassRegistry::instance().proto(teamClassId);
+            const u64 teamClassId = ctx.classRegistry().classIdByName("Team");
+            void* teamProto = ctx.classRegistry().proto(teamClassId);
             if (teamProto == nullptr) {
                 return ctx.createUndefined(); // Team 类未注册
             }
@@ -869,8 +728,8 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
             if (scoreboard == nullptr) {
                 return ctx.createArray();
             }
-            const u64 teamClassId = ScriptClassRegistry::instance().classIdByName("Team");
-            void* teamProto = ScriptClassRegistry::instance().proto(teamClassId);
+            const u64 teamClassId = ctx.classRegistry().classIdByName("Team");
+            void* teamProto = ctx.classRegistry().proto(teamClassId);
             void* arr = ctx.createArray();
             if (teamProto == nullptr) {
                 return arr; // Team 类未注册，返回空数组
@@ -892,7 +751,7 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
     // 当该 holder 无分数（对齐基岩 Objective.getScore 返回 number|undefined）。
     u64 objectiveClassId = ScriptObjectRegistry::allocateClassId(ctx);
     void* objectiveProto = builder.exportClass("Objective", objectiveClassId);
-    ScriptClassRegistry::instance().registerClass(objectiveClassId, objectiveProto, "Objective");
+    ctx.classRegistry().registerClass(objectiveClassId, objectiveProto, "Objective");
 
     ClassRegistrar<void> objectiveReg(ctx, objectiveClassId, objectiveProto);
     objectiveReg.readonlyProperty("id", [objectiveClassId](IScriptBindingContext& ctx, void* thisVal) -> void* {
@@ -966,7 +825,7 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
     // EntityArgumentType 选择器解析为玩家名后加入，与 ScoreboardCommand target 裸 string 不同，@s 生效）。
     u64 teamClassId = ScriptObjectRegistry::allocateClassId(ctx);
     void* teamProto = builder.exportClass("Team", teamClassId);
-    ScriptClassRegistry::instance().registerClass(teamClassId, teamProto, "Team");
+    ctx.classRegistry().registerClass(teamClassId, teamProto, "Team");
 
     ClassRegistrar<void> teamReg(ctx, teamClassId, teamProto);
     teamReg.readonlyProperty("id", [teamClassId](IScriptBindingContext& ctx, void* thisVal) -> void* {
@@ -1082,7 +941,7 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
     // 值桥接）。world.bossbar 属性返回本类单例对象。
     u64 bossBarMgrClassId = ScriptObjectRegistry::allocateClassId(ctx);
     void* bossBarMgrProto = builder.exportClass("BossBarManager", bossBarMgrClassId);
-    ScriptClassRegistry::instance().registerClass(bossBarMgrClassId, bossBarMgrProto, "BossBarManager");
+    ctx.classRegistry().registerClass(bossBarMgrClassId, bossBarMgrProto, "BossBarManager");
 
     ClassRegistrar<void> bossBarMgrReg(ctx, bossBarMgrClassId, bossBarMgrProto);
     bossBarMgrReg.method(
@@ -1102,8 +961,8 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
             if (!view.exists) {
                 return ctx.createUndefined();
             }
-            const u64 barClassId = ScriptClassRegistry::instance().classIdByName("BossBar");
-            void* barProto = ScriptClassRegistry::instance().proto(barClassId);
+            const u64 barClassId = ctx.classRegistry().classIdByName("BossBar");
+            void* barProto = ctx.classRegistry().proto(barClassId);
             if (barProto == nullptr) {
                 return ctx.createUndefined(); // BossBar 类未注册
             }
@@ -1118,8 +977,8 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
         "getAll",
         [](IScriptBindingContext& ctx, void* /*thisVal*/, i32 /*argc*/, void** /*args*/) -> void* {
             // 返回所有 BossBar 的 JS 对象数组（按 id 列表逐个 wrap）。
-            const u64 barClassId = ScriptClassRegistry::instance().classIdByName("BossBar");
-            void* barProto = ScriptClassRegistry::instance().proto(barClassId);
+            const u64 barClassId = ctx.classRegistry().classIdByName("BossBar");
+            void* barProto = ctx.classRegistry().proto(barClassId);
             void* arr = ctx.createArray();
             if (barProto == nullptr) {
                 return arr; // BossBar 类未注册，返回空数组
@@ -1145,7 +1004,7 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
     // 快照 exists=false，属性返 undefined（对齐已删除语义）。
     u64 bossBarClassId = ScriptObjectRegistry::allocateClassId(ctx);
     void* bossBarProto = builder.exportClass("BossBar", bossBarClassId);
-    ScriptClassRegistry::instance().registerClass(bossBarClassId, bossBarProto, "BossBar");
+    ctx.classRegistry().registerClass(bossBarClassId, bossBarProto, "BossBar");
 
     ClassRegistrar<void> bossBarReg(ctx, bossBarClassId, bossBarProto);
     bossBarReg.readonlyProperty("id", [bossBarClassId](IScriptBindingContext& ctx, void* thisVal) -> void* {
@@ -1252,7 +1111,7 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
     // 取本 classId/proto wrap 真实指针。getComponent 派发 rideable/health/movement/equippable/onfire 组件。
     u64 entityClassId = ScriptObjectRegistry::allocateClassId(ctx);
     void* entityProto = builder.exportClass("Entity", entityClassId);
-    ScriptClassRegistry::instance().registerClass(entityClassId, entityProto, "Entity");
+    ctx.classRegistry().registerClass(entityClassId, entityProto, "Entity");
 
     ClassRegistrar<void> entityReg(ctx, entityClassId, entityProto);
     entityReg.readonlyProperty("id", [entityClassId](IScriptBindingContext& ctx, void* thisVal) -> void* {
@@ -1279,8 +1138,8 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
             if (world == nullptr) {
                 return ctx.createUndefined();
             }
-            const u64 dimClassId = ScriptClassRegistry::instance().classIdByName("Dimension");
-            void* dimProto = ScriptClassRegistry::instance().proto(dimClassId);
+            const u64 dimClassId = ctx.classRegistry().classIdByName("Dimension");
+            void* dimProto = ctx.classRegistry().proto(dimClassId);
             if (dimProto == nullptr) {
                 return ctx.createUndefined();
             }
@@ -1445,8 +1304,8 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
             // 传 ent->id() 登记 ScriptHandleRegistry：组件对象与 Entity 对象 opaque 持同一 ent，
             // 登记同一 entityId，实体销毁时 invalidateAll 一次清空 Entity + 所有组件句柄防 UAF。
             auto wrapComponent = [&ctx, ent](const char* className) -> void* {
-                const u64 classId = ScriptClassRegistry::instance().classIdByName(className);
-                void* proto = ScriptClassRegistry::instance().proto(classId);
+                const u64 classId = ctx.classRegistry().classIdByName(className);
+                void* proto = ctx.classRegistry().proto(classId);
                 if (proto == nullptr) {
                     return ctx.createUndefined();
                 }
@@ -1636,7 +1495,7 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
     // 未满足会断言失败；startRiding 是公共入口，内部设 m_vehicle 后再调 addPassenger。
     u64 rideableClassId = ScriptObjectRegistry::allocateClassId(ctx);
     void* rideableProto = builder.exportClass("RideableComponent", rideableClassId);
-    ScriptClassRegistry::instance().registerClass(rideableClassId, rideableProto, "RideableComponent");
+    ctx.classRegistry().registerClass(rideableClassId, rideableProto, "RideableComponent");
 
     ClassRegistrar<void> rideableReg(ctx, rideableClassId, rideableProto);
     rideableReg.method(
@@ -1649,7 +1508,7 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
             if (argc < 1) {
                 return ctx.throwTypeError("addRider(passengerEntity)");
             }
-            const u64 entClassId = ScriptClassRegistry::instance().classIdByName("Entity");
+            const u64 entClassId = ctx.classRegistry().classIdByName("Entity");
             auto* passenger = static_cast<mc::Entity*>(ScriptObjectRegistry::unwrap(ctx, args[0], entClassId));
             if (passenger == nullptr) {
                 return ctx.throwTypeError("addRider: argument must be an Entity");
@@ -1666,7 +1525,7 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
     // 对齐基岩 EntityOnFireComponent：仅 readonly onFireTicksRemaining（设火走 Entity.setOnFire，不在此暴露）。
     u64 onFireClassId = ScriptObjectRegistry::allocateClassId(ctx);
     void* onFireProto = builder.exportClass("OnFireComponent", onFireClassId);
-    ScriptClassRegistry::instance().registerClass(onFireClassId, onFireProto, "OnFireComponent");
+    ctx.classRegistry().registerClass(onFireClassId, onFireProto, "OnFireComponent");
 
     ClassRegistrar<void> onFireReg(ctx, onFireClassId, onFireProto);
     onFireReg.readonlyProperty(
@@ -1684,7 +1543,7 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
     // 此处仅作为存在性标记返回，不暴露额外属性。
     u64 isChargedClassId = ScriptObjectRegistry::allocateClassId(ctx);
     void* isChargedProto = builder.exportClass("IsChargedComponent", isChargedClassId);
-    ScriptClassRegistry::instance().registerClass(isChargedClassId, isChargedProto, "IsChargedComponent");
+    ctx.classRegistry().registerClass(isChargedClassId, isChargedProto, "IsChargedComponent");
     // 无 property/method：组件对象存在即 charged（与基岩 EntityIsChargedComponent 一致）。
 
     // --- MarkVariantComponent类（minecraft:mark_variant，承载哞菇红/棕变种）---
@@ -1693,7 +1552,7 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
     // 供集成测试断言闪电劈中后红↔棕翻转（MooshroomEntity::onStruckByLightning）。
     u64 markVariantClassId = ScriptObjectRegistry::allocateClassId(ctx);
     void* markVariantProto = builder.exportClass("MarkVariantComponent", markVariantClassId);
-    ScriptClassRegistry::instance().registerClass(markVariantClassId, markVariantProto, "MarkVariantComponent");
+    ctx.classRegistry().registerClass(markVariantClassId, markVariantProto, "MarkVariantComponent");
 
     ClassRegistrar<void> markVariantReg(ctx, markVariantClassId, markVariantProto);
     markVariantReg.readonlyProperty("value", [markVariantClassId](IScriptBindingContext& ctx, void* thisVal) -> void* {
@@ -1712,8 +1571,7 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
     // 供集成测试断言发光鱿鱼受击后暗化链路（GlowSquidEntity::hurt→setDarkTicks）。
     u64 glowSquidDarkClassId = ScriptObjectRegistry::allocateClassId(ctx);
     void* glowSquidDarkProto = builder.exportClass("GlowSquidDarkTicksComponent", glowSquidDarkClassId);
-    ScriptClassRegistry::instance().registerClass(
-        glowSquidDarkClassId, glowSquidDarkProto, "GlowSquidDarkTicksComponent");
+    ctx.classRegistry().registerClass(glowSquidDarkClassId, glowSquidDarkProto, "GlowSquidDarkTicksComponent");
 
     ClassRegistrar<void> glowSquidDarkReg(ctx, glowSquidDarkClassId, glowSquidDarkProto);
     glowSquidDarkReg.readonlyProperty(
@@ -1732,8 +1590,7 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
     // 供集成测试断言 PuffGoal 触发膨胀链路（玩家/敌对生物接近 2 格→startPuffTimer→tick 状态机升级）。
     u64 pufferfishPuffClassId = ScriptObjectRegistry::allocateClassId(ctx);
     void* pufferfishPuffProto = builder.exportClass("PufferfishPuffStateComponent", pufferfishPuffClassId);
-    ScriptClassRegistry::instance().registerClass(
-        pufferfishPuffClassId, pufferfishPuffProto, "PufferfishPuffStateComponent");
+    ctx.classRegistry().registerClass(pufferfishPuffClassId, pufferfishPuffProto, "PufferfishPuffStateComponent");
 
     ClassRegistrar<void> pufferfishPuffReg(ctx, pufferfishPuffClassId, pufferfishPuffProto);
     pufferfishPuffReg.readonlyProperty(
@@ -1754,7 +1611,7 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
     // 组件（value true/false），以便测试断言驯服前后状态变化。
     u64 isTamedClassId = ScriptObjectRegistry::allocateClassId(ctx);
     void* isTamedProto = builder.exportClass("IsTamedComponent", isTamedClassId);
-    ScriptClassRegistry::instance().registerClass(isTamedClassId, isTamedProto, "IsTamedComponent");
+    ctx.classRegistry().registerClass(isTamedClassId, isTamedProto, "IsTamedComponent");
 
     ClassRegistrar<void> isTamedReg(ctx, isTamedClassId, isTamedProto);
     isTamedReg.readonlyProperty("value", [isTamedClassId](IScriptBindingContext& ctx, void* thisVal) -> void* {
@@ -1780,7 +1637,7 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
     // 都返组件（value true/false），以便测试断言坐下前后状态变化。
     u64 isSittingClassId = ScriptObjectRegistry::allocateClassId(ctx);
     void* isSittingProto = builder.exportClass("IsSittingComponent", isSittingClassId);
-    ScriptClassRegistry::instance().registerClass(isSittingClassId, isSittingProto, "IsSittingComponent");
+    ctx.classRegistry().registerClass(isSittingClassId, isSittingProto, "IsSittingComponent");
 
     ClassRegistrar<void> isSittingReg(ctx, isSittingClassId, isSittingProto);
     isSittingReg.readonlyProperty("value", [isSittingClassId](IScriptBindingContext& ctx, void* thisVal) -> void* {
@@ -1799,7 +1656,7 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
     // 供集成测试断言装鞍链路（SaddleItem::itemInteractionForEntity→setSaddle(true)）。
     u64 isSaddledClassId = ScriptObjectRegistry::allocateClassId(ctx);
     void* isSaddledProto = builder.exportClass("IsSaddledComponent", isSaddledClassId);
-    ScriptClassRegistry::instance().registerClass(isSaddledClassId, isSaddledProto, "IsSaddledComponent");
+    ctx.classRegistry().registerClass(isSaddledClassId, isSaddledProto, "IsSaddledComponent");
     // 无 property/method：组件对象存在即 saddled（与基岩 EntityIsSaddledComponent 一致）。
 
     // --- IsChestedComponent类（minecraft:is_chested，承载箱子装备状态）---
@@ -1809,7 +1666,7 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
     // 供集成测试断言驴/骡装箱链路（AbstractChestedHorseEntity::equipChest→setChest(true)）。
     u64 isChestedClassId = ScriptObjectRegistry::allocateClassId(ctx);
     void* isChestedProto = builder.exportClass("IsChestedComponent", isChestedClassId);
-    ScriptClassRegistry::instance().registerClass(isChestedClassId, isChestedProto, "IsChestedComponent");
+    ctx.classRegistry().registerClass(isChestedClassId, isChestedProto, "IsChestedComponent");
     // 无 property/method：组件对象存在即 chested（与基岩 EntityIsChestedComponent 一致）。
 
     // --- ColorComponent类（minecraft:color，承载实体颜色）---
@@ -1819,7 +1676,7 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
     // 染料染色等链路。羊驼/潜影贝颜色枚举不统一留 TODO。
     u64 colorClassId = ScriptObjectRegistry::allocateClassId(ctx);
     void* colorProto = builder.exportClass("ColorComponent", colorClassId);
-    ScriptClassRegistry::instance().registerClass(colorClassId, colorProto, "ColorComponent");
+    ctx.classRegistry().registerClass(colorClassId, colorProto, "ColorComponent");
 
     ClassRegistrar<void> colorReg(ctx, colorClassId, colorProto);
     colorReg.readonlyProperty("value", [colorClassId](IScriptBindingContext& ctx, void* thisVal) -> void* {
@@ -1872,7 +1729,7 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
     // 用于 GameTest 检测实体状态效果（如幻术师镜像隐身、失明法术）。
     entityReg.method(
         "getEffect",
-        [entityClassId, &buildEffectObject, &parseEffectType](
+        [entityClassId, buildEffectObject, parseEffectType](
             IScriptBindingContext& ctx, void* thisVal, i32 argc, void** args) -> void* {
             auto* ent = static_cast<mc::Entity*>(ScriptObjectRegistry::unwrap(ctx, thisVal, entityClassId));
             auto* living = dynamic_cast<mc::LivingEntity*>(ent);
@@ -1898,7 +1755,7 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
     // TODO: 官方还支持 effectType 传 EffectType 对象（.id），Cubium 暂仅支持字符串（同 parseEffectType 限制）。
     entityReg.method(
         "addEffect",
-        [entityClassId, &parseEffectType](IScriptBindingContext& ctx, void* thisVal, i32 argc, void** args) -> void* {
+        [entityClassId, parseEffectType](IScriptBindingContext& ctx, void* thisVal, i32 argc, void** args) -> void* {
             auto* ent = static_cast<mc::Entity*>(ScriptObjectRegistry::unwrap(ctx, thisVal, entityClassId));
             auto* living = dynamic_cast<mc::LivingEntity*>(ent);
             if (living == nullptr || argc < 2) {
@@ -1979,7 +1836,7 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
                 void* dimVal = ctx.getProperty(opts, "dimension");
                 if (dimVal != nullptr && ctx.isObject(dimVal)) {
                     // Dimension JS 对象 opaque 持 IWorld*，unwrap 后读 IWorld::dimension()
-                    const u64 dimClassId = ScriptClassRegistry::instance().classIdByName("Dimension");
+                    const u64 dimClassId = ctx.classRegistry().classIdByName("Dimension");
                     auto* dimWorld = static_cast<mc::IWorld*>(ScriptObjectRegistry::unwrap(ctx, dimVal, dimClassId));
                     if (dimWorld != nullptr) {
                         targetDim = dimWorld->dimension();
@@ -2035,7 +1892,7 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
                 void* opts = args[1];
                 void* dimVal = ctx.getProperty(opts, "dimension");
                 if (dimVal != nullptr && ctx.isObject(dimVal)) {
-                    const u64 dimClassId = ScriptClassRegistry::instance().classIdByName("Dimension");
+                    const u64 dimClassId = ctx.classRegistry().classIdByName("Dimension");
                     auto* dimWorld = static_cast<mc::IWorld*>(ScriptObjectRegistry::unwrap(ctx, dimVal, dimClassId));
                     if (dimWorld != nullptr) {
                         targetDim = dimWorld->dimension();
@@ -2066,7 +1923,7 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
     // Entity.getEffects()：对齐基岩 Entity.getEffects，返回 Effect[]（实体当前所有效果）。
     entityReg.method(
         "getEffects",
-        [entityClassId, &buildEffectObject](
+        [entityClassId, buildEffectObject](
             IScriptBindingContext& ctx, void* thisVal, i32 /*argc*/, void** /*args*/) -> void* {
             auto* ent = static_cast<mc::Entity*>(ScriptObjectRegistry::unwrap(ctx, thisVal, entityClassId));
             auto* living = dynamic_cast<mc::LivingEntity*>(ent);
@@ -2155,7 +2012,7 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
     // 走 setHealth（带 DataParameter 同步副作用）。effectiveMin/defaultValue 保守硬编码留 TODO。
     u64 healthClassId = ScriptObjectRegistry::allocateClassId(ctx);
     void* healthProto = builder.exportClass("HealthComponent", healthClassId);
-    ScriptClassRegistry::instance().registerClass(healthClassId, healthProto, "HealthComponent");
+    ctx.classRegistry().registerClass(healthClassId, healthProto, "HealthComponent");
 
     ClassRegistrar<void> healthReg(ctx, healthClassId, healthProto);
     healthReg.readonlyProperty("currentValue", [healthClassId](IScriptBindingContext& ctx, void* thisVal) -> void* {
@@ -2237,7 +2094,7 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
     // AttributeInstance::attribute().maxValue()/minValue()/defaultValue()，属性实例缺失时 fallback。
     u64 movementClassId = ScriptObjectRegistry::allocateClassId(ctx);
     void* movementProto = builder.exportClass("MovementComponent", movementClassId);
-    ScriptClassRegistry::instance().registerClass(movementClassId, movementProto, "MovementComponent");
+    ctx.classRegistry().registerClass(movementClassId, movementProto, "MovementComponent");
 
     ClassRegistrar<void> movementReg(ctx, movementClassId, movementProto);
     movementReg.readonlyProperty("currentValue", [movementClassId](IScriptBindingContext& ctx, void* thisVal) -> void* {
@@ -2340,7 +2197,7 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
     // setEquipment 支持清空（undefined/null → EMPTY）与写入 ItemStack（unwrap 入参后拷贝写入装备数组）。
     u64 equippableClassId = ScriptObjectRegistry::allocateClassId(ctx);
     void* equippableProto = builder.exportClass("EquippableComponent", equippableClassId);
-    ScriptClassRegistry::instance().registerClass(equippableClassId, equippableProto, "EquippableComponent");
+    ctx.classRegistry().registerClass(equippableClassId, equippableProto, "EquippableComponent");
 
     ClassRegistrar<void> equippableReg(ctx, equippableClassId, equippableProto);
     equippableReg.readonlyProperty("totalArmor", [](IScriptBindingContext& ctx, void* thisVal) -> void* {
@@ -2388,8 +2245,8 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
                 return ctx.createUndefined();
             }
             // owned 拷贝：JS GC 时 delete，规避 setEquipment 改写装备数组致 owned=false 引用悬垂。
-            const u64 itemStackClassId = ScriptClassRegistry::instance().classIdByName("ItemStack");
-            void* itemStackProto = ScriptClassRegistry::instance().proto(itemStackClassId);
+            const u64 itemStackClassId = ctx.classRegistry().classIdByName("ItemStack");
+            void* itemStackProto = ctx.classRegistry().proto(itemStackClassId);
             if (itemStackProto == nullptr) {
                 return ctx.createUndefined();
             }
@@ -2439,7 +2296,7 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
             }
             // ItemStack 入参：按 classId unwrap（非拥有，仅拷贝写入装备数组）。复用 Container.setItem
             // 的 unwrap 范式（resolveItemStackClassId + ScriptObjectRegistry::unwrap）。
-            const u64 isClassId = resolveItemStackClassId();
+            const u64 isClassId = resolveItemStackClassId(ctx);
             auto* stack = static_cast<mc::ItemStack*>(ScriptObjectRegistry::unwrap(ctx, itemArg, isClassId));
             if (stack == nullptr) {
                 return ctx.throwTypeError(
@@ -2501,7 +2358,7 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
     // Player JS 对象的 opaque class_id 是 playerClassId 而非 Entity classId，故 ScriptObjectRegistry::unwrap
     // 传 Entity classId 严格匹配会返 nullptr。test.kill 等绑定需枚举 Entity/Player/SimulatedPlayer 多 classId
     // 依次 unwrap，此处登记使 classIdByName("Player") 可查。
-    ScriptClassRegistry::instance().registerClass(playerClassId, playerProto, "Player");
+    ctx.classRegistry().registerClass(playerClassId, playerProto, "Player");
 
     ClassRegistrar<void> playerReg(ctx, playerClassId, playerProto);
     playerReg.readonlyProperty("name", [](IScriptBindingContext& ctx, void* thisVal) -> void* {
@@ -2545,7 +2402,7 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
     // 登记进 ScriptClassRegistry 供 setBlockPermutation 等 unwrap 入参路径跨回调取 classId。
     u64 blockPermutationClassId = ScriptObjectRegistry::allocateClassId(ctx);
     void* blockPermutationProto = builder.exportClass("BlockPermutation", blockPermutationClassId);
-    ScriptClassRegistry::instance().registerClass(blockPermutationClassId, blockPermutationProto, "BlockPermutation");
+    ctx.classRegistry().registerClass(blockPermutationClassId, blockPermutationProto, "BlockPermutation");
 
     ClassRegistrar<void> blockPermutationReg(ctx, blockPermutationClassId, blockPermutationProto);
     // type/isValid/resolve 的 unwrap/wrap classId 均运行时回查 classIdByName（不捕获注册期 blockPermutationClassId），
@@ -2555,7 +2412,7 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
     blockPermutationReg.readonlyProperty("type", [](IScriptBindingContext& ctx, void* thisVal) -> void* {
         // 官方 BlockPermutation.type 返回 BlockType（方块类型对象，含 id）。
         // 项目无独立 BlockType 类，复用 ItemType 同构：返回 typeId 字符串。TODO: 完整 BlockType 类。
-        const u64 classId = ScriptClassRegistry::instance().classIdByName("BlockPermutation");
+        const u64 classId = ctx.classRegistry().classIdByName("BlockPermutation");
         auto* state = static_cast<const mc::BlockState*>(ScriptObjectRegistry::unwrap(ctx, thisVal, classId));
         if (state == nullptr) {
             return ctx.createUndefined();
@@ -2564,7 +2421,7 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
     });
     blockPermutationReg.readonlyProperty("isValid", [](IScriptBindingContext& ctx, void* thisVal) -> void* {
         // 官方 isValid 表示此 permutation 是否为有效状态（非 air 占位即视为有效）。
-        const u64 classId = ScriptClassRegistry::instance().classIdByName("BlockPermutation");
+        const u64 classId = ctx.classRegistry().classIdByName("BlockPermutation");
         auto* state = static_cast<const mc::BlockState*>(ScriptObjectRegistry::unwrap(ctx, thisVal, classId));
         return ctx.createBoolean(state != nullptr);
     });
@@ -2581,7 +2438,7 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
             if (argc < 1) {
                 return ctx.throwTypeError("BlockPermutation.getState(propertyName: string)");
             }
-            const u64 classId = ScriptClassRegistry::instance().classIdByName("BlockPermutation");
+            const u64 classId = ctx.classRegistry().classIdByName("BlockPermutation");
             auto* state = static_cast<const mc::BlockState*>(ScriptObjectRegistry::unwrap(ctx, thisVal, classId));
             if (state == nullptr) {
                 return ctx.createUndefined();
@@ -2718,7 +2575,7 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
             // nullptr → "first arg must be a BlockPermutation"。对齐 resolveItemStackClassId 的既定模式
             // （"引擎重建后 classId 变化，每次仍回查注册表校正"）。proto 仍用注册期捕获值（不影响 unwrap，
             // unwrap 只看对象 class_id 与 opaque；proto 仅决定方法/属性查找，旧 proto 跨重建仍存活）。
-            const u64 resolveClassId = ScriptClassRegistry::instance().classIdByName("BlockPermutation");
+            const u64 resolveClassId = ctx.classRegistry().classIdByName("BlockPermutation");
             return ScriptObjectRegistry::wrap(ctx,
                 resolveClassId,
                 blockPermutationProto,
@@ -2733,7 +2590,7 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
     // 官方 ItemType：id（资源位置）。Item::toString 返回 itemLocation().toString()，形如 "minecraft:diamond"。
     u64 itemTypeClassId = ScriptObjectRegistry::allocateClassId(ctx);
     void* itemTypeProto = builder.exportClass("ItemType", itemTypeClassId);
-    ScriptClassRegistry::instance().registerClass(itemTypeClassId, itemTypeProto, "ItemType");
+    ctx.classRegistry().registerClass(itemTypeClassId, itemTypeProto, "ItemType");
 
     ClassRegistrar<void> itemTypeReg(ctx, itemTypeClassId, itemTypeProto);
     itemTypeReg.readonlyProperty("id", [itemTypeClassId](IScriptBindingContext& ctx, void* thisVal) -> void* {
@@ -2750,7 +2607,7 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
     // 底层 BlockState/Block/BlockRegistry 就绪。登记 ScriptClassRegistry 供跨回调 wrap/unwrap。
     u64 blockClassId = ScriptObjectRegistry::allocateClassId(ctx);
     void* blockProto = builder.exportClass("Block", blockClassId);
-    ScriptClassRegistry::instance().registerClass(blockClassId, blockProto, "Block");
+    ctx.classRegistry().registerClass(blockClassId, blockProto, "Block");
 
     ClassRegistrar<void> blockReg(ctx, blockClassId, blockProto);
     blockReg.readonlyProperty("isAir", [blockClassId](IScriptBindingContext& ctx, void* thisVal) -> void* {
@@ -2775,7 +2632,7 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
             if (ref == nullptr || ref->state == nullptr) {
                 return ctx.createUndefined();
             }
-            const u64 permClassId = ScriptClassRegistry::instance().classIdByName("BlockPermutation");
+            const u64 permClassId = ctx.classRegistry().classIdByName("BlockPermutation");
             return ScriptObjectRegistry::wrap(ctx,
                 permClassId,
                 blockPermutationProto,
@@ -2907,8 +2764,8 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
             if (item == nullptr) {
                 return ctx.throwTypeError(("Unknown item type: " + *typeId).c_str());
             }
-            const u64 isClassId = resolveItemStackClassId();
-            void* isProto = ScriptClassRegistry::instance().proto(isClassId);
+            const u64 isClassId = resolveItemStackClassId(ctx);
+            void* isProto = ctx.classRegistry().proto(isClassId);
             if (isProto == nullptr) {
                 return ctx.createUndefined();
             }
@@ -2919,7 +2776,7 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
                 delete static_cast<mc::ItemStack*>(p);
             });
         });
-    ScriptClassRegistry::instance().registerClass(itemStackClassId, itemStackProto, "ItemStack");
+    ctx.classRegistry().registerClass(itemStackClassId, itemStackProto, "ItemStack");
 
     ClassRegistrar<void> itemStackReg(ctx, itemStackClassId, itemStackProto);
     itemStackReg.readonlyProperty("typeId", [](IScriptBindingContext& ctx, void* thisVal) -> void* {
@@ -3154,7 +3011,7 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
     // 仅暴露 id 属性；完整 fluid state 体系后续 TODO。
     u64 fluidTypeClassId = ScriptObjectRegistry::allocateClassId(ctx);
     void* fluidTypeProto = builder.exportClass("FluidType", fluidTypeClassId);
-    ScriptClassRegistry::instance().registerClass(fluidTypeClassId, fluidTypeProto, "FluidType");
+    ctx.classRegistry().registerClass(fluidTypeClassId, fluidTypeProto, "FluidType");
 
     ClassRegistrar<void> fluidTypeReg(ctx, fluidTypeClassId, fluidTypeProto);
     fluidTypeReg.readonlyProperty("id", [fluidTypeClassId](IScriptBindingContext& ctx, void* thisVal) -> void* {
@@ -3172,7 +3029,7 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
     // （规避 setItem 改写致引用悬垂）；setItem 接 ItemStack unwrap（非拥有，仅拷贝写入容器）。
     u64 containerClassId = ScriptObjectRegistry::allocateClassId(ctx);
     void* containerProto = builder.exportClass("Container", containerClassId);
-    ScriptClassRegistry::instance().registerClass(containerClassId, containerProto, "Container");
+    ctx.classRegistry().registerClass(containerClassId, containerProto, "Container");
 
     ClassRegistrar<void> containerReg(ctx, containerClassId, containerProto);
     containerReg.readonlyProperty("size", [containerClassId](IScriptBindingContext& ctx, void* thisVal) -> void* {
@@ -3209,8 +3066,8 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
                 return ctx.createUndefined();
             }
             // getItem 返回 owned 拷贝（ItemStack(inv->getItem(slot))），JS GC 时经 destroy 回调 delete。
-            const u64 isClassId = resolveItemStackClassId();
-            void* isProto = ScriptClassRegistry::instance().proto(isClassId);
+            const u64 isClassId = resolveItemStackClassId(ctx);
+            void* isProto = ctx.classRegistry().proto(isClassId);
             if (isProto == nullptr) {
                 return ctx.createUndefined();
             }
@@ -3232,7 +3089,7 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
                 return ctx.createUndefined();
             }
             // unwrap 入参 ItemStack（按 classId 校验类型）。
-            const u64 isClassId = resolveItemStackClassId();
+            const u64 isClassId = resolveItemStackClassId(ctx);
             auto* stack = static_cast<mc::ItemStack*>(ScriptObjectRegistry::unwrap(ctx, args[1], isClassId));
             if (stack == nullptr) {
                 return ctx.throwTypeError("Container.setItem: argument must be an ItemStack");
@@ -3248,7 +3105,7 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
             if (inv == nullptr || argc < 1) {
                 return ctx.createUndefined();
             }
-            const u64 isClassId = resolveItemStackClassId();
+            const u64 isClassId = resolveItemStackClassId(ctx);
             auto* stack = static_cast<mc::ItemStack*>(ScriptObjectRegistry::unwrap(ctx, args[0], isClassId));
             if (stack == nullptr) {
                 return ctx.throwTypeError("Container.addItem: argument must be an ItemStack");
@@ -3287,8 +3144,7 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
     // 官方 EntityInventoryComponent 仅一个只读属性 container: Container。
     u64 entityInventoryClassId = ScriptObjectRegistry::allocateClassId(ctx);
     void* entityInventoryProto = builder.exportClass("EntityInventoryComponent", entityInventoryClassId);
-    ScriptClassRegistry::instance().registerClass(
-        entityInventoryClassId, entityInventoryProto, "EntityInventoryComponent");
+    ctx.classRegistry().registerClass(entityInventoryClassId, entityInventoryProto, "EntityInventoryComponent");
 
     ClassRegistrar<void> entityInventoryReg(ctx, entityInventoryClassId, entityInventoryProto);
     entityInventoryReg.readonlyProperty(
@@ -3299,8 +3155,8 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
                 return ctx.createUndefined();
             }
             // resolve Container classId/proto（运行时按名查，与 Container.getItem resolveItemStackClassId 同范式）。
-            const u64 containerClassIdResolved = ScriptClassRegistry::instance().classIdByName("Container");
-            void* containerProto = ScriptClassRegistry::instance().proto(containerClassIdResolved);
+            const u64 containerClassIdResolved = ctx.classRegistry().classIdByName("Container");
+            void* containerProto = ctx.classRegistry().proto(containerClassIdResolved);
             if (containerProto == nullptr) {
                 return ctx.createUndefined();
             }

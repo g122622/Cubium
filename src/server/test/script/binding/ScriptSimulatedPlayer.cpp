@@ -5,7 +5,7 @@
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permitted persons to whom the Software is
+ * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
  *
  * The above copyright notice and this permission notice shall be included in all
@@ -18,6 +18,7 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
+ *
  */
 
 #include "server/test/script/binding/ScriptSimulatedPlayer.hpp"
@@ -91,7 +92,7 @@ mc::Entity* _unwrapEntity(mc::mod::bedrock::addon::IScriptBindingContext& ctx, v
 {
     const char* const kClassNames[] = {"Entity", "Player", "SimulatedPlayer"};
     for (const char* className : kClassNames) {
-        const u64 classId = mc::mod::bedrock::addon::ScriptClassRegistry::instance().classIdByName(className);
+        const u64 classId = ctx.classRegistry().classIdByName(className);
         if (classId == 0) {
             continue;
         }
@@ -107,7 +108,7 @@ mc::Entity* _unwrapEntity(mc::mod::bedrock::addon::IScriptBindingContext& ctx, v
 // 从 JS ItemStack 对象 unwrap 出 mc::ItemStack*（@minecraft/server 注册，opaque 持 mc::ItemStack*）。
 mc::ItemStack* _unwrapItemStack(mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* val)
 {
-    const u64 classId = mc::mod::bedrock::addon::ScriptClassRegistry::instance().classIdByName("ItemStack");
+    const u64 classId = ctx.classRegistry().classIdByName("ItemStack");
     return static_cast<mc::ItemStack*>(mc::mod::bedrock::addon::ScriptObjectRegistry::unwrap(ctx, val, classId));
 }
 
@@ -204,7 +205,7 @@ void* _applyTeleport(
         void* dimVal = ctx.getProperty(opts, "dimension");
         if (dimVal != nullptr && ctx.isObject(dimVal)) {
             // Dimension JS 对象 opaque 持 IWorld*，unwrap 后读 IWorld::dimension()
-            const u64 dimClassId = mc::mod::bedrock::addon::ScriptClassRegistry::instance().classIdByName("Dimension");
+            const u64 dimClassId = ctx.classRegistry().classIdByName("Dimension");
             auto* dimWorld = static_cast<mc::IWorld*>(
                 mc::mod::bedrock::addon::ScriptObjectRegistry::unwrap(ctx, dimVal, dimClassId));
             if (dimWorld != nullptr) {
@@ -294,7 +295,7 @@ u64 registerSimulatedPlayerClassBinding(
     // （见 [[simulated-player-js-class-no-entity-inheritance]]），opaque class_id 是本 classId 而非
     // Entity classId，test.kill 传 Entity classId 严格匹配会返 nullptr（致 "kill: argument must be
     // an Entity"）。此处登记使 test.kill 枚举 classId 时能解开 SimulatedPlayer。
-    mc::mod::bedrock::addon::ScriptClassRegistry::instance().registerClass(classId, proto, "SimulatedPlayer");
+    ctx.classRegistry().registerClass(classId, proto, "SimulatedPlayer");
 
     ClassRegistrar<void> reg(ctx, classId, proto);
 
@@ -359,8 +360,8 @@ u64 registerSimulatedPlayerClassBinding(
         if (world == nullptr) {
             return ctx.createUndefined();
         }
-        const u64 dimClassId = mc::mod::bedrock::addon::ScriptClassRegistry::instance().classIdByName("Dimension");
-        void* dimProto = mc::mod::bedrock::addon::ScriptClassRegistry::instance().proto(dimClassId);
+        const u64 dimClassId = ctx.classRegistry().classIdByName("Dimension");
+        void* dimProto = ctx.classRegistry().proto(dimClassId);
         if (dimProto == nullptr) {
             return ctx.createUndefined();
         }
@@ -379,8 +380,8 @@ u64 registerSimulatedPlayerClassBinding(
             if (world == nullptr) {
                 return ctx.createUndefined();
             }
-            const u64 dimClassId = mc::mod::bedrock::addon::ScriptClassRegistry::instance().classIdByName("Dimension");
-            void* dimProto = mc::mod::bedrock::addon::ScriptClassRegistry::instance().proto(dimClassId);
+            const u64 dimClassId = ctx.classRegistry().classIdByName("Dimension");
+            void* dimProto = ctx.classRegistry().proto(dimClassId);
             if (dimProto == nullptr) {
                 return ctx.createUndefined();
             }
@@ -435,8 +436,8 @@ u64 registerSimulatedPlayerClassBinding(
             mc::Entity* ent = player; // SimulatedPlayer 经 ServerPlayer→Player→LivingEntity→Entity
             // 按类名 wrap 组件 JS 对象（opaque 持 ent，owned=false），与 Entity.getComponent 范式一致。
             auto wrapComponent = [&ctx, ent](const char* className) -> void* {
-                const u64 classId = mc::mod::bedrock::addon::ScriptClassRegistry::instance().classIdByName(className);
-                void* proto = mc::mod::bedrock::addon::ScriptClassRegistry::instance().proto(classId);
+                const u64 classId = ctx.classRegistry().classIdByName(className);
+                void* proto = ctx.classRegistry().proto(classId);
                 if (proto == nullptr) {
                     return ctx.createUndefined();
                 }
@@ -1322,8 +1323,8 @@ u64 registerSimulatedPlayerClassBinding(
                 return ctx.createUndefined();
             }
             // wrap owned 拷贝（与 Equippable.getEquipment 范式一致），JS GC 时 delete。
-            const u64 isClassId = mc::mod::bedrock::addon::ScriptClassRegistry::instance().classIdByName("ItemStack");
-            void* isProto = mc::mod::bedrock::addon::ScriptClassRegistry::instance().proto(isClassId);
+            const u64 isClassId = ctx.classRegistry().classIdByName("ItemStack");
+            void* isProto = ctx.classRegistry().proto(isClassId);
             if (isProto == nullptr) {
                 return ctx.createUndefined();
             }

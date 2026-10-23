@@ -5,7 +5,7 @@
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permitted persons to whom the Software is
+ * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
  *
  * The above copyright notice and this permission notice shall be included in all
@@ -18,6 +18,7 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
+ *
  */
 
 #include "server/test/script/binding/ScriptTestHelper.hpp"
@@ -157,14 +158,14 @@ std::string _directionToApi(mc::Direction dir)
 // BlockState*）。 失败返回 nullptr（调用方抛 TypeError）。
 const mc::BlockState* _unwrapBlockPermutation(mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* val)
 {
-    const u64 classId = mc::mod::bedrock::addon::ScriptClassRegistry::instance().classIdByName("BlockPermutation");
+    const u64 classId = ctx.classRegistry().classIdByName("BlockPermutation");
     return static_cast<const mc::BlockState*>(mc::mod::bedrock::addon::ScriptObjectRegistry::unwrap(ctx, val, classId));
 }
 
 // 从 JS ItemStack 对象 unwrap 出 mc::ItemStack*（批2 MinecraftModuleFactory 注册，opaque 持 mc::ItemStack*）。
 mc::ItemStack* _unwrapItemStack(mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* val)
 {
-    const u64 classId = mc::mod::bedrock::addon::ScriptClassRegistry::instance().classIdByName("ItemStack");
+    const u64 classId = ctx.classRegistry().classIdByName("ItemStack");
     return static_cast<mc::ItemStack*>(mc::mod::bedrock::addon::ScriptObjectRegistry::unwrap(ctx, val, classId));
 }
 
@@ -172,8 +173,8 @@ mc::ItemStack* _unwrapItemStack(mc::mod::bedrock::addon::IScriptBindingContext& 
 // FenceConnectivity classId/proto（instanceof 锚点）。失败（类未注册）退化为普通对象。
 void* _fenceConnectivityToJs(mc::mod::bedrock::addon::IScriptBindingContext& ctx, const FenceConnectivity& conn)
 {
-    const u64 classId = mc::mod::bedrock::addon::ScriptClassRegistry::instance().classIdByName("FenceConnectivity");
-    void* proto = mc::mod::bedrock::addon::ScriptClassRegistry::instance().proto(classId);
+    const u64 classId = ctx.classRegistry().classIdByName("FenceConnectivity");
+    void* proto = ctx.classRegistry().proto(classId);
     void* obj = ctx.createObject();
     if (proto != nullptr) {
         ctx.setPrototypeOf(obj, proto);
@@ -424,7 +425,7 @@ u64 registerTestClassBinding(mc::mod::bedrock::addon::NativeModuleBuilder& build
             mc::Entity* entity = nullptr;
             const char* const kClassNames[] = {"Entity", "Player", "SimulatedPlayer"};
             for (const char* className : kClassNames) {
-                const u64 classId = mc::mod::bedrock::addon::ScriptClassRegistry::instance().classIdByName(className);
+                const u64 classId = ctx.classRegistry().classIdByName(className);
                 if (classId == 0) {
                     continue;
                 }
@@ -705,8 +706,8 @@ u64 registerTestClassBinding(mc::mod::bedrock::addon::NativeModuleBuilder& build
             // wrap outEntity 为 @minecraft/server Entity JS 对象：经 ScriptClassRegistry 取
             // @minecraft/server 模块注册的 Entity classId/proto（跨模块 wrap）。
             // 实体由 EntityManager 拥有，此处非拥有（owned=false），生命周期与测试实例一致。
-            const u64 entityClassId = mc::mod::bedrock::addon::ScriptClassRegistry::instance().classIdByName("Entity");
-            void* entityProto = mc::mod::bedrock::addon::ScriptClassRegistry::instance().proto(entityClassId);
+            const u64 entityClassId = ctx.classRegistry().classIdByName("Entity");
+            void* entityProto = ctx.classRegistry().proto(entityClassId);
             if (entityProto == nullptr || outEntity == nullptr) {
                 // 引擎未就绪或 spawn 异常返回 undefined（不崩，对齐基岩容错）。
                 return ctx.createUndefined();
@@ -893,8 +894,8 @@ u64 registerTestClassBinding(mc::mod::bedrock::addon::NativeModuleBuilder& build
                 return nullptr;
             }
             mc::IWorld* world = &helper->world();
-            const u64 dimClassId = mc::mod::bedrock::addon::ScriptClassRegistry::instance().classIdByName("Dimension");
-            void* dimProto = mc::mod::bedrock::addon::ScriptClassRegistry::instance().proto(dimClassId);
+            const u64 dimClassId = ctx.classRegistry().classIdByName("Dimension");
+            void* dimProto = ctx.classRegistry().proto(dimClassId);
             if (dimProto == nullptr) {
                 // @minecraft/server Dimension 类未注册（模块未加载），容错返回 undefined。
                 return ctx.createUndefined();
@@ -974,8 +975,8 @@ u64 registerTestClassBinding(mc::mod::bedrock::addon::NativeModuleBuilder& build
                 std::string msg = result->formattedMessage();
                 return ctx.throwInternalError(msg.c_str());
             }
-            const u64 entityClassId = mc::mod::bedrock::addon::ScriptClassRegistry::instance().classIdByName("Entity");
-            void* entityProto = mc::mod::bedrock::addon::ScriptClassRegistry::instance().proto(entityClassId);
+            const u64 entityClassId = ctx.classRegistry().classIdByName("Entity");
+            void* entityProto = ctx.classRegistry().proto(entityClassId);
             if (entityProto == nullptr || outEntity == nullptr) {
                 return ctx.createUndefined();
             }
@@ -1332,7 +1333,7 @@ u64 registerTestClassBinding(mc::mod::bedrock::addon::NativeModuleBuilder& build
             if (argc < 2) {
                 return ctx.throwTypeError("assertEntityInstancePresent(entity, pos, isPresent?)");
             }
-            const u64 entityClassId = mc::mod::bedrock::addon::ScriptClassRegistry::instance().classIdByName("Entity");
+            const u64 entityClassId = ctx.classRegistry().classIdByName("Entity");
             auto* entity = static_cast<mc::Entity*>(
                 mc::mod::bedrock::addon::ScriptObjectRegistry::unwrap(ctx, args[0], entityClassId));
             if (entity == nullptr) {
@@ -1366,7 +1367,7 @@ u64 registerTestClassBinding(mc::mod::bedrock::addon::NativeModuleBuilder& build
             if (argc < 1) {
                 return ctx.throwTypeError("assertEntityInstancePresentInArea(entity, isPresent?)");
             }
-            const u64 entityClassId = mc::mod::bedrock::addon::ScriptClassRegistry::instance().classIdByName("Entity");
+            const u64 entityClassId = ctx.classRegistry().classIdByName("Entity");
             auto* entity = static_cast<mc::Entity*>(
                 mc::mod::bedrock::addon::ScriptObjectRegistry::unwrap(ctx, args[0], entityClassId));
             if (entity == nullptr) {
@@ -1706,8 +1707,8 @@ u64 registerTestClassBinding(mc::mod::bedrock::addon::NativeModuleBuilder& build
                 std::string msg = result->formattedMessage();
                 return ctx.throwInternalError(msg.c_str());
             }
-            const u64 entityClassId = mc::mod::bedrock::addon::ScriptClassRegistry::instance().classIdByName("Entity");
-            void* entityProto = mc::mod::bedrock::addon::ScriptClassRegistry::instance().proto(entityClassId);
+            const u64 entityClassId = ctx.classRegistry().classIdByName("Entity");
+            void* entityProto = ctx.classRegistry().proto(entityClassId);
             if (entityProto == nullptr || outEntity == nullptr) {
                 return ctx.createUndefined();
             }
@@ -1742,8 +1743,8 @@ u64 registerTestClassBinding(mc::mod::bedrock::addon::NativeModuleBuilder& build
                 std::string msg = result->formattedMessage();
                 return ctx.throwInternalError(msg.c_str());
             }
-            const u64 entityClassId = mc::mod::bedrock::addon::ScriptClassRegistry::instance().classIdByName("Entity");
-            void* entityProto = mc::mod::bedrock::addon::ScriptClassRegistry::instance().proto(entityClassId);
+            const u64 entityClassId = ctx.classRegistry().classIdByName("Entity");
+            void* entityProto = ctx.classRegistry().proto(entityClassId);
             if (entityProto == nullptr || outEntity == nullptr) {
                 return ctx.createUndefined();
             }
@@ -1775,8 +1776,8 @@ u64 registerTestClassBinding(mc::mod::bedrock::addon::NativeModuleBuilder& build
                 std::string msg = result->formattedMessage();
                 return ctx.throwInternalError(msg.c_str());
             }
-            const u64 entityClassId = mc::mod::bedrock::addon::ScriptClassRegistry::instance().classIdByName("Entity");
-            void* entityProto = mc::mod::bedrock::addon::ScriptClassRegistry::instance().proto(entityClassId);
+            const u64 entityClassId = ctx.classRegistry().classIdByName("Entity");
+            void* entityProto = ctx.classRegistry().proto(entityClassId);
             if (entityProto == nullptr || outEntity == nullptr) {
                 return ctx.createUndefined();
             }
@@ -1896,7 +1897,7 @@ u64 registerTestClassBinding(mc::mod::bedrock::addon::NativeModuleBuilder& build
             if (argc < 2) {
                 return ctx.throwTypeError("assertCanReachLocation(mob, pos, canReach?)");
             }
-            const u64 entityClassId = mc::mod::bedrock::addon::ScriptClassRegistry::instance().classIdByName("Entity");
+            const u64 entityClassId = ctx.classRegistry().classIdByName("Entity");
             auto* entity = static_cast<mc::Entity*>(
                 mc::mod::bedrock::addon::ScriptObjectRegistry::unwrap(ctx, args[0], entityClassId));
             if (entity == nullptr) {
@@ -1929,7 +1930,7 @@ u64 registerTestClassBinding(mc::mod::bedrock::addon::NativeModuleBuilder& build
             if (argc < 2 || !ctx.isNumber(args[1])) {
                 return ctx.throwTypeError("onPlayerJump(mob, jumpAmount)");
             }
-            const u64 entityClassId = mc::mod::bedrock::addon::ScriptClassRegistry::instance().classIdByName("Entity");
+            const u64 entityClassId = ctx.classRegistry().classIdByName("Entity");
             auto* entity = static_cast<mc::Entity*>(
                 mc::mod::bedrock::addon::ScriptObjectRegistry::unwrap(ctx, args[0], entityClassId));
             if (entity == nullptr) {
@@ -1955,7 +1956,7 @@ u64 registerTestClassBinding(mc::mod::bedrock::addon::NativeModuleBuilder& build
             if (argc < 2 || !ctx.isNumber(args[1])) {
                 return ctx.throwTypeError("setTntFuse(entity, fuseLength)");
             }
-            const u64 entityClassId = mc::mod::bedrock::addon::ScriptClassRegistry::instance().classIdByName("Entity");
+            const u64 entityClassId = ctx.classRegistry().classIdByName("Entity");
             auto* entity = static_cast<mc::Entity*>(
                 mc::mod::bedrock::addon::ScriptObjectRegistry::unwrap(ctx, args[0], entityClassId));
             if (entity == nullptr) {
@@ -2111,8 +2112,8 @@ u64 registerTestClassBinding(mc::mod::bedrock::addon::NativeModuleBuilder& build
             if (!spreader) {
                 return ctx.createUndefined();
             }
-            const u64 classId = mc::mod::bedrock::addon::ScriptClassRegistry::instance().classIdByName("SculkSpreader");
-            void* proto = mc::mod::bedrock::addon::ScriptClassRegistry::instance().proto(classId);
+            const u64 classId = ctx.classRegistry().classIdByName("SculkSpreader");
+            void* proto = ctx.classRegistry().proto(classId);
             if (proto == nullptr) {
                 // 类未注册（不应发生）：spreader 随 unique_ptr 自动析构，返 undefined。
                 return ctx.createUndefined();

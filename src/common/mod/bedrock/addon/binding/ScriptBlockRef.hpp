@@ -5,7 +5,7 @@
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permitted persons to whom the Software is
+ * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
  *
  * The above copyright notice and this permission notice shall be included in all
@@ -67,8 +67,8 @@ struct ScriptBlockRef {
 [[nodiscard]] inline void* wrapBlock(
     IScriptBindingContext& ctx, const mc::BlockState* state, const mc::BlockPos& pos, mc::IWorld* world)
 {
-    const u64 blockClassId = ScriptClassRegistry::instance().classIdByName("Block");
-    void* blockProto = ScriptClassRegistry::instance().protoByName("Block");
+    const u64 blockClassId = ctx.classRegistry().classIdByName("Block");
+    void* blockProto = ctx.classRegistry().protoByName("Block");
     if (blockClassId == 0 || blockProto == nullptr) {
         // Block 类未注册（绑定期未完成或引擎重建中），防御性返回 undefined。
         return ctx.createUndefined();
@@ -96,7 +96,7 @@ struct ScriptBlockRef {
  */
 [[nodiscard]] inline ScriptBlockRef* unwrapBlock(IScriptBindingContext& ctx, void* val)
 {
-    const u64 blockClassId = ScriptClassRegistry::instance().classIdByName("Block");
+    const u64 blockClassId = ctx.classRegistry().classIdByName("Block");
     if (blockClassId == 0) {
         return nullptr;
     }

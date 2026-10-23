@@ -91,6 +91,8 @@ QuickJSBindingContext::QuickJSBindingContext(JSContext* ctx)
 
 QuickJSBindingContext::~QuickJSBindingContext()
 {
+    disposeBindings();
+
     // 释放未被 _moduleInit 消费的 pending JSValue（模块已声明但从未被 import 时残留）。
     // 正常路径下 _moduleInit 会 erase 掉对应条目；此处兜底防泄漏。
     for (auto& [module, entries] : m_pendingExports) {
@@ -107,7 +109,7 @@ QuickJSBindingContext::~QuickJSBindingContext()
         // 先注销注册表条目再释放句柄：ScriptClassRegistry 只存裸指针，条目留到句柄释放之后
         // 就会变成悬垂指针，后续按 classId/类名查找会把已释放句柄交给 wrap/setPrototypeOf。
         // 在此逐条注销可覆盖 shutdown / reload / 单插件卸载 / 上下文移动赋值等全部销毁路径。
-        ScriptClassRegistry::instance().unregisterClass(classId);
+        classRegistry().unregisterClass(classId);
         if (handle == nullptr) {
             continue;
         }
@@ -846,7 +848,7 @@ JSValue QuickJSBindingContext::methodTrampoline(
         return JS_ThrowInternalError(ctx, "Invalid method callback index");
     }
 
-    auto& callback = bindingCtx->m_methodCallbacks[magic];
+    auto callback = bindingCtx->m_methodCallbacks[magic];
 
     // 包装this和args为void*句柄
     void* thisHandle = new JSValue(JS_DupValue(ctx, this_val));
@@ -888,7 +890,7 @@ JSValue QuickJSBindingContext::getterTrampoline(
         return JS_ThrowInternalError(ctx, "Invalid getter callback index");
     }
 
-    auto& callback = bindingCtx->m_getterCallbacks[magic];
+    auto callback = bindingCtx->m_getterCallbacks[magic];
 
     void* thisHandle = new JSValue(JS_DupValue(ctx, this_val));
     void* result = callback(*bindingCtx, thisHandle);
@@ -915,7 +917,7 @@ JSValue QuickJSBindingContext::setterTrampoline(
         return JS_ThrowInternalError(ctx, "Invalid setter callback index");
     }
 
-    auto& callback = bindingCtx->m_setterCallbacks[magic];
+    auto callback = bindingCtx->m_setterCallbacks[magic];
 
     void* thisHandle = new JSValue(JS_DupValue(ctx, this_val));
     void* valueHandle = (argc >= 1) ? new JSValue(JS_DupValue(ctx, argv[0])) : new JSValue(JS_UNDEFINED);

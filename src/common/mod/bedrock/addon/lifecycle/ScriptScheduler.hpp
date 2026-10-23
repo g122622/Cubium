@@ -25,12 +25,10 @@
 
 #include "common/core/Types.hpp"
 
-#include <atomic>
 #include <cstddef>
 #include <functional>
+#include <map>
 #include <mutex>
-#include <unordered_map>
-#include <vector>
 
 namespace mc::mod::bedrock::addon {
 
@@ -53,6 +51,9 @@ public:
      * @brief 调度回调类型
      */
     using Callback = std::function<void()>;
+
+    /** @brief 返回 true 表示生成器已经结束。 */
+    using JobStep = std::function<bool()>;
 
     ScriptScheduler() = default;
     ~ScriptScheduler() = default;
@@ -99,6 +100,12 @@ public:
      */
     bool clearRun(RunId runId);
 
+    /** @brief 为生成器分配每 tick 的公平执行时间片。 */
+    RunId runJob(JobStep step);
+
+    /** @brief 取消生成器任务。 */
+    bool clearJob(RunId jobId);
+
     /**
      * @brief 每tick调用，执行到期的回调
      *
@@ -121,12 +128,9 @@ private:
      * @brief 定时回调条目
      */
     struct ScheduledEntry {
-        RunId id;
         Callback callback;
-        u64 nextTick = 0;       // 下次执行的tick
-        u32 interval = 0;       // 周期性回调的间隔tick数
-        bool recurring = false; // true=周期性回调，false=一次性回调
-        bool cancelled = false;
+        u64 nextTick;
+        u32 interval;
     };
 
     /**
@@ -134,10 +138,14 @@ private:
      */
     RunId _nextId();
 
+    /** @brief 轮流推进生成器，保证每个存活任务至少获得一次执行机会。 */
+    void _tickJobs();
+
     mutable std::mutex m_mutex;
-    std::unordered_map<RunId, ScheduledEntry> m_entries;
-    std::vector<Callback> m_pendingRunCallbacks; // 下一tick立即执行的回调
-    std::atomic<RunId> m_nextId{1};
+    std::map<RunId, ScheduledEntry> m_entries;
+    std::map<RunId, JobStep> m_jobs;
+    u64 m_currentTick = 0;
+    RunId m_nextId = 1;
 };
 
 } // namespace mc::mod::bedrock::addon

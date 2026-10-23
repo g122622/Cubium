@@ -18,6 +18,7 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
+ *
  */
 
 #include "common/mod/bedrock/addon/modules/ScriptCustomComponentBinding.hpp"
@@ -637,9 +638,7 @@ void registerCustomComponentBindings(NativeModuleBuilder& builder)
 
             // 保留component对象引用
             void* componentObj = args[1];
-            cbCtx.retainValue(componentObj);
             bool success = registerBlockCustomComponentFromJS(*typeId, componentObj, cbCtx);
-            cbCtx.releaseValue(componentObj);
 
             if (!success) {
                 return cbCtx.throwTypeError(
@@ -672,9 +671,7 @@ void registerCustomComponentBindings(NativeModuleBuilder& builder)
             }
 
             void* componentObj = args[1];
-            cbCtx.retainValue(componentObj);
             bool success = registerItemCustomComponentFromJS(*typeId, componentObj, cbCtx);
-            cbCtx.releaseValue(componentObj);
 
             if (!success) {
                 return cbCtx.throwTypeError(("Failed to register item custom component for '" + *typeId + "'").c_str());

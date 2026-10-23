@@ -161,11 +161,10 @@ bool QuickJSContext::initialize()
         return false;
     }
 
-    // 注册模块加载器：opaque 指向本上下文持有的 m_moduleLoader（相对路径 JS 模块经此加载源码）。
-    // 注意 JS_SetModuleLoaderFunc 是 runtime 级注册，多 context 共享同一 runtime 时后注册者覆盖前者；
-    // 当前每插件独立 runtime 故无此问题。@minecraft/* 原生模块由 createContext 的依赖循环预注册，不走此回调。
-    JS_SetModuleLoaderFunc(
-        rt, QuickJSModuleLoader::moduleNormalize, QuickJSModuleLoader::moduleLoader, m_moduleLoader.get());
+    // 同一运行时共享加载入口，具体源码提供者必须通过发起导入的上下文查找。
+    auto& bindings = static_cast<QuickJSBindingContext&>(bindingContext());
+    bindings.setModuleLoader(*m_moduleLoader);
+    JS_SetModuleLoaderFunc(rt, QuickJSModuleLoader::moduleNormalize, QuickJSModuleLoader::moduleLoader, nullptr);
 
     m_valid = true;
     spdlog::info("[BedrockAddon] QuickJS context initialized");

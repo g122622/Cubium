@@ -18,6 +18,7 @@ add_library(mc_bedrock_addon STATIC
 
     # Modules - @minecraft/server模块绑定
     modules/MinecraftModuleFactory.cpp
+    modules/system/ScriptSystemBinding.cpp
     modules/ScriptCustomComponentBinding.cpp
     modules/ScriptEventBinding.cpp
     modules/types/ScriptWorldAccessor.cpp

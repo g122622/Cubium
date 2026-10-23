@@ -101,41 +101,29 @@ TEST(ScriptBindingHandleLifetimeTest, ContextDestructionReleasesClassProtoHandle
     engine->shutdown();
 }
 
-TEST(ScriptBindingHandleLifetimeTest, ContextDestructionUnregistersClassRegistryEntries)
+TEST(ScriptBindingHandleLifetimeTest, ClassRegistriesAreIsolatedBetweenContexts)
 {
-    // 回归：ScriptClassRegistry 只存裸指针（不持有句柄所有权），若上下文释放句柄前不注销条目，
-    // 表中就会残留悬垂句柄——运行期 proto/protoByName 命中后交给 ScriptObjectRegistry::wrap
-    // 或 setPrototypeOf 即 use-after-free。该路径覆盖 reload()/单插件卸载/上下文移动赋值，
-    // 故注销必须由句柄所有权方（上下文析构）完成，而不是只在 shutdown() 里 clear()。
     auto engine = createScriptEngine();
-    ASSERT_NE(engine, nullptr);
     ASSERT_TRUE(engine->initialize());
-
-    constexpr char kProbeName[] = "RegistryUnregisterProbeClass";
-    const mc::u64 staleClassId = ScriptClassRegistry::instance().classIdByName(kProbeName);
-    ASSERT_EQ(staleClassId, 0u) << "前置条件：该探针类名不应残留自其他用例";
-
-    mc::u64 classId = 0;
-    {
-        auto context = engine->runtime().createContext(_makeConfig());
-        ASSERT_NE(context, nullptr);
-        auto& bindings = context->bindingContext();
-        classId = bindings.allocateClassId();
-        ASSERT_TRUE(bindings.registerClass(classId, kProbeName, true));
-        void* proto = bindings.createClassProto(classId);
-        ASSERT_NE(proto, nullptr);
-        // 注册期：按名可查到本上下文的 proto 句柄。
-        ScriptClassRegistry::instance().registerClass(classId, proto, kProbeName);
-        EXPECT_EQ(ScriptClassRegistry::instance().classIdByName(kProbeName), classId);
-        EXPECT_EQ(ScriptClassRegistry::instance().protoByName(kProbeName), proto);
-    }
-
-    // 上下文析构后：注册表条目必须已注销，不能留下悬垂句柄。
-    EXPECT_EQ(ScriptClassRegistry::instance().classIdByName(kProbeName), 0u)
-        << "上下文析构后类注册表仍保留该类名映射（悬垂 proto 句柄）";
-    EXPECT_EQ(ScriptClassRegistry::instance().proto(classId), nullptr)
-        << "上下文析构后类注册表仍保留该 classId 的原型句柄（悬垂）";
-
+    auto first = engine->runtime().createContext(_makeConfig());
+    auto second = engine->runtime().createContext(_makeConfig());
+    auto& firstBindings = first->bindingContext();
+    auto& secondBindings = second->bindingContext();
+    const auto firstId = firstBindings.allocateClassId();
+    const auto secondId = secondBindings.allocateClassId();
+    ASSERT_TRUE(firstBindings.registerClass(firstId, "Entity", true));
+    ASSERT_TRUE(secondBindings.registerClass(secondId, "Entity", true));
+    void* firstProto = firstBindings.createClassProto(firstId);
+    void* secondProto = secondBindings.createClassProto(secondId);
+    firstBindings.classRegistry().registerClass(firstId, firstProto, "Entity");
+    secondBindings.classRegistry().registerClass(secondId, secondProto, "Entity");
+    EXPECT_EQ(firstBindings.classRegistry().classIdByName("Entity"), firstId);
+    EXPECT_EQ(secondBindings.classRegistry().classIdByName("Entity"), secondId);
+    EXPECT_EQ(firstBindings.classRegistry().protoByName("Entity"), firstProto);
+    first.reset();
+    EXPECT_EQ(secondBindings.classRegistry().protoByName("Entity"), secondProto);
+    EXPECT_EQ(secondBindings.classRegistry().classIdByName("Entity"), secondId);
+    second.reset();
     engine->shutdown();
 }
 

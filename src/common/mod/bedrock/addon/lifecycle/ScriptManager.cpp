@@ -12,9 +12,9 @@
  * copies or substantial portions of the Software.
  *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, WARRANTIES OF MERCHANTABILITY,
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HAVING BEEN CLAIMED FOR ANY CLAIM, DAMAGES OR OTHER
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
@@ -90,12 +90,6 @@ void ScriptManager::shutdown()
 
     // 停止所有插件
     m_pluginManager->stopAllPlugins();
-
-    // 丢弃跨模块类原型注册表条目：其中存的 proto 是各绑定上下文借出的句柄（所有权归上下文，
-    // 见 IScriptBindingContext::createClassProto）。上下文析构时会逐条 unregisterClass，故本行
-    // 并非正确性的唯一依赖，而是引擎关闭期的显式收尾：同时清掉 ScriptHandleRegistry 中指向
-    // ObjectData* 的条目，避免同进程内下次重建引擎前被 invalidateAll 解引用到已 delete 的对象。
-    ScriptClassRegistry::instance().clear();
 
     m_pluginManager->unloadAllPlugins();
 

@@ -76,7 +76,7 @@ struct ScriptEventHandler {
  */
 class BeforeEventSignal {
 public:
-    using Callback = std::function<void(std::any&)>;
+    using Callback = std::function<bool(std::any&)>;
 
     BeforeEventSignal() = default;
     ~BeforeEventSignal() noexcept = default;

@@ -18,6 +18,7 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
+ *
  */
 
 #include "server/test/script/binding/ScriptGameTestError.hpp"
@@ -77,8 +78,8 @@ void* contextToJs(mc::mod::bedrock::addon::IScriptBindingContext& ctx, const std
     if (!c.has_value()) {
         return ctx.createNull();
     }
-    const u64 classId = ScriptClassRegistry::instance().classIdByName(kGameTestErrorContextClassName);
-    void* proto = ScriptClassRegistry::instance().proto(classId);
+    const u64 classId = ctx.classRegistry().classIdByName(kGameTestErrorContextClassName);
+    void* proto = ctx.classRegistry().proto(classId);
     // setProperty 不消耗 value 所有权（内部 Dup 一份给对象），故每个临时句柄都必须显式释放，
     // 否则句柄与其持有的 JS 引用一并泄漏（LSan 在 nightly 报出此处 4 处直接泄漏）。
     auto setBlockPos = [&ctx](void* obj, const char* key, const BlockPos& pos) {
@@ -116,8 +117,8 @@ void* stringVectorToJs(mc::mod::bedrock::addon::IScriptBindingContext& ctx, cons
 /// 不抛出——抛出由调用方 throwValue 负责。
 void* buildGameTestErrorJs(mc::mod::bedrock::addon::IScriptBindingContext& ctx, const GameTestError& err)
 {
-    const u64 classId = ScriptClassRegistry::instance().classIdByName(kGameTestErrorClassName);
-    void* proto = ScriptClassRegistry::instance().proto(classId);
+    const u64 classId = ctx.classRegistry().classIdByName(kGameTestErrorClassName);
+    void* proto = ctx.classRegistry().proto(classId);
     void* obj = ctx.createObject();
     if (proto != nullptr) {
         ctx.setPrototypeOf(obj, proto);
@@ -151,7 +152,7 @@ void registerGameTestErrorClasses(
         ctx.setPrototypeOf(errorProtoObj, errorProto);
         ctx.releaseValue(errorProto);
     }
-    ScriptClassRegistry::instance().registerClass(errorClassId, errorProtoObj, kGameTestErrorClassName);
+    ctx.classRegistry().registerClass(errorClassId, errorProtoObj, kGameTestErrorClassName);
 
     ClassRegistrar<void> errorReg(ctx, errorClassId, errorProtoObj);
     // 实例字段 message/type/context/params 作为 own 属性在构造时设置（见 buildGameTestErrorJs），
@@ -167,8 +168,7 @@ void registerGameTestErrorClasses(
         ctx.setPrototypeOf(completedProtoObj, errorProto2);
         ctx.releaseValue(errorProto2);
     }
-    ScriptClassRegistry::instance().registerClass(
-        completedClassId, completedProtoObj, kGameTestCompletedErrorClassName);
+    ctx.classRegistry().registerClass(completedClassId, completedProtoObj, kGameTestCompletedErrorClassName);
 
     ClassRegistrar<void> completedReg(ctx, completedClassId, completedProtoObj);
     (void)completedReg; // 同 GameTestError：实例字段构造时设，原型仅作 instanceof 锚点。
@@ -176,7 +176,7 @@ void registerGameTestErrorClasses(
     // --- GameTestErrorContext 类（值对象，非 Error 子类）---
     u64 contextClassId = ScriptObjectRegistry::allocateClassId(ctx);
     void* contextProtoObj = builder.exportClass(kGameTestErrorContextClassName, contextClassId);
-    ScriptClassRegistry::instance().registerClass(contextClassId, contextProtoObj, kGameTestErrorContextClassName);
+    ctx.classRegistry().registerClass(contextClassId, contextProtoObj, kGameTestErrorContextClassName);
 
     ClassRegistrar<void> contextReg(ctx, contextClassId, contextProtoObj);
     (void)contextReg; // 实例字段构造时设。
@@ -251,8 +251,8 @@ void* throwGameTestCompletedError(
     // 仍用 Done——基岩 JS 侧 GameTestCompletedError.reason 区分 Done/Cleanup，但触发点同为"已结束"，
     // 本绑定层无清理阶段独立入口，统一 Done（TODO: 清理阶段语义后续按需细化）。
     GameTestCompletedError err(GameTestCompletedErrorReason::Done, std::string(gameTestName), std::string(methodName));
-    const u64 classId = ScriptClassRegistry::instance().classIdByName(kGameTestCompletedErrorClassName);
-    void* proto = ScriptClassRegistry::instance().proto(classId);
+    const u64 classId = ctx.classRegistry().classIdByName(kGameTestCompletedErrorClassName);
+    void* proto = ctx.classRegistry().proto(classId);
     void* obj = ctx.createObject();
     if (proto != nullptr) {
         ctx.setPrototypeOf(obj, proto);
