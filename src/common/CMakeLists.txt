@@ -1297,8 +1297,11 @@ add_library(mc_common STATIC
     world/village/poi/PointOfInterestStorage.cpp
     world/village/poi/PointOfInterestType.cpp
     # World - Village - Trade
+    world/village/trade/ItemCost.cpp
     world/village/trade/MerchantOffer.cpp
     world/village/trade/MerchantOffers.cpp
+    world/village/trade/TradeContext.cpp
+    world/village/trade/TradeRandom.cpp
     world/village/trade/VillagerTrades.cpp
     world/village/trade/WanderingTraderTrades.cpp
     # World - Village - Raid

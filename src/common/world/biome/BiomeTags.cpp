@@ -648,6 +648,21 @@ BiomeTag& BiomeTags::IS_VOID()
 // 初始化
 // ============================================================================
 
+BiomeTag& BiomeTags::getOrCreateTag(const ResourceLocation& id)
+{
+    // 初始化只填充内置兜底标签；空标签放进 _getTags() 后，数据包加载器可向其合并成员
+    initialize();
+    auto& tags = _getTags();
+    auto it = tags.find(id);
+    if (it != tags.end()) {
+        return *it->second;
+    }
+    auto tag = std::make_unique<BiomeTag>(id);
+    BiomeTag& ref = *tag;
+    tags[id] = std::move(tag);
+    return ref;
+}
+
 void BiomeTags::initialize()
 {
     // 线程安全：std::call_once 保证全进程只填充一次 _getTags()。多 worker 并发首次调用时，

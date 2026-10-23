@@ -66,17 +66,26 @@ const MerchantOffer* MerchantOffers::getOffer(size_t index) const
 
 MerchantOffer* MerchantOffers::getOfferFor(const ItemStack& buyA, const ItemStack& buyB, i32 hint)
 {
-    // 如果有选中提示，先尝试匹配指定索引的交易
+    // 如果有选中提示，先尝试匹配指定索引的交易。玩家输入数量不足时仍返回该交易
+    // （原版 updateSellItem 只校验物品种类与支付槽组合，不校验数量），这样高价交易
+    // 的结果槽也能显示，并将其与背包自动填充的支付物品关联起来。
     if (hint >= 0 && static_cast<size_t>(hint) < m_offers.size()) {
         MerchantOffer* offer = m_offers[static_cast<size_t>(hint)].get();
-        if (offer->canAccept(buyA, buyB)) {
+        if (!offer->isOutOfStock() && offer->matchesInput(buyA, buyB)) {
             return offer;
         }
     }
 
-    // 遍历所有交易寻找匹配
+    // 优先返回输入数量完全满足的交易
     for (auto& offer : m_offers) {
         if (offer->canAccept(buyA, buyB)) {
+            return offer.get();
+        }
+    }
+
+    // 退而求其次：返回支付物品种类匹配但数量不足的交易（原版行为）
+    for (auto& offer : m_offers) {
+        if (!offer->isOutOfStock() && offer->matchesInput(buyA, buyB)) {
             return offer.get();
         }
     }
@@ -115,14 +124,10 @@ void MerchantOffers::resetDailyRestockAll()
     }
 }
 
-void MerchantOffers::updatePrices(f32 modifier)
+void MerchantOffers::resetSpecialPrices()
 {
     for (auto& offer : m_offers) {
-        // 价格修正影响特殊价格
-        const i32 basePrice = offer->getBuyA().getCount();
-        const i32 adjusted = static_cast<i32>(basePrice * modifier);
-        const i32 specialPrice = adjusted - basePrice;
-        offer->setSpecialPrice(specialPrice);
+        offer->resetSpecialPrice();
     }
 }
 

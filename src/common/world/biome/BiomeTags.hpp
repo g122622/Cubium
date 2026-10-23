@@ -235,6 +235,17 @@ public:
     [[nodiscard]] static BiomeTag* getTag(const ResourceLocation& id);
 
     /**
+     * @brief 取标签，不存在时创建空标签
+     *
+     * 数据包加载器用它在注册表中落地仅存在于数据包的标签（如变种农畜标签），
+     * 避免取标签函数返回空指针。
+     *
+     * @param id 标签资源位置
+     * @return 标签引用（始终有效）
+     */
+    static BiomeTag& getOrCreateTag(const ResourceLocation& id);
+
+    /**
      * @brief 检查生物群系是否在指定结构标签中
      *
      * @param biomeId 生物群系ID

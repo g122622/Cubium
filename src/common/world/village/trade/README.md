@@ -7,10 +7,13 @@
 ```
 trade/
 ├── Merchant.hpp               # 商人接口 IMerchant 及交易列表管理类 MerchantOffers
-├── MerchantOffer.hpp/cpp      # 单个交易项（买入/卖出物品、使用次数、价格调整、NBT序列化）
-├── MerchantOffers.cpp         # MerchantOffers 类实现（批量补货、价格更新、物品匹配）
-├── VillagerTrades.hpp/cpp     # 村民交易配方表（按职业和等级分组，静态工厂方法生成交易）
-├── WanderingTraderTrades.hpp/cpp # 流浪商人交易表（普通/稀有交易池，随机选取）
+├── ItemCost.hpp/cpp           # 支付代价（物品模板 + 数量 + potion_contents/custom_data 逐组件谓词）
+├── MerchantOffer.hpp/cpp      # 单个交易项（双支付代价、卖出物品、使用次数、需求/特殊价格计价、NBT序列化）
+├── MerchantOffers.cpp         # MerchantOffers 类实现（批量补货、需求更新、物品匹配）
+├── TradeContext.hpp/cpp       # 交易生成上下文（世界 / 卖家村民 / 离线种子）
+├── TradeRandom.hpp/cpp        # 可派生 / 可复现的交易随机源
+├── VillagerTrades.hpp/cpp     # 村民交易表（职业 → 等级 → 条目），条目类型与全量交易数据
+├── WanderingTraderTrades.hpp/cpp # 流浪商人交易表（两个独立抽取池）
 └── README.md                  # 本文档
 ```
 
@@ -31,12 +34,28 @@ IMerchant（商人接口）
 
 MerchantOffers（交易列表管理）
     ├── addOffer() / removeOffer() / getOffer() — 列表操作
-    ├── getOfferFor(buyA, buyB, hint) — 按物品匹配交易（支持双支付槽顺序交换）
+    ├── getOfferFor(buyA, buyB, hint) — 按物品匹配交易（数量满足优先，其次只匹配物品种类）
     ├── restockAll() — 批量补货
     ├── updateDemandAll() — 批量更新所有交易需求值
     ├── needsRestockAny() — 检查是否有交易需要补货（任意uses > 0）
     ├── resetDailyRestockAll() — 重置所有交易的每日补货计数
-    └── updatePrices(modifier) — 基于声誉更新价格
+    └── resetSpecialPrices() — 清除声誉/英雄效果带来的特殊价格偏移
+
+ItemCost（支付代价）
+    ├── test(stack) — 物品类型 + 数量 + 逐组件谓词
+    ├── testComponentwise(stack) — 忽略数量，只看类型与组件
+    └── withPotion() / withCustomData() — 追加上下文敏感的组件谓词
+
+TradeListing（条目基类）
+    └── getOffer(ctx, random) — 每次生成交易时重新抽取（附魔、染料、寻宝地图目标等）
+
+VillagerTrades（村民交易表）
+    ├── TRADES — 职业 → 等级 → 条目列表（收录原版全部条目）
+    └── generateOffers(profession, level, ctx) — 生成单个等级的条目
+
+WanderingTraderTrades（流浪商人交易表）
+    ├── s_pools — 两个交易池，每池独立抽取 2 次（允许重复）
+    └── generateOffers(ctx) — 逐池抽取并生成交易
 
 MerchantOffer（单个交易项）
     ├── take(buyA, buyB) — 扣除支付物品（交易执行核心）
@@ -47,10 +66,8 @@ MerchantOffer（单个交易项）
     ├── restock() — 补货（重置uses=0，restocksToday++）
     ├── resetDailyRestock() — 重置每日补货计数
     ├── getXp() / shouldRewardExp() — 经验奖励信息
-    └── getBuyA() / getBuyB() / getSell() — 物品获取
-
-VillagerTrades / WanderingTraderTrades
-    └── 静态工厂方法，生成 MerchantOffers 实例
+    ├── swapCosts() — 支付槽反序命中后互换两条代价
+    └── getCostA() / getCostB() / getBuyA() / getBuyB() / getSell() — 代价与物品获取
 ```
 
 ## 上下游外部依赖关系
@@ -59,7 +76,9 @@ VillagerTrades / WanderingTraderTrades
 - `common/core/Types.hpp` - 基础类型（i32、u64、f32 等）
 - `common/item/core/ItemStack.hpp` - 物品堆
 - `common/util/nbt/Nbt.hpp` - NBT 序列化
-- `common/entity/entities/villager/AbstractVillagerEntity.hpp` - 村民实体基类（VillagerTrades 依赖）
+- `common/entity/entities/villager/AbstractVillagerEntity.hpp` - 村民实体基类（村民类型）
+- `common/item/` - 物品、附魔、药水、染料标签（条目生成时读取）
+- `common/world/IWorld.hpp` - 世界随机源与最近结构查询（寻宝地图）
 
 **下游依赖（被依赖）：**
 - `entity/entities/villager/VillagerEntity.cpp` - 村民交易
@@ -72,16 +91,14 @@ VillagerTrades / WanderingTraderTrades
 ## 交易匹配逻辑
 
 `MerchantOffers::getOfferFor(buyA, buyB, hint)` 匹配规则：
-1. 遍历所有交易报价，检查 `buyA` 和 `buyB` 是否与报价的买入物品匹配
-2. 如果提供了 `hint`（玩家点击的交易索引），优先匹配该索引
-3. 物品匹配使用 `ItemStack::isSameItem()` 方法，只比较物品类型，忽略数量
-4. 如果 `buyB` 为空，则只匹配单物品交易
+1. 有 `hint`（玩家点击的交易索引）时优先该索引，只校验物品种类与组件（数量不足也返回，供界面展示）
+2. 否则先找数量完全满足的交易（`canAccept`），再退回只匹配物品种类的交易
+3. 物品匹配使用 `ItemCost::test`（类型 + 组件谓词）；数量由需求修正后的支付数量门控
 
 `MerchantContainer::updateSellItem()` 更新逻辑：
-1. 优先使用原始顺序（buyA→报价buyA, buyB→报价buyB）匹配
-2. 如果无匹配或售罄，尝试交换顺序（buyA→报价buyB, buyB→报价buyA）
-3. 匹配成功且未售罄时，将 `offer.getSell().copy()` 放入结果槽
-4. 匹配失败或售罄时，清空结果槽
+1. 优先按常量槽顺序（槽 A → 代价 A、槽 B → 代价 B）匹配
+2. 无匹配、售罄或支付不足时尝试交换；命中交换交易时调用 `offer.swapCosts()` 把代价与常量槽重新绑定
+3. 只有支付物品足额（`canAccept`）时才把 `offer.getSell().copy()` 放入结果槽
 
 ## 交易执行流程
 
@@ -96,7 +113,15 @@ VillagerTrades / WanderingTraderTrades
 ## 容易踩的坑
 
 ### 价格调整公式
-最终价格 = 基础价格 + 特殊价格修正（来自流言/需求）。`getAdjustedBuyPrice()` 返回调整后的买入价格。
+支付数量 = clamp(基础数量 + floor(基础数量 × 需求 × 价格乘数) + 特殊价格修正, 1, 物品最大堆叠数)。
+- **需求**只由使用次数决定（`demand += 2*uses - maxUses`），不写入特殊价格；
+- **特殊价格**来自声誉与村庄英雄效果，由 `AbstractVillagerEntity::startTrading` 计算，`stopTrading` 时清零；
+- 修正为负需求时需求加成的下限为 0，不会低于基础数量。
+
+### 条目与生成时机
+交易表保存的是"条目"而非成品交易：`TradeContext` 携带世界与卖家村民，每次生成时按随机流与村民类型
+重新抽取（附魔等级、随机染料、寻宝地图目标、按生物群系分支）。离线场景（单元测试）用 `traderSeed` 构造
+可复现的随机树。
 
 ### 每日补货限制
 每日最多补货 2 次。补货时机由 `VillagerEntity::shouldRestock()` 控制，该逻辑包含：
@@ -107,13 +132,24 @@ VillagerTrades / WanderingTraderTrades
 
 ### 需求系统
 需求会动态影响价格。`updateDemand()` 计算公式：`demand = demand + uses - (maxUses - uses)`，即 `demand += 2*uses - maxUses`。
-使用次数超过一半时需求增加（价格上涨），反之需求减少（价格下降）。更新后重新计算特殊价格：`specialPrice = demand * priceMultiplier`。
+使用次数超过一半时需求增加（价格上涨），反之需求减少（价格下降）。需求加成在计价时按
+`floor(基础数量 × demand × priceMultiplier)` 计算，与特殊价格互不影响。
 
 ### NBT 字段
-MerchantOffer 的 NBT 字段包括：`buy`、`buyB`（可选第二买入）、`sell`、`uses`、`maxUses`、`xp`、`priceMultiplier`、`specialPrice`、`demand`、`restocksToday`、`lastRestock`。
+MerchantOffer 的 NBT 字段包括：`buyA`、`buyB`（可选第二支付，物品堆的 Count 即代价数量，组件谓词随物品堆一起保存）、`sell`、`uses`、`maxUses`、`xp`、`priceMultiplier`、`specialPrice`、`demand`、`restocksToday`、`lastRestock`。
 
-### 交易工厂模式
-`VillagerTrades` 和 `WanderingTraderTrades` 使用工厂函数而非静态配方，以支持动态价格调整。工厂函数签名不同：村民交易需要 `demand` 参数，流浪商人不需要。
+### 交易条目与随机数
+交易表保存条目（`TradeListing`），生成时用 `TradeContext` + 随机流现场构造交易。有世界时随机数取自世界
+随机流；离线（单元测试）时按 `traderSeed` 构造可复现的随机树。流浪商人的两个交易池各自独立抽取 2 次，
+同一池内可能抽到同一条目两次。
+
+### 村民类型分支
+渔夫的船只、制图师的寻宝地图与旗帜按 `ctx.trader` 的村民类型分支；上游传入非村民实体（流浪商人）时
+`ctx.trader` 为空，这些条目直接返回空交易。
+
+### 寻宝地图
+`TreasureMapListing` 已接入 `IWorld::findNearestMapStructure` 搜索目标结构，但地图创建与装饰标记接口尚在
+重建，当前返回空交易（并记录警告），TODO 标志见类注释。
 
 ### 经验奖励注意事项
 - `AbstractVillagerEntity::notifyTrade()` 内部已调用 `rewardTradeXp()`

@@ -1152,6 +1152,7 @@ public:
     static Item* SCAFFOLDING;      // 脚手架
     static Item* CHAIN;            // 锁链
     static Item* IRON_BARS;        // 铁栏杆
+    static Item* GLASS;            // 玻璃
     static Item* GLASS_PANE;       // 玻璃板
     static Item* CARVED_PUMPKIN;   // 雕刻过的南瓜
     static Item* END_ROD;          // 末地烛

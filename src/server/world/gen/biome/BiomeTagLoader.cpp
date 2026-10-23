@@ -213,21 +213,17 @@ Result<size_t> BiomeTagLoader::loadFromDataPackRepository(const resource::DataPa
         }
     }
 
-    // 将解析结果注册到 BiomeTags
+    // 将解析结果注册到 BiomeTags。仅存在于数据包的标签（如变种农畜标签）在内置表里
+    // 没有条目，必须新建空标签落地，否则取标签函数会返回空指针
     for (auto& [location, tagData] : parsedTags) {
-        auto* existingTag = BiomeTags::getTag(location);
-        if (existingTag != nullptr) {
-            if (tagData.replace) {
-                // replace=true：清空现有标签内容，使用数据包的内容
-                existingTag->clear();
-            }
-            for (BiomeId id : tagData.biomeIds) {
-                existingTag->add(id);
-            }
+        BiomeTag& existingTag = BiomeTags::getOrCreateTag(location);
+        if (tagData.replace) {
+            // replace=true：清空现有标签内容，使用数据包的内容
+            existingTag.clear();
         }
-        // 注意：如果标签在 BiomeTags::initialize() 中尚未注册，
-        // 数据包中的标签会被丢弃，因为 BiomeTags 使用静态注册表。
-        // 数据包加载应在 initialize() 之后执行。
+        for (BiomeId id : tagData.biomeIds) {
+            existingTag.add(id);
+        }
 
         ++loadedCount;
     }
@@ -281,17 +277,16 @@ Result<size_t> BiomeTagLoader::loadFromResourcePack(const IResourcePack& pack)
                 continue;
             }
 
-            // 将解析结果合并到 BiomeTags 注册表
+            // 将解析结果合并到 BiomeTags 注册表。仅存在于数据包的标签（如变种农畜标签）
+            // 在内置表里没有条目，必须新建空标签落地，否则取标签函数会返回空指针
             std::unique_ptr<BiomeTag> parsedTag = parseResult.value();
-            auto* existingTag = BiomeTags::getTag(parsedTag->getId());
-            if (existingTag != nullptr) {
-                if (parsedTag->isReplace()) {
-                    // replace=true：清空现有标签内容
-                    existingTag->clear();
-                }
-                for (BiomeId id : parsedTag->getBiomeIds()) {
-                    existingTag->add(id);
-                }
+            BiomeTag& existingTag = BiomeTags::getOrCreateTag(parsedTag->getId());
+            if (parsedTag->isReplace()) {
+                // replace=true：清空现有标签内容
+                existingTag.clear();
+            }
+            for (BiomeId id : parsedTag->getBiomeIds()) {
+                existingTag.add(id);
             }
 
             ++loadedCount;

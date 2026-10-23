@@ -33,7 +33,11 @@
 #include "common/util/assert/AssertMacros.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/blockentity/core/SimpleInventory.hpp"
+#include "common/world/village/Village.hpp"
+#include "common/world/village/VillageGossip.hpp"
+#include "common/world/village/VillageManager.hpp"
 #include <algorithm>
+#include <cmath>
 #include <memory>
 #include <string>
 #include <utility>
@@ -229,12 +233,76 @@ void AbstractVillagerEntity::setOffers(MerchantOffers offers)
 
 void AbstractVillagerEntity::startTrading(Player* player)
 {
+    if (player != nullptr) {
+        _updateSpecialPrices(*player);
+    }
     m_tradingPlayer = player;
 }
 
 void AbstractVillagerEntity::stopTrading()
 {
+    // 对齐 vanilla Villager#stopTrading：结束交易时清零声誉/英雄带来的特殊价格，
+    // 下一位玩家开始时重新计算，避免偏移跨玩家累积
+    const bool wasTrading = m_tradingPlayer != nullptr;
     m_tradingPlayer = nullptr;
+    if (wasTrading) {
+        _resetSpecialPrices();
+    }
+}
+
+i32 AbstractVillagerEntity::getPlayerReputation(const Player& player) const
+{
+    if (m_world == nullptr) {
+        return 0;
+    }
+    auto* villageManager = m_world->villageManager();
+    if (villageManager == nullptr) {
+        return 0;
+    }
+    const auto position = BlockPos(
+        static_cast<i32>(std::floor(x())), static_cast<i32>(std::floor(y())), static_cast<i32>(std::floor(z())));
+    world::village::Village* village = villageManager->getVillageAt(position);
+    if (village == nullptr) {
+        return 0;
+    }
+    return village->getGossipManager().getReputation(player.playerId());
+}
+
+void AbstractVillagerEntity::_updateSpecialPrices(const Player& player)
+{
+    if (!m_offers) {
+        return;
+    }
+
+    _resetSpecialPrices();
+
+    // 声誉降价：reputation * priceMultiplier（声誉高 → 负偏移 → 更便宜）
+    const i32 reputation = getPlayerReputation(player);
+    if (reputation != 0) {
+        for (size_t i = 0; i < m_offers->size(); ++i) {
+            MerchantOffer* offer = m_offers->getOffer(i);
+            offer->addToSpecialPrice(-static_cast<i32>(std::floor(reputation * offer->getPriceMultiplier())));
+        }
+    }
+
+    // 村庄英雄：基础价格的 (0.3 + 0.0625 * 等级) 再降一次，至少降 1
+    if (player.hasEffect(entity::effect::EffectType::HeroOfTheVillage)) {
+        const i32 amplifier = player.getEffectLevel(entity::effect::EffectType::HeroOfTheVillage);
+        const f64 ratio = 0.3 + 0.0625 * static_cast<f64>(amplifier);
+        for (size_t i = 0; i < m_offers->size(); ++i) {
+            MerchantOffer* offer = m_offers->getOffer(i);
+            const i32 baseCount = offer->getCostA().count();
+            const i32 discount = static_cast<i32>(std::floor(ratio * static_cast<f64>(baseCount)));
+            offer->addToSpecialPrice(-std::max(discount, 1));
+        }
+    }
+}
+
+void AbstractVillagerEntity::_resetSpecialPrices()
+{
+    if (m_offers) {
+        m_offers->resetSpecialPrices();
+    }
 }
 
 void AbstractVillagerEntity::addExperience(i32 amount)

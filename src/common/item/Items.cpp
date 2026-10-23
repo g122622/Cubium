@@ -1099,6 +1099,7 @@ Item* Items::LADDER = nullptr;
 Item* Items::SCAFFOLDING = nullptr;
 Item* Items::CHAIN = nullptr;
 Item* Items::IRON_BARS = nullptr;
+Item* Items::GLASS = nullptr;
 Item* Items::GLASS_PANE = nullptr;
 Item* Items::CARVED_PUMPKIN = nullptr;
 Item* Items::END_ROD = nullptr;
@@ -3880,6 +3881,7 @@ void Items::_registerBuildingBlocks()
     CHAIN = &registerBlockBackedItem(registry, VanillaBlocks::CHAIN, "iron_chain", ItemProperties().maxStackSize(64));
     IRON_BARS =
         &registerBlockBackedItem(registry, VanillaBlocks::IRON_BARS, "iron_bars", ItemProperties().maxStackSize(64));
+    GLASS = &registerBlockBackedItem(registry, VanillaBlocks::GLASS, "glass", ItemProperties().maxStackSize(64));
     GLASS_PANE =
         &registerBlockBackedItem(registry, VanillaBlocks::GLASS_PANE, "glass_pane", ItemProperties().maxStackSize(64));
     CARVED_PUMPKIN = &registerBlockBackedItem(

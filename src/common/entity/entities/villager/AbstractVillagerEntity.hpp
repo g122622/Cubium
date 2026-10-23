@@ -365,6 +365,16 @@ public:
     virtual void rewardTradeXp(MerchantOffer& offer) = 0;
 
     /**
+     * @brief 获取玩家在本商人处的声誉
+     *
+     * 声誉来自商人所在村庄的流言系统；不在村庄内（如流浪商人）返回 0。
+     *
+     * @param player 交易玩家
+     * @return 声誉值（范围 [-1000, +1000]）
+     */
+    [[nodiscard]] virtual i32 getPlayerReputation(const Player& player) const;
+
+    /**
      * @brief 播放交易音效（确认/否定）
      * @param success 是否交易成功（true=确认音效，false=否定音效）
      */
@@ -376,6 +386,22 @@ public:
      * 对齐 vanilla AbstractVillager#setUnhappy：置 40 tick 的不高兴计数器并播放否定音效。
      */
     void setUnhappy();
+
+private:
+    /**
+     * @brief 按当前交易玩家刷新全部交易的特殊价格偏移
+     *
+     * 声誉按 offer 的价格乘数折算为降价；村庄英雄效果按"基础价格的比例"再降一次。
+     * 调用前会自动清零上一名玩家留下的偏移。
+     *
+     * @param player 交易玩家
+     */
+    void _updateSpecialPrices(const Player& player);
+
+    /**
+     * @brief 清零全部交易的特殊价格偏移
+     */
+    void _resetSpecialPrices();
 
 protected:
     // 交易列表

@@ -328,6 +328,17 @@ void ItemStack::setAttackRange(item::component::AttackRange range)
     _ensureExtras().attackRange = range;
 }
 
+void ItemStack::setStewEffects(item::component::SuspiciousStewEffectsPayload effects)
+{
+    if (effects.empty()) {
+        if (m_extras) {
+            m_extras->stewEffects.reset();
+        }
+        return;
+    }
+    _ensureExtras().stewEffects = std::move(effects);
+}
+
 void ItemStack::setFireworkExplosion(item::component::FireworkExplosion explosion)
 {
     _ensureExtras().fireworkExplosion = std::move(explosion);

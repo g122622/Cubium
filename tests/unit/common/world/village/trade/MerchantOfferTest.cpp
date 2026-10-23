@@ -185,7 +185,7 @@ TEST_F(MerchantOfferTest, SerializeDeserializeBasic)
     original.serialize(tag);
 
     // 验证序列化结果
-    EXPECT_NE(tag.value.find("buy"), tag.value.end());
+    EXPECT_NE(tag.value.find("buyA"), tag.value.end());
     EXPECT_NE(tag.value.find("sell"), tag.value.end());
     EXPECT_NE(tag.value.find("uses"), tag.value.end());
     EXPECT_NE(tag.value.find("maxUses"), tag.value.end());
@@ -280,7 +280,7 @@ TEST_F(MerchantOfferTest, RoundTripComplete)
     EXPECT_EQ(deserialized.getBuyA().getCount(), 10);
 
     ASSERT_TRUE(deserialized.getBuyB().has_value());
-    EXPECT_TRUE(deserialized.getBuyB()->canStackWith(original.getBuyB().value()));
+    EXPECT_TRUE(deserialized.getBuyB()->canStackWith(*original.getBuyB()));
     EXPECT_EQ(deserialized.getBuyB()->getCount(), 2);
 
     EXPECT_TRUE(deserialized.getSell().canStackWith(original.getSell()));
@@ -377,12 +377,12 @@ TEST_F(MerchantOfferTest, PriceAdjustment)
     offer.setSpecialPrice(-2);
     EXPECT_EQ(offer.getAdjustedBuyPrice(), 3);
 
-    // 需求调整 - 注意：applyDemand 会覆盖 specialPrice
-    // applyDemand 设置 specialPrice = demand * priceMultiplier
-    // 所以 specialPrice 变为 10 * 0.1 = 1
-    offer.applyDemand(10);
-    EXPECT_EQ(offer.getSpecialPrice(), 1);     // 被覆盖为 1
-    EXPECT_EQ(offer.getAdjustedBuyPrice(), 6); // 5 + 1 = 6
+    // 需求与特殊价格是两条独立通道：需求按 floor(基础数量 * demand * 乘数) 增加数量，
+    // 特殊价格按来源（声誉/英雄）直接加减，两者相加
+    offer.setDemand(10);
+    // floor(5 * 10 * 0.1) = 5 → 5 + 5 + (-2) = 8
+    EXPECT_EQ(offer.getSpecialPrice(), -2);
+    EXPECT_EQ(offer.getAdjustedBuyPrice(), 8);
 }
 
 TEST_F(MerchantOfferTest, Progress)
@@ -602,9 +602,9 @@ TEST_F(MerchantOfferTest, UpdateDemand_CumulativeDemand)
     EXPECT_EQ(offer.getDemand(), -12); // -4 + 0 - 8 = -12
 }
 
-TEST_F(MerchantOfferTest, UpdateDemand_SpecialPriceUpdated)
+TEST_F(MerchantOfferTest, UpdateDemand_PriceCountUpdated)
 {
-    // updateDemand 同时更新 specialPrice = demand * priceMultiplier
+    // updateDemand 只调整需求值；计价时按 floor(基础数量 * demand * 乘数) 增加支付数量
     ItemStack buyA(emerald_, 5);
     ItemStack sell(bread_, 6);
     MerchantOffer offer(buyA, sell, 16, 2, 0.5f);
@@ -616,20 +616,27 @@ TEST_F(MerchantOfferTest, UpdateDemand_SpecialPriceUpdated)
     offer.updateDemand();
     EXPECT_EQ(offer.getDemand(), 0);
     EXPECT_EQ(offer.getSpecialPrice(), 0);
+    EXPECT_EQ(offer.getAdjustedBuyPrice(), 5);
 
     // 再使用4次（共12次）：demand = 0 + 12 - 4 = 8
     for (int i = 0; i < 4; ++i) {
         offer.increaseUses();
     }
     offer.updateDemand();
-    EXPECT_EQ(offer.getDemand(), 8);               // 0 + 12 - 4 = 8
-    EXPECT_EQ(offer.getSpecialPrice(), 4);         // 8 * 0.5 = 4
-    EXPECT_EQ(offer.getAdjustedBuyPrice(), 5 + 4); // basePrice + specialPrice = 9
+    EXPECT_EQ(offer.getDemand(), 8);                // 0 + 12 - 4 = 8
+    EXPECT_EQ(offer.getSpecialPrice(), 0);          // 需求不再写入特殊价格
+    EXPECT_EQ(offer.getAdjustedBuyPrice(), 5 + 20); // 5 + min(59, floor(5 * 8 * 0.5) = 20)
+
+    // 上限由物品最大堆叠数约束：价格不会超过 64
+    ItemStack cheap(bread_, 64);
+    MerchantOffer capped(cheap, ItemStack(emerald_, 1), 16, 2, 1.0f);
+    capped.setDemand(100);
+    EXPECT_EQ(capped.getAdjustedBuyPrice(), 64);
 }
 
 TEST_F(MerchantOfferTest, UpdateDemand_NegativeSpecialPriceReducesCost)
 {
-    // 负需求导致负 specialPrice，降低交易成本
+    // 负需求只降低需求加成（下限为 0），不会低于基础价格
     ItemStack buyA(emerald_, 10);
     ItemStack sell(bread_, 6);
     MerchantOffer offer(buyA, sell, 16, 2, 0.5f);
@@ -637,14 +644,18 @@ TEST_F(MerchantOfferTest, UpdateDemand_NegativeSpecialPriceReducesCost)
     // 未使用：demand = 0 + 0 - 16 = -16
     offer.updateDemand();
     EXPECT_EQ(offer.getDemand(), -16);
-    EXPECT_EQ(offer.getSpecialPrice(), -8);    // -16 * 0.5 = -8
-    EXPECT_EQ(offer.getAdjustedBuyPrice(), 2); // max(1, 10 + (-8)) = 2
+    EXPECT_EQ(offer.getSpecialPrice(), 0);
+    EXPECT_EQ(offer.getAdjustedBuyPrice(), 10);
+
+    // 负需求叠加声誉降价时，最低仍为 1
+    offer.setSpecialPrice(-20);
+    EXPECT_EQ(offer.getAdjustedBuyPrice(), 1);
 }
 
 TEST_F(MerchantOfferTest, UpdateDemand_PriceMultiplierOne)
 {
-    // priceMultiplier = 1.0 时 specialPrice = demand
-    ItemStack buyA(emerald_, 1);
+    // priceMultiplier = 1.0 时需求加成 = floor(基础数量 * demand)
+    ItemStack buyA(emerald_, 3);
     ItemStack sell(bread_, 6);
     MerchantOffer offer(buyA, sell, 4, 2, 1.0f);
 
@@ -654,7 +665,7 @@ TEST_F(MerchantOfferTest, UpdateDemand_PriceMultiplierOne)
     // demand = 0 + 3 - (4-3) = 0 + 3 - 1 = 2
     offer.updateDemand();
     EXPECT_EQ(offer.getDemand(), 2);
-    EXPECT_EQ(offer.getSpecialPrice(), 2); // 2 * 1.0 = 2
+    EXPECT_EQ(offer.getAdjustedBuyPrice(), 9); // 3 + floor(3 * 2 * 1.0) = 9
 }
 
 // ============================================================================
@@ -673,8 +684,10 @@ TEST_F(MerchantOffersTest, NeedsRestockAny_NoOffers_ReturnsFalse)
 TEST_F(MerchantOffersTest, NeedsRestockAny_NoUses_ReturnsFalse)
 {
     // 所有交易都未使用过，不需要补货
-    auto offer1 = std::make_unique<MerchantOffer>(ItemStack(emerald_, 1), ItemStack(bread_, 6), 16, 2, 0.05f);
-    auto offer2 = std::make_unique<MerchantOffer>(ItemStack(emerald_, 2), ItemStack(diamond_, 1), 8, 5, 0.05f);
+    auto offer1 =
+        std::make_unique<MerchantOffer>(ItemCost(ItemStack(emerald_, 1), 1), ItemStack(bread_, 6), 16, 2, 0.05f);
+    auto offer2 =
+        std::make_unique<MerchantOffer>(ItemCost(ItemStack(emerald_, 2), 2), ItemStack(diamond_, 1), 8, 5, 0.05f);
     offers.addOffer(std::move(offer1));
     offers.addOffer(std::move(offer2));
 
@@ -684,8 +697,10 @@ TEST_F(MerchantOffersTest, NeedsRestockAny_NoUses_ReturnsFalse)
 TEST_F(MerchantOffersTest, NeedsRestockAny_OneOfferUsed_ReturnsTrue)
 {
     // 只有一个交易被使用过
-    auto offer1 = std::make_unique<MerchantOffer>(ItemStack(emerald_, 1), ItemStack(bread_, 6), 16, 2, 0.05f);
-    auto offer2 = std::make_unique<MerchantOffer>(ItemStack(emerald_, 2), ItemStack(diamond_, 1), 8, 5, 0.05f);
+    auto offer1 =
+        std::make_unique<MerchantOffer>(ItemCost(ItemStack(emerald_, 1), 1), ItemStack(bread_, 6), 16, 2, 0.05f);
+    auto offer2 =
+        std::make_unique<MerchantOffer>(ItemCost(ItemStack(emerald_, 2), 2), ItemStack(diamond_, 1), 8, 5, 0.05f);
 
     offer1->increaseUses(); // 使用第一个交易
     offers.addOffer(std::move(offer1));
@@ -697,8 +712,10 @@ TEST_F(MerchantOffersTest, NeedsRestockAny_OneOfferUsed_ReturnsTrue)
 TEST_F(MerchantOffersTest, NeedsRestockAny_AllOffersUsed_ReturnsTrue)
 {
     // 所有交易都被使用过
-    auto offer1 = std::make_unique<MerchantOffer>(ItemStack(emerald_, 1), ItemStack(bread_, 6), 16, 2, 0.05f);
-    auto offer2 = std::make_unique<MerchantOffer>(ItemStack(emerald_, 2), ItemStack(diamond_, 1), 8, 5, 0.05f);
+    auto offer1 =
+        std::make_unique<MerchantOffer>(ItemCost(ItemStack(emerald_, 1), 1), ItemStack(bread_, 6), 16, 2, 0.05f);
+    auto offer2 =
+        std::make_unique<MerchantOffer>(ItemCost(ItemStack(emerald_, 2), 2), ItemStack(diamond_, 1), 8, 5, 0.05f);
 
     offer1->increaseUses();
     offer2->increaseUses();
@@ -711,8 +728,10 @@ TEST_F(MerchantOffersTest, NeedsRestockAny_AllOffersUsed_ReturnsTrue)
 TEST_F(MerchantOffersTest, NeedsRestockAny_AfterRestockAll_ReturnsFalse)
 {
     // 补货后所有交易 uses 归零，不需要补货
-    auto offer1 = std::make_unique<MerchantOffer>(ItemStack(emerald_, 1), ItemStack(bread_, 6), 4, 2, 0.05f);
-    auto offer2 = std::make_unique<MerchantOffer>(ItemStack(emerald_, 2), ItemStack(diamond_, 1), 8, 5, 0.05f);
+    auto offer1 =
+        std::make_unique<MerchantOffer>(ItemCost(ItemStack(emerald_, 1), 1), ItemStack(bread_, 6), 4, 2, 0.05f);
+    auto offer2 =
+        std::make_unique<MerchantOffer>(ItemCost(ItemStack(emerald_, 2), 2), ItemStack(diamond_, 1), 8, 5, 0.05f);
 
     offer1->increaseUses();
     offer1->increaseUses();
@@ -736,8 +755,10 @@ TEST_F(MerchantOffersTest, NeedsRestockAny_AfterRestockAll_ReturnsFalse)
 TEST_F(MerchantOffersTest, UpdateDemandAll_UpdatesAllOffers)
 {
     // 两个交易都有使用次数，updateDemandAll 应更新两者的 demand
-    auto offer1 = std::make_unique<MerchantOffer>(ItemStack(emerald_, 1), ItemStack(bread_, 6), 8, 2, 0.05f);
-    auto offer2 = std::make_unique<MerchantOffer>(ItemStack(emerald_, 2), ItemStack(diamond_, 1), 16, 5, 0.1f);
+    auto offer1 =
+        std::make_unique<MerchantOffer>(ItemCost(ItemStack(emerald_, 1), 1), ItemStack(bread_, 6), 8, 2, 0.05f);
+    auto offer2 =
+        std::make_unique<MerchantOffer>(ItemCost(ItemStack(emerald_, 2), 2), ItemStack(diamond_, 1), 16, 5, 0.1f);
 
     // offer1: 使用6次 → demand = 0 + 6 - (8-6) = 4
     for (int i = 0; i < 6; ++i) {
@@ -769,8 +790,10 @@ TEST_F(MerchantOffersTest, UpdateDemandAll_EmptyOffers_NoCrash)
 TEST_F(MerchantOffersTest, UpdateDemandAll_SpecialPriceUpdated)
 {
     // updateDemandAll 同时更新每个交易的 specialPrice
-    auto offer1 = std::make_unique<MerchantOffer>(ItemStack(emerald_, 1), ItemStack(bread_, 6), 4, 2, 0.5f);
-    auto offer2 = std::make_unique<MerchantOffer>(ItemStack(emerald_, 2), ItemStack(diamond_, 1), 8, 5, 0.25f);
+    auto offer1 =
+        std::make_unique<MerchantOffer>(ItemCost(ItemStack(emerald_, 1), 1), ItemStack(bread_, 6), 4, 2, 0.5f);
+    auto offer2 =
+        std::make_unique<MerchantOffer>(ItemCost(ItemStack(emerald_, 2), 2), ItemStack(diamond_, 1), 8, 5, 0.25f);
 
     // offer1: 使用3次 → demand = 0 + 3 - (4-3) = 2, specialPrice = 2 * 0.5 = 1
     for (int i = 0; i < 3; ++i) {
@@ -786,8 +809,11 @@ TEST_F(MerchantOffersTest, UpdateDemandAll_SpecialPriceUpdated)
 
     offers.updateDemandAll();
 
-    EXPECT_EQ(offers.getOffer(0)->getSpecialPrice(), 1);  // 2 * 0.5 = 1
-    EXPECT_EQ(offers.getOffer(1)->getSpecialPrice(), -1); // -4 * 0.25 = -1
+    // 需求不再改写特殊价格，只影响计价数量
+    EXPECT_EQ(offers.getOffer(0)->getSpecialPrice(), 0);
+    EXPECT_EQ(offers.getOffer(1)->getSpecialPrice(), 0);
+    EXPECT_EQ(offers.getOffer(0)->getAdjustedBuyPrice(), 2); // 1 + floor(1*2*0.5) = 2
+    EXPECT_EQ(offers.getOffer(1)->getAdjustedBuyPrice(), 2); // 2 + max(0, floor(2*-4*0.25)) = 2
 }
 
 // ============================================================================
@@ -798,8 +824,10 @@ TEST_F(MerchantOffersTest, UpdateDemandAll_SpecialPriceUpdated)
 
 TEST_F(MerchantOffersTest, ResetDailyRestockAll_ResetsAllRestockCounts)
 {
-    auto offer1 = std::make_unique<MerchantOffer>(ItemStack(emerald_, 1), ItemStack(bread_, 6), 4, 2, 0.05f);
-    auto offer2 = std::make_unique<MerchantOffer>(ItemStack(emerald_, 2), ItemStack(diamond_, 1), 8, 5, 0.05f);
+    auto offer1 =
+        std::make_unique<MerchantOffer>(ItemCost(ItemStack(emerald_, 1), 1), ItemStack(bread_, 6), 4, 2, 0.05f);
+    auto offer2 =
+        std::make_unique<MerchantOffer>(ItemCost(ItemStack(emerald_, 2), 2), ItemStack(diamond_, 1), 8, 5, 0.05f);
 
     // 模拟补货操作（补货会增加 restocksToday）
     offer1->increaseUses();
@@ -833,7 +861,8 @@ TEST_F(MerchantOffersTest, ResetDailyRestockAll_EmptyOffers_NoCrash)
 TEST_F(MerchantOffersTest, ResetDailyRestockAll_DoesNotResetUses)
 {
     // resetDailyRestockAll 只重置 restocksToday，不影响 uses
-    auto offer = std::make_unique<MerchantOffer>(ItemStack(emerald_, 1), ItemStack(bread_, 6), 4, 2, 0.05f);
+    auto offer =
+        std::make_unique<MerchantOffer>(ItemCost(ItemStack(emerald_, 1), 1), ItemStack(bread_, 6), 4, 2, 0.05f);
 
     offer->increaseUses();
     offer->increaseUses();
@@ -997,8 +1026,10 @@ TEST_F(MerchantOffersTest, RestockFullWorkflow_SimulateDailyRestockCycle)
     // 4. 补货（restockAll）
     // 5. 新的一天，重置每日补货计数（resetDailyRestockAll）
 
-    auto offer1 = std::make_unique<MerchantOffer>(ItemStack(emerald_, 5), ItemStack(bread_, 6), 8, 2, 0.05f);
-    auto offer2 = std::make_unique<MerchantOffer>(ItemStack(emerald_, 3), ItemStack(diamond_, 1), 4, 10, 0.2f);
+    auto offer1 =
+        std::make_unique<MerchantOffer>(ItemCost(ItemStack(emerald_, 5), 5), ItemStack(bread_, 6), 8, 2, 0.05f);
+    auto offer2 =
+        std::make_unique<MerchantOffer>(ItemCost(ItemStack(emerald_, 3), 3), ItemStack(diamond_, 1), 4, 10, 0.2f);
 
     // 模拟玩家交易
     for (int i = 0; i < 6; ++i) {
@@ -1062,7 +1093,6 @@ TEST_F(MerchantOffersTest, RestockFullWorkflow_SimulateDailyRestockCycle)
     EXPECT_EQ(offers.getOffer(0)->getSpecialPrice(), special0Before);
     EXPECT_EQ(offers.getOffer(1)->getSpecialPrice(), special1Before);
 }
-
 } // namespace
 } // namespace trade
 } // namespace village

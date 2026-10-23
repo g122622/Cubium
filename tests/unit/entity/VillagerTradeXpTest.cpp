@@ -29,6 +29,7 @@
 #include "common/world/village/VillageGossip.hpp"
 #include "common/world/village/VillageGossipType.hpp"
 #include "common/world/village/trade/MerchantOffer.hpp"
+#include "common/world/village/trade/TradeContext.hpp"
 #include "common/world/village/trade/VillagerTrades.hpp"
 
 using namespace mc;
@@ -555,7 +556,8 @@ TEST_F(MerchantOffersOpsTest, AddOffer_IncreasesSize)
     EXPECT_EQ(offers.size(), 0u);
     EXPECT_TRUE(offers.empty());
 
-    auto offer = std::make_unique<MerchantOffer>(ItemStack(emerald_, 1), ItemStack(bread_, 6), 16, 2, 0.05f);
+    auto offer =
+        std::make_unique<MerchantOffer>(ItemCost(ItemStack(emerald_, 1), 1), ItemStack(bread_, 6), 16, 2, 0.05f);
     offers.addOffer(std::move(offer));
 
     EXPECT_EQ(offers.size(), 1u);
@@ -564,7 +566,8 @@ TEST_F(MerchantOffersOpsTest, AddOffer_IncreasesSize)
 
 TEST_F(MerchantOffersOpsTest, GetOffer_ValidIndex)
 {
-    auto offer = std::make_unique<MerchantOffer>(ItemStack(emerald_, 1), ItemStack(bread_, 6), 16, 2, 0.05f);
+    auto offer =
+        std::make_unique<MerchantOffer>(ItemCost(ItemStack(emerald_, 1), 1), ItemStack(bread_, 6), 16, 2, 0.05f);
     offers.addOffer(std::move(offer));
 
     MerchantOffer* retrieved = offers.getOffer(0);
@@ -575,7 +578,8 @@ TEST_F(MerchantOffersOpsTest, GetOffer_ValidIndex)
 
 TEST_F(MerchantOffersOpsTest, GetOffer_OutOfBounds_ReturnsNull)
 {
-    auto offer = std::make_unique<MerchantOffer>(ItemStack(emerald_, 1), ItemStack(bread_, 6), 16, 2, 0.05f);
+    auto offer =
+        std::make_unique<MerchantOffer>(ItemCost(ItemStack(emerald_, 1), 1), ItemStack(bread_, 6), 16, 2, 0.05f);
     offers.addOffer(std::move(offer));
 
     EXPECT_EQ(offers.getOffer(1), nullptr);
@@ -585,7 +589,8 @@ TEST_F(MerchantOffersOpsTest, GetOffer_OutOfBounds_ReturnsNull)
 TEST_F(MerchantOffersOpsTest, RemoveOffer_DecreasesSize)
 {
     for (int i = 0; i < 3; ++i) {
-        auto offer = std::make_unique<MerchantOffer>(ItemStack(emerald_, i + 1), ItemStack(bread_, 1), 12, 1, 0.05f);
+        auto offer = std::make_unique<MerchantOffer>(
+            ItemCost(ItemStack(emerald_, i + 1), i + 1), ItemStack(bread_, 1), 12, 1, 0.05f);
         offers.addOffer(std::move(offer));
     }
     EXPECT_EQ(offers.size(), 3u);
@@ -605,8 +610,10 @@ TEST_F(MerchantOffersOpsTest, RemoveOffer_DecreasesSize)
 
 TEST_F(MerchantOffersOpsTest, RestockAll_ResetsUseCounts)
 {
-    auto offer1 = std::make_unique<MerchantOffer>(ItemStack(emerald_, 1), ItemStack(bread_, 6), 4, 2, 0.05f);
-    auto offer2 = std::make_unique<MerchantOffer>(ItemStack(emerald_, 2), ItemStack(diamond_, 1), 8, 5, 0.05f);
+    auto offer1 =
+        std::make_unique<MerchantOffer>(ItemCost(ItemStack(emerald_, 1), 1), ItemStack(bread_, 6), 4, 2, 0.05f);
+    auto offer2 =
+        std::make_unique<MerchantOffer>(ItemCost(ItemStack(emerald_, 2), 2), ItemStack(diamond_, 1), 8, 5, 0.05f);
 
     // 先使用几笔交易
     offer1->increaseUses();
@@ -629,38 +636,39 @@ TEST_F(MerchantOffersOpsTest, RestockAll_ResetsUseCounts)
     EXPECT_EQ(offers.getOffer(1)->getRestocksToday(), 1);
 }
 
-TEST_F(MerchantOffersOpsTest, UpdatePrices_AppliesModifier)
+TEST_F(MerchantOffersOpsTest, ResetSpecialPrices_ClearsDiscounts)
 {
-    auto offer = std::make_unique<MerchantOffer>(ItemStack(emerald_, 10), ItemStack(bread_, 6), 16, 2, 0.05f);
+    auto offer =
+        std::make_unique<MerchantOffer>(ItemCost(ItemStack(emerald_, 10), 10), ItemStack(bread_, 6), 16, 2, 0.05f);
+    offer->addToSpecialPrice(-1);
     offers.addOffer(std::move(offer));
 
-    // 基础价格 = 10
-    EXPECT_EQ(offers.getOffer(0)->getAdjustedBuyPrice(), 10);
-
-    // 应用 0.9 倍修正（正面声望，10% 折扣）
-    offers.updatePrices(0.9f);
-    // specialPrice = floor(10 * (1.0 - 0.9)) = floor(10 * 0.1) = 1
-    // adjustedPrice = 10 - 1 = 9
-    EXPECT_EQ(offers.getOffer(0)->getSpecialPrice(), -1);
     EXPECT_EQ(offers.getOffer(0)->getAdjustedBuyPrice(), 9);
+
+    offers.resetSpecialPrices();
+    EXPECT_EQ(offers.getOffer(0)->getSpecialPrice(), 0);
+    EXPECT_EQ(offers.getOffer(0)->getAdjustedBuyPrice(), 10);
 }
 
 TEST_F(MerchantOffersOpsTest, AppendOffers_MultipleLevels)
 {
     // 模拟 _increaseMerchantCareer 为多个等级追加交易
     // 先添加等级1的交易
-    auto offer1 = std::make_unique<MerchantOffer>(ItemStack(emerald_, 1), ItemStack(bread_, 6), 16, 2, 0.05f);
+    auto offer1 =
+        std::make_unique<MerchantOffer>(ItemCost(ItemStack(emerald_, 1), 1), ItemStack(bread_, 6), 16, 2, 0.05f);
     size_t initialSize = offers.size();
     offers.addOffer(std::move(offer1));
     EXPECT_EQ(offers.size(), initialSize + 1);
 
     // 追加等级2的交易（不替换等级1的交易）
-    auto offer2 = std::make_unique<MerchantOffer>(ItemStack(emerald_, 3), ItemStack(diamond_, 1), 12, 10, 0.05f);
+    auto offer2 =
+        std::make_unique<MerchantOffer>(ItemCost(ItemStack(emerald_, 3), 3), ItemStack(diamond_, 1), 12, 10, 0.05f);
     offers.addOffer(std::move(offer2));
     EXPECT_EQ(offers.size(), initialSize + 2);
 
     // 追加等级3的交易
-    auto offer3 = std::make_unique<MerchantOffer>(ItemStack(emerald_, 5), ItemStack(diamond_, 1), 8, 20, 0.2f);
+    auto offer3 =
+        std::make_unique<MerchantOffer>(ItemCost(ItemStack(emerald_, 5), 5), ItemStack(diamond_, 1), 8, 20, 0.2f);
     offers.addOffer(std::move(offer3));
     EXPECT_EQ(offers.size(), initialSize + 3);
 
@@ -779,7 +787,10 @@ TEST(VillagerTradesBasicTest, Nitwit_HasNoTrades)
 {
     // 傻子村民没有交易
     EXPECT_FALSE(VillagerTrades::hasTrades(VillagerProfession::Nitwit));
-    auto offers = VillagerTrades::generateOffers(VillagerProfession::Nitwit, VillagerType::Plains, 1, 0, 42);
+    TradeContext ctx;
+    ctx.traderSeed = 42;
+    ctx.sequence = 1;
+    auto offers = VillagerTrades::generateOffers(VillagerProfession::Nitwit, 1, ctx);
     ASSERT_NE(offers, nullptr);
     EXPECT_EQ(offers->size(), 0u) << "Nitwit should have no trades";
 }

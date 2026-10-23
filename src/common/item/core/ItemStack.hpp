@@ -477,6 +477,21 @@ public:
     }
 
     /**
+     * @brief 获取 suspicious_stew_effects 组件
+     * @return 组件指针，未设置返回 nullptr
+     */
+    [[nodiscard]] const item::component::SuspiciousStewEffectsPayload* getStewEffects() const
+    {
+        return (m_extras && m_extras->stewEffects) ? &*m_extras->stewEffects : nullptr;
+    }
+
+    /**
+     * @brief 设置 suspicious_stew_effects 组件
+     * @param effects 效果列表（空列表清除组件）
+     */
+    void setStewEffects(item::component::SuspiciousStewEffectsPayload effects);
+
+    /**
      * @brief 设置 attack_range 组件
      * @param range 攻击范围
      */

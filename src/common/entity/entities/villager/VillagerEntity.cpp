@@ -1212,19 +1212,15 @@ void VillagerEntity::resetNumberOfRestocks()
 
 void VillagerEntity::_catchUpDemand()
 {
-    // 需求补偿逻辑：
-    // 如果昨日补货少于2次，对每次未补货执行额外的 resetUses + updateDemand
+    // 需求补偿：昨日若补货次数不足 2 次，先一次性重置使用次数，
+    // 再按错过的次数逐次更新需求（uses 已清零，每次需求 -maxUses）。
     if (!m_offers) return;
 
     const i32 missedRestocks = 2 - m_numberOfRestocksToday;
     if (missedRestocks > 0) {
-        // 对每次错过的补货，重置使用次数并更新需求
-        for (i32 i = 0; i < missedRestocks; ++i) {
-            m_offers->restockAll();
-        }
+        m_offers->restockAll();
     }
 
-    // 对每次错过的补货，更新需求值
     for (i32 i = 0; i < missedRestocks; ++i) {
         m_offers->updateDemandAll();
     }
@@ -1392,19 +1388,24 @@ void VillagerEntity::updateOffers()
         return;
     }
 
-    // 使用世界种子和实体ID生成唯一种子，确保每个村民交易不同
-    u64 seed = 0;
-    if (m_world) {
-        seed = m_world->seed();
-    }
-    seed = seed * 31 + static_cast<u64>(id());
+    // 生成 1 级到当前等级的全部交易（与原版 Villager.updateTrades 的逐级追加结果一致：
+    // 首次生成时等级为 1，升级时由 _increaseMerchantCareer 追加后续等级，这里做整体重建）
+    world::village::trade::TradeContext ctx;
+    ctx.world = m_world;
+    ctx.trader = this;
+    ctx.traderSeed = (m_world != nullptr ? m_world->seed() : 0) * 31 + static_cast<u64>(id());
 
-    // 生成新的交易列表
-    m_offers = VillagerTrades::generateOffers(m_villagerData.profession(),
-        m_villagerData.type(),
-        m_villagerData.level(),
-        0, // 需求修正
-        seed);
+    m_offers = std::make_unique<MerchantOffers>();
+    for (i32 level = 1; level <= m_villagerData.level(); ++level) {
+        ctx.sequence = static_cast<std::size_t>(level);
+        auto levelOffers = VillagerTrades::generateOffers(m_villagerData.profession(), level, ctx);
+        for (size_t i = 0; i < levelOffers->size(); ++i) {
+            MerchantOffer* offer = levelOffers->getOffer(i);
+            if (offer != nullptr) {
+                m_offers->addOffer(std::make_unique<MerchantOffer>(*offer));
+            }
+        }
+    }
 }
 
 void VillagerEntity::rewardTradeXp(MerchantOffer& offer)
@@ -1480,12 +1481,10 @@ void VillagerEntity::_increaseMerchantCareer()
 
     using namespace world::village::trade;
 
-    // 使用世界种子和实体ID生成唯一种子，确保每个村民交易不同
-    u64 seed = 0;
-    if (m_world) {
-        seed = m_world->seed();
-    }
-    seed = seed * 31 + static_cast<u64>(id());
+    world::village::trade::TradeContext ctx;
+    ctx.world = m_world;
+    ctx.trader = this;
+    ctx.traderSeed = (m_world != nullptr ? m_world->seed() : 0) * 31 + static_cast<u64>(id());
 
     // 为所有新等级（prevLevel+1 到 currentLevel）生成交易并追加到现有列表
     // 注意：等级已由 addExperience() 正确递增，不需要再调用 setLevel()
@@ -1493,23 +1492,19 @@ void VillagerEntity::_increaseMerchantCareer()
     const i32 prevLevel = m_prevLevelBeforeTrade;
 
     for (i32 level = prevLevel + 1; level <= currentLevel; ++level) {
-        auto newOffers = VillagerTrades::generateOffers(m_villagerData.profession(),
-            m_villagerData.type(),
-            level,
-            0,                               // demand
-            seed + static_cast<u64>(level)); // 不同等级使用不同种子
+        ctx.sequence = static_cast<std::size_t>(level);
+        auto newOffers = VillagerTrades::generateOffers(m_villagerData.profession(), level, ctx);
 
-        if (newOffers && m_offers) {
-            // 将新等级的交易追加到现有交易列表
-            for (size_t i = 0; i < newOffers->size(); ++i) {
-                MerchantOffer* offer = newOffers->getOffer(i);
-                if (offer != nullptr) {
-                    m_offers->addOffer(std::make_unique<MerchantOffer>(*offer));
-                }
-            }
-        } else if (newOffers && !m_offers) {
-            // 如果现有交易列表不存在（不应该发生，但防御性处理），直接替换
+        if (!m_offers) {
             m_offers = std::move(newOffers);
+            continue;
+        }
+
+        for (size_t i = 0; i < newOffers->size(); ++i) {
+            MerchantOffer* offer = newOffers->getOffer(i);
+            if (offer != nullptr) {
+                m_offers->addOffer(std::make_unique<MerchantOffer>(*offer));
+            }
         }
     }
 }
@@ -1782,17 +1777,14 @@ void WanderingTraderEntity::updateOffers()
         WanderingTraderTrades::initialize();
     }
 
-    // 获取世界种子作为交易生成的随机种子
-    u64 seed = 0;
-    if (m_world) {
-        seed = m_world->seed();
-    }
+    // 使用实体ID混合种子，确保每个流浪商人有独特的交易（世界随机流仍为首选随机源）。
+    // 流浪商人没有村民类型，依赖类型的条目对其返回空交易
+    TradeContext ctx;
+    ctx.world = m_world;
+    ctx.trader = nullptr;
+    ctx.traderSeed = (m_world != nullptr ? m_world->seed() : 0) * 31 + static_cast<u64>(id());
 
-    // 使用实体ID混合种子，确保每个流浪商人有独特的交易
-    seed = seed * 31 + static_cast<u64>(id());
-
-    // 生成交易列表
-    m_offers = WanderingTraderTrades::generateOffers(seed);
+    m_offers = WanderingTraderTrades::generateOffers(ctx);
 }
 
 std::optional<ResourceLocation> WanderingTraderEntity::getAmbientSound() const

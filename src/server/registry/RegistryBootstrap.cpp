@@ -72,6 +72,7 @@
 #include "common/world/timeline/TimelineRegistry.hpp"
 #include "common/world/timeline/Timelines.hpp"
 #include "common/world/village/trade/VillagerTrades.hpp"
+#include "common/world/village/trade/WanderingTraderTrades.hpp"
 #include "server/function/FunctionLoader.hpp"
 #include "server/function/FunctionManager.hpp"
 #include "server/item/instrument/InstrumentLoader.hpp"
@@ -664,10 +665,12 @@ void RegistryBootstrap::initializeAll(bool registerEntities)
     }
     spdlog::info("Memory module types initialized");
 
-    // 初始化村民交易配方表
+    // 初始化村民交易配方表。交易条目在构建时会解析物品指针（Items::XXX 与附魔注册表），
+    // 因此必须位于 Items / Enchantments 初始化之后。
     {
         MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Initialization, "RegistryBootstrap::initializeAll::VillagerTrades");
         world::village::trade::VillagerTrades::initialize();
+        world::village::trade::WanderingTraderTrades::initialize();
     }
 
     // 初始化 Java id 映射表（level_chunk_with_light vanilla wire 用）。

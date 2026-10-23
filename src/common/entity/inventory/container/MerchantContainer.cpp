@@ -90,7 +90,9 @@ void MerchantContainer::setItem(i32 slot, const ItemStack& stack)
         return;
     }
 
-    m_items[slot] = std::move(stack);
+    // 参数是 const 引用：调用方可能直接传入 m_items[slot] 自身（交换/转账场景），
+    // 若此时用 std::move 会把源槽清空；按值拷贝后再移动，语义上等价于赋值
+    m_items[slot] = ItemStack(stack);
     if (_isPaymentSlot(slot)) {
         updateSellItem();
     }
@@ -131,10 +133,10 @@ void MerchantContainer::updateSellItem()
     ItemStack buyA;
     ItemStack buyB;
 
-    // 确定主要和次要支付物品
+    // 支付槽按"第一个非空槽即为主支付"折叠；双物品交易即使反序放入也保留两个槽，
+    // 由下方的交换匹配分支处理，避免第二个槽被当作主支付而丢失其余槽位信息
     if (m_items[SLOT_BUY_A].isEmpty()) {
         buyA = m_items[SLOT_BUY_B];
-        buyB = ItemStack();
     } else {
         buyA = m_items[SLOT_BUY_A];
         buyB = m_items[SLOT_BUY_B];
@@ -156,17 +158,30 @@ void MerchantContainer::updateSellItem()
     // 尝试按原始顺序匹配交易
     MerchantOffer* offer = offers.getOfferFor(buyA, buyB, m_selectionHint);
 
-    // 如果按原始顺序无匹配，或匹配到的交易已售罄，尝试交换支付槽顺序
-    if (offer == nullptr || offer->isOutOfStock()) {
-        m_activeOffer = offer;
-        offer = offers.getOfferFor(buyB, buyA, m_selectionHint);
+    // 如果按原始顺序无匹配或支付不足，尝试交换支付槽顺序。
+    // 交换语义：offer 的 costA ↔ costB 与常量槽绑定（costA 对应槽 A、costB 对应槽 B），
+    // 因此命中交换交易时必须临时互换两条代价，否则后续 canAccept / take 仍按原顺序判定
+    bool swappedCosts = false;
+    if (offer == nullptr || offer->isOutOfStock() || !offer->canAccept(m_items[SLOT_BUY_A], m_items[SLOT_BUY_B])) {
+        MerchantOffer* swapped = offers.getOfferFor(buyB, buyA, m_selectionHint);
+        if (swapped != nullptr) {
+            offer = swapped;
+            swappedCosts = true;
+        }
     }
 
-    if (offer != nullptr && !offer->isOutOfStock()) {
+    if (swappedCosts) {
+        offer->swapCosts();
+    }
+
+    // 结果槽只在"支付物品已足额"时出现（对应原版 isSatisfiedBy 门控），
+    // 避免玩家放入不足数量的物品时就拿走商品
+    if (offer != nullptr && !offer->isOutOfStock() && offer->canAccept(m_items[SLOT_BUY_A], m_items[SLOT_BUY_B])) {
         m_activeOffer = offer;
         m_items[SLOT_RESULT] = offer->getSell().copy();
         m_futureXp = offer->getXp();
     } else {
+        m_activeOffer = offer;
         m_items[SLOT_RESULT] = ItemStack();
         m_futureXp = 0;
     }

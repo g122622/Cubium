@@ -292,8 +292,10 @@ TEST_F(MerchantContainerTest, UpdateSellItem_DoubleItemOffer_SwappedSlots)
     MerchantContainer container(merchant_);
 
     // 反向放入支付物品（钻石在A，绿宝石在B）
-    container.setItem(MerchantContainer::SLOT_BUY_A, ItemStack(diamond_, 1));
-    container.setItem(MerchantContainer::SLOT_BUY_B, ItemStack(emerald_, 1));
+    ItemStack diamondStack(diamond_, 1);
+    ItemStack emeraldStack(emerald_, 1);
+    container.setItem(MerchantContainer::SLOT_BUY_A, diamondStack);
+    container.setItem(MerchantContainer::SLOT_BUY_B, emeraldStack);
 
     // 结果槽仍应自动更新（容器会尝试交换顺序）
     ItemStack result = container.getItem(MerchantContainer::SLOT_RESULT);

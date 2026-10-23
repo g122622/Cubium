@@ -25,6 +25,7 @@
 
 #include "common/core/Types.hpp"
 #include "common/item/core/ItemStack.hpp"
+#include "common/world/village/trade/ItemCost.hpp"
 #include <memory>
 #include <optional>
 
@@ -55,12 +56,24 @@ class MerchantOffer {
 public:
     /**
      * @brief 默认构造函数
+     *
+     * 支付代价为空物品堆（数量 1），仅用于反序列化与测试占位。
      */
-    MerchantOffer() = default;
+    MerchantOffer();
 
     /**
-     * @brief 构造函数（单物品交易）
-     * @param buyA 买入物品
+     * @brief 构造函数（单物品支付）
+     * @param costA 第一支付代价
+     * @param sell 卖出物品
+     * @param maxUses 最大使用次数
+     * @param xp 交易给予的经验
+     * @param priceMultiplier 价格乘数
+     */
+    MerchantOffer(ItemCost costA, ItemStack sell, i32 maxUses, i32 xp, f32 priceMultiplier);
+
+    /**
+     * @brief 构造函数（单物品支付，以物品堆的数量作为代价数量）
+     * @param buyA 第一支付物品（数量即基础代价）
      * @param sell 卖出物品
      * @param maxUses 最大使用次数
      * @param xp 交易给予的经验
@@ -69,9 +82,21 @@ public:
     MerchantOffer(ItemStack buyA, ItemStack sell, i32 maxUses, i32 xp, f32 priceMultiplier);
 
     /**
-     * @brief 构造函数（双物品交易）
-     * @param buyA 第一买入物品
-     * @param buyB 第二买入物品（可选）
+     * @brief 构造函数（双物品支付）
+     * @param costA 第一支付代价
+     * @param costB 第二支付代价（可选）
+     * @param sell 卖出物品
+     * @param maxUses 最大使用次数
+     * @param xp 交易给予的经验
+     * @param priceMultiplier 价格乘数
+     */
+    MerchantOffer(
+        ItemCost costA, std::optional<ItemCost> costB, ItemStack sell, i32 maxUses, i32 xp, f32 priceMultiplier);
+
+    /**
+     * @brief 构造函数（双物品支付，以物品堆数量作为各自的基础代价）
+     * @param buyA 第一支付物品
+     * @param buyB 第二支付物品
      * @param sell 卖出物品
      * @param maxUses 最大使用次数
      * @param xp 交易给予的经验
@@ -93,6 +118,14 @@ public:
      * @brief 检查交易是否可行（单物品）
      */
     [[nodiscard]] bool canAccept(const ItemStack& offered) const;
+
+    /**
+     * @brief 检查支付物品种类/组件是否匹配（不校验数量）
+     *
+     * 原版 updateSellItem 用它判断当前支付槽组合对应哪一条交易，数量不足时
+     * 依然返回该交易（结果槽展示 + 引导玩家补足物品）。
+     */
+    [[nodiscard]] bool matchesInput(const ItemStack& offeredA, const ItemStack& offeredB) const;
 
     // ========== 交易操作 ==========
 
@@ -173,16 +206,24 @@ public:
     // ========== 物品获取 ==========
 
     /**
-     * @brief 获取第一买入物品
+     * @brief 获取第一支付代价
      */
-    [[nodiscard]] const ItemStack& getBuyA() const noexcept { return m_buyA; }
-    ItemStack& getBuyA() noexcept { return m_buyA; }
+    [[nodiscard]] const ItemCost& getCostA() const noexcept { return m_costA; }
 
     /**
-     * @brief 获取第二买入物品
+     * @brief 获取第二支付代价（可选）
      */
-    [[nodiscard]] const std::optional<ItemStack>& getBuyB() const noexcept { return m_buyB; }
-    std::optional<ItemStack>& getBuyB() noexcept { return m_buyB; }
+    [[nodiscard]] const std::optional<ItemCost>& getCostB() const noexcept { return m_costB; }
+
+    /**
+     * @brief 获取第一支付物品（数量 = 基础数量 + 需求修正，不含声誉/英雄特殊价格）
+     */
+    [[nodiscard]] ItemStack getBuyA() const;
+
+    /**
+     * @brief 获取第二支付物品（可选）
+     */
+    [[nodiscard]] std::optional<ItemStack> getBuyB() const;
 
     /**
      * @brief 获取卖出物品
@@ -198,7 +239,7 @@ public:
     [[nodiscard]] f32 getPriceMultiplier() const noexcept { return m_priceMultiplier; }
 
     /**
-     * @brief 获取特殊价格修正
+     * @brief 获取特殊价格修正（声誉 / 英雄效果带来的一次性偏移）
      */
     [[nodiscard]] i32 getSpecialPrice() const noexcept { return m_specialPrice; }
 
@@ -206,6 +247,17 @@ public:
      * @brief 设置特殊价格修正
      */
     void setSpecialPrice(i32 price) noexcept { m_specialPrice = price; }
+
+    /**
+     * @brief 叠加特殊价格修正（声誉与英雄效果按来源追加偏移）
+     * @param delta 偏移量
+     */
+    void addToSpecialPrice(i32 delta) noexcept { m_specialPrice += delta; }
+
+    /**
+     * @brief 清零特殊价格修正（交易结束/开始新会话时调用）
+     */
+    void resetSpecialPrice() noexcept { m_specialPrice = 0; }
 
     /**
      * @brief 获取需求修正
@@ -218,25 +270,33 @@ public:
     void setDemand(i32 demand) noexcept { m_demand = demand; }
 
     /**
-     * @brief 应用需求调整
-     * @param demandBonus 需求加成
+     * @brief 互换第一支付与第二支付代价
+     *
+     * 交易界面允许玩家把两种支付物品反序放入支付槽；容器在命中交换匹配时调用本方法，
+     * 使 costA 始终对应槽 A、costB 始终对应槽 B。
      */
-    void applyDemand(i32 demandBonus);
+    void swapCosts();
 
     /**
      * @brief 更新需求值
      *
-     * MC原版逻辑：demand = demand + uses - (maxUses - uses)
-     * 如果交易被大量使用（uses > maxUses/2），需求增加（价格上涨）；
-     * 如果交易使用较少（uses < maxUses/2），需求减少（价格下降）。
-     * 调整后重新计算特殊价格：specialPrice = demand * priceMultiplier
+     * 需求只由使用次数决定：demand = demand + uses - (maxUses - uses)。
+     * 它不直接改写特殊价格，而是在计价时按 demand * priceMultiplier 折算为额外数量，
+     * 与声誉/英雄效果的特殊价格偏移相互独立。
      */
     void updateDemand();
 
     /**
-     * @brief 获取调整后的买入价格
+     * @brief 获取调整后的第一支付数量
+     * @return clamp(基础数量 + floor(基础数量 * demand * priceMultiplier) + 特殊价格偏移,
+     *         1, 物品最大堆叠数)
      */
     [[nodiscard]] i32 getAdjustedBuyPrice() const noexcept;
+
+    /**
+     * @brief 获取不含特殊价格偏移的第一支付数量
+     */
+    [[nodiscard]] i32 getBaseModifiedCostCount() const noexcept;
 
     // ========== 经验 ==========
 
@@ -275,11 +335,11 @@ public:
     static MerchantOffer deserialize(const nbt::tags::compound_tag& tag);
 
 private:
-    /// 第一买入物品
-    ItemStack m_buyA;
+    /// 第一支付代价
+    ItemCost m_costA;
 
-    /// 第二买入物品（可选）
-    std::optional<ItemStack> m_buyB;
+    /// 第二支付代价（可选）
+    std::optional<ItemCost> m_costB;
 
     /// 卖出物品
     ItemStack m_sell;
@@ -296,7 +356,7 @@ private:
     /// 价格乘数
     f32 m_priceMultiplier = 1.0f;
 
-    /// 特殊价格修正（来自流言）
+    /// 特殊价格修正（声誉 / 英雄效果）
     i32 m_specialPrice = 0;
 
     /// 需求修正（动态调整）

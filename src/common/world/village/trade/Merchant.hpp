@@ -114,9 +114,12 @@ public:
     void resetDailyRestockAll();
 
     /**
-     * @brief 更新价格（基于声誉）
+     * @brief 清零所有交易的特殊价格偏移
+     *
+     * 声誉与英雄效果的偏移是"对当前交易玩家"的一次性修正：交易结束
+     * （stopTrading）时清零，避免跨玩家累积。
      */
-    void updatePrices(f32 modifier);
+    void resetSpecialPrices();
 
     // 序列化
     void serialize(nbt::tags::compound_tag& tag) const;

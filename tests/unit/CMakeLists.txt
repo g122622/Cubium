@@ -1776,6 +1776,7 @@ add_executable(mc_tests
     common/world/village/VillageTest.cpp
     # 村庄交易系统测试
     common/world/village/trade/MerchantOfferTest.cpp
+    common/world/village/trade/TradeTablesTest.cpp
     # 袭击系统测试
     common/world/village/raid/RaidHeroTrackingTest.cpp
     # 袭击系统测试（原 mc_village_tests 并入）
@@ -2145,6 +2146,11 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/common/world/village/raid/RaiderType.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/village/trade/MerchantOffer.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/village/trade/MerchantOffers.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/world/village/trade/ItemCost.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/world/village/trade/TradeContext.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/world/village/trade/TradeRandom.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/world/village/trade/VillagerTrades.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/world/village/trade/WanderingTraderTrades.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/biome/Biome.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/biome/BiomeRegistry.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/biome/BiomeGenerationSettings.cpp

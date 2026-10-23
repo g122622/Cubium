@@ -29,6 +29,7 @@
 #include "common/item/core/ItemStack.hpp"
 #include "common/util/nbt/Nbt.hpp"
 #include <algorithm>
+#include <cmath>
 #include <cstdint>
 #include <memory>
 #include <string>
@@ -39,8 +40,12 @@ namespace world {
 namespace village {
 namespace trade {
 
+MerchantOffer::MerchantOffer()
+    : m_costA(ItemStack(), 1)
+{}
+
 MerchantOffer::MerchantOffer(ItemStack buyA, ItemStack sell, i32 maxUses, i32 xp, f32 priceMultiplier)
-    : m_buyA(std::move(buyA))
+    : m_costA(buyA, buyA.getCount())
     , m_sell(std::move(sell))
     , m_maxUses(maxUses)
     , m_xp(xp)
@@ -48,13 +53,61 @@ MerchantOffer::MerchantOffer(ItemStack buyA, ItemStack sell, i32 maxUses, i32 xp
 {}
 
 MerchantOffer::MerchantOffer(ItemStack buyA, ItemStack buyB, ItemStack sell, i32 maxUses, i32 xp, f32 priceMultiplier)
-    : m_buyA(std::move(buyA))
-    , m_buyB(std::move(buyB))
+    : m_costA(std::move(buyA), buyA.getCount())
+    , m_costB(ItemCost(std::move(buyB), buyB.getCount()))
     , m_sell(std::move(sell))
     , m_maxUses(maxUses)
     , m_xp(xp)
     , m_priceMultiplier(priceMultiplier)
 {}
+
+MerchantOffer::MerchantOffer(ItemCost costA, ItemStack sell, i32 maxUses, i32 xp, f32 priceMultiplier)
+    : m_costA(std::move(costA))
+    , m_sell(std::move(sell))
+    , m_maxUses(maxUses)
+    , m_xp(xp)
+    , m_priceMultiplier(priceMultiplier)
+{}
+
+MerchantOffer::MerchantOffer(
+    ItemCost costA, std::optional<ItemCost> costB, ItemStack sell, i32 maxUses, i32 xp, f32 priceMultiplier)
+    : m_costA(std::move(costA))
+    , m_costB(std::move(costB))
+    , m_sell(std::move(sell))
+    , m_maxUses(maxUses)
+    , m_xp(xp)
+    , m_priceMultiplier(priceMultiplier)
+{}
+
+ItemStack MerchantOffer::getBuyA() const
+{
+    return m_costA.toStack();
+}
+
+std::optional<ItemStack> MerchantOffer::getBuyB() const
+{
+    if (!m_costB.has_value()) {
+        return std::nullopt;
+    }
+    return m_costB->toStack();
+}
+
+i32 MerchantOffer::getBaseModifiedCostCount() const noexcept
+{
+    const i32 base = m_costA.count();
+    // 需求按"基础数量的百分比"折算：floor(base * demand * priceMultiplier)
+    const i32 demandBonus = std::max(0, static_cast<i32>(std::floor(base * m_demand * m_priceMultiplier)));
+    const i32 maxStack = m_costA.templateStack().getMaxStackSize();
+    return std::clamp(base + demandBonus, 1, std::max(1, maxStack));
+}
+
+i32 MerchantOffer::getAdjustedBuyPrice() const noexcept
+{
+    const i32 base = m_costA.count();
+    const i32 demandBonus = std::max(0, static_cast<i32>(std::floor(base * m_demand * m_priceMultiplier)));
+    const i32 maxStack = m_costA.templateStack().getMaxStackSize();
+    return std::clamp(base + demandBonus + m_specialPrice, 1, std::max(1, maxStack));
+}
 
 bool MerchantOffer::canAccept(const ItemStack& offeredA, const ItemStack& offeredB) const
 {
@@ -62,16 +115,19 @@ bool MerchantOffer::canAccept(const ItemStack& offeredA, const ItemStack& offere
         return false;
     }
 
-    // 检查第一物品
-    if (!offeredA.canStackWith(m_buyA) || offeredA.getCount() < getAdjustedBuyPrice()) {
+    // 第一支付：物品 + 组件谓词 + 需求修正后的数量
+    if (!m_costA.test(offeredA) || offeredA.getCount() < getAdjustedBuyPrice()) {
         return false;
     }
 
-    // 检查第二物品（如果需要）
-    if (m_buyB.has_value()) {
-        if (!offeredB.canStackWith(*m_buyB) || offeredB.getCount() < m_buyB->getCount()) {
+    // 第二支付：数量固定，不受需求与特殊价格影响
+    if (m_costB.has_value()) {
+        if (!m_costB->test(offeredB)) {
             return false;
         }
+    } else if (!offeredB.isEmpty()) {
+        // 单支付槽交易不接受第二物品
+        return false;
     }
 
     return true;
@@ -82,101 +138,95 @@ bool MerchantOffer::canAccept(const ItemStack& offered) const
     return canAccept(offered, ItemStack());
 }
 
+bool MerchantOffer::matchesInput(const ItemStack& offeredA, const ItemStack& offeredB) const
+{
+    if (!m_costA.testComponentwise(offeredA)) {
+        return false;
+    }
+    if (m_costB.has_value()) {
+        return m_costB->testComponentwise(offeredB);
+    }
+    return offeredB.isEmpty();
+}
+
 bool MerchantOffer::apply(Player& player, IMerchant& merchant)
 {
-    // 检查是否已售罄
-    if (isOutOfStock()) {
+    PlayerInventory& inventory = player.inventory();
+
+    // 背包整包扣减按支付代价逐槽匹配，匹配语义与 take() 一致
+    const i32 buyACount = getAdjustedBuyPrice();
+    const i32 buyBCount = m_costB.has_value() ? m_costB->count() : 0;
+
+    // 预检：第一支付数量是否足够
+    i32 availableA = 0;
+    for (i32 slot = 0; slot < inventory.getContainerSize(); ++slot) {
+        const ItemStack slotStack = inventory.getItem(slot);
+        if (m_costA.test(slotStack)) {
+            availableA += slotStack.getCount();
+        }
+    }
+    if (availableA < buyACount) {
         return false;
     }
 
-    // 获取玩家背包
-    PlayerInventory& inventory = player.inventory();
-
-    // 获取调整后的买入价格
-    i32 buyACount = getAdjustedBuyPrice();
-    i32 buyBCount = m_buyB.has_value() ? m_buyB->getCount() : 0;
-
-    // 检查玩家是否有足够的物品
-    // 先检查买入物品A
-    i32 buyAAvailable = 0;
-    for (i32 slot = 0; slot < inventory.getContainerSize(); ++slot) {
-        ItemStack slotStack = inventory.getItem(slot);
-        if (slotStack.canStackWith(m_buyA)) {
-            buyAAvailable += slotStack.getCount();
-        }
-    }
-    if (buyAAvailable < buyACount) {
-        return false; // 物品A不足
-    }
-
-    // 检查买入物品B（如果需要）
-    if (m_buyB.has_value()) {
-        i32 buyBAvailable = 0;
+    // 预检：第二支付数量是否足够
+    if (m_costB.has_value()) {
+        i32 availableB = 0;
         for (i32 slot = 0; slot < inventory.getContainerSize(); ++slot) {
-            ItemStack slotStack = inventory.getItem(slot);
-            if (slotStack.canStackWith(*m_buyB)) {
-                buyBAvailable += slotStack.getCount();
+            const ItemStack slotStack = inventory.getItem(slot);
+            if (m_costB->test(slotStack)) {
+                availableB += slotStack.getCount();
             }
         }
-        if (buyBAvailable < buyBCount) {
-            return false; // 物品B不足
+        if (availableB < buyBCount) {
+            return false;
         }
     }
 
-    // 检查卖出物品是否可以放入背包
-    ItemStack sellCopy = m_sell;
-    i32 sellCount = m_sell.getCount();
-
-    // 计算背包可以容纳多少卖出物品
+    // 预检：卖出物品能否放入背包
     i32 sellCanFit = 0;
     for (i32 slot = 0; slot < inventory.getContainerSize(); ++slot) {
-        ItemStack slotStack = inventory.getItem(slot);
+        const ItemStack slotStack = inventory.getItem(slot);
         if (slotStack.isEmpty()) {
-            // 空槽位可以放满
             sellCanFit += m_sell.getMaxStackSize();
         } else if (slotStack.canStackWith(m_sell)) {
-            // 相同物品可以合并
             sellCanFit += slotStack.getMaxStackSize() - slotStack.getCount();
         }
     }
-    if (sellCanFit < sellCount) {
-        return false; // 背包空间不足
+    if (sellCanFit < m_sell.getCount()) {
+        return false;
     }
 
-    // 执行交易
-    // 1. 从玩家背包扣除买入物品A
+    // 扣除第一支付
     i32 remainingA = buyACount;
     for (i32 slot = 0; slot < inventory.getContainerSize() && remainingA > 0; ++slot) {
-        ItemStack slotStack = inventory.getItem(slot);
-        if (slotStack.canStackWith(m_buyA)) {
-            i32 toRemove = std::min(remainingA, slotStack.getCount());
+        const ItemStack slotStack = inventory.getItem(slot);
+        if (m_costA.test(slotStack)) {
+            const i32 toRemove = std::min(remainingA, slotStack.getCount());
             inventory.removeItem(slot, toRemove);
             remainingA -= toRemove;
         }
     }
 
-    // 2. 从玩家背包扣除买入物品B（如果需要）
-    if (m_buyB.has_value()) {
+    // 扣除第二支付
+    if (m_costB.has_value()) {
         i32 remainingB = buyBCount;
         for (i32 slot = 0; slot < inventory.getContainerSize() && remainingB > 0; ++slot) {
-            ItemStack slotStack = inventory.getItem(slot);
-            if (slotStack.canStackWith(*m_buyB)) {
-                i32 toRemove = std::min(remainingB, slotStack.getCount());
+            const ItemStack slotStack = inventory.getItem(slot);
+            if (m_costB->test(slotStack)) {
+                const i32 toRemove = std::min(remainingB, slotStack.getCount());
                 inventory.removeItem(slot, toRemove);
                 remainingB -= toRemove;
             }
         }
     }
 
-    // 3. 向玩家背包添加卖出物品
+    // 发放卖出物品
     ItemStack sellToAdd = m_sell;
     inventory.add(sellToAdd);
 
-    // 4. 增加使用次数
+    // 只推进使用次数；经验统一由 notifyTrade -> rewardTradeXp 发放，避免重复
     increaseUses();
-
-    // 5. 给商人增加经验
-    merchant.addExperience(m_xp);
 
     return true;
 }
@@ -189,17 +239,16 @@ void MerchantOffer::restock()
 
 bool MerchantOffer::take(ItemStack& buyA, ItemStack& buyB)
 {
-    // 检查是否满足交易条件
     if (!canAccept(buyA, buyB)) {
         return false;
     }
 
-    // 扣除第一物品
+    // 扣除第一支付（数量为需求修正后的值）
     buyA.shrink(getAdjustedBuyPrice());
 
-    // 扣除第二物品（如果有）
-    if (m_buyB.has_value() && !buyB.isEmpty()) {
-        buyB.shrink(m_buyB->getCount());
+    // 扣除第二支付（数量固定）
+    if (m_costB.has_value()) {
+        buyB.shrink(m_costB->count());
     }
 
     return true;
@@ -212,54 +261,46 @@ bool MerchantOffer::isDisabled() const
 
 f32 MerchantOffer::getProgress() const noexcept
 {
-    if (m_maxUses <= 0) return 0.0f;
+    if (m_maxUses <= 0) {
+        return 0.0f;
+    }
     return static_cast<f32>(m_uses) / static_cast<f32>(m_maxUses);
 }
 
-void MerchantOffer::applyDemand(i32 demandBonus)
+void MerchantOffer::swapCosts()
 {
-    m_demand += demandBonus;
-    // 需求影响价格：需求越高，价格越高
-    // m_specialPrice 会根据需求调整
-    m_specialPrice = static_cast<i32>(m_demand * m_priceMultiplier);
+    if (!m_costB.has_value()) {
+        return;
+    }
+    std::swap(m_costA, *m_costB);
 }
 
 void MerchantOffer::updateDemand()
 {
-    // MC原版逻辑：demand = demand + uses - (maxUses - uses)
-    // 即 demand += 2 * uses - maxUses
-    // 使用次数超过一半时需求增加（价格上涨），反之需求减少（价格下降）
+    // demand = demand + uses - (maxUses - uses)
     m_demand = m_demand + m_uses - (m_maxUses - m_uses);
-    m_specialPrice = static_cast<i32>(m_demand * m_priceMultiplier);
 }
-
-i32 MerchantOffer::getAdjustedBuyPrice() const noexcept
-{
-    i32 basePrice = m_buyA.getCount();
-    i32 adjusted = basePrice + m_specialPrice;
-    return std::max(1, adjusted);
-}
-
 void MerchantOffer::serialize(nbt::tags::compound_tag& tag) const
 {
-    // 序列化买入物品A
+    // 第一支付代价：物品（含 potion_contents / custom_data）落在 buyA 节点下，
+    // 数量单独存 buyACount（原版 buy 节点的 count 字段在这里由物品堆的 Count 承载）
     nbt::tags::compound_tag buyATag;
-    m_buyA.toNbt(buyATag);
-    tag.value["buy"] = std::make_unique<nbt::tags::compound_tag>(std::move(buyATag));
+    m_costA.templateStack().toNbt(buyATag);
+    tag.value["buyA"] = std::make_unique<nbt::tags::compound_tag>(std::move(buyATag));
 
-    // 序列化买入物品B（如果有）
-    if (m_buyB.has_value()) {
+    // 第二支付代价（可选）
+    if (m_costB.has_value()) {
         nbt::tags::compound_tag buyBTag;
-        m_buyB->toNbt(buyBTag);
+        m_costB->templateStack().toNbt(buyBTag);
         tag.value["buyB"] = std::make_unique<nbt::tags::compound_tag>(std::move(buyBTag));
     }
 
-    // 序列化卖出物品
+    // 卖出物品
     nbt::tags::compound_tag sellTag;
     m_sell.toNbt(sellTag);
     tag.value["sell"] = std::make_unique<nbt::tags::compound_tag>(std::move(sellTag));
 
-    // 序列化基础数值字段
+    // 基础数值字段
     tag.put("uses", static_cast<std::int32_t>(m_uses));
     tag.put("maxUses", static_cast<std::int32_t>(m_maxUses));
     tag.put("xp", static_cast<std::int32_t>(m_xp));
@@ -274,37 +315,6 @@ MerchantOffer MerchantOffer::deserialize(const nbt::tags::compound_tag& tag)
 {
     MerchantOffer offer;
 
-    // 反序列化买入物品A
-    auto buyAIt = tag.value.find("buy");
-    if (buyAIt != tag.value.end() && buyAIt->second->id() == nbt::TagId::Compound) {
-        auto& buyATag = dynamic_cast<const nbt::tags::compound_tag&>(*buyAIt->second);
-        auto buyAResult = ItemStack::fromNbt(buyATag);
-        if (buyAResult.success()) {
-            offer.m_buyA = buyAResult.value();
-        }
-    }
-
-    // 反序列化买入物品B（可选）
-    auto buyBIt = tag.value.find("buyB");
-    if (buyBIt != tag.value.end() && buyBIt->second->id() == nbt::TagId::Compound) {
-        auto& buyBTag = dynamic_cast<const nbt::tags::compound_tag&>(*buyBIt->second);
-        auto buyBResult = ItemStack::fromNbt(buyBTag);
-        if (buyBResult.success()) {
-            offer.m_buyB = buyBResult.value();
-        }
-    }
-
-    // 反序列化卖出物品
-    auto sellIt = tag.value.find("sell");
-    if (sellIt != tag.value.end() && sellIt->second->id() == nbt::TagId::Compound) {
-        auto& sellTag = dynamic_cast<const nbt::tags::compound_tag&>(*sellIt->second);
-        auto sellResult = ItemStack::fromNbt(sellTag);
-        if (sellResult.success()) {
-            offer.m_sell = sellResult.value();
-        }
-    }
-
-    // 反序列化数值字段
     auto getOptionalInt = [&tag](const std::string& key, i32 defaultValue) -> i32 {
         auto it = tag.value.find(key);
         if (it != tag.value.end()) {
@@ -336,6 +346,48 @@ MerchantOffer MerchantOffer::deserialize(const nbt::tags::compound_tag& tag)
         }
         return defaultValue;
     };
+
+    // 读取支付代价：物品堆的 Count 即代价数量，逐组件谓词随物品堆数据一起还原
+    auto readCost = [&tag](const char* key) -> std::optional<ItemCost> {
+        auto it = tag.value.find(key);
+        if (it == tag.value.end() || it->second->id() != nbt::TagId::Compound) {
+            return std::nullopt;
+        }
+        auto& stackTag = dynamic_cast<const nbt::tags::compound_tag&>(*it->second);
+        auto stackResult = ItemStack::fromNbt(stackTag);
+        if (!stackResult.success()) {
+            return std::nullopt;
+        }
+        ItemStack stack = stackResult.value();
+        if (stack.isEmpty()) {
+            return std::nullopt;
+        }
+        ItemCost cost(std::move(stack));
+        // potion_contents 谓词随 potionId 一起还原，避免"任意水瓶"匹配到"治疗药水"
+        const std::string& potionId = cost.templateStack().getPotionId();
+        if (!potionId.empty()) {
+            cost.withPotion(potionId);
+        }
+        return cost;
+    };
+
+    if (auto costA = readCost("buyA"); costA.has_value()) {
+        offer.m_costA = std::move(*costA);
+    }
+
+    if (auto costB = readCost("buyB"); costB.has_value()) {
+        offer.m_costB = std::move(*costB);
+    }
+
+    // 卖出物品
+    auto sellIt = tag.value.find("sell");
+    if (sellIt != tag.value.end() && sellIt->second->id() == nbt::TagId::Compound) {
+        auto& sellTag = dynamic_cast<const nbt::tags::compound_tag&>(*sellIt->second);
+        auto sellResult = ItemStack::fromNbt(sellTag);
+        if (sellResult.success()) {
+            offer.m_sell = sellResult.value();
+        }
+    }
 
     offer.m_uses = getOptionalInt("uses", 0);
     offer.m_maxUses = getOptionalInt("maxUses", 12);
