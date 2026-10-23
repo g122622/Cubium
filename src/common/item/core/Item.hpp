@@ -120,6 +120,17 @@ public:
     ItemProperties& maxDamage(i32 maxDamage);
 
     /**
+     * @brief 强制设置堆叠上限，忽略耐久度
+     *
+     * 默认约定是「有耐久的物品不可堆叠」，但 vanilla 存在例外：ominous_bottle
+     * 同时带耐久（damage 0..4 表示不祥之兆等级）与堆叠 64。用本方法表达这类例外。
+     *
+     * @param maxStackSize 最大堆叠数（1..64）
+     * @note 必须在 maxDamage(...) **之后**调用，否则会被 maxDamage 的联动覆盖成 1
+     */
+    ItemProperties& stacksDespiteDamage(i32 maxStackSize);
+
+    /**
      * @brief 设置容器物品（如桶装牛奶用完后返回桶）
      * @param containerItem 容器物品指针
      */
@@ -162,14 +173,46 @@ public:
     ItemProperties& deathProtection(item::component::DeathProtectionPayload value);
 
     // Getters
-    [[nodiscard]] i32 maxStackSize() const { return m_maxStackSize; }
-    [[nodiscard]] i32 maxDamage() const { return m_maxDamage; }
-    [[nodiscard]] const Item* containerItem() const { return m_containerItem; }
-    [[nodiscard]] ItemRarity rarity() const { return m_rarity; }
-    [[nodiscard]] bool isBurnable() const { return m_burnable; }
-    [[nodiscard]] bool isRepairable() const { return m_repairable; }
-    [[nodiscard]] const item::food::Food* food() const { return m_food; }
-    [[nodiscard]] const ItemGroup* group() const { return m_creativeTab; }
+    [[nodiscard]] i32 maxStackSize() const
+    {
+        return m_maxStackSize;
+    }
+
+    [[nodiscard]] i32 maxDamage() const
+    {
+        return m_maxDamage;
+    }
+
+    [[nodiscard]] const Item* containerItem() const
+    {
+        return m_containerItem;
+    }
+
+    [[nodiscard]] ItemRarity rarity() const
+    {
+        return m_rarity;
+    }
+
+    [[nodiscard]] bool isBurnable() const
+    {
+        return m_burnable;
+    }
+
+    [[nodiscard]] bool isRepairable() const
+    {
+        return m_repairable;
+    }
+
+    [[nodiscard]] const item::food::Food* food() const
+    {
+        return m_food;
+    }
+
+    [[nodiscard]] const ItemGroup* group() const
+    {
+        return m_creativeTab;
+    }
+
     [[nodiscard]] const std::optional<item::component::DeathProtectionPayload>& deathProtection() const
     {
         return m_deathProtection;
@@ -248,28 +291,43 @@ public:
     /**
      * @brief 获取物品资源位置
      */
-    [[nodiscard]] const ResourceLocation& itemLocation() const { return m_itemLocation; }
+    [[nodiscard]] const ResourceLocation& itemLocation() const
+    {
+        return m_itemLocation;
+    }
 
     /**
      * @brief 获取物品ID
      */
-    [[nodiscard]] ItemId itemId() const { return m_itemId; }
+    [[nodiscard]] ItemId itemId() const
+    {
+        return m_itemId;
+    }
 
     /**
      * @brief 获取最大堆叠数量
      */
-    [[nodiscard]] i32 maxStackSize() const { return m_maxStackSize; }
+    [[nodiscard]] i32 maxStackSize() const
+    {
+        return m_maxStackSize;
+    }
 
     /**
      * @brief 获取最大耐久度
      * @return 最大耐久度，0表示不可损坏
      */
-    [[nodiscard]] i32 maxDamage() const { return m_maxDamage; }
+    [[nodiscard]] i32 maxDamage() const
+    {
+        return m_maxDamage;
+    }
 
     /**
      * @brief 是否可损坏
      */
-    [[nodiscard]] bool isDamageable() const { return m_maxDamage > 0; }
+    [[nodiscard]] bool isDamageable() const
+    {
+        return m_maxDamage > 0;
+    }
 
     /**
      * @brief 是否为护甲物品
@@ -280,32 +338,50 @@ public:
      *
      * @return 是否为护甲物品
      */
-    [[nodiscard]] virtual bool isArmor() const { return false; }
+    [[nodiscard]] virtual bool isArmor() const
+    {
+        return false;
+    }
 
     /**
      * @brief 获取容器物品
      */
-    [[nodiscard]] const Item* containerItem() const { return m_containerItem; }
+    [[nodiscard]] const Item* containerItem() const
+    {
+        return m_containerItem;
+    }
 
     /**
      * @brief 是否有容器物品
      */
-    [[nodiscard]] bool hasContainerItem() const { return m_containerItem != nullptr; }
+    [[nodiscard]] bool hasContainerItem() const
+    {
+        return m_containerItem != nullptr;
+    }
 
     /**
      * @brief 获取物品基础稀有度
      */
-    [[nodiscard]] ItemRarity rarity() const { return m_rarity; }
+    [[nodiscard]] ItemRarity rarity() const
+    {
+        return m_rarity;
+    }
 
     /**
      * @brief 是否可燃烧
      */
-    [[nodiscard]] bool isBurnable() const { return m_burnable; }
+    [[nodiscard]] bool isBurnable() const
+    {
+        return m_burnable;
+    }
 
     /**
      * @brief 是否可修复
      */
-    [[nodiscard]] bool isRepairable() const { return m_repairable; }
+    [[nodiscard]] bool isRepairable() const
+    {
+        return m_repairable;
+    }
 
     /**
      * @brief 获取物品的默认 death_protection 组件（对齐 vanilla Item.components().get(DEATH_PROTECTION)）
@@ -325,7 +401,10 @@ public:
      * 返回值仅为物品类型自身的附魔能力（enchantable 组件的缺省值）。运行时判定
      * 应改用 ItemStack::getEnchantmentValue()（会优先取 enchantable 组件覆盖）。
      */
-    [[nodiscard]] virtual i32 getItemEnchantability() const { return 0; }
+    [[nodiscard]] virtual i32 getItemEnchantability() const
+    {
+        return 0;
+    }
 
     /**
      * @brief 检查物品堆是否可以用作修复材料
@@ -390,7 +469,23 @@ public:
     /**
      * @brief 物品是否为食物
      */
-    [[nodiscard]] virtual bool isFood() const { return m_food != nullptr; }
+    [[nodiscard]] virtual bool isFood() const
+    {
+        return m_food != nullptr;
+    }
+
+    /**
+     * @brief 物品的食物属性
+     *
+     * 与 isFood() 读同一个字段（注册时由 ItemProperties::food() 写入）。
+     * 注意区别于 getFood()：后者是虚函数钩子，多数物品不覆盖，恒返回 nullptr。
+     *
+     * @return 食物属性指针；非食物返回 nullptr
+     */
+    [[nodiscard]] const item::food::Food* foodProperties() const
+    {
+        return m_food;
+    }
 
     /**
      * @brief 是否为音乐唱片
@@ -398,7 +493,10 @@ public:
      * 音乐唱片可以放入唱片机播放音乐。
      * MusicDiscItem 重写此方法返回 true。
      */
-    [[nodiscard]] virtual bool isMusicDisc() const { return false; }
+    [[nodiscard]] virtual bool isMusicDisc() const
+    {
+        return false;
+    }
 
     /**
      * @brief 物品是否可以放入容器物品（如收纳袋）内
@@ -410,7 +508,10 @@ public:
      *
      * @return 是否可放入容器物品
      */
-    [[nodiscard]] virtual bool canFitInsideContainerItems() const { return true; }
+    [[nodiscard]] virtual bool canFitInsideContainerItems() const
+    {
+        return true;
+    }
 
     /**
      * @brief 获取使用时间（如食物食用时间）
@@ -510,7 +611,10 @@ public:
      * @param stack 物品堆
      * @return 使用动作类型
      */
-    [[nodiscard]] virtual UseAction getUseAction(const ItemStack& /*stack*/) const { return UseAction::None; }
+    [[nodiscard]] virtual UseAction getUseAction(const ItemStack& /*stack*/) const
+    {
+        return UseAction::None;
+    }
 
     // ========================================================================
     // 容器槽位覆写协议（MC 1.20+）
@@ -636,7 +740,10 @@ public:
      *
      * @return 物品组指针，nullptr表示不显示在创造模式中
      */
-    [[nodiscard]] const ItemGroup* getCreativeTab() const { return m_creativeTab; }
+    [[nodiscard]] const ItemGroup* getCreativeTab() const
+    {
+        return m_creativeTab;
+    }
 
     // ========================================================================
     // 食物相关
@@ -649,7 +756,10 @@ public:
      *
      * @return 食物属性指针，非食物返回nullptr
      */
-    [[nodiscard]] virtual const item::food::Food* getFood() const { return nullptr; }
+    [[nodiscard]] virtual const item::food::Food* getFood() const
+    {
+        return nullptr;
+    }
 
     /**
      * @brief 是否可以食用
@@ -810,7 +920,10 @@ public:
     /**
      * @brief 转换为字符串
      */
-    [[nodiscard]] virtual std::string toString() const { return m_itemLocation.toString(); }
+    [[nodiscard]] virtual std::string toString() const
+    {
+        return m_itemLocation.toString();
+    }
 
 protected:
     friend class ItemRegistry;

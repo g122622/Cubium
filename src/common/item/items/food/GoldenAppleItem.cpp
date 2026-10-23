@@ -43,8 +43,9 @@ namespace mc {
 namespace item::items {
 
 GoldenAppleItem::GoldenAppleItem(const food::Food* food, ItemProperties properties)
-    : Item(std::move(properties))
-    , m_food(food)
+    // 与 FoodItem 同理：食物属性写进 ItemProperties，由基类 Item::m_food 统一持有。
+    // 子类另存一份会让通用访问（isFood()/foodProperties()）与进食逻辑看到不同的对象。
+    : Item(properties.food(food))
 {}
 
 i32 GoldenAppleItem::getUseDuration(const ItemStack& /*stack*/) const

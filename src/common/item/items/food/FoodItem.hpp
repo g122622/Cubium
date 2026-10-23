@@ -53,12 +53,18 @@ public:
     /**
      * @brief 是否为食物
      */
-    [[nodiscard]] bool isFood() const override { return m_food != nullptr; }
+    [[nodiscard]] bool isFood() const override
+    {
+        return m_food != nullptr;
+    }
 
     /**
      * @brief 获取食物属性
      */
-    [[nodiscard]] const food::Food* getFood() const override { return m_food; }
+    [[nodiscard]] const food::Food* getFood() const override
+    {
+        return m_food;
+    }
 
     /**
      * @brief 获取使用时长
@@ -104,8 +110,8 @@ public:
      */
     [[nodiscard]] bool canEat(const ItemStack& stack, const Player& player) const override;
 
-protected:
-    const food::Food* m_food;
+    // 食物属性只存在基类 Item::m_food 里（构造函数经 ItemProperties::food() 写入）。
+    // 子类不再另存一份，否则两种注册路径会出现"isFood() 为 true 但取不到数据"的分裂。
 };
 
 } // namespace item::items

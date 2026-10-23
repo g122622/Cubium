@@ -53,13 +53,19 @@ const E2E_MODULE_DIR = path.join(REPO_ROOT, "tests/e2e/bot");
 const requireFromE2E = createRequire(path.join(E2E_MODULE_DIR, "package.json"));
 
 interface MinecraftDataModule {
-    (version: string): { blocksArray: RawBlock[] };
+    (version: string): {
+        blocksArray: RawBlock[];
+        itemsArray: unknown[];
+        entitiesArray: unknown[];
+        enchantmentsArray: unknown[];
+        foodsArray: unknown[];
+    };
 }
 
 let cachedModule: MinecraftDataModule | undefined;
 
 /** 从 e2e bot 的 node_modules 加载 minecraft-data（CommonJS 包，故走 createRequire）。 */
-function loadMinecraftData(): MinecraftDataModule {
+export function loadMinecraftData(): MinecraftDataModule {
     if (cachedModule === undefined) {
         try {
             cachedModule = requireFromE2E("minecraft-data") as MinecraftDataModule;

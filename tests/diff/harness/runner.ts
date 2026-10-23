@@ -40,6 +40,7 @@
 import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
+import { pathToFileURL } from "node:url";
 
 import { REPO_ROOT } from "./vanilla.ts";
 
@@ -171,10 +172,41 @@ function stableStringify(value: unknown): string {
 }
 
 /**
+ * 把实际输出裁剪成「参照实现声明过的字段」的形状。
+ *
+ * 参照值是模板：对象只保留模板里出现过的键，数组只保留模板长度的前缀。
+ * 这样参照没给的信息不会变成失败，而参照给了的字段一个都不能少、不能改。
+ */
+function project(template: unknown, actual: unknown): unknown {
+    if (Array.isArray(template)) {
+        if (!Array.isArray(actual)) {
+            return actual;
+        }
+        return template.map((item, index) => project(item, actual[index]));
+    }
+    if (template !== null && typeof template === "object") {
+        if (actual === null || typeof actual !== "object" || Array.isArray(actual)) {
+            return actual;
+        }
+        const source = actual as Record<string, unknown>;
+        const result: Record<string, unknown> = {};
+        for (const [field, expected] of Object.entries(template as Record<string, unknown>)) {
+            result[field] = project(expected, source[field]);
+        }
+        return result;
+    }
+    return actual;
+}
+
+/**
  * 按 `key` 字段对齐两批 JSON 行并逐字段比较。
  *
  * 行序被刻意忽略：两侧遍历顺序（注册顺序、字典序）本来就可能不同，
  * 要验的是「同一个单元，两侧说法一致」。
+ *
+ * **只比参照实现声明过的字段**：参照数据没有的信息（比如 minecraft-data 不给实体
+ * 眼睛高度）不是「不一致」，而是「没得比」。要求整个对象相等，会让「对方没给这个
+ * 字段」也变成失败，进而逼着人去伪造对侧输出。
  */
 export function compareByKey(
     expectedLines: readonly string[],
@@ -211,7 +243,7 @@ export function compareByKey(
             differences.push({ key: unit, expected: "<absent in oracle>", actual: probeValue });
         } else if (probeValue === undefined) {
             differences.push({ key: unit, expected: oracleValue, actual: "<absent in probe>" });
-        } else if (stableStringify(oracleValue) !== stableStringify(probeValue)) {
+        } else if (stableStringify(project(oracleValue, oracleValue)) !== stableStringify(project(oracleValue, probeValue))) {
             differences.push({ key: unit, expected: oracleValue, actual: probeValue });
         }
     }
@@ -310,29 +342,108 @@ export function render(result: HarnessResult, samples = 5): string {
     return lines.join("\n");
 }
 
+// ============================================================================
+// HarnessSpec：声明式的 harness，新增能力时不必写一份完整的 main。
+// ============================================================================
+
+/**
+ * 一个声明式 harness 的描述。
+ *
+ * `units()` 给出 probe `run` 的输入单元；`oracle(unit)` 给出参照实现的输出。
+ * probe 侧的输出按 `key` 与参照实现对齐后逐字段比较，比较前两侧都会经过
+ * `normalise`（可选的比较规范化）。
+ */
+export interface HarnessSpec {
+    readonly name: string;
+    readonly domain: string;
+    /** 输出中标识单元的字段名，如 "item"。 */
+    readonly key: string;
+    /** probe `run` 的输入单元（每单元一行）。 */
+    readonly units: () => string[];
+    /** 单元 → probe 的一行输入。 */
+    readonly input: (unit: string) => unknown;
+    /** 单元 → 参照实现的输出（对象，序列化后参与比较）。 */
+    readonly oracle: (unit: string) => unknown;
+    /** 比较前对两侧输出的规范化。默认只做键排序。 */
+    readonly normalise?: (value: unknown) => unknown;
+    /**
+     * 参照数据缺失、但被测实现有的单元。这些单元不参与比较，并在报告里单列条数。
+     * 与 ORACLE_MISSING_BLOCKS 同理：每次运行都核对「参照补齐后必须删掉」，防止永久豁免。
+     */
+    readonly oracleMissing?: readonly string[];
+}
+
+/** 一个 harness 的执行结果（含退出码）。 */
+export interface HarnessOutcome {
+    readonly spec: HarnessSpec;
+    readonly result: HarnessResult;
+    readonly exitCode: number;
+}
+
+/**
+ * 跑一个声明式 harness。
+ *
+ * 规范化两侧都做：只在一侧做会让差异永远消不掉（等于没比）。
+ */
+export function runSpec(spec: HarnessSpec, options: { samples?: number } = {}): HarnessOutcome {
+    const all = spec.units();
+    const missing = new Set(spec.oracleMissing ?? []);
+    const units = all.filter((unit) => !missing.has(unit));
+    const exempted = all.length - units.length;
+
+    const result = runHarness({
+        harness: spec.name,
+        domain: spec.domain,
+        units,
+        oracleOutputs: units.map((unit) => JSON.stringify(spec.oracle(unit))),
+        key: spec.key,
+        inputPayload: spec.input,
+        compareTransform: spec.normalise,
+    });
+
+    console.log(render(result, options.samples ?? 5));
+    if (exempted > 0) {
+        console.log(`  另有 ${exempted} 个单元属于参照数据缺失项，未计入：${[...missing].join("、")}`);
+    }
+    return { spec, result, exitCode: result.differences.length === 0 ? 0 : 1 };
+}
+
 /**
  * 命令行入口：
  *   node tests/diff/harness/runner.ts build [domain]
- *   node tests/diff/harness/runner.ts run [harness]
+ *   node tests/diff/harness/runner.ts run <harness|all>
  */
-async function main(argv: string[]): Promise<number> {
+function main(argv: string[]): number | Promise<number> {
     const [command, argument] = argv;
     if (command === "build") {
         buildProbes(argument);
         return 0;
     }
     if (command === "run") {
-        if (argument !== undefined && argument !== "text_encode") {
-            console.error(`未知 harness：${argument}`);
-            return 2;
-        }
-        const { main: textEncodeMain } = await import("./test_text_encode_parity.ts");
-        return textEncodeMain([]);
+        // 用动态 import 而不是静态 import：harnesses/index.ts 会反向 import 本文件的
+        // runSpec，静态互相 import 会在模块图里形成环。动态 import 在入口文件的顶层
+        // await 路径下不会结算（Node 24 的格式探测阶段会把入口按 CommonJS 解析一遍），
+        // 所以这里把整个 run 分支放进一个自执行的异步闭包，顶层只等这一个 Promise。
+        return (async () => {
+            const { runAll, runNamed } = await import("./harnesses/index.ts");
+            if (argument === undefined || argument === "all") {
+                return runAll();
+            }
+            return runNamed(argument);
+        })();
     }
-    console.log("用法：\n  node tests/diff/harness/runner.ts build [domain]\n  node tests/diff/harness/runner.ts run [harness]");
+    console.log("用法：\n  node tests/diff/harness/runner.ts build [domain]\n  node tests/diff/harness/runner.ts run <harness|all>");
     return 2;
 }
 
-if (import.meta.main) {
-    process.exitCode = await main(process.argv.slice(2));
+// 不用 `import.meta.main`：Node 24 在本文件同时存在顶层 await 时，会把入口模块
+// 先按 CommonJS 解析一遍做格式探测，`import.meta.main` 在该阶段为 false，
+// 顶层 await 又永远不会结算，进程最终以 13 退出且不产生任何输出。
+// 直接比较 argv[1] 与 import.meta.url 更稳定，也与项目里 e2e/run.ts 的写法一致。
+const entryUrl = process.argv[1] === undefined ? "" : pathToFileURL(process.argv[1]).href;
+if (import.meta.url === entryUrl) {
+    // 同步路径（build / 帮助）直接返回数字，异步路径（run）返回 Promise；统一 await 一次。
+    Promise.resolve(main(process.argv.slice(2))).then((code) => process.exit(code));
 }
+
+export { main };

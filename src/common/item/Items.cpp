@@ -154,7 +154,9 @@ mc::entity::EntityType makeEntityTypeForSpawnEgg(const char* entityName)
     // EntityRegistry::getType(name)->create(world, registry) 完成）。
     // 此处 lambda 签名须与 EntityFactory = function<unique_ptr<Entity>(IWorld*, ecs::EntityRegistry&)> 一致。
     auto entityType = mc::entity::EntityType::Builder(
-        [](mc::IWorld*, mc::ecs::EntityRegistry&) -> std::unique_ptr<mc::Entity> { return nullptr; },
+        [](mc::IWorld*, mc::ecs::EntityRegistry&) -> std::unique_ptr<mc::Entity> {
+            return nullptr;
+        },
         mc::entity::EntityClassification::Creature)
                           .size(0.6f, 1.8f)
                           .trackingRange(5)
@@ -2606,8 +2608,10 @@ void Items::_registerMisc()
     // 地图物品
     MAP = &registry.registerItem<item::items::EmptyMapItem>(
         ResourceLocation("minecraft:map"), ItemProperties().maxStackSize(64));
+    // vanilla 1.21.11 的 filled_map 没有调用 stacksTo，按 Item.Properties 默认值堆叠 64。
+    // 差分测试 tests/diff（item_summary，对原版 jar 的运行时组件）验证过。
     FILLED_MAP = &registry.registerItem<item::items::FilledMapItem>(
-        ResourceLocation("minecraft:filled_map"), ItemProperties().maxStackSize(1));
+        ResourceLocation("minecraft:filled_map"), ItemProperties().maxStackSize(64));
     PAPER = &registry.registerItem(ResourceLocation("minecraft:paper"), ItemProperties().maxStackSize(64));
 
     // SPIDER_EYE 已在 registerFood() 中注册
@@ -3022,9 +3026,11 @@ void Items::_registerBuckets()
 
     // 鱼桶
     // 鳕鱼桶 - 可以装鳕鱼的水桶，使用后返回空桶
+    // vanilla 1.21.11 的鱼桶除放鱼外还可以直接吃：注册时挂了 Foods.COD（鳕鱼桶）。
+    // 见原版 Items：`registerItem("cod_bucket", ..., props.stacksTo(1).food(Foods.COD))`。
     COD_BUCKET = &registry.registerItem<item::FishBucketItem>(ResourceLocation("minecraft:cod_bucket"),
         mc::entity::EntityTypeKeys::COD,
-        ItemProperties().maxStackSize(1).containerItem(BUCKET));
+        ItemProperties().maxStackSize(1).containerItem(BUCKET).food(&item::food::Foods::COD));
 
     // 鲑鱼桶
     SALMON_BUCKET = &registry.registerItem<item::FishBucketItem>(ResourceLocation("minecraft:salmon_bucket"),
@@ -3273,16 +3279,18 @@ void Items::_registerHangingItems()
     PAINTING = &registry.registerItem(ResourceLocation("minecraft:painting"), ItemProperties().maxStackSize(16));
 
     // 物品展示框
+    // vanilla 1.21.11 的物品展示框、荧光展示框与拴绳都未调用 stacksTo，按默认值堆叠 64
+    // （差分测试 tests/diff 的 item_summary 对原版 jar 的运行时组件验证过）。
     ITEM_FRAME = &registry.registerItem<item::items::ItemFrameItem>(
-        ResourceLocation("minecraft:item_frame"), false, ItemProperties().maxStackSize(16));
+        ResourceLocation("minecraft:item_frame"), false, ItemProperties().maxStackSize(64));
 
     // 荧光物品展示框
     GLOW_ITEM_FRAME = &registry.registerItem<item::items::ItemFrameItem>(
-        ResourceLocation("minecraft:glow_item_frame"), true, ItemProperties().maxStackSize(16));
+        ResourceLocation("minecraft:glow_item_frame"), true, ItemProperties().maxStackSize(64));
 
     // 拴绳
     LEAD = &registry.registerItem<item::items::LeadItem>(
-        ResourceLocation("minecraft:lead"), ItemProperties().maxStackSize(16));
+        ResourceLocation("minecraft:lead"), ItemProperties().maxStackSize(64));
 }
 
 void Items::_registerSigns()
@@ -4783,8 +4791,10 @@ void Items::_registerTrialChamberItems()
 
     // 不祥之瓶 - 可饮用，饮用后给予不祥之兆效果（等级I-V由damage值0-4决定）
     // 饮用后返还玻璃瓶
+    // vanilla 1.21.11 的 ominous_bottle 同时带耐久（表示不祥之兆等级）与堆叠 64，
+    // 是本项目「有耐久即不可堆叠」默认约定的显式例外。
     OMINOUS_BOTTLE = &registry.registerItem<item::OminousBottleItem>(ResourceLocation("minecraft:ominous_bottle"),
-        ItemProperties().maxStackSize(64).maxDamage(item::OminousBottleItem::MAX_DAMAGE));
+        ItemProperties().maxDamage(item::OminousBottleItem::MAX_DAMAGE).stacksDespiteDamage(64));
 
     // ========================================================================
     // 风弹
