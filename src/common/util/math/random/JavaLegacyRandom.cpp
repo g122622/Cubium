@@ -98,19 +98,15 @@ f32 JavaLegacyRandom::nextFloat()
 
 f64 JavaLegacyRandom::nextDouble()
 {
-    // Java: RandomSource.nextDouble()（BitRandomSource 的默认实现）
-    //   i32 i = this.next(26);
-    //   i32 j = this.next(27);
-    //   long k = ((long)i << 27) + j;
-    //   return k * 1.110223E-16F;
-    // 【字面量是 f32 后缀】1.110223E-16F 的值恰好等于 2^-53（2 的整数次幂在 f32
-    // 里可精确表示），但 Java 的 `long * f32` 会做二元数值提升——k 先被拓宽为
-    // **f32**（丢 29 位有效位）再做 f32 乘法，结果只有 24 位精度，最后才拓宽为
-    // f64 返回。写成 f64 除法会得到 53 位精度的不同值，进而让 PerlinNoise 的
-    // 原点偏移（nextDouble() * 256.0）在 1e-5 量级上偏离原版，整片地形随之分叉。
-    const i64 k = (static_cast<i64>(next(26)) << 27) + static_cast<i64>(next(27));
-    return static_cast<f64>(static_cast<f32>(k) * 1.1102230246251565E-16f);
+    // Java: LegacyRandomSource.nextDouble()（java.util.Random 的原版公式）
+    //   (((long) next(26) << 27) + next(27)) * 0x1.0p-53
+    // next(b) 的结果非负（state >>> (48 - b)），所以拼接后是 [0, 2^53) 的 53 位整数；
+    // 乘数 2^-53 是 f64 精确值，中间**不**经过 f32（与 BitRandomSource 的写法不同）。
+    const u64 high = static_cast<u32>(next(26));
+    const u64 low = static_cast<u32>(next(27));
+    return static_cast<f64>((high << 27) | low) * 1.1102230246251565E-16;
 }
+
 
 i64 JavaLegacyRandom::nextLong()
 {

@@ -28,6 +28,10 @@
 #include <cstddef>
 
 namespace mc::math {
+namespace {
+/// 2^-53 的精确 f64 值，对应原版 `XoroshiroRandomSource.nextDouble()` 的乘数。
+constexpr f64 kUnitDouble = 1.1102230246251565E-16;
+} // namespace
 
 // ============================================================================
 // 种子扩展常量（与 MC RandomSupport 一致）
@@ -112,26 +116,20 @@ u64 Xoroshiro128ppRandom::nextU64()
 f64 Xoroshiro128ppRandom::nextDouble()
 {
     // MC XoroshiroRandomSource.nextDouble():
-    //   return this.nextBits(53) * 1.110223E-16F;
-    // nextBits(53) = nextLong() >>> (64 - 53) = nextLong() >>> 11，结果落在 [0, 2^53)。
-    // Java 的 >>> 是无符号右移，C++ 需要先转 u64 再右移。
-    //
-    // 【字面量是 f32 后缀，不是 f64】原版常量写作 `1.110223E-16F`（f32），其值恰好
-    // 等于 2^-53（2 的整数次幂在 f32 里可精确表示），但 Java 的 `long * f32` 会先做
-    // 二元数值提升——long 拓宽为 **f32**（丢 29 位有效位）再乘，结果只有 24 位精度，
-    // 最后才拓宽为 f64 返回。例：k = 2^53-1 时 `k * (f32)2^-53` 得 1.0，而
-    // `(f64)k * 2^-53` 得 0.9999999999999999——差 1 个 f64 ULP，足以让依赖严格
-    // 不等号的密度函数分叉。故必须复刻 f32 中间精度：先 (f32)val，再乘 f32 常量。
+    //   return this.nextBits(53) * 1.1102230246251565E-16;
+    // nextBits(53) = nextLong() >>> 11，结果落在 [0, 2^53)。
+    // 原版常量是 **f64**（`1.1102230246251565E-16`，即 2^-53 的精确值），不是 f32：
+    // 8 次抽取里有约一半 low 位不为零，用 f32 相乘会把 53 位精度砍到 24 位，
+    // 密度函数与 PerlinNoise 的偏移都会偏离原版。
     const u64 val = static_cast<u64>(nextLong()) >> 11;
-    return static_cast<f64>(static_cast<f32>(val) * 1.1102230246251565E-16f);
+    return static_cast<f64>(val) * kUnitDouble;
 }
 
 f32 Xoroshiro128ppRandom::nextFloat()
 {
     // MC XoroshiroRandomSource.nextFloat():
-    //   return (f32)this.next(24) * 5.9604645E-8F;
-    // next(24) = (i32)(nextLong() >>> 40)，取高24位
-    // Java 的 >>> 是无符号右移
+    //   return this.nextBits(24) * 5.9604645E-8F;
+    // nextBits(24) = nextLong() >>> 40，取高 24 位。
     const i32 bits = static_cast<i32>(static_cast<u64>(nextLong()) >> 40);
     return static_cast<f32>(bits) * 5.9604645E-8f;
 }

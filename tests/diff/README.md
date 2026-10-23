@@ -141,7 +141,7 @@ harness 决定。`runner.ts` 负责按 `key` 对齐两侧输出、规范化、�
 
 ## 当前状态
 
-八个能力全部对齐（`node tests/diff/harness/runner.ts run all` 退出码 0）：
+九个能力全部对齐（`node tests/diff/harness/runner.ts run all` 退出码 0）：
 
 | harness | 参照实现 | 单元 | 结果 | 已知缺口 |
 |---|---|---|---|---|
@@ -154,6 +154,7 @@ harness 决定。`runner.ts` 负责按 `key` 对齐两侧输出、规范化、�
 | `mob_category` | 原版 jar `MobCategoryOracle` | 8 | 全部一致 | — |
 | `entity_attributes` | 参考表 + 原版 jar `EntityAttributesOracle` | 73 | 全部一致 | 2 个实体类型未对齐（盔甲架、凋灵） |
 | `block_state_names` | 原版 jar `BlockStateNamesOracle` | 1166 | 全部一致 | — |
+| `random_sequence` | 原版 jar `RandomSequenceOracle` | 24 | 全部一致 | — |
 
 第一次跑通就查出并修掉的实打实的错误（都是手抄数据/公式出错）：
 
@@ -194,6 +195,15 @@ harness 决定。`runner.ts` 负责按 `key` 对齐两侧输出、规范化、�
 - 气泡柱默认 `drag=false`，原版 `true`；苍白垂苔默认 `tip=false`，原版 `true`；
 - 鬼木之心默认轴是 X，原版 Y；结构方块默认 `mode=data`，原版 `load`；
 - 测试方块默认 `mode=fail`，原版 `start`。
+
+`random_sequence` 首轮就查出随机数生成器的两处实现错误（Xoroshiro 序列前半段完全一致，
+只有 nextDouble 与窄位宽抽取不同——最容易漏的一类）：
+
+- `XoroshiroRandomSource.nextDouble()` 的乘数在原版是 **f64** `1.1102230246251565E-16`，
+  Cubium 照抄了 BitRandomSource 的 f32 写法，53 位精度被砍成 24 位；
+- `LegacyRandomSource.nextDouble()` 用的是 java.util.Random 的 53 位公式（f64 乘数），
+  Cubium 误用了 BitRandomSource 的 next(26)/next(27) + f32 组合；
+- `IRandom::nextBits(32)` 取的是 nextU64() 的高 32 位，原版 `next(32)` 取低 32 位。
 
 ### 已知缺口清单
 
