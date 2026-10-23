@@ -55,6 +55,9 @@ class EntityHurtPlayerTriggerInstance;
 class ChangedDimensionTriggerInstance;
 class FishingRodHookedTriggerInstance;
 class KilledByArrowTriggerInstance;
+class PlayerInteractTriggerInstance;
+class StartRidingTriggerInstance;
+class LightningStrikeTriggerInstance;
 
 /**
  * @brief 驯服动物触发器
@@ -519,6 +522,115 @@ private:
     std::vector<EntityPredicate> m_victims;
     IntBounds m_uniqueEntityTypes;
     std::optional<ItemPredicate> m_firedFromWeapon;
+};
+
+/**
+ * @brief 玩家交互触发器（对齐 vanilla PlayerInteractTrigger）
+ *
+ * 玩家与实体交互（剪羊毛、给动物梳毛、给狼装/卸护甲等）时触发。
+ * 条件为可选的 item 物品谓词与 entity（ContextAwarePredicate）。
+ * player_sheared_equipment 复用同一实例类型。
+ */
+class PlayerInteractTrigger : public AbstractCriterionTrigger<PlayerInteractTriggerInstance> {
+public:
+    static constexpr const char* TRIGGER_ID = "minecraft:player_sheared_equipment";
+
+    [[nodiscard]] ResourceLocation getId() const override { return ResourceLocation(TRIGGER_ID); }
+
+    [[nodiscard]] Result<std::shared_ptr<ICriterionInstance>> fromJson(const nlohmann::json& json) override;
+
+    void trigger(class ServerPlayer& player, const class ItemStack& item, const class Entity& entity);
+};
+
+/**
+ * @brief 玩家交互触发器实例
+ */
+class PlayerInteractTriggerInstance : public CriterionInstance<PlayerInteractTriggerInstance> {
+public:
+    static constexpr const char* TRIGGER_ID = "minecraft:player_sheared_equipment";
+
+    PlayerInteractTriggerInstance() = default;
+
+    [[nodiscard]] bool test(const class ItemStack& item, const class Entity& entity) const;
+
+    Result<void> fromJson(const nlohmann::json& json);
+    [[nodiscard]] nlohmann::json conditionsToJson() const;
+
+private:
+    ItemPredicate m_item;
+    ContextAwarePredicate m_entityContext;
+};
+
+/**
+ * @brief 开始骑乘触发器（对齐 vanilla StartRidingTrigger）
+ *
+ * 玩家开始骑乘实体时触发。条件只有可选的 player（ContextAwarePredicate），
+ * 数据包 husbandry/ride_a_boat_with_a_goat 用 player.vehicle.passenger 限定
+ * "船上载着山羊时开船"。
+ */
+class StartRidingTrigger : public AbstractCriterionTrigger<StartRidingTriggerInstance> {
+public:
+    static constexpr const char* TRIGGER_ID = "minecraft:started_riding";
+
+    [[nodiscard]] ResourceLocation getId() const override { return ResourceLocation(TRIGGER_ID); }
+
+    [[nodiscard]] Result<std::shared_ptr<ICriterionInstance>> fromJson(const nlohmann::json& json) override;
+
+    void trigger(class ServerPlayer& player);
+};
+
+/**
+ * @brief 开始骑乘触发器实例
+ */
+class StartRidingTriggerInstance : public CriterionInstance<StartRidingTriggerInstance> {
+public:
+    static constexpr const char* TRIGGER_ID = "minecraft:started_riding";
+
+    StartRidingTriggerInstance() = default;
+
+    [[nodiscard]] bool test(const CriterionContext& context) const;
+
+    Result<void> fromJson(const nlohmann::json& json);
+    [[nodiscard]] nlohmann::json conditionsToJson() const;
+
+private:
+    ContextAwarePredicate m_playerContext;
+};
+
+/**
+ * @brief 闪电击中触发器（对齐 vanilla LightningStrikeTrigger）
+ *
+ * 玩家附近有闪电落地时触发。条件为可选的 lightning / bystander 实体谓词。
+ */
+class LightningStrikeTrigger : public AbstractCriterionTrigger<LightningStrikeTriggerInstance> {
+public:
+    static constexpr const char* TRIGGER_ID = "minecraft:lightning_strike";
+
+    [[nodiscard]] ResourceLocation getId() const override { return ResourceLocation(TRIGGER_ID); }
+
+    [[nodiscard]] Result<std::shared_ptr<ICriterionInstance>> fromJson(const nlohmann::json& json) override;
+
+    /// 触发（闪电视为主要触发对象，旁观玩家作为 bystander 上下文）
+    void trigger(class ServerPlayer& player, const class Entity& lightning, const class Entity& bystander);
+};
+
+/**
+ * @brief 闪电击中触发器实例
+ */
+class LightningStrikeTriggerInstance : public CriterionInstance<LightningStrikeTriggerInstance> {
+public:
+    static constexpr const char* TRIGGER_ID = "minecraft:lightning_strike";
+
+    LightningStrikeTriggerInstance() = default;
+
+    [[nodiscard]] bool test(const class Entity& lightning, const class Entity& bystander) const;
+
+    Result<void> fromJson(const nlohmann::json& json);
+    [[nodiscard]] nlohmann::json conditionsToJson() const;
+
+private:
+    ContextAwarePredicate m_lightningContext;
+    ContextAwarePredicate m_bystanderContext;
 };
 
 } // namespace advancement

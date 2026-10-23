@@ -1274,6 +1274,53 @@ void ServerPlayer::triggerKilledByArrow(const std::vector<const Entity*>& victim
         });
 }
 
+void ServerPlayer::triggerPlayerShearedEquipment(const ItemStack& item, const Entity& entity)
+{
+    if (m_advancements == nullptr) {
+        return;
+    }
+    auto* trigger = advancement::CriterionTriggers::instance().getTrigger<advancement::PlayerInteractTrigger>();
+    if (trigger == nullptr) {
+        return;
+    }
+    trigger->advancement::AbstractCriterionTrigger<advancement::PlayerInteractTriggerInstance>::trigger(
+        *m_advancements, [&item, &entity](const advancement::PlayerInteractTriggerInstance& instance) {
+            return instance.test(item, entity);
+        });
+}
+
+void ServerPlayer::triggerStartedRiding()
+{
+    if (m_advancements == nullptr) {
+        return;
+    }
+    auto* trigger = advancement::CriterionTriggers::instance().getTrigger<advancement::StartRidingTrigger>();
+    if (trigger == nullptr) {
+        return;
+    }
+    // 上下文：this = 玩家自身（条件里的 vehicle.passenger 由 EntityPredicate::test 的 vehicle 分支解析）
+    advancement::CriterionContext context;
+    context.entity = this;
+    context.world = Entity::world();
+    trigger->advancement::AbstractCriterionTrigger<advancement::StartRidingTriggerInstance>::trigger(*m_advancements,
+        [&context](const advancement::StartRidingTriggerInstance& instance) { return instance.test(context); });
+}
+
+void ServerPlayer::triggerLightningStrike(const Entity& lightning, const Entity& bystander)
+{
+    if (m_advancements == nullptr) {
+        return;
+    }
+    auto* trigger = advancement::CriterionTriggers::instance().getTrigger<advancement::LightningStrikeTrigger>();
+    if (trigger == nullptr) {
+        return;
+    }
+    trigger->advancement::AbstractCriterionTrigger<advancement::LightningStrikeTriggerInstance>::trigger(
+        *m_advancements, [&lightning, &bystander](const advancement::LightningStrikeTriggerInstance& instance) {
+            return instance.test(lightning, bystander);
+        });
+}
+
 void ServerPlayer::setWorld(server::ServerWorld* world)
 {
     Entity::setWorld(world);

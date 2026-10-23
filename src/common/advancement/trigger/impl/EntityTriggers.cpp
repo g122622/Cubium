@@ -1019,4 +1019,184 @@ void KilledByArrowTrigger::trigger(
     MC_UNUSED(firedFromWeapon);
 }
 
+// ========== PlayerInteractTrigger ==========
+
+bool PlayerInteractTriggerInstance::test(const ItemStack& item, const Entity& entity) const
+{
+    if (!m_item.isAny() && !m_item.test(item)) {
+        return false;
+    }
+    CriterionContext context;
+    context.entity = &entity;
+    context.item = &item;
+    return m_entityContext.test(context);
+}
+
+Result<void> PlayerInteractTriggerInstance::fromJson(const nlohmann::json& json)
+{
+    if (json.is_null()) {
+        return {};
+    }
+    if (json.contains("item")) {
+        auto result = ItemPredicate::fromJson(json["item"]);
+        if (result.failed()) {
+            return result.error();
+        }
+        m_item = result.value();
+    }
+    if (json.contains("entity")) {
+        auto result = ContextAwarePredicate::fromJson(json["entity"]);
+        if (result.failed()) {
+            return result.error();
+        }
+        m_entityContext = std::move(result.value());
+    }
+    // TODO(player-predicate): vanilla 条件还含可选的 player（ContextAwarePredicate）字段，暂忽略。
+    return {};
+}
+
+nlohmann::json PlayerInteractTriggerInstance::conditionsToJson() const
+{
+    nlohmann::json json = nlohmann::json::object();
+    if (!m_item.isAny()) {
+        json["item"] = m_item.toJson();
+    }
+    if (!m_entityContext.isAny()) {
+        json["entity"] = m_entityContext.toJson();
+    }
+    return json;
+}
+
+Result<std::shared_ptr<ICriterionInstance>> PlayerInteractTrigger::fromJson(const nlohmann::json& json)
+{
+    auto instance = std::make_shared<PlayerInteractTriggerInstance>();
+    auto result = instance->fromJson(json);
+    if (result.failed()) {
+        return result.error();
+    }
+    return instance;
+}
+
+void PlayerInteractTrigger::trigger(ServerPlayer& player, const ItemStack& item, const Entity& entity)
+{
+    // 实际派发由 Player::triggerPlayerShearedEquipment → ServerPlayer 实现经模板方法完成
+    MC_UNUSED(player);
+    MC_UNUSED(item);
+    MC_UNUSED(entity);
+}
+
+// ========== StartRidingTrigger ==========
+
+bool StartRidingTriggerInstance::test(const CriterionContext& context) const
+{
+    return m_playerContext.test(context);
+}
+
+Result<void> StartRidingTriggerInstance::fromJson(const nlohmann::json& json)
+{
+    if (json.is_null()) {
+        return {};
+    }
+    if (json.contains("player")) {
+        auto result = ContextAwarePredicate::fromJson(json["player"]);
+        if (result.failed()) {
+            return result.error();
+        }
+        m_playerContext = std::move(result.value());
+    }
+    return {};
+}
+
+nlohmann::json StartRidingTriggerInstance::conditionsToJson() const
+{
+    if (m_playerContext.isAny()) {
+        return nlohmann::json::object();
+    }
+    return nlohmann::json{{"player", m_playerContext.toJson()}};
+}
+
+Result<std::shared_ptr<ICriterionInstance>> StartRidingTrigger::fromJson(const nlohmann::json& json)
+{
+    auto instance = std::make_shared<StartRidingTriggerInstance>();
+    auto result = instance->fromJson(json);
+    if (result.failed()) {
+        return result.error();
+    }
+    return instance;
+}
+
+void StartRidingTrigger::trigger(ServerPlayer& player)
+{
+    // 实际派发由 Player::triggerStartedRiding → ServerPlayer 实现经模板方法完成
+    MC_UNUSED(player);
+}
+
+// ========== LightningStrikeTrigger ==========
+
+bool LightningStrikeTriggerInstance::test(const Entity& lightning, const Entity& bystander) const
+{
+    // 对齐 vanilla matches：lightning 谓词作用于闪电本身，bystander 谓词作用于旁观者
+    CriterionContext lightningContext;
+    lightningContext.entity = &lightning;
+    if (!m_lightningContext.test(lightningContext)) {
+        return false;
+    }
+    CriterionContext bystanderContext;
+    bystanderContext.entity = &bystander;
+    return m_bystanderContext.test(bystanderContext);
+}
+
+Result<void> LightningStrikeTriggerInstance::fromJson(const nlohmann::json& json)
+{
+    if (json.is_null()) {
+        return {};
+    }
+    if (json.contains("lightning")) {
+        auto result = ContextAwarePredicate::fromJson(json["lightning"]);
+        if (result.failed()) {
+            return result.error();
+        }
+        m_lightningContext = std::move(result.value());
+    }
+    if (json.contains("bystander")) {
+        auto result = ContextAwarePredicate::fromJson(json["bystander"]);
+        if (result.failed()) {
+            return result.error();
+        }
+        m_bystanderContext = std::move(result.value());
+    }
+    // TODO(player-predicate): vanilla 条件还含可选的 player（ContextAwarePredicate）字段，暂忽略。
+    return {};
+}
+
+nlohmann::json LightningStrikeTriggerInstance::conditionsToJson() const
+{
+    nlohmann::json json = nlohmann::json::object();
+    if (!m_lightningContext.isAny()) {
+        json["lightning"] = m_lightningContext.toJson();
+    }
+    if (!m_bystanderContext.isAny()) {
+        json["bystander"] = m_bystanderContext.toJson();
+    }
+    return json;
+}
+
+Result<std::shared_ptr<ICriterionInstance>> LightningStrikeTrigger::fromJson(const nlohmann::json& json)
+{
+    auto instance = std::make_shared<LightningStrikeTriggerInstance>();
+    auto result = instance->fromJson(json);
+    if (result.failed()) {
+        return result.error();
+    }
+    return instance;
+}
+
+void LightningStrikeTrigger::trigger(ServerPlayer& player, const Entity& lightning, const Entity& bystander)
+{
+    // 实际派发由 Player::triggerLightningStrike → ServerPlayer 实现经模板方法完成
+    MC_UNUSED(player);
+    MC_UNUSED(lightning);
+    MC_UNUSED(bystander);
+}
+
 } // namespace mc::advancement

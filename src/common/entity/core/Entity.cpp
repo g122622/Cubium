@@ -2058,6 +2058,14 @@ bool Entity::startRiding(Entity& vehicle)
         return false;
     }
 
+    // 11. 骑乘进度（对齐 vanilla Entity.startRiding:2340-2346：成功后对乘客中的玩家
+    //     派发 START_RIDING_TRIGGER；仅本人主动上车，实体被载上来不派发）
+    if (m_world != nullptr && !m_world->isClientSide()) {
+        if (auto* player = dynamic_cast<Player*>(this); player != nullptr) {
+            player->triggerStartedRiding();
+        }
+    }
+
     return true;
 }
 

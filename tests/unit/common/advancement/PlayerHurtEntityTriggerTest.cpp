@@ -359,5 +359,99 @@ TEST_F(PlayerHurtEntityTriggerTest, KilledByArrow_VictimsMultisetMatch)
     EXPECT_FALSE(instance.test({&zombie}, ItemStack()));
 }
 
+TEST_F(PlayerHurtEntityTriggerTest, PlayerShearedEquipment_ConditionListEntity)
+{
+    // 对齐数据包 husbandry/remove_wolf_armor：entity 为条件列表 + item 谓词
+    const nlohmann::json json = {
+        {"trigger", "minecraft:player_sheared_equipment"},
+        {"conditions",
+            {{"entity",
+                 nlohmann::json::array({{{"condition", "minecraft:entity_properties"},
+                     {"entity", "this"},
+                     {"predicate", {{"type", "minecraft:wolf"}}}}})},
+                {"item", {{"items", "minecraft:wolf_armor"}}}}},
+    };
+    auto criterion = advancement::Criterion::fromJson("remove_wolf_armor", json);
+    ASSERT_TRUE(criterion.success());
+    auto instance =
+        std::dynamic_pointer_cast<advancement::PlayerInteractTriggerInstance>(criterion.value().getTriggerInstance());
+    ASSERT_NE(instance, nullptr);
+
+    Items::initialize();
+    const Item* wolfArmor = ItemRegistry::instance().getItem(ResourceLocation("minecraft:wolf_armor"));
+    if (wolfArmor == nullptr) {
+        GTEST_SKIP() << "wolf_armor 未注册";
+    }
+    const ItemStack armor(*wolfArmor, 1);
+    ZombieEntity zombie(EntityInstanceId(1), mc::test::testEcsRegistry());
+    zombie.setTypeId(entity::EntityTypeKeys::ZOMBIE);
+
+    // 僵尸不是狼 → 条件列表不匹配（旧实现忽略条件列表，任何实体都会通过）
+    EXPECT_FALSE(instance->test(armor, zombie));
+    // 物品不匹配 → 失败
+    ASSERT_NE(Items::DIAMOND, nullptr);
+    EXPECT_FALSE(instance->test(ItemStack(*Items::DIAMOND, 1), zombie));
+}
+
+TEST_F(PlayerHurtEntityTriggerTest, StartedRiding_RegisteredAndPlayerCondition)
+{
+    EXPECT_TRUE(advancement::CriterionTriggers::instance().hasTrigger(ResourceLocation("minecraft:started_riding")));
+    auto* trigger = advancement::CriterionTriggers::instance().getTrigger<advancement::StartRidingTrigger>();
+    ASSERT_NE(trigger, nullptr);
+
+    // 对齐数据包 husbandry/ride_a_boat_with_a_goat 的 player 条件列表写法
+    const nlohmann::json json = {
+        {"trigger", "minecraft:started_riding"},
+        {"conditions",
+            {{"player",
+                nlohmann::json::array({{{"condition", "minecraft:entity_properties"},
+                    {"entity", "this"},
+                    {"predicate", {{"type", "minecraft:player"}}}}})}}},
+    };
+    auto criterion = advancement::Criterion::fromJson("ride_boat_with_goat", json);
+    ASSERT_TRUE(criterion.success());
+    auto instance =
+        std::dynamic_pointer_cast<advancement::StartRidingTriggerInstance>(criterion.value().getTriggerInstance());
+    ASSERT_NE(instance, nullptr);
+
+    ZombieEntity zombie(EntityInstanceId(1), mc::test::testEcsRegistry());
+    zombie.setTypeId(entity::EntityTypeKeys::ZOMBIE);
+    advancement::CriterionContext zombieContext;
+    zombieContext.entity = &zombie;
+    EXPECT_FALSE(instance->test(zombieContext));
+
+    advancement::CriterionContext noEntity;
+    EXPECT_FALSE(instance->test(noEntity));
+}
+
+TEST_F(PlayerHurtEntityTriggerTest, LightningStrike_LightningAndBystander)
+{
+    EXPECT_TRUE(advancement::CriterionTriggers::instance().hasTrigger(ResourceLocation("minecraft:lightning_strike")));
+    auto* trigger = advancement::CriterionTriggers::instance().getTrigger<advancement::LightningStrikeTrigger>();
+    ASSERT_NE(trigger, nullptr);
+
+    // 对齐数据包 adventure/lightning_rod_with_villager_no_fire：bystander 为村民
+    const nlohmann::json json = {
+        {"trigger", "minecraft:lightning_strike"},
+        {"conditions",
+            {{"bystander",
+                nlohmann::json::array({{{"condition", "minecraft:entity_properties"},
+                    {"entity", "this"},
+                    {"predicate", {{"type", "minecraft:villager"}}}}})}}},
+    };
+    auto criterion = advancement::Criterion::fromJson("villager_near_lightning", json);
+    ASSERT_TRUE(criterion.success());
+    auto instance =
+        std::dynamic_pointer_cast<advancement::LightningStrikeTriggerInstance>(criterion.value().getTriggerInstance());
+    ASSERT_NE(instance, nullptr);
+
+    ZombieEntity lightning(EntityInstanceId(1), mc::test::testEcsRegistry());
+    lightning.setTypeId(entity::EntityTypeKeys::LIGHTNING_BOLT);
+    ZombieEntity zombieBystander(EntityInstanceId(2), mc::test::testEcsRegistry());
+    zombieBystander.setTypeId(entity::EntityTypeKeys::ZOMBIE);
+    // 旁观者不是村民 → 不匹配
+    EXPECT_FALSE(instance->test(lightning, zombieBystander));
+}
+
 } // namespace
 } // namespace mc

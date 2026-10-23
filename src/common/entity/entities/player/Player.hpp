@@ -759,6 +759,41 @@ public:
     }
 
     /**
+     * @brief 剪取/取下装备等实体交互时触发进度（对齐 vanilla CriteriaTriggers.PLAYER_SHEARED_EQUIPMENT）
+     *
+     * @param item 交互所用物品（如剪刀）
+     * @param entity 被交互的实体
+     *
+     * 基类为空实现（仅服务端玩家处理进度）。
+     */
+    virtual void triggerPlayerShearedEquipment(const ItemStack& item, const Entity& entity)
+    {
+        MC_UNUSED(item);
+        MC_UNUSED(entity);
+    }
+
+    /**
+     * @brief 开始骑乘实体时触发进度（对齐 vanilla CriteriaTriggers.START_RIDING_TRIGGER）
+     *
+     * 基类为空实现（仅服务端玩家处理进度）。
+     */
+    virtual void triggerStartedRiding() {}
+
+    /**
+     * @brief 附近闪电落地时触发进度（对齐 vanilla CriteriaTriggers.LIGHTNING_STRIKE）
+     *
+     * @param lightning 闪电实体
+     * @param bystander 旁观者（通常为触发玩家自身）
+     *
+     * 基类为空实现（仅服务端玩家处理进度）。
+     */
+    virtual void triggerLightningStrike(const Entity& lightning, const Entity& bystander)
+    {
+        MC_UNUSED(lightning);
+        MC_UNUSED(bystander);
+    }
+
+    /**
      * @brief 增加自定义统计
      *
      * 当玩家触发自定义统计事件时调用（如打开容器、与方块交互等）。

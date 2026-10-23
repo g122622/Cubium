@@ -567,6 +567,15 @@ public:
     /// 触发 killed_by_arrow 进度（对齐 vanilla CriteriaTriggers.KILLED_BY_ARROW）
     void triggerKilledByArrow(const std::vector<const Entity*>& victims, const ItemStack& firedFromWeapon) override;
 
+    /// 触发 player_sheared_equipment 进度
+    void triggerPlayerShearedEquipment(const ItemStack& item, const Entity& entity) override;
+
+    /// 触发 started_riding 进度
+    void triggerStartedRiding() override;
+
+    /// 触发 lightning_strike 进度
+    void triggerLightningStrike(const Entity& lightning, const Entity& bystander) override;
+
     /**
      * @brief 解锁配方（重写 Player 基类）
      *

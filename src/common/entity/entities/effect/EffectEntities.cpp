@@ -413,6 +413,18 @@ void LightningBoltEntity::tick()
     // lightningState < 0 时检查是否"复活"
     if (m_lightningState < 0) {
         if (m_boltLivingTime == 0) {
+            // 服务端：对 256 格内玩家派发 lightning_strike 进度
+            // （对齐 vanilla LightningBolt.tick:126-128；bystander 上下文取触发玩家自身）
+            if (m_world != nullptr && !m_world->isClientSide()) {
+                for (Entity* nearby : m_world->getPlayers()) {
+                    auto* player = dynamic_cast<Player*>(nearby);
+                    if (player == nullptr || !player->isAlive() || player->distanceTo(*this) >= 256.0f) {
+                        continue;
+                    }
+                    player->triggerLightningStrike(*this, *player);
+                }
+            }
+
             // 所有视觉效果结束，移除实体
             remove();
         } else if (m_lightningState < -static_cast<i32>(m_boltVertex % 10)) {

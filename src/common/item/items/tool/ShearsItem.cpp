@@ -157,6 +157,15 @@ bool ShearsItem::itemInteractionForEntity(ItemStack& stack, Player& player, Livi
     // 执行剪毛
     std::vector<ItemStack> drops = shearable->shear(&player);
 
+    // 进度：玩家剪取装备（对齐 vanilla Entity.shearEquipment → CriteriaTriggers.PLAYER_SHEARED_EQUIPMENT，
+    // 携带剪下的物品与目标实体）。
+    for (const auto& drop : drops) {
+        if (!drop.isEmpty()) {
+            player.triggerPlayerShearedEquipment(drop, target);
+            break;
+        }
+    }
+
     // 在世界中生成掉落物
     IWorld* world = target.world();
     if (world != nullptr && !drops.empty()) {

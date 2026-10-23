@@ -171,6 +171,9 @@ constexpr const char* USED_ENDER_EYE = "minecraft:used_ender_eye";
 constexpr const char* USED_TOTEM = "minecraft:used_totem";
 constexpr const char* SHOT_CROSSBOW = "minecraft:shot_crossbow";
 constexpr const char* KILLED_BY_CROSSBOW = "minecraft:killed_by_crossbow";
+constexpr const char* STARTED_RIDING = "minecraft:started_riding";
+constexpr const char* LIGHTNING_STRIKE = "minecraft:lightning_strike";
+constexpr const char* PLAYER_SHEARED_EQUIPMENT = "minecraft:player_sheared_equipment";
 constexpr const char* PLAYER_GENERATES_CONTAINER_LOOT = "minecraft:player_generates_container_loot";
 constexpr const char* THROWN_ITEM_PICKED_UP_BY_ENTITY = "minecraft:thrown_item_picked_up_by_entity";
 
