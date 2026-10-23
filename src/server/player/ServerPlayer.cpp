@@ -1350,6 +1350,23 @@ void ServerPlayer::triggerDistance(const ResourceLocation& triggerId, const Vect
         });
 }
 
+void ServerPlayer::triggerFallAfterExplosion(
+    const Vector3& impulsePos, const Vector3& startPos, const Vector3& endPos, const Entity* cause)
+{
+    if (m_advancements == nullptr) {
+        return;
+    }
+    auto* trigger = advancement::CriterionTriggers::instance().getTrigger<advancement::FallAfterExplosionTrigger>();
+    if (trigger == nullptr) {
+        return;
+    }
+    trigger->advancement::AbstractCriterionTrigger<advancement::FallAfterExplosionTriggerInstance>::trigger(
+        *m_advancements,
+        [&impulsePos, &startPos, &endPos, cause](const advancement::FallAfterExplosionTriggerInstance& instance) {
+            return instance.test(impulsePos, startPos, endPos, cause);
+        });
+}
+
 void ServerPlayer::setWorld(server::ServerWorld* world)
 {
     Entity::setWorld(world);
@@ -2151,6 +2168,19 @@ void ServerPlayer::trackFallAndLavaProgress()
         }
     } else if (!m_startingToFallPosition.has_value()) {
         m_startingToFallPosition = Vector3(x(), y(), z());
+
+        // 对齐 vanilla ServerPlayer.trackStartFallingPosition：爆炸冲量点存在且不高于下落起点时
+        // 派发 fall_after_explosion（风弹把玩家弹起后再落下）。
+        const std::optional<Vector3>& impulseImpactPos = currentImpulseImpactPos();
+        const EntityInstanceId explosionCauseId = currentExplosionCause();
+        if (impulseImpactPos.has_value() && impulseImpactPos->y <= m_startingToFallPosition->y) {
+            Entity* cause = (explosionCauseId != INVALID_ENTITY_ID && m_world != nullptr)
+                ? m_world->getEntity(explosionCauseId)
+                : nullptr;
+            const Vector3 impulsePos(*impulseImpactPos);
+            const Vector3 startPos(*m_startingToFallPosition);
+            triggerFallAfterExplosion(impulsePos, startPos, Vector3(x(), y(), z()), cause);
+        }
     }
 
     // 2. 骑载具身处熔岩（对齐 vanilla ServerPlayer.trackEnteredOrExitedLavaOnVehicle）

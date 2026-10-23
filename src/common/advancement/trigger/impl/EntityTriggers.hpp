@@ -61,6 +61,7 @@ class PlayerInteractTriggerInstance;
 class StartRidingTriggerInstance;
 class LightningStrikeTriggerInstance;
 class DistanceTriggerInstance;
+class FallAfterExplosionTriggerInstance;
 
 /**
  * @brief 驯服动物触发器
@@ -705,6 +706,51 @@ private:
     ContextAwarePredicate m_playerContext;
     std::optional<LocationPredicate> m_startPosition;
     std::optional<DistancePredicate> m_distance;
+};
+
+/**
+ * @brief 爆炸冲量后坠落触发器（对齐 vanilla FallAfterExplosionTrigger）
+ *
+ * 玩家被爆炸（如风弹）弹起后开始下落、且下落起点不低于冲量发生点高度时触发。
+ * 条件：player / start_position / distance / cause（爆炸来源实体，如 wind_charge）。
+ * 数据包 adventure/who_needs_rockets 依赖它。
+ */
+class FallAfterExplosionTrigger : public AbstractCriterionTrigger<FallAfterExplosionTriggerInstance> {
+public:
+    static constexpr const char* TRIGGER_ID = "minecraft:fall_after_explosion";
+
+    [[nodiscard]] ResourceLocation getId() const override { return ResourceLocation(TRIGGER_ID); }
+
+    [[nodiscard]] Result<std::shared_ptr<ICriterionInstance>> fromJson(const nlohmann::json& json) override;
+
+    /// 触发（爆炸冲量点 + 下落起点 + 当前位置 + 爆炸来源实体，可为 nullptr）
+    void trigger(class ServerPlayer& player,
+        const Vector3& impulsePos,
+        const Vector3& startPos,
+        const Vector3& endPos,
+        const class Entity* cause);
+};
+
+/**
+ * @brief 爆炸冲量后坠落触发器实例
+ */
+class FallAfterExplosionTriggerInstance : public CriterionInstance<FallAfterExplosionTriggerInstance> {
+public:
+    static constexpr const char* TRIGGER_ID = "minecraft:fall_after_explosion";
+
+    FallAfterExplosionTriggerInstance() = default;
+
+    [[nodiscard]] bool test(
+        const Vector3& impulsePos, const Vector3& startPos, const Vector3& endPos, const class Entity* cause) const;
+
+    Result<void> fromJson(const nlohmann::json& json);
+    [[nodiscard]] nlohmann::json conditionsToJson() const;
+
+private:
+    ContextAwarePredicate m_playerContext;
+    std::optional<LocationPredicate> m_startPosition;
+    std::optional<DistancePredicate> m_distance;
+    ContextAwarePredicate m_causeContext;
 };
 
 } // namespace advancement

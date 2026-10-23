@@ -38,6 +38,7 @@
 #include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/damage/DamageSource.hpp"
 #include "common/entity/entities/monster/undead/ZombieEntity.hpp"
+#include "common/entity/registry/VanillaEntityTypeKeys.hpp"
 #include "common/item/Items.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/item/tag/ItemTags.hpp"
@@ -513,6 +514,57 @@ TEST_F(PlayerHurtEntityTriggerTest, DistanceTrigger_SubclassIds)
     EXPECT_EQ(nether.getId().toString(), "minecraft:nether_travel");
     EXPECT_EQ(lava.getId().toString(), "minecraft:ride_entity_in_lava");
     EXPECT_EQ(fall.getId().toString(), "minecraft:fall_from_height");
+}
+
+TEST_F(PlayerHurtEntityTriggerTest, FallAfterExplosion_DistanceAndCause)
+{
+    EXPECT_TRUE(
+        advancement::CriterionTriggers::instance().hasTrigger(ResourceLocation("minecraft:fall_after_explosion")));
+    // 对齐数据包 adventure/who_needs_rockets：
+    //   {"cause": [{"condition":"minecraft:entity_properties","entity":"this",
+    //               "predicate":{"type":"minecraft:wind_charge"}}],
+    //    "distance": {"y": {"min": 7.0}}}
+    const nlohmann::json json = {
+        {"trigger", "minecraft:fall_after_explosion"},
+        {"conditions",
+            {{"cause",
+                 nlohmann::json::array({{{"condition", "minecraft:entity_properties"},
+                     {"entity", "this"},
+                     {"predicate", {{"type", "minecraft:wind_charge"}}}}})},
+                {"distance", {{"y", {{"min", 7.0}}}}}}},
+    };
+    auto criterion = advancement::Criterion::fromJson("who_needs_rockets", json);
+    ASSERT_TRUE(criterion.success());
+    auto instance = std::dynamic_pointer_cast<advancement::FallAfterExplosionTriggerInstance>(
+        criterion.value().getTriggerInstance());
+    ASSERT_NE(instance, nullptr);
+
+    ZombieEntity windCharge(EntityInstanceId(1), mc::test::testEcsRegistry());
+    windCharge.setTypeId("minecraft:wind_charge");
+    ZombieEntity zombie(EntityInstanceId(2), mc::test::testEcsRegistry());
+    zombie.setTypeId(entity::EntityTypeKeys::ZOMBIE);
+
+    const Vector3 impulse(0.0f, 64.0f, 0.0f);
+    // 冲量点上方 10 格开始下落 → 垂直位移 -10，|y| ≥ 7，来源为风弹
+    EXPECT_TRUE(instance->test(impulse, Vector3(0.0f, 74.0f, 0.0f), Vector3(0.0f, 60.0f, 0.0f), &windCharge));
+    // 来源不是风弹 → 不匹配
+    EXPECT_FALSE(instance->test(impulse, Vector3(0.0f, 74.0f, 0.0f), Vector3(0.0f, 60.0f, 0.0f), &zombie));
+    // 无来源 → cause 条件不满足
+    EXPECT_FALSE(instance->test(impulse, Vector3(0.0f, 74.0f, 0.0f), Vector3(0.0f, 60.0f, 0.0f), nullptr));
+    // 下落高度不足（|y| = 3 < 7）→ 不匹配
+    EXPECT_FALSE(instance->test(impulse, Vector3(0.0f, 67.0f, 0.0f), Vector3(0.0f, 60.0f, 0.0f), &windCharge));
+}
+
+TEST_F(PlayerHurtEntityTriggerTest, FallAfterExplosion_WithoutConditionsMatchesAny)
+{
+    auto* trigger = advancement::CriterionTriggers::instance().getTrigger<advancement::FallAfterExplosionTrigger>();
+    ASSERT_NE(trigger, nullptr);
+    auto result = trigger->fromJson(nlohmann::json::object());
+    ASSERT_TRUE(result.success());
+    auto instance = std::dynamic_pointer_cast<advancement::FallAfterExplosionTriggerInstance>(result.value());
+    ASSERT_NE(instance, nullptr);
+    EXPECT_TRUE(
+        instance->test(Vector3(0.0f, 64.0f, 0.0f), Vector3(0.0f, 70.0f, 0.0f), Vector3(0.0f, 60.0f, 0.0f), nullptr));
 }
 
 } // namespace

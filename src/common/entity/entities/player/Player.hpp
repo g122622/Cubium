@@ -814,6 +814,25 @@ public:
     }
 
     /**
+     * @brief 爆炸冲量后开始下落时触发进度（对齐 vanilla CriteriaTriggers.FALL_AFTER_EXPLOSION）
+     *
+     * @param impulsePos 爆炸冲量发生点
+     * @param startPos 开始下落的位置
+     * @param endPos 当前位置
+     * @param cause 造成冲量的实体（风弹等，可为 nullptr）
+     *
+     * 基类为空实现（仅服务端玩家处理进度）。
+     */
+    virtual void triggerFallAfterExplosion(
+        const Vector3& impulsePos, const Vector3& startPos, const Vector3& endPos, const Entity* cause)
+    {
+        MC_UNUSED(impulsePos);
+        MC_UNUSED(startPos);
+        MC_UNUSED(endPos);
+        MC_UNUSED(cause);
+    }
+
+    /**
      * @brief 增加自定义统计
      *
      * 当玩家触发自定义统计事件时调用（如打开容器、与方块交互等）。

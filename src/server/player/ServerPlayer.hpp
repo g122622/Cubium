@@ -579,6 +579,10 @@ public:
     /// 距离类进度（fall_from_height / ride_entity_in_lava / nether_travel）
     void triggerDistance(const ResourceLocation& triggerId, const Vector3& startPos, const Vector3& endPos) override;
 
+    /// 触发 fall_after_explosion 进度
+    void triggerFallAfterExplosion(
+        const Vector3& impulsePos, const Vector3& startPos, const Vector3& endPos, const Entity* cause) override;
+
     /**
      * @brief 每 tick 跟踪下落起点与载具熔岩状态（对齐 vanilla ServerPlayer.trackStartFallingPosition
      *        与 trackEnteredOrExitedLavaOnVehicle）

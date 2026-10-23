@@ -1303,4 +1303,110 @@ void DistanceTrigger::trigger(ServerPlayer& player, const Vector3& startPos, con
     MC_UNUSED(endPos);
 }
 
+// ========== FallAfterExplosionTrigger ==========
+
+bool FallAfterExplosionTriggerInstance::test(
+    const Vector3& impulsePos, const Vector3& startPos, const Vector3& endPos, const Entity* cause) const
+{
+    // 对齐 vanilla matches(level, explosionPos, fallStartPos, cause)：
+    // start_position 以"冲量发生点"为参考位置，distance 以"冲量点 → 当前下落起点"计算
+    if (m_startPosition.has_value() && !m_startPosition->testPosition(impulsePos.x, impulsePos.y, impulsePos.z)) {
+        return false;
+    }
+    if (m_distance.has_value() &&
+        !m_distance->test(impulsePos.x, impulsePos.y, impulsePos.z, startPos.x, startPos.y, startPos.z)) {
+        return false;
+    }
+    if (!m_causeContext.isAny()) {
+        if (cause == nullptr) {
+            return false;
+        }
+        CriterionContext causeContext;
+        causeContext.entity = cause;
+        if (!m_causeContext.test(causeContext)) {
+            return false;
+        }
+    }
+    // endPos 目前仅用于上下文（vanilla 也不参与条件判定），保留参数以便后续扩展
+    MC_UNUSED(endPos);
+    return true;
+}
+
+Result<void> FallAfterExplosionTriggerInstance::fromJson(const nlohmann::json& json)
+{
+    if (json.is_null()) {
+        return {};
+    }
+    if (json.contains("player")) {
+        auto result = ContextAwarePredicate::fromJson(json["player"]);
+        if (result.failed()) {
+            return result.error();
+        }
+        m_playerContext = std::move(result.value());
+    }
+    if (json.contains("start_position")) {
+        auto result = LocationPredicate::fromJson(json["start_position"]);
+        if (result.failed()) {
+            return result.error();
+        }
+        m_startPosition = result.value();
+    }
+    if (json.contains("distance")) {
+        auto result = DistancePredicate::fromJson(json["distance"]);
+        if (result.failed()) {
+            return result.error();
+        }
+        m_distance = result.value();
+    }
+    if (json.contains("cause")) {
+        auto result = ContextAwarePredicate::fromJson(json["cause"]);
+        if (result.failed()) {
+            return result.error();
+        }
+        m_causeContext = std::move(result.value());
+    }
+    return {};
+}
+
+nlohmann::json FallAfterExplosionTriggerInstance::conditionsToJson() const
+{
+    nlohmann::json json = nlohmann::json::object();
+    if (!m_playerContext.isAny()) {
+        json["player"] = m_playerContext.toJson();
+    }
+    if (m_startPosition.has_value()) {
+        json["start_position"] = m_startPosition->toJson();
+    }
+    if (m_distance.has_value() && !m_distance->isAny()) {
+        json["distance"] = m_distance->toJson();
+    }
+    if (!m_causeContext.isAny()) {
+        json["cause"] = m_causeContext.toJson();
+    }
+    return json;
+}
+
+Result<std::shared_ptr<ICriterionInstance>> FallAfterExplosionTrigger::fromJson(const nlohmann::json& json)
+{
+    auto instance = std::make_shared<FallAfterExplosionTriggerInstance>();
+    auto result = instance->fromJson(json);
+    if (result.failed()) {
+        return result.error();
+    }
+    return instance;
+}
+
+void FallAfterExplosionTrigger::trigger(ServerPlayer& player,
+    const Vector3& impulsePos,
+    const Vector3& startPos,
+    const Vector3& endPos,
+    const Entity* cause)
+{
+    MC_UNUSED(player);
+    MC_UNUSED(impulsePos);
+    MC_UNUSED(startPos);
+    MC_UNUSED(endPos);
+    MC_UNUSED(cause);
+}
+
 } // namespace mc::advancement
