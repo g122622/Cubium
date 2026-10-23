@@ -24,6 +24,7 @@
 #include "common/mod/bedrock/addon/modules/MinecraftModuleFactory.hpp"
 #include "common/mod/bedrock/addon/binding/ScriptGameObjects.hpp"
 #include "common/mod/bedrock/addon/content/base/properties/AddonDynamicProperties.hpp"
+#include "common/mod/bedrock/addon/content/entity/query/EntityStateQuery.hpp"
 #include "common/mod/bedrock/addon/content/entity/state/AddonEntityComponents.hpp"
 #include "common/mod/bedrock/addon/event/ScriptEventData.hpp"
 #include "common/mod/bedrock/addon/modules/entity/ScriptEntityEventsBinding.hpp"
@@ -1550,29 +1551,22 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
                 return wrapComponent("EntityInventoryComponent");
             }
 
-            if (normalized == "minecraft:is_charged") {
-                // 对齐基岩 EntityIsChargedComponent（componentId="minecraft:is_charged"）：
-                // "When added, this component signifies that this entity is charged"。组件存在即充能。
-                // 仅 CreeperEntity 有充能概念，dynamic_cast 后查 isPowered()；非苦力怕或未充能返 undefined。
-                auto* creeper = dynamic_cast<mc::CreeperEntity*>(ent);
-                if (creeper == nullptr || !creeper->isPowered()) {
+            if (normalized == "minecraft:is_charged" || normalized == "minecraft:variant" ||
+                normalized == "minecraft:mark_variant" || normalized == "minecraft:is_tamed") {
+                auto present = EntityStateQuery::hasComponent(*ent, normalized);
+                if (present.failed()) {
+                    return ctx.throwInternalError(present.error().message().c_str());
+                }
+                if (!present.value()) {
                     return ctx.createUndefined();
                 }
-
-                return wrapComponent("IsChargedComponent");
-            }
-
-            if (normalized == "minecraft:mark_variant") {
-                // 借用基岩 mark_variant（i32 标记变种组件）承载哞菇红/棕变种。基岩原版哞菇无此组件，
-                // 此处为集成测试可读变种而设：dynamic_cast 到 MooshroomEntity，读 getMooshroomType()
-                // 映射为 i32（Red=0/Brown=1，与 MooshroomType 枚举值及 NBT "Type" 字段一致）。
-                // 非哞菇返 undefined（对齐基岩"组件不存在则 getComponent 返 undefined"）。
-                auto* mooshroom = dynamic_cast<mc::MooshroomEntity*>(ent);
-                if (mooshroom == nullptr) {
-                    return ctx.createUndefined();
+                if (normalized == "minecraft:variant") {
+                    return wrapComponent("EntityVariantComponent");
                 }
-
-                return wrapComponent("MarkVariantComponent");
+                if (normalized == "minecraft:mark_variant") {
+                    return wrapComponent("MarkVariantComponent");
+                }
+                return wrapComponent(normalized == "minecraft:is_tamed" ? "IsTamedComponent" : "IsChargedComponent");
             }
 
             if (normalized == "minecraft:glow_squid_dark_ticks") {
@@ -1603,34 +1597,6 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
                 }
 
                 return wrapComponent("PufferfishPuffStateComponent");
-            }
-
-            if (normalized == "minecraft:is_tamed") {
-                // 对齐基岩 EntityIsTamedComponent（componentId="minecraft:is_tamed"）：
-                // 驯服状态标记组件，wolf/cat/parrot 等驯服类生物经 setTamed(true) 置位。TameableEntity
-                // 是所有驯服类基类（WolfEntity/CatEntity/ParrotEntity 均继承自 TameableEntity），
-                // dynamic_cast<TameableEntity*> 命中即读 isTamed()（DATA_FLAGS_PARAM 位 4）。
-                // 非驯服类实体返 undefined（对齐基岩"组件不存在则 getComponent 返 undefined"）。
-                // 此前 WolfTests 驯服判定用 effectiveMax>=20（驯服后血量上限 8→20）间接断言，hacky 且
-                // 不适用于鹦鹉（驯服不改血量）；补 is_tamed 组件后所有驯服类可读 value 精确断言。
-                //
-                // 马类（AbstractHorseEntity）特例：vanilla 马可驯服（玩家骑上反复尝试直至驯服，经
-                // RunAroundLikeCrazyGoal + setTamedBy 置 HorseStatusComponent.m_tame），但不继承
-                // TameableEntity（继承 AnimalEntity+IJumpingMount+IEquipable），有独立 isTame()/setTame()。
-                // 故补 dynamic_cast<AbstractHorseEntity*> 分支读 isTame()，使马驯服状态可读（与 is_saddled
-                // 对马类的双路 dynamic_cast 范式一致）。修复前马驯服后 getComponent("is_tamed") 返 undefined，
-                // 脚本无法断言马驯服（只能用"玩家是否被甩下"间接判定，不精确）。
-                auto* tameable = dynamic_cast<mc::TameableEntity*>(ent);
-                if (tameable != nullptr) {
-                    return wrapComponent("IsTamedComponent");
-                }
-
-                auto* horse = dynamic_cast<mc::AbstractHorseEntity*>(ent);
-                if (horse != nullptr) {
-                    return wrapComponent("IsTamedComponent");
-                }
-
-                return ctx.createUndefined();
             }
 
             if (normalized == "minecraft:is_sitting") {
@@ -1781,24 +1747,33 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
     ctx.classRegistry().registerClass(isChargedClassId, isChargedProto, "IsChargedComponent");
     // 无 property/method：组件对象存在即 charged（与基岩 EntityIsChargedComponent 一致）。
 
-    // --- MarkVariantComponent类（minecraft:mark_variant，承载哞菇红/棕变种）---
-    // opaque 持 mc::Entity*。getComponent 已按 MooshroomEntity 过滤，此处 dynamic_cast 现取变种值。
-    // readonly value：MooshroomType 枚举值（Red=0/Brown=1），与 NBT "Type" 字段一致。
-    // 供集成测试断言闪电劈中后红↔棕翻转（MooshroomEntity::onStruckByLightning）。
-    u64 markVariantClassId = ScriptObjectRegistry::allocateClassId(ctx);
-    void* markVariantProto = builder.exportClass("MarkVariantComponent", markVariantClassId);
-    ctx.classRegistry().registerClass(markVariantClassId, markVariantProto, "MarkVariantComponent");
-
-    ClassRegistrar<void> markVariantReg(ctx, markVariantClassId, markVariantProto);
-    markVariantReg.readonlyProperty("value", [markVariantClassId](IScriptBindingContext& ctx, void* thisVal) -> void* {
-        auto* ent = static_cast<mc::Entity*>(ScriptObjectRegistry::unwrap(ctx, thisVal, markVariantClassId));
-        auto* mooshroom = dynamic_cast<mc::MooshroomEntity*>(ent);
-        if (mooshroom == nullptr) {
-            return ctx.createUndefined();
-        }
-        // MooshroomType::Red=0/Brown=1，static_cast 取枚举底层数值。
-        return ctx.createInt32(static_cast<i32>(mooshroom->getMooshroomType()));
-    });
+    // 每次读取时重新解析活动组件，旧脚本引用不能绕过组件移除。
+    for (const auto& [className, componentName] : {std::pair{"EntityVariantComponent", "minecraft:variant"},
+             std::pair{"MarkVariantComponent", "minecraft:mark_variant"}}) {
+        const u64 classId = ScriptObjectRegistry::allocateClassId(ctx);
+        void* prototype = builder.exportClass(className, classId);
+        ctx.classRegistry().registerClass(classId, prototype, className);
+        ClassRegistrar<void> registrar(ctx, classId, prototype);
+        registrar.readonlyProperty("value",
+            [classId, component = std::string(componentName)](IScriptBindingContext& context, void* receiver) -> void* {
+                const auto* entity = static_cast<mc::Entity*>(ScriptObjectRegistry::unwrap(context, receiver, classId));
+                if (entity == nullptr || entity->isRemoved()) {
+                    return context.throwTypeError("Entity is no longer valid");
+                }
+                auto present = EntityStateQuery::hasComponent(*entity, component);
+                if (present.failed()) {
+                    return context.throwInternalError(present.error().message().c_str());
+                }
+                if (!present.value()) {
+                    return context.throwTypeError("Entity component is no longer present");
+                }
+                auto value = EntityStateQuery::variant(*entity, component);
+                if (value.failed()) {
+                    return context.throwInternalError(value.error().message().c_str());
+                }
+                return context.createInt32(value.value());
+            });
+    }
 
     // --- GlowSquidDarkTicksComponent类（minecraft:glow_squid_dark_ticks，承载发光鱿鱼受惊暗化剩余 tick）---
     // opaque 持 mc::Entity*。getComponent 已按 GlowSquidEntity + getDarkTicksRemaining()>0 过滤，此处
@@ -1840,33 +1815,10 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
             return ctx.createInt32(static_cast<i32>(pufferfish->getPuffState()));
         });
 
-    // --- IsTamedComponent类（minecraft:is_tamed，承载驯服状态）---
-    // opaque 持 mc::Entity*。getComponent 已按 TameableEntity 过滤，此处 dynamic_cast 现取驯服状态。
-    // readonly value：bool，true=已驯服/false=未驯服（TameableEntity::isTamed 读 DATA_FLAGS_PARAM 位 4）。
-    // 供集成测试断言驯服类生物（wolf/cat/parrot）喂食驯服物品后 setTamed(true) 链路。区别于
-    // is_charged/glow_squid_dark_ticks"满足条件才返组件"的语义——is_tamed 对所有 TameableEntity 都返
-    // 组件（value true/false），以便测试断言驯服前后状态变化。
-    u64 isTamedClassId = ScriptObjectRegistry::allocateClassId(ctx);
+    // 驯服组件以存在性表示已驯服，官方接口没有 value 属性。
+    const u64 isTamedClassId = ScriptObjectRegistry::allocateClassId(ctx);
     void* isTamedProto = builder.exportClass("IsTamedComponent", isTamedClassId);
     ctx.classRegistry().registerClass(isTamedClassId, isTamedProto, "IsTamedComponent");
-
-    ClassRegistrar<void> isTamedReg(ctx, isTamedClassId, isTamedProto);
-    isTamedReg.readonlyProperty("value", [isTamedClassId](IScriptBindingContext& ctx, void* thisVal) -> void* {
-        auto* ent = static_cast<mc::Entity*>(ScriptObjectRegistry::unwrap(ctx, thisVal, isTamedClassId));
-        // 优先 TameableEntity（狼/猫/鹦鹉），其次 AbstractHorseEntity（马类不继承 TameableEntity
-        // 但有独立 isTame()，见 getComponent("is_tamed") 注释）。两路任一命中读 isTamed()。
-        auto* tameable = dynamic_cast<mc::TameableEntity*>(ent);
-        if (tameable != nullptr) {
-            return ctx.createBoolean(tameable->isTamed());
-        }
-
-        auto* horse = dynamic_cast<mc::AbstractHorseEntity*>(ent);
-        if (horse != nullptr) {
-            return ctx.createBoolean(horse->isTame());
-        }
-
-        return ctx.createUndefined();
-    });
 
     // --- IsSittingComponent类（minecraft:is_sitting，承载坐下状态）---
     // opaque 持 mc::Entity*。getComponent 已按 TameableEntity 过滤，此处 dynamic_cast 现取坐下状态。

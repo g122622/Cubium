@@ -298,6 +298,14 @@ Result<void> AddonEntityDefinition::validateComponents(const nlohmann::json& com
             MC_TRY(EntityTimerState::validateDefinition(component));
         } else if (name == "minecraft:fire_immune") {
             MC_TRY(_members(component, {}));
+        } else if (name == "minecraft:variant" || name == "minecraft:mark_variant") {
+            MC_TRY(_members(component, {"value"}));
+            MC_TRY(_number(component, "value", std::numeric_limits<i32>::min(), std::numeric_limits<i32>::max()));
+            if (component.contains("value") && !component["value"].is_number_integer()) {
+                return Error(ErrorCode::InvalidData, "Entity variant value must be an integer");
+            }
+            // 变种由活动组件来源保存，切换组不需要复制第二份实例状态。
+            // TODO: 将基岩变种和标记变种同步到 Java 客户端的实体投影。
         } else if (name == "minecraft:type_family") {
             MC_TRY(_members(component, {"family"}));
             if (const auto family = component.find("family"); family != component.end()) {

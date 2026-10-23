@@ -27,6 +27,7 @@
 #include "common/entity/core/MobEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/mod/bedrock/addon/content/entity/filters/base/VanillaEntityFamilies.hpp"
+#include "common/mod/bedrock/addon/content/entity/query/EntityStateQuery.hpp"
 #include "common/mod/bedrock/addon/content/entity/state/AddonEntityComponents.hpp"
 #include "common/mod/bedrock/addon/content/entity/state/EntityAddonState.hpp"
 #include "common/resource/ResourceLocation.hpp"
@@ -119,11 +120,16 @@ Result<void> _validate(nlohmann::json& filter, std::size_t depth, std::size_t& c
         "is_alive",
         "is_sneaking",
         "has_target",
+        "has_equipment",
+        "is_owner",
+        "has_container_open",
+        "is_variant",
+        "is_mark_variant",
         "is_daytime",
         "weather",
         "distance_to_nearest_player"};
     if (!supported.contains(test)) {
-        // TODO: 接入装备、所有权、伤害上下文、变种、容器和生物群系温度等过滤测试。
+        // TODO: 接入伤害上下文和生物群系温度等过滤测试。
         return Error(ErrorCode::Unsupported, "Entity filter test is not implemented: " + test);
     }
     if (!filter.contains("subject")) {
@@ -157,7 +163,7 @@ Result<void> _validate(nlohmann::json& filter, std::size_t depth, std::size_t& c
     }
     filter["operator"] = operation;
     const bool boolean = test == "bool_property" || test == "is_alive" || test == "is_sneaking" ||
-        test == "has_target" || test == "is_daytime";
+        test == "has_target" || test == "is_daytime" || test == "is_owner" || test == "has_container_open";
     if (!filter.contains("value") && boolean) {
         filter["value"] = true;
     }
@@ -175,8 +181,15 @@ Result<void> _validate(nlohmann::json& filter, std::size_t depth, std::size_t& c
         if (!value.is_boolean()) {
             return Error(ErrorCode::InvalidData, "Entity filter value must be boolean");
         }
-    } else if (test == "int_property" || test == "float_property" || test == "distance_to_nearest_player") {
-        MC_TRY(_numeric(value, test == "int_property"));
+    } else if (test == "int_property" || test == "float_property" || test == "distance_to_nearest_player" ||
+        test == "is_variant" || test == "is_mark_variant") {
+        const bool integer = test == "int_property" || test == "is_variant" || test == "is_mark_variant";
+        MC_TRY(_numeric(value, integer));
+        if (integer &&
+            (value.get<double>() < std::numeric_limits<i32>::min() ||
+                value.get<double>() > std::numeric_limits<i32>::max())) {
+            return Error(ErrorCode::InvalidData, "Entity integer filter value exceeds int32 range");
+        }
         if (test == "distance_to_nearest_player" && value.get<double>() < 0) {
             return Error(ErrorCode::InvalidData, "Entity filter distance cannot be negative");
         }
@@ -188,6 +201,20 @@ Result<void> _validate(nlohmann::json& filter, std::size_t depth, std::size_t& c
             filter["domain"].get_ref<const std::string&>().empty()) {
             return Error(ErrorCode::InvalidData, "Entity property filter requires a domain");
         }
+    } else if (test == "has_equipment") {
+        if (!filter.contains("domain")) {
+            filter["domain"] = "any";
+        }
+        static const std::set<std::string> domains = {
+            "any", "armor", "body", "feet", "hand", "head", "inventory", "leg", "main_hand", "torso"};
+        if (!filter["domain"].is_string() || !domains.contains(filter["domain"].get<std::string>())) {
+            return Error(ErrorCode::InvalidData, "Unknown entity equipment filter domain");
+        }
+        const auto item = mc::ResourceLocation::parse(value.get<std::string>());
+        if (!item.isValid()) {
+            return Error(ErrorCode::InvalidData, "Invalid entity equipment filter item identifier");
+        }
+        value = item.toString();
     } else if (filter.contains("domain")) {
         return Error(ErrorCode::Unsupported, "Entity filter domain is not implemented for: " + test);
     }
@@ -288,18 +315,6 @@ Result<bool> _family(const mc::Entity& entity, const std::string& family)
     return Error(ErrorCode::Unsupported, "Native Bedrock family mapping is not implemented: " + family);
 }
 
-Result<bool> _hasComponent(const mc::Entity& entity, const std::string& name)
-{
-    if (const auto* components = entity.tryGetComponent<AddonEntityComponents>()) {
-        return components->has(name);
-    }
-    if (name == "minecraft:health" || name == "minecraft:movement" || name == "minecraft:equippable") {
-        return dynamic_cast<const mc::LivingEntity*>(&entity) != nullptr;
-    }
-    // TODO: 将其余原版实体组件的存在条件统一接入组件描述表。
-    return Error(ErrorCode::Unsupported, "Native Bedrock component mapping is not implemented: " + name);
-}
-
 Result<bool> _test(const nlohmann::json& filter, const EntityFilterContext& context)
 {
     const auto* entity = _subject(context, filter["subject"].get<std::string>());
@@ -343,7 +358,7 @@ Result<bool> _test(const nlohmann::json& filter, const EntityFilterContext& cont
         return _compare(actual.value(), true, operation);
     }
     if (test == "has_component") {
-        auto actual = _hasComponent(*entity, expected.get<std::string>());
+        auto actual = EntityStateQuery::hasComponent(*entity, expected.get<std::string>());
         if (actual.failed()) {
             return actual.error();
         }
@@ -364,6 +379,29 @@ Result<bool> _test(const nlohmann::json& filter, const EntityFilterContext& cont
     if (test == "has_target") {
         const auto* mob = dynamic_cast<const mc::MobEntity*>(entity);
         return _compare(mob != nullptr && mob->attackTarget() != nullptr, expected, operation);
+    }
+    if (test == "has_equipment") {
+        auto actual =
+            EntityStateQuery::hasEquipment(*entity, filter["domain"].get<std::string>(), expected.get<std::string>());
+        if (actual.failed()) {
+            return actual.error();
+        }
+        return _compare(actual.value(), true, operation);
+    }
+    if (test == "is_owner") {
+        return _compare(EntityStateQuery::isOwner(context.self, *entity), expected, operation);
+    }
+    if (test == "has_container_open") {
+        const auto* player = dynamic_cast<const mc::Player*>(entity);
+        return _compare(player != nullptr && player->openContainerMenu() != nullptr, expected, operation);
+    }
+    if (test == "is_variant" || test == "is_mark_variant") {
+        auto actual =
+            EntityStateQuery::variant(*entity, test == "is_variant" ? "minecraft:variant" : "minecraft:mark_variant");
+        if (actual.failed()) {
+            return actual.error();
+        }
+        return _compare(actual.value(), expected, operation);
     }
     const auto* world = entity->world();
     if (world == nullptr) {
