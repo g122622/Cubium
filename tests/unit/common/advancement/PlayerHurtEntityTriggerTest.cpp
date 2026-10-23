@@ -42,6 +42,7 @@
 #include "common/item/core/ItemStack.hpp"
 #include "common/item/tag/ItemTags.hpp"
 #include "common/resource/ResourceLocation.hpp"
+#include "common/util/math/Vector3.hpp"
 
 #include <gtest/gtest.h>
 
@@ -451,6 +452,67 @@ TEST_F(PlayerHurtEntityTriggerTest, LightningStrike_LightningAndBystander)
     zombieBystander.setTypeId(entity::EntityTypeKeys::ZOMBIE);
     // 旁观者不是村民 → 不匹配
     EXPECT_FALSE(instance->test(lightning, zombieBystander));
+}
+
+TEST_F(PlayerHurtEntityTriggerTest, DistanceTriggers_Registered)
+{
+    auto& triggers = advancement::CriterionTriggers::instance();
+    EXPECT_TRUE(triggers.hasTrigger(ResourceLocation("minecraft:fall_from_height")));
+    EXPECT_TRUE(triggers.hasTrigger(ResourceLocation("minecraft:ride_entity_in_lava")));
+    EXPECT_TRUE(triggers.hasTrigger(ResourceLocation("minecraft:nether_travel")));
+}
+
+TEST_F(PlayerHurtEntityTriggerTest, FallFromHeight_DistanceYCondition)
+{
+    // 对齐数据包 adventure/fall_from_world_height：
+    //   {"distance": {"y": {"min": 379.0}}, "start_position": {"position": {"y": {"min": 319.0}}}}
+    // 注：vanilla 的 distance.y 是带符号的垂直位移（向下为负），"至少下落 379 格"须写 absY。
+    const nlohmann::json json = {
+        {"trigger", "minecraft:fall_from_height"},
+        {"conditions",
+            {{"distance", {{"absY", {{"min", 379.0}}}}},
+                {"start_position", {{"position", {{"y", {{"min", 319.0}}}}}}}}},
+    };
+    auto criterion = advancement::Criterion::fromJson("fall_from_world_height", json);
+    ASSERT_TRUE(criterion.success());
+    auto instance =
+        std::dynamic_pointer_cast<advancement::DistanceTriggerInstance>(criterion.value().getTriggerInstance());
+    ASSERT_NE(instance, nullptr);
+
+    // 从 y=320 落到 y=-70：垂直位移 -390，|y| = 390 ≥ 379
+    EXPECT_TRUE(instance->test(Vector3(0.0f, 320.0f, 0.0f), Vector3(0.0f, -70.0f, 0.0f)));
+    // 下落位移不足（|y| = 10 < 379）→ 不匹配
+    EXPECT_FALSE(instance->test(Vector3(0.0f, 100.0f, 0.0f), Vector3(0.0f, 90.0f, 0.0f)));
+    // 起点高度不足（y=100 < 319）→ 不匹配
+    EXPECT_FALSE(instance->test(Vector3(0.0f, 100.0f, 0.0f), Vector3(0.0f, -300.0f, 0.0f)));
+}
+
+TEST_F(PlayerHurtEntityTriggerTest, RideEntityInLava_HorizontalDistance)
+{
+    // 对齐数据包 nether/ride_strider_in_overworld_lava：{"distance": {"horizontal": {"min": 50.0}}}
+    const nlohmann::json json = {
+        {"trigger", "minecraft:ride_entity_in_lava"},
+        {"conditions", {{"distance", {{"horizontal", {{"min", 50.0}}}}}}},
+    };
+    auto criterion = advancement::Criterion::fromJson("ride_strider_lava", json);
+    ASSERT_TRUE(criterion.success());
+    auto instance =
+        std::dynamic_pointer_cast<advancement::DistanceTriggerInstance>(criterion.value().getTriggerInstance());
+    ASSERT_NE(instance, nullptr);
+
+    EXPECT_TRUE(instance->test(Vector3(0.0f, 40.0f, 0.0f), Vector3(60.0f, 40.0f, 0.0f)));
+    EXPECT_FALSE(instance->test(Vector3(0.0f, 40.0f, 0.0f), Vector3(10.0f, 40.0f, 0.0f)));
+}
+
+TEST_F(PlayerHurtEntityTriggerTest, DistanceTrigger_SubclassIds)
+{
+    // 三个子类共享实例结构但 ID 不同，注册表须各自独立
+    advancement::NetherTravelTrigger nether;
+    advancement::RideEntityInLavaTrigger lava;
+    advancement::DistanceTrigger fall;
+    EXPECT_EQ(nether.getId().toString(), "minecraft:nether_travel");
+    EXPECT_EQ(lava.getId().toString(), "minecraft:ride_entity_in_lava");
+    EXPECT_EQ(fall.getId().toString(), "minecraft:fall_from_height");
 }
 
 } // namespace

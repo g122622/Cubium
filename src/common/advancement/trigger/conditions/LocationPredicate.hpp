@@ -75,6 +75,11 @@ public:
     [[nodiscard]] bool test(const IWorld& world, const BlockPos& pos) const;
 
     /**
+     * @brief 仅按坐标范围判定（无世界上下文，如进度 start_position 的世界无关部分）
+     */
+    [[nodiscard]] bool testPosition(f64 x, f64 y, f64 z) const { return m_x.test(x) && m_y.test(y) && m_z.test(z); }
+
+    /**
      * @brief 检查是否匹配任意位置
      */
     [[nodiscard]] bool isAny() const noexcept { return m_isAny; }
@@ -129,6 +134,27 @@ public:
         , m_isAny(m_range.isUnbounded())
     {}
 
+    /// 多轴向构造（vanilla DistancePredicate 的 8 个范围）
+    DistancePredicate(DoubleBounds x,
+        DoubleBounds y,
+        DoubleBounds z,
+        DoubleBounds absX,
+        DoubleBounds absY,
+        DoubleBounds absZ,
+        DoubleBounds horizontal,
+        DoubleBounds absolute)
+        : m_x(std::move(x))
+        , m_y(std::move(y))
+        , m_z(std::move(z))
+        , m_absX(std::move(absX))
+        , m_absY(std::move(absY))
+        , m_absZ(std::move(absZ))
+        , m_horizontal(std::move(horizontal))
+        , m_absolute(std::move(absolute))
+        , m_isAny(m_x.isUnbounded() && m_y.isUnbounded() && m_z.isUnbounded() && m_absX.isUnbounded() &&
+              m_absY.isUnbounded() && m_absZ.isUnbounded() && m_horizontal.isUnbounded() && m_absolute.isUnbounded())
+    {}
+
     /**
      * @brief 检查距离是否匹配
      * @param x1 起点X
@@ -154,7 +180,7 @@ public:
     [[nodiscard]] bool isAny() const noexcept { return m_isAny; }
 
     /**
-     * @brief 从JSON解析
+     * @brief 从JSON解析（vanilla 结构：x / y / z / absX / absY / absZ / horizontal / absolute）
      */
     static Result<DistancePredicate> fromJson(const nlohmann::json& json);
 
@@ -174,6 +200,16 @@ public:
     static DistancePredicate between(f64 min, f64 max) { return DistancePredicate(DoubleBounds::between(min, max)); }
 
 private:
+    /// vanilla DistancePredicate 的 8 个轴向范围（x/y/z/absX/absY/absZ/horizontal/absolute）
+    DoubleBounds m_x;
+    DoubleBounds m_y;
+    DoubleBounds m_z;
+    DoubleBounds m_absX;
+    DoubleBounds m_absY;
+    DoubleBounds m_absZ;
+    DoubleBounds m_horizontal;
+    DoubleBounds m_absolute;
+    /// 兼容旧写法：单一"总距离"范围（数据包不使用，仅内部工厂产生）
     DoubleBounds m_range;
     bool m_isAny = true;
 };

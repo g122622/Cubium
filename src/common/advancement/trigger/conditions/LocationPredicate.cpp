@@ -265,12 +265,29 @@ bool DistancePredicate::test(f64 x1, f64 y1, f64 z1, f64 x2, f64 y2, f64 z2) con
         return true;
     }
 
-    f64 dx = x2 - x1;
-    f64 dy = y2 - y1;
-    f64 dz = z2 - z1;
-    f64 distanceSq = dx * dx + dy * dy + dz * dz;
+    // 对齐 vanilla DistancePredicate.matches：8 个轴向范围逐一判定（均为 AND）
+    const f64 dx = x2 - x1;
+    const f64 dy = y2 - y1;
+    const f64 dz = z2 - z1;
 
-    return testSquared(distanceSq);
+    // 旧写法（单一总距离范围）优先判定，便于内部工厂构造的谓词继续生效
+    if (!m_range.isUnbounded()) {
+        const f64 distanceSq = dx * dx + dy * dy + dz * dz;
+        if (!m_range.test(std::sqrt(distanceSq))) {
+            return false;
+        }
+    }
+
+    if (!m_x.test(dx) || !m_y.test(dy) || !m_z.test(dz)) {
+        return false;
+    }
+    if (!m_absX.test(std::abs(dx)) || !m_absY.test(std::abs(dy)) || !m_absZ.test(std::abs(dz))) {
+        return false;
+    }
+    if (!m_horizontal.test(std::sqrt(dx * dx + dz * dz))) {
+        return false;
+    }
+    return m_absolute.test(std::sqrt(dx * dx + dy * dy + dz * dz));
 }
 
 bool DistancePredicate::testSquared(f64 distanceSq) const
@@ -279,8 +296,7 @@ bool DistancePredicate::testSquared(f64 distanceSq) const
         return true;
     }
 
-    f64 distance = std::sqrt(distanceSq);
-    return m_range.test(distance);
+    return m_absolute.test(std::sqrt(distanceSq));
 }
 
 Result<DistancePredicate> DistancePredicate::fromJson(const nlohmann::json& json)
@@ -289,7 +305,37 @@ Result<DistancePredicate> DistancePredicate::fromJson(const nlohmann::json& json
         return DistancePredicate{};
     }
 
-    return DistancePredicate(DoubleBounds::fromJson(json));
+    // 非对象的数字/单值写法保留旧语义（单一总距离范围）
+    if (!json.is_object()) {
+        return DistancePredicate(DoubleBounds::fromJson(json));
+    }
+
+    // 兼容旧写法：直接给出 min/max（无任何轴向键）时按"总距离"范围解析
+    const bool hasAxisKey = json.contains("x") || json.contains("y") || json.contains("z") || json.contains("absX") ||
+        json.contains("absY") || json.contains("absZ") || json.contains("horizontal") || json.contains("absolute");
+    if (!hasAxisKey && (json.contains("min") || json.contains("max"))) {
+        return DistancePredicate(DoubleBounds::fromJson(json));
+    }
+
+    DistancePredicate predicate;
+    const auto parseField = [&json](const char* key) -> DoubleBounds {
+        if (json.contains(key)) {
+            return DoubleBounds::fromJson(json[key]);
+        }
+        return DoubleBounds{};
+    };
+    predicate.m_x = parseField("x");
+    predicate.m_y = parseField("y");
+    predicate.m_z = parseField("z");
+    predicate.m_absX = parseField("absX");
+    predicate.m_absY = parseField("absY");
+    predicate.m_absZ = parseField("absZ");
+    predicate.m_horizontal = parseField("horizontal");
+    predicate.m_absolute = parseField("absolute");
+    predicate.m_isAny = predicate.m_x.isUnbounded() && predicate.m_y.isUnbounded() && predicate.m_z.isUnbounded() &&
+        predicate.m_absX.isUnbounded() && predicate.m_absY.isUnbounded() && predicate.m_absZ.isUnbounded() &&
+        predicate.m_horizontal.isUnbounded() && predicate.m_absolute.isUnbounded();
+    return predicate;
 }
 
 nlohmann::json DistancePredicate::toJson() const
@@ -297,7 +343,35 @@ nlohmann::json DistancePredicate::toJson() const
     if (m_isAny) {
         return nullptr;
     }
-    return m_range.toJson();
+    if (!m_range.isUnbounded()) {
+        return m_range.toJson();
+    }
+    nlohmann::json json = nlohmann::json::object();
+    if (!m_x.isUnbounded()) {
+        json["x"] = m_x.toJson();
+    }
+    if (!m_y.isUnbounded()) {
+        json["y"] = m_y.toJson();
+    }
+    if (!m_z.isUnbounded()) {
+        json["z"] = m_z.toJson();
+    }
+    if (!m_absX.isUnbounded()) {
+        json["absX"] = m_absX.toJson();
+    }
+    if (!m_absY.isUnbounded()) {
+        json["absY"] = m_absY.toJson();
+    }
+    if (!m_absZ.isUnbounded()) {
+        json["absZ"] = m_absZ.toJson();
+    }
+    if (!m_horizontal.isUnbounded()) {
+        json["horizontal"] = m_horizontal.toJson();
+    }
+    if (!m_absolute.isUnbounded()) {
+        json["absolute"] = m_absolute.toJson();
+    }
+    return json;
 }
 
 } // namespace mc::advancement

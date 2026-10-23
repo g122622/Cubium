@@ -33,6 +33,7 @@
 #include "common/entity/entities/item/ItemEntity.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/util/assert/AssertAll.hpp"
+#include "common/util/math/Vector3.hpp"
 #include <algorithm>
 #include <memory>
 #include <utility>
@@ -1197,6 +1198,109 @@ void LightningStrikeTrigger::trigger(ServerPlayer& player, const Entity& lightni
     MC_UNUSED(player);
     MC_UNUSED(lightning);
     MC_UNUSED(bystander);
+}
+
+// ========== DistanceTrigger ==========
+
+DistanceTrigger::DistanceTrigger(const char* triggerId)
+    : m_triggerId(triggerId != nullptr ? triggerId : TRIGGER_ID)
+{}
+
+bool DistanceTriggerInstance::test(const Vector3& startPos, const Vector3& endPos) const
+{
+    // 对齐 vanilla DistanceTrigger.TriggerInstance.matches：
+    // 先校验起点位置谓词，再校验起止点距离
+    if (m_startPosition.has_value() && !m_startPosition->testPosition(startPos.x, startPos.y, startPos.z)) {
+        return false;
+    }
+    if (m_distance.has_value() && !m_distance->test(startPos.x, startPos.y, startPos.z, endPos.x, endPos.y, endPos.z)) {
+        return false;
+    }
+    return true;
+}
+
+bool DistanceTriggerInstance::test(
+    const CriterionContext& context, const Vector3& startPos, const Vector3& endPos) const
+{
+    // 起点位置谓词：有世界时完整判定（对齐 vanilla startPosition.matches(level, pos)）；
+    // 无世界上下文（单元测试/无世界场景）无法判定维度与生物群系，按"仅坐标"处理。
+    if (m_startPosition.has_value()) {
+        if (!m_startPosition->testPosition(startPos.x, startPos.y, startPos.z)) {
+            return false;
+        }
+        if (context.world != nullptr && !m_startPosition->test(*context.world, startPos.x, startPos.y, startPos.z)) {
+            return false;
+        }
+    }
+    if (!m_playerContext.test(context)) {
+        return false;
+    }
+    if (m_distance.has_value() && !m_distance->test(startPos.x, startPos.y, startPos.z, endPos.x, endPos.y, endPos.z)) {
+        return false;
+    }
+    return true;
+}
+
+Result<void> DistanceTriggerInstance::fromJson(const nlohmann::json& json)
+{
+    if (json.is_null()) {
+        return {};
+    }
+    if (json.contains("player")) {
+        auto result = ContextAwarePredicate::fromJson(json["player"]);
+        if (result.failed()) {
+            return result.error();
+        }
+        m_playerContext = std::move(result.value());
+    }
+    if (json.contains("start_position")) {
+        auto result = LocationPredicate::fromJson(json["start_position"]);
+        if (result.failed()) {
+            return result.error();
+        }
+        m_startPosition = result.value();
+    }
+    if (json.contains("distance")) {
+        auto result = DistancePredicate::fromJson(json["distance"]);
+        if (result.failed()) {
+            return result.error();
+        }
+        m_distance = result.value();
+    }
+    return {};
+}
+
+nlohmann::json DistanceTriggerInstance::conditionsToJson() const
+{
+    nlohmann::json json = nlohmann::json::object();
+    if (!m_playerContext.isAny()) {
+        json["player"] = m_playerContext.toJson();
+    }
+    if (m_startPosition.has_value()) {
+        json["start_position"] = m_startPosition->toJson();
+    }
+    if (m_distance.has_value() && !m_distance->isAny()) {
+        json["distance"] = m_distance->toJson();
+    }
+    return json;
+}
+
+Result<std::shared_ptr<ICriterionInstance>> DistanceTrigger::fromJson(const nlohmann::json& json)
+{
+    auto instance = std::make_shared<DistanceTriggerInstance>();
+    auto result = instance->fromJson(json);
+    if (result.failed()) {
+        return result.error();
+    }
+    return instance;
+}
+
+void DistanceTrigger::trigger(ServerPlayer& player, const Vector3& startPos, const Vector3& endPos)
+{
+    // 实际派发由 Player::triggerDistance → ServerPlayer 实现经模板方法与具体实例判定完成
+    MC_UNUSED(player);
+    MC_UNUSED(startPos);
+    MC_UNUSED(endPos);
 }
 
 } // namespace mc::advancement

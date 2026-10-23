@@ -794,6 +794,26 @@ public:
     }
 
     /**
+     * @brief 距离类进度（fall_from_height / ride_entity_in_lava / nether_travel）
+     *
+     * 三者共用 DistanceTrigger 条件结构（start_position + distance），仅触发器 ID 不同，
+     * 故以 ResourceLocation 区分。对齐 vanilla ServerPlayer 的
+     * resetFallDistance / trackEnteredOrExitedLavaOnVehicle / triggerDimensionChangeTriggers。
+     *
+     * @param triggerId 触发器 ID（"minecraft:fall_from_height" 等）
+     * @param startPos 起点位置
+     * @param endPos 当前位置
+     *
+     * 基类为空实现（仅服务端玩家处理进度）。
+     */
+    virtual void triggerDistance(const ResourceLocation& triggerId, const Vector3& startPos, const Vector3& endPos)
+    {
+        MC_UNUSED(triggerId);
+        MC_UNUSED(startPos);
+        MC_UNUSED(endPos);
+    }
+
+    /**
      * @brief 增加自定义统计
      *
      * 当玩家触发自定义统计事件时调用（如打开容器、与方块交互等）。

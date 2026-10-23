@@ -1102,6 +1102,13 @@ bool ServerPlayer::changeDimension(DimensionId targetDim)
     DimensionId currentDim = dimension();
     Vector3d currentPos(position().x, position().y, position().z);
 
+    // 从主世界进入下界时记录位置，供返回主世界时派发 nether_travel（对齐 vanilla ServerPlayer
+    // changeDimension 内 enteredNetherPosition = position()）。
+    if (currentDim == DimensionManager::OVERWORLD && targetDim == DimensionManager::NETHER) {
+        m_enteredNetherPosition =
+            Vector3(static_cast<f32>(currentPos.x), static_cast<f32>(currentPos.y), static_cast<f32>(currentPos.z));
+    }
+
     // 计算目标位置（坐标转换）
     Vector3d targetPos =
         Teleporter::transformPosition(currentPos, DimensionType::fromId(currentDim), DimensionType::fromId(targetDim));
@@ -1321,6 +1328,28 @@ void ServerPlayer::triggerLightningStrike(const Entity& lightning, const Entity&
         });
 }
 
+void ServerPlayer::triggerDistance(const ResourceLocation& triggerId, const Vector3& startPos, const Vector3& endPos)
+{
+    if (m_advancements == nullptr) {
+        return;
+    }
+    auto* triggerById = advancement::CriterionTriggers::instance().getTrigger(triggerId);
+    auto* trigger = dynamic_cast<advancement::DistanceTrigger*>(triggerById);
+    if (trigger == nullptr) {
+        return;
+    }
+    // 三个 DistanceTrigger 子类（fall_from_height / nether_travel / ride_entity_in_lava）共享
+    // 同一实例类型，按传入 ID 精确定位（dynamic_cast 校验确为距离触发器）。
+
+    advancement::CriterionContext context;
+    context.entity = this;
+    context.world = Entity::world();
+    trigger->advancement::AbstractCriterionTrigger<advancement::DistanceTriggerInstance>::trigger(
+        *m_advancements, [&context, &startPos, &endPos](const advancement::DistanceTriggerInstance& instance) {
+            return instance.test(context, startPos, endPos);
+        });
+}
+
 void ServerPlayer::setWorld(server::ServerWorld* world)
 {
     Entity::setWorld(world);
@@ -1407,10 +1436,23 @@ bool ServerPlayer::_performDimensionTransfer(DimensionId targetDim, const Vector
             targetWorld->entityTracker().sendActiveEffects(*m_server, playerId(), *this);
         }
 
-        // 跨维度进度（对齐 vanilla ServerPlayer.changeDimension → CriteriaTriggers.CHANGED_DIMENSION）
+        // 跨维度进度（对齐 vanilla ServerPlayer.triggerDimensionChangeTriggers）：
+        // changed_dimension 总是派发；下界 → 主世界时额外派发 nether_travel。
         if (sourceWorld != nullptr) {
-            triggerChangedDimension(ResourceLocation(DimensionType::fromId(sourceWorld->dimension()).name()),
+            const DimensionId sourceDim = sourceWorld->dimension();
+            triggerChangedDimension(ResourceLocation(DimensionType::fromId(sourceDim).name()),
                 ResourceLocation(DimensionType::fromId(targetDim).name()));
+
+            if (sourceDim == DimensionManager::NETHER && targetDim == DimensionManager::OVERWORLD &&
+                m_enteredNetherPosition.has_value()) {
+                triggerDistance(ResourceLocation(advancement::NetherTravelTrigger::TRIGGER_ID),
+                    *m_enteredNetherPosition,
+                    Vector3(
+                        static_cast<f32>(targetPos.x), static_cast<f32>(targetPos.y), static_cast<f32>(targetPos.z)));
+            }
+            if (targetDim != DimensionManager::NETHER) {
+                m_enteredNetherPosition.reset();
+            }
         }
     }
 
@@ -1942,6 +1984,10 @@ void ServerPlayer::tick()
     // 客户端侧由 FilledMapItem::inventoryTick 的 world.isClientSide() 守卫兜底。
     inventory().tick();
 
+    // 距离类进度（对齐 vanilla ServerPlayer.tick 内的
+    // updatePlayerPertinentStatus → trackStartFallingPosition / trackEnteredOrExitedLavaOnVehicle）
+    trackFallAndLavaProgress();
+
     // 反飞行阈值校验的 tick 末簿记：滚动 firstGood 到 lastGood 作为下一 tick 基线，
     // 并复位移动包计数（known←received，received 在下一包到达时自增）。
     // 对齐 Java ServerGamePacketListenerImpl.tick：knownMovePacketCount = receivedMovePacketCount。
@@ -2083,6 +2129,44 @@ bool ServerPlayer::isValidCommandBlockEditing(const BlockPos& pos) const
     const Vector3 blockCenter(
         static_cast<f64>(pos.x) + 0.5, static_cast<f64>(pos.y) + 0.5, static_cast<f64>(pos.z) + 0.5);
     return position().distanceSquared(blockCenter) <= 4.0 * 4.0;
+}
+
+void ServerPlayer::trackFallAndLavaProgress()
+{
+    if (m_builtIn.physicsState == nullptr) {
+        return;
+    }
+
+    // 1. 下落起点跟踪（对齐 vanilla ServerPlayer.trackStartFallingPosition）：
+    //    回到地面/下落结束时（fallDistance 归零）派发 fall_from_height，并清空起点。
+    const f32 currentFallDistance = m_builtIn.physicsState->m_fallDistance;
+    if (currentFallDistance <= 0.0f) {
+        if (m_startingToFallPosition.has_value()) {
+            if (health() > 0.0f) {
+                triggerDistance(ResourceLocation(advancement::DistanceTrigger::TRIGGER_ID),
+                    *m_startingToFallPosition,
+                    Vector3(x(), y(), z()));
+            }
+            m_startingToFallPosition.reset();
+        }
+    } else if (!m_startingToFallPosition.has_value()) {
+        m_startingToFallPosition = Vector3(x(), y(), z());
+    }
+
+    // 2. 骑载具身处熔岩（对齐 vanilla ServerPlayer.trackEnteredOrExitedLavaOnVehicle）
+    Entity* vehicle = (m_world != nullptr && isRiding()) ? m_world->getEntity(getVehicle()) : nullptr;
+    const bool ridingInLava = vehicle != nullptr && vehicle->isInLava();
+    if (ridingInLava) {
+        if (!m_enteredLavaOnVehiclePosition.has_value()) {
+            m_enteredLavaOnVehiclePosition = Vector3(x(), y(), z());
+        } else {
+            triggerDistance(ResourceLocation(advancement::RideEntityInLavaTrigger::TRIGGER_ID),
+                *m_enteredLavaOnVehiclePosition,
+                Vector3(x(), y(), z()));
+        }
+    } else if (m_enteredLavaOnVehiclePosition.has_value()) {
+        m_enteredLavaOnVehiclePosition.reset();
+    }
 }
 
 void ServerPlayer::tickSpectator()

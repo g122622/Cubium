@@ -121,6 +121,9 @@ void CriterionTriggers::registerBuiltinTriggers()
     registerTrigger(std::make_unique<PlayerInteractTrigger>());
     registerTrigger(std::make_unique<StartRidingTrigger>());
     registerTrigger(std::make_unique<LightningStrikeTrigger>());
+    registerTrigger(std::make_unique<DistanceTrigger>());
+    registerTrigger(std::make_unique<NetherTravelTrigger>());
+    registerTrigger(std::make_unique<RideEntityInLavaTrigger>());
 
     // 注册方块相关触发器
     registerTrigger(std::make_unique<PlacedBlockTrigger>());

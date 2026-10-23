@@ -576,6 +576,15 @@ public:
     /// 触发 lightning_strike 进度
     void triggerLightningStrike(const Entity& lightning, const Entity& bystander) override;
 
+    /// 距离类进度（fall_from_height / ride_entity_in_lava / nether_travel）
+    void triggerDistance(const ResourceLocation& triggerId, const Vector3& startPos, const Vector3& endPos) override;
+
+    /**
+     * @brief 每 tick 跟踪下落起点与载具熔岩状态（对齐 vanilla ServerPlayer.trackStartFallingPosition
+     *        与 trackEnteredOrExitedLavaOnVehicle）
+     */
+    void trackFallAndLavaProgress();
+
     /**
      * @brief 解锁配方（重写 Player 基类）
      *
@@ -1101,6 +1110,13 @@ private:
     f32 m_lastSentHealth = -1.0e8f;
     i32 m_lastSentFood = -99999999;
     bool m_lastFoodSaturationZero = true;
+
+    /// 开始下落的位置（vanilla startingToFallPosition）
+    std::optional<Vector3> m_startingToFallPosition;
+    /// 骑载具进入熔岩的位置（vanilla enteredLavaOnVehiclePosition）
+    std::optional<Vector3> m_enteredLavaOnVehiclePosition;
+    /// 进入下界时的位置（vanilla enteredNetherPosition）
+    std::optional<Vector3> m_enteredNetherPosition;
 };
 
 } // namespace mc
