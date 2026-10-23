@@ -38,6 +38,9 @@
 #include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/damage/DamageSource.hpp"
 #include "common/entity/entities/monster/undead/ZombieEntity.hpp"
+#include "common/item/Items.hpp"
+#include "common/item/core/ItemStack.hpp"
+#include "common/item/tag/ItemTags.hpp"
 #include "common/resource/ResourceLocation.hpp"
 
 #include <gtest/gtest.h>
@@ -236,6 +239,66 @@ TEST_F(PlayerHurtEntityTriggerTest, ChangedDimension_NoConditionsMatchesAny)
     EXPECT_TRUE(instance.test(overworld, overworld));
     const nlohmann::json roundTrip = instance.conditionsToJson();
     EXPECT_TRUE(roundTrip.empty());
+}
+
+TEST_F(PlayerHurtEntityTriggerTest, FishingRodHooked_Registered)
+{
+    EXPECT_TRUE(
+        advancement::CriterionTriggers::instance().hasTrigger(ResourceLocation("minecraft:fishing_rod_hooked")));
+}
+
+TEST_F(PlayerHurtEntityTriggerTest, FishingRodHooked_MatchesCaughtItem)
+{
+    // 对齐数据包 husbandry/fishish_business 的写法，此处用内置 #decorated_pot_sherds 标签
+    // （#fishes 由数据包注入，单元测试不加载数据包）
+    const nlohmann::json json = {
+        {"trigger", "minecraft:fishing_rod_hooked"},
+        {"conditions", {{"item", {{"tag", "minecraft:decorated_pot_sherds"}}}}},
+    };
+    auto criterion = advancement::Criterion::fromJson("fish_caught", json);
+    ASSERT_TRUE(criterion.success());
+    auto instance =
+        std::dynamic_pointer_cast<advancement::FishingRodHookedTriggerInstance>(criterion.value().getTriggerInstance());
+    ASSERT_NE(instance, nullptr);
+
+    Items::initialize();
+    item::tag::ItemTags::initialize();
+    ASSERT_NE(Items::FISHING_ROD, nullptr);
+    const ItemStack rod(*Items::FISHING_ROD, 1);
+
+    const Item* sherd = ItemRegistry::instance().getItem(ResourceLocation("minecraft:heart_pottery_sherd"));
+    ASSERT_NE(sherd, nullptr);
+    EXPECT_TRUE(instance->test(rod, nullptr, {ItemStack(*sherd, 1)}));
+
+    ASSERT_NE(Items::DIAMOND, nullptr);
+    EXPECT_FALSE(instance->test(rod, nullptr, {ItemStack(*Items::DIAMOND, 1)}));
+    // 什么都没钓到（钩住非物品实体）不匹配
+    EXPECT_FALSE(instance->test(rod, nullptr, {}));
+}
+
+TEST_F(PlayerHurtEntityTriggerTest, FishingRodHooked_RodCondition)
+{
+    // 条件限定钓竿时，需与使用中的钓竿一致；无 item 条件时空掉落也匹配
+    advancement::FishingRodHookedTriggerInstance instance;
+    ASSERT_TRUE(instance.fromJson(nlohmann::json{{"rod", {{"items", "minecraft:fishing_rod"}}}}).success());
+    Items::initialize();
+    ASSERT_NE(Items::FISHING_ROD, nullptr);
+    ASSERT_NE(Items::DIAMOND, nullptr);
+    EXPECT_TRUE(instance.test(ItemStack(*Items::FISHING_ROD, 1), nullptr, {}));
+    EXPECT_FALSE(instance.test(ItemStack(*Items::DIAMOND, 1), nullptr, {}));
+}
+
+TEST_F(PlayerHurtEntityTriggerTest, FishingRodHooked_EntityCondition)
+{
+    advancement::FishingRodHookedTriggerInstance instance;
+    ASSERT_TRUE(instance.fromJson(nlohmann::json{{"entity", {{"type", "minecraft:zombie"}}}}).success());
+    ASSERT_NE(Items::FISHING_ROD, nullptr);
+    const ItemStack rod(*Items::FISHING_ROD, 1);
+
+    ZombieEntity zombie(EntityInstanceId(1), mc::test::testEcsRegistry());
+    zombie.setTypeId(entity::EntityTypeKeys::ZOMBIE);
+    EXPECT_TRUE(instance.test(rod, &zombie, {}));
+    EXPECT_FALSE(instance.test(rod, nullptr, {}));
 }
 
 } // namespace

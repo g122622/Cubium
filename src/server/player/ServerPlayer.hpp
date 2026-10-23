@@ -560,6 +560,10 @@ public:
     /// 触发 changed_dimension 进度（对齐 vanilla CriteriaTriggers.CHANGED_DIMENSION）
     void triggerChangedDimension(const ResourceLocation& from, const ResourceLocation& to) override;
 
+    /// 触发 fishing_rod_hooked 进度（对齐 vanilla CriteriaTriggers.FISHING_ROD_HOOKED）
+    void triggerFishingRodHooked(
+        const ItemStack& rod, const Entity* hookedEntity, const std::vector<ItemStack>& items) override;
+
     /**
      * @brief 解锁配方（重写 Player 基类）
      *

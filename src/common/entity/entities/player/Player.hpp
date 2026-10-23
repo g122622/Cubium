@@ -728,6 +728,23 @@ public:
     }
 
     /**
+     * @brief 收杆时触发进度（对齐 vanilla CriteriaTriggers.FISHING_ROD_HOOKED）
+     *
+     * @param rod 使用中的钓竿
+     * @param hookedEntity 被钩住的实体（无则 nullptr）
+     * @param items 本次钓到的掉落物（钩住实体时为空）
+     *
+     * 基类为空实现（仅服务端玩家处理进度）。
+     */
+    virtual void triggerFishingRodHooked(
+        const ItemStack& rod, const Entity* hookedEntity, const std::vector<ItemStack>& items)
+    {
+        MC_UNUSED(rod);
+        MC_UNUSED(hookedEntity);
+        MC_UNUSED(items);
+    }
+
+    /**
      * @brief 增加自定义统计
      *
      * 当玩家触发自定义统计事件时调用（如打开容器、与方块交互等）。

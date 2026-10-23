@@ -29,6 +29,8 @@
 #include "common/core/Result.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/damage/DamageSource.hpp"
+#include "common/entity/entities/item/ItemEntity.hpp"
+#include "common/item/core/ItemStack.hpp"
 #include "common/util/assert/AssertAll.hpp"
 #include <memory>
 #include <utility>
@@ -682,6 +684,112 @@ void ChangedDimensionTrigger::trigger(ServerPlayer& player, const ResourceLocati
     MC_UNUSED(player);
     MC_UNUSED(from);
     MC_UNUSED(to);
+}
+
+// ========== FishingRodHookedTrigger ==========
+
+bool FishingRodHookedTriggerInstance::test(
+    const ItemStack& rod, const Entity* hookedEntity, const std::vector<ItemStack>& items) const
+{
+    // 对齐 vanilla matches(rod, lootContext, items)：
+    //   rod 不匹配即失败；entity 不匹配即失败；item 需命中钩住的 ItemEntity 或本次掉落物之一。
+    if (m_rod.has_value() && !m_rod->test(rod)) {
+        return false;
+    }
+    if (m_entity.has_value()) {
+        if (hookedEntity == nullptr || !m_entity->test(*hookedEntity)) {
+            return false;
+        }
+    }
+    if (m_item.has_value()) {
+        bool matched = false;
+        if (hookedEntity != nullptr) {
+            if (const auto* itemEntity = dynamic_cast<const ItemEntity*>(hookedEntity);
+                itemEntity != nullptr && m_item->test(itemEntity->getItemStack())) {
+                matched = true;
+            }
+        }
+        if (!matched) {
+            for (const auto& stack : items) {
+                if (m_item->test(stack)) {
+                    matched = true;
+                    break;
+                }
+            }
+        }
+        if (!matched) {
+            return false;
+        }
+    }
+    return true;
+}
+
+Result<void> FishingRodHookedTriggerInstance::fromJson(const nlohmann::json& json)
+{
+    m_rod.reset();
+    m_entity.reset();
+    m_item.reset();
+    if (json.is_null()) {
+        return {};
+    }
+    if (json.contains("rod")) {
+        auto result = ItemPredicate::fromJson(json["rod"]);
+        if (result.failed()) {
+            return result.error();
+        }
+        m_rod = std::move(result.value());
+    }
+    if (json.contains("entity")) {
+        auto result = EntityPredicate::fromJson(json["entity"]);
+        if (result.failed()) {
+            return result.error();
+        }
+        m_entity = std::move(result.value());
+    }
+    if (json.contains("item")) {
+        auto result = ItemPredicate::fromJson(json["item"]);
+        if (result.failed()) {
+            return result.error();
+        }
+        m_item = std::move(result.value());
+    }
+    // TODO(player-predicate): vanilla 条件还含可选的 player（ContextAwarePredicate）字段，暂忽略。
+    return {};
+}
+
+nlohmann::json FishingRodHookedTriggerInstance::conditionsToJson() const
+{
+    nlohmann::json json;
+    if (m_rod.has_value() && !m_rod->isAny()) {
+        json["rod"] = m_rod->toJson();
+    }
+    if (m_entity.has_value() && !m_entity->isAny()) {
+        json["entity"] = m_entity->toJson();
+    }
+    if (m_item.has_value() && !m_item->isAny()) {
+        json["item"] = m_item->toJson();
+    }
+    return json;
+}
+
+Result<std::shared_ptr<ICriterionInstance>> FishingRodHookedTrigger::fromJson(const nlohmann::json& json)
+{
+    auto instance = std::make_shared<FishingRodHookedTriggerInstance>();
+    auto result = instance->fromJson(json);
+    if (result.failed()) {
+        return result.error();
+    }
+    return instance;
+}
+
+void FishingRodHookedTrigger::trigger(
+    ServerPlayer& player, const ItemStack& rod, const Entity* hookedEntity, const std::vector<ItemStack>& items)
+{
+    // 实际派发由 Player::triggerFishingRodHooked → ServerPlayer 实现经模板方法完成
+    MC_UNUSED(player);
+    MC_UNUSED(rod);
+    MC_UNUSED(hookedEntity);
+    MC_UNUSED(items);
 }
 
 } // namespace mc::advancement

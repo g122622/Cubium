@@ -655,6 +655,10 @@ i32 FishingBobberEntity::_spawnCatchItems()
     f32 vy = static_cast<f32>(dy * 0.1 + sqrtDistance * 0.08);
     f32 vz = static_cast<f32>(dz * 0.1);
 
+    // 进度：钓到战利品（对齐 vanilla FishingHook.retrieve 中生成物品实体之前的
+    // FISHING_ROD_HOOKED 派发，携带本次掉落物列表）
+    angler->triggerFishingRodHooked(angler->getHeldItem(angler->getActiveHand()), nullptr, drops);
+
     // 生成物品实体
     for (const auto& drop : drops) {
         if (drop.isEmpty()) {
@@ -750,6 +754,12 @@ i32 FishingBobberEntity::reelIn()
     } else if (bobber->m_state == FishingBobberState::Hooked) {
         // 钩住实体，拉过来
         if (bobber->m_caughtEntity != nullptr && bobber->m_caughtEntity->isAlive()) {
+            // 进度：钓竿钩住实体（对齐 vanilla FishingHook.retrieve 中 pullEntity 后的
+            // FISHING_ROD_HOOKED 派发，掉落物列表为空）
+            if (Player* angler = bobber->m_angler; angler != nullptr) {
+                angler->triggerFishingRodHooked(
+                    angler->getHeldItem(angler->getActiveHand()), bobber->m_caughtEntity, {});
+            }
             _bringInHookedEntity();
             // 耐久消耗取决于实体类型：物品实体 3，其他实体 5
             if (dynamic_cast<ItemEntity*>(bobber->m_caughtEntity) != nullptr) {

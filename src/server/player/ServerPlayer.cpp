@@ -1243,6 +1243,22 @@ void ServerPlayer::triggerChangedDimension(const ResourceLocation& from, const R
         [&from, &to](const advancement::ChangedDimensionTriggerInstance& instance) { return instance.test(from, to); });
 }
 
+void ServerPlayer::triggerFishingRodHooked(
+    const ItemStack& rod, const Entity* hookedEntity, const std::vector<ItemStack>& items)
+{
+    if (m_advancements == nullptr) {
+        return;
+    }
+    auto* trigger = advancement::CriterionTriggers::instance().getTrigger<advancement::FishingRodHookedTrigger>();
+    if (trigger == nullptr) {
+        return;
+    }
+    trigger->advancement::AbstractCriterionTrigger<advancement::FishingRodHookedTriggerInstance>::trigger(
+        *m_advancements, [&rod, hookedEntity, &items](const advancement::FishingRodHookedTriggerInstance& instance) {
+            return instance.test(rod, hookedEntity, items);
+        });
+}
+
 void ServerPlayer::setWorld(server::ServerWorld* world)
 {
     Entity::setWorld(world);

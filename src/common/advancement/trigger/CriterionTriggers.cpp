@@ -116,6 +116,7 @@ void CriterionTriggers::registerBuiltinTriggers()
     registerTrigger(std::make_unique<PlayerHurtEntityTrigger>());
     registerTrigger(std::make_unique<EntityHurtPlayerTrigger>());
     registerTrigger(std::make_unique<ChangedDimensionTrigger>());
+    registerTrigger(std::make_unique<FishingRodHookedTrigger>());
 
     // 注册方块相关触发器
     registerTrigger(std::make_unique<PlacedBlockTrigger>());

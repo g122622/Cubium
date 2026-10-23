@@ -31,6 +31,7 @@
 #include "common/resource/ResourceLocation.hpp"
 #include <memory>
 #include <optional>
+#include <vector>
 #include <nlohmann/json_fwd.hpp>
 
 namespace mc {
@@ -50,6 +51,7 @@ class PlayerInteractedWithEntityTriggerInstance;
 class PlayerHurtEntityTriggerInstance;
 class EntityHurtPlayerTriggerInstance;
 class ChangedDimensionTriggerInstance;
+class FishingRodHookedTriggerInstance;
 
 /**
  * @brief 驯服动物触发器
@@ -389,6 +391,55 @@ public:
 private:
     std::optional<ResourceLocation> m_from;
     std::optional<ResourceLocation> m_to;
+};
+
+/**
+ * @brief 钓竿钓到东西触发器（对齐 vanilla FishingRodHookedTrigger）
+ *
+ * 玩家收杆时触发：钩住实体（item 收集为空）或钓到战利品（item 为本次掉落物）。
+ * 条件可选 rod / entity / item 三个谓词。数据包 husbandry/fishy_business 等 4 处依赖它。
+ */
+class FishingRodHookedTrigger : public AbstractCriterionTrigger<FishingRodHookedTriggerInstance> {
+public:
+    static constexpr const char* TRIGGER_ID = "minecraft:fishing_rod_hooked";
+
+    [[nodiscard]] ResourceLocation getId() const override { return ResourceLocation(TRIGGER_ID); }
+
+    [[nodiscard]] Result<std::shared_ptr<ICriterionInstance>> fromJson(const nlohmann::json& json) override;
+
+    /**
+     * @brief 触发
+     * @param player 钓鱼者
+     * @param rod 使用中的钓竿（消耗耐久前的物品堆）
+     * @param hookedEntity 被钩住的实体（无则 nullptr，对齐 vanilla getHookedIn 为空时传浮标自身）
+     * @param items 本次钓到的掉落物
+     */
+    void trigger(class ServerPlayer& player,
+        const class ItemStack& rod,
+        const class Entity* hookedEntity,
+        const class std::vector<class ItemStack>& items);
+};
+
+/**
+ * @brief 钓竿钓到东西触发器实例
+ */
+class FishingRodHookedTriggerInstance : public CriterionInstance<FishingRodHookedTriggerInstance> {
+public:
+    static constexpr const char* TRIGGER_ID = "minecraft:fishing_rod_hooked";
+
+    FishingRodHookedTriggerInstance() = default;
+
+    [[nodiscard]] bool test(const class ItemStack& rod,
+        const class Entity* hookedEntity,
+        const class std::vector<class ItemStack>& items) const;
+
+    Result<void> fromJson(const nlohmann::json& json);
+    [[nodiscard]] nlohmann::json conditionsToJson() const;
+
+private:
+    std::optional<advancement::ItemPredicate> m_rod;
+    std::optional<advancement::EntityPredicate> m_entity;
+    std::optional<advancement::ItemPredicate> m_item;
 };
 
 } // namespace advancement
