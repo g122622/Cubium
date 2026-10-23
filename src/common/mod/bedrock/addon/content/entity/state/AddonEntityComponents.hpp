@@ -26,8 +26,10 @@
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
 #include "common/mod/bedrock/addon/content/entity/events/EntityEventProgram.hpp"
+#include "common/mod/bedrock/addon/content/entity/state/timer/EntityTimerState.hpp"
 #include <map>
 #include <memory>
+#include <optional>
 #include <set>
 #include <string>
 #include <vector>
@@ -55,6 +57,8 @@ public:
     void queue(const std::vector<EntityComponentGroupChange>& changes);
     /** @brief 按原事件顺序执行组件组替换、移除与重新初始化。 */
     void applyPending(mc::Entity& entity);
+    /** @brief 在实体自身更新之后推进计时器，到期事件的修改留到后续 tick。 */
+    void tickTimers(mc::Entity& entity);
     /** @brief 查询当前是否存在指定组件。 */
     [[nodiscard]] bool has(const std::string& name) const;
     /** @brief 返回当前有效组件配置，缺失时返回 nullptr。 */
@@ -69,12 +73,13 @@ public:
 
 private:
     /** @brief 将一个组件当前配置或缺失状态写入实体。 */
-    void _apply(mc::Entity& entity, const std::string& name) const;
+    void _apply(mc::Entity& entity, const std::string& name);
 
     std::shared_ptr<const AddonEntityDefinition> m_definition;
     std::map<std::string, std::string> m_sources;
     std::set<std::string> m_activeGroups;
     std::vector<EntityComponentGroupChange> m_pending;
+    std::optional<EntityTimerState> m_timer;
 };
 
 /** @brief 将活动组件状态接入实体序列化，先于生命值等组件恢复。 */

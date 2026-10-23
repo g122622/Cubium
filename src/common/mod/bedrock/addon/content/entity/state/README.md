@@ -4,6 +4,7 @@
 
 ```text
 state/
+├── timer/ # 组件计时器及剩余时间持久化
 ├── AddonEntityComponents.hpp/cpp # 活动组件来源、组件组变更队列和 NBT 恢复
 └── EntityAddonState.hpp/cpp # 声明属性、包作用域动态属性及实体 NBT 序列化
 ```
@@ -27,3 +28,5 @@ AddonEntityComponents 保存当前组件来源及待执行组操作；EntityAddo
 - 尚未进入下一 tick 的组操作也必须保存，恢复后继续按原顺序应用。
 
 - float 属性的默认值、脚本写入、范围边界与恢复值统一使用单精度，过滤比较不能混用原始双精度字面量。
+
+- 计时器快照在修改实体组件前完整校验，损坏状态不能部分覆盖运行中的组件。

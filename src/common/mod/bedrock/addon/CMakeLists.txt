@@ -72,8 +72,10 @@ add_library(mc_bedrock_addon STATIC
     content/entity/events/EntityEventProgram.cpp
     content/entity/filters/EntityFilter.cpp
     content/entity/events/AddonEntityEvents.cpp
+    content/entity/events/EntityEventTrigger.cpp
     content/entity/state/EntityAddonState.cpp
     content/entity/state/AddonEntityComponents.cpp
+    content/entity/state/timer/EntityTimerState.cpp
     content/molang/MolangExpression.cpp
     content/molang/syntax/MolangParser.cpp
     content/molang/eval/MolangEvaluator.cpp

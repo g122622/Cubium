@@ -31,6 +31,7 @@
 #include "common/util/assert/AssertMacros.hpp"
 #include "common/util/nbt/NbtJsonUtils.hpp"
 #include <algorithm>
+#include <spdlog/spdlog.h>
 
 namespace mc::mod::bedrock::addon {
 namespace {
@@ -69,7 +70,7 @@ AddonEntityComponents::AddonEntityComponents(std::shared_ptr<const AddonEntityDe
 void AddonEntityComponents::initialize(mc::Entity& entity)
 {
     for (const char* name :
-        {"minecraft:collision_box", "minecraft:physics", "minecraft:health", "minecraft:movement"}) {
+        {"minecraft:collision_box", "minecraft:physics", "minecraft:health", "minecraft:movement", "minecraft:timer"}) {
         _apply(entity, name);
     }
 }
@@ -130,7 +131,7 @@ f32 AddonEntityComponents::height() const
     return collision != nullptr ? std::max(0.0f, collision->value("height", 1.0f)) : 0.0f;
 }
 
-void AddonEntityComponents::_apply(mc::Entity& entity, const std::string& name) const
+void AddonEntityComponents::_apply(mc::Entity& entity, const std::string& name)
 {
     const auto* value = component(name);
     if (name == "minecraft:collision_box") {
@@ -138,6 +139,14 @@ void AddonEntityComponents::_apply(mc::Entity& entity, const std::string& name) 
     } else if (name == "minecraft:physics") {
         entity.setNoGravity(value == nullptr || !value->value("has_gravity", true));
         entity.setNoClip(value == nullptr || !value->value("has_collision", true));
+    } else if (name == "minecraft:timer") {
+        if (value == nullptr) {
+            m_timer.reset();
+        } else {
+            auto timer = EntityTimerState::create(*value, entity.getRandom());
+            MC_ASSERT_RELEASE(timer.success());
+            m_timer = std::move(timer.value());
+        }
     } else if (auto* living = dynamic_cast<mc::LivingEntity*>(&entity)) {
         if (name == "minecraft:health") {
             living->attributes().setBaseValue(
@@ -152,19 +161,23 @@ void AddonEntityComponents::_apply(mc::Entity& entity, const std::string& name) 
 
 nlohmann::json AddonEntityComponents::save() const
 {
+    MC_ASSERT_RELEASE(has("minecraft:timer") == m_timer.has_value());
     nlohmann::json pending = nlohmann::json::array();
     for (const auto& change : m_pending) {
         pending.push_back({{"operation", change.add ? "add" : "remove"}, {"group", change.group}});
     }
     // 保存来源名而非组件 JSON，避免 NBT Byte 丢失配置中的布尔类型。
-    return {{"sources", m_sources}, {"active", m_activeGroups}, {"pending", std::move(pending)}};
+    return {{"sources", m_sources},
+        {"active", m_activeGroups},
+        {"pending", std::move(pending)},
+        {"timer", m_timer ? m_timer->save() : nlohmann::json{{"state", "absent"}}}};
 }
 
 Result<void> AddonEntityComponents::load(mc::Entity& entity, const nlohmann::json& saved)
 {
     if (!saved.is_object() || !saved.contains("sources") || !saved["sources"].is_object() ||
         !saved.contains("active") || !saved["active"].is_array() || !saved.contains("pending") ||
-        !saved["pending"].is_array()) {
+        !saved["pending"].is_array() || !saved.contains("timer") || !saved["timer"].is_object()) {
         return Error(ErrorCode::InvalidData, "Invalid saved addon component state");
     }
     std::map<std::string, std::string> sources;
@@ -200,10 +213,19 @@ Result<void> AddonEntityComponents::load(mc::Entity& entity, const nlohmann::jso
         }
         pending.push_back({operation == "add", change["group"].get<std::string>()});
     }
+    if (sources.contains("minecraft:timer")) {
+        MC_TRY(EntityTimerState::validateSavedState(saved["timer"]));
+    } else if (saved["timer"] != nlohmann::json{{"state", "absent"}}) {
+        return Error(ErrorCode::InvalidData, "Saved timer exists without an active timer component");
+    }
     m_sources = std::move(sources);
     m_activeGroups = std::move(active);
     m_pending = std::move(pending);
     initialize(entity);
+    if (m_timer) {
+        auto restored = m_timer->load(saved["timer"]);
+        MC_ASSERT_RELEASE(restored.success());
+    }
     return Result<void>::ok();
 }
 
@@ -211,6 +233,17 @@ void registerAddonEntityComponentsSerializer(
     mc::entity::serialization::components::ComponentSerializerRegistry& registry)
 {
     registry.registerSerializer<AddonEntityComponents>(_save, _load, -100);
+}
+
+void AddonEntityComponents::tickTimers(mc::Entity& entity)
+{
+    if (entity.isRemoved() || !m_timer) {
+        return;
+    }
+    auto result = m_timer->tick(entity);
+    if (result.failed()) {
+        spdlog::warn("Failed to execute timer event for '{}': {}", entity.getTypeId(), result.error().message());
+    }
 }
 
 } // namespace mc::mod::bedrock::addon

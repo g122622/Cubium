@@ -4,6 +4,7 @@
 
 ```text
 events/
+├── EntityEventTrigger.hpp/cpp # 组件事件引用、目标和可选触发过滤
 ├── EntityEventProgram.hpp/cpp # 事件动作校验、属性与组件组计算、顺序和加权随机执行
 └── AddonEntityEvents.hpp/cpp # 实例事件入口、首次生成状态和通知出口弱引用
 ```

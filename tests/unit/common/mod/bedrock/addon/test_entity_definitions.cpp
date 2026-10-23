@@ -40,6 +40,7 @@
 #include "common/mod/bedrock/addon/content/entity/filters/EntityFilter.hpp"
 #include "common/mod/bedrock/addon/content/entity/state/AddonEntityComponents.hpp"
 #include "common/mod/bedrock/addon/content/entity/state/EntityAddonState.hpp"
+#include "common/mod/bedrock/addon/content/entity/state/timer/EntityTimerState.hpp"
 #include "common/mod/bedrock/addon/lifecycle/ScriptManager.hpp"
 #include "common/mod/bedrock/addon/pack/BehaviorPack.hpp"
 #include "common/mod/bedrock/addon/pack/BehaviorPackList.hpp"
@@ -1072,4 +1073,248 @@ TEST_F(AddonEntityDefinitionTest, FilterEvaluationFailureAbortsTheWholeEventTran
     EXPECT_EQ(components->save(), before);
     EXPECT_EQ(entity->getOrAddComponent<EntityAddonState>().getProperty("test:count"), nlohmann::json(3));
     EXPECT_FALSE(manager.eventBus().hasPendingAfterEvents());
+}
+
+TEST_F(AddonEntityDefinitionTest, FixedOneShotTimerFiresAfterItsDurationAndAppliesEventNextTick)
+{
+    const auto directory = pack("one-shot", _PACK, std::nullopt);
+    auto definition = _definition("addon_test:one_shot");
+    definition["minecraft:entity"]["components"]["minecraft:timer"] = {
+        {"time", 0.1}, {"looping", false}, {"time_down_event", "test:fire"}};
+    definition["minecraft:entity"]["events"]["test:fire"] = {
+        {"set_property", {{"test:count", "q.property('test:count')+1"}}}};
+    write(directory / "entities/entity.json", definition);
+    ASSERT_TRUE(manager.loadPacks("", root.string()).success());
+    auto entity = create("addon_test:one_shot");
+    ASSERT_NE(entity, nullptr);
+    auto& state = entity->getOrAddComponent<EntityAddonState>();
+    entity->tick();
+    EXPECT_EQ(state.getProperty("test:count"), nlohmann::json(3));
+    entity->tick();
+    EXPECT_EQ(state.getProperty("test:count"), nlohmann::json(3));
+    entity->tick();
+    EXPECT_EQ(state.getProperty("test:count"), nlohmann::json(4));
+    for (int index = 0; index < 8; ++index) {
+        entity->tick();
+    }
+    EXPECT_EQ(state.getProperty("test:count"), nlohmann::json(4));
+    EXPECT_EQ(entity->tryGetComponent<AddonEntityComponents>()->save()["timer"]["state"], "stopped");
+}
+
+TEST_F(AddonEntityDefinitionTest, LoopingTimerContinuesToAdvanceThePropertyEventChain)
+{
+    const auto directory = pack("loop-timer", _PACK, std::nullopt);
+    auto definition = _definition("addon_test:loop_timer");
+    definition["minecraft:entity"]["components"]["minecraft:timer"] = {
+        {"time", 0.05}, {"time_down_event", {{"event", "test:fire"}, {"target", "self"}}}};
+    definition["minecraft:entity"]["events"]["test:fire"] = {
+        {"set_property", {{"test:count", "q.property('test:count')+1"}}}};
+    write(directory / "entities/entity.json", definition);
+    ASSERT_TRUE(manager.loadPacks("", root.string()).success());
+    auto entity = create("addon_test:loop_timer");
+    ASSERT_NE(entity, nullptr);
+    for (int index = 0; index < 5; ++index) {
+        entity->tick();
+    }
+    EXPECT_EQ(entity->getOrAddComponent<EntityAddonState>().getProperty("test:count"), nlohmann::json(7));
+    const auto timer = entity->tryGetComponent<AddonEntityComponents>()->save()["timer"];
+    EXPECT_EQ(timer["state"], "running");
+    EXPECT_EQ(timer["remaining"], 1);
+}
+
+TEST_F(AddonEntityDefinitionTest, TimerGroupReadditionRestartsAndRemovalStopsTheTimer)
+{
+    const auto directory = pack("timer-group", _PACK, std::nullopt);
+    auto definition = _definition("addon_test:timer_group");
+    definition["minecraft:entity"]["component_groups"]["clock"] = {
+        {"minecraft:timer", {{"time", 0.15}, {"looping", false}, {"time_down_event", "test:fire"}}}};
+    definition["minecraft:entity"]["events"] = {{"test:start", {{"add", {{"component_groups", {"clock"}}}}}},
+        {"test:stop", {{"remove", {{"component_groups", {"clock"}}}}}},
+        {"test:fire", {{"set_property", {{"test:count", "q.property('test:count')+1"}}}}}};
+    write(directory / "entities/entity.json", definition);
+    ASSERT_TRUE(manager.loadPacks("", root.string()).success());
+    auto entity = create("addon_test:timer_group");
+    ASSERT_NE(entity, nullptr);
+    auto* events = entity->tryGetComponent<AddonEntityEvents>();
+    auto& state = entity->getOrAddComponent<EntityAddonState>();
+    ASSERT_TRUE(events->trigger(*entity, "test:start").success());
+    entity->tick();
+    entity->tick();
+    ASSERT_TRUE(events->trigger(*entity, "test:start").success());
+    entity->tick();
+    entity->tick();
+    EXPECT_EQ(state.getProperty("test:count"), nlohmann::json(3));
+    entity->tick();
+    entity->tick();
+    EXPECT_EQ(state.getProperty("test:count"), nlohmann::json(4));
+    ASSERT_TRUE(events->trigger(*entity, "test:start").success());
+    entity->tick();
+    ASSERT_TRUE(events->trigger(*entity, "test:stop").success());
+    for (int index = 0; index < 6; ++index) {
+        entity->tick();
+    }
+    EXPECT_EQ(state.getProperty("test:count"), nlohmann::json(4));
+    EXPECT_EQ(entity->tryGetComponent<AddonEntityComponents>()->save()["timer"]["state"], "absent");
+}
+
+TEST_F(AddonEntityDefinitionTest, SavedTimerRemainingTicksAreRestoredWithoutRestartingTheInterval)
+{
+    mc::entity::serialization::components::ComponentSerializerRegistry::instance().registerAll();
+    const auto directory = pack("saved-timer", _PACK, std::nullopt);
+    auto definition = _definition("addon_test:saved_timer");
+    definition["minecraft:entity"]["components"]["minecraft:timer"] = {
+        {"time", 0.25}, {"looping", false}, {"time_down_event", "test:fire"}};
+    definition["minecraft:entity"]["events"]["test:fire"] = {{"set_property", {{"test:count", 8}}}};
+    write(directory / "entities/entity.json", definition);
+    ASSERT_TRUE(manager.loadPacks("", root.string()).success());
+    auto entity = create("addon_test:saved_timer");
+    ASSERT_NE(entity, nullptr);
+    entity->tick();
+    entity->tick();
+    EXPECT_EQ(entity->tryGetComponent<AddonEntityComponents>()->save()["timer"]["remaining"], 3);
+    auto saved = mc::entity::serialization::EntityDeserializer::serializeToBinary(*entity);
+    ASSERT_TRUE(saved.success());
+    auto loaded = mc::entity::serialization::EntityDeserializer::deserializeFromBinary(saved.value(), entities);
+    ASSERT_TRUE(loaded.success()) << loaded.error().message();
+    auto restored = loaded.value();
+    ASSERT_NE(restored, nullptr);
+    EXPECT_EQ(restored->tryGetComponent<AddonEntityComponents>()->save()["timer"]["remaining"], 3);
+    for (int index = 0; index < 3; ++index) {
+        restored->tick();
+    }
+    EXPECT_EQ(restored->getOrAddComponent<EntityAddonState>().getProperty("test:count"), nlohmann::json(3));
+    restored->tick();
+    EXPECT_EQ(restored->getOrAddComponent<EntityAddonState>().getProperty("test:count"), nlohmann::json(8));
+}
+
+TEST_F(AddonEntityDefinitionTest, CompletedOneShotTimerDoesNotFireAgainAfterRestore)
+{
+    mc::entity::serialization::components::ComponentSerializerRegistry::instance().registerAll();
+    const auto directory = pack("completed-timer", _PACK, std::nullopt);
+    auto definition = _definition("addon_test:completed_timer");
+    definition["minecraft:entity"]["components"]["minecraft:timer"] = {
+        {"time", 0}, {"looping", false}, {"time_down_event", "test:fire"}};
+    definition["minecraft:entity"]["events"]["test:fire"] = {
+        {"set_property", {{"test:count", "q.property('test:count')+1"}}}};
+    write(directory / "entities/entity.json", definition);
+    ASSERT_TRUE(manager.loadPacks("", root.string()).success());
+    auto entity = create("addon_test:completed_timer");
+    ASSERT_NE(entity, nullptr);
+    entity->tick();
+    entity->tick();
+    auto saved = mc::entity::serialization::EntityDeserializer::serializeToBinary(*entity);
+    ASSERT_TRUE(saved.success());
+    auto loaded = mc::entity::serialization::EntityDeserializer::deserializeFromBinary(saved.value(), entities);
+    ASSERT_TRUE(loaded.success());
+    auto restored = loaded.value();
+    ASSERT_NE(restored, nullptr);
+    for (int index = 0; index < 6; ++index) {
+        restored->tick();
+    }
+    EXPECT_EQ(restored->getOrAddComponent<EntityAddonState>().getProperty("test:count"), nlohmann::json(4));
+    EXPECT_EQ(restored->tryGetComponent<AddonEntityComponents>()->save()["timer"]["state"], "stopped");
+}
+
+TEST_F(AddonEntityDefinitionTest, WeightedTimerChoicesIgnoreZeroWeights)
+{
+    const auto directory = pack("weighted-timer", _PACK, std::nullopt);
+    auto definition = _definition("addon_test:weighted_timer");
+    definition["minecraft:entity"]["components"]["minecraft:timer"] = {
+        {"random_time_choices", {{{"weight", 0}, {"value", 100}}, {{"weight", 1}, {"value", 0.1}}}},
+        {"looping", false},
+        {"time_down_event", "test:fire"}};
+    definition["minecraft:entity"]["events"]["test:fire"] = {{"set_property", {{"test:count", 8}}}};
+    write(directory / "entities/entity.json", definition);
+    ASSERT_TRUE(manager.loadPacks("", root.string()).success());
+    auto entity = create("addon_test:weighted_timer");
+    ASSERT_NE(entity, nullptr);
+    EXPECT_EQ(entity->tryGetComponent<AddonEntityComponents>()->save()["timer"]["interval"], 2);
+    for (int index = 0; index < 3; ++index) {
+        entity->tick();
+    }
+    EXPECT_EQ(entity->getOrAddComponent<EntityAddonState>().getProperty("test:count"), nlohmann::json(8));
+}
+
+TEST_F(AddonEntityDefinitionTest, NonRandomLoopReusesItsChosenInterval)
+{
+    const auto directory = pack("fixed-random-timer", _PACK, std::nullopt);
+    auto definition = _definition("addon_test:fixed_random_timer");
+    definition["minecraft:entity"]["components"]["minecraft:timer"] = {
+        {"time", {0.1, 0.3}}, {"randomInterval", false}, {"time_down_event", "test:fire"}};
+    definition["minecraft:entity"]["events"]["test:fire"] = nlohmann::json::object();
+    write(directory / "entities/entity.json", definition);
+    ASSERT_TRUE(manager.loadPacks("", root.string()).success());
+    auto entity = create("addon_test:fixed_random_timer");
+    ASSERT_NE(entity, nullptr);
+    auto* components = entity->tryGetComponent<AddonEntityComponents>();
+    const auto interval = components->save()["timer"]["interval"];
+    EXPECT_GE(interval.get<int>(), 2);
+    EXPECT_LE(interval.get<int>(), 6);
+    for (int index = 0; index < 40; ++index) {
+        entity->tick();
+        EXPECT_EQ(components->save()["timer"]["interval"], interval);
+    }
+}
+
+TEST_F(AddonEntityDefinitionTest, TimerEventReferenceFiltersGateTheExpiryAction)
+{
+    const auto directory = pack("filtered-timer", _PACK, std::nullopt);
+    auto definition = _definition("addon_test:filtered_timer");
+    definition["minecraft:entity"]["components"]["minecraft:timer"] = {{"time", 0.05},
+        {"time_down_event",
+            {{"event", "test:fire"},
+                {"filters", {{"test", "int_property"}, {"domain", "test:count"}, {"operator", ">"}, {"value", 5}}}}}};
+    definition["minecraft:entity"]["events"]["test:fire"] = {{"set_property", {{"test:count", 8}}}};
+    write(directory / "entities/entity.json", definition);
+    ASSERT_TRUE(manager.loadPacks("", root.string()).success());
+    auto entity = create("addon_test:filtered_timer");
+    ASSERT_NE(entity, nullptr);
+    entity->tick();
+    entity->tick();
+    EXPECT_EQ(entity->getOrAddComponent<EntityAddonState>().getProperty("test:count"), nlohmann::json(3));
+    ASSERT_TRUE(entity->getOrAddComponent<EntityAddonState>().setProperty("test:count", 6).success());
+    entity->tick();
+    entity->tick();
+    EXPECT_EQ(entity->getOrAddComponent<EntityAddonState>().getProperty("test:count"), nlohmann::json(8));
+}
+
+TEST_F(AddonEntityDefinitionTest, InvalidTimerDefinitionsAndUnknownEventsAreRejected)
+{
+    const std::vector<nlohmann::json> timers = {{{"time", -1}, {"time_down_event", "test:fire"}},
+        {{"time", {2, 1}}, {"time_down_event", "test:fire"}},
+        {{"time", {1}}, {"time_down_event", "test:fire"}},
+        {{"time", 1}, {"looping", "true"}, {"time_down_event", "test:fire"}},
+        {{"time", 1}, {"random_time_choices", {{{"value", 2}}}}, {"time_down_event", "test:fire"}},
+        {{"random_time_choices", {{{"value", 2}, {"weight", 0}}}}, {"time_down_event", "test:fire"}},
+        {{"time", 1}, {"time_down_event", {{"event", "test:fire"}, {"target", "other"}}}},
+        {{"time", 1}}};
+    for (const auto& timer : timers) {
+        EXPECT_TRUE(EntityTimerState::validateDefinition(timer).failed()) << timer.dump();
+    }
+    auto definition = _definition("addon_test:unknown_timer_event");
+    definition["minecraft:entity"]["components"]["minecraft:timer"] = {
+        {"time", 1}, {"time_down_event", "test:missing"}};
+    EXPECT_TRUE(AddonEntityDefinition::parse(definition).failed());
+}
+
+TEST_F(AddonEntityDefinitionTest, InvalidSavedTimerDoesNotMutateLiveComponentState)
+{
+    const auto directory = pack("corrupt-timer", _PACK, std::nullopt);
+    auto definition = _definition("addon_test:corrupt_timer");
+    definition["minecraft:entity"]["components"]["minecraft:timer"] = {{"time", 1}, {"time_down_event", "test:fire"}};
+    definition["minecraft:entity"]["events"]["test:fire"] = nlohmann::json::object();
+    write(directory / "entities/entity.json", definition);
+    ASSERT_TRUE(manager.loadPacks("", root.string()).success());
+    auto entity = create("addon_test:corrupt_timer");
+    ASSERT_NE(entity, nullptr);
+    auto* components = entity->tryGetComponent<AddonEntityComponents>();
+    const auto before = components->save();
+    auto corrupt = before;
+    corrupt["timer"]["remaining"] = 1000;
+    EXPECT_TRUE(components->load(*entity, corrupt).failed());
+    EXPECT_EQ(components->save(), before);
+    corrupt = before;
+    corrupt["timer"]["state"] = "stopped";
+    EXPECT_TRUE(components->load(*entity, corrupt).failed());
+    EXPECT_EQ(components->save(), before);
 }

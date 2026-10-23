@@ -29,6 +29,7 @@
 #include "common/mod/bedrock/addon/content/entity/properties/EntityPropertyDefinitions.hpp"
 #include "common/mod/bedrock/addon/content/entity/state/AddonEntityComponents.hpp"
 #include "common/mod/bedrock/addon/content/entity/state/EntityAddonState.hpp"
+#include "common/mod/bedrock/addon/content/entity/state/timer/EntityTimerState.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/assert/AssertMacros.hpp"
 #include <spdlog/spdlog.h>
@@ -110,6 +111,7 @@ public:
         MC_ASSERT_RELEASE(components != nullptr);
         components->applyPending(*this);
         mc::Entity::tick();
+        components->tickTimers(*this);
     }
 
     bool isImmuneToFire() const override
@@ -153,6 +155,7 @@ public:
         MC_ASSERT_RELEASE(components != nullptr);
         components->applyPending(*this);
         mc::CreatureEntity::tick();
+        components->tickTimers(*this);
     }
 
     bool isImmuneToFire() const override
@@ -241,6 +244,22 @@ Result<AddonEntityDefinition> AddonEntityDefinition::parse(const nlohmann::json&
     }
     result.m_events = std::make_shared<const EntityEventProgram>(std::move(events.value()));
 
+    // 组件结构校验完成后，再验证其事件引用能在整个实体定义中解析。
+    const auto validateTimerEvent = [&result](const nlohmann::json& components) -> Result<void> {
+        if (const auto timer = components.find("minecraft:timer"); timer != components.end()) {
+            const auto& trigger = (*timer)["time_down_event"];
+            const auto name = trigger.is_string() ? trigger.get<std::string>() : trigger["event"].get<std::string>();
+            if (!result.m_events->contains(name)) {
+                return Error(ErrorCode::InvalidData, "Timer references an unknown entity event: " + name);
+            }
+        }
+        return Result<void>::ok();
+    };
+    MC_TRY(validateTimerEvent(result.m_components));
+    for (const auto& [name, group] : result.m_componentGroups.items()) {
+        MC_TRY(validateTimerEvent(group));
+    }
+
     const auto collision = result.m_components.find("minecraft:collision_box");
     result.m_width = collision == result.m_components.end() ? 0.0f : std::max(0.0f, collision->value("width", 1.0f));
     result.m_height = collision == result.m_components.end() ? 0.0f : std::max(0.0f, collision->value("height", 1.0f));
@@ -275,6 +294,8 @@ Result<void> AddonEntityDefinition::validateComponents(const nlohmann::json& com
             MC_TRY(_members(component, {"value"}));
             const auto bounds = mc::entity::attribute::Attributes::movementSpeed();
             MC_TRY(_number(component, "value", bounds->minValue(), bounds->maxValue()));
+        } else if (name == "minecraft:timer") {
+            MC_TRY(EntityTimerState::validateDefinition(component));
         } else if (name == "minecraft:fire_immune") {
             MC_TRY(_members(component, {}));
         } else if (name == "minecraft:type_family") {
