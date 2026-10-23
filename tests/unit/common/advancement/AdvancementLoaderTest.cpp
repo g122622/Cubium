@@ -524,3 +524,27 @@ TEST_F(AdvancementLoaderTest, LoadFromDataPackRepository_ProgressCallback)
     std::error_code ec;
     std::filesystem::remove_all(dir, ec);
 }
+
+TEST_F(AdvancementLoaderTest, LoadFromVanillaDataPack_NoUnsupportedConditions)
+{
+    // 真实数据包回归：进度条件大量使用 ContextAwarePredicate 条件列表写法，
+    // 未知条件类型会被拒绝（而非静默永真）。此处确认 vanilla 数据包全部可解析。
+    const std::filesystem::path vanilla =
+        std::filesystem::path("C:") / "Users" / "Administrator" / "minecraft_reborn" / "datapacks" / "Vanilla";
+    if (!std::filesystem::exists(vanilla)) {
+        GTEST_SKIP() << "vanilla datapack not present";
+    }
+    resource::DataPackRepository dataPacks;
+    dataPacks.clear();
+    auto addResult = dataPacks.addPack(vanilla, true, 0);
+    ASSERT_TRUE(addResult.success()) << addResult.error().toString();
+
+    AdvancementLoader loader;
+    auto result = loader.loadFromDataPackRepository(dataPacks);
+    ASSERT_TRUE(result.success());
+    for (const auto& err : result.value().errors) {
+        ADD_FAILURE() << err;
+    }
+    EXPECT_EQ(result.value().failedCount, 0u);
+    EXPECT_GT(result.value().successCount, 1000u);
+}

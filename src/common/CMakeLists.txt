@@ -1431,6 +1431,7 @@ add_library(mc_common STATIC
     advancement/trigger/conditions/ItemPredicate.cpp
     advancement/trigger/conditions/EntityPredicate.cpp
     advancement/trigger/conditions/DamagePredicate.cpp
+    advancement/trigger/conditions/CriterionContext.cpp
     advancement/trigger/conditions/EntityFlagsPredicate.cpp
     advancement/trigger/conditions/EntityEquipmentPredicate.cpp
     advancement/trigger/conditions/NBTPredicate.cpp

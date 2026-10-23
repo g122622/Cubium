@@ -23,6 +23,7 @@
 
 #include "EntityTriggers.hpp"
 #include "common/advancement/trigger/CriterionTrigger.hpp"
+#include "common/advancement/trigger/conditions/CriterionContext.hpp"
 #include "common/advancement/trigger/conditions/DamagePredicate.hpp"
 #include "common/advancement/trigger/conditions/EntityPredicate.hpp"
 #include "common/advancement/trigger/conditions/ItemPredicate.hpp"
@@ -427,13 +428,14 @@ PlayerInteractedWithEntityTriggerInstance::PlayerInteractedWithEntityTriggerInst
 
 bool PlayerInteractedWithEntityTriggerInstance::test(const ItemStack& item, const Entity& entity) const
 {
-    if (!m_item.test(item)) {
+    if (!m_item.isAny() && !m_item.test(item)) {
         return false;
     }
-    if (!m_entity.test(entity)) {
-        return false;
-    }
-    return true;
+    // 条件列表写法（ContextAwarePredicate）在无上下文时按实体判定；裸谓词写法仍走 m_entity
+    CriterionContext context;
+    context.entity = &entity;
+    context.item = &item;
+    return m_entityContext.test(context);
 }
 
 Result<void> PlayerInteractedWithEntityTriggerInstance::fromJson(const nlohmann::json& json)
@@ -451,14 +453,30 @@ Result<void> PlayerInteractedWithEntityTriggerInstance::fromJson(const nlohmann:
     }
 
     if (json.contains("entity")) {
-        auto result = EntityPredicate::fromJson(json["entity"]);
+        // 兼容两种写法：裸 EntityPredicate 对象，或 ContextAwarePredicate 条件列表
+        auto result = ContextAwarePredicate::fromJson(json["entity"]);
         if (result.failed()) {
             return result.error();
         }
-        m_entity = result.value();
+        m_entityContext = std::move(result.value());
+        if (json["entity"].is_object()) {
+            auto entityResult = EntityPredicate::fromJson(json["entity"]);
+            if (entityResult.failed()) {
+                return entityResult.error();
+            }
+            m_entity = entityResult.value();
+        }
     }
 
     return {};
+}
+
+bool PlayerInteractedWithEntityTriggerInstance::test(const CriterionContext& context) const
+{
+    if (context.item != nullptr && !m_item.test(*context.item)) {
+        return false;
+    }
+    return m_entityContext.test(context);
 }
 
 nlohmann::json PlayerInteractedWithEntityTriggerInstance::conditionsToJson() const

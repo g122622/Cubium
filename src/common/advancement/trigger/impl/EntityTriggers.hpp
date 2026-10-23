@@ -25,6 +25,7 @@
 
 #include "common/advancement/MinMaxBounds.hpp"
 #include "common/advancement/trigger/CriterionTrigger.hpp"
+#include "common/advancement/trigger/conditions/CriterionContext.hpp"
 #include "common/advancement/trigger/conditions/DamagePredicate.hpp"
 #include "common/advancement/trigger/conditions/EntityPredicate.hpp"
 #include "common/advancement/trigger/conditions/ItemPredicate.hpp"
@@ -266,11 +267,16 @@ public:
 
     [[nodiscard]] bool test(const class ItemStack& item, const class Entity& entity) const;
 
+    /// 携带上下文判定（支持 `[{"condition": "minecraft:entity_properties", ...}]` 写法）
+    [[nodiscard]] bool test(const CriterionContext& context) const;
+
     Result<void> fromJson(const nlohmann::json& json);
     [[nodiscard]] nlohmann::json conditionsToJson() const;
 
 private:
     ItemPredicate m_item;
+    /// 实体上下文谓词（兼容裸 EntityPredicate 与 ContextAwarePredicate 条件列表）
+    ContextAwarePredicate m_entityContext;
     EntityPredicate m_entity;
 };
 
