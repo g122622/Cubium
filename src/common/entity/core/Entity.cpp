@@ -55,6 +55,7 @@
 #include "common/mod/bedrock/addon/binding/ScriptHandleRegistry.hpp"
 #include "common/mod/bedrock/addon/component/BlockComponentEvents.hpp"
 #include "common/mod/bedrock/addon/component/BlockComponentRegistry.hpp"
+#include "common/mod/bedrock/addon/content/entity/state/EntityAddonState.hpp"
 #include "common/network/protocol/EntityEvents.hpp"
 #include "common/particle/ParticleTypes.hpp"
 #include "common/physics/PhysicsConstants.hpp"
@@ -932,6 +933,12 @@ void Entity::moveRelative(f32 factor, f32 strafe, f32 vertical, f32 forward)
 
 void Entity::tick()
 {
+    // 脚本声明属性的写入在下一实体 tick 可见，与动态属性的即时读写分开处理。
+    if (auto* addon = tryGetComponent<mc::mod::bedrock::addon::EntityAddonState>()) {
+        addon->applyPendingProperties();
+        // TODO: 将声明为 client_sync 的属性变化接入 Java 自定义实体呈现同步。
+    }
+
     m_ticksExisted++;
 
     // 基础 tick
@@ -1327,8 +1334,9 @@ void Entity::_checkFallDamageResettingBlocks(const Vector3& actualMovement)
         static_cast<f64>(fromPos.y + dir.y * rayLength),
         static_cast<f64>(fromPos.z + dir.z * rayLength));
 
-    const bool hit = m_world->isBlockInLine(
-        from, to, [](const BlockState& state) { return BlockTags::FALL_DAMAGE_RESETTING().contains(state); });
+    const bool hit = m_world->isBlockInLine(from, to, [](const BlockState& state) {
+        return BlockTags::FALL_DAMAGE_RESETTING().contains(state);
+    });
     if (hit) {
         m_builtIn.physicsState->m_fallDistance = 0.0f;
     }
@@ -1563,7 +1571,9 @@ PhysicsEngine* Entity::physicsEngine()
     // 优先使用 World 的物理引擎
     if (m_world) {
         PhysicsEngine* engine = m_world->physicsEngine();
-        if (engine) return engine;
+        if (engine) {
+            return engine;
+        }
     }
     // 备用：显式设置的物理引擎（客户端兼容）
     return m_physicsEngine;
@@ -1574,7 +1584,9 @@ const PhysicsEngine* Entity::physicsEngine() const
     // 优先使用 World 的物理引擎
     if (m_world) {
         const PhysicsEngine* engine = m_world->physicsEngine();
-        if (engine) return engine;
+        if (engine) {
+            return engine;
+        }
     }
     // 备用：显式设置的物理引擎（客户端兼容）
     return m_physicsEngine;

@@ -28,6 +28,7 @@
 #include "common/mod/bedrock/addon/core/ModuleDescriptor.hpp"
 #include "common/mod/bedrock/addon/modules/ScriptEventBinding.hpp"
 
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -36,6 +37,7 @@ namespace mc::mod::bedrock::addon {
 class ScriptScheduler;
 class ScriptEventBus;
 class IScriptBindingContext;
+class AddonDynamicProperties;
 
 /**
  * @brief @minecraft/server模块绑定工厂
@@ -51,11 +53,19 @@ class IScriptBindingContext;
  */
 class MinecraftModuleFactory : public IModuleBindingFactory {
 public:
-    MinecraftModuleFactory() = default;
+    MinecraftModuleFactory();
     ~MinecraftModuleFactory() override = default;
 
-    [[nodiscard]] std::string name() const override { return "@minecraft/server"; }
-    [[nodiscard]] std::string uuid() const override { return "b26a4d4c-afdf-4690-88f8-931846312678"; }
+    [[nodiscard]] std::string name() const override
+    {
+        return "@minecraft/server";
+    }
+
+    [[nodiscard]] std::string uuid() const override
+    {
+        return "b26a4d4c-afdf-4690-88f8-931846312678";
+    }
+
     [[nodiscard]] std::vector<ModuleVersion> supportedVersions() const override;
     [[nodiscard]] std::vector<ModuleDependency> dependencies(const ModuleVersion& version) const override;
     bool registerBindings(IScriptContext& context) override;
@@ -64,10 +74,14 @@ public:
     void setEventSignals(const std::vector<EventSignalInfo>& signals);
     void setEventBus(ScriptEventBus* eventBus);
 
+    /** @brief 注入本存档的世界动态属性，所有插件共享同一容器并按包隔离。 */
+    void setWorldProperties(std::shared_ptr<AddonDynamicProperties> properties);
+
 private:
     ScriptScheduler* m_scheduler = nullptr;
     ScriptEventBus* m_eventBus = nullptr;
     std::vector<EventSignalInfo> m_eventSignals;
+    std::shared_ptr<AddonDynamicProperties> m_worldProperties;
 };
 
 } // namespace mc::mod::bedrock::addon

@@ -363,7 +363,9 @@ void SingleLevelStorageManager::close()
     // 只等待本存档请求，不排空外部共享池；完成计数覆盖固定读取句柄的整个生命周期。
     {
         std::unique_lock lock(m_asyncOperationMutex);
-        m_asyncOperationCondition.wait(lock, [this] { return m_asyncOperationCount == 0; });
+        m_asyncOperationCondition.wait(lock, [this] {
+            return m_asyncOperationCount == 0;
+        });
     }
 
     {
@@ -561,7 +563,9 @@ std::future<Result<std::optional<ChunkData>>> SingleLevelStorageManager::loadChu
         z,
         dimension,
         std::move(abortSignal),
-        [promise](Result<std::optional<ChunkData>> result) { promise->set_value(std::move(result)); },
+        [promise](Result<std::optional<ChunkData>> result) {
+            promise->set_value(std::move(result));
+        },
         priority);
     return future;
 }
@@ -1133,6 +1137,47 @@ Result<void> SingleLevelStorageManager::saveScheduledEvents(const nbt::tags::com
     }
 
     return LevelDatCodec::updateScheduledEvents(m_worldPath, events);
+}
+
+Result<std::optional<nlohmann::json>> SingleLevelStorageManager::loadAddonWorldProperties()
+{
+    if (!isOpen()) {
+        return Error(ErrorCode::InvalidState, "Storage not open");
+    }
+    if (m_backend) {
+        return std::nullopt;
+    }
+
+    auto bytes = m_db->get(cf::META, rocksdb::Slice("addon-world-properties"));
+    if (bytes.failed()) {
+        if (bytes.error().code() == ErrorCode::NotFound) {
+            return std::nullopt;
+        }
+        return bytes.error();
+    }
+
+    auto saved = nlohmann::json::parse(bytes.value().begin(), bytes.value().end(), nullptr, false);
+    if (saved.is_discarded() || !saved.is_object()) {
+        return Error(ErrorCode::InvalidData, "Invalid saved addon world properties");
+    }
+    return saved;
+}
+
+Result<void> SingleLevelStorageManager::saveAddonWorldProperties(const nlohmann::json& data, bool sync)
+{
+    if (!isOpen()) {
+        return Error(ErrorCode::InvalidState, "Storage not open");
+    }
+    if (m_config.readonly || m_backend) {
+        return Error(ErrorCode::PermissionDenied, "Cannot save addon properties to readonly storage");
+    }
+    if (!data.is_object()) {
+        return Error(ErrorCode::InvalidArgument, "Addon world properties must be an object");
+    }
+
+    // 由现有数据库的一次原子写入保存整个快照，不另建文件或维护磁盘缓存。
+    const auto encoded = data.dump();
+    return m_db->put(cf::META, rocksdb::Slice("addon-world-properties"), rocksdb::Slice(encoded), sync);
 }
 
 Result<std::optional<nlohmann::json>> SingleLevelStorageManager::loadDragonFightData()

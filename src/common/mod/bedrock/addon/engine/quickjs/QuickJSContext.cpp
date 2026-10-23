@@ -144,6 +144,7 @@ QuickJSContext& QuickJSContext::operator=(QuickJSContext&& other) noexcept
         other.m_context = nullptr;
         other.m_valid = false;
     }
+
     return *this;
 }
 
@@ -152,23 +153,25 @@ bool QuickJSContext::initialize()
     JSRuntime* rt = m_runtime.nativeRuntime();
     if (!rt) {
         spdlog::error("[BedrockAddon] Cannot create context: runtime is null");
+
         return false;
     }
 
     m_context = JS_NewContext(rt);
     if (!m_context) {
         spdlog::error("[BedrockAddon] Failed to create QuickJS context");
+
         return false;
     }
 
-    // 注册模块加载器：opaque 指向本上下文持有的 m_moduleLoader（相对路径 JS 模块经此加载源码）。
-    // 注意 JS_SetModuleLoaderFunc 是 runtime 级注册，多 context 共享同一 runtime 时后注册者覆盖前者；
-    // 当前每插件独立 runtime 故无此问题。@minecraft/* 原生模块由 createContext 的依赖循环预注册，不走此回调。
-    JS_SetModuleLoaderFunc(
-        rt, QuickJSModuleLoader::moduleNormalize, QuickJSModuleLoader::moduleLoader, m_moduleLoader.get());
+    // 同一运行时共享加载入口，具体源码提供者必须通过发起导入的上下文查找。
+    auto& bindings = static_cast<QuickJSBindingContext&>(bindingContext());
+    bindings.setModuleLoader(*m_moduleLoader);
+    JS_SetModuleLoaderFunc(rt, QuickJSModuleLoader::moduleNormalize, QuickJSModuleLoader::moduleLoader, nullptr);
 
     m_valid = true;
     spdlog::info("[BedrockAddon] QuickJS context initialized");
+
     return true;
 }
 
@@ -182,6 +185,7 @@ ScriptResult QuickJSContext::evaluate(const std::string& source, const std::stri
     if (flags & EvalFlags::Strict) {
         evalFlags |= JS_EVAL_FLAG_STRICT;
     }
+
     if (flags & EvalFlags::Module) {
         evalFlags = JS_EVAL_TYPE_MODULE;
     }
@@ -196,6 +200,7 @@ ScriptResult QuickJSContext::evaluate(const std::string& source, const std::stri
 
     if (JS_IsException(val)) {
         JS_FreeValue(m_context, val);
+
         return _exceptionToResult();
     }
 
@@ -214,6 +219,7 @@ ScriptResult QuickJSContext::evaluate(const std::string& source, const std::stri
             if (jobRet <= 0) {
                 break; // 无更多 job 或 job 自身抛错
             }
+
             state = JS_PromiseState(m_context, val);
         }
 
@@ -222,6 +228,7 @@ ScriptResult QuickJSContext::evaluate(const std::string& source, const std::stri
             ScriptResult err = _valueToErrorResult(reason);
             JS_FreeValue(m_context, reason);
             JS_FreeValue(m_context, val);
+
             return err;
         }
         // Fulfilled 或仍 Pending（异步模块未完成）：视为成功，返回 undefined。
@@ -230,6 +237,7 @@ ScriptResult QuickJSContext::evaluate(const std::string& source, const std::stri
 
     ScriptValue result = _jsValueToScriptValue(val);
     JS_FreeValue(m_context, val);
+
     return ScriptResult::ok(std::move(result));
 }
 
@@ -253,11 +261,13 @@ ScriptResult QuickJSContext::callFunction(const std::string& name, const std::ve
 
     if (JS_IsUndefined(func) || JS_IsException(func)) {
         JS_FreeValue(m_context, func);
+
         return ScriptResult::error("Function not found: " + name);
     }
 
     if (!JS_IsFunction(m_context, func)) {
         JS_FreeValue(m_context, func);
+
         return ScriptResult::error("Not a function: " + name);
     }
 
@@ -275,15 +285,18 @@ ScriptResult QuickJSContext::callFunction(const std::string& name, const std::ve
     for (auto& arg : jsArgs) {
         JS_FreeValue(m_context, arg);
     }
+
     JS_FreeValue(m_context, func);
 
     if (JS_IsException(result)) {
         JS_FreeValue(m_context, result);
+
         return _exceptionToResult();
     }
 
     ScriptValue scriptResult = _jsValueToScriptValue(result);
     JS_FreeValue(m_context, result);
+
     return ScriptResult::ok(std::move(scriptResult));
 }
 
@@ -295,6 +308,7 @@ ScriptResult QuickJSContext::importModule(const std::string& moduleName)
 
     // 使用JS_Eval加载模块
     std::string importCode = "import * as m from '" + moduleName + "'; m;";
+
     return evaluate(importCode, "<import>", EvalFlags::Module);
 }
 
@@ -313,6 +327,7 @@ IScriptBindingContext& QuickJSContext::bindingContext()
     if (!m_bindingContext) {
         m_bindingContext = std::make_unique<QuickJSBindingContext>(m_context);
     }
+
     return *m_bindingContext;
 }
 
@@ -349,6 +364,7 @@ std::vector<ScriptValue> convertArgsToScriptValues(JSContext* ctx, i32 argc, JSV
             scriptArgs.emplace_back();
         }
     }
+
     return scriptArgs;
 }
 
@@ -374,6 +390,7 @@ JSValue convertScriptValueToJSValue(JSContext* ctx, const ScriptValue& result)
             // TODO: 对象、数组、函数等复杂类型暂不支持，需要扩展ScriptValue类型系统
             return JS_UNDEFINED;
     }
+
     return JS_UNDEFINED;
 }
 } // namespace
@@ -415,16 +432,19 @@ bool QuickJSContext::registerGlobalFunction(
                 if (ctxIt == s_globalCallbackRegistry.end()) {
                     return JS_ThrowReferenceError(ctx, "Context not found for function: %s", data->name.c_str());
                 }
+
                 auto cbIt = ctxIt->second.find(data->name);
                 if (cbIt == ctxIt->second.end()) {
                     return JS_ThrowReferenceError(ctx, "Function not found: %s", data->name.c_str());
                 }
+
                 callback = cbIt->second;
             }
 
             // 转换参数并调用
             auto scriptArgs = convertArgsToScriptValues(ctx, argc, argv);
             ScriptValue result = callback(scriptArgs);
+
             return convertScriptValueToJSValue(ctx, result);
         },
         name.c_str(),
@@ -438,6 +458,7 @@ bool QuickJSContext::registerGlobalFunction(
 
     if (JS_IsException(closure)) {
         spdlog::error("[BedrockAddon] Failed to register global function: {}", name);
+
         return false;
     }
 
@@ -449,6 +470,7 @@ bool QuickJSContext::registerGlobalFunction(
     JS_FreeValue(m_context, global);
 
     spdlog::info("[BedrockAddon] Registered global function: {}", name);
+
     return true;
 }
 
@@ -473,18 +495,23 @@ bool QuickJSContext::registerNativeModule(
         return false;
     }
 
-    JSModuleDef* m = JS_NewCModule(m_context, name.c_str(), [](JSContext* ctx, JSModuleDef*) -> i32 { return 0; });
+    JSModuleDef* m = JS_NewCModule(m_context, name.c_str(), [](JSContext* ctx, JSModuleDef*) -> i32 {
+        return 0;
+    });
     if (!m) {
         spdlog::error("[BedrockAddon] Failed to create native module in context: {}", name);
+
         return false;
     }
 
     if (initFunc(m_context, m) < 0) {
         spdlog::error("[BedrockAddon] Failed to initialize native module in context: {}", name);
+
         return false;
     }
 
     spdlog::info("[BedrockAddon] Registered native module in context: {}", name);
+
     return true;
 }
 
@@ -521,11 +548,13 @@ std::optional<ScriptValue> QuickJSContext::getGlobalVariable(const std::string& 
 
     if (JS_IsUndefined(val) || JS_IsException(val)) {
         JS_FreeValue(m_context, val);
+
         return std::nullopt;
     }
 
     ScriptValue result = const_cast<QuickJSContext*>(this)->_jsValueToScriptValue(val);
     JS_FreeValue(m_context, val);
+
     return result;
 }
 
@@ -543,6 +572,7 @@ ScriptResult QuickJSContext::_exceptionToResult()
     JSValue exception = JS_GetException(m_context);
     ScriptResult result = _valueToErrorResult(exception);
     JS_FreeValue(m_context, exception);
+
     return result;
 }
 
@@ -558,6 +588,7 @@ ScriptResult QuickJSContext::_valueToErrorResult(JSValueConst value)
         if (msg && msg[0] != '\0') {
             message = msg;
         }
+
         JS_FreeCString(m_context, msg);
 
         // 获取堆栈跟踪
@@ -568,13 +599,16 @@ ScriptResult QuickJSContext::_valueToErrorResult(JSValueConst value)
                 message += "\nStack:\n";
                 message += stackStr;
             }
+
             JS_FreeCString(m_context, stackStr);
         }
+
         JS_FreeValue(m_context, stack);
     } else {
         // 非 object（如 null/undefined）：输出 tag 以辅助诊断
         message += " (tag=" + std::to_string(JS_VALUE_GET_TAG(value)) + ")";
     }
+
     return ScriptResult::error(std::move(message));
 }
 
@@ -587,23 +621,29 @@ ScriptValue QuickJSContext::_jsValueToScriptValue(JSValue val)
     if (JS_IsUndefined(val) || JS_IsUninitialized(val)) {
         return ScriptValue();
     }
+
     if (JS_IsNull(val)) {
         return ScriptValue(nullptr);
     }
+
     if (JS_IsBool(val)) {
         return ScriptValue(JS_ToBool(m_context, val) != 0);
     }
+
     if (JS_IsNumber(val)) {
         f64 num;
         if (JS_ToFloat64(m_context, &num, val) == 0) {
             return ScriptValue(num);
         }
+
         return ScriptValue(0.0);
     }
+
     if (JS_IsString(val)) {
         const char* str = JS_ToCString(m_context, val);
         std::string result = str ? str : "";
         JS_FreeCString(m_context, str);
+
         return ScriptValue(std::move(result));
     }
     // 对象、数组、函数等暂时作为undefined返回
@@ -634,6 +674,7 @@ JSValue QuickJSContext::_scriptValueToJSValue(const ScriptValue& val)
             // 绑定层通过ScriptObjectRegistry直接管理JSValue
             return JS_UNDEFINED;
     }
+
     return JS_UNDEFINED;
 }
 

@@ -1,3 +1,26 @@
+/*
+ * Copyright (c) 2026 Guo Yi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ */
+
 #pragma once
 
 #include "common/core/Types.hpp"
@@ -92,6 +115,11 @@ public:
      */
     [[nodiscard]] mc::IWorld* getDimension(const std::string& dimensionId);
 
+    /** @brief 获取全部已加载维度，包含自定义维度。 */
+    [[nodiscard]] std::vector<mc::IWorld*> getDimensions();
+    /** @brief 注入全部已加载维度的访问入口。 */
+    void setGetDimensionsCallback(std::function<std::vector<mc::IWorld*>()> callback);
+
     /**
      * @brief 获取服务器记分板（ServerScoreboard，向上转为 Scoreboard 基类指针）。
      *
@@ -182,6 +210,7 @@ private:
     std::function<std::vector<std::string>()> m_getPlayerNamesCallback;
     std::function<u64()> m_currentTickCallback;
     std::function<mc::IWorld*(const std::string&)> m_getDimensionCallback;
+    std::function<std::vector<mc::IWorld*>()> m_getDimensionsCallback;
     std::function<mc::scoreboard::Scoreboard*()> m_getScoreboardCallback;
     std::function<std::vector<std::string>()> m_getBossBarIdsCallback;
     std::function<BossBarView(const std::string&)> m_getBossBarCallback;

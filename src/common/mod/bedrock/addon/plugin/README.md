@@ -54,3 +54,7 @@ ScriptPluginManager（核心协调者）
 3. **执行分组顺序**：ScriptPluginManager按固定顺序加载插件：PrePackLoad → ServerStart → ClientLevel。卸载时按逆序：ClientLevel → ServerStart → PrePackLoad。不要假设插件会同时启动。
 
 4. **权限来源**：ScriptPackPermissions从manifest的capabilities字段解析，目前只支持`script_eval`能力。新增能力需要同步更新解析逻辑。
+
+- 缺少脚本入口、模块或依赖必须返回失败，不能将警告当作成功。
+- 脚本包按依赖拓扑顺序加载；资源包与行为包之间的双向依赖不等同于脚本执行依赖环。
+- 批次加载失败时卸载本批新增插件，既有插件不受影响；上下文清理同时取消其调度任务。

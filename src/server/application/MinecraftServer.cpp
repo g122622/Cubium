@@ -466,7 +466,9 @@ void MinecraftServer::tick()
                 });
             });
 
-            if (dirtyChunkCount > 0) {
+            const bool dirtyAddonProperties = m_scriptManager && m_scriptManager->isInitialized() &&
+                m_scriptManager->scriptManager().worldPropertiesDirty();
+            if (dirtyChunkCount > 0 || dirtyAddonProperties) {
                 // 自动保存不要求 fsync：由一致性模式决定何时落盘，避免周期性的长阻塞。
                 auto saveResult = saveAllWorldData(false);
                 if (saveResult.failed()) {
@@ -722,12 +724,16 @@ void MinecraftServer::attachWorldBindings(ServerWorld& world)
                              sound::SoundCategory category,
                              const Vector3& position,
                              f32 volume,
-                             f32 pitch) { broadcastSound(soundEventId, category, position, volume, pitch); });
+                             f32 pitch) {
+        broadcastSound(soundEventId, category, position, volume, pitch);
+    });
     world.setOnBroadcastParticle([this](particle::ParticleTypeId type,
                                      const Vector3& pos,
                                      const Vector3& velocity,
                                      const Vector3& offset,
-                                     u32 count) { broadcastParticleInRange(type, pos, velocity, offset, count); });
+                                     u32 count) {
+        broadcastParticleInRange(type, pos, velocity, offset, count);
+    });
     world.setOnBroadcastVibrationParticle(
         [this](const Vector3& pos, const gameevent::PositionSource& targetSource, i32 arrivalInTicks) {
             broadcastVibrationParticleInRange(pos, targetSource, arrivalInTicks);
@@ -772,8 +778,9 @@ void MinecraftServer::attachWorldBindings(ServerWorld& world)
             broadcastSetEntityLinkInRange(entityId, linkedEntityId, entity->position());
         }
     });
-    world.setOnBroadcastWorldEvent(
-        [this](i32 eventId, i32 x, i32 y, i32 z, i32 data) { broadcastWorldEventInRange(eventId, x, y, z, data); });
+    world.setOnBroadcastWorldEvent([this](i32 eventId, i32 x, i32 y, i32 z, i32 data) {
+        broadcastWorldEventInRange(eventId, x, y, z, data);
+    });
     world.setOnBroadcastGlobalLevelEvent([this](DimensionId dimensionId, i32 eventId, i32 x, i32 y, i32 z, i32 data) {
         broadcastGlobalLevelEvent(dimensionId, eventId, x, y, z, data);
     });
@@ -927,6 +934,18 @@ Result<size_t> MinecraftServer::saveAllWorldData(bool sync)
     // 保存各维度已加载的脏区块，并把玩家数据缓存落盘。
     // 区块的数据源是内存中当前已加载的区块——它们常驻 ChunkData，修改在内存里累积，
     // 不由任何磁盘缓存承载；逐维度聚合成批次写回。
+    // 世界脚本属性独立于区块脏标记，保存失败时保留脏状态供后续重试。
+    if (m_scriptManager && m_scriptManager->isInitialized()) {
+        auto& scripts = m_scriptManager->scriptManager();
+        if (scripts.worldPropertiesDirty()) {
+            auto saved = m_storage->saveAddonWorldProperties(scripts.saveWorldProperties(), sync);
+            if (saved.failed()) {
+                return saved.error();
+            }
+            scripts.markWorldPropertiesSaved();
+        }
+    }
+
     size_t totalSections = 0;
     m_dimensionManager->forEachDimension([&totalSections, sync](Dimension& dim) {
         auto* serverDim = static_cast<ServerDimension*>(&dim);
@@ -1181,8 +1200,9 @@ void MinecraftServer::initializeInteractionManagers()
 
     // 设置 EntityInstanceId 解析器：将 PlayerId 转换为正确的 EntityInstanceId
     // MiningManager 内部只有 PlayerId，但广播破坏动画需要 EntityInstanceId 作为 breakerId
-    m_miningManager->setEntityIdResolver(
-        [this](PlayerId playerId) -> EntityInstanceId { return playerEntityManager().getPlayerEntityId(playerId); });
+    m_miningManager->setEntityIdResolver([this](PlayerId playerId) -> EntityInstanceId {
+        return playerEntityManager().getPlayerEntityId(playerId);
+    });
 
     // 设置破坏动画广播回调：将挖掘进度通过 ServerWorld::destroyBlockProgress 广播给其他玩家
     // 对应 MC Java: ServerPlayerGameMode 中调用 level.destroyBlockProgress(entityId, pos, stage)
@@ -1281,8 +1301,9 @@ void MinecraftServer::setupWorldCallbacks()
         //   此回调仅入队区块加载光照任务（③-2b 统一异步调度），重复调用 onChunkLoaded 会导致实体重复生成。
         //   光照由 worker 完成（ChunkLoadLightTask），完成后经发送续延队列在主线程 send——
         //   保证 serialize 读到已光照 nibble，客户端不收全黑区块。
-        world->chunkManager()->setChunkLoadedCallback(
-            [world](ChunkCoord x, ChunkCoord z) { world->enqueueChunkLoadLight(x, z); });
+        world->chunkManager()->setChunkLoadedCallback([world](ChunkCoord x, ChunkCoord z) {
+            world->enqueueChunkLoadLight(x, z);
+        });
 
         // 设置区块卸载回调 - 当区块即将卸载时触发
         world->chunkManager()->setChunkUnloadedCallback([this, serverDim, world](ChunkCoord x, ChunkCoord z) {
@@ -1363,7 +1384,9 @@ void MinecraftServer::setupWorldCallbacks()
                 (type == LightType::SKY) ? "Sky" : "Block",
                 "Section",
                 fmt::format("({}, {}, {})", pos.x, pos.y, pos.z),
-                [flow = ::perfetto::Flow::ProcessScoped(pos.toLong())](::perfetto::EventContext ctx) { flow(ctx); });
+                [flow = ::perfetto::Flow::ProcessScoped(pos.toLong())](::perfetto::EventContext ctx) {
+                    flow(ctx);
+                });
 
             // markLightChanged 已在主线程 tick _drainPendingLightFlushes 中由 ServerWorld 完成
             // （_syncLightDataToChunk 写 ChunkSection nibble + setDirty），此处只负责广播给客户端。
@@ -1401,7 +1424,9 @@ void MinecraftServer::setupWorldCallbacks()
                 (type == LightType::SKY) ? "Sky" : "Block",
                 "Section",
                 fmt::format("({}, {}, {})", pos.x, pos.y, pos.z),
-                [flow = ::perfetto::Flow::ProcessScoped(pos.toLong())](::perfetto::EventContext ctx) { flow(ctx); });
+                [flow = ::perfetto::Flow::ProcessScoped(pos.toLong())](::perfetto::EventContext ctx) {
+                    flow(ctx);
+                });
         });
 
         world->setOnOpenContainer([this](ContainerType type, const BlockPos& pos, Player& player) {
@@ -1950,10 +1975,14 @@ void MinecraftServer::sendChunkDataToPlayer(PlayerId playerId,
     std::shared_ptr<const mc::network::pipeline::OutboundPacket> packet)
 {
     if (m_localClientPlayerId.has_value() && playerId == *m_localClientPlayerId) {
-        if (m_localClientSender) m_localClientSender(packet->packet());
+        if (m_localClientSender) {
+            m_localClientSender(packet->packet());
+        }
         return;
     }
-    if (auto* player = m_playerManager->getPlayer(playerId)) player->sendShared(std::move(packet));
+    if (auto* player = m_playerManager->getPlayer(playerId)) {
+        player->sendShared(std::move(packet));
+    }
 }
 
 void MinecraftServer::sendUnloadChunkToPlayer(PlayerId playerId, ChunkCoord x, ChunkCoord z)
@@ -2203,10 +2232,11 @@ void MinecraftServer::setServerLinks(std::vector<mc::network::ir::play::ServerLi
     m_serverLinks = std::move(links);
     for (const auto playerId : playerManager().getPlayerIds()) {
         const auto* player = playerManager().getPlayer(playerId);
-        if (player->loggedIn)
+        if (player->loggedIn) {
             sendPacketToPlayer(playerId,
                 mc::network::ir::IrPacket{mc::network::protocol::ConnectionProtocol::Play,
                     mc::network::ir::PlayPacket{mc::network::ir::play::ServerLinks{m_serverLinks}}});
+        }
     }
 }
 
@@ -2455,10 +2485,12 @@ Result<void> MinecraftServer::_setupRemoteSessions(std::string_view logPrefix,
     // provider 注入（StandaloneServer 取 m_settings，IntegratedServer 取 m_params）。
     m_clientSessionManager = std::make_unique<mc::server::net::ClientSessionManager>(
         *this, std::string(logPrefix), compressionThreshold, std::move(worldParamsProvider));
-    m_serverNetwork->onClientConnect(
-        [this](mc::server::net::ServerClientConnection& conn) { m_clientSessionManager->onClientConnect(conn); });
-    m_serverNetwork->onClientDisconnect(
-        [this](mc::server::net::ServerClientConnection& conn) { m_clientSessionManager->onClientDisconnect(conn); });
+    m_serverNetwork->onClientConnect([this](mc::server::net::ServerClientConnection& conn) {
+        m_clientSessionManager->onClientConnect(conn);
+    });
+    m_serverNetwork->onClientDisconnect([this](mc::server::net::ServerClientConnection& conn) {
+        m_clientSessionManager->onClientDisconnect(conn);
+    });
 
     // startAccept 失败时直接透传其原始 Error，由调用方按各自场景包装日志前缀
     // （StandaloneServer "Failed to start server" / IntegratedServer "Failed to start LAN server"）。

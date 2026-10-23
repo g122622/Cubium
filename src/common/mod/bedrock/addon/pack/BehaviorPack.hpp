@@ -120,6 +120,10 @@ public:
      */
     [[nodiscard]] Result<std::vector<u8>> readResource(const std::string& relativePath) const;
 
+    /** @brief 递归枚举包内指定目录的文件，路径相对包根；缺失目录返回空列表。 */
+    [[nodiscard]] Result<std::vector<std::string>> listResources(
+        const std::string& directory, const std::string& suffix) const;
+
 private:
     std::string m_path;
     AddonManifest m_manifest;

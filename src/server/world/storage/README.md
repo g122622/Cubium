@@ -16,7 +16,7 @@
 ```
 src/server/world/storage/
 ├── GlobalStorageManager.hpp/cpp      # 跨存档全局门面（世界列表、打开存档）
-├── SingleLevelStorageManager.hpp/cpp # 单存档运行时门面（区块/玩家/实体读写）
+├── SingleLevelStorageManager.hpp/cpp # 单存档运行时门面（区块/玩家/实体和世界 addon 属性读写）
 ├── backend/                          # 外来存档只读后端
 │   ├── IStorageBackend.hpp           # 存储后端接口
 │   ├── JavaAnvilBackend.hpp/cpp      # Java Anvil 格式后端
@@ -190,3 +190,5 @@ src/server/world/storage/
 20. **写路径的耗时几乎只由 Write 调用次数决定**：一次 `put`/`del`/`deleteRange` 就是一次完整 Write，`sync=true` 时各付一次 WAL fsync（实测约 3.2ms/次，与数据量无关）。因此凡是"要写很多条"的场景都必须聚合成 `WriteBatch` 一次提交：视野距离 16 下的 2048 个 section 逐段 `put` 实测约 6.6 秒，聚合后同一份数据只需几十毫秒。`SectionManager::saveBatch` 与 `ServerWorld::saveDirtyChunks` 都遵循这条：前者把一批段攒成单个 `WriteBatch`，后者把**所有**脏区块的段攒进同一个批次再调用前者。诊断此类问题先看 `TraceEvents.Storage.Db` 下的 `put`/`deleteRange` 次数——它们直接就是 fsync 次数。
 
 21. **`ConsistencyMode` 决定默认写入是否等 fsync，显式保存永远等**：`Eventual`/`Strong` 下默认写入不逐条 fsync（仍写 WAL，进程崩溃可由 WAL 回放恢复），`Strongest` 下每次写入都等。关键写入（关服全量保存、`/save-all`、实体关服批次、`close()` 前的 flush）由调用方显式要求同步，与模式无关。
+
+22. **世界 addon 属性使用原生 META 原子快照**：存储门面只读写快照，不持有运行时属性；脚本门面在写入成功后才清除脏标记。只读存档拒绝此写入，禁止静默确认保存。

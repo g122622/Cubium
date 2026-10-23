@@ -24,7 +24,7 @@
 // 同时断言 skyLight=15 与 brightness=衰减值，区分「衰减生效」与「天空光损坏」。
 //
 // 玩家放置：grass_pen 内部 7×7 x,z∈[1,7]，玩家放角落 (1,2,1) 不挡露天格 (4,4,3) 的天空光
-// （实体不挡天空光，仅方块挡；且 (1,2,1) 远离 (4,4,3)）。创造模式 GameMode.creative 获取权限2。
+// （实体不挡天空光，仅方块挡；且 (1,2,1) 远离 (4,4,3)）。创造模式 GameMode.Creative 获取权限2。
 //
 // 命令异步：chat 执行命令后天气即时生效（布尔门控），但命令派发可能跨 tick，pollUntilSucceed 轮询等到
 // brightness 达预期。onTimeout 打印实际 skyLight/brightness 便于诊断（命令失败→天气不变→brightness 仍15）。

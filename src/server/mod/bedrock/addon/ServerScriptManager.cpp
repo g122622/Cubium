@@ -40,6 +40,7 @@
 #include "server/mod/bedrock/addon/bridge/ServerEventSignals.hpp"
 #include "server/scoreboard/ServerScoreboard.hpp"
 #include "server/world/ServerWorld.hpp" // respawnData（world.getDefaultSpawn 回调）
+#include "server/world/storage/SingleLevelStorageManager.hpp"
 
 #include <memory>
 #include <string>
@@ -72,6 +73,15 @@ Result<void> ServerScriptManager::initialize()
 
     spdlog::info("[Server] Initializing script system...");
 
+    // 在任何脚本入口执行前恢复世界属性，保证插件初始化能读取上次保存的配置。
+    if (m_server != nullptr && m_server->sharedStorage() != nullptr) {
+        auto saved = m_server->sharedStorage()->loadAddonWorldProperties();
+        if (saved.failed()) {
+            return saved.error();
+        }
+        MC_TRY(m_scriptManager->loadWorldProperties(saved.value().value_or(nlohmann::json::object())));
+    }
+
     // 注入服务端事件信号定义到脚本管理器
     auto beforeSignals = getBeforeEventSignals();
     auto afterSignals = getAfterEventSignals();
@@ -89,6 +99,7 @@ Result<void> ServerScriptManager::initialize()
     m_eventBridge.initialize(event::ServerEventBus::instance(), m_scriptManager->eventBus());
 
     spdlog::info("[Server] Script system initialized");
+
     return Result<void>::ok();
 }
 
@@ -103,6 +114,7 @@ Result<void> ServerScriptManager::loadPlugins(const std::string& worldBehaviorPa
     auto result = m_scriptManager->loadPacks(m_globalBehaviorPackDir, worldBehaviorPackDir);
     if (result.failed()) {
         spdlog::error("[Server] Failed to load behavior packs: {}", result.error().message());
+
         return result;
     }
 
@@ -110,6 +122,7 @@ Result<void> ServerScriptManager::loadPlugins(const std::string& worldBehaviorPa
     m_scriptManager->startPlugins();
 
     spdlog::info("[Server] Behavior packs loaded and plugins started");
+
     return Result<void>::ok();
 }
 
@@ -195,22 +208,38 @@ void ServerScriptManager::setServer(MinecraftServer* server)
         return;
     }
 
+    m_server = server;
+
     auto& accessor = mc::mod::bedrock::addon::ScriptWorldAccessor::instance();
+    accessor.setGetDimensionsCallback([server]() {
+        std::vector<mc::IWorld*> worlds;
+        server->dimensionManager().forEachDimension([&worlds](mc::Dimension& dimension) {
+            worlds.push_back(static_cast<mc::ServerDimension&>(dimension).world());
+        });
+
+        return worlds;
+    });
 
     // 桥接world.sendMessage到服务器日志（原 IServer::broadcastServerMessage 实现即只
     // spdlog 不发包；批5b 已从 IServer 删除该纯虚，脚本消息直接打日志）。
-    accessor.setMessageCallback([](const std::string& message) { spdlog::info("[System] {}", message); });
+    accessor.setMessageCallback([](const std::string& message) {
+        spdlog::info("[System] {}", message);
+    });
 
     // 桥接world.getAllPlayers到玩家管理器
     accessor.setGetPlayerNamesCallback([server]() -> std::vector<std::string> {
         std::vector<std::string> names;
-        server->playerManager().forEachPlayer(
-            [&names](const mc::server::ServerPlayerData& data) { names.push_back(data.username); });
+        server->playerManager().forEachPlayer([&names](const mc::server::ServerPlayerData& data) {
+            names.push_back(data.username);
+        });
+
         return names;
     });
 
     // 桥接system.currentTick到服务器tick计数
-    accessor.setCurrentTickCallback([server]() -> u64 { return server->currentTick(); });
+    accessor.setCurrentTickCallback([server]() -> u64 {
+        return server->currentTick();
+    });
 
     // 桥接world.getDimension到ServerDimensionManager（按维度名解析->ServerDimension->world()）。
     // 读入归一化：基岩 API 用 "minecraft:nether"，内部注册表（DimensionType.cpp:79）注册的是
@@ -220,14 +249,18 @@ void ServerScriptManager::setServer(MinecraftServer* server)
         if (normalized == "minecraft:nether") {
             normalized = "minecraft:the_nether";
         }
+
         const mc::DimensionId dimId = server->dimensionManager().getDimensionIdByName(normalized);
         auto* dim = server->dimensionManager().getDimension(dimId);
+
         return dim != nullptr ? dim->world() : nullptr; // ServerWorld* -> IWorld*
     });
 
     // 桥接 world.scoreboard 到服务器 ServerScoreboard（向上转为 Scoreboard 基类指针）。
     // 供 GameTest JS 经 world.scoreboard.getObjective(name).getScore(participant) 读取分数做断言。
-    accessor.setGetScoreboardCallback([server]() -> mc::scoreboard::Scoreboard* { return &server->scoreboard(); });
+    accessor.setGetScoreboardCallback([server]() -> mc::scoreboard::Scoreboard* {
+        return &server->scoreboard();
+    });
 
     // 桥接 world.bossbar 到服务器 CustomServerBossInfoManager。BossBar 类型在 server 层，common 层以
     // BossBarView 值快照桥接（避免 common→server 依赖）。供 /bossbar 命令测试经 world.bossbar.get(id)
@@ -237,6 +270,7 @@ void ServerScriptManager::setServer(MinecraftServer* server)
         for (const auto& id : server->bossBarManager().getIds()) {
             ids.push_back(id.toString());
         }
+
         return ids;
     });
     accessor.setGetBossBarCallback([server](const std::string& idStr) -> mc::mod::bedrock::addon::BossBarView {
@@ -246,6 +280,7 @@ void ServerScriptManager::setServer(MinecraftServer* server)
         if (bar == nullptr) {
             return view; // exists=false
         }
+
         view.exists = true;
         view.id = bar->id().toString();
         view.name = bar->name().getUnformattedText();
@@ -258,6 +293,7 @@ void ServerScriptManager::setServer(MinecraftServer* server)
         for (const auto& uuid : bar->playerUuids()) {
             view.players.push_back(uuid);
         }
+
         return view;
     });
 
@@ -270,6 +306,7 @@ void ServerScriptManager::setServer(MinecraftServer* server)
         if (overworld == nullptr || overworld->world() == nullptr) {
             return view; // exists=false
         }
+
         const auto* world = overworld->world();
         const RespawnData& spawn = world->respawnData();
         view.exists = true;
@@ -278,6 +315,7 @@ void ServerScriptManager::setServer(MinecraftServer* server)
         view.z = static_cast<f64>(spawn.pos().z);
         view.yaw = spawn.yaw;
         view.pitch = spawn.pitch;
+
         return view;
     });
 

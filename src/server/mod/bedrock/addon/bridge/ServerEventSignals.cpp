@@ -23,6 +23,7 @@
 
 #include "server/mod/bedrock/addon/bridge/ServerEventSignals.hpp"
 
+#include "common/mod/bedrock/addon/event/ScriptEventData.hpp"
 #include "common/mod/bedrock/addon/modules/ScriptEventBinding.hpp"
 #include "server/event/events/ServerEvents.hpp"
 #include <vector>
@@ -36,8 +37,8 @@ std::vector<EventSignalInfo> getBeforeEventSignals()
 {
     return {
         // 方块事件
-        {"blockBreak", typeid(BlockBreakEvent), true},
-        {"blockPlace", typeid(BlockPlaceEvent), true},
+        {"playerBreakBlock", typeid(BlockBreakEvent), true},
+        {"playerPlaceBlock", typeid(BlockPlaceEvent), true},
 
         // 聊天事件
         {"chatSend", typeid(ChatEvent), true},
@@ -64,18 +65,18 @@ std::vector<EventSignalInfo> getAfterEventSignals()
         // 玩家事件
         {"playerJoin", typeid(PlayerLoginEvent), false},
         {"playerLeave", typeid(PlayerLogoutEvent), false},
-        {"playerRespawn", typeid(PlayerRespawnEvent), false},
+        {"playerSpawn", typeid(ScriptPlayerSpawnEvent), false},
         {"playerDimensionChange", typeid(DimensionChangeEvent), false},
 
         // 方块事件
-        {"blockBreak", typeid(BlockBreakEvent), false},
-        {"blockPlace", typeid(BlockPlaceEvent), false},
+        {"playerBreakBlock", typeid(BlockBreakEvent), false},
+        {"playerPlaceBlock", typeid(BlockPlaceEvent), false},
 
         // 聊天事件
         {"chatSend", typeid(ChatEvent), false},
 
         // 实体事件
-        {"entityDeath", typeid(EntityDeathEvent), false},
+        {"entityDie", typeid(EntityDeathEvent), false},
         {"entityHurt", typeid(EntityHurtEvent), false},
         {"entitySpawn", typeid(EntitySpawnEvent), false},
 

@@ -31,6 +31,7 @@
 #include <string>
 #include <unordered_map>
 #include <utility>
+#include <vector>
 
 namespace mc {
 
@@ -141,7 +142,9 @@ public:
         if (id >= m_types.size()) {
             return nullptr;
         }
-        return &m_types[id];
+        const auto& type = m_types[id];
+        const auto found = m_nameToIndex.find(type.name());
+        return found != m_nameToIndex.end() && found->second == id ? &type : nullptr;
     }
 
     /**
@@ -157,15 +160,46 @@ public:
     /**
      * @brief 获取所有已注册的实体类型
      *
-     * 返回 deque 引用，元素地址在注册表未被 clear() 前稳定。
-     * 调用方仅用于迭代（如 EntityTextureLoader 遍历全部类型生成贴图）。
+     * 返回仍可查找的类型指针，不包含已撤销名称的槽位。
+     * 元素地址在注册表未被 clear() 前稳定。
      */
-    [[nodiscard]] const std::deque<EntityType>& getAllTypes() const { return m_types; }
+    [[nodiscard]] std::vector<const EntityType*> getAllTypes() const
+    {
+        std::vector<const EntityType*> types;
+        types.reserve(m_nameToIndex.size());
+        for (const auto& type : m_types) {
+            if (getType(type.name()) == &type) {
+                types.push_back(&type);
+            }
+        }
+        return types;
+    }
+
+    /**
+     * @brief 撤销指定所有者的类型查找，保留类型对象供存活实体继续引用。
+     *
+     * 仅名称仍指向 expected 时移除，防止旧加载批次撤销后续注册。
+     * 已发出的类型地址和整数编号不复用，旧编号不再可被查找。
+     */
+    bool unregisterType(const std::string& name, const EntityType* expected)
+    {
+        std::lock_guard<std::mutex> lock(m_mutex);
+        const auto found = m_nameToIndex.find(name);
+        if (found == m_nameToIndex.end() || &m_types[found->second] != expected) {
+            return false;
+        }
+        m_types[found->second].retire();
+        m_nameToIndex.erase(found);
+        return true;
+    }
 
     /**
      * @brief 获取已注册的实体类型数量
      */
-    [[nodiscard]] size_t size() const { return m_types.size(); }
+    [[nodiscard]] size_t size() const
+    {
+        return m_nameToIndex.size();
+    }
 
     /**
      * @brief 清空所有注册（仅用于测试）

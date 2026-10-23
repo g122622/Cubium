@@ -39,6 +39,7 @@ ScriptEventHandler AfterEventSignal::subscribe(std::type_index eventType, Callba
     std::lock_guard<std::mutex> lock(m_mutex);
     u64 id = m_nextId++;
     m_handlers[eventType].push_back({id, std::move(callback)});
+
     return ScriptEventHandler{id, eventType};
 }
 
@@ -55,11 +56,15 @@ bool AfterEventSignal::unsubscribe(const ScriptEventHandler& handle)
     }
 
     auto& subs = it->second;
-    auto subIt = std::find_if(subs.begin(), subs.end(), [&](const Subscription& sub) { return sub.id == handle.id; });
+    auto subIt = std::find_if(subs.begin(), subs.end(), [&](const Subscription& sub) {
+        return sub.id == handle.id;
+    });
     if (subIt != subs.end()) {
         subs.erase(subIt);
+
         return true;
     }
+
     return false;
 }
 
@@ -76,24 +81,24 @@ void AfterEventSignal::preFlush()
 
 bool AfterEventSignal::flush()
 {
-    std::lock_guard<std::mutex> lock(m_mutex);
-
-    if (m_pendingEvents.empty()) {
-        return false;
+    std::vector<PendingEvent> events;
+    {
+        std::lock_guard lock(m_mutex);
+        events.swap(m_pendingEvents);
     }
 
-    // 交换出待处理事件，避免迭代时入队
-    auto events = std::move(m_pendingEvents);
-    m_pendingEvents.clear();
-
     for (const auto& event : events) {
-        auto it = m_handlers.find(event.eventType);
-        if (it == m_handlers.end()) {
-            continue;
+        std::vector<Subscription> subs;
+        {
+            std::lock_guard lock(m_mutex);
+            const auto it = m_handlers.find(event.eventType);
+            if (it == m_handlers.end()) {
+                continue;
+            }
+
+            subs = it->second;
         }
 
-        // 复制订阅列表以避免迭代时修改
-        auto subs = it->second;
         for (const auto& sub : subs) {
             sub.callback(event.data);
         }
@@ -124,12 +129,14 @@ size_t AfterEventSignal::handlerCount(std::type_index eventType) const
 {
     std::lock_guard<std::mutex> lock(m_mutex);
     auto it = m_handlers.find(eventType);
+
     return it != m_handlers.end() ? it->second.size() : 0;
 }
 
 size_t AfterEventSignal::pendingCount() const
 {
     std::lock_guard<std::mutex> lock(m_mutex);
+
     return m_pendingEvents.size();
 }
 

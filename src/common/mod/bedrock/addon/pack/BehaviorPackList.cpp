@@ -72,7 +72,8 @@ Result<void> BehaviorPackList::scanDirectory(const std::string& path)
         if (result.failed()) {
             spdlog::warn(
                 "[BedrockAddon] Failed to load manifest from {}: {}", manifestPath.string(), result.error().message());
-            continue;
+
+            return result.error();
         }
 
         auto pack = std::make_unique<BehaviorPack>(entry.path().string(), std::move(result.value()));
@@ -140,7 +141,11 @@ std::vector<BehaviorPack*> BehaviorPackList::getEnabledPacks()
 
     // 按优先级排序（优先级高的先加载）
     std::sort(enabled.begin(), enabled.end(), [](const BehaviorPack* a, const BehaviorPack* b) {
-        return a->priority() > b->priority();
+        if (a->priority() != b->priority()) {
+            return a->priority() > b->priority();
+        }
+
+        return a->uuid() < b->uuid();
     });
 
     return enabled;
@@ -155,6 +160,7 @@ std::vector<const BehaviorPack*> BehaviorPackList::getAllPacks() const
     for (const auto& pack : m_packs) {
         packs.push_back(pack.get());
     }
+
     return packs;
 }
 
@@ -167,6 +173,7 @@ BehaviorPack* BehaviorPackList::getPackByUuid(const std::string& uuid)
             return pack.get();
         }
     }
+
     return nullptr;
 }
 
@@ -179,6 +186,7 @@ const BehaviorPack* BehaviorPackList::getPackByUuid(const std::string& uuid) con
             return pack.get();
         }
     }
+
     return nullptr;
 }
 
@@ -205,18 +213,21 @@ std::vector<AddonModule> BehaviorPackList::getScriptModules() const
             modules.insert(modules.end(), packModules.begin(), packModules.end());
         }
     }
+
     return modules;
 }
 
 size_t BehaviorPackList::size() const
 {
     std::shared_lock<std::shared_mutex> lock(m_mutex);
+
     return m_packs.size();
 }
 
 bool BehaviorPackList::empty() const
 {
     std::shared_lock<std::shared_mutex> lock(m_mutex);
+
     return m_packs.empty();
 }
 

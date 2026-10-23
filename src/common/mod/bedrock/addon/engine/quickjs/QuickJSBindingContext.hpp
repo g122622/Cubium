@@ -38,6 +38,8 @@
 
 namespace mc::mod::bedrock::addon {
 
+class QuickJSModuleLoader;
+
 /**
  * @brief QuickJS实现的脚本绑定上下文
  *
@@ -92,6 +94,7 @@ public:
     [[nodiscard]] bool isNumber(void* value) const override;
     [[nodiscard]] bool isString(void* value) const override;
     [[nodiscard]] bool isException(void* value) const override;
+    [[nodiscard]] bool hasException() const override;
 
     // ===== 值转换 =====
 
@@ -240,10 +243,26 @@ public:
      *
      * 仅限QuickJS后端内部使用，modules/层不应调用此方法。
      */
-    [[nodiscard]] JSContext* jsContext() const noexcept { return m_ctx; }
+    [[nodiscard]] JSContext* jsContext() const noexcept
+    {
+        return m_ctx;
+    }
+
+    /** @brief 关联当前上下文所属的模块源码加载器。 */
+    void setModuleLoader(QuickJSModuleLoader& loader)
+    {
+        m_moduleLoader = &loader;
+    }
+
+    /** @brief 返回当前上下文的模块加载器。 */
+    [[nodiscard]] QuickJSModuleLoader* moduleLoader() const
+    {
+        return m_moduleLoader;
+    }
 
 private:
     JSContext* m_ctx;
+    QuickJSModuleLoader* m_moduleLoader = nullptr;
     void* m_module = nullptr; ///< 当前正在构建的JSModuleDef*
     std::string m_moduleName;
     bool m_moduleFinalized = false;

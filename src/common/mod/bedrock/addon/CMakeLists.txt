@@ -15,9 +15,18 @@ add_library(mc_bedrock_addon STATIC
     binding/ScriptClassBinding.cpp
     binding/ScriptClassRegistry.cpp
     binding/ScriptHandleRegistry.cpp
+    binding/ScriptEntityReference.cpp
+    binding/ScriptGameObjects.cpp
+    content/base/damage/BedrockDamageCause.cpp
 
     # Modules - @minecraft/server模块绑定
     modules/MinecraftModuleFactory.cpp
+    modules/system/ScriptSystemBinding.cpp
+    modules/entity/ScriptEntityPropertiesBinding.cpp
+    modules/entity/ScriptEntityEventsBinding.cpp
+    modules/item/ScriptItemPropertiesBinding.cpp
+    modules/properties/ScriptDynamicPropertiesBinding.cpp
+    modules/properties/ScriptPropertyValue.cpp
     modules/ScriptCustomComponentBinding.cpp
     modules/ScriptEventBinding.cpp
     modules/types/ScriptWorldAccessor.cpp
@@ -44,6 +53,7 @@ add_library(mc_bedrock_addon STATIC
 
     # Event - 事件桥接
     event/ScriptEventBus.cpp
+    event/ScriptEventData.cpp
     event/BeforeEventSignal.cpp
     event/AfterEventSignal.cpp
 
@@ -53,6 +63,28 @@ add_library(mc_bedrock_addon STATIC
     lifecycle/ScriptWatchdog.cpp
     lifecycle/ScriptLogger.cpp
     lifecycle/ScriptScheduler.cpp
+
+    # Content - 行为包数据与实体状态
+    content/AddonContentManager.cpp
+    content/entity/definition/AddonEntityDefinition.cpp
+    content/entity/properties/EntityPropertyDefinitions.cpp
+    content/entity/properties/EntityPropertyValue.cpp
+    content/entity/events/EntityEventProgram.cpp
+    content/entity/query/EntityStateQuery.cpp
+    content/entity/filters/EntityFilter.cpp
+    content/entity/filters/base/VanillaEntityFamilies.cpp
+    content/entity/events/AddonEntityEvents.cpp
+    content/entity/events/EntityEventTrigger.cpp
+    content/entity/state/EntityAddonState.cpp
+    content/entity/state/AddonEntityComponents.cpp
+    content/entity/state/timer/EntityTimerState.cpp
+    content/entity/state/sensor/EntityEnvironmentSensor.cpp
+    content/molang/MolangExpression.cpp
+    content/molang/syntax/MolangParser.cpp
+    content/molang/eval/MolangEvaluator.cpp
+    content/item/ItemAddonProperties.cpp
+    content/base/properties/AddonDynamicProperties.cpp
+    content/base/properties/AddonPropertyValue.cpp
 
     # Component - 自定义组件
     component/BlockComponentRegistry.cpp

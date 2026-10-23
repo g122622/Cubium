@@ -23,200 +23,345 @@
 
 #include "common/mod/bedrock/addon/modules/ScriptEventBinding.hpp"
 
-#include "common/core/Types.hpp"
-#include "common/mod/bedrock/addon/binding/IScriptBindingContext.hpp"
+#include "common/mod/bedrock/addon/binding/ScriptCallbackHolder.hpp"
 #include "common/mod/bedrock/addon/binding/ScriptClassBinding.hpp"
 #include "common/mod/bedrock/addon/event/AfterEventSignal.hpp"
 #include "common/mod/bedrock/addon/event/BeforeEventSignal.hpp"
-#include "common/mod/bedrock/addon/event/ScriptEventBus.hpp"
+#include "common/mod/bedrock/addon/event/ScriptEventData.hpp"
 
+#include <algorithm>
 #include <any>
+#include <array>
 #include <memory>
-#include <typeindex>
+#include <string>
+#include <utility>
 #include <vector>
 #include <spdlog/spdlog.h>
 
 namespace mc::mod::bedrock::addon {
+namespace {
 
-// ============================================================================
-// 信号数据 — 持有对ScriptEventBus和事件类型的引用
-// ============================================================================
+using _Initializer = std::function<void(IScriptBindingContext&, void*, const std::string&)>;
 
-struct SignalData {
-    ScriptEventBus* eventBus;
-    std::type_index eventType;
-    bool isBefore;
-    IScriptBindingContext* bindingCtx;
+struct _Subscription {
+    ScriptCallbackHolder callback;
+    ScriptEventHandler handle;
 };
 
-// ============================================================================
-// 创建信号JS对象
-// ============================================================================
+struct _Signal {
+    IScriptBindingContext* context;
+    ScriptEventBus* bus;
+    EventSignalInfo info;
+    _Initializer initialize;
+    std::vector<_Subscription> subscriptions;
+    u64 cleanupId;
 
-static void* createSignalObject(
-    IScriptBindingContext& ctx, u64 signalClassId, ScriptEventBus& eventBus, std::type_index eventType, bool isBefore)
-{
-    // 必须经 ScriptObjectRegistry::wrap 创建：EventSignal 类的 finalizer 会把 opaque 无条件
-    // 按 ObjectData* 解释，若直接 setOpaque 一个 SignalData*，字段偏移将完全错位——会把
-    // bindingCtx 当作 destroy 函数指针调用，并越界读取 entityId。owned=true 使 GC 时经
-    // destroy 回调释放 SignalData。
-    auto* data = std::make_unique<SignalData>(&eventBus, eventType, isBefore, &ctx).release();
-    return ScriptObjectRegistry::wrap(
-        ctx, signalClassId, ctx.createClassProto(signalClassId), data, true, "EventSignal", [](void* p) {
-            delete static_cast<SignalData*>(p);
-        });
-}
-
-// ============================================================================
-// 公共接口 — 由MinecraftModuleFactory.cpp调用
-// ============================================================================
-
-void registerEventBindings(
-    IScriptBindingContext& ctx, void* worldObj, ScriptEventBus& eventBus, const std::vector<EventSignalInfo>& signals)
-{
-    // 分配信号类ID
-    u64 signalClassId = ScriptObjectRegistry::allocateClassId(ctx);
-    ctx.registerClass(signalClassId, "EventSignal", true);
-
-    // 注册信号类的方法
-    void* signalProto = ctx.createClassProto(signalClassId);
-
-    // subscribe方法（beforeEvent版本）
-    ctx.registerMethod(
-        signalProto,
-        "subscribe",
-        [](IScriptBindingContext& ctx, void* thisVal, i32 argc, void** args) -> void* {
-            if (argc < 1 || !ctx.isFunction(args[0])) {
-                return ctx.throwTypeError("subscribe requires a function argument");
-            }
-
-            auto* data = static_cast<SignalData*>(ctx.getOpaque(thisVal, 0));
-            if (!data || !data->eventBus) {
-                return ctx.throwInternalError("Invalid event signal");
-            }
-
-            void* callback = args[0];
-            ctx.retainValue(callback);
-            auto* bindingCtx = data->bindingCtx;
-            auto* eventBus = data->eventBus;
-            std::type_index eventType = data->eventType;
-            bool isBefore = data->isBefore;
-
-            if (isBefore) {
-                auto handle = eventBus->beforeEvents().subscribe(
-                    eventType, [bindingCtx, callback, eventType](std::any& eventData) {
-                        void* eventObj = bindingCtx->createObject();
-                        bindingCtx->setPropertyBool(eventObj, "cancel", false);
-
-                        void* undef = bindingCtx->createUndefined();
-                        void* ret = bindingCtx->callFunction1(callback, undef, eventObj);
-
-                        if (bindingCtx->isException(ret)) {
-                            void* exc = bindingCtx->getException();
-                            auto msg = bindingCtx->getExceptionMessage(exc);
-                            spdlog::warn("[BedrockAddon] beforeEvent callback error: {}", msg);
-                            bindingCtx->releaseValue(exc);
-                        }
-
-                        bindingCtx->releaseValue(ret);
-                        bindingCtx->releaseValue(undef);
-                        bindingCtx->releaseValue(eventObj);
-                    });
-
-                void* handleObj = bindingCtx->createObject();
-                bindingCtx->setPropertyInt(handleObj, "id", static_cast<i32>(handle.id));
-                return handleObj;
-            } else {
-                auto handle = eventBus->afterEvents().subscribe(
-                    eventType, [bindingCtx, callback, eventType](const std::any& eventData) {
-                        void* eventObj = bindingCtx->createObject();
-
-                        void* undef = bindingCtx->createUndefined();
-                        void* ret = bindingCtx->callFunction1(callback, undef, eventObj);
-
-                        if (bindingCtx->isException(ret)) {
-                            void* exc = bindingCtx->getException();
-                            auto msg = bindingCtx->getExceptionMessage(exc);
-                            spdlog::warn("[BedrockAddon] afterEvent callback error: {}", msg);
-                            bindingCtx->releaseValue(exc);
-                        }
-
-                        bindingCtx->releaseValue(ret);
-                        bindingCtx->releaseValue(undef);
-                        bindingCtx->releaseValue(eventObj);
-                    });
-
-                void* handleObj = bindingCtx->createObject();
-                bindingCtx->setPropertyInt(handleObj, "id", static_cast<i32>(handle.id));
-                return handleObj;
-            }
-        },
-        1);
-
-    // unsubscribe方法
-    ctx.registerMethod(
-        signalProto,
-        "unsubscribe",
-        [](IScriptBindingContext& ctx, void* thisVal, i32 argc, void** args) -> void* {
-            if (argc < 1 || !ctx.isObject(args[0])) {
-                return ctx.throwTypeError("unsubscribe requires a handle object");
-            }
-
-            auto* data = static_cast<SignalData*>(ctx.getOpaque(thisVal, 0));
-            if (!data || !data->eventBus) {
-                return ctx.createUndefined();
-            }
-
-            auto idVal = ctx.getPropertyInt(args[0], "id");
-            if (!idVal) {
-                return ctx.throwTypeError("Invalid event handle");
-            }
-
-            ScriptEventHandler handle(static_cast<u64>(*idVal), data->eventType);
-
-            bool success = false;
-            if (data->isBefore) {
-                success = data->eventBus->beforeEvents().unsubscribe(handle);
-            } else {
-                success = data->eventBus->afterEvents().unsubscribe(handle);
-            }
-
-            return ctx.createBoolean(success);
-        },
-        1);
-
-    // 创建beforeEvents和afterEvents容器对象
-    void* beforeEventsObj = ctx.createObject();
-    void* afterEventsObj = ctx.createObject();
-
-    for (const auto& info : signals) {
-        void* signal = createSignalObject(ctx, signalClassId, eventBus, info.typeIdx, info.isBefore);
-
-        if (info.isBefore) {
-            ctx.setProperty(beforeEventsObj, info.name.c_str(), signal);
-        } else {
-            ctx.setProperty(afterEventsObj, info.name.c_str(), signal);
-        }
-
-        // 释放 createSignalObject 返回的 owned 句柄：setProperty 已 Dup 一份引用挂到容器对象上，
-        // 容器随后又经 setProperty 挂到 world 对象，故信号对象由 JS 引用图保活。
-        // 此前这里用 retainValue 多持一份引用且从不释放句柄——既泄漏句柄自身（实测 189 个
-        // 16 字节句柄），又因引用计数多 1 使 JS_FreeRuntime 末尾的 JS_RunGC 回收不掉这些
-        // 信号对象（连同其类原型/方法闭包引用图），是 nightly 分片 SIGABRT 的最后一个直接泄漏根。
-        ctx.releaseValue(signal);
+    ~_Signal()
+    {
+        close();
     }
 
-    // 将beforeEvents和afterEvents添加到world对象
-    ctx.setProperty(worldObj, "beforeEvents", beforeEventsObj);
-    ctx.setProperty(worldObj, "afterEvents", afterEventsObj);
+    void close()
+    {
+        if (context == nullptr) {
+            return;
+        }
 
-    // 释放临时对象
-    ctx.releaseValue(beforeEventsObj);
-    ctx.releaseValue(afterEventsObj);
-    // signalProto 不释放：createClassProto 返回的类原型句柄归绑定上下文所有（借用语义，
-    // 由 QuickJSBindingContext 析构时统一释放），此处 release 会造成 double free。
+        // 先断开总线订阅，再释放脚本函数，防止后续批次进入正在销毁的上下文。
+        context->removeDisposeCallback(cleanupId);
+        for (const auto& subscription : subscriptions) {
+            if (info.isBefore) {
+                bus->beforeEvents().unsubscribe(subscription.handle);
+            } else {
+                bus->afterEvents().unsubscribe(subscription.handle);
+            }
+        }
 
-    spdlog::info("[BedrockAddon] Event bindings registered ({} signals)", signals.size());
+        subscriptions.clear();
+        context = nullptr;
+        bus = nullptr;
+    }
+};
+
+bool _same(IScriptBindingContext& context, void* left, void* right)
+{
+    void* global = context.getGlobalObject();
+    void* object = context.getProperty(global, "Object");
+    void* compare = context.getProperty(object, "is");
+    std::array<void*, 2> arguments{left, right};
+    void* result = context.callFunction(compare, object, 2, arguments.data());
+    const bool same = context.toBool(result).value_or(false);
+    context.releaseValue(result);
+    context.releaseValue(compare);
+    context.releaseValue(object);
+    context.releaseValue(global);
+
+    return same;
+}
+
+bool _contains(IScriptBindingContext& context, void* list, const std::string& value)
+{
+    const auto count = context.getPropertyInt(list, "length").value_or(0);
+    for (i32 index = 0; index < count; ++index) {
+        if (context.getPropertyString(list, std::to_string(index).c_str()) == value) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+bool _matches(IScriptBindingContext& context, void* event, const ScriptValueHandle& options)
+{
+    if (options.value() == nullptr) {
+        return true;
+    }
+
+    void* eventTypes = context.getProperty(options.value(), "eventTypes");
+    if (context.isObject(eventTypes)) {
+        const auto eventId = context.getPropertyString(event, "eventId");
+        const bool found = eventId && _contains(context, eventTypes, *eventId);
+        context.releaseValue(eventTypes);
+        if (!found) {
+            return false;
+        }
+    } else {
+        context.releaseValue(eventTypes);
+    }
+
+    // 脚本消息只按冒号之前的命名空间筛选，避免处理其他包的消息通道。
+    void* namespaces = context.getProperty(options.value(), "namespaces");
+    if (context.isObject(namespaces)) {
+        const std::string id = context.getPropertyString(event, "id").value_or("");
+        const bool found = _contains(context, namespaces, id.substr(0, id.find(':')));
+        context.releaseValue(namespaces);
+        if (!found) {
+            return false;
+        }
+    } else {
+        context.releaseValue(namespaces);
+    }
+
+    // 不同事件使用不同主体字段，统一取出主体后再应用类型及身份过滤。
+    void* entity = context.createUndefined();
+    for (const char* key : {"entity", "hurtEntity", "deadEntity", "target", "player"}) {
+        context.releaseValue(entity);
+        entity = context.getProperty(event, key);
+        if (context.isObject(entity)) {
+            break;
+        }
+    }
+
+    const auto type = context.isObject(entity) ? context.getPropertyString(entity, "typeId") : std::nullopt;
+    const auto id = context.isObject(entity) ? context.getPropertyString(entity, "id") : std::nullopt;
+    bool matches = true;
+    void* types = context.getProperty(options.value(), "entityTypes");
+    if (context.isObject(types)) {
+        matches = type && _contains(context, types, *type);
+    }
+
+    context.releaseValue(types);
+
+    void* filter = context.getProperty(options.value(), "entityFilter");
+    if (context.isObject(filter)) {
+        const auto expected = context.getPropertyString(filter, "type");
+        if (expected) {
+            matches = matches && type == expected;
+        }
+        // TODO: 统一实体查询器接入后补齐距离、标签和家族等 EntityFilter 条件。
+    }
+
+    context.releaseValue(filter);
+
+    void* entities = context.getProperty(options.value(), "entities");
+    if (context.isObject(entities)) {
+        bool found = false;
+        const auto count = context.getPropertyInt(entities, "length").value_or(0);
+        for (i32 index = 0; index < count; ++index) {
+            void* candidate = context.getProperty(entities, std::to_string(index).c_str());
+            found = found || (id && context.getPropertyString(candidate, "id") == id);
+            context.releaseValue(candidate);
+        }
+
+        matches = matches && found;
+    }
+
+    context.releaseValue(entities);
+    context.releaseValue(entity);
+
+    return matches;
+}
+
+bool _invoke(const ScriptCallbackHolder& callback,
+    const ScriptValueHandle& options,
+    const _Initializer& initialize,
+    const std::string& name,
+    const ScriptEventData& data,
+    bool before)
+{
+    auto* context = callback.context();
+    if (context == nullptr) {
+        return data.cancelled;
+    }
+
+    // 每个订阅者使用所属上下文的游戏对象包装，不能跨插件复用事件 JS 对象。
+    void* object = data.createObject(*context);
+    if (before) {
+        context->setPropertyBool(object, "cancel", data.cancelled);
+    }
+
+    if (initialize) {
+        initialize(*context, object, name);
+    }
+
+    if (!_matches(*context, object, options)) {
+        context->releaseValue(object);
+
+        return data.cancelled;
+    }
+
+    void* result = callback.call(object);
+    if (context->isException(result)) {
+        void* exception = context->getException();
+        spdlog::error("[BedrockAddon] Event '{}' callback failed: {}", name, context->getExceptionMessage(exception));
+        context->releaseValue(exception);
+    }
+
+    // 回调结束后读取取消标志，由前置分发链统一回传到原生游戏事件。
+    const bool cancelled = before && context->getPropertyBool(object, "cancel").value_or(data.cancelled);
+    context->releaseValue(result);
+    context->releaseValue(object);
+
+    return cancelled;
+}
+
+} // namespace
+
+void registerEventBindings(IScriptBindingContext& context,
+    void* target,
+    ScriptEventBus& bus,
+    const std::vector<EventSignalInfo>& signals,
+    _Initializer initializeEvent)
+{
+    const auto classId = context.allocateClassId();
+    context.registerClass(classId, "EventSignal", true);
+    void* prototype = context.createClassProto(classId);
+    context.registerMethod(
+        prototype,
+        "subscribe",
+        [](IScriptBindingContext& context, void* receiver, i32 argc, void** args) -> void* {
+            if (argc < 1 || !context.isFunction(args[0])) {
+                return context.throwTypeError("subscribe requires a callback");
+            }
+
+            auto* pointer = static_cast<std::shared_ptr<_Signal>*>(ScriptObjectRegistry::unwrap(context, receiver, 0));
+            if (pointer == nullptr || (*pointer)->bus == nullptr) {
+                return context.throwTypeError("Invalid event signal");
+            }
+
+            auto& signal = **pointer;
+            for (const auto& subscription : signal.subscriptions) {
+                if (_same(context, subscription.callback.func(), args[0])) {
+                    return context.dupValue(args[0]);
+                }
+            }
+
+            ScriptValueHandle options;
+            if (argc > 1 && !context.isUndefined(args[1])) {
+                if (!context.isObject(args[1])) {
+                    return context.throwTypeError("Event options must be an object");
+                }
+
+                options = ScriptValueHandle(context, args[1]);
+            }
+
+            // 订阅须持有独立句柄，原生调用结束后参数包装句柄即失效。
+            ScriptCallbackHolder callback(context, args[0]);
+            ScriptEventHandler handle;
+            if (signal.info.isBefore) {
+                handle = signal.bus->beforeEvents().subscribe(signal.info.typeIdx,
+                    [callback, options, initialize = signal.initialize, name = signal.info.name](std::any& value) {
+                        auto& data = std::any_cast<ScriptEventData&>(value);
+                        data.cancelled = _invoke(callback, options, initialize, name, data, true) || data.cancelled;
+
+                        return data.cancelled;
+                    });
+            } else {
+                handle = signal.bus->afterEvents().subscribe(signal.info.typeIdx,
+                    [callback, options, initialize = signal.initialize, name = signal.info.name](
+                        const std::any& value) {
+                        _invoke(
+                            callback, options, initialize, name, std::any_cast<const ScriptEventData&>(value), false);
+                    });
+            }
+
+            signal.subscriptions.push_back({std::move(callback), handle});
+
+            return context.dupValue(args[0]);
+        },
+        2);
+    context.registerMethod(
+        prototype,
+        "unsubscribe",
+        [](IScriptBindingContext& context, void* receiver, i32 argc, void** args) -> void* {
+            if (argc < 1 || !context.isFunction(args[0])) {
+                return context.throwTypeError("unsubscribe requires a callback");
+            }
+
+            auto* pointer = static_cast<std::shared_ptr<_Signal>*>(ScriptObjectRegistry::unwrap(context, receiver, 0));
+            if (pointer == nullptr || (*pointer)->bus == nullptr) {
+                return context.throwTypeError("Invalid event signal");
+            }
+
+            auto& signal = **pointer;
+            for (auto it = signal.subscriptions.begin(); it != signal.subscriptions.end();) {
+                if (_same(context, it->callback.func(), args[0])) {
+                    if (signal.info.isBefore) {
+                        signal.bus->beforeEvents().unsubscribe(it->handle);
+                    } else {
+                        signal.bus->afterEvents().unsubscribe(it->handle);
+                    }
+
+                    it = signal.subscriptions.erase(it);
+                } else {
+                    ++it;
+                }
+            }
+
+            return context.createUndefined();
+        },
+        1);
+    void* before = context.createObject();
+    void* after = context.createObject();
+    for (const auto& info : signals) {
+        auto signal = std::make_shared<_Signal>(&context, &bus, info, initializeEvent, std::vector<_Subscription>{}, 0);
+        const std::weak_ptr<_Signal> weak = signal;
+        signal->cleanupId = context.onDispose([weak]() {
+            if (auto state = weak.lock()) {
+                state->close();
+            }
+        });
+        auto* owned = std::make_unique<std::shared_ptr<_Signal>>(std::move(signal)).release();
+        void* value = ScriptObjectRegistry::wrap(
+            context,
+            classId,
+            prototype,
+            owned,
+            true,
+            "EventSignal",
+            [](void* pointer) {
+                delete static_cast<std::shared_ptr<_Signal>*>(pointer);
+            },
+            0,
+            nullptr);
+        context.setProperty(info.isBefore ? before : after, info.name.c_str(), value);
+        context.releaseValue(value);
+    }
+
+    context.setProperty(target, "beforeEvents", before);
+    context.setProperty(target, "afterEvents", after);
+    context.releaseValue(before);
+    context.releaseValue(after);
 }
 
 } // namespace mc::mod::bedrock::addon

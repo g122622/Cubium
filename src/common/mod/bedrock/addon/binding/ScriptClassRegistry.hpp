@@ -5,7 +5,7 @@
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permitted persons to whom the Software is
+ * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
  *
  * The above copyright notice and this permission notice shall be included in all
@@ -31,30 +31,10 @@
 
 namespace mc::mod::bedrock::addon {
 
-/**
- * @brief 跨模块脚本类原型注册表（进程级单例）。
- *
- * 问题背景：QuickJS 的 classId 按绑定上下文（`IScriptBindingContext`）分配，各原生模块
- * （如 `@minecraft/server` 与 `@minecraft/server-gametest`）各自 `exportClass` 独立分配
- * classId 与原型句柄。但跨模块 wrap 需求客观存在——例如 GameTest 模块的 `test.spawn`
- * 返回值应是 `@minecraft/server` 的 `Entity` JS 对象，运行期回调要用 `@minecraft/server`
- * 的 Entity classId + proto 才能经 `ScriptObjectRegistry::wrap` 构造出带方法的 JS 对象。
- *
- * 本注册表按 classId 与类名双索引存原型句柄（`void*`），供：
- * 1. 注册期：模块工厂 `exportClass` 后调 `registerClass` 登记（如 `MinecraftModuleFactory`
- *    登记 Entity/Dimension，`GameTestModuleBinding` 登记 Test/Sequence）；
- * 2. 运行期：跨模块 wrap 回调按名/按 classId 查 proto（如 `test.spawn` 查 Entity proto）。
- *
- * 与 `mc::test::ScriptBindingRegistry` 的区别：后者在 `mc::test` 命名空间（仅 minecraft-server
- * 链接），GameTest 专属；本注册表在 `mc::mod::bedrock::addon`（common 共享层），可被
- * `@minecraft/server` 与 `@minecraft/server-gametest` 两模块工厂共用，避免层级违反。
- *
- * 句柄所有权：原型句柄由 `IScriptBindingContext` 管理（GC 可达），本注册表仅存裸指针不 retain；
- * 脚本引擎销毁前原型稳定。引擎重建时须 `clear()` 清空，因重建后 classId 重新分配、旧 proto 失效。
- */
+/** @brief 单个脚本上下文内的类名、编号和借用原型索引。 */
 class ScriptClassRegistry {
 public:
-    [[nodiscard]] static ScriptClassRegistry& instance() noexcept;
+    ScriptClassRegistry() noexcept = default;
 
     /**
      * @brief 登记 classId → 原型句柄 + 类名（注册期调）。
@@ -98,10 +78,8 @@ public:
     void clear() noexcept;
 
 private:
-    ScriptClassRegistry() noexcept = default;
-
     struct Entry {
-        void* proto = nullptr;
+        void* proto;
         std::string name;
     };
 

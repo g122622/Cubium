@@ -35,9 +35,11 @@
 #include "common/mod/bedrock/addon/plugin/ScriptPluginSource.hpp"
 
 #include <cstddef>
+#include <functional>
 #include <memory>
 #include <optional>
 #include <string>
+#include <unordered_map>
 #include <utility>
 #include <vector>
 #include <spdlog/spdlog.h>
@@ -53,53 +55,87 @@ ScriptPluginManager::~ScriptPluginManager()
 
 Result<void> ScriptPluginManager::loadPlugins(IScriptEngine& engine, BehaviorPackList& packList)
 {
-    // 解析依赖
-    auto depResult = packList.resolveDependencies();
-    if (depResult.failed()) {
-        spdlog::warn("[BedrockAddon] Dependency resolution had issues: {}", depResult.error().message());
-        // 继续加载，但记录警告
+    auto dependencies = packList.resolveDependencies();
+    if (dependencies.failed()) {
+        return dependencies;
     }
 
-    // 获取启用的行为包（按优先级排序）
-    auto enabledPacks = packList.getEnabledPacks();
-
-    // 过滤出包含脚本模块的包
-    std::vector<BehaviorPack*> scriptPacks;
-    for (auto* pack : enabledPacks) {
+    // 包身份和版本已校验；执行图只包含脚本包，避免把 BP/RP 双向声明误判为执行环。
+    const auto enabled = packList.getEnabledPacks();
+    std::unordered_map<std::string, BehaviorPack*> scripts;
+    for (auto* pack : enabled) {
         if (pack->manifest().hasScriptModule()) {
-            scriptPacks.push_back(pack);
+            scripts.emplace(pack->uuid(), pack);
         }
     }
 
-    if (scriptPacks.empty()) {
-        spdlog::info("[BedrockAddon] No script packs found");
-        return Result<void>::ok();
-    }
+    // 状态 1 表示正在递归访问，状态 2 表示其依赖已经全部排入加载顺序。
+    std::unordered_map<std::string, u8> state;
+    std::vector<BehaviorPack*> ordered;
+    std::function<Result<void>(BehaviorPack*)> visit = [&](BehaviorPack* pack) -> Result<void> {
+        auto& status = state[pack->uuid()];
+        if (status == 2) {
+            return Result<void>::ok();
+        }
 
-    spdlog::info("[BedrockAddon] Found {} script pack(s)", scriptPacks.size());
+        if (status == 1) {
+            return Error(ErrorCode::InvalidData, "Cyclic script pack dependency at: " + pack->uuid());
+        }
 
-    // 按执行分组加载
-    for (auto group :
-        {PluginExecutionGroup::PrePackLoad, PluginExecutionGroup::ServerStart, PluginExecutionGroup::ClientLevel}) {
-        for (auto* pack : scriptPacks) {
-            // 检查是否已加载
-            if (m_plugins.contains(pack->uuid())) {
+        status = 1;
+        for (const auto& dependency : pack->manifest().dependencies) {
+            const auto found = scripts.find(dependency.uuid);
+            if (found == scripts.end()) {
                 continue;
             }
 
-            auto execGroup = _determineExecutionGroup(pack->manifest());
-            if (execGroup != group) {
+            if (_determineExecutionGroup(found->second->manifest()) > _determineExecutionGroup(pack->manifest())) {
+                return Error(ErrorCode::InvalidData, "Script pack depends on a later execution group: " + pack->uuid());
+            }
+
+            auto result = visit(found->second);
+            if (result.failed()) {
+                return result;
+            }
+        }
+
+        status = 2;
+        ordered.push_back(pack);
+
+        return Result<void>::ok();
+    };
+    for (auto* pack : enabled) {
+        if (pack->manifest().hasScriptModule()) {
+            auto result = visit(pack);
+            if (result.failed()) {
+                return result;
+            }
+        }
+    }
+
+    // 保留本批新增插件的清单；失败时按相反顺序释放上下文及其任务。
+    std::vector<std::string> loaded;
+    for (const auto group :
+        {PluginExecutionGroup::PrePackLoad, PluginExecutionGroup::ServerStart, PluginExecutionGroup::ClientLevel}) {
+        for (auto* pack : ordered) {
+            if (m_plugins.contains(pack->uuid()) || _determineExecutionGroup(pack->manifest()) != group) {
                 continue;
             }
 
             auto result = loadPlugin(engine, *pack);
             if (result.failed()) {
-                spdlog::error("[BedrockAddon] Failed to load plugin '{}': {}", pack->name(), result.error().message());
+                for (auto it = loaded.rbegin(); it != loaded.rend(); ++it) {
+                    unloadPlugin(*it);
+                }
+
+                return Error(
+                    result.error().code(), "Failed to load pack '" + pack->name() + "': " + result.error().message());
             }
+
+            loaded.push_back(pack->uuid());
         }
     }
 
-    spdlog::info("[BedrockAddon] Loaded {}/{} script plugin(s)", m_plugins.size(), scriptPacks.size());
     return Result<void>::ok();
 }
 
@@ -133,11 +169,13 @@ Result<void> ScriptPluginManager::loadPlugin(IScriptEngine& engine, BehaviorPack
     if (result.failed()) {
         // 清理源
         m_sources.erase(pack.uuid());
+
         return result;
     }
 
     spdlog::info("[BedrockAddon] Plugin '{}' loaded successfully", pack.name());
     m_plugins[pack.uuid()] = std::move(plugin);
+
     return Result<void>::ok();
 }
 
@@ -207,6 +245,7 @@ void ScriptPluginManager::tickPlugins()
 ScriptPlugin* ScriptPluginManager::getPlugin(const std::string& uuid)
 {
     auto it = m_plugins.find(uuid);
+
     return it != m_plugins.end() ? it->second.get() : nullptr;
 }
 
@@ -218,6 +257,7 @@ std::vector<ScriptPlugin*> ScriptPluginManager::getRunningPlugins()
             running.push_back(plugin.get());
         }
     }
+
     return running;
 }
 
@@ -228,6 +268,7 @@ std::vector<const ScriptPlugin*> ScriptPluginManager::getAllPlugins() const
     for (const auto& [uuid, plugin] : m_plugins) {
         plugins.push_back(plugin.get());
     }
+
     return plugins;
 }
 
@@ -244,6 +285,7 @@ size_t ScriptPluginManager::errorCount() const
             ++count;
         }
     }
+
     return count;
 }
 
@@ -256,6 +298,7 @@ std::optional<ScriptData> ScriptPluginManager::loadScript(const std::string& mod
             return data;
         }
     }
+
     return std::nullopt;
 }
 
