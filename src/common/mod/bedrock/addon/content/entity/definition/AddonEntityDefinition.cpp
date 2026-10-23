@@ -277,6 +277,23 @@ Result<void> AddonEntityDefinition::validateComponents(const nlohmann::json& com
             MC_TRY(_number(component, "value", bounds->minValue(), bounds->maxValue()));
         } else if (name == "minecraft:fire_immune") {
             MC_TRY(_members(component, {}));
+        } else if (name == "minecraft:type_family") {
+            MC_TRY(_members(component, {"family"}));
+            if (const auto family = component.find("family"); family != component.end()) {
+                if (family->is_string()) {
+                    if (family->get_ref<const std::string&>().empty()) {
+                        return Error(ErrorCode::InvalidData, "Entity family name cannot be empty");
+                    }
+                } else if (family->is_array()) {
+                    for (const auto& value : *family) {
+                        if (!value.is_string() || value.get_ref<const std::string&>().empty()) {
+                            return Error(ErrorCode::InvalidData, "Entity family names must be nonempty strings");
+                        }
+                    }
+                } else {
+                    return Error(ErrorCode::InvalidData, "Entity family must be a string or string array");
+                }
+            }
         } else {
             // TODO: 分批接入行为、背包、驯服、骑乘、投射物和其他实体组件。
             return Error(ErrorCode::Unsupported, "Entity component is not implemented: " + name);

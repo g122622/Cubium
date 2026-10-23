@@ -24,6 +24,7 @@
 #pragma once
 
 #include "common/core/Result.hpp"
+#include "common/mod/bedrock/addon/content/entity/filters/EntityFilter.hpp"
 #include "common/mod/bedrock/addon/content/molang/MolangExpression.hpp"
 #include <memory>
 #include <string>
@@ -63,6 +64,9 @@ public:
         const nlohmann::json& events, const nlohmann::json& properties, const nlohmann::json& groups);
     /** @brief 计算完整动作后暂存属性；递归或步骤超限不提交任何写入。 */
     [[nodiscard]] Result<EntityEventExecution> execute(mc::Entity& entity, const std::string& eventId) const;
+    /** @brief 使用交互或战斗提供的完整主体上下文执行事件。 */
+    [[nodiscard]] Result<EntityEventExecution> execute(
+        const EntityFilterContext& context, const std::string& eventId) const;
     /** @brief 检查指定事件是否有定义。 */
     [[nodiscard]] bool contains(const std::string& eventId) const;
 
@@ -70,6 +74,7 @@ private:
     nlohmann::json m_events;
     nlohmann::json m_properties;
     std::unordered_map<std::string, MolangExpression> m_expressions;
+    std::vector<EntityFilter> m_filters;
 };
 
 } // namespace mc::mod::bedrock::addon

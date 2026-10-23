@@ -125,7 +125,13 @@ Result<void> EntityAddonState::_validateProperty(
             maximum > typeMaximum || (integer && (std::floor(minimum) != minimum || std::floor(maximum) != maximum))) {
             return Error(ErrorCode::InvalidData, "Entity property has an invalid numeric range: " + name);
         }
-        if (number < minimum || number > maximum) {
+        if (number < typeMinimum || number > typeMaximum) {
+            return Error(ErrorCode::InvalidArgument, "Entity property number exceeds its storage type: " + name);
+        }
+        const double actual = integer ? number : static_cast<double>(static_cast<f32>(number));
+        const double lower = integer ? minimum : static_cast<double>(static_cast<f32>(minimum));
+        const double upper = integer ? maximum : static_cast<double>(static_cast<f32>(maximum));
+        if (actual < lower || actual > upper) {
             return Error(ErrorCode::InvalidArgument, "Entity property value is outside its range: " + name);
         }
 
@@ -142,6 +148,7 @@ Result<void> EntityAddonState::defineProperties(const nlohmann::json& definition
     }
 
     nlohmann::json values = nlohmann::json::object();
+    nlohmann::json normalizedDefinitions = definitions;
     for (const auto& [name, definition] : definitions.items()) {
         if (!mc::ResourceLocation::parse(name).isValid() || name.find(':') == std::string::npos ||
             !definition.is_object() || !definition.contains("default")) {
@@ -166,10 +173,13 @@ Result<void> EntityAddonState::defineProperties(const nlohmann::json& definition
                 }
             }
         }
-        values[name] = definition["default"];
+        values[name] = definition["type"] == "float" ? nlohmann::json(definition["default"].get<f32>())
+            : definition["type"] == "int" ? nlohmann::json(static_cast<i32>(definition["default"].get<double>()))
+                                          : definition["default"];
+        normalizedDefinitions[name]["default"] = values[name];
     }
 
-    m_definitions = definitions;
+    m_definitions = std::move(normalizedDefinitions);
     m_properties = std::move(values);
     m_pending.clear();
     return Result<void>::ok();
@@ -181,6 +191,12 @@ std::optional<nlohmann::json> EntityAddonState::getProperty(const std::string& n
     return value != m_properties.end() ? std::optional<nlohmann::json>(*value) : std::nullopt;
 }
 
+const nlohmann::json* EntityAddonState::getPropertyDefinition(const std::string& name) const
+{
+    const auto found = m_definitions.find(name);
+    return found != m_definitions.end() ? &*found : nullptr;
+}
+
 Result<void> EntityAddonState::setProperty(const std::string& name, const nlohmann::json& value)
 {
     const auto definition = m_definitions.find(name);
@@ -189,7 +205,9 @@ Result<void> EntityAddonState::setProperty(const std::string& name, const nlohma
     }
 
     MC_TRY(_validateProperty(name, *definition, value));
-    m_pending[name] = value;
+    m_pending[name] = (*definition)["type"] == "float" ? nlohmann::json(value.get<f32>())
+        : (*definition)["type"] == "int"               ? nlohmann::json(static_cast<i32>(value.get<double>()))
+                                                       : value;
     return Result<void>::ok();
 }
 

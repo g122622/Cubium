@@ -37,6 +37,7 @@
 #include "common/entity/serialization/EntityDeserializer.hpp"
 #include "common/entity/serialization/components/ComponentSerializerRegistry.hpp"
 #include "common/mod/bedrock/addon/content/entity/definition/AddonEntityDefinition.hpp"
+#include "common/mod/bedrock/addon/content/entity/filters/EntityFilter.hpp"
 #include "common/mod/bedrock/addon/content/entity/state/AddonEntityComponents.hpp"
 #include "common/mod/bedrock/addon/content/entity/state/EntityAddonState.hpp"
 #include "common/mod/bedrock/addon/lifecycle/ScriptManager.hpp"
@@ -959,4 +960,116 @@ TEST_F(AddonEntityDefinitionTest, InvalidDefaultExpressionEvaluationRejectsEntit
     const auto* type = mc::entity::EntityRegistry::instance().getType("addon_test:invalid_default");
     ASSERT_NE(type, nullptr);
     EXPECT_EQ(type->create(nullptr, entities), nullptr);
+}
+
+TEST_F(AddonEntityDefinitionTest, EventFiltersReadCommittedPropertiesAndGateGroupChanges)
+{
+    const auto directory = pack("filtered-event", _PACK, std::nullopt);
+    auto definition = _definition("addon_test:filtered_event");
+    definition["minecraft:entity"]["component_groups"]["large"] = {
+        {"minecraft:collision_box", {{"width", 2}, {"height", 3}}}};
+    definition["minecraft:entity"]["events"]["test:conditional"] = {
+        {"filters", {{"test", "int_property"}, {"domain", "test:count"}, {"operator", ">"}, {"value", 5}}},
+        {"add", {{"component_groups", {"large"}}}},
+        {"set_property", {{"test:count", 9}}}};
+    write(directory / "entities/entity.json", definition);
+    ASSERT_TRUE(manager.loadPacks("", root.string()).success());
+    auto entity = create("addon_test:filtered_event");
+    ASSERT_NE(entity, nullptr);
+    auto* events = entity->tryGetComponent<AddonEntityEvents>();
+    auto& state = entity->getOrAddComponent<EntityAddonState>();
+    ASSERT_TRUE(state.setProperty("test:count", 6).success());
+    ASSERT_TRUE(events->trigger(*entity, "test:conditional").success());
+    entity->tick();
+    EXPECT_EQ(state.getProperty("test:count"), nlohmann::json(6));
+    EXPECT_FLOAT_EQ(entity->width(), 0.8f);
+    ASSERT_TRUE(events->trigger(*entity, "test:conditional").success());
+    entity->tick();
+    EXPECT_EQ(state.getProperty("test:count"), nlohmann::json(9));
+    EXPECT_FLOAT_EQ(entity->width(), 2);
+}
+
+TEST_F(AddonEntityDefinitionTest, FamilyFiltersUseTheCurrentlyActiveFamilyComponent)
+{
+    const auto directory = pack("family-event", _PACK, std::nullopt);
+    auto definition = _definition("addon_test:family_event");
+    definition["minecraft:entity"]["components"]["minecraft:type_family"] = {{"family", {"maid", "mob"}}};
+    definition["minecraft:entity"]["component_groups"]["worker"] = {
+        {"minecraft:type_family", {{"family", {"worker"}}}}};
+    definition["minecraft:entity"]["events"] = {{"test:activate", {{"add", {{"component_groups", {"worker"}}}}}},
+        {"test:deactivate", {{"remove", {{"component_groups", {"worker"}}}}}},
+        {"test:work",
+            {{"filters", {{"test", "is_family"}, {"value", "worker"}}}, {"set_property", {{"test:count", 66}}}}}};
+    write(directory / "entities/entity.json", definition);
+    ASSERT_TRUE(manager.loadPacks("", root.string()).success());
+    auto entity = create("addon_test:family_event");
+    ASSERT_NE(entity, nullptr);
+    auto* events = entity->tryGetComponent<AddonEntityEvents>();
+    auto& state = entity->getOrAddComponent<EntityAddonState>();
+    ASSERT_TRUE(events->trigger(*entity, "test:activate").success());
+    ASSERT_TRUE(events->trigger(*entity, "test:work").success());
+    entity->tick();
+    EXPECT_EQ(state.getProperty("test:count"), nlohmann::json(3));
+    ASSERT_TRUE(events->trigger(*entity, "test:work").success());
+    entity->tick();
+    EXPECT_EQ(state.getProperty("test:count"), nlohmann::json(66));
+    ASSERT_TRUE(events->trigger(*entity, "test:deactivate").success());
+    entity->tick();
+    auto originalFamily = EntityFilter::compile({{"test", "is_family"}, {"value", "maid"}});
+    ASSERT_TRUE(originalFamily.success());
+    auto matches =
+        originalFamily.value().matches(EntityFilterContext{*entity, nullptr, nullptr, nullptr, nullptr, nullptr});
+    ASSERT_TRUE(matches.success());
+    EXPECT_FALSE(matches.value());
+}
+
+TEST_F(AddonEntityDefinitionTest, EventFiltersReceiveExplicitOtherEntityContext)
+{
+    const auto directory = pack("interaction-filter", _PACK, std::nullopt);
+    auto definition = _definition("addon_test:interaction_filter");
+    definition["minecraft:entity"]["events"]["test:interact"] = {
+        {"filters", {{"test", "int_property"}, {"subject", "other"}, {"domain", "test:count"}, {"value", 99}}},
+        {"set_property", {{"test:count", 12}}}};
+    write(directory / "entities/entity.json", definition);
+    ASSERT_TRUE(manager.loadPacks("", root.string()).success());
+    auto entity = create("addon_test:interaction_filter");
+    auto other = create("addon_test:interaction_filter");
+    ASSERT_NE(entity, nullptr);
+    ASSERT_NE(other, nullptr);
+    ASSERT_TRUE(other->getOrAddComponent<EntityAddonState>().setProperty("test:count", 99).success());
+    other->tick();
+    auto* events = entity->tryGetComponent<AddonEntityEvents>();
+    ASSERT_TRUE(events->trigger(*entity, "test:interact").success());
+    entity->tick();
+    EXPECT_EQ(entity->getOrAddComponent<EntityAddonState>().getProperty("test:count"), nlohmann::json(3));
+    ASSERT_TRUE(
+        events->trigger(EntityFilterContext{*entity, other.get(), nullptr, nullptr, nullptr, nullptr}, "test:interact")
+            .success());
+    entity->tick();
+    EXPECT_EQ(entity->getOrAddComponent<EntityAddonState>().getProperty("test:count"), nlohmann::json(12));
+}
+
+TEST_F(AddonEntityDefinitionTest, FilterEvaluationFailureAbortsTheWholeEventTransaction)
+{
+    const auto directory = pack("failed-filter", _PACK, std::nullopt);
+    auto definition = _definition("addon_test:failed_filter");
+    definition["minecraft:entity"]["component_groups"]["large"] = {
+        {"minecraft:collision_box", {{"width", 2}, {"height", 3}}}};
+    definition["minecraft:entity"]["events"]["test:fail"] = {{"sequence",
+        {{{"add", {{"component_groups", {"large"}}}}, {"set_property", {{"test:count", 90}}}},
+            {{"filters", {{"test", "is_family"}, {"subject", "other"}, {"value", "unmapped-native-family"}}},
+                {"set_property", {{"test:count", 80}}}}}}};
+    write(directory / "entities/entity.json", definition);
+    ASSERT_TRUE(manager.loadPacks("", root.string()).success());
+    auto entity = create("addon_test:failed_filter");
+    ASSERT_NE(entity, nullptr);
+    mc::Entity other(mc::EntityInstanceId(2), nullptr, entities);
+    auto* components = entity->tryGetComponent<AddonEntityComponents>();
+    const auto before = components->save();
+    EXPECT_TRUE(entity->tryGetComponent<AddonEntityEvents>()
+            ->trigger(EntityFilterContext{*entity, &other, nullptr, nullptr, nullptr, nullptr}, "test:fail")
+            .failed());
+    EXPECT_EQ(components->save(), before);
+    EXPECT_EQ(entity->getOrAddComponent<EntityAddonState>().getProperty("test:count"), nlohmann::json(3));
+    EXPECT_FALSE(manager.eventBus().hasPendingAfterEvents());
 }

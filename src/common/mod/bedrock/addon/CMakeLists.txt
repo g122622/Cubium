@@ -70,6 +70,7 @@ add_library(mc_bedrock_addon STATIC
     content/entity/properties/EntityPropertyDefinitions.cpp
     content/entity/properties/EntityPropertyValue.cpp
     content/entity/events/EntityEventProgram.cpp
+    content/entity/filters/EntityFilter.cpp
     content/entity/events/AddonEntityEvents.cpp
     content/entity/state/EntityAddonState.cpp
     content/entity/state/AddonEntityComponents.cpp

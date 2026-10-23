@@ -35,6 +35,7 @@ class Entity;
 namespace mc::mod::bedrock::addon {
 class EntityEventProgram;
 struct EntityEventNotification;
+struct EntityFilterContext;
 /** @brief 脚本门面拥有的事件出口，实体只借弱引用，避免延长世界寿命。 */
 using EntityEventSink = std::function<void(mc::Entity&, const EntityEventNotification&)>;
 
@@ -46,6 +47,8 @@ public:
         std::shared_ptr<const EntityEventProgram> program, std::weak_ptr<EntityEventSink> sink, bool spawnPending);
     /** @brief 执行事件并将实际触发的事件 ID 发送至脚本事件出口。 */
     Result<void> trigger(mc::Entity& entity, const std::string& eventId);
+    /** @brief 用交互或战斗提供的完整主体上下文触发事件。 */
+    Result<void> trigger(const EntityFilterContext& context, const std::string& eventId);
     /** @brief 首次实体 tick 触发生成事件；存档恢复不会重放生成事件。 */
     void onTick(mc::Entity& entity);
 

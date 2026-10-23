@@ -46,6 +46,9 @@ public:
     /** @brief 读取本 tick 已经生效的声明属性。 */
     [[nodiscard]] std::optional<nlohmann::json> getProperty(const std::string& name) const;
 
+    /** @brief 借用属性声明供类型和枚举查询，重新定义或加载状态后不可继续持有该指针。 */
+    [[nodiscard]] const nlohmann::json* getPropertyDefinition(const std::string& name) const;
+
     /** @brief 校验并暂存声明属性，在下一实体 tick 应用。 */
     Result<void> setProperty(const std::string& name, const nlohmann::json& value);
 

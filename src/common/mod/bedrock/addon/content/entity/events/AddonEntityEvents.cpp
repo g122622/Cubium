@@ -39,7 +39,13 @@ AddonEntityEvents::AddonEntityEvents(
 
 Result<void> AddonEntityEvents::trigger(mc::Entity& entity, const std::string& eventId)
 {
-    auto triggered = m_program->execute(entity, eventId);
+    return trigger(EntityFilterContext{entity, nullptr, nullptr, nullptr, nullptr, nullptr}, eventId);
+}
+
+Result<void> AddonEntityEvents::trigger(const EntityFilterContext& context, const std::string& eventId)
+{
+    auto& entity = context.self;
+    auto triggered = m_program->execute(context, eventId);
     if (triggered.failed()) {
         return triggered.error();
     }

@@ -417,3 +417,22 @@ TEST_F(AddonEntityPropertiesBindingTest, DestroyedEntityRejectsEveryPropertyMeth
         }
     )");
 }
+
+TEST(AddonEntityStateTest, FloatPropertiesUseSinglePrecisionForDefaultsWritesAndBoundaries)
+{
+    EntityAddonState state;
+    ASSERT_TRUE(
+        state.defineProperties({{"test:value", {{"type", "float"}, {"range", {0, 0.1}}, {"default", 0.1}}}}).success());
+    const auto expected = nlohmann::json(static_cast<mc::f32>(0.1));
+    EXPECT_EQ(state.getProperty("test:value"), expected);
+    ASSERT_TRUE(state.setProperty("test:value", 0.1000000001).success());
+    EXPECT_TRUE(state.setProperty("test:value", 0.100001).failed());
+    state.applyPendingProperties();
+    EXPECT_EQ(state.getProperty("test:value"), expected);
+    EXPECT_EQ(state.resetProperty("test:value"), expected);
+    EntityAddonState restored;
+    ASSERT_TRUE(restored.defineProperties({{"test:value", {{"type", "float"}, {"range", {0, 0.1}}, {"default", 0.1}}}})
+            .success());
+    ASSERT_TRUE(restored.load(state.save()).success());
+    EXPECT_EQ(restored.getProperty("test:value"), expected);
+}
