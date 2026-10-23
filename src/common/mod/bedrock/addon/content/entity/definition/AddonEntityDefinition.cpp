@@ -25,6 +25,7 @@
 #include "common/entity/attribute/AttributeMap.hpp"
 #include "common/entity/attribute/Attributes.hpp"
 #include "common/entity/core/CreatureEntity.hpp"
+#include "common/mod/bedrock/addon/content/entity/events/EntityEventProgram.hpp"
 #include "common/mod/bedrock/addon/content/entity/state/EntityAddonState.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/assert/AssertMacros.hpp"
@@ -95,6 +96,14 @@ public:
         return m_definition->height();
     }
 
+    void tick() override
+    {
+        auto* events = tryGetComponent<AddonEntityEvents>();
+        MC_ASSERT_RELEASE(events != nullptr);
+        events->onTick(*this);
+        mc::Entity::tick();
+    }
+
 private:
     std::shared_ptr<const AddonEntityDefinition> m_definition;
 };
@@ -117,6 +126,14 @@ public:
     f32 height() const override
     {
         return m_definition->height();
+    }
+
+    void tick() override
+    {
+        auto* events = tryGetComponent<AddonEntityEvents>();
+        MC_ASSERT_RELEASE(events != nullptr);
+        events->onTick(*this);
+        mc::CreatureEntity::tick();
     }
 
 private:
@@ -152,7 +169,7 @@ Result<AddonEntityDefinition> AddonEntityDefinition::parse(const nlohmann::json&
         if (entity.contains(section) && !entity[section].is_object()) {
             return Error(ErrorCode::InvalidData, std::string("Entity section must be an object: ") + section);
         }
-        if (entity.contains(section) && !entity[section].empty()) {
+        if (std::string_view(section) == "component_groups" && entity.contains(section) && !entity[section].empty()) {
             // TODO: 接入组件组变更、实体事件动作、过滤器与 Molang 求值。
             return Error(ErrorCode::Unsupported, std::string("Entity section is not implemented: ") + section);
         }
@@ -165,6 +182,11 @@ Result<AddonEntityDefinition> AddonEntityDefinition::parse(const nlohmann::json&
     result.m_properties = description.value("properties", nlohmann::json::object());
     EntityAddonState validated;
     MC_TRY(validated.defineProperties(result.m_properties));
+    auto events = EntityEventProgram::compile(entity.value("events", nlohmann::json::object()), result.m_properties);
+    if (events.failed()) {
+        return events.error();
+    }
+    result.m_events = std::make_shared<const EntityEventProgram>(std::move(events.value()));
     result.m_components = entity.value("components", nlohmann::json::object());
     if (!result.m_components.is_object()) {
         return Error(ErrorCode::InvalidData, "Entity components must be an object");
@@ -209,8 +231,10 @@ Result<AddonEntityDefinition> AddonEntityDefinition::parse(const nlohmann::json&
     return result;
 }
 
-std::unique_ptr<mc::Entity> AddonEntityDefinition::create(
-    std::shared_ptr<const AddonEntityDefinition> definition, mc::IWorld* world, mc::ecs::EntityRegistry& registry)
+std::unique_ptr<mc::Entity> AddonEntityDefinition::create(std::shared_ptr<const AddonEntityDefinition> definition,
+    mc::IWorld* world,
+    mc::ecs::EntityRegistry& registry,
+    std::weak_ptr<EntityEventSink> sink)
 {
     MC_ASSERT_RELEASE(definition != nullptr);
     std::unique_ptr<mc::Entity> entity;
@@ -220,6 +244,8 @@ std::unique_ptr<mc::Entity> AddonEntityDefinition::create(
         entity = std::make_unique<_AddonActor>(definition, world, registry);
     }
     definition->_initialize(*entity);
+    static_cast<void>(
+        entity->getOrAddComponent<AddonEntityEvents>(definition->m_events, std::move(sink), world != nullptr));
     return entity;
 }
 

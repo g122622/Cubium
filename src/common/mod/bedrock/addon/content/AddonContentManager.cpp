@@ -108,9 +108,10 @@ Result<std::vector<std::string>> AddonContentManager::loadEntityDefinitions(Beha
             continue;
         }
         const auto definition = candidate.definition;
+        const std::weak_ptr<EntityEventSink> eventSink = m_entityEvents;
         auto builder = mc::entity::EntityType::Builder(
-            [definition](mc::IWorld* world, mc::ecs::EntityRegistry& registry) {
-                return AddonEntityDefinition::create(definition, world, registry);
+            [definition, eventSink](mc::IWorld* world, mc::ecs::EntityRegistry& registry) {
+                return AddonEntityDefinition::create(definition, world, registry, eventSink);
             },
             mc::entity::EntityClassification::Misc);
         builder.size(definition->width(), definition->height()).canSummon(definition->canSummon()).updateInterval(1);
@@ -147,6 +148,11 @@ void AddonContentManager::clear()
         registry.unregisterType(id, registration.type);
     }
     m_entities.clear();
+}
+
+void AddonContentManager::setEntityEventSink(EntityEventSink sink)
+{
+    m_entityEvents = sink ? std::make_shared<EntityEventSink>(std::move(sink)) : nullptr;
 }
 
 } // namespace mc::mod::bedrock::addon

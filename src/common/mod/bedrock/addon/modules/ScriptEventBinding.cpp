@@ -117,6 +117,18 @@ bool _matches(IScriptBindingContext& context, void* event, const ScriptValueHand
         return true;
     }
 
+    void* eventTypes = context.getProperty(options.value(), "eventTypes");
+    if (context.isObject(eventTypes)) {
+        const auto eventId = context.getPropertyString(event, "eventId");
+        const bool found = eventId && _contains(context, eventTypes, *eventId);
+        context.releaseValue(eventTypes);
+        if (!found) {
+            return false;
+        }
+    } else {
+        context.releaseValue(eventTypes);
+    }
+
     // 脚本消息只按冒号之前的命名空间筛选，避免处理其他包的消息通道。
     void* namespaces = context.getProperty(options.value(), "namespaces");
     if (context.isObject(namespaces)) {

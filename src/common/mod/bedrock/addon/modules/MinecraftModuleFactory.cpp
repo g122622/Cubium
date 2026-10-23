@@ -25,6 +25,7 @@
 #include "common/mod/bedrock/addon/binding/ScriptGameObjects.hpp"
 #include "common/mod/bedrock/addon/content/base/properties/AddonDynamicProperties.hpp"
 #include "common/mod/bedrock/addon/event/ScriptEventData.hpp"
+#include "common/mod/bedrock/addon/modules/entity/ScriptEntityEventsBinding.hpp"
 #include "common/mod/bedrock/addon/modules/entity/ScriptEntityPropertiesBinding.hpp"
 #include "common/mod/bedrock/addon/modules/item/ScriptItemPropertiesBinding.hpp"
 #include "common/mod/bedrock/addon/modules/properties/ScriptDynamicPropertiesBinding.hpp"
@@ -1268,6 +1269,7 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
 
     ClassRegistrar<void> entityReg(ctx, entityClassId, entityProto);
     registerEntityPropertyBindings(ctx, entityProto);
+    registerEntityEventBindings(ctx, entityProto);
     entityReg.readonlyProperty("dimension", [](IScriptBindingContext& ctx, void* value) -> void* {
         auto* entity = static_cast<mc::Entity*>(ScriptObjectRegistry::unwrap(ctx, value, 0));
 
@@ -3607,6 +3609,7 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
     if (m_eventBus != nullptr) {
         auto signals = m_eventSignals;
         signals.push_back({"worldLoad", typeid(ScriptWorldLoadEvent), false});
+        signals.push_back({"dataDrivenEntityTrigger", typeid(ScriptDataDrivenEntityEvent), false});
         registerEventBindings(ctx, worldObj, *m_eventBus, signals, {});
     }
 

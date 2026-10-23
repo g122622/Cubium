@@ -23,6 +23,7 @@
 
 #include "common/mod/bedrock/addon/lifecycle/ScriptManager.hpp"
 #include "common/core/Result.hpp"
+#include "common/mod/bedrock/addon/binding/IScriptBindingContext.hpp"
 #include "common/mod/bedrock/addon/binding/ScriptClassRegistry.hpp"
 #include "common/mod/bedrock/addon/content/AddonContentManager.hpp"
 #include "common/mod/bedrock/addon/content/base/properties/AddonDynamicProperties.hpp"
@@ -99,6 +100,7 @@ void ScriptManager::shutdown()
 
     m_pluginManager->unloadAllPlugins();
     m_content->clear();
+    m_content->setEntityEventSink({});
 
     // 关闭事件总线
     m_eventBus->shutdown();
@@ -316,6 +318,22 @@ const BehaviorPackList* ScriptManager::packList() const
 
 void ScriptManager::_registerBuiltinModules()
 {
+    m_content->setEntityEventSink([this](mc::Entity& entity, const std::string& eventId) {
+        ScriptEventData data;
+        data.setEntity("entity", &entity);
+        data.setString("eventId", eventId);
+        data.setValue("getModifiers", [](IScriptBindingContext& context) {
+            // 属性事件不修改组件组，因此对应的 DefinitionModifier 列表为空。
+            return context.createFunction(
+                [](IScriptBindingContext& bindings, void*, i32, void**) {
+                    return bindings.createArray();
+                },
+                "getModifiers",
+                0);
+        });
+        m_eventBus->enqueueAfterEvent(typeid(ScriptDataDrivenEntityEvent), std::move(data));
+    });
+
     // 注册 @minecraft/server 模块
     auto minecraftFactory = std::make_unique<MinecraftModuleFactory>();
     minecraftFactory->setScheduler(m_scheduler.get());

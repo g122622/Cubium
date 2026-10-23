@@ -24,6 +24,7 @@
 #pragma once
 
 #include "common/core/Result.hpp"
+#include "common/mod/bedrock/addon/content/entity/events/AddonEntityEvents.hpp"
 #include <memory>
 #include <string>
 #include <unordered_map>
@@ -52,6 +53,9 @@ public:
     /** @brief 撤销本门面注册的全部类型，存活实体继续持有其定义和类型。 */
     void clear();
 
+    /** @brief 配置实体事件出口；传入空回调时使现存弱引用失效。 */
+    void setEntityEventSink(EntityEventSink sink);
+
 private:
     struct EntityRegistration {
         std::string packUuid;
@@ -60,6 +64,7 @@ private:
     };
 
     std::unordered_map<std::string, EntityRegistration> m_entities;
+    std::shared_ptr<EntityEventSink> m_entityEvents;
 };
 
 } // namespace mc::mod::bedrock::addon

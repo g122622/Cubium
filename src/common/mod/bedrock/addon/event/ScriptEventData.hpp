@@ -84,4 +84,7 @@ struct ScriptWorldLoadEvent {};
 /** @brief 玩家首次加入与重生的统一脚本信号。 */
 struct ScriptPlayerSpawnEvent {};
 
+/** @brief 数据驱动实体定义事件完成计算后的通知。 */
+struct ScriptDataDrivenEntityEvent {};
+
 } // namespace mc::mod::bedrock::addon

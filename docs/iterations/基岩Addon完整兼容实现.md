@@ -98,3 +98,12 @@
 - 2026-10-23：完整构建成功（23 分 21 秒）；修正测试对 Result<unique_ptr<Entity>>::value() 所有权语义的误用后，136 个 addon 针对性测试全部通过，报告位于 build/addon-entity-definitions-tests.xml。
 - 声明属性已通过真实实体工厂和直接 NBT/压缩二进制反序列化验证；测试必须先持有 value() 返回的 unique_ptr，再借用组件，不能保存临时 unique_ptr 所指组件的裸指针。
 - 当前明确拒绝未支持的组件、事件和组件组，不将忽略内容视为成功。继续实施实体事件、组件组、过滤器、Molang、其余组件及 Java 呈现。
+
+### 实体属性事件
+
+- 事件程序支持 set_property 常量赋值、sequence、加权 randomize 与自身 trigger，JSON 数值赋值限幅，脚本 setProperty 继续报告越界。
+- 动作完整计算后才暂存写入，递归深度或步骤预算失败不提交属性，也不产生触发通知。
+- Entity.triggerEvent 接入实例程序，dataDrivenEntityTrigger 提供实体、事件 ID 和对应的空组件修改列表（本批仅属性事件），支持 eventTypes 与实体类型过滤。
+- 新生成实例首次 tick 执行 entity_spawned，反序列化工厂不重放；事件出口使用脚本门面拥有的弱引用，关闭脚本后实体仍可安全执行本地程序。
+- 2026-10-23：增量构建成功（46 秒）；144 个 addon 针对性测试全部通过，报告位于 build/addon-entity-events-tests.xml。
+- 组件组仍明确拒绝，继续实现活动组件、组件组切换与存档。官方 EntityBehaviorIntroduction 明确指出：移除组件组会完全移除其组件，不恢复之前的基础组件或其他组组件；重复添加活动组会重新初始化组件。

@@ -22,6 +22,13 @@
  */
 
 #include "common/TempDirHelper.hpp"
+#include "common/mod/bedrock/addon/binding/IScriptBindingContext.hpp"
+#include "common/mod/bedrock/addon/binding/ScriptGameObjects.hpp"
+#include "common/mod/bedrock/addon/content/entity/events/AddonEntityEvents.hpp"
+#include "common/mod/bedrock/addon/content/entity/events/EntityEventProgram.hpp"
+#include "common/mod/bedrock/addon/core/IScriptContext.hpp"
+#include "common/mod/bedrock/addon/plugin/ScriptPlugin.hpp"
+
 #include "common/entity/attribute/AttributeMap.hpp"
 #include "common/entity/attribute/Attributes.hpp"
 #include "common/entity/core/Entity.hpp"
@@ -280,7 +287,8 @@ TEST_F(AddonEntityDefinitionTest, UnsupportedComponentsAndEventSectionsAreExplic
     ASSERT_TRUE(result.failed());
     EXPECT_EQ(result.error().code(), mc::ErrorCode::Unsupported);
     definition = _definition("addon_test:unsupported");
-    definition["minecraft:entity"]["events"]["test:change"] = {{"set_property", {{"test:count", 5}}}};
+    definition["minecraft:entity"]["events"]["test:change"] = {
+        {"set_property", {{"test:count", "query.property('test:count') + 1"}}}};
     result = AddonEntityDefinition::parse(definition);
     ASSERT_TRUE(result.failed());
     EXPECT_EQ(result.error().code(), mc::ErrorCode::Unsupported);
@@ -334,4 +342,198 @@ TEST_F(AddonEntityDefinitionTest, ResourceEnumerationIsSortedAndRejectsParentTra
     auto missing = behavior->listResources("missing", ".json");
     ASSERT_TRUE(missing.success());
     EXPECT_TRUE(missing.value().empty());
+}
+
+TEST_F(AddonEntityDefinitionTest, PropertyEventsExecuteSequenceAndSelfTriggersAtTickBoundary)
+{
+    const auto directory = pack("events", _PACK, std::nullopt);
+    auto definition = _definition("addon_test:events");
+    definition["minecraft:entity"]["events"] = {{"test:inner", {{"set_property", {{"test:count", 7}}}}},
+        {"test:outer",
+            {{"sequence",
+                {{{"set_property", {{"test:count", 5}}}},
+                    {{"trigger", {{"event", "test:inner"}, {"target", "self"}}}},
+                    {{"set_property", {{"test:count", 11}}}}}}}}};
+    write(directory / "entities/entity.json", definition);
+    ASSERT_TRUE(manager.loadPacks("", root.string()).success());
+    auto entity = create("addon_test:events");
+    ASSERT_NE(entity, nullptr);
+    auto* events = entity->tryGetComponent<AddonEntityEvents>();
+    ASSERT_NE(events, nullptr);
+    auto& state = entity->getOrAddComponent<EntityAddonState>();
+    ASSERT_TRUE(events->trigger(*entity, "test:outer").success());
+    EXPECT_EQ(state.getProperty("test:count"), nlohmann::json(3));
+    entity->tick();
+    EXPECT_EQ(state.getProperty("test:count"), nlohmann::json(11));
+}
+
+TEST_F(AddonEntityDefinitionTest, EventNumericValuesClampWhileScriptWritesRejectOutOfRange)
+{
+    const auto directory = pack("clamp", _PACK, std::nullopt);
+    auto definition = _definition("addon_test:clamp");
+    definition["minecraft:entity"]["events"] = {{"test:high", {{"set_property", {{"test:count", 1000}}}}},
+        {"test:low", {{"set_property", {{"test:count", -1000}}}}}};
+    write(directory / "entities/entity.json", definition);
+    ASSERT_TRUE(manager.loadPacks("", root.string()).success());
+    auto entity = create("addon_test:clamp");
+    ASSERT_NE(entity, nullptr);
+    auto* events = entity->tryGetComponent<AddonEntityEvents>();
+    auto& state = entity->getOrAddComponent<EntityAddonState>();
+    EXPECT_TRUE(state.setProperty("test:count", 1000).failed());
+    ASSERT_TRUE(events->trigger(*entity, "test:high").success());
+    entity->tick();
+    EXPECT_EQ(state.getProperty("test:count"), nlohmann::json(100));
+    ASSERT_TRUE(events->trigger(*entity, "test:low").success());
+    entity->tick();
+    EXPECT_EQ(state.getProperty("test:count"), nlohmann::json(0));
+}
+
+TEST_F(AddonEntityDefinitionTest, WeightedRandomizeExecutesOnePositiveWeightBranch)
+{
+    const auto directory = pack("random", _PACK, std::nullopt);
+    auto definition = _definition("addon_test:random");
+    definition["minecraft:entity"]["events"]["test:random"] = {{"randomize",
+        {{{"weight", 0}, {"set_property", {{"test:count", 99}}}},
+            {{"weight", 1}, {"set_property", {{"test:count", 4}}}},
+            {{"weight", 2}, {"set_property", {{"test:count", 8}}}}}}};
+    write(directory / "entities/entity.json", definition);
+    ASSERT_TRUE(manager.loadPacks("", root.string()).success());
+    auto entity = create("addon_test:random");
+    ASSERT_NE(entity, nullptr);
+    entity->getRandom().setSeed(123);
+    auto* events = entity->tryGetComponent<AddonEntityEvents>();
+    auto& state = entity->getOrAddComponent<EntityAddonState>();
+    int first = 0;
+    int second = 0;
+    for (int index = 0; index < 100; ++index) {
+        ASSERT_TRUE(events->trigger(*entity, "test:random").success());
+        entity->tick();
+        const auto value = state.getProperty("test:count");
+        EXPECT_TRUE(value == nlohmann::json(4) || value == nlohmann::json(8));
+        first += value == nlohmann::json(4);
+        second += value == nlohmann::json(8);
+    }
+    EXPECT_GT(first, 0);
+    EXPECT_GT(second, 0);
+}
+
+TEST_F(AddonEntityDefinitionTest, RecursiveFailureDoesNotCommitAnyPendingWritesOrNotifications)
+{
+    const auto directory = pack("recursive", _PACK, std::nullopt);
+    auto definition = _definition("addon_test:recursive");
+    definition["minecraft:entity"]["events"]["test:loop"] = {
+        {"sequence", {{{"set_property", {{"test:count", 90}}}}, {{"trigger", "test:loop"}}}}};
+    write(directory / "entities/entity.json", definition);
+    ASSERT_TRUE(manager.loadPacks("", root.string()).success());
+    auto entity = create("addon_test:recursive");
+    ASSERT_NE(entity, nullptr);
+    auto* events = entity->tryGetComponent<AddonEntityEvents>();
+    auto& state = entity->getOrAddComponent<EntityAddonState>();
+    const auto before = state.save();
+    EXPECT_TRUE(events->trigger(*entity, "test:loop").failed());
+    EXPECT_TRUE(events->trigger(*entity, "test:missing").failed());
+    EXPECT_EQ(state.save(), before);
+    EXPECT_FALSE(manager.eventBus().hasPendingAfterEvents());
+}
+
+TEST_F(AddonEntityDefinitionTest, MalformedEventActionsAndReferencesFailBeforeRegistration)
+{
+    const auto properties = _definition("addon_test:validation")["minecraft:entity"]["description"]["properties"];
+    const std::vector<nlohmann::json> invalid = {{{"test:event", {{"trigger", "test:missing"}}}},
+        {{"test:event", {{"sequence", nlohmann::json::object()}}}},
+        {{"test:event", {{"randomize", nlohmann::json::array()}}}},
+        {{"test:event", {{"randomize", {{{"weight", -1}}}}}}},
+        {{"test:event", {{"randomize", {{{"weight", 0}}}}}}},
+        {{"test:event", {{"set_property", {{"test:missing", true}}}}}},
+        {{"test:event", {{"set_property", {{"test:count", true}}}}}},
+        {{"test:event", {{"trigger", {{"event", "test:event"}, {"target", "other"}}}}}}};
+    for (const auto& events : invalid) {
+        EXPECT_TRUE(EntityEventProgram::compile(events, properties).failed()) << events.dump();
+    }
+}
+
+TEST_F(AddonEntityDefinitionTest, SpawnEventsAreOnceOnlyAndAreNotReplayedByRestoreFactories)
+{
+    const auto directory = pack("spawn-events", _PACK, std::nullopt);
+    auto definition = _definition("addon_test:spawn_events");
+    definition["minecraft:entity"]["events"]["minecraft:entity_spawned"] = {{"set_property", {{"test:count", 8}}}};
+    write(directory / "entities/entity.json", definition);
+    ASSERT_TRUE(manager.loadPacks("", root.string()).success());
+    // nullptr 世界是统一反序列化工厂入口，不能重新触发 entity_spawned。
+    auto entity = create("addon_test:spawn_events");
+    ASSERT_NE(entity, nullptr);
+    entity->tick();
+    auto& state = entity->getOrAddComponent<EntityAddonState>();
+    EXPECT_EQ(state.getProperty("test:count"), nlohmann::json(3));
+    auto compiled = EntityEventProgram::compile(
+        definition["minecraft:entity"]["events"], definition["minecraft:entity"]["description"]["properties"]);
+    ASSERT_TRUE(compiled.success());
+    auto program = std::make_shared<const EntityEventProgram>(std::move(compiled.value()));
+    AddonEntityEvents spawned(program, {}, true);
+    spawned.onTick(*entity);
+    entity->tick();
+    EXPECT_EQ(state.getProperty("test:count"), nlohmann::json(8));
+    ASSERT_TRUE(state.setProperty("test:count", 2).success());
+    entity->tick();
+    spawned.onTick(*entity);
+    entity->tick();
+    EXPECT_EQ(state.getProperty("test:count"), nlohmann::json(2));
+}
+
+TEST_F(AddonEntityDefinitionTest, ScriptTriggerEventPublishesFilteredDeferredSnapshots)
+{
+    const auto directory = pack("script-events", _PACK, std::string(R"(
+        import { world } from '@minecraft/server';
+        globalThis.events = [];
+        world.afterEvents.dataDrivenEntityTrigger.subscribe(event => {
+            events.push({name: event.eventId, type: event.entity.typeId, modifiers: event.getModifiers().length});
+        }, {eventTypes: ['test:go'], entityTypes: ['addon_test:script_events']});
+    )"));
+    auto definition = _definition("addon_test:script_events");
+    definition["minecraft:entity"]["events"] = {
+        {"test:go", {{"set_property", {{"test:count", 9}}}}}, {"test:ignored", nlohmann::json::object()}};
+    write(directory / "entities/entity.json", definition);
+    ASSERT_TRUE(manager.loadPacks("", root.string()).success());
+    auto entity = create("addon_test:script_events");
+    ASSERT_NE(entity, nullptr);
+    auto* plugin = manager.pluginManager().getPlugin(_PACK);
+    ASSERT_NE(plugin, nullptr);
+    auto* context = plugin->context();
+    ASSERT_NE(context, nullptr);
+    auto& bindings = context->bindingContext();
+    void* global = bindings.getGlobalObject();
+    void* subject = wrapEntity(bindings, entity.get());
+    bindings.setProperty(global, "subject", subject);
+    bindings.releaseValue(subject);
+    bindings.releaseValue(global);
+    auto triggered = context->evaluate("subject.triggerEvent('test:go'); subject.triggerEvent('test:ignored'); if "
+                                       "(events.length) throw Error('event was synchronous');",
+        "trigger.js",
+        EvalFlags::None);
+    ASSERT_TRUE(triggered.success()) << triggered.errorMessage();
+    manager.eventBus().tick();
+    auto checked = context->evaluate("if (events.length !== 1 || events[0].name !== 'test:go' || events[0].modifiers "
+                                     "!== 0) throw Error('wrong filtered event');",
+        "check.js",
+        EvalFlags::None);
+    ASSERT_TRUE(checked.success()) << checked.errorMessage();
+    entity->tick();
+    EXPECT_EQ(entity->getOrAddComponent<EntityAddonState>().getProperty("test:count"), nlohmann::json(9));
+}
+
+TEST_F(AddonEntityDefinitionTest, EventsOutliveScriptShutdownWithoutKeepingTheBusAlive)
+{
+    const auto directory = pack("shutdown-events", _PACK, std::nullopt);
+    auto definition = _definition("addon_test:shutdown_events");
+    definition["minecraft:entity"]["events"]["test:change"] = {{"set_property", {{"test:count", 6}}}};
+    write(directory / "entities/entity.json", definition);
+    ASSERT_TRUE(manager.loadPacks("", root.string()).success());
+    auto entity = create("addon_test:shutdown_events");
+    ASSERT_NE(entity, nullptr);
+    manager.shutdown();
+    auto* events = entity->tryGetComponent<AddonEntityEvents>();
+    ASSERT_NE(events, nullptr);
+    ASSERT_TRUE(events->trigger(*entity, "test:change").success());
+    entity->tick();
+    EXPECT_EQ(entity->getOrAddComponent<EntityAddonState>().getProperty("test:count"), nlohmann::json(6));
 }

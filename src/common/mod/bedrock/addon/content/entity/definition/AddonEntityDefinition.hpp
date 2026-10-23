@@ -25,6 +25,7 @@
 
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
+#include "common/mod/bedrock/addon/content/entity/events/AddonEntityEvents.hpp"
 #include <memory>
 #include <string>
 #include <nlohmann/json.hpp>
@@ -46,8 +47,10 @@ public:
     /** @brief 校验实体 JSON 结构、属性和基础组件；未支持语义明确返回 Unsupported。 */
     [[nodiscard]] static Result<AddonEntityDefinition> parse(const nlohmann::json& document);
     /** @brief 通过完整定义创建实体，实例保留定义的共享所有权。 */
-    [[nodiscard]] static std::unique_ptr<mc::Entity> create(
-        std::shared_ptr<const AddonEntityDefinition> definition, mc::IWorld* world, mc::ecs::EntityRegistry& registry);
+    [[nodiscard]] static std::unique_ptr<mc::Entity> create(std::shared_ptr<const AddonEntityDefinition> definition,
+        mc::IWorld* world,
+        mc::ecs::EntityRegistry& registry,
+        std::weak_ptr<EntityEventSink> sink);
     /** @brief 获取实体资源标识。 */
     [[nodiscard]] const std::string& identifier() const;
     /** @brief 获取完整源定义，用于判断重复加载是否改变定义。 */
@@ -67,6 +70,7 @@ private:
     nlohmann::json m_document;
     nlohmann::json m_properties;
     nlohmann::json m_components;
+    std::shared_ptr<const EntityEventProgram> m_events;
     std::string m_identifier;
     f32 m_width;
     f32 m_height;
