@@ -585,10 +585,13 @@ void ServerPlayer::triggerPlayerHurtEntity(
     if (trigger == nullptr) {
         return;
     }
+    advancement::CriterionContext playerContext;
+    playerContext.entity = &entity;
+    playerContext.world = Entity::world();
     trigger->advancement::AbstractCriterionTrigger<advancement::PlayerHurtEntityTriggerInstance>::trigger(
         *m_advancements,
-        [&entity, &source, dealt, taken, blocked](const advancement::PlayerHurtEntityTriggerInstance& instance) {
-            return instance.test(source, dealt, taken, blocked, entity);
+        [&source, dealt, taken, blocked, &playerContext](const advancement::PlayerHurtEntityTriggerInstance& instance) {
+            return instance.test(playerContext, source, dealt, taken, blocked);
         });
 }
 
@@ -601,10 +604,13 @@ void ServerPlayer::triggerEntityHurtPlayer(const DamageSource& source, f32 dealt
     if (trigger == nullptr) {
         return;
     }
+    advancement::CriterionContext playerContext;
+    playerContext.entity = this;
+    playerContext.world = Entity::world();
     trigger->advancement::AbstractCriterionTrigger<advancement::EntityHurtPlayerTriggerInstance>::trigger(
         *m_advancements,
-        [&source, dealt, taken, blocked](const advancement::EntityHurtPlayerTriggerInstance& instance) {
-            return instance.test(source, dealt, taken, blocked);
+        [&source, dealt, taken, blocked, &playerContext](const advancement::EntityHurtPlayerTriggerInstance& instance) {
+            return instance.test(playerContext, source, dealt, taken, blocked);
         });
 }
 
@@ -1245,9 +1251,13 @@ void ServerPlayer::triggerChangedDimension(const ResourceLocation& from, const R
     if (trigger == nullptr) {
         return;
     }
+    advancement::CriterionContext playerContext;
+    playerContext.entity = this;
+    playerContext.world = Entity::world();
     trigger->advancement::AbstractCriterionTrigger<advancement::ChangedDimensionTriggerInstance>::trigger(
-        *m_advancements,
-        [&from, &to](const advancement::ChangedDimensionTriggerInstance& instance) { return instance.test(from, to); });
+        *m_advancements, [&from, &to, &playerContext](const advancement::ChangedDimensionTriggerInstance& instance) {
+            return instance.test(playerContext, from, to);
+        });
 }
 
 void ServerPlayer::triggerFishingRodHooked(
@@ -1260,9 +1270,13 @@ void ServerPlayer::triggerFishingRodHooked(
     if (trigger == nullptr) {
         return;
     }
+    advancement::CriterionContext playerContext;
+    playerContext.entity = this;
+    playerContext.world = Entity::world();
     trigger->advancement::AbstractCriterionTrigger<advancement::FishingRodHookedTriggerInstance>::trigger(
-        *m_advancements, [&rod, hookedEntity, &items](const advancement::FishingRodHookedTriggerInstance& instance) {
-            return instance.test(rod, hookedEntity, items);
+        *m_advancements,
+        [&rod, hookedEntity, &items, &playerContext](const advancement::FishingRodHookedTriggerInstance& instance) {
+            return instance.test(playerContext, rod, hookedEntity, items);
         });
 }
 
@@ -1275,9 +1289,12 @@ void ServerPlayer::triggerKilledByArrow(const std::vector<const Entity*>& victim
     if (trigger == nullptr) {
         return;
     }
-    trigger->advancement::AbstractCriterionTrigger<advancement::KilledByArrowTriggerInstance>::trigger(
-        *m_advancements, [&victims, &firedFromWeapon](const advancement::KilledByArrowTriggerInstance& instance) {
-            return instance.test(victims, firedFromWeapon);
+    advancement::CriterionContext playerContext;
+    playerContext.entity = this;
+    playerContext.world = Entity::world();
+    trigger->advancement::AbstractCriterionTrigger<advancement::KilledByArrowTriggerInstance>::trigger(*m_advancements,
+        [&victims, &firedFromWeapon, &playerContext](const advancement::KilledByArrowTriggerInstance& instance) {
+            return instance.test(playerContext, victims, firedFromWeapon);
         });
 }
 
@@ -1290,9 +1307,13 @@ void ServerPlayer::triggerPlayerShearedEquipment(const ItemStack& item, const En
     if (trigger == nullptr) {
         return;
     }
+    advancement::CriterionContext interactContext;
+    interactContext.entity = &entity;
+    interactContext.item = &item;
+    interactContext.world = Entity::world();
     trigger->advancement::AbstractCriterionTrigger<advancement::PlayerInteractTriggerInstance>::trigger(
-        *m_advancements, [&item, &entity](const advancement::PlayerInteractTriggerInstance& instance) {
-            return instance.test(item, entity);
+        *m_advancements, [&interactContext](const advancement::PlayerInteractTriggerInstance& instance) {
+            return instance.test(interactContext);
         });
 }
 

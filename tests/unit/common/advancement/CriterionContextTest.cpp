@@ -283,5 +283,32 @@ TEST_F(CriterionContextTest, LocationCheck_UsesExplicitBlockPos)
     EXPECT_TRUE(result.value().test(context));
 }
 
+TEST_F(CriterionContextTest, LocationCheck_AppliesOffsets)
+{
+    // vanilla location_check 的 offsetX/Y/Z：判定位置相对上下文位置偏移
+    const nlohmann::json json = nlohmann::json::array({{{"condition", "minecraft:location_check"},
+        {"offsetY", 1},
+        {"predicate", {{"block", {{"blocks", "minecraft:stone"}}}}}}});
+    auto result = advancement::ContextAwarePredicate::fromJson(json);
+    ASSERT_TRUE(result.success());
+
+    VanillaBlocks::initialize();
+    ASSERT_NE(VanillaBlocks::STONE, nullptr);
+    BlockProbeWorld world;
+    // 上下文方块位置为 (1,2,3)，偏移 +1Y 后查询 (1,3,3)
+    world.pos = BlockPos(1, 3, 3);
+    world.state = &VanillaBlocks::STONE->defaultState();
+
+    const BlockPos basePos(1, 2, 3);
+    advancement::CriterionContext context;
+    context.world = &world;
+    context.blockPos = &basePos;
+    EXPECT_TRUE(result.value().test(context));
+
+    // 偏移未命中（查询 (1,2,3) 时返回 nullptr）→ 失败
+    world.pos = BlockPos(1, 2, 3);
+    EXPECT_FALSE(result.value().test(context));
+}
+
 } // namespace
 } // namespace mc

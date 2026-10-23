@@ -27,6 +27,7 @@
 #include "common/advancement/trigger/conditions/LocationPredicate.hpp"
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
+#include "common/util/math/Vector3.hpp"
 #include <memory>
 #include <optional>
 #include <utility>
@@ -112,6 +113,8 @@ private:
         Kind kind = Kind::EntityProperties;
         /// block_state_property 的方块 ID
         ResourceLocation blockId;
+        /// location_check 的坐标偏移（vanilla offsetX/offsetY/offsetZ）
+        Vector3 offset;
         /// block_state_property 期望的方块状态（复用战利品侧 StatePropertiesPredicate）
         std::optional<class StatePropertiesPredicate> blockState;
         /// entity_properties / location_check 的检查对象名（"this" / "killer" 等）

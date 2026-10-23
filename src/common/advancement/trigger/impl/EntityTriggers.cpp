@@ -611,6 +611,16 @@ bool PlayerHurtEntityTriggerInstance::test(
     return true;
 }
 
+bool PlayerHurtEntityTriggerInstance::test(
+    const CriterionContext& context, const DamageSource& source, f32 dealt, f32 taken, bool blocked) const
+{
+    // context.entity 为"被伤害方"；player 条件（若有）由调用方以触发玩家自身上下文重载判定。
+    if (context.entity == nullptr) {
+        return false;
+    }
+    return test(source, dealt, taken, blocked, *context.entity) && m_playerContext.test(context);
+}
+
 Result<void> PlayerHurtEntityTriggerInstance::fromJson(const nlohmann::json& json)
 {
     m_damage.reset();
@@ -632,8 +642,13 @@ Result<void> PlayerHurtEntityTriggerInstance::fromJson(const nlohmann::json& jso
         }
         m_entity = std::move(result.value());
     }
-    // TODO(player-predicate): vanilla 条件还含可选的 player（ContextAwarePredicate）字段，
-    //  项目尚未实现基于玩家状态（等级/游戏模式/统计）的玩家谓词，暂忽略。
+    if (json.contains("player")) {
+        auto result = ContextAwarePredicate::fromJson(json["player"]);
+        if (result.failed()) {
+            return result.error();
+        }
+        m_playerContext = std::move(result.value());
+    }
     return {};
 }
 
@@ -679,6 +694,12 @@ bool EntityHurtPlayerTriggerInstance::test(const DamageSource& source, f32 dealt
     return !m_damage.has_value() || m_damage->test(source, dealt, taken, blocked);
 }
 
+bool EntityHurtPlayerTriggerInstance::test(
+    const CriterionContext& context, const DamageSource& source, f32 dealt, f32 taken, bool blocked) const
+{
+    return test(source, dealt, taken, blocked) && m_playerContext.test(context);
+}
+
 Result<void> EntityHurtPlayerTriggerInstance::fromJson(const nlohmann::json& json)
 {
     m_damage.reset();
@@ -692,7 +713,13 @@ Result<void> EntityHurtPlayerTriggerInstance::fromJson(const nlohmann::json& jso
         }
         m_damage = std::move(result.value());
     }
-    // TODO(player-predicate): vanilla 条件还含可选的 player（ContextAwarePredicate）字段，暂忽略。
+    if (json.contains("player")) {
+        auto result = ContextAwarePredicate::fromJson(json["player"]);
+        if (result.failed()) {
+            return result.error();
+        }
+        m_playerContext = std::move(result.value());
+    }
     return {};
 }
 
@@ -736,6 +763,12 @@ bool ChangedDimensionTriggerInstance::test(const ResourceLocation& from, const R
     return !m_to.has_value() || m_to.value() == to;
 }
 
+bool ChangedDimensionTriggerInstance::test(
+    const CriterionContext& context, const ResourceLocation& from, const ResourceLocation& to) const
+{
+    return test(from, to) && m_playerContext.test(context);
+}
+
 Result<void> ChangedDimensionTriggerInstance::fromJson(const nlohmann::json& json)
 {
     m_from.reset();
@@ -749,7 +782,13 @@ Result<void> ChangedDimensionTriggerInstance::fromJson(const nlohmann::json& jso
     if (json.contains("to") && json["to"].is_string()) {
         m_to = ResourceLocation(json["to"].get<std::string>());
     }
-    // TODO(player-predicate): vanilla 条件还含可选的 player（ContextAwarePredicate）字段，暂忽略。
+    if (json.contains("player")) {
+        auto result = ContextAwarePredicate::fromJson(json["player"]);
+        if (result.failed()) {
+            return result.error();
+        }
+        m_playerContext = std::move(result.value());
+    }
     return {};
 }
 
@@ -821,6 +860,14 @@ bool FishingRodHookedTriggerInstance::test(
     return true;
 }
 
+bool FishingRodHookedTriggerInstance::test(const CriterionContext& context,
+    const ItemStack& rod,
+    const Entity* hookedEntity,
+    const std::vector<ItemStack>& items) const
+{
+    return test(rod, hookedEntity, items) && m_playerContext.test(context);
+}
+
 Result<void> FishingRodHookedTriggerInstance::fromJson(const nlohmann::json& json)
 {
     m_rod.reset();
@@ -850,7 +897,13 @@ Result<void> FishingRodHookedTriggerInstance::fromJson(const nlohmann::json& jso
         }
         m_item = std::move(result.value());
     }
-    // TODO(player-predicate): vanilla 条件还含可选的 player（ContextAwarePredicate）字段，暂忽略。
+    if (json.contains("player")) {
+        auto result = ContextAwarePredicate::fromJson(json["player"]);
+        if (result.failed()) {
+            return result.error();
+        }
+        m_playerContext = std::move(result.value());
+    }
     return {};
 }
 
@@ -951,6 +1004,12 @@ bool KilledByArrowTriggerInstance::test(
     return true;
 }
 
+bool KilledByArrowTriggerInstance::test(
+    const CriterionContext& context, const std::vector<const Entity*>& victims, const ItemStack& firedFromWeapon) const
+{
+    return test(victims, firedFromWeapon) && m_playerContext.test(context);
+}
+
 Result<void> KilledByArrowTriggerInstance::fromJson(const nlohmann::json& json)
 {
     m_victims.clear();
@@ -978,7 +1037,13 @@ Result<void> KilledByArrowTriggerInstance::fromJson(const nlohmann::json& json)
         }
         m_firedFromWeapon = std::move(result.value());
     }
-    // TODO(player-predicate): vanilla 条件还含可选的 player（ContextAwarePredicate）字段，暂忽略。
+    if (json.contains("player")) {
+        auto result = ContextAwarePredicate::fromJson(json["player"]);
+        if (result.failed()) {
+            return result.error();
+        }
+        m_playerContext = std::move(result.value());
+    }
     return {};
 }
 
@@ -1033,6 +1098,17 @@ bool PlayerInteractTriggerInstance::test(const ItemStack& item, const Entity& en
     return m_entityContext.test(context);
 }
 
+bool PlayerInteractTriggerInstance::test(const CriterionContext& context) const
+{
+    if (context.entity == nullptr) {
+        return false;
+    }
+    if (context.item != nullptr) {
+        return test(*context.item, *context.entity) && m_playerContext.test(context);
+    }
+    return m_entityContext.test(context) && m_playerContext.test(context);
+}
+
 Result<void> PlayerInteractTriggerInstance::fromJson(const nlohmann::json& json)
 {
     if (json.is_null()) {
@@ -1052,7 +1128,13 @@ Result<void> PlayerInteractTriggerInstance::fromJson(const nlohmann::json& json)
         }
         m_entityContext = std::move(result.value());
     }
-    // TODO(player-predicate): vanilla 条件还含可选的 player（ContextAwarePredicate）字段，暂忽略。
+    if (json.contains("player")) {
+        auto result = ContextAwarePredicate::fromJson(json["player"]);
+        if (result.failed()) {
+            return result.error();
+        }
+        m_playerContext = std::move(result.value());
+    }
     return {};
 }
 
@@ -1166,7 +1248,13 @@ Result<void> LightningStrikeTriggerInstance::fromJson(const nlohmann::json& json
         }
         m_bystanderContext = std::move(result.value());
     }
-    // TODO(player-predicate): vanilla 条件还含可选的 player（ContextAwarePredicate）字段，暂忽略。
+    if (json.contains("player")) {
+        auto result = ContextAwarePredicate::fromJson(json["player"]);
+        if (result.failed()) {
+            return result.error();
+        }
+        m_playerContext = std::move(result.value());
+    }
     return {};
 }
 

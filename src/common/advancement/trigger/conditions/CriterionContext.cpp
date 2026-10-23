@@ -77,7 +77,13 @@ bool ContextAwarePredicate::test(const CriterionContext& context) const
                 // 方块使用类触发器显式给出方块位置时，location_check 判定该方块
                 // （对齐 vanilla LevelLocation = 使用目标的方块中心）；否则按实体位置判定
                 if (context.blockPos != nullptr) {
-                    if (!condition->locationPredicate->test(*context.world, *context.blockPos)) {
+                    const f64 ox = static_cast<f64>(condition->offset.x);
+                    const f64 oy = static_cast<f64>(condition->offset.y);
+                    const f64 oz = static_cast<f64>(condition->offset.z);
+                    if (!condition->locationPredicate->test(*context.world,
+                            static_cast<f64>(context.blockPos->x) + ox,
+                            static_cast<f64>(context.blockPos->y) + oy,
+                            static_cast<f64>(context.blockPos->z) + oz)) {
                         return false;
                     }
                     break;
@@ -85,9 +91,9 @@ bool ContextAwarePredicate::test(const CriterionContext& context) const
                 const Entity* target = context.resolveEntity(condition->target);
                 if (target == nullptr ||
                     !condition->locationPredicate->test(*context.world,
-                        static_cast<f64>(target->x()),
-                        static_cast<f64>(target->y()),
-                        static_cast<f64>(target->z()))) {
+                        static_cast<f64>(target->x()) + static_cast<f64>(condition->offset.x),
+                        static_cast<f64>(target->y()) + static_cast<f64>(condition->offset.y),
+                        static_cast<f64>(target->z()) + static_cast<f64>(condition->offset.z))) {
                     return false;
                 }
                 break;
@@ -219,9 +225,20 @@ Result<std::shared_ptr<ContextAwarePredicate::Condition>> ContextAwarePredicate:
 
     if (type == "minecraft:location_check" || type == "location_check") {
         condition->kind = Kind::LocationCheck;
-        if (json.contains("offsetX")) {
-            // TODO(location-offset): vanilla location_check 支持 offsetX/Y/Z 偏移，暂未应用
+        // location_check 的 offsetX/offsetY/offsetZ（相对判定位置的坐标偏移）
+        f64 offsetX = 0.0;
+        f64 offsetY = 0.0;
+        f64 offsetZ = 0.0;
+        if (json.contains("offsetX") && json["offsetX"].is_number()) {
+            offsetX = json["offsetX"].get<f64>();
         }
+        if (json.contains("offsetY") && json["offsetY"].is_number()) {
+            offsetY = json["offsetY"].get<f64>();
+        }
+        if (json.contains("offsetZ") && json["offsetZ"].is_number()) {
+            offsetZ = json["offsetZ"].get<f64>();
+        }
+        condition->offset = Vector3(static_cast<f32>(offsetX), static_cast<f32>(offsetY), static_cast<f32>(offsetZ));
         if (json.contains("predicate")) {
             auto result = LocationPredicate::fromJson(json["predicate"]);
             if (result.failed()) {
@@ -304,9 +321,9 @@ Result<std::shared_ptr<ContextAwarePredicate::Condition>> ContextAwarePredicate:
         return condition;
     }
 
-    // TODO(context-aware-predicate): 其余条件类型（block_state_property / survives_explosion /
-    //   random_chance / reference / environment_attribute 等）在进度条件中尚未支持。
-    //   无法识别的条件按"永真"处理会误放大进度达成范围，故直接拒绝该进度文件。
+    // TODO(context-aware-predicate): 其余条件类型（survives_explosion / random_chance / reference /
+    //   environment_attribute 等）在进度条件中尚未支持。无法识别的条件按"永真"处理会误放大
+    //   进度达成范围，故直接拒绝该进度文件（当前 vanilla 数据包使用的 7 种条件类型均已支持）。
     return Error::invalidArgument("Unsupported ContextAwarePredicate condition: " + type);
 }
 

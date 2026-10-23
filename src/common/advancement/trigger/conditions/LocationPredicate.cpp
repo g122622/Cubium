@@ -108,6 +108,16 @@ bool LocationPredicate::test(const IWorld& world, f64 x, f64 y, f64 z) const
         }
     }
 
+    // 方块谓词：浮点重载从坐标取整得到方块坐标后判定（此前该重载完全跳过方块条件，
+    // 致 location_check 的 block 判定在浮点路径上形同虚设）
+    if (m_block.has_value()) {
+        const BlockPos blockPos(math::floorTo<i32>(x), math::floorTo<i32>(y), math::floorTo<i32>(z));
+        const BlockState* state = world.getBlockState(blockPos);
+        if (state == nullptr || !m_block->test(*state)) {
+            return false;
+        }
+    }
+
     // 检查生物群系
     if (m_biome.has_value()) {
         i32 blockX = math::floorTo<i32>(x);

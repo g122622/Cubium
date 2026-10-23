@@ -350,12 +350,18 @@ public:
     [[nodiscard]] bool test(
         const class DamageSource& source, f32 dealt, f32 taken, bool blocked, const class Entity& entity) const;
 
+    /// 携带上下文判定（entity 取 context.entity，player 条件同样生效）
+    [[nodiscard]] bool test(
+        const CriterionContext& context, const class DamageSource& source, f32 dealt, f32 taken, bool blocked) const;
+
     Result<void> fromJson(const nlohmann::json& json);
     [[nodiscard]] nlohmann::json conditionsToJson() const;
 
 private:
     std::optional<DamagePredicate> m_damage;
     std::optional<EntityPredicate> m_entity;
+    /// 可选的 player 条件（vanilla 各触发器的 player ContextAwarePredicate 字段）
+    ContextAwarePredicate m_playerContext;
 };
 
 /**
@@ -386,11 +392,17 @@ public:
 
     [[nodiscard]] bool test(const class DamageSource& source, f32 dealt, f32 taken, bool blocked) const;
 
+    /// 携带上下文判定（player 条件生效）
+    [[nodiscard]] bool test(
+        const CriterionContext& context, const class DamageSource& source, f32 dealt, f32 taken, bool blocked) const;
+
     Result<void> fromJson(const nlohmann::json& json);
     [[nodiscard]] nlohmann::json conditionsToJson() const;
 
 private:
     std::optional<DamagePredicate> m_damage;
+    /// 可选的 player 条件（vanilla 各触发器的 player ContextAwarePredicate 字段）
+    ContextAwarePredicate m_playerContext;
 };
 
 /**
@@ -422,6 +434,10 @@ public:
     /// vanilla matches(from, to)：from 不匹配即失败；to 缺省则匹配任意目标维度
     [[nodiscard]] bool test(const ResourceLocation& from, const ResourceLocation& to) const;
 
+    /// 携带上下文判定（player 条件生效）
+    [[nodiscard]] bool test(
+        const CriterionContext& context, const ResourceLocation& from, const ResourceLocation& to) const;
+
     Result<void> fromJson(const nlohmann::json& json);
     [[nodiscard]] nlohmann::json conditionsToJson() const;
 
@@ -431,6 +447,8 @@ public:
 private:
     std::optional<ResourceLocation> m_from;
     std::optional<ResourceLocation> m_to;
+    /// 可选的 player 条件（vanilla 各触发器的 player ContextAwarePredicate 字段）
+    ContextAwarePredicate m_playerContext;
 };
 
 /**
@@ -473,6 +491,12 @@ public:
         const class Entity* hookedEntity,
         const class std::vector<class ItemStack>& items) const;
 
+    /// 携带上下文判定（player 条件生效）
+    [[nodiscard]] bool test(const CriterionContext& context,
+        const class ItemStack& rod,
+        const class Entity* hookedEntity,
+        const class std::vector<class ItemStack>& items) const;
+
     Result<void> fromJson(const nlohmann::json& json);
     [[nodiscard]] nlohmann::json conditionsToJson() const;
 
@@ -480,6 +504,8 @@ private:
     std::optional<advancement::ItemPredicate> m_rod;
     std::optional<advancement::EntityPredicate> m_entity;
     std::optional<advancement::ItemPredicate> m_item;
+    /// 可选的 player 条件（vanilla 各触发器的 player ContextAwarePredicate 字段）
+    ContextAwarePredicate m_playerContext;
 };
 
 /**
@@ -519,6 +545,11 @@ public:
     [[nodiscard]] bool test(
         const std::vector<const class Entity*>& victims, const class ItemStack& firedFromWeapon) const;
 
+    /// 携带上下文判定（player 条件生效）
+    [[nodiscard]] bool test(const CriterionContext& context,
+        const class std::vector<const class Entity*>& victims,
+        const class ItemStack& firedFromWeapon) const;
+
     Result<void> fromJson(const nlohmann::json& json);
     [[nodiscard]] nlohmann::json conditionsToJson() const;
 
@@ -526,6 +557,8 @@ private:
     std::vector<EntityPredicate> m_victims;
     IntBounds m_uniqueEntityTypes;
     std::optional<ItemPredicate> m_firedFromWeapon;
+    /// 可选的 player 条件（vanilla 各触发器的 player ContextAwarePredicate 字段）
+    ContextAwarePredicate m_playerContext;
 };
 
 /**
@@ -557,12 +590,17 @@ public:
 
     [[nodiscard]] bool test(const class ItemStack& item, const class Entity& entity) const;
 
+    /// 携带上下文判定（item / entity / player 条件同时生效）
+    [[nodiscard]] bool test(const CriterionContext& context) const;
+
     Result<void> fromJson(const nlohmann::json& json);
     [[nodiscard]] nlohmann::json conditionsToJson() const;
 
 private:
     ItemPredicate m_item;
     ContextAwarePredicate m_entityContext;
+    /// 可选的 player 条件（vanilla 各触发器的 player ContextAwarePredicate 字段）
+    ContextAwarePredicate m_playerContext;
 };
 
 /**
@@ -635,6 +673,8 @@ public:
 private:
     ContextAwarePredicate m_lightningContext;
     ContextAwarePredicate m_bystanderContext;
+    /// 可选的 player 条件（vanilla LightningStrikeTrigger.player）
+    ContextAwarePredicate m_playerContext;
 };
 
 /**
