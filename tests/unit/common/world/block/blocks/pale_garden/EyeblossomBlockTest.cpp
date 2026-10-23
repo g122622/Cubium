@@ -329,9 +329,11 @@ TEST_F(EyeblossomBehaviorTest, TicksRandomly_BothTypes)
     EXPECT_TRUE(closedBlock_->ticksRandomly());
 }
 
-TEST_F(EyeblossomBehaviorTest, LightLevel_OpenIs1)
+TEST_F(EyeblossomBehaviorTest, LightLevel_OpenIs0)
 {
-    EXPECT_EQ(openBlock_->getLightLevel(openBlock_->defaultState(), &world_, nullptr), 1);
+    // 原版 1.21.11：眼眸花没有固有发光，开放/闭合默认状态的光照都是 0
+    // （tests/diff 的 block_properties 差分逐条核对过）。
+    EXPECT_EQ(openBlock_->getLightLevel(openBlock_->defaultState(), &world_, nullptr), 0);
 }
 
 TEST_F(EyeblossomBehaviorTest, LightLevel_ClosedIs0)

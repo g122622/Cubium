@@ -128,8 +128,9 @@ void registerCaveBlocks()
             BlockProperties(Material::PLANT)
                 .noCollision()
                 .notSolid()
-                .hardness(0.0f)
-                .resistance(0.0f)
+                // 原版紫水晶芽/簇：1.5 / 1.5（0 会让它们瞬间被破坏且无法抗爆）
+                .hardness(1.5f)
+                .resistance(1.5f)
                 .soundType(BlockSoundTypes::AMETHYST_CLUSTER)
                 .lightLevel(1),
             2.0f,
@@ -141,8 +142,9 @@ void registerCaveBlocks()
             BlockProperties(Material::PLANT)
                 .noCollision()
                 .notSolid()
-                .hardness(0.0f)
-                .resistance(0.0f)
+                // 原版紫水晶芽/簇：1.5 / 1.5（0 会让它们瞬间被破坏且无法抗爆）
+                .hardness(1.5f)
+                .resistance(1.5f)
                 .soundType(BlockSoundTypes::AMETHYST_CLUSTER)
                 .lightLevel(2),
             4.0f,
@@ -154,8 +156,9 @@ void registerCaveBlocks()
             BlockProperties(Material::PLANT)
                 .noCollision()
                 .notSolid()
-                .hardness(0.0f)
-                .resistance(0.0f)
+                // 原版紫水晶芽/簇：1.5 / 1.5（0 会让它们瞬间被破坏且无法抗爆）
+                .hardness(1.5f)
+                .resistance(1.5f)
                 .soundType(BlockSoundTypes::AMETHYST_CLUSTER)
                 .lightLevel(4),
             5.0f,

@@ -388,7 +388,8 @@ void registerColoredBlocks()
         ResourceLocation("minecraft:black_concrete_powder"), concretePowderProps, ColoredBlocks::BLACK_CONCRETE);
 
     // ========== 陶瓦注册 (16色 + 普通) ==========
-    BlockProperties terracottaProps = BlockProperties(Material::ROCK).hardness(1.4f).resistance(4.2f);
+    // 普通/染色陶瓦：1.25 / 4.2（釉面陶瓦是 1.4 / 1.4，见下一段）。
+    BlockProperties terracottaProps = BlockProperties(Material::ROCK).hardness(1.25f).resistance(4.2f);
 
     // 普通陶瓦
     ColoredBlocks::TERRACOTTA =
@@ -430,8 +431,8 @@ void registerColoredBlocks()
 
     // ========== 釉面陶瓦注册 (16色) ==========
     // GlazedTerracottaBlock 带 HORIZONTAL_FACING 属性，可被活塞推动并沿推动方向旋转。
-    // 硬度/阻抗与普通陶瓦一致（vanilla 1.4 / 4.2），材质 ROCK。
-    BlockProperties glazedTerracottaProps = BlockProperties(Material::ROCK).hardness(1.4f).resistance(4.2f);
+    // 釉面陶瓦是 1.4 / 1.4（与普通陶瓦的 1.25 / 4.2 不同），材质 ROCK。
+    BlockProperties glazedTerracottaProps = BlockProperties(Material::ROCK).hardness(1.4f).resistance(1.4f);
     ColoredBlocks::WHITE_GLAZED_TERRACOTTA = &registry.registerBlock<blocks::GlazedTerracottaBlock>(
         ResourceLocation("minecraft:white_glazed_terracotta"), glazedTerracottaProps);
     ColoredBlocks::ORANGE_GLAZED_TERRACOTTA = &registry.registerBlock<blocks::GlazedTerracottaBlock>(

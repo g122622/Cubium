@@ -381,11 +381,12 @@ TEST_F(EyeblossomBlockTest, ClosedEyeblossomHasNauseaStewEffect)
     EXPECT_EQ(flower->getEffectDuration(), 7);
 }
 
-TEST_F(EyeblossomBlockTest, OpenEyeblossomEmitsLight)
+TEST_F(EyeblossomBlockTest, OpenEyeblossomEmitsNoLight)
 {
+    // 原版 1.21.11 的 open_eyeblossom 默认状态光照为 0（差分 block_properties 核对）。
     auto* eyeblossom = static_cast<EyeblossomBlock*>(mc::block_registry::PaleGardenBlocks::OPEN_EYEBLOSSOM);
     const auto& state = mc::block_registry::PaleGardenBlocks::OPEN_EYEBLOSSOM->defaultState();
-    EXPECT_EQ(eyeblossom->getLightLevel(state), 1);
+    EXPECT_EQ(eyeblossom->getLightLevel(state), 0);
 }
 
 TEST_F(EyeblossomBlockTest, ClosedEyeblossomEmitsNoLight)

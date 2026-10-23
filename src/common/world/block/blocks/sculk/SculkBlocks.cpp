@@ -382,6 +382,15 @@ bool SculkSensorBlock::canActivate(const BlockState& state)
     return state.get(BlockStateProperties::SCULK_SENSOR_PHASE()) == BlockStateProperties::SculkSensorPhase::Inactive;
 }
 
+u8 SculkSensorBlock::getLightLevel(const BlockState& state, IWorld* world, const BlockPos* pos) const
+{
+    MC_UNUSED(state);
+    MC_UNUSED(world);
+    MC_UNUSED(pos);
+    // 原版：幽匿感测体与校准幽匿感测体固有发光 1（learned 相位另加 POWER，不在默认状态里）。
+    return 1;
+}
+
 BlockStateProperties::SculkSensorPhase SculkSensorBlock::getPhase(const BlockState& state)
 {
     return state.get(BlockStateProperties::SCULK_SENSOR_PHASE());

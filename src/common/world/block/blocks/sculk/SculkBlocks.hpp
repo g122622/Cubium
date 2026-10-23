@@ -231,6 +231,16 @@ public:
         const BlockPos& currentPos,
         const BlockPos& facingPos) override;
 
+    /**
+     * @brief 幽匿感测体固有发光：原版 getLightEmission 恒为 1
+     *
+     * 原版 SculkSensorBlock 在构造里 .lightLevel(1)，与相位无关（相位只决定红石输出）。
+     * 这里覆盖 getLightLevel 而不是靠注册值，是为了让默认状态与派生状态都拿到 1。
+     */
+    [[nodiscard]] u8 getLightLevel(const BlockState& state,
+        IWorld* world = nullptr,
+        const BlockPos* pos = nullptr) const override;
+
     [[nodiscard]] bool canProvidePower(const BlockState& state) const noexcept override { return true; }
 
     [[nodiscard]] i32 getWeakPower(

@@ -239,7 +239,7 @@ void registerBaseBlocks()
                 BaseBlocks::WATER =
                     &registry.registerBlock<::mc::block::LiquidBlock>(ResourceLocation("minecraft:water"),
                         *flowingWater,
-                        BlockProperties(Material::WATER).noCollision().notSolid().opacity(0));
+                        BlockProperties(Material::WATER).noCollision().notSolid().opacity(0).hardness(100.0f));
             }
         }
     }
@@ -252,7 +252,7 @@ void registerBaseBlocks()
             if (flowingLava != nullptr) {
                 BaseBlocks::LAVA = &registry.registerBlock<::mc::block::LiquidBlock>(ResourceLocation("minecraft:lava"),
                     *flowingLava,
-                    BlockProperties(Material::LAVA).noCollision().notSolid().lightLevel(15));
+                    BlockProperties(Material::LAVA).noCollision().notSolid().lightLevel(15).hardness(100.0f));
             }
         }
     }
@@ -271,7 +271,7 @@ void registerBaseBlocks()
 
     // 雪层
     BaseBlocks::SNOW = &registry.registerBlock<blocks::SnowBlock>(
-        ResourceLocation("minecraft:snow"), BlockProperties(Material::SNOW).hardness(0.2f).notSolid());
+        ResourceLocation("minecraft:snow"), BlockProperties(Material::SNOW).hardness(0.1f).notSolid());
 
     // 雪块
     BaseBlocks::SNOW_BLOCK = &registry.registerBlock<SimpleBlock>(
@@ -378,8 +378,9 @@ void registerBaseBlocks()
             BlockProperties(Material::ROCK).hardness(3.0f).resistance(3.0f));
     BaseBlocks::NETHER_GOLD_ORE = &registry.registerBlock<SimpleBlock>(
         ResourceLocation("minecraft:nether_gold_ore"), BlockProperties(Material::ROCK).hardness(3.0f).resistance(3.0f));
+    // 远古残骸：30 / 1200（原版；不是 50，也不是方解石那样的 0.75）。
     BaseBlocks::ANCIENT_DEBRIS = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:ancient_debris"),
-        BlockProperties(Material::ROCK).hardness(50.0f).resistance(1200.0f));
+        BlockProperties(Material::ROCK).hardness(30.0f).resistance(1200.0f));
 
     // ========== 矿物方块 ==========
     BaseBlocks::COAL_BLOCK = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:coal_block"),

@@ -65,14 +65,11 @@ EyeblossomBlock::EyeblossomBlock(
 // 光照
 // ============================================================================
 
+// 眼眸花没有固有发光：原版 1.21.11 里 open_eyeblossom 的默认状态光照为 0，
+// 花上的「开放/闭合」只是状态属性，不改变方块级光照。
 u8 EyeblossomBlock::getLightLevel(const BlockState& state, IWorld* world, const BlockPos* pos) const
 {
-    MC_UNUSED(state);
-    MC_UNUSED(world);
-    MC_UNUSED(pos);
-
-    // 开放状态发光等级为 1，闭合状态为 0
-    return m_type == Type::Open ? 1 : 0;
+    return Block::getLightLevel(state, world, pos);
 }
 
 // ============================================================================

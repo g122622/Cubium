@@ -283,7 +283,7 @@ void registerDeepslateBlocks()
 
     // ========== 深板岩圆石建筑方块 ==========
     BlockProperties cobbledDeepslateProps = BlockProperties(Material::ROCK)
-                                                .hardness(3.0f)
+                                                .hardness(3.5f)
                                                 .resistance(6.0f)
                                                 .harvestTool(HarvestTool::Pickaxe)
                                                 .harvestLevel(0)
@@ -377,7 +377,7 @@ void registerDeepslateBlocks()
     DeepslateBlocks::INFESTED_DEEPSLATE =
         &registry.registerBlock<blocks::InfestedRotatedPillarBlock>(ResourceLocation("minecraft:infested_deepslate"),
             DeepslateBlocks::DEEPSLATE->blockId(),
-            BlockProperties(Material::EARTH).hardness(0.0f).resistance(0.75f).soundType(BlockSoundTypes::DEEPSLATE));
+            BlockProperties(Material::EARTH).hardness(1.5f).resistance(0.75f).soundType(BlockSoundTypes::DEEPSLATE));
 
     // 注册虫蚀映射
     blocks::InfestedBlock::registerInfestedBlock(

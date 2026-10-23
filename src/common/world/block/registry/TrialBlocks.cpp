@@ -75,6 +75,8 @@ void registerTrialBlocks()
             .harvestLevel(2)
             .requiresTool()
             .soundType(BlockSoundTypes::VAULT)
+            // 宝库自带 6 级光照（原版注册值）。
+            .lightLevel(6)
             .notSolid());
 
     // 合成器 - 自动合成方块，可通过红石控制

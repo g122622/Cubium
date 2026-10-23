@@ -237,7 +237,8 @@ void registerNetherBlocks()
     // 下界传送门
     NetherBlocks::NETHER_PORTAL =
         &registry.registerBlock<blocks::NetherPortalBlock>(ResourceLocation("minecraft:nether_portal"),
-            BlockProperties(Material::PORTAL).noCollision().hardness(0.0f).lightLevel(11).noLootTable());
+            // 传送门不可破坏：原版硬度 -1（不是 0，0 会让它被瞬间破坏）。
+            BlockProperties(Material::PORTAL).noCollision().hardness(-1.0f).lightLevel(11).noLootTable());
 
     // 下界疣 - 作物方块
     NetherBlocks::NETHER_WART = &registry.registerBlock<blocks::NetherWartBlock>(
@@ -430,7 +431,7 @@ void registerNetherBlocks()
     NetherBlocks::BLACKSTONE_SLAB =
         &registry.registerBlock<blocks::SlabBlock>(ResourceLocation("minecraft:blackstone_slab"),
             BlockProperties(Material::ROCK)
-                .hardness(1.5f)
+                .hardness(2.0f)
                 .resistance(6.0f)
                 .harvestTool(HarvestTool::Pickaxe)
                 .requiresTool());
@@ -485,7 +486,7 @@ void registerNetherBlocks()
     NetherBlocks::POLISHED_BLACKSTONE_BRICK_SLAB =
         &registry.registerBlock<blocks::SlabBlock>(ResourceLocation("minecraft:polished_blackstone_brick_slab"),
             BlockProperties(Material::ROCK)
-                .hardness(1.5f)
+                .hardness(2.0f)
                 .resistance(6.0f)
                 .harvestTool(HarvestTool::Pickaxe)
                 .requiresTool());
@@ -687,7 +688,7 @@ void registerNetherBlocks()
 
     // 末地传送门 - 穿越后传送到末地
     NetherBlocks::END_PORTAL = &registry.registerBlock<blocks::EndPortalBlock>(ResourceLocation("minecraft:end_portal"),
-        BlockProperties(Material::PORTAL).noCollision().hardness(0.0f).lightLevel(15).noLootTable());
+        BlockProperties(Material::PORTAL).noCollision().hardness(-1.0f).lightLevel(15).noLootTable());
 
     // 末地传送门框架 - 放置末影之眼激活传送门
     NetherBlocks::END_PORTAL_FRAME =
@@ -697,15 +698,16 @@ void registerNetherBlocks()
     // 末地折跃门 - 在末地之间传送
     NetherBlocks::END_GATEWAY =
         &registry.registerBlock<blocks::EndGatewayBlock>(ResourceLocation("minecraft:end_gateway"),
-            BlockProperties(Material::PORTAL).noCollision().hardness(0.0f).lightLevel(15).noLootTable());
+            BlockProperties(Material::PORTAL).noCollision().hardness(-1.0f).lightLevel(15).noLootTable());
 
     // 紫颂植物 - 末地植物
     NetherBlocks::CHORUS_PLANT = &registry.registerBlock<blocks::ChorusPlantBlock>(
-        ResourceLocation("minecraft:chorus_plant"), BlockProperties(Material::PLANT).noCollision().hardness(0.0f));
+        // 紫颂植物/花：0.4 / 0.4（原版不是 0；0 会让它瞬间被破坏、且无法抗爆）。
+        ResourceLocation("minecraft:chorus_plant"), BlockProperties(Material::PLANT).noCollision().hardness(0.4f).resistance(0.4f));
 
     // 紫颂花 - 紫颂植物的顶部
     NetherBlocks::CHORUS_FLOWER = &registry.registerBlock<blocks::ChorusFlowerBlock>(
-        ResourceLocation("minecraft:chorus_flower"), BlockProperties(Material::PLANT).noCollision().hardness(0.0f));
+        ResourceLocation("minecraft:chorus_flower"), BlockProperties(Material::PLANT).noCollision().hardness(0.4f).resistance(0.4f));
 
     // 龙蛋 - 末影龙掉落物
     NetherBlocks::DRAGON_EGG = &registry.registerBlock<blocks::DragonEggBlock>(

@@ -84,6 +84,12 @@ const JAVA_HARNESSES: ReadonlyArray<() => JavaHarness> = [
         };
     },
     () => ({
+        name: "block_properties",
+        oracle: "BlockPropertiesOracle",
+        input: (unit: string) => ({ block: unit }),
+        key: "block",
+    }),
+    () => ({
         name: "enchantment_table",
         oracle: "EnchantmentExport",
         input: (unit: string) => ({ enchantment: unit, levels: [1, 1] }),
