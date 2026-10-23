@@ -35,6 +35,31 @@
 #include <utility>
 
 namespace mc::mod::bedrock::addon {
+namespace {
+
+Result<std::filesystem::path> _resolveResource(const std::string& packPath, const std::string& resource)
+{
+    namespace fs = std::filesystem;
+    const fs::path relative(resource);
+    if (resource.empty() || relative.is_absolute() || relative.has_root_name()) {
+        return Error(ErrorCode::InvalidArgument, "Pack resource path must be relative: " + resource);
+    }
+    std::error_code error;
+    const auto root = fs::weakly_canonical(fs::path(packPath), error);
+    if (error) return Error(ErrorCode::FileReadFailed, "Cannot resolve pack directory: " + error.message());
+    const auto full = fs::weakly_canonical(root / relative, error);
+    if (error) return Error(ErrorCode::FileReadFailed, "Cannot resolve pack resource: " + error.message());
+    const auto contained = full.lexically_relative(root);
+    if (contained.empty() || contained.is_absolute() || *contained.begin() == "..") {
+        return Error(ErrorCode::InvalidArgument, "Resource path escapes pack directory: " + resource);
+    }
+    if (!fs::is_regular_file(full, error)) {
+        return Error(ErrorCode::FileNotFound, "Pack resource is not a regular file: " + full.string());
+    }
+    return full;
+}
+
+} // namespace
 
 BehaviorPack::BehaviorPack(std::string path, AddonManifest manifest)
     : m_path(std::move(path))
@@ -83,7 +108,9 @@ void BehaviorPack::setPriority(i32 priority)
 
 Result<std::string> BehaviorPack::readScriptFile(const std::string& relativePath) const
 {
-    std::filesystem::path fullPath = std::filesystem::path(m_path) / relativePath;
+    auto resolved = _resolveResource(m_path, relativePath);
+    if (resolved.failed()) return resolved.error();
+    const auto& fullPath = resolved.value();
 
     if (!std::filesystem::exists(fullPath)) {
         return Error(ErrorCode::FileNotFound, "Script file not found: " + fullPath.string());
@@ -106,7 +133,9 @@ Result<std::string> BehaviorPack::readScriptFile(const std::string& relativePath
 
 Result<std::vector<u8>> BehaviorPack::readResource(const std::string& relativePath) const
 {
-    std::filesystem::path fullPath = std::filesystem::path(m_path) / relativePath;
+    auto resolved = _resolveResource(m_path, relativePath);
+    if (resolved.failed()) return resolved.error();
+    const auto& fullPath = resolved.value();
 
     if (!std::filesystem::exists(fullPath)) {
         return Error(ErrorCode::FileNotFound, "Resource not found: " + fullPath.string());
@@ -118,7 +147,8 @@ Result<std::vector<u8>> BehaviorPack::readResource(const std::string& relativePa
     }
 
     const std::streamsize fileSize = file.tellg();
-    if (fileSize <= 0) {
+    if (fileSize < 0) return Error(ErrorCode::FileReadFailed, "Cannot determine resource size: " + fullPath.string());
+    if (fileSize == 0) {
         return std::vector<u8>{};
     }
 

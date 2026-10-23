@@ -32,9 +32,11 @@
 #include "common/mod/bedrock/addon/engine/quickjs/QuickJSContext.hpp"
 #include "common/mod/bedrock/addon/engine/quickjs/QuickJSRuntime.hpp"
 
+#include <algorithm>
 #include <memory>
 #include <optional>
 #include <string>
+#include <unordered_set>
 #include <utility>
 #include <vector>
 #include <spdlog/spdlog.h>
@@ -152,17 +154,30 @@ std::unique_ptr<IScriptContext> QuickJSEngine::createContext(const ModuleDescrip
         return data.has_value() ? data->source : std::string{};
     });
 
-    // 注册所有模块绑定到上下文
-    for (const auto& dep : dependencies) {
-        auto* factory = findModuleFactory(dep.name);
-        if (factory) {
-            spdlog::info("[BedrockAddon] Registering module bindings: {}", dep.name);
-            if (!factory->registerBindings(*context)) {
-                spdlog::error("[BedrockAddon] Failed to register bindings for module: {}", dep.name);
-                return nullptr;
-            }
-        } else {
-            spdlog::warn("[BedrockAddon] Module dependency not found: {} (required by {})", dep.name, descriptor.name);
+    std::unordered_set<std::string> registered;
+    for (const auto& dependency : dependencies) {
+        if (!registered.insert(dependency.name).second) continue;
+        auto* factory = findModuleFactory(dependency.name);
+        if (factory == nullptr) {
+            spdlog::error(
+                "[BedrockAddon] Required module '{}' is unavailable for '{}'", dependency.name, descriptor.name);
+            return nullptr;
+        }
+        const auto versions = factory->supportedVersions();
+        const bool anyVersion = dependency.version == ModuleVersion{0, 0, 0};
+        const bool supported = std::any_of(versions.begin(), versions.end(), [&](const ModuleVersion& version) {
+            return anyVersion || version.isCompatibleWith(dependency.version);
+        });
+        if (!supported) {
+            spdlog::error("[BedrockAddon] Unsupported module version {} for '{}' required by '{}'",
+                dependency.version.toString(),
+                dependency.name,
+                descriptor.name);
+            return nullptr;
+        }
+        if (!factory->registerBindings(*context)) {
+            spdlog::error("[BedrockAddon] Failed to register module '{}' for '{}'", dependency.name, descriptor.name);
+            return nullptr;
         }
     }
 

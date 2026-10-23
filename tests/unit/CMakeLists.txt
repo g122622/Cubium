@@ -1784,6 +1784,7 @@ add_executable(mc_tests
     # 基岩版Addon模组系统测试
     common/mod/bedrock/addon/test_lifecycle.cpp
     common/mod/bedrock/addon/test_runtime_contracts.cpp
+    common/mod/bedrock/addon/test_pack_loading.cpp
     server/mod/bedrock/addon/test_event_bridge.cpp
     common/mod/bedrock/addon/test_binding_handle_lifetime.cpp
     common/mod/bedrock/addon/test_block_component_registry.cpp

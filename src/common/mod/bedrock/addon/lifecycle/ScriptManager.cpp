@@ -121,6 +121,7 @@ Result<void> ScriptManager::loadPacks(const std::string& globalPackDir, const st
     // 扫描全局行为包目录
     if (!globalPackDir.empty()) {
         auto result = m_packList->scanDirectory(globalPackDir);
+        if (result.failed() && result.error().code() != ErrorCode::FileNotFound) return result;
         if (result.failed()) {
             spdlog::warn("[BedrockAddon] Failed to scan global pack directory '{}': {}",
                 globalPackDir,
@@ -131,6 +132,7 @@ Result<void> ScriptManager::loadPacks(const std::string& globalPackDir, const st
     // 扫描世界级行为包目录
     if (!worldPackDir.empty()) {
         auto result = m_packList->scanDirectory(worldPackDir);
+        if (result.failed() && result.error().code() != ErrorCode::FileNotFound) return result;
         if (result.failed()) {
             spdlog::warn(
                 "[BedrockAddon] Failed to scan world pack directory '{}': {}", worldPackDir, result.error().message());

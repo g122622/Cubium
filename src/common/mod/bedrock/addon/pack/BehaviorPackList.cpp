@@ -72,7 +72,7 @@ Result<void> BehaviorPackList::scanDirectory(const std::string& path)
         if (result.failed()) {
             spdlog::warn(
                 "[BedrockAddon] Failed to load manifest from {}: {}", manifestPath.string(), result.error().message());
-            continue;
+            return result.error();
         }
 
         auto pack = std::make_unique<BehaviorPack>(entry.path().string(), std::move(result.value()));
@@ -140,7 +140,8 @@ std::vector<BehaviorPack*> BehaviorPackList::getEnabledPacks()
 
     // 按优先级排序（优先级高的先加载）
     std::sort(enabled.begin(), enabled.end(), [](const BehaviorPack* a, const BehaviorPack* b) {
-        return a->priority() > b->priority();
+        if (a->priority() != b->priority()) return a->priority() > b->priority();
+        return a->uuid() < b->uuid();
     });
 
     return enabled;

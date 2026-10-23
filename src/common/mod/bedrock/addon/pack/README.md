@@ -51,3 +51,6 @@ PackVersion ←── AddonModule ←── AddonManifest ←── BehaviorPack
 3. **BehaviorPackList线程安全**：使用`std::shared_mutex`保护，读操作用共享锁，写操作用独占锁。高并发场景需注意锁竞争。
 
 4. **依赖解析时机**：`resolveDependencies()`需要在所有包加载完成后调用，否则会报告缺失依赖。
+
+- 包资源路径先解析真实目录再验证归属，不能通过绝对路径、父目录或链接访问包目录外文件。
+- 禁用包不能满足启用包的依赖；同一批出现重复启用 UUID 必须明确报错。
