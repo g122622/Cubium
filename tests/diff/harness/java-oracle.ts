@@ -92,6 +92,22 @@ export interface JavaOracleOutcome {
  * 步骤：编译 oracle → 写 inputs.jsonl → 两侧各跑一次 → 按 key 比对。
  * 编译与运行都走本机已有的 JDK；找不到 jar 时 `prepareOracle` 会给出明确指引。
  */
+/**
+ * 编译一个 oracle 源文件到共享的 classes 目录。
+ *
+ * 供 harness 在 `runJavaOracle` 之外单独使用 `list` 子命令时调用——否则 classes
+ * 目录里可能还没有这个类。javac 幂等，重复编译没有额外开销。
+ */
+export function compileOracle(oracle: string, workDir: string): { classesDir: string; classpath: string } {
+    fs.mkdirSync(workDir, { recursive: true });
+    const environment = prepareOracle(workDir);
+    const classpath = oracleClasspath(environment);
+    fs.mkdirSync(environment.classesDir, { recursive: true });
+    const source = path.join(ORACLE_SOURCE_DIR, ...ORACLE_PACKAGE.split("."), `${oracle}.java`);
+    exec("javac", ["-nowarn", "-proc:none", "-cp", classpath, "-d", environment.classesDir, source]);
+    return { classesDir: environment.classesDir, classpath };
+}
+
 export function runJavaOracle(options: JavaOracleOptions): JavaOracleOutcome {
     const started = process.hrtime.bigint();
     const buildDir = resolveBuildDir(options.buildDir);

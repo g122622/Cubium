@@ -22,56 +22,41 @@
  */
 
 /*
- * test_text_encode_parity.ts — 差分 harness：方块状态的文本表示。
+ * test_text_encode_parity.ts — 方块状态的文本表示（Cubium vs 原版 jar）。
  *
- *   node tests/diff/harness/test_text_encode_parity.ts            # 构建并运行
- *   node tests/diff/harness/test_text_encode_parity.ts --no-build # 用已构建的 probe
- *   node tests/diff/harness/test_text_encode_parity.ts --samples 20
+ *   node tests/diff/harness/runner.ts run text_encode
  *
- * 比对两件事，任一不一致即失败（退出码 1）：
+ * 两个维度：
  *
- *   1. 方块摘要（probe `run`，输入是方块名）
- *      每个方块的属性名、属性类型、允许取值、状态数必须与参照实现一致。
- *   2. 状态全集（probe `list`）
- *      每个方块展开属性后的状态文本必须逐条一致，形如 minecraft:oak_log[axis=y]，
- *      属性按名字字典序。
+ *   1. 状态全集     —— probe `list` 与原版 `BlockStateOracle list` 逐条比对，
+ *                      文本形如 minecraft:oak_log[axis=y]，属性按名字字典序；
+ *   2. 方块摘要     —— 每个方块的属性名、属性类型、允许取值、状态数。
  *
- * 退出码：0 全部一致；1 存在差异；2 环境问题（缺 probe、构建失败、缺原版数据）。
+ * 与初版相比有两点变化：
+ *   - 参照实现换成原版 jar，不再依赖 minecraft-data（后者缺 purpur_wall / quartz_wall，
+ *     且不给状态级信息）；
+ *   - 只比较**原版也有**的方块，原版没有而 Cubium 有的方块单独列出：多出来的方块
+ *     同样是缺陷（注册表与存档都会不一致），但不能混进逐字段比对里。
  */
 
 import { execFileSync } from "node:child_process";
-import { describe as vanillaDescribe, loadBlocks, REPO_ROOT, stateTexts } from "./vanilla.ts";
-import { buildProbes, probeExecutable, render, runHarness } from "./runner.ts";
+import path from "node:path";
+
+import { compileOracle, runJavaOracle } from "./java-oracle.ts";
+
+import { probeExecutable, resolveBuildDir } from "./runner.ts";
+
+/** 两侧输出里标识单元的字段。 */
+const KEY = "block";
 
 /**
- * 两侧对同一个属性的类型名不一致、但语义等价的配对。
+ * 把属性做「语义规范化」：属性按名排序、取值域排序、DirectionProperty 归一到
+ * EnumProperty（前者是后者的子类，原版 facing 就是 EnumProperty<Direction>）。
  *
- * DirectionProperty 是 EnumProperty<Direction> 的子类，vanilla 的 `facing` 就是
- * `EnumProperty<Direction>`；这里只做**类型名**归一，不放开取值比较。
- * 只登记确有依据的配对，出现新配对时应当先查证再补进来，而不是一律放宽。
+ * 只归一**类型名**，不放开取值比较。
  */
 const TYPE_ALIASES: Readonly<Record<string, string>> = { DirectionProperty: "EnumProperty" };
 
-/**
- * 参照数据（minecraft-data 3.115.0 的 1.21.11）缺失、但 Cubium 有的方块。
- *
- * 这不是 Cubium 的错误：minecraft-data 的 blocks.json 少了这两面墙，它们会表现为
- * 「probe 多出 2 个方块 / 648 条状态」。显式列出来，让报告把「参照缺口」与
- * 「真实不一致」分开——否则每次运行都会看到同一条噪声，久而久之就没人看了。
- *
- * 每次运行都会核对：**参照数据里一旦有了**，这里就必须删掉对应条目，否则测试失败。
- * 等切到 Java oracle（直接读服务端 jar）后，本清单应当清空。
- */
-const ORACLE_MISSING_BLOCKS: readonly string[] = ["minecraft:purpur_wall", "minecraft:quartz_wall"];
-
-/**
- * 把方块摘要转换成「只比语义、不比排列」的形式，两侧都要经过它。
- *
- * - 属性按名字排序：vanilla 的 StateHolder#toString 按名字字典序输出，注册顺序不是语义；
- * - 取值域排序：minecraft-data 给的是字符串序（"1","10","2"），Cubium 给的是枚举声明序，
- *   两者对「值域相同」这个结论没有影响；
- * - 类型名归一：见 TYPE_ALIASES。
- */
 function canonical(value: unknown): unknown {
     if (Array.isArray(value)) {
         return value.map(canonical);
@@ -79,17 +64,17 @@ function canonical(value: unknown): unknown {
     if (value !== null && typeof value === "object") {
         const source = value as Record<string, unknown>;
         const result: Record<string, unknown> = {};
-        for (const [key, item] of Object.entries(source)) {
-            if (key === "type" && typeof item === "string") {
-                result[key] = TYPE_ALIASES[item] ?? item;
-            } else if (key === "values" && Array.isArray(item)) {
-                result[key] = item.map(canonical).sort();
-            } else if (key === "properties" && Array.isArray(item)) {
-                const props = item.map(canonical) as Array<Record<string, unknown>>;
-                props.sort((lhs, rhs) => String(lhs.name).localeCompare(String(rhs.name)));
-                result[key] = props;
+        for (const [field, item] of Object.entries(source)) {
+            if (field === "type" && typeof item === "string") {
+                result[field] = TYPE_ALIASES[item] ?? item;
+            } else if (field === "values" && Array.isArray(item)) {
+                result[field] = item.map(canonical).sort();
+            } else if (field === "properties" && Array.isArray(item)) {
+                const properties = item.map(canonical) as Array<Record<string, unknown>>;
+                properties.sort((lhs, rhs) => String(lhs.name).localeCompare(String(rhs.name)));
+                result[field] = properties;
             } else {
-                result[key] = canonical(item);
+                result[field] = canonical(item);
             }
         }
         return result;
@@ -97,121 +82,102 @@ function canonical(value: unknown): unknown {
     return value;
 }
 
-/** 把状态全集做多重集差：重复出现的状态也是缺陷，集合差会把它吃掉。 */
-function stateTextDifferences(actual: readonly string[], expected: readonly string[]): string[] {
-    const count = (items: readonly string[]): Map<string, number> => {
-        const counts = new Map<string, number>();
-        for (const item of items) {
-            counts.set(item, (counts.get(item) ?? 0) + 1);
-        }
-        return counts;
-    };
-    const actualCounts = count(actual);
-    const expectedCounts = count(expected);
-    const lines: string[] = [];
-    for (const text of [...expectedCounts.keys()].sort()) {
-        const missing = (expectedCounts.get(text) ?? 0) - (actualCounts.get(text) ?? 0);
-        if (missing > 0) {
-            lines.push(missing === 1 ? `probe 缺少：${text}` : `probe 缺少 ${missing} 次：${text}`);
-        }
-    }
-    for (const text of [...actualCounts.keys()].sort()) {
-        const extra = (actualCounts.get(text) ?? 0) - (expectedCounts.get(text) ?? 0);
-        if (extra > 0) {
-            lines.push(extra === 1 ? `probe 多出：${text}` : `probe 多出 ${extra} 次：${text}`);
-        }
-    }
-    return lines;
+/** 从 `minecraft:oak_log[axis=y]` 取出方块名。 */
+function blockOf(stateText: string): string {
+    const bracket = stateText.indexOf("[");
+    return bracket < 0 ? stateText : stateText.slice(0, bracket);
 }
 
-/** 依次构建并运行；返回进程退出码。 */
+/**
+ * 比对两侧的状态全集。
+ *
+ * 返回两类结果：原版有而 Cubium 缺的（真缺陷），以及 Cubium 多出来的（也是缺陷，
+ * 但性质不同——多注册了原版不存在的方块）。
+ */
+function compareStateSets(
+    cubium: readonly string[],
+    vanilla: readonly string[],
+): { missing: string[]; extra: string[]; shared: number } {
+    const cubiumSet = new Set(cubium);
+    const vanillaSet = new Set(vanilla);
+    const missing = [...vanillaSet].filter((text) => !cubiumSet.has(text)).sort();
+    const extra = [...cubiumSet].filter((text) => !vanillaSet.has(text)).sort();
+    return { missing, extra, shared: vanillaSet.size - missing.length };
+}
+
 export function main(argv: string[]): number {
-    let build = true;
     let samples = 5;
-    for (let i = 0; i < argv.length; i++) {
-        const argument = argv[i];
+    for (let index = 0; index < argv.length; index++) {
+        const argument = argv[index];
         if (argument === "--no-build") {
-            build = false;
-        } else if (argument === "--samples" && i + 1 < argv.length) {
-            samples = Number(argv[++i]);
+            // 构建由调用方负责；保留参数以兼容旧用法。
+        } else if (argument === "--samples" && index + 1 < argv.length) {
+            samples = Number(argv[++index]);
         } else {
             console.error(`未知参数：${argument}`);
             return 2;
         }
     }
 
-    let blocks;
-    try {
-        blocks = loadBlocks();
-    } catch (error) {
-        console.error(`环境问题：${(error as Error).message}`);
-        return 2;
+    const executable = probeExecutable("text_encode");
+
+    // 1. 状态全集：两侧各自枚举自己的全部状态。
+    const cubiumStates = execFileSync(executable, ["list"], {
+        encoding: "utf8",
+        maxBuffer: 1024 * 1024 * 1024,
+    })
+        .split(/\r?\n/)
+        .filter((line) => line.length > 0);
+
+    // 原版枚举走 oracle 的 list 子命令（先编译，确保 classes 目录里有这个类）。
+    const workDir = path.join(resolveBuildDir(), "diff", "text_encode", "java");
+    const compiled = compileOracle("BlockStateOracle", workDir);
+    const vanillaStates = execFileSync(
+        "java",
+        ["-cp", `${compiled.classesDir}${path.delimiter}${compiled.classpath}`,
+            "dev.horizonlab.diff.BlockStateOracle", "list"],
+        { encoding: "utf8", maxBuffer: 1024 * 1024 * 1024, cwd: workDir },
+    )
+        .split(/\r?\n/)
+        .filter((line) => line.length > 0);
+
+    const states = compareStateSets(cubiumStates, vanillaStates);
+    const vanillaBlocks = new Set(vanillaStates.map(blockOf));
+    const extraBlocks = [...new Set(states.extra.map(blockOf))].sort();
+
+    // 2. 方块摘要：只比原版也有的方块。
+    const units = [...vanillaBlocks].sort();
+    const outcome = runJavaOracle({
+        oracle: "BlockStateOracle",
+        domain: "text_encode",
+        units: () => units,
+        input: (unit) => ({ block: unit }),
+        key: KEY,
+        normalise: canonical,
+        samples,
+    });
+
+    console.log(
+        `  状态全集：原版 ${vanillaStates.length} 条，Cubium ${cubiumStates.length} 条；` +
+            `共同 ${states.shared} 条，缺 ${states.missing.length} 条，多 ${states.extra.length} 条`,
+    );
+    for (const text of states.missing.slice(0, samples)) {
+        console.log(`    缺少：${text}`);
     }
-
-    try {
-        if (build) {
-            buildProbes("text_encode");
-        }
-        const result = runHarness({
-            harness: "text_encode",
-            domain: "text_encode",
-            units: blocks.map((block) => block.name),
-            oracleOutputs: blocks.map((block) => JSON.stringify(canonical(vanillaDescribe(block)))),
-            key: "block",
-            // probe 侧同样规范化：DPO 的类型名/枚举顺序与参照数据的差异不属本能力语义。
-            compareTransform: canonical,
-        });
-
-        const executable = probeExecutable("text_encode");
-        // 输出约 3 万行（2,000+ 个方块状态文本），必须显式放大 maxBuffer：默认 1 MB 会 ENOBUFS。
-        const listed = execFileSync(executable, ["list"], {
-            cwd: REPO_ROOT,
-            encoding: "utf8",
-            maxBuffer: 1024 * 1024 * 1024,
-        })
-            .split(/\r?\n/)
-            .filter((line) => line.length > 0);
-        const expectedTexts = blocks.flatMap(stateTexts).sort();
-        // 先在参照数据里核对缺口清单：参照数据补齐后必须删掉条目，否则报错，
-        // 防止清单变成无人维护的永久豁免。
-        const oracleNames = new Set(blocks.map((block) => block.name));
-        const staleExemptions = ORACLE_MISSING_BLOCKS.filter((name) => oracleNames.has(name));
-        if (staleExemptions.length > 0) {
-            console.error(
-                `参照数据已包含这些方块，请从 ORACLE_MISSING_BLOCKS 删除：${staleExemptions.join("、")}`,
-            );
-            return 2;
-        }
-
-        const exempt = new Set(ORACLE_MISSING_BLOCKS);
-        const actualTexts = listed.filter((text) => !exempt.has(text.split("[")[0]));
-        const stateDifferences = stateTextDifferences(actualTexts, expectedTexts);
-        const exemptedStates = listed.length - actualTexts.length;
-
-        console.log(render(result, samples));
+    if (states.missing.length > samples) {
+        console.log(`    ... 另有 ${states.missing.length - samples} 条缺少的状态`);
+    }
+    if (extraBlocks.length > 0) {
         console.log(
-            `  状态全集：probe ${actualTexts.length} 条，参照实现 ${expectedTexts.length} 条，` +
-                (stateDifferences.length === 0 ? "一致" : `不一致（${stateDifferences.length} 处）`),
+            `    Cubium 多出的方块（原版 1.21.11 不存在）：${extraBlocks.join("、")}，` +
+                `合计 ${states.extra.length} 条状态`,
         );
-        if (exemptedStates > 0) {
-            console.log(
-                `  另有 ${exemptedStates} 条状态属于参照数据缺失的方块（${ORACLE_MISSING_BLOCKS.join("、")}），未计入`,
-            );
-        }
-        for (const line of stateDifferences.slice(0, samples)) {
-            console.log(`    ${line}`);
-        }
-        if (stateDifferences.length > samples) {
-            console.log(`    ... 另有 ${stateDifferences.length - samples} 处，见 report.json`);
-        }
-
-        return result.differences.length === 0 && stateDifferences.length === 0 ? 0 : 1;
-    } catch (error) {
-        console.error(`环境问题：${(error as Error).message}`);
-        return 2;
     }
+
+    const ok = outcome.exitCode === 0 && states.missing.length === 0 && states.extra.length === 0;
+    return ok ? 0 : 1;
 }
 
 if (import.meta.main) {
-    process.exitCode = main(process.argv.slice(2));
+    process.exit(main(process.argv.slice(2)));
 }

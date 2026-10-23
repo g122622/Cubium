@@ -120,8 +120,6 @@ Block* BuildingVariantBlocks::RED_SANDSTONE_WALL = nullptr;
 Block* BuildingVariantBlocks::GRANITE_WALL = nullptr;
 Block* BuildingVariantBlocks::DIORITE_WALL = nullptr;
 Block* BuildingVariantBlocks::ANDESITE_WALL = nullptr;
-Block* BuildingVariantBlocks::QUARTZ_WALL = nullptr;
-Block* BuildingVariantBlocks::PURPUR_WALL = nullptr;
 
 // 栅栏
 Block* BuildingVariantBlocks::OAK_FENCE = nullptr;
@@ -551,15 +549,9 @@ void registerBuildingVariantBlocks()
         &registry.registerBlock<blocks::WallBlock>(ResourceLocation("minecraft:andesite_wall"),
             BlockProperties(Material::ROCK).hardness(1.5f).resistance(6.0f).harvestTool(HarvestTool::Pickaxe));
 
-    // 石英墙（vanilla quartz_wall，硬度 0.8、抗爆 0.8）
-    BuildingVariantBlocks::QUARTZ_WALL =
-        &registry.registerBlock<blocks::WallBlock>(ResourceLocation("minecraft:quartz_wall"),
-            BlockProperties(Material::ROCK).hardness(0.8f).resistance(0.8f).harvestTool(HarvestTool::Pickaxe));
-
-    // 紫珀墙（vanilla purpur_wall，硬度 1.5、抗爆 6.0）
-    BuildingVariantBlocks::PURPUR_WALL =
-        &registry.registerBlock<blocks::WallBlock>(ResourceLocation("minecraft:purpur_wall"),
-            BlockProperties(Material::ROCK).hardness(1.5f).resistance(6.0f).harvestTool(HarvestTool::Pickaxe));
+    // 注：vanilla 1.21.11 并没有 quartz_wall / purpur_wall 这两个方块
+    // （差分测试 tests/diff 与原版 jar 逐状态比对确认，原版独有 0 条、Cubium 多出 648 条）。
+    // 曾按「其他材质都有墙」推断补注册，属于凭空多出的方块，已移除。
 
     // ========== 栅栏 ==========
     // 橡木栅栏
