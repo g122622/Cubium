@@ -196,6 +196,13 @@ void ServerScriptManager::setServer(MinecraftServer* server)
     }
 
     auto& accessor = mc::mod::bedrock::addon::ScriptWorldAccessor::instance();
+    accessor.setGetDimensionsCallback([server]() {
+        std::vector<mc::IWorld*> worlds;
+        server->dimensionManager().forEachDimension([&worlds](mc::Dimension& dimension) {
+            worlds.push_back(static_cast<mc::ServerDimension&>(dimension).world());
+        });
+        return worlds;
+    });
 
     // 桥接world.sendMessage到服务器日志（原 IServer::broadcastServerMessage 实现即只
     // spdlog 不发包；批5b 已从 IServer 删除该纯虚，脚本消息直接打日志）。

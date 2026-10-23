@@ -25,6 +25,7 @@
 #include "common/core/Result.hpp"
 #include "common/mod/bedrock/addon/binding/ScriptClassRegistry.hpp"
 #include "common/mod/bedrock/addon/core/IScriptEngine.hpp"
+#include "common/mod/bedrock/addon/event/ScriptEventData.hpp"
 #include "common/mod/bedrock/addon/lifecycle/ScriptLogger.hpp"
 #include "common/mod/bedrock/addon/lifecycle/ScriptTickListener.hpp"
 #include "common/mod/bedrock/addon/lifecycle/ScriptWatchdog.hpp"
@@ -160,6 +161,9 @@ void ScriptManager::startPlugins()
     }
 
     m_pluginManager->startAllPlugins();
+    std::any startup = ScriptEventData{};
+    m_eventBus->dispatchBeforeEvent(typeid(ScriptStartupEvent), startup);
+    m_eventBus->enqueueAfterEvent(typeid(ScriptWorldLoadEvent), ScriptEventData{});
 }
 
 void ScriptManager::stopPlugins()

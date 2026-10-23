@@ -15,6 +15,9 @@ add_library(mc_bedrock_addon STATIC
     binding/ScriptClassBinding.cpp
     binding/ScriptClassRegistry.cpp
     binding/ScriptHandleRegistry.cpp
+    binding/ScriptEntityReference.cpp
+    binding/ScriptGameObjects.cpp
+    binding/ScriptDamageCause.cpp
 
     # Modules - @minecraft/server模块绑定
     modules/MinecraftModuleFactory.cpp
@@ -45,6 +48,7 @@ add_library(mc_bedrock_addon STATIC
 
     # Event - 事件桥接
     event/ScriptEventBus.cpp
+    event/ScriptEventData.cpp
     event/BeforeEventSignal.cpp
     event/AfterEventSignal.cpp
 

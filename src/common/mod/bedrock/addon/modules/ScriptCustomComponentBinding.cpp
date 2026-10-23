@@ -613,7 +613,7 @@ bool registerItemCustomComponentFromJS(const std::string& typeId, void* componen
 // 导出注册函数 - 供MinecraftModuleFactory调用
 // ============================================================================
 
-void registerCustomComponentBindings(NativeModuleBuilder& builder)
+std::pair<ScriptValueHandle, ScriptValueHandle> registerCustomComponentBindings(NativeModuleBuilder& builder)
 {
     auto& ctx = builder.context();
 
@@ -648,7 +648,7 @@ void registerCustomComponentBindings(NativeModuleBuilder& builder)
             return cbCtx.createUndefined();
         },
         2);
-    builder.exportValue("blockComponentRegistry", blockRegObj);
+    ScriptValueHandle blockRegistry(ctx, blockRegObj);
     ctx.releaseValue(blockRegObj);
 
     // 注册 ItemComponentRegistry 全局对象
@@ -680,10 +680,10 @@ void registerCustomComponentBindings(NativeModuleBuilder& builder)
             return cbCtx.createUndefined();
         },
         2);
-    builder.exportValue("itemComponentRegistry", itemRegObj);
+    ScriptValueHandle itemRegistry(ctx, itemRegObj);
     ctx.releaseValue(itemRegObj);
 
-    spdlog::info("[BedrockAddon] Registered custom component bindings for @minecraft/server");
+    return {std::move(blockRegistry), std::move(itemRegistry)};
 }
 
 } // namespace mc::mod::bedrock::addon

@@ -27,6 +27,7 @@
 #include "common/mod/bedrock/addon/core/IScriptRuntime.hpp"
 #include "common/mod/bedrock/addon/event/AfterEventSignal.hpp"
 #include "common/mod/bedrock/addon/event/BeforeEventSignal.hpp"
+#include "common/mod/bedrock/addon/event/ScriptEventData.hpp"
 #include "common/mod/bedrock/addon/lifecycle/ScriptLogger.hpp"
 #include "common/mod/bedrock/addon/lifecycle/ScriptScheduler.hpp"
 #include "common/mod/bedrock/addon/modules/MinecraftModuleFactory.hpp"
@@ -269,7 +270,7 @@ TEST_F(AddonRuntimeContractTest, ScriptCancellationReachesNativeEventBus)
         import { world } from '@minecraft/server';
         world.beforeEvents.entityHurt.subscribe(event => { event.cancel = true; });
     )");
-    std::any data = 5;
+    std::any data = ScriptEventData{};
     EXPECT_TRUE(events.dispatchBeforeEvent(typeid(int), data));
     context.reset();
     EXPECT_EQ(events.beforeEvents().handlerCount(typeid(int)), 0u);
@@ -326,4 +327,66 @@ TEST(AddonModuleContractTest, EachContextUsesItsOwnSourceProvider)
     second.reset();
     first.reset();
     engine->shutdown();
+}
+
+TEST_F(AddonRuntimeContractTest, SubscribeReturnsCallbackAndUnsubscribeAcceptsIt)
+{
+    evaluate(R"(
+        import { world } from '@minecraft/server';
+        globalThis.calls = 0;
+        const callback = event => {
+            globalThis.calls += event.amount;
+            world.afterEvents.itemUse.unsubscribe(callback);
+        };
+        globalThis.identity = world.afterEvents.itemUse.subscribe(callback) === callback ? 1 : 0;
+    )");
+    ScriptEventData data;
+    data.setNumber("amount", 7);
+    events.enqueueAfterEvent(typeid(float), data);
+    events.enqueueAfterEvent(typeid(float), data);
+    events.tick();
+    EXPECT_EQ(number("identity"), 1);
+    EXPECT_EQ(number("calls"), 7);
+    EXPECT_EQ(events.afterEvents().handlerCount(typeid(float)), 0u);
+}
+
+TEST_F(AddonRuntimeContractTest, ScriptMessagesApplyNamespaceFilter)
+{
+    evaluate(R"(
+        import { system } from '@minecraft/server';
+        globalThis.messages = 0;
+        system.afterEvents.scriptEventReceive.subscribe(event => {
+            if (event.message === 'payload' && event.sourceType === 'Server') ++globalThis.messages;
+        }, { namespaces: ['thlm'] });
+        system.sendScriptEvent('thlm:skin', 'payload');
+        system.sendScriptEvent('another:skin', 'payload');
+    )");
+    events.tick();
+    EXPECT_EQ(number("messages"), 1);
+}
+
+TEST_F(AddonRuntimeContractTest, StartupExposesRegistriesOwnedByCurrentContext)
+{
+    evaluate(R"(
+        import { system } from '@minecraft/server';
+        globalThis.registries = 0;
+        system.beforeEvents.startup.subscribe(event => {
+            if (typeof event.blockComponentRegistry.registerCustomComponent === 'function') ++globalThis.registries;
+            if (typeof event.itemComponentRegistry.registerCustomComponent === 'function') ++globalThis.registries;
+        });
+    )");
+    std::any data = ScriptEventData{};
+    events.dispatchBeforeEvent(typeid(ScriptStartupEvent), data);
+    EXPECT_EQ(number("registries"), 2);
+}
+
+TEST_F(AddonRuntimeContractTest, PlayerPrototypeInheritsEntityPrototype)
+{
+    evaluate(R"(
+        import { Player, Entity, GameMode } from '@minecraft/server';
+        globalThis.inherits = Object.getPrototypeOf(Player.prototype) === Entity.prototype ? 1 : 0;
+        globalThis.creative = GameMode.Creative === 'Creative' ? 1 : 0;
+    )");
+    EXPECT_EQ(number("inherits"), 1);
+    EXPECT_EQ(number("creative"), 1);
 }

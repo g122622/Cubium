@@ -22,6 +22,8 @@
  */
 
 #include "common/mod/bedrock/addon/modules/MinecraftModuleFactory.hpp"
+#include "common/mod/bedrock/addon/binding/ScriptGameObjects.hpp"
+#include "common/mod/bedrock/addon/event/ScriptEventData.hpp"
 #include "common/mod/bedrock/addon/modules/system/ScriptSystemBinding.hpp"
 
 #include "common/core/Types.hpp"
@@ -153,7 +155,7 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
     u64 systemClassId = ScriptObjectRegistry::allocateClassId(ctx);
     void* systemProto = builder.exportClass("System", systemClassId);
 
-    registerSystemBindings(ctx, systemProto, m_scheduler);
+    registerSystemBindings(ctx, systemProto, m_scheduler, m_eventBus);
 
     // --- World类 ---
     u64 worldClassId = ScriptObjectRegistry::allocateClassId(ctx);
@@ -185,14 +187,29 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
         }
         return ScriptObjectRegistry::wrap(ctx, dimClassId, dimProto, world, false, "Dimension");
     });
-    worldReg.method("getAllPlayers", [](IScriptBindingContext& ctx, void* thisVal, i32 argc, void** args) -> void* {
-        auto names = ScriptWorldAccessor::instance().getAllPlayerNames();
-        void* arr = ctx.createArray();
-        for (u32 i = 0; i < names.size(); ++i) {
-            ctx.setArrayElementString(arr, i, names[i]);
+    worldReg.method("getAllPlayers", [](IScriptBindingContext& ctx, void*, i32, void**) -> void* {
+        void* result = ctx.createArray();
+        u32 index = 0;
+        for (auto* world : ScriptWorldAccessor::instance().getDimensions()) {
+            for (auto* player : world->getPlayers()) {
+                void* value = wrapEntity(ctx, player);
+                ctx.setArrayElement(result, index++, value);
+                ctx.releaseValue(value);
+            }
         }
-        return arr;
+        return result;
     });
+    worldReg.method(
+        "getEntity",
+        [](IScriptBindingContext& ctx, void*, i32 argc, void** args) -> void* {
+            if (argc < 1 || !ctx.isString(args[0])) return ctx.throwTypeError("world.getEntity requires a string ID");
+            const auto id = *ctx.toString(args[0]);
+            for (auto* world : ScriptWorldAccessor::instance().getDimensions()) {
+                if (auto* entity = world->getEntityByUuid(id)) return wrapEntity(ctx, entity);
+            }
+            return ctx.createUndefined();
+        },
+        1);
     worldReg.method("sendMessage", [](IScriptBindingContext& ctx, void* thisVal, i32 argc, void** args) -> void* {
         if (argc < 1 || !ctx.isString(args[0])) {
             return ctx.throwTypeError("world.sendMessage requires a string argument");
@@ -1114,12 +1131,20 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
     ctx.classRegistry().registerClass(entityClassId, entityProto, "Entity");
 
     ClassRegistrar<void> entityReg(ctx, entityClassId, entityProto);
+    entityReg.readonlyProperty("dimension", [](IScriptBindingContext& ctx, void* value) -> void* {
+        auto* entity = static_cast<mc::Entity*>(ScriptObjectRegistry::unwrap(ctx, value, 0));
+        return wrapDimension(ctx, entity != nullptr ? entity->world() : nullptr);
+    });
+    entityReg.readonlyProperty("isValid", [](IScriptBindingContext& ctx, void* value) -> void* {
+        auto* entity = static_cast<mc::Entity*>(ScriptObjectRegistry::unwrap(ctx, value, 0));
+        return ctx.createBoolean(entity != nullptr && !entity->isRemoved());
+    });
     entityReg.readonlyProperty("id", [entityClassId](IScriptBindingContext& ctx, void* thisVal) -> void* {
         auto* ent = static_cast<mc::Entity*>(ScriptObjectRegistry::unwrap(ctx, thisVal, entityClassId));
         if (ent == nullptr) {
             return ctx.createUndefined();
         }
-        return ctx.createInt64(static_cast<i64>(ent->id()));
+        return ctx.createString(ent->uuid());
     });
     entityReg.readonlyProperty("typeId", [entityClassId](IScriptBindingContext& ctx, void* thisVal) -> void* {
         auto* ent = static_cast<mc::Entity*>(ScriptObjectRegistry::unwrap(ctx, thisVal, entityClassId));
@@ -2353,6 +2378,7 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
     // --- Player类（继承Entity） ---
     u64 playerClassId = ScriptObjectRegistry::allocateClassId(ctx);
     void* playerProto = builder.exportClass("Player", playerClassId);
+    ctx.setPrototypeOf(playerProto, entityProto);
     // 登记进 ScriptClassRegistry，供 test.kill 等需识别 Player 形参的绑定经 classIdByName("Player") unwrap。
     // 注：Cubium JS 类按独立原型注册不自动反映 C++ 继承（见 [[simulated-player-js-class-no-entity-inheritance]]），
     // Player JS 对象的 opaque class_id 是 playerClassId 而非 Entity classId，故 ScriptObjectRegistry::unwrap
@@ -2361,6 +2387,23 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
     ctx.classRegistry().registerClass(playerClassId, playerProto, "Player");
 
     ClassRegistrar<void> playerReg(ctx, playerClassId, playerProto);
+    playerReg.method(
+        "getGameMode",
+        [](IScriptBindingContext& ctx, void* receiver, i32, void**) -> void* {
+            auto* player = static_cast<mc::Player*>(ScriptObjectRegistry::unwrap(ctx, receiver, 0));
+            if (player == nullptr) return ctx.throwTypeError("Invalid player");
+            switch (player->gameMode()) {
+                case mc::GameMode::Creative:
+                    return ctx.createString("Creative");
+                case mc::GameMode::Adventure:
+                    return ctx.createString("Adventure");
+                case mc::GameMode::Spectator:
+                    return ctx.createString("Spectator");
+                default:
+                    return ctx.createString("Survival");
+            }
+        },
+        0);
     playerReg.readonlyProperty("name", [](IScriptBindingContext& ctx, void* thisVal) -> void* {
         // Player JS 类 opaque 持 mc::Entity*（实际为 Player*）。name 走 Player::username（非 nameTag/customName）。
         auto* ent = static_cast<mc::Entity*>(ScriptObjectRegistry::unwrap(ctx, thisVal, 0));
@@ -3183,10 +3226,10 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
     // （见 ScriptTestHelper::spawnSimulatedPlayer 等）。
     {
         void* gameModeObj = ctx.createObject();
-        ctx.setPropertyString(gameModeObj, "adventure", "adventure");
-        ctx.setPropertyString(gameModeObj, "creative", "creative");
-        ctx.setPropertyString(gameModeObj, "spectator", "spectator");
-        ctx.setPropertyString(gameModeObj, "survival", "survival");
+        ctx.setPropertyString(gameModeObj, "Adventure", "Adventure");
+        ctx.setPropertyString(gameModeObj, "Creative", "Creative");
+        ctx.setPropertyString(gameModeObj, "Spectator", "Spectator");
+        ctx.setPropertyString(gameModeObj, "Survival", "Survival");
         builder.exportValue("GameMode", gameModeObj);
         ctx.releaseValue(gameModeObj);
     }
@@ -3200,19 +3243,33 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
     // 创建system全局对象
     void* systemObj = ScriptObjectRegistry::wrap(ctx, systemClassId, systemProto, nullptr, false, "System");
     builder.exportValue("system", systemObj);
-    ctx.releaseValue(systemObj);
 
     // 创建world全局对象
     void* worldObj = ScriptObjectRegistry::wrap(ctx, worldClassId, worldProto, nullptr, false, "World");
     builder.exportValue("world", worldObj);
 
     // ====== 注册事件绑定 ======
-    if (m_eventBus && !m_eventSignals.empty()) {
-        registerEventBindings(ctx, worldObj, *m_eventBus, m_eventSignals);
+    if (m_eventBus != nullptr) {
+        auto signals = m_eventSignals;
+        signals.push_back({"worldLoad", typeid(ScriptWorldLoadEvent), false});
+        registerEventBindings(ctx, worldObj, *m_eventBus, signals, {});
     }
 
     // ====== 注册自定义组件绑定 ======
-    registerCustomComponentBindings(builder);
+    auto [blockRegistry, itemRegistry] = registerCustomComponentBindings(builder);
+    if (m_eventBus != nullptr) {
+        registerEventBindings(ctx,
+            systemObj,
+            *m_eventBus,
+            {{"startup", typeid(ScriptStartupEvent), true}, {"scriptEventReceive", typeid(ScriptMessageEvent), false}},
+            [blockRegistry, itemRegistry](IScriptBindingContext& bindings, void* event, const std::string& name) {
+                if (name == "startup") {
+                    bindings.setProperty(event, "blockComponentRegistry", blockRegistry.value());
+                    bindings.setProperty(event, "itemComponentRegistry", itemRegistry.value());
+                }
+            });
+    }
+    ctx.releaseValue(systemObj);
 
     // ====== 完成模块注册 ======
     if (!builder.finalize()) {

@@ -71,6 +71,16 @@ mc::IWorld* ScriptWorldAccessor::getDimension(const std::string& dimensionId)
     return nullptr;
 }
 
+std::vector<mc::IWorld*> ScriptWorldAccessor::getDimensions()
+{
+    return m_getDimensionsCallback ? m_getDimensionsCallback() : std::vector<mc::IWorld*>{};
+}
+
+void ScriptWorldAccessor::setGetDimensionsCallback(std::function<std::vector<mc::IWorld*>()> callback)
+{
+    m_getDimensionsCallback = std::move(callback);
+}
+
 mc::scoreboard::Scoreboard* ScriptWorldAccessor::getScoreboard()
 {
     if (m_getScoreboardCallback) {

@@ -58,3 +58,5 @@ types/
 - 定时及生成器调度由 system/ScriptSystemBinding 实现，参数句柄跨 tick 保存时必须复制。
 - getComponent 的组件名、返回类型和写回行为必须同时符合目标 API，不能用普通属性快照替代可写组件。
 - 模块内容以实际绑定和行为测试为准，不能根据类名导出推断完整 API 支持。
+
+- 自定义组件注册表通过 system.beforeEvents.startup 的事件对象提供，各插件只持有本上下文的注册入口。脚本消息按命名空间过滤并在后置事件批次中分发。

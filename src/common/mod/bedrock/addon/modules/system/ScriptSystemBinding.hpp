@@ -27,8 +27,10 @@ namespace mc::mod::bedrock::addon {
 
 class IScriptBindingContext;
 class ScriptScheduler;
+class ScriptEventBus;
 
 /** @brief 将调度与生成器任务绑定到 System 原型。 */
-void registerSystemBindings(IScriptBindingContext& context, void* prototype, ScriptScheduler* scheduler);
+void registerSystemBindings(
+    IScriptBindingContext& context, void* prototype, ScriptScheduler* scheduler, ScriptEventBus* events);
 
 } // namespace mc::mod::bedrock::addon

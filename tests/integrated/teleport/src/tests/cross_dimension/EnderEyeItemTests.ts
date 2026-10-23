@@ -192,7 +192,7 @@ function enderEyePlacedInFrame(test: Test): void {
     test.assert(getEye(test, 3, 1, 3) === false, `eye should be false before placing, got ${getEye(test, 3, 1, 3)}`);
 
     // spawn SimulatedPlayer（生存模式，验证物品消耗），手持 1 个 ender_eye，点击框架顶面。
-    const player = test.spawnSimulatedPlayer({ x: 1, y: 1, z: 1 }, "frame_filler", GameMode.survival);
+    const player = test.spawnSimulatedPlayer({ x: 1, y: 1, z: 1 }, "frame_filler", GameMode.Survival);
     const enderEye = new ItemStack("minecraft:ender_eye", 1);
     const used = player.useItemOnBlock(
         enderEye as unknown as Parameters<typeof player.useItemOnBlock>[0],
@@ -237,7 +237,7 @@ function enderEyeActivatesEndPortal(test: Test): void {
     placeAllFramesEmptyEye(test);
 
     // spawn SimulatedPlayer（生存模式），手持 12 个 ender_eye。
-    const player = test.spawnSimulatedPlayer({ x: 1, y: 1, z: 1 }, "portal_activator", GameMode.survival);
+    const player = test.spawnSimulatedPlayer({ x: 1, y: 1, z: 1 }, "portal_activator", GameMode.Survival);
     const enderEyeStack = new ItemStack("minecraft:ender_eye", 12);
 
     // 逐一点击 12 个框架放入末影之眼。每次 useItemOnBlock 消耗 1 个 ender_eye。
@@ -283,7 +283,7 @@ function incompletePatternNoPortal(test: Test): void {
     test.assert(getFacing(test, 3, 1, 1) === "north", `(3,1,1) facing should be north (wrong), got ${getFacing(test, 3, 1, 1)}`);
 
     // spawn SimulatedPlayer（生存模式），手持 12 个 ender_eye。
-    const player = test.spawnSimulatedPlayer({ x: 1, y: 1, z: 1 }, "incomplete_filler", GameMode.survival);
+    const player = test.spawnSimulatedPlayer({ x: 1, y: 1, z: 1 }, "incomplete_filler", GameMode.Survival);
     const enderEyeStack = new ItemStack("minecraft:ender_eye", 12);
 
     // 逐一点击 12 个框架放入末影之眼。
@@ -322,7 +322,7 @@ function enderEyeOnFilledFramePass(test: Test): void {
     test.assert(getEye(test, 3, 1, 3) === true, `eye should be true, got ${getEye(test, 3, 1, 3)}`);
 
     // spawn SimulatedPlayer（生存模式），手持 1 个 ender_eye，点击已有眼框架顶面。
-    const player = test.spawnSimulatedPlayer({ x: 1, y: 1, z: 1 }, "eye_on_filled", GameMode.survival);
+    const player = test.spawnSimulatedPlayer({ x: 1, y: 1, z: 1 }, "eye_on_filled", GameMode.Survival);
     const enderEye = new ItemStack("minecraft:ender_eye", 1);
     const used = player.useItemOnBlock(
         enderEye as unknown as Parameters<typeof player.useItemOnBlock>[0],

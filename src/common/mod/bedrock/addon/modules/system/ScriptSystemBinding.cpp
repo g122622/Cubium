@@ -27,6 +27,9 @@
 #include "common/mod/bedrock/addon/lifecycle/ScriptScheduler.hpp"
 #include "common/mod/bedrock/addon/modules/types/ScriptWorldAccessor.hpp"
 
+#include "common/mod/bedrock/addon/event/ScriptEventBus.hpp"
+#include "common/mod/bedrock/addon/event/ScriptEventData.hpp"
+
 #include <cmath>
 #include <limits>
 #include <memory>
@@ -124,8 +127,30 @@ void _registerTimer(IScriptBindingContext& context,
 
 } // namespace
 
-void registerSystemBindings(IScriptBindingContext& context, void* prototype, ScriptScheduler* scheduler)
+void registerSystemBindings(
+    IScriptBindingContext& context, void* prototype, ScriptScheduler* scheduler, ScriptEventBus* events)
 {
+    context.registerMethod(
+        prototype,
+        "sendScriptEvent",
+        [events](IScriptBindingContext& bindings, void*, i32 argc, void** args) -> void* {
+            if (argc < 2 || !bindings.isString(args[0]) || !bindings.isString(args[1]))
+                return bindings.throwTypeError("sendScriptEvent requires an ID and message string");
+            const auto id = *bindings.toString(args[0]);
+            const auto message = *bindings.toString(args[1]);
+            const auto separator = id.find(':');
+            if (separator == std::string::npos || separator == 0 || separator + 1 == id.size())
+                return bindings.throwTypeError("Script event ID must contain a namespace and name");
+            if (message.size() > 2048) return bindings.throwTypeError("Script event message exceeds 2048 bytes");
+            if (events == nullptr) return bindings.throwInternalError("Script event bus is not available");
+            ScriptEventData event;
+            event.setString("id", id);
+            event.setString("message", message);
+            event.setString("sourceType", "Server");
+            events->enqueueAfterEvent(typeid(ScriptMessageEvent), std::move(event));
+            return bindings.createUndefined();
+        },
+        2);
     _registerTimer(context, prototype, scheduler, "run", false, true);
     _registerTimer(context, prototype, scheduler, "runTimeout", false, false);
     _registerTimer(context, prototype, scheduler, "runInterval", true, false);

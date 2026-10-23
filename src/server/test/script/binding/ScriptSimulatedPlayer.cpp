@@ -289,6 +289,7 @@ u64 registerSimulatedPlayerClassBinding(
 {
     u64 classId = ScriptObjectRegistry::allocateClassId(ctx);
     void* proto = builder.exportClass("SimulatedPlayer", classId);
+    ctx.setPrototypeOf(proto, ctx.classRegistry().protoByName("Player"));
     ScriptBindingRegistry::instance().registerProto(classId, proto);
     // 登记进 ScriptClassRegistry，供 test.kill 等需识别 SimulatedPlayer 形参的绑定经
     // classIdByName("SimulatedPlayer") unwrap。SimulatedPlayer JS 类独立注册不继承 Entity 原型

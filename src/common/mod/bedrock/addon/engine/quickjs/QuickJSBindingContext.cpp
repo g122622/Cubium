@@ -28,6 +28,7 @@
 #include "common/mod/bedrock/addon/binding/ScriptClassRegistry.hpp"
 #include "common/mod/bedrock/addon/binding/ScriptHandleRegistry.hpp"
 
+#include <algorithm>
 #include <cstddef>
 #include <cstring>
 #include <optional>
@@ -490,7 +491,26 @@ void* QuickJSBindingContext::getOpaque(void* obj, u64 classId) const
         JSClassID anyClassId = 0;
         return JS_GetAnyOpaque(val, &anyClassId);
     }
-    return JS_GetOpaque2(m_ctx, val, static_cast<JSClassID>(classId));
+    if (JS_GetClassID(val) == static_cast<JSClassID>(classId)) {
+        return JS_GetOpaque(val, static_cast<JSClassID>(classId));
+    }
+    const auto expected = std::find_if(m_classProtoHandles.begin(),
+        m_classProtoHandles.end(),
+        [classId](const auto& entry) { return entry.first == classId; });
+    if (expected == m_classProtoHandles.end() || !JS_IsObject(val)) return nullptr;
+    JSValue prototype = JS_GetPrototype(m_ctx, val);
+    while (JS_IsObject(prototype)) {
+        if (JS_IsStrictEqual(m_ctx, prototype, unwrapValue(expected->second))) {
+            JS_FreeValue(m_ctx, prototype);
+            JSClassID actual = 0;
+            return JS_GetAnyOpaque(val, &actual);
+        }
+        JSValue parent = JS_GetPrototype(m_ctx, prototype);
+        JS_FreeValue(m_ctx, prototype);
+        prototype = parent;
+    }
+    JS_FreeValue(m_ctx, prototype);
+    return nullptr;
 }
 
 // ===== 函数调用 =====

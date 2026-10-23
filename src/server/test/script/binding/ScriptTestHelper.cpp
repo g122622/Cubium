@@ -547,13 +547,13 @@ u64 registerTestClassBinding(mc::mod::bedrock::addon::NativeModuleBuilder& build
                 // 优先按字符串枚举值解析；若传数字则按数字解析（向后兼容旧测试）。
                 if (ctx.isString(args[gameModeIdx])) {
                     auto gmStr = ctx.toString(args[gameModeIdx]);
-                    if (gmStr == "survival") {
+                    if (gmStr == "Survival") {
                         gameMode = mc::GameMode::Survival;
-                    } else if (gmStr == "creative") {
+                    } else if (gmStr == "Creative") {
                         gameMode = mc::GameMode::Creative;
-                    } else if (gmStr == "adventure") {
+                    } else if (gmStr == "Adventure") {
                         gameMode = mc::GameMode::Adventure;
-                    } else if (gmStr == "spectator") {
+                    } else if (gmStr == "Spectator") {
                         gameMode = mc::GameMode::Spectator;
                     }
                 } else if (ctx.isNumber(args[gameModeIdx])) {
