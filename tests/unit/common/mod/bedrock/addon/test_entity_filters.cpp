@@ -24,6 +24,7 @@
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/ecs/context/EntityRegistry.hpp"
 #include "common/mod/bedrock/addon/content/entity/filters/EntityFilter.hpp"
+#include "common/mod/bedrock/addon/content/entity/filters/base/VanillaEntityFamilies.hpp"
 #include "common/mod/bedrock/addon/content/entity/state/EntityAddonState.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
@@ -370,4 +371,27 @@ TEST_F(EntityFilterTest, FilterNestingAndSizeAreBounded)
         source["any_of"].push_back(nlohmann::json::object());
     }
     EXPECT_TRUE(EntityFilter::compile(source).failed());
+}
+
+TEST_F(EntityFilterTest, NativeFamilyQueriesUseOfficialBaseDefinitions)
+{
+    entity.setTypeId("minecraft:cow");
+    check({{"test", "is_family"}, {"value", "cow"}}, true);
+    check({{"test", "is_family"}, {"value", "mob"}}, true);
+    check({{"test", "is_family"}, {"value", "monster"}}, false);
+    entity.setTypeId("minecraft:zombie");
+    check({{"test", "is_family"}, {"value", "undead"}}, true);
+    check({{"test", "is_family"}, {"value", "monster"}}, true);
+    check({{"test", "is_family"}, {"value", "player"}}, false);
+    entity.setTypeId("minecraft:player");
+    check({{"test", "is_family"}, {"value", "player"}}, true);
+    check({{"test", "is_family"}, {"value", "mob"}}, false);
+}
+
+TEST_F(EntityFilterTest, UnknownFamilyOnKnownNativeTypeIsAValidFalseMatch)
+{
+    entity.setTypeId("minecraft:cow");
+    check({{"test", "is_family"}, {"value", "unrelated-family"}}, false);
+    check({{"test", "is_family"}, {"value", "unrelated-family"}, {"operator", "not"}}, true);
+    EXPECT_FALSE(vanillaEntityFamilyMatch("test:missing", "mob").has_value());
 }

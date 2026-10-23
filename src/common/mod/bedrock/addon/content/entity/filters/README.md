@@ -4,6 +4,7 @@
 
 ```text
 filters/
+├── base/ # 官方基础家族的不可变元数据
 └── EntityFilter.hpp/cpp # 条件校验、逻辑组合、主体选择和当前实体状态比较
 ```
 

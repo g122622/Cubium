@@ -26,6 +26,7 @@
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/core/MobEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
+#include "common/mod/bedrock/addon/content/entity/filters/base/VanillaEntityFamilies.hpp"
 #include "common/mod/bedrock/addon/content/entity/state/AddonEntityComponents.hpp"
 #include "common/mod/bedrock/addon/content/entity/state/EntityAddonState.hpp"
 #include "common/resource/ResourceLocation.hpp"
@@ -274,13 +275,16 @@ Result<bool> _family(const mc::Entity& entity, const std::string& family)
         const auto& names = (*value)["family"];
         return names.is_string() ? names == family : std::find(names.begin(), names.end(), family) != names.end();
     }
+    if (const auto matched = vanillaEntityFamilyMatch(entity.getTypeId(), family)) {
+        return *matched;
+    }
     if (family == "player") {
         return dynamic_cast<const mc::Player*>(&entity) != nullptr;
     }
     if (family == "mob") {
         return dynamic_cast<const mc::MobEntity*>(&entity) != nullptr;
     }
-    // TODO: 从完整基岩原版定义提供其他原版实体家族，不能用 Java 类型名猜测。
+    // TODO: 接入剩余类型及动态组件组家族，并提供基岩与 Java 类型标识转换。
     return Error(ErrorCode::Unsupported, "Native Bedrock family mapping is not implemented: " + family);
 }
 
