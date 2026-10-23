@@ -1259,6 +1259,21 @@ void ServerPlayer::triggerFishingRodHooked(
         });
 }
 
+void ServerPlayer::triggerKilledByArrow(const std::vector<const Entity*>& victims, const ItemStack& firedFromWeapon)
+{
+    if (m_advancements == nullptr) {
+        return;
+    }
+    auto* trigger = advancement::CriterionTriggers::instance().getTrigger<advancement::KilledByArrowTrigger>();
+    if (trigger == nullptr) {
+        return;
+    }
+    trigger->advancement::AbstractCriterionTrigger<advancement::KilledByArrowTriggerInstance>::trigger(
+        *m_advancements, [&victims, &firedFromWeapon](const advancement::KilledByArrowTriggerInstance& instance) {
+            return instance.test(victims, firedFromWeapon);
+        });
+}
+
 void ServerPlayer::setWorld(server::ServerWorld* world)
 {
     Entity::setWorld(world);

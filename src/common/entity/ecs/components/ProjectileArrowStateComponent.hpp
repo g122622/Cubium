@@ -9,6 +9,7 @@
 #include <optional>
 #include <string>
 #include <unordered_set>
+#include <vector>
 
 namespace mc::ecs {
 
@@ -66,6 +67,10 @@ struct ProjectileArrowStateComponent {
     std::unique_ptr<ItemStack> m_firedFromWeapon;
 
     std::unique_ptr<std::unordered_set<EntityInstanceId>> m_piercedEntities;
+    /// 穿透箭击杀过的实体 id（vanilla piercedAndKilledEntities，仅在穿透箭首次命中后创建）。
+    /// 无穿透等级时为 nullptr：vanilla 该列表为 null，单杀走"仅本次命中实体"分支
+    /// （killed_by_arrow 条件 victims 列表因此对普通弓不匹配）。
+    std::unique_ptr<std::vector<EntityInstanceId>> m_piercedAndKilledEntities;
     std::unique_ptr<std::optional<BlockState>> m_inBlockState;
 
     ProjectileArrowStateComponent()

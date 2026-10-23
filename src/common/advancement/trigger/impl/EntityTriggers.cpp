@@ -32,6 +32,7 @@
 #include "common/entity/entities/item/ItemEntity.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/util/assert/AssertAll.hpp"
+#include <algorithm>
 #include <memory>
 #include <utility>
 #include <nlohmann/json_fwd.hpp>
@@ -790,6 +791,137 @@ void FishingRodHookedTrigger::trigger(
     MC_UNUSED(rod);
     MC_UNUSED(hookedEntity);
     MC_UNUSED(items);
+}
+
+// ========== KilledByArrowTrigger ==========
+
+KilledByArrowTriggerInstance::KilledByArrowTriggerInstance(
+    std::vector<EntityPredicate> victims, IntBounds uniqueEntityTypes, std::optional<ItemPredicate> firedFromWeapon)
+    : m_victims(std::move(victims))
+    , m_uniqueEntityTypes(std::move(uniqueEntityTypes))
+    , m_firedFromWeapon(std::move(firedFromWeapon))
+{}
+
+bool KilledByArrowTriggerInstance::test(
+    const std::vector<const Entity*>& victims, const ItemStack& firedFromWeapon) const
+{
+    // 对齐 vanilla matches：武器条件（武器缺失时不匹配带 fired_from_weapon 的条件）
+    if (m_firedFromWeapon.has_value()) {
+        if (firedFromWeapon.isEmpty() || !m_firedFromWeapon->test(firedFromWeapon)) {
+            return false;
+        }
+    }
+
+    // victims 多重集合匹配：每个谓词须消耗掉一个尚未匹配的受害者
+    if (!m_victims.empty()) {
+        std::vector<const Entity*> remaining;
+        remaining.reserve(victims.size());
+        for (const Entity* victim : victims) {
+            if (victim != nullptr) {
+                remaining.push_back(victim);
+            }
+        }
+        for (const auto& predicate : m_victims) {
+            bool matched = false;
+            for (auto it = remaining.begin(); it != remaining.end(); ++it) {
+                if (predicate.test(**it)) {
+                    remaining.erase(it);
+                    matched = true;
+                    break;
+                }
+            }
+            if (!matched) {
+                return false;
+            }
+        }
+    }
+
+    // 去重后的实体类型数量
+    if (!m_uniqueEntityTypes.isUnbounded()) {
+        std::vector<std::string> typeIds;
+        for (const Entity* victim : victims) {
+            if (victim == nullptr) {
+                continue;
+            }
+            const std::string& typeId = victim->getTypeId();
+            if (std::find(typeIds.begin(), typeIds.end(), typeId) == typeIds.end()) {
+                typeIds.push_back(typeId);
+            }
+        }
+        if (!m_uniqueEntityTypes.test(static_cast<i32>(typeIds.size()))) {
+            return false;
+        }
+    }
+    return true;
+}
+
+Result<void> KilledByArrowTriggerInstance::fromJson(const nlohmann::json& json)
+{
+    m_victims.clear();
+    m_uniqueEntityTypes = IntBounds();
+    m_firedFromWeapon.reset();
+    if (json.is_null()) {
+        return {};
+    }
+    if (json.contains("victims") && json["victims"].is_array()) {
+        for (const auto& entry : json["victims"]) {
+            auto result = EntityPredicate::fromJson(entry);
+            if (result.failed()) {
+                return result.error();
+            }
+            m_victims.push_back(std::move(result.value()));
+        }
+    }
+    if (json.contains("unique_entity_types")) {
+        m_uniqueEntityTypes = IntBounds::fromJson(json["unique_entity_types"]);
+    }
+    if (json.contains("fired_from_weapon")) {
+        auto result = ItemPredicate::fromJson(json["fired_from_weapon"]);
+        if (result.failed()) {
+            return result.error();
+        }
+        m_firedFromWeapon = std::move(result.value());
+    }
+    // TODO(player-predicate): vanilla 条件还含可选的 player（ContextAwarePredicate）字段，暂忽略。
+    return {};
+}
+
+nlohmann::json KilledByArrowTriggerInstance::conditionsToJson() const
+{
+    nlohmann::json json;
+    if (!m_victims.empty()) {
+        nlohmann::json victims = nlohmann::json::array();
+        for (const auto& predicate : m_victims) {
+            victims.push_back(predicate.toJson());
+        }
+        json["victims"] = std::move(victims);
+    }
+    if (!m_uniqueEntityTypes.isUnbounded()) {
+        json["unique_entity_types"] = m_uniqueEntityTypes.toJson();
+    }
+    if (m_firedFromWeapon.has_value() && !m_firedFromWeapon->isAny()) {
+        json["fired_from_weapon"] = m_firedFromWeapon->toJson();
+    }
+    return json;
+}
+
+Result<std::shared_ptr<ICriterionInstance>> KilledByArrowTrigger::fromJson(const nlohmann::json& json)
+{
+    auto instance = std::make_shared<KilledByArrowTriggerInstance>();
+    auto result = instance->fromJson(json);
+    if (result.failed()) {
+        return result.error();
+    }
+    return instance;
+}
+
+void KilledByArrowTrigger::trigger(
+    ServerPlayer& player, const std::vector<const Entity*>& victims, const ItemStack& firedFromWeapon)
+{
+    // 实际派发由 Player::triggerKilledByArrow → ServerPlayer 实现经模板方法完成
+    MC_UNUSED(player);
+    MC_UNUSED(victims);
+    MC_UNUSED(firedFromWeapon);
 }
 
 } // namespace mc::advancement

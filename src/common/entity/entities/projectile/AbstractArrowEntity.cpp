@@ -544,6 +544,10 @@ void AbstractArrowEntity::onEntityHit(const RayTraceResult& result)
             return;
         }
         comp->m_piercedEntities->insert(target->id());
+        // 对齐 vanilla AbstractArrow.onHitEntity:432-434：穿透箭首次命中时创建"穿透击杀列表"
+        if (comp->m_piercedAndKilledEntities == nullptr) {
+            comp->m_piercedAndKilledEntities = std::make_unique<std::vector<EntityInstanceId>>();
+        }
     }
 
     // 获取发射者
@@ -591,6 +595,30 @@ void AbstractArrowEntity::onEntityHit(const RayTraceResult& result)
         // 此前 Cubium 子类 onEntityHit 无条件施加，被无敌帧吞掉的箭矢仍施加效果，偏离 vanilla。
         if (hurt) {
             doPostHurtEffects(*livingTarget);
+        }
+
+        // 穿透击杀记录与进度（对齐 vanilla AbstractArrow.onHitEntity:473-482）：
+        //   - 穿透箭：把被击杀实体加入 piercedAndKilledEntities 并携带整份列表派发；
+        //   - 普通箭：目标死亡时仅携带本次命中的单个实体派发。
+        // 无条件派发（vanilla 不做 hurt 成功门控，与 doPostHurtEffects 不同）。
+        if (!livingTarget->isAlive() && comp->m_piercedAndKilledEntities != nullptr) {
+            comp->m_piercedAndKilledEntities->push_back(livingTarget->id());
+        }
+        if (shooter != nullptr && !m_world->isClientSide()) {
+            if (auto* shooterPlayer = dynamic_cast<Player*>(shooter); shooterPlayer != nullptr) {
+                if (comp->m_piercedAndKilledEntities != nullptr) {
+                    std::vector<const Entity*> killed;
+                    killed.reserve(comp->m_piercedAndKilledEntities->size());
+                    for (EntityInstanceId killedId : *comp->m_piercedAndKilledEntities) {
+                        if (const Entity* killedEntity = m_world->getEntity(killedId); killedEntity != nullptr) {
+                            killed.push_back(killedEntity);
+                        }
+                    }
+                    shooterPlayer->triggerKilledByArrow(killed, firedFromWeapon());
+                } else if (!livingTarget->isAlive()) {
+                    shooterPlayer->triggerKilledByArrow({livingTarget}, firedFromWeapon());
+                }
+            }
         }
     }
 

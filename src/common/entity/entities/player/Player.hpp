@@ -745,6 +745,20 @@ public:
     }
 
     /**
+     * @brief 玩家射出的箭矢击杀实体时触发进度（对齐 vanilla CriteriaTriggers.KILLED_BY_ARROW）
+     *
+     * @param victims 本次击杀的实体（穿透箭为累积列表，普通箭为单个实体）
+     * @param firedFromWeapon 射出武器（未记录时为物品堆空栈）
+     *
+     * 基类为空实现（仅服务端玩家处理进度）。
+     */
+    virtual void triggerKilledByArrow(const std::vector<const Entity*>& victims, const ItemStack& firedFromWeapon)
+    {
+        MC_UNUSED(victims);
+        MC_UNUSED(firedFromWeapon);
+    }
+
+    /**
      * @brief 增加自定义统计
      *
      * 当玩家触发自定义统计事件时调用（如打开容器、与方块交互等）。

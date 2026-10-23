@@ -564,6 +564,9 @@ public:
     void triggerFishingRodHooked(
         const ItemStack& rod, const Entity* hookedEntity, const std::vector<ItemStack>& items) override;
 
+    /// 触发 killed_by_arrow 进度（对齐 vanilla CriteriaTriggers.KILLED_BY_ARROW）
+    void triggerKilledByArrow(const std::vector<const Entity*>& victims, const ItemStack& firedFromWeapon) override;
+
     /**
      * @brief 解锁配方（重写 Player 基类）
      *

@@ -23,6 +23,7 @@
 
 #pragma once
 
+#include "common/advancement/MinMaxBounds.hpp"
 #include "common/advancement/trigger/CriterionTrigger.hpp"
 #include "common/advancement/trigger/conditions/DamagePredicate.hpp"
 #include "common/advancement/trigger/conditions/EntityPredicate.hpp"
@@ -52,6 +53,7 @@ class PlayerHurtEntityTriggerInstance;
 class EntityHurtPlayerTriggerInstance;
 class ChangedDimensionTriggerInstance;
 class FishingRodHookedTriggerInstance;
+class KilledByArrowTriggerInstance;
 
 /**
  * @brief 驯服动物触发器
@@ -440,6 +442,52 @@ private:
     std::optional<advancement::ItemPredicate> m_rod;
     std::optional<advancement::EntityPredicate> m_entity;
     std::optional<advancement::ItemPredicate> m_item;
+};
+
+/**
+ * @brief 箭矢击杀触发器（对齐 vanilla KilledByArrowTrigger）
+ *
+ * 玩家射出的箭/三叉戟击杀实体时触发。条件：
+ *  - victims：受害者实体谓词列表（多重集合匹配）；
+ *  - unique_entity_types：被击杀的不同实体类型数量范围；
+ *  - fired_from_weapon：射出武器的物品谓词（弩多杀进度用它限定弩）。
+ */
+class KilledByArrowTrigger : public AbstractCriterionTrigger<KilledByArrowTriggerInstance> {
+public:
+    static constexpr const char* TRIGGER_ID = "minecraft:killed_by_arrow";
+
+    [[nodiscard]] ResourceLocation getId() const override { return ResourceLocation(TRIGGER_ID); }
+
+    [[nodiscard]] Result<std::shared_ptr<ICriterionInstance>> fromJson(const nlohmann::json& json) override;
+
+    /// 触发（本次击杀的实体集合 + 射出武器）
+    void trigger(class ServerPlayer& player,
+        const class std::vector<const class Entity*>& victims,
+        const class ItemStack& firedFromWeapon);
+};
+
+/**
+ * @brief 箭矢击杀触发器实例
+ */
+class KilledByArrowTriggerInstance : public CriterionInstance<KilledByArrowTriggerInstance> {
+public:
+    static constexpr const char* TRIGGER_ID = "minecraft:killed_by_arrow";
+
+    KilledByArrowTriggerInstance() = default;
+    KilledByArrowTriggerInstance(std::vector<EntityPredicate> victims,
+        IntBounds uniqueEntityTypes,
+        std::optional<ItemPredicate> firedFromWeapon);
+
+    [[nodiscard]] bool test(
+        const std::vector<const class Entity*>& victims, const class ItemStack& firedFromWeapon) const;
+
+    Result<void> fromJson(const nlohmann::json& json);
+    [[nodiscard]] nlohmann::json conditionsToJson() const;
+
+private:
+    std::vector<EntityPredicate> m_victims;
+    IntBounds m_uniqueEntityTypes;
+    std::optional<ItemPredicate> m_firedFromWeapon;
 };
 
 } // namespace advancement

@@ -301,5 +301,63 @@ TEST_F(PlayerHurtEntityTriggerTest, FishingRodHooked_EntityCondition)
     EXPECT_FALSE(instance.test(rod, nullptr, {}));
 }
 
+TEST_F(PlayerHurtEntityTriggerTest, KilledByArrow_Registered)
+{
+    EXPECT_TRUE(advancement::CriterionTriggers::instance().hasTrigger(ResourceLocation("minecraft:killed_by_arrow")));
+}
+
+TEST_F(PlayerHurtEntityTriggerTest, KilledByArrow_UniqueEntityTypesAndWeapon)
+{
+    // 弩多杀进度写法：{"victims": [], "unique_entity_types": {"min": 2},
+    //                 "fired_from_weapon": {"items": "minecraft:crossbow"}}
+    const nlohmann::json json = {
+        {"trigger", "minecraft:killed_by_arrow"},
+        {"conditions",
+            {{"unique_entity_types", {{"min", 2}}}, {"fired_from_weapon", {{"items", "minecraft:crossbow"}}}}},
+    };
+    auto criterion = advancement::Criterion::fromJson("crossbow_multi_kill", json);
+    ASSERT_TRUE(criterion.success());
+    auto instance =
+        std::dynamic_pointer_cast<advancement::KilledByArrowTriggerInstance>(criterion.value().getTriggerInstance());
+    ASSERT_NE(instance, nullptr);
+
+    Items::initialize();
+    ASSERT_NE(Items::CROSSBOW, nullptr);
+    ASSERT_NE(Items::BOW, nullptr);
+    const ItemStack crossbow(*Items::CROSSBOW, 1);
+    const ItemStack bow(*Items::BOW, 1);
+
+    ZombieEntity zombie(EntityInstanceId(1), mc::test::testEcsRegistry());
+    zombie.setTypeId(entity::EntityTypeKeys::ZOMBIE);
+    ZombieEntity zombie2(EntityInstanceId(2), mc::test::testEcsRegistry());
+    zombie2.setTypeId(entity::EntityTypeKeys::ZOMBIE);
+    ZombieEntity skeleton(EntityInstanceId(3), mc::test::testEcsRegistry());
+    skeleton.setTypeId(entity::EntityTypeKeys::SKELETON);
+
+    // 两种不同实体类型 → 满足 min 2
+    EXPECT_TRUE(instance->test({&zombie, &skeleton}, crossbow));
+    // 同种类型仅计 1 → 不满足
+    EXPECT_FALSE(instance->test({&zombie, &zombie2}, crossbow));
+    // 武器不是弩 → 不匹配
+    EXPECT_FALSE(instance->test({&zombie, &skeleton}, bow));
+    // 武器缺失（直接放置的箭矢）→ 带 fired_from_weapon 的条件不匹配
+    EXPECT_FALSE(instance->test({&zombie, &skeleton}, ItemStack()));
+}
+
+TEST_F(PlayerHurtEntityTriggerTest, KilledByArrow_VictimsMultisetMatch)
+{
+    advancement::KilledByArrowTriggerInstance instance;
+    ASSERT_TRUE(
+        instance.fromJson(nlohmann::json{{"victims", nlohmann::json::array({{{"type", "minecraft:skeleton"}}})}})
+            .success());
+    ZombieEntity zombie(EntityInstanceId(1), mc::test::testEcsRegistry());
+    zombie.setTypeId(entity::EntityTypeKeys::ZOMBIE);
+    ZombieEntity skeleton(EntityInstanceId(3), mc::test::testEcsRegistry());
+    skeleton.setTypeId(entity::EntityTypeKeys::SKELETON);
+    // 无武器条件时任意武器（含空栈）都通过
+    EXPECT_TRUE(instance.test({&skeleton}, ItemStack()));
+    EXPECT_FALSE(instance.test({&zombie}, ItemStack()));
+}
+
 } // namespace
 } // namespace mc
