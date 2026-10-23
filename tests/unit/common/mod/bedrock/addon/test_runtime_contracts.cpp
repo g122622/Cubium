@@ -56,6 +56,7 @@ public:
         if (it == files.end()) {
             return std::nullopt;
         }
+
         return ScriptData(name, it->second, name, true);
     }
 };
@@ -95,6 +96,7 @@ protected:
     {
         const auto value = context->getGlobalVariable(name);
         EXPECT_TRUE(value.has_value());
+
         return value && value->isNumber() ? value->asNumber() : -1;
     }
 
@@ -110,11 +112,17 @@ TEST(ScriptSchedulerContractTest, CancelRunAndCancelAnotherReadyCallback)
 {
     ScriptScheduler scheduler;
     int calls = 0;
-    const auto cancelled = scheduler.run([&]() { ++calls; });
+    const auto cancelled = scheduler.run([&]() {
+        ++calls;
+    });
     EXPECT_TRUE(scheduler.clearRun(cancelled));
     ScriptScheduler::RunId second = 0;
-    scheduler.run([&]() { EXPECT_TRUE(scheduler.clearRun(second)); });
-    second = scheduler.run([&]() { ++calls; });
+    scheduler.run([&]() {
+        EXPECT_TRUE(scheduler.clearRun(second));
+    });
+    second = scheduler.run([&]() {
+        ++calls;
+    });
     scheduler.tick(1);
     EXPECT_EQ(calls, 0);
     EXPECT_EQ(scheduler.pendingCount(), 0u);
@@ -125,7 +133,11 @@ TEST(ScriptSchedulerContractTest, TimeoutUsesTickAtRegistration)
     ScriptScheduler scheduler;
     scheduler.tick(100);
     int calls = 0;
-    scheduler.runTimeout([&]() { ++calls; }, 3);
+    scheduler.runTimeout(
+        [&]() {
+            ++calls;
+        },
+        3);
     scheduler.tick(101);
     scheduler.tick(102);
     EXPECT_EQ(calls, 0);
@@ -139,7 +151,9 @@ TEST(ScriptSchedulerContractTest, NestedRunWaitsUntilNextTick)
     int calls = 0;
     scheduler.run([&]() {
         ++calls;
-        scheduler.run([&]() { ++calls; });
+        scheduler.run([&]() {
+            ++calls;
+        });
     });
     scheduler.tick(1);
     EXPECT_EQ(calls, 1);
@@ -156,10 +170,12 @@ TEST(ScriptEventContractTest, BeforeCallbacksCanUnsubscribeAndCancellationIsRetu
         ++calls;
         EXPECT_EQ(std::any_cast<int>(data), 7);
         EXPECT_TRUE(signal.unsubscribe(subscription));
+
         return true;
     });
     signal.subscribe(typeid(int), [&](std::any&) {
         ++calls;
+
         return false;
     });
     std::any data = 7;
@@ -179,8 +195,9 @@ TEST(ScriptEventContractTest, AfterCallbacksCanEnqueueAndUnsubscribe)
         signal.unsubscribe(subscription);
         signal.enqueue(typeid(float), 3.0f);
     });
-    signal.subscribe(
-        typeid(float), [&](const std::any& data) { total += static_cast<int>(std::any_cast<float>(data)); });
+    signal.subscribe(typeid(float), [&](const std::any& data) {
+        total += static_cast<int>(std::any_cast<float>(data));
+    });
     signal.enqueue(typeid(int), 2);
     EXPECT_TRUE(signal.flush());
     EXPECT_EQ(total, 2);
@@ -201,6 +218,7 @@ TEST_F(AddonRuntimeContractTest, TimersRetainArgumentsAfterNativeCallReturns)
     for (mc::u64 tick = 1; tick <= 6; ++tick) {
         scheduler.tick(tick);
     }
+
     EXPECT_EQ(number("calls"), 112);
     EXPECT_EQ(scheduler.pendingCount(), 0u);
 }

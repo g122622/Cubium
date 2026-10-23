@@ -39,6 +39,7 @@ ScriptEventHandler AfterEventSignal::subscribe(std::type_index eventType, Callba
     std::lock_guard<std::mutex> lock(m_mutex);
     u64 id = m_nextId++;
     m_handlers[eventType].push_back({id, std::move(callback)});
+
     return ScriptEventHandler{id, eventType};
 }
 
@@ -55,11 +56,15 @@ bool AfterEventSignal::unsubscribe(const ScriptEventHandler& handle)
     }
 
     auto& subs = it->second;
-    auto subIt = std::find_if(subs.begin(), subs.end(), [&](const Subscription& sub) { return sub.id == handle.id; });
+    auto subIt = std::find_if(subs.begin(), subs.end(), [&](const Subscription& sub) {
+        return sub.id == handle.id;
+    });
     if (subIt != subs.end()) {
         subs.erase(subIt);
+
         return true;
     }
+
     return false;
 }
 
@@ -90,8 +95,10 @@ bool AfterEventSignal::flush()
             if (it == m_handlers.end()) {
                 continue;
             }
+
             subs = it->second;
         }
+
         for (const auto& sub : subs) {
             sub.callback(event.data);
         }
@@ -122,12 +129,14 @@ size_t AfterEventSignal::handlerCount(std::type_index eventType) const
 {
     std::lock_guard<std::mutex> lock(m_mutex);
     auto it = m_handlers.find(eventType);
+
     return it != m_handlers.end() ? it->second.size() : 0;
 }
 
 size_t AfterEventSignal::pendingCount() const
 {
     std::lock_guard<std::mutex> lock(m_mutex);
+
     return m_pendingEvents.size();
 }
 

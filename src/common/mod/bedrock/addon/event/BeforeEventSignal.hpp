@@ -46,12 +46,16 @@ struct ScriptEventHandler {
     ScriptEventHandler()
         : eventType(typeid(void))
     {}
+
     ScriptEventHandler(u64 id_, std::type_index type)
         : id(id_)
         , eventType(type)
     {}
 
-    [[nodiscard]] bool valid() const { return id != 0; }
+    [[nodiscard]] bool valid() const
+    {
+        return id != 0;
+    }
 };
 
 /**

@@ -36,7 +36,11 @@ struct ScriptEntityReference::State {
     {
         ScriptHandleRegistry::instance().registerHandle(&data);
     }
-    ~State() { ScriptHandleRegistry::instance().unregisterHandle(&data); }
+
+    ~State()
+    {
+        ScriptHandleRegistry::instance().unregisterHandle(&data);
+    }
 };
 
 ScriptEntityReference::ScriptEntityReference(mc::Entity* entity)

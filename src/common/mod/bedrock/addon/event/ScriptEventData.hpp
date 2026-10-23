@@ -74,10 +74,13 @@ private:
 
 /** @brief 脚本包注册自定义内容的启动信号类型。 */
 struct ScriptStartupEvent {};
+
 /** @brief 脚本消息传递信号类型。 */
 struct ScriptMessageEvent {};
+
 /** @brief 所有行为包启动后的世界就绪信号类型。 */
 struct ScriptWorldLoadEvent {};
+
 /** @brief 玩家首次加入与重生的统一脚本信号。 */
 struct ScriptPlayerSpawnEvent {};
 

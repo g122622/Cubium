@@ -114,18 +114,25 @@ public:
     virtual ~IScriptBindingContext() = default;
 
     /** @brief 获取本上下文内的类注册表，不共享其他插件的原型。 */
-    [[nodiscard]] ScriptClassRegistry& classRegistry() noexcept { return m_classRegistry; }
+    [[nodiscard]] ScriptClassRegistry& classRegistry() noexcept
+    {
+        return m_classRegistry;
+    }
 
     /** @brief 登记必须在底层脚本上下文释放前执行的清理操作。 */
     [[nodiscard]] u64 onDispose(std::function<void()> cleanup)
     {
         const u64 id = m_nextCleanupId++;
         m_cleanupCallbacks.emplace(id, std::move(cleanup));
+
         return id;
     }
 
     /** @brief 移除已经完成或被取消的资源清理操作。 */
-    void removeDisposeCallback(u64 id) { m_cleanupCallbacks.erase(id); }
+    void removeDisposeCallback(u64 id)
+    {
+        m_cleanupCallbacks.erase(id);
+    }
 
     // ===== 值创建 =====
 
@@ -334,7 +341,10 @@ public:
      * 默认返回 0：不跟踪类原型句柄的后端（或测试替身）无需实现本方法，只有确实按借用语义持有
      * 句柄的引擎才覆写它。故意不做成纯虚——本方法仅用于诊断，不应成为每个实现的编译负担。
      */
-    [[nodiscard]] virtual std::size_t liveClassProtoHandleCount() const noexcept { return 0; }
+    [[nodiscard]] virtual std::size_t liveClassProtoHandleCount() const noexcept
+    {
+        return 0;
+    }
 
     /** 注册原生方法（nativeFunc为引擎特定的C函数指针） */
     virtual void registerNativeMethod(void* proto, const char* name, void* nativeFunc, i32 length = 0) = 0;

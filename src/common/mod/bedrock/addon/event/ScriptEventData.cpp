@@ -36,43 +36,66 @@ void ScriptEventData::setValue(const std::string& name, ValueBuilder builder)
 {
     m_values.insert_or_assign(name, std::move(builder));
 }
+
 void ScriptEventData::setString(const std::string& name, std::string value)
 {
-    setValue(name, [value = std::move(value)](IScriptBindingContext& context) { return context.createString(value); });
+    setValue(name, [value = std::move(value)](IScriptBindingContext& context) {
+        return context.createString(value);
+    });
 }
+
 void ScriptEventData::setNumber(const std::string& name, f64 value)
 {
-    setValue(name, [value](IScriptBindingContext& context) { return context.createFloat64(value); });
+    setValue(name, [value](IScriptBindingContext& context) {
+        return context.createFloat64(value);
+    });
 }
+
 void ScriptEventData::setBoolean(const std::string& name, bool value)
 {
-    setValue(name, [value](IScriptBindingContext& context) { return context.createBoolean(value); });
+    setValue(name, [value](IScriptBindingContext& context) {
+        return context.createBoolean(value);
+    });
 }
+
 void ScriptEventData::setEntity(const std::string& name, mc::Entity* entity)
 {
+    // 队列只持有受追踪引用；实体在分发前析构时，读取结果会自动变为 undefined。
     setValue(name, [reference = ScriptEntityReference(entity)](IScriptBindingContext& context) {
         return wrapEntity(context, reference.get());
     });
 }
+
 void ScriptEventData::setDimension(const std::string& name, mc::IWorld* world)
 {
-    setValue(name, [world](IScriptBindingContext& context) { return wrapDimension(context, world); });
+    setValue(name, [world](IScriptBindingContext& context) {
+        return wrapDimension(context, world);
+    });
 }
+
 void ScriptEventData::setItem(const std::string& name, const mc::ItemStack& item)
 {
-    setValue(name, [item](IScriptBindingContext& context) { return wrapItemStack(context, item); });
+    // 使用物品副本，避免延迟分发读取已经改变或销毁的背包槽位。
+    setValue(name, [item](IScriptBindingContext& context) {
+        return wrapItemStack(context, item);
+    });
 }
+
 void ScriptEventData::setBlock(
     const std::string& name, mc::IWorld* world, const mc::BlockPos& pos, const mc::BlockState* state)
 {
-    setValue(
-        name, [world, pos, state](IScriptBindingContext& context) { return wrapBlock(context, state, pos, world); });
+    setValue(name, [world, pos, state](IScriptBindingContext& context) {
+        return wrapBlock(context, state, pos, world);
+    });
 }
+
 void ScriptEventData::setObject(const std::string& name, ScriptEventData object)
 {
-    setValue(
-        name, [object = std::move(object)](IScriptBindingContext& context) { return object.createObject(context); });
+    setValue(name, [object = std::move(object)](IScriptBindingContext& context) {
+        return object.createObject(context);
+    });
 }
+
 void* ScriptEventData::createObject(IScriptBindingContext& context) const
 {
     void* object = context.createObject();
@@ -81,6 +104,7 @@ void* ScriptEventData::createObject(IScriptBindingContext& context) const
         context.setProperty(object, name.c_str(), value);
         context.releaseValue(value);
     }
+
     return object;
 }
 

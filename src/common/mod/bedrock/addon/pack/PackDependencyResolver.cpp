@@ -47,21 +47,26 @@ std::string PackDependencyResolver::ResolveResult::toString() const
             if (i > 0) {
                 result += ", ";
             }
+
             result += missingDependencies[i];
         }
     }
+
     if (!versionMismatches.empty()) {
         if (!result.empty()) {
             result += "; ";
         }
+
         result += "Version mismatches: ";
         for (size_t i = 0; i < versionMismatches.size(); ++i) {
             if (i > 0) {
                 result += ", ";
             }
+
             result += versionMismatches[i];
         }
     }
+
     return result;
 }
 
@@ -75,7 +80,10 @@ PackDependencyResolver::ResolveResult PackDependencyResolver::resolve(
     // 构建UUID到包的映射
     std::unordered_map<std::string, const BehaviorPack*> packByUuid;
     for (const auto& pack : packs) {
-        if (!pack->isEnabled()) continue;
+        if (!pack->isEnabled()) {
+            continue;
+        }
+
         if (!packByUuid.emplace(pack->uuid(), pack.get()).second) {
             result.success = false;
             result.versionMismatches.push_back("Duplicate enabled pack UUID: " + pack->uuid());
@@ -84,7 +92,10 @@ PackDependencyResolver::ResolveResult PackDependencyResolver::resolve(
 
     // 检查每个包的依赖
     for (const auto& pack : packs) {
-        if (!pack->isEnabled()) continue;
+        if (!pack->isEnabled()) {
+            continue;
+        }
+
         const auto& manifest = pack->manifest();
 
         for (const auto& dep : manifest.dependencies) {

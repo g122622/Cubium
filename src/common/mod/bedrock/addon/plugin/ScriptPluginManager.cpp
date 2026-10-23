@@ -56,53 +56,86 @@ ScriptPluginManager::~ScriptPluginManager()
 Result<void> ScriptPluginManager::loadPlugins(IScriptEngine& engine, BehaviorPackList& packList)
 {
     auto dependencies = packList.resolveDependencies();
-    if (dependencies.failed()) return dependencies;
+    if (dependencies.failed()) {
+        return dependencies;
+    }
+
+    // 包身份和版本已校验；执行图只包含脚本包，避免把 BP/RP 双向声明误判为执行环。
     const auto enabled = packList.getEnabledPacks();
     std::unordered_map<std::string, BehaviorPack*> scripts;
     for (auto* pack : enabled) {
-        if (pack->manifest().hasScriptModule()) scripts.emplace(pack->uuid(), pack);
+        if (pack->manifest().hasScriptModule()) {
+            scripts.emplace(pack->uuid(), pack);
+        }
     }
+
+    // 状态 1 表示正在递归访问，状态 2 表示其依赖已经全部排入加载顺序。
     std::unordered_map<std::string, u8> state;
     std::vector<BehaviorPack*> ordered;
     std::function<Result<void>(BehaviorPack*)> visit = [&](BehaviorPack* pack) -> Result<void> {
         auto& status = state[pack->uuid()];
-        if (status == 2) return Result<void>::ok();
-        if (status == 1) return Error(ErrorCode::InvalidData, "Cyclic script pack dependency at: " + pack->uuid());
+        if (status == 2) {
+            return Result<void>::ok();
+        }
+
+        if (status == 1) {
+            return Error(ErrorCode::InvalidData, "Cyclic script pack dependency at: " + pack->uuid());
+        }
+
         status = 1;
         for (const auto& dependency : pack->manifest().dependencies) {
             const auto found = scripts.find(dependency.uuid);
-            if (found == scripts.end()) continue;
+            if (found == scripts.end()) {
+                continue;
+            }
+
             if (_determineExecutionGroup(found->second->manifest()) > _determineExecutionGroup(pack->manifest())) {
                 return Error(ErrorCode::InvalidData, "Script pack depends on a later execution group: " + pack->uuid());
             }
+
             auto result = visit(found->second);
-            if (result.failed()) return result;
+            if (result.failed()) {
+                return result;
+            }
         }
+
         status = 2;
         ordered.push_back(pack);
+
         return Result<void>::ok();
     };
     for (auto* pack : enabled) {
         if (pack->manifest().hasScriptModule()) {
             auto result = visit(pack);
-            if (result.failed()) return result;
+            if (result.failed()) {
+                return result;
+            }
         }
     }
+
+    // 保留本批新增插件的清单；失败时按相反顺序释放上下文及其任务。
     std::vector<std::string> loaded;
     for (const auto group :
         {PluginExecutionGroup::PrePackLoad, PluginExecutionGroup::ServerStart, PluginExecutionGroup::ClientLevel}) {
         for (auto* pack : ordered) {
-            if (m_plugins.contains(pack->uuid()) || _determineExecutionGroup(pack->manifest()) != group) continue;
+            if (m_plugins.contains(pack->uuid()) || _determineExecutionGroup(pack->manifest()) != group) {
+                continue;
+            }
+
             auto result = loadPlugin(engine, *pack);
             if (result.failed()) {
-                for (auto it = loaded.rbegin(); it != loaded.rend(); ++it)
+                for (auto it = loaded.rbegin(); it != loaded.rend(); ++it) {
                     unloadPlugin(*it);
+                }
+
                 return Error(
                     result.error().code(), "Failed to load pack '" + pack->name() + "': " + result.error().message());
             }
+
             loaded.push_back(pack->uuid());
         }
     }
+
     return Result<void>::ok();
 }
 
@@ -136,11 +169,13 @@ Result<void> ScriptPluginManager::loadPlugin(IScriptEngine& engine, BehaviorPack
     if (result.failed()) {
         // 清理源
         m_sources.erase(pack.uuid());
+
         return result;
     }
 
     spdlog::info("[BedrockAddon] Plugin '{}' loaded successfully", pack.name());
     m_plugins[pack.uuid()] = std::move(plugin);
+
     return Result<void>::ok();
 }
 
@@ -210,6 +245,7 @@ void ScriptPluginManager::tickPlugins()
 ScriptPlugin* ScriptPluginManager::getPlugin(const std::string& uuid)
 {
     auto it = m_plugins.find(uuid);
+
     return it != m_plugins.end() ? it->second.get() : nullptr;
 }
 
@@ -221,6 +257,7 @@ std::vector<ScriptPlugin*> ScriptPluginManager::getRunningPlugins()
             running.push_back(plugin.get());
         }
     }
+
     return running;
 }
 
@@ -231,6 +268,7 @@ std::vector<const ScriptPlugin*> ScriptPluginManager::getAllPlugins() const
     for (const auto& [uuid, plugin] : m_plugins) {
         plugins.push_back(plugin.get());
     }
+
     return plugins;
 }
 
@@ -247,6 +285,7 @@ size_t ScriptPluginManager::errorCount() const
             ++count;
         }
     }
+
     return count;
 }
 
@@ -259,6 +298,7 @@ std::optional<ScriptData> ScriptPluginManager::loadScript(const std::string& mod
             return data;
         }
     }
+
     return std::nullopt;
 }
 

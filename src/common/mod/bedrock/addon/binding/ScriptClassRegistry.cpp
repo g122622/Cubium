@@ -39,6 +39,7 @@ void* ScriptClassRegistry::proto(u64 classId) const noexcept
     if (it == m_byId.end()) {
         return nullptr;
     }
+
     return it->second.proto;
 }
 
@@ -48,6 +49,7 @@ void* ScriptClassRegistry::protoByName(std::string_view name) const noexcept
     if (it == m_idByName.end()) {
         return nullptr;
     }
+
     return proto(it->second);
 }
 
@@ -57,6 +59,7 @@ u64 ScriptClassRegistry::classIdByName(std::string_view name) const noexcept
     if (it == m_idByName.end()) {
         return 0;
     }
+
     return it->second;
 }
 
@@ -72,6 +75,7 @@ void ScriptClassRegistry::unregisterClass(u64 classId) noexcept
     if (nameIt != m_idByName.end() && nameIt->second == classId) {
         m_idByName.erase(nameIt);
     }
+
     m_byId.erase(it);
 }
 

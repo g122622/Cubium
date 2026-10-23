@@ -172,19 +172,23 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
         if (argc < 1 || !ctx.isString(args[0])) {
             return ctx.throwTypeError("world.getDimension requires a string argument");
         }
+
         auto idOpt = ctx.toString(args[0]);
         if (!idOpt) {
             return ctx.createUndefined();
         }
+
         mc::IWorld* world = ScriptWorldAccessor::instance().getDimension(*idOpt);
         if (world == nullptr) {
             return ctx.createUndefined(); // 维度不存在或回调未注册
         }
+
         const u64 dimClassId = ctx.classRegistry().classIdByName("Dimension");
         void* dimProto = ctx.classRegistry().proto(dimClassId);
         if (dimProto == nullptr) {
             return ctx.createUndefined(); // Dimension 类未注册（模块未加载）
         }
+
         return ScriptObjectRegistry::wrap(ctx, dimClassId, dimProto, world, false, "Dimension");
     });
     worldReg.method("getAllPlayers", [](IScriptBindingContext& ctx, void*, i32, void**) -> void* {
@@ -197,16 +201,23 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
                 ctx.releaseValue(value);
             }
         }
+
         return result;
     });
     worldReg.method(
         "getEntity",
         [](IScriptBindingContext& ctx, void*, i32 argc, void** args) -> void* {
-            if (argc < 1 || !ctx.isString(args[0])) return ctx.throwTypeError("world.getEntity requires a string ID");
+            if (argc < 1 || !ctx.isString(args[0])) {
+                return ctx.throwTypeError("world.getEntity requires a string ID");
+            }
+
             const auto id = *ctx.toString(args[0]);
             for (auto* world : ScriptWorldAccessor::instance().getDimensions()) {
-                if (auto* entity = world->getEntityByUuid(id)) return wrapEntity(ctx, entity);
+                if (auto* entity = world->getEntityByUuid(id)) {
+                    return wrapEntity(ctx, entity);
+                }
             }
+
             return ctx.createUndefined();
         },
         1);
@@ -214,11 +225,14 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
         if (argc < 1 || !ctx.isString(args[0])) {
             return ctx.throwTypeError("world.sendMessage requires a string argument");
         }
+
         auto msg = ctx.toString(args[0]);
         if (!msg) {
             return ctx.throwInternalError("Failed to convert message to string");
         }
+
         ScriptWorldAccessor::instance().sendMessage(*msg);
+
         return ctx.createUndefined();
     });
 
@@ -232,11 +246,13 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
         if (scoreboard == nullptr) {
             return ctx.createUndefined(); // 回调未注册（非服务器环境）
         }
+
         const u64 sbClassId = ctx.classRegistry().classIdByName("Scoreboard");
         void* sbProto = ctx.classRegistry().proto(sbClassId);
         if (sbProto == nullptr) {
             return ctx.createUndefined(); // Scoreboard 类未注册
         }
+
         return ScriptObjectRegistry::wrap(ctx, sbClassId, sbProto, scoreboard, false, "Scoreboard");
     });
 
@@ -254,6 +270,7 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
         // 哨兵指针：Manager 无状态，opaque 仅作占位（owned=false 不销毁）。每次访问 world.bossbar 返新
         // JS 对象，但均无状态，等价单例。
         static i32 s_sentinel = 0;
+
         return ScriptObjectRegistry::wrap(ctx, mgrClassId, mgrProto, &s_sentinel, false, "BossBarManager");
     });
 
@@ -268,12 +285,14 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
         if (!view.exists) {
             return ctx.createUndefined();
         }
+
         void* obj = ctx.createObject();
         ctx.setPropertyFloat(obj, "x", view.x);
         ctx.setPropertyFloat(obj, "y", view.y);
         ctx.setPropertyFloat(obj, "z", view.z);
         ctx.setPropertyFloat(obj, "yaw", static_cast<f64>(view.yaw));
         ctx.setPropertyFloat(obj, "pitch", static_cast<f64>(view.pitch));
+
         return obj;
     });
 
@@ -291,11 +310,13 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
         if (world == nullptr) {
             return ctx.createUndefined(); // 维度不存在或回调未注册
         }
+
         const u64 borderClassId = ctx.classRegistry().classIdByName("WorldBorder");
         void* borderProto = ctx.classRegistry().proto(borderClassId);
         if (borderProto == nullptr) {
             return ctx.createUndefined(); // WorldBorder 类未注册（模块未加载）
         }
+
         return ScriptObjectRegistry::wrap(ctx, borderClassId, borderProto, world, false, "WorldBorder");
     });
 
@@ -319,6 +340,7 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
         if (world == nullptr) {
             return ctx.createString("minecraft:overworld");
         }
+
         switch (world->dimension()) {
             case 0:
                 return ctx.createString("minecraft:overworld");
@@ -357,6 +379,7 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
                         hasType = true;
                     }
                 }
+
                 ctx.releaseValue(typeVal);
                 normalizedType = typeFilter;
                 if (hasType && normalizedType.find(':') == std::string::npos) {
@@ -378,6 +401,7 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
                         hasLoc = true;
                     }
                 }
+
                 ctx.releaseValue(locVal);
 
                 f32 vx = 0, vy = 0, vz = 0;
@@ -394,6 +418,7 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
                         hasVol = true;
                     }
                 }
+
                 ctx.releaseValue(volVal);
 
                 if (hasLoc && hasVol) {
@@ -408,9 +433,11 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
                         if (ent == nullptr) {
                             continue;
                         }
+
                         if (hasType && ent->getTypeId() != normalizedType) {
                             continue;
                         }
+
                         if (entProto != nullptr) {
                             // 传 ent->id() 登记 ScriptHandleRegistry：实体销毁时置 ptr=nullptr 防 UAF
                             // （owned=false 裸 Entity* 跨 tick 悬垂，见 ScriptHandleRegistry.hpp）。
@@ -421,6 +448,7 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
                             ++outIdx;
                         }
                     }
+
                     return arr;
                 }
             }
@@ -436,14 +464,17 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
                     if (ent == nullptr || entProto == nullptr) {
                         continue;
                     }
+
                     void* jsEnt =
                         ScriptObjectRegistry::wrap(ctx, entClassId, entProto, ent, false, "Entity", nullptr, ent->id());
                     ctx.setArrayElement(arr, outIdx, jsEnt);
                     ctx.releaseValue(jsEnt);
                     ++outIdx;
                 }
+
                 return arr;
             }
+
             return ctx.createArray();
         },
         1);
@@ -459,6 +490,7 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
             if (world == nullptr) {
                 return ctx.createInt32(0);
             }
+
             return ctx.createInt32(static_cast<i32>(world->dayTimeOfDay()));
         },
         0);
@@ -470,6 +502,7 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
             if (world == nullptr) {
                 return ctx.createInt64(0);
             }
+
             return ctx.createInt64(world->dayTime());
         },
         0);
@@ -485,6 +518,7 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
             if (world == nullptr) {
                 return ctx.createBoolean(false);
             }
+
             return ctx.createBoolean(world->isRaining());
         },
         0);
@@ -495,6 +529,7 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
             if (world == nullptr) {
                 return ctx.createBoolean(false);
             }
+
             return ctx.createBoolean(world->isThundering());
         },
         0);
@@ -510,10 +545,12 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
             if (world == nullptr || argc < 1 || !ctx.isString(args[0])) {
                 return ctx.createString("");
             }
+
             auto name = ctx.toString(args[0]);
             if (!name) {
                 return ctx.createString("");
             }
+
             return ctx.createString(world->getGameRules().getValueAsString(*name));
         },
         1);
@@ -529,6 +566,7 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
             if (world == nullptr) {
                 return ctx.createString("");
             }
+
             switch (world->difficulty()) {
                 case mc::Difficulty::Peaceful:
                     return ctx.createString("peaceful");
@@ -556,20 +594,24 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
             if (world == nullptr) {
                 return ctx.createUndefined();
             }
+
             if (argc < 1 || !ctx.isObject(args[0])) {
                 return ctx.throwTypeError("Dimension.getBlock requires a {x,y,z} location argument");
             }
+
             auto xOpt = ctx.getPropertyInt(args[0], "x");
             auto yOpt = ctx.getPropertyInt(args[0], "y");
             auto zOpt = ctx.getPropertyInt(args[0], "z");
             if (!xOpt || !yOpt || !zOpt) {
                 return ctx.throwTypeError("Dimension.getBlock location must have numeric x,y,z");
             }
+
             BlockPos pos(static_cast<i32>(*xOpt), static_cast<i32>(*yOpt), static_cast<i32>(*zOpt));
             const mc::BlockState* state = world->getBlockState(pos);
             if (state == nullptr) {
                 return ctx.createUndefined();
             }
+
             return mc::mod::bedrock::addon::wrapBlock(ctx, state, pos, world);
         },
         1);
@@ -592,6 +634,7 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
         if (world == nullptr) {
             return ctx.createFloat64(0.0);
         }
+
         return ctx.createFloat64(world->worldBorder().getSize());
     });
     // center：边界中心 {x, z}。/worldborder center 修改。
@@ -601,11 +644,14 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
         if (world == nullptr) {
             ctx.setPropertyFloat(obj, "x", 0.0);
             ctx.setPropertyFloat(obj, "z", 0.0);
+
             return obj;
         }
+
         const auto& border = world->worldBorder();
         ctx.setPropertyFloat(obj, "x", border.getCenterX());
         ctx.setPropertyFloat(obj, "z", border.getCenterZ());
+
         return obj;
     });
     // damagePerBlock：超出边界每格伤害（getDamagePerBlock）。/worldborder damage amount 修改。
@@ -615,6 +661,7 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
             if (world == nullptr) {
                 return ctx.createFloat64(0.0);
             }
+
             return ctx.createFloat64(world->worldBorder().getDamagePerBlock());
         });
     // damageSafeZone：伤害安全距离/缓冲（getDamageBuffer）。/worldborder damage buffer 修改。
@@ -625,6 +672,7 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
             if (world == nullptr) {
                 return ctx.createFloat64(0.0);
             }
+
             return ctx.createFloat64(world->worldBorder().getDamageBuffer());
         });
     // warningBlocks：警告距离（getWarningDistance）。/worldborder warning distance 修改。
@@ -634,6 +682,7 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
             if (world == nullptr) {
                 return ctx.createInt32(0);
             }
+
             return ctx.createInt32(world->worldBorder().getWarningDistance());
         });
     // warningTime：警告时间秒（getWarningTime）。/worldborder warning time 修改。
@@ -643,6 +692,7 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
             if (world == nullptr) {
                 return ctx.createInt32(0);
             }
+
             return ctx.createInt32(world->worldBorder().getWarningTime());
         });
 
@@ -664,22 +714,27 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
             if (scoreboard == nullptr) {
                 return ctx.createUndefined();
             }
+
             if (argc < 1 || !ctx.isString(args[0])) {
                 return ctx.throwTypeError("scoreboard.getObjective requires a string argument");
             }
+
             auto nameOpt = ctx.toString(args[0]);
             if (!nameOpt) {
                 return ctx.createUndefined();
             }
+
             auto* objective = scoreboard->getObjective(*nameOpt);
             if (objective == nullptr) {
                 return ctx.createUndefined(); // 目标不存在
             }
+
             const u64 objClassId = ctx.classRegistry().classIdByName("Objective");
             void* objProto = ctx.classRegistry().proto(objClassId);
             if (objProto == nullptr) {
                 return ctx.createUndefined(); // Objective 类未注册
             }
+
             return ScriptObjectRegistry::wrap(ctx, objClassId, objProto, objective, false, "Objective");
         },
         1);
@@ -691,12 +746,14 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
             if (scoreboard == nullptr) {
                 return ctx.createArray();
             }
+
             const u64 objClassId = ctx.classRegistry().classIdByName("Objective");
             void* objProto = ctx.classRegistry().proto(objClassId);
             void* arr = ctx.createArray();
             if (objProto == nullptr) {
                 return arr; // Objective 类未注册，返回空数组
             }
+
             u32 i = 0;
             for (auto* objective : scoreboard->getObjectives()) {
                 void* objVal = ScriptObjectRegistry::wrap(ctx, objClassId, objProto, objective, false, "Objective");
@@ -704,6 +761,7 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
                 ctx.releaseValue(objVal);
                 ++i;
             }
+
             return arr;
         },
         0);
@@ -716,17 +774,21 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
             if (scoreboard == nullptr) {
                 return ctx.createUndefined();
             }
+
             if (argc < 1 || !ctx.isString(args[0])) {
                 return ctx.throwTypeError("scoreboard.getTeam requires a string argument");
             }
+
             auto nameOpt = ctx.toString(args[0]);
             if (!nameOpt) {
                 return ctx.createUndefined();
             }
+
             auto* team = scoreboard->getTeam(*nameOpt);
             if (team == nullptr) {
                 return ctx.createUndefined(); // 队伍不存在
             }
+
             const u64 teamClassId = ctx.classRegistry().classIdByName("Team");
             void* teamProto = ctx.classRegistry().proto(teamClassId);
             if (teamProto == nullptr) {
@@ -745,12 +807,14 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
             if (scoreboard == nullptr) {
                 return ctx.createArray();
             }
+
             const u64 teamClassId = ctx.classRegistry().classIdByName("Team");
             void* teamProto = ctx.classRegistry().proto(teamClassId);
             void* arr = ctx.createArray();
             if (teamProto == nullptr) {
                 return arr; // Team 类未注册，返回空数组
             }
+
             u32 i = 0;
             for (auto* team : scoreboard->getTeams()) {
                 void* teamVal = ScriptObjectRegistry::wrap(ctx, teamClassId, teamProto, team, false, "Team");
@@ -758,6 +822,7 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
                 ctx.releaseValue(teamVal);
                 ++i;
             }
+
             return arr;
         },
         0);
@@ -777,6 +842,7 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
         if (objective == nullptr) {
             return ctx.createUndefined();
         }
+
         return ctx.createString(objective->getName());
     });
     objectiveReg.readonlyProperty(
@@ -789,6 +855,7 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
             if (objective == nullptr) {
                 return ctx.createUndefined();
             }
+
             return ctx.createString(objective->getName());
         });
     objectiveReg.method(
@@ -799,17 +866,21 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
             if (objective == nullptr) {
                 return ctx.createUndefined();
             }
+
             if (argc < 1 || !ctx.isString(args[0])) {
                 return ctx.throwTypeError("objective.getScore requires a string argument");
             }
+
             auto nameOpt = ctx.toString(args[0]);
             if (!nameOpt) {
                 return ctx.createUndefined();
             }
+
             auto* score = objective->getScoreboard().getScore(*nameOpt, *objective);
             if (score == nullptr) {
                 return ctx.createUndefined(); // 该 holder 无分数
             }
+
             return ctx.createInt32(score->getScorePoints());
         },
         1);
@@ -824,12 +895,14 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
             if (objective == nullptr) {
                 return ctx.createArray();
             }
+
             void* arr = ctx.createArray();
             u32 i = 0;
             for (auto* score : objective->getScoreboard().getSortedScores(*objective)) {
                 ctx.setArrayElementString(arr, i, score->getPlayerName());
                 ++i;
             }
+
             return arr;
         },
         0);
@@ -851,6 +924,7 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
         if (team == nullptr) {
             return ctx.createUndefined();
         }
+
         return ctx.createString(team->getName());
     });
     teamReg.readonlyProperty("displayName", [teamClassId](IScriptBindingContext& ctx, void* thisVal) -> void* {
@@ -861,6 +935,7 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
         if (team == nullptr) {
             return ctx.createUndefined();
         }
+
         return ctx.createString(team->getName());
     });
     teamReg.readonlyProperty("color", [teamClassId](IScriptBindingContext& ctx, void* thisVal) -> void* {
@@ -870,6 +945,7 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
         if (team == nullptr) {
             return ctx.createUndefined();
         }
+
         return ctx.createString(mc::text::toName(team->getColor()));
     });
     teamReg.readonlyProperty("friendlyFire", [teamClassId](IScriptBindingContext& ctx, void* thisVal) -> void* {
@@ -878,6 +954,7 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
         if (team == nullptr) {
             return ctx.createUndefined();
         }
+
         return ctx.createBoolean(team->getAllowFriendlyFire());
     });
     teamReg.readonlyProperty(
@@ -887,6 +964,7 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
             if (team == nullptr) {
                 return ctx.createUndefined();
             }
+
             return ctx.createBoolean(team->canSeeFriendlyInvisibles());
         });
     teamReg.readonlyProperty("nametagVisibility", [teamClassId](IScriptBindingContext& ctx, void* thisVal) -> void* {
@@ -895,6 +973,7 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
         if (team == nullptr) {
             return ctx.createUndefined();
         }
+
         return ctx.createString(mc::scoreboard::teamVisibilityToString(team->getNameTagVisibility()));
     });
     teamReg.readonlyProperty(
@@ -904,6 +983,7 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
             if (team == nullptr) {
                 return ctx.createUndefined();
             }
+
             return ctx.createString(mc::scoreboard::teamVisibilityToString(team->getDeathMessageVisibility()));
         });
     teamReg.readonlyProperty("collisionRule", [teamClassId](IScriptBindingContext& ctx, void* thisVal) -> void* {
@@ -912,6 +992,7 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
         if (team == nullptr) {
             return ctx.createUndefined();
         }
+
         return ctx.createString(mc::scoreboard::teamCollisionRuleToString(team->getCollisionRule()));
     });
     teamReg.method(
@@ -924,12 +1005,14 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
             if (team == nullptr) {
                 return ctx.createArray();
             }
+
             void* arr = ctx.createArray();
             u32 i = 0;
             for (const auto& member : team->getMembers()) {
                 ctx.setArrayElementString(arr, i, member);
                 ++i;
             }
+
             return arr;
         },
         0);
@@ -941,13 +1024,16 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
             if (team == nullptr) {
                 return ctx.createBoolean(false);
             }
+
             if (argc < 1 || !ctx.isString(args[0])) {
                 return ctx.throwTypeError("team.hasMember requires a string argument");
             }
+
             auto nameOpt = ctx.toString(args[0]);
             if (!nameOpt) {
                 return ctx.createBoolean(false);
             }
+
             return ctx.createBoolean(team->hasMember(*nameOpt));
         },
         1);
@@ -969,6 +1055,7 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
             if (argc < 1 || !ctx.isString(args[0])) {
                 return ctx.throwTypeError("bossBarManager.get requires a string argument");
             }
+
             auto idOpt = ctx.toString(args[0]);
             if (!idOpt) {
                 return ctx.createUndefined();
@@ -978,6 +1065,7 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
             if (!view.exists) {
                 return ctx.createUndefined();
             }
+
             const u64 barClassId = ctx.classRegistry().classIdByName("BossBar");
             void* barProto = ctx.classRegistry().proto(barClassId);
             if (barProto == nullptr) {
@@ -985,6 +1073,7 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
             }
             // 堆分配 id 字符串，BossBar JS 对象 owned 持有，GC 时 destroy 释放。
             auto* idPtr = std::make_unique<std::string>(*idOpt).release();
+
             return ScriptObjectRegistry::wrap(ctx, barClassId, barProto, idPtr, true, "BossBar", [](void* p) {
                 delete static_cast<std::string*>(p);
             });
@@ -1000,6 +1089,7 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
             if (barProto == nullptr) {
                 return arr; // BossBar 类未注册，返回空数组
             }
+
             u32 i = 0;
             for (const auto& id : ScriptWorldAccessor::instance().getBossBarIds()) {
                 auto* idPtr = std::make_unique<std::string>(id).release();
@@ -1011,6 +1101,7 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
                 ctx.releaseValue(barVal);
                 ++i;
             }
+
             return arr;
         },
         0);
@@ -1032,10 +1123,12 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
         if (idPtr == nullptr) {
             return ctx.createUndefined();
         }
+
         auto view = ScriptWorldAccessor::instance().getBossBar(*idPtr);
         if (!view.exists) {
             return ctx.createUndefined();
         }
+
         return ctx.createString(view.id);
     });
     bossBarReg.readonlyProperty("name", [bossBarClassId](IScriptBindingContext& ctx, void* thisVal) -> void* {
@@ -1043,10 +1136,12 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
         if (idPtr == nullptr) {
             return ctx.createUndefined();
         }
+
         auto view = ScriptWorldAccessor::instance().getBossBar(*idPtr);
         if (!view.exists) {
             return ctx.createUndefined();
         }
+
         return ctx.createString(view.name);
     });
     bossBarReg.readonlyProperty("value", [bossBarClassId](IScriptBindingContext& ctx, void* thisVal) -> void* {
@@ -1054,10 +1149,12 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
         if (idPtr == nullptr) {
             return ctx.createUndefined();
         }
+
         auto view = ScriptWorldAccessor::instance().getBossBar(*idPtr);
         if (!view.exists) {
             return ctx.createUndefined();
         }
+
         return ctx.createInt32(view.value);
     });
     bossBarReg.readonlyProperty("max", [bossBarClassId](IScriptBindingContext& ctx, void* thisVal) -> void* {
@@ -1065,10 +1162,12 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
         if (idPtr == nullptr) {
             return ctx.createUndefined();
         }
+
         auto view = ScriptWorldAccessor::instance().getBossBar(*idPtr);
         if (!view.exists) {
             return ctx.createUndefined();
         }
+
         return ctx.createInt32(view.max);
     });
     bossBarReg.readonlyProperty("color", [bossBarClassId](IScriptBindingContext& ctx, void* thisVal) -> void* {
@@ -1076,10 +1175,12 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
         if (idPtr == nullptr) {
             return ctx.createUndefined();
         }
+
         auto view = ScriptWorldAccessor::instance().getBossBar(*idPtr);
         if (!view.exists) {
             return ctx.createUndefined();
         }
+
         return ctx.createString(view.color);
     });
     bossBarReg.readonlyProperty("overlay", [bossBarClassId](IScriptBindingContext& ctx, void* thisVal) -> void* {
@@ -1087,10 +1188,12 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
         if (idPtr == nullptr) {
             return ctx.createUndefined();
         }
+
         auto view = ScriptWorldAccessor::instance().getBossBar(*idPtr);
         if (!view.exists) {
             return ctx.createUndefined();
         }
+
         return ctx.createString(view.overlay);
     });
     bossBarReg.readonlyProperty("visible", [bossBarClassId](IScriptBindingContext& ctx, void* thisVal) -> void* {
@@ -1098,10 +1201,12 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
         if (idPtr == nullptr) {
             return ctx.createUndefined();
         }
+
         auto view = ScriptWorldAccessor::instance().getBossBar(*idPtr);
         if (!view.exists) {
             return ctx.createUndefined();
         }
+
         return ctx.createBoolean(view.visible);
     });
     bossBarReg.readonlyProperty("players", [bossBarClassId](IScriptBindingContext& ctx, void* thisVal) -> void* {
@@ -1110,16 +1215,19 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
         if (idPtr == nullptr) {
             return ctx.createArray();
         }
+
         auto view = ScriptWorldAccessor::instance().getBossBar(*idPtr);
         void* arr = ctx.createArray();
         if (!view.exists) {
             return arr;
         }
+
         u32 i = 0;
         for (const auto& uuid : view.players) {
             ctx.setArrayElementString(arr, i, uuid);
             ++i;
         }
+
         return arr;
     });
 
@@ -1133,10 +1241,12 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
     ClassRegistrar<void> entityReg(ctx, entityClassId, entityProto);
     entityReg.readonlyProperty("dimension", [](IScriptBindingContext& ctx, void* value) -> void* {
         auto* entity = static_cast<mc::Entity*>(ScriptObjectRegistry::unwrap(ctx, value, 0));
+
         return wrapDimension(ctx, entity != nullptr ? entity->world() : nullptr);
     });
     entityReg.readonlyProperty("isValid", [](IScriptBindingContext& ctx, void* value) -> void* {
         auto* entity = static_cast<mc::Entity*>(ScriptObjectRegistry::unwrap(ctx, value, 0));
+
         return ctx.createBoolean(entity != nullptr && !entity->isRemoved());
     });
     entityReg.readonlyProperty("id", [entityClassId](IScriptBindingContext& ctx, void* thisVal) -> void* {
@@ -1144,6 +1254,7 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
         if (ent == nullptr) {
             return ctx.createUndefined();
         }
+
         return ctx.createString(ent->uuid());
     });
     entityReg.readonlyProperty("typeId", [entityClassId](IScriptBindingContext& ctx, void* thisVal) -> void* {
@@ -1151,6 +1262,7 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
         if (ent == nullptr) {
             return ctx.createUndefined();
         }
+
         return ctx.createString(ent->getTypeId());
     });
     entityReg.method("getDimension",
@@ -1159,15 +1271,18 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
             if (ent == nullptr) {
                 return ctx.createUndefined();
             }
+
             auto* world = ent->world();
             if (world == nullptr) {
                 return ctx.createUndefined();
             }
+
             const u64 dimClassId = ctx.classRegistry().classIdByName("Dimension");
             void* dimProto = ctx.classRegistry().proto(dimClassId);
             if (dimProto == nullptr) {
                 return ctx.createUndefined();
             }
+
             return ScriptObjectRegistry::wrap(ctx, dimClassId, dimProto, world, false, "Dimension");
         });
     entityReg.method("getLocation",
@@ -1176,11 +1291,13 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
             if (ent == nullptr) {
                 return ctx.createUndefined();
             }
+
             auto pos = ent->position();
             void* obj = ctx.createObject();
             ctx.setPropertyFloat(obj, "x", static_cast<f64>(pos.x));
             ctx.setPropertyFloat(obj, "y", static_cast<f64>(pos.y));
             ctx.setPropertyFloat(obj, "z", static_cast<f64>(pos.z));
+
             return obj;
         });
     // 基岩 Entity.location 是标准 readonly 属性（@minecraft/server Entity.location: Vector3），
@@ -1192,11 +1309,13 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
         if (ent == nullptr) {
             return ctx.createUndefined();
         }
+
         auto pos = ent->position();
         void* obj = ctx.createObject();
         ctx.setPropertyFloat(obj, "x", static_cast<f64>(pos.x));
         ctx.setPropertyFloat(obj, "y", static_cast<f64>(pos.y));
         ctx.setPropertyFloat(obj, "z", static_cast<f64>(pos.z));
+
         return obj;
     });
     // 基岩 Entity.getVelocity() 是标准 API（@minecraft/server Entity.getVelocity(): Vector3），
@@ -1209,11 +1328,13 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
             if (ent == nullptr) {
                 return ctx.createUndefined();
             }
+
             auto vel = ent->velocity();
             void* obj = ctx.createObject();
             ctx.setPropertyFloat(obj, "x", static_cast<f64>(vel.x));
             ctx.setPropertyFloat(obj, "y", static_cast<f64>(vel.y));
             ctx.setPropertyFloat(obj, "z", static_cast<f64>(vel.z));
+
             return obj;
         });
     // Cubium 扩展 Entity.setVelocity(vector: Vector3)：直接设置实体速度向量。
@@ -1236,6 +1357,7 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
             if (ent == nullptr || argc < 1 || !ctx.isObject(args[0])) {
                 return ctx.createUndefined();
             }
+
             void* velObj = args[0];
             auto xOpt = ctx.getPropertyFloat(velObj, "x");
             auto yOpt = ctx.getPropertyFloat(velObj, "y");
@@ -1243,7 +1365,9 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
             if (!xOpt || !yOpt || !zOpt) {
                 return ctx.throwTypeError("setVelocity requires {x,y,z}");
             }
+
             ent->setVelocity(static_cast<f32>(*xOpt), static_cast<f32>(*yOpt), static_cast<f32>(*zOpt));
+
             return ctx.createUndefined();
         },
         1);
@@ -1271,10 +1395,12 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
             if (ent == nullptr || argc < 1 || !ctx.isNumber(args[0])) {
                 return ctx.createBoolean(false);
             }
+
             const auto secondsOpt = ctx.toFloat64(args[0]);
             if (!secondsOpt) {
                 return ctx.createBoolean(false);
             }
+
             const f64 seconds = *secondsOpt;
             // useEffects 默认 true；显式传 false 时跳过副作用。
             bool useEffects = true;
@@ -1284,14 +1410,17 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
                     useEffects = *bOpt;
                 }
             }
+
             if (seconds <= 0.0) {
                 return ctx.createBoolean(false);
             }
+
             if (useEffects) {
                 ent->igniteForSeconds(static_cast<f32>(seconds));
             } else {
                 ent->setFire(static_cast<i32>(seconds * 20.0));
             }
+
             return ctx.createBoolean(true);
         },
         2);
@@ -1315,6 +1444,7 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
             if (ent->isRemoved()) {
                 return ctx.createUndefined();
             }
+
             auto compId = ctx.toString(args[0]);
             if (!compId) {
                 return ctx.createUndefined();
@@ -1334,29 +1464,41 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
                 if (proto == nullptr) {
                     return ctx.createUndefined();
                 }
+
                 return ScriptObjectRegistry::wrap(ctx, classId, proto, ent, false, className, nullptr, ent->id());
             };
 
             if (normalized == "minecraft:rideable") {
                 return wrapComponent("RideableComponent");
             }
+
             if (normalized == "minecraft:health" || normalized == "minecraft:movement" ||
                 normalized == "minecraft:equippable") {
                 // health/movement/equippable 仅 LivingEntity attach，非 LivingEntity 返 undefined。
                 if (dynamic_cast<mc::LivingEntity*>(ent) == nullptr) {
                     return ctx.createUndefined();
                 }
-                if (normalized == "minecraft:health") return wrapComponent("HealthComponent");
-                if (normalized == "minecraft:movement") return wrapComponent("MovementComponent");
+
+                if (normalized == "minecraft:health") {
+                    return wrapComponent("HealthComponent");
+                }
+
+                if (normalized == "minecraft:movement") {
+                    return wrapComponent("MovementComponent");
+                }
+
                 return wrapComponent("EquippableComponent");
             }
+
             if (normalized == "minecraft:onfire") {
                 // 对齐基岩 OnFireComponent："When present on an entity, this entity is on fire"。
                 if (!ent->isOnFire()) {
                     return ctx.createUndefined();
                 }
+
                 return wrapComponent("OnFireComponent");
             }
+
             if (normalized == "minecraft:inventory") {
                 // 对齐基岩 EntityInventoryComponent：仅 Player 持有背包组件（基岩原版仅玩家/容器实体有
                 // inventory 组件）。dynamic_cast Player 失败（非玩家实体）返 undefined。组件对象的 container
@@ -1364,8 +1506,10 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
                 if (dynamic_cast<mc::Player*>(ent) == nullptr) {
                     return ctx.createUndefined();
                 }
+
                 return wrapComponent("EntityInventoryComponent");
             }
+
             if (normalized == "minecraft:is_charged") {
                 // 对齐基岩 EntityIsChargedComponent（componentId="minecraft:is_charged"）：
                 // "When added, this component signifies that this entity is charged"。组件存在即充能。
@@ -1374,8 +1518,10 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
                 if (creeper == nullptr || !creeper->isPowered()) {
                     return ctx.createUndefined();
                 }
+
                 return wrapComponent("IsChargedComponent");
             }
+
             if (normalized == "minecraft:mark_variant") {
                 // 借用基岩 mark_variant（i32 标记变种组件）承载哞菇红/棕变种。基岩原版哞菇无此组件，
                 // 此处为集成测试可读变种而设：dynamic_cast 到 MooshroomEntity，读 getMooshroomType()
@@ -1385,8 +1531,10 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
                 if (mooshroom == nullptr) {
                     return ctx.createUndefined();
                 }
+
                 return wrapComponent("MarkVariantComponent");
             }
+
             if (normalized == "minecraft:glow_squid_dark_ticks") {
                 // 借用自定义 componentId 承载发光鱿鱼受惊暗化剩余 tick（Java SynchedData
                 // DarkTicksRemaining，基岩原版无此标准组件）。发光鱿鱼受击后 setDarkTicks(100)（对齐
@@ -1397,8 +1545,10 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
                 if (glowSquid == nullptr || glowSquid->getDarkTicksRemaining() <= 0) {
                     return ctx.createUndefined();
                 }
+
                 return wrapComponent("GlowSquidDarkTicksComponent");
             }
+
             if (normalized == "minecraft:pufferfish_puff_state") {
                 // 借用自定义 componentId 承载河豚膨胀等级（Java SynchedData PUFF_STATE，基岩原版无此
                 // 标准组件）。膨胀等级 0=未膨胀/1=半膨胀/2=完全膨胀，由 PuffGoal 检测 2 格内 scary
@@ -1411,8 +1561,10 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
                 if (pufferfish == nullptr) {
                     return ctx.createUndefined();
                 }
+
                 return wrapComponent("PufferfishPuffStateComponent");
             }
+
             if (normalized == "minecraft:is_tamed") {
                 // 对齐基岩 EntityIsTamedComponent（componentId="minecraft:is_tamed"）：
                 // 驯服状态标记组件，wolf/cat/parrot 等驯服类生物经 setTamed(true) 置位。TameableEntity
@@ -1432,12 +1584,15 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
                 if (tameable != nullptr) {
                     return wrapComponent("IsTamedComponent");
                 }
+
                 auto* horse = dynamic_cast<mc::AbstractHorseEntity*>(ent);
                 if (horse != nullptr) {
                     return wrapComponent("IsTamedComponent");
                 }
+
                 return ctx.createUndefined();
             }
+
             if (normalized == "minecraft:is_sitting") {
                 // 对齐基岩 EntityIsSittingComponent（componentId="minecraft:is_sitting"）：
                 // 坐下状态标记组件，wolf/cat/parrot 等驯服类生物经 setSitting(true)/toggleSitting() 置位
@@ -1452,8 +1607,10 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
                 if (tameable != nullptr) {
                     return wrapComponent("IsSittingComponent");
                 }
+
                 return ctx.createUndefined();
             }
+
             if (normalized == "minecraft:is_saddled") {
                 // 对齐基岩 EntityIsSaddledComponent（componentId="minecraft:is_saddled"）：
                 // "When added, this component signifies that this entity is currently saddled"。
@@ -1471,17 +1628,22 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
                     if (!rideable->hasSaddle()) {
                         return ctx.createUndefined();
                     }
+
                     return wrapComponent("IsSaddledComponent");
                 }
+
                 const auto* horse = dynamic_cast<mc::AbstractHorseEntity*>(ent);
                 if (horse != nullptr) {
                     if (!horse->hasSaddle()) {
                         return ctx.createUndefined();
                     }
+
                     return wrapComponent("IsSaddledComponent");
                 }
+
                 return ctx.createUndefined();
             }
+
             if (normalized == "minecraft:is_chested") {
                 // 对齐基岩 EntityIsChestedComponent（componentId="minecraft:is_chested"）：
                 // "When added, this component signifies that this entity is currently carrying a chest"。
@@ -1494,8 +1656,10 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
                 if (chested == nullptr || !chested->hasChest()) {
                     return ctx.createUndefined();
                 }
+
                 return wrapComponent("IsChestedComponent");
             }
+
             if (normalized == "minecraft:color") {
                 // 对齐基岩 EntityColorComponent（componentId="minecraft:color"）：
                 // "Defines the entity's color. Only works on certain entities that have predefined color
@@ -1507,6 +1671,7 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
                 if (sheep == nullptr) {
                     return ctx.createUndefined();
                 }
+
                 return wrapComponent("ColorComponent");
             }
             // TODO: 其他基岩合法 componentId（is_baby/lava_movement 等标记/属性族，羊驼/潜影贝 color）按需补全。
@@ -1530,17 +1695,21 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
             if (vehicle == nullptr) {
                 return ctx.throwInternalError("RideableComponent.addRider: invalid vehicle");
             }
+
             if (argc < 1) {
                 return ctx.throwTypeError("addRider(passengerEntity)");
             }
+
             const u64 entClassId = ctx.classRegistry().classIdByName("Entity");
             auto* passenger = static_cast<mc::Entity*>(ScriptObjectRegistry::unwrap(ctx, args[0], entClassId));
             if (passenger == nullptr) {
                 return ctx.throwTypeError("addRider: argument must be an Entity");
             }
+
             if (!passenger->startRiding(*vehicle)) {
                 return ctx.throwInternalError("addRider: passenger failed to start riding vehicle");
             }
+
             return ctx.createUndefined();
         },
         1);
@@ -1559,6 +1728,7 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
             if (ent == nullptr) {
                 return ctx.createUndefined();
             }
+
             return ctx.createInt32(ent->getRemainingFireTicks());
         });
 
@@ -1606,6 +1776,7 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
             if (glowSquid == nullptr) {
                 return ctx.createUndefined();
             }
+
             return ctx.createInt32(glowSquid->getDarkTicksRemaining());
         });
 
@@ -1625,6 +1796,7 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
             if (pufferfish == nullptr) {
                 return ctx.createUndefined();
             }
+
             return ctx.createInt32(static_cast<i32>(pufferfish->getPuffState()));
         });
 
@@ -1647,10 +1819,12 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
         if (tameable != nullptr) {
             return ctx.createBoolean(tameable->isTamed());
         }
+
         auto* horse = dynamic_cast<mc::AbstractHorseEntity*>(ent);
         if (horse != nullptr) {
             return ctx.createBoolean(horse->isTame());
         }
+
         return ctx.createUndefined();
     });
 
@@ -1671,6 +1845,7 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
         if (tameable != nullptr) {
             return ctx.createBoolean(tameable->isSitting());
         }
+
         return ctx.createUndefined();
     });
 
@@ -1725,11 +1900,13 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
         if (inst == nullptr) {
             return ctx.createUndefined();
         }
+
         void* obj = ctx.createObject();
         // typeId：基岩用 "minecraft:blindness" 形式的资源位置。
         ctx.setPropertyString(obj, "typeId", mc::entity::effect::getEffectResourceLocation(type).toString());
         ctx.setPropertyInt(obj, "amplifier", inst->amplifier());
         ctx.setPropertyInt(obj, "duration", inst->duration());
+
         return obj;
     };
     // 解析 JS effectType 参数（string 或 EffectType 对象）为 EffectType，失败返 nullopt。
@@ -1738,14 +1915,17 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
         if (arg == nullptr || !ctx.isString(arg)) {
             return std::nullopt;
         }
+
         auto s = ctx.toString(arg);
         if (!s) {
             return std::nullopt;
         }
+
         std::string id = *s;
         if (id.find(':') == std::string::npos) {
             id = "minecraft:" + id;
         }
+
         return mc::entity::effect::getEffectByResourceLocation(mc::ResourceLocation(id));
     };
 
@@ -1761,10 +1941,12 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
             if (living == nullptr || argc < 1) {
                 return ctx.createUndefined();
             }
+
             auto typeOpt = parseEffectType(ctx, args[0]);
             if (!typeOpt.has_value()) {
                 return ctx.createUndefined();
             }
+
             return buildEffectObject(ctx, living, *typeOpt);
         },
         1);
@@ -1786,6 +1968,7 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
             if (living == nullptr || argc < 2) {
                 return ctx.createUndefined();
             }
+
             auto typeOpt = parseEffectType(ctx, args[0]);
             if (!typeOpt.has_value()) {
                 return ctx.createUndefined();
@@ -1796,6 +1979,7 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
             if (!durationOpt.has_value()) {
                 return ctx.createUndefined();
             }
+
             i32 duration = *durationOpt;
             // options?: EntityEffectOptions（可选对象）。
             i32 amplifier = 0;
@@ -1806,6 +1990,7 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
                 if (ampOpt.has_value()) {
                     amplifier = *ampOpt;
                 }
+
                 auto partOpt = ctx.getPropertyBool(opts, "showParticles");
                 if (partOpt.has_value()) {
                     showParticles = *partOpt;
@@ -1815,6 +2000,7 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
             // 对齐 EffectCommand.cpp:187 用法（ambient 固定 false，visible 对应 showParticles）。
             mc::entity::effect::EffectInstance effect(*typeOpt, duration, amplifier, false, showParticles);
             living->addEffect(std::move(effect));
+
             return ctx.createUndefined();
         },
         3);
@@ -1849,6 +2035,7 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
             if (!xOpt || !yOpt || !zOpt) {
                 return ctx.throwTypeError("teleport location requires {x,y,z}");
             }
+
             f64 x = *xOpt, y = *yOpt, z = *zOpt;
 
             // 解析 options.dimension（可选）：若指定且与当前维度不同则跨维度传送。
@@ -1868,6 +2055,7 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
                         crossDim = (targetDim != ent->dimension());
                     }
                 }
+
                 ctx.releaseValue(dimVal);
                 auto checkOpt = ctx.getPropertyBool(opts, "checkForBlocks");
                 if (checkOpt.has_value()) {
@@ -1886,6 +2074,7 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
                 // 同维度 + 强制传送：直接 setPosition，跳过碰撞检测（对齐基岩 checkForBlocks=false）。
                 ent->setPosition(static_cast<f32>(x), static_cast<f32>(y), static_cast<f32>(z));
             }
+
             return ctx.createUndefined();
         },
         2);
@@ -1901,6 +2090,7 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
             if (ent == nullptr || argc < 1 || !ctx.isObject(args[0])) {
                 return ctx.createBoolean(false);
             }
+
             void* locObj = args[0];
             auto xOpt = ctx.getPropertyFloat(locObj, "x");
             auto yOpt = ctx.getPropertyFloat(locObj, "y");
@@ -1908,6 +2098,7 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
             if (!xOpt || !yOpt || !zOpt) {
                 return ctx.createBoolean(false);
             }
+
             f64 x = *xOpt, y = *yOpt, z = *zOpt;
 
             mc::DimensionId targetDim = ent->dimension();
@@ -1924,6 +2115,7 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
                         crossDim = (targetDim != ent->dimension());
                     }
                 }
+
                 ctx.releaseValue(dimVal);
                 auto checkOpt = ctx.getPropertyBool(opts, "checkForBlocks");
                 if (checkOpt.has_value()) {
@@ -1933,14 +2125,18 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
 
             if (crossDim) {
                 bool ok = ent->changeDimension(targetDim);
+
                 return ctx.createBoolean(ok);
             }
+
             if (checkForBlocks) {
                 bool ok = ent->attemptTeleport(x, y, z, false);
+
                 return ctx.createBoolean(ok);
             }
             // 强制传送（checkForBlocks=false）：直接 setPosition，恒成功。
             ent->setPosition(static_cast<f32>(x), static_cast<f32>(y), static_cast<f32>(z));
+
             return ctx.createBoolean(true);
         },
         2);
@@ -1955,6 +2151,7 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
             if (living == nullptr) {
                 return ctx.createArray();
             }
+
             const auto& effects = living->effectManager().getAllEffects();
             void* arr = ctx.createArray();
             u32 outIdx = 0;
@@ -1967,6 +2164,7 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
                     ++outIdx;
                 }
             }
+
             return arr;
         },
         0);
@@ -1984,6 +2182,7 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
             if (ent == nullptr) {
                 return ctx.createArray();
             }
+
             const auto& tags = ent->getTags();
             void* arr = ctx.createArray();
             u32 outIdx = 0;
@@ -1993,6 +2192,7 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
                 ctx.releaseValue(str);
                 ++outIdx;
             }
+
             return arr;
         },
         0);
@@ -2003,7 +2203,9 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
             if (ent == nullptr || argc < 1 || !ctx.isString(args[0])) {
                 return ctx.createBoolean(false);
             }
+
             auto tag = ctx.toString(args[0]);
+
             return ctx.createBoolean(tag ? ent->hasTag(*tag) : false);
         },
         1);
@@ -2014,7 +2216,9 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
             if (ent == nullptr || argc < 1 || !ctx.isString(args[0])) {
                 return ctx.createBoolean(false);
             }
+
             auto tag = ctx.toString(args[0]);
+
             return ctx.createBoolean(tag ? ent->addTag(*tag) : false);
         },
         1);
@@ -2025,7 +2229,9 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
             if (ent == nullptr || argc < 1 || !ctx.isString(args[0])) {
                 return ctx.createBoolean(false);
             }
+
             auto tag = ctx.toString(args[0]);
+
             return ctx.createBoolean(tag ? ent->removeTag(*tag) : false);
         },
         1);
@@ -2046,6 +2252,7 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
         if (living == nullptr) {
             return ctx.createUndefined();
         }
+
         return ctx.createFloat64(static_cast<f64>(living->health()));
     });
     healthReg.readonlyProperty("effectiveMax", [healthClassId](IScriptBindingContext& ctx, void* thisVal) -> void* {
@@ -2054,6 +2261,7 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
         if (living == nullptr) {
             return ctx.createUndefined();
         }
+
         return ctx.createFloat64(static_cast<f64>(living->maxHealth()));
     });
     healthReg.readonlyProperty("effectiveMin", [](IScriptBindingContext& ctx, void* thisVal) -> void* {
@@ -2072,13 +2280,16 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
             if (living == nullptr) {
                 return ctx.createBoolean(false);
             }
+
             if (argc < 1 || !ctx.isNumber(args[0])) {
                 return ctx.throwTypeError("health.setCurrentValue requires a number argument");
             }
+
             auto value = ctx.toFloat64(args[0]);
             if (!value) {
                 return ctx.createBoolean(false);
             }
+
             living->setHealth(static_cast<f32>(*value)); // 内部 clamp 到 [0, maxHealth]
             return ctx.createBoolean(true);
         },
@@ -2090,6 +2301,7 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
             if (living != nullptr) {
                 living->setHealth(living->maxHealth());
             }
+
             return ctx.createUndefined();
         });
     healthReg.method("resetToMinValue",
@@ -2100,6 +2312,7 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
             if (living != nullptr) {
                 living->setHealth(1.0f);
             }
+
             return ctx.createUndefined();
         });
     healthReg.method("resetToDefaultValue",
@@ -2110,6 +2323,7 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
             if (living != nullptr) {
                 living->setHealth(20.0f);
             }
+
             return ctx.createUndefined();
         });
 
@@ -2128,6 +2342,7 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
         if (living == nullptr) {
             return ctx.createUndefined();
         }
+
         return ctx.createFloat64(living->attributes().getValue(mc::entity::attribute::Attributes::MOVEMENT_SPEED, 0.0));
     });
     movementReg.readonlyProperty("effectiveMax", [movementClassId](IScriptBindingContext& ctx, void* thisVal) -> void* {
@@ -2136,6 +2351,7 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
         if (living == nullptr) {
             return ctx.createUndefined();
         }
+
         const auto* inst = living->attributes().getInstance(mc::entity::attribute::Attributes::MOVEMENT_SPEED);
         // 属性实例缺失时 fallback 1024.0（vanilla MOVEMENT_SPEED 上界）。
         return ctx.createFloat64(inst != nullptr ? inst->attribute().maxValue() : 1024.0);
@@ -2146,7 +2362,9 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
         if (living == nullptr) {
             return ctx.createUndefined();
         }
+
         const auto* inst = living->attributes().getInstance(mc::entity::attribute::Attributes::MOVEMENT_SPEED);
+
         return ctx.createFloat64(inst != nullptr ? inst->attribute().minValue() : 0.0);
     });
     movementReg.readonlyProperty("defaultValue", [movementClassId](IScriptBindingContext& ctx, void* thisVal) -> void* {
@@ -2155,6 +2373,7 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
         if (living == nullptr) {
             return ctx.createUndefined();
         }
+
         const auto* inst = living->attributes().getInstance(mc::entity::attribute::Attributes::MOVEMENT_SPEED);
         // TODO: 各实体默认移动速度不同，inst 缺失时 fallback 0.25（vanilla 通用值）。
         return ctx.createFloat64(inst != nullptr ? inst->attribute().defaultValue() : 0.25);
@@ -2167,14 +2386,18 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
             if (living == nullptr) {
                 return ctx.createBoolean(false);
             }
+
             if (argc < 1 || !ctx.isNumber(args[0])) {
                 return ctx.throwTypeError("movement.setCurrentValue requires a number argument");
             }
+
             auto value = ctx.toFloat64(args[0]);
             if (!value) {
                 return ctx.createBoolean(false);
             }
+
             living->attributes().setBaseValue(mc::entity::attribute::Attributes::MOVEMENT_SPEED, *value);
+
             return ctx.createBoolean(true);
         },
         1);
@@ -2185,6 +2408,7 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
             if (living != nullptr) {
                 living->attributes().resetBaseValue(mc::entity::attribute::Attributes::MOVEMENT_SPEED);
             }
+
             return ctx.createUndefined();
         });
     movementReg.method("resetToMaxValue",
@@ -2198,6 +2422,7 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
                         mc::entity::attribute::Attributes::MOVEMENT_SPEED, inst->attribute().maxValue());
                 }
             }
+
             return ctx.createUndefined();
         });
     movementReg.method("resetToMinValue",
@@ -2211,6 +2436,7 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
                         mc::entity::attribute::Attributes::MOVEMENT_SPEED, inst->attribute().minValue());
                 }
             }
+
             return ctx.createUndefined();
         });
 
@@ -2241,6 +2467,7 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
             if (living == nullptr || argc < 1 || !ctx.isString(args[0])) {
                 return ctx.createUndefined();
             }
+
             auto slotStr = ctx.toString(args[0]);
             if (!slotStr) {
                 return ctx.createUndefined();
@@ -2248,23 +2475,26 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
             // 基岩 EquipmentSlot 字符串 → 项目枚举（精确匹配，未知返 undefined）。
             std::optional<mc::EquipmentSlot> slot = std::nullopt;
             const std::string& s = *slotStr;
-            if (s == "Head")
+            if (s == "Head") {
                 slot = mc::EquipmentSlot::Head;
-            else if (s == "Chest")
+            } else if (s == "Chest") {
                 slot = mc::EquipmentSlot::Chest;
-            else if (s == "Legs")
+            } else if (s == "Legs") {
                 slot = mc::EquipmentSlot::Legs;
-            else if (s == "Feet")
+            } else if (s == "Feet") {
                 slot = mc::EquipmentSlot::Feet;
-            else if (s == "Mainhand")
+            } else if (s == "Mainhand") {
                 slot = mc::EquipmentSlot::MainHand;
-            else if (s == "Offhand")
+            } else if (s == "Offhand") {
                 slot = mc::EquipmentSlot::OffHand;
-            else if (s == "Body")
+            } else if (s == "Body") {
                 slot = mc::EquipmentSlot::Body;
+            }
+
             if (!slot.has_value()) {
                 return ctx.createUndefined();
             }
+
             const mc::ItemStack& stack = living->getEquipment(*slot);
             if (stack.isEmpty()) {
                 return ctx.createUndefined();
@@ -2275,6 +2505,7 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
             if (itemStackProto == nullptr) {
                 return ctx.createUndefined();
             }
+
             auto* owned = std::make_unique<mc::ItemStack>(stack).release(); // 拷贝（含 NBT 深拷贝）
             return ScriptObjectRegistry::wrap(
                 ctx, itemStackClassId, itemStackProto, owned, true, "ItemStack", [](void* p) {
@@ -2290,26 +2521,30 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
             if (living == nullptr || argc < 2 || !ctx.isString(args[0])) {
                 return ctx.createBoolean(false);
             }
+
             auto slotStr = ctx.toString(args[0]);
             if (!slotStr) {
                 return ctx.createBoolean(false);
             }
+
             std::optional<mc::EquipmentSlot> slot = std::nullopt;
             const std::string& s = *slotStr;
-            if (s == "Head")
+            if (s == "Head") {
                 slot = mc::EquipmentSlot::Head;
-            else if (s == "Chest")
+            } else if (s == "Chest") {
                 slot = mc::EquipmentSlot::Chest;
-            else if (s == "Legs")
+            } else if (s == "Legs") {
                 slot = mc::EquipmentSlot::Legs;
-            else if (s == "Feet")
+            } else if (s == "Feet") {
                 slot = mc::EquipmentSlot::Feet;
-            else if (s == "Mainhand")
+            } else if (s == "Mainhand") {
                 slot = mc::EquipmentSlot::MainHand;
-            else if (s == "Offhand")
+            } else if (s == "Offhand") {
                 slot = mc::EquipmentSlot::OffHand;
-            else if (s == "Body")
+            } else if (s == "Body") {
                 slot = mc::EquipmentSlot::Body;
+            }
+
             if (!slot.has_value()) {
                 return ctx.createBoolean(false);
             }
@@ -2317,6 +2552,7 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
             void* itemArg = args[1];
             if (ctx.isUndefined(itemArg) || ctx.getType(itemArg) == ScriptType::Null) {
                 living->setEquipment(*slot, mc::ItemStack::EMPTY);
+
                 return ctx.createBoolean(true);
             }
             // ItemStack 入参：按 classId unwrap（非拥有，仅拷贝写入装备数组）。复用 Container.setItem
@@ -2327,7 +2563,9 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
                 return ctx.throwTypeError(
                     "EquippableComponent.setEquipment: argument must be an ItemStack, undefined, or null");
             }
+
             living->setEquipment(*slot, *stack);
+
             return ctx.createBoolean(true);
         },
         2);
@@ -2343,34 +2581,41 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
             if (mob == nullptr || argc < 2 || !ctx.isString(args[0]) || !ctx.isNumber(args[1])) {
                 return ctx.createBoolean(false);
             }
+
             auto slotStr = ctx.toString(args[0]);
             if (!slotStr) {
                 return ctx.createBoolean(false);
             }
+
             std::optional<mc::EquipmentSlot> slot = std::nullopt;
             const std::string& s = *slotStr;
-            if (s == "Head")
+            if (s == "Head") {
                 slot = mc::EquipmentSlot::Head;
-            else if (s == "Chest")
+            } else if (s == "Chest") {
                 slot = mc::EquipmentSlot::Chest;
-            else if (s == "Legs")
+            } else if (s == "Legs") {
                 slot = mc::EquipmentSlot::Legs;
-            else if (s == "Feet")
+            } else if (s == "Feet") {
                 slot = mc::EquipmentSlot::Feet;
-            else if (s == "Mainhand")
+            } else if (s == "Mainhand") {
                 slot = mc::EquipmentSlot::MainHand;
-            else if (s == "Offhand")
+            } else if (s == "Offhand") {
                 slot = mc::EquipmentSlot::OffHand;
-            else if (s == "Body")
+            } else if (s == "Body") {
                 slot = mc::EquipmentSlot::Body;
+            }
+
             if (!slot.has_value()) {
                 return ctx.createBoolean(false);
             }
+
             auto chance = ctx.toFloat64(args[1]);
             if (!chance) {
                 return ctx.createBoolean(false);
             }
+
             mob->setEquipmentDropChance(*slot, static_cast<mc::f32>(*chance));
+
             return ctx.createBoolean(true);
         },
         2);
@@ -2391,7 +2636,10 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
         "getGameMode",
         [](IScriptBindingContext& ctx, void* receiver, i32, void**) -> void* {
             auto* player = static_cast<mc::Player*>(ScriptObjectRegistry::unwrap(ctx, receiver, 0));
-            if (player == nullptr) return ctx.throwTypeError("Invalid player");
+            if (player == nullptr) {
+                return ctx.throwTypeError("Invalid player");
+            }
+
             switch (player->gameMode()) {
                 case mc::GameMode::Creative:
                     return ctx.createString("Creative");
@@ -2411,6 +2659,7 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
         if (player == nullptr) {
             return ctx.createUndefined();
         }
+
         return ctx.createString(player->username());
     });
     // getSpawnPoint：返回玩家重生点 {x,y,z,dimensionId,yaw,pitch,forced}
@@ -2423,10 +2672,12 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
         if (player == nullptr) {
             return ctx.createUndefined();
         }
+
         auto config = player->getRespawnConfig();
         if (!config.has_value()) {
             return ctx.createUndefined(); // 无重生点
         }
+
         const GlobalPos& gp = config->respawnData.globalPos;
         void* obj = ctx.createObject();
         ctx.setPropertyInt(obj, "x", static_cast<i32>(gp.x()));
@@ -2436,6 +2687,7 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
         ctx.setPropertyFloat(obj, "yaw", config->respawnData.yaw);
         ctx.setPropertyFloat(obj, "pitch", config->respawnData.pitch);
         ctx.setPropertyBool(obj, "forced", config->forced);
+
         return obj;
     });
 
@@ -2460,12 +2712,14 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
         if (state == nullptr) {
             return ctx.createUndefined();
         }
+
         return ctx.createString(state->blockLocation().toString());
     });
     blockPermutationReg.readonlyProperty("isValid", [](IScriptBindingContext& ctx, void* thisVal) -> void* {
         // 官方 isValid 表示此 permutation 是否为有效状态（非 air 占位即视为有效）。
         const u64 classId = ctx.classRegistry().classIdByName("BlockPermutation");
         auto* state = static_cast<const mc::BlockState*>(ScriptObjectRegistry::unwrap(ctx, thisVal, classId));
+
         return ctx.createBoolean(state != nullptr);
     });
     // getState(propertyName) -> boolean | number | string | undefined。
@@ -2481,11 +2735,13 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
             if (argc < 1) {
                 return ctx.throwTypeError("BlockPermutation.getState(propertyName: string)");
             }
+
             const u64 classId = ctx.classRegistry().classIdByName("BlockPermutation");
             auto* state = static_cast<const mc::BlockState*>(ScriptObjectRegistry::unwrap(ctx, thisVal, classId));
             if (state == nullptr) {
                 return ctx.createUndefined();
             }
+
             auto propName = ctx.toString(args[0]);
             if (!propName) {
                 return ctx.throwTypeError("BlockPermutation.getState: propertyName must be a string");
@@ -2495,9 +2751,11 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
                 if (entry.property == nullptr) {
                     continue;
                 }
+
                 if (entry.property->name() != *propName) {
                     continue;
                 }
+
                 const std::string valStr = entry.property->valueToString(entry.valueIndex);
                 const char* tn = entry.property->typeName();
                 if (tn == std::string("IntegerProperty")) {
@@ -2509,6 +2767,7 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
                         return ctx.createString(valStr); // 解析失败降级返字符串
                     }
                 }
+
                 if (tn == std::string("BooleanProperty")) {
                     return ctx.createBoolean(valStr == "true");
                 }
@@ -2559,6 +2818,7 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
                     block = mc::BlockRegistry::instance().getBlock(mc::ResourceLocation(it->second));
                 }
             }
+
             if (block == nullptr) {
                 return ctx.throwTypeError(
                     ("BlockPermutation.resolve: unknown block type '" + *blockType + "'").c_str());
@@ -2591,18 +2851,21 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
                             valueStr = std::string(*b ? "true" : "false");
                         }
                     }
+
                     ctx.releaseValue(valHandle);
 
                     if (!valueStr) {
                         return ctx.throwTypeError(
                             ("BlockPermutation.resolve: invalid value for property '" + propName + "'").c_str());
                     }
+
                     auto parsed = prop->parseValue(*valueStr);
                     if (!parsed.has_value()) {
                         return ctx.throwTypeError(("BlockPermutation.resolve: invalid value '" + *valueStr +
                             "' for property '" + propName + "' on block '" + *blockType + "'")
                                 .c_str());
                     }
+
                     state = &state->withValueIndex(*prop, *parsed);
                 }
             }
@@ -2619,6 +2882,7 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
             // （"引擎重建后 classId 变化，每次仍回查注册表校正"）。proto 仍用注册期捕获值（不影响 unwrap，
             // unwrap 只看对象 class_id 与 opaque；proto 仅决定方法/属性查找，旧 proto 跨重建仍存活）。
             const u64 resolveClassId = ctx.classRegistry().classIdByName("BlockPermutation");
+
             return ScriptObjectRegistry::wrap(ctx,
                 resolveClassId,
                 blockPermutationProto,
@@ -2641,6 +2905,7 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
         if (item == nullptr) {
             return ctx.createUndefined();
         }
+
         return ctx.createString(item->toString());
     });
 
@@ -2658,6 +2923,7 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
         if (ref == nullptr || ref->state == nullptr) {
             return ctx.createUndefined();
         }
+
         return ctx.createBoolean(ref->state->isAir());
     });
     blockReg.readonlyProperty("typeId", [blockClassId](IScriptBindingContext& ctx, void* thisVal) -> void* {
@@ -2665,6 +2931,7 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
         if (ref == nullptr || ref->state == nullptr) {
             return ctx.createUndefined();
         }
+
         return ctx.createString(ref->state->blockLocation().toString());
     });
     blockReg.readonlyProperty(
@@ -2675,7 +2942,9 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
             if (ref == nullptr || ref->state == nullptr) {
                 return ctx.createUndefined();
             }
+
             const u64 permClassId = ctx.classRegistry().classIdByName("BlockPermutation");
+
             return ScriptObjectRegistry::wrap(ctx,
                 permClassId,
                 blockPermutationProto,
@@ -2688,6 +2957,7 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
         if (ref == nullptr) {
             return ctx.createUndefined();
         }
+
         return ctx.createInt32(static_cast<i32>(ref->pos.x));
     });
     blockReg.readonlyProperty("y", [blockClassId](IScriptBindingContext& ctx, void* thisVal) -> void* {
@@ -2695,6 +2965,7 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
         if (ref == nullptr) {
             return ctx.createUndefined();
         }
+
         return ctx.createInt32(static_cast<i32>(ref->pos.y));
     });
     blockReg.readonlyProperty("z", [blockClassId](IScriptBindingContext& ctx, void* thisVal) -> void* {
@@ -2702,6 +2973,7 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
         if (ref == nullptr) {
             return ctx.createUndefined();
         }
+
         return ctx.createInt32(static_cast<i32>(ref->pos.z));
     });
     blockReg.readonlyProperty("location", [blockClassId](IScriptBindingContext& ctx, void* thisVal) -> void* {
@@ -2710,16 +2982,19 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
         if (ref == nullptr) {
             return ctx.createUndefined();
         }
+
         void* obj = ctx.createObject();
         ctx.setPropertyFloat(obj, "x", static_cast<f64>(ref->pos.x));
         ctx.setPropertyFloat(obj, "y", static_cast<f64>(ref->pos.y));
         ctx.setPropertyFloat(obj, "z", static_cast<f64>(ref->pos.z));
+
         return obj;
     });
     blockReg.readonlyProperty("isWaterlogged", [blockClassId](IScriptBindingContext& ctx, void* thisVal) -> void* {
         // 官方 Block.isWaterlogged：方块是否被水淹没。读 BlockState 流体状态非空判定。
         // TODO: 流体状态判定后续完善，暂保守返回 false。
         (void)thisVal;
+
         return ctx.createBoolean(false);
     });
     // --- Block 光照查询扩展（Cubium 专有，官方 @minecraft/server Block 无光照 API）---
@@ -2736,6 +3011,7 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
         if (ref == nullptr || ref->world == nullptr) {
             return ctx.createUndefined();
         }
+
         return ctx.createInt32(static_cast<i32>(ref->world->getBlockLight(ref->pos)));
     });
     blockReg.readonlyProperty("skyLight", [blockClassId](IScriptBindingContext& ctx, void* thisVal) -> void* {
@@ -2743,6 +3019,7 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
         if (ref == nullptr || ref->world == nullptr) {
             return ctx.createUndefined();
         }
+
         return ctx.createInt32(static_cast<i32>(ref->world->getSkyLight(ref->pos)));
     });
     blockReg.readonlyProperty("brightness", [blockClassId](IScriptBindingContext& ctx, void* thisVal) -> void* {
@@ -2751,6 +3028,7 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
         if (ref == nullptr || ref->world == nullptr) {
             return ctx.createUndefined();
         }
+
         return ctx.createInt32(static_cast<i32>(ref->world->getLight(ref->pos)));
     });
     blockReg.readonlyProperty("canSeeSky", [blockClassId](IScriptBindingContext& ctx, void* thisVal) -> void* {
@@ -2758,6 +3036,7 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
         if (ref == nullptr || ref->world == nullptr) {
             return ctx.createUndefined();
         }
+
         return ctx.createBoolean(ref->world->canSeeSky(ref->pos));
     });
 
@@ -2771,11 +3050,14 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
         if (ref == nullptr || ref->world == nullptr) {
             return ctx.createInt32(-1);
         }
+
         BlockEntity* entity = ref->world->getBlockEntity(ref->pos);
         if (entity == nullptr || entity->getType() != BlockEntityType::Beacon) {
             return ctx.createInt32(-1);
         }
+
         auto* beacon = static_cast<blockentity::BeaconEntity*>(entity);
+
         return ctx.createInt32(beacon->getLevel());
     });
 
@@ -2792,10 +3074,12 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
             if (argc < 1 || !ctx.isString(args[0])) {
                 return ctx.throwTypeError("new ItemStack(typeId: string, amount?: number)");
             }
+
             auto typeId = ctx.toString(args[0]);
             if (!typeId) {
                 return ctx.throwInternalError("Failed to read typeId");
             }
+
             i32 amount = 1;
             if (argc >= 2 && ctx.isNumber(args[1])) {
                 auto a = ctx.toInt32(args[1]);
@@ -2803,10 +3087,12 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
                     amount = *a;
                 }
             }
+
             const mc::Item* item = mc::ItemRegistry::instance().getItem(mc::ResourceLocation::parse(*typeId));
             if (item == nullptr) {
                 return ctx.throwTypeError(("Unknown item type: " + *typeId).c_str());
             }
+
             const u64 isClassId = resolveItemStackClassId(ctx);
             void* isProto = ctx.classRegistry().proto(isClassId);
             if (isProto == nullptr) {
@@ -2815,6 +3101,7 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
             // owned，JS GC 时经 destroy 回调 delete；destroy 不可省略，否则 finalizer 不满足
             // `owned && ptr && destroy` 条件，ItemStack 永不释放。
             auto* stack = std::make_unique<mc::ItemStack>(item, amount).release();
+
             return ScriptObjectRegistry::wrap(ctx, isClassId, isProto, stack, true, "ItemStack", [](void* p) {
                 delete static_cast<mc::ItemStack*>(p);
             });
@@ -2827,6 +3114,7 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
         if (stack == nullptr) {
             return ctx.createUndefined();
         }
+
         const mc::Item* item = stack->getItem();
         if (item == nullptr) {
             return ctx.createUndefined();
@@ -2841,6 +3129,7 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
             if (stack == nullptr) {
                 return ctx.createUndefined();
             }
+
             return ctx.createInt32(stack->getCount());
         },
         [](IScriptBindingContext& ctx, void* thisVal, void* value) {
@@ -2850,10 +3139,12 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
             if (stack == nullptr) {
                 return;
             }
+
             auto v = ctx.toInt32(value);
             if (!v) {
                 return;
             }
+
             stack->setCount(*v);
         });
 
@@ -2873,6 +3164,7 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
             if (stack == nullptr) {
                 return ctx.createString("");
             }
+
             return ctx.createString(stack->getCustomName());
         },
         [](IScriptBindingContext& ctx, void* thisVal, void* value) {
@@ -2880,10 +3172,12 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
             if (stack == nullptr) {
                 return;
             }
+
             auto v = ctx.toString(value);
             if (!v) {
                 return;
             }
+
             stack->setCustomName(*v);
         });
 
@@ -2900,6 +3194,7 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
             if (stack == nullptr) {
                 return ctx.createArray();
             }
+
             const auto enchantments = mc::item::enchant::EnchantmentHelper::getEnchantments(*stack);
             void* arr = ctx.createArray();
             u32 outIdx = 0;
@@ -2907,6 +3202,7 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
                 if (ench == nullptr) {
                     continue;
                 }
+
                 void* obj = ctx.createObject();
                 ctx.setPropertyString(obj, "type", ench->id());
                 ctx.setPropertyInt(obj, "level", level);
@@ -2914,6 +3210,7 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
                 ctx.releaseValue(obj);
                 ++outIdx;
             }
+
             return arr;
         },
         0);
@@ -2945,21 +3242,26 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
             if (stack == nullptr) {
                 return ctx.createUndefined();
             }
+
             if (argc < 1 || !ctx.isObject(args[0])) {
                 return ctx.throwTypeError("ItemStack.addEnchantment requires an enchantment object { type, level }");
             }
+
             void* enchObj = args[0];
             // type：字符串，无命名空间时补 minecraft:。
             void* typeVal = ctx.getProperty(enchObj, "type");
             if (!ctx.isString(typeVal)) {
                 ctx.releaseValue(typeVal);
+
                 return ctx.throwTypeError("ItemStack.addEnchantment: enchantment.type must be a string");
             }
+
             auto typeOpt = ctx.toString(typeVal);
             ctx.releaseValue(typeVal);
             if (!typeOpt.has_value()) {
                 return ctx.throwTypeError("ItemStack.addEnchantment: enchantment.type must be a string");
             }
+
             std::string typeId = *typeOpt;
             if (typeId.find(':') == std::string::npos) {
                 typeId = "minecraft:" + typeId;
@@ -2969,6 +3271,7 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
             if (!levelOpt.has_value()) {
                 return ctx.throwTypeError("ItemStack.addEnchantment: enchantment.level must be a number");
             }
+
             const i32 level = *levelOpt;
             if (level < 1) {
                 return ctx.throwTypeError("ItemStack.addEnchantment: enchantment.level must be >= 1");
@@ -2977,9 +3280,12 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
             const mc::item::enchant::Enchantment* ench = mc::item::enchant::EnchantmentRegistry::get(typeId);
             if (ench == nullptr) {
                 const std::string msg = "ItemStack.addEnchantment: unknown enchantment type '" + typeId + "'";
+
                 return ctx.throwTypeError(msg.c_str());
             }
+
             stack->addEnchantment(typeId, level);
+
             return ctx.createUndefined();
         },
         1);
@@ -3009,6 +3315,7 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
             if (stack == nullptr || argc < 1 || !ctx.isString(args[0])) {
                 return ctx.createUndefined();
             }
+
             auto compId = ctx.toString(args[0]);
             if (!compId) {
                 return ctx.createUndefined();
@@ -3018,16 +3325,20 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
             if (normalized.find(':') == std::string::npos) {
                 normalized = "minecraft:" + normalized;
             }
+
             if (normalized == "minecraft:durability") {
                 // 非可损坏物品返 undefined（对齐基岩"组件不存在返 undefined"）。
                 if (!stack->isDamageable()) {
                     return ctx.createUndefined();
                 }
+
                 void* obj = ctx.createObject();
                 ctx.setPropertyInt(obj, "damage", stack->getDamage());
                 ctx.setPropertyInt(obj, "maxDurability", stack->getMaxDamage());
+
                 return obj;
             }
+
             return ctx.createUndefined();
         },
         1);
@@ -3062,6 +3373,7 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
         if (id == nullptr) {
             return ctx.createUndefined();
         }
+
         return ctx.createString(*id);
     });
 
@@ -3080,6 +3392,7 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
         if (inv == nullptr) {
             return ctx.createInt32(0);
         }
+
         return ctx.createInt32(inv->getContainerSize());
     });
     containerReg.readonlyProperty(
@@ -3089,12 +3402,14 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
             if (inv == nullptr) {
                 return ctx.createInt32(0);
             }
+
             i32 empty = 0;
             for (i32 i = 0; i < inv->getContainerSize(); ++i) {
                 if (inv->getItem(i).isEmpty()) {
                     ++empty;
                 }
             }
+
             return ctx.createInt32(empty);
         });
     containerReg.method(
@@ -3104,6 +3419,7 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
             if (inv == nullptr || argc < 1 || !ctx.isNumber(args[0])) {
                 return ctx.createUndefined();
             }
+
             auto slot = ctx.toInt32(args[0]);
             if (!slot || *slot < 0 || *slot >= inv->getContainerSize()) {
                 return ctx.createUndefined();
@@ -3114,7 +3430,9 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
             if (isProto == nullptr) {
                 return ctx.createUndefined();
             }
+
             auto* copy = std::make_unique<mc::ItemStack>(inv->getItem(*slot)).release();
+
             return ScriptObjectRegistry::wrap(ctx, isClassId, isProto, copy, true, "ItemStack", [](void* p) {
                 delete static_cast<mc::ItemStack*>(p);
             });
@@ -3127,6 +3445,7 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
             if (inv == nullptr || argc < 2 || !ctx.isNumber(args[0])) {
                 return ctx.createUndefined();
             }
+
             auto slot = ctx.toInt32(args[0]);
             if (!slot || *slot < 0 || *slot >= inv->getContainerSize()) {
                 return ctx.createUndefined();
@@ -3137,7 +3456,9 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
             if (stack == nullptr) {
                 return ctx.throwTypeError("Container.setItem: argument must be an ItemStack");
             }
+
             inv->setItem(*slot, *stack);
+
             return ctx.createUndefined();
         },
         2);
@@ -3148,6 +3469,7 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
             if (inv == nullptr || argc < 1) {
                 return ctx.createUndefined();
             }
+
             const u64 isClassId = resolveItemStackClassId(ctx);
             auto* stack = static_cast<mc::ItemStack*>(ScriptObjectRegistry::unwrap(ctx, args[0], isClassId));
             if (stack == nullptr) {
@@ -3155,6 +3477,7 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
             }
             // addItem 返回剩余未放入的堆；官方无返回值，此处忽略剩余（对齐基岩 void 语义）。
             (void)inv->addItem(*stack);
+
             return ctx.createUndefined();
         },
         1);
@@ -3164,6 +3487,7 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
             if (inv != nullptr) {
                 inv->clear();
             }
+
             return ctx.createUndefined();
         });
     containerReg.method(
@@ -3174,6 +3498,7 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
             (void)thisVal;
             (void)argc;
             (void)args;
+
             return ctx.createUndefined();
         },
         3);
@@ -3269,18 +3594,21 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
                 }
             });
     }
+
     ctx.releaseValue(systemObj);
 
     // ====== 完成模块注册 ======
     if (!builder.finalize()) {
         spdlog::error("[BedrockAddon] Failed to finalize @minecraft/server module");
         ctx.releaseValue(worldObj);
+
         return false;
     }
 
     ctx.releaseValue(worldObj);
 
     spdlog::info("[BedrockAddon] @minecraft/server module bindings registered successfully");
+
     return true;
 }
 

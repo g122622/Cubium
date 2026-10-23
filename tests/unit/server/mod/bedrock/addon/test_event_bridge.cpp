@@ -43,7 +43,9 @@ class AddonEventBridgeContractTest : public testing::Test {
 protected:
     void SetUp() override
     {
-        ScriptWorldAccessor::instance().setGetDimensionsCallback([]() { return std::vector<mc::IWorld*>{}; });
+        ScriptWorldAccessor::instance().setGetDimensionsCallback([]() {
+            return std::vector<mc::IWorld*>{};
+        });
         engine = createScriptEngine();
         ASSERT_TRUE(engine->initialize());
         events.initialize();
@@ -58,6 +60,7 @@ protected:
         factory.setEventSignals(signals);
         ASSERT_TRUE(factory.registerBindings(*context));
     }
+
     void TearDown() override
     {
         bridge.shutdown();
@@ -66,6 +69,7 @@ protected:
         engine->shutdown();
         ScriptWorldAccessor::instance().setGetDimensionsCallback({});
     }
+
     std::unique_ptr<IScriptEngine> engine;
     ScriptEventBus events;
     mc::server::EventBridge bridge;
@@ -105,6 +109,7 @@ TEST_F(AddonEventBridgeContractTest, DeferredEventsOwnTheirStringPayload)
         mc::server::event::ServerEventBus::instance().publish(native);
         native.message = "modified after publish";
     }
+
     events.tick();
     const auto result = context->getGlobalVariable("snapshot");
     ASSERT_TRUE(result.has_value());

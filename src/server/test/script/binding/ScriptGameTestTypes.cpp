@@ -47,16 +47,21 @@ bool parseBlockPos(mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* ar
 {
     if (!ctx.isObject(arg)) {
         static_cast<void>(ctx.throwTypeError("Block position argument must be {x,y,z} object"));
+
         return false;
     }
+
     auto x = ctx.getPropertyInt(arg, "x");
     auto y = ctx.getPropertyInt(arg, "y");
     auto z = ctx.getPropertyInt(arg, "z");
     if (!x || !y || !z) {
         static_cast<void>(ctx.throwTypeError("Block position must have numeric x,y,z"));
+
         return false;
     }
+
     out = BlockPos(static_cast<i32>(*x), static_cast<i32>(*y), static_cast<i32>(*z));
+
     return true;
 }
 
@@ -85,15 +90,19 @@ void registerGameTestTypesClasses(
             if (spreader == nullptr || argc < 2 || !ctx.isObject(args[0]) || !ctx.isNumber(args[1])) {
                 return ctx.createUndefined();
             }
+
             BlockPos pos;
             if (!parseBlockPos(ctx, args[0], pos)) {
                 return ctx.createUndefined(); // parseBlockPos 已 throw
             }
+
             auto amount = ctx.toInt32(args[1]);
             if (!amount) {
                 return ctx.createUndefined();
             }
+
             spreader->addCursors(pos, *amount);
+
             return ctx.createUndefined();
         },
         2);
@@ -116,6 +125,7 @@ void registerGameTestTypesClasses(
             if (spreader == nullptr) {
                 return ctx.createInt32(0);
             }
+
             return ctx.createInt32(static_cast<i32>(spreader->cursors().size()));
         });
     sculkReg.method("getTotalCharge",
@@ -128,10 +138,12 @@ void registerGameTestTypesClasses(
             if (spreader == nullptr) {
                 return ctx.createInt32(0);
             }
+
             i32 total = 0;
             for (const auto& cursor : spreader->cursors()) {
                 total += cursor.charge();
             }
+
             return ctx.createInt32(total);
         });
     sculkReg.method(
@@ -143,16 +155,19 @@ void registerGameTestTypesClasses(
             if (spreader == nullptr || argc < 1 || !ctx.isNumber(args[0])) {
                 return ctx.createUndefined();
             }
+
             auto idx = ctx.toInt32(args[0]);
             const auto& cursors = spreader->cursors();
             if (!idx || *idx < 0 || *idx >= static_cast<i32>(cursors.size())) {
                 return ctx.createUndefined();
             }
+
             const BlockPos& pos = cursors[static_cast<size_t>(*idx)].pos();
             void* obj = ctx.createObject();
             ctx.setPropertyInt(obj, "x", static_cast<i32>(pos.x));
             ctx.setPropertyInt(obj, "y", static_cast<i32>(pos.y));
             ctx.setPropertyInt(obj, "z", static_cast<i32>(pos.z));
+
             return obj;
         },
         1);
@@ -180,7 +195,9 @@ void registerGameTestTypesClasses(
     // --- LookDuration 枚举对象（全项目此前无，对齐基岩字符串枚举）---
     {
         void* obj = ctx.createObject();
-        const auto setEntry = [&](const char* key) { ctx.setPropertyString(obj, key, key); };
+        const auto setEntry = [&](const char* key) {
+            ctx.setPropertyString(obj, key, key);
+        };
         setEntry("Continuous");
         setEntry("Instant");
         setEntry("UntilMove");

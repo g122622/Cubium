@@ -86,16 +86,24 @@ constexpr auto _CAUSES = std::to_array<std::pair<mc::DamageType, std::string_vie
 std::string_view damageCauseName(mc::DamageType type)
 {
     for (const auto& [kind, name] : _CAUSES) {
-        if (kind == type) return name;
+        if (kind == type) {
+            return name;
+        }
     }
+
     MC_ASSERT_RELEASE_MSG(false, "Unmapped damage cause");
+
     return "none";
 }
+
 std::optional<mc::DamageType> parseDamageCause(std::string_view name)
 {
     for (const auto& [kind, value] : _CAUSES) {
-        if (name == value) return kind;
+        if (name == value) {
+            return kind;
+        }
     }
+
     return std::nullopt;
 }
 

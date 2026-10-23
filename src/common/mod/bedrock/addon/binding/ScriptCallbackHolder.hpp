@@ -44,6 +44,7 @@ public:
         void* receiver = bindings->createUndefined();
         void* result = bindings->callFunction1(func(), receiver, argument);
         bindings->releaseValue(receiver);
+
         return result;
     }
 
@@ -54,17 +55,27 @@ public:
         void* receiver = bindings->createUndefined();
         void* result = bindings->callFunction0(func(), receiver);
         bindings->releaseValue(receiver);
+
         return result;
     }
 
     /** @brief 回调及所属上下文是否仍然存活。 */
-    [[nodiscard]] bool isValid() const { return m_function.value() != nullptr; }
+    [[nodiscard]] bool isValid() const
+    {
+        return m_function.value() != nullptr;
+    }
 
     /** @brief 获取借用的函数值。 */
-    [[nodiscard]] void* func() const { return m_function.value(); }
+    [[nodiscard]] void* func() const
+    {
+        return m_function.value();
+    }
 
     /** @brief 获取存活的上下文。 */
-    [[nodiscard]] IScriptBindingContext* context() const { return m_function.context(); }
+    [[nodiscard]] IScriptBindingContext* context() const
+    {
+        return m_function.context();
+    }
 
 private:
     ScriptValueHandle m_function;

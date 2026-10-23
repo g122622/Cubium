@@ -58,6 +58,7 @@ std::size_t _probeHandleCount(IScriptEngine& engine)
     if (probe == nullptr) {
         return static_cast<std::size_t>(-1);
     }
+
     return probe->bindingContext().liveClassProtoHandleCount();
 }
 

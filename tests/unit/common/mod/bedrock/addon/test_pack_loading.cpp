@@ -53,9 +53,11 @@ protected:
             ("cubium-addon-loading-" + std::to_string(stamp) + "-" + std::to_string(sequence++));
         ASSERT_TRUE(std::filesystem::create_directory(root));
         ASSERT_TRUE(manager.initialize().success());
-        ScriptWorldAccessor::instance().setMessageCallback(
-            [this](const std::string& value) { messages.push_back(value); });
+        ScriptWorldAccessor::instance().setMessageCallback([this](const std::string& value) {
+            messages.push_back(value);
+        });
     }
+
     void TearDown() override
     {
         manager.shutdown();
@@ -63,6 +65,7 @@ protected:
         std::error_code error;
         std::filesystem::remove_all(root, error);
     }
+
     std::filesystem::path pack(const std::string& folder,
         const std::string& uuid,
         nlohmann::json dependencies,
@@ -76,18 +79,24 @@ protected:
             module["entry"] = "scripts/main.js";
             module["language"] = "javascript";
         }
+
         const nlohmann::json manifest = {{"format_version", 2},
             {"header", {{"name", folder}, {"uuid", uuid}, {"version", {1, 0, 0}}, {"min_engine_version", {1, 21, 90}}}},
             {"modules", nlohmann::json::array({module})},
             {"dependencies", dependencies}};
         std::ofstream(path / "manifest.json") << manifest.dump();
-        if (source) std::ofstream(path / "scripts/main.js") << *source;
+        if (source) {
+            std::ofstream(path / "scripts/main.js") << *source;
+        }
+
         return path;
     }
+
     nlohmann::json native(const std::string& version)
     {
         return nlohmann::json::array({{{"module_name", "@minecraft/server"}, {"version", version}}});
     }
+
     ScriptManager manager;
     std::filesystem::path root;
     std::vector<std::string> messages;

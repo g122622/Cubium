@@ -75,13 +75,16 @@ struct ScriptBlockRef {
     }
     // 构造即交出所有权：由下方 wrap 的 destroy 回调在 JS GC 时释放。
     auto* ref = std::make_unique<ScriptBlockRef>(state, pos, world).release();
+
     return ScriptObjectRegistry::wrap(ctx,
         blockClassId,
         blockProto,
         ref,
         true, // owned：JS GC 时 delete ScriptBlockRef
         "Block",
-        [](void* p) { delete static_cast<ScriptBlockRef*>(p); });
+        [](void* p) {
+            delete static_cast<ScriptBlockRef*>(p);
+        });
 }
 
 /**
@@ -100,6 +103,7 @@ struct ScriptBlockRef {
     if (blockClassId == 0) {
         return nullptr;
     }
+
     return static_cast<ScriptBlockRef*>(ScriptObjectRegistry::unwrap(ctx, val, blockClassId));
 }
 

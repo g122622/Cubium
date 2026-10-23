@@ -35,6 +35,7 @@ namespace mc::mod::bedrock::addon {
 ScriptWorldAccessor& ScriptWorldAccessor::instance()
 {
     static ScriptWorldAccessor instance;
+
     return instance;
 }
 
@@ -52,6 +53,7 @@ std::vector<std::string> ScriptWorldAccessor::getAllPlayerNames()
     if (m_getPlayerNamesCallback) {
         return m_getPlayerNamesCallback();
     }
+
     return {};
 }
 
@@ -60,6 +62,7 @@ u64 ScriptWorldAccessor::currentTick() const
     if (m_currentTickCallback) {
         return m_currentTickCallback();
     }
+
     return 0;
 }
 
@@ -68,6 +71,7 @@ mc::IWorld* ScriptWorldAccessor::getDimension(const std::string& dimensionId)
     if (m_getDimensionCallback) {
         return m_getDimensionCallback(dimensionId);
     }
+
     return nullptr;
 }
 
@@ -86,6 +90,7 @@ mc::scoreboard::Scoreboard* ScriptWorldAccessor::getScoreboard()
     if (m_getScoreboardCallback) {
         return m_getScoreboardCallback();
     }
+
     return nullptr;
 }
 
@@ -94,6 +99,7 @@ std::vector<std::string> ScriptWorldAccessor::getBossBarIds()
     if (m_getBossBarIdsCallback) {
         return m_getBossBarIdsCallback();
     }
+
     return {};
 }
 
@@ -102,6 +108,7 @@ BossBarView ScriptWorldAccessor::getBossBar(const std::string& id)
     if (m_getBossBarCallback) {
         return m_getBossBarCallback(id);
     }
+
     return BossBarView{}; // exists=false
 }
 
@@ -110,6 +117,7 @@ WorldSpawnView ScriptWorldAccessor::getWorldSpawn()
     if (m_getWorldSpawnCallback) {
         return m_getWorldSpawnCallback();
     }
+
     return WorldSpawnView{}; // exists=false
 }
 

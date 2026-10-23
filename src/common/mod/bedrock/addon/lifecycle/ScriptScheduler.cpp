@@ -43,6 +43,7 @@ ScriptScheduler::RunId ScriptScheduler::runTimeout(Callback callback, u32 tickDe
     std::lock_guard lock(m_mutex);
     const RunId id = _nextId();
     m_entries.emplace(id, ScheduledEntry{std::move(callback), m_currentTick + tickDelay, 0});
+
     return id;
 }
 
@@ -52,12 +53,14 @@ ScriptScheduler::RunId ScriptScheduler::runInterval(Callback callback, u32 tickI
     const RunId id = _nextId();
     const u32 interval = std::max(tickInterval, 1u);
     m_entries.emplace(id, ScheduledEntry{std::move(callback), m_currentTick + interval, interval});
+
     return id;
 }
 
 bool ScriptScheduler::clearRun(RunId runId)
 {
     std::lock_guard lock(m_mutex);
+
     return m_entries.erase(runId) != 0;
 }
 
@@ -66,12 +69,14 @@ ScriptScheduler::RunId ScriptScheduler::runJob(JobStep step)
     std::lock_guard lock(m_mutex);
     const RunId id = _nextId();
     m_jobs.emplace(id, std::move(step));
+
     return id;
 }
 
 bool ScriptScheduler::clearJob(RunId jobId)
 {
     std::lock_guard lock(m_mutex);
+
     return m_jobs.erase(jobId) != 0;
 }
 
@@ -99,6 +104,7 @@ void ScriptScheduler::tick(u64 currentTick)
             if (it == m_entries.end()) {
                 continue;
             }
+
             callback = it->second.callback;
             if (it->second.interval == 0) {
                 m_entries.erase(it);
@@ -106,8 +112,10 @@ void ScriptScheduler::tick(u64 currentTick)
                 it->second.nextTick = currentTick + it->second.interval;
             }
         }
+
         callback();
     }
+
     _tickJobs();
 }
 
@@ -121,6 +129,8 @@ void ScriptScheduler::_tickJobs()
             active.push_back(id);
         }
     }
+
+    // 先完成一轮，再检查时间预算，保证每个任务至少获得一次推进机会。
     const auto deadline = std::chrono::steady_clock::now() + std::chrono::milliseconds(1);
     do {
         for (auto it = active.begin(); it != active.end();) {
@@ -132,6 +142,8 @@ void ScriptScheduler::_tickJobs()
                     step = job->second;
                 }
             }
+
+            // 取出回调后释放锁，允许生成器取消自身或其他尚未执行的任务。
             if (!step || step()) {
                 clearJob(*it);
                 it = active.erase(it);
@@ -152,12 +164,14 @@ void ScriptScheduler::clearAll()
 size_t ScriptScheduler::pendingCount() const
 {
     std::lock_guard lock(m_mutex);
+
     return m_entries.size() + m_jobs.size();
 }
 
 ScriptScheduler::RunId ScriptScheduler::_nextId()
 {
     MC_ASSERT_RELEASE(m_nextId < std::numeric_limits<RunId>::max());
+
     return m_nextId++;
 }
 

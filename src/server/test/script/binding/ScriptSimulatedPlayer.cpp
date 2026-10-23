@@ -63,6 +63,7 @@ void* _playerLocation(mc::mod::bedrock::addon::IScriptBindingContext& ctx, void*
     if (player == nullptr || player->isRemoved()) {
         return ctx.throwTypeError("Invalid SimulatedPlayer");
     }
+
     return mc::mod::bedrock::addon::ScriptVec3(player->position()).toJs(ctx);
 }
 
@@ -70,16 +71,21 @@ bool _parseBlockPos(mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* a
 {
     if (!ctx.isObject(arg)) {
         static_cast<void>(ctx.throwTypeError("Block position argument must be {x,y,z} object"));
+
         return false;
     }
+
     auto x = ctx.getPropertyInt(arg, "x");
     auto y = ctx.getPropertyInt(arg, "y");
     auto z = ctx.getPropertyInt(arg, "z");
     if (!x || !y || !z) {
         static_cast<void>(ctx.throwTypeError("Block position must have numeric x,y,z"));
+
         return false;
     }
+
     out = BlockPos(static_cast<i32>(*x), static_cast<i32>(*y), static_cast<i32>(*z));
+
     return true;
 }
 
@@ -96,12 +102,14 @@ mc::Entity* _unwrapEntity(mc::mod::bedrock::addon::IScriptBindingContext& ctx, v
         if (classId == 0) {
             continue;
         }
+
         auto* entity =
             static_cast<mc::Entity*>(mc::mod::bedrock::addon::ScriptObjectRegistry::unwrap(ctx, val, classId));
         if (entity != nullptr) {
             return entity;
         }
     }
+
     return nullptr;
 }
 
@@ -109,6 +117,7 @@ mc::Entity* _unwrapEntity(mc::mod::bedrock::addon::IScriptBindingContext& ctx, v
 mc::ItemStack* _unwrapItemStack(mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* val)
 {
     const u64 classId = ctx.classRegistry().classIdByName("ItemStack");
+
     return static_cast<mc::ItemStack*>(mc::mod::bedrock::addon::ScriptObjectRegistry::unwrap(ctx, val, classId));
 }
 
@@ -119,6 +128,7 @@ void* _throwNotImplemented(mc::mod::bedrock::addon::IScriptBindingContext& ctx, 
     std::string msg = "SimulatedPlayer.";
     msg += method;
     msg += " not implemented yet (dependency system not ready)";
+
     return throwGameTestError(ctx, GameTestErrorType::MethodNotImplemented, msg);
 }
 
@@ -133,13 +143,16 @@ mc::Direction _directionFromApi(mc::mod::bedrock::addon::IScriptBindingContext& 
     if (val == nullptr || ctx.isUndefined(val)) {
         return mc::Direction::Up; // 官方默认 direction=1（Up）
     }
+
     if (ctx.isNumber(val)) {
         auto n = ctx.toInt32(val);
         if (n && *n >= 0 && *n <= 5) {
             return static_cast<mc::Direction>(*n);
         }
+
         return mc::Direction::Up;
     }
+
     if (ctx.isString(val)) {
         auto s = ctx.toString(val);
         if (s) {
@@ -147,10 +160,13 @@ mc::Direction _directionFromApi(mc::mod::bedrock::addon::IScriptBindingContext& 
             for (char& c : lower) {
                 c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
             }
+
             auto dir = mc::Directions::fromName(lower);
+
             return dir.value_or(mc::Direction::Up);
         }
     }
+
     return mc::Direction::Up;
 }
 
@@ -161,9 +177,11 @@ mc::Vector3 _parseFaceLocation(mc::mod::bedrock::addon::IScriptBindingContext& c
     if (val == nullptr || ctx.isUndefined(val) || !ctx.isObject(val)) {
         return mc::Vector3(0.5f, 0.5f, 0.5f);
     }
+
     auto x = ctx.getPropertyFloat(val, "x");
     auto y = ctx.getPropertyFloat(val, "y");
     auto z = ctx.getPropertyFloat(val, "z");
+
     return mc::Vector3(x.value_or(0.5f), y.value_or(0.5f), z.value_or(0.5f));
 }
 
@@ -181,6 +199,7 @@ void* _applyTeleport(
     if (ent == nullptr || argc < 1 || !ctx.isObject(args[0])) {
         return returnBoolean ? ctx.createBoolean(false) : ctx.createUndefined();
     }
+
     void* locObj = args[0];
     auto xOpt = ctx.getPropertyFloat(locObj, "x");
     auto yOpt = ctx.getPropertyFloat(locObj, "y");
@@ -189,8 +208,10 @@ void* _applyTeleport(
         if (returnBoolean) {
             return ctx.createBoolean(false);
         }
+
         return ctx.throwTypeError("teleport location requires {x,y,z}");
     }
+
     f64 x = *xOpt, y = *yOpt, z = *zOpt;
 
     // 解析 options.dimension（可选）：若指定且与当前维度不同则跨维度传送。
@@ -213,6 +234,7 @@ void* _applyTeleport(
                 crossDim = (targetDim != ent->dimension());
             }
         }
+
         ctx.releaseValue(dimVal);
         auto checkOpt = ctx.getPropertyBool(opts, "checkForBlocks");
         if (checkOpt.has_value()) {
@@ -223,15 +245,19 @@ void* _applyTeleport(
     if (crossDim) {
         // 跨维度：经虚派发 changeDimension（ServerPlayer override 调真实实现）。
         bool ok = ent->changeDimension(targetDim);
+
         return returnBoolean ? ctx.createBoolean(ok) : ctx.createUndefined();
     }
+
     if (checkForBlocks) {
         // 同维度 + 检查碰撞：attemptTeleport（findSafeTeleportPosition + 碰撞检测）。
         bool ok = ent->attemptTeleport(x, y, z, false);
+
         return returnBoolean ? ctx.createBoolean(ok) : ctx.createUndefined();
     }
     // 同维度 + 强制传送：直接 setPosition，跳过碰撞检测（对齐基岩 checkForBlocks=false）。
     ent->setPosition(static_cast<f32>(x), static_cast<f32>(y), static_cast<f32>(z));
+
     return returnBoolean ? ctx.createBoolean(true) : ctx.createUndefined();
 }
 
@@ -255,6 +281,7 @@ void* _applyTeleport(
         case mc::GameMode::NotSet:
             return "default";
     }
+
     return "default";
 }
 
@@ -271,14 +298,17 @@ void* _applyTeleport(
     if (arg == nullptr || !ctx.isString(arg)) {
         return std::nullopt;
     }
+
     auto s = ctx.toString(arg);
     if (!s) {
         return std::nullopt;
     }
+
     std::string id = *s;
     if (id.find(':') == std::string::npos) {
         id = "minecraft:" + id;
     }
+
     return mc::entity::effect::getEffectByResourceLocation(mc::ResourceLocation(id));
 }
 
@@ -331,10 +361,12 @@ u64 registerSimulatedPlayerClassBinding(
             if (player == nullptr) {
                 return ctx.createUndefined();
             }
+
             auto config = player->getRespawnConfig();
             if (!config.has_value()) {
                 return ctx.createUndefined(); // 无重生点
             }
+
             const GlobalPos& gp = config->respawnData.globalPos;
             void* obj = ctx.createObject();
             ctx.setPropertyInt(obj, "x", static_cast<i32>(gp.x()));
@@ -344,6 +376,7 @@ u64 registerSimulatedPlayerClassBinding(
             ctx.setPropertyFloat(obj, "yaw", config->respawnData.yaw);
             ctx.setPropertyFloat(obj, "pitch", config->respawnData.pitch);
             ctx.setPropertyBool(obj, "forced", config->forced);
+
             return obj;
         });
 
@@ -357,15 +390,18 @@ u64 registerSimulatedPlayerClassBinding(
         if (player == nullptr) {
             return ctx.createUndefined();
         }
+
         auto* world = player->world();
         if (world == nullptr) {
             return ctx.createUndefined();
         }
+
         const u64 dimClassId = ctx.classRegistry().classIdByName("Dimension");
         void* dimProto = ctx.classRegistry().proto(dimClassId);
         if (dimProto == nullptr) {
             return ctx.createUndefined();
         }
+
         return mc::mod::bedrock::addon::ScriptObjectRegistry::wrap(
             ctx, dimClassId, dimProto, world, false, "Dimension");
     });
@@ -377,15 +413,18 @@ u64 registerSimulatedPlayerClassBinding(
             if (player == nullptr) {
                 return ctx.createUndefined();
             }
+
             auto* world = player->world();
             if (world == nullptr) {
                 return ctx.createUndefined();
             }
+
             const u64 dimClassId = ctx.classRegistry().classIdByName("Dimension");
             void* dimProto = ctx.classRegistry().proto(dimClassId);
             if (dimProto == nullptr) {
                 return ctx.createUndefined();
             }
+
             return mc::mod::bedrock::addon::ScriptObjectRegistry::wrap(
                 ctx, dimClassId, dimProto, world, false, "Dimension");
         },
@@ -402,6 +441,7 @@ u64 registerSimulatedPlayerClassBinding(
             if (player == nullptr) {
                 return ctx.throwTypeError("Invalid SimulatedPlayer");
             }
+
             return ctx.createString(_gameModeToString(player->gameMode()));
         },
         0);
@@ -425,10 +465,12 @@ u64 registerSimulatedPlayerClassBinding(
             if (player->isRemoved()) {
                 return ctx.createUndefined();
             }
+
             auto compId = ctx.toString(args[0]);
             if (!compId) {
                 return ctx.createUndefined();
             }
+
             std::string normalized = *compId;
             if (normalized.find(':') == std::string::npos) {
                 normalized = "minecraft:" + normalized;
@@ -442,6 +484,7 @@ u64 registerSimulatedPlayerClassBinding(
                 if (proto == nullptr) {
                     return ctx.createUndefined();
                 }
+
                 return mc::mod::bedrock::addon::ScriptObjectRegistry::wrap(
                     ctx, classId, proto, ent, false, className, nullptr, ent->id());
             };
@@ -449,6 +492,7 @@ u64 registerSimulatedPlayerClassBinding(
             if (normalized == "minecraft:rideable") {
                 return wrapComponent("RideableComponent");
             }
+
             if (normalized == "minecraft:health" || normalized == "minecraft:movement" ||
                 normalized == "minecraft:equippable") {
                 // health/movement/equippable 仅 LivingEntity attach，SimulatedPlayer 是 LivingEntity 子类，
@@ -456,20 +500,26 @@ u64 registerSimulatedPlayerClassBinding(
                 if (dynamic_cast<mc::LivingEntity*>(ent) == nullptr) {
                     return ctx.createUndefined();
                 }
+
                 if (normalized == "minecraft:health") {
                     return wrapComponent("HealthComponent");
                 }
+
                 if (normalized == "minecraft:movement") {
                     return wrapComponent("MovementComponent");
                 }
+
                 return wrapComponent("EquippableComponent");
             }
+
             if (normalized == "minecraft:onfire") {
                 if (!ent->isOnFire()) {
                     return ctx.createUndefined();
                 }
+
                 return wrapComponent("OnFireComponent");
             }
+
             if (normalized == "minecraft:inventory") {
                 // 对齐基岩 EntityInventoryComponent：仅 Player 持有背包组件。SimulatedPlayer 经
                 // ServerPlayer→Player，dynamic_cast<Player*> 恒成功。组件对象的 container 只读属性返回
@@ -479,6 +529,7 @@ u64 registerSimulatedPlayerClassBinding(
                 if (dynamic_cast<mc::Player*>(ent) == nullptr) {
                     return ctx.createUndefined();
                 }
+
                 return wrapComponent("EntityInventoryComponent");
             }
             // TODO: 其他基岩合法 componentId（is_baby/is_tamed 等）按需补全。
@@ -498,6 +549,7 @@ u64 registerSimulatedPlayerClassBinding(
             if (player == nullptr) {
                 return ctx.createArray();
             }
+
             const auto& tags = player->getTags();
             void* arr = ctx.createArray();
             u32 outIdx = 0;
@@ -507,6 +559,7 @@ u64 registerSimulatedPlayerClassBinding(
                 ctx.releaseValue(str);
                 ++outIdx;
             }
+
             return arr;
         },
         0);
@@ -517,7 +570,9 @@ u64 registerSimulatedPlayerClassBinding(
             if (player == nullptr || argc < 1 || !ctx.isString(args[0])) {
                 return ctx.createBoolean(false);
             }
+
             auto tag = ctx.toString(args[0]);
+
             return ctx.createBoolean(tag ? player->hasTag(*tag) : false);
         },
         1);
@@ -528,7 +583,9 @@ u64 registerSimulatedPlayerClassBinding(
             if (player == nullptr || argc < 1 || !ctx.isString(args[0])) {
                 return ctx.createBoolean(false);
             }
+
             auto tag = ctx.toString(args[0]);
+
             return ctx.createBoolean(tag ? player->addTag(*tag) : false);
         },
         1);
@@ -539,7 +596,9 @@ u64 registerSimulatedPlayerClassBinding(
             if (player == nullptr || argc < 1 || !ctx.isString(args[0])) {
                 return ctx.createBoolean(false);
             }
+
             auto tag = ctx.toString(args[0]);
+
             return ctx.createBoolean(tag ? player->removeTag(*tag) : false);
         },
         1);
@@ -556,17 +615,21 @@ u64 registerSimulatedPlayerClassBinding(
             if (player == nullptr) {
                 return ctx.throwTypeError("Invalid SimulatedPlayer");
             }
+
             if (argc < 2) {
                 return ctx.createUndefined();
             }
+
             auto typeOpt = _parseEffectType(ctx, args[0]);
             if (!typeOpt.has_value()) {
                 return ctx.createUndefined();
             }
+
             auto durationOpt = ctx.toInt32(args[1]);
             if (!durationOpt.has_value()) {
                 return ctx.createUndefined();
             }
+
             i32 duration = *durationOpt;
             i32 amplifier = 0;
             bool showParticles = true; // 对齐 EffectInstance 默认 visible=true
@@ -576,6 +639,7 @@ u64 registerSimulatedPlayerClassBinding(
                 if (ampOpt.has_value()) {
                     amplifier = *ampOpt;
                 }
+
                 auto partOpt = ctx.getPropertyBool(opts, "showParticles");
                 if (partOpt.has_value()) {
                     showParticles = *partOpt;
@@ -585,6 +649,7 @@ u64 registerSimulatedPlayerClassBinding(
             // 对齐 MinecraftModuleFactory Entity.addEffect 与 EffectCommand.cpp:187 用法。
             mc::entity::effect::EffectInstance effect(*typeOpt, duration, amplifier, false, showParticles);
             player->addEffect(std::move(effect));
+
             return ctx.createUndefined();
         },
         3);
@@ -602,21 +667,26 @@ u64 registerSimulatedPlayerClassBinding(
             if (player == nullptr) {
                 return ctx.throwTypeError("Invalid SimulatedPlayer");
             }
+
             if (argc < 1) {
                 return ctx.createUndefined();
             }
+
             auto typeOpt = _parseEffectType(ctx, args[0]);
             if (!typeOpt.has_value()) {
                 return ctx.createUndefined();
             }
+
             const mc::entity::effect::EffectInstance* inst = player->getEffect(*typeOpt);
             if (inst == nullptr) {
                 return ctx.createUndefined();
             }
+
             void* obj = ctx.createObject();
             ctx.setPropertyString(obj, "typeId", mc::entity::effect::getEffectResourceLocation(*typeOpt).toString());
             ctx.setPropertyInt(obj, "amplifier", inst->amplifier());
             ctx.setPropertyInt(obj, "duration", inst->duration());
+
             return obj;
         },
         1);
@@ -631,6 +701,7 @@ u64 registerSimulatedPlayerClassBinding(
         if (player == nullptr) {
             return ctx.throwTypeError("Invalid SimulatedPlayer");
         }
+
         return ctx.createInt32(player->experienceLevel());
     });
 
@@ -644,6 +715,7 @@ u64 registerSimulatedPlayerClassBinding(
             if (player == nullptr) {
                 return ctx.throwTypeError("Invalid SimulatedPlayer");
             }
+
             return ctx.createInt32(player->totalExperience());
         },
         0);
@@ -656,6 +728,7 @@ u64 registerSimulatedPlayerClassBinding(
         if (player == nullptr) {
             return ctx.throwTypeError("Invalid SimulatedPlayer");
         }
+
         return ctx.createFloat64(player->experienceProgress());
     });
 
@@ -670,6 +743,7 @@ u64 registerSimulatedPlayerClassBinding(
             if (player == nullptr) {
                 return ctx.throwTypeError("Invalid SimulatedPlayer");
             }
+
             return _applyTeleport(ctx, player, argc, args, /*returnBoolean=*/false);
         },
         2);
@@ -683,6 +757,7 @@ u64 registerSimulatedPlayerClassBinding(
             if (player == nullptr) {
                 return ctx.throwTypeError("Invalid SimulatedPlayer");
             }
+
             return _applyTeleport(ctx, player, argc, args, /*returnBoolean=*/true);
         },
         2);
@@ -696,9 +771,11 @@ u64 registerSimulatedPlayerClassBinding(
             if (player == nullptr) {
                 return ctx.throwTypeError("Invalid SimulatedPlayer");
             }
+
             void* obj = ctx.createObject();
             ctx.setPropertyFloat(obj, "x", player->pitch());
             ctx.setPropertyFloat(obj, "y", player->yaw());
+
             return obj;
         });
 
@@ -710,19 +787,24 @@ u64 registerSimulatedPlayerClassBinding(
             if (player == nullptr) {
                 return ctx.throwTypeError("Invalid SimulatedPlayer");
             }
+
             return ctx.createBoolean(player->isSprinting());
         },
         [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* thisVal, void* value) -> void {
             auto* player = static_cast<SimulatedPlayer*>(ScriptObjectRegistry::unwrap(ctx, thisVal));
             if (player == nullptr) {
                 static_cast<void>(ctx.throwTypeError("Invalid SimulatedPlayer"));
+
                 return;
             }
+
             auto b = ctx.toBool(value);
             if (!b.has_value()) {
                 static_cast<void>(ctx.throwTypeError("isSprinting must be a boolean"));
+
                 return;
             }
+
             player->setSprinting(*b);
         });
 
@@ -742,17 +824,21 @@ u64 registerSimulatedPlayerClassBinding(
             if (player == nullptr) {
                 return ctx.throwTypeError("Invalid SimulatedPlayer");
             }
+
             return ctx.createBoolean(player->isSneaking());
         },
         [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* thisVal, void* value) -> void {
             auto* player = static_cast<SimulatedPlayer*>(ScriptObjectRegistry::unwrap(ctx, thisVal));
             if (player == nullptr) {
                 static_cast<void>(ctx.throwTypeError("Invalid SimulatedPlayer"));
+
                 return;
             }
+
             auto b = ctx.toBool(value);
             if (!b.has_value()) {
                 static_cast<void>(ctx.throwTypeError("isSneaking must be a boolean"));
+
                 return;
             }
             // 经 handleMovementInput 设置 m_inputSneaking（保留 forward/strafe 输入），使潜行状态每 tick
@@ -770,13 +856,16 @@ u64 registerSimulatedPlayerClassBinding(
             if (player == nullptr) {
                 return ctx.throwTypeError("Invalid SimulatedPlayer");
             }
+
             if (argc < 1 || !ctx.isObject(args[0])) {
                 return ctx.throwTypeError("moveToLocation(pos, speed?)");
             }
+
             BlockPos pos;
             if (!_parseBlockPos(ctx, args[0], pos)) {
                 return nullptr;
             }
+
             f32 speed = 1.0f;
             if (argc >= 2 && ctx.isNumber(args[1])) {
                 auto s = ctx.toFloat64(args[1]);
@@ -784,7 +873,9 @@ u64 registerSimulatedPlayerClassBinding(
                     speed = static_cast<f32>(*s);
                 }
             }
+
             player->moveToLocation(pos, speed);
+
             return ctx.createUndefined();
         },
         2);
@@ -797,14 +888,18 @@ u64 registerSimulatedPlayerClassBinding(
             if (player == nullptr) {
                 return ctx.throwTypeError("Invalid SimulatedPlayer");
             }
+
             if (argc < 1 || !ctx.isObject(args[0])) {
                 return ctx.throwTypeError("lookAtLocation(pos)");
             }
+
             BlockPos pos;
             if (!_parseBlockPos(ctx, args[0], pos)) {
                 return nullptr;
             }
+
             player->lookAtLocation(pos);
+
             return ctx.createUndefined();
         },
         1);
@@ -817,14 +912,18 @@ u64 registerSimulatedPlayerClassBinding(
             if (player == nullptr) {
                 return ctx.throwTypeError("Invalid SimulatedPlayer");
             }
+
             if (argc < 1 || !ctx.isString(args[0])) {
                 return ctx.throwTypeError("chat(command)");
             }
+
             auto cmd = ctx.toString(args[0]);
             if (!cmd) {
                 return ctx.throwInternalError("Failed to read command");
             }
+
             i32 result = player->chat(*cmd);
+
             return ctx.createInt32(result);
         },
         1);
@@ -837,7 +936,9 @@ u64 registerSimulatedPlayerClassBinding(
             if (player == nullptr) {
                 return ctx.throwTypeError("Invalid SimulatedPlayer");
             }
+
             player->respawn();
+
             return ctx.createUndefined();
         },
         0);
@@ -851,15 +952,18 @@ u64 registerSimulatedPlayerClassBinding(
             if (player == nullptr) {
                 return ctx.throwTypeError("Invalid SimulatedPlayer");
             }
+
             if (argc < 1) {
                 return ctx.throwTypeError("lookAtEntity(entity, duration?)");
             }
+
             auto* target = _unwrapEntity(ctx, args[0]);
             if (target == nullptr) {
                 return ctx.throwTypeError("lookAtEntity: first arg must be an Entity");
             }
             // TODO: duration（LookDuration）插值语义，当前瞬时。
             player->lookAtEntity(*target);
+
             return ctx.createUndefined();
         },
         2);
@@ -872,15 +976,18 @@ u64 registerSimulatedPlayerClassBinding(
             if (player == nullptr) {
                 return ctx.throwTypeError("Invalid SimulatedPlayer");
             }
+
             if (argc < 1) {
                 return ctx.throwTypeError("lookAtBlock(blockLocation, duration?)");
             }
+
             BlockPos pos;
             if (!_parseBlockPos(ctx, args[0], pos)) {
                 return nullptr;
             }
             // TODO: duration（LookDuration）插值语义，当前瞬时。
             player->lookAtBlock(pos);
+
             return ctx.createUndefined();
         },
         2);
@@ -894,15 +1001,18 @@ u64 registerSimulatedPlayerClassBinding(
             if (player == nullptr) {
                 return ctx.throwTypeError("Invalid SimulatedPlayer");
             }
+
             if (argc < 1) {
                 return ctx.throwTypeError("moveToBlock(blockLocation, options?)");
             }
+
             BlockPos pos;
             if (!_parseBlockPos(ctx, args[0], pos)) {
                 return nullptr;
             }
             // TODO: 解析 MoveToOptions（maxStraightLineReach/speed 等）。
             player->moveToBlock(pos, 1.0f);
+
             return ctx.createUndefined();
         },
         2);
@@ -915,6 +1025,7 @@ u64 registerSimulatedPlayerClassBinding(
             if (player == nullptr) {
                 return ctx.throwTypeError("Invalid SimulatedPlayer");
             }
+
             return ctx.createBoolean(player->jump());
         },
         0);
@@ -928,14 +1039,18 @@ u64 registerSimulatedPlayerClassBinding(
             if (player == nullptr) {
                 return ctx.throwTypeError("Invalid SimulatedPlayer");
             }
+
             if (argc < 1 || !ctx.isNumber(args[0])) {
                 return ctx.throwTypeError("setFoodLevel(level)");
             }
+
             auto level = ctx.toInt32(args[0]);
             if (!level) {
                 return ctx.throwTypeError("setFoodLevel: level must be a number");
             }
+
             player->setFoodLevel(*level);
+
             return ctx.createUndefined();
         },
         1);
@@ -948,7 +1063,9 @@ u64 registerSimulatedPlayerClassBinding(
             if (player == nullptr) {
                 return ctx.throwTypeError("Invalid SimulatedPlayer");
             }
+
             player->disconnect();
+
             return ctx.createUndefined();
         },
         0);
@@ -961,13 +1078,16 @@ u64 registerSimulatedPlayerClassBinding(
             if (player == nullptr) {
                 return ctx.throwTypeError("Invalid SimulatedPlayer");
             }
+
             if (argc < 1) {
                 return ctx.throwTypeError("giveItem(itemStack, selectSlot?)");
             }
+
             auto* stack = _unwrapItemStack(ctx, args[0]);
             if (stack == nullptr) {
                 return ctx.throwTypeError("giveItem: first arg must be an ItemStack");
             }
+
             bool selectSlot = false;
             if (argc >= 2) {
                 auto b = ctx.toBool(args[1]);
@@ -975,6 +1095,7 @@ u64 registerSimulatedPlayerClassBinding(
                     selectSlot = *b;
                 }
             }
+
             return ctx.createBoolean(player->giveItem(*stack, selectSlot));
         },
         2);
@@ -987,17 +1108,21 @@ u64 registerSimulatedPlayerClassBinding(
             if (player == nullptr) {
                 return ctx.throwTypeError("Invalid SimulatedPlayer");
             }
+
             if (argc < 2 || !ctx.isNumber(args[1])) {
                 return ctx.throwTypeError("setItem(itemStack, slot, selectSlot?)");
             }
+
             auto* stack = _unwrapItemStack(ctx, args[0]);
             if (stack == nullptr) {
                 return ctx.throwTypeError("setItem: first arg must be an ItemStack");
             }
+
             auto slot = ctx.toInt32(args[1]);
             if (!slot) {
                 return ctx.throwTypeError("setItem: slot must be a number");
             }
+
             bool selectSlot = false;
             if (argc >= 3) {
                 auto b = ctx.toBool(args[2]);
@@ -1005,6 +1130,7 @@ u64 registerSimulatedPlayerClassBinding(
                     selectSlot = *b;
                 }
             }
+
             return ctx.createBoolean(player->setItem(*stack, *slot, selectSlot));
         },
         3);
@@ -1014,37 +1140,51 @@ u64 registerSimulatedPlayerClassBinding(
     reg.method(
         "navigateToBlock",
         [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* /*thisVal*/, i32 /*argc*/, void** /*args*/)
-            -> void* { return _throwNotImplemented(ctx, "navigateToBlock"); },
+            -> void* {
+            return _throwNotImplemented(ctx, "navigateToBlock");
+        },
         2);
     reg.method(
         "navigateToEntity",
         [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* /*thisVal*/, i32 /*argc*/, void** /*args*/)
-            -> void* { return _throwNotImplemented(ctx, "navigateToEntity"); },
+            -> void* {
+            return _throwNotImplemented(ctx, "navigateToEntity");
+        },
         2);
     reg.method(
         "navigateToLocation",
         [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* /*thisVal*/, i32 /*argc*/, void** /*args*/)
-            -> void* { return _throwNotImplemented(ctx, "navigateToLocation"); },
+            -> void* {
+            return _throwNotImplemented(ctx, "navigateToLocation");
+        },
         2);
     reg.method(
         "navigateToLocations",
         [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* /*thisVal*/, i32 /*argc*/, void** /*args*/)
-            -> void* { return _throwNotImplemented(ctx, "navigateToLocations"); },
+            -> void* {
+            return _throwNotImplemented(ctx, "navigateToLocations");
+        },
         2);
     reg.method(
         "move",
         [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* /*thisVal*/, i32 /*argc*/, void** /*args*/)
-            -> void* { return _throwNotImplemented(ctx, "move"); },
+            -> void* {
+            return _throwNotImplemented(ctx, "move");
+        },
         3);
     reg.method(
         "moveRelative",
         [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* /*thisVal*/, i32 /*argc*/, void** /*args*/)
-            -> void* { return _throwNotImplemented(ctx, "moveRelative"); },
+            -> void* {
+            return _throwNotImplemented(ctx, "moveRelative");
+        },
         3);
     reg.method(
         "stopMoving",
         [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* /*thisVal*/, i32 /*argc*/, void** /*args*/)
-            -> void* { return _throwNotImplemented(ctx, "stopMoving"); },
+            -> void* {
+            return _throwNotImplemented(ctx, "stopMoving");
+        },
         0);
 
     // === 攻击/交互/破坏/建造 ===
@@ -1052,7 +1192,9 @@ u64 registerSimulatedPlayerClassBinding(
     reg.method(
         "attack",
         [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* /*thisVal*/, i32 /*argc*/, void** /*args*/)
-            -> void* { return _throwNotImplemented(ctx, "attack"); },
+            -> void* {
+            return _throwNotImplemented(ctx, "attack");
+        },
         0);
     // --- attackEntity(entity) ---
     // 转发 SimulatedPlayer::attack → Player::attack(target) 走完整玩家攻击伤害链
@@ -1065,13 +1207,16 @@ u64 registerSimulatedPlayerClassBinding(
             if (player == nullptr) {
                 return ctx.throwTypeError("Invalid SimulatedPlayer");
             }
+
             if (argc < 1) {
                 return ctx.throwTypeError("attackEntity(entity)");
             }
+
             auto* target = _unwrapEntity(ctx, args[0]);
             if (target == nullptr) {
                 return ctx.throwTypeError("attackEntity: first arg must be an Entity");
             }
+
             player->attack(*target);
             // TODO: 原生攻击入口需提供成功标志，才能实现脚本 API 的布尔返回值。
             return ctx.createUndefined();
@@ -1080,7 +1225,9 @@ u64 registerSimulatedPlayerClassBinding(
     reg.method(
         "interact",
         [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* /*thisVal*/, i32 /*argc*/, void** /*args*/)
-            -> void* { return _throwNotImplemented(ctx, "interact"); },
+            -> void* {
+            return _throwNotImplemented(ctx, "interact");
+        },
         0);
     reg.method(
         "interactWithBlock",
@@ -1099,19 +1246,23 @@ u64 registerSimulatedPlayerClassBinding(
             if (player == nullptr) {
                 return ctx.throwTypeError("Invalid SimulatedPlayer");
             }
+
             if (argc < 1) {
                 return ctx.throwTypeError("interactWithBlock(blockLocation, direction?)");
             }
+
             BlockPos pos;
             if (!_parseBlockPos(ctx, args[0], pos)) {
                 return nullptr;
             }
+
             const mc::Direction face = (argc >= 2) ? _directionFromApi(ctx, args[1]) : mc::Direction::Up;
             const mc::Vector3 faceLocation = mc::Vector3(0.5f, 1.0f, 0.5f);
             // 空手：传默认构造的空 ItemStack。faceLocation.y=1.0 对齐点击方块顶面中心（多数方块侧交互
             // 的 hit.hitPosition().y - pos.y 判定取 0.5 阈值时，顶面命中 y≈1.0 落在「上半部」语义内，
             // 如 CandleCakeBlock 熄灭需 hitY > 0.5）。
             mc::ItemStack emptyStack;
+
             return ctx.createBoolean(player->useItemOnBlock(emptyStack, pos, face, faceLocation));
         },
         2);
@@ -1135,14 +1286,18 @@ u64 registerSimulatedPlayerClassBinding(
             if (player == nullptr) {
                 return ctx.throwTypeError("Invalid SimulatedPlayer");
             }
+
             if (argc < 1) {
                 return ctx.throwTypeError("interactWithEntity(entity)");
             }
+
             auto* target = _unwrapEntity(ctx, args[0]);
             if (target == nullptr) {
                 return ctx.throwTypeError("interactWithEntity: first arg must be an Entity");
             }
+
             auto result = player->interactOn(*target, mc::Hand::MainHand);
+
             return ctx.createBoolean(
                 result == mc::ActionResultType::Success || result == mc::ActionResultType::Consume);
         },
@@ -1150,27 +1305,37 @@ u64 registerSimulatedPlayerClassBinding(
     reg.method(
         "stopInteracting",
         [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* /*thisVal*/, i32 /*argc*/, void** /*args*/)
-            -> void* { return _throwNotImplemented(ctx, "stopInteracting"); },
+            -> void* {
+            return _throwNotImplemented(ctx, "stopInteracting");
+        },
         0);
     reg.method(
         "breakBlock",
         [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* /*thisVal*/, i32 /*argc*/, void** /*args*/)
-            -> void* { return _throwNotImplemented(ctx, "breakBlock"); },
+            -> void* {
+            return _throwNotImplemented(ctx, "breakBlock");
+        },
         2);
     reg.method(
         "stopBreakingBlock",
         [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* /*thisVal*/, i32 /*argc*/, void** /*args*/)
-            -> void* { return _throwNotImplemented(ctx, "stopBreakingBlock"); },
+            -> void* {
+            return _throwNotImplemented(ctx, "stopBreakingBlock");
+        },
         0);
     reg.method(
         "startBuild",
         [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* /*thisVal*/, i32 /*argc*/, void** /*args*/)
-            -> void* { return _throwNotImplemented(ctx, "startBuild"); },
+            -> void* {
+            return _throwNotImplemented(ctx, "startBuild");
+        },
         1);
     reg.method(
         "stopBuild",
         [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* /*thisVal*/, i32 /*argc*/, void** /*args*/)
-            -> void* { return _throwNotImplemented(ctx, "stopBuild"); },
+            -> void* {
+            return _throwNotImplemented(ctx, "stopBuild");
+        },
         0);
 
     // === 飞行/滑翔/游泳 stub（依赖物理状态机/abilities 细化）===
@@ -1178,32 +1343,44 @@ u64 registerSimulatedPlayerClassBinding(
     reg.method(
         "fly",
         [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* /*thisVal*/, i32 /*argc*/, void** /*args*/)
-            -> void* { return _throwNotImplemented(ctx, "fly"); },
+            -> void* {
+            return _throwNotImplemented(ctx, "fly");
+        },
         0);
     reg.method(
         "stopFlying",
         [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* /*thisVal*/, i32 /*argc*/, void** /*args*/)
-            -> void* { return _throwNotImplemented(ctx, "stopFlying"); },
+            -> void* {
+            return _throwNotImplemented(ctx, "stopFlying");
+        },
         0);
     reg.method(
         "glide",
         [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* /*thisVal*/, i32 /*argc*/, void** /*args*/)
-            -> void* { return _throwNotImplemented(ctx, "glide"); },
+            -> void* {
+            return _throwNotImplemented(ctx, "glide");
+        },
         0);
     reg.method(
         "stopGliding",
         [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* /*thisVal*/, i32 /*argc*/, void** /*args*/)
-            -> void* { return _throwNotImplemented(ctx, "stopGliding"); },
+            -> void* {
+            return _throwNotImplemented(ctx, "stopGliding");
+        },
         0);
     reg.method(
         "swim",
         [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* /*thisVal*/, i32 /*argc*/, void** /*args*/)
-            -> void* { return _throwNotImplemented(ctx, "swim"); },
+            -> void* {
+            return _throwNotImplemented(ctx, "swim");
+        },
         0);
     reg.method(
         "stopSwimming",
         [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* /*thisVal*/, i32 /*argc*/, void** /*args*/)
-            -> void* { return _throwNotImplemented(ctx, "stopSwimming"); },
+            -> void* {
+            return _throwNotImplemented(ctx, "stopSwimming");
+        },
         0);
 
     // === 物品使用 ===
@@ -1220,13 +1397,16 @@ u64 registerSimulatedPlayerClassBinding(
             if (player == nullptr) {
                 return ctx.throwTypeError("Invalid SimulatedPlayer");
             }
+
             if (argc < 1) {
                 return ctx.throwTypeError("useItem(itemStack)");
             }
+
             auto* stack = _unwrapItemStack(ctx, args[0]);
             if (stack == nullptr) {
                 return ctx.throwTypeError("useItem: first arg must be an ItemStack");
             }
+
             return ctx.createBoolean(player->useItem(*stack));
         },
         1);
@@ -1239,13 +1419,16 @@ u64 registerSimulatedPlayerClassBinding(
             if (player == nullptr) {
                 return ctx.throwTypeError("Invalid SimulatedPlayer");
             }
+
             if (argc < 1 || !ctx.isNumber(args[0])) {
                 return ctx.throwTypeError("useItemInSlot(slot)");
             }
+
             auto slot = ctx.toInt32(args[0]);
             if (!slot) {
                 return ctx.throwTypeError("useItemInSlot: slot must be a number");
             }
+
             return ctx.createBoolean(player->useItemInSlot(*slot));
         },
         1);
@@ -1258,20 +1441,25 @@ u64 registerSimulatedPlayerClassBinding(
             if (player == nullptr) {
                 return ctx.throwTypeError("Invalid SimulatedPlayer");
             }
+
             if (argc < 2) {
                 return ctx.throwTypeError("useItemOnBlock(itemStack, blockLocation, direction?, faceLocation?)");
             }
+
             auto* stack = _unwrapItemStack(ctx, args[0]);
             if (stack == nullptr) {
                 return ctx.throwTypeError("useItemOnBlock: first arg must be an ItemStack");
             }
+
             BlockPos pos;
             if (!_parseBlockPos(ctx, args[1], pos)) {
                 return nullptr;
             }
+
             const mc::Direction face = (argc >= 3) ? _directionFromApi(ctx, args[2]) : mc::Direction::Up;
             const mc::Vector3 faceLocation =
                 (argc >= 4) ? _parseFaceLocation(ctx, args[3]) : mc::Vector3(0.5f, 0.5f, 0.5f);
+
             return ctx.createBoolean(player->useItemOnBlock(*stack, pos, face, faceLocation));
         },
         4);
@@ -1284,20 +1472,25 @@ u64 registerSimulatedPlayerClassBinding(
             if (player == nullptr) {
                 return ctx.throwTypeError("Invalid SimulatedPlayer");
             }
+
             if (argc < 2 || !ctx.isNumber(args[0])) {
                 return ctx.throwTypeError("useItemInSlotOnBlock(slot, blockLocation, direction?, faceLocation?)");
             }
+
             auto slot = ctx.toInt32(args[0]);
             if (!slot) {
                 return ctx.throwTypeError("useItemInSlotOnBlock: slot must be a number");
             }
+
             BlockPos pos;
             if (!_parseBlockPos(ctx, args[1], pos)) {
                 return nullptr;
             }
+
             const mc::Direction face = (argc >= 3) ? _directionFromApi(ctx, args[2]) : mc::Direction::Up;
             const mc::Vector3 faceLocation =
                 (argc >= 4) ? _parseFaceLocation(ctx, args[3]) : mc::Vector3(0.5f, 0.5f, 0.5f);
+
             return ctx.createBoolean(player->useItemInSlotOnBlock(*slot, pos, face, faceLocation));
         },
         4);
@@ -1317,6 +1510,7 @@ u64 registerSimulatedPlayerClassBinding(
             if (!player->isUsingItem()) {
                 return ctx.createUndefined();
             }
+
             const mc::ItemStack activeBefore = player->getActiveItem();
             player->stopActiveHand();
             // 活动物品已空（异常情况）返回 undefined。
@@ -1332,6 +1526,7 @@ u64 registerSimulatedPlayerClassBinding(
             // destroy 不可省略：finalizer 的释放条件是 `owned && ptr && destroy`，
             // 缺失 destroy 会使 ItemStack 永不释放。
             auto* owned = std::make_unique<mc::ItemStack>(activeBefore).release();
+
             return ScriptObjectRegistry::wrap(ctx, isClassId, isProto, owned, true, "ItemStack", [](void* p) {
                 delete static_cast<mc::ItemStack*>(p);
             });
@@ -1340,7 +1535,9 @@ u64 registerSimulatedPlayerClassBinding(
     reg.method(
         "dropSelectedItem",
         [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* /*thisVal*/, i32 /*argc*/, void** /*args*/)
-            -> void* { return _throwNotImplemented(ctx, "dropSelectedItem"); },
+            -> void* {
+            return _throwNotImplemented(ctx, "dropSelectedItem");
+        },
         0);
 
     // === 旋转 stub（依赖插值/身体旋转状态机）===
@@ -1348,12 +1545,16 @@ u64 registerSimulatedPlayerClassBinding(
     reg.method(
         "rotateBody",
         [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* /*thisVal*/, i32 /*argc*/, void** /*args*/)
-            -> void* { return _throwNotImplemented(ctx, "rotateBody"); },
+            -> void* {
+            return _throwNotImplemented(ctx, "rotateBody");
+        },
         1);
     reg.method(
         "setBodyRotation",
         [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* /*thisVal*/, i32 /*argc*/, void** /*args*/)
-            -> void* { return _throwNotImplemented(ctx, "setBodyRotation"); },
+            -> void* {
+            return _throwNotImplemented(ctx, "setBodyRotation");
+        },
         1);
 
     // === 物品冷却查询（Cubium 扩展，官方基岩 API 无此直接形式）===
@@ -1369,21 +1570,26 @@ u64 registerSimulatedPlayerClassBinding(
             if (player == nullptr) {
                 return ctx.throwTypeError("Invalid SimulatedPlayer");
             }
+
             if (argc < 1 || !ctx.isString(args[0])) {
                 return ctx.throwTypeError("hasItemCooldown(typeId: string)");
             }
+
             auto typeIdOpt = ctx.toString(args[0]);
             if (!typeIdOpt.has_value()) {
                 return ctx.throwTypeError("hasItemCooldown: typeId must be a string");
             }
+
             std::string typeId = *typeIdOpt;
             if (typeId.find(':') == std::string::npos) {
                 typeId = "minecraft:" + typeId;
             }
+
             const mc::Item* item = mc::ItemRegistry::instance().getItem(mc::ResourceLocation::parse(typeId));
             if (item == nullptr) {
                 return ctx.createBoolean(false);
             }
+
             return ctx.createBoolean(player->hasItemCooldown(item));
         },
         1);
@@ -1394,17 +1600,21 @@ u64 registerSimulatedPlayerClassBinding(
             if (player == nullptr) {
                 return ctx.throwTypeError("Invalid SimulatedPlayer");
             }
+
             if (argc < 1 || !ctx.isString(args[0])) {
                 return ctx.throwTypeError("getItemCooldownTicks(typeId: string)");
             }
+
             auto typeIdOpt = ctx.toString(args[0]);
             if (!typeIdOpt.has_value()) {
                 return ctx.throwTypeError("getItemCooldownTicks: typeId must be a string");
             }
+
             std::string typeId = *typeIdOpt;
             if (typeId.find(':') == std::string::npos) {
                 typeId = "minecraft:" + typeId;
             }
+
             const mc::Item* item = mc::ItemRegistry::instance().getItem(mc::ResourceLocation::parse(typeId));
             if (item == nullptr) {
                 return ctx.createInt32(0);
@@ -1427,6 +1637,7 @@ void* wrapSimulatedPlayer(mc::mod::bedrock::addon::IScriptBindingContext& ctx, u
     }
     // 非拥有：实体由 ServerWorld EntityManager 拥有，测试运行期间稳定。
     void* proto = ScriptBindingRegistry::instance().proto(classId);
+
     return ScriptObjectRegistry::wrap(
         ctx, classId, proto, player, /*owned=*/false, "SimulatedPlayer", nullptr, player->id());
 }

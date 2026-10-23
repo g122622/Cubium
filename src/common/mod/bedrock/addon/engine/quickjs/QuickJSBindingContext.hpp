@@ -242,13 +242,22 @@ public:
      *
      * 仅限QuickJS后端内部使用，modules/层不应调用此方法。
      */
-    [[nodiscard]] JSContext* jsContext() const noexcept { return m_ctx; }
+    [[nodiscard]] JSContext* jsContext() const noexcept
+    {
+        return m_ctx;
+    }
 
     /** @brief 关联当前上下文所属的模块源码加载器。 */
-    void setModuleLoader(QuickJSModuleLoader& loader) { m_moduleLoader = &loader; }
+    void setModuleLoader(QuickJSModuleLoader& loader)
+    {
+        m_moduleLoader = &loader;
+    }
 
     /** @brief 返回当前上下文的模块加载器。 */
-    [[nodiscard]] QuickJSModuleLoader* moduleLoader() const { return m_moduleLoader; }
+    [[nodiscard]] QuickJSModuleLoader* moduleLoader() const
+    {
+        return m_moduleLoader;
+    }
 
 private:
     JSContext* m_ctx;

@@ -38,6 +38,7 @@ public:
     ScriptValueHandle(IScriptBindingContext& context, void* value)
         : m_state(std::make_shared<State>(&context, context.dupValue(value), 0))
     {
+        // 清理登记不能反向拥有值状态，否则状态与上下文会形成引用环。
         const std::weak_ptr<State> weak = m_state;
         m_state->cleanupId = context.onDispose([weak]() {
             if (const auto state = weak.lock()) {
@@ -47,10 +48,16 @@ public:
     }
 
     /** @brief 返回借用句柄；上下文销毁后返回 nullptr。 */
-    [[nodiscard]] void* value() const { return m_state ? m_state->value : nullptr; }
+    [[nodiscard]] void* value() const
+    {
+        return m_state ? m_state->value : nullptr;
+    }
 
     /** @brief 返回仍存活的绑定上下文。 */
-    [[nodiscard]] IScriptBindingContext* context() const { return m_state ? m_state->context : nullptr; }
+    [[nodiscard]] IScriptBindingContext* context() const
+    {
+        return m_state ? m_state->context : nullptr;
+    }
 
 private:
     struct State {
@@ -58,15 +65,21 @@ private:
         void* value;
         u64 cleanupId;
 
-        ~State() { reset(); }
+        ~State()
+        {
+            reset();
+        }
 
         void reset()
         {
             if (context != nullptr) {
                 auto* bindings = context;
                 void* handle = value;
+
+                // 先使持有器失效，再释放 JS 值，避免对象终结器重入清理时重复释放。
                 context = nullptr;
                 value = nullptr;
+
                 bindings->removeDisposeCallback(cleanupId);
                 bindings->releaseValue(handle);
             }

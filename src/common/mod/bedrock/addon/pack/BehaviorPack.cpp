@@ -44,18 +44,28 @@ Result<std::filesystem::path> _resolveResource(const std::string& packPath, cons
     if (resource.empty() || relative.is_absolute() || relative.has_root_name()) {
         return Error(ErrorCode::InvalidArgument, "Pack resource path must be relative: " + resource);
     }
+
+    // 先解析链接和父目录，再验证真实路径归属，单纯检查字符串前缀不能覆盖链接跳转。
     std::error_code error;
     const auto root = fs::weakly_canonical(fs::path(packPath), error);
-    if (error) return Error(ErrorCode::FileReadFailed, "Cannot resolve pack directory: " + error.message());
+    if (error) {
+        return Error(ErrorCode::FileReadFailed, "Cannot resolve pack directory: " + error.message());
+    }
+
     const auto full = fs::weakly_canonical(root / relative, error);
-    if (error) return Error(ErrorCode::FileReadFailed, "Cannot resolve pack resource: " + error.message());
+    if (error) {
+        return Error(ErrorCode::FileReadFailed, "Cannot resolve pack resource: " + error.message());
+    }
+
     const auto contained = full.lexically_relative(root);
     if (contained.empty() || contained.is_absolute() || *contained.begin() == "..") {
         return Error(ErrorCode::InvalidArgument, "Resource path escapes pack directory: " + resource);
     }
+
     if (!fs::is_regular_file(full, error)) {
         return Error(ErrorCode::FileNotFound, "Pack resource is not a regular file: " + full.string());
     }
+
     return full;
 }
 
@@ -109,7 +119,10 @@ void BehaviorPack::setPriority(i32 priority)
 Result<std::string> BehaviorPack::readScriptFile(const std::string& relativePath) const
 {
     auto resolved = _resolveResource(m_path, relativePath);
-    if (resolved.failed()) return resolved.error();
+    if (resolved.failed()) {
+        return resolved.error();
+    }
+
     const auto& fullPath = resolved.value();
 
     if (!std::filesystem::exists(fullPath)) {
@@ -124,6 +137,7 @@ Result<std::string> BehaviorPack::readScriptFile(const std::string& relativePath
     try {
         std::string content((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
         file.close();
+
         return content;
     }
     catch (const std::exception& e) {
@@ -134,7 +148,10 @@ Result<std::string> BehaviorPack::readScriptFile(const std::string& relativePath
 Result<std::vector<u8>> BehaviorPack::readResource(const std::string& relativePath) const
 {
     auto resolved = _resolveResource(m_path, relativePath);
-    if (resolved.failed()) return resolved.error();
+    if (resolved.failed()) {
+        return resolved.error();
+    }
+
     const auto& fullPath = resolved.value();
 
     if (!std::filesystem::exists(fullPath)) {
@@ -147,7 +164,10 @@ Result<std::vector<u8>> BehaviorPack::readResource(const std::string& relativePa
     }
 
     const std::streamsize fileSize = file.tellg();
-    if (fileSize < 0) return Error(ErrorCode::FileReadFailed, "Cannot determine resource size: " + fullPath.string());
+    if (fileSize < 0) {
+        return Error(ErrorCode::FileReadFailed, "Cannot determine resource size: " + fullPath.string());
+    }
+
     if (fileSize == 0) {
         return std::vector<u8>{};
     }

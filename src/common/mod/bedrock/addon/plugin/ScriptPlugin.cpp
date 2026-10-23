@@ -57,7 +57,10 @@ Result<std::vector<ModuleDependency>> _collectModuleDependencies(const AddonMani
 {
     std::vector<ModuleDependency> dependencies;
     for (const auto& dependency : manifest.dependencies) {
-        if (!dependency.isModuleDependency()) continue;
+        if (!dependency.isModuleDependency()) {
+            continue;
+        }
+
         ModuleDependency module;
         module.name = dependency.moduleName;
         std::string_view version = dependency.versionString;
@@ -66,10 +69,12 @@ Result<std::vector<ModuleDependency>> _collectModuleDependencies(const AddonMani
             dependencies.push_back(std::move(module));
             continue;
         }
+
         if (const auto separator = version.find('-'); separator != std::string_view::npos) {
             module.preRelease = version.substr(separator + 1);
             version = version.substr(0, separator);
         }
+
         std::array<i32*, 3> parts{&module.version.major, &module.version.minor, &module.version.patch};
         for (size_t index = 0; index < parts.size(); ++index) {
             const auto separator = version.find('.');
@@ -81,10 +86,15 @@ Result<std::vector<ModuleDependency>> _collectModuleDependencies(const AddonMani
                 return Error(ErrorCode::InvalidData,
                     "Invalid module version for " + module.name + ": " + dependency.versionString);
             }
-            if (separator != std::string_view::npos) version.remove_prefix(separator + 1);
+
+            if (separator != std::string_view::npos) {
+                version.remove_prefix(separator + 1);
+            }
         }
+
         dependencies.push_back(std::move(module));
     }
+
     return dependencies;
 }
 
@@ -129,6 +139,7 @@ ScriptPlugin& ScriptPlugin::operator=(ScriptPlugin&& other) noexcept
         m_errorMessage = std::move(other.m_errorMessage);
         other.m_state = State::Unloaded;
     }
+
     return *this;
 }
 
@@ -157,13 +168,16 @@ Result<void> ScriptPlugin::load(IScriptEngine& engine, IDependencyLoader& source
         if (dependencies.failed()) {
             m_state = State::Error;
             m_errorMessage = dependencies.error().message();
+
             return dependencies.error();
         }
+
         moduleDeps = std::move(dependencies.value());
         entry = pluginSource->loadEntryPoint();
         if (!entry) {
             m_state = State::Error;
             m_errorMessage = "Script entry point is missing for plugin: " + m_name;
+
             return Error(ErrorCode::FileNotFound, m_errorMessage);
         }
     }
@@ -174,6 +188,7 @@ Result<void> ScriptPlugin::load(IScriptEngine& engine, IDependencyLoader& source
         m_state = State::Error;
         m_errorMessage = "Failed to create script context for plugin: " + m_name;
         spdlog::error("[BedrockAddon] {}", m_errorMessage);
+
         return Error(ErrorCode::OperationFailed, m_errorMessage);
     }
 
@@ -185,12 +200,14 @@ Result<void> ScriptPlugin::load(IScriptEngine& engine, IDependencyLoader& source
             m_state = State::Error;
             m_errorMessage = "Failed to execute entry point: " + result.errorMessage();
             m_context.reset();
+
             return Error(ErrorCode::OperationFailed, m_errorMessage);
         }
     }
 
     m_state = State::Loaded;
     spdlog::info("[BedrockAddon] Plugin loaded: {} ({})", m_name, m_uuid);
+
     return Result<void>::ok();
 }
 
@@ -202,6 +219,7 @@ Result<void> ScriptPlugin::start()
 
     m_state = State::Running;
     spdlog::info("[BedrockAddon] Plugin started: {} ({})", m_name, m_uuid);
+
     return Result<void>::ok();
 }
 
@@ -243,6 +261,7 @@ void ScriptPlugin::tick()
         m_state = State::Error;
         m_errorMessage = "Script context became invalid during tick";
         spdlog::error("[BedrockAddon] {}", m_errorMessage);
+
         return;
     }
 }
@@ -313,6 +332,7 @@ const char* ScriptPlugin::stateName(State state)
         case State::Unloading:
             return "Unloading";
     }
+
     return "Unknown";
 }
 

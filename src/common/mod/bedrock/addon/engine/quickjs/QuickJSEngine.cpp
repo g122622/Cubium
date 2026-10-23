@@ -56,6 +56,7 @@ bool QuickJSEngine::initialize()
 {
     if (m_initialized) {
         spdlog::warn("[BedrockAddon] QuickJSEngine already initialized");
+
         return true;
     }
 
@@ -65,11 +66,13 @@ bool QuickJSEngine::initialize()
     if (!m_runtime->initialize()) {
         spdlog::error("[BedrockAddon] Failed to initialize QuickJS runtime");
         m_runtime.reset();
+
         return false;
     }
 
     m_initialized = true;
     spdlog::info("[BedrockAddon] QuickJS engine initialized successfully");
+
     return true;
 }
 
@@ -119,6 +122,7 @@ IModuleBindingFactory* QuickJSEngine::findModuleFactory(const std::string& name)
     if (it != m_factoryByName.end()) {
         return it->second;
     }
+
     return nullptr;
 }
 
@@ -129,6 +133,7 @@ std::unique_ptr<IScriptContext> QuickJSEngine::createContext(const ModuleDescrip
 {
     if (!m_initialized || !m_runtime) {
         spdlog::error("[BedrockAddon] Cannot create context: engine not initialized");
+
         return nullptr;
     }
 
@@ -143,6 +148,7 @@ std::unique_ptr<IScriptContext> QuickJSEngine::createContext(const ModuleDescrip
     auto context = m_runtime->createContext(config);
     if (!context) {
         spdlog::error("[BedrockAddon] Failed to create QuickJS context");
+
         return nullptr;
     }
 
@@ -151,18 +157,24 @@ std::unique_ptr<IScriptContext> QuickJSEngine::createContext(const ModuleDescrip
     auto* qjsContext = static_cast<QuickJSContext*>(context.get());
     qjsContext->setModuleSourceProvider([&loader](const std::string& moduleName) -> std::string {
         auto data = loader.loadScript(moduleName);
+
         return data.has_value() ? data->source : std::string{};
     });
 
     std::unordered_set<std::string> registered;
     for (const auto& dependency : dependencies) {
-        if (!registered.insert(dependency.name).second) continue;
+        if (!registered.insert(dependency.name).second) {
+            continue;
+        }
+
         auto* factory = findModuleFactory(dependency.name);
         if (factory == nullptr) {
             spdlog::error(
                 "[BedrockAddon] Required module '{}' is unavailable for '{}'", dependency.name, descriptor.name);
+
             return nullptr;
         }
+
         const auto versions = factory->supportedVersions();
         const bool anyVersion = dependency.version == ModuleVersion{0, 0, 0};
         const bool supported = std::any_of(versions.begin(), versions.end(), [&](const ModuleVersion& version) {
@@ -173,10 +185,13 @@ std::unique_ptr<IScriptContext> QuickJSEngine::createContext(const ModuleDescrip
                 dependency.version.toString(),
                 dependency.name,
                 descriptor.name);
+
             return nullptr;
         }
+
         if (!factory->registerBindings(*context)) {
             spdlog::error("[BedrockAddon] Failed to register module '{}' for '{}'", dependency.name, descriptor.name);
+
             return nullptr;
         }
     }
@@ -186,6 +201,7 @@ std::unique_ptr<IScriptContext> QuickJSEngine::createContext(const ModuleDescrip
     if (selfFactory) {
         if (!selfFactory->registerBindings(*context)) {
             spdlog::error("[BedrockAddon] Failed to register self bindings for module: {}", descriptor.name);
+
             return nullptr;
         }
     }

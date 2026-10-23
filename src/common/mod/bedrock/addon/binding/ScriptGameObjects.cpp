@@ -39,10 +39,12 @@ void* wrapEntity(IScriptBindingContext& context, mc::Entity* entity)
     if (entity == nullptr) {
         return context.createUndefined();
     }
+
     const char* name = dynamic_cast<mc::Player*>(entity) != nullptr ? "Player" : "Entity";
     const auto id = context.classRegistry().classIdByName(name);
     void* prototype = context.classRegistry().proto(id);
     MC_ASSERT_RELEASE(prototype != nullptr);
+
     return ScriptObjectRegistry::wrap(context, id, prototype, entity, false, name, nullptr, entity->id(), entity);
 }
 
@@ -51,9 +53,11 @@ void* wrapDimension(IScriptBindingContext& context, mc::IWorld* world)
     if (world == nullptr) {
         return context.createUndefined();
     }
+
     const auto id = context.classRegistry().classIdByName("Dimension");
     void* prototype = context.classRegistry().proto(id);
     MC_ASSERT_RELEASE(prototype != nullptr);
+
     return ScriptObjectRegistry::wrap(context, id, prototype, world, false, "Dimension", nullptr, 0, nullptr);
 }
 
@@ -63,6 +67,7 @@ void* wrapItemStack(IScriptBindingContext& context, const mc::ItemStack& item)
     void* prototype = context.classRegistry().proto(id);
     MC_ASSERT_RELEASE(prototype != nullptr);
     auto* owned = std::make_unique<mc::ItemStack>(item).release();
+
     return ScriptObjectRegistry::wrap(
         context,
         id,
@@ -70,7 +75,9 @@ void* wrapItemStack(IScriptBindingContext& context, const mc::ItemStack& item)
         owned,
         true,
         "ItemStack",
-        [](void* value) { delete static_cast<mc::ItemStack*>(value); },
+        [](void* value) {
+            delete static_cast<mc::ItemStack*>(value);
+        },
         0,
         nullptr);
 }

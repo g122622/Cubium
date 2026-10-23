@@ -57,8 +57,10 @@ void* getErrorPrototype(mc::mod::bedrock::addon::IScriptBindingContext& ctx)
     if (errorCtor == nullptr) {
         return nullptr;
     }
+
     void* errorProto = ctx.getProperty(errorCtor, "prototype");
     ctx.releaseValue(errorCtor);
+
     return errorProto;
 }
 
@@ -69,6 +71,7 @@ void* blockPosToJs(mc::mod::bedrock::addon::IScriptBindingContext& ctx, const Bl
     ctx.setPropertyInt(obj, "x", static_cast<i32>(pos.x));
     ctx.setPropertyInt(obj, "y", static_cast<i32>(pos.y));
     ctx.setPropertyInt(obj, "z", static_cast<i32>(pos.z));
+
     return obj;
 }
 
@@ -78,6 +81,7 @@ void* contextToJs(mc::mod::bedrock::addon::IScriptBindingContext& ctx, const std
     if (!c.has_value()) {
         return ctx.createNull();
     }
+
     const u64 classId = ctx.classRegistry().classIdByName(kGameTestErrorContextClassName);
     void* proto = ctx.classRegistry().proto(classId);
     // setProperty 不消耗 value 所有权（内部 Dup 一份给对象），故每个临时句柄都必须显式释放，
@@ -93,13 +97,16 @@ void* contextToJs(mc::mod::bedrock::addon::IScriptBindingContext& ctx, const std
         setBlockPos(obj, "absolutePosition", c->absolutePosition());
         setBlockPos(obj, "relativePosition", c->relativePosition());
         ctx.setPropertyInt(obj, "tickCount", c->tickCount());
+
         return obj;
     }
+
     void* obj = ctx.createObject();
     ctx.setPrototypeOf(obj, proto);
     setBlockPos(obj, "absolutePosition", c->absolutePosition());
     setBlockPos(obj, "relativePosition", c->relativePosition());
     ctx.setPropertyInt(obj, "tickCount", c->tickCount());
+
     return obj;
 }
 
@@ -110,6 +117,7 @@ void* stringVectorToJs(mc::mod::bedrock::addon::IScriptBindingContext& ctx, cons
     for (u32 i = 0; i < vec.size(); ++i) {
         ctx.setArrayElementString(arr, i, vec[i]);
     }
+
     return arr;
 }
 
@@ -134,6 +142,7 @@ void* buildGameTestErrorJs(mc::mod::bedrock::addon::IScriptBindingContext& ctx, 
     void* paramsHandle = stringVectorToJs(ctx, err.params());
     ctx.setProperty(obj, "params", paramsHandle);
     ctx.releaseValue(paramsHandle);
+
     return obj;
 }
 
@@ -152,6 +161,7 @@ void registerGameTestErrorClasses(
         ctx.setPrototypeOf(errorProtoObj, errorProto);
         ctx.releaseValue(errorProto);
     }
+
     ctx.classRegistry().registerClass(errorClassId, errorProtoObj, kGameTestErrorClassName);
 
     ClassRegistrar<void> errorReg(ctx, errorClassId, errorProtoObj);
@@ -168,6 +178,7 @@ void registerGameTestErrorClasses(
         ctx.setPrototypeOf(completedProtoObj, errorProto2);
         ctx.releaseValue(errorProto2);
     }
+
     ctx.classRegistry().registerClass(completedClassId, completedProtoObj, kGameTestCompletedErrorClassName);
 
     ClassRegistrar<void> completedReg(ctx, completedClassId, completedProtoObj);
@@ -186,7 +197,9 @@ void registerGameTestErrorClasses(
     // GameTestErrorType：值=自身 PascalCase 名（Unknown/Waiting/.../SimulatedPlayerOutOfBounds）。
     {
         void* obj = ctx.createObject();
-        const auto setEntry = [&](const char* key) { ctx.setPropertyString(obj, key, key); };
+        const auto setEntry = [&](const char* key) {
+            ctx.setPropertyString(obj, key, key);
+        };
         setEntry("Unknown");
         setEntry("Waiting");
         setEntry("ExhaustedAttempts");
@@ -230,6 +243,7 @@ void* throwGameTestError(
     void* jsErr = buildGameTestErrorJs(ctx, err);
     void* exc = ctx.throwValue(jsErr); // throwValue 内部复制，不消耗 jsErr 所有权。
     ctx.releaseValue(jsErr);
+
     return exc;
 }
 
@@ -238,9 +252,11 @@ void* throwGameTestErrorFromResult(mc::mod::bedrock::addon::IScriptBindingContex
     if (isPass(result)) {
         return ctx.createUndefined();
     }
+
     void* jsErr = buildGameTestErrorJs(ctx, *result);
     void* exc = ctx.throwValue(jsErr);
     ctx.releaseValue(jsErr);
+
     return exc;
 }
 
@@ -257,6 +273,7 @@ void* throwGameTestCompletedError(
     if (proto != nullptr) {
         ctx.setPrototypeOf(obj, proto);
     }
+
     ctx.setPropertyString(obj, "reason", gameTestCompletedErrorReasonName(err.reason()));
     ctx.setPropertyString(obj, "gameTestName", err.gameTestName());
     ctx.setPropertyString(obj, "methodName", err.methodName());
@@ -264,6 +281,7 @@ void* throwGameTestCompletedError(
     ctx.setPropertyString(obj, "message", err.toGameTestError().formattedMessage());
     void* exc = ctx.throwValue(obj);
     ctx.releaseValue(obj);
+
     return exc;
 }
 

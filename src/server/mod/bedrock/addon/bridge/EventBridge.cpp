@@ -49,17 +49,23 @@ mc::Player* _findPlayer(PlayerId id)
     for (auto* world : ScriptWorldAccessor::instance().getDimensions()) {
         for (auto* entity : world->getPlayers()) {
             auto* player = dynamic_cast<mc::Player*>(entity);
-            if (player != nullptr && player->playerId() == id) return player;
+            if (player != nullptr && player->playerId() == id) {
+                return player;
+            }
         }
     }
+
     return nullptr;
 }
 
 mc::IWorld* _findWorld(DimensionId id)
 {
     for (auto* world : ScriptWorldAccessor::instance().getDimensions()) {
-        if (world->dimension() == id) return world;
+        if (world->dimension() == id) {
+            return world;
+        }
     }
+
     return nullptr;
 }
 
@@ -69,6 +75,7 @@ ScriptEventData _position(const Vector3d& pos)
     result.setNumber("x", pos.x);
     result.setNumber("y", pos.y);
     result.setNumber("z", pos.z);
+
     return result;
 }
 
@@ -78,6 +85,8 @@ ScriptEventData _snapshot(const Event& nativeEvent)
 {
     ScriptEventData data;
     data.cancelled = nativeEvent.isCancelled();
+
+    // 先确定事件主体及维度，之后的方块、物品和伤害快照共用同一事件上下文。
     mc::IWorld* world = nullptr;
     if constexpr (requires { nativeEvent.playerId; }) {
         auto* player = _findPlayer(nativeEvent.playerId);
@@ -85,57 +94,97 @@ ScriptEventData _snapshot(const Event& nativeEvent)
         data.setEntity("source", player);
         world = player != nullptr ? player->world() : nullptr;
     }
+
     if constexpr (requires { nativeEvent.entity; }) {
         data.setEntity("entity", nativeEvent.entity);
         world = nativeEvent.entity != nullptr ? nativeEvent.entity->world() : world;
-        if constexpr (std::is_same_v<Event, event::EntityHurtEvent>) data.setEntity("hurtEntity", nativeEvent.entity);
-        if constexpr (std::is_same_v<Event, event::EntityDeathEvent>) data.setEntity("deadEntity", nativeEvent.entity);
+        if constexpr (std::is_same_v<Event, event::EntityHurtEvent>) {
+            data.setEntity("hurtEntity", nativeEvent.entity);
+        }
+
+        if constexpr (std::is_same_v<Event, event::EntityDeathEvent>) {
+            data.setEntity("deadEntity", nativeEvent.entity);
+        }
     }
-    if constexpr (requires { nativeEvent.dimension; }) world = _findWorld(nativeEvent.dimension);
+
+    if constexpr (requires { nativeEvent.dimension; }) {
+        world = _findWorld(nativeEvent.dimension);
+    }
+
     data.setDimension("dimension", world);
+
+    // 伤害来源可能位于发布者的调用栈上，必须在当前调用内提取字段和实体引用。
     if constexpr (requires { nativeEvent.cause; }) {
         ScriptEventData source;
         if (nativeEvent.cause != nullptr) {
             source.setString("cause", std::string(damageCauseName(nativeEvent.cause->type())));
             source.setEntity("damagingEntity", nativeEvent.cause->source());
-            if (nativeEvent.cause->isProjectile())
+            if (nativeEvent.cause->isProjectile()) {
                 source.setEntity("damagingProjectile", nativeEvent.cause->directSource());
-        } else
+            }
+        } else {
             source.setString("cause", "none");
+        }
+
         data.setObject("damageSource", std::move(source));
     }
-    if constexpr (requires { nativeEvent.damage; }) data.setNumber("damage", nativeEvent.damage);
+
+    if constexpr (requires { nativeEvent.damage; }) {
+        data.setNumber("damage", nativeEvent.damage);
+    }
+
     if constexpr (requires {
                       nativeEvent.state;
                       nativeEvent.pos;
                   }) {
         data.setBlock("block", world, nativeEvent.pos, nativeEvent.state);
     }
+
+    // 物品和聊天文本保存值副本，延迟分发不再依赖原生事件对象的存活。
     if constexpr (requires { nativeEvent.item; }) {
         if constexpr (std::is_pointer_v<decltype(nativeEvent.item)>) {
-            if (nativeEvent.item != nullptr) data.setItem("itemStack", *nativeEvent.item);
-        } else
+            if (nativeEvent.item != nullptr) {
+                data.setItem("itemStack", *nativeEvent.item);
+            }
+        } else {
             data.setItem("itemStack", nativeEvent.item);
+        }
     }
+
     if constexpr (requires { nativeEvent.tool; }) {
-        if (nativeEvent.tool != nullptr) data.setItem("itemStackBeforeBreak", *nativeEvent.tool);
+        if (nativeEvent.tool != nullptr) {
+            data.setItem("itemStackBeforeBreak", *nativeEvent.tool);
+        }
     }
+
     if constexpr (requires { nativeEvent.message; }) {
         data.setString("message", nativeEvent.message);
         data.setEntity("sender", _findPlayer(nativeEvent.playerId));
     }
-    if constexpr (requires { nativeEvent.username; }) data.setString("playerName", nativeEvent.username);
-    if constexpr (requires { nativeEvent.reason; }) {
-        if constexpr (std::is_same_v<decltype(nativeEvent.reason), std::string>)
-            data.setString("reason", nativeEvent.reason);
+
+    if constexpr (requires { nativeEvent.username; }) {
+        data.setString("playerName", nativeEvent.username);
     }
-    if constexpr (requires { nativeEvent.position; }) data.setObject("location", _position(nativeEvent.position));
-    if constexpr (requires { nativeEvent.currentTick; })
+
+    if constexpr (requires { nativeEvent.reason; }) {
+        if constexpr (std::is_same_v<decltype(nativeEvent.reason), std::string>) {
+            data.setString("reason", nativeEvent.reason);
+        }
+    }
+
+    if constexpr (requires { nativeEvent.position; }) {
+        data.setObject("location", _position(nativeEvent.position));
+    }
+
+    if constexpr (requires { nativeEvent.currentTick; }) {
         data.setNumber("currentTick", static_cast<f64>(nativeEvent.currentTick));
+    }
+
     if constexpr (requires { nativeEvent.raining; }) {
         data.setBoolean("raining", nativeEvent.raining);
         data.setString("newWeather", nativeEvent.raining ? "Rain" : "Clear");
     }
+
     if constexpr (requires {
                       nativeEvent.power;
                       nativeEvent.source;
@@ -143,8 +192,16 @@ ScriptEventData _snapshot(const Event& nativeEvent)
         data.setEntity("source", nativeEvent.source);
         data.setNumber("power", nativeEvent.power);
     }
-    if constexpr (std::is_same_v<Event, event::PlayerLoginEvent>) data.setBoolean("initialSpawn", true);
-    if constexpr (std::is_same_v<Event, event::PlayerRespawnEvent>) data.setBoolean("initialSpawn", false);
+
+    // 首次加入和重生共用 playerSpawn 信号，通过载荷区分首次出生。
+    if constexpr (std::is_same_v<Event, event::PlayerLoginEvent>) {
+        data.setBoolean("initialSpawn", true);
+    }
+
+    if constexpr (std::is_same_v<Event, event::PlayerRespawnEvent>) {
+        data.setBoolean("initialSpawn", false);
+    }
+
     return data;
 }
 } // namespace
@@ -171,6 +228,7 @@ EventBridge& EventBridge::operator=(EventBridge&& other) noexcept
         m_initialized = other.m_initialized;
         other.m_initialized = false;
     }
+
     return *this;
 }
 
@@ -200,6 +258,7 @@ void EventBridge::shutdown()
     for (auto id : m_subscriptionIds) {
         bus.unsubscribe(id);
     }
+
     m_subscriptionIds.clear();
     m_initialized = false;
 
