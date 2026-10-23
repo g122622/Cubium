@@ -4,12 +4,13 @@
 
 ```text
 entity/
+├── definition/ # 实体 JSON、基础组件及实例工厂
 └── state/ # 实体属性、待应用写入与存档编码
 ```
 
 ## 内部模块关系
 
-state 作为 ECS 扩展组件保存每个实体的 addon 数据，与实体共同销毁。
+definition 验证实体定义并在实例工厂安装组件和属性；state 作为 ECS 扩展组件保存每个实体的 addon 数据，与实体共同销毁。
 
 ## 上下游外部依赖关系
 

@@ -71,9 +71,6 @@ Result<std::unique_ptr<Entity>> EntityDeserializer::deserialize(
         return Error(ErrorCode::InvalidData, fmt::format("Failed to create entity of type: {}", typeId));
     }
 
-    // 设置实体的类型ID
-    entity->setTypeId(typeId);
-
     // 4. 调用 Entity::readFromNBT() 填充数据
     auto result = entity->readFromNBT(tag);
     if (!result.success()) {

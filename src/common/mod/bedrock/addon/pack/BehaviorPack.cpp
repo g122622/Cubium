@@ -26,6 +26,7 @@
 #include "common/core/Types.hpp"
 #include "common/mod/bedrock/addon/pack/AddonManifest.hpp"
 
+#include <algorithm>
 #include <exception>
 #include <filesystem>
 #include <fstream>
@@ -37,7 +38,7 @@
 namespace mc::mod::bedrock::addon {
 namespace {
 
-Result<std::filesystem::path> _resolveResource(const std::string& packPath, const std::string& resource)
+Result<std::filesystem::path> _resolveContainedPath(const std::string& packPath, const std::string& resource)
 {
     namespace fs = std::filesystem;
     const fs::path relative(resource);
@@ -62,14 +63,68 @@ Result<std::filesystem::path> _resolveResource(const std::string& packPath, cons
         return Error(ErrorCode::InvalidArgument, "Resource path escapes pack directory: " + resource);
     }
 
-    if (!fs::is_regular_file(full, error)) {
-        return Error(ErrorCode::FileNotFound, "Pack resource is not a regular file: " + full.string());
+    return full;
+}
+
+Result<std::filesystem::path> _resolveResource(const std::string& packPath, const std::string& resource)
+{
+    auto full = _resolveContainedPath(packPath, resource);
+    if (full.failed()) {
+        return full.error();
+    }
+    std::error_code error;
+    if (!std::filesystem::is_regular_file(full.value(), error)) {
+        return Error(ErrorCode::FileNotFound, "Pack resource is not a regular file: " + full.value().string());
     }
 
     return full;
 }
 
 } // namespace
+
+Result<std::vector<std::string>> BehaviorPack::listResources(
+    const std::string& directory, const std::string& suffix) const
+{
+    auto resolved = _resolveContainedPath(m_path, directory);
+    if (resolved.failed()) {
+        return resolved.error();
+    }
+    std::error_code error;
+    if (!std::filesystem::exists(resolved.value(), error)) {
+        if (error) {
+            return Error(ErrorCode::FileReadFailed, "Cannot inspect pack directory: " + error.message());
+        }
+        return std::vector<std::string>{};
+    }
+    if (!std::filesystem::is_directory(resolved.value(), error)) {
+        return Error(ErrorCode::InvalidData, "Pack content path is not a directory: " + directory);
+    }
+
+    std::vector<std::string> files;
+    const auto root = std::filesystem::weakly_canonical(std::filesystem::path(m_path), error);
+    if (error) {
+        return Error(ErrorCode::FileReadFailed, "Cannot resolve pack root: " + error.message());
+    }
+    auto iterator = std::filesystem::recursive_directory_iterator(resolved.value(), error);
+    const auto end = std::filesystem::recursive_directory_iterator();
+    while (iterator != end && !error) {
+        const auto& entry = *iterator;
+        if (entry.is_regular_file(error) && entry.path().generic_string().ends_with(suffix)) {
+            const auto relative = entry.path().lexically_relative(root);
+            auto contained = _resolveResource(m_path, relative.generic_string());
+            if (contained.failed()) {
+                return contained.error();
+            }
+            files.push_back(relative.generic_string());
+        }
+        iterator.increment(error);
+    }
+    if (error) {
+        return Error(ErrorCode::FileReadFailed, "Cannot enumerate pack resources: " + error.message());
+    }
+    std::sort(files.begin(), files.end());
+    return files;
+}
 
 BehaviorPack::BehaviorPack(std::string path, AddonManifest manifest)
     : m_path(std::move(path))

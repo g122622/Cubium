@@ -64,6 +64,8 @@ add_library(mc_bedrock_addon STATIC
     lifecycle/ScriptScheduler.cpp
 
     # Content - 行为包数据与实体状态
+    content/AddonContentManager.cpp
+    content/entity/definition/AddonEntityDefinition.cpp
     content/entity/state/EntityAddonState.cpp
     content/item/ItemAddonProperties.cpp
     content/base/properties/AddonDynamicProperties.cpp

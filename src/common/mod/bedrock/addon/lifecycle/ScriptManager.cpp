@@ -24,6 +24,7 @@
 #include "common/mod/bedrock/addon/lifecycle/ScriptManager.hpp"
 #include "common/core/Result.hpp"
 #include "common/mod/bedrock/addon/binding/ScriptClassRegistry.hpp"
+#include "common/mod/bedrock/addon/content/AddonContentManager.hpp"
 #include "common/mod/bedrock/addon/content/base/properties/AddonDynamicProperties.hpp"
 #include "common/mod/bedrock/addon/core/IScriptEngine.hpp"
 #include "common/mod/bedrock/addon/event/ScriptEventData.hpp"
@@ -52,6 +53,7 @@ ScriptManager::ScriptManager()
     , m_scheduler(std::make_unique<ScriptScheduler>())
     , m_packList(std::make_unique<BehaviorPackList>())
     , m_worldProperties(std::make_shared<AddonDynamicProperties>())
+    , m_content(std::make_unique<AddonContentManager>())
 {}
 
 ScriptManager::~ScriptManager()
@@ -96,6 +98,7 @@ void ScriptManager::shutdown()
     m_pluginManager->stopAllPlugins();
 
     m_pluginManager->unloadAllPlugins();
+    m_content->clear();
 
     // 关闭事件总线
     m_eventBus->shutdown();
@@ -156,9 +159,16 @@ Result<void> ScriptManager::loadPacks(const std::string& globalPackDir, const st
 
     spdlog::info("[BedrockAddon] Found {} behavior pack(s)", m_packList->size());
 
+    MC_TRY(m_packList->resolveDependencies());
+    auto content = m_content->loadEntityDefinitions(*m_packList);
+    if (content.failed()) {
+        return content.error();
+    }
+
     // 加载插件
     auto result = m_pluginManager->loadPlugins(*m_engine, *m_packList);
     if (result.failed()) {
+        m_content->rollback(content.value());
         spdlog::error("[BedrockAddon] Failed to load plugins: {}", result.error().message());
 
         return result;
@@ -217,6 +227,7 @@ void ScriptManager::reload()
     // 停止并卸载所有插件
     m_pluginManager->stopAllPlugins();
     m_pluginManager->unloadAllPlugins();
+    m_content->clear();
 
     // 清除调度器
     m_scheduler->clearAll();

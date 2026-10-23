@@ -44,6 +44,7 @@ namespace mc::mod::bedrock::addon {
 class BehaviorPackList;
 class ScriptTickListener;
 class AddonDynamicProperties;
+class AddonContentManager;
 
 /**
  * @brief 脚本管理器
@@ -175,6 +176,7 @@ private:
     std::unique_ptr<ScriptTickListener> m_tickListener;
     std::vector<EventSignalInfo> m_eventSignals;
     std::shared_ptr<AddonDynamicProperties> m_worldProperties;
+    std::unique_ptr<AddonContentManager> m_content;
 
     bool m_initialized = false;
 };
