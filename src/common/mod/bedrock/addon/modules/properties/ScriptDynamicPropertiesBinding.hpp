@@ -23,14 +23,21 @@
 
 #pragma once
 
+#include "common/core/Result.hpp"
 #include <functional>
 
 namespace mc::mod::bedrock::addon {
 class IScriptBindingContext;
 class AddonDynamicProperties;
 
-/** @brief 从当前方法接收者解析属性所有者，失效时返回 nullptr。 */
-using DynamicPropertyAccessor = std::function<AddonDynamicProperties*(IScriptBindingContext&, void*)>;
+/** @brief 属性访问及成功调用后的提交入口；提交回调同时持有临时快照的寿命。 */
+struct DynamicPropertyAccess {
+    AddonDynamicProperties* properties;
+    std::function<Result<void>()> commit;
+};
+
+/** @brief 解析当前方法接收者的属性所有者和提交方式；第三个参数标记写操作。 */
+using DynamicPropertyAccessor = std::function<Result<DynamicPropertyAccess>(IScriptBindingContext&, void*, bool)>;
 
 /** @brief 注册统一的动态属性方法，访问器管理所属对象的生命周期。 */
 void registerDynamicPropertyBindings(IScriptBindingContext& context, void* prototype, DynamicPropertyAccessor accessor);

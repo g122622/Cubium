@@ -25,113 +25,159 @@
 #include "common/mod/bedrock/addon/binding/IScriptBindingContext.hpp"
 #include "common/mod/bedrock/addon/content/base/properties/AddonDynamicProperties.hpp"
 #include "common/mod/bedrock/addon/modules/properties/ScriptPropertyValue.hpp"
+#include "common/util/assert/AssertMacros.hpp"
 
 namespace mc::mod::bedrock::addon {
 namespace {
-using _PropertyMethod = std::function<void*(IScriptBindingContext&, AddonDynamicProperties&, i32, void**)>;
+using _PropertyOperation = std::function<void*(IScriptBindingContext&, AddonDynamicProperties&)>;
 
-ScriptMethodCallback _method(DynamicPropertyAccessor accessor, _PropertyMethod callback)
+void* _withProperties(IScriptBindingContext& context,
+    void* receiver,
+    const DynamicPropertyAccessor& accessor,
+    bool writable,
+    const _PropertyOperation& operation)
 {
-    return [accessor = std::move(accessor), callback = std::move(callback)](
-               IScriptBindingContext& context, void* receiver, i32 argc, void** args) -> void* {
-        auto* properties = accessor(context, receiver);
-        if (properties == nullptr) {
-            // TODO: 按对象类型抛出官方细分失效错误。
-            return context.throwTypeError("Dynamic property owner is no longer valid");
-        }
-        return callback(context, *properties, argc, args);
-    };
+    auto access = accessor(context, receiver, writable);
+    if (access.failed()) {
+        // TODO: 按对象类型抛出官方细分失效错误。
+        return context.throwTypeError(access.error().message().c_str());
+    }
+
+    auto& owner = access.value();
+    MC_ASSERT_RELEASE(owner.properties != nullptr);
+    void* result = operation(context, *owner.properties);
+    if (context.isException(result)) {
+        return result;
+    }
+
+    auto committed = owner.commit();
+    if (committed.failed()) {
+        context.releaseValue(result);
+        return context.throwTypeError(committed.error().message().c_str());
+    }
+    return result;
 }
 } // namespace
 
 void registerDynamicPropertyBindings(IScriptBindingContext& context, void* prototype, DynamicPropertyAccessor accessor)
 {
-    context.registerMethod(prototype,
+    context.registerMethod(
+        prototype,
         "getDynamicProperty",
-        _method(accessor,
-            [](IScriptBindingContext& context, AddonDynamicProperties& properties, i32 argc, void** args) -> void* {
-                if (!hasScriptPropertyName(context, argc, args)) {
-                    return context.throwTypeError("getDynamicProperty requires a nonempty name");
-                }
-
-                const auto value = properties.get(context.packId(), *context.toString(args[0]));
-                return value ? writeScriptPropertyValue(context, *value) : context.createUndefined();
-            }),
+        [accessor](IScriptBindingContext& context, void* receiver, i32 argc, void** args) -> void* {
+            if (!hasScriptPropertyName(context, argc, args)) {
+                return context.throwTypeError("getDynamicProperty requires a nonempty name");
+            }
+            const auto name = *context.toString(args[0]);
+            return _withProperties(context,
+                receiver,
+                accessor,
+                false,
+                [&name](IScriptBindingContext& context, AddonDynamicProperties& properties) -> void* {
+                    const auto value = properties.get(context.packId(), name);
+                    return value ? writeScriptPropertyValue(context, *value) : context.createUndefined();
+                });
+        },
         1);
 
-    context.registerMethod(prototype,
+    context.registerMethod(
+        prototype,
         "setDynamicProperty",
-        _method(accessor,
-            [](IScriptBindingContext& context, AddonDynamicProperties& properties, i32 argc, void** args) -> void* {
-                if (!hasScriptPropertyName(context, argc, args)) {
-                    return context.throwTypeError("setDynamicProperty requires a nonempty name");
-                }
+        [accessor](IScriptBindingContext& context, void* receiver, i32 argc, void** args) -> void* {
+            if (!hasScriptPropertyName(context, argc, args)) {
+                return context.throwTypeError("setDynamicProperty requires a nonempty name");
+            }
+            const auto name = *context.toString(args[0]);
+            auto value =
+                argc > 1 ? readScriptPropertyValue(context, args[1]) : Result<nlohmann::json>(nlohmann::json(nullptr));
+            if (value.failed()) {
+                return throwScriptPropertyError(context, value.error().message().c_str());
+            }
 
-                // 未传 value 或显式传入 null/undefined 时，删除当前包作用域内的属性。
-                auto value = argc > 1 ? readScriptPropertyValue(context, args[1])
-                                      : Result<nlohmann::json>(nlohmann::json(nullptr));
+            // getter 可能重入脚本写入同一物品，转换完成后才读取所有者的最新属性。
+            return _withProperties(context,
+                receiver,
+                accessor,
+                true,
+                [&name, &value](IScriptBindingContext& context, AddonDynamicProperties& properties) -> void* {
+                    auto result = properties.set(context.packId(), name, value.value());
+                    if (result.failed()) {
+                        return context.throwTypeError(result.error().message().c_str());
+                    }
+                    return context.createUndefined();
+                });
+        },
+        2);
+
+    context.registerMethod(
+        prototype,
+        "getDynamicPropertyIds",
+        [accessor](IScriptBindingContext& context, void* receiver, i32, void**) -> void* {
+            return _withProperties(context,
+                receiver,
+                accessor,
+                false,
+                [](IScriptBindingContext& context, AddonDynamicProperties& properties) -> void* {
+                    void* result = context.createArray();
+                    const auto names = properties.ids(context.packId());
+                    for (u32 index = 0; index < names.size(); ++index) {
+                        context.setArrayElementString(result, index, names[index]);
+                    }
+                    return result;
+                });
+        },
+        0);
+
+    context.registerMethod(
+        prototype,
+        "setDynamicProperties",
+        [accessor](IScriptBindingContext& context, void* receiver, i32 argc, void** args) -> void* {
+            if (argc == 0 || context.getType(args[0]) != ScriptType::Object) {
+                return context.throwTypeError("setDynamicProperties requires an object");
+            }
+
+            nlohmann::json values = nlohmann::json::object();
+            const auto names = context.getPropertyNames(args[0]);
+            if (context.hasException()) {
+                return throwScriptPropertyError(context, "Failed to enumerate dynamic property keys");
+            }
+            for (const auto& name : names) {
+                void* member = context.getProperty(args[0], name.c_str());
+                auto value = readScriptPropertyValue(context, member);
+                context.releaseValue(member);
                 if (value.failed()) {
                     return throwScriptPropertyError(context, value.error().message().c_str());
                 }
-                auto result = properties.set(context.packId(), *context.toString(args[0]), value.value());
-                if (result.failed()) {
-                    return context.throwTypeError(result.error().message().c_str());
-                }
-                return context.createUndefined();
-            }),
-        2);
+                values[name] = std::move(value.value());
+            }
 
-    context.registerMethod(prototype,
-        "getDynamicPropertyIds",
-        _method(accessor,
-            [](IScriptBindingContext& context, AddonDynamicProperties& properties, i32, void**) -> void* {
-                void* result = context.createArray();
-                const auto names = properties.ids(context.packId());
-                for (u32 index = 0; index < names.size(); ++index) {
-                    context.setArrayElementString(result, index, names[index]);
-                }
-                return result;
-            }),
-        0);
-
-    context.registerMethod(prototype,
-        "setDynamicProperties",
-        _method(accessor,
-            [](IScriptBindingContext& context, AddonDynamicProperties& properties, i32 argc, void** args) -> void* {
-                if (argc == 0 || context.getType(args[0]) != ScriptType::Object) {
-                    return context.throwTypeError("setDynamicProperties requires an object");
-                }
-
-                nlohmann::json values = nlohmann::json::object();
-                const auto names = context.getPropertyNames(args[0]);
-                if (context.hasException()) {
-                    return throwScriptPropertyError(context, "Failed to enumerate dynamic property keys");
-                }
-                for (const auto& name : names) {
-                    void* member = context.getProperty(args[0], name.c_str());
-                    auto value = readScriptPropertyValue(context, member);
-                    context.releaseValue(member);
-                    if (value.failed()) {
-                        return throwScriptPropertyError(context, value.error().message().c_str());
+            return _withProperties(context,
+                receiver,
+                accessor,
+                true,
+                [&values](IScriptBindingContext& context, AddonDynamicProperties& properties) -> void* {
+                    auto result = properties.setMany(context.packId(), values);
+                    if (result.failed()) {
+                        return context.throwTypeError(result.error().message().c_str());
                     }
-                    values[name] = std::move(value.value());
-                }
-
-                auto result = properties.setMany(context.packId(), values);
-                if (result.failed()) {
-                    return context.throwTypeError(result.error().message().c_str());
-                }
-                return context.createUndefined();
-            }),
+                    return context.createUndefined();
+                });
+        },
         1);
 
-    context.registerMethod(prototype,
+    context.registerMethod(
+        prototype,
         "clearDynamicProperties",
-        _method(accessor,
-            [](IScriptBindingContext& context, AddonDynamicProperties& properties, i32, void**) -> void* {
-                properties.clear(context.packId());
-                return context.createUndefined();
-            }),
+        [accessor](IScriptBindingContext& context, void* receiver, i32, void**) -> void* {
+            return _withProperties(context,
+                receiver,
+                accessor,
+                true,
+                [](IScriptBindingContext& context, AddonDynamicProperties& properties) -> void* {
+                    properties.clear(context.packId());
+                    return context.createUndefined();
+                });
+        },
         0);
 }
 

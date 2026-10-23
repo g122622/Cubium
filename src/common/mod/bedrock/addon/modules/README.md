@@ -9,6 +9,7 @@ modules/
 ├── ScriptEventBinding.hpp/cpp # 事件信号订阅、取消和脚本消息
 ├── system/ # System 调度、生成器任务和脚本消息方法
 ├── entity/ # Entity 声明属性与包作用域动态属性
+├── item/ # ItemStack 动态属性与副本方法
 ├── properties/ # 世界和实体共用的动态属性绑定及值转换
 └── types/ # 向量、颜色转换和世界访问抽象
 ```

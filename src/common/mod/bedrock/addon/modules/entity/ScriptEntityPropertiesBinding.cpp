@@ -107,13 +107,15 @@ void registerEntityPropertyBindings(IScriptBindingContext& context, void* protot
         1);
 
     registerDynamicPropertyBindings(
-        context, prototype, [](IScriptBindingContext& context, void* receiver) -> AddonDynamicProperties* {
+        context, prototype, [](IScriptBindingContext& context, void* receiver, bool) -> Result<DynamicPropertyAccess> {
             const auto entityClass = context.classRegistry().classIdByName("Entity");
             auto* entity = static_cast<mc::Entity*>(ScriptObjectRegistry::unwrap(context, receiver, entityClass));
             if (entity == nullptr || entity->isRemoved()) {
-                return nullptr;
+                return Error(ErrorCode::InvalidState, "Entity is no longer valid");
             }
-            return &entity->getOrAddComponent<EntityAddonState>().dynamicProperties();
+            return DynamicPropertyAccess{&entity->getOrAddComponent<EntityAddonState>().dynamicProperties(), []() {
+                                             return Result<void>::ok();
+                                         }};
         });
 }
 

@@ -26,6 +26,7 @@
 #include "common/mod/bedrock/addon/content/base/properties/AddonDynamicProperties.hpp"
 #include "common/mod/bedrock/addon/event/ScriptEventData.hpp"
 #include "common/mod/bedrock/addon/modules/entity/ScriptEntityPropertiesBinding.hpp"
+#include "common/mod/bedrock/addon/modules/item/ScriptItemPropertiesBinding.hpp"
 #include "common/mod/bedrock/addon/modules/properties/ScriptDynamicPropertiesBinding.hpp"
 #include "common/mod/bedrock/addon/modules/system/ScriptSystemBinding.hpp"
 
@@ -177,9 +178,15 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
     // 属性由本存档的脚本门面拥有，回调持共享引用，避免工厂或上下文销毁顺序产生悬垂。
     registerDynamicPropertyBindings(ctx,
         worldProto,
-        [properties = m_worldProperties](IScriptBindingContext& context, void* receiver) -> AddonDynamicProperties* {
+        [properties = m_worldProperties](
+            IScriptBindingContext& context, void* receiver, bool) -> Result<DynamicPropertyAccess> {
             const auto classId = context.classRegistry().classIdByName("World");
-            return ScriptObjectRegistry::isInstanceOf(context, receiver, classId) ? properties.get() : nullptr;
+            if (!ScriptObjectRegistry::isInstanceOf(context, receiver, classId)) {
+                return Error(ErrorCode::InvalidArgument, "Invalid world receiver");
+            }
+            return DynamicPropertyAccess{properties.get(), []() {
+                                             return Result<void>::ok();
+                                         }};
         });
 
     ClassRegistrar<void> worldReg(ctx, worldClassId, worldProto);
@@ -3129,6 +3136,7 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
             });
         });
     ctx.classRegistry().registerClass(itemStackClassId, itemStackProto, "ItemStack");
+    registerItemPropertyBindings(ctx, itemStackProto);
 
     ClassRegistrar<void> itemStackReg(ctx, itemStackClassId, itemStackProto);
     itemStackReg.readonlyProperty("typeId", [](IScriptBindingContext& ctx, void* thisVal) -> void* {
