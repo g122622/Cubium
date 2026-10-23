@@ -41,6 +41,7 @@ constexpr std::size_t _MAX_EVENT_STEPS = 4096;
 Result<void> _compileAction(nlohmann::json& action,
     const nlohmann::json& events,
     const nlohmann::json& properties,
+    const nlohmann::json& groups,
     EntityAddonState& validator,
     std::size_t depth)
 {
@@ -48,9 +49,25 @@ Result<void> _compileAction(nlohmann::json& action,
         return Error(ErrorCode::InvalidData, "Invalid entity event action or excessive nesting");
     }
     for (const auto& [key, value] : action.items()) {
-        if (key != "set_property" && key != "sequence" && key != "randomize" && key != "trigger" && key != "weight") {
-            // TODO: 接入组件组操作、统一过滤器、命令和其他事件动作。
+        if (key != "set_property" && key != "sequence" && key != "randomize" && key != "trigger" && key != "weight" &&
+            key != "add" && key != "remove") {
+            // TODO: 接入统一过滤器、命令和其他事件动作。
             return Error(ErrorCode::Unsupported, "Entity event action is not implemented: " + key);
+        }
+    }
+    for (const char* operation : {"remove", "add"}) {
+        if (!action.contains(operation)) {
+            continue;
+        }
+        const auto& change = action[operation];
+        if (!change.is_object() || change.size() != 1 || !change.contains("component_groups") ||
+            !change["component_groups"].is_array()) {
+            return Error(ErrorCode::InvalidData, "Entity group action requires a component_groups array");
+        }
+        for (const auto& group : change["component_groups"]) {
+            if (!group.is_string() || !groups.contains(group.get<std::string>())) {
+                return Error(ErrorCode::InvalidData, "Entity group action references an unknown group");
+            }
         }
     }
     if (action.contains("weight") &&
@@ -107,7 +124,7 @@ Result<void> _compileAction(nlohmann::json& action,
         }
         double totalWeight = 0;
         for (auto& child : children) {
-            MC_TRY(_compileAction(child, events, properties, validator, depth + 1));
+            MC_TRY(_compileAction(child, events, properties, groups, validator, depth + 1));
             totalWeight += child.value("weight", 1.0);
         }
         if (std::string_view(branch) == "randomize" && (!std::isfinite(totalWeight) || totalWeight <= 0)) {
@@ -139,9 +156,10 @@ Result<void> _compileAction(nlohmann::json& action,
 }
 } // namespace
 
-Result<EntityEventProgram> EntityEventProgram::compile(const nlohmann::json& events, const nlohmann::json& properties)
+Result<EntityEventProgram> EntityEventProgram::compile(
+    const nlohmann::json& events, const nlohmann::json& properties, const nlohmann::json& groups)
 {
-    if (!events.is_object()) {
+    if (!events.is_object() || !groups.is_object()) {
         return Error(ErrorCode::InvalidData, "Entity events must be an object");
     }
     EntityAddonState validator;
@@ -152,28 +170,42 @@ Result<EntityEventProgram> EntityEventProgram::compile(const nlohmann::json& eve
         if (name.empty()) {
             return Error(ErrorCode::InvalidData, "Entity event name cannot be empty");
         }
-        MC_TRY(_compileAction(action, events, properties, validator, 0));
+        MC_TRY(_compileAction(action, events, properties, groups, validator, 0));
     }
     return result;
 }
 
-Result<std::vector<std::string>> EntityEventProgram::execute(mc::Entity& entity, const std::string& eventId) const
+Result<EntityEventExecution> EntityEventProgram::execute(mc::Entity& entity, const std::string& eventId) const
 {
     if (!contains(eventId)) {
         return Error(ErrorCode::NotFound, "Entity event is not defined: " + eventId);
     }
     std::vector<std::pair<std::string, nlohmann::json>> writes;
-    std::vector<std::string> triggered;
+    EntityEventExecution execution;
     std::size_t steps = 0;
     std::function<Result<void>(const nlohmann::json&, std::size_t)> executeAction;
     std::function<Result<void>(const std::string&, std::size_t)> executeEvent;
     executeEvent = [&](const std::string& name, std::size_t depth) -> Result<void> {
-        triggered.push_back(name);
-        return executeAction(m_events[name], depth);
+        const auto notification = execution.notifications.size();
+        execution.notifications.push_back({name, {}});
+        const auto firstChange = execution.componentChanges.size();
+        MC_TRY(executeAction(m_events[name], depth));
+        execution.notifications[notification].componentChanges.assign(
+            execution.componentChanges.begin() + static_cast<std::ptrdiff_t>(firstChange),
+            execution.componentChanges.end());
+        return Result<void>::ok();
     };
     executeAction = [&](const nlohmann::json& action, std::size_t depth) -> Result<void> {
         if (depth >= _MAX_EVENT_DEPTH || ++steps > _MAX_EVENT_STEPS) {
             return Error(ErrorCode::InvalidState, "Entity event execution budget exceeded");
+        }
+        for (const char* operation : {"remove", "add"}) {
+            if (const auto change = action.find(operation); change != action.end()) {
+                for (const auto& group : (*change)["component_groups"]) {
+                    execution.componentChanges.push_back(
+                        {std::string_view(operation) == "add", group.get<std::string>()});
+                }
+            }
         }
         if (const auto sequence = action.find("sequence"); sequence != action.end()) {
             for (const auto& child : *sequence) {
@@ -220,7 +252,7 @@ Result<std::vector<std::string>> EntityEventProgram::execute(mc::Entity& entity,
         auto written = state->setProperty(name, value);
         MC_ASSERT_RELEASE(written.success());
     }
-    return triggered;
+    return execution;
 }
 
 bool EntityEventProgram::contains(const std::string& eventId) const

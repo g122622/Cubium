@@ -24,6 +24,7 @@
 #include "common/mod/bedrock/addon/modules/MinecraftModuleFactory.hpp"
 #include "common/mod/bedrock/addon/binding/ScriptGameObjects.hpp"
 #include "common/mod/bedrock/addon/content/base/properties/AddonDynamicProperties.hpp"
+#include "common/mod/bedrock/addon/content/entity/state/AddonEntityComponents.hpp"
 #include "common/mod/bedrock/addon/event/ScriptEventData.hpp"
 #include "common/mod/bedrock/addon/modules/entity/ScriptEntityEventsBinding.hpp"
 #include "common/mod/bedrock/addon/modules/entity/ScriptEntityPropertiesBinding.hpp"
@@ -1508,6 +1509,14 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
                 // health/movement/equippable 仅 LivingEntity attach，非 LivingEntity 返 undefined。
                 if (dynamic_cast<mc::LivingEntity*>(ent) == nullptr) {
                     return ctx.createUndefined();
+                }
+
+                if (normalized == "minecraft:health" || normalized == "minecraft:movement") {
+                    // TODO: 已经交给脚本的组件引用也需在所属组件被移除时失效。
+                    const auto* components = ent->tryGetComponent<AddonEntityComponents>();
+                    if (components != nullptr && !components->has(normalized)) {
+                        return ctx.createUndefined();
+                    }
                 }
 
                 if (normalized == "minecraft:health") {

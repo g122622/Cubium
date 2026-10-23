@@ -24,6 +24,8 @@
 #include "common/mod/bedrock/addon/content/entity/events/AddonEntityEvents.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/mod/bedrock/addon/content/entity/events/EntityEventProgram.hpp"
+#include "common/mod/bedrock/addon/content/entity/state/AddonEntityComponents.hpp"
+#include "common/util/assert/AssertMacros.hpp"
 #include <spdlog/spdlog.h>
 
 namespace mc::mod::bedrock::addon {
@@ -41,9 +43,14 @@ Result<void> AddonEntityEvents::trigger(mc::Entity& entity, const std::string& e
     if (triggered.failed()) {
         return triggered.error();
     }
+    if (!triggered.value().componentChanges.empty()) {
+        auto* components = entity.tryGetComponent<AddonEntityComponents>();
+        MC_ASSERT_RELEASE(components != nullptr);
+        components->queue(triggered.value().componentChanges);
+    }
     if (auto sink = m_sink.lock()) {
-        for (const auto& name : triggered.value()) {
-            (*sink)(entity, name);
+        for (const auto& notification : triggered.value().notifications) {
+            (*sink)(entity, notification);
         }
     }
     return Result<void>::ok();

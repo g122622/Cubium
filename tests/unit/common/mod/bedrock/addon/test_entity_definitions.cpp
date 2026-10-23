@@ -37,6 +37,7 @@
 #include "common/entity/serialization/EntityDeserializer.hpp"
 #include "common/entity/serialization/components/ComponentSerializerRegistry.hpp"
 #include "common/mod/bedrock/addon/content/entity/definition/AddonEntityDefinition.hpp"
+#include "common/mod/bedrock/addon/content/entity/state/AddonEntityComponents.hpp"
 #include "common/mod/bedrock/addon/content/entity/state/EntityAddonState.hpp"
 #include "common/mod/bedrock/addon/lifecycle/ScriptManager.hpp"
 #include "common/mod/bedrock/addon/pack/BehaviorPack.hpp"
@@ -448,7 +449,8 @@ TEST_F(AddonEntityDefinitionTest, MalformedEventActionsAndReferencesFailBeforeRe
         {{"test:event", {{"set_property", {{"test:count", true}}}}}},
         {{"test:event", {{"trigger", {{"event", "test:event"}, {"target", "other"}}}}}}};
     for (const auto& events : invalid) {
-        EXPECT_TRUE(EntityEventProgram::compile(events, properties).failed()) << events.dump();
+        EXPECT_TRUE(EntityEventProgram::compile(events, properties, nlohmann::json::object()).failed())
+            << events.dump();
     }
 }
 
@@ -465,8 +467,9 @@ TEST_F(AddonEntityDefinitionTest, SpawnEventsAreOnceOnlyAndAreNotReplayedByResto
     entity->tick();
     auto& state = entity->getOrAddComponent<EntityAddonState>();
     EXPECT_EQ(state.getProperty("test:count"), nlohmann::json(3));
-    auto compiled = EntityEventProgram::compile(
-        definition["minecraft:entity"]["events"], definition["minecraft:entity"]["description"]["properties"]);
+    auto compiled = EntityEventProgram::compile(definition["minecraft:entity"]["events"],
+        definition["minecraft:entity"]["description"]["properties"],
+        nlohmann::json::object());
     ASSERT_TRUE(compiled.success());
     auto program = std::make_shared<const EntityEventProgram>(std::move(compiled.value()));
     AddonEntityEvents spawned(program, {}, true);
@@ -536,4 +539,277 @@ TEST_F(AddonEntityDefinitionTest, EventsOutliveScriptShutdownWithoutKeepingTheBu
     ASSERT_TRUE(events->trigger(*entity, "test:change").success());
     entity->tick();
     EXPECT_EQ(entity->getOrAddComponent<EntityAddonState>().getProperty("test:count"), nlohmann::json(6));
+}
+
+TEST_F(AddonEntityDefinitionTest, ComponentGroupsChangeDimensionsAtTickBoundaryAndRemoveWithoutFallback)
+{
+    const auto directory = pack("groups", _PACK, std::nullopt);
+    auto definition = _definition("addon_test:groups");
+    definition["minecraft:entity"]["component_groups"]["large"] = {
+        {"minecraft:collision_box", {{"width", 2}, {"height", 3}}}};
+    definition["minecraft:entity"]["events"] = {{"test:add", {{"add", {{"component_groups", {"large"}}}}}},
+        {"test:remove", {{"remove", {{"component_groups", {"large"}}}}}}};
+    write(directory / "entities/entity.json", definition);
+    ASSERT_TRUE(manager.loadPacks("", root.string()).success());
+    auto entity = create("addon_test:groups");
+    ASSERT_NE(entity, nullptr);
+    auto* events = entity->tryGetComponent<AddonEntityEvents>();
+    ASSERT_TRUE(events->trigger(*entity, "test:add").success());
+    EXPECT_FLOAT_EQ(entity->width(), 0.8f);
+    entity->tick();
+    EXPECT_FLOAT_EQ(entity->width(), 2);
+    EXPECT_FLOAT_EQ(entity->height(), 3);
+    ASSERT_TRUE(events->trigger(*entity, "test:remove").success());
+    entity->tick();
+    EXPECT_FLOAT_EQ(entity->width(), 0);
+    EXPECT_FLOAT_EQ(entity->height(), 0);
+}
+
+TEST_F(AddonEntityDefinitionTest, OverlappingGroupRemovalDoesNotReactivateAnotherActiveGroup)
+{
+    const auto directory = pack("overlapping", _PACK, std::nullopt);
+    auto definition = _definition("addon_test:overlapping");
+    auto& groups = definition["minecraft:entity"]["component_groups"];
+    groups["first"] = {{"minecraft:collision_box", {{"width", 2}, {"height", 3}}}};
+    groups["second"] = {{"minecraft:collision_box", {{"width", 4}, {"height", 5}}}};
+    definition["minecraft:entity"]["events"] = {{"test:first", {{"add", {{"component_groups", {"first"}}}}}},
+        {"test:second", {{"add", {{"component_groups", {"second"}}}}}},
+        {"test:remove_first", {{"remove", {{"component_groups", {"first"}}}}}}};
+    write(directory / "entities/entity.json", definition);
+    ASSERT_TRUE(manager.loadPacks("", root.string()).success());
+    auto entity = create("addon_test:overlapping");
+    ASSERT_NE(entity, nullptr);
+    auto* events = entity->tryGetComponent<AddonEntityEvents>();
+    ASSERT_TRUE(events->trigger(*entity, "test:first").success());
+    ASSERT_TRUE(events->trigger(*entity, "test:second").success());
+    entity->tick();
+    EXPECT_FLOAT_EQ(entity->width(), 4);
+    ASSERT_TRUE(events->trigger(*entity, "test:remove_first").success());
+    entity->tick();
+    EXPECT_FLOAT_EQ(entity->width(), 0);
+    const auto state = entity->tryGetComponent<AddonEntityComponents>()->save();
+    EXPECT_EQ(state["active"], nlohmann::json::array({"second"}));
+    EXPECT_FALSE(state["sources"].contains("minecraft:collision_box"));
+    ASSERT_TRUE(events->trigger(*entity, "test:second").success());
+    entity->tick();
+    EXPECT_FLOAT_EQ(entity->width(), 4);
+}
+
+TEST_F(AddonEntityDefinitionTest, ReaddingAnActiveHealthGroupReinitializesItsValues)
+{
+    const auto directory = pack("health-group", _PACK, std::nullopt);
+    auto definition = _definition("addon_test:health_group");
+    definition["minecraft:entity"]["components"]["minecraft:health"] = {{"max", 32}, {"value", 24}};
+    definition["minecraft:entity"]["component_groups"]["strong"] = {
+        {"minecraft:health", {{"max", 128}, {"value", 96}}}};
+    definition["minecraft:entity"]["events"]["test:strong"] = {{"add", {{"component_groups", {"strong"}}}}};
+    write(directory / "entities/entity.json", definition);
+    ASSERT_TRUE(manager.loadPacks("", root.string()).success());
+    auto entity = create("addon_test:health_group");
+    auto* living = dynamic_cast<mc::LivingEntity*>(entity.get());
+    ASSERT_NE(living, nullptr);
+    auto* events = entity->tryGetComponent<AddonEntityEvents>();
+    auto* components = entity->tryGetComponent<AddonEntityComponents>();
+    ASSERT_TRUE(events->trigger(*entity, "test:strong").success());
+    components->applyPending(*entity);
+    EXPECT_FLOAT_EQ(living->maxHealth(), 128);
+    EXPECT_FLOAT_EQ(living->health(), 96);
+    living->setHealth(50);
+    ASSERT_TRUE(events->trigger(*entity, "test:strong").success());
+    components->applyPending(*entity);
+    EXPECT_FLOAT_EQ(living->health(), 96);
+}
+
+TEST_F(AddonEntityDefinitionTest, GroupPhysicsAndFireImmunityRemainPerInstance)
+{
+    const auto directory = pack("physics-group", _PACK, std::nullopt);
+    auto definition = _definition("addon_test:physics_group");
+    definition["minecraft:entity"]["components"].erase("minecraft:fire_immune");
+    definition["minecraft:entity"]["component_groups"]["ghost"] = {
+        {"minecraft:physics", {{"has_gravity", false}, {"has_collision", false}}},
+        {"minecraft:fire_immune", nlohmann::json::object()}};
+    definition["minecraft:entity"]["events"] = {{"test:ghost", {{"add", {{"component_groups", {"ghost"}}}}}},
+        {"test:normal", {{"remove", {{"component_groups", {"ghost"}}}}}}};
+    write(directory / "entities/entity.json", definition);
+    ASSERT_TRUE(manager.loadPacks("", root.string()).success());
+    auto first = create("addon_test:physics_group");
+    auto second = create("addon_test:physics_group");
+    ASSERT_NE(first, nullptr);
+    ASSERT_NE(second, nullptr);
+    ASSERT_TRUE(first->tryGetComponent<AddonEntityEvents>()->trigger(*first, "test:ghost").success());
+    first->tick();
+    EXPECT_TRUE(first->noClip());
+    EXPECT_TRUE(first->isImmuneToFire());
+    EXPECT_FALSE(second->noClip());
+    EXPECT_FALSE(second->isImmuneToFire());
+    ASSERT_TRUE(first->tryGetComponent<AddonEntityEvents>()->trigger(*first, "test:normal").success());
+    first->tick();
+    EXPECT_FALSE(first->isImmuneToFire());
+}
+
+TEST_F(AddonEntityDefinitionTest, SavedGroupsRestoreActualSourcesWithoutRecombiningDefinitions)
+{
+    mc::entity::serialization::components::ComponentSerializerRegistry::instance().registerAll();
+    const auto directory = pack("save-groups", _PACK, std::nullopt);
+    auto definition = _definition("addon_test:save_groups");
+    definition["minecraft:entity"]["component_groups"]["large"] = {
+        {"minecraft:collision_box", {{"width", 2}, {"height", 3}}}};
+    definition["minecraft:entity"]["events"] = {{"test:add", {{"add", {{"component_groups", {"large"}}}}}},
+        {"test:remove", {{"remove", {{"component_groups", {"large"}}}}}}};
+    write(directory / "entities/entity.json", definition);
+    ASSERT_TRUE(manager.loadPacks("", root.string()).success());
+    auto entity = create("addon_test:save_groups");
+    ASSERT_NE(entity, nullptr);
+    auto* events = entity->tryGetComponent<AddonEntityEvents>();
+    ASSERT_TRUE(events->trigger(*entity, "test:add").success());
+    entity->tick();
+    ASSERT_TRUE(events->trigger(*entity, "test:remove").success());
+    entity->tick();
+    auto saved = mc::entity::serialization::EntityDeserializer::serializeToBinary(*entity);
+    ASSERT_TRUE(saved.success()) << saved.error().message();
+    auto loaded = mc::entity::serialization::EntityDeserializer::deserializeFromBinary(saved.value(), entities);
+    ASSERT_TRUE(loaded.success()) << loaded.error().message();
+    auto restored = loaded.value();
+    ASSERT_NE(restored, nullptr);
+    EXPECT_FLOAT_EQ(restored->width(), 0);
+    EXPECT_EQ(restored->tryGetComponent<AddonEntityComponents>()->save(),
+        entity->tryGetComponent<AddonEntityComponents>()->save());
+}
+
+TEST_F(AddonEntityDefinitionTest, SavedPendingGroupChangesApplyAfterRestoration)
+{
+    mc::entity::serialization::components::ComponentSerializerRegistry::instance().registerAll();
+    const auto directory = pack("pending-groups", _PACK, std::nullopt);
+    auto definition = _definition("addon_test:pending_groups");
+    definition["minecraft:entity"]["component_groups"]["large"] = {
+        {"minecraft:collision_box", {{"width", 2}, {"height", 3}}}};
+    definition["minecraft:entity"]["events"]["test:add"] = {{"add", {{"component_groups", {"large"}}}}};
+    write(directory / "entities/entity.json", definition);
+    ASSERT_TRUE(manager.loadPacks("", root.string()).success());
+    auto entity = create("addon_test:pending_groups");
+    ASSERT_NE(entity, nullptr);
+    ASSERT_TRUE(entity->tryGetComponent<AddonEntityEvents>()->trigger(*entity, "test:add").success());
+    auto saved = mc::entity::serialization::EntityDeserializer::serializeToBinary(*entity);
+    ASSERT_TRUE(saved.success());
+    auto loaded = mc::entity::serialization::EntityDeserializer::deserializeFromBinary(saved.value(), entities);
+    ASSERT_TRUE(loaded.success()) << loaded.error().message();
+    auto restored = loaded.value();
+    ASSERT_NE(restored, nullptr);
+    EXPECT_FLOAT_EQ(restored->width(), 0.8f);
+    restored->tick();
+    EXPECT_FLOAT_EQ(restored->width(), 2);
+}
+
+TEST_F(AddonEntityDefinitionTest, GroupMaximumHealthRestoresBeforeSavedCurrentHealth)
+{
+    mc::entity::serialization::components::ComponentSerializerRegistry::instance().registerAll();
+    const auto directory = pack("saved-health-group", _PACK, std::nullopt);
+    auto definition = _definition("addon_test:saved_health_group");
+    definition["minecraft:entity"]["components"]["minecraft:health"] = {{"max", 32}, {"value", 24}};
+    definition["minecraft:entity"]["component_groups"]["strong"] = {
+        {"minecraft:health", {{"max", 128}, {"value", 96}}}};
+    definition["minecraft:entity"]["events"]["test:add"] = {{"add", {{"component_groups", {"strong"}}}}};
+    write(directory / "entities/entity.json", definition);
+    ASSERT_TRUE(manager.loadPacks("", root.string()).success());
+    auto entity = create("addon_test:saved_health_group");
+    auto* living = dynamic_cast<mc::LivingEntity*>(entity.get());
+    ASSERT_NE(living, nullptr);
+    ASSERT_TRUE(entity->tryGetComponent<AddonEntityEvents>()->trigger(*entity, "test:add").success());
+    entity->tryGetComponent<AddonEntityComponents>()->applyPending(*entity);
+    living->setHealth(70);
+    auto saved = mc::entity::serialization::EntityDeserializer::serializeToBinary(*entity);
+    ASSERT_TRUE(saved.success());
+    auto loaded = mc::entity::serialization::EntityDeserializer::deserializeFromBinary(saved.value(), entities);
+    ASSERT_TRUE(loaded.success()) << loaded.error().message();
+    auto restored = loaded.value();
+    auto* restoredLiving = dynamic_cast<mc::LivingEntity*>(restored.get());
+    ASSERT_NE(restoredLiving, nullptr);
+    EXPECT_FLOAT_EQ(restoredLiving->maxHealth(), 128);
+    EXPECT_FLOAT_EQ(restoredLiving->health(), 70);
+}
+
+TEST_F(AddonEntityDefinitionTest, UnknownGroupReferencesAndCorruptSnapshotsPreserveState)
+{
+    const auto directory = pack("invalid-groups", _PACK, std::nullopt);
+    auto definition = _definition("addon_test:invalid_groups");
+    definition["minecraft:entity"]["component_groups"]["large"] = {
+        {"minecraft:collision_box", {{"width", 2}, {"height", 3}}}};
+    auto invalid = definition;
+    invalid["minecraft:entity"]["events"]["test:invalid"] = {{"add", {{"component_groups", {"missing"}}}}};
+    EXPECT_TRUE(AddonEntityDefinition::parse(invalid).failed());
+    write(directory / "entities/entity.json", definition);
+    ASSERT_TRUE(manager.loadPacks("", root.string()).success());
+    auto entity = create("addon_test:invalid_groups");
+    ASSERT_NE(entity, nullptr);
+    auto* components = entity->tryGetComponent<AddonEntityComponents>();
+    const auto before = components->save();
+    auto broken = before;
+    broken["sources"]["minecraft:collision_box"] = "missing";
+    EXPECT_TRUE(components->load(*entity, broken).failed());
+    EXPECT_EQ(components->save(), before);
+    broken = before;
+    broken["pending"].push_back({{"operation", "invalid"}, {"group", "large"}});
+    EXPECT_TRUE(components->load(*entity, broken).failed());
+    EXPECT_EQ(components->save(), before);
+    EXPECT_FLOAT_EQ(entity->width(), 0.8f);
+}
+
+TEST_F(AddonEntityDefinitionTest, RecursiveGroupEventFailureQueuesNoComponentChanges)
+{
+    const auto directory = pack("group-cycle", _PACK, std::nullopt);
+    auto definition = _definition("addon_test:group_cycle");
+    definition["minecraft:entity"]["component_groups"]["large"] = {
+        {"minecraft:collision_box", {{"width", 2}, {"height", 3}}}};
+    definition["minecraft:entity"]["events"]["test:loop"] = {
+        {"sequence", {{{"add", {{"component_groups", {"large"}}}}}, {{"trigger", "test:loop"}}}}};
+    write(directory / "entities/entity.json", definition);
+    ASSERT_TRUE(manager.loadPacks("", root.string()).success());
+    auto entity = create("addon_test:group_cycle");
+    ASSERT_NE(entity, nullptr);
+    auto* components = entity->tryGetComponent<AddonEntityComponents>();
+    const auto before = components->save();
+    EXPECT_TRUE(entity->tryGetComponent<AddonEntityEvents>()->trigger(*entity, "test:loop").failed());
+    EXPECT_EQ(components->save(), before);
+}
+
+TEST_F(AddonEntityDefinitionTest, ScriptModifiersDescribeGroupChangesAndInactiveHealthIsAbsent)
+{
+    const auto directory = pack("script-groups", _PACK, std::string(R"(
+        import { world } from '@minecraft/server';
+        globalThis.modifiers = [];
+        world.afterEvents.dataDrivenEntityTrigger.subscribe(event => {
+            modifiers = event.getModifiers();
+        }, {eventTypes: ['test:add']});
+    )"));
+    auto definition = _definition("addon_test:script_groups");
+    definition["minecraft:entity"]["component_groups"]["health"] = {{"minecraft:health", {{"max", 64}, {"value", 40}}}};
+    definition["minecraft:entity"]["events"]["test:add"] = {{"add", {{"component_groups", {"health"}}}}};
+    write(directory / "entities/entity.json", definition);
+    ASSERT_TRUE(manager.loadPacks("", root.string()).success());
+    auto entity = create("addon_test:script_groups");
+    ASSERT_NE(entity, nullptr);
+    auto* context = manager.pluginManager().getPlugin(_PACK)->context();
+    auto& bindings = context->bindingContext();
+    void* global = bindings.getGlobalObject();
+    void* subject = wrapEntity(bindings, entity.get());
+    bindings.setProperty(global, "subject", subject);
+    bindings.releaseValue(subject);
+    bindings.releaseValue(global);
+    auto check = context->evaluate("if (subject.getComponent('minecraft:health') !== undefined) throw Error('inactive "
+                                   "health was exposed'); subject.triggerEvent('test:add');",
+        "group-trigger.js",
+        EvalFlags::None);
+    ASSERT_TRUE(check.success()) << check.errorMessage();
+    manager.eventBus().tick();
+    check = context->evaluate("if (modifiers.length !== 1 || modifiers[0].addedComponentGroups[0] !== 'health' || "
+                              "modifiers[0].removedComponentGroups.length) throw Error('wrong modifiers');",
+        "group-modifiers.js",
+        EvalFlags::None);
+    ASSERT_TRUE(check.success()) << check.errorMessage();
+    entity->tryGetComponent<AddonEntityComponents>()->applyPending(*entity);
+    check = context->evaluate(
+        "if (subject.getComponent('minecraft:health').currentValue !== 40) throw Error('active health missing');",
+        "group-health.js",
+        EvalFlags::None);
+    ASSERT_TRUE(check.success()) << check.errorMessage();
 }

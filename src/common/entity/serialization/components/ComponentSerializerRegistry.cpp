@@ -31,6 +31,7 @@
 #include "common/entity/serialization/components/MinecartComponentSerialization.hpp"
 #include "common/entity/serialization/components/PlayerComponentSerialization.hpp"
 #include "common/entity/serialization/components/ProjectileComponentSerialization.hpp"
+#include "common/mod/bedrock/addon/content/entity/state/AddonEntityComponents.hpp"
 #include "common/mod/bedrock/addon/content/entity/state/EntityAddonState.hpp"
 #include <algorithm>
 
@@ -99,6 +100,7 @@ void ComponentSerializerRegistry::registerAll()
 
     // addon 数据与实体一起保存和恢复，不使用进程级表延长实体状态的寿命。
     mc::mod::bedrock::addon::registerEntityAddonStateSerializer(*this);
+    mc::mod::bedrock::addon::registerAddonEntityComponentsSerializer(*this);
 
     // load 按 priority 升序遍历（本批全 0 无序；未来 Attributes=100/ActiveEffects=200）
     std::stable_sort(m_entries.begin(), m_entries.end(), [](const Entry& a, const Entry& b) {

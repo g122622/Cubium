@@ -4,12 +4,13 @@
 
 ```text
 state/
+├── AddonEntityComponents.hpp/cpp # 活动组件来源、组件组变更队列和 NBT 恢复
 └── EntityAddonState.hpp/cpp # 声明属性、包作用域动态属性及实体 NBT 序列化
 ```
 
 ## 内部模块关系
 
-EntityAddonState 校验声明和值，声明写入进入待应用队列，动态属性委托公共 AddonDynamicProperties 按包 UUID 分组。组件序列化函数将快照接入统一 NBT 注册表。
+AddonEntityComponents 保存当前组件来源及待执行组操作；EntityAddonState 校验声明和值，声明写入进入待应用队列，动态属性委托公共 AddonDynamicProperties 按包 UUID 分组。组件序列化函数将快照接入统一 NBT 注册表。
 
 ## 上下游外部依赖关系
 
@@ -20,3 +21,7 @@ EntityAddonState 校验声明和值，声明写入进入待应用队列，动态
 - 保存应包含合法的待应用写入，但不能因此提前改变本 tick 可见值。
 - NBT Byte 不能区分布尔和数字，持久化必须保留显式类型标记。
 - 定义替换、批量动态写入和快照恢复先完整校验，失败时保留已有数据。
+
+- 移除组件组不恢复被覆盖的基础组件或其他组配置；保存实际组件来源，不能只保存组名后重新合并。
+- 恢复组件组改变的最大生命值必须早于恢复当前生命值，否则会按基础上限错误截断。
+- 尚未进入下一 tick 的组操作也必须保存，恢复后继续按原顺序应用。

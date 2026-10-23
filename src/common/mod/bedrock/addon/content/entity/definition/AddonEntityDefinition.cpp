@@ -26,6 +26,7 @@
 #include "common/entity/attribute/Attributes.hpp"
 #include "common/entity/core/CreatureEntity.hpp"
 #include "common/mod/bedrock/addon/content/entity/events/EntityEventProgram.hpp"
+#include "common/mod/bedrock/addon/content/entity/state/AddonEntityComponents.hpp"
 #include "common/mod/bedrock/addon/content/entity/state/EntityAddonState.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/assert/AssertMacros.hpp"
@@ -88,12 +89,14 @@ public:
 
     f32 width() const override
     {
-        return m_definition->width();
+        const auto* components = tryGetComponent<AddonEntityComponents>();
+        return components != nullptr ? components->width() : m_definition->width();
     }
 
     f32 height() const override
     {
-        return m_definition->height();
+        const auto* components = tryGetComponent<AddonEntityComponents>();
+        return components != nullptr ? components->height() : m_definition->height();
     }
 
     void tick() override
@@ -101,7 +104,16 @@ public:
         auto* events = tryGetComponent<AddonEntityEvents>();
         MC_ASSERT_RELEASE(events != nullptr);
         events->onTick(*this);
+        auto* components = tryGetComponent<AddonEntityComponents>();
+        MC_ASSERT_RELEASE(components != nullptr);
+        components->applyPending(*this);
         mc::Entity::tick();
+    }
+
+    bool isImmuneToFire() const override
+    {
+        const auto* components = tryGetComponent<AddonEntityComponents>();
+        return components != nullptr ? components->has("minecraft:fire_immune") : m_definition->fireImmune();
     }
 
 private:
@@ -120,12 +132,14 @@ public:
 
     f32 width() const override
     {
-        return m_definition->width();
+        const auto* components = tryGetComponent<AddonEntityComponents>();
+        return components != nullptr ? components->width() : m_definition->width();
     }
 
     f32 height() const override
     {
-        return m_definition->height();
+        const auto* components = tryGetComponent<AddonEntityComponents>();
+        return components != nullptr ? components->height() : m_definition->height();
     }
 
     void tick() override
@@ -133,7 +147,25 @@ public:
         auto* events = tryGetComponent<AddonEntityEvents>();
         MC_ASSERT_RELEASE(events != nullptr);
         events->onTick(*this);
+        auto* components = tryGetComponent<AddonEntityComponents>();
+        MC_ASSERT_RELEASE(components != nullptr);
+        components->applyPending(*this);
         mc::CreatureEntity::tick();
+    }
+
+    bool isImmuneToFire() const override
+    {
+        const auto* components = tryGetComponent<AddonEntityComponents>();
+        return components != nullptr ? components->has("minecraft:fire_immune") : m_definition->fireImmune();
+    }
+
+    bool hurt(mc::DamageSource& source, f32 amount) override
+    {
+        const auto* components = tryGetComponent<AddonEntityComponents>();
+        if (components != nullptr && !components->has("minecraft:health")) {
+            return false;
+        }
+        return mc::CreatureEntity::hurt(source, amount);
     }
 
 private:
@@ -169,10 +201,6 @@ Result<AddonEntityDefinition> AddonEntityDefinition::parse(const nlohmann::json&
         if (entity.contains(section) && !entity[section].is_object()) {
             return Error(ErrorCode::InvalidData, std::string("Entity section must be an object: ") + section);
         }
-        if (std::string_view(section) == "component_groups" && entity.contains(section) && !entity[section].empty()) {
-            // TODO: 接入组件组变更、实体事件动作、过滤器与 Molang 求值。
-            return Error(ErrorCode::Unsupported, std::string("Entity section is not implemented: ") + section);
-        }
     }
 
     AddonEntityDefinition result;
@@ -182,16 +210,44 @@ Result<AddonEntityDefinition> AddonEntityDefinition::parse(const nlohmann::json&
     result.m_properties = description.value("properties", nlohmann::json::object());
     EntityAddonState validated;
     MC_TRY(validated.defineProperties(result.m_properties));
-    auto events = EntityEventProgram::compile(entity.value("events", nlohmann::json::object()), result.m_properties);
-    if (events.failed()) {
-        return events.error();
-    }
-    result.m_events = std::make_shared<const EntityEventProgram>(std::move(events.value()));
     result.m_components = entity.value("components", nlohmann::json::object());
     if (!result.m_components.is_object()) {
         return Error(ErrorCode::InvalidData, "Entity components must be an object");
     }
-    for (const auto& [name, component] : result.m_components.items()) {
+    MC_TRY(validateComponents(result.m_components));
+    result.m_componentGroups = entity.value("component_groups", nlohmann::json::object());
+    for (const auto& [name, group] : result.m_componentGroups.items()) {
+        if (name.empty()) {
+            return Error(ErrorCode::InvalidData, "Entity component group name cannot be empty");
+        }
+        MC_TRY(validateComponents(group));
+    }
+    bool hasMovement = result.m_components.contains("minecraft:movement");
+    for (const auto& [name, group] : result.m_componentGroups.items()) {
+        hasMovement = hasMovement || group.contains("minecraft:movement");
+    }
+    if (hasMovement && !result.isLiving()) {
+        return Error(ErrorCode::Unsupported, "Moving addon actors without health are not implemented");
+    }
+    auto events = EntityEventProgram::compile(
+        entity.value("events", nlohmann::json::object()), result.m_properties, result.m_componentGroups);
+    if (events.failed()) {
+        return events.error();
+    }
+    result.m_events = std::make_shared<const EntityEventProgram>(std::move(events.value()));
+
+    const auto collision = result.m_components.find("minecraft:collision_box");
+    result.m_width = collision == result.m_components.end() ? 0.0f : std::max(0.0f, collision->value("width", 1.0f));
+    result.m_height = collision == result.m_components.end() ? 0.0f : std::max(0.0f, collision->value("height", 1.0f));
+    return result;
+}
+
+Result<void> AddonEntityDefinition::validateComponents(const nlohmann::json& components)
+{
+    if (!components.is_object()) {
+        return Error(ErrorCode::InvalidData, "Entity components must be an object");
+    }
+    for (const auto& [name, component] : components.items()) {
         if (name == "minecraft:collision_box") {
             MC_TRY(_members(component, {"width", "height"}));
             MC_TRY(_number(component, "width", -100000000.0, 100000000.0));
@@ -221,14 +277,7 @@ Result<AddonEntityDefinition> AddonEntityDefinition::parse(const nlohmann::json&
             return Error(ErrorCode::Unsupported, "Entity component is not implemented: " + name);
         }
     }
-    if (result.m_components.contains("minecraft:movement") && !result.m_components.contains("minecraft:health")) {
-        return Error(ErrorCode::Unsupported, "Moving addon actors without health are not implemented");
-    }
-
-    const auto collision = result.m_components.find("minecraft:collision_box");
-    result.m_width = collision == result.m_components.end() ? 0.0f : std::max(0.0f, collision->value("width", 1.0f));
-    result.m_height = collision == result.m_components.end() ? 0.0f : std::max(0.0f, collision->value("height", 1.0f));
-    return result;
+    return Result<void>::ok();
 }
 
 std::unique_ptr<mc::Entity> AddonEntityDefinition::create(std::shared_ptr<const AddonEntityDefinition> definition,
@@ -238,12 +287,14 @@ std::unique_ptr<mc::Entity> AddonEntityDefinition::create(std::shared_ptr<const 
 {
     MC_ASSERT_RELEASE(definition != nullptr);
     std::unique_ptr<mc::Entity> entity;
-    if (definition->m_components.contains("minecraft:health")) {
+    if (definition->isLiving()) {
         entity = std::make_unique<_AddonMob>(definition, world, registry);
     } else {
         entity = std::make_unique<_AddonActor>(definition, world, registry);
     }
     definition->_initialize(*entity);
+    auto& components = entity->getOrAddComponent<AddonEntityComponents>(definition);
+    components.initialize(*entity);
     static_cast<void>(
         entity->getOrAddComponent<AddonEntityEvents>(definition->m_events, std::move(sink), world != nullptr));
     return entity;
@@ -253,19 +304,6 @@ void AddonEntityDefinition::_initialize(mc::Entity& entity) const
 {
     auto defined = entity.getOrAddComponent<EntityAddonState>().defineProperties(m_properties);
     MC_ASSERT_RELEASE(defined.success());
-    const auto physics = m_components.find("minecraft:physics");
-    entity.setNoGravity(physics == m_components.end() || !physics->value("has_gravity", true));
-    entity.setNoClip(physics == m_components.end() || !physics->value("has_collision", true));
-    // 构造期虚调用只见到基类尺寸，安装定义后重新计算碰撞箱。
-    entity.setPosition(entity.position());
-    if (auto* living = dynamic_cast<mc::LivingEntity*>(&entity)) {
-        const auto& health = m_components["minecraft:health"];
-        living->attributes().setBaseValue(mc::entity::attribute::Attributes::MAX_HEALTH, health.value("max", 20.0));
-        living->setHealth(health.value("value", 20.0f));
-        const auto movement = m_components.find("minecraft:movement");
-        living->attributes().setBaseValue(mc::entity::attribute::Attributes::MOVEMENT_SPEED,
-            movement == m_components.end() ? 0.0 : movement->value("value", 1.0));
-    }
     // TODO: 为 Java 客户端实现自定义类型投影、资源包模型与 client_sync 属性同步。
     // TODO: 按 is_spawnable 生成对应的自定义刷怪蛋及生成规则关联。
 }
@@ -298,6 +336,26 @@ bool AddonEntityDefinition::canSummon() const
 bool AddonEntityDefinition::fireImmune() const
 {
     return m_components.contains("minecraft:fire_immune");
+}
+
+const nlohmann::json& AddonEntityDefinition::baseComponents() const
+{
+    return m_components;
+}
+
+const nlohmann::json& AddonEntityDefinition::componentGroups() const
+{
+    return m_componentGroups;
+}
+
+bool AddonEntityDefinition::isLiving() const
+{
+    if (m_components.contains("minecraft:health")) {
+        return true;
+    }
+    return std::any_of(m_componentGroups.begin(), m_componentGroups.end(), [](const nlohmann::json& group) {
+        return group.contains("minecraft:health");
+    });
 }
 
 } // namespace mc::mod::bedrock::addon

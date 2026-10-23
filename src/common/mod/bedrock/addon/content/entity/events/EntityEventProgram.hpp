@@ -35,14 +35,32 @@ class Entity;
 
 namespace mc::mod::bedrock::addon {
 
+/** @brief 一个已验证的组件组添加或移除操作。 */
+struct EntityComponentGroupChange {
+    bool add;
+    std::string group;
+};
+
+/** @brief 一次实际触发事件的 ID 及其组件组修改快照。 */
+struct EntityEventNotification {
+    std::string id;
+    std::vector<EntityComponentGroupChange> componentChanges;
+};
+
+/** @brief 完成计算的事件通知与按执行顺序排列的组件组操作。 */
+struct EntityEventExecution {
+    std::vector<EntityEventNotification> notifications;
+    std::vector<EntityComponentGroupChange> componentChanges;
+};
+
 /** @brief 已校验、可重复执行的实体事件程序。 */
 class EntityEventProgram {
 public:
     /** @brief 校验事件动作并规范化常量属性值。 */
     [[nodiscard]] static Result<EntityEventProgram> compile(
-        const nlohmann::json& events, const nlohmann::json& properties);
+        const nlohmann::json& events, const nlohmann::json& properties, const nlohmann::json& groups);
     /** @brief 计算完整动作后暂存属性；递归或步骤超限不提交任何写入。 */
-    [[nodiscard]] Result<std::vector<std::string>> execute(mc::Entity& entity, const std::string& eventId) const;
+    [[nodiscard]] Result<EntityEventExecution> execute(mc::Entity& entity, const std::string& eventId) const;
     /** @brief 检查指定事件是否有定义。 */
     [[nodiscard]] bool contains(const std::string& eventId) const;
 

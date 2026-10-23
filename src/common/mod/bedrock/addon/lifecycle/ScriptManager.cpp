@@ -27,6 +27,7 @@
 #include "common/mod/bedrock/addon/binding/ScriptClassRegistry.hpp"
 #include "common/mod/bedrock/addon/content/AddonContentManager.hpp"
 #include "common/mod/bedrock/addon/content/base/properties/AddonDynamicProperties.hpp"
+#include "common/mod/bedrock/addon/content/entity/events/EntityEventProgram.hpp"
 #include "common/mod/bedrock/addon/core/IScriptEngine.hpp"
 #include "common/mod/bedrock/addon/event/ScriptEventData.hpp"
 #include "common/mod/bedrock/addon/lifecycle/ScriptLogger.hpp"
@@ -318,15 +319,33 @@ const BehaviorPackList* ScriptManager::packList() const
 
 void ScriptManager::_registerBuiltinModules()
 {
-    m_content->setEntityEventSink([this](mc::Entity& entity, const std::string& eventId) {
+    m_content->setEntityEventSink([this](mc::Entity& entity, const EntityEventNotification& event) {
         ScriptEventData data;
         data.setEntity("entity", &entity);
-        data.setString("eventId", eventId);
-        data.setValue("getModifiers", [](IScriptBindingContext& context) {
-            // 属性事件不修改组件组，因此对应的 DefinitionModifier 列表为空。
+        data.setString("eventId", event.id);
+        data.setValue("getModifiers", [changes = event.componentChanges](IScriptBindingContext& context) {
+            // TODO: 补齐 DefinitionModifier 的可修改列表与原生待执行操作之间的回写。
             return context.createFunction(
-                [](IScriptBindingContext& bindings, void*, i32, void**) {
-                    return bindings.createArray();
+                [changes](IScriptBindingContext& bindings, void*, i32, void**) {
+                    void* result = bindings.createArray();
+                    u32 index = 0;
+                    for (const auto& change : changes) {
+                        void* modifier = bindings.createObject();
+                        void* added = bindings.createArray();
+                        void* removed = bindings.createArray();
+                        bindings.setArrayElementString(change.add ? added : removed, 0, change.group);
+                        bindings.setProperty(modifier, "addedComponentGroups", added);
+                        bindings.setProperty(modifier, "removedComponentGroups", removed);
+                        bindings.releaseValue(added);
+                        bindings.releaseValue(removed);
+                        // TODO: 为实验版 DefinitionModifier.triggers 提供完整的目标引用和嵌套触发快照。
+                        void* triggers = bindings.createArray();
+                        bindings.setProperty(modifier, "triggers", triggers);
+                        bindings.releaseValue(triggers);
+                        bindings.setArrayElement(result, index++, modifier);
+                        bindings.releaseValue(modifier);
+                    }
+                    return result;
                 },
                 "getModifiers",
                 0);

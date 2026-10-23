@@ -46,6 +46,13 @@ class AddonEntityDefinition {
 public:
     /** @brief 校验实体 JSON 结构、属性和基础组件；未支持语义明确返回 Unsupported。 */
     [[nodiscard]] static Result<AddonEntityDefinition> parse(const nlohmann::json& document);
+    /** @brief 校验一个基础组件表或组件组，不隐式补齐其他组件。 */
+    static Result<void> validateComponents(const nlohmann::json& components);
+    /** @brief 获取基础组件表和组件组定义。 */
+    [[nodiscard]] const nlohmann::json& baseComponents() const;
+    [[nodiscard]] const nlohmann::json& componentGroups() const;
+    /** @brief 任一可用组件配置含健康组件时使用生物继承链。 */
+    [[nodiscard]] bool isLiving() const;
     /** @brief 通过完整定义创建实体，实例保留定义的共享所有权。 */
     [[nodiscard]] static std::unique_ptr<mc::Entity> create(std::shared_ptr<const AddonEntityDefinition> definition,
         mc::IWorld* world,
@@ -70,6 +77,7 @@ private:
     nlohmann::json m_document;
     nlohmann::json m_properties;
     nlohmann::json m_components;
+    nlohmann::json m_componentGroups;
     std::shared_ptr<const EntityEventProgram> m_events;
     std::string m_identifier;
     f32 m_width;

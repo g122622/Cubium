@@ -34,8 +34,9 @@ class Entity;
 
 namespace mc::mod::bedrock::addon {
 class EntityEventProgram;
+struct EntityEventNotification;
 /** @brief 脚本门面拥有的事件出口，实体只借弱引用，避免延长世界寿命。 */
-using EntityEventSink = std::function<void(mc::Entity&, const std::string&)>;
+using EntityEventSink = std::function<void(mc::Entity&, const EntityEventNotification&)>;
 
 /** @brief 绑定到实体的不可变事件程序和首次生成事件状态。 */
 class AddonEntityEvents {
