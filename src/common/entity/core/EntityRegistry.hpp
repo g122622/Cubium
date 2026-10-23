@@ -101,6 +101,12 @@ public:
             return Error(ErrorCode::AlreadyExists, "Entity type already registered: " + resourceLocation);
         }
 
+        // 尺寸校正：以原版实体类里定义的尺寸为准，覆盖注册点的 .size(w, h)。
+        // 数据表由 scripts/baking/gen_entity_dimensions.py 从原版 jar 生成。
+        if (const std::optional<EntitySize> size = vanillaEntitySize(resourceLocation)) {
+            type.overrideSize(*size);
+        }
+
         // 按注册顺序分配整数 ID（= push_back 前的 size），用于网络层 VarInt 类型 ID
         const u32 id = static_cast<u32>(m_types.size());
 

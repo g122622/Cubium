@@ -63,8 +63,13 @@ export interface JavaOracleOptions {
     readonly oracle: string;
     /** 与 probe 同名的 domain，用于定位 probe 可执行文件与产物目录。 */
     readonly domain: string;
-    /** 输入单元（与 probe 的 run 输入一致）；用函数提供，避免 harness 注册时就加载数据。 */
-    readonly units: () => string[];
+    /**
+     * 输入单元；不提供时由 oracle 的 `list` 子命令给出。
+     *
+     * 用 oracle 自己枚举单元是更严格的做法：两侧必须对「有哪些单元」达成一致，
+     * 而不是拿第三方的列表去问原版。
+     */
+    readonly units?: () => string[];
     /** 单元 → probe 输入行对象。 */
     readonly input: (unit: string) => unknown;
     /** 输出里标识单元的字段名。 */
@@ -89,7 +94,6 @@ export interface JavaOracleOutcome {
  */
 export function runJavaOracle(options: JavaOracleOptions): JavaOracleOutcome {
     const started = process.hrtime.bigint();
-    const units = options.units();
     const buildDir = resolveBuildDir(options.buildDir);
     const workDir = path.join(buildDir, "diff", options.domain, "java");
     fs.mkdirSync(workDir, { recursive: true });
@@ -102,11 +106,21 @@ export function runJavaOracle(options: JavaOracleOptions): JavaOracleOutcome {
     const source = path.join(ORACLE_SOURCE_DIR, ...ORACLE_PACKAGE.split("."), `${options.oracle}.java`);
     exec("javac", ["-nowarn", "-proc:none", "-cp", classpath, "-d", environment.classesDir, source]);
 
-    // 2. 输入：两侧读同一份。
+    // 2. 单元：优先用 harness 给的；否则由 oracle 自己枚举。
+    const javaClass = `${ORACLE_PACKAGE}.${options.oracle}`;
+    const classpathWithClasses = `${environment.classesDir}${path.delimiter}${classpath}`;
+    const units =
+        options.units?.() ??
+        exec("java", ["-cp", classpathWithClasses, javaClass, "list"], { cwd: workDir })
+            .split(/\r?\n/)
+            .filter((line) => line.length > 0)
+            .sort();
+
+    // 3. 输入：两侧读同一份。
     const inputsPath = path.join(workDir, "inputs.jsonl");
     fs.writeFileSync(inputsPath, `${units.map((unit) => JSON.stringify(options.input(unit))).join("\n")}\n`);
 
-    // 3. 原版侧。
+    // 4. 原版侧。
     // cwd 指向工作目录：原版用 log4j 的 FileAppender，会把 logs/*.log.gz 写到进程 cwd，
     // 若沿用仓库根就会污染工作树。
     const oracleOutput = path.join(workDir, "oracle_outputs.jsonl");
@@ -114,8 +128,8 @@ export function runJavaOracle(options: JavaOracleOptions): JavaOracleOutcome {
         "java",
         [
             "-cp",
-            `${environment.classesDir}${path.delimiter}${classpath}`,
-            `${ORACLE_PACKAGE}.${options.oracle}`,
+            classpathWithClasses,
+            javaClass,
             "run",
             inputsPath,
             oracleOutput,
@@ -123,12 +137,12 @@ export function runJavaOracle(options: JavaOracleOptions): JavaOracleOutcome {
         { cwd: workDir },
     );
 
-    // 4. probe 侧。
+    // 5. probe 侧。
     const probeOutput = path.join(workDir, "probe_outputs.jsonl");
     const executable = probeExecutable(options.domain, options.buildDir);
     exec(executable, ["run", inputsPath, probeOutput]);
 
-    // 5. 比对。复用 runner.ts 的比对语义（只比 oracle 声明过的字段、按 key 对齐）。
+    // 6. 比对。复用 runner.ts 的比对语义（只比 oracle 声明过的字段、按 key 对齐）。
     const expectedLines = fs.readFileSync(oracleOutput, "utf8").split(/\r?\n/).filter(Boolean);
     const actualLines = fs.readFileSync(probeOutput, "utf8").split(/\r?\n/).filter(Boolean);
     const differences = compareLines(expectedLines, actualLines, options.key, options.normalise);

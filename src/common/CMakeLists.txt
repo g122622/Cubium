@@ -94,6 +94,8 @@ add_library(mc_common STATIC
     # Entity Registry - 原版实体类型批量注册
     entity/registry/VanillaEntities.cpp
     entity/registry/VanillaEntityTypeKeys.cpp
+    # 原版实体眼睛高度表（scripts/baking/gen_entity_dimensions.py 生成）
+    entity/registry/VanillaEntityDimensions.cpp
     entity/tag/EntityTypeTag.cpp
     entity/tag/EntityTypeTags.cpp
     entity/tag/EntityTypeTagLoader.cpp

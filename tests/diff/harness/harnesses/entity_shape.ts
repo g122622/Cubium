@@ -22,39 +22,28 @@
  */
 
 /*
- * entity_shape.ts — 实体碰撞箱尺寸（Cubium vs minecraft-data 的 entities）。
+ * entity_shape.ts — 实体碰撞箱尺寸。
  *
- * 只比 minecraft-data 陈述的字段：宽度、高度。眼睛高度与追踪距离/更新间隔
- * 参照数据没有，因此**不比**——宁可比的少而准，也不要为了让数字好看去猜。
+ * 单元列表取自原版运行时注册表（`EntityShapeOracle list`），比对由 java-oracle.ts
+ * 完成：宽度、高度、眼睛高度、固定尺寸、分类全部逐字节比。
+ * 不再使用 minecraft-data——它只给宽高两项，参考价值有限。
  */
 
-import { loadMinecraftData } from "../vanilla.ts";
 import type { HarnessSpec } from "../runner.ts";
-import { f32Bits } from "./shared.ts";
 
-interface RawEntity {
-    name: string;
-    width: number;
-    height: number;
-}
-
+/**
+ * 返回单元提供者（方块/实体等）的 stub。
+ *
+ * 这里保留 HarnessSpec 形状是为了让 runAll 的统一迭代保持简单；实际的单元枚举
+ * 由 Java oracle 的 `list` 子命令给出，见 harnesses/index.ts 的 JAVA_HARNESSES。
+ */
 export function createEntityShapeHarness(): HarnessSpec {
-    const md = loadMinecraftData()("1.21.11") as unknown as { entitiesArray: RawEntity[] };
-    const entities = md.entitiesArray;
-    const byName = new Map(entities.map((entity) => [entity.name, entity]));
-
     return {
         name: "entity_shape",
         domain: "entity_shape",
         key: "entity",
-        units: () => entities.map((entity) => `minecraft:${entity.name}`).sort(),
+        units: () => [],
         input: (unit) => ({ entity: unit }),
-        oracle: (unit) => {
-            const entity = byName.get(unit.replace(/^minecraft:/, ""));
-            if (entity === undefined) {
-                return { entity: unit, missing: true };
-            }
-            return { entity: unit, width: f32Bits(entity.width), height: f32Bits(entity.height) };
-        },
+        oracle: (unit) => ({ entity: unit }),
     } satisfies HarnessSpec;
 }

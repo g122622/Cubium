@@ -41,14 +41,14 @@ import { createEntityShapeHarness } from "./entity_shape.ts";
 import { createItemSummaryHarness } from "./item_summary.ts";
 
 /** 已登记、使用 minecraft-data 的声明式 harness。 */
-const DATA_SPECS: ReadonlyArray<() => HarnessSpec> = [createEntityShapeHarness, createEnchantmentTableHarness];
+const DATA_SPECS: ReadonlyArray<() => HarnessSpec> = [createEnchantmentTableHarness];
 
 /** 已登记、使用原版 Java oracle 的能力：oracle 类名 + 单元来源。 */
 interface JavaHarness {
     readonly name: string;
     readonly oracle: string;
-    /** probe 输入单元（与 oracle 的 list 输出一致）。 */
-    readonly units: () => string[];
+    /** probe 输入单元；缺省时由 oracle 的 list 子命令枚举。 */
+    readonly units?: () => string[];
     readonly input: (unit: string) => unknown;
     readonly key: string;
 }
@@ -57,6 +57,10 @@ const JAVA_HARNESSES: ReadonlyArray<() => JavaHarness> = [
     () => {
         const spec = createItemSummaryHarness();
         return { name: spec.name, oracle: "ItemSummaryOracle", units: spec.units, input: spec.input, key: spec.key };
+    },
+    () => {
+        const spec = createEntityShapeHarness();
+        return { name: spec.name, oracle: "EntityShapeOracle", input: spec.input, key: spec.key };
     },
 ];
 

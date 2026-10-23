@@ -315,6 +315,23 @@ public:
     }
 
     /**
+     * @brief 用原版数据覆盖碰撞箱尺寸
+     *
+     * 原版把尺寸定义在实体类里（EntityType.Builder.sized），本项目注册表另写一份。
+     * 两边一旦不同步，就会出现碰撞判定偏大/偏小、眼睛比身体还高这类问题。
+     * 因此注册时按实体名统一用原版值覆盖。数据表由
+     * scripts/baking/gen_entity_dimensions.py 从原版 jar 生成。
+     *
+     * @param size 原版碰撞箱尺寸
+     * @return 自身引用，便于链式调用
+     */
+    EntityType& overrideSize(const EntitySize& size) noexcept
+    {
+        m_size = size;
+        return *this;
+    }
+
+    /**
      * @brief 获取实体尺寸
      */
     [[nodiscard]] EntitySize size() const
