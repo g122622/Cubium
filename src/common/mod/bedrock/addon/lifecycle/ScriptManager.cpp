@@ -24,6 +24,7 @@
 #include "common/mod/bedrock/addon/lifecycle/ScriptManager.hpp"
 #include "common/core/Result.hpp"
 #include "common/mod/bedrock/addon/binding/ScriptClassRegistry.hpp"
+#include "common/mod/bedrock/addon/content/base/properties/AddonDynamicProperties.hpp"
 #include "common/mod/bedrock/addon/core/IScriptEngine.hpp"
 #include "common/mod/bedrock/addon/event/ScriptEventData.hpp"
 #include "common/mod/bedrock/addon/lifecycle/ScriptLogger.hpp"
@@ -50,6 +51,7 @@ ScriptManager::ScriptManager()
     , m_logger(std::make_unique<ScriptLogger>())
     , m_scheduler(std::make_unique<ScriptScheduler>())
     , m_packList(std::make_unique<BehaviorPackList>())
+    , m_worldProperties(std::make_shared<AddonDynamicProperties>())
 {}
 
 ScriptManager::~ScriptManager()
@@ -307,6 +309,7 @@ void ScriptManager::_registerBuiltinModules()
     auto minecraftFactory = std::make_unique<MinecraftModuleFactory>();
     minecraftFactory->setScheduler(m_scheduler.get());
     minecraftFactory->setEventBus(m_eventBus.get());
+    minecraftFactory->setWorldProperties(m_worldProperties);
     if (!m_eventSignals.empty()) {
         minecraftFactory->setEventSignals(m_eventSignals);
     }
@@ -318,6 +321,26 @@ void ScriptManager::_registerBuiltinModules()
 void ScriptManager::setEventSignals(const std::vector<EventSignalInfo>& signals)
 {
     m_eventSignals = signals;
+}
+
+nlohmann::json ScriptManager::saveWorldProperties() const
+{
+    return m_worldProperties->save();
+}
+
+Result<void> ScriptManager::loadWorldProperties(const nlohmann::json& saved)
+{
+    return m_worldProperties->load(saved);
+}
+
+bool ScriptManager::worldPropertiesDirty() const
+{
+    return m_worldProperties->isDirty();
+}
+
+void ScriptManager::markWorldPropertiesSaved()
+{
+    m_worldProperties->markSaved();
 }
 
 } // namespace mc::mod::bedrock::addon

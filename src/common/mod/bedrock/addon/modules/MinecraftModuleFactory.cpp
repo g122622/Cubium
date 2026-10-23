@@ -23,8 +23,10 @@
 
 #include "common/mod/bedrock/addon/modules/MinecraftModuleFactory.hpp"
 #include "common/mod/bedrock/addon/binding/ScriptGameObjects.hpp"
+#include "common/mod/bedrock/addon/content/base/properties/AddonDynamicProperties.hpp"
 #include "common/mod/bedrock/addon/event/ScriptEventData.hpp"
 #include "common/mod/bedrock/addon/modules/entity/ScriptEntityPropertiesBinding.hpp"
+#include "common/mod/bedrock/addon/modules/properties/ScriptDynamicPropertiesBinding.hpp"
 #include "common/mod/bedrock/addon/modules/system/ScriptSystemBinding.hpp"
 
 #include "common/core/Types.hpp"
@@ -116,6 +118,16 @@ u64 resolveItemStackClassId(IScriptBindingContext& ctx)
 
 } // namespace
 
+MinecraftModuleFactory::MinecraftModuleFactory()
+    : m_worldProperties(std::make_shared<AddonDynamicProperties>())
+{}
+
+void MinecraftModuleFactory::setWorldProperties(std::shared_ptr<AddonDynamicProperties> properties)
+{
+    MC_ASSERT_RELEASE(properties != nullptr);
+    m_worldProperties = std::move(properties);
+}
+
 void MinecraftModuleFactory::setScheduler(ScriptScheduler* scheduler)
 {
     m_scheduler = scheduler;
@@ -161,6 +173,14 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
     // --- World类 ---
     u64 worldClassId = ScriptObjectRegistry::allocateClassId(ctx);
     void* worldProto = builder.exportClass("World", worldClassId);
+
+    // 属性由本存档的脚本门面拥有，回调持共享引用，避免工厂或上下文销毁顺序产生悬垂。
+    registerDynamicPropertyBindings(ctx,
+        worldProto,
+        [properties = m_worldProperties](IScriptBindingContext& context, void* receiver) -> AddonDynamicProperties* {
+            const auto classId = context.classRegistry().classIdByName("World");
+            return ScriptObjectRegistry::isInstanceOf(context, receiver, classId) ? properties.get() : nullptr;
+        });
 
     ClassRegistrar<void> worldReg(ctx, worldClassId, worldProto);
     worldReg.method("getDimension", [](IScriptBindingContext& ctx, void* thisVal, i32 argc, void** args) -> void* {

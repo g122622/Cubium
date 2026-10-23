@@ -40,6 +40,7 @@
 #include "server/mod/bedrock/addon/bridge/ServerEventSignals.hpp"
 #include "server/scoreboard/ServerScoreboard.hpp"
 #include "server/world/ServerWorld.hpp" // respawnData（world.getDefaultSpawn 回调）
+#include "server/world/storage/SingleLevelStorageManager.hpp"
 
 #include <memory>
 #include <string>
@@ -71,6 +72,15 @@ Result<void> ServerScriptManager::initialize()
     }
 
     spdlog::info("[Server] Initializing script system...");
+
+    // 在任何脚本入口执行前恢复世界属性，保证插件初始化能读取上次保存的配置。
+    if (m_server != nullptr && m_server->sharedStorage() != nullptr) {
+        auto saved = m_server->sharedStorage()->loadAddonWorldProperties();
+        if (saved.failed()) {
+            return saved.error();
+        }
+        MC_TRY(m_scriptManager->loadWorldProperties(saved.value().value_or(nlohmann::json::object())));
+    }
 
     // 注入服务端事件信号定义到脚本管理器
     auto beforeSignals = getBeforeEventSignals();
@@ -197,6 +207,8 @@ void ServerScriptManager::setServer(MinecraftServer* server)
     if (!server) {
         return;
     }
+
+    m_server = server;
 
     auto& accessor = mc::mod::bedrock::addon::ScriptWorldAccessor::instance();
     accessor.setGetDimensionsCallback([server]() {

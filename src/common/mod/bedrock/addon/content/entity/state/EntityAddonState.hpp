@@ -24,6 +24,7 @@
 #pragma once
 
 #include "common/core/Result.hpp"
+#include "common/mod/bedrock/addon/content/base/properties/AddonDynamicProperties.hpp"
 
 #include <optional>
 #include <string>
@@ -54,21 +55,9 @@ public:
     /** @brief 在实体 tick 边界应用待处理属性，返回是否存在变化。 */
     bool applyPendingProperties();
 
-    /** @brief 读取指定行为包作用域内的动态属性。 */
-    [[nodiscard]] std::optional<nlohmann::json> getDynamicProperty(
-        const std::string& pack, const std::string& name) const;
-
-    /** @brief 写入动态属性；null 删除该键，其他包的同名属性不受影响。 */
-    Result<void> setDynamicProperty(const std::string& pack, const std::string& name, const nlohmann::json& value);
-
-    /** @brief 先校验整个批次，再一次性写入指定包作用域。 */
-    Result<void> setDynamicProperties(const std::string& pack, const nlohmann::json& values);
-
-    /** @brief 列出指定行为包的动态属性名。 */
-    [[nodiscard]] std::vector<std::string> dynamicPropertyIds(const std::string& pack) const;
-
-    /** @brief 清空指定行为包的动态属性。 */
-    void clearDynamicProperties(const std::string& pack);
+    /** @brief 访问实体拥有的包作用域动态属性。 */
+    [[nodiscard]] AddonDynamicProperties& dynamicProperties();
+    [[nodiscard]] const AddonDynamicProperties& dynamicProperties() const;
 
     /** @brief 生成带显式类型标记的持久化快照，保留 NBT 中无法区分的布尔类型。 */
     [[nodiscard]] nlohmann::json save() const;
@@ -81,13 +70,10 @@ private:
     static Result<void> _validateProperty(
         const std::string& name, const nlohmann::json& definition, const nlohmann::json& value);
 
-    /** @brief 校验动态属性允许的标量和三维向量类型。 */
-    static Result<void> _validateDynamicValue(const nlohmann::json& value);
-
     nlohmann::json m_definitions = nlohmann::json::object();
     nlohmann::json m_properties = nlohmann::json::object();
     nlohmann::json m_pending = nlohmann::json::object();
-    nlohmann::json m_dynamic = nlohmann::json::object();
+    AddonDynamicProperties m_dynamic;
 };
 
 /** @brief 将实体 addon 属性接入统一组件序列化器。 */

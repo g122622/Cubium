@@ -234,27 +234,27 @@ TEST(AddonEntityStateTest, DynamicPropertiesAreImmediateAndIsolatedByPack)
 {
     EntityAddonState state;
     const nlohmann::json vector = {{"x", 1.25}, {"y", -2}, {"z", 3}};
-    ASSERT_TRUE(
-        state.setDynamicProperties("first", {{"flag", true}, {"number", 42.5}, {"text", "女仆"}, {"position", vector}})
+    ASSERT_TRUE(state.dynamicProperties()
+            .setMany("first", {{"flag", true}, {"number", 42.5}, {"text", "女仆"}, {"position", vector}})
             .success());
-    ASSERT_TRUE(state.setDynamicProperty("second", "flag", false).success());
-    EXPECT_EQ(state.getDynamicProperty("first", "flag"), nlohmann::json(true));
-    EXPECT_EQ(state.getDynamicProperty("second", "flag"), nlohmann::json(false));
-    EXPECT_FALSE(state.getDynamicProperty("second", "number").has_value());
-    EXPECT_EQ(state.getDynamicProperty("first", "position"), vector);
-    EXPECT_EQ(state.dynamicPropertyIds("first"), (std::vector<std::string>{"flag", "number", "position", "text"}));
+    ASSERT_TRUE(state.dynamicProperties().set("second", "flag", false).success());
+    EXPECT_EQ(state.dynamicProperties().get("first", "flag"), nlohmann::json(true));
+    EXPECT_EQ(state.dynamicProperties().get("second", "flag"), nlohmann::json(false));
+    EXPECT_FALSE(state.dynamicProperties().get("second", "number").has_value());
+    EXPECT_EQ(state.dynamicProperties().get("first", "position"), vector);
+    EXPECT_EQ(state.dynamicProperties().ids("first"), (std::vector<std::string>{"flag", "number", "position", "text"}));
 
-    ASSERT_TRUE(state.setDynamicProperty("first", "number", nullptr).success());
-    EXPECT_FALSE(state.getDynamicProperty("first", "number").has_value());
-    state.clearDynamicProperties("first");
-    EXPECT_TRUE(state.dynamicPropertyIds("first").empty());
-    EXPECT_EQ(state.getDynamicProperty("second", "flag"), nlohmann::json(false));
+    ASSERT_TRUE(state.dynamicProperties().set("first", "number", nullptr).success());
+    EXPECT_FALSE(state.dynamicProperties().get("first", "number").has_value());
+    state.dynamicProperties().clear("first");
+    EXPECT_TRUE(state.dynamicProperties().ids("first").empty());
+    EXPECT_EQ(state.dynamicProperties().get("second", "flag"), nlohmann::json(false));
 }
 
 TEST(AddonEntityStateTest, DynamicPropertyBoundaryValidationIsAtomic)
 {
     EntityAddonState state;
-    ASSERT_TRUE(state.setDynamicProperty("pack", "text", std::string(32767, 'a')).success());
+    ASSERT_TRUE(state.dynamicProperties().set("pack", "text", std::string(32767, 'a')).success());
     const std::vector<nlohmann::json> invalid = {std::string(32768, 'a'),
         nlohmann::json::array({1, 2, 3}),
         {{"x", 1}, {"y", 2}},
@@ -263,14 +263,15 @@ TEST(AddonEntityStateTest, DynamicPropertyBoundaryValidationIsAtomic)
         {{"x", 1}, {"y", 2}, {"z", 3}, {"w", 4}},
         std::numeric_limits<double>::quiet_NaN()};
     for (const auto& value : invalid) {
-        EXPECT_TRUE(state.setDynamicProperty("pack", "text", value).failed());
+        EXPECT_TRUE(state.dynamicProperties().set("pack", "text", value).failed());
     }
-    EXPECT_EQ(state.getDynamicProperty("pack", "text"), nlohmann::json(std::string(32767, 'a')));
-    EXPECT_TRUE(state.setDynamicProperty("", "key", 1).failed());
-    EXPECT_TRUE(state.setDynamicProperty("pack", "", 1).failed());
-    EXPECT_TRUE(
-        state.setDynamicProperties("pack", {{"a-valid", true}, {"z-invalid", std::string(32768, 'a')}}).failed());
-    EXPECT_FALSE(state.getDynamicProperty("pack", "a-valid").has_value());
+    EXPECT_EQ(state.dynamicProperties().get("pack", "text"), nlohmann::json(std::string(32767, 'a')));
+    EXPECT_TRUE(state.dynamicProperties().set("", "key", 1).failed());
+    EXPECT_TRUE(state.dynamicProperties().set("pack", "", 1).failed());
+    EXPECT_TRUE(state.dynamicProperties()
+            .setMany("pack", {{"a-valid", true}, {"z-invalid", std::string(32768, 'a')}})
+            .failed());
+    EXPECT_FALSE(state.dynamicProperties().get("pack", "a-valid").has_value());
 }
 
 TEST(AddonEntityStateTest, SavedStateIncludesPendingChangesWithoutApplyingThem)
@@ -279,14 +280,14 @@ TEST(AddonEntityStateTest, SavedStateIncludesPendingChangesWithoutApplyingThem)
     ASSERT_TRUE(original.defineProperties(_schema()).success());
     ASSERT_TRUE(original.setProperty("test:enabled", true).success());
     ASSERT_TRUE(original.setProperty("test:mode", "Working_2").success());
-    ASSERT_TRUE(original.setDynamicProperty("pack", "flag", true).success());
+    ASSERT_TRUE(original.dynamicProperties().set("pack", "flag", true).success());
     EntityAddonState restored;
     ASSERT_TRUE(restored.defineProperties(_schema()).success());
     ASSERT_TRUE(restored.load(original.save()).success());
     EXPECT_EQ(original.getProperty("test:enabled"), nlohmann::json(false));
     EXPECT_EQ(restored.getProperty("test:enabled"), nlohmann::json(true));
     EXPECT_EQ(restored.getProperty("test:mode"), nlohmann::json("Working_2"));
-    EXPECT_EQ(restored.getDynamicProperty("pack", "flag"), nlohmann::json(true));
+    EXPECT_EQ(restored.dynamicProperties().get("pack", "flag"), nlohmann::json(true));
 }
 
 TEST(AddonEntityStateTest, MalformedSavedStateDoesNotPartiallyReplaceLiveState)
@@ -294,7 +295,7 @@ TEST(AddonEntityStateTest, MalformedSavedStateDoesNotPartiallyReplaceLiveState)
     EntityAddonState state;
     ASSERT_TRUE(state.defineProperties(_schema()).success());
     ASSERT_TRUE(state.setProperty("test:count", 17).success());
-    ASSERT_TRUE(state.setDynamicProperty("pack", "flag", true).success());
+    ASSERT_TRUE(state.dynamicProperties().set("pack", "flag", true).success());
     const auto before = state.save();
     auto invalid = before;
     invalid["dynamic"]["pack"]["z-broken"] = {{"kind", "number"}, {"value", "bad"}};
@@ -319,11 +320,11 @@ TEST(AddonEntityStateTest, EntityNbtRoundTripPreservesAllPropertyTypes)
     ASSERT_TRUE(state.setProperty("test:count", 42).success());
     ASSERT_TRUE(state.setProperty("test:speed", 3.5).success());
     ASSERT_TRUE(state.setProperty("test:mode", "Working_2").success());
-    ASSERT_TRUE(state
-            .setDynamicProperties("first",
+    ASSERT_TRUE(state.dynamicProperties()
+            .setMany("first",
                 {{"flag", false}, {"n", 12.5}, {"text", "女仆"}, {"vector", {{"x", -1.5}, {"y", 64}, {"z", 20}}}})
             .success());
-    ASSERT_TRUE(state.setDynamicProperty("second", "flag", true).success());
+    ASSERT_TRUE(state.dynamicProperties().set("second", "flag", true).success());
     mc::nbt::tags::compound_tag tag;
     original.writeToNBT(tag);
     EXPECT_TRUE(tag.value.contains("CubiumAddonState"));
@@ -336,9 +337,9 @@ TEST(AddonEntityStateTest, EntityNbtRoundTripPreservesAllPropertyTypes)
     EXPECT_EQ(restoredState.save(), state.save());
     ASSERT_TRUE(restoredState.getProperty("test:enabled").has_value());
     EXPECT_TRUE(restoredState.getProperty("test:enabled")->is_boolean());
-    EXPECT_TRUE(restoredState.getDynamicProperty("first", "flag")->is_boolean());
-    EXPECT_TRUE(restoredState.getDynamicProperty("first", "n")->is_number());
-    EXPECT_EQ(restoredState.getDynamicProperty("first", "text"), nlohmann::json("女仆"));
+    EXPECT_TRUE(restoredState.dynamicProperties().get("first", "flag")->is_boolean());
+    EXPECT_TRUE(restoredState.dynamicProperties().get("first", "n")->is_number());
+    EXPECT_EQ(restoredState.dynamicProperties().get("first", "text"), nlohmann::json("女仆"));
 }
 
 TEST_F(AddonEntityPropertiesBindingTest, ScriptWritesAndResetObserveTickBoundary)

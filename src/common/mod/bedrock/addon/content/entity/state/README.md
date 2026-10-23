@@ -9,7 +9,7 @@ state/
 
 ## 内部模块关系
 
-EntityAddonState 校验声明和值，声明写入进入待应用队列，动态属性按包 UUID 分组。组件序列化函数将快照接入统一 NBT 注册表。
+EntityAddonState 校验声明和值，声明写入进入待应用队列，动态属性委托公共 AddonDynamicProperties 按包 UUID 分组。组件序列化函数将快照接入统一 NBT 注册表。
 
 ## 上下游外部依赖关系
 

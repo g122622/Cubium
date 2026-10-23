@@ -94,6 +94,7 @@ public:
     [[nodiscard]] bool isNumber(void* value) const override;
     [[nodiscard]] bool isString(void* value) const override;
     [[nodiscard]] bool isException(void* value) const override;
+    [[nodiscard]] bool hasException() const override;
 
     // ===== 值转换 =====
 

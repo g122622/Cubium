@@ -25,6 +25,7 @@
 
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/serialization/components/ComponentSerializerRegistry.hpp"
+#include "common/mod/bedrock/addon/content/base/properties/AddonPropertyValue.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/nbt/NbtJsonUtils.hpp"
 
@@ -36,7 +37,6 @@
 namespace mc::mod::bedrock::addon {
 namespace {
 
-constexpr std::size_t _MAX_DYNAMIC_STRING_BYTES = 32767;
 constexpr const char* _STATE_TAG = "CubiumAddonState";
 
 bool _validEnumName(const std::string& name)
@@ -52,40 +52,6 @@ bool _validEnumName(const std::string& name)
     return std::all_of(name.begin(), name.end(), [&](char character) {
         return alphabetic(character) || (character >= '0' && character <= '9') || character == '_';
     });
-}
-
-nlohmann::json _encode(const nlohmann::json& value)
-{
-    // JSON 布尔写入 NBT 后表现为 Byte，独立类型标记用于恢复原始脚本类型。
-    const char* kind = value.is_boolean() ? "boolean"
-        : value.is_string()               ? "string"
-        : value.is_number()               ? "number"
-                                          : "vector";
-    return {{"kind", kind}, {"value", value}};
-}
-
-Result<nlohmann::json> _decode(const nlohmann::json& encoded)
-{
-    if (!encoded.is_object() || !encoded.contains("kind") || !encoded["kind"].is_string() ||
-        !encoded.contains("value")) {
-        return Error(ErrorCode::InvalidData, "Invalid addon property encoding");
-    }
-
-    const auto kind = encoded["kind"].get<std::string>();
-    const auto& value = encoded["value"];
-    if (kind == "boolean") {
-        if (value.is_boolean()) {
-            return value;
-        }
-        if (value.is_number_integer() && (value == 0 || value == 1)) {
-            return nlohmann::json(value.get<int>() != 0);
-        }
-    } else if ((kind == "number" && value.is_number()) || (kind == "string" && value.is_string()) ||
-        (kind == "vector" && value.is_object())) {
-        return value;
-    }
-
-    return Error(ErrorCode::InvalidData, "Addon property type does not match its encoding");
 }
 
 void _saveState(const mc::Entity& entity, mc::nbt::tags::compound_tag& tag)
@@ -238,6 +204,16 @@ bool EntityAddonState::applyPendingProperties()
     return changed;
 }
 
+AddonDynamicProperties& EntityAddonState::dynamicProperties()
+{
+    return m_dynamic;
+}
+
+const AddonDynamicProperties& EntityAddonState::dynamicProperties() const
+{
+    return m_dynamic;
+}
+
 std::optional<nlohmann::json> EntityAddonState::resetProperty(const std::string& name)
 {
     const auto definition = m_definitions.find(name);
@@ -249,99 +225,6 @@ std::optional<nlohmann::json> EntityAddonState::resetProperty(const std::string&
     return m_pending[name];
 }
 
-Result<void> EntityAddonState::_validateDynamicValue(const nlohmann::json& value)
-{
-    if (value.is_null() || value.is_boolean()) {
-        return Result<void>::ok();
-    }
-    if (value.is_string() && value.get_ref<const std::string&>().size() <= _MAX_DYNAMIC_STRING_BYTES) {
-        return Result<void>::ok();
-    }
-    if (value.is_number() && std::isfinite(value.get<double>())) {
-        return Result<void>::ok();
-    }
-    if (value.is_object() && value.size() == 3) {
-        for (const char* coordinate : {"x", "y", "z"}) {
-            if (!value.contains(coordinate) || !value[coordinate].is_number() ||
-                !std::isfinite(value[coordinate].get<double>())) {
-                return Error(ErrorCode::InvalidArgument, "Dynamic property requires finite Vector3 coordinates");
-            }
-        }
-        return Result<void>::ok();
-    }
-
-    return Error(ErrorCode::InvalidArgument, "Unsupported dynamic property value or oversized string");
-}
-
-std::optional<nlohmann::json> EntityAddonState::getDynamicProperty(
-    const std::string& pack, const std::string& name) const
-{
-    const auto scope = m_dynamic.find(pack);
-    if (scope == m_dynamic.end()) {
-        return std::nullopt;
-    }
-
-    const auto value = scope->find(name);
-    return value != scope->end() ? std::optional<nlohmann::json>(*value) : std::nullopt;
-}
-
-Result<void> EntityAddonState::setDynamicProperty(
-    const std::string& pack, const std::string& name, const nlohmann::json& value)
-{
-    if (pack.empty() || name.empty()) {
-        return Error(ErrorCode::InvalidArgument, "Dynamic property requires a pack identity and nonempty key");
-    }
-
-    MC_TRY(_validateDynamicValue(value));
-    if (value.is_null()) {
-        if (auto scope = m_dynamic.find(pack); scope != m_dynamic.end()) {
-            scope->erase(name);
-            if (scope->empty()) {
-                m_dynamic.erase(scope);
-            }
-        }
-    } else {
-        m_dynamic[pack][name] = value;
-    }
-    return Result<void>::ok();
-}
-
-std::vector<std::string> EntityAddonState::dynamicPropertyIds(const std::string& pack) const
-{
-    std::vector<std::string> names;
-    if (const auto scope = m_dynamic.find(pack); scope != m_dynamic.end()) {
-        for (const auto& [name, value] : scope->items()) {
-            names.push_back(name);
-        }
-    }
-    return names;
-}
-
-Result<void> EntityAddonState::setDynamicProperties(const std::string& pack, const nlohmann::json& values)
-{
-    if (pack.empty() || !values.is_object()) {
-        return Error(ErrorCode::InvalidArgument, "Dynamic property batch requires a pack identity and an object");
-    }
-
-    // 校验和应用分离，避免后面的非法值令前面的写入部分提交。
-    for (const auto& [name, value] : values.items()) {
-        if (name.empty()) {
-            return Error(ErrorCode::InvalidArgument, "Dynamic property requires a nonempty key");
-        }
-        MC_TRY(_validateDynamicValue(value));
-    }
-
-    for (const auto& [name, value] : values.items()) {
-        MC_TRY(setDynamicProperty(pack, name, value));
-    }
-    return Result<void>::ok();
-}
-
-void EntityAddonState::clearDynamicProperties(const std::string& pack)
-{
-    m_dynamic.erase(pack);
-}
-
 nlohmann::json EntityAddonState::save() const
 {
     // 保存前合并尚未进入下一 tick 的合法写入，避免停服边界丢失已提交的状态。
@@ -349,13 +232,9 @@ nlohmann::json EntityAddonState::save() const
     properties.update(m_pending);
     nlohmann::json saved = {{"properties", nlohmann::json::object()}, {"dynamic", nlohmann::json::object()}};
     for (const auto& [name, value] : properties.items()) {
-        saved["properties"][name] = _encode(value);
+        saved["properties"][name] = encodeAddonPropertyValue(value);
     }
-    for (const auto& [pack, scope] : m_dynamic.items()) {
-        for (const auto& [name, value] : scope.items()) {
-            saved["dynamic"][pack][name] = _encode(value);
-        }
-    }
+    saved["dynamic"] = m_dynamic.save();
     return saved;
 }
 
@@ -369,25 +248,14 @@ Result<void> EntityAddonState::load(const nlohmann::json& saved)
     EntityAddonState restored;
     MC_TRY(restored.defineProperties(m_definitions));
     for (const auto& [name, encoded] : saved["properties"].items()) {
-        auto value = _decode(encoded);
+        auto value = decodeAddonPropertyValue(encoded);
         if (value.failed()) {
             return value.error();
         }
         MC_TRY(restored.setProperty(name, value.value()));
     }
     restored.applyPendingProperties();
-    for (const auto& [pack, scope] : saved["dynamic"].items()) {
-        if (!scope.is_object()) {
-            return Error(ErrorCode::InvalidData, "Invalid dynamic property scope");
-        }
-        for (const auto& [name, encoded] : scope.items()) {
-            auto value = _decode(encoded);
-            if (value.failed()) {
-                return value.error();
-            }
-            MC_TRY(restored.setDynamicProperty(pack, name, value.value()));
-        }
-    }
+    MC_TRY(restored.m_dynamic.load(saved["dynamic"]));
 
     *this = std::move(restored);
     return Result<void>::ok();

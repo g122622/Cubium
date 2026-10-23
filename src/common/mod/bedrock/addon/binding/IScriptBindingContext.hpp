@@ -190,6 +190,8 @@ public:
     [[nodiscard]] virtual bool isNumber(void* value) const = 0;
     [[nodiscard]] virtual bool isString(void* value) const = 0;
     [[nodiscard]] virtual bool isException(void* value) const = 0;
+    /** @brief 检查属性读取或键枚举是否留下待处理异常，不消耗该异常。 */
+    [[nodiscard]] virtual bool hasException() const = 0;
 
     // ===== 值转换 =====
 

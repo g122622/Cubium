@@ -133,6 +133,7 @@ private:
     std::unique_ptr<mc::mod::bedrock::addon::ScriptManager> m_scriptManager;
     EventBridge m_eventBridge;
     std::string m_globalBehaviorPackDir;
+    MinecraftServer* m_server = nullptr;
     bool m_initialized = false;
 };
 

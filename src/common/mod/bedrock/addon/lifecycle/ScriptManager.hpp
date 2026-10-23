@@ -37,11 +37,13 @@
 #include <memory>
 #include <string>
 #include <vector>
+#include <nlohmann/json_fwd.hpp>
 
 namespace mc::mod::bedrock::addon {
 
 class BehaviorPackList;
 class ScriptTickListener;
+class AddonDynamicProperties;
 
 /**
  * @brief 脚本管理器
@@ -146,6 +148,17 @@ public:
      */
     void setEventSignals(const std::vector<EventSignalInfo>& signals);
 
+    /** @brief 取得本存档世界动态属性的持久化快照。 */
+    [[nodiscard]] nlohmann::json saveWorldProperties() const;
+
+    /** @brief 在加载脚本前恢复世界属性；失败时保留原状态。 */
+    Result<void> loadWorldProperties(const nlohmann::json& saved);
+
+    /** @brief 自动保存需要考虑尚未落盘的世界脚本属性。 */
+    [[nodiscard]] bool worldPropertiesDirty() const;
+    /** @brief 存储门面成功写入后确认世界属性已保存。 */
+    void markWorldPropertiesSaved();
+
 private:
     /**
      * @brief 注册内置模块工厂
@@ -161,6 +174,7 @@ private:
     std::unique_ptr<BehaviorPackList> m_packList;
     std::unique_ptr<ScriptTickListener> m_tickListener;
     std::vector<EventSignalInfo> m_eventSignals;
+    std::shared_ptr<AddonDynamicProperties> m_worldProperties;
 
     bool m_initialized = false;
 };

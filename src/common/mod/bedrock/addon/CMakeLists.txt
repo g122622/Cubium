@@ -23,6 +23,8 @@ add_library(mc_bedrock_addon STATIC
     modules/MinecraftModuleFactory.cpp
     modules/system/ScriptSystemBinding.cpp
     modules/entity/ScriptEntityPropertiesBinding.cpp
+    modules/properties/ScriptDynamicPropertiesBinding.cpp
+    modules/properties/ScriptPropertyValue.cpp
     modules/ScriptCustomComponentBinding.cpp
     modules/ScriptEventBinding.cpp
     modules/types/ScriptWorldAccessor.cpp
@@ -62,6 +64,8 @@ add_library(mc_bedrock_addon STATIC
 
     # Content - 行为包数据与实体状态
     content/entity/state/EntityAddonState.cpp
+    content/base/properties/AddonDynamicProperties.cpp
+    content/base/properties/AddonPropertyValue.cpp
 
     # Component - 自定义组件
     component/BlockComponentRegistry.cpp

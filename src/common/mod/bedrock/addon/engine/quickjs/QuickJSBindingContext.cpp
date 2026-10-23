@@ -240,6 +240,10 @@ ScriptType QuickJSBindingContext::getType(void* value) const
         return ScriptType::Function;
     }
 
+    if (JS_IsArray(v)) {
+        return ScriptType::Array;
+    }
+
     if (JS_IsObject(v)) {
         return ScriptType::Object;
     }
@@ -275,6 +279,11 @@ bool QuickJSBindingContext::isString(void* value) const
 bool QuickJSBindingContext::isException(void* value) const
 {
     return JS_IsException(unwrapValue(value));
+}
+
+bool QuickJSBindingContext::hasException() const
+{
+    return JS_HasException(m_ctx);
 }
 
 // ===== 值转换 =====
@@ -469,7 +478,8 @@ std::vector<std::string> QuickJSBindingContext::getPropertyNames(void* obj) cons
     JSPropertyEnum* tab = nullptr;
     uint32_t len = 0;
     if (JS_GetOwnPropertyNames(m_ctx, &tab, &len, v, JS_GPN_STRING_MASK | JS_GPN_ENUM_ONLY) != 0) {
-        return names; // 枚举失败（如 Proxy 异常）返回空，调用方按"无属性"处理
+        // 保留 Proxy 抛出的异常，调用方必须通过 hasException() 判断枚举是否成功。
+        return names;
     }
 
     names.reserve(len);

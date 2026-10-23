@@ -50,3 +50,5 @@ src/server/mod/bedrock/addon/
 1. **beforeEvents vs afterEvents**：beforeEvents 同步执行可取消事件（通过 `e.cancel()`），afterEvents 在 tick 结束时延迟批量分发，不可取消
 2. **事件桥接生命周期**：EventBridge 必须在 shutdown() 时取消所有 ServerEventBus 订阅，否则会访问已销毁的对象
 3. **setServer() 时序**：必须在 initialize() 前后调用 setServer()，否则 ScriptWorldAccessor 的回调未绑定
+
+4. **世界属性恢复时序**：初始化脚本引擎和加载插件前，经 SingleLevelStorageManager 恢复世界动态属性；不能在插件入口执行之后覆盖运行时状态。
