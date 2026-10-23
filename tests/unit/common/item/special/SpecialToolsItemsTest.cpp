@@ -240,7 +240,7 @@ TEST_F(SpecialToolsRegistrationTest, StackSizes)
 {
     EXPECT_EQ(Items::ARMOR_STAND->maxStackSize(), 16);
     EXPECT_EQ(Items::END_CRYSTAL->maxStackSize(), 64);
-    EXPECT_EQ(Items::GLOW_ITEM_FRAME->maxStackSize(), 16);
+    EXPECT_EQ(Items::GLOW_ITEM_FRAME->maxStackSize(), 64);
     EXPECT_EQ(Items::GOAT_HORN->maxStackSize(), 1);
     EXPECT_EQ(Items::SPYGLASS->maxStackSize(), 1);
     EXPECT_EQ(Items::TADPOLE_BUCKET->maxStackSize(), 1);

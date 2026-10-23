@@ -246,10 +246,10 @@ TEST_F(TrailsItemsRegistrationTest, RecoveryCompass_CorrectItemId)
     EXPECT_EQ(Items::RECOVERY_COMPASS->itemLocation(), ResourceLocation("minecraft", "recovery_compass"));
 }
 
-TEST_F(TrailsItemsRegistrationTest, RecoveryCompass_MaxStackSize1)
+TEST_F(TrailsItemsRegistrationTest, RecoveryCompass_MaxStackSize)
 {
-    // 指南针类物品堆叠数为1
-    EXPECT_EQ(Items::RECOVERY_COMPASS->maxStackSize(), 1);
+    // 原版 1.21.11 的回复罗盘没有 MAX_STACK_SIZE 限制，堆叠 64。
+    EXPECT_EQ(Items::RECOVERY_COMPASS->maxStackSize(), 64);
 }
 
 TEST_F(TrailsItemsRegistrationTest, RecoveryCompass_RegistryLookup)

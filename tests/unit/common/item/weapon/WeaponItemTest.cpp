@@ -325,7 +325,7 @@ TEST_F(WeaponItemTest, BowItem_HasDurability)
 TEST_F(WeaponItemTest, CrossbowItem_HasDurability)
 {
     ASSERT_NE(Items::CROSSBOW, nullptr);
-    EXPECT_EQ(Items::CROSSBOW->maxDamage(), 326); // MC 1.16.5: 弩有 326 点耐久
+    EXPECT_EQ(Items::CROSSBOW->maxDamage(), 465); // 原版 1.21.11 的 MAX_DAMAGE
 }
 
 TEST_F(WeaponItemTest, TridentItem_HasDurability)

@@ -37,7 +37,7 @@ OminousBottleItem::OminousBottleItem(const ItemProperties& properties)
 i32 OminousBottleItem::getBadOmenLevel(i32 damage)
 {
     // damage值0-4对应不祥之兆I-V
-    return std::clamp(damage, 0, MAX_DAMAGE) + 1;
+    return std::clamp(damage, 0, MAX_AMPLIFIER) + 1;
 }
 
 } // namespace item

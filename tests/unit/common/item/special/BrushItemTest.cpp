@@ -322,8 +322,9 @@ TEST_F(BrushItemTest, GetUseAction)
 
 TEST_F(BrushItemTest, GetItemEnchantability)
 {
+    // 原版 1.21.11 的刷子没有 ENCHANTABLE 组件，即不可附魔（0）。
     ASSERT_NE(Items::BRUSH, nullptr);
-    EXPECT_EQ(Items::BRUSH->getItemEnchantability(), 1);
+    EXPECT_EQ(Items::BRUSH->getItemEnchantability(), 0);
 }
 
 TEST_F(BrushItemTest, IsFood)

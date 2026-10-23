@@ -332,7 +332,8 @@ TEST_F(EnchantedBookItemTest, EnchantedBookEnchantability)
 {
     Item* enchantedBook = ItemRegistry::instance().getItem(ResourceLocation("minecraft:enchanted_book"));
     ASSERT_NE(enchantedBook, nullptr);
-    EXPECT_EQ(enchantedBook->getItemEnchantability(), 1);
+    // 原版 1.21.11 的附魔书没有 ENCHANTABLE 组件，即不可附魔（0）。
+    EXPECT_EQ(enchantedBook->getItemEnchantability(), 0);
 }
 
 TEST_F(EnchantedBookItemTest, EmptyBookHasNoEnchantments)

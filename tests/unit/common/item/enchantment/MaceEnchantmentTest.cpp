@@ -198,7 +198,7 @@ TEST_F(MaceMathTest, ConstantsMatchExpectedValues)
     EXPECT_FLOAT_EQ(MaceMath::SMASH_ATTACK_KNOCKBACK_POWER, 0.7f);
     EXPECT_FLOAT_EQ(MaceMath::DEFAULT_ATTACK_DAMAGE, 5.0f);
     EXPECT_FLOAT_EQ(MaceMath::DEFAULT_ATTACK_SPEED, -3.4f);
-    EXPECT_EQ(MaceMath::MAX_DURABILITY, 250);
+    EXPECT_EQ(MaceMath::MAX_DURABILITY, 500); // 原版 1.21.11 的 MAX_DAMAGE
 }
 
 // --- 致密魔咒伤害加成测试 ---

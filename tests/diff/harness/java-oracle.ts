@@ -41,7 +41,11 @@ import { probeExecutable, resolveBuildDir, render } from "./runner.ts";
 const ORACLE_SOURCE_DIR = path.join(REPO_ROOT, "tests/diff/java");
 const ORACLE_PACKAGE = "dev.horizonlab.diff";
 
-function exec(command: string, args: string[], options: { cwd?: string } = {}): string {
+interface ExecOptions {
+    readonly cwd?: string;
+}
+
+function exec(command: string, args: string[], options: ExecOptions = {}): string {
     try {
         return execFileSync(command, args, {
             cwd: options.cwd ?? REPO_ROOT,
@@ -76,6 +80,11 @@ export interface JavaOracleOptions {
     readonly key: string;
     /** 比对前对两侧输出的规范化。 */
     readonly normalise?: (value: unknown) => unknown;
+    /**
+     * 原版有、被测实现明确尚未支持的单元。只允许放进有据可查的已知缺口，
+     * 并会在报告里单列条数；补齐实现后必须删掉，否则等于永久豁免。
+     */
+    readonly oracleMissing?: readonly string[];
     readonly buildDir?: string;
     readonly samples?: number;
 }
@@ -87,11 +96,40 @@ export interface JavaOracleOutcome {
 }
 
 /**
- * 用原版 Java oracle 跑一次差分。
+ * 由 oracle 自己枚举单元。
  *
- * 步骤：编译 oracle → 写 inputs.jsonl → 两侧各跑一次 → 按 key 比对。
- * 编译与运行都走本机已有的 JDK；找不到 jar 时 `prepareOracle` 会给出明确指引。
+ * oracle 把单元写到 `<workDir>/units.txt` 而不是 stdout：原版 log4j 的配置会把 stdout
+ * 拿去记日志，System.err 也会被套成 "[time] [main/INFO]: [STDERR]: " 前缀行，两个流
+ * 都不能当协议通道。
  */
+function listUnits(javaClass: string, classpathWithClasses: string, workDir: string): string[] {
+    const unitsPath = path.join(workDir, "units.txt");
+    fs.rmSync(unitsPath, { force: true });
+    exec("java", ["-cp", classpathWithClasses, javaClass, "list", unitsPath], { cwd: workDir });
+    return fs
+        .readFileSync(unitsPath, "utf8")
+        .split(/\r?\n/)
+        .filter((line) => line.length > 0)
+        .sort();
+}
+
+/**
+ * 一个 oracle 要编译的源文件。
+ *
+ * 数据驱动的能力（附魔、生物变种……）要先加载原版数据包，共用
+ * `DataPackRegistries.java`；javac 不会自动在同一目录里找依赖，必须显式列出。
+ * 其余 oracle 只依赖原版 jar，单独一个文件即可。
+ */
+function oracleSources(oracle: string): string[] {
+    const directory = path.join(ORACLE_SOURCE_DIR, ...ORACLE_PACKAGE.split("."));
+    const shared = path.join(directory, "DataPackRegistries.java");
+    const sources = [path.join(directory, `${oracle}.java`)];
+    if (oracle !== "DataPackRegistries" && fs.existsSync(shared)) {
+        sources.push(shared);
+    }
+    return sources;
+}
+
 /**
  * 编译一个 oracle 源文件到共享的 classes 目录。
  *
@@ -103,11 +141,16 @@ export function compileOracle(oracle: string, workDir: string): { classesDir: st
     const environment = prepareOracle(workDir);
     const classpath = oracleClasspath(environment);
     fs.mkdirSync(environment.classesDir, { recursive: true });
-    const source = path.join(ORACLE_SOURCE_DIR, ...ORACLE_PACKAGE.split("."), `${oracle}.java`);
-    exec("javac", ["-nowarn", "-proc:none", "-cp", classpath, "-d", environment.classesDir, source]);
+    exec("javac", ["-nowarn", "-proc:none", "-cp", classpath, "-d", environment.classesDir, ...oracleSources(oracle)]);
     return { classesDir: environment.classesDir, classpath };
 }
 
+/**
+ * 用原版 Java oracle 跑一次差分。
+ *
+ * 步骤：编译 oracle → 写 inputs.jsonl → 两侧各跑一次 → 按 key 比对。
+ * 编译与运行都走本机已有的 JDK；找不到 jar 时 `prepareOracle` 会给出明确指引。
+ */
 export function runJavaOracle(options: JavaOracleOptions): JavaOracleOutcome {
     const started = process.hrtime.bigint();
     const buildDir = resolveBuildDir(options.buildDir);
@@ -119,18 +162,17 @@ export function runJavaOracle(options: JavaOracleOptions): JavaOracleOutcome {
 
     // 1. 编译 oracle（幂等：javac 会跳过没变的类）。
     fs.mkdirSync(environment.classesDir, { recursive: true });
-    const source = path.join(ORACLE_SOURCE_DIR, ...ORACLE_PACKAGE.split("."), `${options.oracle}.java`);
-    exec("javac", ["-nowarn", "-proc:none", "-cp", classpath, "-d", environment.classesDir, source]);
+    exec("javac", ["-nowarn", "-proc:none", "-cp", classpath, "-d", environment.classesDir, ...oracleSources(options.oracle)]);
 
     // 2. 单元：优先用 harness 给的；否则由 oracle 自己枚举。
     const javaClass = `${ORACLE_PACKAGE}.${options.oracle}`;
     const classpathWithClasses = `${environment.classesDir}${path.delimiter}${classpath}`;
-    const units =
-        options.units?.() ??
-        exec("java", ["-cp", classpathWithClasses, javaClass, "list"], { cwd: workDir })
-            .split(/\r?\n/)
-            .filter((line) => line.length > 0)
-            .sort();
+    const enumerated = options.units?.() ?? listUnits(javaClass, classpathWithClasses, workDir);
+    // 已知缺口：从比对集里剔除，但要在摘要里点名，避免变成静默豁免。
+    // 注意 oracleMissing 必须覆盖枚举到的全部缺口：清单只写一部分时，剩下的缺口会
+    // 以差异形式出现在报告里（方向正确：宁可报错，也不要漏比）。
+    const exempt = new Set(options.oracleMissing ?? []);
+    const units = enumerated.filter((unit) => !exempt.has(unit));
 
     // 3. 输入：两侧读同一份。
     const inputsPath = path.join(workDir, "inputs.jsonl");
@@ -192,6 +234,13 @@ export function runJavaOracle(options: JavaOracleOptions): JavaOracleOutcome {
         reportPath,
     };
     console.log(render(result, options.samples ?? 5));
+    if (units.length !== enumerated.length) {
+        const dropped = enumerated.filter((unit) => exempt.has(unit));
+        // 只报条数和前几项：缺口清单可能有上百条，全打出来会把摘要淹掉。
+        const sample = dropped.slice(0, 3).join("、");
+        const more = dropped.length > 3 ? " 等" : "";
+        console.log(`  另有 ${dropped.length} 个单元属于已知缺口（原版有、本项目尚未实现），未计入：${sample}${more}`);
+    }
     return { oracle: options.oracle, result, exitCode: differences.length === 0 ? 0 : 1 };
 }
 
@@ -235,9 +284,21 @@ function compareLines(
     return differences;
 }
 
-/** 只保留 oracle 声明过的字段（同 runner.ts 的 project）。 */
+/**
+ * 只保留 oracle 声明过的字段（同 runner.ts 的 project），并递归到数组内部。
+ *
+ * 数组按模板长度逐项投影：oracle 给几项就比几项（附魔代价只给两端），
+ * 但每项仍是「模板里的每个字段都必须对上」。早先这里只投影对象、数组整段
+ * 原样比较，导致对象内部的键序差异被当成不一致。
+ */
 function project(template: unknown, actual: unknown): unknown {
-    if (template !== null && typeof template === "object" && !Array.isArray(template)) {
+    if (Array.isArray(template)) {
+        if (!Array.isArray(actual)) {
+            return actual;
+        }
+        return template.map((item, index) => project(item, actual[index]));
+    }
+    if (template !== null && typeof template === "object") {
         if (actual === null || typeof actual !== "object" || Array.isArray(actual)) {
             return actual;
         }

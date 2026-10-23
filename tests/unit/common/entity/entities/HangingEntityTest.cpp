@@ -301,10 +301,10 @@ TEST_F(HangingEntityTest, ItemRegistration)
     EXPECT_NE(Items::ITEM_FRAME, nullptr);
     EXPECT_NE(Items::LEAD, nullptr);
 
-    // 验证物品属性
-    EXPECT_EQ(Items::PAINTING->maxStackSize(), 16);
-    EXPECT_EQ(Items::ITEM_FRAME->maxStackSize(), 16);
-    EXPECT_EQ(Items::LEAD->maxStackSize(), 16);
+    // 验证物品属性（原版 1.21.11 的 MAX_STACK_SIZE 都是 64，见 tests/diff 差分）
+    EXPECT_EQ(Items::PAINTING->maxStackSize(), 64);
+    EXPECT_EQ(Items::ITEM_FRAME->maxStackSize(), 64);
+    EXPECT_EQ(Items::LEAD->maxStackSize(), 64);
 }
 
 // ============================================================================

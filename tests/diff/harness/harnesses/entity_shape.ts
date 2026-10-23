@@ -37,6 +37,47 @@ import type { HarnessSpec } from "../runner.ts";
  * 这里保留 HarnessSpec 形状是为了让 runAll 的统一迭代保持简单；实际的单元枚举
  * 由 Java oracle 的 `list` 子命令给出，见 harnesses/index.ts 的 JAVA_HARNESSES。
  */
+/**
+ * 原版 1.21.11 注册、Cubium 的实体注册表尚未实现的类型。
+ *
+ * 这些是**实现缺口**，不是参照数据缺失。清单显式列出、每次运行输出条数；补齐后必须
+ * 删掉对应条目，否则原版补齐的类型会被静默跳过。
+ */
+export const KNOWN_MISSING: readonly string[] = [
+    "minecraft:acacia_boat",
+    "minecraft:acacia_chest_boat",
+    "minecraft:allay",
+    "minecraft:bamboo_chest_raft",
+    "minecraft:bamboo_raft",
+    "minecraft:birch_boat",
+    "minecraft:birch_chest_boat",
+    "minecraft:block_display",
+    "minecraft:breeze_wind_charge",
+    "minecraft:cherry_boat",
+    "minecraft:cherry_chest_boat",
+    "minecraft:command_block_minecart",
+    "minecraft:creaking",
+    "minecraft:dark_oak_boat",
+    "minecraft:dark_oak_chest_boat",
+    "minecraft:interaction",
+    "minecraft:item_display",
+    "minecraft:jungle_boat",
+    "minecraft:jungle_chest_boat",
+    "minecraft:lingering_potion",
+    "minecraft:mangrove_boat",
+    "minecraft:mangrove_chest_boat",
+    "minecraft:mannequin",
+    "minecraft:marker",
+    "minecraft:oak_boat",
+    "minecraft:oak_chest_boat",
+    "minecraft:pale_oak_boat",
+    "minecraft:pale_oak_chest_boat",
+    "minecraft:splash_potion",
+    "minecraft:spruce_boat",
+    "minecraft:spruce_chest_boat",
+    "minecraft:text_display",
+];
+
 export function createEntityShapeHarness(): HarnessSpec {
     return {
         name: "entity_shape",

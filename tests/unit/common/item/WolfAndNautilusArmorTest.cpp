@@ -220,11 +220,12 @@ TEST_F(WolfAndNautilusArmorTest, NetheriteNautilusArmorItem_GetArmorValue)
     EXPECT_EQ(netheriteNautilus->getArmorValue(), 19);
 }
 
-TEST_F(WolfAndNautilusArmorTest, NetheriteNautilusArmorItem_HasRareRarity)
+TEST_F(WolfAndNautilusArmorTest, NetheriteNautilusArmorItem_HasCommonRarity)
 {
-    // 下界合金鹦鹉螺铠甲稀有度应为 Rare
+    // 原版 1.21.11 的下界合金鹦鹉螺铠甲没有 RARITY 组件，即 Common（下界合金护甲不染名色）；
+    // 期望值见 tests/diff 的 item_components 差分。
     ASSERT_NE(Items::NETHERITE_NAUTILUS_ARMOR, nullptr);
-    EXPECT_EQ(Items::NETHERITE_NAUTILUS_ARMOR->rarity(), ItemRarity::Rare);
+    EXPECT_EQ(Items::NETHERITE_NAUTILUS_ARMOR->rarity(), ItemRarity::Common);
 }
 
 // ============================================================================

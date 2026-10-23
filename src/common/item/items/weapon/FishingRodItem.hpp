@@ -77,7 +77,6 @@ public:
      * @brief 获取附魔能力
      * @return 附魔能力值
      */
-    [[nodiscard]] i32 getItemEnchantability() const override;
 
     /**
      * @brief 右键使用物品

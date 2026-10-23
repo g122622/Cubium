@@ -164,13 +164,21 @@ TEST_F(ItemTest, StackableItem)
 
 TEST_F(ItemTest, RarityItems)
 {
+    // 期望值取自原版 jar 的 RARITY 组件（tests/diff 的 item_components 能力逐条对过）：
+    // 钻石是 common，下界之星是 rare。注册时写没写都不作数——Items::initialize()
+    // 末尾会按原版数据统一覆盖。
     Item* diamond = ItemRegistry::instance().getItem(ResourceLocation("minecraft:diamond"));
     ASSERT_NE(diamond, nullptr);
-    EXPECT_EQ(diamond->rarity(), ItemRarity::Rare);
+    EXPECT_EQ(diamond->rarity(), ItemRarity::Common);
 
     Item* netherStar = ItemRegistry::instance().getItem(ResourceLocation("minecraft:nether_star"));
     ASSERT_NE(netherStar, nullptr);
-    EXPECT_EQ(netherStar->rarity(), ItemRarity::Uncommon);
+    EXPECT_EQ(netherStar->rarity(), ItemRarity::Rare);
+
+    // 注册期显式写了 Rare 的物品也会被原版数据纠正为 common（下界合金护甲不染名色）。
+    Item* netheriteHelmet = ItemRegistry::instance().getItem(ResourceLocation("minecraft:netherite_helmet"));
+    ASSERT_NE(netheriteHelmet, nullptr);
+    EXPECT_EQ(netheriteHelmet->rarity(), ItemRarity::Common);
 }
 
 TEST_F(ItemTest, ArmorMaterialsUseVanillaSoundsAndRepairItems)

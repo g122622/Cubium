@@ -22,38 +22,40 @@
  */
 
 /*
- * enchantment_table.ts — 附魔等级（Cubium vs minecraft-data 的 enchantments）。
+ * enchantment_table.ts — 附魔等级与附魔台代价（Cubium vs 原版 jar）。
  *
- * 只比 maxLevel：minecraft-data 的 minCost/maxCost 是同一组 {a,b}，没有区分
- * 「最小代价」与「最大代价」的公式，直接拿来比会把参照数据的绝对值当成公式，
- * 得到看似精确实则错误的结论。等级上限是硬数据，可以逐条比。
+ * 参照实现是 `EnchantmentExport`：它按服务端启动的方式加载原版数据包（1.21 起附魔是
+ * 数据包注册表，Bootstrap 拿不到），导出每个附魔的 minLevel / maxLevel 以及两端等级
+ * 上的附魔台代价。附魔台每格显示什么等级、能给哪个附魔，全由这几个数决定。
+ *
+ * 单元由 oracle 自己的 `list` 给出（见 harnesses/index.ts）：两侧必须对「有哪些附魔」
+ * 达成一致，缺失的一侧会以 `<absent in probe>` 出现在报告里。
  */
 
-import { loadMinecraftData } from "../vanilla.ts";
 import type { HarnessSpec } from "../runner.ts";
 
-interface RawEnchantment {
-    name: string;
-    maxLevel: number;
-}
+/**
+ * 原版 1.21.11 有、Cubium 的 EnchantmentRegistry 尚未注册的附魔。
+ *
+ * 这是**实现缺口**，不是参照数据缺失：清单显式列出、每次运行输出条数；补齐实现后
+ * 必须删掉对应条目，否则会出现「豁免了原版也有的项」的假一致。
+ */
+export const KNOWN_MISSING: readonly string[] = [
+    "minecraft:lunge",
+    "minecraft:sweeping_edge",
+    "minecraft:swift_sneak",
+];
 
 export function createEnchantmentTableHarness(): HarnessSpec {
-    const md = loadMinecraftData()("1.21.11") as unknown as { enchantmentsArray: RawEnchantment[] };
-    const enchantments = md.enchantmentsArray;
-    const byName = new Map(enchantments.map((enchantment) => [enchantment.name, enchantment]));
-
     return {
         name: "enchantment_table",
         domain: "enchantment_table",
         key: "enchantment",
-        units: () => enchantments.map((enchantment) => `minecraft:${enchantment.name}`).sort(),
-        input: (unit) => ({ enchantment: unit, levels: [1] }),
-        oracle: (unit) => {
-            const enchantment = byName.get(unit.replace(/^minecraft:/, ""));
-            if (enchantment === undefined) {
-                return { enchantment: unit, missing: true };
-            }
-            return { enchantment: unit, minLevel: 1, maxLevel: enchantment.maxLevel };
-        },
+        // 单元由 oracle 枚举；这里的列表不参与（见 index.ts 的 JavaHarness.units 缺省）。
+        units: () => [],
+        // 两端：oracle 只给 minLevel 与 maxLevel 的代价（公式线性，端点一致即全等级一致）。
+        input: (unit) => ({ enchantment: unit, levels: [1, 1] }),
+        oracle: (unit) => ({ enchantment: unit }),
+        oracleMissing: KNOWN_MISSING,
     } satisfies HarnessSpec;
 }

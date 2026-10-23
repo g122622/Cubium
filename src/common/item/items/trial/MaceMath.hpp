@@ -53,8 +53,8 @@ constexpr f32 DEFAULT_ATTACK_DAMAGE = 5.0f;
 /// 重锤攻击速度修正
 constexpr f32 DEFAULT_ATTACK_SPEED = -3.4f;
 
-/// 重锤最大耐久度
-constexpr i32 MAX_DURABILITY = 250;
+/// 重锤最大耐久度（对齐原版 MAX_DAMAGE 组件）
+constexpr i32 MAX_DURABILITY = 500;
 
 /**
  * @brief 计算下落攻击的基础伤害加成（不含魔咒）

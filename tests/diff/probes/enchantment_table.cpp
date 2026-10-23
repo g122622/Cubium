@@ -26,8 +26,9 @@
  * @brief 差分能力：附魔注册表与等级代价。
  *
  * `list`：全部附魔 ID
- * `run` ：{ "enchantment": "minecraft:sharpness", "levels": [1,2,3,4,5] }
- *         → 每个等级的最小/最大附魔等级要求（vanilla 的 getMinCost / getMaxCost）
+ * `run` ：{ "enchantment": "minecraft:sharpness" }
+ *         → minLevel / maxLevel，以及这两端等级的最小/最大附魔代价
+ *           （vanilla 的 getMinCost / getMaxCost）
  *
  * 这两个代价公式决定附魔台每格显示的等级要求，错一位就会让玩家在正确的等级下
  * 看不到某个附魔。它同时也是 `docs/数据驱动差异.md` 里「附魔仍是 1.16.5 风格」
@@ -88,16 +89,21 @@ std::string runLine(std::string_view inputLine)
         return json{{"enchantment", requested}, {"missing", true}}.dump();
     }
 
+    const i32 minLevel = enchantment->minLevel();
+    const i32 maxLevel = enchantment->maxLevel();
+
+    // 附魔台按 getMinCost / getMaxCost 决定每格能给的等级。原版 oracle 只给两端
+    // （minLevel、maxLevel）的取值：代价公式随等级线性增长，端点一致即全等级一致。
     json costs = json::array();
-    for (const auto level : input.at("levels")) {
+    for (const i32 level : {minLevel, maxLevel}) {
         costs.push_back({{"level", level},
             {"minCost", enchantment->getMinCost(level)},
             {"maxCost", enchantment->getMaxCost(level)}});
     }
 
     return json{{"enchantment", requested},
-        {"minLevel", enchantment->minLevel()},
-        {"maxLevel", enchantment->maxLevel()},
+        {"minLevel", minLevel},
+        {"maxLevel", maxLevel},
         {"costs", std::move(costs)}}
         .dump();
 }

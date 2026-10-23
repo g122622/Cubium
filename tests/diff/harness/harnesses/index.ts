@@ -36,12 +36,18 @@
 import { runJavaOracle } from "../java-oracle.ts";
 import type { HarnessSpec } from "../runner.ts";
 import { runSpec } from "../runner.ts";
-import { createEnchantmentTableHarness } from "./enchantment_table.ts";
-import { createEntityShapeHarness } from "./entity_shape.ts";
+import { KNOWN_MISSING as enchantmentKnownMissing } from "./enchantment_table.ts";
+import { KNOWN_MISSING as entityKnownMissing, createEntityShapeHarness } from "./entity_shape.ts";
 import { createItemSummaryHarness } from "./item_summary.ts";
+import { KNOWN_MISSING as itemsKnownMissing } from "./known_missing_items.ts";
 
-/** 已登记、使用 minecraft-data 的声明式 harness。 */
-const DATA_SPECS: ReadonlyArray<() => HarnessSpec> = [createEnchantmentTableHarness];
+/**
+ * 已登记、使用 minecraft-data 的声明式 harness。
+ *
+ * 目前为空：曾走 minecraft-data 的两条能力（附魔、食物饱和度）都已改接原版 jar。
+ * 保留这个数组是因为它仍是「无 Java oracle 时」的回退通道。
+ */
+const DATA_SPECS: ReadonlyArray<() => HarnessSpec> = [];
 
 /** 已登记、使用原版 Java oracle 的能力：oracle 类名 + 单元来源。 */
 interface JavaHarness {
@@ -51,17 +57,46 @@ interface JavaHarness {
     readonly units?: () => string[];
     readonly input: (unit: string) => unknown;
     readonly key: string;
+    /** 原版有、本项目尚未实现的单元（显式缺口，非参照数据缺失）。 */
+    readonly oracleMissing?: readonly string[];
 }
 
 const JAVA_HARNESSES: ReadonlyArray<() => JavaHarness> = [
     () => {
         const spec = createItemSummaryHarness();
-        return { name: spec.name, oracle: "ItemSummaryOracle", units: spec.units, input: spec.input, key: spec.key };
+        return {
+            name: spec.name,
+            oracle: "ItemSummaryOracle",
+            units: spec.units,
+            input: spec.input,
+            key: spec.key,
+            oracleMissing: itemsKnownMissing,
+        };
     },
     () => {
         const spec = createEntityShapeHarness();
-        return { name: spec.name, oracle: "EntityShapeOracle", input: spec.input, key: spec.key };
+        return {
+            name: spec.name,
+            oracle: "EntityShapeOracle",
+            input: spec.input,
+            key: spec.key,
+            oracleMissing: entityKnownMissing,
+        };
     },
+    () => ({
+        name: "enchantment_table",
+        oracle: "EnchantmentExport",
+        input: (unit: string) => ({ enchantment: unit, levels: [1, 1] }),
+        key: "enchantment",
+        oracleMissing: enchantmentKnownMissing,
+    }),
+    () => ({
+        name: "item_components",
+        oracle: "ItemComponentsOracle",
+        input: (unit: string) => ({ item: unit }),
+        key: "item",
+        oracleMissing: itemsKnownMissing,
+    }),
 ];
 
 function allDataSpecs(): HarnessSpec[] {

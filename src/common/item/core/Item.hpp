@@ -368,6 +368,14 @@ public:
     }
 
     /**
+     * @brief 设置基础稀有度
+     *
+     * 只应在注册阶段由 Items::initialize() 按原版数据统一套用（见
+     * vanillaItemRarity）。运行期应视为只读。
+     */
+    void setRarity(ItemRarity rarity) { m_rarity = rarity; }
+
+    /**
      * @brief 是否可燃烧
      */
     [[nodiscard]] bool isBurnable() const
@@ -382,6 +390,24 @@ public:
     {
         return m_repairable;
     }
+
+    /**
+     * @brief 附魔能力（对齐 vanilla ENCHANTABLE 组件的值）
+     *
+     * 附魔台按它决定每个槽位能给出的等级上限；0 表示不可附魔。
+     * 由 Items::initialize() 按原版数据统一套用，见 vanillaItemEnchantable()。
+     */
+    [[nodiscard]] i32 enchantable() const
+    {
+        return m_enchantable;
+    }
+
+    /**
+     * @brief 设置附魔能力
+     *
+     * 只应在注册阶段由 Items::initialize() 套用原版数据。运行期应视为只读。
+     */
+    void setEnchantable(i32 enchantable) { m_enchantable = enchantable; }
 
     /**
      * @brief 获取物品的默认 death_protection 组件（对齐 vanilla Item.components().get(DEATH_PROTECTION)）
@@ -400,10 +426,12 @@ public:
      *
      * 返回值仅为物品类型自身的附魔能力（enchantable 组件的缺省值）。运行时判定
      * 应改用 ItemStack::getEnchantmentValue()（会优先取 enchantable 组件覆盖）。
+     *
+     * 缺省读注册阶段由原版数据套用的 enchantable()；子类没有特殊语义就不要覆盖。
      */
     [[nodiscard]] virtual i32 getItemEnchantability() const
     {
-        return 0;
+        return m_enchantable;
     }
 
     /**
@@ -944,6 +972,7 @@ protected:
     i32 m_maxDamage = 0;
     const Item* m_containerItem = nullptr;
     ItemRarity m_rarity = ItemRarity::Common;
+    i32 m_enchantable = 0;
     bool m_burnable = false;
     bool m_repairable = true;
 

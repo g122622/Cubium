@@ -30,7 +30,6 @@ import com.google.gson.JsonParser;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.IOException;
-import java.io.OutputStreamWriter;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -58,31 +57,30 @@ public final class EntityShapeOracle {
         net.minecraft.SharedConstants.tryDetectVersion();
         net.minecraft.server.Bootstrap.bootStrap();
 
-        if (args.length >= 1 && args[0].equals("list")) {
-            writeList();
+        if (args.length == 2 && args[0].equals("list")) {
+            writeList(Path.of(args[1]));
             return;
         }
         if (args.length == 3 && args[0].equals("run")) {
             run(Path.of(args[1]), Path.of(args[2]));
             return;
         }
-        System.err.println("usage: EntityShapeOracle list | run <input.jsonl> <output.jsonl>");
+        System.err.println("usage: EntityShapeOracle list <units.txt> | run <input.jsonl> <output.jsonl>");
         System.exit(2);
     }
 
-    private static void writeList() throws IOException {
+    /** 单元写文件而不是 stdout：原版 log4j 的配置会把 stdout 拿去记日志。 */
+    private static void writeList(Path output) throws IOException {
         List<String> names = new ArrayList<>();
         for (Identifier id : BuiltInRegistries.ENTITY_TYPE.keySet()) {
             names.add(id.toString());
         }
         names.sort(Comparator.naturalOrder());
-        BufferedWriter writer =
-                new BufferedWriter(new OutputStreamWriter(System.out, StandardCharsets.UTF_8));
+        StringBuilder text = new StringBuilder();
         for (String name : names) {
-            writer.write(name);
-            writer.write('\n');
+            text.append(name).append('\n');
         }
-        writer.flush();
+        Files.writeString(output, text, StandardCharsets.UTF_8);
     }
 
     private static void run(Path input, Path output) throws IOException {

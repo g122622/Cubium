@@ -76,7 +76,6 @@ public:
      * @brief 获取附魔能力
      * @return 盔甲材质的附魔能力
      */
-    [[nodiscard]] i32 getItemEnchantability() const override { return m_material.getEnchantability(); }
 
     /**
      * @brief 检查物品堆是否可以用作修复材料

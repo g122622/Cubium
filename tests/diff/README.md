@@ -23,11 +23,23 @@ tests/diff/
 ├── probes/                      # C++ 侧小程序，只链 mc_common
 │   ├── probe.hpp                # Probe 接口 + MC_DIFF_DEFINE_PROBE 宏
 │   ├── runner_main.cpp          # 所有 probe 共用的 main（命令行、IO、错误处理）
-│   └── text_encode.cpp          # 当前唯一能力：方块状态的文本表示
+│   ├── text_encode.cpp          # 方块状态的文本表示
+│   ├── item_summary.cpp         # 堆叠上限 / 食物属性
+│   ├── item_components.cpp      # 耐久 / 稀有度 / 附魔能力
+│   ├── entity_shape.cpp         # 实体尺寸 / 分类
+│   └── enchantment_table.cpp    # 附魔等级与附魔台代价
+├── java/dev/horizonlab/diff/    # 原版 Java oracle（直接调 1.21.11 服务端 jar）
+│   ├── DataPackRegistries.java  # 像服务端一样加载原版数据包（数据驱动注册表）
+│   ├── *Oracle.java / *Export.java
 └── harness/                     # TypeScript 编排层（Node 24 原生 type stripping）
-    ├── vanilla.ts               # 参照实现：读取 minecraft-data 的方块表
-    ├── runner.ts                # 构建 / 运行 / 比对 / 写报告
-    └── test_text_encode_parity.ts   # 第一个 harness
+    ├── vanilla.ts               # minecraft-data 读取（回退数据源）
+    ├── oracle-env.ts            # 定位原版 jar + 依赖库，拼 classpath
+    ├── java-oracle.ts           # 编译 oracle、两侧各跑一次、按 key 比对
+    ├── runner.ts                # 构建 / 运行 / 比对 / 写报告；CLI 入口
+    ├── test_text_encode_parity.ts   # 手写 harness（方块状态全集 + 摘要）
+    └── harnesses/               # 声明式 harness 与注册表
+        ├── index.ts             # 注册表 + run all / run <name>
+        └── known_missing_items.ts   # 物品侧已知缺口清单
 ```
 
 产物全部落在 `build/diff/<harness>/`：`inputs.jsonl`、`probe_outputs.jsonl`、`report.json`。
@@ -37,25 +49,44 @@ tests/diff/
 ## 运行
 
 ```bash
-# 构建并运行（首次会编译 probe；之后增量）
-node tests/diff/harness/test_text_encode_parity.ts
+# 全部 harness（Java oracle 部分需要 JDK，见下方「前置」）
+node tests/diff/harness/runner.ts run all
 
-# 已经构建过时跳过 cmake
+# 单个
+node tests/diff/harness/runner.ts run item_components
+node tests/diff/harness/runner.ts run text_encode
+
+# 只构建全部 probe / 单个 probe
+node tests/diff/harness/runner.ts build
+node tests/diff/harness/runner.ts build item_components
+
+# 手写 harness（方块状态全集 + 摘要，比 runner 多一层全集核对）
 node tests/diff/harness/test_text_encode_parity.ts --no-build
 
-# 只构建
-node tests/diff/harness/runner.ts build
-
 # 指定其它构建目录（默认 <仓库>/build）
-MC_DIFF_BUILD_DIR=build-noprof node tests/diff/harness/test_text_encode_parity.ts
+MC_DIFF_BUILD_DIR=build-noprof node tests/diff/harness/runner.ts run all
 ```
 
 退出码：`0` 全部一致；`1` 存在差异；`2` 环境问题（缺 probe、构建失败、缺原版数据）。
 
-**前置**：`MC_BUILD_DIFF_PROBES` 默认为 `OFF`，构建脚本会自动打开它；Windows 上构建
-必须经过 `scripts/configure.sh`（注入 VS 环境），`runner.ts` 已经这样调用。
-参照数据来自 `tests/e2e/bot/node_modules/minecraft-data`，若未安装：
-`cd tests/e2e/bot && npm install`。
+**前置**：
+
+1. `MC_BUILD_DIFF_PROBES` 默认为 `OFF`，构建脚本会自动打开它；Windows 上构建必须经过
+   `scripts/configure.sh`（注入 VS 环境），`runner.ts` 已经这样调用。
+2. **JDK 21+**（`javac`/`java` 在 PATH 上）。Java oracle 直接拿原版 jar 当参照实现，
+   不需要 Gradle。
+3. 原版 jar 与依赖库。默认从 fabric-loom 缓存找：
+
+   ```
+   %USERPROFILE%/.gradle/caches/fabric-loom/minecraftMaven/net/minecraft/minecraft-merged/...
+   %USERPROFILE%/.gradle/caches/neoformruntime/artifacts/minecraft_1.21.11_server.jar
+   ```
+
+   找不到时用环境变量显式指定：`MC_VANILLA_MERGED_JAR`（反混淆 merged jar）、
+   `MC_VANILLA_SERVER_JAR`（bundler，用于解出 39 个依赖库），或直接给
+   `MC_VANILLA_LIBRARIES`（已解包的依赖目录）。
+4. `text_encode` 用 minecraft-data 作参照：`tests/e2e/bot/node_modules/minecraft-data`，
+   未安装时 `cd tests/e2e/bot && npm install`。
 
 ---
 
@@ -108,43 +139,55 @@ harness 决定。`runner.ts` 负责按 `key` 对齐两侧输出、规范化、�
 
 ---
 
-## 当前状态与已知边界
+## 当前状态
 
-`text_encode` 的结果：
+四个能力全部对齐（`node tests/diff/harness/runner.ts run all` 退出码 0）：
 
-```
-1166 个方块摘要全部一致
-29671 条状态文本全部一致
-另有 648 条状态属于参照数据缺失的方块（purpur_wall、quartz_wall），未计入
-```
+| harness | 参照实现 | 单元 | 结果 | 已知缺口 |
+|---|---|---|---|---|
+| `text_encode` | minecraft-data | 1166 个方块 / 29671 条状态文本 | 全部一致 | — |
+| `item_summary` | 原版 jar `ItemSummaryOracle` | 1124 | 全部一致 | 381 个物品未注册 |
+| `item_components` | 原版 jar `ItemComponentsOracle` | 1124 | 全部一致 | 381 个物品未注册 |
+| `entity_shape` | 原版 jar `EntityShapeOracle` | 125 | 全部一致 | 32 个实体类型未注册 |
+| `enchantment_table` | 原版 jar `EnchantmentExport` | 40 | 全部一致 | 3 个附魔未实现 |
 
-差异清单（`ORACLE_MISSING_BLOCKS`）是**参照数据的缺口**，不是 Cubium 的缺陷；每次运行都会
-核对它，参照数据一旦补齐就必须删掉条目，否则测试失败——防止清单变成永久豁免。
+第一次跑通就查出并修掉的实打实的错误（都是手抄数据/公式出错）：
 
-**参照实现的局限**：minecraft-data 只给属性与状态数，没有状态级 ID 的完整枚举，
-也没有原版的解析语义。因此这一步验证的是「状态集合 + 属性名/类型/值域」，
-**没有**验证状态 ID 分配顺序、BlockState→NBT 编码、BlockStateParser 的接受范围。
+- 方块：`purpur_wall`、`quartz_wall` 在原版不存在（假方块），已删；
+- 物品：4 个物品堆叠上限错、3 个鱼桶漏了食物属性、弩耐久 326→465、重锤耐久 250→500、
+  不祥之瓶误挂了 MAX_DAMAGE；
+- 稀有度：38 个物品不一致（现在是原版导出的表，注册期统一套用）；
+- 附魔能力：52 个物品不一致（同上，生成 `VanillaItemEnchantable.cpp`）；
+- 附魔代价：时运 / 抢夺 / 精准采集的 `getMaxCost` 错用了基类公式，高等级时最大代价反而更低。
+
+### 已知缺口清单
+
+`known_missing_items.ts`、`entity_shape.ts`、`enchantment_table.ts` 里的 `KNOWN_MISSING`
+列的是「原版有、本项目尚未实现」的条目——**实现缺口，不是参照数据缺失**。清单显式列出、
+每次运行输出条数，实现补齐后必须删掉对应条目，否则会出现「豁免了原版也有的项」的假一致。
 
 ---
 
-## 下一步：接 Java oracle
+## 写一个 oracle 时要注意
 
-最终形态是链接 1.21.11 服务端 jar 的 Java oracle（参照 Horizon 的
-`mods/horizon/src/test/java/dev/horizonlab/parity/Vanilla*Oracle.java`）：
+- **协议通道不能用 stdout/stderr**：原版 log4j 的配置会把 stdout 拿去记日志，`System.err`
+  也会被套成 `[time] [main/INFO]: [STDERR]: ` 前缀行。所以 `list` 子命令把单元写到
+  文件（`units.txt`），`run` 则写输出文件。
+- **数据包注册表**：1.21 起附魔、生物变种等不再写在代码里。只调 `Bootstrap.bootStrap()`
+  拿不到它们，要像服务端启动那样加载原版数据包——见 `DataPackRegistries.java`
+  （内部使用 `RegistryDataLoader` + `ReloadableServerRegistries`；Java 类名对应 1.21.11
+  的 `WORLDGEN` 层与 `SYNCHRONIZED_REGISTRIES`）。
+- **比较只按 oracle 声明过的字段**（`project()`，会递归进数组内部）：oracle 没给的信息
+  不是「不一致」，而是「没得比」，避免逼着人去伪造对侧输出。
 
-```
-tests/diff/java/                         # 新增
-└── dev/horizonlab/diff/
-    ├── OracleMain.java                  # 与 probe 同构：list / run
-    └── VanillaBlockStateOracle.java     # 直接调 Blocks/BlockState.toString
-```
+---
 
-两侧跑同一份 `inputs.jsonl`，byte-for-byte 比对。到那时 `ORACLE_MISSING_BLOCKS` 应当清空，
-共有方块的 `stateId` 分配顺序也能一并纳入比较（目前刻意不比，因为 minecraft-data 无此信息）。
+## 下一步候选能力
 
-优先级更高的候选能力（按「只读、无状态、易对齐」排序）：
+按「只读、无状态、易对齐」排序：
 
 1. **方块状态 → NBT / 数字 ID 编解码** —— 直接落在存档与网络协议的 1:1 对齐上；
-2. **物品 → 默认组件 / 堆叠上限** —— 与 `docs/数据驱动差异.md` 里那批硬编码表对应；
-3. **命令解析树** —— 从原版导出 command tree，对同一批输入比解析结果；
-4. **随机数序列** —— 先锁死 `RandomSource` 的位级等价，后面世界生成的差分才可能成立。
+2. **命令解析树** —— 从原版导出 command tree，对同一批输入比解析结果；
+3. **随机数序列** —— 先锁死 `RandomSource` 的位级等价，后面世界生成的差分才可能成立；
+4. **实体 / 附魔缺失项** —— 补齐 `KNOWN_MISSING` 里那 3 个附魔与 32 个实体类型，
+   清单随之删条目。

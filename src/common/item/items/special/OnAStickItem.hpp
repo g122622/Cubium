@@ -92,7 +92,6 @@ public:
      * @brief 获取附魔能力
      * @return 附魔能力值（MC 1.16.5: 1）
      */
-    [[nodiscard]] i32 getItemEnchantability() const override { return 1; }
 
     // ========== OnAStickItem 特有方法 ==========
 

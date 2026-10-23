@@ -68,7 +68,6 @@ public:
      *
      * @return 附魔能力值
      */
-    [[nodiscard]] i32 getItemEnchantability() const noexcept override { return m_tier.getEnchantability(); }
 
     /**
      * @brief 检查物品堆是否可以用作修复材料

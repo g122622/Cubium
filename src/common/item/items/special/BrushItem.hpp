@@ -195,7 +195,6 @@ public:
      *
      * @return 1
      */
-    [[nodiscard]] i32 getItemEnchantability() const override { return 1; }
 
 private:
     /**

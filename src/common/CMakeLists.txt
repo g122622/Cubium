@@ -540,6 +540,8 @@ add_library(mc_common STATIC
     item/core/ItemGroup.cpp
     item/core/ProjectileItem.cpp
     item/Items.cpp
+    item/VanillaItemEnchantable.cpp
+    item/VanillaItemRarity.cpp
 
     # Item System - Context
     item/context/ItemUseContext.cpp

@@ -85,7 +85,7 @@ public:
         return 15;
     }
 
-    [[nodiscard]] i32 getMaxCost(i32 level) const override { return 1 + level * 10 + 50; }
+    [[nodiscard]] i32 getMaxCost(i32 level) const override { return getMinCost(level) + 50; }
 };
 
 } // namespace enchant

@@ -38,6 +38,7 @@
 
 import { loadMinecraftData } from "../vanilla.ts";
 import type { HarnessSpec } from "../runner.ts";
+import { KNOWN_MISSING } from "./known_missing_items.ts";
 import { f32, f32Bits } from "./shared.ts";
 
 interface RawItem {
@@ -88,5 +89,6 @@ export function createItemSummaryHarness(): HarnessSpec {
                 saturation: f32Bits(saturation),
             };
         },
+        oracleMissing: KNOWN_MISSING,
     } satisfies HarnessSpec;
 }

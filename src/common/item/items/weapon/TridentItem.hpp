@@ -119,7 +119,6 @@ public:
      * @brief 获取附魔能力
      * @return 1
      */
-    [[nodiscard]] i32 getItemEnchantability() const override { return 1; }
 
     // ========== 三叉戟特有常量 ==========
 

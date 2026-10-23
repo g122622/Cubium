@@ -51,9 +51,9 @@ namespace mc {
 // ============================================================================
 
 // 默认约定：有耐久的物品不可堆叠（工具、护甲、盾牌……），由 maxDamage 自动置 1。
-// 但这不是 vanilla 的硬规则——`ominous_bottle` 同时带耐久与堆叠 64。因此提供
-// `stacksDespiteDamage(n)` 作为**显式例外**：注册顺序仍有影响，例外必须写在
-// maxDamage 之后（或本身带 maxDamage 参数），才能覆盖联动结果。
+// 但这不是 vanilla 的硬规则：若将来出现同时带 MAX_DAMAGE 与 MAX_STACK_SIZE>1 的物品，
+// 用 `stacksDespiteDamage(n)` 显式覆盖。注册顺序仍有影响，例外必须写在 maxDamage
+// 之后才能生效。1.21.11 的原版物品里没有这种组合（ominous_bottle 没有 MAX_DAMAGE）。
 
 ItemProperties& ItemProperties::maxStackSize(i32 maxStackSize)
 {
@@ -79,7 +79,7 @@ ItemProperties& ItemProperties::maxDamage(i32 maxDamage)
 
 ItemProperties& ItemProperties::stacksDespiteDamage(i32 maxStackSize)
 {
-    // 显式例外：无视耐久度强制设置堆叠上限（vanilla 的 ominous_bottle 即此情况）。
+    // 显式例外：无视耐久度强制设置堆叠上限。
     m_maxStackSize = std::clamp(maxStackSize, 1, mc::item::DEFAULT_MAX_STACK_SIZE);
     return *this;
 }

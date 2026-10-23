@@ -403,7 +403,10 @@ export function runSpec(spec: HarnessSpec, options: { samples?: number } = {}): 
 
     console.log(render(result, options.samples ?? 5));
     if (exempted > 0) {
-        console.log(`  另有 ${exempted} 个单元属于参照数据缺失项，未计入：${[...missing].join("、")}`);
+        // 只报条数和前几项：缺口清单可能有上百条，全打出来会把摘要淹掉。
+        const sample = [...missing].slice(0, 3).join("、");
+        const more = exempted > 3 ? " 等" : "";
+        console.log(`  另有 ${exempted} 个单元属于参照数据缺失项，未计入：${sample}${more}`);
     }
     return { spec, result, exitCode: result.differences.length === 0 ? 0 : 1 };
 }

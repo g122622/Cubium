@@ -78,7 +78,7 @@ public:
 
     [[nodiscard]] i32 getMinCost(i32 level) const override { return 15 + (level - 1) * 9; }
 
-    [[nodiscard]] i32 getMaxCost(i32 level) const override { return Enchantment::getMinCost(level) + 50; }
+    [[nodiscard]] i32 getMaxCost(i32 level) const override { return getMinCost(level) + 50; }
 };
 
 } // namespace enchant

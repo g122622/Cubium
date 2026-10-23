@@ -127,12 +127,12 @@ TEST(FortuneEnchantmentTest, GetMaxCost)
 {
     FortuneEnchantment fortune;
 
-    // MC 1.16.5: super.getMinEnchantability(level) + 50
-    // 基类默认: 1 + (level - 1) * 10
-    // 所以: 1 + (level - 1) * 10 + 50 = 51 + (level - 1) * 10
-    EXPECT_EQ(fortune.getMaxCost(1), 51); // 1 + 0 * 10 + 50 = 51
-    EXPECT_EQ(fortune.getMaxCost(2), 61); // 1 + 1 * 10 + 50 = 61
-    EXPECT_EQ(fortune.getMaxCost(3), 71); // 1 + 2 * 10 + 50 = 71
+    // 原版：时运的最大代价 = 自身最小代价（15 + (level-1)*9）+ 50。
+    // 注意不能用 getMinCost(level)（基类 1 + (level-1)*10），否则高等级反而变低；
+    // 期望值经 tests/diff 的 enchantment_table 差分逐条核对。
+    EXPECT_EQ(fortune.getMaxCost(1), 65); // 15 + 50
+    EXPECT_EQ(fortune.getMaxCost(2), 74); // 24 + 50
+    EXPECT_EQ(fortune.getMaxCost(3), 83); // 33 + 50
 }
 
 TEST(FortuneEnchantmentTest, IsIncompatibleWithSilkTouch)
@@ -236,7 +236,7 @@ TEST(SilkTouchEnchantmentTest, GetMinCost)
     SilkTouchEnchantment silkTouch;
 
     EXPECT_EQ(silkTouch.getMinCost(1), 15);
-    EXPECT_EQ(silkTouch.getMaxCost(1), 61); // MC 1.16.5: 15 + 50 - 4 = 61
+    EXPECT_EQ(silkTouch.getMaxCost(1), 65); // 原版：最小代价 15 + 50
 }
 
 // ============================================================================

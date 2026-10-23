@@ -69,11 +69,9 @@ public:
 
     [[nodiscard]] i32 getMinCost(i32 level) const override { return 15 + (level - 1) * 9; }
 
-    [[nodiscard]] i32 getMaxCost(i32 level) const override
-    {
-        // 最大成本 = 最小成本 + 50
-        return Enchantment::getMinCost(level) + 50;
-    }
+    // 最大成本 = 本附魔的最小成本 + 50（不能写 Enchantment::getMinCost，那是基类的
+    // 1 + (level - 1) * 10，会让高等级的最大代价偏低）。
+    [[nodiscard]] i32 getMaxCost(i32 level) const override { return getMinCost(level) + 50; }
 };
 
 } // namespace enchant
