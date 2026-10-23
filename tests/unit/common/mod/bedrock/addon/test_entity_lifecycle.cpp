@@ -262,3 +262,116 @@ TEST_F(AddonEntityLifecycleTest, DamageFilterHasNoStaleContextAndNeverAppliesToT
     EXPECT_EQ(damageFilterCauseName(DamageType::ExplosionPlayer), "entity_explosion");
     EXPECT_EQ(damageCauseName(DamageType::OnFire), "fireTick");
 }
+
+TEST_F(AddonEntityLifecycleTest, EnvironmentSensorUsesCurrentTickValuesAndDefersEarlierTriggerWrites)
+{
+    auto document = _definition(false);
+    auto& actor = document["minecraft:entity"];
+    actor["events"] = {{"test:first", {{"set_property", {{"test:deaths", 1}}}}},
+        {"test:second", {{"set_property", {{"test:deaths", 2}}}}}};
+    actor["components"]["minecraft:environment_sensor"] = {{"triggers",
+        {{{"event", "test:first"}, {"filters", {{{"test", "int_property"}, {"domain", "test:deaths"}, {"value", 0}}}}},
+            {{"event", "test:second"},
+                {"filters", {{"test", "int_property"}, {"domain", "test:deaths"}, {"value", 1}}}}}}};
+    auto entity = create(document);
+    ASSERT_NE(entity, nullptr);
+    auto* state = entity->tryGetComponent<EntityAddonState>();
+    entity->tick();
+    EXPECT_EQ(notifications, std::vector<std::string>{"test:first"});
+    EXPECT_EQ(state->getProperty("test:deaths"), nlohmann::json(0));
+    entity->tick();
+    EXPECT_EQ(notifications, (std::vector<std::string>{"test:first", "test:second"}));
+    EXPECT_EQ(state->getProperty("test:deaths"), nlohmann::json(1));
+    entity->tick();
+    EXPECT_EQ(state->getProperty("test:deaths"), nlohmann::json(2));
+    EXPECT_EQ(notifications.size(), 2u);
+}
+
+TEST_F(AddonEntityLifecycleTest, EnvironmentSensorContinuesWhileMatchingAndSupportsSingleObject)
+{
+    auto document = _definition(false);
+    document["minecraft:entity"]["components"]["minecraft:environment_sensor"] = {
+        {"triggers", {{"event", "test:death"}, {"filters", {{"test", "is_alive"}}}}}};
+    auto entity = create(document);
+    ASSERT_NE(entity, nullptr);
+    entity->tick();
+    entity->tick();
+    entity->tick();
+    EXPECT_EQ(notifications.size(), 3u);
+    EXPECT_EQ(entity->tryGetComponent<EntityAddonState>()->getProperty("test:deaths"), nlohmann::json(2));
+}
+
+TEST_F(AddonEntityLifecycleTest, EnvironmentSensorRunsAllMatchingTriggersInDefinitionOrder)
+{
+    auto document = _definition(false);
+    auto& actor = document["minecraft:entity"];
+    actor["events"]["test:second"] = {{"set_property", {{"test:deaths", 10}}}};
+    actor["components"]["minecraft:environment_sensor"] = {
+        {"triggers", {{{"event", "test:death"}}, {{"event", "test:second"}}}}};
+    auto entity = create(document);
+    ASSERT_NE(entity, nullptr);
+    entity->tick();
+    EXPECT_EQ(notifications, (std::vector<std::string>{"test:death", "test:second"}));
+    auto* state = entity->tryGetComponent<EntityAddonState>();
+    EXPECT_EQ(state->getProperty("test:deaths"), nlohmann::json(0));
+    entity->tick();
+    EXPECT_EQ(state->getProperty("test:deaths"), nlohmann::json(10));
+}
+
+TEST_F(AddonEntityLifecycleTest, EnvironmentSensorGroupRemovalAndRestoreDoNotReinstateBaseSensor)
+{
+    auto document = _definition(false);
+    auto& actor = document["minecraft:entity"];
+    const nlohmann::json sensor = {{"triggers", {{"event", "test:death"}}}};
+    actor["components"]["minecraft:environment_sensor"] = sensor;
+    actor["component_groups"]["sensor"] = {{"minecraft:environment_sensor", sensor}};
+    auto entity = create(document);
+    ASSERT_NE(entity, nullptr);
+    auto* components = entity->tryGetComponent<AddonEntityComponents>();
+    components->queue({{true, "sensor"}});
+    entity->tick();
+    ASSERT_EQ(notifications.size(), 1u);
+    components->queue({{false, "sensor"}});
+    auto saved = nbt::jsonToNbt(components->save());
+    auto restored = create(document);
+    ASSERT_NE(restored, nullptr);
+    auto* restoredComponents = restored->tryGetComponent<AddonEntityComponents>();
+    ASSERT_TRUE(restoredComponents->load(*restored, nbt::nbtToJson(*saved)).success());
+    restored->tick();
+    EXPECT_FALSE(restoredComponents->has("minecraft:environment_sensor"));
+    EXPECT_EQ(notifications.size(), 1u);
+    entity->tick();
+    EXPECT_FALSE(components->has("minecraft:environment_sensor"));
+    EXPECT_EQ(notifications.size(), 1u);
+}
+
+TEST_F(AddonEntityLifecycleTest, InstantDespawnSkipsEnvironmentEvents)
+{
+    auto document = _definition(false);
+    auto& components = document["minecraft:entity"]["components"];
+    components["minecraft:instant_despawn"] = nlohmann::json::object();
+    components["minecraft:environment_sensor"] = {{"triggers", {{"event", "test:death"}}}};
+    auto entity = create(document);
+    ASSERT_NE(entity, nullptr);
+    entity->tick();
+    EXPECT_TRUE(entity->isRemoved());
+    EXPECT_TRUE(notifications.empty());
+}
+
+TEST_F(AddonEntityLifecycleTest, EnvironmentSensorRejectsInvalidTriggersAndUnresolvedEvents)
+{
+    for (const auto& sensor : std::vector<nlohmann::json>{nlohmann::json::array(),
+             {{"triggers", 3}},
+             {{"triggers", {"test:death"}}},
+             {{"triggers", {{"event", "test:missing"}}}},
+             {{"triggers", {{"event", "test:death"}, {"unknown", true}}}},
+             {{"triggers", {{"event", "test:death"}, {"filters", {{"test", "unknown"}}}}}}}) {
+        auto document = _definition(false);
+        document["minecraft:entity"]["components"]["minecraft:environment_sensor"] = sensor;
+        EXPECT_TRUE(AddonEntityDefinition::parse(document).failed()) << sensor.dump();
+    }
+    auto document = _definition(false);
+    document["minecraft:entity"]["components"]["minecraft:environment_sensor"] = {
+        {"triggers", nlohmann::json::array()}};
+    EXPECT_TRUE(AddonEntityDefinition::parse(document).success());
+}

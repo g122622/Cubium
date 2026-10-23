@@ -78,6 +78,7 @@ add_library(mc_bedrock_addon STATIC
     content/entity/state/EntityAddonState.cpp
     content/entity/state/AddonEntityComponents.cpp
     content/entity/state/timer/EntityTimerState.cpp
+    content/entity/state/sensor/EntityEnvironmentSensor.cpp
     content/molang/MolangExpression.cpp
     content/molang/syntax/MolangParser.cpp
     content/molang/eval/MolangEvaluator.cpp

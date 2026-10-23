@@ -73,8 +73,21 @@ Result<void> _numeric(nlohmann::json& value, bool integer)
 
 Result<void> _validate(nlohmann::json& filter, std::size_t depth, std::size_t& count)
 {
-    if (!filter.is_object() || depth >= _MAX_DEPTH || ++count > _MAX_NODES) {
+    if (depth >= _MAX_DEPTH || ++count > _MAX_NODES) {
         return Error(ErrorCode::InvalidData, "Invalid entity filter or excessive nesting");
+    }
+    if (filter.is_array()) {
+        if (filter.size() != 1) {
+            // TODO: 核实原版对隐式多元素数组的组合语义，不能擅自替换为 all_of 或 any_of。
+            return Error(ErrorCode::Unsupported, "Implicit entity filter arrays require exactly one condition");
+        }
+        // 单元素包装不改变逻辑；参考行为包使用这种形式包装环境条件。
+        nlohmann::json condition = filter.front();
+        filter = std::move(condition);
+        return _validate(filter, depth + 1, count);
+    }
+    if (!filter.is_object()) {
+        return Error(ErrorCode::InvalidData, "Entity filter must be an object");
     }
     for (const auto& [key, value] : filter.items()) {
         if (key != "all_of" && key != "any_of" && key != "none_of" && key != "test" && key != "subject" &&
@@ -120,6 +133,10 @@ Result<void> _validate(nlohmann::json& filter, std::size_t depth, std::size_t& c
         "has_component",
         "is_alive",
         "is_sneaking",
+        "on_ground",
+        "in_water",
+        "in_lava",
+        "in_water_or_rain",
         "has_target",
         "has_equipment",
         "is_owner",
@@ -165,7 +182,8 @@ Result<void> _validate(nlohmann::json& filter, std::size_t depth, std::size_t& c
     }
     filter["operator"] = operation;
     const bool boolean = test == "bool_property" || test == "is_alive" || test == "is_sneaking" ||
-        test == "has_target" || test == "is_daytime" || test == "is_owner" || test == "has_container_open";
+        test == "has_target" || test == "is_daytime" || test == "is_owner" || test == "has_container_open" ||
+        test == "on_ground" || test == "in_water" || test == "in_lava" || test == "in_water_or_rain";
     if (!filter.contains("value") && boolean) {
         filter["value"] = true;
     }
@@ -418,6 +436,18 @@ Result<bool> _test(const nlohmann::json& filter, const EntityFilterContext& cont
     }
     if (test == "is_sneaking") {
         return _compare(entity->isSneaking(), expected, operation);
+    }
+    if (test == "on_ground") {
+        return _compare(entity->onGround(), expected, operation);
+    }
+    if (test == "in_water") {
+        return _compare(entity->isInWater(), expected, operation);
+    }
+    if (test == "in_lava") {
+        return _compare(entity->isInLava(), expected, operation);
+    }
+    if (test == "in_water_or_rain") {
+        return _compare(entity->isWet(), expected, operation);
     }
     if (test == "has_target") {
         const auto* mob = dynamic_cast<const mc::MobEntity*>(entity);

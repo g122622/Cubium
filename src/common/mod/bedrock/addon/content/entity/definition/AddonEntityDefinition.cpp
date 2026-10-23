@@ -114,6 +114,7 @@ public:
             return;
         }
         mc::Entity::tick();
+        components->tickEnvironment(*this);
         components->tickTimers(*this);
     }
 
@@ -161,6 +162,7 @@ public:
             return;
         }
         mc::CreatureEntity::tick();
+        components->tickEnvironment(*this);
         components->tickTimers(*this);
     }
 
@@ -278,6 +280,13 @@ Result<AddonEntityDefinition> AddonEntityDefinition::parse(const nlohmann::json&
                 return Error(ErrorCode::InvalidData, "Death trigger references an unknown entity event: " + name);
             }
         }
+        if (const auto sensor = components.find("minecraft:environment_sensor"); sensor != components.end()) {
+            auto compiled = EntityEnvironmentSensor::compile(*sensor);
+            if (compiled.failed()) {
+                return compiled.error();
+            }
+            MC_TRY(compiled.value().validateEvents(*result.m_events));
+        }
         return Result<void>::ok();
     };
     MC_TRY(validateComponentEvents(result.m_components));
@@ -321,6 +330,11 @@ Result<void> AddonEntityDefinition::validateComponents(const nlohmann::json& com
             MC_TRY(_number(component, "value", bounds->minValue(), bounds->maxValue()));
         } else if (name == "minecraft:timer") {
             MC_TRY(EntityTimerState::validateDefinition(component));
+        } else if (name == "minecraft:environment_sensor") {
+            auto sensor = EntityEnvironmentSensor::compile(component);
+            if (sensor.failed()) {
+                return sensor.error();
+            }
         } else if (name == "minecraft:on_death") {
             MC_TRY(_members(component, {"event", "target", "filters"}));
             auto trigger = EntityEventTrigger::compile(component);

@@ -178,3 +178,12 @@
 - minecraft:instant_despawn 通过 discard 移除实体，在组件组应用后停止同 tick 的实体和计时器更新，不触发死亡事件。remove_child_entities=true 仍明确返回 Unsupported，等待基岩子实体关系实现。
 - 新增生命周期测试文件已登记 CMake；构建成功（45 秒），222 个 addon 针对性测试全部通过，报告位于 build/addon-entity-lifecycle-tests.xml。
 - damage_sensor 的伤害修正和事件时序、其他实体组件、原生变种和背包、Java 呈现及参考插件实服验收继续实施。
+
+
+### 环境传感器与基础环境条件
+
+- minecraft:environment_sensor 支持单触发器对象或对象数组，加载时编译条件并检查事件引用；活动组安装、替换、移除和保存恢复沿用实际组件来源。
+- 每次实体更新后按定义顺序检查所有触发器，持续匹配时继续触发；前一事件的待应用写入不会提前影响同 tick 的后续条件。即时移除会跳过传感器。
+- on_ground、in_water、in_lava、in_water_or_rain 读取公共实体实际状态。参考插件使用的单条件数组包装已接入，嵌套继续计入预算；隐式多条件数组语义仍待原版核实，明确拒绝。
+- 构建成功（45 秒）；230 个 addon 针对性测试全部通过，报告位于 build/addon-environment-sensor-tests.xml。
+- 环境传感器的原版系统执行阶段仍需基岩实服核实；is_temperature_type 以及其他缺失过滤器、damage_sensor、其余实体组件、Java 呈现和完整参考插件验收继续实施。

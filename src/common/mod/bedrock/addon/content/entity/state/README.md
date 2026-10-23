@@ -4,6 +4,7 @@
 
 ```text
 state/
+├── sensor/ # 环境触发器验证、活动组件安装与逐 tick 求值
 ├── timer/ # 组件计时器及剩余时间持久化
 ├── AddonEntityComponents.hpp/cpp # 活动组件来源、组件组变更队列和 NBT 恢复
 └── EntityAddonState.hpp/cpp # 声明属性、包作用域动态属性及实体 NBT 序列化
@@ -33,3 +34,5 @@ AddonEntityComponents 保存当前组件来源及待执行组操作；EntityAddo
 
 - 死亡事件在确认死亡后仅执行一次，保存处理标志以免恢复后重放；图腾救活不会进入死亡触发。
 - 即时移除使用 discard 并跳过该 tick 的实体和计时器更新，不能伪装成生命值归零。
+
+- 环境传感器在实体本次更新后、计时器前读取状态，各事件的属性和组件组写入仍在后续 tick 生效。

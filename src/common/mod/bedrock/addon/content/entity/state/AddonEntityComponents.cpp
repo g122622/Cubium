@@ -77,7 +77,8 @@ void AddonEntityComponents::initialize(mc::Entity& entity)
              "minecraft:health",
              "minecraft:movement",
              "minecraft:timer",
-             "minecraft:on_death"}) {
+             "minecraft:on_death",
+             "minecraft:environment_sensor"}) {
         _apply(entity, name);
     }
 }
@@ -153,6 +154,14 @@ void AddonEntityComponents::_apply(mc::Entity& entity, const std::string& name)
             auto timer = EntityTimerState::create(*value, entity.getRandom());
             MC_ASSERT_RELEASE(timer.success());
             m_timer = std::move(timer.value());
+        }
+    } else if (name == "minecraft:environment_sensor") {
+        if (value == nullptr) {
+            m_environmentSensor.reset();
+        } else {
+            auto sensor = EntityEnvironmentSensor::compile(*value);
+            MC_ASSERT_RELEASE(sensor.success());
+            m_environmentSensor = std::move(sensor.value());
         }
     } else if (name == "minecraft:on_death") {
         if (value == nullptr) {
@@ -282,6 +291,17 @@ bool AddonEntityComponents::onDeath(mc::Entity& entity, mc::DamageSource& source
         }
     }
     return true;
+}
+
+void AddonEntityComponents::tickEnvironment(mc::Entity& entity)
+{
+    if (entity.isRemoved() || !m_environmentSensor) {
+        return;
+    }
+    auto result = m_environmentSensor->tick(entity);
+    if (result.failed()) {
+        spdlog::warn("Failed to execute environment sensor for '{}': {}", entity.getTypeId(), result.error().message());
+    }
 }
 
 bool AddonEntityComponents::despawnIfRequested(mc::Entity& entity) const

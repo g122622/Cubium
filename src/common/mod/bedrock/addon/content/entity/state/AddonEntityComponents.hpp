@@ -27,6 +27,7 @@
 #include "common/core/Types.hpp"
 #include "common/mod/bedrock/addon/content/entity/events/EntityEventProgram.hpp"
 #include "common/mod/bedrock/addon/content/entity/events/EntityEventTrigger.hpp"
+#include "common/mod/bedrock/addon/content/entity/state/sensor/EntityEnvironmentSensor.hpp"
 #include "common/mod/bedrock/addon/content/entity/state/timer/EntityTimerState.hpp"
 #include <map>
 #include <memory>
@@ -61,6 +62,8 @@ public:
     void applyPending(mc::Entity& entity);
     /** @brief 在实体自身更新之后推进计时器，到期事件的修改留到后续 tick。 */
     void tickTimers(mc::Entity& entity);
+    /** @brief 实体更新后按当前状态检查活动环境传感器。 */
+    void tickEnvironment(mc::Entity& entity);
     /** @brief 已确认死亡时执行一次活动死亡触发器，返回是否首次处理。 */
     bool onDeath(mc::Entity& entity, mc::DamageSource& source);
     /** @brief 活动即时移除组件要求移除时使用无掉落的 discard 路径。 */
@@ -87,6 +90,7 @@ private:
     std::vector<EntityComponentGroupChange> m_pending;
     std::optional<EntityTimerState> m_timer;
     std::optional<EntityEventTrigger> m_onDeath;
+    std::optional<EntityEnvironmentSensor> m_environmentSensor;
     bool m_deathHandled;
 };
 

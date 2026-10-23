@@ -395,3 +395,37 @@ TEST_F(EntityFilterTest, UnknownFamilyOnKnownNativeTypeIsAValidFalseMatch)
     check({{"test", "is_family"}, {"value", "unrelated-family"}, {"operator", "not"}}, true);
     EXPECT_FALSE(vanillaEntityFamilyMatch("test:missing", "mob").has_value());
 }
+
+TEST_F(EntityFilterTest, GroundAndFluidTestsReadActualEntityState)
+{
+    entity.setOnGround(false);
+    check({{"test", "on_ground"}}, false);
+    entity.setOnGround(true);
+    check({{"test", "on_ground"}}, true);
+    entity.setInWater(false);
+    entity.setInLava(false);
+    check({{"test", "in_water_or_rain"}}, false);
+    entity.setInWater(true);
+    check({{"test", "in_water"}}, true);
+    check({{"test", "in_water_or_rain"}}, true);
+    entity.setInWater(false);
+    entity.setInLava(true);
+    check({{"test", "in_water"}, {"value", false}}, true);
+    check({{"test", "in_lava"}}, true);
+}
+
+TEST_F(EntityFilterTest, SingleConditionArrayWrappingPreservesTheConditionAndNestingBudget)
+{
+    const nlohmann::json present = {{"test", "has_property"}, {"value", "test:count"}};
+    const nlohmann::json missing = {{"test", "has_property"}, {"value", "test:missing"}};
+    check(nlohmann::json::array({present}), true);
+    check(nlohmann::json::array({missing}), false);
+    nlohmann::json nested = present;
+    for (int depth = 0; depth < 80; ++depth) {
+        nested = nlohmann::json::array({nested});
+    }
+    EXPECT_TRUE(EntityFilter::compile(nested).failed());
+    auto ambiguous = EntityFilter::compile(nlohmann::json::array({present, missing}));
+    ASSERT_TRUE(ambiguous.failed());
+    EXPECT_EQ(ambiguous.error().code(), ErrorCode::Unsupported);
+}
