@@ -756,6 +756,9 @@ bool QuickJSBindingContext::registerClass(u64 classId, const char* className, bo
 
 void* QuickJSBindingContext::createClassProto(u64 classId)
 {
+    spdlog::warn("[DIAG7] createClassProto classId={} registered={}",
+        classId,
+        JS_IsRegisteredClass(JS_GetRuntime(m_ctx), static_cast<JSClassID>(classId)));
     // 原型必须建成 classId 对应的动态类实例：opaque 只能挂在非内置类的对象上
     // （QuickJS 拒绝给内置类对象设置 opaque），而 wrap() 产出实例的 class 继承自原型的 class。
     // 若这里用 JS_NewObject，原型就是普通对象（内置 Object 类），随后以它为原型创建的实例
