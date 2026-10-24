@@ -91,6 +91,8 @@
 #include "commands/StopwatchCommand.hpp"
 #include "commands/RotateCommand.hpp"
 #include "commands/RideCommand.hpp"
+#include "commands/DamageCommand.hpp"
+#include "commands/DebugCommand.hpp"
 #include "commands/TeamMsgCommand.hpp"
 #include "commands/TitleCommand.hpp"
 #include "commands/TriggerCommand.hpp"
@@ -233,6 +235,8 @@ void CommandRegistry::registerDefaults()
     StopwatchCommand::registerTo(m_dispatcher);
     RotateCommand::registerTo(m_dispatcher);
     RideCommand::registerTo(m_dispatcher);
+    DamageCommand::registerTo(m_dispatcher);
+    DebugCommand::registerTo(m_dispatcher);
     m_defaultsRegistered = true;
 
     spdlog::info("[CommandRegistry] Registered {} default commands", getCommandNames().size());

@@ -2052,6 +2052,8 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/server/command/commands/StopwatchCommand.cpp
         ${CMAKE_SOURCE_DIR}/src/server/command/commands/RotateCommand.cpp
         ${CMAKE_SOURCE_DIR}/src/server/command/commands/RideCommand.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/command/commands/DamageCommand.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/command/commands/DebugCommand.cpp
         # P3 命令
         ${CMAKE_SOURCE_DIR}/src/server/command/commands/AdvancementCommand.cpp
         ${CMAKE_SOURCE_DIR}/src/server/command/commands/BossBarCommand.cpp

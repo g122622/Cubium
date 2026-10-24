@@ -235,14 +235,15 @@ harness 决定。`runner.ts` 负责按 `key` 对齐两侧输出、规范化、�
 `command_tree` 注册全部内置命令后遍历分发器，与原版 `new Commands(DEDICATED, ...)` 的树
 逐节点比对。首轮结果（原版 89 条 vs Cubium 74 条）：
 
-**原版有、Cubium 未注册（19 条，见 `known_missing_commands.ts`）**：`damage`、`debug`、
-`fetchprofile`、`fillbiome`、`item`、`place`、`random`、`return`、`ride`、`rotate`、
-`stopwatch`、`test`、`tick`、`transfer`、`waypoint` 等。其中 `/item` 缺失还会连带影响
-`give`/`clear` 等命令的 `item` 参数节点。
+**原版有、Cubium 未注册（10 条，见 `known_missing_commands.ts`）**：`fetchprofile`、
+`fillbiome`、`item`、`place`、`random`、`test`、`tick`、`transfer`、`waypoint` 等。
+其中 `/item` 缺失还会连带影响 `give`/`clear` 等命令的 `item` 参数节点。
 
-已补齐的：`version`、`jfr`、`perf`、`teammsg`（含别名 `tm`）；`/locatebiome` 并回
-`/locate biome`，`/locate <structure>` 改为 `/locate structure <structure>`；
-`/warden_spawn_tracker` 删除（原版命令树里不存在）。
+已补齐的：`version`、`jfr`、`perf`、`teammsg`（含别名 `tm`）、`return`、`stopwatch`、
+`rotate`、`ride`、`damage`、`debug`（按原版形状注册；jfr/perf/debug start|stop 在后端
+尚未实现时明确回报不支持，而不是假装成功）；`/locatebiome` 并回 `/locate biome`，
+`/locate <structure>` 改为 `/locate structure <structure>`；`/warden_spawn_tracker`
+删除（原版命令树里不存在）。
 
 **Cubium 有、原版已移除（3 条）**：`debugconfig`、`replaceitem`、`publish`。
 

@@ -482,6 +482,8 @@ add_executable(minecraft-server
     command/commands/StopwatchCommand.cpp
     command/commands/RotateCommand.cpp
     command/commands/RideCommand.cpp
+    command/commands/DamageCommand.cpp
+    command/commands/DebugCommand.cpp
     command/commands/LootCommand.cpp
     command/commands/PublishCommand.cpp
     command/commands/RecipeCommand.cpp

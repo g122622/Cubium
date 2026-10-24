@@ -32,8 +32,6 @@
  * 这些均已在 Cubium 注册。
  */
 export const KNOWN_MISSING_COMMANDS = [
-    "damage",
-    "debug",
     "fetchprofile",
     "fillbiome",
     "item",
