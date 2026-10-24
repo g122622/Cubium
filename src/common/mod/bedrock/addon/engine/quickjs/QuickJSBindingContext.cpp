@@ -29,7 +29,6 @@
 #include "common/mod/bedrock/addon/binding/ScriptHandleRegistry.hpp"
 
 #include <algorithm>
-#include <atomic>
 #include <cstddef>
 #include <cstring>
 #include <optional>
@@ -587,29 +586,14 @@ void* QuickJSBindingContext::getOpaque(void* obj, u64 classId) const
 
         return JS_GetAnyOpaque(val, &anyClassId);
     }
-    {
-        // TODO: 定位 ItemStack 解包失败根因后移除本诊断输出。
-        static std::atomic<i32> s_diag8{0};
-        if (classId == 366 && s_diag8.fetch_add(1) < 6) {
-            JSClassID cid = 0;
-            const void* anyOpaque = JS_GetAnyOpaque(val, &cid);
-            JSValue proto = JS_GetPrototype(m_ctx, val);
-            const bool protoIsObject = JS_IsObject(proto);
-            const JSClassID protoClass = JS_IsObject(proto) ? JS_GetClassID(proto) : 0;
-            const JSClassID objClass = JS_GetClassID(val);
-            JS_FreeValue(m_ctx, proto);
-            spdlog::warn("[DIAG8] objClass={} getAnyOpaque={} protoIsObject={} protoClass={} isArray={} isObject={}",
-                static_cast<u64>(objClass),
-                anyOpaque != nullptr,
-                protoIsObject,
-                static_cast<u64>(protoClass),
-                JS_IsArray(val),
-                JS_IsObject(val));
-        }
-    }
 
+    // 要求的 classId 只用于"是否为本类型"的判定，真正取 opaque 必须用对象自身的 class_id。
+    // 二者不一定相等：JS 侧继承（如内联脚本里的类继承、`new` 后再 setPrototypeOf）会产出
+    // class 不同但仍属于该类型家族的实例，此时按请求的 classId 取 opaque 只会取到 NULL。
     if (JS_GetClassID(val) == static_cast<JSClassID>(classId)) {
-        return JS_GetOpaque(val, static_cast<JSClassID>(classId));
+        JSClassID actualClassId = 0;
+
+        return JS_GetAnyOpaque(val, &actualClassId);
     }
 
     const auto expected =
@@ -776,9 +760,6 @@ bool QuickJSBindingContext::registerClass(u64 classId, const char* className, bo
 
 void* QuickJSBindingContext::createClassProto(u64 classId)
 {
-    spdlog::warn("[DIAG7] createClassProto classId={} registered={}",
-        classId,
-        JS_IsRegisteredClass(JS_GetRuntime(m_ctx), static_cast<JSClassID>(classId)));
     // 原型必须建成 classId 对应的动态类实例：opaque 只能挂在非内置类的对象上
     // （QuickJS 拒绝给内置类对象设置 opaque），而 wrap() 产出实例的 class 继承自原型的 class。
     // 若这里用 JS_NewObject，原型就是普通对象（内置 Object 类），随后以它为原型创建的实例
