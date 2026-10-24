@@ -240,6 +240,20 @@ harness 决定。`runner.ts` 负责按 `key` 对齐两侧输出、规范化、�
 | `opacity` / `opaque` | 半砖、门、栅栏等被当成 15 档全遮挡 | 同上：`m_opacity` 默认 15，未逐类设置 |
 | `solid` / `replaceable` | 门、栅栏门、树叶、植物等判定相反 | 同上：取自材质 `m_isSolid` / `isReplaceable` |
 
+### 随机数：已对齐到哪一层
+
+`random_sequence` 直接比对两个**内层**生成器（`Xoroshiro128ppRandom`、
+`JavaLegacyRandom`）的接口序列，全部逐位一致。上层的 `WorldgenRandom`（原版把它包在
+生成器外面、用自己的 `next(bits)` 重写所有抽取）目前只保证：
+
+| 路径 | 状态 |
+|---|---|
+| `nextInt(bound)` / `nextFloat` / `nextDouble` | 与原版逐位一致（golden 测试通过） |
+| 裸 `nextLong()` / `nextInt()` | **未对齐**：与原版存在逐位差异，导致 `setDecorationSeed` 偏移 |
+
+后者只影响世界生成的放置种子，已由 `WorldgenRandomVanillaGoldenTest` /
+`BlendedNoiseVanillaGoldenTest` 的红灯标出（这两个测试在本轮 harness 之前就已失败）。
+
 ### `entity_attributes` 的比对基准
 
 生物属性不能简单拿 oracle 输出当基准：原版不少生物在「创建」时改写属性，

@@ -120,6 +120,9 @@ public:
     [[nodiscard]] i64 nextLong() override
     {
         // 保留低半部的符号扩展，并在加法后解释为有符号结果。
+        // TODO(random)：裸 nextLong() 与原版 WorldgenRandom 仍有逐位差异（装饰种子因此
+        // 偏移），见 tests/diff/README.md「未对齐项」。draw 路径（nextInt(bound)/
+        // nextFloat/nextDouble）已由 random_sequence harness 逐位对齐。
         const u64 hi = static_cast<u64>(nextBits(32));
         const u64 lo = static_cast<u64>(nextBits(32));
         return static_cast<i64>((hi << 32) + lo);

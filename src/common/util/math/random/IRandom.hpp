@@ -94,7 +94,8 @@ public:
         if (bits >= 32) {
             // 原版 BitRandomSource.next(32) = (i32) nextLong()：取**低** 32 位。
             // 右移 64 - bits 取的是高位，与截断取低位不是同一个值；32 位这里按原版截断。
-            return static_cast<i32>(nextLong());
+            // 注意不能写 nextLong()：WorldgenRandom 覆写了它（两次 next(32)），会多推进状态。
+            return static_cast<i32>(nextU64());
         }
         return static_cast<i32>(static_cast<u64>(nextU64()) >> (64 - bits));
     }
