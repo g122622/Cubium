@@ -26,7 +26,7 @@
 #   源文件：实现该能力的 .cpp
 #   宏名：写入基类的 MC_DIFF_PROBE_DOMAIN，供 runner_main.cpp 选择能力
 # ---------------------------------------------------------------------------
-set(MC_DIFF_PROBE_SUFFIXES text_encode item_summary item_components entity_shape enchantment_table block_properties mob_category entity_attributes block_state_names random_sequence command_argument)
+set(MC_DIFF_PROBE_SUFFIXES text_encode item_summary item_components entity_shape enchantment_table block_properties mob_category entity_attributes block_state_names random_sequence command_argument command_tree)
 set(MC_DIFF_PROBE_SOURCES
     probes/text_encode.cpp
     probes/item_summary.cpp
@@ -39,8 +39,9 @@ set(MC_DIFF_PROBE_SOURCES
     probes/block_state_names.cpp
     probes/random_sequence.cpp
     probes/command_argument.cpp
+    probes/command_tree.cpp
 )
-set(MC_DIFF_PROBE_DOMAINS text_encode item_summary item_components entity_shape enchantment_table block_properties mob_category entity_attributes block_state_names random_sequence command_argument)
+set(MC_DIFF_PROBE_DOMAINS text_encode item_summary item_components entity_shape enchantment_table block_properties mob_category entity_attributes block_state_names random_sequence command_argument command_tree)
 
 function(mc_add_diff_probe targetSuffix source domain)
     set(targetName "diff_${targetSuffix}")
@@ -65,6 +66,135 @@ function(mc_add_diff_probe targetSuffix source domain)
 # （BlockComponentRegistry 等），不链就一堆 undefined symbol。它也属 src/common。
     # 刻意不链 mc_gen / mc_server_storage：那两个是 OBJECT 库，会把世界生成与存档
     # 的全部目标文件无条件塞进链接行，而差分探针按定义不测它们。
+    # command_tree 测的是服务端命令注册：注册全部命令后遍历分发器，与原版命令树逐节点比对。
+    # CommandRegistry 的静态闭包会引用整个服务端（时间、玩家、维度、世界、光照、结构……），
+    # 故整体编译 src/server（不含进程入口、客户端、测试与存档 OBJECT 库）。
+    # world/gen/feature 按服务端目标自己的源清单收集（目录通配会把只登记在其它目标里的
+    # 文件也拉进来，它们单独编译有既有的重定义问题）。探针只注册与遍历，从不执行回调。
+    if(targetSuffix STREQUAL "command_tree")
+        target_link_options(${targetName} PRIVATE "-Xlinker" "/ERRORLIMIT:0")
+        file(GLOB_RECURSE _diff_cmd_sources CONFIGURE_DEPENDS ${CMAKE_SOURCE_DIR}/src/server/*.cpp)
+        list(FILTER _diff_cmd_sources EXCLUDE REGEX "/src/server/client/")
+        list(FILTER _diff_cmd_sources EXCLUDE REGEX "/src/server/tools?/")
+        list(FILTER _diff_cmd_sources EXCLUDE REGEX "/src/server/main\.cpp$")
+        list(FILTER _diff_cmd_sources EXCLUDE REGEX "/src/server/world/storage/")
+        # world/gen/feature 下按服务端目标自己的清单重新收集：目录通配会把「只登记在
+        # 其它目标里」的文件也拉进来，而它们单独编译有既有的重定义问题。
+        list(FILTER _diff_cmd_sources EXCLUDE REGEX "/src/server/world/gen/feature/")
+        list(APPEND _diff_cmd_sources
+            ${CMAKE_SOURCE_DIR}/src/server/world/gen/feature/Feature.cpp
+            ${CMAKE_SOURCE_DIR}/src/server/world/gen/feature/FeatureSpread.cpp
+            ${CMAKE_SOURCE_DIR}/src/server/world/gen/feature/FeatureSorter.cpp
+            ${CMAKE_SOURCE_DIR}/src/server/world/gen/feature/ConfiguredFeatureRegistry.cpp
+            ${CMAKE_SOURCE_DIR}/src/server/world/gen/feature/ConfiguredFeatureLoader.cpp
+            ${CMAKE_SOURCE_DIR}/src/server/world/gen/feature/FeatureTypeRegistry.cpp
+            ${CMAKE_SOURCE_DIR}/src/server/world/gen/feature/MonsterRoomFeature.cpp
+            ${CMAKE_SOURCE_DIR}/src/server/world/gen/feature/BlockColumnFeature.cpp
+            ${CMAKE_SOURCE_DIR}/src/server/world/gen/feature/SimpleBlockFeature.cpp
+            ${CMAKE_SOURCE_DIR}/src/server/world/gen/feature/RandomBooleanSelectorFeature.cpp
+            ${CMAKE_SOURCE_DIR}/src/server/world/gen/feature/SimpleRandomSelectorFeature.cpp
+            ${CMAKE_SOURCE_DIR}/src/server/world/gen/feature/RandomSelectorFeature.cpp
+            ${CMAKE_SOURCE_DIR}/src/server/world/gen/feature/EndPlatformFeature.cpp
+            ${CMAKE_SOURCE_DIR}/src/server/world/gen/feature/BonusChestFeature.cpp
+            ${CMAKE_SOURCE_DIR}/src/server/world/gen/feature/VoidStartPlatformFeature.cpp
+            ${CMAKE_SOURCE_DIR}/src/server/world/gen/feature/BlockBlobFeature.cpp
+            ${CMAKE_SOURCE_DIR}/src/server/world/gen/feature/BasaltPillarFeature.cpp
+            ${CMAKE_SOURCE_DIR}/src/server/world/gen/feature/RandomPatchFeature.cpp
+            ${CMAKE_SOURCE_DIR}/src/server/world/gen/feature/BlockPileFeature.cpp
+            ${CMAKE_SOURCE_DIR}/src/server/world/gen/feature/DiskFeature.cpp
+            ${CMAKE_SOURCE_DIR}/src/server/world/gen/feature/NetherForestVegetationFeature.cpp
+            ${CMAKE_SOURCE_DIR}/src/server/world/gen/feature/VinesFeature.cpp
+            ${CMAKE_SOURCE_DIR}/src/server/world/gen/feature/WeepingVinesFeature.cpp
+            ${CMAKE_SOURCE_DIR}/src/server/world/gen/feature/TwistingVinesFeature.cpp
+            ${CMAKE_SOURCE_DIR}/src/server/world/gen/feature/SpringFeature.cpp
+            ${CMAKE_SOURCE_DIR}/src/server/world/gen/feature/ScatteredOreFeature.cpp
+            ${CMAKE_SOURCE_DIR}/src/server/world/gen/feature/ReplaceBlobsFeature.cpp
+            ${CMAKE_SOURCE_DIR}/src/server/world/gen/feature/DripstoneUtils.cpp
+            ${CMAKE_SOURCE_DIR}/src/server/world/gen/feature/Column.cpp
+            ${CMAKE_SOURCE_DIR}/src/server/world/gen/feature/parser/BlockStateParser.cpp
+            ${CMAKE_SOURCE_DIR}/src/server/world/gen/feature/parser/BlockStateProviderParser.cpp
+            ${CMAKE_SOURCE_DIR}/src/server/world/gen/feature/parser/FluidStateParser.cpp
+            ${CMAKE_SOURCE_DIR}/src/server/world/gen/feature/parser/RuleTestParser.cpp
+            ${CMAKE_SOURCE_DIR}/src/server/world/gen/feature/parser/TrunkPlacerParser.cpp
+            ${CMAKE_SOURCE_DIR}/src/server/world/gen/feature/parser/FoliagePlacerParser.cpp
+            ${CMAKE_SOURCE_DIR}/src/server/world/gen/feature/parser/FeatureSizeParser.cpp
+            ${CMAKE_SOURCE_DIR}/src/server/world/gen/feature/parser/BlockPredicateParser.cpp
+            ${CMAKE_SOURCE_DIR}/src/server/world/gen/feature/state/BlockStateProvider.cpp
+            ${CMAKE_SOURCE_DIR}/src/server/world/gen/feature/state/RuleBasedBlockStateProvider.cpp
+            ${CMAKE_SOURCE_DIR}/src/server/world/gen/feature/state/RotatedBlockStateProvider.cpp
+            ${CMAKE_SOURCE_DIR}/src/server/world/gen/feature/state/NoiseThresholdBlockStateProvider.cpp
+            ${CMAKE_SOURCE_DIR}/src/server/world/gen/feature/state/NoiseBlockStateProvider.cpp
+            ${CMAKE_SOURCE_DIR}/src/server/world/gen/feature/state/DualNoiseBlockStateProvider.cpp
+            ${CMAKE_SOURCE_DIR}/src/server/world/gen/feature/state/RandomizedIntBlockStateProvider.cpp
+            ${CMAKE_SOURCE_DIR}/src/server/world/gen/feature/ore/OreFeature.cpp
+            ${CMAKE_SOURCE_DIR}/src/server/world/gen/feature/tree/TreeFeature.cpp
+            ${CMAKE_SOURCE_DIR}/src/server/world/gen/feature/tree/ServerTreeGenerators.cpp
+            ${CMAKE_SOURCE_DIR}/src/server/world/gen/feature/tree/FallenTreeFeature.cpp
+            ${CMAKE_SOURCE_DIR}/src/server/world/gen/feature/tree/decorator/TreeDecorator.cpp
+            ${CMAKE_SOURCE_DIR}/src/server/world/gen/feature/tree/decorator/AttachToLogsDecorator.cpp
+            ${CMAKE_SOURCE_DIR}/src/server/world/gen/feature/tree/decorator/PlaceOnGroundDecorator.cpp
+            ${CMAKE_SOURCE_DIR}/src/server/world/gen/feature/tree/decorator/SimpleTreeDecorators.cpp
+            ${CMAKE_SOURCE_DIR}/src/server/world/gen/feature/tree/decorator/TrunkVineDecorator.cpp
+            ${CMAKE_SOURCE_DIR}/src/server/world/gen/feature/tree/trunk/TrunkPlacer.cpp
+            ${CMAKE_SOURCE_DIR}/src/server/world/gen/feature/tree/trunk/StraightTrunkPlacer.cpp
+            ${CMAKE_SOURCE_DIR}/src/server/world/gen/feature/tree/trunk/TrunkPlacers.cpp
+            ${CMAKE_SOURCE_DIR}/src/server/world/gen/feature/tree/trunk/CherryTrunkPlacer.cpp
+            ${CMAKE_SOURCE_DIR}/src/server/world/gen/feature/tree/trunk/UpwardsBranchingTrunkPlacer.cpp
+            ${CMAKE_SOURCE_DIR}/src/server/world/gen/feature/tree/foliage/FoliagePlacer.cpp
+            ${CMAKE_SOURCE_DIR}/src/server/world/gen/feature/tree/foliage/BlobFoliagePlacer.cpp
+            ${CMAKE_SOURCE_DIR}/src/server/world/gen/feature/tree/foliage/FoliagePlacers.cpp
+            ${CMAKE_SOURCE_DIR}/src/server/world/gen/feature/tree/foliage/CherryFoliagePlacer.cpp
+            ${CMAKE_SOURCE_DIR}/src/server/world/gen/feature/tree/foliage/RandomSpreadFoliagePlacer.cpp
+            ${CMAKE_SOURCE_DIR}/src/server/world/gen/feature/vegetation/FlowerFeature.cpp
+            ${CMAKE_SOURCE_DIR}/src/server/world/gen/feature/vegetation/BigMushroomFeature.cpp
+            ${CMAKE_SOURCE_DIR}/src/server/world/gen/feature/vegetation/ServerBigMushroomGenerators.cpp
+            ${CMAKE_SOURCE_DIR}/src/server/world/gen/feature/vegetation/BambooFeature.cpp
+            ${CMAKE_SOURCE_DIR}/src/server/world/gen/feature/cave/RootSystemFeature.cpp
+            ${CMAKE_SOURCE_DIR}/src/server/world/gen/feature/cave/VegetationPatchFeature.cpp
+            ${CMAKE_SOURCE_DIR}/src/server/world/gen/feature/cave/PointedDripstoneFeature.cpp
+            ${CMAKE_SOURCE_DIR}/src/server/world/gen/feature/cave/LargeDripstoneFeature.cpp
+            ${CMAKE_SOURCE_DIR}/src/server/world/gen/feature/cave/DripstoneClusterFeature.cpp
+            ${CMAKE_SOURCE_DIR}/src/server/world/gen/feature/cave/DesertWellFeature.cpp
+            ${CMAKE_SOURCE_DIR}/src/server/world/gen/feature/cave/IcebergFeature.cpp
+            ${CMAKE_SOURCE_DIR}/src/server/world/gen/feature/cave/FossilFeature.cpp
+            ${CMAKE_SOURCE_DIR}/src/server/world/gen/feature/cave/GeodeFeature.cpp
+            ${CMAKE_SOURCE_DIR}/src/server/world/gen/feature/cave/MultifaceGrowthFeature.cpp
+            ${CMAKE_SOURCE_DIR}/src/server/world/gen/feature/cave/SculkPatchFeature.cpp
+            ${CMAKE_SOURCE_DIR}/src/server/world/gen/feature/ocean/KelpFeature.cpp
+            ${CMAKE_SOURCE_DIR}/src/server/world/gen/feature/ocean/SeagrassFeature.cpp
+            ${CMAKE_SOURCE_DIR}/src/server/world/gen/feature/ocean/SeaPickleFeature.cpp
+            ${CMAKE_SOURCE_DIR}/src/server/world/gen/feature/ocean/CoralFeature.cpp
+            ${CMAKE_SOURCE_DIR}/src/server/world/gen/feature/ocean/CoralTreeFeature.cpp
+            ${CMAKE_SOURCE_DIR}/src/server/world/gen/feature/ocean/CoralMushroomFeature.cpp
+            ${CMAKE_SOURCE_DIR}/src/server/world/gen/feature/ocean/CoralClawFeature.cpp
+            ${CMAKE_SOURCE_DIR}/src/server/world/gen/feature/ocean/BlueIceFeature.cpp
+            ${CMAKE_SOURCE_DIR}/src/server/world/gen/feature/end/EndSpikeFeature.cpp
+            ${CMAKE_SOURCE_DIR}/src/server/world/gen/feature/end/EndGatewayFeature.cpp
+            ${CMAKE_SOURCE_DIR}/src/server/world/gen/feature/end/IceSpikeFeature.cpp
+            ${CMAKE_SOURCE_DIR}/src/server/world/gen/feature/end/ChorusPlantFeature.cpp
+            ${CMAKE_SOURCE_DIR}/src/server/world/gen/feature/end/EndIslandFeature.cpp
+            ${CMAKE_SOURCE_DIR}/src/server/world/gen/feature/nether/HugeFungusFeature.cpp
+            ${CMAKE_SOURCE_DIR}/src/server/world/gen/feature/nether/GlowstoneFeature.cpp
+            ${CMAKE_SOURCE_DIR}/src/server/world/gen/feature/nether/BasaltFeature.cpp
+            ${CMAKE_SOURCE_DIR}/src/server/world/gen/feature/nether/DeltaFeature.cpp
+            ${CMAKE_SOURCE_DIR}/src/server/world/gen/feature/nether/UnderwaterMagmaFeature.cpp
+            ${CMAKE_SOURCE_DIR}/src/server/world/gen/feature/LakeFeature.cpp
+            ${CMAKE_SOURCE_DIR}/src/server/world/gen/feature/SnowAndFreezeFeature.cpp
+            ${CMAKE_SOURCE_DIR}/src/server/world/gen/feature/predicate/BlockPredicate.cpp
+            ${CMAKE_SOURCE_DIR}/src/server/world/gen/feature/predicate/MatchingFluidsPredicate.cpp
+            ${CMAKE_SOURCE_DIR}/src/server/world/gen/feature/template/Template.cpp
+            ${CMAKE_SOURCE_DIR}/src/server/world/gen/feature/template/TemplateManager.cpp
+            ${CMAKE_SOURCE_DIR}/src/server/world/gen/feature/template/TemplateManagerHostBinding.cpp
+            ${CMAKE_SOURCE_DIR}/src/server/world/gen/feature/template/TemplateLoader.cpp
+            ${CMAKE_SOURCE_DIR}/src/server/world/gen/feature/template/RuleTest.cpp
+            ${CMAKE_SOURCE_DIR}/src/server/world/gen/feature/template/CappedStructureProcessor.cpp
+            ${CMAKE_SOURCE_DIR}/src/server/world/gen/feature/template/ProtectedBlocksProcessor.cpp
+        )
+        target_sources(${targetName} PRIVATE ${_diff_cmd_sources})
+        target_link_libraries(${targetName} PRIVATE mc_server_storage)
+        # 模板目录整体排除（见上）；其符号由占位文件兜底。
+    endif()
+
     target_link_libraries(${targetName} PRIVATE
         mc_common
         mc_bedrock_addon

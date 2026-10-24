@@ -85,6 +85,12 @@ export interface JavaOracleOptions {
      * 并会在报告里单列条数；补齐实现后必须删掉，否则等于永久豁免。
      */
     readonly oracleMissing?: readonly string[];
+    /**
+     * 传给 oracle `run` 的额外参数（原样追加在输入/输出路径之后）。命令树这类
+     * 「注册会互相影响」的能力需要它：跳过原版有、项目尚未注册的命令，才能让其余
+     * 命令在同一套注册状态下比对。
+     */
+    readonly oracleArgs?: readonly string[];
     readonly buildDir?: string;
     readonly samples?: number;
 }
@@ -193,6 +199,7 @@ export function runJavaOracle(options: JavaOracleOptions): JavaOracleOutcome {
             "run",
             inputsPath,
             oracleOutput,
+            ...(options.oracleArgs ?? []),
         ],
         { cwd: workDir },
     );

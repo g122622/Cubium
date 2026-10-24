@@ -40,6 +40,7 @@ import { KNOWN_MISSING as enchantmentKnownMissing } from "./enchantment_table.ts
 import { KNOWN_MISSING as entityKnownMissing, createEntityShapeHarness } from "./entity_shape.ts";
 import { createItemSummaryHarness } from "./item_summary.ts";
 import { KNOWN_MISSING as itemsKnownMissing } from "./known_missing_items.ts";
+import { KNOWN_MISSING_COMMANDS } from "./known_missing_commands.ts";
 import { KNOWN_MISSING as entityAttributesKnownMissing } from "./known_missing_entity_attributes.ts";
 import {
     RUNTIME_DIVERGENT as entityAttributesRuntimeDivergent,
@@ -129,6 +130,16 @@ const JAVA_HARNESSES: ReadonlyArray<() => JavaHarness> = [
         oracle: "RandomSequenceOracle",
         input: (unit: string) => ({ unit }),
         key: "unit",
+    }),
+    () => ({
+        name: "command_tree",
+        oracle: "CommandTreeOracle",
+        input: (unit: string) => ({ unit }),
+        key: "unit",
+        // 原版有、Cubium 尚未注册的根命令（见 known_missing_commands.ts）。
+        oracleMissing: KNOWN_MISSING_COMMANDS,
+        // 这些命令不注册会让同一批节点（如 /give 的 item 参数）在两侧处于同一状态。
+        oracleArgs: [KNOWN_MISSING_COMMANDS.join(",")],
     }),
     () => ({
         name: "command_argument",

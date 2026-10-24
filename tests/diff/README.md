@@ -141,7 +141,8 @@ harness 决定。`runner.ts` 负责按 `key` 对齐两侧输出、规范化、�
 
 ## 当前状态
 
-十个能力全部对齐（`node tests/diff/harness/runner.ts run all` 退出码 0）：
+十一个能力已接入（前十个 `node tests/diff/harness/runner.ts run all` 退出码 0；
+`command_tree` 见下方「命令树：已暴露的缺口」，尚未清零）：
 
 | harness | 参照实现 | 单元 | 结果 | 已知缺口 |
 |---|---|---|---|---|
@@ -156,6 +157,7 @@ harness 决定。`runner.ts` 负责按 `key` 对齐两侧输出、规范化、�
 | `block_state_names` | 原版 jar `BlockStateNamesOracle` | 1166 | 全部一致 | — |
 | `random_sequence` | 原版 jar `RandomSequenceOracle` | 24 | 全部一致 | — |
 | `command_argument` | 原版 jar `CommandArgumentOracle` | 157 | 全部一致 | — |
+| `command_tree` | 原版 jar `CommandTreeOracle` | 89 条命令 | **未对齐**（见下） | 20 条原版有、未实现；5 条原版已移除仍注册 |
 
 第一次跑通就查出并修掉的实打实的错误（都是手抄数据/公式出错）：
 
@@ -228,6 +230,31 @@ harness 决定。`runner.ts` 负责按 `key` 对齐两侧输出、规范化、�
 
 这一批修复顺带改正了一个**真实玩法 bug**：`ReplaceItem` 的护甲槽号翻转。
 
+### 命令树：已暴露的缺口
+
+`command_tree` 注册全部内置命令后遍历分发器，与原版 `new Commands(DEDICATED, ...)` 的树
+逐节点比对。首轮结果（原版 89 条 vs Cubium 74 条）：
+
+**原版有、Cubium 未注册（20 条，见 `known_missing_commands.ts`）**：`damage`、`debug`、
+`fetchprofile`、`fillbiome`、`item`、`jfr`、`perf`、`place`、`random`、`return`、`ride`、
+`rotate`、`stopwatch`、`teammsg`、`test`、`tick`、`tm`、`transfer`、`version`、`waypoint`。
+其中 `/item` 缺失还会连带影响 `give`/`clear` 等命令的 `item` 参数节点。
+
+**Cubium 有、原版已移除（5 条）**：`debugconfig`、`locatebiome`、`replaceitem`、
+`publish`、`warden_spawn_tracker`。
+
+**共有命令中形状不同（55 条）**，其中 26 条只是参数名/类型名不同：
+
+- 实体参数：原版 `targets:entity`（不限制玩家），Cubium 多为 `player:players`、`target:entities`；
+- 类型名体系：原版 `resource`/`resource_or_tag`/`identifier`/`game_profile`/`message`/
+  `component`/`swizzle`/`score_holder`/`objective`/`particle`/`uuid`/`column_pos`/`team`…，
+  Cubium 复用 `phrase`/`word`/`resource_location` 等通用名；
+- 结构性差异：`data` 有 `modify` 子命令而 Cubium 是 `set`；`datapack` 少了 `create`；
+  `clone` 少了 `from`/`sourceDimension`；`execute` 少了 `align`/`anchored`/`facing`/
+  `store` 等分支；`locate` 的 `structure/poi` 被拆成单独的 `locatebiome`；`loot` 多了
+  `fish`、少了 `insert`/`spawn`；`random`/`return`/`ride`/`rotate` 整条缺失。
+
+结论：命令层是当前与原版差距最大的一块，优先级应高于继续补注册表数据类能力。
 ### 已知缺口清单
 
 `known_missing_items.ts`、`entity_shape.ts`、`enchantment_table.ts`、
