@@ -27,6 +27,7 @@
 // 而以 SIGABRT 退出（句柄未释放 → 原型引用计数非 0 → JS_FreeRuntime 回收不掉原型对象）。
 
 #include "common/mod/bedrock/addon/binding/IScriptBindingContext.hpp"
+#include "common/mod/bedrock/addon/binding/ScriptClassBinding.hpp"
 #include "common/mod/bedrock/addon/binding/ScriptClassRegistry.hpp"
 #include "common/mod/bedrock/addon/core/IScriptContext.hpp"
 #include "common/mod/bedrock/addon/core/IScriptEngine.hpp"
@@ -150,6 +151,56 @@ TEST(ScriptBindingHandleLifetimeTest, RepeatedContextRecreationDoesNotAccumulate
     }
 
     EXPECT_EQ(_probeHandleCount(*engine), baseline);
+
+    engine->shutdown();
+}
+
+TEST(ScriptBindingHandleLifetimeTest, WrappedInstancesCarryOpaqueWhenClassRegisteredAfterPrototype)
+{
+    // 回归背景：GameTest 中 `new ItemStack(...)` 之后，useItemOnBlock/setItem 一律报
+    // "first arg must be an ItemStack"。根因是类原型被建成普通对象（内置 Object 类），
+    // 以它为原型的实例同为普通对象，JS_SetOpaque 对内置类对象静默失败，opaque 永远为 NULL。
+    // 该缺陷只在"类注册晚于原型创建"时暴露，因此本用例故意不先注册类：
+    // createClassProto 必须让原型自带目标 class，构造出的实例才可能承载 opaque。
+    auto engine = createScriptEngine();
+    ASSERT_NE(engine, nullptr);
+    ASSERT_TRUE(engine->initialize());
+    auto context = engine->runtime().createContext(_makeConfig());
+    ASSERT_NE(context, nullptr);
+    auto& bindings = context->bindingContext();
+
+    const mc::u64 classId = bindings.allocateClassId();
+    bindings.classRegistry().registerClass(classId, bindings.createClassProto(classId), "OpaqueProbeClass");
+    const mc::u64 resolvedClassId = bindings.classRegistry().classIdByName("OpaqueProbeClass");
+    void* proto = bindings.classRegistry().proto(resolvedClassId);
+    ASSERT_NE(proto, nullptr);
+
+    // 导出构造函数并暴露到全局，使脚本能执行 `new OpaqueProbeClass()`。
+    void* ctor = bindings.createFunction(
+        [classId](IScriptBindingContext& ctx, void* /*thisVal*/, mc::i32 /*argc*/, void** /*args*/) -> void* {
+            static int s_payload = 0;
+
+            return ScriptObjectRegistry::wrap(
+                ctx, classId, ctx.classRegistry().proto(classId), &s_payload, false, "OpaqueProbeClass", nullptr);
+        },
+        "OpaqueProbeClass",
+        0);
+    void* global = bindings.getGlobalObject();
+    ASSERT_NE(global, nullptr);
+    bindings.setProperty(global, "OpaqueProbeClass", ctor);
+    bindings.releaseValue(ctor);
+
+    auto evaluated =
+        context->evaluate("globalThis.probeInstance = new OpaqueProbeClass();", "opaque-probe.js", EvalFlags::None);
+    ASSERT_TRUE(evaluated.success()) << "脚本执行失败：" << evaluated.errorMessage();
+
+    // 实例是 "new" 出来的 JS 对象，必须先经 opaque 解出 C++ 指针才能判定包装是否生效。
+    void* instance = bindings.getProperty(global, "probeInstance");
+    ASSERT_NE(instance, nullptr);
+    EXPECT_TRUE(bindings.isObject(instance)) << "new OpaqueProbeClass() 未产出对象";
+    EXPECT_NE(bindings.getOpaque(instance, resolvedClassId), nullptr)
+        << "class 注册晚于原型创建时，实例 opaque 为空（内置 Object 类不允许挂 opaque）";
+    bindings.releaseValue(instance);
 
     engine->shutdown();
 }

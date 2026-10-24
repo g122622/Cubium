@@ -210,6 +210,17 @@ void QuickJSBindingContext::setConstructor(void* ctor, void* proto)
     // （回调内再决定真实构造或抛 TypeError "Use factory methods instead"）。
     JS_SetConstructorBit(m_ctx, ctorVal, true);
     JS_SetConstructor(m_ctx, ctorVal, unwrapValue(proto));
+    // 原型此时已是 classId 对应的动态类实例（见 createClassProto），但类定义要等
+    // NativeModuleBuilder::exportClass 稍后调 registerClass 才登记。这里按原型自身的 class
+    // 补一份最简登记：`new ClassName(...)` 产出的实例直接沿用原型的 class，若此时类未登记，
+    // QuickJS 会按内置 Object 类创建实例，随后 wrap() 给实例设 opaque 被静默拒绝
+    // （内置类对象不允许带 opaque），实例永远拿不到 C++ 指针。正式登记随后覆盖这里的定义。
+    const JSClassID protoClassId = JS_GetClassID(unwrapValue(proto));
+    if (!JS_IsRegisteredClass(JS_GetRuntime(m_ctx), protoClassId)) {
+        JSClassDef implicitClassDef = {};
+        implicitClassDef.class_name = "AnonymousClass";
+        JS_NewClass(JS_GetRuntime(m_ctx), protoClassId, &implicitClassDef);
+    }
 }
 
 // ===== 值类型检查 =====
@@ -745,22 +756,26 @@ bool QuickJSBindingContext::registerClass(u64 classId, const char* className, bo
 
 void* QuickJSBindingContext::createClassProto(u64 classId)
 {
-    JSValue proto = JS_NewObject(m_ctx);
+    // 原型必须建成 classId 对应的动态类实例：opaque 只能挂在非内置类的对象上
+    // （QuickJS 拒绝给内置类对象设置 opaque），而 wrap() 产出实例的 class 继承自原型的 class。
+    // 若这里用 JS_NewObject，原型就是普通对象（内置 Object 类），随后以它为原型创建的实例
+    // 同样是普通对象——JS_SetOpaque 静默失败、opaque 永远为 NULL，所有经
+    // ScriptObjectRegistry::wrap 包装的对象在 unwrap 时都取不到 C++ 指针。
+    // 该缺陷只在"类注册晚于原型创建"时暴露：此时 JS_NewObject 走的隐式类创建让
+    // JS_SetClassProto 静默失败，实例后续由 wrap 触发类注册，class 变成动态类，
+    // 但原型对象本身仍是普通对象。
+    JSValue proto = JS_NewObjectProtoClass(m_ctx, JS_NULL, static_cast<JSClassID>(classId));
+    if (JS_IsException(proto)) {
+        spdlog::error("[BedrockAddon] Failed to create class prototype for classId {}", classId);
+
+        return nullptr;
+    }
     // JS_SetClassProto 通过 set_value 把传入引用"转移"进 ctx->class_proto[classId]（GC 根数组），
     // 不做 Dup。若直接返回 wrapValue(proto)，句柄与根共享同一份引用（refcount=1），
     // 调用方按"owned 句柄"契约 releaseValue 会让 refcount 提前归零释放对象，
     // 致 class_proto[classId] 悬垂——后续 GC 遍历 gc_obj_list 访问该悬垂对象即崩。
     // 故此处 Dup 出一份独立引用供句柄持有：根 1 份 + 句柄 1 份，调用方 release 句柄时根仍保活。
-    // TODO: 定位 ItemStack 解包失败根因后移除本诊断输出。
-    if (classId >= 360 && classId <= 370) {
-        JS_SetClassProto(m_ctx, static_cast<JSClassID>(classId), proto);
-        const bool classProtoMatches =
-            JS_IsStrictEqual(m_ctx, proto, JS_GetClassProto(m_ctx, static_cast<JSClassID>(classId)));
-        JS_FreeValue(m_ctx, JS_GetClassProto(m_ctx, static_cast<JSClassID>(classId)));
-        spdlog::warn("[DIAG6] classId={} classProtoMatches={}", classId, classProtoMatches);
-    } else {
-        JS_SetClassProto(m_ctx, static_cast<JSClassID>(classId), proto);
-    }
+    JS_SetClassProto(m_ctx, static_cast<JSClassID>(classId), proto);
     void* handle = wrapValue(JS_DupValue(m_ctx, proto));
 
     // 句柄所有权归本上下文（借用语义，调用方不得 releaseValue）：

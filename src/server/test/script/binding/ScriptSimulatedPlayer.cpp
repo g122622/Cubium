@@ -44,13 +44,11 @@
 #include "server/test/script/context/ScriptBindingRegistry.hpp"
 #include "server/test/simulated/SimulatedPlayer.hpp"
 
-#include <atomic>
 #include <cctype>
 #include <memory>
 #include <optional>
 #include <string>
 #include <string_view>
-#include <spdlog/spdlog.h>
 
 namespace mc::test {
 
@@ -120,20 +118,7 @@ mc::ItemStack* _unwrapItemStack(mc::mod::bedrock::addon::IScriptBindingContext& 
 {
     const u64 classId = ctx.classRegistry().classIdByName("ItemStack");
 
-    auto* stack = static_cast<mc::ItemStack*>(mc::mod::bedrock::addon::ScriptObjectRegistry::unwrap(ctx, val, classId));
-    if (stack == nullptr) {
-        // TODO: 定位 ItemStack 解包失败根因后移除本诊断输出。
-        static std::atomic<i32> s_diagCount{0};
-        if (s_diagCount.fetch_add(1) < 8) {
-            const void* opaque = classId == 0 ? nullptr : ctx.getOpaque(val, classId);
-            spdlog::warn("[DIAG] ItemStack unwrap failed: classId={} isUndefined={} isObject={} opaque={}",
-                classId,
-                ctx.isUndefined(val),
-                ctx.isObject(val),
-                opaque != nullptr);
-        }
-    }
-    return stack;
+    return static_cast<mc::ItemStack*>(mc::mod::bedrock::addon::ScriptObjectRegistry::unwrap(ctx, val, classId));
 }
 
 // 统一 stub：抛对齐基岩 GameTestErrorType::MethodNotImplemented 的 GameTestError JS 实例。
