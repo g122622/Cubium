@@ -38,7 +38,6 @@
 ├── TeleportCommand.hpp / TeleportCommand.cpp #处理 / tp 与 / teleport 传送逻辑
 ├── TimeCommand.hpp / TimeCommand.cpp #修改或查询游戏时间
 ├── TriggerCommand.hpp / TriggerCommand.cpp #触发器命令（权限等级0，所有玩家可用）
-├── WardenSpawnTrackerCommand.hpp / WardenSpawnTrackerCommand.cpp #监守者警告追踪器命令（clear / set子命令）
 └── WeatherCommand.hpp /
         WeatherCommand.cpp #修改或查询天气状态
 ```

@@ -22,6 +22,8 @@
 
 #include "LocateCommand.hpp"
 
+#include "LocateBiomeCommand.hpp"
+
 #include "common/command/CommandContext.hpp"
 #include "common/command/CommandDispatcher.hpp"
 #include "common/command/CommandNode.hpp"
@@ -49,12 +51,23 @@ void LocateCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatche
     auto locateNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("locate");
     locateNode->setRequirement([](const ServerCommandSource& source) { return source.hasPermission(0); });
     support::applyMetadata(
-        locateNode, support::makeMetadata("Locates the closest structure.", "/locate <structure>", 0, {}, true));
+        locateNode, support::makeMetadata("Locates the closest structure or biome.", "/locate structure <structure>", 0, {}, true));
 
+    // 原版 1.19+：/locate structure <structure> | /locate biome <biome> | /locate poi <poi>。
+    // 此前 Cubium 用的是 /locate <structure> 与独立的 /locatebiome，两者都与原版不同。
+    auto structureNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("structure");
     auto structureArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
         "structure", StringArgumentType::string());
     structureArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _locateStructure(ctx); });
-    locateNode->addChild(structureArg);
+    structureNode->addChild(structureArg);
+    locateNode->addChild(structureNode);
+
+    auto biomeNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("biome");
+    auto biomeArg =
+        std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>("biome", StringArgumentType::string());
+    biomeArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return LocateBiomeCommand::locateBiome(ctx); });
+    biomeNode->addChild(biomeArg);
+    locateNode->addChild(biomeNode);
 
     dispatcher.registerCommand(locateNode);
 }

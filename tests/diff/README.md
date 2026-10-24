@@ -157,7 +157,7 @@ harness 决定。`runner.ts` 负责按 `key` 对齐两侧输出、规范化、�
 | `block_state_names` | 原版 jar `BlockStateNamesOracle` | 1166 | 全部一致 | — |
 | `random_sequence` | 原版 jar `RandomSequenceOracle` | 24 | 全部一致 | — |
 | `command_argument` | 原版 jar `CommandArgumentOracle` | 157 | 全部一致 | — |
-| `command_tree` | 原版 jar `CommandTreeOracle` | 89 条命令 | **未对齐**（见下） | 20 条原版有、未实现；5 条原版已移除仍注册 |
+| `command_tree` | 原版 jar `CommandTreeOracle` | 74 条共有命令 | **未对齐**（见下） | 3 条原版已移除仍注册；55 条形状不同 |
 
 第一次跑通就查出并修掉的实打实的错误（都是手抄数据/公式出错）：
 
@@ -235,15 +235,18 @@ harness 决定。`runner.ts` 负责按 `key` 对齐两侧输出、规范化、�
 `command_tree` 注册全部内置命令后遍历分发器，与原版 `new Commands(DEDICATED, ...)` 的树
 逐节点比对。首轮结果（原版 89 条 vs Cubium 74 条）：
 
-**原版有、Cubium 未注册（20 条，见 `known_missing_commands.ts`）**：`damage`、`debug`、
-`fetchprofile`、`fillbiome`、`item`、`jfr`、`perf`、`place`、`random`、`return`、`ride`、
-`rotate`、`stopwatch`、`teammsg`、`test`、`tick`、`tm`、`transfer`、`version`、`waypoint`。
-其中 `/item` 缺失还会连带影响 `give`/`clear` 等命令的 `item` 参数节点。
+**原版有、Cubium 未注册（19 条，见 `known_missing_commands.ts`）**：`damage`、`debug`、
+`fetchprofile`、`fillbiome`、`item`、`place`、`random`、`return`、`ride`、`rotate`、
+`stopwatch`、`test`、`tick`、`transfer`、`waypoint` 等。其中 `/item` 缺失还会连带影响
+`give`/`clear` 等命令的 `item` 参数节点。
 
-**Cubium 有、原版已移除（5 条）**：`debugconfig`、`locatebiome`、`replaceitem`、
-`publish`、`warden_spawn_tracker`。
+已补齐的：`version`、`jfr`、`perf`、`teammsg`（含别名 `tm`）；`/locatebiome` 并回
+`/locate biome`，`/locate <structure>` 改为 `/locate structure <structure>`；
+`/warden_spawn_tracker` 删除（原版命令树里不存在）。
 
-**共有命令中形状不同（55 条）**，其中 26 条只是参数名/类型名不同：
+**Cubium 有、原版已移除（3 条）**：`debugconfig`、`replaceitem`、`publish`。
+
+**共有命令中形状不同（55 条）**，其中只有 18 条完全一致；26 条只是参数名/类型名不同：
 
 - 实体参数：原版 `targets:entity`（不限制玩家），Cubium 多为 `player:players`、`target:entities`；
 - 类型名体系：原版 `resource`/`resource_or_tag`/`identifier`/`game_profile`/`message`/

@@ -68,7 +68,7 @@ std::string signature(const mc::command::CommandNode<mc::command::ServerCommandS
 }
 
 /** 按名字排序后的子节点签名。 */
-std::vector<std::string> childSignatures(const NodePtr& node)
+std::vector<std::string> childSignatures(const mc::command::CommandNode<mc::command::ServerCommandSource>* node)
 {
     std::vector<std::string> result;
     if (!node) {
@@ -101,7 +101,7 @@ std::string describeTree(const NodePtr& root)
     for (const auto& [name, childPtr] : children) {
         const auto* child = childPtr;
         std::string text = signature(*child);
-        const auto grandchildren = childSignatures(child);
+        const auto grandchildren = childSignatures(childPtr);
         if (!grandchildren.empty()) {
             text += "(";
             for (size_t i = 0; i < grandchildren.size(); ++i) {

@@ -1101,7 +1101,6 @@ add_executable(mc_tests
     server/command/TeamCommandTest.cpp
     server/command/TriggerCommandTest.cpp
     server/command/BlockDataAccessorTest.cpp
-    server/command/WardenSpawnTrackerCommandTest.cpp
     server/command/TeleportPermissionParseTest.cpp
     # 命令参数解析测试（原 mc_command_tests 并入）
     common/command/arguments/BlockStateArgumentTest.cpp
@@ -2045,6 +2044,10 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/server/command/commands/EffectCommand.cpp
         ${CMAKE_SOURCE_DIR}/src/server/command/commands/EnchantCommand.cpp
         ${CMAKE_SOURCE_DIR}/src/server/command/commands/GameRuleCommand.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/command/commands/VersionCommand.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/command/commands/JfrCommand.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/command/commands/PerfCommand.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/command/commands/TeamMsgCommand.cpp
         # P3 命令
         ${CMAKE_SOURCE_DIR}/src/server/command/commands/AdvancementCommand.cpp
         ${CMAKE_SOURCE_DIR}/src/server/command/commands/BossBarCommand.cpp
@@ -2073,7 +2076,6 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/server/command/commands/LocateBiomeCommand.cpp
         ${CMAKE_SOURCE_DIR}/src/server/command/commands/MeCommand.cpp
         ${CMAKE_SOURCE_DIR}/src/server/command/commands/ParticleCommand.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/command/commands/WardenSpawnTrackerCommand.cpp
         # 交互管理器
         ${CMAKE_SOURCE_DIR}/src/server/interaction/BlockInteractionManager.cpp
         ${CMAKE_SOURCE_DIR}/src/server/interaction/MiningManager.cpp

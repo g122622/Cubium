@@ -37,34 +37,27 @@ export const KNOWN_MISSING_COMMANDS = [
     "fetchprofile",
     "fillbiome",
     "item",
-    "jfr",
-    "perf",
     "place",
     "random",
     "return",
     "ride",
     "rotate",
     "stopwatch",
-    "teammsg",
     "test",
     "tick",
-    "tm",
     "transfer",
-    "version",
     "waypoint",
 ] as const;
 
 /**
  * 原版已移除、Cubium 仍在注册的「多余命令」。它们不在原版命令树里，属于兼容层残留：
  *   - `debugconfig`：原版 1.21 起只有 `/debug`；
- *   - `locatebiome`：1.19 起并回 `/locate biome`；
  *   - `replaceitem`：1.17 起被 `/item replace` 取代；
- *   - `publish`/`warden_spawn_tracker`：原版分别只存在于集成服务器与调试构建。
+ *   - `publish`：原版只存在于集成服务器（单人）。
  * 这些不属于「原版有、这里没有」的缺口，但同样要求集合一致，故显式列出。
  */
 export const EXTRA_COMMANDS = [
     "debugconfig",
-    "locatebiome",
     "publish",
     "replaceitem",
     "warden_spawn_tracker",
