@@ -154,10 +154,11 @@ TEST_F(LightningRodBlockTest, DefaultState_IsNotPowered)
     EXPECT_FALSE(state.get(BlockStateProperties::POWERED()));
 }
 
-TEST_F(LightningRodBlockTest, DefaultState_FacingNorth)
+TEST_F(LightningRodBlockTest, DefaultState_FacingUp)
 {
+    // 原版避雷针的默认朝向是 UP。
     const auto& state = lightningRod_->defaultState();
-    EXPECT_EQ(state.get(BlockStateProperties::FACING()), Direction::North);
+    EXPECT_EQ(state.get(BlockStateProperties::FACING()), Direction::Up);
 }
 
 TEST_F(LightningRodBlockTest, GetWeakPower_NotPowered_ReturnsZero)

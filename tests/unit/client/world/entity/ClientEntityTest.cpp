@@ -1203,10 +1203,11 @@ TEST_F(ClientEntityEyeHeightTest, DifferentEntityTypesHaveDifferentEyeHeights)
     EXPECT_NE(pigEyeHeight, cowEyeHeight);
     EXPECT_NE(pigEyeHeight, chickenEyeHeight);
 
-    // 验证具体值：pig=0.9*0.85=0.765, cow=1.4*0.85=1.19, chicken=0.7*0.85=0.595
+    // 验证具体值：与原版 EntityType.Builder.eyeHeight 一致（pig 0.765、cow 1.3、chicken 0.644），
+    // 不是 height * 0.85 的旧口径（牛 1.19、鸡 0.595 都来自这个错误公式）。
     EXPECT_FLOAT_EQ(pigEyeHeight, 0.765f);
-    EXPECT_FLOAT_EQ(cowEyeHeight, 1.19f);
-    EXPECT_FLOAT_EQ(chickenEyeHeight, 0.595f);
+    EXPECT_FLOAT_EQ(cowEyeHeight, 1.3f);
+    EXPECT_FLOAT_EQ(chickenEyeHeight, 0.644f);
 }
 
 TEST_F(ClientEntityEyeHeightTest, EyeHeightInitialValueBeforeRefresh)

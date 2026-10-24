@@ -301,11 +301,12 @@ protected:
     void SetUp() override { VanillaBlocks::initialize(); }
 };
 
-TEST_F(TestBlockTest, DefaultModeIsFail)
+TEST_F(TestBlockTest, DefaultModeIsStart)
 {
+    // 原版测试方块的默认模式是 START。
     ASSERT_NE(VanillaBlocks::TEST_BLOCK, nullptr);
     const BlockState& state = VanillaBlocks::TEST_BLOCK->defaultState();
-    EXPECT_EQ(state.get(BlockStateProperties::TEST_BLOCK_MODE()), BlockStateProperties::TestBlockMode::Fail);
+    EXPECT_EQ(state.get(BlockStateProperties::TEST_BLOCK_MODE()), BlockStateProperties::TestBlockMode::Start);
 }
 
 TEST_F(TestBlockTest, TestBlockIsGameMasterAndHasBlockEntity)
@@ -342,8 +343,9 @@ TEST_F(TestBlockTest, StartModeOutputsRedstoneWhenPowered)
 TEST_F(TestBlockTest, NonStartModeOutputsNoRedstone)
 {
     DebugStickTestWorld world;
-    // 默认 Fail 模式
-    const BlockState& failState = VanillaBlocks::TEST_BLOCK->defaultState();
+    // 显式用 FAIL 模式（默认已是 START）
+    const BlockState failState = VanillaBlocks::TEST_BLOCK->defaultState().with(
+        BlockStateProperties::TEST_BLOCK_MODE(), BlockStateProperties::TestBlockMode::Fail);
     world.setBlockState(0, 64, 0, &failState);
 
     auto be = VanillaBlocks::TEST_BLOCK->createBlockEntity(BlockPos(0, 64, 0));

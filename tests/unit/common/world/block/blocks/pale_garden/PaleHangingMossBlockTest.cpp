@@ -260,10 +260,11 @@ TEST_F(PaleHangingMossBlockTest, Create_HasCorrectProperties)
     EXPECT_NE(moss_, nullptr);
 }
 
-TEST_F(PaleHangingMossBlockTest, DefaultState_TipIsFalse)
+TEST_F(PaleHangingMossBlockTest, DefaultState_TipIsTrue)
 {
+    // 原版苍白垂苔默认是顶端状态。
     const BlockState& state = moss_->defaultState();
-    EXPECT_FALSE(state.get(BlockStateProperties::TIP()));
+    EXPECT_TRUE(state.get(BlockStateProperties::TIP()));
 }
 
 TEST_F(PaleHangingMossBlockTest, WithTip_True)

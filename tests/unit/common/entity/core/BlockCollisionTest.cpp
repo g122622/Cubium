@@ -28,6 +28,7 @@
 #include "common/entity/attribute/Attributes.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/damage/DamageSource.hpp"
+#include "common/util/property/Properties.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/block/BlockState.hpp"
@@ -232,8 +233,10 @@ TEST(BlockCollisionTest, LivingEntityPushedByBubbleColumnViaAiStep)
 
     BlockCollisionTestWorld world;
 
-    // 放置气泡柱方块（上推模式，DRAG=false）
-    const BlockState& bubbleState = VanillaBlocks::BUBBLE_COLUMN->defaultState();
+    // 放置气泡柱方块（上推模式，DRAG=false）。默认状态是 drag=true（下沉模式），
+    // 与游戏里「灵魂沙生成向上涌流」的写法一致：放置时由流体状态显式改成 false。
+    const BlockState bubbleState = VanillaBlocks::BUBBLE_COLUMN->defaultState().with(
+        BlockStateProperties::DRAG(), false);
     world.setBlockAt(BlockPos(0, 0, 0), &bubbleState);
 
     TestLivingEntity entity(&world, mc::test::testEcsRegistry());

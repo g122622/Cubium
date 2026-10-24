@@ -612,11 +612,11 @@ TEST_F(BlockInteractionManagerPlacementTest, PlaceTestBlock_CreatesTestBlockEnti
     ASSERT_NE(placed, nullptr);
     EXPECT_TRUE(placed->is(VanillaBlocks::TEST_BLOCK));
 
-    // 测试方块实体已被创建，默认 MODE=Fail
+    // 测试方块实体已被创建，默认 MODE=START（与原版 TestBlock 一致）
     BlockEntity* blockEntity = m_world->getBlockEntity(BlockPos(0, 64, 0));
     ASSERT_NE(blockEntity, nullptr);
     EXPECT_EQ(blockEntity->getType(), BlockEntityType::TestBlock);
-    EXPECT_EQ(placed->get(BlockStateProperties::TEST_BLOCK_MODE()), BlockStateProperties::TestBlockMode::Fail);
+    EXPECT_EQ(placed->get(BlockStateProperties::TEST_BLOCK_MODE()), BlockStateProperties::TestBlockMode::Start);
 }
 
 // ============================================================================

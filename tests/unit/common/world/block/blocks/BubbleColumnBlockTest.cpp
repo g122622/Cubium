@@ -375,10 +375,11 @@ TEST_F(BubbleColumnBlockTest, IsDrag_ReturnsCorrectValue)
 
 // ========== 默认状态测试 ==========
 
-TEST_F(BubbleColumnBlockTest, DefaultState_IsNotDrag)
+TEST_F(BubbleColumnBlockTest, DefaultState_IsDrag)
 {
+    // 原版气泡柱的默认状态是 drag=true（向上涌流在放置时由流体状态改写）。
     const BlockState& defaultState = VanillaBlocks::BUBBLE_COLUMN->defaultState();
-    EXPECT_FALSE(defaultState.get(BlockStateProperties::DRAG()));
+    EXPECT_TRUE(defaultState.get(BlockStateProperties::DRAG()));
 }
 
 // ========== MagmaBlock 测试 ==========
