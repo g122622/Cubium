@@ -29,7 +29,7 @@
 #include <memory>
 #include <optional>
 #include <string>
-#include <nlohmann/json_fwd.hpp>
+#include <nlohmann/json.hpp>
 
 namespace mc {
 namespace loot {

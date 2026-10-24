@@ -23,9 +23,9 @@
 
 #include "SetComponentsFunction.hpp"
 #include "common/item/core/ItemStack.hpp"
-static_assert(sizeof(mc::ItemStack) > 0, "ItemStack complete?");
 #include "common/item/loot/context/LootContext.hpp"
 #include "common/item/loot/functions/LootFunction.hpp"
+#include "common/util/assert/AssertMacros.hpp"
 #include <memory>
 
 namespace mc {
