@@ -89,7 +89,8 @@ public final class EntityAttributesOracle {
             "follow_range",
             "attack_damage",
             "armor",
-            "knockback_resistance");
+            "knockback_resistance",
+            "armor_toughness");
 
     /**
      * 键名 → 属性 Holder。
@@ -105,6 +106,7 @@ public final class EntityAttributesOracle {
         map.put("attack_damage", Attributes.ATTACK_DAMAGE);
         map.put("armor", Attributes.ARMOR);
         map.put("knockback_resistance", Attributes.KNOCKBACK_RESISTANCE);
+        map.put("armor_toughness", Attributes.ARMOR_TOUGHNESS);
         return map;
     }
 

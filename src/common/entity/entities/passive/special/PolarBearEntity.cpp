@@ -413,6 +413,7 @@ void PolarBearEntity::registerAttributes()
     attributes().setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.25);
     attributes().registerAttribute(*entity::attribute::Attributes::attackDamage());
     attributes().setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, 6.0);
+    // 原版 PolarBear.createAttributes 显式写 ARMOR 0。
 }
 
 // ==================== PolarBearMeleeAttackGoal ====================

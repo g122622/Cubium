@@ -98,7 +98,7 @@ std::unique_ptr<Entity> GoatEntity::create(IWorld* /*world*/, ecs::EntityRegistr
 
 void GoatEntity::registerAttributes()
 {
-    // 对齐 vanilla Goat.createAttributes：Animal 默认 + 生命 10 + 移速 0.2 + 攻击 2。
+    // 对齐 vanilla Goat.createAttributes：Animal 默认 + 生命 10 + 移速 0.2 + 攻击 2 + 护甲 0。
     AnimalEntity::registerAttributes();
     attributes().setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 10.0);
     attributes().setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.2);

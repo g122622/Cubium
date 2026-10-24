@@ -804,6 +804,7 @@ void AbstractNautilusEntity::registerAttributes()
     attributes().registerAttribute(*entity::attribute::Attributes::attackDamage());
     attributes().setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, 3.0f);
     attributes().setBaseValue(entity::attribute::Attributes::KNOCKBACK_RESISTANCE, 0.3f);
+    // 原版 Nautilus.createAttributes 显式写 ARMOR 0（默认值也是 0，这里写明以对齐出处）。
 }
 
 // ============================================================================

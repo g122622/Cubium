@@ -450,6 +450,7 @@ void DolphinEntity::registerAttributes()
     // 最大生命值: 10.0
     // 移动速度: 1.2
     // 攻击伤害: 3.0
+    // 护甲: 0（原版 Dolphin.createAttributes 显式写 ARMOR 0）
     attributes().setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 10.0);
     attributes().setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 1.2);
     // 原版 Dolphin.createAttributes 自带 ATTACK_DAMAGE 3。

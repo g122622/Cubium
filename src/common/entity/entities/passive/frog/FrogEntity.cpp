@@ -387,6 +387,7 @@ void FrogEntity::registerAttributes()
     // STEP_HEIGHT 在本项目是实体字段而非属性（vanilla 1.21 起才有该属性），直接设置。
     setStepHeight(FROG_STEP_HEIGHT);
     attributes().setBaseValue(entity::attribute::Attributes::FOLLOW_RANGE, FROG_FOLLOW_RANGE);
+    // 原版 Frog.createAttributes 显式写 ARMOR 0。
 }
 
 void FrogEntity::registerData()

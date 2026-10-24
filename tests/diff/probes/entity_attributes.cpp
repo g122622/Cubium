@@ -79,6 +79,7 @@ constexpr TrackedAttribute TRACKED_ATTRIBUTES[] = {
     {entity::attribute::Attributes::ATTACK_DAMAGE, "attack_damage"},
     {entity::attribute::Attributes::ARMOR, "armor"},
     {entity::attribute::Attributes::KNOCKBACK_RESISTANCE, "knockback_resistance"},
+    {entity::attribute::Attributes::ARMOR_TOUGHNESS, "armor_toughness"},
 };
 
 void ensureEntities()

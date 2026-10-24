@@ -230,6 +230,7 @@ void AxolotlEntity::registerAttributes()
     // 最大生命值: 14.0 (7颗心)
     // 移动速度: 1.0
     // 攻击伤害: 2.0 (1颗心)
+    // 护甲: 0（原版 Axolotl.createAttributes 显式写 ARMOR 0，本实现不设，保持默认值即可）
     attributes().setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 14.0);
     attributes().setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 1.0);
     // WaterMob 继承链上没有攻击伤害属性，原版 Axolotl.createAttributes 自带 ATTACK_DAMAGE 2。
