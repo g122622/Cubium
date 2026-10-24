@@ -566,15 +566,6 @@ void QuickJSBindingContext::setOpaque(void* obj, void* data, u64 classId)
 void* QuickJSBindingContext::getOpaque(void* obj, u64 classId) const
 {
     JSValue val = unwrapValue(obj);
-    { // TODO: 临时调试输出，确认 ItemStack unwrap 失败原因（排查完删除）
-        static std::atomic<i32> s_probeCount{0};
-        const i32 probeIndex = s_probeCount.fetch_add(1);
-        if (probeIndex < 12 && classId != 0) {
-            JSClassID actual = JS_GetClassID(val);
-            spdlog::warn("[PROBE] getOpaque#{} requested classId={} actualClassId={} isObject={} protoHandles={}",
-                probeIndex, classId, static_cast<u64>(actual), JS_IsObject(val), m_classProtoHandles.size());
-        }
-    }
     // classId=0 在抽象层语义为"不检查类型，取任意 opaque"（ScriptObjectRegistry::unwrap 默认值）。
     // 但 QuickJS 的 JS_GetOpaque 要求 p->class_id 精确等于传入 class_id，class_id=0 只能取
     // class_id=0 的对象，对实际 class_id!=0 的包装对象一律返回 NULL。故 classId=0 时改用
