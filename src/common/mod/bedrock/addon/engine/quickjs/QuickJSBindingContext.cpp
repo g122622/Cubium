@@ -578,6 +578,13 @@ void* QuickJSBindingContext::getOpaque(void* obj, u64 classId) const
     }
 
     if (JS_GetClassID(val) == static_cast<JSClassID>(classId)) {
+        // TODO: 定位 ItemStack 解包失败根因后移除本诊断输出。
+        static std::atomic<i32> s_diagIdCheck{0};
+        if (classId >= 360 && classId <= 370 && s_diagIdCheck.fetch_add(1) < 6) {
+            spdlog::warn("[DIAG2] getOpaque id-path classId={} opaque={}",
+                classId,
+                JS_GetOpaque(val, static_cast<JSClassID>(classId)) != nullptr);
+        }
         return JS_GetOpaque(val, static_cast<JSClassID>(classId));
     }
 
