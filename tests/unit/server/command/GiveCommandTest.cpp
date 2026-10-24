@@ -49,7 +49,7 @@ class GiveTestServer final : public mc::test::BaseTestServer {
 public:
     GiveTestServer()
     {
-        Items::initialize();
+        Items::ensureInitialized();
     }
 
     // 覆盖 dimensionManager，返回一个未注册任何维度的空 DimensionManager。
@@ -78,7 +78,7 @@ class GiveCommandTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        Items::initialize();
+        Items::ensureInitialized();
         GiveCommand::registerTo(m_server.commandRegistry().dispatcher());
     }
 

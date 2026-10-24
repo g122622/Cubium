@@ -51,7 +51,7 @@ Item* ensureTestItem(const char* path)
 
 TEST(ItemStackJsonTest, RoundTrip_WithRegisteredItem_PreservesItemAndCount)
 {
-    Items::initialize();
+    Items::ensureInitialized();
     Item* diamond = ensureTestItem("diamond");
     ASSERT_NE(diamond, nullptr);
 
@@ -68,7 +68,7 @@ TEST(ItemStackJsonTest, RoundTrip_WithRegisteredItem_PreservesItemAndCount)
 
 TEST(ItemStackJsonTest, RoundTrip_PreservesNestedTagData)
 {
-    Items::initialize();
+    Items::ensureInitialized();
     Item* diamond = ensureTestItem("diamond");
     ASSERT_NE(diamond, nullptr);
 

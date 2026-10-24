@@ -69,7 +69,7 @@ class ItemStackBridgeExtraTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        Items::initialize();
+        Items::ensureInitialized();
         m_sword = ItemRegistry::instance().getItem(ResourceLocation("minecraft:diamond_sword"));
         ASSERT_NE(m_sword, nullptr);
         // JavaItemIdMap 须在 Items::initialize 后初始化；bridge 边界用它翻译 id。

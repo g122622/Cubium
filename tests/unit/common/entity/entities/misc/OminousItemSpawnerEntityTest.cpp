@@ -261,7 +261,7 @@ protected:
     static void SetUpTestSuite()
     {
         VanillaBlocks::initialize();
-        Items::initialize();
+        Items::ensureInitialized();
     }
 
     void SetUp() override
@@ -419,7 +419,7 @@ protected:
     static void SetUpTestSuite()
     {
         VanillaBlocks::initialize();
-        Items::initialize();
+        Items::ensureInitialized();
     }
 };
 
@@ -758,7 +758,7 @@ protected:
     static void SetUpTestSuite()
     {
         VanillaBlocks::initialize();
-        Items::initialize();
+        Items::ensureInitialized();
         entity::VanillaEntities::registerAll();
     }
 

@@ -89,7 +89,7 @@ protected:
     static void SetUpTestSuite()
     {
         VanillaBlocks::initialize();
-        Items::initialize();
+        Items::ensureInitialized();
     }
 
     /// 获取 stone 物品，用于构造 ItemEntity 的 ItemStack。

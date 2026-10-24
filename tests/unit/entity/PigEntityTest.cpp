@@ -43,12 +43,12 @@ namespace {
 class PigEntityEquipableTest : public ::testing::Test {
 protected:
     // Items::CARROT/SADDLE 等指针默认 nullptr,ItemStack(nullptr,1) 退化为空,
-    // 致 isBreedingItem/canEquip 误判;需 Items::initialize() 注册原版物品。
+    // 致 isBreedingItem/canEquip 误判;需 Items::ensureInitialized() 注册原版物品。
     // Items::initialize 依赖 VanillaBlocks,故一并初始化。
     void SetUp() override
     {
         VanillaBlocks::initialize();
-        Items::initialize();
+        Items::ensureInitialized();
         pig = std::make_unique<PigEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
     }
 
@@ -156,12 +156,12 @@ TEST_F(PigEntityEquipableTest, CannotEquipToInvalidSlot)
 class PigEntityRideableTest : public ::testing::Test {
 protected:
     // Items::SADDLE 默认 nullptr，getEquipment(hasSaddle()) 返回的 ItemStack(nullptr,1)
-    // 退化为空，致装备同步断言误判；需 Items::initialize() 注册原版物品。
+    // 退化为空，致装备同步断言误判；需 Items::ensureInitialized() 注册原版物品。
     // Items::initialize 依赖 VanillaBlocks，故一并初始化。
     void SetUp() override
     {
         VanillaBlocks::initialize();
-        Items::initialize();
+        Items::ensureInitialized();
         pig = std::make_unique<PigEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
     }
 
@@ -249,11 +249,11 @@ TEST_F(PigEntityRideableTest, SaddleSyncsWithEquipableInterface)
 class PigEntityBasicTest : public ::testing::Test {
 protected:
     // Items::CARROT/POTATO/BEETROOT 指针默认 nullptr,ItemStack(nullptr,1) 退化为空,
-    // 致 isBreedingItem(carrot) 误判为 false;需 Items::initialize() 注册原版物品。
+    // 致 isBreedingItem(carrot) 误判为 false;需 Items::ensureInitialized() 注册原版物品。
     void SetUp() override
     {
         VanillaBlocks::initialize();
-        Items::initialize();
+        Items::ensureInitialized();
         pig = std::make_unique<PigEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
     }
 

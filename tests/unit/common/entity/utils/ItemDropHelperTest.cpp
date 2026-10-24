@@ -50,7 +50,7 @@ protected:
     static void SetUpTestSuite()
     {
         VanillaBlocks::initialize();
-        Items::initialize();
+        Items::ensureInitialized();
         // 注册原版实体类型，使 VanillaEntityTypeKeys::ITEM 全局缓存与注册表一致。
         // 本文件 SpawnItemEntities_SetsTypeIdToItem 等用例断言
         // entity->entityType() == VanillaEntityTypeKeys::ITEM，二者必须来自同一已初始化

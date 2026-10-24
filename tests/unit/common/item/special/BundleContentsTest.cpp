@@ -42,7 +42,7 @@ protected:
     {
         // 初始化顺序：方块 → 物品（收纳袋依赖 Items::initialize 注册）
         VanillaBlocks::initialize();
-        Items::initialize();
+        Items::ensureInitialized();
     }
 };
 

@@ -40,7 +40,7 @@ protected:
     void SetUp() override
     {
         // 每个测试前重置 Items
-        // 注意：Items::initialize() 只能调用一次
+        // 注意：Items::ensureInitialized() 只能调用一次
     }
 };
 
@@ -122,7 +122,7 @@ class ItemTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        Items::initialize();
+        Items::ensureInitialized();
     }
 };
 
@@ -168,7 +168,7 @@ TEST_F(ItemTest, StackableItem)
 TEST_F(ItemTest, RarityItems)
 {
     // 期望值取自原版 jar 的 RARITY 组件（tests/diff 的 item_components 能力逐条对过）：
-    // 钻石是 common，下界之星是 rare。注册时写没写都不作数——Items::initialize()
+    // 钻石是 common，下界之星是 rare。注册时写没写都不作数——Items::ensureInitialized()
     // 末尾会按原版数据统一覆盖。
     Item* diamond = ItemRegistry::instance().getItem(ResourceLocation("minecraft:diamond"));
     ASSERT_NE(diamond, nullptr);
@@ -394,7 +394,7 @@ class ItemStackTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        Items::initialize();
+        Items::ensureInitialized();
         m_diamond = ItemRegistry::instance().getItem(ResourceLocation("minecraft:diamond"));
         m_diamondSword = ItemRegistry::instance().getItem(ResourceLocation("minecraft:diamond_sword"));
         m_stick = ItemRegistry::instance().getItem(ResourceLocation("minecraft:stick"));
@@ -658,7 +658,7 @@ class ItemRegistryTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        Items::initialize();
+        Items::ensureInitialized();
     }
 };
 

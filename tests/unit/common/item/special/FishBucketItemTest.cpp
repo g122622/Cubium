@@ -130,7 +130,7 @@ protected:
     {
         // 流体注册表必须在物品注册之前初始化
         fluid::FluidRegistry::instance().initialize();
-        Items::initialize();
+        Items::ensureInitialized();
         // 放鱼链路（FishBucketItem::_spawnFish → EntityRegistry::getType）须实体类型已注册
         entity::VanillaEntities::registerAll();
     }

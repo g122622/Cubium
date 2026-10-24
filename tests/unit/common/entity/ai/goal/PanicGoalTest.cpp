@@ -118,7 +118,7 @@ protected:
         entity::VanillaEntities::registerAll();
         item::enchant::EnchantmentRegistry::clear();
         item::enchant::EnchantmentRegistry::initialize();
-        Items::initialize();
+        Items::ensureInitialized();
         // 伤害类型标签初始化（进程级幂等）。PANIC_CAUSES/PANIC_ENVIRONMENTAL_CAUSES 成员集在
         // initialize() 注册。未初始化时标签成员集为空，source.is(PANIC_CAUSES) 恒返 false，
         // shouldPanic 恒 false——这正是缺陷状态下任何伤害都不恐慌的根因。
@@ -200,7 +200,7 @@ protected:
         entity::VanillaEntities::registerAll();
         item::enchant::EnchantmentRegistry::clear();
         item::enchant::EnchantmentRegistry::initialize();
-        Items::initialize();
+        Items::ensureInitialized();
         DamageTypeTags::initialize();
     }
 

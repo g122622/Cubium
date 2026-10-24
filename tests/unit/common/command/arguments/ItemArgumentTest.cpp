@@ -61,7 +61,7 @@ protected:
     static void SetUpTestSuite()
     {
         // 初始化物品注册表（只执行一次）
-        Items::initialize();
+        Items::ensureInitialized();
         ItemTags::initialize();
     }
 };
@@ -305,7 +305,7 @@ protected:
 
     static void SetUpTestSuite()
     {
-        Items::initialize();
+        Items::ensureInitialized();
         ItemTags::initialize();
     }
 };

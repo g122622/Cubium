@@ -111,7 +111,7 @@ class InventorySlotsTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        Items::initialize();
+        Items::ensureInitialized();
     }
 };
 
@@ -151,7 +151,7 @@ class PlayerInventoryTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        Items::initialize();
+        Items::ensureInitialized();
         m_inventory = std::make_unique<PlayerInventory>(nullptr);
 
         m_diamond = ItemRegistry::instance().getItem(ResourceLocation("minecraft:diamond"));
@@ -516,7 +516,7 @@ class SlotTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        Items::initialize();
+        Items::ensureInitialized();
         item::enchant::EnchantmentRegistry::initialize();
         m_inventory = std::make_unique<PlayerInventory>(nullptr);
         m_diamond = ItemRegistry::instance().getItem(ResourceLocation("minecraft:diamond"));
@@ -802,7 +802,7 @@ class IInventoryInterfaceTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        Items::initialize();
+        Items::ensureInitialized();
         m_inventory = std::make_unique<PlayerInventory>(nullptr);
     }
 
@@ -896,7 +896,7 @@ class IInventoryEdgeCaseTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        Items::initialize();
+        Items::ensureInitialized();
         m_inventory = std::make_unique<PlayerInventory>(nullptr);
     }
 
@@ -986,7 +986,7 @@ protected:
     void SetUp() override
     {
         VanillaBlocks::initialize();
-        Items::initialize();
+        Items::ensureInitialized();
         item::enchant::EnchantmentRegistry::initialize();
         m_inventory = std::make_unique<PlayerInventory>(nullptr);
     }

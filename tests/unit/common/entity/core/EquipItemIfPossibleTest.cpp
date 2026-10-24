@@ -72,7 +72,7 @@ class PickupTestWorld final : public mc::test::BaseTestWorld {
 public:
     PickupTestWorld()
     {
-        Items::initialize();
+        Items::ensureInitialized();
     }
 
     EntityInstanceId spawnEntity(std::unique_ptr<Entity> entity) override
@@ -96,7 +96,7 @@ protected:
     {
         static bool s_initialized = false;
         if (!s_initialized) {
-            Items::initialize();
+            Items::ensureInitialized();
             item::tag::ItemTags::initialize();
             VanillaBlocks::initialize();
             s_initialized = true;
@@ -254,7 +254,7 @@ TEST_F(EquipItemIfPossibleTest, EquipWeapon_PreferredTagReplacesStrongerNonPrefe
 // 偏好武器标签已在 ItemTags 注册，成员与原版标签文件一致。
 TEST(PreferredWeaponTagsTest, VanillaMembersRegistered)
 {
-    Items::initialize();
+    Items::ensureInitialized();
     item::tag::ItemTags::initialize();
     EXPECT_TRUE(item::tag::ItemTags::SKELETON_PREFERRED_WEAPONS().contains(ItemStack(Items::BOW, 1)));
     EXPECT_TRUE(item::tag::ItemTags::PILLAGER_PREFERRED_WEAPONS().contains(ItemStack(Items::CROSSBOW, 1)));

@@ -831,7 +831,7 @@ protected:
     void SetUp() override
     {
         VanillaBlocks::initialize();
-        Items::initialize();
+        Items::ensureInitialized();
 
         waterCauldron_ = std::make_unique<LayeredCauldronBlock>(
             BlockProperties(Material::IRON).hardness(2.0f).resistance(2.0f).notSolid(),
@@ -1657,7 +1657,7 @@ protected:
     void SetUp() override
     {
         VanillaBlocks::initialize();
-        Items::initialize();
+        Items::ensureInitialized();
         fluid::FluidRegistry::instance().initialize();
         fluid::FluidTags::initialize();
 

@@ -49,7 +49,7 @@ protected:
         // 初始化顺序：先初始化材质，再初始化物品
         ArmorMaterials::initialize();
         VanillaBlocks::initialize();
-        Items::initialize();
+        Items::ensureInitialized();
         ItemTags::initialize();
     }
 };

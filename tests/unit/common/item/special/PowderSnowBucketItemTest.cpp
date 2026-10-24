@@ -114,7 +114,7 @@ protected:
         // 流体注册表必须在物品注册之前初始化
         fluid::FluidRegistry::instance().initialize();
         VanillaBlocks::initialize();
-        Items::initialize();
+        Items::ensureInitialized();
     }
 
     void SetUp() override

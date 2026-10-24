@@ -53,7 +53,7 @@ protected:
     {
         ArmorMaterials::initialize();
         VanillaBlocks::initialize();
-        Items::initialize();
+        Items::ensureInitialized();
     }
 };
 
@@ -276,7 +276,7 @@ protected:
     {
         ArmorMaterials::initialize();
         VanillaBlocks::initialize();
-        Items::initialize();
+        Items::ensureInitialized();
     }
 };
 

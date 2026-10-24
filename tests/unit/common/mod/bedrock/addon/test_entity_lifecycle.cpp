@@ -128,7 +128,7 @@ TEST_F(AddonEntityLifecycleTest, DeathFiltersReceiveFatalCauseAndActualAttacker)
 
 TEST_F(AddonEntityLifecycleTest, TotemRescueDoesNotTriggerDeath)
 {
-    Items::initialize();
+    Items::ensureInitialized();
     const auto* totem = ItemRegistry::instance().getItem(ResourceLocation("minecraft:totem_of_undying"));
     ASSERT_NE(totem, nullptr);
     auto entity = create(_definition(true));

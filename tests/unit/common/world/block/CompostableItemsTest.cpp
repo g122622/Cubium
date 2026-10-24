@@ -43,9 +43,9 @@ protected:
     static void SetUpTestSuite()
     {
         // 初始化物品系统
-        Items::initialize();
+        Items::ensureInitialized();
         // 初始化可堆肥物品注册表
-        CompostableItems::initialize();
+        CompostableItems::ensureInitialized();
     }
 };
 

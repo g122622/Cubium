@@ -458,7 +458,7 @@ class EnchantmentHelperLocationTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        Items::initialize();
+        Items::ensureInitialized();
         EnchantmentRegistry::clear();
         EnchantmentRegistry::initialize();
     }
@@ -728,7 +728,7 @@ protected:
     {
         static bool s_initialized = false;
         if (!s_initialized) {
-            Items::initialize();
+            Items::ensureInitialized();
             VanillaBlocks::initialize();
             BlockTags::initialize();
             fluid::FluidRegistry::instance().initialize();
@@ -936,7 +936,7 @@ protected:
     {
         static bool s_initialized = false;
         if (!s_initialized) {
-            Items::initialize();
+            Items::ensureInitialized();
             VanillaBlocks::initialize();
             BlockTags::initialize();
             fluid::FluidRegistry::instance().initialize();
@@ -1175,7 +1175,7 @@ protected:
     {
         static bool s_initialized = false;
         if (!s_initialized) {
-            Items::initialize();
+            Items::ensureInitialized();
             VanillaBlocks::initialize();
             BlockTags::initialize();
             fluid::FluidRegistry::instance().initialize();

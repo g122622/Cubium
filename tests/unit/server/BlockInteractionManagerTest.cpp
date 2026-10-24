@@ -98,7 +98,7 @@ protected:
     void SetUp() override
     {
         VanillaBlocks::initialize();
-        Items::initialize();
+        Items::ensureInitialized();
         BlockItemRegistry::instance().initializeVanillaBlockItems();
         // 注册原版实体类型（盔甲架 / 末影水晶 / 物品展示框放置类物品需经 EntityRegistry 取类型）
         entity::VanillaEntities::registerAll();

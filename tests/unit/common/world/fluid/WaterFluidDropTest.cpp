@@ -228,23 +228,23 @@ void ensureRegistriesInitialized()
         // 本测试断言 entity->entityType() == VanillaEntityTypeKeys::ITEM，二者必须来自同一
         // 已初始化的实体注册表，避免依赖前置测试的隐式注册状态（测试顺序污染）。
         entity::VanillaEntities::registerAll();
-        // 用 try/catch 包裹 Items::initialize()，吸收旗帜物品双注册异常。
+        // 用 try/catch 包裹 Items::ensureInitialized()，吸收旗帜物品双注册异常。
         // 测试顺序污染场景：若 FallingBlockEntityTest::SetUp 先跑过
         // BlockItemRegistry::initializeVanillaBlockItems()，会把 minecraft:white_banner 等
-        // 注册为 BlockItem；随后 Items::initialize() -> _registerBanners() 试图把同一 id
+        // 注册为 BlockItem；随后 Items::ensureInitialized() -> _registerBanners() 试图把同一 id
         // 注册为 BannerItem（不同子类型），ItemRegistry::registerItem<BannerItem> 内的
         // dynamic_cast<BannerItem*> 失败会抛 "Item id already registered with different type"。
         // 由于 _registerBanners 在 _registerFood(设 APPLE) 与 _registerBuildingBlocks(设 STONE)
         // 之后才执行，异常发生时 Items::APPLE / Items::STONE 等前序物品指针已设置，
         // 本测试文件用例所需的物品（APPLE/STONE）均已可用，故该异常对本测试是良性的，可安全忽略。
-        // TODO: 生产代码 Items::initialize() 抛异常后 s_initialized 仍为 false，后续其它测试
-        // 直接调用 Items::initialize() 会重入并再次抛出。当前仅靠本文件的 call_once 隔离，
+        // TODO: 生产代码 Items::ensureInitialized() 抛异常后 s_initialized 仍为 false，后续其它测试
+        // 直接调用 Items::ensureInitialized() 会重入并再次抛出。当前仅靠本文件的 call_once 隔离，
         // 若未来测试顺序变化导致其它 ItemTest 在本文件之后运行，需要进一步隔离。
         try {
-            Items::initialize();
+            Items::ensureInitialized();
         }
         catch (const std::exception& e) {
-            spdlog::warn("Items::initialize() threw (likely banner double-registration from test "
+            spdlog::warn("Items::ensureInitialized() threw (likely banner double-registration from test "
                          "order pollution), ignoring: {}",
                 e.what());
         }

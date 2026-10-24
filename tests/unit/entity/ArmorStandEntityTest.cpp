@@ -109,7 +109,7 @@ class ArmorStandEntityTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        Items::initialize();
+        Items::ensureInitialized();
         VanillaBlocks::initialize();
         VanillaEntities::registerAll();
     }

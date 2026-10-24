@@ -49,7 +49,7 @@ class MobEquipmentTestWorld final : public mc::test::BaseTestWorld {
 public:
     MobEquipmentTestWorld()
     {
-        Items::initialize();
+        Items::ensureInitialized();
         VanillaBlocks::initialize();
     }
 

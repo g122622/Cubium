@@ -57,7 +57,7 @@ protected:
     {
         // 初始化方块和物品
         VanillaBlocks::initialize();
-        Items::initialize();
+        Items::ensureInitialized();
         BlockItemRegistry::instance().initializeVanillaBlockItems();
 
         // 创建玩家

@@ -215,7 +215,7 @@ class PlayerAsServerPlayerTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        // Items::initialize() 不需要，因为只测试 Player 类型转换
+        // Items::ensureInitialized() 不需要，因为只测试 Player 类型转换
     }
 };
 

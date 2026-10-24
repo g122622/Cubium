@@ -316,7 +316,7 @@ class ChestEntityTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        Items::initialize();
+        Items::ensureInitialized();
         chest_ = std::make_unique<ChestEntity>(BlockPos(10, 20, 30));
         chest_->setWorld(&world_);
         m_diamond = ensureTestItem("diamond");
@@ -496,7 +496,7 @@ class TrappedChestEntityTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        Items::initialize();
+        Items::ensureInitialized();
         trappedChest_ = std::make_unique<TrappedChestEntity>(BlockPos(5, 10, 15));
         m_diamond = ensureTestItem("diamond");
     }
@@ -566,7 +566,7 @@ class SimpleInventoryTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        Items::initialize();
+        Items::ensureInitialized();
         inventory_ = std::make_unique<SimpleInventory>(27);
         m_diamond = ensureTestItem("diamond");
         m_stick = ensureTestItem("stick");
@@ -912,7 +912,7 @@ class ChestEntityTickTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        Items::initialize();
+        Items::ensureInitialized();
         chest_ = std::make_unique<ChestEntity>(BlockPos(10, 20, 30));
         chest_->setWorld(&world_);
     }
@@ -1360,7 +1360,7 @@ class ChestEntityOwnContainerTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        Items::initialize();
+        Items::ensureInitialized();
         chest_ = std::make_unique<ChestEntity>(BlockPos(0, 64, 0));
         chest_->setWorld(&world_);
     }

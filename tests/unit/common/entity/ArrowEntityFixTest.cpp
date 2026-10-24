@@ -46,7 +46,7 @@ protected:
     void SetUp() override
     {
         // 初始化物品注册表（附魔系统依赖）
-        Items::initialize();
+        Items::ensureInitialized();
     }
 
     void TearDown() override {}

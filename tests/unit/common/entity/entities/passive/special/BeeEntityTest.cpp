@@ -485,7 +485,7 @@ protected:
         // 初始化顺序：方块 -> 方块标签 -> 物品 -> 方块物品 -> 物品标签
         VanillaBlocks::initialize();
         BlockTags::initialize();
-        Items::initialize();
+        Items::ensureInitialized();
         BlockItemRegistry::instance().initializeVanillaBlockItems();
         item::tag::ItemTags::initialize();
     }
@@ -1122,7 +1122,7 @@ protected:
         // 初始化顺序：方块 -> 方块标签 -> 物品 -> 方块物品 -> 物品标签
         VanillaBlocks::initialize();
         BlockTags::initialize();
-        Items::initialize();
+        Items::ensureInitialized();
         BlockItemRegistry::instance().initializeVanillaBlockItems();
         item::tag::ItemTags::initialize();
     }
@@ -1519,7 +1519,7 @@ protected:
     {
         VanillaBlocks::initialize();
         BlockTags::initialize();
-        Items::initialize();
+        Items::ensureInitialized();
         BlockItemRegistry::instance().initializeVanillaBlockItems();
         item::tag::ItemTags::initialize();
     }
@@ -1890,7 +1890,7 @@ protected:
     {
         VanillaBlocks::initialize();
         BlockTags::initialize();
-        Items::initialize();
+        Items::ensureInitialized();
         BlockItemRegistry::instance().initializeVanillaBlockItems();
         item::tag::ItemTags::initialize();
     }

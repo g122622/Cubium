@@ -98,7 +98,7 @@ protected:
     {
         static bool s_initialized = false;
         if (!s_initialized) {
-            Items::initialize();
+            Items::ensureInitialized();
             s_initialized = true;
         }
     }
@@ -361,7 +361,7 @@ protected:
     {
         static bool s_initialized = false;
         if (!s_initialized) {
-            Items::initialize();
+            Items::ensureInitialized();
             s_initialized = true;
         }
     }

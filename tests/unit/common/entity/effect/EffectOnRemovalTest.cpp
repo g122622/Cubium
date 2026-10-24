@@ -111,7 +111,7 @@ class EffectOnRemovalTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        Items::initialize();
+        Items::ensureInitialized();
         VanillaBlocks::initialize();
         BlockTags::initialize();
         mc::entity::VanillaEntities::registerAll();

@@ -241,7 +241,7 @@ protected:
     {
         VanillaBlocks::initialize();
         BlockTags::initialize();
-        Items::initialize();
+        Items::ensureInitialized();
 
         m_vines =
             std::make_unique<CaveVinesBlock>(BlockProperties(Material::REPLACEABLE_PLANT).noCollision().notSolid());
@@ -451,7 +451,7 @@ protected:
     {
         VanillaBlocks::initialize();
         BlockTags::initialize();
-        Items::initialize();
+        Items::ensureInitialized();
 
         m_plant = std::make_unique<CaveVinesPlantBlock>(
             BlockProperties(Material::REPLACEABLE_PLANT).noCollision().notSolid());
@@ -595,7 +595,7 @@ class GlowBerriesItemTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        Items::initialize();
+        Items::ensureInitialized();
     }
 };
 

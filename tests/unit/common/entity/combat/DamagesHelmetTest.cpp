@@ -112,7 +112,7 @@ protected:
         // 物品初始化使 ItemStack(Items::DIAMOND_HELMET) 能解析物品类型。
         item::enchant::EnchantmentRegistry::clear();
         item::enchant::EnchantmentRegistry::initialize();
-        Items::initialize();
+        Items::ensureInitialized();
         // 伤害类型标签初始化（进程级单例，s_initialized 守卫幂等）。DAMAGES_HELMET 标签成员集
         // （= {FallingAnvil, FallingBlock, FallingStalactite}）在 initialize() 中通过 addAll 注册
         // （DamageTypeTags.cpp:811）。未初始化时标签成员集为空，source.is(DAMAGES_HELMET) 恒返 false，

@@ -36,7 +36,7 @@ protected:
     {
         VanillaBlocks::initialize();
         fluid::FluidRegistry::instance().initialize();
-        Items::initialize();
+        Items::ensureInitialized();
 
         m_player =
             std::make_unique<Player>(static_cast<EntityInstanceId>(1), "TestPlayer", mc::test::testEcsRegistry());
@@ -225,7 +225,7 @@ protected:
     {
         VanillaBlocks::initialize();
         fluid::FluidRegistry::instance().initialize();
-        Items::initialize();
+        Items::ensureInitialized();
 
         m_player =
             std::make_unique<Player>(static_cast<EntityInstanceId>(1), "TestPlayer", mc::test::testEcsRegistry());

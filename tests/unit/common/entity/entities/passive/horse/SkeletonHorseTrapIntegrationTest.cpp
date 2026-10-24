@@ -62,7 +62,7 @@ public:
     SkeletonHorseTrapTestWorld()
     {
         // 初始化物品
-        Items::initialize();
+        Items::ensureInitialized();
         // 初始化方块
         VanillaBlocks::initialize();
     }

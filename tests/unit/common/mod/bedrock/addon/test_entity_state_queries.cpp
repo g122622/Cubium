@@ -57,7 +57,7 @@ class AddonEntityStateQueryTest : public testing::Test {
 protected:
     void SetUp() override
     {
-        Items::initialize();
+        Items::ensureInitialized();
         item = ItemRegistry::instance().getItem(ResourceLocation("minecraft:stick"));
         ASSERT_NE(item, nullptr);
     }

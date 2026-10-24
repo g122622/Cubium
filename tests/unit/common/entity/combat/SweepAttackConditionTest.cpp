@@ -64,7 +64,7 @@ protected:
     {
         VanillaBlocks::initialize();
         fluid::FluidRegistry::instance().initialize();
-        Items::initialize();
+        Items::ensureInitialized();
         item::enchant::EnchantmentRegistry::initialize();
     }
 

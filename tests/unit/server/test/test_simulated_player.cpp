@@ -93,7 +93,7 @@ TEST(SimulatedPlayerTest, TodoStubsDoNotCrash)
 
 TEST(SimulatedPlayerTest, GiveItem_SelectSlotPicksSlotReceivingItem)
 {
-    mc::Items::initialize();
+    mc::Items::ensureInitialized();
     auto player = std::make_unique<mc::test::SimulatedPlayer>(
         static_cast<mc::EntityInstanceId>(1004), std::string{"GiveBot"}, mc::test::testEcsRegistry());
     ASSERT_NE(player, nullptr);
@@ -113,7 +113,7 @@ TEST(SimulatedPlayerTest, GiveItem_SelectSlotPicksSlotReceivingItem)
 
 TEST(SimulatedPlayerTest, GiveItem_MergeIntoExistingStack_SelectsThatSlot)
 {
-    mc::Items::initialize();
+    mc::Items::ensureInitialized();
     auto player = std::make_unique<mc::test::SimulatedPlayer>(
         static_cast<mc::EntityInstanceId>(1005), std::string{"MergeBot"}, mc::test::testEcsRegistry());
     ASSERT_NE(player, nullptr);
@@ -131,7 +131,7 @@ TEST(SimulatedPlayerTest, GiveItem_MergeIntoExistingStack_SelectsThatSlot)
 
 TEST(SimulatedPlayerTest, GiveItem_WithoutSelectSlot_KeepsSelection)
 {
-    mc::Items::initialize();
+    mc::Items::ensureInitialized();
     auto player = std::make_unique<mc::test::SimulatedPlayer>(
         static_cast<mc::EntityInstanceId>(1006), std::string{"NoSelectBot"}, mc::test::testEcsRegistry());
     ASSERT_NE(player, nullptr);
@@ -143,7 +143,7 @@ TEST(SimulatedPlayerTest, GiveItem_WithoutSelectSlot_KeepsSelection)
 
 TEST(SimulatedPlayerTest, SetItem_OutOfRangeReturnsFalse)
 {
-    mc::Items::initialize();
+    mc::Items::ensureInitialized();
     auto player = std::make_unique<mc::test::SimulatedPlayer>(
         static_cast<mc::EntityInstanceId>(1007), std::string{"RangeBot"}, mc::test::testEcsRegistry());
     ASSERT_NE(player, nullptr);
@@ -154,7 +154,7 @@ TEST(SimulatedPlayerTest, SetItem_OutOfRangeReturnsFalse)
 
 TEST(SimulatedPlayerTest, SetItem_SelectSlotOnlyForHotbar)
 {
-    mc::Items::initialize();
+    mc::Items::ensureInitialized();
     auto player = std::make_unique<mc::test::SimulatedPlayer>(
         static_cast<mc::EntityInstanceId>(1008), std::string{"SlotBot"}, mc::test::testEcsRegistry());
     ASSERT_NE(player, nullptr);
@@ -177,7 +177,7 @@ TEST(SimulatedPlayerTest, SetItem_SelectSlotOnlyForHotbar)
 
 TEST(SimulatedPlayerTest, MoveToLocation_SpeedScalesMovementInput)
 {
-    mc::Items::initialize();
+    mc::Items::ensureInitialized();
     auto player = std::make_unique<mc::test::SimulatedPlayer>(
         static_cast<mc::EntityInstanceId>(1009), std::string{"WalkBot"}, mc::test::testEcsRegistry());
     ASSERT_NE(player, nullptr);
@@ -209,7 +209,7 @@ TEST(SimulatedPlayerTest, MoveToLocation_SpeedScalesMovementInput)
 
 TEST(SimulatedPlayerTest, FlyToLocation_IgnoredWithoutFlightAbility)
 {
-    mc::Items::initialize();
+    mc::Items::ensureInitialized();
     auto player = std::make_unique<mc::test::SimulatedPlayer>(
         static_cast<mc::EntityInstanceId>(1011), std::string{"SurvivalBot"}, mc::test::testEcsRegistry());
     ASSERT_NE(player, nullptr);
@@ -226,7 +226,7 @@ TEST(SimulatedPlayerTest, FlyToLocation_IgnoredWithoutFlightAbility)
 
 TEST(SimulatedPlayerTest, FlyToLocation_CreativeEntersFlightTowardTarget)
 {
-    mc::Items::initialize();
+    mc::Items::ensureInitialized();
     auto player = std::make_unique<mc::test::SimulatedPlayer>(
         static_cast<mc::EntityInstanceId>(1012), std::string{"FlyBot"}, mc::test::testEcsRegistry());
     ASSERT_NE(player, nullptr);
@@ -250,7 +250,7 @@ TEST(SimulatedPlayerTest, FlyToLocation_CreativeEntersFlightTowardTarget)
 
 TEST(SimulatedPlayerTest, Jump_ReportsWhetherJumpHappened)
 {
-    mc::Items::initialize();
+    mc::Items::ensureInitialized();
     auto player = std::make_unique<mc::test::SimulatedPlayer>(
         static_cast<mc::EntityInstanceId>(1010), std::string{"JumpBot"}, mc::test::testEcsRegistry());
     ASSERT_NE(player, nullptr);

@@ -193,7 +193,7 @@ class CalcRedstoneFromInventoryTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        Items::initialize();
+        Items::ensureInitialized();
     }
 };
 
@@ -317,7 +317,7 @@ class MinecartComparatorOutputTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        Items::initialize();
+        Items::ensureInitialized();
     }
 };
 
@@ -438,7 +438,7 @@ class ItemFrameComparatorOutputTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        Items::initialize();
+        Items::ensureInitialized();
     }
 };
 
@@ -590,7 +590,7 @@ class GetEntitySignalTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        Items::initialize();
+        Items::ensureInitialized();
     }
 };
 

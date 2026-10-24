@@ -500,7 +500,7 @@ TEST(HorseBreedingTest, Llama_SpawnBaby_ProducesLlama)
 TEST(HorseBreedingTest, Horse_IsBreedingItem_GoldenApple)
 {
     VanillaBlocks::initialize();
-    Items::initialize();
+    Items::ensureInitialized();
 
     HorseBreedingTestWorld world;
     HorseEntity horse(EntityInstanceId(1), mc::test::testEcsRegistry());
@@ -514,7 +514,7 @@ TEST(HorseBreedingTest, Horse_IsBreedingItem_GoldenApple)
 TEST(HorseBreedingTest, Horse_IsBreedingItem_GoldenCarrot)
 {
     VanillaBlocks::initialize();
-    Items::initialize();
+    Items::ensureInitialized();
 
     HorseBreedingTestWorld world;
     HorseEntity horse(EntityInstanceId(1), mc::test::testEcsRegistry());
@@ -528,7 +528,7 @@ TEST(HorseBreedingTest, Horse_IsBreedingItem_GoldenCarrot)
 TEST(HorseBreedingTest, Horse_IsBreedingItem_Wheat)
 {
     VanillaBlocks::initialize();
-    Items::initialize();
+    Items::ensureInitialized();
 
     HorseBreedingTestWorld world;
     HorseEntity horse(EntityInstanceId(1), mc::test::testEcsRegistry());
@@ -543,7 +543,7 @@ TEST(HorseBreedingTest, Horse_IsBreedingItem_Wheat)
 TEST(HorseBreedingTest, Llama_IsBreedingItem_HayBlock)
 {
     VanillaBlocks::initialize();
-    Items::initialize();
+    Items::ensureInitialized();
 
     HorseBreedingTestWorld world;
     LlamaEntity llama(EntityInstanceId(1), mc::test::testEcsRegistry());
@@ -557,7 +557,7 @@ TEST(HorseBreedingTest, Llama_IsBreedingItem_HayBlock)
 TEST(HorseBreedingTest, Llama_IsBreedingItem_Wheat)
 {
     VanillaBlocks::initialize();
-    Items::initialize();
+    Items::ensureInitialized();
 
     HorseBreedingTestWorld world;
     LlamaEntity llama(EntityInstanceId(1), mc::test::testEcsRegistry());
@@ -596,7 +596,7 @@ TEST(HorseBreedingTest, Mule_CannotBreed)
 TEST(HorseBreedingTest, Horse_HandleEating_GoldenApple_TriggersBreeding)
 {
     VanillaBlocks::initialize();
-    Items::initialize();
+    Items::ensureInitialized();
 
     HorseBreedingTestWorld world;
     HorseEntity horse(EntityInstanceId(1), mc::test::testEcsRegistry());
@@ -620,7 +620,7 @@ TEST(HorseBreedingTest, Horse_HandleEating_GoldenApple_TriggersBreeding)
 TEST(HorseBreedingTest, Horse_HandleEating_GoldenCarrot_TriggersBreeding)
 {
     VanillaBlocks::initialize();
-    Items::initialize();
+    Items::ensureInitialized();
 
     HorseBreedingTestWorld world;
     HorseEntity horse(EntityInstanceId(1), mc::test::testEcsRegistry());
@@ -641,7 +641,7 @@ TEST(HorseBreedingTest, Horse_HandleEating_GoldenCarrot_TriggersBreeding)
 TEST(HorseBreedingTest, Horse_HandleEating_Wheat_NoBreeding)
 {
     VanillaBlocks::initialize();
-    Items::initialize();
+    Items::ensureInitialized();
 
     HorseBreedingTestWorld world;
     HorseEntity horse(EntityInstanceId(1), mc::test::testEcsRegistry());
@@ -672,7 +672,7 @@ TEST(HorseBreedingTest, Horse_HandleEating_Wheat_NoBreeding)
 TEST(HorseBreedingTest, Llama_HandleEating_HayBlock_TriggersBreeding)
 {
     VanillaBlocks::initialize();
-    Items::initialize();
+    Items::ensureInitialized();
 
     HorseBreedingTestWorld world;
     LlamaEntity llama(EntityInstanceId(1), mc::test::testEcsRegistry());
@@ -694,7 +694,7 @@ TEST(HorseBreedingTest, Llama_HandleEating_HayBlock_TriggersBreeding)
 TEST(HorseBreedingTest, Llama_HandleEating_Wheat_NoBreeding)
 {
     VanillaBlocks::initialize();
-    Items::initialize();
+    Items::ensureInitialized();
 
     HorseBreedingTestWorld world;
     LlamaEntity llama(EntityInstanceId(1), mc::test::testEcsRegistry());
@@ -717,7 +717,7 @@ TEST(HorseBreedingTest, Llama_HandleEating_Wheat_NoBreeding)
 TEST(HorseBreedingTest, Horse_HandleEating_GoldenApple_IncreasesTemper)
 {
     VanillaBlocks::initialize();
-    Items::initialize();
+    Items::ensureInitialized();
 
     HorseBreedingTestWorld world;
     HorseEntity horse(EntityInstanceId(1), mc::test::testEcsRegistry());
@@ -739,7 +739,7 @@ TEST(HorseBreedingTest, Horse_HandleEating_GoldenApple_IncreasesTemper)
 TEST(HorseBreedingTest, Horse_HandleEating_GoldenCarrot_IncreasesTemper)
 {
     VanillaBlocks::initialize();
-    Items::initialize();
+    Items::ensureInitialized();
 
     HorseBreedingTestWorld world;
     HorseEntity horse(EntityInstanceId(1), mc::test::testEcsRegistry());
@@ -761,7 +761,7 @@ TEST(HorseBreedingTest, Horse_HandleEating_GoldenCarrot_IncreasesTemper)
 TEST(HorseBreedingTest, Llama_HandleEating_Wheat_IncreasesTemper)
 {
     VanillaBlocks::initialize();
-    Items::initialize();
+    Items::ensureInitialized();
 
     HorseBreedingTestWorld world;
     LlamaEntity llama(EntityInstanceId(1), mc::test::testEcsRegistry());
@@ -783,7 +783,7 @@ TEST(HorseBreedingTest, Llama_HandleEating_Wheat_IncreasesTemper)
 TEST(HorseBreedingTest, Llama_HandleEating_HayBlock_IncreasesTemper)
 {
     VanillaBlocks::initialize();
-    Items::initialize();
+    Items::ensureInitialized();
 
     HorseBreedingTestWorld world;
     LlamaEntity llama(EntityInstanceId(1), mc::test::testEcsRegistry());
@@ -809,7 +809,7 @@ TEST(HorseBreedingTest, Llama_HandleEating_HayBlock_IncreasesTemper)
 TEST(HorseBreedingTest, Horse_HandleEating_AcceleratesGrowth)
 {
     VanillaBlocks::initialize();
-    Items::initialize();
+    Items::ensureInitialized();
 
     HorseBreedingTestWorld world;
     HorseEntity horse(EntityInstanceId(1), mc::test::testEcsRegistry());
@@ -833,7 +833,7 @@ TEST(HorseBreedingTest, Horse_HandleEating_AcceleratesGrowth)
 TEST(HorseBreedingTest, Llama_HandleEating_HayBlock_AcceleratesGrowth)
 {
     VanillaBlocks::initialize();
-    Items::initialize();
+    Items::ensureInitialized();
 
     HorseBreedingTestWorld world;
     LlamaEntity llama(EntityInstanceId(1), mc::test::testEcsRegistry());
@@ -860,7 +860,7 @@ TEST(HorseBreedingTest, Llama_HandleEating_HayBlock_AcceleratesGrowth)
 TEST(HorseBreedingTest, Horse_HandleEating_Heals)
 {
     VanillaBlocks::initialize();
-    Items::initialize();
+    Items::ensureInitialized();
 
     HorseBreedingTestWorld world;
     HorseEntity horse(EntityInstanceId(1), mc::test::testEcsRegistry());
@@ -888,7 +888,7 @@ TEST(HorseBreedingTest, Horse_HandleEating_Heals)
 TEST(HorseBreedingTest, Llama_HandleEating_Heals)
 {
     VanillaBlocks::initialize();
-    Items::initialize();
+    Items::ensureInitialized();
 
     HorseBreedingTestWorld world;
     LlamaEntity llama(EntityInstanceId(1), mc::test::testEcsRegistry());

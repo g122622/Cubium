@@ -38,7 +38,7 @@ protected:
     void SetUp() override
     {
         // 确保注册表已初始化
-        Items::initialize();
+        Items::ensureInitialized();
         BlockItemRegistry::instance().initializeVanillaBlockItems();
     }
 };

@@ -71,7 +71,7 @@ class ContainerScreenInteractionTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        Items::initialize();
+        Items::ensureInitialized();
         VanillaBlocks::initialize();
         BlockItemRegistry::instance().initializeVanillaBlockItems();
         m_diamond = ItemRegistry::instance().getItem(ResourceLocation("minecraft:diamond"));

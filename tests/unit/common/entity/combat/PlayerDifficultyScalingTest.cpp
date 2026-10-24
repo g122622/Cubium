@@ -98,7 +98,7 @@ protected:
     {
         item::enchant::EnchantmentRegistry::clear();
         item::enchant::EnchantmentRegistry::initialize();
-        Items::initialize();
+        Items::ensureInitialized();
         // 伤害类型标签初始化（进程级幂等）。未初始化时标签成员集为空，source.is(标签) 恒返 false。
         DamageTypeTags::initialize();
     }

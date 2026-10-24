@@ -55,7 +55,7 @@ class MobInteractTestWorld final : public mc::test::BaseTestWorld {
 public:
     MobInteractTestWorld()
     {
-        Items::initialize();
+        Items::ensureInitialized();
         VanillaBlocks::initialize();
     }
 
@@ -372,7 +372,7 @@ TEST_F(MobEntityInteractTest, SpawnEgg_MatchingTypeSpawnsBabyAndConsumesItem)
     player->setWorld(m_world.get());
     player->setGameMode(GameMode::Survival);
 
-    // 手持猪刷怪蛋（已在 Items::initialize() 中注册）
+    // 手持猪刷怪蛋（已在 Items::ensureInitialized() 中注册）
     ASSERT_NE(Items::PIG_SPAWN_EGG, nullptr);
     ItemStack eggStack(Items::PIG_SPAWN_EGG, 4);
     player->getHeldItem(Hand::MainHand) = eggStack;

@@ -262,7 +262,7 @@ class BrushableBlockEntityTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        Items::initialize();
+        Items::ensureInitialized();
         entity_ = std::make_unique<BrushableBlockEntity>(BlockPos(10, 20, 30));
         m_testItem = ensureTestItem("diamond");
     }
@@ -388,7 +388,7 @@ class BrushableBrushLogicTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        Items::initialize();
+        Items::ensureInitialized();
         m_diamond = ensureTestItem("diamond");
         m_brushItem = ensureTestItem("brush");
 
@@ -689,7 +689,7 @@ class BrushableCheckResetTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        Items::initialize();
+        Items::ensureInitialized();
         m_brushItem = ensureTestItem("brush");
 
         registerSimpleLootTable(

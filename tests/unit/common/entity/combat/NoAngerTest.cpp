@@ -119,7 +119,7 @@ protected:
         // 解析（本测试不直接用物品，但保持环境一致）。
         item::enchant::EnchantmentRegistry::clear();
         item::enchant::EnchantmentRegistry::initialize();
-        Items::initialize();
+        Items::ensureInitialized();
         // 伤害类型标签初始化（进程级单例，s_initialized 守卫幂等）。NO_ANGER 成员集（= {MobAttackNoAggro}）
         // 在 initialize() 中注册（DamageTypeTags.cpp:644）。未初始化时标签成员集为空，source.is(NO_ANGER)
         // 恒返 false，修复门控形同虚设——这正是缺陷状态下 mob_attack_no_aggro 误激怒的根因。

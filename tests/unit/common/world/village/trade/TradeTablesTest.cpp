@@ -62,7 +62,7 @@ protected:
     {
         // 方块类物品（玻璃、带釉陶瓦、滴水石等）由 BlockItemRegistry 在方块注册之后统一登记
         VanillaBlocks::initialize();
-        Items::initialize();
+        Items::ensureInitialized();
         BlockItemRegistry::instance().initializeVanillaBlockItems();
         item::tag::ItemTags::initialize();
         item::enchant::EnchantmentRegistry::initialize();

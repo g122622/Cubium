@@ -58,7 +58,7 @@ protected:
     void SetUp() override
     {
         VanillaBlocks::initialize();
-        Items::initialize();
+        Items::ensureInitialized();
         BlockItemRegistry::instance().initializeVanillaBlockItems();
         if (m_tables == nullptr) {
             m_tables = backend::java::JavaProtocolTables::build();

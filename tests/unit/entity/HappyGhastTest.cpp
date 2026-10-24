@@ -74,9 +74,9 @@ protected:
     {
         VanillaBlocks::initialize();
         entity::VanillaEntities::registerAll();
-        Items::initialize();
+        Items::ensureInitialized();
         // #harnesses / #happy_ghast_tempt_items 等物品标签的成员由 ItemTags::initialize()
-        // 生成，Items::initialize() 只注册物品本身。缺少此调用时 TemptItemTagsRegistered
+        // 生成，Items::ensureInitialized() 只注册物品本身。缺少此调用时 TemptItemTagsRegistered
         // 是否通过取决于其它测试套件是否先初始化过物品标签（测试执行顺序依赖）。
         item::tag::ItemTags::initialize();
     }

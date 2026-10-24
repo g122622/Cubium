@@ -50,7 +50,7 @@ class PlayerCanEatTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        Items::initialize();
+        Items::ensureInitialized();
     }
 
     // 创建指定游戏模式、指定饥饿值的 Player。

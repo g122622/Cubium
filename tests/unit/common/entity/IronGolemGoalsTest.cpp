@@ -360,7 +360,7 @@ protected:
     void SetUp() override
     {
         mc::VanillaBlocks::initialize();
-        mc::Items::initialize();
+        mc::Items::ensureInitialized();
 
         // 铁傀儡：村庄保卫者。setTypeId 对齐工厂路径（EntityType::create 会 setTypeId），
         // 直接构造的实体 m_typeId 默认空，entityType() 懒查询返 nullptr。设 targetSelector 每

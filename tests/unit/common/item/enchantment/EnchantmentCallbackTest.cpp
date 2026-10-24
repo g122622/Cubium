@@ -591,7 +591,7 @@ class EnchantmentHelperNewMethodsTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        Items::initialize();
+        Items::ensureInitialized();
         EnchantmentRegistry::clear();
         EnchantmentRegistry::initialize();
         // 亡灵/节肢杀手目标判定改用 EntityTypeTags 标签，须初始化硬编码标签成员。

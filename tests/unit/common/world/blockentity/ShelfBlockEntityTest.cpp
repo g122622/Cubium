@@ -58,7 +58,7 @@ class ShelfBlockEntityTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        Items::initialize();
+        Items::ensureInitialized();
         shelf_ = std::make_unique<ShelfBlockEntity>(BlockPos(5, 10, 15));
         m_diamond = ensureTestItem("diamond");
         m_stick = ensureTestItem("stick");

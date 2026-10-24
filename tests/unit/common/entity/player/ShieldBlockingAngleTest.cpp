@@ -58,7 +58,7 @@ protected:
     void SetUp() override
     {
         VanillaBlocks::initialize();
-        Items::initialize();
+        Items::ensureInitialized();
         // 破盾按物品标签判定，需先登记内置标签（AXES 等）
         item::tag::ItemTags::initialize();
         DamageTypeTags::initialize();

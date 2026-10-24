@@ -81,7 +81,7 @@ protected:
     void SetUp() override
     {
         VanillaBlocks::initialize();
-        Items::initialize();
+        Items::ensureInitialized();
     }
 
     CamelTestWorld m_world;

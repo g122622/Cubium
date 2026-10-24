@@ -112,7 +112,7 @@ class ClientEntityZombieAggressiveSyncTest : public ::testing::Test {
 protected:
     static void SetUpTestSuite()
     {
-        Items::initialize();
+        Items::ensureInitialized();
     }
 
     void SetUp() override
@@ -232,7 +232,7 @@ class ClientEntityHuskAggressiveSyncTest : public ::testing::Test {
 protected:
     static void SetUpTestSuite()
     {
-        Items::initialize();
+        Items::ensureInitialized();
     }
 
     void SetUp() override
@@ -262,7 +262,7 @@ class ClientEntityDrownedAggressiveSyncTest : public ::testing::Test {
 protected:
     static void SetUpTestSuite()
     {
-        Items::initialize();
+        Items::ensureInitialized();
     }
 
     void SetUp() override
@@ -292,7 +292,7 @@ class ClientEntityZombieVillagerAggressiveSyncTest : public ::testing::Test {
 protected:
     static void SetUpTestSuite()
     {
-        Items::initialize();
+        Items::ensureInitialized();
     }
 
     void SetUp() override

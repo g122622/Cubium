@@ -176,7 +176,7 @@ protected:
         entity::VanillaEntities::registerAll();
         // 物品注册（SNIFFER_EGG / 火把花种子 / 瓶草荚果）先于物品标签构建
         // ——SNIFFER_FOOD 标签的成员在初始化时经 ItemRegistry 取物品指针。
-        Items::initialize();
+        Items::ensureInitialized();
         item::tag::ItemTags::initialize();
     }
 

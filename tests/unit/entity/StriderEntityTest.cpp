@@ -344,11 +344,11 @@ TEST_F(StriderEntityMountedYOffsetTest, WaveTermBounded)
 class StriderEntityBasicTest : public ::testing::Test {
 protected:
     // Items::SADDLE 等指针默认 nullptr,ItemStack(nullptr,1) 退化为空,
-    // 致装备相关断言误判;需 Items::initialize() 注册原版物品。
+    // 致装备相关断言误判;需 Items::ensureInitialized() 注册原版物品。
     void SetUp() override
     {
         VanillaBlocks::initialize();
-        Items::initialize();
+        Items::ensureInitialized();
         strider = std::make_unique<StriderEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
     }
 
@@ -464,11 +464,11 @@ class StriderEntityEquipableTest : public ::testing::Test {
 protected:
     // Items::SADDLE/DIAMOND 指针默认 nullptr,ItemStack(nullptr,1) 退化为空,
     // 致 canEquip(钻石/剑) 走"清槽"分支误返 true、setEquipment 装鞍失败;
-    // 需 Items::initialize() 注册原版物品。对齐同文件 StriderInteractTestFixture。
+    // 需 Items::ensureInitialized() 注册原版物品。对齐同文件 StriderInteractTestFixture。
     void SetUp() override
     {
         VanillaBlocks::initialize();
-        Items::initialize();
+        Items::ensureInitialized();
         strider = std::make_unique<StriderEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
     }
 
@@ -747,7 +747,7 @@ protected:
     void SetUp() override
     {
         VanillaBlocks::initialize();
-        Items::initialize();
+        Items::ensureInitialized();
     }
 
     StriderInteractTestWorld m_world;

@@ -38,7 +38,7 @@ class MusicDiscItemTest : public ::testing::Test {
 protected:
     static void SetUpTestSuite()
     {
-        Items::initialize();
+        Items::ensureInitialized();
     }
 };
 

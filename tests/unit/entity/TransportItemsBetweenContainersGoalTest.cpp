@@ -439,7 +439,7 @@ protected:
         if (!s_initialized) {
             // 初始化方块、物品、实体注册表
             VanillaBlocks::initialize();
-            Items::initialize();
+            Items::ensureInitialized();
             BlockItemRegistry::instance().initializeVanillaBlockItems();
             entity::VanillaEntities::registerAll();
             s_initialized = true;

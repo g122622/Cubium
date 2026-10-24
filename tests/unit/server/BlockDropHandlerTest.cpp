@@ -46,7 +46,7 @@ void ensureRegistriesInitialized()
     static std::once_flag s_once;
     std::call_once(s_once, [] {
         VanillaBlocks::initialize();
-        Items::initialize();
+        Items::ensureInitialized();
         // 注册原版实体类型，使 VanillaEntityTypeKeys::ITEM 全局缓存与注册表一致。
         // 本文件多个用例断言 entity->entityType() == VanillaEntityTypeKeys::ITEM，
         // 二者必须来自同一已初始化注册表，避免依赖前置测试的隐式注册状态

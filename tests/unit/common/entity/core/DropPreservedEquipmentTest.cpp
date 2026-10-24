@@ -51,7 +51,7 @@ class DropEquipmentTestWorld final : public mc::test::BaseTestWorld {
 public:
     DropEquipmentTestWorld()
     {
-        Items::initialize();
+        Items::ensureInitialized();
     }
 
     [[nodiscard]] Difficulty difficulty() const override
@@ -87,7 +87,7 @@ protected:
     {
         static bool s_initialized = false;
         if (!s_initialized) {
-            Items::initialize();
+            Items::ensureInitialized();
             VanillaBlocks::initialize();
             s_initialized = true;
         }

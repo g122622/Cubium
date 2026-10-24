@@ -166,7 +166,7 @@ protected:
     {
         VanillaBlocks::initialize();
         BlockTags::initialize();
-        Items::initialize();
+        Items::ensureInitialized();
 
         m_player = std::make_unique<Player>(EntityInstanceId(100), "TestPlayer", mc::test::testEcsRegistry());
         m_player->setWorld(&m_world);
@@ -273,7 +273,7 @@ protected:
     {
         VanillaBlocks::initialize();
         BlockTags::initialize();
-        Items::initialize();
+        Items::ensureInitialized();
 
         m_player = std::make_unique<Player>(EntityInstanceId(100), "TestPlayer", mc::test::testEcsRegistry());
         m_player->setWorld(&m_world);

@@ -198,7 +198,7 @@ class TridentLoyaltyTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        Items::initialize();
+        Items::ensureInitialized();
         m_world = std::make_unique<TridentLoyaltyTestWorld>();
     }
 

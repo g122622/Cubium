@@ -171,7 +171,7 @@ protected:
     {
         // 初始化方块和物品注册表
         VanillaBlocks::initialize();
-        Items::initialize();
+        Items::ensureInitialized();
         // 物品标签（#decorated_pot_sherds 等）按需构建，使用标签的触发器实例须先初始化
         item::tag::ItemTags::initialize();
         BlockItemRegistry::instance().initializeVanillaBlockItems();

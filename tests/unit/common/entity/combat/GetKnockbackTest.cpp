@@ -198,7 +198,7 @@ TEST(GetKnockbackTest, KnockbackEnchantmentLevelOneBonus)
     // Knockback I 武器：getKnockback = (0 + 1.0) / 2.0 = 0.5
     item::enchant::EnchantmentRegistry::clear();
     item::enchant::EnchantmentRegistry::initialize();
-    Items::initialize();
+    Items::ensureInitialized();
 
     KnockbackTestMob mob(1);
     KnockbackTestEntity target(2, mc::test::testEcsRegistry());
@@ -218,7 +218,7 @@ TEST(GetKnockbackTest, KnockbackEnchantmentLevelTwoBonus)
     // Knockback II 武器：getKnockback = (0 + 2.0) / 2.0 = 1.0（对齐 vanilla，任务 #310 修复点）
     item::enchant::EnchantmentRegistry::clear();
     item::enchant::EnchantmentRegistry::initialize();
-    Items::initialize();
+    Items::ensureInitialized();
 
     KnockbackTestMob mob(1);
     KnockbackTestEntity target(2, mc::test::testEcsRegistry());
@@ -239,7 +239,7 @@ TEST(GetKnockbackTest, KnockbackEnchantmentStacksWithAttackKnockbackAttribute)
     // Knockback II + ATTACK_KNOCKBACK 属性 1.0：getKnockback = (1.0 + 2.0) / 2.0 = 1.5
     item::enchant::EnchantmentRegistry::clear();
     item::enchant::EnchantmentRegistry::initialize();
-    Items::initialize();
+    Items::ensureInitialized();
 
     KnockbackTestMob mob(1);
     KnockbackTestEntity target(2, mc::test::testEcsRegistry());
@@ -260,7 +260,7 @@ TEST(GetKnockbackTest, NoEnchantmentNoBonus)
     // 无附魔武器：getKnockback = (0 + 0) / 2.0 = 0（仅属性贡献）
     item::enchant::EnchantmentRegistry::clear();
     item::enchant::EnchantmentRegistry::initialize();
-    Items::initialize();
+    Items::ensureInitialized();
 
     KnockbackTestMob mob(1);
     KnockbackTestEntity target(2, mc::test::testEcsRegistry());

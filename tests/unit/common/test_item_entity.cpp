@@ -38,7 +38,7 @@ class ItemEntityTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        Items::initialize();
+        Items::ensureInitialized();
         m_diamond = ItemRegistry::instance().getItem(ResourceLocation("minecraft:diamond"));
     }
 

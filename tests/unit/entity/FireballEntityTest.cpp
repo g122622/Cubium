@@ -42,7 +42,7 @@ protected:
     static void SetUpTestSuite()
     {
         // 火球默认物品为火焰弹，需先完成物品注册。
-        Items::initialize();
+        Items::ensureInitialized();
     }
 
     void SetUp() override

@@ -46,7 +46,7 @@ protected:
         // 初始化方块注册表
         VanillaBlocks::initialize();
         // 初始化物品注册表
-        Items::initialize();
+        Items::ensureInitialized();
     }
 };
 

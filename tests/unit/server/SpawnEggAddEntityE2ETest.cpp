@@ -241,7 +241,7 @@ protected:
         if (!s_initialized) {
             VanillaBlocks::initialize();
             entity::VanillaEntities::registerAll();
-            Items::initialize();
+            Items::ensureInitialized();
             BlockItemRegistry::instance().initializeVanillaBlockItems();
             s_initialized = true;
         }

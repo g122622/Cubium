@@ -207,7 +207,7 @@ protected:
     static void SetUpTestSuite()
     {
         VanillaBlocks::initialize();
-        Items::initialize();
+        Items::ensureInitialized();
     }
 
     WaxTestWorld m_world;

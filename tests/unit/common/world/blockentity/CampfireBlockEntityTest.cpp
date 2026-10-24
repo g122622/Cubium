@@ -58,7 +58,7 @@ class CampfireBlockEntityTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        Items::initialize();
+        Items::ensureInitialized();
         campfire_ = std::make_unique<CampfireBlockEntity>(BlockPos(10, 20, 30));
         m_testItem = ensureTestItem("beef");
     }

@@ -124,7 +124,7 @@ protected:
         item::enchant::EnchantmentRegistry::clear();
         item::enchant::EnchantmentRegistry::initialize();
         VanillaBlocks::initialize();
-        Items::initialize();
+        Items::ensureInitialized();
         // 伤害类型标签初始化（进程级幂等）。AVOIDS_GUARDIAN_THORNS 成员集在 initialize() 注册
         // （DamageTypeTags.cpp:794）。未初始化时标签成员集为空，source.is(AVOIDS_GUARDIAN_THORNS)
         // 恒返 false，荆棘门控形同虚设——这正是缺陷状态下任何伤害都反伤的根因（若实现存在）。

@@ -98,7 +98,7 @@ protected:
         // 方块与物品注册初始化（进程级幂等）。水下呼吸测试需构造钻石头盔物品堆
         // （Items::DIAMOND_HELMET），物品注册依赖方块注册先就绪（ArmorMaterialTest 同范式）。
         VanillaBlocks::initialize();
-        Items::initialize();
+        Items::ensureInitialized();
         // 附魔注册初始化（进程级幂等）。水下呼吸附魔经装备管线注入 oxygen_bonus 属性修饰符，
         // 需 RespirationEnchantment 已注册才能 addEnchantment("minecraft:respiration", level)。
         item::enchant::EnchantmentRegistry::initialize();

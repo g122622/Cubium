@@ -243,7 +243,7 @@ protected:
         if (!s_initialized) {
             // 初始化方块、物品、实体注册表
             VanillaBlocks::initialize();
-            Items::initialize();
+            Items::ensureInitialized();
             BlockItemRegistry::instance().initializeVanillaBlockItems();
             entity::VanillaEntities::registerAll();
             // 初始化实体类型标签（创建空标签，由数据包填充）

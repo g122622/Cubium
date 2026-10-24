@@ -51,7 +51,7 @@ protected:
     {
         // 初始化方块和物品注册表
         VanillaBlocks::initialize();
-        Items::initialize();
+        Items::ensureInitialized();
         BlockItemRegistry::instance().initializeVanillaBlockItems();
 
         // 注册内置统计

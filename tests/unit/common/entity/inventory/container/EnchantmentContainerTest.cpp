@@ -38,7 +38,7 @@ class EnchantmentTableContainerTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        Items::initialize();
+        Items::ensureInitialized();
         playerInventory_ = std::make_unique<PlayerInventory>();
     }
 
@@ -192,7 +192,7 @@ class EnchantmentContainerWithPlayerTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        Items::initialize();
+        Items::ensureInitialized();
         player_ = std::make_unique<Player>(EntityInstanceId(1), "TestPlayer", mc::test::testEcsRegistry());
         playerInventory_ = std::make_unique<PlayerInventory>(player_.get());
     }

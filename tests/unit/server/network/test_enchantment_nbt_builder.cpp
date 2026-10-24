@@ -101,7 +101,7 @@ protected:
     {
         // 初始化顺序须与 ItemTagLoaderTest 一致：方块 -> 物品 -> 方块物品 -> 物品标签。
         VanillaBlocks::initialize();
-        Items::initialize();
+        Items::ensureInitialized();
         BlockItemRegistry::instance().initializeVanillaBlockItems();
         item::tag::ItemTags::initialize();
         // effects 谓词 type 字段走 EntityTypeTags::getTag 展平（见 BaneOfArthropods... 测试）。

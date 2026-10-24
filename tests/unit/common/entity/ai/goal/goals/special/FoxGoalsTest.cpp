@@ -909,7 +909,7 @@ protected:
     void SetUp() override
     {
         VanillaBlocks::initialize();
-        Items::initialize();
+        Items::ensureInitialized();
 
         m_world = std::make_unique<FoxBerryTestWorld>();
         m_fox = std::make_unique<FoxEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());

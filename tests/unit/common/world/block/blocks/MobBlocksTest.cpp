@@ -855,7 +855,7 @@ protected:
     void SetUp() override
     {
         VanillaBlocks::initialize();
-        Items::initialize();
+        Items::ensureInitialized();
         // 注册原版实体类型，使 VanillaEntityTypeKeys::SILVERFISH 全局缓存与注册表一致。
         // 本夹具 SpawnAfterBreak_SpawnsSilverfish_OnServer 用例断言
         // spawned->entityType() == VanillaEntityTypeKeys::SILVERFISH，二者必须来自同一

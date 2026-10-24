@@ -47,7 +47,7 @@ class UsedTotemAndUsingItemTriggerTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        Items::initialize();
+        Items::ensureInitialized();
         advancement::CriterionTriggers::instance().registerBuiltinTriggers();
     }
 

@@ -663,7 +663,7 @@ public:
     {
         VanillaBlocks::initialize();
         fluid::FluidRegistry::instance().initialize();
-        Items::initialize();
+        Items::ensureInitialized();
         m_airState = &VanillaBlocks::AIR->defaultState();
         // 创建并设置掉落表管理器
         m_mockLootTableManager = std::make_unique<MockLootTableManager>();

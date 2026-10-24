@@ -659,7 +659,7 @@ public:
     CandleCakeInteractionWorld()
     {
         VanillaBlocks::initialize();
-        Items::initialize();
+        Items::ensureInitialized();
         m_airState = &VanillaBlocks::AIR->defaultState();
     }
 
@@ -789,7 +789,7 @@ protected:
     static void SetUpTestSuite()
     {
         VanillaBlocks::initialize();
-        Items::initialize();
+        Items::ensureInitialized();
     }
 
     CandleCakeInteractionWorld m_world;

@@ -44,7 +44,7 @@ protected:
     {
         EnchantmentRegistry::clear();
         EnchantmentRegistry::initialize();
-        Items::initialize();
+        Items::ensureInitialized();
     }
 
     void TearDown() override
@@ -103,7 +103,7 @@ protected:
     {
         EnchantmentRegistry::clear();
         EnchantmentRegistry::initialize();
-        Items::initialize();
+        Items::ensureInitialized();
     }
 
     void TearDown() override

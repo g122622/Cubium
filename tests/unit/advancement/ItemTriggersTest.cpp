@@ -525,7 +525,7 @@ TEST_F(ItemTriggersTest, ThrownItemPickedUpByEntity_ItemConditionMatches)
     auto instance = std::dynamic_pointer_cast<ThrownItemPickedUpByEntityTriggerInstance>(result.value());
     ASSERT_NE(instance, nullptr);
 
-    Items::initialize();
+    Items::ensureInitialized();
     EXPECT_TRUE(instance->test(ItemStack(Items::APPLE, 1)));
     EXPECT_FALSE(instance->test(ItemStack(Items::STONE, 1)));
 }
@@ -540,7 +540,7 @@ TEST_F(ItemTriggersTest, ThrownItemPickedUpByEntity_NoConditionsMatchesAnyItem)
     auto instance = std::dynamic_pointer_cast<ThrownItemPickedUpByEntityTriggerInstance>(result.value());
     ASSERT_NE(instance, nullptr);
 
-    Items::initialize();
+    Items::ensureInitialized();
     EXPECT_TRUE(instance->test(ItemStack(Items::STONE, 1)));
     EXPECT_TRUE(instance->test(ItemStack(Items::APPLE, 1)));
 }
@@ -570,7 +570,7 @@ TEST_F(ItemTriggersTest, ThrownItemPickedUpByEntity_EntityConditionMatchesPicker
     auto instance = std::dynamic_pointer_cast<ThrownItemPickedUpByEntityTriggerInstance>(result.value());
     ASSERT_NE(instance, nullptr);
 
-    Items::initialize();
+    Items::ensureInitialized();
     const ItemStack apple(Items::APPLE, 1);
 
     PigEntity pig(EntityInstanceId(1), mc::test::testEcsRegistry());

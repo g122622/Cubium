@@ -146,7 +146,7 @@ class PotterySherdItemTest : public ::testing::Test {
 protected:
     static void SetUpTestSuite()
     {
-        Items::initialize();
+        Items::ensureInitialized();
     }
 };
 
@@ -222,7 +222,7 @@ class SmithingTemplateItemTest : public ::testing::Test {
 protected:
     static void SetUpTestSuite()
     {
-        Items::initialize();
+        Items::ensureInitialized();
     }
 };
 

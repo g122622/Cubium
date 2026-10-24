@@ -884,7 +884,7 @@ protected:
     void SetUp() override
     {
         VanillaBlocks::initialize();
-        Items::initialize();
+        Items::ensureInitialized();
         item::tag::ItemTags::initialize();
 
         m_world = std::make_unique<TestVillagerWorld>();
@@ -1035,7 +1035,7 @@ protected:
     void SetUp() override
     {
         VanillaBlocks::initialize();
-        Items::initialize();
+        Items::ensureInitialized();
         item::tag::ItemTags::initialize();
 
         m_world = std::make_unique<FarmerTestWorld>();
@@ -1942,7 +1942,7 @@ protected:
     void SetUp() override
     {
         VanillaBlocks::initialize();
-        Items::initialize();
+        Items::ensureInitialized();
         item::tag::ItemTags::initialize();
 
         m_world = std::make_unique<FarmerCompostTestWorld>();
@@ -2406,7 +2406,7 @@ protected:
     void SetUp() override
     {
         VanillaBlocks::initialize();
-        Items::initialize();
+        Items::ensureInitialized();
 
         m_world = std::make_unique<TestVillagerWorld>();
         m_villager = std::make_unique<VillagerEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
@@ -2537,7 +2537,7 @@ protected:
     void SetUp() override
     {
         VanillaBlocks::initialize();
-        Items::initialize();
+        Items::ensureInitialized();
 
         m_world = std::make_unique<TestVillagerWorld>();
         m_farmer = std::make_unique<VillagerEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
@@ -3448,7 +3448,7 @@ protected:
     void SetUp() override
     {
         VanillaBlocks::initialize();
-        Items::initialize();
+        Items::ensureInitialized();
         item::tag::ItemTags::initialize();
 
         m_world = std::make_unique<FarmerTestWorld>();
@@ -3700,7 +3700,7 @@ protected:
     void SetUp() override
     {
         VanillaBlocks::initialize();
-        Items::initialize();
+        Items::ensureInitialized();
         item::tag::ItemTags::initialize();
 
         m_world = std::make_unique<FarmerCompostTestWorld>();

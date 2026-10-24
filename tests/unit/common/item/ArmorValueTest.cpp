@@ -110,7 +110,7 @@ class ArmorValueTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        Items::initialize();
+        Items::ensureInitialized();
     }
 
     void TearDown() override

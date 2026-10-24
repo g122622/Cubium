@@ -47,7 +47,7 @@ class AbstractContainerMenuTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        Items::initialize();
+        Items::ensureInitialized();
         m_diamond = ItemRegistry::instance().getItem(ResourceLocation("minecraft:diamond"));
         m_iron = ItemRegistry::instance().getItem(ResourceLocation("minecraft:iron_ingot"));
     }
@@ -446,7 +446,7 @@ class ContainerPacketTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        Items::initialize();
+        Items::ensureInitialized();
         m_diamond = ItemRegistry::instance().getItem(ResourceLocation("minecraft:diamond"));
         m_iron = ItemRegistry::instance().getItem(ResourceLocation("minecraft:iron_ingot"));
     }
@@ -496,7 +496,7 @@ protected:
     void SetUp() override
     {
         VanillaBlocks::initialize();
-        Items::initialize();
+        Items::ensureInitialized();
         BlockItemRegistry::instance().initializeVanillaBlockItems();
     }
 };

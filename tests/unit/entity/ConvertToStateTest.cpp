@@ -86,7 +86,7 @@ protected:
     {
         VanillaBlocks::initialize();
         entity::VanillaEntities::registerAll();
-        Items::initialize();
+        Items::ensureInitialized();
     }
 
     ConvertTestWorld m_world;

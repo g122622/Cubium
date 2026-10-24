@@ -126,7 +126,7 @@ protected:
     void SetUp() override
     {
         VanillaBlocks::initialize();
-        Items::initialize();
+        Items::ensureInitialized();
 
         // 与生产启动顺序一致：清空 → 内置定义 → 内置标签占位（数据包在此之上覆盖/追加）
         InstrumentRegistry::instance().clear();

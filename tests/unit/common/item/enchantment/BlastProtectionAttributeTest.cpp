@@ -95,7 +95,7 @@ protected:
     {
         static bool s_initialized = false;
         if (!s_initialized) {
-            Items::initialize();
+            Items::ensureInitialized();
             EnchantmentRegistry::initialize();
             s_initialized = true;
         }

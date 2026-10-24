@@ -115,7 +115,7 @@ class ItemComponentOverridesTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        Items::initialize();
+        Items::ensureInitialized();
         m_sword = ItemRegistry::instance().getItem(ResourceLocation("minecraft:diamond_sword"));
         m_stick = ItemRegistry::instance().getItem(ResourceLocation("minecraft:stick"));
         ASSERT_NE(m_sword, nullptr);

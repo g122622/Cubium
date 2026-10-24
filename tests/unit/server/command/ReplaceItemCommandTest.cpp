@@ -70,7 +70,7 @@ class ReplaceItemTestServer final : public mc::test::BaseTestServer {
 public:
     ReplaceItemTestServer()
     {
-        Items::initialize();
+        Items::ensureInitialized();
     }
 
     // 覆盖 dimensionManager，返回一个未注册任何维度的空 DimensionManager。
@@ -171,7 +171,7 @@ class ReplaceItemCommandTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        Items::initialize();
+        Items::ensureInitialized();
         ReplaceItemCommand::registerTo(m_server.commandRegistry().dispatcher());
     }
 
@@ -380,7 +380,7 @@ class ReplaceItemEntityTargetTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        Items::initialize();
+        Items::ensureInitialized();
         ReplaceItemCommand::registerTo(m_server.commandRegistry().dispatcher());
         m_source = ServerCommandSource::forConsole(&m_server);
     }

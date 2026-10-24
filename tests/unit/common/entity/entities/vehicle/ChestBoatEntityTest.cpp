@@ -76,7 +76,7 @@ class ChestBoatEntityTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        Items::initialize();
+        Items::ensureInitialized();
     }
 };
 
@@ -128,7 +128,7 @@ class ChestBoatInventoryTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        Items::initialize();
+        Items::ensureInitialized();
     }
 };
 
@@ -285,7 +285,7 @@ class ChestBoatGetBoatItemTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        Items::initialize();
+        Items::ensureInitialized();
     }
 };
 
@@ -402,7 +402,7 @@ class ChestBoatInheritanceTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        Items::initialize();
+        Items::ensureInitialized();
     }
 };
 
@@ -468,7 +468,7 @@ class ChestBoatPassengerTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        Items::initialize();
+        Items::ensureInitialized();
     }
 };
 
@@ -507,7 +507,7 @@ class ChestBoatMountTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        Items::initialize();
+        Items::ensureInitialized();
     }
 };
 
@@ -533,7 +533,7 @@ class ChestBoatComparatorTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        Items::initialize();
+        Items::ensureInitialized();
     }
 };
 
@@ -589,7 +589,7 @@ class ChestBoatDisplayNameTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        Items::initialize();
+        Items::ensureInitialized();
     }
 };
 
@@ -607,7 +607,7 @@ class ChestBoatStillValidTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        Items::initialize();
+        Items::ensureInitialized();
     }
 };
 
@@ -632,7 +632,7 @@ class ChestBoatNbtTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        Items::initialize();
+        Items::ensureInitialized();
     }
 };
 
@@ -800,7 +800,7 @@ class ChestBoatVsNormalBoatTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        Items::initialize();
+        Items::ensureInitialized();
     }
 };
 
@@ -876,7 +876,7 @@ class ChestBoatLootTableTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        Items::initialize();
+        Items::ensureInitialized();
     }
 };
 

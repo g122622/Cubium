@@ -92,7 +92,7 @@ protected:
     void SetUp() override
     {
         VanillaBlocks::initialize();
-        Items::initialize();
+        Items::ensureInitialized();
 
         m_serverNetwork = std::make_unique<ServerNetwork>();
         m_serverNetwork->onClientConnect([this](ServerClientConnection& conn) {

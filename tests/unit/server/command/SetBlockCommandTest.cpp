@@ -51,7 +51,7 @@ class SetBlockTestServer final : public mc::test::BaseTestServer {
 public:
     SetBlockTestServer()
     {
-        Items::initialize();
+        Items::ensureInitialized();
         VanillaBlocks::initialize();
     }
 
@@ -82,7 +82,7 @@ protected:
     void SetUp() override
     {
         VanillaBlocks::initialize();
-        Items::initialize();
+        Items::ensureInitialized();
     }
 
     SetBlockTestServer m_server;

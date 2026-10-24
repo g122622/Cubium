@@ -118,11 +118,11 @@ class ApplySkeletonArmPoseTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        // Items::BOW 由 Items::initialize() 注册；未初始化时该指针为 nullptr，
+        // Items::BOW 由 Items::ensureInitialized() 注册；未初始化时该指针为 nullptr，
         // equipBow() 中的 ItemStack(*Items::BOW, 1) 会形成空引用
         // （UBSan: reference binding to null pointer of type 'const Item'）。
         // 本测试需要真实的弓物品以验证 isAggressive + 持弓 → BowAndArrow 契约。
-        mc::Items::initialize();
+        mc::Items::ensureInitialized();
         m_model = std::make_unique<monster::SkeletonModel>();
         m_model->setSneaking(false);
         m_model->setSwimAnimation(0.0f);

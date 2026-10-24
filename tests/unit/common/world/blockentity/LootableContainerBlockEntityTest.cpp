@@ -185,7 +185,7 @@ class LootableContainerCanOpenTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        Items::initialize();
+        Items::ensureInitialized();
         entity_ = std::make_unique<TestLootableEntity>(BlockPos(10, 20, 30));
     }
 
@@ -310,7 +310,7 @@ class LootableContainerOpenTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        Items::initialize();
+        Items::ensureInitialized();
         entity_ = std::make_unique<TestLootableEntity>(BlockPos(10, 20, 30));
     }
 
@@ -377,7 +377,7 @@ class ChestEntityInheritanceTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        Items::initialize();
+        Items::ensureInitialized();
         chest_ = std::make_unique<ChestEntity>(BlockPos(10, 20, 30));
     }
 
@@ -426,7 +426,7 @@ class BarrelEntityInheritanceTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        Items::initialize();
+        Items::ensureInitialized();
         barrel_ = std::make_unique<BarrelEntity>(BlockPos(5, 10, 15));
     }
 
@@ -452,7 +452,7 @@ class LootableContainerFillLootTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        Items::initialize();
+        Items::ensureInitialized();
         entity_ = std::make_unique<TestLootableEntity>(BlockPos(10, 20, 30));
         entity_->setWorld(&world_); // 设置世界引用，fillWithLootFromTable 需要
         m_diamond = ensureTestItem("diamond");
@@ -563,7 +563,7 @@ class LockableCanOpenVirtualTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        Items::initialize();
+        Items::ensureInitialized();
         chest_ = std::make_unique<ChestEntity>(BlockPos(0, 0, 0));
     }
 
@@ -605,7 +605,7 @@ class UnpackLootTableTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        Items::initialize();
+        Items::ensureInitialized();
         entity_ = std::make_unique<TestLootableEntity>(BlockPos(10, 20, 30));
         entity_->setWorld(&world_);
         m_diamond = ensureTestItem("diamond");
@@ -825,7 +825,7 @@ class LootableContainerNbtTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        Items::initialize();
+        Items::ensureInitialized();
         entity_ = std::make_unique<TestLootableEntity>(BlockPos(10, 20, 30));
     }
 

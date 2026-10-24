@@ -80,7 +80,7 @@ protected:
     void SetUp() override
     {
         VanillaBlocks::initialize();
-        Items::initialize();
+        Items::ensureInitialized();
     }
 
     class TestWorld final : public mc::test::BaseTestWorld {

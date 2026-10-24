@@ -168,7 +168,7 @@ protected:
         VanillaBlocks::initialize();
         BlockTags::initialize();
         // useItemOn 测试需要物品与物品标签（NOTE_BLOCK_TOP_INSTRUMENTS）
-        Items::initialize();
+        Items::ensureInitialized();
         item::tag::ItemTags::initialize();
 
         m_world = std::make_unique<NoteBlockTestWorld>();

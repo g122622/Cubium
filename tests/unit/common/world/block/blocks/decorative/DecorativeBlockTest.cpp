@@ -318,7 +318,7 @@ public:
     FlowerPotInteractionTestWorld()
     {
         VanillaBlocks::initialize();
-        Items::initialize();
+        Items::ensureInitialized();
     }
 
     [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override
@@ -507,9 +507,9 @@ protected:
     void SetUp() override
     {
         // 确保 VanillaBlocks、Items、BlockItemRegistry 已按正确顺序初始化
-        // 顺序：VanillaBlocks::initialize() → Items::initialize() → BlockItemRegistry::initializeVanillaBlockItems()
+        // 顺序：VanillaBlocks::initialize() → Items::ensureInitialized() → BlockItemRegistry::initializeVanillaBlockItems()
         VanillaBlocks::initialize();
-        Items::initialize();
+        Items::ensureInitialized();
         BlockItemRegistry::instance().initializeVanillaBlockItems();
         m_world.setClientSide(false);
     }

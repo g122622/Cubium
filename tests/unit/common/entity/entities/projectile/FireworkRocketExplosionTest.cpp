@@ -971,14 +971,14 @@ TEST(FireworkRocketLifetimeTest, ClientSideFallbackExplodesAtFlightTime10Plus6)
 /**
  * @brief NBT 持久化测试固件
  *
- * 显式调用 Items::initialize() 以保证 Items::FIREWORK_ROCKET 已注册，
+ * 显式调用 Items::ensureInitialized() 以保证 Items::FIREWORK_ROCKET 已注册，
  * 使测试不依赖其他测试套件的初始化副作用。
  */
 class FireworkRocketNbtTestFixture : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        Items::initialize();
+        Items::ensureInitialized();
     }
 };
 

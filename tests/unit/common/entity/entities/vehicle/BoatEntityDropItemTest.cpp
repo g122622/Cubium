@@ -26,7 +26,7 @@ protected:
     void SetUp() override
     {
         // 确保 Items 已初始化
-        Items::initialize();
+        Items::ensureInitialized();
     }
 };
 
@@ -177,7 +177,7 @@ protected:
     void SetUp() override
     {
         // 确保 Items 已初始化
-        Items::initialize();
+        Items::ensureInitialized();
     }
 };
 

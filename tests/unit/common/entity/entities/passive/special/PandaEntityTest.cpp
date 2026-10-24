@@ -223,7 +223,7 @@ public:
 
 TEST(PandaEntityPersonalityTest, RandomizePersonalityGeneratesValidGene)
 {
-    Items::initialize();
+    Items::ensureInitialized();
 
     PandaEntity panda(EntityInstanceId(1), mc::test::testEcsRegistry());
 
@@ -234,7 +234,7 @@ TEST(PandaEntityPersonalityTest, RandomizePersonalityGeneratesValidGene)
 
 TEST(PandaEntityPersonalityTest, PersonalityDistributionIsValid)
 {
-    Items::initialize();
+    Items::ensureInitialized();
 
     EXPECT_EQ(static_cast<u8>(PandaEntity::Personality::Normal), 0);
     EXPECT_EQ(static_cast<u8>(PandaEntity::Personality::Lazy), 1);
@@ -250,7 +250,7 @@ TEST(PandaEntityPersonalityTest, PersonalityDistributionIsValid)
 
 TEST(PandaEntityPersonalityAccessorsTest, SetAndGetPersonality)
 {
-    Items::initialize();
+    Items::ensureInitialized();
 
     PandaEntity panda(EntityInstanceId(1), mc::test::testEcsRegistry());
 
@@ -287,7 +287,7 @@ TEST(PandaEntityPersonalityAccessorsTest, SetAndGetPersonality)
 
 TEST(PandaEntityStateTest, SetAndGetSneezing)
 {
-    Items::initialize();
+    Items::ensureInitialized();
 
     PandaEntity panda(EntityInstanceId(1), mc::test::testEcsRegistry());
 
@@ -302,7 +302,7 @@ TEST(PandaEntityStateTest, SetAndGetSneezing)
 
 TEST(PandaEntityStateTest, SetAndGetSneezeTimer)
 {
-    Items::initialize();
+    Items::ensureInitialized();
 
     PandaEntity panda(EntityInstanceId(1), mc::test::testEcsRegistry());
 
@@ -317,7 +317,7 @@ TEST(PandaEntityStateTest, SetAndGetSneezeTimer)
 
 TEST(PandaEntityStateTest, SetAndGetRolling)
 {
-    Items::initialize();
+    Items::ensureInitialized();
 
     PandaEntity panda(EntityInstanceId(1), mc::test::testEcsRegistry());
 
@@ -332,7 +332,7 @@ TEST(PandaEntityStateTest, SetAndGetRolling)
 
 TEST(PandaEntityStateTest, SetAndGetEating)
 {
-    Items::initialize();
+    Items::ensureInitialized();
 
     PandaEntity panda(EntityInstanceId(1), mc::test::testEcsRegistry());
 
@@ -347,7 +347,7 @@ TEST(PandaEntityStateTest, SetAndGetEating)
 
 TEST(PandaEntityStateTest, SetAndGetLying)
 {
-    Items::initialize();
+    Items::ensureInitialized();
 
     PandaEntity panda(EntityInstanceId(1), mc::test::testEcsRegistry());
 
@@ -364,7 +364,7 @@ TEST(PandaEntityStateTest, SetAndGetLying)
 
 TEST(PandaEntityEyeHeightTest, AdultHasCorrectEyeHeight)
 {
-    Items::initialize();
+    Items::ensureInitialized();
 
     PandaEntity panda(EntityInstanceId(1), mc::test::testEcsRegistry());
     panda.setChild(false);
@@ -374,7 +374,7 @@ TEST(PandaEntityEyeHeightTest, AdultHasCorrectEyeHeight)
 
 TEST(PandaEntityEyeHeightTest, ChildHasCorrectEyeHeight)
 {
-    Items::initialize();
+    Items::ensureInitialized();
 
     PandaEntity panda(EntityInstanceId(1), mc::test::testEcsRegistry());
     panda.setChild(true);
@@ -406,7 +406,7 @@ protected:
     void SetUp() override
     {
         VanillaBlocks::initialize();
-        Items::initialize();
+        Items::ensureInitialized();
     }
 
     PandaTestWorld m_world;
@@ -503,7 +503,7 @@ protected:
     void SetUp() override
     {
         VanillaBlocks::initialize();
-        Items::initialize();
+        Items::ensureInitialized();
     }
 
     PandaTestWorld m_world;
@@ -693,7 +693,7 @@ TEST_F(PandaEntitySneezeTest, NearbyAdultPandasCanJump)
 
 TEST(PandaEntityGeneTest, GetAndSetMainGene)
 {
-    Items::initialize();
+    Items::ensureInitialized();
 
     PandaEntity panda(EntityInstanceId(1), mc::test::testEcsRegistry());
 
@@ -706,7 +706,7 @@ TEST(PandaEntityGeneTest, GetAndSetMainGene)
 
 TEST(PandaEntityGeneTest, GetAndSetHiddenGene)
 {
-    Items::initialize();
+    Items::ensureInitialized();
 
     PandaEntity panda(EntityInstanceId(1), mc::test::testEcsRegistry());
 
@@ -719,7 +719,7 @@ TEST(PandaEntityGeneTest, GetAndSetHiddenGene)
 
 TEST(PandaEntityGeneTest, CalculateExpressedPersonality_AggressiveDominant)
 {
-    Items::initialize();
+    Items::ensureInitialized();
 
     PandaEntity panda(EntityInstanceId(1), mc::test::testEcsRegistry());
 
@@ -740,7 +740,7 @@ TEST(PandaEntityGeneTest, CalculateExpressedPersonality_AggressiveDominant)
 
 TEST(PandaEntityGeneTest, CalculateExpressedPersonality_LazyAggressiveCombo)
 {
-    Items::initialize();
+    Items::ensureInitialized();
 
     PandaEntity panda(EntityInstanceId(1), mc::test::testEcsRegistry());
 
@@ -756,7 +756,7 @@ TEST(PandaEntityGeneTest, CalculateExpressedPersonality_LazyAggressiveCombo)
 
 TEST(PandaEntityGeneTest, CalculateExpressedPersonality_NormalMainGene)
 {
-    Items::initialize();
+    Items::ensureInitialized();
 
     PandaEntity panda(EntityInstanceId(1), mc::test::testEcsRegistry());
 
@@ -773,7 +773,7 @@ TEST(PandaEntityGeneTest, CalculateExpressedPersonality_NormalMainGene)
 
 TEST(PandaEntityGeneTest, GetOneOfGenesRandomly)
 {
-    Items::initialize();
+    Items::ensureInitialized();
 
     math::Random rng(12345);
 
@@ -788,7 +788,7 @@ TEST(PandaEntityGeneTest, GetOneOfGenesRandomly)
 
 TEST(PandaEntityGeneTest, UpdatePersonalityFromGenes)
 {
-    Items::initialize();
+    Items::ensureInitialized();
 
     PandaEntity panda(EntityInstanceId(1), mc::test::testEcsRegistry());
 
@@ -806,7 +806,7 @@ protected:
     void SetUp() override
     {
         VanillaBlocks::initialize();
-        Items::initialize();
+        Items::ensureInitialized();
     }
 
     PandaTestWorld m_world;
@@ -924,7 +924,7 @@ TEST_F(PandaEntitySpawnBabyTest, InheritGenesFromParents_FatherOnly)
 
 TEST(PandaEntityRollTest, SetAndGetRollTimer)
 {
-    Items::initialize();
+    Items::ensureInitialized();
 
     PandaEntity panda(EntityInstanceId(1), mc::test::testEcsRegistry());
 
@@ -939,7 +939,7 @@ TEST(PandaEntityRollTest, SetAndGetRollTimer)
 
 TEST(PandaEntityRollTest, CanPerformAction_WhenIdle)
 {
-    Items::initialize();
+    Items::ensureInitialized();
 
     PandaEntity panda(EntityInstanceId(1), mc::test::testEcsRegistry());
 
@@ -949,7 +949,7 @@ TEST(PandaEntityRollTest, CanPerformAction_WhenIdle)
 
 TEST(PandaEntityRollTest, CanPerformAction_WhenSneezing)
 {
-    Items::initialize();
+    Items::ensureInitialized();
 
     PandaEntity panda(EntityInstanceId(1), mc::test::testEcsRegistry());
     panda.setSneezing(true);
@@ -959,7 +959,7 @@ TEST(PandaEntityRollTest, CanPerformAction_WhenSneezing)
 
 TEST(PandaEntityRollTest, CanPerformAction_WhenRolling)
 {
-    Items::initialize();
+    Items::ensureInitialized();
 
     PandaEntity panda(EntityInstanceId(1), mc::test::testEcsRegistry());
     panda.setRolling(true);
@@ -969,7 +969,7 @@ TEST(PandaEntityRollTest, CanPerformAction_WhenRolling)
 
 TEST(PandaEntityRollTest, CanPerformAction_WhenEating)
 {
-    Items::initialize();
+    Items::ensureInitialized();
 
     PandaEntity panda(EntityInstanceId(1), mc::test::testEcsRegistry());
     panda.setEating(true);
@@ -979,7 +979,7 @@ TEST(PandaEntityRollTest, CanPerformAction_WhenEating)
 
 TEST(PandaEntityRollTest, CanPerformAction_WhenLying)
 {
-    Items::initialize();
+    Items::ensureInitialized();
 
     PandaEntity panda(EntityInstanceId(1), mc::test::testEcsRegistry());
     panda.setLying(true);
@@ -989,7 +989,7 @@ TEST(PandaEntityRollTest, CanPerformAction_WhenLying)
 
 TEST(PandaEntityRollTest, CanPerformAction_WhenMultipleStates)
 {
-    Items::initialize();
+    Items::ensureInitialized();
 
     PandaEntity panda(EntityInstanceId(1), mc::test::testEcsRegistry());
 
@@ -1025,7 +1025,7 @@ TEST(PandaEntityRollTest, CanPerformAction_WhenMultipleStates)
 TEST(PandaEntityHurtTest, Hurt_CancelsSitting)
 {
     // 坐下的熊猫受非免疫伤害 → 取消坐下
-    Items::initialize();
+    Items::ensureInitialized();
 
     PandaTestWorld world;
     PandaEntity panda(EntityInstanceId(1), mc::test::testEcsRegistry());
@@ -1050,7 +1050,7 @@ TEST(PandaEntityHurtTest, Hurt_Invulnerable_StillCancelsSitting)
 {
     // 设为无敌的熊猫受到非绕过无敌伤害 → isInvulnerableTo 返回 true，基类 hurt 短路返回 false
     // 但 Panda.hurtServer 在调 super 前已执行 sit(false)（无条件取消坐下，不查免疫）。
-    Items::initialize();
+    Items::ensureInitialized();
 
     PandaTestWorld world;
     PandaEntity panda(EntityInstanceId(1), mc::test::testEcsRegistry());
@@ -1100,7 +1100,7 @@ public:
 
 TEST(PandaSittingTest, WorriedPandaSitsInThunderAndStandsAfter)
 {
-    Items::initialize();
+    Items::ensureInitialized();
     PandaTestWorld world;
     TickablePanda panda(EntityInstanceId(1), mc::test::testEcsRegistry());
     panda.setWorld(&world);
@@ -1119,7 +1119,7 @@ TEST(PandaSittingTest, WorriedPandaSitsInThunderAndStandsAfter)
 
 TEST(PandaSittingTest, NonWorriedPandaDoesNotSitInThunder)
 {
-    Items::initialize();
+    Items::ensureInitialized();
     PandaTestWorld world;
     TickablePanda panda(EntityInstanceId(1), mc::test::testEcsRegistry());
     panda.setWorld(&world);
@@ -1133,7 +1133,7 @@ TEST(PandaSittingTest, NonWorriedPandaDoesNotSitInThunder)
 
 TEST(PandaSittingTest, TryToSitSitsAndTryToSitOnWaterIsNoop)
 {
-    Items::initialize();
+    Items::ensureInitialized();
     PandaEntity panda(EntityInstanceId(1), mc::test::testEcsRegistry());
     panda.setTypeId("minecraft:panda");
 
@@ -1143,7 +1143,7 @@ TEST(PandaSittingTest, TryToSitSitsAndTryToSitOnWaterIsNoop)
 
 TEST(PandaSittingTest, SittingKeepsPitchLevel)
 {
-    Items::initialize();
+    Items::ensureInitialized();
     TickablePanda panda(EntityInstanceId(1), mc::test::testEcsRegistry());
     panda.setTypeId("minecraft:panda");
     panda.sit(true);
@@ -1157,7 +1157,7 @@ TEST(PandaSittingTest, SittingKeepsPitchLevel)
 
 TEST(PandaRetaliationTest, ClearingTargetResetsBothFlags)
 {
-    Items::initialize();
+    Items::ensureInitialized();
     PandaEntity panda(EntityInstanceId(1), mc::test::testEcsRegistry());
     panda.setTypeId("minecraft:panda");
 
@@ -1174,7 +1174,7 @@ TEST(PandaRetaliationTest, ClearingTargetResetsBothFlags)
 
 TEST(PandaRetaliationTest, HurtByTargetGoalStopsAfterBamboo)
 {
-    Items::initialize();
+    Items::ensureInitialized();
     PandaTestWorld world;
     TickablePanda panda(EntityInstanceId(1), mc::test::testEcsRegistry());
     panda.setWorld(&world);
@@ -1208,7 +1208,7 @@ TEST(PandaRetaliationTest, HurtByTargetGoalStopsAfterBamboo)
 
 TEST(PandaPersonalityGoalTest, LazyPandaCanLieOnBack)
 {
-    Items::initialize();
+    Items::ensureInitialized();
     PandaTestWorld world;
     TickablePanda panda(EntityInstanceId(1), mc::test::testEcsRegistry());
     panda.setWorld(&world);
@@ -1225,7 +1225,7 @@ TEST(PandaPersonalityGoalTest, LazyPandaCanLieOnBack)
 
 TEST(PandaPersonalityGoalTest, LieOnBackGoalOnlyForLazyPanda)
 {
-    Items::initialize();
+    Items::ensureInitialized();
     PandaTestWorld world;
 
     // 忧愁熊猫不进入仰躺状态
@@ -1244,7 +1244,7 @@ TEST(PandaPersonalityGoalTest, LieOnBackGoalOnlyForLazyPanda)
 
 TEST(PandaPersonalityGoalTest, AvoidGoalOnlyForWorriedPanda)
 {
-    Items::initialize();
+    Items::ensureInitialized();
     PandaTestWorld world;
 
     TickablePanda normal(EntityInstanceId(1), mc::test::testEcsRegistry());
@@ -1263,7 +1263,7 @@ TEST(PandaPersonalityGoalTest, AvoidGoalOnlyForWorriedPanda)
 
 TEST(PandaSitGoalTest, SitsWhenHoldingFoodInMainHand)
 {
-    Items::initialize();
+    Items::ensureInitialized();
     PandaTestWorld world;
     TickablePanda panda(EntityInstanceId(1), mc::test::testEcsRegistry());
     panda.setWorld(&world);
@@ -1284,7 +1284,7 @@ TEST(PandaSitGoalTest, SitsWhenHoldingFoodInMainHand)
 
 TEST(PandaSitGoalTest, BabyPandaNeverSitsThroughGoal)
 {
-    Items::initialize();
+    Items::ensureInitialized();
     PandaTestWorld world;
     TickablePanda panda(EntityInstanceId(1), mc::test::testEcsRegistry());
     panda.setWorld(&world);
@@ -1299,7 +1299,7 @@ TEST(PandaSitGoalTest, BabyPandaNeverSitsThroughGoal)
 
 TEST(PandaSitGoalTest, SeesNearbyEdibleItemEntity)
 {
-    Items::initialize();
+    Items::ensureInitialized();
     PandaTestWorld world;
     TickablePanda panda(EntityInstanceId(1), mc::test::testEcsRegistry());
     panda.setWorld(&world);
@@ -1323,7 +1323,7 @@ TEST(PandaSitGoalTest, SeesNearbyEdibleItemEntity)
 
 TEST(PandaSitGoalTest, ResetDropsFoodAndStandsUp)
 {
-    Items::initialize();
+    Items::ensureInitialized();
     PandaTestWorld world;
     TickablePanda panda(EntityInstanceId(1), mc::test::testEcsRegistry());
     panda.setWorld(&world);
@@ -1353,7 +1353,7 @@ TEST(PandaSitGoalTest, ResetDropsFoodAndStandsUp)
 
 TEST(PandaLookAtPlayerGoalTest, LockedLookTargetOverridesNearestPlayerSearch)
 {
-    Items::initialize();
+    Items::ensureInitialized();
     PandaTestWorld world;
     TickablePanda panda(EntityInstanceId(1), mc::test::testEcsRegistry());
     panda.setWorld(&world);
@@ -1379,7 +1379,7 @@ TEST(PandaLookAtPlayerGoalTest, LockedLookTargetOverridesNearestPlayerSearch)
 
 TEST(PandaLookAtPlayerGoalTest, RespectsUnhappyCounter)
 {
-    Items::initialize();
+    Items::ensureInitialized();
     PandaTestWorld world;
     TickablePanda panda(EntityInstanceId(1), mc::test::testEcsRegistry());
     panda.setWorld(&world);
@@ -1401,7 +1401,7 @@ TEST(PandaLookAtPlayerGoalTest, RespectsUnhappyCounter)
 
 TEST(PandaSitGoalTest, UnhappyPandaDoesNotSit)
 {
-    Items::initialize();
+    Items::ensureInitialized();
     PandaTestWorld world;
     TickablePanda panda(EntityInstanceId(1), mc::test::testEcsRegistry());
     panda.setWorld(&world);
@@ -1418,7 +1418,7 @@ TEST(PandaSitGoalTest, UnhappyPandaDoesNotSit)
 
 TEST(PandaSyncedFlagsTest, SitAndSneezeAndOnBackAreSynced)
 {
-    Items::initialize();
+    Items::ensureInitialized();
     PandaTestWorld world;
     TickablePanda panda(EntityInstanceId(1), mc::test::testEcsRegistry());
     panda.setWorld(&world);

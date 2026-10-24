@@ -49,7 +49,7 @@ class HorseInteractTestWorld final : public mc::test::BaseTestWorld {
 public:
     HorseInteractTestWorld()
     {
-        Items::initialize();
+        Items::ensureInitialized();
         VanillaBlocks::initialize();
         item::tag::ItemTags::initialize();
     }

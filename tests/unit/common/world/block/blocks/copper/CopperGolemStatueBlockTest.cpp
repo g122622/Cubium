@@ -273,7 +273,7 @@ protected:
     void SetUp() override
     {
         VanillaBlocks::initialize();
-        Items::initialize();
+        Items::ensureInitialized();
         item::tag::ItemTags::initialize();
         BlockTags::initialize();
         // 注册实体类型，使 CopperGolemStatueBlockEntity::removeStatue 能通过

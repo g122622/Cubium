@@ -58,7 +58,7 @@ class BrewingStandEntityTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        Items::initialize();
+        Items::ensureInitialized();
         brewingStand_ = std::make_unique<BrewingStandEntity>(BlockPos(10, 20, 30));
         m_glassBottle = ensureTestItem("glass_bottle");
         m_blazePowder = ensureTestItem("blaze_powder");

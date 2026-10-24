@@ -279,7 +279,7 @@ protected:
         // registerAll 进程级幂等。
         entity::VanillaEntities::registerAll();
         VanillaBlocks::initialize();
-        Items::initialize();
+        Items::ensureInitialized();
         item::tag::ItemTags::initialize();
         // 初始化伤害类型标签（狼铠吸收判定依赖 BYPASSES_WOLF_ARMOR 标签）
         DamageTypeTags::initialize();

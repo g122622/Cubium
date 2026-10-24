@@ -147,7 +147,7 @@ class HopperEntityTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        Items::initialize();
+        Items::ensureInitialized();
         hopper_ = std::make_unique<HopperEntity>(BlockPos(10, 20, 30));
         m_diamond = ensureHopperTestItem("diamond");
     }
@@ -609,7 +609,7 @@ class CaptureItemTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        Items::initialize();
+        Items::ensureInitialized();
         m_diamond = ensureHopperTestItem("diamond");
         m_inventory = std::make_unique<SimpleInventory>(5);
     }
@@ -724,7 +724,7 @@ class PutStackInInventoryTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        Items::initialize();
+        Items::ensureInitialized();
         m_diamond = ensureHopperTestItem("diamond");
         m_iron = ensureHopperTestItem("iron_ingot");
         m_inventory = std::make_unique<SimpleInventory>(5);
@@ -1014,7 +1014,7 @@ class HopperInventoryStaticTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        Items::initialize();
+        Items::ensureInitialized();
         m_diamond = ensureHopperTestItem("diamond");
         m_inventory = std::make_unique<SimpleInventory>(3);
         m_hopper = std::make_unique<HopperEntity>(BlockPos(0, 0, 0));
@@ -1052,7 +1052,7 @@ class CaptureItemEdgeCaseTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        Items::initialize();
+        Items::ensureInitialized();
         m_diamond = ensureHopperTestItem("diamond");
     }
 
@@ -1125,7 +1125,7 @@ class GetCaptureItemsTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        Items::initialize();
+        Items::ensureInitialized();
         m_diamond = ensureHopperTestItem("diamond");
     }
 
@@ -1376,7 +1376,7 @@ class CaptureItemIntegrationTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        Items::initialize();
+        Items::ensureInitialized();
         m_diamond = ensureHopperTestItem("diamond");
         m_iron = ensureHopperTestItem("iron_ingot");
         hopper_ = std::make_unique<HopperEntity>(BlockPos(0, 0, 0));
@@ -1484,7 +1484,7 @@ class HopperSelfLoopTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        Items::initialize();
+        Items::ensureInitialized();
         m_diamond = ensureHopperTestItem("diamond");
     }
 
@@ -1578,7 +1578,7 @@ protected:
     {
         VanillaBlocks::initialize();
         BlockTags::initialize();
-        Items::initialize();
+        Items::ensureInitialized();
         m_diamond = ensureHopperTestItem("diamond");
     }
 

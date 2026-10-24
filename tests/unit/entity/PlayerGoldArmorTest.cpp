@@ -48,7 +48,7 @@ protected:
     void SetUp() override
     {
         // 初始化物品注册表
-        Items::initialize();
+        Items::ensureInitialized();
         // 初始化护甲材质
         ArmorMaterials::initialize();
     }

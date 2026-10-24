@@ -69,7 +69,7 @@ class LeashTestWorld final : public mc::test::BaseTestWorld {
 public:
     LeashTestWorld()
     {
-        Items::initialize();
+        Items::ensureInitialized();
         VanillaBlocks::initialize();
         m_gameRules.setBoolean(world::gamerule::GameRuleKeys::DO_ENTITY_DROPS, true, nullptr);
     }
@@ -516,7 +516,7 @@ class LeashEntityTestWorld final : public mc::test::BaseTestWorld {
 public:
     LeashEntityTestWorld()
     {
-        Items::initialize();
+        Items::ensureInitialized();
         VanillaBlocks::initialize();
         m_gameRules.setBoolean(world::gamerule::GameRuleKeys::DO_ENTITY_DROPS, true, nullptr);
     }

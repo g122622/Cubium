@@ -105,7 +105,7 @@ protected:
     {
         item::enchant::EnchantmentRegistry::clear();
         item::enchant::EnchantmentRegistry::initialize();
-        Items::initialize();
+        Items::ensureInitialized();
         // 伤害类型标签初始化（进程级幂等）。NO_IMPACT（={Drown}）与 NO_KNOCKBACK（近 30 类型）成员集
         // 在 initialize() 注册（DamageTypeTags.cpp:649/654）。未初始化时标签成员集为空，
         // source.is(NO_IMPACT)/source.is(NO_KNOCKBACK) 恒返 false，门控形同虚设——这正是缺陷状态下

@@ -65,7 +65,7 @@ protected:
     {
         static bool s_initialized = false;
         if (!s_initialized) {
-            Items::initialize();
+            Items::ensureInitialized();
             VanillaBlocks::initialize();
             entity::VanillaEntities::registerAll();
             s_initialized = true;

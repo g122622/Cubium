@@ -83,7 +83,7 @@ class AttemptDamageItemTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        Items::initialize();
+        Items::ensureInitialized();
         EnchantmentRegistry::clear();
         EnchantmentRegistry::initialize();
     }

@@ -76,7 +76,7 @@ public:
     DecoratedPotTestWorld()
     {
         VanillaBlocks::initialize();
-        Items::initialize();
+        Items::ensureInitialized();
         item::tag::ItemTags::initialize();
     }
 
@@ -375,7 +375,7 @@ protected:
     void SetUp() override
     {
         VanillaBlocks::initialize();
-        Items::initialize();
+        Items::ensureInitialized();
         item::tag::ItemTags::initialize();
         pot_ =
             std::make_unique<DecoratedPotBlock>(BlockProperties(Material::DECORATION).hardness(1.0f).resistance(0.0f));

@@ -131,7 +131,7 @@ class CrafterBlockEntityTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        Items::initialize();
+        Items::ensureInitialized();
         crafter_ = std::make_unique<CrafterBlockEntity>(BlockPos(10, 20, 30));
         m_testItem = ensureTestItem("diamond");
     }
@@ -759,7 +759,7 @@ class CrafterBlockEntityTickTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        Items::initialize();
+        Items::ensureInitialized();
         crafter_ = std::make_unique<CrafterBlockEntity>(BlockPos(0, 0, 0));
     }
 

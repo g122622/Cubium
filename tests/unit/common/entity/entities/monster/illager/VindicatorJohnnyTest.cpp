@@ -97,7 +97,7 @@ protected:
     void SetUp() override
     {
         mc::VanillaBlocks::initialize();
-        mc::Items::initialize();
+        mc::Items::ensureInitialized();
 
         // 卫道士：Johnny 彩蛋载体。setTypeId 对齐工厂路径（EntityType::create 会 setTypeId），
         // 直接构造的实体 m_typeId 默认空。设 targetSelector 每 tick 评估（绕 tickRate=2 节流），

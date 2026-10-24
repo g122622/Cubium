@@ -287,7 +287,7 @@ protected:
 
 TEST(BlockEntityTodoTest, FurnaceInventoryOutputSlotRejectsManualPlacement)
 {
-    Items::initialize();
+    Items::ensureInitialized();
     blockentity::FurnaceInventory inventory;
     const ItemStack stone(*Items::STONE, 1);
 
@@ -296,7 +296,7 @@ TEST(BlockEntityTodoTest, FurnaceInventoryOutputSlotRejectsManualPlacement)
 
 TEST(BlockEntityTodoTest, FurnaceInventoryInputAndFuelSlotsAcceptItems)
 {
-    Items::initialize();
+    Items::ensureInitialized();
     blockentity::FurnaceInventory inventory;
     const ItemStack stone(*Items::STONE, 1);
     const ItemStack coal(*Items::COAL, 1);
@@ -555,7 +555,7 @@ TEST(BlockEntityTodoTest, PistonMovesCollidedEntitiesAlongFacingDirection)
 TEST(BlockEntityTodoTest, BeaconPaymentRoundTripAndClonePreservePaymentItem)
 {
     VanillaBlocks::initialize();
-    Items::initialize();
+    Items::ensureInitialized();
 
     blockentity::BeaconEntity beacon(BlockPos(5, 70, 5));
     beacon.setPaymentItem(ItemStack(*Items::IRON_INGOT, 1));
@@ -1238,7 +1238,7 @@ TEST_F(BlockEntityTodoTestHelper, BarrelEntitySoundAndStateOnlyOnFirstOpen)
 TEST(BlockEntityTodoTest, LecternEntitySetBookAndPageNavigation)
 {
     VanillaBlocks::initialize();
-    Items::initialize();
+    Items::ensureInitialized();
 
     blockentity::LecternEntity lectern(BlockPos(4, 10, 6));
 
@@ -1266,7 +1266,7 @@ TEST(BlockEntityTodoTest, LecternEntitySetBookAndPageNavigation)
 TEST(BlockEntityTodoTest, LecternEntityComparatorSignalBasedOnPage)
 {
     VanillaBlocks::initialize();
-    Items::initialize();
+    Items::ensureInitialized();
 
     blockentity::LecternEntity lectern(BlockPos(0, 0, 0));
 
@@ -1318,7 +1318,7 @@ TEST(BlockEntityTodoTest, LecternEntityCloseCountDoesNotGoBelowZero)
 TEST_F(BlockEntityTodoTestHelper, LecternBlockTryPlaceBookSetsEntityBook)
 {
     VanillaBlocks::initialize();
-    Items::initialize();
+    Items::ensureInitialized();
 
     DummyWorld world;
 
@@ -1355,7 +1355,7 @@ TEST_F(BlockEntityTodoTestHelper, LecternBlockTryPlaceBookSetsEntityBook)
 TEST_F(BlockEntityTodoTestHelper, LecternBlockTryPlaceBookFailsWhenBookAlreadyPresent)
 {
     VanillaBlocks::initialize();
-    Items::initialize();
+    Items::ensureInitialized();
 
     DummyWorld world;
 
@@ -1387,7 +1387,7 @@ TEST_F(BlockEntityTodoTestHelper, LecternBlockTryPlaceBookFailsWhenBookAlreadyPr
 TEST_F(BlockEntityTodoTestHelper, LecternBlockTryPlaceBookFailsWithEmptyStack)
 {
     VanillaBlocks::initialize();
-    Items::initialize();
+    Items::ensureInitialized();
 
     DummyWorld world;
 

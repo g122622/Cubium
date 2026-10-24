@@ -89,7 +89,7 @@ class ThrowableItemTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        Items::initialize();
+        Items::ensureInitialized();
     }
 
     void TearDown() override
@@ -297,28 +297,28 @@ TEST_F(ThrowableItemTest, ExperienceBottleEntity_CanBeCreated)
 
 TEST_F(ThrowableItemTest, SnowballEntity_GetDefaultItem)
 {
-    Items::initialize();
+    Items::ensureInitialized();
     entity::SnowballEntity snowball(EntityInstanceId(1), mc::test::testEcsRegistry());
     EXPECT_EQ(snowball.getDefaultItem(), Items::SNOWBALL);
 }
 
 TEST_F(ThrowableItemTest, EggEntity_GetDefaultItem)
 {
-    Items::initialize();
+    Items::ensureInitialized();
     entity::EggEntity egg(EntityInstanceId(1), mc::test::testEcsRegistry());
     EXPECT_EQ(egg.getDefaultItem(), Items::EGG);
 }
 
 TEST_F(ThrowableItemTest, EnderPearlEntity_GetDefaultItem)
 {
-    Items::initialize();
+    Items::ensureInitialized();
     entity::EnderPearlEntity pearl(EntityInstanceId(1), mc::test::testEcsRegistry());
     EXPECT_EQ(pearl.getDefaultItem(), Items::ENDER_PEARL);
 }
 
 TEST_F(ThrowableItemTest, ExperienceBottleEntity_GetDefaultItem)
 {
-    Items::initialize();
+    Items::ensureInitialized();
     entity::ExperienceBottleEntity bottle(EntityInstanceId(1), mc::test::testEcsRegistry());
     EXPECT_EQ(bottle.getDefaultItem(), Items::EXPERIENCE_BOTTLE);
 }

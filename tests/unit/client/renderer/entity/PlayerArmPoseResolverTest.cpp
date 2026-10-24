@@ -126,7 +126,7 @@ protected:
     {
         // 初始化顺序：方块 -> 物品 -> 方块物品 -> 物品标签
         VanillaBlocks::initialize();
-        Items::initialize();
+        Items::ensureInitialized();
         BlockItemRegistry::instance().initializeVanillaBlockItems();
         item::tag::ItemTags::initialize();
     }

@@ -71,7 +71,7 @@ class SetStewEffectTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        Items::initialize();
+        Items::ensureInitialized();
         m_random = std::make_unique<math::Random>(12345);
     }
 

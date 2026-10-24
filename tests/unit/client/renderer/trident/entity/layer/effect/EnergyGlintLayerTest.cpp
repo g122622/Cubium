@@ -77,7 +77,7 @@ protected:
         // 初始化附魔注册表
         mc::item::enchant::EnchantmentRegistry::initialize();
         // 初始化物品注册表
-        mc::Items::initialize();
+        mc::Items::ensureInitialized();
         // 初始化方块注册表
         mc::VanillaBlocks::initialize();
         // 创建测试实体

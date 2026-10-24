@@ -310,7 +310,7 @@ TEST(LivingEntityTest, HurtPlaysSound)
 
 TEST(LivingEntityTest, NbtRoundTripPreservesEffectsAndEquipment)
 {
-    Items::initialize();
+    Items::ensureInitialized();
     TestLivingEntity entity;
     entity.addEffect(entity::effect::EffectInstance(entity::effect::EffectType::Speed, 200, 1, false, true, true));
     entity.setMainHandItem(ItemStack(Items::DIAMOND_SWORD, 1));

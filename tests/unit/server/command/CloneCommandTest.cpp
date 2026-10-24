@@ -51,7 +51,7 @@ class CloneTestServer final : public mc::test::BaseTestServer {
 public:
     CloneTestServer()
     {
-        Items::initialize();
+        Items::ensureInitialized();
         VanillaBlocks::initialize();
     }
 
@@ -82,7 +82,7 @@ protected:
     void SetUp() override
     {
         VanillaBlocks::initialize();
-        Items::initialize();
+        Items::ensureInitialized();
     }
 
     CloneTestServer m_server;

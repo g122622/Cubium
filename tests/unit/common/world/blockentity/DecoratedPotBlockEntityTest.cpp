@@ -41,7 +41,7 @@ class PotDecorationsTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        Items::initialize();
+        Items::ensureInitialized();
     }
 };
 
@@ -227,7 +227,7 @@ class DecoratedPotBlockEntityTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        Items::initialize();
+        Items::ensureInitialized();
         entity_ = std::make_unique<DecoratedPotBlockEntity>(BlockPos(10, 20, 30));
     }
 
@@ -389,7 +389,7 @@ class DecoratedPotItemMappingTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        Items::initialize();
+        Items::ensureInitialized();
     }
 };
 
@@ -428,7 +428,7 @@ TEST_F(DecoratedPotItemMappingTest, GetItemFromPattern_BlankReturnsBrick)
 
 TEST_F(DecoratedPotItemMappingTest, GetItemFromPattern_PatternReturnsSherd)
 {
-    // 注意：陶片物品需要在 Items::initialize() 中注册后才能查找
+    // 注意：陶片物品需要在 Items::ensureInitialized() 中注册后才能查找
     // 如果对应陶片物品未注册，getItemFromPattern 返回 nullptr
     const Item* anglerItem = getItemFromPattern(DecoratedPotPattern::Angler);
     // 如果项目已注册，验证资源路径

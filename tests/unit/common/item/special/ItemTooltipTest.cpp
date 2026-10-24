@@ -56,7 +56,7 @@ class ItemTooltipTest : public ::testing::Test {
 protected:
     static void SetUpTestSuite()
     {
-        Items::initialize();
+        Items::ensureInitialized();
     }
 };
 
@@ -362,7 +362,7 @@ class ItemTooltipIntegrationTest : public ::testing::Test {
 protected:
     static void SetUpTestSuite()
     {
-        Items::initialize();
+        Items::ensureInitialized();
     }
 
     TooltipTestWorld m_world;

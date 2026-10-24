@@ -326,7 +326,7 @@ class ParrotGoalsTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        Items::initialize();
+        Items::ensureInitialized();
         parrot = std::make_unique<ParrotEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
     }
 

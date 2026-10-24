@@ -101,7 +101,7 @@ class JukeboxEntityTest : public ::testing::Test {
 protected:
     static void SetUpTestSuite()
     {
-        Items::initialize();
+        Items::ensureInitialized();
         JukeboxSongs::initialize();
     }
 

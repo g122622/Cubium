@@ -64,7 +64,7 @@ public:
     {
         // 初始化方块和物品注册表（createTestWorld 依赖方块注册表）
         VanillaBlocks::initialize();
-        Items::initialize();
+        Items::ensureInitialized();
 
         // 创建测试世界
         ServerWorldConfig config;

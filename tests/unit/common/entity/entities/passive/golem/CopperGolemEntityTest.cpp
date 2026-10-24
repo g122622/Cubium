@@ -291,7 +291,7 @@ TEST_F(CopperGolemEntityTest, IsShearable_TrueWhenAntennaSlotHasPoppy)
     // 若早于 Items::initialize 调用,getItem 返回 nullptr,add 静默丢弃(ItemTag.cpp:41),
     // 标签永久为空且 s_initialized 幂等锁死,isShearable 必返回 false。原顺序写反致本用例失败。
     VanillaBlocks::initialize();
-    Items::initialize();
+    Items::ensureInitialized();
     BlockItemRegistry::instance().initializeVanillaBlockItems();
     ItemTags::initialize();
 
@@ -304,7 +304,7 @@ TEST_F(CopperGolemEntityTest, Shear_PlaysShearSoundAndDropsAntenna)
 {
     // 同 IsShearable_TrueWhenAntennaSlotHasPoppy:ItemTags 必须在 Items 之后初始化。
     VanillaBlocks::initialize();
-    Items::initialize();
+    Items::ensureInitialized();
     BlockItemRegistry::instance().initializeVanillaBlockItems();
     ItemTags::initialize();
 

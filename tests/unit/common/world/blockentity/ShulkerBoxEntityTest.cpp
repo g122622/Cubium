@@ -189,7 +189,7 @@ class ShulkerBoxBlockTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        Items::initialize();
+        Items::ensureInitialized();
         m_shulkerBoxBlock =
             std::make_unique<blocks::ShulkerBoxBlock>(BlockProperties(Material::WOOD).hardness(2.0f).resistance(2.0f));
     }
@@ -239,7 +239,7 @@ class ShulkerBoxEntityTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        Items::initialize();
+        Items::ensureInitialized();
         m_shulkerBox = std::make_unique<blockentity::ShulkerBoxEntity>(BlockPos(10, 20, 30));
         m_diamond = ensureTestItem("diamond");
         m_stick = ensureTestItem("stick");

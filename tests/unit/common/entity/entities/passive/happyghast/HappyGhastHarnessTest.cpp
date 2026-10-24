@@ -181,7 +181,7 @@ protected:
     {
         static bool s_initialized = false;
         if (!s_initialized) {
-            Items::initialize();
+            Items::ensureInitialized();
             VanillaBlocks::initialize();
             entity::VanillaEntities::registerAll();
             // CAN_EQUIP_HARNESS 等实体标签的成员必须在 initialize() 中填充，运行时查询才有内容。

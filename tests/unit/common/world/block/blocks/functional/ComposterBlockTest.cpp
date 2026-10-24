@@ -417,8 +417,8 @@ class ComposterContainerTest : public ::testing::Test {
 protected:
     static void SetUpTestSuite()
     {
-        Items::initialize();
-        CompostableItems::initialize();
+        Items::ensureInitialized();
+        CompostableItems::ensureInitialized();
     }
 
     void SetUp() override
@@ -1103,8 +1103,8 @@ class ComposterHopperIntegrationTest : public ::testing::Test {
 protected:
     static void SetUpTestSuite()
     {
-        Items::initialize();
-        CompostableItems::initialize();
+        Items::ensureInitialized();
+        CompostableItems::ensureInitialized();
     }
 
     void SetUp() override

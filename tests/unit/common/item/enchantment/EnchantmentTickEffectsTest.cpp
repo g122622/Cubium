@@ -178,7 +178,7 @@ protected:
     {
         static bool s_initialized = false;
         if (!s_initialized) {
-            Items::initialize();
+            Items::ensureInitialized();
             VanillaBlocks::initialize();
             BlockTags::initialize();
             fluid::FluidRegistry::instance().initialize();

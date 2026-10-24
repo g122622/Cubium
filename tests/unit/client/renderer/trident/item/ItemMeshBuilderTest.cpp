@@ -454,7 +454,7 @@ protected:
 
     static void SetUpTestSuite()
     {
-        // 注册一个测试物品（不需要 Items::initialize()，只注册一个即可）
+        // 注册一个测试物品（不需要 Items::ensureInitialized()，只注册一个即可）
         s_testItem = &registerTestItem(mc::ResourceLocation("test", "fallback_cube_item"));
     }
 

@@ -48,7 +48,7 @@ class DoubleSidedInventoryTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        Items::initialize();
+        Items::ensureInitialized();
         m_diamond = ensureTestItem("diamond");
         m_iron = ensureTestItem("iron_ingot");
 

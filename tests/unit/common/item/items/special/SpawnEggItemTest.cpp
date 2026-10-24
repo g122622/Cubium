@@ -268,7 +268,7 @@ protected:
             VanillaBlocks::initialize();
             entity::VanillaEntities::registerAll();
             fluid::FluidRegistry::instance().initialize();
-            Items::initialize();
+            Items::ensureInitialized();
             s_initialized = true;
         }
     }

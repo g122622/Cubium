@@ -41,7 +41,7 @@ void ensureItemRegistryInitialized()
 {
     static bool initialized = false;
     if (!initialized) {
-        Items::initialize();
+        Items::ensureInitialized();
         initialized = true;
     }
 }

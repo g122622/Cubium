@@ -191,7 +191,7 @@ protected:
     {
         VanillaBlocks::initialize();
         fluid::FluidRegistry::instance().initialize();
-        Items::initialize();
+        Items::ensureInitialized();
     }
 
     void TearDown() override {}
@@ -444,7 +444,7 @@ protected:
     {
         VanillaBlocks::initialize();
         fluid::FluidRegistry::instance().initialize();
-        Items::initialize();
+        Items::ensureInitialized();
     }
 
     void TearDown() override {}
@@ -551,7 +551,7 @@ protected:
     {
         VanillaBlocks::initialize();
         fluid::FluidRegistry::instance().initialize();
-        Items::initialize();
+        Items::ensureInitialized();
     }
 
     void TearDown() override {}
@@ -592,7 +592,7 @@ protected:
     {
         VanillaBlocks::initialize();
         fluid::FluidRegistry::instance().initialize();
-        Items::initialize();
+        Items::ensureInitialized();
     }
 
     void TearDown() override {}

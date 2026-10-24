@@ -316,7 +316,7 @@ protected:
     void SetUp() override
     {
         // 初始化 Items
-        Items::initialize();
+        Items::ensureInitialized();
 
         // 创建测试世界
         world_ = std::make_unique<PumpkinCarveTestWorld>();

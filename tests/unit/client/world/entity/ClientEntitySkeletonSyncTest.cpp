@@ -111,7 +111,7 @@ class ClientEntitySkeletonSyncTest : public ::testing::Test {
 protected:
     static void SetUpTestSuite()
     {
-        Items::initialize();
+        Items::ensureInitialized();
     }
 
     void SetUp() override
@@ -206,7 +206,7 @@ class ClientEntityStraySyncTest : public ::testing::Test {
 protected:
     static void SetUpTestSuite()
     {
-        Items::initialize();
+        Items::ensureInitialized();
     }
 
     void SetUp() override
@@ -254,7 +254,7 @@ class ClientEntityBoggedSyncTest : public ::testing::Test {
 protected:
     static void SetUpTestSuite()
     {
-        Items::initialize();
+        Items::ensureInitialized();
     }
 
     void SetUp() override
@@ -308,7 +308,7 @@ class ClientEntityWitherSkeletonSyncTest : public ::testing::Test {
 protected:
     static void SetUpTestSuite()
     {
-        Items::initialize();
+        Items::ensureInitialized();
     }
 
     void SetUp() override
@@ -358,7 +358,7 @@ class ClientEntitySkeletonTypeIdNormalizeTest : public ::testing::Test {
 protected:
     static void SetUpTestSuite()
     {
-        Items::initialize();
+        Items::ensureInitialized();
     }
 
     void SetUp() override

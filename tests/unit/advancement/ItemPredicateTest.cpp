@@ -52,7 +52,7 @@ protected:
     static void SetUpTestSuite()
     {
         // 初始化物品和药水注册表（只执行一次）
-        Items::initialize();
+        Items::ensureInitialized();
         potion::Potions::initialize();
         item::tag::ItemTags::initialize();
     }

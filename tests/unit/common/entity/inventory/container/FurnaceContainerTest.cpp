@@ -43,7 +43,7 @@ class FurnaceContainerTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        Items::initialize();
+        Items::ensureInitialized();
         playerInventory_ = std::make_unique<PlayerInventory>();
         // 创建熔炉背包容器（3格：输入、燃料、输出）
         furnaceInventory_ = std::make_unique<SimpleInventory>(FurnaceContainer::FURNACE_SLOTS);
@@ -59,7 +59,7 @@ class FurnaceFuelSlotTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        Items::initialize();
+        Items::ensureInitialized();
         inventory_ = std::make_unique<SimpleInventory>(3);
     }
 
@@ -131,7 +131,7 @@ class FurnaceResultSlotTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        Items::initialize();
+        Items::ensureInitialized();
         inventory_ = std::make_unique<SimpleInventory>(3);
     }
 
@@ -302,7 +302,7 @@ class FurnaceFuelSlotEdgeCaseTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        Items::initialize();
+        Items::ensureInitialized();
         inventory_ = std::make_unique<SimpleInventory>(3);
     }
 
@@ -578,7 +578,7 @@ protected:
     void SetUp() override
     {
         // 初始化物品系统
-        Items::initialize();
+        Items::ensureInitialized();
 
         // 创建玩家
         player_ = std::make_unique<Player>(EntityInstanceId(1), "TestPlayer", mc::test::testEcsRegistry());

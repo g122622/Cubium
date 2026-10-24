@@ -261,7 +261,7 @@ protected:
         static bool s_initialized = false;
         if (!s_initialized) {
             VanillaBlocks::initialize();
-            Items::initialize();
+            Items::ensureInitialized();
             VanillaEntities::registerAll();
             s_initialized = true;
         }

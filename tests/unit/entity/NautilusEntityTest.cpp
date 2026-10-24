@@ -211,7 +211,7 @@ class NautilusNbtTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        Items::initialize();
+        Items::ensureInitialized();
     }
 };
 
@@ -383,7 +383,7 @@ class NautilusBubbleTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        Items::initialize();
+        Items::ensureInitialized();
         world = std::make_unique<NautilusTestWorld>();
         nautilus = std::make_unique<TestableNautilusEntity>(EntityInstanceId(1));
         nautilus->setWorld(world.get());
@@ -534,7 +534,7 @@ class NautilusEquipmentTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        Items::initialize();
+        Items::ensureInitialized();
     }
 };
 

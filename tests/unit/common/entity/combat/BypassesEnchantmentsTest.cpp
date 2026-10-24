@@ -105,7 +105,7 @@ protected:
         // 能解析附魔类型。
         item::enchant::EnchantmentRegistry::clear();
         item::enchant::EnchantmentRegistry::initialize();
-        Items::initialize();
+        Items::ensureInitialized();
         // 伤害类型标签初始化（进程级单例，s_initialized 守卫幂等）。BYPASSES_ENCHANTMENTS 标签成员集
         // （= {SonicBoom}）在 initialize() 中通过 addAll 注册（DamageTypeTags.cpp:555）。未初始化时标签
         // 成员集为空，source.is(BYPASSES_ENCHANTMENTS) 恒返 false，修复门控形同虚设——这正是首轮测试

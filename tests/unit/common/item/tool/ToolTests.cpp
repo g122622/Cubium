@@ -50,7 +50,7 @@ protected:
     static void SetUpTestSuite()
     {
         // Initialize items first (needed for repair materials)
-        Items::initialize();
+        Items::ensureInitialized();
         ItemTiers::initialize();
     }
 };
@@ -123,7 +123,7 @@ class ToolItemTest : public ::testing::Test {
 protected:
     static void SetUpTestSuite()
     {
-        Items::initialize();
+        Items::ensureInitialized();
         ItemTiers::initialize();
         VanillaBlocks::initialize();
     }
@@ -226,8 +226,8 @@ protected:
     {
         // 必须先初始化方块，因为工具注册时需要有效的方块指针
         VanillaBlocks::initialize();
-        Items::initialize();
-        // ItemTiers::initialize() 已经在 Items::initialize() 中调用
+        Items::ensureInitialized();
+        // ItemTiers::initialize() 已经在 Items::ensureInitialized() 中调用
     }
 };
 
@@ -398,7 +398,7 @@ protected:
     static void SetUpTestSuite()
     {
         VanillaBlocks::initialize();
-        Items::initialize();
+        Items::ensureInitialized();
 
         // 注意：使用"construct on first use"模式，静态映射表在第一次调用静态方法时自动初始化
         // 无需在此创建工具实例

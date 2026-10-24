@@ -177,7 +177,7 @@ protected:
     void SetUp() override
     {
         // 初始化物品系统
-        Items::initialize();
+        Items::ensureInitialized();
 
         // 创建测试对象
         world_ = std::make_unique<MockWorld>();

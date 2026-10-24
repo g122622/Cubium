@@ -252,7 +252,7 @@ protected:
     {
         VanillaBlocks::initialize();
         BlockTags::initialize();
-        Items::initialize();
+        Items::ensureInitialized();
     }
 };
 
@@ -300,7 +300,7 @@ protected:
     {
         VanillaBlocks::initialize();
         BlockTags::initialize();
-        Items::initialize();
+        Items::ensureInitialized();
 
         // 创建独立的 CactusFlowerBlock 测试实例，用于测试 canSustain
         m_cactusFlower = std::make_unique<CactusFlowerBlockTestAccess>(
@@ -440,7 +440,7 @@ protected:
     {
         VanillaBlocks::initialize();
         BlockTags::initialize();
-        Items::initialize();
+        Items::ensureInitialized();
     }
 };
 
@@ -501,7 +501,7 @@ protected:
     {
         VanillaBlocks::initialize();
         BlockTags::initialize();
-        Items::initialize();
+        Items::ensureInitialized();
         mc::item::tag::ItemTags::initialize();
     }
 };

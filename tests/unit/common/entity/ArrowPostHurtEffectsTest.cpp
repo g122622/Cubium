@@ -84,7 +84,7 @@ protected:
     void SetUp() override
     {
         // 初始化物品注册表（部分实体构造/效果系统间接依赖）
-        Items::initialize();
+        Items::ensureInitialized();
     }
 
     void TearDown() override {}

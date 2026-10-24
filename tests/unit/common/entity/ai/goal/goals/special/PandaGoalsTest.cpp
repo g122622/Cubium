@@ -42,7 +42,7 @@ protected:
     void SetUp() override
     {
         VanillaBlocks::initialize();
-        Items::initialize();
+        Items::ensureInitialized();
         panda = std::make_unique<PandaEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
     }
 
@@ -219,7 +219,7 @@ protected:
     void SetUp() override
     {
         VanillaBlocks::initialize();
-        Items::initialize();
+        Items::ensureInitialized();
         panda = std::make_unique<PandaEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
     }
 
@@ -307,7 +307,7 @@ protected:
     void SetUp() override
     {
         VanillaBlocks::initialize();
-        Items::initialize();
+        Items::ensureInitialized();
         panda = std::make_unique<PandaEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
     }
 
@@ -409,7 +409,7 @@ protected:
     void SetUp() override
     {
         VanillaBlocks::initialize();
-        Items::initialize();
+        Items::ensureInitialized();
         panda = std::make_unique<PandaEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
     }
 
@@ -532,7 +532,7 @@ protected:
     void SetUp() override
     {
         VanillaBlocks::initialize();
-        Items::initialize();
+        Items::ensureInitialized();
         panda = std::make_unique<PandaEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
         // 好斗性格：反击链路仅对好斗熊猫生效（ATTACK_DAMAGE=6.0）。
         panda->setPersonality(PandaEntity::Personality::Aggressive);

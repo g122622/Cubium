@@ -96,7 +96,7 @@ protected:
     {
         VanillaBlocks::initialize();
         BlockTags::initialize();
-        Items::initialize();
+        Items::ensureInitialized();
     }
 
     void TearDown() override
@@ -434,7 +434,7 @@ class ItemStackAdventureModeNbtTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        Items::initialize();
+        Items::ensureInitialized();
     }
 };
 

@@ -102,7 +102,7 @@ class LecternEntityTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        Items::initialize();
+        Items::ensureInitialized();
         m_book = ensureTestItem("book");
         m_writableBook = ensureTestItem("writable_book");
         m_writtenBook = ensureTestItem("written_book");
@@ -229,7 +229,7 @@ class JukeboxEntityTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        Items::initialize();
+        Items::ensureInitialized();
         m_disc13 = ensureTestItem("music_disc_13");
         m_discCat = ensureTestItem("music_disc_cat");
         m_stick = ensureTestItem("stick");

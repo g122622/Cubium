@@ -36,7 +36,7 @@ class PotionUtilsTest : public ::testing::Test {
 protected:
     static void SetUpTestSuite()
     {
-        Items::initialize();
+        Items::ensureInitialized();
         ::mc::potion::Potions::initialize();
     }
 };

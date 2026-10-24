@@ -269,7 +269,7 @@ TEST_F(PlayerHurtEntityTriggerTest, FishingRodHooked_MatchesCaughtItem)
         std::dynamic_pointer_cast<advancement::FishingRodHookedTriggerInstance>(criterion.value().getTriggerInstance());
     ASSERT_NE(instance, nullptr);
 
-    Items::initialize();
+    Items::ensureInitialized();
     item::tag::ItemTags::initialize();
     ASSERT_NE(Items::FISHING_ROD, nullptr);
     const ItemStack rod(*Items::FISHING_ROD, 1);
@@ -289,7 +289,7 @@ TEST_F(PlayerHurtEntityTriggerTest, FishingRodHooked_RodCondition)
     // 条件限定钓竿时，需与使用中的钓竿一致；无 item 条件时空掉落也匹配
     advancement::FishingRodHookedTriggerInstance instance;
     ASSERT_TRUE(instance.fromJson(nlohmann::json{{"rod", {{"items", "minecraft:fishing_rod"}}}}).success());
-    Items::initialize();
+    Items::ensureInitialized();
     ASSERT_NE(Items::FISHING_ROD, nullptr);
     ASSERT_NE(Items::DIAMOND, nullptr);
     EXPECT_TRUE(instance.test(ItemStack(*Items::FISHING_ROD, 1), nullptr, {}));
@@ -329,7 +329,7 @@ TEST_F(PlayerHurtEntityTriggerTest, KilledByArrow_UniqueEntityTypesAndWeapon)
         std::dynamic_pointer_cast<advancement::KilledByArrowTriggerInstance>(criterion.value().getTriggerInstance());
     ASSERT_NE(instance, nullptr);
 
-    Items::initialize();
+    Items::ensureInitialized();
     ASSERT_NE(Items::CROSSBOW, nullptr);
     ASSERT_NE(Items::BOW, nullptr);
     const ItemStack crossbow(*Items::CROSSBOW, 1);
@@ -385,7 +385,7 @@ TEST_F(PlayerHurtEntityTriggerTest, PlayerShearedEquipment_ConditionListEntity)
         std::dynamic_pointer_cast<advancement::PlayerInteractTriggerInstance>(criterion.value().getTriggerInstance());
     ASSERT_NE(instance, nullptr);
 
-    Items::initialize();
+    Items::ensureInitialized();
     const Item* wolfArmor = ItemRegistry::instance().getItem(ResourceLocation("minecraft:wolf_armor"));
     if (wolfArmor == nullptr) {
         GTEST_SKIP() << "wolf_armor 未注册";

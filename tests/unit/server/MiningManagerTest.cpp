@@ -62,7 +62,7 @@ protected:
     {
         // 初始化方块和物品
         VanillaBlocks::initialize();
-        Items::initialize();
+        Items::ensureInitialized();
         BlockItemRegistry::instance().initializeVanillaBlockItems();
 
         // 打开存档：ServerWorld::initialize 要求 m_storage 已设置且 isOpen()。

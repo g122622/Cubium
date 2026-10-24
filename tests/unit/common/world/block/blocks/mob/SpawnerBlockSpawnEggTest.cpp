@@ -221,7 +221,7 @@ protected:
     {
         VanillaBlocks::initialize();
         entity::VanillaEntities::registerAll();
-        Items::initialize();
+        Items::ensureInitialized();
 
         // 创建测试用刷怪蛋
         pigEgg_ = makeSpawnEgg("minecraft:pig", 0xF0A0A0, 0xA05050);

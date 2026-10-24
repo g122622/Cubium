@@ -297,7 +297,7 @@ TEST_F(BlockEntityTest, Container_IsEmpty_ReturnsTrueByDefault)
 
 TEST_F(BlockEntityTest, Container_SaveLoad_PreservesItemsAndCustomName)
 {
-    Items::initialize();
+    Items::ensureInitialized();
     auto* apple = ensureBlockEntityTestItem("apple");
     ASSERT_NE(apple, nullptr);
 

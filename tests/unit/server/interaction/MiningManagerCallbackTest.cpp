@@ -52,7 +52,7 @@ protected:
     {
         // 初始化方块和物品（MiningManager 的 ItemStack 相关逻辑需要）
         VanillaBlocks::initialize();
-        Items::initialize();
+        Items::ensureInitialized();
         BlockItemRegistry::instance().initializeVanillaBlockItems();
 
         // 创建玩家管理器

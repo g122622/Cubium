@@ -339,7 +339,7 @@ protected:
         static bool initialized = false;
         if (!initialized) {
             VanillaBlocks::initialize();
-            Items::initialize();
+            Items::ensureInitialized();
             BlockItemRegistry::instance().initializeVanillaBlockItems();
             initialized = true;
         }

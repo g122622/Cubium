@@ -284,7 +284,7 @@ protected:
     void SetUp() override
     {
         VanillaBlocks::initialize();
-        Items::initialize();
+        Items::ensureInitialized();
     }
 };
 
@@ -298,7 +298,7 @@ protected:
     {
         VanillaBlocks::initialize();
         fluid::FluidRegistry::instance().initialize();
-        Items::initialize();
+        Items::ensureInitialized();
     }
 
     PitcherCropTestWorld world;
@@ -1088,7 +1088,7 @@ protected:
     {
         VanillaBlocks::initialize();
         fluid::FluidRegistry::instance().initialize();
-        Items::initialize();
+        Items::ensureInitialized();
         // 注册所有原版实体类型，确保 RavagerEntity 的 typeId 可查询
         entity::VanillaEntities::registerAll();
     }

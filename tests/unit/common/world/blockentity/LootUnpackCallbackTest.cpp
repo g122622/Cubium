@@ -129,7 +129,7 @@ class BarrelLootCallbackTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        Items::initialize();
+        Items::ensureInitialized();
         m_diamond = ensureTestItem("diamond");
         m_ironIngot = ensureTestItem("iron_ingot");
         barrel_ = std::make_unique<BarrelEntity>(BlockPos(0, 0, 0));
@@ -301,7 +301,7 @@ class ChestLootCallbackTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        Items::initialize();
+        Items::ensureInitialized();
         m_diamond = ensureTestItem("diamond");
         chest_ = std::make_unique<ChestEntity>(BlockPos(0, 0, 0));
         chest_->setWorld(&world_);
@@ -397,7 +397,7 @@ class DispenserLootCallbackTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        Items::initialize();
+        Items::ensureInitialized();
         m_diamond = ensureTestItem("diamond");
         dispenser_ = std::make_unique<DispenserBlockEntity>(BlockEntityType::Dispenser, BlockPos(0, 0, 0));
         dispenser_->setWorld(&world_);

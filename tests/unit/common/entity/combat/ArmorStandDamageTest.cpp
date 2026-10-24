@@ -116,7 +116,7 @@ protected:
     {
         item::enchant::EnchantmentRegistry::clear();
         item::enchant::EnchantmentRegistry::initialize();
-        Items::initialize();
+        Items::ensureInitialized();
         // 伤害类型标签初始化（进程级幂等）。四标签成员集在 initialize() 注册
         // （DamageTypeTags.cpp:755-781）。未初始化时标签成员集为空，source.is(标签) 恒返 false，
         // 所有伤害源落基类 Entity::hurt，四标签分支形同虚设——这正是缺陷状态下盔甲架对箭/火免疫的根因。

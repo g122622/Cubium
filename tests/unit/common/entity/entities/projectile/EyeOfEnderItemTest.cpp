@@ -21,7 +21,7 @@ protected:
     static void SetUpTestSuite()
     {
         // 末影之眼默认物品需先完成物品注册。
-        Items::initialize();
+        Items::ensureInitialized();
     }
 
     void SetUp() override

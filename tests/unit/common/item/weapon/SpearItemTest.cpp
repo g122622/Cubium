@@ -127,7 +127,7 @@ class SpearItemTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        Items::initialize();
+        Items::ensureInitialized();
         item::tag::ItemTags::initialize();
         // SpearEntity 字段级 NBT 序列化已搬 ComponentSerializerRegistry（投掷物族批次6.2），
         // 须注册序列化器才能在 writeToNBT/readFromNBT 经 saveAll/loadAll 读写。

@@ -47,7 +47,7 @@ class AddonItemPropertiesTest : public testing::Test {
 protected:
     void SetUp() override
     {
-        mc::Items::initialize();
+        mc::Items::ensureInitialized();
         sword = mc::ItemRegistry::instance().getItem(mc::ResourceLocation("minecraft:diamond_sword"));
         stick = mc::ItemRegistry::instance().getItem(mc::ResourceLocation("minecraft:stick"));
         ASSERT_NE(sword, nullptr);

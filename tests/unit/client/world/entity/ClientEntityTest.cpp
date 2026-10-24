@@ -44,7 +44,7 @@ protected:
     static void SetUpTestSuite()
     {
         // Initialize Items registry once for all tests
-        Items::initialize();
+        Items::ensureInitialized();
     }
 
     void SetUp() override
@@ -1020,7 +1020,7 @@ protected:
     static void SetUpTestSuite()
     {
         // 初始化 Items 和 VanillaEntities 以确保 EntityRegistry 可用
-        Items::initialize();
+        Items::ensureInitialized();
         mc::entity::VanillaEntities::registerAll();
     }
 

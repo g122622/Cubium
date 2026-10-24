@@ -115,7 +115,7 @@ protected:
     static void SetUpTestSuite()
     {
         // 配方匹配按 Item* 比对，需要真实物品才能构造出「配料非空」的配方。
-        Items::initialize();
+        Items::ensureInitialized();
     }
 
     void SetUp() override
@@ -209,7 +209,7 @@ class InventoryCraftingMenuTest : public ::testing::Test {
 protected:
     static void SetUpTestSuite()
     {
-        Items::initialize();
+        Items::ensureInitialized();
     }
 
     void SetUp() override

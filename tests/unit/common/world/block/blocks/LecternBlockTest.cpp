@@ -169,7 +169,7 @@ class LecternBlockTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        Items::initialize();
+        Items::ensureInitialized();
         m_book = ensureTestItem("book");
         m_stick = ensureTestItem("stick");
         m_block = std::make_unique<LecternBlock>(BlockProperties(Material::WOOD).hardness(2.5f).resistance(2.5f));

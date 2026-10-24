@@ -134,7 +134,7 @@ class ArmorDyeRecipeTest : public ::testing::Test {
 protected:
     static void SetUpTestSuite()
     {
-        Items::initialize();
+        Items::ensureInitialized();
         // DYEABLE 标签的成员集在 initialize 内部构建，供 _isDyeableArmor 查询
         item::tag::ItemTags::initialize();
     }

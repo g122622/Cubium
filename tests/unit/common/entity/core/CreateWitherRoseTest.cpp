@@ -134,7 +134,7 @@ protected:
         VanillaBlocks::initialize();
         entity::VanillaEntities::registerAll();
         // createWitherRose 掉落路径构造 ItemStack(Items::WITHER_ROSE)，需先注册物品
-        Items::initialize();
+        Items::ensureInitialized();
     }
 };
 

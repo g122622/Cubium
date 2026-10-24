@@ -103,7 +103,7 @@ protected:
     {
         item::enchant::EnchantmentRegistry::clear();
         item::enchant::EnchantmentRegistry::initialize();
-        Items::initialize();
+        Items::ensureInitialized();
         DamageTypeTags::initialize();
     }
 

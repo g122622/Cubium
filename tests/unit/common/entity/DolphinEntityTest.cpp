@@ -137,7 +137,7 @@ protected:
     void SetUp() override
     {
         // 初始化物品注册表（喂食交互测试需 Items::COD 等非空）
-        Items::initialize();
+        Items::ensureInitialized();
         // 创建海豚实体
         dolphin = std::make_unique<TestableDolphinEntity>(EntityInstanceId(0), mc::test::testEcsRegistry());
     }

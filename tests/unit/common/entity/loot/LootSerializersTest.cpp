@@ -77,7 +77,7 @@ class LootSerializersTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        Items::initialize();
+        Items::ensureInitialized();
         // set_enchantments 在加载期校验附魔注册表
         item::enchant::EnchantmentRegistry::initialize();
     }

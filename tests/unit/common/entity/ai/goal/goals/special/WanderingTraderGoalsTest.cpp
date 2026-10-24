@@ -356,7 +356,7 @@ protected:
         // 其他测试套件（CatEntityTest/BegGoalTest 等）可能已调用 initialize()
         // 使 Items::POTION / Items::MILK_BUCKET 变为非 nullptr。
         // 为保证本套件测试独立于运行顺序且行为确定，这里显式初始化。
-        Items::initialize();
+        Items::ensureInitialized();
 
         m_world = std::make_unique<TestWanderingTraderWorld>();
         m_trader = std::make_unique<WanderingTraderEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
@@ -532,7 +532,7 @@ TEST_F(UseItemGoalTest, StartExecutingSetsMainHandItem)
     // 主手初始应为空
     EXPECT_TRUE(m_trader->getMainHandItem().isEmpty());
 
-    // SetUp 已调用 Items::initialize()，Items::MILK_BUCKET 为非空 Item*，
+    // SetUp 已调用 Items::ensureInitialized()，Items::MILK_BUCKET 为非空 Item*，
     // 因此 stack 为非空 ItemStack。startExecuting() 会将其写入主手装备槽，
     // 随后 setActiveHand(MainHand) 因 MilkBucketItem::getUseDuration() = 32 > 0
     // 而进入使用状态。
