@@ -752,9 +752,14 @@ void* QuickJSBindingContext::createClassProto(u64 classId)
     // 致 class_proto[classId] 悬垂——后续 GC 遍历 gc_obj_list 访问该悬垂对象即崩。
     // 故此处 Dup 出一份独立引用供句柄持有：根 1 份 + 句柄 1 份，调用方 release 句柄时根仍保活。
     // TODO: 定位 ItemStack 解包失败根因后移除本诊断输出。
-    const i32 setProtoRc = JS_SetClassProto(m_ctx, static_cast<JSClassID>(classId), proto);
     if (classId >= 360 && classId <= 370) {
-        spdlog::warn("[DIAG6] createClassProto classId={} setproto_rc={}", classId, setProtoRc);
+        JS_SetClassProto(m_ctx, static_cast<JSClassID>(classId), proto);
+        const bool classProtoMatches =
+            JS_IsStrictEqual(m_ctx, proto, JS_GetClassProto(m_ctx, static_cast<JSClassID>(classId)));
+        JS_FreeValue(m_ctx, JS_GetClassProto(m_ctx, static_cast<JSClassID>(classId)));
+        spdlog::warn("[DIAG6] classId={} classProtoMatches={}", classId, classProtoMatches);
+    } else {
+        JS_SetClassProto(m_ctx, static_cast<JSClassID>(classId), proto);
     }
     void* handle = wrapValue(JS_DupValue(m_ctx, proto));
 
