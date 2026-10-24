@@ -2,15 +2,16 @@
 //
 // 核心机制（SkyLightEngine::tryPropagateSkylight，SkyLightEngine.cpp:293-386）：逐列从世界顶向下扫，
 // 每格取 opacity：
-//   - opacity==0（air/glass/water 等透光方块）：该格入队 skyLight=15，**继续向下传播**（垂直直达）。
-//   - opacity>0（stone/leaves/ice 等遮挡方块）：break，该格及下方**不再由垂直列得15**。
+//   - opacity==0（air 等完全透光方块）：该格入队 skyLight=15，**继续向下传播**（垂直直达）。
+//   - opacity>0（stone/leaves/ice/glass 等）：break，该格及下方**不再由垂直列得15**。
+//     glass 的 opacity=1（vanilla noOcclusion → 非实体渲染，遮挡形状完整 → pSD=false → lightBlock=1）。
 // 遮挡格下方改由水平露天邻居（skyLight=15）经 performLightIncrease 侧传，衰减 max(1,opacity)：
 //   - 上方遮挡 stone(opacity=15)：下方侧传 15-max(1,15)=0... 但下方空气格从水平露天空气(15)侧传衰减1=14。
 //     （侧传源是水平邻居的 skyLight，非遮挡格自身的 opacity。下方空气格邻居=水平露天空气15→衰减1=14。）
 //
 // 关键区分（本组验证点）：
-//   1. glass(opacity=0) 列：整列垂直直达15。放一层 glass，下方仍15（不散射，对齐 wiki「不包括 Glass」）。
-//   2. 两层 glass 列：整列 opacity 全0，仍垂直直达15（多层透光方块不累积衰减天空光）。
+//   1. glass(opacity=1) 列：玻璃格自身 14，正下方 14（截断后侧传，见下）。
+//   2. 两层玻璃：两格均 14，正下方 14（侧传）。
 //   3. stone(opacity=15) 遮挡：遮挡格下方侧传得14（非15，垂直列被阻断）。
 //   4. 两层 stone 列：与单层 stone 相同，遮挡格下方仍14（下方天空光来自水平侧传，与上方遮挡层数无关——
 //      只要下方空气格的水平邻居是露天空气，就得14；多层遮挡不"加深"下方，因下方光源是水平而非垂直）。
@@ -27,18 +28,18 @@ import type { Test } from "@minecraft/server-gametest";
 import { pollUntilSucceed } from "../../utils/test/poll.js";
 import { getSkyLight, getCanSeeSky } from "../utils/lightAssert.js";
 
-// 单层玻璃列垂直直达：OCCLUDER=(4,4,3) 放玻璃，PROBE=(4,3,3) 正下方。
-// glass opacity=0 不 break → 整列垂直直达 skyLight=15。canSeeSky=true（15>=15）。
-// 与 SkyLightTests.glassDoesNotBlockSkyLight 互补：此处额外断言 canSeeSky=true，并作为多层测试的基准。
+// 单层玻璃列：OCCLUDER=(4,4,3) 放玻璃，PROBE=(4,3,3) 正下方。
+// glass opacity=1 → 垂直列在玻璃格 break，玻璃格自身与其下方均由侧传/入队得 14，canSeeSky=false。
+// 与 SkyLightTests.glassDoesNotBlockSkyLight 互补（同结构、同断言），作为多层玻璃测试的基准。
 function glassColumnFullSkyLight(test: Test): void {
     test.setBlockType("minecraft:glass", { x: 4, y: 4, z: 3 });
     pollUntilSucceed(
         test,
         () => {
             return (
-                getSkyLight(test, 4, 4, 3) === 15 &&
-                getSkyLight(test, 4, 3, 3) === 15 &&
-                getCanSeeSky(test, 4, 3, 3) === true
+                getSkyLight(test, 4, 4, 3) === 14 &&
+                getSkyLight(test, 4, 3, 3) === 14 &&
+                getCanSeeSky(test, 4, 3, 3) === false
             );
         },
         {
@@ -53,16 +54,16 @@ function glassColumnFullSkyLight(test: Test): void {
                         4,
                         3,
                         3,
-                    )} canSeeSky=${getCanSeeSky(test, 4, 3, 3)} expected 15/15/true`,
+                    )} canSeeSky=${getCanSeeSky(test, 4, 3, 3)} expected 14/14/false`,
                 );
             },
         },
     );
 }
 
-// 两层玻璃列仍垂直直达15：(4,4,3) 和 (4,3,3) 都放玻璃，(4,2,3) 正下方探针。
-// 整列 opacity 全0（glass 显式 .opacity(0)），垂直直达 → (4,2,3)=15。验证多层透光方块不累积衰减
-// 天空光（glass 不散射，对齐 wiki「不包括 Glass」）。canSeeSky=true。
+// 两层玻璃：(4,4,3) 和 (4,3,3) 都放玻璃，(4,2,3) 正下方探针。
+// 玻璃 opacity=1：两格玻璃均得 14（垂直列截断 + 侧传），正下方探针同样 14（水平侧传不累积，与单层一致）。
+// canSeeSky=false。
 function twoGlassLayersStillFull(test: Test): void {
     test.setBlockType("minecraft:glass", { x: 4, y: 4, z: 3 });
     test.setBlockType("minecraft:glass", { x: 4, y: 3, z: 3 });
@@ -70,10 +71,10 @@ function twoGlassLayersStillFull(test: Test): void {
         test,
         () => {
             return (
-                getSkyLight(test, 4, 4, 3) === 15 &&
-                getSkyLight(test, 4, 3, 3) === 15 &&
-                getSkyLight(test, 4, 2, 3) === 15 &&
-                getCanSeeSky(test, 4, 2, 3) === true
+                getSkyLight(test, 4, 4, 3) === 14 &&
+                getSkyLight(test, 4, 3, 3) === 14 &&
+                getSkyLight(test, 4, 2, 3) === 14 &&
+                getCanSeeSky(test, 4, 2, 3) === false
             );
         },
         {
@@ -93,7 +94,7 @@ function twoGlassLayersStillFull(test: Test): void {
                         4,
                         2,
                         3,
-                    )} expected 15/15/15/true`,
+                    )} expected 14/14/14/false`,
                 );
             },
         },

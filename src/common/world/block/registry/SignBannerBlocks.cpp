@@ -126,9 +126,11 @@ void registerSignBannerBlocks()
 
     // ========== 告示牌注册 ==========
     // 木质告示牌属性：可被岩浆点燃（对齐 vanilla Blocks.register 木质告示牌链路）
-    BlockProperties signProps = BlockProperties(Material::WOOD).hardness(1.0f).noCollision().notSolid().ignitedByLava();
+    BlockProperties signProps =
+        BlockProperties(Material::WOOD).hardness(1.0f).noCollision().notSolid().ignitedByLava().noOcclusion();
     // 下界木（crimson/warped）告示牌属性：不可燃，不可被岩浆点燃（对齐 vanilla 下界木设计）
-    BlockProperties netherSignProps = BlockProperties(Material::NETHER_WOOD).hardness(1.0f).noCollision().notSolid();
+    BlockProperties netherSignProps =
+        BlockProperties(Material::NETHER_WOOD).hardness(1.0f).noCollision().notSolid().noOcclusion();
 
     // 注册各木材类型的告示牌
     // 橡木

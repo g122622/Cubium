@@ -282,18 +282,18 @@ TEST_F(IceBlockTest, RandomTickTurnsIceIntoAirInUltraWarmDimension)
 }
 
 // MC 原版: IceBlock.randomTick 仅检查方块光照，不考虑天空光照
-// 条件: blockLight > 11 - opacity（冰的 opacity=2，即 blockLight > 9）
+// 条件: blockLight > 11 - opacity（冰的 lightBlock=1，即 blockLight > 10）
 TEST_F(IceBlockTest, RandomTick_MeltsWithBlockLightAbove9)
 {
-    // 冰的不透明度为2，融化条件 blockLight > 11 - 2 = 9
-    // blockLight = 10 > 9，应该融化
+    // 冰的 lightBlock=1（vanilla IceBlock 注册 noOcclusion），融化条件 blockLight > 11 - 1 = 10
+    // blockLight = 11 > 10，应该融化
     IceTestWorld world;
     SequenceRandom random({0});
     const BlockPos pos(1, 64, 1);
     const BlockState& state = VanillaBlocks::ICE->defaultState();
 
     world.setBlockAt(pos, &state);
-    world.setBlockLightAt(pos, 10); // > 9，满足融化条件
+    world.setBlockLightAt(pos, 11); // > 10，满足融化条件
     world.setSkyLightAt(pos, 0);    // 天空光照不影响
 
     BlockState mutableState = state;
@@ -306,22 +306,22 @@ TEST_F(IceBlockTest, RandomTick_MeltsWithBlockLightAbove9)
 
 TEST_F(IceBlockTest, RandomTick_DoesNotMeltWithBlockLightAt9)
 {
-    // blockLight = 9 == 11 - 2，不满足 > 条件（严格大于）
+    // blockLight = 10 == 11 - 1，不满足 > 条件（严格大于）
     IceTestWorld world;
     SequenceRandom random({0});
     const BlockPos pos(2, 64, 2);
     const BlockState& state = VanillaBlocks::ICE->defaultState();
 
     world.setBlockAt(pos, &state);
-    world.setBlockLightAt(pos, 9); // == 11 - 2，不满足 >
+    world.setBlockLightAt(pos, 10); // == 11 - lightBlock, 不满足 >
     world.setSkyLightAt(pos, 0);
 
     BlockState mutableState = state;
     VanillaBlocks::ICE->randomTick(world, pos, mutableState, random);
 
     const BlockState* finalState = world.getBlockState(pos);
-    ASSERT_NE(finalState, nullptr) << "Ice should not melt at block light = 9";
-    EXPECT_TRUE(finalState->is(VanillaBlocks::ICE)) << "Ice should remain at block light = 9";
+    ASSERT_NE(finalState, nullptr) << "Ice should not melt at block light = 10";
+    EXPECT_TRUE(finalState->is(VanillaBlocks::ICE)) << "Ice should remain at block light = 10";
 }
 
 TEST_F(IceBlockTest, RandomTick_DoesNotMeltWithOnlySkyLight)
@@ -374,7 +374,7 @@ TEST_F(IceBlockTest, FrostedIceTick_MeltsWithHighLightInOverworld)
 {
     // FrostedIceBlock.tick() 在主世界使用 getMaxLocalRawBrightness
     // 正午(dayTime=6000), 晴天: skyDarkening=0, skyLight=15 → maxLocalRawBrightness=15
-    // 条件: lightLevel > 11 - AGE(0) - opacity(2) = 9, 15 > 9 满足
+    // 条件: lightLevel > 11 - AGE(0) - opacity(1) = 10, 15 > 10 满足
     IceTestWorld world;
     world.ensureTickManager();
     world.setDayTime(6000); // 正午，天空减暗 = 0
@@ -460,7 +460,7 @@ TEST_F(IceBlockTest, FrostedIceTick_MeltsInEndWithHighBlockLight)
 TEST_F(IceBlockTest, FrostedIceRandomTick_InheritsIceBlockBehavior)
 {
     // MC 原版: FrostedIceBlock 继承自 IceBlock，不重写 randomTick
-    // randomTick 使用 IceBlock 的逻辑：仅检查方块光照 > 11 - opacity
+    // randomTick 使用 IceBlock 的逻辑：仅检查方块光照 > 11 - opacity（霜冰 lightBlock=1）
     IceTestWorld world;
     world.ensureTickManager();
 
@@ -506,8 +506,8 @@ TEST_F(IceBlockTest, FrostedIceRandomTick_DoesNotMeltWithOnlySkyLight)
 
 TEST_F(IceBlockTest, FrostedIceRandomTick_DoesNotMeltWithLowBlockLight)
 {
-    // FrostedIce 的 opacity=2, randomTick 条件: blockLight > 11 - 2 = 9
-    // blockLight = 9 不满足 > 9
+    // FrostedIce 的 lightBlock=1（与冰一致），randomTick 条件: blockLight > 11 - 1 = 10
+    // blockLight = 10 不满足 > 10
     IceTestWorld world;
     world.ensureTickManager();
 
@@ -516,15 +516,15 @@ TEST_F(IceBlockTest, FrostedIceRandomTick_DoesNotMeltWithLowBlockLight)
     const BlockPos pos(13, 64, 13);
 
     world.setBlockAt(pos, &state);
-    world.setBlockLightAt(pos, 9); // == 11 - opacity, 不满足 >
+    world.setBlockLightAt(pos, 10); // == 11 - lightBlock, 不满足 >
     world.setSkyLightAt(pos, 0);
 
     BlockState mutableState = state;
     VanillaBlocks::FROSTED_ICE->randomTick(world, pos, mutableState, world.getRandom());
 
     const BlockState* finalState = world.getBlockState(pos);
-    ASSERT_NE(finalState, nullptr) << "Frosted ice should not melt at block light = 9";
-    EXPECT_TRUE(finalState->is(VanillaBlocks::FROSTED_ICE)) << "Frosted ice should not melt at block light = 9";
+    ASSERT_NE(finalState, nullptr) << "Frosted ice should not melt at block light = 10";
+    EXPECT_TRUE(finalState->is(VanillaBlocks::FROSTED_ICE)) << "Frosted ice should not melt at block light = 10";
 }
 
 } // namespace

@@ -193,6 +193,7 @@ void registerCherryBlocks()
                 .hardness(0.2f)
                 .resistance(0.2f)
                 .soundType(BlockSoundTypes::CHERRY_LEAVES)
+                .noOcclusion()
                 .ignitedByLava());
 
     // 樱花树苗

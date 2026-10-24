@@ -63,7 +63,8 @@ void registerTrialBlocks()
                 .harvestLevel(2)
                 .requiresTool()
                 .soundType(BlockSoundTypes::TRIAL_SPAWNER)
-                .notSolid());
+                .notSolid()
+                .noOcclusion());
 
     // 宝库 - 试炼密室的奖励容器，需要特定钥匙才能打开
     // VAULT_STATE + FACING + OMINOUS
@@ -85,7 +86,8 @@ void registerTrialBlocks()
             .resistance(3.5f)
             .harvestTool(HarvestTool::Pickaxe)
             .requiresTool()
-            .soundType(BlockSoundTypes::CRAFTER));
+            .soundType(BlockSoundTypes::CRAFTER)
+            .noOcclusion());
 
     // 重质核心 - 重质盾牌的核心材料，支持含水
     // 材质为铁，硬度10，抗爆1200，碰撞箱为小型柱状

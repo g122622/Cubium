@@ -21,6 +21,7 @@
  */
 
 #include "world/block/registry/VanillaBlocks.hpp"
+#include "world/block/BlockRegistry.hpp"
 #include "world/block/BlockTags.hpp"
 #include "world/block/FireInfoRegistry.hpp"
 
@@ -177,6 +178,11 @@ void VanillaBlocks::initialize()
         MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Initialization, "registerFlowerPotBlocks");
         block_registry::registerFlowerPotBlocks();
     }
+
+    // 刷新全部状态的光照缓存（必须在所有方块构造完成后）。
+    // BlockState 在 StateContainer 构造期缓存 opacity/pSD，此时方块子类构造尚未完成，
+    // 对重写 getOpacity/propagatesSkylightDown 的方块（冰、雪层等）会缓存基类判定，须在此重算。
+    BlockRegistry::instance().forEachBlock([](Block& block) { block.refreshLightCache(); });
 
     // 初始化方块标签（必须在所有方块注册后）
     {

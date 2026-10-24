@@ -275,7 +275,7 @@ void registerColoredBlocks()
     // 且 getLightBlock=isSolidRender?15:(pSD?0:1)=0（opacity=0，不衰减天空光）。
     // 与普通玻璃 GLASS（BaseBlocks.cpp）注册写法一致：.opacity(0).propagatesSkylightDown()。
     BlockProperties stainedGlassProps =
-        BlockProperties(Material::GLASS).hardness(0.3f).notSolid().opacity(0).propagatesSkylightDown();
+        BlockProperties(Material::GLASS).hardness(0.3f).notSolid().noOcclusion().opacity(0).propagatesSkylightDown();
 
     ColoredBlocks::WHITE_STAINED_GLASS = &registry.registerBlock<block::StainedGlassBlock>(
         ResourceLocation("minecraft:white_stained_glass"), stainedGlassProps, DyeColor::White);

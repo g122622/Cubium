@@ -483,14 +483,19 @@ TEST(BlockPropertiesTest, Strength)
 
 TEST(BlockPropertiesTest, TransparentDefaultOpacityMatchesVanillaRule)
 {
-    // 非不透明（isOpaque=false）方块在未显式设置 opacity 时，getOpacity 走第三分支
-    // propagatesSkylightDown?0:1。pSD 默认公式 = !isFullBlock(getOcclusionShape) && fluidState.isEmpty()。
-    // TestBlock 用基类 getShape=fullBlock → isFullBlock=true → pSD=false → opacity=1。
-    // 即"碰撞/遮挡形状为完整立方体且无流体的透明方块"衰减 1 级天空光（opacity=1），对齐 vanilla
-    // BlockBehaviour#getLightBlock 的 !isSolidRender?(pSD?0:1) 分支（fullBlock 形状 pSD=false→1）。
-    // 注意：真实透光方块（玻璃/冰等）注册时显式 .propagatesSkylightDown() 使 pSD=true→opacity=0。
-    TestBlock glassLike{BlockProperties{Material::GLASS}.notSolid()};
-    EXPECT_EQ(glassLike.defaultState().getOpacity(), 1);
+    // 对齐 vanilla BlockBehaviour#getLightBlock：isSolidRender?15:(propagatesSkylightDown?0:1)。
+    // vanilla：solidRender 由 canOcclude 与遮挡形状（默认 getShape=完整立方体）决定，与材质无关。
+    // 未调用 noOcclusion() → canOcclude=true、形状完整 → isSolidRender → getLightBlock=15。
+    TestBlock opaqueLike{BlockProperties{Material::ROCK}.notSolid()};
+    EXPECT_TRUE(opaqueLike.defaultState().isSolidRender());
+    EXPECT_EQ(opaqueLike.defaultState().getOpacity(), 15);
+
+    // noOcclusion() → 非实体渲染；形状仍为完整立方体 → propagatesSkylightDown=false → lightBlock=1。
+    TestBlock nonOccluding{BlockProperties(Material::GLASS).notSolid().noOcclusion()};
+    EXPECT_FALSE(nonOccluding.defaultState().canOcclude());
+    EXPECT_FALSE(nonOccluding.defaultState().isSolidRender());
+    EXPECT_FALSE(nonOccluding.defaultState().propagatesSkylightDown());
+    EXPECT_EQ(nonOccluding.defaultState().getOpacity(), 1);
 }
 
 TEST(BlockSoundTypeTest, DirtUsesVanillaGroundSoundEvents)

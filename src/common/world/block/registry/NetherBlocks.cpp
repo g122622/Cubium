@@ -232,7 +232,7 @@ void registerNetherBlocks()
 
     // 灵魂火 - 蓝色火焰，伤害更高
     NetherBlocks::SOUL_FIRE = &registry.registerBlock<blocks::SoulFireBlock>(ResourceLocation("minecraft:soul_fire"),
-        BlockProperties(Material::FIRE).noCollision().hardness(0.0f).lightLevel(10).noLootTable());
+        BlockProperties(Material::FIRE).noCollision().hardness(0.0f).lightLevel(10).noOcclusion().noLootTable());
 
     // 下界传送门
     NetherBlocks::NETHER_PORTAL =
@@ -674,6 +674,7 @@ void registerNetherBlocks()
         BlockProperties(Material::IRON)
             .hardness(5.0f)
             .resistance(5.0f)
+            .noOcclusion()
             .harvestTool(HarvestTool::Pickaxe)
             .requiresTool());
 
@@ -682,8 +683,8 @@ void registerNetherBlocks()
     // ============================================================================
 
     // 末地烛 - 发光14级，6 向朝向
-    NetherBlocks::END_ROD = &registry.registerBlock<blocks::EndRodBlock>(
-        ResourceLocation("minecraft:end_rod"), BlockProperties(Material::DECORATION).noCollision().lightLevel(14));
+    NetherBlocks::END_ROD = &registry.registerBlock<blocks::EndRodBlock>(ResourceLocation("minecraft:end_rod"),
+        BlockProperties(Material::DECORATION).noCollision().lightLevel(14).noOcclusion());
 
     // 末地传送门 - 穿越后传送到末地
     NetherBlocks::END_PORTAL = &registry.registerBlock<blocks::EndPortalBlock>(ResourceLocation("minecraft:end_portal"),
@@ -700,8 +701,9 @@ void registerNetherBlocks()
             BlockProperties(Material::PORTAL).noCollision().hardness(0.0f).lightLevel(15).noLootTable());
 
     // 紫颂植物 - 末地植物
-    NetherBlocks::CHORUS_PLANT = &registry.registerBlock<blocks::ChorusPlantBlock>(
-        ResourceLocation("minecraft:chorus_plant"), BlockProperties(Material::PLANT).noCollision().hardness(0.0f));
+    NetherBlocks::CHORUS_PLANT =
+        &registry.registerBlock<blocks::ChorusPlantBlock>(ResourceLocation("minecraft:chorus_plant"),
+            BlockProperties(Material::PLANT).noCollision().hardness(0.0f).noOcclusion());
 
     // 紫颂花 - 紫颂植物的顶部
     NetherBlocks::CHORUS_FLOWER = &registry.registerBlock<blocks::ChorusFlowerBlock>(
@@ -717,7 +719,7 @@ void registerNetherBlocks()
 
     // 酿造台 - 发光1级（通过 getLightLevel）
     NetherBlocks::BREWING_STAND = &registry.registerBlock<blocks::BrewingStandBlock>(
-        ResourceLocation("minecraft:brewing_stand"), BlockProperties(Material::IRON).hardness(0.5f));
+        ResourceLocation("minecraft:brewing_stand"), BlockProperties(Material::IRON).hardness(0.5f).noOcclusion());
 
     // 末影箱 - 发光7级
     // 右键打开末影箱界面（物品存储在玩家数据中），记录统计 OPEN_ENDERCHEST。
@@ -728,20 +730,20 @@ void registerNetherBlocks()
 
     // 灯笼 - 发光15级（通过构造函数参数）
     NetherBlocks::LANTERN = &registry.registerBlock<blocks::LanternBlock>(ResourceLocation("minecraft:lantern"),
-        BlockProperties(Material::IRON).hardness(3.5f).resistance(3.5f),
+        BlockProperties(Material::IRON).hardness(3.5f).resistance(3.5f).noOcclusion(),
         15 // 光照等级
     );
 
     // 灵魂灯笼 - 发光10级（通过构造函数参数）
     NetherBlocks::SOUL_LANTERN =
         &registry.registerBlock<blocks::LanternBlock>(ResourceLocation("minecraft:soul_lantern"),
-            BlockProperties(Material::IRON).hardness(3.5f).resistance(3.5f),
+            BlockProperties(Material::IRON).hardness(3.5f).resistance(3.5f).noOcclusion(),
             10 // 光照等级
         );
 
     // 营火 - 发光15级（点燃时，通过 getLightLevel 动态计算）。可被岩浆点燃（对齐 vanilla）
     NetherBlocks::CAMPFIRE = &registry.registerBlock<blocks::CampfireBlock>(ResourceLocation("minecraft:campfire"),
-        BlockProperties(Material::WOOD).hardness(2.0f).ignitedByLava(),
+        BlockProperties(Material::WOOD).hardness(2.0f).ignitedByLava().noOcclusion(),
         15 // 点燃时光照等级
     );
 

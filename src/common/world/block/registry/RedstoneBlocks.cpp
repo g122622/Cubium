@@ -133,8 +133,9 @@ void registerRedstoneBlocks()
             BlockProperties(Material::DECORATION).noCollision().notSolid());
 
     // 红石灯
-    RedstoneBlocks::REDSTONE_LAMP = &registry.registerBlock<blocks::RedstoneLampBlock>(
-        ResourceLocation("minecraft:redstone_lamp"), BlockProperties(Material::REDSTONE_LIGHT).hardness(0.3f));
+    RedstoneBlocks::REDSTONE_LAMP =
+        &registry.registerBlock<blocks::RedstoneLampBlock>(ResourceLocation("minecraft:redstone_lamp"),
+            BlockProperties(Material::REDSTONE_LIGHT).hardness(0.3f).noOcclusion());
 
     // 红石中继器
     RedstoneBlocks::REDSTONE_REPEATER = &registry.registerBlock<blocks::RedstoneRepeaterBlock>(
@@ -153,8 +154,9 @@ void registerRedstoneBlocks()
         ResourceLocation("minecraft:lever"), BlockProperties(Material::DECORATION).noCollision().notSolid());
 
     // 石头按钮
-    RedstoneBlocks::STONE_BUTTON = &registry.registerBlock<blocks::StoneButtonBlock>(
-        ResourceLocation("minecraft:stone_button"), BlockProperties(Material::ROCK).noCollision().notSolid());
+    RedstoneBlocks::STONE_BUTTON =
+        &registry.registerBlock<blocks::StoneButtonBlock>(ResourceLocation("minecraft:stone_button"),
+            BlockProperties(Material::ROCK).noCollision().notSolid().noOcclusion());
 
     // 橡木按钮（vanilla 不设置 ignitedByLava）
     RedstoneBlocks::OAK_BUTTON = &registry.registerBlock<blocks::WoodButtonBlock>(
@@ -163,55 +165,57 @@ void registerRedstoneBlocks()
     // 云杉木按钮
     RedstoneBlocks::SPRUCE_BUTTON =
         &registry.registerBlock<blocks::WoodButtonBlock>(ResourceLocation("minecraft:spruce_button"),
-            BlockProperties(Material::WOOD).noCollision().notSolid().flammable());
+            BlockProperties(Material::WOOD).noCollision().notSolid().flammable().noOcclusion());
 
     // 白桦木按钮
     RedstoneBlocks::BIRCH_BUTTON =
         &registry.registerBlock<blocks::WoodButtonBlock>(ResourceLocation("minecraft:birch_button"),
-            BlockProperties(Material::WOOD).noCollision().notSolid().flammable());
+            BlockProperties(Material::WOOD).noCollision().notSolid().flammable().noOcclusion());
 
     // 丛林木按钮
     RedstoneBlocks::JUNGLE_BUTTON =
         &registry.registerBlock<blocks::WoodButtonBlock>(ResourceLocation("minecraft:jungle_button"),
-            BlockProperties(Material::WOOD).noCollision().notSolid().flammable());
+            BlockProperties(Material::WOOD).noCollision().notSolid().flammable().noOcclusion());
 
     // 金合欢木按钮
     RedstoneBlocks::ACACIA_BUTTON =
         &registry.registerBlock<blocks::WoodButtonBlock>(ResourceLocation("minecraft:acacia_button"),
-            BlockProperties(Material::WOOD).noCollision().notSolid().flammable());
+            BlockProperties(Material::WOOD).noCollision().notSolid().flammable().noOcclusion());
 
     // 深色橡木按钮
     RedstoneBlocks::DARK_OAK_BUTTON =
         &registry.registerBlock<blocks::WoodButtonBlock>(ResourceLocation("minecraft:dark_oak_button"),
-            BlockProperties(Material::WOOD).noCollision().notSolid().flammable());
+            BlockProperties(Material::WOOD).noCollision().notSolid().flammable().noOcclusion());
 
     // 绯红按钮（下界木材，不可燃）
-    RedstoneBlocks::CRIMSON_BUTTON = &registry.registerBlock<blocks::WoodButtonBlock>(
-        ResourceLocation("minecraft:crimson_button"), BlockProperties(Material::NETHER_WOOD).noCollision().notSolid());
+    RedstoneBlocks::CRIMSON_BUTTON =
+        &registry.registerBlock<blocks::WoodButtonBlock>(ResourceLocation("minecraft:crimson_button"),
+            BlockProperties(Material::NETHER_WOOD).noCollision().notSolid().noOcclusion());
 
     // 诡异按钮（下界木材，不可燃）
-    RedstoneBlocks::WARPED_BUTTON = &registry.registerBlock<blocks::WoodButtonBlock>(
-        ResourceLocation("minecraft:warped_button"), BlockProperties(Material::NETHER_WOOD).noCollision().notSolid());
+    RedstoneBlocks::WARPED_BUTTON =
+        &registry.registerBlock<blocks::WoodButtonBlock>(ResourceLocation("minecraft:warped_button"),
+            BlockProperties(Material::NETHER_WOOD).noCollision().notSolid().noOcclusion());
 
     // 红树林木按钮
     RedstoneBlocks::MANGROVE_BUTTON =
         &registry.registerBlock<blocks::WoodButtonBlock>(ResourceLocation("minecraft:mangrove_button"),
-            BlockProperties(Material::WOOD).noCollision().notSolid().flammable());
+            BlockProperties(Material::WOOD).noCollision().notSolid().flammable().noOcclusion());
 
     // 樱花木按钮
     RedstoneBlocks::CHERRY_BUTTON =
         &registry.registerBlock<blocks::WoodButtonBlock>(ResourceLocation("minecraft:cherry_button"),
-            BlockProperties(Material::WOOD).noCollision().notSolid().flammable());
+            BlockProperties(Material::WOOD).noCollision().notSolid().flammable().noOcclusion());
 
     // 竹木按钮
     RedstoneBlocks::BAMBOO_BUTTON =
         &registry.registerBlock<blocks::WoodButtonBlock>(ResourceLocation("minecraft:bamboo_button"),
-            BlockProperties(Material::WOOD).noCollision().notSolid().flammable());
+            BlockProperties(Material::WOOD).noCollision().notSolid().flammable().noOcclusion());
 
     // 苍白橡木按钮
     RedstoneBlocks::PALE_OAK_BUTTON =
         &registry.registerBlock<blocks::WoodButtonBlock>(ResourceLocation("minecraft:pale_oak_button"),
-            BlockProperties(Material::WOOD).noCollision().notSolid().flammable());
+            BlockProperties(Material::WOOD).noCollision().notSolid().flammable().noOcclusion());
 
     // 磨制黑石按钮
     RedstoneBlocks::POLISHED_BLACKSTONE_BUTTON =
@@ -221,7 +225,7 @@ void registerRedstoneBlocks()
     // 石头压力板
     RedstoneBlocks::STONE_PRESSURE_PLATE =
         &registry.registerBlock<blocks::StonePressurePlateBlock>(ResourceLocation("minecraft:stone_pressure_plate"),
-            BlockProperties(Material::ROCK).noCollision().notSolid().hardness(0.5f));
+            BlockProperties(Material::ROCK).noCollision().notSolid().hardness(0.5f).noOcclusion());
 
     // 橡木压力板
     RedstoneBlocks::OAK_PRESSURE_PLATE =

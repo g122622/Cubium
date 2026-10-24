@@ -112,6 +112,7 @@ void registerMangroveBlocks()
                                               .harvestTool(HarvestTool::Hoe)
                                               .soundType(BlockSoundTypes::LEAVES)
                                               .tickRandomly()
+                                              .noOcclusion()
                                               .ignitedByLava();
 
     // 红树树叶 - 有距离属性，会腐烂
@@ -132,6 +133,7 @@ void registerMangroveBlocks()
                 .harvestTool(HarvestTool::Axe)
                 .soundType(BlockSoundTypes::MANGROVE_ROOTS)
                 .flammable()
+                .noOcclusion()
                 .ignitedByLava());
 
     // 沾泥红树根属性 - EARTH材质, 锹有效, 硬度0.7, 抗性0.7

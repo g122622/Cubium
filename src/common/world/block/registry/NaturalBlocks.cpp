@@ -179,7 +179,7 @@ void registerNaturalBlocks()
 
     // 菌丝
     NaturalBlocks::MYCELIUM = &registry.registerBlock<blocks::MyceliumBlock>(ResourceLocation("minecraft:mycelium"),
-        BlockProperties(Material::EARTH).hardness(0.6f).soundType(BlockSoundTypes::GRASS));
+        BlockProperties(Material::EARTH).hardness(0.6f).soundType(BlockSoundTypes::GRASS).noOcclusion());
 
     // 草径
     NaturalBlocks::GRASS_PATH = &registry.registerBlock<blocks::DirtPathBlock>(
@@ -196,17 +196,16 @@ void registerNaturalBlocks()
 
     // 蓝冰 - 最滑的方块
     NaturalBlocks::BLUE_ICE = &registry.registerBlock<blocks::BlueIceBlock>(ResourceLocation("minecraft:blue_ice"),
-        BlockProperties(Material::ICE).hardness(2.8f).resistance(2.8f).slipperiness(physics::SLIPPERINESS_BLUE_ICE));
+        BlockProperties(Material::ICE)
+            .hardness(2.8f)
+            .resistance(2.8f)
+            .slipperiness(physics::SLIPPERINESS_BLUE_ICE)
+            .noOcclusion());
 
     // 霜冰 - 由冰霜行者附魔生成的临时冰
-    NaturalBlocks::FROSTED_ICE =
-        &registry.registerBlock<blocks::FrostedIceBlock>(ResourceLocation("minecraft:frosted_ice"),
-            BlockProperties(Material::ICE)
-                .hardness(0.5f)
-                .notSolid()
-                .opacity(2)
-                .propagatesSkylightDown()
-                .slipperiness(physics::SLIPPERINESS_ICE));
+    NaturalBlocks::FROSTED_ICE = &registry.registerBlock<blocks::FrostedIceBlock>(
+        ResourceLocation("minecraft:frosted_ice"),
+        BlockProperties(Material::ICE).hardness(0.5f).notSolid().noOcclusion().slipperiness(physics::SLIPPERINESS_ICE));
 
     // 粘液块。须注册为 blocks::SlimeBlock（而非 SimpleBlock）才能启用弹跳（onLanded 反弹 Y 速度）、
     // 摔落免疫（onFallenUpon multiplier=0.0）、活塞粘连（isStickyBlock/canStickTo）与滑度 0.8
@@ -215,7 +214,7 @@ void registerNaturalBlocks()
     // isStickyBlock 返回 false），SlimeBlock 子类沦为死代码——与红石块（BaseBlocks.cpp）同模式缺陷。
     // 参考: net.minecraft.world.level.block.SlimeBlock
     NaturalBlocks::SLIME_BLOCK = &registry.registerBlock<blocks::SlimeBlock>(
-        ResourceLocation("minecraft:slime_block"), BlockProperties(Material::SLIME).hardness(0.0f));
+        ResourceLocation("minecraft:slime_block"), BlockProperties(Material::SLIME).hardness(0.0f).noOcclusion());
 
     // 蜂蜜块。须注册为 blocks::HoneyBlock（而非 SimpleBlock）才能启用摔落减伤（onFallenUpon
     // multiplier=0.2）、不弹跳着地（onLanded Y 速度归零）、减速（onEntityCollision 水平 ×0.4）、
@@ -267,7 +266,7 @@ void registerNaturalBlocks()
     // 干海带块
     NaturalBlocks::DRIED_KELP_BLOCK =
         &registry.registerBlock<blocks::DriedKelpBlock>(ResourceLocation("minecraft:dried_kelp_block"),
-            BlockProperties(Material::PLANT).hardness(0.5f).resistance(0.5f));
+            BlockProperties(Material::PLANT).hardness(0.5f).resistance(0.5f).noOcclusion());
 
     // 海泡菜
     NaturalBlocks::SEA_PICKLE =
@@ -294,7 +293,7 @@ void registerNaturalBlocks()
             BlockProperties(Material::WATER).noCollision().notSolid().opacity(0));
     NaturalBlocks::TURTLE_EGG =
         &registry.registerBlock<blocks::TurtleEggBlock>(ResourceLocation("minecraft:turtle_egg"),
-            BlockProperties(Material::CORAL).hardness(0.5f).noCollision().notSolid());
+            BlockProperties(Material::CORAL).hardness(0.5f).noCollision().notSolid().noOcclusion());
 
     // 蜜脾块 - 固体装饰方块（硬度 0.6，珊瑚块音效）
     NaturalBlocks::HONEYCOMB_BLOCK = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:honeycomb_block"),
@@ -317,8 +316,10 @@ void registerNaturalBlocks()
     // 头颅作为音符盒乐器：NoteBlock::resolveInstrument 经 headInstrumentAbove 识别上述头颅方块，
     //   映射为对应 MOB_HEAD/CUSTOM 乐器（骷髅/凋灵骷髅/僵尸/苦力怕/龙/猪灵/玩家头）。
     // ============================================================================
-    const BlockProperties skullProps = BlockProperties(Material::DECORATION).hardness(1.0f).notSolid();
-    const BlockProperties wallSkullProps = BlockProperties(Material::DECORATION).hardness(1.0f).notSolid();
+    // vanilla 头颅注册属性含 noOcclusion()
+    const BlockProperties skullProps = BlockProperties(Material::DECORATION).hardness(1.0f).notSolid().noOcclusion();
+    const BlockProperties wallSkullProps =
+        BlockProperties(Material::DECORATION).hardness(1.0f).notSolid().noOcclusion();
 
     NaturalBlocks::SKELETON_SKULL = &registry.registerBlock<blocks::SkullBlock>(
         ResourceLocation("minecraft:skeleton_skull"), blocks::SkullType::Skeleton, skullProps);
@@ -358,10 +359,11 @@ void registerNaturalBlocks()
     // 珊瑚（补齐死亡变种，便于海洋废墟/暖海装饰复用）
     const u32 deadFallbackId = BaseBlocks::AIR ? BaseBlocks::AIR->blockId() : 0;
     const BlockProperties coralBlockProps = BlockProperties(Material::CORAL).hardness(1.5f).resistance(6.0f);
-    const BlockProperties coralPlantProps = BlockProperties(Material::CORAL).hardness(0.0f).noCollision().notSolid();
+    const BlockProperties coralPlantProps =
+        BlockProperties(Material::CORAL).hardness(0.0f).noCollision().notSolid().noOcclusion();
     const BlockProperties deadCoralBlockProps = BlockProperties(Material::CORAL).hardness(1.5f).resistance(6.0f);
     const BlockProperties deadCoralPlantProps =
-        BlockProperties(Material::CORAL).hardness(0.0f).noCollision().notSolid();
+        BlockProperties(Material::CORAL).hardness(0.0f).noCollision().notSolid().noOcclusion();
 
     NaturalBlocks::DEAD_TUBE_CORAL_BLOCK = &registry.registerBlock<blocks::CoralBlockBlock>(
         ResourceLocation("minecraft:dead_tube_coral_block"), blocks::CoralColor::Tube, deadCoralBlockProps);

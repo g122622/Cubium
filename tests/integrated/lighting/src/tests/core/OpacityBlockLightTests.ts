@@ -11,7 +11,7 @@
 // 中心 (3,3,3) 放光源，验证沿各方向穿透不同方块的衰减。light_box 封顶保证 skyLight=0，blockLight 不受干扰。
 //
 // 断言值来源（核查结论）：
-//   - glass getOpacity=0（显式 .opacity(0)），方块光穿玻璃 max(1,0)=1 衰减1（与空气相同）。
+//   - glass getOpacity=1（vanilla noOcclusion → 非实体渲染 → lightBlock=1），方块光穿玻璃 max(1,1)=1 衰减1。
 //   - oak_leaves getOpacity=1（显式），穿树叶 max(1,1)=1 衰减1。
 //   - stone getOpacity=15（ROCK isOpaque），穿石头 max(1,15)=15 衰减15 → 阻断（targetLevel<=0）。
 //
@@ -26,7 +26,7 @@ import { getBlockLight } from "../utils/lightAssert.js";
 
 // 方块光穿过玻璃仍衰减1：光源 (1,3,3) 荧石15，(2,3,3) 放玻璃(opacity=0)，(3,3,3) 探针 air。
 // 传播链：荧石格15 → 玻璃格 max(1,0)=1 衰减得 14 → 探针 air 衰减1 得 13。
-// 验证 opacity=0 的玻璃对方块光仍衰减1（max(1,0)=1，非0不衰减）。玻璃格自身 blockLight=14。
+// 验证玻璃（lightBlock=1）对方块光衰减1。玻璃格自身 blockLight=14。
 function blockLightThroughGlassDecaysOne(test: Test): void {
     test.setBlockType("minecraft:glowstone", { x: 1, y: 3, z: 3 });
     test.setBlockType("minecraft:glass", { x: 2, y: 3, z: 3 });
@@ -34,7 +34,7 @@ function blockLightThroughGlassDecaysOne(test: Test): void {
         test,
         () => {
             return (
-                // 玻璃格：邻接荧石15，穿玻璃衰减 max(1,0)=1 得 14。
+                // 玻璃格：邻接荧石15，穿玻璃衰减 max(1,1)=1 得 14。
                 getBlockLight(test, 2, 3, 3) === 14 &&
                 // 探针 air：穿玻璃(14)再穿空气衰减1 得 13。
                 getBlockLight(test, 3, 3, 3) === 13

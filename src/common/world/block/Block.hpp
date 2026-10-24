@@ -272,6 +272,24 @@ public:
     }
 
     /**
+     * @brief 设置该方块不参与遮挡计算
+     *
+     * 对应 vanilla `BlockBehaviour.Properties#noOcclusion`。关闭后：
+     * - 遮挡形状视为空（不做任何面遮挡检测）；
+     * - 不再"实体渲染"（isSolidRender 恒为 false），`getOpacity` 不会返回 15；
+     * - `getShadeBrightness` 恒为 1.0（无 AO 阴影）。
+     *
+     * vanilla 的 canOcclude 是 `getLightBlock`/`isSolidRender`/面遮挡检测的总开关，与材质无关：
+     * 铁栏杆（金属材质）、潜影盒（木质材质）、树叶、门、活板门等在原版均注册为 noOcclusion。
+     * 参考: net.minecraft.world.level.block.state.BlockBehaviour.Properties#noOcclusion
+     */
+    BlockProperties& noOcclusion() noexcept
+    {
+        m_canOcclude = false;
+        return *this;
+    }
+
+    /**
      * @brief 设置是否传播天空光向下
      *
      * 某些方块（如树叶、冰、水）会使天空光衰减1级后传播，
@@ -501,6 +519,7 @@ public:
     [[nodiscard]] bool requiresTool() const noexcept { return m_requiresTool; }
     [[nodiscard]] bool isReplaceable() const noexcept { return m_isReplaceable; }
     [[nodiscard]] i32 opacity() const noexcept { return m_opacity; }
+    [[nodiscard]] bool canOcclude() const noexcept { return m_canOcclude; }
     [[nodiscard]] bool doesPropagateSkylightDown() const noexcept { return m_propagatesSkylightDown; }
     [[nodiscard]] u8 harvestTool() const noexcept { return m_harvestTool; }
     [[nodiscard]] i32 harvestLevel() const noexcept { return m_harvestLevel; }
@@ -529,7 +548,8 @@ private:
     bool m_isFlammable;
     bool m_requiresTool;
     bool m_isReplaceable;
-    i32 m_opacity = 15; // 默认完全不透明
+    i32 m_opacity = 15;       // 默认完全不透明
+    bool m_canOcclude = true; // 是否参与遮挡计算（vanilla canOcclude，noOcclusion() 关闭）
     bool m_propagatesSkylightDown = false;
     bool m_propagatesSkylightDownExplicit = false; // 是否显式设置过 propagatesSkylightDown（区分显式值与默认哨兵）
     u8 m_harvestTool = HarvestTool::None;
@@ -980,6 +1000,27 @@ public:
      * @param state 方块状态
      */
     [[nodiscard]] virtual bool isOpaque(const BlockState& state) const;
+
+    /**
+     * @brief 该方块是否参与遮挡计算（vanilla `BlockState#canOcclude`）
+     *
+     * 由注册属性 `BlockProperties::noOcclusion()` 决定，与材质无关。canOcclude=false 的方块
+     * 不产生任何遮挡：无遮挡形状、非实体渲染（isSolidRender=false）、无 AO 阴影。
+     *
+     * 该开关与材质无关：铁栏杆（金属材质）、潜影盒（木质材质）等 vanilla noOcclusion 方块
+     * 不再被当作完全遮光（见 `Block::getOpacity`）。
+     *
+     * 参考: net.minecraft.world.level.block.state.BlockBehaviour.BlockStateBase#canOcclude
+     */
+    [[nodiscard]] bool canOcclude() const noexcept { return m_canOcclude; }
+
+    /**
+     * @brief 刷新全部状态的光照缓存（opacity / propagatesSkylightDown）
+     *
+     * 状态在 StateContainer 构造期缓存光照属性，早于子类构造完成与 setDefaultState()；
+     * 方块注册流程在全部方块构造完毕后调用（幂等，可重复调用）。
+     */
+    void refreshLightCache();
 
     /**
      * @brief 获取光照透明度 (0-15)
@@ -2493,6 +2534,7 @@ protected:
     bool m_hasCollision = true;
     bool m_isSolid = true;
     bool m_isFlammable = false;
+    bool m_canOcclude = true; // 是否参与遮挡计算（vanilla canOcclude，noOcclusion() 关闭）
     bool m_propagatesSkylightDown = false;
     bool m_propagatesSkylightDownExplicit = false; // 是否显式设置过 propagatesSkylightDown（区分显式值与默认哨兵）
     bool m_requiresTool = false;

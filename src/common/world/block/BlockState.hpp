@@ -207,7 +207,11 @@ public:
     /**
      * @brief 获取光照透明度 (0-15)
      */
-    [[nodiscard]] i32 getOpacity() const { return m_opacity; }
+    [[nodiscard]] i32 getOpacity() const
+    {
+        // 对齐 vanilla BlockStateBase#getLightBlock：构造期缓存 lightBlock。
+        return m_opacity;
+    }
 
     /**
      * @brief 检查是否传播天空光向下
@@ -286,25 +290,53 @@ public:
     [[nodiscard]] bool useShapeForLightOcclusion() const { return m_useShapeForLightOcclusion; }
 
     /**
+     * @brief 该状态是否参与遮挡计算（vanilla `BlockState#canOcclude`）
+     *
+     * 由方块注册属性 `BlockProperties::noOcclusion()` 决定，与材质无关。
+     */
+    [[nodiscard]] bool canOcclude() const { return m_canOccludeCache; }
+
+    /**
+     * @brief 是否为"实体渲染"方块（vanilla `BlockState#isSolidRender`）
+     *
+     * 对齐 vanilla BlockStateBase 构造期缓存：
+     *   isSolidRender = Block.isShapeFullBlock(occlusionShape)
+     *   occlusionShape = canOcclude ? getOcclusionShape() : Shapes.empty()
+     * 即 canOcclude 且遮挡形状为完整方块时为 true。
+     *
+     * 注意不检查 useShapeForLightOcclusion：单层台阶等以形状遮挡参与判定的方块仍保证光衰减为 15
+     * （由显式 opacity(15) 语义保证），若把 useShapeForLightOcclusion 纳入判定会误改其衰减。
+     *
+     * 用于 getOpacity 的 15 分支与 RAM 判定等。
+     *
+     * TODO: 该判定按 vanilla 语义应为"遮挡形状完整"，但 Cubium 的 getOcclusionShape 默认返回
+     *   getShape（完整立方体），无法区分空气（空形状）与实心方块；需先让空气类方块返回空形状，
+     *   本判定才可用于 getOpacity 的 15 分支（当前 getOpacity 走材质判定，见 Block::getOpacity）。
+     */
+    [[nodiscard]] bool isSolidRender() const;
+
+    /**
+     * @brief 根据方块最终实现刷新光照相关缓存（opacity / propagatesSkylightDown）
+     *
+     * BlockState 在 StateContainer 构造期缓存光照属性，此时方块子类构造尚未完成；
+     * 方块最终状态定稿后（构造完成、可能已 setDefaultState）需由 Block 统一调用本方法刷新。
+     */
+    void refreshLightCache();
+
+    /**
      * @brief 是否为"条件完全遮挡"方块（StarLight 专用）
      *
      * 对齐 Moonrise StarLightEngine 的 isConditionallyFullOpaque：
      *   isConditionallyFullOpaque = canOcclude && useShapeForLightOcclusion
-     * 其中 vanilla canOcclude = useShapeForLightOcclusion && opacity >= 15，
-     * 故等价于：useShapeForLightOcclusion && opacity >= MAX_LIGHT_LEVEL。
+     * 即"参与遮挡计算"且"用形状做光照遮挡"的方块才走 StarLight 的条件透明（sided transparent）
+     * 复杂传播路径；canOcclude=false（noOcclusion）的方块整体不遮挡，直接走普通传播。
      *
-     * 只有"用形状遮挡"且"完全不透明(opacity>=15)"的方块（如条件完整的实心方块）才会走
-     * StarLight 的条件透明（sided transparent）复杂传播路径。非完整方块（火把、栅栏、
-     * 台阶等）虽 useShapeForLightOcclusion=true，但 opacity<15，isConditionallyFullOpaque
-     * 为 false，应走普通简单传播路径——它们自身的形状遮挡已通过 getFaceOcclusionShape 在
-     * 传播时单独判定，不需要整块走复杂路径。
-     *
-     * 若误用 useShapeForLightOcclusion 代替本方法，火把等方块会错误进入复杂路径，导致
-     * 其发射的方块光无法正常传播到相邻空气格（如火把(14)邻格应得13却得0）。
+     * 注意不能退化为"useShapeForLightOcclusion && opacity>=15"：树叶等 noOcclusion 但以
+     * 形状遮挡参与判定的方块必须排除在外，否则会被误当作实体遮挡进入复杂路径。
      *
      * 参考: ca.spottedleaf.moonrise.patches.starlight.blockstate.StarlightAbstractBlockState
      */
-    [[nodiscard]] bool isConditionallyFullOpaque() const { return m_useShapeForLightOcclusion && m_opacity >= 15; }
+    [[nodiscard]] bool isConditionallyFullOpaque() const { return m_canOccludeCache && m_useShapeForLightOcclusion; }
 
     /**
      * @brief 是否有不透明碰撞形状
@@ -590,6 +622,8 @@ public:
     [[nodiscard]] std::string toModelKey() const;
 
 protected:
+    friend class Block;
+
     /**
      * @brief 获取拥有者名称
      */
@@ -614,6 +648,7 @@ private:
     bool m_canBeReplaced = false; // 是否可被替换（缓存自 Block.m_isReplaceable）
     bool m_propagatesSkylightDown = false;
     bool m_useShapeForLightOcclusion = false; // 是否使用形状进行光照遮挡
+    bool m_canOccludeCache = true;            // 是否参与遮挡计算（vanilla canOcclude，构造期即为最终值）
     u8 m_lightLevel = 0;
     u8 m_harvestTool = 0; // HarvestTool::None
     i32 m_opacity = 15;   // 默认完全不透明

@@ -271,24 +271,26 @@ void registerBaseBlocks()
 
     // 雪层
     BaseBlocks::SNOW = &registry.registerBlock<blocks::SnowBlock>(
-        ResourceLocation("minecraft:snow"), BlockProperties(Material::SNOW).hardness(0.2f).notSolid());
+        ResourceLocation("minecraft:snow"), BlockProperties(Material::SNOW).hardness(0.2f).notSolid().noOcclusion());
 
     // 雪块
     BaseBlocks::SNOW_BLOCK = &registry.registerBlock<SimpleBlock>(
         ResourceLocation("minecraft:snow_block"), BlockProperties(Material::SNOW).hardness(0.2f));
 
     // 冰
+    // 对齐 vanilla Blocks.ICE：hardness(0.5) + friction(0.98) + sound(GLASS) + noOcclusion()。
+    // noOcclusion（canOcclude=false）使 lightBlock 走默认分支：遮挡形状为完整立方体 →
+    // propagatesSkylightDown=false → lightBlock=1（冰只衰减 1 级光，融化门槛 > 11-1=10）。
     BaseBlocks::ICE = &registry.registerBlock<blocks::IceBlock>(ResourceLocation("minecraft:ice"),
-        BlockProperties(Material::ICE)
-            .hardness(0.5f)
-            .notSolid()
-            .opacity(2)
-            .propagatesSkylightDown()
-            .slipperiness(physics::SLIPPERINESS_ICE));
+        BlockProperties(Material::ICE).hardness(0.5f).notSolid().noOcclusion().slipperiness(physics::SLIPPERINESS_ICE));
 
     // 玻璃
+    // 对齐 vanilla glassProperties：hardness(0.3) + sound(GLASS) + noOcclusion()。
+    // 玻璃未重写 getOpacity，lightBlock 走 isSolidRender=false 的默认分支：遮挡形状为完整立方体
+    // → propagatesSkylightDown=false → lightBlock=1（衰减 1 级）。此前注册的 opacity(0)+pSD=true
+    // 使其完全不衰减天空光，与 vanilla 不符。
     BaseBlocks::GLASS = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:glass"),
-        BlockProperties(Material::GLASS).hardness(0.3f).notSolid().opacity(0).propagatesSkylightDown());
+        BlockProperties(Material::GLASS).hardness(0.3f).notSolid().noOcclusion().soundType(BlockSoundTypes::GLASS));
 
     // 下界岩
     // NetherrackBlock 实现 IGrowable：骨粉可将下界岩转化为周围存在的对应菌岩
@@ -301,8 +303,8 @@ void registerBaseBlocks()
         ResourceLocation("minecraft:glowstone"), BlockProperties(Material::GLASS).hardness(0.3f).lightLevel(15));
 
     // 末地石
-    BaseBlocks::END_STONE = &registry.registerBlock<SimpleBlock>(
-        ResourceLocation("minecraft:end_stone"), BlockProperties(Material::ROCK).hardness(3.0f).resistance(9.0f));
+    BaseBlocks::END_STONE = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:end_stone"),
+        BlockProperties(Material::ROCK).hardness(3.0f).resistance(9.0f).noOcclusion());
 
     // 黑曜石
     BaseBlocks::OBSIDIAN = &registry.registerBlock<SimpleBlock>(
@@ -375,7 +377,7 @@ void registerBaseBlocks()
         ResourceLocation("minecraft:copper_ore"), BlockProperties(Material::ROCK).hardness(3.0f).resistance(3.0f));
     BaseBlocks::NETHER_QUARTZ_ORE =
         &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:nether_quartz_ore"),
-            BlockProperties(Material::ROCK).hardness(3.0f).resistance(3.0f));
+            BlockProperties(Material::ROCK).hardness(3.0f).resistance(3.0f).noOcclusion());
     BaseBlocks::NETHER_GOLD_ORE = &registry.registerBlock<SimpleBlock>(
         ResourceLocation("minecraft:nether_gold_ore"), BlockProperties(Material::ROCK).hardness(3.0f).resistance(3.0f));
     BaseBlocks::ANCIENT_DEBRIS = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:ancient_debris"),
@@ -419,6 +421,7 @@ void registerBaseBlocks()
                                       .flammable()
                                       .ignitedByLava()
                                       .notSolid()
+                                      .noOcclusion()
                                       .opacity(1)
                                       .propagatesSkylightDown();
 

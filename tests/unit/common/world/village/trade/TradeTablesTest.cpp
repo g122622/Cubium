@@ -24,15 +24,15 @@
 #include "common/entity/entities/villager/AbstractVillagerEntity.hpp"
 #include "common/item/Items.hpp"
 #include "common/item/core/ItemRegistry.hpp"
-#include "common/item/items/block/BlockItemRegistry.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/item/enchantment/EnchantmentRegistry.hpp"
 #include "common/item/items/armor/DyeableArmorItem.hpp"
+#include "common/item/items/block/BlockItemRegistry.hpp"
 #include "common/item/items/special/EnchantedBookItem.hpp"
-#include "common/item/tag/ItemTags.hpp"
 #include "common/item/potion/PotionUtils.hpp"
 #include "common/item/potion/Potions.hpp"
+#include "common/item/tag/ItemTags.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/village/trade/ItemCost.hpp"
 #include "common/world/village/trade/Merchant.hpp"
 #include "common/world/village/trade/MerchantOffer.hpp"
@@ -137,10 +137,18 @@ TEST_F(TradeTablesTest, ItemCostPotionPredicate)
 
 TEST_F(TradeTablesTest, InitializationRegistersAllProfessions)
 {
-    for (auto profession : {VillagerProfession::Farmer, VillagerProfession::Fisherman, VillagerProfession::Shepherd,
-             VillagerProfession::Fletcher, VillagerProfession::Librarian, VillagerProfession::Cartographer,
-             VillagerProfession::Cleric, VillagerProfession::Armorer, VillagerProfession::Weaponsmith,
-             VillagerProfession::Toolsmith, VillagerProfession::Butcher, VillagerProfession::Leatherworker,
+    for (auto profession : {VillagerProfession::Farmer,
+             VillagerProfession::Fisherman,
+             VillagerProfession::Shepherd,
+             VillagerProfession::Fletcher,
+             VillagerProfession::Librarian,
+             VillagerProfession::Cartographer,
+             VillagerProfession::Cleric,
+             VillagerProfession::Armorer,
+             VillagerProfession::Weaponsmith,
+             VillagerProfession::Toolsmith,
+             VillagerProfession::Butcher,
+             VillagerProfession::Leatherworker,
              VillagerProfession::Mason}) {
         EXPECT_TRUE(VillagerTrades::hasTrades(profession));
         EXPECT_EQ(VillagerTrades::getTradeLevelCount(profession), 5);

@@ -26,8 +26,8 @@
 #include "common/core/Types.hpp"
 #include "common/item/core/ItemStack.hpp"
 
-#include <nlohmann/json.hpp>
 #include <optional>
+#include <nlohmann/json.hpp>
 
 namespace mc {
 namespace world {

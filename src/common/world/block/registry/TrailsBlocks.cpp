@@ -133,7 +133,11 @@ void registerTrailsBlocks()
     // 监守者蛋 - 可孵化出嗅探兽生物，HATCH属性(0-2)
     TrailsBlocks::SNIFFER_EGG =
         &registry.registerBlock<blocks::SnifferEggBlock>(ResourceLocation("minecraft:sniffer_egg"),
-            BlockProperties(Material::EARTH).hardness(0.5f).resistance(0.5f).soundType(BlockSoundTypes::SNIFFER_EGG));
+            BlockProperties(Material::EARTH)
+                .hardness(0.5f)
+                .resistance(0.5f)
+                .soundType(BlockSoundTypes::SNIFFER_EGG)
+                .noOcclusion());
 
     // ============================================================================
     // 粉红色花瓣

@@ -72,6 +72,7 @@
 #include <algorithm>
 #include <cmath>
 #include <cstddef>
+#include <cstdio>
 #include <functional>
 #include <memory>
 #include <string>
@@ -221,6 +222,7 @@ Block::Block(BlockProperties properties)
     , m_hasCollision(properties.m_hasCollision)
     , m_isSolid(properties.m_isSolid)
     , m_isFlammable(properties.m_isFlammable)
+    , m_canOcclude(properties.m_canOcclude)
     , m_propagatesSkylightDown(properties.m_propagatesSkylightDown)
     , m_propagatesSkylightDownExplicit(properties.m_propagatesSkylightDownExplicit)
     , m_requiresTool(properties.m_requiresTool)
@@ -255,6 +257,18 @@ Block::Block(BlockProperties properties)
             return std::make_unique<BlockState>(block, valueIndices, propertyCount, propertyLayouts, allStates, id);
         });
     createBlockState(std::move(container));
+}
+
+void Block::refreshLightCache()
+{
+    if (!m_stateContainer) {
+        return;
+    }
+    for (const auto& state : m_stateContainer->validStates()) {
+        if (state) {
+            state->refreshLightCache();
+        }
+    }
 }
 
 void Block::createBlockState(std::unique_ptr<StateContainer<Block, BlockState>> container)
@@ -331,6 +345,15 @@ const CollisionShape& Block::getCollisionShapeForEntity(
 
 const CollisionShape& Block::getOcclusionShape(const BlockState& state) const
 {
+    // 返回方块的"遮挡形状"。注意本方法同时被两处使用：
+    // 1) 光照引擎的形状遮挡检测：vanilla 对 noOcclusion 方块使用空遮挡形状
+    //    （BlockStateBase：occlusionShape = canOcclude ? getOcclusionShape() : Shapes.empty()）；
+    // 2) propagatesSkylightDown 的默认公式：vanilla 基于 getShape（不受 canOcclude 影响）。
+    //
+    // 为同时满足两者，本方法返回真实形状，"noOcclusion 方块不遮挡"由调用方按
+    // canOcclude() 判定（见 BlockState::getFaceOcclusionShape）。若在此返回空形状，
+    // 会连带修改第 2 条语义，使未重写 getShape 的 noOcclusion 方块（如铁栏杆）
+    // 的天空光透传判定翻转。
     return getShape(state);
 }
 
@@ -344,6 +367,10 @@ const CollisionShape& Block::getBlockSupportShape(const BlockState& state) const
 
 CollisionShape Block::getFaceOcclusionShape(const BlockState& state, Direction direction) const
 {
+    // noOcclusion 方块不参与遮挡计算：遮挡形状视为空（vanilla BlockStateBase 的做法）。
+    if (!m_canOcclude) {
+        return CollisionShape::empty();
+    }
     // 默认实现：如果遮挡形状是完整方块，返回完整方块
     // 否则返回遮挡形状在指定方向的面投影
     const CollisionShape& occlusion = getOcclusionShape(state);
@@ -407,20 +434,28 @@ f32 Block::getShadeBrightness(const BlockState& state, IWorld* world, const Bloc
     MC_UNUSED(pos);
     // 默认实现与 MC 原版一致：
     // 碰撞形状为完整方块时返回 0.2F（产生 AO 阴影），否则返回 1.0F。
+    // noOcclusion 方块不产生 AO 阴影（vanilla 的 AO 前提是 canOcclude）。
     // 子类可重写以实现特殊行为（如 MudBlock 碰撞形状不完整但仍需阴影）。
+    if (!m_canOcclude) {
+        return 1.0f;
+    }
     return state.hasOpaqueCollisionShape() ? 0.2f : 1.0f;
 }
 
 i32 Block::getOpacity(const BlockState& state, IWorld* world, const BlockPos* pos) const
 {
-    (void)world;
     (void)pos;
-    // 默认实现：
-    // - 不透明方块 -> 15
-    // - 透明方块且显式设置 opacity -> 使用显式值
-    // - 透明方块未显式设置 opacity（默认 15 作为哨兵）
-    //   -> propagatesSkylightDown ? 0 : 1
-    if (isOpaque(state)) {
+    // 默认实现对齐 vanilla BlockBehaviour#getLightBlock（本项目中"opacity"即 getLightBlock 语义）：
+    // - 实体渲染方块（isSolidRender）-> 15
+    // - 其余方块：显式设置的 opacity 优先（BlockProperties::opacity），
+    //   未设置（默认 15 作为哨兵）时有流体 -> 1，否则 propagatesSkylightDown ? 0 : 1
+    //
+    // 15 分支的判定 = canOcclude && 材质不透明。
+    // vanilla 对应 BlockStateBase#solidRender = canOcclude && isShapeFullBlock(occlusionShape)；
+    // Cubium 目前以材质隐含不透明近似"实体渲染"（TODO: 改用遮挡形状完整判定）。
+    // noOcclusion（canOcclude=false）方块必须跳过该分支：铁栏杆（金属材质）、潜影盒（木质材质）
+    // 等 vanilla 注册 noOcclusion()，其 lightBlock 分别为 0 与 1，而非 15。
+    if (m_canOcclude && isOpaque(state)) {
         return 15;
     }
 
@@ -454,6 +489,11 @@ bool Block::propagatesSkylightDown(const BlockState& state, IWorld* world, const
     // 流体判定：getFluidState 返回指针可能为 nullptr（无流体状态）或 EmptyFluid（isEmpty=true），
     // 两者均视为"无流体"→透传。含水方块（如含水栅栏）getFluidState 返回水→isEmpty=false→不透传，
     // 对齐 vanilla CrossCollisionBlock/WallBlock 的 !WATERLOGGED 语义。
+    //
+    // noOcclusion 方块（canOcclude=false）在 vanilla 中遮挡形状为空，但 propagatesSkylightDown 基于
+    // getShape（不受 canOcclude 影响）：铁栏杆这类未重写 getShape 的方块原版同样得到 shape=完整立方体
+    // → 不透传天空光。因此在 canOcclude=false 时本方法直接按"完整形状→不通透"处理，不做形状遮挡
+    // 判定；重写了 getShape 返回非完整形状的 noOcclusion 方块（树叶、门、活板门等）仍按形状透传。
     const CollisionShape& shape = getOcclusionShape(state);
     if (shape.isFullBlock()) {
         return false;

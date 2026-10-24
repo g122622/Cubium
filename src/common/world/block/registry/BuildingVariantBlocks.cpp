@@ -586,7 +586,7 @@ void registerBuildingVariantBlocks()
     // 木活板门（所有木材类型）
     // 木活板门属性: 硬度3.0, 抗爆3.0, 可燃
     BlockProperties woodTrapdoorProps =
-        BlockProperties(Material::WOOD).hardness(3.0f).resistance(3.0f).flammable().ignitedByLava();
+        BlockProperties(Material::WOOD).hardness(3.0f).resistance(3.0f).flammable().ignitedByLava().noOcclusion();
 
     BuildingVariantBlocks::OAK_TRAPDOOR = &registry.registerBlock<blocks::TrapDoorBlock>(
         ResourceLocation("minecraft:oak_trapdoor"), woodTrapdoorProps, false);
@@ -602,35 +602,47 @@ void registerBuildingVariantBlocks()
         ResourceLocation("minecraft:dark_oak_trapdoor"), woodTrapdoorProps, false);
 
     // 下界木材活板门（不可燃）
-    BlockProperties netherWoodTrapdoorProps = BlockProperties(Material::NETHER_WOOD).hardness(3.0f).resistance(3.0f);
+    BlockProperties netherWoodTrapdoorProps =
+        BlockProperties(Material::NETHER_WOOD).hardness(3.0f).resistance(3.0f).noOcclusion();
     BuildingVariantBlocks::CRIMSON_TRAPDOOR = &registry.registerBlock<blocks::TrapDoorBlock>(
         ResourceLocation("minecraft:crimson_trapdoor"), netherWoodTrapdoorProps, false);
     BuildingVariantBlocks::WARPED_TRAPDOOR = &registry.registerBlock<blocks::TrapDoorBlock>(
         ResourceLocation("minecraft:warped_trapdoor"), netherWoodTrapdoorProps, false);
 
     // 铁活板门
-    BuildingVariantBlocks::IRON_TRAPDOOR =
-        &registry.registerBlock<blocks::TrapDoorBlock>(ResourceLocation("minecraft:iron_trapdoor"),
-            BlockProperties(Material::IRON).hardness(5.0f).resistance(5.0f).harvestTool(HarvestTool::Pickaxe),
-            true);
+    BuildingVariantBlocks::IRON_TRAPDOOR = &registry.registerBlock<blocks::TrapDoorBlock>(
+        ResourceLocation("minecraft:iron_trapdoor"),
+        BlockProperties(Material::IRON).hardness(5.0f).resistance(5.0f).harvestTool(HarvestTool::Pickaxe).noOcclusion(),
+        true);
 
     // ========== 门 ==========
     // 橡木门
     BuildingVariantBlocks::OAK_DOOR = &registry.registerBlock<blocks::DoorBlock>(ResourceLocation("minecraft:oak_door"),
-        BlockProperties(Material::WOOD).hardness(3.0f).resistance(3.0f).notSolid().flammable().ignitedByLava(),
+        BlockProperties(Material::WOOD)
+            .hardness(3.0f)
+            .resistance(3.0f)
+            .notSolid()
+            .flammable()
+            .ignitedByLava()
+            .noOcclusion(),
         false // 不是铁门
     );
 
     // 铁门
     BuildingVariantBlocks::IRON_DOOR =
         &registry.registerBlock<blocks::DoorBlock>(ResourceLocation("minecraft:iron_door"),
-            BlockProperties(Material::IRON).hardness(5.0f).resistance(5.0f).notSolid(),
+            BlockProperties(Material::IRON).hardness(5.0f).resistance(5.0f).notSolid().noOcclusion(),
             true // 是铁门
         );
 
     // 其他木门（所有木材类型）
-    BlockProperties woodDoorProps =
-        BlockProperties(Material::WOOD).hardness(3.0f).resistance(3.0f).notSolid().flammable().ignitedByLava();
+    BlockProperties woodDoorProps = BlockProperties(Material::WOOD)
+                                        .hardness(3.0f)
+                                        .resistance(3.0f)
+                                        .notSolid()
+                                        .flammable()
+                                        .ignitedByLava()
+                                        .noOcclusion();
 
     BuildingVariantBlocks::SPRUCE_DOOR =
         &registry.registerBlock<blocks::DoorBlock>(ResourceLocation("minecraft:spruce_door"), woodDoorProps, false);
@@ -645,7 +657,7 @@ void registerBuildingVariantBlocks()
 
     // 下界木材门（不可燃）
     BlockProperties netherWoodDoorProps =
-        BlockProperties(Material::NETHER_WOOD).hardness(3.0f).resistance(3.0f).notSolid();
+        BlockProperties(Material::NETHER_WOOD).hardness(3.0f).resistance(3.0f).notSolid().noOcclusion();
     BuildingVariantBlocks::CRIMSON_DOOR = &registry.registerBlock<blocks::DoorBlock>(
         ResourceLocation("minecraft:crimson_door"), netherWoodDoorProps, false);
     BuildingVariantBlocks::WARPED_DOOR = &registry.registerBlock<blocks::DoorBlock>(
@@ -680,7 +692,7 @@ void registerBuildingVariantBlocks()
         ResourceLocation("minecraft:warped_fence_gate"), netherWoodFenceGateProps);
 
     // ========== 染色玻璃板（16色）==========
-    BlockProperties stainedGlassPaneProps = BlockProperties(Material::GLASS).hardness(0.3f).notSolid();
+    BlockProperties stainedGlassPaneProps = BlockProperties(Material::GLASS).hardness(0.3f).notSolid().noOcclusion();
 
     BuildingVariantBlocks::WHITE_STAINED_GLASS_PANE = &registry.registerBlock<blocks::PaneBlock>(
         ResourceLocation("minecraft:white_stained_glass_pane"), stainedGlassPaneProps);
@@ -738,22 +750,22 @@ void registerBuildingVariantBlocks()
     // 屏障 - 不可见的不可破坏方块
     BuildingVariantBlocks::BARRIER =
         &registry.registerBlock<blocks::BarrierBlock>(ResourceLocation("minecraft:barrier"),
-            BlockProperties(Material::BARRIER).hardness(-1.0f).resistance(3600000.0f).noLootTable());
+            BlockProperties(Material::BARRIER).hardness(-1.0f).resistance(3600000.0f).noOcclusion().noLootTable());
 
     // 命令方块 - 红石触发型，需要管理员权限
     BuildingVariantBlocks::COMMAND_BLOCK =
         &registry.registerBlock<blocks::CommandBlock>(ResourceLocation("minecraft:command_block"),
-            BlockProperties(Material::ROCK).hardness(-1.0f).resistance(3600000.0f).noLootTable());
+            BlockProperties(Material::ROCK).hardness(-1.0f).resistance(3600000.0f).noOcclusion().noLootTable());
 
     // 重复命令方块 - 每tick自动执行，需要管理员权限
     BuildingVariantBlocks::REPEATING_COMMAND_BLOCK =
         &registry.registerBlock<blocks::RepeatingCommandBlock>(ResourceLocation("minecraft:repeating_command_block"),
-            BlockProperties(Material::ROCK).hardness(-1.0f).resistance(3600000.0f).noLootTable());
+            BlockProperties(Material::ROCK).hardness(-1.0f).resistance(3600000.0f).noOcclusion().noLootTable());
 
     // 连锁命令方块 - 链式触发，需要管理员权限
     BuildingVariantBlocks::CHAIN_COMMAND_BLOCK =
         &registry.registerBlock<blocks::ChainCommandBlock>(ResourceLocation("minecraft:chain_command_block"),
-            BlockProperties(Material::ROCK).hardness(-1.0f).resistance(3600000.0f).noLootTable());
+            BlockProperties(Material::ROCK).hardness(-1.0f).resistance(3600000.0f).noOcclusion().noLootTable());
 
     // ========== 1.21.5+ GameTest 框架调试方块 ==========
 
@@ -766,12 +778,13 @@ void registerBuildingVariantBlocks()
             .hardness(-1.0f)
             .resistance(3600000.0f)
             .noLootTable()
+            .noOcclusion()
             .opacity(0));
 
     // 测试方块 - GameTest 框架的调试方块（start/log/fail/accept 四模式）
     BuildingVariantBlocks::TEST_BLOCK =
         &registry.registerBlock<blocks::TestBlock>(ResourceLocation("minecraft:test_block"),
-            BlockProperties(Material::TEST_BLOCK).hardness(-1.0f).resistance(3600000.0f).noLootTable());
+            BlockProperties(Material::TEST_BLOCK).hardness(-1.0f).resistance(3600000.0f).noOcclusion().noLootTable());
 
     // 测试实例方块 - 标记测试实例结构位置，无遮挡
     BuildingVariantBlocks::TEST_INSTANCE_BLOCK =

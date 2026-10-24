@@ -648,6 +648,8 @@ add_executable(mc_tests
     common/world/blockentity/sculk/SculkBlockEntityTest.cpp
     common/world/block/blocks/DoorBlockTest.cpp
     common/world/block/blocks/TrapDoorBlockTest.cpp
+    # 方块遮挡（canOcclude / noOcclusion）与光照衰减测试
+    common/world/block/blocks/BlockOcclusionTest.cpp
     common/world/block/blocks/BlockSoundTest.cpp
     common/world/block/blocks/CauldronBlockTest.cpp
     common/world/block/blocks/LavaCauldronBlockTest.cpp

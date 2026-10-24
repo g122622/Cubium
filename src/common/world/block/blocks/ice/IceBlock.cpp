@@ -137,8 +137,8 @@ void IceBlock::randomTick(IWorld& world, const BlockPos& pos, BlockState& state,
 {
     MC_UNUSED(random);
 
-    // 冰在方块光照足够时融化：门槛为 blockLight > 11 - opacity。
-    // 冰的不透明度（opacity）为 1（非不透明材质，完整方块的 getOpacity 返回 1），故条件为
+    // 冰在方块光照足够时融化：门槛为 blockLight > 11 - opacity（opacity 即 lightBlock）。
+    // 冰的 lightBlock=1（vanilla IceBlock#solidRender=false，见 isSolidRender/getOpacity），故条件为
     // blockLight > 10，即方块光照 >= 11 时融化。仅检查方块光照，阳光（天空光照）不直接融化冰。
     u8 blockLight = world.getBlockLight(pos);
     i32 opacity = state.getOpacity();

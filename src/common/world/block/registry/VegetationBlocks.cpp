@@ -240,8 +240,9 @@ void registerVegetationBlocks()
         ResourceLocation("minecraft:red_mushroom_block"), hugeMushroomProps);
 
     // 蘑菇柄
-    VegetationBlocks::MUSHROOM_STEM = &registry.registerBlock<blocks::HugeMushroomBlock>(
-        ResourceLocation("minecraft:mushroom_stem"), hugeMushroomProps);
+    VegetationBlocks::MUSHROOM_STEM =
+        &registry.registerBlock<blocks::HugeMushroomBlock>(ResourceLocation("minecraft:mushroom_stem"),
+            BlockProperties(Material::WOOD).hardness(0.2f).ignitedByLava().noOcclusion());
 
     // 棕色蘑菇
     // 传入空 generator，由 server 侧 ServerBigMushroomGenerators::injectAll() 后置注入

@@ -133,7 +133,8 @@ void registerBambooBlocks()
                 .resistance(3.0f)
                 .soundType(BlockSoundTypes::BAMBOO_WOOD)
                 .flammable()
-                .ignitedByLava());
+                .ignitedByLava()
+                .noOcclusion());
 
     // ============================================================================
     // 竹木台阶

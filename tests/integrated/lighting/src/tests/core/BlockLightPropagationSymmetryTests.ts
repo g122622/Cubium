@@ -97,9 +97,11 @@ function torchAxialEqualsDiagonalAtSameDistance(test: Test): void {
     );
 }
 
-// 方块光穿过连续两个 opacity=0 方块累积衰减：荧石(15) (1,3,3) → 玻璃(2,3,3) → 玻璃(3,3,3) → air(4,3,3) 探针。
-// 传播链：荧石15 → 穿玻璃1 max(1,0)=1 衰减得 14 → 穿玻璃2 衰减1 得 13 → 穿 air 衰减1 得 12。
-// 验证连续多个 opacity=0 方块穿透时衰减按格数累积（每格-1），与连续空气同等衰减（非按方块数或一次性衰减）。
+// 方块光穿过连续两个玻璃累积衰减：荧石(15) (1,3,3) → 玻璃(2,3,3) → 玻璃(3,3,3) → air(4,3,3) 探针。
+// 传播链：荧石15 → 穿玻璃1（lightBlock=1）衰减1 得 14 → 穿玻璃2 衰减1 得 13 → 穿 air 衰减1 得 12。
+// 验证连续多个透光方块穿透时衰减按格数累积（每格-1），与连续空气同等衰减（非按方块数或一次性衰减）。
+// 玻璃 lightBlock=1 来自 vanilla glassProperties 的 noOcclusion()：canOcclude=false → 非实体渲染，
+// 遮挡形状为完整立方体 → propagatesSkylightDown=false → lightBlock=1（而非显式 opacity(0)）。
 // 当前 OpacityBlockLightTests.blockLightThroughGlassDecaysOne 只测单层玻璃（15→14→13），本组补双层（15→14→13→12）。
 function blockLightThroughTwoGlassLayers(test: Test): void {
     test.setBlockType("minecraft:glowstone", { x: 1, y: 3, z: 3 });
@@ -109,7 +111,7 @@ function blockLightThroughTwoGlassLayers(test: Test): void {
         test,
         () => {
             return (
-                // 玻璃1 (2,3,3)：邻接荧石15，穿玻璃衰减1 得 14。
+                // 玻璃1 (2,3,3)：邻接荧石15，穿玻璃(lightBlock=1)衰减1 得 14。
                 getBlockLight(test, 2, 3, 3) === 14 &&
                 // 玻璃2 (3,3,3)：穿玻璃1(14)再穿玻璃2衰减1 得 13。
                 getBlockLight(test, 3, 3, 3) === 13 &&

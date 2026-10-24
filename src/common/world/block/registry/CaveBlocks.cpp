@@ -120,7 +120,8 @@ void registerCaveBlocks()
                 .harvestTool(HarvestTool::Pickaxe)
                 .requiresTool()
                 .soundType(BlockSoundTypes::AMETHYST)
-                .tickRandomly());
+                .tickRandomly()
+                .noOcclusion());
 
     // 小紫水晶芽 - 发光等级1，FACING+WATERLOGGED，高度2像素宽度4像素
     CaveBlocks::SMALL_AMETHYST_BUD =
@@ -212,7 +213,8 @@ void registerCaveBlocks()
             .resistance(0.75f)
             .harvestTool(HarvestTool::Pickaxe)
             .requiresTool()
-            .soundType(BlockSoundTypes::CALCITE));
+            .soundType(BlockSoundTypes::CALCITE)
+            .noOcclusion());
 
     // ============================================================================
     // 遮光玻璃 - 透明但不透光（阻挡所有光线，不传播天空光）
@@ -255,14 +257,22 @@ void registerCaveBlocks()
     // 传入空 generator，由 server 侧 ServerTreeGenerators::injectAll() 后置注入
     CaveBlocks::AZALEA = &registry.registerBlock<blocks::AzaleaBlock>(ResourceLocation("minecraft:azalea"),
         blocks::SaplingBlock::TreeGenerator{},
-        BlockProperties(Material::PLANT).hardness(0.0f).resistance(0.0f).soundType(BlockSoundTypes::AZALEA));
+        BlockProperties(Material::PLANT)
+            .hardness(0.0f)
+            .resistance(0.0f)
+            .soundType(BlockSoundTypes::AZALEA)
+            .noOcclusion());
 
     // 开花的杜鹃花
     // 传入空 generator，由 server 侧 ServerTreeGenerators::injectAll() 后置注入
-    CaveBlocks::FLOWERING_AZALEA = &registry.registerBlock<blocks::FloweringAzaleaBlock>(
-        ResourceLocation("minecraft:flowering_azalea"),
-        blocks::SaplingBlock::TreeGenerator{},
-        BlockProperties(Material::PLANT).hardness(0.0f).resistance(0.0f).soundType(BlockSoundTypes::FLOWERING_AZALEA));
+    CaveBlocks::FLOWERING_AZALEA =
+        &registry.registerBlock<blocks::FloweringAzaleaBlock>(ResourceLocation("minecraft:flowering_azalea"),
+            blocks::SaplingBlock::TreeGenerator{},
+            BlockProperties(Material::PLANT)
+                .hardness(0.0f)
+                .resistance(0.0f)
+                .soundType(BlockSoundTypes::FLOWERING_AZALEA)
+                .noOcclusion());
 
     // 杜鹃花叶 - 树叶类方块，使用LeavesBlock实现距离衰减。可被岩浆点燃（对齐 vanilla）
     CaveBlocks::AZALEA_LEAVES =
@@ -272,6 +282,7 @@ void registerCaveBlocks()
                 .resistance(0.2f)
                 .soundType(BlockSoundTypes::AZALEA_LEAVES)
                 .tickRandomly()
+                .noOcclusion()
                 .ignitedByLava());
 
     // 开花的杜鹃花叶。可被岩浆点燃（对齐 vanilla）
@@ -282,6 +293,7 @@ void registerCaveBlocks()
                 .resistance(0.2f)
                 .soundType(BlockSoundTypes::AZALEA_LEAVES)
                 .tickRandomly()
+                .noOcclusion()
                 .ignitedByLava());
 
     // ============================================================================
@@ -341,7 +353,8 @@ void registerCaveBlocks()
                 .notSolid()
                 .hardness(0.0f)
                 .resistance(0.0f)
-                .soundType(BlockSoundTypes::SPORE_BLOSSOM));
+                .soundType(BlockSoundTypes::SPORE_BLOSSOM)
+                .noOcclusion());
 
     // 发光地衣 - 可放置在任意面，6面布尔属性+WATERLOGGED，发光等级7。可被岩浆点燃（对齐 vanilla）
     CaveBlocks::GLOW_LICHEN =

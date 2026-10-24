@@ -64,6 +64,8 @@ void BlockState::_cacheProperties()
     m_isAir = m_owner->isAir(*this);
     m_isSolid = m_owner->isSolid(*this);
     m_isOpaque = m_owner->isOpaque(*this);
+    // canOcclude 由注册属性决定，状态构造期即为最终值（与方块子类构造顺序无关）。
+    m_canOccludeCache = m_owner->canOcclude();
     m_blocksMovement = m_owner->material().blocksMovement();
     m_isLiquid = m_owner->material().isLiquid();
     m_isFlammable = m_owner->material().isFlammable();
@@ -108,12 +110,38 @@ const CollisionShape& BlockState::getBlockSupportShape() const
 
 CollisionShape BlockState::getFaceOcclusionShape(Direction direction) const
 {
+    // 对齐 vanilla BlockStateBase：occlusionShape = canOcclude ? getOcclusionShape() : Shapes.empty()，
+    // 再取面投影。noOcclusion 方块不提供任何遮挡面，光照引擎的形状遮挡检测对它整体失效。
+    if (!m_canOccludeCache) {
+        return CollisionShape::empty();
+    }
     return m_owner->getFaceOcclusionShape(*this, direction);
+}
+
+void BlockState::refreshLightCache()
+{
+    m_opacity = m_owner->getOpacity(*this, nullptr, nullptr);
+    m_propagatesSkylightDown = m_owner->propagatesSkylightDown(*this, nullptr, nullptr);
+}
+
+bool BlockState::isSolidRender() const
+{
+    // vanilla BlockStateBase：#501 occlusionShape = canOcclude ? owner.getOcclusionShape() : Shapes.empty()，
+    // #502 solidRender = Block.isShapeFullBlock(occlusionShape)。
+    if (!m_canOccludeCache) {
+        return false;
+    }
+    return m_owner->getOcclusionShape(*this).isFullBlock();
 }
 
 bool BlockState::hasOpaqueCollisionShape() const
 {
-    // 如果方块不透明且有碰撞，则有不透明碰撞形状
+    // 如果方块不透明且有碰撞，则有不透明碰撞形状。
+    // noOcclusion 方块（铁栏杆、树叶、门等）不产生遮挡，也就没有不透明碰撞形状
+    // （vanilla 的 AO 与遮挡判定均以 canOcclude 为前提）。
+    if (!m_canOccludeCache) {
+        return false;
+    }
     return m_isOpaque && m_owner->material().blocksMovement();
 }
 
@@ -147,10 +175,12 @@ bool BlockState::isFaceSturdy(
 
 bool BlockState::isOpaqueCube(IWorld& world, const BlockPos& pos) const
 {
-    // 如果方块是固体的且有不透明碰撞形状，则为不透明完整方块
+    // 如果方块是固体的且有不透明碰撞形状，则为不透明完整方块。
+    // 以 canOcclude + 碰撞形状完整为判定（对齐 vanilla `collisionShapeFullBlock && canOcclude` 语义），
+    // 与具体材质无关：铁栏杆等 noOcclusion 方块虽有碰撞形状，但不遮挡。
     MC_UNUSED(world);
     MC_UNUSED(pos);
-    return m_isSolid && m_isOpaque && hasOpaqueCollisionShape();
+    return m_canOccludeCache && m_isSolid && m_owner->getCollisionShape(*this).isFullBlock();
 }
 
 const ResourceLocation& BlockState::blockLocation() const

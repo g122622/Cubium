@@ -33,9 +33,9 @@
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/BlockState.hpp"
-#include "common/world/fluid/Fluid.hpp"
 #include "common/world/block/registry/CaveBlocks.hpp"
 #include "common/world/block/registry/NaturalBlocks.hpp"
+#include "common/world/fluid/Fluid.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -171,8 +171,7 @@ bool FrogLongJumpGoal::_isPreferredBlock(const BlockPos& pos) const
     if (block_registry::NaturalBlocks::LILY_PAD != nullptr && &block == block_registry::NaturalBlocks::LILY_PAD) {
         return true;
     }
-    return block_registry::CaveBlocks::BIG_DRIPLEAF != nullptr &&
-        &block == block_registry::CaveBlocks::BIG_DRIPLEAF;
+    return block_registry::CaveBlocks::BIG_DRIPLEAF != nullptr && &block == block_registry::CaveBlocks::BIG_DRIPLEAF;
 }
 
 bool FrogLongJumpGoal::_isAcceptableLandingSpot(const BlockPos& pos) const

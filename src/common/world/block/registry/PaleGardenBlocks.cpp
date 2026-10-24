@@ -164,6 +164,7 @@ void registerPaleGardenBlocks()
                 .resistance(0.2f)
                 .harvestTool(HarvestTool::Hoe)
                 .soundType(BlockSoundTypes::LEAVES)
+                .noOcclusion()
                 .ignitedByLava());
 
     // 苍白橡树树苗（带 stage 属性，可生长成苍白橡树）

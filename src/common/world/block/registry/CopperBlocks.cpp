@@ -273,13 +273,15 @@ void registerCopperBlocks()
                                                .soundType(BlockSoundTypes::COPPER);
 
     // 铜门/活板门属性: Material::IRON, 硬度3.0, 抗爆6.0, notSolid
+    // vanilla 铜门与铜活板门均注册 noOcclusion()
     BlockProperties copperDoorProps = BlockProperties(Material::IRON)
                                           .hardness(3.0f)
                                           .resistance(6.0f)
                                           .harvestTool(HarvestTool::Pickaxe)
                                           .requiresTool()
                                           .notSolid()
-                                          .soundType(BlockSoundTypes::COPPER);
+                                          .soundType(BlockSoundTypes::COPPER)
+                                          .noOcclusion();
 
     // 铜格栅属性: Material::IRON, 硬度3.0, 抗爆6.0, notSolid
     BlockProperties copperGrateProps = BlockProperties(Material::IRON)
@@ -1027,12 +1029,14 @@ void registerCopperBlocks()
     // 氧化链：copper_golem_statue -> exposed_copper_golem_statue ->
     //         weathered_copper_golem_statue -> oxidized_copper_golem_statue
     // ============================================================================
+    // vanilla 铜傀儡雕像注册 noOcclusion()
     BlockProperties copperGolemStatueProps = BlockProperties(Material::IRON)
                                                  .hardness(3.0f)
                                                  .resistance(6.0f)
                                                  .harvestTool(HarvestTool::Pickaxe)
                                                  .requiresTool()
-                                                 .soundType(BlockSoundTypes::COPPER);
+                                                 .soundType(BlockSoundTypes::COPPER)
+                                                 .noOcclusion();
 
     // 基础铜傀儡雕像（Unaffected 等级，不氧化但处于氧化链最低位）
     auto* copperGolemStatue = &registry.registerBlock<blocks::CopperGolemStatueBlock>(
@@ -1107,8 +1111,13 @@ void registerCopperBlocks()
     // ============================================================================
 
     // 铜箱子基础属性：与普通箱子一致（WOOD 材质，硬度 2.5，可燃），但使用铜的声音类型
-    BlockProperties copperChestProps =
-        BlockProperties(Material::WOOD).hardness(2.5f).resistance(2.5f).notSolid().soundType(BlockSoundTypes::COPPER);
+    // vanilla 铜箱子注册 noOcclusion()
+    BlockProperties copperChestProps = BlockProperties(Material::WOOD)
+                                           .hardness(2.5f)
+                                           .resistance(2.5f)
+                                           .notSolid()
+                                           .soundType(BlockSoundTypes::COPPER)
+                                           .noOcclusion();
 
     // 开合音效按氧化等级映射（与 MC Java 1.21.11 一致）：
     // - Unaffected/Exposed + 涂蜡变体 -> block.copper_chest.open/close

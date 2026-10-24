@@ -53,7 +53,8 @@ void registerWildBlocks()
                                          .hardness(0.3f)
                                          .resistance(0.3f)
                                          .soundType(BlockSoundTypes::FROGLIGHT)
-                                         .lightLevel(15);
+                                         .lightLevel(15)
+                                         .noOcclusion();
 
     // 赭黄蛙明灯 - 暖蛙（橙色青蛙）吃岩浆怪掉落，有轴属性
     WildBlocks::OCHRE_FROGLIGHT =
