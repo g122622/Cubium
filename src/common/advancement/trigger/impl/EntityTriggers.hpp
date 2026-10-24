@@ -73,7 +73,10 @@ class TameAnimalTrigger : public AbstractCriterionTrigger<TameAnimalTriggerInsta
 public:
     static constexpr const char* TRIGGER_ID = "minecraft:tame_animal";
 
-    [[nodiscard]] ResourceLocation getId() const override { return ResourceLocation(TRIGGER_ID); }
+    [[nodiscard]] ResourceLocation getId() const override
+    {
+        return ResourceLocation(TRIGGER_ID);
+    }
 
     [[nodiscard]] Result<std::shared_ptr<ICriterionInstance>> fromJson(const nlohmann::json& json) override;
 
@@ -114,7 +117,10 @@ class BredAnimalsTrigger : public AbstractCriterionTrigger<BredAnimalsTriggerIns
 public:
     static constexpr const char* TRIGGER_ID = "minecraft:bred_animals";
 
-    [[nodiscard]] ResourceLocation getId() const override { return ResourceLocation(TRIGGER_ID); }
+    [[nodiscard]] ResourceLocation getId() const override
+    {
+        return ResourceLocation(TRIGGER_ID);
+    }
 
     [[nodiscard]] Result<std::shared_ptr<ICriterionInstance>> fromJson(const nlohmann::json& json) override;
 
@@ -161,7 +167,10 @@ class SummonedEntityTrigger : public AbstractCriterionTrigger<SummonedEntityTrig
 public:
     static constexpr const char* TRIGGER_ID = "minecraft:summoned_entity";
 
-    [[nodiscard]] ResourceLocation getId() const override { return ResourceLocation(TRIGGER_ID); }
+    [[nodiscard]] ResourceLocation getId() const override
+    {
+        return ResourceLocation(TRIGGER_ID);
+    }
 
     [[nodiscard]] Result<std::shared_ptr<ICriterionInstance>> fromJson(const nlohmann::json& json) override;
 
@@ -201,7 +210,10 @@ class CuredZombieVillagerTrigger : public AbstractCriterionTrigger<CuredZombieVi
 public:
     static constexpr const char* TRIGGER_ID = "minecraft:cured_zombie_villager";
 
-    [[nodiscard]] ResourceLocation getId() const override { return ResourceLocation(TRIGGER_ID); }
+    [[nodiscard]] ResourceLocation getId() const override
+    {
+        return ResourceLocation(TRIGGER_ID);
+    }
 
     [[nodiscard]] Result<std::shared_ptr<ICriterionInstance>> fromJson(const nlohmann::json& json) override;
 
@@ -243,7 +255,10 @@ class VillagerTradeTrigger : public AbstractCriterionTrigger<VillagerTradeTrigge
 public:
     static constexpr const char* TRIGGER_ID = "minecraft:villager_trade";
 
-    [[nodiscard]] ResourceLocation getId() const override { return ResourceLocation(TRIGGER_ID); }
+    [[nodiscard]] ResourceLocation getId() const override
+    {
+        return ResourceLocation(TRIGGER_ID);
+    }
 
     [[nodiscard]] Result<std::shared_ptr<ICriterionInstance>> fromJson(const nlohmann::json& json) override;
 
@@ -280,7 +295,10 @@ class PlayerInteractedWithEntityTrigger : public AbstractCriterionTrigger<Player
 public:
     static constexpr const char* TRIGGER_ID = "minecraft:player_interacted_with_entity";
 
-    [[nodiscard]] ResourceLocation getId() const override { return ResourceLocation(TRIGGER_ID); }
+    [[nodiscard]] ResourceLocation getId() const override
+    {
+        return ResourceLocation(TRIGGER_ID);
+    }
 
     [[nodiscard]] Result<std::shared_ptr<ICriterionInstance>> fromJson(const nlohmann::json& json) override;
 
@@ -325,7 +343,10 @@ class PlayerHurtEntityTrigger : public AbstractCriterionTrigger<PlayerHurtEntity
 public:
     static constexpr const char* TRIGGER_ID = "minecraft:player_hurt_entity";
 
-    [[nodiscard]] ResourceLocation getId() const override { return ResourceLocation(TRIGGER_ID); }
+    [[nodiscard]] ResourceLocation getId() const override
+    {
+        return ResourceLocation(TRIGGER_ID);
+    }
 
     [[nodiscard]] Result<std::shared_ptr<ICriterionInstance>> fromJson(const nlohmann::json& json) override;
 
@@ -374,7 +395,10 @@ class EntityHurtPlayerTrigger : public AbstractCriterionTrigger<EntityHurtPlayer
 public:
     static constexpr const char* TRIGGER_ID = "minecraft:entity_hurt_player";
 
-    [[nodiscard]] ResourceLocation getId() const override { return ResourceLocation(TRIGGER_ID); }
+    [[nodiscard]] ResourceLocation getId() const override
+    {
+        return ResourceLocation(TRIGGER_ID);
+    }
 
     [[nodiscard]] Result<std::shared_ptr<ICriterionInstance>> fromJson(const nlohmann::json& json) override;
 
@@ -415,7 +439,10 @@ class ChangedDimensionTrigger : public AbstractCriterionTrigger<ChangedDimension
 public:
     static constexpr const char* TRIGGER_ID = "minecraft:changed_dimension";
 
-    [[nodiscard]] ResourceLocation getId() const override { return ResourceLocation(TRIGGER_ID); }
+    [[nodiscard]] ResourceLocation getId() const override
+    {
+        return ResourceLocation(TRIGGER_ID);
+    }
 
     [[nodiscard]] Result<std::shared_ptr<ICriterionInstance>> fromJson(const nlohmann::json& json) override;
 
@@ -441,8 +468,15 @@ public:
     Result<void> fromJson(const nlohmann::json& json);
     [[nodiscard]] nlohmann::json conditionsToJson() const;
 
-    [[nodiscard]] const std::optional<ResourceLocation>& getFrom() const noexcept { return m_from; }
-    [[nodiscard]] const std::optional<ResourceLocation>& getTo() const noexcept { return m_to; }
+    [[nodiscard]] const std::optional<ResourceLocation>& getFrom() const noexcept
+    {
+        return m_from;
+    }
+
+    [[nodiscard]] const std::optional<ResourceLocation>& getTo() const noexcept
+    {
+        return m_to;
+    }
 
 private:
     std::optional<ResourceLocation> m_from;
@@ -461,7 +495,10 @@ class FishingRodHookedTrigger : public AbstractCriterionTrigger<FishingRodHooked
 public:
     static constexpr const char* TRIGGER_ID = "minecraft:fishing_rod_hooked";
 
-    [[nodiscard]] ResourceLocation getId() const override { return ResourceLocation(TRIGGER_ID); }
+    [[nodiscard]] ResourceLocation getId() const override
+    {
+        return ResourceLocation(TRIGGER_ID);
+    }
 
     [[nodiscard]] Result<std::shared_ptr<ICriterionInstance>> fromJson(const nlohmann::json& json) override;
 
@@ -520,7 +557,10 @@ class KilledByArrowTrigger : public AbstractCriterionTrigger<KilledByArrowTrigge
 public:
     static constexpr const char* TRIGGER_ID = "minecraft:killed_by_arrow";
 
-    [[nodiscard]] ResourceLocation getId() const override { return ResourceLocation(TRIGGER_ID); }
+    [[nodiscard]] ResourceLocation getId() const override
+    {
+        return ResourceLocation(TRIGGER_ID);
+    }
 
     [[nodiscard]] Result<std::shared_ptr<ICriterionInstance>> fromJson(const nlohmann::json& json) override;
 
@@ -572,7 +612,10 @@ class PlayerInteractTrigger : public AbstractCriterionTrigger<PlayerInteractTrig
 public:
     static constexpr const char* TRIGGER_ID = "minecraft:player_sheared_equipment";
 
-    [[nodiscard]] ResourceLocation getId() const override { return ResourceLocation(TRIGGER_ID); }
+    [[nodiscard]] ResourceLocation getId() const override
+    {
+        return ResourceLocation(TRIGGER_ID);
+    }
 
     [[nodiscard]] Result<std::shared_ptr<ICriterionInstance>> fromJson(const nlohmann::json& json) override;
 
@@ -614,7 +657,10 @@ class StartRidingTrigger : public AbstractCriterionTrigger<StartRidingTriggerIns
 public:
     static constexpr const char* TRIGGER_ID = "minecraft:started_riding";
 
-    [[nodiscard]] ResourceLocation getId() const override { return ResourceLocation(TRIGGER_ID); }
+    [[nodiscard]] ResourceLocation getId() const override
+    {
+        return ResourceLocation(TRIGGER_ID);
+    }
 
     [[nodiscard]] Result<std::shared_ptr<ICriterionInstance>> fromJson(const nlohmann::json& json) override;
 
@@ -648,7 +694,10 @@ class LightningStrikeTrigger : public AbstractCriterionTrigger<LightningStrikeTr
 public:
     static constexpr const char* TRIGGER_ID = "minecraft:lightning_strike";
 
-    [[nodiscard]] ResourceLocation getId() const override { return ResourceLocation(TRIGGER_ID); }
+    [[nodiscard]] ResourceLocation getId() const override
+    {
+        return ResourceLocation(TRIGGER_ID);
+    }
 
     [[nodiscard]] Result<std::shared_ptr<ICriterionInstance>> fromJson(const nlohmann::json& json) override;
 
@@ -694,7 +743,10 @@ public:
 
     explicit DistanceTrigger(const char* triggerId = TRIGGER_ID);
 
-    [[nodiscard]] ResourceLocation getId() const override { return ResourceLocation(m_triggerId); }
+    [[nodiscard]] ResourceLocation getId() const override
+    {
+        return ResourceLocation(m_triggerId);
+    }
 
     [[nodiscard]] Result<std::shared_ptr<ICriterionInstance>> fromJson(const nlohmann::json& json) override;
 
@@ -759,7 +811,10 @@ class FallAfterExplosionTrigger : public AbstractCriterionTrigger<FallAfterExplo
 public:
     static constexpr const char* TRIGGER_ID = "minecraft:fall_after_explosion";
 
-    [[nodiscard]] ResourceLocation getId() const override { return ResourceLocation(TRIGGER_ID); }
+    [[nodiscard]] ResourceLocation getId() const override
+    {
+        return ResourceLocation(TRIGGER_ID);
+    }
 
     [[nodiscard]] Result<std::shared_ptr<ICriterionInstance>> fromJson(const nlohmann::json& json) override;
 

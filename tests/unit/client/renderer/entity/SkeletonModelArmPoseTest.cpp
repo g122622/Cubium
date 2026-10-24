@@ -80,7 +80,10 @@ protected:
      *
      * 头部 yaw/pitch 设为 0 以简化角度断言。
      */
-    void applyAngles() { m_model->setAngles(0.0, 0.0, 0.0, 0.0, 0.0, 1.0 / 16.0); }
+    void applyAngles()
+    {
+        m_model->setAngles(0.0, 0.0, 0.0, 0.0, 0.0, 1.0 / 16.0);
+    }
 
     std::unique_ptr<monster::SkeletonModel> m_model;
 };

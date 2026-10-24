@@ -808,7 +808,9 @@ RayTraceResult FishingBobberEntity::_performRayTrace()
         start,
         end,
         searchBox,
-        [this](const Entity& candidate) { return _canHitEntity(candidate); },
+        [this](const Entity& candidate) {
+            return _canHitEntity(candidate);
+        },
         0.3f // collisionExpansion
     );
 

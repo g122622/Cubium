@@ -51,21 +51,60 @@ public:
         : m_breeze(breeze)
     {}
 
-    [[nodiscard]] i32 shootCooldown() const { return m_breeze.shootCooldown(); }
-    void setShootCooldown(i32 ticks) { m_breeze.setShootCooldown(ticks); }
+    [[nodiscard]] i32 shootCooldown() const
+    {
+        return m_breeze.shootCooldown();
+    }
 
-    [[nodiscard]] i32 jumpCooldown() const { return m_breeze.jumpCooldown(); }
-    void setJumpCooldown(i32 ticks) { m_breeze.setJumpCooldown(ticks); }
+    void setShootCooldown(i32 ticks)
+    {
+        m_breeze.setShootCooldown(ticks);
+    }
 
-    [[nodiscard]] bool hasShootPermit() const { return m_breeze.hasShootPermit(); }
-    void setShootPermit(i32 ticks) { m_breeze.setShootPermit(ticks); }
-    void clearShootPermit() { m_breeze.clearShootPermit(); }
+    [[nodiscard]] i32 jumpCooldown() const
+    {
+        return m_breeze.jumpCooldown();
+    }
 
-    [[nodiscard]] bool isLongJumping() const { return m_breeze.isLongJumping(); }
-    void setLongJumping(bool jumping) { m_breeze.setLongJumping(jumping); }
+    void setJumpCooldown(i32 ticks)
+    {
+        m_breeze.setJumpCooldown(ticks);
+    }
 
-    [[nodiscard]] bool isSliding() const { return m_breeze.isSliding(); }
-    void setSliding(bool sliding) { m_breeze.setSliding(sliding); }
+    [[nodiscard]] bool hasShootPermit() const
+    {
+        return m_breeze.hasShootPermit();
+    }
+
+    void setShootPermit(i32 ticks)
+    {
+        m_breeze.setShootPermit(ticks);
+    }
+
+    void clearShootPermit()
+    {
+        m_breeze.clearShootPermit();
+    }
+
+    [[nodiscard]] bool isLongJumping() const
+    {
+        return m_breeze.isLongJumping();
+    }
+
+    void setLongJumping(bool jumping)
+    {
+        m_breeze.setLongJumping(jumping);
+    }
+
+    [[nodiscard]] bool isSliding() const
+    {
+        return m_breeze.isSliding();
+    }
+
+    void setSliding(bool sliding)
+    {
+        m_breeze.setSliding(sliding);
+    }
 
 private:
     BreezeEntity& m_breeze;

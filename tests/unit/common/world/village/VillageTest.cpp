@@ -67,13 +67,17 @@ public:
         return true;
     }
 
-    [[nodiscard]] u64 currentTick() const override { return m_currentTick; }
+    [[nodiscard]] u64 currentTick() const override
+    {
+        return m_currentTick;
+    }
 
     [[nodiscard]] Entity* getEntity(EntityInstanceId id) override
     {
         auto it = m_entities.find(static_cast<u64>(id));
         return it != m_entities.end() ? it->second : nullptr;
     }
+
     [[nodiscard]] const Entity* getEntity(EntityInstanceId id) const override
     {
         auto it = m_entities.find(static_cast<u64>(id));
@@ -84,17 +88,27 @@ public:
     {
         throw std::runtime_error("VillageTestWorld::tickManager not implemented");
     }
+
     [[nodiscard]] const world::tick::TickManager& tickManager() const override
     {
         throw std::runtime_error("VillageTestWorld::tickManager not implemented");
     }
 
     // 实体管理
-    void addTestEntity(Entity* entity, u64 id) { m_entities[id] = entity; }
+    void addTestEntity(Entity* entity, u64 id)
+    {
+        m_entities[id] = entity;
+    }
 
-    void removeTestEntity(u64 id) { m_entities.erase(id); }
+    void removeTestEntity(u64 id)
+    {
+        m_entities.erase(id);
+    }
 
-    void setCurrentTick(u64 tick) { m_currentTick = tick; }
+    void setCurrentTick(u64 tick)
+    {
+        m_currentTick = tick;
+    }
 
 private:
     std::unordered_map<BlockPos, std::unique_ptr<BlockState>> m_blocks;
@@ -116,7 +130,9 @@ public:
         setTypeId(entity::EntityTypeKeys::VILLAGER);
     }
 
-    void tick() override { /* 空实现 */ }
+    void tick() override
+    { /* 空实现 */
+    }
 };
 
 /**

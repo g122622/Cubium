@@ -77,12 +77,18 @@ public:
      *
      * @param biomeId 群系ID
      */
-    void setBiomeId(u32 biomeId) { m_currentBiomeId = biomeId; }
+    void setBiomeId(u32 biomeId)
+    {
+        m_currentBiomeId = biomeId;
+    }
 
     /**
      * @brief 获取当前群系ID
      */
-    [[nodiscard]] u32 getBiomeId() const noexcept { return m_currentBiomeId; }
+    [[nodiscard]] u32 getBiomeId() const noexcept
+    {
+        return m_currentBiomeId;
+    }
 
     /**
      * @brief 设置玩家位置和心境音效采样位置（用于心境音效位置计算）

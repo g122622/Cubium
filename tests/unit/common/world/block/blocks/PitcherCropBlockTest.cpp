@@ -111,43 +111,113 @@ public:
         return &fluid::Fluids::EMPTY()->defaultState();
     }
 
-    [[nodiscard]] mc::world::chunk::IChunkManager* chunkManager() override { return &m_stubChunks; }
-    [[nodiscard]] const mc::world::chunk::IChunkManager* chunkManager() const override { return &m_stubChunks; }
+    [[nodiscard]] mc::world::chunk::IChunkManager* chunkManager() override
+    {
+        return &m_stubChunks;
+    }
+
+    [[nodiscard]] const mc::world::chunk::IChunkManager* chunkManager() const override
+    {
+        return &m_stubChunks;
+    }
+
     mc::test::StubChunkManager m_stubChunks{nullptr, true};
-    [[nodiscard]] i32 getHeight(i32, i32) const override { return 64; }
+
+    [[nodiscard]] i32 getHeight(i32, i32) const override
+    {
+        return 64;
+    }
 
     // 充足光照（模拟室外环境）
-    [[nodiscard]] u8 getBlockLight(i32, i32, i32) const override { return 15; }
-    [[nodiscard]] u8 getSkyLight(i32, i32, i32) const override { return 15; }
+    [[nodiscard]] u8 getBlockLight(i32, i32, i32) const override
+    {
+        return 15;
+    }
 
-    [[nodiscard]] bool hasBlockCollision(const AxisAlignedBB&) const override { return false; }
-    [[nodiscard]] std::vector<AxisAlignedBB> getBlockCollisions(const AxisAlignedBB&) const override { return {}; }
+    [[nodiscard]] u8 getSkyLight(i32, i32, i32) const override
+    {
+        return 15;
+    }
+
+    [[nodiscard]] bool hasBlockCollision(const AxisAlignedBB&) const override
+    {
+        return false;
+    }
+
+    [[nodiscard]] std::vector<AxisAlignedBB> getBlockCollisions(const AxisAlignedBB&) const override
+    {
+        return {};
+    }
+
     [[nodiscard]] bool isWithinWorldBounds(i32, i32 y, i32) const override
     {
         return y >= world::MIN_BUILD_HEIGHT && y < world::MAX_BUILD_HEIGHT;
     }
-    [[nodiscard]] bool hasEntityCollision(const AxisAlignedBB&, const Entity*) const override { return false; }
+
+    [[nodiscard]] bool hasEntityCollision(const AxisAlignedBB&, const Entity*) const override
+    {
+        return false;
+    }
+
     [[nodiscard]] std::vector<AxisAlignedBB> getEntityCollisions(const AxisAlignedBB&, const Entity*) const override
     {
         return {};
     }
+
     [[nodiscard]] std::vector<Entity*> getEntitiesInAABB(const AxisAlignedBB&, const Entity*) const override
     {
         return {};
     }
+
     [[nodiscard]] std::vector<Entity*> getEntitiesInRange(const Vector3&, f32, const Entity*) const override
     {
         return {};
     }
-    [[nodiscard]] PhysicsEngine* physicsEngine() override { return nullptr; }
-    [[nodiscard]] const PhysicsEngine* physicsEngine() const override { return nullptr; }
-    [[nodiscard]] DimensionId dimension() const override { return DimensionId(0); }
-    [[nodiscard]] u64 seed() const override { return 0; }
-    [[nodiscard]] u64 currentTick() const override { return 0; }
-    [[nodiscard]] i64 dayTime() const override { return 0; }
-    [[nodiscard]] bool isHardcore() const override { return false; }
-    [[nodiscard]] Difficulty difficulty() const override { return Difficulty::Easy; }
-    [[nodiscard]] bool isClientSide() const override { return false; }
+
+    [[nodiscard]] PhysicsEngine* physicsEngine() override
+    {
+        return nullptr;
+    }
+
+    [[nodiscard]] const PhysicsEngine* physicsEngine() const override
+    {
+        return nullptr;
+    }
+
+    [[nodiscard]] DimensionId dimension() const override
+    {
+        return DimensionId(0);
+    }
+
+    [[nodiscard]] u64 seed() const override
+    {
+        return 0;
+    }
+
+    [[nodiscard]] u64 currentTick() const override
+    {
+        return 0;
+    }
+
+    [[nodiscard]] i64 dayTime() const override
+    {
+        return 0;
+    }
+
+    [[nodiscard]] bool isHardcore() const override
+    {
+        return false;
+    }
+
+    [[nodiscard]] Difficulty difficulty() const override
+    {
+        return Difficulty::Easy;
+    }
+
+    [[nodiscard]] bool isClientSide() const override
+    {
+        return false;
+    }
 
     [[nodiscard]] world::tick::TickManager& tickManager() override
     {
@@ -161,16 +231,40 @@ public:
         return *m_tickManagerPtr;
     }
 
-    [[nodiscard]] math::IRandom& getRandom() override { return m_random; }
-    [[nodiscard]] const math::IRandom& getRandom() const override { return m_random; }
+    [[nodiscard]] math::IRandom& getRandom() override
+    {
+        return m_random;
+    }
 
-    [[nodiscard]] world::border::WorldBorder& worldBorder() override { return m_worldBorder; }
-    [[nodiscard]] const world::border::WorldBorder& worldBorder() const override { return m_worldBorder; }
+    [[nodiscard]] const math::IRandom& getRandom() const override
+    {
+        return m_random;
+    }
 
-    [[nodiscard]] world::gamerule::GameRules& getGameRules() override { return m_gameRules; }
-    [[nodiscard]] const world::gamerule::GameRules& getGameRules() const override { return m_gameRules; }
+    [[nodiscard]] world::border::WorldBorder& worldBorder() override
+    {
+        return m_worldBorder;
+    }
 
-    void setBlockAt(const BlockPos& pos, const BlockState* state) { (void)setBlockState(pos.x, pos.y, pos.z, state); }
+    [[nodiscard]] const world::border::WorldBorder& worldBorder() const override
+    {
+        return m_worldBorder;
+    }
+
+    [[nodiscard]] world::gamerule::GameRules& getGameRules() override
+    {
+        return m_gameRules;
+    }
+
+    [[nodiscard]] const world::gamerule::GameRules& getGameRules() const override
+    {
+        return m_gameRules;
+    }
+
+    void setBlockAt(const BlockPos& pos, const BlockState* state)
+    {
+        (void)setBlockState(pos.x, pos.y, pos.z, state);
+    }
 
 private:
     std::map<BlockPos, const BlockState*> m_blocks;

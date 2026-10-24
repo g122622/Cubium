@@ -112,7 +112,10 @@ struct JavaRealWorld {
      *
      * @return <testdata>/worlds/java-anvil-1.21.11
      */
-    static std::filesystem::path worldDir() { return testDataPath(kWorldRelPath); }
+    static std::filesystem::path worldDir()
+    {
+        return testDataPath(kWorldRelPath);
+    }
 
     /**
      * @brief 打开该存档时应使用的格式信息
@@ -212,13 +215,22 @@ protected:
 class JavaRealWorldReaderFixture : public JavaRealWorldFixture {
 public:
     /// 已打开的真实存档世界级读取器
-    [[nodiscard]] world::storage::reader::java::JavaWorldReader& worldReader() { return *m_worldReader; }
+    [[nodiscard]] world::storage::reader::java::JavaWorldReader& worldReader()
+    {
+        return *m_worldReader;
+    }
 
     /// 已打开的真实存档列级读取器（用于直接喂原始 NBT）
-    [[nodiscard]] world::storage::reader::java::JavaColumnReader& columnReader() { return *m_columnReader; }
+    [[nodiscard]] world::storage::reader::java::JavaColumnReader& columnReader()
+    {
+        return *m_columnReader;
+    }
 
     /// 已打开的真实存档只读后端
-    [[nodiscard]] world::storage::JavaAnvilBackend& backend() { return *m_backend; }
+    [[nodiscard]] world::storage::JavaAnvilBackend& backend()
+    {
+        return *m_backend;
+    }
 
 protected:
     void SetUp() override

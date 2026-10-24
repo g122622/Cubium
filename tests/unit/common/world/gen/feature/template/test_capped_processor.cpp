@@ -39,7 +39,10 @@ using namespace mc::world::gen::valueprovider;
 
 class CappedProcessorTest : public ::testing::Test {
 protected:
-    void SetUp() override { VanillaBlocks::initialize(); }
+    void SetUp() override
+    {
+        VanillaBlocks::initialize();
+    }
 };
 
 // ============================================================================
@@ -350,7 +353,9 @@ TEST_F(CappedProcessorTest, FinalizeProcessing_DeterministicRandom)
     PlacementSettings settings;
     auto originalBlocks = makeOriginalBlocks(20);
 
-    auto makeBlocks = []() -> std::vector<ProcessedBlockInfo> { return makeProcessedBlocks(20); };
+    auto makeBlocks = []() -> std::vector<ProcessedBlockInfo> {
+        return makeProcessedBlocks(20);
+    };
 
     auto processor1 = createProcessor();
     auto result1 = processor1->finalizeProcessing(BlockPos(100, 0, 200), settings, originalBlocks, makeBlocks());
@@ -375,7 +380,9 @@ TEST_F(CappedProcessorTest, FinalizeProcessing_DifferentSeedsProduceDifferentRes
     PlacementSettings settings;
     auto originalBlocks = makeOriginalBlocks(50);
 
-    auto makeBlocks = []() -> std::vector<ProcessedBlockInfo> { return makeProcessedBlocks(50); };
+    auto makeBlocks = []() -> std::vector<ProcessedBlockInfo> {
+        return makeProcessedBlocks(50);
+    };
 
     auto processor1 = createProcessor();
     auto result1 = processor1->finalizeProcessing(BlockPos(0, 0, 0), settings, originalBlocks, makeBlocks());

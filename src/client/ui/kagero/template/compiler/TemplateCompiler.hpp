@@ -71,6 +71,7 @@ struct BindingPlan {
     std::string loopVarName;    ///< 循环变量名
 
     BindingPlan() = default;
+
     BindingPlan(std::string widget, std::string state, std::string attr, bool loop = false, std::string loopVar = "")
         : widgetPath(std::move(widget))
         , statePath(std::move(state))
@@ -91,6 +92,7 @@ struct EventPlan {
     std::string callbackName; ///< 回调名 (如 "onStartGame")
 
     EventPlan() = default;
+
     EventPlan(std::string widget, std::string event, std::string callback)
         : widgetPath(std::move(widget))
         , eventName(std::move(event))
@@ -110,6 +112,7 @@ struct LoopPlan {
     std::vector<BindingPlan> itemBindings; ///< 子项绑定
 
     LoopPlan() = default;
+
     LoopPlan(std::string parent, std::string collection, std::string item)
         : parentPath(std::move(parent))
         , collectionPath(std::move(collection))
@@ -151,8 +154,15 @@ public:
     /**
      * @brief 获取AST根节点
      */
-    [[nodiscard]] const ast::DocumentNode* astRoot() const { return m_astRoot.get(); }
-    [[nodiscard]] ast::DocumentNode* astRoot() { return m_astRoot.get(); }
+    [[nodiscard]] const ast::DocumentNode* astRoot() const
+    {
+        return m_astRoot.get();
+    }
+
+    [[nodiscard]] ast::DocumentNode* astRoot()
+    {
+        return m_astRoot.get();
+    }
 
     // ========== 绑定计划 ==========
 
@@ -164,8 +174,15 @@ public:
     /**
      * @brief 获取所有绑定计划
      */
-    [[nodiscard]] const std::vector<BindingPlan>& bindingPlans() const { return m_bindingPlans; }
-    [[nodiscard]] std::vector<BindingPlan>& bindingPlans() { return m_bindingPlans; }
+    [[nodiscard]] const std::vector<BindingPlan>& bindingPlans() const
+    {
+        return m_bindingPlans;
+    }
+
+    [[nodiscard]] std::vector<BindingPlan>& bindingPlans()
+    {
+        return m_bindingPlans;
+    }
 
     // ========== 事件计划 ==========
 
@@ -177,8 +194,15 @@ public:
     /**
      * @brief 获取所有事件计划
      */
-    [[nodiscard]] const std::vector<EventPlan>& eventPlans() const { return m_eventPlans; }
-    [[nodiscard]] std::vector<EventPlan>& eventPlans() { return m_eventPlans; }
+    [[nodiscard]] const std::vector<EventPlan>& eventPlans() const
+    {
+        return m_eventPlans;
+    }
+
+    [[nodiscard]] std::vector<EventPlan>& eventPlans()
+    {
+        return m_eventPlans;
+    }
 
     // ========== 循环计划 ==========
 
@@ -190,8 +214,15 @@ public:
     /**
      * @brief 获取所有循环计划
      */
-    [[nodiscard]] const std::vector<LoopPlan>& loopPlans() const { return m_loopPlans; }
-    [[nodiscard]] std::vector<LoopPlan>& loopPlans() { return m_loopPlans; }
+    [[nodiscard]] const std::vector<LoopPlan>& loopPlans() const
+    {
+        return m_loopPlans;
+    }
+
+    [[nodiscard]] std::vector<LoopPlan>& loopPlans()
+    {
+        return m_loopPlans;
+    }
 
     // ========== 状态路径 ==========
 
@@ -203,7 +234,10 @@ public:
     /**
      * @brief 获取所有需要监听的状态路径
      */
-    [[nodiscard]] const std::set<std::string>& watchedPaths() const { return m_watchedPaths; }
+    [[nodiscard]] const std::set<std::string>& watchedPaths() const
+    {
+        return m_watchedPaths;
+    }
 
     // ========== 回调注册 ==========
 
@@ -215,40 +249,65 @@ public:
     /**
      * @brief 获取所有注册的回调名
      */
-    [[nodiscard]] const std::set<std::string>& registeredCallbacks() const { return m_registeredCallbacks; }
+    [[nodiscard]] const std::set<std::string>& registeredCallbacks() const
+    {
+        return m_registeredCallbacks;
+    }
 
     // ========== 元数据 ==========
 
     /**
      * @brief 设置模板源路径
      */
-    void setSourcePath(const std::string& path) { m_sourcePath = path; }
+    void setSourcePath(const std::string& path)
+    {
+        m_sourcePath = path;
+    }
 
     /**
      * @brief 获取模板源路径
      */
-    [[nodiscard]] const std::string& sourcePath() const { return m_sourcePath; }
+    [[nodiscard]] const std::string& sourcePath() const
+    {
+        return m_sourcePath;
+    }
 
     /**
      * @brief 设置编译时间
      */
-    void setCompileTime(u64 time) { m_compileTime = time; }
+    void setCompileTime(u64 time)
+    {
+        m_compileTime = time;
+    }
 
     /**
      * @brief 获取编译时间（毫秒）
      */
-    [[nodiscard]] u64 compileTime() const { return m_compileTime; }
+    [[nodiscard]] u64 compileTime() const
+    {
+        return m_compileTime;
+    }
 
     /**
      * @brief 检查是否有效
      */
-    [[nodiscard]] bool isValid() const { return m_astRoot != nullptr; }
+    [[nodiscard]] bool isValid() const
+    {
+        return m_astRoot != nullptr;
+    }
 
     /**
      * @brief 获取错误信息
      */
-    [[nodiscard]] const std::vector<TemplateErrorInfo>& errors() const { return m_errors; }
-    [[nodiscard]] std::vector<TemplateErrorInfo>& errors() { return m_errors; }
+    [[nodiscard]] const std::vector<TemplateErrorInfo>& errors() const
+    {
+        return m_errors;
+    }
+
+    [[nodiscard]] std::vector<TemplateErrorInfo>& errors()
+    {
+        return m_errors;
+    }
 
     /**
      * @brief 添加错误
@@ -258,7 +317,10 @@ public:
     /**
      * @brief 检查是否有错误
      */
-    [[nodiscard]] bool hasErrors() const { return !m_errors.empty(); }
+    [[nodiscard]] bool hasErrors() const
+    {
+        return !m_errors.empty();
+    }
 
     // ========== 调试 ==========
 
@@ -346,34 +408,52 @@ public:
      *
      * 严格模式下禁止所有动态特性
      */
-    void setStrictMode(bool enabled) { m_config.strictMode = enabled; }
+    void setStrictMode(bool enabled)
+    {
+        m_config.strictMode = enabled;
+    }
 
     /**
      * @brief 检查是否启用严格模式
      */
-    [[nodiscard]] bool isStrictMode() const { return m_config.strictMode; }
+    [[nodiscard]] bool isStrictMode() const
+    {
+        return m_config.strictMode;
+    }
 
     /**
      * @brief 设置配置
      */
-    void setConfig(const TemplateConfig& config) { m_config = config; }
+    void setConfig(const TemplateConfig& config)
+    {
+        m_config = config;
+    }
 
     /**
      * @brief 获取配置
      */
-    [[nodiscard]] const TemplateConfig& config() const { return m_config; }
+    [[nodiscard]] const TemplateConfig& config() const
+    {
+        return m_config;
+    }
 
     // ========== 错误处理 ==========
 
     /**
      * @brief 获取最后的编译错误
      */
-    [[nodiscard]] const std::vector<TemplateErrorInfo>& lastErrors() const { return m_lastErrors; }
+    [[nodiscard]] const std::vector<TemplateErrorInfo>& lastErrors() const
+    {
+        return m_lastErrors;
+    }
 
     /**
      * @brief 检查最后一次编译是否有错误
      */
-    [[nodiscard]] bool hasErrors() const { return !m_lastErrors.empty(); }
+    [[nodiscard]] bool hasErrors() const
+    {
+        return !m_lastErrors.empty();
+    }
 
 private:
     // ========== 编译阶段 ==========

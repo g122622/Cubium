@@ -66,10 +66,20 @@ public:
         }
     }
 
-    std::unique_ptr<BlockEntity> clone() const override { return std::make_unique<MockBlockEntity>(m_type, m_pos); }
+    std::unique_ptr<BlockEntity> clone() const override
+    {
+        return std::make_unique<MockBlockEntity>(m_type, m_pos);
+    }
 
-    i32 customValue() const { return m_customValue; }
-    void setCustomValue(i32 value) { m_customValue = value; }
+    i32 customValue() const
+    {
+        return m_customValue;
+    }
+
+    void setCustomValue(i32 value)
+    {
+        m_customValue = value;
+    }
 
 private:
     i32 m_customValue = 0;
@@ -82,7 +92,10 @@ public:
         : BlockEntity(BlockEntityType::CommandBlock, pos)
     {}
 
-    [[nodiscard]] bool onlyOpsCanSetNbt() const noexcept override { return true; }
+    [[nodiscard]] bool onlyOpsCanSetNbt() const noexcept override
+    {
+        return true;
+    }
 
     bool load(const nlohmann::json& data) override
     {
@@ -90,9 +103,15 @@ public:
         return true;
     }
 
-    void save(nlohmann::json& data) const override { BlockEntity::save(data); }
+    void save(nlohmann::json& data) const override
+    {
+        BlockEntity::save(data);
+    }
 
-    std::unique_ptr<BlockEntity> clone() const override { return std::make_unique<OpOnlyBlockEntity>(m_pos); }
+    std::unique_ptr<BlockEntity> clone() const override
+    {
+        return std::make_unique<OpOnlyBlockEntity>(m_pos);
+    }
 };
 
 // 测试用方块，拥有 facing + lit 属性

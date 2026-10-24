@@ -99,8 +99,15 @@ public:
         return true;
     }
 
-    [[nodiscard]] i32 getHeight(i32, i32) const override { return m_height; }
-    [[nodiscard]] bool isWithinWorldBounds(i32, i32, i32) const override { return true; }
+    [[nodiscard]] i32 getHeight(i32, i32) const override
+    {
+        return m_height;
+    }
+
+    [[nodiscard]] bool isWithinWorldBounds(i32, i32, i32) const override
+    {
+        return true;
+    }
 
     [[nodiscard]] std::vector<Entity*> getEntitiesInAABB(const AxisAlignedBB& box, const Entity*) const override
     {
@@ -139,27 +146,54 @@ public:
     // 测试辅助：记录一个非拥有（生命周期由测试自身管理）的方块实体指针，
     // 用于栈上构造的实体（如 TrappedChestEntity table(...)）——接口的 unique_ptr 契约
     // 会接管所有权，无法传栈对象，故测试世界另开此非拥有入口。
-    void setBlockEntityRaw(const BlockPos& pos, mc::BlockEntity* entity) { m_entities[pos] = entity; }
+    void setBlockEntityRaw(const BlockPos& pos, mc::BlockEntity* entity)
+    {
+        m_entities[pos] = entity;
+    }
 
     /**
      * @brief 设置 getEntitiesInAABB 的返回内容，便于构造阻挡场景。
      */
-    void setEntitiesInAabbResult(const std::vector<Entity*>& entities) { m_entitiesInAabb = entities; }
+    void setEntitiesInAabbResult(const std::vector<Entity*>& entities)
+    {
+        m_entitiesInAabb = entities;
+    }
 
     /**
      * @brief 设置 getEntitiesInRange 的返回内容，便于附魔台动画测试。
      */
-    void setEntitiesInRangeResult(const std::vector<Entity*>& entities) { m_entitiesInRange = entities; }
+    void setEntitiesInRangeResult(const std::vector<Entity*>& entities)
+    {
+        m_entitiesInRange = entities;
+    }
 
     /**
      * @brief 设置世界列高，用于测试需要向上扫描的方块实体逻辑。
      */
-    void setHeight(i32 height) { m_height = height; }
+    void setHeight(i32 height)
+    {
+        m_height = height;
+    }
 
-    [[nodiscard]] i32 setBlockCalls() const { return m_setBlockCalls; }
-    [[nodiscard]] i32 setBlockStateCalls() const { return m_setBlockStateCalls; }
-    [[nodiscard]] i32 lastSetFlags() const { return m_lastSetFlags; }
-    [[nodiscard]] const BlockState* lastSetBlockState() const { return m_lastSetBlockState; }
+    [[nodiscard]] i32 setBlockCalls() const
+    {
+        return m_setBlockCalls;
+    }
+
+    [[nodiscard]] i32 setBlockStateCalls() const
+    {
+        return m_setBlockStateCalls;
+    }
+
+    [[nodiscard]] i32 lastSetFlags() const
+    {
+        return m_lastSetFlags;
+    }
+
+    [[nodiscard]] const BlockState* lastSetBlockState() const
+    {
+        return m_lastSetBlockState;
+    }
 
     // notifyBlockUpdate 计数：c20a7597c 后 ChestEntity/BarrelEntity 等改用 notifyBlockUpdate
     // 通知客户端（替代 setBlockState(pos,state,3)，因方块状态未变时 setBlockState 会被跳过）。
@@ -168,15 +202,23 @@ public:
         ++m_notifyBlockUpdateCalls;
         (void)pos;
     }
-    [[nodiscard]] i32 notifyBlockUpdateCalls() const { return m_notifyBlockUpdateCalls; }
 
-    void resetSetBlockStateCalls() { m_setBlockStateCalls = 0; }
+    [[nodiscard]] i32 notifyBlockUpdateCalls() const
+    {
+        return m_notifyBlockUpdateCalls;
+    }
+
+    void resetSetBlockStateCalls()
+    {
+        m_setBlockStateCalls = 0;
+    }
 
     // TickManager interface (stubbed)
     [[nodiscard]] world::tick::TickManager& tickManager() override
     {
         throw std::runtime_error("DummyWorld::tickManager not implemented");
     }
+
     [[nodiscard]] const world::tick::TickManager& tickManager() const override
     {
         throw std::runtime_error("DummyWorld::tickManager not implemented");

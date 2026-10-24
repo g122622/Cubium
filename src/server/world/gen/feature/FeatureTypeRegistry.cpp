@@ -2146,7 +2146,9 @@ void initializeBuiltinFeatureTypes()
     reg.registerType("ore", createOre);
     reg.registerType("tree", createTree);
     reg.registerType("block_column", createBlockColumn);
-    reg.registerType("vegetation_patch", [](const nlohmann::json& j) { return createVegetationPatch(j, false); });
+    reg.registerType("vegetation_patch", [](const nlohmann::json& j) {
+        return createVegetationPatch(j, false);
+    });
     reg.registerType("waterlogged_vegetation_patch", createWaterloggedVegetationPatch);
     reg.registerType("root_system", createRootSystem);
     reg.registerType("flower", createFlower);

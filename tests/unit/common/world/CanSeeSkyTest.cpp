@@ -46,16 +46,28 @@ namespace {
 class MockWorldForCanSeeSky final : public BaseTestWorld {
 public:
     // 设置天空光照返回值
-    void setSkyLightValue(u8 value) { m_skyLightValue = value; }
+    void setSkyLightValue(u8 value)
+    {
+        m_skyLightValue = value;
+    }
 
     // 设置是否有天空光照
-    void setHasSkyLight(bool value) { m_hasSkyLight = value; }
+    void setHasSkyLight(bool value)
+    {
+        m_hasSkyLight = value;
+    }
 
     // ========== IWorld 接口实现 ==========
 
-    [[nodiscard]] u8 getSkyLight(i32, i32, i32) const override { return m_skyLightValue; }
+    [[nodiscard]] u8 getSkyLight(i32, i32, i32) const override
+    {
+        return m_skyLightValue;
+    }
 
-    [[nodiscard]] bool hasSkyLight() const override { return m_hasSkyLight; }
+    [[nodiscard]] bool hasSkyLight() const override
+    {
+        return m_hasSkyLight;
+    }
 
     [[nodiscard]] world::tick::TickManager& tickManager() override
     {
@@ -84,7 +96,10 @@ private:
  */
 class CanSeeSkyTest : public ::testing::Test {
 protected:
-    void SetUp() override { VanillaBlocks::initialize(); }
+    void SetUp() override
+    {
+        VanillaBlocks::initialize();
+    }
 
     MockWorldForCanSeeSky world;
 };

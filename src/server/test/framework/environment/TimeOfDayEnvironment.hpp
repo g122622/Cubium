@@ -17,13 +17,17 @@ namespace mc::test {
 class TimeOfDayEnvironment final : public TestEnvironmentDefinition {
 public:
     TimeOfDayEnvironment() = default;
+
     explicit TimeOfDayEnvironment(i32 time) noexcept
         : m_time(time)
     {}
 
     GameTestResult setup(BaseGameTestInstance& instance) override;
 
-    [[nodiscard]] i32 time() const noexcept { return m_time; }
+    [[nodiscard]] i32 time() const noexcept
+    {
+        return m_time;
+    }
 
 private:
     i32 m_time = 0;

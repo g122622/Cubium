@@ -43,7 +43,11 @@ using namespace mc::entity::ai; // for GoalFlag
 
 class SunTestWorld : public mc::test::BaseTestWorld {
 public:
-    [[nodiscard]] bool isDaytime() const override { return m_isDaytime; }
+    [[nodiscard]] bool isDaytime() const override
+    {
+        return m_isDaytime;
+    }
+
     [[nodiscard]] bool isBrightOutside() const override
     {
         if (!m_hasSkyLight) {
@@ -51,16 +55,51 @@ public:
         }
         return m_skyDarkening < 4;
     }
-    [[nodiscard]] bool canSeeSky(const BlockPos& pos) const override { return m_canSeeSky; }
-    [[nodiscard]] bool isWaterAt(const BlockPos& /*pos*/) const override { return m_isWater; }
-    [[nodiscard]] bool isLavaAt(const BlockPos& /*pos*/) const override { return m_isLava; }
 
-    void setDaytime(bool daytime) { m_isDaytime = daytime; }
-    void setSkyDarkening(i32 darkening) { m_skyDarkening = darkening; }
-    void setHasSkyLight(bool has) { m_hasSkyLight = has; }
-    void setCanSeeSky(bool canSee) { m_canSeeSky = canSee; }
-    void setWater(bool water) { m_isWater = water; }
-    void setLava(bool lava) { m_isLava = lava; }
+    [[nodiscard]] bool canSeeSky(const BlockPos& pos) const override
+    {
+        return m_canSeeSky;
+    }
+
+    [[nodiscard]] bool isWaterAt(const BlockPos& /*pos*/) const override
+    {
+        return m_isWater;
+    }
+
+    [[nodiscard]] bool isLavaAt(const BlockPos& /*pos*/) const override
+    {
+        return m_isLava;
+    }
+
+    void setDaytime(bool daytime)
+    {
+        m_isDaytime = daytime;
+    }
+
+    void setSkyDarkening(i32 darkening)
+    {
+        m_skyDarkening = darkening;
+    }
+
+    void setHasSkyLight(bool has)
+    {
+        m_hasSkyLight = has;
+    }
+
+    void setCanSeeSky(bool canSee)
+    {
+        m_canSeeSky = canSee;
+    }
+
+    void setWater(bool water)
+    {
+        m_isWater = water;
+    }
+
+    void setLava(bool lava)
+    {
+        m_isLava = lava;
+    }
 
 private:
     bool m_isDaytime = true;
@@ -576,8 +615,16 @@ TEST_F(FlyGoalTest, ShouldNotExecuteWithoutWorld)
 
 class IsBrightOutsideTest : public ::testing::Test {
 protected:
-    void SetUp() override { world = std::make_unique<SunTestWorld>(); }
-    void TearDown() override { world.reset(); }
+    void SetUp() override
+    {
+        world = std::make_unique<SunTestWorld>();
+    }
+
+    void TearDown() override
+    {
+        world.reset();
+    }
+
     std::unique_ptr<SunTestWorld> world;
 };
 

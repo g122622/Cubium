@@ -56,6 +56,7 @@ std::vector<mc::u8> makeSolidColorPng(mc::u8 r, mc::u8 g, mc::u8 b, mc::u8 a)
     }
 
     std::vector<mc::u8> png;
+
     struct CaptureContext {
         std::vector<mc::u8>* out;
     } ctx{&png};
@@ -199,7 +200,9 @@ TEST_F(FileSkinLoaderAsyncTest, LoadAsyncWithPoolCompletes)
     // 等待回调完成（超时 5 秒）
     {
         std::unique_lock<std::mutex> lock(resultMutex);
-        resultCv.wait_for(lock, std::chrono::seconds(5), [&] { return completed.load(); });
+        resultCv.wait_for(lock, std::chrono::seconds(5), [&] {
+            return completed.load();
+        });
     }
 
     EXPECT_TRUE(completed.load());
@@ -233,7 +236,9 @@ TEST_F(FileSkinLoaderAsyncTest, LoadAsyncWithPoolReturnsValidData)
 
     {
         std::unique_lock<std::mutex> lock(resultMutex);
-        resultCv.wait_for(lock, std::chrono::seconds(5), [&] { return completed.load(); });
+        resultCv.wait_for(lock, std::chrono::seconds(5), [&] {
+            return completed.load();
+        });
     }
 
     ASSERT_TRUE(completed.load());
@@ -268,7 +273,9 @@ TEST_F(FileSkinLoaderAsyncTest, LoadAsyncWithPoolErrorPropagated)
 
     {
         std::unique_lock<std::mutex> lock(resultMutex);
-        resultCv.wait_for(lock, std::chrono::seconds(5), [&] { return completed.load(); });
+        resultCv.wait_for(lock, std::chrono::seconds(5), [&] {
+            return completed.load();
+        });
     }
 
     EXPECT_TRUE(completed.load());
@@ -315,7 +322,9 @@ TEST_F(FileSkinLoaderAsyncTest, LoadAsyncMultipleConcurrent)
     // 等待所有完成
     {
         std::unique_lock<std::mutex> lock(resultMutex);
-        resultCv.wait_for(lock, std::chrono::seconds(10), [&] { return completedCount.load() == 5; });
+        resultCv.wait_for(lock, std::chrono::seconds(10), [&] {
+            return completedCount.load() == 5;
+        });
     }
 
     EXPECT_EQ(completedCount.load(), 5);
@@ -374,7 +383,9 @@ TEST_F(FileSkinLoaderAsyncTest, ShutdownWaitsForPendingTasks)
 
     // 提交多个任务
     for (int i = 0; i < 5; ++i) {
-        loader_->loadAsync(skinPath_, [&](Result<SkinLoadResult> /*result*/) { completedCount++; });
+        loader_->loadAsync(skinPath_, [&](Result<SkinLoadResult> /*result*/) {
+            completedCount++;
+        });
     }
 
     // shutdown 应该等待所有在途回调完成
@@ -471,7 +482,9 @@ TEST_F(HttpSkinLoaderAsyncTest, LoadAsyncWithPoolReturnsUnsupported)
 
     {
         std::unique_lock<std::mutex> lock(resultMutex);
-        resultCv.wait_for(lock, std::chrono::seconds(5), [&] { return completed.load(); });
+        resultCv.wait_for(lock, std::chrono::seconds(5), [&] {
+            return completed.load();
+        });
     }
 
     EXPECT_TRUE(completed.load());
@@ -507,8 +520,10 @@ TEST_F(HttpSkinLoaderAsyncTest, ShutdownWaitsForPendingTasks)
 
     // 提交多个任务
     for (int i = 0; i < 3; ++i) {
-        loader_->loadAsync("http://textures.minecraft.net/texture/abc" + std::to_string(i),
-            [&](Result<SkinLoadResult> /*result*/) { completedCount++; });
+        loader_->loadAsync(
+            "http://textures.minecraft.net/texture/abc" + std::to_string(i), [&](Result<SkinLoadResult> /*result*/) {
+                completedCount++;
+            });
     }
 
     // shutdown 应该等待所有在途回调完成

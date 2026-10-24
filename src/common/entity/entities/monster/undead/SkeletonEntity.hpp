@@ -50,27 +50,47 @@ public:
 
     static std::unique_ptr<Entity> create(IWorld* world, ecs::EntityRegistry& registry);
 
-    [[nodiscard]] f32 eyeHeight() const override { return 1.74f; }
-    [[nodiscard]] f32 width() const override { return 0.6f; }
-    [[nodiscard]] f32 height() const override { return 1.99f; }
+    [[nodiscard]] f32 eyeHeight() const override
+    {
+        return 1.74f;
+    }
+
+    [[nodiscard]] f32 width() const override
+    {
+        return 0.6f;
+    }
+
+    [[nodiscard]] f32 height() const override
+    {
+        return 1.99f;
+    }
 
     // ========== 流浪者转化 ==========
 
     /**
      * @brief 是否正在转化为流浪者
      */
-    [[nodiscard]] bool isConvertingToStray() const { return m_strayConversionTime > 0; }
+    [[nodiscard]] bool isConvertingToStray() const
+    {
+        return m_strayConversionTime > 0;
+    }
 
     /**
      * @brief 获取转化倒计时（ticks）
      */
-    [[nodiscard]] i32 getStrayConversionTime() const { return m_strayConversionTime; }
+    [[nodiscard]] i32 getStrayConversionTime() const
+    {
+        return m_strayConversionTime;
+    }
 
     /**
      * @brief 开始流浪者转化
      * @param conversionTime 转化时间（ticks）
      */
-    void startStrayConversion(i32 conversionTime) { m_strayConversionTime = conversionTime; }
+    void startStrayConversion(i32 conversionTime)
+    {
+        m_strayConversionTime = conversionTime;
+    }
 
 protected:
     void registerGoals() override;

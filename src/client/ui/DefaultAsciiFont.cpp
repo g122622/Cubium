@@ -857,7 +857,9 @@ Result<void> DefaultAsciiFont::create(Font& font)
                     }
                 }
             }
-            if (actualWidth == 0) actualWidth = 1;
+            if (actualWidth == 0) {
+                actualWidth = 1;
+            }
 
             // 生成像素数据 (8x8格子，字符在左上角)
             outWidth = actualWidth;
@@ -895,7 +897,10 @@ Result<void> DefaultAsciiFont::create(Font& font)
             return static_cast<u32>(FONT_HEIGHT + 1); // +1基线下方空间
         }
 
-        [[nodiscard]] u32 getAscent() const override { return static_cast<u32>(FONT_HEIGHT); }
+        [[nodiscard]] u32 getAscent() const override
+        {
+            return static_cast<u32>(FONT_HEIGHT);
+        }
     };
 
     font.addProvider(std::make_unique<DefaultGlyphProvider>());

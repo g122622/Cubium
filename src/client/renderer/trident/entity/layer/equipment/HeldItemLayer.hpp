@@ -146,7 +146,10 @@ protected:
     /**
      * @brief 获取关联的模型
      */
-    [[nodiscard]] TModel* getParentModel() { return m_renderer ? &m_renderer->getModel() : nullptr; }
+    [[nodiscard]] TModel* getParentModel()
+    {
+        return m_renderer ? &m_renderer->getModel() : nullptr;
+    }
 
 private:
     mc::client::renderer::entity::core::IEntityRenderer<TEntity, TModel>* m_renderer = nullptr;

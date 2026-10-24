@@ -85,41 +85,62 @@ public:
     /**
      * @brief 获取所有条目
      */
-    [[nodiscard]] const std::vector<std::unique_ptr<LootEntry>>& getEntries() const { return m_entries; }
+    [[nodiscard]] const std::vector<std::unique_ptr<LootEntry>>& getEntries() const
+    {
+        return m_entries;
+    }
 
     // ========== 掷骰配置 ==========
 
     /**
      * @brief 获取掷骰次数范围
      */
-    [[nodiscard]] const RandomValueRange& getRolls() const { return m_rolls; }
+    [[nodiscard]] const RandomValueRange& getRolls() const
+    {
+        return m_rolls;
+    }
 
     /**
      * @brief 获取额外掷骰次数范围
      */
-    [[nodiscard]] const RandomValueRange& getBonusRolls() const { return m_bonusRolls; }
+    [[nodiscard]] const RandomValueRange& getBonusRolls() const
+    {
+        return m_bonusRolls;
+    }
 
     /**
      * @brief 设置掷骰次数
      */
-    void setRolls(const RandomValueRange& rolls) { m_rolls = rolls; }
+    void setRolls(const RandomValueRange& rolls)
+    {
+        m_rolls = rolls;
+    }
 
     /**
      * @brief 设置额外掷骰次数
      */
-    void setBonusRolls(const RandomValueRange& bonusRolls) { m_bonusRolls = bonusRolls; }
+    void setBonusRolls(const RandomValueRange& bonusRolls)
+    {
+        m_bonusRolls = bonusRolls;
+    }
 
     // ========== 名称 ==========
 
     /**
      * @brief 获取名称
      */
-    [[nodiscard]] const std::string& getName() const { return m_name; }
+    [[nodiscard]] const std::string& getName() const
+    {
+        return m_name;
+    }
 
     /**
      * @brief 设置名称
      */
-    void setName(const std::string& name) { m_name = name; }
+    void setName(const std::string& name)
+    {
+        m_name = name;
+    }
 
     // ========== 条件和函数 ==========
 
@@ -134,7 +155,10 @@ public:
     /**
      * @brief 获取池级条件
      */
-    [[nodiscard]] const std::vector<std::unique_ptr<LootCondition>>& getConditions() const { return m_conditions; }
+    [[nodiscard]] const std::vector<std::unique_ptr<LootCondition>>& getConditions() const
+    {
+        return m_conditions;
+    }
 
     /**
      * @brief 测试所有条件
@@ -152,7 +176,10 @@ public:
     /**
      * @brief 获取池级函数
      */
-    [[nodiscard]] const std::vector<std::unique_ptr<LootFunction>>& getFunctions() const { return m_functions; }
+    [[nodiscard]] const std::vector<std::unique_ptr<LootFunction>>& getFunctions() const
+    {
+        return m_functions;
+    }
 
     /**
      * @brief 应用所有池级函数到物品

@@ -56,9 +56,15 @@ public:
         createBlockState(std::move(container));
     }
 
-    bool isAir(const BlockState& state) const override { return m_isAir; }
+    bool isAir(const BlockState& state) const override
+    {
+        return m_isAir;
+    }
 
-    void setAir(bool air) { m_isAir = air; }
+    void setAir(bool air)
+    {
+        m_isAir = air;
+    }
 
 private:
     bool m_isAir = false;
@@ -70,7 +76,10 @@ private:
 
 class TickPriorityTest : public ::testing::Test {
 protected:
-    void SetUp() override { block = std::make_unique<MockBlock>(); }
+    void SetUp() override
+    {
+        block = std::make_unique<MockBlock>();
+    }
 
     std::unique_ptr<MockBlock> block;
 };
@@ -100,7 +109,10 @@ TEST_F(TickPriorityTest, FromToInt)
 
 class ScheduledTickTest : public ::testing::Test {
 protected:
-    void SetUp() override { block = std::make_unique<MockBlock>(); }
+    void SetUp() override
+    {
+        block = std::make_unique<MockBlock>();
+    }
 
     std::unique_ptr<MockBlock> block;
 };
@@ -184,7 +196,10 @@ TEST_F(ScheduledTickTest, HashFunction)
 
 class EmptyTickListTest : public ::testing::Test {
 protected:
-    void SetUp() override { block = std::make_unique<MockBlock>(); }
+    void SetUp() override
+    {
+        block = std::make_unique<MockBlock>();
+    }
 
     std::unique_ptr<MockBlock> block;
 };

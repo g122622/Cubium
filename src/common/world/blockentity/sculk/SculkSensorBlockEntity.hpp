@@ -67,13 +67,23 @@ public:
     /**
      * @brief 获取振动系统数据
      */
-    [[nodiscard]] gameevent::VibrationSystem::Data& getVibrationData() { return m_vibrationData; }
-    [[nodiscard]] const gameevent::VibrationSystem::Data& getVibrationData() const { return m_vibrationData; }
+    [[nodiscard]] gameevent::VibrationSystem::Data& getVibrationData()
+    {
+        return m_vibrationData;
+    }
+
+    [[nodiscard]] const gameevent::VibrationSystem::Data& getVibrationData() const
+    {
+        return m_vibrationData;
+    }
 
     /**
      * @brief 设置振动系统数据（从存档加载时使用）
      */
-    void setVibrationData(gameevent::VibrationSystem::Data data) { m_vibrationData = std::move(data); }
+    void setVibrationData(gameevent::VibrationSystem::Data data)
+    {
+        m_vibrationData = std::move(data);
+    }
 
     // ========== 序列化 ==========
 
@@ -94,13 +104,19 @@ public:
      *
      * @return 振动频率 (0-15)
      */
-    [[nodiscard]] i32 getLastVibrationFrequency() const noexcept { return m_lastVibrationFrequency; }
+    [[nodiscard]] i32 getLastVibrationFrequency() const noexcept
+    {
+        return m_lastVibrationFrequency;
+    }
 
     /**
      * @brief 设置最后接收的振动频率
      * @param frequency 振动频率 (0-15)
      */
-    void setLastVibrationFrequency(i32 frequency) { m_lastVibrationFrequency = frequency; }
+    void setLastVibrationFrequency(i32 frequency)
+    {
+        m_lastVibrationFrequency = frequency;
+    }
 
 private:
     /// 振动系统数据

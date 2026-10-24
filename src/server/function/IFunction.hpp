@@ -73,7 +73,10 @@ public:
         , m_message(std::move(message))
     {}
 
-    [[nodiscard]] const std::string& message() const noexcept { return m_message; }
+    [[nodiscard]] const std::string& message() const noexcept
+    {
+        return m_message;
+    }
 
 private:
     std::string m_message;

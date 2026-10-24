@@ -76,7 +76,10 @@ public:
 
     // ========== 自定义名称 ==========
 
-    [[nodiscard]] std::string getCustomName() const override { return m_customName; }
+    [[nodiscard]] std::string getCustomName() const override
+    {
+        return m_customName;
+    }
 
     void setCustomName(const std::string& name) override;
 
@@ -89,7 +92,10 @@ public:
      */
     void tick(IWorld& world) override;
 
-    [[nodiscard]] bool needsTick() const noexcept override { return true; }
+    [[nodiscard]] bool needsTick() const noexcept override
+    {
+        return true;
+    }
 
     /**
      * @brief 获取当前动画进度

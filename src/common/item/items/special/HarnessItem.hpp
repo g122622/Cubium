@@ -60,7 +60,10 @@ public:
      * @brief 获取装备颜色
      * @return 染料颜色
      */
-    [[nodiscard]] DyeColor getColor() const { return m_color; }
+    [[nodiscard]] DyeColor getColor() const
+    {
+        return m_color;
+    }
 
     /**
      * @brief 右键实体装备挽具（对齐 vanilla ItemStack.interactLivingEntity → Equippable 组件路径）

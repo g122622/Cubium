@@ -44,7 +44,9 @@ std::shared_ptr<PlayerChunkTracker> ChunkSyncManager::getTracker(PlayerId player
 void ChunkSyncManager::removeTracker(PlayerId playerId)
 {
     auto it = m_trackers.find(playerId);
-    if (it == m_trackers.end()) return;
+    if (it == m_trackers.end()) {
+        return;
+    }
 
     // 从区块订阅中移除该玩家
     auto& chunks = it->second->loadedChunks();

@@ -121,13 +121,19 @@ public:
      *
      * @return 攻击伤害值
      */
-    [[nodiscard]] f32 getAttackDamage() const { return m_attackDamage; }
+    [[nodiscard]] f32 getAttackDamage() const
+    {
+        return m_attackDamage;
+    }
 
     /**
      * @brief 获取攻击速度修正
      * @return 攻击速度修正值
      */
-    [[nodiscard]] f32 getAttackSpeed() const { return m_attackSpeed; }
+    [[nodiscard]] f32 getAttackSpeed() const
+    {
+        return m_attackSpeed;
+    }
 
     /**
      * @brief 获取属性修饰符

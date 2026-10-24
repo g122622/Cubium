@@ -48,7 +48,10 @@ public:
         : DamageEnchantment(Type::All)
     {}
 
-    [[nodiscard]] std::string id() const override { return "minecraft:sharpness"; }
+    [[nodiscard]] std::string id() const override
+    {
+        return "minecraft:sharpness";
+    }
 
     [[nodiscard]] std::string getNameKey(i32 level) const override
     {
@@ -56,7 +59,10 @@ public:
         return "enchantment.minecraft.sharpness";
     }
 
-    [[nodiscard]] EnchantmentRarity rarity() const noexcept override { return EnchantmentRarity::Common; }
+    [[nodiscard]] EnchantmentRarity rarity() const noexcept override
+    {
+        return EnchantmentRarity::Common;
+    }
 };
 
 } // namespace enchant

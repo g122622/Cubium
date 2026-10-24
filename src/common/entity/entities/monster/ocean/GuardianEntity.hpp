@@ -63,7 +63,10 @@ public:
     // 水生生物归类（对齐 Java Guardian.getMobType()==WATER）。基类默认 Undefined，未覆写会导致
     // 穿刺(Impaling)附魔无加成（ImpalingEnchantment 对 Water 属性额外伤害）等失效。
     // 子类 ElderGuardianEntity 继承此覆写自动归类 Water。
-    [[nodiscard]] CreatureAttribute getCreatureAttribute() const override { return CreatureAttribute::Water; }
+    [[nodiscard]] CreatureAttribute getCreatureAttribute() const override
+    {
+        return CreatureAttribute::Water;
+    }
 
     // 禁止拷贝
     GuardianEntity(const GuardianEntity&) = delete;
@@ -83,44 +86,68 @@ public:
     /**
      * @brief 是否正在发射激光
      */
-    [[nodiscard]] bool isLaserCharging() const { return m_laserCharging; }
+    [[nodiscard]] bool isLaserCharging() const
+    {
+        return m_laserCharging;
+    }
 
     /**
      * @brief 设置激光充能状态
      */
-    void setLaserCharging(bool charging) { m_laserCharging = charging; }
+    void setLaserCharging(bool charging)
+    {
+        m_laserCharging = charging;
+    }
 
     /**
      * @brief 获取激光充能时间
      */
-    [[nodiscard]] i32 getLaserChargeTime() const { return m_laserChargeTime; }
+    [[nodiscard]] i32 getLaserChargeTime() const
+    {
+        return m_laserChargeTime;
+    }
 
     /**
      * @brief 设置激光充能时间
      */
-    void setLaserChargeTime(i32 time) { m_laserChargeTime = time; }
+    void setLaserChargeTime(i32 time)
+    {
+        m_laserChargeTime = time;
+    }
 
     /**
      * @brief 获取目标实体ID
      */
-    [[nodiscard]] EntityInstanceId getTargetEntity() const { return m_targetEntity; }
+    [[nodiscard]] EntityInstanceId getTargetEntity() const
+    {
+        return m_targetEntity;
+    }
 
     /**
      * @brief 设置目标实体
      */
-    void setTargetEntity(EntityInstanceId id) { m_targetEntity = id; }
+    void setTargetEntity(EntityInstanceId id)
+    {
+        m_targetEntity = id;
+    }
 
     // ========== 尖刺 ==========
 
     /**
      * @brief 尖刺是否伸出
      */
-    [[nodiscard]] bool areSpikesRetracted() const { return m_spikesRetracted; }
+    [[nodiscard]] bool areSpikesRetracted() const
+    {
+        return m_spikesRetracted;
+    }
 
     /**
      * @brief 设置尖刺状态
      */
-    void setSpikesRetracted(bool retracted) { m_spikesRetracted = retracted; }
+    void setSpikesRetracted(bool retracted)
+    {
+        m_spikesRetracted = retracted;
+    }
 
     // ========== 水中状态 ==========
 
@@ -144,14 +171,20 @@ public:
     /**
      * @brief 守卫者不在阳光下燃烧
      */
-    [[nodiscard]] bool shouldBurnInDaylight() const override { return false; }
+    [[nodiscard]] bool shouldBurnInDaylight() const override
+    {
+        return false;
+    }
 
     // ========== 属性 ==========
 
     /**
      * @brief 获取眼睛高度
      */
-    [[nodiscard]] f32 eyeHeight() const override { return 0.5f; }
+    [[nodiscard]] f32 eyeHeight() const override
+    {
+        return 0.5f;
+    }
 
     // ========== 音效 ==========
 

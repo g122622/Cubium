@@ -66,17 +66,26 @@ public:
     /**
      * @brief 获取箱体部件
      */
-    [[nodiscard]] std::shared_ptr<entity::model::ModelRenderer> getBottom() const { return m_bottom; }
+    [[nodiscard]] std::shared_ptr<entity::model::ModelRenderer> getBottom() const
+    {
+        return m_bottom;
+    }
 
     /**
      * @brief 获取盖子部件
      */
-    [[nodiscard]] std::shared_ptr<entity::model::ModelRenderer> getLid() const { return m_lid; }
+    [[nodiscard]] std::shared_ptr<entity::model::ModelRenderer> getLid() const
+    {
+        return m_lid;
+    }
 
     /**
      * @brief 获取锁扣部件
      */
-    [[nodiscard]] entity::model::ModelRenderer* getLatch() const { return m_latch.get(); }
+    [[nodiscard]] entity::model::ModelRenderer* getLatch() const
+    {
+        return m_latch.get();
+    }
 
     // ========== 动画 ==========
 
@@ -108,7 +117,10 @@ public:
     /**
      * @brief 获取当前箱子类型
      */
-    [[nodiscard]] ChestType getChestType() const { return m_chestType; }
+    [[nodiscard]] ChestType getChestType() const
+    {
+        return m_chestType;
+    }
 
 private:
     /**

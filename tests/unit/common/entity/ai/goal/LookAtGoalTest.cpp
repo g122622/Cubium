@@ -39,9 +39,15 @@ namespace test {
 
 class LookAtGoalTypeFilterTest : public ::testing::Test {
 protected:
-    void SetUp() override { pig = std::make_unique<PigEntity>(EntityInstanceId(1), mc::test::testEcsRegistry()); }
+    void SetUp() override
+    {
+        pig = std::make_unique<PigEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
+    }
 
-    void TearDown() override { pig.reset(); }
+    void TearDown() override
+    {
+        pig.reset();
+    }
 
     std::unique_ptr<PigEntity> pig;
 };

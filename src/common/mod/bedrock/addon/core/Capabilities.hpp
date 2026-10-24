@@ -47,7 +47,10 @@ class Capabilities {
 public:
     Capabilities() noexcept = default;
 
-    void setCapability(Capability cap, bool enabled) { m_capabilities[static_cast<size_t>(cap)] = enabled; }
+    void setCapability(Capability cap, bool enabled)
+    {
+        m_capabilities[static_cast<size_t>(cap)] = enabled;
+    }
 
     [[nodiscard]] bool hasCapability(Capability cap) const noexcept
     {

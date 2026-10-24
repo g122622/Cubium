@@ -42,6 +42,7 @@ enum class PacketFlow : u8 {
 {
     return flow == PacketFlow::Serverbound;
 }
+
 [[nodiscard]] constexpr bool isClientbound(PacketFlow flow) noexcept
 {
     return flow == PacketFlow::Clientbound;

@@ -663,6 +663,7 @@ struct EnchantmentCache {
     std::once_flag flag;
     std::vector<mc::network::ir::configuration::RegistryEntry> entries;
 };
+
 EnchantmentCache& _enchantmentCache()
 {
     static EnchantmentCache inst;

@@ -11,7 +11,10 @@ using namespace mc::loot;
 
 class LootJsonIntegrationTest : public ::testing::Test {
 protected:
-    void SetUp() override { Items::initialize(); }
+    void SetUp() override
+    {
+        Items::initialize();
+    }
 };
 
 TEST_F(LootJsonIntegrationTest, ParseLootTable_WithTableFunctionsPoolFunctionsAndDynamicEntry)

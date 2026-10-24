@@ -64,7 +64,10 @@ public:
 
 class CriterionContextTest : public ::testing::Test {
 protected:
-    void SetUp() override { Items::initialize(); }
+    void SetUp() override
+    {
+        Items::initialize();
+    }
 };
 
 TEST_F(CriterionContextTest, NullJsonMatchesAny)

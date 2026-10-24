@@ -69,7 +69,11 @@ public:
     explicit EndCityStructure(ResourceLocation id);
     ~EndCityStructure() override = default;
 
-    [[nodiscard]] const std::string& name() const override { return s_name; }
+    [[nodiscard]] const std::string& name() const override
+    {
+        return s_name;
+    }
+
     [[nodiscard]] const biome::BiomeTag* defaultBiomeTag() const override;
 
     [[nodiscard]] bool canGenerate(
@@ -118,11 +122,30 @@ public:
     [[nodiscard]] BlockPos calculateConnectedPos(
         const BlockPos& localPos, feature::template_::Rotation newRotation) const;
 
-    [[nodiscard]] const std::string& templateName() const { return m_templateName; }
-    [[nodiscard]] feature::template_::Rotation rotation() const { return m_rotation; }
-    [[nodiscard]] bool overwrite() const { return m_overwrite; }
-    [[nodiscard]] const BlockPos& templatePosition() const { return m_templatePosition; }
-    [[nodiscard]] feature::template_::PlacementSettings& placementSettings() { return m_settings; }
+    [[nodiscard]] const std::string& templateName() const
+    {
+        return m_templateName;
+    }
+
+    [[nodiscard]] feature::template_::Rotation rotation() const
+    {
+        return m_rotation;
+    }
+
+    [[nodiscard]] bool overwrite() const
+    {
+        return m_overwrite;
+    }
+
+    [[nodiscard]] const BlockPos& templatePosition() const
+    {
+        return m_templatePosition;
+    }
+
+    [[nodiscard]] feature::template_::PlacementSettings& placementSettings()
+    {
+        return m_settings;
+    }
 
     /// 唯一ID，用于碰撞检测
     i32 componentId = 0;
@@ -157,6 +180,7 @@ public:
 class HouseTowerGenerator : public IGenerator {
 public:
     void init() override {}
+
     bool generate(feature::template_::TemplateManager& templateManager,
         i32 depth,
         CityTemplate& parent,
@@ -171,6 +195,7 @@ public:
 class TowerGenerator : public IGenerator {
 public:
     void init() override {}
+
     bool generate(feature::template_::TemplateManager& templateManager,
         i32 depth,
         CityTemplate& parent,
@@ -186,7 +211,11 @@ public:
  */
 class TowerBridgeGenerator : public IGenerator {
 public:
-    void init() override { m_shipCreated = false; }
+    void init() override
+    {
+        m_shipCreated = false;
+    }
+
     bool generate(feature::template_::TemplateManager& templateManager,
         i32 depth,
         CityTemplate& parent,
@@ -204,6 +233,7 @@ private:
 class FatTowerGenerator : public IGenerator {
 public:
     void init() override {}
+
     bool generate(feature::template_::TemplateManager& templateManager,
         i32 depth,
         CityTemplate& parent,

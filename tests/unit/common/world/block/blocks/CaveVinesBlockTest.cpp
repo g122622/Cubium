@@ -59,7 +59,10 @@ namespace {
  */
 class CaveVinesTestWorld final : public mc::test::BaseTestWorld {
 public:
-    CaveVinesTestWorld() { VanillaBlocks::initialize(); }
+    CaveVinesTestWorld()
+    {
+        VanillaBlocks::initialize();
+    }
 
     [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override
     {
@@ -95,11 +98,27 @@ public:
         return &fluid::Fluids::EMPTY()->defaultState();
     }
 
-    [[nodiscard]] mc::world::chunk::IChunkManager* chunkManager() override { return &m_stubChunks; }
-    [[nodiscard]] const mc::world::chunk::IChunkManager* chunkManager() const override { return &m_stubChunks; }
+    [[nodiscard]] mc::world::chunk::IChunkManager* chunkManager() override
+    {
+        return &m_stubChunks;
+    }
+
+    [[nodiscard]] const mc::world::chunk::IChunkManager* chunkManager() const override
+    {
+        return &m_stubChunks;
+    }
+
     mc::test::StubChunkManager m_stubChunks{nullptr, true};
-    [[nodiscard]] u64 currentTick() const override { return m_currentTick; }
-    [[nodiscard]] bool isClientSide() const override { return m_isClientSide; }
+
+    [[nodiscard]] u64 currentTick() const override
+    {
+        return m_currentTick;
+    }
+
+    [[nodiscard]] bool isClientSide() const override
+    {
+        return m_isClientSide;
+    }
 
     EntityInstanceId spawnEntity(std::unique_ptr<Entity> entity) override
     {
@@ -130,6 +149,7 @@ public:
         static world::tick::TickManager dummy(*static_cast<IWorld*>(nullptr));
         return dummy;
     }
+
     [[nodiscard]] const world::tick::TickManager& tickManager() const override
     {
         static world::tick::TickManager dummy(*const_cast<CaveVinesTestWorld*>(this));
@@ -137,8 +157,15 @@ public:
     }
 
     // 测试辅助方法
-    void setClientSide(bool clientSide) { m_isClientSide = clientSide; }
-    void setCurrentTick(u64 tick) { m_currentTick = tick; }
+    void setClientSide(bool clientSide)
+    {
+        m_isClientSide = clientSide;
+    }
+
+    void setCurrentTick(u64 tick)
+    {
+        m_currentTick = tick;
+    }
 
     void setBlockAt(const BlockPos& pos, const BlockState* state)
     {
@@ -149,7 +176,11 @@ public:
         }
     }
 
-    [[nodiscard]] size_t spawnedEntityCount() const { return m_spawnedEntities.size(); }
+    [[nodiscard]] size_t spawnedEntityCount() const
+    {
+        return m_spawnedEntities.size();
+    }
+
     [[nodiscard]] Entity* getSpawnedEntity(size_t index) const
     {
         if (index < m_spawnedEntityPtrs.size()) {
@@ -158,11 +189,30 @@ public:
         return nullptr;
     }
 
-    [[nodiscard]] bool wasSoundPlayed() const { return m_soundPlayed; }
-    [[nodiscard]] const ResourceLocation& lastSoundId() const { return m_lastSoundId; }
-    [[nodiscard]] f32 lastSoundVolume() const { return m_lastSoundVolume; }
-    [[nodiscard]] f32 lastSoundPitch() const { return m_lastSoundPitch; }
-    [[nodiscard]] i32 lastSetBlockFlags() const { return m_lastSetBlockFlags; }
+    [[nodiscard]] bool wasSoundPlayed() const
+    {
+        return m_soundPlayed;
+    }
+
+    [[nodiscard]] const ResourceLocation& lastSoundId() const
+    {
+        return m_lastSoundId;
+    }
+
+    [[nodiscard]] f32 lastSoundVolume() const
+    {
+        return m_lastSoundVolume;
+    }
+
+    [[nodiscard]] f32 lastSoundPitch() const
+    {
+        return m_lastSoundPitch;
+    }
+
+    [[nodiscard]] i32 lastSetBlockFlags() const
+    {
+        return m_lastSetBlockFlags;
+    }
 
 private:
     std::unordered_map<BlockPos, std::unique_ptr<BlockState>> m_blocks;
@@ -197,7 +247,10 @@ protected:
             std::make_unique<CaveVinesBlock>(BlockProperties(Material::REPLACEABLE_PLANT).noCollision().notSolid());
     }
 
-    void TearDown() override { m_vines.reset(); }
+    void TearDown() override
+    {
+        m_vines.reset();
+    }
 
     std::unique_ptr<CaveVinesBlock> m_vines;
 };
@@ -404,7 +457,10 @@ protected:
             BlockProperties(Material::REPLACEABLE_PLANT).noCollision().notSolid());
     }
 
-    void TearDown() override { m_plant.reset(); }
+    void TearDown() override
+    {
+        m_plant.reset();
+    }
 
     std::unique_ptr<CaveVinesPlantBlock> m_plant;
 };
@@ -537,7 +593,10 @@ TEST_F(CaveVinesPlantBlockTest, OnBlockActivated_WithoutBerries_ReturnsPass)
 
 class GlowBerriesItemTest : public ::testing::Test {
 protected:
-    void SetUp() override { Items::initialize(); }
+    void SetUp() override
+    {
+        Items::initialize();
+    }
 };
 
 TEST_F(GlowBerriesItemTest, GlowBerriesIsRegistered)

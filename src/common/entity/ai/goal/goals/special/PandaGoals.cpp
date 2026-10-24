@@ -260,7 +260,9 @@ PandaLookAtPlayerGoal::PandaLookAtPlayerGoal(PandaEntity* panda, f32 lookDistanc
     , m_panda(panda)
 {
     // vanilla PandaLookAtPlayerGoal 只看向玩家（lookAtType = Player.class）。
-    m_filter = [](const LivingEntity* entity) -> bool { return dynamic_cast<const Player*>(entity) != nullptr; };
+    m_filter = [](const LivingEntity* entity) -> bool {
+        return dynamic_cast<const Player*>(entity) != nullptr;
+    };
 }
 
 void PandaLookAtPlayerGoal::setLookTarget(LivingEntity* target)

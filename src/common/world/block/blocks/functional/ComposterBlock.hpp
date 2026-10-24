@@ -45,6 +45,7 @@ class IWorld;
 class IBlockReader;
 class BlockItemUseContext;
 class Entity;
+
 namespace math {
 class IRandom;
 }
@@ -81,7 +82,10 @@ public:
 
     void tick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random) override;
 
-    [[nodiscard]] bool ticksRandomly() const noexcept override { return false; }
+    [[nodiscard]] bool ticksRandomly() const noexcept override
+    {
+        return false;
+    }
 
     // ========== 形状 ==========
 
@@ -143,7 +147,10 @@ public:
     /**
      * @brief 获取填充等级
      */
-    [[nodiscard]] static i32 getLevel(const BlockState& state) { return state.get(BlockStateProperties::LEVEL_0_8()); }
+    [[nodiscard]] static i32 getLevel(const BlockState& state)
+    {
+        return state.get(BlockStateProperties::LEVEL_0_8());
+    }
 
     /**
      * @brief 尝试堆肥
@@ -184,14 +191,25 @@ private:
      */
     class EmptyContainer : public ISidedInventory {
     public:
-        [[nodiscard]] i32 getContainerSize() const noexcept override { return 0; }
-        [[nodiscard]] bool isEmpty() const noexcept override { return true; }
+        [[nodiscard]] i32 getContainerSize() const noexcept override
+        {
+            return 0;
+        }
+
+        [[nodiscard]] bool isEmpty() const noexcept override
+        {
+            return true;
+        }
+
         [[nodiscard]] ItemStack getItem(i32 slot) const override;
         void setItem(i32 slot, const ItemStack& stack) override;
         ItemStack removeItem(i32 slot, i32 count) override;
         ItemStack removeItemNoUpdate(i32 slot) override;
+
         void clear() override {}
+
         void setChanged() override {}
+
         [[nodiscard]] std::vector<i32> getSlotsForFace(Direction side) const override;
         [[nodiscard]] bool canInsertItem(i32 slot, const ItemStack& stack, Direction direction) const override;
         [[nodiscard]] bool canExtractItem(i32 slot, const ItemStack& stack, Direction direction) const override;
@@ -210,9 +228,18 @@ private:
     public:
         InputContainer(const BlockState& state, IWorld& world, const BlockPos& pos);
 
-        [[nodiscard]] i32 getContainerSize() const noexcept override { return 1; }
+        [[nodiscard]] i32 getContainerSize() const noexcept override
+        {
+            return 1;
+        }
+
         [[nodiscard]] bool isEmpty() const noexcept override;
-        [[nodiscard]] i32 getMaxStackSize() const noexcept override { return 1; }
+
+        [[nodiscard]] i32 getMaxStackSize() const noexcept override
+        {
+            return 1;
+        }
+
         [[nodiscard]] ItemStack getItem(i32 slot) const override;
         void setItem(i32 slot, const ItemStack& stack) override;
         ItemStack removeItem(i32 slot, i32 count) override;
@@ -245,9 +272,18 @@ private:
     public:
         OutputContainer(const BlockState& state, IWorld& world, const BlockPos& pos);
 
-        [[nodiscard]] i32 getContainerSize() const noexcept override { return 1; }
+        [[nodiscard]] i32 getContainerSize() const noexcept override
+        {
+            return 1;
+        }
+
         [[nodiscard]] bool isEmpty() const noexcept override;
-        [[nodiscard]] i32 getMaxStackSize() const noexcept override { return 1; }
+
+        [[nodiscard]] i32 getMaxStackSize() const noexcept override
+        {
+            return 1;
+        }
+
         [[nodiscard]] ItemStack getItem(i32 slot) const override;
         void setItem(i32 slot, const ItemStack& stack) override;
         ItemStack removeItem(i32 slot, i32 count) override;

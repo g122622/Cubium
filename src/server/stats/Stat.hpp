@@ -61,12 +61,18 @@ public:
     /**
      * @brief 获取统计类型
      */
-    [[nodiscard]] StatType getType() const noexcept { return m_type; }
+    [[nodiscard]] StatType getType() const noexcept
+    {
+        return m_type;
+    }
 
     /**
      * @brief 获取统计ID
      */
-    [[nodiscard]] const ResourceLocation& getId() const noexcept { return m_id; }
+    [[nodiscard]] const ResourceLocation& getId() const noexcept
+    {
+        return m_id;
+    }
 
     /**
      * @brief 获取完整的统计资源位置
@@ -78,7 +84,10 @@ public:
     /**
      * @brief 获取当前统计值
      */
-    [[nodiscard]] ValueType getValue() const noexcept { return m_value; }
+    [[nodiscard]] ValueType getValue() const noexcept
+    {
+        return m_value;
+    }
 
     /**
      * @brief 设置统计值
@@ -97,7 +106,10 @@ public:
     /**
      * @brief 重置统计值
      */
-    void reset() noexcept { m_value = 0; }
+    void reset() noexcept
+    {
+        m_value = 0;
+    }
 
     /**
      * @brief 判断两个统计项是否相等
@@ -112,7 +124,10 @@ public:
     /**
      * @brief 判断两个统计项是否不等
      */
-    [[nodiscard]] bool operator!=(const Stat& other) const noexcept { return !(*this == other); }
+    [[nodiscard]] bool operator!=(const Stat& other) const noexcept
+    {
+        return !(*this == other);
+    }
 
     /**
      * @brief 获取哈希值（用于 unordered_map/unordered_set）
@@ -141,7 +156,10 @@ namespace std {
  */
 template <>
 struct hash<mc::server::stats::Stat> {
-    size_t operator()(const mc::server::stats::Stat& stat) const noexcept { return stat.hash(); }
+    size_t operator()(const mc::server::stats::Stat& stat) const noexcept
+    {
+        return stat.hash();
+    }
 };
 
 } // namespace std

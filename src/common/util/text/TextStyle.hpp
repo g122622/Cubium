@@ -137,13 +137,19 @@ public:
      * @brief 获取颜色
      * @return 颜色格式化类型，未设置返回 nullopt
      */
-    [[nodiscard]] std::optional<TextFormatting> getColor() const noexcept { return m_color; }
+    [[nodiscard]] std::optional<TextFormatting> getColor() const noexcept
+    {
+        return m_color;
+    }
 
     /**
      * @brief 设置颜色
      * @param color 颜色格式化类型
      */
-    void setColor(std::optional<TextFormatting> color) noexcept { m_color = color; }
+    void setColor(std::optional<TextFormatting> color) noexcept
+    {
+        m_color = color;
+    }
 
     /**
      * @brief 获取颜色 ARGB 值
@@ -153,20 +159,55 @@ public:
 
     // ========== 样式标志 ==========
 
-    [[nodiscard]] bool isBold() const noexcept { return m_bold; }
-    void setBold(bool bold) noexcept { m_bold = bold; }
+    [[nodiscard]] bool isBold() const noexcept
+    {
+        return m_bold;
+    }
 
-    [[nodiscard]] bool isItalic() const noexcept { return m_italic; }
-    void setItalic(bool italic) noexcept { m_italic = italic; }
+    void setBold(bool bold) noexcept
+    {
+        m_bold = bold;
+    }
 
-    [[nodiscard]] bool isUnderlined() const noexcept { return m_underlined; }
-    void setUnderlined(bool underlined) noexcept { m_underlined = underlined; }
+    [[nodiscard]] bool isItalic() const noexcept
+    {
+        return m_italic;
+    }
 
-    [[nodiscard]] bool isStrikethrough() const noexcept { return m_strikethrough; }
-    void setStrikethrough(bool strikethrough) noexcept { m_strikethrough = strikethrough; }
+    void setItalic(bool italic) noexcept
+    {
+        m_italic = italic;
+    }
 
-    [[nodiscard]] bool isObfuscated() const noexcept { return m_obfuscated; }
-    void setObfuscated(bool obfuscated) noexcept { m_obfuscated = obfuscated; }
+    [[nodiscard]] bool isUnderlined() const noexcept
+    {
+        return m_underlined;
+    }
+
+    void setUnderlined(bool underlined) noexcept
+    {
+        m_underlined = underlined;
+    }
+
+    [[nodiscard]] bool isStrikethrough() const noexcept
+    {
+        return m_strikethrough;
+    }
+
+    void setStrikethrough(bool strikethrough) noexcept
+    {
+        m_strikethrough = strikethrough;
+    }
+
+    [[nodiscard]] bool isObfuscated() const noexcept
+    {
+        return m_obfuscated;
+    }
+
+    void setObfuscated(bool obfuscated) noexcept
+    {
+        m_obfuscated = obfuscated;
+    }
 
     // ========== 事件 ==========
 
@@ -183,7 +224,10 @@ public:
      * @brief 设置点击事件
      * @param event 点击事件
      */
-    void setClickEvent(const std::optional<ClickEvent>& event) noexcept { m_clickEvent = event; }
+    void setClickEvent(const std::optional<ClickEvent>& event) noexcept
+    {
+        m_clickEvent = event;
+    }
 
     /**
      * @brief 获取悬停事件
@@ -198,7 +242,10 @@ public:
      * @brief 设置悬停事件
      * @param event 悬停事件
      */
-    void setHoverEvent(const std::optional<HoverEvent>& event) noexcept { m_hoverEvent = event; }
+    void setHoverEvent(const std::optional<HoverEvent>& event) noexcept
+    {
+        m_hoverEvent = event;
+    }
 
     // ========== 父样式继承 ==========
 
@@ -219,7 +266,10 @@ public:
      * @brief 检查样式是否有事件
      * @return 如果有点击或悬停事件返回 true
      */
-    [[nodiscard]] bool hasEvents() const noexcept { return m_clickEvent.has_value() || m_hoverEvent.has_value(); }
+    [[nodiscard]] bool hasEvents() const noexcept
+    {
+        return m_clickEvent.has_value() || m_hoverEvent.has_value();
+    }
 
     // ========== 序列化 ==========
 
@@ -239,7 +289,11 @@ public:
     // ========== 比较 ==========
 
     bool operator==(const Style& other) const noexcept;
-    bool operator!=(const Style& other) const noexcept { return !(*this == other); }
+
+    bool operator!=(const Style& other) const noexcept
+    {
+        return !(*this == other);
+    }
 
 private:
     std::optional<TextFormatting> m_color;

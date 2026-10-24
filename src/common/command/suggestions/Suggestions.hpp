@@ -62,10 +62,25 @@ public:
     Suggestion& operator=(Suggestion&&) noexcept = default;
     ~Suggestion() = default;
 
-    [[nodiscard]] i32 getStart() const noexcept { return m_start; }
-    [[nodiscard]] const std::string& getText() const noexcept { return m_text; }
-    [[nodiscard]] const std::string& getTooltip() const noexcept { return m_tooltip; }
-    [[nodiscard]] bool hasTooltip() const noexcept { return !m_tooltip.empty(); }
+    [[nodiscard]] i32 getStart() const noexcept
+    {
+        return m_start;
+    }
+
+    [[nodiscard]] const std::string& getText() const noexcept
+    {
+        return m_text;
+    }
+
+    [[nodiscard]] const std::string& getTooltip() const noexcept
+    {
+        return m_tooltip;
+    }
+
+    [[nodiscard]] bool hasTooltip() const noexcept
+    {
+        return !m_tooltip.empty();
+    }
 
     /**
      * @brief 应用建议到输入字符串
@@ -82,9 +97,15 @@ public:
         return result;
     }
 
-    bool operator<(const Suggestion& other) const { return m_text < other.m_text; }
+    bool operator<(const Suggestion& other) const
+    {
+        return m_text < other.m_text;
+    }
 
-    bool operator==(const Suggestion& other) const { return m_start == other.m_start && m_text == other.m_text; }
+    bool operator==(const Suggestion& other) const
+    {
+        return m_start == other.m_start && m_text == other.m_text;
+    }
 
 private:
     i32 m_start;
@@ -100,6 +121,7 @@ private:
 class Suggestions {
 public:
     Suggestions() = default;
+
     explicit Suggestions(std::vector<Suggestion> suggestions)
         : m_suggestions(std::move(suggestions))
     {
@@ -112,9 +134,20 @@ public:
     Suggestions& operator=(Suggestions&&) noexcept = default;
     ~Suggestions() = default;
 
-    [[nodiscard]] bool isEmpty() const noexcept { return m_suggestions.empty(); }
-    [[nodiscard]] size_t size() const noexcept { return m_suggestions.size(); }
-    [[nodiscard]] const std::vector<Suggestion>& getList() const noexcept { return m_suggestions; }
+    [[nodiscard]] bool isEmpty() const noexcept
+    {
+        return m_suggestions.empty();
+    }
+
+    [[nodiscard]] size_t size() const noexcept
+    {
+        return m_suggestions.size();
+    }
+
+    [[nodiscard]] const std::vector<Suggestion>& getList() const noexcept
+    {
+        return m_suggestions;
+    }
 
     /**
      * @brief 合并两组建议
@@ -129,10 +162,16 @@ public:
     /**
      * @brief 创建空建议
      */
-    static Suggestions empty() { return Suggestions(); }
+    static Suggestions empty()
+    {
+        return Suggestions();
+    }
 
 private:
-    void _sort() { std::sort(m_suggestions.begin(), m_suggestions.end()); }
+    void _sort()
+    {
+        std::sort(m_suggestions.begin(), m_suggestions.end());
+    }
 
     std::vector<Suggestion> m_suggestions;
 };
@@ -204,7 +243,10 @@ public:
     /**
      * @brief 构建最终建议
      */
-    [[nodiscard]] Suggestions build() const { return Suggestions(m_suggestions); }
+    [[nodiscard]] Suggestions build() const
+    {
+        return Suggestions(m_suggestions);
+    }
 
     /**
      * @brief 构建一个已就绪的异步结果
@@ -216,9 +258,20 @@ public:
         return promise.get_future();
     }
 
-    [[nodiscard]] std::string_view getInput() const noexcept { return m_input; }
-    [[nodiscard]] std::string_view getRemaining() const noexcept { return m_remaining; }
-    [[nodiscard]] i32 getStart() const noexcept { return m_start; }
+    [[nodiscard]] std::string_view getInput() const noexcept
+    {
+        return m_input;
+    }
+
+    [[nodiscard]] std::string_view getRemaining() const noexcept
+    {
+        return m_remaining;
+    }
+
+    [[nodiscard]] i32 getStart() const noexcept
+    {
+        return m_start;
+    }
 
     /**
      * @brief 创建子构建器
@@ -231,7 +284,9 @@ public:
 private:
     static bool _startsWith(std::string_view str, std::string_view prefix)
     {
-        if (prefix.length() > str.length()) return false;
+        if (prefix.length() > str.length()) {
+            return false;
+        }
         for (size_t i = 0; i < prefix.length(); ++i) {
             const unsigned char left = static_cast<unsigned char>(str[i]);
             const unsigned char right = static_cast<unsigned char>(prefix[i]);

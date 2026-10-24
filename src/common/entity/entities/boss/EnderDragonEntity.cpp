@@ -579,7 +579,9 @@ void EnderDragonEntity::_collideWithEntities()
 
     // 获取龙的所有部件碰撞箱
     for (EnderDragonPartEntity* part : m_dragonParts) {
-        if (!part) continue;
+        if (!part) {
+            continue;
+        }
 
         // 获取部件碰撞箱内的实体
         AxisAlignedBB partBox = part->boundingBox();

@@ -49,6 +49,7 @@ struct EvpPkeyDeleter {
         }
     }
 };
+
 using EvpPkeyPtr = std::unique_ptr<EVP_PKEY, EvpPkeyDeleter>;
 
 struct EvpPkeyCtxDeleter {
@@ -59,6 +60,7 @@ struct EvpPkeyCtxDeleter {
         }
     }
 };
+
 using EvpPkeyCtxPtr = std::unique_ptr<EVP_PKEY_CTX, EvpPkeyCtxDeleter>;
 
 /**

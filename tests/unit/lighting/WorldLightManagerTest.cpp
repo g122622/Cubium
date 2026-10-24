@@ -37,28 +37,52 @@ namespace {
  */
 class TestLightingProvider final : public mc::StarLightLightingProvider {
 public:
-    [[nodiscard]] mc::IChunk* getChunkForLight(mc::ChunkCoord x, mc::ChunkCoord z) override { return nullptr; }
+    [[nodiscard]] mc::IChunk* getChunkForLight(mc::ChunkCoord x, mc::ChunkCoord z) override
+    {
+        return nullptr;
+    }
 
     [[nodiscard]] const mc::IChunk* getChunkForLight(mc::ChunkCoord x, mc::ChunkCoord z) const override
     {
         return nullptr;
     }
 
-    [[nodiscard]] const mc::BlockState* getBlockStateForLight(const mc::BlockPos&) const override { return nullptr; }
+    [[nodiscard]] const mc::BlockState* getBlockStateForLight(const mc::BlockPos&) const override
+    {
+        return nullptr;
+    }
 
-    [[nodiscard]] mc::IWorld* getWorld() override { return nullptr; }
+    [[nodiscard]] mc::IWorld* getWorld() override
+    {
+        return nullptr;
+    }
 
-    [[nodiscard]] const mc::IWorld* getWorld() const override { return nullptr; }
+    [[nodiscard]] const mc::IWorld* getWorld() const override
+    {
+        return nullptr;
+    }
 
     void markLightChanged(mc::LightType, const mc::SectionPos&) override {}
 
-    [[nodiscard]] bool hasSkyLight() const override { return true; }
+    [[nodiscard]] bool hasSkyLight() const override
+    {
+        return true;
+    }
 
-    [[nodiscard]] mc::i32 getMinBuildHeight() const override { return 0; }
+    [[nodiscard]] mc::i32 getMinBuildHeight() const override
+    {
+        return 0;
+    }
 
-    [[nodiscard]] mc::i32 getMaxBuildHeight() const override { return mc::world::MAX_BUILD_HEIGHT; }
+    [[nodiscard]] mc::i32 getMaxBuildHeight() const override
+    {
+        return mc::world::MAX_BUILD_HEIGHT;
+    }
 
-    [[nodiscard]] mc::i32 getSectionCount() const override { return mc::world::CHUNK_SECTIONS; }
+    [[nodiscard]] mc::i32 getSectionCount() const override
+    {
+        return mc::world::CHUNK_SECTIONS;
+    }
 };
 
 } // namespace

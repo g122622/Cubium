@@ -100,6 +100,7 @@ public:
     {
         throw std::runtime_error("CatTestWorld::tickManager not implemented");
     }
+
     [[nodiscard]] const world::tick::TickManager& tickManager() const override
     {
         throw std::runtime_error("CatTestWorld::tickManager not implemented");
@@ -120,8 +121,16 @@ public:
         (void)pitch;
     }
 
-    [[nodiscard]] const ResourceLocation& getLastSoundId() const { return m_lastSoundId; }
-    [[nodiscard]] i32 getSoundPlayCount() const { return m_soundPlayCount; }
+    [[nodiscard]] const ResourceLocation& getLastSoundId() const
+    {
+        return m_lastSoundId;
+    }
+
+    [[nodiscard]] i32 getSoundPlayCount() const
+    {
+        return m_soundPlayCount;
+    }
+
     void resetSoundTracking()
     {
         m_lastSoundId = ResourceLocation();
@@ -136,9 +145,21 @@ public:
         m_broadcastCount++;
     }
 
-    [[nodiscard]] EntityInstanceId getLastBroadcastEntityId() const { return m_lastBroadcastEntityId; }
-    [[nodiscard]] u8 getLastBroadcastStatus() const { return m_lastBroadcastStatus; }
-    [[nodiscard]] i32 getBroadcastCount() const { return m_broadcastCount; }
+    [[nodiscard]] EntityInstanceId getLastBroadcastEntityId() const
+    {
+        return m_lastBroadcastEntityId;
+    }
+
+    [[nodiscard]] u8 getLastBroadcastStatus() const
+    {
+        return m_lastBroadcastStatus;
+    }
+
+    [[nodiscard]] i32 getBroadcastCount() const
+    {
+        return m_broadcastCount;
+    }
+
     void resetBroadcastTracking()
     {
         m_lastBroadcastEntityId = EntityInstanceId(0);
@@ -154,9 +175,21 @@ public:
         m_lastTameAnimal = animal;
     }
 
-    [[nodiscard]] bool wasTameAnimalCalled() const { return m_tameAnimalCalled; }
-    [[nodiscard]] PlayerId getLastTamePlayerId() const { return m_lastTamePlayerId; }
-    [[nodiscard]] Entity* getLastTameAnimal() const { return m_lastTameAnimal; }
+    [[nodiscard]] bool wasTameAnimalCalled() const
+    {
+        return m_tameAnimalCalled;
+    }
+
+    [[nodiscard]] PlayerId getLastTamePlayerId() const
+    {
+        return m_lastTamePlayerId;
+    }
+
+    [[nodiscard]] Entity* getLastTameAnimal() const
+    {
+        return m_lastTameAnimal;
+    }
+
     void resetTameTracking()
     {
         m_tameAnimalCalled = false;
@@ -1740,7 +1773,10 @@ public:
         : CatEntity(id, mc::test::testEcsRegistry())
     {}
 
-    entity::ai::GoalSelector& testTargetSelector() { return targetSelector(); }
+    entity::ai::GoalSelector& testTargetSelector()
+    {
+        return targetSelector();
+    }
 };
 
 class CatTargetGoalsTest : public ::testing::Test {
@@ -1830,10 +1866,16 @@ public:
         : CatEntity(id, mc::test::testEcsRegistry())
     {}
 
-    entity::ai::GoalSelector& testGoalSelector() { return goalSelector(); }
+    entity::ai::GoalSelector& testGoalSelector()
+    {
+        return goalSelector();
+    }
 
     // 公开 tick 以便测试动画更新
-    void testTick() { tick(); }
+    void testTick()
+    {
+        tick();
+    }
 };
 
 TEST_F(CatEntityTestFixture, LieDownState_DefaultFalse)

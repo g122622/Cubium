@@ -102,7 +102,10 @@ public:
     /**
      * @brief 获取保护标签的资源位置
      */
-    [[nodiscard]] const ResourceLocation& getTagId() const noexcept { return m_tagId; }
+    [[nodiscard]] const ResourceLocation& getTagId() const noexcept
+    {
+        return m_tagId;
+    }
 
 private:
     /// 保护标签的资源位置（如 "minecraft:features_cannot_replace"）

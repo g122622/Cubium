@@ -52,7 +52,9 @@ namespace villager {
 
 f32 distanceToBlockCenter(const Entity* entity, const BlockPos& pos)
 {
-    if (!entity) return std::numeric_limits<f32>::max();
+    if (!entity) {
+        return std::numeric_limits<f32>::max();
+    }
     return entity->distanceSqTo(pos.x + 0.5f, static_cast<f32>(pos.y), pos.z + 0.5f);
 }
 
@@ -67,16 +69,24 @@ bool throwHalfStackToTarget(VillagerEntity* villager,
     const std::unordered_map<const Item*, i32>& itemFilter,
     LivingEntity* target)
 {
-    if (!villager || !target) return false;
+    if (!villager || !target) {
+        return false;
+    }
     IWorld* world = villager->world();
-    if (!world) return false;
+    if (!world) {
+        return false;
+    }
 
     for (i32 i = 0; i < inventory.getContainerSize(); ++i) {
         ItemStack stack = inventory.getItem(i);
-        if (stack.isEmpty()) continue;
+        if (stack.isEmpty()) {
+            continue;
+        }
 
         const Item* item = stack.getItem();
-        if (itemFilter.find(item) == itemFilter.end()) continue;
+        if (itemFilter.find(item) == itemFilter.end()) {
+            continue;
+        }
 
         // 计算要抛出的数量
         i32 count = stack.getCount();

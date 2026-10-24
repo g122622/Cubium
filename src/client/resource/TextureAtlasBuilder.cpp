@@ -251,10 +251,12 @@ Result<AtlasBuildResult> TextureAtlasBuilder::build()
     // 从最小可行尺寸开始尝试（2 的幂）
     u32 tryWidth = 64;
     u32 tryHeight = 64;
-    while (tryWidth < atlasWidth && tryWidth < m_maxWidth)
+    while (tryWidth < atlasWidth && tryWidth < m_maxWidth) {
         tryWidth *= 2;
-    while (tryHeight < atlasHeight && tryHeight < m_maxHeight)
+    }
+    while (tryHeight < atlasHeight && tryHeight < m_maxHeight) {
         tryHeight *= 2;
+    }
 
     tryWidth = std::min(tryWidth, m_maxWidth);
     tryHeight = std::min(tryHeight, m_maxHeight);
@@ -268,6 +270,7 @@ Result<AtlasBuildResult> TextureAtlasBuilder::build()
         size_t index;
         u32 x, y;
     };
+
     std::vector<PlacedTexture> placed;
     placed.reserve(m_textures.size());
 
@@ -298,7 +301,9 @@ Result<AtlasBuildResult> TextureAtlasBuilder::build()
             }
         }
 
-        if (success) break;
+        if (success) {
+            break;
+        }
 
         // 尝试增大尺寸
         bool expanded = false;
@@ -321,8 +326,9 @@ Result<AtlasBuildResult> TextureAtlasBuilder::build()
 
     // 计算实际高度 (使用2的幂次)
     u32 finalHeight = 1;
-    while (finalHeight < atlasHeight)
+    while (finalHeight < atlasHeight) {
         finalHeight *= 2;
+    }
     finalHeight = std::min(finalHeight, actualHeight);
 
     // 创建图集像素缓冲区

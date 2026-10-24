@@ -114,18 +114,44 @@ public:
     void tick();
 
     /// 注册入站 Play/Configuration 包 visitor（Step3 注入 ClientPlayVisitor）
-    void setPlayVisitor(ClientPlayVisitor* visitor) { m_visitor = visitor; }
+    void setPlayVisitor(ClientPlayVisitor* visitor)
+    {
+        m_visitor = visitor;
+    }
 
     /// 登录完成回调（收到 play::Login 时触发）
-    void onLoginReady(LoginReadyCallback cb) { m_onLoginReady = std::move(cb); }
+    void onLoginReady(LoginReadyCallback cb)
+    {
+        m_onLoginReady = std::move(cb);
+    }
 
     // === 状态/统计（DebugScreenWidget 读取）===
-    [[nodiscard]] ClientConnState state() const noexcept { return m_state; }
+    [[nodiscard]] ClientConnState state() const noexcept
+    {
+        return m_state;
+    }
+
     [[nodiscard]] bool isConnected() const noexcept;
-    [[nodiscard]] bool isPlaying() const noexcept { return m_state == ClientConnState::Playing; }
-    [[nodiscard]] u64 packetsSent() const noexcept { return m_packetsSent.load(); }
-    [[nodiscard]] u64 packetsReceived() const noexcept { return m_packetsReceived.load(); }
-    [[nodiscard]] i64 pingMs() const noexcept { return m_pingMs.load(); }
+
+    [[nodiscard]] bool isPlaying() const noexcept
+    {
+        return m_state == ClientConnState::Playing;
+    }
+
+    [[nodiscard]] u64 packetsSent() const noexcept
+    {
+        return m_packetsSent.load();
+    }
+
+    [[nodiscard]] u64 packetsReceived() const noexcept
+    {
+        return m_packetsReceived.load();
+    }
+
+    [[nodiscard]] i64 pingMs() const noexcept
+    {
+        return m_pingMs.load();
+    }
 
     /**
      * @brief 更新客户端到服务端的往返延迟（毫秒）。
@@ -133,10 +159,20 @@ public:
      * 由 PongResponse(cb:60) 往返计算结果写入：RTT = 收包时刻 - 出站 ping 的 time 字段。
      * 对齐 Java PingDebugMonitor.onPongReceived 的 Util.getMillis() - p.time()。
      */
-    void setPingMs(i64 pingMs) noexcept { m_pingMs.store(pingMs); }
+    void setPingMs(i64 pingMs) noexcept
+    {
+        m_pingMs.store(pingMs);
+    }
 
-    [[nodiscard]] const std::string& username() const noexcept { return m_username; }
-    [[nodiscard]] const std::array<u8, 16>& uuid() const noexcept { return m_uuid; }
+    [[nodiscard]] const std::string& username() const noexcept
+    {
+        return m_username;
+    }
+
+    [[nodiscard]] const std::array<u8, 16>& uuid() const noexcept
+    {
+        return m_uuid;
+    }
 
 private:
     /// 入站包分发：握手/Configuration 自处理，Play 委托 visitor
@@ -148,7 +184,10 @@ private:
     [[nodiscard]] Result<void> _handleConfigurationPacket(const mc::network::ir::ConfigurationPacket& pkt);
     [[nodiscard]] Result<void> _handlePlayPacket(const mc::network::ir::PlayPacket& pkt);
 
-    void _setState(ClientConnState s) noexcept { m_state = s; }
+    void _setState(ClientConnState s) noexcept
+    {
+        m_state = s;
+    }
 
     std::shared_ptr<ProtocolTables> m_tables;
     std::unique_ptr<ClientConn> m_conn;

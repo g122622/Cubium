@@ -51,7 +51,10 @@ public:
     // 存储方块：key = (x, y, z) 打包为 i64
     std::unordered_map<i64, const BlockState*> m_blocks;
 
-    void clear() { m_blocks.clear(); }
+    void clear()
+    {
+        m_blocks.clear();
+    }
 
     [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override
     {
@@ -72,40 +75,107 @@ public:
         return true;
     }
 
-    [[nodiscard]] const fluid::FluidState* getFluidState(i32, i32, i32) const override { return nullptr; }
-    [[nodiscard]] i32 getHeight(i32, i32) const override { return 64; }
-    [[nodiscard]] u8 getBlockLight(i32, i32, i32) const override { return 15; }
-    [[nodiscard]] u8 getSkyLight(i32, i32, i32) const override { return 15; }
-    [[nodiscard]] bool hasBlockCollision(const AxisAlignedBB&) const override { return false; }
-    [[nodiscard]] std::vector<AxisAlignedBB> getBlockCollisions(const AxisAlignedBB&) const override { return {}; }
-    [[nodiscard]] bool hasEntityCollision(const AxisAlignedBB&, const Entity*) const override { return false; }
+    [[nodiscard]] const fluid::FluidState* getFluidState(i32, i32, i32) const override
+    {
+        return nullptr;
+    }
+
+    [[nodiscard]] i32 getHeight(i32, i32) const override
+    {
+        return 64;
+    }
+
+    [[nodiscard]] u8 getBlockLight(i32, i32, i32) const override
+    {
+        return 15;
+    }
+
+    [[nodiscard]] u8 getSkyLight(i32, i32, i32) const override
+    {
+        return 15;
+    }
+
+    [[nodiscard]] bool hasBlockCollision(const AxisAlignedBB&) const override
+    {
+        return false;
+    }
+
+    [[nodiscard]] std::vector<AxisAlignedBB> getBlockCollisions(const AxisAlignedBB&) const override
+    {
+        return {};
+    }
+
+    [[nodiscard]] bool hasEntityCollision(const AxisAlignedBB&, const Entity*) const override
+    {
+        return false;
+    }
+
     [[nodiscard]] std::vector<AxisAlignedBB> getEntityCollisions(const AxisAlignedBB&, const Entity*) const override
     {
         return {};
     }
-    [[nodiscard]] PhysicsEngine* physicsEngine() override { return nullptr; }
-    [[nodiscard]] const PhysicsEngine* physicsEngine() const override { return nullptr; }
+
+    [[nodiscard]] PhysicsEngine* physicsEngine() override
+    {
+        return nullptr;
+    }
+
+    [[nodiscard]] const PhysicsEngine* physicsEngine() const override
+    {
+        return nullptr;
+    }
+
     [[nodiscard]] std::vector<Entity*> getEntitiesInAABB(const AxisAlignedBB&, const Entity*) const override
     {
         return {};
     }
+
     [[nodiscard]] std::vector<Entity*> getEntitiesInRange(const Vector3&, f32, const Entity*) const override
     {
         return {};
     }
-    [[nodiscard]] DimensionId dimension() const override { return DimensionId(0); }
-    [[nodiscard]] u64 seed() const override { return 0; }
-    [[nodiscard]] u64 currentTick() const override { return 0; }
-    [[nodiscard]] i64 dayTime() const override { return 0; }
-    [[nodiscard]] bool isHardcore() const override { return false; }
-    [[nodiscard]] Difficulty difficulty() const override { return Difficulty::Peaceful; }
-    [[nodiscard]] bool isClientSide() const override { return false; }
+
+    [[nodiscard]] DimensionId dimension() const override
+    {
+        return DimensionId(0);
+    }
+
+    [[nodiscard]] u64 seed() const override
+    {
+        return 0;
+    }
+
+    [[nodiscard]] u64 currentTick() const override
+    {
+        return 0;
+    }
+
+    [[nodiscard]] i64 dayTime() const override
+    {
+        return 0;
+    }
+
+    [[nodiscard]] bool isHardcore() const override
+    {
+        return false;
+    }
+
+    [[nodiscard]] Difficulty difficulty() const override
+    {
+        return Difficulty::Peaceful;
+    }
+
+    [[nodiscard]] bool isClientSide() const override
+    {
+        return false;
+    }
 
     // TickManager interface (stubbed for tests)
     [[nodiscard]] world::tick::TickManager& tickManager() override
     {
         throw std::runtime_error("TestBlockReader::tickManager not implemented");
     }
+
     [[nodiscard]] const world::tick::TickManager& tickManager() const override
     {
         throw std::runtime_error("TestBlockReader::tickManager not implemented");
@@ -116,6 +186,7 @@ public:
     {
         throw std::runtime_error("TestBlockReader::getRandom not implemented");
     }
+
     [[nodiscard]] const math::IRandom& getRandom() const override
     {
         throw std::runtime_error("TestBlockReader::getRandom not implemented");
@@ -126,6 +197,7 @@ public:
     {
         throw std::runtime_error("TestBlockReader::worldBorder not implemented");
     }
+
     [[nodiscard]] const world::border::WorldBorder& worldBorder() const override
     {
         throw std::runtime_error("TestBlockReader::worldBorder not implemented");
@@ -184,7 +256,10 @@ const BlockState* getSugarCaneState()
  */
 class RaycastTest : public ::testing::Test {
 protected:
-    void SetUp() override { ensureTestBlocksRegistered(); }
+    void SetUp() override
+    {
+        ensureTestBlocksRegistered();
+    }
 
     TestBlockReader world;
 };
@@ -514,17 +589,22 @@ public:
     {
         return &VanillaBlocks::AIR->defaultState();
     }
+
     [[nodiscard]] const fluid::FluidState* getFluidState(i32 x, i32 y, i32 z) const override
     {
         const auto it = m_fluids.find(BlockPos(x, y, z));
         return it != m_fluids.end() ? it->second : &fluid::Fluids::EMPTY()->defaultState();
     }
+
     [[nodiscard]] bool isWithinWorldBounds(i32, i32 y, i32) const override
     {
         return y >= world::MIN_BUILD_HEIGHT && y < world::MAX_BUILD_HEIGHT;
     }
 
-    void setFluid(const BlockPos& pos, const fluid::FluidState* state) { m_fluids[pos] = state; }
+    void setFluid(const BlockPos& pos, const fluid::FluidState* state)
+    {
+        m_fluids[pos] = state;
+    }
 
 private:
     std::unordered_map<BlockPos, const fluid::FluidState*> m_fluids;

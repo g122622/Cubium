@@ -42,7 +42,10 @@ namespace {
 
 class TestFishSwimWorld final : public mc::test::BaseTestWorld {
 public:
-    void setEntities(std::vector<Entity*> entities) { m_entities = std::move(entities); }
+    void setEntities(std::vector<Entity*> entities)
+    {
+        m_entities = std::move(entities);
+    }
 
     [[nodiscard]] std::vector<Entity*> getEntitiesInAABB(const AxisAlignedBB&, const Entity* except) const override
     {
@@ -75,13 +78,21 @@ public:
         return result;
     }
 
-    [[nodiscard]] bool isWaterAt(const BlockPos&) const override { return true; }
-    [[nodiscard]] bool isLavaAt(const BlockPos&) const override { return false; }
+    [[nodiscard]] bool isWaterAt(const BlockPos&) const override
+    {
+        return true;
+    }
+
+    [[nodiscard]] bool isLavaAt(const BlockPos&) const override
+    {
+        return false;
+    }
 
     [[nodiscard]] world::tick::TickManager& tickManager() override
     {
         throw std::runtime_error("TestFishSwimWorld::tickManager not implemented");
     }
+
     [[nodiscard]] const world::tick::TickManager& tickManager() const override
     {
         throw std::runtime_error("TestFishSwimWorld::tickManager not implemented");
@@ -119,9 +130,15 @@ TEST(FishSwimGoalTest, ConstructionWithSpeedAndChance)
 
 class FishSwimGoalShouldExecuteTest : public ::testing::Test {
 protected:
-    void SetUp() override { m_world = std::make_unique<TestFishSwimWorld>(); }
+    void SetUp() override
+    {
+        m_world = std::make_unique<TestFishSwimWorld>();
+    }
 
-    void TearDown() override { m_world.reset(); }
+    void TearDown() override
+    {
+        m_world.reset();
+    }
 
     std::unique_ptr<TestFishSwimWorld> m_world;
 };
@@ -250,9 +267,15 @@ TEST(FishSwimGoalFlagsTest, HasCorrectMutexFlags)
 
 class FishSwimGoalGroupTest : public ::testing::Test {
 protected:
-    void SetUp() override { m_world = std::make_unique<TestFishSwimWorld>(); }
+    void SetUp() override
+    {
+        m_world = std::make_unique<TestFishSwimWorld>();
+    }
 
-    void TearDown() override { m_world.reset(); }
+    void TearDown() override
+    {
+        m_world.reset();
+    }
 
     std::unique_ptr<TestFishSwimWorld> m_world;
 };
@@ -329,9 +352,15 @@ TEST_F(FishSwimGoalGroupTest, MultipleGroupsIndependent)
 
 class AbstractFishEntityGoalsTest : public ::testing::Test {
 protected:
-    void SetUp() override { m_world = std::make_unique<TestFishSwimWorld>(); }
+    void SetUp() override
+    {
+        m_world = std::make_unique<TestFishSwimWorld>();
+    }
 
-    void TearDown() override { m_world.reset(); }
+    void TearDown() override
+    {
+        m_world.reset();
+    }
 
     std::unique_ptr<TestFishSwimWorld> m_world;
 };

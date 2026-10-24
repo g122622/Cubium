@@ -65,13 +65,21 @@ public:
         : m_empty(true)
         , m_itemId(0)
     {}
+
     MockItemStack(u32 itemId)
         : m_empty(false)
         , m_itemId(itemId)
     {}
 
-    [[nodiscard]] bool isEmpty() const { return m_empty; }
-    [[nodiscard]] u32 getItemId() const { return m_itemId; }
+    [[nodiscard]] bool isEmpty() const
+    {
+        return m_empty;
+    }
+
+    [[nodiscard]] u32 getItemId() const
+    {
+        return m_itemId;
+    }
 
 private:
     bool m_empty;
@@ -109,9 +117,15 @@ public:
         return (m_playerModelParts & getPlayerModelPartMask(part)) != 0;
     }
 
-    void setChestItem(const MockItemStack& item) { m_chestItem = item; }
+    void setChestItem(const MockItemStack& item)
+    {
+        m_chestItem = item;
+    }
 
-    [[nodiscard]] const MockItemStack& getChestItem() const { return m_chestItem; }
+    [[nodiscard]] const MockItemStack& getChestItem() const
+    {
+        return m_chestItem;
+    }
 
     // 模拟 getEquipment
     [[nodiscard]] const MockItemStack& getEquipment(EquipmentSlot slot) const
@@ -166,7 +180,10 @@ bool shouldRenderCape(const mc::MockPlayer& player, bool hasCapeTexture)
 
 class CapeLayerShouldRenderTest : public ::testing::Test {
 protected:
-    void SetUp() override { m_player = std::make_unique<mc::MockPlayer>(); }
+    void SetUp() override
+    {
+        m_player = std::make_unique<mc::MockPlayer>();
+    }
 
     std::unique_ptr<mc::MockPlayer> m_player;
 };
@@ -253,7 +270,10 @@ bool shouldRenderElytra(const mc::MockPlayer& player, bool hasElytraTexture, boo
 
 class ElytraLayerShouldRenderTest : public ::testing::Test {
 protected:
-    void SetUp() override { m_player = std::make_unique<mc::MockPlayer>(); }
+    void SetUp() override
+    {
+        m_player = std::make_unique<mc::MockPlayer>();
+    }
 
     std::unique_ptr<mc::MockPlayer> m_player;
 };
@@ -330,7 +350,10 @@ const mc::MockItemStack* getHeadItem(const mc::MockPlayer& player)
 
 class HeadLayerBasicTest : public ::testing::Test {
 protected:
-    void SetUp() override { m_player = std::make_unique<mc::MockPlayer>(); }
+    void SetUp() override
+    {
+        m_player = std::make_unique<mc::MockPlayer>();
+    }
 
     std::unique_ptr<mc::MockPlayer> m_player;
 };

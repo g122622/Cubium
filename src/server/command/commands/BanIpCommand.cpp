@@ -77,19 +77,25 @@ bool isValidIpv4(const std::string& str)
 void BanIpCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
 {
     auto banIpNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("ban-ip");
-    banIpNode->setRequirement([](const ServerCommandSource& source) { return source.hasPermission(3); });
+    banIpNode->setRequirement([](const ServerCommandSource& source) {
+        return source.hasPermission(3);
+    });
     support::applyMetadata(banIpNode,
         support::makeMetadata("Bans an IP address from the server.", "/ban-ip <target> [reason]", 3, {}, false));
 
     // /ban-ip <target>
     auto targetArg =
         std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>("target", StringArgumentType::string());
-    targetArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _banIp(ctx); });
+    targetArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _banIp(ctx);
+    });
 
     // /ban-ip <target> <reason>
     auto reasonArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
         "reason", StringArgumentType::greedyString());
-    reasonArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _banIp(ctx); });
+    reasonArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _banIp(ctx);
+    });
 
     targetArg->addChild(reasonArg);
     banIpNode->addChild(targetArg);

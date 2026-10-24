@@ -36,7 +36,10 @@ namespace {
 
 class MusicDiscItemTest : public ::testing::Test {
 protected:
-    static void SetUpTestSuite() { Items::initialize(); }
+    static void SetUpTestSuite()
+    {
+        Items::initialize();
+    }
 };
 
 // ========== 基本属性测试 ==========

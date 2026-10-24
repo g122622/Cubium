@@ -73,13 +73,19 @@ std::optional<SoundCategory> parseSoundCategory(std::string_view name) noexcept
     }
 
     // 转换为小写进行比较
-    auto toLower = [](char c) { return static_cast<char>(std::tolower(static_cast<unsigned char>(c))); };
+    auto toLower = [](char c) {
+        return static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
+    };
 
     // 比较函数：不区分大小写
     auto equalsIgnoreCase = [toLower](std::string_view a, std::string_view b) {
-        if (a.size() != b.size()) return false;
+        if (a.size() != b.size()) {
+            return false;
+        }
         for (size_t i = 0; i < a.size(); ++i) {
-            if (toLower(a[i]) != toLower(b[i])) return false;
+            if (toLower(a[i]) != toLower(b[i])) {
+                return false;
+            }
         }
         return true;
     };

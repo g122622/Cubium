@@ -118,7 +118,10 @@ public:
      *
      * @param brightness 闪电闪烁亮度 (0.0-1.0)，0表示无效果
      */
-    void setLightningFlashBrightness(f64 brightness) { m_lightningFlashBrightness = brightness; }
+    void setLightningFlashBrightness(f64 brightness)
+    {
+        m_lightningFlashBrightness = brightness;
+    }
 
     /**
      * @brief 渲染天空
@@ -140,27 +143,42 @@ public:
     /**
      * @brief 获取当前天空颜色
      */
-    [[nodiscard]] const glm::vec4& skyColor() const { return m_skyColor; }
+    [[nodiscard]] const glm::vec4& skyColor() const
+    {
+        return m_skyColor;
+    }
 
     /**
      * @brief 获取当前雾颜色
      */
-    [[nodiscard]] const glm::vec4& fogColor() const { return m_fogColor; }
+    [[nodiscard]] const glm::vec4& fogColor() const
+    {
+        return m_fogColor;
+    }
 
     /**
      * @brief 获取太阳方向
      */
-    [[nodiscard]] const glm::vec3& sunDirection() const { return m_sunDirection; }
+    [[nodiscard]] const glm::vec3& sunDirection() const
+    {
+        return m_sunDirection;
+    }
 
     /**
      * @brief 获取太阳强度
      */
-    [[nodiscard]] f64 sunIntensity() const { return m_sunIntensity; }
+    [[nodiscard]] f64 sunIntensity() const
+    {
+        return m_sunIntensity;
+    }
 
     /**
      * @brief 检查是否已初始化
      */
-    [[nodiscard]] bool isInitialized() const { return m_initialized; }
+    [[nodiscard]] bool isInitialized() const
+    {
+        return m_initialized;
+    }
 
 private:
     // ========== 资源创建 ==========

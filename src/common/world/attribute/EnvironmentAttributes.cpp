@@ -57,10 +57,16 @@ public:
     }
 
     /// 数据包中的完整名（`minecraft:<path>`）
-    [[nodiscard]] const std::string& fullName() const noexcept { return m_fullName; }
+    [[nodiscard]] const std::string& fullName() const noexcept
+    {
+        return m_fullName;
+    }
 
     /// 注册表中的路径名（不含 `minecraft:`）
-    [[nodiscard]] const std::string& path() const noexcept { return m_path; }
+    [[nodiscard]] const std::string& path() const noexcept
+    {
+        return m_path;
+    }
 
 private:
     std::string m_path;
@@ -77,7 +83,11 @@ EnvironmentAttribute<Value> _build(_AttributeName& name,
     bool spatiallyInterpolated)
 {
     auto builder = EnvironmentAttribute<Value>::builder(
-        [&name]() -> const std::string& { return name.get(); }, type, std::move(defaultValue));
+        [&name]() -> const std::string& {
+            return name.get();
+        },
+        type,
+        std::move(defaultValue));
     builder.valueRange(std::move(range));
     if (syncable) {
         builder.syncable();
@@ -745,8 +755,9 @@ std::shared_ptr<const AttributeModifier<i32, i32>> EnvironmentAttributes::colorM
 
     switch (operation) {
         case AttributeModifierOperation::AlphaBlend:
-            return std::make_shared<TypedModifierAdapter<i32, i32>>(
-                RgbColorModifier::ALPHA_BLEND, [](i32 value) { return value; });
+            return std::make_shared<TypedModifierAdapter<i32, i32>>(RgbColorModifier::ALPHA_BLEND, [](i32 value) {
+                return value;
+            });
         case AttributeModifierOperation::Add:
             return nonOwningSharedPtr(&RgbColorModifier::ADD);
         case AttributeModifierOperation::Subtract:
@@ -762,7 +773,9 @@ std::shared_ptr<const AttributeModifier<i32, i32>> EnvironmentAttributes::colorM
     // 灰度混合的参数是轨道给出的 (brightness, factor)，而时间线采样只产出属性值本身：
     // 参数被折叠为常量，轨道值仅用于时间线推进。
     const i32 blend = argument.blendToGray;
-    return std::make_shared<TypedModifierAdapter<i32, i32>>(BlendToGrayModifier{}, [blend](i32) { return blend; });
+    return std::make_shared<TypedModifierAdapter<i32, i32>>(BlendToGrayModifier{}, [blend](i32) {
+        return blend;
+    });
 }
 
 const std::string& EnvironmentAttributes::packageName(const void* attribute)

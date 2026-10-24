@@ -100,7 +100,10 @@ public:
     }
 
     /// 注入 getEntitiesInAABB 返回的实体列表（测试控制）
-    void setEntities(std::vector<Entity*> entities) { m_entities = std::move(entities); }
+    void setEntities(std::vector<Entity*> entities)
+    {
+        m_entities = std::move(entities);
+    }
 
     [[nodiscard]] std::vector<Entity*> getEntitiesInAABB(const AxisAlignedBB& box, const Entity* except) const override
     {

@@ -73,22 +73,34 @@ public:
     /**
      * @brief 音效事件资源位置
      */
-    [[nodiscard]] const ResourceLocation& soundEvent() const noexcept { return m_soundEvent; }
+    [[nodiscard]] const ResourceLocation& soundEvent() const noexcept
+    {
+        return m_soundEvent;
+    }
 
     /**
      * @brief 吹奏时长（秒）
      */
-    [[nodiscard]] f32 useDuration() const noexcept { return m_useDuration; }
+    [[nodiscard]] f32 useDuration() const noexcept
+    {
+        return m_useDuration;
+    }
 
     /**
      * @brief 可听距离（格）
      */
-    [[nodiscard]] f32 range() const noexcept { return m_range; }
+    [[nodiscard]] f32 range() const noexcept
+    {
+        return m_range;
+    }
 
     /**
      * @brief 显示名组件
      */
-    [[nodiscard]] const text::ITextComponent* description() const noexcept { return m_description.get(); }
+    [[nodiscard]] const text::ITextComponent* description() const noexcept
+    {
+        return m_description.get();
+    }
 
     /**
      * @brief 吹奏时长换算为使用时长（tick，`floor(useDuration * 20)`）

@@ -57,12 +57,14 @@ public:
     {
         throw std::runtime_error("PiglinAiGoldTestWorld::tickManager not implemented");
     }
+
     [[nodiscard]] const world::tick::TickManager& tickManager() const override
     {
         throw std::runtime_error("PiglinAiGoldTestWorld::tickManager not implemented");
     }
 
     void playSound(const ResourceLocation&, sound::SoundCategory, const Vector3&, f32, f32) override {}
+
     void broadcastEntityStatus(EntityInstanceId, u8) override {}
 };
 

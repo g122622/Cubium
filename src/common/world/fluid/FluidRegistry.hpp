@@ -100,7 +100,10 @@ public:
     /**
      * @brief 获取流体数量
      */
-    [[nodiscard]] size_t fluidCount() const { return m_fluids.size(); }
+    [[nodiscard]] size_t fluidCount() const
+    {
+        return m_fluids.size();
+    }
 
     // ========== 内置流体ID ==========
 

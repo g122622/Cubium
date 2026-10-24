@@ -108,7 +108,10 @@ public:
         m_valueFactor = m_inputFactor + count;
     }
 
-    ~PerlinNoiseSoA() { release(); }
+    ~PerlinNoiseSoA()
+    {
+        release();
+    }
 
     PerlinNoiseSoA(const PerlinNoiseSoA&) = delete;
     PerlinNoiseSoA& operator=(const PerlinNoiseSoA&) = delete;
@@ -145,25 +148,82 @@ public:
         return *this;
     }
 
-    [[nodiscard]] u32 count() const noexcept { return m_count; }
+    [[nodiscard]] u32 count() const noexcept
+    {
+        return m_count;
+    }
 
     // 只读访问器(运行期 perlinSampleSoA 读取)
-    [[nodiscard]] const u8* perms() const noexcept { return m_perms; }
-    [[nodiscard]] const f64* originX() const noexcept { return m_originX; }
-    [[nodiscard]] const f64* originY() const noexcept { return m_originY; }
-    [[nodiscard]] const f64* originZ() const noexcept { return m_originZ; }
-    [[nodiscard]] const f64* amplitude() const noexcept { return m_amplitude; }
-    [[nodiscard]] const f64* inputFactor() const noexcept { return m_inputFactor; }
-    [[nodiscard]] const f64* valueFactor() const noexcept { return m_valueFactor; }
+    [[nodiscard]] const u8* perms() const noexcept
+    {
+        return m_perms;
+    }
+
+    [[nodiscard]] const f64* originX() const noexcept
+    {
+        return m_originX;
+    }
+
+    [[nodiscard]] const f64* originY() const noexcept
+    {
+        return m_originY;
+    }
+
+    [[nodiscard]] const f64* originZ() const noexcept
+    {
+        return m_originZ;
+    }
+
+    [[nodiscard]] const f64* amplitude() const noexcept
+    {
+        return m_amplitude;
+    }
+
+    [[nodiscard]] const f64* inputFactor() const noexcept
+    {
+        return m_inputFactor;
+    }
+
+    [[nodiscard]] const f64* valueFactor() const noexcept
+    {
+        return m_valueFactor;
+    }
 
     // 可写访问器(构造期 buildSoA 填充)
-    [[nodiscard]] u8* permsData() noexcept { return m_perms; }
-    [[nodiscard]] f64* originXData() noexcept { return m_originX; }
-    [[nodiscard]] f64* originYData() noexcept { return m_originY; }
-    [[nodiscard]] f64* originZData() noexcept { return m_originZ; }
-    [[nodiscard]] f64* amplitudeData() noexcept { return m_amplitude; }
-    [[nodiscard]] f64* inputFactorData() noexcept { return m_inputFactor; }
-    [[nodiscard]] f64* valueFactorData() noexcept { return m_valueFactor; }
+    [[nodiscard]] u8* permsData() noexcept
+    {
+        return m_perms;
+    }
+
+    [[nodiscard]] f64* originXData() noexcept
+    {
+        return m_originX;
+    }
+
+    [[nodiscard]] f64* originYData() noexcept
+    {
+        return m_originY;
+    }
+
+    [[nodiscard]] f64* originZData() noexcept
+    {
+        return m_originZ;
+    }
+
+    [[nodiscard]] f64* amplitudeData() noexcept
+    {
+        return m_amplitude;
+    }
+
+    [[nodiscard]] f64* inputFactorData() noexcept
+    {
+        return m_inputFactor;
+    }
+
+    [[nodiscard]] f64* valueFactorData() noexcept
+    {
+        return m_valueFactor;
+    }
 
 private:
     u32 m_count = 0;

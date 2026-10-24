@@ -50,7 +50,10 @@ public:
         setHealth(20.0f);
     }
 
-    static std::unique_ptr<Entity> create(IWorld* /*world*/) { return std::make_unique<TestLivingEntity>(0); }
+    static std::unique_ptr<Entity> create(IWorld* /*world*/)
+    {
+        return std::make_unique<TestLivingEntity>(0);
+    }
 };
 
 class TestPlayer : public Player {
@@ -72,8 +75,15 @@ public:
         return true;
     }
 
-    bool wasVelocityPacketSent() const { return m_velocityPacketSent; }
-    void resetVelocityPacketSent() { m_velocityPacketSent = false; }
+    bool wasVelocityPacketSent() const
+    {
+        return m_velocityPacketSent;
+    }
+
+    void resetVelocityPacketSent()
+    {
+        m_velocityPacketSent = false;
+    }
 
 private:
     bool m_velocityPacketSent = false;

@@ -48,16 +48,56 @@ class StationaryBorderState : public IBorderState {
 public:
     explicit StationaryBorderState(f64 size, f64 centerX, f64 centerZ);
 
-    [[nodiscard]] f64 getMinX() const override { return m_minX; }
-    [[nodiscard]] f64 getMaxX() const override { return m_maxX; }
-    [[nodiscard]] f64 getMinZ() const override { return m_minZ; }
-    [[nodiscard]] f64 getMaxZ() const override { return m_maxZ; }
-    [[nodiscard]] f64 getSize() const override { return m_size; }
-    [[nodiscard]] f64 getResizeSpeed() const override { return 0.0; }
-    [[nodiscard]] u64 getTimeUntilTarget() const override { return 0; }
-    [[nodiscard]] f64 getTargetSize() const override { return m_size; }
-    [[nodiscard]] BorderStatus getStatus() const override { return BorderStatus::Stationary; }
-    [[nodiscard]] std::unique_ptr<IBorderState> tick() override { return nullptr; }
+    [[nodiscard]] f64 getMinX() const override
+    {
+        return m_minX;
+    }
+
+    [[nodiscard]] f64 getMaxX() const override
+    {
+        return m_maxX;
+    }
+
+    [[nodiscard]] f64 getMinZ() const override
+    {
+        return m_minZ;
+    }
+
+    [[nodiscard]] f64 getMaxZ() const override
+    {
+        return m_maxZ;
+    }
+
+    [[nodiscard]] f64 getSize() const override
+    {
+        return m_size;
+    }
+
+    [[nodiscard]] f64 getResizeSpeed() const override
+    {
+        return 0.0;
+    }
+
+    [[nodiscard]] u64 getTimeUntilTarget() const override
+    {
+        return 0;
+    }
+
+    [[nodiscard]] f64 getTargetSize() const override
+    {
+        return m_size;
+    }
+
+    [[nodiscard]] BorderStatus getStatus() const override
+    {
+        return BorderStatus::Stationary;
+    }
+
+    [[nodiscard]] std::unique_ptr<IBorderState> tick() override
+    {
+        return nullptr;
+    }
+
     void onCenterChanged(f64 centerX, f64 centerZ) override;
 
 private:
@@ -89,7 +129,12 @@ public:
     [[nodiscard]] f64 getSize() const override;
     [[nodiscard]] f64 getResizeSpeed() const override;
     [[nodiscard]] u64 getTimeUntilTarget() const override;
-    [[nodiscard]] f64 getTargetSize() const override { return m_newSize; }
+
+    [[nodiscard]] f64 getTargetSize() const override
+    {
+        return m_newSize;
+    }
+
     [[nodiscard]] BorderStatus getStatus() const override;
     [[nodiscard]] std::unique_ptr<IBorderState> tick() override;
     void onCenterChanged(f64 centerX, f64 centerZ) override;
@@ -508,7 +553,9 @@ void WorldBorder::addListener(std::shared_ptr<IBorderListener> listener)
     // 清理过期的监听器
     m_listeners.erase(std::remove_if(m_listeners.begin(),
                           m_listeners.end(),
-                          [](const std::weak_ptr<IBorderListener>& weak) { return weak.expired(); }),
+                          [](const std::weak_ptr<IBorderListener>& weak) {
+                              return weak.expired();
+                          }),
         m_listeners.end());
 }
 

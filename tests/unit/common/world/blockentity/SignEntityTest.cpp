@@ -94,7 +94,10 @@ TEST_F(SignEntityRegistryTest, CreateFromJson_SignEntity)
 
 class SignEntityTest : public ::testing::Test {
 protected:
-    void SetUp() override { signEntity = std::make_unique<SignEntity>(BlockPos(10, 20, 30)); }
+    void SetUp() override
+    {
+        signEntity = std::make_unique<SignEntity>(BlockPos(10, 20, 30));
+    }
 
     std::unique_ptr<SignEntity> signEntity;
 };
@@ -571,7 +574,10 @@ public:
         return it != m_uuidToEntity.end() ? it->second : nullptr;
     }
 
-    void playEvent(i32 eventId, const BlockPos& pos, i32 data) override { m_events.push_back({eventId, pos, data}); }
+    void playEvent(i32 eventId, const BlockPos& pos, i32 data) override
+    {
+        m_events.push_back({eventId, pos, data});
+    }
 
     void playSound(const ResourceLocation&, sound::SoundCategory, const Vector3&, f32, f32) override
     {
@@ -588,16 +594,23 @@ public:
     {
         throw std::runtime_error("SignEditorTestWorld::tickManager not implemented");
     }
+
     [[nodiscard]] const world::tick::TickManager& tickManager() const override
     {
         throw std::runtime_error("SignEditorTestWorld::tickManager not implemented");
     }
 
     /// 注册一个玩家到世界中（用于 getEntityByUuid 查找）
-    void registerPlayer(Player& player) { m_uuidToEntity[player.uuid()] = &player; }
+    void registerPlayer(Player& player)
+    {
+        m_uuidToEntity[player.uuid()] = &player;
+    }
 
     /// 注销一个玩家（模拟离线）
-    void unregisterPlayer(const std::string& uuid) { m_uuidToEntity.erase(uuid); }
+    void unregisterPlayer(const std::string& uuid)
+    {
+        m_uuidToEntity.erase(uuid);
+    }
 
 private:
     std::unordered_map<BlockPos, std::unique_ptr<BlockEntity>> m_blockEntities;
@@ -608,6 +621,7 @@ private:
         BlockPos pos;
         i32 data;
     };
+
     std::vector<EventRecord> m_events;
 };
 
@@ -617,7 +631,10 @@ private:
 
 class SignEntityEditorTest : public ::testing::Test {
 protected:
-    void SetUp() override { signEntity = std::make_unique<SignEntity>(BlockPos(10, 64, 20)); }
+    void SetUp() override
+    {
+        signEntity = std::make_unique<SignEntity>(BlockPos(10, 64, 20));
+    }
 
     SignEditorTestWorld world;
     std::unique_ptr<SignEntity> signEntity;

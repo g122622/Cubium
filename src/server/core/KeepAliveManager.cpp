@@ -37,7 +37,9 @@ KeepAliveManager::KeepAliveManager(PlayerManager& playerManager)
 bool KeepAliveManager::needsKeepAlive(PlayerId playerId, u64 currentTickMs) const
 {
     auto* player = m_playerManager.getPlayer(playerId);
-    if (!player) return false;
+    if (!player) {
+        return false;
+    }
 
     u64 lastSent = player->lastKeepAliveSent;
     return (currentTickMs - lastSent) >= network::KEEP_ALIVE_INTERVAL_MS;
@@ -59,7 +61,9 @@ std::vector<PlayerId> KeepAliveManager::getPlayersNeedingKeepAlive(u64 currentTi
 void KeepAliveManager::recordKeepAliveSent(PlayerId playerId, u64 timestamp, u64 tick)
 {
     auto* player = m_playerManager.getPlayer(playerId);
-    if (!player) return;
+    if (!player) {
+        return;
+    }
 
     player->lastKeepAliveSent = timestamp;
     player->lastKeepAliveSentTick = tick;
@@ -68,7 +72,9 @@ void KeepAliveManager::recordKeepAliveSent(PlayerId playerId, u64 timestamp, u64
 void KeepAliveManager::handleKeepAliveResponse(PlayerId playerId, u64 timestamp, u64 currentTimeMs)
 {
     auto* player = m_playerManager.getPlayer(playerId);
-    if (!player) return;
+    if (!player) {
+        return;
+    }
 
     // 验证时间戳是否匹配
     if (player->lastKeepAliveSent != timestamp) {
@@ -85,7 +91,9 @@ void KeepAliveManager::handleKeepAliveResponse(PlayerId playerId, u64 timestamp,
 void KeepAliveManager::updateKeepAlive(PlayerId playerId, u64 timestamp)
 {
     auto* player = m_playerManager.getPlayer(playerId);
-    if (!player) return;
+    if (!player) {
+        return;
+    }
 
     player->lastKeepAliveReceived = timestamp;
 }
@@ -93,7 +101,9 @@ void KeepAliveManager::updateKeepAlive(PlayerId playerId, u64 timestamp)
 bool KeepAliveManager::isTimedOut(PlayerId playerId, u64 currentTickMs) const
 {
     auto* player = m_playerManager.getPlayer(playerId);
-    if (!player) return false;
+    if (!player) {
+        return false;
+    }
 
     u64 lastReceived = player->lastKeepAliveReceived;
     return (currentTickMs - lastReceived) >= network::KEEP_ALIVE_TIMEOUT_MS;

@@ -82,8 +82,15 @@ public:
 
     // ========== Getters ==========
 
-    [[nodiscard]] const std::optional<ResourceLocation>& getEnchantment() const noexcept { return m_enchantment; }
-    [[nodiscard]] const IntBounds& getLevels() const noexcept { return m_levels; }
+    [[nodiscard]] const std::optional<ResourceLocation>& getEnchantment() const noexcept
+    {
+        return m_enchantment;
+    }
+
+    [[nodiscard]] const IntBounds& getLevels() const noexcept
+    {
+        return m_levels;
+    }
 
 private:
     std::optional<ResourceLocation> m_enchantment; ///< 附魔ID

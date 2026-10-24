@@ -54,7 +54,9 @@ static const CommandException ERROR_CANT_REMOVE =
 void ScheduleCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
 {
     auto scheduleNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("schedule");
-    scheduleNode->setRequirement([](const ServerCommandSource& source) { return source.hasPermission(2); });
+    scheduleNode->setRequirement([](const ServerCommandSource& source) {
+        return source.hasPermission(2);
+    });
     support::applyMetadata(scheduleNode,
         support::makeMetadata("Schedules a function to run at a later time.",
             "/schedule function <function> <time> [append|replace]",
@@ -71,16 +73,22 @@ void ScheduleCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatc
 
     // append 模式
     auto appendNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("append");
-    appendNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _scheduleFunction(ctx, true); });
+    appendNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _scheduleFunction(ctx, true);
+    });
     timeArg->addChild(appendNode);
 
     // replace 模式
     auto replaceNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("replace");
-    replaceNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _scheduleFunction(ctx, false); });
+    replaceNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _scheduleFunction(ctx, false);
+    });
     timeArg->addChild(replaceNode);
 
     // 默认为 replace
-    timeArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _scheduleFunction(ctx, false); });
+    timeArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _scheduleFunction(ctx, false);
+    });
 
     nameArg->addChild(timeArg);
     functionNode->addChild(nameArg);
@@ -91,7 +99,9 @@ void ScheduleCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatc
     auto clearNameArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, FunctionArgumentResult>>(
         "function", FunctionArgumentType::functions());
     clearNameArg->setCustomSuggestions(std::make_shared<FunctionSuggestionProvider>());
-    clearNameArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _clearSchedule(ctx); });
+    clearNameArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _clearSchedule(ctx);
+    });
     clearNode->addChild(clearNameArg);
     scheduleNode->addChild(clearNode);
 

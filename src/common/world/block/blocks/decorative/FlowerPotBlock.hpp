@@ -176,12 +176,18 @@ public:
     /**
      * @brief 获取内容物方块指针（空花盆返回 nullptr）
      */
-    [[nodiscard]] const Block* getPotted() const { return m_potted; }
+    [[nodiscard]] const Block* getPotted() const
+    {
+        return m_potted;
+    }
 
     /**
      * @brief 是否为空花盆
      */
-    [[nodiscard]] bool isEmpty() const { return m_potted == nullptr; }
+    [[nodiscard]] bool isEmpty() const
+    {
+        return m_potted == nullptr;
+    }
 
     // ========== 静态映射表 ==========
 

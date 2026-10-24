@@ -43,7 +43,10 @@ using namespace mc;
 
 class SoundInstanceTest : public ::testing::Test {
 protected:
-    void SetUp() override { testLocation = ResourceLocation("minecraft:test.sound"); }
+    void SetUp() override
+    {
+        testLocation = ResourceLocation("minecraft:test.sound");
+    }
 
     ResourceLocation testLocation;
 };
@@ -172,7 +175,10 @@ TEST_F(SoundInstanceTest, GetPosition)
 
 class SoundPoolTest : public ::testing::Test {
 protected:
-    void SetUp() override { pool = std::make_unique<SoundPool>(); }
+    void SetUp() override
+    {
+        pool = std::make_unique<SoundPool>();
+    }
 
     std::unique_ptr<SoundPool> pool;
     ResourceLocation testLocation{"minecraft:test.sound"};

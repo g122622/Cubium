@@ -75,7 +75,10 @@ public:
     /**
      * @brief 获取当前 tick（与 gameTime 相同）
      */
-    [[nodiscard]] u64 currentTick() const { return static_cast<u64>(m_gameTime.gameTime()); }
+    [[nodiscard]] u64 currentTick() const
+    {
+        return static_cast<u64>(m_gameTime.gameTime());
+    }
 
     /**
      * @brief 设置游戏时间
@@ -117,7 +120,10 @@ public:
     /**
      * @brief 检查日光周期是否启用
      */
-    [[nodiscard]] bool daylightCycleEnabled() const { return m_gameTime.daylightCycleEnabled(); }
+    [[nodiscard]] bool daylightCycleEnabled() const
+    {
+        return m_gameTime.daylightCycleEnabled();
+    }
 
     /**
      * @brief 启用/禁用日光周期
@@ -137,8 +143,15 @@ public:
     /**
      * @brief 获取内部 GameTime 对象
      */
-    [[nodiscard]] const time::GameTime& gameTimeObj() const { return m_gameTime; }
-    time::GameTime& gameTimeObj() { return m_gameTime; }
+    [[nodiscard]] const time::GameTime& gameTimeObj() const
+    {
+        return m_gameTime;
+    }
+
+    time::GameTime& gameTimeObj()
+    {
+        return m_gameTime;
+    }
 
 private:
     time::GameTime m_gameTime;

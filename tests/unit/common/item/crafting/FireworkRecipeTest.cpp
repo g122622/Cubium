@@ -62,7 +62,10 @@ CraftingInventory _grid()
 
 class FireworkStarRecipeTest : public ::testing::Test {
 protected:
-    static void SetUpTestSuite() { Items::initialize(); }
+    static void SetUpTestSuite()
+    {
+        Items::initialize();
+    }
 
     void SetUp() override
     {
@@ -206,6 +209,7 @@ TEST_F(FireworkStarRecipeTest, Assemble_ShapeItemsMapToShapes)
         const Item* item;
         FireworkShape shape;
     };
+
     const Case cases[] = {
         {Items::FIRE_CHARGE, FireworkShape::LargeBall},
         {Items::FEATHER, FireworkShape::Burst},
@@ -265,7 +269,10 @@ TEST_F(FireworkStarRecipeTest, RemainingItems_AllConsumed)
 
 class FireworkRocketRecipeTest : public ::testing::Test {
 protected:
-    static void SetUpTestSuite() { Items::initialize(); }
+    static void SetUpTestSuite()
+    {
+        Items::initialize();
+    }
 
     void SetUp() override
     {
@@ -432,7 +439,10 @@ TEST_F(FireworkRocketRecipeTest, Assemble_StarWithoutComponentContributesNothing
 
 class FireworkStarFadeRecipeTest : public ::testing::Test {
 protected:
-    static void SetUpTestSuite() { Items::initialize(); }
+    static void SetUpTestSuite()
+    {
+        Items::initialize();
+    }
 
     void SetUp() override
     {

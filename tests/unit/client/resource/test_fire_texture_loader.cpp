@@ -44,9 +44,15 @@ class InMemoryResourcePack final : public IResourcePack {
 public:
     InMemoryResourcePack() = default;
 
-    Result<void> initialize() override { return Result<void>::ok(); }
+    Result<void> initialize() override
+    {
+        return Result<void>::ok();
+    }
 
-    [[nodiscard]] const PackMetadata& metadata() const override { return m_metadata; }
+    [[nodiscard]] const PackMetadata& metadata() const override
+    {
+        return m_metadata;
+    }
 
     [[nodiscard]] bool hasResource(resource::PackType type, std::string_view resourcePath) const override
     {
@@ -118,9 +124,15 @@ public:
         return result;
     }
 
-    [[nodiscard]] std::string name() const override { return "InMemoryResourcePack"; }
+    [[nodiscard]] std::string name() const override
+    {
+        return "InMemoryResourcePack";
+    }
 
-    void add(std::string path, std::vector<u8> bytes) { m_resources.emplace(std::move(path), std::move(bytes)); }
+    void add(std::string path, std::vector<u8> bytes)
+    {
+        m_resources.emplace(std::move(path), std::move(bytes));
+    }
 
 private:
     PackMetadata m_metadata{6, "test-pack"};
@@ -373,8 +385,12 @@ TEST(FireTextureLoaderTest, LoadsBothFramesFromResourcePack)
 {
     auto pack = std::make_shared<InMemoryResourcePack>();
     // 提供 2x2 的 fire_0.png 和 fire_1.png，像素不同
-    auto fire0 = makePng(2, 2, [](u32 x, u32 y, u32 c) -> u8 { return static_cast<u8>((x + y * 2 + c) & 0xFF); });
-    auto fire1 = makePng(2, 2, [](u32 x, u32 y, u32 c) -> u8 { return static_cast<u8>((x + y * 2 + c + 100) & 0xFF); });
+    auto fire0 = makePng(2, 2, [](u32 x, u32 y, u32 c) -> u8 {
+        return static_cast<u8>((x + y * 2 + c) & 0xFF);
+    });
+    auto fire1 = makePng(2, 2, [](u32 x, u32 y, u32 c) -> u8 {
+        return static_cast<u8>((x + y * 2 + c + 100) & 0xFF);
+    });
     pack->add("assets/minecraft/textures/block/fire_0.png", fire0);
     pack->add("assets/minecraft/textures/block/fire_1.png", fire1);
 
@@ -450,12 +466,14 @@ TEST(FireTextureLoaderTest, HigherPriorityPackOverridesLowerPriority)
 {
     // 两个包：低优先级包提供 fire_0.png（像素值为 10），高优先级包提供 fire_0.png（像素值为 200）
     auto lowPriority = std::make_shared<InMemoryResourcePack>();
-    lowPriority->add(
-        "assets/minecraft/textures/block/fire_0.png", makePng(1, 1, [](u32, u32, u32) -> u8 { return 10; }));
+    lowPriority->add("assets/minecraft/textures/block/fire_0.png", makePng(1, 1, [](u32, u32, u32) -> u8 {
+        return 10;
+    }));
 
     auto highPriority = std::make_shared<InMemoryResourcePack>();
-    highPriority->add(
-        "assets/minecraft/textures/block/fire_0.png", makePng(1, 1, [](u32, u32, u32) -> u8 { return 200; }));
+    highPriority->add("assets/minecraft/textures/block/fire_0.png", makePng(1, 1, [](u32, u32, u32) -> u8 {
+        return 200;
+    }));
 
     // packs 按优先级从低到高排列：lowPriority 在前，highPriority 在后
     std::vector<IResourcePack*> packs{lowPriority.get(), highPriority.get()};
@@ -583,8 +601,12 @@ TEST(FireTextureLoaderTest, ReadsVanillaFire0McmetaFrameSequence)
 TEST(FireTextureLoaderTest, BothTexturesShareSameFrameDimensions)
 {
     // fire_0 和 fire_1 帧尺寸必须一致
-    auto fire0 = makePng(16, 32, [](u32, u32, u32) -> u8 { return 0; });   // 2 帧
-    auto fire1 = makePng(16, 64, [](u32, u32, u32) -> u8 { return 128; }); // 4 帧
+    auto fire0 = makePng(16, 32, [](u32, u32, u32) -> u8 {
+        return 0;
+    }); // 2 帧
+    auto fire1 = makePng(16, 64, [](u32, u32, u32) -> u8 {
+        return 128;
+    }); // 4 帧
 
     auto pack = std::make_shared<InMemoryResourcePack>();
     pack->add("assets/minecraft/textures/block/fire_0.png", fire0);

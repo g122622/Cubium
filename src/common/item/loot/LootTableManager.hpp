@@ -103,12 +103,18 @@ public:
      *
      * @param manager 谓词管理器指针（生命周期须长于此对象）
      */
-    void setPredicateManager(const LootPredicateManager* manager) noexcept { m_predicateManager = manager; }
+    void setPredicateManager(const LootPredicateManager* manager) noexcept
+    {
+        m_predicateManager = manager;
+    }
 
     /**
      * @brief 获取谓词管理器
      */
-    [[nodiscard]] const LootPredicateManager* getPredicateManager() const noexcept { return m_predicateManager; }
+    [[nodiscard]] const LootPredicateManager* getPredicateManager() const noexcept
+    {
+        return m_predicateManager;
+    }
 
     /**
      * @brief 查找命名谓词

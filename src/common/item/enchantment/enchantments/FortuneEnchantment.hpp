@@ -54,18 +54,30 @@ public:
 
     // ========== Enchantment 接口实现 ==========
 
-    [[nodiscard]] std::string id() const override { return "minecraft:fortune"; }
+    [[nodiscard]] std::string id() const override
+    {
+        return "minecraft:fortune";
+    }
 
-    [[nodiscard]] i32 minLevel() const noexcept override { return 1; }
+    [[nodiscard]] i32 minLevel() const noexcept override
+    {
+        return 1;
+    }
 
     [[nodiscard]] i32 maxLevel() const noexcept override
     {
         return 3; // Fortune I, II, III
     }
 
-    [[nodiscard]] EnchantmentType type() const override { return EnchantmentType::Digger; }
+    [[nodiscard]] EnchantmentType type() const override
+    {
+        return EnchantmentType::Digger;
+    }
 
-    [[nodiscard]] EnchantmentRarity rarity() const noexcept override { return EnchantmentRarity::Rare; }
+    [[nodiscard]] EnchantmentRarity rarity() const noexcept override
+    {
+        return EnchantmentRarity::Rare;
+    }
 
     [[nodiscard]] bool isCompatibleWith(const Enchantment& other) const override
     {
@@ -76,9 +88,15 @@ public:
         return Enchantment::isCompatibleWith(other);
     }
 
-    [[nodiscard]] i32 getMinCost(i32 level) const override { return 15 + (level - 1) * 9; }
+    [[nodiscard]] i32 getMinCost(i32 level) const override
+    {
+        return 15 + (level - 1) * 9;
+    }
 
-    [[nodiscard]] i32 getMaxCost(i32 level) const override { return Enchantment::getMinCost(level) + 50; }
+    [[nodiscard]] i32 getMaxCost(i32 level) const override
+    {
+        return getMinCost(level) + 50;
+    }
 };
 
 } // namespace enchant

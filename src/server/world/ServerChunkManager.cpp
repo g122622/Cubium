@@ -145,7 +145,10 @@ public:
         m_flag = true;
     }
 
-    ~_DrainFlagGuard() { m_flag = false; }
+    ~_DrainFlagGuard()
+    {
+        m_flag = false;
+    }
 
     _DrainFlagGuard(const _DrainFlagGuard&) = delete;
     _DrainFlagGuard& operator=(const _DrainFlagGuard&) = delete;
@@ -360,7 +363,9 @@ ChunkData* ServerChunkManager::requestChunkSync(ChunkCoord x, ChunkCoord z, cons
         z,
         "targetStatus",
         targetStatus.name(),
-        [flow = ::perfetto::Flow::ProcessScoped(ChunkPos(x, z).toId())](::perfetto::EventContext ctx) { flow(ctx); });
+        [flow = ::perfetto::Flow::ProcessScoped(ChunkPos(x, z).toId())](::perfetto::EventContext ctx) {
+            flow(ctx);
+        });
 
     if (ChunkData* chunk = tryToGetChunkInMem(x, z)) {
         return chunk;
@@ -839,7 +844,9 @@ SingleChunkLifecycleManager& ServerChunkManager::_getOrCreateLifecycleManager(Ch
     // 依赖图增删）重新评估卸载候选资格。这是事件驱动的核心——取代周期全量扫描。
     // 观察者捕获 this，生命周期由 ServerChunkManager 保证（持有者存活于 m_lifecycleManagers 内，
     // 管理器先于所有持有者析构；_updateUnloadCandidate 内部还有 m_shuttingDown 守卫）。
-    ptr->setUnloadStateObserver([this](SingleChunkLifecycleManager& holder) { _updateUnloadCandidate(holder); });
+    ptr->setUnloadStateObserver([this](SingleChunkLifecycleManager& holder) {
+        _updateUnloadCandidate(holder);
+    });
     m_lifecycleManagers[key] = std::move(lifecycleManager);
     return *ptr;
 }

@@ -52,17 +52,23 @@ inline constexpr std::string_view DEFAULT_KICK_REASON = "Kicked by an operator";
 void KickCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
 {
     auto kickNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("kick");
-    kickNode->setRequirement([](const ServerCommandSource& source) { return source.hasPermission(3); });
+    kickNode->setRequirement([](const ServerCommandSource& source) {
+        return source.hasPermission(3);
+    });
     support::applyMetadata(kickNode,
         support::makeMetadata("Disconnect players from the server.", "/kick <targets> [reason]", 3, {}, true));
 
     auto targetsArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, EntitySelector>>(
         "targets", EntityArgumentType::players());
-    targetsArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _kickPlayers(ctx); });
+    targetsArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _kickPlayers(ctx);
+    });
 
     auto reasonArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
         "reason", StringArgumentType::greedyString());
-    reasonArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _kickPlayers(ctx); });
+    reasonArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _kickPlayers(ctx);
+    });
 
     targetsArg->addChild(reasonArg);
     kickNode->addChild(targetsArg);

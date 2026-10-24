@@ -112,11 +112,19 @@ TEST(GameTestHelper, NullHelperCompletionPathsNoCrash)
     mc::test::NullGameTestHelper helper;
     const mc::BlockPos pos{0, 0, 0};
     helper.succeedWhenBlockPresent("stone", pos, true);
-    helper.succeedWhen([] { return mc::test::pass(); });
-    helper.succeedIf([] { return mc::test::pass(); });
+    helper.succeedWhen([] {
+        return mc::test::pass();
+    });
+    helper.succeedIf([] {
+        return mc::test::pass();
+    });
     helper.succeedOnTick(10);
-    helper.succeedOnTickWhen(10, [] { return mc::test::pass(); });
-    helper.failIf([] { return mc::test::pass(); });
+    helper.succeedOnTickWhen(10, [] {
+        return mc::test::pass();
+    });
+    helper.failIf([] {
+        return mc::test::pass();
+    });
     SUCCEED();
 }
 
@@ -145,7 +153,10 @@ TEST(GameTestHelper, NullHelperStartSequenceDrivesToSuccess)
 {
     mc::test::NullGameTestHelper helper;
     auto& seq = helper.startSequence();
-    seq.thenExecute([] { return mc::test::pass(); }).thenSucceed();
+    seq.thenExecute([] {
+           return mc::test::pass();
+       })
+        .thenSucceed();
     bool succeeded = false;
     for (mc::i32 t = 0; t < 20 && !seq.isComplete(); ++t) {
         seq.tick(t);

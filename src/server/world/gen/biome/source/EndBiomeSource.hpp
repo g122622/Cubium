@@ -32,6 +32,7 @@ namespace mc {
 namespace world {
 namespace gen {
 class RandomState;
+
 namespace density {
 class EndIslands;
 } // namespace density

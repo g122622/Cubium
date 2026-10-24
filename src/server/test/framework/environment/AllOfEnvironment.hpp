@@ -19,6 +19,7 @@ namespace mc::test {
 class AllOfEnvironment final : public TestEnvironmentDefinition {
 public:
     AllOfEnvironment() = default;
+
     explicit AllOfEnvironment(std::vector<std::shared_ptr<TestEnvironmentDefinition>> definitions)
         : m_definitions(std::move(definitions))
     {}

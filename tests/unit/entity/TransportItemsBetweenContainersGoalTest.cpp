@@ -77,46 +77,139 @@ public:
     {}
 
     // 暴露私有查询方法
-    [[nodiscard]] bool isPickingUpItems() const { return m_goal._isPickingUpItems(); }
-    [[nodiscard]] bool hasReachedTarget() const { return m_goal._hasReachedTarget(); }
-    [[nodiscard]] bool isWithinQueuingDistance() const { return m_goal._isWithinQueuingDistance(); }
+    [[nodiscard]] bool isPickingUpItems() const
+    {
+        return m_goal._isPickingUpItems();
+    }
+
+    [[nodiscard]] bool hasReachedTarget() const
+    {
+        return m_goal._hasReachedTarget();
+    }
+
+    [[nodiscard]] bool isWithinQueuingDistance() const
+    {
+        return m_goal._isWithinQueuingDistance();
+    }
+
     [[nodiscard]] bool isWithinContinueInteractingDistance() const
     {
         return m_goal._isWithinContinueInteractingDistance();
     }
-    [[nodiscard]] bool isAnotherMobInteractingWithTarget() const { return m_goal._isAnotherMobInteractingWithTarget(); }
+
+    [[nodiscard]] bool isAnotherMobInteractingWithTarget() const
+    {
+        return m_goal._isAnotherMobInteractingWithTarget();
+    }
 
     // 暴露私有 AABB 距离判定方法（用于直接测试 MC isWithinTargetDistance 复刻）
     [[nodiscard]] bool isWithinTargetDistance(f64 distance, const Vector3& center) const
     {
         return m_goal._isWithinTargetDistance(distance, center);
     }
-    [[nodiscard]] Vector3 getCenterPos() const { return m_goal._getCenterPos(); }
-    [[nodiscard]] f64 getInteractionRange() const { return m_goal._getInteractionRange(); }
+
+    [[nodiscard]] Vector3 getCenterPos() const
+    {
+        return m_goal._getCenterPos();
+    }
+
+    [[nodiscard]] f64 getInteractionRange() const
+    {
+        return m_goal._getInteractionRange();
+    }
 
     // 暴露私有物品操作方法
-    void pickupItemFromContainer(IInventory& container) { m_goal._pickupItemFromContainer(container); }
-    void addItemsToContainer(IInventory& container) { m_goal._addItemsToContainer(container); }
+    void pickupItemFromContainer(IInventory& container)
+    {
+        m_goal._pickupItemFromContainer(container);
+    }
+
+    void addItemsToContainer(IInventory& container)
+    {
+        m_goal._addItemsToContainer(container);
+    }
 
     // 暴露私有状态控制方法
-    void setAnimationState(bool success) { m_goal._setAnimationState(success); }
-    void playInteractionSound(bool success) { m_goal._playInteractionSound(success); }
-    void enterCooldown() { m_goal._enterCooldown(); }
-    void resetTransportState() { m_goal._resetTransportState(); }
-    void startTravelling() { m_goal._startTravelling(); }
-    void startQueuing() { m_goal._startQueuing(); }
-    void resumeTravelling() { m_goal._resumeTravelling(); }
-    void startInteracting() { m_goal._startInteracting(); }
-    void tickInteracting() { m_goal._tickInteracting(); }
-    void tick() { m_goal.tick(); }
+    void setAnimationState(bool success)
+    {
+        m_goal._setAnimationState(success);
+    }
+
+    void playInteractionSound(bool success)
+    {
+        m_goal._playInteractionSound(success);
+    }
+
+    void enterCooldown()
+    {
+        m_goal._enterCooldown();
+    }
+
+    void resetTransportState()
+    {
+        m_goal._resetTransportState();
+    }
+
+    void startTravelling()
+    {
+        m_goal._startTravelling();
+    }
+
+    void startQueuing()
+    {
+        m_goal._startQueuing();
+    }
+
+    void resumeTravelling()
+    {
+        m_goal._resumeTravelling();
+    }
+
+    void startInteracting()
+    {
+        m_goal._startInteracting();
+    }
+
+    void tickInteracting()
+    {
+        m_goal._tickInteracting();
+    }
+
+    void tick()
+    {
+        m_goal.tick();
+    }
 
     // 暴露状态查询
-    [[nodiscard]] i32 getCooldown() const { return m_goal.m_cooldown; }
-    [[nodiscard]] bool hasDestinationBlock() const { return m_goal.m_destinationBlock.has_value(); }
-    [[nodiscard]] BlockPos getDestinationBlock() const { return m_goal.m_destinationBlock.value(); }
-    [[nodiscard]] i32 getInteractionTicks() const { return m_goal.m_interactionTicks; }
-    [[nodiscard]] bool getInteractionSuccess() const { return m_goal.m_interactionSuccess; }
-    [[nodiscard]] u8 getTransportState() const { return static_cast<u8>(m_goal.m_state); }
+    [[nodiscard]] i32 getCooldown() const
+    {
+        return m_goal.m_cooldown;
+    }
+
+    [[nodiscard]] bool hasDestinationBlock() const
+    {
+        return m_goal.m_destinationBlock.has_value();
+    }
+
+    [[nodiscard]] BlockPos getDestinationBlock() const
+    {
+        return m_goal.m_destinationBlock.value();
+    }
+
+    [[nodiscard]] i32 getInteractionTicks() const
+    {
+        return m_goal.m_interactionTicks;
+    }
+
+    [[nodiscard]] bool getInteractionSuccess() const
+    {
+        return m_goal.m_interactionSuccess;
+    }
+
+    [[nodiscard]] u8 getTransportState() const
+    {
+        return static_cast<u8>(m_goal.m_state);
+    }
 
     // 暴露状态枚举值（供测试比较）
     static constexpr u8 STATE_TRAVELLING =
@@ -127,36 +220,57 @@ public:
         static_cast<u8>(entity::ai::goal::TransportItemsBetweenContainersGoal::TransportState::Interacting);
 
     // 设置私有状态（用于驱动测试场景）
-    void setDestinationBlock(const BlockPos& pos) { m_goal.m_destinationBlock = pos; }
+    void setDestinationBlock(const BlockPos& pos)
+    {
+        m_goal.m_destinationBlock = pos;
+    }
+
     void setTransportState(u8 state)
     {
         m_goal.m_state = static_cast<entity::ai::goal::TransportItemsBetweenContainersGoal::TransportState>(state);
     }
-    void setCooldown(i32 cd) { m_goal.m_cooldown = cd; }
-    void clearVisitedPositions() { m_goal.m_visitedPositions.clear(); }
-    void clearUnreachablePositions() { m_goal.m_unreachablePositions.clear(); }
+
+    void setCooldown(i32 cd)
+    {
+        m_goal.m_cooldown = cd;
+    }
+
+    void clearVisitedPositions()
+    {
+        m_goal.m_visitedPositions.clear();
+    }
+
+    void clearUnreachablePositions()
+    {
+        m_goal.m_unreachablePositions.clear();
+    }
 
     // 暴露常量
     [[nodiscard]] static i32 getMaxStackSize()
     {
         return entity::ai::goal::TransportItemsBetweenContainersGoal::TRANSPORTED_ITEM_MAX_STACK_SIZE;
     }
+
     [[nodiscard]] static i32 getIdleCooldown()
     {
         return entity::ai::goal::TransportItemsBetweenContainersGoal::IDLE_COOLDOWN;
     }
+
     [[nodiscard]] static i32 getTargetInteractionTime()
     {
         return entity::ai::goal::TransportItemsBetweenContainersGoal::TARGET_INTERACTION_TIME;
     }
+
     [[nodiscard]] static i32 getTickToStartInteraction()
     {
         return entity::ai::goal::TransportItemsBetweenContainersGoal::TICK_TO_START_INTERACTION;
     }
+
     [[nodiscard]] static i32 getTickToPlaySound()
     {
         return entity::ai::goal::TransportItemsBetweenContainersGoal::TICK_TO_PLAY_SOUND;
     }
+
     [[nodiscard]] static i32 getTickToEndInteraction()
     {
         return entity::ai::goal::TransportItemsBetweenContainersGoal::TICK_TO_END_INTERACTION;
@@ -178,11 +292,27 @@ class TransportItemsTestWorld final : public mc::test::BaseTestWorld {
 public:
     TransportItemsTestWorld() = default;
 
-    [[nodiscard]] mc::world::chunk::IChunkManager* chunkManager() override { return &m_stubChunks; }
-    [[nodiscard]] const mc::world::chunk::IChunkManager* chunkManager() const override { return &m_stubChunks; }
+    [[nodiscard]] mc::world::chunk::IChunkManager* chunkManager() override
+    {
+        return &m_stubChunks;
+    }
+
+    [[nodiscard]] const mc::world::chunk::IChunkManager* chunkManager() const override
+    {
+        return &m_stubChunks;
+    }
+
     mc::test::StubChunkManager m_stubChunks{nullptr, true};
-    [[nodiscard]] bool isClientSide() const override { return false; }
-    [[nodiscard]] u64 currentTick() const override { return m_currentTick; }
+
+    [[nodiscard]] bool isClientSide() const override
+    {
+        return false;
+    }
+
+    [[nodiscard]] u64 currentTick() const override
+    {
+        return m_currentTick;
+    }
 
     void playSound(const ResourceLocation&, sound::SoundCategory, const Vector3&, f32, f32) override
     {
@@ -242,7 +372,10 @@ public:
     }
 
     // 测试辅助方法
-    void setTick(u64 tick) { m_currentTick = tick; }
+    void setTick(u64 tick)
+    {
+        m_currentTick = tick;
+    }
 
     /// 注册外部实体到搜索列表（用于测试中需要被 getEntitiesInRange 发现的实体）
     void registerEntity(Entity* entity)
@@ -262,7 +395,10 @@ public:
     }
 
     /// 在指定位置放置方块状态
-    void setBlock(const BlockPos& pos, const BlockState& state) { setBlockState(pos.x, pos.y, pos.z, &state); }
+    void setBlock(const BlockPos& pos, const BlockState& state)
+    {
+        setBlockState(pos.x, pos.y, pos.z, &state);
+    }
 
 private:
     u64 m_currentTick = 0;
@@ -310,9 +446,15 @@ protected:
         }
     }
 
-    void SetUp() override { m_world = std::make_unique<TransportItemsTestWorld>(); }
+    void SetUp() override
+    {
+        m_world = std::make_unique<TransportItemsTestWorld>();
+    }
 
-    void TearDown() override { m_world.reset(); }
+    void TearDown() override
+    {
+        m_world.reset();
+    }
 
     std::unique_ptr<TransportItemsTestWorld> m_world;
 };

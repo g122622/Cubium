@@ -56,7 +56,10 @@ public:
     void resetTask() override;
     void tick() override;
 
-    [[nodiscard]] std::string getTypeName() const override { return "FollowParentGoal"; }
+    [[nodiscard]] std::string getTypeName() const override
+    {
+        return "FollowParentGoal";
+    }
 
 protected:
     /**

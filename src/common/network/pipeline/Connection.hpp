@@ -91,6 +91,7 @@ public:
     {
         m_state->installReceive();
     }
+
     Connection(std::unique_ptr<transport::ILocalTransport> transport,
         std::shared_ptr<ProtocolTableSet<B>> tables,
         protocol::PacketFlow flow)
@@ -98,7 +99,12 @@ public:
     {
         m_state->installReceive();
     }
-    ~Connection() { close(); }
+
+    ~Connection()
+    {
+        close();
+    }
+
     Connection(const Connection&) = delete;
     Connection& operator=(const Connection&) = delete;
 
@@ -107,53 +113,118 @@ public:
     {
         return sendShared(std::make_shared<const OutboundPacket>(std::move(packet)));
     }
+
     /** @brief 发送可跨连接复用的不可变快照。 */
     [[nodiscard]] Result<void> sendShared(const std::shared_ptr<const OutboundPacket>& packet)
     {
-        return m_state->execute([state = m_state, packet] { return state->send(*packet); });
+        return m_state->execute([state = m_state, packet] {
+            return state->send(*packet);
+        });
     }
+
     /** @brief 在连接执行器内按实际出站阶段构造断开原因包，避免与排队的协议切换竞争。 */
     [[nodiscard]] Result<void> sendDisconnect(const std::string& reason)
     {
-        return m_state->execute([state = m_state, reason] { return state->sendDisconnect(reason); });
+        return m_state->execute([state = m_state, reason] {
+            return state->sendDisconnect(reason);
+        });
     }
+
     /** @brief 有序装配接收监听器。 */
     void onPacket(PacketListener listener)
     {
-        _configure([listener = std::move(listener)](State& state) mutable { state.onPacket(std::move(listener)); });
+        _configure([listener = std::move(listener)](State& state) mutable {
+            state.onPacket(std::move(listener));
+        });
     }
-    [[nodiscard]] protocol::PacketFlow flow() const noexcept { return m_state->flow(); }
-    [[nodiscard]] bool isWireMode() const noexcept { return m_state->isWireMode(); }
-    [[nodiscard]] bool isLocalMode() const noexcept { return m_state->isLocalMode(); }
-    [[nodiscard]] bool isConnected() const noexcept { return m_state->isConnected(); }
-    [[nodiscard]] protocol::ConnectionProtocol phase() const noexcept { return m_state->phase(); }
-    [[nodiscard]] protocol::ConnectionProtocol inboundPhase() const noexcept { return m_state->inboundPhase(); }
-    [[nodiscard]] protocol::ConnectionProtocol outboundPhase() const noexcept { return m_state->outboundPhase(); }
+
+    [[nodiscard]] protocol::PacketFlow flow() const noexcept
+    {
+        return m_state->flow();
+    }
+
+    [[nodiscard]] bool isWireMode() const noexcept
+    {
+        return m_state->isWireMode();
+    }
+
+    [[nodiscard]] bool isLocalMode() const noexcept
+    {
+        return m_state->isLocalMode();
+    }
+
+    [[nodiscard]] bool isConnected() const noexcept
+    {
+        return m_state->isConnected();
+    }
+
+    [[nodiscard]] protocol::ConnectionProtocol phase() const noexcept
+    {
+        return m_state->phase();
+    }
+
+    [[nodiscard]] protocol::ConnectionProtocol inboundPhase() const noexcept
+    {
+        return m_state->inboundPhase();
+    }
+
+    [[nodiscard]] protocol::ConnectionProtocol outboundPhase() const noexcept
+    {
+        return m_state->outboundPhase();
+    }
+
     /** @brief 将入站阶段切换排入连接执行队列。 */
-    void setPhase(protocol::ConnectionProtocol phase) { setInboundPhase(phase); }
+    void setPhase(protocol::ConnectionProtocol phase)
+    {
+        setInboundPhase(phase);
+    }
+
     void setInboundPhase(protocol::ConnectionProtocol phase)
     {
-        _configure([phase](State& state) { state.setInboundPhase(phase); });
+        _configure([phase](State& state) {
+            state.setInboundPhase(phase);
+        });
     }
+
     void setOutboundPhase(protocol::ConnectionProtocol phase)
     {
-        _configure([phase](State& state) { state.setOutboundPhase(phase); });
+        _configure([phase](State& state) {
+            state.setOutboundPhase(phase);
+        });
     }
+
     /** @brief 在此前的发包任务之后启用或关闭压缩。 */
     void setupCompression(i32 threshold)
     {
-        _configure([threshold](State& state) { state.setupCompression(threshold); });
+        _configure([threshold](State& state) {
+            state.setupCompression(threshold);
+        });
     }
+
     /** @brief 将加密装配排入连接执行队列；初始化失败会异步断开。 */
     [[nodiscard]] Result<void> setupEncryption(const std::array<u8, crypto::kSharedSecretBytes>& secret)
     {
-        return m_state->execute([state = m_state, secret] { return state->setupEncryption(secret); });
+        return m_state->execute([state = m_state, secret] {
+            return state->setupEncryption(secret);
+        });
     }
-    void pumpLocal() { m_state->pumpLocal(); }
+
+    void pumpLocal()
+    {
+        m_state->pumpLocal();
+    }
+
     /** @brief 同步停止接收回调并立即关闭；析构后没有引用门面的在途回调。 */
-    void close() { m_state->close(); }
+    void close()
+    {
+        m_state->close();
+    }
+
     /** @brief 在排队数据写完或超时后关闭，保留断开原因包。 */
-    void closeAfterFlush() { m_state->closeAfterFlush(); }
+    void closeAfterFlush()
+    {
+        m_state->closeAfterFlush();
+    }
 
 private:
     class State : public std::enable_shared_from_this<State> {
@@ -200,52 +271,97 @@ private:
         /** @brief 使用执行时的协议阶段发送断开原因包。 */
         [[nodiscard]] Result<void> sendDisconnect(const std::string& reason);
         [[nodiscard]] Result<std::vector<u8>> encodeFrame(const ir::IrPacket& packet);
+
         void installReceive()
         {
-            if (isWireMode())
+            if (isWireMode()) {
                 _installWireReceive();
-            else
+            } else {
                 _installLocalReceive();
+            }
         }
+
         [[nodiscard]] Result<void> execute(transport::ITransport::Task task)
         {
             return isWireMode() ? m_wireTransport->execute(std::move(task)) : task();
         }
+
         void synchronize()
         {
-            if (isWireMode()) m_wireTransport->synchronize();
+            if (isWireMode()) {
+                m_wireTransport->synchronize();
+            }
         }
+
         void closeAfterFlush()
         {
-            if (isWireMode())
+            if (isWireMode()) {
                 m_wireTransport->closeAfterFlush();
-            else
+            } else {
                 close();
+            }
         }
 
         /**
          * @brief 注册包到达监听器
          */
-        void onPacket(PacketListener listener) { m_listener = std::move(listener); }
+        void onPacket(PacketListener listener)
+        {
+            m_listener = std::move(listener);
+        }
 
-        [[nodiscard]] protocol::PacketFlow flow() const noexcept { return m_flow; }
-        [[nodiscard]] bool isWireMode() const noexcept { return m_mode == Mode::Wire; }
-        [[nodiscard]] bool isLocalMode() const noexcept { return m_mode == Mode::Local; }
+        [[nodiscard]] protocol::PacketFlow flow() const noexcept
+        {
+            return m_flow;
+        }
+
+        [[nodiscard]] bool isWireMode() const noexcept
+        {
+            return m_mode == Mode::Wire;
+        }
+
+        [[nodiscard]] bool isLocalMode() const noexcept
+        {
+            return m_mode == Mode::Local;
+        }
+
         [[nodiscard]] bool isConnected() const noexcept;
 
         /// 入站阶段（对端发来方向的解码表）。disconnect 发对端可解的包时用此。
-        [[nodiscard]] protocol::ConnectionProtocol phase() const noexcept { return m_inboundPhase.load(); }
-        [[nodiscard]] protocol::ConnectionProtocol inboundPhase() const noexcept { return m_inboundPhase.load(); }
+        [[nodiscard]] protocol::ConnectionProtocol phase() const noexcept
+        {
+            return m_inboundPhase.load();
+        }
+
+        [[nodiscard]] protocol::ConnectionProtocol inboundPhase() const noexcept
+        {
+            return m_inboundPhase.load();
+        }
+
         /// 出站阶段（本端发出方向的编码表）。
-        [[nodiscard]] protocol::ConnectionProtocol outboundPhase() const noexcept { return m_outboundPhase.load(); }
+        [[nodiscard]] protocol::ConnectionProtocol outboundPhase() const noexcept
+        {
+            return m_outboundPhase.load();
+        }
 
         /**
          * @brief 主动切换阶段。语义为切换【入站】阶段（供 disconnect 等按对端可解阶段发包）。
          * 出站阶段切换用 setOutboundPhase。
          */
-        void setPhase(protocol::ConnectionProtocol phase) noexcept { m_inboundPhase = phase; }
-        void setInboundPhase(protocol::ConnectionProtocol phase) noexcept { m_inboundPhase = phase; }
-        void setOutboundPhase(protocol::ConnectionProtocol phase) noexcept { m_outboundPhase = phase; }
+        void setPhase(protocol::ConnectionProtocol phase) noexcept
+        {
+            m_inboundPhase = phase;
+        }
+
+        void setInboundPhase(protocol::ConnectionProtocol phase) noexcept
+        {
+            m_inboundPhase = phase;
+        }
+
+        void setOutboundPhase(protocol::ConnectionProtocol phase) noexcept
+        {
+            m_outboundPhase = phase;
+        }
 
         /**
          * @brief 装入压缩层（收到 LoginCompression 后调用）
@@ -344,6 +460,7 @@ private:
         std::vector<u8> m_encryptedIn;
         std::vector<u8> m_plainIn;
     };
+
     template <typename F>
     void _configure(F action)
     {
@@ -351,8 +468,11 @@ private:
             action(*state);
             return Result<void>::ok();
         });
-        if (!result.success()) spdlog::warn("Connection configuration rejected: {}", result.error().toString());
+        if (!result.success()) {
+            spdlog::warn("Connection configuration rejected: {}", result.error().toString());
+        }
     }
+
     std::shared_ptr<State> m_state;
 };
 

@@ -56,20 +56,42 @@ public:
     // 透传层无自身同步字段，classInfo 仅作父链遍历节点。
     static const entity::EntityClassInfo& classInfo();
 
-    [[nodiscard]] virtual bool canBeLeader() const { return true; }
-    [[nodiscard]] virtual bool canJoinPatrol() const { return true; }
+    [[nodiscard]] virtual bool canBeLeader() const
+    {
+        return true;
+    }
+
+    [[nodiscard]] virtual bool canJoinPatrol() const
+    {
+        return true;
+    }
 
     void setPatrolTarget(const BlockPos& patrolTarget);
     [[nodiscard]] const BlockPos& getPatrolTarget() const;
-    [[nodiscard]] bool hasPatrolTarget() const { return m_patrolTarget.has_value(); }
+
+    [[nodiscard]] bool hasPatrolTarget() const
+    {
+        return m_patrolTarget.has_value();
+    }
 
     void setLeader(bool isLeader);
-    [[nodiscard]] bool isLeader() const { return m_isPatrolLeader; }
+
+    [[nodiscard]] bool isLeader() const
+    {
+        return m_isPatrolLeader;
+    }
 
     void resetPatrolTarget();
 
-    [[nodiscard]] bool isPatrolling() const { return m_isPatrolling; }
-    void setPatrolling(bool patrolling) { m_isPatrolling = patrolling; }
+    [[nodiscard]] bool isPatrolling() const
+    {
+        return m_isPatrolling;
+    }
+
+    void setPatrolling(bool patrolling)
+    {
+        m_isPatrolling = patrolling;
+    }
 
 protected:
     void registerGoals() override;

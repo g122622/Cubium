@@ -264,7 +264,10 @@ public:
         return false;
     }
 
-    void onMouseEnter() override { Widget::onMouseEnter(); }
+    void onMouseEnter() override
+    {
+        Widget::onMouseEnter();
+    }
 
     void onMouseLeave() override
     {
@@ -323,7 +326,10 @@ public:
     /**
      * @brief 获取文本组件
      */
-    [[nodiscard]] const text::ITextComponent* getText() const { return m_text.get(); }
+    [[nodiscard]] const text::ITextComponent* getText() const
+    {
+        return m_text.get();
+    }
 
     /**
      * @brief 获取纯文本内容
@@ -338,33 +344,64 @@ public:
 
     // ==================== 样式设置 ====================
 
-    void setBaseColor(u32 color) { m_baseColor = color; }
-    void setShadow(bool shadow) { m_shadow = shadow; }
-    void setShadowColor(u32 color) { m_shadowColor = color; }
+    void setBaseColor(u32 color)
+    {
+        m_baseColor = color;
+    }
+
+    void setShadow(bool shadow)
+    {
+        m_shadow = shadow;
+    }
+
+    void setShadowColor(u32 color)
+    {
+        m_shadowColor = color;
+    }
+
     void setWordWrap(bool wrap)
     {
         m_wordWrap = wrap;
         m_linesDirty = true;
     }
-    void setAlignment(TextAlignment alignment) { m_alignment = alignment; }
+
+    void setAlignment(TextAlignment alignment)
+    {
+        m_alignment = alignment;
+    }
+
     void setLineSpacing(f32 spacing)
     {
         m_lineSpacing = spacing;
         m_linesDirty = true;
     }
+
     void setMaxLines(i32 maxLines)
     {
         m_maxLines = maxLines;
         m_linesDirty = true;
     }
+
     void setFont(::mc::client::Font* font)
     {
         m_font = font;
         m_linesDirty = true;
     }
-    void setEventsEnabled(bool enabled) { m_eventsEnabled = enabled; }
-    void setOnClick(ClickCallback callback) { m_onClick = std::move(callback); }
-    void setOnHover(HoverCallback callback) { m_onHover = std::move(callback); }
+
+    void setEventsEnabled(bool enabled)
+    {
+        m_eventsEnabled = enabled;
+    }
+
+    void setOnClick(ClickCallback callback)
+    {
+        m_onClick = std::move(callback);
+    }
+
+    void setOnHover(HoverCallback callback)
+    {
+        m_onHover = std::move(callback);
+    }
 
     // ==================== 布局计算 ====================
 
@@ -400,7 +437,10 @@ public:
     }
 
 protected:
-    void onSizeChanged() override { m_linesDirty = true; }
+    void onSizeChanged() override
+    {
+        m_linesDirty = true;
+    }
 
 private:
     /**

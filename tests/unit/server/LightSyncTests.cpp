@@ -44,7 +44,10 @@ namespace {
  */
 class LightSyncTest : public ::testing::Test {
 protected:
-    static void SetUpTestSuite() { VanillaBlocks::initialize(); }
+    static void SetUpTestSuite()
+    {
+        VanillaBlocks::initialize();
+    }
 
     void SetUp() override
     {
@@ -214,16 +217,52 @@ TEST_F(LightSyncTest, WorldLightManagerCreation)
     // 创建一个简单的 StarLightLightingProvider 实现
     class TestLightProvider : public StarLightLightingProvider {
     public:
-        IChunk* getChunkForLight(ChunkCoord, ChunkCoord) override { return nullptr; }
-        const IChunk* getChunkForLight(ChunkCoord, ChunkCoord) const override { return nullptr; }
-        const BlockState* getBlockStateForLight(const BlockPos&) const override { return nullptr; }
-        IWorld* getWorld() override { return nullptr; }
-        const IWorld* getWorld() const override { return nullptr; }
+        IChunk* getChunkForLight(ChunkCoord, ChunkCoord) override
+        {
+            return nullptr;
+        }
+
+        const IChunk* getChunkForLight(ChunkCoord, ChunkCoord) const override
+        {
+            return nullptr;
+        }
+
+        const BlockState* getBlockStateForLight(const BlockPos&) const override
+        {
+            return nullptr;
+        }
+
+        IWorld* getWorld() override
+        {
+            return nullptr;
+        }
+
+        const IWorld* getWorld() const override
+        {
+            return nullptr;
+        }
+
         void markLightChanged(LightType, const SectionPos&) override {}
-        bool hasSkyLight() const override { return true; }
-        i32 getMinBuildHeight() const override { return 0; }
-        i32 getMaxBuildHeight() const override { return mc::world::MAX_BUILD_HEIGHT; }
-        i32 getSectionCount() const override { return 16; }
+
+        bool hasSkyLight() const override
+        {
+            return true;
+        }
+
+        i32 getMinBuildHeight() const override
+        {
+            return 0;
+        }
+
+        i32 getMaxBuildHeight() const override
+        {
+            return mc::world::MAX_BUILD_HEIGHT;
+        }
+
+        i32 getSectionCount() const override
+        {
+            return 16;
+        }
     };
 
     TestLightProvider provider;
@@ -249,16 +288,52 @@ TEST_F(LightSyncTest, WorldLightManagerTLSEnginePool)
 {
     class TestLightProvider : public StarLightLightingProvider {
     public:
-        IChunk* getChunkForLight(ChunkCoord, ChunkCoord) override { return nullptr; }
-        const IChunk* getChunkForLight(ChunkCoord, ChunkCoord) const override { return nullptr; }
-        const BlockState* getBlockStateForLight(const BlockPos&) const override { return nullptr; }
-        IWorld* getWorld() override { return nullptr; }
-        const IWorld* getWorld() const override { return nullptr; }
+        IChunk* getChunkForLight(ChunkCoord, ChunkCoord) override
+        {
+            return nullptr;
+        }
+
+        const IChunk* getChunkForLight(ChunkCoord, ChunkCoord) const override
+        {
+            return nullptr;
+        }
+
+        const BlockState* getBlockStateForLight(const BlockPos&) const override
+        {
+            return nullptr;
+        }
+
+        IWorld* getWorld() override
+        {
+            return nullptr;
+        }
+
+        const IWorld* getWorld() const override
+        {
+            return nullptr;
+        }
+
         void markLightChanged(LightType, const SectionPos&) override {}
-        bool hasSkyLight() const override { return true; }
-        i32 getMinBuildHeight() const override { return 0; }
-        i32 getMaxBuildHeight() const override { return mc::world::MAX_BUILD_HEIGHT; }
-        i32 getSectionCount() const override { return 16; }
+
+        bool hasSkyLight() const override
+        {
+            return true;
+        }
+
+        i32 getMinBuildHeight() const override
+        {
+            return 0;
+        }
+
+        i32 getMaxBuildHeight() const override
+        {
+            return mc::world::MAX_BUILD_HEIGHT;
+        }
+
+        i32 getSectionCount() const override
+        {
+            return 16;
+        }
     };
 
     TestLightProvider provider;

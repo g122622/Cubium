@@ -97,7 +97,10 @@ public:
      * @brief 获取拓扑类型
      * @return VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST 或 VK_PRIMITIVE_TOPOLOGY_LINE_LIST 等
      */
-    [[nodiscard]] virtual VkPrimitiveTopology getTopology() const { return VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST; }
+    [[nodiscard]] virtual VkPrimitiveTopology getTopology() const
+    {
+        return VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+    }
 };
 
 /**
@@ -165,7 +168,10 @@ public:
      *
      * LivingEntity 渲染器返回 true，静态实体（如 ItemEntity）返回 false
      */
-    [[nodiscard]] virtual bool supportsAnimation() const { return false; }
+    [[nodiscard]] virtual bool supportsAnimation() const
+    {
+        return false;
+    }
 
     /**
      * @brief 计算动画上下文并设置模型角度
@@ -210,7 +216,10 @@ public:
      *
      * LivingEntity 渲染器返回 true。
      */
-    [[nodiscard]] virtual bool supportsLayers() const { return false; }
+    [[nodiscard]] virtual bool supportsLayers() const
+    {
+        return false;
+    }
 
     /**
      * @brief 是否使用全亮光照渲染
@@ -221,7 +230,10 @@ public:
      *
      * @return true 表示使用全亮光照（忽略环境光照），false 表示正常光照
      */
-    [[nodiscard]] virtual bool isFullbright() const { return false; }
+    [[nodiscard]] virtual bool isFullbright() const
+    {
+        return false;
+    }
 
     /**
      * @brief 获取管线网格提供者
@@ -232,7 +244,10 @@ public:
      *
      * @return 管线网格提供者指针，或 nullptr
      */
-    [[nodiscard]] virtual PipelineMeshProvider* getPipelineMeshProvider() { return nullptr; }
+    [[nodiscard]] virtual PipelineMeshProvider* getPipelineMeshProvider()
+    {
+        return nullptr;
+    }
 
     /**
      * @brief 计算自定义模型矩阵
@@ -278,29 +293,44 @@ public:
      *
      * @param atlas 纹理图集指针
      */
-    virtual void setTextureAtlas(const pipeline::EntityTextureAtlas* atlas) { (void)atlas; }
+    virtual void setTextureAtlas(const pipeline::EntityTextureAtlas* atlas)
+    {
+        (void)atlas;
+    }
 
     // ========== 渲染属性 ==========
 
     /**
      * @brief 获取阴影大小
      */
-    [[nodiscard]] f64 shadowSize() const { return m_shadowSize; }
+    [[nodiscard]] f64 shadowSize() const
+    {
+        return m_shadowSize;
+    }
 
     /**
      * @brief 设置阴影大小
      */
-    void setShadowSize(f64 size) { m_shadowSize = size; }
+    void setShadowSize(f64 size)
+    {
+        m_shadowSize = size;
+    }
 
     /**
      * @brief 获取阴影透明度
      */
-    [[nodiscard]] f64 shadowAlpha() const { return m_shadowAlpha; }
+    [[nodiscard]] f64 shadowAlpha() const
+    {
+        return m_shadowAlpha;
+    }
 
     /**
      * @brief 设置阴影透明度
      */
-    void setShadowAlpha(f64 alpha) { m_shadowAlpha = alpha; }
+    void setShadowAlpha(f64 alpha)
+    {
+        m_shadowAlpha = alpha;
+    }
 
 protected:
     f64 m_shadowSize = 0.5;  // 阴影半径

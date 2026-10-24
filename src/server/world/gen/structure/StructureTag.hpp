@@ -65,7 +65,10 @@ public:
     /**
      * @brief 获取标签 ID
      */
-    [[nodiscard]] const ResourceLocation& getId() const { return m_id; }
+    [[nodiscard]] const ResourceLocation& getId() const
+    {
+        return m_id;
+    }
 
     /**
      * @brief 是否替换已有标签内容
@@ -73,12 +76,18 @@ public:
      * 在多数据包标签合并中，replace=true 表示清空之前数据包的标签条目后追加，
      * replace=false（默认）表示追加到已有条目。
      */
-    [[nodiscard]] bool isReplace() const noexcept { return m_replace; }
+    [[nodiscard]] bool isReplace() const noexcept
+    {
+        return m_replace;
+    }
 
     /**
      * @brief 设置替换标志
      */
-    void setReplace(bool replace) noexcept { m_replace = replace; }
+    void setReplace(bool replace) noexcept
+    {
+        m_replace = replace;
+    }
 
     /**
      * @brief 添加结构到标签
@@ -109,7 +118,10 @@ public:
     /**
      * @brief 获取标签中的所有结构 ID
      */
-    [[nodiscard]] const std::unordered_set<ResourceLocation>& getStructureIds() const { return m_structureIds; }
+    [[nodiscard]] const std::unordered_set<ResourceLocation>& getStructureIds() const
+    {
+        return m_structureIds;
+    }
 
 private:
     ResourceLocation m_id;

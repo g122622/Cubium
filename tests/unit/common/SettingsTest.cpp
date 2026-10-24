@@ -103,7 +103,9 @@ TEST_F(SettingsTypesTest, BooleanOption_CallbackNotCalledOnSameValue)
     BooleanOption option("test_bool", false);
     int callCount = 0;
 
-    option.onChange([&](bool /*value*/) { callCount++; });
+    option.onChange([&](bool /*value*/) {
+        callCount++;
+    });
 
     option.set(false); // 相同值
     EXPECT_EQ(callCount, 0);
@@ -160,7 +162,9 @@ TEST_F(SettingsTypesTest, RangeOption_Callback)
     RangeOption option("test_range", 0, 100, 50);
     int callbackValue = 0;
 
-    option.onChange([&](i32 value) { callbackValue = value; });
+    option.onChange([&](i32 value) {
+        callbackValue = value;
+    });
 
     option.set(75);
     EXPECT_EQ(callbackValue, 75);
@@ -210,7 +214,9 @@ TEST_F(SettingsTypesTest, FloatOption_Callback)
     FloatOption option("test_float", 0.0f, 1.0f, 0.5f);
     float callbackValue = 0.0f;
 
-    option.onChange([&](f32 value) { callbackValue = value; });
+    option.onChange([&](f32 value) {
+        callbackValue = value;
+    });
 
     option.set(0.75f);
     EXPECT_FLOAT_EQ(callbackValue, 0.75f);
@@ -337,7 +343,10 @@ protected:
         testDir = mc::test::makeUniqueTestDir("mc_settings_settings_test");
     }
 
-    void TearDown() override { mc::test::removeTestDir(testDir); }
+    void TearDown() override
+    {
+        mc::test::removeTestDir(testDir);
+    }
 
     std::filesystem::path testDir;
 };
@@ -530,7 +539,10 @@ protected:
         testDir = mc::test::makeUniqueTestDir("mc_settings_client_test");
     }
 
-    void TearDown() override { mc::test::removeTestDir(testDir); }
+    void TearDown() override
+    {
+        mc::test::removeTestDir(testDir);
+    }
 
     std::filesystem::path testDir;
 };
@@ -616,7 +628,10 @@ protected:
         testDir = mc::test::makeUniqueTestDir("mc_settings_server_test");
     }
 
-    void TearDown() override { mc::test::removeTestDir(testDir); }
+    void TearDown() override
+    {
+        mc::test::removeTestDir(testDir);
+    }
 
     std::filesystem::path testDir;
 };

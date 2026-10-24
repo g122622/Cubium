@@ -94,20 +94,60 @@ public:
 
     // ==================== 访问器 ====================
 
-    [[nodiscard]] Menu* getMenu() const { return m_menu.get(); }
+    [[nodiscard]] Menu* getMenu() const
+    {
+        return m_menu.get();
+    }
+
     [[nodiscard]] std::optional<i32> getContainerId() const noexcept override
     {
         return m_menu != nullptr ? std::optional<i32>(m_menu->getId()) : std::nullopt;
     }
-    [[nodiscard]] renderer::trident::gui::GuiRenderer* guiRenderer() const { return m_gui; }
-    [[nodiscard]] renderer::trident::gui::GuiTextureManager* textureManager() const { return m_textureManager; }
-    [[nodiscard]] renderer::trident::item::ItemRenderer* itemRenderer() const { return m_itemRenderer; }
-    [[nodiscard]] i32 leftPos() const { return m_leftPos; }
-    [[nodiscard]] i32 topPos() const { return m_topPos; }
-    [[nodiscard]] i32 screenWidth() const { return m_screenWidth; }
-    [[nodiscard]] i32 screenHeight() const { return m_screenHeight; }
-    [[nodiscard]] i32 mouseX() const { return m_mouseX; }
-    [[nodiscard]] i32 mouseY() const { return m_mouseY; }
+
+    [[nodiscard]] renderer::trident::gui::GuiRenderer* guiRenderer() const
+    {
+        return m_gui;
+    }
+
+    [[nodiscard]] renderer::trident::gui::GuiTextureManager* textureManager() const
+    {
+        return m_textureManager;
+    }
+
+    [[nodiscard]] renderer::trident::item::ItemRenderer* itemRenderer() const
+    {
+        return m_itemRenderer;
+    }
+
+    [[nodiscard]] i32 leftPos() const
+    {
+        return m_leftPos;
+    }
+
+    [[nodiscard]] i32 topPos() const
+    {
+        return m_topPos;
+    }
+
+    [[nodiscard]] i32 screenWidth() const
+    {
+        return m_screenWidth;
+    }
+
+    [[nodiscard]] i32 screenHeight() const
+    {
+        return m_screenHeight;
+    }
+
+    [[nodiscard]] i32 mouseX() const
+    {
+        return m_mouseX;
+    }
+
+    [[nodiscard]] i32 mouseY() const
+    {
+        return m_mouseY;
+    }
 
     // ==================== 生命周期 ====================
 
@@ -230,15 +270,21 @@ protected:
 
     /** @brief 绘制容器背景纹理（不含暗化层，暗化由基类 paint 已画） */
     virtual void renderContainerBackground(kagero::widget::PaintContext& ctx) = 0;
+
     /**
      * @brief 绘制额外子组件（在容器背景之后、槽位之前）
      *
      * 默认空实现。创造屏等带非槽位子组件（调色板网格/搜索框）的屏幕重写此方法，
      * 直接调用子组件的 paint。基类 renderSlots 只绘制 SlotWidget，不绘制其他子组件。
      */
-    virtual void renderExtraWidgets(kagero::widget::PaintContext& ctx) { (void)ctx; }
+    virtual void renderExtraWidgets(kagero::widget::PaintContext& ctx)
+    {
+        (void)ctx;
+    }
+
     /** @brief 绘制容器前景（标题等） */
     virtual void renderContainerForeground(kagero::widget::PaintContext& ctx) = 0;
+
     /** @brief 绘制鼠标光标携带的物品（默认实现：跟随鼠标画图标+数量） */
     virtual void renderCarriedItem(kagero::widget::PaintContext& ctx)
     {
@@ -260,8 +306,12 @@ protected:
                 Colors::WHITE);
         }
     }
+
     /** @brief 绘制悬停物品 tooltip（默认空，子类按需实现） */
-    virtual void renderTooltip(kagero::widget::PaintContext& ctx) { (void)ctx; }
+    virtual void renderTooltip(kagero::widget::PaintContext& ctx)
+    {
+        (void)ctx;
+    }
 
     // ========== 槽位组件管理 ==========
 
@@ -283,7 +333,10 @@ protected:
         _injectSlotPaintCallbacks();
     }
 
-    [[nodiscard]] const std::vector<kagero::widget::SlotWidget*>& slots() const { return m_slots; }
+    [[nodiscard]] const std::vector<kagero::widget::SlotWidget*>& slots() const
+    {
+        return m_slots;
+    }
 
     // ========== 数据成员 ==========
     std::unique_ptr<Menu> m_menu;

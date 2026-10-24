@@ -81,12 +81,18 @@ public:
     /**
      * @brief 获取羊驼颜色
      */
-    [[nodiscard]] LlamaColor getColor() const { return m_color; }
+    [[nodiscard]] LlamaColor getColor() const
+    {
+        return m_color;
+    }
 
     /**
      * @brief 设置羊驼颜色
      */
-    void setColor(LlamaColor color) { m_color = color; }
+    void setColor(LlamaColor color)
+    {
+        m_color = color;
+    }
 
     /**
      * @brief 随机设置颜色和强度
@@ -96,19 +102,28 @@ public:
     /**
      * @brief 羊驼不能装备鞍
      */
-    [[nodiscard]] bool canEquipSaddle() const override { return false; }
+    [[nodiscard]] bool canEquipSaddle() const override
+    {
+        return false;
+    }
 
     /**
      * @brief 羊驼不能扬蹄
      *
      * MC 1.21.11: Llama.canPerformRearing() 返回 false
      */
-    [[nodiscard]] bool canPerformRearing() const override { return false; }
+    [[nodiscard]] bool canPerformRearing() const override
+    {
+        return false;
+    }
 
     /**
      * @brief 羊驼支持装饰槽位（地毯）
      */
-    [[nodiscard]] bool hasArmorSlot() const override { return true; }
+    [[nodiscard]] bool hasArmorSlot() const override
+    {
+        return true;
+    }
 
     /**
      * @brief 检查物品是否是有效的装饰（地毯）
@@ -130,7 +145,10 @@ public:
     /**
      * @brief 获取强度
      */
-    [[nodiscard]] i32 getStrength() const { return m_strength; }
+    [[nodiscard]] i32 getStrength() const
+    {
+        return m_strength;
+    }
 
     /**
      * @brief 设置强度
@@ -140,12 +158,18 @@ public:
     /**
      * @brief 获取地毯颜色，-1 表示没有地毯
      */
-    [[nodiscard]] i32 getCarpetColor() const { return m_carpetColor; }
+    [[nodiscard]] i32 getCarpetColor() const
+    {
+        return m_carpetColor;
+    }
 
     /**
      * @brief 设置地毯颜色
      */
-    void setCarpetColor(i32 color) { m_carpetColor = color; }
+    void setCarpetColor(i32 color)
+    {
+        m_carpetColor = color;
+    }
 
     // ========== 商队系统 ==========
 
@@ -154,28 +178,40 @@ public:
      *
      * @return 如果有商队头领返回 true
      */
-    [[nodiscard]] bool isInCaravan() const { return m_caravanHead != nullptr; }
+    [[nodiscard]] bool isInCaravan() const
+    {
+        return m_caravanHead != nullptr;
+    }
 
     /**
      * @brief 检查是否有商队跟随者
      *
      * @return 如果有跟随的羊驼返回 true
      */
-    [[nodiscard]] bool hasCaravanTail() const { return m_caravanTail != nullptr; }
+    [[nodiscard]] bool hasCaravanTail() const
+    {
+        return m_caravanTail != nullptr;
+    }
 
     /**
      * @brief 获取商队头领
      *
      * @return 商队头领指针，如果没有返回 nullptr
      */
-    [[nodiscard]] LlamaEntity* getCaravanHead() const { return m_caravanHead; }
+    [[nodiscard]] LlamaEntity* getCaravanHead() const
+    {
+        return m_caravanHead;
+    }
 
     /**
      * @brief 获取商队跟随者
      *
      * @return 跟随者的指针，如果没有返回 nullptr
      */
-    [[nodiscard]] LlamaEntity* getCaravanTail() const { return m_caravanTail; }
+    [[nodiscard]] LlamaEntity* getCaravanTail() const
+    {
+        return m_caravanTail;
+    }
 
     /**
      * @brief 加入商队
@@ -198,19 +234,28 @@ public:
     /**
      * @brief 当前是否正在吐口水
      */
-    [[nodiscard]] bool isSpitting() const { return m_spitting; }
+    [[nodiscard]] bool isSpitting() const
+    {
+        return m_spitting;
+    }
 
     /**
      * @brief 设置吐口水状态
      */
-    void setSpitting(bool spitting) { m_spitting = spitting; }
+    void setSpitting(bool spitting)
+    {
+        m_spitting = spitting;
+    }
 
     /**
      * @brief 羊驼最大驯服进度为 30
      *
      * @return 30
      */
-    [[nodiscard]] i32 getMaxTemper() const noexcept { return 30; }
+    [[nodiscard]] i32 getMaxTemper() const noexcept
+    {
+        return 30;
+    }
 
     /**
      * @brief 羊驼使用干草块繁殖
@@ -257,7 +302,10 @@ public:
     /**
      * @brief 获取眼睛高度
      */
-    [[nodiscard]] f32 eyeHeight() const noexcept override { return 1.77f; }
+    [[nodiscard]] f32 eyeHeight() const noexcept override
+    {
+        return 1.77f;
+    }
 
     /**
      * @brief 获取箱子装备音效
@@ -292,13 +340,19 @@ public:
      * @brief 获取攻击间隔时间
      * @return 40 ticks
      */
-    [[nodiscard]] i32 getAttackInterval() const noexcept override { return 40; }
+    [[nodiscard]] i32 getAttackInterval() const noexcept override
+    {
+        return 40;
+    }
 
     /**
      * @brief 检查是否可以进行远程攻击
      * @return 吐口水冷却已结束返回 true
      */
-    [[nodiscard]] bool canRangedAttack() const override { return m_spitCooldown <= 0; }
+    [[nodiscard]] bool canRangedAttack() const override
+    {
+        return m_spitCooldown <= 0;
+    }
 
     void tick() override;
 

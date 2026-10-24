@@ -54,12 +54,18 @@ public:
     /**
      * @brief 获取当前氧化等级
      */
-    [[nodiscard]] BlockStateProperties::OxidationLevel getOxidationLevel() const override { return m_oxidationLevel; }
+    [[nodiscard]] BlockStateProperties::OxidationLevel getOxidationLevel() const override
+    {
+        return m_oxidationLevel;
+    }
 
     /**
      * @brief 获取下一氧化等级对应的方块
      */
-    [[nodiscard]] Block* getNextOxidationBlock() const override { return m_nextOxidationBlock; }
+    [[nodiscard]] Block* getNextOxidationBlock() const override
+    {
+        return m_nextOxidationBlock;
+    }
 
     /**
      * @brief 获取氧化概率修正系数
@@ -74,17 +80,26 @@ public:
     /**
      * @brief 设置下一氧化等级对应的方块
      */
-    void setNextOxidationBlock(Block* nextBlock) { m_nextOxidationBlock = nextBlock; }
+    void setNextOxidationBlock(Block* nextBlock)
+    {
+        m_nextOxidationBlock = nextBlock;
+    }
 
     /**
      * @brief 设置上一氧化等级对应的方块
      */
-    void setPreviousOxidationBlock(Block* prevBlock) { m_previousOxidationBlock = prevBlock; }
+    void setPreviousOxidationBlock(Block* prevBlock)
+    {
+        m_previousOxidationBlock = prevBlock;
+    }
 
     /**
      * @brief 获取上一氧化等级对应的方块
      */
-    [[nodiscard]] Block* getPreviousOxidationBlock() const override { return m_previousOxidationBlock; }
+    [[nodiscard]] Block* getPreviousOxidationBlock() const override
+    {
+        return m_previousOxidationBlock;
+    }
 
     /**
      * @brief 随机Tick - 尝试氧化

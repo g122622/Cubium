@@ -449,9 +449,13 @@ TEST_F(NoiseChunkGeneratorTest, DifferentSeeds_DifferentTerrain)
                     break;
                 }
             }
-            if (diffCount > 0) break;
+            if (diffCount > 0) {
+                break;
+            }
         }
-        if (diffCount > 0) break;
+        if (diffCount > 0) {
+            break;
+        }
     }
     EXPECT_GT(diffCount, 0) << "Different seeds should produce different terrain columns";
 }

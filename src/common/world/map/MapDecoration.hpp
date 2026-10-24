@@ -154,21 +154,46 @@ public:
      */
     void toNbt(nbt::tags::compound_tag& tag) const;
 
-    [[nodiscard]] DecorationType type() const noexcept { return m_type; }
-    [[nodiscard]] i8 x() const noexcept { return m_x; }
-    [[nodiscard]] i8 y() const noexcept { return m_y; }
-    [[nodiscard]] u8 rotation() const noexcept { return m_rotation; }
-    [[nodiscard]] const text::ITextComponent* customName() const noexcept { return m_customName.get(); }
+    [[nodiscard]] DecorationType type() const noexcept
+    {
+        return m_type;
+    }
+
+    [[nodiscard]] i8 x() const noexcept
+    {
+        return m_x;
+    }
+
+    [[nodiscard]] i8 y() const noexcept
+    {
+        return m_y;
+    }
+
+    [[nodiscard]] u8 rotation() const noexcept
+    {
+        return m_rotation;
+    }
+
+    [[nodiscard]] const text::ITextComponent* customName() const noexcept
+    {
+        return m_customName.get();
+    }
 
     /**
      * @brief 获取图标字节值（用于序列化和纹理图集查找）
      */
-    [[nodiscard]] u8 getIcon() const noexcept { return static_cast<u8>(m_type); }
+    [[nodiscard]] u8 getIcon() const noexcept
+    {
+        return static_cast<u8>(m_type);
+    }
 
     /**
      * @brief 是否在展示框中渲染
      */
-    [[nodiscard]] bool renderedOnFrame() const noexcept { return isRenderedOnFrame(m_type); }
+    [[nodiscard]] bool renderedOnFrame() const noexcept
+    {
+        return isRenderedOnFrame(m_type);
+    }
 
 private:
     DecorationType m_type;

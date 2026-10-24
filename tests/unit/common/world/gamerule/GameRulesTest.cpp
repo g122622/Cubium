@@ -239,8 +239,12 @@ TEST(GameRulesTest, GetRuleNames)
     bool hasMobGriefing = false;
     bool hasRandomTickSpeed = false;
     for (const auto& name : names) {
-        if (name == "mobGriefing") hasMobGriefing = true;
-        if (name == "randomTickSpeed") hasRandomTickSpeed = true;
+        if (name == "mobGriefing") {
+            hasMobGriefing = true;
+        }
+        if (name == "randomTickSpeed") {
+            hasRandomTickSpeed = true;
+        }
     }
     EXPECT_TRUE(hasMobGriefing);
     EXPECT_TRUE(hasRandomTickSpeed);

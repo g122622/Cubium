@@ -77,8 +77,12 @@ void TridentCanvas::drawRect(const kagero::Rect& rect, const kagero::paint::IPai
     _transformPoint(x2, y2);
 
     // 确保坐标顺序正确
-    if (x1 > x2) std::swap(x1, x2);
-    if (y1 > y2) std::swap(y1, y2);
+    if (x1 > x2) {
+        std::swap(x1, x2);
+    }
+    if (y1 > y2) {
+        std::swap(y1, y2);
+    }
 
     if (style == kagero::paint::PaintStyle::Fill) {
         m_renderer.fillRect(x1, y1, x2 - x1, y2 - y1, color);

@@ -64,9 +64,15 @@ TEST_F(PiglinAiTest, Constants_AngerDuration_ValueMatchesMC)
 
 class PiglinEntityAngerTest : public ::testing::Test {
 protected:
-    void SetUp() override { piglin = std::make_unique<PiglinEntity>(EntityInstanceId(1), mc::test::testEcsRegistry()); }
+    void SetUp() override
+    {
+        piglin = std::make_unique<PiglinEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
+    }
 
-    void TearDown() override { piglin.reset(); }
+    void TearDown() override
+    {
+        piglin.reset();
+    }
 
     std::unique_ptr<PiglinEntity> piglin;
 };

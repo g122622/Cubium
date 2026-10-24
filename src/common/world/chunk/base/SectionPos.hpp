@@ -108,7 +108,10 @@ public:
         return x == other.x && y == other.y && z == other.z;
     }
 
-    [[nodiscard]] bool operator!=(const SectionPos& other) const noexcept { return !(*this == other); }
+    [[nodiscard]] bool operator!=(const SectionPos& other) const noexcept
+    {
+        return !(*this == other);
+    }
 
     [[nodiscard]] bool operator<(const SectionPos& other) const noexcept
     {
@@ -118,24 +121,44 @@ public:
     /**
      * @brief 获取区块X坐标
      */
-    [[nodiscard]] ChunkCoord chunkX() const noexcept { return x; }
+    [[nodiscard]] ChunkCoord chunkX() const noexcept
+    {
+        return x;
+    }
 
     /**
      * @brief 获取区块Z坐标
      */
-    [[nodiscard]] ChunkCoord chunkZ() const noexcept { return z; }
+    [[nodiscard]] ChunkCoord chunkZ() const noexcept
+    {
+        return z;
+    }
 
     /**
      * @brief 转换为世界坐标
      */
-    [[nodiscard]] i32 worldX() const noexcept { return x << mc::world::CHUNK_SHIFT; }
-    [[nodiscard]] i32 worldY() const noexcept { return y << mc::world::SECTION_SHIFT; }
-    [[nodiscard]] i32 worldZ() const noexcept { return z << mc::world::CHUNK_SHIFT; }
+    [[nodiscard]] i32 worldX() const noexcept
+    {
+        return x << mc::world::CHUNK_SHIFT;
+    }
+
+    [[nodiscard]] i32 worldY() const noexcept
+    {
+        return y << mc::world::SECTION_SHIFT;
+    }
+
+    [[nodiscard]] i32 worldZ() const noexcept
+    {
+        return z << mc::world::CHUNK_SHIFT;
+    }
 
     /**
      * @brief 获取区块段内的局部坐标
      */
-    [[nodiscard]] static i32 mask(i32 coord) noexcept { return coord & mc::world::CHUNK_MASK; }
+    [[nodiscard]] static i32 mask(i32 coord) noexcept
+    {
+        return coord & mc::world::CHUNK_MASK;
+    }
 
     /**
      * @brief 向指定方向偏移
@@ -181,17 +204,26 @@ public:
     /**
      * @brief 获取该段的最小世界Y坐标
      */
-    [[nodiscard]] i32 minY() const noexcept { return y * mc::world::CHUNK_SECTION_HEIGHT; }
+    [[nodiscard]] i32 minY() const noexcept
+    {
+        return y * mc::world::CHUNK_SECTION_HEIGHT;
+    }
 
     /**
      * @brief 获取该段的最大世界Y坐标
      */
-    [[nodiscard]] i32 maxY() const noexcept { return (y + 1) * mc::world::CHUNK_SECTION_HEIGHT - 1; }
+    [[nodiscard]] i32 maxY() const noexcept
+    {
+        return (y + 1) * mc::world::CHUNK_SECTION_HEIGHT - 1;
+    }
 
     /**
      * @brief 获取区块位置（不含Y坐标）
      */
-    [[nodiscard]] ChunkPos chunkPos() const noexcept { return {x, z}; }
+    [[nodiscard]] ChunkPos chunkPos() const noexcept
+    {
+        return {x, z};
+    }
 };
 
 } // namespace mc::world::chunk

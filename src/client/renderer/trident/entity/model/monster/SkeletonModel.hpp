@@ -70,7 +70,10 @@ public:
      * 直接转发到基类 BipedModel 的 m_rightArmPose 字段，
      * 由 BipedModel::setAngles → handleRightArmPose 消费。
      */
-    void setRightArmPose(ArmPose pose) { m_rightArmPose = pose; }
+    void setRightArmPose(ArmPose pose)
+    {
+        m_rightArmPose = pose;
+    }
 
     /**
      * @brief 设置左手手臂姿态
@@ -78,7 +81,10 @@ public:
      * 直接转发到基类 BipedModel 的 m_leftArmPose 字段，
      * 由 BipedModel::setAngles → handleLeftArmPose 消费。
      */
-    void setLeftArmPose(ArmPose pose) { m_leftArmPose = pose; }
+    void setLeftArmPose(ArmPose pose)
+    {
+        m_leftArmPose = pose;
+    }
 
     /**
      * @brief 设置是否处于攻击状态
@@ -87,12 +93,18 @@ public:
      * 当 isAggressive=true 且未持弓时，SkeletonModel::setAngles 会覆盖
      * 基类设置的手臂角度，呈现空手挥击动画。
      */
-    void setAggressive(bool aggressive) { m_isAggressive = aggressive; }
+    void setAggressive(bool aggressive)
+    {
+        m_isAggressive = aggressive;
+    }
 
     /**
      * @brief 是否处于攻击状态
      */
-    [[nodiscard]] bool isAggressive() const { return m_isAggressive; }
+    [[nodiscard]] bool isAggressive() const
+    {
+        return m_isAggressive;
+    }
 
 protected:
     void setupParts() override;

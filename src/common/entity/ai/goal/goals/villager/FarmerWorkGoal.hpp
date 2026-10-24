@@ -52,7 +52,11 @@ class FarmerWorkGoal : public WorkAtJobSiteGoal {
 public:
     explicit FarmerWorkGoal(VillagerEntity* villager);
     void tick() override;
-    [[nodiscard]] std::string getTypeName() const override { return "FarmerWorkGoal"; }
+
+    [[nodiscard]] std::string getTypeName() const override
+    {
+        return "FarmerWorkGoal";
+    }
 
 private:
     /**

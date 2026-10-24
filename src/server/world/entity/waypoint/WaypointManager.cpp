@@ -37,8 +37,12 @@ _Waypoint _removal(const _Waypoint& snapshot)
 
 bool _hidden(const LivingEntity& source)
 {
-    if (source.hasEffect(entity::effect::EffectType::Invisibility)) return true;
-    if (dynamic_cast<const Player*>(&source) != nullptr && source.pose() == EntityPose::Crouching) return true;
+    if (source.hasEffect(entity::effect::EffectType::Invisibility)) {
+        return true;
+    }
+    if (dynamic_cast<const Player*>(&source) != nullptr && source.pose() == EntityPose::Crouching) {
+        return true;
+    }
     const auto head = source.getEquipment(EquipmentSlot::Head).getItem();
     return head != nullptr &&
         (head == Items::CARVED_PUMPKIN || head == Items::PLAYER_HEAD || head == Items::ZOMBIE_HEAD ||
@@ -50,9 +54,13 @@ bool _hasReceiverAsPassenger(const LivingEntity& source, const Player& receiver,
 {
     auto vehicle = receiver.getVehicle();
     while (vehicle != INVALID_ENTITY_ID) {
-        if (vehicle == source.id()) return true;
+        if (vehicle == source.id()) {
+            return true;
+        }
         const auto* entity = world.entityManager().getEntity(vehicle);
-        if (entity == nullptr) break;
+        if (entity == nullptr) {
+            break;
+        }
         vehicle = entity->getVehicle();
     }
     return false;
@@ -61,8 +69,9 @@ bool _hasReceiverAsPassenger(const LivingEntity& source, const Player& receiver,
 bool _needsTrack(const _Waypoint& previous, const _Waypoint& next)
 {
     if (previous.identifier != next.identifier || previous.style != next.style || previous.color != next.color ||
-        previous.position.index() != next.position.index())
+        previous.position.index() != next.position.index()) {
         return true;
+    }
     if (const auto* pos = std::get_if<_ir::play::WaypointPosition>(&previous.position)) {
         const auto& current = std::get<_ir::play::WaypointPosition>(next.position);
         return std::abs(pos->x - current.x) + std::abs(pos->y - current.y) + std::abs(pos->z - current.z) > 1;
@@ -82,8 +91,9 @@ void WaypointManager::tick(IServer& server, ServerWorld& world)
         if (auto* living = dynamic_cast<LivingEntity*>(entity); living != nullptr && living->isAlive() &&
             !living->isRemoved() &&
             living->getAttributeValue(entity::attribute::Attributes::WAYPOINT_TRANSMIT_RANGE, 0.0) > 0.0 &&
-            !_hidden(*living))
+            !_hidden(*living)) {
             sources.push_back(living);
+        }
         return true;
     });
     std::unordered_set<PlayerId> active;
@@ -91,64 +101,79 @@ void WaypointManager::tick(IServer& server, ServerWorld& world)
         auto* data = server.playerManager().getPlayer(playerId);
         auto* receiver = server.playerEntityManager().getPlayerEntity(playerId, world);
         if (receiver == nullptr || receiver->world() != &world || !data->loggedIn || !data->hasClientLoaded() ||
-            !data->hasConnection())
+            !data->hasConnection()) {
             continue;
+        }
         active.insert(playerId);
         auto& sent = m_sent[playerId];
         SnapshotMap desired;
         const f64 receiveRange =
             receiver->getAttributeValue(entity::attribute::Attributes::WAYPOINT_RECEIVE_RANGE, 0.0);
-        if (receiveRange > 0.0 && world.getGameRules().getBoolean(world::gamerule::GameRuleKeys::LOCATOR_BAR))
+        if (receiveRange > 0.0 && world.getGameRules().getBoolean(world::gamerule::GameRuleKeys::LOCATOR_BAR)) {
             for (const auto* source : sources) {
-                if (source == receiver) continue;
+                if (source == receiver) {
+                    continue;
+                }
                 const f64 distance = source->position().distance(receiver->position());
                 if (!receiver->isSpectator() &&
                     (source->isSpectator() || _hasReceiverAsPassenger(*source, *receiver, world) ||
                         distance >= std::min(receiveRange,
                                         source->getAttributeValue(
-                                            entity::attribute::Attributes::WAYPOINT_TRANSMIT_RANGE, 0.0))))
+                                            entity::attribute::Attributes::WAYPOINT_TRANSMIT_RANGE, 0.0)))) {
                     continue;
+                }
                 _Waypoint next{_Operation::Track,
                     util::uuidFromString(source->uuid()),
                     source->waypointStyle(),
                     source->waypointColor(),
                     std::monostate{}};
-                if (!next.color)
+                if (!next.color) {
                     if (const auto* team = source->getTeam(); team != nullptr && text::isColor(team->getColor())) {
                         const u32 rgb = text::getFormattingColor(team->getColor()) & 0xffffffu;
                         next.color = rgb == 0 ? 0x303030u : rgb;
                     }
+                }
                 const auto pos = BlockPos(
                     math::floorTo<i32>(source->x()), math::floorTo<i32>(source->y()), math::floorTo<i32>(source->z()));
                 const auto chunkX = world::toChunkCoord(pos.x), chunkZ = world::toChunkCoord(pos.z);
-                if (distance > 332.0)
+                if (distance > 332.0) {
                     next.position = static_cast<f32>(std::atan2(
                         static_cast<f64>(receiver->x() - source->x()), static_cast<f64>(source->z() - receiver->z())));
-                else if (data->chunkTracker != nullptr && data->chunkTracker->view().isChunkInView(chunkX, chunkZ))
+                } else if (data->chunkTracker != nullptr && data->chunkTracker->view().isChunkInView(chunkX, chunkZ)) {
                     next.position = _ir::play::WaypointPosition{pos.x, pos.y, pos.z};
-                else
+                } else {
                     next.position = _ir::play::WaypointChunk{chunkX, chunkZ};
+                }
                 desired.emplace(source->id(), std::move(next));
             }
+        }
         for (auto it = sent.begin(); it != sent.end();) {
-            if (!desired.contains(it->first) && _send(server, playerId, _removal(it->second)))
+            if (!desired.contains(it->first) && _send(server, playerId, _removal(it->second))) {
                 it = sent.erase(it);
-            else
+            } else {
                 ++it;
+            }
         }
         for (const auto& [entityId, next] : desired) {
             auto previous = sent.find(entityId);
             if (previous != sent.end()) {
-                if (previous->second == next) continue;
+                if (previous->second == next) {
+                    continue;
+                }
                 if (const auto* angle = std::get_if<f32>(&next.position); angle != nullptr &&
                     previous->second.position.index() == 3 && !_needsTrack(previous->second, next) &&
                     std::abs(std::remainder(*angle - std::get<f32>(previous->second.position),
-                        static_cast<f32>(2.0 * math::PI))) <= 0.008726646f)
+                        static_cast<f32>(2.0 * math::PI))) <= 0.008726646f) {
                     continue;
+                }
             }
             auto packet = next;
-            if (previous != sent.end() && !_needsTrack(previous->second, next)) packet.operation = _Operation::Update;
-            if (_send(server, playerId, packet)) sent[entityId] = next;
+            if (previous != sent.end() && !_needsTrack(previous->second, next)) {
+                packet.operation = _Operation::Update;
+            }
+            if (_send(server, playerId, packet)) {
+                sent[entityId] = next;
+            }
         }
     }
     for (auto it = m_sent.begin(); it != m_sent.end();) {
@@ -158,8 +183,9 @@ void WaypointManager::tick(IServer& server, ServerWorld& world)
                 static_cast<void>(_send(server, it->first, _removal(snapshot)));
             }
             it = m_sent.erase(it);
-        } else
+        } else {
             ++it;
+        }
     }
 }
 
@@ -178,10 +204,11 @@ void WaypointManager::removePlayer(IServer& server, PlayerId playerId)
 {
     clearReceiver(server, playerId);
     const auto id = server.playerEntityManager().getPlayerEntityId(playerId);
-    for (auto& [receiver, sent] : m_sent)
+    for (auto& [receiver, sent] : m_sent) {
         if (auto source = sent.find(id); source != sent.end()) {
             static_cast<void>(_send(server, receiver, _removal(source->second)));
             sent.erase(source);
         }
+    }
 }
 } // namespace mc::server

@@ -65,7 +65,10 @@ public:
      *
      * @return 默认颜色值
      */
-    [[nodiscard]] u32 getDefaultColor() const override { return DEFAULT_COLOR; }
+    [[nodiscard]] u32 getDefaultColor() const override
+    {
+        return DEFAULT_COLOR;
+    }
 
 private:
     /// 狼铠默认颜色（犰狳鳞甲棕色）

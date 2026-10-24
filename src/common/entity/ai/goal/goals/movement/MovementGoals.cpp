@@ -58,15 +58,21 @@ WaterAvoidingRandomWalkingGoal::WaterAvoidingRandomWalkingGoal(CreatureEntity* c
 
 bool WaterAvoidingRandomWalkingGoal::shouldExecute()
 {
-    if (!m_creature) return false;
+    if (!m_creature) {
+        return false;
+    }
 
     // 检查是否被骑乘
-    if (m_creature->isBeingRidden()) return false;
+    if (m_creature->isBeingRidden()) {
+        return false;
+    }
 
     // 检查执行概率
     if (m_chance > 0.0f) {
         math::IRandom& rng = m_creature->getRandom();
-        if (rng.nextFloat() >= m_chance) return false;
+        if (rng.nextFloat() >= m_chance) {
+            return false;
+        }
     }
 
     // 获取随机位置
@@ -75,13 +81,19 @@ bool WaterAvoidingRandomWalkingGoal::shouldExecute()
 
 bool WaterAvoidingRandomWalkingGoal::shouldContinueExecuting()
 {
-    if (!m_creature) return false;
+    if (!m_creature) {
+        return false;
+    }
 
     // 检查是否被骑乘
-    if (m_creature->isBeingRidden()) return false;
+    if (m_creature->isBeingRidden()) {
+        return false;
+    }
 
     // 检查超时
-    if (m_timeout <= 0) return false;
+    if (m_timeout <= 0) {
+        return false;
+    }
 
     // 检查导航路径
     auto* nav = m_creature->navigator();
@@ -125,7 +137,9 @@ void WaterAvoidingRandomWalkingGoal::tick()
 
 bool WaterAvoidingRandomWalkingGoal::getRandomPosition()
 {
-    if (!m_creature) return false;
+    if (!m_creature) {
+        return false;
+    }
 
     math::IRandom& rng = m_creature->getRandom();
 
@@ -178,7 +192,9 @@ LeapAtTargetGoal::LeapAtTargetGoal(MobEntity* mob, f32 leapHeight)
 
 bool LeapAtTargetGoal::shouldExecute()
 {
-    if (!m_mob) return false;
+    if (!m_mob) {
+        return false;
+    }
 
     // 获取攻击目标
     LivingEntity* target = m_mob->attackTarget();
@@ -210,7 +226,9 @@ bool LeapAtTargetGoal::shouldContinueExecuting()
 
 void LeapAtTargetGoal::startExecuting()
 {
-    if (!m_mob || !m_target) return;
+    if (!m_mob || !m_target) {
+        return;
+    }
 
     // 计算跳跃向量
     f64 dx = m_target->x() - m_mob->x();
@@ -255,7 +273,9 @@ MoveTowardsTargetGoal::MoveTowardsTargetGoal(CreatureEntity* creature, f64 speed
 
 bool MoveTowardsTargetGoal::shouldExecute()
 {
-    if (!m_creature) return false;
+    if (!m_creature) {
+        return false;
+    }
 
     // 获取攻击目标
     LivingEntity* target = m_creature->attackTarget();
@@ -272,7 +292,9 @@ bool MoveTowardsTargetGoal::shouldExecute()
 
     // 使用 RandomPositionGenerator 找到朝向目标的随机位置
     auto* world = m_creature->world();
-    if (!world) return false;
+    if (!world) {
+        return false;
+    }
 
     Vector3 targetPos = target->position();
     Vector3 randomPos;
@@ -291,7 +313,9 @@ bool MoveTowardsTargetGoal::shouldExecute()
 
 bool MoveTowardsTargetGoal::shouldContinueExecuting()
 {
-    if (!m_creature || !m_targetEntity) return false;
+    if (!m_creature || !m_targetEntity) {
+        return false;
+    }
 
     // 检查路径是否还在进行中
     auto* nav = m_creature->navigator();

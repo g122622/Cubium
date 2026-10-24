@@ -91,7 +91,10 @@ public:
     /**
      * @brief 获取缓存大小
      */
-    [[nodiscard]] size_t cacheSize() const { return m_templates.size(); }
+    [[nodiscard]] size_t cacheSize() const
+    {
+        return m_templates.size();
+    }
 
     /**
      * @brief 创建程序化模板

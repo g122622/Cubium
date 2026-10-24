@@ -90,7 +90,9 @@ Result<void> AudioService::initialize()
     m_workerThread = std::thread(&AudioService::_runWorker, this);
 
     std::unique_lock lock(m_initMutex);
-    m_initConditionVariable.wait(lock, [this]() { return m_initComplete; });
+    m_initConditionVariable.wait(lock, [this]() {
+        return m_initComplete;
+    });
 
     if (m_initResult.failed()) {
         shutdown();
@@ -611,8 +613,9 @@ void AudioService::_runWorker()
             {
                 std::unique_lock lock(m_mutex);
                 if (m_commands.empty() && !m_stopRequested.load()) {
-                    m_conditionVariable.wait_until(
-                        lock, nextTickTime, [this]() { return m_stopRequested.load() || !m_commands.empty(); });
+                    m_conditionVariable.wait_until(lock, nextTickTime, [this]() {
+                        return m_stopRequested.load() || !m_commands.empty();
+                    });
                 }
 
                 localCommands.swap(m_commands);

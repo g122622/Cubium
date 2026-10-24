@@ -102,52 +102,82 @@ public:
      * @brief 检查是否需要食物
      * @return 如果饥饿值 < 20 返回 true
      */
-    [[nodiscard]] bool needsFood() const { return m_foodLevel < 20; }
+    [[nodiscard]] bool needsFood() const
+    {
+        return m_foodLevel < 20;
+    }
 
     /**
      * @brief 获取饥饿值
      */
-    [[nodiscard]] i32 foodLevel() const { return m_foodLevel; }
+    [[nodiscard]] i32 foodLevel() const
+    {
+        return m_foodLevel;
+    }
 
     /**
      * @brief 设置饥饿值
      */
-    void setFoodLevel(i32 level) { m_foodLevel = std::clamp(level, 0, 20); }
+    void setFoodLevel(i32 level)
+    {
+        m_foodLevel = std::clamp(level, 0, 20);
+    }
 
     /**
      * @brief 获取饱和度
      */
-    [[nodiscard]] f32 saturationLevel() const { return m_saturationLevel; }
+    [[nodiscard]] f32 saturationLevel() const
+    {
+        return m_saturationLevel;
+    }
 
     /**
      * @brief 设置饱和度
      */
-    void setSaturationLevel(f32 saturation) { m_saturationLevel = std::max(0.0f, saturation); }
+    void setSaturationLevel(f32 saturation)
+    {
+        m_saturationLevel = std::max(0.0f, saturation);
+    }
 
     /**
      * @brief 获取消耗值
      */
-    [[nodiscard]] f32 exhaustionLevel() const { return m_exhaustionLevel; }
+    [[nodiscard]] f32 exhaustionLevel() const
+    {
+        return m_exhaustionLevel;
+    }
 
     /**
      * @brief 设置消耗值
      */
-    void setExhaustionLevel(f32 exhaustion) { m_exhaustionLevel = std::max(0.0f, exhaustion); }
+    void setExhaustionLevel(f32 exhaustion)
+    {
+        m_exhaustionLevel = std::max(0.0f, exhaustion);
+    }
 
     /**
      * @brief 获取上一刻的饥饿值（用于 UI 动画）
      */
-    [[nodiscard]] i32 prevFoodLevel() const { return m_prevFoodLevel; }
+    [[nodiscard]] i32 prevFoodLevel() const
+    {
+        return m_prevFoodLevel;
+    }
 
     /**
      * @brief 获取食物计时器
      */
-    [[nodiscard]] i32 foodTimer() const { return m_foodTimer; }
+    [[nodiscard]] i32 foodTimer() const
+    {
+        return m_foodTimer;
+    }
 
     /**
      * @brief 设置食物计时器
      */
-    void setFoodTimer(i32 timer) { m_foodTimer = timer; }
+    void setFoodTimer(i32 timer)
+    {
+        m_foodTimer = timer;
+    }
 
 private:
     /**

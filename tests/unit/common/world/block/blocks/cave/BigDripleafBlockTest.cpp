@@ -69,7 +69,10 @@ public:
         createBlockState(std::move(container));
     }
 
-    [[nodiscard]] bool canProvidePower(const BlockState&) const noexcept override { return true; }
+    [[nodiscard]] bool canProvidePower(const BlockState&) const noexcept override
+    {
+        return true;
+    }
 
     [[nodiscard]] i32 getStrongPower(const BlockState&, IWorld&, const BlockPos&, Direction) const noexcept override
     {
@@ -113,7 +116,10 @@ public:
     {}
 
     // 测试辅助：设置位置
-    void setTestPosition(const Vector3& pos) { setPosition(pos); }
+    void setTestPosition(const Vector3& pos)
+    {
+        setPosition(pos);
+    }
 
     // 测试辅助：设置是否在地面（公开父类protected方法）
     using Entity::setOnGround;
@@ -196,8 +202,15 @@ public:
         return *m_tickManagerPtr;
     }
 
-    [[nodiscard]] u64 seed() const override { return m_seed; }
-    void setSeed(u64 seed) { m_seed = seed; }
+    [[nodiscard]] u64 seed() const override
+    {
+        return m_seed;
+    }
+
+    void setSeed(u64 seed)
+    {
+        m_seed = seed;
+    }
 
     // 音效追踪
     void playSound(const ResourceLocation& soundEventId,
@@ -209,8 +222,15 @@ public:
         m_playSoundCalls.push_back({soundEventId, category, position, volume, pitch});
     }
 
-    [[nodiscard]] size_t playSoundCount() const { return m_playSoundCalls.size(); }
-    [[nodiscard]] const ResourceLocation& lastSoundId() const { return m_playSoundCalls.back().soundId; }
+    [[nodiscard]] size_t playSoundCount() const
+    {
+        return m_playSoundCalls.size();
+    }
+
+    [[nodiscard]] const ResourceLocation& lastSoundId() const
+    {
+        return m_playSoundCalls.back().soundId;
+    }
 
     // 游戏事件追踪
     void gameEvent(
@@ -220,8 +240,15 @@ public:
         MC_UNUSED(context);
     }
 
-    [[nodiscard]] size_t gameEventCount() const { return m_gameEventCalls.size(); }
-    [[nodiscard]] const std::string& lastGameEventId() const { return m_gameEventCalls.back().eventId; }
+    [[nodiscard]] size_t gameEventCount() const
+    {
+        return m_gameEventCalls.size();
+    }
+
+    [[nodiscard]] const std::string& lastGameEventId() const
+    {
+        return m_gameEventCalls.back().eventId;
+    }
 
     void clearTrackedCalls()
     {

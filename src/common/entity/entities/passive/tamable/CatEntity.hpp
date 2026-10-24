@@ -130,7 +130,10 @@ public:
      * VarInt(CatType 注册表 id 0-10)）同步,对齐 vanilla Cat.DATA_VARIANT_ID(wire 19)。
      * m_catType 为业务侧缓存,与 wire 双向同步。
      */
-    [[nodiscard]] CatType getCatType() const { return m_catType; }
+    [[nodiscard]] CatType getCatType() const
+    {
+        return m_catType;
+    }
 
     /**
      * @brief 设置皮肤类型
@@ -153,22 +156,34 @@ public:
     /**
      * @brief 是否躺下（在床上或主人身边）
      */
-    [[nodiscard]] bool isLieDown() const { return m_dataManager.get<bool>(DATA_LYING_PARAM); }
+    [[nodiscard]] bool isLieDown() const
+    {
+        return m_dataManager.get<bool>(DATA_LYING_PARAM);
+    }
 
     /**
      * @brief 设置躺下状态
      */
-    void setLieDown(bool lying) { m_dataManager.set(DATA_LYING_PARAM, lying); }
+    void setLieDown(bool lying)
+    {
+        m_dataManager.set(DATA_LYING_PARAM, lying);
+    }
 
     /**
      * @brief 是否处于放松状态（看向睡眠主人）
      */
-    [[nodiscard]] bool isRelaxStateOne() const { return m_dataManager.get<bool>(DATA_RELAX_STATE_ONE_PARAM); }
+    [[nodiscard]] bool isRelaxStateOne() const
+    {
+        return m_dataManager.get<bool>(DATA_RELAX_STATE_ONE_PARAM);
+    }
 
     /**
      * @brief 设置放松状态
      */
-    void setRelaxStateOne(bool relax) { m_dataManager.set(DATA_RELAX_STATE_ONE_PARAM, relax); }
+    void setRelaxStateOne(bool relax)
+    {
+        m_dataManager.set(DATA_RELAX_STATE_ONE_PARAM, relax);
+    }
 
     /**
      * @brief 获取躺下动画进度（插值后）
@@ -203,29 +218,44 @@ public:
     /**
      * @brief 是否躺在睡眠玩家上方
      */
-    [[nodiscard]] bool isLyingOnTopOfSleepingPlayer() const { return m_lyingOnTopOfSleepingPlayer; }
+    [[nodiscard]] bool isLyingOnTopOfSleepingPlayer() const
+    {
+        return m_lyingOnTopOfSleepingPlayer;
+    }
 
     // ========== 数据同步参数 ==========
 
     /**
      * @brief 获取皮肤变体参数 ID（用于客户端元数据同步）
      */
-    [[nodiscard]] static u16 getVariantParamId() { return DATA_VARIANT_ID_PARAM.id(); }
+    [[nodiscard]] static u16 getVariantParamId()
+    {
+        return DATA_VARIANT_ID_PARAM.id();
+    }
 
     /**
      * @brief 获取躺下状态参数 ID（用于客户端元数据同步）
      */
-    [[nodiscard]] static u16 getLyingParamId() { return DATA_LYING_PARAM.id(); }
+    [[nodiscard]] static u16 getLyingParamId()
+    {
+        return DATA_LYING_PARAM.id();
+    }
 
     /**
      * @brief 获取放松状态参数 ID（用于客户端元数据同步）
      */
-    [[nodiscard]] static u16 getRelaxStateOneParamId() { return DATA_RELAX_STATE_ONE_PARAM.id(); }
+    [[nodiscard]] static u16 getRelaxStateOneParamId()
+    {
+        return DATA_RELAX_STATE_ONE_PARAM.id();
+    }
 
     /**
      * @brief 获取项圈颜色参数 ID（用于客户端元数据同步）
      */
-    [[nodiscard]] static u16 getCollarColorParamId() { return DATA_COLLAR_COLOR_PARAM.id(); }
+    [[nodiscard]] static u16 getCollarColorParamId()
+    {
+        return DATA_COLLAR_COLOR_PARAM.id();
+    }
 
     // ========== 交互 ==========
 
@@ -270,7 +300,10 @@ public:
      * 对齐 vanilla Cat.DATA_COLLAR_COLOR(wire 22)。m_collarColor 为业务侧缓存。
      * @return 染料颜色
      */
-    [[nodiscard]] DyeColor getCollarColor() const { return m_collarColor; }
+    [[nodiscard]] DyeColor getCollarColor() const
+    {
+        return m_collarColor;
+    }
 
     /**
      * @brief 设置项圈颜色
@@ -296,30 +329,45 @@ public:
     /**
      * @brief 检查是否在树上/高处
      */
-    [[nodiscard]] bool isTreeClimbing() const { return m_treeClimbing; }
+    [[nodiscard]] bool isTreeClimbing() const
+    {
+        return m_treeClimbing;
+    }
 
     /**
      * @brief 设置树上攀爬状态
      */
-    void setTreeClimbing(bool climbing) { m_treeClimbing = climbing; }
+    void setTreeClimbing(bool climbing)
+    {
+        m_treeClimbing = climbing;
+    }
 
     /**
      * @brief 检查是否恐惧（逃跑模式）
      * 未驯服的猫会逃离玩家
      */
-    [[nodiscard]] bool isFleeing() const { return m_fleeing; }
+    [[nodiscard]] bool isFleeing() const
+    {
+        return m_fleeing;
+    }
 
     /**
      * @brief 设置恐惧状态
      */
-    void setFleeing(bool fleeing) { m_fleeing = fleeing; }
+    void setFleeing(bool fleeing)
+    {
+        m_fleeing = fleeing;
+    }
 
     // ========== 属性 ==========
 
     /**
      * @brief 获取眼睛高度
      */
-    [[nodiscard]] f32 eyeHeight() const override { return isChild() ? 0.2f : 0.35f; }
+    [[nodiscard]] f32 eyeHeight() const override
+    {
+        return isChild() ? 0.2f : 0.35f;
+    }
 
     // ========== 音效 ==========
 
@@ -377,8 +425,15 @@ protected:
 
     // ========== 尺寸 ==========
 
-    [[nodiscard]] f32 getBaseWidth() const override { return 0.6f; }
-    [[nodiscard]] f32 getBaseHeight() const override { return 0.7f; }
+    [[nodiscard]] f32 getBaseWidth() const override
+    {
+        return 0.6f;
+    }
+
+    [[nodiscard]] f32 getBaseHeight() const override
+    {
+        return 0.7f;
+    }
 
     // ========== 驯服回调 ==========
     void onTamed(bool tamed) override;

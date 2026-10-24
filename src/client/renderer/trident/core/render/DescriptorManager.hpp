@@ -85,12 +85,35 @@ public:
     [[nodiscard]] Result<VkDescriptorSet> allocateFogSet();
 
     // 访问器
-    [[nodiscard]] VkDescriptorSetLayout cameraLayout() const { return m_cameraLayout; }
-    [[nodiscard]] VkDescriptorSetLayout textureLayout() const { return m_textureLayout; }
-    [[nodiscard]] VkDescriptorSetLayout fogLayout() const { return m_fogLayout; }
-    [[nodiscard]] VkDescriptorPool pool() const { return m_pool; }
-    [[nodiscard]] VkPipelineLayout pipelineLayout() const { return m_pipelineLayout; }
-    [[nodiscard]] bool isValid() const { return m_pool != VK_NULL_HANDLE; }
+    [[nodiscard]] VkDescriptorSetLayout cameraLayout() const
+    {
+        return m_cameraLayout;
+    }
+
+    [[nodiscard]] VkDescriptorSetLayout textureLayout() const
+    {
+        return m_textureLayout;
+    }
+
+    [[nodiscard]] VkDescriptorSetLayout fogLayout() const
+    {
+        return m_fogLayout;
+    }
+
+    [[nodiscard]] VkDescriptorPool pool() const
+    {
+        return m_pool;
+    }
+
+    [[nodiscard]] VkPipelineLayout pipelineLayout() const
+    {
+        return m_pipelineLayout;
+    }
+
+    [[nodiscard]] bool isValid() const
+    {
+        return m_pool != VK_NULL_HANDLE;
+    }
 
 private:
     // 创建方法

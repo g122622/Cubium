@@ -93,7 +93,10 @@ protected:
     }
 
     /// 获取 stone 物品，用于构造 ItemEntity 的 ItemStack。
-    static const Item* stoneItem() { return ItemRegistry::instance().getItem(ResourceLocation("minecraft", "stone")); }
+    static const Item* stoneItem()
+    {
+        return ItemRegistry::instance().getItem(ResourceLocation("minecraft", "stone"));
+    }
 };
 
 // ============================================================================

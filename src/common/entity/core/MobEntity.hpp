@@ -163,7 +163,10 @@ public:
     /**
      * @brief 获取 Mob 标志位参数 ID（供客户端 syncMetadataFromDataManager 使用）
      */
-    [[nodiscard]] static u16 getMobFlagsParamId() { return DATA_MOB_FLAGS_PARAM.id(); }
+    [[nodiscard]] static u16 getMobFlagsParamId()
+    {
+        return DATA_MOB_FLAGS_PARAM.id();
+    }
 
     // ========== AI 启用状态 ==========
 
@@ -175,13 +178,19 @@ public:
      *
      * @return AI 被禁用时返回 true
      */
-    [[nodiscard]] bool isNoAi() const { return !m_aiEnabled; }
+    [[nodiscard]] bool isNoAi() const
+    {
+        return !m_aiEnabled;
+    }
 
     /**
      * @brief 设置 AI 是否禁用
      * @param noAi true 表示禁用 AI
      */
-    void setNoAi(bool noAi) { m_aiEnabled = !noAi; }
+    void setNoAi(bool noAi)
+    {
+        m_aiEnabled = !noAi;
+    }
 
     /**
      * @brief 获取"激怒"标志位的位掩码（供客户端解析 DATA_MOB_FLAGS_PARAM 使用）
@@ -190,21 +199,38 @@ public:
      * ClientEntity::syncMetadataFromDataManager 读取 DATA_MOB_FLAGS_PARAM 后，
      * 用此掩码按位与判断 aggressive 位是否置位。
      */
-    [[nodiscard]] static constexpr i8 getAggressiveFlagMask() { return MOB_FLAG_AGGRESSIVE; }
+    [[nodiscard]] static constexpr i8 getAggressiveFlagMask()
+    {
+        return MOB_FLAG_AGGRESSIVE;
+    }
 
     // ========== AI 目标系统 ==========
 
     /**
      * @brief 获取行为目标选择器
      */
-    [[nodiscard]] entity::ai::GoalSelector& goalSelector() { return m_goalSelector; }
-    [[nodiscard]] const entity::ai::GoalSelector& goalSelector() const { return m_goalSelector; }
+    [[nodiscard]] entity::ai::GoalSelector& goalSelector()
+    {
+        return m_goalSelector;
+    }
+
+    [[nodiscard]] const entity::ai::GoalSelector& goalSelector() const
+    {
+        return m_goalSelector;
+    }
 
     /**
      * @brief 获取目标选择器（攻击目标等）
      */
-    [[nodiscard]] entity::ai::GoalSelector& targetSelector() { return m_targetSelector; }
-    [[nodiscard]] const entity::ai::GoalSelector& targetSelector() const { return m_targetSelector; }
+    [[nodiscard]] entity::ai::GoalSelector& targetSelector()
+    {
+        return m_targetSelector;
+    }
+
+    [[nodiscard]] const entity::ai::GoalSelector& targetSelector() const
+    {
+        return m_targetSelector;
+    }
 
     /**
      * @brief 注册 AI 目标
@@ -216,7 +242,10 @@ public:
     /**
      * @brief 获取环境声音间隔
      */
-    [[nodiscard]] virtual i32 getTalkInterval() const { return 80; }
+    [[nodiscard]] virtual i32 getTalkInterval() const
+    {
+        return 80;
+    }
 
     /**
      * @brief 播放环境声音
@@ -253,8 +282,15 @@ public:
     /**
      * @brief 获取攻击目标
      */
-    [[nodiscard]] virtual LivingEntity* attackTarget() { return m_attackTarget.get(); }
-    [[nodiscard]] virtual const LivingEntity* attackTarget() const { return m_attackTarget.get(); }
+    [[nodiscard]] virtual LivingEntity* attackTarget()
+    {
+        return m_attackTarget.get();
+    }
+
+    [[nodiscard]] virtual const LivingEntity* attackTarget() const
+    {
+        return m_attackTarget.get();
+    }
 
     /**
      * @brief 设置攻击目标
@@ -263,19 +299,28 @@ public:
      * 在设置攻击目标时同步更新愤怒状态。
      * 通过MobEntity*指针调用时也能正确派发到子类的override。
      */
-    virtual void setAttackTarget(LivingEntity* target) { m_attackTarget = target; }
+    virtual void setAttackTarget(LivingEntity* target)
+    {
+        m_attackTarget = target;
+    }
 
     /**
      * @brief 检查是否处于激怒状态
      * 激怒状态会触发特定的渲染效果
      */
-    [[nodiscard]] bool isAggroed() const { return isAggressive(); }
+    [[nodiscard]] bool isAggroed() const
+    {
+        return isAggressive();
+    }
 
     /**
      * @brief 设置激怒状态
      * 在攻击目标时设置，通过 metadata 同步到客户端
      */
-    void setAggroed(bool aggroed) { setAggressive(aggroed); }
+    void setAggroed(bool aggroed)
+    {
+        setAggressive(aggroed);
+    }
 
     // ========== 刻更新 ==========
 
@@ -360,12 +405,18 @@ public:
     /**
      * @brief 获取空闲时间
      */
-    [[nodiscard]] i32 idleTime() const { return m_idleTime; }
+    [[nodiscard]] i32 idleTime() const
+    {
+        return m_idleTime;
+    }
 
     /**
      * @brief 设置空闲时间
      */
-    void setIdleTime(i32 time) { m_idleTime = time; }
+    void setIdleTime(i32 time)
+    {
+        m_idleTime = time;
+    }
 
     // getRandom() 继承自 Entity 基类，返回持久化随机数生成器的引用
 
@@ -432,7 +483,10 @@ public:
      *
      * @return 如果乘客应继承载具的 malus 返回 true
      */
-    [[nodiscard]] virtual bool shouldPassengersInheritMalus() const noexcept { return false; }
+    [[nodiscard]] virtual bool shouldPassengersInheritMalus() const noexcept
+    {
+        return false;
+    }
 
     // ========== AI 便捷方法 ==========
 
@@ -442,7 +496,10 @@ public:
      * 用于LookController限制导航路径时的头部旋转。
      * 默认值: 75
      */
-    [[nodiscard]] virtual f32 getHorizontalFaceSpeed() const { return 75.0f; }
+    [[nodiscard]] virtual f32 getHorizontalFaceSpeed() const
+    {
+        return 75.0f;
+    }
 
     /**
      * @brief 获取垂直面部旋转速度
@@ -450,7 +507,10 @@ public:
      * 用于LookController限制俯仰角旋转速度。
      * 默认值: 40
      */
-    [[nodiscard]] virtual f32 getVerticalFaceSpeed() const { return 40.0f; }
+    [[nodiscard]] virtual f32 getVerticalFaceSpeed() const
+    {
+        return 40.0f;
+    }
 
     /**
      * @brief 获取面部旋转速度
@@ -458,7 +518,10 @@ public:
      * 用于LookController的默认偏航角旋转速度。
      * 默认值: 10
      */
-    [[nodiscard]] virtual f32 getFaceRotSpeed() const { return 10.0f; }
+    [[nodiscard]] virtual f32 getFaceRotSpeed() const
+    {
+        return 10.0f;
+    }
 
     /**
      * @brief 冲锋（长矛）时的移动速度修正倍率
@@ -468,7 +531,10 @@ public:
      * Cubium 尚未实现上述长矛 AI 目标，长矛投掷/近战本身已由 SpearItem + SpearEntity 承担；
      * 待长矛 AI 目标落地后由这些目标消费本虚函数。
      */
-    [[nodiscard]] virtual f32 chargeSpeedModifier() const { return 1.0f; }
+    [[nodiscard]] virtual f32 chargeSpeedModifier() const
+    {
+        return 1.0f;
+    }
 
     /**
      * @brief 清除导航路径
@@ -506,13 +572,19 @@ public:
      *
      * 死亡时掉落的经验值数量。
      */
-    [[nodiscard]] i32 experienceValue() const { return m_experienceValue; }
+    [[nodiscard]] i32 experienceValue() const
+    {
+        return m_experienceValue;
+    }
 
     /**
      * @brief 设置经验值
      * @param value 经验值
      */
-    void setExperienceValue(i32 value) { m_experienceValue = value; }
+    void setExperienceValue(i32 value)
+    {
+        m_experienceValue = value;
+    }
 
     // ========== 生成初始化 ==========
 
@@ -624,24 +696,36 @@ public:
      * @brief 获取家位置
      * @return 家位置
      */
-    [[nodiscard]] const BlockPos& homePosition() const { return m_homePosition; }
+    [[nodiscard]] const BlockPos& homePosition() const
+    {
+        return m_homePosition;
+    }
 
     /**
      * @brief 获取家范围最大距离
      * @return 家范围半径，-1 表示未设置
      */
-    [[nodiscard]] f32 maximumHomeDistance() const { return m_maximumHomeDistance; }
+    [[nodiscard]] f32 maximumHomeDistance() const
+    {
+        return m_maximumHomeDistance;
+    }
 
     /**
      * @brief 检查是否有家范围限制
      * @return 如果设置了家范围限制返回 true
      */
-    [[nodiscard]] bool hasHome() const { return m_maximumHomeDistance >= 0.0f; }
+    [[nodiscard]] bool hasHome() const
+    {
+        return m_maximumHomeDistance >= 0.0f;
+    }
 
     /**
      * @brief 清除家范围限制
      */
-    void clearHome() { m_maximumHomeDistance = -1.0f; }
+    void clearHome()
+    {
+        m_maximumHomeDistance = -1.0f;
+    }
 
     // ========== 拾取物品 (CanPickUpLoot) ==========
 
@@ -653,14 +737,20 @@ public:
      *
      * @return 如果生物可以拾取物品返回 true
      */
-    [[nodiscard]] bool canPickUpLoot() const { return m_canPickUpLoot; }
+    [[nodiscard]] bool canPickUpLoot() const
+    {
+        return m_canPickUpLoot;
+    }
 
     /**
      * @brief 设置生物是否可以拾取物品
      *
      * @param canPickUp 是否可以拾取
      */
-    void setCanPickUpLoot(bool canPickUp) { m_canPickUpLoot = canPickUp; }
+    void setCanPickUpLoot(bool canPickUp)
+    {
+        m_canPickUpLoot = canPickUp;
+    }
 
     /**
      * @brief 拾取范围（对齐 vanilla Mob.getPickupReach）
@@ -756,7 +846,10 @@ public:
      *
      * @return 物品标签 id（如 "minecraft:skeleton_preferred_weapons"），空串表示无偏好
      */
-    [[nodiscard]] virtual std::string getPreferredWeaponType() const { return {}; }
+    [[nodiscard]] virtual std::string getPreferredWeaponType() const
+    {
+        return {};
+    }
 
     /**
      * @brief 拾取物品实体（对齐 vanilla Mob.pickUpItem）
@@ -843,7 +936,10 @@ public:
      *
      * @return 身体护甲槽位的物品堆引用
      */
-    [[nodiscard]] const ItemStack& getBodyArmorItem() const { return getEquipment(EquipmentSlot::Body); }
+    [[nodiscard]] const ItemStack& getBodyArmorItem() const
+    {
+        return getEquipment(EquipmentSlot::Body);
+    }
 
     /**
      * @brief 检查是否穿戴了身体护甲
@@ -853,7 +949,10 @@ public:
      *
      * @return 如果穿戴了身体护甲返回 true
      */
-    [[nodiscard]] bool isWearingBodyArmor() const { return !getEquipment(EquipmentSlot::Body).isEmpty(); }
+    [[nodiscard]] bool isWearingBodyArmor() const
+    {
+        return !getEquipment(EquipmentSlot::Body).isEmpty();
+    }
 
     /**
      * @brief 设置身体护甲槽位的物品
@@ -960,14 +1059,20 @@ public:
      *
      * @return 自定义掉落表 ID，如果使用默认掉落表则返回空
      */
-    [[nodiscard]] const std::optional<std::string>& deathLootTable() const { return m_deathLootTable; }
+    [[nodiscard]] const std::optional<std::string>& deathLootTable() const
+    {
+        return m_deathLootTable;
+    }
 
     /**
      * @brief 设置自定义死亡掉落表
      *
      * @param lootTableId 掉落表 ID（格式如 "minecraft:entities/zombie"），空表示使用默认
      */
-    void setDeathLootTable(std::optional<std::string> lootTableId) { m_deathLootTable = std::move(lootTableId); }
+    void setDeathLootTable(std::optional<std::string> lootTableId)
+    {
+        m_deathLootTable = std::move(lootTableId);
+    }
 
     /**
      * @brief 获取掉落表种子
@@ -976,14 +1081,20 @@ public:
      *
      * @return 掉落表种子
      */
-    [[nodiscard]] i64 lootTableSeed() const { return m_lootTableSeed; }
+    [[nodiscard]] i64 lootTableSeed() const
+    {
+        return m_lootTableSeed;
+    }
 
     /**
      * @brief 设置掉落表种子
      *
      * @param seed 种子值
      */
-    void setLootTableSeed(i64 seed) { m_lootTableSeed = seed; }
+    void setLootTableSeed(i64 seed)
+    {
+        m_lootTableSeed = seed;
+    }
 
     // ========== 拴绳系统 (Leash) ==========
 
@@ -992,7 +1103,10 @@ public:
      *
      * @return 如果实体被拴住返回 true
      */
-    [[nodiscard]] bool isLeashed() const { return m_isLeashed; }
+    [[nodiscard]] bool isLeashed() const
+    {
+        return m_isLeashed;
+    }
 
     /**
      * @brief 获取拴绳目标实体的 UUID
@@ -1001,7 +1115,10 @@ public:
      *
      * @return 目标实体 UUID，如果未拴住或拴在栅栏上则返回空
      */
-    [[nodiscard]] const std::optional<std::string>& leashHolderUuid() const { return m_leashHolderUuid; }
+    [[nodiscard]] const std::optional<std::string>& leashHolderUuid() const
+    {
+        return m_leashHolderUuid;
+    }
 
     /**
      * @brief 获取拴绳目标栅栏柱坐标
@@ -1010,7 +1127,10 @@ public:
      *
      * @return 栅栏柱坐标，如果未拴住或拴在实体上则返回空
      */
-    [[nodiscard]] const std::optional<BlockPos>& leashFencePos() const { return m_leashFencePos; }
+    [[nodiscard]] const std::optional<BlockPos>& leashFencePos() const
+    {
+        return m_leashFencePos;
+    }
 
     /**
      * @brief 获取延迟拴绳信息
@@ -1020,8 +1140,15 @@ public:
      *
      * @return 延迟拴绳信息的引用
      */
-    [[nodiscard]] LeashDelayInfo& leashDelayInfo() { return m_leashDelayInfo; }
-    [[nodiscard]] const LeashDelayInfo& leashDelayInfo() const { return m_leashDelayInfo; }
+    [[nodiscard]] LeashDelayInfo& leashDelayInfo()
+    {
+        return m_leashDelayInfo;
+    }
+
+    [[nodiscard]] const LeashDelayInfo& leashDelayInfo() const
+    {
+        return m_leashDelayInfo;
+    }
 
     /**
      * @brief 设置拴绳绑定到实体
@@ -1076,7 +1203,10 @@ public:
      *
      * @return 如果实体需要持久化返回 true
      */
-    [[nodiscard]] bool isNoDespawnRequired() const { return m_persistenceRequired; }
+    [[nodiscard]] bool isNoDespawnRequired() const
+    {
+        return m_persistenceRequired;
+    }
 
     /**
      * @brief 启用持久化
@@ -1087,7 +1217,10 @@ public:
      * - 拾取装备时
      * - NBT 数据加载时
      */
-    void enablePersistence() { m_persistenceRequired = true; }
+    void enablePersistence()
+    {
+        m_persistenceRequired = true;
+    }
 
     /**
      * @brief 检查是否应阻止消失
@@ -1098,7 +1231,10 @@ public:
      *
      * @return 如果实体应阻止消失返回 true
      */
-    [[nodiscard]] virtual bool preventDespawn() const { return isRiding(); }
+    [[nodiscard]] virtual bool preventDespawn() const
+    {
+        return isRiding();
+    }
 
     /**
      * @brief 检查是否可以消失
@@ -1122,7 +1258,10 @@ public:
      *
      * @return 如果在和平模式下应消失返回 true
      */
-    [[nodiscard]] virtual bool isDespawnPeaceful() const { return false; }
+    [[nodiscard]] virtual bool isDespawnPeaceful() const
+    {
+        return false;
+    }
 
     // ========== 日光检测与亡灵燃烧 ==========
 
@@ -1151,7 +1290,10 @@ public:
      *
      * @return 阳光防护装备槽位
      */
-    [[nodiscard]] virtual EquipmentSlot sunProtectionSlot() const { return EquipmentSlot::Head; }
+    [[nodiscard]] virtual EquipmentSlot sunProtectionSlot() const
+    {
+        return EquipmentSlot::Head;
+    }
 
     /**
      * @brief 处理亡灵生物在阳光下的燃烧逻辑

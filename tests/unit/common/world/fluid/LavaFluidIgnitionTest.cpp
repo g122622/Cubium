@@ -80,7 +80,10 @@ public:
         return true;
     }
 
-    void setBlockAt(const BlockPos& pos, const BlockState* state) { (void)setBlockState(pos.x, pos.y, pos.z, state); }
+    void setBlockAt(const BlockPos& pos, const BlockState* state)
+    {
+        (void)setBlockState(pos.x, pos.y, pos.z, state);
+    }
 
 private:
     std::unordered_map<BlockPos, const BlockState*> m_blocks;

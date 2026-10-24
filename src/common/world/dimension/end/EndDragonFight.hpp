@@ -268,24 +268,36 @@ public:
      *
      * @return 柱顶末影水晶数量
      */
-    [[nodiscard]] i32 crystalsAlive() const { return m_crystalsAlive; }
+    [[nodiscard]] i32 crystalsAlive() const
+    {
+        return m_crystalsAlive;
+    }
 
     /**
      * @brief 是否正在重生
      */
-    [[nodiscard]] bool isRespawning() const { return m_respawnStage.has_value(); }
+    [[nodiscard]] bool isRespawning() const
+    {
+        return m_respawnStage.has_value();
+    }
 
     /**
      * @brief 获取当前重生阶段
      *
      * @return 当前阶段，如果未在重生中返回 nullopt
      */
-    [[nodiscard]] std::optional<DragonRespawnAnimation> respawnStage() const { return m_respawnStage; }
+    [[nodiscard]] std::optional<DragonRespawnAnimation> respawnStage() const
+    {
+        return m_respawnStage;
+    }
 
     /**
      * @brief 获取出口传送门位置
      */
-    [[nodiscard]] const std::optional<BlockPos>& portalLocation() const { return m_portalLocation; }
+    [[nodiscard]] const std::optional<BlockPos>& portalLocation() const
+    {
+        return m_portalLocation;
+    }
 
     // ========== 状态查询 ==========
 
@@ -295,30 +307,49 @@ public:
      * 首次击杀时为 false，击杀后永久为 true。
      * 控制龙蛋放置和经验掉落数量。
      */
-    [[nodiscard]] bool hasPreviouslyKilled() const { return m_previouslyKilled; }
+    [[nodiscard]] bool hasPreviouslyKilled() const
+    {
+        return m_previouslyKilled;
+    }
 
     /**
      * @brief 龙当前是否已死
      */
-    [[nodiscard]] bool isDragonKilled() const { return m_dragonKilled; }
+    [[nodiscard]] bool isDragonKilled() const
+    {
+        return m_dragonKilled;
+    }
 
     /**
      * @brief 获取剩余折跃门数量
      */
-    [[nodiscard]] i32 remainingGatewayCount() const { return static_cast<i32>(m_gateways.size()); }
+    [[nodiscard]] i32 remainingGatewayCount() const
+    {
+        return static_cast<i32>(m_gateways.size());
+    }
 
     /**
      * @brief 获取世界种子
      */
-    [[nodiscard]] u64 worldSeed() const { return m_worldSeed; }
+    [[nodiscard]] u64 worldSeed() const
+    {
+        return m_worldSeed;
+    }
 
     /**
      * @brief 获取 Boss 栏引用（用于服务端注入和测试）
      *
      * 默认返回 NullDragonBossBar，服务端通过 setDragonBossBar() 注入真实实现。
      */
-    [[nodiscard]] IDragonBossBar& dragonBossBar() { return *m_dragonBossBar; }
-    [[nodiscard]] const IDragonBossBar& dragonBossBar() const { return *m_dragonBossBar; }
+    [[nodiscard]] IDragonBossBar& dragonBossBar()
+    {
+        return *m_dragonBossBar;
+    }
+
+    [[nodiscard]] const IDragonBossBar& dragonBossBar() const
+    {
+        return *m_dragonBossBar;
+    }
 
     // ========== Boss 栏注入 ==========
 

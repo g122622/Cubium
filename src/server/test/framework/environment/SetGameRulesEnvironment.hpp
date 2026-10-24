@@ -20,14 +20,19 @@ namespace mc::test {
 class SetGameRulesEnvironment final : public TestEnvironmentDefinition {
 public:
     SetGameRulesEnvironment() = default;
+
     explicit SetGameRulesEnvironment(std::unordered_map<std::string, std::string> rules)
         : m_rules(std::move(rules))
     {}
 
     GameTestResult setup(BaseGameTestInstance& instance) override;
+
     // teardown 不覆盖：Java 逐条 resetRule 由 applier 在 teardown 阶段处理，framework 层无状态可还原。
 
-    [[nodiscard]] const std::unordered_map<std::string, std::string>& rules() const noexcept { return m_rules; }
+    [[nodiscard]] const std::unordered_map<std::string, std::string>& rules() const noexcept
+    {
+        return m_rules;
+    }
 
 private:
     std::unordered_map<std::string, std::string> m_rules;

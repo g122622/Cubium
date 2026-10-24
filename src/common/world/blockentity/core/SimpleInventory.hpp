@@ -103,9 +103,18 @@ public:
 
     // ========== IInventory 接口实现 ==========
 
-    [[nodiscard]] i32 getContainerSize() const noexcept override { return static_cast<i32>(m_items.size()); }
+    [[nodiscard]] i32 getContainerSize() const noexcept override
+    {
+        return static_cast<i32>(m_items.size());
+    }
+
     [[nodiscard]] bool isEmpty() const override;
-    [[nodiscard]] i32 getMaxStackSize() const noexcept override { return m_maxStackSize; }
+
+    [[nodiscard]] i32 getMaxStackSize() const noexcept override
+    {
+        return m_maxStackSize;
+    }
+
     [[nodiscard]] ItemStack getItem(i32 slot) const override;
     void setItem(i32 slot, const ItemStack& stack) override;
     ItemStack removeItem(i32 slot, i32 count) override;
@@ -120,7 +129,10 @@ public:
      * @brief 设置最大堆叠数量
      * @param maxStackSize 最大堆叠数量（默认 DEFAULT_MAX_STACK_SIZE）
      */
-    void setMaxStackSize(i32 maxStackSize) noexcept { m_maxStackSize = maxStackSize; }
+    void setMaxStackSize(i32 maxStackSize) noexcept
+    {
+        m_maxStackSize = maxStackSize;
+    }
 
     /**
      * @brief 设置变更回调
@@ -129,7 +141,10 @@ public:
      * @note 此方法为便捷接口，内部将 callback 包装为 ContainerListener 注册。
      *       如果需要更精细的控制，请直接使用 addListener()/removeListener()。
      */
-    void setOnChanged(std::function<void()> callback) { m_onChanged = std::move(callback); }
+    void setOnChanged(std::function<void()> callback)
+    {
+        m_onChanged = std::move(callback);
+    }
 
     /**
      * @brief 设置战利品表延迟填充回调
@@ -145,7 +160,10 @@ public:
      *
      * @param callback 战利品表延迟填充回调（nullptr 表示禁用）
      */
-    void setLootUnpackCallback(LootUnpackCallback callback) { m_lootUnpackCallback = std::move(callback); }
+    void setLootUnpackCallback(LootUnpackCallback callback)
+    {
+        m_lootUnpackCallback = std::move(callback);
+    }
 
     /**
      * @brief 添加容器变更监听器

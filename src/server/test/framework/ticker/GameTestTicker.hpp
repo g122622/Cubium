@@ -62,11 +62,25 @@ public:
      *
      * 崩溃诊断用：崩溃/异常捕获时可查询正在执行的测试实例。
      */
-    [[nodiscard]] const BaseGameTestInstance* currentTicking() const noexcept { return m_currentTicking; }
+    [[nodiscard]] const BaseGameTestInstance* currentTicking() const noexcept
+    {
+        return m_currentTicking;
+    }
 
-    [[nodiscard]] State state() const noexcept { return m_state; }
-    [[nodiscard]] bool isEmpty() const noexcept { return m_instances.empty() && m_clearTasks.empty(); }
-    [[nodiscard]] std::size_t instanceCount() const noexcept { return m_instances.size(); }
+    [[nodiscard]] State state() const noexcept
+    {
+        return m_state;
+    }
+
+    [[nodiscard]] bool isEmpty() const noexcept
+    {
+        return m_instances.empty() && m_clearTasks.empty();
+    }
+
+    [[nodiscard]] std::size_t instanceCount() const noexcept
+    {
+        return m_instances.size();
+    }
 
 private:
     GameTestTicker() = default;

@@ -84,16 +84,20 @@ public:
 
 class BlockPatternBuilderTest : public ::testing::Test {
 protected:
-    void SetUp() override { VanillaBlocks::initialize(); }
+    void SetUp() override
+    {
+        VanillaBlocks::initialize();
+    }
 };
 
 TEST_F(BlockPatternBuilderTest, Build_SingleBlockPattern_HasCorrectDimensions)
 {
-    auto pattern =
-        BlockPatternBuilder::start()
-            .aisle({"#"})
-            .where('#', BlockInWorld::hasState([](const BlockState& s) { return s.is(VanillaBlocks::BEDROCK); }))
-            .build();
+    auto pattern = BlockPatternBuilder::start()
+                       .aisle({"#"})
+                       .where('#', BlockInWorld::hasState([](const BlockState& s) {
+                           return s.is(VanillaBlocks::BEDROCK);
+                       }))
+                       .build();
 
     EXPECT_EQ(pattern->depth(), 1);
     EXPECT_EQ(pattern->height(), 1);
@@ -102,11 +106,12 @@ TEST_F(BlockPatternBuilderTest, Build_SingleBlockPattern_HasCorrectDimensions)
 
 TEST_F(BlockPatternBuilderTest, Build_3x3Pattern_HasCorrectDimensions)
 {
-    auto pattern =
-        BlockPatternBuilder::start()
-            .aisle({"###", "###", "###"})
-            .where('#', BlockInWorld::hasState([](const BlockState& s) { return s.is(VanillaBlocks::BEDROCK); }))
-            .build();
+    auto pattern = BlockPatternBuilder::start()
+                       .aisle({"###", "###", "###"})
+                       .where('#', BlockInWorld::hasState([](const BlockState& s) {
+                           return s.is(VanillaBlocks::BEDROCK);
+                       }))
+                       .build();
 
     EXPECT_EQ(pattern->depth(), 1);
     EXPECT_EQ(pattern->height(), 3);
@@ -115,13 +120,14 @@ TEST_F(BlockPatternBuilderTest, Build_3x3Pattern_HasCorrectDimensions)
 
 TEST_F(BlockPatternBuilderTest, Build_MultipleAisles_HasCorrectDepth)
 {
-    auto pattern =
-        BlockPatternBuilder::start()
-            .aisle({"#"})
-            .aisle({"#"})
-            .aisle({"#"})
-            .where('#', BlockInWorld::hasState([](const BlockState& s) { return s.is(VanillaBlocks::BEDROCK); }))
-            .build();
+    auto pattern = BlockPatternBuilder::start()
+                       .aisle({"#"})
+                       .aisle({"#"})
+                       .aisle({"#"})
+                       .where('#', BlockInWorld::hasState([](const BlockState& s) {
+                           return s.is(VanillaBlocks::BEDROCK);
+                       }))
+                       .build();
 
     EXPECT_EQ(pattern->depth(), 3);
     EXPECT_EQ(pattern->height(), 1);
@@ -154,7 +160,10 @@ TEST_F(BlockPatternBuilderTest, Build_EmptyAisle_ThrowsException)
 
 class BlockPatternFindTest : public ::testing::Test {
 protected:
-    void SetUp() override { VanillaBlocks::initialize(); }
+    void SetUp() override
+    {
+        VanillaBlocks::initialize();
+    }
 
     PatternTestWorld m_world;
 };
@@ -166,11 +175,12 @@ TEST_F(BlockPatternFindTest, Find_SingleBedrockAtOrigin_ReturnsMatch)
     ASSERT_NE(bedrockState, nullptr);
     m_world.setBlockState(0, 64, 0, bedrockState);
 
-    auto pattern =
-        BlockPatternBuilder::start()
-            .aisle({"#"})
-            .where('#', BlockInWorld::hasState([](const BlockState& s) { return s.is(VanillaBlocks::BEDROCK); }))
-            .build();
+    auto pattern = BlockPatternBuilder::start()
+                       .aisle({"#"})
+                       .where('#', BlockInWorld::hasState([](const BlockState& s) {
+                           return s.is(VanillaBlocks::BEDROCK);
+                       }))
+                       .build();
 
     auto match = pattern->find(m_world, BlockPos(0, 64, 0));
     ASSERT_TRUE(match.has_value());
@@ -182,11 +192,12 @@ TEST_F(BlockPatternFindTest, Find_SingleBedrockAtOrigin_ReturnsMatch)
 TEST_F(BlockPatternFindTest, Find_NoMatchingBlock_ReturnsNullopt)
 {
     // 世界中只有空气，没有基岩
-    auto pattern =
-        BlockPatternBuilder::start()
-            .aisle({"#"})
-            .where('#', BlockInWorld::hasState([](const BlockState& s) { return s.is(VanillaBlocks::BEDROCK); }))
-            .build();
+    auto pattern = BlockPatternBuilder::start()
+                       .aisle({"#"})
+                       .where('#', BlockInWorld::hasState([](const BlockState& s) {
+                           return s.is(VanillaBlocks::BEDROCK);
+                       }))
+                       .build();
 
     auto match = pattern->find(m_world, BlockPos(0, 64, 0));
     EXPECT_FALSE(match.has_value());
@@ -198,11 +209,12 @@ TEST_F(BlockPatternFindTest, Find_CrossPattern_ReturnsCenter)
     //   " # "
     //   "###"
     //   " # "
-    auto pattern =
-        BlockPatternBuilder::start()
-            .aisle({" # ", "###", " # "})
-            .where('#', BlockInWorld::hasState([](const BlockState& s) { return s.is(VanillaBlocks::BEDROCK); }))
-            .build();
+    auto pattern = BlockPatternBuilder::start()
+                       .aisle({" # ", "###", " # "})
+                       .where('#', BlockInWorld::hasState([](const BlockState& s) {
+                           return s.is(VanillaBlocks::BEDROCK);
+                       }))
+                       .build();
 
     // 在世界中构建对应的十字
     const BlockState* bedrockState = VanillaBlocks::getState(VanillaBlocks::BEDROCK);
@@ -221,15 +233,16 @@ TEST_F(BlockPatternFindTest, Find_ExitPortalPattern_ReturnsCenter)
 {
     // 构建 EndDragonFight 的 exitPortalPattern 并在世界中放置对应讲台结构
     // 讲台中心放在 (0, 64, 0)
-    auto pattern =
-        BlockPatternBuilder::start()
-            .aisle({"       ", "       ", "       ", "   #   ", "       ", "       ", "       "})
-            .aisle({"       ", "       ", "       ", "   #   ", "       ", "       ", "       "})
-            .aisle({"       ", "       ", "       ", "   #   ", "       ", "       ", "       "})
-            .aisle({"  ###  ", " #   # ", "#     #", "#  #  #", "#     #", " #   # ", "  ###  "})
-            .aisle({"       ", "  ###  ", " ##### ", " ##### ", " ##### ", "  ###  ", "       "})
-            .where('#', BlockInWorld::hasState([](const BlockState& s) { return s.is(VanillaBlocks::BEDROCK); }))
-            .build();
+    auto pattern = BlockPatternBuilder::start()
+                       .aisle({"       ", "       ", "       ", "   #   ", "       ", "       ", "       "})
+                       .aisle({"       ", "       ", "       ", "   #   ", "       ", "       ", "       "})
+                       .aisle({"       ", "       ", "       ", "   #   ", "       ", "       ", "       "})
+                       .aisle({"  ###  ", " #   # ", "#     #", "#  #  #", "#     #", " #   # ", "  ###  "})
+                       .aisle({"       ", "  ###  ", " ##### ", " ##### ", " ##### ", "  ###  ", "       "})
+                       .where('#', BlockInWorld::hasState([](const BlockState& s) {
+                           return s.is(VanillaBlocks::BEDROCK);
+                       }))
+                       .build();
 
     // 在世界中原点构建讲台
     // 使用 EndTeleporter::createExitPortal 创建激活态讲台
@@ -252,7 +265,10 @@ TEST_F(BlockPatternFindTest, Find_ExitPortalPattern_ReturnsCenter)
 
 class BlockInWorldTest : public ::testing::Test {
 protected:
-    void SetUp() override { VanillaBlocks::initialize(); }
+    void SetUp() override
+    {
+        VanillaBlocks::initialize();
+    }
 
     PatternTestWorld m_world;
 };
@@ -291,7 +307,9 @@ TEST_F(BlockInWorldTest, HasState_PredicateMatches_ReturnsTrue)
     const BlockState* bedrockState = VanillaBlocks::getState(VanillaBlocks::BEDROCK);
     m_world.setBlockState(0, 64, 0, bedrockState);
 
-    auto predicate = BlockInWorld::hasState([](const BlockState& s) { return s.is(VanillaBlocks::BEDROCK); });
+    auto predicate = BlockInWorld::hasState([](const BlockState& s) {
+        return s.is(VanillaBlocks::BEDROCK);
+    });
 
     BlockInWorld blockInWorld(m_world, BlockPos(0, 64, 0), false);
     EXPECT_TRUE(predicate(blockInWorld));
@@ -302,7 +320,9 @@ TEST_F(BlockInWorldTest, HasState_PredicateDoesNotMatch_ReturnsFalse)
     const BlockState* bedrockState = VanillaBlocks::getState(VanillaBlocks::BEDROCK);
     m_world.setBlockState(0, 64, 0, bedrockState);
 
-    auto predicate = BlockInWorld::hasState([](const BlockState& s) { return s.is(VanillaBlocks::END_STONE); });
+    auto predicate = BlockInWorld::hasState([](const BlockState& s) {
+        return s.is(VanillaBlocks::END_STONE);
+    });
 
     BlockInWorld blockInWorld(m_world, BlockPos(0, 64, 0), false);
     EXPECT_FALSE(predicate(blockInWorld));
@@ -311,7 +331,9 @@ TEST_F(BlockInWorldTest, HasState_PredicateDoesNotMatch_ReturnsFalse)
 TEST_F(BlockInWorldTest, HasState_NullState_ReturnsFalse)
 {
     // 未加载区块，getState() 返回 nullptr
-    auto predicate = BlockInWorld::hasState([](const BlockState& s) { return s.is(VanillaBlocks::BEDROCK); });
+    auto predicate = BlockInWorld::hasState([](const BlockState& s) {
+        return s.is(VanillaBlocks::BEDROCK);
+    });
 
     BlockInWorld blockInWorld(m_world, BlockPos(10000, 64, 10000), false);
     EXPECT_FALSE(predicate(blockInWorld));

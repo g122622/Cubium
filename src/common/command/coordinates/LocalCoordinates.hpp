@@ -83,15 +83,37 @@ public:
         return Vector2f(0.0f, 0.0f);
     }
 
-    [[nodiscard]] bool isXRelative() const override { return true; }
-    [[nodiscard]] bool isYRelative() const override { return true; }
-    [[nodiscard]] bool isZRelative() const override { return true; }
+    [[nodiscard]] bool isXRelative() const override
+    {
+        return true;
+    }
+
+    [[nodiscard]] bool isYRelative() const override
+    {
+        return true;
+    }
+
+    [[nodiscard]] bool isZRelative() const override
+    {
+        return true;
+    }
 
     // ========== 分量访问 ==========
 
-    [[nodiscard]] f64 left() const noexcept { return m_left; }
-    [[nodiscard]] f64 up() const noexcept { return m_up; }
-    [[nodiscard]] f64 forwards() const noexcept { return m_forwards; }
+    [[nodiscard]] f64 left() const noexcept
+    {
+        return m_left;
+    }
+
+    [[nodiscard]] f64 up() const noexcept
+    {
+        return m_up;
+    }
+
+    [[nodiscard]] f64 forwards() const noexcept
+    {
+        return m_forwards;
+    }
 
     /**
      * @brief 局部坐标前缀字符

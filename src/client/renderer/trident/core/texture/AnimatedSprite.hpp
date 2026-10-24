@@ -100,7 +100,10 @@ public:
      * @brief 检查是否为有效动画
      * @return 如果有多个帧返回true
      */
-    [[nodiscard]] bool isAnimated() const noexcept { return m_frames.size() > 1; }
+    [[nodiscard]] bool isAnimated() const noexcept
+    {
+        return m_frames.size() > 1;
+    }
 
     /**
      * @brief 获取当前帧索引
@@ -134,42 +137,66 @@ public:
     /**
      * @brief 获取帧宽度
      */
-    [[nodiscard]] u32 frameWidth() const noexcept { return m_frameWidth; }
+    [[nodiscard]] u32 frameWidth() const noexcept
+    {
+        return m_frameWidth;
+    }
 
     /**
      * @brief 获取帧高度
      */
-    [[nodiscard]] u32 frameHeight() const noexcept { return m_frameHeight; }
+    [[nodiscard]] u32 frameHeight() const noexcept
+    {
+        return m_frameHeight;
+    }
 
     /**
      * @brief 获取图集X位置
      */
-    [[nodiscard]] u32 atlasX() const noexcept { return m_atlasX; }
+    [[nodiscard]] u32 atlasX() const noexcept
+    {
+        return m_atlasX;
+    }
 
     /**
      * @brief 获取图集Y位置
      */
-    [[nodiscard]] u32 atlasY() const noexcept { return m_atlasY; }
+    [[nodiscard]] u32 atlasY() const noexcept
+    {
+        return m_atlasY;
+    }
 
     /**
      * @brief 获取总帧数
      */
-    [[nodiscard]] mc::Size frameCount() const noexcept { return m_frames.size(); }
+    [[nodiscard]] mc::Size frameCount() const noexcept
+    {
+        return m_frames.size();
+    }
 
     /**
      * @brief 获取动画元数据
      */
-    [[nodiscard]] const mc::resource::metadata::AnimationMetadata& metadata() const noexcept { return m_metadata; }
+    [[nodiscard]] const mc::resource::metadata::AnimationMetadata& metadata() const noexcept
+    {
+        return m_metadata;
+    }
 
     /**
      * @brief 检查是否需要上传帧数据
      */
-    [[nodiscard]] bool needsUpload() const noexcept { return m_needsUpload; }
+    [[nodiscard]] bool needsUpload() const noexcept
+    {
+        return m_needsUpload;
+    }
 
     /**
      * @brief 标记当前帧已上传
      */
-    void markUploaded() noexcept { m_needsUpload = false; }
+    void markUploaded() noexcept
+    {
+        m_needsUpload = false;
+    }
 
     /**
      * @brief 获取当前帧的像素数据
@@ -193,13 +220,19 @@ public:
      * 返回动画纹理的资源位置标识。
      * 需要在注册时设置。
      */
-    [[nodiscard]] const mc::ResourceLocation& location() const noexcept { return m_location; }
+    [[nodiscard]] const mc::ResourceLocation& location() const noexcept
+    {
+        return m_location;
+    }
 
     /**
      * @brief 设置资源位置
      * @param loc 资源位置
      */
-    void setLocation(const mc::ResourceLocation& loc) { m_location = loc; }
+    void setLocation(const mc::ResourceLocation& loc)
+    {
+        m_location = loc;
+    }
 
 private:
     // ========== 成员变量 ==========

@@ -46,13 +46,22 @@ using namespace mc::world::biome;
 class FreezeTestWorld : public mc::test::BaseTestWorld {
 public:
     // 设置指定位置的方块状态
-    void setBlockStateAt(i32 x, i32 y, i32 z, const BlockState* state) { m_blocks[{x, y, z}] = state; }
+    void setBlockStateAt(i32 x, i32 y, i32 z, const BlockState* state)
+    {
+        m_blocks[{x, y, z}] = state;
+    }
 
     // 设置指定位置的流体状态
-    void setFluidStateAt(i32 x, i32 y, i32 z, const fluid::FluidState* state) { m_fluids[{x, y, z}] = state; }
+    void setFluidStateAt(i32 x, i32 y, i32 z, const fluid::FluidState* state)
+    {
+        m_fluids[{x, y, z}] = state;
+    }
 
     // 设置指定位置的方块光照
-    void setBlockLightAt(i32 x, i32 y, i32 z, u8 light) { m_blockLights[{x, y, z}] = light; }
+    void setBlockLightAt(i32 x, i32 y, i32 z, u8 light)
+    {
+        m_blockLights[{x, y, z}] = light;
+    }
 
     // IWorld 接口覆写
     [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override
@@ -82,6 +91,7 @@ private:
                 static_cast<size_t>(z) * 83492791u;
         }
     };
+
     std::unordered_map<std::tuple<i32, i32, i32>, const BlockState*, PosHash> m_blocks;
     std::unordered_map<std::tuple<i32, i32, i32>, const fluid::FluidState*, PosHash> m_fluids;
     std::unordered_map<std::tuple<i32, i32, i32>, u8, PosHash> m_blockLights;

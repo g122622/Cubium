@@ -71,7 +71,10 @@ public:
         return std::unique_ptr<WindOffsetter>(new WindOffsetter());
     }
 
-    [[nodiscard]] bool hasWind() const noexcept { return m_windX.has_value(); }
+    [[nodiscard]] bool hasWind() const noexcept
+    {
+        return m_windX.has_value();
+    }
 
     [[nodiscard]] BlockPos offset(const BlockPos& pos) const
     {
@@ -177,7 +180,10 @@ public:
     }
 
 private:
-    [[nodiscard]] i32 getHeight() const { return getHeightAtRadius(0.0F); }
+    [[nodiscard]] i32 getHeight() const
+    {
+        return getHeightAtRadius(0.0F);
+    }
 
     [[nodiscard]] i32 getHeightAtRadius(f32 radius) const
     {

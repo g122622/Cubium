@@ -106,19 +106,28 @@ public:
     /**
      * @brief 检查是否有打开的屏幕
      */
-    [[nodiscard]] bool hasScreen() const { return !m_screens.empty(); }
+    [[nodiscard]] bool hasScreen() const
+    {
+        return !m_screens.empty();
+    }
 
     /**
      * @brief 获取屏幕栈深度
      */
-    [[nodiscard]] Size screenCount() const { return m_screens.size(); }
+    [[nodiscard]] Size screenCount() const
+    {
+        return m_screens.size();
+    }
 
     /**
      * @brief 设置屏幕变化回调
      *
      * 回调在 push/pop/clear 操作后触发，参数为 ScreenChangeInfo。
      */
-    void setScreenChangeCallback(ScreenChangeCallback callback) { m_onScreenChange = std::move(callback); }
+    void setScreenChangeCallback(ScreenChangeCallback callback)
+    {
+        m_onScreenChange = std::move(callback);
+    }
 
     // ========== Widget接口 ==========
 

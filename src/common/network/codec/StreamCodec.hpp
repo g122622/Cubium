@@ -86,9 +86,15 @@ public:
         , m_decode(std::move(decodeFn))
     {}
 
-    void encode(B& buf, const V& value) const override { m_encode(buf, value); }
+    void encode(B& buf, const V& value) const override
+    {
+        m_encode(buf, value);
+    }
 
-    [[nodiscard]] Result<V> decode(B& buf) const override { return m_decode(buf); }
+    [[nodiscard]] Result<V> decode(B& buf) const override
+    {
+        return m_decode(buf);
+    }
 
 private:
     EncodeFn m_encode;

@@ -94,13 +94,19 @@ public:
      * @brief 获取上半部分容器
      * @return 上半部分容器指针
      */
-    [[nodiscard]] IInventory* getUpper() const { return m_upper; }
+    [[nodiscard]] IInventory* getUpper() const
+    {
+        return m_upper;
+    }
 
     /**
      * @brief 获取下半部分容器
      * @return 下半部分容器指针
      */
-    [[nodiscard]] IInventory* getLower() const { return m_lower; }
+    [[nodiscard]] IInventory* getLower() const
+    {
+        return m_lower;
+    }
 
     /**
      * @brief 检查指定容器是否是此双箱的一部分

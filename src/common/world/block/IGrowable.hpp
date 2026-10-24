@@ -32,6 +32,7 @@ namespace mc {
 class IBlockReader;
 class IWorld;
 class BlockState;
+
 namespace math {
 class IRandom;
 }
@@ -108,7 +109,10 @@ public:
      *
      * @return 骨粉类型
      */
-    [[nodiscard]] virtual BoneMealType getBoneMealType() const { return BoneMealType::GROWER; }
+    [[nodiscard]] virtual BoneMealType getBoneMealType() const
+    {
+        return BoneMealType::GROWER;
+    }
 
     /**
      * @brief 获取骨粉粒子生成位置

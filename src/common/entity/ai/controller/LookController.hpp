@@ -61,7 +61,10 @@ public:
      * @brief 设置看向位置
      * @param pos 位置向量
      */
-    void setLookPosition(const Vector3& pos) { setLookPosition(pos.x, pos.y, pos.z); }
+    void setLookPosition(const Vector3& pos)
+    {
+        setLookPosition(pos.x, pos.y, pos.z);
+    }
 
     /**
      * @brief 设置看向位置（带旋转速度限制）
@@ -84,22 +87,34 @@ public:
     /**
      * @brief 是否正在看向某处
      */
-    [[nodiscard]] bool isLooking() const { return m_isLooking; }
+    [[nodiscard]] bool isLooking() const
+    {
+        return m_isLooking;
+    }
 
     /**
      * @brief 获取目标X坐标
      */
-    [[nodiscard]] f64 getLookPosX() const { return m_posX; }
+    [[nodiscard]] f64 getLookPosX() const
+    {
+        return m_posX;
+    }
 
     /**
      * @brief 获取目标Y坐标
      */
-    [[nodiscard]] f64 getLookPosY() const { return m_posY; }
+    [[nodiscard]] f64 getLookPosY() const
+    {
+        return m_posY;
+    }
 
     /**
      * @brief 获取目标Z坐标
      */
-    [[nodiscard]] f64 getLookPosZ() const { return m_posZ; }
+    [[nodiscard]] f64 getLookPosZ() const
+    {
+        return m_posZ;
+    }
 
     /**
      * @brief 刻更新
@@ -131,7 +146,10 @@ protected:
     /**
      * @brief 是否应该重置俯仰角
      */
-    [[nodiscard]] virtual bool shouldResetPitch() const { return true; }
+    [[nodiscard]] virtual bool shouldResetPitch() const
+    {
+        return true;
+    }
 
     MobEntity* m_mob;
     f32 m_deltaLookYaw = 10.0f;

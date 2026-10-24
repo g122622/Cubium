@@ -127,7 +127,10 @@ struct ServerPlayerData {
      * @brief 推进最后动作时间（对齐 vanilla ServerPlayer#resetLastActionTime）
      * @param nowMs 当前 wall-clock 毫秒
      */
-    void resetLastActionTime(u64 nowMs) noexcept { lastActionTime = nowMs; }
+    void resetLastActionTime(u64 nowMs) noexcept
+    {
+        lastActionTime = nowMs;
+    }
 
     // ========== 客户端加载状态（对齐 ServerGamePacketListenerImpl） ==========
     /// 玩家死亡后等待重生（对齐 waitingForRespawn）。
@@ -184,13 +187,19 @@ struct ServerPlayerData {
      * @brief 获取连接（如果有效）
      * @return 连接指针，如果无连接返回 nullptr
      */
-    [[nodiscard]] mc::server::net::IServerClientConnection* getConnection() const noexcept { return connection; }
+    [[nodiscard]] mc::server::net::IServerClientConnection* getConnection() const noexcept
+    {
+        return connection;
+    }
 
     /**
      * @brief 检查连接是否有效
      * @return true 如果连接非空且未断开
      */
-    [[nodiscard]] bool hasConnection() const { return connection != nullptr && connection->isConnected(); }
+    [[nodiscard]] bool hasConnection() const
+    {
+        return connection != nullptr && connection->isConnected();
+    }
 
     /**
      * @brief 自增并返回玩家物品栏（containerId=0）的 stateId（& 32767 环绕）
@@ -208,7 +217,10 @@ struct ServerPlayerData {
     /**
      * @brief 获取玩家物品栏（containerId=0）的当前 stateId
      */
-    [[nodiscard]] i32 getPlayerInventoryStateId() const noexcept { return playerInventoryStateId; }
+    [[nodiscard]] i32 getPlayerInventoryStateId() const noexcept
+    {
+        return playerInventoryStateId;
+    }
 
     /**
      * @brief 发送 IR 包到玩家
@@ -256,10 +268,16 @@ struct ServerPlayerData {
      * 仅置 waitingForRespawn = true。该标志使 hasClientLoaded() 返回 false，
      * 直到玩家执行 PERFORM_RESPAWN 触发 restartClientLoadTimerAfterRespawn() 才被清除。
      */
-    void markClientUnloadedAfterDeath() noexcept { waitingForRespawn = true; }
+    void markClientUnloadedAfterDeath() noexcept
+    {
+        waitingForRespawn = true;
+    }
 
     /** @brief 客户端主动确认加载完成，不解除等待重生状态。 */
-    void markClientLoaded() noexcept { clientLoadedTimeoutTimer = 0; }
+    void markClientLoaded() noexcept
+    {
+        clientLoadedTimeoutTimer = 0;
+    }
 
     /**
      * @brief 重生后重启客户端加载超时计时器
@@ -291,17 +309,26 @@ struct ServerPlayerData {
      * 对齐 vanilla ServerGamePacketListenerImpl.hasClientLoaded()：
      * 未等待重生（!waitingForRespawn）且加载超时计时器已归零。
      */
-    [[nodiscard]] bool hasClientLoaded() const noexcept { return !waitingForRespawn && clientLoadedTimeoutTimer <= 0; }
+    [[nodiscard]] bool hasClientLoaded() const noexcept
+    {
+        return !waitingForRespawn && clientLoadedTimeoutTimer <= 0;
+    }
 
     /**
      * @brief 获取位置向量
      */
-    [[nodiscard]] Vector3f position() const noexcept { return Vector3f(x, y, z); }
+    [[nodiscard]] Vector3f position() const noexcept
+    {
+        return Vector3f(x, y, z);
+    }
 
     /**
      * @brief 获取旋转向量
      */
-    [[nodiscard]] Vector2f rotation() const noexcept { return Vector2f(yaw, pitch); }
+    [[nodiscard]] Vector2f rotation() const noexcept
+    {
+        return Vector2f(yaw, pitch);
+    }
 
     // ========== 效果系统 ==========
 
@@ -333,14 +360,19 @@ struct ServerPlayerData {
     {
         effects.erase(std::remove_if(effects.begin(),
                           effects.end(),
-                          [type](const entity::effect::EffectInstance& e) { return e.type() == type; }),
+                          [type](const entity::effect::EffectInstance& e) {
+                              return e.type() == type;
+                          }),
             effects.end());
     }
 
     /**
      * @brief 移除所有效果
      */
-    void removeAllEffects() noexcept { effects.clear(); }
+    void removeAllEffects() noexcept
+    {
+        effects.clear();
+    }
 
     /**
      * @brief 检查是否有指定效果
@@ -375,7 +407,10 @@ struct ServerPlayerData {
     /**
      * @brief 获取所有效果
      */
-    [[nodiscard]] const std::vector<entity::effect::EffectInstance>& getAllEffects() const noexcept { return effects; }
+    [[nodiscard]] const std::vector<entity::effect::EffectInstance>& getAllEffects() const noexcept
+    {
+        return effects;
+    }
 };
 
 } // namespace mc::server

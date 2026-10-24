@@ -128,8 +128,9 @@ TEST(LlamaModelTest, GeneratedMeshIncludesAllParts)
     model.generateMesh(vertices, indices, kModelScale);
 
     // 验证网格包含头部（高位置）
-    const bool hasHeadHeight = std::any_of(
-        vertices.begin(), vertices.end(), [](const ModelVertex& vertex) { return vertex.position.y > 1.0f; });
+    const bool hasHeadHeight = std::any_of(vertices.begin(), vertices.end(), [](const ModelVertex& vertex) {
+        return vertex.position.y > 1.0f;
+    });
 
     // 验证网格包含身体（中间位置）
     const bool hasBodyHeight = std::any_of(vertices.begin(), vertices.end(), [](const ModelVertex& vertex) {
@@ -137,8 +138,9 @@ TEST(LlamaModelTest, GeneratedMeshIncludesAllParts)
     });
 
     // 验证网格包含腿部（低位置）
-    const bool hasLegHeight = std::any_of(
-        vertices.begin(), vertices.end(), [](const ModelVertex& vertex) { return vertex.position.y < 0.3f; });
+    const bool hasLegHeight = std::any_of(vertices.begin(), vertices.end(), [](const ModelVertex& vertex) {
+        return vertex.position.y < 0.3f;
+    });
 
     EXPECT_TRUE(hasHeadHeight) << "Model should have head parts at high positions";
     EXPECT_TRUE(hasBodyHeight) << "Model should have body parts at middle positions";

@@ -110,7 +110,10 @@ public:
     /**
      * @brief 检查是否匹配任意NBT
      */
-    [[nodiscard]] bool isAny() const noexcept { return m_tag == nullptr; }
+    [[nodiscard]] bool isAny() const noexcept
+    {
+        return m_tag == nullptr;
+    }
 
     /**
      * @brief 从JSON解析
@@ -136,7 +139,10 @@ public:
     /**
      * @brief 获取期望的NBT标签
      */
-    [[nodiscard]] const nbt::tags::compound_tag* getTag() const noexcept { return m_tag.get(); }
+    [[nodiscard]] const nbt::tags::compound_tag* getTag() const noexcept
+    {
+        return m_tag.get();
+    }
 
     /**
      * @brief 递归比较NBT标签是否匹配（子集匹配）

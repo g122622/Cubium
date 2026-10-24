@@ -52,9 +52,16 @@ public:
 
     [[nodiscard]] bool test(LootContext& context) const override;
     [[nodiscard]] std::unique_ptr<LootCondition> clone() const noexcept override;
-    [[nodiscard]] std::string getType() const override { return "fishing_hook_in_open_water"; }
 
-    [[nodiscard]] bool requireOpenWater() const { return m_requireOpenWater; }
+    [[nodiscard]] std::string getType() const override
+    {
+        return "fishing_hook_in_open_water";
+    }
+
+    [[nodiscard]] bool requireOpenWater() const
+    {
+        return m_requireOpenWater;
+    }
 
 private:
     bool m_requireOpenWater;

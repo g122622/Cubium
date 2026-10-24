@@ -107,6 +107,7 @@ public:
         ensureTickManager();
         return *m_tickManagerPtr;
     }
+
     [[nodiscard]] const world::tick::TickManager& tickManager() const override
     {
         const_cast<ShapeUpdateTestWorld*>(this)->ensureTickManager();
@@ -120,9 +121,15 @@ public:
     }
 
     // 测试辅助方法
-    const std::vector<std::pair<BlockPos, const BlockState*>>& getBlockChanges() const { return m_blockChanges; }
+    const std::vector<std::pair<BlockPos, const BlockState*>>& getBlockChanges() const
+    {
+        return m_blockChanges;
+    }
 
-    void clearRecords() { m_blockChanges.clear(); }
+    void clearRecords()
+    {
+        m_blockChanges.clear();
+    }
 
 private:
     [[nodiscard]] static i64 packPos(i32 x, i32 y, i32 z)

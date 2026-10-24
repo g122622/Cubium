@@ -28,6 +28,7 @@
 #include "common/entity/entities/monster/nether/NetherEntities.hpp"
 
 using namespace mc;
+
 /**
  * @brief 猪灵实体测试夹具
  *

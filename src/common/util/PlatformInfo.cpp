@@ -222,10 +222,18 @@ std::string PlatformInfo::getPlatformNameWindows()
         }
         return "Windows 10";
     } else if (osvi.dwMajorVersion == 6) {
-        if (osvi.dwMinorVersion == 3) return "Windows 8.1";
-        if (osvi.dwMinorVersion == 2) return "Windows 8";
-        if (osvi.dwMinorVersion == 1) return "Windows 7";
-        if (osvi.dwMinorVersion == 0) return "Windows Vista";
+        if (osvi.dwMinorVersion == 3) {
+            return "Windows 8.1";
+        }
+        if (osvi.dwMinorVersion == 2) {
+            return "Windows 8";
+        }
+        if (osvi.dwMinorVersion == 1) {
+            return "Windows 7";
+        }
+        if (osvi.dwMinorVersion == 0) {
+            return "Windows Vista";
+        }
     }
 
     return "Windows";
@@ -646,6 +654,7 @@ std::string PlatformInfo::getPlatformNameMacOS()
 // Linux/macOS 的 std::this_thread::sleep_for 默认已具备高精度（nanosleep/clock_nanosleep）。
 #ifndef _WIN32
 void PlatformInfo::requestHighResTimer() {}
+
 void PlatformInfo::releaseHighResTimer() {}
 #endif
 

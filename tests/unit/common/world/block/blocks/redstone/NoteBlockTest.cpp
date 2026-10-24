@@ -108,20 +108,36 @@ public:
     {
         throw std::runtime_error("NoteBlockTestWorld::tickManager not implemented");
     }
+
     [[nodiscard]] const world::tick::TickManager& tickManager() const override
     {
         throw std::runtime_error("NoteBlockTestWorld::tickManager not implemented");
     }
 
-    void setBlockAt(const BlockPos& pos, const BlockState& state) { m_blocks.insert_or_assign(pos, state); }
+    void setBlockAt(const BlockPos& pos, const BlockState& state)
+    {
+        m_blocks.insert_or_assign(pos, state);
+    }
 
-    void clearBlockAt(const BlockPos& pos) { m_blocks.erase(pos); }
+    void clearBlockAt(const BlockPos& pos)
+    {
+        m_blocks.erase(pos);
+    }
 
-    [[nodiscard]] const std::vector<ResourceLocation>& playedSoundIds() const { return m_playedSoundIds; }
+    [[nodiscard]] const std::vector<ResourceLocation>& playedSoundIds() const
+    {
+        return m_playedSoundIds;
+    }
 
-    [[nodiscard]] f32 lastPitch() const { return m_lastPitch; }
+    [[nodiscard]] f32 lastPitch() const
+    {
+        return m_lastPitch;
+    }
 
-    [[nodiscard]] i32 particleCount() const { return m_particleCount; }
+    [[nodiscard]] i32 particleCount() const
+    {
+        return m_particleCount;
+    }
 
     void clear()
     {
@@ -158,7 +174,10 @@ protected:
         m_world = std::make_unique<NoteBlockTestWorld>();
     }
 
-    void TearDown() override { m_world.reset(); }
+    void TearDown() override
+    {
+        m_world.reset();
+    }
 
     /// 在 pos 放置音符盒：走 resolveInstrument（等价 vanilla getStateForPlacement），
     /// 使 INSTRUMENT 属性按上下方方块解析后写入，再返回放置后的状态。
@@ -697,6 +716,7 @@ TEST_F(NoteBlockTest, TopInstrumentsTag_ContainsAllHeads)
         EXPECT_TRUE(tag.contains(ItemStack(item, 1))) << "missing head item in tag";
     }
 }
+
 // ============================================================================
 // 音符盒上方头颅决定乐器（vanilla WorksAboveNoteBlockBlock 语义）
 // ============================================================================
@@ -900,6 +920,7 @@ TEST_F(NoteBlockTest, HeadAbove_AbsentFallsBackToBlockBelow)
     ASSERT_EQ(sounds.size(), 1u);
     EXPECT_EQ(sounds[0], SoundEvents::BLOCK_NOTE_BLOCK_DIDGERIDOO);
 } // ============================================================================
+
 // INSTRUMENT 状态属性 / updatePostPlacement / 可调音语义（vanilla 对齐）
 // ============================================================================
 

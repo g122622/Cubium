@@ -320,8 +320,12 @@ void ExperienceOrbEntity::_updateMovement()
     }
 
     constexpr f32 MOTION_THRESHOLD = 0.003f;
-    if (std::abs(vel.x) < MOTION_THRESHOLD) vel.x = 0.0f;
-    if (std::abs(vel.z) < MOTION_THRESHOLD) vel.z = 0.0f;
+    if (std::abs(vel.x) < MOTION_THRESHOLD) {
+        vel.x = 0.0f;
+    }
+    if (std::abs(vel.z) < MOTION_THRESHOLD) {
+        vel.z = 0.0f;
+    }
 
     setVelocity(vel);
 }
@@ -372,8 +376,9 @@ void ExperienceOrbEntity::_followNearestPlayer()
 
 Player* ExperienceOrbEntity::_findNearestPlayer() const
 {
-    return EntityUtils::findClosestEntity<Player>(
-        m_world, position(), TRACKING_RANGE, nullptr, [](Player* p) { return p->isAlive() && !p->isSpectator(); });
+    return EntityUtils::findClosestEntity<Player>(m_world, position(), TRACKING_RANGE, nullptr, [](Player* p) {
+        return p->isAlive() && !p->isSpectator();
+    });
 }
 
 bool ExperienceOrbEntity::_handleMending(Player& player)

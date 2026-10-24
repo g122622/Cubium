@@ -153,17 +153,26 @@ public:
     /**
      * @brief 获取箱子行数
      */
-    [[nodiscard]] i32 getRowCount() const { return m_rows; }
+    [[nodiscard]] i32 getRowCount() const
+    {
+        return m_rows;
+    }
 
     /**
      * @brief 获取箱子背包
      */
-    [[nodiscard]] IInventory* getChestInventory() const { return m_chestInventory; }
+    [[nodiscard]] IInventory* getChestInventory() const
+    {
+        return m_chestInventory;
+    }
 
     /**
      * @brief 获取箱子槽位数量
      */
-    [[nodiscard]] i32 getChestSlotCount() const { return m_chestSlotCount; }
+    [[nodiscard]] i32 getChestSlotCount() const
+    {
+        return m_chestSlotCount;
+    }
 
     [[nodiscard]] bool stillValid(const Player& player) const override;
 

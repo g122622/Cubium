@@ -81,12 +81,18 @@ public:
     /**
      * @brief 是否戴着南瓜
      */
-    [[nodiscard]] bool hasPumpkin() const { return m_hasPumpkin; }
+    [[nodiscard]] bool hasPumpkin() const
+    {
+        return m_hasPumpkin;
+    }
 
     /**
      * @brief 设置南瓜状态
      */
-    void setPumpkin(bool hasPumpkin) { m_hasPumpkin = hasPumpkin; }
+    void setPumpkin(bool hasPumpkin)
+    {
+        m_hasPumpkin = hasPumpkin;
+    }
 
     // ========== IShearable 接口实现 ==========
 
@@ -94,7 +100,10 @@ public:
      * @brief 检查是否可以被剪毛
      * @return 如果戴着南瓜返回 true
      */
-    [[nodiscard]] bool isShearable() const override { return hasPumpkin(); }
+    [[nodiscard]] bool isShearable() const override
+    {
+        return hasPumpkin();
+    }
 
     /**
      * @brief 剪毛
@@ -120,7 +129,10 @@ public:
      * 同时被 PotionEntity::onHitAsWater 查询：水瓶命中范围内水敏感实体
      * 受 1.0 indirectMagic 伤害（AbstractThrownPotion.onHitAsWater:93-95）。
      */
-    [[nodiscard]] bool isWaterSensitive() const override { return true; }
+    [[nodiscard]] bool isWaterSensitive() const override
+    {
+        return true;
+    }
 
     // ========== IRangedAttackMob 接口实现 ==========
 
@@ -135,24 +147,36 @@ public:
      * @brief 获取攻击间隔
      * @return 攻击间隔（ticks）
      */
-    [[nodiscard]] i32 getAttackInterval() const override { return ATTACK_COOLDOWN; }
+    [[nodiscard]] i32 getAttackInterval() const override
+    {
+        return ATTACK_COOLDOWN;
+    }
 
     // ========== 属性 ==========
 
     /**
      * @brief 获取眼睛高度
      */
-    [[nodiscard]] f32 eyeHeight() const override { return 1.7f; }
+    [[nodiscard]] f32 eyeHeight() const override
+    {
+        return 1.7f;
+    }
 
     /**
      * @brief 获取实体宽度
      */
-    [[nodiscard]] f32 width() const override { return 0.7f; }
+    [[nodiscard]] f32 width() const override
+    {
+        return 0.7f;
+    }
 
     /**
      * @brief 获取实体高度
      */
-    [[nodiscard]] f32 height() const override { return 1.9f; }
+    [[nodiscard]] f32 height() const override
+    {
+        return 1.9f;
+    }
 
     // ========== 声音 ==========
 

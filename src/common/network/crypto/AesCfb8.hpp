@@ -77,7 +77,10 @@ public:
      */
     [[nodiscard]] Result<std::vector<u8>> process(const u8* data, usize size);
 
-    [[nodiscard]] bool isValid() const noexcept { return m_ctx != nullptr; }
+    [[nodiscard]] bool isValid() const noexcept
+    {
+        return m_ctx != nullptr;
+    }
 
 private:
     void* m_ctx = nullptr; // OpenSSL EVP_CIPHER_CTX*，用 void* 避免 header 泄露 OpenSSL

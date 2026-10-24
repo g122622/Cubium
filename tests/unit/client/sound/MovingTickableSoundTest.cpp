@@ -194,7 +194,10 @@ TEST_F(MovingTickableSoundTest, CustomVolumeAndPitch)
 
 class MusicSelectorTest : public ::testing::Test {
 protected:
-    void SetUp() override { testLocation = ResourceLocation("minecraft:music.game"); }
+    void SetUp() override
+    {
+        testLocation = ResourceLocation("minecraft:music.game");
+    }
 
     ResourceLocation testLocation;
 };
@@ -238,7 +241,10 @@ TEST_F(MusicSelectorTest, FromBiomeMusic)
 
 class BiomeMusicTest : public ::testing::Test {
 protected:
-    void SetUp() override { testLocation = ResourceLocation("minecraft:music.nether.nether_wastes"); }
+    void SetUp() override
+    {
+        testLocation = ResourceLocation("minecraft:music.nether.nether_wastes");
+    }
 
     ResourceLocation testLocation;
 };
@@ -395,7 +401,10 @@ TEST_F(EntitySoundStateExtendedTest, AttackAnimScale)
 
 class SoundInstanceDynamicTest : public ::testing::Test {
 protected:
-    void SetUp() override { testLocation = ResourceLocation("minecraft:test.sound"); }
+    void SetUp() override
+    {
+        testLocation = ResourceLocation("minecraft:test.sound");
+    }
 
     ResourceLocation testLocation;
 };
@@ -501,10 +510,20 @@ public:
         setPitch(m_targetPitch);
     }
 
-    void setTargetVolume(f32 volume) { m_targetVolume = volume; }
-    void setTargetPitch(f32 pitch) { m_targetPitch = pitch; }
+    void setTargetVolume(f32 volume)
+    {
+        m_targetVolume = volume;
+    }
 
-    [[nodiscard]] bool canBeSilent() const override { return true; }
+    void setTargetPitch(f32 pitch)
+    {
+        m_targetPitch = pitch;
+    }
+
+    [[nodiscard]] bool canBeSilent() const override
+    {
+        return true;
+    }
 
 private:
     f32 m_targetVolume;
@@ -513,7 +532,10 @@ private:
 
 class DynamicTickableSoundTest : public ::testing::Test {
 protected:
-    void SetUp() override { testLocation = ResourceLocation("minecraft:test.dynamic"); }
+    void SetUp() override
+    {
+        testLocation = ResourceLocation("minecraft:test.dynamic");
+    }
 
     ResourceLocation testLocation;
 };
@@ -573,7 +595,10 @@ TEST_F(DynamicTickableSoundTest, FadeOutSimulation)
 
 class EntitySoundHandlerIntegrationTest : public ::testing::Test {
 protected:
-    void SetUp() override { handler = std::make_unique<EntitySoundHandler>(); }
+    void SetUp() override
+    {
+        handler = std::make_unique<EntitySoundHandler>();
+    }
 
     std::unique_ptr<EntitySoundHandler> handler;
 };
@@ -818,7 +843,10 @@ TEST_F(MovingTickableSoundBoundaryTest, DifferentSoundCategories)
 
 class EntitySoundStateBoundaryTest : public ::testing::Test {
 protected:
-    void SetUp() override { handler = std::make_unique<EntitySoundHandler>(); }
+    void SetUp() override
+    {
+        handler = std::make_unique<EntitySoundHandler>();
+    }
 
     std::unique_ptr<EntitySoundHandler> handler;
 };
@@ -928,7 +956,10 @@ TEST_F(EntitySoundStateBoundaryTest, ConcurrentUpdates)
 
 class FadeBehaviorTest : public ::testing::Test {
 protected:
-    void SetUp() override { testLocation = ResourceLocation("minecraft:test.fade"); }
+    void SetUp() override
+    {
+        testLocation = ResourceLocation("minecraft:test.fade");
+    }
 
     ResourceLocation testLocation;
 };
@@ -1008,7 +1039,10 @@ TEST_F(FadeBehaviorTest, FadeWithPitchChange)
 
 class MusicSelectorBoundaryTest : public ::testing::Test {
 protected:
-    void SetUp() override { testLocation = ResourceLocation("minecraft:music.game"); }
+    void SetUp() override
+    {
+        testLocation = ResourceLocation("minecraft:music.game");
+    }
 
     ResourceLocation testLocation;
 };
@@ -1233,7 +1267,10 @@ TEST_F(TickableSoundLifecycleTest, MultipleSoundsForDifferentEntities)
 
 class MinecartSoundRidingTest : public ::testing::Test {
 protected:
-    void SetUp() override { handler = std::make_unique<EntitySoundHandler>(); }
+    void SetUp() override
+    {
+        handler = std::make_unique<EntitySoundHandler>();
+    }
 
     std::unique_ptr<EntitySoundHandler> handler;
 };

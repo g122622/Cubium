@@ -66,7 +66,11 @@ public:
     // ParticleData 接口实现
     // ========================================================================
 
-    [[nodiscard]] ParticleTypeId getType() const override { return m_type; }
+    [[nodiscard]] ParticleTypeId getType() const override
+    {
+        return m_type;
+    }
+
     [[nodiscard]] std::string getTypeName() const override;
     [[nodiscard]] std::string getParameters() const override;
     [[nodiscard]] std::unique_ptr<ParticleData> clone() const override;
@@ -80,7 +84,10 @@ public:
      *
      * @return 物品堆
      */
-    [[nodiscard]] const ItemStack& getItemStack() const { return m_itemStack; }
+    [[nodiscard]] const ItemStack& getItemStack() const
+    {
+        return m_itemStack;
+    }
 
 private:
     ParticleTypeId m_type;

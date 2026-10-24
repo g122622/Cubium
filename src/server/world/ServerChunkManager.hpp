@@ -247,6 +247,7 @@ public:
     {
         return m_workerPool.load(std::memory_order::acquire);
     }
+
     [[nodiscard]] const util::UniversalWorkerPool* radiusAwareExecutor() const noexcept
     {
         return m_workerPool.load(std::memory_order::acquire);
@@ -429,7 +430,10 @@ public:
      * 仅影响自动卸载候选判定（_isUnloadCandidate）；基准在 PauseTiming 区间手动调用
      * unloadChunkSync 清理不受影响。生产路径不调用本方法，标志恒为 false。
      */
-    void setSuppressAutoUnloadForBenchmark(bool suppress) { m_suppressAutoUnload = suppress; }
+    void setSuppressAutoUnloadForBenchmark(bool suppress)
+    {
+        m_suppressAutoUnload = suppress;
+    }
 
     /**
      * @brief 设置票据级别变化回调
@@ -476,45 +480,66 @@ public:
     /**
      * @brief 获取票据管理器
      */
-    [[nodiscard]] mc::world::chunk::ChunkLoadTicketManager& ticketManager() { return m_ticketManager; }
+    [[nodiscard]] mc::world::chunk::ChunkLoadTicketManager& ticketManager()
+    {
+        return m_ticketManager;
+    }
 
     /**
      * @brief 获取票据管理器（const 版本）
      */
-    [[nodiscard]] const mc::world::chunk::ChunkLoadTicketManager& ticketManager() const { return m_ticketManager; }
+    [[nodiscard]] const mc::world::chunk::ChunkLoadTicketManager& ticketManager() const
+    {
+        return m_ticketManager;
+    }
 
     /**
      * @brief 获取当前视距
      */
-    [[nodiscard]] i32 viewDistance() const { return m_ticketManager.viewDistance(); }
+    [[nodiscard]] i32 viewDistance() const
+    {
+        return m_ticketManager.viewDistance();
+    }
 
     /**
      * @brief 设置实体生成回调
      *
      * @param callback 回调函数；允许传入空回调以清空
      */
-    void setEntitySpawnCallback(EntitySpawnCallback callback) { m_entitySpawnCallback = std::move(callback); }
+    void setEntitySpawnCallback(EntitySpawnCallback callback)
+    {
+        m_entitySpawnCallback = std::move(callback);
+    }
 
     /**
      * @brief 设置区块加载完成回调
      *
      * @param callback 回调函数
      */
-    void setChunkLoadedCallback(ChunkLoadedCallback callback) { m_chunkLoadedCallback = std::move(callback); }
+    void setChunkLoadedCallback(ChunkLoadedCallback callback)
+    {
+        m_chunkLoadedCallback = std::move(callback);
+    }
 
     /**
      * @brief 设置区块卸载前回调
      *
      * @param callback 回调函数
      */
-    void setChunkUnloadedCallback(ChunkLoadedCallback callback) { m_chunkUnloadedCallback = std::move(callback); }
+    void setChunkUnloadedCallback(ChunkLoadedCallback callback)
+    {
+        m_chunkUnloadedCallback = std::move(callback);
+    }
 
     /**
      * @brief 设置区块发送管理器
      *
      * @param manager 外部区块发送管理器
      */
-    void setChunkSendManager(sync::ChunkSendManager* manager) { m_chunkSendManager = manager; }
+    void setChunkSendManager(sync::ChunkSendManager* manager)
+    {
+        m_chunkSendManager = manager;
+    }
 
     /**
      * @brief 设置区块缓存中心变化回调
@@ -533,8 +558,15 @@ public:
      * @brief 获取区块发送管理器
      * @return 区块发送管理器指针，可能为 nullptr
      */
-    [[nodiscard]] sync::ChunkSendManager* chunkSendManager() { return m_chunkSendManager; }
-    [[nodiscard]] const sync::ChunkSendManager* chunkSendManager() const { return m_chunkSendManager; }
+    [[nodiscard]] sync::ChunkSendManager* chunkSendManager()
+    {
+        return m_chunkSendManager;
+    }
+
+    [[nodiscard]] const sync::ChunkSendManager* chunkSendManager() const
+    {
+        return m_chunkSendManager;
+    }
 
     /**
      * @brief 每 tick 推进区块管理状态
@@ -589,7 +621,10 @@ public:
      *
      * 这是对外统计接口的兼容命名别名，语义与 `lifecycleManagerCount()` 完全一致。
      */
-    [[nodiscard]] size_t singleChunkLifecycleManagerCount() const { return lifecycleManagerCount(); }
+    [[nodiscard]] size_t singleChunkLifecycleManagerCount() const
+    {
+        return lifecycleManagerCount();
+    }
 
     /**
      * @brief 获取当前 worker 队列中的待处理任务数量
@@ -601,7 +636,10 @@ public:
     /**
      * @brief 获取当前区块生成器
      */
-    [[nodiscard]] IChunkGenerator* generator() { return m_generator.get(); }
+    [[nodiscard]] IChunkGenerator* generator()
+    {
+        return m_generator.get();
+    }
 
     /**
      * @brief 调试：转储所有无法安全卸载的 holder 状态（用于诊断死锁/泄漏）
@@ -638,18 +676,31 @@ public:
     /**
      * @brief 获取当前区块生成器（const 版本）
      */
-    [[nodiscard]] const IChunkGenerator* generator() const { return m_generator.get(); }
+    [[nodiscard]] const IChunkGenerator* generator() const
+    {
+        return m_generator.get();
+    }
 
     /**
      * @brief 获取关联的 ServerWorld（可能为 nullptr，独立模式无 world）
      */
-    [[nodiscard]] ServerWorld* world() { return m_world; }
-    [[nodiscard]] const ServerWorld* world() const { return m_world; }
+    [[nodiscard]] ServerWorld* world()
+    {
+        return m_world;
+    }
+
+    [[nodiscard]] const ServerWorld* world() const
+    {
+        return m_world;
+    }
 
     /**
      * @brief 是否关联了 ServerWorld
      */
-    [[nodiscard]] bool hasWorld() const { return m_world != nullptr; }
+    [[nodiscard]] bool hasWorld() const
+    {
+        return m_world != nullptr;
+    }
 
 private:
     /**
@@ -746,9 +797,11 @@ private:
      */
     struct PendingLoadEntry {
         std::shared_ptr<mc::world::chunk::SingleChunkLifecycleManager> ownerLifecycle;
+
         struct AttachedWaiter {
             std::shared_ptr<mc::world::chunk::SingleChunkLifecycleManager> lifecycle;
         };
+
         std::vector<AttachedWaiter> attachedWaiters;
     };
 
@@ -1110,7 +1163,10 @@ private:
      * @param z 区块 Z 坐标
      * @return 64 位区块键
      */
-    [[nodiscard]] static u64 posToKey(ChunkCoord x, ChunkCoord z) { return ChunkId(x, z, 0).toId(); }
+    [[nodiscard]] static u64 posToKey(ChunkCoord x, ChunkCoord z)
+    {
+        return ChunkId(x, z, 0).toId();
+    }
 
     ServerWorld* m_world = nullptr;
     std::unique_ptr<IChunkGenerator> m_generator;
@@ -1139,6 +1195,7 @@ private:
         std::vector<SpawnedEntityData> spawnedEntities;
         bool needsPostProcess = false; ///< true: 生成完成（需 _postProcessChunk）；false: 仅 onChunkLoaded+callback
     };
+
     std::mutex m_pendingPostProcessMutex;
     std::deque<PendingPostProcess> m_pendingPostProcess;
 
@@ -1172,6 +1229,7 @@ private:
         mc::Result<std::optional<mc::ChunkData>> result = mc::Error(mc::ErrorCode::Unknown, "");
         std::shared_ptr<mc::world::chunk::SingleChunkLifecycleManager> lifecycleHolder;
     };
+
     std::mutex m_pendingLoadCompletesMutex;
     std::deque<PendingLoadComplete> m_pendingLoadCompletes;
 
@@ -1219,6 +1277,7 @@ private:
         mc::DimensionId dimension{};
         std::shared_ptr<mc::world::chunk::SingleChunkLifecycleManager> lifecycleHolder;
     };
+
     mutable std::mutex m_pendingUnloadFinishesMutex;
     std::deque<PendingUnloadFinish> m_pendingUnloadFinishes;
 

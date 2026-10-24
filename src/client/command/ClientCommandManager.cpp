@@ -258,7 +258,9 @@ std::vector<std::string> ClientCommandManager::_getCandidates(const mc::command:
             if (m_itemNameProvider) {
                 candidates = m_itemNameProvider();
             } else {
-                Item::forEachItem([&candidates](Item& item) { candidates.push_back(item.itemLocation().toString()); });
+                Item::forEachItem([&candidates](Item& item) {
+                    candidates.push_back(item.itemLocation().toString());
+                });
             }
             if (candidates.empty()) {
                 candidates = node.examples;

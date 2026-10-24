@@ -74,7 +74,9 @@ TEST(ReactiveTest, SetSameValue)
     Reactive<i32> count(10);
 
     int callCount = 0;
-    count.observe([&](const i32&, const i32&) { callCount++; });
+    count.observe([&](const i32&, const i32&) {
+        callCount++;
+    });
 
     count.set(10);           // 设置相同的值
     EXPECT_EQ(callCount, 0); // 不应该通知
@@ -103,7 +105,9 @@ TEST(ReactiveTest, SetMoveValue)
     Reactive<std::string> name("Steve");
 
     int callCount = 0;
-    name.observe([&](const std::string&, const std::string&) { callCount++; });
+    name.observe([&](const std::string&, const std::string&) {
+        callCount++;
+    });
 
     std::string newName = "Alex";
     name.set(std::move(newName));
@@ -132,7 +136,9 @@ TEST(ReactiveTest, AssignmentOperator)
     Reactive<i32> count(10);
 
     int callCount = 0;
-    count.observe([&](const i32&, const i32&) { callCount++; });
+    count.observe([&](const i32&, const i32&) {
+        callCount++;
+    });
 
     count = 20; // 赋值操作符
     EXPECT_EQ(count.get(), 20);
@@ -181,9 +187,15 @@ TEST(ReactiveTest, MultipleObservers)
 
     int count1 = 0, count2 = 0, count3 = 0;
 
-    auto id1 = value.observe([&](const i32&, const i32&) { count1++; });
-    auto id2 = value.observe([&](const i32&, const i32&) { count2++; });
-    auto id3 = value.observe([&](const i32&, const i32&) { count3++; });
+    auto id1 = value.observe([&](const i32&, const i32&) {
+        count1++;
+    });
+    auto id2 = value.observe([&](const i32&, const i32&) {
+        count2++;
+    });
+    auto id3 = value.observe([&](const i32&, const i32&) {
+        count3++;
+    });
 
     value.set(10);
 
@@ -208,7 +220,9 @@ TEST(ReactiveTest, RemoveObserver)
     Reactive<i32> value(0);
 
     int callCount = 0;
-    auto id = value.observe([&](const i32&, const i32&) { callCount++; });
+    auto id = value.observe([&](const i32&, const i32&) {
+        callCount++;
+    });
 
     EXPECT_TRUE(value.removeObserver(id));
     EXPECT_FALSE(value.removeObserver(id));    // 已移除
@@ -299,9 +313,13 @@ TEST(ReactiveTest, ModifyTriggersNotification)
     Reactive<std::vector<i32>> vec;
     int callCount = 0;
 
-    vec.observe([&](const std::vector<i32>&, const std::vector<i32>&) { callCount++; });
+    vec.observe([&](const std::vector<i32>&, const std::vector<i32>&) {
+        callCount++;
+    });
 
-    vec.modify([](std::vector<i32>& v) { v.push_back(1); });
+    vec.modify([](std::vector<i32>& v) {
+        v.push_back(1);
+    });
 
     EXPECT_EQ(callCount, 1);
 }
@@ -311,7 +329,9 @@ TEST(ReactiveTest, ModifyNoChange)
     Reactive<std::vector<i32>> vec;
     int callCount = 0;
 
-    vec.observe([&](const std::vector<i32>&, const std::vector<i32>&) { callCount++; });
+    vec.observe([&](const std::vector<i32>&, const std::vector<i32>&) {
+        callCount++;
+    });
 
     vec.modify([](std::vector<i32>&) {
         // 不修改
@@ -325,7 +345,9 @@ TEST(ReactiveTest, ForceNotify)
     Reactive<i32> value(10);
     int callCount = 0;
 
-    value.observe([&](const i32&, const i32&) { callCount++; });
+    value.observe([&](const i32&, const i32&) {
+        callCount++;
+    });
 
     value.forceNotify();
 
@@ -352,7 +374,9 @@ TEST(ComputedTest, BasicComputation)
     Reactive<i32> a(10);
     Reactive<i32> b(20);
 
-    Computed<i32> sum([&]() { return a.get() + b.get(); });
+    Computed<i32> sum([&]() {
+        return a.get() + b.get();
+    });
 
     EXPECT_EQ(sum.get(), 30);
 }
@@ -362,7 +386,9 @@ TEST(ComputedTest, DirtyMarking)
     Reactive<i32> a(10);
     Reactive<i32> b(20);
 
-    Computed<i32> sum([&]() { return a.get() + b.get(); });
+    Computed<i32> sum([&]() {
+        return a.get() + b.get();
+    });
 
     EXPECT_EQ(sum.get(), 30);
 
@@ -401,7 +427,9 @@ TEST(ComputedTest, ImplicitConversion)
 {
     Reactive<i32> a(10);
 
-    Computed<i32> doubled([&]() { return a.get() * 2; });
+    Computed<i32> doubled([&]() {
+        return a.get() * 2;
+    });
 
     i32 value = doubled; // 隐式转换
     EXPECT_EQ(value, 20);
@@ -412,7 +440,9 @@ TEST(ComputedTest, ComplexComputation)
     Reactive<std::string> firstName("John");
     Reactive<std::string> lastName("Doe");
 
-    Computed<std::string> fullName([&]() { return firstName.get() + " " + lastName.get(); });
+    Computed<std::string> fullName([&]() {
+        return firstName.get() + " " + lastName.get();
+    });
 
     EXPECT_EQ(fullName.get(), "John Doe");
 
@@ -429,7 +459,9 @@ TEST(BindingTest, ReadOnly)
 {
     Reactive<i32> value(42);
 
-    Binding<i32> binding = Binding<i32>::readOnly([&value]() { return value.get(); });
+    Binding<i32> binding = Binding<i32>::readOnly([&value]() {
+        return value.get();
+    });
 
     EXPECT_EQ(binding.get(), 42);
     EXPECT_FALSE(binding.isWritable());
@@ -439,8 +471,13 @@ TEST(BindingTest, TwoWay)
 {
     Reactive<i32> value(42);
 
-    Binding<i32> binding =
-        Binding<i32>::twoWay([&value]() { return value.get(); }, [&value](const i32& v) { value.set(v); });
+    Binding<i32> binding = Binding<i32>::twoWay(
+        [&value]() {
+            return value.get();
+        },
+        [&value](const i32& v) {
+            value.set(v);
+        });
 
     EXPECT_EQ(binding.get(), 42);
     EXPECT_TRUE(binding.isWritable());
@@ -501,7 +538,9 @@ TEST(ReactiveTest, ChainedObservations)
     Reactive<i32> b(0);
 
     // 当 a 变化时，更新 b
-    a.observe([&](const i32&, const i32& newVal) { b.set(newVal * 2); });
+    a.observe([&](const i32&, const i32& newVal) {
+        b.set(newVal * 2);
+    });
 
     a.set(20);
     EXPECT_EQ(b.get(), 40);
@@ -516,15 +555,23 @@ TEST(ReactiveTest, ComplexTypeModification)
         i32 x = 0;
         i32 y = 0;
 
-        bool operator==(const Data& other) const { return x == other.x && y == other.y; }
+        bool operator==(const Data& other) const
+        {
+            return x == other.x && y == other.y;
+        }
 
-        bool operator!=(const Data& other) const { return !(*this == other); }
+        bool operator!=(const Data& other) const
+        {
+            return !(*this == other);
+        }
     };
 
     Reactive<Data> data;
 
     int callCount = 0;
-    data.observe([&](const Data&, const Data&) { callCount++; });
+    data.observe([&](const Data&, const Data&) {
+        callCount++;
+    });
 
     data.modify([](Data& d) {
         d.x = 10;

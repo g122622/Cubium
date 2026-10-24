@@ -197,23 +197,33 @@ void ClearCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher
     using namespace mc::command;
 
     auto clearNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("clear");
-    clearNode->setRequirement([](const ServerCommandSource& source) { return source.hasPermission(2); });
+    clearNode->setRequirement([](const ServerCommandSource& source) {
+        return source.hasPermission(2);
+    });
     support::applyMetadata(clearNode,
         support::makeMetadata("Clear player inventories.", "/clear [player] [item] [maxCount]", 2, {}, false));
 
-    clearNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _clearSelf(ctx); });
+    clearNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _clearSelf(ctx);
+    });
 
     auto playerArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, EntitySelector>>(
         "player", EntityArgumentType::players());
-    playerArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _clearPlayer(ctx); });
+    playerArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _clearPlayer(ctx);
+    });
 
     auto itemArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, ItemPredicateInput>>(
         "item", ItemPredicateArgumentType::itemPredicate());
-    itemArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _clearPlayerItem(ctx); });
+    itemArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _clearPlayerItem(ctx);
+    });
 
     auto maxCountArg =
         std::make_shared<ArgumentCommandNode<ServerCommandSource, i32>>("maxCount", IntegerArgumentType::integer(0));
-    maxCountArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _clearPlayerItemCount(ctx); });
+    maxCountArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _clearPlayerItemCount(ctx);
+    });
 
     itemArg->addChild(maxCountArg);
     playerArg->addChild(itemArg);

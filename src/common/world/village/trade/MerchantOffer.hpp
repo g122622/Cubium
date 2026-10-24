@@ -140,7 +140,10 @@ public:
     /**
      * @brief 增加使用次数
      */
-    void increaseUses() noexcept { ++m_uses; }
+    void increaseUses() noexcept
+    {
+        ++m_uses;
+    }
 
     /**
      * @brief 补货（重置使用次数）
@@ -161,14 +164,20 @@ public:
      * @brief 获取交易结果的拷贝
      * @return 卖出物品的拷贝
      */
-    [[nodiscard]] ItemStack assemble() const { return m_sell.copy(); }
+    [[nodiscard]] ItemStack assemble() const
+    {
+        return m_sell.copy();
+    }
 
     // ========== 状态查询 ==========
 
     /**
      * @brief 是否售罄
      */
-    [[nodiscard]] bool isOutOfStock() const noexcept { return m_uses >= m_maxUses; }
+    [[nodiscard]] bool isOutOfStock() const noexcept
+    {
+        return m_uses >= m_maxUses;
+    }
 
     /**
      * @brief 是否需要补货（交易被使用过即视为需要补货）
@@ -176,7 +185,10 @@ public:
      * MC原版逻辑：只要交易被使用过（uses > 0），就视为需要补货。
      * 这使得村民在工作时会补充所有已被使用过的交易，而不仅仅是售罄的交易。
      */
-    [[nodiscard]] bool needsRestock() const noexcept { return m_uses > 0; }
+    [[nodiscard]] bool needsRestock() const noexcept
+    {
+        return m_uses > 0;
+    }
 
     /**
      * @brief 是否禁用（售罄且无法补货）
@@ -186,17 +198,26 @@ public:
     /**
      * @brief 获取使用次数
      */
-    [[nodiscard]] i32 getUses() const noexcept { return m_uses; }
+    [[nodiscard]] i32 getUses() const noexcept
+    {
+        return m_uses;
+    }
 
     /**
      * @brief 获取最大使用次数
      */
-    [[nodiscard]] i32 getMaxUses() const noexcept { return m_maxUses; }
+    [[nodiscard]] i32 getMaxUses() const noexcept
+    {
+        return m_maxUses;
+    }
 
     /**
      * @brief 获取剩余使用次数
      */
-    [[nodiscard]] i32 getRemainingUses() const noexcept { return m_maxUses - m_uses; }
+    [[nodiscard]] i32 getRemainingUses() const noexcept
+    {
+        return m_maxUses - m_uses;
+    }
 
     /**
      * @brief 获取使用进度（0.0-1.0）
@@ -208,12 +229,18 @@ public:
     /**
      * @brief 获取第一支付代价
      */
-    [[nodiscard]] const ItemCost& getCostA() const noexcept { return m_costA; }
+    [[nodiscard]] const ItemCost& getCostA() const noexcept
+    {
+        return m_costA;
+    }
 
     /**
      * @brief 获取第二支付代价（可选）
      */
-    [[nodiscard]] const std::optional<ItemCost>& getCostB() const noexcept { return m_costB; }
+    [[nodiscard]] const std::optional<ItemCost>& getCostB() const noexcept
+    {
+        return m_costB;
+    }
 
     /**
      * @brief 获取第一支付物品（数量 = 基础数量 + 需求修正，不含声誉/英雄特殊价格）
@@ -228,46 +255,74 @@ public:
     /**
      * @brief 获取卖出物品
      */
-    [[nodiscard]] const ItemStack& getSell() const noexcept { return m_sell; }
-    ItemStack& getSell() noexcept { return m_sell; }
+    [[nodiscard]] const ItemStack& getSell() const noexcept
+    {
+        return m_sell;
+    }
+
+    ItemStack& getSell() noexcept
+    {
+        return m_sell;
+    }
 
     // ========== 价格调整 ==========
 
     /**
      * @brief 获取价格乘数
      */
-    [[nodiscard]] f32 getPriceMultiplier() const noexcept { return m_priceMultiplier; }
+    [[nodiscard]] f32 getPriceMultiplier() const noexcept
+    {
+        return m_priceMultiplier;
+    }
 
     /**
      * @brief 获取特殊价格修正（声誉 / 英雄效果带来的一次性偏移）
      */
-    [[nodiscard]] i32 getSpecialPrice() const noexcept { return m_specialPrice; }
+    [[nodiscard]] i32 getSpecialPrice() const noexcept
+    {
+        return m_specialPrice;
+    }
 
     /**
      * @brief 设置特殊价格修正
      */
-    void setSpecialPrice(i32 price) noexcept { m_specialPrice = price; }
+    void setSpecialPrice(i32 price) noexcept
+    {
+        m_specialPrice = price;
+    }
 
     /**
      * @brief 叠加特殊价格修正（声誉与英雄效果按来源追加偏移）
      * @param delta 偏移量
      */
-    void addToSpecialPrice(i32 delta) noexcept { m_specialPrice += delta; }
+    void addToSpecialPrice(i32 delta) noexcept
+    {
+        m_specialPrice += delta;
+    }
 
     /**
      * @brief 清零特殊价格修正（交易结束/开始新会话时调用）
      */
-    void resetSpecialPrice() noexcept { m_specialPrice = 0; }
+    void resetSpecialPrice() noexcept
+    {
+        m_specialPrice = 0;
+    }
 
     /**
      * @brief 获取需求修正
      */
-    [[nodiscard]] i32 getDemand() const noexcept { return m_demand; }
+    [[nodiscard]] i32 getDemand() const noexcept
+    {
+        return m_demand;
+    }
 
     /**
      * @brief 设置需求修正
      */
-    void setDemand(i32 demand) noexcept { m_demand = demand; }
+    void setDemand(i32 demand) noexcept
+    {
+        m_demand = demand;
+    }
 
     /**
      * @brief 互换第一支付与第二支付代价
@@ -303,24 +358,36 @@ public:
     /**
      * @brief 获取交易给予的经验
      */
-    [[nodiscard]] i32 getXp() const noexcept { return m_xp; }
+    [[nodiscard]] i32 getXp() const noexcept
+    {
+        return m_xp;
+    }
 
     // ========== 补货 ==========
 
     /**
      * @brief 获取今日补货次数
      */
-    [[nodiscard]] i32 getRestocksToday() const noexcept { return m_restocksToday; }
+    [[nodiscard]] i32 getRestocksToday() const noexcept
+    {
+        return m_restocksToday;
+    }
 
     /**
      * @brief 重置每日补货计数
      */
-    void resetDailyRestock() noexcept { m_restocksToday = 0; }
+    void resetDailyRestock() noexcept
+    {
+        m_restocksToday = 0;
+    }
 
     /**
      * @brief 是否应该奖励经验球
      */
-    [[nodiscard]] bool shouldRewardExp() const noexcept { return m_rewardExp; }
+    [[nodiscard]] bool shouldRewardExp() const noexcept
+    {
+        return m_rewardExp;
+    }
 
     // ========== 序列化 ==========
 

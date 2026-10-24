@@ -78,10 +78,21 @@ public:
 
     [[nodiscard]] bool test(LootContext& context) const override;
     [[nodiscard]] std::unique_ptr<LootCondition> clone() const noexcept override;
-    [[nodiscard]] std::string getType() const override { return "entity_properties"; }
 
-    [[nodiscard]] EntityTarget getTarget() const noexcept { return m_target; }
-    [[nodiscard]] const advancement::EntityPredicate& getPredicate() const noexcept { return m_predicate; }
+    [[nodiscard]] std::string getType() const override
+    {
+        return "entity_properties";
+    }
+
+    [[nodiscard]] EntityTarget getTarget() const noexcept
+    {
+        return m_target;
+    }
+
+    [[nodiscard]] const advancement::EntityPredicate& getPredicate() const noexcept
+    {
+        return m_predicate;
+    }
 
     /**
      * @brief 将字符串转换为 EntityTarget

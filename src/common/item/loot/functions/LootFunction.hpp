@@ -83,7 +83,10 @@ public:
     /**
      * @brief 获取所有条件
      */
-    [[nodiscard]] const std::vector<std::unique_ptr<LootCondition>>& getConditions() const { return m_conditions; }
+    [[nodiscard]] const std::vector<std::unique_ptr<LootCondition>>& getConditions() const
+    {
+        return m_conditions;
+    }
 
     /**
      * @brief 检查所有条件是否满足

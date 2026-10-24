@@ -103,9 +103,20 @@ public:
         math::IRandom& random,
         const BlockPos& pos) const override;
 
-    [[nodiscard]] const char* name() const noexcept override { return m_name.c_str(); }
-    [[nodiscard]] DecorationStage stage() const noexcept override { return DecorationStage::VegetalDecoration; }
-    [[nodiscard]] const BambooFeatureConfig& getConfig() const noexcept { return *m_config; }
+    [[nodiscard]] const char* name() const noexcept override
+    {
+        return m_name.c_str();
+    }
+
+    [[nodiscard]] DecorationStage stage() const noexcept override
+    {
+        return DecorationStage::VegetalDecoration;
+    }
+
+    [[nodiscard]] const BambooFeatureConfig& getConfig() const noexcept
+    {
+        return *m_config;
+    }
 
 private:
     std::unique_ptr<BambooFeatureConfig> m_config;

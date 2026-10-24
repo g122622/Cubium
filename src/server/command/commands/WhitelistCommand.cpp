@@ -53,40 +53,54 @@ namespace command {
 void WhitelistCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
 {
     auto whitelistNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("whitelist");
-    whitelistNode->setRequirement([](const ServerCommandSource& source) { return source.hasPermission(3); });
+    whitelistNode->setRequirement([](const ServerCommandSource& source) {
+        return source.hasPermission(3);
+    });
     support::applyMetadata(whitelistNode,
         support::makeMetadata(
             "Manages the server whitelist.", "/whitelist <on|off|list|add|remove|reload>", 3, {}, false));
 
     // /whitelist on
     auto onNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("on");
-    onNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _whitelistOn(ctx); });
+    onNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _whitelistOn(ctx);
+    });
 
     // /whitelist off
     auto offNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("off");
-    offNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _whitelistOff(ctx); });
+    offNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _whitelistOff(ctx);
+    });
 
     // /whitelist list
     auto listNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("list");
-    listNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _whitelistList(ctx); });
+    listNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _whitelistList(ctx);
+    });
 
     // /whitelist add <player>
     auto addNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("add");
     auto addPlayerArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, EntitySelector>>(
         "player", EntityArgumentType::player());
-    addPlayerArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _whitelistAdd(ctx); });
+    addPlayerArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _whitelistAdd(ctx);
+    });
     addNode->addChild(addPlayerArg);
 
     // /whitelist remove <player>
     auto removeNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("remove");
     auto removePlayerArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, EntitySelector>>(
         "player", EntityArgumentType::player());
-    removePlayerArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _whitelistRemove(ctx); });
+    removePlayerArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _whitelistRemove(ctx);
+    });
     removeNode->addChild(removePlayerArg);
 
     // /whitelist reload
     auto reloadNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("reload");
-    reloadNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _whitelistReload(ctx); });
+    reloadNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _whitelistReload(ctx);
+    });
 
     whitelistNode->addChild(onNode);
     whitelistNode->addChild(offNode);

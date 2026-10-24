@@ -100,14 +100,20 @@ public:
     /**
      * @brief 检查是否已初始化
      */
-    [[nodiscard]] static bool isInitialized() { return s_initialized; }
+    [[nodiscard]] static bool isInitialized()
+    {
+        return s_initialized;
+    }
 
     /**
      * @brief 标记为已初始化
      *
      * 由 initializeRendererRegistration() 调用
      */
-    static void markInitialized() { s_initialized = true; }
+    static void markInitialized()
+    {
+        s_initialized = true;
+    }
 
     // 禁止拷贝和移动
     RendererFactory(const RendererFactory&) = delete;
@@ -138,9 +144,10 @@ private:
  * REGISTER_ENTITY_RENDERER("minecraft:pig", PigRenderer);
  * @endcode
  */
-#define REGISTER_ENTITY_RENDERER(typeId, RendererClass)                                 \
-    ::mc::client::renderer::entity::core::RendererFactory::instance().registerRenderer( \
-        typeId, []() { return std::make_unique<::mc::client::renderer::entity::renderer::RendererClass>(); })
+#define REGISTER_ENTITY_RENDERER(typeId, RendererClass)                                               \
+    ::mc::client::renderer::entity::core::RendererFactory::instance().registerRenderer(typeId, []() { \
+        return std::make_unique<::mc::client::renderer::entity::renderer::RendererClass>();           \
+    })
 
 } // namespace core
 } // namespace mc::client::renderer::entity

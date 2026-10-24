@@ -76,7 +76,9 @@ void MovementController::strafe(f32 forward, f32 strafe)
 
 void MovementController::tick()
 {
-    if (!m_mob) return;
+    if (!m_mob) {
+        return;
+    }
 
     if (m_action == MoveAction::Strafe) {
         // STRAFE 模式实现

@@ -78,8 +78,16 @@ public:
     {}
 
     // 粒子和声音记录
-    std::vector<ParticleRecord>& particles() { return m_particles; }
-    std::vector<SoundRecord>& sounds() { return m_sounds; }
+    std::vector<ParticleRecord>& particles()
+    {
+        return m_particles;
+    }
+
+    std::vector<SoundRecord>& sounds()
+    {
+        return m_sounds;
+    }
+
     void clearRecords()
     {
         m_particles.clear();
@@ -87,12 +95,26 @@ public:
     }
 
     // 配置方法
-    void setInWater(bool inWater) { m_inWater = inWater; }
-    void setDayTime(i64 time) { m_dayTime = time; }
+    void setInWater(bool inWater)
+    {
+        m_inWater = inWater;
+    }
+
+    void setDayTime(i64 time)
+    {
+        m_dayTime = time;
+    }
 
     // IWorld 接口实现
-    [[nodiscard]] i64 dayTime() const override { return m_dayTime; }
-    [[nodiscard]] bool isDaytime() const override { return m_dayTime < 12000; }
+    [[nodiscard]] i64 dayTime() const override
+    {
+        return m_dayTime;
+    }
+
+    [[nodiscard]] bool isDaytime() const override
+    {
+        return m_dayTime < 12000;
+    }
 
     [[nodiscard]] const fluid::FluidState* getFluidState(i32 x, i32 y, i32 z) const override
     {
@@ -123,29 +145,85 @@ public:
         m_particles.push_back({type, pos, velocity});
     }
 
-    [[nodiscard]] u64 currentTick() const override { return 0; }
-    [[nodiscard]] Entity* getEntity(EntityInstanceId) override { return nullptr; }
-    [[nodiscard]] const Entity* getEntity(EntityInstanceId) const override { return nullptr; }
-    EntityInstanceId spawnEntity(std::unique_ptr<Entity>) override { return EntityInstanceId(1); }
+    [[nodiscard]] u64 currentTick() const override
+    {
+        return 0;
+    }
+
+    [[nodiscard]] Entity* getEntity(EntityInstanceId) override
+    {
+        return nullptr;
+    }
+
+    [[nodiscard]] const Entity* getEntity(EntityInstanceId) const override
+    {
+        return nullptr;
+    }
+
+    EntityInstanceId spawnEntity(std::unique_ptr<Entity>) override
+    {
+        return EntityInstanceId(1);
+    }
 
     [[nodiscard]] world::tick::TickManager& tickManager() override
     {
         throw std::runtime_error("WaterSplashTestWorld::tickManager not implemented");
     }
+
     [[nodiscard]] const world::tick::TickManager& tickManager() const override
     {
         throw std::runtime_error("WaterSplashTestWorld::tickManager not implemented");
     }
-    [[nodiscard]] u8 getSkyLight(i32, i32, i32) const override { return 15; }
-    [[nodiscard]] u8 getBlockLight(i32, i32, i32) const override { return 0; }
-    [[nodiscard]] u8 getSkyLight(const BlockPos&) const override { return 15; }
-    [[nodiscard]] u8 getBlockLight(const BlockPos&) const override { return 0; }
-    [[nodiscard]] bool canSeeSky(const BlockPos&) const override { return true; }
-    [[nodiscard]] f32 getBrightness(const BlockPos&) const override { return 1.0f; }
-    [[nodiscard]] u8 getLightSubtracted(const BlockPos&, u32) const override { return 15; }
-    [[nodiscard]] bool isRaining() const override { return false; }
-    [[nodiscard]] bool isThundering() const override { return false; }
-    [[nodiscard]] bool canRainAt(const BlockPos&) const override { return false; }
+
+    [[nodiscard]] u8 getSkyLight(i32, i32, i32) const override
+    {
+        return 15;
+    }
+
+    [[nodiscard]] u8 getBlockLight(i32, i32, i32) const override
+    {
+        return 0;
+    }
+
+    [[nodiscard]] u8 getSkyLight(const BlockPos&) const override
+    {
+        return 15;
+    }
+
+    [[nodiscard]] u8 getBlockLight(const BlockPos&) const override
+    {
+        return 0;
+    }
+
+    [[nodiscard]] bool canSeeSky(const BlockPos&) const override
+    {
+        return true;
+    }
+
+    [[nodiscard]] f32 getBrightness(const BlockPos&) const override
+    {
+        return 1.0f;
+    }
+
+    [[nodiscard]] u8 getLightSubtracted(const BlockPos&, u32) const override
+    {
+        return 15;
+    }
+
+    [[nodiscard]] bool isRaining() const override
+    {
+        return false;
+    }
+
+    [[nodiscard]] bool isThundering() const override
+    {
+        return false;
+    }
+
+    [[nodiscard]] bool canRainAt(const BlockPos&) const override
+    {
+        return false;
+    }
 
 private:
     i64 m_dayTime;
@@ -167,9 +245,15 @@ public:
         setVelocity(Vector3(0.0f, 0.0f, 0.0f));
     }
 
-    void setTestVelocity(const Vector3& vel) { setVelocity(vel); }
+    void setTestVelocity(const Vector3& vel)
+    {
+        setVelocity(vel);
+    }
 
-    void setTestPosition(const Vector3& pos) { setPosition(pos); }
+    void setTestPosition(const Vector3& pos)
+    {
+        setPosition(pos);
+    }
 
     // 暴露受保护的方法用于测试
     using Entity::doWaterSplashEffect;
@@ -187,9 +271,15 @@ public:
         setPosition(Vector3(100.0f, 64.0f, 200.0f));
     }
 
-    void setTestVelocity(const Vector3& vel) { setVelocity(vel); }
+    void setTestVelocity(const Vector3& vel)
+    {
+        setVelocity(vel);
+    }
 
-    void setTestPosition(const Vector3& pos) { setPosition(pos); }
+    void setTestPosition(const Vector3& pos)
+    {
+        setPosition(pos);
+    }
 };
 
 } // namespace

@@ -67,7 +67,10 @@ constexpr const char* kInvalidJsonSyntax = R"(not valid json at all)";
 
 class LootPredicateLoaderTest : public ::testing::Test {
 protected:
-    void SetUp() override { Items::initialize(); }
+    void SetUp() override
+    {
+        Items::initialize();
+    }
 };
 
 TEST_F(LootPredicateLoaderTest, PathToPredicateId_StandardPath)

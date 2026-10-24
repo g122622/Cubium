@@ -61,21 +61,46 @@ public:
     {}
 
     // 静态常量
-    static Vector2 zero() { return Vector2(static_cast<T>(0), static_cast<T>(0)); }
-    static Vector2 one() { return Vector2(static_cast<T>(1), static_cast<T>(1)); }
+    static Vector2 zero()
+    {
+        return Vector2(static_cast<T>(0), static_cast<T>(0));
+    }
+
+    static Vector2 one()
+    {
+        return Vector2(static_cast<T>(1), static_cast<T>(1));
+    }
 
     // 算术运算
-    [[nodiscard]] Vector2 operator+(const Vector2& other) const noexcept { return {x + other.x, y + other.y}; }
+    [[nodiscard]] Vector2 operator+(const Vector2& other) const noexcept
+    {
+        return {x + other.x, y + other.y};
+    }
 
-    [[nodiscard]] Vector2 operator-(const Vector2& other) const noexcept { return {x - other.x, y - other.y}; }
+    [[nodiscard]] Vector2 operator-(const Vector2& other) const noexcept
+    {
+        return {x - other.x, y - other.y};
+    }
 
-    [[nodiscard]] Vector2 operator*(T scalar) const noexcept { return {x * scalar, y * scalar}; }
+    [[nodiscard]] Vector2 operator*(T scalar) const noexcept
+    {
+        return {x * scalar, y * scalar};
+    }
 
-    [[nodiscard]] Vector2 operator*(const Vector2& other) const noexcept { return {x * other.x, y * other.y}; }
+    [[nodiscard]] Vector2 operator*(const Vector2& other) const noexcept
+    {
+        return {x * other.x, y * other.y};
+    }
 
-    [[nodiscard]] Vector2 operator/(T scalar) const noexcept { return {x / scalar, y / scalar}; }
+    [[nodiscard]] Vector2 operator/(T scalar) const noexcept
+    {
+        return {x / scalar, y / scalar};
+    }
 
-    [[nodiscard]] Vector2 operator/(const Vector2& other) const noexcept { return {x / other.x, y / other.y}; }
+    [[nodiscard]] Vector2 operator/(const Vector2& other) const noexcept
+    {
+        return {x / other.x, y / other.y};
+    }
 
     Vector2& operator+=(const Vector2& other) noexcept
     {
@@ -105,12 +130,21 @@ public:
         return *this;
     }
 
-    [[nodiscard]] Vector2 operator-() const noexcept { return {-x, -y}; }
+    [[nodiscard]] Vector2 operator-() const noexcept
+    {
+        return {-x, -y};
+    }
 
     // 比较运算
-    [[nodiscard]] bool operator==(const Vector2& other) const noexcept { return x == other.x && y == other.y; }
+    [[nodiscard]] bool operator==(const Vector2& other) const noexcept
+    {
+        return x == other.x && y == other.y;
+    }
 
-    [[nodiscard]] bool operator!=(const Vector2& other) const noexcept { return !(*this == other); }
+    [[nodiscard]] bool operator!=(const Vector2& other) const noexcept
+    {
+        return !(*this == other);
+    }
 
     // 向量运算 (仅浮点类型)
     template <typename U = T, typename = std::enable_if_t<std::is_floating_point_v<U>>>
@@ -142,7 +176,10 @@ public:
         *this = normalized();
     }
 
-    [[nodiscard]] T dot(const Vector2& other) const noexcept { return x * other.x + y * other.y; }
+    [[nodiscard]] T dot(const Vector2& other) const noexcept
+    {
+        return x * other.x + y * other.y;
+    }
 
     /**
      * @brief 2D叉积（返回标量）
@@ -150,7 +187,10 @@ public:
      * 结果为 this.x * other.y - this.y * other.x
      * 正值表示 other 在 this 的逆时针方向
      */
-    [[nodiscard]] T cross(const Vector2& other) const noexcept { return x * other.y - y * other.x; }
+    [[nodiscard]] T cross(const Vector2& other) const noexcept
+    {
+        return x * other.y - y * other.x;
+    }
 
     template <typename U = T, typename = std::enable_if_t<std::is_floating_point_v<U>>>
     [[nodiscard]] T distance(const Vector2& other) const noexcept
@@ -198,9 +238,15 @@ public:
     }
 
     // 访问器
-    [[nodiscard]] T& operator[](size_t index) noexcept { return index == 0 ? x : y; }
+    [[nodiscard]] T& operator[](size_t index) noexcept
+    {
+        return index == 0 ? x : y;
+    }
 
-    [[nodiscard]] const T& operator[](size_t index) const noexcept { return index == 0 ? x : y; }
+    [[nodiscard]] const T& operator[](size_t index) const noexcept
+    {
+        return index == 0 ? x : y;
+    }
 
     // 类型转换
     template <typename U>

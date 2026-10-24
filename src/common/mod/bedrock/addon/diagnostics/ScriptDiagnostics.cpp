@@ -59,8 +59,9 @@ const std::vector<DiagnosticEntry>& ScriptDiagnostics::entries() const
 
 size_t ScriptDiagnostics::count(DiagnosticLevel level) const
 {
-    return std::count_if(
-        m_entries.begin(), m_entries.end(), [level](const DiagnosticEntry& e) { return e.level == level; });
+    return std::count_if(m_entries.begin(), m_entries.end(), [level](const DiagnosticEntry& e) {
+        return e.level == level;
+    });
 }
 
 void ScriptDiagnostics::clear()

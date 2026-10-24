@@ -69,7 +69,10 @@ public:
         return BaseTestWorld::isWithinWorldBounds(x, y, z);
     }
 
-    [[nodiscard]] const ChunkData* getChunkAt(ChunkCoord, ChunkCoord) const override { return nullptr; }
+    [[nodiscard]] const ChunkData* getChunkAt(ChunkCoord, ChunkCoord) const override
+    {
+        return nullptr;
+    }
 
     [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override
     {
@@ -107,9 +110,15 @@ public:
     /**
      * @brief 在指定位置放置铁轨方块（使用默认形状）
      */
-    void setRail(i32 x, i32 y, i32 z, const AbstractRailBlock& rail) { setBlockState(x, y, z, &rail.defaultState()); }
+    void setRail(i32 x, i32 y, i32 z, const AbstractRailBlock& rail)
+    {
+        setBlockState(x, y, z, &rail.defaultState());
+    }
 
-    void clearAll() { m_blocks.clear(); }
+    void clearAll()
+    {
+        m_blocks.clear();
+    }
 
 private:
     std::map<BlockPos, std::unique_ptr<BlockState>> m_blocks;
@@ -127,7 +136,10 @@ public:
     /**
      * @brief 暴露 _checkRailState() 以便测试调用
      */
-    void checkRailState() { _checkRailState(); }
+    void checkRailState()
+    {
+        _checkRailState();
+    }
 
     using AbstractMinecartEntity::getRailPosition;
 };
@@ -250,7 +262,10 @@ protected:
     MinecartCheckRailStateTestWorld world;
     const RailBlock& rail{dynamic_cast<const RailBlock&>(*VanillaBlocks::RAIL)};
 
-    void SetUp() override { VanillaBlocks::initialize(); }
+    void SetUp() override
+    {
+        VanillaBlocks::initialize();
+    }
 };
 
 TEST_F(CheckRailStateBelowPosTest, DetectsRailOneBlockBelow)
@@ -293,7 +308,10 @@ class CheckRailStateNoRailTest : public ::testing::Test {
 protected:
     MinecartCheckRailStateTestWorld world;
 
-    void SetUp() override { VanillaBlocks::initialize(); }
+    void SetUp() override
+    {
+        VanillaBlocks::initialize();
+    }
 };
 
 TEST_F(CheckRailStateNoRailTest, NoRailAtAnyPosition_OffRail)
@@ -334,7 +352,10 @@ protected:
     const DetectorRailBlock& detectorRail{dynamic_cast<const DetectorRailBlock&>(*VanillaBlocks::DETECTOR_RAIL)};
     const ActivatorRailBlock& activatorRail{dynamic_cast<const ActivatorRailBlock&>(*VanillaBlocks::ACTIVATOR_RAIL)};
 
-    void SetUp() override { VanillaBlocks::initialize(); }
+    void SetUp() override
+    {
+        VanillaBlocks::initialize();
+    }
 };
 
 TEST_F(CheckRailStateRailTypesTest, PoweredRailExtractsShape)
@@ -420,7 +441,10 @@ protected:
     MinecartCheckRailStateTestWorld world;
     const RailBlock& rail{dynamic_cast<const RailBlock&>(*VanillaBlocks::RAIL)};
 
-    void SetUp() override { VanillaBlocks::initialize(); }
+    void SetUp() override
+    {
+        VanillaBlocks::initialize();
+    }
 };
 
 TEST_F(CheckRailStateAllShapesTest, AllTenRailShapes)
@@ -470,7 +494,10 @@ protected:
     MinecartCheckRailStateTestWorld world;
     const RailBlock& rail{dynamic_cast<const RailBlock&>(*VanillaBlocks::RAIL)};
 
-    void SetUp() override { VanillaBlocks::initialize(); }
+    void SetUp() override
+    {
+        VanillaBlocks::initialize();
+    }
 };
 
 TEST_F(CheckRailStateShapeUpdateTest, ShapeUpdatesWhenRailChanges)

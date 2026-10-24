@@ -70,7 +70,10 @@ public:
     /**
      * @brief 创建空形状（无碰撞）
      */
-    [[nodiscard]] static CollisionShape empty() noexcept { return CollisionShape(); }
+    [[nodiscard]] static CollisionShape empty() noexcept
+    {
+        return CollisionShape();
+    }
 
     /**
      * @brief 创建完整方块形状
@@ -163,11 +166,30 @@ public:
     }
 
     // 查询
-    [[nodiscard]] bool isEmpty() const noexcept { return m_type == Type::Empty; }
-    [[nodiscard]] bool isFullBlock() const noexcept { return m_type == Type::FullBlock; }
-    [[nodiscard]] Type type() const noexcept { return m_type; }
-    [[nodiscard]] const std::vector<AxisAlignedBB>& boxes() const noexcept { return m_boxes; }
-    [[nodiscard]] size_t boxCount() const noexcept { return m_boxes.size(); }
+    [[nodiscard]] bool isEmpty() const noexcept
+    {
+        return m_type == Type::Empty;
+    }
+
+    [[nodiscard]] bool isFullBlock() const noexcept
+    {
+        return m_type == Type::FullBlock;
+    }
+
+    [[nodiscard]] Type type() const noexcept
+    {
+        return m_type;
+    }
+
+    [[nodiscard]] const std::vector<AxisAlignedBB>& boxes() const noexcept
+    {
+        return m_boxes;
+    }
+
+    [[nodiscard]] size_t boxCount() const noexcept
+    {
+        return m_boxes.size();
+    }
 
     /**
      * @brief 获取世界坐标碰撞箱
@@ -202,7 +224,9 @@ public:
      */
     [[nodiscard]] bool intersects(const AxisAlignedBB& entityBox, i32 blockX, i32 blockY, i32 blockZ) const
     {
-        if (isEmpty()) return false;
+        if (isEmpty()) {
+            return false;
+        }
 
         f32 bx = static_cast<f32>(blockX);
         f32 by = static_cast<f32>(blockY);

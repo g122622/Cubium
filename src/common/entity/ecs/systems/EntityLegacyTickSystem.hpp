@@ -33,9 +33,15 @@ public:
         : m_callback(std::move(callback))
     {}
 
-    [[nodiscard]] const char* name() const noexcept override { return "EntityLegacyTickSystem"; }
+    [[nodiscard]] const char* name() const noexcept override
+    {
+        return "EntityLegacyTickSystem";
+    }
 
-    void tick(EntityRegistry& registry) override { m_callback(registry); }
+    void tick(EntityRegistry& registry) override
+    {
+        m_callback(registry);
+    }
 
 private:
     TickCallback m_callback;

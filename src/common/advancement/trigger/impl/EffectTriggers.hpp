@@ -53,7 +53,10 @@ class RecipeUnlockedTrigger : public AbstractCriterionTrigger<RecipeUnlockedTrig
 public:
     static constexpr const char* TRIGGER_ID = "minecraft:recipe_unlocked";
 
-    [[nodiscard]] ResourceLocation getId() const override { return ResourceLocation(TRIGGER_ID); }
+    [[nodiscard]] ResourceLocation getId() const override
+    {
+        return ResourceLocation(TRIGGER_ID);
+    }
 
     [[nodiscard]] Result<std::shared_ptr<ICriterionInstance>> fromJson(const nlohmann::json& json) override;
 
@@ -87,7 +90,10 @@ class RecipeCraftedTrigger : public AbstractCriterionTrigger<RecipeCraftedTrigge
 public:
     static constexpr const char* TRIGGER_ID = "minecraft:recipe_crafted";
 
-    [[nodiscard]] ResourceLocation getId() const override { return ResourceLocation(TRIGGER_ID); }
+    [[nodiscard]] ResourceLocation getId() const override
+    {
+        return ResourceLocation(TRIGGER_ID);
+    }
 
     [[nodiscard]] Result<std::shared_ptr<ICriterionInstance>> fromJson(const nlohmann::json& json) override;
 
@@ -126,7 +132,10 @@ class UsedTotemTrigger : public AbstractCriterionTrigger<UsedTotemTriggerInstanc
 public:
     static constexpr const char* TRIGGER_ID = "minecraft:used_totem";
 
-    [[nodiscard]] ResourceLocation getId() const override { return ResourceLocation(TRIGGER_ID); }
+    [[nodiscard]] ResourceLocation getId() const override
+    {
+        return ResourceLocation(TRIGGER_ID);
+    }
 
     [[nodiscard]] Result<std::shared_ptr<ICriterionInstance>> fromJson(const nlohmann::json& json) override;
 
@@ -163,7 +172,10 @@ class UsingItemTrigger : public AbstractCriterionTrigger<UsingItemTriggerInstanc
 public:
     static constexpr const char* TRIGGER_ID = "minecraft:using_item";
 
-    [[nodiscard]] ResourceLocation getId() const override { return ResourceLocation(TRIGGER_ID); }
+    [[nodiscard]] ResourceLocation getId() const override
+    {
+        return ResourceLocation(TRIGGER_ID);
+    }
 
     [[nodiscard]] Result<std::shared_ptr<ICriterionInstance>> fromJson(const nlohmann::json& json) override;
 
@@ -202,7 +214,10 @@ class LootTableTrigger : public AbstractCriterionTrigger<LootTableTriggerInstanc
 public:
     static constexpr const char* TRIGGER_ID = "minecraft:player_generates_container_loot";
 
-    [[nodiscard]] ResourceLocation getId() const override { return ResourceLocation(TRIGGER_ID); }
+    [[nodiscard]] ResourceLocation getId() const override
+    {
+        return ResourceLocation(TRIGGER_ID);
+    }
 
     [[nodiscard]] Result<std::shared_ptr<ICriterionInstance>> fromJson(const nlohmann::json& json) override;
 
@@ -221,9 +236,15 @@ public:
     explicit LootTableTriggerInstance(const ResourceLocation& lootTable);
 
     /// 战利品表资源位置一致即匹配（vanilla TriggerInstance.matches）
-    [[nodiscard]] bool test(const ResourceLocation& lootTableId) const { return m_lootTable == lootTableId; }
+    [[nodiscard]] bool test(const ResourceLocation& lootTableId) const
+    {
+        return m_lootTable == lootTableId;
+    }
 
-    [[nodiscard]] const ResourceLocation& lootTable() const noexcept { return m_lootTable; }
+    [[nodiscard]] const ResourceLocation& lootTable() const noexcept
+    {
+        return m_lootTable;
+    }
 
     Result<void> fromJson(const nlohmann::json& json);
     [[nodiscard]] nlohmann::json conditionsToJson() const;
@@ -241,7 +262,10 @@ class EffectsChangedTrigger : public AbstractCriterionTrigger<EffectsChangedTrig
 public:
     static constexpr const char* TRIGGER_ID = "minecraft:effects_changed";
 
-    [[nodiscard]] ResourceLocation getId() const override { return ResourceLocation(TRIGGER_ID); }
+    [[nodiscard]] ResourceLocation getId() const override
+    {
+        return ResourceLocation(TRIGGER_ID);
+    }
 
     [[nodiscard]] Result<std::shared_ptr<ICriterionInstance>> fromJson(const nlohmann::json& json) override;
 
@@ -269,7 +293,10 @@ public:
 
     // ========== Getters ==========
 
-    [[nodiscard]] const MobEffectsPredicate& getEffects() const noexcept { return m_effects; }
+    [[nodiscard]] const MobEffectsPredicate& getEffects() const noexcept
+    {
+        return m_effects;
+    }
 
 private:
     MobEffectsPredicate m_effects; ///< 效果谓词
@@ -284,7 +311,10 @@ class BrewedPotionTrigger : public AbstractCriterionTrigger<BrewedPotionTriggerI
 public:
     static constexpr const char* TRIGGER_ID = "minecraft:brewed_potion";
 
-    [[nodiscard]] ResourceLocation getId() const override { return ResourceLocation(TRIGGER_ID); }
+    [[nodiscard]] ResourceLocation getId() const override
+    {
+        return ResourceLocation(TRIGGER_ID);
+    }
 
     [[nodiscard]] Result<std::shared_ptr<ICriterionInstance>> fromJson(const nlohmann::json& json) override;
 

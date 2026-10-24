@@ -70,7 +70,10 @@ public:
     /**
      * @brief 检查是否已初始化
      */
-    [[nodiscard]] bool isInitialized() const noexcept { return m_initialized; }
+    [[nodiscard]] bool isInitialized() const noexcept
+    {
+        return m_initialized;
+    }
 
     /**
      * @brief 获取所有已注册的放置器名称

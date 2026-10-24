@@ -164,9 +164,15 @@ TEST(ParticleRegistryTest, GetAllTypeIds)
     bool hasRain = false;
 
     for (ParticleTypeId id : ids) {
-        if (id == ParticleTypeId::Flame) hasFlame = true;
-        if (id == ParticleTypeId::Smoke) hasSmoke = true;
-        if (id == ParticleTypeId::Rain) hasRain = true;
+        if (id == ParticleTypeId::Flame) {
+            hasFlame = true;
+        }
+        if (id == ParticleTypeId::Smoke) {
+            hasSmoke = true;
+        }
+        if (id == ParticleTypeId::Rain) {
+            hasRain = true;
+        }
     }
 
     EXPECT_TRUE(hasFlame);

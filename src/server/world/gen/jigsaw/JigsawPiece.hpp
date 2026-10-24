@@ -92,11 +92,25 @@ public:
         world::chunk::ChunkPrimer* chunk = nullptr,
         IChunkGenerator* generator = nullptr) = 0;
 
-    JigsawPlacementBehaviour getPlacementBehaviour() const { return m_placementBehaviour; }
-    void setPlacementBehaviour(JigsawPlacementBehaviour behaviour) { m_placementBehaviour = behaviour; }
+    JigsawPlacementBehaviour getPlacementBehaviour() const
+    {
+        return m_placementBehaviour;
+    }
 
-    virtual i32 getGroundLevelDelta() const { return m_groundLevelDelta; }
-    void setGroundLevelDelta(i32 delta) { m_groundLevelDelta = delta; }
+    void setPlacementBehaviour(JigsawPlacementBehaviour behaviour)
+    {
+        m_placementBehaviour = behaviour;
+    }
+
+    virtual i32 getGroundLevelDelta() const
+    {
+        return m_groundLevelDelta;
+    }
+
+    void setGroundLevelDelta(i32 delta)
+    {
+        m_groundLevelDelta = delta;
+    }
 
     /**
      * @brief 获取连接点列表
@@ -109,8 +123,16 @@ public:
         _ensureLoaded();
         return m_joints;
     }
-    void addJoint(const JigsawJoint& joint) { m_joints.push_back(joint); }
-    void clearJoints() { m_joints.clear(); }
+
+    void addJoint(const JigsawJoint& joint)
+    {
+        m_joints.push_back(joint);
+    }
+
+    void clearJoints()
+    {
+        m_joints.clear();
+    }
 
     /**
      * @brief 把本构件的连接点复制到目标构件
@@ -142,10 +164,20 @@ public:
      */
     std::vector<JigsawJoint> getShuffledJoints(math::IRandom& rng) const;
 
-    const std::string& getName() const { return m_name; }
-    void setName(const std::string& name) { m_name = name; }
+    const std::string& getName() const
+    {
+        return m_name;
+    }
 
-    virtual bool isEmpty() const { return false; }
+    void setName(const std::string& name)
+    {
+        m_name = name;
+    }
+
+    virtual bool isEmpty() const
+    {
+        return false;
+    }
 
     /**
      * @brief 是否为 legacy 类型拼图块
@@ -153,7 +185,10 @@ public:
      * Legacy 拼图块使用 STRUCTURE_AND_AIR 忽略策略（忽略空气方块），
      * 而标准拼图块只忽略 STRUCTURE_BLOCK。
      */
-    virtual bool isLegacy() const { return false; }
+    virtual bool isLegacy() const
+    {
+        return false;
+    }
 
     /**
      * @brief 获取拼图块大小

@@ -71,7 +71,10 @@ public:
      * 查询遍历用下标 + `size()` 重取（见 EntitySpatialIndex 查询算法），因回调内
      * 实体 move 可能触发本 bucket 的 swap-remove，迭代器语义不安全。
      */
-    [[nodiscard]] const std::vector<Entity*>& allEntities() const noexcept { return m_all; }
+    [[nodiscard]] const std::vector<Entity*>& allEntities() const noexcept
+    {
+        return m_all;
+    }
 
     /**
      * @brief 本 section 内指定类型的实体子列表（懒加载）
@@ -82,8 +85,16 @@ public:
      */
     [[nodiscard]] const std::vector<Entity*>& entitiesOfType(const entity::EntityType* type) const;
 
-    [[nodiscard]] size_t size() const noexcept { return m_all.size(); }
-    [[nodiscard]] bool isEmpty() const noexcept { return m_all.empty(); }
+    [[nodiscard]] size_t size() const noexcept
+    {
+        return m_all.size();
+    }
+
+    [[nodiscard]] bool isEmpty() const noexcept
+    {
+        return m_all.empty();
+    }
+
     void clear();
 
 private:

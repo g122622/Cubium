@@ -65,7 +65,10 @@ public:
      * @brief 获取剪毛后的冷却时间（ticks）
      * @return 冷却时间，0表示无冷却
      */
-    virtual i32 getShearCooldown() const { return 0; }
+    virtual i32 getShearCooldown() const
+    {
+        return 0;
+    }
 };
 
 } // namespace entity

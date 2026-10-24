@@ -74,6 +74,7 @@ const AstPtr& binaryLeft(const AstPtr& node)
 {
     return static_cast<const BinaryNode*>(node.get())->left();
 }
+
 const AstPtr& binaryRight(const AstPtr& node)
 {
     return static_cast<const BinaryNode*>(node.get())->right();

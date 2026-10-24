@@ -98,8 +98,15 @@ public:
         math::IRandom& random,
         const BlockPos& origin) const override;
 
-    [[nodiscard]] DecorationStage stage() const noexcept override { return DecorationStage::VegetalDecoration; }
-    [[nodiscard]] const char* name() const noexcept override { return m_name; }
+    [[nodiscard]] DecorationStage stage() const noexcept override
+    {
+        return DecorationStage::VegetalDecoration;
+    }
+
+    [[nodiscard]] const char* name() const noexcept override
+    {
+        return m_name;
+    }
 
 private:
     std::unique_ptr<RandomPatchFeatureConfig> m_config;

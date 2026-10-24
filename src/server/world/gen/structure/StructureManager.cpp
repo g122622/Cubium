@@ -62,7 +62,9 @@ void StructureRegistry::clear()
 
 void StructureRegistry::registerStructure(std::unique_ptr<Structure> structure)
 {
-    if (!structure) return;
+    if (!structure) {
+        return;
+    }
 
     const ResourceLocation& id = structure->id();
     auto& structures = getStructures();

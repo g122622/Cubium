@@ -60,11 +60,16 @@ Item* ensureTestItem(const char* path)
 
 class DummyWorld final : public mc::test::BaseTestWorld {
 public:
-    [[nodiscard]] bool isWithinWorldBounds(i32, i32, i32) const override { return true; }
+    [[nodiscard]] bool isWithinWorldBounds(i32, i32, i32) const override
+    {
+        return true;
+    }
+
     [[nodiscard]] world::tick::TickManager& tickManager() override
     {
         throw std::runtime_error("DummyWorld::tickManager not implemented");
     }
+
     [[nodiscard]] const world::tick::TickManager& tickManager() const override
     {
         throw std::runtime_error("DummyWorld::tickManager not implemented");
@@ -82,7 +87,10 @@ public:
         return EntityInstanceId(0);
     }
 
-    [[nodiscard]] i32 spawnCount() const { return m_spawnCount; }
+    [[nodiscard]] i32 spawnCount() const
+    {
+        return m_spawnCount;
+    }
 
 private:
     i32 m_spawnCount = 0;

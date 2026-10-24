@@ -36,9 +36,11 @@ namespace mc {
 
 // 前向声明
 class BlockState;
+
 namespace world::chunk {
 class ChunkPrimer;
 }
+
 using world::chunk::ChunkPrimer;
 class WorldGenRegion;
 class IChunkGenerator;
@@ -99,7 +101,12 @@ public:
 
     AlwaysTrueRuleTest() = default;
     [[nodiscard]] bool test(const BlockState& state, math::IRandom& random) const override;
-    [[nodiscard]] const char* name() const override { return "always_true"; }
+
+    [[nodiscard]] const char* name() const override
+    {
+        return "always_true";
+    }
+
     [[nodiscard]] std::unique_ptr<RuleTest> clone() const override;
 };
 
@@ -117,10 +124,18 @@ public:
     explicit BlockMatchRuleTest(const Block* block);
 
     [[nodiscard]] bool test(const BlockState& state, math::IRandom& random) const override;
-    [[nodiscard]] const char* name() const override { return "block_match"; }
+
+    [[nodiscard]] const char* name() const override
+    {
+        return "block_match";
+    }
+
     [[nodiscard]] std::unique_ptr<RuleTest> clone() const override;
 
-    [[nodiscard]] const Block* getBlock() const { return m_block; }
+    [[nodiscard]] const Block* getBlock() const
+    {
+        return m_block;
+    }
 
 private:
     const Block* m_block;
@@ -140,10 +155,18 @@ public:
     explicit BlockStateMatchRuleTest(const BlockState* state);
 
     [[nodiscard]] bool test(const BlockState& state, math::IRandom& random) const override;
-    [[nodiscard]] const char* name() const override { return "block_state_match"; }
+
+    [[nodiscard]] const char* name() const override
+    {
+        return "block_state_match";
+    }
+
     [[nodiscard]] std::unique_ptr<RuleTest> clone() const override;
 
-    [[nodiscard]] const BlockState* getBlockState() const { return m_state; }
+    [[nodiscard]] const BlockState* getBlockState() const
+    {
+        return m_state;
+    }
 
 private:
     const BlockState* m_state;
@@ -163,11 +186,23 @@ public:
     RandomBlockMatchRuleTest(const Block* block, f32 probability);
 
     [[nodiscard]] bool test(const BlockState& state, math::IRandom& random) const override;
-    [[nodiscard]] const char* name() const override { return "random_block_match"; }
+
+    [[nodiscard]] const char* name() const override
+    {
+        return "random_block_match";
+    }
+
     [[nodiscard]] std::unique_ptr<RuleTest> clone() const override;
 
-    [[nodiscard]] const Block* getBlock() const { return m_block; }
-    [[nodiscard]] f32 getProbability() const { return m_probability; }
+    [[nodiscard]] const Block* getBlock() const
+    {
+        return m_block;
+    }
+
+    [[nodiscard]] f32 getProbability() const
+    {
+        return m_probability;
+    }
 
 private:
     const Block* m_block;
@@ -188,11 +223,23 @@ public:
     RandomBlockStateMatchRuleTest(const BlockState* state, f32 probability);
 
     [[nodiscard]] bool test(const BlockState& state, math::IRandom& random) const override;
-    [[nodiscard]] const char* name() const override { return "random_block_state_match"; }
+
+    [[nodiscard]] const char* name() const override
+    {
+        return "random_block_state_match";
+    }
+
     [[nodiscard]] std::unique_ptr<RuleTest> clone() const override;
 
-    [[nodiscard]] const BlockState* getBlockState() const { return m_state; }
-    [[nodiscard]] f32 getProbability() const { return m_probability; }
+    [[nodiscard]] const BlockState* getBlockState() const
+    {
+        return m_state;
+    }
+
+    [[nodiscard]] f32 getProbability() const
+    {
+        return m_probability;
+    }
 
 private:
     const BlockState* m_state;
@@ -213,10 +260,18 @@ public:
     explicit TagMatchRuleTest(const ResourceLocation& tagId);
 
     [[nodiscard]] bool test(const BlockState& state, math::IRandom& random) const override;
-    [[nodiscard]] const char* name() const override { return "tag_match"; }
+
+    [[nodiscard]] const char* name() const override
+    {
+        return "tag_match";
+    }
+
     [[nodiscard]] std::unique_ptr<RuleTest> clone() const override;
 
-    [[nodiscard]] const ResourceLocation& getTagName() const { return m_tagId; }
+    [[nodiscard]] const ResourceLocation& getTagName() const
+    {
+        return m_tagId;
+    }
 
 private:
     ResourceLocation m_tagId;
@@ -239,7 +294,12 @@ private:
 class StoneRuleTest : public RuleTest {
 public:
     [[nodiscard]] bool test(const BlockState& state, math::IRandom& random) const override;
-    [[nodiscard]] const char* name() const override { return "stone"; }
+
+    [[nodiscard]] const char* name() const override
+    {
+        return "stone";
+    }
+
     [[nodiscard]] std::unique_ptr<RuleTest> clone() const override;
 };
 
@@ -253,7 +313,12 @@ public:
 class DeepslateRuleTest : public RuleTest {
 public:
     [[nodiscard]] bool test(const BlockState& state, math::IRandom& random) const override;
-    [[nodiscard]] const char* name() const override { return "deepslate"; }
+
+    [[nodiscard]] const char* name() const override
+    {
+        return "deepslate";
+    }
+
     [[nodiscard]] std::unique_ptr<RuleTest> clone() const override;
 };
 

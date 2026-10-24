@@ -145,7 +145,10 @@ public:
 
     void playSound(const ResourceLocation&, sound::SoundCategory, const Vector3&, f32, f32) override {}
 
-    void clearState() { m_blocks.clear(); }
+    void clearState()
+    {
+        m_blocks.clear();
+    }
 
 private:
     std::unordered_map<BlockPos, std::unique_ptr<BlockState>> m_blocks;

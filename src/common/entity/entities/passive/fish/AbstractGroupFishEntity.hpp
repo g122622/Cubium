@@ -61,7 +61,10 @@ public:
     // 透传层无自身同步字段，classInfo 仅作父链遍历节点。
     static const entity::EntityClassInfo& classInfo();
 
-    [[nodiscard]] bool canSchool() const override { return true; }
+    [[nodiscard]] bool canSchool() const override
+    {
+        return true;
+    }
 
     /**
      * @brief 是否可以随机游泳
@@ -71,12 +74,18 @@ public:
      *
      * @return 如果没有群首返回 true
      */
-    [[nodiscard]] bool canRandomSwim() const override { return !hasGroupLeader(); }
+    [[nodiscard]] bool canRandomSwim() const override
+    {
+        return !hasGroupLeader();
+    }
 
     /**
      * @brief 获取群首
      */
-    [[nodiscard]] AbstractGroupFishEntity* getGroupLeader() { return hasGroupLeader() ? m_groupLeader : nullptr; }
+    [[nodiscard]] AbstractGroupFishEntity* getGroupLeader()
+    {
+        return hasGroupLeader() ? m_groupLeader : nullptr;
+    }
 
     /**
      * @brief 获取群首
@@ -89,37 +98,58 @@ public:
     /**
      * @brief 当前是否已经跟随群首
      */
-    [[nodiscard]] bool hasGroupLeader() const { return m_groupLeader != nullptr && m_groupLeader->isAlive(); }
+    [[nodiscard]] bool hasGroupLeader() const
+    {
+        return m_groupLeader != nullptr && m_groupLeader->isAlive();
+    }
 
     /**
      * @brief 当前是否是群首
      */
-    [[nodiscard]] bool isGroupLeader() const { return m_groupLeader == nullptr && m_groupSize > 1; }
+    [[nodiscard]] bool isGroupLeader() const
+    {
+        return m_groupLeader == nullptr && m_groupSize > 1;
+    }
 
     /**
      * @brief 当前记录的群体大小
      */
-    [[nodiscard]] i32 getGroupSize() const { return m_groupSize; }
+    [[nodiscard]] i32 getGroupSize() const
+    {
+        return m_groupSize;
+    }
 
     /**
      * @brief 获取最大群体大小
      */
-    [[nodiscard]] virtual i32 getMaxGroupSize() const { return m_maxGroupSize; }
+    [[nodiscard]] virtual i32 getMaxGroupSize() const
+    {
+        return m_maxGroupSize;
+    }
 
     /**
      * @brief 设置最大群体大小
      */
-    void setMaxGroupSize(i32 maxGroupSize) { m_maxGroupSize = maxGroupSize; }
+    void setMaxGroupSize(i32 maxGroupSize)
+    {
+        m_maxGroupSize = maxGroupSize;
+    }
 
     /**
      * @brief 获取跟随群首的最大距离
      */
-    [[nodiscard]] f32 getSchoolingRange() const { return m_schoolingRange; }
+    [[nodiscard]] f32 getSchoolingRange() const
+    {
+        return m_schoolingRange;
+    }
 
     /**
      * @brief 设置跟随群首的最大距离
      */
-    void setSchoolingRange(f32 range) { m_schoolingRange = range; }
+    void setSchoolingRange(f32 range)
+    {
+        m_schoolingRange = range;
+    }
 
     /**
      * @brief 判断当前群体是否还能继续增长
@@ -205,7 +235,10 @@ protected:
     void registerGoals() override;
 
 private:
-    void _increaseGroupSize() { ++m_groupSize; }
+    void _increaseGroupSize()
+    {
+        ++m_groupSize;
+    }
 
     void _decreaseGroupSize()
     {

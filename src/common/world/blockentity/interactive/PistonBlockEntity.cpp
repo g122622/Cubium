@@ -255,6 +255,7 @@ void PistonBlockEntity::clearPistonBlockEntity(IWorld& world)
             pos, &updatedState, world::BlockUpdateFlags::UPDATE_ALL | world::BlockUpdateFlags::UPDATE_MOVE_BY_PISTON);
     }
 }
+
 void PistonBlockEntity::tick(IWorld& world)
 {
     // 记录游戏时间用于漏斗链优化

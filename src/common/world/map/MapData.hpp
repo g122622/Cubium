@@ -75,15 +75,45 @@ public:
         void resetDirty();
 
         /** 增加更新步进（用于分批更新地形） */
-        void incrementStep() { ++m_step; }
+        void incrementStep()
+        {
+            ++m_step;
+        }
 
-        [[nodiscard]] i32 playerId() const { return m_playerId; }
-        [[nodiscard]] i32 step() const { return m_step; }
-        [[nodiscard]] bool isDirty() const { return m_isDirty; }
-        [[nodiscard]] i32 minX() const { return m_minX; }
-        [[nodiscard]] i32 minY() const { return m_minY; }
-        [[nodiscard]] i32 maxX() const { return m_maxX; }
-        [[nodiscard]] i32 maxY() const { return m_maxY; }
+        [[nodiscard]] i32 playerId() const
+        {
+            return m_playerId;
+        }
+
+        [[nodiscard]] i32 step() const
+        {
+            return m_step;
+        }
+
+        [[nodiscard]] bool isDirty() const
+        {
+            return m_isDirty;
+        }
+
+        [[nodiscard]] i32 minX() const
+        {
+            return m_minX;
+        }
+
+        [[nodiscard]] i32 minY() const
+        {
+            return m_minY;
+        }
+
+        [[nodiscard]] i32 maxX() const
+        {
+            return m_maxX;
+        }
+
+        [[nodiscard]] i32 maxY() const
+        {
+            return m_maxY;
+        }
 
     private:
         i32 m_playerId;
@@ -234,21 +264,80 @@ public:
     static MapData fromNbt(const nbt::tags::compound_tag& tag, i32 mapId);
 
     // 访问器
-    [[nodiscard]] i32 mapId() const { return m_mapId; }
-    void setMapId(i32 id) { m_mapId = id; }
-    [[nodiscard]] i32 xCenter() const { return m_xCenter; }
-    [[nodiscard]] i32 zCenter() const { return m_zCenter; }
-    [[nodiscard]] i32 scale() const { return m_scale; }
-    [[nodiscard]] MapDimensionId dimension() const { return m_dimension; }
-    [[nodiscard]] bool trackingPosition() const { return m_trackingPosition; }
-    [[nodiscard]] bool unlimitedTracking() const { return m_unlimitedTracking; }
-    [[nodiscard]] bool locked() const { return m_locked; }
-    void setLocked(bool locked) { m_locked = locked; }
-    [[nodiscard]] const std::array<u8, COLOR_ARRAY_SIZE>& colors() const { return m_colors; }
-    [[nodiscard]] const std::map<std::string, MapDecoration>& decorations() const { return m_decorations; }
-    [[nodiscard]] const std::map<std::string, MapBanner>& banners() const { return m_banners; }
-    [[nodiscard]] const std::map<std::string, MapFrame>& frames() const { return m_frames; }
-    [[nodiscard]] std::vector<MapInfo>& playerInfos() { return m_playerInfos; }
+    [[nodiscard]] i32 mapId() const
+    {
+        return m_mapId;
+    }
+
+    void setMapId(i32 id)
+    {
+        m_mapId = id;
+    }
+
+    [[nodiscard]] i32 xCenter() const
+    {
+        return m_xCenter;
+    }
+
+    [[nodiscard]] i32 zCenter() const
+    {
+        return m_zCenter;
+    }
+
+    [[nodiscard]] i32 scale() const
+    {
+        return m_scale;
+    }
+
+    [[nodiscard]] MapDimensionId dimension() const
+    {
+        return m_dimension;
+    }
+
+    [[nodiscard]] bool trackingPosition() const
+    {
+        return m_trackingPosition;
+    }
+
+    [[nodiscard]] bool unlimitedTracking() const
+    {
+        return m_unlimitedTracking;
+    }
+
+    [[nodiscard]] bool locked() const
+    {
+        return m_locked;
+    }
+
+    void setLocked(bool locked)
+    {
+        m_locked = locked;
+    }
+
+    [[nodiscard]] const std::array<u8, COLOR_ARRAY_SIZE>& colors() const
+    {
+        return m_colors;
+    }
+
+    [[nodiscard]] const std::map<std::string, MapDecoration>& decorations() const
+    {
+        return m_decorations;
+    }
+
+    [[nodiscard]] const std::map<std::string, MapBanner>& banners() const
+    {
+        return m_banners;
+    }
+
+    [[nodiscard]] const std::map<std::string, MapFrame>& frames() const
+    {
+        return m_frames;
+    }
+
+    [[nodiscard]] std::vector<MapInfo>& playerInfos()
+    {
+        return m_playerInfos;
+    }
 
     /**
      * @brief 获取地图名称（用于存储和日志）
@@ -258,9 +347,20 @@ public:
     /**
      * @brief 标记数据为脏（需要保存）
      */
-    void setDirty() { m_dirty = true; }
-    [[nodiscard]] bool isDirty() const { return m_dirty; }
-    void clearDirty() { m_dirty = false; }
+    void setDirty()
+    {
+        m_dirty = true;
+    }
+
+    [[nodiscard]] bool isDirty() const
+    {
+        return m_dirty;
+    }
+
+    void clearDirty()
+    {
+        m_dirty = false;
+    }
 
 private:
     /**

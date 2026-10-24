@@ -124,7 +124,10 @@ private:
     [[nodiscard]] static std::vector<u8> padMessage(std::span<const u8> message);
 
     /// 循环左移
-    [[nodiscard]] static constexpr u32 rotl(u32 x, std::size_t n) { return (x << n) | (x >> (32 - n)); }
+    [[nodiscard]] static constexpr u32 rotl(u32 x, std::size_t n)
+    {
+        return (x << n) | (x >> (32 - n));
+    }
 };
 
 } // namespace crypto

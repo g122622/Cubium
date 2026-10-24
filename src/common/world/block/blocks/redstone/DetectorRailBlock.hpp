@@ -66,7 +66,10 @@ public:
     /**
      * @brief 是否响应随机刻
      */
-    [[nodiscard]] bool ticksRandomly() const noexcept override { return false; }
+    [[nodiscard]] bool ticksRandomly() const noexcept override
+    {
+        return false;
+    }
 
     /// 放置时及实体接触时检查矿车，避免依赖随机刻。
     void onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state, bool movedByPiston) override;
@@ -151,7 +154,10 @@ public:
     /**
      * @brief 获取激活属性
      */
-    static const BooleanProperty& POWERED() { return BlockStateProperties::POWERED(); }
+    static const BooleanProperty& POWERED()
+    {
+        return BlockStateProperties::POWERED();
+    }
 };
 
 } // namespace blocks

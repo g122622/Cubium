@@ -54,9 +54,16 @@ public:
         , m_seeFriendlyInvisibles(false)
     {}
 
-    [[nodiscard]] const std::string& getName() const noexcept override { return m_name; }
+    [[nodiscard]] const std::string& getName() const noexcept override
+    {
+        return m_name;
+    }
 
-    [[nodiscard]] const text::ITextComponent* getDisplayName() const noexcept override { return nullptr; }
+    [[nodiscard]] const text::ITextComponent* getDisplayName() const noexcept override
+    {
+        return nullptr;
+    }
+
     void setDisplayName(std::unique_ptr<text::ITextComponent>) override {}
 
     [[nodiscard]] const std::set<std::string>& getMembers() const noexcept override
@@ -64,41 +71,84 @@ public:
         static std::set<std::string> empty;
         return empty;
     }
-    bool addMember(const std::string&) override { return false; }
-    bool removeMember(const std::string&) override { return false; }
-    [[nodiscard]] bool hasMember(const std::string&) const override { return false; }
+
+    bool addMember(const std::string&) override
+    {
+        return false;
+    }
+
+    bool removeMember(const std::string&) override
+    {
+        return false;
+    }
+
+    [[nodiscard]] bool hasMember(const std::string&) const override
+    {
+        return false;
+    }
+
     void clearMembers() override {}
 
-    [[nodiscard]] text::TextFormatting getColor() const noexcept override { return text::TextFormatting::White; }
+    [[nodiscard]] text::TextFormatting getColor() const noexcept override
+    {
+        return text::TextFormatting::White;
+    }
+
     void setColor(text::TextFormatting) override {}
 
-    [[nodiscard]] const text::ITextComponent* getPrefix() const noexcept override { return nullptr; }
+    [[nodiscard]] const text::ITextComponent* getPrefix() const noexcept override
+    {
+        return nullptr;
+    }
+
     void setPrefix(std::unique_ptr<text::ITextComponent>) override {}
-    [[nodiscard]] const text::ITextComponent* getSuffix() const noexcept override { return nullptr; }
+
+    [[nodiscard]] const text::ITextComponent* getSuffix() const noexcept override
+    {
+        return nullptr;
+    }
+
     void setSuffix(std::unique_ptr<text::ITextComponent>) override {}
 
-    [[nodiscard]] bool getAllowFriendlyFire() const noexcept override { return m_allowFriendlyFire; }
-    void setAllowFriendlyFire(bool allow) override { m_allowFriendlyFire = allow; }
+    [[nodiscard]] bool getAllowFriendlyFire() const noexcept override
+    {
+        return m_allowFriendlyFire;
+    }
 
-    [[nodiscard]] bool canSeeFriendlyInvisibles() const noexcept override { return m_seeFriendlyInvisibles; }
-    void setSeeFriendlyInvisibles(bool see) override { m_seeFriendlyInvisibles = see; }
+    void setAllowFriendlyFire(bool allow) override
+    {
+        m_allowFriendlyFire = allow;
+    }
+
+    [[nodiscard]] bool canSeeFriendlyInvisibles() const noexcept override
+    {
+        return m_seeFriendlyInvisibles;
+    }
+
+    void setSeeFriendlyInvisibles(bool see) override
+    {
+        m_seeFriendlyInvisibles = see;
+    }
 
     [[nodiscard]] scoreboard::TeamVisibility getNameTagVisibility() const noexcept override
     {
         return scoreboard::TeamVisibility::Always;
     }
+
     void setNameTagVisibility(scoreboard::TeamVisibility) override {}
 
     [[nodiscard]] scoreboard::TeamVisibility getDeathMessageVisibility() const noexcept override
     {
         return scoreboard::TeamVisibility::Always;
     }
+
     void setDeathMessageVisibility(scoreboard::TeamVisibility) override {}
 
     [[nodiscard]] scoreboard::TeamCollisionRule getCollisionRule() const noexcept override
     {
         return scoreboard::TeamCollisionRule::Always;
     }
+
     void setCollisionRule(scoreboard::TeamCollisionRule) override {}
 
     [[nodiscard]] std::unique_ptr<text::ITextComponent> formatName(const text::ITextComponent&) const override
@@ -106,7 +156,10 @@ public:
         return nullptr;
     }
 
-    [[nodiscard]] std::unique_ptr<text::ITextComponent> getFormattedDisplayName() const override { return nullptr; }
+    [[nodiscard]] std::unique_ptr<text::ITextComponent> getFormattedDisplayName() const override
+    {
+        return nullptr;
+    }
 
 private:
     std::string m_name;
@@ -120,10 +173,20 @@ public:
         : Entity(EntityInstanceId(1), nullptr, mc::test::testEcsRegistry())
     {}
 
-    void setTeam(scoreboard::Team* team) { m_team = team; }
+    void setTeam(scoreboard::Team* team)
+    {
+        m_team = team;
+    }
 
-    [[nodiscard]] scoreboard::Team* getTeam() override { return m_team; }
-    [[nodiscard]] const scoreboard::Team* getTeam() const override { return m_team; }
+    [[nodiscard]] scoreboard::Team* getTeam() override
+    {
+        return m_team;
+    }
+
+    [[nodiscard]] const scoreboard::Team* getTeam() const override
+    {
+        return m_team;
+    }
 
 private:
     scoreboard::Team* m_team = nullptr;
@@ -291,7 +354,10 @@ protected:
         m_wolf->setTamed(true);
     }
 
-    void TearDown() override { m_wolf.reset(); }
+    void TearDown() override
+    {
+        m_wolf.reset();
+    }
 
     std::unique_ptr<WolfEntity> m_wolf;
 };

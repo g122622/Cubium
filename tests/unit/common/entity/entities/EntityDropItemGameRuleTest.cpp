@@ -98,18 +98,33 @@ public:
 
     // ========== 游戏规则 ==========
 
-    [[nodiscard]] world::gamerule::GameRules& getGameRules() override { return m_gameRules; }
-    [[nodiscard]] const world::gamerule::GameRules& getGameRules() const override { return m_gameRules; }
+    [[nodiscard]] world::gamerule::GameRules& getGameRules() override
+    {
+        return m_gameRules;
+    }
+
+    [[nodiscard]] const world::gamerule::GameRules& getGameRules() const override
+    {
+        return m_gameRules;
+    }
 
     // ========== 其他必需方法 ==========
 
-    [[nodiscard]] bool isClientSide() const override { return m_isClientSide; }
-    void setClientSide(bool isClient) { m_isClientSide = isClient; }
+    [[nodiscard]] bool isClientSide() const override
+    {
+        return m_isClientSide;
+    }
+
+    void setClientSide(bool isClient)
+    {
+        m_isClientSide = isClient;
+    }
 
     [[nodiscard]] world::tick::TickManager& tickManager() override
     {
         throw std::runtime_error("EntityDropTestWorld::tickManager not implemented");
     }
+
     [[nodiscard]] const world::tick::TickManager& tickManager() const override
     {
         throw std::runtime_error("EntityDropTestWorld::tickManager not implemented");
@@ -117,7 +132,10 @@ public:
 
     // ========== 测试辅助 ==========
 
-    [[nodiscard]] size_t spawnedEntityCount() const { return m_spawnedEntities.size(); }
+    [[nodiscard]] size_t spawnedEntityCount() const
+    {
+        return m_spawnedEntities.size();
+    }
 
     Entity* getLastSpawnedEntity()
     {
@@ -127,7 +145,10 @@ public:
         return m_spawnedEntities.back().get();
     }
 
-    void clearSpawnedEntities() { m_spawnedEntities.clear(); }
+    void clearSpawnedEntities()
+    {
+        m_spawnedEntities.clear();
+    }
 
 private:
     std::unordered_map<BlockPos, std::unique_ptr<BlockState>> m_blocks;

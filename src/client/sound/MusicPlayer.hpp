@@ -88,6 +88,7 @@ public:
         bool replaceCurrent = false;   // 是否替换当前音乐
 
         MusicSelector() = default;
+
         MusicSelector(const ResourceLocation& id, u32 minDelay, u32 maxDelay, bool replace)
             : soundEventId(id)
             , minDelayTicks(minDelay)
@@ -169,7 +170,10 @@ public:
     /**
      * @brief 获取当前音乐类型
      */
-    [[nodiscard]] MusicType musicType() const noexcept { return m_currentType; }
+    [[nodiscard]] MusicType musicType() const noexcept
+    {
+        return m_currentType;
+    }
 
     /**
      * @brief 检查是否正在播放音乐
@@ -179,19 +183,28 @@ public:
     /**
      * @brief 获取当前播放的音乐ID
      */
-    [[nodiscard]] SoundInstanceId currentSoundId() const noexcept { return m_currentSoundId; }
+    [[nodiscard]] SoundInstanceId currentSoundId() const noexcept
+    {
+        return m_currentSoundId;
+    }
 
     /**
      * @brief 启用/禁用音乐
      *
      * @param enabled 是否启用
      */
-    void setEnabled(bool enabled) noexcept { m_enabled = enabled; }
+    void setEnabled(bool enabled) noexcept
+    {
+        m_enabled = enabled;
+    }
 
     /**
      * @brief 检查音乐是否启用
      */
-    [[nodiscard]] bool isEnabled() const noexcept { return m_enabled; }
+    [[nodiscard]] bool isEnabled() const noexcept
+    {
+        return m_enabled;
+    }
 
 private:
     /**

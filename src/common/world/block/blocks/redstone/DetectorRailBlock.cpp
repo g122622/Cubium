@@ -81,26 +81,34 @@ void DetectorRailBlock::fillStateContainer(StateContainer<Block, BlockState>& co
 void DetectorRailBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random)
 {
     MC_UNUSED(random);
-    if (isPowered(state)) _checkPressed(world, pos, state);
+    if (isPowered(state)) {
+        _checkPressed(world, pos, state);
+    }
 }
 
 void DetectorRailBlock::onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state, bool movedByPiston)
 {
     AbstractRailBlock::onBlockAdded(world, pos, state, movedByPiston);
     const BlockState* current = world.getBlockState(pos);
-    if (current != nullptr && current->is(this)) _checkPressed(world, pos, *current);
+    if (current != nullptr && current->is(this)) {
+        _checkPressed(world, pos, *current);
+    }
 }
 
 void DetectorRailBlock::onEntityCollision(
     const BlockState& state, IWorld& world, const BlockPos& pos, Entity& entity) const
 {
     MC_UNUSED(entity);
-    if (!world.isClientSide() && !isPowered(state)) _checkPressed(world, pos, state);
+    if (!world.isClientSide() && !isPowered(state)) {
+        _checkPressed(world, pos, state);
+    }
 }
 
 void DetectorRailBlock::_checkPressed(IWorld& world, const BlockPos& pos, const BlockState& state) const
 {
-    if (!isValidPosition(state, static_cast<IBlockReader&>(world), pos)) return;
+    if (!isValidPosition(state, static_cast<IBlockReader&>(world), pos)) {
+        return;
+    }
 
     // 检测矿车并更新状态
     bool shouldBePowered = false;
@@ -134,7 +142,9 @@ void DetectorRailBlock::_checkPressed(IWorld& world, const BlockPos& pos, const 
         world.updateNeighbors(pos, state.getBlockMutable());
         world.updateNeighbors(pos.down(), state.getBlockMutable());
     }
-    if (shouldBePowered) world.tickManager().scheduleBlockTick(pos, *this, 20);
+    if (shouldBePowered) {
+        world.tickManager().scheduleBlockTick(pos, *this, 20);
+    }
 }
 
 i32 DetectorRailBlock::getWeakPower(

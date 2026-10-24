@@ -145,13 +145,19 @@ public:
      * @brief 获取配方的宽度（仅对有序配方有意义）
      * @return 宽度，默认为0
      */
-    [[nodiscard]] virtual i32 getRecipeWidth() const { return 0; }
+    [[nodiscard]] virtual i32 getRecipeWidth() const
+    {
+        return 0;
+    }
 
     /**
      * @brief 获取配方的高度（仅对有序配方有意义）
      * @return 高度，默认为0
      */
-    [[nodiscard]] virtual i32 getRecipeHeight() const { return 0; }
+    [[nodiscard]] virtual i32 getRecipeHeight() const
+    {
+        return 0;
+    }
 
     /**
      * @brief 获取配方的资源位置ID
@@ -169,7 +175,10 @@ public:
      * @brief 检查配方是否需要特殊条件才能使用
      * @return 如果配方可以在普通工作台使用返回true
      */
-    [[nodiscard]] virtual bool isSpecial() const { return false; }
+    [[nodiscard]] virtual bool isSpecial() const
+    {
+        return false;
+    }
 
     /**
      * @brief 获取配方消耗的物品堆（用于减少原料数量）
@@ -215,7 +224,10 @@ public:
      * 如染色配方、修复配方等。
      * 动态配方在配方书中显示为"特殊"配方。
      */
-    [[nodiscard]] virtual bool isDynamic() const { return false; }
+    [[nodiscard]] virtual bool isDynamic() const
+    {
+        return false;
+    }
 };
 
 /**

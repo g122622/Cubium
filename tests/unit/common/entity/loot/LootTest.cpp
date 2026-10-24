@@ -312,11 +312,13 @@ public:
     {
         return y >= mc::world::MIN_BUILD_HEIGHT && y < mc::world::MAX_BUILD_HEIGHT;
     }
+
     // TickManager interface (stubbed for tests)
     [[nodiscard]] world::tick::TickManager& tickManager() override
     {
         throw std::runtime_error("LootTestWorld::tickManager not implemented");
     }
+
     [[nodiscard]] const world::tick::TickManager& tickManager() const override
     {
         throw std::runtime_error("LootTestWorld::tickManager not implemented");
@@ -325,7 +327,10 @@ public:
 
 class LootTest : public ::testing::Test {
 protected:
-    void SetUp() override { Items::initialize(); }
+    void SetUp() override
+    {
+        Items::initialize();
+    }
 
     LootTestWorld m_world;
 };
@@ -473,7 +478,11 @@ TEST_F(LootTest, EmptyLootEntry_GenerateNothing)
     auto context = LootContextBuilder(worldRef).withRandom(rng).build();
 
     std::vector<ItemStack> items;
-    bool success = entry.generate([&items](const ItemStack& stack) { items.push_back(stack); }, *context);
+    bool success = entry.generate(
+        [&items](const ItemStack& stack) {
+            items.push_back(stack);
+        },
+        *context);
 
     EXPECT_TRUE(success);
     EXPECT_TRUE(items.empty());
@@ -2347,8 +2356,11 @@ TEST_F(LootTest, ItemLootEntry_GenerateAppliesFunctions)
     auto context = LootContextBuilder(m_world).withRandom(rng).build();
 
     std::vector<ItemStack> generatedItems;
-    bool success =
-        entry->generate([&generatedItems](const ItemStack& stack) { generatedItems.push_back(stack); }, *context);
+    bool success = entry->generate(
+        [&generatedItems](const ItemStack& stack) {
+            generatedItems.push_back(stack);
+        },
+        *context);
 
     EXPECT_TRUE(success);
     ASSERT_EQ(1, generatedItems.size());
@@ -2371,8 +2383,11 @@ TEST_F(LootTest, ItemLootEntry_GenerateWithConditionAndFunction)
     auto context = LootContextBuilder(m_world).withRandom(rng).build();
 
     std::vector<ItemStack> generatedItems;
-    bool success =
-        entry->generate([&generatedItems](const ItemStack& stack) { generatedItems.push_back(stack); }, *context);
+    bool success = entry->generate(
+        [&generatedItems](const ItemStack& stack) {
+            generatedItems.push_back(stack);
+        },
+        *context);
 
     EXPECT_TRUE(success);
     ASSERT_EQ(1, generatedItems.size());
@@ -2394,8 +2409,11 @@ TEST_F(LootTest, ItemLootEntry_GenerateConditionFails)
     auto context = LootContextBuilder(m_world).withRandom(rng).build();
 
     std::vector<ItemStack> generatedItems;
-    bool success =
-        entry->generate([&generatedItems](const ItemStack& stack) { generatedItems.push_back(stack); }, *context);
+    bool success = entry->generate(
+        [&generatedItems](const ItemStack& stack) {
+            generatedItems.push_back(stack);
+        },
+        *context);
 
     EXPECT_FALSE(success);
     EXPECT_TRUE(generatedItems.empty());
@@ -2413,8 +2431,11 @@ TEST_F(LootTest, ItemLootEntry_GenerateFunctionReturnsEmpty)
     auto context = LootContextBuilder(m_world).withRandom(rng).build();
 
     std::vector<ItemStack> generatedItems;
-    bool success =
-        entry->generate([&generatedItems](const ItemStack& stack) { generatedItems.push_back(stack); }, *context);
+    bool success = entry->generate(
+        [&generatedItems](const ItemStack& stack) {
+            generatedItems.push_back(stack);
+        },
+        *context);
 
     // 条件满足，但函数返回空堆
     EXPECT_TRUE(success);
@@ -2502,8 +2523,12 @@ TEST_F(LootTest, ApplyBonusFunction_OreDropsWithFortune)
         i32 result = ApplyBonusFunction::calculateOreDrops(1, 1, rng);
         EXPECT_GE(result, 1);
         EXPECT_LE(result, 2);
-        if (result == 1) sawOne = true;
-        if (result == 2) sawTwo = true;
+        if (result == 1) {
+            sawOne = true;
+        }
+        if (result == 2) {
+            sawTwo = true;
+        }
     }
     EXPECT_TRUE(sawOne);
     EXPECT_TRUE(sawTwo);
@@ -2516,8 +2541,12 @@ TEST_F(LootTest, ApplyBonusFunction_OreDropsWithFortune)
         i32 result = ApplyBonusFunction::calculateOreDrops(1, 3, rng);
         EXPECT_GE(result, 1);
         EXPECT_LE(result, 4);
-        if (result == 1) sawOne = true;
-        if (result == 4) sawFour = true;
+        if (result == 1) {
+            sawOne = true;
+        }
+        if (result == 4) {
+            sawFour = true;
+        }
     }
     EXPECT_TRUE(sawOne);
     EXPECT_TRUE(sawFour);
@@ -3258,8 +3287,9 @@ TEST_F(LootTest, FishingLootTable_MainTableExists)
                        .withRandom(rng)
                        .withLuck(0.0f)
                        .withOwnedValue(LootParams::IS_IN_OPEN_WATER, true)
-                       .withLootTableResolver(
-                           [&manager](const std::string& id) -> const LootTable* { return manager.getTable(id); })
+                       .withLootTableResolver([&manager](const std::string& id) -> const LootTable* {
+                           return manager.getTable(id);
+                       })
                        .build();
     auto items = fishingTable->generate(*context);
 
@@ -3336,8 +3366,9 @@ TEST_F(LootTest, FishingLootTable_LuckAffectsQuality)
                            .withRandom(rng)
                            .withLuck(0.06f)
                            .withOwnedValue(LootParams::IS_IN_OPEN_WATER, true)
-                           .withLootTableResolver(
-                               [&manager](const std::string& id) -> const LootTable* { return manager.getTable(id); })
+                           .withLootTableResolver([&manager](const std::string& id) -> const LootTable* {
+                               return manager.getTable(id);
+                           })
                            .build();
         auto items = fishingTable->generate(*context);
 
@@ -3380,8 +3411,9 @@ TEST_F(LootTest, FishingLootTable_FishJunkTreasureDistribution)
                            .withRandom(rng)
                            .withLuck(0.0f)
                            .withOwnedValue(LootParams::IS_IN_OPEN_WATER, true)
-                           .withLootTableResolver(
-                               [&manager](const std::string& id) -> const LootTable* { return manager.getTable(id); })
+                           .withLootTableResolver([&manager](const std::string& id) -> const LootTable* {
+                               return manager.getTable(id);
+                           })
                            .build();
         auto items = fishingTable->generate(*context);
 

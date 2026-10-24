@@ -34,8 +34,15 @@ public:
         : m_entity(entity)
     {}
 
-    [[nodiscard]] Entity& entity() const noexcept { return *m_entity; }
-    [[nodiscard]] Entity* tryGetEntity() const noexcept { return m_entity; }
+    [[nodiscard]] Entity& entity() const noexcept
+    {
+        return *m_entity;
+    }
+
+    [[nodiscard]] Entity* tryGetEntity() const noexcept
+    {
+        return m_entity;
+    }
 
 private:
     Entity* m_entity;

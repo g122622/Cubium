@@ -215,9 +215,15 @@ protected:
         m_tempDir = mc::test::makeUniqueTestDir("mc_world_name_sanitizer_test");
     }
 
-    void TearDown() override { mc::test::removeTestDir(m_tempDir); }
+    void TearDown() override
+    {
+        mc::test::removeTestDir(m_tempDir);
+    }
 
-    void createDirectory(const std::string& name) { std::filesystem::create_directories(m_tempDir / name); }
+    void createDirectory(const std::string& name)
+    {
+        std::filesystem::create_directories(m_tempDir / name);
+    }
 };
 
 TEST_F(WorldNameSanitizerFileTest, FindAvailableLevelId_NoConflict_ReturnsSameName)

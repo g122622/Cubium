@@ -54,13 +54,19 @@ SleepAtNightGoal::SleepAtNightGoal(VillagerEntity* villager)
 
 bool SleepAtNightGoal::shouldExecute()
 {
-    if (!m_villager) return false;
+    if (!m_villager) {
+        return false;
+    }
 
     // 检查是否是夜间
-    if (!m_villager->isNightTime()) return false;
+    if (!m_villager->isNightTime()) {
+        return false;
+    }
 
     // 已经在睡眠中则不重新开始
-    if (m_villager->isSleeping()) return false;
+    if (m_villager->isSleeping()) {
+        return false;
+    }
 
     // 检查是否有绑定的床位（从Brain的HOME记忆获取）
     // HOME记忆使用GlobalPos类型，包含维度信息
@@ -75,7 +81,9 @@ bool SleepAtNightGoal::shouldExecute()
 
     // 没有绑定床位，尝试查找最近的可用床
     auto bedPos = _findNearestBed();
-    if (!bedPos.has_value()) return false;
+    if (!bedPos.has_value()) {
+        return false;
+    }
 
     m_bedPos = bedPos.value();
     return true;
@@ -83,16 +91,24 @@ bool SleepAtNightGoal::shouldExecute()
 
 bool SleepAtNightGoal::shouldContinueExecuting()
 {
-    if (!m_villager) return false;
+    if (!m_villager) {
+        return false;
+    }
 
     // 继续执行直到天亮或床位不可用
-    if (!m_villager->isNightTime()) return false;
+    if (!m_villager->isNightTime()) {
+        return false;
+    }
 
     // 如果正在睡眠，继续睡眠直到天亮
-    if (m_villager->isSleeping()) return true;
+    if (m_villager->isSleeping()) {
+        return true;
+    }
 
     // 检查床位是否仍然有效
-    if (!_isBedStillValid()) return false;
+    if (!_isBedStillValid()) {
+        return false;
+    }
 
     return m_sleeping || m_trySleepTicks < MAX_TRY_SLEEP_TICKS;
 }
@@ -121,7 +137,9 @@ void SleepAtNightGoal::resetTask()
 
 void SleepAtNightGoal::tick()
 {
-    if (!m_villager) return;
+    if (!m_villager) {
+        return;
+    }
 
     m_trySleepTicks++;
 
@@ -136,11 +154,15 @@ void SleepAtNightGoal::tick()
 
 std::optional<BlockPos> SleepAtNightGoal::_findNearestBed() const
 {
-    if (!m_villager || !m_villager->world()) return std::nullopt;
+    if (!m_villager || !m_villager->world()) {
+        return std::nullopt;
+    }
 
     // 通过VillageManager获取POI存储
     auto* villageManager = m_villager->world()->villageManager();
-    if (!villageManager) return std::nullopt;
+    if (!villageManager) {
+        return std::nullopt;
+    }
 
     auto& poiStorage = villageManager->getPOIStorage();
     BlockPos villagerPos(
@@ -179,14 +201,18 @@ std::optional<BlockPos> SleepAtNightGoal::_findNearestBed() const
 
 void SleepAtNightGoal::_moveToBed()
 {
-    if (!m_villager) return;
+    if (!m_villager) {
+        return;
+    }
 
     m_villager->tryMoveTo(m_bedPos.x + 0.5, m_bedPos.y, m_bedPos.z + 0.5, 0.5);
 }
 
 void SleepAtNightGoal::_trySleep()
 {
-    if (!m_villager) return;
+    if (!m_villager) {
+        return;
+    }
 
     // 检查床位是否仍然有效
     if (!_isBedStillValid()) {
@@ -227,13 +253,19 @@ void SleepAtNightGoal::_trySleep()
 
 bool SleepAtNightGoal::_isBedStillValid() const
 {
-    if (!m_villager || !m_villager->world()) return false;
+    if (!m_villager || !m_villager->world()) {
+        return false;
+    }
 
-    if (m_bedPos == BlockPos::zero()) return false;
+    if (m_bedPos == BlockPos::zero()) {
+        return false;
+    }
 
     // 检查方块是否还是床
     const auto* blockState = m_villager->world()->getBlockState(m_bedPos);
-    if (!blockState) return false;
+    if (!blockState) {
+        return false;
+    }
 
     // 使用BedBlock::isBed检查
     return mc::blocks::BedBlock::isBed(*m_villager->world(), m_bedPos);

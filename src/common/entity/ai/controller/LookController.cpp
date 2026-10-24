@@ -73,7 +73,9 @@ void LookController::setLookPositionWithEntity(const Entity& entity, f32 deltaYa
 
 void LookController::tick()
 {
-    if (!m_mob) return;
+    if (!m_mob) {
+        return;
+    }
 
     // 首先处理俯仰角重置
     if (shouldResetPitch()) {
@@ -118,7 +120,9 @@ void LookController::tick()
 
 f32 LookController::getTargetYaw() const
 {
-    if (!m_mob) return 0.0f;
+    if (!m_mob) {
+        return 0.0f;
+    }
 
     f64 dx = m_posX - m_mob->x();
     f64 dz = m_posZ - m_mob->z();
@@ -131,7 +135,9 @@ f32 LookController::getTargetYaw() const
 
 f32 LookController::getTargetPitch() const
 {
-    if (!m_mob) return 0.0f;
+    if (!m_mob) {
+        return 0.0f;
+    }
 
     f64 dx = m_posX - m_mob->x();
     f64 dy = m_posY - (m_mob->y() + m_mob->eyeHeight()); // 眼睛高度

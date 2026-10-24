@@ -77,7 +77,11 @@ public:
     // ParticleData 接口实现
     // ========================================================================
 
-    [[nodiscard]] ParticleTypeId getType() const override { return ParticleTypeId::EntityEffect; }
+    [[nodiscard]] ParticleTypeId getType() const override
+    {
+        return ParticleTypeId::EntityEffect;
+    }
+
     [[nodiscard]] std::string getTypeName() const override;
     [[nodiscard]] std::string getParameters() const override;
     [[nodiscard]] std::unique_ptr<ParticleData> clone() const override;
@@ -91,7 +95,10 @@ public:
      *
      * @return ARGB 颜色（如 0xFFFF0000 为红色）
      */
-    [[nodiscard]] u32 color() const noexcept { return m_color; }
+    [[nodiscard]] u32 color() const noexcept
+    {
+        return m_color;
+    }
 
     /**
      * @brief 将 ARGB 颜色转换为 RGBA 浮点向量

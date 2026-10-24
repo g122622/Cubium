@@ -300,55 +300,108 @@ public:
      */
     std::unique_ptr<Entity> create(IWorld* world, ecs::EntityRegistry& registry) const;
 
+    /** @brief 类型撤销后释放工厂捕获资源，保留存活实体所需的身份和元数据。 */
+    void retire()
+    {
+        m_factory = {};
+    }
+
     /**
      * @brief 获取实体分类
      */
-    [[nodiscard]] EntityClassification classification() const { return m_classification; }
+    [[nodiscard]] EntityClassification classification() const
+    {
+        return m_classification;
+    }
+
+    /**
+     * @brief 用原版数据覆盖碰撞箱尺寸
+     *
+     * 原版把尺寸定义在实体类里（EntityType.Builder.sized），本项目注册表另写一份。
+     * 两边一旦不同步，就会出现碰撞判定偏大/偏小、眼睛比身体还高这类问题。
+     * 因此注册时按实体名统一用原版值覆盖。数据表由
+     * scripts/baking/gen_entity_dimensions.py 从原版 jar 生成。
+     *
+     * @param size 原版碰撞箱尺寸
+     * @return 自身引用，便于链式调用
+     */
+    EntityType& overrideSize(const EntitySize& size) noexcept
+    {
+        m_size = size;
+        return *this;
+    }
 
     /**
      * @brief 获取实体尺寸
      */
-    [[nodiscard]] EntitySize size() const { return m_size; }
+    [[nodiscard]] EntitySize size() const
+    {
+        return m_size;
+    }
 
     /**
      * @brief 获取追踪距离（区块）
      */
-    [[nodiscard]] i32 trackingRange() const { return m_trackingRange; }
+    [[nodiscard]] i32 trackingRange() const
+    {
+        return m_trackingRange;
+    }
 
     /**
      * @brief 获取更新间隔（tick）
      */
-    [[nodiscard]] i32 updateInterval() const { return m_updateInterval; }
+    [[nodiscard]] i32 updateInterval() const
+    {
+        return m_updateInterval;
+    }
 
     /**
      * @brief 获取实体标志
      */
-    [[nodiscard]] EntityFlags flags() const { return m_flags; }
+    [[nodiscard]] EntityFlags flags() const
+    {
+        return m_flags;
+    }
 
     /**
      * @brief 检查是否有特定标志
      */
-    [[nodiscard]] bool hasFlag(EntityFlags flag) const { return entity::hasEntityFlag(m_flags, flag); }
+    [[nodiscard]] bool hasFlag(EntityFlags flag) const
+    {
+        return entity::hasEntityFlag(m_flags, flag);
+    }
 
     /**
      * @brief 是否免疫火焰
      */
-    [[nodiscard]] bool immuneToFire() const { return hasFlag(EntityFlags::ImmuneToFire); }
+    [[nodiscard]] bool immuneToFire() const
+    {
+        return hasFlag(EntityFlags::ImmuneToFire);
+    }
 
     /**
      * @brief 是否免疫岩浆
      */
-    [[nodiscard]] bool immuneToLava() const { return hasFlag(EntityFlags::ImmuneToLava); }
+    [[nodiscard]] bool immuneToLava() const
+    {
+        return hasFlag(EntityFlags::ImmuneToLava);
+    }
 
     /**
      * @brief 是否可以序列化
      */
-    [[nodiscard]] bool serializable() const { return hasFlag(EntityFlags::Serializable); }
+    [[nodiscard]] bool serializable() const
+    {
+        return hasFlag(EntityFlags::Serializable);
+    }
 
     /**
      * @brief 是否可以被召唤
      */
-    [[nodiscard]] bool canSummon() const { return hasFlag(EntityFlags::CanSummon); }
+    [[nodiscard]] bool canSummon() const
+    {
+        return hasFlag(EntityFlags::CanSummon);
+    }
 
     /**
      * @brief 和平难度下是否允许生成/召唤（对齐 vanilla EntityType.isAllowedInPeaceful）
@@ -357,7 +410,10 @@ public:
      * 未调用 notInPeaceful()，故和平可生成；绝大多数怪物类调用了故和平禁生成。
      * 用于 /summon、刷怪蛋、刷怪笼的和平难度守卫（非自然生成的分类筛选）。
      */
-    [[nodiscard]] bool isAllowedInPeaceful() const { return !hasFlag(EntityFlags::NotInPeaceful); }
+    [[nodiscard]] bool isAllowedInPeaceful() const
+    {
+        return !hasFlag(EntityFlags::NotInPeaceful);
+    }
 
     /**
      * @brief 获取实体类型整数 ID
@@ -366,17 +422,26 @@ public:
      * SpawnEntity 等包的 VarInt 类型 ID 编码。注册顺序由 VanillaEntities::doRegisterAll
      * 的源码调用顺序冻结，确定且稳定。
      */
-    [[nodiscard]] u32 id() const { return m_id; }
+    [[nodiscard]] u32 id() const
+    {
+        return m_id;
+    }
 
     /**
      * @brief 获取名称
      */
-    [[nodiscard]] const std::string& name() const { return m_name; }
+    [[nodiscard]] const std::string& name() const
+    {
+        return m_name;
+    }
 
     /**
      * @brief 检查是否有效
      */
-    [[nodiscard]] bool isValid() const { return m_factory != nullptr; }
+    [[nodiscard]] bool isValid() const
+    {
+        return m_factory != nullptr;
+    }
 
     /**
      * @brief 检查此实体类型是否属于指定标签
@@ -395,8 +460,15 @@ public:
      * 适用于 SpawnEggItem 等持有值副本的场景。热路径的类型比较请直接用指针比较
      * （entityType() 与 VanillaEntityTypeKeys::* 同源于注册表容器）。
      */
-    bool operator==(const EntityType& other) const { return m_name == other.m_name; }
-    bool operator!=(const EntityType& other) const { return m_name != other.m_name; }
+    bool operator==(const EntityType& other) const
+    {
+        return m_name == other.m_name;
+    }
+
+    bool operator!=(const EntityType& other) const
+    {
+        return m_name != other.m_name;
+    }
 
     /**
      * @brief 未知/空实体类型哨兵

@@ -55,7 +55,10 @@ public:
     /**
      * @brief 获取条件名称
      */
-    [[nodiscard]] const std::string& getName() const noexcept { return m_name; }
+    [[nodiscard]] const std::string& getName() const noexcept
+    {
+        return m_name;
+    }
 
     /**
      * @brief 获取触发器实例

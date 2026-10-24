@@ -101,7 +101,10 @@ namespace {
 
 class CopperChestTestWorld final : public BaseTestWorld {
 public:
-    CopperChestTestWorld() { m_tickManagerPtr = std::make_unique<TickManager>(*this); }
+    CopperChestTestWorld()
+    {
+        m_tickManagerPtr = std::make_unique<TickManager>(*this);
+    }
 
     bool setBlockState(i32 x, i32 y, i32 z, const BlockState* state) override
     {
@@ -173,12 +176,30 @@ public:
         m_sounds.push_back({sound, category, pos, volume, pitch});
     }
 
-    [[nodiscard]] TickManager& tickManager() override { return *m_tickManagerPtr; }
-    [[nodiscard]] const TickManager& tickManager() const override { return *m_tickManagerPtr; }
+    [[nodiscard]] TickManager& tickManager() override
+    {
+        return *m_tickManagerPtr;
+    }
 
-    [[nodiscard]] u64 seed() const override { return m_seed; }
-    [[nodiscard]] bool isRaining() const override { return false; }
-    [[nodiscard]] bool canRainAt(const BlockPos&) const override { return false; }
+    [[nodiscard]] const TickManager& tickManager() const override
+    {
+        return *m_tickManagerPtr;
+    }
+
+    [[nodiscard]] u64 seed() const override
+    {
+        return m_seed;
+    }
+
+    [[nodiscard]] bool isRaining() const override
+    {
+        return false;
+    }
+
+    [[nodiscard]] bool canRainAt(const BlockPos&) const override
+    {
+        return false;
+    }
 
     // ========== 测试辅助方法 ==========
 
@@ -190,8 +211,15 @@ public:
         f32 pitch;
     };
 
-    [[nodiscard]] const std::vector<SoundRecord>& sounds() const { return m_sounds; }
-    void clearSounds() { m_sounds.clear(); }
+    [[nodiscard]] const std::vector<SoundRecord>& sounds() const
+    {
+        return m_sounds;
+    }
+
+    void clearSounds()
+    {
+        m_sounds.clear();
+    }
 
 private:
     std::unordered_map<BlockPos, std::unique_ptr<BlockState>> m_blocks;

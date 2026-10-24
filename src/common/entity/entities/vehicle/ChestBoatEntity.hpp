@@ -189,19 +189,28 @@ public:
      * @brief 检查是否有未解包的战利品表
      * @return 如果有未解包的战利品表返回 true
      */
-    [[nodiscard]] bool hasLootTable() const noexcept { return !m_lootTable.empty(); }
+    [[nodiscard]] bool hasLootTable() const noexcept
+    {
+        return !m_lootTable.empty();
+    }
 
     /**
      * @brief 获取战利品表ID
      * @return 战利品表资源位置字符串
      */
-    [[nodiscard]] const std::string& getLootTable() const noexcept { return m_lootTable; }
+    [[nodiscard]] const std::string& getLootTable() const noexcept
+    {
+        return m_lootTable;
+    }
 
     /**
      * @brief 获取战利品表种子
      * @return 种子值
      */
-    [[nodiscard]] i64 getLootTableSeed() const noexcept { return m_lootTableSeed; }
+    [[nodiscard]] i64 getLootTableSeed() const noexcept
+    {
+        return m_lootTableSeed;
+    }
 
     /**
      * @brief 设置战利品表

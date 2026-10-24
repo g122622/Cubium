@@ -97,13 +97,37 @@ public:
     void waitForFrame(u32 frameIndex);
 
     // 访问器
-    [[nodiscard]] VkCommandPool commandPool() const { return m_commandPool; }
+    [[nodiscard]] VkCommandPool commandPool() const
+    {
+        return m_commandPool;
+    }
+
     [[nodiscard]] VkCommandBuffer currentCommandBuffer() const;
-    [[nodiscard]] u32 currentFrameIndex() const { return m_currentFrame; }
-    [[nodiscard]] u32 currentImageIndex() const { return m_imageIndex; }
-    [[nodiscard]] u32 maxFramesInFlight() const { return m_maxFramesInFlight; }
-    [[nodiscard]] bool isFrameStarted() const { return m_frameStarted; }
-    [[nodiscard]] bool isValid() const { return m_commandPool != VK_NULL_HANDLE; }
+
+    [[nodiscard]] u32 currentFrameIndex() const
+    {
+        return m_currentFrame;
+    }
+
+    [[nodiscard]] u32 currentImageIndex() const
+    {
+        return m_imageIndex;
+    }
+
+    [[nodiscard]] u32 maxFramesInFlight() const
+    {
+        return m_maxFramesInFlight;
+    }
+
+    [[nodiscard]] bool isFrameStarted() const
+    {
+        return m_frameStarted;
+    }
+
+    [[nodiscard]] bool isValid() const
+    {
+        return m_commandPool != VK_NULL_HANDLE;
+    }
 
     /**
      * @brief 获取信号量（用于资源同步）

@@ -51,7 +51,10 @@ class LootingEnchantment : public Enchantment {
 public:
     LootingEnchantment() = default;
 
-    [[nodiscard]] std::string id() const override { return "minecraft:looting"; }
+    [[nodiscard]] std::string id() const override
+    {
+        return "minecraft:looting";
+    }
 
     [[nodiscard]] std::string getNameKey(i32 level) const override
     {
@@ -59,20 +62,36 @@ public:
         return "enchantment.minecraft.looting";
     }
 
-    [[nodiscard]] EnchantmentType type() const override { return EnchantmentType::Weapon; }
+    [[nodiscard]] EnchantmentType type() const override
+    {
+        return EnchantmentType::Weapon;
+    }
 
-    [[nodiscard]] i32 minLevel() const noexcept override { return 1; }
+    [[nodiscard]] i32 minLevel() const noexcept override
+    {
+        return 1;
+    }
 
-    [[nodiscard]] i32 maxLevel() const noexcept override { return 3; }
+    [[nodiscard]] i32 maxLevel() const noexcept override
+    {
+        return 3;
+    }
 
-    [[nodiscard]] EnchantmentRarity rarity() const noexcept override { return EnchantmentRarity::Rare; }
+    [[nodiscard]] EnchantmentRarity rarity() const noexcept override
+    {
+        return EnchantmentRarity::Rare;
+    }
 
-    [[nodiscard]] i32 getMinCost(i32 level) const override { return 15 + (level - 1) * 9; }
+    [[nodiscard]] i32 getMinCost(i32 level) const override
+    {
+        return 15 + (level - 1) * 9;
+    }
 
+    // 最大成本 = 本附魔的最小成本 + 50（不能写 Enchantment::getMinCost，那是基类的
+    // 1 + (level - 1) * 10，会让高等级的最大代价偏低）。
     [[nodiscard]] i32 getMaxCost(i32 level) const override
     {
-        // 最大成本 = 最小成本 + 50
-        return Enchantment::getMinCost(level) + 50;
+        return getMinCost(level) + 50;
     }
 };
 

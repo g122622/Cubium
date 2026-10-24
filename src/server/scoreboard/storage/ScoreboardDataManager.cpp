@@ -828,7 +828,9 @@ Result<size_t> ScoreboardDataManager::saveAllDirty()
         std::lock_guard<std::mutex> lock(m_cacheMutex);
         for (const auto& key : m_dirtyScores) {
             size_t colonPos = key.find(':');
-            if (colonPos == std::string::npos) continue;
+            if (colonPos == std::string::npos) {
+                continue;
+            }
 
             std::string objectiveName = key.substr(0, colonPos);
             std::string playerName = key.substr(colonPos + 1);

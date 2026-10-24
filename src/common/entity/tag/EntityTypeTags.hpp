@@ -186,7 +186,10 @@ public:
      * @brief 检查标签系统是否已初始化
      * 在 canFreeze() 等方法中用于安全检查，避免在初始化前访问标签数据。
      */
-    [[nodiscard]] static bool isInitialized() { return s_initialized; }
+    [[nodiscard]] static bool isInitialized()
+    {
+        return s_initialized;
+    }
 
     /**
      * @brief 根据ID获取标签

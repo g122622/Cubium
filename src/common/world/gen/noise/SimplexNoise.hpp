@@ -64,9 +64,20 @@ public:
      */
     [[nodiscard]] f64 getValue(f64 x, f64 y, f64 z) const;
 
-    [[nodiscard]] f64 xOffset() const { return m_xOffset; }
-    [[nodiscard]] f64 yOffset() const { return m_yOffset; }
-    [[nodiscard]] f64 zOffset() const { return m_zOffset; }
+    [[nodiscard]] f64 xOffset() const
+    {
+        return m_xOffset;
+    }
+
+    [[nodiscard]] f64 yOffset() const
+    {
+        return m_yOffset;
+    }
+
+    [[nodiscard]] f64 zOffset() const
+    {
+        return m_zOffset;
+    }
 
 private:
     [[nodiscard]] i32 p(i32 index) const;

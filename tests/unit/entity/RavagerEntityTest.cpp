@@ -73,11 +73,27 @@ public:
         return state != nullptr ? state->getFluidState() : &fluid::Fluids::EMPTY()->defaultState();
     }
 
-    [[nodiscard]] mc::world::chunk::IChunkManager* chunkManager() override { return &m_stubChunks; }
-    [[nodiscard]] const mc::world::chunk::IChunkManager* chunkManager() const override { return &m_stubChunks; }
+    [[nodiscard]] mc::world::chunk::IChunkManager* chunkManager() override
+    {
+        return &m_stubChunks;
+    }
+
+    [[nodiscard]] const mc::world::chunk::IChunkManager* chunkManager() const override
+    {
+        return &m_stubChunks;
+    }
+
     mc::test::StubChunkManager m_stubChunks{nullptr, true};
-    [[nodiscard]] u64 currentTick() const override { return m_currentTick; }
-    [[nodiscard]] Difficulty difficulty() const override { return m_difficulty; }
+
+    [[nodiscard]] u64 currentTick() const override
+    {
+        return m_currentTick;
+    }
+
+    [[nodiscard]] Difficulty difficulty() const override
+    {
+        return m_difficulty;
+    }
 
     EntityInstanceId spawnEntity(std::unique_ptr<Entity> entity) override
     {
@@ -85,20 +101,42 @@ public:
         return static_cast<EntityInstanceId>(m_spawnedEntities.size());
     }
 
-    [[nodiscard]] world::gamerule::GameRules& getGameRules() override { return m_gameRules; }
-    [[nodiscard]] const world::gamerule::GameRules& getGameRules() const override { return m_gameRules; }
+    [[nodiscard]] world::gamerule::GameRules& getGameRules() override
+    {
+        return m_gameRules;
+    }
+
+    [[nodiscard]] const world::gamerule::GameRules& getGameRules() const override
+    {
+        return m_gameRules;
+    }
 
     // 测试辅助方法
-    void incrementTick() { m_currentTick++; }
-    void setCurrentTick(u64 tick) { m_currentTick = tick; }
-    void setDifficulty(Difficulty diff) { m_difficulty = diff; }
+    void incrementTick()
+    {
+        m_currentTick++;
+    }
+
+    void setCurrentTick(u64 tick)
+    {
+        m_currentTick = tick;
+    }
+
+    void setDifficulty(Difficulty diff)
+    {
+        m_difficulty = diff;
+    }
+
     void setMobGriefing(bool value)
     {
         m_mobGriefing = value;
         m_gameRules.setBoolean(world::gamerule::GameRuleKeys::MOB_GRIEFING, value);
     }
 
-    [[nodiscard]] std::vector<Entity*>& getEntitiesMutable() { return m_entities; }
+    [[nodiscard]] std::vector<Entity*>& getEntitiesMutable()
+    {
+        return m_entities;
+    }
 
     [[nodiscard]] std::vector<Entity*> getEntitiesInAABB(const AxisAlignedBB&, const Entity*) const override
     {
@@ -121,7 +159,10 @@ private:
 
 class RavagerEntityTest : public ::testing::Test {
 protected:
-    void SetUp() override { m_world = std::make_unique<RavagerTestWorld>(); }
+    void SetUp() override
+    {
+        m_world = std::make_unique<RavagerTestWorld>();
+    }
 
     std::unique_ptr<RavagerTestWorld> m_world;
 };
@@ -205,7 +246,10 @@ TEST_F(RavagerEntityTest, InitialState_IsCorrect)
 
 class RavagerAttackStateTest : public ::testing::Test {
 protected:
-    void SetUp() override { m_world = std::make_unique<RavagerTestWorld>(); }
+    void SetUp() override
+    {
+        m_world = std::make_unique<RavagerTestWorld>();
+    }
 
     std::unique_ptr<RavagerTestWorld> m_world;
 };
@@ -268,7 +312,10 @@ TEST_F(RavagerAttackStateTest, MovementBlocked_WhenRoaring)
 
 class RavagerTickTest : public ::testing::Test {
 protected:
-    void SetUp() override { m_world = std::make_unique<RavagerTestWorld>(); }
+    void SetUp() override
+    {
+        m_world = std::make_unique<RavagerTestWorld>();
+    }
 
     std::unique_ptr<RavagerTestWorld> m_world;
 };
@@ -323,7 +370,10 @@ TEST_F(RavagerTickTest, RoarTick_CanBeSet)
 
 class RavagerBlockBreakTest : public ::testing::Test {
 protected:
-    void SetUp() override { m_world = std::make_unique<RavagerTestWorld>(); }
+    void SetUp() override
+    {
+        m_world = std::make_unique<RavagerTestWorld>();
+    }
 
     std::unique_ptr<RavagerTestWorld> m_world;
 };
@@ -354,7 +404,10 @@ TEST_F(RavagerBlockBreakTest, CanBreakBlocks_CanBeDisabled)
 
 class RavagerVisibilityTest : public ::testing::Test {
 protected:
-    void SetUp() override { m_world = std::make_unique<RavagerTestWorld>(); }
+    void SetUp() override
+    {
+        m_world = std::make_unique<RavagerTestWorld>();
+    }
 
     std::unique_ptr<RavagerTestWorld> m_world;
 };
@@ -381,7 +434,10 @@ TEST_F(RavagerVisibilityTest, CanSee_NormalCase)
 
 class RavagerExperienceTest : public ::testing::Test {
 protected:
-    void SetUp() override { m_world = std::make_unique<RavagerTestWorld>(); }
+    void SetUp() override
+    {
+        m_world = std::make_unique<RavagerTestWorld>();
+    }
 
     std::unique_ptr<RavagerTestWorld> m_world;
 };

@@ -546,7 +546,9 @@ void ZombieEntity::registerGoals()
             [](const LivingEntity* entity) -> bool {
                 // BABY_ON_LAND_SELECTOR: 只攻击陆地上不在水中的幼年海龟
                 const TurtleEntity* turtle = dynamic_cast<const TurtleEntity*>(entity);
-                if (!turtle) return false;
+                if (!turtle) {
+                    return false;
+                }
                 return turtle->isChild() && !turtle->isInWater();
             }));
 }

@@ -461,7 +461,9 @@ i32 NbtPath::set(nbt::tags::compound_tag& tag, std::function<std::unique_ptr<nbt
         for (size_t i = 0; i + 1 < m_nodes.size(); ++i) {
             std::vector<nbt::tags::tag*> next;
             for (nbt::tags::tag* t : parents) {
-                auto creator = [&createForStep, i, t]() { return createForStep(i, t); };
+                auto creator = [&createForStep, i, t]() {
+                    return createForStep(i, t);
+                };
                 auto nodeResults = m_nodes[i]->getOrCreate(t, std::move(creator), false);
                 next.insert(next.end(), nodeResults.begin(), nodeResults.end());
             }
@@ -602,7 +604,9 @@ i32 NbtPath::insert(
                 auto found = m_nodes[i]->getOrCreate(current, creator, false);
                 next.insert(next.end(), found.begin(), found.end());
             } else {
-                auto creator = [nextNode = m_nodes[i + 1].get()]() { return nextNode->createPreferredParentTag(); };
+                auto creator = [nextNode = m_nodes[i + 1].get()]() {
+                    return nextNode->createPreferredParentTag();
+                };
                 auto found = m_nodes[i]->getOrCreate(current, std::move(creator), false);
                 next.insert(next.end(), found.begin(), found.end());
             }
@@ -704,7 +708,9 @@ i32 NbtPath::merge(nbt::tags::compound_tag& tag, const nbt::tags::compound_tag& 
     for (size_t i = 0; i < m_nodes.size(); ++i) {
         std::vector<nbt::tags::tag*> next;
         for (nbt::tags::tag* t : targets) {
-            auto nodeResults = m_nodes[i]->getOrCreate(t, []() { return std::make_unique<nbt::tags::compound_tag>(); });
+            auto nodeResults = m_nodes[i]->getOrCreate(t, []() {
+                return std::make_unique<nbt::tags::compound_tag>();
+            });
             next.insert(next.end(), nodeResults.begin(), nodeResults.end());
         }
         targets = std::move(next);

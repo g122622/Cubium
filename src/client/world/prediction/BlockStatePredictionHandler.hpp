@@ -78,17 +78,26 @@ public:
      *
      * 配合 startPredicting 使用，复位 isPredicting 标志。
      */
-    void stopPredicting() { m_isPredicting = false; }
+    void stopPredicting()
+    {
+        m_isPredicting = false;
+    }
 
     /**
      * @brief 是否正在预测性操作中
      */
-    [[nodiscard]] bool isPredicting() const { return m_isPredicting; }
+    [[nodiscard]] bool isPredicting() const
+    {
+        return m_isPredicting;
+    }
 
     /**
      * @brief 当前预测序列号
      */
-    [[nodiscard]] i32 currentSequence() const { return m_currentSequenceNr; }
+    [[nodiscard]] i32 currentSequence() const
+    {
+        return m_currentSequenceNr;
+    }
 
     /**
      * @brief 记录某位置预测前的服务端权威状态
@@ -172,12 +181,18 @@ public:
         , m_sequence(handler.startPredicting())
     {}
 
-    ~BlockPredictionGuard() { m_handler.stopPredicting(); }
+    ~BlockPredictionGuard()
+    {
+        m_handler.stopPredicting();
+    }
 
     BlockPredictionGuard(const BlockPredictionGuard&) = delete;
     BlockPredictionGuard& operator=(const BlockPredictionGuard&) = delete;
 
-    [[nodiscard]] i32 sequence() const { return m_sequence; }
+    [[nodiscard]] i32 sequence() const
+    {
+        return m_sequence;
+    }
 
 private:
     BlockStatePredictionHandler& m_handler;

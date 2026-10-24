@@ -56,7 +56,10 @@ using namespace mc;
 
 class FeatureSpreadTest : public ::testing::Test {
 protected:
-    void SetUp() override { random = std::make_unique<math::Random>(12345); }
+    void SetUp() override
+    {
+        random = std::make_unique<math::Random>(12345);
+    }
 
     std::unique_ptr<math::Random> random;
 };
@@ -102,7 +105,10 @@ TEST_F(FeatureSpreadTest, ZeroSpread)
 
 class TrunkPlacerTest : public ::testing::Test {
 protected:
-    void SetUp() override { random = std::make_unique<math::Random>(12345); }
+    void SetUp() override
+    {
+        random = std::make_unique<math::Random>(12345);
+    }
 
     std::unique_ptr<math::Random> random;
 };
@@ -141,7 +147,10 @@ TEST_F(TrunkPlacerTest, Name)
 
 class FoliagePlacerTest : public ::testing::Test {
 protected:
-    void SetUp() override { random = std::make_unique<math::Random>(12345); }
+    void SetUp() override
+    {
+        random = std::make_unique<math::Random>(12345);
+    }
 
     std::unique_ptr<math::Random> random;
 };
@@ -225,7 +234,10 @@ TEST(TreeFeatureConfigTest, JungleConfig)
 
 class TreeFeatureTest : public ::testing::Test {
 protected:
-    void SetUp() override { VanillaBlocks::initialize(); }
+    void SetUp() override
+    {
+        VanillaBlocks::initialize();
+    }
 };
 
 // 注意：完整的放置测试需要模拟 WorldGenRegion，这里只测试静态方法
@@ -562,7 +574,9 @@ TEST_F(TreeFeaturePlacementWorldTest, GroundDecorationsCannotStackOnPreviouslyPl
     TreeDecoratorContext context(*m_region,
         nullptr,
         nullptr,
-        [this](const BlockPos& pos, const BlockState* state) { m_region->setBlockState(pos, state); },
+        [this](const BlockPos& pos, const BlockState* state) {
+            m_region->setBlockState(pos, state);
+        },
         random,
         {plantPos},
         {},
@@ -579,9 +593,13 @@ TEST_F(TreeFeaturePlacementWorldTest, GroundDecorationsCannotStackOnPreviouslyPl
     EXPECT_TRUE(m_region->getBlockState(plantPos.up(2))->isAir());
     // 写入后再被替换为空气或石头时，条件同样须反映实际状态。
     context.setBlock(plantPos, &VanillaBlocks::AIR->defaultState());
-    EXPECT_FALSE(context.checkBlock(plantPos, [](const BlockState& state) { return state.isSolid(); }));
+    EXPECT_FALSE(context.checkBlock(plantPos, [](const BlockState& state) {
+        return state.isSolid();
+    }));
     context.setBlock(plantPos, &VanillaBlocks::STONE->defaultState());
-    EXPECT_TRUE(context.checkBlock(plantPos, [](const BlockState& state) { return state.isSolid(); }));
+    EXPECT_TRUE(context.checkBlock(plantPos, [](const BlockState& state) {
+        return state.isSolid();
+    }));
 }
 
 TEST_F(TreeFeaturePlacementWorldTest, GroundDecorationsUseRecordedDirtHeight)
@@ -596,7 +614,9 @@ TEST_F(TreeFeaturePlacementWorldTest, GroundDecorationsUseRecordedDirtHeight)
     TreeDecoratorContext context(*m_region,
         nullptr,
         nullptr,
-        [this](const BlockPos& pos, const BlockState* state) { m_region->setBlockState(pos, state); },
+        [this](const BlockPos& pos, const BlockState* state) {
+            m_region->setBlockState(pos, state);
+        },
         random,
         std::vector<BlockPos>(written.begin(), written.end()),
         {},

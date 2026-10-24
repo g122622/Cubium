@@ -57,7 +57,9 @@ namespace {
 std::string buildCacheKey(const std::string& blockName, const std::unordered_map<std::string, std::string>& states)
 {
     std::vector<std::pair<std::string, std::string>> ordered(states.begin(), states.end());
-    std::sort(ordered.begin(), ordered.end(), [](const auto& lhs, const auto& rhs) { return lhs.first < rhs.first; });
+    std::sort(ordered.begin(), ordered.end(), [](const auto& lhs, const auto& rhs) {
+        return lhs.first < rhs.first;
+    });
 
     std::string key = blockName;
     for (const auto& [name, value] : ordered) {

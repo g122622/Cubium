@@ -173,8 +173,15 @@ public:
     /**
      * @brief 获取Brain
      */
-    [[nodiscard]] VillagerBrain& brain() { return *m_brain; }
-    [[nodiscard]] const VillagerBrain& brain() const { return *m_brain; }
+    [[nodiscard]] VillagerBrain& brain()
+    {
+        return *m_brain;
+    }
+
+    [[nodiscard]] const VillagerBrain& brain() const
+    {
+        return *m_brain;
+    }
 
     /**
      * @brief 初始化Brain（注册记忆模块、传感器、日程等）
@@ -186,19 +193,28 @@ public:
     /**
      * @brief 获取村民数据
      */
-    [[nodiscard]] const VillagerData& villagerData() const { return m_villagerData; }
+    [[nodiscard]] const VillagerData& villagerData() const
+    {
+        return m_villagerData;
+    }
 
     /**
      * @brief 设置村民数据
      */
-    void setVillagerData(const VillagerData& data) { m_villagerData = data; }
+    void setVillagerData(const VillagerData& data)
+    {
+        m_villagerData = data;
+    }
 
     // ========== 职业 ==========
 
     /**
      * @brief 获取职业
      */
-    [[nodiscard]] VillagerProfession profession() const { return m_villagerData.profession(); }
+    [[nodiscard]] VillagerProfession profession() const
+    {
+        return m_villagerData.profession();
+    }
 
     /**
      * @brief 设置职业
@@ -208,34 +224,52 @@ public:
     /**
      * @brief 获取村民类型
      */
-    [[nodiscard]] VillagerType villagerType() const { return m_villagerData.type(); }
+    [[nodiscard]] VillagerType villagerType() const
+    {
+        return m_villagerData.type();
+    }
 
     /**
      * @brief 设置村民类型
      */
-    void setVillagerType(VillagerType type) { m_villagerData.setType(type); }
+    void setVillagerType(VillagerType type)
+    {
+        m_villagerData.setType(type);
+    }
 
     // ========== 等级 ==========
 
     /**
      * @brief 获取等级
      */
-    [[nodiscard]] i32 level() const { return m_villagerData.level(); }
+    [[nodiscard]] i32 level() const
+    {
+        return m_villagerData.level();
+    }
 
     /**
      * @brief 设置等级
      */
-    void setLevel(i32 level) { m_villagerData.setLevel(level); }
+    void setLevel(i32 level)
+    {
+        m_villagerData.setLevel(level);
+    }
 
     /**
      * @brief 增加经验
      */
-    void addVillagerExperience(i32 amount) { m_villagerData.addExperience(amount); }
+    void addVillagerExperience(i32 amount)
+    {
+        m_villagerData.addExperience(amount);
+    }
 
     /**
      * @brief 获取交易等级（重写）
      */
-    [[nodiscard]] i32 getTradingLevel() const override { return m_villagerData.level(); }
+    [[nodiscard]] i32 getTradingLevel() const override
+    {
+        return m_villagerData.level();
+    }
 
     /**
      * @brief 交易经验奖励（重写）
@@ -249,22 +283,34 @@ public:
     /**
      * @brief 获取工作站点位置
      */
-    [[nodiscard]] BlockPos workStation() const { return m_workStation; }
+    [[nodiscard]] BlockPos workStation() const
+    {
+        return m_workStation;
+    }
 
     /**
      * @brief 设置工作站点
      */
-    void setWorkStation(BlockPos pos) { m_workStation = pos; }
+    void setWorkStation(BlockPos pos)
+    {
+        m_workStation = pos;
+    }
 
     /**
      * @brief 是否在工作站点
      */
-    [[nodiscard]] bool isAtWorkstation() const { return m_atWorkstation; }
+    [[nodiscard]] bool isAtWorkstation() const
+    {
+        return m_atWorkstation;
+    }
 
     /**
      * @brief 是否在工作
      */
-    [[nodiscard]] bool isWorking() const { return m_working; }
+    [[nodiscard]] bool isWorking() const
+    {
+        return m_working;
+    }
 
     // ========== 繁殖 ==========
 
@@ -361,13 +407,23 @@ public:
      * 对应 vanilla Villager.foodLevel：繁殖判定的另一半，与库存食物点数相加后
      * 与 WANTS_MORE_FOOD_THRESHOLD 比较。
      */
-    [[nodiscard]] i32 foodLevel() const noexcept { return m_foodLevel; }
-    void setFoodLevel(i32 level) noexcept { m_foodLevel = std::max(0, level); }
+    [[nodiscard]] i32 foodLevel() const noexcept
+    {
+        return m_foodLevel;
+    }
+
+    void setFoodLevel(i32 level) noexcept
+    {
+        m_foodLevel = std::max(0, level);
+    }
 
     /**
      * @brief 是否饥饿（对齐 vanilla Villager.hungry：foodLevel < 12）
      */
-    [[nodiscard]] bool isHungry() const noexcept { return m_foodLevel < WANTS_MORE_FOOD_THRESHOLD; }
+    [[nodiscard]] bool isHungry() const noexcept
+    {
+        return m_foodLevel < WANTS_MORE_FOOD_THRESHOLD;
+    }
 
     /**
      * @brief 是否满足繁殖的食物与年龄条件（对齐 vanilla Villager.canBreed 的食物部分）
@@ -397,7 +453,10 @@ public:
     /**
      * @brief 扣除食物点数（对齐 vanilla Villager.digestFood）
      */
-    void digestFood(i32 amount) noexcept { m_foodLevel = std::max(0, m_foodLevel - amount); }
+    void digestFood(i32 amount) noexcept
+    {
+        m_foodLevel = std::max(0, m_foodLevel - amount);
+    }
 
     [[nodiscard]] bool isBreedingItem(const ItemStack& itemStack) const;
 
@@ -413,8 +472,15 @@ public:
 
 public:
     /// 该村民的声誉流言（治愈后由僵尸村民交还，随 NBT 持久化）
-    [[nodiscard]] const world::village::VillageGossipManager& gossips() const { return m_gossips; }
-    [[nodiscard]] world::village::VillageGossipManager& gossips() { return m_gossips; }
+    [[nodiscard]] const world::village::VillageGossipManager& gossips() const
+    {
+        return m_gossips;
+    }
+
+    [[nodiscard]] world::village::VillageGossipManager& gossips()
+    {
+        return m_gossips;
+    }
 
     void addAdditionalSaveData(nbt::tags::compound_tag& tag) const override;
     Result<void> readAdditionalSaveData(const nbt::tags::compound_tag& tag) override;
@@ -424,7 +490,10 @@ public:
     /**
      * @brief 是否为傻子村民
      */
-    [[nodiscard]] bool isNitwit() const { return m_villagerData.profession() == VillagerProfession::Nitwit; }
+    [[nodiscard]] bool isNitwit() const
+    {
+        return m_villagerData.profession() == VillagerProfession::Nitwit;
+    }
 
     /**
      * @brief 是否可以工作
@@ -522,7 +591,10 @@ public:
      * @brief 获取睡眠位置
      * @return 睡眠位置（如果未在睡眠返回空）
      */
-    [[nodiscard]] std::optional<BlockPos> getSleepingPosition() const { return m_sleepingPos; }
+    [[nodiscard]] std::optional<BlockPos> getSleepingPosition() const
+    {
+        return m_sleepingPos;
+    }
 
     /**
      * @brief 开始睡眠
@@ -678,27 +750,42 @@ public:
     /**
      * @brief 获取消失时间
      */
-    [[nodiscard]] i32 despawnDelay() const { return m_despawnDelay; }
+    [[nodiscard]] i32 despawnDelay() const
+    {
+        return m_despawnDelay;
+    }
 
     /**
      * @brief 设置消失时间
      */
-    void setDespawnDelay(i32 delay) { m_despawnDelay = delay; }
+    void setDespawnDelay(i32 delay)
+    {
+        m_despawnDelay = delay;
+    }
 
     /**
      * @brief 是否可以消失
      */
-    [[nodiscard]] bool canDespawn() const { return m_despawnDelay <= 0; }
+    [[nodiscard]] bool canDespawn() const
+    {
+        return m_despawnDelay <= 0;
+    }
 
     /**
      * @brief 获取贸易羊驼数量
      */
-    [[nodiscard]] i32 llamaCount() const { return m_llamaCount; }
+    [[nodiscard]] i32 llamaCount() const
+    {
+        return m_llamaCount;
+    }
 
     /**
      * @brief 设置贸易羊驼数量
      */
-    void setLlamaCount(i32 count) { m_llamaCount = count; }
+    void setLlamaCount(i32 count)
+    {
+        m_llamaCount = count;
+    }
 
     // 羊驼字段与 spawnLlamas() 由 server/world/spawn/WanderingTraderSpawner 在自然
     // 生成流浪商人时驱动（llamaCount=2），商人消失时羊驼经同一消失倒计时联动移除。
@@ -706,12 +793,18 @@ public:
     /**
      * @brief 获取游荡目标位置
      */
-    [[nodiscard]] BlockPos wanderTarget() const { return m_wanderTarget; }
+    [[nodiscard]] BlockPos wanderTarget() const
+    {
+        return m_wanderTarget;
+    }
 
     /**
      * @brief 设置游荡目标位置
      */
-    void setWanderTarget(const BlockPos& pos) { m_wanderTarget = pos; }
+    void setWanderTarget(const BlockPos& pos)
+    {
+        m_wanderTarget = pos;
+    }
 
     /**
      * @brief 生成贸易羊驼

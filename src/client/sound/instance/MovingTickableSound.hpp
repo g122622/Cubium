@@ -69,7 +69,10 @@ public:
      *
      * 移动声音允许在静音状态下播放，以便正确处理声音切换。
      */
-    [[nodiscard]] bool canBeSilent() const override { return true; }
+    [[nodiscard]] bool canBeSilent() const override
+    {
+        return true;
+    }
 
 private:
     const EntitySoundHandler* m_handler;

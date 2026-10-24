@@ -78,15 +78,28 @@ public:
     // ========== 流体状态配置 ==========
 
     /** 设置目标位置的流体为水 */
-    void setTargetFluidWater(bool water) { m_targetFluidWater = water; }
+    void setTargetFluidWater(bool water)
+    {
+        m_targetFluidWater = water;
+    }
 
     /** 设置目标位置的方块为空气（nullptr = 空气） */
-    void setTargetBlockAir(bool air) { m_targetBlockAir = air; }
+    void setTargetBlockAir(bool air)
+    {
+        m_targetBlockAir = air;
+    }
 
     // ========== 粒子记录 ==========
 
-    std::vector<ParticleRecord>& particles() { return m_particles; }
-    void clearRecords() { m_particles.clear(); }
+    std::vector<ParticleRecord>& particles()
+    {
+        return m_particles;
+    }
+
+    void clearRecords()
+    {
+        m_particles.clear();
+    }
 
     // ========== IWorld 接口覆写 ==========
 
@@ -119,7 +132,10 @@ public:
     }
 
     /** 设置固体方块状态（isAir()==false 的 BlockState 指针） */
-    void setSolidBlockState(const BlockState* state) { m_solidBlockState = state; }
+    void setSolidBlockState(const BlockState* state)
+    {
+        m_solidBlockState = state;
+    }
 
     void addParticle(particle::ParticleTypeId type, const Vector3& pos, const Vector3& velocity) override
     {
@@ -132,20 +148,70 @@ public:
         m_particles.push_back({type, pos, velocity});
     }
 
-    [[nodiscard]] Entity* getEntity(EntityInstanceId) override { return nullptr; }
-    [[nodiscard]] const Entity* getEntity(EntityInstanceId) const override { return nullptr; }
-    EntityInstanceId spawnEntity(std::unique_ptr<Entity>) override { return EntityInstanceId(1); }
+    [[nodiscard]] Entity* getEntity(EntityInstanceId) override
+    {
+        return nullptr;
+    }
 
-    [[nodiscard]] u8 getSkyLight(i32, i32, i32) const override { return 15; }
-    [[nodiscard]] u8 getBlockLight(i32, i32, i32) const override { return 0; }
-    [[nodiscard]] u8 getSkyLight(const BlockPos&) const override { return 15; }
-    [[nodiscard]] u8 getBlockLight(const BlockPos&) const override { return 0; }
-    [[nodiscard]] bool canSeeSky(const BlockPos&) const override { return true; }
-    [[nodiscard]] f32 getBrightness(const BlockPos&) const override { return 1.0f; }
-    [[nodiscard]] u8 getLightSubtracted(const BlockPos&, u32) const override { return 15; }
-    [[nodiscard]] bool isRaining() const override { return false; }
-    [[nodiscard]] bool isThundering() const override { return false; }
-    [[nodiscard]] bool canRainAt(const BlockPos&) const override { return false; }
+    [[nodiscard]] const Entity* getEntity(EntityInstanceId) const override
+    {
+        return nullptr;
+    }
+
+    EntityInstanceId spawnEntity(std::unique_ptr<Entity>) override
+    {
+        return EntityInstanceId(1);
+    }
+
+    [[nodiscard]] u8 getSkyLight(i32, i32, i32) const override
+    {
+        return 15;
+    }
+
+    [[nodiscard]] u8 getBlockLight(i32, i32, i32) const override
+    {
+        return 0;
+    }
+
+    [[nodiscard]] u8 getSkyLight(const BlockPos&) const override
+    {
+        return 15;
+    }
+
+    [[nodiscard]] u8 getBlockLight(const BlockPos&) const override
+    {
+        return 0;
+    }
+
+    [[nodiscard]] bool canSeeSky(const BlockPos&) const override
+    {
+        return true;
+    }
+
+    [[nodiscard]] f32 getBrightness(const BlockPos&) const override
+    {
+        return 1.0f;
+    }
+
+    [[nodiscard]] u8 getLightSubtracted(const BlockPos&, u32) const override
+    {
+        return 15;
+    }
+
+    [[nodiscard]] bool isRaining() const override
+    {
+        return false;
+    }
+
+    [[nodiscard]] bool isThundering() const override
+    {
+        return false;
+    }
+
+    [[nodiscard]] bool canRainAt(const BlockPos&) const override
+    {
+        return false;
+    }
 
 private:
     bool m_targetFluidWater;
@@ -160,9 +226,15 @@ private:
 
 class SquidEntityTest : public ::testing::Test {
 protected:
-    void SetUp() override { squid = std::make_unique<SquidEntity>(EntityInstanceId(0), mc::test::testEcsRegistry()); }
+    void SetUp() override
+    {
+        squid = std::make_unique<SquidEntity>(EntityInstanceId(0), mc::test::testEcsRegistry());
+    }
 
-    void TearDown() override { squid.reset(); }
+    void TearDown() override
+    {
+        squid.reset();
+    }
 
     std::unique_ptr<SquidEntity> squid;
 };

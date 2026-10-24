@@ -795,10 +795,12 @@ void AbstractMinecartEntity::_updateRotation()
 
         // 处理180度转向
         f32 yawDiff = targetYaw - yaw();
-        while (yawDiff < -180.0f)
+        while (yawDiff < -180.0f) {
             yawDiff += 360.0f;
-        while (yawDiff > 180.0f)
+        }
+        while (yawDiff > 180.0f) {
             yawDiff -= 360.0f;
+        }
 
         // 检测是否需要翻转
         if (yawDiff > 90.0f || yawDiff < -90.0f) {

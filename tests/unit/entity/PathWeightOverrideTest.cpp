@@ -62,18 +62,35 @@ namespace {
  */
 class PathWeightOverrideTestWorld final : public mc::test::BaseTestWorld {
 public:
-    void setBrightness(f32 brightness) { m_brightness = brightness; }
-    void setBlockStateAt(i32 x, i32 y, i32 z, const BlockState* state) { m_blockStates[BlockPos(x, y, z)] = state; }
+    void setBrightness(f32 brightness)
+    {
+        m_brightness = brightness;
+    }
+
+    void setBlockStateAt(i32 x, i32 y, i32 z, const BlockState* state)
+    {
+        m_blockStates[BlockPos(x, y, z)] = state;
+    }
+
     void setGrassBlockAt(i32 x, i32 y, i32 z)
     {
         m_blockStates[BlockPos(x, y, z)] = &VanillaBlocks::GRASS_BLOCK->defaultState();
     }
+
     void setMyceliumAt(i32 x, i32 y, i32 z)
     {
         m_blockStates[BlockPos(x, y, z)] = &block_registry::NaturalBlocks::MYCELIUM->defaultState();
     }
-    void setWaterAt(i32 x, i32 y, i32 z) { m_blockStates[BlockPos(x, y, z)] = &VanillaBlocks::WATER->defaultState(); }
-    void setLavaAt(i32 x, i32 y, i32 z) { m_blockStates[BlockPos(x, y, z)] = &VanillaBlocks::LAVA->defaultState(); }
+
+    void setWaterAt(i32 x, i32 y, i32 z)
+    {
+        m_blockStates[BlockPos(x, y, z)] = &VanillaBlocks::WATER->defaultState();
+    }
+
+    void setLavaAt(i32 x, i32 y, i32 z)
+    {
+        m_blockStates[BlockPos(x, y, z)] = &VanillaBlocks::LAVA->defaultState();
+    }
 
     [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override
     {
@@ -108,15 +125,28 @@ public:
         return true;
     }
 
-    [[nodiscard]] mc::world::chunk::IChunkManager* chunkManager() override { return &m_stubChunks; }
-    [[nodiscard]] const mc::world::chunk::IChunkManager* chunkManager() const override { return &m_stubChunks; }
+    [[nodiscard]] mc::world::chunk::IChunkManager* chunkManager() override
+    {
+        return &m_stubChunks;
+    }
+
+    [[nodiscard]] const mc::world::chunk::IChunkManager* chunkManager() const override
+    {
+        return &m_stubChunks;
+    }
+
     mc::test::StubChunkManager m_stubChunks{nullptr, true};
-    EntityInstanceId spawnEntity(std::unique_ptr<Entity>) override { return 0; }
+
+    EntityInstanceId spawnEntity(std::unique_ptr<Entity>) override
+    {
+        return 0;
+    }
 
     [[nodiscard]] world::tick::TickManager& tickManager() override
     {
         throw std::runtime_error("PathWeightOverrideTestWorld::tickManager not implemented");
     }
+
     [[nodiscard]] const world::tick::TickManager& tickManager() const override
     {
         throw std::runtime_error("PathWeightOverrideTestWorld::tickManager not implemented");
@@ -152,16 +182,46 @@ public:
         setHealth(maxHealth());
     }
 
-    [[nodiscard]] std::optional<ResourceLocation> getAmbientSound() const override { return std::nullopt; }
-    [[nodiscard]] std::optional<ResourceLocation> getHurtSound(DamageSource&) const override { return std::nullopt; }
-    [[nodiscard]] std::optional<ResourceLocation> getDeathSound() const override { return std::nullopt; }
-    [[nodiscard]] bool isBreedingItem(const ItemStack&) const override { return false; }
-    std::unique_ptr<AnimalEntity> spawnBaby(AnimalEntity&) override { return nullptr; }
+    [[nodiscard]] std::optional<ResourceLocation> getAmbientSound() const override
+    {
+        return std::nullopt;
+    }
+
+    [[nodiscard]] std::optional<ResourceLocation> getHurtSound(DamageSource&) const override
+    {
+        return std::nullopt;
+    }
+
+    [[nodiscard]] std::optional<ResourceLocation> getDeathSound() const override
+    {
+        return std::nullopt;
+    }
+
+    [[nodiscard]] bool isBreedingItem(const ItemStack&) const override
+    {
+        return false;
+    }
+
+    std::unique_ptr<AnimalEntity> spawnBaby(AnimalEntity&) override
+    {
+        return nullptr;
+    }
 
 protected:
-    [[nodiscard]] f32 getBaseWidth() const override { return 0.9f; }
-    [[nodiscard]] f32 getBaseHeight() const override { return 0.9f; }
-    [[nodiscard]] f32 eyeHeight() const override { return 0.4f * height(); }
+    [[nodiscard]] f32 getBaseWidth() const override
+    {
+        return 0.9f;
+    }
+
+    [[nodiscard]] f32 getBaseHeight() const override
+    {
+        return 0.9f;
+    }
+
+    [[nodiscard]] f32 eyeHeight() const override
+    {
+        return 0.4f * height();
+    }
 };
 
 /**
@@ -176,12 +236,26 @@ public:
         setHealth(maxHealth());
     }
 
-    [[nodiscard]] std::optional<ResourceLocation> getAmbientSound() const override { return std::nullopt; }
-    [[nodiscard]] std::optional<ResourceLocation> getHurtSound(DamageSource&) const override { return std::nullopt; }
-    [[nodiscard]] std::optional<ResourceLocation> getDeathSound() const override { return std::nullopt; }
+    [[nodiscard]] std::optional<ResourceLocation> getAmbientSound() const override
+    {
+        return std::nullopt;
+    }
+
+    [[nodiscard]] std::optional<ResourceLocation> getHurtSound(DamageSource&) const override
+    {
+        return std::nullopt;
+    }
+
+    [[nodiscard]] std::optional<ResourceLocation> getDeathSound() const override
+    {
+        return std::nullopt;
+    }
 
 protected:
-    void registerGoals() override { MonsterEntity::registerGoals(); }
+    void registerGoals() override
+    {
+        MonsterEntity::registerGoals();
+    }
 };
 
 // ============================================================================
@@ -190,7 +264,11 @@ protected:
 
 class CreatureEntityCanSpawnAtTest : public ::testing::Test {
 protected:
-    void SetUp() override { VanillaBlocks::initialize(); }
+    void SetUp() override
+    {
+        VanillaBlocks::initialize();
+    }
+
     PathWeightOverrideTestWorld world;
 };
 
@@ -253,7 +331,11 @@ TEST_F(CreatureEntityCanSpawnAtTest, MonsterAtBoundaryBrightness)
 
 class WaterMobPathWeightTest : public ::testing::Test {
 protected:
-    void SetUp() override { VanillaBlocks::initialize(); }
+    void SetUp() override
+    {
+        VanillaBlocks::initialize();
+    }
+
     PathWeightOverrideTestWorld world;
 };
 
@@ -288,7 +370,11 @@ TEST_F(WaterMobPathWeightTest, ReturnsZeroWhenNoWorld)
 
 class GuardianPathWeightTest : public ::testing::Test {
 protected:
-    void SetUp() override { VanillaBlocks::initialize(); }
+    void SetUp() override
+    {
+        VanillaBlocks::initialize();
+    }
+
     PathWeightOverrideTestWorld world;
 };
 
@@ -328,7 +414,11 @@ TEST_F(GuardianPathWeightTest, ReturnsZeroWhenNoWorld)
 
 class StriderPathWeightTest : public ::testing::Test {
 protected:
-    void SetUp() override { VanillaBlocks::initialize(); }
+    void SetUp() override
+    {
+        VanillaBlocks::initialize();
+    }
+
     PathWeightOverrideTestWorld world;
 };
 
@@ -376,7 +466,11 @@ TEST_F(StriderPathWeightTest, ReturnsZeroWhenNoWorld)
 
 class MooshroomPathWeightTest : public ::testing::Test {
 protected:
-    void SetUp() override { VanillaBlocks::initialize(); }
+    void SetUp() override
+    {
+        VanillaBlocks::initialize();
+    }
+
     PathWeightOverrideTestWorld world;
 };
 
@@ -430,7 +524,11 @@ TEST_F(MooshroomPathWeightTest, ReturnsZeroWhenNoWorld)
 
 class EndermanPathWeightTest : public ::testing::Test {
 protected:
-    void SetUp() override { VanillaBlocks::initialize(); }
+    void SetUp() override
+    {
+        VanillaBlocks::initialize();
+    }
+
     PathWeightOverrideTestWorld world;
 };
 
@@ -475,7 +573,11 @@ TEST_F(EndermanPathWeightTest, CanSpawnAnywhere)
 
 class GiantPathWeightTest : public ::testing::Test {
 protected:
-    void SetUp() override { VanillaBlocks::initialize(); }
+    void SetUp() override
+    {
+        VanillaBlocks::initialize();
+    }
+
     PathWeightOverrideTestWorld world;
 };
 
@@ -546,7 +648,11 @@ TEST_F(GiantPathWeightTest, OppositeOfNormalMonster)
 
 class SilverfishPathWeightTest : public ::testing::Test {
 protected:
-    void SetUp() override { VanillaBlocks::initialize(); }
+    void SetUp() override
+    {
+        VanillaBlocks::initialize();
+    }
+
     PathWeightOverrideTestWorld world;
 };
 
@@ -615,7 +721,11 @@ TEST_F(SilverfishPathWeightTest, ReturnsZeroWhenNoWorld)
 
 class HoglinPathWeightTest : public ::testing::Test {
 protected:
-    void SetUp() override { VanillaBlocks::initialize(); }
+    void SetUp() override
+    {
+        VanillaBlocks::initialize();
+    }
+
     PathWeightOverrideTestWorld world;
 };
 
@@ -698,6 +808,7 @@ protected:
         VanillaBlocks::initialize();
         BlockTags::initialize();
     }
+
     PathWeightOverrideTestWorld world;
 };
 
@@ -812,7 +923,11 @@ TEST_F(PiglinPathWeightTest, NotRepelledBySoulCampfireBeyondDetectionRange)
 
 class TurtlePathWeightTest : public ::testing::Test {
 protected:
-    void SetUp() override { VanillaBlocks::initialize(); }
+    void SetUp() override
+    {
+        VanillaBlocks::initialize();
+    }
+
     PathWeightOverrideTestWorld world;
 };
 

@@ -59,9 +59,15 @@ class EnchantmentInventory : public IInventory {
 public:
     static constexpr i32 SIZE = 2; // 物品槽 + 青金石槽
 
-    i32 getContainerSize() const override { return SIZE; }
+    i32 getContainerSize() const override
+    {
+        return SIZE;
+    }
 
-    bool isEmpty() const override { return m_items[0].isEmpty() && m_items[1].isEmpty(); }
+    bool isEmpty() const override
+    {
+        return m_items[0].isEmpty() && m_items[1].isEmpty();
+    }
 
     ItemStack getItem(i32 slot) const override
     {
@@ -105,10 +111,20 @@ public:
         setChanged();
     }
 
-    void setChanged() override { m_changed = true; }
+    void setChanged() override
+    {
+        m_changed = true;
+    }
 
-    bool isChanged() const { return m_changed; }
-    void clearChanged() { m_changed = false; }
+    bool isChanged() const
+    {
+        return m_changed;
+    }
+
+    void clearChanged()
+    {
+        m_changed = false;
+    }
 
 private:
     std::array<ItemStack, SIZE> m_items;
@@ -176,13 +192,26 @@ EnchantmentContainer::EnchantmentContainer(
     }
     for (i32 i = 0; i < ENCHANTMENT_OPTIONS; ++i) {
         trackInt(
-            [this, i] { return m_enchantmentLevels[i]; }, [this, i](i32 value) { m_enchantmentLevels[i] = value; });
+            [this, i] {
+                return m_enchantmentLevels[i];
+            },
+            [this, i](i32 value) {
+                m_enchantmentLevels[i] = value;
+            });
     }
-    trackInt([this] { return static_cast<i32>(m_enchantmentSeed); }, [this](i32 value) { m_enchantmentSeed = value; });
+    trackInt(
+        [this] {
+            return static_cast<i32>(m_enchantmentSeed);
+        },
+        [this](i32 value) {
+            m_enchantmentSeed = value;
+        });
     for (i32 i = 0; i < ENCHANTMENT_OPTIONS; ++i) {
         trackInt(
             [this, i] {
-                if (m_enchantmentClues[i].empty()) return -1;
+                if (m_enchantmentClues[i].empty()) {
+                    return -1;
+                }
                 return static_cast<i32>(
                     network::backend::java::JavaEnchantmentIdMap::instance().toJavaRegistryId(m_enchantmentClues[i]));
             },
@@ -194,8 +223,13 @@ EnchantmentContainer::EnchantmentContainer(
             });
     }
     for (i32 i = 0; i < ENCHANTMENT_OPTIONS; ++i) {
-        trackInt([this, i] { return m_enchantmentWorldClues[i]; },
-            [this, i](i32 value) { m_enchantmentWorldClues[i] = value; });
+        trackInt(
+            [this, i] {
+                return m_enchantmentWorldClues[i];
+            },
+            [this, i](i32 value) {
+                m_enchantmentWorldClues[i] = value;
+            });
     }
 }
 
@@ -298,7 +332,9 @@ bool EnchantmentContainer::enchantItem(Player& player, i32 optionIndex)
     // 消耗的经验等级为选项索引+1，消耗青金石数量也为选项索引+1
     i32 cost = optionIndex + 1;
 
-    if (!player.isCreative() && (player.experienceLevel() < level || player.experienceLevel() < cost)) return false;
+    if (!player.isCreative() && (player.experienceLevel() < level || player.experienceLevel() < cost)) {
+        return false;
+    }
 
     // 获取物品
     ItemStack item = m_enchantmentInventory->getItem(SLOT_ITEM);
@@ -312,7 +348,9 @@ bool EnchantmentContainer::enchantItem(Player& player, i32 optionIndex)
     // 构建附魔列表
     auto enchantments = item::enchant::EnchantmentHelper::buildEnchantmentList(enchantRandom, item, level, false);
 
-    if (enchantments.empty()) return false;
+    if (enchantments.empty()) {
+        return false;
+    }
     if (!player.isCreative()) {
         ItemStack lapis = m_enchantmentInventory->getItem(SLOT_LAPIS);
         lapis.shrink(cost);
@@ -378,8 +416,12 @@ bool EnchantmentContainer::enchantItem(Player& player, i32 optionIndex)
 
 bool EnchantmentContainer::stillValid(const Player& player) const
 {
-    if (!isWithinDistance(player, m_position)) return false;
-    if (m_world == nullptr) return true;
+    if (!isWithinDistance(player, m_position)) {
+        return false;
+    }
+    if (m_world == nullptr) {
+        return true;
+    }
     const auto* state = m_world->getBlockState(m_position);
     return player.world() == m_world && state != nullptr && &state->getBlock() == VanillaBlocks::ENCHANTING_TABLE;
 }

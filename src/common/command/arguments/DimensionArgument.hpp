@@ -75,21 +75,30 @@ public:
         return dimId;
     }
 
-    [[nodiscard]] std::string getTypeName() const override { return "dimension"; }
+    [[nodiscard]] std::string getTypeName() const override
+    {
+        return "dimension";
+    }
 
     [[nodiscard]] std::vector<std::string> getExamples() const override
     {
         return {"overworld", "the_nether", "the_end"};
     }
 
-    [[nodiscard]] nlohmann::json serializeMetadata() const override { return nlohmann::json::object(); }
+    [[nodiscard]] nlohmann::json serializeMetadata() const override
+    {
+        return nlohmann::json::object();
+    }
 
     // ========== 静态工厂方法 ==========
 
     /**
      * @brief 创建维度参数类型实例
      */
-    static std::shared_ptr<DimensionArgumentType> dimension() { return std::make_shared<DimensionArgumentType>(); }
+    static std::shared_ptr<DimensionArgumentType> dimension()
+    {
+        return std::make_shared<DimensionArgumentType>();
+    }
 
     // ========== 静态获取方法 ==========
 

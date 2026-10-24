@@ -123,7 +123,10 @@ public:
     // ========== 体型 ==========
 
     /// 获取当前体型
-    [[nodiscard]] Variant getVariant() const { return variantById(m_dataManager.get<i32>(DATA_TYPE_PARAM)); }
+    [[nodiscard]] Variant getVariant() const
+    {
+        return variantById(m_dataManager.get<i32>(DATA_TYPE_PARAM));
+    }
 
     /// 设置体型（写入同步数据参数并刷新碰撞箱尺寸，对齐 vanilla Salmon.setVariant→refreshDimensions）
     void setVariant(Variant variant);
@@ -156,7 +159,10 @@ public:
     /**
      * @brief vanilla 鲑鱼最大群体大小为 5
      */
-    [[nodiscard]] i32 getMaxGroupSize() const override { return 5; }
+    [[nodiscard]] i32 getMaxGroupSize() const override
+    {
+        return 5;
+    }
 
     /**
      * @brief 获取眼睛高度（按体型缩放）
@@ -164,7 +170,10 @@ public:
      * 对齐 vanilla EntityDimensions.scale：尺寸整体缩放时眼高同比例缩放，
      * 否则 small/large 鲑鱼的视线查询仍按 medium 的眼高定位。
      */
-    [[nodiscard]] f32 eyeHeight() const override { return BASE_EYE_HEIGHT * variantScale(getVariant()); }
+    [[nodiscard]] f32 eyeHeight() const override
+    {
+        return BASE_EYE_HEIGHT * variantScale(getVariant());
+    }
 
     /// 中型鲑鱼的基础眼高（缩放基准，对齐 EntityType 登记值）
     static constexpr f32 BASE_EYE_HEIGHT = 0.1f;

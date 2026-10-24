@@ -131,7 +131,10 @@ public:
      * @note 级别降低意味着区块变得更重要（需要加载）
      * @note 级别升高意味着区块变得更不重要（可能卸载）
      */
-    void setLevelChangeCallback(ChunkCallback callback) { m_levelChangeCallback = std::move(callback); }
+    void setLevelChangeCallback(ChunkCallback callback)
+    {
+        m_levelChangeCallback = std::move(callback);
+    }
 
     /**
      * @brief 清空所有数据
@@ -159,10 +162,16 @@ protected:
     virtual void onLevelChanged(ChunkCoord x, ChunkCoord z, i32 oldLevel, i32 newLevel);
 
     /// 区块位置转换为键（供子类使用）
-    [[nodiscard]] static u64 posToKey(ChunkCoord x, ChunkCoord z) { return mc::math::chunkPosToId(x, z); }
+    [[nodiscard]] static u64 posToKey(ChunkCoord x, ChunkCoord z)
+    {
+        return mc::math::chunkPosToId(x, z);
+    }
 
     /// 键转换为区块位置（供子类使用）
-    static void keyToPos(u64 key, ChunkCoord& x, ChunkCoord& z) { mc::math::idToChunkPos(key, x, z); }
+    static void keyToPos(u64 key, ChunkCoord& x, ChunkCoord& z)
+    {
+        mc::math::idToChunkPos(key, x, z);
+    }
 
 private:
     void _enqueueUpdate(ChunkCoord x, ChunkCoord z);

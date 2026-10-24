@@ -78,9 +78,15 @@ public:
         return it != m_entities.end() ? it->second : nullptr;
     }
 
-    void registerEntity(EntityInstanceId id, Entity* entity) { m_entities[id] = entity; }
+    void registerEntity(EntityInstanceId id, Entity* entity)
+    {
+        m_entities[id] = entity;
+    }
 
-    void clearEntities() { m_entities.clear(); }
+    void clearEntities()
+    {
+        m_entities.clear();
+    }
 
 private:
     std::unordered_map<EntityInstanceId, Entity*> m_entities;
@@ -91,9 +97,15 @@ private:
  */
 class OnAStickItemTest : public ::testing::Test {
 protected:
-    static void SetUpTestSuite() { Items::initialize(); }
+    static void SetUpTestSuite()
+    {
+        Items::initialize();
+    }
 
-    void SetUp() override { m_world = std::make_unique<StickItemTestWorld>(); }
+    void SetUp() override
+    {
+        m_world = std::make_unique<StickItemTestWorld>();
+    }
 
     std::unique_ptr<StickItemTestWorld> m_world;
 };
@@ -130,8 +142,8 @@ TEST_F(OnAStickItemTest, CarrotOnAStickProperties)
     EXPECT_EQ(item->maxDamage(), CarrotOnAStickItem::MAX_DAMAGE) << "CarrotOnAStick should have 25 max damage";
     EXPECT_EQ(item->maxDamage(), 25);
 
-    // 验证附魔能力
-    EXPECT_EQ(item->getItemEnchantability(), 1) << "OnAStickItem should have enchantability of 1";
+    // 验证附魔能力（原版 1.21.11 没有 ENCHANTABLE 组件，即 0）
+    EXPECT_EQ(item->getItemEnchantability(), 0) << "OnAStickItem is not enchantable in vanilla 1.21.11";
 }
 
 TEST_F(OnAStickItemTest, WarpedFungusOnAStickProperties)
@@ -144,8 +156,8 @@ TEST_F(OnAStickItemTest, WarpedFungusOnAStickProperties)
         << "WarpedFungusOnAStick should have 100 max damage";
     EXPECT_EQ(item->maxDamage(), 100);
 
-    // 验证附魔能力
-    EXPECT_EQ(item->getItemEnchantability(), 1) << "OnAStickItem should have enchantability of 1";
+    // 验证附魔能力（原版 1.21.11 没有 ENCHANTABLE 组件，即 0）
+    EXPECT_EQ(item->getItemEnchantability(), 0) << "OnAStickItem is not enchantable in vanilla 1.21.11";
 }
 
 TEST_F(OnAStickItemTest, CarrotOnAStickEntityId)
@@ -354,9 +366,9 @@ TEST_F(OnAStickItemTest, DynamicCastFromNullptr)
 
 TEST_F(OnAStickItemTest, Enchantability)
 {
-    // MC 1.16.5: OnAStickItem.getItemEnchantability() 返回 1
-    EXPECT_EQ(Items::CARROT_ON_A_STICK->getItemEnchantability(), 1);
-    EXPECT_EQ(Items::WARPED_FUNGUS_ON_A_STICK->getItemEnchantability(), 1);
+    // 原版 1.21.11 的钓竿类物品没有 ENCHANTABLE 组件，即不可附魔（0）。
+    EXPECT_EQ(Items::CARROT_ON_A_STICK->getItemEnchantability(), 0);
+    EXPECT_EQ(Items::WARPED_FUNGUS_ON_A_STICK->getItemEnchantability(), 0);
 }
 
 // ============================================================================

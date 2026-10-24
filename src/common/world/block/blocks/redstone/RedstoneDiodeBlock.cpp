@@ -125,6 +125,7 @@ void RedstoneDiodeBlock::neighborChanged(
     }
     updateState(world, pos, *state);
 }
+
 BlockState RedstoneDiodeBlock::updatePostPlacement(const BlockState& state,
     Direction facing,
     const BlockState& facingState,
@@ -143,10 +144,14 @@ BlockState RedstoneDiodeBlock::updatePostPlacement(const BlockState& state,
 void RedstoneDiodeBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random)
 {
     MC_UNUSED(random);
-    if (isLocked(world, pos, state)) return;
+    if (isLocked(world, pos, state)) {
+        return;
+    }
     bool powered = isPowered(state);
     bool input = shouldBePowered(world, pos, state);
-    if (powered && input) return;
+    if (powered && input) {
+        return;
+    }
     // 熄灭状态收到已安排的上升沿时必须亮起，即使短脉冲已经结束。
     BlockState newState = state.with(BlockStateProperties::POWERED(), !powered);
     world.setBlockState(pos, &newState, world::BlockUpdateFlags::UPDATE_CLIENTS);
@@ -155,6 +160,7 @@ void RedstoneDiodeBlock::tick(IWorld& world, const BlockPos& pos, BlockState& st
         world.tickManager().scheduleBlockTick(pos, *this, getDelay(state), world::tick::TickPriority::VeryHigh);
     }
 }
+
 i32 RedstoneDiodeBlock::getWeakPower(
     const BlockState& state, IWorld& world, const BlockPos& pos, Direction side) const noexcept
 {
@@ -205,13 +211,19 @@ i32 RedstoneDiodeBlock::getPowerOnSides(IWorld& world, const BlockPos& pos, cons
     Direction facing = getFacing(state);
     i32 power = 0;
     for (Direction side : Directions::horizontal()) {
-        if (Directions::getAxis(side) == Directions::getAxis(facing)) continue;
+        if (Directions::getAxis(side) == Directions::getAxis(facing)) {
+            continue;
+        }
         BlockPos sidePos = pos.offset(side);
         const BlockState* sideState = world.getBlockState(sidePos);
-        if (sideState == nullptr) continue;
+        if (sideState == nullptr) {
+            continue;
+        }
         const Block& block = sideState->getBlock();
         if (sideInputDiodesOnly()) {
-            if (isDiode(*sideState)) power = std::max(power, block.getStrongPower(*sideState, world, sidePos, side));
+            if (isDiode(*sideState)) {
+                power = std::max(power, block.getStrongPower(*sideState, world, sidePos, side));
+            }
         } else if (sideState->is(VanillaBlocks::REDSTONE_BLOCK)) {
             power = 15;
         } else if (sideState->is(VanillaBlocks::REDSTONE_WIRE)) {
@@ -222,6 +234,7 @@ i32 RedstoneDiodeBlock::getPowerOnSides(IWorld& world, const BlockPos& pos, cons
     }
     return power;
 }
+
 bool RedstoneDiodeBlock::isDiode(const BlockState& state) const
 {
     const Block& block = state.getBlock();
@@ -297,7 +310,9 @@ void RedstoneDiodeBlock::notifyNeighbors(IWorld& world, const BlockPos& pos, con
     }
     // 强充能输出方块后，它周围的消费者也要重新读取信号。
     for (Direction dir : Directions::all()) {
-        if (dir == facing) continue;
+        if (dir == facing) {
+            continue;
+        }
         BlockPos neighborPos = outputPos.offset(dir);
         const BlockState* neighborState = world.getBlockState(neighborPos);
         if (neighborState != nullptr) {

@@ -14,9 +14,11 @@
 namespace mc {
 class ItemStack;
 } // namespace mc
+
 namespace mc::server {
 class ServerWorld;
 }
+
 namespace mc::test {
 class GameTestHelper;
 class IGameTestHelper;
@@ -83,9 +85,15 @@ public:
      * 非拥有指针，helper 生命周期不短于 SimulatedPlayer（实例由 batch runner 拥有的 instance 内 helper 持有）。
      * 持接口 IGameTestHelper*，测试可注入 NullGameTestHelper。
      */
-    void setHelper(IGameTestHelper& helper) noexcept { m_helper = &helper; }
+    void setHelper(IGameTestHelper& helper) noexcept
+    {
+        m_helper = &helper;
+    }
 
-    [[nodiscard]] IGameTestHelper* helper() const noexcept { return m_helper; }
+    [[nodiscard]] IGameTestHelper* helper() const noexcept
+    {
+        return m_helper;
+    }
 
     // === GameTest 便捷方法（最小可用集）===
 
@@ -221,7 +229,10 @@ public:
      * 从而在移动中仍被横扫攻击的"几乎静止"判定当成静止。速度本身就是每 tick 位移，
      * 与被覆写版本的量纲一致。
      */
-    [[nodiscard]] Vector3 getKnownMovement() const override { return velocity(); }
+    [[nodiscard]] Vector3 getKnownMovement() const override
+    {
+        return velocity();
+    }
 
     // === TODO stub（依赖未就绪体系）===
 

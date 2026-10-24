@@ -65,47 +65,65 @@ SaplingBlock::TreeGenerator createTreeGenerator(std::function<TreeFeatureConfig(
 
 SaplingBlock::TreeGenerator ServerTreeGenerators::oakTree()
 {
-    return createTreeGenerator([]() { return TreeFeatures::oakConfig(); });
+    return createTreeGenerator([]() {
+        return TreeFeatures::oakConfig();
+    });
 }
 
 SaplingBlock::TreeGenerator ServerTreeGenerators::birchTree()
 {
-    return createTreeGenerator([]() { return TreeFeatures::birchConfig(); });
+    return createTreeGenerator([]() {
+        return TreeFeatures::birchConfig();
+    });
 }
 
 SaplingBlock::TreeGenerator ServerTreeGenerators::spruceTree()
 {
-    return createTreeGenerator([]() { return TreeFeatures::spruceConfig(); });
+    return createTreeGenerator([]() {
+        return TreeFeatures::spruceConfig();
+    });
 }
 
 SaplingBlock::TreeGenerator ServerTreeGenerators::jungleTree()
 {
-    return createTreeGenerator([]() { return TreeFeatures::jungleConfig(); });
+    return createTreeGenerator([]() {
+        return TreeFeatures::jungleConfig();
+    });
 }
 
 SaplingBlock::TreeGenerator ServerTreeGenerators::acaciaTree()
 {
-    return createTreeGenerator([]() { return TreeFeatures::acaciaConfig(); });
+    return createTreeGenerator([]() {
+        return TreeFeatures::acaciaConfig();
+    });
 }
 
 SaplingBlock::TreeGenerator ServerTreeGenerators::darkOakTree()
 {
-    return createTreeGenerator([]() { return TreeFeatures::darkOakConfig(); });
+    return createTreeGenerator([]() {
+        return TreeFeatures::darkOakConfig();
+    });
 }
 
 SaplingBlock::TreeGenerator ServerTreeGenerators::cherryTree()
 {
-    return createTreeGenerator([]() { return TreeFeatures::cherryConfig(); });
+    return createTreeGenerator([]() {
+        return TreeFeatures::cherryConfig();
+    });
 }
 
 SaplingBlock::TreeGenerator ServerTreeGenerators::paleOakTree()
 {
-    return createTreeGenerator([]() { return TreeFeatures::paleOakConfig(); });
+    return createTreeGenerator([]() {
+        return TreeFeatures::paleOakConfig();
+    });
 }
 
 SaplingBlock::TreeGenerator ServerTreeGenerators::azaleaTree()
 {
-    return createTreeGenerator([]() { return TreeFeatures::azaleaConfig(); });
+    return createTreeGenerator([]() {
+        return TreeFeatures::azaleaConfig();
+    });
 }
 
 void ServerTreeGenerators::injectAll()

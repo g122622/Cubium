@@ -140,12 +140,18 @@ public:
     /**
      * @brief 获取已注册函数数量
      */
-    [[nodiscard]] Size functionCount() const noexcept { return m_functions.size(); }
+    [[nodiscard]] Size functionCount() const noexcept
+    {
+        return m_functions.size();
+    }
 
     /**
      * @brief 获取已注册标签数量
      */
-    [[nodiscard]] Size tagCount() const noexcept { return m_tags.size(); }
+    [[nodiscard]] Size tagCount() const noexcept
+    {
+        return m_tags.size();
+    }
 
     // ========== 函数执行 ==========
 

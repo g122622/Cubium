@@ -73,10 +73,16 @@ public:
         return true;
     }
 
-    void setBlockAt(const BlockPos& pos, const BlockState* state) { setBlockState(pos.x, pos.y, pos.z, state); }
+    void setBlockAt(const BlockPos& pos, const BlockState* state)
+    {
+        setBlockState(pos.x, pos.y, pos.z, state);
+    }
 
     /// 登记非拥有（栈上）方块实体，生命周期由测试自身管理
-    void setBlockEntityAt(const BlockPos& pos, BlockEntity* entity) { m_blockEntities[pos] = entity; }
+    void setBlockEntityAt(const BlockPos& pos, BlockEntity* entity)
+    {
+        m_blockEntities[pos] = entity;
+    }
 
     [[nodiscard]] BlockEntity* getBlockEntity(const BlockPos& pos) override
     {
@@ -90,7 +96,10 @@ public:
         return it == m_blockEntities.end() ? nullptr : it->second;
     }
 
-    void removeBlockEntity(const BlockPos& pos) override { m_blockEntities.erase(pos); }
+    void removeBlockEntity(const BlockPos& pos) override
+    {
+        m_blockEntities.erase(pos);
+    }
 
 private:
     std::unordered_map<BlockPos, const BlockState*> m_blocks;
@@ -106,7 +115,10 @@ Direction glazedFacing(const BlockState& state)
 
 class GlazedTerracottaBlockTest : public ::testing::Test {
 protected:
-    void SetUp() override { VanillaBlocks::initialize(); }
+    void SetUp() override
+    {
+        VanillaBlocks::initialize();
+    }
 
     [[nodiscard]] const BlockState& _stateFacing(Direction facing) const
     {

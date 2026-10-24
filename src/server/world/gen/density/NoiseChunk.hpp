@@ -177,11 +177,22 @@ public:
     NoiseInterpolator(std::unique_ptr<DensityFunction> filler, i32 cellCountZ, i32 cellCountY);
 
     [[nodiscard]] f64 compute(i32 blockX, i32 blockY, i32 blockZ) const override;
-    [[nodiscard]] f64 minValue() const override { return m_filler->minValue(); }
-    [[nodiscard]] f64 maxValue() const override { return m_filler->maxValue(); }
+
+    [[nodiscard]] f64 minValue() const override
+    {
+        return m_filler->minValue();
+    }
+
+    [[nodiscard]] f64 maxValue() const override
+    {
+        return m_filler->maxValue();
+    }
 
     /** 被包装的原始密度函数 */
-    [[nodiscard]] const DensityFunction& filler() const { return *m_filler; }
+    [[nodiscard]] const DensityFunction& filler() const
+    {
+        return *m_filler;
+    }
 
     [[nodiscard]] std::unique_ptr<DensityFunction> mapAll(Visitor& visitor) const override
     {
@@ -245,7 +256,10 @@ public:
      * 在 fillSlice 之前调用，确保 fillSlice 期间 NoiseInterpolator::compute()
      * 委托给原始函数计算角点值，而非返回上一个 cell 的过期 m_value。
      */
-    void resetValueReady() { m_valueReady = false; }
+    void resetValueReady()
+    {
+        m_valueReady = false;
+    }
 
 private:
     std::unique_ptr<DensityFunction> m_filler;
@@ -307,17 +321,31 @@ public:
     CellCache(std::unique_ptr<DensityFunction> filler, i32 cellWidth, i32 cellHeight);
 
     [[nodiscard]] f64 compute(i32 blockX, i32 blockY, i32 blockZ) const override;
-    [[nodiscard]] f64 minValue() const override { return m_filler->minValue(); }
-    [[nodiscard]] f64 maxValue() const override { return m_filler->maxValue(); }
+
+    [[nodiscard]] f64 minValue() const override
+    {
+        return m_filler->minValue();
+    }
+
+    [[nodiscard]] f64 maxValue() const override
+    {
+        return m_filler->maxValue();
+    }
 
     /** 被包装的原始密度函数 */
-    [[nodiscard]] const DensityFunction& filler() const { return *m_filler; }
+    [[nodiscard]] const DensityFunction& filler() const
+    {
+        return *m_filler;
+    }
 
     /**
      * @brief 绑定到所属的 NoiseChunk
      * 在 NoiseChunk::apply() 注册 CellCache 时调用。
      */
-    void bindNoiseChunk(class NoiseChunk* noiseChunk) { m_noiseChunk = noiseChunk; }
+    void bindNoiseChunk(class NoiseChunk* noiseChunk)
+    {
+        m_noiseChunk = noiseChunk;
+    }
 
     /**
      * @brief 重置缓存状态
@@ -325,7 +353,10 @@ public:
      * 查表返回上一个 cell 的过期缓存值。
      * MC Java 通过 fillArray 机制绕过缓存，C++ 简化为重置标志。
      */
-    void invalidate() { m_filled = false; }
+    void invalidate()
+    {
+        m_filled = false;
+    }
 
     /**
      * @brief 预填充当前 cell 的所有值
@@ -369,10 +400,21 @@ public:
     explicit CacheOnce(std::unique_ptr<DensityFunction> input);
 
     [[nodiscard]] f64 compute(i32 blockX, i32 blockY, i32 blockZ) const override;
-    [[nodiscard]] f64 minValue() const override { return m_input->minValue(); }
-    [[nodiscard]] f64 maxValue() const override { return m_input->maxValue(); }
 
-    [[nodiscard]] const DensityFunction& input() const { return *m_input; }
+    [[nodiscard]] f64 minValue() const override
+    {
+        return m_input->minValue();
+    }
+
+    [[nodiscard]] f64 maxValue() const override
+    {
+        return m_input->maxValue();
+    }
+
+    [[nodiscard]] const DensityFunction& input() const
+    {
+        return *m_input;
+    }
 
     /**
      * @brief 绑定到 NoiseChunk 的插值计数器和数组计数器
@@ -392,7 +434,10 @@ public:
      * 非 NoiseChunk 采样上下文（如 FlatCache 预计算、generateBiomes/buildSurface/applyCarvers
      * 等非插值路径）时委托给 m_input，绕过缓存。
      */
-    void bindNoiseChunk(class NoiseChunk* noiseChunk) { m_noiseChunk = noiseChunk; }
+    void bindNoiseChunk(class NoiseChunk* noiseChunk)
+    {
+        m_noiseChunk = noiseChunk;
+    }
 
     [[nodiscard]] std::unique_ptr<DensityFunction> mapAll(Visitor& visitor) const override
     {
@@ -441,6 +486,7 @@ public:
     // （cellStartBlockX/Y/Z, inCellX/Y/Z, arrayInterpolationCounter, interpolationCounter, arrayIndex）
     friend class NoiseInterpolator;
     friend class CellCache;
+
     /**
      * @brief cell 配置参数
      */
@@ -494,19 +540,28 @@ public:
      * @brief 当前方块 X 坐标
      * MC 1.21: blockX = cellStartBlockX + inCellX
      */
-    [[nodiscard]] i32 blockX() const { return m_cellStartBlockX + m_inCellX; }
+    [[nodiscard]] i32 blockX() const
+    {
+        return m_cellStartBlockX + m_inCellX;
+    }
 
     /**
      * @brief 当前方块 Y 坐标
      * MC 1.21: blockY = cellStartBlockY + inCellY
      */
-    [[nodiscard]] i32 blockY() const { return m_cellStartBlockY + m_inCellY; }
+    [[nodiscard]] i32 blockY() const
+    {
+        return m_cellStartBlockY + m_inCellY;
+    }
 
     /**
      * @brief 当前方块 Z 坐标
      * MC 1.21: blockZ = cellStartBlockZ + inCellZ
      */
-    [[nodiscard]] i32 blockZ() const { return m_cellStartBlockZ + m_inCellZ; }
+    [[nodiscard]] i32 blockZ() const
+    {
+        return m_cellStartBlockZ + m_inCellZ;
+    }
 
     // ========== 区块生成主循环接口 ==========
 
@@ -621,43 +676,93 @@ public:
 
     // ========== 访问器 ==========
 
-    [[nodiscard]] const NoiseRouter& router() const { return m_router; }
-    [[nodiscard]] const CellConfig& cellConfig() const { return m_cellConfig; }
-    [[nodiscard]] i32 startBlockX() const { return m_startBlockX; }
-    [[nodiscard]] i32 startBlockZ() const { return m_startBlockZ; }
-    [[nodiscard]] i32 firstCellX() const { return m_firstCellX; }
-    [[nodiscard]] i32 firstCellY() const { return m_firstCellY; }
-    [[nodiscard]] i32 firstCellZ() const { return m_firstCellZ; }
+    [[nodiscard]] const NoiseRouter& router() const
+    {
+        return m_router;
+    }
+
+    [[nodiscard]] const CellConfig& cellConfig() const
+    {
+        return m_cellConfig;
+    }
+
+    [[nodiscard]] i32 startBlockX() const
+    {
+        return m_startBlockX;
+    }
+
+    [[nodiscard]] i32 startBlockZ() const
+    {
+        return m_startBlockZ;
+    }
+
+    [[nodiscard]] i32 firstCellX() const
+    {
+        return m_firstCellX;
+    }
+
+    [[nodiscard]] i32 firstCellY() const
+    {
+        return m_firstCellY;
+    }
+
+    [[nodiscard]] i32 firstCellZ() const
+    {
+        return m_firstCellZ;
+    }
 
     // ========== FlatCache 区块级预计算几何（对齐原版 NoiseChunk.java:155-160）==========
     /// MC 1.21: firstNoiseX = QuartPos.fromBlock(firstNoiseBlockX) = floorDiv(startBlockX, 4)
     /// 区块首个 quart X，作为 FlatCache 数组索引基准
-    [[nodiscard]] i32 firstNoiseX() const { return math::floorDiv(m_startBlockX, 4); }
+    [[nodiscard]] i32 firstNoiseX() const
+    {
+        return math::floorDiv(m_startBlockX, 4);
+    }
+
     /// 区块首个 quart Z
-    [[nodiscard]] i32 firstNoiseZ() const { return math::floorDiv(m_startBlockZ, 4); }
+    [[nodiscard]] i32 firstNoiseZ() const
+    {
+        return math::floorDiv(m_startBlockZ, 4);
+    }
+
     /// MC 1.21: noiseSizeXZ = cellCountXZ * cellWidth / 4，quart XZ 网格边长
     /// 区块生成 cellCountXZ=4,cellWidth=4 → 4；单列查询 cellCountXZ=1 → 1
-    [[nodiscard]] i32 noiseSizeXZ() const { return m_cellConfig.cellCountXZ * m_cellConfig.cellWidth / 4; }
+    [[nodiscard]] i32 noiseSizeXZ() const
+    {
+        return m_cellConfig.cellCountXZ * m_cellConfig.cellWidth / 4;
+    }
 
     /**
      * @brief 获取插值计数器（用于 CacheOnce）
      */
-    [[nodiscard]] u64 interpolationCounter() const { return m_interpolationCounter; }
+    [[nodiscard]] u64 interpolationCounter() const
+    {
+        return m_interpolationCounter;
+    }
 
     /**
      * @brief 递增插值计数器
      */
-    void incrementInterpolationCounter() { ++m_interpolationCounter; }
+    void incrementInterpolationCounter()
+    {
+        ++m_interpolationCounter;
+    }
 
     /**
      * @brief 是否正在填充 cell（CacheAllInCell 使用）
      */
-    [[nodiscard]] bool fillingCell() const { return m_fillingCell; }
+    [[nodiscard]] bool fillingCell() const
+    {
+        return m_fillingCell;
+    }
 
     /**
      * @brief 是否正在插值循环中
      */
-    [[nodiscard]] bool interpolating() const { return m_interpolating; }
+    [[nodiscard]] bool interpolating() const
+    {
+        return m_interpolating;
+    }
 
     /**
      * @brief 停止插值循环
@@ -666,23 +771,48 @@ public:
      * 在噪声填充完成后调用，将 interpolating 标志设为 false。
      * 后续对插值器或 cell 缓存的意外采样将不会执行。
      */
-    void stopInterpolation() { m_interpolating = false; }
+    void stopInterpolation()
+    {
+        m_interpolating = false;
+    }
 
     /**
      * @brief 获取 cell 起始方块坐标
      * MC 1.21: cellStartBlockX/Y/Z 是当前 cell 左下角的方块坐标。
      * blockX() = cellStartBlockX + inCellX
      */
-    [[nodiscard]] i32 cellStartBlockX() const { return m_cellStartBlockX; }
-    [[nodiscard]] i32 cellStartBlockY() const { return m_cellStartBlockY; }
-    [[nodiscard]] i32 cellStartBlockZ() const { return m_cellStartBlockZ; }
+    [[nodiscard]] i32 cellStartBlockX() const
+    {
+        return m_cellStartBlockX;
+    }
+
+    [[nodiscard]] i32 cellStartBlockY() const
+    {
+        return m_cellStartBlockY;
+    }
+
+    [[nodiscard]] i32 cellStartBlockZ() const
+    {
+        return m_cellStartBlockZ;
+    }
 
     /**
      * @brief 获取 cell 内的方块偏移
      */
-    [[nodiscard]] i32 inCellX() const { return m_inCellX; }
-    [[nodiscard]] i32 inCellY() const { return m_inCellY; }
-    [[nodiscard]] i32 inCellZ() const { return m_inCellZ; }
+    [[nodiscard]] i32 inCellX() const
+    {
+        return m_inCellX;
+    }
+
+    [[nodiscard]] i32 inCellY() const
+    {
+        return m_inCellY;
+    }
+
+    [[nodiscard]] i32 inCellZ() const
+    {
+        return m_inCellZ;
+    }
 
     /**
      * @brief 根据扁平索引计算 inCellX/Y/Z（MC 1.21 forIndex 模式）
@@ -702,7 +832,10 @@ public:
     /**
      * @brief 获取所有 CellCache
      */
-    [[nodiscard]] const std::vector<std::unique_ptr<CellCache>>& cellCaches() const { return m_cellCaches; }
+    [[nodiscard]] const std::vector<std::unique_ptr<CellCache>>& cellCaches() const
+    {
+        return m_cellCaches;
+    }
 
     // ========== 区块级newInstance 注册接口（阶段5：CompiledDensityFunction::newInstance 用）==========
     //
@@ -740,8 +873,15 @@ public:
      * @brief 获取含水层采样器
      * 可能为 nullptr（含水层禁用时）。
      */
-    [[nodiscard]] aquifer::Aquifer* aquifer() { return m_aquifer.get(); }
-    [[nodiscard]] const aquifer::Aquifer* aquifer() const { return m_aquifer.get(); }
+    [[nodiscard]] aquifer::Aquifer* aquifer()
+    {
+        return m_aquifer.get();
+    }
+
+    [[nodiscard]] const aquifer::Aquifer* aquifer() const
+    {
+        return m_aquifer.get();
+    }
 
     /**
      * @brief 设置含水层采样器
@@ -774,7 +914,10 @@ public:
      * 而非通过 updateForZ() 的返回值。updateForZ() 仅更新插值器状态，
      * 最终密度由 densityFunction.compute(context) 计算得到。
      */
-    [[nodiscard]] const DensityFunction& finalDensity() const { return m_router.finalDensity(); }
+    [[nodiscard]] const DensityFunction& finalDensity() const
+    {
+        return m_router.finalDensity();
+    }
 
     /**
      * @brief 设置方块状态规则链
@@ -782,7 +925,10 @@ public:
      * 在 NoiseChunk 构造后、插值循环前调用。
      * 构建 MaterialRuleList（AquiferFiller + OreVeinifier 等）。
      */
-    void setBlockStateRule(std::unique_ptr<BlockStateFiller> rule) { m_blockStateRule = std::move(rule); }
+    void setBlockStateRule(std::unique_ptr<BlockStateFiller> rule)
+    {
+        m_blockStateRule = std::move(rule);
+    }
 
 private:
     /// 方案X 阶段5-7：从 RandomState 维度级编译产物 newInstance + Adapter 组装区块级 NoiseRouter。

@@ -130,10 +130,25 @@ public:
 
     // === 基础坐标访问 ===
 
-    [[nodiscard]] ChunkCoord x() const { return m_x; }
-    [[nodiscard]] ChunkCoord z() const { return m_z; }
-    [[nodiscard]] ChunkPos pos() const { return ChunkPos(m_x, m_z); }
-    [[nodiscard]] u64 id() const { return ChunkId(m_x, m_z, 0).toId(); }
+    [[nodiscard]] ChunkCoord x() const
+    {
+        return m_x;
+    }
+
+    [[nodiscard]] ChunkCoord z() const
+    {
+        return m_z;
+    }
+
+    [[nodiscard]] ChunkPos pos() const
+    {
+        return ChunkPos(m_x, m_z);
+    }
+
+    [[nodiscard]] u64 id() const
+    {
+        return ChunkId(m_x, m_z, 0).toId();
+    }
 
     // === 生成状态（对齐 NewChunkHolder currentGenStatus / currentChunk） ===
 
@@ -175,7 +190,10 @@ public:
     /**
      * @brief 兼容旧接口：返回当前生成状态
      */
-    [[nodiscard]] const ChunkStatus& status() const { return getCurrentGenStatus(); }
+    [[nodiscard]] const ChunkStatus& status() const
+    {
+        return getCurrentGenStatus();
+    }
 
     /**
      * @brief 检查当前是否至少完成到指定状态
@@ -358,7 +376,10 @@ public:
     /**
      * @brief 兼容旧接口
      */
-    [[nodiscard]] const ChunkStatus& requestedStatus() const { return requestedGenStatus(); }
+    [[nodiscard]] const ChunkStatus& requestedStatus() const
+    {
+        return requestedGenStatus();
+    }
 
     /** @brief 是否仍有票据、显式请求或共享邻居要求生成。 */
     [[nodiscard]] bool hasGenerationDemand() const;
@@ -366,7 +387,10 @@ public:
     /**
      * @brief 判断当前是否有进行中的生成任务
      */
-    [[nodiscard]] bool hasGenerationTask() const { return m_generationTask != nullptr; }
+    [[nodiscard]] bool hasGenerationTask() const
+    {
+        return m_generationTask != nullptr;
+    }
 
     /**
      * @brief 设置当前生成任务（断言无进行中任务）
@@ -379,7 +403,10 @@ public:
     /**
      * @brief 获取当前生成任务
      */
-    [[nodiscard]] mc::server::ChunkProgressionTask* generationTask() const { return m_generationTask; }
+    [[nodiscard]] mc::server::ChunkProgressionTask* generationTask() const
+    {
+        return m_generationTask;
+    }
 
     /**
      * @brief 清除当前生成任务（onChunkGenComplete 或取消时调用）
@@ -389,12 +416,22 @@ public:
     /**
      * @brief 获取当前已调度的状态（一次只推进一步）
      */
-    [[nodiscard]] const ChunkStatus* scheduledStatus() const { return m_scheduledStatus; }
+    [[nodiscard]] const ChunkStatus* scheduledStatus() const
+    {
+        return m_scheduledStatus;
+    }
 
     // === 失败标记（对齐 Moonrise：失败即不可恢复） ===
 
-    [[nodiscard]] bool hasFailedGeneration() const { return m_hasFailedGeneration; }
-    void markFailed() { m_hasFailedGeneration = true; }
+    [[nodiscard]] bool hasFailedGeneration() const
+    {
+        return m_hasFailedGeneration;
+    }
+
+    void markFailed()
+    {
+        m_hasFailedGeneration = true;
+    }
 
     // === 邻居引用计数（防卸载） ===
 
@@ -446,10 +483,18 @@ public:
 
     // === 票据与玩家追踪 ===
 
-    [[nodiscard]] i32 level() const { return m_level.load(std::memory_order::acquire); }
+    [[nodiscard]] i32 level() const
+    {
+        return m_level.load(std::memory_order::acquire);
+    }
+
     /** @brief 更新票据级别并重新汇总生成目标；调用者持有调度区域锁。 */
     void setLevel(i32 level);
-    [[nodiscard]] bool shouldLoad() const { return level() <= static_cast<i32>(ChunkLoadLevel::Border); }
+
+    [[nodiscard]] bool shouldLoad() const
+    {
+        return level() <= static_cast<i32>(ChunkLoadLevel::Border);
+    }
 
     /**
      * @brief 卸载状态变化观察者
@@ -468,7 +513,10 @@ public:
     /**
      * @brief 设置卸载状态观察者（仅 ServerChunkManager 在创建持有者时注入一次）
      */
-    void setUnloadStateObserver(UnloadStateObserver observer) { m_unloadStateObserver = std::move(observer); }
+    void setUnloadStateObserver(UnloadStateObserver observer)
+    {
+        m_unloadStateObserver = std::move(observer);
+    }
 
     [[nodiscard]] SourceState sourceState() const;
     void addTicket(const ChunkLoadTicket& ticket);

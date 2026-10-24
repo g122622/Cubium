@@ -49,13 +49,22 @@ public:
     [[nodiscard]] static ResourceLocation parse(std::string_view fullPath);
 
     // 获取命名空间
-    [[nodiscard]] const std::string& namespace_() const noexcept { return m_namespace; }
+    [[nodiscard]] const std::string& namespace_() const noexcept
+    {
+        return m_namespace;
+    }
 
     // 获取路径
-    [[nodiscard]] const std::string& path() const noexcept { return m_path; }
+    [[nodiscard]] const std::string& path() const noexcept
+    {
+        return m_path;
+    }
 
     // 检查是否有效
-    [[nodiscard]] bool isValid() const noexcept { return !m_namespace.empty() || !m_path.empty(); }
+    [[nodiscard]] bool isValid() const noexcept
+    {
+        return !m_namespace.empty() || !m_path.empty();
+    }
 
     // 转换为完整字符串 "namespace:path"
     [[nodiscard]] std::string toString() const;
@@ -87,7 +96,10 @@ private:
 namespace std {
 template <>
 struct hash<mc::resource::ResourceLocation> {
-    size_t operator()(const mc::resource::ResourceLocation& loc) const noexcept { return loc.hash(); }
+    size_t operator()(const mc::resource::ResourceLocation& loc) const noexcept
+    {
+        return loc.hash();
+    }
 };
 } // namespace std
 

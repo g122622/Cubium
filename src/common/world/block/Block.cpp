@@ -1174,8 +1174,9 @@ void Block::dropResources(IWorld& world, const BlockPos& pos, const BlockState& 
     contextBuilder.withOwnedValue(loot::LootParams::ORIGIN, pos.center());
 
     // 设置掉落表解析器和条件解析器
-    contextBuilder.withLootTableResolver(
-        [lootTableManager](const std::string& id) -> const loot::LootTable* { return lootTableManager->getTable(id); });
+    contextBuilder.withLootTableResolver([lootTableManager](const std::string& id) -> const loot::LootTable* {
+        return lootTableManager->getTable(id);
+    });
     contextBuilder.withPredicateResolver([lootTableManager](const std::string& id) -> const loot::LootCondition* {
         return lootTableManager->getPredicate(id);
     });

@@ -46,7 +46,10 @@ protected:
         m_living->registerData();
     }
 
-    void TearDown() override { m_living.reset(); }
+    void TearDown() override
+    {
+        m_living.reset();
+    }
 
     std::unique_ptr<LivingEntity> m_living;
 };
@@ -60,7 +63,10 @@ protected:
         m_entity->registerData();
     }
 
-    void TearDown() override { m_entity.reset(); }
+    void TearDown() override
+    {
+        m_entity.reset();
+    }
 
     std::unique_ptr<Entity> m_entity;
 };
@@ -190,7 +196,10 @@ protected:
         m_living->registerData();
     }
 
-    void TearDown() override { m_living.reset(); }
+    void TearDown() override
+    {
+        m_living.reset();
+    }
 
     std::unique_ptr<LivingEntity> m_living;
 };

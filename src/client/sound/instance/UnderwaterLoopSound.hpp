@@ -70,17 +70,26 @@ public:
      *
      * @param canSwim 是否能游泳（是否在水中）
      */
-    void setCanSwim(bool canSwim) { m_canSwim = canSwim; }
+    void setCanSwim(bool canSwim)
+    {
+        m_canSwim = canSwim;
+    }
 
     /**
      * @brief 获取玩家是否在水中
      */
-    [[nodiscard]] bool canSwim() const noexcept { return m_canSwim; }
+    [[nodiscard]] bool canSwim() const noexcept
+    {
+        return m_canSwim;
+    }
 
     /**
      * @brief 是否可以静音播放
      */
-    [[nodiscard]] bool canBeSilent() const override { return true; }
+    [[nodiscard]] bool canBeSilent() const override
+    {
+        return true;
+    }
 
 private:
     /// 在水中的tick计数（用于音量渐变）

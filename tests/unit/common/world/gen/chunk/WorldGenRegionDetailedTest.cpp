@@ -141,7 +141,10 @@ protected:
         fluid::FluidRegistry::instance().initialize();
     }
 
-    void SetUp() override { m_region = createRegion(5, 5, 1, 0); }
+    void SetUp() override
+    {
+        m_region = createRegion(5, 5, 1, 0);
+    }
 
     std::unique_ptr<WorldGenRegion> m_region;
 };

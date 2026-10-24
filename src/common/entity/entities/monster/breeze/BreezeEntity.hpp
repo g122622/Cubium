@@ -156,9 +156,20 @@ public:
 
     // ========== 实体尺寸 ==========
 
-    f32 width() const override { return 0.6f; }
-    f32 height() const override { return 1.77f; }
-    f32 eyeHeight() const override { return 1.52f; }
+    f32 width() const override
+    {
+        return 0.6f;
+    }
+
+    f32 height() const override
+    {
+        return 1.77f;
+    }
+
+    f32 eyeHeight() const override
+    {
+        return 1.52f;
+    }
 
     // ========== 生命周期 ==========
 
@@ -215,32 +226,50 @@ public:
     /**
      * @brief 空闲动画状态
      */
-    [[nodiscard]] const entity::AnimationState& idleAnimation() const noexcept { return m_idleAnim; }
+    [[nodiscard]] const entity::AnimationState& idleAnimation() const noexcept
+    {
+        return m_idleAnim;
+    }
 
     /**
      * @brief 滑行动画状态
      */
-    [[nodiscard]] const entity::AnimationState& slideAnimation() const noexcept { return m_slideAnim; }
+    [[nodiscard]] const entity::AnimationState& slideAnimation() const noexcept
+    {
+        return m_slideAnim;
+    }
 
     /**
      * @brief 滑行回弹动画状态（从滑行姿态恢复站立时短暂触发）
      */
-    [[nodiscard]] const entity::AnimationState& slideBackAnimation() const noexcept { return m_slideBackAnim; }
+    [[nodiscard]] const entity::AnimationState& slideBackAnimation() const noexcept
+    {
+        return m_slideBackAnim;
+    }
 
     /**
      * @brief 长跳动画状态
      */
-    [[nodiscard]] const entity::AnimationState& longJumpAnimation() const noexcept { return m_longJumpAnim; }
+    [[nodiscard]] const entity::AnimationState& longJumpAnimation() const noexcept
+    {
+        return m_longJumpAnim;
+    }
 
     /**
      * @brief 射击动画状态
      */
-    [[nodiscard]] const entity::AnimationState& shootAnimation() const noexcept { return m_shootAnim; }
+    [[nodiscard]] const entity::AnimationState& shootAnimation() const noexcept
+    {
+        return m_shootAnim;
+    }
 
     /**
      * @brief 吸气蓄力动画状态
      */
-    [[nodiscard]] const entity::AnimationState& inhaleAnimation() const noexcept { return m_inhaleAnim; }
+    [[nodiscard]] const entity::AnimationState& inhaleAnimation() const noexcept
+    {
+        return m_inhaleAnim;
+    }
 
 protected:
     void registerGoals() override;
@@ -260,22 +289,34 @@ protected:
     /**
      * @brief 获取射击冷却剩余时间
      */
-    [[nodiscard]] i32 shootCooldown() const { return m_shootCooldown; }
+    [[nodiscard]] i32 shootCooldown() const
+    {
+        return m_shootCooldown;
+    }
 
     /**
      * @brief 设置射击冷却时间
      */
-    void setShootCooldown(i32 ticks) { m_shootCooldown = ticks; }
+    void setShootCooldown(i32 ticks)
+    {
+        m_shootCooldown = ticks;
+    }
 
     /**
      * @brief 获取长跳冷却剩余时间
      */
-    [[nodiscard]] i32 jumpCooldown() const { return m_jumpCooldown; }
+    [[nodiscard]] i32 jumpCooldown() const
+    {
+        return m_jumpCooldown;
+    }
 
     /**
      * @brief 设置长跳冷却时间
      */
-    void setJumpCooldown(i32 ticks) { m_jumpCooldown = ticks; }
+    void setJumpCooldown(i32 ticks)
+    {
+        m_jumpCooldown = ticks;
+    }
 
     /**
      * @brief 是否有射击许可
@@ -283,38 +324,59 @@ protected:
      * 射击许可由 Slide/LongJump/ShootWhenStuck 设置，
      * 表示旋风人已准备好进行射击攻击。
      */
-    [[nodiscard]] bool hasShootPermit() const { return m_shootPermitTicks > 0; }
+    [[nodiscard]] bool hasShootPermit() const
+    {
+        return m_shootPermitTicks > 0;
+    }
 
     /**
      * @brief 设置射击许可
      * @param ticks 许可持续 ticks 数
      */
-    void setShootPermit(i32 ticks) { m_shootPermitTicks = ticks; }
+    void setShootPermit(i32 ticks)
+    {
+        m_shootPermitTicks = ticks;
+    }
 
     /**
      * @brief 清除射击许可
      */
-    void clearShootPermit() { m_shootPermitTicks = 0; }
+    void clearShootPermit()
+    {
+        m_shootPermitTicks = 0;
+    }
 
     /**
      * @brief 是否正在长跳（吸气或跳跃中）
      */
-    [[nodiscard]] bool isLongJumping() const { return m_isLongJumping; }
+    [[nodiscard]] bool isLongJumping() const
+    {
+        return m_isLongJumping;
+    }
 
     /**
      * @brief 设置长跳状态
      */
-    void setLongJumping(bool jumping) { m_isLongJumping = jumping; }
+    void setLongJumping(bool jumping)
+    {
+        m_isLongJumping = jumping;
+    }
 
     /**
      * @brief 是否正在滑行
      */
-    [[nodiscard]] bool isSliding() const { return m_sliding; }
+    [[nodiscard]] bool isSliding() const
+    {
+        return m_sliding;
+    }
 
     /**
      * @brief 设置滑行状态
      */
-    void setSliding(bool sliding) { m_sliding = sliding; }
+    void setSliding(bool sliding)
+    {
+        m_sliding = sliding;
+    }
 
 private:
     /**
@@ -352,7 +414,10 @@ private:
      *
      * 在 Pose 切换到 LONG_JUMPING 之外时调用，确保下次长跳从 0 开始计数。
      */
-    void resetJumpTrail() { m_jumpTrailStartedTick = 0; }
+    void resetJumpTrail()
+    {
+        m_jumpTrailStartedTick = 0;
+    }
 
     /**
      * @brief 发射长跳轨迹粒子

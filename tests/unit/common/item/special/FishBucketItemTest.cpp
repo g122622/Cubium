@@ -54,12 +54,16 @@ namespace {
  */
 class FishBucketTestWorld final : public mc::test::BaseTestWorld {
 public:
-    bool setBlockState(i32, i32, i32, const BlockState*) override { return true; }
+    bool setBlockState(i32, i32, i32, const BlockState*) override
+    {
+        return true;
+    }
 
     [[nodiscard]] world::tick::TickManager& tickManager() override
     {
         throw std::runtime_error("FishBucketTestWorld::tickManager not implemented");
     }
+
     [[nodiscard]] const world::tick::TickManager& tickManager() const override
     {
         throw std::runtime_error("FishBucketTestWorld::tickManager not implemented");
@@ -92,9 +96,20 @@ public:
         // 测试中忽略音效
     }
 
-    [[nodiscard]] i32 spawnedFishCount() const { return m_spawnedFishCount; }
-    [[nodiscard]] std::optional<bool> lastSpawnedFishFromBucket() const { return m_lastSpawnedFishFromBucket; }
-    [[nodiscard]] Entity* lastSpawnedEntity() const { return m_lastSpawnedEntity.get(); }
+    [[nodiscard]] i32 spawnedFishCount() const
+    {
+        return m_spawnedFishCount;
+    }
+
+    [[nodiscard]] std::optional<bool> lastSpawnedFishFromBucket() const
+    {
+        return m_lastSpawnedFishFromBucket;
+    }
+
+    [[nodiscard]] Entity* lastSpawnedEntity() const
+    {
+        return m_lastSpawnedEntity.get();
+    }
 
     void reset()
     {
@@ -120,7 +135,10 @@ protected:
         entity::VanillaEntities::registerAll();
     }
 
-    void SetUp() override { m_world = std::make_unique<FishBucketTestWorld>(); }
+    void SetUp() override
+    {
+        m_world = std::make_unique<FishBucketTestWorld>();
+    }
 
     std::unique_ptr<FishBucketTestWorld> m_world;
 };

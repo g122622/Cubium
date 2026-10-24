@@ -46,7 +46,10 @@ class VanishingCurseEnchantment : public Enchantment {
 public:
     VanishingCurseEnchantment() = default;
 
-    [[nodiscard]] std::string id() const noexcept override { return "minecraft:vanishing_curse"; }
+    [[nodiscard]] std::string id() const noexcept override
+    {
+        return "minecraft:vanishing_curse";
+    }
 
     [[nodiscard]] std::string getNameKey(i32 level) const noexcept override
     {
@@ -54,17 +57,35 @@ public:
         return "enchantment.minecraft.vanishing_curse";
     }
 
-    [[nodiscard]] EnchantmentType type() const noexcept override { return EnchantmentType::Vanishable; }
+    [[nodiscard]] EnchantmentType type() const noexcept override
+    {
+        return EnchantmentType::Vanishable;
+    }
 
-    [[nodiscard]] i32 minLevel() const noexcept override { return 1; }
+    [[nodiscard]] i32 minLevel() const noexcept override
+    {
+        return 1;
+    }
 
-    [[nodiscard]] i32 maxLevel() const noexcept override { return 1; }
+    [[nodiscard]] i32 maxLevel() const noexcept override
+    {
+        return 1;
+    }
 
-    [[nodiscard]] EnchantmentRarity rarity() const noexcept override { return EnchantmentRarity::VeryRare; }
+    [[nodiscard]] EnchantmentRarity rarity() const noexcept override
+    {
+        return EnchantmentRarity::VeryRare;
+    }
 
-    [[nodiscard]] bool isCurse() const noexcept override { return true; }
+    [[nodiscard]] bool isCurse() const noexcept override
+    {
+        return true;
+    }
 
-    [[nodiscard]] bool isTreasure() const noexcept override { return true; }
+    [[nodiscard]] bool isTreasure() const noexcept override
+    {
+        return true;
+    }
 
     [[nodiscard]] i32 getMinCost(i32 level) const noexcept override
     {

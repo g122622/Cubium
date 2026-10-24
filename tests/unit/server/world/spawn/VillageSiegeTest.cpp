@@ -36,9 +36,15 @@ namespace server::spawn {
  */
 class VillageSiegeTest : public ::testing::Test {
 protected:
-    void SetUp() override { siege = std::make_unique<VillageSiege>(); }
+    void SetUp() override
+    {
+        siege = std::make_unique<VillageSiege>();
+    }
 
-    void TearDown() override { siege.reset(); }
+    void TearDown() override
+    {
+        siege.reset();
+    }
 
     std::unique_ptr<VillageSiege> siege;
 };

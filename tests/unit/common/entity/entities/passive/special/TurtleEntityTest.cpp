@@ -257,10 +257,16 @@ public:
         m_playedSounds.push_back({soundEventId, category, position, volume, pitch});
     }
 
-    [[nodiscard]] const std::vector<PlayedSound>& playedSounds() const { return m_playedSounds; }
+    [[nodiscard]] const std::vector<PlayedSound>& playedSounds() const
+    {
+        return m_playedSounds;
+    }
 
     // 设置指定位置为空气
-    void setAir(const BlockPos& pos) { m_blocks.erase(pos); }
+    void setAir(const BlockPos& pos)
+    {
+        m_blocks.erase(pos);
+    }
 
 private:
     std::unordered_map<BlockPos, std::unique_ptr<BlockState>> m_blocks;
@@ -270,7 +276,10 @@ private:
 
 class TurtleLayEggTest : public ::testing::Test {
 protected:
-    void SetUp() override { VanillaBlocks::initialize(); }
+    void SetUp() override
+    {
+        VanillaBlocks::initialize();
+    }
 
     TurtleLayEggTestWorld m_world;
 };

@@ -57,19 +57,25 @@ namespace command {
 void SummonCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
 {
     auto summonNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("summon");
-    summonNode->setRequirement([](const ServerCommandSource& source) { return source.hasPermission(2); });
+    summonNode->setRequirement([](const ServerCommandSource& source) {
+        return source.hasPermission(2);
+    });
     support::applyMetadata(
         summonNode, support::makeMetadata("Summons an entity.", "/summon <entity> [<pos>]", 2, {}, false));
 
     // /summon <entity> - 在执行者位置生成
     auto entityArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, ResourceLocation>>(
         "entity", ResourceLocationArgumentType::resourceLocation());
-    entityArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _summonEntity(ctx); });
+    entityArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _summonEntity(ctx);
+    });
 
     // /summon <entity> <pos> - 在指定位置生成
     auto posArg =
         std::make_shared<ArgumentCommandNode<ServerCommandSource, Coordinates::Ptr>>("pos", Vec3ArgumentType::vec3());
-    posArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _summonEntityAtPosition(ctx); });
+    posArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _summonEntityAtPosition(ctx);
+    });
 
     entityArg->addChild(posArg);
     summonNode->addChild(entityArg);

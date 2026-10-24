@@ -69,12 +69,26 @@ public:
     ClientSession(ClientSession&&) = delete;
     ClientSession& operator=(ClientSession&&) = delete;
 
-    [[nodiscard]] ServerHandshakeStateMachine& handshake() noexcept { return m_handshake; }
-    [[nodiscard]] ServerClientConnection* connection() const noexcept { return m_connection; }
-    [[nodiscard]] u32 sessionId() const noexcept { return m_sessionId; }
+    [[nodiscard]] ServerHandshakeStateMachine& handshake() noexcept
+    {
+        return m_handshake;
+    }
+
+    [[nodiscard]] ServerClientConnection* connection() const noexcept
+    {
+        return m_connection;
+    }
+
+    [[nodiscard]] u32 sessionId() const noexcept
+    {
+        return m_sessionId;
+    }
 
     /// 是否已收到 ConfigurationAcknowledged 完成重配置（对齐 vanilla waitingForSwitchToConfig）。
-    [[nodiscard]] bool waitingForConfig() const noexcept { return m_waitingForConfig; }
+    [[nodiscard]] bool waitingForConfig() const noexcept
+    {
+        return m_waitingForConfig;
+    }
 
     /**
      * @brief 发起 Play→Configuration 重配置
@@ -89,8 +103,15 @@ public:
     [[nodiscard]] Result<void> startConfiguration();
 
     /// 握手完成后回填玩家ID（构造时占位 0）
-    void setPlayerId(PlayerId playerId) noexcept { m_playerId = playerId; }
-    [[nodiscard]] PlayerId playerId() const noexcept { return m_playerId; }
+    void setPlayerId(PlayerId playerId) noexcept
+    {
+        m_playerId = playerId;
+    }
+
+    [[nodiscard]] PlayerId playerId() const noexcept
+    {
+        return m_playerId;
+    }
 
     /**
      * @brief 派发一个入站 IR 包

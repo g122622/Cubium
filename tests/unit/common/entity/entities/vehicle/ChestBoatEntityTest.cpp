@@ -74,7 +74,10 @@ std::unique_ptr<ChestBoatEntity> loadFromNbt(
 
 class ChestBoatEntityTest : public ::testing::Test {
 protected:
-    void SetUp() override { Items::initialize(); }
+    void SetUp() override
+    {
+        Items::initialize();
+    }
 };
 
 TEST_F(ChestBoatEntityTest, DefaultConstructor_CreatesOakChestBoat)
@@ -123,7 +126,10 @@ TEST_F(ChestBoatEntityTest, ContainerSize_Is27)
 
 class ChestBoatInventoryTest : public ::testing::Test {
 protected:
-    void SetUp() override { Items::initialize(); }
+    void SetUp() override
+    {
+        Items::initialize();
+    }
 };
 
 TEST_F(ChestBoatInventoryTest, Constructor_CreatesEmptyInventory)
@@ -277,7 +283,10 @@ TEST_F(ChestBoatInventoryTest, ContainerSizeMatchesConstant)
 
 class ChestBoatGetBoatItemTest : public ::testing::Test {
 protected:
-    void SetUp() override { Items::initialize(); }
+    void SetUp() override
+    {
+        Items::initialize();
+    }
 };
 
 TEST_F(ChestBoatGetBoatItemTest, AllTypes_ReturnCorrectChestBoatItems)
@@ -391,7 +400,10 @@ TEST_F(ChestBoatGetBoatItemTest, ChestBoatAndBoatItems_AreCompletelyDifferent)
 
 class ChestBoatInheritanceTest : public ::testing::Test {
 protected:
-    void SetUp() override { Items::initialize(); }
+    void SetUp() override
+    {
+        Items::initialize();
+    }
 };
 
 TEST_F(ChestBoatInheritanceTest, IsBoatEntitySubclass)
@@ -454,7 +466,10 @@ TEST_F(ChestBoatInheritanceTest, AllTypes_GetBoatItemViaBasePointer)
 
 class ChestBoatPassengerTest : public ::testing::Test {
 protected:
-    void SetUp() override { Items::initialize(); }
+    void SetUp() override
+    {
+        Items::initialize();
+    }
 };
 
 TEST_F(ChestBoatPassengerTest, CanAddPassenger_DefaultState_AllowsOnePassenger)
@@ -490,7 +505,10 @@ TEST_F(ChestBoatPassengerTest, CanAddPassenger_MaxOnePassenger)
 
 class ChestBoatMountTest : public ::testing::Test {
 protected:
-    void SetUp() override { Items::initialize(); }
+    void SetUp() override
+    {
+        Items::initialize();
+    }
 };
 
 TEST_F(ChestBoatMountTest, GetMountedYOffset_ReturnsCorrectValue)
@@ -513,7 +531,10 @@ TEST_F(ChestBoatMountTest, MountedYOffset_SameAsNormalBoat)
 
 class ChestBoatComparatorTest : public ::testing::Test {
 protected:
-    void SetUp() override { Items::initialize(); }
+    void SetUp() override
+    {
+        Items::initialize();
+    }
 };
 
 TEST_F(ChestBoatComparatorTest, EmptyContainer_OutputIsZero)
@@ -566,7 +587,10 @@ TEST_F(ChestBoatComparatorTest, FullContainer_OutputIsFifteen)
 
 class ChestBoatDisplayNameTest : public ::testing::Test {
 protected:
-    void SetUp() override { Items::initialize(); }
+    void SetUp() override
+    {
+        Items::initialize();
+    }
 };
 
 TEST_F(ChestBoatDisplayNameTest, GetDisplayName_ReturnsCorrectKey)
@@ -581,7 +605,10 @@ TEST_F(ChestBoatDisplayNameTest, GetDisplayName_ReturnsCorrectKey)
 
 class ChestBoatStillValidTest : public ::testing::Test {
 protected:
-    void SetUp() override { Items::initialize(); }
+    void SetUp() override
+    {
+        Items::initialize();
+    }
 };
 
 TEST_F(ChestBoatStillValidTest, StillValid_FalseWhenEntityRemoved)
@@ -603,7 +630,10 @@ TEST_F(ChestBoatStillValidTest, StillValid_FalseWhenEntityRemoved)
 
 class ChestBoatNbtTest : public ::testing::Test {
 protected:
-    void SetUp() override { Items::initialize(); }
+    void SetUp() override
+    {
+        Items::initialize();
+    }
 };
 
 TEST_F(ChestBoatNbtTest, EmptyInventory_RoundTrip)
@@ -768,7 +798,10 @@ TEST_F(ChestBoatNbtTest, BoatTypePreservedByBaseClass)
 
 class ChestBoatVsNormalBoatTest : public ::testing::Test {
 protected:
-    void SetUp() override { Items::initialize(); }
+    void SetUp() override
+    {
+        Items::initialize();
+    }
 };
 
 TEST_F(ChestBoatVsNormalBoatTest, DifferentDropItems)
@@ -841,7 +874,10 @@ TEST_F(ChestBoatVsNormalBoatTest, ChestBoat_HasContainer_NormalBoat_DoesNot)
 
 class ChestBoatLootTableTest : public ::testing::Test {
 protected:
-    void SetUp() override { Items::initialize(); }
+    void SetUp() override
+    {
+        Items::initialize();
+    }
 };
 
 TEST_F(ChestBoatLootTableTest, DefaultState_NoLootTable)

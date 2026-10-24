@@ -673,8 +673,12 @@ TEST_F(DispenseBehaviorTest, MultipleEffectsPreservedInItemStack)
     // 验证所有效果类型都被保存
     bool hasSpeed = false, hasJump = false;
     for (const auto& effect : retrieved) {
-        if (effect.type() == entity::effect::EffectType::Speed) hasSpeed = true;
-        if (effect.type() == entity::effect::EffectType::JumpBoost) hasJump = true;
+        if (effect.type() == entity::effect::EffectType::Speed) {
+            hasSpeed = true;
+        }
+        if (effect.type() == entity::effect::EffectType::JumpBoost) {
+            hasJump = true;
+        }
     }
     EXPECT_TRUE(hasSpeed);
     EXPECT_TRUE(hasJump);
@@ -1102,36 +1106,79 @@ public:
     }
 
     // --- tickManager: 提供可用的 DummyTickManager ---
-    [[nodiscard]] world::tick::TickManager& tickManager() override { return m_tickManager; }
-    [[nodiscard]] const world::tick::TickManager& tickManager() const override { return m_tickManager; }
+    [[nodiscard]] world::tick::TickManager& tickManager() override
+    {
+        return m_tickManager;
+    }
+
+    [[nodiscard]] const world::tick::TickManager& tickManager() const override
+    {
+        return m_tickManager;
+    }
 
     // --- isUltraWarm: 可配置 ---
-    [[nodiscard]] bool isUltraWarm() const override { return m_isUltraWarm; }
+    [[nodiscard]] bool isUltraWarm() const override
+    {
+        return m_isUltraWarm;
+    }
 
     // --- 设置预设的方块状态（全局默认） ---
-    void setPresetBlockState(const BlockState* state) { m_presetBlockState = state; }
+    void setPresetBlockState(const BlockState* state)
+    {
+        m_presetBlockState = state;
+    }
 
     // --- 设置指定位置的方块状态 ---
-    void setBlockStateAt(const BlockPos& pos, const BlockState* state) { m_blockStateMap[pos] = state; }
+    void setBlockStateAt(const BlockPos& pos, const BlockState* state)
+    {
+        m_blockStateMap[pos] = state;
+    }
 
     // --- 设置指定位置的流体状态 ---
-    void setFluidStateAt(const BlockPos& pos, const fluid::FluidState* state) { m_fluidStateMap[pos] = state; }
+    void setFluidStateAt(const BlockPos& pos, const fluid::FluidState* state)
+    {
+        m_fluidStateMap[pos] = state;
+    }
 
     // --- 设置超热维度 ---
-    void setUltraWarm(bool ultraWarm) { m_isUltraWarm = ultraWarm; }
+    void setUltraWarm(bool ultraWarm)
+    {
+        m_isUltraWarm = ultraWarm;
+    }
 
     // --- 查询记录 ---
-    i32 setBlockStateCallCount() const { return m_setBlockStateCallCount; }
-    const BlockPos& lastSetBlockPos() const { return m_lastSetBlockPos; }
-    const BlockState* lastSetBlockState() const { return m_lastSetBlockState; }
-    const std::vector<std::tuple<i32, BlockPos, i32>>& playedEvents() const { return m_playedEvents; }
-    const std::vector<std::string>& spawnedEntityTypes() const { return m_spawnedEntityTypes; }
+    i32 setBlockStateCallCount() const
+    {
+        return m_setBlockStateCallCount;
+    }
+
+    const BlockPos& lastSetBlockPos() const
+    {
+        return m_lastSetBlockPos;
+    }
+
+    const BlockState* lastSetBlockState() const
+    {
+        return m_lastSetBlockState;
+    }
+
+    const std::vector<std::tuple<i32, BlockPos, i32>>& playedEvents() const
+    {
+        return m_playedEvents;
+    }
+
+    const std::vector<std::string>& spawnedEntityTypes() const
+    {
+        return m_spawnedEntityTypes;
+    }
 
     // --- 检查是否有指定事件ID的记录 ---
     bool hasEvent(i32 eventId) const
     {
         for (const auto& ev : m_playedEvents) {
-            if (std::get<0>(ev) == eventId) return true;
+            if (std::get<0>(ev) == eventId) {
+                return true;
+            }
         }
         return false;
     }
@@ -1595,7 +1642,10 @@ public:
         : m_items(size)
     {}
 
-    [[nodiscard]] i32 getContainerSize() const override { return static_cast<i32>(m_items.size()); }
+    [[nodiscard]] i32 getContainerSize() const override
+    {
+        return static_cast<i32>(m_items.size());
+    }
 
     [[nodiscard]] bool isEmpty() const override
     {

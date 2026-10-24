@@ -126,13 +126,19 @@ public:
      *
      * @return 始终返回 true
      */
-    [[nodiscard]] bool onlyOpsCanSetNbt() const noexcept override { return true; }
+    [[nodiscard]] bool onlyOpsCanSetNbt() const noexcept override
+    {
+        return true;
+    }
 
     /**
      * @brief 获取存储的命令
      * @return 命令字符串
      */
-    [[nodiscard]] const std::string& getCommand() const { return m_command; }
+    [[nodiscard]] const std::string& getCommand() const
+    {
+        return m_command;
+    }
 
     /**
      * @brief 设置命令
@@ -155,7 +161,10 @@ public:
      *
      * @return 成功计数（0-15）
      */
-    [[nodiscard]] i32 getSuccessCount() const { return m_successCount; }
+    [[nodiscard]] i32 getSuccessCount() const
+    {
+        return m_successCount;
+    }
 
     /**
      * @brief 设置成功计数
@@ -167,7 +176,10 @@ public:
      * @brief 获取最后输出
      * @return 最后输出字符串
      */
-    [[nodiscard]] const std::string& getLastOutput() const { return m_lastOutput; }
+    [[nodiscard]] const std::string& getLastOutput() const
+    {
+        return m_lastOutput;
+    }
 
     /**
      * @brief 设置最后输出
@@ -177,7 +189,11 @@ public:
 
     // ========== 自定义名称 ==========
 
-    [[nodiscard]] std::string getCustomName() const override { return m_customName; }
+    [[nodiscard]] std::string getCustomName() const override
+    {
+        return m_customName;
+    }
+
     void setCustomName(const std::string& name) override;
 
     // ========== 执行控制 ==========
@@ -186,13 +202,19 @@ public:
      * @brief 获取执行模式
      * @return 命令方块模式
      */
-    [[nodiscard]] CommandBlockMode getMode() const { return m_mode; }
+    [[nodiscard]] CommandBlockMode getMode() const
+    {
+        return m_mode;
+    }
 
     /**
      * @brief 设置执行模式
      * @param mode 命令方块模式
      */
-    void setMode(CommandBlockMode mode) { m_mode = mode; }
+    void setMode(CommandBlockMode mode)
+    {
+        m_mode = mode;
+    }
 
     /**
      * @brief 检查是否自动执行
@@ -202,7 +224,10 @@ public:
      *
      * @return 是否自动执行
      */
-    [[nodiscard]] bool isAuto() const { return m_auto; }
+    [[nodiscard]] bool isAuto() const
+    {
+        return m_auto;
+    }
 
     /**
      * @brief 设置自动执行
@@ -227,7 +252,10 @@ public:
      * @brief 检查是否被红石供电
      * @return 是否被供电
      */
-    [[nodiscard]] bool isPowered() const { return m_powered; }
+    [[nodiscard]] bool isPowered() const
+    {
+        return m_powered;
+    }
 
     /**
      * @brief 设置供电状态
@@ -242,7 +270,10 @@ public:
      *
      * @return 条件是否满足
      */
-    [[nodiscard]] bool isConditionMet() const { return m_conditionMet; }
+    [[nodiscard]] bool isConditionMet() const
+    {
+        return m_conditionMet;
+    }
 
     /**
      * @brief 检查并设置条件状态
@@ -303,7 +334,10 @@ public:
      * @brief 检查是否追踪输出
      * @return 是否追踪输出
      */
-    [[nodiscard]] bool shouldTrackOutput() const { return m_trackOutput; }
+    [[nodiscard]] bool shouldTrackOutput() const
+    {
+        return m_trackOutput;
+    }
 
 private:
     std::string m_command;                                ///< 存储的命令

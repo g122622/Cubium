@@ -106,10 +106,25 @@ public:
         , m_inventory(27)
     {}
 
-    [[nodiscard]] IInventory* getInventory() override { return &m_inventory; }
-    [[nodiscard]] const IInventory* getInventory() const override { return &m_inventory; }
-    [[nodiscard]] std::unique_ptr<BlockEntity> clone() const override { return nullptr; }
-    [[nodiscard]] std::string getDefaultName() const override { return "Test Container"; }
+    [[nodiscard]] IInventory* getInventory() override
+    {
+        return &m_inventory;
+    }
+
+    [[nodiscard]] const IInventory* getInventory() const override
+    {
+        return &m_inventory;
+    }
+
+    [[nodiscard]] std::unique_ptr<BlockEntity> clone() const override
+    {
+        return nullptr;
+    }
+
+    [[nodiscard]] std::string getDefaultName() const override
+    {
+        return "Test Container";
+    }
 
     // 公开 fillWithLootFromTable 以便测试
     using LootableContainerBlockEntity::fillWithLootFromTable;
@@ -128,8 +143,15 @@ class LootableTestWorld final : public mc::test::BaseTestWorld {
 public:
     using IWorld::getBlockState;
 
-    [[nodiscard]] const BlockState* getBlockState(i32, i32, i32) const override { return nullptr; }
-    [[nodiscard]] bool isWithinWorldBounds(i32, i32, i32) const override { return true; }
+    [[nodiscard]] const BlockState* getBlockState(i32, i32, i32) const override
+    {
+        return nullptr;
+    }
+
+    [[nodiscard]] bool isWithinWorldBounds(i32, i32, i32) const override
+    {
+        return true;
+    }
 
     [[nodiscard]] const loot::LootTableManager* lootTableManager() const override
     {
@@ -139,8 +161,15 @@ public:
         return m_customManager != nullptr ? m_customManager : &m_lootTableManager;
     }
 
-    void setLootTableManager(loot::LootTableManager* manager) { m_customManager = manager; }
-    void setNoLootTableManager() { m_noManager = true; }
+    void setLootTableManager(loot::LootTableManager* manager)
+    {
+        m_customManager = manager;
+    }
+
+    void setNoLootTableManager()
+    {
+        m_noManager = true;
+    }
 
 private:
     loot::LootTableManager m_lootTableManager;

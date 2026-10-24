@@ -67,12 +67,18 @@ public:
         , m_tracks(std::move(tracks))
     {}
 
-    [[nodiscard]] const std::optional<i32>& periodTicks() const noexcept { return m_periodTicks; }
+    [[nodiscard]] const std::optional<i32>& periodTicks() const noexcept
+    {
+        return m_periodTicks;
+    }
 
     /**
      * @brief 判断时间线是否包含某个属性的轨道
      */
-    [[nodiscard]] bool hasTrack(const void* attribute) const { return m_tracks.contains(attribute); }
+    [[nodiscard]] bool hasTrack(const void* attribute) const
+    {
+        return m_tracks.contains(attribute);
+    }
 
     /**
      * @brief 创建轨道采样器
@@ -176,7 +182,10 @@ public:
                 envAttr, std::make_shared<attribute::OverrideModifier<Value>>(), std::move(consumer));
         }
 
-        [[nodiscard]] Timeline build() { return Timeline(m_periodTicks, std::move(m_tracks)); }
+        [[nodiscard]] Timeline build()
+        {
+            return Timeline(m_periodTicks, std::move(m_tracks));
+        }
 
     private:
         std::optional<i32> m_periodTicks;

@@ -354,8 +354,9 @@ bool KageroEngine::handleChar(u32 codePoint)
 
 void KageroEngine::_sortLayers()
 {
-    std::stable_sort(
-        m_layers.begin(), m_layers.end(), [](const LayerInfo& a, const LayerInfo& b) { return a.zIndex < b.zIndex; });
+    std::stable_sort(m_layers.begin(), m_layers.end(), [](const LayerInfo& a, const LayerInfo& b) {
+        return a.zIndex < b.zIndex;
+    });
 }
 
 size_t KageroEngine::_findLayerIndex(size_t layerId) const

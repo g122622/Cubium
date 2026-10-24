@@ -64,7 +64,12 @@ namespace command {
 class NbtPathArgumentType : public ArgumentType<NbtPath> {
 public:
     [[nodiscard]] NbtPath parse(StringReader& reader) override;
-    [[nodiscard]] std::string getTypeName() const override { return "nbt_path"; }
+
+    [[nodiscard]] std::string getTypeName() const override
+    {
+        return "nbt_path";
+    }
+
     [[nodiscard]] std::vector<std::string> getExamples() const override
     {
         return {"foo", "foo.bar", "foo[0]", "foo[]", "{foo:bar}"};
@@ -73,7 +78,10 @@ public:
     /**
      * @brief 创建 NBT 路径参数类型
      */
-    static std::shared_ptr<NbtPathArgumentType> nbtPath() { return std::make_shared<NbtPathArgumentType>(); }
+    static std::shared_ptr<NbtPathArgumentType> nbtPath()
+    {
+        return std::make_shared<NbtPathArgumentType>();
+    }
 
     /**
      * @brief 从命令上下文获取 NBT 路径
@@ -149,7 +157,12 @@ private:
 class NbtCompoundArgumentType : public ArgumentType<std::shared_ptr<nbt::tags::compound_tag>> {
 public:
     [[nodiscard]] std::shared_ptr<nbt::tags::compound_tag> parse(StringReader& reader) override;
-    [[nodiscard]] std::string getTypeName() const override { return "nbt_compound"; }
+
+    [[nodiscard]] std::string getTypeName() const override
+    {
+        return "nbt_compound";
+    }
+
     [[nodiscard]] std::vector<std::string> getExamples() const override
     {
         return {"{}", "{foo:bar}", "{foo:1,bar:\"hello\"}"};
@@ -182,7 +195,12 @@ public:
 class NbtTagArgumentType : public ArgumentType<std::shared_ptr<nbt::tags::tag>> {
 public:
     [[nodiscard]] std::shared_ptr<nbt::tags::tag> parse(StringReader& reader) override;
-    [[nodiscard]] std::string getTypeName() const override { return "nbt_tag"; }
+
+    [[nodiscard]] std::string getTypeName() const override
+    {
+        return "nbt_tag";
+    }
+
     [[nodiscard]] std::vector<std::string> getExamples() const override
     {
         return {"0", "true", "\"hello\"", "{foo:bar}", "[1,2,3]"};
@@ -191,7 +209,10 @@ public:
     /**
      * @brief 创建 NBT 标签参数类型
      */
-    static std::shared_ptr<NbtTagArgumentType> nbtTag() { return std::make_shared<NbtTagArgumentType>(); }
+    static std::shared_ptr<NbtTagArgumentType> nbtTag()
+    {
+        return std::make_shared<NbtTagArgumentType>();
+    }
 
     /**
      * @brief 从命令上下文获取 NBT 标签

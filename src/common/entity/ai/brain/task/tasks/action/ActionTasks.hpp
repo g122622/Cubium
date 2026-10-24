@@ -99,7 +99,10 @@ public:
         , m_cooldownTicks(cooldownTicks)
     {}
 
-    std::string getName() const override { return "AttackTask"; }
+    std::string getName() const override
+    {
+        return "AttackTask";
+    }
 
 protected:
     bool shouldExecute(IWorld* world, E* owner) override
@@ -251,7 +254,10 @@ public:
         , m_spawnBabyTime(0)
     {}
 
-    std::string getName() const override { return "BreedTask"; }
+    std::string getName() const override
+    {
+        return "BreedTask";
+    }
 
 protected:
     bool shouldExecute(IWorld* world, E* owner) override
@@ -566,7 +572,10 @@ public:
         , m_eatTimer(0)
     {}
 
-    std::string getName() const override { return "EatTask"; }
+    std::string getName() const override
+    {
+        return "EatTask";
+    }
 
 protected:
     bool shouldExecute(IWorld* world, E* owner) override
@@ -579,7 +588,10 @@ protected:
         return false;
     }
 
-    void startExecuting(IWorld* world, E* owner, i64 gameTime) override { m_eatTimer = 0; }
+    void startExecuting(IWorld* world, E* owner, i64 gameTime) override
+    {
+        m_eatTimer = 0;
+    }
 
     void updateTask(IWorld* world, E* owner, i64 gameTime) override
     {
@@ -587,7 +599,10 @@ protected:
         // TODO: 当饥饿系统实现后，在此处执行进食逻辑
     }
 
-    void resetTask(IWorld* world, E* owner, i64 gameTime) override { m_eatTimer = 0; }
+    void resetTask(IWorld* world, E* owner, i64 gameTime) override
+    {
+        m_eatTimer = 0;
+    }
 
 private:
     i32 m_eatDuration;
@@ -623,7 +638,10 @@ public:
         , m_pacifiedDuration(pacifiedDuration)
     {}
 
-    std::string getName() const override { return "PlayDeadTask"; }
+    std::string getName() const override
+    {
+        return "PlayDeadTask";
+    }
 
 protected:
     bool shouldExecute(IWorld* world, E* owner) override
@@ -708,7 +726,10 @@ public:
         , m_cooldownTicks(cooldownTicks)
     {}
 
-    std::string getName() const override { return "JumpTask"; }
+    std::string getName() const override
+    {
+        return "JumpTask";
+    }
 
 protected:
     bool shouldExecute(IWorld* world, E* owner) override
@@ -783,7 +804,10 @@ public:
         , m_cooldownTicks(cooldownTicks)
     {}
 
-    std::string getName() const override { return "KickTask"; }
+    std::string getName() const override
+    {
+        return "KickTask";
+    }
 
 protected:
     bool shouldExecute(IWorld* world, E* owner) override

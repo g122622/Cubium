@@ -80,19 +80,28 @@ public:
      * @brief 检查是否有战利品表
      * @return 如果设置了战利品表返回true
      */
-    [[nodiscard]] bool hasLootTable() const noexcept { return m_hasLootTable; }
+    [[nodiscard]] bool hasLootTable() const noexcept
+    {
+        return m_hasLootTable;
+    }
 
     /**
      * @brief 获取战利品表资源位置
      * @return 战利品表资源位置
      */
-    [[nodiscard]] const ResourceLocation& getLootTable() const noexcept { return m_lootTable; }
+    [[nodiscard]] const ResourceLocation& getLootTable() const noexcept
+    {
+        return m_lootTable;
+    }
 
     /**
      * @brief 获取战利品表种子
      * @return 种子值
      */
-    [[nodiscard]] i64 getLootTableSeed() const noexcept { return m_lootTableSeed; }
+    [[nodiscard]] i64 getLootTableSeed() const noexcept
+    {
+        return m_lootTableSeed;
+    }
 
     /**
      * @brief 设置战利品表
@@ -109,7 +118,10 @@ public:
      * @brief 检查是否需要填充战利品
      * @return 如果设置了战利品表但尚未填充返回true
      */
-    [[nodiscard]] bool needsLootFill() const noexcept { return m_hasLootTable; }
+    [[nodiscard]] bool needsLootFill() const noexcept
+    {
+        return m_hasLootTable;
+    }
 
     // ========== 打开权限检查 ==========
 
@@ -264,7 +276,9 @@ protected:
      */
     std::function<void()> _makeLootUnpackCallback() const
     {
-        return [this]() { _unpackLootTable(nullptr); };
+        return [this]() {
+            _unpackLootTable(nullptr);
+        };
     }
 
     /**

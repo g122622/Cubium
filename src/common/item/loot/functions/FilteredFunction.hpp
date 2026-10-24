@@ -49,11 +49,26 @@ public:
 
     [[nodiscard]] ItemStack apply(ItemStack stack, LootContext& context) const override;
     [[nodiscard]] std::unique_ptr<LootFunction> clone() const noexcept override;
-    [[nodiscard]] std::string getType() const noexcept override { return "filtered"; }
 
-    [[nodiscard]] const advancement::ItemPredicate& getFilter() const { return m_filter; }
-    [[nodiscard]] const std::optional<std::unique_ptr<LootFunction>>& getOnPass() const { return m_onPass; }
-    [[nodiscard]] const std::optional<std::unique_ptr<LootFunction>>& getOnFail() const { return m_onFail; }
+    [[nodiscard]] std::string getType() const noexcept override
+    {
+        return "filtered";
+    }
+
+    [[nodiscard]] const advancement::ItemPredicate& getFilter() const
+    {
+        return m_filter;
+    }
+
+    [[nodiscard]] const std::optional<std::unique_ptr<LootFunction>>& getOnPass() const
+    {
+        return m_onPass;
+    }
+
+    [[nodiscard]] const std::optional<std::unique_ptr<LootFunction>>& getOnFail() const
+    {
+        return m_onFail;
+    }
 
 private:
     advancement::ItemPredicate m_filter;

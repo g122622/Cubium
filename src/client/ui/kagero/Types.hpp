@@ -40,6 +40,7 @@ struct Rect {
     i32 height = 0; ///< 高度
 
     Rect() = default;
+
     Rect(i32 x_, i32 y_, i32 w_, i32 h_)
         : x(x_)
         , y(y_)
@@ -50,27 +51,42 @@ struct Rect {
     /**
      * @brief 获取右边界
      */
-    [[nodiscard]] i32 right() const { return x + width; }
+    [[nodiscard]] i32 right() const
+    {
+        return x + width;
+    }
 
     /**
      * @brief 获取下边界
      */
-    [[nodiscard]] i32 bottom() const { return y + height; }
+    [[nodiscard]] i32 bottom() const
+    {
+        return y + height;
+    }
 
     /**
      * @brief 获取中心X坐标
      */
-    [[nodiscard]] i32 centerX() const { return x + width / 2; }
+    [[nodiscard]] i32 centerX() const
+    {
+        return x + width / 2;
+    }
 
     /**
      * @brief 获取中心Y坐标
      */
-    [[nodiscard]] i32 centerY() const { return y + height / 2; }
+    [[nodiscard]] i32 centerY() const
+    {
+        return y + height / 2;
+    }
 
     /**
      * @brief 检查点是否在矩形内
      */
-    [[nodiscard]] bool contains(i32 px, i32 py) const { return px >= x && px < right() && py >= y && py < bottom(); }
+    [[nodiscard]] bool contains(i32 px, i32 py) const
+    {
+        return px >= x && px < right() && py >= y && py < bottom();
+    }
 
     /**
      * @brief 检查是否与另一个矩形相交
@@ -98,7 +114,10 @@ struct Rect {
     /**
      * @brief 检查矩形是否有效
      */
-    [[nodiscard]] bool isValid() const { return width > 0 && height > 0; }
+    [[nodiscard]] bool isValid() const
+    {
+        return width > 0 && height > 0;
+    }
 };
 
 /**
@@ -111,18 +130,21 @@ struct Margin {
     i32 bottom = 0;
 
     Margin() = default;
+
     explicit Margin(i32 all)
         : left(all)
         , top(all)
         , right(all)
         , bottom(all)
     {}
+
     Margin(i32 horizontal, i32 vertical)
         : left(horizontal)
         , top(vertical)
         , right(horizontal)
         , bottom(vertical)
     {}
+
     Margin(i32 l, i32 t, i32 r, i32 b)
         : left(l)
         , top(t)
@@ -130,8 +152,15 @@ struct Margin {
         , bottom(b)
     {}
 
-    [[nodiscard]] i32 horizontal() const { return left + right; }
-    [[nodiscard]] i32 vertical() const { return top + bottom; }
+    [[nodiscard]] i32 horizontal() const
+    {
+        return left + right;
+    }
+
+    [[nodiscard]] i32 vertical() const
+    {
+        return top + bottom;
+    }
 };
 
 /**
@@ -144,18 +173,21 @@ struct Padding {
     i32 bottom = 0;
 
     Padding() = default;
+
     explicit Padding(i32 all)
         : left(all)
         , top(all)
         , right(all)
         , bottom(all)
     {}
+
     Padding(i32 horizontal, i32 vertical)
         : left(horizontal)
         , top(vertical)
         , right(horizontal)
         , bottom(vertical)
     {}
+
     Padding(i32 l, i32 t, i32 r, i32 b)
         : left(l)
         , top(t)
@@ -163,8 +195,15 @@ struct Padding {
         , bottom(b)
     {}
 
-    [[nodiscard]] i32 horizontal() const { return left + right; }
-    [[nodiscard]] i32 vertical() const { return top + bottom; }
+    [[nodiscard]] i32 horizontal() const
+    {
+        return left + right;
+    }
+
+    [[nodiscard]] i32 vertical() const
+    {
+        return top + bottom;
+    }
 };
 
 /**

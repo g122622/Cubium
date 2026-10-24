@@ -129,19 +129,28 @@ public:
     /**
      * @brief 获取当前等级
      */
-    [[nodiscard]] i32 getLevel() const noexcept { return m_level; }
+    [[nodiscard]] i32 getLevel() const noexcept
+    {
+        return m_level;
+    }
 
     /**
      * @brief 获取当前等级进度
      *
      * @return 0.0 - 1.0 之间的进度值
      */
-    [[nodiscard]] f32 getProgress() const noexcept { return m_progress; }
+    [[nodiscard]] f32 getProgress() const noexcept
+    {
+        return m_progress;
+    }
 
     /**
      * @brief 获取累计总经验值
      */
-    [[nodiscard]] i32 getTotalExperience() const noexcept { return m_totalExperience; }
+    [[nodiscard]] i32 getTotalExperience() const noexcept
+    {
+        return m_totalExperience;
+    }
 
     /**
      * @brief 获取当前等级填满进度条所需的经验值
@@ -189,7 +198,10 @@ public:
      *
      * @return 当前附魔种子
      */
-    [[nodiscard]] i32 getXpSeed() const noexcept { return m_xpSeed; }
+    [[nodiscard]] i32 getXpSeed() const noexcept
+    {
+        return m_xpSeed;
+    }
 
     /**
      * @brief 设置附魔随机种子
@@ -198,7 +210,10 @@ public:
      *
      * @param seed 种子值
      */
-    void setXpSeed(i32 seed) noexcept { m_xpSeed = seed; }
+    void setXpSeed(i32 seed) noexcept
+    {
+        m_xpSeed = seed;
+    }
 
     /**
      * @brief 重置附魔随机种子
@@ -236,17 +251,26 @@ public:
     /**
      * @brief 标记为需要同步
      */
-    void markDirty() noexcept { m_dirty = true; }
+    void markDirty() noexcept
+    {
+        m_dirty = true;
+    }
 
     /**
      * @brief 检查是否需要同步
      */
-    [[nodiscard]] bool isDirty() const noexcept { return m_dirty; }
+    [[nodiscard]] bool isDirty() const noexcept
+    {
+        return m_dirty;
+    }
 
     /**
      * @brief 清除同步标记
      */
-    void clearDirty() noexcept { m_dirty = false; }
+    void clearDirty() noexcept
+    {
+        m_dirty = false;
+    }
 
     // ========== 回调 ==========
 

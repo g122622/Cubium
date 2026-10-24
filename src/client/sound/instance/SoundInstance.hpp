@@ -159,21 +159,80 @@ public:
     // ISoundInstance 接口实现
     // ========================================================================
 
-    [[nodiscard]] const ResourceLocation& getSoundEventId() const override { return m_soundEventId; }
-    [[nodiscard]] SoundCategory getCategory() const override { return m_category; }
-    [[nodiscard]] f32 getVolume() const override { return m_volume; }
-    [[nodiscard]] f32 getPitch() const override { return m_pitch; }
-    [[nodiscard]] f32 getX() const override { return m_position.x; }
-    [[nodiscard]] f32 getY() const override { return m_position.y; }
-    [[nodiscard]] f32 getZ() const override { return m_position.z; }
-    [[nodiscard]] bool isLooping() const override { return m_looping; }
-    [[nodiscard]] u32 getRepeatDelay() const override { return m_repeatDelay; }
-    [[nodiscard]] AttenuationType getAttenuationType() const override { return m_attenuationType; }
-    [[nodiscard]] bool isGlobal() const override { return m_attenuationType == AttenuationType::None; }
-    [[nodiscard]] f32 getAttenuationDistance() const override { return m_attenuationDistance; }
-    [[nodiscard]] SoundInstanceId getId() const override { return m_id; }
-    void setId(SoundInstanceId id) override { m_id = id; }
-    [[nodiscard]] bool isDone() const override { return m_done; }
+    [[nodiscard]] const ResourceLocation& getSoundEventId() const override
+    {
+        return m_soundEventId;
+    }
+
+    [[nodiscard]] SoundCategory getCategory() const override
+    {
+        return m_category;
+    }
+
+    [[nodiscard]] f32 getVolume() const override
+    {
+        return m_volume;
+    }
+
+    [[nodiscard]] f32 getPitch() const override
+    {
+        return m_pitch;
+    }
+
+    [[nodiscard]] f32 getX() const override
+    {
+        return m_position.x;
+    }
+
+    [[nodiscard]] f32 getY() const override
+    {
+        return m_position.y;
+    }
+
+    [[nodiscard]] f32 getZ() const override
+    {
+        return m_position.z;
+    }
+
+    [[nodiscard]] bool isLooping() const override
+    {
+        return m_looping;
+    }
+
+    [[nodiscard]] u32 getRepeatDelay() const override
+    {
+        return m_repeatDelay;
+    }
+
+    [[nodiscard]] AttenuationType getAttenuationType() const override
+    {
+        return m_attenuationType;
+    }
+
+    [[nodiscard]] bool isGlobal() const override
+    {
+        return m_attenuationType == AttenuationType::None;
+    }
+
+    [[nodiscard]] f32 getAttenuationDistance() const override
+    {
+        return m_attenuationDistance;
+    }
+
+    [[nodiscard]] SoundInstanceId getId() const override
+    {
+        return m_id;
+    }
+
+    void setId(SoundInstanceId id) override
+    {
+        m_id = id;
+    }
+
+    [[nodiscard]] bool isDone() const override
+    {
+        return m_done;
+    }
 
     // ========================================================================
     // 设置方法
@@ -182,27 +241,42 @@ public:
     /**
      * @brief 设置位置
      */
-    void setPosition(const glm::vec3& position) { m_position = position; }
+    void setPosition(const glm::vec3& position)
+    {
+        m_position = position;
+    }
 
     /**
      * @brief 设置音量
      */
-    void setVolume(f32 volume) override { m_volume = volume; }
+    void setVolume(f32 volume) override
+    {
+        m_volume = volume;
+    }
 
     /**
      * @brief 设置音调
      */
-    void setPitch(f32 pitch) override { m_pitch = pitch; }
+    void setPitch(f32 pitch) override
+    {
+        m_pitch = pitch;
+    }
 
     /**
      * @brief 设置循环
      */
-    void setLooping(bool looping) { m_looping = looping; }
+    void setLooping(bool looping)
+    {
+        m_looping = looping;
+    }
 
     /**
      * @brief 设置重复延迟
      */
-    void setRepeatDelay(u32 delay) { m_repeatDelay = delay; }
+    void setRepeatDelay(u32 delay)
+    {
+        m_repeatDelay = delay;
+    }
 
     /**
      * @brief 标记为已完成
@@ -270,7 +344,10 @@ public:
      *
      * 可更新的声音在标记完成后会自动停止。
      */
-    [[nodiscard]] bool isDone() const override { return SoundInstance::m_done; }
+    [[nodiscard]] bool isDone() const override
+    {
+        return SoundInstance::m_done;
+    }
 
     /**
      * @brief 每帧更新

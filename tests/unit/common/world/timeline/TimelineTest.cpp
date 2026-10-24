@@ -63,7 +63,9 @@ using Activity = entity::ai::brain::schedule::Activity;
 class ActivitySampler {
 public:
     ActivitySampler(const Timeline& timeline, const attribute::EnvironmentAttribute<Activity>& envAttr)
-        : m_sampler(timeline.createTrackSampler<Activity, Activity>(envAttr, [this]() { return m_dayTime; }))
+        : m_sampler(timeline.createTrackSampler<Activity, Activity>(envAttr, [this]() {
+            return m_dayTime;
+        }))
     {}
 
     [[nodiscard]] Activity sample(i64 dayTime)

@@ -85,6 +85,7 @@ extern "C" void __asan_on_error()
 {
     s_sanitizerReportInProgress.store(true, std::memory_order::release);
 }
+
 #undef MC_GAMETEST_HAS_ASAN
 #endif
 
@@ -103,8 +104,16 @@ public:
         : m_starting(std::move(starting))
         , m_finished(std::move(finished))
     {}
-    void onBatchStarting(GameTestBatch& batch) override { m_starting(batch); }
-    void onBatchFinished(GameTestBatch& batch) override { m_finished(batch); }
+
+    void onBatchStarting(GameTestBatch& batch) override
+    {
+        m_starting(batch);
+    }
+
+    void onBatchFinished(GameTestBatch& batch) override
+    {
+        m_finished(batch);
+    }
 
 private:
     std::function<void(const GameTestBatch&)> m_starting;
@@ -425,8 +434,9 @@ bool GameTestServer::_selectAndBuildRunner()
         std::vector<std::shared_ptr<BaseGameTestFunction>> partition;
         std::vector<std::string> allIds;
         std::vector<std::string> selectedIds;
-        for (const auto& item : work)
+        for (const auto& item : work) {
             allIds.push_back(item.id);
+        }
         std::sort(allIds.begin(), allIds.end());
         for (const auto index : indices) {
             partition.push_back(selected[index]);
@@ -434,7 +444,9 @@ bool GameTestServer::_selectAndBuildRunner()
         }
         if (!m_params.reportPath.empty()) {
             auto manifestPath = std::filesystem::path(m_params.reportPath);
-            if (manifestPath.is_relative()) manifestPath = m_gameDirectory.root() / manifestPath;
+            if (manifestPath.is_relative()) {
+                manifestPath = m_gameDirectory.root() / manifestPath;
+            }
             manifestPath += ".partition.json";
             std::error_code error;
             std::filesystem::create_directories(manifestPath.parent_path(), error);
@@ -624,7 +636,9 @@ bool GameTestServer::_selectAndBuildRunner()
                 declaredTicks);
             _armBatchWatchdog();
         },
-        [this](const GameTestBatch&) { GlobalTestReporter::instance().onBatchFinished(m_runner->tracker()); }));
+        [this](const GameTestBatch&) {
+            GlobalTestReporter::instance().onBatchFinished(m_runner->tracker());
+        }));
     auto baseline = std::make_shared<std::vector<EntityReference<Entity>>>();
     m_dimensionManager->forEachDimension([&](Dimension& dimension) {
         auto& world = *static_cast<ServerDimension&>(dimension).world();
@@ -636,12 +650,16 @@ bool GameTestServer::_selectAndBuildRunner()
     const auto cleanCaseEntities = [this, baseline](const GameTestBatch&) {
         std::unordered_set<const Entity*> retained;
         for (const auto& reference : *baseline) {
-            if (const auto* entity = reference.get()) retained.insert(entity);
+            if (const auto* entity = reference.get()) {
+                retained.insert(entity);
+            }
         }
         m_dimensionManager->forEachDimension([&](Dimension& dimension) {
             auto& world = *static_cast<ServerDimension&>(dimension).world();
             world.entityManager().forEachEntity([&](Entity* entity) {
-                if (!retained.contains(entity)) entity->discard();
+                if (!retained.contains(entity)) {
+                    entity->discard();
+                }
                 return true;
             });
         });

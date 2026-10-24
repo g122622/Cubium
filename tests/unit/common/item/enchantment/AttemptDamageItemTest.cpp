@@ -69,7 +69,10 @@ public:
     DamageTestWorld() = default;
 
     // 暴露随机数生成器用于验证
-    math::IRandom& testRandom() { return m_random; }
+    math::IRandom& testRandom()
+    {
+        return m_random;
+    }
 };
 
 // ============================================================================
@@ -85,7 +88,10 @@ protected:
         EnchantmentRegistry::initialize();
     }
 
-    void TearDown() override { EnchantmentRegistry::clear(); }
+    void TearDown() override
+    {
+        EnchantmentRegistry::clear();
+    }
 
     DamageTestWorld world;
 };

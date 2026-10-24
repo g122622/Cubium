@@ -521,6 +521,7 @@ public:
     {
         throw std::runtime_error("PredicateFilterTestWorld::tickManager not implemented");
     }
+
     [[nodiscard]] const tick::TickManager& tickManager() const override
     {
         throw std::runtime_error("PredicateFilterTestWorld::tickManager not implemented");
@@ -543,8 +544,9 @@ protected:
     {
         return LootContextBuilder(m_world)
             .withRandom(m_random)
-            .withPredicateResolver(
-                [this](const std::string& id) -> const LootCondition* { return m_predicateManager.getPredicate(id); })
+            .withPredicateResolver([this](const std::string& id) -> const LootCondition* {
+                return m_predicateManager.getPredicate(id);
+            })
             .build(loot::LootParameterSets::selector());
     }
 };

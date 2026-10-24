@@ -50,8 +50,9 @@ InstrumentTag& InstrumentTags::GOAT_HORNS()
 
 InstrumentTag& InstrumentTags::registerTag(const ResourceLocation& id)
 {
-    const auto it =
-        std::find_if(m_tags.begin(), m_tags.end(), [&id](const InstrumentTag& tag) { return tag.id() == id; });
+    const auto it = std::find_if(m_tags.begin(), m_tags.end(), [&id](const InstrumentTag& tag) {
+        return tag.id() == id;
+    });
     if (it != m_tags.end()) {
         return *it;
     }
@@ -61,8 +62,9 @@ InstrumentTag& InstrumentTags::registerTag(const ResourceLocation& id)
 
 const InstrumentTag* InstrumentTags::getTag(const ResourceLocation& id) const
 {
-    const auto it =
-        std::find_if(m_tags.begin(), m_tags.end(), [&id](const InstrumentTag& tag) { return tag.id() == id; });
+    const auto it = std::find_if(m_tags.begin(), m_tags.end(), [&id](const InstrumentTag& tag) {
+        return tag.id() == id;
+    });
     return it == m_tags.end() ? nullptr : &*it;
 }
 

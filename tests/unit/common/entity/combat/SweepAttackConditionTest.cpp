@@ -68,7 +68,10 @@ protected:
         item::enchant::EnchantmentRegistry::initialize();
     }
 
-    void TearDown() override { item::enchant::EnchantmentRegistry::clear(); }
+    void TearDown() override
+    {
+        item::enchant::EnchantmentRegistry::clear();
+    }
 };
 
 // ============================================================================

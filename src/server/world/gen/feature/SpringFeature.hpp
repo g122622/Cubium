@@ -87,8 +87,15 @@ public:
         math::IRandom& random,
         const BlockPos& pos) const override;
 
-    [[nodiscard]] const char* name() const override { return m_name.c_str(); }
-    [[nodiscard]] DecorationStage stage() const override { return DecorationStage::FluidSprings; }
+    [[nodiscard]] const char* name() const override
+    {
+        return m_name.c_str();
+    }
+
+    [[nodiscard]] DecorationStage stage() const override
+    {
+        return DecorationStage::FluidSprings;
+    }
 
 private:
     std::unique_ptr<SpringConfig> m_config;

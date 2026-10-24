@@ -115,6 +115,7 @@ Vector3f WolfCollarLayer::_getCollarColor(const ::mc::client::ClientEntity& enti
     u8 colorIndex = static_cast<u8>(entity.wolfCollarColor());
     return getCollarColorByIndex(colorIndex);
 }
+
 void WolfCollarLayer::_buildCollarMesh(std::vector<model::ModelVertex>& vertices, std::vector<u32>& indices)
 {
     // 项圈是一个简单的环形，围绕颈部

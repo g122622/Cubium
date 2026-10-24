@@ -125,12 +125,18 @@ public:
     /**
      * @brief 检查是否有战斗记录
      */
-    [[nodiscard]] bool hasCombat() const { return !m_entries.empty(); }
+    [[nodiscard]] bool hasCombat() const
+    {
+        return !m_entries.empty();
+    }
 
     /**
      * @brief 获取总承受伤害
      */
-    [[nodiscard]] f32 getTotalDamage() const { return m_totalDamage; }
+    [[nodiscard]] f32 getTotalDamage() const
+    {
+        return m_totalDamage;
+    }
 
     /**
      * @brief 获取战斗时长（从第一条记录到最后一条）
@@ -141,22 +147,34 @@ public:
     /**
      * @brief 获取战斗条目数量
      */
-    [[nodiscard]] size_t getEntryCount() const { return m_entries.size(); }
+    [[nodiscard]] size_t getEntryCount() const
+    {
+        return m_entries.size();
+    }
 
     /**
      * @brief 检查是否在战斗中
      */
-    [[nodiscard]] bool inCombat() const { return m_inCombat; }
+    [[nodiscard]] bool inCombat() const
+    {
+        return m_inCombat;
+    }
 
     /**
      * @brief 获取战斗开始时间
      */
-    [[nodiscard]] i32 combatStartTime() const { return m_combatStartTime; }
+    [[nodiscard]] i32 combatStartTime() const
+    {
+        return m_combatStartTime;
+    }
 
     /**
      * @brief 获取战斗结束时间
      */
-    [[nodiscard]] i32 combatEndTime() const { return m_combatEndTime; }
+    [[nodiscard]] i32 combatEndTime() const
+    {
+        return m_combatEndTime;
+    }
 
     // 静态常量
     static constexpr i32 COMBAT_TIMEOUT = 100; // 战斗超时时间（5秒 = 100 tick）

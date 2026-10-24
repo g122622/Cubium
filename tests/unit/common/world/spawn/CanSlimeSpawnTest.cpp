@@ -94,7 +94,10 @@ public:
     }
 
     /// 设置指定位置的方块状态
-    void setBlockState(i32 x, i32 y, i32 z, const BlockState* state) { m_blocks[BlockPos(x, y, z)] = state; }
+    void setBlockState(i32 x, i32 y, i32 z, const BlockState* state)
+    {
+        m_blocks[BlockPos(x, y, z)] = state;
+    }
 
     /// 配置指定生成位置 Y 坐标的 OnGround 方块状态
     /// 在 y-1 放置实心方块（脚底），y 和 y+1 为空气
@@ -107,19 +110,40 @@ public:
         setBlockState(x, spawnY + 1, z, &VanillaBlocks::AIR->defaultState());
     }
 
-    [[nodiscard]] bool isInWorldBounds(i32, i32 y, i32) const override { return y >= m_minY && y < m_maxY; }
+    [[nodiscard]] bool isInWorldBounds(i32, i32 y, i32) const override
+    {
+        return y >= m_minY && y < m_maxY;
+    }
 
-    [[nodiscard]] i32 getHeight(HeightmapType, i32, i32) const override { return 64; }
+    [[nodiscard]] i32 getHeight(HeightmapType, i32, i32) const override
+    {
+        return 64;
+    }
 
-    [[nodiscard]] BiomeId getBiome(i32, i32, i32) const override { return m_biomeId; }
+    [[nodiscard]] BiomeId getBiome(i32, i32, i32) const override
+    {
+        return m_biomeId;
+    }
 
-    [[nodiscard]] u64 seed() const override { return m_seed; }
+    [[nodiscard]] u64 seed() const override
+    {
+        return m_seed;
+    }
 
-    [[nodiscard]] Difficulty difficulty() const override { return m_difficulty; }
+    [[nodiscard]] Difficulty difficulty() const override
+    {
+        return m_difficulty;
+    }
 
-    [[nodiscard]] i64 dayTime() const override { return m_dayTime; }
+    [[nodiscard]] i64 dayTime() const override
+    {
+        return m_dayTime;
+    }
 
-    [[nodiscard]] i32 getMaxLocalRawBrightness(i32, i32, i32) const override { return m_maxBrightness; }
+    [[nodiscard]] i32 getMaxLocalRawBrightness(i32, i32, i32) const override
+    {
+        return m_maxBrightness;
+    }
 
 private:
     std::unordered_map<BlockPos, const BlockState*> m_blocks;
@@ -161,7 +185,9 @@ TEST_F(CanSlimeSpawnTest, PeacefulDifficultyRejectsUnderground)
                 break;
             }
         }
-        if (slimeChunkX != 0 || slimeChunkZ != 0) break;
+        if (slimeChunkX != 0 || slimeChunkZ != 0) {
+            break;
+        }
     }
 
     // 确保我们找到了一个史莱姆区块
@@ -215,7 +241,9 @@ TEST_F(CanSlimeSpawnTest, UndergroundSlimeChunkPathRequiresYBelow40)
                 break;
             }
         }
-        if (nonSlimeX != 0 || nonSlimeZ != 0) break;
+        if (nonSlimeX != 0 || nonSlimeZ != 0) {
+            break;
+        }
     }
 
     const i32 spawnX = nonSlimeX * 16 + 8;
@@ -254,7 +282,9 @@ TEST_F(CanSlimeSpawnTest, UndergroundSlimeChunkPathRejectsYAtOrAbove40)
                 break;
             }
         }
-        if (slimeChunkX != 0 || slimeChunkZ != 0) break;
+        if (slimeChunkX != 0 || slimeChunkZ != 0) {
+            break;
+        }
     }
 
     const i32 spawnX = slimeChunkX * 16 + 8;
@@ -296,7 +326,9 @@ TEST_F(CanSlimeSpawnTest, UndergroundSlimeChunkPathAppliesToNaturalAndChunkGener
                 break;
             }
         }
-        if (slimeChunkX != 0 || slimeChunkZ != 0) break;
+        if (slimeChunkX != 0 || slimeChunkZ != 0) {
+            break;
+        }
     }
 
     ASSERT_TRUE(SlimeChunkChecker::isSlimeChunk(0, slimeChunkX, slimeChunkZ));
@@ -617,7 +649,9 @@ TEST_F(CanSlimeSpawnTest, SlimeChunkAndSwampBiomeBothPathsAvailable)
                 break;
             }
         }
-        if (slimeChunkX != 0 || slimeChunkZ != 0) break;
+        if (slimeChunkX != 0 || slimeChunkZ != 0) {
+            break;
+        }
     }
 
     ASSERT_TRUE(SlimeChunkChecker::isSlimeChunk(0, slimeChunkX, slimeChunkZ));
@@ -708,7 +742,9 @@ TEST_F(CanSlimeSpawnTest, SlimeChunkDeterministicWithSameSeed)
                 break;
             }
         }
-        if (slimeChunkX != 0 || slimeChunkZ != 0) break;
+        if (slimeChunkX != 0 || slimeChunkZ != 0) {
+            break;
+        }
     }
 
     const i32 spawnX = slimeChunkX * 16 + 8;
@@ -797,7 +833,9 @@ TEST_F(CanSlimeSpawnTest, SpawnerBypassesSlimeChunkAndSwampConditions)
                 break;
             }
         }
-        if (nonSlimeX != 0 || nonSlimeZ != 0) break;
+        if (nonSlimeX != 0 || nonSlimeZ != 0) {
+            break;
+        }
     }
 
     const i32 spawnX = nonSlimeX * 16 + 8;
@@ -874,7 +912,9 @@ TEST_F(CanSlimeSpawnTest, NaturalRejectsUndergroundInNonSlimeChunk)
                 break;
             }
         }
-        if (nonSlimeX != 0 || nonSlimeZ != 0) break;
+        if (nonSlimeX != 0 || nonSlimeZ != 0) {
+            break;
+        }
     }
 
     const i32 spawnX = nonSlimeX * 16 + 8;

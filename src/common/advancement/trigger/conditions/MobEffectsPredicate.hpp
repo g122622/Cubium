@@ -99,10 +99,25 @@ public:
 
     // ========== Getters ==========
 
-    [[nodiscard]] const IntBounds& getAmplifier() const noexcept { return m_amplifier; }
-    [[nodiscard]] const IntBounds& getDuration() const noexcept { return m_duration; }
-    [[nodiscard]] const std::optional<bool>& getAmbient() const noexcept { return m_ambient; }
-    [[nodiscard]] const std::optional<bool>& getVisible() const noexcept { return m_visible; }
+    [[nodiscard]] const IntBounds& getAmplifier() const noexcept
+    {
+        return m_amplifier;
+    }
+
+    [[nodiscard]] const IntBounds& getDuration() const noexcept
+    {
+        return m_duration;
+    }
+
+    [[nodiscard]] const std::optional<bool>& getAmbient() const noexcept
+    {
+        return m_ambient;
+    }
+
+    [[nodiscard]] const std::optional<bool>& getVisible() const noexcept
+    {
+        return m_visible;
+    }
 
 private:
     IntBounds m_amplifier;         ///< 效果等级范围
@@ -167,7 +182,10 @@ public:
     /**
      * @brief 是否匹配任意效果状态（无约束）
      */
-    [[nodiscard]] bool isAny() const noexcept { return m_effects.empty(); }
+    [[nodiscard]] bool isAny() const noexcept
+    {
+        return m_effects.empty();
+    }
 
     /**
      * @brief 获取效果映射

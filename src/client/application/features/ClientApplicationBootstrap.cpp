@@ -794,7 +794,9 @@ void ClientApplication::initializeUi()
                 chatWidget->setFont(guiFont);
                 chatWidget->setGuiRenderer(&m_renderer->guiRenderer());
                 chatWidget->setCommandManager(m_commandManager.get());
-                chatWidget->setCommandCallback([this](const std::string& input) { handleChatCommand(input); });
+                chatWidget->setCommandCallback([this](const std::string& input) {
+                    handleChatCommand(input);
+                });
                 // Actionbar 回调需要在 chatWidget 和 titleWidget 都加入引擎后设置，
                 // 因为回调需要通过 layer ID 访问 titleWidget（见下方 setActionbarCallback）
                 m_chatLayerId = m_kageroEngine->addLayer(std::move(chatWidget), 20);

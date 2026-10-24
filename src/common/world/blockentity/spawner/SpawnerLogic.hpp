@@ -202,30 +202,90 @@ public:
 
     // ========== 参数访问 ==========
 
-    [[nodiscard]] i32 getMinSpawnDelay() const { return m_minSpawnDelay; }
-    void setMinSpawnDelay(i32 delay) { m_minSpawnDelay = delay; }
+    [[nodiscard]] i32 getMinSpawnDelay() const
+    {
+        return m_minSpawnDelay;
+    }
 
-    [[nodiscard]] i32 getMaxSpawnDelay() const { return m_maxSpawnDelay; }
-    void setMaxSpawnDelay(i32 delay) { m_maxSpawnDelay = delay; }
+    void setMinSpawnDelay(i32 delay)
+    {
+        m_minSpawnDelay = delay;
+    }
 
-    [[nodiscard]] i32 getSpawnCount() const { return m_spawnCount; }
-    void setSpawnCount(i32 count) { m_spawnCount = count; }
+    [[nodiscard]] i32 getMaxSpawnDelay() const
+    {
+        return m_maxSpawnDelay;
+    }
 
-    [[nodiscard]] i32 getMaxNearbyEntities() const { return m_maxNearbyEntities; }
-    void setMaxNearbyEntities(i32 max) { m_maxNearbyEntities = max; }
+    void setMaxSpawnDelay(i32 delay)
+    {
+        m_maxSpawnDelay = delay;
+    }
 
-    [[nodiscard]] i32 getRequiredPlayerRange() const { return m_requiredPlayerRange; }
-    void setRequiredPlayerRange(i32 range) { m_requiredPlayerRange = range; }
+    [[nodiscard]] i32 getSpawnCount() const
+    {
+        return m_spawnCount;
+    }
 
-    [[nodiscard]] i32 getSpawnRange() const { return m_spawnRange; }
-    void setSpawnRange(i32 range) { m_spawnRange = range; }
+    void setSpawnCount(i32 count)
+    {
+        m_spawnCount = count;
+    }
 
-    [[nodiscard]] i32 getSpawnDelay() const { return m_spawnDelay; }
-    void setSpawnDelay(i32 delay) { m_spawnDelay = delay; }
+    [[nodiscard]] i32 getMaxNearbyEntities() const
+    {
+        return m_maxNearbyEntities;
+    }
 
-    [[nodiscard]] const std::vector<SpawnEntry>& getSpawnPotentials() const { return m_spawnPotentials; }
-    [[nodiscard]] const ResourceLocation& getNextEntityId() const { return m_nextEntityId; }
-    [[nodiscard]] const std::optional<CustomSpawnRules>& getCustomSpawnRules() const { return m_customSpawnRules; }
+    void setMaxNearbyEntities(i32 max)
+    {
+        m_maxNearbyEntities = max;
+    }
+
+    [[nodiscard]] i32 getRequiredPlayerRange() const
+    {
+        return m_requiredPlayerRange;
+    }
+
+    void setRequiredPlayerRange(i32 range)
+    {
+        m_requiredPlayerRange = range;
+    }
+
+    [[nodiscard]] i32 getSpawnRange() const
+    {
+        return m_spawnRange;
+    }
+
+    void setSpawnRange(i32 range)
+    {
+        m_spawnRange = range;
+    }
+
+    [[nodiscard]] i32 getSpawnDelay() const
+    {
+        return m_spawnDelay;
+    }
+
+    void setSpawnDelay(i32 delay)
+    {
+        m_spawnDelay = delay;
+    }
+
+    [[nodiscard]] const std::vector<SpawnEntry>& getSpawnPotentials() const
+    {
+        return m_spawnPotentials;
+    }
+
+    [[nodiscard]] const ResourceLocation& getNextEntityId() const
+    {
+        return m_nextEntityId;
+    }
+
+    [[nodiscard]] const std::optional<CustomSpawnRules>& getCustomSpawnRules() const
+    {
+        return m_customSpawnRules;
+    }
 
     // ========== 序列化 ==========
 
@@ -259,13 +319,19 @@ public:
      * @brief 获取旋转角度（用于客户端渲染）
      * 对应 MC Java BaseSpawner.getSpin()
      */
-    [[nodiscard]] f64 getSpin() const { return m_spin; }
+    [[nodiscard]] f64 getSpin() const
+    {
+        return m_spin;
+    }
 
     /**
      * @brief 获取上一 tick 旋转角度
      * 对应 MC Java BaseSpawner.getoSpin()
      */
-    [[nodiscard]] f64 getOSpin() const { return m_oSpin; }
+    [[nodiscard]] f64 getOSpin() const
+    {
+        return m_oSpin;
+    }
 
 private:
     // ========== 生成逻辑（内部方法） ==========

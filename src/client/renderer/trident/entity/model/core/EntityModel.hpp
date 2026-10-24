@@ -100,12 +100,22 @@ public:
     /**
      * @brief 获取所有部件
      */
-    [[nodiscard]] const std::vector<std::shared_ptr<ModelRenderer>>& getParts() const { return m_parts; }
+    [[nodiscard]] const std::vector<std::shared_ptr<ModelRenderer>>& getParts() const
+    {
+        return m_parts;
+    }
 
     // ========== 纹理 ==========
 
-    [[nodiscard]] i32 textureWidth() const { return m_textureWidth; }
-    [[nodiscard]] i32 textureHeight() const { return m_textureHeight; }
+    [[nodiscard]] i32 textureWidth() const
+    {
+        return m_textureWidth;
+    }
+
+    [[nodiscard]] i32 textureHeight() const
+    {
+        return m_textureHeight;
+    }
 
     void setTextureSize(i32 width, i32 height)
     {
@@ -130,32 +140,50 @@ public:
     /**
      * @brief 获取挥动进度
      */
-    [[nodiscard]] f32 swingProgress() const { return m_swingProgress; }
+    [[nodiscard]] f32 swingProgress() const
+    {
+        return m_swingProgress;
+    }
 
     /**
      * @brief 设置挥动进度
      */
-    void setSwingProgress(f32 value) { m_swingProgress = value; }
+    void setSwingProgress(f32 value)
+    {
+        m_swingProgress = value;
+    }
 
     /**
      * @brief 是否在坐下
      */
-    [[nodiscard]] bool isSitting() const { return m_isSitting; }
+    [[nodiscard]] bool isSitting() const
+    {
+        return m_isSitting;
+    }
 
     /**
      * @brief 设置坐下状态
      */
-    void setSitting(bool value) { m_isSitting = value; }
+    void setSitting(bool value)
+    {
+        m_isSitting = value;
+    }
 
     /**
      * @brief 是否为幼体
      */
-    [[nodiscard]] bool isChild() const { return m_isChild; }
+    [[nodiscard]] bool isChild() const
+    {
+        return m_isChild;
+    }
 
     /**
      * @brief 设置幼体状态
      */
-    void setChild(bool value) { m_isChild = value; }
+    void setChild(bool value)
+    {
+        m_isChild = value;
+    }
 
 protected:
     i32 m_textureWidth = 64;

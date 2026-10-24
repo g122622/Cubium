@@ -71,9 +71,11 @@ private:
     struct TextureResource {
         ResourceLocation textureLocation;
     };
+
     struct Predecoded {
         std::shared_ptr<SpriteContents> contents;
     };
+
     std::variant<TextureResource, Predecoded> m_state;
 
     explicit SpriteLoader(std::variant<TextureResource, Predecoded> state)

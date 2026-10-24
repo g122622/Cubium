@@ -69,7 +69,9 @@ size_t BlockComponentRegistry::unregisterComponent(const std::string& blockTypeI
     auto originalSize = components.size();
     components.erase(std::remove_if(components.begin(),
                          components.end(),
-                         [&componentName](const BlockCustomComponent& c) { return c.name == componentName; }),
+                         [&componentName](const BlockCustomComponent& c) {
+                             return c.name == componentName;
+                         }),
         components.end());
 
     auto removed = originalSize - components.size();
@@ -455,19 +457,45 @@ void BlockComponentRegistry::_updateCallbackFlags(const std::string& blockTypeId
 
     CallbackFlags flags{};
     for (const auto& component : it->second) {
-        if (component.onStepOn) flags.hasStepOn = 1;
-        if (component.onStepOff) flags.hasStepOff = 1;
-        if (component.onPlace) flags.hasPlace = 1;
-        if (component.onBreak) flags.hasBreak = 1;
-        if (component.onPlayerBreak) flags.hasPlayerBreak = 1;
-        if (component.onPlayerInteract) flags.hasPlayerInteract = 1;
-        if (component.beforeOnPlayerPlace) flags.hasPlayerPlaceBefore = 1;
-        if (component.onEntityFallOn) flags.hasEntityFallOn = 1;
-        if (component.onRandomTick) flags.hasRandomTick = 1;
-        if (component.onTick) flags.hasTick = 1;
-        if (component.onRedstoneUpdate) flags.hasRedstoneUpdate = 1;
-        if (component.onEntity) flags.hasEntity = 1;
-        if (component.onBlockStateChange) flags.hasBlockStateChange = 1;
+        if (component.onStepOn) {
+            flags.hasStepOn = 1;
+        }
+        if (component.onStepOff) {
+            flags.hasStepOff = 1;
+        }
+        if (component.onPlace) {
+            flags.hasPlace = 1;
+        }
+        if (component.onBreak) {
+            flags.hasBreak = 1;
+        }
+        if (component.onPlayerBreak) {
+            flags.hasPlayerBreak = 1;
+        }
+        if (component.onPlayerInteract) {
+            flags.hasPlayerInteract = 1;
+        }
+        if (component.beforeOnPlayerPlace) {
+            flags.hasPlayerPlaceBefore = 1;
+        }
+        if (component.onEntityFallOn) {
+            flags.hasEntityFallOn = 1;
+        }
+        if (component.onRandomTick) {
+            flags.hasRandomTick = 1;
+        }
+        if (component.onTick) {
+            flags.hasTick = 1;
+        }
+        if (component.onRedstoneUpdate) {
+            flags.hasRedstoneUpdate = 1;
+        }
+        if (component.onEntity) {
+            flags.hasEntity = 1;
+        }
+        if (component.onBlockStateChange) {
+            flags.hasBlockStateChange = 1;
+        }
     }
     m_callbackFlags[blockTypeId] = flags;
 }

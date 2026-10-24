@@ -69,6 +69,7 @@ namespace mc {
 class ItemStack;
 class BlockEntity;
 class Player;
+
 namespace network::ir::play {
 struct LevelChunkWithLight;
 }
@@ -188,7 +189,11 @@ public:
     /**
      * @brief 获取方块状态预测处理器
      */
-    [[nodiscard]] BlockStatePredictionHandler& blockStatePredictionHandler() { return m_blockStatePredictionHandler; }
+    [[nodiscard]] BlockStatePredictionHandler& blockStatePredictionHandler()
+    {
+        return m_blockStatePredictionHandler;
+    }
+
     [[nodiscard]] const BlockStatePredictionHandler& blockStatePredictionHandler() const
     {
         return m_blockStatePredictionHandler;
@@ -201,7 +206,10 @@ public:
      * （预测回滚后若玩家与恢复方块碰撞则 absSnapTo 回预测前位置）。
      * 对齐原版 ClientLevel.syncBlockState 中 this.minecraft.player 的访问。
      */
-    void setClientPlayer(Player* player) { m_clientPlayer = player; }
+    void setClientPlayer(Player* player)
+    {
+        m_clientPlayer = player;
+    }
 
     [[nodiscard]] bool isWithinWorldBounds(i32 /*x*/, i32 y, i32 /*z*/) const override
     {
@@ -210,8 +218,15 @@ public:
 
     [[nodiscard]] const ChunkData* getChunkAt(ChunkCoord x, ChunkCoord z) const override;
 
-    [[nodiscard]] i32 getMinBuildHeight() const override { return m_minBuildHeight; }
-    [[nodiscard]] i32 getMaxBuildHeight() const override { return m_maxBuildHeight; }
+    [[nodiscard]] i32 getMinBuildHeight() const override
+    {
+        return m_minBuildHeight;
+    }
+
+    [[nodiscard]] i32 getMaxBuildHeight() const override
+    {
+        return m_maxBuildHeight;
+    }
 
     /**
      * @brief 获取指定位置的最高方块高度
@@ -254,12 +269,18 @@ public:
      *
      * @return 如果当前维度有天空光照返回 true
      */
-    [[nodiscard]] bool hasSkyLight() const { return m_dimensionId == 0; }
+    [[nodiscard]] bool hasSkyLight() const
+    {
+        return m_dimensionId == 0;
+    }
 
     void forEachChunk(std::function<void(const ChunkId&, ClientChunk&)> func);
     void forEachDirtyMesh(std::function<void(const ChunkId&, ClientChunk&)> func);
 
-    [[nodiscard]] size_t chunkCount() const { return m_chunks.size(); }
+    [[nodiscard]] size_t chunkCount() const
+    {
+        return m_chunks.size();
+    }
 
     void setChunkUnloadCallback(std::function<void(const ChunkId&)> callback)
     {
@@ -284,8 +305,15 @@ public:
     void rebuildChunkMesh(const ChunkId& id);
     void markChunkDirty(const ChunkId& id);
 
-    void setRenderDistance(i32 distance) { m_renderDistance = distance; }
-    [[nodiscard]] i32 renderDistance() const { return m_renderDistance; }
+    void setRenderDistance(i32 distance)
+    {
+        m_renderDistance = distance;
+    }
+
+    [[nodiscard]] i32 renderDistance() const
+    {
+        return m_renderDistance;
+    }
 
     /**
      * @brief 设置服务端下发的模拟距离（区块）。
@@ -301,8 +329,15 @@ public:
      * （LivingEntity.baseTick→tickDeath）时，在 ClientEntityManager::tick 补 shouldTickDeath
      * 切比雪夫门控，仅跳 deathTime 推进部分。字段与 Login/SetSimulationDistance 消费链路先行落地。
      */
-    void setSimulationDistance(i32 distance) { m_simulationDistance = distance; }
-    [[nodiscard]] i32 simulationDistance() const { return m_simulationDistance; }
+    void setSimulationDistance(i32 distance)
+    {
+        m_simulationDistance = distance;
+    }
+
+    [[nodiscard]] i32 simulationDistance() const
+    {
+        return m_simulationDistance;
+    }
 
     /**
      * @brief 设置服务端下发的区块加载中心（chunk 坐标）。
@@ -318,8 +353,16 @@ public:
         m_chunkCacheCenterX = x;
         m_chunkCacheCenterZ = z;
     }
-    [[nodiscard]] i32 chunkCacheCenterX() const { return m_chunkCacheCenterX; }
-    [[nodiscard]] i32 chunkCacheCenterZ() const { return m_chunkCacheCenterZ; }
+
+    [[nodiscard]] i32 chunkCacheCenterX() const
+    {
+        return m_chunkCacheCenterX;
+    }
+
+    [[nodiscard]] i32 chunkCacheCenterZ() const
+    {
+        return m_chunkCacheCenterZ;
+    }
 
     /**
      * @brief 世界边界状态（由 6 个 set_border_* / initialize_border 包同步）。
@@ -327,17 +370,30 @@ public:
      * 对齐 ServerWorld::worldBorder()：服务端 WorldBorder 是 ServerWorld 成员并经 IWorld 纯虚
      * 暴露，客户端对称地挂在 ClientWorld。tick() 由本类 update() 驱动，推进 lerp 插值收敛。
      */
-    [[nodiscard]] world::border::WorldBorder& worldBorder() { return m_worldBorder; }
-    [[nodiscard]] const world::border::WorldBorder& worldBorder() const { return m_worldBorder; }
+    [[nodiscard]] world::border::WorldBorder& worldBorder()
+    {
+        return m_worldBorder;
+    }
 
-    [[nodiscard]] u64 seed() const { return m_seed; }
+    [[nodiscard]] const world::border::WorldBorder& worldBorder() const
+    {
+        return m_worldBorder;
+    }
+
+    [[nodiscard]] u64 seed() const
+    {
+        return m_seed;
+    }
 
     // ========== 维度 ==========
 
     /**
      * @brief 获取当前维度ID
      */
-    [[nodiscard]] DimensionId dimensionId() const { return m_dimensionId; }
+    [[nodiscard]] DimensionId dimensionId() const
+    {
+        return m_dimensionId;
+    }
 
     /**
      * @brief 设置当前维度ID
@@ -345,7 +401,10 @@ public:
      * 在维度切换时调用，用于验证后续收到的区块数据包是否属于当前维度。
      * 应在 clearChunks() 之前调用。
      */
-    void setDimensionId(DimensionId dimensionId) { m_dimensionId = dimensionId; }
+    void setDimensionId(DimensionId dimensionId)
+    {
+        m_dimensionId = dimensionId;
+    }
 
     // ========== 天气 ==========
 
@@ -362,6 +421,7 @@ public:
         const u8* data,
         size_t size,
         std::shared_ptr<std::vector<u8>> buffer);
+
     /// vector 便捷重载（测试/同步路径用）：内部包成 shared_ptr 保活后转发到指针主版本。
     void onChunkData(ChunkCoord x, ChunkCoord z, DimensionId dimension, std::vector<u8> data)
     {
@@ -371,6 +431,7 @@ public:
         const size_t dataSize = buffer->size();
         onChunkData(x, z, dimension, dataPtr, dataSize, std::move(buffer));
     }
+
     void onChunkUnload(ChunkCoord x, ChunkCoord z, DimensionId dimension);
 
     /**
@@ -403,10 +464,25 @@ public:
     void onTimeUpdate(i64 gameTime, i64 dayTime, bool daylightCycleEnabled);
     [[nodiscard]] f32 getInterpolatedCelestialAngle(f32 partialTick) const;
 
-    [[nodiscard]] i64 dayTime() const { return m_dayTime; }
-    [[nodiscard]] i64 dayTimeOfDay() const { return m_dayTime % 24000; }
-    [[nodiscard]] i64 gameTime() const { return m_gameTime; }
-    [[nodiscard]] bool daylightCycleEnabled() const { return m_daylightCycleEnabled; }
+    [[nodiscard]] i64 dayTime() const
+    {
+        return m_dayTime;
+    }
+
+    [[nodiscard]] i64 dayTimeOfDay() const
+    {
+        return m_dayTime % 24000;
+    }
+
+    [[nodiscard]] i64 gameTime() const
+    {
+        return m_gameTime;
+    }
+
+    [[nodiscard]] bool daylightCycleEnabled() const
+    {
+        return m_daylightCycleEnabled;
+    }
 
     // ========== 难度 ==========
 
@@ -416,14 +492,20 @@ public:
      * 由服务端通过 ServerDifficulty 包同步。
      * 默认为 Normal 难度。
      */
-    [[nodiscard]] Difficulty difficulty() const { return m_difficulty; }
+    [[nodiscard]] Difficulty difficulty() const
+    {
+        return m_difficulty;
+    }
 
     /**
      * @brief 设置世界难度
      *
      * 由网络层收到 ServerDifficulty 包后调用。
      */
-    void setDifficulty(Difficulty difficulty) { m_difficulty = difficulty; }
+    void setDifficulty(Difficulty difficulty)
+    {
+        m_difficulty = difficulty;
+    }
 
     /**
      * @brief 获取难度是否锁定
@@ -431,12 +513,18 @@ public:
      * 由服务端通过 ServerDifficulty 包同步。
      * 当难度锁定时，玩家无法在游戏内更改难度。
      */
-    [[nodiscard]] bool isDifficultyLocked() const { return m_difficultyLocked; }
+    [[nodiscard]] bool isDifficultyLocked() const
+    {
+        return m_difficultyLocked;
+    }
 
     /**
      * @brief 设置难度是否锁定
      */
-    void setDifficultyLocked(bool locked) { m_difficultyLocked = locked; }
+    void setDifficultyLocked(bool locked)
+    {
+        m_difficultyLocked = locked;
+    }
 
     void initializeMeshSystem(util::UniversalWorkerPool& workerPool,
         std::shared_ptr<MeshDataPool> dataPool,
@@ -445,21 +533,49 @@ public:
     void shutdownMeshSystem();
     void processMeshBuildResults(u32 maxPerFrame);
 
-    [[nodiscard]] MeshDataPool* meshDataPool() const { return m_meshDataPool.get(); }
-    [[nodiscard]] const MeshBuildScheduler* meshBuildScheduler() const { return m_meshBuildScheduler.get(); }
+    [[nodiscard]] MeshDataPool* meshDataPool() const
+    {
+        return m_meshDataPool.get();
+    }
 
-    [[nodiscard]] ClientEntityManager& entityManager() { return m_entityManager; }
-    [[nodiscard]] const ClientEntityManager& entityManager() const { return m_entityManager; }
+    [[nodiscard]] const MeshBuildScheduler* meshBuildScheduler() const
+    {
+        return m_meshBuildScheduler.get();
+    }
+
+    [[nodiscard]] ClientEntityManager& entityManager()
+    {
+        return m_entityManager;
+    }
+
+    [[nodiscard]] const ClientEntityManager& entityManager() const
+    {
+        return m_entityManager;
+    }
 
     /// 客户端 ECS 实体注册表访问器。
     /// 注意：ClientWorld 不继承 IWorld（继承 ICollisionWorld + IBlockAnimateContext），
     /// 故此处非 override，而是 ClientWorld 自有方法。客户端实体（本地 Player 等）构造时
     /// 从此取 registry 句柄。
-    [[nodiscard]] ecs::EntityRegistry* entityRegistry() noexcept { return &m_entityRegistry; }
-    [[nodiscard]] const ecs::EntityRegistry* entityRegistry() const noexcept { return &m_entityRegistry; }
+    [[nodiscard]] ecs::EntityRegistry* entityRegistry() noexcept
+    {
+        return &m_entityRegistry;
+    }
 
-    [[nodiscard]] ClientWeather& weather() { return m_weather; }
-    [[nodiscard]] const ClientWeather& weather() const { return m_weather; }
+    [[nodiscard]] const ecs::EntityRegistry* entityRegistry() const noexcept
+    {
+        return &m_entityRegistry;
+    }
+
+    [[nodiscard]] ClientWeather& weather()
+    {
+        return m_weather;
+    }
+
+    [[nodiscard]] const ClientWeather& weather() const
+    {
+        return m_weather;
+    }
 
     // ========== 闪电闪烁效果 ==========
 
@@ -470,12 +586,18 @@ public:
      *
      * @param time 闪烁时间（ticks），通常为 2
      */
-    void setTimeLightningFlash(i32 time) { m_weather.setTimeLightningFlash(time); }
+    void setTimeLightningFlash(i32 time)
+    {
+        m_weather.setTimeLightningFlash(time);
+    }
 
     /**
      * @brief 获取当前闪电闪烁时间
      */
-    [[nodiscard]] i32 lightningFlashTime() const { return m_weather.lightningFlashTime(); }
+    [[nodiscard]] i32 lightningFlashTime() const
+    {
+        return m_weather.lightningFlashTime();
+    }
 
     // ========== 粒子管理 ==========
 
@@ -484,9 +606,16 @@ public:
      *
      * @param manager 粒子管理器指针（由 ClientApplication 管理）
      */
-    void setParticleManager(renderer::trident::particle::ParticleManager* manager) { m_particleManager = manager; }
+    void setParticleManager(renderer::trident::particle::ParticleManager* manager)
+    {
+        m_particleManager = manager;
+    }
 
-    [[nodiscard]] renderer::trident::particle::ParticleManager* particleManager() { return m_particleManager; }
+    [[nodiscard]] renderer::trident::particle::ParticleManager* particleManager()
+    {
+        return m_particleManager;
+    }
+
     [[nodiscard]] const renderer::trident::particle::ParticleManager* particleManager() const
     {
         return m_particleManager;
@@ -658,12 +787,18 @@ public:
     /**
      * @brief 获取世界出生点
      */
-    [[nodiscard]] const BlockPos& getSpawnPoint() const { return m_spawnPoint; }
+    [[nodiscard]] const BlockPos& getSpawnPoint() const
+    {
+        return m_spawnPoint;
+    }
 
     /**
      * @brief 获取出生点偏航角
      */
-    [[nodiscard]] f32 getSpawnAngle() const { return m_spawnAngle; }
+    [[nodiscard]] f32 getSpawnAngle() const
+    {
+        return m_spawnAngle;
+    }
 
     // ========== 方块实体 ==========
 
@@ -782,6 +917,7 @@ private:
         u64 generation = 0; ///< 提交时的代际号，用于丢弃过期结果（同坐标重发包）
         std::shared_ptr<ChunkData> data;
     };
+
     std::mutex m_pendingChunksMutex;
     std::vector<PendingDeserializedChunk> m_pendingDeserializedChunks;
     /// 每区块最新反序列化代际号（主线程读写，无锁）。onChunkUnload/clearChunks 清理。

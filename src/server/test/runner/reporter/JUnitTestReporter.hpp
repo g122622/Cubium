@@ -37,7 +37,10 @@ public:
     /**
      * @brief 是否在报告过程中遇到 IO 错误（写文件失败）。
      */
-    [[nodiscard]] bool hasIoError() const noexcept { return m_ioError; }
+    [[nodiscard]] bool hasIoError() const noexcept
+    {
+        return m_ioError;
+    }
 
 private:
     struct _CaseRecord {

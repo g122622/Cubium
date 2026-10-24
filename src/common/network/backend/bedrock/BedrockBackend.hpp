@@ -46,7 +46,10 @@ namespace mc::network::backend {
 template <typename B>
 class BedrockBackend final : public IProtocolBackend<B> {
 public:
-    [[nodiscard]] std::string name() const override { return "bedrock"; }
+    [[nodiscard]] std::string name() const override
+    {
+        return "bedrock";
+    }
 
     [[nodiscard]] std::vector<i32> supportedProtocolVersions() const override
     {

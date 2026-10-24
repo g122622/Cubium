@@ -1546,6 +1546,7 @@ struct EditBook {
     std::optional<std::string> title;
     friend bool operator==(const EditBook&, const EditBook&) = default;
 };
+
 /** @brief 打开指定手中的成书。 */
 struct OpenBook {
     i32 hand;
@@ -1558,12 +1559,14 @@ struct BundleItemSelected {
     i32 selectedItemIndex;
     friend bool operator==(const BundleItemSelected&, const BundleItemSelected&) = default;
 };
+
 /** @brief 信标的可选效果使用纯注册 ID，由 Java 后端映射至业务类型。 */
 struct SetBeacon {
     std::optional<i32> primary;
     std::optional<i32> secondary;
     friend bool operator==(const SetBeacon&, const SetBeacon&) = default;
 };
+
 /** @brief 实体绝对位置、当前速度、旋转和落地状态的同步快照。 */
 struct EntityPositionSync {
     i32 entityId;
@@ -1586,36 +1589,43 @@ enum class KnownServerLink : i32 {
     News,
     Announcements
 };
+
 /** @brief 链接标签使用内置类型或完整文本组件 NBT。 */
 struct ServerLink {
     std::variant<KnownServerLink, std::vector<u8>> label;
     std::string url;
     friend bool operator==(const ServerLink&, const ServerLink&) = default;
 };
+
 /** @brief 服务器链接列表，空列表清除。 */
 struct ServerLinks {
     std::vector<ServerLink> links;
     friend bool operator==(const ServerLinks&, const ServerLinks&) = default;
 };
+
 /** @brief 对话框 holder，整数为零基注册 ID，字节为直接定义的根 Compound NBT。 */
 struct ShowDialog {
     std::variant<i32, std::vector<u8>> dialog;
     friend bool operator==(const ShowDialog&, const ShowDialog&) = default;
 };
+
 /** @brief 清除客户端当前对话框，无负载。 */
 struct ClearDialog {
     friend bool operator==(const ClearDialog&, const ClearDialog&) = default;
 };
 /** @brief 导航点增删改操作。 */
 enum class WaypointOperation : i32 { Track, Untrack, Update };
+
 struct WaypointPosition {
     i32 x, y, z;
     friend bool operator==(const WaypointPosition&, const WaypointPosition&) = default;
 };
+
 struct WaypointChunk {
     i32 x, z;
     friend bool operator==(const WaypointChunk&, const WaypointChunk&) = default;
 };
+
 /** @brief 导航点支持 UUID/字符串标识、样式、RGB 颜色和四种位置表达。 */
 struct Waypoint {
     WaypointOperation operation;

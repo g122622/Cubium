@@ -123,7 +123,9 @@ bool SheepEntity::isBreedingItem(const ItemStack& itemStack) const
 {
     // 羊用小麦繁殖
     const Item* item = itemStack.getItem();
-    if (item == nullptr) return false;
+    if (item == nullptr) {
+        return false;
+    }
     return item == Items::WHEAT;
 }
 
@@ -271,7 +273,13 @@ void SheepEntity::registerGoals()
 
     // 优先级 5: 吃草 - 在 RandomWalkingGoal 之前
     auto eatGrassGoal = std::make_unique<entity::ai::goal::EatGrassGoal>(
-        this, [this]() { this->eatGrassBonus(); }, [this]() { return this->isChild(); });
+        this,
+        [this]() {
+            this->eatGrassBonus();
+        },
+        [this]() {
+            return this->isChild();
+        });
     m_eatGrassGoal = eatGrassGoal.get();
     m_goalSelector.addGoal(5, std::move(eatGrassGoal));
 

@@ -67,7 +67,10 @@ public:
      * @brief 获取打开计数
      * @return 当前打开的玩家数量
      */
-    [[nodiscard]] i32 getOpenCount() const { return m_openCount; }
+    [[nodiscard]] i32 getOpenCount() const
+    {
+        return m_openCount;
+    }
 
     /**
      * @brief 玩家打开末影箱
@@ -95,7 +98,10 @@ public:
      * @brief 获取盖子打开角度
      * @return 角度 (0.0 = 关闭, 1.0 = 完全打开)
      */
-    [[nodiscard]] f32 getLidAngle() const { return m_lidAngle; }
+    [[nodiscard]] f32 getLidAngle() const
+    {
+        return m_lidAngle;
+    }
 
     /**
      * @brief 获取插值后的盖子角度（用于渲染）
@@ -108,7 +114,10 @@ public:
      * @brief 获取上一帧的盖子角度
      * @return 角度
      */
-    [[nodiscard]] f32 getPrevLidAngle() const { return m_prevLidAngle; }
+    [[nodiscard]] f32 getPrevLidAngle() const
+    {
+        return m_prevLidAngle;
+    }
 
     /**
      * @brief 更新盖子动画
@@ -129,7 +138,11 @@ public:
     // ========== Tick 更新 ==========
 
     void tick(IWorld& world) override;
-    [[nodiscard]] bool needsTick() const noexcept override { return true; }
+
+    [[nodiscard]] bool needsTick() const noexcept override
+    {
+        return true;
+    }
 
     // ========== 序列化 ==========
 

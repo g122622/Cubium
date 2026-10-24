@@ -68,22 +68,34 @@ public:
     /**
      * @brief 获取马的毛色
      */
-    [[nodiscard]] CoatColors getColor() const { return m_color; }
+    [[nodiscard]] CoatColors getColor() const
+    {
+        return m_color;
+    }
 
     /**
      * @brief 设置马的毛色
      */
-    void setColor(CoatColors color) { m_color = color; }
+    void setColor(CoatColors color)
+    {
+        m_color = color;
+    }
 
     /**
      * @brief 获取马的花纹
      */
-    [[nodiscard]] CoatTypes getMarking() const { return m_marking; }
+    [[nodiscard]] CoatTypes getMarking() const
+    {
+        return m_marking;
+    }
 
     /**
      * @brief 设置马的花纹
      */
-    void setMarking(CoatTypes marking) { m_marking = marking; }
+    void setMarking(CoatTypes marking)
+    {
+        m_marking = marking;
+    }
 
     /**
      * @brief 获取外观变种编码
@@ -133,12 +145,18 @@ public:
     /**
      * @brief 马只有鞍槽和马铠槽
      */
-    [[nodiscard]] i32 getInventorySize() const override { return 2; }
+    [[nodiscard]] i32 getInventorySize() const override
+    {
+        return 2;
+    }
 
     /**
      * @brief 马支持马铠槽位
      */
-    [[nodiscard]] bool hasArmorSlot() const override { return true; }
+    [[nodiscard]] bool hasArmorSlot() const override
+    {
+        return true;
+    }
 
     /**
      * @brief 检查物品是否是有效的马铠
@@ -163,7 +181,10 @@ public:
     /**
      * @brief 获取眼睛高度
      */
-    [[nodiscard]] f32 eyeHeight() const override { return 1.53f; }
+    [[nodiscard]] f32 eyeHeight() const override
+    {
+        return 1.53f;
+    }
 
     // ========== 音效 ==========
 

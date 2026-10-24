@@ -110,29 +110,38 @@ i32 _applySpawnPoint(CommandContext<ServerCommandSource>& context,
 void SpawnPointCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
 {
     auto spawnPointNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("spawnpoint");
-    spawnPointNode->setRequirement([](const ServerCommandSource& source) { return source.hasPermission(2); });
+    spawnPointNode->setRequirement([](const ServerCommandSource& source) {
+        return source.hasPermission(2);
+    });
     support::applyMetadata(spawnPointNode,
         support::makeMetadata(
             "Sets the spawn point for a player.", "/spawnpoint [<targets> [<pos> [<rotation>]]]", 2, {}, true));
 
     // /spawnpoint - 把自己设置在命令源位置，朝向全零
-    spawnPointNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _setSelfSpawnPoint(ctx); });
+    spawnPointNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _setSelfSpawnPoint(ctx);
+    });
 
     // /spawnpoint <targets>
     auto targetsNode = std::make_shared<ArgumentCommandNode<ServerCommandSource, EntitySelector>>(
         "targets", EntityArgumentType::player());
-    targetsNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _setPlayerSpawnPoint(ctx); });
+    targetsNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _setPlayerSpawnPoint(ctx);
+    });
 
     // /spawnpoint <targets> <pos>
     auto posNode =
         std::make_shared<ArgumentCommandNode<ServerCommandSource, Coordinates::Ptr>>("pos", Vec3ArgumentType::vec3());
-    posNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _setPlayerSpawnPointAtPosition(ctx); });
+    posNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _setPlayerSpawnPointAtPosition(ctx);
+    });
 
     // /spawnpoint <targets> <pos> <rotation>
     auto rotationNode = std::make_shared<ArgumentCommandNode<ServerCommandSource, Coordinates::Ptr>>(
         "rotation", RotationArgumentType::rotation());
-    rotationNode->setCommand(
-        [](CommandContext<ServerCommandSource>& ctx) { return _setPlayerSpawnPointAtRotation(ctx); });
+    rotationNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _setPlayerSpawnPointAtRotation(ctx);
+    });
 
     posNode->addChild(rotationNode);
     targetsNode->addChild(posNode);

@@ -102,7 +102,10 @@ public:
 
     // ========== 方块实体 ==========
 
-    [[nodiscard]] bool hasBlockEntity() const noexcept override { return true; }
+    [[nodiscard]] bool hasBlockEntity() const noexcept override
+    {
+        return true;
+    }
 
     [[nodiscard]] std::unique_ptr<BlockEntity> createBlockEntity(const BlockPos& pos) override;
 
@@ -152,7 +155,10 @@ public:
 
     // ========== 木材类型 ==========
 
-    [[nodiscard]] WoodType getWoodType() const { return m_woodType; }
+    [[nodiscard]] WoodType getWoodType() const
+    {
+        return m_woodType;
+    }
 
 protected:
     /// 木材类型

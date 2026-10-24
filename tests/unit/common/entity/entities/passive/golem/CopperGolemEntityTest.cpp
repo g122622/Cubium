@@ -62,11 +62,27 @@ class CopperGolemTestWorld final : public mc::test::BaseTestWorld {
 public:
     CopperGolemTestWorld() = default;
 
-    [[nodiscard]] mc::world::chunk::IChunkManager* chunkManager() override { return &m_stubChunks; }
-    [[nodiscard]] const mc::world::chunk::IChunkManager* chunkManager() const override { return &m_stubChunks; }
+    [[nodiscard]] mc::world::chunk::IChunkManager* chunkManager() override
+    {
+        return &m_stubChunks;
+    }
+
+    [[nodiscard]] const mc::world::chunk::IChunkManager* chunkManager() const override
+    {
+        return &m_stubChunks;
+    }
+
     mc::test::StubChunkManager m_stubChunks{nullptr, true};
-    [[nodiscard]] u64 currentTick() const override { return m_currentTick; }
-    [[nodiscard]] bool isClientSide() const override { return false; }
+
+    [[nodiscard]] u64 currentTick() const override
+    {
+        return m_currentTick;
+    }
+
+    [[nodiscard]] bool isClientSide() const override
+    {
+        return false;
+    }
 
     void playSound(const ResourceLocation& sound,
         sound::SoundCategory category,
@@ -95,8 +111,15 @@ public:
     }
 
     // 测试辅助
-    void setTick(u64 tick) { m_currentTick = tick; }
-    void advanceTick() { m_currentTick++; }
+    void setTick(u64 tick)
+    {
+        m_currentTick = tick;
+    }
+
+    void advanceTick()
+    {
+        m_currentTick++;
+    }
 
     struct SoundRecord {
         ResourceLocation sound;
@@ -112,10 +135,25 @@ public:
         gameevent::GameEvent::Context context;
     };
 
-    [[nodiscard]] const std::vector<SoundRecord>& sounds() const { return m_sounds; }
-    [[nodiscard]] const std::vector<std::unique_ptr<Entity>>& spawnedEntities() const { return m_spawnedEntities; }
-    [[nodiscard]] const std::vector<GameEventRecord>& gameEvents() const { return m_gameEvents; }
-    void clearSounds() { m_sounds.clear(); }
+    [[nodiscard]] const std::vector<SoundRecord>& sounds() const
+    {
+        return m_sounds;
+    }
+
+    [[nodiscard]] const std::vector<std::unique_ptr<Entity>>& spawnedEntities() const
+    {
+        return m_spawnedEntities;
+    }
+
+    [[nodiscard]] const std::vector<GameEventRecord>& gameEvents() const
+    {
+        return m_gameEvents;
+    }
+
+    void clearSounds()
+    {
+        m_sounds.clear();
+    }
 
 private:
     u64 m_currentTick = 0;

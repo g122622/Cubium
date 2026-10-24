@@ -64,7 +64,10 @@ public:
     /**
      * @brief 获取方块实体类型
      */
-    [[nodiscard]] BlockEntityType getBlockEntityType() const override { return BlockEntityType::BlastFurnace; }
+    [[nodiscard]] BlockEntityType getBlockEntityType() const override
+    {
+        return BlockEntityType::BlastFurnace;
+    }
 
 protected:
     /**

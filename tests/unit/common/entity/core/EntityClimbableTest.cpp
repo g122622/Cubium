@@ -87,7 +87,10 @@ public:
         return &fluid::Fluids::EMPTY()->defaultState();
     }
 
-    void placeBlock(const BlockPos& pos, const BlockState* state) { (void)setBlockState(pos.x, pos.y, pos.z, state); }
+    void placeBlock(const BlockPos& pos, const BlockState* state)
+    {
+        (void)setBlockState(pos.x, pos.y, pos.z, state);
+    }
 
 private:
     std::map<BlockPos, const BlockState*> m_blocks;
@@ -98,7 +101,10 @@ private:
 
 class EntityClimbableTest : public ::testing::Test {
 protected:
-    static void SetUpTestSuite() { VanillaBlocks::initialize(); }
+    static void SetUpTestSuite()
+    {
+        VanillaBlocks::initialize();
+    }
 
     /// 构造一个位于 (0.5, 64.0, 0.5) 的实体并绑定测试世界
     void setUpEntity()

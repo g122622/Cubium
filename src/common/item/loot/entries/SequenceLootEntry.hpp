@@ -43,7 +43,11 @@ public:
     SequenceLootEntry() noexcept = default;
     explicit SequenceLootEntry(std::vector<std::unique_ptr<LootEntry>> children);
 
-    [[nodiscard]] LootEntryType getType() const override { return LootEntryType::Sequence; }
+    [[nodiscard]] LootEntryType getType() const override
+    {
+        return LootEntryType::Sequence;
+    }
+
     [[nodiscard]] std::unique_ptr<LootEntry> clone() const override;
 
     void addChild(std::unique_ptr<LootEntry> child);

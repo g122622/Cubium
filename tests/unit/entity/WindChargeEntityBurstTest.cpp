@@ -59,7 +59,10 @@ public:
         : m_windCharge(windCharge)
     {}
 
-    void applyWindBurst() { m_windCharge.applyWindBurst(); }
+    void applyWindBurst()
+    {
+        m_windCharge.applyWindBurst();
+    }
 
 private:
     WindChargeEntity& m_windCharge;
@@ -85,6 +88,7 @@ public:
     {
         throw std::runtime_error("WindChargeBurstTestWorld::tickManager not implemented");
     }
+
     [[nodiscard]] const world::tick::TickManager& tickManager() const override
     {
         throw std::runtime_error("WindChargeBurstTestWorld::tickManager not implemented");
@@ -135,17 +139,42 @@ public:
     }
 
     /// 注册实体到 ID 索引，便于 getEntity / getShooter 查找
-    void registerEntity(Entity* entity) { m_entityById[entity->id()] = entity; }
+    void registerEntity(Entity* entity)
+    {
+        m_entityById[entity->id()] = entity;
+    }
 
     /// 设置 getEntitiesInAABB 返回的实体列表
-    void setEntities(std::vector<Entity*> entities) { m_entities = std::move(entities); }
+    void setEntities(std::vector<Entity*> entities)
+    {
+        m_entities = std::move(entities);
+    }
 
     // 广播捕获状态
-    [[nodiscard]] bool broadcastCalled() const { return m_broadcastCalled; }
-    [[nodiscard]] const Vector3& lastPosition() const { return m_lastPosition; }
-    [[nodiscard]] f32 lastStrength() const { return m_lastStrength; }
-    [[nodiscard]] const std::vector<BlockPos>& lastAffectedBlocks() const { return m_lastAffectedBlocks; }
-    [[nodiscard]] const std::unordered_map<u64, Vector3>& lastPlayerKnockback() const { return m_lastPlayerKnockback; }
+    [[nodiscard]] bool broadcastCalled() const
+    {
+        return m_broadcastCalled;
+    }
+
+    [[nodiscard]] const Vector3& lastPosition() const
+    {
+        return m_lastPosition;
+    }
+
+    [[nodiscard]] f32 lastStrength() const
+    {
+        return m_lastStrength;
+    }
+
+    [[nodiscard]] const std::vector<BlockPos>& lastAffectedBlocks() const
+    {
+        return m_lastAffectedBlocks;
+    }
+
+    [[nodiscard]] const std::unordered_map<u64, Vector3>& lastPlayerKnockback() const
+    {
+        return m_lastPlayerKnockback;
+    }
 
 private:
     std::vector<Entity*> m_entities;
@@ -181,7 +210,10 @@ protected:
         m_world.registerEntity(m_windCharge.get());
     }
 
-    void TearDown() override { m_windCharge.reset(); }
+    void TearDown() override
+    {
+        m_windCharge.reset();
+    }
 
     WindChargeBurstTestWorld m_world;
     std::unique_ptr<WindChargeEntity> m_windCharge;

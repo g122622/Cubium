@@ -63,7 +63,10 @@ public:
 
     [[nodiscard]] bool shouldExecute() override;
 
-    [[nodiscard]] std::string getTypeName() const override { return "RaiderOpenDoorGoal"; }
+    [[nodiscard]] std::string getTypeName() const override
+    {
+        return "RaiderOpenDoorGoal";
+    }
 };
 
 } // namespace entity::ai::goal

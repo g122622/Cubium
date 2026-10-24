@@ -54,7 +54,10 @@ struct SpriteInfo {
     /**
      * @brief 检查是否为动画精灵
      */
-    [[nodiscard]] bool isAnimated() const { return frameCount > 1; }
+    [[nodiscard]] bool isAnimated() const
+    {
+        return frameCount > 1;
+    }
 
     /**
      * @brief 获取单帧 UV 高度
@@ -196,37 +199,58 @@ public:
     /**
      * @brief 获取 Vulkan 图像视图
      */
-    [[nodiscard]] VkImageView imageView() const { return m_imageView; }
+    [[nodiscard]] VkImageView imageView() const
+    {
+        return m_imageView;
+    }
 
     /**
      * @brief 获取 Vulkan 采样器
      */
-    [[nodiscard]] VkSampler sampler() const { return m_sampler; }
+    [[nodiscard]] VkSampler sampler() const
+    {
+        return m_sampler;
+    }
 
     /**
      * @brief 检查纹理是否有效
      */
-    [[nodiscard]] bool isValid() const { return m_image != VK_NULL_HANDLE; }
+    [[nodiscard]] bool isValid() const
+    {
+        return m_image != VK_NULL_HANDLE;
+    }
 
     /**
      * @brief 检查纹理数据是否已上传
      */
-    [[nodiscard]] bool isUploaded() const { return m_uploaded; }
+    [[nodiscard]] bool isUploaded() const
+    {
+        return m_uploaded;
+    }
 
     /**
      * @brief 获取图集宽度
      */
-    [[nodiscard]] u32 width() const { return m_width; }
+    [[nodiscard]] u32 width() const
+    {
+        return m_width;
+    }
 
     /**
      * @brief 获取图集高度
      */
-    [[nodiscard]] u32 height() const { return m_height; }
+    [[nodiscard]] u32 height() const
+    {
+        return m_height;
+    }
 
     /**
      * @brief 获取已加载的精灵数量
      */
-    [[nodiscard]] size_t spriteCount() const { return m_sprites.size(); }
+    [[nodiscard]] size_t spriteCount() const
+    {
+        return m_sprites.size();
+    }
 
 private:
     // Vulkan 设备资源

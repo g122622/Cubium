@@ -71,7 +71,9 @@ TargetGoal::TargetGoal(MobEntity* mob, bool checkSight)
 
 bool TargetGoal::shouldContinueExecuting()
 {
-    if (!m_mob || !m_target) return false;
+    if (!m_mob || !m_target) {
+        return false;
+    }
 
     // 检查目标是否存活
     if (!m_target->isAlive()) {
@@ -146,7 +148,9 @@ bool TargetGoal::isSuitableTarget(LivingEntity* target) const
 
 bool TargetGoal::checkSight() const
 {
-    if (!m_mob || !m_target) return false;
+    if (!m_mob || !m_target) {
+        return false;
+    }
     return m_mob->canSee(*m_target);
 }
 
@@ -176,7 +180,9 @@ NearestAttackableTargetGoal<T>::NearestAttackableTargetGoal(
 template <typename T>
 bool NearestAttackableTargetGoal<T>::shouldExecute()
 {
-    if (!m_mob) return false;
+    if (!m_mob) {
+        return false;
+    }
 
     // 概率检查。对齐 vanilla NearestAttackableTargetGoal：构造时 randomInterval = reducedTickDelay(chance)，
     // canUse 用 nextInt(randomInterval)。此处 m_chance 为 vanilla 原始值，减半补偿半 tick 评估。
@@ -188,7 +194,9 @@ bool NearestAttackableTargetGoal<T>::shouldExecute()
     }
 
     IWorld* world = m_mob->world();
-    if (!world) return false;
+    if (!world) {
+        return false;
+    }
 
     // 使用跟踪范围作为搜索范围
     f64 followRange = m_mob->getAttributeValue(entity::attribute::Attributes::FOLLOW_RANGE, 16.0);
@@ -266,7 +274,9 @@ HurtByTargetGoal::HurtByTargetGoal(MobEntity* mob, bool alertAllies, TargetPredi
 
 bool HurtByTargetGoal::shouldExecute()
 {
-    if (!m_mob) return false;
+    if (!m_mob) {
+        return false;
+    }
 
     // 从LivingEntity获取最近攻击者
     LivingEntity* attacker = m_mob->getLastHurtBy();
@@ -341,7 +351,9 @@ void HurtByTargetGoal::startExecuting()
     // 如果未来需要更精确的类匹配（如区分子类），可引入 getClassId() 方法替代 entityType 比较。
     if (m_alertAllies && m_mob && m_target.get()) {
         IWorld* world = m_mob->world();
-        if (!world) return;
+        if (!world) {
+            return;
+        }
 
         // 先让发起者记录复仇目标（对齐 vanilla TargetGoal.start → mob.setTarget(target)，
         // alertOthers 在目标写入后执行）。Cubium 的蜜蜂把"受击即愤怒"落在 setRevengeTarget，
@@ -356,13 +368,19 @@ void HurtByTargetGoal::startExecuting()
         for (Entity* entity : nearbyEntities) {
             // 只警醒同类型的生物
             MobEntity* ally = dynamic_cast<MobEntity*>(entity);
-            if (!ally) continue;
+            if (!ally) {
+                continue;
+            }
 
             // 不能警醒目标本身
-            if (ally == m_target.get()) continue;
+            if (ally == m_target.get()) {
+                continue;
+            }
 
             // 不警醒与攻击者同盟的实体
-            if (ally->isAlliedTo(*m_target)) continue;
+            if (ally->isAlliedTo(*m_target)) {
+                continue;
+            }
 
             // 检查是否是同类型（使用 entityType 指针比较）
             if (ally->entityType() != m_mob->entityType()) {
@@ -397,35 +415,53 @@ OwnerHurtByTargetGoal::OwnerHurtByTargetGoal(MobEntity* mob)
 
 bool OwnerHurtByTargetGoal::shouldExecute()
 {
-    if (!m_mob) return false;
+    if (!m_mob) {
+        return false;
+    }
 
     // 检查是否是驯服动物
     TameableEntity* tameable = dynamic_cast<TameableEntity*>(m_mob);
-    if (!tameable) return false;
+    if (!tameable) {
+        return false;
+    }
 
     // 检查是否已驯服
-    if (!tameable->isTamed()) return false;
+    if (!tameable->isTamed()) {
+        return false;
+    }
 
     // 检查是否坐下（坐下的狼不攻击）
-    if (tameable->isSitting()) return false;
+    if (tameable->isSitting()) {
+        return false;
+    }
 
     // 获取主人
     Player* owner = tameable->getOwner();
-    if (!owner) return false;
+    if (!owner) {
+        return false;
+    }
 
     // 检查主人是否有攻击者
     LivingEntity* attacker = owner->getLastHurtBy();
-    if (!attacker || !attacker->isAlive()) return false;
+    if (!attacker || !attacker->isAlive()) {
+        return false;
+    }
 
     // 不能攻击自己或主人
-    if (attacker == m_mob || attacker == owner) return false;
+    if (attacker == m_mob || attacker == owner) {
+        return false;
+    }
 
     // 检查是否适合作为目标
-    if (!isSuitableTarget(attacker)) return false;
+    if (!isSuitableTarget(attacker)) {
+        return false;
+    }
 
     // 检查驯服动物是否愿意攻击此目标
     // 狼不会攻击苦力怕、恶魂、已驯服的动物等
-    if (!tameable->wantsToAttack(*attacker, owner)) return false;
+    if (!tameable->wantsToAttack(*attacker, owner)) {
+        return false;
+    }
 
     m_target = attacker;
     return true;
@@ -444,34 +480,52 @@ OwnerHurtTargetGoal::OwnerHurtTargetGoal(MobEntity* mob)
 
 bool OwnerHurtTargetGoal::shouldExecute()
 {
-    if (!m_mob) return false;
+    if (!m_mob) {
+        return false;
+    }
 
     // 检查是否是驯服动物
     TameableEntity* tameable = dynamic_cast<TameableEntity*>(m_mob);
-    if (!tameable) return false;
+    if (!tameable) {
+        return false;
+    }
 
     // 检查是否已驯服
-    if (!tameable->isTamed()) return false;
+    if (!tameable->isTamed()) {
+        return false;
+    }
 
     // 检查是否坐下（坐下的狼不攻击）
-    if (tameable->isSitting()) return false;
+    if (tameable->isSitting()) {
+        return false;
+    }
 
     // 获取主人
     Player* owner = tameable->getOwner();
-    if (!owner) return false;
+    if (!owner) {
+        return false;
+    }
 
     // 检查主人正在攻击的目标
     LivingEntity* target = owner->getLastHurtTarget();
-    if (!target || !target->isAlive()) return false;
+    if (!target || !target->isAlive()) {
+        return false;
+    }
 
     // 不能攻击自己或主人
-    if (target == m_mob || target == owner) return false;
+    if (target == m_mob || target == owner) {
+        return false;
+    }
 
     // 检查是否适合作为目标
-    if (!isSuitableTarget(target)) return false;
+    if (!isSuitableTarget(target)) {
+        return false;
+    }
 
     // 检查驯服动物是否愿意攻击此目标
-    if (!tameable->wantsToAttack(*target, owner)) return false;
+    if (!tameable->wantsToAttack(*target, owner)) {
+        return false;
+    }
     m_target = target;
     return true;
 }
@@ -504,17 +558,25 @@ NonTamedTargetGoal<T>::NonTamedTargetGoal(MobEntity* mob, bool checkSight, Targe
 template <typename T>
 bool NonTamedTargetGoal<T>::shouldExecute()
 {
-    if (!m_mob) return false;
+    if (!m_mob) {
+        return false;
+    }
 
     // 检查是否是驯服动物
     TameableEntity* tameable = dynamic_cast<TameableEntity*>(m_mob);
-    if (!tameable) return false;
+    if (!tameable) {
+        return false;
+    }
 
     // 已驯服的动物不执行此目标
-    if (tameable->isTamed()) return false;
+    if (tameable->isTamed()) {
+        return false;
+    }
 
     IWorld* world = m_mob->world();
-    if (!world) return false;
+    if (!world) {
+        return false;
+    }
 
     // 使用跟踪范围作为搜索范围
     f64 followRange = m_mob->getAttributeValue(entity::attribute::Attributes::FOLLOW_RANGE, 16.0);
@@ -571,11 +633,15 @@ ResetAngerGoal<T>::ResetAngerGoal(T* mob, bool alertOthers)
 template <typename T>
 bool ResetAngerGoal<T>::shouldExecute()
 {
-    if (!m_mob) return false;
+    if (!m_mob) {
+        return false;
+    }
 
     // 检查 UNIVERSAL_ANGER 游戏规则是否启用
     IWorld* world = m_mob->world();
-    if (!world) return false;
+    if (!world) {
+        return false;
+    }
 
     if (!world->getGameRules().getBoolean(world::gamerule::GameRuleKeys::UNIVERSAL_ANGER)) {
         return false;
@@ -587,15 +653,21 @@ bool ResetAngerGoal<T>::shouldExecute()
 template <typename T>
 bool ResetAngerGoal<T>::_shouldGetRevengeOnPlayer() const
 {
-    if (!m_mob) return false;
+    if (!m_mob) {
+        return false;
+    }
 
     // 检查复仇目标是否是玩家，并且复仇计时器更新
     LivingEntity* revengeTarget = m_mob->getRevengeTarget();
-    if (!revengeTarget) return false;
+    if (!revengeTarget) {
+        return false;
+    }
 
     // 检查复仇目标是否是玩家
     Player* player = dynamic_cast<Player*>(revengeTarget);
-    if (!player) return false;
+    if (!player) {
+        return false;
+    }
 
     // 检查复仇计时器是否更新（避免重复触发）
     i32 revengeTimer = m_mob->getRevengeTimer();
@@ -606,10 +678,14 @@ template <typename T>
 std::vector<T*> ResetAngerGoal<T>::_getNearbySameTypeEntities() const
 {
     std::vector<T*> result;
-    if (!m_mob) return result;
+    if (!m_mob) {
+        return result;
+    }
 
     IWorld* world = m_mob->world();
-    if (!world) return result;
+    if (!world) {
+        return result;
+    }
 
     // 获取 FOLLOW_RANGE 属性作为搜索范围
     f64 followRange = m_mob->getAttributeValue(entity::attribute::Attributes::FOLLOW_RANGE, 16.0);
@@ -621,7 +697,9 @@ std::vector<T*> ResetAngerGoal<T>::_getNearbySameTypeEntities() const
     auto entities = world->getEntitiesInAABB(searchBox, nullptr);
     for (Entity* entity : entities) {
         // 跳过自己
-        if (entity == m_mob) continue;
+        if (entity == m_mob) {
+            continue;
+        }
 
         // 检查是否是同类型
         T* sameType = dynamic_cast<T*>(entity);
@@ -636,7 +714,9 @@ std::vector<T*> ResetAngerGoal<T>::_getNearbySameTypeEntities() const
 template <typename T>
 void ResetAngerGoal<T>::startExecuting()
 {
-    if (!m_mob) return;
+    if (!m_mob) {
+        return;
+    }
 
     // 更新复仇计时器
     m_revengeTimer = m_mob->getRevengeTimer();

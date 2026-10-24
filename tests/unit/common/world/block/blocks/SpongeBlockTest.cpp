@@ -80,7 +80,10 @@ public:
         m_fluids[packPos(pos.x, pos.y, pos.z)] = state;
     }
 
-    void setUltraWarm(bool ultraWarm) { m_ultraWarm = ultraWarm; }
+    void setUltraWarm(bool ultraWarm)
+    {
+        m_ultraWarm = ultraWarm;
+    }
 
     [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override
     {
@@ -119,10 +122,25 @@ public:
         return &fluid::Fluids::EMPTY()->defaultState();
     }
 
-    [[nodiscard]] DimensionId dimension() const override { return m_ultraWarm ? DimensionId(-1) : DimensionId(0); }
-    [[nodiscard]] u64 seed() const override { return m_seed; }
-    [[nodiscard]] bool isRaining() const override { return false; }
-    [[nodiscard]] bool canRainAt(const BlockPos&) const override { return false; }
+    [[nodiscard]] DimensionId dimension() const override
+    {
+        return m_ultraWarm ? DimensionId(-1) : DimensionId(0);
+    }
+
+    [[nodiscard]] u64 seed() const override
+    {
+        return m_seed;
+    }
+
+    [[nodiscard]] bool isRaining() const override
+    {
+        return false;
+    }
+
+    [[nodiscard]] bool canRainAt(const BlockPos&) const override
+    {
+        return false;
+    }
 
     EntityInstanceId spawnEntity(std::unique_ptr<Entity> entity) override
     {
@@ -135,6 +153,7 @@ public:
         ensureTickManager();
         return *m_tickManagerPtr;
     }
+
     [[nodiscard]] const world::tick::TickManager& tickManager() const override
     {
         const_cast<SpongeTestWorld*>(this)->ensureTickManager();
@@ -157,12 +176,20 @@ public:
     }
 
     // 访问记录的事件
-    const std::vector<std::tuple<i32, BlockPos, i32>>& getPlayedEvents() const { return m_playedEvents; }
+    const std::vector<std::tuple<i32, BlockPos, i32>>& getPlayedEvents() const
+    {
+        return m_playedEvents;
+    }
+
     const std::vector<std::tuple<ResourceLocation, sound::SoundCategory, Vector3, f32, f32>>& getPlayedSounds() const
     {
         return m_playedSounds;
     }
-    const std::vector<std::pair<BlockPos, const BlockState*>>& getBlockChanges() const { return m_blockChanges; }
+
+    const std::vector<std::pair<BlockPos, const BlockState*>>& getBlockChanges() const
+    {
+        return m_blockChanges;
+    }
 
     void clearRecords()
     {
@@ -346,7 +373,10 @@ TEST_F(SpongeBlockTest, SpongeOnBlockAddedTriggersAbsorb)
 
 class WetSpongeBlockTest : public ::testing::Test {
 protected:
-    void SetUp() override { VanillaBlocks::initialize(); }
+    void SetUp() override
+    {
+        VanillaBlocks::initialize();
+    }
 };
 
 TEST_F(WetSpongeBlockTest, WetSpongeDriesInNether)
@@ -419,7 +449,10 @@ TEST_F(WetSpongeBlockTest, WetSpongeStaysWetInOverworld)
 
 class WorldEventsTest : public ::testing::Test {
 protected:
-    void SetUp() override { VanillaBlocks::initialize(); }
+    void SetUp() override
+    {
+        VanillaBlocks::initialize();
+    }
 };
 
 TEST_F(WorldEventsTest, WetSpongeDryEventValue)

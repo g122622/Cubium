@@ -139,7 +139,10 @@ protected:
         item::tag::ItemTags::initialize();
     }
 
-    void SetUp() override { m_recipe = std::make_unique<ArmorDyeRecipe>(ResourceLocation("minecraft", "armor_dye")); }
+    void SetUp() override
+    {
+        m_recipe = std::make_unique<ArmorDyeRecipe>(ResourceLocation("minecraft", "armor_dye"));
+    }
 
     std::unique_ptr<ArmorDyeRecipe> m_recipe;
 };

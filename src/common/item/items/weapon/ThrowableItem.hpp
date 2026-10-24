@@ -87,13 +87,19 @@ public:
      * @brief 获取投掷速度
      * @return 投掷速度因子
      */
-    [[nodiscard]] virtual f32 getThrowVelocity() const { return 1.5f; }
+    [[nodiscard]] virtual f32 getThrowVelocity() const
+    {
+        return 1.5f;
+    }
 
     /**
      * @brief 获取投掷偏移
      * @return 投掷偏移因子
      */
-    [[nodiscard]] virtual f32 getThrowInaccuracy() const { return 0.0f; }
+    [[nodiscard]] virtual f32 getThrowInaccuracy() const
+    {
+        return 0.0f;
+    }
 
     // ========== ProjectileItem 接口实现 ==========
 

@@ -49,22 +49,26 @@
 // 通过宏选择底层算法
 #if defined(MC_RANDOM_XOROSHIRO128PP)
 #include "Xoroshiro128ppRandom.hpp"
+
 namespace mc::math {
 using Random = Xoroshiro128ppRandom;
 }
 #elif defined(MC_RANDOM_XOSHIRO256PP)
 #include "Xoshiro256ppRandom.hpp"
+
 namespace mc::math {
 using Random = Xoshiro256ppRandom;
 }
 #elif defined(MC_RANDOM_LCG)
 #include "LcgRandom.hpp"
+
 namespace mc::math {
 using Random = LcgRandom;
 }
 #else
 // 默认使用 Mersenne Twister
 #include "Mt19937Random.hpp"
+
 namespace mc::math {
 using Random = Mt19937Random;
 }

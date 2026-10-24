@@ -49,6 +49,7 @@ struct UnderwaterMagmaConfig : public IFeatureConfig {
     f32 placementProbabilityPerValidPosition = 0.0f;
 
     UnderwaterMagmaConfig() = default;
+
     UnderwaterMagmaConfig(i32 range, i32 radius, f32 probability)
         : floorSearchRange(range)
         , placementRadiusAroundFloor(radius)
@@ -93,8 +94,15 @@ public:
         math::IRandom& random,
         const BlockPos& pos) const override;
 
-    [[nodiscard]] const char* name() const override { return m_name.c_str(); }
-    [[nodiscard]] DecorationStage stage() const override { return DecorationStage::UndergroundDecoration; }
+    [[nodiscard]] const char* name() const override
+    {
+        return m_name.c_str();
+    }
+
+    [[nodiscard]] DecorationStage stage() const override
+    {
+        return DecorationStage::UndergroundDecoration;
+    }
 
 private:
     UnderwaterMagmaConfig m_config;

@@ -168,9 +168,15 @@ public:
      */
     [[nodiscard]] static CopperGolemWeatherState fromString(std::string_view str)
     {
-        if (str == "exposed") return CopperGolemWeatherState::Exposed;
-        if (str == "weathered") return CopperGolemWeatherState::Weathered;
-        if (str == "oxidized") return CopperGolemWeatherState::Oxidized;
+        if (str == "exposed") {
+            return CopperGolemWeatherState::Exposed;
+        }
+        if (str == "weathered") {
+            return CopperGolemWeatherState::Weathered;
+        }
+        if (str == "oxidized") {
+            return CopperGolemWeatherState::Oxidized;
+        }
         return CopperGolemWeatherState::Unaffected;
     }
 
@@ -199,10 +205,18 @@ public:
      */
     [[nodiscard]] static CopperGolemState stateFromString(std::string_view str)
     {
-        if (str == "getting_item") return CopperGolemState::GettingItem;
-        if (str == "getting_no_item") return CopperGolemState::GettingNoItem;
-        if (str == "dropping_item") return CopperGolemState::DroppingItem;
-        if (str == "dropping_no_item") return CopperGolemState::DroppingNoItem;
+        if (str == "getting_item") {
+            return CopperGolemState::GettingItem;
+        }
+        if (str == "getting_no_item") {
+            return CopperGolemState::GettingNoItem;
+        }
+        if (str == "dropping_item") {
+            return CopperGolemState::DroppingItem;
+        }
+        if (str == "dropping_no_item") {
+            return CopperGolemState::DroppingNoItem;
+        }
         return CopperGolemState::Idle;
     }
 };

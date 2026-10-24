@@ -123,7 +123,10 @@ public:
      *
      * 注意：此值可能超过 24000，如需一天内的时间请使用 dayTimeOfDay()。
      */
-    [[nodiscard]] i64 dayTime() const { return m_dayTime; }
+    [[nodiscard]] i64 dayTime() const
+    {
+        return m_dayTime;
+    }
 
     /**
      * @brief 获取当前一天内的时间 (0-23999)
@@ -137,13 +140,19 @@ public:
      * @brief 获取游戏启动以来的总 tick 数
      * @return gameTime
      */
-    [[nodiscard]] i64 gameTime() const { return m_gameTime; }
+    [[nodiscard]] i64 gameTime() const
+    {
+        return m_gameTime;
+    }
 
     /**
      * @brief 检查日光周期是否启用
      * @return true 如果启用
      */
-    [[nodiscard]] bool daylightCycleEnabled() const { return m_daylightCycleEnabled; }
+    [[nodiscard]] bool daylightCycleEnabled() const
+    {
+        return m_daylightCycleEnabled;
+    }
 
     /**
      * @brief 获取天数 (gameTime / 24000)

@@ -104,7 +104,10 @@ public:
      *
      * @return 缩放比例
      */
-    [[nodiscard]] virtual f32 getCoordinateScale() const { return 1.0f; }
+    [[nodiscard]] virtual f32 getCoordinateScale() const
+    {
+        return 1.0f;
+    }
 
     /**
      * @brief 在两个维度间转换位置
@@ -130,7 +133,10 @@ public:
 
     /// 末地传送门固定位置（方块顶部中心）
     /// 对应方块坐标 (100, 49, 0) 的顶部中心
-    [[nodiscard]] static Vector3d getEndSpawnPosition() { return Vector3d(100.5, 50.0, 0.5); }
+    [[nodiscard]] static Vector3d getEndSpawnPosition()
+    {
+        return Vector3d(100.5, 50.0, 0.5);
+    }
 
 protected:
     /**
@@ -172,7 +178,10 @@ public:
     [[nodiscard]] std::optional<PortalInfo> findPortal(IWorld& world, const Vector3d& pos) override;
     [[nodiscard]] PortalInfo createPortal(IWorld& world, const Vector3d& pos) override;
 
-    [[nodiscard]] f32 getCoordinateScale() const override { return 8.0f; }
+    [[nodiscard]] f32 getCoordinateScale() const override
+    {
+        return 8.0f;
+    }
 
 private:
     /**
@@ -221,7 +230,10 @@ public:
     [[nodiscard]] std::optional<PortalInfo> findPortal(IWorld& world, const Vector3d& pos) override;
     [[nodiscard]] PortalInfo createPortal(IWorld& world, const Vector3d& pos) override;
 
-    [[nodiscard]] f32 getCoordinateScale() const override { return 1.0f; }
+    [[nodiscard]] f32 getCoordinateScale() const override
+    {
+        return 1.0f;
+    }
 
     // ========== 末地特有方法 ==========
 
@@ -258,7 +270,10 @@ public:
      * 返回末地出生平台中心上方一格的位置 (100.5, 50.0, 0.5)。
      * 此位置对应方块 (100, 49, 0) 的顶部中心。
      */
-    [[nodiscard]] static Vector3d getEndSpawnPosition() { return Vector3d(100.5, 50.0, 0.5); }
+    [[nodiscard]] static Vector3d getEndSpawnPosition()
+    {
+        return Vector3d(100.5, 50.0, 0.5);
+    }
 
     /// 末地出口传送门讲台半径
     static constexpr i32 PODIUM_RADIUS = 4;

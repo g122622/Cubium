@@ -65,45 +65,126 @@ public:
 
     // ========== 攻击者信息 ==========
 
-    [[nodiscard]] Entity* getAttacker() const { return m_attacker; }
-    [[nodiscard]] Player* getAttackerAsPlayer() const { return m_attackerPlayer; }
-    [[nodiscard]] LivingEntity* getAttackerAsLiving() const { return m_attackerLiving; }
-    [[nodiscard]] const ItemStack* getWeapon() const { return m_weapon; }
+    [[nodiscard]] Entity* getAttacker() const
+    {
+        return m_attacker;
+    }
+
+    [[nodiscard]] Player* getAttackerAsPlayer() const
+    {
+        return m_attackerPlayer;
+    }
+
+    [[nodiscard]] LivingEntity* getAttackerAsLiving() const
+    {
+        return m_attackerLiving;
+    }
+
+    [[nodiscard]] const ItemStack* getWeapon() const
+    {
+        return m_weapon;
+    }
 
     // ========== 目标信息 ==========
 
-    [[nodiscard]] LivingEntity* getTarget() const { return m_target; }
+    [[nodiscard]] LivingEntity* getTarget() const
+    {
+        return m_target;
+    }
 
     // ========== 攻击属性 ==========
 
-    [[nodiscard]] f32 getBaseDamage() const { return m_baseDamage; }
-    void setBaseDamage(f32 damage) { m_baseDamage = damage; }
+    [[nodiscard]] f32 getBaseDamage() const
+    {
+        return m_baseDamage;
+    }
 
-    [[nodiscard]] f32 getEnchantDamageBonus() const { return m_enchantDamageBonus; }
-    void setEnchantDamageBonus(f32 bonus) { m_enchantDamageBonus = bonus; }
+    void setBaseDamage(f32 damage)
+    {
+        m_baseDamage = damage;
+    }
 
-    [[nodiscard]] AttackType getAttackType() const { return m_attackType; }
-    void setAttackType(AttackType type) { m_attackType = type; }
+    [[nodiscard]] f32 getEnchantDamageBonus() const
+    {
+        return m_enchantDamageBonus;
+    }
+
+    void setEnchantDamageBonus(f32 bonus)
+    {
+        m_enchantDamageBonus = bonus;
+    }
+
+    [[nodiscard]] AttackType getAttackType() const
+    {
+        return m_attackType;
+    }
+
+    void setAttackType(AttackType type)
+    {
+        m_attackType = type;
+    }
 
     // ========== 攻击修饰 ==========
 
-    [[nodiscard]] bool isCritical() const { return m_critical; }
-    void setCritical(bool critical) { m_critical = critical; }
+    [[nodiscard]] bool isCritical() const
+    {
+        return m_critical;
+    }
 
-    [[nodiscard]] f32 getCriticalMultiplier() const { return m_criticalMultiplier; }
-    void setCriticalMultiplier(f32 multiplier) { m_criticalMultiplier = multiplier; }
+    void setCritical(bool critical)
+    {
+        m_critical = critical;
+    }
 
-    [[nodiscard]] bool causesKnockback() const { return m_knockback; }
-    void setKnockback(bool knockback) { m_knockback = knockback; }
+    [[nodiscard]] f32 getCriticalMultiplier() const
+    {
+        return m_criticalMultiplier;
+    }
 
-    [[nodiscard]] f32 getKnockbackStrength() const { return m_knockbackStrength; }
-    void setKnockbackStrength(f32 strength) { m_knockbackStrength = strength; }
+    void setCriticalMultiplier(f32 multiplier)
+    {
+        m_criticalMultiplier = multiplier;
+    }
 
-    [[nodiscard]] bool causesFireDamage() const { return m_fireDamage; }
-    void setFireDamage(bool fire) { m_fireDamage = fire; }
+    [[nodiscard]] bool causesKnockback() const
+    {
+        return m_knockback;
+    }
 
-    [[nodiscard]] i32 getFireDuration() const { return m_fireDuration; }
-    void setFireDuration(i32 duration) { m_fireDuration = duration; }
+    void setKnockback(bool knockback)
+    {
+        m_knockback = knockback;
+    }
+
+    [[nodiscard]] f32 getKnockbackStrength() const
+    {
+        return m_knockbackStrength;
+    }
+
+    void setKnockbackStrength(f32 strength)
+    {
+        m_knockbackStrength = strength;
+    }
+
+    [[nodiscard]] bool causesFireDamage() const
+    {
+        return m_fireDamage;
+    }
+
+    void setFireDamage(bool fire)
+    {
+        m_fireDamage = fire;
+    }
+
+    [[nodiscard]] i32 getFireDuration() const
+    {
+        return m_fireDuration;
+    }
+
+    void setFireDuration(i32 duration)
+    {
+        m_fireDuration = duration;
+    }
 
     // ========== 伤害计算 ==========
 
@@ -112,13 +193,27 @@ public:
 
     // ========== 攻击冷却 ==========
 
-    [[nodiscard]] f32 getCooldownProgress() const { return m_cooldownProgress; }
-    void setCooldownProgress(f32 progress) { m_cooldownProgress = progress; }
+    [[nodiscard]] f32 getCooldownProgress() const
+    {
+        return m_cooldownProgress;
+    }
+
+    void setCooldownProgress(f32 progress)
+    {
+        m_cooldownProgress = progress;
+    }
 
     // ========== 护甲穿透 ==========
 
-    [[nodiscard]] bool bypassesArmor() const { return m_bypassArmor; }
-    void setBypassArmor(bool bypass) { m_bypassArmor = bypass; }
+    [[nodiscard]] bool bypassesArmor() const
+    {
+        return m_bypassArmor;
+    }
+
+    void setBypassArmor(bool bypass)
+    {
+        m_bypassArmor = bypass;
+    }
 
     // ========== 伤害类型标志位（用于保护附魔计算） ==========
 
@@ -127,13 +222,19 @@ public:
      *
      * 用于保护附魔计算，由 DamageFlags 定义。
      */
-    [[nodiscard]] u32 getDamageFlags() const { return m_damageFlags; }
+    [[nodiscard]] u32 getDamageFlags() const
+    {
+        return m_damageFlags;
+    }
 
     /**
      * @brief 设置伤害类型标志位
      * @param flags 伤害类型标志位
      */
-    void setDamageFlags(u32 flags) { m_damageFlags = flags; }
+    void setDamageFlags(u32 flags)
+    {
+        m_damageFlags = flags;
+    }
 
     /**
      * @brief 从伤害来源提取伤害类型标志位

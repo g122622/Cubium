@@ -45,26 +45,75 @@ class SimplePaint final : public paint::IPaint {
 public:
     SimplePaint() = default;
 
-    void setColor(const paint::Color& color) override { m_color = color; }
-    [[nodiscard]] paint::Color color() const override { return m_color; }
+    void setColor(const paint::Color& color) override
+    {
+        m_color = color;
+    }
 
-    void setStyle(paint::PaintStyle style) override { m_style = style; }
-    [[nodiscard]] paint::PaintStyle style() const override { return m_style; }
+    [[nodiscard]] paint::Color color() const override
+    {
+        return m_color;
+    }
 
-    void setStrokeWidth(f32 width) override { m_strokeWidth = width; }
-    [[nodiscard]] f32 strokeWidth() const override { return m_strokeWidth; }
+    void setStyle(paint::PaintStyle style) override
+    {
+        m_style = style;
+    }
 
-    void setStrokeCap(paint::StrokeCap cap) override { m_cap = cap; }
-    [[nodiscard]] paint::StrokeCap strokeCap() const override { return m_cap; }
+    [[nodiscard]] paint::PaintStyle style() const override
+    {
+        return m_style;
+    }
 
-    void setStrokeJoin(paint::StrokeJoin join) override { m_join = join; }
-    [[nodiscard]] paint::StrokeJoin strokeJoin() const override { return m_join; }
+    void setStrokeWidth(f32 width) override
+    {
+        m_strokeWidth = width;
+    }
 
-    void setAntiAlias(bool enabled) override { m_aa = enabled; }
-    [[nodiscard]] bool antiAlias() const override { return m_aa; }
+    [[nodiscard]] f32 strokeWidth() const override
+    {
+        return m_strokeWidth;
+    }
 
-    void setAlpha(f32 alpha) override { m_alpha = alpha; }
-    [[nodiscard]] f32 alpha() const override { return m_alpha; }
+    void setStrokeCap(paint::StrokeCap cap) override
+    {
+        m_cap = cap;
+    }
+
+    [[nodiscard]] paint::StrokeCap strokeCap() const override
+    {
+        return m_cap;
+    }
+
+    void setStrokeJoin(paint::StrokeJoin join) override
+    {
+        m_join = join;
+    }
+
+    [[nodiscard]] paint::StrokeJoin strokeJoin() const override
+    {
+        return m_join;
+    }
+
+    void setAntiAlias(bool enabled) override
+    {
+        m_aa = enabled;
+    }
+
+    [[nodiscard]] bool antiAlias() const override
+    {
+        return m_aa;
+    }
+
+    void setAlpha(f32 alpha) override
+    {
+        m_alpha = alpha;
+    }
+
+    [[nodiscard]] f32 alpha() const override
+    {
+        return m_alpha;
+    }
 
 private:
     paint::Color m_color = paint::WHITE_COLOR;

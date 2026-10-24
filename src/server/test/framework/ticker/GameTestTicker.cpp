@@ -64,9 +64,11 @@ void GameTestTicker::tick()
     }
     m_currentTicking = nullptr;
     // 移除已完成的实例（对齐 Java removeIf(isDone)）
-    m_instances.erase(
-        std::remove_if(
-            m_instances.begin(), m_instances.end(), [](BaseGameTestInstance* inst) { return isDone(inst->state()); }),
+    m_instances.erase(std::remove_if(m_instances.begin(),
+                          m_instances.end(),
+                          [](BaseGameTestInstance* inst) {
+                              return isDone(inst->state());
+                          }),
         m_instances.end());
 
     // 推进清理任务，移除已完成的（tick 返回 true=完成）

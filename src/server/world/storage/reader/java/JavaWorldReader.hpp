@@ -90,7 +90,11 @@ public:
 
     Result<void> open(const std::filesystem::path& worldPath, const SaveFormatInfo& formatInfo);
     void close();
-    [[nodiscard]] bool isOpen() const noexcept { return m_isOpen; }
+
+    [[nodiscard]] bool isOpen() const noexcept
+    {
+        return m_isOpen;
+    }
 
     [[nodiscard]] Result<std::optional<ChunkData>> readChunk(ChunkCoord x, ChunkCoord z, DimensionId dimension);
     [[nodiscard]] Result<std::vector<ChunkPos>> listChunks(DimensionId dimension);

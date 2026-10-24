@@ -31,7 +31,10 @@ using namespace mc::world::border;
 
 class WorldBorderTest : public ::testing::Test {
 protected:
-    void SetUp() override { border = std::make_unique<WorldBorder>(); }
+    void SetUp() override
+    {
+        border = std::make_unique<WorldBorder>();
+    }
 
     std::unique_ptr<WorldBorder> border;
 };
@@ -301,6 +304,7 @@ public:
         sizeChanged = true;
         lastSize = newSize;
     }
+
     void onTransitionStarted(double oldSize, double newSize, u64 timeMs) override
     {
         transitionStarted = true;
@@ -308,27 +312,32 @@ public:
         lastNewSize = newSize;
         lastTimeMs = timeMs;
     }
+
     void onCenterChanged(double x, double z) override
     {
         centerChanged = true;
         lastCenterX = x;
         lastCenterZ = z;
     }
+
     void onWarningTimeChanged(i32 warningTime) override
     {
         warningTimeChanged = true;
         lastWarningTime = warningTime;
     }
+
     void onWarningDistanceChanged(i32 warningDistance) override
     {
         warningDistanceChanged = true;
         lastWarningDistance = warningDistance;
     }
+
     void onDamageBufferChanged(double damageBuffer) override
     {
         damageBufferChanged = true;
         lastDamageBuffer = damageBuffer;
     }
+
     void onDamagePerBlockChanged(double damagePerBlock) override
     {
         damagePerBlockChanged = true;

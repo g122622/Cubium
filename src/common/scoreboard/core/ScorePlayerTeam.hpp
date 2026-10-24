@@ -69,17 +69,29 @@ public:
 
     // ========== Team 接口实现 ==========
 
-    [[nodiscard]] const std::string& getName() const noexcept override { return m_name; }
+    [[nodiscard]] const std::string& getName() const noexcept override
+    {
+        return m_name;
+    }
+
     [[nodiscard]] const text::ITextComponent* getDisplayName() const noexcept override;
     void setDisplayName(std::unique_ptr<text::ITextComponent> displayName) override;
 
-    [[nodiscard]] const std::set<std::string>& getMembers() const noexcept override { return m_members; }
+    [[nodiscard]] const std::set<std::string>& getMembers() const noexcept override
+    {
+        return m_members;
+    }
+
     bool addMember(const std::string& playerName) override;
     bool removeMember(const std::string& playerName) override;
     [[nodiscard]] bool hasMember(const std::string& playerName) const override;
     void clearMembers() override;
 
-    [[nodiscard]] TextFormatting getColor() const noexcept override { return m_color; }
+    [[nodiscard]] TextFormatting getColor() const noexcept override
+    {
+        return m_color;
+    }
+
     void setColor(TextFormatting color) override;
 
     [[nodiscard]] const text::ITextComponent* getPrefix() const noexcept override;
@@ -88,22 +100,39 @@ public:
     [[nodiscard]] const text::ITextComponent* getSuffix() const noexcept override;
     void setSuffix(std::unique_ptr<text::ITextComponent> suffix) override;
 
-    [[nodiscard]] bool getAllowFriendlyFire() const noexcept override { return m_allowFriendlyFire; }
+    [[nodiscard]] bool getAllowFriendlyFire() const noexcept override
+    {
+        return m_allowFriendlyFire;
+    }
+
     void setAllowFriendlyFire(bool allow) override;
 
-    [[nodiscard]] bool canSeeFriendlyInvisibles() const noexcept override { return m_seeFriendlyInvisibles; }
+    [[nodiscard]] bool canSeeFriendlyInvisibles() const noexcept override
+    {
+        return m_seeFriendlyInvisibles;
+    }
+
     void setSeeFriendlyInvisibles(bool see) override;
 
-    [[nodiscard]] TeamVisibility getNameTagVisibility() const noexcept override { return m_nameTagVisibility; }
+    [[nodiscard]] TeamVisibility getNameTagVisibility() const noexcept override
+    {
+        return m_nameTagVisibility;
+    }
+
     void setNameTagVisibility(TeamVisibility visibility) override;
 
     [[nodiscard]] TeamVisibility getDeathMessageVisibility() const noexcept override
     {
         return m_deathMessageVisibility;
     }
+
     void setDeathMessageVisibility(TeamVisibility visibility) override;
 
-    [[nodiscard]] TeamCollisionRule getCollisionRule() const noexcept override { return m_collisionRule; }
+    [[nodiscard]] TeamCollisionRule getCollisionRule() const noexcept override
+    {
+        return m_collisionRule;
+    }
+
     void setCollisionRule(TeamCollisionRule rule) override;
 
     [[nodiscard]] std::unique_ptr<text::ITextComponent> formatName(const text::ITextComponent& name) const override;
@@ -125,7 +154,10 @@ public:
      *
      * @return 记分板引用
      */
-    [[nodiscard]] Scoreboard& getScoreboard() const noexcept { return m_scoreboard; }
+    [[nodiscard]] Scoreboard& getScoreboard() const noexcept
+    {
+        return m_scoreboard;
+    }
 
     /**
      * @brief 获取友军标志位

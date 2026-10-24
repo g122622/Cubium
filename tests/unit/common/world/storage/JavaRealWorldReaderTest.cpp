@@ -61,7 +61,9 @@ using world::storage::reader::java::JavaWorldReader;
 /// 在区块坐标列表中查找指定坐标
 bool containsChunk(const std::vector<ChunkPos>& chunks, ChunkCoord x, ChunkCoord z)
 {
-    return std::any_of(chunks.begin(), chunks.end(), [x, z](const ChunkPos& pos) { return pos.x == x && pos.z == z; });
+    return std::any_of(chunks.begin(), chunks.end(), [x, z](const ChunkPos& pos) {
+        return pos.x == x && pos.z == z;
+    });
 }
 
 // ============================================================================
@@ -130,6 +132,7 @@ TEST_F(JavaRealWorldReaderFixture, ReadUnfinishedStatusReturnsEmpty)
         ChunkCoord z;
         const char* status;
     };
+
     const Case cases[] = {
         {-13, 19, "minecraft:noise"},
         {4, 18, "minecraft:features"},

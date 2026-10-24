@@ -77,6 +77,7 @@ std::vector<FoliagePosition> FancyTrunkPlacer::placeTrunk(WorldGenRegion& world,
         i32 branchBaseY;
         bool trunkTop;
     };
+
     std::vector<BranchFoliage> branchFoliages;
     branchFoliages.push_back({startPos.up(topOffset), baseY, false});
 

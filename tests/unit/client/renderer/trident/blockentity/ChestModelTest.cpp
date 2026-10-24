@@ -35,7 +35,10 @@ using ModelVertex = mc::client::renderer::entity::model::ModelVertex;
 
 class ChestModelTest : public ::testing::Test {
 protected:
-    void SetUp() override { model_ = std::make_unique<ChestModel>(); }
+    void SetUp() override
+    {
+        model_ = std::make_unique<ChestModel>();
+    }
 
     std::unique_ptr<ChestModel> model_;
 };

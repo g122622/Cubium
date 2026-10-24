@@ -97,15 +97,30 @@ namespace {
 
 class _TestGoalWorld final : public mc::test::BaseTestWorld {
 public:
-    void setEntities(std::vector<Entity*> entities) { m_entities = std::move(entities); }
+    void setEntities(std::vector<Entity*> entities)
+    {
+        m_entities = std::move(entities);
+    }
 
-    void setAllWater(bool enabled) { m_allWater = enabled; }
+    void setAllWater(bool enabled)
+    {
+        m_allWater = enabled;
+    }
 
-    void setAllLava(bool enabled) { m_allLava = enabled; }
+    void setAllLava(bool enabled)
+    {
+        m_allLava = enabled;
+    }
 
-    void setWaterBlock(i32 x, i32 y, i32 z) { m_waterBlocks.push_back(BlockPos(x, y, z)); }
+    void setWaterBlock(i32 x, i32 y, i32 z)
+    {
+        m_waterBlocks.push_back(BlockPos(x, y, z));
+    }
 
-    void setLavaBlock(i32 x, i32 y, i32 z) { m_lavaBlocks.push_back(BlockPos(x, y, z)); }
+    void setLavaBlock(i32 x, i32 y, i32 z)
+    {
+        m_lavaBlocks.push_back(BlockPos(x, y, z));
+    }
 
     [[nodiscard]] std::vector<Entity*> getEntitiesInAABB(const AxisAlignedBB&, const Entity* except) const override
     {
@@ -161,6 +176,7 @@ public:
     {
         throw std::runtime_error("_TestGoalWorld::tickManager not implemented");
     }
+
     [[nodiscard]] const world::tick::TickManager& tickManager() const override
     {
         throw std::runtime_error("_TestGoalWorld::tickManager not implemented");
@@ -231,7 +247,10 @@ public:
         : Item(ItemProperties().maxStackSize(1))
     {}
 
-    [[nodiscard]] UseAction getUseAction(const ItemStack&) const override { return UseAction::Bow; }
+    [[nodiscard]] UseAction getUseAction(const ItemStack&) const override
+    {
+        return UseAction::Bow;
+    }
 };
 
 class _ExposedPanicGoal final : public PanicGoal {
@@ -245,22 +264,35 @@ class _ExposedRangedAttackGoal final : public RangedAttackGoal {
 public:
     using RangedAttackGoal::RangedAttackGoal;
 
-    [[nodiscard]] LivingEntity* cachedTarget() const { return m_target.get(); }
+    [[nodiscard]] LivingEntity* cachedTarget() const
+    {
+        return m_target.get();
+    }
 };
 
 class _ExposedRangedBowAttackGoal final : public RangedBowAttackGoal {
 public:
     using RangedBowAttackGoal::RangedBowAttackGoal;
 
-    [[nodiscard]] LivingEntity* cachedTarget() const { return m_target.get(); }
+    [[nodiscard]] LivingEntity* cachedTarget() const
+    {
+        return m_target.get();
+    }
 };
 
 class _ExposedMeleeAttackGoal final : public MeleeAttackGoal {
 public:
     using MeleeAttackGoal::MeleeAttackGoal;
 
-    void setCachedTarget(LivingEntity* target) { m_attackTarget = target; }
-    [[nodiscard]] LivingEntity* cachedTarget() const { return m_attackTarget.get(); }
+    void setCachedTarget(LivingEntity* target)
+    {
+        m_attackTarget = target;
+    }
+
+    [[nodiscard]] LivingEntity* cachedTarget() const
+    {
+        return m_attackTarget.get();
+    }
 };
 
 class _ExposedWaterAvoidingRandomWalkingGoal final : public WaterAvoidingRandomWalkingGoal {
@@ -297,7 +329,9 @@ TEST(AiGoalRegressionTest, TemptGoal_UsesTemptingPlayerHandItems)
 
     world.setEntities({&closePlayer, &temptingPlayer});
 
-    TemptGoal goal(&creature, 1.0, [&temptItem](const ItemStack& stack) { return stack.getItem() == &temptItem; });
+    TemptGoal goal(&creature, 1.0, [&temptItem](const ItemStack& stack) {
+        return stack.getItem() == &temptItem;
+    });
 
     EXPECT_TRUE(goal.shouldExecute());
     goal.startExecuting();

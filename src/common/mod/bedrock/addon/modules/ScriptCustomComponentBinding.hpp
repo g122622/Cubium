@@ -18,11 +18,14 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
+ *
  */
 
 #pragma once
 
 #include "common/core/Types.hpp"
+#include "common/mod/bedrock/addon/binding/ScriptValueHandle.hpp"
+#include <utility>
 
 #include <string>
 
@@ -64,6 +67,6 @@ bool registerItemCustomComponentFromJS(const std::string& typeId, void* componen
  *
  * @param builder 模块构建器
  */
-void registerCustomComponentBindings(NativeModuleBuilder& builder);
+std::pair<ScriptValueHandle, ScriptValueHandle> registerCustomComponentBindings(NativeModuleBuilder& builder);
 
 } // namespace mc::mod::bedrock::addon

@@ -145,7 +145,9 @@ bool TurtleEntity::isBreedingItem(const ItemStack& itemStack) const
 {
     // 海龟仅接受海草作为繁殖物品
     const Item* item = itemStack.getItem();
-    if (item == nullptr) return false;
+    if (item == nullptr) {
+        return false;
+    }
     return item == Items::SEAGRASS;
 }
 

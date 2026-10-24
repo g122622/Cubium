@@ -92,6 +92,7 @@ public:
         bool filteringCraftable = false; ///< 是否过滤为可合成物品
 
         CategoryStatus() = default;
+
         CategoryStatus(bool open, bool filtering)
             : guiOpen(open)
             , filteringCraftable(filtering)
@@ -102,7 +103,10 @@ public:
             return guiOpen == other.guiOpen && filteringCraftable == other.filteringCraftable;
         }
 
-        [[nodiscard]] CategoryStatus copy() const noexcept { return *this; }
+        [[nodiscard]] CategoryStatus copy() const noexcept
+        {
+            return *this;
+        }
     };
 
     RecipeBookStatus();
@@ -247,13 +251,19 @@ public:
      * @brief 获取所有已解锁的配方ID
      * @return 已解锁配方ID集合
      */
-    [[nodiscard]] const std::unordered_set<ResourceLocation>& getUnlockedRecipes() const noexcept { return m_recipes; }
+    [[nodiscard]] const std::unordered_set<ResourceLocation>& getUnlockedRecipes() const noexcept
+    {
+        return m_recipes;
+    }
 
     /**
      * @brief 获取所有新解锁的配方ID
      * @return 新解锁配方ID集合
      */
-    [[nodiscard]] const std::unordered_set<ResourceLocation>& getNewRecipes() const noexcept { return m_newRecipes; }
+    [[nodiscard]] const std::unordered_set<ResourceLocation>& getNewRecipes() const noexcept
+    {
+        return m_newRecipes;
+    }
 
     // ========== 状态管理 ==========
 
@@ -261,14 +271,24 @@ public:
      * @brief 获取配方书GUI状态
      * @return GUI状态引用
      */
-    [[nodiscard]] RecipeBookStatus& getStatus() noexcept { return m_status; }
-    [[nodiscard]] const RecipeBookStatus& getStatus() const noexcept { return m_status; }
+    [[nodiscard]] RecipeBookStatus& getStatus() noexcept
+    {
+        return m_status;
+    }
+
+    [[nodiscard]] const RecipeBookStatus& getStatus() const noexcept
+    {
+        return m_status;
+    }
 
     /**
      * @brief 设置配方书GUI状态
      * @param status 新状态
      */
-    void setStatus(const RecipeBookStatus& status) noexcept { m_status.copyFrom(status); }
+    void setStatus(const RecipeBookStatus& status) noexcept
+    {
+        m_status.copyFrom(status);
+    }
 
     /**
      * @brief 从另一个配方书复制状态
@@ -287,13 +307,19 @@ public:
      * @brief 获取已解锁配方数量
      * @return 已解锁配方数量
      */
-    [[nodiscard]] size_t getUnlockedCount() const noexcept { return m_recipes.size(); }
+    [[nodiscard]] size_t getUnlockedCount() const noexcept
+    {
+        return m_recipes.size();
+    }
 
     /**
      * @brief 获取新配方数量
      * @return 新配方数量
      */
-    [[nodiscard]] size_t getNewCount() const noexcept { return m_newRecipes.size(); }
+    [[nodiscard]] size_t getNewCount() const noexcept
+    {
+        return m_newRecipes.size();
+    }
 
 protected:
     std::unordered_set<ResourceLocation> m_recipes;    ///< 已解锁的配方

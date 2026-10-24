@@ -60,8 +60,10 @@ EntityManager::EntityManager(ecs::EntityRegistry& registry)
     // 注册 EntityTick 阶段的 OOP tick 桥接 System。
     // 回调委托 _tickEntities()（含模拟距离门控/ServerPlayer 永远 tick 等成熟逻辑），
     // 避免 EntityManager ↔ Scheduler 循环依赖，且保持原三步 tick 编排语义不变。
-    m_scheduler.registerSystem(ecs::SystemPhase::EntityTick,
-        std::make_shared<ecs::EntityLegacyTickSystem>([this](ecs::EntityRegistry&) { this->_tickEntities(); }));
+    m_scheduler.registerSystem(
+        ecs::SystemPhase::EntityTick, std::make_shared<ecs::EntityLegacyTickSystem>([this](ecs::EntityRegistry&) {
+            this->_tickEntities();
+        }));
 
     // PostEntityTick 阶段：状态递减/环境交互类真实 System（第二批新增）。
     // PortalTickSystem：传送冷却递减 + tickPortal 逻辑（从 baseTick/tick 抽出）。
@@ -74,8 +76,10 @@ EntityManager::EntityManager(ecs::EntityRegistry& registry)
     // 注册在 PortalTickSystem/FireTickSystem 之后，使 Brain tick 在所有实体 OOP tick
     // + portal/fire 递减之后执行。回调委托 _tickBrains()（复用 _tickEntities 门控框架）。
     // Brain 仍是 OOP 成员，本 System 只搬 tick 调度决策，不 ECS 化 Brain 数据。
-    m_scheduler.registerSystem(ecs::SystemPhase::PostEntityTick,
-        std::make_shared<ecs::BrainTickSystem>([this](ecs::EntityRegistry&) { this->_tickBrains(); }));
+    m_scheduler.registerSystem(
+        ecs::SystemPhase::PostEntityTick, std::make_shared<ecs::BrainTickSystem>([this](ecs::EntityRegistry&) {
+            this->_tickBrains();
+        }));
 }
 
 EntityInstanceId EntityManager::addEntity(std::unique_ptr<Entity> entity)

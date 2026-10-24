@@ -87,7 +87,10 @@ struct SlotBackground {
     ResourceLocation atlas;  ///< 图集位置
     ResourceLocation sprite; ///< 精灵位置
 
-    [[nodiscard]] bool isValid() const noexcept { return !atlas.path().empty() && !sprite.path().empty(); }
+    [[nodiscard]] bool isValid() const noexcept
+    {
+        return !atlas.path().empty() && !sprite.path().empty();
+    }
 };
 
 /**
@@ -116,36 +119,57 @@ public:
     /**
      * @brief 获取槽位索引（在背包中的索引）
      */
-    [[nodiscard]] i32 getIndex() const noexcept { return m_slotIndex; }
+    [[nodiscard]] i32 getIndex() const noexcept
+    {
+        return m_slotIndex;
+    }
 
     /**
      * @brief 获取槽位编号（在容器中的索引，由容器设置）
      */
-    [[nodiscard]] i32 getSlotNumber() const noexcept { return m_slotNumber; }
+    [[nodiscard]] i32 getSlotNumber() const noexcept
+    {
+        return m_slotNumber;
+    }
 
     /**
      * @brief 设置槽位编号
      * @param number 槽位编号
      */
-    void setSlotNumber(i32 number) noexcept { m_slotNumber = number; }
+    void setSlotNumber(i32 number) noexcept
+    {
+        m_slotNumber = number;
+    }
 
     /** @brief 绑定拥有此槽位的菜单，槽位变更同步通知菜单重新计算。 */
-    void setMenu(AbstractContainerMenu& menu) noexcept { m_menu = &menu; }
+    void setMenu(AbstractContainerMenu& menu) noexcept
+    {
+        m_menu = &menu;
+    }
 
     /**
      * @brief 获取所属背包
      */
-    [[nodiscard]] IInventory* getInventory() const noexcept { return m_inventory; }
+    [[nodiscard]] IInventory* getInventory() const noexcept
+    {
+        return m_inventory;
+    }
 
     /**
      * @brief 获取显示位置X
      */
-    [[nodiscard]] i32 getX() const noexcept { return m_x; }
+    [[nodiscard]] i32 getX() const noexcept
+    {
+        return m_x;
+    }
 
     /**
      * @brief 获取显示位置Y
      */
-    [[nodiscard]] i32 getY() const noexcept { return m_y; }
+    [[nodiscard]] i32 getY() const noexcept
+    {
+        return m_y;
+    }
 
     // ========== 物品操作 ==========
 
@@ -237,14 +261,20 @@ public:
     /**
      * @brief 检查槽位是否有效（如护甲槽只接受护甲）
      */
-    [[nodiscard]] virtual bool isValid() const noexcept { return true; }
+    [[nodiscard]] virtual bool isValid() const noexcept
+    {
+        return true;
+    }
 
     /**
      * @brief 检查槽位是否启用（客户端渲染用）
      *
      * 某些槽位可能被禁用（如驴的装备槽在未装备鞍时）。
      */
-    [[nodiscard]] virtual bool isEnabled() const noexcept { return true; }
+    [[nodiscard]] virtual bool isEnabled() const noexcept
+    {
+        return true;
+    }
 
     /**
      * @brief 获取最大堆叠数量
@@ -311,12 +341,18 @@ public:
     /**
      * @brief 检查槽位是否激活（鼠标悬停）
      */
-    [[nodiscard]] bool isActive() const noexcept { return m_active; }
+    [[nodiscard]] bool isActive() const noexcept
+    {
+        return m_active;
+    }
 
     /**
      * @brief 设置激活状态
      */
-    void setActive(bool active) noexcept { m_active = active; }
+    void setActive(bool active) noexcept
+    {
+        m_active = active;
+    }
 
     // ========== 背景图标 ==========
 
@@ -324,7 +360,10 @@ public:
      * @brief 获取背景图标
      * @return 背景图标，无效返回空
      */
-    [[nodiscard]] const SlotBackground& getBackground() const { return m_background; }
+    [[nodiscard]] const SlotBackground& getBackground() const
+    {
+        return m_background;
+    }
 
     /**
      * @brief 设置背景图标
@@ -388,7 +427,10 @@ public:
     /**
      * @brief 护甲槽最大堆叠数为1
      */
-    [[nodiscard]] i32 getMaxStackSize() const noexcept override { return 1; }
+    [[nodiscard]] i32 getMaxStackSize() const noexcept override
+    {
+        return 1;
+    }
 
 private:
     ArmorType m_armorType;
@@ -431,7 +473,10 @@ public:
     /**
      * @brief 检查槽位是否有效
      */
-    [[nodiscard]] bool isValid() const noexcept override { return true; }
+    [[nodiscard]] bool isValid() const noexcept override
+    {
+        return true;
+    }
 
     /**
      * @brief 合成完成回调
@@ -460,7 +505,10 @@ public:
     /**
      * @brief 获取关联的合成网格
      */
-    [[nodiscard]] CraftingInventory* getCraftingGrid() const noexcept { return m_craftingGrid; }
+    [[nodiscard]] CraftingInventory* getCraftingGrid() const noexcept
+    {
+        return m_craftingGrid;
+    }
 
 private:
     CraftingInventory* m_craftingGrid;
@@ -571,7 +619,10 @@ public:
     /**
      * @brief 获取熔炉实体
      */
-    [[nodiscard]] blockentity::AbstractFurnaceEntity* getFurnaceEntity() const noexcept { return m_furnaceEntity; }
+    [[nodiscard]] blockentity::AbstractFurnaceEntity* getFurnaceEntity() const noexcept
+    {
+        return m_furnaceEntity;
+    }
 
 protected:
     /**

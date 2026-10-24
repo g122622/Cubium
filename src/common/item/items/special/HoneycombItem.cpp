@@ -148,154 +148,214 @@ std::unordered_map<const Block*, const Block*> HoneycombItem::_buildWaxablesMap(
     std::unordered_map<const Block*, const Block*> m;
 
     // 铜块系列
-    if (VanillaBlocks::COPPER_BLOCK && VanillaBlocks::WAXED_COPPER_BLOCK)
+    if (VanillaBlocks::COPPER_BLOCK && VanillaBlocks::WAXED_COPPER_BLOCK) {
         m[VanillaBlocks::COPPER_BLOCK] = VanillaBlocks::WAXED_COPPER_BLOCK;
-    if (VanillaBlocks::EXPOSED_COPPER && VanillaBlocks::WAXED_EXPOSED_COPPER)
+    }
+    if (VanillaBlocks::EXPOSED_COPPER && VanillaBlocks::WAXED_EXPOSED_COPPER) {
         m[VanillaBlocks::EXPOSED_COPPER] = VanillaBlocks::WAXED_EXPOSED_COPPER;
-    if (VanillaBlocks::WEATHERED_COPPER && VanillaBlocks::WAXED_WEATHERED_COPPER)
+    }
+    if (VanillaBlocks::WEATHERED_COPPER && VanillaBlocks::WAXED_WEATHERED_COPPER) {
         m[VanillaBlocks::WEATHERED_COPPER] = VanillaBlocks::WAXED_WEATHERED_COPPER;
-    if (VanillaBlocks::OXIDIZED_COPPER && VanillaBlocks::WAXED_OXIDIZED_COPPER)
+    }
+    if (VanillaBlocks::OXIDIZED_COPPER && VanillaBlocks::WAXED_OXIDIZED_COPPER) {
         m[VanillaBlocks::OXIDIZED_COPPER] = VanillaBlocks::WAXED_OXIDIZED_COPPER;
+    }
 
     // 切制铜系列
-    if (VanillaBlocks::CUT_COPPER && VanillaBlocks::WAXED_CUT_COPPER)
+    if (VanillaBlocks::CUT_COPPER && VanillaBlocks::WAXED_CUT_COPPER) {
         m[VanillaBlocks::CUT_COPPER] = VanillaBlocks::WAXED_CUT_COPPER;
-    if (VanillaBlocks::EXPOSED_CUT_COPPER && VanillaBlocks::WAXED_EXPOSED_CUT_COPPER)
+    }
+    if (VanillaBlocks::EXPOSED_CUT_COPPER && VanillaBlocks::WAXED_EXPOSED_CUT_COPPER) {
         m[VanillaBlocks::EXPOSED_CUT_COPPER] = VanillaBlocks::WAXED_EXPOSED_CUT_COPPER;
-    if (VanillaBlocks::WEATHERED_CUT_COPPER && VanillaBlocks::WAXED_WEATHERED_CUT_COPPER)
+    }
+    if (VanillaBlocks::WEATHERED_CUT_COPPER && VanillaBlocks::WAXED_WEATHERED_CUT_COPPER) {
         m[VanillaBlocks::WEATHERED_CUT_COPPER] = VanillaBlocks::WAXED_WEATHERED_CUT_COPPER;
-    if (VanillaBlocks::OXIDIZED_CUT_COPPER && VanillaBlocks::WAXED_OXIDIZED_CUT_COPPER)
+    }
+    if (VanillaBlocks::OXIDIZED_CUT_COPPER && VanillaBlocks::WAXED_OXIDIZED_CUT_COPPER) {
         m[VanillaBlocks::OXIDIZED_CUT_COPPER] = VanillaBlocks::WAXED_OXIDIZED_CUT_COPPER;
+    }
 
     // 切制铜楼梯
-    if (VanillaBlocks::CUT_COPPER_STAIRS && VanillaBlocks::WAXED_CUT_COPPER_STAIRS)
+    if (VanillaBlocks::CUT_COPPER_STAIRS && VanillaBlocks::WAXED_CUT_COPPER_STAIRS) {
         m[VanillaBlocks::CUT_COPPER_STAIRS] = VanillaBlocks::WAXED_CUT_COPPER_STAIRS;
-    if (VanillaBlocks::EXPOSED_CUT_COPPER_STAIRS && VanillaBlocks::WAXED_EXPOSED_CUT_COPPER_STAIRS)
+    }
+    if (VanillaBlocks::EXPOSED_CUT_COPPER_STAIRS && VanillaBlocks::WAXED_EXPOSED_CUT_COPPER_STAIRS) {
         m[VanillaBlocks::EXPOSED_CUT_COPPER_STAIRS] = VanillaBlocks::WAXED_EXPOSED_CUT_COPPER_STAIRS;
-    if (VanillaBlocks::WEATHERED_CUT_COPPER_STAIRS && VanillaBlocks::WAXED_WEATHERED_CUT_COPPER_STAIRS)
+    }
+    if (VanillaBlocks::WEATHERED_CUT_COPPER_STAIRS && VanillaBlocks::WAXED_WEATHERED_CUT_COPPER_STAIRS) {
         m[VanillaBlocks::WEATHERED_CUT_COPPER_STAIRS] = VanillaBlocks::WAXED_WEATHERED_CUT_COPPER_STAIRS;
-    if (VanillaBlocks::OXIDIZED_CUT_COPPER_STAIRS && VanillaBlocks::WAXED_OXIDIZED_CUT_COPPER_STAIRS)
+    }
+    if (VanillaBlocks::OXIDIZED_CUT_COPPER_STAIRS && VanillaBlocks::WAXED_OXIDIZED_CUT_COPPER_STAIRS) {
         m[VanillaBlocks::OXIDIZED_CUT_COPPER_STAIRS] = VanillaBlocks::WAXED_OXIDIZED_CUT_COPPER_STAIRS;
+    }
 
     // 切制铜台阶
-    if (VanillaBlocks::CUT_COPPER_SLAB && VanillaBlocks::WAXED_CUT_COPPER_SLAB)
+    if (VanillaBlocks::CUT_COPPER_SLAB && VanillaBlocks::WAXED_CUT_COPPER_SLAB) {
         m[VanillaBlocks::CUT_COPPER_SLAB] = VanillaBlocks::WAXED_CUT_COPPER_SLAB;
-    if (VanillaBlocks::EXPOSED_CUT_COPPER_SLAB && VanillaBlocks::WAXED_EXPOSED_CUT_COPPER_SLAB)
+    }
+    if (VanillaBlocks::EXPOSED_CUT_COPPER_SLAB && VanillaBlocks::WAXED_EXPOSED_CUT_COPPER_SLAB) {
         m[VanillaBlocks::EXPOSED_CUT_COPPER_SLAB] = VanillaBlocks::WAXED_EXPOSED_CUT_COPPER_SLAB;
-    if (VanillaBlocks::WEATHERED_CUT_COPPER_SLAB && VanillaBlocks::WAXED_WEATHERED_CUT_COPPER_SLAB)
+    }
+    if (VanillaBlocks::WEATHERED_CUT_COPPER_SLAB && VanillaBlocks::WAXED_WEATHERED_CUT_COPPER_SLAB) {
         m[VanillaBlocks::WEATHERED_CUT_COPPER_SLAB] = VanillaBlocks::WAXED_WEATHERED_CUT_COPPER_SLAB;
-    if (VanillaBlocks::OXIDIZED_CUT_COPPER_SLAB && VanillaBlocks::WAXED_OXIDIZED_CUT_COPPER_SLAB)
+    }
+    if (VanillaBlocks::OXIDIZED_CUT_COPPER_SLAB && VanillaBlocks::WAXED_OXIDIZED_CUT_COPPER_SLAB) {
         m[VanillaBlocks::OXIDIZED_CUT_COPPER_SLAB] = VanillaBlocks::WAXED_OXIDIZED_CUT_COPPER_SLAB;
+    }
 
     // 铜门
-    if (VanillaBlocks::COPPER_DOOR && VanillaBlocks::WAXED_COPPER_DOOR)
+    if (VanillaBlocks::COPPER_DOOR && VanillaBlocks::WAXED_COPPER_DOOR) {
         m[VanillaBlocks::COPPER_DOOR] = VanillaBlocks::WAXED_COPPER_DOOR;
-    if (VanillaBlocks::EXPOSED_COPPER_DOOR && VanillaBlocks::WAXED_EXPOSED_COPPER_DOOR)
+    }
+    if (VanillaBlocks::EXPOSED_COPPER_DOOR && VanillaBlocks::WAXED_EXPOSED_COPPER_DOOR) {
         m[VanillaBlocks::EXPOSED_COPPER_DOOR] = VanillaBlocks::WAXED_EXPOSED_COPPER_DOOR;
-    if (VanillaBlocks::WEATHERED_COPPER_DOOR && VanillaBlocks::WAXED_WEATHERED_COPPER_DOOR)
+    }
+    if (VanillaBlocks::WEATHERED_COPPER_DOOR && VanillaBlocks::WAXED_WEATHERED_COPPER_DOOR) {
         m[VanillaBlocks::WEATHERED_COPPER_DOOR] = VanillaBlocks::WAXED_WEATHERED_COPPER_DOOR;
-    if (VanillaBlocks::OXIDIZED_COPPER_DOOR && VanillaBlocks::WAXED_OXIDIZED_COPPER_DOOR)
+    }
+    if (VanillaBlocks::OXIDIZED_COPPER_DOOR && VanillaBlocks::WAXED_OXIDIZED_COPPER_DOOR) {
         m[VanillaBlocks::OXIDIZED_COPPER_DOOR] = VanillaBlocks::WAXED_OXIDIZED_COPPER_DOOR;
+    }
 
     // 铜活板门
-    if (VanillaBlocks::COPPER_TRAPDOOR && VanillaBlocks::WAXED_COPPER_TRAPDOOR)
+    if (VanillaBlocks::COPPER_TRAPDOOR && VanillaBlocks::WAXED_COPPER_TRAPDOOR) {
         m[VanillaBlocks::COPPER_TRAPDOOR] = VanillaBlocks::WAXED_COPPER_TRAPDOOR;
-    if (VanillaBlocks::EXPOSED_COPPER_TRAPDOOR && VanillaBlocks::WAXED_EXPOSED_COPPER_TRAPDOOR)
+    }
+    if (VanillaBlocks::EXPOSED_COPPER_TRAPDOOR && VanillaBlocks::WAXED_EXPOSED_COPPER_TRAPDOOR) {
         m[VanillaBlocks::EXPOSED_COPPER_TRAPDOOR] = VanillaBlocks::WAXED_EXPOSED_COPPER_TRAPDOOR;
-    if (VanillaBlocks::WEATHERED_COPPER_TRAPDOOR && VanillaBlocks::WAXED_WEATHERED_COPPER_TRAPDOOR)
+    }
+    if (VanillaBlocks::WEATHERED_COPPER_TRAPDOOR && VanillaBlocks::WAXED_WEATHERED_COPPER_TRAPDOOR) {
         m[VanillaBlocks::WEATHERED_COPPER_TRAPDOOR] = VanillaBlocks::WAXED_WEATHERED_COPPER_TRAPDOOR;
-    if (VanillaBlocks::OXIDIZED_COPPER_TRAPDOOR && VanillaBlocks::WAXED_OXIDIZED_COPPER_TRAPDOOR)
+    }
+    if (VanillaBlocks::OXIDIZED_COPPER_TRAPDOOR && VanillaBlocks::WAXED_OXIDIZED_COPPER_TRAPDOOR) {
         m[VanillaBlocks::OXIDIZED_COPPER_TRAPDOOR] = VanillaBlocks::WAXED_OXIDIZED_COPPER_TRAPDOOR;
+    }
 
     // 铜格栅
-    if (VanillaBlocks::COPPER_GRATE && VanillaBlocks::WAXED_COPPER_GRATE)
+    if (VanillaBlocks::COPPER_GRATE && VanillaBlocks::WAXED_COPPER_GRATE) {
         m[VanillaBlocks::COPPER_GRATE] = VanillaBlocks::WAXED_COPPER_GRATE;
-    if (VanillaBlocks::EXPOSED_COPPER_GRATE && VanillaBlocks::WAXED_EXPOSED_COPPER_GRATE)
+    }
+    if (VanillaBlocks::EXPOSED_COPPER_GRATE && VanillaBlocks::WAXED_EXPOSED_COPPER_GRATE) {
         m[VanillaBlocks::EXPOSED_COPPER_GRATE] = VanillaBlocks::WAXED_EXPOSED_COPPER_GRATE;
-    if (VanillaBlocks::WEATHERED_COPPER_GRATE && VanillaBlocks::WAXED_WEATHERED_COPPER_GRATE)
+    }
+    if (VanillaBlocks::WEATHERED_COPPER_GRATE && VanillaBlocks::WAXED_WEATHERED_COPPER_GRATE) {
         m[VanillaBlocks::WEATHERED_COPPER_GRATE] = VanillaBlocks::WAXED_WEATHERED_COPPER_GRATE;
-    if (VanillaBlocks::OXIDIZED_COPPER_GRATE && VanillaBlocks::WAXED_OXIDIZED_COPPER_GRATE)
+    }
+    if (VanillaBlocks::OXIDIZED_COPPER_GRATE && VanillaBlocks::WAXED_OXIDIZED_COPPER_GRATE) {
         m[VanillaBlocks::OXIDIZED_COPPER_GRATE] = VanillaBlocks::WAXED_OXIDIZED_COPPER_GRATE;
+    }
 
     // 铜灯
-    if (VanillaBlocks::COPPER_BULB && VanillaBlocks::WAXED_COPPER_BULB)
+    if (VanillaBlocks::COPPER_BULB && VanillaBlocks::WAXED_COPPER_BULB) {
         m[VanillaBlocks::COPPER_BULB] = VanillaBlocks::WAXED_COPPER_BULB;
-    if (VanillaBlocks::EXPOSED_COPPER_BULB && VanillaBlocks::WAXED_EXPOSED_COPPER_BULB)
+    }
+    if (VanillaBlocks::EXPOSED_COPPER_BULB && VanillaBlocks::WAXED_EXPOSED_COPPER_BULB) {
         m[VanillaBlocks::EXPOSED_COPPER_BULB] = VanillaBlocks::WAXED_EXPOSED_COPPER_BULB;
-    if (VanillaBlocks::WEATHERED_COPPER_BULB && VanillaBlocks::WAXED_WEATHERED_COPPER_BULB)
+    }
+    if (VanillaBlocks::WEATHERED_COPPER_BULB && VanillaBlocks::WAXED_WEATHERED_COPPER_BULB) {
         m[VanillaBlocks::WEATHERED_COPPER_BULB] = VanillaBlocks::WAXED_WEATHERED_COPPER_BULB;
-    if (VanillaBlocks::OXIDIZED_COPPER_BULB && VanillaBlocks::WAXED_OXIDIZED_COPPER_BULB)
+    }
+    if (VanillaBlocks::OXIDIZED_COPPER_BULB && VanillaBlocks::WAXED_OXIDIZED_COPPER_BULB) {
         m[VanillaBlocks::OXIDIZED_COPPER_BULB] = VanillaBlocks::WAXED_OXIDIZED_COPPER_BULB;
+    }
 
     // 凿制铜
-    if (VanillaBlocks::CHISELED_COPPER && VanillaBlocks::WAXED_CHISELED_COPPER)
+    if (VanillaBlocks::CHISELED_COPPER && VanillaBlocks::WAXED_CHISELED_COPPER) {
         m[VanillaBlocks::CHISELED_COPPER] = VanillaBlocks::WAXED_CHISELED_COPPER;
-    if (VanillaBlocks::EXPOSED_CHISELED_COPPER && VanillaBlocks::WAXED_EXPOSED_CHISELED_COPPER)
+    }
+    if (VanillaBlocks::EXPOSED_CHISELED_COPPER && VanillaBlocks::WAXED_EXPOSED_CHISELED_COPPER) {
         m[VanillaBlocks::EXPOSED_CHISELED_COPPER] = VanillaBlocks::WAXED_EXPOSED_CHISELED_COPPER;
-    if (VanillaBlocks::WEATHERED_CHISELED_COPPER && VanillaBlocks::WAXED_WEATHERED_CHISELED_COPPER)
+    }
+    if (VanillaBlocks::WEATHERED_CHISELED_COPPER && VanillaBlocks::WAXED_WEATHERED_CHISELED_COPPER) {
         m[VanillaBlocks::WEATHERED_CHISELED_COPPER] = VanillaBlocks::WAXED_WEATHERED_CHISELED_COPPER;
-    if (VanillaBlocks::OXIDIZED_CHISELED_COPPER && VanillaBlocks::WAXED_OXIDIZED_CHISELED_COPPER)
+    }
+    if (VanillaBlocks::OXIDIZED_CHISELED_COPPER && VanillaBlocks::WAXED_OXIDIZED_CHISELED_COPPER) {
         m[VanillaBlocks::OXIDIZED_CHISELED_COPPER] = VanillaBlocks::WAXED_OXIDIZED_CHISELED_COPPER;
+    }
 
     // 铜栏杆
-    if (VanillaBlocks::COPPER_BARS && VanillaBlocks::WAXED_COPPER_BARS)
+    if (VanillaBlocks::COPPER_BARS && VanillaBlocks::WAXED_COPPER_BARS) {
         m[VanillaBlocks::COPPER_BARS] = VanillaBlocks::WAXED_COPPER_BARS;
-    if (VanillaBlocks::EXPOSED_COPPER_BARS && VanillaBlocks::WAXED_EXPOSED_COPPER_BARS)
+    }
+    if (VanillaBlocks::EXPOSED_COPPER_BARS && VanillaBlocks::WAXED_EXPOSED_COPPER_BARS) {
         m[VanillaBlocks::EXPOSED_COPPER_BARS] = VanillaBlocks::WAXED_EXPOSED_COPPER_BARS;
-    if (VanillaBlocks::WEATHERED_COPPER_BARS && VanillaBlocks::WAXED_WEATHERED_COPPER_BARS)
+    }
+    if (VanillaBlocks::WEATHERED_COPPER_BARS && VanillaBlocks::WAXED_WEATHERED_COPPER_BARS) {
         m[VanillaBlocks::WEATHERED_COPPER_BARS] = VanillaBlocks::WAXED_WEATHERED_COPPER_BARS;
-    if (VanillaBlocks::OXIDIZED_COPPER_BARS && VanillaBlocks::WAXED_OXIDIZED_COPPER_BARS)
+    }
+    if (VanillaBlocks::OXIDIZED_COPPER_BARS && VanillaBlocks::WAXED_OXIDIZED_COPPER_BARS) {
         m[VanillaBlocks::OXIDIZED_COPPER_BARS] = VanillaBlocks::WAXED_OXIDIZED_COPPER_BARS;
+    }
 
     // 铜链
-    if (VanillaBlocks::COPPER_CHAIN && VanillaBlocks::WAXED_COPPER_CHAIN)
+    if (VanillaBlocks::COPPER_CHAIN && VanillaBlocks::WAXED_COPPER_CHAIN) {
         m[VanillaBlocks::COPPER_CHAIN] = VanillaBlocks::WAXED_COPPER_CHAIN;
-    if (VanillaBlocks::EXPOSED_COPPER_CHAIN && VanillaBlocks::WAXED_EXPOSED_COPPER_CHAIN)
+    }
+    if (VanillaBlocks::EXPOSED_COPPER_CHAIN && VanillaBlocks::WAXED_EXPOSED_COPPER_CHAIN) {
         m[VanillaBlocks::EXPOSED_COPPER_CHAIN] = VanillaBlocks::WAXED_EXPOSED_COPPER_CHAIN;
-    if (VanillaBlocks::WEATHERED_COPPER_CHAIN && VanillaBlocks::WAXED_WEATHERED_COPPER_CHAIN)
+    }
+    if (VanillaBlocks::WEATHERED_COPPER_CHAIN && VanillaBlocks::WAXED_WEATHERED_COPPER_CHAIN) {
         m[VanillaBlocks::WEATHERED_COPPER_CHAIN] = VanillaBlocks::WAXED_WEATHERED_COPPER_CHAIN;
-    if (VanillaBlocks::OXIDIZED_COPPER_CHAIN && VanillaBlocks::WAXED_OXIDIZED_COPPER_CHAIN)
+    }
+    if (VanillaBlocks::OXIDIZED_COPPER_CHAIN && VanillaBlocks::WAXED_OXIDIZED_COPPER_CHAIN) {
         m[VanillaBlocks::OXIDIZED_COPPER_CHAIN] = VanillaBlocks::WAXED_OXIDIZED_COPPER_CHAIN;
+    }
 
     // 铜灯笼
-    if (VanillaBlocks::COPPER_LANTERN && VanillaBlocks::WAXED_COPPER_LANTERN)
+    if (VanillaBlocks::COPPER_LANTERN && VanillaBlocks::WAXED_COPPER_LANTERN) {
         m[VanillaBlocks::COPPER_LANTERN] = VanillaBlocks::WAXED_COPPER_LANTERN;
-    if (VanillaBlocks::EXPOSED_COPPER_LANTERN && VanillaBlocks::WAXED_EXPOSED_COPPER_LANTERN)
+    }
+    if (VanillaBlocks::EXPOSED_COPPER_LANTERN && VanillaBlocks::WAXED_EXPOSED_COPPER_LANTERN) {
         m[VanillaBlocks::EXPOSED_COPPER_LANTERN] = VanillaBlocks::WAXED_EXPOSED_COPPER_LANTERN;
-    if (VanillaBlocks::WEATHERED_COPPER_LANTERN && VanillaBlocks::WAXED_WEATHERED_COPPER_LANTERN)
+    }
+    if (VanillaBlocks::WEATHERED_COPPER_LANTERN && VanillaBlocks::WAXED_WEATHERED_COPPER_LANTERN) {
         m[VanillaBlocks::WEATHERED_COPPER_LANTERN] = VanillaBlocks::WAXED_WEATHERED_COPPER_LANTERN;
-    if (VanillaBlocks::OXIDIZED_COPPER_LANTERN && VanillaBlocks::WAXED_OXIDIZED_COPPER_LANTERN)
+    }
+    if (VanillaBlocks::OXIDIZED_COPPER_LANTERN && VanillaBlocks::WAXED_OXIDIZED_COPPER_LANTERN) {
         m[VanillaBlocks::OXIDIZED_COPPER_LANTERN] = VanillaBlocks::WAXED_OXIDIZED_COPPER_LANTERN;
+    }
 
     // 避雷针（MC 1.21+ 新增氧化变种）
-    if (VanillaBlocks::LIGHTNING_ROD && VanillaBlocks::WAXED_LIGHTNING_ROD)
+    if (VanillaBlocks::LIGHTNING_ROD && VanillaBlocks::WAXED_LIGHTNING_ROD) {
         m[VanillaBlocks::LIGHTNING_ROD] = VanillaBlocks::WAXED_LIGHTNING_ROD;
-    if (VanillaBlocks::EXPOSED_LIGHTNING_ROD && VanillaBlocks::WAXED_EXPOSED_LIGHTNING_ROD)
+    }
+    if (VanillaBlocks::EXPOSED_LIGHTNING_ROD && VanillaBlocks::WAXED_EXPOSED_LIGHTNING_ROD) {
         m[VanillaBlocks::EXPOSED_LIGHTNING_ROD] = VanillaBlocks::WAXED_EXPOSED_LIGHTNING_ROD;
-    if (VanillaBlocks::WEATHERED_LIGHTNING_ROD && VanillaBlocks::WAXED_WEATHERED_LIGHTNING_ROD)
+    }
+    if (VanillaBlocks::WEATHERED_LIGHTNING_ROD && VanillaBlocks::WAXED_WEATHERED_LIGHTNING_ROD) {
         m[VanillaBlocks::WEATHERED_LIGHTNING_ROD] = VanillaBlocks::WAXED_WEATHERED_LIGHTNING_ROD;
-    if (VanillaBlocks::OXIDIZED_LIGHTNING_ROD && VanillaBlocks::WAXED_OXIDIZED_LIGHTNING_ROD)
+    }
+    if (VanillaBlocks::OXIDIZED_LIGHTNING_ROD && VanillaBlocks::WAXED_OXIDIZED_LIGHTNING_ROD) {
         m[VanillaBlocks::OXIDIZED_LIGHTNING_ROD] = VanillaBlocks::WAXED_OXIDIZED_LIGHTNING_ROD;
+    }
 
     // 铜傀儡雕像（MC 1.21.11）
-    if (VanillaBlocks::COPPER_GOLEM_STATUE && VanillaBlocks::WAXED_COPPER_GOLEM_STATUE)
+    if (VanillaBlocks::COPPER_GOLEM_STATUE && VanillaBlocks::WAXED_COPPER_GOLEM_STATUE) {
         m[VanillaBlocks::COPPER_GOLEM_STATUE] = VanillaBlocks::WAXED_COPPER_GOLEM_STATUE;
-    if (VanillaBlocks::EXPOSED_COPPER_GOLEM_STATUE && VanillaBlocks::WAXED_EXPOSED_COPPER_GOLEM_STATUE)
+    }
+    if (VanillaBlocks::EXPOSED_COPPER_GOLEM_STATUE && VanillaBlocks::WAXED_EXPOSED_COPPER_GOLEM_STATUE) {
         m[VanillaBlocks::EXPOSED_COPPER_GOLEM_STATUE] = VanillaBlocks::WAXED_EXPOSED_COPPER_GOLEM_STATUE;
-    if (VanillaBlocks::WEATHERED_COPPER_GOLEM_STATUE && VanillaBlocks::WAXED_WEATHERED_COPPER_GOLEM_STATUE)
+    }
+    if (VanillaBlocks::WEATHERED_COPPER_GOLEM_STATUE && VanillaBlocks::WAXED_WEATHERED_COPPER_GOLEM_STATUE) {
         m[VanillaBlocks::WEATHERED_COPPER_GOLEM_STATUE] = VanillaBlocks::WAXED_WEATHERED_COPPER_GOLEM_STATUE;
-    if (VanillaBlocks::OXIDIZED_COPPER_GOLEM_STATUE && VanillaBlocks::WAXED_OXIDIZED_COPPER_GOLEM_STATUE)
+    }
+    if (VanillaBlocks::OXIDIZED_COPPER_GOLEM_STATUE && VanillaBlocks::WAXED_OXIDIZED_COPPER_GOLEM_STATUE) {
         m[VanillaBlocks::OXIDIZED_COPPER_GOLEM_STATUE] = VanillaBlocks::WAXED_OXIDIZED_COPPER_GOLEM_STATUE;
+    }
 
     // 铜箱子（MC 1.21.11）
-    if (VanillaBlocks::COPPER_CHEST && VanillaBlocks::WAXED_COPPER_CHEST)
+    if (VanillaBlocks::COPPER_CHEST && VanillaBlocks::WAXED_COPPER_CHEST) {
         m[VanillaBlocks::COPPER_CHEST] = VanillaBlocks::WAXED_COPPER_CHEST;
-    if (VanillaBlocks::EXPOSED_COPPER_CHEST && VanillaBlocks::WAXED_EXPOSED_COPPER_CHEST)
+    }
+    if (VanillaBlocks::EXPOSED_COPPER_CHEST && VanillaBlocks::WAXED_EXPOSED_COPPER_CHEST) {
         m[VanillaBlocks::EXPOSED_COPPER_CHEST] = VanillaBlocks::WAXED_EXPOSED_COPPER_CHEST;
-    if (VanillaBlocks::WEATHERED_COPPER_CHEST && VanillaBlocks::WAXED_WEATHERED_COPPER_CHEST)
+    }
+    if (VanillaBlocks::WEATHERED_COPPER_CHEST && VanillaBlocks::WAXED_WEATHERED_COPPER_CHEST) {
         m[VanillaBlocks::WEATHERED_COPPER_CHEST] = VanillaBlocks::WAXED_WEATHERED_COPPER_CHEST;
-    if (VanillaBlocks::OXIDIZED_COPPER_CHEST && VanillaBlocks::WAXED_OXIDIZED_COPPER_CHEST)
+    }
+    if (VanillaBlocks::OXIDIZED_COPPER_CHEST && VanillaBlocks::WAXED_OXIDIZED_COPPER_CHEST) {
         m[VanillaBlocks::OXIDIZED_COPPER_CHEST] = VanillaBlocks::WAXED_OXIDIZED_COPPER_CHEST;
+    }
 
     return m;
 }

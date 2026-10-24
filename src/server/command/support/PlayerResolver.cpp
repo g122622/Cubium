@@ -473,8 +473,12 @@ void sortPlayerIds(std::vector<PlayerId>& playerIds,
             std::sort(playerIds.begin(), playerIds.end(), [&](PlayerId a, PlayerId b) {
                 const PlayerView viewA = resolvePlayerView(source, a);
                 const PlayerView viewB = resolvePlayerView(source, b);
-                if (!viewA.valid) return false;
-                if (!viewB.valid) return true;
+                if (!viewA.valid) {
+                    return false;
+                }
+                if (!viewB.valid) {
+                    return true;
+                }
                 return distanceSquared(viewA, refX, refY, refZ) < distanceSquared(viewB, refX, refY, refZ);
             });
             break;
@@ -484,8 +488,12 @@ void sortPlayerIds(std::vector<PlayerId>& playerIds,
             std::sort(playerIds.begin(), playerIds.end(), [&](PlayerId a, PlayerId b) {
                 const PlayerView viewA = resolvePlayerView(source, a);
                 const PlayerView viewB = resolvePlayerView(source, b);
-                if (!viewA.valid) return false;
-                if (!viewB.valid) return true;
+                if (!viewA.valid) {
+                    return false;
+                }
+                if (!viewB.valid) {
+                    return true;
+                }
                 return distanceSquared(viewA, refX, refY, refZ) > distanceSquared(viewB, refX, refY, refZ);
             });
             break;
@@ -536,7 +544,9 @@ void applyFilters(std::vector<PlayerId>& playerIds,
                             playerIds.end(),
                             [&](PlayerId id) {
                                 const PlayerView view = resolvePlayerView(source, id);
-                                if (!view.valid) return true;
+                                if (!view.valid) {
+                                    return true;
+                                }
                                 const f32 distSq = distanceSquared(view, refX, refY, refZ);
                                 return !selector.distance().testSquared(distSq);
                             }),
@@ -549,7 +559,9 @@ void applyFilters(std::vector<PlayerId>& playerIds,
                             playerIds.end(),
                             [&](PlayerId id) {
                                 const PlayerView view = resolvePlayerView(source, id);
-                                if (!view.valid) return true;
+                                if (!view.valid) {
+                                    return true;
+                                }
                                 return view.username != selector.username();
                             }),
             playerIds.end());
@@ -559,7 +571,9 @@ void applyFilters(std::vector<PlayerId>& playerIds,
                             playerIds.end(),
                             [&](PlayerId id) {
                                 const PlayerView view = resolvePlayerView(source, id);
-                                if (!view.valid) return true;
+                                if (!view.valid) {
+                                    return true;
+                                }
                                 return view.username == selector.usernameNegated();
                             }),
             playerIds.end());
@@ -570,7 +584,9 @@ void applyFilters(std::vector<PlayerId>& playerIds,
                         playerIds.end(),
                         [&](PlayerId id) {
                             const PlayerView view = resolvePlayerView(source, id);
-                            if (!view.valid) return true;
+                            if (!view.valid) {
+                                return true;
+                            }
                             return !matchesFilter(view, selector, server, world);
                         }),
         playerIds.end());
@@ -615,9 +631,15 @@ std::vector<PlayerId> resolvePlayerIds(const ServerCommandSource& source, const 
     f32 refY = static_cast<f32>(source.position().y);
     f32 refZ = static_cast<f32>(source.position().z);
 
-    if (selector.hasX()) refX = selector.getX();
-    if (selector.hasY()) refY = selector.getY();
-    if (selector.hasZ()) refZ = selector.getZ();
+    if (selector.hasX()) {
+        refX = selector.getX();
+    }
+    if (selector.hasY()) {
+        refY = selector.getY();
+    }
+    if (selector.hasZ()) {
+        refZ = selector.getZ();
+    }
 
     // 获取基础玩家列表
     auto playerIds = getSortedPlayerIds(source);

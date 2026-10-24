@@ -32,6 +32,7 @@ namespace mc {
 class Player;
 class BlockPos;
 class ItemStack;
+
 namespace server {
 class ServerWorld;
 } // namespace server

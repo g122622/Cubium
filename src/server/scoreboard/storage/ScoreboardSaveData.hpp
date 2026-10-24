@@ -154,15 +154,45 @@ public:
 
     // ========== 数据访问 ==========
 
-    [[nodiscard]] const std::vector<ObjectiveData>& objectives() const noexcept { return m_objectives; }
-    [[nodiscard]] const std::vector<ScoreData>& scores() const noexcept { return m_scores; }
-    [[nodiscard]] const std::vector<TeamData>& teams() const noexcept { return m_teams; }
-    [[nodiscard]] const std::vector<DisplaySlotData>& displaySlots() const noexcept { return m_displaySlots; }
+    [[nodiscard]] const std::vector<ObjectiveData>& objectives() const noexcept
+    {
+        return m_objectives;
+    }
 
-    void addObjective(ObjectiveData data) { m_objectives.push_back(std::move(data)); }
-    void addScore(ScoreData data) { m_scores.push_back(std::move(data)); }
-    void addTeam(TeamData data) { m_teams.push_back(std::move(data)); }
-    void addDisplaySlot(DisplaySlotData data) { m_displaySlots.push_back(std::move(data)); }
+    [[nodiscard]] const std::vector<ScoreData>& scores() const noexcept
+    {
+        return m_scores;
+    }
+
+    [[nodiscard]] const std::vector<TeamData>& teams() const noexcept
+    {
+        return m_teams;
+    }
+
+    [[nodiscard]] const std::vector<DisplaySlotData>& displaySlots() const noexcept
+    {
+        return m_displaySlots;
+    }
+
+    void addObjective(ObjectiveData data)
+    {
+        m_objectives.push_back(std::move(data));
+    }
+
+    void addScore(ScoreData data)
+    {
+        m_scores.push_back(std::move(data));
+    }
+
+    void addTeam(TeamData data)
+    {
+        m_teams.push_back(std::move(data));
+    }
+
+    void addDisplaySlot(DisplaySlotData data)
+    {
+        m_displaySlots.push_back(std::move(data));
+    }
 
     void clear() noexcept
     {

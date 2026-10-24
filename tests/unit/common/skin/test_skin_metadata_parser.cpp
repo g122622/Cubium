@@ -65,13 +65,17 @@ static std::string makeTexturesBase64(const std::string& skinUrl,
     }
 
     if (!capeUrl.empty()) {
-        if (!first) json += ",";
+        if (!first) {
+            json += ",";
+        }
         json += "\"CAPE\":{\"url\":\"" + capeUrl + "\"}";
         first = false;
     }
 
     if (!elytraUrl.empty()) {
-        if (!first) json += ",";
+        if (!first) {
+            json += ",";
+        }
         json += "\"ELYTRA\":{\"url\":\"" + elytraUrl + "\"}";
         first = false;
     }

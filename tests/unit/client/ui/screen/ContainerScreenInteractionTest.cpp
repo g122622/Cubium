@@ -113,7 +113,11 @@ TEST_F(ContainerScreenInteractionTest, ShiftClickQuickMovesFromPlayerInventoryTo
             }
             m_playerInvStart = 1;
         }
-        bool stillValid(const Player& player) const override { return true; }
+
+        bool stillValid(const Player& player) const override
+        {
+            return true;
+        }
     };
 
     TestMenu menu(&inventory);
@@ -158,7 +162,11 @@ TEST_F(ContainerScreenInteractionTest, NumberKeySwapExchangesSlotWithHotbar)
             }
             m_playerInvStart = 0;
         }
-        bool stillValid(const Player& player) const override { return true; }
+
+        bool stillValid(const Player& player) const override
+        {
+            return true;
+        }
     };
 
     TestMenu menu(&inventory);
@@ -183,6 +191,7 @@ TEST_F(ContainerScreenInteractionTest, NumberKeySwapWithEmptyHotbarSlot)
     PlayerInventory inventory;
     // 快捷栏槽位0放钻石
     inventory.setItem(0, ItemStack(*m_diamond, 64));
+
     // 快捷栏槽位3为空
 
     class TestMenu : public AbstractContainerMenu {
@@ -198,7 +207,11 @@ TEST_F(ContainerScreenInteractionTest, NumberKeySwapWithEmptyHotbarSlot)
             }
             m_playerInvStart = 0;
         }
-        bool stillValid(const Player& player) const override { return true; }
+
+        bool stillValid(const Player& player) const override
+        {
+            return true;
+        }
     };
 
     TestMenu menu(&inventory);
@@ -249,7 +262,11 @@ TEST_F(ContainerScreenInteractionTest, ThrowDropsOneItemFromSlot)
             }
             m_playerInvStart = 0;
         }
-        bool stillValid(const Player& player) const override { return true; }
+
+        bool stillValid(const Player& player) const override
+        {
+            return true;
+        }
     };
 
     TestMenu menu(&inventory);
@@ -292,7 +309,11 @@ TEST_F(ContainerScreenInteractionTest, ThrowAllDropsEntireStackFromSlot)
             }
             m_playerInvStart = 0;
         }
-        bool stillValid(const Player& player) const override { return true; }
+
+        bool stillValid(const Player& player) const override
+        {
+            return true;
+        }
     };
 
     TestMenu menu(&inventory);
@@ -338,7 +359,11 @@ TEST_F(ContainerScreenInteractionTest, CloneInCreativeModeCopiesFullStack)
             }
             m_playerInvStart = 0;
         }
-        bool stillValid(const Player& player) const override { return true; }
+
+        bool stillValid(const Player& player) const override
+        {
+            return true;
+        }
     };
 
     TestMenu menu(&inventory);
@@ -374,7 +399,11 @@ TEST_F(ContainerScreenInteractionTest, CloneDoesNothingInSurvivalMode)
             }
             m_playerInvStart = 0;
         }
-        bool stillValid(const Player& player) const override { return true; }
+
+        bool stillValid(const Player& player) const override
+        {
+            return true;
+        }
     };
 
     TestMenu menu(&inventory);
@@ -419,7 +448,11 @@ TEST_F(ContainerScreenInteractionTest, PickupAllCollectsAllMatchingItems)
             }
             m_playerInvStart = 0;
         }
-        bool stillValid(const Player& player) const override { return true; }
+
+        bool stillValid(const Player& player) const override
+        {
+            return true;
+        }
     };
 
     TestMenu menu(&inventory);
@@ -463,7 +496,11 @@ TEST_F(ContainerScreenInteractionTest, PickupAllRespectsMaxStackSize)
             }
             m_playerInvStart = 0;
         }
-        bool stillValid(const Player& player) const override { return true; }
+
+        bool stillValid(const Player& player) const override
+        {
+            return true;
+        }
     };
 
     TestMenu menu(&inventory);
@@ -506,7 +543,11 @@ TEST_F(ContainerScreenInteractionTest, FullDragProtocolEvenDistribution)
             }
             m_playerInvStart = 0;
         }
-        bool stillValid(const Player& player) const override { return true; }
+
+        bool stillValid(const Player& player) const override
+        {
+            return true;
+        }
     };
 
     TestMenu menu(&inventory);
@@ -554,7 +595,11 @@ TEST_F(ContainerScreenInteractionTest, FullDragProtocolSingleDistribution)
             }
             m_playerInvStart = 0;
         }
-        bool stillValid(const Player& player) const override { return true; }
+
+        bool stillValid(const Player& player) const override
+        {
+            return true;
+        }
     };
 
     TestMenu menu(&inventory);
@@ -600,7 +645,11 @@ TEST_F(ContainerScreenInteractionTest, DragCannotDistributeToOccupiedDifferentSl
             }
             m_playerInvStart = 0;
         }
-        bool stillValid(const Player& player) const override { return true; }
+
+        bool stillValid(const Player& player) const override
+        {
+            return true;
+        }
     };
 
     TestMenu menu(&inventory);
@@ -657,7 +706,11 @@ TEST_F(ContainerScreenInteractionTest, QuickCraftSingleSlot_EvenMode_DegradesToP
             }
             m_playerInvStart = 0;
         }
-        bool stillValid(const Player& player) const override { return true; }
+
+        bool stillValid(const Player& player) const override
+        {
+            return true;
+        }
     };
 
     TestMenu menu(&inventory);
@@ -696,7 +749,11 @@ TEST_F(ContainerScreenInteractionTest, QuickCraftSingleSlot_SingleMode_DegradesT
             }
             m_playerInvStart = 0;
         }
-        bool stillValid(const Player& player) const override { return true; }
+
+        bool stillValid(const Player& player) const override
+        {
+            return true;
+        }
     };
 
     TestMenu menu(&inventory);
@@ -742,7 +799,11 @@ TEST_F(ContainerScreenInteractionTest, QuickCraftSingleSlot_EvenMode_PickupFromO
             }
             m_playerInvStart = 0;
         }
-        bool stillValid(const Player& player) const override { return true; }
+
+        bool stillValid(const Player& player) const override
+        {
+            return true;
+        }
     };
 
     TestMenu menu(&inventory);
@@ -785,7 +846,11 @@ TEST_F(ContainerScreenInteractionTest, QuickCraftSingleSlot_SingleMode_PickupHal
             }
             m_playerInvStart = 0;
         }
-        bool stillValid(const Player& player) const override { return true; }
+
+        bool stillValid(const Player& player) const override
+        {
+            return true;
+        }
     };
 
     TestMenu menu(&inventory);
@@ -826,7 +891,11 @@ TEST_F(ContainerScreenInteractionTest, QuickCraftSingleSlot_MultiSlotStillDistri
             }
             m_playerInvStart = 0;
         }
-        bool stillValid(const Player& player) const override { return true; }
+
+        bool stillValid(const Player& player) const override
+        {
+            return true;
+        }
     };
 
     TestMenu menu(&inventory);
@@ -869,7 +938,11 @@ TEST_F(ContainerScreenInteractionTest, QuickCraftSingleSlot_EvenMode_EndOnRealSl
             }
             m_playerInvStart = 0;
         }
-        bool stillValid(const Player& player) const override { return true; }
+
+        bool stillValid(const Player& player) const override
+        {
+            return true;
+        }
     };
 
     TestMenu menu(&inventory);
@@ -912,7 +985,11 @@ TEST_F(ContainerScreenInteractionTest, QuickCraftSingleSlot_SingleMode_EndOnReal
             }
             m_playerInvStart = 0;
         }
-        bool stillValid(const Player& player) const override { return true; }
+
+        bool stillValid(const Player& player) const override
+        {
+            return true;
+        }
     };
 
     TestMenu menu(&inventory);
@@ -960,7 +1037,11 @@ TEST_F(ContainerScreenInteractionTest, QuickCraftSingleSlot_BundleOverride_NotTr
             }
             m_playerInvStart = 0;
         }
-        bool stillValid(const Player& player) const override { return true; }
+
+        bool stillValid(const Player& player) const override
+        {
+            return true;
+        }
     };
 
     TestMenu menu(&inventory);
@@ -1010,7 +1091,11 @@ TEST_F(ContainerScreenInteractionTest, QuickCraftSingleSlot_BundleInHand_NotTrig
             }
             m_playerInvStart = 0;
         }
-        bool stillValid(const Player& player) const override { return true; }
+
+        bool stillValid(const Player& player) const override
+        {
+            return true;
+        }
     };
 
     TestMenu menu(&inventory);
@@ -1056,7 +1141,11 @@ TEST_F(ContainerScreenInteractionTest, ClickOutsideDropsCarriedItem)
             }
             m_playerInvStart = 0;
         }
-        bool stillValid(const Player& player) const override { return true; }
+
+        bool stillValid(const Player& player) const override
+        {
+            return true;
+        }
     };
 
     TestMenu menu(&inventory);
@@ -1102,7 +1191,11 @@ TEST_F(ContainerScreenInteractionTest, ClickOutsideDropsOneWithRightClick)
             }
             m_playerInvStart = 0;
         }
-        bool stillValid(const Player& player) const override { return true; }
+
+        bool stillValid(const Player& player) const override
+        {
+            return true;
+        }
     };
 
     TestMenu menu(&inventory);
@@ -1145,7 +1238,11 @@ TEST_F(ContainerScreenInteractionTest, ClickOutsideDoesNothingWhenCarriedEmpty)
             }
             m_playerInvStart = 0;
         }
-        bool stillValid(const Player& player) const override { return true; }
+
+        bool stillValid(const Player& player) const override
+        {
+            return true;
+        }
     };
 
     TestMenu menu(&inventory);
@@ -1266,7 +1363,11 @@ TEST_F(ContainerScreenInteractionTest, LeftClickPickupAndPlace)
             }
             m_playerInvStart = 0;
         }
-        bool stillValid(const Player& player) const override { return true; }
+
+        bool stillValid(const Player& player) const override
+        {
+            return true;
+        }
     };
 
     TestMenu menu(&inventory);
@@ -1302,7 +1403,11 @@ TEST_F(ContainerScreenInteractionTest, RightClickPickupHalf)
             }
             m_playerInvStart = 0;
         }
-        bool stillValid(const Player& player) const override { return true; }
+
+        bool stillValid(const Player& player) const override
+        {
+            return true;
+        }
     };
 
     TestMenu menu(&inventory);
@@ -1331,7 +1436,11 @@ TEST_F(ContainerScreenInteractionTest, RightClickPlaceOne)
             }
             m_playerInvStart = 0;
         }
-        bool stillValid(const Player& player) const override { return true; }
+
+        bool stillValid(const Player& player) const override
+        {
+            return true;
+        }
     };
 
     TestMenu menu(&inventory);

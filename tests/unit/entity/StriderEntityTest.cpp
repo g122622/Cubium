@@ -654,6 +654,7 @@ public:
     {
         throw std::runtime_error("StriderInteractTestWorld::tickManager not implemented");
     }
+
     [[nodiscard]] const world::tick::TickManager& tickManager() const override
     {
         throw std::runtime_error("StriderInteractTestWorld::tickManager not implemented");
@@ -674,9 +675,21 @@ public:
         (void)volume;
     }
 
-    [[nodiscard]] const ResourceLocation& getLastSoundId() const { return m_lastSoundId; }
-    [[nodiscard]] i32 getSoundPlayCount() const { return m_soundPlayCount; }
-    [[nodiscard]] f32 getLastPitch() const { return m_lastPitch; }
+    [[nodiscard]] const ResourceLocation& getLastSoundId() const
+    {
+        return m_lastSoundId;
+    }
+
+    [[nodiscard]] i32 getSoundPlayCount() const
+    {
+        return m_soundPlayCount;
+    }
+
+    [[nodiscard]] f32 getLastPitch() const
+    {
+        return m_lastPitch;
+    }
+
     void resetSoundTracking()
     {
         m_lastSoundId = ResourceLocation();
@@ -692,9 +705,21 @@ public:
         m_broadcastCount++;
     }
 
-    [[nodiscard]] EntityInstanceId getLastBroadcastEntityId() const { return m_lastBroadcastEntityId; }
-    [[nodiscard]] u8 getLastBroadcastStatus() const { return m_lastBroadcastStatus; }
-    [[nodiscard]] i32 getBroadcastCount() const { return m_broadcastCount; }
+    [[nodiscard]] EntityInstanceId getLastBroadcastEntityId() const
+    {
+        return m_lastBroadcastEntityId;
+    }
+
+    [[nodiscard]] u8 getLastBroadcastStatus() const
+    {
+        return m_lastBroadcastStatus;
+    }
+
+    [[nodiscard]] i32 getBroadcastCount() const
+    {
+        return m_broadcastCount;
+    }
+
     void resetBroadcastTracking()
     {
         m_lastBroadcastEntityId = EntityInstanceId(0);

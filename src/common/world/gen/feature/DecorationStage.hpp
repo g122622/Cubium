@@ -130,7 +130,10 @@ struct DecorationStages {
      * @param stage 装饰阶段
      * @return 索引值（0-10）
      */
-    static constexpr u8 getIndex(DecorationStage stage) { return static_cast<u8>(stage); }
+    static constexpr u8 getIndex(DecorationStage stage)
+    {
+        return static_cast<u8>(stage);
+    }
 
     /**
      * @brief 根据索引获取阶段
@@ -152,17 +155,39 @@ struct DecorationStages {
      */
     static DecorationStage fromName(const std::string& name)
     {
-        if (name == "raw_generation") return DecorationStage::RawGeneration;
-        if (name == "lakes") return DecorationStage::Lakes;
-        if (name == "local_modifications") return DecorationStage::LocalModifications;
-        if (name == "underground_structures") return DecorationStage::UndergroundStructures;
-        if (name == "surface_structures") return DecorationStage::SurfaceStructures;
-        if (name == "strongholds") return DecorationStage::Strongholds;
-        if (name == "underground_ores") return DecorationStage::UndergroundOres;
-        if (name == "underground_decoration") return DecorationStage::UndergroundDecoration;
-        if (name == "fluid_springs") return DecorationStage::FluidSprings;
-        if (name == "vegetal_decoration") return DecorationStage::VegetalDecoration;
-        if (name == "top_layer_modification") return DecorationStage::TopLayerModification;
+        if (name == "raw_generation") {
+            return DecorationStage::RawGeneration;
+        }
+        if (name == "lakes") {
+            return DecorationStage::Lakes;
+        }
+        if (name == "local_modifications") {
+            return DecorationStage::LocalModifications;
+        }
+        if (name == "underground_structures") {
+            return DecorationStage::UndergroundStructures;
+        }
+        if (name == "surface_structures") {
+            return DecorationStage::SurfaceStructures;
+        }
+        if (name == "strongholds") {
+            return DecorationStage::Strongholds;
+        }
+        if (name == "underground_ores") {
+            return DecorationStage::UndergroundOres;
+        }
+        if (name == "underground_decoration") {
+            return DecorationStage::UndergroundDecoration;
+        }
+        if (name == "fluid_springs") {
+            return DecorationStage::FluidSprings;
+        }
+        if (name == "vegetal_decoration") {
+            return DecorationStage::VegetalDecoration;
+        }
+        if (name == "top_layer_modification") {
+            return DecorationStage::TopLayerModification;
+        }
         return DecorationStage::RawGeneration;
     }
 };

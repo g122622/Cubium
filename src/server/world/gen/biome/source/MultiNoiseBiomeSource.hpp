@@ -73,12 +73,18 @@ public:
     /**
      * @brief 获取气候参数列表
      */
-    [[nodiscard]] const climate::ParameterList<BiomeId>& parameters() const { return m_parameters; }
+    [[nodiscard]] const climate::ParameterList<BiomeId>& parameters() const
+    {
+        return m_parameters;
+    }
 
     /**
      * @brief 获取气候采样器（引用 RandomState.sampler()）
      */
-    [[nodiscard]] const climate::Sampler& sampler() const { return m_sampler; }
+    [[nodiscard]] const climate::Sampler& sampler() const
+    {
+        return m_sampler;
+    }
 
     /**
      * @brief 通过 TargetPoint 直接查找生物群系

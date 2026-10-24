@@ -58,7 +58,10 @@ public:
      * @brief 获取工具层级
      * @return 层级引用
      */
-    [[nodiscard]] const tier::IItemTier& getTier() const noexcept { return m_tier; }
+    [[nodiscard]] const tier::IItemTier& getTier() const noexcept
+    {
+        return m_tier;
+    }
 
     /**
      * @brief 获取物品附魔能力
@@ -68,7 +71,6 @@ public:
      *
      * @return 附魔能力值
      */
-    [[nodiscard]] i32 getItemEnchantability() const noexcept override { return m_tier.getEnchantability(); }
 
     /**
      * @brief 检查物品堆是否可以用作修复材料

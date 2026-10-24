@@ -180,7 +180,9 @@ bool SkinMetadataParser::verifySignature(const GameProfileProperty& property)
 void SkinMetadataParser::_parseTexture(const void* textureObj, const std::string& type, SkinTextures& textures)
 {
     const auto* jsonObj = static_cast<const nlohmann::json*>(textureObj);
-    if (!jsonObj) return;
+    if (!jsonObj) {
+        return;
+    }
 
     // 检查指定类型的纹理对象是否存在
     if (!jsonObj->contains(type) || !(*jsonObj)[type].is_object()) {

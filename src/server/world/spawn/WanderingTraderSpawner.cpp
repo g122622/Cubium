@@ -78,9 +78,21 @@ public:
                                 : Biomes::Plains;
     }
 
-    [[nodiscard]] u64 seed() const override { return m_world.seed(); }
-    [[nodiscard]] Difficulty difficulty() const override { return m_world.difficulty(); }
-    [[nodiscard]] i64 dayTime() const override { return m_world.dayTime(); }
+    [[nodiscard]] u64 seed() const override
+    {
+        return m_world.seed();
+    }
+
+    [[nodiscard]] Difficulty difficulty() const override
+    {
+        return m_world.difficulty();
+    }
+
+    [[nodiscard]] i64 dayTime() const override
+    {
+        return m_world.dayTime();
+    }
+
     [[nodiscard]] i32 getMaxLocalRawBrightness(i32 x, i32 y, i32 z) const override
     {
         return m_world.getMaxLocalRawBrightness(BlockPos(x, y, z));

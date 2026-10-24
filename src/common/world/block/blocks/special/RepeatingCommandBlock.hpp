@@ -49,7 +49,10 @@ public:
 
 protected:
     /// 循环命令方块自动执行（对齐 vanilla new CommandBlock(true, ...)）。
-    [[nodiscard]] bool defaultAutomatic() const noexcept override { return true; }
+    [[nodiscard]] bool defaultAutomatic() const noexcept override
+    {
+        return true;
+    }
 };
 
 } // namespace blocks

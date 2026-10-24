@@ -58,11 +58,26 @@ public:
 
     [[nodiscard]] ItemStack apply(ItemStack stack, LootContext& context) const override;
     [[nodiscard]] std::unique_ptr<LootFunction> clone() const noexcept override;
-    [[nodiscard]] std::string getType() const noexcept override { return "copy_components"; }
 
-    [[nodiscard]] Source getSource() const { return m_source; }
-    [[nodiscard]] const std::vector<item::component::DataComponentType>& getInclude() const { return m_include; }
-    [[nodiscard]] const std::vector<item::component::DataComponentType>& getExclude() const { return m_exclude; }
+    [[nodiscard]] std::string getType() const noexcept override
+    {
+        return "copy_components";
+    }
+
+    [[nodiscard]] Source getSource() const
+    {
+        return m_source;
+    }
+
+    [[nodiscard]] const std::vector<item::component::DataComponentType>& getInclude() const
+    {
+        return m_include;
+    }
+
+    [[nodiscard]] const std::vector<item::component::DataComponentType>& getExclude() const
+    {
+        return m_exclude;
+    }
 
 private:
     Source m_source;

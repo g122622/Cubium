@@ -25,7 +25,10 @@ public:
      */
     [[nodiscard]] virtual bool tick() = 0;
 
-    [[nodiscard]] const mc::world::gen::structure::StructureBoundingBox& bounds() const noexcept { return m_bounds; }
+    [[nodiscard]] const mc::world::gen::structure::StructureBoundingBox& bounds() const noexcept
+    {
+        return m_bounds;
+    }
 
 protected:
     explicit GameTestClearTask(mc::world::gen::structure::StructureBoundingBox bounds) noexcept

@@ -96,15 +96,25 @@ void CreateWorldScreen::onOpen()
 
 void CreateWorldScreen::_registerCallbacks()
 {
-    exposeSimpleCallback("onCycleGameMode", [this]() { _cycleGameMode(); });
+    exposeSimpleCallback("onCycleGameMode", [this]() {
+        _cycleGameMode();
+    });
 
-    exposeSimpleCallback("onCycleWorldType", [this]() { _cycleWorldType(); });
+    exposeSimpleCallback("onCycleWorldType", [this]() {
+        _cycleWorldType();
+    });
 
-    exposeSimpleCallback("onCycleDifficulty", [this]() { _cycleDifficulty(); });
+    exposeSimpleCallback("onCycleDifficulty", [this]() {
+        _cycleDifficulty();
+    });
 
-    exposeSimpleCallback("onToggleAllowCommands", [this]() { _toggleAllowCommands(); });
+    exposeSimpleCallback("onToggleAllowCommands", [this]() {
+        _toggleAllowCommands();
+    });
 
-    exposeSimpleCallback("onViewDistanceChanged", [this]() { _onViewDistanceChanged(); });
+    exposeSimpleCallback("onViewDistanceChanged", [this]() {
+        _onViewDistanceChanged();
+    });
 
     exposeSimpleCallback("onCreate", [this]() {
         if (_validateInput() && m_onCreate) {
@@ -122,7 +132,9 @@ void CreateWorldScreen::_registerCallbacks()
     // 事件回调通过模板的 on:change 绑定到 onViewDistanceChanged，无需在此处 setOnValueChanged
     if (m_viewDistanceSlider) {
         m_viewDistanceSlider->setStepSize(1.0);
-        m_viewDistanceSlider->setFormatCallback([](f64 value) { return std::to_string(static_cast<i32>(value)); });
+        m_viewDistanceSlider->setFormatCallback([](f64 value) {
+            return std::to_string(static_cast<i32>(value));
+        });
     }
 }
 

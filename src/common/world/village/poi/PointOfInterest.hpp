@@ -80,12 +80,18 @@ public:
     /**
      * @brief 获取位置
      */
-    [[nodiscard]] BlockPos getPosition() const noexcept { return m_position; }
+    [[nodiscard]] BlockPos getPosition() const noexcept
+    {
+        return m_position;
+    }
 
     /**
      * @brief 获取类型
      */
-    [[nodiscard]] PointOfInterestType getType() const noexcept { return m_type; }
+    [[nodiscard]] PointOfInterestType getType() const noexcept
+    {
+        return m_type;
+    }
 
     // ========== 占用状态 ==========
 
@@ -108,12 +114,18 @@ public:
     /**
      * @brief 获取当前占用票据数
      */
-    [[nodiscard]] i32 getTicketCount() const noexcept { return static_cast<i32>(m_tickets.size()); }
+    [[nodiscard]] i32 getTicketCount() const noexcept
+    {
+        return static_cast<i32>(m_tickets.size());
+    }
 
     /**
      * @brief 获取最大票据数
      */
-    [[nodiscard]] i32 getMaxTickets() const noexcept { return m_maxTickets; }
+    [[nodiscard]] i32 getMaxTickets() const noexcept
+    {
+        return m_maxTickets;
+    }
 
     // ========== 票据操作 ==========
 

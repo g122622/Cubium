@@ -134,7 +134,10 @@ public:
     /**
      * @brief 获取成就数量
      */
-    [[nodiscard]] size_t size() const noexcept { return m_advancements.size(); }
+    [[nodiscard]] size_t size() const noexcept
+    {
+        return m_advancements.size();
+    }
 
     // ========== 根节点 ==========
 
@@ -143,12 +146,18 @@ public:
      *
      * 根成就是没有父成就的成就，通常是每个标签页的第一个成就。
      */
-    [[nodiscard]] const std::vector<Advancement::Ptr>& getRoots() const noexcept { return m_roots; }
+    [[nodiscard]] const std::vector<Advancement::Ptr>& getRoots() const noexcept
+    {
+        return m_roots;
+    }
 
     /**
      * @brief 获取所有非根成就
      */
-    [[nodiscard]] const std::vector<Advancement::Ptr>& getNonRoots() const noexcept { return m_nonRoots; }
+    [[nodiscard]] const std::vector<Advancement::Ptr>& getNonRoots() const noexcept
+    {
+        return m_nonRoots;
+    }
 
     // ========== 遍历 ==========
 

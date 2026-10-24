@@ -72,11 +72,25 @@ public:
 
     // ========== IRideable 接口实现 ==========
 
-    bool hasSaddle() const override { return m_saddled; }
-    void setSaddle(bool saddle) override { m_saddled = saddle; }
+    bool hasSaddle() const override
+    {
+        return m_saddled;
+    }
 
-    f32 getSteeringSpeed() const override { return m_steeringSpeed; }
-    void setSteeringSpeed(f32 speed) { m_steeringSpeed = speed; }
+    void setSaddle(bool saddle) override
+    {
+        m_saddled = saddle;
+    }
+
+    f32 getSteeringSpeed() const override
+    {
+        return m_steeringSpeed;
+    }
+
+    void setSteeringSpeed(f32 speed)
+    {
+        m_steeringSpeed = speed;
+    }
 
     bool boost() override
     {
@@ -84,7 +98,10 @@ public:
         return m_boostHelper.boost(rng);
     }
 
-    bool canBeSteered() const override { return m_saddled; }
+    bool canBeSteered() const override
+    {
+        return m_saddled;
+    }
 
     void travelTowards(const Vector3& travelVec) override
     {
@@ -94,11 +111,25 @@ public:
 
     // ========== 测试辅助方法 ==========
 
-    void setBoostHelper(const BoostHelper& helper) { m_boostHelper = helper; }
-    BoostHelper& getBoostHelper() { return m_boostHelper; }
+    void setBoostHelper(const BoostHelper& helper)
+    {
+        m_boostHelper = helper;
+    }
 
-    bool wasTravelCalled() const { return m_travelCalled; }
-    const Vector3& getLastTravelVec() const { return m_lastTravelVec; }
+    BoostHelper& getBoostHelper()
+    {
+        return m_boostHelper;
+    }
+
+    bool wasTravelCalled() const
+    {
+        return m_travelCalled;
+    }
+
+    const Vector3& getLastTravelVec() const
+    {
+        return m_lastTravelVec;
+    }
 
     void resetTravelState()
     {

@@ -86,12 +86,30 @@ public:
     }
 
     // 辅助方法
-    void setBlockAt(const BlockPos& pos, const BlockState* state) { m_blocks[pos] = state; }
+    void setBlockAt(const BlockPos& pos, const BlockState* state)
+    {
+        m_blocks[pos] = state;
+    }
 
-    [[nodiscard]] size_t particleCount() const { return m_particles.size(); }
-    [[nodiscard]] size_t soundCount() const { return m_sounds.size(); }
-    [[nodiscard]] const std::vector<ParticleCall>& particles() const { return m_particles; }
-    [[nodiscard]] const std::vector<SoundCall>& sounds() const { return m_sounds; }
+    [[nodiscard]] size_t particleCount() const
+    {
+        return m_particles.size();
+    }
+
+    [[nodiscard]] size_t soundCount() const
+    {
+        return m_sounds.size();
+    }
+
+    [[nodiscard]] const std::vector<ParticleCall>& particles() const
+    {
+        return m_particles;
+    }
+
+    [[nodiscard]] const std::vector<SoundCall>& sounds() const
+    {
+        return m_sounds;
+    }
 
     void clear()
     {
@@ -109,7 +127,10 @@ private:
 
 class AnimateTickTest : public ::testing::Test {
 protected:
-    void SetUp() override { VanillaBlocks::initialize(); }
+    void SetUp() override
+    {
+        VanillaBlocks::initialize();
+    }
 
     void TearDown() override {}
 

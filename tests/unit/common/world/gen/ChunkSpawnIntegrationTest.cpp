@@ -452,7 +452,10 @@ TEST_F(ChunkSpawnIntegrationTest, EntityTypeCanSummon)
 
     // 注册一个不能被召唤的实体类型
     registry.registerType("test:unsummonable",
-        EntityType::Builder([](IWorld*, ecs::EntityRegistry& registry) -> std::unique_ptr<Entity> { return nullptr; },
+        EntityType::Builder(
+            [](IWorld*, ecs::EntityRegistry& registry) -> std::unique_ptr<Entity> {
+                return nullptr;
+            },
             EntityClassification::Misc)
             .canSummon(false)
             .build());

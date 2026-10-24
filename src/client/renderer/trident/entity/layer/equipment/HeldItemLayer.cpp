@@ -85,8 +85,12 @@ bool HeldItemLayer<TEntity, TModel>::shouldRender(const TEntity& entity) const
     const ItemStack* mainHand = getHeldItem(entity, mc::Hand::MainHand);
     const ItemStack* offHand = getHeldItem(entity, mc::Hand::OffHand);
 
-    if (mainHand && !mainHand->isEmpty()) return true;
-    if (offHand && !offHand->isEmpty()) return true;
+    if (mainHand && !mainHand->isEmpty()) {
+        return true;
+    }
+    if (offHand && !offHand->isEmpty()) {
+        return true;
+    }
 
     return false;
 }

@@ -70,13 +70,15 @@ public:
      * @brief 是否为护甲物品
      * @return true，盔甲物品始终返回 true
      */
-    [[nodiscard]] bool isArmor() const override { return true; }
+    [[nodiscard]] bool isArmor() const override
+    {
+        return true;
+    }
 
     /**
      * @brief 获取附魔能力
      * @return 盔甲材质的附魔能力
      */
-    [[nodiscard]] i32 getItemEnchantability() const override { return m_material.getEnchantability(); }
 
     /**
      * @brief 检查物品堆是否可以用作修复材料
@@ -122,27 +124,42 @@ public:
     /**
      * @brief 获取盔甲材质
      */
-    [[nodiscard]] const armor::ArmorMaterial& getMaterial() const noexcept { return m_material; }
+    [[nodiscard]] const armor::ArmorMaterial& getMaterial() const noexcept
+    {
+        return m_material;
+    }
 
     /**
      * @brief 获取盔甲槽位
      */
-    [[nodiscard]] armor::ArmorSlot getSlot() const noexcept { return m_slot; }
+    [[nodiscard]] armor::ArmorSlot getSlot() const noexcept
+    {
+        return m_slot;
+    }
 
     /**
      * @brief 获取防御值
      */
-    [[nodiscard]] virtual i32 getDefense() const noexcept { return m_material.getDefense(m_slot); }
+    [[nodiscard]] virtual i32 getDefense() const noexcept
+    {
+        return m_material.getDefense(m_slot);
+    }
 
     /**
      * @brief 获取韧性
      */
-    [[nodiscard]] f32 getToughness() const noexcept { return m_material.getToughness(); }
+    [[nodiscard]] f32 getToughness() const noexcept
+    {
+        return m_material.getToughness();
+    }
 
     /**
      * @brief 获取击退抗性
      */
-    [[nodiscard]] f32 getKnockbackResistance() const noexcept { return m_material.getKnockbackResistance(); }
+    [[nodiscard]] f32 getKnockbackResistance() const noexcept
+    {
+        return m_material.getKnockbackResistance();
+    }
 
     /**
      * @brief 获取属性修饰符
@@ -154,7 +171,10 @@ public:
      *
      * @return 属性修饰符管理器
      */
-    [[nodiscard]] const ItemAttributeModifiers& getAttributeModifiers() const noexcept { return m_attributeModifiers; }
+    [[nodiscard]] const ItemAttributeModifiers& getAttributeModifiers() const noexcept
+    {
+        return m_attributeModifiers;
+    }
 
     /**
      * @brief 获取指定装备槽位的属性修饰符
@@ -171,27 +191,42 @@ public:
     /**
      * @brief 检查是否为头盔
      */
-    [[nodiscard]] bool isHelmet() const noexcept { return m_slot == armor::ArmorSlot::Head; }
+    [[nodiscard]] bool isHelmet() const noexcept
+    {
+        return m_slot == armor::ArmorSlot::Head;
+    }
 
     /**
      * @brief 检查是否为胸甲
      */
-    [[nodiscard]] bool isChestplate() const noexcept { return m_slot == armor::ArmorSlot::Chest; }
+    [[nodiscard]] bool isChestplate() const noexcept
+    {
+        return m_slot == armor::ArmorSlot::Chest;
+    }
 
     /**
      * @brief 检查是否为护腿
      */
-    [[nodiscard]] bool isLeggings() const noexcept { return m_slot == armor::ArmorSlot::Legs; }
+    [[nodiscard]] bool isLeggings() const noexcept
+    {
+        return m_slot == armor::ArmorSlot::Legs;
+    }
 
     /**
      * @brief 检查是否为靴子
      */
-    [[nodiscard]] bool isBoots() const noexcept { return m_slot == armor::ArmorSlot::Feet; }
+    [[nodiscard]] bool isBoots() const noexcept
+    {
+        return m_slot == armor::ArmorSlot::Feet;
+    }
 
     /**
      * @brief 检查是否为身体护甲（非玩家实体护甲，如狼铠、鹦鹉螺铠甲、马铠）
      */
-    [[nodiscard]] bool isBodyArmor() const noexcept { return m_slot == armor::ArmorSlot::Body; }
+    [[nodiscard]] bool isBodyArmor() const noexcept
+    {
+        return m_slot == armor::ArmorSlot::Body;
+    }
 
     // ========== 静态辅助方法 ==========
 

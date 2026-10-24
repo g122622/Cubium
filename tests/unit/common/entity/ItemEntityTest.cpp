@@ -83,12 +83,30 @@ public:
 
     // 测试世界为纯空气环境（无方块、无流体）。显式返回 nullptr 表示无流体，
     // 避免 updateEnvironmentState 把落体物品误判为浸入岩浆而被 lavaHurt 销毁。
-    [[nodiscard]] const fluid::FluidState* getFluidState(i32, i32, i32) const override { return nullptr; }
+    [[nodiscard]] const fluid::FluidState* getFluidState(i32, i32, i32) const override
+    {
+        return nullptr;
+    }
 
-    [[nodiscard]] i32 gameEventCount() const { return m_gameEventCount; }
-    [[nodiscard]] const std::string& lastGameEventId() const { return m_lastGameEventId; }
-    [[nodiscard]] const BlockPos& lastGameEventPos() const { return m_lastGameEventPos; }
-    [[nodiscard]] const Entity* lastGameEventSourceEntity() const { return m_lastGameEventSourceEntity; }
+    [[nodiscard]] i32 gameEventCount() const
+    {
+        return m_gameEventCount;
+    }
+
+    [[nodiscard]] const std::string& lastGameEventId() const
+    {
+        return m_lastGameEventId;
+    }
+
+    [[nodiscard]] const BlockPos& lastGameEventPos() const
+    {
+        return m_lastGameEventPos;
+    }
+
+    [[nodiscard]] const Entity* lastGameEventSourceEntity() const
+    {
+        return m_lastGameEventSourceEntity;
+    }
 
     void clearGameState()
     {
@@ -121,7 +139,10 @@ protected:
         ItemTags::initialize();
     }
 
-    void SetUp() override { m_world.clearGameState(); }
+    void SetUp() override
+    {
+        m_world.clearGameState();
+    }
 
     ItemEntityTestWorld m_world;
 };

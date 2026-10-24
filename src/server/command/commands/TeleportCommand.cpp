@@ -246,7 +246,9 @@ void TeleportCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatc
     using namespace mc::command;
 
     auto tpNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("tp");
-    tpNode->setRequirement([](const ServerCommandSource& source) { return source.hasPermission(2); });
+    tpNode->setRequirement([](const ServerCommandSource& source) {
+        return source.hasPermission(2);
+    });
     support::applyMetadata(tpNode,
         support::makeMetadata("Teleport entities.",
             "/tp <destination>|<x> <y> <z>|<targets> <destination>|<targets> <x> <y> <z>",
@@ -255,17 +257,23 @@ void TeleportCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatc
             true));
 
     auto teleportNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("teleport");
-    teleportNode->setRequirement([](const ServerCommandSource& source) { return source.hasPermission(2); });
+    teleportNode->setRequirement([](const ServerCommandSource& source) {
+        return source.hasPermission(2);
+    });
     teleportNode->setRedirect(tpNode);
 
     auto selfDestinationArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, EntitySelector>>(
         "target", EntityArgumentType::player());
-    selfDestinationArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _teleportToEntity(ctx); });
+    selfDestinationArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _teleportToEntity(ctx);
+    });
 
     auto selfXArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, f32>>("x", FloatArgumentType::floatArg());
     auto selfYArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, f32>>("y", FloatArgumentType::floatArg());
     auto selfZArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, f32>>("z", FloatArgumentType::floatArg());
-    selfZArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _teleportToPosition(ctx); });
+    selfZArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _teleportToPosition(ctx);
+    });
     selfYArg->addChild(selfZArg);
     selfXArg->addChild(selfYArg);
 
@@ -274,7 +282,9 @@ void TeleportCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatc
 
     auto destinationArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, EntitySelector>>(
         "destination", EntityArgumentType::player());
-    destinationArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _teleportTargetToEntity(ctx); });
+    destinationArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _teleportTargetToEntity(ctx);
+    });
 
     auto targetXArg =
         std::make_shared<ArgumentCommandNode<ServerCommandSource, f32>>("x", FloatArgumentType::floatArg());
@@ -282,7 +292,9 @@ void TeleportCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatc
         std::make_shared<ArgumentCommandNode<ServerCommandSource, f32>>("y", FloatArgumentType::floatArg());
     auto targetZArg =
         std::make_shared<ArgumentCommandNode<ServerCommandSource, f32>>("z", FloatArgumentType::floatArg());
-    targetZArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _teleportTargetToPosition(ctx); });
+    targetZArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _teleportTargetToPosition(ctx);
+    });
     targetYArg->addChild(targetZArg);
     targetXArg->addChild(targetYArg);
 

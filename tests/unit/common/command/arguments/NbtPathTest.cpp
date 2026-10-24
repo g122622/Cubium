@@ -231,12 +231,14 @@ TEST_F(NbtPathTest, ParseComplexPathWithFilter)
 
 // ========== 错误处理测试 ==========
 
-TEST_F(NbtPathTest, EmptyPathThrowsError)
+// 原版对空输入不报错：返回一个没有任何节点的路径（调用方随后读到空匹配）。
+TEST_F(NbtPathTest, EmptyPathIsAccepted)
 {
     StringReader reader("");
     NbtPathArgumentType argType;
 
-    EXPECT_THROW(argType.parse(reader), CommandException);
+    const NbtPath path = argType.parse(reader);
+    EXPECT_EQ(path.toString(), "");
 }
 
 TEST_F(NbtPathTest, InvalidPathThrowsError)
@@ -612,8 +614,9 @@ TEST_F(NbtPathTest, PathSet)
     NbtPath path = argType.parse(reader);
 
     // 设置新值
-    i32 count = path.set(
-        root, []() { return std::unique_ptr<nbt::tags::tag>(std::make_unique<nbt::tags::string_tag>("new")); });
+    i32 count = path.set(root, []() {
+        return std::unique_ptr<nbt::tags::tag>(std::make_unique<nbt::tags::string_tag>("new"));
+    });
 
     EXPECT_EQ(count, 1);
 
@@ -1168,8 +1171,9 @@ TEST_F(NbtPathTest, SetCreatesMissingIntermediateCompounds)
     nbt::tags::compound_tag root;
     NbtPath path = _parsePath("foo.bar");
 
-    i32 count =
-        path.set(root, []() { return std::unique_ptr<nbt::tags::tag>(std::make_unique<nbt::tags::int_tag>(1)); });
+    i32 count = path.set(root, []() {
+        return std::unique_ptr<nbt::tags::tag>(std::make_unique<nbt::tags::int_tag>(1));
+    });
 
     EXPECT_EQ(count, 1);
     const auto it = root.value.find("foo");
@@ -1184,8 +1188,11 @@ TEST_F(NbtPathTest, SetCreatesMissingTailNode)
     nbt::tags::compound_tag root;
     NbtPath path = _parsePath("foo");
 
-    EXPECT_EQ(
-        path.set(root, []() { return std::unique_ptr<nbt::tags::tag>(std::make_unique<nbt::tags::int_tag>(7)); }), 1);
+    EXPECT_EQ(path.set(root,
+                  []() {
+                      return std::unique_ptr<nbt::tags::tag>(std::make_unique<nbt::tags::int_tag>(7));
+                  }),
+        1);
     EXPECT_EQ(_describe(root), "{\"foo\":7}");
 }
 
@@ -1194,8 +1201,9 @@ TEST_F(NbtPathTest, SetCreatesMissingListForAllElements)
     nbt::tags::compound_tag root;
     NbtPath path = _parsePath("foo[]");
 
-    i32 count =
-        path.set(root, []() { return std::unique_ptr<nbt::tags::tag>(std::make_unique<nbt::tags::int_tag>(3)); });
+    i32 count = path.set(root, []() {
+        return std::unique_ptr<nbt::tags::tag>(std::make_unique<nbt::tags::int_tag>(3));
+    });
 
     // 原版行为：缺失的列表创建后为空，写入一个元素
     EXPECT_EQ(count, 1);
@@ -1212,8 +1220,9 @@ TEST_F(NbtPathTest, SetRootObjectFilterMatchesRoot)
     // 根标签满足 {a:1} 时路径命中根复合标签本身，可写入 bar
     NbtPath path = _parsePath("{a:1}.bar");
 
-    i32 count =
-        path.set(root, []() { return std::unique_ptr<nbt::tags::tag>(std::make_unique<nbt::tags::int_tag>(5)); });
+    i32 count = path.set(root, []() {
+        return std::unique_ptr<nbt::tags::tag>(std::make_unique<nbt::tags::int_tag>(5));
+    });
 
     EXPECT_EQ(count, 1);
     EXPECT_EQ(_describe(root), "{\"a\":1,\"bar\":5}");
@@ -1225,8 +1234,11 @@ TEST_F(NbtPathTest, SetRootObjectFilterMismatchDoesNotCreate)
     // 根对象过滤器只在根标签匹配时生效；根标签不匹配 a:1 时不创建任何内容
     NbtPath path = _parsePath("{a:1}");
 
-    EXPECT_EQ(
-        path.set(root, []() { return std::unique_ptr<nbt::tags::tag>(std::make_unique<nbt::tags::int_tag>(5)); }), 0);
+    EXPECT_EQ(path.set(root,
+                  []() {
+                      return std::unique_ptr<nbt::tags::tag>(std::make_unique<nbt::tags::int_tag>(5));
+                  }),
+        0);
     EXPECT_TRUE(root.value.empty());
 }
 
@@ -1236,8 +1248,11 @@ TEST_F(NbtPathTest, SetListElementWithoutAllElementsIsNoOp)
     root.put("foo", std::string("bar"));
     NbtPath path = _parsePath("foo[0]");
 
-    EXPECT_EQ(
-        path.set(root, []() { return std::unique_ptr<nbt::tags::tag>(std::make_unique<nbt::tags::int_tag>(1)); }), 0);
+    EXPECT_EQ(path.set(root,
+                  []() {
+                      return std::unique_ptr<nbt::tags::tag>(std::make_unique<nbt::tags::int_tag>(1));
+                  }),
+        0);
 }
 
 TEST_F(NbtPathTest, SetIsTooDeepRejected)
@@ -1254,7 +1269,11 @@ TEST_F(NbtPathTest, SetIsTooDeepRejected)
         current = static_cast<nbt::tags::tag_list_tag*>(current->value.back().get());
     }
 
-    EXPECT_THROW(path.set(root, [&deep]() { return deep->copy(); }), CommandException);
+    EXPECT_THROW(path.set(root,
+                     [&deep]() {
+                         return deep->copy();
+                     }),
+        CommandException);
     EXPECT_TRUE(root.value.empty());
 }
 
@@ -1268,8 +1287,11 @@ TEST_F(NbtPathTest, SetIndexInIntListConvertsToTagList)
     root.value["items"] = std::move(list);
 
     NbtPath path = _parsePath("items[1]");
-    EXPECT_EQ(
-        path.set(root, []() { return std::unique_ptr<nbt::tags::tag>(std::make_unique<nbt::tags::int_tag>(99)); }), 1);
+    EXPECT_EQ(path.set(root,
+                  []() {
+                      return std::unique_ptr<nbt::tags::tag>(std::make_unique<nbt::tags::int_tag>(99));
+                  }),
+        1);
 
     NbtPath allElements = _parsePath("items[]");
     auto results = allElements.get(root);
@@ -1287,8 +1309,11 @@ TEST_F(NbtPathTest, SetIndexSameValueDoesNotCount)
     root.value["items"] = std::move(list);
 
     NbtPath path = _parsePath("items[0]");
-    EXPECT_EQ(
-        path.set(root, []() { return std::unique_ptr<nbt::tags::tag>(std::make_unique<nbt::tags::int_tag>(1)); }), 0);
+    EXPECT_EQ(path.set(root,
+                  []() {
+                      return std::unique_ptr<nbt::tags::tag>(std::make_unique<nbt::tags::int_tag>(1));
+                  }),
+        0);
 }
 
 TEST_F(NbtPathTest, RemoveIndexInStringList)
@@ -1333,8 +1358,9 @@ TEST_F(NbtPathTest, SetAllElementsReplacesEveryElement)
     root.value["items"] = std::move(list);
 
     NbtPath path = _parsePath("items[]");
-    i32 count =
-        path.set(root, []() { return std::unique_ptr<nbt::tags::tag>(std::make_unique<nbt::tags::int_tag>(1)); });
+    i32 count = path.set(root, []() {
+        return std::unique_ptr<nbt::tags::tag>(std::make_unique<nbt::tags::int_tag>(1));
+    });
 
     // 与 MC 一致：返回替换掉的、与新值不相等的元素数量
     EXPECT_EQ(count, 1);
@@ -1394,14 +1420,18 @@ TEST_F(NbtPathTest, KeyFilterSetAndRemoveMatchValues)
     root.value["item"] = std::move(child);
 
     NbtPath mismatched = _parsePath("item{tag:\"y\"}");
-    EXPECT_EQ(
-        mismatched.set(root, []() { return std::unique_ptr<nbt::tags::tag>(std::make_unique<nbt::tags::int_tag>(1)); }),
+    EXPECT_EQ(mismatched.set(root,
+                  []() {
+                      return std::unique_ptr<nbt::tags::tag>(std::make_unique<nbt::tags::int_tag>(1));
+                  }),
         0);
     EXPECT_EQ(mismatched.remove(root), 0);
 
     NbtPath matched = _parsePath("item{tag:\"x\"}");
-    EXPECT_EQ(
-        matched.set(root, []() { return std::unique_ptr<nbt::tags::tag>(std::make_unique<nbt::tags::int_tag>(1)); }),
+    EXPECT_EQ(matched.set(root,
+                  []() {
+                      return std::unique_ptr<nbt::tags::tag>(std::make_unique<nbt::tags::int_tag>(1));
+                  }),
         1);
     EXPECT_EQ(_describe(*root.value.at("item")), "1");
 
@@ -1444,8 +1474,9 @@ TEST_F(NbtPathTest, SetMissingIntermediateCreatesCompounds)
     NbtPath path = _parsePath("a.b.c");
 
     // 缺失的复合键按原版 getOrCreate 链式创建
-    i32 count =
-        path.set(root, []() { return std::unique_ptr<nbt::tags::tag>(std::make_unique<nbt::tags::int_tag>(2)); });
+    i32 count = path.set(root, []() {
+        return std::unique_ptr<nbt::tags::tag>(std::make_unique<nbt::tags::int_tag>(2));
+    });
     EXPECT_EQ(count, 1);
     EXPECT_EQ(_describe(root), "{\"a\":{\"b\":{\"c\":2}}}");
 }

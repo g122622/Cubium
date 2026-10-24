@@ -75,44 +75,68 @@ public:
      * @brief 工厂方法：创建单行提示
      * @param text 提示文本
      */
-    [[nodiscard]] static Tooltip create(std::string text) { return Tooltip(std::move(text)); }
+    [[nodiscard]] static Tooltip create(std::string text)
+    {
+        return Tooltip(std::move(text));
+    }
 
     /**
      * @brief 工厂方法：创建多行提示
      * @param lines 提示文本行
      */
-    [[nodiscard]] static Tooltip create(std::vector<std::string> lines) { return Tooltip(std::move(lines)); }
+    [[nodiscard]] static Tooltip create(std::vector<std::string> lines)
+    {
+        return Tooltip(std::move(lines));
+    }
 
     /**
      * @brief 检查提示是否为空
      */
-    [[nodiscard]] bool isEmpty() const noexcept { return m_lines.empty(); }
+    [[nodiscard]] bool isEmpty() const noexcept
+    {
+        return m_lines.empty();
+    }
 
     /**
      * @brief 获取提示文本行
      */
-    [[nodiscard]] const std::vector<std::string>& lines() const noexcept { return m_lines; }
+    [[nodiscard]] const std::vector<std::string>& lines() const noexcept
+    {
+        return m_lines;
+    }
 
     /**
      * @brief 获取提示行数
      */
-    [[nodiscard]] Size lineCount() const noexcept { return m_lines.size(); }
+    [[nodiscard]] Size lineCount() const noexcept
+    {
+        return m_lines.size();
+    }
 
     /**
      * @brief 添加一行文本
      */
-    void addLine(std::string line) { m_lines.push_back(std::move(line)); }
+    void addLine(std::string line)
+    {
+        m_lines.push_back(std::move(line));
+    }
 
     /**
      * @brief 获取最大宽度
      */
-    [[nodiscard]] i32 maxWidth() const noexcept { return m_maxWidth; }
+    [[nodiscard]] i32 maxWidth() const noexcept
+    {
+        return m_maxWidth;
+    }
 
     /**
      * @brief 设置最大宽度
      * @param width 最大宽度（像素）
      */
-    void setMaxWidth(i32 width) { m_maxWidth = width; }
+    void setMaxWidth(i32 width)
+    {
+        m_maxWidth = width;
+    }
 
 private:
     std::vector<std::string> m_lines;   ///< 提示文本行

@@ -289,9 +289,15 @@ public:
         , m_biomeId(biomeId)
     {}
 
-    [[nodiscard]] BiomeId getNoiseBiome(i32, i32, i32) const override { return m_biomeId; }
+    [[nodiscard]] BiomeId getNoiseBiome(i32, i32, i32) const override
+    {
+        return m_biomeId;
+    }
 
-    [[nodiscard]] const std::vector<BiomeId>& possibleBiomes() const override { return m_biomes; }
+    [[nodiscard]] const std::vector<BiomeId>& possibleBiomes() const override
+    {
+        return m_biomes;
+    }
 
 private:
     BiomeId m_biomeId;
@@ -303,7 +309,10 @@ private:
  */
 class TopMaterialTest : public ::testing::Test {
 protected:
-    static void SetUpTestSuite() { BiomeRegistry::instance().initialize(); }
+    static void SetUpTestSuite()
+    {
+        BiomeRegistry::instance().initialize();
+    }
 };
 } // namespace
 

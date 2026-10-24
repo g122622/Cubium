@@ -72,15 +72,50 @@ public:
 
     // ========== Getters ==========
 
-    [[nodiscard]] const std::optional<bool>& isOnFire() const noexcept { return m_isOnFire; }
-    [[nodiscard]] const std::optional<bool>& isSneaking() const noexcept { return m_isSneaking; }
-    [[nodiscard]] const std::optional<bool>& isSprinting() const noexcept { return m_isSprinting; }
-    [[nodiscard]] const std::optional<bool>& isSwimming() const noexcept { return m_isSwimming; }
-    [[nodiscard]] const std::optional<bool>& isBaby() const noexcept { return m_isBaby; }
-    [[nodiscard]] const std::optional<bool>& isOnGround() const noexcept { return m_isOnGround; }
-    [[nodiscard]] const std::optional<bool>& isFlying() const noexcept { return m_isFlying; }
-    [[nodiscard]] const std::optional<bool>& isInWater() const noexcept { return m_isInWater; }
-    [[nodiscard]] const std::optional<bool>& isFallFlying() const noexcept { return m_isFallFlying; }
+    [[nodiscard]] const std::optional<bool>& isOnFire() const noexcept
+    {
+        return m_isOnFire;
+    }
+
+    [[nodiscard]] const std::optional<bool>& isSneaking() const noexcept
+    {
+        return m_isSneaking;
+    }
+
+    [[nodiscard]] const std::optional<bool>& isSprinting() const noexcept
+    {
+        return m_isSprinting;
+    }
+
+    [[nodiscard]] const std::optional<bool>& isSwimming() const noexcept
+    {
+        return m_isSwimming;
+    }
+
+    [[nodiscard]] const std::optional<bool>& isBaby() const noexcept
+    {
+        return m_isBaby;
+    }
+
+    [[nodiscard]] const std::optional<bool>& isOnGround() const noexcept
+    {
+        return m_isOnGround;
+    }
+
+    [[nodiscard]] const std::optional<bool>& isFlying() const noexcept
+    {
+        return m_isFlying;
+    }
+
+    [[nodiscard]] const std::optional<bool>& isInWater() const noexcept
+    {
+        return m_isInWater;
+    }
+
+    [[nodiscard]] const std::optional<bool>& isFallFlying() const noexcept
+    {
+        return m_isFallFlying;
+    }
 
     // ========== Setters ==========
 
@@ -89,21 +124,25 @@ public:
         m_isOnFire = value;
         _updateIsAny();
     }
+
     void setSneaking(std::optional<bool> value)
     {
         m_isSneaking = value;
         _updateIsAny();
     }
+
     void setSprinting(std::optional<bool> value)
     {
         m_isSprinting = value;
         _updateIsAny();
     }
+
     void setSwimming(std::optional<bool> value)
     {
         m_isSwimming = value;
         _updateIsAny();
     }
+
     void setBaby(std::optional<bool> value)
     {
         m_isBaby = value;

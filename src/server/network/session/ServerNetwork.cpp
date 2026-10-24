@@ -86,7 +86,9 @@ Result<void> ServerNetwork::startAccept(u16 port, u32 maxConnections)
     m_listenPort = m_acceptor->local_endpoint().port();
 
     m_accepting.store(true);
-    m_acceptThread = std::make_unique<std::thread>([this] { _beginAccept(); });
+    m_acceptThread = std::make_unique<std::thread>([this] {
+        _beginAccept();
+    });
     spdlog::info("ServerNetwork listening on port {} (max {})", m_listenPort, maxConnections);
     return Result<void>::ok();
 }
@@ -139,7 +141,9 @@ void ServerNetwork::_adoptPendingConnections()
     for (auto& socket : pending) {
         {
             std::lock_guard lock(m_connectionsMutex);
-            if (m_connections.size() >= m_maxConnections) continue;
+            if (m_connections.size() >= m_maxConnections) {
+                continue;
+            }
         }
         auto transport = std::make_unique<mc::network::transport::TcpTransport>();
         auto attached = transport->attachConnectedSocket(std::move(socket));
@@ -148,7 +152,9 @@ void ServerNetwork::_adoptPendingConnections()
             continue;
         }
         const u32 sessionId = m_nextSessionId.fetch_add(1);
-        transport->onDisconnect([this, sessionId] { _notifyDisconnect(sessionId); });
+        transport->onDisconnect([this, sessionId] {
+            _notifyDisconnect(sessionId);
+        });
         auto* tcp = transport.get();
         auto connection = std::make_unique<ServerClientConnection>(std::move(transport), m_tables, sessionId);
         auto* raw = connection.get();
@@ -156,7 +162,9 @@ void ServerNetwork::_adoptPendingConnections()
             std::lock_guard lock(m_connectionsMutex);
             m_connections.push_back(std::move(connection));
         }
-        if (m_onConnect) m_onConnect(*raw);
+        if (m_onConnect) {
+            m_onConnect(*raw);
+        }
         auto started = tcp->startReceiving();
         if (!started.success()) {
             spdlog::warn("Cannot start TCP receive: {}", started.error().toString());
@@ -200,10 +208,11 @@ void ServerNetwork::addConnection(std::unique_ptr<ServerClientConnection> conn)
 void ServerNetwork::removeConnection(u32 sessionId)
 {
     std::lock_guard<std::mutex> lock(m_connectionsMutex);
-    m_connections.erase(
-        std::remove_if(m_connections.begin(),
-            m_connections.end(),
-            [sessionId](const std::unique_ptr<ServerClientConnection>& c) { return c->sessionId() == sessionId; }),
+    m_connections.erase(std::remove_if(m_connections.begin(),
+                            m_connections.end(),
+                            [sessionId](const std::unique_ptr<ServerClientConnection>& c) {
+                                return c->sessionId() == sessionId;
+                            }),
         m_connections.end());
 }
 

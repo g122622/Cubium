@@ -67,6 +67,7 @@ private:
         i32 shieldIndex; ///< 盾牌索引
         i32 bannerIndex; ///< 旗帜索引
     };
+
     [[nodiscard]] std::optional<ShieldBannerPair> _findPair(const CraftingInventory& inventory) const;
 };
 

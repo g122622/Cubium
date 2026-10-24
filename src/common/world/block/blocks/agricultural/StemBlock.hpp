@@ -77,7 +77,10 @@ public:
     /**
      * @brief 获取最大年龄
      */
-    [[nodiscard]] i32 getMaxAge() const { return 7; }
+    [[nodiscard]] i32 getMaxAge() const
+    {
+        return 7;
+    }
 
     /**
      * @brief 获取当前年龄
@@ -105,7 +108,10 @@ public:
 
     void randomTick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random) override;
 
-    [[nodiscard]] bool ticksRandomly() const noexcept override { return true; }
+    [[nodiscard]] bool ticksRandomly() const noexcept override
+    {
+        return true;
+    }
 
     // ========== IGrowable 接口 ==========
 
@@ -136,7 +142,10 @@ public:
     /**
      * @brief 获取对应的果实方块
      */
-    [[nodiscard]] const StemGrownBlock* getCrop() const { return m_crop; }
+    [[nodiscard]] const StemGrownBlock* getCrop() const
+    {
+        return m_crop;
+    }
 
 protected:
     /**
@@ -271,7 +280,10 @@ public:
     /**
      * @brief 获取对应的果实方块
      */
-    [[nodiscard]] const StemGrownBlock* getCrop() const { return m_crop; }
+    [[nodiscard]] const StemGrownBlock* getCrop() const
+    {
+        return m_crop;
+    }
 
     // ========== IPlantable 接口 ==========
 

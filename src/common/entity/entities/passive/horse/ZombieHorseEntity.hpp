@@ -57,7 +57,10 @@ public:
     // 亡灵生物归类（对齐 Java ZombieHorse.getMobType()==UNDEAD）。本类已覆写 canBreatheUnderwater
     // 直接返回 true，但未覆写 getCreatureAttribute 致亡灵杀手附魔无加成、瞬间治疗/伤害药水不反转、
     // 凋灵玫瑰不免疫等亡灵特性失效。补覆写统一归类（canBreatheUnderwater 子类覆写优先不受影响）。
-    [[nodiscard]] CreatureAttribute getCreatureAttribute() const override { return CreatureAttribute::Undead; }
+    [[nodiscard]] CreatureAttribute getCreatureAttribute() const override
+    {
+        return CreatureAttribute::Undead;
+    }
 
     // 禁止拷贝
     ZombieHorseEntity(const ZombieHorseEntity&) = delete;
@@ -103,12 +106,18 @@ public:
     /**
      * @brief 是否免疫溺水
      */
-    [[nodiscard]] bool canBreatheUnderwater() const override { return true; }
+    [[nodiscard]] bool canBreatheUnderwater() const override
+    {
+        return true;
+    }
 
     /**
      * @brief 僵尸马不能吃草
      */
-    [[nodiscard]] bool canEatGrass() const override { return false; }
+    [[nodiscard]] bool canEatGrass() const override
+    {
+        return false;
+    }
 
     /**
      * @brief 阳光防护装备槽位
@@ -117,14 +126,20 @@ public:
      * 对应 MC 原版中 ZombieHorse.sunProtectionSlot() 返回 EquipmentSlot.BODY。
      * 这意味着马铠槽位中的物品可以替代僵尸马承受阳光下的耐久损耗。
      */
-    [[nodiscard]] EquipmentSlot sunProtectionSlot() const override { return EquipmentSlot::Chest; }
+    [[nodiscard]] EquipmentSlot sunProtectionSlot() const override
+    {
+        return EquipmentSlot::Chest;
+    }
 
     // ========== 属性 ==========
 
     /**
      * @brief 获取眼睛高度
      */
-    [[nodiscard]] f32 eyeHeight() const override { return 1.6f; }
+    [[nodiscard]] f32 eyeHeight() const override
+    {
+        return 1.6f;
+    }
 
     // ========== 生命周期 ==========
 

@@ -36,10 +36,14 @@ OutboundPacket::OutboundPacket(ir::IrPacket packet)
             [](auto& value) {
                 using T = std::decay_t<decltype(value)>;
                 if constexpr (std::is_same_v<T, ir::play::BlockEntityData>) {
-                    if (value.tag) value.tag = std::make_shared<nbt::CompoundTag>(*value.tag);
+                    if (value.tag) {
+                        value.tag = std::make_shared<nbt::CompoundTag>(*value.tag);
+                    }
                 } else if constexpr (std::is_same_v<T, ir::play::LevelChunkWithLight>) {
                     for (auto& entity : value.blockEntities) {
-                        if (entity.tag) entity.tag = std::make_shared<nbt::CompoundTag>(*entity.tag);
+                        if (entity.tag) {
+                            entity.tag = std::make_shared<nbt::CompoundTag>(*entity.tag);
+                        }
                     }
                 }
             },
@@ -52,9 +56,13 @@ Result<OutboundPacket::Bytes> OutboundPacket::prepare(
 {
     std::lock_guard lock(m_mutex);
     const auto key = std::make_tuple(tables, flow, threshold);
-    if (auto found = m_frames.find(key); found != m_frames.end()) return found->second;
+    if (auto found = m_frames.find(key); found != m_frames.end()) {
+        return found->second;
+    }
     auto result = encoder();
-    if (!result.success()) return result.error();
+    if (!result.success()) {
+        return result.error();
+    }
     auto bytes = std::make_shared<const std::vector<u8>>(std::move(result.value()));
     m_frames.emplace(key, bytes);
     return bytes;

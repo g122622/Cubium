@@ -209,7 +209,10 @@ public:
     /**
      * @brief 区域锁访问
      */
-    [[nodiscard]] util::ReentrantAreaLock& schedulingLockArea() { return m_schedulingLockArea; }
+    [[nodiscard]] util::ReentrantAreaLock& schedulingLockArea()
+    {
+        return m_schedulingLockArea;
+    }
 
     /**
      * @brief 标记调度器正在关闭
@@ -218,9 +221,15 @@ public:
      * 因为关闭时所有 holder 的 abortSignal 已失效，重调度的任务无法被取消。
      * ServerChunkManager::shutdown 在 cancelActiveWork 之前调用此方法。
      */
-    void setShuttingDown() { m_shuttingDown.store(true, std::memory_order::release); }
+    void setShuttingDown()
+    {
+        m_shuttingDown.store(true, std::memory_order::release);
+    }
 
-    [[nodiscard]] bool isShuttingDown() const { return m_shuttingDown.load(std::memory_order::acquire); }
+    [[nodiscard]] bool isShuttingDown() const
+    {
+        return m_shuttingDown.load(std::memory_order::acquire);
+    }
 
     /**
      * @brief 就地更新两个执行器（运行期注入线程池）

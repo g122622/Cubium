@@ -46,16 +46,29 @@ using mc::ServerDimensionManager;
 
 class DedicatedTestServer final : public mc::test::BaseTestServer {
 public:
-    [[nodiscard]] bool isIntegrated() const noexcept override { return false; }
-    [[nodiscard]] bool isDedicated() const noexcept override { return true; }
+    [[nodiscard]] bool isIntegrated() const noexcept override
+    {
+        return false;
+    }
+
+    [[nodiscard]] bool isDedicated() const noexcept override
+    {
+        return true;
+    }
 
     // 覆盖 dimensionManager，返回一个未注册任何维度的空 DimensionManager。
     // 这样 source.world() 经 dimensionManager().getDimension() 返回 nullptr，
     // 命令走 "World not available" 分支返回 0，避免 BaseTestServer 默认实现
     // 抛 std::logic_error 进而在 noexcept 的 world() 中触发 std::terminate。
-    [[nodiscard]] ServerDimensionManager& dimensionManager() override { return m_dimensionManager; }
+    [[nodiscard]] ServerDimensionManager& dimensionManager() override
+    {
+        return m_dimensionManager;
+    }
 
-    [[nodiscard]] const ServerDimensionManager& dimensionManager() const override { return m_dimensionManager; }
+    [[nodiscard]] const ServerDimensionManager& dimensionManager() const override
+    {
+        return m_dimensionManager;
+    }
 
 private:
     // 真实 ServerDimensionManager（nullptr 构造：仅用于 getPlayerDimension 等 map 查询，不调
@@ -67,8 +80,15 @@ private:
 
 class IntegratedTestServer final : public mc::test::BaseTestServer {
 public:
-    [[nodiscard]] bool isIntegrated() const noexcept override { return true; }
-    [[nodiscard]] bool isDedicated() const noexcept override { return false; }
+    [[nodiscard]] bool isIntegrated() const noexcept override
+    {
+        return true;
+    }
+
+    [[nodiscard]] bool isDedicated() const noexcept override
+    {
+        return false;
+    }
 
     // 测试桩：模拟局域网发布行为，复刻真实 IntegratedServer 的边界校验逻辑：
     //   1. 端口范围校验（1-65535）→ InvalidArgument
@@ -89,17 +109,34 @@ public:
         return Result<void>::ok();
     }
 
-    [[nodiscard]] bool publishCalled() const noexcept { return m_publishCalled; }
-    [[nodiscard]] i32 lastPublishedPort() const noexcept { return m_lastPort; }
-    [[nodiscard]] bool lastAllowCheats() const noexcept { return m_lastAllowCheats; }
+    [[nodiscard]] bool publishCalled() const noexcept
+    {
+        return m_publishCalled;
+    }
+
+    [[nodiscard]] i32 lastPublishedPort() const noexcept
+    {
+        return m_lastPort;
+    }
+
+    [[nodiscard]] bool lastAllowCheats() const noexcept
+    {
+        return m_lastAllowCheats;
+    }
 
     // 覆盖 dimensionManager，返回一个未注册任何维度的空 DimensionManager。
     // 这样 source.world() 经 dimensionManager().getDimension() 返回 nullptr，
     // 命令走 "World not available" 分支返回 0，避免 BaseTestServer 默认实现
     // 抛 std::logic_error 进而在 noexcept 的 world() 中触发 std::terminate。
-    [[nodiscard]] ServerDimensionManager& dimensionManager() override { return m_dimensionManager; }
+    [[nodiscard]] ServerDimensionManager& dimensionManager() override
+    {
+        return m_dimensionManager;
+    }
 
-    [[nodiscard]] const ServerDimensionManager& dimensionManager() const override { return m_dimensionManager; }
+    [[nodiscard]] const ServerDimensionManager& dimensionManager() const override
+    {
+        return m_dimensionManager;
+    }
 
 private:
     // 真实 ServerDimensionManager（nullptr 构造：仅用于 getPlayerDimension 等 map 查询，不调

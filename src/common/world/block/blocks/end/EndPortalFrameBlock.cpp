@@ -144,7 +144,9 @@ std::unique_ptr<blockpattern::BlockPattern> EndPortalFrameBlock::getOrCreatePort
             ">???"
             "<",
             "?^^^?"})
-        .where('?', BlockInWorld::hasState([](const BlockState&) { return true; }))
+        .where('?', BlockInWorld::hasState([](const BlockState&) {
+            return true;
+        }))
         .where('^', BlockInWorld::hasState([frameBlock](const BlockState& s) {
             return s.is(frameBlock) && s.get(BlockStateProperties::EYE()) &&
                 s.get(BlockStateProperties::HORIZONTAL_FACING()) == Direction::South;

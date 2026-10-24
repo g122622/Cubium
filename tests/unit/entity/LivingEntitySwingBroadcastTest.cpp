@@ -70,11 +70,20 @@ public:
         u8 animation;
     };
 
-    void clearAnimation() { m_lastAnimation.reset(); }
+    void clearAnimation()
+    {
+        m_lastAnimation.reset();
+    }
 
-    [[nodiscard]] bool hasAnimationRecord() const { return m_lastAnimation.has_value(); }
+    [[nodiscard]] bool hasAnimationRecord() const
+    {
+        return m_lastAnimation.has_value();
+    }
 
-    [[nodiscard]] const AnimationRecord& lastAnimation() const { return *m_lastAnimation; }
+    [[nodiscard]] const AnimationRecord& lastAnimation() const
+    {
+        return *m_lastAnimation;
+    }
 
     void broadcastEntityAnimation(EntityInstanceId entityId, u8 animation) override
     {
@@ -95,11 +104,20 @@ private:
  */
 class ClientSideTestWorld final : public mc::test::BaseTestWorld {
 public:
-    [[nodiscard]] bool isClientSide() const override { return true; }
+    [[nodiscard]] bool isClientSide() const override
+    {
+        return true;
+    }
 
-    void broadcastEntityAnimation(EntityInstanceId /*entityId*/, u8 /*animation*/) override { ++m_broadcastCallCount; }
+    void broadcastEntityAnimation(EntityInstanceId /*entityId*/, u8 /*animation*/) override
+    {
+        ++m_broadcastCallCount;
+    }
 
-    [[nodiscard]] i32 broadcastCallCount() const { return m_broadcastCallCount; }
+    [[nodiscard]] i32 broadcastCallCount() const
+    {
+        return m_broadcastCallCount;
+    }
 
 private:
     i32 m_broadcastCallCount = 0;

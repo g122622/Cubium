@@ -84,7 +84,10 @@ public:
     void resetTask() override;
     void tick() override;
 
-    [[nodiscard]] std::string getTypeName() const override { return "AvoidEntityGoal"; }
+    [[nodiscard]] std::string getTypeName() const override
+    {
+        return "AvoidEntityGoal";
+    }
 
 private:
     friend class test::AvoidEntityGoalTestAccessor; // 测试访问器，用于验证 UAF 防护

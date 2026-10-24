@@ -138,38 +138,59 @@ public:
     /**
      * @brief 获取恢复的饥饿值
      */
-    [[nodiscard]] i32 getHunger() const noexcept { return m_hunger; }
+    [[nodiscard]] i32 getHunger() const noexcept
+    {
+        return m_hunger;
+    }
 
     /**
      * @brief 获取饱和度修正值
      * @note 实际饱和度 = food * saturationModifier * 2.0
      */
-    [[nodiscard]] f32 getSaturationModifier() const noexcept { return m_saturationModifier; }
+    [[nodiscard]] f32 getSaturationModifier() const noexcept
+    {
+        return m_saturationModifier;
+    }
 
     /**
      * @brief 是否为肉类
      */
-    [[nodiscard]] bool isMeat() const noexcept { return m_isMeat; }
+    [[nodiscard]] bool isMeat() const noexcept
+    {
+        return m_isMeat;
+    }
 
     /**
      * @brief 是否可以快速食用
      */
-    [[nodiscard]] bool isFastEat() const noexcept { return m_fastEat; }
+    [[nodiscard]] bool isFastEat() const noexcept
+    {
+        return m_fastEat;
+    }
 
     /**
      * @brief 是否可以在饱食时食用
      */
-    [[nodiscard]] bool canAlwaysEat() const noexcept { return m_alwaysEdible; }
+    [[nodiscard]] bool canAlwaysEat() const noexcept
+    {
+        return m_alwaysEdible;
+    }
 
     /**
      * @brief 获取所有药水效果
      */
-    [[nodiscard]] const std::vector<FoodEffect>& getEffects() const noexcept { return m_effects; }
+    [[nodiscard]] const std::vector<FoodEffect>& getEffects() const noexcept
+    {
+        return m_effects;
+    }
 
     /**
      * @brief 是否有药水效果
      */
-    [[nodiscard]] bool hasEffects() const noexcept { return !m_effects.empty(); }
+    [[nodiscard]] bool hasEffects() const noexcept
+    {
+        return !m_effects.empty();
+    }
 
 private:
     i32 m_hunger;                      ///< 恢复的饥饿值

@@ -72,7 +72,9 @@ TEST(LocalTransport, ServerToClientBidirectional)
     auto pair = LocalTransportPair::create();
 
     std::atomic<int> count{0};
-    pair.client->onPacket([&](ir::IrPacket /*pkt*/) { count++; });
+    pair.client->onPacket([&](ir::IrPacket /*pkt*/) {
+        count++;
+    });
 
     ASSERT_TRUE(pair.server->send(makeKeepAlive(99)).success());
     pair.client->pump();
@@ -104,7 +106,9 @@ TEST(LocalTransport, CloseTriggersDisconnectCallback)
 {
     auto pair = LocalTransportPair::create();
     std::atomic<bool> disconnected{false};
-    pair.client->onDisconnect([&]() { disconnected = true; });
+    pair.client->onDisconnect([&]() {
+        disconnected = true;
+    });
 
     EXPECT_FALSE(disconnected.load());
     pair.client->close();
@@ -124,7 +128,9 @@ TEST(LocalTransport, PumpDeliversBatchesInOrder)
 {
     auto pair = LocalTransportPair::create();
     std::vector<int> order;
-    pair.server->onPacket([&](ir::IrPacket /*pkt*/) { order.push_back(static_cast<int>(order.size())); });
+    pair.server->onPacket([&](ir::IrPacket /*pkt*/) {
+        order.push_back(static_cast<int>(order.size()));
+    });
 
     for (int i = 0; i < 50; ++i) {
         ASSERT_TRUE(pair.client->send(makeKeepAlive(i)).success());

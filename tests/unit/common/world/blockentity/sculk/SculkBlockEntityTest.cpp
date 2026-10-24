@@ -44,7 +44,10 @@ using namespace mc::gameevent;
 
 class SculkSensorBlockEntityTest : public ::testing::Test {
 protected:
-    void SetUp() override { pos_ = BlockPos(10, 64, 20); }
+    void SetUp() override
+    {
+        pos_ = BlockPos(10, 64, 20);
+    }
 
     BlockPos pos_;
 };
@@ -249,7 +252,10 @@ TEST_F(SculkSensorBlockEntityTest, ClonePreservesData)
 
 class SculkShriekerBlockEntityTest : public ::testing::Test {
 protected:
-    void SetUp() override { pos_ = BlockPos(5, -10, 100); }
+    void SetUp() override
+    {
+        pos_ = BlockPos(5, -10, 100);
+    }
 
     BlockPos pos_;
 };

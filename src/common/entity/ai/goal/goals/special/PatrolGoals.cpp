@@ -53,43 +53,67 @@ PatrolGoal::PatrolGoal(PatrollerEntity* patroller, f64 memberSpeed, f64 leaderSp
 
 bool PatrolGoal::shouldExecute()
 {
-    if (!m_patroller) return false;
+    if (!m_patroller) {
+        return false;
+    }
 
     // 必须正在巡逻
-    if (!m_patroller->isPatrolling()) return false;
+    if (!m_patroller->isPatrolling()) {
+        return false;
+    }
 
     // 没有攻击目标
     LivingEntity* attackTarget = m_patroller->attackTarget();
-    if (attackTarget != nullptr) return false;
+    if (attackTarget != nullptr) {
+        return false;
+    }
 
     // 没有被骑乘
-    if (m_patroller->isBeingRidden()) return false;
+    if (m_patroller->isBeingRidden()) {
+        return false;
+    }
 
     // 有巡逻目标
-    if (!m_patroller->hasPatrolTarget()) return false;
+    if (!m_patroller->hasPatrolTarget()) {
+        return false;
+    }
 
     // 不在冷却期
     IWorld* world = m_patroller->world();
-    if (!world) return false;
+    if (!world) {
+        return false;
+    }
 
     u64 gameTime = world->getGameTime();
-    if (static_cast<i64>(gameTime) < m_cooldownTime) return false;
+    if (static_cast<i64>(gameTime) < m_cooldownTime) {
+        return false;
+    }
 
     return true;
 }
 
 bool PatrolGoal::shouldContinueExecuting()
 {
-    if (!m_patroller) return false;
+    if (!m_patroller) {
+        return false;
+    }
 
     // 继续检查基本条件
-    if (!m_patroller->isPatrolling()) return false;
-    if (m_patroller->attackTarget() != nullptr) return false;
-    if (m_patroller->isBeingRidden()) return false;
+    if (!m_patroller->isPatrolling()) {
+        return false;
+    }
+    if (m_patroller->attackTarget() != nullptr) {
+        return false;
+    }
+    if (m_patroller->isBeingRidden()) {
+        return false;
+    }
 
     // 检查导航器状态
     PathNavigator* nav = m_patroller->navigator();
-    if (!nav) return false;
+    if (!nav) {
+        return false;
+    }
 
     // 有路径就继续
     return !nav->noPath();
@@ -102,13 +126,19 @@ void PatrolGoal::startExecuting()
 
 void PatrolGoal::tick()
 {
-    if (!m_patroller) return;
+    if (!m_patroller) {
+        return;
+    }
 
     PathNavigator* nav = m_patroller->navigator();
-    if (!nav) return;
+    if (!nav) {
+        return;
+    }
 
     IWorld* world = m_patroller->world();
-    if (!world) return;
+    if (!world) {
+        return;
+    }
 
     // 只有在没有路径时才处理
     if (nav->noPath()) {
@@ -186,10 +216,14 @@ std::vector<PatrollerEntity*> PatrolGoal::_getNearbyPatrollers() const
 {
     std::vector<PatrollerEntity*> result;
 
-    if (!m_patroller) return result;
+    if (!m_patroller) {
+        return result;
+    }
 
     IWorld* world = m_patroller->world();
-    if (!world) return result;
+    if (!world) {
+        return result;
+    }
 
     // 获取碰撞箱扩展 16 格内的所有 PatrollerEntity
     auto entities = world->getEntitiesInAABB(m_patroller->boundingBox().grow(NEARBY_PATROLLER_RANGE));
@@ -197,10 +231,14 @@ std::vector<PatrollerEntity*> PatrolGoal::_getNearbyPatrollers() const
     for (Entity* entity : entities) {
         // 检查是否是 PatrollerEntity
         PatrollerEntity* patroller = dynamic_cast<PatrollerEntity*>(entity);
-        if (patroller == nullptr) continue;
+        if (patroller == nullptr) {
+            continue;
+        }
 
         // 排除自己
-        if (patroller->id() == m_patroller->id()) continue;
+        if (patroller->id() == m_patroller->id()) {
+            continue;
+        }
 
         // 检查是否可以加入巡逻
         if (patroller->canJoinPatrol()) {
@@ -213,10 +251,14 @@ std::vector<PatrollerEntity*> PatrolGoal::_getNearbyPatrollers() const
 
 bool PatrolGoal::_moveRandomly()
 {
-    if (!m_patroller) return false;
+    if (!m_patroller) {
+        return false;
+    }
 
     IWorld* world = m_patroller->world();
-    if (!world) return false;
+    if (!world) {
+        return false;
+    }
 
     math::IRandom& rng = m_patroller->getRandom();
 
@@ -233,7 +275,9 @@ bool PatrolGoal::_moveRandomly()
     i32 groundY = world->getHeight(targetPos.x, targetPos.z);
 
     PathNavigator* nav = m_patroller->navigator();
-    if (!nav) return false;
+    if (!nav) {
+        return false;
+    }
 
     return nav->moveTo(static_cast<f64>(targetPos.x) + 0.5,
         static_cast<f64>(groundY),

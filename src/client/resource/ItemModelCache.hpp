@@ -63,7 +63,10 @@ public:
     /**
      * @brief 检查是否已初始化
      */
-    [[nodiscard]] bool isInitialized() const { return m_initialized; }
+    [[nodiscard]] bool isInitialized() const
+    {
+        return m_initialized;
+    }
 
     /**
      * @brief 获取物品模型（通过物品ID）
@@ -111,8 +114,15 @@ public:
     /**
      * @brief 获取模型加载器
      */
-    [[nodiscard]] ItemModelLoader& loader() { return *m_loader; }
-    [[nodiscard]] const ItemModelLoader& loader() const { return *m_loader; }
+    [[nodiscard]] ItemModelLoader& loader()
+    {
+        return *m_loader;
+    }
+
+    [[nodiscard]] const ItemModelLoader& loader() const
+    {
+        return *m_loader;
+    }
 
 private:
     ItemModelCache() = default;

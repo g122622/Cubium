@@ -93,7 +93,10 @@ public:
     /**
      * @brief 获取皮肤类型
      */
-    [[nodiscard]] RabbitType getRabbitType() const { return m_rabbitType; }
+    [[nodiscard]] RabbitType getRabbitType() const
+    {
+        return m_rabbitType;
+    }
 
     /**
      * @brief 设置皮肤类型
@@ -123,7 +126,10 @@ public:
     /**
      * @brief 是否是杀手兔
      */
-    [[nodiscard]] bool isKillerRabbit() const { return m_rabbitType == RabbitType::Killer; }
+    [[nodiscard]] bool isKillerRabbit() const
+    {
+        return m_rabbitType == RabbitType::Killer;
+    }
 
     // ========== 繁殖 ==========
 
@@ -199,7 +205,10 @@ public:
      * 注意：与 LivingEntity::m_jumpTicks（跳跃冷却，不同语义）不同，
      * 此处使用独立的 m_rabbitJumpTicks 字段以避免语义冲突。
      */
-    [[nodiscard]] i32 rabbitJumpTicks() const { return m_rabbitJumpTicks; }
+    [[nodiscard]] i32 rabbitJumpTicks() const
+    {
+        return m_rabbitJumpTicks;
+    }
 
     /**
      * @brief 当前跳跃动画的总持续 tick 数
@@ -207,7 +216,10 @@ public:
      * 对应 MC 1.21.11 Rabbit.jumpDuration 字段。startJumping() 时设为 10，
      * 跳跃结束后归零。客户端收到 RabbitJump 状态时也设为 10。
      */
-    [[nodiscard]] i32 rabbitJumpDuration() const { return m_rabbitJumpDuration; }
+    [[nodiscard]] i32 rabbitJumpDuration() const
+    {
+        return m_rabbitJumpDuration;
+    }
 
     // ========== 着陆延迟 / 跳跃控制 ==========
 
@@ -218,14 +230,20 @@ public:
      * 着陆后设置为 10（慢速）或 1（快速），每 tick 递减。
      * 为 0 时允许下一次跳跃。
      */
-    [[nodiscard]] i32 jumpDelayTicks() const { return m_jumpDelayTicks; }
+    [[nodiscard]] i32 jumpDelayTicks() const
+    {
+        return m_jumpDelayTicks;
+    }
 
     /**
      * @brief 上一 tick 是否在地面
      *
      * 对应 MC 1.21.11 Rabbit.wasOnGround 字段。用于检测着陆瞬间。
      */
-    [[nodiscard]] bool wasOnGround() const { return m_wasOnGround; }
+    [[nodiscard]] bool wasOnGround() const
+    {
+        return m_wasOnGround;
+    }
 
     /**
      * @brief moreCarrotTicks（啃食胡萝卜冷却）
@@ -234,26 +252,38 @@ public:
      * RaidGardenGoal 啃食胡萝卜后设为 40，customServerAiStep 中随机递减。
      * 为 0 时表示兔子想要更多食物（wantsMoreFood() 返回 true）。
      */
-    [[nodiscard]] i32 moreCarrotTicks() const { return m_moreCarrotTicks; }
+    [[nodiscard]] i32 moreCarrotTicks() const
+    {
+        return m_moreCarrotTicks;
+    }
 
     /**
      * @brief 设置 moreCarrotTicks（供 RaidGardenGoal 使用）
      */
-    void setMoreCarrotTicks(i32 ticks) { m_moreCarrotTicks = ticks; }
+    void setMoreCarrotTicks(i32 ticks)
+    {
+        m_moreCarrotTicks = ticks;
+    }
 
     /**
      * @brief 是否想要更多食物
      *
      * 对应 MC 1.21.11 Rabbit.wantsMoreFood()：moreCarrotTicks <= 0
      */
-    [[nodiscard]] bool wantsMoreFood() const { return m_moreCarrotTicks <= 0; }
+    [[nodiscard]] bool wantsMoreFood() const
+    {
+        return m_moreCarrotTicks <= 0;
+    }
 
     // ========== 属性 ==========
 
     /**
      * @brief 获取眼睛高度
      */
-    [[nodiscard]] f32 eyeHeight() const override { return isChild() ? 0.2f : 0.35f; }
+    [[nodiscard]] f32 eyeHeight() const override
+    {
+        return isChild() ? 0.2f : 0.35f;
+    }
 
     /**
      * @brief AI 步进重写
@@ -313,8 +343,15 @@ protected:
 
     // ========== 尺寸 ==========
 
-    [[nodiscard]] f32 getBaseWidth() const override { return 0.4f; }
-    [[nodiscard]] f32 getBaseHeight() const override { return 0.5f; }
+    [[nodiscard]] f32 getBaseWidth() const override
+    {
+        return 0.4f;
+    }
+
+    [[nodiscard]] f32 getBaseHeight() const override
+    {
+        return 0.5f;
+    }
 
 private:
     // 皮肤类型

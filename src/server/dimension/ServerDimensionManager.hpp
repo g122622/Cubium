@@ -45,12 +45,15 @@ namespace mc {
 namespace server {
 class MinecraftServer;
 }
+
 namespace world::gen {
 class RandomState;
+
 namespace settings {
 struct WorldPresetGenerator;
 } // namespace settings
 } // namespace world::gen
+
 namespace world::biome {
 class IBiomeSource;
 } // namespace world::biome
@@ -219,17 +222,26 @@ public:
     /**
      * @brief 获取视野距离
      */
-    [[nodiscard]] i32 viewDistance() const { return m_viewDistance; }
+    [[nodiscard]] i32 viewDistance() const
+    {
+        return m_viewDistance;
+    }
 
     /**
      * @brief 获取模拟距离（控制实体激活范围）
      */
-    [[nodiscard]] i32 simulationDistance() const { return m_simulationDistance; }
+    [[nodiscard]] i32 simulationDistance() const
+    {
+        return m_simulationDistance;
+    }
 
     /**
      * @brief 获取世界种子
      */
-    [[nodiscard]] u64 seed() const { return m_seed; }
+    [[nodiscard]] u64 seed() const
+    {
+        return m_seed;
+    }
 
 protected:
     server::MinecraftServer* m_server;

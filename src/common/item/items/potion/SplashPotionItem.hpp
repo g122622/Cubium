@@ -67,7 +67,10 @@ public:
     /**
      * @brief 喷溅药水不是滞留型
      */
-    [[nodiscard]] bool isLingering() const override { return false; }
+    [[nodiscard]] bool isLingering() const override
+    {
+        return false;
+    }
 
 protected:
     /**

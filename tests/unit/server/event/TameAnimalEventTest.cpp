@@ -131,8 +131,10 @@ TEST_F(TameAnimalEventTest, ServerWorld_OnTameAnimal_MultipleEvents)
     // 订阅事件并计数
     std::atomic<i32> eventCount{0};
 
-    auto subscription = event::ServerEventBus::instance().makeSubscription<TameAnimalEvent>(
-        [&](const TameAnimalEvent&) { eventCount++; });
+    auto subscription =
+        event::ServerEventBus::instance().makeSubscription<TameAnimalEvent>([&](const TameAnimalEvent&) {
+            eventCount++;
+        });
 
     // 发布多个事件（模拟多个玩家驯服不同动物）
     m_world->onTameAnimal(PlayerId{1}, reinterpret_cast<Entity*>(0x10));
@@ -151,8 +153,10 @@ TEST_F(TameAnimalEventTest, ServerWorld_OnTameAnimal_DifferentPlayers)
     // 测试不同玩家驯服动物的事件
     std::vector<PlayerId> receivedPlayerIds;
 
-    auto subscription = event::ServerEventBus::instance().makeSubscription<TameAnimalEvent>(
-        [&](const TameAnimalEvent& e) { receivedPlayerIds.push_back(e.playerId); });
+    auto subscription =
+        event::ServerEventBus::instance().makeSubscription<TameAnimalEvent>([&](const TameAnimalEvent& e) {
+            receivedPlayerIds.push_back(e.playerId);
+        });
 
     // 模拟多个玩家驯服动物
     m_world->onTameAnimal(PlayerId{100}, reinterpret_cast<Entity*>(0x10));
@@ -180,8 +184,10 @@ TEST_F(TameAnimalEventTest, Timestamp_UsesWorldTick)
 
     // 订阅事件
     u64 receivedTick = 0;
-    auto subscription = event::ServerEventBus::instance().makeSubscription<TameAnimalEvent>(
-        [&](const TameAnimalEvent& e) { receivedTick = e.timestamp; });
+    auto subscription =
+        event::ServerEventBus::instance().makeSubscription<TameAnimalEvent>([&](const TameAnimalEvent& e) {
+            receivedTick = e.timestamp;
+        });
 
     // 发布事件
     m_world->onTameAnimal(PlayerId{1}, reinterpret_cast<Entity*>(0x10));
@@ -215,8 +221,10 @@ TEST_F(TameAnimalEventTest, Unsubscribe_StopsReceivingEvents)
     // 订阅事件
     std::atomic<i32> eventCount{0};
 
-    auto subscription = event::ServerEventBus::instance().makeSubscription<TameAnimalEvent>(
-        [&](const TameAnimalEvent&) { eventCount++; });
+    auto subscription =
+        event::ServerEventBus::instance().makeSubscription<TameAnimalEvent>([&](const TameAnimalEvent&) {
+            eventCount++;
+        });
 
     // 发布事件 - 应该收到
     m_world->onTameAnimal(PlayerId{1}, reinterpret_cast<Entity*>(0x10));
@@ -240,11 +248,13 @@ TEST_F(TameAnimalEventTest, MultipleSubscribers_AllReceiveEvent)
     std::atomic<i32> count1{0};
     std::atomic<i32> count2{0};
 
-    auto sub1 =
-        event::ServerEventBus::instance().makeSubscription<TameAnimalEvent>([&](const TameAnimalEvent&) { count1++; });
+    auto sub1 = event::ServerEventBus::instance().makeSubscription<TameAnimalEvent>([&](const TameAnimalEvent&) {
+        count1++;
+    });
 
-    auto sub2 =
-        event::ServerEventBus::instance().makeSubscription<TameAnimalEvent>([&](const TameAnimalEvent&) { count2++; });
+    auto sub2 = event::ServerEventBus::instance().makeSubscription<TameAnimalEvent>([&](const TameAnimalEvent&) {
+        count2++;
+    });
 
     // 发布事件
     m_world->onTameAnimal(PlayerId{1}, reinterpret_cast<Entity*>(0x10));

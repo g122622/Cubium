@@ -110,7 +110,12 @@ protected:
 
         entity = std::make_unique<ClientEntity>(EntityInstanceId(1), "minecraft:fishing_bobber");
     }
-    void TearDown() override { entity.reset(); }
+
+    void TearDown() override
+    {
+        entity.reset();
+    }
+
     std::unique_ptr<ClientEntity> entity;
 };
 

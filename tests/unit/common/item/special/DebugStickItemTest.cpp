@@ -101,11 +101,13 @@ public:
         const auto it = m_blockEntities.find(pos);
         return it != m_blockEntities.end() ? it->second.get() : nullptr;
     }
+
     [[nodiscard]] const BlockEntity* getBlockEntity(const BlockPos& pos) const override
     {
         const auto it = m_blockEntities.find(pos);
         return it != m_blockEntities.end() ? it->second.get() : nullptr;
     }
+
     void setBlockEntity(const BlockPos& pos, std::unique_ptr<mc::BlockEntity> entity) override
     {
         m_blockEntities[pos] = std::move(entity);
@@ -115,52 +117,131 @@ public:
     {
         return y >= world::MIN_BUILD_HEIGHT && y < world::MAX_BUILD_HEIGHT;
     }
+
     [[nodiscard]] const fluid::FluidState* getFluidState(i32, i32, i32) const override
     {
         return &fluid::Fluids::EMPTY()->defaultState();
     }
-    [[nodiscard]] i32 getHeight(i32, i32) const override { return world::MAX_BUILD_HEIGHT; }
-    [[nodiscard]] u8 getBlockLight(i32, i32, i32) const override { return 15; }
-    [[nodiscard]] u8 getSkyLight(i32, i32, i32) const override { return 15; }
-    [[nodiscard]] bool hasBlockCollision(const AxisAlignedBB&) const override { return false; }
-    [[nodiscard]] std::vector<AxisAlignedBB> getBlockCollisions(const AxisAlignedBB&) const override { return {}; }
-    [[nodiscard]] bool hasEntityCollision(const AxisAlignedBB&, const Entity*) const override { return false; }
+
+    [[nodiscard]] i32 getHeight(i32, i32) const override
+    {
+        return world::MAX_BUILD_HEIGHT;
+    }
+
+    [[nodiscard]] u8 getBlockLight(i32, i32, i32) const override
+    {
+        return 15;
+    }
+
+    [[nodiscard]] u8 getSkyLight(i32, i32, i32) const override
+    {
+        return 15;
+    }
+
+    [[nodiscard]] bool hasBlockCollision(const AxisAlignedBB&) const override
+    {
+        return false;
+    }
+
+    [[nodiscard]] std::vector<AxisAlignedBB> getBlockCollisions(const AxisAlignedBB&) const override
+    {
+        return {};
+    }
+
+    [[nodiscard]] bool hasEntityCollision(const AxisAlignedBB&, const Entity*) const override
+    {
+        return false;
+    }
+
     [[nodiscard]] std::vector<AxisAlignedBB> getEntityCollisions(const AxisAlignedBB&, const Entity*) const override
     {
         return {};
     }
-    [[nodiscard]] PhysicsEngine* physicsEngine() override { return nullptr; }
-    [[nodiscard]] const PhysicsEngine* physicsEngine() const override { return nullptr; }
+
+    [[nodiscard]] PhysicsEngine* physicsEngine() override
+    {
+        return nullptr;
+    }
+
+    [[nodiscard]] const PhysicsEngine* physicsEngine() const override
+    {
+        return nullptr;
+    }
+
     [[nodiscard]] std::vector<Entity*> getEntitiesInAABB(const AxisAlignedBB&, const Entity*) const override
     {
         return {};
     }
+
     [[nodiscard]] std::vector<Entity*> getEntitiesInRange(const Vector3&, f32, const Entity*) const override
     {
         return {};
     }
-    [[nodiscard]] DimensionId dimension() const override { return DimensionId(0); }
-    [[nodiscard]] u64 seed() const override { return 0; }
-    [[nodiscard]] u64 currentTick() const override { return 0; }
-    [[nodiscard]] i64 dayTime() const override { return 0; }
-    [[nodiscard]] bool isHardcore() const override { return false; }
-    [[nodiscard]] Difficulty difficulty() const override { return Difficulty::Easy; }
-    [[nodiscard]] bool isClientSide() const override { return false; }
+
+    [[nodiscard]] DimensionId dimension() const override
+    {
+        return DimensionId(0);
+    }
+
+    [[nodiscard]] u64 seed() const override
+    {
+        return 0;
+    }
+
+    [[nodiscard]] u64 currentTick() const override
+    {
+        return 0;
+    }
+
+    [[nodiscard]] i64 dayTime() const override
+    {
+        return 0;
+    }
+
+    [[nodiscard]] bool isHardcore() const override
+    {
+        return false;
+    }
+
+    [[nodiscard]] Difficulty difficulty() const override
+    {
+        return Difficulty::Easy;
+    }
+
+    [[nodiscard]] bool isClientSide() const override
+    {
+        return false;
+    }
 
     [[nodiscard]] world::tick::TickManager& tickManager() override
     {
         throw std::runtime_error("DebugStickTestWorld::tickManager not implemented");
     }
+
     [[nodiscard]] const world::tick::TickManager& tickManager() const override
     {
         throw std::runtime_error("DebugStickTestWorld::tickManager not implemented");
     }
 
-    [[nodiscard]] math::IRandom& getRandom() override { return m_random; }
-    [[nodiscard]] const math::IRandom& getRandom() const override { return m_random; }
+    [[nodiscard]] math::IRandom& getRandom() override
+    {
+        return m_random;
+    }
 
-    [[nodiscard]] world::border::WorldBorder& worldBorder() override { return m_worldBorder; }
-    [[nodiscard]] const world::border::WorldBorder& worldBorder() const override { return m_worldBorder; }
+    [[nodiscard]] const math::IRandom& getRandom() const override
+    {
+        return m_random;
+    }
+
+    [[nodiscard]] world::border::WorldBorder& worldBorder() override
+    {
+        return m_worldBorder;
+    }
+
+    [[nodiscard]] const world::border::WorldBorder& worldBorder() const override
+    {
+        return m_worldBorder;
+    }
 
 private:
     static i64 key(i32 x, i32 y, i32 z)
@@ -225,7 +306,10 @@ TEST_F(DebugStickRegistrationTest, LightTestBlocksRegistered)
 
 class LightBlockTest : public ::testing::Test {
 protected:
-    void SetUp() override { VanillaBlocks::initialize(); }
+    void SetUp() override
+    {
+        VanillaBlocks::initialize();
+    }
 };
 
 TEST_F(LightBlockTest, DefaultStateIsLevel15)
@@ -298,14 +382,18 @@ TEST_F(LightBlockTest, RightClickWithPermissionCyclesLevel)
 
 class TestBlockTest : public ::testing::Test {
 protected:
-    void SetUp() override { VanillaBlocks::initialize(); }
+    void SetUp() override
+    {
+        VanillaBlocks::initialize();
+    }
 };
 
-TEST_F(TestBlockTest, DefaultModeIsFail)
+TEST_F(TestBlockTest, DefaultModeIsStart)
 {
+    // 原版测试方块的默认模式是 START。
     ASSERT_NE(VanillaBlocks::TEST_BLOCK, nullptr);
     const BlockState& state = VanillaBlocks::TEST_BLOCK->defaultState();
-    EXPECT_EQ(state.get(BlockStateProperties::TEST_BLOCK_MODE()), BlockStateProperties::TestBlockMode::Fail);
+    EXPECT_EQ(state.get(BlockStateProperties::TEST_BLOCK_MODE()), BlockStateProperties::TestBlockMode::Start);
 }
 
 TEST_F(TestBlockTest, TestBlockIsGameMasterAndHasBlockEntity)
@@ -342,8 +430,9 @@ TEST_F(TestBlockTest, StartModeOutputsRedstoneWhenPowered)
 TEST_F(TestBlockTest, NonStartModeOutputsNoRedstone)
 {
     DebugStickTestWorld world;
-    // 默认 Fail 模式
-    const BlockState& failState = VanillaBlocks::TEST_BLOCK->defaultState();
+    // 显式用 FAIL 模式（默认已是 START）
+    const BlockState failState = VanillaBlocks::TEST_BLOCK->defaultState().with(
+        BlockStateProperties::TEST_BLOCK_MODE(), BlockStateProperties::TestBlockMode::Fail);
     world.setBlockState(0, 64, 0, &failState);
 
     auto be = VanillaBlocks::TEST_BLOCK->createBlockEntity(BlockPos(0, 64, 0));

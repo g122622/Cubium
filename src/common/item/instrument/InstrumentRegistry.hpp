@@ -76,7 +76,10 @@ public:
     /**
      * @brief 条目数量
      */
-    [[nodiscard]] std::size_t size() const noexcept { return m_instruments.size(); }
+    [[nodiscard]] std::size_t size() const noexcept
+    {
+        return m_instruments.size();
+    }
 
     /**
      * @brief 按注册顺序列出全部条目

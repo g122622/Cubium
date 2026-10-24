@@ -379,7 +379,9 @@ TEST_F(DiggingParticleTest, CreateWithBlock_DifferentBlockTypes)
         VanillaBlocks::STONE, VanillaBlocks::DIRT, VanillaBlocks::GRASS_BLOCK, VanillaBlocks::COBBLESTONE};
 
     for (Block* block : blocks) {
-        if (block == nullptr) continue;
+        if (block == nullptr) {
+            continue;
+        }
 
         const BlockState& state = block->defaultState();
         auto particle = DiggingParticle::createWithBlock(pos, velocity, state);
@@ -439,7 +441,9 @@ TEST_F(DiggingParticleTest, BlockAppearance_FaceTextureLocations_SetAndAccess)
     // 共设置 2 个方向
     size_t setCount = 0;
     for (size_t i = 0; i < 6; ++i) {
-        if (appearance.faceTextureLocations[i]) ++setCount;
+        if (appearance.faceTextureLocations[i]) {
+            ++setCount;
+        }
     }
     EXPECT_EQ(setCount, 2u);
 

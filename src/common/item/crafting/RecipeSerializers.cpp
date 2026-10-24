@@ -517,7 +517,9 @@ std::vector<std::string> RecipeSerializers::_shrinkPattern(const std::vector<std
             }
         }
         if (hasContent) {
-            if (minRow < 0) minRow = row;
+            if (minRow < 0) {
+                minRow = row;
+            }
             maxRow = row;
         }
     }
@@ -863,29 +865,53 @@ specialRecipeFactories()
         std::function<std::unique_ptr<CraftingRecipe>(const ResourceLocation&)>>
         factories = {
             {"minecraft:crafting_special_repairitem",
-                [](const ResourceLocation& id) { return std::make_unique<RepairItemRecipe>(id); }},
+                [](const ResourceLocation& id) {
+                    return std::make_unique<RepairItemRecipe>(id);
+                }},
             {"minecraft:crafting_special_armordye",
-                [](const ResourceLocation& id) { return std::make_unique<ArmorDyeRecipe>(id); }},
+                [](const ResourceLocation& id) {
+                    return std::make_unique<ArmorDyeRecipe>(id);
+                }},
             {"minecraft:crafting_special_bookcloning",
-                [](const ResourceLocation& id) { return std::make_unique<BookCloningRecipe>(id); }},
+                [](const ResourceLocation& id) {
+                    return std::make_unique<BookCloningRecipe>(id);
+                }},
             {"minecraft:crafting_special_mapcloning",
-                [](const ResourceLocation& id) { return std::make_unique<MapCloningRecipe>(id); }},
+                [](const ResourceLocation& id) {
+                    return std::make_unique<MapCloningRecipe>(id);
+                }},
             {"minecraft:crafting_special_mapextending",
-                [](const ResourceLocation& id) { return std::make_unique<MapExtendingRecipe>(id); }},
+                [](const ResourceLocation& id) {
+                    return std::make_unique<MapExtendingRecipe>(id);
+                }},
             {"minecraft:crafting_special_tippedarrow",
-                [](const ResourceLocation& id) { return std::make_unique<TippedArrowRecipe>(id); }},
+                [](const ResourceLocation& id) {
+                    return std::make_unique<TippedArrowRecipe>(id);
+                }},
             {"minecraft:crafting_decorated_pot",
-                [](const ResourceLocation& id) { return std::make_unique<DecoratedPotRecipe>(id); }},
+                [](const ResourceLocation& id) {
+                    return std::make_unique<DecoratedPotRecipe>(id);
+                }},
             {"minecraft:crafting_special_bannerduplicate",
-                [](const ResourceLocation& id) { return std::make_unique<BannerDuplicateRecipe>(id); }},
+                [](const ResourceLocation& id) {
+                    return std::make_unique<BannerDuplicateRecipe>(id);
+                }},
             {"minecraft:crafting_special_shielddecoration",
-                [](const ResourceLocation& id) { return std::make_unique<ShieldDecorationRecipe>(id); }},
+                [](const ResourceLocation& id) {
+                    return std::make_unique<ShieldDecorationRecipe>(id);
+                }},
             {"minecraft:crafting_special_firework_rocket",
-                [](const ResourceLocation& id) { return std::make_unique<FireworkRocketRecipe>(id); }},
+                [](const ResourceLocation& id) {
+                    return std::make_unique<FireworkRocketRecipe>(id);
+                }},
             {"minecraft:crafting_special_firework_star",
-                [](const ResourceLocation& id) { return std::make_unique<FireworkStarRecipe>(id); }},
+                [](const ResourceLocation& id) {
+                    return std::make_unique<FireworkStarRecipe>(id);
+                }},
             {"minecraft:crafting_special_firework_star_fade",
-                [](const ResourceLocation& id) { return std::make_unique<FireworkStarFadeRecipe>(id); }},
+                [](const ResourceLocation& id) {
+                    return std::make_unique<FireworkStarFadeRecipe>(id);
+                }},
         };
     return factories;
 }

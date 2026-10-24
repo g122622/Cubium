@@ -188,8 +188,9 @@ bool ChunkProgressionTask::executeStatusStep(const std::atomic<bool>& abortSigna
         m_z,
         "targetStatus",
         m_toStatus->name(),
-        [flow = ::perfetto::Flow::ProcessScoped(ChunkPos(m_x, m_z).toId())](
-            ::perfetto::EventContext ctx) { flow(ctx); });
+        [flow = ::perfetto::Flow::ProcessScoped(ChunkPos(m_x, m_z).toId())](::perfetto::EventContext ctx) {
+            flow(ctx);
+        });
 
     if (abortSignal.load(std::memory_order::acquire)) {
         return false;

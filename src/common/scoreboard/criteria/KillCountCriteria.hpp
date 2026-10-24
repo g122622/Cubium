@@ -44,9 +44,20 @@ public:
      */
     KillCountCriteria(const std::string& name, bool playersOnly);
 
-    [[nodiscard]] const std::string& getName() const noexcept override { return m_name; }
-    [[nodiscard]] bool isReadOnly() const noexcept override { return false; }
-    [[nodiscard]] RenderType getDefaultRenderType() const noexcept override { return RenderType::Integer; }
+    [[nodiscard]] const std::string& getName() const noexcept override
+    {
+        return m_name;
+    }
+
+    [[nodiscard]] bool isReadOnly() const noexcept override
+    {
+        return false;
+    }
+
+    [[nodiscard]] RenderType getDefaultRenderType() const noexcept override
+    {
+        return RenderType::Integer;
+    }
 
     void onPlayerKill(
         const std::string& playerName, const std::string& victimType, bool isPlayer, Scoreboard& scoreboard) override;

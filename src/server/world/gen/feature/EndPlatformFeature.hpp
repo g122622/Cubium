@@ -56,8 +56,15 @@ public:
         math::IRandom& random,
         const BlockPos& pos) const override;
 
-    [[nodiscard]] const char* name() const override { return "end_platform"; }
-    [[nodiscard]] DecorationStage stage() const override { return DecorationStage::RawGeneration; }
+    [[nodiscard]] const char* name() const override
+    {
+        return "end_platform";
+    }
+
+    [[nodiscard]] DecorationStage stage() const override
+    {
+        return DecorationStage::RawGeneration;
+    }
 };
 
 } // namespace world::gen::feature

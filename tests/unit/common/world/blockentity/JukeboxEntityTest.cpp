@@ -72,11 +72,25 @@ public:
         (void)context;
     }
 
-    [[nodiscard]] const std::vector<PlayEventCall>& playEventCalls() const { return m_playEventCalls; }
-    void clearPlayEventCalls() { m_playEventCalls.clear(); }
+    [[nodiscard]] const std::vector<PlayEventCall>& playEventCalls() const
+    {
+        return m_playEventCalls;
+    }
 
-    [[nodiscard]] const std::vector<GameEventCall>& gameEventCalls() const { return m_gameEventCalls; }
-    void clearGameEventCalls() { m_gameEventCalls.clear(); }
+    void clearPlayEventCalls()
+    {
+        m_playEventCalls.clear();
+    }
+
+    [[nodiscard]] const std::vector<GameEventCall>& gameEventCalls() const
+    {
+        return m_gameEventCalls;
+    }
+
+    void clearGameEventCalls()
+    {
+        m_gameEventCalls.clear();
+    }
 
 private:
     std::vector<PlayEventCall> m_playEventCalls;

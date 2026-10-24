@@ -99,7 +99,9 @@ Result<WorldPresetGenerator> parseGenerator(const json& generator, const Resourc
                 "world_preset '" + id.toString() + "': noise generator missing 'biome_source' object");
         }
         auto bsResult = parseBiomeSource(generator["biome_source"], id);
-        if (bsResult.failed()) return bsResult.error();
+        if (bsResult.failed()) {
+            return bsResult.error();
+        }
         gen = bsResult.value();
         gen.type = WorldPresetGenerator::Type::Noise;
         // settings = noise_settings 资源位置（字符串 RL）
@@ -116,7 +118,9 @@ Result<WorldPresetGenerator> parseGenerator(const json& generator, const Resourc
                 "world_preset '" + id.toString() + "': flat generator missing 'settings' object");
         }
         auto flatResult = FlatLevelGeneratorSettings::fromSettingsObject(generator["settings"], id);
-        if (flatResult.failed()) return flatResult.error();
+        if (flatResult.failed()) {
+            return flatResult.error();
+        }
         gen.flatSettings = flatResult.value();
     } else if (genPath == "debug") {
         gen.type = WorldPresetGenerator::Type::Debug;
@@ -157,7 +161,9 @@ Result<WorldPreset> WorldPreset::fromJson(const json& root, const ResourceLocati
                 "world_preset '" + id.toString() + "': dimension '" + dimKey + "' missing 'generator' object");
         }
         auto genResult = parseGenerator(dimJson["generator"], id);
-        if (genResult.failed()) return genResult.error();
+        if (genResult.failed()) {
+            return genResult.error();
+        }
         dim.generator = genResult.value();
 
         preset.dimensions.emplace(dimRl, std::move(dim));

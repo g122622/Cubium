@@ -71,7 +71,10 @@ public:
     /**
      * @brief 获取目标名称
      */
-    std::string getTypeName() const override { return "PhantomAttackPlayerTargetGoal"; }
+    std::string getTypeName() const override
+    {
+        return "PhantomAttackPlayerTargetGoal";
+    }
 
 private:
     /**
@@ -142,7 +145,10 @@ public:
     /**
      * @brief 获取目标名称
      */
-    std::string getTypeName() const override { return "PhantomOrbitPointGoal"; }
+    std::string getTypeName() const override
+    {
+        return "PhantomOrbitPointGoal";
+    }
 
 private:
     /**
@@ -196,7 +202,10 @@ public:
     /**
      * @brief 获取目标名称
      */
-    std::string getTypeName() const override { return "PhantomPickAttackGoal"; }
+    std::string getTypeName() const override
+    {
+        return "PhantomPickAttackGoal";
+    }
 
 private:
     /**
@@ -248,7 +257,10 @@ public:
     /**
      * @brief 获取目标名称
      */
-    std::string getTypeName() const override { return "PhantomSweepAttackGoal"; }
+    std::string getTypeName() const override
+    {
+        return "PhantomSweepAttackGoal";
+    }
 
 private:
     /**

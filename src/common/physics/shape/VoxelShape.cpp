@@ -312,8 +312,9 @@ void VoxelShape::forAllBoxes(const DoubleLineConsumer& consumer) const
 std::vector<AxisAlignedBB> VoxelShape::toAabbs() const
 {
     std::vector<AxisAlignedBB> result;
-    forAllBoxes(
-        [&result](f64 x1, f64 y1, f64 z1, f64 x2, f64 y2, f64 z2) { result.emplace_back(x1, y1, z1, x2, y2, z2); });
+    forAllBoxes([&result](f64 x1, f64 y1, f64 z1, f64 x2, f64 y2, f64 z2) {
+        result.emplace_back(x1, y1, z1, x2, y2, z2);
+    });
     return result;
 }
 
@@ -597,7 +598,9 @@ std::optional<BlockHitResult> VoxelShape::clip(const Vector3& start, const Vecto
             }
             tMax = std::min(tMax, t2);
         } else {
-            if (start.x < worldBox.minX || start.x > worldBox.maxX) continue;
+            if (start.x < worldBox.minX || start.x > worldBox.maxX) {
+                continue;
+            }
         }
 
         // Y轴
@@ -616,7 +619,9 @@ std::optional<BlockHitResult> VoxelShape::clip(const Vector3& start, const Vecto
             }
             tMax = std::min(tMax, t2);
         } else {
-            if (start.y < worldBox.minY || start.y > worldBox.maxY) continue;
+            if (start.y < worldBox.minY || start.y > worldBox.maxY) {
+                continue;
+            }
         }
 
         // Z轴
@@ -635,7 +640,9 @@ std::optional<BlockHitResult> VoxelShape::clip(const Vector3& start, const Vecto
             }
             tMax = std::min(tMax, t2);
         } else {
-            if (start.z < worldBox.minZ || start.z > worldBox.maxZ) continue;
+            if (start.z < worldBox.minZ || start.z > worldBox.maxZ) {
+                continue;
+            }
         }
 
         // 检查是否命中

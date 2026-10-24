@@ -19,7 +19,10 @@ protected:
         BlockComponentRegistry::instance().clear();
     }
 
-    void TearDown() override { BlockComponentRegistry::instance().clear(); }
+    void TearDown() override
+    {
+        BlockComponentRegistry::instance().clear();
+    }
 
     /**
      * @brief 创建一个简单的方块组件，包含onStepOn回调
@@ -199,11 +202,15 @@ TEST_F(BlockComponentRegistryTest, DispatchCallsAllRegisteredComponents)
 
     BlockCustomComponent comp1;
     comp1.name = "test:comp1";
-    comp1.onStepOn = [&](BlockComponentStepOnEvent&, const CustomComponentParameters&) { callCount++; };
+    comp1.onStepOn = [&](BlockComponentStepOnEvent&, const CustomComponentParameters&) {
+        callCount++;
+    };
 
     BlockCustomComponent comp2;
     comp2.name = "test:comp2";
-    comp2.onStepOn = [&](BlockComponentStepOnEvent&, const CustomComponentParameters&) { callCount++; };
+    comp2.onStepOn = [&](BlockComponentStepOnEvent&, const CustomComponentParameters&) {
+        callCount++;
+    };
 
     reg.registerComponent("minecraft:stone", std::move(comp1));
     reg.registerComponent("minecraft:stone", std::move(comp2));

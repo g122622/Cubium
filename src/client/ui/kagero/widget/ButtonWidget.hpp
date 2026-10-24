@@ -126,7 +126,9 @@ public:
 
     void paint(PaintContext& ctx) override
     {
-        if (!isVisible()) return;
+        if (!isVisible()) {
+            return;
+        }
         ctx.drawFilledRect(bounds(), getBackgroundColor());
         if (m_style.drawBorder) {
             const u32 border = isHovered() ? m_style.hoverBorderColor : m_style.borderColor;
@@ -146,8 +148,12 @@ public:
         (void)mouseY;
         (void)mods;
 
-        if (!isActive() || !isVisible()) return false;
-        if (button != 0) return false; // 只响应左键
+        if (!isActive() || !isVisible()) {
+            return false;
+        }
+        if (button != 0) {
+            return false; // 只响应左键
+        }
 
         // 播放点击音效
         playClickSound();
@@ -174,40 +180,62 @@ public:
     /**
      * @brief 设置按钮文本
      */
-    void setText(const std::string& text) { m_text = text; }
+    void setText(const std::string& text)
+    {
+        m_text = text;
+    }
 
     /**
      * @brief 获取按钮文本
      */
-    [[nodiscard]] const std::string& text() const { return m_text; }
+    [[nodiscard]] const std::string& text() const
+    {
+        return m_text;
+    }
 
     /**
      * @brief 设置点击回调
      */
-    void setOnPress(OnPressCallback callback) { m_onPress = std::move(callback); }
+    void setOnPress(OnPressCallback callback)
+    {
+        m_onPress = std::move(callback);
+    }
 
     /**
      * @brief 设置样式
      */
-    void setStyle(const Style& style) { m_style = style; }
+    void setStyle(const Style& style)
+    {
+        m_style = style;
+    }
 
     /**
      * @brief 获取样式
      */
-    [[nodiscard]] const Style& style() const { return m_style; }
+    [[nodiscard]] const Style& style() const
+    {
+        return m_style;
+    }
 
     /**
      * @brief 获取可变样式
      */
-    [[nodiscard]] Style& style() { return m_style; }
+    [[nodiscard]] Style& style()
+    {
+        return m_style;
+    }
 
     /**
      * @brief 获取当前渲染状态（0=禁用，1=正常，2=悬停）
      */
     [[nodiscard]] i32 getRenderState() const
     {
-        if (!isActive()) return 0;
-        if (isHovered()) return 2;
+        if (!isActive()) {
+            return 0;
+        }
+        if (isHovered()) {
+            return 2;
+        }
         return 1;
     }
 
@@ -229,7 +257,10 @@ public:
     /**
      * @brief 获取当前文本颜色
      */
-    [[nodiscard]] u32 getTextColor() const { return isActive() ? m_style.textColor : m_style.disabledTextColor; }
+    [[nodiscard]] u32 getTextColor() const
+    {
+        return isActive() ? m_style.textColor : m_style.disabledTextColor;
+    }
 
 protected:
     /**
@@ -238,7 +269,10 @@ protected:
      * 子类可重写以自定义音效。
      * 默认播放 minecraft:ui.button.click，音量 0.25。
      */
-    virtual void playClickSound() { Widget::playUiSound("minecraft:ui.button.click"); }
+    virtual void playClickSound()
+    {
+        Widget::playUiSound("minecraft:ui.button.click");
+    }
 
     std::string m_text;        ///< 按钮文本
     OnPressCallback m_onPress; ///< 点击回调
@@ -275,7 +309,9 @@ public:
 
     void paint(PaintContext& ctx) override
     {
-        if (!isVisible()) return;
+        if (!isVisible()) {
+            return;
+        }
         (void)ctx;
         // TODO: 实际渲染逻辑
         // 绑定纹理并渲染
@@ -297,7 +333,10 @@ public:
     /**
      * @brief 设置纹理路径
      */
-    void setTexturePath(std::string path) { m_texturePath = std::move(path); }
+    void setTexturePath(std::string path)
+    {
+        m_texturePath = std::move(path);
+    }
 
 private:
     i32 m_u = 0;               ///< 纹理U坐标

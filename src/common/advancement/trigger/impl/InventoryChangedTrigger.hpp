@@ -65,7 +65,10 @@ public:
     /**
      * @brief 获取触发器ID
      */
-    [[nodiscard]] ResourceLocation getId() const noexcept override { return ResourceLocation(TRIGGER_ID); }
+    [[nodiscard]] ResourceLocation getId() const noexcept override
+    {
+        return ResourceLocation(TRIGGER_ID);
+    }
 
     /**
      * @brief 从JSON反序列化实例
@@ -146,10 +149,25 @@ public:
 
     // ========== Getters ==========
 
-    [[nodiscard]] const IntBounds& getSlotsOccupied() const noexcept { return m_slotsOccupied; }
-    [[nodiscard]] const IntBounds& getSlotsFull() const noexcept { return m_slotsFull; }
-    [[nodiscard]] const IntBounds& getSlotsEmpty() const noexcept { return m_slotsEmpty; }
-    [[nodiscard]] const std::vector<ItemPredicate>& getItems() const noexcept { return m_items; }
+    [[nodiscard]] const IntBounds& getSlotsOccupied() const noexcept
+    {
+        return m_slotsOccupied;
+    }
+
+    [[nodiscard]] const IntBounds& getSlotsFull() const noexcept
+    {
+        return m_slotsFull;
+    }
+
+    [[nodiscard]] const IntBounds& getSlotsEmpty() const noexcept
+    {
+        return m_slotsEmpty;
+    }
+
+    [[nodiscard]] const std::vector<ItemPredicate>& getItems() const noexcept
+    {
+        return m_items;
+    }
 
 private:
     IntBounds m_slotsOccupied;

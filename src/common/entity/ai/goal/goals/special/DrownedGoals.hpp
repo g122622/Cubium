@@ -67,7 +67,10 @@ public:
     void resetTask() override;
     void tick() override;
 
-    [[nodiscard]] std::string getTypeName() const override { return "DrownedGoToWaterGoal"; }
+    [[nodiscard]] std::string getTypeName() const override
+    {
+        return "DrownedGoToWaterGoal";
+    }
 
 private:
     /**
@@ -112,7 +115,10 @@ public:
     void startExecuting() override;
     void resetTask() override;
 
-    [[nodiscard]] std::string getTypeName() const override { return "DrownedTridentAttackGoal"; }
+    [[nodiscard]] std::string getTypeName() const override
+    {
+        return "DrownedTridentAttackGoal";
+    }
 
 private:
     DrownedEntity* m_drowned;
@@ -141,7 +147,10 @@ public:
     [[nodiscard]] bool shouldExecute() override;
     [[nodiscard]] bool shouldContinueExecuting() override;
 
-    [[nodiscard]] std::string getTypeName() const noexcept override { return "DrownedAttackGoal"; }
+    [[nodiscard]] std::string getTypeName() const noexcept override
+    {
+        return "DrownedAttackGoal";
+    }
 
 private:
     DrownedEntity* m_drowned;
@@ -170,7 +179,10 @@ public:
     [[nodiscard]] bool shouldContinueExecuting() override;
     void startExecuting() override;
 
-    [[nodiscard]] std::string getTypeName() const override { return "DrownedGoToBeachGoal"; }
+    [[nodiscard]] std::string getTypeName() const override
+    {
+        return "DrownedGoToBeachGoal";
+    }
 
 protected:
     [[nodiscard]] bool shouldMoveTo(IWorld* world, const BlockPos& pos) override;
@@ -205,7 +217,10 @@ public:
     void resetTask() override;
     void tick() override;
 
-    [[nodiscard]] std::string getTypeName() const override { return "DrownedSwimUpGoal"; }
+    [[nodiscard]] std::string getTypeName() const override
+    {
+        return "DrownedSwimUpGoal";
+    }
 
 private:
     DrownedEntity* m_drowned;

@@ -54,9 +54,16 @@ public:
 
     [[nodiscard]] bool test(LootContext& context) const override;
     [[nodiscard]] std::unique_ptr<LootCondition> clone() const noexcept override;
-    [[nodiscard]] std::string getType() const noexcept override { return "tool_type"; }
 
-    [[nodiscard]] u8 getToolType() const noexcept { return m_toolType; }
+    [[nodiscard]] std::string getType() const noexcept override
+    {
+        return "tool_type";
+    }
+
+    [[nodiscard]] u8 getToolType() const noexcept
+    {
+        return m_toolType;
+    }
 
 private:
     u8 m_toolType;

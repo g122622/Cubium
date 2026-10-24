@@ -58,17 +58,36 @@ public:
     // 位置
     void setPosition(const glm::dvec3& position) override;
     void setPosition(f64 x, f64 y, f64 z) override;
-    [[nodiscard]] const glm::dvec3& position() const override { return m_position; }
+
+    [[nodiscard]] const glm::dvec3& position() const override
+    {
+        return m_position;
+    }
 
     // 旋转（欧拉角，度）
     void setRotation(const glm::dvec3& rotation) override;
     void setRotation(f64 pitch, f64 yaw, f64 roll = 0.0f) override;
-    [[nodiscard]] const glm::dvec3& rotation() const override { return m_rotation; }
+
+    [[nodiscard]] const glm::dvec3& rotation() const override
+    {
+        return m_rotation;
+    }
 
     // 俯仰和偏航（更常用）
-    [[nodiscard]] f64 pitch() const override { return m_rotation.x; }
-    [[nodiscard]] f64 yaw() const override { return m_rotation.y; }
-    [[nodiscard]] f64 roll() const override { return m_rotation.z; }
+    [[nodiscard]] f64 pitch() const override
+    {
+        return m_rotation.x;
+    }
+
+    [[nodiscard]] f64 yaw() const override
+    {
+        return m_rotation.y;
+    }
+
+    [[nodiscard]] f64 roll() const override
+    {
+        return m_rotation.z;
+    }
 
     void setPitch(f64 pitch) override;
     void setYaw(f64 yaw) override;
@@ -95,16 +114,46 @@ public:
     void setNearFar(f64 nearPlane, f64 farPlane) override;
     void setOrthoSize(f64 size) override;
 
-    [[nodiscard]] ProjectionMode projectionMode() const override { return m_config.projectionMode; }
-    [[nodiscard]] f64 fov() const override { return m_config.fov; }
-    [[nodiscard]] f64 aspectRatio() const override { return m_config.aspectRatio; }
-    [[nodiscard]] f64 nearPlane() const override { return m_config.nearPlane; }
-    [[nodiscard]] f64 farPlane() const override { return m_config.farPlane; }
+    [[nodiscard]] ProjectionMode projectionMode() const override
+    {
+        return m_config.projectionMode;
+    }
+
+    [[nodiscard]] f64 fov() const override
+    {
+        return m_config.fov;
+    }
+
+    [[nodiscard]] f64 aspectRatio() const override
+    {
+        return m_config.aspectRatio;
+    }
+
+    [[nodiscard]] f64 nearPlane() const override
+    {
+        return m_config.nearPlane;
+    }
+
+    [[nodiscard]] f64 farPlane() const override
+    {
+        return m_config.farPlane;
+    }
 
     // 矩阵
-    [[nodiscard]] const glm::mat4& viewMatrix() const override { return m_viewMatrix; }
-    [[nodiscard]] const glm::mat4& projectionMatrix() const override { return m_projectionMatrix; }
-    [[nodiscard]] const glm::mat4& viewProjectionMatrix() const override { return m_viewProjectionMatrix; }
+    [[nodiscard]] const glm::mat4& viewMatrix() const override
+    {
+        return m_viewMatrix;
+    }
+
+    [[nodiscard]] const glm::mat4& projectionMatrix() const override
+    {
+        return m_projectionMatrix;
+    }
+
+    [[nodiscard]] const glm::mat4& viewProjectionMatrix() const override
+    {
+        return m_viewProjectionMatrix;
+    }
 
     /**
      * @brief 设置渲染视图附加变换
@@ -118,19 +167,44 @@ public:
 
     // 配置
     void setConfig(const CameraConfig& config) override;
-    [[nodiscard]] const CameraConfig& config() const override { return m_config; }
+
+    [[nodiscard]] const CameraConfig& config() const override
+    {
+        return m_config;
+    }
 
     // 移动速度
-    void setMoveSpeed(f64 speed) override { m_config.moveSpeed = speed; }
-    [[nodiscard]] f64 moveSpeed() const override { return m_config.moveSpeed; }
+    void setMoveSpeed(f64 speed) override
+    {
+        m_config.moveSpeed = speed;
+    }
+
+    [[nodiscard]] f64 moveSpeed() const override
+    {
+        return m_config.moveSpeed;
+    }
 
     // 鼠标灵敏度
-    void setMouseSensitivity(f64 sensitivity) override { m_config.mouseSensitivity = sensitivity; }
-    [[nodiscard]] f64 mouseSensitivity() const override { return m_config.mouseSensitivity; }
+    void setMouseSensitivity(f64 sensitivity) override
+    {
+        m_config.mouseSensitivity = sensitivity;
+    }
+
+    [[nodiscard]] f64 mouseSensitivity() const override
+    {
+        return m_config.mouseSensitivity;
+    }
 
     // 脏标记
-    [[nodiscard]] bool isDirty() const override { return m_dirty; }
-    void markClean() override { m_dirty = false; }
+    [[nodiscard]] bool isDirty() const override
+    {
+        return m_dirty;
+    }
+
+    void markClean() override
+    {
+        m_dirty = false;
+    }
 
 private:
     void _updateVectors();
@@ -170,7 +244,11 @@ public:
 
     // 设置控制的相机
     void setCamera(Camera* camera);
-    [[nodiscard]] Camera* camera() { return m_camera; }
+
+    [[nodiscard]] Camera* camera()
+    {
+        return m_camera;
+    }
 
     // 输入处理
     void handleKeyboardInput(i32 key, i32 action);
@@ -181,19 +259,61 @@ public:
     void update(f64 deltaTime);
 
     // 设置按键映射
-    void setMoveForwardKey(i32 key) { m_moveForwardKey = key; }
-    void setMoveBackwardKey(i32 key) { m_moveBackwardKey = key; }
-    void setMoveLeftKey(i32 key) { m_moveLeftKey = key; }
-    void setMoveRightKey(i32 key) { m_moveRightKey = key; }
-    void setMoveUpKey(i32 key) { m_moveUpKey = key; }
-    void setMoveDownKey(i32 key) { m_moveDownKey = key; }
-    void setSprintKey(i32 key) { m_sprintKey = key; }
-    void setSneakKey(i32 key) { m_sneakKey = key; }
+    void setMoveForwardKey(i32 key)
+    {
+        m_moveForwardKey = key;
+    }
+
+    void setMoveBackwardKey(i32 key)
+    {
+        m_moveBackwardKey = key;
+    }
+
+    void setMoveLeftKey(i32 key)
+    {
+        m_moveLeftKey = key;
+    }
+
+    void setMoveRightKey(i32 key)
+    {
+        m_moveRightKey = key;
+    }
+
+    void setMoveUpKey(i32 key)
+    {
+        m_moveUpKey = key;
+    }
+
+    void setMoveDownKey(i32 key)
+    {
+        m_moveDownKey = key;
+    }
+
+    void setSprintKey(i32 key)
+    {
+        m_sprintKey = key;
+    }
+
+    void setSneakKey(i32 key)
+    {
+        m_sneakKey = key;
+    }
 
     // 状态
-    [[nodiscard]] bool isMoving() const { return m_moving; }
-    [[nodiscard]] bool isSprinting() const { return m_sprinting; }
-    [[nodiscard]] bool isSneaking() const { return m_sneaking; }
+    [[nodiscard]] bool isMoving() const
+    {
+        return m_moving;
+    }
+
+    [[nodiscard]] bool isSprinting() const
+    {
+        return m_sprinting;
+    }
+
+    [[nodiscard]] bool isSneaking() const
+    {
+        return m_sneaking;
+    }
 
 private:
     Camera* m_camera = nullptr;

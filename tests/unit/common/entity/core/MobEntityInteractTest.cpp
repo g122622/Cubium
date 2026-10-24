@@ -59,12 +59,26 @@ public:
         VanillaBlocks::initialize();
     }
 
-    [[nodiscard]] Difficulty difficulty() const override { return m_difficulty; }
-    void setDifficulty(Difficulty d) { m_difficulty = d; }
+    [[nodiscard]] Difficulty difficulty() const override
+    {
+        return m_difficulty;
+    }
+
+    void setDifficulty(Difficulty d)
+    {
+        m_difficulty = d;
+    }
 
     // 客户端预测测试：覆写 isClientSide 以模拟客户端
-    [[nodiscard]] bool isClientSide() const override { return m_clientSide; }
-    void setClientSide(bool clientSide) { m_clientSide = clientSide; }
+    [[nodiscard]] bool isClientSide() const override
+    {
+        return m_clientSide;
+    }
+
+    void setClientSide(bool clientSide)
+    {
+        m_clientSide = clientSide;
+    }
 
     // 捕获 spawnEntity 调用以便测试断言幼体生成
     EntityInstanceId spawnEntity(std::unique_ptr<Entity> entity) override
@@ -78,10 +92,16 @@ public:
     }
 
     // 测试辅助：取出已生成的实体（所有权转移给调用方）
-    std::vector<std::unique_ptr<Entity>> takeSpawnedEntities() { return std::move(m_spawnedEntities); }
+    std::vector<std::unique_ptr<Entity>> takeSpawnedEntities()
+    {
+        return std::move(m_spawnedEntities);
+    }
 
     // 测试辅助：已生成实体数量
-    [[nodiscard]] size_t spawnedEntityCount() const { return m_spawnedEntities.size(); }
+    [[nodiscard]] size_t spawnedEntityCount() const
+    {
+        return m_spawnedEntities.size();
+    }
 
 private:
     Difficulty m_difficulty = Difficulty::Normal;
@@ -105,7 +125,10 @@ protected:
         }
     }
 
-    void SetUp() override { m_world = std::make_unique<MobInteractTestWorld>(); }
+    void SetUp() override
+    {
+        m_world = std::make_unique<MobInteractTestWorld>();
+    }
 
     std::unique_ptr<MobInteractTestWorld> m_world;
 };

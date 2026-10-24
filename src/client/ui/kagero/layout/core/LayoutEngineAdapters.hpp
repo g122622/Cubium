@@ -55,7 +55,10 @@ public:
     /**
      * @brief 更新网格配置
      */
-    void setConfig(const GridConfig& config) { m_config = config; }
+    void setConfig(const GridConfig& config)
+    {
+        m_config = config;
+    }
 
     /**
      * @brief 计算网格布局
@@ -109,7 +112,10 @@ public:
     /**
      * @brief 获取算法名称
      */
-    [[nodiscard]] std::string name() const override { return "grid"; }
+    [[nodiscard]] std::string name() const override
+    {
+        return "grid";
+    }
 
 private:
     GridConfig m_config;
@@ -160,7 +166,10 @@ public:
     /**
      * @brief 获取算法名称
      */
-    [[nodiscard]] std::string name() const override { return "anchor"; }
+    [[nodiscard]] std::string name() const override
+    {
+        return "anchor";
+    }
 };
 
 /**
@@ -210,7 +219,10 @@ public:
     /**
      * @brief 获取算法名称
      */
-    [[nodiscard]] std::string name() const override { return "stack"; }
+    [[nodiscard]] std::string name() const override
+    {
+        return "stack";
+    }
 };
 
 } // namespace mc::client::ui::kagero::layout::detail

@@ -150,86 +150,103 @@ struct WorldListEntry {
             m_levelId = std::move(value);
             return *this;
         }
+
         Builder& worldDir(std::filesystem::path value)
         {
             m_worldDir = std::move(value);
             return *this;
         }
+
         Builder& displayName(std::string value)
         {
             m_displayName = std::move(value);
             return *this;
         }
+
         Builder& lastPlayedMs(i64 value)
         {
             m_lastPlayedMs = value;
             return *this;
         }
+
         Builder& seed(u64 value)
         {
             m_seed = value;
             return *this;
         }
+
         Builder& worldType(WorldType value)
         {
             m_worldType = value;
             return *this;
         }
+
         Builder& worldPresetId(resource::ResourceLocation value)
         {
             m_worldPresetId = std::move(value);
             return *this;
         }
+
         Builder& gameMode(GameMode value)
         {
             m_gameMode = value;
             return *this;
         }
+
         Builder& difficulty(Difficulty value)
         {
             m_difficulty = value;
             return *this;
         }
+
         Builder& hardcore(bool value)
         {
             m_hardcore = value;
             return *this;
         }
+
         Builder& allowCommands(bool value)
         {
             m_allowCommands = value;
             return *this;
         }
+
         Builder& locked(bool value)
         {
             m_locked = value;
             return *this;
         }
+
         Builder& requiresConversion(bool value)
         {
             m_requiresConversion = value;
             return *this;
         }
+
         Builder& compatibility(WorldCompatibility value)
         {
             m_compatibility = value;
             return *this;
         }
+
         Builder& versionName(std::string value)
         {
             m_versionName = std::move(value);
             return *this;
         }
+
         Builder& dataVersion(i32 value)
         {
             m_dataVersion = value;
             return *this;
         }
+
         Builder& iconPath(std::filesystem::path value)
         {
             m_iconPath = std::move(value);
             return *this;
         }
+
         Builder& errorMessage(std::string value)
         {
             m_errorMessage = std::move(value);
@@ -282,7 +299,10 @@ struct WorldListEntry {
     /**
      * @brief 创建 Builder
      */
-    static Builder builder() { return Builder(); }
+    static Builder builder()
+    {
+        return Builder();
+    }
 
     /**
      * @brief 获取排序键

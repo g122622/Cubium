@@ -72,18 +72,33 @@ public:
         return &fluid::Fluids::EMPTY()->defaultState();
     }
 
-    [[nodiscard]] i32 getHeight(i32, i32) const override { return 64; }
-    [[nodiscard]] u8 getBlockLight(i32, i32, i32) const override { return 15; }
-    [[nodiscard]] u8 getSkyLight(i32, i32, i32) const override { return 15; }
+    [[nodiscard]] i32 getHeight(i32, i32) const override
+    {
+        return 64;
+    }
+
+    [[nodiscard]] u8 getBlockLight(i32, i32, i32) const override
+    {
+        return 15;
+    }
+
+    [[nodiscard]] u8 getSkyLight(i32, i32, i32) const override
+    {
+        return 15;
+    }
 
     [[nodiscard]] bool hasBlockCollision(const AxisAlignedBB& box) const override
     {
         // 遍历所有方块检查碰撞
         for (const auto& [posKey, state] : m_blocks) {
-            if (!state || state->isAir()) continue;
+            if (!state || state->isAir()) {
+                continue;
+            }
 
             const CollisionShape& shape = state->getCollisionShape();
-            if (shape.isEmpty()) continue;
+            if (shape.isEmpty()) {
+                continue;
+            }
 
             // 从 key 解码坐标
             i32 x = static_cast<i32>(posKey >> 40);
@@ -97,11 +112,16 @@ public:
         return false;
     }
 
-    [[nodiscard]] std::vector<AxisAlignedBB> getBlockCollisions(const AxisAlignedBB&) const override { return {}; }
+    [[nodiscard]] std::vector<AxisAlignedBB> getBlockCollisions(const AxisAlignedBB&) const override
+    {
+        return {};
+    }
 
     [[nodiscard]] bool hasEntityCollision(const AxisAlignedBB& box, const Entity*) const override
     {
-        if (!m_hasEntityCollision) return false;
+        if (!m_hasEntityCollision) {
+            return false;
+        }
         return box.intersects(m_entityCollisionBox);
     }
 
@@ -113,29 +133,67 @@ public:
         return {m_entityCollisionBox};
     }
 
-    [[nodiscard]] PhysicsEngine* physicsEngine() override { return nullptr; }
-    [[nodiscard]] const PhysicsEngine* physicsEngine() const override { return nullptr; }
+    [[nodiscard]] PhysicsEngine* physicsEngine() override
+    {
+        return nullptr;
+    }
+
+    [[nodiscard]] const PhysicsEngine* physicsEngine() const override
+    {
+        return nullptr;
+    }
+
     [[nodiscard]] std::vector<Entity*> getEntitiesInAABB(const AxisAlignedBB&, const Entity*) const override
     {
         return {};
     }
+
     [[nodiscard]] std::vector<Entity*> getEntitiesInRange(const Vector3&, f32, const Entity*) const override
     {
         return {};
     }
-    [[nodiscard]] DimensionId dimension() const override { return DimensionId(0); }
-    [[nodiscard]] u64 seed() const override { return 0; }
-    [[nodiscard]] u64 currentTick() const override { return 0; }
-    [[nodiscard]] i64 dayTime() const override { return 0; }
-    [[nodiscard]] bool isHardcore() const override { return false; }
-    [[nodiscard]] Difficulty difficulty() const override { return Difficulty::Peaceful; }
-    [[nodiscard]] bool isClientSide() const override { return false; }
+
+    [[nodiscard]] DimensionId dimension() const override
+    {
+        return DimensionId(0);
+    }
+
+    [[nodiscard]] u64 seed() const override
+    {
+        return 0;
+    }
+
+    [[nodiscard]] u64 currentTick() const override
+    {
+        return 0;
+    }
+
+    [[nodiscard]] i64 dayTime() const override
+    {
+        return 0;
+    }
+
+    [[nodiscard]] bool isHardcore() const override
+    {
+        return false;
+    }
+
+    [[nodiscard]] Difficulty difficulty() const override
+    {
+        return Difficulty::Peaceful;
+    }
+
+    [[nodiscard]] bool isClientSide() const override
+    {
+        return false;
+    }
 
     // TickManager interface (stubbed for tests)
     [[nodiscard]] world::tick::TickManager& tickManager() override
     {
         throw std::runtime_error("TestBlockReader::tickManager not implemented");
     }
+
     [[nodiscard]] const world::tick::TickManager& tickManager() const override
     {
         throw std::runtime_error("TestBlockReader::tickManager not implemented");
@@ -146,14 +204,22 @@ public:
     {
         throw std::runtime_error("TestBlockReader::getRandom not implemented");
     }
+
     [[nodiscard]] const math::IRandom& getRandom() const override
     {
         throw std::runtime_error("TestBlockReader::getRandom not implemented");
     }
 
     // WorldBorder interface
-    [[nodiscard]] world::border::WorldBorder& worldBorder() override { return m_worldBorder; }
-    [[nodiscard]] const world::border::WorldBorder& worldBorder() const override { return m_worldBorder; }
+    [[nodiscard]] world::border::WorldBorder& worldBorder() override
+    {
+        return m_worldBorder;
+    }
+
+    [[nodiscard]] const world::border::WorldBorder& worldBorder() const override
+    {
+        return m_worldBorder;
+    }
 
     // 测试辅助方法：设置实体碰撞箱
     void setEntityCollisionBox(const AxisAlignedBB& box)
@@ -162,7 +228,10 @@ public:
         m_hasEntityCollision = true;
     }
 
-    void clearEntityCollision() { m_hasEntityCollision = false; }
+    void clearEntityCollision()
+    {
+        m_hasEntityCollision = false;
+    }
 
 private:
     static i64 key(i32 x, i32 y, i32 z)

@@ -217,7 +217,10 @@ protected:
         failureCount_ = 0;
     }
 
-    void TearDown() override { AssertManager::instance().setConfig(originalConfig_); }
+    void TearDown() override
+    {
+        AssertManager::instance().setConfig(originalConfig_);
+    }
 
     AssertConfig originalConfig_;
     AssertFailure lastFailure_;
@@ -508,7 +511,9 @@ TEST_F(MacroTest, MultipleAssertions)
 
 TEST_F(MacroTest, AssertInLambda)
 {
-    auto failingLambda = []() { MC_ASSERT_RELEASE(false); };
+    auto failingLambda = []() {
+        MC_ASSERT_RELEASE(false);
+    };
 
     EXPECT_THROW(failingLambda(), AssertException);
 }
@@ -516,7 +521,9 @@ TEST_F(MacroTest, AssertInLambda)
 TEST_F(MacroTest, AssertInNestedFunction)
 {
     auto outerFunc = []() {
-        auto innerFunc = []() { MC_ASSERT_RELEASE_MSG(false, "Inner function failed"); };
+        auto innerFunc = []() {
+            MC_ASSERT_RELEASE_MSG(false, "Inner function failed");
+        };
         innerFunc();
     };
 

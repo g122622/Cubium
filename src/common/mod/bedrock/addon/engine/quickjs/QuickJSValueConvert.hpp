@@ -61,7 +61,10 @@ struct JSValueConverter {
      * @param val JS值
      * @return 转换结果，失败返回std::nullopt
      */
-    static std::optional<T> fromJS(JSContext* ctx, JSValue val) noexcept { return std::nullopt; }
+    static std::optional<T> fromJS(JSContext* ctx, JSValue val) noexcept
+    {
+        return std::nullopt;
+    }
 
     /**
      * @brief 从C++类型转换为JSValue
@@ -69,7 +72,10 @@ struct JSValueConverter {
      * @param val C++值
      * @return JS值
      */
-    static JSValue toJS(JSContext* ctx, const T& val) noexcept { return JS_UNDEFINED; }
+    static JSValue toJS(JSContext* ctx, const T& val) noexcept
+    {
+        return JS_UNDEFINED;
+    }
 };
 
 /**
@@ -85,7 +91,9 @@ struct JSValueConverter<bool> {
      */
     static std::optional<bool> fromJS(JSContext* ctx, JSValue val) noexcept
     {
-        if (!JS_IsBool(val)) return std::nullopt;
+        if (!JS_IsBool(val)) {
+            return std::nullopt;
+        }
         return JS_ToBool(ctx, val) != 0;
     }
 
@@ -95,7 +103,10 @@ struct JSValueConverter<bool> {
      * @param val 布尔值
      * @return JS布尔值
      */
-    static JSValue toJS(JSContext* ctx, const bool& val) noexcept { return JS_NewBool(ctx, val ? 1 : 0); }
+    static JSValue toJS(JSContext* ctx, const bool& val) noexcept
+    {
+        return JS_NewBool(ctx, val ? 1 : 0);
+    }
 };
 
 /**
@@ -111,9 +122,13 @@ struct JSValueConverter<i32> {
      */
     static std::optional<i32> fromJS(JSContext* ctx, JSValue val) noexcept
     {
-        if (!JS_IsNumber(val)) return std::nullopt;
+        if (!JS_IsNumber(val)) {
+            return std::nullopt;
+        }
         f64 num;
-        if (JS_ToFloat64(ctx, &num, val) != 0) return std::nullopt;
+        if (JS_ToFloat64(ctx, &num, val) != 0) {
+            return std::nullopt;
+        }
         return static_cast<i32>(num);
     }
 
@@ -123,7 +138,10 @@ struct JSValueConverter<i32> {
      * @param val 32位整数
      * @return JS数值
      */
-    static JSValue toJS(JSContext* ctx, const i32& val) noexcept { return JS_NewInt32(ctx, val); }
+    static JSValue toJS(JSContext* ctx, const i32& val) noexcept
+    {
+        return JS_NewInt32(ctx, val);
+    }
 };
 
 /**
@@ -139,9 +157,13 @@ struct JSValueConverter<f64> {
      */
     static std::optional<f64> fromJS(JSContext* ctx, JSValue val) noexcept
     {
-        if (!JS_IsNumber(val)) return std::nullopt;
+        if (!JS_IsNumber(val)) {
+            return std::nullopt;
+        }
         f64 num;
-        if (JS_ToFloat64(ctx, &num, val) != 0) return std::nullopt;
+        if (JS_ToFloat64(ctx, &num, val) != 0) {
+            return std::nullopt;
+        }
         return num;
     }
 
@@ -151,7 +173,10 @@ struct JSValueConverter<f64> {
      * @param val 64位浮点数
      * @return JS数值
      */
-    static JSValue toJS(JSContext* ctx, const f64& val) noexcept { return JS_NewFloat64(ctx, val); }
+    static JSValue toJS(JSContext* ctx, const f64& val) noexcept
+    {
+        return JS_NewFloat64(ctx, val);
+    }
 };
 
 /**
@@ -168,9 +193,13 @@ struct JSValueConverter<std::string> {
      */
     static std::optional<std::string> fromJS(JSContext* ctx, JSValue val) noexcept
     {
-        if (!JS_IsString(val)) return std::nullopt;
+        if (!JS_IsString(val)) {
+            return std::nullopt;
+        }
         const char* str = JS_ToCString(ctx, val);
-        if (!str) return std::nullopt;
+        if (!str) {
+            return std::nullopt;
+        }
         std::string result(str);
         JS_FreeCString(ctx, str);
         return result;
@@ -244,7 +273,9 @@ JSValue jsValueFrom(JSContext* ctx, const T& val) noexcept
 template <typename T>
 std::optional<std::vector<T>> jsArrayToVector(JSContext* ctx, JSValue val) noexcept
 {
-    if (!JS_IsArray(ctx, val)) return std::nullopt;
+    if (!JS_IsArray(ctx, val)) {
+        return std::nullopt;
+    }
 
     JSValue lengthVal = JS_GetPropertyStr(ctx, val, "length");
     u32 length = 0;
@@ -260,7 +291,9 @@ std::optional<std::vector<T>> jsArrayToVector(JSContext* ctx, JSValue val) noexc
         JSValue elem = JS_GetPropertyUint32(ctx, val, i);
         auto converted = JSValueConverter<T>::fromJS(ctx, elem);
         JS_FreeValue(ctx, elem);
-        if (!converted) return std::nullopt;
+        if (!converted) {
+            return std::nullopt;
+        }
         result.push_back(std::move(*converted));
     }
     return result;

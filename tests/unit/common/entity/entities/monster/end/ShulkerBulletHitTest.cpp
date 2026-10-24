@@ -97,10 +97,21 @@ const Vector3 SHULKER_HOME(0.5f, 1.0f, 0.5f);
 // 潜影弹命中测试世界：y==0 石头（可附着固体），其余空气；记录 spawn 的实体。
 class ShulkerHitTestWorld final : public mc::test::BaseTestWorld {
 public:
-    ShulkerHitTestWorld() { VanillaBlocks::initialize(); }
+    ShulkerHitTestWorld()
+    {
+        VanillaBlocks::initialize();
+    }
 
-    bool setBlockState(i32, i32, i32, const BlockState*) override { return false; }
-    [[nodiscard]] Difficulty difficulty() const override { return Difficulty::Normal; }
+    bool setBlockState(i32, i32, i32, const BlockState*) override
+    {
+        return false;
+    }
+
+    [[nodiscard]] Difficulty difficulty() const override
+    {
+        return Difficulty::Normal;
+    }
+
     void playSound(const ResourceLocation&, sound::SoundCategory, const Vector3&, f32, f32) override {}
 
     // y==0 返回石头（固体，供潜影贝 Down 面附着），其余空气。
@@ -126,15 +137,26 @@ public:
         return m_nearby;
     }
 
-    void setNearbyEntities(std::vector<Entity*> entities) { m_nearby = std::move(entities); }
+    void setNearbyEntities(std::vector<Entity*> entities)
+    {
+        m_nearby = std::move(entities);
+    }
 
-    [[nodiscard]] size_t spawnedCount() const { return m_spawned.size(); }
+    [[nodiscard]] size_t spawnedCount() const
+    {
+        return m_spawned.size();
+    }
+
     [[nodiscard]] const Entity* spawnedEntity(size_t i) const
     {
         return i < m_spawned.size() ? m_spawned[i].get() : nullptr;
     }
 
-    [[nodiscard]] world::tick::TickManager& tickManager() override { throw std::runtime_error("not implemented"); }
+    [[nodiscard]] world::tick::TickManager& tickManager() override
+    {
+        throw std::runtime_error("not implemented");
+    }
+
     [[nodiscard]] const world::tick::TickManager& tickManager() const override
     {
         throw std::runtime_error("not implemented");

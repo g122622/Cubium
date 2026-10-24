@@ -64,9 +64,15 @@ public:
         : mRawId(rawId)
     {}
 
-    [[nodiscard]] constexpr bool isNull() const noexcept { return *this == entt::null; }
+    [[nodiscard]] constexpr bool isNull() const noexcept
+    {
+        return *this == entt::null;
+    }
 
-    [[nodiscard]] constexpr operator entity_type() const noexcept { return mRawId; }
+    [[nodiscard]] constexpr operator entity_type() const noexcept
+    {
+        return mRawId;
+    }
 };
 
 } // namespace mc::ecs

@@ -68,7 +68,10 @@ public:
     }
 
     // 暴露 protected setVehicle 供测试设置骑乘关系
-    void setVehicleForTest(EntityInstanceId vehicle) { setVehicle(vehicle); }
+    void setVehicleForTest(EntityInstanceId vehicle)
+    {
+        setVehicle(vehicle);
+    }
 };
 
 } // namespace
@@ -252,8 +255,16 @@ class InheritMalusTestWorld final : public mc::test::BaseTestWorld {
 public:
     InheritMalusTestWorld() = default;
 
-    [[nodiscard]] mc::world::chunk::IChunkManager* chunkManager() override { return &m_stubChunks; }
-    [[nodiscard]] const mc::world::chunk::IChunkManager* chunkManager() const override { return &m_stubChunks; }
+    [[nodiscard]] mc::world::chunk::IChunkManager* chunkManager() override
+    {
+        return &m_stubChunks;
+    }
+
+    [[nodiscard]] const mc::world::chunk::IChunkManager* chunkManager() const override
+    {
+        return &m_stubChunks;
+    }
+
     mc::test::StubChunkManager m_stubChunks{nullptr, true};
 
     // 覆写 getEntity 以支持 getVehicle() → Entity* 解引用
@@ -262,6 +273,7 @@ public:
         const auto it = m_entities.find(id);
         return it != m_entities.end() ? it->second : nullptr;
     }
+
     [[nodiscard]] const Entity* getEntity(EntityInstanceId id) const override
     {
         const auto it = m_entities.find(id);
@@ -291,7 +303,10 @@ public:
         setPathfindingMalus(PathNodeType::Lava, 0.0f);
     }
 
-    [[nodiscard]] bool shouldPassengersInheritMalus() const noexcept override { return true; }
+    [[nodiscard]] bool shouldPassengersInheritMalus() const noexcept override
+    {
+        return true;
+    }
 };
 
 TEST(PathfindingMalusInheritTest, PassengerInheritsVehicleMalus_WhenInheritFlagTrue)

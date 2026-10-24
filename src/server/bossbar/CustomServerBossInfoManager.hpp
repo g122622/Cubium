@@ -122,12 +122,18 @@ public:
     /**
      * @brief 获取 Boss 栏数量
      */
-    [[nodiscard]] size_t size() const noexcept { return m_bossBars.size(); }
+    [[nodiscard]] size_t size() const noexcept
+    {
+        return m_bossBars.size();
+    }
 
     /**
      * @brief 检查是否为空
      */
-    [[nodiscard]] bool empty() const noexcept { return m_bossBars.empty(); }
+    [[nodiscard]] bool empty() const noexcept
+    {
+        return m_bossBars.empty();
+    }
 
     // ========== 玩家事件 ==========
 
@@ -191,17 +197,26 @@ public:
     /**
      * @brief 标记数据为脏
      */
-    void markDirty() noexcept { m_dirty = true; }
+    void markDirty() noexcept
+    {
+        m_dirty = true;
+    }
 
     /**
      * @brief 检查数据是否需要保存
      */
-    [[nodiscard]] bool isDirty() const noexcept { return m_dirty; }
+    [[nodiscard]] bool isDirty() const noexcept
+    {
+        return m_dirty;
+    }
 
     /**
      * @brief 清除脏标记
      */
-    void clearDirty() noexcept { m_dirty = false; }
+    void clearDirty() noexcept
+    {
+        m_dirty = false;
+    }
 
 private:
     /// 服务器引用

@@ -32,7 +32,10 @@ using namespace mc;
 
 class MatrixStackTest : public ::testing::Test {
 protected:
-    void SetUp() override { stack = std::make_unique<MatrixStack>(); }
+    void SetUp() override
+    {
+        stack = std::make_unique<MatrixStack>();
+    }
 
     std::unique_ptr<MatrixStack> stack;
 };

@@ -20,16 +20,50 @@ class MultipleTestTracker {
 public:
     MultipleTestTracker() = default;
 
-    void setTotal(std::size_t total) noexcept { m_total = total; }
-    void onPassed() noexcept { ++m_passed; }
-    void onFailed() noexcept { ++m_failed; }
+    void setTotal(std::size_t total) noexcept
+    {
+        m_total = total;
+    }
 
-    [[nodiscard]] std::size_t total() const noexcept { return m_total; }
-    [[nodiscard]] std::size_t passed() const noexcept { return m_passed; }
-    [[nodiscard]] std::size_t failed() const noexcept { return m_failed; }
-    [[nodiscard]] std::size_t done() const noexcept { return m_passed + m_failed; }
-    [[nodiscard]] std::size_t remaining() const noexcept { return m_total > done() ? m_total - done() : 0; }
-    [[nodiscard]] bool allDone() const noexcept { return done() >= m_total && m_total > 0; }
+    void onPassed() noexcept
+    {
+        ++m_passed;
+    }
+
+    void onFailed() noexcept
+    {
+        ++m_failed;
+    }
+
+    [[nodiscard]] std::size_t total() const noexcept
+    {
+        return m_total;
+    }
+
+    [[nodiscard]] std::size_t passed() const noexcept
+    {
+        return m_passed;
+    }
+
+    [[nodiscard]] std::size_t failed() const noexcept
+    {
+        return m_failed;
+    }
+
+    [[nodiscard]] std::size_t done() const noexcept
+    {
+        return m_passed + m_failed;
+    }
+
+    [[nodiscard]] std::size_t remaining() const noexcept
+    {
+        return m_total > done() ? m_total - done() : 0;
+    }
+
+    [[nodiscard]] bool allDone() const noexcept
+    {
+        return done() >= m_total && m_total > 0;
+    }
 
 private:
     std::size_t m_total = 0;

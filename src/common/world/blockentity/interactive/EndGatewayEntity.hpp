@@ -97,7 +97,10 @@ public:
      * @brief 检查是否需要 tick
      * @return 末地折跃门需要持续 tick
      */
-    [[nodiscard]] bool needsTick() const noexcept override { return true; }
+    [[nodiscard]] bool needsTick() const noexcept override
+    {
+        return true;
+    }
 
     /**
      * @brief 从 JSON 加载数据
@@ -144,13 +147,19 @@ public:
      * @brief 获取出口传送门位置
      * @return 出口位置（如果已设置）
      */
-    [[nodiscard]] std::optional<BlockPos> getExitPortal() const noexcept { return m_exitPortal; }
+    [[nodiscard]] std::optional<BlockPos> getExitPortal() const noexcept
+    {
+        return m_exitPortal;
+    }
 
     /**
      * @brief 检查是否精确传送
      * @return 如果精确传送返回 true
      */
-    [[nodiscard]] bool isExactTeleport() const noexcept { return m_exactTeleport; }
+    [[nodiscard]] bool isExactTeleport() const noexcept
+    {
+        return m_exactTeleport;
+    }
 
     // ========== 状态查询 ==========
 
@@ -158,25 +167,37 @@ public:
      * @brief 检查是否正在生成（新生成的折跃门）
      * @return 年龄小于 200 tick 返回 true
      */
-    [[nodiscard]] bool isSpawning() const noexcept { return m_age < SPAWN_DURATION; }
+    [[nodiscard]] bool isSpawning() const noexcept
+    {
+        return m_age < SPAWN_DURATION;
+    }
 
     /**
      * @brief 检查是否在冷却中
      * @return 冷却时间大于 0 返回 true
      */
-    [[nodiscard]] bool isCoolingDown() const noexcept { return m_teleportCooldown > 0; }
+    [[nodiscard]] bool isCoolingDown() const noexcept
+    {
+        return m_teleportCooldown > 0;
+    }
 
     /**
      * @brief 获取年龄
      * @return 年龄（tick）
      */
-    [[nodiscard]] i64 getAge() const noexcept { return m_age; }
+    [[nodiscard]] i64 getAge() const noexcept
+    {
+        return m_age;
+    }
 
     /**
      * @brief 获取传送冷却
      * @return 剩余冷却时间（tick）
      */
-    [[nodiscard]] i32 getTeleportCooldown() const noexcept { return m_teleportCooldown; }
+    [[nodiscard]] i32 getTeleportCooldown() const noexcept
+    {
+        return m_teleportCooldown;
+    }
 
     /**
      * @brief 获取生成进度（用于客户端动画）

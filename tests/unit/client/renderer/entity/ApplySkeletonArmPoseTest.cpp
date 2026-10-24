@@ -151,7 +151,10 @@ protected:
     /// 给实体主手装备弓（对齐 vanilla 骷髅拉弓前置条件）。
     /// 使用指针重载：即使 Items::BOW 意外为 nullptr 也只是得到空栈（测试断言失败），
     /// 不会像 `*Items::BOW` 那样构成空引用 UB。
-    void equipBow() { m_entity->setMainHandItem(mc::ItemStack(mc::Items::BOW, 1)); }
+    void equipBow()
+    {
+        m_entity->setMainHandItem(mc::ItemStack(mc::Items::BOW, 1));
+    }
 
     std::unique_ptr<monster::SkeletonModel> m_model;
     std::unique_ptr<mc::client::ClientEntity> m_entity;

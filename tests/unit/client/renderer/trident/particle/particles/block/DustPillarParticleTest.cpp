@@ -272,8 +272,12 @@ TEST_F(DustPillarParticleTest, Lifetime_In20To40Range)
         EXPECT_GE(maxAge, 20.0) << "最小生命周期应 >= 20 tick";
         EXPECT_LE(maxAge, 40.0) << "最大生命周期应 <= 40 tick";
 
-        if (maxAge <= 22.0) foundMin = true;
-        if (maxAge >= 38.0) foundMax = true;
+        if (maxAge <= 22.0) {
+            foundMin = true;
+        }
+        if (maxAge >= 38.0) {
+            foundMax = true;
+        }
     }
     // 统计上，100个粒子应该覆盖范围两端
     EXPECT_TRUE(foundMin || foundMax) << "生命周期应有随机性";
@@ -371,7 +375,9 @@ TEST_F(DustPillarParticleTest, CreateWithBlock_DifferentBlockTypes)
         VanillaBlocks::STONE, VanillaBlocks::DIRT, VanillaBlocks::GRASS_BLOCK, VanillaBlocks::COBBLESTONE};
 
     for (Block* block : blocks) {
-        if (block == nullptr) continue;
+        if (block == nullptr) {
+            continue;
+        }
 
         const BlockState& state = block->defaultState();
         auto particle = DustPillarParticle::createWithBlock(pos, velocity, state);

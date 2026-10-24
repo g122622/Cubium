@@ -49,10 +49,20 @@ public:
 // 测试用世界实现，支持实体生成
 class DropEquipmentTestWorld final : public mc::test::BaseTestWorld {
 public:
-    DropEquipmentTestWorld() { Items::initialize(); }
+    DropEquipmentTestWorld()
+    {
+        Items::initialize();
+    }
 
-    [[nodiscard]] Difficulty difficulty() const override { return m_difficulty; }
-    void setDifficulty(Difficulty d) { m_difficulty = d; }
+    [[nodiscard]] Difficulty difficulty() const override
+    {
+        return m_difficulty;
+    }
+
+    void setDifficulty(Difficulty d)
+    {
+        m_difficulty = d;
+    }
 
     EntityInstanceId spawnEntity(std::unique_ptr<Entity> entity) override
     {
@@ -61,7 +71,10 @@ public:
     }
 
     // 获取生成的 ItemEntity 数量
-    [[nodiscard]] size_t spawnedEntityCount() const { return m_spawnedEntities.size(); }
+    [[nodiscard]] size_t spawnedEntityCount() const
+    {
+        return m_spawnedEntities.size();
+    }
 
 private:
     std::vector<std::unique_ptr<Entity>> m_spawnedEntities;
@@ -105,7 +118,9 @@ TEST_F(DropPreservedEquipmentTest, EmptySlotsReturnNoPreservedSlots)
 
 TEST_F(DropPreservedEquipmentTest, EmptySlotsWithPredicateReturnNoPreservedSlots)
 {
-    auto preservedSlots = m_entity->dropPreservedEquipment([](const ItemStack&) { return true; });
+    auto preservedSlots = m_entity->dropPreservedEquipment([](const ItemStack&) {
+        return true;
+    });
     EXPECT_TRUE(preservedSlots.empty());
 }
 
@@ -286,7 +301,9 @@ TEST_F(DropPreservedEquipmentTest, AlwaysTruePredicateDropsOnlyPreserved)
 TEST_F(DropPreservedEquipmentTest, EmptyEquipmentSlotsSkipped)
 {
     // 确保空槽位不会引起问题
-    auto preservedSlots = m_entity->dropPreservedEquipment([](const ItemStack&) { return false; });
+    auto preservedSlots = m_entity->dropPreservedEquipment([](const ItemStack&) {
+        return false;
+    });
 
     EXPECT_TRUE(preservedSlots.empty());
 }

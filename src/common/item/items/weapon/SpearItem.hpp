@@ -126,12 +126,18 @@ public:
      *
      * 基础伤害 + 层级加成
      */
-    [[nodiscard]] f32 getAttackDamage() const { return m_attackDamage; }
+    [[nodiscard]] f32 getAttackDamage() const
+    {
+        return m_attackDamage;
+    }
 
     /**
      * @brief 获取攻击速度修正
      */
-    [[nodiscard]] f32 getAttackSpeed() const { return m_attackSpeed; }
+    [[nodiscard]] f32 getAttackSpeed() const
+    {
+        return m_attackSpeed;
+    }
 
     /**
      * @brief 获取属性修饰符

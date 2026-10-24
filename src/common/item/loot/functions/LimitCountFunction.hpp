@@ -51,10 +51,21 @@ public:
 
     [[nodiscard]] ItemStack apply(ItemStack stack, LootContext& context) const override;
     [[nodiscard]] std::unique_ptr<LootFunction> clone() const noexcept override;
-    [[nodiscard]] std::string getType() const override { return "limit_count"; }
 
-    [[nodiscard]] i32 getMin() const { return m_min; }
-    [[nodiscard]] i32 getMax() const { return m_max; }
+    [[nodiscard]] std::string getType() const override
+    {
+        return "limit_count";
+    }
+
+    [[nodiscard]] i32 getMin() const
+    {
+        return m_min;
+    }
+
+    [[nodiscard]] i32 getMax() const
+    {
+        return m_max;
+    }
 
 private:
     i32 m_min;

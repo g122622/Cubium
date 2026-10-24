@@ -63,6 +63,7 @@ struct DimensionPadding {
     i32 bottom = 0; ///< 底部填充距离
 
     constexpr DimensionPadding() = default;
+
     constexpr DimensionPadding(i32 t, i32 b)
         : top(t)
         , bottom(b)
@@ -185,7 +186,10 @@ public:
         bool adjustForTerrain = false,
         TerrainAdaptation terrainAdaptation = TerrainAdaptation::None);
 
-    [[nodiscard]] const std::string& name() const override { return m_name; }
+    [[nodiscard]] const std::string& name() const override
+    {
+        return m_name;
+    }
 
     /**
      * @brief 获取地形适配模式
@@ -193,7 +197,10 @@ public:
      * 返回构造时指定的地形适配模式。基类非虚 terrainAdaptation() 在数据驱动未注入时
      * 回退到此方法。
      */
-    [[nodiscard]] TerrainAdaptation defaultTerrainAdaptation() const noexcept override { return m_terrainAdaptation; }
+    [[nodiscard]] TerrainAdaptation defaultTerrainAdaptation() const noexcept override
+    {
+        return m_terrainAdaptation;
+    }
 
     /**
      * @brief 检查是否可以在指定位置生成结构

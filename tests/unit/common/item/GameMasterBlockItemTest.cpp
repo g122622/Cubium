@@ -74,48 +74,125 @@ public:
         return &fluid::Fluids::EMPTY()->defaultState();
     }
 
-    [[nodiscard]] i32 getHeight(i32, i32) const override { return 64; }
-    [[nodiscard]] u8 getBlockLight(i32, i32, i32) const override { return 15; }
-    [[nodiscard]] u8 getSkyLight(i32, i32, i32) const override { return 15; }
-    [[nodiscard]] bool hasBlockCollision(const AxisAlignedBB&) const override { return false; }
-    [[nodiscard]] std::vector<AxisAlignedBB> getBlockCollisions(const AxisAlignedBB&) const override { return {}; }
-    [[nodiscard]] bool hasEntityCollision(const AxisAlignedBB&, const Entity*) const override { return false; }
+    [[nodiscard]] i32 getHeight(i32, i32) const override
+    {
+        return 64;
+    }
+
+    [[nodiscard]] u8 getBlockLight(i32, i32, i32) const override
+    {
+        return 15;
+    }
+
+    [[nodiscard]] u8 getSkyLight(i32, i32, i32) const override
+    {
+        return 15;
+    }
+
+    [[nodiscard]] bool hasBlockCollision(const AxisAlignedBB&) const override
+    {
+        return false;
+    }
+
+    [[nodiscard]] std::vector<AxisAlignedBB> getBlockCollisions(const AxisAlignedBB&) const override
+    {
+        return {};
+    }
+
+    [[nodiscard]] bool hasEntityCollision(const AxisAlignedBB&, const Entity*) const override
+    {
+        return false;
+    }
+
     [[nodiscard]] std::vector<AxisAlignedBB> getEntityCollisions(const AxisAlignedBB&, const Entity*) const override
     {
         return {};
     }
-    [[nodiscard]] PhysicsEngine* physicsEngine() override { return nullptr; }
-    [[nodiscard]] const PhysicsEngine* physicsEngine() const override { return nullptr; }
+
+    [[nodiscard]] PhysicsEngine* physicsEngine() override
+    {
+        return nullptr;
+    }
+
+    [[nodiscard]] const PhysicsEngine* physicsEngine() const override
+    {
+        return nullptr;
+    }
+
     [[nodiscard]] std::vector<Entity*> getEntitiesInAABB(const AxisAlignedBB&, const Entity*) const override
     {
         return {};
     }
+
     [[nodiscard]] std::vector<Entity*> getEntitiesInRange(const Vector3&, f32, const Entity*) const override
     {
         return {};
     }
-    [[nodiscard]] DimensionId dimension() const override { return DimensionId(0); }
-    [[nodiscard]] u64 seed() const override { return 0; }
-    [[nodiscard]] u64 currentTick() const override { return 0; }
-    [[nodiscard]] i64 dayTime() const override { return 0; }
-    [[nodiscard]] bool isHardcore() const override { return false; }
-    [[nodiscard]] Difficulty difficulty() const override { return Difficulty::Easy; }
-    [[nodiscard]] bool isClientSide() const override { return false; }
+
+    [[nodiscard]] DimensionId dimension() const override
+    {
+        return DimensionId(0);
+    }
+
+    [[nodiscard]] u64 seed() const override
+    {
+        return 0;
+    }
+
+    [[nodiscard]] u64 currentTick() const override
+    {
+        return 0;
+    }
+
+    [[nodiscard]] i64 dayTime() const override
+    {
+        return 0;
+    }
+
+    [[nodiscard]] bool isHardcore() const override
+    {
+        return false;
+    }
+
+    [[nodiscard]] Difficulty difficulty() const override
+    {
+        return Difficulty::Easy;
+    }
+
+    [[nodiscard]] bool isClientSide() const override
+    {
+        return false;
+    }
 
     [[nodiscard]] world::tick::TickManager& tickManager() override
     {
         throw std::runtime_error("GameMasterTestWorld::tickManager not implemented");
     }
+
     [[nodiscard]] const world::tick::TickManager& tickManager() const override
     {
         throw std::runtime_error("GameMasterTestWorld::tickManager not implemented");
     }
 
-    [[nodiscard]] math::IRandom& getRandom() override { return m_random; }
-    [[nodiscard]] const math::IRandom& getRandom() const override { return m_random; }
+    [[nodiscard]] math::IRandom& getRandom() override
+    {
+        return m_random;
+    }
 
-    [[nodiscard]] world::border::WorldBorder& worldBorder() override { return m_worldBorder; }
-    [[nodiscard]] const world::border::WorldBorder& worldBorder() const override { return m_worldBorder; }
+    [[nodiscard]] const math::IRandom& getRandom() const override
+    {
+        return m_random;
+    }
+
+    [[nodiscard]] world::border::WorldBorder& worldBorder() override
+    {
+        return m_worldBorder;
+    }
+
+    [[nodiscard]] const world::border::WorldBorder& worldBorder() const override
+    {
+        return m_worldBorder;
+    }
 
 private:
     static i64 key(i32 x, i32 y, i32 z)
@@ -147,7 +224,10 @@ public:
         createBlockState(std::move(container));
     }
 
-    [[nodiscard]] bool isGameMaster() const noexcept override { return true; }
+    [[nodiscard]] bool isGameMaster() const noexcept override
+    {
+        return true;
+    }
 
     void fillStateContainer(StateContainer<Block, BlockState>& /*container*/) override {}
 };

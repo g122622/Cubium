@@ -133,7 +133,10 @@ struct RenderState {
         return blend == other.blend && depth == other.depth && rasterizer == other.rasterizer;
     }
 
-    bool operator!=(const RenderState& other) const { return !(*this == other); }
+    bool operator!=(const RenderState& other) const
+    {
+        return !(*this == other);
+    }
 };
 
 } // namespace mc::client::renderer::api

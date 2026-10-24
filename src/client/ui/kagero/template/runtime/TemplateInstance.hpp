@@ -198,7 +198,10 @@ public:
     /**
      * @brief 检查是否已实例化
      */
-    [[nodiscard]] bool isInstantiated() const { return m_rootWidget != nullptr; }
+    [[nodiscard]] bool isInstantiated() const
+    {
+        return m_rootWidget != nullptr;
+    }
 
     /**
      * @brief 获取根Widget
@@ -206,8 +209,15 @@ public:
      * Widget 树所有权保留在 TemplateInstance 中。
      * TemplateInstance 销毁时 Widget 树也会销毁。
      */
-    [[nodiscard]] widget::Widget* rootWidget() { return m_rootWidget.get(); }
-    [[nodiscard]] const widget::Widget* rootWidget() const { return m_rootWidget.get(); }
+    [[nodiscard]] widget::Widget* rootWidget()
+    {
+        return m_rootWidget.get();
+    }
+
+    [[nodiscard]] const widget::Widget* rootWidget() const
+    {
+        return m_rootWidget.get();
+    }
 
     // ========== 绑定管理 ==========
 
@@ -231,13 +241,23 @@ public:
     /**
      * @brief 设置绑定上下文
      */
-    void setBindingContext(binder::BindingContext& ctx) { m_context = &ctx; }
+    void setBindingContext(binder::BindingContext& ctx)
+    {
+        m_context = &ctx;
+    }
 
     /**
      * @brief 获取绑定上下文
      */
-    [[nodiscard]] binder::BindingContext* bindingContext() { return m_context; }
-    [[nodiscard]] const binder::BindingContext* bindingContext() const { return m_context; }
+    [[nodiscard]] binder::BindingContext* bindingContext()
+    {
+        return m_context;
+    }
+
+    [[nodiscard]] const binder::BindingContext* bindingContext() const
+    {
+        return m_context;
+    }
 
     // ========== 状态更新 ==========
 
@@ -307,8 +327,15 @@ public:
      * - setMaxBatchSize(n)：最大批量大小
      * - setDeferredUpdate(true/false)：是否启用延迟更新
      */
-    [[nodiscard]] UpdateScheduler& scheduler() { return m_scheduler; }
-    [[nodiscard]] const UpdateScheduler& scheduler() const { return m_scheduler; }
+    [[nodiscard]] UpdateScheduler& scheduler()
+    {
+        return m_scheduler;
+    }
+
+    [[nodiscard]] const UpdateScheduler& scheduler() const
+    {
+        return m_scheduler;
+    }
 
 private:
     // ========== 实例化辅助方法 ==========

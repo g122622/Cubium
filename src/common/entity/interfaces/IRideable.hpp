@@ -62,13 +62,19 @@ public:
      * @brief 当玩家开始骑乘时调用
      * @param player 骑乘的玩家
      */
-    virtual void onPlayerStartRiding(Player* player) { MC_UNUSED(player); }
+    virtual void onPlayerStartRiding(Player* player)
+    {
+        MC_UNUSED(player);
+    }
 
     /**
      * @brief 当玩家停止骑乘时调用
      * @param player 下马的玩家
      */
-    virtual void onPlayerStopRiding(Player* player) { MC_UNUSED(player); }
+    virtual void onPlayerStopRiding(Player* player)
+    {
+        MC_UNUSED(player);
+    }
 
     /**
      * @brief 获取骑乘时的移动速度
@@ -86,13 +92,19 @@ public:
      * @brief 获取当前速度提升时间
      * @return 剩余加速时间（ticks），0表示未加速
      */
-    [[nodiscard]] virtual i32 getBoostTime() const { return 0; }
+    [[nodiscard]] virtual i32 getBoostTime() const
+    {
+        return 0;
+    }
 
     /**
      * @brief 设置速度提升时间
      * @param time 加速时间（ticks）
      */
-    virtual void setBoostTime(i32 time) { MC_UNUSED(time); }
+    virtual void setBoostTime(i32 time)
+    {
+        MC_UNUSED(time);
+    }
 
     /**
      * @brief 检查是否可以被控制方向
@@ -100,13 +112,19 @@ public:
      *
      * 猪需要玩家手持胡萝卜钓竿，炽足兽需要玩家手持诡异菌钓竿
      */
-    [[nodiscard]] virtual bool canBeSteered() const { return hasSaddle(); }
+    [[nodiscard]] virtual bool canBeSteered() const
+    {
+        return hasSaddle();
+    }
 
     /**
      * @brief 控制骑乘实体向指定方向移动
      * @param travelVec 移动向量（通常来自玩家的输入）
      */
-    virtual void travelTowards(const Vector3& travelVec) { MC_UNUSED(travelVec); }
+    virtual void travelTowards(const Vector3& travelVec)
+    {
+        MC_UNUSED(travelVec);
+    }
 
     /**
      * @brief 执行骑乘移动逻辑

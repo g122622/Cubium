@@ -280,6 +280,7 @@ void MerchantOffer::updateDemand()
     // demand = demand + uses - (maxUses - uses)
     m_demand = m_demand + m_uses - (m_maxUses - m_uses);
 }
+
 void MerchantOffer::serialize(nbt::tags::compound_tag& tag) const
 {
     // 第一支付代价：物品（含 potion_contents / custom_data）落在 buyA 节点下，

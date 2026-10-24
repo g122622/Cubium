@@ -71,6 +71,7 @@ public:
     }
 
     [[nodiscard]] const fluid::FluidState* getFluidState(const BlockState& state) const override;
+
     [[nodiscard]] bool isWaterlogged(const BlockState& state) const override
     {
         return state.get(BlockStateProperties::WATERLOGGED());
@@ -84,7 +85,10 @@ public:
     /**
      * @brief 是否响应随机刻 - 悬挂且未完全长大时
      */
-    [[nodiscard]] bool ticksRandomly() const noexcept override { return true; }
+    [[nodiscard]] bool ticksRandomly() const noexcept override
+    {
+        return true;
+    }
 
     // ========== IPlantable 接口 ==========
 

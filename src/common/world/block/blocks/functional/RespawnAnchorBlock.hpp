@@ -42,6 +42,7 @@ namespace mc {
 class IWorld;
 class IBlockReader;
 class BlockItemUseContext;
+
 namespace math {
 class IRandom;
 }
@@ -76,7 +77,10 @@ public:
 
     void randomTick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random) override;
 
-    [[nodiscard]] bool ticksRandomly() const noexcept override { return true; }
+    [[nodiscard]] bool ticksRandomly() const noexcept override
+    {
+        return true;
+    }
 
     // ========== 形状 ==========
 
@@ -114,7 +118,10 @@ public:
     /**
      * @brief 是否已充满
      */
-    [[nodiscard]] static bool isFullyCharged(const BlockState& state) { return getCharges(state) >= 4; }
+    [[nodiscard]] static bool isFullyCharged(const BlockState& state)
+    {
+        return getCharges(state) >= 4;
+    }
 
     /**
      * @brief 充能
@@ -142,7 +149,10 @@ public:
     /**
      * @brief 重生锚是否仍可被充能（充能等级 < 4）
      */
-    [[nodiscard]] static bool canBeCharged(const BlockState& state) { return getCharges(state) < MAX_CHARGES; }
+    [[nodiscard]] static bool canBeCharged(const BlockState& state)
+    {
+        return getCharges(state) < MAX_CHARGES;
+    }
 
     /**
      * @brief 在重生锚周围寻找实体的安全落点

@@ -49,6 +49,7 @@ public:
     {
         throw std::runtime_error("WindChargeTestWorld::tickManager not implemented");
     }
+
     [[nodiscard]] const world::tick::TickManager& tickManager() const override
     {
         throw std::runtime_error("WindChargeTestWorld::tickManager not implemented");
@@ -70,7 +71,10 @@ public:
         // 测试中忽略粒子效果
     }
 
-    [[nodiscard]] const std::vector<Entity*>& spawnedEntities() const { return m_spawnedEntities; }
+    [[nodiscard]] const std::vector<Entity*>& spawnedEntities() const
+    {
+        return m_spawnedEntities;
+    }
 
 private:
     EntityInstanceId m_lastEntityId = 0;
@@ -80,7 +84,10 @@ private:
 
 class WindChargeItemTest : public ::testing::Test {
 protected:
-    void SetUp() override { Items::initialize(); }
+    void SetUp() override
+    {
+        Items::initialize();
+    }
 
     void TearDown() override
     {

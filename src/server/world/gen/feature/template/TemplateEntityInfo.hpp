@@ -53,6 +53,7 @@ struct TemplateJigsawBlockInfo {
     u32 blockStateId = 0; // 方块状态ID，用于读取 orientation 属性
 
     TemplateJigsawBlockInfo() = default;
+
     TemplateJigsawBlockInfo(const BlockPos& p,
         const std::string& n,
         const std::string& pool,

@@ -64,13 +64,19 @@ public:
      * @brief 获取pack_format版本号
      * @return pack_format版本
      */
-    [[nodiscard]] i32 packFormat() const noexcept { return m_packFormat; }
+    [[nodiscard]] i32 packFormat() const noexcept
+    {
+        return m_packFormat;
+    }
 
     /**
      * @brief 获取描述文本
      * @return 描述文本
      */
-    [[nodiscard]] const std::string& description() const noexcept { return m_description; }
+    [[nodiscard]] const std::string& description() const noexcept
+    {
+        return m_description;
+    }
 
     /**
      * @brief 验证版本兼容性

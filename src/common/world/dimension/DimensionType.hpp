@@ -87,41 +87,62 @@ public:
     /**
      * @brief 获取维度ID
      */
-    [[nodiscard]] DimensionId id() const { return m_id; }
+    [[nodiscard]] DimensionId id() const
+    {
+        return m_id;
+    }
 
     /**
      * @brief 获取维度名称
      */
-    [[nodiscard]] const std::string& name() const { return m_name; }
+    [[nodiscard]] const std::string& name() const
+    {
+        return m_name;
+    }
 
     // ========== 环境属性 ==========
 
     /**
      * @brief 是否有天花板（下界有基岩天花板）
      */
-    [[nodiscard]] bool hasCeiling() const { return m_hasCeiling; }
+    [[nodiscard]] bool hasCeiling() const
+    {
+        return m_hasCeiling;
+    }
 
     /**
      * @brief 是否有天空光照
      */
-    [[nodiscard]] bool hasSkyLight() const { return m_hasSkyLight; }
+    [[nodiscard]] bool hasSkyLight() const
+    {
+        return m_hasSkyLight;
+    }
 
     /**
      * @brief 是否超热（下界为 true，水会蒸发）
      */
-    [[nodiscard]] bool ultraWarm() const { return m_ultraWarm; }
+    [[nodiscard]] bool ultraWarm() const
+    {
+        return m_ultraWarm;
+    }
 
     /**
      * @brief 是否自然维度（影响床和重生锚行为）
      *
      * 自然维度中床可以设置重生点，非自然维度中床会爆炸。
      */
-    [[nodiscard]] bool natural() const { return m_natural; }
+    [[nodiscard]] bool natural() const
+    {
+        return m_natural;
+    }
 
     /**
      * @brief 是否有末影龙战斗
      */
-    [[nodiscard]] bool hasEnderDragonFight() const { return m_hasEnderDragonFight; }
+    [[nodiscard]] bool hasEnderDragonFight() const
+    {
+        return m_hasEnderDragonFight;
+    }
 
     // ========== 功能属性 ==========
 
@@ -130,43 +151,64 @@ public:
      *
      * 主世界为 true，下界和末地为 false（床会爆炸）。
      */
-    [[nodiscard]] bool bedWorks() const { return m_bedWorks; }
+    [[nodiscard]] bool bedWorks() const
+    {
+        return m_bedWorks;
+    }
 
     /**
      * @brief 重生锚是否可用
      *
      * 下界为 true，其他维度为 false。
      */
-    [[nodiscard]] bool respawnAnchorWorks() const { return m_respawnAnchorWorks; }
+    [[nodiscard]] bool respawnAnchorWorks() const
+    {
+        return m_respawnAnchorWorks;
+    }
 
     /**
      * @brief 是否会发生袭击事件
      */
-    [[nodiscard]] bool hasRaids() const { return m_hasRaids; }
+    [[nodiscard]] bool hasRaids() const
+    {
+        return m_hasRaids;
+    }
 
     /**
      * @brief 猪灵是否安全（不会僵尸化）
      */
-    [[nodiscard]] bool piglinSafe() const { return m_piglinSafe; }
+    [[nodiscard]] bool piglinSafe() const
+    {
+        return m_piglinSafe;
+    }
 
     // ========== 高度限制 ==========
 
     /**
      * @brief 获取最低建筑高度
      */
-    [[nodiscard]] i32 minHeight() const { return m_minHeight; }
+    [[nodiscard]] i32 minHeight() const
+    {
+        return m_minHeight;
+    }
 
     /**
      * @brief 获取最高建筑高度
      */
-    [[nodiscard]] i32 maxHeight() const { return m_maxHeight; }
+    [[nodiscard]] i32 maxHeight() const
+    {
+        return m_maxHeight;
+    }
 
     /**
      * @brief 获取逻辑高度上限
      *
      * 用于传送门放置等逻辑，下界为 128。
      */
-    [[nodiscard]] i32 logicalHeight() const { return m_logicalHeight; }
+    [[nodiscard]] i32 logicalHeight() const
+    {
+        return m_logicalHeight;
+    }
 
     // ========== 坐标转换 ==========
 
@@ -178,7 +220,10 @@ public:
      *
      * @return 缩放比例（相对于主世界）
      */
-    [[nodiscard]] f32 coordinateScale() const { return m_coordinateScale; }
+    [[nodiscard]] f32 coordinateScale() const
+    {
+        return m_coordinateScale;
+    }
 
     /**
      * @brief 从主世界坐标转换到当前维度坐标
@@ -212,12 +257,18 @@ public:
     /**
      * @brief 获取环境光照强度
      */
-    [[nodiscard]] f32 ambientLight() const { return m_ambientLight; }
+    [[nodiscard]] f32 ambientLight() const
+    {
+        return m_ambientLight;
+    }
 
     /**
      * @brief 是否有固定时间
      */
-    [[nodiscard]] bool hasFixedTime() const { return m_fixedTime.has_value(); }
+    [[nodiscard]] bool hasFixedTime() const
+    {
+        return m_fixedTime.has_value();
+    }
 
     /**
      * @brief 获取固定时间值
@@ -225,7 +276,10 @@ public:
      * 下界固定为 18000（午夜），末地固定为 6000（正午）。
      * @return 固定时间值（tick），如果没有固定时间则返回空
      */
-    [[nodiscard]] std::optional<i64> fixedTimeValue() const { return m_fixedTime; }
+    [[nodiscard]] std::optional<i64> fixedTimeValue() const
+    {
+        return m_fixedTime;
+    }
 
     // ========== 方块标签 ==========
 
@@ -236,7 +290,10 @@ public:
      * 下界: minecraft:infiniburn_nether
      * 末地: minecraft:infiniburn_end
      */
-    [[nodiscard]] const std::string& infiniburn() const { return m_infiniburn; }
+    [[nodiscard]] const std::string& infiniburn() const
+    {
+        return m_infiniburn;
+    }
 
     // ========== 环境属性 ==========
 
@@ -245,7 +302,10 @@ public:
      *
      * 对应 `dimension_type.attributes`。常量层最先应用，叠在属性默认值之上。
      */
-    [[nodiscard]] const world::attribute::EnvironmentAttributeMap& attributes() const { return m_attributes; }
+    [[nodiscard]] const world::attribute::EnvironmentAttributeMap& attributes() const
+    {
+        return m_attributes;
+    }
 
     /**
      * @brief 维度启用的时间线注册名
@@ -253,12 +313,22 @@ public:
      * 对应 `dimension_type.timelines`，元素为时间线注册名（如 `minecraft:day`），
      * 时间线层按声明顺序叠加在常量层与群系位置层之后。
      */
-    [[nodiscard]] const std::vector<std::string>& timelines() const { return m_timelines; }
+    [[nodiscard]] const std::vector<std::string>& timelines() const
+    {
+        return m_timelines;
+    }
 
     // ========== 比较 ==========
 
-    bool operator==(const DimensionType& other) const { return m_id == other.m_id; }
-    bool operator!=(const DimensionType& other) const { return m_id != other.m_id; }
+    bool operator==(const DimensionType& other) const
+    {
+        return m_id == other.m_id;
+    }
+
+    bool operator!=(const DimensionType& other) const
+    {
+        return m_id != other.m_id;
+    }
 
     // 移动操作（noexcept 提升性能）
     DimensionType(DimensionType&& other) noexcept = default;
@@ -271,17 +341,26 @@ public:
     /**
      * @brief 检查是否为主世界
      */
-    [[nodiscard]] bool isOverworld() const { return m_id == 0; }
+    [[nodiscard]] bool isOverworld() const
+    {
+        return m_id == 0;
+    }
 
     /**
      * @brief 检查是否为下界
      */
-    [[nodiscard]] bool isNether() const { return m_id == -1; }
+    [[nodiscard]] bool isNether() const
+    {
+        return m_id == -1;
+    }
 
     /**
      * @brief 检查是否为末地
      */
-    [[nodiscard]] bool isTheEnd() const { return m_id == 1; }
+    [[nodiscard]] bool isTheEnd() const
+    {
+        return m_id == 1;
+    }
 
 private:
     DimensionType(DimensionId id, std::string name)

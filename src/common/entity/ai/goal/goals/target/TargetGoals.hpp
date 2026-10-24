@@ -356,7 +356,11 @@ public:
 
     [[nodiscard]] bool shouldExecute() override;
     void startExecuting() override;
-    [[nodiscard]] std::string getTypeName() const override { return "ResetAngerGoal"; }
+
+    [[nodiscard]] std::string getTypeName() const override
+    {
+        return "ResetAngerGoal";
+    }
 
 private:
     T* m_mob;

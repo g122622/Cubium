@@ -121,7 +121,10 @@ struct ScheduledTick {
  */
 template <typename T>
 struct ScheduledTickHash {
-    size_t operator()(const ScheduledTick<T>& tick) const noexcept { return tick.hashCode(); }
+    size_t operator()(const ScheduledTick<T>& tick) const noexcept
+    {
+        return tick.hashCode();
+    }
 };
 
 } // namespace mc::world::tick

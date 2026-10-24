@@ -77,7 +77,9 @@ std::vector<ChatMessage> ChatHistory::getVisibleMessages(bool includeFading) con
 
     size_t count = 0;
     for (const auto& msg : m_messages) {
-        if (count >= MAX_VISIBLE) break;
+        if (count >= MAX_VISIBLE) {
+            break;
+        }
 
         if (msg.permanent) {
             ChatMessage msgCopy;
@@ -108,10 +110,14 @@ std::vector<ChatMessage> ChatHistory::getVisibleMessages(bool includeFading) con
 
 void ChatHistory::addToInputHistory(const std::string& input)
 {
-    if (input.empty()) return;
+    if (input.empty()) {
+        return;
+    }
 
     // 避免重复
-    if (!m_inputHistory.empty() && m_inputHistory.back() == input) return;
+    if (!m_inputHistory.empty() && m_inputHistory.back() == input) {
+        return;
+    }
 
     m_inputHistory.push_back(input);
 
@@ -126,7 +132,9 @@ void ChatHistory::addToInputHistory(const std::string& input)
 
 std::string ChatHistory::getPreviousInput()
 {
-    if (m_inputHistory.empty()) return "";
+    if (m_inputHistory.empty()) {
+        return "";
+    }
 
     if (m_historyIndex == m_inputHistory.size()) {
         // 保存当前输入
@@ -143,7 +151,9 @@ std::string ChatHistory::getPreviousInput()
 
 std::string ChatHistory::getNextInput()
 {
-    if (m_inputHistory.empty()) return "";
+    if (m_inputHistory.empty()) {
+        return "";
+    }
 
     if (m_historyIndex < m_inputHistory.size() - 1) {
         m_historyIndex++;

@@ -26,6 +26,7 @@
 #include "common/command/CommandContext.hpp"
 #include "common/command/StringReader.hpp"
 #include "common/command/arguments/ArgumentType.hpp"
+#include "common/command/arguments/GameModeArgument.hpp"
 #include "common/command/exceptions/CommandExceptions.hpp"
 #include "common/core/Types.hpp"
 #include <cmath>
@@ -67,55 +68,73 @@ public:
         : m_minimum(minimum)
     {}
 
+    /**
+     * @brief 解析时间（原版 TimeArgument 语义）
+     *
+     * 数字部分与整数参数共用一套语法（可选 '-'、小数点，不认 '+'/前导空白/指数），
+     * 单位区分大小写（`1D` 非法），负值交给 {@code minimum} 检查。
+     */
     [[nodiscard]] i32 parse(StringReader& reader) override
     {
         i32 start = reader.getCursor();
 
-        // 读取浮点数部分（MC 原版使用 readFloat，支持如 "1.5d" 的输入）
+        // 原版 TimeArgument 调用的是 `WorldCoordinate.parseDouble(reader, false)`：
+        // 数字只读数字与小数点（`1e3` 读成 1，`e3` 留给单位而报错）；游标已读尽时整体
+        // 失败、游标停在起点；前导空格则读成 0 且游标不动（` 5s` → 0 tick）。
         f64 value = 0.0;
-        try {
-            value = reader.readDouble();
-        }
-        catch (const CommandException&) {
+        if (!readWorldCoordinateDouble(reader, value)) {
             reader.setCursor(start);
-            throw;
+            throw CommandException(
+                CommandErrorType::FloatExpected, "Expected float at position " + std::to_string(start), start);
         }
 
-        // 读取后缀单位字符串
+        // 读取后缀单位字符串（`-1` 的 '-' 已被消费；`1.5d` 的 d 是单位）。
         std::string unit = reader.readUnquotedString();
 
         // 查找单位对应的 tick 乘数
         auto it = s_units.find(unit);
         if (it == s_units.end()) {
+            const i32 end = reader.getCursor();
             reader.setCursor(start);
             throw CommandException(CommandErrorType::Unknown,
                 "Invalid time unit: '" + unit + "'. Expected 's', 'd', 't', or no unit",
-                start);
+                end);
         }
 
         i32 multiplier = it->second;
 
         // 计算总 tick 数（四舍五入，与 MC Java 的 Math.round 一致）
-        f64 rawTicks = value * static_cast<f64>(multiplier);
-        i32 ticks = static_cast<i32>(std::round(rawTicks));
+        const f64 rawTicks = value * static_cast<f64>(multiplier);
+        // 与 Java 的 (int) 强转一致：超出 i32 范围时截断到 INT_MIN/INT_MAX，不溢出回绕。
+        i32 ticks = javaToInt(std::round(rawTicks));
 
         // 检查最小值
         if (ticks < m_minimum) {
+            const i32 end = reader.getCursor();
             reader.setCursor(start);
             throw CommandException(CommandErrorType::IntegerTooLow,
                 "Time value must be at least " + std::to_string(m_minimum) + " ticks (got " + std::to_string(ticks) +
                     ")",
-                start);
+                end);
         }
 
         return ticks;
     }
 
-    [[nodiscard]] std::string getTypeName() const override { return "time"; }
+    [[nodiscard]] std::string getTypeName() const override
+    {
+        return "time";
+    }
 
-    [[nodiscard]] std::vector<std::string> getExamples() const override { return {"0d", "0s", "0t", "0"}; }
+    [[nodiscard]] std::vector<std::string> getExamples() const override
+    {
+        return {"0d", "0s", "0t", "0"};
+    }
 
-    [[nodiscard]] nlohmann::json serializeMetadata() const override { return nlohmann::json{{"min", m_minimum}}; }
+    [[nodiscard]] nlohmann::json serializeMetadata() const override
+    {
+        return nlohmann::json{{"min", m_minimum}};
+    }
 
     // ========== 静态工厂方法 ==========
 
@@ -124,7 +143,10 @@ public:
      *
      * 适用于 /schedule、/time set、/time add、/title times、/worldborder 等命令
      */
-    static std::shared_ptr<TimeArgumentType> time() { return std::make_shared<TimeArgumentType>(0); }
+    static std::shared_ptr<TimeArgumentType> time()
+    {
+        return std::make_shared<TimeArgumentType>(0);
+    }
 
     /**
      * @brief 创建指定最小值的时间参数类型
@@ -132,7 +154,10 @@ public:
      *
      * 适用于 /weather（minimum=1）、/tick step、/tick sprint 等命令
      */
-    static std::shared_ptr<TimeArgumentType> time(i32 minimum) { return std::make_shared<TimeArgumentType>(minimum); }
+    static std::shared_ptr<TimeArgumentType> time(i32 minimum)
+    {
+        return std::make_shared<TimeArgumentType>(minimum);
+    }
 
     // ========== 静态获取方法 ==========
 
@@ -150,6 +175,18 @@ public:
     }
 
 private:
+    /// Java 的 (double → int) 窄化：NaN→0，越界饱和。
+    static i32 javaToInt(f64 value) noexcept
+    {
+        if (!(value > static_cast<f64>(INT32_MIN))) {
+            return value != value ? 0 : INT32_MIN;
+        }
+        if (value >= static_cast<f64>(INT32_MAX)) {
+            return INT32_MAX;
+        }
+        return static_cast<i32>(value);
+    }
+
     i32 m_minimum;
 
     /// 单位字符串到 tick 乘数的映射表（与 MC Java TimeArgument.UNITS 一致）

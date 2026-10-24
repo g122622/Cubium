@@ -47,6 +47,7 @@ namespace sync {
 class ChunkSendManager;
 class BlockUpdateSyncManager;
 } // namespace sync
+
 namespace spawn {
 class VillageSiege;
 class WanderingTraderSpawner;
@@ -125,8 +126,15 @@ public:
     /**
      * @brief 获取服务端世界
      */
-    [[nodiscard]] server::ServerWorld* world() { return m_world.get(); }
-    [[nodiscard]] const server::ServerWorld* world() const { return m_world.get(); }
+    [[nodiscard]] server::ServerWorld* world()
+    {
+        return m_world.get();
+    }
+
+    [[nodiscard]] const server::ServerWorld* world() const
+    {
+        return m_world.get();
+    }
 
     void setWorld(std::unique_ptr<server::ServerWorld> world);
 
@@ -147,8 +155,15 @@ public:
     /**
      * @brief 获取区块发送管理器
      */
-    [[nodiscard]] server::sync::ChunkSendManager* chunkSendManager() { return m_chunkSendManager.get(); }
-    [[nodiscard]] const server::sync::ChunkSendManager* chunkSendManager() const { return m_chunkSendManager.get(); }
+    [[nodiscard]] server::sync::ChunkSendManager* chunkSendManager()
+    {
+        return m_chunkSendManager.get();
+    }
+
+    [[nodiscard]] const server::sync::ChunkSendManager* chunkSendManager() const
+    {
+        return m_chunkSendManager.get();
+    }
 
     /**
      * @brief 获取方块更新同步管理器
@@ -157,6 +172,7 @@ public:
     {
         return m_blockUpdateSyncManager.get();
     }
+
     [[nodiscard]] const server::sync::BlockUpdateSyncManager* blockUpdateSyncManager() const
     {
         return m_blockUpdateSyncManager.get();
@@ -167,20 +183,41 @@ public:
     /**
      * @brief 获取自然生成管理器
      */
-    [[nodiscard]] world::spawn::NaturalSpawner* naturalSpawner() { return m_naturalSpawner.get(); }
-    [[nodiscard]] const world::spawn::NaturalSpawner* naturalSpawner() const { return m_naturalSpawner.get(); }
+    [[nodiscard]] world::spawn::NaturalSpawner* naturalSpawner()
+    {
+        return m_naturalSpawner.get();
+    }
+
+    [[nodiscard]] const world::spawn::NaturalSpawner* naturalSpawner() const
+    {
+        return m_naturalSpawner.get();
+    }
 
     /**
      * @brief 获取生物消失管理器
      */
-    [[nodiscard]] world::spawn::DespawnManager* despawnManager() { return m_despawnManager.get(); }
-    [[nodiscard]] const world::spawn::DespawnManager* despawnManager() const { return m_despawnManager.get(); }
+    [[nodiscard]] world::spawn::DespawnManager* despawnManager()
+    {
+        return m_despawnManager.get();
+    }
+
+    [[nodiscard]] const world::spawn::DespawnManager* despawnManager() const
+    {
+        return m_despawnManager.get();
+    }
 
     /**
      * @brief 获取村庄围攻管理器（僵尸围村）
      */
-    [[nodiscard]] server::spawn::VillageSiege* villageSiege() { return m_villageSiege.get(); }
-    [[nodiscard]] const server::spawn::VillageSiege* villageSiege() const { return m_villageSiege.get(); }
+    [[nodiscard]] server::spawn::VillageSiege* villageSiege()
+    {
+        return m_villageSiege.get();
+    }
+
+    [[nodiscard]] const server::spawn::VillageSiege* villageSiege() const
+    {
+        return m_villageSiege.get();
+    }
 
     /**
      * @brief 获取流浪商人自然生成器
@@ -189,6 +226,7 @@ public:
     {
         return m_wanderingTraderSpawner.get();
     }
+
     [[nodiscard]] const server::spawn::WanderingTraderSpawner* wanderingTraderSpawner() const
     {
         return m_wanderingTraderSpawner.get();
@@ -214,7 +252,10 @@ public:
     /**
      * @brief 获取维度中的所有玩家
      */
-    [[nodiscard]] const std::vector<PlayerId>& players() const { return m_players; }
+    [[nodiscard]] const std::vector<PlayerId>& players() const
+    {
+        return m_players;
+    }
 
     // ========== 传送门追踪 ==========
 
@@ -249,12 +290,18 @@ public:
     /**
      * @brief 获取视野距离
      */
-    [[nodiscard]] i32 viewDistance() const { return m_viewDistance; }
+    [[nodiscard]] i32 viewDistance() const
+    {
+        return m_viewDistance;
+    }
 
     /**
      * @brief 获取世界种子
      */
-    [[nodiscard]] u64 seed() const { return m_seed; }
+    [[nodiscard]] u64 seed() const
+    {
+        return m_seed;
+    }
 
 private:
     std::unique_ptr<server::ServerWorld> m_world;

@@ -66,22 +66,52 @@ public:
     /**
      * @brief 检查是否已初始化
      */
-    [[nodiscard]] static bool isInitialized() { return s_initialized; }
+    [[nodiscard]] static bool isInitialized()
+    {
+        return s_initialized;
+    }
 
     /** 木制工具层级 */
-    [[nodiscard]] static const IItemTier& WOOD() { return *s_wood; }
+    [[nodiscard]] static const IItemTier& WOOD()
+    {
+        return *s_wood;
+    }
+
     /** 石制工具层级 */
-    [[nodiscard]] static const IItemTier& STONE() { return *s_stone; }
+    [[nodiscard]] static const IItemTier& STONE()
+    {
+        return *s_stone;
+    }
+
     /** 铜制工具层级 */
-    [[nodiscard]] static const IItemTier& COPPER() { return *s_copper; }
+    [[nodiscard]] static const IItemTier& COPPER()
+    {
+        return *s_copper;
+    }
+
     /** 铁制工具层级 */
-    [[nodiscard]] static const IItemTier& IRON() { return *s_iron; }
+    [[nodiscard]] static const IItemTier& IRON()
+    {
+        return *s_iron;
+    }
+
     /** 钻石工具层级 */
-    [[nodiscard]] static const IItemTier& DIAMOND() { return *s_diamond; }
+    [[nodiscard]] static const IItemTier& DIAMOND()
+    {
+        return *s_diamond;
+    }
+
     /** 金制工具层级 */
-    [[nodiscard]] static const IItemTier& GOLD() { return *s_gold; }
+    [[nodiscard]] static const IItemTier& GOLD()
+    {
+        return *s_gold;
+    }
+
     /** 下界合金工具层级 */
-    [[nodiscard]] static const IItemTier& NETHERITE() { return *s_netherite; }
+    [[nodiscard]] static const IItemTier& NETHERITE()
+    {
+        return *s_netherite;
+    }
 
 private:
     static bool s_initialized;

@@ -102,19 +102,28 @@ public:
      * @brief 获取修复成本（经验等级）
      * @return 修复成本，如果超过40返回-1表示太贵
      */
-    [[nodiscard]] i32 getRepairCost() const { return m_repairCost; }
+    [[nodiscard]] i32 getRepairCost() const
+    {
+        return m_repairCost;
+    }
 
     /**
      * @brief 获取材料消耗数量
      * @return 材料消耗数量
      */
-    [[nodiscard]] i32 getMaterialCost() const { return m_materialCost; }
+    [[nodiscard]] i32 getMaterialCost() const
+    {
+        return m_materialCost;
+    }
 
     /**
      * @brief 检查是否太贵（修复成本 >= 40）
      * @return 如果太贵返回true
      */
-    [[nodiscard]] bool isTooExpensive() const { return m_repairCost >= MAX_REPAIR_COST; }
+    [[nodiscard]] bool isTooExpensive() const
+    {
+        return m_repairCost >= MAX_REPAIR_COST;
+    }
 
     // ========== 重命名 ==========
 
@@ -128,7 +137,10 @@ public:
      * @brief 获取重命名名称
      * @return 重命名名称
      */
-    [[nodiscard]] const std::string& getItemName() const { return m_itemName; }
+    [[nodiscard]] const std::string& getItemName() const
+    {
+        return m_itemName;
+    }
 
     /**
      * @brief 检查是否只有重命名操作
@@ -148,7 +160,10 @@ public:
     /** @brief 领取结果后扣除经验、消耗输入并处理铁砧损耗。 */
     void onResultTaken(Player& player);
 
-    [[nodiscard]] i32 getResultSlotIndex() const noexcept override { return SLOT_OUTPUT; }
+    [[nodiscard]] i32 getResultSlotIndex() const noexcept override
+    {
+        return SLOT_OUTPUT;
+    }
 
     // ========== 槽位访问 ==========
 

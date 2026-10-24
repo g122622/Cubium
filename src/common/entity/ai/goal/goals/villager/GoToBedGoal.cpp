@@ -56,14 +56,22 @@ GoToBedGoal::GoToBedGoal(VillagerEntity* villager)
 
 bool GoToBedGoal::shouldExecute()
 {
-    if (!m_villager) return false;
+    if (!m_villager) {
+        return false;
+    }
 
     // 检查是否是夜间
-    if (!m_villager->world()) return false;
-    if (!m_villager->isNightTime()) return false;
+    if (!m_villager->world()) {
+        return false;
+    }
+    if (!m_villager->isNightTime()) {
+        return false;
+    }
 
     // 已经在睡眠中则不重新开始
-    if (m_villager->isSleeping()) return false;
+    if (m_villager->isSleeping()) {
+        return false;
+    }
 
     // 检查是否有绑定的床位（从Brain的HOME记忆获取）
     // HOME记忆使用GlobalPos类型，包含维度信息
@@ -79,7 +87,9 @@ bool GoToBedGoal::shouldExecute()
     // 没有绑定床位，尝试查找最近的可用床
     // 村民会搜索48格范围内的床
     auto* villageManager = m_villager->world()->villageManager();
-    if (!villageManager) return false;
+    if (!villageManager) {
+        return false;
+    }
 
     auto& poiStorage = villageManager->getPOIStorage();
     BlockPos villagerPos(
@@ -106,7 +116,9 @@ bool GoToBedGoal::shouldExecute()
 
 bool GoToBedGoal::shouldContinueExecuting()
 {
-    if (!m_villager) return false;
+    if (!m_villager) {
+        return false;
+    }
 
     return !m_reachedBed;
 }
@@ -136,9 +148,13 @@ void GoToBedGoal::resetTask()
 
 void GoToBedGoal::tick()
 {
-    if (!m_villager) return;
+    if (!m_villager) {
+        return;
+    }
 
-    if (m_bedPos == BlockPos::zero()) return;
+    if (m_bedPos == BlockPos::zero()) {
+        return;
+    }
 
     // 检查是否到达床位
     if (isWithinDistance(m_villager, m_bedPos, 1.5f)) {

@@ -16,8 +16,15 @@ public:
         : m_result(std::move(result))
     {}
 
-    [[nodiscard]] bool isComplete() const noexcept override { return true; }
-    [[nodiscard]] GameTestResult getError() override { return std::move(m_result); }
+    [[nodiscard]] bool isComplete() const noexcept override
+    {
+        return true;
+    }
+
+    [[nodiscard]] GameTestResult getError() override
+    {
+        return std::move(m_result);
+    }
 
 private:
     GameTestResult m_result;

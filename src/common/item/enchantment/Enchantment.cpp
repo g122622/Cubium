@@ -203,7 +203,9 @@ bool Enchantment::isTypeCompatibleWith(const Enchantment& other) const
             t == EnchantmentType::ArmorFeet;
     };
 
-    auto isWearable = [isArmor](EnchantmentType t) { return isArmor(t) || t == EnchantmentType::Wearable; };
+    auto isWearable = [isArmor](EnchantmentType t) {
+        return isArmor(t) || t == EnchantmentType::Wearable;
+    };
 
     // 护甲附魔之间兼容
     if (isArmor(thisType) && isArmor(otherType)) {

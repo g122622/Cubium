@@ -71,19 +71,37 @@ public:
     {}
 
     // 静态常量
-    static ChunkPos zero() { return {0, 0}; }
+    static ChunkPos zero()
+    {
+        return {0, 0};
+    }
 
     // 算术运算
-    [[nodiscard]] ChunkPos operator+(const ChunkPos& other) const noexcept { return {x + other.x, z + other.z}; }
+    [[nodiscard]] ChunkPos operator+(const ChunkPos& other) const noexcept
+    {
+        return {x + other.x, z + other.z};
+    }
 
-    [[nodiscard]] ChunkPos operator-(const ChunkPos& other) const noexcept { return {x - other.x, z - other.z}; }
+    [[nodiscard]] ChunkPos operator-(const ChunkPos& other) const noexcept
+    {
+        return {x - other.x, z - other.z};
+    }
 
-    [[nodiscard]] ChunkPos operator*(i32 scalar) const noexcept { return {x * scalar, z * scalar}; }
+    [[nodiscard]] ChunkPos operator*(i32 scalar) const noexcept
+    {
+        return {x * scalar, z * scalar};
+    }
 
     // 比较运算
-    [[nodiscard]] bool operator==(const ChunkPos& other) const noexcept { return x == other.x && z == other.z; }
+    [[nodiscard]] bool operator==(const ChunkPos& other) const noexcept
+    {
+        return x == other.x && z == other.z;
+    }
 
-    [[nodiscard]] bool operator!=(const ChunkPos& other) const noexcept { return !(*this == other); }
+    [[nodiscard]] bool operator!=(const ChunkPos& other) const noexcept
+    {
+        return !(*this == other);
+    }
 
     [[nodiscard]] bool operator<(const ChunkPos& other) const noexcept
     {
@@ -91,8 +109,15 @@ public:
     }
 
     // 区块在世界中的原点坐标
-    [[nodiscard]] BlockCoord worldX() const noexcept { return x * mc::world::CHUNK_WIDTH; }
-    [[nodiscard]] BlockCoord worldZ() const noexcept { return z * mc::world::CHUNK_WIDTH; }
+    [[nodiscard]] BlockCoord worldX() const noexcept
+    {
+        return x * mc::world::CHUNK_WIDTH;
+    }
+
+    [[nodiscard]] BlockCoord worldZ() const noexcept
+    {
+        return z * mc::world::CHUNK_WIDTH;
+    }
 
     // 区块中心坐标
     [[nodiscard]] Vector3 center(f32 y = 0.0f) const noexcept
@@ -103,7 +128,10 @@ public:
     }
 
     // 转换为64位唯一ID
-    [[nodiscard]] u64 toId() const noexcept { return math::chunkPosToId(x, z); }
+    [[nodiscard]] u64 toId() const noexcept
+    {
+        return math::chunkPosToId(x, z);
+    }
 
     // 从64位ID创建
     [[nodiscard]] static ChunkPos fromId(u64 id) noexcept
@@ -132,10 +160,25 @@ public:
     }
 
     // 获取相邻区块
-    [[nodiscard]] ChunkPos north() const noexcept { return {x, z - 1}; }
-    [[nodiscard]] ChunkPos south() const noexcept { return {x, z + 1}; }
-    [[nodiscard]] ChunkPos east() const noexcept { return {x + 1, z}; }
-    [[nodiscard]] ChunkPos west() const noexcept { return {x - 1, z}; }
+    [[nodiscard]] ChunkPos north() const noexcept
+    {
+        return {x, z - 1};
+    }
+
+    [[nodiscard]] ChunkPos south() const noexcept
+    {
+        return {x, z + 1};
+    }
+
+    [[nodiscard]] ChunkPos east() const noexcept
+    {
+        return {x + 1, z};
+    }
+
+    [[nodiscard]] ChunkPos west() const noexcept
+    {
+        return {x - 1, z};
+    }
 };
 
 } // namespace mc::world::chunk
@@ -148,6 +191,9 @@ using ChunkPos = world::chunk::ChunkPos;
 namespace std {
 template <>
 struct hash<mc::world::chunk::ChunkPos> {
-    size_t operator()(const mc::world::chunk::ChunkPos& pos) const noexcept { return static_cast<size_t>(pos.toId()); }
+    size_t operator()(const mc::world::chunk::ChunkPos& pos) const noexcept
+    {
+        return static_cast<size_t>(pos.toId());
+    }
 };
 } // namespace std

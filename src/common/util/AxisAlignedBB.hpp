@@ -118,16 +118,30 @@ public:
     }
 
     // 基本属性
-    [[nodiscard]] f32 width() const noexcept { return maxX - minX; }
-    [[nodiscard]] f32 height() const noexcept { return maxY - minY; }
-    [[nodiscard]] f32 depth() const noexcept { return maxZ - minZ; }
+    [[nodiscard]] f32 width() const noexcept
+    {
+        return maxX - minX;
+    }
+
+    [[nodiscard]] f32 height() const noexcept
+    {
+        return maxY - minY;
+    }
+
+    [[nodiscard]] f32 depth() const noexcept
+    {
+        return maxZ - minZ;
+    }
 
     [[nodiscard]] Vector3 center() const noexcept
     {
         return Vector3((minX + maxX) / 2.0f, (minY + maxY) / 2.0f, (minZ + maxZ) / 2.0f);
     }
 
-    [[nodiscard]] f32 volume() const noexcept { return (maxX - minX) * (maxY - minY) * (maxZ - minZ); }
+    [[nodiscard]] f32 volume() const noexcept
+    {
+        return (maxX - minX) * (maxY - minY) * (maxZ - minZ);
+    }
 
     // 相交检测
     [[nodiscard]] bool intersects(const AxisAlignedBB& other) const noexcept
@@ -184,13 +198,19 @@ public:
      * @brief 均匀扩展AABB
      * @param amount 各方向扩展量
      */
-    [[nodiscard]] AxisAlignedBB grow(f32 amount) const noexcept { return expand(amount, amount, amount); }
+    [[nodiscard]] AxisAlignedBB grow(f32 amount) const noexcept
+    {
+        return expand(amount, amount, amount);
+    }
 
     /**
      * @brief 均匀收缩AABB
      * @param amount 各方向收缩量
      */
-    [[nodiscard]] AxisAlignedBB shrink(f32 amount) const noexcept { return expand(-amount, -amount, -amount); }
+    [[nodiscard]] AxisAlignedBB shrink(f32 amount) const noexcept
+    {
+        return expand(-amount, -amount, -amount);
+    }
 
     /**
      * @brief 均匀收缩AABB（MC 命名，等价于 shrink）
@@ -201,7 +221,10 @@ public:
      * @param amount 各方向收缩量
      * @return 收缩后的 AABB
      */
-    [[nodiscard]] AxisAlignedBB deflate(f32 amount) const noexcept { return expand(-amount, -amount, -amount); }
+    [[nodiscard]] AxisAlignedBB deflate(f32 amount) const noexcept
+    {
+        return expand(-amount, -amount, -amount);
+    }
 
     /**
      * @brief 沿速度向量方向非对称扩展 AABB（对应 MC 1.21 AABB.expandTowards）
@@ -248,7 +271,10 @@ public:
      *
      * @param amount 各方向膨胀量
      */
-    [[nodiscard]] AxisAlignedBB inflate(f32 amount) const noexcept { return expand(amount, amount, amount); }
+    [[nodiscard]] AxisAlignedBB inflate(f32 amount) const noexcept
+    {
+        return expand(amount, amount, amount);
+    }
 
     // ========== MC碰撞检测核心算法 ==========
 
@@ -271,8 +297,12 @@ public:
     [[nodiscard]] f32 calculateXOffset(const AxisAlignedBB& other, f32 offsetX) const noexcept
     {
         // Y或Z范围不相交，不影响移动
-        if (maxY <= other.minY || minY >= other.maxY) return offsetX;
-        if (maxZ <= other.minZ || minZ >= other.maxZ) return offsetX;
+        if (maxY <= other.minY || minY >= other.maxY) {
+            return offsetX;
+        }
+        if (maxZ <= other.minZ || minZ >= other.maxZ) {
+            return offsetX;
+        }
 
         if (offsetX > 0.0f) {
             // 仅当other在当前包围盒右侧时才可能阻挡
@@ -305,8 +335,12 @@ public:
     [[nodiscard]] f32 calculateYOffset(const AxisAlignedBB& other, f32 offsetY) const noexcept
     {
         // X或Z范围不相交，不影响移动
-        if (maxX <= other.minX || minX >= other.maxX) return offsetY;
-        if (maxZ <= other.minZ || minZ >= other.maxZ) return offsetY;
+        if (maxX <= other.minX || minX >= other.maxX) {
+            return offsetY;
+        }
+        if (maxZ <= other.minZ || minZ >= other.maxZ) {
+            return offsetY;
+        }
 
         if (offsetY > 0.0f) {
             // 仅当other在当前包围盒上方时才可能阻挡
@@ -339,8 +373,12 @@ public:
     [[nodiscard]] f32 calculateZOffset(const AxisAlignedBB& other, f32 offsetZ) const noexcept
     {
         // X或Y范围不相交，不影响移动
-        if (maxX <= other.minX || minX >= other.maxX) return offsetZ;
-        if (maxY <= other.minY || minY >= other.maxY) return offsetZ;
+        if (maxX <= other.minX || minX >= other.maxX) {
+            return offsetZ;
+        }
+        if (maxY <= other.minY || minY >= other.maxY) {
+            return offsetZ;
+        }
 
         if (offsetZ > 0.0f) {
             // 仅当other在当前包围盒前方时才可能阻挡
@@ -386,7 +424,10 @@ public:
             maxY == other.maxY && maxZ == other.maxZ;
     }
 
-    [[nodiscard]] bool operator!=(const AxisAlignedBB& other) const noexcept { return !(*this == other); }
+    [[nodiscard]] bool operator!=(const AxisAlignedBB& other) const noexcept
+    {
+        return !(*this == other);
+    }
 };
 
 } // namespace mc

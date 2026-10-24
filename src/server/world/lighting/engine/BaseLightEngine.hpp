@@ -45,13 +45,17 @@ namespace mc {
 class StarLightLightingProvider;
 class BlockState;
 class CollisionShape;
+
 namespace world::chunk {
 class IChunk;
 }
+
 using world::chunk::IChunk;
+
 namespace world::chunk {
 class ChunkSection;
 }
+
 using world::chunk::ChunkSection;
 
 // ============================================================================
@@ -237,7 +241,10 @@ public:
     /**
      * @brief 检查是否有待处理的更新
      */
-    [[nodiscard]] bool needsUpdate() const noexcept { return m_needsUpdate; }
+    [[nodiscard]] bool needsUpdate() const noexcept
+    {
+        return m_needsUpdate;
+    }
 
     /**
      * @brief 获取待处理更新数量
@@ -250,7 +257,10 @@ public:
     /**
      * @brief 检查是否有待处理的工作
      */
-    [[nodiscard]] bool hasWork() const noexcept { return m_needsUpdate || queuedUpdateSize() > 0; }
+    [[nodiscard]] bool hasWork() const noexcept
+    {
+        return m_needsUpdate || queuedUpdateSize() > 0;
+    }
 
     /**
      * @brief 重置队列状态

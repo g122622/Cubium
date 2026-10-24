@@ -80,8 +80,12 @@ public:
      */
     void addGoal(i32 priority, std::unique_ptr<Goal> goal)
     {
-        if (goal == nullptr) return;
-        if (_hasGoal(goal.get())) return;
+        if (goal == nullptr) {
+            return;
+        }
+        if (_hasGoal(goal.get())) {
+            return;
+        }
         m_goals.emplace_back(priority, std::move(goal));
     }
 
@@ -93,8 +97,12 @@ public:
      */
     void addGoal(i32 priority, Goal* goal)
     {
-        if (goal == nullptr) return;
-        if (_hasGoal(goal)) return;
+        if (goal == nullptr) {
+            return;
+        }
+        if (_hasGoal(goal)) {
+            return;
+        }
         m_goals.emplace_back(priority, goal);
     }
 
@@ -118,9 +126,12 @@ public:
             pg->resetTask();
         }
         // 再移除所有匹配目标（同步清理 flagGoals 悬垂指针）
-        m_goals.remove_if([goal](const PrioritizedGoal& pg) { return pg.getGoal() == goal; });
+        m_goals.remove_if([goal](const PrioritizedGoal& pg) {
+            return pg.getGoal() == goal;
+        });
         _pruneFlagGoals();
     }
+
     /**
      * @brief 移除所有AI目标
      */
@@ -162,8 +173,9 @@ public:
             pg->resetTask();
         }
         // 移除所有匹配目标（同步清理 flagGoals 悬垂指针）
-        m_goals.remove_if(
-            [](const PrioritizedGoal& pg) { return dynamic_cast<const GoalType*>(pg.getGoal()) != nullptr; });
+        m_goals.remove_if([](const PrioritizedGoal& pg) {
+            return dynamic_cast<const GoalType*>(pg.getGoal()) != nullptr;
+        });
         _pruneFlagGoals();
     }
 
@@ -255,8 +267,9 @@ public:
                 it = m_goals.end();
                 continue;
             }
-            auto found = std::find_if(
-                m_goals.begin(), m_goals.end(), [nextGoal](const PrioritizedGoal& pg) { return &pg == nextGoal; });
+            auto found = std::find_if(m_goals.begin(), m_goals.end(), [nextGoal](const PrioritizedGoal& pg) {
+                return &pg == nextGoal;
+            });
             it = found;
         }
 
@@ -276,14 +289,20 @@ public:
      *
      * @param flag 要禁用的标志
      */
-    void disableFlag(GoalFlag flag) noexcept { m_disabledFlags.set(flag); }
+    void disableFlag(GoalFlag flag) noexcept
+    {
+        m_disabledFlags.set(flag);
+    }
 
     /**
      * @brief 启用指定标志
      *
      * @param flag 要启用的标志
      */
-    void enableFlag(GoalFlag flag) noexcept { m_disabledFlags.reset(flag); }
+    void enableFlag(GoalFlag flag) noexcept
+    {
+        m_disabledFlags.reset(flag);
+    }
 
     /**
      * @brief 设置标志启用状态
@@ -306,14 +325,20 @@ public:
      * @param flag 标志
      * @return true 如果被禁用
      */
-    [[nodiscard]] bool isFlagDisabled(GoalFlag flag) const noexcept { return m_disabledFlags.test(flag); }
+    [[nodiscard]] bool isFlagDisabled(GoalFlag flag) const noexcept
+    {
+        return m_disabledFlags.test(flag);
+    }
 
     /**
      * @brief 设置更新间隔
      *
      * @param rate tick间隔
      */
-    void setTickRate(i32 rate) noexcept { m_tickRate = rate; }
+    void setTickRate(i32 rate) noexcept
+    {
+        m_tickRate = rate;
+    }
 
     /**
      * @brief 获取所有正在运行的目标
@@ -336,7 +361,10 @@ public:
      *
      * @return 所有目标的常量引用
      */
-    [[nodiscard]] const std::list<PrioritizedGoal>& getAllGoals() const noexcept { return m_goals; }
+    [[nodiscard]] const std::list<PrioritizedGoal>& getAllGoals() const noexcept
+    {
+        return m_goals;
+    }
 
     /**
      * @brief 检查是否有正在运行的目标
@@ -414,7 +442,9 @@ private:
         }
 
         // 更新 flagGoals
-        flags.forEach([this, &goal](GoalFlag flag) { m_flagGoals[flag] = &goal; });
+        flags.forEach([this, &goal](GoalFlag flag) {
+            m_flagGoals[flag] = &goal;
+        });
 
         goal.startExecuting();
     }
@@ -467,8 +497,10 @@ private:
     void _pruneFlagGoals()
     {
         for (auto it = m_flagGoals.begin(); it != m_flagGoals.end();) {
-            const bool alive = std::any_of(
-                m_goals.begin(), m_goals.end(), [ptr = it->second](const PrioritizedGoal& pg) { return &pg == ptr; });
+            const bool alive =
+                std::any_of(m_goals.begin(), m_goals.end(), [ptr = it->second](const PrioritizedGoal& pg) {
+                    return &pg == ptr;
+                });
             if (!alive) {
                 it = m_flagGoals.erase(it);
             } else {

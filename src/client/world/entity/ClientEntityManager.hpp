@@ -125,7 +125,10 @@ public:
      * @brief 获取本地玩家的实体ID
      * @return 实体ID，未设置返回 INVALID_ENTITY_ID
      */
-    [[nodiscard]] EntityInstanceId localPlayerEntityId() const { return m_localPlayerEntityId; }
+    [[nodiscard]] EntityInstanceId localPlayerEntityId() const
+    {
+        return m_localPlayerEntityId;
+    }
 
     /**
      * @brief 检查实体是否是本地玩家
@@ -137,7 +140,10 @@ public:
     /**
      * @brief 检查是否已设置本地玩家
      */
-    [[nodiscard]] bool hasLocalPlayer() const { return m_localPlayerEntityId != INVALID_ENTITY_ID; }
+    [[nodiscard]] bool hasLocalPlayer() const
+    {
+        return m_localPlayerEntityId != INVALID_ENTITY_ID;
+    }
 
     /**
      * @brief 清除本地玩家（登出时调用）
@@ -211,14 +217,20 @@ public:
      *
      * @return 累积器值（0.0 到 TICK_INTERVAL）
      */
-    [[nodiscard]] f32 tickAccumulator() const { return m_tickAccumulator; }
+    [[nodiscard]] f32 tickAccumulator() const
+    {
+        return m_tickAccumulator;
+    }
 
     /**
      * @brief 获取 tick 间隔常量
      *
      * 用于外部代码计算 partialTick。
      */
-    [[nodiscard]] static constexpr f32 tickInterval() { return TICK_INTERVAL; }
+    [[nodiscard]] static constexpr f32 tickInterval()
+    {
+        return TICK_INTERVAL;
+    }
 
     /**
      * @brief 更新所有实体的平滑插值（每帧调用）

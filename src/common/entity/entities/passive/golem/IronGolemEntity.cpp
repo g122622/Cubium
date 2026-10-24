@@ -132,7 +132,9 @@ void IronGolemEntity::registerGoals()
             true, // checkSight
             5,    // chance (每5tick检查一次)
             [](const LivingEntity* entity) -> bool {
-                if (!entity || !entity->isAlive()) return false;
+                if (!entity || !entity->isAlive()) {
+                    return false;
+                }
                 // 攻击敌对生物（实现了 IMob 接口/是 MonsterEntity 子类）
                 const MonsterEntity* monster = dynamic_cast<const MonsterEntity*>(entity);
                 return monster != nullptr;

@@ -61,12 +61,30 @@ public:
 
     explicit Activity(const std::string& key);
 
-    [[nodiscard]] const std::string& getKey() const noexcept { return m_key; }
-    [[nodiscard]] size_t getHash() const noexcept { return m_hash; }
+    [[nodiscard]] const std::string& getKey() const noexcept
+    {
+        return m_key;
+    }
 
-    bool operator==(const Activity& other) const noexcept { return m_key == other.m_key; }
-    bool operator!=(const Activity& other) const noexcept { return m_key != other.m_key; }
-    bool operator<(const Activity& other) const noexcept { return m_key < other.m_key; }
+    [[nodiscard]] size_t getHash() const noexcept
+    {
+        return m_hash;
+    }
+
+    bool operator==(const Activity& other) const noexcept
+    {
+        return m_key == other.m_key;
+    }
+
+    bool operator!=(const Activity& other) const noexcept
+    {
+        return m_key != other.m_key;
+    }
+
+    bool operator<(const Activity& other) const noexcept
+    {
+        return m_key < other.m_key;
+    }
 
 private:
     std::string m_key;

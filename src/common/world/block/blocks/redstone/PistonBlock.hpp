@@ -131,7 +131,10 @@ public:
      *
      * @return true 如果是粘性活塞
      */
-    [[nodiscard]] bool isSticky() const { return m_sticky; }
+    [[nodiscard]] bool isSticky() const
+    {
+        return m_sticky;
+    }
 
     /**
      * @brief 检查活塞是否应该伸出

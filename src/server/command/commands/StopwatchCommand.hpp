@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (c) 2026 Guo Yi
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -13,7 +13,7 @@
  *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN THE EVENT THAT THE
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
  * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
@@ -27,35 +27,24 @@
 #include "common/command/CommandDispatcher.hpp"
 #include "common/core/Types.hpp"
 #include "server/command/ServerCommandSource.hpp"
-#include <memory>
 
-namespace mc {
-namespace command {
+namespace mc::command {
 
 /**
- * @brief /warden_spawn_tracker 命令
+ * @brief /stopwatch 命令（原版 1.21.5+）：按世界 tick 计数的命名秒表。
  *
- * 管理监守者警告追踪器的状态。
- * 权限等级: 2 (OP)
- *
- * 用法:
- * - /warden_spawn_tracker clear - 重置警告追踪器
- * - /warden_spawn_tracker set <warning_level> - 设置警告等级 (0-4)
- *
- * 参考: net.minecraft.server.commands.WardenSpawnTrackerCommand
+ * 用法：`/stopwatch create <id>`、`/stopwatch restart <id>`、`/stopwatch remove <id>`、
+ * `/stopwatch query <id>`。计时单位是游戏刻（与 GameTime 一致），不随服务器墙钟变化。
  */
-class WardenSpawnTrackerCommand {
+class StopwatchCommand {
 public:
-    /**
-     * @brief 注册命令到分发器
-     * @param dispatcher 命令分发器
-     */
     static void registerTo(CommandDispatcher<ServerCommandSource>& dispatcher);
 
 private:
-    static i32 _clear(CommandContext<ServerCommandSource>& context);
-    static i32 _setWarningLevel(CommandContext<ServerCommandSource>& context);
+    static i32 _create(CommandContext<ServerCommandSource>& context);
+    static i32 _restart(CommandContext<ServerCommandSource>& context);
+    static i32 _remove(CommandContext<ServerCommandSource>& context);
+    static i32 _query(CommandContext<ServerCommandSource>& context);
 };
 
-} // namespace command
-} // namespace mc
+} // namespace mc::command

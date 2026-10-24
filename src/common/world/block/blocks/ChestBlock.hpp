@@ -109,7 +109,10 @@ public:
     /**
      * @brief 检查是否有方块实体
      */
-    [[nodiscard]] bool hasBlockEntity() const noexcept override { return true; }
+    [[nodiscard]] bool hasBlockEntity() const noexcept override
+    {
+        return true;
+    }
 
     /**
      * @brief 创建方块实体
@@ -236,7 +239,10 @@ public:
      * @brief 获取方块实体类型
      * @return 方块实体类型
      */
-    [[nodiscard]] virtual BlockEntityType getBlockEntityType() const { return BlockEntityType::Chest; }
+    [[nodiscard]] virtual BlockEntityType getBlockEntityType() const
+    {
+        return BlockEntityType::Chest;
+    }
 
     // ========== 开合音效 ==========
 

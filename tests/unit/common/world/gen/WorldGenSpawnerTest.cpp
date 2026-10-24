@@ -83,10 +83,18 @@ TEST_F(WorldGenSpawnerTest, PlainsSpawnInfo)
     // 应该包含羊、猪、牛、鸡
     bool hasSheep = false, hasPig = false, hasCow = false, hasChicken = false;
     for (const auto& entry : creatures) {
-        if (entry.entityTypeId == "minecraft:sheep") hasSheep = true;
-        if (entry.entityTypeId == "minecraft:pig") hasPig = true;
-        if (entry.entityTypeId == "minecraft:cow") hasCow = true;
-        if (entry.entityTypeId == "minecraft:chicken") hasChicken = true;
+        if (entry.entityTypeId == "minecraft:sheep") {
+            hasSheep = true;
+        }
+        if (entry.entityTypeId == "minecraft:pig") {
+            hasPig = true;
+        }
+        if (entry.entityTypeId == "minecraft:cow") {
+            hasCow = true;
+        }
+        if (entry.entityTypeId == "minecraft:chicken") {
+            hasChicken = true;
+        }
     }
     EXPECT_TRUE(hasSheep);
     EXPECT_TRUE(hasPig);
@@ -107,8 +115,12 @@ TEST_F(WorldGenSpawnerTest, ForestSpawnInfo)
     bool hasWolf = false;
     int chickenCount = 0;
     for (const auto& entry : creatures) {
-        if (entry.entityTypeId == "minecraft:wolf") hasWolf = true;
-        if (entry.entityTypeId == "minecraft:chicken") ++chickenCount;
+        if (entry.entityTypeId == "minecraft:wolf") {
+            hasWolf = true;
+        }
+        if (entry.entityTypeId == "minecraft:chicken") {
+            ++chickenCount;
+        }
     }
     EXPECT_TRUE(hasWolf);
     // 原版 Forest chicken 仅一条 weight=10 条目；此前源码误加两条，已收敛
@@ -123,7 +135,9 @@ TEST_F(WorldGenSpawnerTest, DesertSpawnInfo)
     const auto& monsters = info.getMonsterSpawns();
     bool hasHusk = false;
     for (const auto& entry : monsters) {
-        if (entry.entityTypeId == "minecraft:husk") hasHusk = true;
+        if (entry.entityTypeId == "minecraft:husk") {
+            hasHusk = true;
+        }
     }
     EXPECT_TRUE(hasHusk);
 
@@ -144,7 +158,9 @@ TEST_F(WorldGenSpawnerTest, OceanSpawnInfo)
     const auto& waterAmbient = info.getWaterAmbientSpawns();
     bool hasCod = false;
     for (const auto& entry : waterAmbient) {
-        if (entry.entityTypeId == "minecraft:cod") hasCod = true;
+        if (entry.entityTypeId == "minecraft:cod") {
+            hasCod = true;
+        }
     }
     EXPECT_TRUE(hasCod);
 
@@ -152,7 +168,9 @@ TEST_F(WorldGenSpawnerTest, OceanSpawnInfo)
     const auto& monsters = info.getMonsterSpawns();
     bool hasDrowned = false;
     for (const auto& entry : monsters) {
-        if (entry.entityTypeId == "minecraft:drowned") hasDrowned = true;
+        if (entry.entityTypeId == "minecraft:drowned") {
+            hasDrowned = true;
+        }
     }
     EXPECT_TRUE(hasDrowned);
 }
@@ -167,10 +185,18 @@ TEST_F(WorldGenSpawnerTest, JungleSpawnInfo)
     int chickenCount = 0;
     bool hasCow = false, hasParrot = false, hasPanda = false;
     for (const auto& entry : creatures) {
-        if (entry.entityTypeId == "minecraft:chicken") ++chickenCount;
-        if (entry.entityTypeId == "minecraft:cow") hasCow = true;
-        if (entry.entityTypeId == "minecraft:parrot") hasParrot = true;
-        if (entry.entityTypeId == "minecraft:panda") hasPanda = true;
+        if (entry.entityTypeId == "minecraft:chicken") {
+            ++chickenCount;
+        }
+        if (entry.entityTypeId == "minecraft:cow") {
+            hasCow = true;
+        }
+        if (entry.entityTypeId == "minecraft:parrot") {
+            hasParrot = true;
+        }
+        if (entry.entityTypeId == "minecraft:panda") {
+            hasPanda = true;
+        }
     }
     EXPECT_EQ(chickenCount, 2);
     EXPECT_TRUE(hasCow); // farmAnimals 含 cow（旧实现误删，已收敛）
@@ -201,8 +227,12 @@ TEST_F(WorldGenSpawnerTest, BambooJungleSpawnInfo)
     int pandaWeight = 0;
     int chickenCount = 0;
     for (const auto& entry : creatures) {
-        if (entry.entityTypeId == "minecraft:panda") pandaWeight = entry.weight;
-        if (entry.entityTypeId == "minecraft:chicken") ++chickenCount;
+        if (entry.entityTypeId == "minecraft:panda") {
+            pandaWeight = entry.weight;
+        }
+        if (entry.entityTypeId == "minecraft:chicken") {
+            ++chickenCount;
+        }
     }
     EXPECT_EQ(pandaWeight, 80);
     EXPECT_EQ(chickenCount, 2); // baseJungleSpawns 额外鸡规则
@@ -212,7 +242,9 @@ TEST_F(WorldGenSpawnerTest, BambooJungleSpawnInfo)
     bool ocelotOk = false;
     for (const auto& entry : monsters) {
         if (entry.entityTypeId == "minecraft:ocelot") {
-            if (entry.minCount == 1 && entry.maxCount == 1) ocelotOk = true;
+            if (entry.minCount == 1 && entry.maxCount == 1) {
+                ocelotOk = true;
+            }
         }
     }
     EXPECT_TRUE(ocelotOk);
@@ -230,9 +262,15 @@ TEST_F(WorldGenSpawnerTest, SparseJungleSpawnInfo)
     int chickenCount = 0;
     bool hasOcelotInCreatures = false;
     for (const auto& entry : creatures) {
-        if (entry.entityTypeId == "minecraft:wolf") hasWolf = true;
-        if (entry.entityTypeId == "minecraft:chicken") ++chickenCount;
-        if (entry.entityTypeId == "minecraft:ocelot") hasOcelotInCreatures = true;
+        if (entry.entityTypeId == "minecraft:wolf") {
+            hasWolf = true;
+        }
+        if (entry.entityTypeId == "minecraft:chicken") {
+            ++chickenCount;
+        }
+        if (entry.entityTypeId == "minecraft:ocelot") {
+            hasOcelotInCreatures = true;
+        }
     }
     EXPECT_TRUE(hasWolf);               // 1.21.11 sparseJungle 含 wolf(8,2,4)
     EXPECT_EQ(chickenCount, 2);         // baseJungleSpawns 额外鸡规则
@@ -256,8 +294,12 @@ TEST_F(WorldGenSpawnerTest, SavannaSpawnInfo)
             entry.maxCount == 1) {
             hasDonkey = true;
         }
-        if (entry.entityTypeId == "minecraft:llama") hasLlama = true;
-        if (entry.entityTypeId == "minecraft:wolf") hasWolf = true;
+        if (entry.entityTypeId == "minecraft:llama") {
+            hasLlama = true;
+        }
+        if (entry.entityTypeId == "minecraft:wolf") {
+            hasWolf = true;
+        }
     }
     EXPECT_TRUE(hasHorse);
     EXPECT_TRUE(hasDonkey);
@@ -277,7 +319,9 @@ TEST_F(WorldGenSpawnerTest, SavannaPlateauSpawnInfo)
             entry.maxCount == 4) {
             hasLlama = true;
         }
-        if (entry.entityTypeId == "minecraft:wolf") hasWolf = true;
+        if (entry.entityTypeId == "minecraft:wolf") {
+            hasWolf = true;
+        }
     }
     EXPECT_TRUE(hasLlama); // SavannaPlateau 含 llama
     EXPECT_TRUE(hasWolf);  // 1.21.11 SavannaPlateau 含 wolf(8,4,8)
@@ -291,8 +335,12 @@ TEST_F(WorldGenSpawnerTest, ShatteredSavannaSpawnInfo)
     const auto& creatures = info.getCreatureSpawns();
     bool hasLlama = false, hasWolf = false;
     for (const auto& entry : creatures) {
-        if (entry.entityTypeId == "minecraft:llama") hasLlama = true;
-        if (entry.entityTypeId == "minecraft:wolf") hasWolf = true;
+        if (entry.entityTypeId == "minecraft:llama") {
+            hasLlama = true;
+        }
+        if (entry.entityTypeId == "minecraft:wolf") {
+            hasWolf = true;
+        }
     }
     EXPECT_FALSE(hasLlama);
     EXPECT_FALSE(hasWolf);

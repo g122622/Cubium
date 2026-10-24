@@ -100,9 +100,20 @@ public:
      */
     [[nodiscard]] bool equals(const MapBanner& other) const;
 
-    [[nodiscard]] BlockPos pos() const { return m_pos; }
-    [[nodiscard]] DyeColor color() const { return m_color; }
-    [[nodiscard]] const text::ITextComponent* name() const { return m_name.get(); }
+    [[nodiscard]] BlockPos pos() const
+    {
+        return m_pos;
+    }
+
+    [[nodiscard]] DyeColor color() const
+    {
+        return m_color;
+    }
+
+    [[nodiscard]] const text::ITextComponent* name() const
+    {
+        return m_name.get();
+    }
 
 private:
     BlockPos m_pos;

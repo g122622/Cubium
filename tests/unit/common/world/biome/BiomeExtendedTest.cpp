@@ -272,7 +272,17 @@ TEST(FixedBiomeSource, FindBiomeWithMatchingPredicate)
 {
     FixedBiomeSource source(0ULL, Biomes::Ocean);
     mc::math::Random random(12345ULL);
-    auto result = source.findBiome(0, 64, 0, 100, 10, [](BiomeId id) { return id == Biomes::Ocean; }, random, true);
+    auto result = source.findBiome(
+        0,
+        64,
+        0,
+        100,
+        10,
+        [](BiomeId id) {
+            return id == Biomes::Ocean;
+        },
+        random,
+        true);
     EXPECT_TRUE(result.has_value());
 }
 
@@ -280,7 +290,17 @@ TEST(FixedBiomeSource, FindBiomeWithNonMatchingPredicate)
 {
     FixedBiomeSource source(0ULL, Biomes::Ocean);
     mc::math::Random random(12345ULL);
-    auto result = source.findBiome(0, 64, 0, 100, 10, [](BiomeId id) { return id == Biomes::Desert; }, random, true);
+    auto result = source.findBiome(
+        0,
+        64,
+        0,
+        100,
+        10,
+        [](BiomeId id) {
+            return id == Biomes::Desert;
+        },
+        random,
+        true);
     EXPECT_FALSE(result.has_value());
 }
 

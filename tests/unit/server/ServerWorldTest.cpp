@@ -925,19 +925,27 @@ TEST_F(ServerWorldTest, Difficulty_ReturnsDefault_WithoutCallback)
 TEST_F(ServerWorldTest, Difficulty_ReturnsValueFromCallback)
 {
     // 设置回调返回 Peaceful
-    world->setDifficultyCallback([]() { return Difficulty::Peaceful; });
+    world->setDifficultyCallback([]() {
+        return Difficulty::Peaceful;
+    });
     EXPECT_EQ(world->difficulty(), Difficulty::Peaceful);
 
     // 设置回调返回 Easy
-    world->setDifficultyCallback([]() { return Difficulty::Easy; });
+    world->setDifficultyCallback([]() {
+        return Difficulty::Easy;
+    });
     EXPECT_EQ(world->difficulty(), Difficulty::Easy);
 
     // 设置回调返回 Normal
-    world->setDifficultyCallback([]() { return Difficulty::Normal; });
+    world->setDifficultyCallback([]() {
+        return Difficulty::Normal;
+    });
     EXPECT_EQ(world->difficulty(), Difficulty::Normal);
 
     // 设置回调返回 Hard
-    world->setDifficultyCallback([]() { return Difficulty::Hard; });
+    world->setDifficultyCallback([]() {
+        return Difficulty::Hard;
+    });
     EXPECT_EQ(world->difficulty(), Difficulty::Hard);
 }
 
@@ -945,7 +953,9 @@ TEST_F(ServerWorldTest, Difficulty_DynamicChange)
 {
     // 模拟动态修改难度
     Difficulty currentDifficulty = Difficulty::Easy;
-    world->setDifficultyCallback([&currentDifficulty]() { return currentDifficulty; });
+    world->setDifficultyCallback([&currentDifficulty]() {
+        return currentDifficulty;
+    });
 
     EXPECT_EQ(world->difficulty(), Difficulty::Easy);
 
@@ -961,7 +971,9 @@ TEST_F(ServerWorldTest, Difficulty_DynamicChange)
 TEST_F(ServerWorldTest, Difficulty_CallbackCanBeNull)
 {
     // 设置回调
-    world->setDifficultyCallback([]() { return Difficulty::Hard; });
+    world->setDifficultyCallback([]() {
+        return Difficulty::Hard;
+    });
     EXPECT_EQ(world->difficulty(), Difficulty::Hard);
 
     // 清除回调（设置为空）

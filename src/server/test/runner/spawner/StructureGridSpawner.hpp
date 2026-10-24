@@ -60,9 +60,16 @@ public:
     void advance(i32 structureSizeX, i32 structureSizeZ, i32 padding) noexcept;
 
     /** @brief 网格起点（只读，诊断/单测用）。 */
-    [[nodiscard]] const BlockPos& gridStart() const noexcept { return m_gridStart; }
+    [[nodiscard]] const BlockPos& gridStart() const noexcept
+    {
+        return m_gridStart;
+    }
+
     /** @brief 每行测试数（只读，诊断/单测用）。 */
-    [[nodiscard]] i32 testsPerRow() const noexcept { return m_testsPerRow; }
+    [[nodiscard]] i32 testsPerRow() const noexcept
+    {
+        return m_testsPerRow;
+    }
 
 private:
     BlockPos m_gridStart;

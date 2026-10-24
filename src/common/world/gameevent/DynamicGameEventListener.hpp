@@ -61,8 +61,15 @@ public:
     /**
      * @brief 获取内部监听器
      */
-    [[nodiscard]] GameEventListener& getListener() { return m_listener; }
-    [[nodiscard]] const GameEventListener& getListener() const { return m_listener; }
+    [[nodiscard]] GameEventListener& getListener()
+    {
+        return m_listener;
+    }
+
+    [[nodiscard]] const GameEventListener& getListener() const
+    {
+        return m_listener;
+    }
 
     /**
      * @brief 将监听器添加到世界（注册到当前区块段）

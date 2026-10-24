@@ -160,7 +160,10 @@ protected:
         }
     }
 
-    void SetUp() override { m_world = std::make_unique<TraderLlamaIntegrationTestWorld>(); }
+    void SetUp() override
+    {
+        m_world = std::make_unique<TraderLlamaIntegrationTestWorld>();
+    }
 
     std::unique_ptr<TraderLlamaIntegrationTestWorld> m_world;
 };
@@ -511,7 +514,10 @@ TEST_F(TraderLlamaIntegrationTest, Tick_ClientSide_NoDespawn)
     // 覆写 isClientSide 为 true，验证客户端不执行 maybeDespawn
     class ClientSideTestWorld : public TraderLlamaIntegrationTestWorld {
     public:
-        [[nodiscard]] bool isClientSide() const override { return true; }
+        [[nodiscard]] bool isClientSide() const override
+        {
+            return true;
+        }
     };
 
     auto world = std::make_unique<ClientSideTestWorld>();

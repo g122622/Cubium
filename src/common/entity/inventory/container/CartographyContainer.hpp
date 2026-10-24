@@ -103,7 +103,10 @@ public:
     /**
      * @brief 结果槽索引
      */
-    [[nodiscard]] i32 getResultSlotIndex() const override { return SLOT_RESULT; }
+    [[nodiscard]] i32 getResultSlotIndex() const override
+    {
+        return SLOT_RESULT;
+    }
 
 protected:
     ItemStack quickMoveStack(i32 slotIndex, Player& player) override;

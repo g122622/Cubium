@@ -86,12 +86,18 @@ public:
     /**
      * @brief 获取期望数量
      */
-    [[nodiscard]] i32 count() const noexcept { return m_count; }
+    [[nodiscard]] i32 count() const noexcept
+    {
+        return m_count;
+    }
 
     /**
      * @brief 获取物品模板（数量为 count）
      */
-    [[nodiscard]] const ItemStack& templateStack() const noexcept { return m_stack; }
+    [[nodiscard]] const ItemStack& templateStack() const noexcept
+    {
+        return m_stack;
+    }
 
     // ========== 逐组件谓词 ==========
 

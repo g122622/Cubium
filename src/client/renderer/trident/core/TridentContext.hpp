@@ -92,10 +92,20 @@ struct QueueFamilyIndices {
     std::optional<u32> transferFamily;
     std::optional<u32> computeFamily;
 
-    bool isComplete() const { return graphicsFamily.has_value() && presentFamily.has_value(); }
+    bool isComplete() const
+    {
+        return graphicsFamily.has_value() && presentFamily.has_value();
+    }
 
-    bool hasTransfer() const { return transferFamily.has_value(); }
-    bool hasCompute() const { return computeFamily.has_value(); }
+    bool hasTransfer() const
+    {
+        return transferFamily.has_value();
+    }
+
+    bool hasCompute() const
+    {
+        return computeFamily.has_value();
+    }
 };
 
 /**
@@ -162,21 +172,65 @@ public:
     // 访问器
     // ========================================================================
 
-    [[nodiscard]] VkInstance instance() const { return m_instance; }
-    [[nodiscard]] VkPhysicalDevice physicalDevice() const { return m_physicalDevice; }
-    [[nodiscard]] VkDevice device() const { return m_device; }
-    [[nodiscard]] VkSurfaceKHR surface() const { return m_surface; }
+    [[nodiscard]] VkInstance instance() const
+    {
+        return m_instance;
+    }
 
-    [[nodiscard]] VkQueue graphicsQueue() const { return m_graphicsQueue; }
-    [[nodiscard]] VkQueue presentQueue() const { return m_presentQueue; }
-    [[nodiscard]] VkQueue transferQueue() const { return m_transferQueue; }
-    [[nodiscard]] VkQueue computeQueue() const { return m_computeQueue; }
+    [[nodiscard]] VkPhysicalDevice physicalDevice() const
+    {
+        return m_physicalDevice;
+    }
 
-    [[nodiscard]] const QueueFamilyIndices& queueFamilies() const { return m_queueFamilies; }
+    [[nodiscard]] VkDevice device() const
+    {
+        return m_device;
+    }
 
-    [[nodiscard]] const VkPhysicalDeviceProperties& deviceProperties() const { return m_deviceProperties; }
-    [[nodiscard]] const VkPhysicalDeviceFeatures& deviceFeatures() const { return m_deviceFeatures; }
-    [[nodiscard]] const VkPhysicalDeviceMemoryProperties& memoryProperties() const { return m_memoryProperties; }
+    [[nodiscard]] VkSurfaceKHR surface() const
+    {
+        return m_surface;
+    }
+
+    [[nodiscard]] VkQueue graphicsQueue() const
+    {
+        return m_graphicsQueue;
+    }
+
+    [[nodiscard]] VkQueue presentQueue() const
+    {
+        return m_presentQueue;
+    }
+
+    [[nodiscard]] VkQueue transferQueue() const
+    {
+        return m_transferQueue;
+    }
+
+    [[nodiscard]] VkQueue computeQueue() const
+    {
+        return m_computeQueue;
+    }
+
+    [[nodiscard]] const QueueFamilyIndices& queueFamilies() const
+    {
+        return m_queueFamilies;
+    }
+
+    [[nodiscard]] const VkPhysicalDeviceProperties& deviceProperties() const
+    {
+        return m_deviceProperties;
+    }
+
+    [[nodiscard]] const VkPhysicalDeviceFeatures& deviceFeatures() const
+    {
+        return m_deviceFeatures;
+    }
+
+    [[nodiscard]] const VkPhysicalDeviceMemoryProperties& memoryProperties() const
+    {
+        return m_memoryProperties;
+    }
 
     [[nodiscard]] SwapChainSupportDetails querySwapChainSupport() const;
 
@@ -229,32 +283,50 @@ public:
      * mega-buffer 段等）复用，消除散落的"每次上传新建 staging buffer"反模式。
      * 初始化完成前返回 nullptr。
      */
-    [[nodiscard]] api::IStagingBufferPool* stagingPool() const { return m_stagingPool; }
+    [[nodiscard]] api::IStagingBufferPool* stagingPool() const
+    {
+        return m_stagingPool;
+    }
 
     /**
      * @brief 注入统一暂存缓冲池（由 TridentEngine 调用）
      */
-    void setStagingPool(api::IStagingBufferPool* pool) { m_stagingPool = pool; }
+    void setStagingPool(api::IStagingBufferPool* pool)
+    {
+        m_stagingPool = pool;
+    }
 
     /**
      * @brief 检查是否启用验证层
      */
-    [[nodiscard]] bool isValidationEnabled() const { return m_validationEnabled; }
+    [[nodiscard]] bool isValidationEnabled() const
+    {
+        return m_validationEnabled;
+    }
 
     /**
      * @brief 获取调试消息处理器
      */
-    [[nodiscard]] VkDebugUtilsMessengerEXT debugMessenger() const { return m_debugMessenger; }
+    [[nodiscard]] VkDebugUtilsMessengerEXT debugMessenger() const
+    {
+        return m_debugMessenger;
+    }
 
     /**
      * @brief 检查是否已初始化
      */
-    [[nodiscard]] bool isInitialized() const { return m_initialized; }
+    [[nodiscard]] bool isInitialized() const
+    {
+        return m_initialized;
+    }
 
     /**
      * @brief 获取配置
      */
-    [[nodiscard]] const TridentConfig& config() const { return m_config; }
+    [[nodiscard]] const TridentConfig& config() const
+    {
+        return m_config;
+    }
 
 private:
     // 创建方法

@@ -80,57 +80,146 @@ public:
     {
         return &fluid::Fluids::EMPTY()->defaultState();
     }
-    [[nodiscard]] i32 getHeight(i32, i32) const override { return 64; }
-    [[nodiscard]] u8 getBlockLight(i32, i32, i32) const override { return 0; }
-    [[nodiscard]] u8 getSkyLight(i32, i32, i32) const override { return 15; }
-    [[nodiscard]] bool hasBlockCollision(const AxisAlignedBB&) const override { return false; }
-    [[nodiscard]] std::vector<AxisAlignedBB> getBlockCollisions(const AxisAlignedBB&) const override { return {}; }
+
+    [[nodiscard]] i32 getHeight(i32, i32) const override
+    {
+        return 64;
+    }
+
+    [[nodiscard]] u8 getBlockLight(i32, i32, i32) const override
+    {
+        return 0;
+    }
+
+    [[nodiscard]] u8 getSkyLight(i32, i32, i32) const override
+    {
+        return 15;
+    }
+
+    [[nodiscard]] bool hasBlockCollision(const AxisAlignedBB&) const override
+    {
+        return false;
+    }
+
+    [[nodiscard]] std::vector<AxisAlignedBB> getBlockCollisions(const AxisAlignedBB&) const override
+    {
+        return {};
+    }
+
     [[nodiscard]] bool isWithinWorldBounds(i32, i32 y, i32) const override
     {
         return y >= world::MIN_BUILD_HEIGHT && y < world::MAX_BUILD_HEIGHT;
     }
-    [[nodiscard]] bool hasEntityCollision(const AxisAlignedBB&, const Entity*) const override { return false; }
+
+    [[nodiscard]] bool hasEntityCollision(const AxisAlignedBB&, const Entity*) const override
+    {
+        return false;
+    }
+
     [[nodiscard]] std::vector<AxisAlignedBB> getEntityCollisions(const AxisAlignedBB&, const Entity*) const override
     {
         return {};
     }
-    [[nodiscard]] PhysicsEngine* physicsEngine() override { return nullptr; }
-    [[nodiscard]] const PhysicsEngine* physicsEngine() const override { return nullptr; }
+
+    [[nodiscard]] PhysicsEngine* physicsEngine() override
+    {
+        return nullptr;
+    }
+
+    [[nodiscard]] const PhysicsEngine* physicsEngine() const override
+    {
+        return nullptr;
+    }
+
     [[nodiscard]] std::vector<Entity*> getEntitiesInAABB(const AxisAlignedBB&, const Entity*) const override
     {
         return {};
     }
+
     [[nodiscard]] std::vector<Entity*> getEntitiesInRange(const Vector3&, f32, const Entity*) const override
     {
         return {};
     }
-    [[nodiscard]] DimensionId dimension() const override { return DimensionId(0); }
-    [[nodiscard]] u64 seed() const override { return 12345; }
-    [[nodiscard]] u64 currentTick() const override { return 0; }
-    [[nodiscard]] i64 dayTime() const override { return 0; }
-    [[nodiscard]] bool isHardcore() const override { return false; }
-    [[nodiscard]] Difficulty difficulty() const override { return Difficulty::Peaceful; }
-    [[nodiscard]] bool isClientSide() const override { return false; }
+
+    [[nodiscard]] DimensionId dimension() const override
+    {
+        return DimensionId(0);
+    }
+
+    [[nodiscard]] u64 seed() const override
+    {
+        return 12345;
+    }
+
+    [[nodiscard]] u64 currentTick() const override
+    {
+        return 0;
+    }
+
+    [[nodiscard]] i64 dayTime() const override
+    {
+        return 0;
+    }
+
+    [[nodiscard]] bool isHardcore() const override
+    {
+        return false;
+    }
+
+    [[nodiscard]] Difficulty difficulty() const override
+    {
+        return Difficulty::Peaceful;
+    }
+
+    [[nodiscard]] bool isClientSide() const override
+    {
+        return false;
+    }
 
     [[nodiscard]] world::tick::TickManager& tickManager() override
     {
         throw std::runtime_error("CactusFlowerTestWorld::tickManager not implemented");
     }
+
     [[nodiscard]] const world::tick::TickManager& tickManager() const override
     {
         throw std::runtime_error("CactusFlowerTestWorld::tickManager not implemented");
     }
 
-    [[nodiscard]] math::IRandom& getRandom() override { return m_random; }
-    [[nodiscard]] const math::IRandom& getRandom() const override { return m_random; }
+    [[nodiscard]] math::IRandom& getRandom() override
+    {
+        return m_random;
+    }
 
-    [[nodiscard]] world::border::WorldBorder& worldBorder() override { return m_worldBorder; }
-    [[nodiscard]] const world::border::WorldBorder& worldBorder() const override { return m_worldBorder; }
+    [[nodiscard]] const math::IRandom& getRandom() const override
+    {
+        return m_random;
+    }
 
-    [[nodiscard]] world::gamerule::GameRules& getGameRules() override { return m_gameRules; }
-    [[nodiscard]] const world::gamerule::GameRules& getGameRules() const override { return m_gameRules; }
+    [[nodiscard]] world::border::WorldBorder& worldBorder() override
+    {
+        return m_worldBorder;
+    }
 
-    void setBlockAt(const BlockPos& pos, const BlockState* state) { (void)setBlockState(pos.x, pos.y, pos.z, state); }
+    [[nodiscard]] const world::border::WorldBorder& worldBorder() const override
+    {
+        return m_worldBorder;
+    }
+
+    [[nodiscard]] world::gamerule::GameRules& getGameRules() override
+    {
+        return m_gameRules;
+    }
+
+    [[nodiscard]] const world::gamerule::GameRules& getGameRules() const override
+    {
+        return m_gameRules;
+    }
+
+    void setBlockAt(const BlockPos& pos, const BlockState* state)
+    {
+        (void)setBlockState(pos.x, pos.y, pos.z, state);
+    }
 
 private:
     std::map<BlockPos, const BlockState*> m_blocks;
@@ -381,11 +470,12 @@ TEST_F(EyeblossomBlockTest, ClosedEyeblossomHasNauseaStewEffect)
     EXPECT_EQ(flower->getEffectDuration(), 7);
 }
 
-TEST_F(EyeblossomBlockTest, OpenEyeblossomEmitsLight)
+TEST_F(EyeblossomBlockTest, OpenEyeblossomEmitsNoLight)
 {
+    // 原版 1.21.11 的 open_eyeblossom 默认状态光照为 0（差分 block_properties 核对）。
     auto* eyeblossom = static_cast<EyeblossomBlock*>(mc::block_registry::PaleGardenBlocks::OPEN_EYEBLOSSOM);
     const auto& state = mc::block_registry::PaleGardenBlocks::OPEN_EYEBLOSSOM->defaultState();
-    EXPECT_EQ(eyeblossom->getLightLevel(state), 1);
+    EXPECT_EQ(eyeblossom->getLightLevel(state), 0);
 }
 
 TEST_F(EyeblossomBlockTest, ClosedEyeblossomEmitsNoLight)

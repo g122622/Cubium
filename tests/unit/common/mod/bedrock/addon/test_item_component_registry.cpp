@@ -13,9 +13,15 @@ using namespace mc::mod::bedrock::addon;
 
 class ItemComponentRegistryTest : public ::testing::Test {
 protected:
-    void SetUp() override { ItemComponentRegistry::instance().clear(); }
+    void SetUp() override
+    {
+        ItemComponentRegistry::instance().clear();
+    }
 
-    void TearDown() override { ItemComponentRegistry::instance().clear(); }
+    void TearDown() override
+    {
+        ItemComponentRegistry::instance().clear();
+    }
 
     ItemCustomComponent makeUseComponent(const std::string& name = "test:use",
         std::function<void(ItemComponentUseEvent&, const CustomComponentParameters&)> callback = nullptr)
@@ -168,11 +174,15 @@ TEST_F(ItemComponentRegistryTest, DispatchCallsAllRegisteredComponents)
 
     ItemCustomComponent comp1;
     comp1.name = "test:comp1";
-    comp1.onUse = [&](ItemComponentUseEvent&, const CustomComponentParameters&) { callCount++; };
+    comp1.onUse = [&](ItemComponentUseEvent&, const CustomComponentParameters&) {
+        callCount++;
+    };
 
     ItemCustomComponent comp2;
     comp2.name = "test:comp2";
-    comp2.onUse = [&](ItemComponentUseEvent&, const CustomComponentParameters&) { callCount++; };
+    comp2.onUse = [&](ItemComponentUseEvent&, const CustomComponentParameters&) {
+        callCount++;
+    };
 
     reg.registerComponent("minecraft:apple", std::move(comp1));
     reg.registerComponent("minecraft:apple", std::move(comp2));
@@ -191,7 +201,9 @@ TEST_F(ItemComponentRegistryTest, DispatchUseOnEvent)
 
     ItemCustomComponent comp;
     comp.name = "test:use_on";
-    comp.onUseOn = [&](ItemComponentUseOnEvent& event, const CustomComponentParameters&) { receivedFace = event.face; };
+    comp.onUseOn = [&](ItemComponentUseOnEvent& event, const CustomComponentParameters&) {
+        receivedFace = event.face;
+    };
 
     reg.registerComponent("minecraft:flint_and_steel", std::move(comp));
 
@@ -442,7 +454,9 @@ TEST_F(ItemComponentRegistryTest, ParametersPassedToCallback)
 
     ItemCustomComponent comp;
     comp.name = "test:params";
-    comp.onUse = [&](ItemComponentUseEvent&, const CustomComponentParameters& params) { paramsReceived = true; };
+    comp.onUse = [&](ItemComponentUseEvent&, const CustomComponentParameters& params) {
+        paramsReceived = true;
+    };
 
     reg.registerComponent("minecraft:test_item", std::move(comp));
 

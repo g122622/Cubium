@@ -47,21 +47,26 @@ std::string PackDependencyResolver::ResolveResult::toString() const
             if (i > 0) {
                 result += ", ";
             }
+
             result += missingDependencies[i];
         }
     }
+
     if (!versionMismatches.empty()) {
         if (!result.empty()) {
             result += "; ";
         }
+
         result += "Version mismatches: ";
         for (size_t i = 0; i < versionMismatches.size(); ++i) {
             if (i > 0) {
                 result += ", ";
             }
+
             result += versionMismatches[i];
         }
     }
+
     return result;
 }
 
@@ -75,11 +80,22 @@ PackDependencyResolver::ResolveResult PackDependencyResolver::resolve(
     // 构建UUID到包的映射
     std::unordered_map<std::string, const BehaviorPack*> packByUuid;
     for (const auto& pack : packs) {
-        packByUuid[pack->uuid()] = pack.get();
+        if (!pack->isEnabled()) {
+            continue;
+        }
+
+        if (!packByUuid.emplace(pack->uuid(), pack.get()).second) {
+            result.success = false;
+            result.versionMismatches.push_back("Duplicate enabled pack UUID: " + pack->uuid());
+        }
     }
 
     // 检查每个包的依赖
     for (const auto& pack : packs) {
+        if (!pack->isEnabled()) {
+            continue;
+        }
+
         const auto& manifest = pack->manifest();
 
         for (const auto& dep : manifest.dependencies) {
@@ -87,10 +103,6 @@ PackDependencyResolver::ResolveResult PackDependencyResolver::resolve(
             // 其 uuid 为空，若直接查 packByUuid 会误报 "Missing dependency requires UUID "。
             // 版本字符串（如 "1.13.0-beta"）的兼容性由模块加载器在注册原生模块时校验，此处跳过。
             if (dep.isModuleDependency()) {
-                spdlog::debug("[BedrockAddon] Module dependency: {} requires {} {}",
-                    pack->name(),
-                    dep.moduleName,
-                    dep.versionString.empty() ? std::string("(any)") : dep.versionString);
                 continue;
             }
 

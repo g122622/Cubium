@@ -42,7 +42,10 @@ protected:
             std::make_unique<Player>(static_cast<EntityInstanceId>(1), "TestPlayer", mc::test::testEcsRegistry());
     }
 
-    void TearDown() override { m_player.reset(); }
+    void TearDown() override
+    {
+        m_player.reset();
+    }
 
     /// 主手装备并触发使用（模拟拉弓/装填弩）。
     void useMainHand(const ItemStack& stack)
@@ -203,8 +206,15 @@ public:
         : Item(ItemProperties().maxStackSize(1))
     {}
 
-    [[nodiscard]] UseAction getUseAction(const ItemStack&) const override { return UseAction::Spyglass; }
-    [[nodiscard]] i32 getUseDuration(const ItemStack&) const override { return 1200; }
+    [[nodiscard]] UseAction getUseAction(const ItemStack&) const override
+    {
+        return UseAction::Spyglass;
+    }
+
+    [[nodiscard]] i32 getUseDuration(const ItemStack&) const override
+    {
+        return 1200;
+    }
 };
 
 } // namespace

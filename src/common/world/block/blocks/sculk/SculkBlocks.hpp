@@ -70,10 +70,16 @@ public:
     // ========== SculkBehaviour ==========
 
     /// MC SculkBlock.canChangeBlockStateOnSpread = false。
-    [[nodiscard]] bool canChangeBlockStateOnSpread() const override { return false; }
+    [[nodiscard]] bool canChangeBlockStateOnSpread() const override
+    {
+        return false;
+    }
 
     /// MC SculkBehaviour.updateDecayDelay = 1。
-    [[nodiscard]] i32 updateDecayDelay(i32 decayDelay) const override { return 1; }
+    [[nodiscard]] i32 updateDecayDelay(i32 decayDelay) const override
+    {
+        return 1;
+    }
 
     /**
      * @brief MC SculkBehaviour.attemptSpreadVein：sculk 块不主动扩散脉络。
@@ -151,16 +157,23 @@ public:
     }
 
     [[nodiscard]] const fluid::FluidState* getFluidState(const BlockState& state) const override;
+
     [[nodiscard]] bool isWaterlogged(const BlockState& state) const override
     {
         return state.get(BlockStateProperties::WATERLOGGED());
     }
 
     /// MC MultifaceSpreadeableBlock.getSpreader：DEFAULT_SPREAD_ORDER 的脉络扩散器。
-    [[nodiscard]] const MultifaceSpreader& getSpreader() const { return m_veinSpreader; }
+    [[nodiscard]] const MultifaceSpreader& getSpreader() const
+    {
+        return m_veinSpreader;
+    }
 
     /// MC SculkVeinBlock.getSameSpaceSpreader：仅 SAME_POSITION 的扩散器。
-    [[nodiscard]] const MultifaceSpreader& getSameSpaceSpreader() const { return m_sameSpaceSpreader; }
+    [[nodiscard]] const MultifaceSpreader& getSameSpaceSpreader() const
+    {
+        return m_sameSpaceSpreader;
+    }
 
     // ========== SculkBehaviour ==========
 
@@ -183,7 +196,10 @@ public:
     void onDischarged(IWorld& world, const BlockState& state, const BlockPos& pos, math::IRandom& random) override;
 
     /// MC SculkBehaviour.canChangeBlockStateOnSpread = true（接口默认）。
-    [[nodiscard]] bool canChangeBlockStateOnSpread() const override { return true; }
+    [[nodiscard]] bool canChangeBlockStateOnSpread() const override
+    {
+        return true;
+    }
 
     // ========== 静态方法 ==========
 
@@ -195,7 +211,10 @@ public:
         IWorld& world, const BlockPos& pos, const BlockState& current, const std::vector<Direction>& directions);
 
 protected:
-    void fillStateContainer(StateContainer<Block, BlockState>& container) override { MC_UNUSED(container); }
+    void fillStateContainer(StateContainer<Block, BlockState>& container) override
+    {
+        MC_UNUSED(container);
+    }
 
 private:
     /// MC SculkVeinBlock.attemptPlaceSculk：随机方向遍历，把相邻可替换方块转化为 sculk 并蔓延脉络。
@@ -231,7 +250,19 @@ public:
         const BlockPos& currentPos,
         const BlockPos& facingPos) override;
 
-    [[nodiscard]] bool canProvidePower(const BlockState& state) const noexcept override { return true; }
+    /**
+     * @brief 幽匿感测体固有发光：原版 getLightEmission 恒为 1
+     *
+     * 原版 SculkSensorBlock 在构造里 .lightLevel(1)，与相位无关（相位只决定红石输出）。
+     * 这里覆盖 getLightLevel 而不是靠注册值，是为了让默认状态与派生状态都拿到 1。
+     */
+    [[nodiscard]] u8 getLightLevel(
+        const BlockState& state, IWorld* world = nullptr, const BlockPos* pos = nullptr) const override;
+
+    [[nodiscard]] bool canProvidePower(const BlockState& state) const noexcept override
+    {
+        return true;
+    }
 
     [[nodiscard]] i32 getWeakPower(
         const BlockState& state, IWorld& world, const BlockPos& pos, Direction side) const noexcept override;
@@ -274,7 +305,11 @@ public:
     }
 
     /// 方块实体支持
-    [[nodiscard]] bool hasBlockEntity() const noexcept override { return true; }
+    [[nodiscard]] bool hasBlockEntity() const noexcept override
+    {
+        return true;
+    }
+
     [[nodiscard]] std::unique_ptr<BlockEntity> createBlockEntity(const BlockPos& pos) override;
     [[nodiscard]] BlockEntityType getBlockEntityType() const;
 
@@ -329,7 +364,10 @@ public:
      *
      * 普通感测体为30tick，校准感测体为10tick。
      */
-    [[nodiscard]] virtual i32 getActiveTicks() const { return ACTIVE_TICKS; }
+    [[nodiscard]] virtual i32 getActiveTicks() const
+    {
+        return ACTIVE_TICKS;
+    }
 
 protected:
     void fillStateContainer(StateContainer<Block, BlockState>& container) override;
@@ -366,7 +404,11 @@ public:
 
     /// 校准感测体活跃阶段更短（10 tick）
     static constexpr i32 CALIBRATED_ACTIVE_TICKS = 10;
-    [[nodiscard]] i32 getActiveTicks() const override { return CALIBRATED_ACTIVE_TICKS; }
+
+    [[nodiscard]] i32 getActiveTicks() const override
+    {
+        return CALIBRATED_ACTIVE_TICKS;
+    }
 
 protected:
     void fillStateContainer(StateContainer<Block, BlockState>& container) override;
@@ -442,7 +484,11 @@ public:
     }
 
     /// 方块实体支持
-    [[nodiscard]] bool hasBlockEntity() const noexcept override { return true; }
+    [[nodiscard]] bool hasBlockEntity() const noexcept override
+    {
+        return true;
+    }
+
     [[nodiscard]] std::unique_ptr<BlockEntity> createBlockEntity(const BlockPos& pos) override;
     [[nodiscard]] BlockEntityType getBlockEntityType() const;
 

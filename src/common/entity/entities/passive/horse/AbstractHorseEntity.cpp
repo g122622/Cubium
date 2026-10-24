@@ -891,9 +891,10 @@ void AbstractHorseEntity::registerAttributes()
     attributes().registerAttribute(*entity::attribute::Attributes::horseJumpStrength());
     attributes().setBaseValue(entity::attribute::Attributes::HORSE_JUMP_STRENGTH, jump->m_jumpStrength);
 
-    // 设置生命值和速度
-    attributes().setBaseValue(entity::attribute::Attributes::MAX_HEALTH, attr->m_horseHealth);
-    attributes().setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, attr->m_speed);
+    // 默认生命值与速度来自原版属性工厂（randomizeAttributes 之前的值）；随机改写只在
+    // finalizeSpawn 发生时把组件里的值覆盖回去，见 applyRandomAttributes()。
+    attributes().setBaseValue(entity::attribute::Attributes::MAX_HEALTH, BASE_MAX_HEALTH);
+    attributes().setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, BASE_MOVEMENT_SPEED);
     // 摔落伤害倍率 0.5（AbstractHorse.createAttributes:384），马类承受半数摔落伤害。
     // FALL_DAMAGE_MULTIPLIER 默认 1.0（LivingEntity 基类注册），此处覆盖为 0.5。
     attributes().setBaseValue(entity::attribute::Attributes::FALL_DAMAGE_MULTIPLIER, 0.5);
@@ -1147,10 +1148,42 @@ void AbstractHorseEntity::initRandomAttributes()
     auto* jump = tryGetComponent<ecs::HorseJumpComponent>();
     MC_ASSERT_RELEASE(jump);
 
-    // 随机生成马特有属性（B 类：NBT 真相源字段，registerAttributes 拷贝到 AttributeMap）
-    attr->m_speed = rng.nextFloat(MIN_SPEED, MAX_SPEED);
-    jump->m_jumpStrength = rng.nextFloat(MIN_JUMP, MAX_JUMP);
-    attr->m_horseHealth = rng.nextFloat(MIN_HEALTH, MAX_HEALTH);
+    // 随机生成马特有属性（B 类：NBT 真相源字段，registerAttributes 拷贝到 AttributeMap）。
+    // 公式逐项对齐原版 AbstractHorse.generateSpeed/generateJumpStrength/generateMaxHealth：
+    //   速度     = (0.45 + nextDouble() * 0.3 * 3) * 0.25  —— 原版抽 3 次 0.3*r 再乘 0.25，
+    //              等价于 (0.45 + 0.9r) * 0.25，范围 [0.1125, 0.3375)；
+    //              不能写成 nextFloat(0.1127, 0.3375)：原版用 nextDouble，低位分布不同。
+    //   生命值   = 15 + nextInt(8) + nextInt(9)           —— 范围 [15, 30]；
+    //   跳跃力   = 0.4 + nextDouble() * 0.2 * 3      —— 抽 3 次累加，范围 [0.4, 1.0)。
+    // 顺序沿用原版 randomizeAttributes：生命值、速度、跳跃力。
+    attr->m_horseHealth = 15.0f + static_cast<f32>(rng.nextInt(8)) + static_cast<f32>(rng.nextInt(9));
+    attr->m_speed = static_cast<f32>((0.45 + rng.nextDouble() * 0.3 * 3.0) * 0.25);
+    jump->m_jumpStrength =
+        static_cast<f32>(0.4 + rng.nextDouble() * 0.2 + rng.nextDouble() * 0.2 + rng.nextDouble() * 0.2);
+
+    // 随机值先只落在组件里：原版 AbstractHorse.finalizeSpawn 才把它们写进 AttributeMap，
+    // 刚 `new` 出来的实体仍是属性工厂的默认值（53 / 0.225 / 0.7 跳跃力）。真正生成时
+    // 由 applyRandomAttributes() 写回，见该方法的调用点。
+}
+
+void AbstractHorseEntity::finalizeSpawn(
+    IWorld& world, const entity::combat::DifficultyInstance& difficulty, world::spawn::SpawnReason spawnReason)
+{
+    // vanilla AbstractHorse.finalizeSpawn：先 randomizeAttributes(random)，再交给 Animal。
+    applyRandomAttributes();
+    AnimalEntity::finalizeSpawn(world, difficulty, spawnReason);
+}
+
+void AbstractHorseEntity::applyRandomAttributes()
+{
+    const auto* attr = tryGetComponent<ecs::HorseAttributeComponent>();
+    const auto* jump = tryGetComponent<ecs::HorseJumpComponent>();
+    if (attr == nullptr || jump == nullptr) {
+        return;
+    }
+    attributes().setBaseValue(entity::attribute::Attributes::MAX_HEALTH, attr->m_horseHealth);
+    attributes().setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, attr->m_speed);
+    attributes().setBaseValue(entity::attribute::Attributes::HORSE_JUMP_STRENGTH, jump->m_jumpStrength);
 }
 
 // ========== 驯服系统 ==========

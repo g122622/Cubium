@@ -279,7 +279,9 @@ bool ChickenEntity::isBreedingItem(const ItemStack& itemStack) const
 {
     // 鸡用种子繁殖
     const Item* item = itemStack.getItem();
-    if (item == nullptr) return false;
+    if (item == nullptr) {
+        return false;
+    }
     return item == Items::WHEAT_SEEDS || item == Items::PUMPKIN_SEEDS || item == Items::MELON_SEEDS ||
         item == Items::BEETROOT_SEEDS;
 }

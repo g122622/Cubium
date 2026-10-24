@@ -91,27 +91,42 @@ public:
     /**
      * @brief 获取锻造模板类型
      */
-    [[nodiscard]] SmithingTemplateType getTemplateType() const noexcept { return m_type; }
+    [[nodiscard]] SmithingTemplateType getTemplateType() const noexcept
+    {
+        return m_type;
+    }
 
     /**
      * @brief 获取适用于什么的提示翻译键
      */
-    [[nodiscard]] const std::string& getAppliesTo() const noexcept { return m_appliesTo; }
+    [[nodiscard]] const std::string& getAppliesTo() const noexcept
+    {
+        return m_appliesTo;
+    }
 
     /**
      * @brief 获取需要什么材料的提示翻译键
      */
-    [[nodiscard]] const std::string& getIngredients() const noexcept { return m_ingredients; }
+    [[nodiscard]] const std::string& getIngredients() const noexcept
+    {
+        return m_ingredients;
+    }
 
     /**
      * @brief 获取基础槽描述翻译键
      */
-    [[nodiscard]] const std::string& getBaseSlotDescription() const noexcept { return m_baseSlotDescription; }
+    [[nodiscard]] const std::string& getBaseSlotDescription() const noexcept
+    {
+        return m_baseSlotDescription;
+    }
 
     /**
      * @brief 获取附加材料槽描述翻译键
      */
-    [[nodiscard]] const std::string& getAdditionsSlotDescription() const noexcept { return m_additionsSlotDescription; }
+    [[nodiscard]] const std::string& getAdditionsSlotDescription() const noexcept
+    {
+        return m_additionsSlotDescription;
+    }
 
     /**
      * @brief 添加物品提示信息

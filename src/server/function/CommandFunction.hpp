@@ -67,13 +67,25 @@ public:
 
     // ========== IFunction 接口实现 ==========
 
-    [[nodiscard]] const ResourceLocation& id() const noexcept override { return m_id; }
+    [[nodiscard]] const ResourceLocation& id() const noexcept override
+    {
+        return m_id;
+    }
 
-    [[nodiscard]] Size commandCount() const noexcept override { return m_commands.size(); }
+    [[nodiscard]] Size commandCount() const noexcept override
+    {
+        return m_commands.size();
+    }
 
-    [[nodiscard]] bool isEmpty() const noexcept override { return m_commands.empty(); }
+    [[nodiscard]] bool isEmpty() const noexcept override
+    {
+        return m_commands.empty();
+    }
 
-    [[nodiscard]] bool isMacro() const noexcept override { return false; }
+    [[nodiscard]] bool isMacro() const noexcept override
+    {
+        return false;
+    }
 
     /**
      * @brief 执行函数
@@ -92,7 +104,10 @@ public:
      * 仅对 CommandFunction 有效；MacroFunction 不暴露此接口。
      * 保留是为了 FunctionManager::execute(CommandFunction&) 等历史接口。
      */
-    [[nodiscard]] const std::vector<std::string>& commands() const noexcept { return m_commands; }
+    [[nodiscard]] const std::vector<std::string>& commands() const noexcept
+    {
+        return m_commands;
+    }
 
 private:
     ResourceLocation m_id;

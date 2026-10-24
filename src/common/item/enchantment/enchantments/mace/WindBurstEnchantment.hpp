@@ -60,7 +60,10 @@ public:
 
     WindBurstEnchantment() = default;
 
-    [[nodiscard]] std::string id() const override { return ENCHANTMENT_ID; }
+    [[nodiscard]] std::string id() const override
+    {
+        return ENCHANTMENT_ID;
+    }
 
     [[nodiscard]] std::string getNameKey(i32 level) const override
     {
@@ -68,25 +71,53 @@ public:
         return "enchantment.minecraft.wind_burst";
     }
 
-    [[nodiscard]] i32 minLevel() const noexcept override { return 1; }
-    [[nodiscard]] i32 maxLevel() const noexcept override { return 3; }
+    [[nodiscard]] i32 minLevel() const noexcept override
+    {
+        return 1;
+    }
 
-    [[nodiscard]] EnchantmentType type() const override { return EnchantmentType::Weapon; }
+    [[nodiscard]] i32 maxLevel() const noexcept override
+    {
+        return 3;
+    }
 
-    [[nodiscard]] EnchantmentRarity rarity() const noexcept override { return EnchantmentRarity::Rare; }
+    [[nodiscard]] EnchantmentType type() const override
+    {
+        return EnchantmentType::Weapon;
+    }
 
-    [[nodiscard]] i32 getMinCost(i32 level) const override { return 15 + (level - 1) * 9; }
+    [[nodiscard]] EnchantmentRarity rarity() const noexcept override
+    {
+        return EnchantmentRarity::Rare;
+    }
 
-    [[nodiscard]] i32 getMaxCost(i32 level) const override { return 65 + (level - 1) * 9; }
+    [[nodiscard]] i32 getMinCost(i32 level) const override
+    {
+        return 15 + (level - 1) * 9;
+    }
+
+    [[nodiscard]] i32 getMaxCost(i32 level) const override
+    {
+        return 65 + (level - 1) * 9;
+    }
 
     /// 风爆是宝藏附魔，不能从附魔台获得
-    [[nodiscard]] bool isTreasure() const noexcept override { return true; }
+    [[nodiscard]] bool isTreasure() const noexcept override
+    {
+        return true;
+    }
 
     /// 风爆不能出现在村民交易中
-    [[nodiscard]] bool canVillagerTrade() const noexcept override { return false; }
+    [[nodiscard]] bool canVillagerTrade() const noexcept override
+    {
+        return false;
+    }
 
     /// 风爆不能出现在战利品箱中（只能从试炼密室获取）
-    [[nodiscard]] bool canGenerateInLoot() const noexcept override { return true; }
+    [[nodiscard]] bool canGenerateInLoot() const noexcept override
+    {
+        return true;
+    }
 
     /**
      * @brief 获取风爆爆炸的击退乘数
@@ -117,7 +148,10 @@ public:
      * @brief 获取风爆爆炸的交互范围
      * @return 爆炸交互范围
      */
-    [[nodiscard]] static constexpr f32 getExplosionInteractionRange() noexcept { return 3.5f; }
+    [[nodiscard]] static constexpr f32 getExplosionInteractionRange() noexcept
+    {
+        return 3.5f;
+    }
 
     /// 风爆不与伤害附魔互斥（可与致密或破甲共存）
     [[nodiscard]] bool isCompatibleWith(const Enchantment& other) const override;

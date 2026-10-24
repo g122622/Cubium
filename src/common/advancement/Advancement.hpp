@@ -113,29 +113,44 @@ public:
     /**
      * @brief 获取成就ID
      */
-    [[nodiscard]] const ResourceLocation& getId() const noexcept { return m_id; }
+    [[nodiscard]] const ResourceLocation& getId() const noexcept
+    {
+        return m_id;
+    }
 
     /**
      * @brief 获取父成就ID
      */
-    [[nodiscard]] const std::optional<ResourceLocation>& getParent() const noexcept { return m_parent; }
+    [[nodiscard]] const std::optional<ResourceLocation>& getParent() const noexcept
+    {
+        return m_parent;
+    }
 
     /**
      * @brief 获取显示信息
      */
-    [[nodiscard]] const std::optional<AdvancementDisplay>& getDisplay() const noexcept { return m_display; }
+    [[nodiscard]] const std::optional<AdvancementDisplay>& getDisplay() const noexcept
+    {
+        return m_display;
+    }
 
     /**
      * @brief 获取奖励
      */
-    [[nodiscard]] const std::optional<AdvancementRewards>& getRewards() const noexcept { return m_rewards; }
+    [[nodiscard]] const std::optional<AdvancementRewards>& getRewards() const noexcept
+    {
+        return m_rewards;
+    }
 
     // ========== 条件 ==========
 
     /**
      * @brief 获取所有条件
      */
-    [[nodiscard]] const std::map<std::string, Criterion>& getCriteria() const noexcept { return m_criteria; }
+    [[nodiscard]] const std::map<std::string, Criterion>& getCriteria() const noexcept
+    {
+        return m_criteria;
+    }
 
     /**
      * @brief 获取需求矩阵
@@ -155,7 +170,10 @@ public:
     /**
      * @brief 获取子成就列表
      */
-    [[nodiscard]] const std::vector<Ptr>& getChildren() const noexcept { return m_children; }
+    [[nodiscard]] const std::vector<Ptr>& getChildren() const noexcept
+    {
+        return m_children;
+    }
 
     /**
      * @brief 添加子成就
@@ -168,12 +186,18 @@ public:
     /**
      * @brief 检查是否为根成就（无父成就）
      */
-    [[nodiscard]] bool isRoot() const noexcept { return !m_parent.has_value(); }
+    [[nodiscard]] bool isRoot() const noexcept
+    {
+        return !m_parent.has_value();
+    }
 
     /**
      * @brief 检查是否有显示信息
      */
-    [[nodiscard]] bool hasDisplay() const noexcept { return m_display.has_value(); }
+    [[nodiscard]] bool hasDisplay() const noexcept
+    {
+        return m_display.has_value();
+    }
 
     /**
      * @brief 获取显示文本（用于聊天消息）
@@ -203,6 +227,7 @@ public:
     class Builder {
     public:
         Builder() = default;
+
         explicit Builder(ResourceLocation id)
             : m_id(std::move(id))
         {}

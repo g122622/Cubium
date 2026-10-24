@@ -173,13 +173,19 @@ bool PhysicsEngine::isOnGround(const Entity* entity, const AxisAlignedBB& entity
     for (i32 x = minX; x <= maxX; ++x) {
         for (i32 y = minY; y <= maxY; ++y) {
             for (i32 z = minZ; z <= maxZ; ++z) {
-                if (!m_world->isWithinWorldBounds(x, y, z)) continue;
+                if (!m_world->isWithinWorldBounds(x, y, z)) {
+                    continue;
+                }
 
                 const BlockState* state = m_world->getBlockState(x, y, z);
-                if (!state || state->isAir()) continue;
+                if (!state || state->isAir()) {
+                    continue;
+                }
 
                 const CollisionShape& shape = state->getCollisionShapeForEntity(ctx, y);
-                if (shape.isEmpty()) continue;
+                if (shape.isEmpty()) {
+                    continue;
+                }
 
                 // 检测是否与测试框相交
                 if (shape.intersects(testBox, x, y, z)) {
@@ -583,10 +589,14 @@ Vector3 PhysicsEngine::_applyFallDown(
 void PhysicsEngine::_getBlockCollisionBoxes(
     i32 x, i32 y, i32 z, const EntityCollisionContext& ctx, std::vector<AxisAlignedBB>& boxes) const
 {
-    if (!m_world->isWithinWorldBounds(x, y, z)) return;
+    if (!m_world->isWithinWorldBounds(x, y, z)) {
+        return;
+    }
 
     const BlockState* state = m_world->getBlockState(x, y, z);
-    if (!state || state->isAir()) return;
+    if (!state || state->isAir()) {
+        return;
+    }
 
     const CollisionShape& shape = state->getCollisionShapeForEntity(ctx, y);
     if (shape.isEmpty()) {

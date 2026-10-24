@@ -196,7 +196,10 @@ public:
      * @brief 添加子组件（别名，与文档一致）
      * @param widget 子组件
      */
-    void addChild(Widget::Ptr widget) { addWidget(std::move(widget)); }
+    void addChild(Widget::Ptr widget)
+    {
+        addWidget(std::move(widget));
+    }
 
     void removeWidget(Widget* widget) override
     {
@@ -207,8 +210,9 @@ public:
             m_focusedWidget = nullptr;
         }
 
-        auto it = std::find_if(
-            m_children.begin(), m_children.end(), [widget](const Widget::Ptr& ptr) { return ptr.get() == widget; });
+        auto it = std::find_if(m_children.begin(), m_children.end(), [widget](const Widget::Ptr& ptr) {
+            return ptr.get() == widget;
+        });
 
         if (it != m_children.end()) {
             (*it)->setParent(nullptr);
@@ -221,12 +225,16 @@ public:
      * @param id 组件ID
      * @return 是否成功移除
      */
-    bool removeChild(const std::string& id) { return removeWidgetById(id); }
+    bool removeChild(const std::string& id)
+    {
+        return removeWidgetById(id);
+    }
 
     bool removeWidgetById(const std::string& id) override
     {
-        auto it = std::find_if(
-            m_children.begin(), m_children.end(), [&id](const Widget::Ptr& ptr) { return ptr->id() == id; });
+        auto it = std::find_if(m_children.begin(), m_children.end(), [&id](const Widget::Ptr& ptr) {
+            return ptr->id() == id;
+        });
 
         if (it != m_children.end()) {
             // 清除焦点引用，防止野指针
@@ -251,21 +259,34 @@ public:
     /**
      * @brief 清空所有子组件（别名，与文档一致）
      */
-    void clearChildren() { clearWidgets(); }
+    void clearChildren()
+    {
+        clearWidgets();
+    }
 
-    [[nodiscard]] const std::vector<Widget::Ptr>& widgets() const override { return m_children; }
+    [[nodiscard]] const std::vector<Widget::Ptr>& widgets() const override
+    {
+        return m_children;
+    }
 
     /**
      * @brief 获取子组件数量（别名，与文档一致）
      */
-    [[nodiscard]] size_t childCount() const { return m_children.size(); }
+    [[nodiscard]] size_t childCount() const
+    {
+        return m_children.size();
+    }
 
-    [[nodiscard]] size_t widgetCount() const override { return m_children.size(); }
+    [[nodiscard]] size_t widgetCount() const override
+    {
+        return m_children.size();
+    }
 
     [[nodiscard]] Widget* findWidgetById(const std::string& id) override
     {
-        auto it = std::find_if(
-            m_children.begin(), m_children.end(), [&id](const Widget::Ptr& ptr) { return ptr->id() == id; });
+        auto it = std::find_if(m_children.begin(), m_children.end(), [&id](const Widget::Ptr& ptr) {
+            return ptr->id() == id;
+        });
 
         return (it != m_children.end()) ? it->get() : nullptr;
     }
@@ -273,17 +294,24 @@ public:
     /**
      * @brief 通过ID查找子组件（别名，与文档一致）
      */
-    [[nodiscard]] Widget* findChild(const std::string& id) { return findWidgetById(id); }
+    [[nodiscard]] Widget* findChild(const std::string& id)
+    {
+        return findWidgetById(id);
+    }
 
     [[nodiscard]] const Widget* findWidgetById(const std::string& id) const override
     {
-        auto it = std::find_if(
-            m_children.begin(), m_children.end(), [&id](const Widget::Ptr& ptr) { return ptr->id() == id; });
+        auto it = std::find_if(m_children.begin(), m_children.end(), [&id](const Widget::Ptr& ptr) {
+            return ptr->id() == id;
+        });
 
         return (it != m_children.end()) ? it->get() : nullptr;
     }
 
-    [[nodiscard]] const Widget* findChild(const std::string& id) const { return findWidgetById(id); }
+    [[nodiscard]] const Widget* findChild(const std::string& id) const
+    {
+        return findWidgetById(id);
+    }
 
     [[nodiscard]] Widget* getWidgetAt(i32 x, i32 y) override
     {
@@ -312,8 +340,9 @@ public:
     {
         MC_ASSERT_RELEASE(widget != nullptr);
 
-        auto it = std::find_if(
-            m_children.begin(), m_children.end(), [widget](const Widget::Ptr& ptr) { return ptr.get() == widget; });
+        auto it = std::find_if(m_children.begin(), m_children.end(), [widget](const Widget::Ptr& ptr) {
+            return ptr.get() == widget;
+        });
 
         // 由于 getWidgetAt 从后往前遍历，"最前面"应该是列表末尾
         if (it != m_children.end() && it != m_children.end() - 1) {
@@ -327,8 +356,9 @@ public:
     {
         MC_ASSERT_RELEASE(widget != nullptr);
 
-        auto it = std::find_if(
-            m_children.begin(), m_children.end(), [widget](const Widget::Ptr& ptr) { return ptr.get() == widget; });
+        auto it = std::find_if(m_children.begin(), m_children.end(), [widget](const Widget::Ptr& ptr) {
+            return ptr.get() == widget;
+        });
 
         // 由于 getWidgetAt 从后往前遍历，"最后面"应该是列表开头
         if (it != m_children.end() && it != m_children.begin()) {
@@ -376,13 +406,23 @@ public:
     /**
      * @brief 获取当前焦点组件
      */
-    [[nodiscard]] Widget* getFocusedWidget() { return m_focusedWidget; }
-    [[nodiscard]] const Widget* getFocusedWidget() const { return m_focusedWidget; }
+    [[nodiscard]] Widget* getFocusedWidget()
+    {
+        return m_focusedWidget;
+    }
+
+    [[nodiscard]] const Widget* getFocusedWidget() const
+    {
+        return m_focusedWidget;
+    }
 
     /**
      * @brief 清除焦点
      */
-    void clearFocus() { setFocusedWidget(nullptr); }
+    void clearFocus()
+    {
+        setFocusedWidget(nullptr);
+    }
 
     /**
      * @brief 将焦点移动到下一个可聚焦的子组件（Tab导航）

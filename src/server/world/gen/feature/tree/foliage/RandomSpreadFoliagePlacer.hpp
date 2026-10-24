@@ -64,14 +64,20 @@ public:
 
     [[nodiscard]] i32 getFoliageHeight(math::IRandom& random, i32 trunkHeight) const override;
 
-    [[nodiscard]] const char* name() const override { return "random_spread"; }
+    [[nodiscard]] const char* name() const override
+    {
+        return "random_spread";
+    }
 
     [[nodiscard]] std::unique_ptr<FoliagePlacer> clone() const override;
 
     /**
      * @brief 获取叶片放置尝试次数
      */
-    [[nodiscard]] i32 leafPlacementAttempts() const noexcept { return m_leafPlacementAttempts; }
+    [[nodiscard]] i32 leafPlacementAttempts() const noexcept
+    {
+        return m_leafPlacementAttempts;
+    }
 
 protected:
     void placeFoliageInternal(WorldGenRegion& world,

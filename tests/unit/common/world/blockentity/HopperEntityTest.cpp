@@ -57,15 +57,33 @@ public:
     HopperTestWorld() = default;
 
     // isClientSide 控制
-    void setClientSide(bool clientSide) { m_clientSide = clientSide; }
-    [[nodiscard]] bool isClientSide() const override { return m_clientSide; }
+    void setClientSide(bool clientSide)
+    {
+        m_clientSide = clientSide;
+    }
+
+    [[nodiscard]] bool isClientSide() const override
+    {
+        return m_clientSide;
+    }
 
     // currentTick 控制
-    void setCurrentTick(u64 tick) { m_currentTick = tick; }
-    [[nodiscard]] u64 currentTick() const override { return m_currentTick; }
+    void setCurrentTick(u64 tick)
+    {
+        m_currentTick = tick;
+    }
+
+    [[nodiscard]] u64 currentTick() const override
+    {
+        return m_currentTick;
+    }
 
     // getBlockState 控制（按 BlockPos 存储）
-    void setBlockState(const BlockPos& pos, const BlockState* state) { m_blockStates[pos] = state; }
+    void setBlockState(const BlockPos& pos, const BlockState* state)
+    {
+        m_blockStates[pos] = state;
+    }
+
     [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override
     {
         auto it = m_blockStates.find(BlockPos(x, y, z));
@@ -77,11 +95,13 @@ public:
     {
         m_blockEntities[pos] = std::move(entity);
     }
+
     [[nodiscard]] BlockEntity* getBlockEntity(const BlockPos& pos) override
     {
         auto it = m_blockEntities.find(pos);
         return it != m_blockEntities.end() ? it->second.get() : nullptr;
     }
+
     [[nodiscard]] const BlockEntity* getBlockEntity(const BlockPos& pos) const override
     {
         auto it = m_blockEntities.find(pos);
@@ -89,15 +109,26 @@ public:
     }
 
     // getEntitiesInAABB 控制
-    void setEntitiesInAABB(const std::vector<Entity*>& entities) { m_entities = entities; }
+    void setEntitiesInAABB(const std::vector<Entity*>& entities)
+    {
+        m_entities = entities;
+    }
+
     [[nodiscard]] std::vector<Entity*> getEntitiesInAABB(const AxisAlignedBB&, const Entity*) const override
     {
         return m_entities;
     }
 
     // tickManager 提供一个空实现
-    [[nodiscard]] world::tick::TickManager& tickManager() override { return m_tickManager; }
-    [[nodiscard]] const world::tick::TickManager& tickManager() const override { return m_tickManager; }
+    [[nodiscard]] world::tick::TickManager& tickManager() override
+    {
+        return m_tickManager;
+    }
+
+    [[nodiscard]] const world::tick::TickManager& tickManager() const override
+    {
+        return m_tickManager;
+    }
 
 private:
     bool m_clientSide = false;
@@ -250,7 +281,10 @@ TEST_F(HopperEntityTest, IsOnCustomCooldown_ReturnsTrueForAboveNormalCooldown)
 
 class IHopperTest : public ::testing::Test {
 protected:
-    void SetUp() override { hopper_ = std::make_unique<HopperEntity>(BlockPos(100, 64, -50)); }
+    void SetUp() override
+    {
+        hopper_ = std::make_unique<HopperEntity>(BlockPos(100, 64, -50));
+    }
 
     std::unique_ptr<HopperEntity> hopper_;
 };
@@ -838,15 +872,50 @@ public:
         : m_pos(pos)
     {}
 
-    [[nodiscard]] IWorld* getWorld() override { return nullptr; }
-    [[nodiscard]] const IWorld* getWorld() const override { return nullptr; }
-    [[nodiscard]] f64 getXPos() const override { return static_cast<f64>(m_pos.x) + 0.5; }
-    [[nodiscard]] f64 getYPos() const override { return static_cast<f64>(m_pos.y) + 0.5; }
-    [[nodiscard]] f64 getZPos() const override { return static_cast<f64>(m_pos.z) + 0.5; }
-    [[nodiscard]] BlockPos getHopperPos() const override { return m_pos; }
-    [[nodiscard]] Direction getOutputDirection() const override { return Direction::Down; }
-    [[nodiscard]] bool isGridAligned() const override { return false; }         // 矿车漏斗：不网格对齐
-    [[nodiscard]] IInventory* getHopperInventory() override { return nullptr; } // 测试用，无背包
+    [[nodiscard]] IWorld* getWorld() override
+    {
+        return nullptr;
+    }
+
+    [[nodiscard]] const IWorld* getWorld() const override
+    {
+        return nullptr;
+    }
+
+    [[nodiscard]] f64 getXPos() const override
+    {
+        return static_cast<f64>(m_pos.x) + 0.5;
+    }
+
+    [[nodiscard]] f64 getYPos() const override
+    {
+        return static_cast<f64>(m_pos.y) + 0.5;
+    }
+
+    [[nodiscard]] f64 getZPos() const override
+    {
+        return static_cast<f64>(m_pos.z) + 0.5;
+    }
+
+    [[nodiscard]] BlockPos getHopperPos() const override
+    {
+        return m_pos;
+    }
+
+    [[nodiscard]] Direction getOutputDirection() const override
+    {
+        return Direction::Down;
+    }
+
+    [[nodiscard]] bool isGridAligned() const override
+    {
+        return false;
+    } // 矿车漏斗：不网格对齐
+
+    [[nodiscard]] IInventory* getHopperInventory() override
+    {
+        return nullptr;
+    } // 测试用，无背包
 
 private:
     BlockPos m_pos;

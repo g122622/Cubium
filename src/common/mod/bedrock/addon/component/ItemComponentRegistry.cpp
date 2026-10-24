@@ -68,7 +68,9 @@ size_t ItemComponentRegistry::unregisterComponent(const std::string& itemTypeId,
     auto originalSize = components.size();
     components.erase(std::remove_if(components.begin(),
                          components.end(),
-                         [&componentName](const ItemCustomComponent& c) { return c.name == componentName; }),
+                         [&componentName](const ItemCustomComponent& c) {
+                             return c.name == componentName;
+                         }),
         components.end());
 
     auto removed = originalSize - components.size();
@@ -299,13 +301,27 @@ void ItemComponentRegistry::_updateCallbackFlags(const std::string& itemTypeId)
 
     CallbackFlags flags{};
     for (const auto& component : it->second) {
-        if (component.onUse) flags.hasUse = 1;
-        if (component.onUseOn) flags.hasUseOn = 1;
-        if (component.onHitEntity) flags.hasHitEntity = 1;
-        if (component.onMineBlock) flags.hasMineBlock = 1;
-        if (component.onBeforeDurabilityDamage) flags.hasBeforeDurabilityDamage = 1;
-        if (component.onCompleteUse) flags.hasCompleteUse = 1;
-        if (component.onConsume) flags.hasConsume = 1;
+        if (component.onUse) {
+            flags.hasUse = 1;
+        }
+        if (component.onUseOn) {
+            flags.hasUseOn = 1;
+        }
+        if (component.onHitEntity) {
+            flags.hasHitEntity = 1;
+        }
+        if (component.onMineBlock) {
+            flags.hasMineBlock = 1;
+        }
+        if (component.onBeforeDurabilityDamage) {
+            flags.hasBeforeDurabilityDamage = 1;
+        }
+        if (component.onCompleteUse) {
+            flags.hasCompleteUse = 1;
+        }
+        if (component.onConsume) {
+            flags.hasConsume = 1;
+        }
     }
     m_callbackFlags[itemTypeId] = flags;
 }

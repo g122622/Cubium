@@ -105,7 +105,10 @@ struct ResourcePackEntry {
     /**
      * @brief 不等比较
      */
-    bool operator!=(const ResourcePackEntry& other) const { return !(*this == other); }
+    bool operator!=(const ResourcePackEntry& other) const
+    {
+        return !(*this == other);
+    }
 };
 
 /**
@@ -154,7 +157,10 @@ public:
     // IOption 接口实现
     // ========================================================================
 
-    [[nodiscard]] std::string getKey() const override { return m_key; }
+    [[nodiscard]] std::string getKey() const override
+    {
+        return m_key;
+    }
 
     [[nodiscard]] SettingsValue getValue() const override
     {
@@ -195,7 +201,10 @@ public:
         notifyChange();
     }
 
-    [[nodiscard]] bool isDefault() const override { return m_entries == m_default; }
+    [[nodiscard]] bool isDefault() const override
+    {
+        return m_entries == m_default;
+    }
 
     // ========================================================================
     // 列表操作方法
@@ -205,17 +214,26 @@ public:
      * @brief 获取所有条目
      * @return 条目列表的常量引用
      */
-    [[nodiscard]] const std::vector<ResourcePackEntry>& entries() const { return m_entries; }
+    [[nodiscard]] const std::vector<ResourcePackEntry>& entries() const
+    {
+        return m_entries;
+    }
 
     /**
      * @brief 获取条目数量
      */
-    [[nodiscard]] size_t size() const { return m_entries.size(); }
+    [[nodiscard]] size_t size() const
+    {
+        return m_entries.size();
+    }
 
     /**
      * @brief 检查列表是否为空
      */
-    [[nodiscard]] bool empty() const { return m_entries.empty(); }
+    [[nodiscard]] bool empty() const
+    {
+        return m_entries.empty();
+    }
 
     /**
      * @brief 添加资源包条目
@@ -224,8 +242,9 @@ public:
     void add(const ResourcePackEntry& entry)
     {
         // 检查是否已存在相同路径的条目
-        auto it = std::find_if(
-            m_entries.begin(), m_entries.end(), [&](const ResourcePackEntry& e) { return e.path == entry.path; });
+        auto it = std::find_if(m_entries.begin(), m_entries.end(), [&](const ResourcePackEntry& e) {
+            return e.path == entry.path;
+        });
         if (it != m_entries.end()) {
             // 更新已存在的条目
             *it = entry;
@@ -242,8 +261,9 @@ public:
      */
     bool remove(const std::string& path)
     {
-        auto it = std::find_if(
-            m_entries.begin(), m_entries.end(), [&](const ResourcePackEntry& e) { return e.path == path; });
+        auto it = std::find_if(m_entries.begin(), m_entries.end(), [&](const ResourcePackEntry& e) {
+            return e.path == path;
+        });
         if (it != m_entries.end()) {
             m_entries.erase(it);
             notifyChange();
@@ -259,8 +279,9 @@ public:
      */
     [[nodiscard]] const ResourcePackEntry* find(const std::string& path) const
     {
-        auto it = std::find_if(
-            m_entries.begin(), m_entries.end(), [&](const ResourcePackEntry& e) { return e.path == path; });
+        auto it = std::find_if(m_entries.begin(), m_entries.end(), [&](const ResourcePackEntry& e) {
+            return e.path == path;
+        });
         return it != m_entries.end() ? &(*it) : nullptr;
     }
 
@@ -272,8 +293,9 @@ public:
      */
     bool update(const std::string& path, const ResourcePackEntry& entry)
     {
-        auto it = std::find_if(
-            m_entries.begin(), m_entries.end(), [&](const ResourcePackEntry& e) { return e.path == path; });
+        auto it = std::find_if(m_entries.begin(), m_entries.end(), [&](const ResourcePackEntry& e) {
+            return e.path == path;
+        });
         if (it != m_entries.end()) {
             *it = entry;
             notifyChange();
@@ -290,8 +312,9 @@ public:
      */
     bool setEnabled(const std::string& path, bool enabled)
     {
-        auto it = std::find_if(
-            m_entries.begin(), m_entries.end(), [&](const ResourcePackEntry& e) { return e.path == path; });
+        auto it = std::find_if(m_entries.begin(), m_entries.end(), [&](const ResourcePackEntry& e) {
+            return e.path == path;
+        });
         if (it != m_entries.end() && it->enabled != enabled) {
             it->enabled = enabled;
             notifyChange();
@@ -308,8 +331,9 @@ public:
      */
     bool setPriority(const std::string& path, i32 priority)
     {
-        auto it = std::find_if(
-            m_entries.begin(), m_entries.end(), [&](const ResourcePackEntry& e) { return e.path == path; });
+        auto it = std::find_if(m_entries.begin(), m_entries.end(), [&](const ResourcePackEntry& e) {
+            return e.path == path;
+        });
         if (it != m_entries.end() && it->priority != priority) {
             it->priority = priority;
             notifyChange();
@@ -389,10 +413,25 @@ public:
     // 迭代器支持
     // ========================================================================
 
-    [[nodiscard]] std::vector<ResourcePackEntry>::const_iterator begin() const { return m_entries.begin(); }
-    [[nodiscard]] std::vector<ResourcePackEntry>::const_iterator end() const { return m_entries.end(); }
-    [[nodiscard]] std::vector<ResourcePackEntry>::const_iterator cbegin() const { return m_entries.cbegin(); }
-    [[nodiscard]] std::vector<ResourcePackEntry>::const_iterator cend() const { return m_entries.cend(); }
+    [[nodiscard]] std::vector<ResourcePackEntry>::const_iterator begin() const
+    {
+        return m_entries.begin();
+    }
+
+    [[nodiscard]] std::vector<ResourcePackEntry>::const_iterator end() const
+    {
+        return m_entries.end();
+    }
+
+    [[nodiscard]] std::vector<ResourcePackEntry>::const_iterator cbegin() const
+    {
+        return m_entries.cbegin();
+    }
+
+    [[nodiscard]] std::vector<ResourcePackEntry>::const_iterator cend() const
+    {
+        return m_entries.cend();
+    }
 
     // ========================================================================
     // 变更回调

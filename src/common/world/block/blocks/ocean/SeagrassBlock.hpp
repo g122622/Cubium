@@ -37,6 +37,7 @@ namespace mc {
 class IWorld;
 class IBlockReader;
 class BlockItemUseContext;
+
 namespace math {
 class IRandom;
 }

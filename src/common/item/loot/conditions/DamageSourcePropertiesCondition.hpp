@@ -57,9 +57,16 @@ public:
 
     [[nodiscard]] bool test(LootContext& context) const override;
     [[nodiscard]] std::unique_ptr<LootCondition> clone() const noexcept override;
-    [[nodiscard]] std::string getType() const noexcept override { return "damage_source_properties"; }
 
-    [[nodiscard]] const advancement::DamageSourcePredicate& getPredicate() const noexcept { return m_predicate; }
+    [[nodiscard]] std::string getType() const noexcept override
+    {
+        return "damage_source_properties";
+    }
+
+    [[nodiscard]] const advancement::DamageSourcePredicate& getPredicate() const noexcept
+    {
+        return m_predicate;
+    }
 
 private:
     advancement::DamageSourcePredicate m_predicate;

@@ -45,7 +45,10 @@ namespace {
 
 class TestFishWorld final : public mc::test::BaseTestWorld {
 public:
-    void setEntities(std::vector<Entity*> entities) { m_entities = std::move(entities); }
+    void setEntities(std::vector<Entity*> entities)
+    {
+        m_entities = std::move(entities);
+    }
 
     [[nodiscard]] std::vector<Entity*> getEntitiesInAABB(const AxisAlignedBB&, const Entity* except) const override
     {
@@ -78,13 +81,21 @@ public:
         return result;
     }
 
-    [[nodiscard]] bool isWaterAt(const BlockPos&) const override { return true; }
-    [[nodiscard]] bool isLavaAt(const BlockPos&) const override { return false; }
+    [[nodiscard]] bool isWaterAt(const BlockPos&) const override
+    {
+        return true;
+    }
+
+    [[nodiscard]] bool isLavaAt(const BlockPos&) const override
+    {
+        return false;
+    }
 
     [[nodiscard]] world::tick::TickManager& tickManager() override
     {
         throw std::runtime_error("TestFishWorld::tickManager not implemented");
     }
+
     [[nodiscard]] const world::tick::TickManager& tickManager() const override
     {
         throw std::runtime_error("TestFishWorld::tickManager not implemented");
@@ -169,9 +180,15 @@ TEST(FishSupportTypesTest, SchoolingFishUseGroupLayerButPufferfishDoesNot)
 
 class FollowSchoolLeaderGoalTest : public ::testing::Test {
 protected:
-    void SetUp() override { m_world = std::make_unique<TestFishWorld>(); }
+    void SetUp() override
+    {
+        m_world = std::make_unique<TestFishWorld>();
+    }
 
-    void TearDown() override { m_world.reset(); }
+    void TearDown() override
+    {
+        m_world.reset();
+    }
 
     std::unique_ptr<TestFishWorld> m_world;
 };
@@ -446,9 +463,15 @@ TEST(FishSwimGoalSafetyTest, FishSwimGoalReturnsFalseWhenBlockStateIsUnavailable
 
 class AbstractFishEntityFromBucketTest : public ::testing::Test {
 protected:
-    void SetUp() override { m_world = std::make_unique<TestFishWorld>(); }
+    void SetUp() override
+    {
+        m_world = std::make_unique<TestFishWorld>();
+    }
 
-    void TearDown() override { m_world.reset(); }
+    void TearDown() override
+    {
+        m_world.reset();
+    }
 
     std::unique_ptr<TestFishWorld> m_world;
 };

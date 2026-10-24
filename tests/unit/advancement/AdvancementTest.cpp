@@ -780,8 +780,9 @@ TEST_F(AdvancementTest, InventoryChangedTriggerInstance_AnyMatch)
     std::vector<ItemStack> emptyInventory(41); // 41 slots
 
     // 应该匹配任何情况
-    EXPECT_TRUE(instance->testWithInventory(41,
-        [&emptyInventory](i32 slot) -> const ItemStack& { return emptyInventory[static_cast<std::size_t>(slot)]; }));
+    EXPECT_TRUE(instance->testWithInventory(41, [&emptyInventory](i32 slot) -> const ItemStack& {
+        return emptyInventory[static_cast<std::size_t>(slot)];
+    }));
 }
 
 TEST_F(AdvancementTest, InventoryChangedTriggerInstance_SlotConditions)
@@ -853,8 +854,9 @@ TEST_F(AdvancementTest, InventoryChangedTriggerInstance_MultipleItemPredicates)
     std::vector<ItemStack> emptyInventory(41);
 
     // 由于物品栏为空，不应该匹配（需要两个物品都有）
-    EXPECT_FALSE(instance->testWithInventory(41,
-        [&emptyInventory](i32 slot) -> const ItemStack& { return emptyInventory[static_cast<std::size_t>(slot)]; }));
+    EXPECT_FALSE(instance->testWithInventory(41, [&emptyInventory](i32 slot) -> const ItemStack& {
+        return emptyInventory[static_cast<std::size_t>(slot)];
+    }));
 }
 
 TEST_F(AdvancementTest, InventoryChangedTriggerInstance_SingleItemPredicate)
@@ -883,8 +885,9 @@ TEST_F(AdvancementTest, InventoryChangedTriggerInstance_SingleItemPredicate)
     std::vector<ItemStack> emptyInventory(41);
 
     // 由于物品栏为空，不应该匹配
-    EXPECT_FALSE(instance->testWithInventory(41,
-        [&emptyInventory](i32 slot) -> const ItemStack& { return emptyInventory[static_cast<std::size_t>(slot)]; }));
+    EXPECT_FALSE(instance->testWithInventory(41, [&emptyInventory](i32 slot) -> const ItemStack& {
+        return emptyInventory[static_cast<std::size_t>(slot)];
+    }));
 }
 
 // main 函数由 gtest_main 库提供

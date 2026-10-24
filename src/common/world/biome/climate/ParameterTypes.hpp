@@ -86,7 +86,10 @@ struct Parameter {
     }
 
     /** 全范围参数 [-2, 2] */
-    static Parameter fullRange() { return span(-2.0f, 2.0f); }
+    static Parameter fullRange()
+    {
+        return span(-2.0f, 2.0f);
+    }
 
     /**
      * @brief 计算量化值到此参数范围的距离
@@ -100,9 +103,15 @@ struct Parameter {
         return above > 0 ? above : std::max(below, i64{0});
     }
 
-    [[nodiscard]] bool operator==(const Parameter& other) const { return min == other.min && max == other.max; }
+    [[nodiscard]] bool operator==(const Parameter& other) const
+    {
+        return min == other.min && max == other.max;
+    }
 
-    [[nodiscard]] bool operator!=(const Parameter& other) const { return !(*this == other); }
+    [[nodiscard]] bool operator!=(const Parameter& other) const
+    {
+        return !(*this == other);
+    }
 };
 
 // ============================================================================

@@ -74,7 +74,10 @@ public:
     /**
      * @brief 将枚举值转换为字符串
      */
-    [[nodiscard]] std::string valueToString(const E& value) const override { return Traits::toString(value); }
+    [[nodiscard]] std::string valueToString(const E& value) const override
+    {
+        return Traits::toString(value);
+    }
 
     /**
      * @brief 解析字符串为枚举值
@@ -104,7 +107,10 @@ public:
     /**
      * @brief 获取类型名称
      */
-    [[nodiscard]] const char* typeName() const override { return "EnumProperty"; }
+    [[nodiscard]] const char* typeName() const override
+    {
+        return "EnumProperty";
+    }
 
 protected:
     EnumProperty(const std::string& name, const std::vector<E>& values)
@@ -118,8 +124,15 @@ protected:
 
 template <>
 struct EnumProperty<Direction>::Traits {
-    static std::string toString(const Direction& value) { return Directions::toString(value); }
-    static std::optional<Direction> fromName(std::string_view name) { return Directions::fromName(name); }
+    static std::string toString(const Direction& value)
+    {
+        return Directions::toString(value);
+    }
+
+    static std::optional<Direction> fromName(std::string_view name)
+    {
+        return Directions::fromName(name);
+    }
 };
 
 // ============================================================================
@@ -128,8 +141,15 @@ struct EnumProperty<Direction>::Traits {
 
 template <>
 struct EnumProperty<Axis>::Traits {
-    static std::string toString(const Axis& value) { return Axes::toString(value); }
-    static std::optional<Axis> fromName(std::string_view name) { return Axes::fromName(name); }
+    static std::string toString(const Axis& value)
+    {
+        return Axes::toString(value);
+    }
+
+    static std::optional<Axis> fromName(std::string_view name)
+    {
+        return Axes::fromName(name);
+    }
 };
 
 } // namespace mc

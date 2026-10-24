@@ -71,19 +71,28 @@ public:
     /**
      * @brief 获取当前旗帜类型
      */
-    [[nodiscard]] BannerType getBannerType() const { return m_bannerType; }
+    [[nodiscard]] BannerType getBannerType() const
+    {
+        return m_bannerType;
+    }
 
     // ========== 部件访问 ==========
 
     /**
      * @brief 获取旗杆部件
      */
-    [[nodiscard]] std::shared_ptr<entity::model::ModelRenderer> getPole() const { return m_pole; }
+    [[nodiscard]] std::shared_ptr<entity::model::ModelRenderer> getPole() const
+    {
+        return m_pole;
+    }
 
     /**
      * @brief 获取旗帜面部件（用于图案层叠渲染）
      */
-    [[nodiscard]] std::shared_ptr<entity::model::ModelRenderer> getFlag() const { return m_flag; }
+    [[nodiscard]] std::shared_ptr<entity::model::ModelRenderer> getFlag() const
+    {
+        return m_flag;
+    }
 
     // ========== 动画 ==========
 

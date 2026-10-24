@@ -50,26 +50,54 @@ using namespace mc::world::biome;
 class StubChunkGenerator : public IChunkGenerator {
 public:
     void generateStructureStarts(WorldGenRegion& /*region*/, ChunkPrimer& /*chunk*/) override {}
+
     void generateStructureReferences(WorldGenRegion& /*region*/, ChunkPrimer& /*chunk*/) override {}
+
     void generateBiomes(WorldGenRegion& /*region*/, ChunkPrimer& /*chunk*/) override {}
+
     void generateNoise(WorldGenRegion& /*region*/, ChunkPrimer& /*chunk*/) override {}
+
     void buildSurface(WorldGenRegion& /*region*/, ChunkPrimer& /*chunk*/) override {}
+
     void applyCarvers(WorldGenRegion& /*region*/, ChunkPrimer& /*chunk*/) override {}
+
     void placeFeatures(WorldGenRegion& /*region*/, ChunkPrimer& /*chunk*/) override {}
+
     i32 spawnInitialMobs(
         WorldGenRegion& /*region*/, ChunkPrimer& /*chunk*/, std::vector<SpawnedEntityData>& /*outEntities*/) override
     {
         return 0;
     }
-    [[nodiscard]] BiomeId getBiome(i32 /*x*/, i32 /*y*/, i32 /*z*/) const override { return Biomes::Plains; }
+
+    [[nodiscard]] BiomeId getBiome(i32 /*x*/, i32 /*y*/, i32 /*z*/) const override
+    {
+        return Biomes::Plains;
+    }
+
     [[nodiscard]] BiomeId getNoiseBiome(i32 /*noiseX*/, i32 /*noiseY*/, i32 /*noiseZ*/) const override
     {
         return Biomes::Plains;
     }
-    [[nodiscard]] i32 getHeight(i32 /*x*/, i32 /*z*/, HeightmapType /*type*/) const override { return 64; }
-    [[nodiscard]] u64 seed() const override { return 0; }
-    [[nodiscard]] const DimensionSettings& settings() const override { return DimensionSettings::overworld(); }
-    [[nodiscard]] i32 seaLevel() const override { return 63; }
+
+    [[nodiscard]] i32 getHeight(i32 /*x*/, i32 /*z*/, HeightmapType /*type*/) const override
+    {
+        return 64;
+    }
+
+    [[nodiscard]] u64 seed() const override
+    {
+        return 0;
+    }
+
+    [[nodiscard]] const DimensionSettings& settings() const override
+    {
+        return DimensionSettings::overworld();
+    }
+
+    [[nodiscard]] i32 seaLevel() const override
+    {
+        return 63;
+    }
 };
 
 // ============================================================================
@@ -140,8 +168,15 @@ protected:
     /**
      * @brief 获取中心区块（0,0）
      */
-    ChunkPrimer& centerChunk() { return *m_ownedChunks[4]; } // index 4 = (0,0) in 3x3
-    [[nodiscard]] const ChunkPrimer& centerChunk() const { return *m_ownedChunks[4]; }
+    ChunkPrimer& centerChunk()
+    {
+        return *m_ownedChunks[4];
+    } // index 4 = (0,0) in 3x3
+
+    [[nodiscard]] const ChunkPrimer& centerChunk() const
+    {
+        return *m_ownedChunks[4];
+    }
 
     /**
      * @brief 在中心区块设置方块并更新高度图
@@ -170,7 +205,10 @@ protected:
     /**
      * @brief 在世界坐标设置方块
      */
-    void setWorldBlock(i32 x, i32 y, i32 z, const BlockState* state) { m_region->setBlockState(x, y, z, state); }
+    void setWorldBlock(i32 x, i32 y, i32 z, const BlockState* state)
+    {
+        m_region->setBlockState(x, y, z, state);
+    }
 
     /**
      * @brief 获取水源方块的流体状态
@@ -554,7 +592,9 @@ TEST_F(SnowAndFreezeFeatureTest, IceSpikesBiomeFreezesAndSnows)
                 break;
             }
         }
-        if (foundIce) break;
+        if (foundIce) {
+            break;
+        }
     }
     EXPECT_TRUE(foundIce) << "IceSpikes biome should cause water to freeze";
 }
@@ -589,7 +629,9 @@ TEST_F(SnowAndFreezeFeatureTest, FrozenOceanFreezesWater)
                 break;
             }
         }
-        if (foundIce) break;
+        if (foundIce) {
+            break;
+        }
     }
     EXPECT_TRUE(foundIce) << "FrozenOcean biome should cause surface water to freeze";
 }

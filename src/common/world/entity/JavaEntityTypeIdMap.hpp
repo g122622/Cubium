@@ -71,7 +71,10 @@ public:
     [[nodiscard]] std::string_view fromJavaRegistryId(u32 javaRegistryId) const;
 
     /// 是否已建立映射。
-    [[nodiscard]] bool isInitialized() const noexcept { return m_initialized; }
+    [[nodiscard]] bool isInitialized() const noexcept
+    {
+        return m_initialized;
+    }
 
 private:
     bool m_initialized = false;

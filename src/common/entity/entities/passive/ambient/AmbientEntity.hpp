@@ -52,7 +52,10 @@ public:
     // 若后期 vanilla 此层有同步字段须补 registerData+ClassRegisterGuard，当前仅占位 classInfo。
     static const entity::EntityClassInfo& classInfo();
 
-    [[nodiscard]] sound::SoundCategory getSoundCategory() const override { return sound::SoundCategory::Ambient; }
+    [[nodiscard]] sound::SoundCategory getSoundCategory() const override
+    {
+        return sound::SoundCategory::Ambient;
+    }
 
     // 禁止拷贝
     AmbientEntity(const AmbientEntity&) = delete;

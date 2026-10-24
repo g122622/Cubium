@@ -130,7 +130,10 @@ public:
     /**
      * @brief 获取方块物品数量
      */
-    [[nodiscard]] size_t size() const noexcept { return m_blockToItem.size(); }
+    [[nodiscard]] size_t size() const noexcept
+    {
+        return m_blockToItem.size();
+    }
 
     /**
      * @brief 清空注册表

@@ -131,12 +131,18 @@ public:
     /**
      * @brief 检查是否已初始化
      */
-    [[nodiscard]] bool isInitialized() const { return m_initialized; }
+    [[nodiscard]] bool isInitialized() const
+    {
+        return m_initialized;
+    }
 
     /**
      * @brief 获取物品相机变换
      */
-    [[nodiscard]] const ItemCameraTransforms& transforms() const { return m_transforms; }
+    [[nodiscard]] const ItemCameraTransforms& transforms() const
+    {
+        return m_transforms;
+    }
 
 private:
     // 物品相机变换

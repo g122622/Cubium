@@ -49,7 +49,10 @@ namespace {
  */
 class AbstractHorseTestWorld final : public mc::test::BaseTestWorld {
 public:
-    void setBlock(i32 x, i32 y, i32 z, const BlockState* state) { m_blocks[BlockPos(x, y, z)] = state; }
+    void setBlock(i32 x, i32 y, i32 z, const BlockState* state)
+    {
+        m_blocks[BlockPos(x, y, z)] = state;
+    }
 
     [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override
     {
@@ -66,18 +69,33 @@ public:
         return true;
     }
 
-    [[nodiscard]] f32 getBrightness(const BlockPos& /*pos*/) const override { return 1.0f; }
+    [[nodiscard]] f32 getBrightness(const BlockPos& /*pos*/) const override
+    {
+        return 1.0f;
+    }
 
-    [[nodiscard]] mc::world::chunk::IChunkManager* chunkManager() override { return &m_stubChunks; }
-    [[nodiscard]] const mc::world::chunk::IChunkManager* chunkManager() const override { return &m_stubChunks; }
+    [[nodiscard]] mc::world::chunk::IChunkManager* chunkManager() override
+    {
+        return &m_stubChunks;
+    }
+
+    [[nodiscard]] const mc::world::chunk::IChunkManager* chunkManager() const override
+    {
+        return &m_stubChunks;
+    }
+
     mc::test::StubChunkManager m_stubChunks{nullptr, true};
 
-    EntityInstanceId spawnEntity(std::unique_ptr<Entity>) override { return 0; }
+    EntityInstanceId spawnEntity(std::unique_ptr<Entity>) override
+    {
+        return 0;
+    }
 
     [[nodiscard]] world::tick::TickManager& tickManager() override
     {
         throw std::runtime_error("AbstractHorseTestWorld::tickManager not implemented");
     }
+
     [[nodiscard]] const world::tick::TickManager& tickManager() const override
     {
         throw std::runtime_error("AbstractHorseTestWorld::tickManager not implemented");
@@ -90,8 +108,15 @@ public:
         m_broadcastCount++;
     }
 
-    [[nodiscard]] EntityInstanceId getLastBroadcastEntityId() const { return m_lastBroadcastEntityId; }
-    [[nodiscard]] u8 getLastBroadcastStatus() const { return m_lastBroadcastStatus; }
+    [[nodiscard]] EntityInstanceId getLastBroadcastEntityId() const
+    {
+        return m_lastBroadcastEntityId;
+    }
+
+    [[nodiscard]] u8 getLastBroadcastStatus() const
+    {
+        return m_lastBroadcastStatus;
+    }
 
 private:
     std::unordered_map<BlockPos, const BlockState*> m_blocks;

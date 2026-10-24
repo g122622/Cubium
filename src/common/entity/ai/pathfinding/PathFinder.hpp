@@ -89,17 +89,26 @@ public:
     /**
      * @brief 设置最大搜索距离
      */
-    void setMaxSearchDistance(i32 distance) { m_maxSearchDistance = distance; }
+    void setMaxSearchDistance(i32 distance)
+    {
+        m_maxSearchDistance = distance;
+    }
 
     /**
      * @brief 设置最大搜索节点数
      */
-    void setMaxNodes(i32 maxNodes) { m_maxNodes = maxNodes; }
+    void setMaxNodes(i32 maxNodes)
+    {
+        m_maxNodes = maxNodes;
+    }
 
     /**
      * @brief 设置搜索范围（用于性能优化）
      */
-    void setSearchRange(i32 range) { m_searchRange = range; }
+    void setSearchRange(i32 range)
+    {
+        m_searchRange = range;
+    }
 
     // ========== 寻路 ==========
 
@@ -197,12 +206,18 @@ public:
     /**
      * @brief 获取节点处理器
      */
-    [[nodiscard]] NodeProcessor* getNodeProcessor() { return m_nodeProcessor.get(); }
+    [[nodiscard]] NodeProcessor* getNodeProcessor()
+    {
+        return m_nodeProcessor.get();
+    }
 
     /**
      * @brief 获取最后搜索的节点数
      */
-    [[nodiscard]] i32 getLastSearchedNodes() const { return m_lastSearchedNodes; }
+    [[nodiscard]] i32 getLastSearchedNodes() const
+    {
+        return m_lastSearchedNodes;
+    }
 
 private:
     std::unique_ptr<NodeProcessor> m_nodeProcessor;

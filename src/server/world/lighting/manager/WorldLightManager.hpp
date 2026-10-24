@@ -100,8 +100,15 @@ public:
     // 维度配置访问
     // ========================================================================
 
-    [[nodiscard]] bool hasBlockLight() const noexcept { return m_hasBlockLight; }
-    [[nodiscard]] bool hasSkyLight() const noexcept { return m_hasSkyLight; }
+    [[nodiscard]] bool hasBlockLight() const noexcept
+    {
+        return m_hasBlockLight;
+    }
+
+    [[nodiscard]] bool hasSkyLight() const noexcept
+    {
+        return m_hasSkyLight;
+    }
 
     // ========================================================================
     // 主线程读路径（visible 侧，无锁）

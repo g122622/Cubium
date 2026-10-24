@@ -75,17 +75,34 @@ public:
     [[nodiscard]] f32 damage() const;
     void setDamage(f32 damage);
 
-    [[nodiscard]] bool canBeCollidedWith() const override { return true; }
-    [[nodiscard]] f32 getCollisionBorderSize() const override { return 1.0f; }
+    [[nodiscard]] bool canBeCollidedWith() const override
+    {
+        return true;
+    }
+
+    [[nodiscard]] f32 getCollisionBorderSize() const override
+    {
+        return 1.0f;
+    }
 
 protected:
     explicit DamagingProjectileEntity(EntityInstanceId id, ecs::EntityRegistry& registry);
 
-    [[nodiscard]] virtual bool isFiery() const { return true; }
-    [[nodiscard]] virtual f32 getMotionFactor() const { return 0.95f; }
+    [[nodiscard]] virtual bool isFiery() const
+    {
+        return true;
+    }
+
+    [[nodiscard]] virtual f32 getMotionFactor() const
+    {
+        return 0.95f;
+    }
 
     /// 水中衰减系数（对齐 vanilla AbstractHurtingProjectile.getLiquidInertia = 0.8）。
-    [[nodiscard]] virtual f32 getLiquidInertia() const { return 0.8f; }
+    [[nodiscard]] virtual f32 getLiquidInertia() const
+    {
+        return 0.8f;
+    }
 
     /**
      * @brief 获取拖尾粒子类型

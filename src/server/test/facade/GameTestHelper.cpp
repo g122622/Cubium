@@ -62,18 +62,39 @@ public:
     explicit _TestOwnedEntityCleanupListener(mc::Entity& entity)
         : m_entity(&entity)
     {}
+
     void onTestStructureLoaded(mc::test::BaseGameTestInstance&) override {}
+
     void onTestStarted(mc::test::BaseGameTestInstance&) override {}
-    void onTestRetryStarted(mc::test::BaseGameTestInstance&) override { _removeEntity(); }
-    void onTestRetryFinished(mc::test::BaseGameTestInstance&) override { _removeEntity(); }
-    void onTestPassed(mc::test::BaseGameTestInstance&) override { _removeEntity(); }
-    void onTestFailed(mc::test::BaseGameTestInstance&) override { _removeEntity(); }
+
+    void onTestRetryStarted(mc::test::BaseGameTestInstance&) override
+    {
+        _removeEntity();
+    }
+
+    void onTestRetryFinished(mc::test::BaseGameTestInstance&) override
+    {
+        _removeEntity();
+    }
+
+    void onTestPassed(mc::test::BaseGameTestInstance&) override
+    {
+        _removeEntity();
+    }
+
+    void onTestFailed(mc::test::BaseGameTestInstance&) override
+    {
+        _removeEntity();
+    }
 
 private:
     void _removeEntity()
     {
-        if (auto* entity = m_entity.get()) entity->discard();
+        if (auto* entity = m_entity.get()) {
+            entity->discard();
+        }
     }
+
     mc::EntityReference<mc::Entity> m_entity;
 };
 
@@ -110,6 +131,7 @@ struct EntityTypeAndEvent {
     std::string baseType;
     std::string spawnEvent;
 };
+
 EntityTypeAndEvent extractSpawnEvent(const std::string& identifier)
 {
     EntityTypeAndEvent result;
@@ -1220,8 +1242,9 @@ void GameTestHelper::succeedWhenBlockPresent(const std::string& blockType, Block
     std::string type = blockType;
     BlockPos rel = relativePos;
     bool want = isPresent;
-    m_instance.registerSucceedCondition(
-        [this, type = std::move(type), rel, want]() -> GameTestResult { return assertBlockPresent(type, rel, want); });
+    m_instance.registerSucceedCondition([this, type = std::move(type), rel, want]() -> GameTestResult {
+        return assertBlockPresent(type, rel, want);
+    });
 }
 
 void GameTestHelper::succeedWhen(std::function<GameTestResult()> fn)

@@ -71,7 +71,11 @@ public:
     void startExecuting() override;
     void resetTask() override;
     void tick() override;
-    std::string getTypeName() const override { return "WitherRandomFlyGoal"; }
+
+    std::string getTypeName() const override
+    {
+        return "WitherRandomFlyGoal";
+    }
 
 private:
     /**
@@ -103,7 +107,10 @@ public:
 
     [[nodiscard]] bool shouldExecute() override;
 
-    [[nodiscard]] std::string getTypeName() const override { return "WitherDoNothingGoal"; }
+    [[nodiscard]] std::string getTypeName() const override
+    {
+        return "WitherDoNothingGoal";
+    }
 
 private:
     WitherEntity* m_wither;
@@ -137,9 +144,20 @@ public:
 
     // ========== Entity 接口重写 ==========
 
-    [[nodiscard]] f32 width() const override { return 0.9f; }
-    [[nodiscard]] f32 height() const override { return 3.5f; }
-    [[nodiscard]] f32 eyeHeight() const override { return 2.0f; }
+    [[nodiscard]] f32 width() const override
+    {
+        return 0.9f;
+    }
+
+    [[nodiscard]] f32 height() const override
+    {
+        return 3.5f;
+    }
+
+    [[nodiscard]] f32 eyeHeight() const override
+    {
+        return 2.0f;
+    }
 
     void tick() override;
 
@@ -182,7 +200,10 @@ public:
     /**
      * @brief 是否为亡灵生物
      */
-    [[nodiscard]] CreatureAttribute getCreatureAttribute() const override { return CreatureAttribute::Undead; }
+    [[nodiscard]] CreatureAttribute getCreatureAttribute() const override
+    {
+        return CreatureAttribute::Undead;
+    }
 
     /**
      * @brief 判断实体是否属于凋灵友军（vanilla WITHER_FRIENDS，= #minecraft:undead）
@@ -199,7 +220,10 @@ public:
     /**
      * @brief 是否为Boss
      */
-    [[nodiscard]] bool isNonBoss() const override { return false; }
+    [[nodiscard]] bool isNonBoss() const override
+    {
+        return false;
+    }
 
     /**
      * @brief 摔落伤害免疫
@@ -211,19 +235,30 @@ public:
      *
      * 返回 true 使 DespawnManager 跳过距离判定并重置 idleTime。
      */
-    [[nodiscard]] bool preventDespawn() const override { return true; }
+    [[nodiscard]] bool preventDespawn() const override
+    {
+        return true;
+    }
 
     /**
      * @brief 和平难度下消失
      *
      * 返回 true 使 DespawnManager 在和平难度下移除此实体。
      */
-    [[nodiscard]] bool isDespawnPeaceful() const override { return true; }
+    [[nodiscard]] bool isDespawnPeaceful() const override
+    {
+        return true;
+    }
 
     // ========== IRangedAttackMob 接口实现 ==========
 
     void attackEntityWithRangedAttack(LivingEntity* target, f32 charge) override;
-    [[nodiscard]] i32 getAttackInterval() const override { return 40; }
+
+    [[nodiscard]] i32 getAttackInterval() const override
+    {
+        return 40;
+    }
+
     [[nodiscard]] bool canRangedAttack() const override;
 
     // ========== Boss 功能 ==========
@@ -236,24 +271,36 @@ public:
     /**
      * @brief 是否显示生命条
      */
-    [[nodiscard]] bool shouldDisplayHealthBar() const { return true; }
+    [[nodiscard]] bool shouldDisplayHealthBar() const
+    {
+        return true;
+    }
 
     // ========== 凋灵特有 ==========
 
     /**
      * @brief 获取无敌时间
      */
-    [[nodiscard]] i32 getInvulTime() const { return m_dataManager.get<i32>(INVULNERABILITY_TIME); }
+    [[nodiscard]] i32 getInvulTime() const
+    {
+        return m_dataManager.get<i32>(INVULNERABILITY_TIME);
+    }
 
     /**
      * @brief 设置无敌时间
      */
-    void setInvulTime(i32 time) { m_dataManager.set(INVULNERABILITY_TIME, time); }
+    void setInvulTime(i32 time)
+    {
+        m_dataManager.set(INVULNERABILITY_TIME, time);
+    }
 
     /**
      * @brief 是否处于无敌阶段
      */
-    [[nodiscard]] bool isInvulnerablePhase() const { return getInvulTime() > 0; }
+    [[nodiscard]] bool isInvulnerablePhase() const
+    {
+        return getInvulTime() > 0;
+    }
 
     /**
      * @brief 使凋灵进入生成无敌阶段（220 tick / 11 秒）
@@ -261,12 +308,18 @@ public:
      * 对齐 vanilla WitherBoss.makeInvulnerable()（WitherBoss.java:356-358）：
      * 仅设置无敌计时器，期间凋灵不受伤害并逐渐回血。
      */
-    void makeInvulnerable() { setInvulTime(220); }
+    void makeInvulnerable()
+    {
+        setInvulTime(220);
+    }
 
     /**
      * @brief 是否充能（生命值低于一半）
      */
-    [[nodiscard]] bool isCharged() const { return health() <= maxHealth() / 2.0f; }
+    [[nodiscard]] bool isCharged() const
+    {
+        return health() <= maxHealth() / 2.0f;
+    }
 
     /**
      * @brief 获取指定头的目标实体ID
@@ -313,13 +366,19 @@ public:
      * 对应 MC 1.21.11 WitherBoss.xRotHeads[index]。
      * 在 aiStep() 中由 rotlerp 逐步逼近目标俯仰角。
      */
-    [[nodiscard]] f32 sideHeadPitch(i32 index) const { return m_headXRot[index]; }
+    [[nodiscard]] f32 sideHeadPitch(i32 index) const
+    {
+        return m_headXRot[index];
+    }
 
     /**
      * @brief 获取指定侧头的上一 tick 俯仰角（度，用于插值）
      * @param index 侧头索引 (0=左头, 1=右头)
      */
-    [[nodiscard]] f32 prevSideHeadPitch(i32 index) const { return m_prevHeadXRot[index]; }
+    [[nodiscard]] f32 prevSideHeadPitch(i32 index) const
+    {
+        return m_prevHeadXRot[index];
+    }
 
     /**
      * @brief 获取指定侧头的当前偏航角（度）
@@ -328,13 +387,19 @@ public:
      * 对应 MC 1.21.11 WitherBoss.yRotHeads[index]。
      * 在 aiStep() 中由 rotlerp 逐步逼近目标偏航角（或身体偏航角，当无目标时）。
      */
-    [[nodiscard]] f32 sideHeadYaw(i32 index) const { return m_headYRot[index]; }
+    [[nodiscard]] f32 sideHeadYaw(i32 index) const
+    {
+        return m_headYRot[index];
+    }
 
     /**
      * @brief 获取指定侧头的上一 tick 偏航角（度，用于插值）
      * @param index 侧头索引 (0=左头, 1=右头)
      */
-    [[nodiscard]] f32 prevSideHeadYaw(i32 index) const { return m_prevHeadYRot[index]; }
+    [[nodiscard]] f32 prevSideHeadYaw(i32 index) const
+    {
+        return m_prevHeadYRot[index];
+    }
 
     // ========== DataParameter ID 访问器（供 ClientEntity 读取元数据） ==========
 
@@ -342,24 +407,36 @@ public:
      * @brief 获取主头目标 DataParameter ID
      * ClientEntity::syncMetadataFromDataManager 通过此 ID 读取 HEAD_TARGET_1。
      */
-    [[nodiscard]] static u16 getHeadTarget1ParamId() { return HEAD_TARGET_1.id(); }
+    [[nodiscard]] static u16 getHeadTarget1ParamId()
+    {
+        return HEAD_TARGET_1.id();
+    }
 
     /**
      * @brief 获取左头目标 DataParameter ID
      * ClientEntity::syncMetadataFromDataManager 通过此 ID 读取 HEAD_TARGET_2。
      */
-    [[nodiscard]] static u16 getHeadTarget2ParamId() { return HEAD_TARGET_2.id(); }
+    [[nodiscard]] static u16 getHeadTarget2ParamId()
+    {
+        return HEAD_TARGET_2.id();
+    }
 
     /**
      * @brief 获取右头目标 DataParameter ID
      * ClientEntity::syncMetadataFromDataManager 通过此 ID 读取 HEAD_TARGET_3。
      */
-    [[nodiscard]] static u16 getHeadTarget3ParamId() { return HEAD_TARGET_3.id(); }
+    [[nodiscard]] static u16 getHeadTarget3ParamId()
+    {
+        return HEAD_TARGET_3.id();
+    }
 
     /**
      * @brief 获取无敌时间 DataParameter ID
      */
-    [[nodiscard]] static u16 getInvulTimeParamId() { return INVULNERABILITY_TIME.id(); }
+    [[nodiscard]] static u16 getInvulTimeParamId()
+    {
+        return INVULNERABILITY_TIME.id();
+    }
 
 protected:
     void registerData() override;

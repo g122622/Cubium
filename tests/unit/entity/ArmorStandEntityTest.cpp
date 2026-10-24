@@ -55,8 +55,16 @@ public:
         (void)pitch;
     }
 
-    [[nodiscard]] const std::vector<std::unique_ptr<Entity>>& spawnedEntities() const { return m_spawnedEntities; }
-    [[nodiscard]] i32 soundPlayCount() const { return m_soundPlayCount; }
+    [[nodiscard]] const std::vector<std::unique_ptr<Entity>>& spawnedEntities() const
+    {
+        return m_spawnedEntities;
+    }
+
+    [[nodiscard]] i32 soundPlayCount() const
+    {
+        return m_soundPlayCount;
+    }
+
     void resetSoundTracking()
     {
         m_lastSoundId = ResourceLocation();
@@ -67,6 +75,7 @@ public:
     {
         throw std::runtime_error("ArmorStandTestWorld::tickManager not implemented");
     }
+
     [[nodiscard]] const world::tick::TickManager& tickManager() const override
     {
         throw std::runtime_error("ArmorStandTestWorld::tickManager not implemented");
@@ -319,7 +328,9 @@ TEST_F(ArmorStandEntityTest, NbtRoundTrip_StateAndEquipment)
     stand->setBasePlate(false);
     // 头部槽位（序号 5）禁用"放入"（组内 +0 → 位号 80），胸甲槽位（序号 4）禁用"取出"（组内 +8 → 位号 72）。
     // 位号超过 31，按"低 5 位 + 高位移位"两段计算，避免 32 位移位只取低 5 位的陷阱。
-    const auto disabledBit = [](u32 bitIndex) -> u32 { return (1u << (bitIndex & 31u)) << (bitIndex >> 5u); };
+    const auto disabledBit = [](u32 bitIndex) -> u32 {
+        return (1u << (bitIndex & 31u)) << (bitIndex >> 5u);
+    };
     const i32 disabledSlots = static_cast<i32>(disabledBit(5u * 16u) | disabledBit(4u * 16u + 8u));
     stand->setDisabledSlots(disabledSlots);
     stand->setHeadRotation(10.0f, 20.0f, 30.0f);

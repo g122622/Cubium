@@ -81,12 +81,35 @@ public:
         m_playedSounds.push_back(soundEventId);
     }
 
-    [[nodiscard]] const ResourceLocation& lastSound() const { return m_lastSound; }
-    [[nodiscard]] sound::SoundCategory lastCategory() const { return m_lastCategory; }
-    [[nodiscard]] f32 lastVolume() const { return m_lastVolume; }
-    [[nodiscard]] f32 lastPitch() const { return m_lastPitch; }
-    [[nodiscard]] const std::vector<ResourceLocation>& playedSounds() const { return m_playedSounds; }
-    void reset() { m_playedSounds.clear(); }
+    [[nodiscard]] const ResourceLocation& lastSound() const
+    {
+        return m_lastSound;
+    }
+
+    [[nodiscard]] sound::SoundCategory lastCategory() const
+    {
+        return m_lastCategory;
+    }
+
+    [[nodiscard]] f32 lastVolume() const
+    {
+        return m_lastVolume;
+    }
+
+    [[nodiscard]] f32 lastPitch() const
+    {
+        return m_lastPitch;
+    }
+
+    [[nodiscard]] const std::vector<ResourceLocation>& playedSounds() const
+    {
+        return m_playedSounds;
+    }
+
+    void reset()
+    {
+        m_playedSounds.clear();
+    }
 
 private:
     ResourceLocation m_lastSound;

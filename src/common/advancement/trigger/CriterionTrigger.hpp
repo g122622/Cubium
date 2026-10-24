@@ -82,7 +82,10 @@ class CriterionInstance : public ICriterionInstance {
 public:
     using InstanceType = T;
 
-    [[nodiscard]] ResourceLocation getId() const override { return ResourceLocation(T::TRIGGER_ID); }
+    [[nodiscard]] ResourceLocation getId() const override
+    {
+        return ResourceLocation(T::TRIGGER_ID);
+    }
 
     [[nodiscard]] nlohmann::json toJson() const override
     {
@@ -122,17 +125,26 @@ public:
     /**
      * @brief 获取触发器实例
      */
-    [[nodiscard]] const T& getInstance() const noexcept { return m_instance; }
+    [[nodiscard]] const T& getInstance() const noexcept
+    {
+        return m_instance;
+    }
 
     /**
      * @brief 获取成就
      */
-    [[nodiscard]] AdvancementPtr getAdvancement() const noexcept { return m_advancement; }
+    [[nodiscard]] AdvancementPtr getAdvancement() const noexcept
+    {
+        return m_advancement;
+    }
 
     /**
      * @brief 获取条件名称
      */
-    [[nodiscard]] const std::string& getCriterion() const noexcept { return m_criterion; }
+    [[nodiscard]] const std::string& getCriterion() const noexcept
+    {
+        return m_criterion;
+    }
 
     /**
      * @brief 授予条件

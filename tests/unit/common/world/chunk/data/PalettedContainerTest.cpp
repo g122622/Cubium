@@ -475,7 +475,9 @@ TEST(PalettedContainerTest, ForEachPacked)
         container.set(i, v);
         expected[static_cast<size_t>(i)] = v;
     }
-    container.forEach([&expected](i32 index, u32 value) { EXPECT_EQ(value, expected[static_cast<size_t>(index)]); });
+    container.forEach([&expected](i32 index, u32 value) {
+        EXPECT_EQ(value, expected[static_cast<size_t>(index)]);
+    });
 }
 
 TEST(PalettedContainerTest, ForEachPaletteValue)
@@ -489,7 +491,9 @@ TEST(PalettedContainerTest, ForEachPaletteValue)
     std::set<u32> expected = values;
     expected.insert(0u);
     std::set<u32> seen;
-    container.forEachPaletteValue([&seen](i32, u32 value) { seen.insert(value); });
+    container.forEachPaletteValue([&seen](i32, u32 value) {
+        seen.insert(value);
+    });
     EXPECT_EQ(seen, expected);
 }
 

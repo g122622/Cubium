@@ -244,7 +244,9 @@ void ClientApplication::reloadResources()
             }
         }
 
-        m_world.forEachChunk([](const ChunkId&, ClientChunk& chunk) { chunk.needsMeshUpdate = true; });
+        m_world.forEachChunk([](const ChunkId&, ClientChunk& chunk) {
+            chunk.needsMeshUpdate = true;
+        });
         spdlog::info("Marked loaded chunks dirty after resource reload");
     }
 }

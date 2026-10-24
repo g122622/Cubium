@@ -79,7 +79,11 @@ public:
 
     // ========== 容器接口 ==========
 
-    [[nodiscard]] i32 getContainerSize() const override { return INVENTORY_SIZE; }
+    [[nodiscard]] i32 getContainerSize() const override
+    {
+        return INVENTORY_SIZE;
+    }
+
     void clearContainer() override;
 
     // ========== IInventory 接口 ==========
@@ -89,8 +93,15 @@ public:
     // getInventory()->getItem/setItem/removeItem/clear 等路径访问容器内容
     // 都会自动触发 _unpackLootTable(nullptr)。这与 MC Java 中
     // RandomizableContainerBlockEntity 的行为一致。
-    [[nodiscard]] IInventory* getInventory() override { return &m_inventory; }
-    [[nodiscard]] const IInventory* getInventory() const override { return &m_inventory; }
+    [[nodiscard]] IInventory* getInventory() override
+    {
+        return &m_inventory;
+    }
+
+    [[nodiscard]] const IInventory* getInventory() const override
+    {
+        return &m_inventory;
+    }
 
     // ========== 发射器特有方法 ==========
 
@@ -133,7 +144,10 @@ protected:
     /**
      * @brief 获取默认显示名称
      */
-    [[nodiscard]] std::string getDefaultName() const override { return "container.dispenser"; }
+    [[nodiscard]] std::string getDefaultName() const override
+    {
+        return "container.dispenser";
+    }
 
     /// 库存
     SimpleInventory m_inventory;

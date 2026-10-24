@@ -29,7 +29,10 @@ protected:
         m_eye = std::make_unique<EyeOfEnderEntity>(EntityInstanceId(0), mc::test::testEcsRegistry());
     }
 
-    void TearDown() override { m_eye.reset(); }
+    void TearDown() override
+    {
+        m_eye.reset();
+    }
 
     std::unique_ptr<EyeOfEnderEntity> m_eye;
 };

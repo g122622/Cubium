@@ -83,7 +83,10 @@ class TestWorld final : public mc::test::BaseTestWorld {
 public:
     TestWorld() = default;
 
-    [[nodiscard]] std::vector<Entity*> getPlayers() const override { return m_players; }
+    [[nodiscard]] std::vector<Entity*> getPlayers() const override
+    {
+        return m_players;
+    }
 
     std::vector<Entity*> m_players;
 };

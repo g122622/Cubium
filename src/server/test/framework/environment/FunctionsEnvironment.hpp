@@ -19,6 +19,7 @@ namespace mc::test {
 class FunctionsEnvironment final : public TestEnvironmentDefinition {
 public:
     FunctionsEnvironment() = default;
+
     FunctionsEnvironment(std::optional<std::string> setupFunction, std::optional<std::string> teardownFunction)
         : m_setupFunction(std::move(setupFunction))
         , m_teardownFunction(std::move(teardownFunction))
@@ -27,8 +28,15 @@ public:
     GameTestResult setup(BaseGameTestInstance& instance) override;
     GameTestResult teardown(BaseGameTestInstance& instance) override;
 
-    [[nodiscard]] const std::optional<std::string>& setupFunction() const noexcept { return m_setupFunction; }
-    [[nodiscard]] const std::optional<std::string>& teardownFunction() const noexcept { return m_teardownFunction; }
+    [[nodiscard]] const std::optional<std::string>& setupFunction() const noexcept
+    {
+        return m_setupFunction;
+    }
+
+    [[nodiscard]] const std::optional<std::string>& teardownFunction() const noexcept
+    {
+        return m_teardownFunction;
+    }
 
 private:
     std::optional<std::string> m_setupFunction;

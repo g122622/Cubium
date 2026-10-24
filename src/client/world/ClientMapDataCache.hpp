@@ -81,12 +81,18 @@ public:
     /**
      * @brief 移除指定 mapId 的缓存
      */
-    void removeMap(i32 mapId) { m_mapData.erase(mapId); }
+    void removeMap(i32 mapId)
+    {
+        m_mapData.erase(mapId);
+    }
 
     /**
      * @brief 清空所有缓存
      */
-    void clear() { m_mapData.clear(); }
+    void clear()
+    {
+        m_mapData.clear();
+    }
 
 private:
     std::unordered_map<i32, mc::world::map::MapData> m_mapData;

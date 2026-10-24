@@ -67,12 +67,20 @@ public:
 
     [[nodiscard]] bool shouldExecute() override;
     [[nodiscard]] bool shouldContinueExecuting() override;
-    [[nodiscard]] bool isPreemptible() const override { return false; }
+
+    [[nodiscard]] bool isPreemptible() const override
+    {
+        return false;
+    }
+
     void startExecuting() override;
     void resetTask() override;
     void tick() override;
 
-    [[nodiscard]] std::string getTypeName() const override { return "DolphinJumpGoal"; }
+    [[nodiscard]] std::string getTypeName() const override
+    {
+        return "DolphinJumpGoal";
+    }
 
     // 公开以便测试
     static constexpr i32 JUMP_DISTANCES[] = {0, 1, 4, 5, 6, 7};
@@ -127,12 +135,20 @@ public:
 
     [[nodiscard]] bool shouldExecute() override;
     [[nodiscard]] bool shouldContinueExecuting() override;
-    [[nodiscard]] bool isPreemptible() const override { return false; }
+
+    [[nodiscard]] bool isPreemptible() const override
+    {
+        return false;
+    }
+
     void startExecuting() override;
     void resetTask() override;
     void tick() override;
 
-    [[nodiscard]] std::string getTypeName() const override { return "SwimToTreasureGoal"; }
+    [[nodiscard]] std::string getTypeName() const override
+    {
+        return "SwimToTreasureGoal";
+    }
 
     // 公开以便测试
     static constexpr i32 MIN_AIR = 100;
@@ -180,7 +196,10 @@ public:
     void resetTask() override;
     void tick() override;
 
-    [[nodiscard]] std::string getTypeName() const override { return "SwimWithPlayerGoal"; }
+    [[nodiscard]] std::string getTypeName() const override
+    {
+        return "SwimWithPlayerGoal";
+    }
 
     // 公开以便测试
     static constexpr f32 SEARCH_RADIUS = 10.0f;
@@ -227,7 +246,10 @@ public:
     void resetTask() override;
     void tick() override;
 
-    [[nodiscard]] std::string getTypeName() const override { return "PlayWithItemsGoal"; }
+    [[nodiscard]] std::string getTypeName() const override
+    {
+        return "PlayWithItemsGoal";
+    }
 
     // 公开以便测试
     static constexpr f32 SEARCH_RADIUS = 8.0f;
@@ -288,13 +310,21 @@ public:
     ~FollowBoatGoal() override = default;
 
     [[nodiscard]] bool shouldExecute() override;
-    [[nodiscard]] bool isPreemptible() const override { return true; }
+
+    [[nodiscard]] bool isPreemptible() const override
+    {
+        return true;
+    }
+
     [[nodiscard]] bool shouldContinueExecuting() override;
     void startExecuting() override;
     void resetTask() override;
     void tick() override;
 
-    [[nodiscard]] std::string getTypeName() const override { return "FollowBoatGoal"; }
+    [[nodiscard]] std::string getTypeName() const override
+    {
+        return "FollowBoatGoal";
+    }
 
 private:
     /**

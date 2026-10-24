@@ -99,14 +99,20 @@ public:
         }
     }
 
-    [[nodiscard]] mc::i32 getGroundLevelDelta() const noexcept override { return m_groundLevelDelta; }
+    [[nodiscard]] mc::i32 getGroundLevelDelta() const noexcept override
+    {
+        return m_groundLevelDelta;
+    }
 
     [[nodiscard]] const std::vector<mc::world::gen::jigsaw::JigsawJunction>& getJunctions() const noexcept override
     {
         return m_junctions;
     }
 
-    [[nodiscard]] bool isJigsawPiece() const noexcept override { return true; }
+    [[nodiscard]] bool isJigsawPiece() const noexcept override
+    {
+        return true;
+    }
 
     [[nodiscard]] mc::StructurePieceProjection getProjection() const noexcept override
     {

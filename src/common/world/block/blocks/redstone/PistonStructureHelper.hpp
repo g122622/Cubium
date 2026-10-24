@@ -71,14 +71,20 @@ public:
      *
      * @return 要移动的方块位置列表（按推动顺序）
      */
-    [[nodiscard]] const std::vector<BlockPos>& getBlocksToMove() const { return m_toMove; }
+    [[nodiscard]] const std::vector<BlockPos>& getBlocksToMove() const
+    {
+        return m_toMove;
+    }
 
     /**
      * @brief 获取要破坏的方块列表
      *
      * @return 要破坏的方块位置列表
      */
-    [[nodiscard]] const std::vector<BlockPos>& getBlocksToDestroy() const { return m_toDestroy; }
+    [[nodiscard]] const std::vector<BlockPos>& getBlocksToDestroy() const
+    {
+        return m_toDestroy;
+    }
 
 private:
     /**

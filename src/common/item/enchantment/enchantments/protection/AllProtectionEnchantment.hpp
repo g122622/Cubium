@@ -48,7 +48,10 @@ public:
         : ProtectionEnchantment(Type::All)
     {}
 
-    [[nodiscard]] std::string id() const override { return "minecraft:protection"; }
+    [[nodiscard]] std::string id() const override
+    {
+        return "minecraft:protection";
+    }
 
     [[nodiscard]] std::string getNameKey(i32 level) const override
     {
@@ -56,7 +59,10 @@ public:
         return "enchantment.minecraft.protection";
     }
 
-    [[nodiscard]] EnchantmentRarity rarity() const noexcept override { return EnchantmentRarity::Common; }
+    [[nodiscard]] EnchantmentRarity rarity() const noexcept override
+    {
+        return EnchantmentRarity::Common;
+    }
 };
 
 } // namespace enchant

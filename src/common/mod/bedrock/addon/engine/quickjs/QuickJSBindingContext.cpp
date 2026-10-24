@@ -28,6 +28,7 @@
 #include "common/mod/bedrock/addon/binding/ScriptClassRegistry.hpp"
 #include "common/mod/bedrock/addon/binding/ScriptHandleRegistry.hpp"
 
+#include <algorithm>
 #include <cstddef>
 #include <cstring>
 #include <optional>
@@ -57,7 +58,10 @@ namespace {
 
 JSValue unwrapValue(void* handle)
 {
-    if (!handle) return JS_UNDEFINED;
+    if (!handle) {
+        return JS_UNDEFINED;
+    }
+
     return *static_cast<JSValue*>(handle);
 }
 
@@ -73,6 +77,7 @@ std::vector<JSValueConst> unwrapArgs(void** args, i32 argc)
     for (i32 i = 0; i < argc; ++i) {
         result.push_back(unwrapValue(args[i]));
     }
+
     return result;
 }
 
@@ -91,6 +96,8 @@ QuickJSBindingContext::QuickJSBindingContext(JSContext* ctx)
 
 QuickJSBindingContext::~QuickJSBindingContext()
 {
+    disposeBindings();
+
     // 释放未被 _moduleInit 消费的 pending JSValue（模块已声明但从未被 import 时残留）。
     // 正常路径下 _moduleInit 会 erase 掉对应条目；此处兜底防泄漏。
     for (auto& [module, entries] : m_pendingExports) {
@@ -107,15 +114,17 @@ QuickJSBindingContext::~QuickJSBindingContext()
         // 先注销注册表条目再释放句柄：ScriptClassRegistry 只存裸指针，条目留到句柄释放之后
         // 就会变成悬垂指针，后续按 classId/类名查找会把已释放句柄交给 wrap/setPrototypeOf。
         // 在此逐条注销可覆盖 shutdown / reload / 单插件卸载 / 上下文移动赋值等全部销毁路径。
-        ScriptClassRegistry::instance().unregisterClass(classId);
+        classRegistry().unregisterClass(classId);
         if (handle == nullptr) {
             continue;
         }
+
         auto* value = static_cast<JSValue*>(handle);
         JS_FreeValue(m_ctx, *value);
         delete value;
         s_liveClassProtoHandles.fetch_sub(1, std::memory_order::relaxed);
     }
+
     m_classProtoHandles.clear();
 }
 
@@ -175,6 +184,7 @@ void* QuickJSBindingContext::createObjectWithProto(void* proto, u64 classId)
 {
     JSValue protoVal = unwrapValue(proto);
     JSValue obj = JS_NewObjectProtoClass(m_ctx, protoVal, static_cast<JSClassID>(classId));
+
     return wrapValue(obj);
 }
 
@@ -184,6 +194,7 @@ void* QuickJSBindingContext::createFunction(ScriptMethodCallback callback, const
     m_methodCallbacks.push_back(std::move(callback));
     JSValue fn =
         JS_NewCFunctionMagic(m_ctx, methodTrampoline, name, static_cast<i32>(length), JS_CFUNC_generic_magic, magic);
+
     return wrapValue(fn);
 }
 
@@ -205,13 +216,38 @@ void QuickJSBindingContext::setConstructor(void* ctor, void* proto)
 ScriptType QuickJSBindingContext::getType(void* value) const
 {
     JSValue v = unwrapValue(value);
-    if (JS_IsUndefined(v)) return ScriptType::Undefined;
-    if (JS_IsNull(v)) return ScriptType::Null;
-    if (JS_IsBool(v)) return ScriptType::Boolean;
-    if (JS_IsNumber(v)) return ScriptType::Number;
-    if (JS_IsString(v)) return ScriptType::String;
-    if (JS_IsFunction(m_ctx, v)) return ScriptType::Function;
-    if (JS_IsObject(v)) return ScriptType::Object;
+    if (JS_IsUndefined(v)) {
+        return ScriptType::Undefined;
+    }
+
+    if (JS_IsNull(v)) {
+        return ScriptType::Null;
+    }
+
+    if (JS_IsBool(v)) {
+        return ScriptType::Boolean;
+    }
+
+    if (JS_IsNumber(v)) {
+        return ScriptType::Number;
+    }
+
+    if (JS_IsString(v)) {
+        return ScriptType::String;
+    }
+
+    if (JS_IsFunction(m_ctx, v)) {
+        return ScriptType::Function;
+    }
+
+    if (JS_IsArray(v)) {
+        return ScriptType::Array;
+    }
+
+    if (JS_IsObject(v)) {
+        return ScriptType::Object;
+    }
+
     return ScriptType::Undefined;
 }
 
@@ -245,41 +281,68 @@ bool QuickJSBindingContext::isException(void* value) const
     return JS_IsException(unwrapValue(value));
 }
 
+bool QuickJSBindingContext::hasException() const
+{
+    return JS_HasException(m_ctx);
+}
+
 // ===== 值转换 =====
 
 std::optional<i32> QuickJSBindingContext::toInt32(void* value) const
 {
     JSValue v = unwrapValue(value);
-    if (!JS_IsNumber(v)) return std::nullopt;
+    if (!JS_IsNumber(v)) {
+        return std::nullopt;
+    }
+
     i32 result;
-    if (JS_ToInt32(m_ctx, &result, v) != 0) return std::nullopt;
+    if (JS_ToInt32(m_ctx, &result, v) != 0) {
+        return std::nullopt;
+    }
+
     return result;
 }
 
 std::optional<f64> QuickJSBindingContext::toFloat64(void* value) const
 {
     JSValue v = unwrapValue(value);
-    if (!JS_IsNumber(v)) return std::nullopt;
+    if (!JS_IsNumber(v)) {
+        return std::nullopt;
+    }
+
     f64 result;
-    if (JS_ToFloat64(m_ctx, &result, v) != 0) return std::nullopt;
+    if (JS_ToFloat64(m_ctx, &result, v) != 0) {
+        return std::nullopt;
+    }
+
     return result;
 }
 
 std::optional<bool> QuickJSBindingContext::toBool(void* value) const
 {
     JSValue v = unwrapValue(value);
-    if (!JS_IsBool(v)) return std::nullopt;
+    if (!JS_IsBool(v)) {
+        return std::nullopt;
+    }
+
     return JS_ToBool(m_ctx, v) != 0;
 }
 
 std::optional<std::string> QuickJSBindingContext::toString(void* value) const
 {
     JSValue v = unwrapValue(value);
-    if (!JS_IsString(v)) return std::nullopt;
+    if (!JS_IsString(v)) {
+        return std::nullopt;
+    }
+
     const char* str = JS_ToCString(m_ctx, v);
-    if (!str) return std::nullopt;
+    if (!str) {
+        return std::nullopt;
+    }
+
     std::string result(str);
     JS_FreeCString(m_ctx, str);
+
     return result;
 }
 
@@ -319,6 +382,7 @@ void QuickJSBindingContext::setPropertyNull(void* obj, const char* key)
 void* QuickJSBindingContext::getProperty(void* obj, const char* key) const
 {
     JSValue val = JS_GetPropertyStr(m_ctx, unwrapValue(obj), key);
+
     return wrapValue(val);
 }
 
@@ -327,14 +391,19 @@ std::optional<i32> QuickJSBindingContext::getPropertyInt(void* obj, const char* 
     JSValue val = JS_GetPropertyStr(m_ctx, unwrapValue(obj), key);
     if (JS_IsUndefined(val) || !JS_IsNumber(val)) {
         JS_FreeValue(m_ctx, val);
+
         return std::nullopt;
     }
+
     i32 result;
     if (JS_ToInt32(m_ctx, &result, val) != 0) {
         JS_FreeValue(m_ctx, val);
+
         return std::nullopt;
     }
+
     JS_FreeValue(m_ctx, val);
+
     return result;
 }
 
@@ -343,14 +412,19 @@ std::optional<f64> QuickJSBindingContext::getPropertyFloat(void* obj, const char
     JSValue val = JS_GetPropertyStr(m_ctx, unwrapValue(obj), key);
     if (JS_IsUndefined(val) || !JS_IsNumber(val)) {
         JS_FreeValue(m_ctx, val);
+
         return std::nullopt;
     }
+
     f64 result;
     if (JS_ToFloat64(m_ctx, &result, val) != 0) {
         JS_FreeValue(m_ctx, val);
+
         return std::nullopt;
     }
+
     JS_FreeValue(m_ctx, val);
+
     return result;
 }
 
@@ -359,10 +433,13 @@ std::optional<bool> QuickJSBindingContext::getPropertyBool(void* obj, const char
     JSValue val = JS_GetPropertyStr(m_ctx, unwrapValue(obj), key);
     if (JS_IsUndefined(val) || !JS_IsBool(val)) {
         JS_FreeValue(m_ctx, val);
+
         return std::nullopt;
     }
+
     bool result = JS_ToBool(m_ctx, val) != 0;
     JS_FreeValue(m_ctx, val);
+
     return result;
 }
 
@@ -371,16 +448,21 @@ std::optional<std::string> QuickJSBindingContext::getPropertyString(void* obj, c
     JSValue val = JS_GetPropertyStr(m_ctx, unwrapValue(obj), key);
     if (JS_IsUndefined(val) || !JS_IsString(val)) {
         JS_FreeValue(m_ctx, val);
+
         return std::nullopt;
     }
+
     const char* str = JS_ToCString(m_ctx, val);
     if (!str) {
         JS_FreeValue(m_ctx, val);
+
         return std::nullopt;
     }
+
     std::string result(str);
     JS_FreeCString(m_ctx, str);
     JS_FreeValue(m_ctx, val);
+
     return result;
 }
 
@@ -396,7 +478,8 @@ std::vector<std::string> QuickJSBindingContext::getPropertyNames(void* obj) cons
     JSPropertyEnum* tab = nullptr;
     uint32_t len = 0;
     if (JS_GetOwnPropertyNames(m_ctx, &tab, &len, v, JS_GPN_STRING_MASK | JS_GPN_ENUM_ONLY) != 0) {
-        return names; // 枚举失败（如 Proxy 异常）返回空，调用方按"无属性"处理
+        // 保留 Proxy 抛出的异常，调用方必须通过 hasException() 判断枚举是否成功。
+        return names;
     }
 
     names.reserve(len);
@@ -407,7 +490,9 @@ std::vector<std::string> QuickJSBindingContext::getPropertyNames(void* obj) cons
             JS_FreeCString(m_ctx, key);
         }
     }
+
     JS_FreePropertyEnum(m_ctx, tab, len);
+
     return names;
 }
 
@@ -466,6 +551,7 @@ void* QuickJSBindingContext::dupValue(void* value)
     // 用于回调返回值复用入参句柄（如链式方法返回 this）：trampoline 释放入参 handle 后，
     // 本句柄仍持有独立引用，避免 use-after-free / double-free。
     const auto* src = static_cast<JSValue*>(value);
+
     return new JSValue(JS_DupValue(m_ctx, *src));
 }
 
@@ -486,9 +572,39 @@ void* QuickJSBindingContext::getOpaque(void* obj, u64 classId) const
     // classId!=0 时仍走精确匹配（JS_GetOpaque2 会校验并在失败时抛 InvalidClass）。
     if (classId == 0) {
         JSClassID anyClassId = 0;
+
         return JS_GetAnyOpaque(val, &anyClassId);
     }
-    return JS_GetOpaque2(m_ctx, val, static_cast<JSClassID>(classId));
+
+    if (JS_GetClassID(val) == static_cast<JSClassID>(classId)) {
+        return JS_GetOpaque(val, static_cast<JSClassID>(classId));
+    }
+
+    const auto expected =
+        std::find_if(m_classProtoHandles.begin(), m_classProtoHandles.end(), [classId](const auto& entry) {
+            return entry.first == classId;
+        });
+    if (expected == m_classProtoHandles.end() || !JS_IsObject(val)) {
+        return nullptr;
+    }
+
+    JSValue prototype = JS_GetPrototype(m_ctx, val);
+    while (JS_IsObject(prototype)) {
+        if (JS_IsStrictEqual(m_ctx, prototype, unwrapValue(expected->second))) {
+            JS_FreeValue(m_ctx, prototype);
+            JSClassID actual = 0;
+
+            return JS_GetAnyOpaque(val, &actual);
+        }
+
+        JSValue parent = JS_GetPrototype(m_ctx, prototype);
+        JS_FreeValue(m_ctx, prototype);
+        prototype = parent;
+    }
+
+    JS_FreeValue(m_ctx, prototype);
+
+    return nullptr;
 }
 
 // ===== 函数调用 =====
@@ -497,12 +613,14 @@ void* QuickJSBindingContext::callFunction(void* func, void* thisVal, i32 argc, v
 {
     auto jsArgs = unwrapArgs(args, argc);
     JSValue result = JS_Call(m_ctx, unwrapValue(func), unwrapValue(thisVal), argc, jsArgs.data());
+
     return wrapValue(result);
 }
 
 void* QuickJSBindingContext::callFunction0(void* func, void* thisVal)
 {
     JSValue result = JS_Call(m_ctx, unwrapValue(func), unwrapValue(thisVal), 0, nullptr);
+
     return wrapValue(result);
 }
 
@@ -510,6 +628,7 @@ void* QuickJSBindingContext::callFunction1(void* func, void* thisVal, void* arg0
 {
     JSValueConst arg = unwrapValue(arg0);
     JSValue result = JS_Call(m_ctx, unwrapValue(func), unwrapValue(thisVal), 1, &arg);
+
     return wrapValue(result);
 }
 
@@ -518,12 +637,14 @@ void* QuickJSBindingContext::callFunction1(void* func, void* thisVal, void* arg0
 void* QuickJSBindingContext::throwTypeError(const char* message)
 {
     JS_ThrowTypeError(m_ctx, "%s", message);
+
     return wrapValue(JS_EXCEPTION);
 }
 
 void* QuickJSBindingContext::throwInternalError(const char* message)
 {
     JS_ThrowInternalError(m_ctx, "%s", message);
+
     return wrapValue(JS_EXCEPTION);
 }
 
@@ -534,6 +655,7 @@ void* QuickJSBindingContext::throwValue(void* value)
     // 调用方随后 releaseValue 释放入参句柄会使抛出的异常值悬垂。故这里 Dup 一份独立引用
     // 交给 JS_Throw，入参所有权仍归调用方。
     JS_Throw(m_ctx, JS_DupValue(m_ctx, unwrapValue(value)));
+
     return wrapValue(JS_EXCEPTION);
 }
 
@@ -553,6 +675,7 @@ std::string QuickJSBindingContext::getExceptionMessage(void* exception) const
     const char* msg = JS_ToCString(m_ctx, unwrapValue(exception));
     std::string result = msg ? msg : "unknown";
     JS_FreeCString(m_ctx, msg);
+
     return result;
 }
 
@@ -567,6 +690,7 @@ u64 QuickJSBindingContext::allocateClassId()
     // "User code can't set the opaque of internal objects" 静默失败，opaque 永远 NULL，
     // 后续 JS_GetOpaque2 全部返回 nullptr，对象方法回调取不到 C++ 指针。
     JSClassID id = 0;
+
     return static_cast<u64>(JS_NewClassID(rt, &id));
 }
 
@@ -597,15 +721,18 @@ bool QuickJSBindingContext::registerClass(u64 classId, const char* className, bo
                 if (data->entityOwner != nullptr) {
                     ScriptHandleRegistry::instance().unregisterHandle(data);
                 }
+
                 if (data->owned && data->ptr && data->destroy) {
                     data->destroy(data->ptr);
                 }
+
                 delete data;
             }
         };
     }
 
     i32 ncRet = JS_NewClass(rt, jsClassId, &classDef);
+
     return ncRet >= 0;
 }
 
@@ -629,6 +756,7 @@ void* QuickJSBindingContext::createClassProto(u64 classId)
     // （nightly 集成测试实测 5.7 MB / 55013 次分配，LeakSanitizer 判为泄漏并使 20/24 分片 SIGABRT）。
     m_classProtoHandles.emplace_back(classId, handle);
     s_liveClassProtoHandles.fetch_add(1, std::memory_order::relaxed);
+
     return handle;
 }
 
@@ -665,63 +793,86 @@ bool QuickJSBindingContext::createNativeModule(const std::string& moduleName)
     auto* module = JS_NewCModule(m_ctx, moduleName.c_str(), _moduleInit);
     if (!module) {
         spdlog::error("[BedrockAddon] Failed to create native module: {}", moduleName);
+
         return false;
     }
+
     m_module = module;
     m_moduleName = moduleName;
     m_moduleFinalized = false;
     // pending 按 JSModuleDef* 隔离：为新模块准备空条目，不清除其他模块尚未消费的 pending。
     m_pendingExports[module];
+
     return true;
 }
 
 bool QuickJSBindingContext::exportNativeFunction(const std::string& name, void* nativeFunc, i32 length)
 {
-    if (!m_module || m_moduleFinalized) return false;
+    if (!m_module || m_moduleFinalized) {
+        return false;
+    }
+
     auto* module = static_cast<JSModuleDef*>(m_module);
     JS_AddModuleExport(m_ctx, module, name.c_str());
     JSValue fn =
         JS_NewCFunction(m_ctx, reinterpret_cast<JSCFunction*>(nativeFunc), name.c_str(), static_cast<i32>(length));
     // 值暂存：SetModuleExport 推迟到 _moduleInit（import 时 var_ref 建好后再设）。
     m_pendingExports[module].emplace_back(name, fn);
+
     return true;
 }
 
 bool QuickJSBindingContext::exportNativeConst(const std::string& name, i32 value)
 {
-    if (!m_module || m_moduleFinalized) return false;
+    if (!m_module || m_moduleFinalized) {
+        return false;
+    }
+
     auto* module = static_cast<JSModuleDef*>(m_module);
     JS_AddModuleExport(m_ctx, module, name.c_str());
     m_pendingExports[module].emplace_back(name, JS_NewInt32(m_ctx, value));
+
     return true;
 }
 
 bool QuickJSBindingContext::exportNativeConstFloat(const std::string& name, f64 value)
 {
-    if (!m_module || m_moduleFinalized) return false;
+    if (!m_module || m_moduleFinalized) {
+        return false;
+    }
+
     auto* module = static_cast<JSModuleDef*>(m_module);
     JS_AddModuleExport(m_ctx, module, name.c_str());
     m_pendingExports[module].emplace_back(name, JS_NewFloat64(m_ctx, value));
+
     return true;
 }
 
 bool QuickJSBindingContext::exportNativeConstString(const std::string& name, const std::string& value)
 {
-    if (!m_module || m_moduleFinalized) return false;
+    if (!m_module || m_moduleFinalized) {
+        return false;
+    }
+
     auto* module = static_cast<JSModuleDef*>(m_module);
     JS_AddModuleExport(m_ctx, module, name.c_str());
     m_pendingExports[module].emplace_back(name, JS_NewStringLen(m_ctx, value.c_str(), value.size()));
+
     return true;
 }
 
 bool QuickJSBindingContext::exportNativeValue(const std::string& name, void* value)
 {
-    if (!m_module || m_moduleFinalized) return false;
+    if (!m_module || m_moduleFinalized) {
+        return false;
+    }
+
     auto* module = static_cast<JSModuleDef*>(m_module);
     JS_AddModuleExport(m_ctx, module, name.c_str());
     // value 是 wrapValue 的 JSValue*（引用计数 1）；Dup 一份供 pending 持有，调用者仍持有原引用
     // （exportClass 在 exportNativeValue 后会 releaseValue 释放原引用，pending 的 Dup 不受影响）。
     m_pendingExports[module].emplace_back(name, JS_DupValue(m_ctx, *static_cast<JSValue*>(value)));
+
     return true;
 }
 
@@ -738,18 +889,25 @@ i32 QuickJSBindingContext::_moduleInit(JSContext* ctx, JSModuleDef* m)
     if (it == bindingCtx->m_pendingExports.end()) {
         return 0;
     }
+
     for (auto& [name, value] : it->second) {
         JS_SetModuleExport(ctx, m, name.c_str(), value);
     }
+
     bindingCtx->m_pendingExports.erase(it);
+
     return 0;
 }
 
 bool QuickJSBindingContext::finalizeModule()
 {
-    if (!m_module || m_moduleFinalized) return false;
+    if (!m_module || m_moduleFinalized) {
+        return false;
+    }
+
     m_moduleFinalized = true;
     spdlog::info("[BedrockAddon] Native module finalized: {}", m_moduleName);
+
     return true;
 }
 
@@ -788,6 +946,7 @@ void* QuickJSBindingContext::createPromise(void** resolvingFuncsOut)
         JS_FreeValue(m_ctx, resolving[0]);
         JS_FreeValue(m_ctx, resolving[1]);
     }
+
     return wrapValue(promise);
 }
 
@@ -796,6 +955,7 @@ i32 QuickJSBindingContext::promiseState(void* promise) const
     if (promise == nullptr) {
         return -1; // JSPromiseStateEnum::JS_PROMISE_INVALID（非 Promise）
     }
+
     return static_cast<i32>(JS_PromiseState(m_ctx, unwrapValue(promise)));
 }
 
@@ -810,6 +970,7 @@ bool QuickJSBindingContext::isPromise(void* value) const
     if (value == nullptr) {
         return false;
     }
+
     return JS_IsPromise(unwrapValue(value)) != 0;
 }
 
@@ -818,6 +979,7 @@ void QuickJSBindingContext::callResolvingFunc(void* resolvingFunc, void* arg)
     if (resolvingFunc == nullptr) {
         return;
     }
+
     JSValueConst argVal = unwrapValue(arg);
     JSValue ret = JS_Call(m_ctx, unwrapValue(resolvingFunc), JS_UNDEFINED, 1, &argVal);
     // resolving 函数返回值无意义（Promise 内部状态已更新），直接释放。
@@ -846,7 +1008,7 @@ JSValue QuickJSBindingContext::methodTrampoline(
         return JS_ThrowInternalError(ctx, "Invalid method callback index");
     }
 
-    auto& callback = bindingCtx->m_methodCallbacks[magic];
+    auto callback = bindingCtx->m_methodCallbacks[magic];
 
     // 包装this和args为void*句柄
     void* thisHandle = new JSValue(JS_DupValue(ctx, this_val));
@@ -871,8 +1033,10 @@ JSValue QuickJSBindingContext::methodTrampoline(
     if (!result) {
         return JS_UNDEFINED;
     }
+
     JSValue ret = *static_cast<JSValue*>(result);
     delete static_cast<JSValue*>(result);
+
     return ret;
 }
 
@@ -888,7 +1052,7 @@ JSValue QuickJSBindingContext::getterTrampoline(
         return JS_ThrowInternalError(ctx, "Invalid getter callback index");
     }
 
-    auto& callback = bindingCtx->m_getterCallbacks[magic];
+    auto callback = bindingCtx->m_getterCallbacks[magic];
 
     void* thisHandle = new JSValue(JS_DupValue(ctx, this_val));
     void* result = callback(*bindingCtx, thisHandle);
@@ -898,8 +1062,10 @@ JSValue QuickJSBindingContext::getterTrampoline(
     if (!result) {
         return JS_UNDEFINED;
     }
+
     JSValue ret = *static_cast<JSValue*>(result);
     delete static_cast<JSValue*>(result);
+
     return ret;
 }
 
@@ -915,7 +1081,7 @@ JSValue QuickJSBindingContext::setterTrampoline(
         return JS_ThrowInternalError(ctx, "Invalid setter callback index");
     }
 
-    auto& callback = bindingCtx->m_setterCallbacks[magic];
+    auto callback = bindingCtx->m_setterCallbacks[magic];
 
     void* thisHandle = new JSValue(JS_DupValue(ctx, this_val));
     void* valueHandle = (argc >= 1) ? new JSValue(JS_DupValue(ctx, argv[0])) : new JSValue(JS_UNDEFINED);

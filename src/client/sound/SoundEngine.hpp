@@ -144,7 +144,10 @@ public:
     /**
      * @brief 检查引擎是否已加载
      */
-    [[nodiscard]] bool isLoaded() const noexcept { return m_loaded; }
+    [[nodiscard]] bool isLoaded() const noexcept
+    {
+        return m_loaded;
+    }
 
     // ========================================================================
     // 播放控制
@@ -291,22 +294,34 @@ public:
     /**
      * @brief 获取声音处理器
      */
-    [[nodiscard]] SoundHandler& getHandler() noexcept { return m_handler; }
+    [[nodiscard]] SoundHandler& getHandler() noexcept
+    {
+        return m_handler;
+    }
 
     /**
      * @brief 获取声音处理器（const版本）
      */
-    [[nodiscard]] const SoundHandler& getHandler() const noexcept { return m_handler; }
+    [[nodiscard]] const SoundHandler& getHandler() const noexcept
+    {
+        return m_handler;
+    }
 
     /**
      * @brief 获取音频后端
      */
-    [[nodiscard]] IAudioBackend* getBackend() noexcept { return m_backend.get(); }
+    [[nodiscard]] IAudioBackend* getBackend() noexcept
+    {
+        return m_backend.get();
+    }
 
     /**
      * @brief 获取音频后端（const版本）
      */
-    [[nodiscard]] const IAudioBackend* getBackend() const noexcept { return m_backend.get(); }
+    [[nodiscard]] const IAudioBackend* getBackend() const noexcept
+    {
+        return m_backend.get();
+    }
 
     /**
      * @brief 获取声音实例

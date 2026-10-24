@@ -71,12 +71,18 @@ public:
         return m_biomeId;
     }
 
-    [[nodiscard]] const std::vector<BiomeId>& possibleBiomes() const override { return m_possibleBiomes; }
+    [[nodiscard]] const std::vector<BiomeId>& possibleBiomes() const override
+    {
+        return m_possibleBiomes;
+    }
 
     /**
      * @brief 获取固定的生物群系 ID
      */
-    [[nodiscard]] BiomeId fixedBiomeId() const { return m_biomeId; }
+    [[nodiscard]] BiomeId fixedBiomeId() const
+    {
+        return m_biomeId;
+    }
 
     /**
      * @brief 在指定范围内搜索生物群系

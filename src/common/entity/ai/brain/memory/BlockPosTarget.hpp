@@ -45,11 +45,20 @@ public:
         , m_centerPos(blockPos.center())
     {}
 
-    [[nodiscard]] Vector3 getPosition() const override { return m_centerPos; }
+    [[nodiscard]] Vector3 getPosition() const override
+    {
+        return m_centerPos;
+    }
 
-    [[nodiscard]] BlockPos getBlockPos() const override { return m_blockPos; }
+    [[nodiscard]] BlockPos getBlockPos() const override
+    {
+        return m_blockPos;
+    }
 
-    [[nodiscard]] bool isVisibleTo(const LivingEntity& /*viewer*/) const override { return true; }
+    [[nodiscard]] bool isVisibleTo(const LivingEntity& /*viewer*/) const override
+    {
+        return true;
+    }
 
 private:
     BlockPos m_blockPos;

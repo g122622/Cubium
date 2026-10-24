@@ -59,7 +59,10 @@ class BreakDoorTestWorld final : public mc::test::BaseTestWorld {
 public:
     BreakDoorTestWorld() = default;
 
-    void setBlock(i32 x, i32 y, i32 z, const BlockState* state) { m_blocks[BlockPos(x, y, z)] = state; }
+    void setBlock(i32 x, i32 y, i32 z, const BlockState* state)
+    {
+        m_blocks[BlockPos(x, y, z)] = state;
+    }
 
     [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override
     {
@@ -80,24 +83,40 @@ public:
         return true;
     }
 
-    void playEvent(i32 eventId, const BlockPos& pos, i32 data) override { m_events.push_back({eventId, pos, data}); }
+    void playEvent(i32 eventId, const BlockPos& pos, i32 data) override
+    {
+        m_events.push_back({eventId, pos, data});
+    }
 
     void destroyBlockProgress(EntityInstanceId breakerId, const BlockPos& pos, i32 progress) override
     {
         m_breakProgressEvents.push_back({breakerId, pos, progress});
     }
 
-    [[nodiscard]] world::gamerule::GameRules& getGameRules() override { return m_gameRules; }
-    [[nodiscard]] const world::gamerule::GameRules& getGameRules() const override { return m_gameRules; }
+    [[nodiscard]] world::gamerule::GameRules& getGameRules() override
+    {
+        return m_gameRules;
+    }
+
+    [[nodiscard]] const world::gamerule::GameRules& getGameRules() const override
+    {
+        return m_gameRules;
+    }
 
     void setMobGriefing(bool value)
     {
         m_gameRules.setBoolean(world::gamerule::GameRuleKeys::MOB_GRIEFING, value, nullptr);
     }
 
-    [[nodiscard]] Difficulty difficulty() const override { return m_difficulty; }
+    [[nodiscard]] Difficulty difficulty() const override
+    {
+        return m_difficulty;
+    }
 
-    void setDifficulty(Difficulty difficulty) { m_difficulty = difficulty; }
+    void setDifficulty(Difficulty difficulty)
+    {
+        m_difficulty = difficulty;
+    }
 
     // 事件追踪
     struct Event {
@@ -113,14 +132,25 @@ public:
         i32 progress;
     };
 
-    [[nodiscard]] const std::vector<Event>& getEvents() const { return m_events; }
-    void clearEvents() { m_events.clear(); }
+    [[nodiscard]] const std::vector<Event>& getEvents() const
+    {
+        return m_events;
+    }
+
+    void clearEvents()
+    {
+        m_events.clear();
+    }
 
     [[nodiscard]] const std::vector<BreakProgressEvent>& getBreakProgressEvents() const
     {
         return m_breakProgressEvents;
     }
-    void clearBreakProgressEvents() { m_breakProgressEvents.clear(); }
+
+    void clearBreakProgressEvents()
+    {
+        m_breakProgressEvents.clear();
+    }
 
     // BlockState 访问
     [[nodiscard]] const BlockState* getBlockStateAt(const BlockPos& pos) const
@@ -153,7 +183,10 @@ public:
         setPosition(static_cast<f32>(x), static_cast<f32>(y), static_cast<f32>(z));
     }
 
-    void setWorldForTest(IWorld* world) { setWorld(world); }
+    void setWorldForTest(IWorld* world)
+    {
+        setWorld(world);
+    }
 
     void setCollidedHorizontallyForTest(bool value)
     {
@@ -187,7 +220,10 @@ public:
 
 class BreakDoorGoalTest : public ::testing::Test {
 protected:
-    void SetUp() override { VanillaBlocks::initialize(); }
+    void SetUp() override
+    {
+        VanillaBlocks::initialize();
+    }
 };
 
 TEST_F(BreakDoorGoalTest, DefaultDoorBreakTime)
@@ -362,7 +398,9 @@ TEST_F(BreakDoorGoalTest, DefaultDifficultyPredicateAllowsNormalAndHard)
 TEST_F(BreakDoorGoalTest, CustomDifficultyPredicateAllowsAllDifficulties)
 {
     // 自定义谓词：允许所有难度
-    auto allDifficulties = [](Difficulty) { return true; };
+    auto allDifficulties = [](Difficulty) {
+        return true;
+    };
 
     TestBreakDoorMob mob;
     BreakDoorGoal goal(&mob, allDifficulties);

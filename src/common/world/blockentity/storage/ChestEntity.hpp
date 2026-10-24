@@ -138,9 +138,20 @@ public:
     // getInventory()->getItem/setItem/removeItem/clear 等路径访问容器内容
     // 都会自动触发 _unpackLootTable(nullptr)。这与 MC Java 中
     // RandomizableContainerBlockEntity 的行为一致。
-    [[nodiscard]] IInventory* getInventory() override { return &m_inventory; }
-    [[nodiscard]] const IInventory* getInventory() const override { return &m_inventory; }
-    [[nodiscard]] i32 getContainerSize() const override { return CHEST_SIZE; }
+    [[nodiscard]] IInventory* getInventory() override
+    {
+        return &m_inventory;
+    }
+
+    [[nodiscard]] const IInventory* getInventory() const override
+    {
+        return &m_inventory;
+    }
+
+    [[nodiscard]] i32 getContainerSize() const override
+    {
+        return CHEST_SIZE;
+    }
 
     // ========== 箱子特有接口 ==========
 
@@ -229,13 +240,19 @@ public:
      * @brief 获取盖子打开角度
      * @return 角度 (0.0 = 关闭, 1.0 = 完全打开)
      */
-    [[nodiscard]] f32 getLidAngle() const { return m_lidAngle; }
+    [[nodiscard]] f32 getLidAngle() const
+    {
+        return m_lidAngle;
+    }
 
     /**
      * @brief 获取上一帧的盖子角度（用于插值）
      * @return 角度
      */
-    [[nodiscard]] f32 getPrevLidAngle() const { return m_prevLidAngle; }
+    [[nodiscard]] f32 getPrevLidAngle() const
+    {
+        return m_prevLidAngle;
+    }
 
     /**
      * @brief 计算插值后的盖子角度
@@ -250,7 +267,11 @@ public:
     // ========== Tick 更新 ==========
 
     void tick(IWorld& world) override;
-    [[nodiscard]] bool needsTick() const noexcept override { return true; }
+
+    [[nodiscard]] bool needsTick() const noexcept override
+    {
+        return true;
+    }
 
     // ========== BlockEvent 同步 ==========
 
@@ -293,7 +314,10 @@ public:
     [[nodiscard]] std::unique_ptr<BlockEntity> clone() const override;
 
 protected:
-    [[nodiscard]] std::string getDefaultName() const override { return "container.chest"; }
+    [[nodiscard]] std::string getDefaultName() const override
+    {
+        return "container.chest";
+    }
 
     /**
      * @brief 广播打开/关闭事件

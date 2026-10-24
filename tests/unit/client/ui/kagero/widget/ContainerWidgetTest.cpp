@@ -277,7 +277,9 @@ TEST(ContainerWidgetTest, ForEachWidget)
     container.addChild(std::make_unique<TextWidget>("child3", 0, 0, 100, 100));
 
     std::vector<std::string> ids;
-    container.forEachWidget([&ids](Widget& widget) { ids.push_back(widget.id()); });
+    container.forEachWidget([&ids](Widget& widget) {
+        ids.push_back(widget.id());
+    });
 
     EXPECT_EQ(3u, ids.size());
     EXPECT_EQ("child1", ids[0]);

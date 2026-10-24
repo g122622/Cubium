@@ -23,13 +23,22 @@ public:
     {
         return std::make_unique<mc::test::EmptyGameTestFunctionContext>();
     }
+
     std::unique_ptr<mc::test::IGameTestFunctionRunResult> run(
         mc::test::IGameTestHelper&, mc::test::IGameTestFunctionContext&) const override
     {
         return std::make_unique<mc::test::SyncGameTestRunResult>(mc::test::pass());
     }
-    bool isScriptBacked() const override { return m_scriptBacked; }
-    void releaseScriptResources() override { ++m_releases; }
+
+    bool isScriptBacked() const override
+    {
+        return m_scriptBacked;
+    }
+
+    void releaseScriptResources() override
+    {
+        ++m_releases;
+    }
 
 private:
     bool m_scriptBacked;
@@ -42,6 +51,7 @@ public:
     {
         return std::make_unique<mc::test::NullGameTestHelper>();
     }
+
     std::unique_ptr<mc::test::IGameTestHelperProvider> clone() const override
     {
         return std::make_unique<_HelperProvider>();
@@ -55,11 +65,24 @@ public:
     {}
 
 protected:
-    bool hasStructureBlock() const override { return true; }
+    bool hasStructureBlock() const override
+    {
+        return true;
+    }
+
     void clearStructure() override {}
+
     void spawnStructure() override {}
-    mc::i32 _getLevelTick() const override { return 0; }
-    bool _isTestReady() override { return true; }
+
+    mc::i32 _getLevelTick() const override
+    {
+        return 0;
+    }
+
+    bool _isTestReady() override
+    {
+        return true;
+    }
 };
 } // namespace
 
@@ -201,8 +224,9 @@ TEST(GameTestCallbackLifetime, WaitingConditionStaysPendingAndTimeoutRetainsSpec
     instance.tick();
     EXPECT_EQ(instance.state(), mc::test::GameTestState::Running);
     EXPECT_FALSE(instance.error());
-    for (int tick = 0; tick <= function.data().maxTicks() + 1; ++tick)
+    for (int tick = 0; tick <= function.data().maxTicks() + 1; ++tick) {
         instance.tick();
+    }
     EXPECT_EQ(instance.state(), mc::test::GameTestState::Failed);
     ASSERT_TRUE(instance.error());
     EXPECT_EQ(instance.error()->type(), mc::test::GameTestErrorType::ExecutionTimeout);

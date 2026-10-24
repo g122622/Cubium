@@ -73,10 +73,16 @@ public:
      */
     [[nodiscard]] static EasingType symmetricCubicBezier(f32 x1, f32 y1);
 
-    [[nodiscard]] bool isCubicBezier() const noexcept { return m_name == Name::CubicBezier; }
+    [[nodiscard]] bool isCubicBezier() const noexcept
+    {
+        return m_name == Name::CubicBezier;
+    }
 
     /// 三次贝塞尔控制点（x1, y1, x2, y2）；非贝塞尔缓动下无意义
-    [[nodiscard]] const std::array<f32, 4>& bezierControls() const noexcept { return m_controls; }
+    [[nodiscard]] const std::array<f32, 4>& bezierControls() const noexcept
+    {
+        return m_controls;
+    }
 
     /**
      * @brief 应用缓动
@@ -193,8 +199,15 @@ private:
         f32 b;
         f32 c;
 
-        [[nodiscard]] constexpr f32 sample(f32 t) const noexcept { return ((a * t + b) * t + c) * t; }
-        [[nodiscard]] constexpr f32 sampleGradient(f32 t) const noexcept { return (3.0f * a * t + 2.0f * b) * t + c; }
+        [[nodiscard]] constexpr f32 sample(f32 t) const noexcept
+        {
+            return ((a * t + b) * t + c) * t;
+        }
+
+        [[nodiscard]] constexpr f32 sampleGradient(f32 t) const noexcept
+        {
+            return (3.0f * a * t + 2.0f * b) * t + c;
+        }
     };
 
     [[nodiscard]] static constexpr _CubicCurve _curveFromControls(f32 first, f32 second) noexcept
@@ -325,9 +338,15 @@ private:
         return N * math::square(f) + 0.984375f;
     }
 
-    static f32 _inBounce(f32 f) { return 1.0f - _outBounce(1.0f - f); }
+    static f32 _inBounce(f32 f)
+    {
+        return 1.0f - _outBounce(1.0f - f);
+    }
 
-    static f32 _inCubic(f32 f) { return math::cube(f); }
+    static f32 _inCubic(f32 f)
+    {
+        return math::cube(f);
+    }
 
     static f32 _inElastic(f32 f)
     {
@@ -341,13 +360,25 @@ private:
         return static_cast<f32>(-std::pow(2.0, 10.0 * f - 10.0) * math::mthSin((f * 10.0f - 10.75f) * C));
     }
 
-    static f32 _inExpo(f32 f) { return f == 0.0f ? 0.0f : static_cast<f32>(std::pow(2.0, 10.0 * f - 10.0)); }
+    static f32 _inExpo(f32 f)
+    {
+        return f == 0.0f ? 0.0f : static_cast<f32>(std::pow(2.0, 10.0 * f - 10.0));
+    }
 
-    static f32 _inQuart(f32 f) { return math::square(math::square(f)); }
+    static f32 _inQuart(f32 f)
+    {
+        return math::square(math::square(f));
+    }
 
-    static f32 _inQuint(f32 f) { return math::square(math::square(f)) * f; }
+    static f32 _inQuint(f32 f)
+    {
+        return math::square(math::square(f)) * f;
+    }
 
-    static f32 _inSine(f32 f) { return 1.0f - math::mthCos(f * math::HALF_PI); }
+    static f32 _inSine(f32 f)
+    {
+        return 1.0f - math::mthCos(f * math::HALF_PI);
+    }
 
     static f32 _inOutBounce(f32 f)
     {
@@ -393,15 +424,30 @@ private:
         return static_cast<f32>(std::pow(2.0, -10.0 * f) * math::mthSin((f * 10.0f - 0.75f) * C) + 1.0);
     }
 
-    static f32 _outExpo(f32 f) { return f == 1.0f ? 1.0f : 1.0f - static_cast<f32>(std::pow(2.0, -10.0 * f)); }
+    static f32 _outExpo(f32 f)
+    {
+        return f == 1.0f ? 1.0f : 1.0f - static_cast<f32>(std::pow(2.0, -10.0 * f));
+    }
 
-    static f32 _outQuad(f32 f) { return 1.0f - math::square(1.0f - f); }
+    static f32 _outQuad(f32 f)
+    {
+        return 1.0f - math::square(1.0f - f);
+    }
 
-    static f32 _outQuint(f32 f) { return 1.0f - static_cast<f32>(std::pow(1.0 - f, 5.0)); }
+    static f32 _outQuint(f32 f)
+    {
+        return 1.0f - static_cast<f32>(std::pow(1.0 - f, 5.0));
+    }
 
-    static f32 _outSine(f32 f) { return math::mthSin(f * math::HALF_PI); }
+    static f32 _outSine(f32 f)
+    {
+        return math::mthSin(f * math::HALF_PI);
+    }
 
-    static f32 _inOutSine(f32 f) { return -(math::mthCos(math::PI * f) - 1.0f) / 2.0f; }
+    static f32 _inOutSine(f32 f)
+    {
+        return -(math::mthCos(math::PI * f) - 1.0f) / 2.0f;
+    }
 
     static f32 _outBack(f32 f)
     {
@@ -410,9 +456,15 @@ private:
         return 1.0f + C2 * math::cube(f - 1.0f) + C1 * math::square(f - 1.0f);
     }
 
-    static f32 _outQuart(f32 f) { return 1.0f - math::square(math::square(1.0f - f)); }
+    static f32 _outQuart(f32 f)
+    {
+        return 1.0f - math::square(math::square(1.0f - f));
+    }
 
-    static f32 _outCubic(f32 f) { return 1.0f - math::cube(1.0f - f); }
+    static f32 _outCubic(f32 f)
+    {
+        return 1.0f - math::cube(1.0f - f);
+    }
 
     static f32 _inOutExpo(f32 f)
     {
@@ -422,9 +474,15 @@ private:
         return f == 1.0f ? 1.0f : static_cast<f32>((2.0 - std::pow(2.0, -20.0 * f + 10.0)) / 2.0);
     }
 
-    static f32 _inQuad(f32 f) { return f * f; }
+    static f32 _inQuad(f32 f)
+    {
+        return f * f;
+    }
 
-    static f32 _outCirc(f32 f) { return static_cast<f32>(std::sqrt(1.0f - math::square(f - 1.0f))); }
+    static f32 _outCirc(f32 f)
+    {
+        return static_cast<f32>(std::sqrt(1.0f - math::square(f - 1.0f)));
+    }
 
     static f32 _inOutElastic(f32 f)
     {
@@ -442,7 +500,10 @@ private:
         return static_cast<f32>(std::pow(2.0, -20.0 * f + 10.0) * d / 2.0 + 1.0);
     }
 
-    static f32 _inCirc(f32 f) { return static_cast<f32>(-std::sqrt(1.0f - f * f)) + 1.0f; }
+    static f32 _inCirc(f32 f)
+    {
+        return static_cast<f32>(-std::sqrt(1.0f - f * f)) + 1.0f;
+    }
 
     static f32 _inOutBack(f32 f)
     {

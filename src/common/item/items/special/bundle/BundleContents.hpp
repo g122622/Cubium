@@ -96,38 +96,59 @@ public:
     /**
      * @brief 内容物数量
      */
-    [[nodiscard]] Size size() const noexcept { return static_cast<Size>(m_items.size()); }
+    [[nodiscard]] Size size() const noexcept
+    {
+        return static_cast<Size>(m_items.size());
+    }
 
     /**
      * @brief 是否为空
      */
-    [[nodiscard]] bool isEmpty() const noexcept { return m_items.empty(); }
+    [[nodiscard]] bool isEmpty() const noexcept
+    {
+        return m_items.empty();
+    }
 
     /**
      * @brief 总权重
      */
-    [[nodiscard]] i64 weight() const noexcept { return m_weight; }
+    [[nodiscard]] i64 weight() const noexcept
+    {
+        return m_weight;
+    }
 
     /**
      * @brief 选中项索引（-1 表示无）
      */
-    [[nodiscard]] i32 selectedItem() const noexcept { return m_selectedItem; }
+    [[nodiscard]] i32 selectedItem() const noexcept
+    {
+        return m_selectedItem;
+    }
 
     /**
      * @brief 是否有选中项
      */
-    [[nodiscard]] bool hasSelectedItem() const noexcept { return m_selectedItem != NO_SELECTED_ITEM; }
+    [[nodiscard]] bool hasSelectedItem() const noexcept
+    {
+        return m_selectedItem != NO_SELECTED_ITEM;
+    }
 
     /**
      * @brief 获取指定索引的物品（不拷贝，仅用于只读访问）
      * @note 索引越界行为未定义
      */
-    [[nodiscard]] const ItemStack& getItemUnsafe(i32 index) const { return m_items[index]; }
+    [[nodiscard]] const ItemStack& getItemUnsafe(i32 index) const
+    {
+        return m_items[index];
+    }
 
     /**
      * @brief 获取物品列表（常量引用）
      */
-    [[nodiscard]] const std::vector<ItemStack>& items() const noexcept { return m_items; }
+    [[nodiscard]] const std::vector<ItemStack>& items() const noexcept
+    {
+        return m_items;
+    }
 
     /**
      * @brief 获取物品拷贝列表
@@ -188,7 +209,11 @@ public:
     // ========== 比较 ==========
 
     bool operator==(const BundleContents& other) const;
-    bool operator!=(const BundleContents& other) const { return !(*this == other); }
+
+    bool operator!=(const BundleContents& other) const
+    {
+        return !(*this == other);
+    }
 
     // ========== Mutable 内部类 ==========
     class Mutable;
@@ -271,12 +296,18 @@ public:
     /**
      * @brief 当前权重
      */
-    [[nodiscard]] i64 weight() const noexcept { return m_weight; }
+    [[nodiscard]] i64 weight() const noexcept
+    {
+        return m_weight;
+    }
 
     /**
      * @brief 当前选中项
      */
-    [[nodiscard]] i32 selectedItem() const noexcept { return m_selectedItem; }
+    [[nodiscard]] i32 selectedItem() const noexcept
+    {
+        return m_selectedItem;
+    }
 
     /**
      * @brief 转换为不可变 BundleContents

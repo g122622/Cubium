@@ -127,7 +127,9 @@ Result<void> TridentSwapchain::initialize(TridentContext* context, const SwapCha
 
 void TridentSwapchain::destroy()
 {
-    if (!m_initialized) return;
+    if (!m_initialized) {
+        return;
+    }
 
     _destroyImageViews();
     _destroySwapchain();
@@ -333,7 +335,9 @@ void TridentSwapchain::_destroySwapchain()
 
 void TridentSwapchain::_destroyImageViews()
 {
-    if (!m_context) return;
+    if (!m_context) {
+        return;
+    }
 
     for (auto imageView : m_imageViews) {
         if (imageView != VK_NULL_HANDLE) {

@@ -104,7 +104,9 @@ void PoweredRailBlock::updateState(IWorld& world, const BlockPos& pos, const Blo
 bool PoweredRailBlock::_findPoweredRailSignal(
     IWorld& world, const BlockPos& startPos, const BlockState& startState, bool checkForward, i32 distance) const
 {
-    if (distance >= 8) return false;
+    if (distance >= 8) {
+        return false;
+    }
     BlockPos next = startPos;
     bool checkBelow = true;
     bool eastWest = false;
@@ -157,15 +159,20 @@ bool PoweredRailBlock::_isSameRailWithPower(
     IWorld& world, const BlockPos& pos, bool checkForward, i32 distance, bool eastWest) const
 {
     const BlockState* state = world.getBlockState(pos);
-    if (state == nullptr || !state->is(this)) return false;
+    if (state == nullptr || !state->is(this)) {
+        return false;
+    }
     RailShape shape = getRailShape(*state);
     bool otherEastWest =
         shape == RailShape::EastWest || shape == RailShape::AscendingEast || shape == RailShape::AscendingWest;
-    if (eastWest != otherEastWest || !isPowered(*state)) return false;
+    if (eastWest != otherEastWest || !isPowered(*state)) {
+        return false;
+    }
     // 带电状态只允许继续追踪，不能当成独立电源，否则会无限传电并在断电后自锁。
     return world::redstone::RedstonePower::isPowered(world, pos) ||
         _findPoweredRailSignal(world, pos, *state, checkForward, distance + 1);
 }
+
 RailShape PoweredRailBlock::getRailShape(const BlockState& state) const
 {
     return state.get(SHAPE());

@@ -121,7 +121,10 @@ TEST(EquipmentSlotNamesTest, RoundTrip)
 
 class PlayerInventoryNbtTest : public ::testing::Test {
 protected:
-    void SetUp() override { ensureItemRegistryInitialized(); }
+    void SetUp() override
+    {
+        ensureItemRegistryInitialized();
+    }
 };
 
 TEST_F(PlayerInventoryNbtTest, ToNbtEmptyInventory)

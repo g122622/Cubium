@@ -52,6 +52,7 @@ public:
     {
         throw std::runtime_error("MilkingTestWorld::tickManager not implemented");
     }
+
     [[nodiscard]] const world::tick::TickManager& tickManager() const override
     {
         throw std::runtime_error("MilkingTestWorld::tickManager not implemented");
@@ -75,8 +76,15 @@ public:
         m_lastPlayedSound = soundId;
     }
 
-    [[nodiscard]] const std::vector<Entity*>& spawnedEntities() const { return m_spawnedEntities; }
-    [[nodiscard]] const std::optional<ResourceLocation>& lastPlayedSound() const { return m_lastPlayedSound; }
+    [[nodiscard]] const std::vector<Entity*>& spawnedEntities() const
+    {
+        return m_spawnedEntities;
+    }
+
+    [[nodiscard]] const std::optional<ResourceLocation>& lastPlayedSound() const
+    {
+        return m_lastPlayedSound;
+    }
 
 private:
     EntityInstanceId m_lastEntityId = 0;
@@ -93,7 +101,10 @@ protected:
         Items::initialize();
     }
 
-    void SetUp() override { m_world = std::make_unique<MilkingTestWorld>(); }
+    void SetUp() override
+    {
+        m_world = std::make_unique<MilkingTestWorld>();
+    }
 
     std::unique_ptr<MilkingTestWorld> m_world;
 };

@@ -58,7 +58,10 @@ public:
     explicit WoodlandMansionStructure(ResourceLocation id);
     ~WoodlandMansionStructure() override = default;
 
-    [[nodiscard]] const std::string& name() const override { return s_name; }
+    [[nodiscard]] const std::string& name() const override
+    {
+        return s_name;
+    }
 
     /**
      * @brief 获取结构关联的生物群系标签
@@ -93,9 +96,20 @@ public:
         ChunkPrimer* chunk = nullptr,
         IChunkGenerator* generator = nullptr) override;
 
-    [[nodiscard]] const std::string& templateName() const { return m_templateName; }
-    [[nodiscard]] feature::template_::Rotation rotation() const { return m_rotation; }
-    [[nodiscard]] feature::template_::Mirror mirror() const { return m_mirror; }
+    [[nodiscard]] const std::string& templateName() const
+    {
+        return m_templateName;
+    }
+
+    [[nodiscard]] feature::template_::Rotation rotation() const
+    {
+        return m_rotation;
+    }
+
+    [[nodiscard]] feature::template_::Mirror mirror() const
+    {
+        return m_mirror;
+    }
 
 private:
     std::string m_templateName;
@@ -120,8 +134,15 @@ public:
     void setIf(i32 x, i32 y, i32 oldValue, i32 newValue);
     [[nodiscard]] bool edgesTo(i32 x, i32 y, i32 value) const;
 
-    [[nodiscard]] i32 width() const { return m_width; }
-    [[nodiscard]] i32 height() const { return m_height; }
+    [[nodiscard]] i32 width() const
+    {
+        return m_width;
+    }
+
+    [[nodiscard]] i32 height() const
+    {
+        return m_height;
+    }
 
 private:
     std::vector<std::vector<i32>> m_grid;
@@ -144,11 +165,30 @@ public:
     [[nodiscard]] bool isRoomId(const SimpleGrid& grid, i32 x, i32 y, i32 floor, i32 roomId) const;
     [[nodiscard]] Direction get1x2RoomDirection(const SimpleGrid& grid, i32 x, i32 y, i32 floor, i32 roomId) const;
 
-    [[nodiscard]] const SimpleGrid& baseGrid() const { return *m_baseGrid; }
-    [[nodiscard]] const SimpleGrid& thirdFloorGrid() const { return *m_thirdFloorGrid; }
-    [[nodiscard]] const SimpleGrid& floorRoom(i32 floor) const { return *m_floorRooms[floor]; }
-    [[nodiscard]] i32 entranceX() const { return m_entranceX; }
-    [[nodiscard]] i32 entranceY() const { return m_entranceY; }
+    [[nodiscard]] const SimpleGrid& baseGrid() const
+    {
+        return *m_baseGrid;
+    }
+
+    [[nodiscard]] const SimpleGrid& thirdFloorGrid() const
+    {
+        return *m_thirdFloorGrid;
+    }
+
+    [[nodiscard]] const SimpleGrid& floorRoom(i32 floor) const
+    {
+        return *m_floorRooms[floor];
+    }
+
+    [[nodiscard]] i32 entranceX() const
+    {
+        return m_entranceX;
+    }
+
+    [[nodiscard]] i32 entranceY() const
+    {
+        return m_entranceY;
+    }
 
 private:
     void _recursiveCorridor(SimpleGrid& grid, i32 x, i32 y, Direction dir, i32 depth);

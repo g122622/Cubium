@@ -96,7 +96,10 @@ public:
     void resetTask() override;
     void tick() override;
 
-    [[nodiscard]] std::string getTypeName() const override { return "TransportItemsBetweenContainersGoal"; }
+    [[nodiscard]] std::string getTypeName() const override
+    {
+        return "TransportItemsBetweenContainersGoal";
+    }
 
 private:
     /**

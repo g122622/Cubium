@@ -31,6 +31,7 @@ class IWorld;
 class BlockPos;
 class BlockState;
 class Item;
+
 namespace fluid {
 class Fluid;
 }

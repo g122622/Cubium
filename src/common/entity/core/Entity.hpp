@@ -197,7 +197,11 @@ public:
 
     // ========== 基本属性 ==========
 
-    [[nodiscard]] EntityInstanceId id() const { return m_id; }
+    [[nodiscard]] EntityInstanceId id() const
+    {
+        return m_id;
+    }
+
     /**
      * @brief 获取非拥有引用的生命周期标记
      *
@@ -214,15 +218,27 @@ public:
         }
         return m_referenceLifetime;
     }
+
     /**
      * @brief 设置实体ID
      *
      * 仅由EntityManager在分配ID时调用。
      * 不应该在其他地方使用。
      */
-    void setId(EntityInstanceId id) { m_id = id; }
-    [[nodiscard]] const std::string& uuid() const { return m_uuid; }
-    void setUuid(const std::string& uuid) { m_uuid = uuid; }
+    void setId(EntityInstanceId id)
+    {
+        m_id = id;
+    }
+
+    [[nodiscard]] const std::string& uuid() const
+    {
+        return m_uuid;
+    }
+
+    void setUuid(const std::string& uuid)
+    {
+        m_uuid = uuid;
+    }
 
     /**
      * @brief 获取实体类型标识符
@@ -310,13 +326,27 @@ public:
      *
      * @return AddEntity.data 字段值（i32，语义随实体类型）
      */
-    [[nodiscard]] virtual i32 getSpawnData() const { return 0; }
+    [[nodiscard]] virtual i32 getSpawnData() const
+    {
+        return 0;
+    }
 
     // ========== 世界访问 ==========
 
-    [[nodiscard]] IWorld* world() { return m_world; }
-    [[nodiscard]] const IWorld* world() const { return m_world; }
-    void setWorld(IWorld* world) { m_world = world; }
+    [[nodiscard]] IWorld* world()
+    {
+        return m_world;
+    }
+
+    [[nodiscard]] const IWorld* world() const
+    {
+        return m_world;
+    }
+
+    void setWorld(IWorld* world)
+    {
+        m_world = world;
+    }
 
     /**
      * @brief 绑定/解绑所属 EntityManager（用于空间索引实时维护）
@@ -326,13 +356,27 @@ public:
      * 实时准确（同一 tick 内移动后查询读到新位置）。裸指针非拥有，EntityManager 与
      * Entity 同在 common 模块，不破坏 common 不依赖 server。
      */
-    void setEntityManager(EntityManager* manager) noexcept { m_entityManager = manager; }
-    [[nodiscard]] EntityManager* entityManager() const noexcept { return m_entityManager; }
+    void setEntityManager(EntityManager* manager) noexcept
+    {
+        m_entityManager = manager;
+    }
+
+    [[nodiscard]] EntityManager* entityManager() const noexcept
+    {
+        return m_entityManager;
+    }
 
     // ========== 数据管理 ==========
 
-    [[nodiscard]] entity::EntityDataManager& dataManager() { return m_dataManager; }
-    [[nodiscard]] const entity::EntityDataManager& dataManager() const { return m_dataManager; }
+    [[nodiscard]] entity::EntityDataManager& dataManager()
+    {
+        return m_dataManager;
+    }
+
+    [[nodiscard]] const entity::EntityDataManager& dataManager() const
+    {
+        return m_dataManager;
+    }
 
     // ========== 位置 ==========
     //
@@ -341,10 +385,25 @@ public:
     // （零双写硬约束：避免同帧字段与组件两份可写副本不一致）。m_builtIn 在构造时
     // attach 组件后填充，随 Entity 生命周期稳定（首批4组件永不移除，指针稳定）。
 
-    [[nodiscard]] Vector3 position() const { return m_builtIn.stateVector->m_pos; }
-    [[nodiscard]] f32 x() const { return m_builtIn.stateVector->m_pos.x; }
-    [[nodiscard]] f32 y() const { return m_builtIn.stateVector->m_pos.y; }
-    [[nodiscard]] f32 z() const { return m_builtIn.stateVector->m_pos.z; }
+    [[nodiscard]] Vector3 position() const
+    {
+        return m_builtIn.stateVector->m_pos;
+    }
+
+    [[nodiscard]] f32 x() const
+    {
+        return m_builtIn.stateVector->m_pos.x;
+    }
+
+    [[nodiscard]] f32 y() const
+    {
+        return m_builtIn.stateVector->m_pos.y;
+    }
+
+    [[nodiscard]] f32 z() const
+    {
+        return m_builtIn.stateVector->m_pos.z;
+    }
 
     /**
      * @brief 获取实体高度按比例偏移后的 Y 坐标
@@ -403,10 +462,25 @@ public:
     }
 
     // 前一帧位置（用于插值）
-    [[nodiscard]] Vector3 prevPosition() const { return m_builtIn.stateVector->m_posPrev; }
-    [[nodiscard]] f32 prevX() const { return m_builtIn.stateVector->m_posPrev.x; }
-    [[nodiscard]] f32 prevY() const { return m_builtIn.stateVector->m_posPrev.y; }
-    [[nodiscard]] f32 prevZ() const { return m_builtIn.stateVector->m_posPrev.z; }
+    [[nodiscard]] Vector3 prevPosition() const
+    {
+        return m_builtIn.stateVector->m_posPrev;
+    }
+
+    [[nodiscard]] f32 prevX() const
+    {
+        return m_builtIn.stateVector->m_posPrev.x;
+    }
+
+    [[nodiscard]] f32 prevY() const
+    {
+        return m_builtIn.stateVector->m_posPrev.y;
+    }
+
+    [[nodiscard]] f32 prevZ() const
+    {
+        return m_builtIn.stateVector->m_posPrev.z;
+    }
 
     /**
      * @brief 计算到另一个实体的距离
@@ -455,28 +529,71 @@ public:
 
     // ========== 旋转 ==========
 
-    [[nodiscard]] f32 yaw() const { return m_builtIn.rotation->m_rot.x; }
-    [[nodiscard]] f32 pitch() const { return m_builtIn.rotation->m_rot.y; }
-    [[nodiscard]] f32 prevYaw() const { return m_builtIn.rotation->m_rotPrev.x; }
-    [[nodiscard]] f32 prevPitch() const { return m_builtIn.rotation->m_rotPrev.y; }
+    [[nodiscard]] f32 yaw() const
+    {
+        return m_builtIn.rotation->m_rot.x;
+    }
+
+    [[nodiscard]] f32 pitch() const
+    {
+        return m_builtIn.rotation->m_rot.y;
+    }
+
+    [[nodiscard]] f32 prevYaw() const
+    {
+        return m_builtIn.rotation->m_rotPrev.x;
+    }
+
+    [[nodiscard]] f32 prevPitch() const
+    {
+        return m_builtIn.rotation->m_rotPrev.y;
+    }
 
     /// 设置偏航角（不更新 prevYaw，用于偏转等场景）
-    void setYaw(f32 yaw) { m_builtIn.rotation->m_rot.x = yaw; }
+    void setYaw(f32 yaw)
+    {
+        m_builtIn.rotation->m_rot.x = yaw;
+    }
 
     /// 设置上一tick偏航角
-    void setPrevYaw(f32 prevYaw) { m_builtIn.rotation->m_rotPrev.x = prevYaw; }
+    void setPrevYaw(f32 prevYaw)
+    {
+        m_builtIn.rotation->m_rotPrev.x = prevYaw;
+    }
 
     // ========== 速度 ==========
 
-    [[nodiscard]] Vector3 velocity() const { return m_builtIn.velocity->m_velocity; }
-    [[nodiscard]] f32 velocityX() const { return m_builtIn.velocity->m_velocity.x; }
-    [[nodiscard]] f32 velocityY() const { return m_builtIn.velocity->m_velocity.y; }
-    [[nodiscard]] f32 velocityZ() const { return m_builtIn.velocity->m_velocity.z; }
+    [[nodiscard]] Vector3 velocity() const
+    {
+        return m_builtIn.velocity->m_velocity;
+    }
+
+    [[nodiscard]] f32 velocityX() const
+    {
+        return m_builtIn.velocity->m_velocity.x;
+    }
+
+    [[nodiscard]] f32 velocityY() const
+    {
+        return m_builtIn.velocity->m_velocity.y;
+    }
+
+    [[nodiscard]] f32 velocityZ() const
+    {
+        return m_builtIn.velocity->m_velocity.z;
+    }
 
     // ========== 状态 ==========
 
-    [[nodiscard]] bool onGround() const { return m_builtIn.physicsState->m_onGround; }
-    [[nodiscard]] bool isRemoved() const { return m_removalReason.has_value(); }
+    [[nodiscard]] bool onGround() const
+    {
+        return m_builtIn.physicsState->m_onGround;
+    }
+
+    [[nodiscard]] bool isRemoved() const
+    {
+        return m_removalReason.has_value();
+    }
 
     /**
      * @brief 获取移除原因
@@ -484,7 +601,11 @@ public:
      * 未移除时返回 nullopt。对齐 vanilla Entity.getRemovalReason()。移除副作用（掉落、
      * 存档决策、断骑乘）据此判定，取代原先"仅一个 bool"的粗粒度表达。
      */
-    [[nodiscard]] std::optional<RemovalReason> removalReason() const { return m_removalReason; }
+    [[nodiscard]] std::optional<RemovalReason> removalReason() const
+    {
+        return m_removalReason;
+    }
+
     // pose/flags 已迁入 ecs::EntityStateComponent/EntityFlagsComponent（真相源），经组件查询读取。
     [[nodiscard]] EntityPose pose() const
     {
@@ -492,6 +613,7 @@ public:
         MC_ASSERT_RELEASE(c != nullptr);
         return c->m_pose;
     }
+
     [[nodiscard]] EntityFlags flags() const
     {
         const auto* c = m_entityContext->tryGetComponent<ecs::EntityFlagsComponent>();
@@ -527,10 +649,18 @@ public:
     {
         return m_entityContext->tryGetComponent<T>();
     }
+
     template <class T>
     [[nodiscard]] const T* tryGetComponent() const
     {
         return m_entityContext->tryGetComponent<T>();
+    }
+
+    /** @brief 按需构造扩展数据组件；已经存在时保留其当前状态。 */
+    template <class T, typename... Args>
+    [[nodiscard]] T& getOrAddComponent(Args&&... args)
+    {
+        return m_entityContext->getOrAddComponent<T>(std::forward<Args>(args)...);
     }
 
     /**
@@ -548,17 +678,30 @@ public:
      *
      * 返回引用，调用方须确保本实体生命周期内 registry 仍有效（实体与 registry 同生命周期）。
      */
-    [[nodiscard]] ecs::EntityRegistry& ecsRegistry() { return m_entityContext->registry(); }
-    [[nodiscard]] const ecs::EntityRegistry& ecsRegistry() const { return m_entityContext->registry(); }
+    [[nodiscard]] ecs::EntityRegistry& ecsRegistry()
+    {
+        return m_entityContext->registry();
+    }
 
-    [[nodiscard]] virtual bool isChild() const { return false; }
+    [[nodiscard]] const ecs::EntityRegistry& ecsRegistry() const
+    {
+        return m_entityContext->registry();
+    }
+
+    [[nodiscard]] virtual bool isChild() const
+    {
+        return false;
+    }
 
     // ========== 声音 ==========
 
     /**
      * @brief 获取声音类别
      */
-    [[nodiscard]] virtual sound::SoundCategory getSoundCategory() const { return sound::SoundCategory::Neutral; }
+    [[nodiscard]] virtual sound::SoundCategory getSoundCategory() const
+    {
+        return sound::SoundCategory::Neutral;
+    }
 
     /**
      * @brief 播放实体声音
@@ -624,7 +767,11 @@ public:
     // ========== 设置属性 ==========
 
     void setPosition(f32 x, f32 y, f32 z);
-    void setPosition(const Vector3& pos) { setPosition(pos.x, pos.y, pos.z); }
+
+    void setPosition(const Vector3& pos)
+    {
+        setPosition(pos.x, pos.y, pos.z);
+    }
 
     /**
      * @brief 绝对吸附到指定坐标（对齐 Java Entity.absSnapTo）
@@ -644,7 +791,11 @@ public:
 
     void setRotation(f32 yaw, f32 pitch);
     void setVelocity(f32 x, f32 y, f32 z);
-    void setVelocity(const Vector3& vel) { setVelocity(vel.x, vel.y, vel.z); }
+
+    void setVelocity(const Vector3& vel)
+    {
+        setVelocity(vel.x, vel.y, vel.z);
+    }
 
     /**
      * @brief 设置身体偏航角（默认空实现，LivingEntity 重写以持久化字段）
@@ -656,7 +807,10 @@ public:
      *
      * @param yaw 身体偏航角（度）
      */
-    virtual void setYBodyRot(f32 yaw) { (void)yaw; }
+    virtual void setYBodyRot(f32 yaw)
+    {
+        (void)yaw;
+    }
 
     /**
      * @brief 获取身体偏航角（对齐 MC 1.21.11 Entity#getYBodyRot）
@@ -664,7 +818,10 @@ public:
      * 基类返回头部偏航角；LivingEntity 重写后返回分离于头部朝向的身体朝向。
      * 用于实体转化时把原实体的身体朝向带给新实体。
      */
-    [[nodiscard]] virtual f32 yBodyRot() const { return yaw(); }
+    [[nodiscard]] virtual f32 yBodyRot() const
+    {
+        return yaw();
+    }
 
     /**
      * @brief 设置头部偏航角（默认空实现，LivingEntity 重写以持久化字段）
@@ -674,7 +831,10 @@ public:
      *
      * @param yaw 头部偏航角（度）
      */
-    virtual void setYHeadRot(f32 yaw) { (void)yaw; }
+    virtual void setYHeadRot(f32 yaw)
+    {
+        (void)yaw;
+    }
 
     /**
      * @brief 添加速度增量
@@ -693,7 +853,10 @@ public:
      * @brief 添加速度增量
      * @param delta 速度增量向量
      */
-    void addVelocity(const Vector3& delta) { addVelocity(delta.x, delta.y, delta.z); }
+    void addVelocity(const Vector3& delta)
+    {
+        addVelocity(delta.x, delta.y, delta.z);
+    }
 
     /**
      * @brief 缩放速度向量
@@ -737,13 +900,18 @@ public:
         }
         m_builtIn.physicsState->m_onGround = onGround;
     }
+
     void setPose(EntityPose pose);
     void setFlags(EntityFlags flags);
 
     // 标志操作
     void addFlag(EntityFlags flag);
     void removeFlag(EntityFlags flag);
-    [[nodiscard]] bool hasFlag(EntityFlags flag) const { return mc::hasFlag(flags(), flag); }
+
+    [[nodiscard]] bool hasFlag(EntityFlags flag) const
+    {
+        return mc::hasFlag(flags(), flag);
+    }
 
     /**
      * @brief 检查是否正在鞘翅飞行
@@ -752,7 +920,10 @@ public:
      *
      * @return 如果正在鞘翅飞行返回 true
      */
-    [[nodiscard]] bool isElytraFlying() const { return hasFlag(EntityFlags::FallFlying); }
+    [[nodiscard]] bool isElytraFlying() const
+    {
+        return hasFlag(EntityFlags::FallFlying);
+    }
 
     /**
      * @brief 设置实体游泳状态
@@ -778,7 +949,10 @@ public:
      *
      * @return 如果正在游泳返回 true
      */
-    [[nodiscard]] bool isSwimming() const { return hasFlag(EntityFlags::Swimming); }
+    [[nodiscard]] bool isSwimming() const
+    {
+        return hasFlag(EntityFlags::Swimming);
+    }
 
     /**
      * @brief 检查实体是否在视觉上表现为游泳姿态
@@ -826,8 +1000,15 @@ public:
      *
      * @return 队伍指针，如果实体不在任何队伍返回 nullptr
      */
-    [[nodiscard]] virtual scoreboard::Team* getTeam() { return nullptr; }
-    [[nodiscard]] virtual const scoreboard::Team* getTeam() const { return nullptr; }
+    [[nodiscard]] virtual scoreboard::Team* getTeam()
+    {
+        return nullptr;
+    }
+
+    [[nodiscard]] virtual const scoreboard::Team* getTeam() const
+    {
+        return nullptr;
+    }
 
     /**
      * @brief 检查实体是否在指定队伍中
@@ -887,19 +1068,28 @@ public:
      * @brief 获取实体宽度
      * @return 实体宽度（方块单位）
      */
-    [[nodiscard]] virtual f32 width() const { return 0.6f; }
+    [[nodiscard]] virtual f32 width() const
+    {
+        return 0.6f;
+    }
 
     /**
      * @brief 获取实体高度
      * @return 实体高度（方块单位）
      */
-    [[nodiscard]] virtual f32 height() const { return 1.8f; }
+    [[nodiscard]] virtual f32 height() const
+    {
+        return 1.8f;
+    }
 
     /**
      * @brief 获取眼睛高度
      * @return 眼睛距离脚底的高度（方块单位）
      */
-    [[nodiscard]] virtual f32 eyeHeight() const { return 1.62f; }
+    [[nodiscard]] virtual f32 eyeHeight() const
+    {
+        return 1.62f;
+    }
 
     /**
      * @brief 获取指定姿态下的实体尺寸
@@ -912,7 +1102,10 @@ public:
      * @brief 获取当前缓存的实体尺寸
      * @return 当前尺寸
      */
-    [[nodiscard]] entity::EntitySize currentDimensions() const { return m_dimensions; }
+    [[nodiscard]] entity::EntitySize currentDimensions() const
+    {
+        return m_dimensions;
+    }
 
     /**
      * @brief 刷新当前尺寸和碰撞箱
@@ -925,7 +1118,10 @@ public:
      * @brief 获取步进高度
      * @return 实体可以自动步进的最大高度（默认为0，LivingEntity默认为0.6）
      */
-    [[nodiscard]] virtual f32 stepHeight() const { return m_stepHeight; }
+    [[nodiscard]] virtual f32 stepHeight() const
+    {
+        return m_stepHeight;
+    }
 
     /**
      * @brief 设置步进高度
@@ -937,7 +1133,10 @@ public:
      *
      * @param height 步进高度
      */
-    void setStepHeight(f32 height) { m_stepHeight = height; }
+    void setStepHeight(f32 height)
+    {
+        m_stepHeight = height;
+    }
 
     // ========== 碰撞箱 ==========
 
@@ -958,7 +1157,10 @@ public:
      *
      * 对应 MC Java 的 isPickable()。决定实体是否拥有可交互的碰撞箱。
      */
-    [[nodiscard]] virtual bool canBeCollidedWith() const { return true; }
+    [[nodiscard]] virtual bool canBeCollidedWith() const
+    {
+        return true;
+    }
 
     /**
      * @brief 实体是否参与实体间碰撞（"可被推挤"）
@@ -972,7 +1174,10 @@ public:
      * 因此不会挡住玩家在其所在位置放置方块。若不做此过滤，挖掘产生的掉落物会立刻挡住
      * 原地放置（e2e 实测：挖掉草方块后无法在同一位置放回石头，报"与实体碰撞"）。
      */
-    [[nodiscard]] virtual bool isPushable() const { return false; }
+    [[nodiscard]] virtual bool isPushable() const
+    {
+        return false;
+    }
 
     /**
      * @brief this 是否会与指定实体发生碰撞
@@ -1010,7 +1215,10 @@ public:
      * - canBeCollidedWith() 关注碰撞箱是否可交互（物理碰撞、射线命中）
      * - canBeHitByProjectile() 关注弹射物是否可命中（综合判断存活状态和旁观者模式等）
      */
-    [[nodiscard]] virtual bool canBeHitByProjectile() const { return isAlive() && canBeCollidedWith(); }
+    [[nodiscard]] virtual bool canBeHitByProjectile() const
+    {
+        return isAlive() && canBeCollidedWith();
+    }
 
     /**
      * @brief 获取此实体对指定弹射物的偏转类型
@@ -1034,7 +1242,10 @@ public:
     /**
      * @brief 命中检测时额外扩张的碰撞边界
      */
-    [[nodiscard]] virtual f32 getCollisionBorderSize() const { return 0.0f; }
+    [[nodiscard]] virtual f32 getCollisionBorderSize() const
+    {
+        return 0.0f;
+    }
 
     // ========== 更新 ==========
 
@@ -1075,7 +1286,10 @@ public:
      *
      * @return 推动反应类型
      */
-    [[nodiscard]] virtual PushReaction getPushReaction() const { return PushReaction::Normal; }
+    [[nodiscard]] virtual PushReaction getPushReaction() const
+    {
+        return PushReaction::Normal;
+    }
 
     // ========== 物理 ==========
 
@@ -1084,7 +1298,10 @@ public:
      * @param engine 物理引擎指针（不拥有所有权）
      * @deprecated 使用 World::physicsEngine() 替代
      */
-    void setPhysicsEngine(PhysicsEngine* engine) { m_physicsEngine = engine; }
+    void setPhysicsEngine(PhysicsEngine* engine)
+    {
+        m_physicsEngine = engine;
+    }
 
     /**
      * @brief 获取物理引擎
@@ -1126,15 +1343,29 @@ public:
 
     // ========== 碰撞状态 ==========
 
-    [[nodiscard]] bool collidedHorizontally() const { return m_builtIn.physicsState->m_collidedHorizontally; }
-    [[nodiscard]] bool collidedVertically() const { return m_builtIn.physicsState->m_collidedVertically; }
-    [[nodiscard]] f32 fallDistance() const { return m_builtIn.physicsState->m_fallDistance; }
+    [[nodiscard]] bool collidedHorizontally() const
+    {
+        return m_builtIn.physicsState->m_collidedHorizontally;
+    }
+
+    [[nodiscard]] bool collidedVertically() const
+    {
+        return m_builtIn.physicsState->m_collidedVertically;
+    }
+
+    [[nodiscard]] f32 fallDistance() const
+    {
+        return m_builtIn.physicsState->m_fallDistance;
+    }
 
     /**
      * @brief 设置摔落距离
      * @param distance 摔落距离
      */
-    void setFallDistance(f32 distance) { m_builtIn.physicsState->m_fallDistance = distance; }
+    void setFallDistance(f32 distance)
+    {
+        m_builtIn.physicsState->m_fallDistance = distance;
+    }
 
     // ========== 移除 ==========
 
@@ -1145,7 +1376,10 @@ public:
      * onRemoval(RemovalReason) 而非本方法——remove() 会被 discard() 与 EntityManager
      * 销毁路径共用，重写本方法会漏掉后两者（详见 onRemoval 说明）。
      */
-    virtual void remove() { remove(RemovalReason::Killed); }
+    virtual void remove()
+    {
+        remove(RemovalReason::Killed);
+    }
 
     /**
      * @brief 按指定原因移除实体
@@ -1171,7 +1405,10 @@ public:
      *
      * 对齐 vanilla Entity.discard()（`public final`，转调 remove(DISCARDED)）。
      */
-    void discard() { remove(RemovalReason::Discarded); }
+    void discard()
+    {
+        remove(RemovalReason::Discarded);
+    }
 
     /**
      * @brief 转化为另一种实体类型（原实体被静默移除）
@@ -1234,7 +1471,10 @@ public:
      * 需要判断"是否摧毁"的子类（如容器实体掉落内容物）应查 shouldDestroy(reason)——
      * 区块卸载/玩家退出/切维度时内容物须随实体保留，不可掉落。
      */
-    virtual void onRemoval(RemovalReason reason) { (void)reason; }
+    virtual void onRemoval(RemovalReason reason)
+    {
+        (void)reason;
+    }
 
     /**
      * @brief 由 /kill 命令调用
@@ -1242,12 +1482,22 @@ public:
      * 默认实现直接调用 remove()。
      * LivingEntity 重写此方法使用虚空伤害杀死实体。
      */
-    virtual void onKillCommand() { remove(); }
+    virtual void onKillCommand()
+    {
+        remove();
+    }
 
     // ========== 维度 ==========
 
-    [[nodiscard]] DimensionId dimension() const { return m_dimension; }
-    void setDimension(DimensionId dimension) { m_dimension = dimension; }
+    [[nodiscard]] DimensionId dimension() const
+    {
+        return m_dimension;
+    }
+
+    void setDimension(DimensionId dimension)
+    {
+        m_dimension = dimension;
+    }
 
     // ========== 传送门 ==========
 
@@ -1276,7 +1526,10 @@ public:
      * @brief 检查是否可以传送
      * @return 如果冷却时间为 0 则返回 true
      */
-    [[nodiscard]] bool canTeleport() const { return portalCooldown() <= 0; }
+    [[nodiscard]] bool canTeleport() const
+    {
+        return portalCooldown() <= 0;
+    }
 
     /**
      * @brief 获取在传送门中的累计时间
@@ -1302,7 +1555,10 @@ public:
     /**
      * @brief 重置传送门计时
      */
-    void resetPortalTime() { setPortalTime(0); }
+    void resetPortalTime()
+    {
+        setPortalTime(0);
+    }
 
     /**
      * @brief 检查是否在传送门中
@@ -1331,7 +1587,10 @@ public:
      *
      * @return 传送所需的最大时间（tick）
      */
-    [[nodiscard]] virtual i32 getMaxInPortalTime() const { return 0; }
+    [[nodiscard]] virtual i32 getMaxInPortalTime() const
+    {
+        return 0;
+    }
 
     /**
      * @brief 当传送门触发时调用
@@ -1420,12 +1679,18 @@ public:
      * 传送后设置冷却时间，防止立即再次传送。
      * 默认冷却时间为 300 tick (15秒)。
      */
-    void triggerPortalCooldown() { setPortalCooldown(getPortalCooldown()); }
+    void triggerPortalCooldown()
+    {
+        setPortalCooldown(getPortalCooldown());
+    }
 
     /**
      * @brief 获取默认传送冷却时间
      */
-    [[nodiscard]] virtual i32 getPortalCooldown() const { return 300; }
+    [[nodiscard]] virtual i32 getPortalCooldown() const
+    {
+        return 300;
+    }
 
     /**
      * @brief 检查实体是否不是Boss
@@ -1435,7 +1700,10 @@ public:
      *
      * @return 如果实体不是Boss返回 true
      */
-    [[nodiscard]] virtual bool isNonBoss() const { return true; }
+    [[nodiscard]] virtual bool isNonBoss() const
+    {
+        return true;
+    }
 
     // ========== 随机传送 ==========
 
@@ -1506,7 +1774,10 @@ public:
 
     // ========== 存活时间 ==========
 
-    [[nodiscard]] u32 ticksExisted() const { return m_ticksExisted; }
+    [[nodiscard]] u32 ticksExisted() const
+    {
+        return m_ticksExisted;
+    }
 
     /**
      * @brief 取得存活 tick 计数的可写引用（仅供测试构造 tick 相位）
@@ -1514,7 +1785,10 @@ public:
      * 生产代码只应通过 tick() 递增该计数。测试需要验证依赖 (tickCount + id) 错峰的
      * 逻辑（如监守者黑暗效果施加）时，可直接推进计数而无需跑满整个 Tick 循环。
      */
-    [[nodiscard]] u32& ticksExistedRef() { return m_ticksExisted; }
+    [[nodiscard]] u32& ticksExistedRef()
+    {
+        return m_ticksExisted;
+    }
 
     // ========== 随机数 ==========
 
@@ -1526,8 +1800,15 @@ public:
      *
      * @return 实体随机数生成器的引用
      */
-    [[nodiscard]] math::IRandom& getRandom() { return m_random; }
-    [[nodiscard]] math::IRandom& getRandom() const { return m_random; }
+    [[nodiscard]] math::IRandom& getRandom()
+    {
+        return m_random;
+    }
+
+    [[nodiscard]] math::IRandom& getRandom() const
+    {
+        return m_random;
+    }
 
     // ========== 存活状态 ==========
 
@@ -1535,7 +1816,10 @@ public:
      * @brief 检查实体是否存活
      * @return 如果实体未被移除且未死亡则返回 true
      */
-    [[nodiscard]] virtual bool isAlive() const { return !isRemoved(); }
+    [[nodiscard]] virtual bool isAlive() const
+    {
+        return !isRemoved();
+    }
 
     // ========== 玩家碰撞 ==========
 
@@ -1593,7 +1877,10 @@ public:
      *
      * 需要世界引用才能正常工作
      */
-    [[nodiscard]] virtual bool isInWater() const { return m_inWater; }
+    [[nodiscard]] virtual bool isInWater() const
+    {
+        return m_inWater;
+    }
 
     /**
      * @brief 设置水中状态（测试用）
@@ -1601,12 +1888,18 @@ public:
      * 正常情况下应该通过 updateEnvironmentState() 自动更新。
      * 此方法主要用于测试目的。
      */
-    void setInWater(bool inWater) { m_inWater = inWater; }
+    void setInWater(bool inWater)
+    {
+        m_inWater = inWater;
+    }
 
     /**
      * @brief 检查实体是否在岩浆中
      */
-    [[nodiscard]] virtual bool isInLava() const { return m_inLava; }
+    [[nodiscard]] virtual bool isInLava() const
+    {
+        return m_inLava;
+    }
 
     /**
      * @brief 设置岩浆状态（测试用）
@@ -1614,7 +1907,10 @@ public:
      * 正常情况下应该通过 updateEnvironmentState() 自动更新。
      * 此方法主要用于测试目的。
      */
-    void setInLava(bool inLava) { m_inLava = inLava; }
+    void setInLava(bool inLava)
+    {
+        m_inLava = inLava;
+    }
 
     /**
      * @brief 检查实体是否在雨中
@@ -1632,7 +1928,10 @@ public:
      *
      * @return 如果实体在水中或雨中返回 true
      */
-    [[nodiscard]] bool isWet() const { return m_inWater || isInRain(); }
+    [[nodiscard]] bool isWet() const
+    {
+        return m_inWater || isInRain();
+    }
 
     /**
      * @brief 实体是否对水敏感
@@ -1645,7 +1944,10 @@ public:
      *
      * @return 是否对水敏感
      */
-    [[nodiscard]] virtual bool isWaterSensitive() const { return false; }
+    [[nodiscard]] virtual bool isWaterSensitive() const
+    {
+        return false;
+    }
 
     /**
      * @brief 检查眼睛是否在水下
@@ -1654,12 +1956,18 @@ public:
      *
      * @return 如果眼睛位置在水方块中返回 true
      */
-    [[nodiscard]] bool areEyesInWater() const { return m_eyesInWater; }
+    [[nodiscard]] bool areEyesInWater() const
+    {
+        return m_eyesInWater;
+    }
 
     /**
      * @brief 检查眼睛是否在岩浆中
      */
-    [[nodiscard]] bool areEyesInLava() const { return m_eyesInLava; }
+    [[nodiscard]] bool areEyesInLava() const
+    {
+        return m_eyesInLava;
+    }
 
     /**
      * @brief 检查是否可以游泳
@@ -1668,7 +1976,10 @@ public:
      *
      * @return 如果可以游泳返回 true
      */
-    [[nodiscard]] bool canSwim() const { return m_eyesInWater && m_inWater; }
+    [[nodiscard]] bool canSwim() const
+    {
+        return m_eyesInWater && m_inWater;
+    }
 
     /**
      * @brief 检查实体是否可以在液体中生成
@@ -1679,7 +1990,10 @@ public:
      *
      * @return 如果可以在液体中生成返回 true
      */
-    [[nodiscard]] virtual bool canSpawnInLiquids() const { return false; }
+    [[nodiscard]] virtual bool canSpawnInLiquids() const
+    {
+        return false;
+    }
 
     /**
      * @brief 获取实体眼睛位置的亮度
@@ -1708,43 +2022,64 @@ public:
      *
      * @return 攀爬位置，如果没有攀爬则返回空
      */
-    [[nodiscard]] const std::optional<BlockPos>& getLastClimbPos() const { return m_lastClimbPos; }
+    [[nodiscard]] const std::optional<BlockPos>& getLastClimbPos() const
+    {
+        return m_lastClimbPos;
+    }
 
     /**
      * @brief 设置最后攀爬位置
      * @param pos 攀爬位置
      */
-    void setLastClimbPos(const BlockPos& pos) { m_lastClimbPos = pos; }
+    void setLastClimbPos(const BlockPos& pos)
+    {
+        m_lastClimbPos = pos;
+    }
 
     /**
      * @brief 清空最后攀爬位置
      *
      * 在实体落地时调用。
      */
-    void clearLastClimbPos() { m_lastClimbPos = std::nullopt; }
+    void clearLastClimbPos()
+    {
+        m_lastClimbPos = std::nullopt;
+    }
 
     /**
      * @brief 获取实体浸入水的高度
      * @return 流体高度（0.0-1.0），如果不在水中返回0
      */
-    [[nodiscard]] virtual f32 getFluidHeight() const { return m_fluidHeight; }
+    [[nodiscard]] virtual f32 getFluidHeight() const
+    {
+        return m_fluidHeight;
+    }
 
     /**
      * @brief 获取水浸入高度
      * @return 水浸入高度（0.0-1.0）
      */
-    [[nodiscard]] f32 waterHeight() const { return m_waterHeight; }
+    [[nodiscard]] f32 waterHeight() const
+    {
+        return m_waterHeight;
+    }
 
     /**
      * @brief 获取岩浆浸入高度
      * @return 岩浆浸入高度（0.0-1.0）
      */
-    [[nodiscard]] f32 lavaHeight() const { return m_lavaHeight; }
+    [[nodiscard]] f32 lavaHeight() const
+    {
+        return m_lavaHeight;
+    }
 
     /**
      * @brief 设置流体高度
      */
-    void setFluidHeight(f32 height) { m_fluidHeight = height; }
+    void setFluidHeight(f32 height)
+    {
+        m_fluidHeight = height;
+    }
 
     /**
      * @brief 检查是否能看见另一个实体
@@ -1761,7 +2096,10 @@ public:
      *
      * 火焰免疫的实体永远不会被认为着火。
      */
-    [[nodiscard]] bool isOnFire() const { return !isImmuneToFire() && getRemainingFireTicks() > 0; }
+    [[nodiscard]] bool isOnFire() const
+    {
+        return !isImmuneToFire() && getRemainingFireTicks() > 0;
+    }
 
     /**
      * @brief 获取剩余着火时间（tick）
@@ -1795,13 +2133,19 @@ public:
      * @brief 获取着火时间（tick）
      * @deprecated 使用 getRemainingFireTicks() 替代
      */
-    [[nodiscard]] i32 fire() const { return getRemainingFireTicks(); }
+    [[nodiscard]] i32 fire() const
+    {
+        return getRemainingFireTicks();
+    }
 
     /**
      * @brief 获取火焰计时器
      * @deprecated 使用 getRemainingFireTicks() 替代
      */
-    [[nodiscard]] i32 getFireTimer() const { return getRemainingFireTicks(); }
+    [[nodiscard]] i32 getFireTimer() const
+    {
+        return getRemainingFireTicks();
+    }
 
     /**
      * @brief 点燃实体指定秒数
@@ -1812,7 +2156,10 @@ public:
      *
      * @param seconds 燃烧时间（秒）
      */
-    void igniteForSeconds(f32 seconds) { igniteForTicks(static_cast<i32>(seconds * 20.0f)); }
+    void igniteForSeconds(f32 seconds)
+    {
+        igniteForTicks(static_cast<i32>(seconds * 20.0f));
+    }
 
     /**
      * @brief 点燃实体指定 tick 数
@@ -1879,7 +2226,10 @@ public:
      * 基类实现将冰冻计时器重置为 0。
      * LivingEntity 重写此方法以额外移除冰冻减速修饰符。
      */
-    virtual void clearFreeze() { setTicksFrozen(0); }
+    virtual void clearFreeze()
+    {
+        setTicksFrozen(0);
+    }
 
     /**
      * @brief 获取冰冻计时器值
@@ -1919,7 +2269,10 @@ public:
      *
      * @return 完全冰冻所需的 tick 数
      */
-    [[nodiscard]] virtual i32 getTicksRequiredToFreeze() const { return BASE_TICKS_REQUIRED_TO_FREEZE; }
+    [[nodiscard]] virtual i32 getTicksRequiredToFreeze() const
+    {
+        return BASE_TICKS_REQUIRED_TO_FREEZE;
+    }
 
     /**
      * @brief 获取冰冻百分比（0.0 ~ 1.0）
@@ -1942,7 +2295,10 @@ public:
      *
      * @return 是否完全冰冻
      */
-    [[nodiscard]] bool isFullyFrozen() const { return getTicksFrozen() >= getTicksRequiredToFreeze(); }
+    [[nodiscard]] bool isFullyFrozen() const
+    {
+        return getTicksFrozen() >= getTicksRequiredToFreeze();
+    }
 
     /**
      * @brief 检查实体是否正在冰冻中
@@ -1951,7 +2307,10 @@ public:
      *
      * @return 是否正在冰冻
      */
-    [[nodiscard]] bool isFreezing() const { return getTicksFrozen() > 0; }
+    [[nodiscard]] bool isFreezing() const
+    {
+        return getTicksFrozen() > 0;
+    }
 
     /**
      * @brief 检查实体是否可以冰冻
@@ -2003,7 +2362,10 @@ public:
      *
      * @return 免疫期 tick 数
      */
-    [[nodiscard]] virtual i32 getFireImmuneTicks() const { return 0; }
+    [[nodiscard]] virtual i32 getFireImmuneTicks() const
+    {
+        return 0;
+    }
 
     /**
      * @brief 检查是否免疫火焰
@@ -2041,7 +2403,10 @@ public:
      *
      * @return 如果应播放岩浆受伤音效返回 true
      */
-    [[nodiscard]] virtual bool shouldPlayLavaHurtSound() const { return true; }
+    [[nodiscard]] virtual bool shouldPlayLavaHurtSound() const
+    {
+        return true;
+    }
 
     /**
      * @brief 清除火焰（将火焰计时器设为不超过 0）
@@ -2097,7 +2462,10 @@ public:
     /**
      * @brief 获取最大空气值
      */
-    [[nodiscard]] virtual i32 maxAir() const { return 300; }
+    [[nodiscard]] virtual i32 maxAir() const
+    {
+        return 300;
+    }
 
     // ========== 受伤标记 ==========
 
@@ -2111,14 +2479,20 @@ public:
      * 1. 在 ServerEntity.sendDirtyEntityData() 中触发速度同步包（ClientboundSetEntityMotionPacket）
      * 2. 在 AI 目标中检测实体是否处于刚被击退的状态（如 TradeWithPlayerGoal）
      */
-    void markHurt() { m_hurtMarked = true; }
+    void markHurt()
+    {
+        m_hurtMarked = true;
+    }
 
     /**
      * @brief 检查实体是否被标记为已受伤
      *
      * @return 如果实体需要速度同步返回 true
      */
-    [[nodiscard]] bool isHurtMarked() const { return m_hurtMarked; }
+    [[nodiscard]] bool isHurtMarked() const
+    {
+        return m_hurtMarked;
+    }
 
     /**
      * @brief 清除受伤标记
@@ -2126,19 +2500,28 @@ public:
      * 在服务端发送速度同步包后调用，将 m_hurtMarked 重置为 false。
      * 对应 MC Java 的 ServerEntity.sendDirtyEntityData() 中 hurtMarked = false。
      */
-    void clearHurtMarked() { m_hurtMarked = false; }
+    void clearHurtMarked()
+    {
+        m_hurtMarked = false;
+    }
 
     // ========== 无敌 ==========
 
     /**
      * @brief 检查是否无敌
      */
-    [[nodiscard]] bool isInvulnerable() const { return m_invulnerable; }
+    [[nodiscard]] bool isInvulnerable() const
+    {
+        return m_invulnerable;
+    }
 
     /**
      * @brief 设置无敌状态
      */
-    void setInvulnerable(bool invulnerable) { m_invulnerable = invulnerable; }
+    void setInvulnerable(bool invulnerable)
+    {
+        m_invulnerable = invulnerable;
+    }
 
     /**
      * @brief 判断该实体是否应忽略（不受）某次爆炸影响
@@ -2317,7 +2700,10 @@ public:
      *
      * @return 标签集合的常量引用
      */
-    [[nodiscard]] const std::set<std::string>& getTags() const { return m_tags; }
+    [[nodiscard]] const std::set<std::string>& getTags() const
+    {
+        return m_tags;
+    }
 
     /**
      * @brief 添加标签
@@ -2350,12 +2736,18 @@ public:
      *
      * @return 当前标签数量
      */
-    [[nodiscard]] size_t getTagCount() const { return m_tags.size(); }
+    [[nodiscard]] size_t getTagCount() const
+    {
+        return m_tags.size();
+    }
 
     /**
      * @brief 清空所有标签
      */
-    void clearTags() { m_tags.clear(); }
+    void clearTags()
+    {
+        m_tags.clear();
+    }
 
     // ========== 运动速度乘数（甜浆果丛等减速效果） ==========
 
@@ -2411,12 +2803,18 @@ public:
     /**
      * @brief 检查是否有运动速度乘数
      */
-    [[nodiscard]] bool hasMotionMultiplier() const { return m_hasMotionMultiplier; }
+    [[nodiscard]] bool hasMotionMultiplier() const
+    {
+        return m_hasMotionMultiplier;
+    }
 
     /**
      * @brief 获取运动速度乘数
      */
-    [[nodiscard]] const Vector3& motionMultiplier() const { return m_motionMultiplier; }
+    [[nodiscard]] const Vector3& motionMultiplier() const
+    {
+        return m_motionMultiplier;
+    }
 
     // ========== 摔落伤害 ==========
 
@@ -2543,7 +2941,10 @@ public:
      *
      * @param instigatorUuid 闪电实体 UUID
      */
-    virtual void applyInstigatorEffects(const std::string& instigatorUuid) { (void)instigatorUuid; }
+    virtual void applyInstigatorEffects(const std::string& instigatorUuid)
+    {
+        (void)instigatorUuid;
+    }
 
     /**
      * @brief 被爆炸击中时调用
@@ -2556,7 +2957,10 @@ public:
      *
      * @param cause 引起爆炸的实体，可能为 nullptr（如床爆炸等无来源爆炸）
      */
-    virtual void onExplosionHit(Entity* cause) { (void)cause; }
+    virtual void onExplosionHit(Entity* cause)
+    {
+        (void)cause;
+    }
 
     // ========== 乘客/骑乘系统 ==========
 
@@ -2564,28 +2968,43 @@ public:
      * @brief 获取乘客列表
      * @return 乘客实体ID列表
      */
-    [[nodiscard]] const std::vector<EntityInstanceId>& getPassengers() const { return m_passengers; }
+    [[nodiscard]] const std::vector<EntityInstanceId>& getPassengers() const
+    {
+        return m_passengers;
+    }
 
     /**
      * @brief 检查是否有乘客
      */
-    [[nodiscard]] bool hasPassengers() const { return !m_passengers.empty(); }
+    [[nodiscard]] bool hasPassengers() const
+    {
+        return !m_passengers.empty();
+    }
 
     /**
      * @brief 检查是否被骑乘
      */
-    [[nodiscard]] bool isBeingRidden() const { return hasPassengers(); }
+    [[nodiscard]] bool isBeingRidden() const
+    {
+        return hasPassengers();
+    }
 
     /**
      * @brief 获取所骑乘的车辆
      * @return 车辆实体ID，如果没有则返回 INVALID_ENTITY_ID
      */
-    [[nodiscard]] EntityInstanceId getVehicle() const { return m_vehicle; }
+    [[nodiscard]] EntityInstanceId getVehicle() const
+    {
+        return m_vehicle;
+    }
 
     /**
      * @brief 检查是否正在骑乘
      */
-    [[nodiscard]] bool isRiding() const { return m_vehicle != INVALID_ENTITY_ID; }
+    [[nodiscard]] bool isRiding() const
+    {
+        return m_vehicle != INVALID_ENTITY_ID;
+    }
 
     /**
      * @brief 检查指定实体是否是乘客
@@ -2672,7 +3091,10 @@ public:
      *
      * 默认返回true，LivingEntity重写返回false
      */
-    [[nodiscard]] virtual bool canBeRiddenInWater() const { return true; }
+    [[nodiscard]] virtual bool canBeRiddenInWater() const
+    {
+        return true;
+    }
 
     /**
      * @brief 乘客上车后的派发钩子（对齐 vanilla Entity.addPassenger 子类覆写点）
@@ -2683,7 +3105,10 @@ public:
      *
      * @param passenger 刚上车的乘客
      */
-    virtual void onPassengerAdded(Entity& passenger) { (void)passenger; }
+    virtual void onPassengerAdded(Entity& passenger)
+    {
+        (void)passenger;
+    }
 
     /**
      * @brief 乘客下车后的派发钩子（对齐 vanilla Entity.removePassenger 子类覆写点）
@@ -2694,7 +3119,10 @@ public:
      *
      * @param passenger 刚下车的乘客
      */
-    virtual void onPassengerRemoved(Entity& passenger) { (void)passenger; }
+    virtual void onPassengerRemoved(Entity& passenger)
+    {
+        (void)passenger;
+    }
 
     /**
      * @brief 检查此载具实体是否在水中强制乘客下坐骑
@@ -2753,7 +3181,10 @@ public:
      *
      * @return 是否有待挂载的乘客 NBT
      */
-    [[nodiscard]] bool hasPendingPassengersNbt() const { return !m_pendingPassengersNbt.empty(); }
+    [[nodiscard]] bool hasPendingPassengersNbt() const
+    {
+        return !m_pendingPassengersNbt.empty();
+    }
 
     /**
      * @brief 取走待挂载的乘客 NBT 列表
@@ -2763,7 +3194,10 @@ public:
      *
      * @return 待挂载的乘客 NBT 列表（按原 Passengers 列表顺序）
      */
-    std::vector<nbt::tags::compound_tag> takePendingPassengersNbt() { return std::move(m_pendingPassengersNbt); }
+    std::vector<nbt::tags::compound_tag> takePendingPassengersNbt()
+    {
+        return std::move(m_pendingPassengersNbt);
+    }
 
     /**
      * @brief 追加一条待挂载乘客 NBT（内部方法）
@@ -2792,19 +3226,28 @@ public:
      *
      * 子类可重写此方法以返回不同的控制乘客
      */
-    [[nodiscard]] virtual EntityInstanceId getControllingPassenger() const { return getFirstPassenger(); }
+    [[nodiscard]] virtual EntityInstanceId getControllingPassenger() const
+    {
+        return getFirstPassenger();
+    }
 
     /**
      * @brief 检查是否可以由乘客控制方向
      * @return 如果可以被乘客控制返回true
      */
-    [[nodiscard]] virtual bool canBeSteered() const { return false; }
+    [[nodiscard]] virtual bool canBeSteered() const
+    {
+        return false;
+    }
 
     /**
      * @brief 获取骑乘时的乘客数量限制
      * @return 最大乘客数量
      */
-    [[nodiscard]] virtual i32 getMaxPassengers() const { return 1; }
+    [[nodiscard]] virtual i32 getMaxPassengers() const
+    {
+        return 1;
+    }
 
     /**
      * @brief 检查此实体是否根本可以接受乘客
@@ -2818,7 +3261,10 @@ public:
      *
      * @return 如果此实体可以接受乘客返回 true
      */
-    [[nodiscard]] virtual bool couldAcceptPassenger() const { return true; }
+    [[nodiscard]] virtual bool couldAcceptPassenger() const
+    {
+        return true;
+    }
 
     /**
      * @brief 检查此实体是否可以添加指定乘客
@@ -2857,7 +3303,10 @@ public:
      *
      * Entity默认返回0，Player重写返回-0.35
      */
-    [[nodiscard]] virtual f64 getYOffset() const { return 0.0; }
+    [[nodiscard]] virtual f64 getYOffset() const
+    {
+        return 0.0;
+    }
 
     /**
      * @brief 获取骑乘位置（世界坐标）
@@ -2899,7 +3348,10 @@ public:
      *
      * 用于控制乘客是否执行tick更新
      */
-    [[nodiscard]] virtual bool canUpdate() const { return true; }
+    [[nodiscard]] virtual bool canUpdate() const
+    {
+        return true;
+    }
 
     /**
      * @brief 更新单个乘客的位置
@@ -2966,7 +3418,10 @@ public:
      *
      * @return 如果实体正在潜行返回true
      */
-    [[nodiscard]] virtual bool isSneaking() const { return false; }
+    [[nodiscard]] virtual bool isSneaking() const
+    {
+        return false;
+    }
 
     /**
      * @brief 检查实体是否处于旁观者模式
@@ -2977,7 +3432,10 @@ public:
      *
      * @return 如果实体处于旁观者模式返回 true
      */
-    [[nodiscard]] virtual bool isSpectator() const { return false; }
+    [[nodiscard]] virtual bool isSpectator() const
+    {
+        return false;
+    }
 
     /**
      * @brief 检查实体是否小心行走（潜行状态）
@@ -2986,7 +3444,10 @@ public:
      *
      * @return 如果实体正在潜行返回true
      */
-    [[nodiscard]] virtual bool isSteppingCarefully() const { return isSneaking(); }
+    [[nodiscard]] virtual bool isSteppingCarefully() const
+    {
+        return isSneaking();
+    }
 
     /**
      * @brief 检查实体是否阻尼振动
@@ -2997,7 +3458,10 @@ public:
      *
      * @return 如果实体阻尼振动返回true
      */
-    [[nodiscard]] virtual bool dampensVibrations() const { return false; }
+    [[nodiscard]] virtual bool dampensVibrations() const
+    {
+        return false;
+    }
 
     /**
      * @brief 检查实体是否可以触发行走事件
@@ -3006,7 +3470,10 @@ public:
      *
      * @return 默认返回true
      */
-    [[nodiscard]] virtual bool canTriggerWalking() const { return true; }
+    [[nodiscard]] virtual bool canTriggerWalking() const
+    {
+        return true;
+    }
 
     /**
      * @brief 检查实体是否不触发压力板/绊线
@@ -3024,7 +3491,10 @@ public:
      *
      * @return 如果实体不触发压力板返回true
      */
-    [[nodiscard]] virtual bool doesEntityNotTriggerPressurePlate() const { return false; }
+    [[nodiscard]] virtual bool doesEntityNotTriggerPressurePlate() const
+    {
+        return false;
+    }
 
     /**
      * @brief 获取实体的比较器输出信号强度
@@ -3035,7 +3505,10 @@ public:
      *
      * @return 比较器信号强度 0-15
      */
-    [[nodiscard]] virtual i32 getComparatorOutput() const { return 0; }
+    [[nodiscard]] virtual i32 getComparatorOutput() const
+    {
+        return 0;
+    }
 
     /**
      * @brief 播放脚步声
@@ -3111,13 +3584,19 @@ public:
      *
      * @return 如果实体无视碰撞返回true
      */
-    [[nodiscard]] bool noClip() const { return m_noClip; }
+    [[nodiscard]] bool noClip() const
+    {
+        return m_noClip;
+    }
 
     /**
      * @brief 设置实体是否无视碰撞
      * @param noClip 是否无视碰撞
      */
-    void setNoClip(bool noClip) { m_noClip = noClip; }
+    void setNoClip(bool noClip)
+    {
+        m_noClip = noClip;
+    }
 
     /**
      * @brief 执行方块碰撞回调（无参数版本）
@@ -3325,7 +3804,10 @@ protected:
     /**
      * @brief 设置车辆（内部方法）
      */
-    void setVehicle(EntityInstanceId vehicle) { m_vehicle = vehicle; }
+    void setVehicle(EntityInstanceId vehicle)
+    {
+        m_vehicle = vehicle;
+    }
 
     /**
      * @brief 序列化子类特有数据

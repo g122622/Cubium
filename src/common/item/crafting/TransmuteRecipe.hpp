@@ -111,51 +111,78 @@ public:
      * @brief 获取结果物品
      * @return 结果物品堆
      */
-    [[nodiscard]] ItemStack getResultItem() const override { return m_result; }
+    [[nodiscard]] ItemStack getResultItem() const override
+    {
+        return m_result;
+    }
 
     /**
      * @brief 获取原料列表（input + material）
      * @return 原料列表
      */
-    [[nodiscard]] const std::vector<Ingredient>& getIngredients() const override { return m_ingredients; }
+    [[nodiscard]] const std::vector<Ingredient>& getIngredients() const override
+    {
+        return m_ingredients;
+    }
 
     /**
      * @brief 获取 input 原料
      */
-    [[nodiscard]] const Ingredient& getInput() const { return m_input; }
+    [[nodiscard]] const Ingredient& getInput() const
+    {
+        return m_input;
+    }
 
     /**
      * @brief 获取 material 原料
      */
-    [[nodiscard]] const Ingredient& getMaterial() const { return m_material; }
+    [[nodiscard]] const Ingredient& getMaterial() const
+    {
+        return m_material;
+    }
 
     /**
      * @brief 获取配方分组
      */
-    [[nodiscard]] const std::string& getGroup() const override { return m_group; }
+    [[nodiscard]] const std::string& getGroup() const override
+    {
+        return m_group;
+    }
 
     /**
      * @brief 获取配方ID
      */
-    [[nodiscard]] ResourceLocation getId() const override { return m_id; }
+    [[nodiscard]] ResourceLocation getId() const override
+    {
+        return m_id;
+    }
 
     /**
      * @brief 获取配方类型
      * @return RecipeType::Transmute
      */
-    [[nodiscard]] RecipeType getType() const override { return RecipeType::Transmute; }
+    [[nodiscard]] RecipeType getType() const override
+    {
+        return RecipeType::Transmute;
+    }
 
     /**
      * @brief 转化配方为特殊配方（不出现在配方书中）
      */
-    [[nodiscard]] bool isSpecial() const override { return true; }
+    [[nodiscard]] bool isSpecial() const override
+    {
+        return true;
+    }
 
     /**
      * @brief 转化配方为动态配方
      *
      * 因为 assemble() 的结果依赖于 input 物品的 NBT，结果可能每次不同。
      */
-    [[nodiscard]] bool isDynamic() const override { return true; }
+    [[nodiscard]] bool isDynamic() const override
+    {
+        return true;
+    }
 
     /**
      * @brief 检查配方是否适合给定尺寸的网格
@@ -163,7 +190,10 @@ public:
      * @param height 网格高度
      * @return 如果原料数量不超过网格大小返回true
      */
-    [[nodiscard]] bool canFitIn(i32 width, i32 height) const override { return 2 <= width * height; }
+    [[nodiscard]] bool canFitIn(i32 width, i32 height) const override
+    {
+        return 2 <= width * height;
+    }
 
     /**
      * @brief 获取合成后剩余的物品堆

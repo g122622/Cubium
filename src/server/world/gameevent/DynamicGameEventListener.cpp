@@ -52,7 +52,9 @@ void DynamicGameEventListener::remove(server::ServerWorld& world)
     _ifChunkExists(
         world,
         m_lastSection,
-        [this](GameEventListenerRegistry& registry) { registry.unregisterListener(m_listener); },
+        [this](GameEventListenerRegistry& registry) {
+            registry.unregisterListener(m_listener);
+        },
         false);
 }
 
@@ -79,7 +81,9 @@ void DynamicGameEventListener::move(server::ServerWorld& world)
     _ifChunkExists(
         world,
         m_lastSection,
-        [this](GameEventListenerRegistry& registry) { registry.unregisterListener(m_listener); },
+        [this](GameEventListenerRegistry& registry) {
+            registry.unregisterListener(m_listener);
+        },
         false);
 
     // 更新段位置
@@ -89,7 +93,9 @@ void DynamicGameEventListener::move(server::ServerWorld& world)
     _ifChunkExists(
         world,
         m_lastSection,
-        [this](GameEventListenerRegistry& registry) { registry.registerListener(m_listener); },
+        [this](GameEventListenerRegistry& registry) {
+            registry.registerListener(m_listener);
+        },
         true);
 }
 

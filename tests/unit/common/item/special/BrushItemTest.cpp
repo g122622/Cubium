@@ -126,7 +126,10 @@ public:
     /**
      * @brief 在指定坐标放置方块状态（用于射线检测）
      */
-    void setBlockStateAt(i32 x, i32 y, i32 z, const BlockState* state) { m_blockStates[blockKey(x, y, z)] = state; }
+    void setBlockStateAt(i32 x, i32 y, i32 z, const BlockState* state)
+    {
+        m_blockStates[blockKey(x, y, z)] = state;
+    }
 
     [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override
     {
@@ -162,10 +165,26 @@ public:
         m_blockParticles.push_back(BlockParticleCall{typeId, pos, velocity, &blockState});
     }
 
-    [[nodiscard]] const std::vector<BlockParticleCall>& blockParticles() const { return m_blockParticles; }
-    [[nodiscard]] const std::vector<GenericParticleCall>& genericParticles() const { return m_genericParticles; }
-    [[nodiscard]] i32 blockParticleCount() const { return static_cast<i32>(m_blockParticles.size()); }
-    [[nodiscard]] i32 genericParticleCount() const { return static_cast<i32>(m_genericParticles.size()); }
+    [[nodiscard]] const std::vector<BlockParticleCall>& blockParticles() const
+    {
+        return m_blockParticles;
+    }
+
+    [[nodiscard]] const std::vector<GenericParticleCall>& genericParticles() const
+    {
+        return m_genericParticles;
+    }
+
+    [[nodiscard]] i32 blockParticleCount() const
+    {
+        return static_cast<i32>(m_blockParticles.size());
+    }
+
+    [[nodiscard]] i32 genericParticleCount() const
+    {
+        return static_cast<i32>(m_genericParticles.size());
+    }
+
     void clearParticles()
     {
         m_blockParticles.clear();
@@ -191,9 +210,20 @@ public:
         m_soundCalls.push_back(SoundCall{soundId, category, position, volume, pitch});
     }
 
-    [[nodiscard]] const std::vector<SoundCall>& soundCalls() const { return m_soundCalls; }
-    [[nodiscard]] i32 soundCount() const { return static_cast<i32>(m_soundCalls.size()); }
-    void clearSoundCalls() { m_soundCalls.clear(); }
+    [[nodiscard]] const std::vector<SoundCall>& soundCalls() const
+    {
+        return m_soundCalls;
+    }
+
+    [[nodiscard]] i32 soundCount() const
+    {
+        return static_cast<i32>(m_soundCalls.size());
+    }
+
+    void clearSoundCalls()
+    {
+        m_soundCalls.clear();
+    }
 
     // ========== TickManager 接口（桩实现） ==========
 
@@ -201,6 +231,7 @@ public:
     {
         throw std::runtime_error("BrushTestWorld::tickManager not implemented");
     }
+
     [[nodiscard]] const world::tick::TickManager& tickManager() const override
     {
         throw std::runtime_error("BrushTestWorld::tickManager not implemented");
@@ -232,7 +263,10 @@ protected:
         }
     }
 
-    void SetUp() override { m_world = std::make_unique<BrushTestWorld>(); }
+    void SetUp() override
+    {
+        m_world = std::make_unique<BrushTestWorld>();
+    }
 
     /**
      * @brief 配置一个直视下方并命中目标方块的玩家
@@ -322,8 +356,9 @@ TEST_F(BrushItemTest, GetUseAction)
 
 TEST_F(BrushItemTest, GetItemEnchantability)
 {
+    // 原版 1.21.11 的刷子没有 ENCHANTABLE 组件，即不可附魔（0）。
     ASSERT_NE(Items::BRUSH, nullptr);
-    EXPECT_EQ(Items::BRUSH->getItemEnchantability(), 1);
+    EXPECT_EQ(Items::BRUSH->getItemEnchantability(), 0);
 }
 
 TEST_F(BrushItemTest, IsFood)

@@ -102,17 +102,37 @@ inline i32 getOrbSize(i32 xpValue)
 {
     using namespace constants;
 
-    if (xpValue >= XP_SPLIT_VALUES[0]) return 10; // 2477+
-    if (xpValue >= XP_SPLIT_VALUES[1]) return 9;  // 1237-2476
-    if (xpValue >= XP_SPLIT_VALUES[2]) return 8;  // 617-1236
-    if (xpValue >= XP_SPLIT_VALUES[3]) return 7;  // 307-616
-    if (xpValue >= XP_SPLIT_VALUES[4]) return 6;  // 149-306
-    if (xpValue >= XP_SPLIT_VALUES[5]) return 5;  // 73-148
-    if (xpValue >= XP_SPLIT_VALUES[6]) return 4;  // 37-72
-    if (xpValue >= XP_SPLIT_VALUES[7]) return 3;  // 17-36
-    if (xpValue >= XP_SPLIT_VALUES[8]) return 2;  // 7-16
-    if (xpValue >= XP_SPLIT_VALUES[9]) return 1;  // 3-6
-    return 0;                                     // 1-2
+    if (xpValue >= XP_SPLIT_VALUES[0]) {
+        return 10; // 2477+
+    }
+    if (xpValue >= XP_SPLIT_VALUES[1]) {
+        return 9; // 1237-2476
+    }
+    if (xpValue >= XP_SPLIT_VALUES[2]) {
+        return 8; // 617-1236
+    }
+    if (xpValue >= XP_SPLIT_VALUES[3]) {
+        return 7; // 307-616
+    }
+    if (xpValue >= XP_SPLIT_VALUES[4]) {
+        return 6; // 149-306
+    }
+    if (xpValue >= XP_SPLIT_VALUES[5]) {
+        return 5; // 73-148
+    }
+    if (xpValue >= XP_SPLIT_VALUES[6]) {
+        return 4; // 37-72
+    }
+    if (xpValue >= XP_SPLIT_VALUES[7]) {
+        return 3; // 17-36
+    }
+    if (xpValue >= XP_SPLIT_VALUES[8]) {
+        return 2; // 7-16
+    }
+    if (xpValue >= XP_SPLIT_VALUES[9]) {
+        return 1; // 3-6
+    }
+    return 0; // 1-2
 }
 
 /**

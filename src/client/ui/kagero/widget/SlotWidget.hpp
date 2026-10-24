@@ -119,7 +119,9 @@ public:
 
     void paint(PaintContext& ctx) override
     {
-        if (!isVisible()) return;
+        if (!isVisible()) {
+            return;
+        }
 
         if (m_showBackground) {
             ctx.drawFilledRect(bounds(), Colors::fromARGB(255, 40, 40, 40));
@@ -155,7 +157,9 @@ public:
         (void)mouseY;
         (void)mods;
 
-        if (!isActive() || !isVisible() || !m_interactive) return false;
+        if (!isActive() || !isVisible() || !m_interactive) {
+            return false;
+        }
 
         if (m_onSlotClick) {
             m_onSlotClick(m_slotIndex, button, m_shiftHeld);
@@ -170,7 +174,9 @@ public:
         (void)mouseY;
         (void)mods;
 
-        if (!isActive() || !isVisible() || !m_interactive) return false;
+        if (!isActive() || !isVisible() || !m_interactive) {
+            return false;
+        }
 
         if (m_onRelease) {
             m_onRelease(*this, button);
@@ -196,89 +202,140 @@ public:
     /**
      * @brief 设置物品
      */
-    void setItem(const mc::ItemStack& item) { m_item = item; }
+    void setItem(const mc::ItemStack& item)
+    {
+        m_item = item;
+    }
 
     /**
      * @brief 获取物品
      */
-    [[nodiscard]] const mc::ItemStack& item() const { return m_item; }
+    [[nodiscard]] const mc::ItemStack& item() const
+    {
+        return m_item;
+    }
 
     /**
      * @brief 获取可变物品引用
      */
-    [[nodiscard]] mc::ItemStack& item() { return m_item; }
+    [[nodiscard]] mc::ItemStack& item()
+    {
+        return m_item;
+    }
 
     /**
      * @brief 检查槽位是否为空
      */
-    [[nodiscard]] bool isEmpty() const { return m_item.isEmpty(); }
+    [[nodiscard]] bool isEmpty() const
+    {
+        return m_item.isEmpty();
+    }
 
     /**
      * @brief 清空槽位
      */
-    void clearItem() { m_item = mc::ItemStack(); }
+    void clearItem()
+    {
+        m_item = mc::ItemStack();
+    }
 
     // ==================== 属性设置 ====================
 
     /**
      * @brief 设置槽位索引
      */
-    void setSlotIndex(i32 index) { m_slotIndex = index; }
+    void setSlotIndex(i32 index)
+    {
+        m_slotIndex = index;
+    }
 
     /**
      * @brief 获取槽位索引
      */
-    [[nodiscard]] i32 slotIndex() const { return m_slotIndex; }
+    [[nodiscard]] i32 slotIndex() const
+    {
+        return m_slotIndex;
+    }
 
     /**
      * @brief 设置背景纹理路径
      */
-    void setBackgroundTexture(const std::string& path) { m_backgroundTexture = path; }
+    void setBackgroundTexture(const std::string& path)
+    {
+        m_backgroundTexture = path;
+    }
 
     /**
      * @brief 获取背景纹理路径
      */
-    [[nodiscard]] const std::string& backgroundTexture() const { return m_backgroundTexture; }
+    [[nodiscard]] const std::string& backgroundTexture() const
+    {
+        return m_backgroundTexture;
+    }
 
     /**
      * @brief 设置是否显示背景
      */
-    void setShowBackground(bool show) { m_showBackground = show; }
+    void setShowBackground(bool show)
+    {
+        m_showBackground = show;
+    }
 
     /**
      * @brief 是否显示背景
      */
-    [[nodiscard]] bool showBackground() const { return m_showBackground; }
+    [[nodiscard]] bool showBackground() const
+    {
+        return m_showBackground;
+    }
 
     /**
      * @brief 设置是否可交互
      */
-    void setInteractive(bool interactive) { m_interactive = interactive; }
+    void setInteractive(bool interactive)
+    {
+        m_interactive = interactive;
+    }
 
     /**
      * @brief 是否可交互
      */
-    [[nodiscard]] bool isInteractive() const { return m_interactive; }
+    [[nodiscard]] bool isInteractive() const
+    {
+        return m_interactive;
+    }
 
     /**
      * @brief 设置高亮颜色
      */
-    void setHighlightColor(u32 color) { m_highlightColor = color; }
+    void setHighlightColor(u32 color)
+    {
+        m_highlightColor = color;
+    }
 
     /**
      * @brief 获取高亮颜色
      */
-    [[nodiscard]] u32 highlightColor() const { return m_highlightColor; }
+    [[nodiscard]] u32 highlightColor() const
+    {
+        return m_highlightColor;
+    }
 
     /**
      * @brief 设置是否显示数量
      */
-    void setShowCount(bool show) { m_showCount = show; }
+    void setShowCount(bool show)
+    {
+        m_showCount = show;
+    }
 
     /**
      * @brief 是否显示数量
      */
-    [[nodiscard]] bool showCount() const { return m_showCount; }
+    [[nodiscard]] bool showCount() const
+    {
+        return m_showCount;
+    }
 
     // ==================== 渲染器注入（用于物品图标渲染） ====================
 
@@ -289,12 +346,18 @@ public:
      * ItemRenderer/GuiRenderer 类型。回调未注入时，槽位仅绘制背景/边框/数量。
      * @param callback 物品绘制回调
      */
-    void setItemPaintCallback(ItemPaintCallback callback) { m_itemPaintCallback = std::move(callback); }
+    void setItemPaintCallback(ItemPaintCallback callback)
+    {
+        m_itemPaintCallback = std::move(callback);
+    }
 
     /**
      * @brief 设置数量文本颜色（ARGB）
      */
-    void setCountColor(u32 color) { m_countColor = color; }
+    void setCountColor(u32 color)
+    {
+        m_countColor = color;
+    }
 
     // ==================== 回调设置 ====================
 
@@ -302,12 +365,18 @@ public:
      * @brief 设置槽位点击回调（与文档一致）
      * @param callback 回调函数，参数为(槽位索引, 鼠标按钮, 是否按住Shift)
      */
-    void setOnSlotClick(OnSlotClickCallback callback) { m_onSlotClick = std::move(callback); }
+    void setOnSlotClick(OnSlotClickCallback callback)
+    {
+        m_onSlotClick = std::move(callback);
+    }
 
     /**
      * @brief 设置释放回调
      */
-    void setOnRelease(OnSlotReleaseCallback callback) { m_onRelease = std::move(callback); }
+    void setOnRelease(OnSlotReleaseCallback callback)
+    {
+        m_onRelease = std::move(callback);
+    }
 
 protected:
     mc::ItemStack m_item; ///< 槽位中的物品

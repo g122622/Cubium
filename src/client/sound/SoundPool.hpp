@@ -127,17 +127,26 @@ public:
      * @param id 声音实例ID
      * @return 是否存在
      */
-    [[nodiscard]] bool has(SoundInstanceId id) const { return m_sounds.contains(id); }
+    [[nodiscard]] bool has(SoundInstanceId id) const
+    {
+        return m_sounds.contains(id);
+    }
 
     /**
      * @brief 获取声音数量
      */
-    [[nodiscard]] size_t size() const noexcept { return m_sounds.size(); }
+    [[nodiscard]] size_t size() const noexcept
+    {
+        return m_sounds.size();
+    }
 
     /**
      * @brief 检查是否为空
      */
-    [[nodiscard]] bool empty() const noexcept { return m_sounds.empty(); }
+    [[nodiscard]] bool empty() const noexcept
+    {
+        return m_sounds.empty();
+    }
 
     // ========================================================================
     // 类别管理

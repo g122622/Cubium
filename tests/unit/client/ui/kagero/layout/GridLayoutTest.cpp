@@ -37,7 +37,11 @@ public:
     explicit GridTestWidget(const std::string& id)
         : Widget(id)
     {}
-    void paint(PaintContext& ctx) override { (void)ctx; }
+
+    void paint(PaintContext& ctx) override
+    {
+        (void)ctx;
+    }
 };
 
 TEST(GridLayoutTest, BasicGridPlacement)

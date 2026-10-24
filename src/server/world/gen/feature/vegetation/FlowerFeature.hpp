@@ -82,7 +82,10 @@ struct FlowerFeatureConfig : public IFeatureConfig {
     /**
      * @brief 添加花卉
      */
-    void addFlower(const BlockState* flower) { flowers.push_back(flower); }
+    void addFlower(const BlockState* flower)
+    {
+        flowers.push_back(flower);
+    }
 
     /**
      * @brief 获取随机花卉
@@ -139,9 +142,20 @@ public:
         math::IRandom& random,
         const BlockPos& pos) const override;
 
-    [[nodiscard]] const char* name() const override { return m_name.c_str(); }
-    [[nodiscard]] DecorationStage stage() const override { return DecorationStage::VegetalDecoration; }
-    [[nodiscard]] const FlowerFeatureConfig& getConfig() const { return *m_config; }
+    [[nodiscard]] const char* name() const override
+    {
+        return m_name.c_str();
+    }
+
+    [[nodiscard]] DecorationStage stage() const override
+    {
+        return DecorationStage::VegetalDecoration;
+    }
+
+    [[nodiscard]] const FlowerFeatureConfig& getConfig() const
+    {
+        return *m_config;
+    }
 
 private:
     std::unique_ptr<FlowerFeatureConfig> m_config;

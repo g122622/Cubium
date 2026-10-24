@@ -107,12 +107,18 @@ public:
     /**
      * @brief 获取可见玩家 ID 列表
      */
-    [[nodiscard]] const std::set<PlayerId>& players() const noexcept { return m_players; }
+    [[nodiscard]] const std::set<PlayerId>& players() const noexcept
+    {
+        return m_players;
+    }
 
     /**
      * @brief 获取可见玩家数量
      */
-    [[nodiscard]] size_t playerCount() const noexcept { return m_players.size(); }
+    [[nodiscard]] size_t playerCount() const noexcept
+    {
+        return m_players.size();
+    }
 
     // ========== 属性设置（覆写以触发同步） ==========
 
@@ -177,12 +183,18 @@ public:
     /**
      * @brief 获取待发送的更新类型
      */
-    [[nodiscard]] BossInfoUpdateType pendingUpdateType() const noexcept { return m_pendingUpdateType; }
+    [[nodiscard]] BossInfoUpdateType pendingUpdateType() const noexcept
+    {
+        return m_pendingUpdateType;
+    }
 
     /**
      * @brief 清除待发送的更新类型
      */
-    void clearPendingUpdate() { m_pendingUpdateType = BossInfoUpdateType::None; }
+    void clearPendingUpdate()
+    {
+        m_pendingUpdateType = BossInfoUpdateType::None;
+    }
 
 protected:
     /**

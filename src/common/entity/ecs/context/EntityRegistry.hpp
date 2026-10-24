@@ -34,20 +34,39 @@ public:
      *
      * 系统/工厂通过此入口访问 view/group/emplace 等 entt 原生 API。
      */
-    [[nodiscard]] Registry& raw() noexcept { return m_registry; }
-    [[nodiscard]] const Registry& raw() const noexcept { return m_registry; }
+    [[nodiscard]] Registry& raw() noexcept
+    {
+        return m_registry;
+    }
+
+    [[nodiscard]] const Registry& raw() const noexcept
+    {
+        return m_registry;
+    }
 
     /** 创建一个新实体（无组件） */
-    [[nodiscard]] EntityId create() { return m_registry.create(); }
+    [[nodiscard]] EntityId create()
+    {
+        return m_registry.create();
+    }
 
     /** 销毁实体及其所有组件 */
-    void destroy(EntityId entity) { m_registry.destroy(entity); }
+    void destroy(EntityId entity)
+    {
+        m_registry.destroy(entity);
+    }
 
     /** 实体是否仍有效（未销毁且版本号匹配） */
-    [[nodiscard]] bool valid(EntityId entity) const noexcept { return m_registry.valid(entity); }
+    [[nodiscard]] bool valid(EntityId entity) const noexcept
+    {
+        return m_registry.valid(entity);
+    }
 
     /** 调试名 */
-    [[nodiscard]] const std::string& debugName() const noexcept { return m_debugName; }
+    [[nodiscard]] const std::string& debugName() const noexcept
+    {
+        return m_debugName;
+    }
 
 private:
     std::string m_debugName;

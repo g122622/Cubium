@@ -155,7 +155,10 @@ public:
     /**
      * @brief 获取备份目录
      */
-    [[nodiscard]] const std::filesystem::path& backupDir() const { return m_backupDir; }
+    [[nodiscard]] const std::filesystem::path& backupDir() const
+    {
+        return m_backupDir;
+    }
 
     /**
      * @brief 获取备份数量

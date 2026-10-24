@@ -70,7 +70,10 @@ public:
      */
     [[nodiscard]] BlockState withHoneyLevel(const BlockState& state, i32 level) const;
 
-    [[nodiscard]] i32 getMaxHoneyLevel() const { return 5; }
+    [[nodiscard]] i32 getMaxHoneyLevel() const
+    {
+        return 5;
+    }
 
     // ========== 放置逻辑 ==========
 
@@ -100,7 +103,10 @@ public:
 
     // ========== 方块实体 ==========
 
-    [[nodiscard]] bool hasBlockEntity() const noexcept override { return true; }
+    [[nodiscard]] bool hasBlockEntity() const noexcept override
+    {
+        return true;
+    }
 
     /**
      * @brief 创建蜂巢方块实体
@@ -154,7 +160,10 @@ public:
      * @brief 是否有比较器输出
      * @return true，蜂巢支持红石比较器
      */
-    [[nodiscard]] bool hasAnalogOutputSignal() const noexcept { return true; }
+    [[nodiscard]] bool hasAnalogOutputSignal() const noexcept
+    {
+        return true;
+    }
 
     /**
      * @brief 获取比较器信号强度

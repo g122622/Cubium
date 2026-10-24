@@ -149,10 +149,14 @@ Result<void> TridentBuffer::create(
 
 void TridentBuffer::destroy()
 {
-    if (m_buffer == VK_NULL_HANDLE) return;
+    if (m_buffer == VK_NULL_HANDLE) {
+        return;
+    }
 
     VkDevice device = m_context ? m_context->device() : VK_NULL_HANDLE;
-    if (device == VK_NULL_HANDLE) return;
+    if (device == VK_NULL_HANDLE) {
+        return;
+    }
 
     if (m_mapped) {
         vkUnmapMemory(device, m_memory);
@@ -170,8 +174,12 @@ void TridentBuffer::destroy()
 
 void* TridentBuffer::map()
 {
-    if (m_buffer == VK_NULL_HANDLE || !m_context) return nullptr;
-    if (m_mapped) return m_mapped;
+    if (m_buffer == VK_NULL_HANDLE || !m_context) {
+        return nullptr;
+    }
+    if (m_mapped) {
+        return m_mapped;
+    }
 
     VkResult result = vkMapMemory(m_context->device(), m_memory, 0, m_size, 0, &m_mapped);
     if (result != VK_SUCCESS) {
@@ -310,10 +318,14 @@ Result<void> TridentVertexBuffer::create(TridentContext* context, u64 size, u32 
 
 void TridentVertexBuffer::destroy()
 {
-    if (m_buffer == VK_NULL_HANDLE) return;
+    if (m_buffer == VK_NULL_HANDLE) {
+        return;
+    }
 
     VkDevice device = m_context ? m_context->device() : VK_NULL_HANDLE;
-    if (device == VK_NULL_HANDLE) return;
+    if (device == VK_NULL_HANDLE) {
+        return;
+    }
 
     if (m_mapped) {
         vkUnmapMemory(device, m_memory);
@@ -487,10 +499,14 @@ Result<void> TridentIndexBuffer::create(TridentContext* context, u64 size, api::
 
 void TridentIndexBuffer::destroy()
 {
-    if (m_buffer == VK_NULL_HANDLE) return;
+    if (m_buffer == VK_NULL_HANDLE) {
+        return;
+    }
 
     VkDevice device = m_context ? m_context->device() : VK_NULL_HANDLE;
-    if (device == VK_NULL_HANDLE) return;
+    if (device == VK_NULL_HANDLE) {
+        return;
+    }
 
     vkDestroyBuffer(device, m_buffer, nullptr);
     vkFreeMemory(device, m_memory, nullptr);
@@ -653,10 +669,14 @@ Result<void> TridentUniformBuffer::create(TridentContext* context, u64 size, u32
 
 void TridentUniformBuffer::destroy()
 {
-    if (m_buffers.empty()) return;
+    if (m_buffers.empty()) {
+        return;
+    }
 
     VkDevice device = m_context ? m_context->device() : VK_NULL_HANDLE;
-    if (device == VK_NULL_HANDLE) return;
+    if (device == VK_NULL_HANDLE) {
+        return;
+    }
 
     for (u32 i = 0; i < m_buffers.size(); ++i) {
         if (m_mapped[i]) {
@@ -681,7 +701,9 @@ void TridentUniformBuffer::destroy()
 
 void* TridentUniformBuffer::map()
 {
-    if (m_mapped.empty()) return nullptr;
+    if (m_mapped.empty()) {
+        return nullptr;
+    }
     return m_mapped[m_currentFrame];
 }
 
@@ -712,7 +734,9 @@ void TridentUniformBuffer::advanceFrame()
 
 VkBuffer TridentUniformBuffer::buffer(u32 frameIndex) const
 {
-    if (frameIndex >= m_buffers.size()) return VK_NULL_HANDLE;
+    if (frameIndex >= m_buffers.size()) {
+        return VK_NULL_HANDLE;
+    }
     return m_buffers[frameIndex];
 }
 

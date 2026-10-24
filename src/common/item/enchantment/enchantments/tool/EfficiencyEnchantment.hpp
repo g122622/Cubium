@@ -45,7 +45,10 @@ class EfficiencyEnchantment : public Enchantment {
 public:
     EfficiencyEnchantment() = default;
 
-    [[nodiscard]] std::string id() const override { return "minecraft:efficiency"; }
+    [[nodiscard]] std::string id() const override
+    {
+        return "minecraft:efficiency";
+    }
 
     [[nodiscard]] std::string getNameKey(i32 level) const override
     {
@@ -53,17 +56,35 @@ public:
         return "enchantment.minecraft.efficiency";
     }
 
-    [[nodiscard]] EnchantmentType type() const override { return EnchantmentType::Digger; }
+    [[nodiscard]] EnchantmentType type() const override
+    {
+        return EnchantmentType::Digger;
+    }
 
-    [[nodiscard]] i32 minLevel() const noexcept override { return 1; }
+    [[nodiscard]] i32 minLevel() const noexcept override
+    {
+        return 1;
+    }
 
-    [[nodiscard]] i32 maxLevel() const noexcept override { return 5; }
+    [[nodiscard]] i32 maxLevel() const noexcept override
+    {
+        return 5;
+    }
 
-    [[nodiscard]] EnchantmentRarity rarity() const noexcept override { return EnchantmentRarity::Common; }
+    [[nodiscard]] EnchantmentRarity rarity() const noexcept override
+    {
+        return EnchantmentRarity::Common;
+    }
 
-    [[nodiscard]] i32 getMinCost(i32 level) const override { return 1 + (level - 1) * 10; }
+    [[nodiscard]] i32 getMinCost(i32 level) const override
+    {
+        return 1 + (level - 1) * 10;
+    }
 
-    [[nodiscard]] i32 getMaxCost(i32 level) const override { return getMinCost(level) + 50; }
+    [[nodiscard]] i32 getMaxCost(i32 level) const override
+    {
+        return getMinCost(level) + 50;
+    }
 
     /**
      * @brief 获取挖掘速度加成

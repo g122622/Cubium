@@ -162,13 +162,30 @@ public:
         // spdlog::error("[Error] {}", str);
     }
 
-    [[nodiscard]] ErrorCode code() const noexcept { return m_code; }
-    [[nodiscard]] const std::string& message() const noexcept { return m_message; }
-    [[nodiscard]] const std::string& source() const noexcept { return m_source; }
+    [[nodiscard]] ErrorCode code() const noexcept
+    {
+        return m_code;
+    }
 
-    [[nodiscard]] bool success() const noexcept { return m_code == ErrorCode::Success; }
+    [[nodiscard]] const std::string& message() const noexcept
+    {
+        return m_message;
+    }
 
-    [[nodiscard]] bool failed() const noexcept { return m_code != ErrorCode::Success; }
+    [[nodiscard]] const std::string& source() const noexcept
+    {
+        return m_source;
+    }
+
+    [[nodiscard]] bool success() const noexcept
+    {
+        return m_code == ErrorCode::Success;
+    }
+
+    [[nodiscard]] bool failed() const noexcept
+    {
+        return m_code != ErrorCode::Success;
+    }
 
     [[nodiscard]] std::string toString() const
     {
@@ -179,17 +196,35 @@ public:
     }
 
     // 静态工厂方法
-    static Error ok() { return Error(ErrorCode::Success); }
+    static Error ok()
+    {
+        return Error(ErrorCode::Success);
+    }
 
-    static Error unknown(std::string_view message = "") { return Error(ErrorCode::Unknown, message); }
+    static Error unknown(std::string_view message = "")
+    {
+        return Error(ErrorCode::Unknown, message);
+    }
 
-    static Error invalidArgument(std::string_view message = "") { return Error(ErrorCode::InvalidArgument, message); }
+    static Error invalidArgument(std::string_view message = "")
+    {
+        return Error(ErrorCode::InvalidArgument, message);
+    }
 
-    static Error notFound(std::string_view message = "") { return Error(ErrorCode::NotFound, message); }
+    static Error notFound(std::string_view message = "")
+    {
+        return Error(ErrorCode::NotFound, message);
+    }
 
-    static Error fileNotFound(std::string_view path = "") { return Error(ErrorCode::FileNotFound, path); }
+    static Error fileNotFound(std::string_view path = "")
+    {
+        return Error(ErrorCode::FileNotFound, path);
+    }
 
-    static Error connectionFailed(std::string_view message = "") { return Error(ErrorCode::ConnectionFailed, message); }
+    static Error connectionFailed(std::string_view message = "")
+    {
+        return Error(ErrorCode::ConnectionFailed, message);
+    }
 
 private:
     [[nodiscard]] std::string formatError() const
@@ -256,11 +291,20 @@ public:
     Result& operator=(Result&&) noexcept = default;
 
     // 查询状态
-    [[nodiscard]] bool success() const noexcept { return m_success; }
+    [[nodiscard]] bool success() const noexcept
+    {
+        return m_success;
+    }
 
-    [[nodiscard]] bool failed() const noexcept { return !success(); }
+    [[nodiscard]] bool failed() const noexcept
+    {
+        return !success();
+    }
 
-    [[nodiscard]] explicit operator bool() const noexcept { return success(); }
+    [[nodiscard]] explicit operator bool() const noexcept
+    {
+        return success();
+    }
 
     // 获取值
     [[nodiscard]] T& value() &
@@ -288,12 +332,21 @@ public:
     }
 
     // 获取值或默认值
-    [[nodiscard]] T valueOr(T defaultValue) const& { return success() ? value() : std::move(defaultValue); }
+    [[nodiscard]] T valueOr(T defaultValue) const&
+    {
+        return success() ? value() : std::move(defaultValue);
+    }
 
-    [[nodiscard]] T valueOr(T defaultValue) && { return success() ? std::move(value()) : std::move(defaultValue); }
+    [[nodiscard]] T valueOr(T defaultValue) &&
+    {
+        return success() ? std::move(value()) : std::move(defaultValue);
+    }
 
     // 获取错误
-    [[nodiscard]] const Error& error() const noexcept { return m_success ? m_successError : m_error; }
+    [[nodiscard]] const Error& error() const noexcept
+    {
+        return m_success ? m_successError : m_error;
+    }
 
     // 转换操作
     template <typename U>
@@ -344,15 +397,32 @@ public:
     Result& operator=(Result&&) noexcept = default;
 
     // 查询状态
-    [[nodiscard]] bool success() const noexcept { return m_success; }
-    [[nodiscard]] bool failed() const noexcept { return !m_success; }
-    [[nodiscard]] explicit operator bool() const noexcept { return m_success; }
+    [[nodiscard]] bool success() const noexcept
+    {
+        return m_success;
+    }
+
+    [[nodiscard]] bool failed() const noexcept
+    {
+        return !m_success;
+    }
+
+    [[nodiscard]] explicit operator bool() const noexcept
+    {
+        return m_success;
+    }
 
     // 获取错误
-    [[nodiscard]] const Error& error() const noexcept { return m_error; }
+    [[nodiscard]] const Error& error() const noexcept
+    {
+        return m_error;
+    }
 
     // 静态工厂方法
-    static Result ok() { return Result(); }
+    static Result ok()
+    {
+        return Result();
+    }
 
 private:
     Error m_error;
@@ -424,9 +494,20 @@ public:
         }
     }
 
-    [[nodiscard]] bool success() const noexcept { return m_success; }
-    [[nodiscard]] bool failed() const noexcept { return !m_success; }
-    [[nodiscard]] explicit operator bool() const noexcept { return m_success; }
+    [[nodiscard]] bool success() const noexcept
+    {
+        return m_success;
+    }
+
+    [[nodiscard]] bool failed() const noexcept
+    {
+        return !m_success;
+    }
+
+    [[nodiscard]] explicit operator bool() const noexcept
+    {
+        return m_success;
+    }
 
     [[nodiscard]] std::unique_ptr<T, Deleter> value() &
     {
@@ -452,7 +533,10 @@ public:
         return takeValue();
     }
 
-    [[nodiscard]] const Error& error() const noexcept { return m_success ? m_successError : m_error; }
+    [[nodiscard]] const Error& error() const noexcept
+    {
+        return m_success ? m_successError : m_error;
+    }
 
 private:
     [[nodiscard]] std::unique_ptr<T, Deleter> takeValue()

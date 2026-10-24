@@ -52,8 +52,15 @@ class AbstractFireballEntity : public DamagingProjectileEntity {
 public:
     ~AbstractFireballEntity() override = default;
 
-    [[nodiscard]] f32 width() const override { return 1.0f; }
-    [[nodiscard]] f32 height() const override { return 1.0f; }
+    [[nodiscard]] f32 width() const override
+    {
+        return 1.0f;
+    }
+
+    [[nodiscard]] f32 height() const override
+    {
+        return 1.0f;
+    }
 
 protected:
     explicit AbstractFireballEntity(EntityInstanceId id, ecs::EntityRegistry& registry);
@@ -70,8 +77,15 @@ public:
 
     explicit FireballEntity(EntityInstanceId id, ecs::EntityRegistry& registry);
 
-    [[nodiscard]] f32 width() const override { return 1.0f; }
-    [[nodiscard]] f32 height() const override { return 1.0f; }
+    [[nodiscard]] f32 width() const override
+    {
+        return 1.0f;
+    }
+
+    [[nodiscard]] f32 height() const override
+    {
+        return 1.0f;
+    }
 
     [[nodiscard]] i32 explosionPower() const;
     void setExplosionPower(i32 power);
@@ -97,7 +111,10 @@ public:
     // 火球同步其物品本体（发射者手持火焰弹发射时写入），客户端据此渲染飞行中的物品。
     static entity::DataParameter<network::ir::play::ItemStackView> DATA_ITEM_STACK_PARAM;
 
-    [[nodiscard]] static u16 getItemStackParamId() { return DATA_ITEM_STACK_PARAM.id(); }
+    [[nodiscard]] static u16 getItemStackParamId()
+    {
+        return DATA_ITEM_STACK_PARAM.id();
+    }
 
 protected:
     void onEntityHit(const RayTraceResult& result) override;
@@ -130,8 +147,15 @@ public:
 
     explicit SmallFireballEntity(EntityInstanceId id, ecs::EntityRegistry& registry);
 
-    [[nodiscard]] f32 width() const override { return 0.3125f; }
-    [[nodiscard]] f32 height() const override { return 0.3125f; }
+    [[nodiscard]] f32 width() const override
+    {
+        return 0.3125f;
+    }
+
+    [[nodiscard]] f32 height() const override
+    {
+        return 0.3125f;
+    }
 
 protected:
     void onEntityHit(const RayTraceResult& result) override;
@@ -144,8 +168,15 @@ public:
 
     explicit DragonFireballEntity(EntityInstanceId id, ecs::EntityRegistry& registry);
 
-    [[nodiscard]] f32 width() const override { return 1.0f; }
-    [[nodiscard]] f32 height() const override { return 1.0f; }
+    [[nodiscard]] f32 width() const override
+    {
+        return 1.0f;
+    }
+
+    [[nodiscard]] f32 height() const override
+    {
+        return 1.0f;
+    }
 
 protected:
     void onEntityHit(const RayTraceResult& result) override;
@@ -155,7 +186,10 @@ protected:
     [[nodiscard]] particle::ParticleTypeId getParticleType() const override;
 
     // 龙息火球不燃烧
-    [[nodiscard]] bool isFiery() const override { return false; }
+    [[nodiscard]] bool isFiery() const override
+    {
+        return false;
+    }
 
 private:
     /**
@@ -170,8 +204,15 @@ public:
 
     explicit WitherSkullEntity(EntityInstanceId id, ecs::EntityRegistry& registry);
 
-    [[nodiscard]] f32 width() const override { return 0.3125f; }
-    [[nodiscard]] f32 height() const override { return 0.3125f; }
+    [[nodiscard]] f32 width() const override
+    {
+        return 0.3125f;
+    }
+
+    [[nodiscard]] f32 height() const override
+    {
+        return 0.3125f;
+    }
 
     [[nodiscard]] bool isBlue() const;
     void setBlue(bool blue);
@@ -181,7 +222,10 @@ public:
     // 真相源为 FireballStateComponent.m_blue，DataParameter 作镜像（批次4 模式）。
     static entity::DataParameter<bool> DATA_DANGEROUS_PARAM;
 
-    [[nodiscard]] static u16 getDangerousParamId() { return DATA_DANGEROUS_PARAM.id(); }
+    [[nodiscard]] static u16 getDangerousParamId()
+    {
+        return DATA_DANGEROUS_PARAM.id();
+    }
 
 protected:
     void onEntityHit(const RayTraceResult& result) override;

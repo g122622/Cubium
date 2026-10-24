@@ -351,11 +351,27 @@ public:
         return setBlockState(x, y, z, state);
     }
 
-    [[nodiscard]] mc::world::chunk::IChunkManager* chunkManager() override { return &m_stubChunks; }
-    [[nodiscard]] const mc::world::chunk::IChunkManager* chunkManager() const override { return &m_stubChunks; }
+    [[nodiscard]] mc::world::chunk::IChunkManager* chunkManager() override
+    {
+        return &m_stubChunks;
+    }
+
+    [[nodiscard]] const mc::world::chunk::IChunkManager* chunkManager() const override
+    {
+        return &m_stubChunks;
+    }
+
     mc::test::StubChunkManager m_stubChunks{nullptr, true};
-    [[nodiscard]] u64 currentTick() const override { return m_currentTick; }
-    [[nodiscard]] bool isClientSide() const override { return m_isClientSide; }
+
+    [[nodiscard]] u64 currentTick() const override
+    {
+        return m_currentTick;
+    }
+
+    [[nodiscard]] bool isClientSide() const override
+    {
+        return m_isClientSide;
+    }
 
     [[nodiscard]] Entity* getEntity(EntityInstanceId id) override
     {
@@ -400,11 +416,17 @@ public:
         MC_UNUSED(context);
     }
 
-    void notifyBlockUpdate(const BlockPos& pos) override { MC_UNUSED(pos); }
+    void notifyBlockUpdate(const BlockPos& pos) override
+    {
+        MC_UNUSED(pos);
+    }
 
     // ========== 测试辅助方法 ==========
 
-    void setClientSide(bool clientSide) { m_isClientSide = clientSide; }
+    void setClientSide(bool clientSide)
+    {
+        m_isClientSide = clientSide;
+    }
 
     void setBlockAt(const BlockPos& pos, const BlockState* state)
     {
@@ -421,12 +443,35 @@ public:
         return it != m_blocks.end() ? it->second.get() : nullptr;
     }
 
-    [[nodiscard]] bool wasGameEventFired() const { return m_gameEventFired; }
-    [[nodiscard]] i32 gameEventCount() const { return m_gameEventCount; }
-    [[nodiscard]] i32 setBlockCallCount() const { return m_setBlockCallCount; }
-    [[nodiscard]] i32 lastSetBlockFlags() const { return m_lastSetBlockFlags; }
-    [[nodiscard]] const BlockPos& lastSetBlockPos() const { return m_lastSetBlockPos; }
-    [[nodiscard]] i32 spawnedEntityCount() const { return m_spawnedEntityCount; }
+    [[nodiscard]] bool wasGameEventFired() const
+    {
+        return m_gameEventFired;
+    }
+
+    [[nodiscard]] i32 gameEventCount() const
+    {
+        return m_gameEventCount;
+    }
+
+    [[nodiscard]] i32 setBlockCallCount() const
+    {
+        return m_setBlockCallCount;
+    }
+
+    [[nodiscard]] i32 lastSetBlockFlags() const
+    {
+        return m_lastSetBlockFlags;
+    }
+
+    [[nodiscard]] const BlockPos& lastSetBlockPos() const
+    {
+        return m_lastSetBlockPos;
+    }
+
+    [[nodiscard]] i32 spawnedEntityCount() const
+    {
+        return m_spawnedEntityCount;
+    }
 
     void resetTrackedState()
     {

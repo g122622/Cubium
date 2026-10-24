@@ -109,58 +109,147 @@ public:
     {
         return y >= world::MIN_BUILD_HEIGHT && y < world::MAX_BUILD_HEIGHT;
     }
+
     [[nodiscard]] const fluid::FluidState* getFluidState(i32, i32, i32) const override
     {
         return &fluid::Fluids::EMPTY()->defaultState();
     }
-    [[nodiscard]] i32 getHeight(i32, i32) const override { return world::MAX_BUILD_HEIGHT; }
-    [[nodiscard]] u8 getBlockLight(i32, i32, i32) const override { return 15; }
-    [[nodiscard]] u8 getSkyLight(i32, i32, i32) const override { return 15; }
-    [[nodiscard]] bool hasBlockCollision(const AxisAlignedBB&) const override { return false; }
-    [[nodiscard]] std::vector<AxisAlignedBB> getBlockCollisions(const AxisAlignedBB&) const override { return {}; }
-    [[nodiscard]] bool hasEntityCollision(const AxisAlignedBB&, const Entity*) const override { return false; }
+
+    [[nodiscard]] i32 getHeight(i32, i32) const override
+    {
+        return world::MAX_BUILD_HEIGHT;
+    }
+
+    [[nodiscard]] u8 getBlockLight(i32, i32, i32) const override
+    {
+        return 15;
+    }
+
+    [[nodiscard]] u8 getSkyLight(i32, i32, i32) const override
+    {
+        return 15;
+    }
+
+    [[nodiscard]] bool hasBlockCollision(const AxisAlignedBB&) const override
+    {
+        return false;
+    }
+
+    [[nodiscard]] std::vector<AxisAlignedBB> getBlockCollisions(const AxisAlignedBB&) const override
+    {
+        return {};
+    }
+
+    [[nodiscard]] bool hasEntityCollision(const AxisAlignedBB&, const Entity*) const override
+    {
+        return false;
+    }
+
     [[nodiscard]] std::vector<AxisAlignedBB> getEntityCollisions(const AxisAlignedBB&, const Entity*) const override
     {
         return {};
     }
-    [[nodiscard]] PhysicsEngine* physicsEngine() override { return nullptr; }
-    [[nodiscard]] const PhysicsEngine* physicsEngine() const override { return nullptr; }
+
+    [[nodiscard]] PhysicsEngine* physicsEngine() override
+    {
+        return nullptr;
+    }
+
+    [[nodiscard]] const PhysicsEngine* physicsEngine() const override
+    {
+        return nullptr;
+    }
+
     [[nodiscard]] std::vector<Entity*> getEntitiesInAABB(const AxisAlignedBB&, const Entity*) const override
     {
         return {};
     }
+
     [[nodiscard]] std::vector<Entity*> getEntitiesInRange(const Vector3&, f32, const Entity*) const override
     {
         return {};
     }
-    [[nodiscard]] DimensionId dimension() const override { return DimensionId(0); }
-    [[nodiscard]] u64 seed() const override { return 0; }
-    [[nodiscard]] u64 currentTick() const override { return 0; }
-    [[nodiscard]] i64 dayTime() const override { return 0; }
-    [[nodiscard]] bool isHardcore() const override { return false; }
-    [[nodiscard]] Difficulty difficulty() const override { return Difficulty::Easy; }
-    [[nodiscard]] bool isClientSide() const override { return false; }
+
+    [[nodiscard]] DimensionId dimension() const override
+    {
+        return DimensionId(0);
+    }
+
+    [[nodiscard]] u64 seed() const override
+    {
+        return 0;
+    }
+
+    [[nodiscard]] u64 currentTick() const override
+    {
+        return 0;
+    }
+
+    [[nodiscard]] i64 dayTime() const override
+    {
+        return 0;
+    }
+
+    [[nodiscard]] bool isHardcore() const override
+    {
+        return false;
+    }
+
+    [[nodiscard]] Difficulty difficulty() const override
+    {
+        return Difficulty::Easy;
+    }
+
+    [[nodiscard]] bool isClientSide() const override
+    {
+        return false;
+    }
 
     [[nodiscard]] world::tick::TickManager& tickManager() override
     {
         throw std::runtime_error("SpecialItemsTestWorld::tickManager not implemented");
     }
+
     [[nodiscard]] const world::tick::TickManager& tickManager() const override
     {
         throw std::runtime_error("SpecialItemsTestWorld::tickManager not implemented");
     }
 
-    [[nodiscard]] math::IRandom& getRandom() override { return m_random; }
-    [[nodiscard]] const math::IRandom& getRandom() const override { return m_random; }
+    [[nodiscard]] math::IRandom& getRandom() override
+    {
+        return m_random;
+    }
 
-    [[nodiscard]] world::border::WorldBorder& worldBorder() override { return m_worldBorder; }
-    [[nodiscard]] const world::border::WorldBorder& worldBorder() const override { return m_worldBorder; }
+    [[nodiscard]] const math::IRandom& getRandom() const override
+    {
+        return m_random;
+    }
 
-    [[nodiscard]] ecs::EntityRegistry* entityRegistry() override { return &mc::test::testEcsRegistry(); }
+    [[nodiscard]] world::border::WorldBorder& worldBorder() override
+    {
+        return m_worldBorder;
+    }
+
+    [[nodiscard]] const world::border::WorldBorder& worldBorder() const override
+    {
+        return m_worldBorder;
+    }
+
+    [[nodiscard]] ecs::EntityRegistry* entityRegistry() override
+    {
+        return &mc::test::testEcsRegistry();
+    }
 
     // 测试辅助
-    [[nodiscard]] std::size_t spawnedCount() const noexcept { return m_spawned.size(); }
-    [[nodiscard]] Entity* lastSpawned() const noexcept { return m_spawned.empty() ? nullptr : m_spawned.back().get(); }
+    [[nodiscard]] std::size_t spawnedCount() const noexcept
+    {
+        return m_spawned.size();
+    }
+
+    [[nodiscard]] Entity* lastSpawned() const noexcept
+    {
+        return m_spawned.empty() ? nullptr : m_spawned.back().get();
+    }
 
 private:
     static i64 key(i32 x, i32 y, i32 z)
@@ -240,7 +329,7 @@ TEST_F(SpecialToolsRegistrationTest, StackSizes)
 {
     EXPECT_EQ(Items::ARMOR_STAND->maxStackSize(), 16);
     EXPECT_EQ(Items::END_CRYSTAL->maxStackSize(), 64);
-    EXPECT_EQ(Items::GLOW_ITEM_FRAME->maxStackSize(), 16);
+    EXPECT_EQ(Items::GLOW_ITEM_FRAME->maxStackSize(), 64);
     EXPECT_EQ(Items::GOAT_HORN->maxStackSize(), 1);
     EXPECT_EQ(Items::SPYGLASS->maxStackSize(), 1);
     EXPECT_EQ(Items::TADPOLE_BUCKET->maxStackSize(), 1);

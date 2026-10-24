@@ -132,6 +132,7 @@ public:
         u32 height;            ///< 区域高度（像素）
         u32 rowLength;         ///< 源数据行长度（像素），0 表示使用 width
     };
+
     [[nodiscard]] Result<void> uploadRegionsBatch(const std::vector<RegionUpload>& regions);
 
     /**
@@ -155,12 +156,35 @@ public:
     [[nodiscard]] Result<void> uploadRegionsBatchAsync(
         const std::vector<RegionUpload>& regions, VkCommandBuffer cmd, u32 frameIndex);
 
-    [[nodiscard]] VkImageView imageView() const noexcept { return m_imageView; }
-    [[nodiscard]] VkSampler sampler() const noexcept { return m_sampler; }
-    [[nodiscard]] u32 width() const noexcept { return m_width; }
-    [[nodiscard]] u32 height() const noexcept { return m_height; }
-    [[nodiscard]] bool isValid() const noexcept { return m_image != VK_NULL_HANDLE; }
-    [[nodiscard]] bool isUploaded() const noexcept { return m_uploaded; }
+    [[nodiscard]] VkImageView imageView() const noexcept
+    {
+        return m_imageView;
+    }
+
+    [[nodiscard]] VkSampler sampler() const noexcept
+    {
+        return m_sampler;
+    }
+
+    [[nodiscard]] u32 width() const noexcept
+    {
+        return m_width;
+    }
+
+    [[nodiscard]] u32 height() const noexcept
+    {
+        return m_height;
+    }
+
+    [[nodiscard]] bool isValid() const noexcept
+    {
+        return m_image != VK_NULL_HANDLE;
+    }
+
+    [[nodiscard]] bool isUploaded() const noexcept
+    {
+        return m_uploaded;
+    }
 
 private:
     VkDevice m_device = VK_NULL_HANDLE;

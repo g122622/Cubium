@@ -262,7 +262,9 @@ ResourceLocation AdvancementLoader::pathToAdvancementId(const std::string& fileP
     // 构建成就ID
     std::string advancementId;
     for (size_t i = 0; i < pathParts.size(); ++i) {
-        if (i > 0) advancementId += "/";
+        if (i > 0) {
+            advancementId += "/";
+        }
         advancementId += pathParts[i];
     }
 

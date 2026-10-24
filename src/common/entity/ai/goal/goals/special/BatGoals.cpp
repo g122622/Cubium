@@ -47,8 +47,12 @@ namespace {
 // 符号函数：返回 x 的符号（-1, 0, 1）
 f64 signum(f64 x)
 {
-    if (x > 0.0) return 1.0;
-    if (x < 0.0) return -1.0;
+    if (x > 0.0) {
+        return 1.0;
+    }
+    if (x < 0.0) {
+        return -1.0;
+    }
     return 0.0;
 }
 } // namespace

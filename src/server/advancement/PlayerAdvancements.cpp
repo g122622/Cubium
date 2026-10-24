@@ -435,7 +435,9 @@ void PlayerAdvancements::_ensureVisibility(mc::advancement::AdvancementPtr advan
         mc::advancement::AdvancementVisibilityEvaluator::evaluateVisibilityFromNode(
             advancement,
             *m_manager,
-            [this](mc::advancement::Advancement::Ptr adv) { return isDone(adv); },
+            [this](mc::advancement::Advancement::Ptr adv) {
+                return isDone(adv);
+            },
             [this](mc::advancement::Advancement::Ptr adv, bool visible) {
                 if (visible) {
                     m_visible.insert(adv);
@@ -483,7 +485,9 @@ void PlayerAdvancements::_updateVisibility(mc::advancement::AdvancementManager* 
     for (const auto& root : manager->getRoots()) {
         mc::advancement::AdvancementVisibilityEvaluator::evaluateVisibility(
             root,
-            [this](mc::advancement::Advancement::Ptr adv) { return isDone(adv); },
+            [this](mc::advancement::Advancement::Ptr adv) {
+                return isDone(adv);
+            },
             [this](mc::advancement::Advancement::Ptr adv, bool visible) {
                 if (visible) {
                     m_visible.insert(adv);

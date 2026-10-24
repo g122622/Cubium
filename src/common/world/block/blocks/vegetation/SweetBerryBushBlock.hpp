@@ -69,12 +69,18 @@ public:
     /**
      * @brief 获取 AGE 属性
      */
-    static const IntegerProperty& AGE() { return BlockStateProperties::AGE_0_3(); }
+    static const IntegerProperty& AGE()
+    {
+        return BlockStateProperties::AGE_0_3();
+    }
 
     /**
      * @brief 获取最大年龄
      */
-    [[nodiscard]] static constexpr i32 getMaxAge() noexcept { return 3; }
+    [[nodiscard]] static constexpr i32 getMaxAge() noexcept
+    {
+        return 3;
+    }
 
     /**
      * @brief 获取当前年龄
@@ -99,7 +105,10 @@ public:
 
     void randomTick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random) override;
 
-    [[nodiscard]] bool ticksRandomly() const noexcept override { return true; }
+    [[nodiscard]] bool ticksRandomly() const noexcept override
+    {
+        return true;
+    }
 
     // ========== IGrowable 接口 ==========
 

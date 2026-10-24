@@ -59,9 +59,15 @@ public:
 
     // ========== 标记接口 ==========
 
-    [[nodiscard]] bool isGameMaster() const noexcept override { return true; }
+    [[nodiscard]] bool isGameMaster() const noexcept override
+    {
+        return true;
+    }
 
-    [[nodiscard]] bool hasBlockEntity() const noexcept override { return false; }
+    [[nodiscard]] bool hasBlockEntity() const noexcept override
+    {
+        return false;
+    }
 
     // ========== 光照 ==========
 

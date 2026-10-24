@@ -165,7 +165,9 @@ extern "C" int LLVMFuzzerTestOneInput(const std::uint8_t* data, std::size_t size
         // 即可让覆盖率反馈引导搜索走向新状态。
         bool playerReady = false;
         i32 maxPhaseReached = 0;
-        handshake.onPlayerReady([&playerReady](const std::string&, const std::array<u8, 16>&) { playerReady = true; });
+        handshake.onPlayerReady([&playerReady](const std::string&, const std::array<u8, 16>&) {
+            playerReady = true;
+        });
 
         serverConn->onPacket([&handshake, &maxPhaseReached](const ir::IrPacket& packet) {
             const auto phase = static_cast<i32>(packet.phase);

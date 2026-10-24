@@ -644,11 +644,14 @@ DataComponentPayload nbtToPayload(DataComponentType type, const nbt::tags::tag& 
         }
         case DataComponentType::BundleContents: {
             std::vector<ItemStack> items;
-            if (const auto* list = dynamic_cast<const nbt::tags::compound_list_tag*>(&tag))
+            if (const auto* list = dynamic_cast<const nbt::tags::compound_list_tag*>(&tag)) {
                 for (const auto& value : list->value) {
                     auto stack = ItemStack::fromNbt(value);
-                    if (stack.success()) items.push_back(std::move(stack).value());
+                    if (stack.success()) {
+                        items.push_back(std::move(stack).value());
+                    }
                 }
+            }
             return DataComponentPayload{std::in_place_index<ComponentPayloadIndex::Json>,
                 item::items::BundleContents(std::move(items)).toJson()};
         }
@@ -682,8 +685,9 @@ DataComponentPayload nbtToPayload(DataComponentType type, const nbt::tags::tag& 
                     for (i32 type = 0; type < static_cast<i32>(blockentity::BannerPatternType::Count); ++type) {
                         const auto entry = static_cast<blockentity::BannerPatternType>(type);
                         if ("minecraft:" + blockentity::BannerPatterns::getFileName(entry) ==
-                            pattern.get<std::string>())
+                            pattern.get<std::string>()) {
                             value["Pattern"] = blockentity::BannerPatterns::getHashName(entry);
+                        }
                     }
                 }
                 const auto color = layer.at("color").get<std::string>();

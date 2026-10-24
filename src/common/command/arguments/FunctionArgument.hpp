@@ -76,17 +76,26 @@ public:
     {}
 
     /** @brief 获取资源位置 ID */
-    [[nodiscard]] const ResourceLocation& id() const noexcept { return m_id; }
+    [[nodiscard]] const ResourceLocation& id() const noexcept
+    {
+        return m_id;
+    }
 
     /** @brief 是否为标签引用 */
-    [[nodiscard]] bool isTag() const noexcept { return m_isTag; }
+    [[nodiscard]] bool isTag() const noexcept
+    {
+        return m_isTag;
+    }
 
     /**
      * @brief 获取格式化的显示名称
      *
      * 标签引用返回 "#namespace:path"，函数引用返回 "namespace:path"
      */
-    [[nodiscard]] std::string displayName() const { return m_isTag ? ("#" + m_id.toString()) : m_id.toString(); }
+    [[nodiscard]] std::string displayName() const
+    {
+        return m_isTag ? ("#" + m_id.toString()) : m_id.toString();
+    }
 
 private:
     ResourceLocation m_id;
@@ -115,13 +124,22 @@ class FunctionArgumentType : public ArgumentType<FunctionArgumentResult> {
 public:
     [[nodiscard]] FunctionArgumentResult parse(StringReader& reader) override;
 
-    [[nodiscard]] std::string getTypeName() const override { return "function"; }
+    [[nodiscard]] std::string getTypeName() const override
+    {
+        return "function";
+    }
 
-    [[nodiscard]] std::vector<std::string> getExamples() const override { return {"foo", "foo:bar", "#foo"}; }
+    [[nodiscard]] std::vector<std::string> getExamples() const override
+    {
+        return {"foo", "foo:bar", "#foo"};
+    }
 
     // ========== 静态工厂方法 ==========
 
-    static std::shared_ptr<FunctionArgumentType> functions() { return std::make_shared<FunctionArgumentType>(); }
+    static std::shared_ptr<FunctionArgumentType> functions()
+    {
+        return std::make_shared<FunctionArgumentType>();
+    }
 
     // ========== 静态获取方法 ==========
 

@@ -67,6 +67,7 @@ private:
         SpriteLoader loader;
         bool removed = false;
     };
+
     std::vector<Entry> m_entries;
     // sprite 名 -> m_entries 索引，用于 O(1) 覆盖
     std::unordered_map<ResourceLocation, size_t> m_index;

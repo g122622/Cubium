@@ -90,10 +90,21 @@ public:
 
     [[nodiscard]] bool test(LootContext& context) const override;
     [[nodiscard]] std::unique_ptr<LootCondition> clone() const noexcept override;
-    [[nodiscard]] std::string getType() const override { return "block_state_property"; }
 
-    [[nodiscard]] const std::string& getBlockId() const { return m_blockId; }
-    [[nodiscard]] const StatePropertiesPredicate& getProperties() const { return m_properties; }
+    [[nodiscard]] std::string getType() const override
+    {
+        return "block_state_property";
+    }
+
+    [[nodiscard]] const std::string& getBlockId() const
+    {
+        return m_blockId;
+    }
+
+    [[nodiscard]] const StatePropertiesPredicate& getProperties() const
+    {
+        return m_properties;
+    }
 
 private:
     std::string m_blockId;

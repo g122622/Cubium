@@ -53,10 +53,20 @@ public:
         f32 pitch;
     };
 
-    void clearSound() { m_lastSound.reset(); }
+    void clearSound()
+    {
+        m_lastSound.reset();
+    }
 
-    [[nodiscard]] bool hasSoundRecord() const { return m_lastSound.has_value(); }
-    [[nodiscard]] const SoundRecord& lastSound() const { return *m_lastSound; }
+    [[nodiscard]] bool hasSoundRecord() const
+    {
+        return m_lastSound.has_value();
+    }
+
+    [[nodiscard]] const SoundRecord& lastSound() const
+    {
+        return *m_lastSound;
+    }
 
     [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override
     {
@@ -100,6 +110,7 @@ public:
     {
         throw std::runtime_error("SoundCaptureWorld::tickManager not implemented");
     }
+
     [[nodiscard]] const world::tick::TickManager& tickManager() const override
     {
         throw std::runtime_error("SoundCaptureWorld::tickManager not implemented");

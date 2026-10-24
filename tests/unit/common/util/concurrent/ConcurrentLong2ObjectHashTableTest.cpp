@@ -33,10 +33,12 @@ using mc::util::ConcurrentLong2ObjectHashTable;
 // 测试值类型：shared_ptr<Value>（对齐 ReentrantAreaLock 的 shared_ptr<Node> 用法）
 struct Value {
     int id;
+
     explicit Value(int i)
         : id(i)
     {}
 };
+
 using ValPtr = std::shared_ptr<Value>;
 
 // ============================================================================

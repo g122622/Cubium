@@ -117,11 +117,17 @@ public:
      */
     [[nodiscard]] Result<bool> handleInbound(const mc::network::ir::IrPacket& packet);
 
-    void onPlayerReady(PlayerReadyCallback cb) { m_onReady = std::move(cb); }
+    void onPlayerReady(PlayerReadyCallback cb)
+    {
+        m_onReady = std::move(cb);
+    }
 
     /// 重配置完成回调（ConfigurationAcknowledged 后重推配置数据完成时触发）。
     /// 由 ClientSessionManager 绑入，用于重推 post-Play 加入序列（play::Login 等）。
-    void onReconfiguration(PlayerReadyCallback cb) { m_onReconfiguration = std::move(cb); }
+    void onReconfiguration(PlayerReadyCallback cb)
+    {
+        m_onReconfiguration = std::move(cb);
+    }
 
     /**
      * @brief 重新发起配置阶段（Play→Configuration 重配置的服务端侧）
@@ -137,10 +143,21 @@ public:
 
     /// 注入服务器状态信息提供者（Status 阶段 StatusRequest 时调用，构造 StatusResponse JSON）
     using StatusProvider = std::function<StatusInfo()>;
-    void onStatusRequest(StatusProvider cb) { m_statusProvider = std::move(cb); }
 
-    [[nodiscard]] const std::string& username() const noexcept { return m_username; }
-    [[nodiscard]] bool playReady() const noexcept { return m_playReady; }
+    void onStatusRequest(StatusProvider cb)
+    {
+        m_statusProvider = std::move(cb);
+    }
+
+    [[nodiscard]] const std::string& username() const noexcept
+    {
+        return m_username;
+    }
+
+    [[nodiscard]] bool playReady() const noexcept
+    {
+        return m_playReady;
+    }
 
     /**
      * @brief 取客户端在 Configuration 阶段上报的 ClientInformation（C→S id=0）

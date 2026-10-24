@@ -107,7 +107,10 @@ public:
      *
      * 粒子在方块上方水平扩散，数量为传入值的3倍。
      */
-    [[nodiscard]] BoneMealType getBoneMealType() const override { return BoneMealType::NEIGHBOR_SPREADER; }
+    [[nodiscard]] BoneMealType getBoneMealType() const override
+    {
+        return BoneMealType::NEIGHBOR_SPREADER;
+    }
 };
 
 } // namespace blocks

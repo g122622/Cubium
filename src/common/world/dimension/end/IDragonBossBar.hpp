@@ -165,21 +165,40 @@ public:
 class NullDragonBossBar final : public IDragonBossBar {
 public:
     void setPercent(f32 /*percent*/) override {}
+
     void setName(std::unique_ptr<text::ITextComponent> /*name*/) override {}
+
     void setVisible(bool /*visible*/) override {}
+
     void addPlayer(PlayerId /*playerId*/) override {}
+
     void removePlayer(PlayerId /*playerId*/) override {}
+
     void removeAllPlayers() override {}
+
     void replacePlayers(const std::set<PlayerId>& /*playerIds*/) override {}
-    [[nodiscard]] bool hasPlayers() const override { return false; }
+
+    [[nodiscard]] bool hasPlayers() const override
+    {
+        return false;
+    }
+
     [[nodiscard]] const std::set<PlayerId>& getPlayers() const override
     {
         // 返回对函数局部静态空集合的稳定引用，避免引入 .cpp 文件
         static const std::set<PlayerId> kEmptyPlayers;
         return kEmptyPlayers;
     }
-    [[nodiscard]] f32 percent() const override { return 0.0f; }
-    [[nodiscard]] bool visible() const override { return false; }
+
+    [[nodiscard]] f32 percent() const override
+    {
+        return 0.0f;
+    }
+
+    [[nodiscard]] bool visible() const override
+    {
+        return false;
+    }
 };
 
 } // namespace mc

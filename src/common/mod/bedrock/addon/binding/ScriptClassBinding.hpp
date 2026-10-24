@@ -33,7 +33,10 @@ public:
      * @param ctx 绑定上下文
      * @return 新分配的class ID
      */
-    static u64 allocateClassId(IScriptBindingContext& ctx) { return ctx.allocateClassId(); }
+    static u64 allocateClassId(IScriptBindingContext& ctx)
+    {
+        return ctx.allocateClassId();
+    }
 
     /**
      * @brief 将C++对象包装为JS对象
@@ -191,12 +194,18 @@ public:
     /**
      * @brief 获取绑定上下文
      */
-    [[nodiscard]] IScriptBindingContext& context() const { return m_ctx; }
+    [[nodiscard]] IScriptBindingContext& context() const
+    {
+        return m_ctx;
+    }
 
     /**
      * @brief 获取模块名
      */
-    [[nodiscard]] const std::string& moduleName() const { return m_moduleName; }
+    [[nodiscard]] const std::string& moduleName() const
+    {
+        return m_moduleName;
+    }
 
 private:
     IScriptBindingContext& m_ctx;
@@ -319,7 +328,9 @@ public:
      */
     [[nodiscard]] void* wrap(T* obj, bool owned = false, EntityInstanceId entityId = 0) const
     {
-        if (!obj) return m_ctx.createNull();
+        if (!obj) {
+            return m_ctx.createNull();
+        }
         return ScriptObjectRegistry::wrap(m_ctx,
             m_classId,
             m_proto,
@@ -333,12 +344,18 @@ public:
     /**
      * @brief 获取原型对象句柄
      */
-    [[nodiscard]] void* prototype() const { return m_proto; }
+    [[nodiscard]] void* prototype() const
+    {
+        return m_proto;
+    }
 
     /**
      * @brief 获取类ID
      */
-    [[nodiscard]] u64 classId() const { return m_classId; }
+    [[nodiscard]] u64 classId() const
+    {
+        return m_classId;
+    }
 
 private:
     IScriptBindingContext& m_ctx;

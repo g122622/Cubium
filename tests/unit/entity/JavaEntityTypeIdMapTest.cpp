@@ -144,6 +144,7 @@ TEST(JavaEntityTypeIdMapTest, BoatEntitySelectsVariantByWoodType)
         u32 expectedBoatId;
         u32 expectedChestId;
     };
+
     // expected ids 取自 vanilla EntityType.java：oak_boat=89/oak_chest_boat=90、
     // spruce_boat=125/spruce_chest_boat=126、birch_boat=12/birch_chest_boat=13、
     // jungle_boat=74/jungle_chest_boat=75、acacia_boat=0/acacia_chest_boat=1、

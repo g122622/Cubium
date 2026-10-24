@@ -346,7 +346,9 @@ Result<void> IntegratedServer::initialize(const IntegratedServerParams& params)
 
     // 启动服务端线程
     m_running = true;
-    m_serverThread = std::make_unique<std::thread>([this]() { _mainLoop(); });
+    m_serverThread = std::make_unique<std::thread>([this]() {
+        _mainLoop();
+    });
 
     m_initialized = true;
     spdlog::info("Integrated server initialized");

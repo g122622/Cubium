@@ -71,12 +71,31 @@ public:
 
     [[nodiscard]] ItemStack apply(ItemStack stack, LootContext& context) const override;
     [[nodiscard]] std::unique_ptr<LootFunction> clone() const noexcept override;
-    [[nodiscard]] std::string getType() const override { return "apply_bonus"; }
 
-    [[nodiscard]] BonusType getBonusType() const { return m_bonusType; }
-    [[nodiscard]] i32 getBonusMultiplier() const { return m_bonusMultiplier; }
-    [[nodiscard]] i32 getExtra() const { return m_extra; }
-    [[nodiscard]] f32 getProbability() const { return m_probability; }
+    [[nodiscard]] std::string getType() const override
+    {
+        return "apply_bonus";
+    }
+
+    [[nodiscard]] BonusType getBonusType() const
+    {
+        return m_bonusType;
+    }
+
+    [[nodiscard]] i32 getBonusMultiplier() const
+    {
+        return m_bonusMultiplier;
+    }
+
+    [[nodiscard]] i32 getExtra() const
+    {
+        return m_extra;
+    }
+
+    [[nodiscard]] f32 getProbability() const
+    {
+        return m_probability;
+    }
 
     /**
      * @brief Calculate fortune bonus count (ore drops algorithm)

@@ -146,7 +146,9 @@ struct ModelElement {
     {
         size_t n = 0;
         for (const auto& f : faces) {
-            if (f.has_value()) ++n;
+            if (f.has_value()) {
+                ++n;
+            }
         }
         return n;
     }
@@ -157,7 +159,9 @@ struct ModelElement {
     [[nodiscard]] bool hasAnyFace() const
     {
         for (const auto& f : faces) {
-            if (f.has_value()) return true;
+            if (f.has_value()) {
+                return true;
+            }
         }
         return false;
     }
@@ -166,12 +170,18 @@ struct ModelElement {
      * @brief 按方向访问面（可写）
      * @note 返回 optional 引用；调用方写入时需 emplace 赋值，如 elem.at(dir) = face;
      */
-    std::optional<ModelFace>& at(Direction d) { return faces[Directions::index(d)]; }
+    std::optional<ModelFace>& at(Direction d)
+    {
+        return faces[Directions::index(d)];
+    }
 
     /**
      * @brief 按方向访问面（只读）
      */
-    [[nodiscard]] const std::optional<ModelFace>& at(Direction d) const { return faces[Directions::index(d)]; }
+    [[nodiscard]] const std::optional<ModelFace>& at(Direction d) const
+    {
+        return faces[Directions::index(d)];
+    }
 };
 
 /**
@@ -191,7 +201,10 @@ struct UnbakedBlockModel {
     bool hasAmbientOcclusion = false; // JSON 中是否包含 "ambientocclusion" 字段
 
     // 检查是否有父模型
-    [[nodiscard]] bool hasParent() const { return !parentLocation.path().empty(); }
+    [[nodiscard]] bool hasParent() const
+    {
+        return !parentLocation.path().empty();
+    }
 };
 
 /**
@@ -248,10 +261,16 @@ public:
     [[nodiscard]] const VariantList* getVariants(std::string_view stateStr) const;
 
     // 获取所有变体映射
-    [[nodiscard]] const std::map<std::string, VariantList>& getAllVariants() const { return m_variants; }
+    [[nodiscard]] const std::map<std::string, VariantList>& getAllVariants() const
+    {
+        return m_variants;
+    }
 
     // 是否有多部分数据
-    [[nodiscard]] bool hasMultipart() const { return m_hasMultipart; }
+    [[nodiscard]] bool hasMultipart() const
+    {
+        return m_hasMultipart;
+    }
 
 private:
     // 规范化状态键，保证属性顺序一致（例如 a=1,b=2 与 b=2,a=1 等价）

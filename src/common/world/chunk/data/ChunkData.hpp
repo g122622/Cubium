@@ -104,9 +104,20 @@ public:
     ChunkData& operator=(ChunkData&& other) noexcept;
 
     // 位置 (IChunk 接口)
-    [[nodiscard]] ChunkCoord x() const override { return m_x; }
-    [[nodiscard]] ChunkCoord z() const override { return m_z; }
-    [[nodiscard]] ChunkPos pos() const override { return ChunkPos(m_x, m_z); }
+    [[nodiscard]] ChunkCoord x() const override
+    {
+        return m_x;
+    }
+
+    [[nodiscard]] ChunkCoord z() const override
+    {
+        return m_z;
+    }
+
+    [[nodiscard]] ChunkPos pos() const override
+    {
+        return ChunkPos(m_x, m_z);
+    }
 
     // 方块访问 (IChunk 接口 - 使用 BlockState 指针)
     [[nodiscard]] const BlockState* getBlockState(BlockCoord x, BlockCoord y, BlockCoord z) const override;
@@ -122,9 +133,21 @@ public:
 
     // 生物群系 (IChunk 接口)
     [[nodiscard]] BiomeId getBiomeAtBlock(BlockCoord x, BlockCoord y, BlockCoord z) const override;
-    [[nodiscard]] const BiomeContainer& getBiomes() const { return m_biomes; }
-    [[nodiscard]] BiomeContainer& getBiomes() { return m_biomes; }
-    void setBiomes(BiomeContainer biomes) { m_biomes = std::move(biomes); }
+
+    [[nodiscard]] const BiomeContainer& getBiomes() const
+    {
+        return m_biomes;
+    }
+
+    [[nodiscard]] BiomeContainer& getBiomes()
+    {
+        return m_biomes;
+    }
+
+    void setBiomes(BiomeContainer biomes)
+    {
+        m_biomes = std::move(biomes);
+    }
 
     // 区块段访问 (IChunk 接口)
     [[nodiscard]] ChunkSection* getSection(i32 index) override;
@@ -236,27 +259,73 @@ public:
     }
 
     // 区块状态 (IChunk 接口)
-    [[nodiscard]] ChunkLoadStatus getStatus() const override { return m_status; }
-    void setStatus(ChunkLoadStatus status) override { m_status = status; }
+    [[nodiscard]] ChunkLoadStatus getStatus() const override
+    {
+        return m_status;
+    }
+
+    void setStatus(ChunkLoadStatus status) override
+    {
+        m_status = status;
+    }
 
     // 修改标记 (IChunk 接口)
-    [[nodiscard]] bool isModified() const override { return m_dirty; }
-    void setModified(bool modified) override { m_dirty = modified; }
+    [[nodiscard]] bool isModified() const override
+    {
+        return m_dirty;
+    }
+
+    void setModified(bool modified) override
+    {
+        m_dirty = modified;
+    }
 
     // 其他状态
-    [[nodiscard]] bool isFullyGenerated() const { return m_fullyGenerated; }
-    void setFullyGenerated(bool value) { m_fullyGenerated = value; }
+    [[nodiscard]] bool isFullyGenerated() const
+    {
+        return m_fullyGenerated;
+    }
 
-    [[nodiscard]] bool isDirty() const { return m_dirty; }
-    void setDirty(bool value) { m_dirty = value; }
+    void setFullyGenerated(bool value)
+    {
+        m_fullyGenerated = value;
+    }
 
-    [[nodiscard]] bool isLoaded() const { return m_loaded; }
-    void setLoaded(bool value) { m_loaded = value; }
+    [[nodiscard]] bool isDirty() const
+    {
+        return m_dirty;
+    }
+
+    void setDirty(bool value)
+    {
+        m_dirty = value;
+    }
+
+    [[nodiscard]] bool isLoaded() const
+    {
+        return m_loaded;
+    }
+
+    void setLoaded(bool value)
+    {
+        m_loaded = value;
+    }
 
     // 居住时间（区块内有玩家附近时的累计刻数，用于计算区域难度）
-    [[nodiscard]] i64 inhabitedTime() const { return m_inhabitedTime; }
-    void setInhabitedTime(i64 value) { m_inhabitedTime = value; }
-    void incrementInhabitedTime(i64 ticks) { m_inhabitedTime += ticks; }
+    [[nodiscard]] i64 inhabitedTime() const
+    {
+        return m_inhabitedTime;
+    }
+
+    void setInhabitedTime(i64 value)
+    {
+        m_inhabitedTime = value;
+    }
+
+    void incrementInhabitedTime(i64 ticks)
+    {
+        m_inhabitedTime += ticks;
+    }
 
     // 序列化
     [[nodiscard]] std::vector<u8> serialize() const;
@@ -296,6 +365,7 @@ public:
         MC_ASSERT_RELEASE(sectionIndex >= 0 && sectionIndex < mc::world::CHUNK_SECTIONS);
         return m_skyNibbles[static_cast<size_t>(sectionIndex) + 1];
     }
+
     [[nodiscard]] const SWMRNibbleArray& skyNibbleAt(i32 sectionIndex) const
     {
         MC_ASSERT_RELEASE(sectionIndex >= 0 && sectionIndex < mc::world::CHUNK_SECTIONS);
@@ -310,6 +380,7 @@ public:
         MC_ASSERT_RELEASE(sectionIndex >= 0 && sectionIndex < mc::world::CHUNK_SECTIONS);
         return m_blockNibbles[static_cast<size_t>(sectionIndex) + 1];
     }
+
     [[nodiscard]] const SWMRNibbleArray& blockNibbleAt(i32 sectionIndex) const
     {
         MC_ASSERT_RELEASE(sectionIndex >= 0 && sectionIndex < mc::world::CHUNK_SECTIONS);
@@ -370,12 +441,18 @@ public:
      * 主线程不再读（initializeChunkLighting 已搬 worker），但 SkyLightEngine::canTickChunk
      * 在 worker 读。atomic 防御未来主线程读路径，IChunk 虚签名不变（仍 bool）。
      */
-    [[nodiscard]] bool isLightCorrect() const override { return m_lightCorrect.load(std::memory_order::acquire); }
+    [[nodiscard]] bool isLightCorrect() const override
+    {
+        return m_lightCorrect.load(std::memory_order::acquire);
+    }
 
     /**
      * @brief 设置区块光照正确状态
      */
-    void setLightCorrect(bool correct) override { m_lightCorrect.store(correct, std::memory_order::release); }
+    void setLightCorrect(bool correct) override
+    {
+        m_lightCorrect.store(correct, std::memory_order::release);
+    }
 
     // Starlight 光照数据存储（内部使用）
     /**
@@ -386,14 +463,28 @@ public:
     /**
      * @brief 获取可变的天空光照 Nibble 数组
      */
-    [[nodiscard]] std::array<SWMRNibbleArray, LIGHT_SECTIONS>& skyNibbles() { return m_skyNibbles; }
-    [[nodiscard]] const std::array<SWMRNibbleArray, LIGHT_SECTIONS>& skyNibbles() const { return m_skyNibbles; }
+    [[nodiscard]] std::array<SWMRNibbleArray, LIGHT_SECTIONS>& skyNibbles()
+    {
+        return m_skyNibbles;
+    }
+
+    [[nodiscard]] const std::array<SWMRNibbleArray, LIGHT_SECTIONS>& skyNibbles() const
+    {
+        return m_skyNibbles;
+    }
 
     /**
      * @brief 获取可变的方块光照 Nibble 数组
      */
-    [[nodiscard]] std::array<SWMRNibbleArray, LIGHT_SECTIONS>& blockNibbles() { return m_blockNibbles; }
-    [[nodiscard]] const std::array<SWMRNibbleArray, LIGHT_SECTIONS>& blockNibbles() const { return m_blockNibbles; }
+    [[nodiscard]] std::array<SWMRNibbleArray, LIGHT_SECTIONS>& blockNibbles()
+    {
+        return m_blockNibbles;
+    }
+
+    [[nodiscard]] const std::array<SWMRNibbleArray, LIGHT_SECTIONS>& blockNibbles() const
+    {
+        return m_blockNibbles;
+    }
 
     // ========================================================================
     // 方块实体管理
@@ -461,10 +552,27 @@ public:
     // ========================================================================
 
     void addLoadedEntity(std::unique_ptr<Entity> entity);
-    [[nodiscard]] std::vector<std::unique_ptr<Entity>>& loadedEntities() { return m_loadedEntities; }
-    [[nodiscard]] const std::vector<std::unique_ptr<Entity>>& loadedEntities() const { return m_loadedEntities; }
-    [[nodiscard]] bool hasLoadedEntities() const { return !m_loadedEntities.empty(); }
-    [[nodiscard]] size_t loadedEntityCount() const { return m_loadedEntities.size(); }
+
+    [[nodiscard]] std::vector<std::unique_ptr<Entity>>& loadedEntities()
+    {
+        return m_loadedEntities;
+    }
+
+    [[nodiscard]] const std::vector<std::unique_ptr<Entity>>& loadedEntities() const
+    {
+        return m_loadedEntities;
+    }
+
+    [[nodiscard]] bool hasLoadedEntities() const
+    {
+        return !m_loadedEntities.empty();
+    }
+
+    [[nodiscard]] size_t loadedEntityCount() const
+    {
+        return m_loadedEntities.size();
+    }
+
     std::vector<std::unique_ptr<Entity>> takeLoadedEntities();
 
     // ---- 已加载实体 NBT（Java 存档路径）----
@@ -473,7 +581,12 @@ public:
     // 高频组件，entt 实体不可跨 registry 迁移），而 storage 层不持有 world。故推迟到
     // ServerWorld::onChunkLoaded（持有 *entityRegistry()）spawn 点再反序列化并注入世界。
     void addLoadedEntityNbt(std::unique_ptr<nbt::tags::compound_tag> tag);
-    [[nodiscard]] bool hasLoadedEntityNbt() const { return !m_loadedEntityNbt.empty(); }
+
+    [[nodiscard]] bool hasLoadedEntityNbt() const
+    {
+        return !m_loadedEntityNbt.empty();
+    }
+
     std::vector<std::unique_ptr<nbt::tags::compound_tag>> takeLoadedEntityNbt();
 
     // ========================================================================
@@ -531,7 +644,10 @@ public:
     /**
      * @brief 清空待执行方块刻（转交 TickManager 后调用）
      */
-    void clearPendingBlockTicks() noexcept { m_pendingBlockTicks.clear(); }
+    void clearPendingBlockTicks() noexcept
+    {
+        m_pendingBlockTicks.clear();
+    }
 
     void clearPostProcessingForSection(i32 sectionIndex);
 
@@ -551,14 +667,20 @@ public:
      *
      * @return 是否已完成后处理
      */
-    [[nodiscard]] bool isPostProcessingDone() const noexcept { return m_postProcessingDone; }
+    [[nodiscard]] bool isPostProcessingDone() const noexcept
+    {
+        return m_postProcessingDone;
+    }
 
     /**
      * @brief 设置后处理完成标志
      *
      * @param done 是否已完成后处理
      */
-    void setPostProcessingDone(bool done) noexcept { m_postProcessingDone = done; }
+    void setPostProcessingDone(bool done) noexcept
+    {
+        m_postProcessingDone = done;
+    }
 
     // ========================================================================
     // 游戏事件监听器注册表（按区块段）
@@ -759,12 +881,30 @@ public:
     ChunkDataRef& operator=(ChunkDataRef&& other) noexcept;
 
     // 访问
-    [[nodiscard]] ChunkData* get() const { return m_data; }
-    [[nodiscard]] ChunkData* operator->() const { return m_data; }
-    [[nodiscard]] ChunkData& operator*() const { return *m_data; }
+    [[nodiscard]] ChunkData* get() const
+    {
+        return m_data;
+    }
 
-    [[nodiscard]] bool isValid() const { return m_data != nullptr; }
-    [[nodiscard]] bool hasWriteAccess() const { return m_writeAccess; }
+    [[nodiscard]] ChunkData* operator->() const
+    {
+        return m_data;
+    }
+
+    [[nodiscard]] ChunkData& operator*() const
+    {
+        return *m_data;
+    }
+
+    [[nodiscard]] bool isValid() const
+    {
+        return m_data != nullptr;
+    }
+
+    [[nodiscard]] bool hasWriteAccess() const
+    {
+        return m_writeAccess;
+    }
 
 private:
     ChunkData* m_data = nullptr;

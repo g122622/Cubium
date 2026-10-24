@@ -53,6 +53,7 @@ public:
     using Ptr = std::unique_ptr<MockWidget>;
 
     MockWidget() = default;
+
     explicit MockWidget(const std::string& id)
         : Widget(id)
     {}
@@ -67,7 +68,11 @@ public:
 
     // 设置测量回调
     using MeasureCallback = std::function<Size(const MeasureSpec&, const MeasureSpec&)>;
-    void setMeasureCallback(MeasureCallback callback) { m_measureCallback = std::move(callback); }
+
+    void setMeasureCallback(MeasureCallback callback)
+    {
+        m_measureCallback = std::move(callback);
+    }
 
     // 设置期望尺寸（用于自适应测量）
     void setDesiredSize(i32 width, i32 height)
@@ -77,11 +82,21 @@ public:
     }
 
     // 获取渲染调用次数
-    i32 renderCount() const { return m_renderCount; }
+    i32 renderCount() const
+    {
+        return m_renderCount;
+    }
 
     // 获取最后一次渲染位置
-    i32 lastRenderX() const { return m_lastRenderX; }
-    i32 lastRenderY() const { return m_lastRenderY; }
+    i32 lastRenderX() const
+    {
+        return m_lastRenderX;
+    }
+
+    i32 lastRenderY() const
+    {
+        return m_lastRenderY;
+    }
 
     // Widget 接口实现
     void render(RenderContext& ctx, i32 mouseX, i32 mouseY, f32 partialTick) override
@@ -129,6 +144,7 @@ public:
     using Ptr = std::unique_ptr<MockContainerWidget>;
 
     MockContainerWidget() = default;
+
     explicit MockContainerWidget(const std::string& id)
         : Widget(id)
     {}
@@ -186,7 +202,10 @@ public:
         return {std::move(widget), std::move(adaptor)};
     }
 
-    Widget* widgetPtr() const { return m_widgetPtr; }
+    Widget* widgetPtr() const
+    {
+        return m_widgetPtr;
+    }
 
 private:
     Widget* m_widgetPtr;

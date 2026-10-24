@@ -74,19 +74,28 @@ public:
     {}
 
     void playSound(const ResourceLocation&, sound::SoundCategory, const Vector3&, f32, f32) override {}
+
     void addParticle(particle::ParticleTypeId, const Vector3&, const Vector3&, const Vector3&, u32) override {}
 
-    [[nodiscard]] Difficulty difficulty() const override { return m_difficulty; }
+    [[nodiscard]] Difficulty difficulty() const override
+    {
+        return m_difficulty;
+    }
 
     [[nodiscard]] world::tick::TickManager& tickManager() override
     {
         throw std::runtime_error("FoodStatsTestWorld::tickManager not implemented");
     }
+
     [[nodiscard]] const world::tick::TickManager& tickManager() const override
     {
         throw std::runtime_error("FoodStatsTestWorld::tickManager not implemented");
     }
-    EntityInstanceId spawnEntity(std::unique_ptr<Entity>) override { return 0; }
+
+    EntityInstanceId spawnEntity(std::unique_ptr<Entity>) override
+    {
+        return 0;
+    }
 
 private:
     Difficulty m_difficulty;
@@ -100,7 +109,10 @@ protected:
         m_world = std::make_unique<FoodStatsTestWorld>(Difficulty::Normal);
     }
 
-    void TearDown() override { m_world.reset(); }
+    void TearDown() override
+    {
+        m_world.reset();
+    }
 
     std::unique_ptr<FoodStatsTestWorld> m_world;
 };

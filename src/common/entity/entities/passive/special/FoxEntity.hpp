@@ -103,12 +103,18 @@ public:
     /**
      * @brief 获取皮肤类型
      */
-    [[nodiscard]] FoxType getFoxType() const { return m_foxType; }
+    [[nodiscard]] FoxType getFoxType() const
+    {
+        return m_foxType;
+    }
 
     /**
      * @brief 设置皮肤类型
      */
-    void setFoxType(FoxType type) { m_foxType = type; }
+    void setFoxType(FoxType type)
+    {
+        m_foxType = type;
+    }
 
     // ========== 信任系统 ==========
 
@@ -141,7 +147,10 @@ public:
      * @brief 获取所有信任的玩家列表
      * @return 信任玩家ID列表的常量引用
      */
-    [[nodiscard]] const std::vector<u64>& getTrustedPlayers() const { return m_trustedPlayers; }
+    [[nodiscard]] const std::vector<u64>& getTrustedPlayers() const
+    {
+        return m_trustedPlayers;
+    }
 
     // ========== 状态标志位 ==========
 
@@ -168,17 +177,26 @@ public:
     /**
      * @brief 获取蹲伏进度量 (0.0 - 3.0)
      */
-    [[nodiscard]] f32 crouchAmount() const { return m_crouchAmount; }
+    [[nodiscard]] f32 crouchAmount() const
+    {
+        return m_crouchAmount;
+    }
 
     /**
      * @brief 设置蹲伏进度量
      */
-    void setCrouchAmount(f32 amount) { m_crouchAmount = amount; }
+    void setCrouchAmount(f32 amount)
+    {
+        m_crouchAmount = amount;
+    }
 
     /**
      * @brief 是否完全蹲伏 (crouchAmount >= 3.0)
      */
-    [[nodiscard]] bool isFullyCrouched() const { return m_crouchAmount >= 3.0f; }
+    [[nodiscard]] bool isFullyCrouched() const
+    {
+        return m_crouchAmount >= 3.0f;
+    }
 
     /**
      * @brief 是否"感兴趣"（盯着目标）
@@ -203,7 +221,10 @@ public:
     /**
      * @brief 是否正在睡眠
      */
-    [[nodiscard]] bool isSleeping() const override { return (m_stateFlags & FLAG_SLEEPING) != 0; }
+    [[nodiscard]] bool isSleeping() const override
+    {
+        return (m_stateFlags & FLAG_SLEEPING) != 0;
+    }
 
     /**
      * @brief 设置睡眠状态
@@ -240,7 +261,10 @@ public:
     /**
      * @brief 获取叼着的物品（主手）
      */
-    [[nodiscard]] const ItemStack* getHeldItem() const { return m_heldItem.get(); }
+    [[nodiscard]] const ItemStack* getHeldItem() const
+    {
+        return m_heldItem.get();
+    }
 
     /**
      * @brief 设置叼着的物品
@@ -352,7 +376,10 @@ public:
     /**
      * @brief 获取眼睛高度
      */
-    [[nodiscard]] f32 eyeHeight() const override { return isChild() ? 0.2f : 0.4f; }
+    [[nodiscard]] f32 eyeHeight() const override
+    {
+        return isChild() ? 0.2f : 0.4f;
+    }
 
     // ========== 音效 ==========
 

@@ -93,12 +93,18 @@ public:
     /**
      * @brief 获取水平朝向属性
      */
-    static const DirectionProperty& FACING() { return BlockStateProperties::HORIZONTAL_FACING(); }
+    static const DirectionProperty& FACING()
+    {
+        return BlockStateProperties::HORIZONTAL_FACING();
+    }
 
     /**
      * @brief 获取花瓣数量属性
      */
-    static const IntegerProperty& AMOUNT() { return BlockStateProperties::FLOWER_AMOUNT(); }
+    static const IntegerProperty& AMOUNT()
+    {
+        return BlockStateProperties::FLOWER_AMOUNT();
+    }
 
     // ========== 放置逻辑 ==========
 

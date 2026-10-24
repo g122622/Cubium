@@ -234,7 +234,9 @@ std::string Value::toString() const
             std::ostringstream oss;
             oss << "[";
             for (size_t i = 0; i < m_arrayValue.size(); ++i) {
-                if (i > 0) oss << ", ";
+                if (i > 0) {
+                    oss << ", ";
+                }
                 oss << m_arrayValue[i].toString();
             }
             oss << "]";
@@ -245,7 +247,9 @@ std::string Value::toString() const
             oss << "{";
             bool first = true;
             for (const auto& [key, value] : m_objectValue) {
-                if (!first) oss << ", ";
+                if (!first) {
+                    oss << ", ";
+                }
                 first = false;
                 oss << key << ": " << value.toString();
             }
@@ -415,7 +419,9 @@ void BindingContext::exposeCallback(const std::string& name, Callback callback)
 
 void BindingContext::exposeSimpleCallback(const std::string& name, std::function<void()> callback)
 {
-    m_callbacks[name] = [callback](widget::Widget*, const event::Event&) { callback(); };
+    m_callbacks[name] = [callback](widget::Widget*, const event::Event&) {
+        callback();
+    };
 }
 
 bool BindingContext::hasCallback(const std::string& name) const
@@ -564,8 +570,9 @@ u64 BindingContext::subscribe(const std::string& path, StateChangeCallback callb
 void BindingContext::unsubscribe(u64 id)
 {
     for (auto& [path, subscribers] : m_subscribers) {
-        auto it =
-            std::remove_if(subscribers.begin(), subscribers.end(), [id](const auto& pair) { return pair.first == id; });
+        auto it = std::remove_if(subscribers.begin(), subscribers.end(), [id](const auto& pair) {
+            return pair.first == id;
+        });
         subscribers.erase(it, subscribers.end());
     }
 }
@@ -654,8 +661,15 @@ std::vector<Value> BindingContext::resolveCollection(const std::string& path) co
 
 void BindingContext::setCollectionValue(const std::string& name, const std::vector<Value>& values)
 {
-    m_exposedVars[name] =
-        ExposedVar{nullptr, 0, "", false, [values]() -> Value { return Value(values); }, nullptr, nullptr};
+    m_exposedVars[name] = ExposedVar{nullptr,
+        0,
+        "",
+        false,
+        [values]() -> Value {
+            return Value(values);
+        },
+        nullptr,
+        nullptr};
 }
 
 void BindingContext::clear()

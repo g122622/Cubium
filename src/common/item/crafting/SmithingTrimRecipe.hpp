@@ -90,24 +90,67 @@ public:
 
     [[nodiscard]] bool matches(const IInventory& inventory) const override;
     [[nodiscard]] ItemStack assemble(const IInventory& inventory) const override;
+
     /// trim 配方无固定结果物品（结果依赖 base + 纹饰），返回空堆
-    [[nodiscard]] ItemStack getResultItem() const override { return ItemStack::EMPTY; }
-    [[nodiscard]] const std::vector<Ingredient>& getIngredients() const override { return m_ingredients; }
-    [[nodiscard]] const std::string& getGroup() const override { return EMPTY_GROUP; }
-    [[nodiscard]] ResourceLocation getId() const override { return m_id; }
-    [[nodiscard]] RecipeType getType() const override { return RecipeType::SmithingTrim; }
-    [[nodiscard]] bool canFitIn(i32 width, i32 height) const override { return width * height >= 3; }
+    [[nodiscard]] ItemStack getResultItem() const override
+    {
+        return ItemStack::EMPTY;
+    }
+
+    [[nodiscard]] const std::vector<Ingredient>& getIngredients() const override
+    {
+        return m_ingredients;
+    }
+
+    [[nodiscard]] const std::string& getGroup() const override
+    {
+        return EMPTY_GROUP;
+    }
+
+    [[nodiscard]] ResourceLocation getId() const override
+    {
+        return m_id;
+    }
+
+    [[nodiscard]] RecipeType getType() const override
+    {
+        return RecipeType::SmithingTrim;
+    }
+
+    [[nodiscard]] bool canFitIn(i32 width, i32 height) const override
+    {
+        return width * height >= 3;
+    }
+
     [[nodiscard]] std::vector<ItemStack> getRemainingItems(const IInventory& inventory) const override;
 
     /// assemble 依赖 base 物品，结果每次可能不同
-    [[nodiscard]] bool isDynamic() const override { return true; }
+    [[nodiscard]] bool isDynamic() const override
+    {
+        return true;
+    }
 
     // ========== 盔甲纹饰配方特有方法 ==========
 
-    [[nodiscard]] const Ingredient& getTemplate() const { return m_template; }
-    [[nodiscard]] const Ingredient& getBase() const { return m_base; }
-    [[nodiscard]] const Ingredient& getAddition() const { return m_addition; }
-    [[nodiscard]] const ResourceLocation& getPattern() const { return m_pattern; }
+    [[nodiscard]] const Ingredient& getTemplate() const
+    {
+        return m_template;
+    }
+
+    [[nodiscard]] const Ingredient& getBase() const
+    {
+        return m_base;
+    }
+
+    [[nodiscard]] const Ingredient& getAddition() const
+    {
+        return m_addition;
+    }
+
+    [[nodiscard]] const ResourceLocation& getPattern() const
+    {
+        return m_pattern;
+    }
 
 private:
     static const std::string EMPTY_GROUP;

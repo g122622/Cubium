@@ -317,6 +317,7 @@ public:
         std::unique_ptr<std::array<u8, ARRAY_SIZE>> data;
         State state;
     };
+
     [[nodiscard]] SaveState getSaveState() const;
 
     /**

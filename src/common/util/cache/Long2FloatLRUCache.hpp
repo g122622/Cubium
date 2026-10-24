@@ -123,7 +123,10 @@ public:
     /**
      * @brief 获取缓存大小
      */
-    [[nodiscard]] i32 size() const { return static_cast<i32>(m_list.size()); }
+    [[nodiscard]] i32 size() const
+    {
+        return static_cast<i32>(m_list.size());
+    }
 
     /**
      * @brief 清除缓存

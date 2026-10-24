@@ -94,7 +94,10 @@ public:
      * @brief 获取潜影盒的颜色
      * @return 染料颜色，无色潜影盒返回 std::nullopt
      */
-    [[nodiscard]] const std::optional<DyeColor>& getColor() const { return m_color; }
+    [[nodiscard]] const std::optional<DyeColor>& getColor() const
+    {
+        return m_color;
+    }
 
     /**
      * @brief 检查方块是否为潜影盒（包括所有染色变体）
@@ -117,7 +120,10 @@ public:
     /**
      * @brief 检查是否有方块实体
      */
-    [[nodiscard]] bool hasBlockEntity() const noexcept override { return true; }
+    [[nodiscard]] bool hasBlockEntity() const noexcept override
+    {
+        return true;
+    }
 
     /**
      * @brief 创建方块实体
@@ -130,7 +136,10 @@ public:
      * @brief 获取方块实体类型
      * @return 方块实体类型
      */
-    [[nodiscard]] BlockEntityType getBlockEntityType() const { return BlockEntityType::ShulkerBox; }
+    [[nodiscard]] BlockEntityType getBlockEntityType() const
+    {
+        return BlockEntityType::ShulkerBox;
+    }
 
     // ========== 交互 ==========
 

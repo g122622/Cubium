@@ -100,7 +100,10 @@ public:
         , value(std::move(val))
     {}
 
-    const RTreeNode<T>* search(const i64[], const RTreeNode<T>*) const override { return this; }
+    const RTreeNode<T>* search(const i64[], const RTreeNode<T>*) const override
+    {
+        return this;
+    }
 };
 
 // ============================================================================

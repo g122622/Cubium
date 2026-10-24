@@ -70,23 +70,44 @@ struct NoiseSettings {
     bool useLegacyRandomSource = false; ///< 下界/末地使用旧版随机源
 
     // === 噪声尺寸计算 ===
-    [[nodiscard]] i32 noiseSizeX() const { return world::CHUNK_WIDTH / (sizeHorizontal * 4); }
+    [[nodiscard]] i32 noiseSizeX() const
+    {
+        return world::CHUNK_WIDTH / (sizeHorizontal * 4);
+    }
 
-    [[nodiscard]] i32 noiseSizeY() const { return height / (sizeVertical * 4); }
+    [[nodiscard]] i32 noiseSizeY() const
+    {
+        return height / (sizeVertical * 4);
+    }
 
-    [[nodiscard]] i32 noiseSizeZ() const { return world::CHUNK_WIDTH / (sizeHorizontal * 4); }
+    [[nodiscard]] i32 noiseSizeZ() const
+    {
+        return world::CHUNK_WIDTH / (sizeHorizontal * 4);
+    }
 
-    [[nodiscard]] i32 verticalNoiseGranularity() const { return sizeVertical * 4; }
+    [[nodiscard]] i32 verticalNoiseGranularity() const
+    {
+        return sizeVertical * 4;
+    }
 
-    [[nodiscard]] i32 horizontalNoiseGranularity() const { return sizeHorizontal * 4; }
+    [[nodiscard]] i32 horizontalNoiseGranularity() const
+    {
+        return sizeHorizontal * 4;
+    }
 
     // === 别名方法（对齐 MC 命名） ===
 
     /** 等价于 verticalNoiseGranularity() */
-    [[nodiscard]] i32 getCellHeight() const { return verticalNoiseGranularity(); }
+    [[nodiscard]] i32 getCellHeight() const
+    {
+        return verticalNoiseGranularity();
+    }
 
     /** 等价于 horizontalNoiseGranularity() */
-    [[nodiscard]] i32 getCellWidth() const { return horizontalNoiseGranularity(); }
+    [[nodiscard]] i32 getCellWidth() const
+    {
+        return horizontalNoiseGranularity();
+    }
 
     // === 工厂方法（带验证） ===
 

@@ -55,9 +55,15 @@ public:
 
     // ========== 标记接口 ==========
 
-    [[nodiscard]] bool isGameMaster() const noexcept override { return true; }
+    [[nodiscard]] bool isGameMaster() const noexcept override
+    {
+        return true;
+    }
 
-    [[nodiscard]] bool hasBlockEntity() const noexcept override { return true; }
+    [[nodiscard]] bool hasBlockEntity() const noexcept override
+    {
+        return true;
+    }
 
     [[nodiscard]] std::unique_ptr<BlockEntity> createBlockEntity(const BlockPos& pos) override;
 

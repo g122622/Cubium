@@ -475,7 +475,9 @@ i32 RedstoneWireBlock::_calculateInputPower(IWorld& world, const BlockPos& pos, 
             // 检查向上连接
             if (isNormalCube(*neighborState)) {
                 const BlockState* above = world.getBlockState(pos.up());
-                if (above != nullptr && isNormalCube(*above)) continue;
+                if (above != nullptr && isNormalCube(*above)) {
+                    continue;
+                }
                 BlockPos upPos = neighborPos.up();
                 const BlockState* upState = world.getBlockState(upPos);
                 if (upState && upState->is(this)) {
@@ -519,6 +521,7 @@ void RedstoneWireBlock::_notifyWireNeighbors(IWorld& world, const BlockPos& pos)
         world.updateNeighbors(pos.offset(dir), *this);
     }
 }
+
 BlockActionResult RedstoneWireBlock::useWithoutItem(
     const BlockState& state, IWorld& world, const BlockPos& pos, Player& player, const BlockRaycastResult& hit)
 {

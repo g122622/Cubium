@@ -52,8 +52,15 @@ public:
     explicit SwampHutStructure(ResourceLocation id);
     ~SwampHutStructure() override = default;
 
-    [[nodiscard]] const std::string& name() const override { return s_name; }
-    [[nodiscard]] const SpawnOverrides* spawnOverrides() const override { return &s_spawnOverrides; }
+    [[nodiscard]] const std::string& name() const override
+    {
+        return s_name;
+    }
+
+    [[nodiscard]] const SpawnOverrides* spawnOverrides() const override
+    {
+        return &s_spawnOverrides;
+    }
 
     /**
      * @brief 获取结构关联的生物群系标签

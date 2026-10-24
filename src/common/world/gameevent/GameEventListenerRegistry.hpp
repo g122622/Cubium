@@ -106,9 +106,15 @@ public:
  */
 class NoopGameEventListenerRegistry final : public GameEventListenerRegistry {
 public:
-    [[nodiscard]] bool isEmpty() const override { return true; }
+    [[nodiscard]] bool isEmpty() const override
+    {
+        return true;
+    }
+
     void registerListener(GameEventListener& /*listener*/) override {}
+
     void unregisterListener(GameEventListener& /*listener*/) override {}
+
     bool visitInRangeListeners(const GameEvent& /*event*/,
         const Vector3d& /*pos*/,
         const GameEvent::Context& /*context*/,

@@ -103,7 +103,9 @@ void BiomeColorCache::invalidateChunk(ChunkCoord chunkX, ChunkCoord chunkZ)
     // 同时使周围区块的边缘缓存失效（因为混合需要邻居数据）
     for (i32 dx = -1; dx <= 1; ++dx) {
         for (i32 dz = -1; dz <= 1; ++dz) {
-            if (dx == 0 && dz == 0) continue;
+            if (dx == 0 && dz == 0) {
+                continue;
+            }
 
             const u64 neighborKey = makeKey(chunkX + dx, chunkZ + dz);
             auto neighborIt = m_entries.find(neighborKey);

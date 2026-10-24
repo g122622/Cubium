@@ -818,6 +818,7 @@ TEST_F(JavaAnvilVillageStructureParityTest, JigsawHarnessIsWired)
         const char* pool;
         i32 expected;
     };
+
     constexpr PoolSpan kExpectedSpans[] = {
         {"minecraft:village/plains/streets", 2},
         {"minecraft:village/plains/houses", 12},

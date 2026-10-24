@@ -97,13 +97,17 @@ public:
 
     void tick(f32 dt) override
     {
-        if (!isVisible() || !isActive()) return;
+        if (!isVisible() || !isActive()) {
+            return;
+        }
         tickChildren(dt);
     }
 
     void paint(PaintContext& ctx) override
     {
-        if (!isVisible()) return;
+        if (!isVisible()) {
+            return;
+        }
         ctx.drawFilledRect(bounds(), Colors::fromARGB(255, 20, 20, 20));
         ctx.drawBorder(bounds(), 1.0f, Colors::fromARGB(255, 70, 70, 70));
 
@@ -129,7 +133,9 @@ public:
     bool onClick(i32 mouseX, i32 mouseY, i32 button, i32 mods) override
     {
         (void)mods;
-        if (!isActive() || !isVisible()) return false;
+        if (!isActive() || !isVisible()) {
+            return false;
+        }
 
         // 检查是否点击垂直滚动条
         if (m_showScrollbar && isOnScrollbar(mouseX, mouseY)) {
@@ -154,7 +160,9 @@ public:
         (void)mouseX;
         (void)mouseY;
         (void)mods;
-        if (button != 0) return false;
+        if (button != 0) {
+            return false;
+        }
 
         if (m_draggingScrollbar) {
             m_draggingScrollbar = false;
@@ -173,7 +181,9 @@ public:
 
     bool onDoubleClick(i32 mouseX, i32 mouseY, i32 button, i32 mods) override
     {
-        if (!isActive() || !isVisible()) return false;
+        if (!isActive() || !isVisible()) {
+            return false;
+        }
 
         i32 adjustedX = mouseX + m_scrollX;
         i32 adjustedY = mouseY + m_scrollY;
@@ -182,7 +192,9 @@ public:
 
     bool onRightClick(i32 mouseX, i32 mouseY, i32 mods) override
     {
-        if (!isActive() || !isVisible()) return false;
+        if (!isActive() || !isVisible()) {
+            return false;
+        }
 
         i32 adjustedX = mouseX + m_scrollX;
         i32 adjustedY = mouseY + m_scrollY;
@@ -197,7 +209,9 @@ public:
             i32 visibleH = visibleHeight();
             i32 maxScrollY = std::max(1, m_contentHeight - visibleH);
             i32 trackHeight = visibleH - scrollbarHeight();
-            if (trackHeight <= 0) trackHeight = 1;
+            if (trackHeight <= 0) {
+                trackHeight = 1;
+            }
             f64 scrollRatio = static_cast<f64>(deltaY) / trackHeight;
             m_scrollY += static_cast<i32>(scrollRatio * maxScrollY);
             clampScroll();
@@ -209,7 +223,9 @@ public:
             i32 visibleW = visibleWidth();
             i32 maxScrollX = std::max(1, m_contentWidth - visibleW);
             i32 trackWidth = visibleW - scrollbarWidthForHorizontal();
-            if (trackWidth <= 0) trackWidth = 1;
+            if (trackWidth <= 0) {
+                trackWidth = 1;
+            }
             f64 scrollRatio = static_cast<f64>(deltaX) / trackWidth;
             m_scrollX += static_cast<i32>(scrollRatio * maxScrollX);
             clampScroll();
@@ -231,8 +247,12 @@ public:
     bool onDragStart(i32 mouseX, i32 mouseY, i32 button, i32 mods) override
     {
         (void)mods;
-        if (!isActive() || !isVisible()) return false;
-        if (button != 0) return false; // 仅左键触发拖拽
+        if (!isActive() || !isVisible()) {
+            return false;
+        }
+        if (button != 0) {
+            return false; // 仅左键触发拖拽
+        }
 
         // 滚动条拖拽状态已由 onClick 设置（m_draggingScrollbar/m_draggingHorizontalScrollbar），
         // onDragStart 仅负责将事件转发给命中的子组件，让子组件也能感知拖拽开始。
@@ -249,7 +269,9 @@ public:
 
     bool onDragEnd(i32 mouseX, i32 mouseY, i32 button, bool dropped) override
     {
-        if (button != 0) return false;
+        if (button != 0) {
+            return false;
+        }
 
         // 滚动条拖拽：onDragEnd 仅作为通知，状态清理由 onRelease 统一完成
         // （避免 onDragEnd→onRelease 双重清理导致 onRelease 误将事件传递给子组件）。
@@ -265,7 +287,9 @@ public:
 
     bool onScroll(i32 mouseX, i32 mouseY, f64 delta) override
     {
-        if (!isActive() || !isVisible()) return false;
+        if (!isActive() || !isVisible()) {
+            return false;
+        }
 
         // 检测Shift键是否按下：Shift+滚轮进行水平滚动
         if (hasShiftModifier()) {
@@ -291,7 +315,9 @@ public:
 
     bool onKey(i32 key, i32 scanCode, i32 action, i32 mods) override
     {
-        if (!isActive() || !isVisible()) return false;
+        if (!isActive() || !isVisible()) {
+            return false;
+        }
 
         // 追踪Shift键状态（用于Shift+滚轮水平滚动）
         // 仅更新状态，不消费事件，以便Shift键正常传递给子组件和其他处理器
@@ -305,7 +331,9 @@ public:
             // 不消费Shift事件，让它继续传播
         }
 
-        if (!isFocused()) return false;
+        if (!isFocused()) {
+            return false;
+        }
 
         // 处理方向键滚动
         if (action == static_cast<i32>(KeyAction::Press) || action == static_cast<i32>(KeyAction::Repeat)) {
@@ -381,7 +409,10 @@ public:
     /**
      * @brief 获取内容宽度
      */
-    [[nodiscard]] i32 contentWidth() const { return m_contentWidth; }
+    [[nodiscard]] i32 contentWidth() const
+    {
+        return m_contentWidth;
+    }
 
     /**
      * @brief 设置内容高度
@@ -395,7 +426,10 @@ public:
     /**
      * @brief 获取内容高度
      */
-    [[nodiscard]] i32 contentHeight() const { return m_contentHeight; }
+    [[nodiscard]] i32 contentHeight() const
+    {
+        return m_contentHeight;
+    }
 
     /**
      * @brief 设置内容尺寸
@@ -419,7 +453,10 @@ public:
     /**
      * @brief 获取水平滚动位置
      */
-    [[nodiscard]] i32 scrollX() const { return m_scrollX; }
+    [[nodiscard]] i32 scrollX() const
+    {
+        return m_scrollX;
+    }
 
     /**
      * @brief 设置垂直滚动位置
@@ -433,7 +470,10 @@ public:
     /**
      * @brief 获取垂直滚动位置
      */
-    [[nodiscard]] i32 scrollY() const { return m_scrollY; }
+    [[nodiscard]] i32 scrollY() const
+    {
+        return m_scrollY;
+    }
 
     /**
      * @brief 垂直滚动指定距离
@@ -456,7 +496,10 @@ public:
     /**
      * @brief 滚动到顶部
      */
-    void scrollToTop() { m_scrollY = 0; }
+    void scrollToTop()
+    {
+        m_scrollY = 0;
+    }
 
     /**
      * @brief 滚动到底部
@@ -470,7 +513,10 @@ public:
     /**
      * @brief 滚动到最左侧
      */
-    void scrollToLeft() { m_scrollX = 0; }
+    void scrollToLeft()
+    {
+        m_scrollX = 0;
+    }
 
     /**
      * @brief 滚动到最右侧
@@ -515,7 +561,9 @@ public:
      */
     void scrollIntoView(Widget* child)
     {
-        if (child == nullptr) return;
+        if (child == nullptr) {
+            return;
+        }
 
         // 获取子组件在内容中的位置
         i32 childTop = child->y() - m_bounds.y;
@@ -547,53 +595,83 @@ public:
     /**
      * @brief 设置是否显示垂直滚动条
      */
-    void setShowScrollbar(bool show) { m_showScrollbar = show; }
+    void setShowScrollbar(bool show)
+    {
+        m_showScrollbar = show;
+    }
 
     /**
      * @brief 是否显示垂直滚动条
      */
-    [[nodiscard]] bool showScrollbar() const { return m_showScrollbar; }
+    [[nodiscard]] bool showScrollbar() const
+    {
+        return m_showScrollbar;
+    }
 
     /**
      * @brief 设置是否显示水平滚动条
      */
-    void setShowHorizontalScrollbar(bool show) { m_showHorizontalScrollbar = show; }
+    void setShowHorizontalScrollbar(bool show)
+    {
+        m_showHorizontalScrollbar = show;
+    }
 
     /**
      * @brief 是否显示水平滚动条
      */
-    [[nodiscard]] bool showHorizontalScrollbar() const { return m_showHorizontalScrollbar; }
+    [[nodiscard]] bool showHorizontalScrollbar() const
+    {
+        return m_showHorizontalScrollbar;
+    }
 
     /**
      * @brief 设置滚动速度
      */
-    void setScrollSpeed(f64 speed) { m_scrollSpeed = speed; }
+    void setScrollSpeed(f64 speed)
+    {
+        m_scrollSpeed = speed;
+    }
 
     /**
      * @brief 获取滚动速度
      */
-    [[nodiscard]] f64 scrollSpeed() const { return m_scrollSpeed; }
+    [[nodiscard]] f64 scrollSpeed() const
+    {
+        return m_scrollSpeed;
+    }
 
     /**
      * @brief 设置滚动回调
      * @param callback 回调函数，参数为 (x, y, deltaX, deltaY)
      */
-    void setOnScroll(ScrollCallback callback) { m_onScrollCallback = std::move(callback); }
+    void setOnScroll(ScrollCallback callback)
+    {
+        m_onScrollCallback = std::move(callback);
+    }
 
     /**
      * @brief 清除滚动回调
      */
-    void clearOnScroll() { m_onScrollCallback = nullptr; }
+    void clearOnScroll()
+    {
+        m_onScrollCallback = nullptr;
+    }
 
     /**
      * @brief 设置滚动条宽度
      */
-    void setScrollbarWidth(i32 width) { m_scrollbarWidth = width; }
+    void setScrollbarWidth(i32 width)
+    {
+        m_scrollbarWidth = width;
+    }
 
     /**
      * @brief 获取滚动条宽度
      */
-    [[nodiscard]] i32 scrollbarWidth() const { return m_scrollbarWidth; }
+    [[nodiscard]] i32 scrollbarWidth() const
+    {
+        return m_scrollbarWidth;
+    }
 
     /**
      * @brief 获取可见区域高度
@@ -631,7 +709,9 @@ public:
     [[nodiscard]] f64 scrollRatio() const
     {
         i32 maxScroll = m_contentHeight - visibleHeight();
-        if (maxScroll <= 0) return 0.0;
+        if (maxScroll <= 0) {
+            return 0.0;
+        }
         return static_cast<f64>(m_scrollY) / maxScroll;
     }
 
@@ -641,7 +721,9 @@ public:
     [[nodiscard]] f64 horizontalScrollRatio() const
     {
         i32 maxScroll = m_contentWidth - visibleWidth();
-        if (maxScroll <= 0) return 0.0;
+        if (maxScroll <= 0) {
+            return 0.0;
+        }
         return static_cast<f64>(m_scrollX) / maxScroll;
     }
 
@@ -662,7 +744,9 @@ protected:
      */
     [[nodiscard]] bool isOnScrollbar(i32 mouseX, i32 mouseY) const
     {
-        if (!m_showScrollbar) return false;
+        if (!m_showScrollbar) {
+            return false;
+        }
 
         // 当水平滚动条可见时，垂直滚动条底部不覆盖水平滚动条区域
         i32 scrollbarBottom = m_bounds.bottom();
@@ -679,8 +763,12 @@ protected:
      */
     [[nodiscard]] bool isOnHorizontalScrollbar(i32 mouseX, i32 mouseY) const
     {
-        if (!m_showHorizontalScrollbar) return false;
-        if (!isHorizontalScrollbarVisible()) return false;
+        if (!m_showHorizontalScrollbar) {
+            return false;
+        }
+        if (!isHorizontalScrollbarVisible()) {
+            return false;
+        }
 
         // 当垂直滚动条可见时，水平滚动条右侧不覆盖垂直滚动条区域
         i32 scrollbarRight = m_bounds.right();
@@ -711,12 +799,18 @@ protected:
     /**
      * @brief 不考虑水平滚动条的可见高度（用于判断滚动条可见性）
      */
-    [[nodiscard]] i32 visibleHeightRaw() const { return m_bounds.height - m_padding.vertical(); }
+    [[nodiscard]] i32 visibleHeightRaw() const
+    {
+        return m_bounds.height - m_padding.vertical();
+    }
 
     /**
      * @brief 不考虑垂直滚动条的可见宽度（用于判断滚动条可见性）
      */
-    [[nodiscard]] i32 visibleWidthRaw() const { return m_bounds.width - m_padding.horizontal(); }
+    [[nodiscard]] i32 visibleWidthRaw() const
+    {
+        return m_bounds.width - m_padding.horizontal();
+    }
 
     /**
      * @brief 计算垂直滚动条滑块高度
@@ -724,7 +818,9 @@ protected:
     [[nodiscard]] i32 scrollbarHeight() const
     {
         i32 visibleH = visibleHeight();
-        if (m_contentHeight <= 0) return 20;
+        if (m_contentHeight <= 0) {
+            return 20;
+        }
         f64 ratio = static_cast<f64>(visibleH) / m_contentHeight;
         return std::max(20, static_cast<i32>(ratio * visibleH));
     }
@@ -735,7 +831,9 @@ protected:
     [[nodiscard]] i32 scrollbarWidthForHorizontal() const
     {
         i32 visibleW = visibleWidth();
-        if (m_contentWidth <= 0) return 20;
+        if (m_contentWidth <= 0) {
+            return 20;
+        }
         f64 ratio = static_cast<f64>(visibleW) / m_contentWidth;
         return std::max(20, static_cast<i32>(ratio * visibleW));
     }
@@ -746,7 +844,10 @@ protected:
      * 注意：ScrollableWidget::onScroll 不直接接收修饰键信息，
      * 此方法使用平台相关的状态查询。如果无法获取，默认返回false。
      */
-    [[nodiscard]] bool hasShiftModifier() const { return m_shiftHeld; }
+    [[nodiscard]] bool hasShiftModifier() const
+    {
+        return m_shiftHeld;
+    }
 
     /**
      * @brief 绘制垂直滚动条
@@ -755,7 +856,9 @@ protected:
     {
         i32 visibleH = visibleHeight();
         i32 maxScroll = m_contentHeight - visibleH;
-        if (maxScroll <= 0) return;
+        if (maxScroll <= 0) {
+            return;
+        }
 
         // 计算滑块高度和位置
         i32 thumbHeight = scrollbarHeight();
@@ -784,7 +887,9 @@ protected:
     {
         i32 visibleW = visibleWidth();
         i32 maxScroll = m_contentWidth - visibleW;
-        if (maxScroll <= 0) return;
+        if (maxScroll <= 0) {
+            return;
+        }
 
         // 计算滑块宽度和位置
         i32 thumbWidth = scrollbarWidthForHorizontal();

@@ -73,7 +73,9 @@ public:
             "Codec must satisfy StreamCodec<B,PacketStruct> or the CodecFor concept");
 
         // matches：variant 当前下标 == altIndex
-        auto matches = [altIndex](const Variant& value) { return value.index() == altIndex; };
+        auto matches = [altIndex](const Variant& value) {
+            return value.index() == altIndex;
+        };
 
         // codec 被 encode/decode 两个闭包共享，故存 shared_ptr。
         auto shared = std::make_shared<Codec>(std::move(codec));
@@ -99,7 +101,10 @@ public:
         return ok;
     }
 
-    [[nodiscard]] std::unique_ptr<ProtocolInfo<B, Variant>> build() { return std::move(m_info); }
+    [[nodiscard]] std::unique_ptr<ProtocolInfo<B, Variant>> build()
+    {
+        return std::move(m_info);
+    }
 
 private:
     std::unique_ptr<ProtocolInfo<B, Variant>> m_info;

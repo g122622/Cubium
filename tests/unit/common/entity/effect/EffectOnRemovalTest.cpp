@@ -95,7 +95,10 @@ public:
     }
 
     /// 预置某位置为实心完整方块（用于满足蛛网的支撑判定）
-    void putSolid(i32 x, i32 y, i32 z, const BlockState* state) { m_blocks[BlockPos(x, y, z)] = state; }
+    void putSolid(i32 x, i32 y, i32 z, const BlockState* state)
+    {
+        m_blocks[BlockPos(x, y, z)] = state;
+    }
 
     std::map<BlockPos, const BlockState*> m_blocks;
     std::vector<BlockPos> m_setBlocks;

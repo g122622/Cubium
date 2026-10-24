@@ -104,7 +104,10 @@ public:
     /**
      * @brief 获取原生JSContext指针
      */
-    [[nodiscard]] JSContext* jsContext() const { return m_context; }
+    [[nodiscard]] JSContext* jsContext() const
+    {
+        return m_context;
+    }
 
     /**
      * @brief 注册原生C函数到全局对象

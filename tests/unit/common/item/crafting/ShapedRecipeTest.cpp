@@ -32,9 +32,15 @@ using namespace mc::crafting;
 
 class ShapedRecipeTest : public ::testing::Test {
 protected:
-    void SetUp() override { RecipeManager::instance().clear(); }
+    void SetUp() override
+    {
+        RecipeManager::instance().clear();
+    }
 
-    void TearDown() override { RecipeManager::instance().clear(); }
+    void TearDown() override
+    {
+        RecipeManager::instance().clear();
+    }
 };
 
 // ========== 构造函数测试 ==========

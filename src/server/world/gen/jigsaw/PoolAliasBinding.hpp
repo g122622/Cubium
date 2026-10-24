@@ -96,8 +96,15 @@ public:
         callback(m_alias, m_target);
     }
 
-    [[nodiscard]] const ResourceLocation& alias() const override { return m_alias; }
-    [[nodiscard]] const ResourceLocation& target() const noexcept { return m_target; }
+    [[nodiscard]] const ResourceLocation& alias() const override
+    {
+        return m_alias;
+    }
+
+    [[nodiscard]] const ResourceLocation& target() const noexcept
+    {
+        return m_target;
+    }
 
     [[nodiscard]] std::unique_ptr<PoolAliasBinding> clone() const override
     {
@@ -142,7 +149,11 @@ public:
 
     void forEachResolved(math::IRandom& rng, const Resolver& callback) const override;
 
-    [[nodiscard]] const ResourceLocation& alias() const override { return m_alias; }
+    [[nodiscard]] const ResourceLocation& alias() const override
+    {
+        return m_alias;
+    }
+
     [[nodiscard]] std::unique_ptr<PoolAliasBinding> clone() const override
     {
         return std::make_unique<RandomPoolAliasBinding>(m_alias, m_targets);
@@ -151,7 +162,10 @@ public:
     /**
      * @brief 获取所有候选池
      */
-    [[nodiscard]] const std::vector<WeightedTarget>& targets() const noexcept { return m_targets; }
+    [[nodiscard]] const std::vector<WeightedTarget>& targets() const noexcept
+    {
+        return m_targets;
+    }
 
     /**
      * @brief 按权重随机解析为单个目标池（仅供 forEachResolved 内部及旧调用点使用）
@@ -200,13 +214,20 @@ public:
 
     void forEachResolved(math::IRandom& rng, const Resolver& callback) const override;
 
-    [[nodiscard]] const ResourceLocation& alias() const override { return m_alias; }
+    [[nodiscard]] const ResourceLocation& alias() const override
+    {
+        return m_alias;
+    }
+
     [[nodiscard]] std::unique_ptr<PoolAliasBinding> clone() const override;
 
     /**
      * @brief 获取所有候选组
      */
-    [[nodiscard]] const std::vector<AliasGroup>& groups() const noexcept { return m_groups; }
+    [[nodiscard]] const std::vector<AliasGroup>& groups() const noexcept
+    {
+        return m_groups;
+    }
 
 private:
     ResourceLocation m_alias;
@@ -237,12 +258,18 @@ public:
     /**
      * @brief 是否为空
      */
-    [[nodiscard]] bool empty() const noexcept { return m_bindings.empty(); }
+    [[nodiscard]] bool empty() const noexcept
+    {
+        return m_bindings.empty();
+    }
 
     /**
      * @brief 获取所有绑定（只读）
      */
-    [[nodiscard]] const std::vector<std::unique_ptr<PoolAliasBinding>>& bindings() const noexcept { return m_bindings; }
+    [[nodiscard]] const std::vector<std::unique_ptr<PoolAliasBinding>>& bindings() const noexcept
+    {
+        return m_bindings;
+    }
 
 private:
     std::vector<std::unique_ptr<PoolAliasBinding>> m_bindings;

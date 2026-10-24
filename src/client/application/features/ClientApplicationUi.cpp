@@ -160,12 +160,24 @@ mc::network::ir::IrPacket makeOpenPlayerInventoryPacket(EntityInstanceId entityI
 u8 packPlayerInput(f32 strafe, f32 forward, bool jumping, bool sneaking)
 {
     u8 v = 0;
-    if (forward > 0.0f) v |= 0x01; // forward
-    if (forward < 0.0f) v |= 0x02; // backward
-    if (strafe < 0.0f) v |= 0x04;  // left（A）
-    if (strafe > 0.0f) v |= 0x08;  // right（D）
-    if (jumping) v |= 0x10;        // jump
-    if (sneaking) v |= 0x20;       // shift
+    if (forward > 0.0f) {
+        v |= 0x01; // forward
+    }
+    if (forward < 0.0f) {
+        v |= 0x02; // backward
+    }
+    if (strafe < 0.0f) {
+        v |= 0x04; // left（A）
+    }
+    if (strafe > 0.0f) {
+        v |= 0x08; // right（D）
+    }
+    if (jumping) {
+        v |= 0x10; // jump
+    }
+    if (sneaking) {
+        v |= 0x20; // shift
+    }
     return v;
 }
 
@@ -472,12 +484,24 @@ void ClientApplication::handleMouseAndMovementInput()
     bool jumping = false;
     bool sneaking = false;
 
-    if (m_input.isKeyPressed(GLFW_KEY_W)) forward += 1.0f;
-    if (m_input.isKeyPressed(GLFW_KEY_S)) forward -= 1.0f;
-    if (m_input.isKeyPressed(GLFW_KEY_A)) strafe -= 1.0f;
-    if (m_input.isKeyPressed(GLFW_KEY_D)) strafe += 1.0f;
-    if (m_input.isKeyPressed(GLFW_KEY_SPACE)) jumping = true;
-    if (m_input.isKeyPressed(GLFW_KEY_LEFT_SHIFT)) sneaking = true;
+    if (m_input.isKeyPressed(GLFW_KEY_W)) {
+        forward += 1.0f;
+    }
+    if (m_input.isKeyPressed(GLFW_KEY_S)) {
+        forward -= 1.0f;
+    }
+    if (m_input.isKeyPressed(GLFW_KEY_A)) {
+        strafe -= 1.0f;
+    }
+    if (m_input.isKeyPressed(GLFW_KEY_D)) {
+        strafe += 1.0f;
+    }
+    if (m_input.isKeyPressed(GLFW_KEY_SPACE)) {
+        jumping = true;
+    }
+    if (m_input.isKeyPressed(GLFW_KEY_LEFT_SHIFT)) {
+        sneaking = true;
+    }
 
     // 检查玩家是否正在骑乘
     if (m_player->isRiding() && m_network && m_network->isPlaying()) {

@@ -54,19 +54,28 @@ public:
      * @brief 获取飞行高度限制
      * @return 最大飞行高度（相对地面）
      */
-    virtual f32 getMaxFlightHeight() const { return 32.0f; }
+    virtual f32 getMaxFlightHeight() const
+    {
+        return 32.0f;
+    }
 
     /**
      * @brief 检查是否可以降落
      * @return 如果可以降落返回true
      */
-    virtual bool canLand() const { return true; }
+    virtual bool canLand() const
+    {
+        return true;
+    }
 
     /**
      * @brief 检查是否可以在当前位置悬停
      * @return 如果可以悬停返回true
      */
-    virtual bool canHover() const { return false; }
+    virtual bool canHover() const
+    {
+        return false;
+    }
 };
 
 } // namespace entity

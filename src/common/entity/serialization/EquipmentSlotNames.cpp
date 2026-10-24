@@ -55,14 +55,30 @@ const char* toName(EquipmentSlot slot) noexcept
 
 std::optional<EquipmentSlot> fromName(const std::string_view name) noexcept
 {
-    if (name == "mainhand") return EquipmentSlot::MainHand;
-    if (name == "offhand") return EquipmentSlot::OffHand;
-    if (name == "feet") return EquipmentSlot::Feet;
-    if (name == "legs") return EquipmentSlot::Legs;
-    if (name == "chest") return EquipmentSlot::Chest;
-    if (name == "head") return EquipmentSlot::Head;
-    if (name == "body") return EquipmentSlot::Body;
-    if (name == "saddle") return EquipmentSlot::Saddle;
+    if (name == "mainhand") {
+        return EquipmentSlot::MainHand;
+    }
+    if (name == "offhand") {
+        return EquipmentSlot::OffHand;
+    }
+    if (name == "feet") {
+        return EquipmentSlot::Feet;
+    }
+    if (name == "legs") {
+        return EquipmentSlot::Legs;
+    }
+    if (name == "chest") {
+        return EquipmentSlot::Chest;
+    }
+    if (name == "head") {
+        return EquipmentSlot::Head;
+    }
+    if (name == "body") {
+        return EquipmentSlot::Body;
+    }
+    if (name == "saddle") {
+        return EquipmentSlot::Saddle;
+    }
     return std::nullopt;
 }
 

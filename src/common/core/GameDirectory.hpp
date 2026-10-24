@@ -118,7 +118,10 @@ public:
      * @brief 获取游戏根目录
      * @return 游戏根目录的绝对路径
      */
-    [[nodiscard]] const std::filesystem::path& root() const { return m_root; }
+    [[nodiscard]] const std::filesystem::path& root() const
+    {
+        return m_root;
+    }
 
     /**
      * @brief 获取客户端配置文件路径
@@ -204,7 +207,10 @@ public:
      * @brief 检查游戏根目录是否有效
      * @return 根目录路径是否非空
      */
-    [[nodiscard]] bool isValid() const { return !m_root.empty(); }
+    [[nodiscard]] bool isValid() const
+    {
+        return !m_root.empty();
+    }
 
 private:
     std::filesystem::path m_root;

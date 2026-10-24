@@ -73,30 +73,86 @@ public:
 
     // ========== Climate 参数密度函数 ==========
 
-    [[nodiscard]] const DensityFunction& temperature() const { return *m_temperature; }
-    [[nodiscard]] const DensityFunction& vegetation() const { return *m_vegetation; }
-    [[nodiscard]] const DensityFunction& continents() const { return *m_continents; }
-    [[nodiscard]] const DensityFunction& erosion() const { return *m_erosion; }
-    [[nodiscard]] const DensityFunction& depth() const { return *m_depth; }
-    [[nodiscard]] const DensityFunction& ridges() const { return *m_ridges; }
+    [[nodiscard]] const DensityFunction& temperature() const
+    {
+        return *m_temperature;
+    }
+
+    [[nodiscard]] const DensityFunction& vegetation() const
+    {
+        return *m_vegetation;
+    }
+
+    [[nodiscard]] const DensityFunction& continents() const
+    {
+        return *m_continents;
+    }
+
+    [[nodiscard]] const DensityFunction& erosion() const
+    {
+        return *m_erosion;
+    }
+
+    [[nodiscard]] const DensityFunction& depth() const
+    {
+        return *m_depth;
+    }
+
+    [[nodiscard]] const DensityFunction& ridges() const
+    {
+        return *m_ridges;
+    }
 
     // ========== 地形密度函数 ==========
 
-    [[nodiscard]] const DensityFunction& finalDensity() const { return *m_finalDensity; }
-    [[nodiscard]] const DensityFunction& preliminarySurfaceLevel() const { return *m_preliminarySurfaceLevel; }
+    [[nodiscard]] const DensityFunction& finalDensity() const
+    {
+        return *m_finalDensity;
+    }
+
+    [[nodiscard]] const DensityFunction& preliminarySurfaceLevel() const
+    {
+        return *m_preliminarySurfaceLevel;
+    }
 
     // ========== 洞穴密度函数 ==========
 
-    [[nodiscard]] const DensityFunction& barrierNoise() const { return *m_barrierNoise; }
-    [[nodiscard]] const DensityFunction& fluidLevelFloodednessNoise() const { return *m_fluidLevelFloodednessNoise; }
-    [[nodiscard]] const DensityFunction& fluidLevelSpreadNoise() const { return *m_fluidLevelSpreadNoise; }
-    [[nodiscard]] const DensityFunction& lavaNoise() const { return *m_lavaNoise; }
+    [[nodiscard]] const DensityFunction& barrierNoise() const
+    {
+        return *m_barrierNoise;
+    }
+
+    [[nodiscard]] const DensityFunction& fluidLevelFloodednessNoise() const
+    {
+        return *m_fluidLevelFloodednessNoise;
+    }
+
+    [[nodiscard]] const DensityFunction& fluidLevelSpreadNoise() const
+    {
+        return *m_fluidLevelSpreadNoise;
+    }
+
+    [[nodiscard]] const DensityFunction& lavaNoise() const
+    {
+        return *m_lavaNoise;
+    }
 
     // ========== 矿脉密度函数 ==========
 
-    [[nodiscard]] const DensityFunction& veinToggle() const { return *m_veinToggle; }
-    [[nodiscard]] const DensityFunction& veinRidged() const { return *m_veinRidged; }
-    [[nodiscard]] const DensityFunction& veinGap() const { return *m_veinGap; }
+    [[nodiscard]] const DensityFunction& veinToggle() const
+    {
+        return *m_veinToggle;
+    }
+
+    [[nodiscard]] const DensityFunction& veinRidged() const
+    {
+        return *m_veinRidged;
+    }
+
+    [[nodiscard]] const DensityFunction& veinGap() const
+    {
+        return *m_veinGap;
+    }
 
     /**
      * @brief 创建 Climate.Sampler

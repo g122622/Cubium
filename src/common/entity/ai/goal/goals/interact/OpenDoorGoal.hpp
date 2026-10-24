@@ -62,7 +62,10 @@ public:
     void resetTask() override;
     void tick() override;
 
-    [[nodiscard]] std::string getTypeName() const override { return "OpenDoorGoal"; }
+    [[nodiscard]] std::string getTypeName() const override
+    {
+        return "OpenDoorGoal";
+    }
 
 private:
     /// 是否在穿过门后关门

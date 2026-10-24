@@ -163,7 +163,9 @@ void AbstractContainerMenu::detectAndSendChanges()
     // 检查槽位变化
     for (i32 i = 0; i < static_cast<i32>(m_slots.size()); ++i) {
         const Slot* slot = m_slots[i].get();
-        if (slot == nullptr) continue;
+        if (slot == nullptr) {
+            continue;
+        }
 
         ItemStack currentStack = slot->getItem();
 
@@ -182,7 +184,9 @@ void AbstractContainerMenu::detectAndSendChanges()
                 previous.getOrCreateTag()["BundleContents"]["selected"] =
                     currentStack.getTag()->at("BundleContents").value("selected", -1);
                 changed = previous != currentStack;
-                if (!changed) m_lastSlotStates[i] = currentStack.copy();
+                if (!changed) {
+                    m_lastSlotStates[i] = currentStack.copy();
+                }
             }
         }
 
@@ -682,7 +686,9 @@ ItemStack AbstractContainerMenu::_handleQuickCraft(Slot& slot, i32 slotIndex, i3
             std::vector<std::pair<i32, i32>> slotAmounts; // slotIndex, space
             for (i32 dragSlotIndex : m_dragSlots) {
                 Slot* dragSlot = getSlot(dragSlotIndex);
-                if (dragSlot == nullptr) continue;
+                if (dragSlot == nullptr) {
+                    continue;
+                }
 
                 ItemStack existing = dragSlot->getItem();
                 i32 maxStackSize = dragSlot->getMaxStackSize(toDistribute);
@@ -698,10 +704,14 @@ ItemStack AbstractContainerMenu::_handleQuickCraft(Slot& slot, i32 slotIndex, i3
                 // 均匀分发
                 i32 slotsRemaining = static_cast<i32>(slotAmounts.size());
                 for (auto& [idx, space] : slotAmounts) {
-                    if (toDistribute.isEmpty()) break;
+                    if (toDistribute.isEmpty()) {
+                        break;
+                    }
 
                     i32 perSlot = toDistribute.getCount() / slotsRemaining;
-                    if (perSlot == 0) perSlot = 1;
+                    if (perSlot == 0) {
+                        perSlot = 1;
+                    }
                     perSlot = std::min(perSlot, space);
                     _distributeToDragSlot(toDistribute, idx, perSlot);
                     slotsRemaining--;
@@ -709,13 +719,17 @@ ItemStack AbstractContainerMenu::_handleQuickCraft(Slot& slot, i32 slotIndex, i3
             } else if (m_dragMode == DragConstants::MODE_SINGLE) {
                 // 逐个分发 (右键拖拽)
                 for (auto& [idx, space] : slotAmounts) {
-                    if (toDistribute.isEmpty()) break;
+                    if (toDistribute.isEmpty()) {
+                        break;
+                    }
                     _distributeToDragSlot(toDistribute, idx, 1);
                 }
             } else if (m_dragMode == DragConstants::MODE_FILL) {
                 // 全部分发 (中键拖拽) - 尝试填满每个槽位
                 for (auto& [idx, space] : slotAmounts) {
-                    if (toDistribute.isEmpty()) break;
+                    if (toDistribute.isEmpty()) {
+                        break;
+                    }
                     _distributeToDragSlot(toDistribute, idx, space);
                 }
             }
@@ -862,10 +876,14 @@ i32 AbstractContainerMenu::_extractDragMode(i32 button)
 
 bool AbstractContainerMenu::_isValidDragMode(i32 dragMode) const
 {
-    if (m_playerInventory == nullptr) return false;
+    if (m_playerInventory == nullptr) {
+        return false;
+    }
 
     const Player* player = m_playerInventory->getPlayer();
-    if (player == nullptr) return false;
+    if (player == nullptr) {
+        return false;
+    }
 
     // 模式 2 (全部分发) 只在创造模式下有效
     if (dragMode == 2 && !entity::GameModeUtils::isCreative(player->gameMode())) {

@@ -81,9 +81,17 @@ enum class _ConsumeEffectWireType : i32 {
 [[nodiscard]] Result<ConsumeEffectEntry> _readConsumeEffect(network::buffer::ByteBuf& buf);
 
 thread_local usize _patchDepth = 0;
+
 struct _PatchDepthGuard {
-    _PatchDepthGuard() { ++_patchDepth; }
-    ~_PatchDepthGuard() { --_patchDepth; }
+    _PatchDepthGuard()
+    {
+        ++_patchDepth;
+    }
+
+    ~_PatchDepthGuard()
+    {
+        --_patchDepth;
+    }
 };
 
 using nbt::tags::compound_tag;
@@ -138,7 +146,9 @@ Result<void> _writeBookValue(
         } else {
             const auto& string = raw.get_ref<const std::string&>();
             const auto length = util::text::utf16Length(string);
-            if (!length || *length > maxLength) return Error(ErrorCode::InvalidData, "Invalid book string");
+            if (!length || *length > maxLength) {
+                return Error(ErrorCode::InvalidData, "Invalid book string");
+            }
             buf.writeString(string);
         }
         return {};
@@ -146,7 +156,9 @@ Result<void> _writeBookValue(
     MC_TRY(write(_rawBookValue(value)));
     const bool filtered = value.is_object() && value.contains("filtered");
     buf.writeBool(filtered);
-    if (filtered) MC_TRY(write(value.at("filtered")));
+    if (filtered) {
+        MC_TRY(write(value.at("filtered")));
+    }
     return {};
 }
 
@@ -156,24 +168,32 @@ Result<nlohmann::json> _readBookValue(network::buffer::ByteBuf& buf, bool compon
         if (component) {
             std::vector<u8> bytes;
             MC_TRY_ASSIGN(bytes, readComponentNbtBytes(buf));
-            if (bytes.front() == 8) return nlohmann::json(text::componentNbtBytesToPlainText(bytes));
+            if (bytes.front() == 8) {
+                return nlohmann::json(text::componentNbtBytesToPlainText(bytes));
+            }
             network::buffer::ByteBuf nbtBuf(bytes.data(), bytes.size());
             auto tagResult = network::buffer::nbt_io::readRootCompound(nbtBuf);
-            if (tagResult.failed()) return tagResult.error();
+            if (tagResult.failed()) {
+                return tagResult.error();
+            }
             const auto tag = tagResult.value();
             return nbt::nbtToJson(*tag);
         }
         std::string value;
         MC_TRY_ASSIGN(value, buf.readString());
         const auto length = util::text::utf16Length(value);
-        if (!length || *length > maxLength) return Error(ErrorCode::InvalidData, "Invalid book string");
+        if (!length || *length > maxLength) {
+            return Error(ErrorCode::InvalidData, "Invalid book string");
+        }
         return nlohmann::json(value);
     };
     nlohmann::json raw;
     MC_TRY_ASSIGN(raw, read());
     bool filtered = false;
     MC_TRY_ASSIGN(filtered, buf.readBool());
-    if (!filtered) return raw;
+    if (!filtered) {
+        return raw;
+    }
     nlohmann::json replacement;
     MC_TRY_ASSIGN(replacement, read());
     return nlohmann::json{{"raw", std::move(raw)}, {"filtered", std::move(replacement)}};
@@ -306,11 +326,16 @@ void _writeColorList(network::buffer::ByteBuf& buf, const std::vector<i32>& colo
                 buf.writeVarInt(book.value("generation", 0));
             }
             const auto pages = book.value("pages", nlohmann::json::array());
-            if (!written && pages.size() > 100) return Error(ErrorCode::InvalidData, "Too many book pages");
+            if (!written && pages.size() > 100) {
+                return Error(ErrorCode::InvalidData, "Too many book pages");
+            }
             buf.writeVarInt(static_cast<i32>(pages.size()));
-            for (const auto& page : pages)
+            for (const auto& page : pages) {
                 MC_TRY(_writeBookValue(buf, page, written, 1024));
-            if (written) buf.writeBool(book.value("resolved", false));
+            }
+            if (written) {
+                buf.writeBool(book.value("resolved", false));
+            }
             return {};
         }
         case DataComponentType::DeathProtection: {
@@ -337,11 +362,15 @@ void _writeColorList(network::buffer::ByteBuf& buf, const std::vector<i32>& colo
                     const auto type = blockentity::BannerPatterns::byHash(layer.at("Pattern").get<std::string>());
                     const auto id = network::backend::java::JavaBannerPatternIds::toWireId(
                         "minecraft:" + blockentity::BannerPatterns::getFileName(type));
-                    if (!id) return Error(ErrorCode::InvalidData, "Unknown banner pattern");
+                    if (!id) {
+                        return Error(ErrorCode::InvalidData, "Unknown banner pattern");
+                    }
                     buf.writeVarInt(*id + 1);
                 }
                 const auto color = layer.at("Color").get<i32>();
-                if (color < 0 || color >= 16) return Error(ErrorCode::InvalidData, "Invalid banner color");
+                if (color < 0 || color >= 16) {
+                    return Error(ErrorCode::InvalidData, "Invalid banner color");
+                }
                 buf.writeVarInt(color);
             }
             return {};
@@ -487,20 +516,27 @@ void _writeColorList(network::buffer::ByteBuf& buf, const std::vector<i32>& colo
         case DataComponentType::BundleContents: {
             i32 count = 0;
             MC_TRY_ASSIGN(count, buf.readVarInt());
-            if (count < 0 || static_cast<usize>(count) > buf.readableBytes() / 4)
+            if (count < 0 || static_cast<usize>(count) > buf.readableBytes() / 4) {
                 return Error(ErrorCode::InvalidData, "Invalid bundle item count");
+            }
             std::vector<ItemStack> contents;
             for (i32 i = 0; i < count; ++i) {
                 i32 amount = 0, id = 0;
                 MC_TRY_ASSIGN(amount, buf.readVarInt());
-                if (amount <= 0) return Error(ErrorCode::InvalidData, "Empty bundle item");
+                if (amount <= 0) {
+                    return Error(ErrorCode::InvalidData, "Empty bundle item");
+                }
                 MC_TRY_ASSIGN(id, buf.readVarInt());
                 auto* item = ItemRegistry::instance().getItem(
                     network::backend::java::JavaItemIdMap::instance().fromJavaRegistryId(static_cast<u32>(id)));
-                if (item == nullptr) return Error(ErrorCode::InvalidData, "Unknown bundle item");
+                if (item == nullptr) {
+                    return Error(ErrorCode::InvalidData, "Unknown bundle item");
+                }
                 ItemStack stack(item, amount);
                 auto patch = readPatchFromWire(buf);
-                if (patch.failed()) return patch.error();
+                if (patch.failed()) {
+                    return patch.error();
+                }
                 stack.applyComponentPatch(patch.value());
                 contents.push_back(std::move(stack));
             }
@@ -518,13 +554,16 @@ void _writeColorList(network::buffer::ByteBuf& buf, const std::vector<i32>& colo
                 MC_TRY_ASSIGN(author, buf.readString());
                 i32 generation = 0;
                 MC_TRY_ASSIGN(generation, buf.readVarInt());
-                if (generation < 0 || generation > 3) return Error(ErrorCode::InvalidData, "Invalid book generation");
+                if (generation < 0 || generation > 3) {
+                    return Error(ErrorCode::InvalidData, "Invalid book generation");
+                }
                 book = {{"title", std::move(title)}, {"author", std::move(author)}, {"generation", generation}};
             }
             i32 count = 0;
             MC_TRY_ASSIGN(count, buf.readVarInt());
-            if (count < 0 || (!written && count > 100) || static_cast<usize>(count) > buf.readableBytes())
+            if (count < 0 || (!written && count > 100) || static_cast<usize>(count) > buf.readableBytes()) {
                 return Error(ErrorCode::InvalidData, "Invalid book page count");
+            }
             auto pages = nlohmann::json::array();
             for (i32 i = 0; i < count; ++i) {
                 nlohmann::json page;
@@ -559,8 +598,9 @@ void _writeColorList(network::buffer::ByteBuf& buf, const std::vector<i32>& colo
         case DataComponentType::BannerPatterns: {
             i32 count = 0;
             MC_TRY_ASSIGN(count, buf.readVarInt());
-            if (count < 0 || static_cast<usize>(count) > buf.readableBytes() / 2)
+            if (count < 0 || static_cast<usize>(count) > buf.readableBytes() / 2) {
                 return Error(ErrorCode::InvalidData, "Invalid banner layer count");
+            }
             auto layers = nlohmann::json::array();
             for (i32 i = 0; i < count; ++i) {
                 i32 id = 0;
@@ -574,8 +614,9 @@ void _writeColorList(network::buffer::ByteBuf& buf, const std::vector<i32>& colo
                     layer["Pattern"] = "b";
                 } else {
                     const auto& entries = network::backend::java::JavaBannerPatternIds::ENTRIES;
-                    if (id < 1 || id > static_cast<i32>(entries.size()))
+                    if (id < 1 || id > static_cast<i32>(entries.size())) {
                         return Error(ErrorCode::InvalidData, "Invalid banner pattern holder");
+                    }
                     for (i32 type = 0; type < static_cast<i32>(blockentity::BannerPatternType::Count); ++type) {
                         const auto pattern = static_cast<blockentity::BannerPatternType>(type);
                         if ("minecraft:" + blockentity::BannerPatterns::getFileName(pattern) == entries[id - 1]) {
@@ -586,7 +627,9 @@ void _writeColorList(network::buffer::ByteBuf& buf, const std::vector<i32>& colo
                 }
                 i32 color = 0;
                 MC_TRY_ASSIGN(color, buf.readVarInt());
-                if (color < 0 || color >= 16) return Error(ErrorCode::InvalidData, "Invalid banner color");
+                if (color < 0 || color >= 16) {
+                    return Error(ErrorCode::InvalidData, "Invalid banner color");
+                }
                 layer["Color"] = color;
                 layers.push_back(std::move(layer));
             }
@@ -767,7 +810,9 @@ Result<void> writePatchToWire(network::buffer::ByteBuf& buf, const DataComponent
 
 Result<DataComponentPatch> readPatchFromWire(network::buffer::ByteBuf& buf)
 {
-    if (_patchDepth >= 64) return Error(ErrorCode::InvalidData, "Item component nesting exceeds limit");
+    if (_patchDepth >= 64) {
+        return Error(ErrorCode::InvalidData, "Item component nesting exceeds limit");
+    }
     _PatchDepthGuard guard;
     DataComponentPatch patch;
     i32 addedCount = 0;

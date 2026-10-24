@@ -110,7 +110,10 @@ public:
     /**
      * @brief 获取精灵数量
      */
-    [[nodiscard]] size_t spriteCount() const { return m_sprites.size(); }
+    [[nodiscard]] size_t spriteCount() const
+    {
+        return m_sprites.size();
+    }
 
     /**
      * @brief 设置当前图集尺寸（用于UV计算）
@@ -122,17 +125,26 @@ public:
     /**
      * @brief 获取图集宽度
      */
-    [[nodiscard]] i32 atlasWidth() const { return m_atlasWidth; }
+    [[nodiscard]] i32 atlasWidth() const
+    {
+        return m_atlasWidth;
+    }
 
     /**
      * @brief 获取图集高度
      */
-    [[nodiscard]] i32 atlasHeight() const { return m_atlasHeight; }
+    [[nodiscard]] i32 atlasHeight() const
+    {
+        return m_atlasHeight;
+    }
 
     /**
      * @brief 获取所有精灵（只读）
      */
-    [[nodiscard]] const std::unordered_map<std::string, GuiSprite>& sprites() const { return m_sprites; }
+    [[nodiscard]] const std::unordered_map<std::string, GuiSprite>& sprites() const
+    {
+        return m_sprites;
+    }
 
 private:
     std::unordered_map<std::string, GuiSprite> m_sprites;

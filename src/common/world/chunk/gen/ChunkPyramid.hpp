@@ -70,7 +70,10 @@ public:
     {}
 
     /** @brief 获取步骤列表 */
-    [[nodiscard]] const std::vector<ChunkStep>& steps() const { return m_steps; }
+    [[nodiscard]] const std::vector<ChunkStep>& steps() const
+    {
+        return m_steps;
+    }
 
     /**
      * @brief 根据目标状态获取对应的步骤

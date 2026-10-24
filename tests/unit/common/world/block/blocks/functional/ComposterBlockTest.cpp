@@ -358,8 +358,16 @@ public:
         return setBlockState(x, y, z, state);
     }
 
-    [[nodiscard]] mc::world::chunk::IChunkManager* chunkManager() override { return &m_stubChunks; }
-    [[nodiscard]] const mc::world::chunk::IChunkManager* chunkManager() const override { return &m_stubChunks; }
+    [[nodiscard]] mc::world::chunk::IChunkManager* chunkManager() override
+    {
+        return &m_stubChunks;
+    }
+
+    [[nodiscard]] const mc::world::chunk::IChunkManager* chunkManager() const override
+    {
+        return &m_stubChunks;
+    }
+
     mc::test::StubChunkManager m_stubChunks{nullptr, true};
 
     [[nodiscard]] world::tick::TickManager& tickManager() override
@@ -374,10 +382,16 @@ public:
         return *m_tickManagerPtr;
     }
 
-    void setBlockAt(const BlockPos& pos, const BlockState* state) { (void)setBlockState(pos.x, pos.y, pos.z, state); }
+    void setBlockAt(const BlockPos& pos, const BlockState* state)
+    {
+        (void)setBlockState(pos.x, pos.y, pos.z, state);
+    }
 
     /// 设置随机数种子以控制 nextFloat() 结果
-    void setRandomSeed(u64 seed) { m_random.setSeed(seed); }
+    void setRandomSeed(u64 seed)
+    {
+        m_random.setSeed(seed);
+    }
 
     /// 检查指定位置的方块状态等级
     [[nodiscard]] i32 getLevelAt(const BlockPos& pos) const

@@ -216,47 +216,109 @@ std::unordered_set<const Block*> ShovelItem::_initializeEffectiveBlocks()
     std::unordered_set<const Block*> blocks;
 
     // 泥土类
-    if (VanillaBlocks::DIRT) blocks.insert(VanillaBlocks::DIRT);
-    if (VanillaBlocks::GRASS_BLOCK) blocks.insert(VanillaBlocks::GRASS_BLOCK);
-    if (VanillaBlocks::COARSE_DIRT) blocks.insert(VanillaBlocks::COARSE_DIRT);
-    if (VanillaBlocks::PODZOL) blocks.insert(VanillaBlocks::PODZOL);
-    if (VanillaBlocks::GRASS_PATH) blocks.insert(VanillaBlocks::GRASS_PATH);
-    if (VanillaBlocks::MYCELIUM) blocks.insert(VanillaBlocks::MYCELIUM);
-    if (VanillaBlocks::FARMLAND) blocks.insert(VanillaBlocks::FARMLAND);
+    if (VanillaBlocks::DIRT) {
+        blocks.insert(VanillaBlocks::DIRT);
+    }
+    if (VanillaBlocks::GRASS_BLOCK) {
+        blocks.insert(VanillaBlocks::GRASS_BLOCK);
+    }
+    if (VanillaBlocks::COARSE_DIRT) {
+        blocks.insert(VanillaBlocks::COARSE_DIRT);
+    }
+    if (VanillaBlocks::PODZOL) {
+        blocks.insert(VanillaBlocks::PODZOL);
+    }
+    if (VanillaBlocks::GRASS_PATH) {
+        blocks.insert(VanillaBlocks::GRASS_PATH);
+    }
+    if (VanillaBlocks::MYCELIUM) {
+        blocks.insert(VanillaBlocks::MYCELIUM);
+    }
+    if (VanillaBlocks::FARMLAND) {
+        blocks.insert(VanillaBlocks::FARMLAND);
+    }
 
     // 沙子类
-    if (VanillaBlocks::SAND) blocks.insert(VanillaBlocks::SAND);
-    if (VanillaBlocks::RED_SAND) blocks.insert(VanillaBlocks::RED_SAND);
-    if (VanillaBlocks::GRAVEL) blocks.insert(VanillaBlocks::GRAVEL);
+    if (VanillaBlocks::SAND) {
+        blocks.insert(VanillaBlocks::SAND);
+    }
+    if (VanillaBlocks::RED_SAND) {
+        blocks.insert(VanillaBlocks::RED_SAND);
+    }
+    if (VanillaBlocks::GRAVEL) {
+        blocks.insert(VanillaBlocks::GRAVEL);
+    }
 
     // 雪类
-    if (VanillaBlocks::SNOW) blocks.insert(VanillaBlocks::SNOW);
-    if (VanillaBlocks::SNOW_BLOCK) blocks.insert(VanillaBlocks::SNOW_BLOCK);
+    if (VanillaBlocks::SNOW) {
+        blocks.insert(VanillaBlocks::SNOW);
+    }
+    if (VanillaBlocks::SNOW_BLOCK) {
+        blocks.insert(VanillaBlocks::SNOW_BLOCK);
+    }
 
     // 粘土
-    if (VanillaBlocks::CLAY) blocks.insert(VanillaBlocks::CLAY);
+    if (VanillaBlocks::CLAY) {
+        blocks.insert(VanillaBlocks::CLAY);
+    }
 
     // 灵魂沙/土
-    if (VanillaBlocks::SOUL_SAND) blocks.insert(VanillaBlocks::SOUL_SAND);
-    if (VanillaBlocks::SOUL_SOIL) blocks.insert(VanillaBlocks::SOUL_SOIL);
+    if (VanillaBlocks::SOUL_SAND) {
+        blocks.insert(VanillaBlocks::SOUL_SAND);
+    }
+    if (VanillaBlocks::SOUL_SOIL) {
+        blocks.insert(VanillaBlocks::SOUL_SOIL);
+    }
 
     // 混凝土粉末（16色）
-    if (VanillaBlocks::WHITE_CONCRETE_POWDER) blocks.insert(VanillaBlocks::WHITE_CONCRETE_POWDER);
-    if (VanillaBlocks::ORANGE_CONCRETE_POWDER) blocks.insert(VanillaBlocks::ORANGE_CONCRETE_POWDER);
-    if (VanillaBlocks::MAGENTA_CONCRETE_POWDER) blocks.insert(VanillaBlocks::MAGENTA_CONCRETE_POWDER);
-    if (VanillaBlocks::LIGHT_BLUE_CONCRETE_POWDER) blocks.insert(VanillaBlocks::LIGHT_BLUE_CONCRETE_POWDER);
-    if (VanillaBlocks::YELLOW_CONCRETE_POWDER) blocks.insert(VanillaBlocks::YELLOW_CONCRETE_POWDER);
-    if (VanillaBlocks::LIME_CONCRETE_POWDER) blocks.insert(VanillaBlocks::LIME_CONCRETE_POWDER);
-    if (VanillaBlocks::PINK_CONCRETE_POWDER) blocks.insert(VanillaBlocks::PINK_CONCRETE_POWDER);
-    if (VanillaBlocks::GRAY_CONCRETE_POWDER) blocks.insert(VanillaBlocks::GRAY_CONCRETE_POWDER);
-    if (VanillaBlocks::LIGHT_GRAY_CONCRETE_POWDER) blocks.insert(VanillaBlocks::LIGHT_GRAY_CONCRETE_POWDER);
-    if (VanillaBlocks::CYAN_CONCRETE_POWDER) blocks.insert(VanillaBlocks::CYAN_CONCRETE_POWDER);
-    if (VanillaBlocks::PURPLE_CONCRETE_POWDER) blocks.insert(VanillaBlocks::PURPLE_CONCRETE_POWDER);
-    if (VanillaBlocks::BLUE_CONCRETE_POWDER) blocks.insert(VanillaBlocks::BLUE_CONCRETE_POWDER);
-    if (VanillaBlocks::BROWN_CONCRETE_POWDER) blocks.insert(VanillaBlocks::BROWN_CONCRETE_POWDER);
-    if (VanillaBlocks::GREEN_CONCRETE_POWDER) blocks.insert(VanillaBlocks::GREEN_CONCRETE_POWDER);
-    if (VanillaBlocks::RED_CONCRETE_POWDER) blocks.insert(VanillaBlocks::RED_CONCRETE_POWDER);
-    if (VanillaBlocks::BLACK_CONCRETE_POWDER) blocks.insert(VanillaBlocks::BLACK_CONCRETE_POWDER);
+    if (VanillaBlocks::WHITE_CONCRETE_POWDER) {
+        blocks.insert(VanillaBlocks::WHITE_CONCRETE_POWDER);
+    }
+    if (VanillaBlocks::ORANGE_CONCRETE_POWDER) {
+        blocks.insert(VanillaBlocks::ORANGE_CONCRETE_POWDER);
+    }
+    if (VanillaBlocks::MAGENTA_CONCRETE_POWDER) {
+        blocks.insert(VanillaBlocks::MAGENTA_CONCRETE_POWDER);
+    }
+    if (VanillaBlocks::LIGHT_BLUE_CONCRETE_POWDER) {
+        blocks.insert(VanillaBlocks::LIGHT_BLUE_CONCRETE_POWDER);
+    }
+    if (VanillaBlocks::YELLOW_CONCRETE_POWDER) {
+        blocks.insert(VanillaBlocks::YELLOW_CONCRETE_POWDER);
+    }
+    if (VanillaBlocks::LIME_CONCRETE_POWDER) {
+        blocks.insert(VanillaBlocks::LIME_CONCRETE_POWDER);
+    }
+    if (VanillaBlocks::PINK_CONCRETE_POWDER) {
+        blocks.insert(VanillaBlocks::PINK_CONCRETE_POWDER);
+    }
+    if (VanillaBlocks::GRAY_CONCRETE_POWDER) {
+        blocks.insert(VanillaBlocks::GRAY_CONCRETE_POWDER);
+    }
+    if (VanillaBlocks::LIGHT_GRAY_CONCRETE_POWDER) {
+        blocks.insert(VanillaBlocks::LIGHT_GRAY_CONCRETE_POWDER);
+    }
+    if (VanillaBlocks::CYAN_CONCRETE_POWDER) {
+        blocks.insert(VanillaBlocks::CYAN_CONCRETE_POWDER);
+    }
+    if (VanillaBlocks::PURPLE_CONCRETE_POWDER) {
+        blocks.insert(VanillaBlocks::PURPLE_CONCRETE_POWDER);
+    }
+    if (VanillaBlocks::BLUE_CONCRETE_POWDER) {
+        blocks.insert(VanillaBlocks::BLUE_CONCRETE_POWDER);
+    }
+    if (VanillaBlocks::BROWN_CONCRETE_POWDER) {
+        blocks.insert(VanillaBlocks::BROWN_CONCRETE_POWDER);
+    }
+    if (VanillaBlocks::GREEN_CONCRETE_POWDER) {
+        blocks.insert(VanillaBlocks::GREEN_CONCRETE_POWDER);
+    }
+    if (VanillaBlocks::RED_CONCRETE_POWDER) {
+        blocks.insert(VanillaBlocks::RED_CONCRETE_POWDER);
+    }
+    if (VanillaBlocks::BLACK_CONCRETE_POWDER) {
+        blocks.insert(VanillaBlocks::BLACK_CONCRETE_POWDER);
+    }
 
     return blocks;
 }

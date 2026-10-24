@@ -102,17 +102,26 @@ public:
     /**
      * @brief 是否在熔岩表面
      */
-    [[nodiscard]] bool isOnLavaSurface() const { return m_onLavaSurface; }
+    [[nodiscard]] bool isOnLavaSurface() const
+    {
+        return m_onLavaSurface;
+    }
 
     /**
      * @brief 设置是否在熔岩表面
      */
-    void setOnLavaSurface(bool surface) { m_onLavaSurface = surface; }
+    void setOnLavaSurface(bool surface)
+    {
+        m_onLavaSurface = surface;
+    }
 
     /**
      * @brief 是否寒冷（不在熔岩中）
      */
-    [[nodiscard]] bool isCold() const { return m_coldTimer > 0; }
+    [[nodiscard]] bool isCold() const
+    {
+        return m_coldTimer > 0;
+    }
 
     // ========== 寻路权重 ==========
 
@@ -128,39 +137,58 @@ public:
     /**
      * @brief 获取寒冷计时器
      */
-    [[nodiscard]] i32 getColdTimer() const { return m_coldTimer; }
+    [[nodiscard]] i32 getColdTimer() const
+    {
+        return m_coldTimer;
+    }
 
     /**
      * @brief 设置寒冷计时器
      */
-    void setColdTimer(i32 timer) { m_coldTimer = timer; }
+    void setColdTimer(i32 timer)
+    {
+        m_coldTimer = timer;
+    }
 
     // ========== 骑乘系统 (IRideable) ==========
 
-    [[nodiscard]] bool hasSaddle() const override { return m_saddled; }
+    [[nodiscard]] bool hasSaddle() const override
+    {
+        return m_saddled;
+    }
+
     void setSaddle(bool saddle) override;
+
     void onPlayerStartRiding(mc::Player* player) override
     {
         MC_UNUSED(player);
         m_isBeingRidden = true;
     }
+
     void onPlayerStopRiding(mc::Player* player) override
     {
         MC_UNUSED(player);
         m_isBeingRidden = false;
     }
+
     [[nodiscard]] f32 getSteeringSpeed() const override;
     bool boost() override;
 
     /**
      * @brief 是否被骑乘
      */
-    [[nodiscard]] bool isBeingRidden() const { return m_isBeingRidden; }
+    [[nodiscard]] bool isBeingRidden() const
+    {
+        return m_isBeingRidden;
+    }
 
     /**
      * @brief 是否可以骑乘
      */
-    [[nodiscard]] bool canBeRidden() const { return true; }
+    [[nodiscard]] bool canBeRidden() const
+    {
+        return true;
+    }
 
     /**
      * @brief 是否可以在水中骑乘
@@ -190,22 +218,34 @@ public:
     /**
      * @brief 是否正在加速
      */
-    [[nodiscard]] bool isBoosting() const { return m_boostHelper.isBoosting(); }
+    [[nodiscard]] bool isBoosting() const
+    {
+        return m_boostHelper.isBoosting();
+    }
 
     /**
      * @brief 设置加速状态
      */
-    void setBoosting(bool boosting) { MC_UNUSED(boosting); /* handled by BoostHelper */ }
+    void setBoosting(bool boosting)
+    {
+        MC_UNUSED(boosting); /* handled by BoostHelper */
+    }
 
     /**
      * @brief 获取加速时间
      */
-    [[nodiscard]] i32 getBoostTime() const override { return m_boostHelper.getBoostTime(); }
+    [[nodiscard]] i32 getBoostTime() const override
+    {
+        return m_boostHelper.getBoostTime();
+    }
 
     /**
      * @brief 设置加速时间
      */
-    void setBoostTime(i32 time) override { m_boostHelper.setBoostTime(time); }
+    void setBoostTime(i32 time) override
+    {
+        m_boostHelper.setBoostTime(time);
+    }
 
     // ========== 繁殖 ==========
 
@@ -240,7 +280,10 @@ public:
     /**
      * @brief 获取眼睛高度
      */
-    [[nodiscard]] f32 eyeHeight() const override { return isChild() ? 0.5f : 1.0f; }
+    [[nodiscard]] f32 eyeHeight() const override
+    {
+        return isChild() ? 0.5f : 1.0f;
+    }
 
     /**
      * @brief 获取乘客骑乘偏移
@@ -311,7 +354,10 @@ public:
      * @brief 获取装备槽数量
      * 炽足兽只有一个鞍槽
      */
-    [[nodiscard]] i32 getEquipmentSlotCount() const override { return 1; }
+    [[nodiscard]] i32 getEquipmentSlotCount() const override
+    {
+        return 1;
+    }
 
     /**
      * @brief 获取指定槽位的装备

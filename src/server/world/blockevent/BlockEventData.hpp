@@ -53,7 +53,10 @@ struct BlockEventData {
         return pos == other.pos && block == other.block && paramA == other.paramA && paramB == other.paramB;
     }
 
-    bool operator!=(const BlockEventData& other) const noexcept { return !(*this == other); }
+    bool operator!=(const BlockEventData& other) const noexcept
+    {
+        return !(*this == other);
+    }
 };
 
 } // namespace mc

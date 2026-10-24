@@ -116,6 +116,7 @@ public:
     {
         events.emplace_back(entityId, source.type());
     }
+
     std::vector<std::pair<EntityInstanceId, DamageType>> events;
 };
 
@@ -126,6 +127,7 @@ public:
         packets.push_back(std::move(packet));
         return Result<void>::ok();
     }
+
     std::vector<IrPacket> packets;
 };
 
@@ -134,7 +136,11 @@ public:
     _PositionedDamageSource()
         : EnvironmentalDamage(DamageType::Fall)
     {}
-    std::optional<math::Vector3f> sourcePositionRaw() const override { return Vector3(1.0f, 2.0f, 3.0f); }
+
+    std::optional<math::Vector3f> sourcePositionRaw() const override
+    {
+        return Vector3(1.0f, 2.0f, 3.0f);
+    }
 };
 
 } // namespace
@@ -519,6 +525,7 @@ TEST_F(NetworkTestBase, PlayServerLinksSupportsKnownAndCustomLabels)
         EXPECT_FALSE(tables()->playCb->decode(cut).success());
     }
 }
+
 TEST_F(LocalServerFixture, ServerPlayerReplacesAndClearsServerLinks)
 {
     serverConn()->setPhase(protocol::ConnectionProtocol::Play);
@@ -559,6 +566,7 @@ TEST_F(NetworkTestBase, PlayShowDialogSupportsRegisteredAndDirectHolders)
         EXPECT_FALSE(tables()->playCb->decode(cut).success());
     }
 }
+
 TEST_F(LocalServerFixture, ServerPlayerShowsNamedAndInlineDialogs)
 {
     serverConn()->setPhase(protocol::ConnectionProtocol::Play);
@@ -582,6 +590,7 @@ TEST_F(NetworkTestBase, PlayClearDialogHasEmptyPayload)
     EXPECT_EQ(buf.bytes(), (std::vector<u8>{0x89, 1}));
     EXPECT_TRUE(std::holds_alternative<ClearDialog>(roundTripGeneric(*tables()->playCb, PlayPacket{ClearDialog{}})));
 }
+
 TEST_F(LocalServerFixture, ServerPlayerClearsDialogThroughConnection)
 {
     serverConn()->setPhase(protocol::ConnectionProtocol::Play);

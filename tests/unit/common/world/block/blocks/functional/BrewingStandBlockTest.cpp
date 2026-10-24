@@ -124,7 +124,10 @@ public:
         m_blockEntities[pos] = std::move(entity);
     }
 
-    void setBlockStateAt(const BlockPos& pos, const BlockState* state) { m_blockStates[pos] = state; }
+    void setBlockStateAt(const BlockPos& pos, const BlockState* state)
+    {
+        m_blockStates[pos] = state;
+    }
 
 private:
     std::unordered_map<BlockPos, const BlockState*> m_blockStates;
@@ -229,7 +232,10 @@ TEST_F(BrewingStandBlockPlacedByTest, DoesNotTransferNameToWrongEntityType)
 
 class BrewingStandCustomNameTest : public ::testing::Test {
 protected:
-    void SetUp() override { brewingStand_ = std::make_unique<BrewingStandEntity>(BlockPos(10, 20, 30)); }
+    void SetUp() override
+    {
+        brewingStand_ = std::make_unique<BrewingStandEntity>(BlockPos(10, 20, 30));
+    }
 
     std::unique_ptr<BrewingStandEntity> brewingStand_;
 };

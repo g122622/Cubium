@@ -47,7 +47,10 @@ using namespace mc::entity;
  */
 class EntityManagerUuidTest : public ::testing::Test {
 protected:
-    void SetUp() override { VanillaEntities::registerAll(); }
+    void SetUp() override
+    {
+        VanillaEntities::registerAll();
+    }
 
     void TearDown() override {}
 

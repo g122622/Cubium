@@ -103,27 +103,42 @@ public:
     /**
      * @brief 获取点燃时间（已点燃的持续时间）
      */
-    [[nodiscard]] i32 getTimeSinceIgnited() const { return m_timeSinceIgnited; }
+    [[nodiscard]] i32 getTimeSinceIgnited() const
+    {
+        return m_timeSinceIgnited;
+    }
 
     /**
      * @brief 获取上一次点燃时间（用于渲染插值）
      */
-    [[nodiscard]] i32 getLastActiveTime() const { return m_lastActiveTime; }
+    [[nodiscard]] i32 getLastActiveTime() const
+    {
+        return m_lastActiveTime;
+    }
 
     /**
      * @brief 获取点燃时间配置
      */
-    [[nodiscard]] i32 getFuseTime() const { return m_fuseTime; }
+    [[nodiscard]] i32 getFuseTime() const
+    {
+        return m_fuseTime;
+    }
 
     /**
      * @brief 设置点燃时间配置
      */
-    void setFuseTime(i32 time) { m_fuseTime = time; }
+    void setFuseTime(i32 time)
+    {
+        m_fuseTime = time;
+    }
 
     /**
      * @brief 是否已被点燃
      */
-    [[nodiscard]] bool hasIgnited() const { return m_ignited; }
+    [[nodiscard]] bool hasIgnited() const
+    {
+        return m_ignited;
+    }
 
     /**
      * @brief 点燃苦力怕
@@ -135,12 +150,18 @@ public:
     /**
      * @brief 是否是高压苦力怕
      */
-    [[nodiscard]] bool isPowered() const { return m_powered; }
+    [[nodiscard]] bool isPowered() const
+    {
+        return m_powered;
+    }
 
     /**
      * @brief 设置高压状态
      */
-    void setPowered(bool powered) { m_powered = powered; }
+    void setPowered(bool powered)
+    {
+        m_powered = powered;
+    }
 
     // ========== 爆炸 ==========
 
@@ -152,17 +173,26 @@ public:
     /**
      * @brief 获取爆炸威力
      */
-    [[nodiscard]] f32 getExplosionPower() const { return m_powered ? POWERED_EXPLOSION_POWER : NORMAL_EXPLOSION_POWER; }
+    [[nodiscard]] f32 getExplosionPower() const
+    {
+        return m_powered ? POWERED_EXPLOSION_POWER : NORMAL_EXPLOSION_POWER;
+    }
 
     /**
      * @brief 获取爆炸半径
      */
-    [[nodiscard]] i32 getExplosionRadius() const { return m_explosionRadius; }
+    [[nodiscard]] i32 getExplosionRadius() const
+    {
+        return m_explosionRadius;
+    }
 
     /**
      * @brief 设置爆炸半径
      */
-    void setExplosionRadius(i32 radius) { m_explosionRadius = radius; }
+    void setExplosionRadius(i32 radius)
+    {
+        m_explosionRadius = radius;
+    }
 
     // ========== 头颅掉落 ==========
 
@@ -174,14 +204,20 @@ public:
     /**
      * @brief 增加已掉落的头颅数量
      */
-    void incrementDroppedSkulls() { ++m_droppedSkulls; }
+    void incrementDroppedSkulls()
+    {
+        ++m_droppedSkulls;
+    }
 
     // ========== 阳光燃烧 ==========
 
     /**
      * @brief 苦力怕不在阳光下燃烧
      */
-    [[nodiscard]] bool shouldBurnInDaylight() const override { return false; }
+    [[nodiscard]] bool shouldBurnInDaylight() const override
+    {
+        return false;
+    }
 
     // ========== 雷击充能 ==========
 
@@ -201,17 +237,26 @@ public:
     /**
      * @brief 获取眼睛高度
      */
-    [[nodiscard]] f32 eyeHeight() const override { return 1.54f; }
+    [[nodiscard]] f32 eyeHeight() const override
+    {
+        return 1.54f;
+    }
 
     /**
      * @brief 获取实体宽度
      */
-    [[nodiscard]] f32 width() const override { return 0.6f; }
+    [[nodiscard]] f32 width() const override
+    {
+        return 0.6f;
+    }
 
     /**
      * @brief 获取实体高度
      */
-    [[nodiscard]] f32 height() const override { return 1.7f; }
+    [[nodiscard]] f32 height() const override
+    {
+        return 1.7f;
+    }
 
     // ========== 生命周期 ==========
 

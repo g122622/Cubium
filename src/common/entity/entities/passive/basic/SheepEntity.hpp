@@ -86,22 +86,34 @@ public:
      * @brief 获取羊毛颜色
      * @return 羊毛颜色
      */
-    [[nodiscard]] DyeColor getFleeceColor() const { return m_fleeceColor; }
+    [[nodiscard]] DyeColor getFleeceColor() const
+    {
+        return m_fleeceColor;
+    }
 
     /**
      * @brief 设置羊毛颜色
      */
-    void setFleeceColor(DyeColor color) { m_fleeceColor = color; }
+    void setFleeceColor(DyeColor color)
+    {
+        m_fleeceColor = color;
+    }
 
     /**
      * @brief 是否被剪过（没有羊毛）
      */
-    [[nodiscard]] bool isSheared() const { return m_sheared; }
+    [[nodiscard]] bool isSheared() const
+    {
+        return m_sheared;
+    }
 
     /**
      * @brief 设置剪毛状态
      */
-    void setSheared(bool sheared) { m_sheared = sheared; }
+    void setSheared(bool sheared)
+    {
+        m_sheared = sheared;
+    }
 
     // ========== IShearable 接口实现 ==========
 
@@ -115,7 +127,10 @@ public:
      */
     std::vector<ItemStack> shear(Player* player = nullptr) override;
 
-    [[nodiscard]] i32 getShearCooldown() const override { return m_shearCooldown; }
+    [[nodiscard]] i32 getShearCooldown() const override
+    {
+        return m_shearCooldown;
+    }
 
     // ========== 繁殖 ==========
 
@@ -152,12 +167,18 @@ public:
     /**
      * @brief 吃草动画计时器
      */
-    [[nodiscard]] i32 getEatAnimationTimer() const { return m_eatAnimationTimer; }
+    [[nodiscard]] i32 getEatAnimationTimer() const
+    {
+        return m_eatAnimationTimer;
+    }
 
     /**
      * @brief 设置吃草动画计时器
      */
-    void setEatAnimationTimer(i32 timer) { m_eatAnimationTimer = timer; }
+    void setEatAnimationTimer(i32 timer)
+    {
+        m_eatAnimationTimer = timer;
+    }
 
     // ========== 静态工具方法 ==========
 
@@ -191,13 +212,23 @@ protected:
 
     // ========== 尺寸 ==========
 
-    [[nodiscard]] f32 getBaseWidth() const override { return 0.9f; }
-    [[nodiscard]] f32 getBaseHeight() const override { return 1.3f; }
+    [[nodiscard]] f32 getBaseWidth() const override
+    {
+        return 0.9f;
+    }
+
+    [[nodiscard]] f32 getBaseHeight() const override
+    {
+        return 1.3f;
+    }
 
     /**
      * @brief 获取站立时眼睛高度
      */
-    [[nodiscard]] f32 eyeHeight() const override { return 0.95f * height(); }
+    [[nodiscard]] f32 eyeHeight() const override
+    {
+        return 0.95f * height();
+    }
 
 private:
     DyeColor m_fleeceColor = DyeColor::White; // 羊毛颜色

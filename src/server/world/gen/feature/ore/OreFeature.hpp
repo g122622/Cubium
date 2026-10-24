@@ -69,7 +69,10 @@ public:
     /**
      * @brief 获取特征名称
      */
-    [[nodiscard]] static const char* name() { return "ore"; }
+    [[nodiscard]] static const char* name()
+    {
+        return "ore";
+    }
 
 private:
     /**
@@ -145,17 +148,26 @@ public:
     /**
      * @brief 获取特征名称
      */
-    [[nodiscard]] const char* name() const override { return m_name.c_str(); }
+    [[nodiscard]] const char* name() const override
+    {
+        return m_name.c_str();
+    }
 
     /**
      * @brief 获取装饰阶段
      */
-    [[nodiscard]] DecorationStage stage() const override { return DecorationStage::UndergroundOres; }
+    [[nodiscard]] DecorationStage stage() const override
+    {
+        return DecorationStage::UndergroundOres;
+    }
 
     /**
      * @brief 获取矿石配置
      */
-    [[nodiscard]] const OreFeatureConfig& getConfig() const { return *m_config; }
+    [[nodiscard]] const OreFeatureConfig& getConfig() const
+    {
+        return *m_config;
+    }
 
 private:
     std::unique_ptr<OreFeatureConfig> m_config;

@@ -55,10 +55,16 @@ public:
     void setCarved(BlockCoord x, i32 y, BlockCoord z);
 
     /** @brief 获取最小Y坐标 */
-    [[nodiscard]] i32 getMinY() const { return m_minY; }
+    [[nodiscard]] i32 getMinY() const
+    {
+        return m_minY;
+    }
 
     /** @brief 获取高度 */
-    [[nodiscard]] i32 getHeight() const { return m_height; }
+    [[nodiscard]] i32 getHeight() const
+    {
+        return m_height;
+    }
 
 private:
     ChunkCoord m_chunkX;

@@ -82,7 +82,10 @@ public:
     }
 
     /// 预设某坐标的方块状态（不增加 setBlockState 计数）
-    void presetBlock(i32 x, i32 y, i32 z, const BlockState* state) { m_blocks[BlockPos(x, y, z)] = state; }
+    void presetBlock(i32 x, i32 y, i32 z, const BlockState* state)
+    {
+        m_blocks[BlockPos(x, y, z)] = state;
+    }
 
     [[nodiscard]] const BlockState* blockAt(i32 x, i32 y, i32 z) const
     {
@@ -90,8 +93,15 @@ public:
         return it != m_blocks.end() ? it->second : nullptr;
     }
 
-    [[nodiscard]] i32 setBlockCallCount() const { return m_setBlockCalls; }
-    [[nodiscard]] const std::vector<std::unique_ptr<Entity>>& spawnedEntities() const { return m_spawnedEntities; }
+    [[nodiscard]] i32 setBlockCallCount() const
+    {
+        return m_setBlockCalls;
+    }
+
+    [[nodiscard]] const std::vector<std::unique_ptr<Entity>>& spawnedEntities() const
+    {
+        return m_spawnedEntities;
+    }
 
 private:
     std::unordered_map<BlockPos, const BlockState*> m_blocks;

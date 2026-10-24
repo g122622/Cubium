@@ -96,7 +96,10 @@ MeshSchedulerViewState createViewState(i32 renderDistanceChunks)
 
 class MeshBuildSchedulerTest : public ::testing::Test {
 protected:
-    void SetUp() override { VanillaBlocks::initialize(); }
+    void SetUp() override
+    {
+        VanillaBlocks::initialize();
+    }
 };
 
 TEST_F(MeshBuildSchedulerTest, LatestTaskForChunkWins)
@@ -120,7 +123,10 @@ TEST_F(MeshBuildSchedulerTest, LatestTaskForChunkWins)
     for (i32 attempt = 0; attempt < 200 && completedTaskIds.empty(); ++attempt) {
         scheduler.tick();
         scheduler.drainCompleted(
-            [&completedTaskIds](MeshWorkerResult&& result) { completedTaskIds.push_back(result.taskId); }, 8);
+            [&completedTaskIds](MeshWorkerResult&& result) {
+                completedTaskIds.push_back(result.taskId);
+            },
+            8);
         std::this_thread::sleep_for(std::chrono::milliseconds(5));
     }
 
@@ -151,7 +157,10 @@ TEST_F(MeshBuildSchedulerTest, FrustumVisibleChunkHasHigherPriority)
     for (i32 attempt = 0; attempt < 200 && completedChunks.empty(); ++attempt) {
         scheduler.tick();
         scheduler.drainCompleted(
-            [&completedChunks](MeshWorkerResult&& result) { completedChunks.push_back(result.chunkId); }, 1);
+            [&completedChunks](MeshWorkerResult&& result) {
+                completedChunks.push_back(result.chunkId);
+            },
+            1);
         std::this_thread::sleep_for(std::chrono::milliseconds(5));
     }
 

@@ -46,7 +46,10 @@ class MendingEnchantment : public Enchantment {
 public:
     MendingEnchantment() = default;
 
-    [[nodiscard]] std::string id() const override { return "minecraft:mending"; }
+    [[nodiscard]] std::string id() const override
+    {
+        return "minecraft:mending";
+    }
 
     [[nodiscard]] std::string getNameKey(i32 level) const override
     {
@@ -54,13 +57,25 @@ public:
         return "enchantment.minecraft.mending";
     }
 
-    [[nodiscard]] EnchantmentType type() const override { return EnchantmentType::Breakable; }
+    [[nodiscard]] EnchantmentType type() const override
+    {
+        return EnchantmentType::Breakable;
+    }
 
-    [[nodiscard]] i32 minLevel() const noexcept override { return 1; }
+    [[nodiscard]] i32 minLevel() const noexcept override
+    {
+        return 1;
+    }
 
-    [[nodiscard]] i32 maxLevel() const noexcept override { return 1; }
+    [[nodiscard]] i32 maxLevel() const noexcept override
+    {
+        return 1;
+    }
 
-    [[nodiscard]] EnchantmentRarity rarity() const noexcept override { return EnchantmentRarity::Rare; }
+    [[nodiscard]] EnchantmentRarity rarity() const noexcept override
+    {
+        return EnchantmentRarity::Rare;
+    }
 
     [[nodiscard]] bool isTreasure() const noexcept override
     {

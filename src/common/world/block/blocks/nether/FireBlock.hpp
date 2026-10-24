@@ -114,7 +114,10 @@ public:
     // 火焰不响应随机刻（对齐 vanilla FireBlock 无 randomTick）。此前 Cubium 用
     // randomTick 驱动火焰蔓延，与 vanilla 计划刻范式不一致（节奏受 randomTickSpeed
     // 影响而非 vanilla 的 30~39 tick 周期），且导致 tick() 内的雨天熄灭等逻辑成为死代码。
-    [[nodiscard]] bool ticksRandomly() const noexcept override { return false; }
+    [[nodiscard]] bool ticksRandomly() const noexcept override
+    {
+        return false;
+    }
 
     // ========== 放置回调 ==========
 
@@ -161,7 +164,10 @@ protected:
      * @param random 随机数生成器
      * @return 计划刻延迟（tick）
      */
-    [[nodiscard]] static i32 getFireTickDelay(math::IRandom& random) { return 30 + random.nextInt(10); }
+    [[nodiscard]] static i32 getFireTickDelay(math::IRandom& random)
+    {
+        return 30 + random.nextInt(10);
+    }
 
     /**
      * @brief 按维度获取 infiniburn 标签（对齐 vanilla dimensionType().infiniburn()）

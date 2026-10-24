@@ -75,7 +75,10 @@ struct FlexConfig {
     /**
      * @brief 检查是否需要换行
      */
-    [[nodiscard]] bool shouldWrap() const { return wrap != Wrap::NoWrap; }
+    [[nodiscard]] bool shouldWrap() const
+    {
+        return wrap != Wrap::NoWrap;
+    }
 
     /**
      * @brief 检查是否是反向排列
@@ -116,7 +119,10 @@ struct FlexLine {
     /**
      * @brief 获取子元素数量
      */
-    [[nodiscard]] size_t itemCount() const { return items.size(); }
+    [[nodiscard]] size_t itemCount() const
+    {
+        return items.size();
+    }
 };
 
 /**
@@ -153,38 +159,80 @@ public:
     /**
      * @brief 设置布局方向
      */
-    void setDirection(Direction direction) { m_config.direction = direction; }
-    [[nodiscard]] Direction direction() const { return m_config.direction; }
+    void setDirection(Direction direction)
+    {
+        m_config.direction = direction;
+    }
+
+    [[nodiscard]] Direction direction() const
+    {
+        return m_config.direction;
+    }
 
     /**
      * @brief 设置主轴对齐
      */
-    void setJustifyContent(JustifyContent justify) { m_config.justifyContent = justify; }
-    [[nodiscard]] JustifyContent justifyContent() const { return m_config.justifyContent; }
+    void setJustifyContent(JustifyContent justify)
+    {
+        m_config.justifyContent = justify;
+    }
+
+    [[nodiscard]] JustifyContent justifyContent() const
+    {
+        return m_config.justifyContent;
+    }
 
     /**
      * @brief 设置交叉轴对齐
      */
-    void setAlignItems(Align align) { m_config.alignItems = align; }
-    [[nodiscard]] Align alignItems() const { return m_config.alignItems; }
+    void setAlignItems(Align align)
+    {
+        m_config.alignItems = align;
+    }
+
+    [[nodiscard]] Align alignItems() const
+    {
+        return m_config.alignItems;
+    }
 
     /**
      * @brief 设置换行方式
      */
-    void setWrap(Wrap wrap) { m_config.wrap = wrap; }
-    [[nodiscard]] Wrap wrap() const { return m_config.wrap; }
+    void setWrap(Wrap wrap)
+    {
+        m_config.wrap = wrap;
+    }
+
+    [[nodiscard]] Wrap wrap() const
+    {
+        return m_config.wrap;
+    }
 
     /**
      * @brief 设置间距
      */
-    void setGap(i32 gap) { m_config.gap = gap; }
-    [[nodiscard]] i32 gap() const { return m_config.gap; }
+    void setGap(i32 gap)
+    {
+        m_config.gap = gap;
+    }
+
+    [[nodiscard]] i32 gap() const
+    {
+        return m_config.gap;
+    }
 
     /**
      * @brief 设置完整配置
      */
-    void setConfig(const FlexConfig& config) { m_config = config; }
-    [[nodiscard]] const FlexConfig& config() const { return m_config; }
+    void setConfig(const FlexConfig& config)
+    {
+        m_config = config;
+    }
+
+    [[nodiscard]] const FlexConfig& config() const
+    {
+        return m_config;
+    }
 
     // ==================== 布局计算 ====================
 

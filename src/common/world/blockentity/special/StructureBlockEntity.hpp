@@ -70,19 +70,37 @@ public:
     [[nodiscard]] std::unique_ptr<BlockEntity> clone() const override;
 
     /// 结构方块与拼图方块一样属于管理员方块：仅 OP 可通过物品 NBT 改写
-    [[nodiscard]] bool onlyOpsCanSetNbt() const noexcept override { return true; }
+    [[nodiscard]] bool onlyOpsCanSetNbt() const noexcept override
+    {
+        return true;
+    }
 
     // ========== 结构名 ==========
 
     /// 结构名（空字符串表示未设置，对齐 vanilla getStructureName）
-    [[nodiscard]] const std::string& getStructureName() const noexcept { return m_structureName; }
-    [[nodiscard]] bool hasStructureName() const noexcept { return !m_structureName.empty(); }
+    [[nodiscard]] const std::string& getStructureName() const noexcept
+    {
+        return m_structureName;
+    }
+
+    [[nodiscard]] bool hasStructureName() const noexcept
+    {
+        return !m_structureName.empty();
+    }
+
     void setStructureName(const std::string& name);
 
     // ========== 作者 / 元数据 ==========
 
-    [[nodiscard]] const std::string& getAuthor() const noexcept { return m_author; }
-    void setAuthor(const std::string& author) { m_author = author; }
+    [[nodiscard]] const std::string& getAuthor() const noexcept
+    {
+        return m_author;
+    }
+
+    void setAuthor(const std::string& author)
+    {
+        m_author = author;
+    }
 
     /**
      * @brief 记录放置者是本结构的创建者
@@ -94,44 +112,112 @@ public:
      */
     void createdBy(const Entity& placer);
 
-    [[nodiscard]] const std::string& getMetaData() const noexcept { return m_metaData; }
-    void setMetaData(const std::string& metaData) { m_metaData = metaData; }
+    [[nodiscard]] const std::string& getMetaData() const noexcept
+    {
+        return m_metaData;
+    }
+
+    void setMetaData(const std::string& metaData)
+    {
+        m_metaData = metaData;
+    }
 
     // ========== 位置 / 尺寸 ==========
 
-    [[nodiscard]] const BlockPos& getStructurePos() const noexcept { return m_structurePos; }
+    [[nodiscard]] const BlockPos& getStructurePos() const noexcept
+    {
+        return m_structurePos;
+    }
+
     void setStructurePos(const BlockPos& pos);
 
-    [[nodiscard]] const BlockPos& getStructureSize() const noexcept { return m_structureSize; }
+    [[nodiscard]] const BlockPos& getStructureSize() const noexcept
+    {
+        return m_structureSize;
+    }
+
     void setStructureSize(const BlockPos& size);
 
     // ========== 镜像 / 旋转 ==========
 
-    [[nodiscard]] Mirror getMirror() const noexcept { return m_mirror; }
-    void setMirror(Mirror mirror) { m_mirror = mirror; }
+    [[nodiscard]] Mirror getMirror() const noexcept
+    {
+        return m_mirror;
+    }
 
-    [[nodiscard]] Rotation getRotation() const noexcept { return m_rotation; }
-    void setRotation(Rotation rotation) { m_rotation = rotation; }
+    void setMirror(Mirror mirror)
+    {
+        m_mirror = mirror;
+    }
+
+    [[nodiscard]] Rotation getRotation() const noexcept
+    {
+        return m_rotation;
+    }
+
+    void setRotation(Rotation rotation)
+    {
+        m_rotation = rotation;
+    }
 
     // ========== 开关 ==========
 
-    [[nodiscard]] bool isIgnoreEntities() const noexcept { return m_ignoreEntities; }
-    void setIgnoreEntities(bool ignoreEntities) { m_ignoreEntities = ignoreEntities; }
+    [[nodiscard]] bool isIgnoreEntities() const noexcept
+    {
+        return m_ignoreEntities;
+    }
 
-    [[nodiscard]] bool isStrict() const noexcept { return m_strict; }
-    void setStrict(bool strict) { m_strict = strict; }
+    void setIgnoreEntities(bool ignoreEntities)
+    {
+        m_ignoreEntities = ignoreEntities;
+    }
 
-    [[nodiscard]] bool isShowAir() const noexcept { return m_showAir; }
-    void setShowAir(bool showAir) { m_showAir = showAir; }
+    [[nodiscard]] bool isStrict() const noexcept
+    {
+        return m_strict;
+    }
 
-    [[nodiscard]] bool isShowBoundingBox() const noexcept { return m_showBoundingBox; }
-    void setShowBoundingBox(bool showBoundingBox) { m_showBoundingBox = showBoundingBox; }
+    void setStrict(bool strict)
+    {
+        m_strict = strict;
+    }
 
-    [[nodiscard]] f32 getIntegrity() const noexcept { return m_integrity; }
+    [[nodiscard]] bool isShowAir() const noexcept
+    {
+        return m_showAir;
+    }
+
+    void setShowAir(bool showAir)
+    {
+        m_showAir = showAir;
+    }
+
+    [[nodiscard]] bool isShowBoundingBox() const noexcept
+    {
+        return m_showBoundingBox;
+    }
+
+    void setShowBoundingBox(bool showBoundingBox)
+    {
+        m_showBoundingBox = showBoundingBox;
+    }
+
+    [[nodiscard]] f32 getIntegrity() const noexcept
+    {
+        return m_integrity;
+    }
+
     void setIntegrity(f32 integrity);
 
-    [[nodiscard]] i64 getSeed() const noexcept { return m_seed; }
-    void setSeed(i64 seed) { m_seed = seed; }
+    [[nodiscard]] i64 getSeed() const noexcept
+    {
+        return m_seed;
+    }
+
+    void setSeed(i64 seed)
+    {
+        m_seed = seed;
+    }
 
 private:
     /// 当前模式（读取方块状态的 STRUCTURE_MODE 属性，方块状态变化后自动同步）

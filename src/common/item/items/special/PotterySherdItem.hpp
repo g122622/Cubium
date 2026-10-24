@@ -62,7 +62,10 @@ public:
     /**
      * @brief 获取图案类型
      */
-    [[nodiscard]] blockentity::DecoratedPotPattern getPattern() const noexcept { return m_pattern; }
+    [[nodiscard]] blockentity::DecoratedPotPattern getPattern() const noexcept
+    {
+        return m_pattern;
+    }
 
     /**
      * @brief 添加物品提示信息

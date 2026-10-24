@@ -147,6 +147,7 @@ std::string FolderResourcePack::_makeTypedPath(PackType type, std::string_view p
     // 例如 "assets/../pack.mcmeta" → "pack.mcmeta"，使 hasResource 能匹配到包根级别的 pack.mcmeta。
     return normalizeResourcePath(std::string(resource::packTypeDirectoryName(type)) + "/" + std::string(path));
 }
+
 bool FolderResourcePack::hasResource(PackType type, std::string_view resourcePath) const
 {
     // 基于内存索引查询，避免每次 fs::exists 系统调用

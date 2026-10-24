@@ -72,7 +72,10 @@ public:
     /**
      * @brief 获取可疑炖汤效果ID
      */
-    [[nodiscard]] u32 getSuspiciousStewEffect() const { return m_suspiciousStewEffect; }
+    [[nodiscard]] u32 getSuspiciousStewEffect() const
+    {
+        return m_suspiciousStewEffect;
+    }
 
     /**
      * @brief 获取效果持续时间（秒）
@@ -81,14 +84,20 @@ public:
      * 对于非瞬间效果，同样为秒值，使用时需乘以20转换为tick。
      * MC 原版约定：瞬间效果的秒数不会被乘以20。
      */
-    [[nodiscard]] i32 getEffectDuration() const { return m_effectDuration; }
+    [[nodiscard]] i32 getEffectDuration() const
+    {
+        return m_effectDuration;
+    }
 
     /**
      * @brief 是否具有可疑炖汤效果
      *
      * 效果ID不为0时表示该花朵可以用于棕色哞菇的迷之炖菜。
      */
-    [[nodiscard]] bool hasStewEffect() const { return m_suspiciousStewEffect != 0; }
+    [[nodiscard]] bool hasStewEffect() const
+    {
+        return m_suspiciousStewEffect != 0;
+    }
 
 protected:
     /// 可疑炖汤效果ID

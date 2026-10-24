@@ -95,31 +95,55 @@ public:
         return static_cast<BiomeId>(0);
     }
 
-    [[nodiscard]] u8 getBlockLight(i32, i32, i32) const override { return 0; }
+    [[nodiscard]] u8 getBlockLight(i32, i32, i32) const override
+    {
+        return 0;
+    }
 
-    [[nodiscard]] u8 getSkyLight(i32, i32, i32) const override { return 15; }
+    [[nodiscard]] u8 getSkyLight(i32, i32, i32) const override
+    {
+        return 15;
+    }
 
-    [[nodiscard]] bool hasBlockCollision(const AxisAlignedBB&) const override { return false; }
+    [[nodiscard]] bool hasBlockCollision(const AxisAlignedBB&) const override
+    {
+        return false;
+    }
 
-    [[nodiscard]] std::vector<AxisAlignedBB> getBlockCollisions(const AxisAlignedBB&) const override { return {}; }
+    [[nodiscard]] std::vector<AxisAlignedBB> getBlockCollisions(const AxisAlignedBB&) const override
+    {
+        return {};
+    }
 
     [[nodiscard]] bool isWithinWorldBounds(i32, i32 y, i32) const override
     {
         return y >= mc::world::MIN_BUILD_HEIGHT && y < mc::world::MAX_BUILD_HEIGHT;
     }
 
-    [[nodiscard]] bool isInWorldBounds(i32 x, i32 y, i32 z) const override { return isWithinWorldBounds(x, y, z); }
+    [[nodiscard]] bool isInWorldBounds(i32 x, i32 y, i32 z) const override
+    {
+        return isWithinWorldBounds(x, y, z);
+    }
 
-    [[nodiscard]] bool hasEntityCollision(const AxisAlignedBB&, const Entity*) const override { return false; }
+    [[nodiscard]] bool hasEntityCollision(const AxisAlignedBB&, const Entity*) const override
+    {
+        return false;
+    }
 
     [[nodiscard]] std::vector<AxisAlignedBB> getEntityCollisions(const AxisAlignedBB&, const Entity*) const override
     {
         return {};
     }
 
-    [[nodiscard]] PhysicsEngine* physicsEngine() override { return nullptr; }
+    [[nodiscard]] PhysicsEngine* physicsEngine() override
+    {
+        return nullptr;
+    }
 
-    [[nodiscard]] const PhysicsEngine* physicsEngine() const override { return nullptr; }
+    [[nodiscard]] const PhysicsEngine* physicsEngine() const override
+    {
+        return nullptr;
+    }
 
     [[nodiscard]] std::vector<Entity*> getEntitiesInAABB(const AxisAlignedBB&, const Entity*) const override
     {
@@ -131,27 +155,52 @@ public:
         return {};
     }
 
-    [[nodiscard]] DimensionId dimension() const override { return static_cast<DimensionId>(0); }
+    [[nodiscard]] DimensionId dimension() const override
+    {
+        return static_cast<DimensionId>(0);
+    }
 
-    [[nodiscard]] u64 seed() const override { return 0; }
+    [[nodiscard]] u64 seed() const override
+    {
+        return 0;
+    }
 
-    [[nodiscard]] u64 currentTick() const override { return 0; }
+    [[nodiscard]] u64 currentTick() const override
+    {
+        return 0;
+    }
 
-    [[nodiscard]] i64 dayTime() const override { return 0; }
+    [[nodiscard]] i64 dayTime() const override
+    {
+        return 0;
+    }
 
-    [[nodiscard]] bool isHardcore() const override { return false; }
+    [[nodiscard]] bool isHardcore() const override
+    {
+        return false;
+    }
 
-    [[nodiscard]] Difficulty difficulty() const override { return Difficulty::Easy; }
+    [[nodiscard]] Difficulty difficulty() const override
+    {
+        return Difficulty::Easy;
+    }
 
-    [[nodiscard]] i32 getMaxLocalRawBrightness(i32, i32, i32) const override { return 15; }
+    [[nodiscard]] i32 getMaxLocalRawBrightness(i32, i32, i32) const override
+    {
+        return 15;
+    }
 
-    [[nodiscard]] bool isClientSide() const override { return false; }
+    [[nodiscard]] bool isClientSide() const override
+    {
+        return false;
+    }
 
     // TickManager interface (stubbed for tests)
     [[nodiscard]] world::tick::TickManager& tickManager() override
     {
         throw std::runtime_error("SpawnPlacementTestWorld::tickManager not implemented");
     }
+
     [[nodiscard]] const world::tick::TickManager& tickManager() const override
     {
         throw std::runtime_error("SpawnPlacementTestWorld::tickManager not implemented");
@@ -162,17 +211,28 @@ public:
     {
         throw std::runtime_error("SpawnPlacementTestWorld::getRandom not implemented");
     }
+
     [[nodiscard]] const math::IRandom& getRandom() const override
     {
         throw std::runtime_error("SpawnPlacementTestWorld::getRandom not implemented");
     }
 
     // WorldBorder interface
-    [[nodiscard]] world::border::WorldBorder& worldBorder() override { return m_worldBorder; }
-    [[nodiscard]] const world::border::WorldBorder& worldBorder() const override { return m_worldBorder; }
+    [[nodiscard]] world::border::WorldBorder& worldBorder() override
+    {
+        return m_worldBorder;
+    }
+
+    [[nodiscard]] const world::border::WorldBorder& worldBorder() const override
+    {
+        return m_worldBorder;
+    }
 
 private:
-    [[nodiscard]] const BlockState* getAirState() const { return &VanillaBlocks::AIR->defaultState(); }
+    [[nodiscard]] const BlockState* getAirState() const
+    {
+        return &VanillaBlocks::AIR->defaultState();
+    }
 
     std::unordered_map<BlockPos, const BlockState*> m_blocks;
     world::border::WorldBorder m_worldBorder;

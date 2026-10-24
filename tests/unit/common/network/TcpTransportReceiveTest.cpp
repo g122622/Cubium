@@ -39,7 +39,9 @@ TEST(TcpTransportReceiveTest, EarlyBytesRemainAvailableUntilListenersAreReady)
     auto completeFuture = complete.get_future();
     transport.onBytes([&](const u8* bytes, usize size) {
         received.insert(received.end(), bytes, bytes + size);
-        if (received.size() == payload.size()) complete.set_value();
+        if (received.size() == payload.size()) {
+            complete.set_value();
+        }
     });
     const auto started = transport.startReceiving();
     EXPECT_TRUE(started.success());

@@ -99,6 +99,7 @@ struct BiomeClimate {
     f32 erosion = 0.0f;
 
     BiomeClimate() = default;
+
     BiomeClimate(bool hasPrecip, f32 temp, TemperatureModifier modifier, f32 down, f32 hum, f32 cont, f32 ero)
         : hasPrecipitation(hasPrecip)
         , temperature(temp)

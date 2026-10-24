@@ -131,13 +131,19 @@ public:
      * @brief 获取文本内容
      * @return 文本字符串
      */
-    [[nodiscard]] const std::string& getText() const noexcept { return m_text; }
+    [[nodiscard]] const std::string& getText() const noexcept
+    {
+        return m_text;
+    }
 
     /**
      * @brief 设置文本内容
      * @param text 新文本
      */
-    void setText(std::string text) { m_text = std::move(text); }
+    void setText(std::string text)
+    {
+        m_text = std::move(text);
+    }
 
 private:
     std::string m_text;

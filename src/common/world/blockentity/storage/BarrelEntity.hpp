@@ -78,9 +78,20 @@ public:
     // getInventory()->getItem/setItem/removeItem/clear 等路径访问容器内容
     // 都会自动触发 _unpackLootTable(nullptr)。这与 MC Java 中
     // RandomizableContainerBlockEntity 的行为一致。
-    [[nodiscard]] IInventory* getInventory() override { return &m_inventory; }
-    [[nodiscard]] const IInventory* getInventory() const override { return &m_inventory; }
-    [[nodiscard]] i32 getContainerSize() const override { return BARREL_SIZE; }
+    [[nodiscard]] IInventory* getInventory() override
+    {
+        return &m_inventory;
+    }
+
+    [[nodiscard]] const IInventory* getInventory() const override
+    {
+        return &m_inventory;
+    }
+
+    [[nodiscard]] i32 getContainerSize() const override
+    {
+        return BARREL_SIZE;
+    }
 
     // ========== 木桶特有接口 ==========
 
@@ -117,7 +128,11 @@ public:
     // ========== Tick 更新 ==========
 
     void tick(IWorld& world) override;
-    [[nodiscard]] bool needsTick() const noexcept override { return true; }
+
+    [[nodiscard]] bool needsTick() const noexcept override
+    {
+        return true;
+    }
 
     // ========== 序列化 ==========
 
@@ -142,7 +157,10 @@ public:
     [[nodiscard]] std::unique_ptr<BlockEntity> clone() const override;
 
 protected:
-    [[nodiscard]] std::string getDefaultName() const override { return "container.barrel"; }
+    [[nodiscard]] std::string getDefaultName() const override
+    {
+        return "container.barrel";
+    }
 
 private:
     /**

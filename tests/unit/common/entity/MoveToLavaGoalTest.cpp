@@ -50,7 +50,10 @@ protected:
         strider = std::make_unique<StriderEntity>(EntityInstanceId(0), mc::test::testEcsRegistry());
     }
 
-    void TearDown() override { strider.reset(); }
+    void TearDown() override
+    {
+        strider.reset();
+    }
 
     std::unique_ptr<StriderEntity> strider;
 };
@@ -130,7 +133,10 @@ protected:
         strider = std::make_unique<StriderEntity>(EntityInstanceId(0), mc::test::testEcsRegistry());
     }
 
-    void TearDown() override { strider.reset(); }
+    void TearDown() override
+    {
+        strider.reset();
+    }
 
     std::unique_ptr<StriderEntity> strider;
 };

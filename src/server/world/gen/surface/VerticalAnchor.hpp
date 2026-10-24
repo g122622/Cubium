@@ -47,13 +47,22 @@ struct VerticalAnchor {
     i32 value;
 
     /** 创建绝对 Y 坐标锚点 */
-    static VerticalAnchor absolute(i32 y) { return {VerticalAnchorType::Absolute, y}; }
+    static VerticalAnchor absolute(i32 y)
+    {
+        return {VerticalAnchorType::Absolute, y};
+    }
 
     /** 创建相对于世界底部的锚点（偏移量 >= 0） */
-    static VerticalAnchor aboveBottom(i32 offset) { return {VerticalAnchorType::AboveBottom, offset}; }
+    static VerticalAnchor aboveBottom(i32 offset)
+    {
+        return {VerticalAnchorType::AboveBottom, offset};
+    }
 
     /** 创建相对于世界顶部的锚点（偏移量 >= 0） */
-    static VerticalAnchor belowTop(i32 offset) { return {VerticalAnchorType::BelowTop, offset}; }
+    static VerticalAnchor belowTop(i32 offset)
+    {
+        return {VerticalAnchorType::BelowTop, offset};
+    }
 
     /** 将锚点解析为世界 Y 坐标 */
     i32 resolveY(i32 minY, i32 height) const;

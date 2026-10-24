@@ -205,8 +205,9 @@ Result<void> ChunkRenderer::_updateChunkLayer(const ChunkId& chunkId, const Mesh
         "UpdateChunkLayer",
         "layer",
         static_cast<i32>(layer),
-        [flow = ::perfetto::Flow::ProcessScoped(ChunkPos(chunkId.x, chunkId.z).toId())](
-            ::perfetto::EventContext ctx) { flow(ctx); });
+        [flow = ::perfetto::Flow::ProcessScoped(ChunkPos(chunkId.x, chunkId.z).toId())](::perfetto::EventContext ctx) {
+            flow(ctx);
+        });
 
     const u64 id = makeBufferKey(chunkId, layer);
 

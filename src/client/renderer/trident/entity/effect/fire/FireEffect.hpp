@@ -140,17 +140,26 @@ public:
     /**
      * @brief 获取火焰纹理视图
      */
-    [[nodiscard]] static VkImageView fireTextureView() { return s_fireTextureView; }
+    [[nodiscard]] static VkImageView fireTextureView()
+    {
+        return s_fireTextureView;
+    }
 
     /**
      * @brief 获取火焰纹理采样器
      */
-    [[nodiscard]] static VkSampler fireSampler() { return s_fireSampler; }
+    [[nodiscard]] static VkSampler fireSampler()
+    {
+        return s_fireSampler;
+    }
 
     /**
      * @brief 获取固定光照值（15728640 = 0xF00000）
      */
-    [[nodiscard]] static constexpr i32 getFullLight() { return FULL_LIGHT; }
+    [[nodiscard]] static constexpr i32 getFullLight()
+    {
+        return FULL_LIGHT;
+    }
 
 private:
     FireEffect() = delete;

@@ -35,7 +35,10 @@ using namespace mc::blockentity;
 
 class BeaconEntityTest : public ::testing::Test {
 protected:
-    void SetUp() override { beacon_ = std::make_unique<BeaconEntity>(BlockPos(10, 64, 20)); }
+    void SetUp() override
+    {
+        beacon_ = std::make_unique<BeaconEntity>(BlockPos(10, 64, 20));
+    }
 
     std::unique_ptr<BeaconEntity> beacon_;
 };

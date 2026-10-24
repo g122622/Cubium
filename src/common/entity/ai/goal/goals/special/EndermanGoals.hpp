@@ -76,7 +76,10 @@ public:
     void resetTask() override;
     void tick() override;
 
-    [[nodiscard]] std::string getTypeName() const override { return "EndermanStareGoal"; }
+    [[nodiscard]] std::string getTypeName() const override
+    {
+        return "EndermanStareGoal";
+    }
 
 private:
     EndermanEntity* m_enderman;
@@ -116,7 +119,10 @@ public:
     [[nodiscard]] bool shouldContinueExecuting() override;
     void tick() override;
 
-    [[nodiscard]] std::string getTypeName() const override { return "EndermanFindPlayerGoal"; }
+    [[nodiscard]] std::string getTypeName() const override
+    {
+        return "EndermanFindPlayerGoal";
+    }
 
 private:
     /**
@@ -168,7 +174,10 @@ public:
     [[nodiscard]] bool shouldExecute() override;
     void tick() override;
 
-    [[nodiscard]] std::string getTypeName() const override { return "EndermanPlaceBlockGoal"; }
+    [[nodiscard]] std::string getTypeName() const override
+    {
+        return "EndermanPlaceBlockGoal";
+    }
 
 private:
     /**
@@ -222,7 +231,10 @@ public:
     [[nodiscard]] bool shouldExecute() override;
     void tick() override;
 
-    [[nodiscard]] std::string getTypeName() const override { return "EndermanTakeBlockGoal"; }
+    [[nodiscard]] std::string getTypeName() const override
+    {
+        return "EndermanTakeBlockGoal";
+    }
 
 private:
     EndermanEntity* m_enderman;

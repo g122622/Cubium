@@ -79,17 +79,26 @@ public:
     /**
      * @brief 获取函数类型标识
      */
-    [[nodiscard]] std::string getType() const override { return "set_count"; }
+    [[nodiscard]] std::string getType() const override
+    {
+        return "set_count";
+    }
 
     /**
      * @brief 获取数量范围
      */
-    [[nodiscard]] const RandomValueRange& getCount() const { return m_count; }
+    [[nodiscard]] const RandomValueRange& getCount() const
+    {
+        return m_count;
+    }
 
     /**
      * @brief 是否叠加模式
      */
-    [[nodiscard]] bool isAdd() const { return m_add; }
+    [[nodiscard]] bool isAdd() const
+    {
+        return m_add;
+    }
 
 private:
     RandomValueRange m_count;                       // 数量范围（均匀分布/固定值）

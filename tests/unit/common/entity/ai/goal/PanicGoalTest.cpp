@@ -80,7 +80,10 @@ public:
         : PanicGoal(creature, speed)
     {}
 
-    [[nodiscard]] bool shouldPanic() const override { return PanicGoal::shouldPanic(); }
+    [[nodiscard]] bool shouldPanic() const override
+    {
+        return PanicGoal::shouldPanic();
+    }
 };
 
 // 可直接构造的 PigEntity（PigEntity 多继承 IRideable/IEquipable，构造经 AnimalEntity 链路，
@@ -122,7 +125,10 @@ protected:
         DamageTypeTags::initialize();
     }
 
-    void TearDown() override { item::enchant::EnchantmentRegistry::clear(); }
+    void TearDown() override
+    {
+        item::enchant::EnchantmentRegistry::clear();
+    }
 
     // 通过 actuallyHurt 设 lastDamageSource（actuallyHurt 末尾步骤7 m_lastDamageSource=source.clone()）。
     // 伤害量 1.0 不致死（PigEntity maxHealth=10），actuallyHurt 路径用 BaseTestWorld 吸收 playSound。
@@ -198,7 +204,10 @@ protected:
         DamageTypeTags::initialize();
     }
 
-    void TearDown() override { item::enchant::EnchantmentRegistry::clear(); }
+    void TearDown() override
+    {
+        item::enchant::EnchantmentRegistry::clear();
+    }
 
     void applyDamage(LivingEntity& entity, DamageSource& source)
     {

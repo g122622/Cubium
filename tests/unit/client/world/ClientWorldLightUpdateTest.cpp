@@ -107,7 +107,10 @@ protected:
         m_pool.start();
     }
 
-    void TearDown() override { m_pool.shutdown(); }
+    void TearDown() override
+    {
+        m_pool.shutdown();
+    }
 
     util::UniversalWorkerPool m_pool{1, "TestCompute", 900};
 };
@@ -164,4 +167,5 @@ TEST_F(ClientWorldLightUpdateTest, LightUpdateBurstDoesNotResubmitPendingChunkMe
 
     world.shutdownMeshSystem();
 }
+
 #pragma pop_macro("BYTE_SIZE")

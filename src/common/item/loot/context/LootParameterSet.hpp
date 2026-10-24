@@ -73,7 +73,10 @@ public:
      * @brief 获取参数集合类型
      * @return 参数集合类型
      */
-    [[nodiscard]] Type getType() const noexcept { return m_type; }
+    [[nodiscard]] Type getType() const noexcept
+    {
+        return m_type;
+    }
 
     /**
      * @brief 获取参数集合的资源路径名称
@@ -162,12 +165,18 @@ public:
     /**
      * @brief 获取必需参数ID列表
      */
-    [[nodiscard]] const std::vector<std::string>& getRequiredParams() const noexcept { return m_requiredParams; }
+    [[nodiscard]] const std::vector<std::string>& getRequiredParams() const noexcept
+    {
+        return m_requiredParams;
+    }
 
     /**
      * @brief 获取可选参数ID列表
      */
-    [[nodiscard]] const std::vector<std::string>& getOptionalParams() const noexcept { return m_optionalParams; }
+    [[nodiscard]] const std::vector<std::string>& getOptionalParams() const noexcept
+    {
+        return m_optionalParams;
+    }
 
     /**
      * @brief 检查参数集是否允许指定的参数（必需或可选）

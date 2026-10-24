@@ -98,7 +98,10 @@ public:
     /**
      * @brief 获取资源包数量
      */
-    [[nodiscard]] size_t resourcePackCount() const { return m_resourcePacks.size(); }
+    [[nodiscard]] size_t resourcePackCount() const
+    {
+        return m_resourcePacks.size();
+    }
 
     // ==================== GuiSpriteAtlas 重载（推荐）====================
 

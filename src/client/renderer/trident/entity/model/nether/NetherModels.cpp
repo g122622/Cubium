@@ -171,7 +171,9 @@ void MagmaCubeModel::setAngles(
 {
     // 应用挤压动画
     f32 f = m_squishFactor;
-    if (f < 0.0f) f = 0.0f;
+    if (f < 0.0f) {
+        f = 0.0f;
+    }
 
     for (i32 i = 0; i < 8; ++i) {
         f32 offsetY = static_cast<f32>(-(4 - i)) * f * 1.7f;

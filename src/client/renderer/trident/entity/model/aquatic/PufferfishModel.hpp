@@ -45,7 +45,10 @@ public:
     void setAngles(
         f64 limbSwing, f64 limbSwingAmount, f64 ageInTicks, f64 netHeadYaw, f64 headPitch, f64 scale) override;
 
-    void setInWater(bool inWater) noexcept { m_isInWater = inWater; }
+    void setInWater(bool inWater) noexcept
+    {
+        m_isInWater = inWater;
+    }
 
 private:
     void _setupParts();
@@ -74,7 +77,10 @@ public:
     void setAngles(
         f64 limbSwing, f64 limbSwingAmount, f64 ageInTicks, f64 netHeadYaw, f64 headPitch, f64 scale) override;
 
-    void setInWater(bool inWater) noexcept { m_isInWater = inWater; }
+    void setInWater(bool inWater) noexcept
+    {
+        m_isInWater = inWater;
+    }
 
 private:
     void _setupParts();
@@ -109,7 +115,10 @@ public:
     void setAngles(
         f64 limbSwing, f64 limbSwingAmount, f64 ageInTicks, f64 netHeadYaw, f64 headPitch, f64 scale) override;
 
-    void setInWater(bool inWater) noexcept { m_isInWater = inWater; }
+    void setInWater(bool inWater) noexcept
+    {
+        m_isInWater = inWater;
+    }
 
 private:
     void _setupParts();

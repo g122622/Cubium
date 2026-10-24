@@ -44,7 +44,10 @@ class PowerEnchantment : public Enchantment {
 public:
     PowerEnchantment() = default;
 
-    [[nodiscard]] std::string id() const noexcept override { return "minecraft:power"; }
+    [[nodiscard]] std::string id() const noexcept override
+    {
+        return "minecraft:power";
+    }
 
     [[nodiscard]] std::string getNameKey(i32 level) const noexcept override
     {
@@ -52,17 +55,35 @@ public:
         return "enchantment.minecraft.power";
     }
 
-    [[nodiscard]] EnchantmentType type() const noexcept override { return EnchantmentType::Bow; }
+    [[nodiscard]] EnchantmentType type() const noexcept override
+    {
+        return EnchantmentType::Bow;
+    }
 
-    [[nodiscard]] i32 minLevel() const noexcept override { return 1; }
+    [[nodiscard]] i32 minLevel() const noexcept override
+    {
+        return 1;
+    }
 
-    [[nodiscard]] i32 maxLevel() const noexcept override { return 5; }
+    [[nodiscard]] i32 maxLevel() const noexcept override
+    {
+        return 5;
+    }
 
-    [[nodiscard]] EnchantmentRarity rarity() const noexcept override { return EnchantmentRarity::Common; }
+    [[nodiscard]] EnchantmentRarity rarity() const noexcept override
+    {
+        return EnchantmentRarity::Common;
+    }
 
-    [[nodiscard]] i32 getMinCost(i32 level) const noexcept override { return 1 + (level - 1) * 10; }
+    [[nodiscard]] i32 getMinCost(i32 level) const noexcept override
+    {
+        return 1 + (level - 1) * 10;
+    }
 
-    [[nodiscard]] i32 getMaxCost(i32 level) const noexcept override { return getMinCost(level) + 15; }
+    [[nodiscard]] i32 getMaxCost(i32 level) const noexcept override
+    {
+        return getMinCost(level) + 15;
+    }
 };
 
 } // namespace enchant

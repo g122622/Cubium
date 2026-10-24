@@ -120,27 +120,42 @@ public:
     /**
      * @brief 中心区块 X
      */
-    [[nodiscard]] ChunkCoord centerX() const { return m_centerX; }
+    [[nodiscard]] ChunkCoord centerX() const
+    {
+        return m_centerX;
+    }
 
     /**
      * @brief 中心区块 Z
      */
-    [[nodiscard]] ChunkCoord centerZ() const { return m_centerZ; }
+    [[nodiscard]] ChunkCoord centerZ() const
+    {
+        return m_centerZ;
+    }
 
     /**
      * @brief 缓存半径
      */
-    [[nodiscard]] i32 radius() const { return m_radius; }
+    [[nodiscard]] i32 radius() const
+    {
+        return m_radius;
+    }
 
     /**
      * @brief 缓存边长（= 2*radius + 1）
      */
-    [[nodiscard]] i32 diameter() const { return m_diameter; }
+    [[nodiscard]] i32 diameter() const
+    {
+        return m_diameter;
+    }
 
     /**
      * @brief 条目总数（= diameter²）
      */
-    [[nodiscard]] std::size_t size() const { return m_entries.size(); }
+    [[nodiscard]] std::size_t size() const
+    {
+        return m_entries.size();
+    }
 
 private:
     /**

@@ -52,10 +52,21 @@ public:
 
     [[nodiscard]] ItemStack apply(ItemStack stack, LootContext& context) const override;
     [[nodiscard]] std::unique_ptr<LootFunction> clone() const noexcept override;
-    [[nodiscard]] std::string getType() const override { return "copy_state"; }
 
-    [[nodiscard]] const std::string& getBlockId() const { return m_blockId; }
-    [[nodiscard]] const std::vector<std::string>& getProperties() const { return m_properties; }
+    [[nodiscard]] std::string getType() const override
+    {
+        return "copy_state";
+    }
+
+    [[nodiscard]] const std::string& getBlockId() const
+    {
+        return m_blockId;
+    }
+
+    [[nodiscard]] const std::vector<std::string>& getProperties() const
+    {
+        return m_properties;
+    }
 
 private:
     std::string m_blockId;

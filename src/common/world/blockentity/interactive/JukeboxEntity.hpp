@@ -73,9 +73,20 @@ public:
 
     // ========== IInventory 接口实现 ==========
 
-    [[nodiscard]] IInventory* getInventory() override { return &m_inventory; }
-    [[nodiscard]] const IInventory* getInventory() const override { return &m_inventory; }
-    [[nodiscard]] i32 getContainerSize() const override { return 1; }
+    [[nodiscard]] IInventory* getInventory() override
+    {
+        return &m_inventory;
+    }
+
+    [[nodiscard]] const IInventory* getInventory() const override
+    {
+        return &m_inventory;
+    }
+
+    [[nodiscard]] i32 getContainerSize() const override
+    {
+        return 1;
+    }
 
     // ========== 唱片机接口 ==========
 
@@ -125,7 +136,10 @@ public:
      * @brief 检查是否正在播放
      * @return 如果正在播放返回true
      */
-    [[nodiscard]] bool isPlaying() const noexcept { return m_songPlayer.isPlaying(); }
+    [[nodiscard]] bool isPlaying() const noexcept
+    {
+        return m_songPlayer.isPlaying();
+    }
 
     /**
      * @brief 获取红石比较器信号强度
@@ -137,8 +151,15 @@ public:
      * @brief 获取歌曲播放器
      * @return 歌曲播放器的引用
      */
-    [[nodiscard]] JukeboxSongPlayer& getSongPlayer() noexcept { return m_songPlayer; }
-    [[nodiscard]] const JukeboxSongPlayer& getSongPlayer() const noexcept { return m_songPlayer; }
+    [[nodiscard]] JukeboxSongPlayer& getSongPlayer() noexcept
+    {
+        return m_songPlayer;
+    }
+
+    [[nodiscard]] const JukeboxSongPlayer& getSongPlayer() const noexcept
+    {
+        return m_songPlayer;
+    }
 
     // ========== Tick 更新 ==========
 

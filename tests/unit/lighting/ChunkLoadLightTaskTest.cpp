@@ -151,7 +151,9 @@ TEST_F(ChunkLoadLightTaskTest, FallbackPathRelightsChunkOnMainThread)
     chunk->setLightCorrect(false);
 
     std::atomic<int> lightChangeCount{0};
-    m_world->setOnLightChanged([&lightChangeCount](LightType, const SectionPos&) { lightChangeCount.fetch_add(1); });
+    m_world->setOnLightChanged([&lightChangeCount](LightType, const SectionPos&) {
+        lightChangeCount.fetch_add(1);
+    });
 
     // enqueueChunkLoadLight fallback 同步执行 _executeChunkLoadLight：light() 后 setLightCorrect(true)，
     // dirty section 入 flush 队列（不下立即 flush），chunk 坐标入 send 续延队列。
@@ -203,7 +205,9 @@ TEST_F(ChunkLoadLightTaskTest, WorkerAsyncPathCompletesAndFlushes)
     startWorkerPool(2);
 
     std::atomic<int> lightChangeCount{0};
-    m_world->setOnLightChanged([&lightChangeCount](LightType, const SectionPos&) { lightChangeCount.fetch_add(1); });
+    m_world->setOnLightChanged([&lightChangeCount](LightType, const SectionPos&) {
+        lightChangeCount.fetch_add(1);
+    });
 
     ChunkData* chunk = m_manager->requestFullChunkSync(0, 0);
     ASSERT_NE(chunk, nullptr);

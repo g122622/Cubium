@@ -87,7 +87,10 @@ public:
      *
      * 龙蛋的下落延迟为 5 tick，比普通下落方块（2 tick）更长。
      */
-    [[nodiscard]] i32 getFallDelay() const override { return FALL_DELAY_TICKS; }
+    [[nodiscard]] i32 getFallDelay() const override
+    {
+        return FALL_DELAY_TICKS;
+    }
 
     /**
      * @brief 是否允许移动（路径查找）

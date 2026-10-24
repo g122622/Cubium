@@ -105,7 +105,10 @@ public:
     // 蜜蜂可无限蜇人（与 vanilla 偏差）。
     void checkAndPerformAttack(LivingEntity* target, f64 distToEnemySqr) override;
 
-    [[nodiscard]] std::string getTypeName() const noexcept override { return "BeeStingGoal"; }
+    [[nodiscard]] std::string getTypeName() const noexcept override
+    {
+        return "BeeStingGoal";
+    }
 
 private:
     BeeEntity* m_beeEntity;
@@ -132,7 +135,10 @@ public:
     [[nodiscard]] bool canBeeContinue() override;
     void startExecuting() override;
 
-    [[nodiscard]] std::string getTypeName() const override { return "BeeEnterHiveGoal"; }
+    [[nodiscard]] std::string getTypeName() const override
+    {
+        return "BeeEnterHiveGoal";
+    }
 };
 
 /**
@@ -162,10 +168,16 @@ public:
     /// 对齐 vanilla BeePollinateGoal.requiresUpdateEveryTick() = true
     [[nodiscard]] bool requiresUpdateEveryTick() const override;
 
-    [[nodiscard]] std::string getTypeName() const override { return "BeePollinateGoal"; }
+    [[nodiscard]] std::string getTypeName() const override
+    {
+        return "BeePollinateGoal";
+    }
 
     /// 检查是否正在授粉
-    [[nodiscard]] bool isRunning() const { return m_running; }
+    [[nodiscard]] bool isRunning() const
+    {
+        return m_running;
+    }
 
     /**
      * @brief 立即停止授粉（不触发完整结束逻辑）
@@ -197,7 +209,10 @@ private:
     [[nodiscard]] f32 _hoverOffset();
 
     /// 检查是否完成授粉（对齐 vanilla hasPollinatedLongEnough：successfulPollinatingTicks > 400）
-    [[nodiscard]] bool _completedPollination() const { return m_pollinationTicks > POLLINATION_DURATION; }
+    [[nodiscard]] bool _completedPollination() const
+    {
+        return m_pollinationTicks > POLLINATION_DURATION;
+    }
 
     i32 m_pollinationTicks = 0;  ///< 成功授粉 tick（vanilla successfulPollinatingTicks）
     i32 m_lastSoundTick = 0;     ///< 上次播放声音的tick
@@ -228,7 +243,10 @@ public:
     [[nodiscard]] bool canBeeContinue() override;
     void startExecuting() override;
 
-    [[nodiscard]] std::string getTypeName() const override { return "BeeValidateHiveGoal"; }
+    [[nodiscard]] std::string getTypeName() const override
+    {
+        return "BeeValidateHiveGoal";
+    }
 
 private:
     i32 m_cooldown;
@@ -248,7 +266,10 @@ public:
     [[nodiscard]] bool canBeeContinue() override;
     void startExecuting() override;
 
-    [[nodiscard]] std::string getTypeName() const override { return "BeeValidateFlowerGoal"; }
+    [[nodiscard]] std::string getTypeName() const override
+    {
+        return "BeeValidateFlowerGoal";
+    }
 
 private:
     i32 m_cooldown;
@@ -275,12 +296,18 @@ public:
     [[nodiscard]] bool isBlacklisted(const BlockPos& pos) const;
 
     /// 清空黑名单（对齐 vanilla BeeGoToHiveGoal.clearBlacklist）
-    void clearBlacklist() { m_blacklist.clear(); }
+    void clearBlacklist()
+    {
+        m_blacklist.clear();
+    }
 
     /// 黑名单上限（对齐 vanilla BeeGoToHiveGoal.blackList 最多保留 5 项）
     static constexpr std::size_t MAX_BLACKLIST_SIZE = 5;
 
-    [[nodiscard]] std::string getTypeName() const override { return "BeeUpdateHiveGoal"; }
+    [[nodiscard]] std::string getTypeName() const override
+    {
+        return "BeeUpdateHiveGoal";
+    }
 
 private:
     /// 搜索附近可用的蜂巢
@@ -311,13 +338,19 @@ public:
     void resetTask() override;
     void tick() override;
 
-    [[nodiscard]] std::string getTypeName() const override { return "BeeFindHiveGoal"; }
+    [[nodiscard]] std::string getTypeName() const override
+    {
+        return "BeeFindHiveGoal";
+    }
 
     /// 检查位置是否是可能的蜂巢（用于避免重复搜索）
     [[nodiscard]] bool isPossibleHive(const BlockPos& pos) const;
 
     /// 清除可能的蜂巢列表
-    void clearPossibleHives() { m_possibleHives.clear(); }
+    void clearPossibleHives()
+    {
+        m_possibleHives.clear();
+    }
 
 private:
     /// 检查是否足够靠近蜂巢
@@ -361,7 +394,10 @@ public:
     void resetTask() override;
     void tick() override;
 
-    [[nodiscard]] std::string getTypeName() const override { return "BeeFindFlowerGoal"; }
+    [[nodiscard]] std::string getTypeName() const override
+    {
+        return "BeeFindFlowerGoal";
+    }
 
 private:
     /// 检查花朵是否太远（超过48格）
@@ -389,7 +425,10 @@ public:
     [[nodiscard]] bool canBeeContinue() override;
     void tick() override;
 
-    [[nodiscard]] std::string getTypeName() const override { return "BeeFindPollinationTargetGoal"; }
+    [[nodiscard]] std::string getTypeName() const override
+    {
+        return "BeeFindPollinationTargetGoal";
+    }
 
 protected:
     /// 检查位置是否是可授粉作物
@@ -419,7 +458,10 @@ public:
     void startExecuting() override;
     void tick() override;
 
-    [[nodiscard]] std::string getTypeName() const override { return "BeeWanderGoal"; }
+    [[nodiscard]] std::string getTypeName() const override
+    {
+        return "BeeWanderGoal";
+    }
 
 protected:
     /// 检查位置是否有效
@@ -459,7 +501,10 @@ public:
     [[nodiscard]] bool shouldContinueExecuting() override;
     void startExecuting() override;
 
-    [[nodiscard]] std::string getTypeName() const override { return "BeeAngerGoal"; }
+    [[nodiscard]] std::string getTypeName() const override
+    {
+        return "BeeAngerGoal";
+    }
 
 private:
     BeeEntity* m_beeEntity;
@@ -482,7 +527,10 @@ public:
     void startExecuting() override;
     void resetTask() override;
 
-    [[nodiscard]] std::string getTypeName() const override { return "BeeAttackPlayerGoal"; }
+    [[nodiscard]] std::string getTypeName() const override
+    {
+        return "BeeAttackPlayerGoal";
+    }
 
 private:
     /// 检查是否可以蛰刺
@@ -509,7 +557,10 @@ public:
     [[nodiscard]] bool shouldExecute() override;
     void startExecuting() override;
 
-    [[nodiscard]] std::string getTypeName() const override { return "BeeResetAngerGoal"; }
+    [[nodiscard]] std::string getTypeName() const override
+    {
+        return "BeeResetAngerGoal";
+    }
 
 private:
     BeeEntity* m_bee;

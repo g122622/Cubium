@@ -75,7 +75,10 @@ public:
         m_lastQueryCount = entities.size();
     }
 
-    [[nodiscard]] size_t lastQueryCount() const { return m_lastQueryCount; }
+    [[nodiscard]] size_t lastQueryCount() const
+    {
+        return m_lastQueryCount;
+    }
 
 private:
     EntityManager* m_manager = nullptr;

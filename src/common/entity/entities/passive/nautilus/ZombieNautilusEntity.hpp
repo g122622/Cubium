@@ -97,12 +97,18 @@ public:
     /**
      * @brief 获取气候变体
      */
-    [[nodiscard]] ZombieNautilusVariant getVariant() const { return m_variant; }
+    [[nodiscard]] ZombieNautilusVariant getVariant() const
+    {
+        return m_variant;
+    }
 
     /**
      * @brief 设置气候变体
      */
-    void setVariant(ZombieNautilusVariant variant) { m_variant = variant; }
+    void setVariant(ZombieNautilusVariant variant)
+    {
+        m_variant = variant;
+    }
 
     // ========== 繁殖系统 ==========
 
@@ -148,7 +154,10 @@ public:
     // 免疫生命恢复与中毒、不溺水不脱水）。基类 LivingEntity::getCreatureAttribute 默认返回 Undefined，
     // 未覆写致亡灵杀手附魔无加成、瞬间治疗/伤害药水不反转、凋灵玫瑰不免疫等亡灵特性失效。
     // 本类已覆写 canBreatheUnderwater（经 AbstractNautilusEntity 返回 true），覆写此处不影响其行为。
-    [[nodiscard]] CreatureAttribute getCreatureAttribute() const override { return CreatureAttribute::Undead; }
+    [[nodiscard]] CreatureAttribute getCreatureAttribute() const override
+    {
+        return CreatureAttribute::Undead;
+    }
 
     /**
      * @brief 阳光防护装备槽位
@@ -156,7 +165,10 @@ public:
      * 对应 MC 1.21.11 ZombieNautilus.sunProtectionSlot()：返回 EquipmentSlot::Body
      * 鹦鹉螺铠甲槽中的物品可替代亡灵在阳光下燃烧
      */
-    [[nodiscard]] EquipmentSlot sunProtectionSlot() const override { return EquipmentSlot::Body; }
+    [[nodiscard]] EquipmentSlot sunProtectionSlot() const override
+    {
+        return EquipmentSlot::Body;
+    }
 
     // ========== 音效 ==========
 

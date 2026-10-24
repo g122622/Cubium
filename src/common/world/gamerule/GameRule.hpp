@@ -145,28 +145,43 @@ public:
     /**
      * @brief 获取规则名称
      */
-    [[nodiscard]] const std::string& getName() const noexcept { return m_name; }
+    [[nodiscard]] const std::string& getName() const noexcept
+    {
+        return m_name;
+    }
 
     /**
      * @brief 获取规则分类
      */
-    [[nodiscard]] GameRuleCategory getCategory() const noexcept { return m_category; }
+    [[nodiscard]] GameRuleCategory getCategory() const noexcept
+    {
+        return m_category;
+    }
 
     /**
      * @brief 获取本地化键
      * @return 如 "gamerule.mobGriefing"
      */
-    [[nodiscard]] std::string getTranslationKey() const { return "gamerule." + m_name; }
+    [[nodiscard]] std::string getTranslationKey() const
+    {
+        return "gamerule." + m_name;
+    }
 
     /**
      * @brief 相等比较
      */
-    bool operator==(const GameRuleKey& other) const noexcept { return m_name == other.m_name; }
+    bool operator==(const GameRuleKey& other) const noexcept
+    {
+        return m_name == other.m_name;
+    }
 
     /**
      * @brief 哈希值
      */
-    [[nodiscard]] size_t hashCode() const noexcept { return std::hash<std::string>{}(m_name); }
+    [[nodiscard]] size_t hashCode() const noexcept
+    {
+        return std::hash<std::string>{}(m_name);
+    }
 
 private:
     std::string m_name;
@@ -211,27 +226,42 @@ public:
     /**
      * @brief 获取默认值
      */
-    [[nodiscard]] T getDefaultValue() const noexcept { return m_defaultValue; }
+    [[nodiscard]] T getDefaultValue() const noexcept
+    {
+        return m_defaultValue;
+    }
 
     /**
      * @brief 获取允许的最小值
      */
-    [[nodiscard]] T getMinValue() const noexcept { return m_minValue; }
+    [[nodiscard]] T getMinValue() const noexcept
+    {
+        return m_minValue;
+    }
 
     /**
      * @brief 获取允许的最大值
      */
-    [[nodiscard]] T getMaxValue() const noexcept { return m_maxValue; }
+    [[nodiscard]] T getMaxValue() const noexcept
+    {
+        return m_maxValue;
+    }
 
     /**
      * @brief 值是否落在允许范围内（含边界）
      */
-    [[nodiscard]] bool isValueInRange(T value) const noexcept { return m_minValue <= value && value <= m_maxValue; }
+    [[nodiscard]] bool isValueInRange(T value) const noexcept
+    {
+        return m_minValue <= value && value <= m_maxValue;
+    }
 
     /**
      * @brief 获取变更监听器
      */
-    [[nodiscard]] const GameRuleChangeListener<T>& getChangeListener() const noexcept { return m_changeListener; }
+    [[nodiscard]] const GameRuleChangeListener<T>& getChangeListener() const noexcept
+    {
+        return m_changeListener;
+    }
 
     /**
      * @brief 创建规则值实例
@@ -279,7 +309,10 @@ public:
     /**
      * @brief 获取当前值
      */
-    [[nodiscard]] T get() const noexcept { return m_value; }
+    [[nodiscard]] T get() const noexcept
+    {
+        return m_value;
+    }
 
     /**
      * @brief 设置新值
@@ -302,7 +335,10 @@ public:
     /**
      * @brief 检查是否为默认值
      */
-    [[nodiscard]] bool isDefault() const noexcept { return m_value == m_defaultValue; }
+    [[nodiscard]] bool isDefault() const noexcept
+    {
+        return m_value == m_defaultValue;
+    }
 
     /**
      * @brief 获取字符串表示（用于序列化）
@@ -319,7 +355,10 @@ public:
     /**
      * @brief 获取规则类型
      */
-    [[nodiscard]] const GameRuleType<T>* getType() const noexcept { return m_type; }
+    [[nodiscard]] const GameRuleType<T>* getType() const noexcept
+    {
+        return m_type;
+    }
 
     /**
      * @brief 复制规则值（创建新实例）
@@ -391,7 +430,10 @@ namespace std {
 
 template <typename T>
 struct hash<mc::world::gamerule::GameRuleKey<T>> {
-    size_t operator()(const mc::world::gamerule::GameRuleKey<T>& key) const { return key.hashCode(); }
+    size_t operator()(const mc::world::gamerule::GameRuleKey<T>& key) const
+    {
+        return key.hashCode();
+    }
 };
 
 } // namespace std

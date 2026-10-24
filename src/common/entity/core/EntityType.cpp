@@ -45,6 +45,8 @@ std::unique_ptr<Entity> EntityType::create(IWorld* world, ecs::EntityRegistry& r
     auto entity = m_factory(world, registry);
     if (entity) {
         entity->setTypeId(m_name);
+        // 工厂创建时绑定当时的稳定类型，避免脚本重载后首次懒查询误取同名的新类型。
+        static_cast<void>(entity->entityType());
         // 派生类属性已完整注册，实体交给世界或脚本前就必须处于正确的满血状态。
         if (auto* living = dynamic_cast<LivingEntity*>(entity.get())) {
             living->initializeHealth();

@@ -196,10 +196,14 @@ Result<void> TridentTexture::createFromExisting(
 
 void TridentTexture::destroy()
 {
-    if (m_context == nullptr) return;
+    if (m_context == nullptr) {
+        return;
+    }
 
     VkDevice device = m_context->device();
-    if (device == VK_NULL_HANDLE) return;
+    if (device == VK_NULL_HANDLE) {
+        return;
+    }
 
     // 只有当拥有图像资源时才销毁
     if (m_ownsImage) {
@@ -381,7 +385,9 @@ void TridentTexture::transitionLayout(VkCommandBuffer cmd,
     VkPipelineStageFlags srcStage,
     VkPipelineStageFlags dstStage)
 {
-    if (m_image == VK_NULL_HANDLE) return;
+    if (m_image == VK_NULL_HANDLE) {
+        return;
+    }
 
     VkImageMemoryBarrier barrier{};
     barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
@@ -508,8 +514,12 @@ Result<void> TridentTexture::generateMipmaps(VkCommandBuffer cmd)
             1,
             &barrier);
 
-        if (mipWidth > 1) mipWidth /= 2;
-        if (mipHeight > 1) mipHeight /= 2;
+        if (mipWidth > 1) {
+            mipWidth /= 2;
+        }
+        if (mipHeight > 1) {
+            mipHeight /= 2;
+        }
     }
 
     barrier.subresourceRange.baseMipLevel = m_mipLevels - 1;

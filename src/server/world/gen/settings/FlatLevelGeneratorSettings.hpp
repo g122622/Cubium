@@ -79,10 +79,16 @@ public:
     // === 层配置 ===
 
     /** 获取层信息列表（可修改） */
-    std::vector<FlatLayerInfo>& layersInfo() { return m_layersInfo; }
+    std::vector<FlatLayerInfo>& layersInfo()
+    {
+        return m_layersInfo;
+    }
 
     /** 获取层信息列表（只读） */
-    [[nodiscard]] const std::vector<FlatLayerInfo>& layersInfo() const { return m_layersInfo; }
+    [[nodiscard]] const std::vector<FlatLayerInfo>& layersInfo() const
+    {
+        return m_layersInfo;
+    }
 
     /**
      * @brief 获取展开后的层列表（每个 Y 级别一个 BlockState）
@@ -92,7 +98,10 @@ public:
      *
      * 必须在设置完 layersInfo 后调用 updateLayers() 来生成此列表。
      */
-    [[nodiscard]] const std::vector<const BlockState*>& layers() const { return m_layers; }
+    [[nodiscard]] const std::vector<const BlockState*>& layers() const
+    {
+        return m_layers;
+    }
 
     /**
      * @brief 获取需要由特性系统填充的层条目
@@ -101,25 +110,48 @@ public:
      * 同时将原始方块状态和高度记录到填充层列表中。
      * 这些层将在 placeFeatures() 的 TOP_LAYER_MODIFICATION 阶段补充放置。
      */
-    [[nodiscard]] const std::vector<FillLayerEntry>& fillLayerEntries() const { return m_fillLayerEntries; }
+    [[nodiscard]] const std::vector<FillLayerEntry>& fillLayerEntries() const
+    {
+        return m_fillLayerEntries;
+    }
 
     // === 生物群系 ===
 
     /** 获取生物群系 ID */
-    [[nodiscard]] BiomeId biomeId() const { return m_biomeId; }
+    [[nodiscard]] BiomeId biomeId() const
+    {
+        return m_biomeId;
+    }
 
     /** 设置生物群系 ID */
-    void setBiomeId(BiomeId id) { m_biomeId = id; }
+    void setBiomeId(BiomeId id)
+    {
+        m_biomeId = id;
+    }
 
     // === 特性标志 ===
 
     /** 是否添加生物群系装饰特性（矿石、树木等） */
-    [[nodiscard]] bool hasDecoration() const { return m_decoration; }
-    void setDecoration(bool decoration) { m_decoration = decoration; }
+    [[nodiscard]] bool hasDecoration() const
+    {
+        return m_decoration;
+    }
+
+    void setDecoration(bool decoration)
+    {
+        m_decoration = decoration;
+    }
 
     /** 是否添加湖泊 */
-    [[nodiscard]] bool hasLakes() const { return m_addLakes; }
-    void setLakes(bool addLakes) { m_addLakes = addLakes; }
+    [[nodiscard]] bool hasLakes() const
+    {
+        return m_addLakes;
+    }
+
+    void setLakes(bool addLakes)
+    {
+        m_addLakes = addLakes;
+    }
 
     // === 结构生成覆盖 ===
 
@@ -133,13 +165,22 @@ public:
      * MC 默认超平坦世界启用: minecraft:villages, minecraft:strongholds
      * MC 预设 "Tunneler's Dream": minecraft:mineshafts, minecraft:strongholds
      */
-    [[nodiscard]] const std::vector<ResourceLocation>& structureOverrides() const { return m_structureOverrides; }
+    [[nodiscard]] const std::vector<ResourceLocation>& structureOverrides() const
+    {
+        return m_structureOverrides;
+    }
 
     /** 获取结构生成覆盖列表（可修改） */
-    std::vector<ResourceLocation>& structureOverrides() { return m_structureOverrides; }
+    std::vector<ResourceLocation>& structureOverrides()
+    {
+        return m_structureOverrides;
+    }
 
     /** 设置结构生成覆盖列表 */
-    void setStructureOverrides(std::vector<ResourceLocation> overrides) { m_structureOverrides = std::move(overrides); }
+    void setStructureOverrides(std::vector<ResourceLocation> overrides)
+    {
+        m_structureOverrides = std::move(overrides);
+    }
 
     /**
      * @brief 检查是否启用了结构生成
@@ -154,12 +195,18 @@ public:
      *       Optional.empty 表示使用所有结构集，Optional.present 表示仅使用指定集合。
      *       这里简化为：空列表 = 不生成结构，非空列表 = 仅生成指定结构集。
      */
-    [[nodiscard]] bool hasStructureGeneration() const { return !m_structureOverrides.empty(); }
+    [[nodiscard]] bool hasStructureGeneration() const
+    {
+        return !m_structureOverrides.empty();
+    }
 
     // === 虚空检测 ===
 
     /** 是否为虚空世界（所有层都是空气） */
-    [[nodiscard]] bool isVoidGen() const { return m_voidGen; }
+    [[nodiscard]] bool isVoidGen() const
+    {
+        return m_voidGen;
+    }
 
     // === 更新操作 ===
 

@@ -45,7 +45,10 @@ protected:
         ASSERT_TRUE(result.success()) << "Failed to initialize ClientWorld";
     }
 
-    void TearDown() override { m_world.destroy(); }
+    void TearDown() override
+    {
+        m_world.destroy();
+    }
 
     ClientWorld m_world;
 };

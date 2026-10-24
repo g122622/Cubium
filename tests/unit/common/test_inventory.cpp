@@ -70,16 +70,28 @@ public:
     {
         return y >= mc::world::MIN_BUILD_HEIGHT && y < mc::world::MAX_BUILD_HEIGHT;
     }
-    [[nodiscard]] i64 dayTime() const override { return 0; }
-    [[nodiscard]] u64 currentTick() const override { return m_currentTick; }
 
-    void setCurrentTick(u64 tick) { m_currentTick = tick; }
+    [[nodiscard]] i64 dayTime() const override
+    {
+        return 0;
+    }
+
+    [[nodiscard]] u64 currentTick() const override
+    {
+        return m_currentTick;
+    }
+
+    void setCurrentTick(u64 tick)
+    {
+        m_currentTick = tick;
+    }
 
     // TickManager interface (stubbed for tests)
     [[nodiscard]] world::tick::TickManager& tickManager() override
     {
         throw std::runtime_error("ArmorTestWorld::tickManager not implemented");
     }
+
     [[nodiscard]] const world::tick::TickManager& tickManager() const override
     {
         throw std::runtime_error("ArmorTestWorld::tickManager not implemented");
@@ -97,7 +109,10 @@ private:
 
 class InventorySlotsTest : public ::testing::Test {
 protected:
-    void SetUp() override { Items::initialize(); }
+    void SetUp() override
+    {
+        Items::initialize();
+    }
 };
 
 TEST_F(InventorySlotsTest, ConstantsAreCorrect)
@@ -507,7 +522,10 @@ protected:
         m_diamond = ItemRegistry::instance().getItem(ResourceLocation("minecraft:diamond"));
     }
 
-    void TearDown() override { item::enchant::EnchantmentRegistry::clear(); }
+    void TearDown() override
+    {
+        item::enchant::EnchantmentRegistry::clear();
+    }
 
     std::unique_ptr<PlayerInventory> m_inventory;
     Item* m_diamond = nullptr;
@@ -973,7 +991,10 @@ protected:
         m_inventory = std::make_unique<PlayerInventory>(nullptr);
     }
 
-    void TearDown() override { item::enchant::EnchantmentRegistry::clear(); }
+    void TearDown() override
+    {
+        item::enchant::EnchantmentRegistry::clear();
+    }
 
     std::unique_ptr<PlayerInventory> m_inventory;
 };

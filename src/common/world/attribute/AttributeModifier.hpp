@@ -189,9 +189,15 @@ public:
     }
 
     /// 底层修改器（供调试与诊断）
-    [[nodiscard]] const AttributeModifier<Value, Argument>& inner() const noexcept { return m_inner; }
+    [[nodiscard]] const AttributeModifier<Value, Argument>& inner() const noexcept
+    {
+        return m_inner;
+    }
 
-    [[nodiscard]] AttributeModifierOperation operation() const noexcept override { return m_inner.operation(); }
+    [[nodiscard]] AttributeModifierOperation operation() const noexcept override
+    {
+        return m_inner.operation();
+    }
 
     [[nodiscard]] LerpFunction<Value> argumentKeyframeLerp() const override
     {
@@ -213,7 +219,10 @@ private:
 template <typename Value>
 class OverrideModifier final : public AttributeModifier<Value, Value> {
 public:
-    [[nodiscard]] Value apply(Value, Value argument) const override { return std::move(argument); }
+    [[nodiscard]] Value apply(Value, Value argument) const override
+    {
+        return std::move(argument);
+    }
 
     [[nodiscard]] AttributeModifierOperation operation() const noexcept override
     {
@@ -262,9 +271,15 @@ public:
     static const BooleanModifier XOR;
     static const BooleanModifier XNOR;
 
-    [[nodiscard]] bool apply(bool subject, bool argument) const override { return m_fn(subject, argument); }
+    [[nodiscard]] bool apply(bool subject, bool argument) const override
+    {
+        return m_fn(subject, argument);
+    }
 
-    [[nodiscard]] AttributeModifierOperation operation() const noexcept override { return m_operation; }
+    [[nodiscard]] AttributeModifierOperation operation() const noexcept override
+    {
+        return m_operation;
+    }
 
     [[nodiscard]] LerpFunction<bool> argumentKeyframeLerp() const override
     {
@@ -294,11 +309,20 @@ public:
     static const FloatModifier MINIMUM;
     static const FloatModifier MAXIMUM;
 
-    [[nodiscard]] f32 apply(f32 subject, f32 argument) const override { return m_fn(subject, argument); }
+    [[nodiscard]] f32 apply(f32 subject, f32 argument) const override
+    {
+        return m_fn(subject, argument);
+    }
 
-    [[nodiscard]] AttributeModifierOperation operation() const noexcept override { return m_operation; }
+    [[nodiscard]] AttributeModifierOperation operation() const noexcept override
+    {
+        return m_operation;
+    }
 
-    [[nodiscard]] LerpFunction<f32> argumentKeyframeLerp() const override { return LerpFunction<f32>::ofFloat(); }
+    [[nodiscard]] LerpFunction<f32> argumentKeyframeLerp() const override
+    {
+        return LerpFunction<f32>::ofFloat();
+    }
 
 private:
     AttributeModifierOperation m_operation;
@@ -361,7 +385,9 @@ private:
         return left;
     }
 
-    const auto scale = [](i32 a, i32 b) { return a * b / 255; };
+    const auto scale = [](i32 a, i32 b) {
+        return a * b / 255;
+    };
     return argbColor(scale(argbAlpha(left), argbAlpha(right)),
         scale(argbRed(left), argbRed(right)),
         scale(argbGreen(left), argbGreen(right)),
@@ -434,11 +460,20 @@ public:
     static const RgbColorModifier MULTIPLY;
     static const RgbColorModifier ALPHA_BLEND;
 
-    [[nodiscard]] i32 apply(i32 subject, i32 argument) const override { return m_fn(subject, argument); }
+    [[nodiscard]] i32 apply(i32 subject, i32 argument) const override
+    {
+        return m_fn(subject, argument);
+    }
 
-    [[nodiscard]] AttributeModifierOperation operation() const noexcept override { return m_operation; }
+    [[nodiscard]] AttributeModifierOperation operation() const noexcept override
+    {
+        return m_operation;
+    }
 
-    [[nodiscard]] LerpFunction<i32> argumentKeyframeLerp() const override { return LerpFunction<i32>::ofColor(); }
+    [[nodiscard]] LerpFunction<i32> argumentKeyframeLerp() const override
+    {
+        return LerpFunction<i32>::ofColor();
+    }
 
 private:
     AttributeModifierOperation m_operation;
@@ -458,7 +493,10 @@ struct ColorModifierArgument {
     i32 blendToGray = 0;
 
     /// 以 ARGB 颜色作为参数
-    static ColorModifierArgument ofArgb(i32 color) { return ColorModifierArgument{color, 0}; }
+    static ColorModifierArgument ofArgb(i32 color)
+    {
+        return ColorModifierArgument{color, 0};
+    }
 
     /// 以灰度混合参数作为参数（亮度与进度各占 16 位定点数）
     static ColorModifierArgument ofBlendToGray(f32 brightness, f32 factor)
@@ -513,37 +551,64 @@ public:
 } // namespace mc
 
 inline const mc::world::attribute::BooleanModifier mc::world::attribute::BooleanModifier::AND{
-    AttributeModifierOperation::And, [](bool argument, bool subject) { return argument && subject; }};
+    AttributeModifierOperation::And, [](bool argument, bool subject) {
+        return argument && subject;
+    }};
 inline const mc::world::attribute::BooleanModifier mc::world::attribute::BooleanModifier::NAND{
-    AttributeModifierOperation::Nand, [](bool argument, bool subject) { return !argument || !subject; }};
+    AttributeModifierOperation::Nand, [](bool argument, bool subject) {
+        return !argument || !subject;
+    }};
 inline const mc::world::attribute::BooleanModifier mc::world::attribute::BooleanModifier::OR{
-    AttributeModifierOperation::Or, [](bool argument, bool subject) { return argument || subject; }};
+    AttributeModifierOperation::Or, [](bool argument, bool subject) {
+        return argument || subject;
+    }};
 inline const mc::world::attribute::BooleanModifier mc::world::attribute::BooleanModifier::NOR{
-    AttributeModifierOperation::Nor, [](bool argument, bool subject) { return !argument && !subject; }};
+    AttributeModifierOperation::Nor, [](bool argument, bool subject) {
+        return !argument && !subject;
+    }};
 inline const mc::world::attribute::BooleanModifier mc::world::attribute::BooleanModifier::XOR{
-    AttributeModifierOperation::Xor, [](bool argument, bool subject) { return argument != subject; }};
+    AttributeModifierOperation::Xor, [](bool argument, bool subject) {
+        return argument != subject;
+    }};
 inline const mc::world::attribute::BooleanModifier mc::world::attribute::BooleanModifier::XNOR{
-    AttributeModifierOperation::Xnor, [](bool argument, bool subject) { return argument == subject; }};
+    AttributeModifierOperation::Xnor, [](bool argument, bool subject) {
+        return argument == subject;
+    }};
 
 inline const mc::world::attribute::FloatModifier mc::world::attribute::FloatModifier::ADD{
-    AttributeModifierOperation::Add, [](f32 subject, f32 argument) { return subject + argument; }};
+    AttributeModifierOperation::Add, [](f32 subject, f32 argument) {
+        return subject + argument;
+    }};
 inline const mc::world::attribute::FloatModifier mc::world::attribute::FloatModifier::SUBTRACT{
-    AttributeModifierOperation::Subtract, [](f32 subject, f32 argument) { return subject - argument; }};
+    AttributeModifierOperation::Subtract, [](f32 subject, f32 argument) {
+        return subject - argument;
+    }};
 inline const mc::world::attribute::FloatModifier mc::world::attribute::FloatModifier::MULTIPLY{
-    AttributeModifierOperation::Multiply, [](f32 subject, f32 argument) -> f32 { return subject * argument; }};
+    AttributeModifierOperation::Multiply, [](f32 subject, f32 argument) -> f32 {
+        return subject * argument;
+    }};
 inline const mc::world::attribute::FloatModifier mc::world::attribute::FloatModifier::MINIMUM{
-    AttributeModifierOperation::Minimum,
-    [](f32 subject, f32 argument) { return argument < subject ? argument : subject; }};
+    AttributeModifierOperation::Minimum, [](f32 subject, f32 argument) {
+        return argument < subject ? argument : subject;
+    }};
 inline const mc::world::attribute::FloatModifier mc::world::attribute::FloatModifier::MAXIMUM{
-    AttributeModifierOperation::Maximum,
-    [](f32 subject, f32 argument) { return argument > subject ? argument : subject; }};
+    AttributeModifierOperation::Maximum, [](f32 subject, f32 argument) {
+        return argument > subject ? argument : subject;
+    }};
 
 inline const mc::world::attribute::RgbColorModifier mc::world::attribute::RgbColorModifier::ADD{
-    AttributeModifierOperation::Add, [](i32 subject, i32 argument) { return argbAddRgb(subject, argument); }};
+    AttributeModifierOperation::Add, [](i32 subject, i32 argument) {
+        return argbAddRgb(subject, argument);
+    }};
 inline const mc::world::attribute::RgbColorModifier mc::world::attribute::RgbColorModifier::SUBTRACT{
-    AttributeModifierOperation::Subtract, [](i32 subject, i32 argument) { return argbSubtractRgb(subject, argument); }};
+    AttributeModifierOperation::Subtract, [](i32 subject, i32 argument) {
+        return argbSubtractRgb(subject, argument);
+    }};
 inline const mc::world::attribute::RgbColorModifier mc::world::attribute::RgbColorModifier::MULTIPLY{
-    AttributeModifierOperation::Multiply, [](i32 subject, i32 argument) { return argbMultiply(subject, argument); }};
+    AttributeModifierOperation::Multiply, [](i32 subject, i32 argument) {
+        return argbMultiply(subject, argument);
+    }};
 inline const mc::world::attribute::RgbColorModifier mc::world::attribute::RgbColorModifier::ALPHA_BLEND{
-    AttributeModifierOperation::AlphaBlend,
-    [](i32 subject, i32 argument) { return argbAlphaBlend(subject, argument); }};
+    AttributeModifierOperation::AlphaBlend, [](i32 subject, i32 argument) {
+        return argbAlphaBlend(subject, argument);
+    }};

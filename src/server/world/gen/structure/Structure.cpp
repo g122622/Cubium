@@ -245,9 +245,15 @@ void StructurePiece::fillWithBlocks(IWorldWriter& world,
                 // 如果排除角落，角落不算边界
                 if (excludeCorners && isBoundary) {
                     i32 corners = 0;
-                    if (x == minX || x == maxX) corners++;
-                    if (y == minY || y == maxY) corners++;
-                    if (z == minZ || z == maxZ) corners++;
+                    if (x == minX || x == maxX) {
+                        corners++;
+                    }
+                    if (y == minY || y == maxY) {
+                        corners++;
+                    }
+                    if (z == minZ || z == maxZ) {
+                        corners++;
+                    }
                     if (corners >= 2) {
                         isBoundary = false;
                     }

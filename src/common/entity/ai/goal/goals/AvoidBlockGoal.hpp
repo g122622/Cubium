@@ -118,7 +118,10 @@ public:
     void resetTask() override;
     void tick() override;
 
-    [[nodiscard]] std::string getTypeName() const override { return "AvoidBlockGoal"; }
+    [[nodiscard]] std::string getTypeName() const override
+    {
+        return "AvoidBlockGoal";
+    }
 
 protected:
     /**

@@ -60,7 +60,10 @@ public:
 
     // ========== 标记接口 ==========
 
-    [[nodiscard]] bool isGameMaster() const noexcept override { return true; }
+    [[nodiscard]] bool isGameMaster() const noexcept override
+    {
+        return true;
+    }
 
     // ========== 放置 ==========
 
@@ -80,7 +83,10 @@ public:
     // ========== 方块实体 ==========
 
     /// 拼图方块带方块实体（保存 name/target/pool/joint/final_state/优先级）
-    [[nodiscard]] bool hasBlockEntity() const noexcept override { return true; }
+    [[nodiscard]] bool hasBlockEntity() const noexcept override
+    {
+        return true;
+    }
 
     /// 创建拼图方块实体
     [[nodiscard]] std::unique_ptr<BlockEntity> createBlockEntity(const BlockPos& pos) override;

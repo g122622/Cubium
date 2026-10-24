@@ -32,9 +32,11 @@
 namespace mc {
 
 class BlockPos;
+
 namespace world::chunk {
 class ChunkPos;
 }
+
 using world::chunk::ChunkPos;
 class AxisAlignedBB;
 
@@ -232,12 +234,18 @@ public:
     /**
      * @brief 获取边界中心 X 坐标
      */
-    [[nodiscard]] f64 getCenterX() const { return m_centerX; }
+    [[nodiscard]] f64 getCenterX() const
+    {
+        return m_centerX;
+    }
 
     /**
      * @brief 获取边界中心 Z 坐标
      */
-    [[nodiscard]] f64 getCenterZ() const { return m_centerZ; }
+    [[nodiscard]] f64 getCenterZ() const
+    {
+        return m_centerZ;
+    }
 
     /**
      * @brief 获取边界最小 X 坐标
@@ -283,14 +291,20 @@ public:
      *
      * 默认值: 0.2
      */
-    [[nodiscard]] f64 getDamagePerBlock() const { return m_damagePerBlock; }
+    [[nodiscard]] f64 getDamagePerBlock() const
+    {
+        return m_damagePerBlock;
+    }
 
     /**
      * @brief 获取伤害缓冲距离
      *
      * 默认值: 5.0
      */
-    [[nodiscard]] f64 getDamageBuffer() const { return m_damageBuffer; }
+    [[nodiscard]] f64 getDamageBuffer() const
+    {
+        return m_damageBuffer;
+    }
 
     /**
      * @brief 设置每格伤害量
@@ -311,14 +325,20 @@ public:
      *
      * 默认值: 15 秒
      */
-    [[nodiscard]] i32 getWarningTime() const { return m_warningTime; }
+    [[nodiscard]] i32 getWarningTime() const
+    {
+        return m_warningTime;
+    }
 
     /**
      * @brief 获取警告距离（格）
      *
      * 默认值: 5 格
      */
-    [[nodiscard]] i32 getWarningDistance() const { return m_warningDistance; }
+    [[nodiscard]] i32 getWarningDistance() const
+    {
+        return m_warningDistance;
+    }
 
     /**
      * @brief 设置警告时间

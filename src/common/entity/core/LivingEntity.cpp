@@ -940,10 +940,18 @@ f32 LivingEntity::applyPotionDamageCalculations(DamageSource& source, f32 damage
     // vanilla 中监守者音爆设计为无视护甲和附魔保护（但仍受抗性药水减免）。
     if (!source.isDamageAbsolute() && !source.is(DamageTypeTags::BYPASSES_ENCHANTMENTS())) {
         u32 damageTypeFlags = 0;
-        if (source.isFire()) damageTypeFlags |= DamageFlags::FIRE;
-        if (source.isFall()) damageTypeFlags |= DamageFlags::FALL;
-        if (source.isExplosion()) damageTypeFlags |= DamageFlags::EXPLOSION;
-        if (source.isProjectile()) damageTypeFlags |= DamageFlags::PROJECTILE;
+        if (source.isFire()) {
+            damageTypeFlags |= DamageFlags::FIRE;
+        }
+        if (source.isFall()) {
+            damageTypeFlags |= DamageFlags::FALL;
+        }
+        if (source.isExplosion()) {
+            damageTypeFlags |= DamageFlags::EXPLOSION;
+        }
+        if (source.isProjectile()) {
+            damageTypeFlags |= DamageFlags::PROJECTILE;
+        }
         // 其他类型由全保护附魔处理 (ProtectionEnchantment::Type::All)
 
         auto armorSlots = getArmorSlots();
@@ -1309,8 +1317,9 @@ void LivingEntity::dropFromLootTable(DamageSource& cause, bool recentlyHitByPlay
     }
 
     // 掉落表/谓词解析器：供掉落表内部引用其他表（如 reference entry）时解析。
-    builder.withLootTableResolver(
-        [lootTableManager](const std::string& id) -> const loot::LootTable* { return lootTableManager->getTable(id); });
+    builder.withLootTableResolver([lootTableManager](const std::string& id) -> const loot::LootTable* {
+        return lootTableManager->getTable(id);
+    });
     builder.withPredicateResolver([lootTableManager](const std::string& id) -> const loot::LootCondition* {
         return lootTableManager->getPredicate(id);
     });
@@ -2656,9 +2665,15 @@ void LivingEntity::travel(f32 strafing, f32 vertical, f32 forward)
     }
 
     // 5. 重置过小的速度
-    if (std::abs(m_builtIn.velocity->m_velocity.x) < MOTION_THRESHOLD) m_builtIn.velocity->m_velocity.x = 0.0f;
-    if (std::abs(m_builtIn.velocity->m_velocity.y) < MOTION_THRESHOLD) m_builtIn.velocity->m_velocity.y = 0.0f;
-    if (std::abs(m_builtIn.velocity->m_velocity.z) < MOTION_THRESHOLD) m_builtIn.velocity->m_velocity.z = 0.0f;
+    if (std::abs(m_builtIn.velocity->m_velocity.x) < MOTION_THRESHOLD) {
+        m_builtIn.velocity->m_velocity.x = 0.0f;
+    }
+    if (std::abs(m_builtIn.velocity->m_velocity.y) < MOTION_THRESHOLD) {
+        m_builtIn.velocity->m_velocity.y = 0.0f;
+    }
+    if (std::abs(m_builtIn.velocity->m_velocity.z) < MOTION_THRESHOLD) {
+        m_builtIn.velocity->m_velocity.z = 0.0f;
+    }
 }
 
 // ============================================================================
@@ -3700,7 +3715,9 @@ void LivingEntity::addAdditionalSaveData(nbt::tags::compound_tag& tag) const
     if (m_waypointStyle != "minecraft:default" || m_waypointColor) {
         auto icon = std::make_unique<nbt::tags::compound_tag>();
         icon->put("style", m_waypointStyle);
-        if (m_waypointColor) icon->put("color", static_cast<i32>(*m_waypointColor));
+        if (m_waypointColor) {
+            icon->put("color", static_cast<i32>(*m_waypointColor));
+        }
         tag.value.emplace("locator_bar_icon", std::move(icon));
     }
     // Health / AbsorptionAmount / HurtTime / DeathTime / Equipment 已迁入组件序列化器注册表，
@@ -3742,8 +3759,12 @@ Result<void> LivingEntity::readAdditionalSaveData(const nbt::tags::compound_tag&
     if (const auto icon = tag.value.find("locator_bar_icon");
         icon != tag.value.end() && icon->second->id() == nbt::TagId::Compound) {
         const auto& value = dynamic_cast<const nbt::tags::compound_tag&>(*icon->second);
-        if (auto name = nbt_helper::tryGetString(value, "style")) m_waypointStyle = *name;
-        if (auto color = nbt_helper::tryGetInt(value, "color")) m_waypointColor = static_cast<u32>(*color) & 0xffffffu;
+        if (auto name = nbt_helper::tryGetString(value, "style")) {
+            m_waypointStyle = *name;
+        }
+        if (auto color = nbt_helper::tryGetInt(value, "color")) {
+            m_waypointColor = static_cast<u32>(*color) & 0xffffffu;
+        }
     }
     // Health / AbsorptionAmount / HurtTime / DeathTime / Equipment 已迁入组件序列化器注册表，
     // 经 Entity::readFromNBT 的 loadAll 读回（批次6 子目标1 Step4），此处不再重复读。

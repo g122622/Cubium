@@ -94,7 +94,10 @@ public:
     /**
      * @brief 获取当前配置
      */
-    [[nodiscard]] const AssertConfig& config() const { return m_config; }
+    [[nodiscard]] const AssertConfig& config() const
+    {
+        return m_config;
+    }
 
     /**
      * @brief 设置自定义处理器
@@ -161,8 +164,16 @@ private:
 class AssertException : public std::exception {
 public:
     explicit AssertException(const AssertFailure& failure);
-    [[nodiscard]] const char* what() const noexcept override { return m_what.c_str(); }
-    [[nodiscard]] const AssertFailure& failure() const noexcept { return m_failure; }
+
+    [[nodiscard]] const char* what() const noexcept override
+    {
+        return m_what.c_str();
+    }
+
+    [[nodiscard]] const AssertFailure& failure() const noexcept
+    {
+        return m_failure;
+    }
 
 private:
     AssertFailure m_failure;

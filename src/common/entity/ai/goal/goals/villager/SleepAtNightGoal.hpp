@@ -31,6 +31,7 @@
 
 namespace mc {
 class Block;
+
 namespace entity {
 class VillagerEntity;
 
@@ -77,7 +78,10 @@ public:
      */
     void tick() override;
 
-    [[nodiscard]] std::string getTypeName() const override { return "SleepAtNightGoal"; }
+    [[nodiscard]] std::string getTypeName() const override
+    {
+        return "SleepAtNightGoal";
+    }
 
 private:
     /**

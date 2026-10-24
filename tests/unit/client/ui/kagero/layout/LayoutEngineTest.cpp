@@ -48,6 +48,7 @@ using mc::i32;
 class LayoutResultTest : public ::testing::Test {
 protected:
     void SetUp() override {}
+
     void TearDown() override {}
 };
 
@@ -261,7 +262,10 @@ protected:
         engine->resetStats();
     }
 
-    void TearDown() override { engine->resetStats(); }
+    void TearDown() override
+    {
+        engine->resetStats();
+    }
 
     LayoutEngine* engine;
 };
@@ -326,9 +330,15 @@ TEST_F(LayoutEngineTest, Profiling)
 
 class FlexLayoutAlgorithmTest : public ::testing::Test {
 protected:
-    void SetUp() override { algorithm = std::make_unique<FlexLayoutAlgorithm>(FlexConfig{}); }
+    void SetUp() override
+    {
+        algorithm = std::make_unique<FlexLayoutAlgorithm>(FlexConfig{});
+    }
 
-    void TearDown() override { algorithm.reset(); }
+    void TearDown() override
+    {
+        algorithm.reset();
+    }
 
     std::unique_ptr<FlexLayoutAlgorithm> algorithm;
 };

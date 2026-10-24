@@ -68,12 +68,18 @@ public:
     /**
      * @brief 获取 AGE 属性 (0-1)
      */
-    static const IntegerProperty& AGE() { return BlockStateProperties::AGE_0_1(); }
+    static const IntegerProperty& AGE()
+    {
+        return BlockStateProperties::AGE_0_1();
+    }
 
     /**
      * @brief 获取 STAGE 属性 (0-1)
      */
-    static const IntegerProperty& STAGE() { return BlockStateProperties::STAGE_0_1(); }
+    static const IntegerProperty& STAGE()
+    {
+        return BlockStateProperties::STAGE_0_1();
+    }
 
     /**
      * @brief 获取 BAMBOO_LEAVES 属性
@@ -98,7 +104,10 @@ public:
 
     void randomTick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random) override;
 
-    [[nodiscard]] bool ticksRandomly() const noexcept override { return true; }
+    [[nodiscard]] bool ticksRandomly() const noexcept override
+    {
+        return true;
+    }
 
     // ========== IGrowable 接口 ==========
 
@@ -190,7 +199,10 @@ public:
 
     void randomTick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random) override;
 
-    [[nodiscard]] bool ticksRandomly() const noexcept override { return true; }
+    [[nodiscard]] bool ticksRandomly() const noexcept override
+    {
+        return true;
+    }
 
     // ========== IGrowable 接口 ==========
 

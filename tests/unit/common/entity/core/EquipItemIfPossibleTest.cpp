@@ -62,12 +62,18 @@ public:
         setHealth(maxHealth());
     }
 
-    [[nodiscard]] std::string getPreferredWeaponType() const override { return "minecraft:skeleton_preferred_weapons"; }
+    [[nodiscard]] std::string getPreferredWeaponType() const override
+    {
+        return "minecraft:skeleton_preferred_weapons";
+    }
 };
 
 class PickupTestWorld final : public mc::test::BaseTestWorld {
 public:
-    PickupTestWorld() { Items::initialize(); }
+    PickupTestWorld()
+    {
+        Items::initialize();
+    }
 
     EntityInstanceId spawnEntity(std::unique_ptr<Entity> entity) override
     {
@@ -75,7 +81,10 @@ public:
         return static_cast<EntityInstanceId>(m_spawnedEntities.size() + 100);
     }
 
-    [[nodiscard]] const std::vector<std::unique_ptr<Entity>>& spawnedEntities() const { return m_spawnedEntities; }
+    [[nodiscard]] const std::vector<std::unique_ptr<Entity>>& spawnedEntities() const
+    {
+        return m_spawnedEntities;
+    }
 
 private:
     std::vector<std::unique_ptr<Entity>> m_spawnedEntities;

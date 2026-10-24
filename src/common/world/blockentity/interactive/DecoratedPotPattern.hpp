@@ -138,7 +138,10 @@ public:
      * @param pattern 图案类型
      * @return 如果是空白图案返回 true
      */
-    [[nodiscard]] static bool isBlank(DecoratedPotPattern pattern) { return pattern == DecoratedPotPattern::Blank; }
+    [[nodiscard]] static bool isBlank(DecoratedPotPattern pattern)
+    {
+        return pattern == DecoratedPotPattern::Blank;
+    }
 };
 
 } // namespace blockentity

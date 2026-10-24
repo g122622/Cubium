@@ -57,7 +57,10 @@ public:
     /**
      * @brief 获取最大年龄（甜菜根为 3）
      */
-    [[nodiscard]] i32 getMaxAge() const override { return 3; }
+    [[nodiscard]] i32 getMaxAge() const override
+    {
+        return 3;
+    }
 
     // ========== 生长逻辑 ==========
 

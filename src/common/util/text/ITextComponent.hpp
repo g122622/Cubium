@@ -187,7 +187,11 @@ public:
     // ========== 比较 ==========
 
     bool operator==(const ITextComponent& other) const;
-    bool operator!=(const ITextComponent& other) const { return !(*this == other); }
+
+    bool operator!=(const ITextComponent& other) const
+    {
+        return !(*this == other);
+    }
 };
 
 /**
@@ -202,8 +206,15 @@ public:
 
     // ========== 样式 ==========
 
-    [[nodiscard]] const Style& getStyle() const override { return m_style; }
-    void setStyle(const Style& style) override { m_style = style; }
+    [[nodiscard]] const Style& getStyle() const override
+    {
+        return m_style;
+    }
+
+    void setStyle(const Style& style) override
+    {
+        m_style = style;
+    }
 
     // ========== 子组件 ==========
 

@@ -55,7 +55,10 @@ protected:
         m_world = std::make_unique<ServerWorld>(config);
     }
 
-    void TearDown() override { m_world.reset(); }
+    void TearDown() override
+    {
+        m_world.reset();
+    }
 
     std::unique_ptr<ServerWorld> m_world;
 };

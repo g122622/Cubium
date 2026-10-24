@@ -63,7 +63,10 @@ public:
     /**
      * @brief 是否响应随机刻
      */
-    [[nodiscard]] bool ticksRandomly() const noexcept override { return true; }
+    [[nodiscard]] bool ticksRandomly() const noexcept override
+    {
+        return true;
+    }
 
     // ========== IGrowable 接口实现 ==========
 
@@ -103,7 +106,10 @@ public:
      *
      * 粒子在方块上方水平扩散，数量为传入值的3倍。
      */
-    [[nodiscard]] BoneMealType getBoneMealType() const override { return BoneMealType::NEIGHBOR_SPREADER; }
+    [[nodiscard]] BoneMealType getBoneMealType() const override
+    {
+        return BoneMealType::NEIGHBOR_SPREADER;
+    }
 
 private:
     /**

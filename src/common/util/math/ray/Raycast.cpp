@@ -57,8 +57,12 @@ inline f32 fract(f32 x)
  */
 inline i32 signum(f32 x)
 {
-    if (x > 0.0f) return 1;
-    if (x < 0.0f) return -1;
+    if (x > 0.0f) {
+        return 1;
+    }
+    if (x < 0.0f) {
+        return -1;
+    }
     return 0;
 }
 
@@ -391,6 +395,7 @@ BlockRaycastResult raycastFluidSource(const RaycastContext& context, const IWorl
 
     // 方块检测结果：None = 无流体（不阻挡），Blocked = 流动流体（阻挡但不命中），Hit = 命中流体源。
     enum class CellResult : u8 { None, Blocked, Hit };
+
     // 射线命中信息：仅 CellResult::Hit 时有效。
     struct CellHit {
         BlockPos pos;

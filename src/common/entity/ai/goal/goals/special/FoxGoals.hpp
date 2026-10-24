@@ -117,7 +117,10 @@ public:
     void resetTask() override;
     void tick() override;
 
-    [[nodiscard]] std::string getTypeName() const override { return "FoxFollowTargetGoal"; }
+    [[nodiscard]] std::string getTypeName() const override
+    {
+        return "FoxFollowTargetGoal";
+    }
 
     /**
      * @brief 检查从狐狸到目标的路径是否畅通
@@ -155,12 +158,20 @@ public:
 
     [[nodiscard]] bool shouldExecute() override;
     [[nodiscard]] bool shouldContinueExecuting() override;
-    [[nodiscard]] bool isPreemptible() const override { return false; } // 扑击不可中断
+
+    [[nodiscard]] bool isPreemptible() const override
+    {
+        return false;
+    } // 扑击不可中断
+
     void startExecuting() override;
     void resetTask() override;
     void tick() override;
 
-    [[nodiscard]] std::string getTypeName() const override { return "FoxPounceGoal"; }
+    [[nodiscard]] std::string getTypeName() const override
+    {
+        return "FoxPounceGoal";
+    }
 
 private:
     FoxEntity* m_fox;
@@ -192,7 +203,10 @@ public:
     [[nodiscard]] bool shouldContinueExecuting() override;
     void startExecuting() override;
 
-    [[nodiscard]] std::string getTypeName() const noexcept override { return "FoxBiteGoal"; }
+    [[nodiscard]] std::string getTypeName() const noexcept override
+    {
+        return "FoxBiteGoal";
+    }
 
 protected:
     void checkAndPerformAttack(LivingEntity* enemy, f64 distToEnemySqr) override;
@@ -218,7 +232,10 @@ public:
     void resetTask() override;
     void tick() override;
 
-    [[nodiscard]] std::string getTypeName() const override { return "FoxFindShelterGoal"; }
+    [[nodiscard]] std::string getTypeName() const override
+    {
+        return "FoxFindShelterGoal";
+    }
 
 private:
     f64 m_speed;
@@ -247,7 +264,10 @@ public:
     void startExecuting() override;
     void resetTask() override;
 
-    [[nodiscard]] std::string getTypeName() const override { return "FoxSleepGoal"; }
+    [[nodiscard]] std::string getTypeName() const override
+    {
+        return "FoxSleepGoal";
+    }
 
 private:
     i32 m_cooldown;
@@ -280,7 +300,10 @@ public:
     void resetTask() override;
     void tick() override;
 
-    [[nodiscard]] std::string getTypeName() const override { return "FoxEatBerriesGoal"; }
+    [[nodiscard]] std::string getTypeName() const override
+    {
+        return "FoxEatBerriesGoal";
+    }
 
 private:
     /**
@@ -345,7 +368,10 @@ public:
     void startExecuting() override;
     void tick() override;
 
-    [[nodiscard]] std::string getTypeName() const override { return "FoxFindItemsGoal"; }
+    [[nodiscard]] std::string getTypeName() const override
+    {
+        return "FoxFindItemsGoal";
+    }
 
 private:
     /**
@@ -379,7 +405,10 @@ public:
     void resetTask() override;
     void tick() override;
 
-    [[nodiscard]] std::string getTypeName() const override { return "FoxSitAndLookGoal"; }
+    [[nodiscard]] std::string getTypeName() const override
+    {
+        return "FoxSitAndLookGoal";
+    }
 
 private:
     /**
@@ -419,7 +448,10 @@ public:
     void resetTask() override;
     void tick() override;
 
-    [[nodiscard]] std::string getTypeName() const override { return "FoxStuckInSnowGoal"; }
+    [[nodiscard]] std::string getTypeName() const override
+    {
+        return "FoxStuckInSnowGoal";
+    }
 
 private:
     FoxEntity* m_fox;
@@ -447,7 +479,10 @@ public:
     [[nodiscard]] bool shouldExecute() override;
     void startExecuting() override;
 
-    [[nodiscard]] std::string getTypeName() const override { return "FoxRevengeGoal"; }
+    [[nodiscard]] std::string getTypeName() const override
+    {
+        return "FoxRevengeGoal";
+    }
 
 private:
     FoxEntity* m_foxEntity;

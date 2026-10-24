@@ -113,7 +113,10 @@ public:
      * @brief 钟有对应的方块实体
      * @return true
      */
-    [[nodiscard]] bool hasBlockEntity() const noexcept override { return true; }
+    [[nodiscard]] bool hasBlockEntity() const noexcept override
+    {
+        return true;
+    }
 
     /**
      * @brief 创建钟方块实体

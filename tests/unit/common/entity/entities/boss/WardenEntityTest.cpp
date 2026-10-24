@@ -543,7 +543,10 @@ public:
 
 class WardenDarknessTestWorld final : public mc::test::BaseTestWorld {
 public:
-    void addPlayer(Player* player) { m_players.push_back(player); }
+    void addPlayer(Player* player)
+    {
+        m_players.push_back(player);
+    }
 
     [[nodiscard]] std::vector<Entity*> getPlayers() const override
     {

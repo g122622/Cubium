@@ -80,7 +80,10 @@ public:
     {}
 
     // Mock POI storage for testing
-    world::village::poi::PointOfInterestStorage& getMockPOIStorage() { return m_poiStorage; }
+    world::village::poi::PointOfInterestStorage& getMockPOIStorage()
+    {
+        return m_poiStorage;
+    }
 
 private:
     world::village::poi::PointOfInterestStorage m_poiStorage;
@@ -97,13 +100,31 @@ public:
         , m_currentTick(0)
     {}
 
-    void setDayTime(i64 time) { m_dayTime = time; }
-    void setCurrentTick(u64 tick) { m_currentTick = tick; }
+    void setDayTime(i64 time)
+    {
+        m_dayTime = time;
+    }
 
-    [[nodiscard]] i64 dayTime() const override { return m_dayTime; }
-    [[nodiscard]] u64 currentTick() const override { return m_currentTick; }
+    void setCurrentTick(u64 tick)
+    {
+        m_currentTick = tick;
+    }
 
-    [[nodiscard]] world::village::VillageManager* villageManager() override { return m_villageManager.get(); }
+    [[nodiscard]] i64 dayTime() const override
+    {
+        return m_dayTime;
+    }
+
+    [[nodiscard]] u64 currentTick() const override
+    {
+        return m_currentTick;
+    }
+
+    [[nodiscard]] world::village::VillageManager* villageManager() override
+    {
+        return m_villageManager.get();
+    }
+
     [[nodiscard]] const world::village::VillageManager* villageManager() const override
     {
         return m_villageManager.get();
@@ -114,8 +135,15 @@ public:
         m_villageManager = std::move(manager);
     }
 
-    void setBlockStateOverride(const BlockState* state) { m_blockStateOverride = state; }
-    [[nodiscard]] const BlockState* getBlockState(i32, i32, i32) const override { return m_blockStateOverride; }
+    void setBlockStateOverride(const BlockState* state)
+    {
+        m_blockStateOverride = state;
+    }
+
+    [[nodiscard]] const BlockState* getBlockState(i32, i32, i32) const override
+    {
+        return m_blockStateOverride;
+    }
 
 private:
     i64 m_dayTime = 0;
@@ -782,13 +810,31 @@ public:
         , m_currentTick(1000)
     {}
 
-    void setDayTime(i64 time) { m_dayTime = time; }
-    void setCurrentTick(u64 tick) { m_currentTick = tick; }
+    void setDayTime(i64 time)
+    {
+        m_dayTime = time;
+    }
 
-    [[nodiscard]] i64 dayTime() const override { return m_dayTime; }
-    [[nodiscard]] u64 currentTick() const override { return m_currentTick; }
+    void setCurrentTick(u64 tick)
+    {
+        m_currentTick = tick;
+    }
 
-    [[nodiscard]] world::village::VillageManager* villageManager() override { return m_villageManager.get(); }
+    [[nodiscard]] i64 dayTime() const override
+    {
+        return m_dayTime;
+    }
+
+    [[nodiscard]] u64 currentTick() const override
+    {
+        return m_currentTick;
+    }
+
+    [[nodiscard]] world::village::VillageManager* villageManager() override
+    {
+        return m_villageManager.get();
+    }
+
     [[nodiscard]] const world::village::VillageManager* villageManager() const override
     {
         return m_villageManager.get();
@@ -802,7 +848,10 @@ public:
     /**
      * @brief 设置指定位置的方块状态
      */
-    void setBlockStateAt(i32 x, i32 y, i32 z, const BlockState* state) { m_blockStates[BlockPos(x, y, z)] = state; }
+    void setBlockStateAt(i32 x, i32 y, i32 z, const BlockState* state)
+    {
+        m_blockStates[BlockPos(x, y, z)] = state;
+    }
 
     [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override
     {
@@ -1059,7 +1108,9 @@ TEST_F(FarmerBlockTest, TickWithMatureWheatCrop)
             const BlockState* farmlandState = &VanillaBlocks::FARMLAND->defaultState();
             for (int dx = -1; dx <= 1; ++dx) {
                 for (int dz = -1; dz <= 1; ++dz) {
-                    if (dx == 0 && dz == 0) continue;
+                    if (dx == 0 && dz == 0) {
+                        continue;
+                    }
                     // 设置耕地
                     m_world->setBlockStateAt(dx, 63, dz, farmlandState);
                     // 设置成熟作物
@@ -1198,7 +1249,9 @@ TEST_F(FarmerBlockTest, HarvestAddsItemsToInventory)
     // 在村民周围设置成熟作物
     for (int dx = -1; dx <= 1; ++dx) {
         for (int dz = -1; dz <= 1; ++dz) {
-            if (dx == 0 && dz == 0) continue;
+            if (dx == 0 && dz == 0) {
+                continue;
+            }
             m_world->setBlockStateAt(dx, 63, dz, farmlandState);
             m_world->setBlockStateAt(dx, 64, dz, &maxAgeState);
         }
@@ -1250,7 +1303,9 @@ TEST_F(FarmerBlockTest, PlantSeedsOnEmptyFarmland)
     // 在村民周围设置空耕地（无作物，只有空气+耕地）
     for (int dx = -1; dx <= 1; ++dx) {
         for (int dz = -1; dz <= 1; ++dz) {
-            if (dx == 0 && dz == 0) continue;
+            if (dx == 0 && dz == 0) {
+                continue;
+            }
             m_world->setBlockStateAt(dx, 63, dz, farmlandState);
             m_world->setBlockStateAt(dx, 64, dz, airState);
         }
@@ -1302,7 +1357,9 @@ TEST_F(FarmerBlockTest, HarvestRemovesCropBlock)
     // 在村民周围设置成熟作物
     for (int dx = -1; dx <= 1; ++dx) {
         for (int dz = -1; dz <= 1; ++dz) {
-            if (dx == 0 && dz == 0) continue;
+            if (dx == 0 && dz == 0) {
+                continue;
+            }
             m_world->setBlockStateAt(dx, 63, dz, farmlandState);
             m_world->setBlockStateAt(dx, 64, dz, &maxAgeState);
         }
@@ -1326,7 +1383,9 @@ TEST_F(FarmerBlockTest, HarvestRemovesCropBlock)
     bool anyCropRemoved = false;
     for (int dx = -1; dx <= 1; ++dx) {
         for (int dz = -1; dz <= 1; ++dz) {
-            if (dx == 0 && dz == 0) continue;
+            if (dx == 0 && dz == 0) {
+                continue;
+            }
             const BlockState* state = m_world->getBlockState(dx, 64, dz);
             // 如果方块状态变为nullptr（被移除）或空气，说明作物被收获
             if (!state || state->isAir()) {
@@ -1342,7 +1401,9 @@ TEST_F(FarmerBlockTest, HarvestRemovesCropBlock)
                 }
             }
         }
-        if (anyCropRemoved) break;
+        if (anyCropRemoved) {
+            break;
+        }
     }
     EXPECT_TRUE(anyCropRemoved) << "At least one mature crop should be removed after harvesting";
 }
@@ -1446,7 +1507,9 @@ TEST_F(FarmerBlockTest, PlantTorchflowerSeedsOnEmptyFarmland)
     // 在村民周围设置空耕地
     for (int dx = -1; dx <= 1; ++dx) {
         for (int dz = -1; dz <= 1; ++dz) {
-            if (dx == 0 && dz == 0) continue;
+            if (dx == 0 && dz == 0) {
+                continue;
+            }
             m_world->setBlockStateAt(dx, 63, dz, farmlandState);
             m_world->setBlockStateAt(dx, 64, dz, airState);
         }
@@ -1483,14 +1546,18 @@ TEST_F(FarmerBlockTest, PlantTorchflowerSeedsOnEmptyFarmland)
     bool anyTorchflowerPlanted = false;
     for (int dx = -1; dx <= 1; ++dx) {
         for (int dz = -1; dz <= 1; ++dz) {
-            if (dx == 0 && dz == 0) continue;
+            if (dx == 0 && dz == 0) {
+                continue;
+            }
             const BlockState* state = m_world->getBlockState(dx, 64, dz);
             if (state && state->getBlock().blockLocation() == ResourceLocation("minecraft:torchflower_crop")) {
                 anyTorchflowerPlanted = true;
                 break;
             }
         }
-        if (anyTorchflowerPlanted) break;
+        if (anyTorchflowerPlanted) {
+            break;
+        }
     }
     EXPECT_TRUE(anyTorchflowerPlanted) << "At least one torchflower crop should be planted";
 }
@@ -1514,7 +1581,9 @@ TEST_F(FarmerBlockTest, PlantPitcherPodOnEmptyFarmland)
     // 在村民周围设置空耕地
     for (int dx = -1; dx <= 1; ++dx) {
         for (int dz = -1; dz <= 1; ++dz) {
-            if (dx == 0 && dz == 0) continue;
+            if (dx == 0 && dz == 0) {
+                continue;
+            }
             m_world->setBlockStateAt(dx, 63, dz, farmlandState);
             m_world->setBlockStateAt(dx, 64, dz, airState);
         }
@@ -1550,14 +1619,18 @@ TEST_F(FarmerBlockTest, PlantPitcherPodOnEmptyFarmland)
     bool anyPitcherPlanted = false;
     for (int dx = -1; dx <= 1; ++dx) {
         for (int dz = -1; dz <= 1; ++dz) {
-            if (dx == 0 && dz == 0) continue;
+            if (dx == 0 && dz == 0) {
+                continue;
+            }
             const BlockState* state = m_world->getBlockState(dx, 64, dz);
             if (state && state->getBlock().blockLocation() == ResourceLocation("minecraft:pitcher_crop")) {
                 anyPitcherPlanted = true;
                 break;
             }
         }
-        if (anyPitcherPlanted) break;
+        if (anyPitcherPlanted) {
+            break;
+        }
     }
     EXPECT_TRUE(anyPitcherPlanted) << "At least one pitcher crop should be planted";
 }
@@ -1585,7 +1658,9 @@ TEST_F(FarmerBlockTest, DoesNotHarvestPitcherCrop)
     const BlockState& pitcherState = VanillaBlocks::PITCHER_CROP->defaultState();
     for (int dx = -1; dx <= 1; ++dx) {
         for (int dz = -1; dz <= 1; ++dz) {
-            if (dx == 0 && dz == 0) continue;
+            if (dx == 0 && dz == 0) {
+                continue;
+            }
             m_world->setBlockStateAt(dx, 63, dz, farmlandState);
             m_world->setBlockStateAt(dx, 64, dz, &pitcherState);
         }
@@ -1611,7 +1686,9 @@ TEST_F(FarmerBlockTest, DoesNotHarvestPitcherCrop)
     bool anyPitcherRemoved = false;
     for (int dx = -1; dx <= 1; ++dx) {
         for (int dz = -1; dz <= 1; ++dz) {
-            if (dx == 0 && dz == 0) continue;
+            if (dx == 0 && dz == 0) {
+                continue;
+            }
             const BlockState* state = m_world->getBlockState(dx, 64, dz);
             if (!state || state->isAir() ||
                 state->getBlock().blockLocation() != ResourceLocation("minecraft:pitcher_crop")) {
@@ -1619,7 +1696,9 @@ TEST_F(FarmerBlockTest, DoesNotHarvestPitcherCrop)
                 break;
             }
         }
-        if (anyPitcherRemoved) break;
+        if (anyPitcherRemoved) {
+            break;
+        }
     }
     EXPECT_FALSE(anyPitcherRemoved) << "Farmer should NOT harvest pitcher crops (vanilla behavior)";
 }
@@ -1646,7 +1725,9 @@ TEST_F(FarmerBlockTest, HarvestTorchflowerCrop)
     const BlockState& maxAgeState = torchflowerAsCrop->withAge(torchflowerAsCrop->getMaxAge());
     for (int dx = -1; dx <= 1; ++dx) {
         for (int dz = -1; dz <= 1; ++dz) {
-            if (dx == 0 && dz == 0) continue;
+            if (dx == 0 && dz == 0) {
+                continue;
+            }
             m_world->setBlockStateAt(dx, 63, dz, farmlandState);
             m_world->setBlockStateAt(dx, 64, dz, &maxAgeState);
         }
@@ -1670,7 +1751,9 @@ TEST_F(FarmerBlockTest, HarvestTorchflowerCrop)
     bool anyTorchflowerHarvested = false;
     for (int dx = -1; dx <= 1; ++dx) {
         for (int dz = -1; dz <= 1; ++dz) {
-            if (dx == 0 && dz == 0) continue;
+            if (dx == 0 && dz == 0) {
+                continue;
+            }
             const BlockState* state = m_world->getBlockState(dx, 64, dz);
             if (!state || state->isAir()) {
                 anyTorchflowerHarvested = true;
@@ -1685,7 +1768,9 @@ TEST_F(FarmerBlockTest, HarvestTorchflowerCrop)
                 }
             }
         }
-        if (anyTorchflowerHarvested) break;
+        if (anyTorchflowerHarvested) {
+            break;
+        }
     }
     EXPECT_TRUE(anyTorchflowerHarvested) << "Farmer should harvest mature torchflower crops";
 }
@@ -1712,7 +1797,9 @@ TEST_F(FarmerBlockTest, HasFarmSeedsWithVariousItems)
     // 设置空耕地
     for (int dx = -1; dx <= 1; ++dx) {
         for (int dz = -1; dz <= 1; ++dz) {
-            if (dx == 0 && dz == 0) continue;
+            if (dx == 0 && dz == 0) {
+                continue;
+            }
             m_world->setBlockStateAt(dx, 63, dz, farmlandState);
             m_world->setBlockStateAt(dx, 64, dz, airState);
         }
@@ -1748,13 +1835,31 @@ public:
         , m_tickManager(*this)
     {}
 
-    void setDayTime(i64 time) { m_dayTime = time; }
-    void setCurrentTick(u64 tick) { m_currentTick = tick; }
+    void setDayTime(i64 time)
+    {
+        m_dayTime = time;
+    }
 
-    [[nodiscard]] i64 dayTime() const override { return m_dayTime; }
-    [[nodiscard]] u64 currentTick() const override { return m_currentTick; }
+    void setCurrentTick(u64 tick)
+    {
+        m_currentTick = tick;
+    }
 
-    [[nodiscard]] world::village::VillageManager* villageManager() override { return m_villageManager.get(); }
+    [[nodiscard]] i64 dayTime() const override
+    {
+        return m_dayTime;
+    }
+
+    [[nodiscard]] u64 currentTick() const override
+    {
+        return m_currentTick;
+    }
+
+    [[nodiscard]] world::village::VillageManager* villageManager() override
+    {
+        return m_villageManager.get();
+    }
+
     [[nodiscard]] const world::village::VillageManager* villageManager() const override
     {
         return m_villageManager.get();
@@ -1765,10 +1870,20 @@ public:
         m_villageManager = std::move(manager);
     }
 
-    [[nodiscard]] world::tick::TickManager& tickManager() override { return m_tickManager; }
-    [[nodiscard]] const world::tick::TickManager& tickManager() const override { return m_tickManager; }
+    [[nodiscard]] world::tick::TickManager& tickManager() override
+    {
+        return m_tickManager;
+    }
 
-    void setBlockStateAt(i32 x, i32 y, i32 z, const BlockState* state) { _storeState(x, y, z, state); }
+    [[nodiscard]] const world::tick::TickManager& tickManager() const override
+    {
+        return m_tickManager;
+    }
+
+    void setBlockStateAt(i32 x, i32 y, i32 z, const BlockState* state)
+    {
+        _storeState(x, y, z, state);
+    }
 
     [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override
     {
@@ -1865,7 +1980,9 @@ protected:
     i32 getComposterLevel() const
     {
         const BlockState* state = m_world->getBlockState(m_composterPos.x, m_composterPos.y, m_composterPos.z);
-        if (!state) return -1;
+        if (!state) {
+            return -1;
+        }
         return blocks::ComposterBlock::getLevel(*state);
     }
 
@@ -1991,7 +2108,9 @@ TEST_F(FarmerCompostTest, ComposterLevelIncreasesAfterComposting)
     i32 prevLevel = 0;
     for (int i = 0; i < 50 && prevLevel < 7; ++i) {
         state = m_world->getBlockState(m_composterPos.x, m_composterPos.y, m_composterPos.z);
-        if (!state) break;
+        if (!state) {
+            break;
+        }
         BlockState newState =
             blocks::ComposterBlock::attemptCompost(*state, *m_world, m_composterPos, block, wheatSeedsItemId);
         i32 newLevel = blocks::ComposterBlock::getLevel(newState);
@@ -2873,13 +2992,31 @@ public:
         , m_currentTick(0)
     {}
 
-    void setDayTime(i64 time) { m_dayTime = time; }
-    void setCurrentTick(u64 tick) { m_currentTick = tick; }
+    void setDayTime(i64 time)
+    {
+        m_dayTime = time;
+    }
 
-    [[nodiscard]] i64 dayTime() const override { return m_dayTime; }
-    [[nodiscard]] u64 currentTick() const override { return m_currentTick; }
+    void setCurrentTick(u64 tick)
+    {
+        m_currentTick = tick;
+    }
 
-    [[nodiscard]] world::village::VillageManager* villageManager() override { return m_villageManager.get(); }
+    [[nodiscard]] i64 dayTime() const override
+    {
+        return m_dayTime;
+    }
+
+    [[nodiscard]] u64 currentTick() const override
+    {
+        return m_currentTick;
+    }
+
+    [[nodiscard]] world::village::VillageManager* villageManager() override
+    {
+        return m_villageManager.get();
+    }
+
     [[nodiscard]] const world::village::VillageManager* villageManager() const override
     {
         return m_villageManager.get();
@@ -2890,8 +3027,15 @@ public:
         m_villageManager = std::move(manager);
     }
 
-    [[nodiscard]] world::village::raid::RaidManager* raidManager() override { return m_raidManager.get(); }
-    [[nodiscard]] const world::village::raid::RaidManager* raidManager() const override { return m_raidManager.get(); }
+    [[nodiscard]] world::village::raid::RaidManager* raidManager() override
+    {
+        return m_raidManager.get();
+    }
+
+    [[nodiscard]] const world::village::raid::RaidManager* raidManager() const override
+    {
+        return m_raidManager.get();
+    }
 
     void setRaidManager(std::unique_ptr<world::village::raid::RaidManager> manager)
     {
@@ -2904,24 +3048,41 @@ public:
         m_broadcastLog.push_back({entityId, status});
     }
 
-    [[nodiscard]] const std::vector<std::pair<EntityInstanceId, u8>>& getBroadcastLog() const { return m_broadcastLog; }
-    [[nodiscard]] i32 getBroadcastCount() const { return static_cast<i32>(m_broadcastLog.size()); }
+    [[nodiscard]] const std::vector<std::pair<EntityInstanceId, u8>>& getBroadcastLog() const
+    {
+        return m_broadcastLog;
+    }
+
+    [[nodiscard]] i32 getBroadcastCount() const
+    {
+        return static_cast<i32>(m_broadcastLog.size());
+    }
+
     [[nodiscard]] i32 countBroadcastsWithStatus(u8 status) const
     {
         i32 count = 0;
         for (const auto& entry : m_broadcastLog) {
-            if (entry.second == status) count++;
+            if (entry.second == status) {
+                count++;
+            }
         }
         return count;
     }
+
     [[nodiscard]] bool hasBroadcastForEntity(EntityInstanceId entityId, u8 status) const
     {
         for (const auto& entry : m_broadcastLog) {
-            if (entry.first == entityId && entry.second == status) return true;
+            if (entry.first == entityId && entry.second == status) {
+                return true;
+            }
         }
         return false;
     }
-    void clearBroadcastLog() { m_broadcastLog.clear(); }
+
+    void clearBroadcastLog()
+    {
+        m_broadcastLog.clear();
+    }
 
     // 实体管理（用于繁殖目标测试）
     Entity* getEntity(EntityInstanceId id) const override
@@ -2938,7 +3099,10 @@ public:
         return id;
     }
 
-    [[nodiscard]] const BlockState* getBlockState(i32, i32, i32) const override { return nullptr; }
+    [[nodiscard]] const BlockState* getBlockState(i32, i32, i32) const override
+    {
+        return nullptr;
+    }
 
 private:
     i64 m_dayTime;
@@ -3226,7 +3390,10 @@ protected:
         m_world->setVillageManager(std::move(villageManager));
     }
 
-    void TearDown() override { m_world.reset(); }
+    void TearDown() override
+    {
+        m_world.reset();
+    }
 
     std::unique_ptr<VillagerParticleTestWorld> m_world;
 };
@@ -3316,7 +3483,9 @@ protected:
 
         for (int dx = -1; dx <= 1; ++dx) {
             for (int dz = -1; dz <= 1; ++dz) {
-                if (dx == 0 && dz == 0) continue;
+                if (dx == 0 && dz == 0) {
+                    continue;
+                }
                 m_world->setBlockStateAt(dx, 63, dz, farmlandState);
                 m_world->setBlockStateAt(dx, 64, dz, &maxAgeState);
             }
@@ -3335,7 +3504,9 @@ protected:
 
         for (int dx = -1; dx <= 1; ++dx) {
             for (int dz = -1; dz <= 1; ++dz) {
-                if (dx == 0 && dz == 0) continue;
+                if (dx == 0 && dz == 0) {
+                    continue;
+                }
                 m_world->setBlockStateAt(dx, 63, dz, farmlandState);
                 m_world->setBlockStateAt(dx, 64, dz, airState);
             }
@@ -3631,7 +3802,9 @@ TEST_F(FarmerCompostMobGriefingTest, NoHarvestWhenMobGriefingFalseEvenWithCompos
     // 在堆肥桶周围设置成熟作物
     for (int dx = -1; dx <= 1; ++dx) {
         for (int dz = -1; dz <= 1; ++dz) {
-            if (dx == 0 && dz == 0) continue;
+            if (dx == 0 && dz == 0) {
+                continue;
+            }
             m_world->setBlockStateAt(m_composterPos.x + dx, m_composterPos.y - 1, m_composterPos.z + dz, farmlandState);
             m_world->setBlockStateAt(m_composterPos.x + dx, m_composterPos.y, m_composterPos.z + dz, &maxAgeState);
         }

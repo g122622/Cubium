@@ -5,7 +5,7 @@
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permitted persons to whom the Software is
+ * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
  *
  * The above copyright notice and this permission notice shall be included in all
@@ -18,6 +18,7 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
+ *
  */
 
 #include "server/test/script/binding/ScriptTestHelper.hpp"
@@ -72,6 +73,7 @@ GameTestHelper* _requireHelper(mc::mod::bedrock::addon::IScriptBindingContext& c
         // JS 侧已抛异常；C++ 控制流返回 nullptr 占位，调用方须判空并 return。
         static_cast<void>(ctx.throwTypeError("Test method called on invalid Test object"));
     }
+
     return helper;
 }
 
@@ -88,16 +90,21 @@ bool _parseBlockPos(mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* a
 {
     if (!ctx.isObject(arg)) {
         static_cast<void>(ctx.throwTypeError("Block position argument must be {x,y,z} object"));
+
         return false;
     }
+
     auto x = ctx.getPropertyInt(arg, "x");
     auto y = ctx.getPropertyInt(arg, "y");
     auto z = ctx.getPropertyInt(arg, "z");
     if (!x || !y || !z) {
         static_cast<void>(ctx.throwTypeError("Block position must have numeric x,y,z"));
+
         return false;
     }
+
     out = BlockPos(static_cast<i32>(*x), static_cast<i32>(*y), static_cast<i32>(*z));
+
     return true;
 }
 
@@ -107,16 +114,21 @@ bool _parseVector3(mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* ar
 {
     if (!ctx.isObject(arg)) {
         static_cast<void>(ctx.throwTypeError("Vector3 argument must be {x,y,z} object"));
+
         return false;
     }
+
     auto x = ctx.getPropertyFloat(arg, "x");
     auto y = ctx.getPropertyFloat(arg, "y");
     auto z = ctx.getPropertyFloat(arg, "z");
     if (!x || !y || !z) {
         static_cast<void>(ctx.throwTypeError("Vector3 must have numeric x,y,z"));
+
         return false;
     }
+
     out = mc::math::Vector3d(*x, *y, *z);
+
     return true;
 }
 
@@ -127,6 +139,7 @@ void* _vector3ToJs(mc::mod::bedrock::addon::IScriptBindingContext& ctx, const mc
     ctx.setPropertyFloat(obj, "x", v.x);
     ctx.setPropertyFloat(obj, "y", v.y);
     ctx.setPropertyFloat(obj, "z", v.z);
+
     return obj;
 }
 
@@ -138,7 +151,9 @@ mc::Direction _directionFromApi(const std::string& apiName)
     for (char& c : lower) {
         c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
     }
+
     auto dir = mc::Directions::fromName(lower);
+
     return dir.value_or(mc::Direction::None);
 }
 
@@ -150,6 +165,7 @@ std::string _directionToApi(mc::Direction dir)
     if (!name.empty()) {
         name[0] = static_cast<char>(std::toupper(static_cast<unsigned char>(name[0])));
     }
+
     return name;
 }
 
@@ -157,14 +173,16 @@ std::string _directionToApi(mc::Direction dir)
 // BlockState*）。 失败返回 nullptr（调用方抛 TypeError）。
 const mc::BlockState* _unwrapBlockPermutation(mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* val)
 {
-    const u64 classId = mc::mod::bedrock::addon::ScriptClassRegistry::instance().classIdByName("BlockPermutation");
+    const u64 classId = ctx.classRegistry().classIdByName("BlockPermutation");
+
     return static_cast<const mc::BlockState*>(mc::mod::bedrock::addon::ScriptObjectRegistry::unwrap(ctx, val, classId));
 }
 
 // 从 JS ItemStack 对象 unwrap 出 mc::ItemStack*（批2 MinecraftModuleFactory 注册，opaque 持 mc::ItemStack*）。
 mc::ItemStack* _unwrapItemStack(mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* val)
 {
-    const u64 classId = mc::mod::bedrock::addon::ScriptClassRegistry::instance().classIdByName("ItemStack");
+    const u64 classId = ctx.classRegistry().classIdByName("ItemStack");
+
     return static_cast<mc::ItemStack*>(mc::mod::bedrock::addon::ScriptObjectRegistry::unwrap(ctx, val, classId));
 }
 
@@ -172,16 +190,18 @@ mc::ItemStack* _unwrapItemStack(mc::mod::bedrock::addon::IScriptBindingContext& 
 // FenceConnectivity classId/proto（instanceof 锚点）。失败（类未注册）退化为普通对象。
 void* _fenceConnectivityToJs(mc::mod::bedrock::addon::IScriptBindingContext& ctx, const FenceConnectivity& conn)
 {
-    const u64 classId = mc::mod::bedrock::addon::ScriptClassRegistry::instance().classIdByName("FenceConnectivity");
-    void* proto = mc::mod::bedrock::addon::ScriptClassRegistry::instance().proto(classId);
+    const u64 classId = ctx.classRegistry().classIdByName("FenceConnectivity");
+    void* proto = ctx.classRegistry().proto(classId);
     void* obj = ctx.createObject();
     if (proto != nullptr) {
         ctx.setPrototypeOf(obj, proto);
     }
+
     ctx.setPropertyBool(obj, "north", conn.north);
     ctx.setPropertyBool(obj, "east", conn.east);
     ctx.setPropertyBool(obj, "south", conn.south);
     ctx.setPropertyBool(obj, "west", conn.west);
+
     return obj;
 }
 
@@ -213,19 +233,24 @@ u64 registerTestClassBinding(mc::mod::bedrock::addon::NativeModuleBuilder& build
             if (argc < 3 || !ctx.isString(args[0]) || !ctx.isObject(args[1])) {
                 return ctx.throwTypeError("assertBlockPresent(blockType, pos, isPresent)");
             }
+
             auto blockType = ctx.toString(args[0]);
             if (!blockType) {
                 return ctx.throwInternalError("Failed to read blockType");
             }
+
             BlockPos pos;
             if (!_parseBlockPos(ctx, args[1], pos)) {
                 return nullptr;
             }
+
             auto isPresent = ctx.toBool(args[2]);
             if (!isPresent) {
                 return ctx.throwTypeError("isPresent must be boolean");
             }
+
             auto result = helper->assertBlockPresent(*blockType, pos, *isPresent);
+
             return _resultToJs(ctx, std::move(result));
         },
         3);
@@ -238,17 +263,21 @@ u64 registerTestClassBinding(mc::mod::bedrock::addon::NativeModuleBuilder& build
             if (helper == nullptr) {
                 return nullptr;
             }
+
             if (argc < 2 || !ctx.isString(args[0])) {
                 return ctx.throwTypeError("setBlock(blockType, pos, updateFlags?)");
             }
+
             auto blockType = ctx.toString(args[0]);
             if (!blockType) {
                 return ctx.throwInternalError("Failed to read blockType");
             }
+
             BlockPos pos;
             if (!_parseBlockPos(ctx, args[1], pos)) {
                 return nullptr;
             }
+
             i32 flags = mc::world::BlockUpdateFlags::UPDATE_ALL;
             if (argc >= 3 && ctx.isNumber(args[2])) {
                 auto f = ctx.toInt32(args[2]);
@@ -256,7 +285,9 @@ u64 registerTestClassBinding(mc::mod::bedrock::addon::NativeModuleBuilder& build
                     flags = *f;
                 }
             }
+
             auto result = helper->setBlock(*blockType, pos, flags);
+
             return _resultToJs(ctx, std::move(result));
         },
         3);
@@ -272,21 +303,26 @@ u64 registerTestClassBinding(mc::mod::bedrock::addon::NativeModuleBuilder& build
             if (helper == nullptr) {
                 return nullptr;
             }
+
             if (argc < 3 || !ctx.isString(args[0]) || !ctx.isString(args[2])) {
                 return ctx.throwTypeError("setBlockWithStates(blockType, pos, statesStr, updateFlags?)");
             }
+
             auto blockType = ctx.toString(args[0]);
             if (!blockType) {
                 return ctx.throwInternalError("Failed to read blockType");
             }
+
             BlockPos pos;
             if (!_parseBlockPos(ctx, args[1], pos)) {
                 return nullptr;
             }
+
             auto statesStr = ctx.toString(args[2]);
             if (!statesStr) {
                 return ctx.throwInternalError("Failed to read statesStr");
             }
+
             i32 flags = mc::world::BlockUpdateFlags::UPDATE_ALL;
             if (argc >= 4 && ctx.isNumber(args[3])) {
                 auto f = ctx.toInt32(args[3]);
@@ -303,14 +339,17 @@ u64 registerTestClassBinding(mc::mod::bedrock::addon::NativeModuleBuilder& build
                 if (eq == std::string::npos) {
                     continue;
                 }
+
                 std::string key = token.substr(0, eq);
                 std::string val = token.substr(eq + 1);
                 // 去除首尾空白
                 auto trim = [](std::string& s) {
-                    while (!s.empty() && std::isspace(static_cast<unsigned char>(s.front())))
+                    while (!s.empty() && std::isspace(static_cast<unsigned char>(s.front()))) {
                         s.erase(0, 1);
-                    while (!s.empty() && std::isspace(static_cast<unsigned char>(s.back())))
+                    }
+                    while (!s.empty() && std::isspace(static_cast<unsigned char>(s.back()))) {
                         s.pop_back();
+                    }
                 };
                 trim(key);
                 trim(val);
@@ -318,7 +357,9 @@ u64 registerTestClassBinding(mc::mod::bedrock::addon::NativeModuleBuilder& build
                     states[key] = val;
                 }
             }
+
             auto result = helper->setBlockWithStates(*blockType, pos, states, flags);
+
             return _resultToJs(ctx, std::move(result));
         },
         4);
@@ -331,14 +372,18 @@ u64 registerTestClassBinding(mc::mod::bedrock::addon::NativeModuleBuilder& build
             if (helper == nullptr) {
                 return nullptr;
             }
+
             if (argc < 1) {
                 return ctx.throwTypeError("pressButton(pos)");
             }
+
             BlockPos pos;
             if (!_parseBlockPos(ctx, args[0], pos)) {
                 return nullptr;
             }
+
             auto result = helper->pressButton(pos);
+
             return _resultToJs(ctx, std::move(result));
         },
         1);
@@ -351,14 +396,18 @@ u64 registerTestClassBinding(mc::mod::bedrock::addon::NativeModuleBuilder& build
             if (helper == nullptr) {
                 return nullptr;
             }
+
             if (argc < 1) {
                 return ctx.throwTypeError("pullLever(pos)");
             }
+
             BlockPos pos;
             if (!_parseBlockPos(ctx, args[0], pos)) {
                 return nullptr;
             }
+
             auto result = helper->pullLever(pos);
+
             return _resultToJs(ctx, std::move(result));
         },
         1);
@@ -371,18 +420,23 @@ u64 registerTestClassBinding(mc::mod::bedrock::addon::NativeModuleBuilder& build
             if (helper == nullptr) {
                 return nullptr;
             }
+
             if (argc < 2 || !ctx.isNumber(args[1])) {
                 return ctx.throwTypeError("pulseRedstone(pos, duration)");
             }
+
             BlockPos pos;
             if (!_parseBlockPos(ctx, args[0], pos)) {
                 return nullptr;
             }
+
             auto dur = ctx.toInt32(args[1]);
             if (!dur) {
                 return ctx.throwTypeError("duration must be number");
             }
+
             auto result = helper->pulseRedstone(pos, *dur);
+
             return _resultToJs(ctx, std::move(result));
         },
         2);
@@ -395,7 +449,9 @@ u64 registerTestClassBinding(mc::mod::bedrock::addon::NativeModuleBuilder& build
             if (helper == nullptr) {
                 return nullptr;
             }
+
             auto result = helper->killAllEntities();
+
             return _resultToJs(ctx, std::move(result));
         },
         0);
@@ -417,6 +473,7 @@ u64 registerTestClassBinding(mc::mod::bedrock::addon::NativeModuleBuilder& build
             if (helper == nullptr) {
                 return nullptr;
             }
+
             if (argc < 1) {
                 return ctx.throwTypeError("kill(entity)");
             }
@@ -424,20 +481,24 @@ u64 registerTestClassBinding(mc::mod::bedrock::addon::NativeModuleBuilder& build
             mc::Entity* entity = nullptr;
             const char* const kClassNames[] = {"Entity", "Player", "SimulatedPlayer"};
             for (const char* className : kClassNames) {
-                const u64 classId = mc::mod::bedrock::addon::ScriptClassRegistry::instance().classIdByName(className);
+                const u64 classId = ctx.classRegistry().classIdByName(className);
                 if (classId == 0) {
                     continue;
                 }
+
                 entity = static_cast<mc::Entity*>(
                     mc::mod::bedrock::addon::ScriptObjectRegistry::unwrap(ctx, args[0], classId));
                 if (entity != nullptr) {
                     break;
                 }
             }
+
             if (entity == nullptr) {
                 return ctx.throwTypeError("kill: argument must be an Entity");
             }
+
             auto result = helper->killEntity(*entity);
+
             return _resultToJs(ctx, std::move(result));
         },
         1);
@@ -450,7 +511,9 @@ u64 registerTestClassBinding(mc::mod::bedrock::addon::NativeModuleBuilder& build
             if (helper == nullptr) {
                 return nullptr;
             }
+
             helper->succeed();
+
             return ctx.createUndefined();
         },
         0);
@@ -463,6 +526,7 @@ u64 registerTestClassBinding(mc::mod::bedrock::addon::NativeModuleBuilder& build
             if (helper == nullptr) {
                 return nullptr;
             }
+
             std::string msg = "Test failed";
             if (argc >= 1 && ctx.isString(args[0])) {
                 auto m = ctx.toString(args[0]);
@@ -470,7 +534,9 @@ u64 registerTestClassBinding(mc::mod::bedrock::addon::NativeModuleBuilder& build
                     msg = *m;
                 }
             }
+
             helper->fail(GameTestError(GameTestErrorType::FailConditionsMet, std::move(msg)));
+
             return ctx.createUndefined();
         },
         1);
@@ -483,6 +549,7 @@ u64 registerTestClassBinding(mc::mod::bedrock::addon::NativeModuleBuilder& build
             if (helper == nullptr) {
                 return nullptr;
             }
+
             std::string text;
             if (argc >= 1 && ctx.isString(args[0])) {
                 auto t = ctx.toString(args[0]);
@@ -490,7 +557,9 @@ u64 registerTestClassBinding(mc::mod::bedrock::addon::NativeModuleBuilder& build
                     text = *t;
                 }
             }
+
             helper->print(text);
+
             return ctx.createUndefined();
         },
         1);
@@ -506,7 +575,9 @@ u64 registerTestClassBinding(mc::mod::bedrock::addon::NativeModuleBuilder& build
             if (helper == nullptr) {
                 return nullptr;
             }
+
             GameTestSequence& seq = helper->startSequence();
+
             return wrapSequence(ctx, sequenceClassId, &seq);
         },
         0);
@@ -521,9 +592,11 @@ u64 registerTestClassBinding(mc::mod::bedrock::addon::NativeModuleBuilder& build
             if (helper == nullptr) {
                 return nullptr;
             }
+
             if (argc < 1 || !ctx.isObject(args[0])) {
                 return ctx.throwTypeError("spawnSimulatedPlayer(blockLocation, name?, gameMode?)");
             }
+
             BlockPos pos;
             if (!_parseBlockPos(ctx, args[0], pos)) {
                 return nullptr;
@@ -535,8 +608,10 @@ u64 registerTestClassBinding(mc::mod::bedrock::addon::NativeModuleBuilder& build
                 if (!nameOpt) {
                     return ctx.throwInternalError("Failed to read name");
                 }
+
                 name = *nameOpt;
             }
+
             mc::GameMode gameMode = mc::GameMode::Creative;
             // gameMode 位置随 name 是否省略而后移：name 提供时 gameMode 在 args[2]，省略时在 args[1]。
             // 对齐基岩：基岩按形参位置匹配，省略 name 时 gameMode 仍在第 2 个槽位（args[1]）。
@@ -546,13 +621,13 @@ u64 registerTestClassBinding(mc::mod::bedrock::addon::NativeModuleBuilder& build
                 // 优先按字符串枚举值解析；若传数字则按数字解析（向后兼容旧测试）。
                 if (ctx.isString(args[gameModeIdx])) {
                     auto gmStr = ctx.toString(args[gameModeIdx]);
-                    if (gmStr == "survival") {
+                    if (gmStr == "Survival") {
                         gameMode = mc::GameMode::Survival;
-                    } else if (gmStr == "creative") {
+                    } else if (gmStr == "Creative") {
                         gameMode = mc::GameMode::Creative;
-                    } else if (gmStr == "adventure") {
+                    } else if (gmStr == "Adventure") {
                         gameMode = mc::GameMode::Adventure;
-                    } else if (gmStr == "spectator") {
+                    } else if (gmStr == "Spectator") {
                         gameMode = mc::GameMode::Spectator;
                     }
                 } else if (ctx.isNumber(args[gameModeIdx])) {
@@ -562,15 +637,19 @@ u64 registerTestClassBinding(mc::mod::bedrock::addon::NativeModuleBuilder& build
                     }
                 }
             }
+
             SimulatedPlayer* player = nullptr;
             auto result = helper->spawnSimulatedPlayer(name, pos, gameMode, player);
             if (!isPass(result)) {
                 std::string msg = result->formattedMessage();
+
                 return ctx.throwInternalError(msg.c_str());
             }
+
             if (player == nullptr) {
                 return ctx.throwInternalError("spawnSimulatedPlayer returned null");
             }
+
             return wrapSimulatedPlayer(ctx, simulatedPlayerClassId, player);
         },
         3);
@@ -584,13 +663,16 @@ u64 registerTestClassBinding(mc::mod::bedrock::addon::NativeModuleBuilder& build
             if (_requireHelper(ctx, thisVal) == nullptr) {
                 return nullptr; // 仅校验 Test 对象有效性（idle 不直接用 helper）
             }
+
             if (argc < 1 || !ctx.isNumber(args[0])) {
                 return ctx.throwTypeError("idle(ticks)");
             }
+
             auto ticks = ctx.toInt32(args[0]);
             if (!ticks || *ticks < 0) {
                 return ctx.throwTypeError("ticks must be non-negative number");
             }
+
             auto* scheduler = ScriptBindingRegistry::instance().scheduler();
             if (scheduler == nullptr) {
                 return ctx.throwInternalError("idle requires scheduler");
@@ -615,6 +697,7 @@ u64 registerTestClassBinding(mc::mod::bedrock::addon::NativeModuleBuilder& build
                     ctxPtr->releaseValue(resolveFn);
                 },
                 static_cast<u32>(*ticks));
+
             return promise; // owned，返给 JS 引擎
         },
         1);
@@ -629,11 +712,14 @@ u64 registerTestClassBinding(mc::mod::bedrock::addon::NativeModuleBuilder& build
             if (helper == nullptr) {
                 return nullptr;
             }
+
             if (argc < 1 || !ctx.isFunction(args[0])) {
                 return ctx.throwTypeError("until(condition)");
             }
+
             auto wrapped = wrapJsCallback(&ctx, args[0]);
             helper->until(std::move(wrapped), nullptr);
+
             return ctx.createUndefined();
         },
         1);
@@ -646,6 +732,7 @@ u64 registerTestClassBinding(mc::mod::bedrock::addon::NativeModuleBuilder& build
             if (helper == nullptr) {
                 return ctx.createInt32(0); // property getter 不抛异常，失败返回 0
             }
+
             return ctx.createInt32(helper->currentTick());
         });
 
@@ -658,18 +745,23 @@ u64 registerTestClassBinding(mc::mod::bedrock::addon::NativeModuleBuilder& build
             if (helper == nullptr) {
                 return nullptr;
             }
+
             if (argc < 2 || !ctx.isString(args[0])) {
                 return ctx.throwTypeError("assertEntityPresentInArea(entityType, isPresent)");
             }
+
             auto entityType = ctx.toString(args[0]);
             if (!entityType) {
                 return ctx.throwInternalError("Failed to read entityType");
             }
+
             auto isPresent = ctx.toBool(args[1]);
             if (!isPresent) {
                 return ctx.throwTypeError("isPresent must be boolean");
             }
+
             auto result = helper->assertEntityPresentInArea(*entityType, *isPresent);
+
             return _resultToJs(ctx, std::move(result));
         },
         2);
@@ -685,32 +777,38 @@ u64 registerTestClassBinding(mc::mod::bedrock::addon::NativeModuleBuilder& build
             if (helper == nullptr) {
                 return nullptr;
             }
+
             if (argc < 2 || !ctx.isString(args[0])) {
                 return ctx.throwTypeError("spawn(entityType, pos)");
             }
+
             auto entityType = ctx.toString(args[0]);
             if (!entityType) {
                 return ctx.throwInternalError("Failed to read entityType");
             }
+
             BlockPos pos;
             if (!_parseBlockPos(ctx, args[1], pos)) {
                 return nullptr;
             }
+
             mc::Entity* outEntity = nullptr;
             auto result = helper->spawnEntity(*entityType, pos, outEntity);
             if (!isPass(result)) {
                 std::string msg = result->formattedMessage();
+
                 return ctx.throwInternalError(msg.c_str());
             }
             // wrap outEntity 为 @minecraft/server Entity JS 对象：经 ScriptClassRegistry 取
             // @minecraft/server 模块注册的 Entity classId/proto（跨模块 wrap）。
             // 实体由 EntityManager 拥有，此处非拥有（owned=false），生命周期与测试实例一致。
-            const u64 entityClassId = mc::mod::bedrock::addon::ScriptClassRegistry::instance().classIdByName("Entity");
-            void* entityProto = mc::mod::bedrock::addon::ScriptClassRegistry::instance().proto(entityClassId);
+            const u64 entityClassId = ctx.classRegistry().classIdByName("Entity");
+            void* entityProto = ctx.classRegistry().proto(entityClassId);
             if (entityProto == nullptr || outEntity == nullptr) {
                 // 引擎未就绪或 spawn 异常返回 undefined（不崩，对齐基岩容错）。
                 return ctx.createUndefined();
             }
+
             return mc::mod::bedrock::addon::ScriptObjectRegistry::wrap(
                 ctx, entityClassId, entityProto, outEntity, false, "Entity", nullptr, outEntity->id());
         },
@@ -726,15 +824,19 @@ u64 registerTestClassBinding(mc::mod::bedrock::addon::NativeModuleBuilder& build
             if (helper == nullptr) {
                 return nullptr;
             }
+
             if (argc < 2 || !ctx.isNumber(args[0]) || !ctx.isFunction(args[1])) {
                 return ctx.throwTypeError("runAtTickTime(tick, fn)");
             }
+
             auto tick = ctx.toInt32(args[0]);
             if (!tick) {
                 return ctx.throwTypeError("tick must be number");
             }
+
             auto wrapped = wrapJsCallback(&ctx, args[1]);
             helper->runAtTickTime(*tick, std::move(wrapped));
+
             return ctx.createUndefined();
         },
         2);
@@ -748,11 +850,14 @@ u64 registerTestClassBinding(mc::mod::bedrock::addon::NativeModuleBuilder& build
             if (helper == nullptr) {
                 return nullptr;
             }
+
             if (argc < 1 || !ctx.isFunction(args[0])) {
                 return ctx.throwTypeError("succeedWhen(fn)");
             }
+
             auto wrapped = wrapJsCallback(&ctx, args[0]);
             helper->succeedWhen(std::move(wrapped));
+
             return ctx.createUndefined();
         },
         1);
@@ -768,17 +873,21 @@ u64 registerTestClassBinding(mc::mod::bedrock::addon::NativeModuleBuilder& build
             if (helper == nullptr) {
                 return nullptr;
             }
+
             if (argc < 2 || !ctx.isString(args[0])) {
                 return ctx.throwTypeError("succeedWhenEntityPresent(entityType, pos, isPresent?)");
             }
+
             auto entityType = ctx.toString(args[0]);
             if (!entityType) {
                 return ctx.throwInternalError("Failed to read entityType");
             }
+
             BlockPos pos;
             if (!_parseBlockPos(ctx, args[1], pos)) {
                 return nullptr;
             }
+
             bool isPresent = true;
             if (argc >= 3) {
                 auto b = ctx.toBool(args[2]);
@@ -796,6 +905,7 @@ u64 registerTestClassBinding(mc::mod::bedrock::addon::NativeModuleBuilder& build
             helper->succeedWhen([helper, typeCopy, posCopy, presentCopy]() -> GameTestResult {
                 return helper->assertEntityPresent(typeCopy, posCopy, 0.0f, presentCopy);
             });
+
             return ctx.createUndefined();
         },
         3);
@@ -812,13 +922,16 @@ u64 registerTestClassBinding(mc::mod::bedrock::addon::NativeModuleBuilder& build
             if (helper == nullptr) {
                 return nullptr;
             }
+
             if (argc < 1) {
                 return ctx.throwTypeError("assert(condition, message?)");
             }
+
             auto cond = ctx.toBool(args[0]);
             if (!cond) {
                 return ctx.throwTypeError("assert condition must be boolean");
             }
+
             if (!*cond) {
                 std::string msg = "Assertion failed";
                 if (argc >= 2 && ctx.isString(args[1])) {
@@ -831,6 +944,7 @@ u64 registerTestClassBinding(mc::mod::bedrock::addon::NativeModuleBuilder& build
                 // 测试主函数里异常上浮由 runResult 捕获转为 fail。
                 return ctx.throwInternalError(msg.c_str());
             }
+
             return ctx.createUndefined();
         },
         2);
@@ -845,13 +959,16 @@ u64 registerTestClassBinding(mc::mod::bedrock::addon::NativeModuleBuilder& build
             if (helper == nullptr) {
                 return nullptr;
             }
+
             if (argc < 1) {
                 return ctx.throwTypeError("worldLocation(pos)");
             }
+
             mc::math::Vector3d pos;
             if (!_parseVector3(ctx, args[0], pos)) {
                 return nullptr;
             }
+
             return _vector3ToJs(ctx, helper->worldPosition(pos));
         },
         1);
@@ -865,18 +982,23 @@ u64 registerTestClassBinding(mc::mod::bedrock::addon::NativeModuleBuilder& build
             if (helper == nullptr) {
                 return nullptr;
             }
+
             if (argc < 2 || !ctx.isString(args[0])) {
                 return ctx.throwTypeError("setBlockType(blockType, pos)");
             }
+
             auto blockType = ctx.toString(args[0]);
             if (!blockType) {
                 return ctx.throwInternalError("Failed to read blockType");
             }
+
             BlockPos pos;
             if (!_parseBlockPos(ctx, args[1], pos)) {
                 return nullptr;
             }
+
             auto result = helper->setBlock(*blockType, pos, 3);
+
             return _resultToJs(ctx, std::move(result));
         },
         2);
@@ -892,13 +1014,15 @@ u64 registerTestClassBinding(mc::mod::bedrock::addon::NativeModuleBuilder& build
             if (helper == nullptr) {
                 return nullptr;
             }
+
             mc::IWorld* world = &helper->world();
-            const u64 dimClassId = mc::mod::bedrock::addon::ScriptClassRegistry::instance().classIdByName("Dimension");
-            void* dimProto = mc::mod::bedrock::addon::ScriptClassRegistry::instance().proto(dimClassId);
+            const u64 dimClassId = ctx.classRegistry().classIdByName("Dimension");
+            void* dimProto = ctx.classRegistry().proto(dimClassId);
             if (dimProto == nullptr) {
                 // @minecraft/server Dimension 类未注册（模块未加载），容错返回 undefined。
                 return ctx.createUndefined();
             }
+
             return mc::mod::bedrock::addon::ScriptObjectRegistry::wrap(
                 ctx, dimClassId, dimProto, world, false, "Dimension");
         },
@@ -915,17 +1039,21 @@ u64 registerTestClassBinding(mc::mod::bedrock::addon::NativeModuleBuilder& build
             if (helper == nullptr) {
                 return nullptr;
             }
+
             if (argc < 2 || !ctx.isString(args[0])) {
                 return ctx.throwTypeError("assertEntityPresent(entityType, pos, searchDistance?, isPresent?)");
             }
+
             auto entityType = ctx.toString(args[0]);
             if (!entityType) {
                 return ctx.throwInternalError("Failed to read entityType");
             }
+
             BlockPos pos;
             if (!_parseBlockPos(ctx, args[1], pos)) {
                 return nullptr;
             }
+
             f32 searchDistance = 0.0f;
             if (argc >= 3 && ctx.isNumber(args[2])) {
                 auto d = ctx.toFloat64(args[2]);
@@ -933,6 +1061,7 @@ u64 registerTestClassBinding(mc::mod::bedrock::addon::NativeModuleBuilder& build
                     searchDistance = static_cast<f32>(*d);
                 }
             }
+
             bool isPresent = true;
             if (argc >= 4) {
                 auto b = ctx.toBool(args[3]);
@@ -940,7 +1069,9 @@ u64 registerTestClassBinding(mc::mod::bedrock::addon::NativeModuleBuilder& build
                     isPresent = *b;
                 }
             }
+
             auto result = helper->assertEntityPresent(*entityType, pos, searchDistance, isPresent);
+
             return _resultToJs(ctx, std::move(result));
         },
         4);
@@ -957,28 +1088,35 @@ u64 registerTestClassBinding(mc::mod::bedrock::addon::NativeModuleBuilder& build
             if (helper == nullptr) {
                 return nullptr;
             }
+
             if (argc < 2 || !ctx.isString(args[0])) {
                 return ctx.throwTypeError("spawnItem(itemType, location)");
             }
+
             auto itemType = ctx.toString(args[0]);
             if (!itemType) {
                 return ctx.throwInternalError("Failed to read itemType");
             }
+
             mc::math::Vector3d loc;
             if (!_parseVector3(ctx, args[1], loc)) {
                 return nullptr;
             }
+
             mc::Entity* outEntity = nullptr;
             auto result = helper->spawnItemAt(*itemType, loc, outEntity);
             if (!isPass(result)) {
                 std::string msg = result->formattedMessage();
+
                 return ctx.throwInternalError(msg.c_str());
             }
-            const u64 entityClassId = mc::mod::bedrock::addon::ScriptClassRegistry::instance().classIdByName("Entity");
-            void* entityProto = mc::mod::bedrock::addon::ScriptClassRegistry::instance().proto(entityClassId);
+
+            const u64 entityClassId = ctx.classRegistry().classIdByName("Entity");
+            void* entityProto = ctx.classRegistry().proto(entityClassId);
             if (entityProto == nullptr || outEntity == nullptr) {
                 return ctx.createUndefined();
             }
+
             return mc::mod::bedrock::addon::ScriptObjectRegistry::wrap(
                 ctx, entityClassId, entityProto, outEntity, false, "Entity", nullptr, outEntity->id());
         },
@@ -992,13 +1130,16 @@ u64 registerTestClassBinding(mc::mod::bedrock::addon::NativeModuleBuilder& build
             if (helper == nullptr) {
                 return nullptr;
             }
+
             if (argc < 1) {
                 return ctx.throwTypeError("destroyBlock(pos, dropResources?)");
             }
+
             BlockPos pos;
             if (!_parseBlockPos(ctx, args[0], pos)) {
                 return nullptr;
             }
+
             bool dropResources = false;
             if (argc >= 2) {
                 auto b = ctx.toBool(args[1]);
@@ -1006,7 +1147,9 @@ u64 registerTestClassBinding(mc::mod::bedrock::addon::NativeModuleBuilder& build
                     dropResources = *b;
                 }
             }
+
             auto result = helper->destroyBlock(pos, dropResources);
+
             return _resultToJs(ctx, std::move(result));
         },
         2);
@@ -1019,18 +1162,23 @@ u64 registerTestClassBinding(mc::mod::bedrock::addon::NativeModuleBuilder& build
             if (helper == nullptr) {
                 return nullptr;
             }
+
             if (argc < 2 || !ctx.isNumber(args[1])) {
                 return ctx.throwTypeError("assertRedstonePower(pos, power)");
             }
+
             BlockPos pos;
             if (!_parseBlockPos(ctx, args[0], pos)) {
                 return nullptr;
             }
+
             auto power = ctx.toInt32(args[1]);
             if (!power) {
                 return ctx.throwTypeError("power must be number");
             }
+
             auto result = helper->assertRedstonePower(pos, *power);
+
             return _resultToJs(ctx, std::move(result));
         },
         2);
@@ -1043,13 +1191,16 @@ u64 registerTestClassBinding(mc::mod::bedrock::addon::NativeModuleBuilder& build
             if (helper == nullptr) {
                 return nullptr;
             }
+
             if (argc < 1) {
                 return ctx.throwTypeError("assertIsWaterlogged(pos, isWaterlogged?)");
             }
+
             BlockPos pos;
             if (!_parseBlockPos(ctx, args[0], pos)) {
                 return nullptr;
             }
+
             bool isWaterlogged = true;
             if (argc >= 2) {
                 auto b = ctx.toBool(args[1]);
@@ -1057,7 +1208,9 @@ u64 registerTestClassBinding(mc::mod::bedrock::addon::NativeModuleBuilder& build
                     isWaterlogged = *b;
                 }
             }
+
             auto result = helper->assertIsWaterlogged(pos, isWaterlogged);
+
             return _resultToJs(ctx, std::move(result));
         },
         2);
@@ -1071,13 +1224,16 @@ u64 registerTestClassBinding(mc::mod::bedrock::addon::NativeModuleBuilder& build
             if (helper == nullptr) {
                 return nullptr;
             }
+
             if (argc < 1) {
                 return ctx.throwTypeError("relativeLocation(worldPos)");
             }
+
             mc::math::Vector3d pos;
             if (!_parseVector3(ctx, args[0], pos)) {
                 return nullptr;
             }
+
             return _vector3ToJs(ctx, helper->relativePosition(pos));
         },
         1);
@@ -1091,18 +1247,22 @@ u64 registerTestClassBinding(mc::mod::bedrock::addon::NativeModuleBuilder& build
             if (helper == nullptr) {
                 return nullptr;
             }
+
             if (argc < 1) {
                 return ctx.throwTypeError("worldBlockLocation(relativePos)");
             }
+
             BlockPos pos;
             if (!_parseBlockPos(ctx, args[0], pos)) {
                 return nullptr;
             }
+
             BlockPos world = helper->worldBlockPosition(pos);
             void* obj = ctx.createObject();
             ctx.setPropertyInt(obj, "x", world.x);
             ctx.setPropertyInt(obj, "y", world.y);
             ctx.setPropertyInt(obj, "z", world.z);
+
             return obj;
         },
         1);
@@ -1116,18 +1276,22 @@ u64 registerTestClassBinding(mc::mod::bedrock::addon::NativeModuleBuilder& build
             if (helper == nullptr) {
                 return nullptr;
             }
+
             if (argc < 1) {
                 return ctx.throwTypeError("relativeBlockLocation(worldPos)");
             }
+
             BlockPos pos;
             if (!_parseBlockPos(ctx, args[0], pos)) {
                 return nullptr;
             }
+
             BlockPos rel = helper->relativeBlockPosition(pos);
             void* obj = ctx.createObject();
             ctx.setPropertyInt(obj, "x", rel.x);
             ctx.setPropertyInt(obj, "y", rel.y);
             ctx.setPropertyInt(obj, "z", rel.z);
+
             return obj;
         },
         1);
@@ -1141,13 +1305,16 @@ u64 registerTestClassBinding(mc::mod::bedrock::addon::NativeModuleBuilder& build
             if (helper == nullptr) {
                 return nullptr;
             }
+
             if (argc < 1) {
                 return ctx.throwTypeError("rotateVector(vector)");
             }
+
             mc::math::Vector3d v;
             if (!_parseVector3(ctx, args[0], v)) {
                 return nullptr;
             }
+
             return _vector3ToJs(ctx, helper->rotateVector(v));
         },
         1);
@@ -1164,6 +1331,7 @@ u64 registerTestClassBinding(mc::mod::bedrock::addon::NativeModuleBuilder& build
             if (helper == nullptr) {
                 return nullptr;
             }
+
             return ctx.createString(_directionToApi(helper->getTestDirection()));
         },
         0);
@@ -1177,17 +1345,21 @@ u64 registerTestClassBinding(mc::mod::bedrock::addon::NativeModuleBuilder& build
             if (helper == nullptr) {
                 return nullptr;
             }
+
             if (argc < 2 || !ctx.isString(args[0])) {
                 return ctx.throwTypeError("succeedWhenBlockPresent(blockType, pos, isPresent?)");
             }
+
             auto blockType = ctx.toString(args[0]);
             if (!blockType) {
                 return ctx.throwInternalError("Failed to read blockType");
             }
+
             BlockPos pos;
             if (!_parseBlockPos(ctx, args[1], pos)) {
                 return nullptr;
             }
+
             bool isPresent = true;
             if (argc >= 3) {
                 auto b = ctx.toBool(args[2]);
@@ -1195,7 +1367,9 @@ u64 registerTestClassBinding(mc::mod::bedrock::addon::NativeModuleBuilder& build
                     isPresent = *b;
                 }
             }
+
             helper->succeedWhenBlockPresent(*blockType, pos, isPresent);
+
             return ctx.createUndefined();
         },
         3);
@@ -1209,11 +1383,14 @@ u64 registerTestClassBinding(mc::mod::bedrock::addon::NativeModuleBuilder& build
             if (helper == nullptr) {
                 return nullptr;
             }
+
             if (argc < 1 || !ctx.isFunction(args[0])) {
                 return ctx.throwTypeError("succeedIf(callback)");
             }
+
             auto wrapped = wrapJsCallback(&ctx, args[0]);
             helper->succeedIf(std::move(wrapped));
+
             return ctx.createUndefined();
         },
         1);
@@ -1227,14 +1404,18 @@ u64 registerTestClassBinding(mc::mod::bedrock::addon::NativeModuleBuilder& build
             if (helper == nullptr) {
                 return nullptr;
             }
+
             if (argc < 1 || !ctx.isNumber(args[0])) {
                 return ctx.throwTypeError("succeedOnTick(tick)");
             }
+
             auto tick = ctx.toInt32(args[0]);
             if (!tick) {
                 return ctx.throwTypeError("tick must be number");
             }
+
             helper->succeedOnTick(*tick);
+
             return ctx.createUndefined();
         },
         1);
@@ -1248,15 +1429,19 @@ u64 registerTestClassBinding(mc::mod::bedrock::addon::NativeModuleBuilder& build
             if (helper == nullptr) {
                 return nullptr;
             }
+
             if (argc < 2 || !ctx.isNumber(args[0]) || !ctx.isFunction(args[1])) {
                 return ctx.throwTypeError("succeedOnTickWhen(tick, callback)");
             }
+
             auto tick = ctx.toInt32(args[0]);
             if (!tick) {
                 return ctx.throwTypeError("tick must be number");
             }
+
             auto wrapped = wrapJsCallback(&ctx, args[1]);
             helper->succeedOnTickWhen(*tick, std::move(wrapped));
+
             return ctx.createUndefined();
         },
         2);
@@ -1270,11 +1455,14 @@ u64 registerTestClassBinding(mc::mod::bedrock::addon::NativeModuleBuilder& build
             if (helper == nullptr) {
                 return nullptr;
             }
+
             if (argc < 1 || !ctx.isFunction(args[0])) {
                 return ctx.throwTypeError("failIf(callback)");
             }
+
             auto wrapped = wrapJsCallback(&ctx, args[0]);
             helper->failIf(std::move(wrapped));
+
             return ctx.createUndefined();
         },
         1);
@@ -1288,15 +1476,19 @@ u64 registerTestClassBinding(mc::mod::bedrock::addon::NativeModuleBuilder& build
             if (helper == nullptr) {
                 return nullptr;
             }
+
             if (argc < 2 || !ctx.isNumber(args[0]) || !ctx.isFunction(args[1])) {
                 return ctx.throwTypeError("runAfterDelay(delayTicks, callback)");
             }
+
             auto delay = ctx.toInt32(args[0]);
             if (!delay) {
                 return ctx.throwTypeError("delayTicks must be number");
             }
+
             auto wrapped = wrapJsCallback(&ctx, args[1]);
             helper->runAfterDelay(*delay, std::move(wrapped));
+
             return ctx.createUndefined();
         },
         2);
@@ -1310,11 +1502,14 @@ u64 registerTestClassBinding(mc::mod::bedrock::addon::NativeModuleBuilder& build
             if (helper == nullptr) {
                 return nullptr;
             }
+
             if (argc < 1 || !ctx.isFunction(args[0])) {
                 return ctx.throwTypeError("runOnFinish(callback)");
             }
+
             auto wrapped = wrapJsCallback(&ctx, args[0]);
             helper->runOnFinish(std::move(wrapped));
+
             return ctx.createUndefined();
         },
         1);
@@ -1329,19 +1524,23 @@ u64 registerTestClassBinding(mc::mod::bedrock::addon::NativeModuleBuilder& build
             if (helper == nullptr) {
                 return nullptr;
             }
+
             if (argc < 2) {
                 return ctx.throwTypeError("assertEntityInstancePresent(entity, pos, isPresent?)");
             }
-            const u64 entityClassId = mc::mod::bedrock::addon::ScriptClassRegistry::instance().classIdByName("Entity");
+
+            const u64 entityClassId = ctx.classRegistry().classIdByName("Entity");
             auto* entity = static_cast<mc::Entity*>(
                 mc::mod::bedrock::addon::ScriptObjectRegistry::unwrap(ctx, args[0], entityClassId));
             if (entity == nullptr) {
                 return ctx.throwTypeError("assertEntityInstancePresent: argument must be an Entity");
             }
+
             BlockPos pos;
             if (!_parseBlockPos(ctx, args[1], pos)) {
                 return nullptr;
             }
+
             bool isPresent = true;
             if (argc >= 3) {
                 auto b = ctx.toBool(args[2]);
@@ -1349,7 +1548,9 @@ u64 registerTestClassBinding(mc::mod::bedrock::addon::NativeModuleBuilder& build
                     isPresent = *b;
                 }
             }
+
             auto result = helper->assertEntityInstancePresent(*entity, pos, isPresent);
+
             return _resultToJs(ctx, std::move(result));
         },
         3);
@@ -1363,15 +1564,18 @@ u64 registerTestClassBinding(mc::mod::bedrock::addon::NativeModuleBuilder& build
             if (helper == nullptr) {
                 return nullptr;
             }
+
             if (argc < 1) {
                 return ctx.throwTypeError("assertEntityInstancePresentInArea(entity, isPresent?)");
             }
-            const u64 entityClassId = mc::mod::bedrock::addon::ScriptClassRegistry::instance().classIdByName("Entity");
+
+            const u64 entityClassId = ctx.classRegistry().classIdByName("Entity");
             auto* entity = static_cast<mc::Entity*>(
                 mc::mod::bedrock::addon::ScriptObjectRegistry::unwrap(ctx, args[0], entityClassId));
             if (entity == nullptr) {
                 return ctx.throwTypeError("assertEntityInstancePresentInArea: argument must be an Entity");
             }
+
             bool isPresent = true;
             if (argc >= 2) {
                 auto b = ctx.toBool(args[1]);
@@ -1379,7 +1583,9 @@ u64 registerTestClassBinding(mc::mod::bedrock::addon::NativeModuleBuilder& build
                     isPresent = *b;
                 }
             }
+
             auto result = helper->assertEntityInstancePresentInArea(*entity, isPresent);
+
             return _resultToJs(ctx, std::move(result));
         },
         2);
@@ -1393,17 +1599,21 @@ u64 registerTestClassBinding(mc::mod::bedrock::addon::NativeModuleBuilder& build
             if (helper == nullptr) {
                 return nullptr;
             }
+
             if (argc < 2 || !ctx.isString(args[0])) {
                 return ctx.throwTypeError("assertEntityTouching(entityType, location, isTouching?)");
             }
+
             auto entityType = ctx.toString(args[0]);
             if (!entityType) {
                 return ctx.throwInternalError("Failed to read entityType");
             }
+
             mc::math::Vector3d loc;
             if (!_parseVector3(ctx, args[1], loc)) {
                 return nullptr;
             }
+
             bool isTouching = true;
             if (argc >= 3) {
                 auto b = ctx.toBool(args[2]);
@@ -1411,7 +1621,9 @@ u64 registerTestClassBinding(mc::mod::bedrock::addon::NativeModuleBuilder& build
                     isTouching = *b;
                 }
             }
+
             auto result = helper->assertEntityTouching(*entityType, loc, isTouching);
+
             return _resultToJs(ctx, std::move(result));
         },
         3);
@@ -1424,17 +1636,21 @@ u64 registerTestClassBinding(mc::mod::bedrock::addon::NativeModuleBuilder& build
             if (helper == nullptr) {
                 return nullptr;
             }
+
             if (argc < 2 || !ctx.isString(args[0])) {
                 return ctx.throwTypeError("assertItemEntityPresent(itemType, pos, searchDistance?, isPresent?)");
             }
+
             auto itemType = ctx.toString(args[0]);
             if (!itemType) {
                 return ctx.throwInternalError("Failed to read itemType");
             }
+
             BlockPos pos;
             if (!_parseBlockPos(ctx, args[1], pos)) {
                 return nullptr;
             }
+
             f32 searchDistance = 0.0f;
             if (argc >= 3 && ctx.isNumber(args[2])) {
                 auto d = ctx.toFloat64(args[2]);
@@ -1442,6 +1658,7 @@ u64 registerTestClassBinding(mc::mod::bedrock::addon::NativeModuleBuilder& build
                     searchDistance = static_cast<f32>(*d);
                 }
             }
+
             bool isPresent = true;
             if (argc >= 4) {
                 auto b = ctx.toBool(args[3]);
@@ -1449,7 +1666,9 @@ u64 registerTestClassBinding(mc::mod::bedrock::addon::NativeModuleBuilder& build
                     isPresent = *b;
                 }
             }
+
             auto result = helper->assertItemEntityPresent(*itemType, pos, searchDistance, isPresent);
+
             return _resultToJs(ctx, std::move(result));
         },
         4);
@@ -1463,23 +1682,29 @@ u64 registerTestClassBinding(mc::mod::bedrock::addon::NativeModuleBuilder& build
             if (helper == nullptr) {
                 return nullptr;
             }
+
             if (argc < 4 || !ctx.isString(args[0]) || !ctx.isNumber(args[2]) || !ctx.isNumber(args[3])) {
                 return ctx.throwTypeError("assertItemEntityCountIs(itemType, pos, searchDistance, count)");
             }
+
             auto itemType = ctx.toString(args[0]);
             if (!itemType) {
                 return ctx.throwInternalError("Failed to read itemType");
             }
+
             BlockPos pos;
             if (!_parseBlockPos(ctx, args[1], pos)) {
                 return nullptr;
             }
+
             auto searchDistance = ctx.toFloat64(args[2]);
             auto count = ctx.toInt32(args[3]);
             if (!searchDistance || !count) {
                 return ctx.throwTypeError("searchDistance and count must be numbers");
             }
+
             auto result = helper->assertItemEntityCountIs(*itemType, pos, static_cast<f32>(*searchDistance), *count);
+
             return _resultToJs(ctx, std::move(result));
         },
         4);
@@ -1515,19 +1740,23 @@ u64 registerTestClassBinding(mc::mod::bedrock::addon::NativeModuleBuilder& build
             if (helper == nullptr) {
                 return nullptr;
             }
+
             if (argc < 1) {
                 return ctx.throwTypeError("getBlock(pos)");
             }
+
             BlockPos pos;
             if (!_parseBlockPos(ctx, args[0], pos)) {
                 return nullptr;
             }
+
             const mc::BlockState* state = helper->getBlock(pos);
             if (state == nullptr) {
                 return ctx.createUndefined();
             }
             // wrapBlock 内部经 classIdByName/protoByName 回查 Block 类注册，跨模块构造 Block JS 对象。
             const mc::BlockPos worldPos = helper->worldBlockPosition(pos);
+
             return mc::mod::bedrock::addon::wrapBlock(ctx, state, worldPos, &helper->world());
         },
         1);
@@ -1541,18 +1770,23 @@ u64 registerTestClassBinding(mc::mod::bedrock::addon::NativeModuleBuilder& build
             if (helper == nullptr) {
                 return nullptr;
             }
+
             if (argc < 2) {
                 return ctx.throwTypeError("assertContainerContains(itemStack, pos)");
             }
+
             auto* stack = _unwrapItemStack(ctx, args[0]);
             if (stack == nullptr) {
                 return ctx.throwTypeError("assertContainerContains: first arg must be an ItemStack");
             }
+
             BlockPos pos;
             if (!_parseBlockPos(ctx, args[1], pos)) {
                 return nullptr;
             }
+
             auto result = helper->assertContainerContains(*stack, pos);
+
             return _resultToJs(ctx, std::move(result));
         },
         2);
@@ -1565,14 +1799,18 @@ u64 registerTestClassBinding(mc::mod::bedrock::addon::NativeModuleBuilder& build
             if (helper == nullptr) {
                 return nullptr;
             }
+
             if (argc < 1) {
                 return ctx.throwTypeError("assertContainerEmpty(pos)");
             }
+
             BlockPos pos;
             if (!_parseBlockPos(ctx, args[0], pos)) {
                 return nullptr;
             }
+
             auto result = helper->assertContainerEmpty(pos);
+
             return _resultToJs(ctx, std::move(result));
         },
         1);
@@ -1587,18 +1825,23 @@ u64 registerTestClassBinding(mc::mod::bedrock::addon::NativeModuleBuilder& build
             if (helper == nullptr) {
                 return nullptr;
             }
+
             if (argc < 2) {
                 return ctx.throwTypeError("setBlockPermutation(blockPermutation, pos)");
             }
+
             auto* perm = _unwrapBlockPermutation(ctx, args[0]);
             if (perm == nullptr) {
                 return ctx.throwTypeError("setBlockPermutation: first arg must be a BlockPermutation");
             }
+
             BlockPos pos;
             if (!_parseBlockPos(ctx, args[1], pos)) {
                 return nullptr;
             }
+
             auto result = helper->setBlockPermutation(*perm, pos);
+
             return _resultToJs(ctx, std::move(result));
         },
         2);
@@ -1614,18 +1857,23 @@ u64 registerTestClassBinding(mc::mod::bedrock::addon::NativeModuleBuilder& build
             if (helper == nullptr) {
                 return nullptr;
             }
+
             if (argc < 2 || !ctx.isString(args[1])) {
                 return ctx.throwTypeError("setFluidContainer(pos, fluidType)");
             }
+
             BlockPos pos;
             if (!_parseBlockPos(ctx, args[0], pos)) {
                 return nullptr;
             }
+
             auto fluidType = ctx.toString(args[1]);
             if (!fluidType) {
                 return ctx.throwInternalError("Failed to read fluidType");
             }
+
             auto result = helper->setFluidContainer(pos, *fluidType);
+
             return _resultToJs(ctx, std::move(result));
         },
         2);
@@ -1638,18 +1886,23 @@ u64 registerTestClassBinding(mc::mod::bedrock::addon::NativeModuleBuilder& build
             if (helper == nullptr) {
                 return nullptr;
             }
+
             if (argc < 2 || !ctx.isString(args[1])) {
                 return ctx.throwTypeError("triggerInternalBlockEvent(pos, eventName)");
             }
+
             BlockPos pos;
             if (!_parseBlockPos(ctx, args[0], pos)) {
                 return nullptr;
             }
+
             auto name = ctx.toString(args[1]);
             if (!name) {
                 return ctx.throwInternalError("Failed to read eventName");
             }
+
             helper->triggerInternalBlockEvent(pos, *name);
+
             return ctx.createUndefined();
         },
         2);
@@ -1663,19 +1916,24 @@ u64 registerTestClassBinding(mc::mod::bedrock::addon::NativeModuleBuilder& build
             if (helper == nullptr) {
                 return nullptr;
             }
+
             if (argc < 3 || !ctx.isString(args[1]) || !ctx.isString(args[2])) {
                 return ctx.throwTypeError("spreadFromFaceTowardDirection(pos, fromFace, direction)");
             }
+
             BlockPos pos;
             if (!_parseBlockPos(ctx, args[0], pos)) {
                 return nullptr;
             }
+
             auto fromFace = ctx.toString(args[1]);
             auto direction = ctx.toString(args[2]);
             if (!fromFace || !direction) {
                 return ctx.throwInternalError("Failed to read direction");
             }
+
             helper->spreadFromFaceTowardDirection(pos, _directionFromApi(*fromFace), _directionFromApi(*direction));
+
             return ctx.createUndefined();
         },
         3);
@@ -1689,28 +1947,35 @@ u64 registerTestClassBinding(mc::mod::bedrock::addon::NativeModuleBuilder& build
             if (helper == nullptr) {
                 return nullptr;
             }
+
             if (argc < 2 || !ctx.isString(args[0])) {
                 return ctx.throwTypeError("spawnAtLocation(entityType, location)");
             }
+
             auto entityType = ctx.toString(args[0]);
             if (!entityType) {
                 return ctx.throwInternalError("Failed to read entityType");
             }
+
             mc::math::Vector3d loc;
             if (!_parseVector3(ctx, args[1], loc)) {
                 return nullptr;
             }
+
             mc::Entity* outEntity = nullptr;
             auto result = helper->spawnAtLocation(*entityType, loc, outEntity);
             if (!isPass(result)) {
                 std::string msg = result->formattedMessage();
+
                 return ctx.throwInternalError(msg.c_str());
             }
-            const u64 entityClassId = mc::mod::bedrock::addon::ScriptClassRegistry::instance().classIdByName("Entity");
-            void* entityProto = mc::mod::bedrock::addon::ScriptClassRegistry::instance().proto(entityClassId);
+
+            const u64 entityClassId = ctx.classRegistry().classIdByName("Entity");
+            void* entityProto = ctx.classRegistry().proto(entityClassId);
             if (entityProto == nullptr || outEntity == nullptr) {
                 return ctx.createUndefined();
             }
+
             return mc::mod::bedrock::addon::ScriptObjectRegistry::wrap(
                 ctx, entityClassId, entityProto, outEntity, false, "Entity", nullptr, outEntity->id());
         },
@@ -1725,28 +1990,35 @@ u64 registerTestClassBinding(mc::mod::bedrock::addon::NativeModuleBuilder& build
             if (helper == nullptr) {
                 return nullptr;
             }
+
             if (argc < 2 || !ctx.isString(args[0])) {
                 return ctx.throwTypeError("spawnWithoutBehaviors(entityType, pos)");
             }
+
             auto entityType = ctx.toString(args[0]);
             if (!entityType) {
                 return ctx.throwInternalError("Failed to read entityType");
             }
+
             BlockPos pos;
             if (!_parseBlockPos(ctx, args[1], pos)) {
                 return nullptr;
             }
+
             mc::Entity* outEntity = nullptr;
             auto result = helper->spawnWithoutBehaviors(*entityType, pos, outEntity);
             if (!isPass(result)) {
                 std::string msg = result->formattedMessage();
+
                 return ctx.throwInternalError(msg.c_str());
             }
-            const u64 entityClassId = mc::mod::bedrock::addon::ScriptClassRegistry::instance().classIdByName("Entity");
-            void* entityProto = mc::mod::bedrock::addon::ScriptClassRegistry::instance().proto(entityClassId);
+
+            const u64 entityClassId = ctx.classRegistry().classIdByName("Entity");
+            void* entityProto = ctx.classRegistry().proto(entityClassId);
             if (entityProto == nullptr || outEntity == nullptr) {
                 return ctx.createUndefined();
             }
+
             return mc::mod::bedrock::addon::ScriptObjectRegistry::wrap(
                 ctx, entityClassId, entityProto, outEntity, false, "Entity", nullptr, outEntity->id());
         },
@@ -1758,28 +2030,35 @@ u64 registerTestClassBinding(mc::mod::bedrock::addon::NativeModuleBuilder& build
             if (helper == nullptr) {
                 return nullptr;
             }
+
             if (argc < 2 || !ctx.isString(args[0])) {
                 return ctx.throwTypeError("spawnWithoutBehaviorsAtLocation(entityType, location)");
             }
+
             auto entityType = ctx.toString(args[0]);
             if (!entityType) {
                 return ctx.throwInternalError("Failed to read entityType");
             }
+
             mc::math::Vector3d loc;
             if (!_parseVector3(ctx, args[1], loc)) {
                 return nullptr;
             }
+
             mc::Entity* outEntity = nullptr;
             auto result = helper->spawnWithoutBehaviorsAtLocation(*entityType, loc, outEntity);
             if (!isPass(result)) {
                 std::string msg = result->formattedMessage();
+
                 return ctx.throwInternalError(msg.c_str());
             }
-            const u64 entityClassId = mc::mod::bedrock::addon::ScriptClassRegistry::instance().classIdByName("Entity");
-            void* entityProto = mc::mod::bedrock::addon::ScriptClassRegistry::instance().proto(entityClassId);
+
+            const u64 entityClassId = ctx.classRegistry().classIdByName("Entity");
+            void* entityProto = ctx.classRegistry().proto(entityClassId);
             if (entityProto == nullptr || outEntity == nullptr) {
                 return ctx.createUndefined();
             }
+
             return mc::mod::bedrock::addon::ScriptObjectRegistry::wrap(
                 ctx, entityClassId, entityProto, outEntity, false, "Entity", nullptr, outEntity->id());
         },
@@ -1793,11 +2072,13 @@ u64 registerTestClassBinding(mc::mod::bedrock::addon::NativeModuleBuilder& build
             if (helper == nullptr) {
                 return nullptr;
             }
+
             if (argc < 5 || !ctx.isString(args[0]) || !ctx.isNumber(args[1]) || !ctx.isString(args[2]) ||
                 !ctx.isNumber(args[3])) {
                 return ctx.throwTypeError(
                     "assertEntityHasArmor(entityType, armorSlot, armorName, armorData, pos, hasArmor?)");
             }
+
             auto entityType = ctx.toString(args[0]);
             auto armorSlot = ctx.toInt32(args[1]);
             auto armorName = ctx.toString(args[2]);
@@ -1805,10 +2086,12 @@ u64 registerTestClassBinding(mc::mod::bedrock::addon::NativeModuleBuilder& build
             if (!entityType || !armorSlot || !armorName || !armorData) {
                 return ctx.throwInternalError("Failed to read assertEntityHasArmor args");
             }
+
             BlockPos pos;
             if (!_parseBlockPos(ctx, args[4], pos)) {
                 return nullptr;
             }
+
             bool hasArmor = true;
             if (argc >= 6) {
                 auto b = ctx.toBool(args[5]);
@@ -1816,7 +2099,9 @@ u64 registerTestClassBinding(mc::mod::bedrock::addon::NativeModuleBuilder& build
                     hasArmor = *b;
                 }
             }
+
             auto result = helper->assertEntityHasArmor(*entityType, *armorSlot, *armorName, *armorData, pos, hasArmor);
+
             return _resultToJs(ctx, std::move(result));
         },
         6);
@@ -1829,18 +2114,22 @@ u64 registerTestClassBinding(mc::mod::bedrock::addon::NativeModuleBuilder& build
             if (helper == nullptr) {
                 return nullptr;
             }
+
             if (argc < 3 || !ctx.isString(args[0]) || !ctx.isString(args[1])) {
                 return ctx.throwTypeError("assertEntityHasComponent(entityType, componentId, pos, hasComponent?)");
             }
+
             auto entityType = ctx.toString(args[0]);
             auto componentId = ctx.toString(args[1]);
             if (!entityType || !componentId) {
                 return ctx.throwInternalError("Failed to read assertEntityHasComponent args");
             }
+
             BlockPos pos;
             if (!_parseBlockPos(ctx, args[2], pos)) {
                 return nullptr;
             }
+
             bool hasComponent = true;
             if (argc >= 4) {
                 auto b = ctx.toBool(args[3]);
@@ -1848,7 +2137,9 @@ u64 registerTestClassBinding(mc::mod::bedrock::addon::NativeModuleBuilder& build
                     hasComponent = *b;
                 }
             }
+
             auto result = helper->assertEntityHasComponent(*entityType, *componentId, pos, hasComponent);
+
             return _resultToJs(ctx, std::move(result));
         },
         4);
@@ -1866,20 +2157,26 @@ u64 registerTestClassBinding(mc::mod::bedrock::addon::NativeModuleBuilder& build
             if (helper == nullptr) {
                 return nullptr;
             }
+
             if (argc < 3 || !ctx.isString(args[1]) || !ctx.isFunction(args[2])) {
                 return ctx.throwTypeError("assertEntityState(pos, entityType, callback)");
             }
+
             auto entityType = ctx.toString(args[1]);
             if (!entityType) {
                 return ctx.throwInternalError("Failed to read entityType");
             }
+
             BlockPos pos;
             if (!_parseBlockPos(ctx, args[0], pos)) {
                 return nullptr;
             }
             // TODO: callback 包装待 facade 做实后接（当前 facade stub 不调 predicate）。
-            std::function<bool(const mc::Entity&)> predicate = [](const mc::Entity&) -> bool { return false; };
+            std::function<bool(const mc::Entity&)> predicate = [](const mc::Entity&) -> bool {
+                return false;
+            };
             auto result = helper->assertEntityState(pos, *entityType, std::move(predicate));
+
             return _resultToJs(ctx, std::move(result));
         },
         3);
@@ -1893,19 +2190,23 @@ u64 registerTestClassBinding(mc::mod::bedrock::addon::NativeModuleBuilder& build
             if (helper == nullptr) {
                 return nullptr;
             }
+
             if (argc < 2) {
                 return ctx.throwTypeError("assertCanReachLocation(mob, pos, canReach?)");
             }
-            const u64 entityClassId = mc::mod::bedrock::addon::ScriptClassRegistry::instance().classIdByName("Entity");
+
+            const u64 entityClassId = ctx.classRegistry().classIdByName("Entity");
             auto* entity = static_cast<mc::Entity*>(
                 mc::mod::bedrock::addon::ScriptObjectRegistry::unwrap(ctx, args[0], entityClassId));
             if (entity == nullptr) {
                 return ctx.throwTypeError("assertCanReachLocation: first arg must be an Entity");
             }
+
             BlockPos pos;
             if (!_parseBlockPos(ctx, args[1], pos)) {
                 return nullptr;
             }
+
             bool canReach = true;
             if (argc >= 3) {
                 auto b = ctx.toBool(args[2]);
@@ -1913,7 +2214,9 @@ u64 registerTestClassBinding(mc::mod::bedrock::addon::NativeModuleBuilder& build
                     canReach = *b;
                 }
             }
+
             auto result = helper->assertCanReachLocation(*entity, pos, canReach);
+
             return _resultToJs(ctx, std::move(result));
         },
         3);
@@ -1926,20 +2229,25 @@ u64 registerTestClassBinding(mc::mod::bedrock::addon::NativeModuleBuilder& build
             if (helper == nullptr) {
                 return nullptr;
             }
+
             if (argc < 2 || !ctx.isNumber(args[1])) {
                 return ctx.throwTypeError("onPlayerJump(mob, jumpAmount)");
             }
-            const u64 entityClassId = mc::mod::bedrock::addon::ScriptClassRegistry::instance().classIdByName("Entity");
+
+            const u64 entityClassId = ctx.classRegistry().classIdByName("Entity");
             auto* entity = static_cast<mc::Entity*>(
                 mc::mod::bedrock::addon::ScriptObjectRegistry::unwrap(ctx, args[0], entityClassId));
             if (entity == nullptr) {
                 return ctx.throwTypeError("onPlayerJump: first arg must be an Entity");
             }
+
             auto jumpAmount = ctx.toInt32(args[1]);
             if (!jumpAmount) {
                 return ctx.throwTypeError("jumpAmount must be number");
             }
+
             helper->onPlayerJump(*entity, *jumpAmount);
+
             return ctx.createUndefined();
         },
         2);
@@ -1952,20 +2260,25 @@ u64 registerTestClassBinding(mc::mod::bedrock::addon::NativeModuleBuilder& build
             if (helper == nullptr) {
                 return nullptr;
             }
+
             if (argc < 2 || !ctx.isNumber(args[1])) {
                 return ctx.throwTypeError("setTntFuse(entity, fuseLength)");
             }
-            const u64 entityClassId = mc::mod::bedrock::addon::ScriptClassRegistry::instance().classIdByName("Entity");
+
+            const u64 entityClassId = ctx.classRegistry().classIdByName("Entity");
             auto* entity = static_cast<mc::Entity*>(
                 mc::mod::bedrock::addon::ScriptObjectRegistry::unwrap(ctx, args[0], entityClassId));
             if (entity == nullptr) {
                 return ctx.throwTypeError("setTntFuse: first arg must be an Entity");
             }
+
             auto fuse = ctx.toInt32(args[1]);
             if (!fuse) {
                 return ctx.throwTypeError("fuseLength must be number");
             }
+
             helper->setTntFuse(*entity, *fuse);
+
             return ctx.createUndefined();
         },
         2);
@@ -1978,18 +2291,22 @@ u64 registerTestClassBinding(mc::mod::bedrock::addon::NativeModuleBuilder& build
             if (helper == nullptr) {
                 return nullptr;
             }
+
             if (argc < 4 || !ctx.isString(args[0]) || !ctx.isString(args[1])) {
                 return ctx.throwTypeError("succeedWhenEntityHasComponent(entityType, componentId, pos, hasComponent)");
             }
+
             auto entityType = ctx.toString(args[0]);
             auto componentId = ctx.toString(args[1]);
             if (!entityType || !componentId) {
                 return ctx.throwInternalError("Failed to read succeedWhenEntityHasComponent args");
             }
+
             BlockPos pos;
             if (!_parseBlockPos(ctx, args[2], pos)) {
                 return nullptr;
             }
+
             bool hasComponent = true;
             {
                 auto b = ctx.toBool(args[3]);
@@ -1997,7 +2314,9 @@ u64 registerTestClassBinding(mc::mod::bedrock::addon::NativeModuleBuilder& build
                     hasComponent = *b;
                 }
             }
+
             helper->succeedWhenEntityHasComponent(*entityType, *componentId, pos, hasComponent);
+
             return ctx.createUndefined();
         },
         4);
@@ -2013,15 +2332,19 @@ u64 registerTestClassBinding(mc::mod::bedrock::addon::NativeModuleBuilder& build
             if (helper == nullptr) {
                 return nullptr;
             }
+
             if (argc < 1) {
                 return ctx.throwTypeError("removeSimulatedPlayer(player)");
             }
+
             auto* player = static_cast<SimulatedPlayer*>(
                 mc::mod::bedrock::addon::ScriptObjectRegistry::unwrap(ctx, args[0], simulatedPlayerClassId));
             if (player == nullptr) {
                 return ctx.throwTypeError("removeSimulatedPlayer: argument must be a SimulatedPlayer");
             }
+
             helper->removeSimulatedPlayer(*player);
+
             return ctx.createUndefined();
         },
         1);
@@ -2034,6 +2357,7 @@ u64 registerTestClassBinding(mc::mod::bedrock::addon::NativeModuleBuilder& build
             if (helper == nullptr) {
                 return nullptr;
             }
+
             return ctx.createBoolean(helper->isCompleted());
         },
         0);
@@ -2044,6 +2368,7 @@ u64 registerTestClassBinding(mc::mod::bedrock::addon::NativeModuleBuilder& build
             if (helper == nullptr) {
                 return nullptr;
             }
+
             return ctx.createBoolean(helper->isCleaningUp());
         },
         0);
@@ -2057,14 +2382,18 @@ u64 registerTestClassBinding(mc::mod::bedrock::addon::NativeModuleBuilder& build
             if (helper == nullptr) {
                 return nullptr;
             }
+
             if (argc < 1 || !ctx.isString(args[0])) {
                 return ctx.throwTypeError("rotateDirection(direction)");
             }
+
             auto dirStr = ctx.toString(args[0]);
             if (!dirStr) {
                 return ctx.throwInternalError("Failed to read direction");
             }
+
             mc::Direction out = helper->rotateDirection(_directionFromApi(*dirStr));
+
             return ctx.createString(_directionToApi(out));
         },
         1);
@@ -2077,14 +2406,18 @@ u64 registerTestClassBinding(mc::mod::bedrock::addon::NativeModuleBuilder& build
             if (helper == nullptr) {
                 return nullptr;
             }
+
             if (argc < 1) {
                 return ctx.throwTypeError("getFenceConnectivity(pos)");
             }
+
             BlockPos pos;
             if (!_parseBlockPos(ctx, args[0], pos)) {
                 return nullptr;
             }
+
             FenceConnectivity conn = helper->getFenceConnectivity(pos);
+
             return _fenceConnectivityToJs(ctx, conn);
         },
         1);
@@ -2100,19 +2433,23 @@ u64 registerTestClassBinding(mc::mod::bedrock::addon::NativeModuleBuilder& build
             if (helper == nullptr) {
                 return nullptr;
             }
+
             if (argc < 1) {
                 return ctx.throwTypeError("getSculkSpreader(pos)");
             }
+
             BlockPos pos;
             if (!_parseBlockPos(ctx, args[0], pos)) {
                 return nullptr;
             }
+
             std::unique_ptr<mc::blocks::SculkSpreader> spreader = helper->getSculkSpreader(pos);
             if (!spreader) {
                 return ctx.createUndefined();
             }
-            const u64 classId = mc::mod::bedrock::addon::ScriptClassRegistry::instance().classIdByName("SculkSpreader");
-            void* proto = mc::mod::bedrock::addon::ScriptClassRegistry::instance().proto(classId);
+
+            const u64 classId = ctx.classRegistry().classIdByName("SculkSpreader");
+            void* proto = ctx.classRegistry().proto(classId);
             if (proto == nullptr) {
                 // 类未注册（不应发生）：spreader 随 unique_ptr 自动析构，返 undefined。
                 return ctx.createUndefined();
@@ -2149,9 +2486,11 @@ u64 registerTestClassBinding(mc::mod::bedrock::addon::NativeModuleBuilder& build
             if (helper == nullptr) {
                 return nullptr;
             }
+
             if (argc < 2 || !ctx.isString(args[0]) || !ctx.isObject(args[1])) {
                 return ctx.throwTypeError("spawnNaturalAt(category, pos[, biome]) expects (string, {x,y,z}[, string])");
             }
+
             auto categoryStr = ctx.toString(args[0]);
             if (!categoryStr) {
                 return ctx.throwInternalError("Failed to read category string");
@@ -2179,6 +2518,7 @@ u64 registerTestClassBinding(mc::mod::bedrock::addon::NativeModuleBuilder& build
                 const std::string msg = "spawnNaturalAt: unknown category '" + cat +
                     "' (expected monster/creature/ambient/axolotls/underground_water_creature/"
                     "water_creature/water_ambient/misc)";
+
                 return ctx.throwTypeError(msg.c_str());
             }
 
@@ -2193,10 +2533,12 @@ u64 registerTestClassBinding(mc::mod::bedrock::addon::NativeModuleBuilder& build
                 if (!ctx.isString(args[2])) {
                     return ctx.throwTypeError("spawnNaturalAt: biome must be a string (e.g. 'plains')");
                 }
+
                 auto biomeStr = ctx.toString(args[2]);
                 if (!biomeStr) {
                     return ctx.throwInternalError("Failed to read biome string");
                 }
+
                 const std::string& bn = *biomeStr;
                 // biome 名 → BiomeId（覆盖常用 overworld biome；未匹配则报错，避免静默用错 biome）。
                 if (bn == "ocean") {
@@ -2240,6 +2582,7 @@ u64 registerTestClassBinding(mc::mod::bedrock::addon::NativeModuleBuilder& build
                 } else {
                     const std::string msg = "spawnNaturalAt: unknown biome '" + bn +
                         "' (expected plains/forest/desert/swamp/river/ocean/...)";
+
                     return ctx.throwTypeError(msg.c_str());
                 }
             }
@@ -2249,9 +2592,11 @@ u64 registerTestClassBinding(mc::mod::bedrock::addon::NativeModuleBuilder& build
             if (serverWorld == nullptr) {
                 return ctx.throwInternalError("spawnNaturalAt: world is not a ServerWorld");
             }
+
             const Vector3i spawnPos(pos.x, pos.y, pos.z);
             const i32 spawned = mc::world::spawn::NaturalSpawner::spawnCategoryForPosition(
                 *serverWorld, classification, spawnPos, biomeOverride);
+
             return ctx.createInt32(spawned);
         },
         2);

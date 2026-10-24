@@ -65,8 +65,9 @@ std::string _normalizePathSeparators(std::string path)
 
 std::string _toLowerAscii(std::string value)
 {
-    std::transform(
-        value.begin(), value.end(), value.begin(), [](u8 ch) { return static_cast<char>(std::tolower(ch)); });
+    std::transform(value.begin(), value.end(), value.begin(), [](u8 ch) {
+        return static_cast<char>(std::tolower(ch));
+    });
     return value;
 }
 
@@ -144,8 +145,9 @@ Result<PackListBase::PackInfo> PackListBase::addPack(const std::filesystem::path
         PackInfo existing;
         {
             std::unique_lock lock(m_mutex);
-            auto existingIt = std::find_if(
-                m_packs.begin(), m_packs.end(), [&](const PackInfo& pack) { return pack.path == normalizedPath; });
+            auto existingIt = std::find_if(m_packs.begin(), m_packs.end(), [&](const PackInfo& pack) {
+                return pack.path == normalizedPath;
+            });
 
             if (existingIt != m_packs.end()) {
                 foundExisting = true;
@@ -198,8 +200,9 @@ Result<PackListBase::PackInfo> PackListBase::addPack(const std::filesystem::path
     {
         std::unique_lock lock(m_mutex);
 
-        auto existingIt = std::find_if(
-            m_packs.begin(), m_packs.end(), [&](const PackInfo& pack) { return pack.path == normalizedPath; });
+        auto existingIt = std::find_if(m_packs.begin(), m_packs.end(), [&](const PackInfo& pack) {
+            return pack.path == normalizedPath;
+        });
 
         if (existingIt != m_packs.end()) {
             bool changed = (existingIt->enabled != enabled) || (existingIt->priority != priority);
@@ -228,8 +231,9 @@ bool PackListBase::removePack(const std::string& path)
     bool removed = false;
     {
         std::unique_lock lock(m_mutex);
-        auto it = std::find_if(
-            m_packs.begin(), m_packs.end(), [&](const PackInfo& info) { return info.path == normalizedPath; });
+        auto it = std::find_if(m_packs.begin(), m_packs.end(), [&](const PackInfo& info) {
+            return info.path == normalizedPath;
+        });
 
         if (it != m_packs.end()) {
             m_packs.erase(it);
@@ -258,7 +262,9 @@ bool PackListBase::setEnabled(const std::string& path, bool enabled)
     bool changed = false;
     {
         std::unique_lock lock(m_mutex);
-        auto it = std::find_if(m_packs.begin(), m_packs.end(), [&](const PackInfo& info) { return info.path == path; });
+        auto it = std::find_if(m_packs.begin(), m_packs.end(), [&](const PackInfo& info) {
+            return info.path == path;
+        });
 
         if (it != m_packs.end() && it->enabled != enabled) {
             it->enabled = enabled;
@@ -278,7 +284,9 @@ bool PackListBase::setPriority(const std::string& path, i32 priority)
     bool changed = false;
     {
         std::unique_lock lock(m_mutex);
-        auto it = std::find_if(m_packs.begin(), m_packs.end(), [&](const PackInfo& info) { return info.path == path; });
+        auto it = std::find_if(m_packs.begin(), m_packs.end(), [&](const PackInfo& info) {
+            return info.path == path;
+        });
 
         if (it != m_packs.end() && it->priority != priority) {
             it->priority = priority;
@@ -298,7 +306,9 @@ bool PackListBase::moveUp(const std::string& path)
     bool changed = false;
     {
         std::unique_lock lock(m_mutex);
-        auto it = std::find_if(m_packs.begin(), m_packs.end(), [&](const PackInfo& info) { return info.path == path; });
+        auto it = std::find_if(m_packs.begin(), m_packs.end(), [&](const PackInfo& info) {
+            return info.path == path;
+        });
 
         if (it == m_packs.end()) {
             return false;
@@ -339,7 +349,9 @@ bool PackListBase::moveDown(const std::string& path)
     bool changed = false;
     {
         std::unique_lock lock(m_mutex);
-        auto it = std::find_if(m_packs.begin(), m_packs.end(), [&](const PackInfo& info) { return info.path == path; });
+        auto it = std::find_if(m_packs.begin(), m_packs.end(), [&](const PackInfo& info) {
+            return info.path == path;
+        });
 
         if (it == m_packs.end()) {
             return false;
@@ -420,8 +432,9 @@ std::vector<PackListBase::PackInfo> PackListBase::getEnabledPackInfos() const
         }
     }
 
-    std::stable_sort(
-        result.begin(), result.end(), [](const PackInfo& a, const PackInfo& b) { return a.priority > b.priority; });
+    std::stable_sort(result.begin(), result.end(), [](const PackInfo& a, const PackInfo& b) {
+        return a.priority > b.priority;
+    });
 
     m_enabledPackInfosCache = result;
     return result;
@@ -430,7 +443,9 @@ std::vector<PackListBase::PackInfo> PackListBase::getEnabledPackInfos() const
 std::optional<PackListBase::PackInfo> PackListBase::getPackInfo(const std::string& path) const
 {
     std::shared_lock lock(m_mutex);
-    auto it = std::find_if(m_packs.begin(), m_packs.end(), [&](const PackInfo& info) { return info.path == path; });
+    auto it = std::find_if(m_packs.begin(), m_packs.end(), [&](const PackInfo& info) {
+        return info.path == path;
+    });
 
     if (it == m_packs.end()) {
         return std::nullopt;
@@ -442,7 +457,9 @@ std::optional<PackListBase::PackInfo> PackListBase::getPackInfo(const std::strin
 bool PackListBase::containsPack(const std::string& path) const
 {
     std::shared_lock lock(m_mutex);
-    return std::any_of(m_packs.begin(), m_packs.end(), [&](const PackInfo& info) { return info.path == path; });
+    return std::any_of(m_packs.begin(), m_packs.end(), [&](const PackInfo& info) {
+        return info.path == path;
+    });
 }
 
 size_t PackListBase::packCount() const
@@ -454,8 +471,9 @@ size_t PackListBase::packCount() const
 size_t PackListBase::enabledPackCount() const
 {
     std::shared_lock lock(m_mutex);
-    return std::count_if(
-        m_packs.begin(), m_packs.end(), [](const PackInfo& info) { return info.enabled && info.initialized; });
+    return std::count_if(m_packs.begin(), m_packs.end(), [](const PackInfo& info) {
+        return info.enabled && info.initialized;
+    });
 }
 
 bool PackListBase::hasResource(PackType type, std::string_view resourcePath) const

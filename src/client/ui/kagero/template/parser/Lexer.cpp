@@ -207,7 +207,9 @@ bool Lexer::expect(TokenType type, const std::string& value)
 
 std::string Lexer::getLineContent(size_t line) const
 {
-    if (line == 0) return "";
+    if (line == 0) {
+        return "";
+    }
 
     size_t currentLine = 1;
     size_t lineStart = 0;

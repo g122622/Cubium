@@ -62,20 +62,28 @@ CongregateGoal::CongregateGoal(VillagerEntity* villager)
 
 bool CongregateGoal::shouldExecute()
 {
-    if (!m_villager || !m_villager->world()) return false;
+    if (!m_villager || !m_villager->world()) {
+        return false;
+    }
 
     // 检查是否有会议点（从 Brain 的 MEETING_POINT 记忆获取）
     auto meetingPoint = m_villager->brain().getMemory<GlobalPos>(ai::brain::memory::MemoryModuleTypes::MEETING_POINT);
-    if (!meetingPoint.has_value()) return false;
+    if (!meetingPoint.has_value()) {
+        return false;
+    }
 
     // 检查是否在会议点附近
     BlockPos meetingPos = meetingPoint->getPos();
     f32 distSq = m_villager->distanceSqTo(meetingPos.x + 0.5f, static_cast<f32>(meetingPos.y), meetingPos.z + 0.5f);
-    if (distSq > 16.0f * 16.0f) return false; // 超过16格
+    if (distSq > 16.0f * 16.0f) {
+        return false; // 超过16格
+    }
 
     // 小概率触发（1%）
     math::IRandom& rng = m_villager->getRandom();
-    if (rng.nextInt(100) != 0) return false;
+    if (rng.nextInt(100) != 0) {
+        return false;
+    }
 
     // 查找附近的其他村民
     _findInteractionTarget();
@@ -84,10 +92,14 @@ bool CongregateGoal::shouldExecute()
 
 bool CongregateGoal::shouldContinueExecuting()
 {
-    if (!m_villager) return false;
+    if (!m_villager) {
+        return false;
+    }
 
     // 检查目标是否仍然有效
-    if (m_targetVillagerId == 0) return false;
+    if (m_targetVillagerId == 0) {
+        return false;
+    }
 
     Entity* entity = m_villager->world() ? m_villager->world()->getEntity(m_targetVillagerId) : nullptr;
     if (!entity) {
@@ -128,7 +140,9 @@ void CongregateGoal::resetTask()
 
 void CongregateGoal::tick()
 {
-    if (!m_villager || m_targetVillagerId == 0) return;
+    if (!m_villager || m_targetVillagerId == 0) {
+        return;
+    }
 
     m_interactCooldown--;
 
@@ -190,14 +204,20 @@ void CongregateGoal::_findInteractionTarget()
 
 void CongregateGoal::_spreadGossip()
 {
-    if (!m_villager || m_targetVillagerId == 0) return;
+    if (!m_villager || m_targetVillagerId == 0) {
+        return;
+    }
 
     // 获取目标村民
     Entity* entity = m_villager->world() ? m_villager->world()->getEntity(m_targetVillagerId) : nullptr;
-    if (!entity) return;
+    if (!entity) {
+        return;
+    }
 
     VillagerEntity* targetVillager = dynamic_cast<VillagerEntity*>(entity);
-    if (!targetVillager) return;
+    if (!targetVillager) {
+        return;
+    }
 
     // 调用村民的流言传播方法
     m_villager->spreadGossipTo(targetVillager);
@@ -205,17 +225,25 @@ void CongregateGoal::_spreadGossip()
 
 void CongregateGoal::_shareItems()
 {
-    if (!m_villager || m_targetVillagerId == 0) return;
+    if (!m_villager || m_targetVillagerId == 0) {
+        return;
+    }
 
     // 只有农民职业会分享食物
-    if (m_villager->profession() != VillagerProfession::Farmer) return;
+    if (m_villager->profession() != VillagerProfession::Farmer) {
+        return;
+    }
 
     // 获取目标村民
     Entity* entity = m_villager->world() ? m_villager->world()->getEntity(m_targetVillagerId) : nullptr;
-    if (!entity) return;
+    if (!entity) {
+        return;
+    }
 
     VillagerEntity* targetVillager = dynamic_cast<VillagerEntity*>(entity);
-    if (!targetVillager || !targetVillager->isAlive()) return;
+    if (!targetVillager || !targetVillager->isAlive()) {
+        return;
+    }
 
     // 农民分享食物逻辑：食物过剩时分享食物，小麦超过半组时分享小麦
     IInventory& inventory = m_villager->inventory();

@@ -54,10 +54,12 @@ struct BlockColumnLayer {
     std::unique_ptr<state::BlockStateProvider> stateProvider;
 
     BlockColumnLayer() = default;
+
     BlockColumnLayer(std::unique_ptr<valueprovider::IntProvider> h, const BlockState* s)
         : height(std::move(h))
         , stateProvider(std::make_unique<state::SimpleBlockStateProvider>(s))
     {}
+
     BlockColumnLayer(std::unique_ptr<valueprovider::IntProvider> h, std::unique_ptr<state::BlockStateProvider> sp)
         : height(std::move(h))
         , stateProvider(std::move(sp))
@@ -131,8 +133,16 @@ public:
         IChunkGenerator& generator,
         math::IRandom& random,
         const BlockPos& pos) const override;
-    [[nodiscard]] const char* name() const override { return m_name.c_str(); }
-    [[nodiscard]] DecorationStage stage() const override { return DecorationStage::VegetalDecoration; }
+
+    [[nodiscard]] const char* name() const override
+    {
+        return m_name.c_str();
+    }
+
+    [[nodiscard]] DecorationStage stage() const override
+    {
+        return DecorationStage::VegetalDecoration;
+    }
 
 private:
     std::unique_ptr<BlockColumnConfig> m_config;

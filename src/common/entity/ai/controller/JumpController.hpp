@@ -64,7 +64,10 @@ public:
     /**
      * @brief 是否正在请求跳跃（基类语义：当前 tick 内有跳跃请求）
      */
-    [[nodiscard]] bool isJumping() const { return m_isJumping; }
+    [[nodiscard]] bool isJumping() const
+    {
+        return m_isJumping;
+    }
 
     /**
      * @brief 刻更新

@@ -54,6 +54,7 @@ public:
     {
         throw std::runtime_error("SetStewEffectTestWorld::tickManager not implemented");
     }
+
     [[nodiscard]] const world::tick::TickManager& tickManager() const override
     {
         throw std::runtime_error("SetStewEffectTestWorld::tickManager not implemented");
@@ -74,7 +75,10 @@ protected:
         m_random = std::make_unique<math::Random>(12345);
     }
 
-    void TearDown() override { m_random.reset(); }
+    void TearDown() override
+    {
+        m_random.reset();
+    }
 
     SetStewEffectTestWorld m_world;
     std::unique_ptr<math::Random> m_random;
@@ -198,8 +202,12 @@ TEST_F(SetStewEffectTest, DurationRange)
         EXPECT_GE(duration, 60);
         EXPECT_LE(duration, 160);
 
-        if (duration == 60) sawMin = true;
-        if (duration == 160) sawMax = true;
+        if (duration == 60) {
+            sawMin = true;
+        }
+        if (duration == 160) {
+            sawMax = true;
+        }
     }
 
     // 至少应该看到最小和最大值

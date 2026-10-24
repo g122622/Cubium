@@ -174,6 +174,7 @@ BlockState AbstractRailBlock::updatePostPlacement(const BlockState& state,
     // 轨道连接由放置和邻居连接传播管理，普通形状通知不能重算并覆盖斜坡。
     return state;
 }
+
 void AbstractRailBlock::neighborChanged(
     IWorld& world, const BlockPos& pos, Block& neighborBlock, const BlockPos& neighborPos, bool isMoving)
 {

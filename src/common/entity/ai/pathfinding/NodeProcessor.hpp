@@ -73,7 +73,10 @@ public:
     /**
      * @brief 设置世界区域
      */
-    void setRegion(const Region* region) { m_region = region; }
+    void setRegion(const Region* region)
+    {
+        m_region = region;
+    }
 
     /**
      * @brief 是否持有有效的世界区域指针
@@ -83,7 +86,10 @@ public:
      * MovementController::canWalkAt）在解引用前须用此接口判空，避免在
      * 非寻路时把 getNodeType 返回的 Blocked 误判为"真不可走"。
      */
-    [[nodiscard]] bool hasRegion() const noexcept { return m_region != nullptr; }
+    [[nodiscard]] bool hasRegion() const noexcept
+    {
+        return m_region != nullptr;
+    }
 
     /**
      * @brief 设置实体尺寸
@@ -148,7 +154,10 @@ public:
     /**
      * @brief 清除缓存
      */
-    virtual void clear() { m_nodeCache.clear(); }
+    virtual void clear()
+    {
+        m_nodeCache.clear();
+    }
 
     /**
      * @brief 获取起始节点

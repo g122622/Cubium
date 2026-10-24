@@ -109,7 +109,10 @@ public:
     /**
      * @brief 设置攻击目标 (IAngerable接口实现)
      */
-    void setAttackTarget(LivingEntity* target) override { MobEntity::setAttackTarget(target); }
+    void setAttackTarget(LivingEntity* target) override
+    {
+        MobEntity::setAttackTarget(target);
+    }
 
     /**
      * @brief 获取攻击目标 (IAngerable接口实现)
@@ -132,12 +135,18 @@ public:
     /**
      * @brief 获取复仇计时器 (IAngerable接口实现)
      */
-    [[nodiscard]] i32 getRevengeTimer() const override { return m_revengeTimer; }
+    [[nodiscard]] i32 getRevengeTimer() const override
+    {
+        return m_revengeTimer;
+    }
 
     /**
      * @brief 是否愤怒 (IAngerable接口实现)
      */
-    [[nodiscard]] bool isAngry() const override { return m_angry || m_angerTime > 0; }
+    [[nodiscard]] bool isAngry() const override
+    {
+        return m_angry || m_angerTime > 0;
+    }
 
     /**
      * @brief 设置愤怒状态 (IAngerable接口实现)
@@ -147,12 +156,18 @@ public:
     /**
      * @brief 获取愤怒时间 (IAngerable接口实现)
      */
-    [[nodiscard]] i32 getAngerTime() const override { return m_angerTime; }
+    [[nodiscard]] i32 getAngerTime() const override
+    {
+        return m_angerTime;
+    }
 
     /**
      * @brief 设置愤怒时间 (IAngerable接口实现)
      */
-    void setAngerTime(i32 time) override { m_angerTime = time; }
+    void setAngerTime(i32 time) override
+    {
+        m_angerTime = time;
+    }
 
     // ========== 被注视检测 ==========
 
@@ -161,14 +176,20 @@ public:
      *
      * 读取 DATA_SCREAMING_PARAM（网络同步参数）。
      */
-    [[nodiscard]] bool isScreaming() const { return m_dataManager.get<bool>(DATA_SCREAMING_PARAM); }
+    [[nodiscard]] bool isScreaming() const
+    {
+        return m_dataManager.get<bool>(DATA_SCREAMING_PARAM);
+    }
 
     /**
      * @brief 设置注视状态
      *
      * 写入 DATA_SCREAMING_PARAM，由 EntityTracker 自动广播到客户端。
      */
-    void setScreaming(bool screaming) { m_dataManager.set(DATA_SCREAMING_PARAM, screaming); }
+    void setScreaming(bool screaming)
+    {
+        m_dataManager.set(DATA_SCREAMING_PARAM, screaming);
+    }
 
     // ========== 瞬移系统 ==========
 
@@ -220,19 +241,28 @@ public:
     /**
      * @brief 获取搬方块状态参数 ID（供客户端 ClientEntity 读取）
      */
-    [[nodiscard]] static u16 getCarriedBlockStateIdParamId() { return DATA_CARRIED_BLOCK_STATE_ID_PARAM.id(); }
+    [[nodiscard]] static u16 getCarriedBlockStateIdParamId()
+    {
+        return DATA_CARRIED_BLOCK_STATE_ID_PARAM.id();
+    }
 
     /**
      * @brief 获取注视状态参数 ID（供客户端 ClientEntity 读取）
      */
-    [[nodiscard]] static u16 getScreamingParamId() { return DATA_SCREAMING_PARAM.id(); }
+    [[nodiscard]] static u16 getScreamingParamId()
+    {
+        return DATA_SCREAMING_PARAM.id();
+    }
 
     // ========== 阳光燃烧 ==========
 
     /**
      * @brief 末影人不在阳光下燃烧
      */
-    [[nodiscard]] bool shouldBurnInDaylight() const override { return false; }
+    [[nodiscard]] bool shouldBurnInDaylight() const override
+    {
+        return false;
+    }
 
     // ========== 寻路权重 ==========
 
@@ -262,7 +292,10 @@ public:
      * 使喷溅水瓶/药水等水伤害链路识别末影人为水敏感实体并造成 indirectMagic 伤害。
      * 注意：这与 isInWaterOrRain() 在 tick 中触发的自身水/雨伤害是互补的两条链路。
      */
-    [[nodiscard]] bool isWaterSensitive() const override { return true; }
+    [[nodiscard]] bool isWaterSensitive() const override
+    {
+        return true;
+    }
 
     // ========== 注视检测 ==========
 
@@ -285,17 +318,26 @@ public:
     /**
      * @brief 获取眼睛高度
      */
-    [[nodiscard]] f32 eyeHeight() const override { return 2.55f; }
+    [[nodiscard]] f32 eyeHeight() const override
+    {
+        return 2.55f;
+    }
 
     /**
      * @brief 获取实体宽度
      */
-    [[nodiscard]] f32 width() const override { return 0.6f; }
+    [[nodiscard]] f32 width() const override
+    {
+        return 0.6f;
+    }
 
     /**
      * @brief 获取实体高度
      */
-    [[nodiscard]] f32 height() const override { return 2.9f; }
+    [[nodiscard]] f32 height() const override
+    {
+        return 2.9f;
+    }
 
     // ========== 生命周期 ==========
 

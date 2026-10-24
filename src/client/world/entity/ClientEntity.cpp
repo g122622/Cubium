@@ -131,15 +131,19 @@ void ClientEntity::updateInterpolation(f32 deltaTime)
         // 平滑插值旋转，需要处理角度环绕
         // Yaw
         f32 yawDiff = m_targetYaw - m_yaw;
-        while (yawDiff > 180.0f)
+        while (yawDiff > 180.0f) {
             yawDiff -= 360.0f;
-        while (yawDiff < -180.0f)
+        }
+        while (yawDiff < -180.0f) {
             yawDiff += 360.0f;
+        }
         m_yaw += yawDiff * alpha;
-        while (m_yaw > 180.0f)
+        while (m_yaw > 180.0f) {
             m_yaw -= 360.0f;
-        while (m_yaw < -180.0f)
+        }
+        while (m_yaw < -180.0f) {
             m_yaw += 360.0f;
+        }
 
         // Pitch (范围 -90 到 90)
         f32 pitchDiff = m_targetPitch - m_pitch;
@@ -148,15 +152,19 @@ void ClientEntity::updateInterpolation(f32 deltaTime)
 
         // HeadYaw
         f32 headYawDiff = m_targetHeadYaw - m_headYaw;
-        while (headYawDiff > 180.0f)
+        while (headYawDiff > 180.0f) {
             headYawDiff -= 360.0f;
-        while (headYawDiff < -180.0f)
+        }
+        while (headYawDiff < -180.0f) {
             headYawDiff += 360.0f;
+        }
         m_headYaw += headYawDiff * alpha;
-        while (m_headYaw > 180.0f)
+        while (m_headYaw > 180.0f) {
             m_headYaw -= 360.0f;
-        while (m_headYaw < -180.0f)
+        }
+        while (m_headYaw < -180.0f) {
             m_headYaw += 360.0f;
+        }
     } else {
         // 禁用平滑插值时，直接跳到目标位置
         m_position = m_targetPosition;

@@ -70,12 +70,18 @@ public:
     /**
      * @brief 旗帜不是全局渲染器
      */
-    [[nodiscard]] bool isGlobalRenderer() const override { return false; }
+    [[nodiscard]] bool isGlobalRenderer() const override
+    {
+        return false;
+    }
 
     /**
      * @brief 旗帜最大渲染距离（8格）
      */
-    [[nodiscard]] f64 getMaxRenderDistanceSquared() const override { return 64.0; }
+    [[nodiscard]] f64 getMaxRenderDistanceSquared() const override
+    {
+        return 64.0;
+    }
 
 private:
     model::BannerModel m_model; ///< 旗帜模型

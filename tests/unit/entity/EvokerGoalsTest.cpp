@@ -50,7 +50,10 @@ using namespace mc::math;
 // 仅做一次注册（VanillaEntities::registerAll 幂等且线程安全），无异常风险。
 class EvokerGoalsTest : public ::testing::Test {
 protected:
-    void SetUp() override { entity::VanillaEntities::registerAll(); }
+    void SetUp() override
+    {
+        entity::VanillaEntities::registerAll();
+    }
 };
 
 // ============================================================================

@@ -47,32 +47,50 @@ public:
     /**
      * @brief 设置准星颜色（ARGB格式）
      */
-    void setColor(u32 color) { m_color = color; }
+    void setColor(u32 color)
+    {
+        m_color = color;
+    }
 
     /**
      * @brief 设置准星大小（十字线长度）
      */
-    void setSize(f32 size) { m_size = size; }
+    void setSize(f32 size)
+    {
+        m_size = size;
+    }
 
     /**
      * @brief 设置准星线宽
      */
-    void setThickness(f32 thickness) { m_thickness = thickness; }
+    void setThickness(f32 thickness)
+    {
+        m_thickness = thickness;
+    }
 
     /**
      * @brief 获取准星颜色
      */
-    [[nodiscard]] u32 color() const { return m_color; }
+    [[nodiscard]] u32 color() const
+    {
+        return m_color;
+    }
 
     /**
      * @brief 获取准星大小
      */
-    [[nodiscard]] f32 size() const { return m_size; }
+    [[nodiscard]] f32 size() const
+    {
+        return m_size;
+    }
 
     /**
      * @brief 获取准星线宽
      */
-    [[nodiscard]] f32 thickness() const { return m_thickness; }
+    [[nodiscard]] f32 thickness() const
+    {
+        return m_thickness;
+    }
 
 private:
     u32 m_color = 0xFFFFFFFF; ///< 白色，完全不透明

@@ -238,7 +238,10 @@ public:
      * @param level 区块级别
      * @return true 表示区块应该被加载
      */
-    [[nodiscard]] static bool shouldChunkLoad(i32 level) { return level <= MAX_LOADED_LEVEL; }
+    [[nodiscard]] static bool shouldChunkLoad(i32 level)
+    {
+        return level <= MAX_LOADED_LEVEL;
+    }
 
     /**
      * @brief 处理票据更新
@@ -263,10 +266,16 @@ public:
     void setPlayerViewDistance(PlayerId playerId, i32 distance);
 
     /** @brief 获取当前视距 */
-    [[nodiscard]] i32 viewDistance() const { return m_viewDistance; }
+    [[nodiscard]] i32 viewDistance() const
+    {
+        return m_viewDistance;
+    }
 
     /** @brief 获取玩家数量 */
-    [[nodiscard]] size_t playerCount() const { return m_playerPositions.size(); }
+    [[nodiscard]] size_t playerCount() const
+    {
+        return m_playerPositions.size();
+    }
 
     /** @brief 获取总票据数量 */
     [[nodiscard]] size_t totalTicketCount() const;
@@ -322,7 +331,10 @@ public:
      * 当玩家进入或离开某区块的视距范围时触发。
      * 可用于自动发送区块数据或卸载通知。
      */
-    void setTrackingChangeCallback(TrackingChangeCallback callback) { m_trackingChangeCallback = std::move(callback); }
+    void setTrackingChangeCallback(TrackingChangeCallback callback)
+    {
+        m_trackingChangeCallback = std::move(callback);
+    }
 
     /**
      * @brief 区块缓存中心变化回调类型
@@ -389,7 +401,10 @@ public:
      * @brief 获取距离图（用于调试/测试）
      * @return 距离图的常量引用
      */
-    [[nodiscard]] const ChunkDistanceGraph& distanceGraph() const { return m_distanceGraph; }
+    [[nodiscard]] const ChunkDistanceGraph& distanceGraph() const
+    {
+        return m_distanceGraph;
+    }
 
     /**
      * @brief 获取区块的票据集合
@@ -450,7 +465,10 @@ private:
     void _rebuildAllPlayerSources();
 
     /// 区块位置转键
-    [[nodiscard]] static u64 _posToKey(ChunkCoord x, ChunkCoord z) { return mc::math::chunkPosToId(x, z); }
+    [[nodiscard]] static u64 _posToKey(ChunkCoord x, ChunkCoord z)
+    {
+        return mc::math::chunkPosToId(x, z);
+    }
 
     /// 每个区块的票据集合
     std::unordered_map<u64, ChunkTicketSet> m_chunkTickets;

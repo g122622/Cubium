@@ -34,7 +34,9 @@ namespace mc::client::ui::kagero::tpl::ast::traversal {
 
 void preorder(Node& root, const std::function<bool(Node&)>& callback)
 {
-    if (!callback(root)) return;
+    if (!callback(root)) {
+        return;
+    }
 
     for (auto& child : root.children) {
         preorder(*child, callback);
@@ -59,7 +61,9 @@ void levelOrder(Node& root, const std::function<bool(Node&)>& callback)
         Node* current = queue.front();
         queue.pop();
 
-        if (!callback(*current)) break;
+        if (!callback(*current)) {
+            break;
+        }
 
         for (auto& child : current->children) {
             queue.push(child.get());
@@ -69,7 +73,9 @@ void levelOrder(Node& root, const std::function<bool(Node&)>& callback)
 
 void preorderConst(const Node& root, const std::function<bool(const Node&)>& callback)
 {
-    if (!callback(root)) return;
+    if (!callback(root)) {
+        return;
+    }
 
     for (const auto& child : root.children) {
         preorderConst(*child, callback);
@@ -93,7 +99,9 @@ Node* findFirst(Node& root, const std::function<bool(const Node&)>& predicate)
 
     for (auto& child : root.children) {
         Node* found = findFirst(*child, predicate);
-        if (found) return found;
+        if (found) {
+            return found;
+        }
     }
 
     return nullptr;
@@ -107,7 +115,9 @@ const Node* findFirst(const Node& root, const std::function<bool(const Node&)>& 
 
     for (const auto& child : root.children) {
         const Node* found = findFirst(*child, predicate);
-        if (found) return found;
+        if (found) {
+            return found;
+        }
     }
 
     return nullptr;

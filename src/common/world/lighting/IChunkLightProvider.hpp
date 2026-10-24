@@ -35,6 +35,7 @@ namespace mc {
 namespace world::chunk {
 class IChunk;
 }
+
 using world::chunk::IChunk;
 class IWorld;
 class BlockState;

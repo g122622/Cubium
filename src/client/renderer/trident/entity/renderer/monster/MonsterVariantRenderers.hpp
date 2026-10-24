@@ -40,7 +40,11 @@ namespace mc::client::renderer::entity::renderer::monster {
  */
 class ZombieVillagerRenderer : public core::LivingRenderer<::mc::LivingEntity, model::monster::ZombieVillagerModel> {
 public:
-    ZombieVillagerRenderer() { m_shadowSize = 0.5f; }
+    ZombieVillagerRenderer()
+    {
+        m_shadowSize = 0.5f;
+    }
+
     ~ZombieVillagerRenderer() override = default;
 
     [[nodiscard]] ResourceLocation getEntityTexture(::mc::LivingEntity& entity) override
@@ -48,6 +52,7 @@ public:
         (void)entity;
         return ResourceLocation("minecraft", "textures/entity/zombie_villager/zombie_villager.png");
     }
+
     [[nodiscard]] ResourceLocation getEntityTexture(const ::mc::LivingEntity& entity) const override
     {
         (void)entity;
@@ -78,7 +83,11 @@ public:
  */
 class DrownedRenderer : public core::LivingRenderer<::mc::LivingEntity, model::monster::DrownedModel> {
 public:
-    DrownedRenderer() { m_shadowSize = 0.5f; }
+    DrownedRenderer()
+    {
+        m_shadowSize = 0.5f;
+    }
+
     ~DrownedRenderer() override = default;
 
     [[nodiscard]] ResourceLocation getEntityTexture(::mc::LivingEntity& entity) override
@@ -86,6 +95,7 @@ public:
         (void)entity;
         return ResourceLocation("minecraft", "textures/entity/zombie/drowned.png");
     }
+
     [[nodiscard]] ResourceLocation getEntityTexture(const ::mc::LivingEntity& entity) const override
     {
         (void)entity;
@@ -98,7 +108,11 @@ public:
  */
 class HuskRenderer : public core::LivingRenderer<::mc::LivingEntity, model::monster::HuskModel> {
 public:
-    HuskRenderer() { m_shadowSize = 0.5f; }
+    HuskRenderer()
+    {
+        m_shadowSize = 0.5f;
+    }
+
     ~HuskRenderer() override = default;
 
     [[nodiscard]] ResourceLocation getEntityTexture(::mc::LivingEntity& entity) override
@@ -106,6 +120,7 @@ public:
         (void)entity;
         return ResourceLocation("minecraft", "textures/entity/zombie/husk.png");
     }
+
     [[nodiscard]] ResourceLocation getEntityTexture(const ::mc::LivingEntity& entity) const override
     {
         (void)entity;
@@ -118,7 +133,11 @@ public:
  */
 class StrayRenderer : public core::LivingRenderer<::mc::LivingEntity, model::monster::StrayModel> {
 public:
-    StrayRenderer() { m_shadowSize = 0.5f; }
+    StrayRenderer()
+    {
+        m_shadowSize = 0.5f;
+    }
+
     ~StrayRenderer() override = default;
 
     [[nodiscard]] ResourceLocation getEntityTexture(::mc::LivingEntity& entity) override
@@ -126,6 +145,7 @@ public:
         (void)entity;
         return ResourceLocation("minecraft", "textures/entity/skeleton/stray.png");
     }
+
     [[nodiscard]] ResourceLocation getEntityTexture(const ::mc::LivingEntity& entity) const override
     {
         (void)entity;
@@ -138,7 +158,11 @@ public:
  */
 class CaveSpiderRenderer : public core::LivingRenderer<::mc::LivingEntity, model::monster::CaveSpiderModel> {
 public:
-    CaveSpiderRenderer() { m_shadowSize = 0.5f; }
+    CaveSpiderRenderer()
+    {
+        m_shadowSize = 0.5f;
+    }
+
     ~CaveSpiderRenderer() override = default;
 
     [[nodiscard]] ResourceLocation getEntityTexture(::mc::LivingEntity& entity) override
@@ -146,6 +170,7 @@ public:
         (void)entity;
         return ResourceLocation("minecraft", "textures/entity/spider/cave_spider.png");
     }
+
     [[nodiscard]] ResourceLocation getEntityTexture(const ::mc::LivingEntity& entity) const override
     {
         (void)entity;
@@ -158,7 +183,11 @@ public:
  */
 class GiantRenderer : public core::LivingRenderer<::mc::LivingEntity, model::monster::GiantModel> {
 public:
-    GiantRenderer() { m_shadowSize = 0.5f; }
+    GiantRenderer()
+    {
+        m_shadowSize = 0.5f;
+    }
+
     ~GiantRenderer() override = default;
 
     [[nodiscard]] ResourceLocation getEntityTexture(::mc::LivingEntity& entity) override
@@ -166,6 +195,7 @@ public:
         (void)entity;
         return ResourceLocation("minecraft", "textures/entity/zombie/zombie.png");
     }
+
     [[nodiscard]] ResourceLocation getEntityTexture(const ::mc::LivingEntity& entity) const override
     {
         (void)entity;

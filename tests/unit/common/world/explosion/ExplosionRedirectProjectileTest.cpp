@@ -78,6 +78,7 @@ public:
     {
         throw std::runtime_error("ExplosionRedirectWorld::tickManager not implemented");
     }
+
     [[nodiscard]] const world::tick::TickManager& tickManager() const override
     {
         throw std::runtime_error("ExplosionRedirectWorld::tickManager not implemented");
@@ -112,7 +113,10 @@ public:
     }
 
     /// 设置 getEntitiesInAABB 返回的实体列表（爆炸迭代对象）
-    void setEntities(std::vector<Entity*> entities) { m_entities = std::move(entities); }
+    void setEntities(std::vector<Entity*> entities)
+    {
+        m_entities = std::move(entities);
+    }
 
     /// 注册实体到 id→Entity* 映射（供 getShooter 反查）
     void registerEntity(Entity* entity)
@@ -368,8 +372,15 @@ TEST_F(ExplosionRedirectProjectileTest, Fireball_OwnerChangedInKnockbackOnlyBran
             : EntityExplosionContext(src)
         {}
 
-        [[nodiscard]] bool shouldDamageEntity(const Explosion&, const Entity&) const override { return false; }
-        [[nodiscard]] f32 getKnockbackMultiplier(const Explosion&, const Entity&) const override { return 1.0f; }
+        [[nodiscard]] bool shouldDamageEntity(const Explosion&, const Entity&) const override
+        {
+            return false;
+        }
+
+        [[nodiscard]] f32 getKnockbackMultiplier(const Explosion&, const Entity&) const override
+        {
+            return 1.0f;
+        }
     };
 
     TestLivingEntity source(EntityInstanceId(2), mc::test::testEcsRegistry());

@@ -66,19 +66,25 @@ std::string getCurrentTimeString()
 void BanCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
 {
     auto banNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("ban");
-    banNode->setRequirement([](const ServerCommandSource& source) { return source.hasPermission(3); });
+    banNode->setRequirement([](const ServerCommandSource& source) {
+        return source.hasPermission(3);
+    });
     support::applyMetadata(
         banNode, support::makeMetadata("Bans a player from the server.", "/ban <player> [reason]", 3, {}, false));
 
     // /ban <player>
     auto playerArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, EntitySelector>>(
         "player", EntityArgumentType::player());
-    playerArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _banPlayer(ctx); });
+    playerArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _banPlayer(ctx);
+    });
 
     // /ban <player> <reason>
     auto reasonArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
         "reason", StringArgumentType::greedyString());
-    reasonArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _banPlayer(ctx); });
+    reasonArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _banPlayer(ctx);
+    });
 
     playerArg->addChild(reasonArg);
     banNode->addChild(playerArg);

@@ -69,13 +69,20 @@ public:
 
     [[nodiscard]] bool test(LootContext& context) const override;
     [[nodiscard]] std::unique_ptr<LootCondition> clone() const noexcept override;
-    [[nodiscard]] std::string getType() const noexcept override { return "match_tool"; }
+
+    [[nodiscard]] std::string getType() const noexcept override
+    {
+        return "match_tool";
+    }
 
     /**
      * @brief 获取物品谓词
      * @return 物品谓词的可选引用，nullopt 表示匹配任意工具
      */
-    [[nodiscard]] const std::optional<advancement::ItemPredicate>& getPredicate() const noexcept { return m_predicate; }
+    [[nodiscard]] const std::optional<advancement::ItemPredicate>& getPredicate() const noexcept
+    {
+        return m_predicate;
+    }
 
 private:
     std::optional<advancement::ItemPredicate> m_predicate;

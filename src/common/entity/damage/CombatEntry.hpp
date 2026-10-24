@@ -86,12 +86,18 @@ public:
      * `IWorld::getEntity(id)` 校验，不要解引用本对象内部的实体指针。
      * 本方法仅用于访问 DamageSource 自身的属性（type/isFire/deathMessageKey 等）。
      */
-    [[nodiscard]] const DamageSource* source() const { return m_source.get(); }
+    [[nodiscard]] const DamageSource* source() const
+    {
+        return m_source.get();
+    }
 
     /**
      * @brief 真凶（causingEntity）实体 id；无实体来源时为 INVALID_ENTITY_ID
      */
-    [[nodiscard]] EntityInstanceId trueSourceId() const { return m_trueSourceId; }
+    [[nodiscard]] EntityInstanceId trueSourceId() const
+    {
+        return m_trueSourceId;
+    }
 
     /**
      * @brief 直接来源（directEntity）实体 id；无实体来源时为 INVALID_ENTITY_ID
@@ -99,32 +105,50 @@ public:
      * 近战 = 攻击者本身；箭矢 = 箭矢实体（真凶是射击者）。对齐 vanilla
      * `DamageSource.getDirectEntity()` 与 `getEntity()` 的区分。
      */
-    [[nodiscard]] EntityInstanceId directSourceId() const { return m_directSourceId; }
+    [[nodiscard]] EntityInstanceId directSourceId() const
+    {
+        return m_directSourceId;
+    }
 
     /**
      * @brief 获取伤害值
      */
-    [[nodiscard]] f32 damage() const { return m_damage; }
+    [[nodiscard]] f32 damage() const
+    {
+        return m_damage;
+    }
 
     /**
      * @brief 获取发生时间
      */
-    [[nodiscard]] i32 timestamp() const { return m_timestamp; }
+    [[nodiscard]] i32 timestamp() const
+    {
+        return m_timestamp;
+    }
 
     /**
      * @brief 获取受伤前生命值
      */
-    [[nodiscard]] f32 health() const { return m_health; }
+    [[nodiscard]] f32 health() const
+    {
+        return m_health;
+    }
 
     /**
      * @brief 获取摔落后缀
      */
-    [[nodiscard]] const std::string& fallSuffix() const { return m_fallSuffix; }
+    [[nodiscard]] const std::string& fallSuffix() const
+    {
+        return m_fallSuffix;
+    }
 
     /**
      * @brief 获取摔落距离
      */
-    [[nodiscard]] f32 fallDistance() const { return m_fallDistance; }
+    [[nodiscard]] f32 fallDistance() const
+    {
+        return m_fallDistance;
+    }
 
     /**
      * @brief 是否来自生物

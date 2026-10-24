@@ -41,6 +41,7 @@
 namespace mc {
 class BlockState;
 class ItemStack;
+
 namespace item::items {
 class EnchantedBookItem;
 }
@@ -147,19 +148,51 @@ public:
 
     // ========== Getters ==========
 
-    [[nodiscard]] const std::optional<ResourceLocation>& getItem() const noexcept { return m_item; }
-    [[nodiscard]] const std::optional<ResourceLocation>& getTag() const noexcept { return m_tag; }
-    [[nodiscard]] const IntBounds& getCount() const noexcept { return m_count; }
-    [[nodiscard]] const IntBounds& getDurability() const noexcept { return m_durability; }
-    [[nodiscard]] const std::optional<ResourceLocation>& getPotion() const noexcept { return m_potion; }
-    [[nodiscard]] const std::vector<EnchantmentPredicate>& getEnchantments() const noexcept { return m_enchantments; }
+    [[nodiscard]] const std::optional<ResourceLocation>& getItem() const noexcept
+    {
+        return m_item;
+    }
+
+    [[nodiscard]] const std::optional<ResourceLocation>& getTag() const noexcept
+    {
+        return m_tag;
+    }
+
+    [[nodiscard]] const IntBounds& getCount() const noexcept
+    {
+        return m_count;
+    }
+
+    [[nodiscard]] const IntBounds& getDurability() const noexcept
+    {
+        return m_durability;
+    }
+
+    [[nodiscard]] const std::optional<ResourceLocation>& getPotion() const noexcept
+    {
+        return m_potion;
+    }
+
+    [[nodiscard]] const std::vector<EnchantmentPredicate>& getEnchantments() const noexcept
+    {
+        return m_enchantments;
+    }
+
     [[nodiscard]] const std::vector<EnchantmentPredicate>& getStoredEnchantments() const noexcept
     {
         return m_storedEnchantments;
     }
-    [[nodiscard]] const NBTPredicate& getNbt() const noexcept { return m_nbt; }
+
+    [[nodiscard]] const NBTPredicate& getNbt() const noexcept
+    {
+        return m_nbt;
+    }
+
     /// 是否由 `predicates` 包装字段构造（vanilla 装备谓词的 DataComponentMatchers 写法）
-    [[nodiscard]] bool isWrappedPredicates() const noexcept { return m_fromPredicates; }
+    [[nodiscard]] bool isWrappedPredicates() const noexcept
+    {
+        return m_fromPredicates;
+    }
 
     // ========== Setters ==========
 

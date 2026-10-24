@@ -116,7 +116,9 @@ TEST(ScreenChangeCallbackTest, EmptyCallbackIsNotCallable)
 TEST(ScreenChangeCallbackTest, MultipleCallbacksTrackSequence)
 {
     std::vector<ScreenChangeInfo> history;
-    ScreenStackWidget::ScreenChangeCallback callback = [&](const ScreenChangeInfo& info) { history.push_back(info); };
+    ScreenStackWidget::ScreenChangeCallback callback = [&](const ScreenChangeInfo& info) {
+        history.push_back(info);
+    };
 
     // 模拟 push 操作后的回调
     ScreenChangeInfo pushInfo;
@@ -331,7 +333,9 @@ TEST(ScreenStackWidgetTest, PopToPreviousScreenShowsInCallback)
     stack.push(std::make_unique<Screen>("top"));
 
     ScreenChangeInfo lastInfo;
-    stack.setScreenChangeCallback([&](const ScreenChangeInfo& info) { lastInfo = info; });
+    stack.setScreenChangeCallback([&](const ScreenChangeInfo& info) {
+        lastInfo = info;
+    });
 
     stack.pop();
 
@@ -367,7 +371,9 @@ TEST(ScreenStackWidgetTest, CallbackTracksFullLifecycle)
     ScreenStackWidget stack;
     std::vector<ScreenChangeInfo> history;
 
-    stack.setScreenChangeCallback([&](const ScreenChangeInfo& info) { history.push_back(info); });
+    stack.setScreenChangeCallback([&](const ScreenChangeInfo& info) {
+        history.push_back(info);
+    });
 
     // push screen
     stack.push(std::make_unique<Screen>("first"));
@@ -401,7 +407,9 @@ TEST(ScreenStackWidgetTest, NoCallbackWhenNullptrPushed)
 {
     ScreenStackWidget stack;
     int callCount = 0;
-    stack.setScreenChangeCallback([&](const ScreenChangeInfo&) { ++callCount; });
+    stack.setScreenChangeCallback([&](const ScreenChangeInfo&) {
+        ++callCount;
+    });
 
     stack.push(nullptr);
 
@@ -412,7 +420,9 @@ TEST(ScreenStackWidgetTest, NoCallbackWhenPoppingEmptyStack)
 {
     ScreenStackWidget stack;
     int callCount = 0;
-    stack.setScreenChangeCallback([&](const ScreenChangeInfo&) { ++callCount; });
+    stack.setScreenChangeCallback([&](const ScreenChangeInfo&) {
+        ++callCount;
+    });
 
     stack.pop();
     EXPECT_EQ(callCount, 0);
@@ -422,7 +432,9 @@ TEST(ScreenStackWidgetTest, NoCallbackWhenClearingEmptyStack)
 {
     ScreenStackWidget stack;
     int callCount = 0;
-    stack.setScreenChangeCallback([&](const ScreenChangeInfo&) { ++callCount; });
+    stack.setScreenChangeCallback([&](const ScreenChangeInfo&) {
+        ++callCount;
+    });
 
     stack.clear();
     EXPECT_EQ(callCount, 0);
@@ -495,17 +507,34 @@ public:
         , m_containerId(containerId)
         , m_closes(closes)
     {}
-    std::optional<i32> getContainerId() const noexcept override { return m_containerId; }
-    void onClose() override { ++m_closes; }
+
+    std::optional<i32> getContainerId() const noexcept override
+    {
+        return m_containerId;
+    }
+
+    void onClose() override
+    {
+        ++m_closes;
+    }
 
 private:
     i32 m_containerId;
     i32& m_closes;
 };
+
 class _ContainerCloseScreenTest : public ::testing::Test {
 protected:
-    void SetUp() override { mc::client::ScreenManager::instance().setScreenStackWidget(&m_stack); }
-    void TearDown() override { mc::client::ScreenManager::instance().setScreenStackWidget(nullptr); }
+    void SetUp() override
+    {
+        mc::client::ScreenManager::instance().setScreenStackWidget(&m_stack);
+    }
+
+    void TearDown() override
+    {
+        mc::client::ScreenManager::instance().setScreenStackWidget(nullptr);
+    }
+
     ScreenStackWidget m_stack;
 };
 } // namespace

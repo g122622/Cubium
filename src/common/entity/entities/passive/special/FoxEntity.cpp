@@ -583,14 +583,22 @@ void FoxEntity::registerGoals()
             1.6,   // 近距离逃跑速度（更快）
             1.4,   // 远距离逃跑速度
             [this](const LivingEntity* entity) -> bool {
-                if (entity == nullptr) return false;
+                if (entity == nullptr) {
+                    return false;
+                }
                 // 只躲避玩家
                 const Player* player = dynamic_cast<const Player*>(entity);
-                if (player == nullptr) return false;
+                if (player == nullptr) {
+                    return false;
+                }
                 // 不躲避旁观者或创造模式玩家
-                if (player->isSpectator() || player->isCreative()) return false;
+                if (player->isSpectator() || player->isCreative()) {
+                    return false;
+                }
                 // 不躲避信任的玩家
-                if (trusts(player->playerId())) return false;
+                if (trusts(player->playerId())) {
+                    return false;
+                }
                 // 不躲避当狐狸处于攻击状态时
                 return !isFoxAggroed();
             }));
@@ -602,7 +610,9 @@ void FoxEntity::registerGoals()
             1.6,  // 近距离逃跑速度
             1.4,  // 远距离逃跑速度
             [](const LivingEntity* entity) -> bool {
-                if (entity == nullptr) return false;
+                if (entity == nullptr) {
+                    return false;
+                }
                 auto type = entity->entityType();
                 return type == entity::VanillaEntityTypeKeys::WOLF || type == entity::VanillaEntityTypeKeys::POLAR_BEAR;
             }));
@@ -672,7 +682,9 @@ void FoxEntity::registerGoals()
             false, // checkSight = false
             10,    // chance = 10（随机检查间隔）
             [](const LivingEntity* entity) -> bool {
-                if (!entity || !entity->isAlive()) return false;
+                if (!entity || !entity->isAlive()) {
+                    return false;
+                }
                 auto type = entity->entityType();
                 return type == entity::VanillaEntityTypeKeys::CHICKEN || type == entity::VanillaEntityTypeKeys::RABBIT;
             }));
@@ -684,7 +696,9 @@ void FoxEntity::registerGoals()
             10,    // chance = 10
             [](const LivingEntity* entity) -> bool {
                 const TurtleEntity* turtle = dynamic_cast<const TurtleEntity*>(entity);
-                if (!turtle) return false;
+                if (!turtle) {
+                    return false;
+                }
                 return turtle->isChild() && !turtle->isInWater();
             }));
 
@@ -694,7 +708,9 @@ void FoxEntity::registerGoals()
             false, // checkSight = false
             20,    // chance = 20（比陆地猎物更低的检查频率）
             [](const LivingEntity* entity) -> bool {
-                if (!entity || !entity->isAlive()) return false;
+                if (!entity || !entity->isAlive()) {
+                    return false;
+                }
                 auto type = entity->entityType();
                 // 仅攻击群居鱼类：鳕鱼、鲑鱼、热带鱼（不包括河豚）
                 return type == entity::VanillaEntityTypeKeys::COD || type == entity::VanillaEntityTypeKeys::SALMON ||

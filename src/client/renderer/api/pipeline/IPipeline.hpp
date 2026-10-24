@@ -63,12 +63,15 @@ struct PipelineDesc {
     // 描述符集布局描述
     struct DescriptorSetLayout {
         u32 set = 0;
+
         struct Binding {
             u32 binding = 0;
             // 可以扩展为更详细的描述
         };
+
         std::vector<Binding> bindings;
     };
+
     std::vector<DescriptorSetLayout> descriptorLayouts;
 };
 

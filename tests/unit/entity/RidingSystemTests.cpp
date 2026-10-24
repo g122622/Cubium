@@ -139,7 +139,10 @@ TEST_F(BoostHelperTest, TickEndsBoost)
 
 class BoatEntityTest : public ::testing::Test {
 protected:
-    void SetUp() override { boat = std::make_unique<BoatEntity>(BoatEntity::Type::OAK, mc::test::testEcsRegistry()); }
+    void SetUp() override
+    {
+        boat = std::make_unique<BoatEntity>(BoatEntity::Type::OAK, mc::test::testEcsRegistry());
+    }
 
     std::unique_ptr<BoatEntity> boat;
 };

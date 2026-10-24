@@ -99,7 +99,9 @@ public:
 
     void paint(PaintContext& ctx) override
     {
-        if (!isVisible()) return;
+        if (!isVisible()) {
+            return;
+        }
         const Rect box{bounds().x, bounds().y, boxSize(), boxSize()};
         ctx.drawFilledRect(box, Colors::fromARGB(255, 32, 32, 32));
         ctx.drawBorder(box, 1.0f, Colors::fromARGB(255, 96, 96, 96));
@@ -117,8 +119,12 @@ public:
         (void)mouseY;
         (void)mods;
 
-        if (!isActive() || !isVisible()) return false;
-        if (button != 0) return false;
+        if (!isActive() || !isVisible()) {
+            return false;
+        }
+        if (button != 0) {
+            return false;
+        }
 
         // 切换状态
         toggle();
@@ -144,54 +150,84 @@ public:
     /**
      * @brief 获取选中状态
      */
-    [[nodiscard]] bool isChecked() const { return m_checked; }
+    [[nodiscard]] bool isChecked() const
+    {
+        return m_checked;
+    }
 
     /**
      * @brief 切换选中状态
      */
-    void toggle() { setChecked(!m_checked); }
+    void toggle()
+    {
+        setChecked(!m_checked);
+    }
 
     // ==================== 显示属性 ====================
 
     /**
      * @brief 设置文本
      */
-    void setText(const std::string& text) { m_text = text; }
+    void setText(const std::string& text)
+    {
+        m_text = text;
+    }
 
     /**
      * @brief 获取文本
      */
-    [[nodiscard]] const std::string& text() const { return m_text; }
+    [[nodiscard]] const std::string& text() const
+    {
+        return m_text;
+    }
 
     /**
      * @brief 设置状态变化回调
      */
-    void setOnChanged(OnChangedCallback callback) { m_onChanged = std::move(callback); }
+    void setOnChanged(OnChangedCallback callback)
+    {
+        m_onChanged = std::move(callback);
+    }
 
     /**
      * @brief 设置文本颜色
      */
-    void setTextColor(u32 color) { m_textColor = color; }
+    void setTextColor(u32 color)
+    {
+        m_textColor = color;
+    }
 
     /**
      * @brief 获取文本颜色
      */
-    [[nodiscard]] u32 textColor() const { return m_textColor; }
+    [[nodiscard]] u32 textColor() const
+    {
+        return m_textColor;
+    }
 
     /**
      * @brief 设置勾选颜色
      */
-    void setCheckColor(u32 color) { m_checkColor = color; }
+    void setCheckColor(u32 color)
+    {
+        m_checkColor = color;
+    }
 
     /**
      * @brief 获取勾选颜色
      */
-    [[nodiscard]] u32 checkColor() const { return m_checkColor; }
+    [[nodiscard]] u32 checkColor() const
+    {
+        return m_checkColor;
+    }
 
     /**
      * @brief 获取复选框框体大小
      */
-    [[nodiscard]] i32 boxSize() const { return std::min(width(), height()); }
+    [[nodiscard]] i32 boxSize() const
+    {
+        return std::min(width(), height());
+    }
 
 protected:
     bool m_checked = false;              ///< 选中状态

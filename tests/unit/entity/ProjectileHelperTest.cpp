@@ -42,7 +42,10 @@ namespace {
 
 class ProjectileHelperTestWorld : public mc::test::BaseTestWorld {
 public:
-    [[nodiscard]] bool isWithinWorldBounds(i32, i32, i32) const override { return true; }
+    [[nodiscard]] bool isWithinWorldBounds(i32, i32, i32) const override
+    {
+        return true;
+    }
 
     [[nodiscard]] Entity* getEntity(EntityInstanceId id) override
     {
@@ -99,6 +102,7 @@ public:
     {
         throw std::runtime_error("ProjectileHelperTestWorld::tickManager not implemented");
     }
+
     [[nodiscard]] const world::tick::TickManager& tickManager() const override
     {
         throw std::runtime_error("ProjectileHelperTestWorld::tickManager not implemented");
@@ -116,14 +120,21 @@ public:
         , m_collidable(collidable)
     {}
 
-    [[nodiscard]] bool canBeCollidedWith() const override { return m_collidable; }
+    [[nodiscard]] bool canBeCollidedWith() const override
+    {
+        return m_collidable;
+    }
 
     bool hurt(DamageSource&, f32) override
     {
         m_hit = true;
         return true;
     }
-    [[nodiscard]] bool wasHit() const { return m_hit; }
+
+    [[nodiscard]] bool wasHit() const
+    {
+        return m_hit;
+    }
 
 private:
     bool m_collidable;

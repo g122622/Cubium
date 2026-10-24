@@ -53,7 +53,10 @@ using namespace mc;
 
 class BiomeAmbientHandlerTest : public ::testing::Test {
 protected:
-    void SetUp() override { handler = std::make_unique<BiomeAmbientHandler>(); }
+    void SetUp() override
+    {
+        handler = std::make_unique<BiomeAmbientHandler>();
+    }
 
     std::unique_ptr<BiomeAmbientHandler> handler;
 };
@@ -112,7 +115,10 @@ TEST_F(BiomeAmbientHandlerTest, BiomeChangeTracking)
 
 class UnderwaterAmbientHandlerTest : public ::testing::Test {
 protected:
-    void SetUp() override { handler = std::make_unique<UnderwaterAmbientHandler>(); }
+    void SetUp() override
+    {
+        handler = std::make_unique<UnderwaterAmbientHandler>();
+    }
 
     std::unique_ptr<UnderwaterAmbientHandler> handler;
 };
@@ -148,7 +154,10 @@ TEST_F(UnderwaterAmbientHandlerTest, UnderwaterTransitions)
 
 class UnderwaterLoopSoundTest : public ::testing::Test {
 protected:
-    void SetUp() override { sound = std::make_unique<UnderwaterLoopSound>(); }
+    void SetUp() override
+    {
+        sound = std::make_unique<UnderwaterLoopSound>();
+    }
 
     std::unique_ptr<UnderwaterLoopSound> sound;
 };
@@ -324,7 +333,10 @@ TEST_F(SoundEventsTest, BlockSoundEvents)
 
 class RandomTest : public ::testing::Test {
 protected:
-    void SetUp() override { rng = std::make_unique<mc::math::Random>(12345); }
+    void SetUp() override
+    {
+        rng = std::make_unique<mc::math::Random>(12345);
+    }
 
     std::unique_ptr<mc::math::Random> rng;
 };
@@ -438,7 +450,10 @@ TEST_F(BiomeAmbientBehaviorTest, MoodSoundTimerLogic)
 
 class WeatherSoundHandlerTest : public ::testing::Test {
 protected:
-    void SetUp() override { handler = std::make_unique<WeatherSoundHandler>(); }
+    void SetUp() override
+    {
+        handler = std::make_unique<WeatherSoundHandler>();
+    }
 
     std::unique_ptr<WeatherSoundHandler> handler;
 };

@@ -68,8 +68,8 @@ std::unique_ptr<Entity> CodEntity::create(IWorld* /*world*/, ecs::EntityRegistry
 void CodEntity::registerAttributes()
 {
     AbstractGroupFishEntity::registerAttributes();
+    // 原版 Cod 不覆盖任何属性工厂（DefaultAttributes 直接用 AbstractFish.createAttributes）。
     attributes().setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 3.0);
-    attributes().setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.3);
 }
 
 std::optional<ResourceLocation> CodEntity::getFlopSound() const

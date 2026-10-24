@@ -74,15 +74,18 @@ Context*& context_storage(std::ios_base& ios)
 const Context& Context::get(std::ios_base& ios)
 {
     auto ctxt = context_storage(ios);
-    if (ctxt == nullptr)
+    if (ctxt == nullptr) {
         return Contexts::java;
-    else
+    } else {
         return *ctxt;
+    }
 }
 
 void ios_callback(std::ios_base::event event, std::ios_base& ios, i32)
 {
-    if (event == std::ios_base::event::erase_event) delete context_storage(ios);
+    if (event == std::ios_base::event::erase_event) {
+        delete context_storage(ios);
+    }
 }
 
 void Context::set(std::ios_base& ios) const
@@ -197,7 +200,9 @@ bool read_text_number(std::istream& input, std::string& literal)
             literal += exponent;
         } else {
             // e/E 之后不是数字，说明它不是指数的一部分（例如 "1e"），把字符退回给调用方
-            if (!exponent.empty()) input.putback(exponent.front());
+            if (!exponent.empty()) {
+                input.putback(exponent.front());
+            }
             input.putback(static_cast<char>(exponentMark));
         }
     }
@@ -239,7 +244,9 @@ number_t load_text_integer(std::istream& input, char suffix)
     }
     if (suffix != '\0') {
         const i32 next = input.peek();
-        if (next != EOF && std::tolower(next) == suffix) input.get();
+        if (next != EOF && std::tolower(next) == suffix) {
+            input.get();
+        }
     }
     return convert_text_integer<number_t>(literal);
 }
@@ -259,7 +266,9 @@ number_t load_text_floating(std::istream& input, char suffix, number_t (*convert
     }
     if (suffix != '\0') {
         const i32 next = input.peek();
-        if (next != EOF && std::tolower(next) == suffix) input.get();
+        if (next != EOF && std::tolower(next) == suffix) {
+            input.get();
+        }
     }
     char* end = nullptr;
     const number_t value = convert(literal.c_str(), &end);
@@ -411,19 +420,21 @@ void dump_text<f64>(std::ostream& output, f64 number)
 
 std::size_t load_size(std::istream& input, const Context& ctxt)
 {
-    if (ctxt.format == Context::Format::Bin)
+    if (ctxt.format == Context::Format::Bin) {
         return load_flat<std::uint32_t>(input, ctxt.order);
-    else
+    } else {
         return static_cast<std::size_t>(load_varint(input));
+    }
 }
 
 void dump_size(std::ostream& output, const Context& ctxt, std::size_t size)
 {
     auto sz = static_cast<std::uint32_t>(size);
-    if (ctxt.format == Context::Format::Bin)
+    if (ctxt.format == Context::Format::Bin) {
         dump_flat(output, sz, ctxt.order);
-    else
+    } else {
         dump_varint(output, sz);
+    }
 }
 
 std::ostream& operator<<(std::ostream& output, TagId tid)
@@ -463,7 +474,9 @@ TagId deduce_tag(std::istream& input)
         }
         if (id != TagId::List) {
             char c = input.peek();
-            if (c != ';') id = TagId::List;
+            if (c != ';') {
+                id = TagId::List;
+            }
         }
         input.putback(b);
         input.putback(a);
@@ -521,7 +534,9 @@ TagId deduce_tag(std::istream& input)
                     } else if (c == 'e' || c == 'E') {
                         char d = cheof(input);
                         buffer.push_back(d);
-                        if (std::isdigit(d) || d == '-' || d == '+') continue;
+                        if (std::isdigit(d) || d == '-' || d == '+') {
+                            continue;
+                        }
                     } else if (c == 'f' || c == 'F') {
                         deduced = TagId::Float;
                     } else if (c == 'd' || c == 'D') {
@@ -536,8 +551,9 @@ TagId deduce_tag(std::istream& input)
             }
             break;
         }
-        for (auto iter = buffer.crbegin(), end = buffer.crend(); iter != end; ++iter)
+        for (auto iter = buffer.crbegin(), end = buffer.crend(); iter != end; ++iter) {
             input.putback(*iter);
+        }
         return deduced;
     }
     // TODO: 布尔字面量 true/false 尚未支持，当前会落到这里被当作未引用字符串解析为
@@ -654,10 +670,11 @@ std::string read_string_bin(std::istream& input, const Context& ctxt)
 
 std::string read_string(std::istream& input, const Context& ctxt)
 {
-    if (ctxt.format == Context::Format::Mojangson)
+    if (ctxt.format == Context::Format::Mojangson) {
         return read_string_text(input);
-    else
+    } else {
         return read_string_bin(input, ctxt);
+    }
 }
 
 void write_string_text(std::ostream& output, const std::string& string)
@@ -714,10 +731,11 @@ void write_string(std::ostream& output, const std::string& string, const Context
 template <TagId tid>
 std::unique_ptr<tag> read_bridge(TagId id, std::istream& input)
 {
-    if (id == tid)
+    if (id == tid) {
         return read<tid>(input);
-    else
+    } else {
         return read_bridge<static_cast<TagId>(static_cast<std::int8_t>(tid) - 1)>(id, input);
+    }
 }
 
 template <>
@@ -734,10 +752,11 @@ std::unique_ptr<tag> read(TagId tid, std::istream& input)
 template <TagId tid>
 std::unique_ptr<list_tag> read_list_content_bridge(TagId id, std::istream& input)
 {
-    if (id == tid)
+    if (id == tid) {
         return list_by<tid>::read_content(input);
-    else
+    } else {
         return read_list_content_bridge<static_cast<TagId>(static_cast<std::int8_t>(tid) - 1)>(id, input);
+    }
 }
 
 template <>
@@ -800,7 +819,9 @@ std::unique_ptr<list_tag> list_tag::read(std::istream& input)
     if (ctxt.format == Context::Format::Mojangson) {
         skip_space(input);
         char a = cheof(input);
-        if (a != '[') throw std::runtime_error("failed to open list tag");
+        if (a != '[') {
+            throw std::runtime_error("failed to open list tag");
+        }
         TagId type = deduce_tag(input);
         return read_list_content(type, input);
     } else {
@@ -826,16 +847,18 @@ tag_list_tag::tag_list_tag(const tag_list_tag& other)
     : eid(other.eid)
 {
     value.reserve(other.size());
-    for (const auto& each : other.value)
+    for (const auto& each : other.value) {
         value.emplace_back(each->copy());
+    }
 }
 
 tag_list_tag::tag_list_tag(const value_type& list, TagId tid)
     : eid(tid)
 {
     value.reserve(list.size());
-    for (const auto& each : list)
+    for (const auto& each : list) {
         value.emplace_back(each->copy());
+    }
 }
 
 tag_list_tag::tag_list_tag(value_type&& list, TagId tid)
@@ -847,7 +870,9 @@ void tag_list_tag::write(std::ostream& output) const
 {
     TagId aid = element_id();
     dump_list(output, aid, value, [&output, aid](const std::unique_ptr<tag>& tag, const Context&) {
-        if (aid != tag->id()) throw std::runtime_error("wrong tag id");
+        if (aid != tag->id()) {
+            throw std::runtime_error("wrong tag id");
+        }
         tag->write(output);
     });
 }
@@ -877,7 +902,9 @@ std::unique_ptr<end_list_tag> end_list_tag::read_content(std::istream& input)
         // 丢失后续键——基岩 .mcstructure 的 structure.entities 为 List[End] n=0 时致 palette 键丢失，
         // 结构模板退化为空，GameTest 按钮识别/方块放置全失效。
         const std::size_t size = load_size(input, ctxt);
-        if (size != 0) throw std::runtime_error("end list tag should be empty");
+        if (size != 0) {
+            throw std::runtime_error("end list tag should be empty");
+        }
     }
     return std::make_unique<end_list_tag>();
 }
@@ -920,8 +947,9 @@ string_list_tag::string_list_tag(value_type&& list)
 
 std::unique_ptr<string_list_tag> string_list_tag::read_content(std::istream& input)
 {
-    return load_list<string_list_tag>(
-        input, [&input](const Context& ctxt) -> std::string { return read_string(input, ctxt); });
+    return load_list<string_list_tag>(input, [&input](const Context& ctxt) -> std::string {
+        return read_string(input, ctxt);
+    });
 }
 
 void string_list_tag::write(std::ostream& output) const
@@ -941,8 +969,9 @@ tag_list_tag string_list_tag::as_tags()
 {
     tag_list_tag result(eid);
     result.value.reserve(value.size());
-    for (auto& each : value)
+    for (auto& each : value) {
         result.value.push_back(std::make_unique<tag_type>(std::move(each)));
+    }
     value.clear();
     value.shrink_to_fit();
     return result;
@@ -956,15 +985,17 @@ std::unique_ptr<tag> list_list_tag::operator[](size_t i) const
 list_list_tag::list_list_tag(const list_list_tag& other)
 {
     value.reserve(other.value.size());
-    for (const auto& element : other.value)
+    for (const auto& element : other.value) {
         value.emplace_back(cast<list_tag>(element->copy()));
+    }
 }
 
 list_list_tag::list_list_tag(const value_type& list)
 {
     value.reserve(list.size());
-    for (const auto& element : list)
+    for (const auto& element : list) {
         value.emplace_back(cast<list_tag>(element->copy()));
+    }
 }
 
 list_list_tag::list_list_tag(value_type&& list)
@@ -973,12 +1004,16 @@ list_list_tag::list_list_tag(value_type&& list)
 
 std::unique_ptr<list_list_tag> list_list_tag::read_content(std::istream& input)
 {
-    return load_list<list_list_tag>(input, [&input](const Context&) -> element_type { return list_tag::read(input); });
+    return load_list<list_list_tag>(input, [&input](const Context&) -> element_type {
+        return list_tag::read(input);
+    });
 }
 
 void list_list_tag::write(std::ostream& output) const
 {
-    dump_list(output, eid, value, [&output](const element_type& list, const Context&) { list->write(output); });
+    dump_list(output, eid, value, [&output](const element_type& list, const Context&) {
+        list->write(output);
+    });
 }
 
 std::unique_ptr<tag> list_list_tag::copy() const
@@ -990,8 +1025,9 @@ tag_list_tag list_list_tag::as_tags()
 {
     tag_list_tag result(eid);
     result.value.reserve(value.size());
-    for (auto& each : value)
+    for (auto& each : value) {
         result.value.push_back(std::move(each));
+    }
     value.clear();
     value.shrink_to_fit();
     return result;
@@ -1000,8 +1036,9 @@ tag_list_tag list_list_tag::as_tags()
 compound_tag::compound_tag(const compound_tag& other)
     : is_root(other.is_root)
 {
-    for (const auto& pair : other.value)
+    for (const auto& pair : other.value) {
         value.emplace(pair.first, pair.second->copy());
+    }
 }
 
 compound_tag::compound_tag(bool root)
@@ -1011,8 +1048,9 @@ compound_tag::compound_tag(bool root)
 compound_tag::compound_tag(const value_type& map, bool root)
     : is_root(root)
 {
-    for (const auto& pair : map)
+    for (const auto& pair : map) {
         value.emplace(pair.first, pair.second->copy());
+    }
 }
 
 compound_tag::compound_tag(value_type&& map, bool root)
@@ -1056,16 +1094,19 @@ void compound_write_bin(std::ostream& output, const compound_tag& compound, cons
         write_string(output, entry.first, ctxt);
         entry.second->write(output);
     }
-    if (!compound.is_root) tags::end.write(output);
+    if (!compound.is_root) {
+        tags::end.write(output);
+    }
 }
 
 void compound_tag::write(std::ostream& output) const
 {
     const Context& ctxt = Context::get(output);
-    if (ctxt.format == Context::Format::Mojangson)
+    if (ctxt.format == Context::Format::Mojangson) {
         compound_write_text(output, *this, ctxt);
-    else
+    } else {
         compound_write_bin(output, *this, ctxt);
+    }
 }
 
 std::unique_ptr<tag> compound_tag::copy() const
@@ -1083,8 +1124,9 @@ compound_tag& compound_tag::operator=(const compound_tag& other)
     // 整体拷贝赋值：目标原有的键必须被覆盖（而不是保留旧值），
     // 因此逐键 insert_or_assign 而非 emplace
     value.clear();
-    for (const auto& pair : other.value)
+    for (const auto& pair : other.value) {
         value.emplace(pair.first, pair.second->copy());
+    }
     return *this;
 }
 
@@ -1094,7 +1136,9 @@ void compound_tag::make_heavy()
         tags::tag& each = *pair.second;
         if (each.id() == TagId::List) {
             list_tag& list = dynamic_cast<list_tag&>(each);
-            if (!list.heavy()) pair.second = std::make_unique<tag_list_tag>(list.as_tags());
+            if (!list.heavy()) {
+                pair.second = std::make_unique<tag_list_tag>(list.as_tags());
+            }
         }
     }
 }
@@ -1123,7 +1167,9 @@ std::unique_ptr<compound_list_tag> compound_list_tag::read_content(std::istream&
 
 void compound_list_tag::write(std::ostream& output) const
 {
-    dump_list(output, eid, value, [&output](const element_type& element, const Context&) { element.write(output); });
+    dump_list(output, eid, value, [&output](const element_type& element, const Context&) {
+        element.write(output);
+    });
 }
 
 std::unique_ptr<tag> compound_list_tag::copy() const
@@ -1215,13 +1261,17 @@ void read_compound_text(std::istream& input, tags::compound_tag& compound, const
 {
     skip_space(input);
     char a = cheof(input);
-    if (a != '{') throw std::runtime_error("failed to open compound");
+    if (a != '{') {
+        throw std::runtime_error("failed to open compound");
+    }
     for (;;) {
         TagId key_type = deduce_tag(input);
         switch (key_type) {
             case TagId::End:
                 skip_space(input);
-                if (cheof(input) != '}') throw std::runtime_error("failed to close compound tag");
+                if (cheof(input) != '}') {
+                    throw std::runtime_error("failed to close compound tag");
+                }
                 return;
             case TagId::String:
                 break;
@@ -1231,14 +1281,22 @@ void read_compound_text(std::istream& input, tags::compound_tag& compound, const
         std::string key = tags::read_string(input, ctxt);
         skip_space(input);
         char a = cheof(input);
-        if (a != ':') throw std::runtime_error(std::string("key-value delimiter expected, got ") + a);
+        if (a != ':') {
+            throw std::runtime_error(std::string("key-value delimiter expected, got ") + a);
+        }
         TagId value_type = deduce_tag(input);
-        if (value_type == TagId::End) throw std::runtime_error(std::string("value expected"));
+        if (value_type == TagId::End) {
+            throw std::runtime_error(std::string("value expected"));
+        }
         compound.value.emplace(std::move(key), tags::read(value_type, input));
         skip_space(input);
         a = cheof(input);
-        if (a == '}') return;
-        if (a != ',' && a != ';') throw std::runtime_error(std::string("next tag or end expected, got ") + a);
+        if (a == '}') {
+            return;
+        }
+        if (a != ',' && a != ';') {
+            throw std::runtime_error(std::string("next tag or end expected, got ") + a);
+        }
     }
 }
 
@@ -1251,8 +1309,12 @@ void read_compound_bin(std::istream& input, tags::compound_tag& compound, const 
             break;
         }
         auto id = static_cast<TagId>(id_numeric);
-        if (id > TagId::LongArray) throw std::out_of_range("unknown tag id: " + std::to_string(id_numeric));
-        if (id == TagId::End) break;
+        if (id > TagId::LongArray) {
+            throw std::out_of_range("unknown tag id: " + std::to_string(id_numeric));
+        }
+        if (id == TagId::End) {
+            break;
+        }
         std::string key = tags::read_string(input, ctxt);
         compound.value.emplace(std::move(key), tags::read(id, input));
     }
@@ -1261,10 +1323,11 @@ void read_compound_bin(std::istream& input, tags::compound_tag& compound, const 
 std::istream& operator>>(std::istream& input, tags::compound_tag& compound)
 {
     const Context& ctxt = Context::get(input);
-    if (ctxt.format == Context::Format::Mojangson)
+    if (ctxt.format == Context::Format::Mojangson) {
         read_compound_text(input, compound, ctxt);
-    else
+    } else {
         read_compound_bin(input, compound, ctxt);
+    }
     return input;
 }
 

@@ -142,14 +142,34 @@ public:
 
     // IPipeline 接口实现
     void destroy() override;
-    [[nodiscard]] const std::string& name() const override { return m_name; }
-    [[nodiscard]] const api::RenderState& renderState() const override { return m_renderState; }
-    [[nodiscard]] bool isValid() const override { return m_pipeline != VK_NULL_HANDLE; }
+
+    [[nodiscard]] const std::string& name() const override
+    {
+        return m_name;
+    }
+
+    [[nodiscard]] const api::RenderState& renderState() const override
+    {
+        return m_renderState;
+    }
+
+    [[nodiscard]] bool isValid() const override
+    {
+        return m_pipeline != VK_NULL_HANDLE;
+    }
+
     void bind(void* commandBuffer) override;
 
     // Vulkan 特有访问器
-    [[nodiscard]] VkPipeline pipeline() const { return m_pipeline; }
-    [[nodiscard]] VkPipelineLayout layout() const { return m_layout; }
+    [[nodiscard]] VkPipeline pipeline() const
+    {
+        return m_pipeline;
+    }
+
+    [[nodiscard]] VkPipelineLayout layout() const
+    {
+        return m_layout;
+    }
 
     /**
      * @brief 加载着色器模块
@@ -199,8 +219,15 @@ public:
 
     void destroy();
 
-    [[nodiscard]] VkPipelineCache cache() const { return m_cache; }
-    [[nodiscard]] bool isValid() const { return m_cache != VK_NULL_HANDLE; }
+    [[nodiscard]] VkPipelineCache cache() const
+    {
+        return m_cache;
+    }
+
+    [[nodiscard]] bool isValid() const
+    {
+        return m_cache != VK_NULL_HANDLE;
+    }
 
 private:
     TridentContext* m_context = nullptr;

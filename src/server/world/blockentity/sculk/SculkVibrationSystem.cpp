@@ -272,9 +272,10 @@ void SculkVibrationManager::registerListenerInChunk(const BlockPos& pos, gameeve
     // 创建 OnEmptyAction 回调：当注册表为空时自动从 ChunkData 中移除
     ChunkData* chunkPtr = chunk;
     auto factory = [this, chunkPtr](i32 sy) -> std::unique_ptr<gameevent::EuclideanGameEventListenerRegistry> {
-        return std::make_unique<gameevent::EuclideanGameEventListenerRegistry>(*m_world,
-            sy,
-            [chunkPtr, sy](i32 emptySectionY) { chunkPtr->removeGameEventListenerRegistry(emptySectionY); });
+        return std::make_unique<gameevent::EuclideanGameEventListenerRegistry>(
+            *m_world, sy, [chunkPtr, sy](i32 emptySectionY) {
+                chunkPtr->removeGameEventListenerRegistry(emptySectionY);
+            });
     };
 
     gameevent::GameEventListenerRegistry& registry = chunk->getOrCreateGameEventListenerRegistry(sectionY, factory);

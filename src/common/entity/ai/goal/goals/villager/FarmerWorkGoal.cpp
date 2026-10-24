@@ -72,7 +72,9 @@ FarmerWorkGoal::FarmerWorkGoal(VillagerEntity* villager)
 
 void FarmerWorkGoal::tick()
 {
-    if (!m_villager) return;
+    if (!m_villager) {
+        return;
+    }
 
     m_farmerWorkTicks++;
 
@@ -102,20 +104,28 @@ void FarmerWorkGoal::tick()
 
 void FarmerWorkGoal::_tryHarvest()
 {
-    if (!m_villager || !m_villager->world()) return;
+    if (!m_villager || !m_villager->world()) {
+        return;
+    }
 
     IWorld* world = m_villager->world();
 
     // MC 原版使用蓄水池抽样随机选取一个有效位置
     auto targetPos = _pickValidFarmland();
-    if (!targetPos.has_value()) return;
+    if (!targetPos.has_value()) {
+        return;
+    }
 
     BlockPos pos = targetPos.value();
     const BlockState* state = world->getBlockState(pos);
-    if (!state) return;
+    if (!state) {
+        return;
+    }
 
     // 只收获成熟作物
-    if (!_isCropMatureAt(pos)) return;
+    if (!_isCropMatureAt(pos)) {
+        return;
+    }
 
     // 收获作物
     _harvestCrop(pos);
@@ -123,21 +133,29 @@ void FarmerWorkGoal::_tryHarvest()
 
 void FarmerWorkGoal::_tryPlant()
 {
-    if (!m_villager || !m_villager->world()) return;
+    if (!m_villager || !m_villager->world()) {
+        return;
+    }
 
     // 检查是否有可种植的种子
-    if (!_hasFarmSeeds()) return;
+    if (!_hasFarmSeeds()) {
+        return;
+    }
 
     IWorld* world = m_villager->world();
 
     // MC 原版使用蓄水池抽样随机选取一个有效位置
     auto targetPos = _pickValidFarmland();
-    if (!targetPos.has_value()) return;
+    if (!targetPos.has_value()) {
+        return;
+    }
 
     BlockPos pos = targetPos.value();
 
     // 只在可种植位置种植（空气+下方耕地）
-    if (!_canPlantAt(pos)) return;
+    if (!_canPlantAt(pos)) {
+        return;
+    }
 
     // 找到可种植位置，尝试从背包中获取种子并种植
     // 参考 MC 1.21.11 HarvestFarmland.plantCrop：
@@ -152,17 +170,25 @@ void FarmerWorkGoal::_tryPlant()
     IInventory& inventory = m_villager->inventory();
     for (i32 slot = 0; slot < inventory.getContainerSize(); ++slot) {
         ItemStack stack = inventory.getItem(slot);
-        if (stack.isEmpty()) continue;
+        if (stack.isEmpty()) {
+            continue;
+        }
 
         const Item* item = stack.getItem();
-        if (!item) continue;
+        if (!item) {
+            continue;
+        }
 
         // 仅 VILLAGER_PLANTABLE_SEEDS 标签中的物品才能被农民种植
-        if (!item->isIn(item::tag::ItemTags::VILLAGER_PLANTABLE_SEEDS())) continue;
+        if (!item->isIn(item::tag::ItemTags::VILLAGER_PLANTABLE_SEEDS())) {
+            continue;
+        }
 
         // 获取种子对应的作物方块
         const Block* block = _getCropBlockForSeed(item);
-        if (block == nullptr) continue;
+        if (block == nullptr) {
+            continue;
+        }
 
         // 种植作物：放置默认状态（age=0）
         const BlockState& plantState = block->defaultState();
@@ -189,14 +215,20 @@ void FarmerWorkGoal::_tryPlant()
 
 void FarmerWorkGoal::_tryCompost()
 {
-    if (!m_villager) return;
+    if (!m_villager) {
+        return;
+    }
 
     IWorld* world = m_villager->world();
-    if (!world) return;
+    if (!world) {
+        return;
+    }
 
     // 查找附近的堆肥桶（农民的工作站点就是堆肥桶）
     auto* villageManager = world->villageManager();
-    if (!villageManager) return;
+    if (!villageManager) {
+        return;
+    }
 
     auto& poiStorage = villageManager->getPOIStorage();
     BlockPos villagerPos(
@@ -206,16 +238,22 @@ void FarmerWorkGoal::_tryCompost()
     using namespace world::village::poi;
     auto composterPos = poiStorage.findNearestFree(villagerPos, PointOfInterestType::Composter, 4.0f);
 
-    if (!composterPos.has_value()) return;
+    if (!composterPos.has_value()) {
+        return;
+    }
 
     BlockPos pos = composterPos.value();
 
     // 检查堆肥桶方块
     const BlockState* state = world->getBlockState(pos);
-    if (!state) return;
+    if (!state) {
+        return;
+    }
 
     // 确认是堆肥桶
-    if (!dynamic_cast<const blocks::ComposterBlock*>(&state->getBlock())) return;
+    if (!dynamic_cast<const blocks::ComposterBlock*>(&state->getBlock())) {
+        return;
+    }
 
     i32 level = blocks::ComposterBlock::getLevel(*state);
 
@@ -253,10 +291,14 @@ void FarmerWorkGoal::_tryCompost()
 
     for (i32 slot = 0; slot < inventory.getContainerSize(); ++slot) {
         ItemStack stack = inventory.getItem(slot);
-        if (stack.isEmpty()) continue;
+        if (stack.isEmpty()) {
+            continue;
+        }
 
         const Item* item = stack.getItem();
-        if (!item) continue;
+        if (!item) {
+            continue;
+        }
 
         // 检查是否是可堆肥物品
         bool isCompostableItem = false;
@@ -266,11 +308,15 @@ void FarmerWorkGoal::_tryCompost()
                 break;
             }
         }
-        if (!isCompostableItem) continue;
+        if (!isCompostableItem) {
+            continue;
+        }
 
         // MC 原版：保留10个种子，多余的（超过10个的部分，最多20个）用于堆肥
         i32 count = stack.getCount();
-        if (count <= 10) continue;
+        if (count <= 10) {
+            continue;
+        }
 
         i32 compostCount = std::min(count - 10, 20);
 
@@ -278,7 +324,9 @@ void FarmerWorkGoal::_tryCompost()
         for (i32 i = 0; i < compostCount; ++i) {
             // 重新获取当前状态（可能已因前一次堆肥而改变）
             const BlockState* currentState = world->getBlockState(pos);
-            if (!currentState) break;
+            if (!currentState) {
+                break;
+            }
 
             BlockState newState = blocks::ComposterBlock::attemptCompost(
                 *currentState, *world, pos, currentState->getBlockMutable(), item->itemId());
@@ -316,16 +364,22 @@ void FarmerWorkGoal::_tryCompost()
 
 void FarmerWorkGoal::_harvestCrop(const BlockPos& pos)
 {
-    if (!m_villager || !m_villager->world()) return;
+    if (!m_villager || !m_villager->world()) {
+        return;
+    }
 
     IWorld* world = m_villager->world();
     const BlockState* state = world->getBlockState(pos);
-    if (!state) return;
+    if (!state) {
+        return;
+    }
 
     // 确认是 CropBlock
     Block& block = state->getBlockMutable();
     auto* cropBlock = dynamic_cast<blocks::CropBlock*>(&block);
-    if (!cropBlock) return;
+    if (!cropBlock) {
+        return;
+    }
 
     // 保存当前状态快照，因为后续操作可能改变方块状态
     BlockState cropState = *state;
@@ -380,7 +434,9 @@ void FarmerWorkGoal::_harvestCrop(const BlockPos& pos)
 
 bool FarmerWorkGoal::_hasFarmSeeds() const
 {
-    if (!m_villager) return false;
+    if (!m_villager) {
+        return false;
+    }
 
     // 参考 MC 1.21.11 HarvestFarmland.validPos()：
     //   villager.getInventory().hasItem(stack -> stack.is(ItemTags.VILLAGER_PLANTABLE_SEEDS))
@@ -391,12 +447,18 @@ bool FarmerWorkGoal::_hasFarmSeeds() const
     IInventory& inventory = m_villager->inventory();
     for (i32 slot = 0; slot < inventory.getContainerSize(); ++slot) {
         ItemStack stack = inventory.getItem(slot);
-        if (stack.isEmpty()) continue;
+        if (stack.isEmpty()) {
+            continue;
+        }
 
         const Item* item = stack.getItem();
-        if (!item) continue;
+        if (!item) {
+            continue;
+        }
 
-        if (plantableSeeds.contains(item)) return true;
+        if (plantableSeeds.contains(item)) {
+            return true;
+        }
     }
 
     return false;
@@ -404,7 +466,9 @@ bool FarmerWorkGoal::_hasFarmSeeds() const
 
 const Block* FarmerWorkGoal::_getCropBlockForSeed(const Item* seedItem)
 {
-    if (!seedItem) return nullptr;
+    if (!seedItem) {
+        return nullptr;
+    }
 
     // 大部分种子（小麦种子、甜菜种子、火把花种子、瓶草荚果）注册为 SeedsItem
     // （BlockItem 子类），直接通过 BlockItem::block() 获取关联的作物方块。
@@ -429,15 +493,21 @@ const Block* FarmerWorkGoal::_getCropBlockForSeed(const Item* seedItem)
 bool FarmerWorkGoal::_isCropMatureAt(const BlockPos& pos) const
 {
     IWorld* world = m_villager->world();
-    if (!world) return false;
+    if (!world) {
+        return false;
+    }
 
     const BlockState* state = world->getBlockState(pos);
-    if (!state) return false;
+    if (!state) {
+        return false;
+    }
 
     // 检查是否是 CropBlock 且已成熟
     const Block& block = state->getBlock();
     auto* cropBlock = dynamic_cast<const blocks::CropBlock*>(&block);
-    if (!cropBlock) return false;
+    if (!cropBlock) {
+        return false;
+    }
 
     return cropBlock->isMaxAge(*state);
 }
@@ -445,17 +515,25 @@ bool FarmerWorkGoal::_isCropMatureAt(const BlockPos& pos) const
 bool FarmerWorkGoal::_canPlantAt(const BlockPos& pos) const
 {
     IWorld* world = m_villager->world();
-    if (!world) return false;
+    if (!world) {
+        return false;
+    }
 
     // 检查目标位置是否为空气或可替换
     const BlockState* state = world->getBlockState(pos);
-    if (!state) return false;
-    if (!state->isAir() && !state->canBeReplaced()) return false;
+    if (!state) {
+        return false;
+    }
+    if (!state->isAir() && !state->canBeReplaced()) {
+        return false;
+    }
 
     // 检查下方是否是耕地
     BlockPos belowPos(pos.x, pos.y - 1, pos.z);
     const BlockState* belowState = world->getBlockState(belowPos);
-    if (!belowState) return false;
+    if (!belowState) {
+        return false;
+    }
 
     return belowState->is(VanillaBlocks::FARMLAND);
 }
@@ -470,7 +548,9 @@ bool FarmerWorkGoal::_isValidFarmPos(const BlockPos& pos) const
 
 std::optional<BlockPos> FarmerWorkGoal::_pickValidFarmland() const
 {
-    if (!m_villager || !m_villager->world()) return std::nullopt;
+    if (!m_villager || !m_villager->world()) {
+        return std::nullopt;
+    }
 
     IWorld* world = m_villager->world();
     i32 cx = static_cast<i32>(m_villager->x());

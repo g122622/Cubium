@@ -134,17 +134,26 @@ public:
     /**
      * @brief 光照贴图图像视图（供 descriptor 绑定）
      */
-    [[nodiscard]] VkImageView textureView() const { return m_lightmapView; }
+    [[nodiscard]] VkImageView textureView() const
+    {
+        return m_lightmapView;
+    }
 
     /**
      * @brief 光照贴图采样器
      */
-    [[nodiscard]] VkSampler textureSampler() const { return m_sampler; }
+    [[nodiscard]] VkSampler textureSampler() const
+    {
+        return m_sampler;
+    }
 
     /**
      * @brief 是否已初始化
      */
-    [[nodiscard]] bool isInitialized() const { return m_initialized; }
+    [[nodiscard]] bool isInitialized() const
+    {
+        return m_initialized;
+    }
 
 private:
     /// 计算单个 (blockLight, skyLight) 格点的光照颜色（对齐原版 getBrightness 曲线 + 调制）

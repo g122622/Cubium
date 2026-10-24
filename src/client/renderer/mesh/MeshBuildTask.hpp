@@ -75,7 +75,11 @@ public:
     bool execute(const std::atomic<bool>& abortSignal) override;
     void onCancel() override;
 
-    [[nodiscard]] ::mc::util::TaskType type() const override { return ::mc::util::TaskType::Custom; }
+    [[nodiscard]] ::mc::util::TaskType type() const override
+    {
+        return ::mc::util::TaskType::Custom;
+    }
+
     [[nodiscard]] std::string description() const override;
 
 private:

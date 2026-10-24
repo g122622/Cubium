@@ -74,7 +74,11 @@ public:
     // ParticleData 接口实现
     // ========================================================================
 
-    [[nodiscard]] ParticleTypeId getType() const override { return ParticleTypeId::Dust; }
+    [[nodiscard]] ParticleTypeId getType() const override
+    {
+        return ParticleTypeId::Dust;
+    }
+
     [[nodiscard]] std::string getTypeName() const override;
     [[nodiscard]] std::string getParameters() const override;
     [[nodiscard]] std::unique_ptr<ParticleData> clone() const override;
@@ -88,14 +92,20 @@ public:
      *
      * @return ARGB 颜色（如 0xFFFF0000 为红色）
      */
-    [[nodiscard]] u32 color() const noexcept { return m_color; }
+    [[nodiscard]] u32 color() const noexcept
+    {
+        return m_color;
+    }
 
     /**
      * @brief 获取缩放因子
      *
      * @return 缩放因子
      */
-    [[nodiscard]] f32 scale() const noexcept { return m_scale; }
+    [[nodiscard]] f32 scale() const noexcept
+    {
+        return m_scale;
+    }
 
     /**
      * @brief 将 ARGB 颜色转换为 RGBA 浮点向量
@@ -151,7 +161,11 @@ public:
     // ParticleData 接口实现
     // ========================================================================
 
-    [[nodiscard]] ParticleTypeId getType() const override { return ParticleTypeId::DustColorTransition; }
+    [[nodiscard]] ParticleTypeId getType() const override
+    {
+        return ParticleTypeId::DustColorTransition;
+    }
+
     [[nodiscard]] std::string getTypeName() const override;
     [[nodiscard]] std::string getParameters() const override;
     [[nodiscard]] std::unique_ptr<ParticleData> clone() const override;
@@ -165,21 +179,30 @@ public:
      *
      * @return 起始 ARGB 颜色
      */
-    [[nodiscard]] u32 fromColor() const noexcept { return m_fromColor; }
+    [[nodiscard]] u32 fromColor() const noexcept
+    {
+        return m_fromColor;
+    }
 
     /**
      * @brief 获取目标 ARGB 颜色值
      *
      * @return 目标 ARGB 颜色
      */
-    [[nodiscard]] u32 toColor() const noexcept { return m_toColor; }
+    [[nodiscard]] u32 toColor() const noexcept
+    {
+        return m_toColor;
+    }
 
     /**
      * @brief 获取缩放因子
      *
      * @return 缩放因子
      */
-    [[nodiscard]] f32 scale() const noexcept { return m_scale; }
+    [[nodiscard]] f32 scale() const noexcept
+    {
+        return m_scale;
+    }
 
     /**
      * @brief 将起始 ARGB 颜色转换为 RGBA 浮点向量

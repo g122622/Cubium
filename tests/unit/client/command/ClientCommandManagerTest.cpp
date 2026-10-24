@@ -77,7 +77,9 @@ CommandTreeSnapshot buildSnapshot()
 TEST(ClientCommandManagerTest, AppliesTreeAndBuildsSuggestions)
 {
     ClientCommandManager manager;
-    manager.setPlayerNameProvider([]() { return std::vector<std::string>{"Steve", "Alex"}; });
+    manager.setPlayerNameProvider([]() {
+        return std::vector<std::string>{"Steve", "Alex"};
+    });
 
     const auto snapshot = buildSnapshot();
     auto applyResult = manager.applyCommandTreeJson(snapshot.toJsonString());

@@ -53,17 +53,26 @@ public:
     /**
      * @brief 当前是否挂在玩家肩膀上
      */
-    [[nodiscard]] bool isOnShoulder() const noexcept { return m_onShoulder; }
+    [[nodiscard]] bool isOnShoulder() const noexcept
+    {
+        return m_onShoulder;
+    }
 
     /**
      * @brief 获取肩膀所属玩家 ID
      */
-    [[nodiscard]] u64 getShoulderPlayerId() const noexcept { return m_shoulderPlayerId; }
+    [[nodiscard]] u64 getShoulderPlayerId() const noexcept
+    {
+        return m_shoulderPlayerId;
+    }
 
     /**
      * @brief 当前是否满足停到肩膀上的冷却条件
      */
-    [[nodiscard]] bool canSitOnShoulder() const noexcept { return m_rideCooldownCounter > 100; }
+    [[nodiscard]] bool canSitOnShoulder() const noexcept
+    {
+        return m_rideCooldownCounter > 100;
+    }
 
     /**
      * @brief 挂到玩家肩膀上

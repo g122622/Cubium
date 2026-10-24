@@ -58,7 +58,10 @@ protected:
         m_entity->setHealth(m_entity->maxHealth());
     }
 
-    void TearDown() override { m_entity.reset(); }
+    void TearDown() override
+    {
+        m_entity.reset();
+    }
 
     /**
      * @brief 获取实体属性值的辅助方法

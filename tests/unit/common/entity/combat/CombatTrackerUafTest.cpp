@@ -129,7 +129,10 @@ protected:
     /// `IWorld::getEntity(id)` 返回 nullptr。测试中实体对象析构不会自动更新反查表
     /// （表里存的是裸指针），必须显式摘除，否则 getEntity 会返回悬垂指针，
     /// 复现不出「真凶已消失」这一前提。
-    void destroyAttacker(EntityInstanceId id) { m_world->unregisterEntityForLookup(id); }
+    void destroyAttacker(EntityInstanceId id)
+    {
+        m_world->unregisterEntityForLookup(id);
+    }
 
     std::unique_ptr<CombatTrackerTestWorld> m_world;
     std::unique_ptr<TestMob> m_victim;

@@ -52,7 +52,10 @@ public:
         m_dimensionManager = std::make_unique<ServerDimensionManager>(this);
     }
 
-    server::ServerWorld* getPlayerWorld(PlayerId) override { return m_world.get(); }
+    server::ServerWorld* getPlayerWorld(PlayerId) override
+    {
+        return m_world.get();
+    }
 
     Player& addPlayerEntity(PlayerId playerId)
     {

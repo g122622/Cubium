@@ -77,7 +77,10 @@ public:
      * @brief 检查是否需要tick
      * @return 附魔台总是返回false（不需要tick）
      */
-    [[nodiscard]] bool needsTick() const noexcept override { return false; }
+    [[nodiscard]] bool needsTick() const noexcept override
+    {
+        return false;
+    }
 
     /**
      * @brief 从JSON加载数据
@@ -104,7 +107,10 @@ public:
      * @brief 获取附魔力量
      * @return 附魔力量（0-15）
      */
-    [[nodiscard]] i32 getEnchantPower() const { return m_enchantPower; }
+    [[nodiscard]] i32 getEnchantPower() const
+    {
+        return m_enchantPower;
+    }
 
     /**
      * @brief 重新计算附魔力量
@@ -132,7 +138,10 @@ public:
      * @brief 获取自定义名称
      * @return 自定义名称
      */
-    [[nodiscard]] std::string getCustomName() const override { return m_customName; }
+    [[nodiscard]] std::string getCustomName() const override
+    {
+        return m_customName;
+    }
 
     /**
      * @brief 设置自定义名称
@@ -146,19 +155,28 @@ public:
      * @brief 获取书本翻转角度
      * @return 角度（弧度）
      */
-    [[nodiscard]] f32 getBookRotation() const { return m_bookRotation; }
+    [[nodiscard]] f32 getBookRotation() const
+    {
+        return m_bookRotation;
+    }
 
     /**
      * @brief 获取书本翻开角度
      * @return 角度（0-1，0=关闭，1=完全打开）
      */
-    [[nodiscard]] f32 getBookOpenAmount() const { return m_bookOpen; }
+    [[nodiscard]] f32 getBookOpenAmount() const
+    {
+        return m_bookOpen;
+    }
 
     /**
      * @brief 获取书本翻页角度
      * @return 角度（弧度）
      */
-    [[nodiscard]] f32 getBookPageAngle() const { return m_bookPageAngle; }
+    [[nodiscard]] f32 getBookPageAngle() const
+    {
+        return m_bookPageAngle;
+    }
 
     /**
      * @brief 更新书本动画

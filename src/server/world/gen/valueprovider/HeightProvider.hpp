@@ -72,8 +72,15 @@ public:
         , m_genDepth(genDepth)
     {}
 
-    [[nodiscard]] i32 getMinGenY() const { return m_minGenY; }
-    [[nodiscard]] i32 getGenDepth() const { return m_genDepth; }
+    [[nodiscard]] i32 getMinGenY() const
+    {
+        return m_minGenY;
+    }
+
+    [[nodiscard]] i32 getGenDepth() const
+    {
+        return m_genDepth;
+    }
 
 private:
     i32 m_minGenY;
@@ -148,11 +155,20 @@ public:
         return m_value.resolveY(context.getMinGenY(), context.getGenDepth());
     }
 
-    [[nodiscard]] const char* getTypeName() const override { return "constant"; }
+    [[nodiscard]] const char* getTypeName() const override
+    {
+        return "constant";
+    }
 
-    [[nodiscard]] std::unique_ptr<HeightProvider> clone() const override { return ConstantHeight::create(m_value); }
+    [[nodiscard]] std::unique_ptr<HeightProvider> clone() const override
+    {
+        return ConstantHeight::create(m_value);
+    }
 
-    [[nodiscard]] const VerticalAnchor& getValue() const { return m_value; }
+    [[nodiscard]] const VerticalAnchor& getValue() const
+    {
+        return m_value;
+    }
 
 private:
     VerticalAnchor m_value;
@@ -192,12 +208,25 @@ public:
         return randomBetweenInclusive(rng, minY, maxY);
     }
 
-    [[nodiscard]] const char* getTypeName() const override { return "uniform"; }
+    [[nodiscard]] const char* getTypeName() const override
+    {
+        return "uniform";
+    }
 
-    [[nodiscard]] std::unique_ptr<HeightProvider> clone() const override { return UniformHeight::create(m_min, m_max); }
+    [[nodiscard]] std::unique_ptr<HeightProvider> clone() const override
+    {
+        return UniformHeight::create(m_min, m_max);
+    }
 
-    [[nodiscard]] const VerticalAnchor& getMin() const { return m_min; }
-    [[nodiscard]] const VerticalAnchor& getMax() const { return m_max; }
+    [[nodiscard]] const VerticalAnchor& getMin() const
+    {
+        return m_min;
+    }
+
+    [[nodiscard]] const VerticalAnchor& getMax() const
+    {
+        return m_max;
+    }
 
 private:
     VerticalAnchor m_min;
@@ -245,16 +274,30 @@ public:
         return rng.nextInt(k + m_inner) + minY;
     }
 
-    [[nodiscard]] const char* getTypeName() const override { return "biased_to_bottom"; }
+    [[nodiscard]] const char* getTypeName() const override
+    {
+        return "biased_to_bottom";
+    }
 
     [[nodiscard]] std::unique_ptr<HeightProvider> clone() const override
     {
         return BiasedToBottomHeight::create(m_min, m_max, m_inner);
     }
 
-    [[nodiscard]] const VerticalAnchor& getMin() const { return m_min; }
-    [[nodiscard]] const VerticalAnchor& getMax() const { return m_max; }
-    [[nodiscard]] i32 getInner() const { return m_inner; }
+    [[nodiscard]] const VerticalAnchor& getMin() const
+    {
+        return m_min;
+    }
+
+    [[nodiscard]] const VerticalAnchor& getMax() const
+    {
+        return m_max;
+    }
+
+    [[nodiscard]] i32 getInner() const
+    {
+        return m_inner;
+    }
 
 private:
     VerticalAnchor m_min;
@@ -305,16 +348,30 @@ public:
         return nextIntBetween(rng, minY, l - 1 + m_inner);
     }
 
-    [[nodiscard]] const char* getTypeName() const override { return "very_biased_to_bottom"; }
+    [[nodiscard]] const char* getTypeName() const override
+    {
+        return "very_biased_to_bottom";
+    }
 
     [[nodiscard]] std::unique_ptr<HeightProvider> clone() const override
     {
         return VeryBiasedToBottomHeight::create(m_min, m_max, m_inner);
     }
 
-    [[nodiscard]] const VerticalAnchor& getMin() const { return m_min; }
-    [[nodiscard]] const VerticalAnchor& getMax() const { return m_max; }
-    [[nodiscard]] i32 getInner() const { return m_inner; }
+    [[nodiscard]] const VerticalAnchor& getMin() const
+    {
+        return m_min;
+    }
+
+    [[nodiscard]] const VerticalAnchor& getMax() const
+    {
+        return m_max;
+    }
+
+    [[nodiscard]] i32 getInner() const
+    {
+        return m_inner;
+    }
 
 private:
     VerticalAnchor m_min;
@@ -369,16 +426,30 @@ public:
         return minY + randomBetweenInclusive(rng, 0, i1) + randomBetweenInclusive(rng, 0, l);
     }
 
-    [[nodiscard]] const char* getTypeName() const override { return "trapezoid"; }
+    [[nodiscard]] const char* getTypeName() const override
+    {
+        return "trapezoid";
+    }
 
     [[nodiscard]] std::unique_ptr<HeightProvider> clone() const override
     {
         return TrapezoidHeight::create(m_min, m_max, m_plateau);
     }
 
-    [[nodiscard]] const VerticalAnchor& getMin() const { return m_min; }
-    [[nodiscard]] const VerticalAnchor& getMax() const { return m_max; }
-    [[nodiscard]] i32 getPlateau() const { return m_plateau; }
+    [[nodiscard]] const VerticalAnchor& getMin() const
+    {
+        return m_min;
+    }
+
+    [[nodiscard]] const VerticalAnchor& getMax() const
+    {
+        return m_max;
+    }
+
+    [[nodiscard]] i32 getPlateau() const
+    {
+        return m_plateau;
+    }
 
 private:
     VerticalAnchor m_min;

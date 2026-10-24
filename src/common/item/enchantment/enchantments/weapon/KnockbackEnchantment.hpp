@@ -48,7 +48,10 @@ class KnockbackEnchantment : public Enchantment {
 public:
     KnockbackEnchantment() = default;
 
-    [[nodiscard]] std::string id() const override { return "minecraft:knockback"; }
+    [[nodiscard]] std::string id() const override
+    {
+        return "minecraft:knockback";
+    }
 
     [[nodiscard]] std::string getNameKey(i32 level) const override
     {
@@ -56,17 +59,35 @@ public:
         return "enchantment.minecraft.knockback";
     }
 
-    [[nodiscard]] EnchantmentType type() const override { return EnchantmentType::Weapon; }
+    [[nodiscard]] EnchantmentType type() const override
+    {
+        return EnchantmentType::Weapon;
+    }
 
-    [[nodiscard]] i32 minLevel() const noexcept override { return 1; }
+    [[nodiscard]] i32 minLevel() const noexcept override
+    {
+        return 1;
+    }
 
-    [[nodiscard]] i32 maxLevel() const noexcept override { return 2; }
+    [[nodiscard]] i32 maxLevel() const noexcept override
+    {
+        return 2;
+    }
 
-    [[nodiscard]] EnchantmentRarity rarity() const noexcept override { return EnchantmentRarity::Uncommon; }
+    [[nodiscard]] EnchantmentRarity rarity() const noexcept override
+    {
+        return EnchantmentRarity::Uncommon;
+    }
 
-    [[nodiscard]] i32 getMinCost(i32 level) const override { return 5 + (level - 1) * 20; }
+    [[nodiscard]] i32 getMinCost(i32 level) const override
+    {
+        return 5 + (level - 1) * 20;
+    }
 
-    [[nodiscard]] i32 getMaxCost(i32 level) const override { return getMinCost(level) + 50; }
+    [[nodiscard]] i32 getMaxCost(i32 level) const override
+    {
+        return getMinCost(level) + 50;
+    }
 
     /**
      * @brief 获取击退附魔的击退强度加成（对齐 vanilla KNOCKBACK 附魔效果组件）。
@@ -82,7 +103,10 @@ public:
      * @param level 附魔等级
      * @return 击退强度加成（每级 +1.0，对齐 vanilla KNOCKBACK 组件 linear base=1.0）
      */
-    [[nodiscard]] static f32 getKnockbackBonus(i32 level) { return static_cast<f32>(level) * 1.0f; }
+    [[nodiscard]] static f32 getKnockbackBonus(i32 level)
+    {
+        return static_cast<f32>(level) * 1.0f;
+    }
 };
 
 } // namespace enchant

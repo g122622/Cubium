@@ -71,17 +71,33 @@ public:
     }
 
     /** 获取所有条目 */
-    [[nodiscard]] const std::vector<Entry>& entries() const { return m_entries; }
+    [[nodiscard]] const std::vector<Entry>& entries() const
+    {
+        return m_entries;
+    }
 
     /** 迭代器支持 */
-    auto begin() const { return m_entries.begin(); }
-    auto end() const { return m_entries.end(); }
+    auto begin() const
+    {
+        return m_entries.begin();
+    }
+
+    auto end() const
+    {
+        return m_entries.end();
+    }
 
     /** 条目数量 */
-    [[nodiscard]] size_t size() const { return m_entries.size(); }
+    [[nodiscard]] size_t size() const
+    {
+        return m_entries.size();
+    }
 
     /** 是否为空 */
-    [[nodiscard]] bool empty() const { return m_entries.empty(); }
+    [[nodiscard]] bool empty() const
+    {
+        return m_entries.empty();
+    }
 
     /**
      * @brief 使用 RTree 查找最匹配的值

@@ -52,9 +52,15 @@ public:
 
     // 对齐 vanilla FloatGoal.requiresUpdateEveryTick()=true：
     // 该 goal 每 tick 评估，tick 内 0.8 跳跃概率用裸值（不经 adjustedTickDelay）。
-    [[nodiscard]] bool requiresUpdateEveryTick() const override { return true; }
+    [[nodiscard]] bool requiresUpdateEveryTick() const override
+    {
+        return true;
+    }
 
-    [[nodiscard]] std::string getTypeName() const override { return "SwimGoal"; }
+    [[nodiscard]] std::string getTypeName() const override
+    {
+        return "SwimGoal";
+    }
 
 private:
     MobEntity* m_mob;

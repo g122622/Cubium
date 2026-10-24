@@ -64,18 +64,40 @@ public:
      */
     [[nodiscard]] bool test(const DamageSource& source, f32 dealt, f32 taken, bool blocked) const;
 
-    [[nodiscard]] bool isAny() const noexcept { return m_isAny; }
+    [[nodiscard]] bool isAny() const noexcept
+    {
+        return m_isAny;
+    }
 
     static Result<DamagePredicate> fromJson(const nlohmann::json& json);
     [[nodiscard]] nlohmann::json toJson() const;
 
     // ========== Getters ==========
 
-    [[nodiscard]] const MinMaxBounds<f64>& getDealt() const noexcept { return m_dealt; }
-    [[nodiscard]] const MinMaxBounds<f64>& getTaken() const noexcept { return m_taken; }
-    [[nodiscard]] const std::optional<EntityPredicate>& getSourceEntity() const noexcept { return m_sourceEntity; }
-    [[nodiscard]] const std::optional<bool>& getBlocked() const noexcept { return m_blocked; }
-    [[nodiscard]] const std::optional<DamageSourcePredicate>& getType() const noexcept { return m_type; }
+    [[nodiscard]] const MinMaxBounds<f64>& getDealt() const noexcept
+    {
+        return m_dealt;
+    }
+
+    [[nodiscard]] const MinMaxBounds<f64>& getTaken() const noexcept
+    {
+        return m_taken;
+    }
+
+    [[nodiscard]] const std::optional<EntityPredicate>& getSourceEntity() const noexcept
+    {
+        return m_sourceEntity;
+    }
+
+    [[nodiscard]] const std::optional<bool>& getBlocked() const noexcept
+    {
+        return m_blocked;
+    }
+
+    [[nodiscard]] const std::optional<DamageSourcePredicate>& getType() const noexcept
+    {
+        return m_type;
+    }
 
     DamagePredicate(const DamagePredicate& other);
     DamagePredicate& operator=(const DamagePredicate& other);

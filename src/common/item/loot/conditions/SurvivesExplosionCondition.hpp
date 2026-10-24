@@ -46,7 +46,11 @@ public:
 
     [[nodiscard]] bool test(LootContext& context) const override;
     [[nodiscard]] std::unique_ptr<LootCondition> clone() const noexcept override;
-    [[nodiscard]] std::string getType() const override { return "survives_explosion"; }
+
+    [[nodiscard]] std::string getType() const override
+    {
+        return "survives_explosion";
+    }
 };
 
 } // namespace loot

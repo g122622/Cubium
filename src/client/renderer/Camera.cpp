@@ -294,7 +294,9 @@ void CameraController::setCamera(Camera* camera)
 
 void CameraController::handleKeyboardInput(i32 key, i32 action)
 {
-    if (!m_camera) return;
+    if (!m_camera) {
+        return;
+    }
 
     bool pressed = (action == 1); // GLFW_PRESS
 
@@ -318,14 +320,18 @@ void CameraController::handleKeyboardInput(i32 key, i32 action)
 
 void CameraController::handleMouseMove(f64 deltaX, f64 deltaY)
 {
-    if (!m_camera) return;
+    if (!m_camera) {
+        return;
+    }
 
     m_camera->look(static_cast<f64>(deltaX), static_cast<f64>(deltaY));
 }
 
 void CameraController::handleScroll(f64 deltaY)
 {
-    if (!m_camera) return;
+    if (!m_camera) {
+        return;
+    }
 
     // 滚轮可以用来调整FOV或缩放
     f64 fov = m_camera->fov();
@@ -336,7 +342,9 @@ void CameraController::handleScroll(f64 deltaY)
 
 void CameraController::update(f64 deltaTime)
 {
-    if (!m_camera) return;
+    if (!m_camera) {
+        return;
+    }
 
     // 计算移动速度
     f64 speed = m_camera->moveSpeed();

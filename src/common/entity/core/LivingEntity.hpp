@@ -93,8 +93,16 @@ class World;
 class LivingEntity : public Entity {
 public:
     /** @brief 导航点图标样式及显式 RGB 颜色。 */
-    [[nodiscard]] const std::string& waypointStyle() const { return m_waypointStyle; }
-    [[nodiscard]] std::optional<u32> waypointColor() const { return m_waypointColor; }
+    [[nodiscard]] const std::string& waypointStyle() const
+    {
+        return m_waypointStyle;
+    }
+
+    [[nodiscard]] std::optional<u32> waypointColor() const
+    {
+        return m_waypointColor;
+    }
+
     /** @brief 替换图标样式和颜色；颜色只保存低 24 位。 */
     void setWaypointIcon(const ResourceLocation& style, std::optional<u32> color)
     {
@@ -199,12 +207,18 @@ public:
      *
      * 死亡消散期间对象仍可存在，但不能再被选作存活目标。
      */
-    [[nodiscard]] bool isAlive() const override { return Entity::isAlive() && health() > 0.0f; }
+    [[nodiscard]] bool isAlive() const override
+    {
+        return Entity::isAlive() && health() > 0.0f;
+    }
 
     /**
      * @brief 获取声音音量
      */
-    [[nodiscard]] virtual f32 getSoundVolume() const { return 1.0f; }
+    [[nodiscard]] virtual f32 getSoundVolume() const
+    {
+        return 1.0f;
+    }
 
     /**
      * @brief 获取声音音调
@@ -246,7 +260,10 @@ public:
     /**
      * @brief 是否死亡
      */
-    [[nodiscard]] bool isDead() const { return health() <= 0.0f; }
+    [[nodiscard]] bool isDead() const
+    {
+        return health() <= 0.0f;
+    }
 
     /**
      * @brief 生物是否参与实体间碰撞（重写 Entity 基类）
@@ -255,7 +272,10 @@ public:
      *   return this.isAlive() && !this.isSpectator() && !this.onClimbable();
      * 旁观者判定由 Player 进一步重写（只有玩家有旁观者模式）。
      */
-    [[nodiscard]] bool isPushable() const override { return isAlive() && !isOnLadder(); }
+    [[nodiscard]] bool isPushable() const override
+    {
+        return isAlive() && !isOnLadder();
+    }
 
     /**
      * @brief 死亡
@@ -432,7 +452,10 @@ public:
      *
      * @return 破盾秒数（0.0 = 不破盾）
      */
-    [[nodiscard]] virtual f32 getSecondsToDisableBlocking() const noexcept { return 0.0f; }
+    [[nodiscard]] virtual f32 getSecondsToDisableBlocking() const noexcept
+    {
+        return 0.0f;
+    }
 
     /**
      * @brief 受害者盾牌被破盾时回调（对齐 MC Java 1.21.11 Player.blockUsingItem 破盾分支）
@@ -453,7 +476,10 @@ public:
      *
      * @param attacker 攻击者（提供 getSecondsToDisableBlocking 破盾秒数）
      */
-    virtual void onShieldDisabled(LivingEntity& attacker) { (void)attacker; }
+    virtual void onShieldDisabled(LivingEntity& attacker)
+    {
+        (void)attacker;
+    }
 
     /**
      * @brief 掉落经验
@@ -474,7 +500,10 @@ public:
      * 对齐 MC Java 1.21.11 LivingEntity.shouldDropExperience（LivingEntity.java:563-565）：
      * `!isBaby()`。Cubium 用 isChild() 等价 vanilla isBaby()（幼体生物不掉经验）。
      */
-    [[nodiscard]] virtual bool shouldDropExperience() const { return !isChild(); }
+    [[nodiscard]] virtual bool shouldDropExperience() const
+    {
+        return !isChild();
+    }
 
     /**
      * @brief 是否为"常掉经验"实体（不受玩家击杀/doMobLoot 约束）
@@ -484,7 +513,10 @@ public:
      * Cubium Player/EnderDragon 各自 override dropExperience 直接掉落（等价 isAlwaysExperienceDropper=true），
      * 故此处基类默认 false 供普通 Mob 守卫使用。
      */
-    [[nodiscard]] virtual bool isAlwaysExperienceDropper() const { return false; }
+    [[nodiscard]] virtual bool isAlwaysExperienceDropper() const
+    {
+        return false;
+    }
 
     /**
      * @brief 经验是否已被消费（防重复掉落）
@@ -492,14 +524,20 @@ public:
      * 对齐 MC Java 1.21.11 LivingEntity.wasExperienceConsumed（LivingEntity.java:1643-1645）：
      * 返回 skipDropExperience 标志。死亡链路只触发一次，影响极小，主要用于防异常重复调用。
      */
-    [[nodiscard]] bool wasExperienceConsumed() const { return m_skipDropExperience; }
+    [[nodiscard]] bool wasExperienceConsumed() const
+    {
+        return m_skipDropExperience;
+    }
 
     /**
      * @brief 标记经验已掉落，阻止后续重复掉落
      *
      * 对齐 MC Java 1.21.11 LivingEntity.skipDropExperience（LivingEntity.java:1639-1641）。
      */
-    void skipDropExperience() { m_skipDropExperience = true; }
+    void skipDropExperience()
+    {
+        m_skipDropExperience = true;
+    }
 
     /**
      * @brief 综合判定死亡时是否应掉落经验（MobEntity::dropExperience 守卫用）
@@ -521,7 +559,10 @@ public:
      * 受玩家伤害时设为 100，每 tick 递减，归零表示玩家伤害记忆失效。
      * 普通生物需此值>0 才掉经验（vanilla dropExperience 守卫）。
      */
-    [[nodiscard]] i32 lastHurtByPlayerMemoryTime() const { return m_lastHurtByPlayerMemoryTime; }
+    [[nodiscard]] i32 lastHurtByPlayerMemoryTime() const
+    {
+        return m_lastHurtByPlayerMemoryTime;
+    }
 
     /**
      * @brief 获取"最近伤害该实体的玩家"
@@ -549,7 +590,10 @@ public:
      * setLastHurtByPlayer(Player*, i32) 同时写入两者；本方法仅供需要单独
      * 调整窗口（或清空窗口而暂时保留引用）的场景使用。
      */
-    void setLastHurtByPlayerMemoryTime(i32 time) { m_lastHurtByPlayerMemoryTime = time; }
+    void setLastHurtByPlayerMemoryTime(i32 time)
+    {
+        m_lastHurtByPlayerMemoryTime = time;
+    }
 
     /**
      * @brief 死亡时掉落全部战利品（物品 + 装备 + 经验）
@@ -637,7 +681,10 @@ public:
      *
      * @return 是否可以被药水影响
      */
-    [[nodiscard]] virtual bool canBeHitWithPotion() const { return true; }
+    [[nodiscard]] virtual bool canBeHitWithPotion() const
+    {
+        return true;
+    }
 
     /**
      * @brief 摔落伤害处理
@@ -665,6 +712,7 @@ public:
         MC_ASSERT_RELEASE(c != nullptr && c->m_attributes != nullptr);
         return *c->m_attributes;
     }
+
     [[nodiscard]] const entity::attribute::AttributeMap& attributes() const
     {
         const auto* c = m_entityContext->tryGetComponent<ecs::AttributeComponent>();
@@ -812,6 +860,7 @@ public:
     {
         return m_locationEnchantmentTracker;
     }
+
     [[nodiscard]] const entity::LocationEnchantmentTracker& locationEnchantmentTracker() const
     {
         return m_locationEnchantmentTracker;
@@ -846,32 +895,50 @@ public:
     /**
      * @brief 获取主手物品
      */
-    [[nodiscard]] const ItemStack& getMainHandItem() const { return getEquipment(EquipmentSlot::MainHand); }
+    [[nodiscard]] const ItemStack& getMainHandItem() const
+    {
+        return getEquipment(EquipmentSlot::MainHand);
+    }
 
     /**
      * @brief 获取主手物品（可变引用）
      */
-    [[nodiscard]] ItemStack& getMutableMainHandItem() { return getMutableEquipment(EquipmentSlot::MainHand); }
+    [[nodiscard]] ItemStack& getMutableMainHandItem()
+    {
+        return getMutableEquipment(EquipmentSlot::MainHand);
+    }
 
     /**
      * @brief 设置主手物品
      */
-    void setMainHandItem(const ItemStack& stack) { setEquipment(EquipmentSlot::MainHand, stack); }
+    void setMainHandItem(const ItemStack& stack)
+    {
+        setEquipment(EquipmentSlot::MainHand, stack);
+    }
 
     /**
      * @brief 获取副手物品
      */
-    [[nodiscard]] const ItemStack& getOffHandItem() const { return getEquipment(EquipmentSlot::OffHand); }
+    [[nodiscard]] const ItemStack& getOffHandItem() const
+    {
+        return getEquipment(EquipmentSlot::OffHand);
+    }
 
     /**
      * @brief 获取副手物品（可变引用）
      */
-    [[nodiscard]] ItemStack& getMutableOffHandItem() { return getMutableEquipment(EquipmentSlot::OffHand); }
+    [[nodiscard]] ItemStack& getMutableOffHandItem()
+    {
+        return getMutableEquipment(EquipmentSlot::OffHand);
+    }
 
     /**
      * @brief 设置副手物品
      */
-    void setOffHandItem(const ItemStack& stack) { setEquipment(EquipmentSlot::OffHand, stack); }
+    void setOffHandItem(const ItemStack& stack)
+    {
+        setEquipment(EquipmentSlot::OffHand, stack);
+    }
 
     /**
      * @brief 获取护甲槽位数组
@@ -901,17 +968,26 @@ public:
      * @brief 获取主手侧边
      * @return 左手或右手
      */
-    [[nodiscard]] HandSide getPrimaryHand() const { return m_primaryHand; }
+    [[nodiscard]] HandSide getPrimaryHand() const
+    {
+        return m_primaryHand;
+    }
 
     /**
      * @brief 是否右撇子（右手为主手）
      */
-    [[nodiscard]] bool isRightHanded() const { return m_primaryHand == HandSide::Right; }
+    [[nodiscard]] bool isRightHanded() const
+    {
+        return m_primaryHand == HandSide::Right;
+    }
 
     /**
      * @brief 设置主手侧边
      */
-    void setPrimaryHand(HandSide hand) { m_primaryHand = hand; }
+    void setPrimaryHand(HandSide hand)
+    {
+        m_primaryHand = hand;
+    }
 
     // ========== 生物属性 ==========
 
@@ -921,7 +997,10 @@ public:
      * 用于附魔（如亡灵杀手、节肢杀手）对特定生物类型造成额外伤害。
      * 默认返回 Undefined。
      */
-    [[nodiscard]] virtual CreatureAttribute getCreatureAttribute() const { return CreatureAttribute::Undefined; }
+    [[nodiscard]] virtual CreatureAttribute getCreatureAttribute() const
+    {
+        return CreatureAttribute::Undefined;
+    }
 
     /**
      * @brief 是否受治疗/伤害效果反转（亡灵）。
@@ -1038,7 +1117,10 @@ public:
     /**
      * @brief 获取无敌帧计时器
      */
-    [[nodiscard]] i32 hurtResistantTime() const { return m_hurtResistantTime; }
+    [[nodiscard]] i32 hurtResistantTime() const
+    {
+        return m_hurtResistantTime;
+    }
 
     /**
      * @brief 设置无敌帧计时器
@@ -1046,7 +1128,10 @@ public:
      * 用于陷阱触发时设置初始无敌帧。
      * @param ticks 无敌帧 tick 数
      */
-    void setHurtResistantTime(i32 ticks) { m_hurtResistantTime = ticks; }
+    void setHurtResistantTime(i32 ticks)
+    {
+        m_hurtResistantTime = ticks;
+    }
 
     /**
      * @brief 是否处于受伤无敌状态
@@ -1083,7 +1168,10 @@ public:
      * 度数，相对实体朝向（yaw）。由 indicateDamage 在受击时计算并设置，
      * 客户端通过 animateHurt 接收网络同步的值。用于 damageTilt（bobHurt）渲染。
      */
-    [[nodiscard]] virtual f32 getHurtDir() const { return m_hurtDir; }
+    [[nodiscard]] virtual f32 getHurtDir() const
+    {
+        return m_hurtDir;
+    }
 
     /**
      * @brief 获取本次受伤持续时间（LivingEntity.hurtDuration）
@@ -1126,7 +1214,10 @@ public:
      * 由 hurt() 入口在 applyItemBlocking 阶段写入，供格挡音效、markHurt 与 indicateDamage 门控使用
      * （vanilla：格挡时仍施加强制击退但不指示受击方向）。
      */
-    [[nodiscard]] f32 lastBlockedDamage() const noexcept { return m_lastBlockedDamage; }
+    [[nodiscard]] f32 lastBlockedDamage() const noexcept
+    {
+        return m_lastBlockedDamage;
+    }
 
     /**
      * @brief 本 tick 内是否已播放过盾牌格挡音效（BlocksAttacks.onBlocked 的每 tick 去重）
@@ -1166,15 +1257,25 @@ public:
      *
      * @return 最近攻击者，无则返回nullptr
      */
-    [[nodiscard]] LivingEntity* getLastHurtBy() { return m_lastHurtBy.get(); }
-    [[nodiscard]] const LivingEntity* getLastHurtBy() const { return m_lastHurtBy.get(); }
+    [[nodiscard]] LivingEntity* getLastHurtBy()
+    {
+        return m_lastHurtBy.get();
+    }
+
+    [[nodiscard]] const LivingEntity* getLastHurtBy() const
+    {
+        return m_lastHurtBy.get();
+    }
 
     /**
      * @brief 获取最近被攻击的时间戳（tick）
      *
      * @return tick 时间戳
      */
-    [[nodiscard]] i32 lastHurtByTimestamp() const { return m_lastHurtByTimestamp; }
+    [[nodiscard]] i32 lastHurtByTimestamp() const
+    {
+        return m_lastHurtByTimestamp;
+    }
 
     /**
      * @brief 设置最近攻击者
@@ -1188,15 +1289,25 @@ public:
      *
      * @return 最近攻击的目标，无则返回nullptr
      */
-    [[nodiscard]] LivingEntity* getLastHurtTarget() { return m_lastHurtTarget; }
-    [[nodiscard]] const LivingEntity* getLastHurtTarget() const { return m_lastHurtTarget; }
+    [[nodiscard]] LivingEntity* getLastHurtTarget()
+    {
+        return m_lastHurtTarget;
+    }
+
+    [[nodiscard]] const LivingEntity* getLastHurtTarget() const
+    {
+        return m_lastHurtTarget;
+    }
 
     /**
      * @brief 获取最近攻击目标的时间戳（tick）
      *
      * @return tick 时间戳
      */
-    [[nodiscard]] i32 lastHurtTargetTimestamp() const { return m_lastHurtTargetTimestamp; }
+    [[nodiscard]] i32 lastHurtTargetTimestamp() const
+    {
+        return m_lastHurtTargetTimestamp;
+    }
 
     /**
      * @brief 设置最近攻击的目标
@@ -1259,34 +1370,65 @@ public:
      * @brief 获取步态动画周期
      * 用于腿部动画
      */
-    [[nodiscard]] f32 limbSwing() const { return m_limbSwing; }
-    [[nodiscard]] f32 prevLimbSwing() const { return m_prevLimbSwing; }
+    [[nodiscard]] f32 limbSwing() const
+    {
+        return m_limbSwing;
+    }
+
+    [[nodiscard]] f32 prevLimbSwing() const
+    {
+        return m_prevLimbSwing;
+    }
 
     /**
      * @brief 获取步态动画速度
      * 表示移动速度对动画的影响
      */
-    [[nodiscard]] f32 limbSwingAmount() const { return m_limbSwingAmount; }
-    [[nodiscard]] f32 prevLimbSwingAmount() const { return m_prevLimbSwingAmount; }
+    [[nodiscard]] f32 limbSwingAmount() const
+    {
+        return m_limbSwingAmount;
+    }
+
+    [[nodiscard]] f32 prevLimbSwingAmount() const
+    {
+        return m_prevLimbSwingAmount;
+    }
 
     /**
      * @brief 获取攻击动画进度
      * 0.0 - 1.0，表示挥动手臂的进度
      */
-    [[nodiscard]] f32 swingProgress() const { return m_swingProgress; }
-    [[nodiscard]] f32 prevSwingProgress() const { return m_prevSwingProgress; }
+    [[nodiscard]] f32 swingProgress() const
+    {
+        return m_swingProgress;
+    }
+
+    [[nodiscard]] f32 prevSwingProgress() const
+    {
+        return m_prevSwingProgress;
+    }
 
     /**
      * @brief 获取身体旋转偏移
      * 用于身体朝向与头部朝向的分离
      */
-    [[nodiscard]] f32 renderYawOffset() const { return m_renderYawOffset; }
-    [[nodiscard]] f32 prevRenderYawOffset() const { return m_prevRenderYawOffset; }
+    [[nodiscard]] f32 renderYawOffset() const
+    {
+        return m_renderYawOffset;
+    }
+
+    [[nodiscard]] f32 prevRenderYawOffset() const
+    {
+        return m_prevRenderYawOffset;
+    }
 
     /**
      * @brief 设置身体旋转偏移
      */
-    void setRenderYawOffset(f32 yaw) { m_renderYawOffset = yaw; }
+    void setRenderYawOffset(f32 yaw)
+    {
+        m_renderYawOffset = yaw;
+    }
 
     /**
      * @brief 重写 Entity#setYBodyRot，将身体偏航角写入 m_renderYawOffset
@@ -1298,20 +1440,37 @@ public:
      *
      * @param yaw 身体偏航角（度）
      */
-    void setYBodyRot(f32 yaw) override { m_renderYawOffset = yaw; }
-    [[nodiscard]] f32 yBodyRot() const override { return m_renderYawOffset; }
+    void setYBodyRot(f32 yaw) override
+    {
+        m_renderYawOffset = yaw;
+    }
+
+    [[nodiscard]] f32 yBodyRot() const override
+    {
+        return m_renderYawOffset;
+    }
 
     /**
      * @brief 获取头部旋转
      * 头部的实际朝向
      */
-    [[nodiscard]] f32 rotationYawHead() const { return m_rotationYawHead; }
-    [[nodiscard]] f32 prevRotationYawHead() const { return m_prevRotationYawHead; }
+    [[nodiscard]] f32 rotationYawHead() const
+    {
+        return m_rotationYawHead;
+    }
+
+    [[nodiscard]] f32 prevRotationYawHead() const
+    {
+        return m_prevRotationYawHead;
+    }
 
     /**
      * @brief 设置头部偏航角
      */
-    void setRotationYawHead(f32 yaw) { m_rotationYawHead = yaw; }
+    void setRotationYawHead(f32 yaw)
+    {
+        m_rotationYawHead = yaw;
+    }
 
     /**
      * @brief 重写 Entity#setYHeadRot，将头部偏航角写入 m_rotationYawHead
@@ -1321,22 +1480,34 @@ public:
      *
      * @param yaw 头部偏航角（度）
      */
-    void setYHeadRot(f32 yaw) override { m_rotationYawHead = yaw; }
+    void setYHeadRot(f32 yaw) override
+    {
+        m_rotationYawHead = yaw;
+    }
 
     /**
      * @brief 设置头部俯仰角
      */
-    void setRotationPitch(f32 pitch) { m_builtIn.rotation->m_rot.y = pitch; }
+    void setRotationPitch(f32 pitch)
+    {
+        m_builtIn.rotation->m_rot.y = pitch;
+    }
 
     /**
      * @brief 是否正在挥动手臂
      */
-    [[nodiscard]] bool isSwingInProgress() const { return m_swingInProgress; }
+    [[nodiscard]] bool isSwingInProgress() const
+    {
+        return m_swingInProgress;
+    }
 
     /**
      * @brief 获取挥动手臂进度
      */
-    [[nodiscard]] i32 swingProgressInt() const { return m_swingProgressInt; }
+    [[nodiscard]] i32 swingProgressInt() const
+    {
+        return m_swingProgressInt;
+    }
 
     /**
      * @brief 获取正在挥动的手
@@ -1345,7 +1516,10 @@ public:
      *
      * @return 正在挥动的手，默认为主手
      */
-    [[nodiscard]] Hand swingingHand() const { return m_swingingHand; }
+    [[nodiscard]] Hand swingingHand() const
+    {
+        return m_swingingHand;
+    }
 
     /**
      * @brief 挥动手臂（攻击动画）- 主手
@@ -1354,7 +1528,10 @@ public:
      * 在服务端调用时，会广播 ir::play::Animate(SwingMainHand) 给所有追踪玩家，
      * 客户端收到后通过 triggerSwingAnimation 启动本地挥动动画。
      */
-    void swingArm() { swing(Hand::MainHand); }
+    void swingArm()
+    {
+        swing(Hand::MainHand);
+    }
 
     /**
      * @brief 挥动手臂（攻击动画）- 指定手
@@ -1381,12 +1558,18 @@ public:
     /**
      * @brief 是否正在跳跃
      */
-    [[nodiscard]] bool isJumping() const { return m_isJumping; }
+    [[nodiscard]] bool isJumping() const
+    {
+        return m_isJumping;
+    }
 
     /**
      * @brief 设置跳跃状态
      */
-    virtual void setJumping(bool jumping) { m_isJumping = jumping; }
+    virtual void setJumping(bool jumping)
+    {
+        m_isJumping = jumping;
+    }
 
     /**
      * @brief 执行跳跃
@@ -1422,35 +1605,57 @@ public:
     /**
      * @brief 获取跳跃冷却
      */
-    [[nodiscard]] i32 jumpTicks() const { return m_jumpTicks; }
+    [[nodiscard]] i32 jumpTicks() const
+    {
+        return m_jumpTicks;
+    }
 
     // ========== 移动 ==========
 
     /**
      * @brief 获取横向移动速度
      */
-    [[nodiscard]] f32 moveStrafing() const { return m_moveStrafing; }
+    [[nodiscard]] f32 moveStrafing() const
+    {
+        return m_moveStrafing;
+    }
 
     /**
      * @brief 获取前进移动速度
      */
-    [[nodiscard]] f32 moveForward() const { return m_moveForward; }
+    [[nodiscard]] f32 moveForward() const
+    {
+        return m_moveForward;
+    }
 
     /**
      * @brief 设置移动方向
      */
-    void setMoveStrafing(f32 strafing) { m_moveStrafing = strafing; }
-    void setMoveForward(f32 forward) { m_moveForward = forward; }
+    void setMoveStrafing(f32 strafing)
+    {
+        m_moveStrafing = strafing;
+    }
+
+    void setMoveForward(f32 forward)
+    {
+        m_moveForward = forward;
+    }
 
     /**
      * @brief 获取AI移动速度
      */
-    [[nodiscard]] f32 aiMoveSpeed() const { return m_landMovementFactor; }
+    [[nodiscard]] f32 aiMoveSpeed() const
+    {
+        return m_landMovementFactor;
+    }
 
     /**
      * @brief 设置AI移动速度
      */
-    void setAIMoveSpeed(f32 speed) { m_landMovementFactor = speed; }
+    void setAIMoveSpeed(f32 speed)
+    {
+        m_landMovementFactor = speed;
+    }
 
     /**
      * @brief 执行移动（AI物理更新核心方法）
@@ -1472,7 +1677,10 @@ public:
      *
      * @param travelVec 移动向量 (x=左右, y=上下, z=前后)
      */
-    virtual void travel(const Vector3& travelVec) { travel(travelVec.x, travelVec.y, travelVec.z); }
+    virtual void travel(const Vector3& travelVec)
+    {
+        travel(travelVec.x, travelVec.y, travelVec.z);
+    }
 
     /**
      * @brief AI步进更新
@@ -1563,7 +1771,10 @@ public:
      *
      * @return 已飞行 tick 数，未飞行时为 0
      */
-    [[nodiscard]] i32 fallFlyTicks() const noexcept { return m_fallFlyTicks; }
+    [[nodiscard]] i32 fallFlyTicks() const noexcept
+    {
+        return m_fallFlyTicks;
+    }
 
     // ========== 游泳动画 ==========
 
@@ -1586,14 +1797,20 @@ public:
      *
      * 用于客户端渲染插值（getInterpolatedSwimAmount 的左端点）。
      */
-    [[nodiscard]] f32 swimAmountO() const noexcept { return m_swimAmountO; }
+    [[nodiscard]] f32 swimAmountO() const noexcept
+    {
+        return m_swimAmountO;
+    }
 
     /**
      * @brief 获取当前帧的游泳动画渐变量
      *
      * 用于客户端渲染插值（getInterpolatedSwimAmount 的右端点）。
      */
-    [[nodiscard]] f32 swimAmount() const noexcept { return m_swimAmount; }
+    [[nodiscard]] f32 swimAmount() const noexcept
+    {
+        return m_swimAmount;
+    }
 
     /**
      * @brief 计算指定 partialTicks 下的插值游泳动画量
@@ -1625,8 +1842,15 @@ public:
     /**
      * @brief 获取战斗追踪器
      */
-    [[nodiscard]] CombatTracker& combatTracker() { return m_combatTracker; }
-    [[nodiscard]] const CombatTracker& combatTracker() const { return m_combatTracker; }
+    [[nodiscard]] CombatTracker& combatTracker()
+    {
+        return m_combatTracker;
+    }
+
+    [[nodiscard]] const CombatTracker& combatTracker() const
+    {
+        return m_combatTracker;
+    }
 
     /**
      * @brief 获取击杀贡献者（对齐 vanilla LivingEntity.getKillCredit）
@@ -1656,8 +1880,15 @@ public:
     /**
      * @brief 获取效果管理器
      */
-    [[nodiscard]] entity::effect::EffectManager& effectManager() { return m_effectManager; }
-    [[nodiscard]] const entity::effect::EffectManager& effectManager() const { return m_effectManager; }
+    [[nodiscard]] entity::effect::EffectManager& effectManager()
+    {
+        return m_effectManager;
+    }
+
+    [[nodiscard]] const entity::effect::EffectManager& effectManager() const
+    {
+        return m_effectManager;
+    }
 
     /**
      * @brief 添加效果
@@ -1721,25 +1952,37 @@ public:
      * @brief 获取正在使用的手
      * @return 正在使用的手，如果没有则返回 Hand::MainHand
      */
-    [[nodiscard]] Hand getActiveHand() const { return m_activeHand; }
+    [[nodiscard]] Hand getActiveHand() const
+    {
+        return m_activeHand;
+    }
 
     /**
      * @brief 获取正在使用的物品
      * @return 正在使用的物品堆
      */
-    [[nodiscard]] const ItemStack& getActiveItem() const { return m_activeItem; }
+    [[nodiscard]] const ItemStack& getActiveItem() const
+    {
+        return m_activeItem;
+    }
 
     /**
      * @brief 获取剩余使用时间
      * @return 剩余使用时间（ticks）
      */
-    [[nodiscard]] i32 getItemInUseCount() const { return m_activeItemUseCount; }
+    [[nodiscard]] i32 getItemInUseCount() const
+    {
+        return m_activeItemUseCount;
+    }
 
     /**
      * @brief 检查是否正在使用物品
      * @return 是否正在使用物品
      */
-    [[nodiscard]] bool isUsingItem() const { return m_activeItemUseCount > 0 && !m_activeItem.isEmpty(); }
+    [[nodiscard]] bool isUsingItem() const
+    {
+        return m_activeItemUseCount > 0 && !m_activeItem.isEmpty();
+    }
 
     /**
      * @brief 获取实体当前近战攻击范围
@@ -1798,7 +2041,10 @@ public:
      * @brief 获取激流攻击剩余时间
      * @return 剩余 ticks，0 表示不在攻击中
      */
-    [[nodiscard]] i32 spinAttackDuration() const { return m_spinAttackDuration; }
+    [[nodiscard]] i32 spinAttackDuration() const
+    {
+        return m_spinAttackDuration;
+    }
 
     /**
      * @brief 更新物品使用
@@ -1910,7 +2156,10 @@ public:
      *
      * @return 如果实体正在潜行返回true
      */
-    [[nodiscard]] bool isSteppingCarefully() const override { return isSneaking(); }
+    [[nodiscard]] bool isSteppingCarefully() const override
+    {
+        return isSneaking();
+    }
 
     // ========== 刻更新 ==========
 
@@ -2024,7 +2273,10 @@ public:
      * vanilla `calculateFallDamage(distance, multiplier) = super.calculateFallDamage(...) - 减免`；
      * 山羊重写为 -10（GOAT_FALL_DAMAGE_REDUCTION）。基类默认 0。
      */
-    [[nodiscard]] virtual i32 fallDamageReduction() const { return 0; }
+    [[nodiscard]] virtual i32 fallDamageReduction() const
+    {
+        return 0;
+    }
 
     // ========== NBT 序列化 ==========
 

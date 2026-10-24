@@ -44,9 +44,20 @@ public:
         , m_methodName(std::move(methodName))
     {}
 
-    [[nodiscard]] GameTestCompletedErrorReason reason() const noexcept { return m_reason; }
-    [[nodiscard]] const std::string& gameTestName() const noexcept { return m_gameTestName; }
-    [[nodiscard]] const std::string& methodName() const noexcept { return m_methodName; }
+    [[nodiscard]] GameTestCompletedErrorReason reason() const noexcept
+    {
+        return m_reason;
+    }
+
+    [[nodiscard]] const std::string& gameTestName() const noexcept
+    {
+        return m_gameTestName;
+    }
+
+    [[nodiscard]] const std::string& methodName() const noexcept
+    {
+        return m_methodName;
+    }
 
     /**
      * @brief 转为 `GameTestError`（用于在错误即值通道中传递）。

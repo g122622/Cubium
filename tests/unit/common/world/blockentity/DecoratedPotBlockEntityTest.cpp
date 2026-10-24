@@ -39,7 +39,10 @@ using namespace mc::blockentity;
 
 class PotDecorationsTest : public ::testing::Test {
 protected:
-    void SetUp() override { Items::initialize(); }
+    void SetUp() override
+    {
+        Items::initialize();
+    }
 };
 
 TEST_F(PotDecorationsTest, DefaultConstructor_AllBlank)
@@ -384,7 +387,10 @@ TEST(DecoratedPotPatternsTest, IsBlank)
 
 class DecoratedPotItemMappingTest : public ::testing::Test {
 protected:
-    void SetUp() override { Items::initialize(); }
+    void SetUp() override
+    {
+        Items::initialize();
+    }
 };
 
 TEST_F(DecoratedPotItemMappingTest, GetPatternFromItem_BrickReturnsBlank)

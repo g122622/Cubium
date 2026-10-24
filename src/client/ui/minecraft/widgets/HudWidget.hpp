@@ -105,37 +105,58 @@ public:
     /**
      * @brief 设置GUI渲染器（用于物品渲染）
      */
-    void setGuiRenderer(renderer::trident::gui::GuiRenderer* gui) { m_gui = gui; }
+    void setGuiRenderer(renderer::trident::gui::GuiRenderer* gui)
+    {
+        m_gui = gui;
+    }
 
     /**
      * @brief 设置物品渲染器
      */
-    void setItemRenderer(renderer::trident::item::ItemRenderer* renderer) { m_itemRenderer = renderer; }
+    void setItemRenderer(renderer::trident::item::ItemRenderer* renderer)
+    {
+        m_itemRenderer = renderer;
+    }
 
     /**
      * @brief 设置icons精灵图集（心形、饥饿、盔甲、经验条等）
      */
-    void setIconsAtlas(renderer::trident::gui::GuiSpriteAtlas* atlas) { m_iconsAtlas = atlas; }
+    void setIconsAtlas(renderer::trident::gui::GuiSpriteAtlas* atlas)
+    {
+        m_iconsAtlas = atlas;
+    }
 
     /**
      * @brief 设置widgets精灵图集（快捷栏、按钮等）
      */
-    void setWidgetsAtlas(renderer::trident::gui::GuiSpriteAtlas* atlas) { m_widgetsAtlas = atlas; }
+    void setWidgetsAtlas(renderer::trident::gui::GuiSpriteAtlas* atlas)
+    {
+        m_widgetsAtlas = atlas;
+    }
 
     /**
      * @brief 设置玩家
      */
-    void setPlayer(Player* player) { m_player = player; }
+    void setPlayer(Player* player)
+    {
+        m_player = player;
+    }
 
     /**
      * @brief 设置地图渲染器（用于手持地图内容的屏幕层绘制）
      */
-    void setMapRenderer(MapRenderer* renderer) { m_mapRenderer = renderer; }
+    void setMapRenderer(MapRenderer* renderer)
+    {
+        m_mapRenderer = renderer;
+    }
 
     /**
      * @brief 设置客户端地图数据缓存（手持地图内容来源）
      */
-    void setMapDataCache(ClientMapDataCache* cache) { m_mapDataCache = cache; }
+    void setMapDataCache(ClientMapDataCache* cache)
+    {
+        m_mapDataCache = cache;
+    }
 
     /**
      * @brief 绘制HUD
@@ -146,13 +167,19 @@ public:
      * @brief 设置HUD可见性
      * @note 使用基类的可见性功能
      */
-    void setHudVisible(bool visible) { setVisible(visible); }
+    void setHudVisible(bool visible)
+    {
+        setVisible(visible);
+    }
 
     /**
      * @brief 检查HUD是否可见
      * @note 使用基类的可见性功能
      */
-    [[nodiscard]] bool isHudVisible() const { return isVisible(); }
+    [[nodiscard]] bool isHudVisible() const
+    {
+        return isVisible();
+    }
 
 private:
     /**

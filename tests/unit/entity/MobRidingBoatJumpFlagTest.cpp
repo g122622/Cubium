@@ -26,7 +26,10 @@ namespace {
 /// 按实例 id 登记实体的测试世界（startRiding 经世界查询解析载具）
 class RidingTestWorld final : public mc::test::BaseTestWorld {
 public:
-    void track(Entity& entity) { m_entities[entity.id()] = &entity; }
+    void track(Entity& entity)
+    {
+        m_entities[entity.id()] = &entity;
+    }
 
     [[nodiscard]] Entity* getEntity(EntityInstanceId id) override
     {
@@ -72,8 +75,15 @@ protected:
         m_registry.reset();
     }
 
-    [[nodiscard]] bool jumpDisabled() const { return m_mob->goalSelector().isFlagDisabled(ai::GoalFlag::Jump); }
-    [[nodiscard]] bool moveDisabled() const { return m_mob->goalSelector().isFlagDisabled(ai::GoalFlag::Move); }
+    [[nodiscard]] bool jumpDisabled() const
+    {
+        return m_mob->goalSelector().isFlagDisabled(ai::GoalFlag::Jump);
+    }
+
+    [[nodiscard]] bool moveDisabled() const
+    {
+        return m_mob->goalSelector().isFlagDisabled(ai::GoalFlag::Move);
+    }
 
     std::unique_ptr<ecs::EntityRegistry> m_registry;
     std::unique_ptr<RidingTestWorld> m_world;

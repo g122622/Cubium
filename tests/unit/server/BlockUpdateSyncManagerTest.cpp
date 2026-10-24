@@ -112,9 +112,10 @@ TEST_F(BlockUpdateSyncManagerTest, SendsToAllTrackingPlayers)
     m_manager->flushPendingUpdates();
 
     ASSERT_EQ(m_sentUpdates.size(), 2u);
-    std::sort(m_sentUpdates.begin(),
-        m_sentUpdates.end(),
-        [](const SentBlockUpdate& left, const SentBlockUpdate& right) { return left.playerId < right.playerId; });
+    std::sort(
+        m_sentUpdates.begin(), m_sentUpdates.end(), [](const SentBlockUpdate& left, const SentBlockUpdate& right) {
+            return left.playerId < right.playerId;
+        });
 
     EXPECT_EQ(m_sentUpdates[0].playerId, 1u);
     EXPECT_EQ(m_sentUpdates[0].pos, BlockPos(1, 64, 1));

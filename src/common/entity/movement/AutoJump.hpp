@@ -106,13 +106,19 @@ public:
      * @brief 启用或禁用自动跳跃
      * @param enabled 是否启用
      */
-    void setEnabled(bool enabled) { m_enabled = enabled; }
+    void setEnabled(bool enabled)
+    {
+        m_enabled = enabled;
+    }
 
     /**
      * @brief 检查自动跳跃是否启用
      * @return 是否启用
      */
-    [[nodiscard]] bool isEnabled() const { return m_enabled; }
+    [[nodiscard]] bool isEnabled() const
+    {
+        return m_enabled;
+    }
 
     /**
      * @brief 设置跳跃提升效果等级
@@ -122,13 +128,19 @@ public:
      *
      * @param level 跳跃提升效果等级（0 = 无效果）
      */
-    void setJumpBoostLevel(i32 level) { m_jumpBoostLevel = std::max(0, level); }
+    void setJumpBoostLevel(i32 level)
+    {
+        m_jumpBoostLevel = std::max(0, level);
+    }
 
     /**
      * @brief 获取跳跃提升效果等级
      * @return 跳跃提升效果等级
      */
-    [[nodiscard]] i32 jumpBoostLevel() const { return m_jumpBoostLevel; }
+    [[nodiscard]] i32 jumpBoostLevel() const
+    {
+        return m_jumpBoostLevel;
+    }
 
     // ========== 状态管理 ==========
 
@@ -136,7 +148,10 @@ public:
      * @brief 获取自动跳跃冷却计时器
      * @return 剩余冷却 ticks
      */
-    [[nodiscard]] i32 autoJumpTime() const { return m_autoJumpTime; }
+    [[nodiscard]] i32 autoJumpTime() const
+    {
+        return m_autoJumpTime;
+    }
 
     /**
      * @brief 每 tick 更新

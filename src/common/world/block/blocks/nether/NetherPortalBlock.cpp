@@ -79,7 +79,9 @@ BlockState NetherPortalBlock::getStateForPlacement(BlockItemUseContext& context)
 {
     Direction facing = context.horizontalDirection();
     Axis axis = Directions::getAxis(facing);
-    if (axis == Axis::Y) axis = Axis::X; // 水平轴
+    if (axis == Axis::Y) {
+        axis = Axis::X; // 水平轴
+    }
     return defaultState().with(BlockStateProperties::HORIZONTAL_AXIS(), axis);
 }
 

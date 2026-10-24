@@ -57,19 +57,34 @@ public:
     {}
 
     /** @brief 获取源 X 坐标 */
-    i32 getSourceX() const noexcept { return m_sourceX; }
+    i32 getSourceX() const noexcept
+    {
+        return m_sourceX;
+    }
 
     /** @brief 获取源地面高度 */
-    i32 getSourceGroundY() const noexcept { return m_sourceGroundY; }
+    i32 getSourceGroundY() const noexcept
+    {
+        return m_sourceGroundY;
+    }
 
     /** @brief 获取源 Z 坐标 */
-    i32 getSourceZ() const noexcept { return m_sourceZ; }
+    i32 getSourceZ() const noexcept
+    {
+        return m_sourceZ;
+    }
 
     /** @brief 获取高度偏移量 */
-    i32 getDeltaY() const noexcept { return m_deltaY; }
+    i32 getDeltaY() const noexcept
+    {
+        return m_deltaY;
+    }
 
     /** @brief 获取目标放置行为 */
-    JigsawPlacementBehaviour getDestProjection() const noexcept { return m_destProjection; }
+    JigsawPlacementBehaviour getDestProjection() const noexcept
+    {
+        return m_destProjection;
+    }
 
     /**
      * @brief 相等比较运算符
@@ -83,7 +98,10 @@ public:
     }
 
     /** @brief 不相等比较运算符 */
-    bool operator!=(const JigsawJunction& other) const noexcept { return !(*this == other); }
+    bool operator!=(const JigsawJunction& other) const noexcept
+    {
+        return !(*this == other);
+    }
 
 private:
     i32 m_sourceX;                             ///< 源 X 坐标

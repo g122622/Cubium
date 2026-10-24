@@ -214,6 +214,7 @@ void RandomState::compileRouter()
     compileSlot(RouterSlot::VeinRidged, m_router->veinRidged());
     compileSlot(RouterSlot::VeinGap, m_router->veinGap());
 }
+
 noise::NormalNoise& RandomState::getOrCreateNoise(const std::string& name)
 {
     // 命中路径：shared_lock 并发读

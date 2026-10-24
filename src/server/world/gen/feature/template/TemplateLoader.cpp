@@ -525,6 +525,7 @@ std::unique_ptr<Template> TemplateLoader::loadFromNbt(const nbt::CompoundTag& nb
                 u32 stateIndex;
                 std::unique_ptr<nbt::CompoundTag> nbt;
             };
+
             std::vector<RawBlockInfo> rawBlocks;
             rawBlocks.reserve(blocksList.size());
 
@@ -976,9 +977,14 @@ std::unique_ptr<Template> TemplateLoader::_loadFromBedrockNbt(const nbt::Compoun
 
     // block_position_data 的迭代顺序取决于 NBT Compound 的底层存储，不保证按下标递增；
     // 去重（同一下标只保留首个）+ 排序后，才满足 Palette 稀疏表按下标有序的前提。
-    std::sort(nbtTable.begin(), nbtTable.end(), [](const auto& a, const auto& b) { return a.first < b.first; });
-    nbtTable.erase(
-        std::unique(nbtTable.begin(), nbtTable.end(), [](const auto& a, const auto& b) { return a.first == b.first; }),
+    std::sort(nbtTable.begin(), nbtTable.end(), [](const auto& a, const auto& b) {
+        return a.first < b.first;
+    });
+    nbtTable.erase(std::unique(nbtTable.begin(),
+                       nbtTable.end(),
+                       [](const auto& a, const auto& b) {
+                           return a.first == b.first;
+                       }),
         nbtTable.end());
 
     // 若索引数与 size 体积不符，仍按已解析的方块构建（不强制断言，便于容错）

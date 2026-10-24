@@ -93,20 +93,36 @@ public:
         , m_loaded(loaded)
     {}
 
-    void setChunk(ChunkData* chunk) noexcept { m_chunk = chunk; }
-    void setChunkLoaded(bool loaded) noexcept { m_loaded = loaded; }
+    void setChunk(ChunkData* chunk) noexcept
+    {
+        m_chunk = chunk;
+    }
 
-    [[nodiscard]] ChunkData* tryToGetChunkInMem(ChunkCoord /*x*/, ChunkCoord /*z*/) override { return m_chunk; }
+    void setChunkLoaded(bool loaded) noexcept
+    {
+        m_loaded = loaded;
+    }
+
+    [[nodiscard]] ChunkData* tryToGetChunkInMem(ChunkCoord /*x*/, ChunkCoord /*z*/) override
+    {
+        return m_chunk;
+    }
 
     [[nodiscard]] const ChunkData* tryToGetChunkInMem(ChunkCoord /*x*/, ChunkCoord /*z*/) const override
     {
         return m_chunk;
     }
 
-    [[nodiscard]] bool hasChunkInMem(ChunkCoord /*x*/, ChunkCoord /*z*/) const override { return m_loaded; }
+    [[nodiscard]] bool hasChunkInMem(ChunkCoord /*x*/, ChunkCoord /*z*/) const override
+    {
+        return m_loaded;
+    }
 
     // 与 IWorld 引入 chunkManager() 之前的 getOrLoadChunk 默认实现一致：只查内存。
-    [[nodiscard]] ChunkData* requestFullChunkSync(ChunkCoord /*x*/, ChunkCoord /*z*/) override { return m_chunk; }
+    [[nodiscard]] ChunkData* requestFullChunkSync(ChunkCoord /*x*/, ChunkCoord /*z*/) override
+    {
+        return m_chunk;
+    }
 
 private:
     ChunkData* m_chunk;
@@ -160,58 +176,138 @@ private:
  */
 class BaseTestWorld : public IBlockReader {
 public:
-    [[nodiscard]] const BlockState* getBlockState(i32, i32, i32) const override { return nullptr; }
-    bool setBlockState(i32, i32, i32, const BlockState*) override { return false; }
+    [[nodiscard]] const BlockState* getBlockState(i32, i32, i32) const override
+    {
+        return nullptr;
+    }
+
+    bool setBlockState(i32, i32, i32, const BlockState*) override
+    {
+        return false;
+    }
+
     [[nodiscard]] const fluid::FluidState* getFluidState(i32, i32, i32) const override
     {
         // 走 fluidId 路径取 EMPTY 流体默认状态（Fluids::EMPTY()->defaultState()）。
         return fluid::Fluids::EMPTY() != nullptr ? &fluid::Fluids::EMPTY()->defaultState() : nullptr;
     }
+
     // 返回世界最大建造高度，原硬编码 64 会导致 PistonBlock::canPush 等检查
     // pos.y >= getHeight() 时误判 y=64 方块超出高度（64>=64）。MC 主世界高度上限为 320。
-    [[nodiscard]] i32 getHeight(i32, i32) const override { return world::MAX_BUILD_HEIGHT; }
-    [[nodiscard]] u8 getBlockLight(i32, i32, i32) const override { return 0; }
-    [[nodiscard]] u8 getSkyLight(i32, i32, i32) const override { return 15; }
-    [[nodiscard]] bool hasBlockCollision(const AxisAlignedBB&) const override { return false; }
-    [[nodiscard]] std::vector<AxisAlignedBB> getBlockCollisions(const AxisAlignedBB&) const override { return {}; }
+    [[nodiscard]] i32 getHeight(i32, i32) const override
+    {
+        return world::MAX_BUILD_HEIGHT;
+    }
+
+    [[nodiscard]] u8 getBlockLight(i32, i32, i32) const override
+    {
+        return 0;
+    }
+
+    [[nodiscard]] u8 getSkyLight(i32, i32, i32) const override
+    {
+        return 15;
+    }
+
+    [[nodiscard]] bool hasBlockCollision(const AxisAlignedBB&) const override
+    {
+        return false;
+    }
+
+    [[nodiscard]] std::vector<AxisAlignedBB> getBlockCollisions(const AxisAlignedBB&) const override
+    {
+        return {};
+    }
+
     [[nodiscard]] bool isWithinWorldBounds(i32, i32 y, i32) const override
     {
         return y >= world::MIN_BUILD_HEIGHT && y < world::MAX_BUILD_HEIGHT;
     }
-    [[nodiscard]] bool hasEntityCollision(const AxisAlignedBB&, const Entity*) const override { return false; }
+
+    [[nodiscard]] bool hasEntityCollision(const AxisAlignedBB&, const Entity*) const override
+    {
+        return false;
+    }
+
     [[nodiscard]] std::vector<AxisAlignedBB> getEntityCollisions(const AxisAlignedBB&, const Entity*) const override
     {
         return {};
     }
-    [[nodiscard]] PhysicsEngine* physicsEngine() override { return nullptr; }
-    [[nodiscard]] const PhysicsEngine* physicsEngine() const override { return nullptr; }
+
+    [[nodiscard]] PhysicsEngine* physicsEngine() override
+    {
+        return nullptr;
+    }
+
+    [[nodiscard]] const PhysicsEngine* physicsEngine() const override
+    {
+        return nullptr;
+    }
+
     [[nodiscard]] std::vector<Entity*> getEntitiesInAABB(const AxisAlignedBB&, const Entity*) const override
     {
         return {};
     }
+
     [[nodiscard]] std::vector<Entity*> getEntitiesInRange(const Vector3&, f32, const Entity*) const override
     {
         return {};
     }
-    [[nodiscard]] DimensionId dimension() const override { return 0; }
-    [[nodiscard]] u64 seed() const override { return 0; }
-    [[nodiscard]] u64 currentTick() const override { return 0; }
-    [[nodiscard]] i64 dayTime() const override { return 0; }
-    [[nodiscard]] bool isHardcore() const override { return false; }
-    [[nodiscard]] Difficulty difficulty() const override { return Difficulty::Easy; }
-    [[nodiscard]] bool isClientSide() const override { return false; }
+
+    [[nodiscard]] DimensionId dimension() const override
+    {
+        return 0;
+    }
+
+    [[nodiscard]] u64 seed() const override
+    {
+        return 0;
+    }
+
+    [[nodiscard]] u64 currentTick() const override
+    {
+        return 0;
+    }
+
+    [[nodiscard]] i64 dayTime() const override
+    {
+        return 0;
+    }
+
+    [[nodiscard]] bool isHardcore() const override
+    {
+        return false;
+    }
+
+    [[nodiscard]] Difficulty difficulty() const override
+    {
+        return Difficulty::Easy;
+    }
+
+    [[nodiscard]] bool isClientSide() const override
+    {
+        return false;
+    }
 
     [[nodiscard]] world::tick::TickManager& tickManager() override
     {
         throw std::runtime_error("BaseTestWorld::tickManager not implemented");
     }
+
     [[nodiscard]] const world::tick::TickManager& tickManager() const override
     {
         throw std::runtime_error("BaseTestWorld::tickManager not implemented");
     }
 
-    [[nodiscard]] math::IRandom& getRandom() override { return m_random; }
-    [[nodiscard]] const math::IRandom& getRandom() const override { return m_random; }
+    [[nodiscard]] math::IRandom& getRandom() override
+    {
+        return m_random;
+    }
+
+    [[nodiscard]] const math::IRandom& getRandom() const override
+    {
+        return m_random;
+    }
 
     // id 反查：经 registerEntityForLookup 登记的栈/堆实体可被 getEntity(id) 查到。
     // Brain 实体类记忆（ATTACK_TARGET 等）已改存 EntityInstanceId，消费点经
@@ -229,34 +325,62 @@ public:
     /// （`_removeDeadEntitiesInternal`），此后 `getEntity(id)` 返回 nullptr。
     /// 测试中实体析构（或 remove）后必须同步调用本方法，否则反查表会残留悬垂指针，
     /// 使「实体已消失」的语义无法被复现。
-    void unregisterEntityForLookup(EntityInstanceId id) { m_lookupEntities.erase(id); }
+    void unregisterEntityForLookup(EntityInstanceId id)
+    {
+        m_lookupEntities.erase(id);
+    }
 
     [[nodiscard]] Entity* getEntity(EntityInstanceId id) override
     {
         auto it = m_lookupEntities.find(id);
         return it != m_lookupEntities.end() ? it->second : nullptr;
     }
+
     [[nodiscard]] const Entity* getEntity(EntityInstanceId id) const override
     {
         auto it = m_lookupEntities.find(id);
         return it != m_lookupEntities.end() ? it->second : nullptr;
     }
 
-    [[nodiscard]] world::border::WorldBorder& worldBorder() override { return m_worldBorder; }
-    [[nodiscard]] const world::border::WorldBorder& worldBorder() const override { return m_worldBorder; }
+    [[nodiscard]] world::border::WorldBorder& worldBorder() override
+    {
+        return m_worldBorder;
+    }
 
-    [[nodiscard]] world::gamerule::GameRules& getGameRules() override { return m_gameRules; }
-    [[nodiscard]] const world::gamerule::GameRules& getGameRules() const override { return m_gameRules; }
+    [[nodiscard]] const world::border::WorldBorder& worldBorder() const override
+    {
+        return m_worldBorder;
+    }
+
+    [[nodiscard]] world::gamerule::GameRules& getGameRules() override
+    {
+        return m_gameRules;
+    }
+
+    [[nodiscard]] const world::gamerule::GameRules& getGameRules() const override
+    {
+        return m_gameRules;
+    }
 
     // 测试世界不模拟玩家实体：默认放行火焰的玩家半径门控。需要验证门控行为的用例
     // 应在测试世界中显式覆盖 canSpreadFireAround 并返回特定结果。
-    [[nodiscard]] bool anyPlayerCloseEnoughTo(const BlockPos&, i32) const override { return true; }
+    [[nodiscard]] bool anyPlayerCloseEnoughTo(const BlockPos&, i32) const override
+    {
+        return true;
+    }
 
     // 提供 ECS 实体注册表，供测试构造 Entity 派生类（构造函数透传 registry）。
     // 统一返回 testEcsRegistry() 全局静态实例，保证测试内所有实体构造在同一 registry，
     // 避免出现"m_world 的 registry 与 fixture 的 registry 不一致"的歧义。
-    [[nodiscard]] ecs::EntityRegistry* entityRegistry() override { return &testEcsRegistry(); }
-    [[nodiscard]] const ecs::EntityRegistry* entityRegistry() const override { return &testEcsRegistry(); }
+    [[nodiscard]] ecs::EntityRegistry* entityRegistry() override
+    {
+        return &testEcsRegistry();
+    }
+
+    [[nodiscard]] const ecs::EntityRegistry* entityRegistry() const override
+    {
+        return &testEcsRegistry();
+    }
 
 protected:
     BaseTestWorld() = default;
@@ -274,8 +398,15 @@ protected:
  */
 class BaseChunkBackedTestWorld : public BaseTestWorld {
 public:
-    [[nodiscard]] mc::world::chunk::IChunkManager* chunkManager() override { return &m_chunkManager; }
-    [[nodiscard]] const mc::world::chunk::IChunkManager* chunkManager() const override { return &m_chunkManager; }
+    [[nodiscard]] mc::world::chunk::IChunkManager* chunkManager() override
+    {
+        return &m_chunkManager;
+    }
+
+    [[nodiscard]] const mc::world::chunk::IChunkManager* chunkManager() const override
+    {
+        return &m_chunkManager;
+    }
 
     ChunkData& ensureChunk(ChunkCoord x, ChunkCoord z)
     {

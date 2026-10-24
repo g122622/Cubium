@@ -62,7 +62,10 @@ public:
     void tick() override;
     void resetTask() override;
 
-    [[nodiscard]] std::string getTypeName() const override { return "SnifferDigGoal"; }
+    [[nodiscard]] std::string getTypeName() const override
+    {
+        return "SnifferDigGoal";
+    }
 
     /// 搜索半径（对齐 vanilla SnifferAi.Digging 的 10 格搜索）
     static constexpr i32 SEARCH_LENGTH = 10;
@@ -117,7 +120,10 @@ public:
     void tick() override;
     void resetTask() override;
 
-    [[nodiscard]] std::string getTypeName() const override { return "SnifferSearchGoal"; }
+    [[nodiscard]] std::string getTypeName() const override
+    {
+        return "SnifferSearchGoal";
+    }
 
     /// 搜索最长持续时间（对齐 vanilla Searching 的 600 tick 超时）
     static constexpr i32 MAX_SEARCH_TICKS = 600;
@@ -146,7 +152,10 @@ public:
     [[nodiscard]] bool shouldContinueExecuting() override;
     void resetTask() override;
 
-    [[nodiscard]] std::string getTypeName() const override { return "SnifferScentGoal"; }
+    [[nodiscard]] std::string getTypeName() const override
+    {
+        return "SnifferScentGoal";
+    }
 
     static constexpr i32 MIN_TICKS = 40;
     static constexpr i32 MAX_TICKS = 80;
@@ -171,7 +180,10 @@ public:
     [[nodiscard]] bool shouldContinueExecuting() override;
     void resetTask() override;
 
-    [[nodiscard]] std::string getTypeName() const override { return "SnifferSniffGoal"; }
+    [[nodiscard]] std::string getTypeName() const override
+    {
+        return "SnifferSniffGoal";
+    }
 
     static constexpr i32 MIN_TICKS = 40;
     static constexpr i32 MAX_TICKS = 80;
@@ -196,7 +208,10 @@ public:
     [[nodiscard]] bool shouldContinueExecuting() override;
     void resetTask() override;
 
-    [[nodiscard]] std::string getTypeName() const override { return "SnifferHappyGoal"; }
+    [[nodiscard]] std::string getTypeName() const override
+    {
+        return "SnifferHappyGoal";
+    }
 
     static constexpr i32 MIN_TICKS = 40;
     static constexpr i32 MAX_TICKS = 100;

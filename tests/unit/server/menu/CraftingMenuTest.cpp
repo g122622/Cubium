@@ -79,17 +79,30 @@ public:
         return m_result.copy();
     }
 
-    ItemStack getResultItem() const override { return m_result; }
+    ItemStack getResultItem() const override
+    {
+        return m_result;
+    }
 
     std::vector<ItemStack> getRemainingItems(const CraftingInventory& inventory) const override
     {
         return crafting::RecipeUtils::getDefaultRemainingItems(inventory);
     }
 
-    const std::vector<crafting::Ingredient>& getIngredients() const override { return m_ingredients; }
+    const std::vector<crafting::Ingredient>& getIngredients() const override
+    {
+        return m_ingredients;
+    }
 
-    ResourceLocation getId() const override { return m_id; }
-    crafting::RecipeType getType() const override { return crafting::RecipeType::ShapelessCrafting; }
+    ResourceLocation getId() const override
+    {
+        return m_id;
+    }
+
+    crafting::RecipeType getType() const override
+    {
+        return crafting::RecipeType::ShapelessCrafting;
+    }
 
 private:
     ResourceLocation m_id;
@@ -111,7 +124,10 @@ protected:
         m_playerInventory = std::make_unique<PlayerInventory>(m_player.get());
     }
 
-    void TearDown() override { crafting::RecipeManager::instance().clear(); }
+    void TearDown() override
+    {
+        crafting::RecipeManager::instance().clear();
+    }
 
     std::unique_ptr<Player> m_player;
     std::unique_ptr<PlayerInventory> m_playerInventory;
@@ -191,7 +207,10 @@ TEST_F(CraftingMenuTest, GetCurrentRecipeId_UpdatesAfterGridChange)
 // InventoryCraftingMenu 测试类
 class InventoryCraftingMenuTest : public ::testing::Test {
 protected:
-    static void SetUpTestSuite() { Items::initialize(); }
+    static void SetUpTestSuite()
+    {
+        Items::initialize();
+    }
 
     void SetUp() override
     {
@@ -199,7 +218,10 @@ protected:
         m_playerInventory = std::make_unique<PlayerInventory>(m_player.get());
     }
 
-    void TearDown() override { crafting::RecipeManager::instance().clear(); }
+    void TearDown() override
+    {
+        crafting::RecipeManager::instance().clear();
+    }
 
     std::unique_ptr<Player> m_player;
     std::unique_ptr<PlayerInventory> m_playerInventory;

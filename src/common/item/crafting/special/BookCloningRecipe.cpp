@@ -152,7 +152,9 @@ i32 BookCloningRecipe::_getGeneration(const ItemStack& stack)
     }
 
     const auto book = tag->find("written_book_content");
-    if (book == tag->end()) return 0;
+    if (book == tag->end()) {
+        return 0;
+    }
     auto it = book->find("generation");
     if (it == book->end() || !it->is_number()) {
         return 0;

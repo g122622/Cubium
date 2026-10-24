@@ -70,7 +70,10 @@ public:
     /**
      * @brief 获取搜索结果
      */
-    [[nodiscard]] const Result& result() const { return m_result; }
+    [[nodiscard]] const Result& result() const
+    {
+        return m_result;
+    }
 
     /**
      * @brief 静态方法：查找出生点

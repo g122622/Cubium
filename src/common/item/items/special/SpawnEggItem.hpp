@@ -54,17 +54,26 @@ public:
     /**
      * @brief 获取要生成的实体类型
      */
-    [[nodiscard]] const entity::EntityType& getEntityType() const { return m_entityType; }
+    [[nodiscard]] const entity::EntityType& getEntityType() const
+    {
+        return m_entityType;
+    }
 
     /**
      * @brief 获取主颜色
      */
-    [[nodiscard]] u32 getPrimaryColor() const { return m_primaryColor; }
+    [[nodiscard]] u32 getPrimaryColor() const
+    {
+        return m_primaryColor;
+    }
 
     /**
      * @brief 获取副颜色
      */
-    [[nodiscard]] u32 getSecondaryColor() const { return m_secondaryColor; }
+    [[nodiscard]] u32 getSecondaryColor() const
+    {
+        return m_secondaryColor;
+    }
 
     /**
      * @brief 方块交互 - 在方块上生成实体

@@ -68,12 +68,18 @@ public:
     [[nodiscard]] Result<void> startAccept(u16 port, u32 maxConnections);
 
     /// 新连接进入握手时回调（含 Local 与 TCP 两种来源）
-    void onClientConnect(std::function<void(ServerClientConnection&)> cb) { m_onConnect = std::move(cb); }
+    void onClientConnect(std::function<void(ServerClientConnection&)> cb)
+    {
+        m_onConnect = std::move(cb);
+    }
 
     /// 连接断开时回调（由主线程在 tick() 内派发，非网络执行器）。
     /// TcpTransport 网络执行器检测到断开后只把 sessionId 入延迟队列，
     /// tick() 在主线程 swap 后回调本函数——所有 session map / 玩家清理在主线程进行。
-    void onClientDisconnect(std::function<void(ServerClientConnection&)> cb) { m_onDisconnect = std::move(cb); }
+    void onClientDisconnect(std::function<void(ServerClientConnection&)> cb)
+    {
+        m_onDisconnect = std::move(cb);
+    }
 
     /**
      * @brief Local 模式：创建一对 LocalTransport，服务端侧包成 ServerClientConnection 并登记
@@ -90,7 +96,10 @@ public:
     void tick();
 
     /// 协议表（供 ServerClientConnection 构造时共享）
-    [[nodiscard]] std::shared_ptr<ProtocolTables> tables() const noexcept { return m_tables; }
+    [[nodiscard]] std::shared_ptr<ProtocolTables> tables() const noexcept
+    {
+        return m_tables;
+    }
 
 private:
     /// TCP accept 异步循环：async_accept 链 + io_context::run() 驱动

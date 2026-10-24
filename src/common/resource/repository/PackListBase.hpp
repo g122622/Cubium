@@ -151,6 +151,7 @@ public:
         std::string packName; ///< 数据包名称
         std::string content;  ///< 资源文本内容
     };
+
     [[nodiscard]] Result<std::vector<ResourceVersion>> readAllResourceVersions(
         PackType type, std::string_view resourcePath) const;
 
@@ -177,7 +178,11 @@ public:
     void onChange(std::function<void()> callback);
 
 protected:
-    [[nodiscard]] PackType defaultType() const { return m_defaultType; }
+    [[nodiscard]] PackType defaultType() const
+    {
+        return m_defaultType;
+    }
+
     virtual void onPackListChanged();
 
 private:

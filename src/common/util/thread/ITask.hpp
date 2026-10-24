@@ -123,7 +123,10 @@ public:
      *
      * 用于 Perfetto 追踪。
      */
-    virtual const char* traceCategory() const { return "worker_pool"; }
+    virtual const char* traceCategory() const
+    {
+        return "worker_pool";
+    }
 };
 
 /**
@@ -169,9 +172,20 @@ public:
         return m_executor(abortSignal);
     }
 
-    TaskType type() const override { return m_type; }
-    std::string description() const override { return m_description; }
-    const char* traceCategory() const override { return m_traceCategory; }
+    TaskType type() const override
+    {
+        return m_type;
+    }
+
+    std::string description() const override
+    {
+        return m_description;
+    }
+
+    const char* traceCategory() const override
+    {
+        return m_traceCategory;
+    }
 
 private:
     TaskType m_type;

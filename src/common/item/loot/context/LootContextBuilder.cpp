@@ -130,7 +130,9 @@ std::unique_ptr<LootContext> LootContextBuilder::build(const LootParameterSet& p
             if (!missingParams.empty()) {
                 std::string missingStr;
                 for (size_t i = 0; i < missingParams.size(); ++i) {
-                    if (i > 0) missingStr += ", ";
+                    if (i > 0) {
+                        missingStr += ", ";
+                    }
                     missingStr += missingParams[i];
                 }
                 spdlog::warn("LootContextBuilder: missing required parameters [{}] (parameter set type: {})",
@@ -140,7 +142,9 @@ std::unique_ptr<LootContext> LootContextBuilder::build(const LootParameterSet& p
             if (!unexpectedParams.empty()) {
                 std::string unexpectedStr;
                 for (size_t i = 0; i < unexpectedParams.size(); ++i) {
-                    if (i > 0) unexpectedStr += ", ";
+                    if (i > 0) {
+                        unexpectedStr += ", ";
+                    }
                     unexpectedStr += unexpectedParams[i];
                 }
                 spdlog::warn("LootContextBuilder: unexpected parameters [{}] (parameter set type: {})",

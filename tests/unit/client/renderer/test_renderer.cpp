@@ -44,9 +44,15 @@ namespace {
 
 class InMemoryResourcePack final : public IResourcePack {
 public:
-    Result<void> initialize() override { return Result<void>::ok(); }
+    Result<void> initialize() override
+    {
+        return Result<void>::ok();
+    }
 
-    [[nodiscard]] const PackMetadata& metadata() const override { return m_metadata; }
+    [[nodiscard]] const PackMetadata& metadata() const override
+    {
+        return m_metadata;
+    }
 
     [[nodiscard]] bool hasResource(resource::PackType type, std::string_view resourcePath) const override
     {
@@ -118,9 +124,15 @@ public:
         return result;
     }
 
-    [[nodiscard]] std::string name() const override { return "InMemoryResourcePack"; }
+    [[nodiscard]] std::string name() const override
+    {
+        return "InMemoryResourcePack";
+    }
 
-    void add(std::string path, std::vector<u8> bytes) { m_resources.emplace(std::move(path), std::move(bytes)); }
+    void add(std::string path, std::vector<u8> bytes)
+    {
+        m_resources.emplace(std::move(path), std::move(bytes));
+    }
 
 private:
     PackMetadata m_metadata{6, "test-pack"};
@@ -256,7 +268,9 @@ std::vector<u8> toBytes(std::string_view content)
 std::function<const TextureRegion*(const ResourceLocation&)> makeTestRegionLookup()
 {
     static const TextureRegion placeholderRegion(0.0, 0.0, 1.0, 1.0);
-    return [](const ResourceLocation&) -> const TextureRegion* { return &placeholderRegion; };
+    return [](const ResourceLocation&) -> const TextureRegion* {
+        return &placeholderRegion;
+    };
 }
 
 struct MeshBounds {

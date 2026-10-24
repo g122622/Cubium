@@ -95,7 +95,10 @@ public:
      * @param bits 位数 (1-32)
      * @return 抽取结果
      */
-    [[nodiscard]] i32 nextBits(i32 bits) override { return next(bits); }
+    [[nodiscard]] i32 nextBits(i32 bits) override
+    {
+        return next(bits);
+    }
 
     /**
      * @brief 推进指定步数（等价于 Java RandomSource.consumeCount(count)）

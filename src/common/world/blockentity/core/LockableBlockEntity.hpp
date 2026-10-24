@@ -58,7 +58,10 @@ public:
      * @brief 检查容器是否被锁定
      * @return 如果容器被锁定返回true
      */
-    [[nodiscard]] bool isLocked() const noexcept { return m_locked; }
+    [[nodiscard]] bool isLocked() const noexcept
+    {
+        return m_locked;
+    }
 
     /**
      * @brief 设置锁定状态
@@ -76,7 +79,10 @@ public:
      * @brief 获取锁定钥匙名称
      * @return 钥匙名称（物品显示名）
      */
-    [[nodiscard]] const std::string& getLockKey() const noexcept { return m_lockKey; }
+    [[nodiscard]] const std::string& getLockKey() const noexcept
+    {
+        return m_lockKey;
+    }
 
     /**
      * @brief 设置锁定钥匙名称
@@ -105,7 +111,11 @@ public:
 
     // ========== 重写 BlockEntity 接口 ==========
 
-    [[nodiscard]] std::string getCustomName() const noexcept override { return m_customName; }
+    [[nodiscard]] std::string getCustomName() const noexcept override
+    {
+        return m_customName;
+    }
+
     void setCustomName(const std::string& name) override;
 
     /**

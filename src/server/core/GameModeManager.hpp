@@ -132,7 +132,10 @@ public:
      * @brief 设置游戏模式变化回调
      * @param callback 回调函数
      */
-    void setOnGameModeChange(GameModeChangeCallback callback) noexcept { m_onGameModeChange = std::move(callback); }
+    void setOnGameModeChange(GameModeChangeCallback callback) noexcept
+    {
+        m_onGameModeChange = std::move(callback);
+    }
 
 private:
     /**

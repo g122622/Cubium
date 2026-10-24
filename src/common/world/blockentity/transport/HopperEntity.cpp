@@ -79,7 +79,10 @@ namespace {
 
 HopperEntity::HopperEntity(const BlockPos& pos)
     : LockableBlockEntity(BlockEntityType::Hopper, pos)
-    , m_inventory(HOPPER_SIZE, [this]() { this->setChanged(); })
+    , m_inventory(HOPPER_SIZE,
+          [this]() {
+              this->setChanged();
+          })
     , m_transferCooldown(-1)
 {}
 
@@ -118,7 +121,9 @@ void HopperEntity::tick(IWorld& world)
     setTransferCooldown(0);
 
     // 更新漏斗状态
-    _updateHopper([&]() { return pullItems(*this); });
+    _updateHopper([&]() {
+        return pullItems(*this);
+    });
 }
 
 std::unique_ptr<BlockEntity> HopperEntity::clone() const
@@ -801,7 +806,9 @@ void HopperEntity::onEntityCollision(IWorld& world, Entity* entity)
     }
 
     // 尝试捕获物品
-    _updateHopper([&]() { return captureItem(&m_inventory, itemEntity); });
+    _updateHopper([&]() {
+        return captureItem(&m_inventory, itemEntity);
+    });
 }
 
 } // namespace blockentity

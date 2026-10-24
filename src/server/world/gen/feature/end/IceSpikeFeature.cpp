@@ -214,7 +214,9 @@ void IceSpikeFeature::_generateIceberg(
     // 冰丘型：较矮、较宽的冰结构
     for (i32 y = 0; y < baseRadius * 2; ++y) {
         i32 radius = baseRadius - y / 2;
-        if (radius < 1) radius = 1;
+        if (radius < 1) {
+            radius = 1;
+        }
 
         for (i32 dx = -radius; dx <= radius; ++dx) {
             for (i32 dz = -radius; dz <= radius; ++dz) {

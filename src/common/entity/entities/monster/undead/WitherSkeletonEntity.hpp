@@ -65,7 +65,10 @@ public:
     static std::unique_ptr<Entity> create(IWorld* world, ecs::EntityRegistry& registry);
 
     // 凋灵骷髅无偏好武器（对齐 Java WitherSkeleton.getPreferredWeaponType 返回 null）。
-    [[nodiscard]] std::string getPreferredWeaponType() const override { return {}; }
+    [[nodiscard]] std::string getPreferredWeaponType() const override
+    {
+        return {};
+    }
 
     /// 凋零效果持续时间（ticks），200 ticks = 10 秒
     static constexpr i32 WITHER_DURATION_TICKS = 200;
@@ -130,9 +133,20 @@ public:
      */
     [[nodiscard]] bool isPotionApplicable(const entity::effect::EffectInstance& effect) const override;
 
-    [[nodiscard]] bool hasStoneSword() const { return m_hasStoneSword; }
-    [[nodiscard]] bool shouldBurnInDaylight() const override { return false; }
-    [[nodiscard]] f32 eyeHeight() const override { return 2.1f; }
+    [[nodiscard]] bool hasStoneSword() const
+    {
+        return m_hasStoneSword;
+    }
+
+    [[nodiscard]] bool shouldBurnInDaylight() const override
+    {
+        return false;
+    }
+
+    [[nodiscard]] f32 eyeHeight() const override
+    {
+        return 2.1f;
+    }
 
 protected:
     void registerGoals() override;

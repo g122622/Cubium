@@ -210,7 +210,9 @@ TEST_F(CommandNodeTest, NodeWithCommand)
 {
     auto node = std::make_shared<LiteralCommandNode<int>>("test");
 
-    node->setCommand([](CommandContext<int>&) { return 1; });
+    node->setCommand([](CommandContext<int>&) {
+        return 1;
+    });
 
     EXPECT_TRUE(node->hasCommand());
 }
@@ -219,7 +221,9 @@ TEST_F(CommandNodeTest, NodeWithRequirement)
 {
     auto node = std::make_shared<LiteralCommandNode<int>>("admin");
 
-    node->setRequirement([](const int& source) { return source >= 2; });
+    node->setRequirement([](const int& source) {
+        return source >= 2;
+    });
 
     EXPECT_TRUE(node->canUse(3));
     EXPECT_FALSE(node->canUse(1));
@@ -478,7 +482,9 @@ TEST_F(CommandDispatcherTest, RegisterLiteralNode)
     CommandDispatcher<int> dispatcher;
 
     auto node = std::make_shared<LiteralCommandNode<int>>("test");
-    node->setCommand([](CommandContext<int>&) { return 1; });
+    node->setCommand([](CommandContext<int>&) {
+        return 1;
+    });
 
     dispatcher.registerCommand(node);
 
@@ -491,7 +497,9 @@ TEST_F(CommandDispatcherTest, ParseCommand)
     CommandDispatcher<int> dispatcher;
 
     auto node = std::make_shared<LiteralCommandNode<int>>("test");
-    node->setCommand([](CommandContext<int>&) { return 1; });
+    node->setCommand([](CommandContext<int>&) {
+        return 1;
+    });
 
     dispatcher.registerCommand(node);
 
@@ -511,7 +519,9 @@ TEST_F(CommandDispatcherTest, ExecuteArgumentCommandStoresParsedValue)
 
     auto root = std::make_shared<LiteralCommandNode<int>>("add");
     auto valueArg = std::make_shared<ArgumentCommandNode<int, i32>>("value", IntegerArgumentType::integer());
-    valueArg->setCommand([](CommandContext<int>& ctx) { return ctx.getArgument<i32>("value") + ctx.getSource(); });
+    valueArg->setCommand([](CommandContext<int>& ctx) {
+        return ctx.getArgument<i32>("value") + ctx.getSource();
+    });
     root->addChild(valueArg);
     dispatcher.registerCommand(root);
 
@@ -528,7 +538,9 @@ TEST_F(CommandDispatcherTest, ExecuteFailsOnUnknownExtraArgument)
     CommandDispatcher<int> dispatcher;
 
     auto node = std::make_shared<LiteralCommandNode<int>>("list");
-    node->setCommand([](CommandContext<int>&) { return 1; });
+    node->setCommand([](CommandContext<int>&) {
+        return 1;
+    });
     dispatcher.registerCommand(node);
 
     int source = 0;
@@ -544,14 +556,20 @@ TEST_F(CommandDispatcherTest, PermissionDeniedWhenLiteralMatchesButNoPermission)
     CommandDispatcher<int> dispatcher;
 
     auto tpNode = std::make_shared<LiteralCommandNode<int>>("tp");
-    tpNode->setRequirement([](const int& s) { return s >= 2; });
-    tpNode->setCommand([](CommandContext<int>&) { return 1; });
+    tpNode->setRequirement([](const int& s) {
+        return s >= 2;
+    });
+    tpNode->setCommand([](CommandContext<int>&) {
+        return 1;
+    });
     dispatcher.registerCommand(tpNode);
 
     // 另一个根字面量，模拟真实命令树里 help/gamemode 等共存节点。
     // 旧逻辑下它会在 "tp" token 上抛 Expected literal 'help' 并成为 bestFailure。
     auto helpNode = std::make_shared<LiteralCommandNode<int>>("help");
-    helpNode->setCommand([](CommandContext<int>&) { return 1; });
+    helpNode->setCommand([](CommandContext<int>&) {
+        return 1;
+    });
     dispatcher.registerCommand(helpNode);
 
     int source = 0; // 权限 0 < 2，tp 节点被跳过
@@ -570,8 +588,12 @@ TEST_F(CommandDispatcherTest, UnknownCommandWhenNoLiteralMatches)
     CommandDispatcher<int> dispatcher;
 
     auto tpNode = std::make_shared<LiteralCommandNode<int>>("tp");
-    tpNode->setRequirement([](const int& s) { return s >= 2; });
-    tpNode->setCommand([](CommandContext<int>&) { return 1; });
+    tpNode->setRequirement([](const int& s) {
+        return s >= 2;
+    });
+    tpNode->setCommand([](CommandContext<int>&) {
+        return 1;
+    });
     dispatcher.registerCommand(tpNode);
 
     int source = 0;
@@ -589,12 +611,18 @@ TEST_F(CommandDispatcherTest, SucceedsWithPermission)
     CommandDispatcher<int> dispatcher;
 
     auto tpNode = std::make_shared<LiteralCommandNode<int>>("tp");
-    tpNode->setRequirement([](const int& s) { return s >= 2; });
-    tpNode->setCommand([](CommandContext<int>&) { return 1; });
+    tpNode->setRequirement([](const int& s) {
+        return s >= 2;
+    });
+    tpNode->setCommand([](CommandContext<int>&) {
+        return 1;
+    });
     dispatcher.registerCommand(tpNode);
 
     auto helpNode = std::make_shared<LiteralCommandNode<int>>("help");
-    helpNode->setCommand([](CommandContext<int>&) { return 1; });
+    helpNode->setCommand([](CommandContext<int>&) {
+        return 1;
+    });
     dispatcher.registerCommand(helpNode);
 
     int source = 2; // 权限满足
@@ -608,7 +636,9 @@ TEST_F(CommandDispatcherTest, ExecuteRedirectAlias)
     CommandDispatcher<int> dispatcher;
 
     auto target = std::make_shared<LiteralCommandNode<int>>("target");
-    target->setCommand([](CommandContext<int>&) { return 42; });
+    target->setCommand([](CommandContext<int>&) {
+        return 42;
+    });
 
     auto alias = std::make_shared<LiteralCommandNode<int>>("alias");
     alias->setRedirect(target);
@@ -643,10 +673,12 @@ TEST_F(CommandDispatcherTest, SuggestionsFollowRedirectedNode)
 
     ASSERT_FALSE(suggestions.isEmpty());
     const auto& list = suggestions.getList();
-    EXPECT_TRUE(std::any_of(
-        list.begin(), list.end(), [](const Suggestion& suggestion) { return suggestion.getText() == "0"; }));
-    EXPECT_TRUE(std::any_of(
-        list.begin(), list.end(), [](const Suggestion& suggestion) { return suggestion.getText() == "123"; }));
+    EXPECT_TRUE(std::any_of(list.begin(), list.end(), [](const Suggestion& suggestion) {
+        return suggestion.getText() == "0";
+    }));
+    EXPECT_TRUE(std::any_of(list.begin(), list.end(), [](const Suggestion& suggestion) {
+        return suggestion.getText() == "123";
+    }));
 }
 
 // ========== ICommandSource Tests ==========

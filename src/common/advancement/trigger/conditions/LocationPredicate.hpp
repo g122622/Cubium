@@ -39,9 +39,11 @@ namespace mc {
 class IWorld;
 class BlockPos;
 class BlockState;
+
 namespace world::biome {
 class Biome;
 } // namespace world::biome
+
 using world::biome::Biome;
 } // namespace mc
 
@@ -77,12 +79,18 @@ public:
     /**
      * @brief 仅按坐标范围判定（无世界上下文，如进度 start_position 的世界无关部分）
      */
-    [[nodiscard]] bool testPosition(f64 x, f64 y, f64 z) const { return m_x.test(x) && m_y.test(y) && m_z.test(z); }
+    [[nodiscard]] bool testPosition(f64 x, f64 y, f64 z) const
+    {
+        return m_x.test(x) && m_y.test(y) && m_z.test(z);
+    }
 
     /**
      * @brief 检查是否匹配任意位置
      */
-    [[nodiscard]] bool isAny() const noexcept { return m_isAny; }
+    [[nodiscard]] bool isAny() const noexcept
+    {
+        return m_isAny;
+    }
 
     /**
      * @brief 从JSON解析
@@ -96,12 +104,35 @@ public:
 
     // ========== Getters ==========
 
-    [[nodiscard]] const std::optional<ResourceLocation>& getBiome() const noexcept { return m_biome; }
-    [[nodiscard]] const std::optional<ResourceLocation>& getDimension() const noexcept { return m_dimension; }
-    [[nodiscard]] const DoubleBounds& getX() const noexcept { return m_x; }
-    [[nodiscard]] const DoubleBounds& getY() const noexcept { return m_y; }
-    [[nodiscard]] const DoubleBounds& getZ() const noexcept { return m_z; }
-    [[nodiscard]] const std::optional<BlockPredicate>& getBlock() const noexcept { return m_block; }
+    [[nodiscard]] const std::optional<ResourceLocation>& getBiome() const noexcept
+    {
+        return m_biome;
+    }
+
+    [[nodiscard]] const std::optional<ResourceLocation>& getDimension() const noexcept
+    {
+        return m_dimension;
+    }
+
+    [[nodiscard]] const DoubleBounds& getX() const noexcept
+    {
+        return m_x;
+    }
+
+    [[nodiscard]] const DoubleBounds& getY() const noexcept
+    {
+        return m_y;
+    }
+
+    [[nodiscard]] const DoubleBounds& getZ() const noexcept
+    {
+        return m_z;
+    }
+
+    [[nodiscard]] const std::optional<BlockPredicate>& getBlock() const noexcept
+    {
+        return m_block;
+    }
 
 private:
     std::optional<ResourceLocation> m_biome;     ///< 生物群系（如 "minecraft:plains"）
@@ -177,7 +208,10 @@ public:
     /**
      * @brief 检查是否匹配任意距离
      */
-    [[nodiscard]] bool isAny() const noexcept { return m_isAny; }
+    [[nodiscard]] bool isAny() const noexcept
+    {
+        return m_isAny;
+    }
 
     /**
      * @brief 从JSON解析（vanilla 结构：x / y / z / absX / absY / absZ / horizontal / absolute）
@@ -191,13 +225,25 @@ public:
 
     // ========== 静态工厂方法 ==========
 
-    static DistancePredicate exactly(f64 distance) { return DistancePredicate(DoubleBounds::exactly(distance)); }
+    static DistancePredicate exactly(f64 distance)
+    {
+        return DistancePredicate(DoubleBounds::exactly(distance));
+    }
 
-    static DistancePredicate atLeast(f64 min) { return DistancePredicate(DoubleBounds::atLeast(min)); }
+    static DistancePredicate atLeast(f64 min)
+    {
+        return DistancePredicate(DoubleBounds::atLeast(min));
+    }
 
-    static DistancePredicate atMost(f64 max) { return DistancePredicate(DoubleBounds::atMost(max)); }
+    static DistancePredicate atMost(f64 max)
+    {
+        return DistancePredicate(DoubleBounds::atMost(max));
+    }
 
-    static DistancePredicate between(f64 min, f64 max) { return DistancePredicate(DoubleBounds::between(min, max)); }
+    static DistancePredicate between(f64 min, f64 max)
+    {
+        return DistancePredicate(DoubleBounds::between(min, max));
+    }
 
 private:
     /// vanilla DistancePredicate 的 8 个轴向范围（x/y/z/absX/absY/absZ/horizontal/absolute）

@@ -110,6 +110,7 @@ public:
     }
 
     [[nodiscard]] const fluid::FluidState* getFluidState(const BlockState& state) const override;
+
     [[nodiscard]] bool isWaterlogged(const BlockState& state) const override
     {
         return state.get(BlockStateProperties::WATERLOGGED());
@@ -117,11 +118,17 @@ public:
 
     // ========== 方块实体 ==========
 
-    [[nodiscard]] bool hasBlockEntity() const noexcept override { return true; }
+    [[nodiscard]] bool hasBlockEntity() const noexcept override
+    {
+        return true;
+    }
 
     [[nodiscard]] std::unique_ptr<BlockEntity> createBlockEntity(const BlockPos& pos) override;
 
-    [[nodiscard]] BlockEntityType getBlockEntityType() const noexcept { return BlockEntityType::DecoratedPot; }
+    [[nodiscard]] BlockEntityType getBlockEntityType() const noexcept
+    {
+        return BlockEntityType::DecoratedPot;
+    }
 
     // ========== 红石比较器 ==========
 
@@ -239,7 +246,10 @@ public:
      *
      * @return 刷扫音效资源位置
      */
-    [[nodiscard]] const ResourceLocation& getBrushSound() const noexcept { return m_brushSound; }
+    [[nodiscard]] const ResourceLocation& getBrushSound() const noexcept
+    {
+        return m_brushSound;
+    }
 
     /**
      * @brief 获取刷扫完成音效
@@ -249,7 +259,10 @@ public:
      *
      * @return 刷扫完成音效资源位置
      */
-    [[nodiscard]] const ResourceLocation& getBrushCompletedSound() const noexcept { return m_brushCompletedSound; }
+    [[nodiscard]] const ResourceLocation& getBrushCompletedSound() const noexcept
+    {
+        return m_brushCompletedSound;
+    }
 
     /**
      * @brief 获取刷扫完成后转换成的目标方块
@@ -259,15 +272,24 @@ public:
      *
      * @return 目标方块指针（可能为 nullptr，调用方需检查）
      */
-    [[nodiscard]] const Block* getTurnsInto() const noexcept { return m_turnsInto; }
+    [[nodiscard]] const Block* getTurnsInto() const noexcept
+    {
+        return m_turnsInto;
+    }
 
     // ========== 方块实体 ==========
 
-    [[nodiscard]] bool hasBlockEntity() const noexcept override { return true; }
+    [[nodiscard]] bool hasBlockEntity() const noexcept override
+    {
+        return true;
+    }
 
     [[nodiscard]] std::unique_ptr<BlockEntity> createBlockEntity(const BlockPos& pos) override;
 
-    [[nodiscard]] BlockEntityType getBlockEntityType() const noexcept { return BlockEntityType::BrushableBlock; }
+    [[nodiscard]] BlockEntityType getBlockEntityType() const noexcept
+    {
+        return BlockEntityType::BrushableBlock;
+    }
 
     // ========== 方块 tick（计划刻）==========
 

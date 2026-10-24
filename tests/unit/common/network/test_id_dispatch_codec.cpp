@@ -40,9 +40,11 @@ namespace {
 struct VarA {
     i32 x = 0;
 };
+
 struct VarB {
     std::string s;
 };
+
 struct VarC {
     u8 b = 0;
 };
@@ -56,8 +58,12 @@ IdDispatchCodec<B, DummyVariant> makeThreeEntryCodec()
     codec.addPacket(
         /*id*/
         0,
-        [](const DummyVariant& v) { return std::holds_alternative<VarA>(v); },
-        [](B& buf, const DummyVariant& v) { buf.writeI32(std::get<VarA>(v).x); },
+        [](const DummyVariant& v) {
+            return std::holds_alternative<VarA>(v);
+        },
+        [](B& buf, const DummyVariant& v) {
+            buf.writeI32(std::get<VarA>(v).x);
+        },
         [](B& buf) -> Result<DummyVariant> {
             auto r = buf.readI32();
             if (!r.success()) {
@@ -68,8 +74,12 @@ IdDispatchCodec<B, DummyVariant> makeThreeEntryCodec()
     codec.addPacket(
         /*id*/
         1,
-        [](const DummyVariant& v) { return std::holds_alternative<VarB>(v); },
-        [](B& buf, const DummyVariant& v) { buf.writeString(std::get<VarB>(v).s); },
+        [](const DummyVariant& v) {
+            return std::holds_alternative<VarB>(v);
+        },
+        [](B& buf, const DummyVariant& v) {
+            buf.writeString(std::get<VarB>(v).s);
+        },
         [](B& buf) -> Result<DummyVariant> {
             auto r = buf.readString();
             if (!r.success()) {
@@ -80,8 +90,12 @@ IdDispatchCodec<B, DummyVariant> makeThreeEntryCodec()
     codec.addPacket(
         /*id*/
         2,
-        [](const DummyVariant& v) { return std::holds_alternative<VarC>(v); },
-        [](B& buf, const DummyVariant& v) { buf.writeU8(std::get<VarC>(v).b); },
+        [](const DummyVariant& v) {
+            return std::holds_alternative<VarC>(v);
+        },
+        [](B& buf, const DummyVariant& v) {
+            buf.writeU8(std::get<VarC>(v).b);
+        },
         [](B& buf) -> Result<DummyVariant> {
             auto r = buf.readU8();
             if (!r.success()) {
@@ -146,15 +160,23 @@ TEST(IdDispatchCodec, DuplicateIdRejected)
     IdDispatchCodec<B, DummyVariant> codec;
     ASSERT_TRUE(codec.addPacket(
         0,
-        [](const DummyVariant&) { return false; },
+        [](const DummyVariant&) {
+            return false;
+        },
         [](B&, const DummyVariant&) {},
-        [](B&) -> Result<DummyVariant> { return DummyVariant{}; }));
+        [](B&) -> Result<DummyVariant> {
+            return DummyVariant{};
+        }));
     // 重复 id=0 应返回 false
     EXPECT_FALSE(codec.addPacket(
         0,
-        [](const DummyVariant&) { return false; },
+        [](const DummyVariant&) {
+            return false;
+        },
         [](B&, const DummyVariant&) {},
-        [](B&) -> Result<DummyVariant> { return DummyVariant{}; }));
+        [](B&) -> Result<DummyVariant> {
+            return DummyVariant{};
+        }));
     EXPECT_EQ(codec.size(), 1u);
 }
 
@@ -185,16 +207,24 @@ TEST(IdDispatchCodec, OrderIndependentByIdNotByIndex)
     IdDispatchCodec<B, DummyVariant> codec;
     codec.addPacket(
         2,
-        [](const DummyVariant& v) { return std::holds_alternative<VarC>(v); },
-        [](B& buf, const DummyVariant& v) { buf.writeU8(std::get<VarC>(v).b); },
+        [](const DummyVariant& v) {
+            return std::holds_alternative<VarC>(v);
+        },
+        [](B& buf, const DummyVariant& v) {
+            buf.writeU8(std::get<VarC>(v).b);
+        },
         [](B& buf) -> Result<DummyVariant> {
             auto r = buf.readU8();
             return r.success() ? Result<DummyVariant>(DummyVariant{VarC{r.value()}}) : Result<DummyVariant>(r.error());
         });
     codec.addPacket(
         0,
-        [](const DummyVariant& v) { return std::holds_alternative<VarA>(v); },
-        [](B& buf, const DummyVariant& v) { buf.writeI32(std::get<VarA>(v).x); },
+        [](const DummyVariant& v) {
+            return std::holds_alternative<VarA>(v);
+        },
+        [](B& buf, const DummyVariant& v) {
+            buf.writeI32(std::get<VarA>(v).x);
+        },
         [](B& buf) -> Result<DummyVariant> {
             auto r = buf.readI32();
             return r.success() ? Result<DummyVariant>(DummyVariant{VarA{r.value()}}) : Result<DummyVariant>(r.error());

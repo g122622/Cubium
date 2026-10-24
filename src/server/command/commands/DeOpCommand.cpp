@@ -52,14 +52,18 @@ namespace command {
 void DeOpCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
 {
     auto deopNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("deop");
-    deopNode->setRequirement([](const ServerCommandSource& source) { return source.hasPermission(3); });
+    deopNode->setRequirement([](const ServerCommandSource& source) {
+        return source.hasPermission(3);
+    });
     support::applyMetadata(
         deopNode, support::makeMetadata("Revokes operator status from a player.", "/deop <player>", 3, {}, false));
 
     // /deop <player>
     auto playerArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, EntitySelector>>(
         "player", EntityArgumentType::player());
-    playerArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _deopPlayer(ctx); });
+    playerArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _deopPlayer(ctx);
+    });
 
     deopNode->addChild(playerArg);
     dispatcher.registerCommand(deopNode);

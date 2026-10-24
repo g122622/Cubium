@@ -194,7 +194,10 @@ TEST_F(ArmorMaterialBodySlotTest, NetheriteDurabilityBodyReturns592)
 
 class ArmorSlotMappingTest : public ::testing::Test {
 protected:
-    static void SetUpTestSuite() { ArmorMaterials::initialize(); }
+    static void SetUpTestSuite()
+    {
+        ArmorMaterials::initialize();
+    }
 };
 
 TEST_F(ArmorSlotMappingTest, HeadMapsToHeadEquipmentSlot)

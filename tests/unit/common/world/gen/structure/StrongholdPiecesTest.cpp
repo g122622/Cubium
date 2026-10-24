@@ -132,10 +132,18 @@ TEST(StrongholdPieceWeightTest, InitializeWeights_SpecificEntries)
     const StrongholdPieceWeight* prison = nullptr;
 
     for (const auto& w : weights) {
-        if (w.pieceType == StrongholdPieceTypes::STRAIGHT) straight = &w;
-        if (w.pieceType == StrongholdPieceTypes::LIBRARY) library = &w;
-        if (w.pieceType == StrongholdPieceTypes::PORTAL_ROOM) portal = &w;
-        if (w.pieceType == StrongholdPieceTypes::PRISON) prison = &w;
+        if (w.pieceType == StrongholdPieceTypes::STRAIGHT) {
+            straight = &w;
+        }
+        if (w.pieceType == StrongholdPieceTypes::LIBRARY) {
+            library = &w;
+        }
+        if (w.pieceType == StrongholdPieceTypes::PORTAL_ROOM) {
+            portal = &w;
+        }
+        if (w.pieceType == StrongholdPieceTypes::PRISON) {
+            prison = &w;
+        }
     }
 
     ASSERT_NE(straight, nullptr);

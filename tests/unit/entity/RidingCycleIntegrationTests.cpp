@@ -63,7 +63,10 @@ public:
         }
     }
 
-    void unregisterEntity(EntityInstanceId id) { m_entities.erase(id); }
+    void unregisterEntity(EntityInstanceId id)
+    {
+        m_entities.erase(id);
+    }
 
     [[nodiscard]] Entity* getEntity(EntityInstanceId id) override
     {
@@ -90,7 +93,11 @@ public:
     MultiPassengerEntity(EntityInstanceId id, IWorld* world = nullptr)
         : Entity(id, world, mc::test::testEcsRegistry())
     {}
-    i32 getMaxPassengers() const override { return 2; }
+
+    i32 getMaxPassengers() const override
+    {
+        return 2;
+    }
 };
 
 // ============================================================================
@@ -99,8 +106,15 @@ public:
 
 class RidingCycleIntegrationTest : public ::testing::Test {
 protected:
-    void SetUp() override { m_world = std::make_unique<RidingTestWorld>(); }
-    void TearDown() override { m_world.reset(); }
+    void SetUp() override
+    {
+        m_world = std::make_unique<RidingTestWorld>();
+    }
+
+    void TearDown() override
+    {
+        m_world.reset();
+    }
 
     std::unique_ptr<RidingTestWorld> m_world;
 };

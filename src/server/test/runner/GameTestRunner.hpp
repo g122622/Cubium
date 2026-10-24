@@ -50,8 +50,12 @@ public:
     [[nodiscard]] std::size_t totalTestCount() const noexcept;
     [[nodiscard]] std::size_t passedCount() const noexcept;
     [[nodiscard]] std::size_t failedCount() const noexcept;
+
     // 供 GameTestServer 在 run() 末尾把进度喂给 GlobalTestReporter::onAllFinished。
-    [[nodiscard]] const MultipleTestTracker& tracker() const noexcept { return m_tracker; }
+    [[nodiscard]] const MultipleTestTracker& tracker() const noexcept
+    {
+        return m_tracker;
+    }
 
     /**
      * @brief 构造 builder。

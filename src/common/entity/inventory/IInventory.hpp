@@ -76,7 +76,10 @@ public:
      * @brief 获取最大堆叠数量
      * @return 默认 DEFAULT_MAX_STACK_SIZE
      */
-    [[nodiscard]] virtual i32 getMaxStackSize() const { return mc::item::DEFAULT_MAX_STACK_SIZE; }
+    [[nodiscard]] virtual i32 getMaxStackSize() const
+    {
+        return mc::item::DEFAULT_MAX_STACK_SIZE;
+    }
 
     // ========== 物品操作 ==========
 
@@ -136,7 +139,10 @@ public:
      *
      * @param listener 监听器指针（调用方负责确保指针生命周期有效）
      */
-    virtual void addListener(ContainerListener* listener) { (void)listener; }
+    virtual void addListener(ContainerListener* listener)
+    {
+        (void)listener;
+    }
 
     /**
      * @brief 移除容器变更监听器
@@ -145,7 +151,10 @@ public:
      *
      * @param listener 要移除的监听器指针
      */
-    virtual void removeListener(ContainerListener* listener) { (void)listener; }
+    virtual void removeListener(ContainerListener* listener)
+    {
+        (void)listener;
+    }
 
     // ========== 玩家访问控制 ==========
 

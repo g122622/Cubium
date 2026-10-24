@@ -60,7 +60,10 @@ namespace {
  */
 class DragonTestWorld final : public mc::test::BaseTestWorld {
 public:
-    DragonTestWorld() { VanillaBlocks::initialize(); }
+    DragonTestWorld()
+    {
+        VanillaBlocks::initialize();
+    }
 
     // ========== IWorld 接口实现 ==========
 
@@ -90,7 +93,10 @@ public:
         return getBlockState(pos.x, pos.y, pos.z);
     }
 
-    [[nodiscard]] bool isWithinWorldBounds(i32, i32, i32) const override { return true; }
+    [[nodiscard]] bool isWithinWorldBounds(i32, i32, i32) const override
+    {
+        return true;
+    }
 
     [[nodiscard]] std::vector<Entity*> getEntitiesInAABB(
         const AxisAlignedBB& aabb, const Entity* exclude) const override
@@ -145,7 +151,9 @@ public:
 
     EntityInstanceId spawnEntity(std::unique_ptr<Entity> entity) override
     {
-        if (!entity) return EntityInstanceId(0);
+        if (!entity) {
+            return EntityInstanceId(0);
+        }
         EntityInstanceId id = m_nextEntityId;
         m_nextEntityId = EntityInstanceId(static_cast<u32>(m_nextEntityId) + 1);
         entity->setId(id);
@@ -178,26 +186,56 @@ public:
     }
 
     /** @brief 获取已生成经验球的数量 */
-    [[nodiscard]] size_t spawnedXpOrbCount() const { return m_spawnedXpOrbs.size(); }
+    [[nodiscard]] size_t spawnedXpOrbCount() const
+    {
+        return m_spawnedXpOrbs.size();
+    }
 
     /** @brief 清空经验球记录（用于分段验证） */
-    void clearXpOrbRecords() { m_spawnedXpOrbs.clear(); }
+    void clearXpOrbRecords()
+    {
+        m_spawnedXpOrbs.clear();
+    }
 
-    [[nodiscard]] u64 currentTick() const override { return m_currentTick; }
+    [[nodiscard]] u64 currentTick() const override
+    {
+        return m_currentTick;
+    }
 
-    void setCurrentTick(u64 tick) { m_currentTick = tick; }
+    void setCurrentTick(u64 tick)
+    {
+        m_currentTick = tick;
+    }
 
-    [[nodiscard]] i64 dayTime() const override { return 6000; }
+    [[nodiscard]] i64 dayTime() const override
+    {
+        return 6000;
+    }
 
-    [[nodiscard]] Difficulty difficulty() const override { return Difficulty::Normal; }
+    [[nodiscard]] Difficulty difficulty() const override
+    {
+        return Difficulty::Normal;
+    }
 
-    [[nodiscard]] world::gamerule::GameRules& getGameRules() override { return m_gameRules; }
+    [[nodiscard]] world::gamerule::GameRules& getGameRules() override
+    {
+        return m_gameRules;
+    }
 
-    [[nodiscard]] const world::gamerule::GameRules& getGameRules() const override { return m_gameRules; }
+    [[nodiscard]] const world::gamerule::GameRules& getGameRules() const override
+    {
+        return m_gameRules;
+    }
 
-    [[nodiscard]] Player* getClosestPlayer(const Vector3& pos, f32 maxDistance) override { return m_closestPlayer; }
+    [[nodiscard]] Player* getClosestPlayer(const Vector3& pos, f32 maxDistance) override
+    {
+        return m_closestPlayer;
+    }
 
-    void setClosestPlayerForTest(Player* player) { m_closestPlayer = player; }
+    void setClosestPlayerForTest(Player* player)
+    {
+        m_closestPlayer = player;
+    }
 
     [[nodiscard]] world::tick::TickManager& tickManager() override
     {
@@ -231,7 +269,10 @@ protected:
         m_world = std::make_unique<DragonTestWorld>();
     }
 
-    void TearDown() override { m_world.reset(); }
+    void TearDown() override
+    {
+        m_world.reset();
+    }
 
     std::unique_ptr<DragonTestWorld> m_world;
 };

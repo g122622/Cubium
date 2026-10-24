@@ -50,9 +50,15 @@ inline constexpr i32 kJavaProtocolVersion = 774;
  */
 class JavaBackend final : public IProtocolBackend<buffer::RegistryByteBuf> {
 public:
-    [[nodiscard]] std::string name() const override { return "java"; }
+    [[nodiscard]] std::string name() const override
+    {
+        return "java";
+    }
 
-    [[nodiscard]] std::vector<i32> supportedProtocolVersions() const override { return {kJavaProtocolVersion}; }
+    [[nodiscard]] std::vector<i32> supportedProtocolVersions() const override
+    {
+        return {kJavaProtocolVersion};
+    }
 
     [[nodiscard]] std::shared_ptr<pipeline::ProtocolTableSet<buffer::RegistryByteBuf>> provideProtocolTables() override;
 };

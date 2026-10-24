@@ -114,7 +114,10 @@ protected:
     }
 
     // 判断方块是否为特定 VanillaBlock（与 SurfaceRuleParityTest 同款辅助）
-    static bool isBlock(const BlockState* state, const Block* block) { return state != nullptr && state->is(block); }
+    static bool isBlock(const BlockState* state, const Block* block)
+    {
+        return state != nullptr && state->is(block);
+    }
 
     // 统计区块最底层（MIN_BUILD_HEIGHT）的基岩数量。基岩由 VerticalGradientCondition 驱动的
     // verticalGradient 规则生成，确定性取决于 PositionalRandomFactory.at(x,y,z) —— 同种子同坐标

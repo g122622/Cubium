@@ -80,7 +80,10 @@ public:
     void resetTask() override;
     void tick() override;
 
-    [[nodiscard]] std::string getTypeName() const override { return "BreakDoorGoal"; }
+    [[nodiscard]] std::string getTypeName() const override
+    {
+        return "BreakDoorGoal";
+    }
 
     /**
      * @brief 获取破门所需时间（ticks）
@@ -117,7 +120,9 @@ private:
  */
 inline BreakDoorGoal::DifficultyPredicate defaultDoorBreakDifficultyPredicate()
 {
-    return [](Difficulty difficulty) { return difficulty == Difficulty::Normal || difficulty == Difficulty::Hard; };
+    return [](Difficulty difficulty) {
+        return difficulty == Difficulty::Normal || difficulty == Difficulty::Hard;
+    };
 }
 
 /**
@@ -128,7 +133,9 @@ inline BreakDoorGoal::DifficultyPredicate defaultDoorBreakDifficultyPredicate()
  */
 inline BreakDoorGoal::DifficultyPredicate zombieDoorBreakDifficultyPredicate()
 {
-    return [](Difficulty difficulty) { return difficulty == Difficulty::Hard; };
+    return [](Difficulty difficulty) {
+        return difficulty == Difficulty::Hard;
+    };
 }
 
 } // namespace entity::ai::goal

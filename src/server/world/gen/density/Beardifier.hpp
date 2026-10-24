@@ -73,11 +73,22 @@ public:
     Beardifier(std::vector<Rigid> pieces, std::vector<jigsaw::JigsawJunction> junctions);
 
     [[nodiscard]] f64 compute(i32 blockX, i32 blockY, i32 blockZ) const override;
-    [[nodiscard]] f64 minValue() const override { return -std::numeric_limits<f64>::infinity(); }
-    [[nodiscard]] f64 maxValue() const override { return std::numeric_limits<f64>::infinity(); }
+
+    [[nodiscard]] f64 minValue() const override
+    {
+        return -std::numeric_limits<f64>::infinity();
+    }
+
+    [[nodiscard]] f64 maxValue() const override
+    {
+        return std::numeric_limits<f64>::infinity();
+    }
 
     /** 是否有结构数据 */
-    [[nodiscard]] bool isEmpty() const { return m_pieces.empty() && m_junctions.empty(); }
+    [[nodiscard]] bool isEmpty() const
+    {
+        return m_pieces.empty() && m_junctions.empty();
+    }
 
     [[nodiscard]] std::unique_ptr<DensityFunction> mapAll(Visitor& visitor) const override
     {
@@ -132,9 +143,20 @@ class BeardifierMarker final : public DensityFunction {
 public:
     static const BeardifierMarker INSTANCE;
 
-    [[nodiscard]] f64 compute(i32, i32, i32) const override { return 0.0; }
-    [[nodiscard]] f64 minValue() const override { return 0.0; }
-    [[nodiscard]] f64 maxValue() const override { return 0.0; }
+    [[nodiscard]] f64 compute(i32, i32, i32) const override
+    {
+        return 0.0;
+    }
+
+    [[nodiscard]] f64 minValue() const override
+    {
+        return 0.0;
+    }
+
+    [[nodiscard]] f64 maxValue() const override
+    {
+        return 0.0;
+    }
 
     [[nodiscard]] std::unique_ptr<DensityFunction> mapAll(Visitor& visitor) const override
     {

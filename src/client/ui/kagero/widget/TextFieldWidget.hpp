@@ -93,7 +93,9 @@ public:
      */
     void paint(PaintContext& ctx) override
     {
-        if (!isVisible()) return;
+        if (!isVisible()) {
+            return;
+        }
 
         // 绘制背景
         if (m_drawBackground) {
@@ -156,8 +158,12 @@ public:
         (void)mouseY;
         (void)mods;
 
-        if (!isActive() || !isVisible()) return false;
-        if (button != 0) return false;
+        if (!isActive() || !isVisible()) {
+            return false;
+        }
+        if (button != 0) {
+            return false;
+        }
 
         setFocused(true);
         _resetCursorBlink();
@@ -171,14 +177,20 @@ public:
     bool onKey(i32 key, i32 scanCode, i32 action, i32 mods) override
     {
         (void)scanCode;
-        if (!canWrite()) return false;
+        if (!canWrite()) {
+            return false;
+        }
         // 只处理按下和重复事件
-        if (action != static_cast<i32>(KeyAction::Press) && action != static_cast<i32>(KeyAction::Repeat)) return false;
+        if (action != static_cast<i32>(KeyAction::Press) && action != static_cast<i32>(KeyAction::Repeat)) {
+            return false;
+        }
 
         const bool previousShiftHeld = m_shiftHeld;
         m_shiftHeld = hasMod(static_cast<KeyMods>(mods), KeyMods::Shift);
 
-        const auto restoreShift = [&]() { m_shiftHeld = previousShiftHeld; };
+        const auto restoreShift = [&]() {
+            m_shiftHeld = previousShiftHeld;
+        };
 
         switch (key) {
             case Keys::Backspace:
@@ -220,8 +232,12 @@ public:
      */
     bool onChar(u32 codePoint) override
     {
-        if (!canWrite()) return false;
-        if (!isAllowedCharacter(codePoint)) return false;
+        if (!canWrite()) {
+            return false;
+        }
+        if (!isAllowedCharacter(codePoint)) {
+            return false;
+        }
 
         writeText(util::text::utf8Encode(codePoint));
         return true;
@@ -232,7 +248,9 @@ public:
      */
     void setText(const std::string& text)
     {
-        if (m_validator && !m_validator(text)) return;
+        if (m_validator && !m_validator(text)) {
+            return;
+        }
 
         std::string newText = text;
         // 按码点数截断，确保不截断多字节字符
@@ -254,15 +272,22 @@ public:
     /**
      * @brief 获取文本
      */
-    [[nodiscard]] const std::string& text() const { return m_text; }
+    [[nodiscard]] const std::string& text() const
+    {
+        return m_text;
+    }
 
     /**
      * @brief 在光标处写入文本，或替换当前选区
      */
     void writeText(const std::string& text)
     {
-        if (text.empty() && !hasSelection()) return;
-        if (!m_active) return;
+        if (text.empty() && !hasSelection()) {
+            return;
+        }
+        if (!m_active) {
+            return;
+        }
 
         const i32 selStart = std::min(m_cursorPosition, m_selectionEnd);
         const i32 selEnd = std::max(m_cursorPosition, m_selectionEnd);
@@ -276,7 +301,9 @@ public:
         // 计算可用空间（以码点计）
         const i32 currentCodepoints = static_cast<i32>(util::text::utf8CodepointCount(m_text));
         const i32 availableSpace = m_maxLength - currentCodepoints + replacedCodepoints;
-        if (availableSpace <= 0) return;
+        if (availableSpace <= 0) {
+            return;
+        }
 
         // 按码点数截断 toWrite
         const size_t toWriteCodepoints = util::text::utf8CodepointCount(toWrite);
@@ -291,7 +318,9 @@ public:
         const size_t selEndByte = util::text::utf8CodepointToByteOffset(m_text, static_cast<size_t>(selEnd));
 
         std::string newText = m_text.substr(0, selStartByte) + toWrite + m_text.substr(selEndByte);
-        if (m_validator && !m_validator(newText)) return;
+        if (m_validator && !m_validator(newText)) {
+            return;
+        }
 
         m_text = newText;
         const size_t writeCodepoints = util::text::utf8CodepointCount(toWrite);
@@ -317,7 +346,9 @@ public:
      */
     void deleteSelectedText()
     {
-        if (!hasSelection()) return;
+        if (!hasSelection()) {
+            return;
+        }
 
         const i32 start = std::min(m_cursorPosition, m_selectionEnd);
         const i32 end = std::max(m_cursorPosition, m_selectionEnd);
@@ -326,7 +357,9 @@ public:
         const size_t endByte = util::text::utf8CodepointToByteOffset(m_text, static_cast<size_t>(end));
 
         std::string newText = m_text.substr(0, startByte) + m_text.substr(endByte);
-        if (m_validator && !m_validator(newText)) return;
+        if (m_validator && !m_validator(newText)) {
+            return;
+        }
 
         m_text = newText;
         setCursorPosition(start);
@@ -349,22 +382,34 @@ public:
     /**
      * @brief 将光标移到开头
      */
-    void setCursorPositionStart() { setCursorPosition(0); }
+    void setCursorPositionStart()
+    {
+        setCursorPosition(0);
+    }
 
     /**
      * @brief 将光标移到结尾
      */
-    void setCursorPositionEnd() { setCursorPosition(static_cast<i32>(util::text::utf8CodepointCount(m_text))); }
+    void setCursorPositionEnd()
+    {
+        setCursorPosition(static_cast<i32>(util::text::utf8CodepointCount(m_text)));
+    }
 
     /**
      * @brief 按码点偏移量移动光标
      */
-    void moveCursorBy(i32 delta) { setCursorPosition(m_cursorPosition + delta); }
+    void moveCursorBy(i32 delta)
+    {
+        setCursorPosition(m_cursorPosition + delta);
+    }
 
     /**
      * @brief 获取光标位置（码点索引）
      */
-    [[nodiscard]] i32 cursorPosition() const { return m_cursorPosition; }
+    [[nodiscard]] i32 cursorPosition() const
+    {
+        return m_cursorPosition;
+    }
 
     /**
      * @brief 设置选区结束位置（码点索引）
@@ -387,12 +432,18 @@ public:
     /**
      * @brief 清除选区
      */
-    void clearSelection() { m_selectionEnd = m_cursorPosition; }
+    void clearSelection()
+    {
+        m_selectionEnd = m_cursorPosition;
+    }
 
     /**
      * @brief 是否存在选区
      */
-    [[nodiscard]] bool hasSelection() const { return m_cursorPosition != m_selectionEnd; }
+    [[nodiscard]] bool hasSelection() const
+    {
+        return m_cursorPosition != m_selectionEnd;
+    }
 
     /**
      * @brief 设置最大长度（码点数）
@@ -414,82 +465,130 @@ public:
     /**
      * @brief 获取最大长度（码点数）
      */
-    [[nodiscard]] i32 maxLength() const { return m_maxLength; }
+    [[nodiscard]] i32 maxLength() const
+    {
+        return m_maxLength;
+    }
 
     /**
      * @brief 设置占位符文本
      */
-    void setPlaceholder(const std::string& placeholder) { m_placeholder = placeholder; }
+    void setPlaceholder(const std::string& placeholder)
+    {
+        m_placeholder = placeholder;
+    }
 
     /**
      * @brief 获取占位符文本
      */
-    [[nodiscard]] const std::string& placeholder() const { return m_placeholder; }
+    [[nodiscard]] const std::string& placeholder() const
+    {
+        return m_placeholder;
+    }
 
     /**
      * @brief 设置文本变化回调
      */
-    void setTextChangedCallback(TextChangedCallback callback) { m_onTextChanged = std::move(callback); }
+    void setTextChangedCallback(TextChangedCallback callback)
+    {
+        m_onTextChanged = std::move(callback);
+    }
 
     /**
      * @brief 设置文本验证器
      */
-    void setValidator(TextValidator validator) { m_validator = std::move(validator); }
+    void setValidator(TextValidator validator)
+    {
+        m_validator = std::move(validator);
+    }
 
     /**
      * @brief 设置是否启用
      */
-    void setEnabled(bool enabled) { m_enabled = enabled; }
+    void setEnabled(bool enabled)
+    {
+        m_enabled = enabled;
+    }
 
     /**
      * @brief 是否启用
      */
-    [[nodiscard]] bool isEnabled() const { return m_enabled; }
+    [[nodiscard]] bool isEnabled() const
+    {
+        return m_enabled;
+    }
 
     /**
      * @brief 设置是否允许失去焦点时保留选区
      */
-    void setCanLoseFocus(bool canLoseFocus) { m_canLoseFocus = canLoseFocus; }
+    void setCanLoseFocus(bool canLoseFocus)
+    {
+        m_canLoseFocus = canLoseFocus;
+    }
 
     /**
      * @brief 是否允许失去焦点时保留选区
      */
-    [[nodiscard]] bool canLoseFocus() const { return m_canLoseFocus; }
+    [[nodiscard]] bool canLoseFocus() const
+    {
+        return m_canLoseFocus;
+    }
 
     /**
      * @brief 设置是否绘制背景
      */
-    void setDrawBackground(bool draw) { m_drawBackground = draw; }
+    void setDrawBackground(bool draw)
+    {
+        m_drawBackground = draw;
+    }
 
     /**
      * @brief 是否绘制背景
      */
-    [[nodiscard]] bool drawBackground() const { return m_drawBackground; }
+    [[nodiscard]] bool drawBackground() const
+    {
+        return m_drawBackground;
+    }
 
     /**
      * @brief 设置文本颜色
      */
-    void setTextColor(u32 color) { m_textColor = color; }
+    void setTextColor(u32 color)
+    {
+        m_textColor = color;
+    }
 
     /**
      * @brief 获取文本颜色
      */
-    [[nodiscard]] u32 textColor() const { return m_textColor; }
+    [[nodiscard]] u32 textColor() const
+    {
+        return m_textColor;
+    }
 
     /**
      * @brief 设置禁用状态下的文本颜色
      */
-    void setDisabledTextColor(u32 color) { m_disabledTextColor = color; }
+    void setDisabledTextColor(u32 color)
+    {
+        m_disabledTextColor = color;
+    }
 
     /**
      * @brief 获取禁用状态下的文本颜色
      */
-    [[nodiscard]] u32 disabledTextColor() const { return m_disabledTextColor; }
+    [[nodiscard]] u32 disabledTextColor() const
+    {
+        return m_disabledTextColor;
+    }
 
     /**
      * @brief 设置选区高亮颜色（ARGB 格式）
      */
-    void setSelectionColor(u32 color) { m_selectionColor = color; }
+    void setSelectionColor(u32 color)
+    {
+        m_selectionColor = color;
+    }
 
     /**
      * @brief 设置字体
@@ -505,12 +604,18 @@ public:
     /**
      * @brief 获取字体
      */
-    [[nodiscard]] ::mc::client::Font* font() const { return m_font; }
+    [[nodiscard]] ::mc::client::Font* font() const
+    {
+        return m_font;
+    }
 
     /**
      * @brief 是否允许写入文本
      */
-    [[nodiscard]] bool canWrite() const { return isVisible() && isFocused() && m_enabled; }
+    [[nodiscard]] bool canWrite() const
+    {
+        return isVisible() && isFocused() && m_enabled;
+    }
 
 protected:
     /**
@@ -545,7 +650,9 @@ protected:
             return;
         }
 
-        if (m_text.empty()) return;
+        if (m_text.empty()) {
+            return;
+        }
 
         i32 start;
         i32 end;
@@ -564,7 +671,9 @@ protected:
             const size_t endByte = util::text::utf8CodepointToByteOffset(m_text, static_cast<size_t>(end));
 
             std::string newText = m_text.substr(0, startByte) + m_text.substr(endByte);
-            if (m_validator && !m_validator(newText)) return;
+            if (m_validator && !m_validator(newText)) {
+                return;
+            }
 
             m_text = newText;
             setCursorPosition(start);
@@ -657,7 +766,10 @@ protected:
     /**
      * @brief 获取文本起始 X 坐标（含边框和内边距偏移）
      */
-    [[nodiscard]] i32 textStartX() const { return bounds().x + 1 + padding().left; }
+    [[nodiscard]] i32 textStartX() const
+    {
+        return bounds().x + 1 + padding().left;
+    }
 
     /**
      * @brief 获取文本基线 Y 坐标（垂直居中）
@@ -683,7 +795,10 @@ protected:
     /**
      * @brief 获取可显示的文本宽度（扣除边框和内边距）
      */
-    [[nodiscard]] i32 innerTextWidth() const { return std::max(0, bounds().width - 2 - padding().horizontal()); }
+    [[nodiscard]] i32 innerTextWidth() const
+    {
+        return std::max(0, bounds().width - 2 - padding().horizontal());
+    }
 
     /**
      * @brief 更新滚动偏移，确保光标始终在可见区域内
@@ -724,9 +839,15 @@ protected:
      */
     static bool isAllowedCharacter(u32 codePoint)
     {
-        if (codePoint < 32) return false;
-        if (codePoint == 127) return false;
-        if (codePoint == 167) return false; // § 符号
+        if (codePoint < 32) {
+            return false;
+        }
+        if (codePoint == 127) {
+            return false;
+        }
+        if (codePoint == 167) {
+            return false; // § 符号
+        }
         return true;
     }
 

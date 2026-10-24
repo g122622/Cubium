@@ -76,100 +76,157 @@ public:
     /**
      * @brief 获取世界（只读）
      */
-    [[nodiscard]] const IWorld& world() const { return m_world; }
+    [[nodiscard]] const IWorld& world() const
+    {
+        return m_world;
+    }
 
     /**
      * @brief 获取世界引用（可修改）
      */
-    [[nodiscard]] IWorld& world() { return m_world; }
+    [[nodiscard]] IWorld& world()
+    {
+        return m_world;
+    }
 
     /**
      * @brief 获取世界引用（别名）
      */
-    [[nodiscard]] IWorld& getWorld() { return m_world; }
+    [[nodiscard]] IWorld& getWorld()
+    {
+        return m_world;
+    }
 
     /**
      * @brief 获取世界引用（只读别名）
      */
-    [[nodiscard]] const IWorld& getWorld() const { return m_world; }
+    [[nodiscard]] const IWorld& getWorld() const
+    {
+        return m_world;
+    }
 
     /**
      * @brief 获取玩家（可为nullptr）
      */
-    [[nodiscard]] Player* player() const { return m_player; }
+    [[nodiscard]] Player* player() const
+    {
+        return m_player;
+    }
 
     /**
      * @brief 获取玩家（别名）
      */
-    [[nodiscard]] Player* getPlayer() const { return m_player; }
+    [[nodiscard]] Player* getPlayer() const
+    {
+        return m_player;
+    }
 
     /**
      * @brief 获取物品堆
      */
-    [[nodiscard]] const ItemStack& itemStack() const { return *m_stack; }
+    [[nodiscard]] const ItemStack& itemStack() const
+    {
+        return *m_stack;
+    }
 
     /**
      * @brief 获取物品堆（别名）
      */
-    [[nodiscard]] const ItemStack& getItemStack() const { return *m_stack; }
+    [[nodiscard]] const ItemStack& getItemStack() const
+    {
+        return *m_stack;
+    }
 
     /**
      * @brief 获取物品堆（可修改）
      */
-    [[nodiscard]] ItemStack& getItemStackMut() { return *m_stack; }
+    [[nodiscard]] ItemStack& getItemStackMut()
+    {
+        return *m_stack;
+    }
 
     /**
      * @brief 获取使用的手（主手或副手）
      * @return 手枚举值
      */
-    [[nodiscard]] Hand getHand() const { return m_hand; }
+    [[nodiscard]] Hand getHand() const
+    {
+        return m_hand;
+    }
 
     /**
      * @brief 获取玩家 yaw 角度
      * @return yaw 角度
      */
-    [[nodiscard]] f32 getPlayerYaw() const { return m_playerYaw; }
+    [[nodiscard]] f32 getPlayerYaw() const
+    {
+        return m_playerYaw;
+    }
 
     /**
      * @brief 获取玩家 pitch 角度
      * @return pitch 角度（度数，正值俯视，负值仰视）
      */
-    [[nodiscard]] f32 getPlayerPitch() const { return m_playerPitch; }
+    [[nodiscard]] f32 getPlayerPitch() const
+    {
+        return m_playerPitch;
+    }
 
     /**
      * @brief 获取击中点（世界坐标）
      */
-    [[nodiscard]] const Vector3& hitPosition() const { return m_hitPos; }
+    [[nodiscard]] const Vector3& hitPosition() const
+    {
+        return m_hitPos;
+    }
 
     /**
      * @brief 获取击中点（别名）
      */
-    [[nodiscard]] const Vector3& getHitPos() const { return m_hitPos; }
+    [[nodiscard]] const Vector3& getHitPos() const
+    {
+        return m_hitPos;
+    }
 
     /**
      * @brief 获取击中的方块位置
      */
-    [[nodiscard]] const BlockPos& blockPos() const { return m_blockPos; }
+    [[nodiscard]] const BlockPos& blockPos() const
+    {
+        return m_blockPos;
+    }
 
     /**
      * @brief 获取击中的方块位置（别名）
      */
-    [[nodiscard]] const BlockPos& getBlockPos() const { return m_blockPos; }
+    [[nodiscard]] const BlockPos& getBlockPos() const
+    {
+        return m_blockPos;
+    }
 
     /**
      * @brief 获取击中的面
      */
-    [[nodiscard]] Direction face() const { return m_face; }
+    [[nodiscard]] Direction face() const
+    {
+        return m_face;
+    }
 
     /**
      * @brief 获取击中的面（别名）
      */
-    [[nodiscard]] Direction getFace() const { return m_face; }
+    [[nodiscard]] Direction getFace() const
+    {
+        return m_face;
+    }
 
     /**
      * @brief 获取击中的面（别名，与face()相同）
      */
-    [[nodiscard]] Direction getClickedFace() const { return m_face; }
+    [[nodiscard]] Direction getClickedFace() const
+    {
+        return m_face;
+    }
 
     /**
      * @brief 获取击中点在方块内的相对坐标（0-1范围）
@@ -187,22 +244,34 @@ public:
     /**
      * @brief 获取击中点在X轴的相对坐标
      */
-    [[nodiscard]] f32 getHitX() const { return m_hitX; }
+    [[nodiscard]] f32 getHitX() const
+    {
+        return m_hitX;
+    }
 
     /**
      * @brief 获取击中点在Y轴的相对坐标
      */
-    [[nodiscard]] f32 getHitY() const { return m_hitY; }
+    [[nodiscard]] f32 getHitY() const
+    {
+        return m_hitY;
+    }
 
     /**
      * @brief 获取击中点在Z轴的相对坐标
      */
-    [[nodiscard]] f32 getHitZ() const { return m_hitZ; }
+    [[nodiscard]] f32 getHitZ() const
+    {
+        return m_hitZ;
+    }
 
     /**
      * @brief 检查上下文是否有效
      */
-    [[nodiscard]] bool isValid() const { return m_face != Direction::None; }
+    [[nodiscard]] bool isValid() const
+    {
+        return m_face != Direction::None;
+    }
 
 protected:
     IWorld& m_world; // 使用非 const 引用以支持修改操作

@@ -51,7 +51,10 @@ protected:
         bat = std::make_unique<BatEntity>(EntityInstanceId(0), mc::test::testEcsRegistry());
     }
 
-    void TearDown() override { bat.reset(); }
+    void TearDown() override
+    {
+        bat.reset();
+    }
 
     std::unique_ptr<BatEntity> bat;
 };

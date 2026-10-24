@@ -62,25 +62,37 @@ public:
      * @brief 获取水体颜色
      * @return 水体颜色 (RGB格式)
      */
-    [[nodiscard]] u32 waterColor() const noexcept { return m_waterColor; }
+    [[nodiscard]] u32 waterColor() const noexcept
+    {
+        return m_waterColor;
+    }
 
     /**
      * @brief 获取水下雾颜色
      * @return 水下雾颜色 (RGB格式)
      */
-    [[nodiscard]] u32 waterFogColor() const noexcept { return m_waterFogColor; }
+    [[nodiscard]] u32 waterFogColor() const noexcept
+    {
+        return m_waterFogColor;
+    }
 
     /**
      * @brief 获取雾颜色
      * @return 雾颜色 (RGB格式)
      */
-    [[nodiscard]] u32 fogColor() const noexcept { return m_fogColor; }
+    [[nodiscard]] u32 fogColor() const noexcept
+    {
+        return m_fogColor;
+    }
 
     /**
      * @brief 获取天空颜色
      * @return 天空颜色 (RGB格式)
      */
-    [[nodiscard]] u32 skyColor() const noexcept { return m_skyColor; }
+    [[nodiscard]] u32 skyColor() const noexcept
+    {
+        return m_skyColor;
+    }
 
     /**
      * @brief 获取树叶颜色覆盖
@@ -88,7 +100,10 @@ public:
      *
      * @note 如果返回 nullopt，应使用 foliage colormap 计算颜色
      */
-    [[nodiscard]] OptionalColor foliageColor() const noexcept { return m_foliageColor; }
+    [[nodiscard]] OptionalColor foliageColor() const noexcept
+    {
+        return m_foliageColor;
+    }
 
     /**
      * @brief 获取草颜色覆盖
@@ -97,13 +112,19 @@ public:
      * @note 如果返回 nullopt，应使用 grass colormap 计算颜色
      *       （可能还需要应用 grassColorModifier）
      */
-    [[nodiscard]] OptionalColor grassColor() const noexcept { return m_grassColor; }
+    [[nodiscard]] OptionalColor grassColor() const noexcept
+    {
+        return m_grassColor;
+    }
 
     /**
      * @brief 获取草颜色修改器
      * @return 草颜色修改器类型
      */
-    [[nodiscard]] GrassColorModifier grassColorModifier() const noexcept { return m_grassColorModifier; }
+    [[nodiscard]] GrassColorModifier grassColorModifier() const noexcept
+    {
+        return m_grassColorModifier;
+    }
 
     /**
      * @brief 获取干燥树叶颜色覆盖
@@ -111,7 +132,10 @@ public:
      *
      * 新增，用于苍白花园等生物群系的干枯植被颜色。
      */
-    [[nodiscard]] OptionalColor dryFoliageColor() const noexcept { return m_dryFoliageColor; }
+    [[nodiscard]] OptionalColor dryFoliageColor() const noexcept
+    {
+        return m_dryFoliageColor;
+    }
 
     // === 默认颜色常量 ===
 

@@ -77,7 +77,10 @@ public:
      *
      * 对应 MC Java: components().get(DataComponents.CUSTOM_NAME)
      */
-    [[nodiscard]] std::string getCustomName() const override { return m_customName; }
+    [[nodiscard]] std::string getCustomName() const override
+    {
+        return m_customName;
+    }
 
     /**
      * @brief 设置自定义名称

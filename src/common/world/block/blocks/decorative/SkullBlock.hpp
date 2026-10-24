@@ -36,6 +36,7 @@
 
 namespace mc {
 class Entity;
+
 namespace blocks {
 
 /**
@@ -75,12 +76,18 @@ public:
     /**
      * @brief 获取头颅种类
      */
-    [[nodiscard]] SkullType getSkullType() const noexcept { return m_type; }
+    [[nodiscard]] SkullType getSkullType() const noexcept
+    {
+        return m_type;
+    }
 
     /**
      * @brief 头颅方块持有方块实体（存储玩家档案/自定义名称/音符盒音色）
      */
-    [[nodiscard]] bool hasBlockEntity() const noexcept override { return true; }
+    [[nodiscard]] bool hasBlockEntity() const noexcept override
+    {
+        return true;
+    }
 
     [[nodiscard]] std::unique_ptr<BlockEntity> createBlockEntity(const BlockPos& pos) override;
 

@@ -83,19 +83,50 @@ public:
     using IWorld::getBlockState;
     using IWorld::getFluidState;
 
-    void setSeed(u64 seed) { m_seed = seed; }
-    [[nodiscard]] u64 seed() const override { return m_seed; }
+    void setSeed(u64 seed)
+    {
+        m_seed = seed;
+    }
 
-    [[nodiscard]] u64 currentTick() const override { return m_currentTick; }
+    [[nodiscard]] u64 seed() const override
+    {
+        return m_seed;
+    }
 
-    [[nodiscard]] math::IRandom& getRandom() override { return m_rng; }
-    [[nodiscard]] const math::IRandom& getRandom() const override { return m_rng; }
+    [[nodiscard]] u64 currentTick() const override
+    {
+        return m_currentTick;
+    }
 
-    [[nodiscard]] Difficulty difficulty() const override { return m_difficulty; }
-    void setDifficulty(Difficulty d) { m_difficulty = d; }
+    [[nodiscard]] math::IRandom& getRandom() override
+    {
+        return m_rng;
+    }
 
-    [[nodiscard]] bool isClientSide() const override { return m_clientSide; }
-    void setClientSide(bool clientSide) { m_clientSide = clientSide; }
+    [[nodiscard]] const math::IRandom& getRandom() const override
+    {
+        return m_rng;
+    }
+
+    [[nodiscard]] Difficulty difficulty() const override
+    {
+        return m_difficulty;
+    }
+
+    void setDifficulty(Difficulty d)
+    {
+        m_difficulty = d;
+    }
+
+    [[nodiscard]] bool isClientSide() const override
+    {
+        return m_clientSide;
+    }
+
+    void setClientSide(bool clientSide)
+    {
+        m_clientSide = clientSide;
+    }
 
     [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override
     {
@@ -127,8 +158,15 @@ public:
         return id;
     }
 
-    [[nodiscard]] size_t spawnedEntityCount() const { return m_spawnedEntities.size(); }
-    std::vector<std::unique_ptr<Entity>> takeSpawnedEntities() { return std::move(m_spawnedEntities); }
+    [[nodiscard]] size_t spawnedEntityCount() const
+    {
+        return m_spawnedEntities.size();
+    }
+
+    std::vector<std::unique_ptr<Entity>> takeSpawnedEntities()
+    {
+        return std::move(m_spawnedEntities);
+    }
 
     // 覆写 getFluidState：按方块位置返回注入的流体状态（用于水源/流动水测试）
     [[nodiscard]] const fluid::FluidState* getFluidState(i32 x, i32 y, i32 z) const override
@@ -141,7 +179,10 @@ public:
     }
 
     // 测试辅助：为指定位置注入流体状态
-    void setFluidState(const BlockPos& pos, const fluid::FluidState* state) { m_fluids[pos] = state; }
+    void setFluidState(const BlockPos& pos, const fluid::FluidState* state)
+    {
+        m_fluids[pos] = state;
+    }
 
     [[nodiscard]] bool isWithinWorldBounds(i32, i32 y, i32) const override
     {
@@ -149,12 +190,26 @@ public:
     }
 
     /// 世界级交互权限开关（模拟出生点保护 / 世界边界外拒绝交互的场景）。
-    [[nodiscard]] bool mayInteract(const Entity&, const BlockPos&) const override { return m_allowInteract; }
-    void setAllowInteract(bool allow) { m_allowInteract = allow; }
+    [[nodiscard]] bool mayInteract(const Entity&, const BlockPos&) const override
+    {
+        return m_allowInteract;
+    }
+
+    void setAllowInteract(bool allow)
+    {
+        m_allowInteract = allow;
+    }
 
     /// 游戏规则容器（刷怪笼开关等规则由测试设置）。
-    [[nodiscard]] world::gamerule::GameRules& getGameRules() override { return m_gameRules; }
-    [[nodiscard]] const world::gamerule::GameRules& getGameRules() const override { return m_gameRules; }
+    [[nodiscard]] world::gamerule::GameRules& getGameRules() override
+    {
+        return m_gameRules;
+    }
+
+    [[nodiscard]] const world::gamerule::GameRules& getGameRules() const override
+    {
+        return m_gameRules;
+    }
 
     /// 方块实体反查：供刷怪蛋设置刷怪笼实体类型。
     [[nodiscard]] BlockEntity* getBlockEntity(const BlockPos& pos) override
@@ -162,6 +217,7 @@ public:
         auto it = m_blockEntities.find(pos);
         return it != m_blockEntities.end() ? it->second.get() : nullptr;
     }
+
     [[nodiscard]] const BlockEntity* getBlockEntity(const BlockPos& pos) const override
     {
         auto it = m_blockEntities.find(pos);
@@ -217,7 +273,10 @@ protected:
         }
     }
 
-    void SetUp() override { m_world = std::make_unique<SpawnEggTestWorld>(); }
+    void SetUp() override
+    {
+        m_world = std::make_unique<SpawnEggTestWorld>();
+    }
 
     std::unique_ptr<SpawnEggTestWorld> m_world;
 };
@@ -244,10 +303,12 @@ TEST_F(SpawnEggItemTest, SpawnEntity_RealRegistryPigSucceeds)
 TEST_F(SpawnEggItemTest, SpawnEntity_UnknownEntityTypeReturnsFalse)
 {
     // 构造一个 name 不在注册表中的刷怪蛋，反查失败应返回 false
-    auto unknownType =
-        entity::EntityType::Builder([](IWorld*, ecs::EntityRegistry&) -> std::unique_ptr<Entity> { return nullptr; },
-            entity::EntityClassification::Creature)
-            .build();
+    auto unknownType = entity::EntityType::Builder(
+        [](IWorld*, ecs::EntityRegistry&) -> std::unique_ptr<Entity> {
+            return nullptr;
+        },
+        entity::EntityClassification::Creature)
+                           .build();
     const_cast<std::string&>(unknownType.name()) = "minecraft:nonexistent_entity";
 
     item::SpawnEggItem egg(std::move(unknownType), 0xFFFFFF, 0x000000, ItemProperties().maxStackSize(64));

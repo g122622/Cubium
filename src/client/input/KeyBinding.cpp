@@ -242,7 +242,9 @@ void KeyBinding::deserializeAll(const nlohmann::json& j)
 
 void KeyBinding::_registerBinding()
 {
-    if (m_id.empty()) return;
+    if (m_id.empty()) {
+        return;
+    }
 
     auto& bindings = _bindings();
 
@@ -257,7 +259,9 @@ void KeyBinding::_registerBinding()
 
 void KeyBinding::_unregisterBinding()
 {
-    if (m_id.empty()) return;
+    if (m_id.empty()) {
+        return;
+    }
 
     // 从绑定表移除
     _bindings().erase(m_id);

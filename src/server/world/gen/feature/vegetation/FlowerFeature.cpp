@@ -113,7 +113,9 @@ bool FlowerFeature::place(
 bool FlowerFeature::_isValidGround(WorldGenRegion& world, const BlockPos& pos, const FlowerFeatureConfig& config) const
 {
     const BlockState* state = world.getBlockState(pos);
-    if (!state) return false;
+    if (!state) {
+        return false;
+    }
 
     u32 blockId = state->blockId();
 
@@ -127,7 +129,9 @@ bool FlowerFeature::_isValidGround(WorldGenRegion& world, const BlockPos& pos, c
                 break;
             }
         }
-        if (!inWhitelist) return false;
+        if (!inWhitelist) {
+            return false;
+        }
     }
 
     // 检查黑名单

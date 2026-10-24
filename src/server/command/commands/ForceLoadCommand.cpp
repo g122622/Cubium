@@ -58,7 +58,9 @@ constexpr i32 MAX_FORCE_LOAD_CHUNKS = 256;
 void ForceLoadCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
 {
     auto forceloadNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("forceload");
-    forceloadNode->setRequirement([](const ServerCommandSource& source) { return source.hasPermission(2); });
+    forceloadNode->setRequirement([](const ServerCommandSource& source) {
+        return source.hasPermission(2);
+    });
     support::applyMetadata(forceloadNode,
         support::makeMetadata(
             "Forces chunks to stay loaded.", "/forceload <add|remove|query> <pos> [to]", 2, {}, true));
@@ -69,9 +71,13 @@ void ForceLoadCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispat
         std::make_shared<ArgumentCommandNode<ServerCommandSource, Coordinates::Ptr>>("pos", Vec3ArgumentType::vec3());
     auto toArg =
         std::make_shared<ArgumentCommandNode<ServerCommandSource, Coordinates::Ptr>>("to", Vec3ArgumentType::vec3());
-    toArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _addForceLoad(ctx); });
+    toArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _addForceLoad(ctx);
+    });
     posArg->addChild(toArg);
-    posArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _addForceLoad(ctx); });
+    posArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _addForceLoad(ctx);
+    });
     addNode->addChild(posArg);
     forceloadNode->addChild(addNode);
 
@@ -81,14 +87,20 @@ void ForceLoadCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispat
         std::make_shared<ArgumentCommandNode<ServerCommandSource, Coordinates::Ptr>>("pos", Vec3ArgumentType::vec3());
     auto removeToArg =
         std::make_shared<ArgumentCommandNode<ServerCommandSource, Coordinates::Ptr>>("to", Vec3ArgumentType::vec3());
-    removeToArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _removeForceLoad(ctx); });
+    removeToArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _removeForceLoad(ctx);
+    });
     removePosArg->addChild(removeToArg);
-    removePosArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _removeForceLoad(ctx); });
+    removePosArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _removeForceLoad(ctx);
+    });
     removeNode->addChild(removePosArg);
 
     // /forceload remove all
     auto allNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("all");
-    allNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _removeAllForceLoad(ctx); });
+    allNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _removeAllForceLoad(ctx);
+    });
     removeNode->addChild(allNode);
 
     forceloadNode->addChild(removeNode);
@@ -97,10 +109,14 @@ void ForceLoadCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispat
     auto queryNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("query");
     auto queryPosArg =
         std::make_shared<ArgumentCommandNode<ServerCommandSource, Coordinates::Ptr>>("pos", Vec3ArgumentType::vec3());
-    queryPosArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _queryForceLoad(ctx); });
+    queryPosArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _queryForceLoad(ctx);
+    });
     queryNode->addChild(queryPosArg);
     // /forceload query (without position - list all)
-    queryNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _listAllForceLoad(ctx); });
+    queryNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _listAllForceLoad(ctx);
+    });
     forceloadNode->addChild(queryNode);
 
     dispatcher.registerCommand(forceloadNode);
@@ -379,7 +395,9 @@ i32 ForceLoadCommand::_listAllForceLoad(CommandContext<ServerCommandSource>& con
 
     // 按坐标排序
     std::sort(forcedChunks.begin(), forcedChunks.end(), [](const ChunkPos& a, const ChunkPos& b) {
-        if (a.x != b.x) return a.x < b.x;
+        if (a.x != b.x) {
+            return a.x < b.x;
+        }
         return a.z < b.z;
     });
 

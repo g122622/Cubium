@@ -58,7 +58,10 @@ class TemplatePool {
 public:
     TemplatePool(const ResourceLocation& name, const ResourceLocation& fallback);
 
-    const ResourceLocation& getName() const noexcept { return m_name; }
+    const ResourceLocation& getName() const noexcept
+    {
+        return m_name;
+    }
 
     /**
      * @brief 获取回退模板池名称
@@ -66,7 +69,10 @@ public:
      * 当本池无可用候选块时，回退到此池继续选择。
      * 对应 MC 1.21 StructureTemplatePool.fallback。
      */
-    const ResourceLocation& getFallback() const noexcept { return m_fallback; }
+    const ResourceLocation& getFallback() const noexcept
+    {
+        return m_fallback;
+    }
 
     /**
      * @brief 获取随机拼图块
@@ -93,7 +99,10 @@ public:
      *
      * 对应 MC 1.21 StructureTemplatePool.getTotalWeight。
      */
-    size_t getTotalWeight() const noexcept { return static_cast<size_t>(m_totalWeight); }
+    size_t getTotalWeight() const noexcept
+    {
+        return static_cast<size_t>(m_totalWeight);
+    }
 
     /**
      * @brief 池内元素在**无旋转**下的最大 Y 跨度（格）
@@ -108,7 +117,10 @@ public:
      */
     [[nodiscard]] i32 getMaxYSpan() const;
 
-    bool isEmpty() const noexcept { return m_entries.empty(); }
+    bool isEmpty() const noexcept
+    {
+        return m_entries.empty();
+    }
 
     /**
      * @brief 添加拼图块到模板池

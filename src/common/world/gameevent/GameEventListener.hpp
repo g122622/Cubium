@@ -90,7 +90,10 @@ public:
      * @brief 获取事件投递模式
      * @return 默认为 Unspecified
      */
-    [[nodiscard]] virtual DeliveryMode getDeliveryMode() const { return DeliveryMode::Unspecified; }
+    [[nodiscard]] virtual DeliveryMode getDeliveryMode() const
+    {
+        return DeliveryMode::Unspecified;
+    }
 
     /**
      * @brief 监听器提供者接口

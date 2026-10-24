@@ -48,6 +48,7 @@ public:
     {
         throw std::runtime_error("ArmorTestWorld::tickManager not implemented");
     }
+
     [[nodiscard]] const world::tick::TickManager& tickManager() const override
     {
         throw std::runtime_error("ArmorTestWorld::tickManager not implemented");
@@ -63,7 +64,9 @@ public:
     Entity* getEntity(EntityInstanceId id) override
     {
         for (auto* e : m_spawnedEntities) {
-            if (e && e->id() == static_cast<u32>(id)) return e;
+            if (e && e->id() == static_cast<u32>(id)) {
+                return e;
+            }
         }
         return nullptr;
     }
@@ -71,14 +74,19 @@ public:
     const Entity* getEntity(EntityInstanceId id) const override
     {
         for (const auto* e : m_spawnedEntities) {
-            if (e && e->id() == static_cast<u32>(id)) return e;
+            if (e && e->id() == static_cast<u32>(id)) {
+                return e;
+            }
         }
         return nullptr;
     }
 
     void playSound(const ResourceLocation&, sound::SoundCategory, const Vector3&, f32, f32) override {}
 
-    [[nodiscard]] const std::vector<Entity*>& spawnedEntities() const { return m_spawnedEntities; }
+    [[nodiscard]] const std::vector<Entity*>& spawnedEntities() const
+    {
+        return m_spawnedEntities;
+    }
 
     void clearSpawnedEntities()
     {
@@ -100,7 +108,10 @@ private:
 
 class ArmorValueTest : public ::testing::Test {
 protected:
-    void SetUp() override { Items::initialize(); }
+    void SetUp() override
+    {
+        Items::initialize();
+    }
 
     void TearDown() override
     {

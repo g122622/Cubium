@@ -89,9 +89,20 @@ public:
     SoundEvent& operator=(SoundEvent&&) noexcept = default;
 
     // 比较
-    [[nodiscard]] bool operator==(const SoundEvent& other) const { return m_id == other.m_id; }
-    [[nodiscard]] bool operator!=(const SoundEvent& other) const { return m_id != other.m_id; }
-    [[nodiscard]] bool operator<(const SoundEvent& other) const { return m_id < other.m_id; }
+    [[nodiscard]] bool operator==(const SoundEvent& other) const
+    {
+        return m_id == other.m_id;
+    }
+
+    [[nodiscard]] bool operator!=(const SoundEvent& other) const
+    {
+        return m_id != other.m_id;
+    }
+
+    [[nodiscard]] bool operator<(const SoundEvent& other) const
+    {
+        return m_id < other.m_id;
+    }
 
     // ========================================================================
     // 属性访问
@@ -102,14 +113,20 @@ public:
      *
      * @return 声音事件的资源位置
      */
-    [[nodiscard]] const ResourceLocation& getId() const noexcept { return m_id; }
+    [[nodiscard]] const ResourceLocation& getId() const noexcept
+    {
+        return m_id;
+    }
 
     /**
      * @brief 检查声音事件是否有效（非空）
      *
      * @return true 如果声音事件有有效的 ID
      */
-    [[nodiscard]] bool isValid() const noexcept { return !m_id.path().empty(); }
+    [[nodiscard]] bool isValid() const noexcept
+    {
+        return !m_id.path().empty();
+    }
 
     /**
      * @brief 获取距离衰减距离
@@ -119,7 +136,10 @@ public:
      *
      * @return 衰减距离
      */
-    [[nodiscard]] f32 getAttenuationDistance() const noexcept { return m_attenuationDistance; }
+    [[nodiscard]] f32 getAttenuationDistance() const noexcept
+    {
+        return m_attenuationDistance;
+    }
 
     /**
      * @brief 设置距离衰减距离
@@ -136,7 +156,10 @@ public:
      *
      * @return 声音事件 ID 的字符串表示
      */
-    [[nodiscard]] std::string toString() const { return m_id.toString(); }
+    [[nodiscard]] std::string toString() const
+    {
+        return m_id.toString();
+    }
 
     // ========================================================================
     // 预定义的声音事件工厂方法
@@ -149,7 +172,10 @@ public:
      *
      * @return 空声音事件
      */
-    [[nodiscard]] static SoundEvent empty() { return SoundEvent(); }
+    [[nodiscard]] static SoundEvent empty()
+    {
+        return SoundEvent();
+    }
 
 private:
     ResourceLocation m_id;
@@ -162,6 +188,9 @@ private:
 namespace std {
 template <>
 struct hash<mc::sound::SoundEvent> {
-    size_t operator()(const mc::sound::SoundEvent& event) const noexcept { return event.getId().hash(); }
+    size_t operator()(const mc::sound::SoundEvent& event) const noexcept
+    {
+        return event.getId().hash();
+    }
 };
 } // namespace std

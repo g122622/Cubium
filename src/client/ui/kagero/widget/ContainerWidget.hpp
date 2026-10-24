@@ -54,6 +54,7 @@ enum class ContainerLayoutType : u8 {
 class ContainerWidget : public Widget, public WidgetContainerMixin<ContainerWidget> {
 public:
     ContainerWidget() = default;
+
     explicit ContainerWidget(std::string id)
         : Widget(std::move(id))
     {}
@@ -94,7 +95,10 @@ public:
     /**
      * @brief 获取布局类型
      */
-    [[nodiscard]] ContainerLayoutType layoutType() const { return m_layoutType; }
+    [[nodiscard]] ContainerLayoutType layoutType() const
+    {
+        return m_layoutType;
+    }
 
     /**
      * @brief 设置 Flex 布局配置
@@ -104,7 +108,10 @@ public:
     /**
      * @brief 获取 Flex 布局配置
      */
-    [[nodiscard]] const layout::FlexConfig& flexConfig() const { return m_flexConfig; }
+    [[nodiscard]] const layout::FlexConfig& flexConfig() const
+    {
+        return m_flexConfig;
+    }
 
     /**
      * @brief 设置 Grid 布局配置
@@ -114,7 +121,10 @@ public:
     /**
      * @brief 获取 Grid 布局配置
      */
-    [[nodiscard]] const layout::GridConfig& gridConfig() const { return m_gridConfig; }
+    [[nodiscard]] const layout::GridConfig& gridConfig() const
+    {
+        return m_gridConfig;
+    }
 
     /**
      * @brief 请求重新布局

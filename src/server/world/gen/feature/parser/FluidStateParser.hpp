@@ -30,6 +30,7 @@ namespace mc {
 namespace fluid {
 class FluidState;
 }
+
 namespace world {
 namespace gen {
 namespace feature {

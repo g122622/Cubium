@@ -78,8 +78,15 @@ public:
      * 供 EntityType::create(world, registry) 等工厂调用点补 registry 实参：
      * `world->entityManager().registry()`。System/Scheduler 亦经此访问底层 entt registry。
      */
-    [[nodiscard]] ecs::EntityRegistry& registry() noexcept { return m_registry; }
-    [[nodiscard]] const ecs::EntityRegistry& registry() const noexcept { return m_registry; }
+    [[nodiscard]] ecs::EntityRegistry& registry() noexcept
+    {
+        return m_registry;
+    }
+
+    [[nodiscard]] const ecs::EntityRegistry& registry() const noexcept
+    {
+        return m_registry;
+    }
 
     // ========== 实体创建和销毁 ==========
 
@@ -249,12 +256,18 @@ public:
      *
      * 控制实体激活范围：超出该距离的非玩家实体不 tick。>=32 时等价于全量 tick。
      */
-    void setSimulationDistance(i32 distance) { m_simulationDistance = distance; }
+    void setSimulationDistance(i32 distance)
+    {
+        m_simulationDistance = distance;
+    }
 
     /**
      * @brief 获取模拟距离（区块数）
      */
-    [[nodiscard]] i32 simulationDistance() const { return m_simulationDistance; }
+    [[nodiscard]] i32 simulationDistance() const
+    {
+        return m_simulationDistance;
+    }
 
     /**
      * @brief 获取空间索引（供 ServerWorld 区块卸载/关机保存取实体）
@@ -262,8 +275,15 @@ public:
      * `ServerWorld::onChunkUnloading`/`shutdown` 经此调
      * `getEntityIdsInChunkColumn` 替代已删除的 `EntityChunkTracker::getEntitiesInChunk`。
      */
-    [[nodiscard]] EntitySpatialIndex& spatialIndex() noexcept { return m_spatialIndex; }
-    [[nodiscard]] const EntitySpatialIndex& spatialIndex() const noexcept { return m_spatialIndex; }
+    [[nodiscard]] EntitySpatialIndex& spatialIndex() noexcept
+    {
+        return m_spatialIndex;
+    }
+
+    [[nodiscard]] const EntitySpatialIndex& spatialIndex() const noexcept
+    {
+        return m_spatialIndex;
+    }
 
     // ========== ID分配 ==========
 

@@ -82,7 +82,9 @@ number_t load_varnum(std::istream& input)
         number_t tmp = static_cast<number_t>(read & 0b01111111);
         value |= (tmp << (7 * numRead));
         numRead++;
-        if (numRead > varnum_max<number_t>()) throw std::runtime_error("varint is too big");
+        if (numRead > varnum_max<number_t>()) {
+            throw std::runtime_error("varint is too big");
+        }
     } while ((read & 0b10000000) != 0);
     return value;
 }
@@ -97,7 +99,9 @@ void dump_varnum(std::ostream& output, number_t value)
     do {
         auto temp = static_cast<std::int8_t>(uval & 0b01111111u);
         uval >>= 7;
-        if (uval != 0) temp |= 0b10000000;
+        if (uval != 0) {
+            temp |= 0b10000000;
+        }
         output.put(temp);
     } while (uval != 0);
 }
@@ -126,12 +130,15 @@ std::enable_if_t<std::is_signed_v<numeric>, numeric> load_zint(std::istream& inp
         numeric tmp = (read & 0b01111111);
         value |= (tmp << (7 * numRead + 6));
         ++numRead;
-        if (numRead > zint_max<numeric>() - 1) throw std::runtime_error("szint is too big");
+        if (numRead > zint_max<numeric>() - 1) {
+            throw std::runtime_error("szint is too big");
+        }
     }
-    if (sign)
+    if (sign) {
         return -value;
-    else
+    } else {
         return value;
+    }
 }
 
 /**
@@ -153,12 +160,16 @@ std::enable_if_t<std::is_signed_v<numeric>> dump_zint(std::ostream& output, nume
     std::make_unsigned_t<numeric> uval = sign ? -value : value;
     std::uint8_t temp = (static_cast<std::uint8_t>(uval & 0b00111111) << 1) | sign;
     uval >>= 6;
-    if (uval != 0) temp |= 0b10000000;
+    if (uval != 0) {
+        temp |= 0b10000000;
+    }
     output.put(temp);
     while (uval != 0) {
         temp = static_cast<std::uint8_t>(uval & 0b01111111);
         uval >>= 7;
-        if (uval != 0) temp |= 0b10000000;
+        if (uval != 0) {
+            temp |= 0b10000000;
+        }
         output.put(temp);
     }
 }

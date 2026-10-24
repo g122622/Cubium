@@ -139,7 +139,9 @@ Result<void> UniformManager::initialize(TridentContext* context, DescriptorManag
 
 void UniformManager::destroy()
 {
-    if (!m_initialized) return;
+    if (!m_initialized) {
+        return;
+    }
 
     _destroyUniformBuffers();
 

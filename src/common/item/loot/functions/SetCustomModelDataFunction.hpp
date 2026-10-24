@@ -78,7 +78,11 @@ public:
 
     [[nodiscard]] ItemStack apply(ItemStack stack, LootContext& context) const override;
     [[nodiscard]] std::unique_ptr<LootFunction> clone() const noexcept override;
-    [[nodiscard]] std::string getType() const noexcept override { return "set_custom_model_data"; }
+
+    [[nodiscard]] std::string getType() const noexcept override
+    {
+        return "set_custom_model_data";
+    }
 
 private:
     std::optional<FloatListOperation> m_floats;

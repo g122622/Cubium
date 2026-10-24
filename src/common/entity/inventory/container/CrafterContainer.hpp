@@ -133,18 +133,31 @@ public:
     /**
      * @brief 获取合成器方块实体
      */
-    [[nodiscard]] CrafterBlockEntity* getCrafterEntity() const { return m_crafterEntity; }
+    [[nodiscard]] CrafterBlockEntity* getCrafterEntity() const
+    {
+        return m_crafterEntity;
+    }
 
     /**
      * @brief 获取合成器背包
      */
-    [[nodiscard]] IInventory* getCrafterInventory() const { return m_crafterInventory; }
+    [[nodiscard]] IInventory* getCrafterInventory() const
+    {
+        return m_crafterInventory;
+    }
 
     /**
      * @brief 获取预览结果背包
      */
-    [[nodiscard]] CraftResultInventory& getResultInventory() noexcept { return *m_resultInventory; }
-    [[nodiscard]] const CraftResultInventory& getResultInventory() const noexcept { return *m_resultInventory; }
+    [[nodiscard]] CraftResultInventory& getResultInventory() noexcept
+    {
+        return *m_resultInventory;
+    }
+
+    [[nodiscard]] const CraftResultInventory& getResultInventory() const noexcept
+    {
+        return *m_resultInventory;
+    }
 
     /**
      * @brief 更新合成预览结果

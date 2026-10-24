@@ -169,128 +169,292 @@ std::unordered_set<const Block*> AxeItem::_initializeEffectiveBlocks()
     std::unordered_set<const Block*> blocks;
 
     // 木板
-    if (VanillaBlocks::OAK_PLANKS) blocks.insert(VanillaBlocks::OAK_PLANKS);
-    if (VanillaBlocks::SPRUCE_PLANKS) blocks.insert(VanillaBlocks::SPRUCE_PLANKS);
-    if (VanillaBlocks::BIRCH_PLANKS) blocks.insert(VanillaBlocks::BIRCH_PLANKS);
-    if (VanillaBlocks::JUNGLE_PLANKS) blocks.insert(VanillaBlocks::JUNGLE_PLANKS);
-    if (VanillaBlocks::ACACIA_PLANKS) blocks.insert(VanillaBlocks::ACACIA_PLANKS);
-    if (VanillaBlocks::DARK_OAK_PLANKS) blocks.insert(VanillaBlocks::DARK_OAK_PLANKS);
+    if (VanillaBlocks::OAK_PLANKS) {
+        blocks.insert(VanillaBlocks::OAK_PLANKS);
+    }
+    if (VanillaBlocks::SPRUCE_PLANKS) {
+        blocks.insert(VanillaBlocks::SPRUCE_PLANKS);
+    }
+    if (VanillaBlocks::BIRCH_PLANKS) {
+        blocks.insert(VanillaBlocks::BIRCH_PLANKS);
+    }
+    if (VanillaBlocks::JUNGLE_PLANKS) {
+        blocks.insert(VanillaBlocks::JUNGLE_PLANKS);
+    }
+    if (VanillaBlocks::ACACIA_PLANKS) {
+        blocks.insert(VanillaBlocks::ACACIA_PLANKS);
+    }
+    if (VanillaBlocks::DARK_OAK_PLANKS) {
+        blocks.insert(VanillaBlocks::DARK_OAK_PLANKS);
+    }
 
     // 原木
-    if (VanillaBlocks::OAK_LOG) blocks.insert(VanillaBlocks::OAK_LOG);
-    if (VanillaBlocks::SPRUCE_LOG) blocks.insert(VanillaBlocks::SPRUCE_LOG);
-    if (VanillaBlocks::BIRCH_LOG) blocks.insert(VanillaBlocks::BIRCH_LOG);
-    if (VanillaBlocks::JUNGLE_LOG) blocks.insert(VanillaBlocks::JUNGLE_LOG);
-    if (VanillaBlocks::ACACIA_LOG) blocks.insert(VanillaBlocks::ACACIA_LOG);
-    if (VanillaBlocks::DARK_OAK_LOG) blocks.insert(VanillaBlocks::DARK_OAK_LOG);
+    if (VanillaBlocks::OAK_LOG) {
+        blocks.insert(VanillaBlocks::OAK_LOG);
+    }
+    if (VanillaBlocks::SPRUCE_LOG) {
+        blocks.insert(VanillaBlocks::SPRUCE_LOG);
+    }
+    if (VanillaBlocks::BIRCH_LOG) {
+        blocks.insert(VanillaBlocks::BIRCH_LOG);
+    }
+    if (VanillaBlocks::JUNGLE_LOG) {
+        blocks.insert(VanillaBlocks::JUNGLE_LOG);
+    }
+    if (VanillaBlocks::ACACIA_LOG) {
+        blocks.insert(VanillaBlocks::ACACIA_LOG);
+    }
+    if (VanillaBlocks::DARK_OAK_LOG) {
+        blocks.insert(VanillaBlocks::DARK_OAK_LOG);
+    }
 
     // 木头（六面树皮）
-    if (VanillaBlocks::OAK_WOOD) blocks.insert(VanillaBlocks::OAK_WOOD);
-    if (VanillaBlocks::SPRUCE_WOOD) blocks.insert(VanillaBlocks::SPRUCE_WOOD);
-    if (VanillaBlocks::BIRCH_WOOD) blocks.insert(VanillaBlocks::BIRCH_WOOD);
-    if (VanillaBlocks::JUNGLE_WOOD) blocks.insert(VanillaBlocks::JUNGLE_WOOD);
-    if (VanillaBlocks::ACACIA_WOOD) blocks.insert(VanillaBlocks::ACACIA_WOOD);
-    if (VanillaBlocks::DARK_OAK_WOOD) blocks.insert(VanillaBlocks::DARK_OAK_WOOD);
+    if (VanillaBlocks::OAK_WOOD) {
+        blocks.insert(VanillaBlocks::OAK_WOOD);
+    }
+    if (VanillaBlocks::SPRUCE_WOOD) {
+        blocks.insert(VanillaBlocks::SPRUCE_WOOD);
+    }
+    if (VanillaBlocks::BIRCH_WOOD) {
+        blocks.insert(VanillaBlocks::BIRCH_WOOD);
+    }
+    if (VanillaBlocks::JUNGLE_WOOD) {
+        blocks.insert(VanillaBlocks::JUNGLE_WOOD);
+    }
+    if (VanillaBlocks::ACACIA_WOOD) {
+        blocks.insert(VanillaBlocks::ACACIA_WOOD);
+    }
+    if (VanillaBlocks::DARK_OAK_WOOD) {
+        blocks.insert(VanillaBlocks::DARK_OAK_WOOD);
+    }
 
     // 去皮原木
-    if (VanillaBlocks::STRIPPED_OAK_LOG) blocks.insert(VanillaBlocks::STRIPPED_OAK_LOG);
-    if (VanillaBlocks::STRIPPED_SPRUCE_LOG) blocks.insert(VanillaBlocks::STRIPPED_SPRUCE_LOG);
-    if (VanillaBlocks::STRIPPED_BIRCH_LOG) blocks.insert(VanillaBlocks::STRIPPED_BIRCH_LOG);
-    if (VanillaBlocks::STRIPPED_JUNGLE_LOG) blocks.insert(VanillaBlocks::STRIPPED_JUNGLE_LOG);
-    if (VanillaBlocks::STRIPPED_ACACIA_LOG) blocks.insert(VanillaBlocks::STRIPPED_ACACIA_LOG);
-    if (VanillaBlocks::STRIPPED_DARK_OAK_LOG) blocks.insert(VanillaBlocks::STRIPPED_DARK_OAK_LOG);
+    if (VanillaBlocks::STRIPPED_OAK_LOG) {
+        blocks.insert(VanillaBlocks::STRIPPED_OAK_LOG);
+    }
+    if (VanillaBlocks::STRIPPED_SPRUCE_LOG) {
+        blocks.insert(VanillaBlocks::STRIPPED_SPRUCE_LOG);
+    }
+    if (VanillaBlocks::STRIPPED_BIRCH_LOG) {
+        blocks.insert(VanillaBlocks::STRIPPED_BIRCH_LOG);
+    }
+    if (VanillaBlocks::STRIPPED_JUNGLE_LOG) {
+        blocks.insert(VanillaBlocks::STRIPPED_JUNGLE_LOG);
+    }
+    if (VanillaBlocks::STRIPPED_ACACIA_LOG) {
+        blocks.insert(VanillaBlocks::STRIPPED_ACACIA_LOG);
+    }
+    if (VanillaBlocks::STRIPPED_DARK_OAK_LOG) {
+        blocks.insert(VanillaBlocks::STRIPPED_DARK_OAK_LOG);
+    }
 
     // 去皮木头
-    if (VanillaBlocks::STRIPPED_OAK_WOOD) blocks.insert(VanillaBlocks::STRIPPED_OAK_WOOD);
-    if (VanillaBlocks::STRIPPED_SPRUCE_WOOD) blocks.insert(VanillaBlocks::STRIPPED_SPRUCE_WOOD);
-    if (VanillaBlocks::STRIPPED_BIRCH_WOOD) blocks.insert(VanillaBlocks::STRIPPED_BIRCH_WOOD);
-    if (VanillaBlocks::STRIPPED_JUNGLE_WOOD) blocks.insert(VanillaBlocks::STRIPPED_JUNGLE_WOOD);
-    if (VanillaBlocks::STRIPPED_ACACIA_WOOD) blocks.insert(VanillaBlocks::STRIPPED_ACACIA_WOOD);
-    if (VanillaBlocks::STRIPPED_DARK_OAK_WOOD) blocks.insert(VanillaBlocks::STRIPPED_DARK_OAK_WOOD);
+    if (VanillaBlocks::STRIPPED_OAK_WOOD) {
+        blocks.insert(VanillaBlocks::STRIPPED_OAK_WOOD);
+    }
+    if (VanillaBlocks::STRIPPED_SPRUCE_WOOD) {
+        blocks.insert(VanillaBlocks::STRIPPED_SPRUCE_WOOD);
+    }
+    if (VanillaBlocks::STRIPPED_BIRCH_WOOD) {
+        blocks.insert(VanillaBlocks::STRIPPED_BIRCH_WOOD);
+    }
+    if (VanillaBlocks::STRIPPED_JUNGLE_WOOD) {
+        blocks.insert(VanillaBlocks::STRIPPED_JUNGLE_WOOD);
+    }
+    if (VanillaBlocks::STRIPPED_ACACIA_WOOD) {
+        blocks.insert(VanillaBlocks::STRIPPED_ACACIA_WOOD);
+    }
+    if (VanillaBlocks::STRIPPED_DARK_OAK_WOOD) {
+        blocks.insert(VanillaBlocks::STRIPPED_DARK_OAK_WOOD);
+    }
 
     // 树叶
-    if (VanillaBlocks::OAK_LEAVES) blocks.insert(VanillaBlocks::OAK_LEAVES);
-    if (VanillaBlocks::SPRUCE_LEAVES) blocks.insert(VanillaBlocks::SPRUCE_LEAVES);
-    if (VanillaBlocks::BIRCH_LEAVES) blocks.insert(VanillaBlocks::BIRCH_LEAVES);
-    if (VanillaBlocks::JUNGLE_LEAVES) blocks.insert(VanillaBlocks::JUNGLE_LEAVES);
-    if (VanillaBlocks::ACACIA_LEAVES) blocks.insert(VanillaBlocks::ACACIA_LEAVES);
-    if (VanillaBlocks::DARK_OAK_LEAVES) blocks.insert(VanillaBlocks::DARK_OAK_LEAVES);
+    if (VanillaBlocks::OAK_LEAVES) {
+        blocks.insert(VanillaBlocks::OAK_LEAVES);
+    }
+    if (VanillaBlocks::SPRUCE_LEAVES) {
+        blocks.insert(VanillaBlocks::SPRUCE_LEAVES);
+    }
+    if (VanillaBlocks::BIRCH_LEAVES) {
+        blocks.insert(VanillaBlocks::BIRCH_LEAVES);
+    }
+    if (VanillaBlocks::JUNGLE_LEAVES) {
+        blocks.insert(VanillaBlocks::JUNGLE_LEAVES);
+    }
+    if (VanillaBlocks::ACACIA_LEAVES) {
+        blocks.insert(VanillaBlocks::ACACIA_LEAVES);
+    }
+    if (VanillaBlocks::DARK_OAK_LEAVES) {
+        blocks.insert(VanillaBlocks::DARK_OAK_LEAVES);
+    }
 
     // 木制工作台
-    if (VanillaBlocks::CRAFTING_TABLE) blocks.insert(VanillaBlocks::CRAFTING_TABLE);
-    if (VanillaBlocks::BOOKSHELF) blocks.insert(VanillaBlocks::BOOKSHELF);
+    if (VanillaBlocks::CRAFTING_TABLE) {
+        blocks.insert(VanillaBlocks::CRAFTING_TABLE);
+    }
+    if (VanillaBlocks::BOOKSHELF) {
+        blocks.insert(VanillaBlocks::BOOKSHELF);
+    }
 
     // 木门
-    if (VanillaBlocks::OAK_DOOR) blocks.insert(VanillaBlocks::OAK_DOOR);
+    if (VanillaBlocks::OAK_DOOR) {
+        blocks.insert(VanillaBlocks::OAK_DOOR);
+    }
 
     // 木栅栏门
-    if (VanillaBlocks::OAK_FENCE_GATE) blocks.insert(VanillaBlocks::OAK_FENCE_GATE);
+    if (VanillaBlocks::OAK_FENCE_GATE) {
+        blocks.insert(VanillaBlocks::OAK_FENCE_GATE);
+    }
 
     // 木栅栏
-    if (VanillaBlocks::OAK_FENCE) blocks.insert(VanillaBlocks::OAK_FENCE);
+    if (VanillaBlocks::OAK_FENCE) {
+        blocks.insert(VanillaBlocks::OAK_FENCE);
+    }
 
     // 木楼梯
-    if (VanillaBlocks::OAK_STAIRS) blocks.insert(VanillaBlocks::OAK_STAIRS);
+    if (VanillaBlocks::OAK_STAIRS) {
+        blocks.insert(VanillaBlocks::OAK_STAIRS);
+    }
 
     // 木台阶
-    if (VanillaBlocks::OAK_SLAB) blocks.insert(VanillaBlocks::OAK_SLAB);
+    if (VanillaBlocks::OAK_SLAB) {
+        blocks.insert(VanillaBlocks::OAK_SLAB);
+    }
 
     // 木按钮
-    if (VanillaBlocks::OAK_BUTTON) blocks.insert(VanillaBlocks::OAK_BUTTON);
+    if (VanillaBlocks::OAK_BUTTON) {
+        blocks.insert(VanillaBlocks::OAK_BUTTON);
+    }
 
     // 木压力板
-    if (VanillaBlocks::OAK_PRESSURE_PLATE) blocks.insert(VanillaBlocks::OAK_PRESSURE_PLATE);
+    if (VanillaBlocks::OAK_PRESSURE_PLATE) {
+        blocks.insert(VanillaBlocks::OAK_PRESSURE_PLATE);
+    }
 
     // 木活板门
-    if (VanillaBlocks::OAK_TRAPDOOR) blocks.insert(VanillaBlocks::OAK_TRAPDOOR);
+    if (VanillaBlocks::OAK_TRAPDOOR) {
+        blocks.insert(VanillaBlocks::OAK_TRAPDOOR);
+    }
 
     // 下界木质方块
-    if (VanillaBlocks::CRIMSON_STEM) blocks.insert(VanillaBlocks::CRIMSON_STEM);
-    if (VanillaBlocks::WARPED_STEM) blocks.insert(VanillaBlocks::WARPED_STEM);
-    if (VanillaBlocks::STRIPPED_CRIMSON_STEM) blocks.insert(VanillaBlocks::STRIPPED_CRIMSON_STEM);
-    if (VanillaBlocks::STRIPPED_WARPED_STEM) blocks.insert(VanillaBlocks::STRIPPED_WARPED_STEM);
-    if (VanillaBlocks::CRIMSON_HYPHAE) blocks.insert(VanillaBlocks::CRIMSON_HYPHAE);
-    if (VanillaBlocks::WARPED_HYPHAE) blocks.insert(VanillaBlocks::WARPED_HYPHAE);
-    if (VanillaBlocks::STRIPPED_CRIMSON_HYPHAE) blocks.insert(VanillaBlocks::STRIPPED_CRIMSON_HYPHAE);
-    if (VanillaBlocks::STRIPPED_WARPED_HYPHAE) blocks.insert(VanillaBlocks::STRIPPED_WARPED_HYPHAE);
+    if (VanillaBlocks::CRIMSON_STEM) {
+        blocks.insert(VanillaBlocks::CRIMSON_STEM);
+    }
+    if (VanillaBlocks::WARPED_STEM) {
+        blocks.insert(VanillaBlocks::WARPED_STEM);
+    }
+    if (VanillaBlocks::STRIPPED_CRIMSON_STEM) {
+        blocks.insert(VanillaBlocks::STRIPPED_CRIMSON_STEM);
+    }
+    if (VanillaBlocks::STRIPPED_WARPED_STEM) {
+        blocks.insert(VanillaBlocks::STRIPPED_WARPED_STEM);
+    }
+    if (VanillaBlocks::CRIMSON_HYPHAE) {
+        blocks.insert(VanillaBlocks::CRIMSON_HYPHAE);
+    }
+    if (VanillaBlocks::WARPED_HYPHAE) {
+        blocks.insert(VanillaBlocks::WARPED_HYPHAE);
+    }
+    if (VanillaBlocks::STRIPPED_CRIMSON_HYPHAE) {
+        blocks.insert(VanillaBlocks::STRIPPED_CRIMSON_HYPHAE);
+    }
+    if (VanillaBlocks::STRIPPED_WARPED_HYPHAE) {
+        blocks.insert(VanillaBlocks::STRIPPED_WARPED_HYPHAE);
+    }
 
     // 樱花木质方块 (1.20+)
-    if (VanillaBlocks::CHERRY_LOG) blocks.insert(VanillaBlocks::CHERRY_LOG);
-    if (VanillaBlocks::CHERRY_WOOD) blocks.insert(VanillaBlocks::CHERRY_WOOD);
-    if (VanillaBlocks::STRIPPED_CHERRY_LOG) blocks.insert(VanillaBlocks::STRIPPED_CHERRY_LOG);
-    if (VanillaBlocks::STRIPPED_CHERRY_WOOD) blocks.insert(VanillaBlocks::STRIPPED_CHERRY_WOOD);
-    if (VanillaBlocks::CHERRY_PLANKS) blocks.insert(VanillaBlocks::CHERRY_PLANKS);
-    if (VanillaBlocks::CHERRY_LEAVES) blocks.insert(VanillaBlocks::CHERRY_LEAVES);
+    if (VanillaBlocks::CHERRY_LOG) {
+        blocks.insert(VanillaBlocks::CHERRY_LOG);
+    }
+    if (VanillaBlocks::CHERRY_WOOD) {
+        blocks.insert(VanillaBlocks::CHERRY_WOOD);
+    }
+    if (VanillaBlocks::STRIPPED_CHERRY_LOG) {
+        blocks.insert(VanillaBlocks::STRIPPED_CHERRY_LOG);
+    }
+    if (VanillaBlocks::STRIPPED_CHERRY_WOOD) {
+        blocks.insert(VanillaBlocks::STRIPPED_CHERRY_WOOD);
+    }
+    if (VanillaBlocks::CHERRY_PLANKS) {
+        blocks.insert(VanillaBlocks::CHERRY_PLANKS);
+    }
+    if (VanillaBlocks::CHERRY_LEAVES) {
+        blocks.insert(VanillaBlocks::CHERRY_LEAVES);
+    }
 
     // 红树木质方块 (1.19+)
-    if (VanillaBlocks::MANGROVE_LOG) blocks.insert(VanillaBlocks::MANGROVE_LOG);
-    if (VanillaBlocks::MANGROVE_WOOD) blocks.insert(VanillaBlocks::MANGROVE_WOOD);
-    if (VanillaBlocks::STRIPPED_MANGROVE_LOG) blocks.insert(VanillaBlocks::STRIPPED_MANGROVE_LOG);
-    if (VanillaBlocks::STRIPPED_MANGROVE_WOOD) blocks.insert(VanillaBlocks::STRIPPED_MANGROVE_WOOD);
-    if (VanillaBlocks::MANGROVE_PLANKS) blocks.insert(VanillaBlocks::MANGROVE_PLANKS);
-    if (VanillaBlocks::MANGROVE_LEAVES) blocks.insert(VanillaBlocks::MANGROVE_LEAVES);
+    if (VanillaBlocks::MANGROVE_LOG) {
+        blocks.insert(VanillaBlocks::MANGROVE_LOG);
+    }
+    if (VanillaBlocks::MANGROVE_WOOD) {
+        blocks.insert(VanillaBlocks::MANGROVE_WOOD);
+    }
+    if (VanillaBlocks::STRIPPED_MANGROVE_LOG) {
+        blocks.insert(VanillaBlocks::STRIPPED_MANGROVE_LOG);
+    }
+    if (VanillaBlocks::STRIPPED_MANGROVE_WOOD) {
+        blocks.insert(VanillaBlocks::STRIPPED_MANGROVE_WOOD);
+    }
+    if (VanillaBlocks::MANGROVE_PLANKS) {
+        blocks.insert(VanillaBlocks::MANGROVE_PLANKS);
+    }
+    if (VanillaBlocks::MANGROVE_LEAVES) {
+        blocks.insert(VanillaBlocks::MANGROVE_LEAVES);
+    }
 
     // 苍白橡木质方块 (1.21+)
-    if (VanillaBlocks::PALE_OAK_LOG) blocks.insert(VanillaBlocks::PALE_OAK_LOG);
-    if (VanillaBlocks::PALE_OAK_WOOD) blocks.insert(VanillaBlocks::PALE_OAK_WOOD);
-    if (VanillaBlocks::STRIPPED_PALE_OAK_LOG) blocks.insert(VanillaBlocks::STRIPPED_PALE_OAK_LOG);
-    if (VanillaBlocks::STRIPPED_PALE_OAK_WOOD) blocks.insert(VanillaBlocks::STRIPPED_PALE_OAK_WOOD);
-    if (VanillaBlocks::PALE_OAK_PLANKS) blocks.insert(VanillaBlocks::PALE_OAK_PLANKS);
-    if (VanillaBlocks::PALE_OAK_LEAVES) blocks.insert(VanillaBlocks::PALE_OAK_LEAVES);
+    if (VanillaBlocks::PALE_OAK_LOG) {
+        blocks.insert(VanillaBlocks::PALE_OAK_LOG);
+    }
+    if (VanillaBlocks::PALE_OAK_WOOD) {
+        blocks.insert(VanillaBlocks::PALE_OAK_WOOD);
+    }
+    if (VanillaBlocks::STRIPPED_PALE_OAK_LOG) {
+        blocks.insert(VanillaBlocks::STRIPPED_PALE_OAK_LOG);
+    }
+    if (VanillaBlocks::STRIPPED_PALE_OAK_WOOD) {
+        blocks.insert(VanillaBlocks::STRIPPED_PALE_OAK_WOOD);
+    }
+    if (VanillaBlocks::PALE_OAK_PLANKS) {
+        blocks.insert(VanillaBlocks::PALE_OAK_PLANKS);
+    }
+    if (VanillaBlocks::PALE_OAK_LEAVES) {
+        blocks.insert(VanillaBlocks::PALE_OAK_LEAVES);
+    }
 
     // 梯子和脚手架（斧可以有效挖掘）
-    if (VanillaBlocks::LADDER) blocks.insert(VanillaBlocks::LADDER);
-    if (VanillaBlocks::SCAFFOLDING) blocks.insert(VanillaBlocks::SCAFFOLDING);
+    if (VanillaBlocks::LADDER) {
+        blocks.insert(VanillaBlocks::LADDER);
+    }
+    if (VanillaBlocks::SCAFFOLDING) {
+        blocks.insert(VanillaBlocks::SCAFFOLDING);
+    }
 
     // 木质按钮（斧可以有效挖掘）
-    if (VanillaBlocks::OAK_BUTTON) blocks.insert(VanillaBlocks::OAK_BUTTON);
-    if (VanillaBlocks::SPRUCE_BUTTON) blocks.insert(VanillaBlocks::SPRUCE_BUTTON);
-    if (VanillaBlocks::BIRCH_BUTTON) blocks.insert(VanillaBlocks::BIRCH_BUTTON);
-    if (VanillaBlocks::JUNGLE_BUTTON) blocks.insert(VanillaBlocks::JUNGLE_BUTTON);
-    if (VanillaBlocks::ACACIA_BUTTON) blocks.insert(VanillaBlocks::ACACIA_BUTTON);
-    if (VanillaBlocks::DARK_OAK_BUTTON) blocks.insert(VanillaBlocks::DARK_OAK_BUTTON);
-    if (VanillaBlocks::CRIMSON_BUTTON) blocks.insert(VanillaBlocks::CRIMSON_BUTTON);
-    if (VanillaBlocks::WARPED_BUTTON) blocks.insert(VanillaBlocks::WARPED_BUTTON);
+    if (VanillaBlocks::OAK_BUTTON) {
+        blocks.insert(VanillaBlocks::OAK_BUTTON);
+    }
+    if (VanillaBlocks::SPRUCE_BUTTON) {
+        blocks.insert(VanillaBlocks::SPRUCE_BUTTON);
+    }
+    if (VanillaBlocks::BIRCH_BUTTON) {
+        blocks.insert(VanillaBlocks::BIRCH_BUTTON);
+    }
+    if (VanillaBlocks::JUNGLE_BUTTON) {
+        blocks.insert(VanillaBlocks::JUNGLE_BUTTON);
+    }
+    if (VanillaBlocks::ACACIA_BUTTON) {
+        blocks.insert(VanillaBlocks::ACACIA_BUTTON);
+    }
+    if (VanillaBlocks::DARK_OAK_BUTTON) {
+        blocks.insert(VanillaBlocks::DARK_OAK_BUTTON);
+    }
+    if (VanillaBlocks::CRIMSON_BUTTON) {
+        blocks.insert(VanillaBlocks::CRIMSON_BUTTON);
+    }
+    if (VanillaBlocks::WARPED_BUTTON) {
+        blocks.insert(VanillaBlocks::WARPED_BUTTON);
+    }
 
     return blocks;
 }
@@ -303,70 +467,92 @@ std::unordered_map<const Block*, const Block*>& AxeItem::_getStrippingMap()
 
         // 原木去皮映射
         // 橡木
-        if (VanillaBlocks::OAK_LOG && VanillaBlocks::STRIPPED_OAK_LOG)
+        if (VanillaBlocks::OAK_LOG && VanillaBlocks::STRIPPED_OAK_LOG) {
             m[VanillaBlocks::OAK_LOG] = VanillaBlocks::STRIPPED_OAK_LOG;
-        if (VanillaBlocks::OAK_WOOD && VanillaBlocks::STRIPPED_OAK_WOOD)
+        }
+        if (VanillaBlocks::OAK_WOOD && VanillaBlocks::STRIPPED_OAK_WOOD) {
             m[VanillaBlocks::OAK_WOOD] = VanillaBlocks::STRIPPED_OAK_WOOD;
+        }
 
         // 云杉木
-        if (VanillaBlocks::SPRUCE_LOG && VanillaBlocks::STRIPPED_SPRUCE_LOG)
+        if (VanillaBlocks::SPRUCE_LOG && VanillaBlocks::STRIPPED_SPRUCE_LOG) {
             m[VanillaBlocks::SPRUCE_LOG] = VanillaBlocks::STRIPPED_SPRUCE_LOG;
-        if (VanillaBlocks::SPRUCE_WOOD && VanillaBlocks::STRIPPED_SPRUCE_WOOD)
+        }
+        if (VanillaBlocks::SPRUCE_WOOD && VanillaBlocks::STRIPPED_SPRUCE_WOOD) {
             m[VanillaBlocks::SPRUCE_WOOD] = VanillaBlocks::STRIPPED_SPRUCE_WOOD;
+        }
 
         // 白桦木
-        if (VanillaBlocks::BIRCH_LOG && VanillaBlocks::STRIPPED_BIRCH_LOG)
+        if (VanillaBlocks::BIRCH_LOG && VanillaBlocks::STRIPPED_BIRCH_LOG) {
             m[VanillaBlocks::BIRCH_LOG] = VanillaBlocks::STRIPPED_BIRCH_LOG;
-        if (VanillaBlocks::BIRCH_WOOD && VanillaBlocks::STRIPPED_BIRCH_WOOD)
+        }
+        if (VanillaBlocks::BIRCH_WOOD && VanillaBlocks::STRIPPED_BIRCH_WOOD) {
             m[VanillaBlocks::BIRCH_WOOD] = VanillaBlocks::STRIPPED_BIRCH_WOOD;
+        }
 
         // 丛林木
-        if (VanillaBlocks::JUNGLE_LOG && VanillaBlocks::STRIPPED_JUNGLE_LOG)
+        if (VanillaBlocks::JUNGLE_LOG && VanillaBlocks::STRIPPED_JUNGLE_LOG) {
             m[VanillaBlocks::JUNGLE_LOG] = VanillaBlocks::STRIPPED_JUNGLE_LOG;
-        if (VanillaBlocks::JUNGLE_WOOD && VanillaBlocks::STRIPPED_JUNGLE_WOOD)
+        }
+        if (VanillaBlocks::JUNGLE_WOOD && VanillaBlocks::STRIPPED_JUNGLE_WOOD) {
             m[VanillaBlocks::JUNGLE_WOOD] = VanillaBlocks::STRIPPED_JUNGLE_WOOD;
+        }
 
         // 金合欢木
-        if (VanillaBlocks::ACACIA_LOG && VanillaBlocks::STRIPPED_ACACIA_LOG)
+        if (VanillaBlocks::ACACIA_LOG && VanillaBlocks::STRIPPED_ACACIA_LOG) {
             m[VanillaBlocks::ACACIA_LOG] = VanillaBlocks::STRIPPED_ACACIA_LOG;
-        if (VanillaBlocks::ACACIA_WOOD && VanillaBlocks::STRIPPED_ACACIA_WOOD)
+        }
+        if (VanillaBlocks::ACACIA_WOOD && VanillaBlocks::STRIPPED_ACACIA_WOOD) {
             m[VanillaBlocks::ACACIA_WOOD] = VanillaBlocks::STRIPPED_ACACIA_WOOD;
+        }
 
         // 深色橡木
-        if (VanillaBlocks::DARK_OAK_LOG && VanillaBlocks::STRIPPED_DARK_OAK_LOG)
+        if (VanillaBlocks::DARK_OAK_LOG && VanillaBlocks::STRIPPED_DARK_OAK_LOG) {
             m[VanillaBlocks::DARK_OAK_LOG] = VanillaBlocks::STRIPPED_DARK_OAK_LOG;
-        if (VanillaBlocks::DARK_OAK_WOOD && VanillaBlocks::STRIPPED_DARK_OAK_WOOD)
+        }
+        if (VanillaBlocks::DARK_OAK_WOOD && VanillaBlocks::STRIPPED_DARK_OAK_WOOD) {
             m[VanillaBlocks::DARK_OAK_WOOD] = VanillaBlocks::STRIPPED_DARK_OAK_WOOD;
+        }
 
         // 绯红菌柄
-        if (VanillaBlocks::CRIMSON_STEM && VanillaBlocks::STRIPPED_CRIMSON_STEM)
+        if (VanillaBlocks::CRIMSON_STEM && VanillaBlocks::STRIPPED_CRIMSON_STEM) {
             m[VanillaBlocks::CRIMSON_STEM] = VanillaBlocks::STRIPPED_CRIMSON_STEM;
-        if (VanillaBlocks::CRIMSON_HYPHAE && VanillaBlocks::STRIPPED_CRIMSON_HYPHAE)
+        }
+        if (VanillaBlocks::CRIMSON_HYPHAE && VanillaBlocks::STRIPPED_CRIMSON_HYPHAE) {
             m[VanillaBlocks::CRIMSON_HYPHAE] = VanillaBlocks::STRIPPED_CRIMSON_HYPHAE;
+        }
 
         // 诡异菌柄
-        if (VanillaBlocks::WARPED_STEM && VanillaBlocks::STRIPPED_WARPED_STEM)
+        if (VanillaBlocks::WARPED_STEM && VanillaBlocks::STRIPPED_WARPED_STEM) {
             m[VanillaBlocks::WARPED_STEM] = VanillaBlocks::STRIPPED_WARPED_STEM;
-        if (VanillaBlocks::WARPED_HYPHAE && VanillaBlocks::STRIPPED_WARPED_HYPHAE)
+        }
+        if (VanillaBlocks::WARPED_HYPHAE && VanillaBlocks::STRIPPED_WARPED_HYPHAE) {
             m[VanillaBlocks::WARPED_HYPHAE] = VanillaBlocks::STRIPPED_WARPED_HYPHAE;
+        }
 
         // 樱花木 (1.20+)
-        if (VanillaBlocks::CHERRY_LOG && VanillaBlocks::STRIPPED_CHERRY_LOG)
+        if (VanillaBlocks::CHERRY_LOG && VanillaBlocks::STRIPPED_CHERRY_LOG) {
             m[VanillaBlocks::CHERRY_LOG] = VanillaBlocks::STRIPPED_CHERRY_LOG;
-        if (VanillaBlocks::CHERRY_WOOD && VanillaBlocks::STRIPPED_CHERRY_WOOD)
+        }
+        if (VanillaBlocks::CHERRY_WOOD && VanillaBlocks::STRIPPED_CHERRY_WOOD) {
             m[VanillaBlocks::CHERRY_WOOD] = VanillaBlocks::STRIPPED_CHERRY_WOOD;
+        }
 
         // 红树木 (1.19+)
-        if (VanillaBlocks::MANGROVE_LOG && VanillaBlocks::STRIPPED_MANGROVE_LOG)
+        if (VanillaBlocks::MANGROVE_LOG && VanillaBlocks::STRIPPED_MANGROVE_LOG) {
             m[VanillaBlocks::MANGROVE_LOG] = VanillaBlocks::STRIPPED_MANGROVE_LOG;
-        if (VanillaBlocks::MANGROVE_WOOD && VanillaBlocks::STRIPPED_MANGROVE_WOOD)
+        }
+        if (VanillaBlocks::MANGROVE_WOOD && VanillaBlocks::STRIPPED_MANGROVE_WOOD) {
             m[VanillaBlocks::MANGROVE_WOOD] = VanillaBlocks::STRIPPED_MANGROVE_WOOD;
+        }
 
         // 苍白橡木 (1.21+)
-        if (VanillaBlocks::PALE_OAK_LOG && VanillaBlocks::STRIPPED_PALE_OAK_LOG)
+        if (VanillaBlocks::PALE_OAK_LOG && VanillaBlocks::STRIPPED_PALE_OAK_LOG) {
             m[VanillaBlocks::PALE_OAK_LOG] = VanillaBlocks::STRIPPED_PALE_OAK_LOG;
-        if (VanillaBlocks::PALE_OAK_WOOD && VanillaBlocks::STRIPPED_PALE_OAK_WOOD)
+        }
+        if (VanillaBlocks::PALE_OAK_WOOD && VanillaBlocks::STRIPPED_PALE_OAK_WOOD) {
             m[VanillaBlocks::PALE_OAK_WOOD] = VanillaBlocks::STRIPPED_PALE_OAK_WOOD;
+        }
 
         return m;
     }();

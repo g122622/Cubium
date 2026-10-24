@@ -66,7 +66,10 @@ struct WhitelistEntry {
      * @brief 检查条目是否有效
      * @return true 如果 UUID 和名称都不为空
      */
-    [[nodiscard]] bool isValid() const { return !uuid.empty() && !name.empty(); }
+    [[nodiscard]] bool isValid() const
+    {
+        return !uuid.empty() && !name.empty();
+    }
 };
 
 /**

@@ -58,7 +58,10 @@ public:
 
     DensityEnchantment() = default;
 
-    [[nodiscard]] std::string id() const override { return ENCHANTMENT_ID; }
+    [[nodiscard]] std::string id() const override
+    {
+        return ENCHANTMENT_ID;
+    }
 
     [[nodiscard]] std::string getNameKey(i32 level) const override
     {
@@ -66,18 +69,40 @@ public:
         return "enchantment.minecraft.density";
     }
 
-    [[nodiscard]] i32 minLevel() const noexcept override { return 1; }
-    [[nodiscard]] i32 maxLevel() const noexcept override { return 5; }
+    [[nodiscard]] i32 minLevel() const noexcept override
+    {
+        return 1;
+    }
 
-    [[nodiscard]] EnchantmentType type() const override { return EnchantmentType::Weapon; }
+    [[nodiscard]] i32 maxLevel() const noexcept override
+    {
+        return 5;
+    }
 
-    [[nodiscard]] EnchantmentRarity rarity() const noexcept override { return EnchantmentRarity::Common; }
+    [[nodiscard]] EnchantmentType type() const override
+    {
+        return EnchantmentType::Weapon;
+    }
 
-    [[nodiscard]] i32 getMinCost(i32 level) const override { return 5 + (level - 1) * 8; }
+    [[nodiscard]] EnchantmentRarity rarity() const noexcept override
+    {
+        return EnchantmentRarity::Common;
+    }
 
-    [[nodiscard]] i32 getMaxCost(i32 level) const override { return 25 + (level - 1) * 8; }
+    [[nodiscard]] i32 getMinCost(i32 level) const override
+    {
+        return 5 + (level - 1) * 8;
+    }
 
-    [[nodiscard]] bool isTreasure() const noexcept override { return false; }
+    [[nodiscard]] i32 getMaxCost(i32 level) const override
+    {
+        return 25 + (level - 1) * 8;
+    }
+
+    [[nodiscard]] bool isTreasure() const noexcept override
+    {
+        return false;
+    }
 
     /**
      * @brief 致密与伤害类附魔（锋利、亡灵杀手、节肢杀手）和破甲互斥
@@ -91,7 +116,10 @@ public:
      * @param level 附魔等级
      * @return 每格伤害加成值
      */
-    [[nodiscard]] static f32 getDamagePerFallenBlock(i32 level) noexcept { return 0.5f * static_cast<f32>(level); }
+    [[nodiscard]] static f32 getDamagePerFallenBlock(i32 level) noexcept
+    {
+        return 0.5f * static_cast<f32>(level);
+    }
 };
 
 } // namespace enchant

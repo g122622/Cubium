@@ -98,10 +98,11 @@ std::unique_ptr<Entity> GoatEntity::create(IWorld* /*world*/, ecs::EntityRegistr
 
 void GoatEntity::registerAttributes()
 {
-    // 对齐 vanilla Goat.createAttributes：Animal 默认 + 生命 10 + 移速 0.2 + 攻击 2。
+    // 对齐 vanilla Goat.createAttributes：Animal 默认 + 生命 10 + 移速 0.2 + 攻击 2 + 护甲 0。
     AnimalEntity::registerAttributes();
     attributes().setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 10.0);
     attributes().setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.2);
+    attributes().registerAttribute(*entity::attribute::Attributes::attackDamage());
     attributes().setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, 2.0);
     setHealth(maxHealth());
 }
@@ -125,7 +126,12 @@ void GoatEntity::registerGoals()
     // 优先级 4：诱惑（对齐 FollowTemptation，速度倍率 1.25；食物 = #goat_food 即小麦）
     m_goalSelector.addGoal(4,
         std::make_unique<entity::ai::goal::TemptGoal>(
-            this, 1.25, [](const ItemStack& stack) { return stack.getItem() == Items::WHEAT; }, false));
+            this,
+            1.25,
+            [](const ItemStack& stack) {
+                return stack.getItem() == Items::WHEAT;
+            },
+            false));
 
     // 优先级 5：幼体跟随成体（对齐 BabyFollowAdult，速度倍率 1.25）
     m_goalSelector.addGoal(5, std::make_unique<entity::ai::goal::FollowParentGoal>(this, 1.25));

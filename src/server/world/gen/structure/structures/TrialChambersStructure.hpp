@@ -63,7 +63,10 @@ public:
     explicit TrialChambersStructure(ResourceLocation id);
     ~TrialChambersStructure() override = default;
 
-    [[nodiscard]] const std::string& name() const override { return s_name; }
+    [[nodiscard]] const std::string& name() const override
+    {
+        return s_name;
+    }
 
     /**
      * @brief 获取试炼密室关联的生物群系标签

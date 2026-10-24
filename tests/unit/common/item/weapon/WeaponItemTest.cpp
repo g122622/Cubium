@@ -53,6 +53,7 @@ public:
     {
         throw std::runtime_error("WeaponTestWorld::tickManager not implemented");
     }
+
     [[nodiscard]] const world::tick::TickManager& tickManager() const override
     {
         throw std::runtime_error("WeaponTestWorld::tickManager not implemented");
@@ -71,7 +72,10 @@ public:
         // 测试中忽略粒子效果
     }
 
-    [[nodiscard]] const std::vector<Entity*>& spawnedEntities() const { return m_spawnedEntities; }
+    [[nodiscard]] const std::vector<Entity*>& spawnedEntities() const
+    {
+        return m_spawnedEntities;
+    }
 
     void clearSpawnedEntities()
     {
@@ -87,7 +91,10 @@ private:
 
 class WeaponItemTest : public ::testing::Test {
 protected:
-    void SetUp() override { Items::initialize(); }
+    void SetUp() override
+    {
+        Items::initialize();
+    }
 
     void TearDown() override
     {
@@ -325,7 +332,7 @@ TEST_F(WeaponItemTest, BowItem_HasDurability)
 TEST_F(WeaponItemTest, CrossbowItem_HasDurability)
 {
     ASSERT_NE(Items::CROSSBOW, nullptr);
-    EXPECT_EQ(Items::CROSSBOW->maxDamage(), 326); // MC 1.16.5: 弩有 326 点耐久
+    EXPECT_EQ(Items::CROSSBOW->maxDamage(), 465); // 原版 1.21.11 的 MAX_DAMAGE
 }
 
 TEST_F(WeaponItemTest, TridentItem_HasDurability)

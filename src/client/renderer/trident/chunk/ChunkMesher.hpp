@@ -158,27 +158,51 @@ public:
     /**
      * @brief 获取 BlockModelCache
      */
-    static BlockModelCache* modelCache() { return s_modelCache; }
+    static BlockModelCache* modelCache()
+    {
+        return s_modelCache;
+    }
 
     /**
      * @brief 设置是否使用贪婪网格合并
      */
-    static void setGreedyMeshing(bool enabled) { s_useGreedyMeshing = enabled; }
-    static bool isGreedyMeshingEnabled() { return s_useGreedyMeshing; }
+    static void setGreedyMeshing(bool enabled)
+    {
+        s_useGreedyMeshing = enabled;
+    }
+
+    static bool isGreedyMeshingEnabled()
+    {
+        return s_useGreedyMeshing;
+    }
 
     /**
      * @brief 设置光照模式
      *
      * @param mode 光照模式 (Flat: 平面, Smooth: 平滑AO)
      */
-    static void setLightingMode(LightingMode mode) { s_lightingMode = mode; }
-    static LightingMode lightingMode() { return s_lightingMode; }
+    static void setLightingMode(LightingMode mode)
+    {
+        s_lightingMode = mode;
+    }
+
+    static LightingMode lightingMode()
+    {
+        return s_lightingMode;
+    }
 
     /**
      * @brief 设置光照计算是否启用
      */
-    static void setLightingEnabled(bool enabled) { s_lightingEnabled = enabled; }
-    static bool isLightingEnabled() { return s_lightingEnabled; }
+    static void setLightingEnabled(bool enabled)
+    {
+        s_lightingEnabled = enabled;
+    }
+
+    static bool isLightingEnabled()
+    {
+        return s_lightingEnabled;
+    }
 
     /**
      * @brief 从客户端设置同步光照模式
@@ -215,7 +239,10 @@ public:
     /**
      * @brief 获取生物群系颜色混合器
      */
-    [[nodiscard]] static client::BiomeColorBlender& biomeColorBlender() { return s_biomeColorBlender; }
+    [[nodiscard]] static client::BiomeColorBlender& biomeColorBlender()
+    {
+        return s_biomeColorBlender;
+    }
 
     /**
      * @brief 使区块的颜色缓存失效
@@ -451,6 +478,7 @@ struct MeshBuildTask {
     std::function<void(const ChunkId&, const MeshData& solid, const MeshData& transparent)> onComplete;
 
     MeshBuildTask() = default;
+
     explicit MeshBuildTask(ChunkId id)
         : chunkId(id)
     {}

@@ -87,10 +87,12 @@ struct ProcessedBlockInfo {
     std::unique_ptr<nbt::CompoundTag> nbt;
 
     ProcessedBlockInfo() = default;
+
     ProcessedBlockInfo(const BlockPos& p, u32 stateId)
         : pos(p)
         , blockStateId(stateId)
     {}
+
     ProcessedBlockInfo(const ProcessedBlockInfo& other);
     ProcessedBlockInfo(ProcessedBlockInfo&& other) noexcept;
     ProcessedBlockInfo& operator=(const ProcessedBlockInfo& other);
@@ -121,33 +123,65 @@ class PlacementSettings {
 public:
     PlacementSettings();
 
-    [[nodiscard]] Rotation getRotation() const { return m_rotation; }
+    [[nodiscard]] Rotation getRotation() const
+    {
+        return m_rotation;
+    }
+
     PlacementSettings& setRotation(Rotation rotation);
 
-    [[nodiscard]] Mirror getMirror() const { return m_mirror; }
+    [[nodiscard]] Mirror getMirror() const
+    {
+        return m_mirror;
+    }
+
     PlacementSettings& setMirror(Mirror mirror);
 
-    [[nodiscard]] bool ignoreEntities() const { return m_ignoreEntities; }
+    [[nodiscard]] bool ignoreEntities() const
+    {
+        return m_ignoreEntities;
+    }
+
     PlacementSettings& setIgnoreEntities(bool ignore);
 
-    [[nodiscard]] const structure::StructureBoundingBox* getBoundingBox() const { return m_boundingBox; }
+    [[nodiscard]] const structure::StructureBoundingBox* getBoundingBox() const
+    {
+        return m_boundingBox;
+    }
+
     PlacementSettings& setBoundingBox(const structure::StructureBoundingBox* bounds);
 
-    [[nodiscard]] const BlockPos& getCenterOffset() const { return m_centerOffset; }
+    [[nodiscard]] const BlockPos& getCenterOffset() const
+    {
+        return m_centerOffset;
+    }
+
     PlacementSettings& setCenterOffset(const BlockPos& offset);
 
     // TODO: blockUpdateFlags 目前尚无任何消费点（结构放置的 flags 由 Template::place/placeInWorld
     //       的参数直接指定），待放置流程改由本字段驱动时接入 setBlockState。
-    [[nodiscard]] i32 getBlockUpdateFlags() const { return m_blockUpdateFlags; }
+    [[nodiscard]] i32 getBlockUpdateFlags() const
+    {
+        return m_blockUpdateFlags;
+    }
+
     PlacementSettings& setBlockUpdateFlags(i32 flags);
 
-    [[nodiscard]] bool keepLiquids() const { return m_keepLiquids; }
+    [[nodiscard]] bool keepLiquids() const
+    {
+        return m_keepLiquids;
+    }
+
     PlacementSettings& setKeepLiquids(bool keep);
 
     /**
      * @brief 获取世界读取器（用于 GravityStructureProcessor 等需要高度信息的处理器）
      */
-    [[nodiscard]] const IWorld* getWorld() const { return m_world; }
+    [[nodiscard]] const IWorld* getWorld() const
+    {
+        return m_world;
+    }
+
     PlacementSettings& setWorld(const IWorld* world)
     {
         m_world = world;
@@ -178,7 +212,11 @@ public:
 
     [[nodiscard]] PlacementSettings copy() const;
 
-    [[nodiscard]] const StructureProcessorList* getProcessors() const { return m_processors; }
+    [[nodiscard]] const StructureProcessorList* getProcessors() const
+    {
+        return m_processors;
+    }
+
     PlacementSettings& setProcessors(const StructureProcessorList* processors);
 
 private:
@@ -245,7 +283,10 @@ public:
     /**
      * @brief 获取处理器类型ID
      */
-    [[nodiscard]] virtual u32 getProcessorType() const { return 0; }
+    [[nodiscard]] virtual u32 getProcessorType() const
+    {
+        return 0;
+    }
 };
 
 /**
@@ -256,8 +297,16 @@ public:
     StructureProcessorList() = default;
 
     void addProcessor(std::unique_ptr<StructureProcessor> processor);
-    [[nodiscard]] size_t size() const { return m_processors.size(); }
-    [[nodiscard]] bool empty() const { return m_processors.empty(); }
+
+    [[nodiscard]] size_t size() const
+    {
+        return m_processors.size();
+    }
+
+    [[nodiscard]] bool empty() const
+    {
+        return m_processors.empty();
+    }
 
     /**
      * @brief 深拷贝处理器列表
@@ -272,19 +321,31 @@ public:
      *
      * 用于遍历处理器进行克隆或查询。
      */
-    [[nodiscard]] const std::vector<std::unique_ptr<StructureProcessor>>& getProcessors() const { return m_processors; }
+    [[nodiscard]] const std::vector<std::unique_ptr<StructureProcessor>>& getProcessors() const
+    {
+        return m_processors;
+    }
 
     // 迭代器支持
     [[nodiscard]] std::vector<std::unique_ptr<StructureProcessor>>::const_iterator begin() const
     {
         return m_processors.begin();
     }
+
     [[nodiscard]] std::vector<std::unique_ptr<StructureProcessor>>::const_iterator end() const
     {
         return m_processors.end();
     }
-    [[nodiscard]] std::vector<std::unique_ptr<StructureProcessor>>::iterator begin() { return m_processors.begin(); }
-    [[nodiscard]] std::vector<std::unique_ptr<StructureProcessor>>::iterator end() { return m_processors.end(); }
+
+    [[nodiscard]] std::vector<std::unique_ptr<StructureProcessor>>::iterator begin()
+    {
+        return m_processors.begin();
+    }
+
+    [[nodiscard]] std::vector<std::unique_ptr<StructureProcessor>>::iterator end()
+    {
+        return m_processors.end();
+    }
 
     [[nodiscard]] std::optional<ProcessedBlockInfo> process(const BlockPos& seedPos,
         const BlockPos& pos,
@@ -313,6 +374,7 @@ struct TemplateJigsawBlockInfo {
     i32 selectionPriority = 0; // 选择优先级（同一拼图块内降序排序）
 
     TemplateJigsawBlockInfo() = default;
+
     TemplateJigsawBlockInfo(const BlockPos& p,
         const std::string& n,
         const std::string& pool,
@@ -420,7 +482,10 @@ struct PaletteBlock {
     }
 
     /// 该方块在 Palette 的稀疏 NBT 表中是否有对应条目
-    [[nodiscard]] bool hasNbt() const noexcept { return (flags & FLAG_HAS_NBT) != 0; }
+    [[nodiscard]] bool hasNbt() const noexcept
+    {
+        return (flags & FLAG_HAS_NBT) != 0;
+    }
 };
 
 static_assert(sizeof(PaletteBlock) == 8, "PaletteBlock 必须是紧凑的 8 字节表示");
@@ -449,7 +514,10 @@ public:
     /**
      * @brief 获取所有方块信息
      */
-    [[nodiscard]] const BlockVec& blocks() const { return m_blocks; }
+    [[nodiscard]] const BlockVec& blocks() const
+    {
+        return m_blocks;
+    }
 
     /**
      * @brief 获取指定下标的方块所携带的 NBT
@@ -480,12 +548,18 @@ public:
     /**
      * @brief 获取方块数量
      */
-    [[nodiscard]] size_t size() const { return m_blocks.size(); }
+    [[nodiscard]] size_t size() const
+    {
+        return m_blocks.size();
+    }
 
     /**
      * @brief 是否为空
      */
-    [[nodiscard]] bool empty() const { return m_blocks.empty(); }
+    [[nodiscard]] bool empty() const
+    {
+        return m_blocks.empty();
+    }
 
 private:
     BlockVec m_blocks;
@@ -509,8 +583,15 @@ public:
     Template();
     ~Template();
 
-    [[nodiscard]] const BlockPos& getSize() const { return m_size; }
-    void setSize(const BlockPos& size) { m_size = size; }
+    [[nodiscard]] const BlockPos& getSize() const
+    {
+        return m_size;
+    }
+
+    void setSize(const BlockPos& size)
+    {
+        m_size = size;
+    }
 
     /**
      * @brief 添加调色板
@@ -520,7 +601,10 @@ public:
     /**
      * @brief 获取调色板数量
      */
-    [[nodiscard]] size_t getPaletteCount() const { return m_palettes.size(); }
+    [[nodiscard]] size_t getPaletteCount() const
+    {
+        return m_palettes.size();
+    }
 
     /**
      * @brief 获取指定索引的调色板
@@ -553,10 +637,22 @@ public:
     void addJigsawBlock(const TemplateJigsawBlockInfo& jigsawInfo);
     void addEntity(const TemplateEntityInfo& entityInfo);
 
-    [[nodiscard]] const std::vector<TemplateJigsawBlockInfo>& getJigsawBlocks() const { return m_jigsawBlocks; }
-    [[nodiscard]] const std::vector<TemplateEntityInfo>& getEntities() const { return m_entities; }
+    [[nodiscard]] const std::vector<TemplateJigsawBlockInfo>& getJigsawBlocks() const
+    {
+        return m_jigsawBlocks;
+    }
+
+    [[nodiscard]] const std::vector<TemplateEntityInfo>& getEntities() const
+    {
+        return m_entities;
+    }
+
     [[nodiscard]] size_t getBlockCount() const;
-    [[nodiscard]] size_t getJigsawBlockCount() const { return m_jigsawBlocks.size(); }
+
+    [[nodiscard]] size_t getJigsawBlockCount() const
+    {
+        return m_jigsawBlocks.size();
+    }
 
     [[nodiscard]] structure::StructureBoundingBox getBoundingBox(
         const PlacementSettings& settings, const BlockPos& pos) const;
@@ -666,8 +762,15 @@ public:
         return std::make_unique<GravityStructureProcessor>(m_heightmapType, m_offset);
     }
 
-    [[nodiscard]] i32 heightmapType() const { return m_heightmapType; }
-    [[nodiscard]] i32 offset() const { return m_offset; }
+    [[nodiscard]] i32 heightmapType() const
+    {
+        return m_heightmapType;
+    }
+
+    [[nodiscard]] i32 offset() const
+    {
+        return m_offset;
+    }
 
 private:
     i32 m_heightmapType;
@@ -693,7 +796,10 @@ public:
             std::vector<u32>(m_blocksToIgnore.begin(), m_blocksToIgnore.end()));
     }
 
-    [[nodiscard]] const std::unordered_set<u32>& blocksToIgnore() const { return m_blocksToIgnore; }
+    [[nodiscard]] const std::unordered_set<u32>& blocksToIgnore() const
+    {
+        return m_blocksToIgnore;
+    }
 
 private:
     std::unordered_set<u32> m_blocksToIgnore;
@@ -775,7 +881,10 @@ public:
 
     [[nodiscard]] std::unique_ptr<StructureProcessor> clone() const override;
 
-    [[nodiscard]] const std::vector<std::unique_ptr<RuleEntry>>& rules() const { return m_rules; }
+    [[nodiscard]] const std::vector<std::unique_ptr<RuleEntry>>& rules() const
+    {
+        return m_rules;
+    }
 
 private:
     std::vector<std::unique_ptr<RuleEntry>> m_rules;
@@ -847,7 +956,10 @@ public:
         return std::make_unique<BlockAgeProcessor>(m_mossiness);
     }
 
-    [[nodiscard]] f32 mossiness() const { return m_mossiness; }
+    [[nodiscard]] f32 mossiness() const
+    {
+        return m_mossiness;
+    }
 
 private:
     f32 m_mossiness;

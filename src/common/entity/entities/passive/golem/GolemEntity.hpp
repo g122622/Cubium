@@ -70,18 +70,40 @@ public:
 
     // ========== IAngerable 接口实现 ==========
 
-    void setAttackTarget(LivingEntity* target) override { MobEntity::setAttackTarget(target); }
+    void setAttackTarget(LivingEntity* target) override
+    {
+        MobEntity::setAttackTarget(target);
+    }
+
     [[nodiscard]] LivingEntity* getAttackTarget() const override
     {
         return const_cast<GolemEntity*>(this)->MobEntity::attackTarget();
     }
+
     void setRevengeTarget(LivingEntity* target) override;
     [[nodiscard]] LivingEntity* getRevengeTarget() const override;
-    [[nodiscard]] i32 getRevengeTimer() const override { return m_revengeTimer; }
-    [[nodiscard]] bool isAngry() const override { return m_angerTime > 0; }
+
+    [[nodiscard]] i32 getRevengeTimer() const override
+    {
+        return m_revengeTimer;
+    }
+
+    [[nodiscard]] bool isAngry() const override
+    {
+        return m_angerTime > 0;
+    }
+
     void setAngry(bool angry) override;
-    [[nodiscard]] i32 getAngerTime() const override { return m_angerTime; }
-    void setAngerTime(i32 time) override { m_angerTime = time; }
+
+    [[nodiscard]] i32 getAngerTime() const override
+    {
+        return m_angerTime;
+    }
+
+    void setAngerTime(i32 time) override
+    {
+        m_angerTime = time;
+    }
 
     // ========== 生命周期 ==========
 

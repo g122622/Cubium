@@ -46,13 +46,19 @@ WorkAtJobSiteGoal::WorkAtJobSiteGoal(VillagerEntity* villager)
 
 bool WorkAtJobSiteGoal::shouldExecute()
 {
-    if (!m_villager) return false;
+    if (!m_villager) {
+        return false;
+    }
 
     // 傻子村民不工作
-    if (m_villager->isNitwit()) return false;
+    if (m_villager->isNitwit()) {
+        return false;
+    }
 
     // 检查是否是工作时间
-    if (!_isWorkTime()) return false;
+    if (!_isWorkTime()) {
+        return false;
+    }
 
     // 检查是否有工作站点
     return _hasJobSite();
@@ -60,11 +66,17 @@ bool WorkAtJobSiteGoal::shouldExecute()
 
 bool WorkAtJobSiteGoal::shouldContinueExecuting()
 {
-    if (!m_villager) return false;
+    if (!m_villager) {
+        return false;
+    }
 
     // 继续工作的条件
-    if (!_isWorkTime()) return false;
-    if (!_hasJobSite()) return false;
+    if (!_isWorkTime()) {
+        return false;
+    }
+    if (!_hasJobSite()) {
+        return false;
+    }
 
     // 限制工作时间
     return m_workTicks < WORK_TICKS_MAX;
@@ -91,7 +103,9 @@ void WorkAtJobSiteGoal::resetTask()
 
 void WorkAtJobSiteGoal::tick()
 {
-    if (!m_villager) return;
+    if (!m_villager) {
+        return;
+    }
 
     m_workTicks++;
 
@@ -122,19 +136,25 @@ void WorkAtJobSiteGoal::tick()
 
 bool WorkAtJobSiteGoal::_isWorkTime() const
 {
-    if (!m_villager) return false;
+    if (!m_villager) {
+        return false;
+    }
     return m_villager->isWorkTime();
 }
 
 bool WorkAtJobSiteGoal::_hasJobSite() const
 {
-    if (!m_villager) return false;
+    if (!m_villager) {
+        return false;
+    }
     return m_villager->workStation() != BlockPos::zero();
 }
 
 void WorkAtJobSiteGoal::_moveToJobSite()
 {
-    if (!m_villager) return;
+    if (!m_villager) {
+        return;
+    }
 
     BlockPos workPos = m_villager->workStation();
     m_villager->tryMoveTo(workPos.x + 0.5, workPos.y, workPos.z + 0.5, 0.4);
@@ -142,7 +162,9 @@ void WorkAtJobSiteGoal::_moveToJobSite()
 
 void WorkAtJobSiteGoal::_doWork()
 {
-    if (!m_villager) return;
+    if (!m_villager) {
+        return;
+    }
 
     // 设置工作状态
     m_villager->work();
@@ -155,7 +177,9 @@ void WorkAtJobSiteGoal::_doWork()
 
 bool WorkAtJobSiteGoal::_needsRestock() const
 {
-    if (!m_villager) return false;
+    if (!m_villager) {
+        return false;
+    }
 
     // 补货检查逻辑：
     // 委托给 VillagerEntity::shouldRestock()，包含完整逻辑：
@@ -167,7 +191,9 @@ bool WorkAtJobSiteGoal::_needsRestock() const
 
 void WorkAtJobSiteGoal::_restock()
 {
-    if (!m_villager) return;
+    if (!m_villager) {
+        return;
+    }
 
     // 委托给 VillagerEntity::restock()，执行完整的补货流程：
     // 1. 更新所有交易的需求值

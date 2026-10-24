@@ -92,8 +92,9 @@ namespace {
         Vector3d rayStart(sourceCenter.x + offsetX, sourceCenter.y + offsetY, sourceCenter.z + offsetZ);
 
         // 使用 isBlockInLine 检查从偏移起点到监听器中心的射线上是否有遮挡方块
-        bool hitOccludingBlock = world.isBlockInLine(
-            rayStart, listenerCenter, [&occludesTag](const BlockState& state) { return occludesTag.contains(state); });
+        bool hitOccludingBlock = world.isBlockInLine(rayStart, listenerCenter, [&occludesTag](const BlockState& state) {
+            return occludesTag.contains(state);
+        });
 
         // 如果某个方向的射线没有命中遮挡方块，说明振动信号可以从这个方向逸出，
         // 因此振动未被完全遮挡

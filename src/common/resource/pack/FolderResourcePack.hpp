@@ -57,16 +57,28 @@ public:
 
     // IResourcePack接口实现
     [[nodiscard]] Result<void> initialize() override;
-    [[nodiscard]] const PackMetadata& metadata() const override { return m_metadata; }
+
+    [[nodiscard]] const PackMetadata& metadata() const override
+    {
+        return m_metadata;
+    }
+
     [[nodiscard]] bool hasResource(PackType type, std::string_view resourcePath) const override;
     [[nodiscard]] Result<std::vector<u8>> readResource(PackType type, std::string_view resourcePath) const override;
     [[nodiscard]] Result<std::vector<std::string>> listResources(
         PackType type, std::string_view directory, std::string_view extension) const override;
     [[nodiscard]] Result<std::vector<std::string>> getResourceNamespaces(PackType type) const override;
-    [[nodiscard]] std::string name() const override { return m_name; }
+
+    [[nodiscard]] std::string name() const override
+    {
+        return m_name;
+    }
 
     // 内部 API — 仅供诊断/管理代码使用
-    [[nodiscard]] const std::string& rootPath() const { return m_rootPath; }
+    [[nodiscard]] const std::string& rootPath() const
+    {
+        return m_rootPath;
+    }
 
 private:
     std::string m_rootPath;

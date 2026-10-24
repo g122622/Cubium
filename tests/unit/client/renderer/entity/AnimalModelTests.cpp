@@ -216,10 +216,12 @@ TEST(AnimalModelMesh, ChickenIncludesHeadBillAndChinInGeneratedMesh)
     model.setAngles(0.0f, 0.0f, 0.0f, 0.0f, 0.0f, kModelScale);
     model.generateMesh(vertices, indices, kModelScale);
 
-    const bool hasHeadHeight = std::any_of(
-        vertices.begin(), vertices.end(), [](const ModelVertex& vertex) { return vertex.position.y < 0.7f; });
-    const bool hasBillOrChinForwardDepth = std::any_of(
-        vertices.begin(), vertices.end(), [](const ModelVertex& vertex) { return vertex.position.z < -0.45f; });
+    const bool hasHeadHeight = std::any_of(vertices.begin(), vertices.end(), [](const ModelVertex& vertex) {
+        return vertex.position.y < 0.7f;
+    });
+    const bool hasBillOrChinForwardDepth = std::any_of(vertices.begin(), vertices.end(), [](const ModelVertex& vertex) {
+        return vertex.position.z < -0.45f;
+    });
 
     EXPECT_TRUE(hasHeadHeight);
     EXPECT_TRUE(hasBillOrChinForwardDepth);

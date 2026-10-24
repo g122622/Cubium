@@ -51,24 +51,36 @@ namespace {
 class EffectTestWorld final : public mc::test::BaseTestWorld {
 public:
     void playSound(const ResourceLocation&, sound::SoundCategory, const Vector3&, f32, f32) override {}
+
     void addParticle(particle::ParticleTypeId, const Vector3&, const Vector3&, const Vector3&, u32) override {}
 
     [[nodiscard]] world::tick::TickManager& tickManager() override
     {
         throw std::runtime_error("EffectTestWorld::tickManager not implemented");
     }
+
     [[nodiscard]] const world::tick::TickManager& tickManager() const override
     {
         throw std::runtime_error("EffectTestWorld::tickManager not implemented");
     }
-    EntityInstanceId spawnEntity(std::unique_ptr<Entity>) override { return 0; }
+
+    EntityInstanceId spawnEntity(std::unique_ptr<Entity>) override
+    {
+        return 0;
+    }
 };
 
 class SaturationEffectTest : public ::testing::Test {
 protected:
-    void SetUp() override { m_world = std::make_unique<EffectTestWorld>(); }
+    void SetUp() override
+    {
+        m_world = std::make_unique<EffectTestWorld>();
+    }
 
-    void TearDown() override { m_world.reset(); }
+    void TearDown() override
+    {
+        m_world.reset();
+    }
 
     std::unique_ptr<EffectTestWorld> m_world;
 };

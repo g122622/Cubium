@@ -64,12 +64,18 @@ public:
      *
      * @return true
      */
-    [[nodiscard]] bool isArmor() const override { return true; }
+    [[nodiscard]] bool isArmor() const override
+    {
+        return true;
+    }
 
     /**
      * @brief 是否可修复
      */
-    [[nodiscard]] bool isRepairable() const { return true; }
+    [[nodiscard]] bool isRepairable() const
+    {
+        return true;
+    }
 
     /**
      * @brief 右键使用物品

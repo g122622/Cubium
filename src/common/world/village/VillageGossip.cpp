@@ -65,8 +65,9 @@ void VillageGossipManager::addGossip(u64 playerId, VillageGossipType type, i32 v
     auto& gossips = m_gossips[playerId];
 
     // 查找是否已有该类型的流言
-    auto it =
-        std::find_if(gossips.begin(), gossips.end(), [type](const GossipEntry& entry) { return entry.type == type; });
+    auto it = std::find_if(gossips.begin(), gossips.end(), [type](const GossipEntry& entry) {
+        return entry.type == type;
+    });
 
     if (it != gossips.end()) {
         // 累加，不超过最大值
@@ -88,9 +89,11 @@ void VillageGossipManager::removeGossip(u64 playerId, VillageGossipType type)
     auto it = m_gossips.find(playerId);
     if (it != m_gossips.end()) {
         auto& gossips = it->second;
-        gossips.erase(
-            std::remove_if(
-                gossips.begin(), gossips.end(), [type](const GossipEntry& entry) { return entry.type == type; }),
+        gossips.erase(std::remove_if(gossips.begin(),
+                          gossips.end(),
+                          [type](const GossipEntry& entry) {
+                              return entry.type == type;
+                          }),
             gossips.end());
 
         // 如果玩家没有流言了，移除记录
@@ -179,8 +182,11 @@ void VillageGossipManager::tick(i64 gameTime)
         }
 
         // 移除值为0的流言
-        gossips.erase(
-            std::remove_if(gossips.begin(), gossips.end(), [](const GossipEntry& entry) { return entry.value <= 0; }),
+        gossips.erase(std::remove_if(gossips.begin(),
+                          gossips.end(),
+                          [](const GossipEntry& entry) {
+                              return entry.value <= 0;
+                          }),
             gossips.end());
     }
 

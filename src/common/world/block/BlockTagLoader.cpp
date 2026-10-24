@@ -70,7 +70,10 @@ public:
         return index;
     }
 
-    [[nodiscard]] const ResourceLocation& at(std::size_t index) const { return m_locations.at(index); }
+    [[nodiscard]] const ResourceLocation& at(std::size_t index) const
+    {
+        return m_locations.at(index);
+    }
 
 private:
     std::vector<ResourceLocation> m_locations;

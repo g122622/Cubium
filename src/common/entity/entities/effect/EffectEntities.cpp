@@ -1278,7 +1278,9 @@ bool ArmorStandEntity::swapItem(const Player& player, EquipmentSlot slot, ItemSt
     // 槽位禁用位组：位号 = 槽位序号 * 16 + 组内偏移（0=放入、8=取出）。位号可能超过 31，
     // 故按位号拆成"低位部分 + 高位移位"两段计算，与 _disabledPlaceMask 同法。
     const u32 disabledMask = static_cast<u32>(disabledSlots());
-    const auto bitMask = [](i32 bitIndex) -> u32 { return static_cast<u32>(1u << (bitIndex & 31)) << (bitIndex >> 5); };
+    const auto bitMask = [](i32 bitIndex) -> u32 {
+        return static_cast<u32>(1u << (bitIndex & 31)) << (bitIndex >> 5);
+    };
     if (!slotStack.isEmpty() && (disabledMask & bitMask(_disableBit(slot, ARMOR_STAND_SLOT_BIT_REMOVE))) != 0) {
         return false;
     }

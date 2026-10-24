@@ -96,10 +96,16 @@ public:
     void setOutputPath(const std::string& outputPath);
 
     /** @brief 是否已初始化 */
-    [[nodiscard]] bool isInitialized() const noexcept { return m_initialized; }
+    [[nodiscard]] bool isInitialized() const noexcept
+    {
+        return m_initialized;
+    }
 
     /** @brief 是否正在录制 */
-    [[nodiscard]] bool isTracing() const noexcept { return m_tracing; }
+    [[nodiscard]] bool isTracing() const noexcept
+    {
+        return m_tracing;
+    }
 
     /** @brief 设置进程名称 */
     void setProcessName(const std::string& name);

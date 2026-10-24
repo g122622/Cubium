@@ -53,7 +53,10 @@ public:
     /**
      * @brief 获取目标选择器（用于测试）
      */
-    entity::ai::GoalSelector& testTargetSelector() { return targetSelector(); }
+    entity::ai::GoalSelector& testTargetSelector()
+    {
+        return targetSelector();
+    }
 };
 
 /**
@@ -70,7 +73,10 @@ public:
     /**
      * @brief 获取目标选择器（用于测试）
      */
-    entity::ai::GoalSelector& testTargetSelector() { return targetSelector(); }
+    entity::ai::GoalSelector& testTargetSelector()
+    {
+        return targetSelector();
+    }
 };
 
 class DrownedRegisterGoalsTest : public ::testing::Test {

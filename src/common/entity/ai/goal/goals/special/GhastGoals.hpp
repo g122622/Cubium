@@ -79,7 +79,10 @@ public:
      * @brief 是否应该继续执行
      * @return 单次执行目标，返回false
      */
-    bool shouldContinueExecuting() override { return false; }
+    bool shouldContinueExecuting() override
+    {
+        return false;
+    }
 
     /**
      * @brief 开始执行时调用
@@ -90,7 +93,10 @@ public:
     /**
      * @brief 获取目标名称
      */
-    std::string getTypeName() const override { return "GhastRandomFlyGoal"; }
+    std::string getTypeName() const override
+    {
+        return "GhastRandomFlyGoal";
+    }
 
 private:
     /// 当前宿主实体（恶魂或快乐恶魂，二者互斥且非空）
@@ -127,7 +133,10 @@ public:
     void startExecuting() override;
     void tick() override;
 
-    [[nodiscard]] std::string getTypeName() const override { return "GhastFollowLeashHolderGoal"; }
+    [[nodiscard]] std::string getTypeName() const override
+    {
+        return "GhastFollowLeashHolderGoal";
+    }
 
 private:
     [[nodiscard]] Entity* _resolveHolder() const;
@@ -157,7 +166,10 @@ public:
     void startExecuting() override;
     void tick() override;
 
-    [[nodiscard]] std::string getTypeName() const override { return "GhastHappyFloatGoal"; }
+    [[nodiscard]] std::string getTypeName() const override
+    {
+        return "GhastHappyFloatGoal";
+    }
 
     /// 每 tick 施加的向上速度（对齐 vanilla FloatGoal 的 0.05）
     static constexpr f32 FLOAT_SPEED = 0.05f;
@@ -191,7 +203,10 @@ public:
      * @brief 检查是否应该执行
      * @return 始终返回true（总是执行）
      */
-    bool shouldExecute() override { return true; }
+    bool shouldExecute() override
+    {
+        return true;
+    }
 
     /**
      * @brief 每tick执行
@@ -202,7 +217,10 @@ public:
     /**
      * @brief 获取目标名称
      */
-    std::string getTypeName() const override { return "GhastLookAroundGoal"; }
+    std::string getTypeName() const override
+    {
+        return "GhastLookAroundGoal";
+    }
 
 private:
     GhastEntity* m_ghast;
@@ -254,7 +272,10 @@ public:
     /**
      * @brief 获取目标名称
      */
-    std::string getTypeName() const override { return "GhastFireballAttackGoal"; }
+    std::string getTypeName() const override
+    {
+        return "GhastFireballAttackGoal";
+    }
 
 private:
     GhastEntity* m_ghast;

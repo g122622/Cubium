@@ -82,7 +82,10 @@ public:
     /**
      * @brief 获取未叠加随机增量的树干基础高度。
      */
-    [[nodiscard]] i32 baseHeight() const noexcept { return m_baseHeight; }
+    [[nodiscard]] i32 baseHeight() const noexcept
+    {
+        return m_baseHeight;
+    }
 
     /**
      * @brief 放置树干

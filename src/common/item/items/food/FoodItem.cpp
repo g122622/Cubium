@@ -54,8 +54,11 @@ using namespace entity::effect;
  * @brief 构造食物物品
  */
 FoodItem::FoodItem(const food::Food* food, ItemProperties properties)
-    : Item(std::move(properties))
-    , m_food(food)
+    // 食物属性必须写进 ItemProperties 再交给基类：基类 Item 的 m_food 才是权威存储，
+    // 所有通用访问（isFood()/foodProperties()）都读它。子类若另存一份 m_food，
+    // 两条注册路径就会不一致——通过 ItemProperties::food() 注册的物品（如鱼桶）
+    // isFood() 为 true 却取不到数据。
+    : Item(properties.food(food))
 {}
 
 /**

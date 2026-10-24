@@ -126,7 +126,10 @@ public:
      *
      * @param atlas 实体纹理图集指针（可为 nullptr 表示未注入，此时不恢复）
      */
-    void setEntityTextureAtlas(const pipeline::EntityTextureAtlas* atlas) { m_entityTextureAtlas = atlas; }
+    void setEntityTextureAtlas(const pipeline::EntityTextureAtlas* atlas)
+    {
+        m_entityTextureAtlas = atlas;
+    }
 
 private:
     /**

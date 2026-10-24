@@ -45,7 +45,10 @@ public:
     /**
      * @brief 设置是否在水中
      */
-    void setInWater(bool inWater) { m_isInWater = inWater; }
+    void setInWater(bool inWater)
+    {
+        m_isInWater = inWater;
+    }
 
 private:
     void _setupParts();
@@ -75,7 +78,10 @@ public:
     /**
      * @brief 设置是否在水中
      */
-    void setInWater(bool inWater) { m_isInWater = inWater; }
+    void setInWater(bool inWater)
+    {
+        m_isInWater = inWater;
+    }
 
 private:
     void _setupParts();
@@ -122,7 +128,10 @@ public:
      *
      * @param magnitude 水平速度平方（vx*vx + vz*vz）
      */
-    void setMotionMagnitude(f64 magnitude) { m_motionMagnitude = magnitude; }
+    void setMotionMagnitude(f64 magnitude)
+    {
+        m_motionMagnitude = magnitude;
+    }
 
     /**
      * @brief 运动判定阈值，对应 MC 1.21.11 DolphinRenderer 中的 1.0E-7
@@ -135,14 +144,45 @@ public:
     // ========== 部件访问器（供单元测试验证摆尾角度） ==========
     // 返回裸指针而非 shared_ptr，避免测试用例意外修改部件引用计数。
     // 这些访问器仅用于读取 setAngles 写入的 rotateAngleX/Y 值。
-    [[nodiscard]] const std::shared_ptr<ModelRenderer>& body() const { return m_body; }
-    [[nodiscard]] const std::shared_ptr<ModelRenderer>& tail() const { return m_tail; }
-    [[nodiscard]] const std::shared_ptr<ModelRenderer>& tailFin() const { return m_tailFin; }
-    [[nodiscard]] const std::shared_ptr<ModelRenderer>& dorsalFin() const { return m_dorsalFin; }
-    [[nodiscard]] const std::shared_ptr<ModelRenderer>& finRight() const { return m_finRight; }
-    [[nodiscard]] const std::shared_ptr<ModelRenderer>& finLeft() const { return m_finLeft; }
-    [[nodiscard]] const std::shared_ptr<ModelRenderer>& head() const { return m_head; }
-    [[nodiscard]] const std::shared_ptr<ModelRenderer>& nose() const { return m_nose; }
+    [[nodiscard]] const std::shared_ptr<ModelRenderer>& body() const
+    {
+        return m_body;
+    }
+
+    [[nodiscard]] const std::shared_ptr<ModelRenderer>& tail() const
+    {
+        return m_tail;
+    }
+
+    [[nodiscard]] const std::shared_ptr<ModelRenderer>& tailFin() const
+    {
+        return m_tailFin;
+    }
+
+    [[nodiscard]] const std::shared_ptr<ModelRenderer>& dorsalFin() const
+    {
+        return m_dorsalFin;
+    }
+
+    [[nodiscard]] const std::shared_ptr<ModelRenderer>& finRight() const
+    {
+        return m_finRight;
+    }
+
+    [[nodiscard]] const std::shared_ptr<ModelRenderer>& finLeft() const
+    {
+        return m_finLeft;
+    }
+
+    [[nodiscard]] const std::shared_ptr<ModelRenderer>& head() const
+    {
+        return m_head;
+    }
+
+    [[nodiscard]] const std::shared_ptr<ModelRenderer>& nose() const
+    {
+        return m_nose;
+    }
 
 private:
     void _setupParts();
@@ -176,27 +216,42 @@ public:
     /**
      * @brief 设置是否在水中
      */
-    void setInWater(bool inWater) { m_isInWater = inWater; }
+    void setInWater(bool inWater)
+    {
+        m_isInWater = inWater;
+    }
 
     /**
      * @brief 设置是否在地面
      */
-    void setOnGround(bool onGround) { m_isOnGround = onGround; }
+    void setOnGround(bool onGround)
+    {
+        m_isOnGround = onGround;
+    }
 
     /**
      * @brief 设置是否在挖掘
      */
-    void setDigging(bool digging) { m_isDigging = digging; }
+    void setDigging(bool digging)
+    {
+        m_isDigging = digging;
+    }
 
     /**
      * @brief 设置是否有蛋（怀孕状态）
      */
-    void setHasEgg(bool hasEgg) { m_hasEgg = hasEgg; }
+    void setHasEgg(bool hasEgg)
+    {
+        m_hasEgg = hasEgg;
+    }
 
     /**
      * @brief 设置是否为幼体
      */
-    void setChild(bool isChild) { m_isChild = isChild; }
+    void setChild(bool isChild)
+    {
+        m_isChild = isChild;
+    }
 
 private:
     void _setupParts(f32 scale);
@@ -264,7 +319,10 @@ public:
     /**
      * @brief 设置是否在水中
      */
-    void setInWater(bool inWater) { m_isInWater = inWater; }
+    void setInWater(bool inWater)
+    {
+        m_isInWater = inWater;
+    }
 
 private:
     void _setupParts(f32 scale);
@@ -295,7 +353,10 @@ public:
     /**
      * @brief 设置是否在水中
      */
-    void setInWater(bool inWater) { m_isInWater = inWater; }
+    void setInWater(bool inWater)
+    {
+        m_isInWater = inWater;
+    }
 
 private:
     void _setupParts(f32 scale);
@@ -329,22 +390,34 @@ public:
     /**
      * @brief 设置是否在水中
      */
-    void setInWater(bool inWater) { m_isInWater = inWater; }
+    void setInWater(bool inWater)
+    {
+        m_isInWater = inWater;
+    }
 
     /**
      * @brief 设置是否在地面
      */
-    void setOnGround(bool onGround) { m_isOnGround = onGround; }
+    void setOnGround(bool onGround)
+    {
+        m_isOnGround = onGround;
+    }
 
     /**
      * @brief 设置是否正在装死
      */
-    void setPlayingDead(bool playingDead) { m_isPlayingDead = playingDead; }
+    void setPlayingDead(bool playingDead)
+    {
+        m_isPlayingDead = playingDead;
+    }
 
     /**
      * @brief 设置是否为幼体
      */
-    void setChild(bool isChild) { m_isChild = isChild; }
+    void setChild(bool isChild)
+    {
+        m_isChild = isChild;
+    }
 
 private:
     void _setupParts();

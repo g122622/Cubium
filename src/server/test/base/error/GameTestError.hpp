@@ -47,12 +47,30 @@ public:
         , m_context(std::move(context))
     {}
 
-    [[nodiscard]] GameTestErrorType type() const noexcept { return m_type; }
-    [[nodiscard]] const std::string& message() const noexcept { return m_message; }
-    [[nodiscard]] const std::vector<std::string>& params() const noexcept { return m_params; }
-    [[nodiscard]] const std::optional<GameTestErrorContext>& context() const noexcept { return m_context; }
+    [[nodiscard]] GameTestErrorType type() const noexcept
+    {
+        return m_type;
+    }
 
-    void setContext(std::optional<GameTestErrorContext> context) { m_context = std::move(context); }
+    [[nodiscard]] const std::string& message() const noexcept
+    {
+        return m_message;
+    }
+
+    [[nodiscard]] const std::vector<std::string>& params() const noexcept
+    {
+        return m_params;
+    }
+
+    [[nodiscard]] const std::optional<GameTestErrorContext>& context() const noexcept
+    {
+        return m_context;
+    }
+
+    void setContext(std::optional<GameTestErrorContext> context)
+    {
+        m_context = std::move(context);
+    }
 
     /**
      * @brief 返回替换占位符后的完整可读消息。

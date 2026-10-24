@@ -57,6 +57,7 @@ struct BannerPattern {
     DyeColor color = DyeColor::White;                    ///< 图案颜色
 
     BannerPattern() = default;
+
     BannerPattern(BannerPatternType p, DyeColor c)
         : pattern(p)
         , color(c)
@@ -98,13 +99,19 @@ public:
      * @brief 获取图案列表
      * @return 图案列表
      */
-    [[nodiscard]] const std::vector<BannerPattern>& getPatterns() const { return m_patterns; }
+    [[nodiscard]] const std::vector<BannerPattern>& getPatterns() const
+    {
+        return m_patterns;
+    }
 
     /**
      * @brief 获取图案数量
      * @return 图案数量
      */
-    [[nodiscard]] i32 getPatternCount() const { return static_cast<i32>(m_patterns.size()); }
+    [[nodiscard]] i32 getPatternCount() const
+    {
+        return static_cast<i32>(m_patterns.size());
+    }
 
     /**
      * @brief 添加图案
@@ -136,7 +143,10 @@ public:
      * @brief 获取底色
      * @return 底色（染料颜色）
      */
-    [[nodiscard]] DyeColor getBaseColor() const { return m_baseColor; }
+    [[nodiscard]] DyeColor getBaseColor() const
+    {
+        return m_baseColor;
+    }
 
     /**
      * @brief 设置底色
@@ -161,7 +171,10 @@ public:
     /**
      * @brief 检查是否有自定义显示名称
      */
-    [[nodiscard]] bool hasCustomDisplayName() const { return m_customName != nullptr; }
+    [[nodiscard]] bool hasCustomDisplayName() const
+    {
+        return m_customName != nullptr;
+    }
 
     // ========== 辅助方法 ==========
 
@@ -169,7 +182,10 @@ public:
      * @brief 检查是否有图案
      * @return 如果有图案返回true
      */
-    [[nodiscard]] bool hasPatterns() const { return !m_patterns.empty(); }
+    [[nodiscard]] bool hasPatterns() const
+    {
+        return !m_patterns.empty();
+    }
 
     /**
      * @brief 获取图案纹理名称
@@ -236,7 +252,11 @@ public:
     // ========== Tick 更新 ==========
 
     void tick(IWorld& world) override;
-    [[nodiscard]] bool needsTick() const noexcept override { return false; }
+
+    [[nodiscard]] bool needsTick() const noexcept override
+    {
+        return false;
+    }
 
     // ========== 序列化 ==========
 

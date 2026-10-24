@@ -83,7 +83,10 @@ public:
         setVolume(volume);
     }
 
-    [[nodiscard]] bool canBeSilent() const override { return true; }
+    [[nodiscard]] bool canBeSilent() const override
+    {
+        return true;
+    }
 
     /**
      * @brief 开始淡出

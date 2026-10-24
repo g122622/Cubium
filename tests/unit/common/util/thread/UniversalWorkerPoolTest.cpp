@@ -54,11 +54,25 @@ public:
         return true;
     }
 
-    TaskType type() const override { return TaskType::Custom; }
-    std::string description() const override { return "SimpleTestTask(" + std::to_string(m_value) + ")"; }
+    TaskType type() const override
+    {
+        return TaskType::Custom;
+    }
 
-    [[nodiscard]] bool wasExecuted() const { return m_executed; }
-    [[nodiscard]] int value() const { return m_value; }
+    std::string description() const override
+    {
+        return "SimpleTestTask(" + std::to_string(m_value) + ")";
+    }
+
+    [[nodiscard]] bool wasExecuted() const
+    {
+        return m_executed;
+    }
+
+    [[nodiscard]] int value() const
+    {
+        return m_value;
+    }
 
 private:
     int m_value;
@@ -117,8 +131,15 @@ public:
         return true;
     }
 
-    TaskType type() const override { return TaskType::Custom; }
-    std::string description() const override { return "DelayedTask(" + std::to_string(m_value) + ")"; }
+    TaskType type() const override
+    {
+        return TaskType::Custom;
+    }
+
+    std::string description() const override
+    {
+        return "DelayedTask(" + std::to_string(m_value) + ")";
+    }
 
 private:
     int m_value;
@@ -139,8 +160,15 @@ public:
         throw std::runtime_error("Test exception");
     }
 
-    TaskType type() const override { return TaskType::Custom; }
-    std::string description() const override { return "ThrowingTask"; }
+    TaskType type() const override
+    {
+        return TaskType::Custom;
+    }
+
+    std::string description() const override
+    {
+        return "ThrowingTask";
+    }
 };
 
 // ============================================================================
@@ -150,6 +178,7 @@ public:
 class UniversalWorkerPoolTest : public ::testing::Test {
 protected:
     void SetUp() override {}
+
     void TearDown() override {}
 };
 
@@ -253,7 +282,12 @@ TEST_F(UniversalWorkerPoolTest, SubmitMultipleTasks)
 
     for (int i = 0; i < numTasks; ++i) {
         auto task = std::make_unique<SimpleTestTask>(i);
-        pool.submit(std::move(task), [&completedCount](bool, ITask*) { completedCount++; }, TaskPriority::Normal);
+        pool.submit(
+            std::move(task),
+            [&completedCount](bool, ITask*) {
+                completedCount++;
+            },
+            TaskPriority::Normal);
     }
 
     // 等待所有完成
@@ -436,7 +470,12 @@ TEST_F(UniversalWorkerPoolTest, PruneCancelledTasks)
     pool.start();
 
     std::atomic<bool> firstStarted{false};
-    pool.submit(std::make_unique<SimpleTestTask>(0), [&](bool, ITask*) { firstStarted = true; }, TaskPriority::Normal);
+    pool.submit(
+        std::make_unique<SimpleTestTask>(0),
+        [&](bool, ITask*) {
+            firstStarted = true;
+        },
+        TaskPriority::Normal);
 
     // 等待第一个任务开始
     for (int i = 0; i < 100 && !firstStarted; ++i) {
@@ -570,7 +609,12 @@ TEST_F(UniversalWorkerPoolTest, WaitForCompletion)
 
     for (int i = 0; i < numTasks; ++i) {
         auto task = std::make_unique<SimpleTestTask>(i);
-        pool.submit(std::move(task), [&completedCount](bool, ITask*) { completedCount++; }, TaskPriority::Normal);
+        pool.submit(
+            std::move(task),
+            [&completedCount](bool, ITask*) {
+                completedCount++;
+            },
+            TaskPriority::Normal);
     }
 
     pool.waitForCompletion();
@@ -599,7 +643,9 @@ TEST_F(UniversalWorkerPoolTest, ConcurrentSubmissions)
         threads.emplace_back([&pool, &completedCount, t]() {
             for (int i = 0; i < 10; ++i) {
                 auto task = std::make_unique<SimpleTestTask>(t * 10 + i);
-                pool.submit(std::move(task), [&completedCount](bool, ITask*) { completedCount++; });
+                pool.submit(std::move(task), [&completedCount](bool, ITask*) {
+                    completedCount++;
+                });
             }
         });
     }
@@ -624,7 +670,9 @@ TEST_F(UniversalWorkerPoolTest, ShutdownWhileTasksRunning)
     // 提交一些任务
     for (int i = 0; i < 10; ++i) {
         auto task = std::make_unique<SimpleTestTask>(i);
-        pool.submit(std::move(task), [&completedCount](bool, ITask*) { completedCount++; });
+        pool.submit(std::move(task), [&completedCount](bool, ITask*) {
+            completedCount++;
+        });
     }
 
     // 立即关闭（不等待完成）

@@ -41,7 +41,10 @@ protected:
         RecipeManager::instance().clear();
     }
 
-    void TearDown() override { RecipeManager::instance().clear(); }
+    void TearDown() override
+    {
+        RecipeManager::instance().clear();
+    }
 };
 
 // ========== RecipeLoader 测试 ==========

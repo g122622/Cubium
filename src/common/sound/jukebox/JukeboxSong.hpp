@@ -56,25 +56,37 @@ public:
      * @brief 获取声音事件ID
      * @return 声音事件的资源位置
      */
-    [[nodiscard]] const ResourceLocation& getSoundEventId() const noexcept { return m_soundEventId; }
+    [[nodiscard]] const ResourceLocation& getSoundEventId() const noexcept
+    {
+        return m_soundEventId;
+    }
 
     /**
      * @brief 获取描述翻译键
      * @return 翻译键字符串
      */
-    [[nodiscard]] const std::string& getDescriptionKey() const noexcept { return m_descriptionKey; }
+    [[nodiscard]] const std::string& getDescriptionKey() const noexcept
+    {
+        return m_descriptionKey;
+    }
 
     /**
      * @brief 获取歌曲长度（秒）
      * @return 歌曲长度
      */
-    [[nodiscard]] f32 getLengthInSeconds() const noexcept { return m_lengthInSeconds; }
+    [[nodiscard]] f32 getLengthInSeconds() const noexcept
+    {
+        return m_lengthInSeconds;
+    }
 
     /**
      * @brief 获取比较器输出信号强度
      * @return 信号强度 (1-15)
      */
-    [[nodiscard]] i32 getComparatorOutput() const noexcept { return m_comparatorOutput; }
+    [[nodiscard]] i32 getComparatorOutput() const noexcept
+    {
+        return m_comparatorOutput;
+    }
 
     // ========== 计算方法 ==========
 

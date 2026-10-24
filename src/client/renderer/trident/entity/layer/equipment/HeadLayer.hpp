@@ -109,12 +109,18 @@ protected:
     /**
      * @brief 获取关联的渲染器
      */
-    [[nodiscard]] entity::core::IEntityRenderer<TEntity, TModel>* getRenderer() { return m_renderer; }
+    [[nodiscard]] entity::core::IEntityRenderer<TEntity, TModel>* getRenderer()
+    {
+        return m_renderer;
+    }
 
     /**
      * @brief 获取父模型
      */
-    [[nodiscard]] TModel* getParentModel() { return m_renderer ? &m_renderer->getModel() : nullptr; }
+    [[nodiscard]] TModel* getParentModel()
+    {
+        return m_renderer ? &m_renderer->getModel() : nullptr;
+    }
 
 private:
     entity::core::IEntityRenderer<TEntity, TModel>* m_renderer = nullptr;

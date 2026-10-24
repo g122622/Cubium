@@ -131,7 +131,10 @@ public:
     void clear();
 
     // 获取已添加的纹理数量
-    [[nodiscard]] size_t textureCount() const { return m_textures.size(); }
+    [[nodiscard]] size_t textureCount() const
+    {
+        return m_textures.size();
+    }
 
     // 获取纹理路径列表
     [[nodiscard]] std::vector<ResourceLocation> getTextureLocations() const;
@@ -155,6 +158,7 @@ private:
         std::vector<std::vector<u8>> framePixels;
         resource::metadata::AnimationMetadata metadata;
     };
+
     std::vector<PendingAnimation> m_pendingAnimations;
 
     // 矩形打包算法 (使用Skyline算法)

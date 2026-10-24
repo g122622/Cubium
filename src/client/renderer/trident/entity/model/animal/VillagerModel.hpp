@@ -49,12 +49,18 @@ public:
     /**
      * @brief 设置摇头状态（交易不满意时）
      */
-    void setShakingHead(bool shaking) { m_shakingHead = shaking; }
+    void setShakingHead(bool shaking)
+    {
+        m_shakingHead = shaking;
+    }
 
     /**
      * @brief 获取头部模型
      */
-    [[nodiscard]] std::shared_ptr<ModelRenderer> getHead() const { return m_head; }
+    [[nodiscard]] std::shared_ptr<ModelRenderer> getHead() const
+    {
+        return m_head;
+    }
 
     /**
      * @brief 设置帽子可见性
@@ -71,22 +77,34 @@ public:
     /**
      * @brief 获取帽子模型
      */
-    [[nodiscard]] std::shared_ptr<ModelRenderer> getHat() const { return m_hat; }
+    [[nodiscard]] std::shared_ptr<ModelRenderer> getHat() const
+    {
+        return m_hat;
+    }
 
     /**
      * @brief 获取身体模型
      */
-    [[nodiscard]] std::shared_ptr<ModelRenderer> getBody() const { return m_body; }
+    [[nodiscard]] std::shared_ptr<ModelRenderer> getBody() const
+    {
+        return m_body;
+    }
 
     /**
      * @brief 获取衣服模型
      */
-    [[nodiscard]] std::shared_ptr<ModelRenderer> getClothing() const { return m_clothing; }
+    [[nodiscard]] std::shared_ptr<ModelRenderer> getClothing() const
+    {
+        return m_clothing;
+    }
 
     /**
      * @brief 获取鼻子模型
      */
-    [[nodiscard]] std::shared_ptr<ModelRenderer> getNose() const { return m_nose; }
+    [[nodiscard]] std::shared_ptr<ModelRenderer> getNose() const
+    {
+        return m_nose;
+    }
 
 protected:
     // 头部部件

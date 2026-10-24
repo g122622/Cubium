@@ -144,7 +144,10 @@ protected:
      *
      * @note applyCarvers 当前不读取 region 数据，此处仅满足接口约束。
      */
-    static std::vector<IChunk*> makeRegionChunks(IChunk* centerChunk) { return std::vector<IChunk*>(9, centerChunk); }
+    static std::vector<IChunk*> makeRegionChunks(IChunk* centerChunk)
+    {
+        return std::vector<IChunk*>(9, centerChunk);
+    }
 
     /**
      * @brief 逐方块断言两个区块完全一致

@@ -63,7 +63,10 @@ public:
     [[nodiscard]] bool shouldExecute() override;
     void tick() override;
 
-    [[nodiscard]] std::string getTypeName() const override { return "SlimeFloatGoal"; }
+    [[nodiscard]] std::string getTypeName() const override
+    {
+        return "SlimeFloatGoal";
+    }
 
 private:
     SlimeEntity* m_slime;
@@ -105,7 +108,10 @@ public:
     void startExecuting() override;
     void tick() override;
 
-    [[nodiscard]] std::string getTypeName() const override { return "SlimeAttackGoal"; }
+    [[nodiscard]] std::string getTypeName() const override
+    {
+        return "SlimeAttackGoal";
+    }
 
 private:
     SlimeEntity* m_slime;
@@ -143,7 +149,10 @@ public:
     [[nodiscard]] bool shouldExecute() override;
     void tick() override;
 
-    [[nodiscard]] std::string getTypeName() const override { return "SlimeFaceRandomGoal"; }
+    [[nodiscard]] std::string getTypeName() const override
+    {
+        return "SlimeFaceRandomGoal";
+    }
 
 private:
     SlimeEntity* m_slime;
@@ -180,7 +189,10 @@ public:
     [[nodiscard]] bool shouldExecute() override;
     void tick() override;
 
-    [[nodiscard]] std::string getTypeName() const override { return "SlimeHopGoal"; }
+    [[nodiscard]] std::string getTypeName() const override
+    {
+        return "SlimeHopGoal";
+    }
 
 private:
     SlimeEntity* m_slime;

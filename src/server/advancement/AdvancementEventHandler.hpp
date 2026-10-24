@@ -90,7 +90,10 @@ public:
      * 必须在 initialize() 之前调用。
      * IServer 提供访问 ServerPlayerEntityManager 和 ServerWorld 的能力。
      */
-    void setServer(IServer* server) { m_server = server; }
+    void setServer(IServer* server)
+    {
+        m_server = server;
+    }
 
     /**
      * @brief 设置玩家管理器
@@ -99,7 +102,10 @@ public:
      * 用于通过 UUID 查找玩家数据。CuredZombieVillagerEvent 携带 UUID 而非 PlayerId，
      * 需要通过 PlayerManager::findByUuid() 转换为 PlayerId。
      */
-    void setPlayerManager(mc::server::core::PlayerManager* playerManager) { m_playerManager = playerManager; }
+    void setPlayerManager(mc::server::core::PlayerManager* playerManager)
+    {
+        m_playerManager = playerManager;
+    }
 
     /**
      * @brief 初始化事件处理器
@@ -111,99 +117,145 @@ public:
         // 订阅物品栏变化事件
         m_inventoryChangedSubscription =
             event::ServerEventBus::instance().makeSubscription<event::InventoryChangedEvent>(
-                [this](const event::InventoryChangedEvent& e) { _onInventoryChanged(e); });
+                [this](const event::InventoryChangedEvent& e) {
+                    _onInventoryChanged(e);
+                });
 
         // 订阅玩家击杀实体事件
         m_playerKillSubscription = event::ServerEventBus::instance().makeSubscription<event::PlayerKillEntityEvent>(
-            [this](const event::PlayerKillEntityEvent& e) { _onPlayerKillEntity(e); });
+            [this](const event::PlayerKillEntityEvent& e) {
+                _onPlayerKillEntity(e);
+            });
 
         // 订阅玩家登录事件（初始化成就监听器）
         m_playerLoginSubscription = event::ServerEventBus::instance().makeSubscription<event::PlayerLoginEvent>(
-            [this](const event::PlayerLoginEvent& e) { _onPlayerLogin(e); });
+            [this](const event::PlayerLoginEvent& e) {
+                _onPlayerLogin(e);
+            });
 
         // 订阅方块放置事件
         m_blockPlaceSubscription = event::ServerEventBus::instance().makeSubscription<event::BlockPlaceEvent>(
-            [this](const event::BlockPlaceEvent& e) { _onBlockPlaced(e); });
+            [this](const event::BlockPlaceEvent& e) {
+                _onBlockPlaced(e);
+            });
 
         // 订阅僵尸村民治愈事件
         m_curedZombieVillagerSubscription =
             event::ServerEventBus::instance().makeSubscription<event::CuredZombieVillagerEvent>(
-                [this](const event::CuredZombieVillagerEvent& e) { _onCuredZombieVillager(e); });
+                [this](const event::CuredZombieVillagerEvent& e) {
+                    _onCuredZombieVillager(e);
+                });
 
         // 订阅玩家睡眠事件
         m_playerSleepSubscription = event::ServerEventBus::instance().makeSubscription<event::PlayerSleepEvent>(
-            [this](const event::PlayerSleepEvent& e) { _onPlayerSleep(e); });
+            [this](const event::PlayerSleepEvent& e) {
+                _onPlayerSleep(e);
+            });
 
         // 订阅效果变化事件
         m_effectChangedSubscription = event::ServerEventBus::instance().makeSubscription<event::EffectChangedEvent>(
-            [this](const event::EffectChangedEvent& e) { _onEffectChanged(e); });
+            [this](const event::EffectChangedEvent& e) {
+                _onEffectChanged(e);
+            });
 
         // 订阅玩家位置事件
         m_playerLocationSubscription = event::ServerEventBus::instance().makeSubscription<event::PlayerLocationEvent>(
-            [this](const event::PlayerLocationEvent& e) { _onPlayerLocation(e); });
+            [this](const event::PlayerLocationEvent& e) {
+                _onPlayerLocation(e);
+            });
 
         // 订阅维度变化事件
         m_dimensionChangeSubscription = event::ServerEventBus::instance().makeSubscription<event::DimensionChangeEvent>(
-            [this](const event::DimensionChangeEvent& e) { _onDimensionChange(e); });
+            [this](const event::DimensionChangeEvent& e) {
+                _onDimensionChange(e);
+            });
 
         // 订阅引雷附魔触发事件
         m_channeledLightningSubscription =
             event::ServerEventBus::instance().makeSubscription<event::ChanneledLightningEvent>(
-                [this](const event::ChanneledLightningEvent& e) { _onChanneledLightning(e); });
+                [this](const event::ChanneledLightningEvent& e) {
+                    _onChanneledLightning(e);
+                });
 
         // 订阅消耗物品事件
         m_consumeItemSubscription = event::ServerEventBus::instance().makeSubscription<event::ConsumeItemEvent>(
-            [this](const event::ConsumeItemEvent& e) { _onConsumeItem(e); });
+            [this](const event::ConsumeItemEvent& e) {
+                _onConsumeItem(e);
+            });
 
         // 订阅玩家投掷物品被实体拾取事件
         m_itemPickedUpByEntitySubscription =
             event::ServerEventBus::instance().makeSubscription<event::ItemPickedUpByEntityEvent>(
-                [this](const event::ItemPickedUpByEntityEvent& e) { _onItemPickedUpByEntity(e); });
+                [this](const event::ItemPickedUpByEntityEvent& e) {
+                    _onItemPickedUpByEntity(e);
+                });
 
         // 订阅物品耐久变化事件
         m_itemDurabilitySubscription = event::ServerEventBus::instance().makeSubscription<event::ItemDurabilityEvent>(
-            [this](const event::ItemDurabilityEvent& e) { _onItemDurability(e); });
+            [this](const event::ItemDurabilityEvent& e) {
+                _onItemDurability(e);
+            });
 
         // 订阅附魔事件
         m_enchantItemSubscription = event::ServerEventBus::instance().makeSubscription<event::EnchantItemEvent>(
-            [this](const event::EnchantItemEvent& e) { _onEnchantItem(e); });
+            [this](const event::EnchantItemEvent& e) {
+                _onEnchantItem(e);
+            });
 
         // 订阅填充桶事件
         m_filledBucketSubscription = event::ServerEventBus::instance().makeSubscription<event::FilledBucketEvent>(
-            [this](const event::FilledBucketEvent& e) { _onFilledBucket(e); });
+            [this](const event::FilledBucketEvent& e) {
+                _onFilledBucket(e);
+            });
 
         // 订阅进入方块事件
         m_enterBlockSubscription = event::ServerEventBus::instance().makeSubscription<event::EnterBlockEvent>(
-            [this](const event::EnterBlockEvent& e) { _onEnterBlock(e); });
+            [this](const event::EnterBlockEvent& e) {
+                _onEnterBlock(e);
+            });
 
         // 订阅滑落方块事件
         m_slideDownBlockSubscription = event::ServerEventBus::instance().makeSubscription<event::SlideDownBlockEvent>(
-            [this](const event::SlideDownBlockEvent& e) { _onSlideDownBlock(e); });
+            [this](const event::SlideDownBlockEvent& e) {
+                _onSlideDownBlock(e);
+            });
 
         // 订阅蜂巢破坏事件
         m_beeNestDestroyedSubscription =
             event::ServerEventBus::instance().makeSubscription<event::BeeNestDestroyedEvent>(
-                [this](const event::BeeNestDestroyedEvent& e) { _onBeeNestDestroyed(e); });
+                [this](const event::BeeNestDestroyedEvent& e) {
+                    _onBeeNestDestroyed(e);
+                });
 
         // 订阅动物繁殖事件
         m_bredAnimalsSubscription = event::ServerEventBus::instance().makeSubscription<event::BredAnimalsEvent>(
-            [this](const event::BredAnimalsEvent& e) { _onBredAnimals(e); });
+            [this](const event::BredAnimalsEvent& e) {
+                _onBredAnimals(e);
+            });
 
         // 订阅村民交易事件
         m_villagerTradeSubscription = event::ServerEventBus::instance().makeSubscription<event::VillagerTradeEvent>(
-            [this](const event::VillagerTradeEvent& e) { _onVillagerTrade(e); });
+            [this](const event::VillagerTradeEvent& e) {
+                _onVillagerTrade(e);
+            });
 
         // 订阅动物驯服事件
         m_tameAnimalSubscription = event::ServerEventBus::instance().makeSubscription<event::TameAnimalEvent>(
-            [this](const event::TameAnimalEvent& e) { _onTameAnimal(e); });
+            [this](const event::TameAnimalEvent& e) {
+                _onTameAnimal(e);
+            });
 
         // 订阅实体召唤事件
         m_summonedEntitySubscription = event::ServerEventBus::instance().makeSubscription<event::SummonedEntityEvent>(
-            [this](const event::SummonedEntityEvent& e) { _onSummonedEntity(e); });
+            [this](const event::SummonedEntityEvent& e) {
+                _onSummonedEntity(e);
+            });
 
         // 订阅服务端Tick事件（触发 TickTrigger）
         m_serverTickSubscription = event::ServerEventBus::instance().makeSubscription<event::ServerTickEvent>(
-            [this](const event::ServerTickEvent& e) { _onServerTick(e); });
+            [this](const event::ServerTickEvent& e) {
+                _onServerTick(e);
+            });
 
         m_initialized = true;
     }
@@ -243,7 +295,10 @@ public:
     /**
      * @brief 检查是否已初始化
      */
-    [[nodiscard]] bool isInitialized() const noexcept { return m_initialized; }
+    [[nodiscard]] bool isInitialized() const noexcept
+    {
+        return m_initialized;
+    }
 
 private:
     /**
@@ -290,8 +345,9 @@ private:
         // 注意：triggerWithPredicate 内部会自动检查是否有监听器
         trigger->triggerWithPredicate(
             *advancements, [&e](const mc::advancement::InventoryChangedTriggerInstance& instance) {
-                return instance.testWithInventory(mc::PlayerInventory::TOTAL_SIZE,
-                    [&e](i32 slot) -> mc::ItemStack { return e.inventory->getItem(slot); });
+                return instance.testWithInventory(mc::PlayerInventory::TOTAL_SIZE, [&e](i32 slot) -> mc::ItemStack {
+                    return e.inventory->getItem(slot);
+                });
             });
     }
 
@@ -794,8 +850,10 @@ private:
         }
 
         // 触发检测
-        trigger->AbstractCriterionTrigger<mc::advancement::ConsumeItemTriggerInstance>::trigger(*advancements,
-            [&e](const mc::advancement::ConsumeItemTriggerInstance& instance) { return instance.test(e.item); });
+        trigger->AbstractCriterionTrigger<mc::advancement::ConsumeItemTriggerInstance>::trigger(
+            *advancements, [&e](const mc::advancement::ConsumeItemTriggerInstance& instance) {
+                return instance.test(e.item);
+            });
     }
 
     /**
@@ -927,8 +985,10 @@ private:
         }
 
         // 触发检测
-        trigger->AbstractCriterionTrigger<mc::advancement::FilledBucketTriggerInstance>::trigger(*advancements,
-            [&e](const mc::advancement::FilledBucketTriggerInstance& instance) { return instance.test(e.bucket); });
+        trigger->AbstractCriterionTrigger<mc::advancement::FilledBucketTriggerInstance>::trigger(
+            *advancements, [&e](const mc::advancement::FilledBucketTriggerInstance& instance) {
+                return instance.test(e.bucket);
+            });
     }
 
     /**
@@ -1012,8 +1072,10 @@ private:
         }
 
         // 触发检测 - 使用基类模板方法
-        trigger->AbstractCriterionTrigger<mc::advancement::SlideDownBlockTriggerInstance>::trigger(*advancements,
-            [&e](const mc::advancement::SlideDownBlockTriggerInstance& instance) { return instance.test(*e.state); });
+        trigger->AbstractCriterionTrigger<mc::advancement::SlideDownBlockTriggerInstance>::trigger(
+            *advancements, [&e](const mc::advancement::SlideDownBlockTriggerInstance& instance) {
+                return instance.test(*e.state);
+            });
     }
 
     /**
@@ -1172,8 +1234,10 @@ private:
         }
 
         // 触发检测 - 使用基类模板方法
-        trigger->AbstractCriterionTrigger<mc::advancement::TameAnimalTriggerInstance>::trigger(*advancements,
-            [&e](const mc::advancement::TameAnimalTriggerInstance& instance) { return instance.test(*e.animal); });
+        trigger->AbstractCriterionTrigger<mc::advancement::TameAnimalTriggerInstance>::trigger(
+            *advancements, [&e](const mc::advancement::TameAnimalTriggerInstance& instance) {
+                return instance.test(*e.animal);
+            });
     }
 
     /**
@@ -1215,8 +1279,10 @@ private:
         }
 
         // 触发检测 - 使用基类模板方法
-        trigger->AbstractCriterionTrigger<mc::advancement::SummonedEntityTriggerInstance>::trigger(*advancements,
-            [&e](const mc::advancement::SummonedEntityTriggerInstance& instance) { return instance.test(*e.entity); });
+        trigger->AbstractCriterionTrigger<mc::advancement::SummonedEntityTriggerInstance>::trigger(
+            *advancements, [&e](const mc::advancement::SummonedEntityTriggerInstance& instance) {
+                return instance.test(*e.entity);
+            });
     }
 
     /**
@@ -1258,7 +1324,9 @@ private:
 
             // TickTrigger 对所有监听器都触发（无条件）
             trigger->AbstractCriterionTrigger<mc::advancement::TickTriggerInstance>::trigger(
-                *advancements, [](const mc::advancement::TickTriggerInstance& /*instance*/) { return true; });
+                *advancements, [](const mc::advancement::TickTriggerInstance& /*instance*/) {
+                    return true;
+                });
         }
     }
 

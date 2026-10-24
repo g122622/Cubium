@@ -56,74 +56,158 @@ namespace stream_codecs {
 
 template <typename B>
 struct U8Codec {
-    void encode(B& buf, u8 value) const { buf.writeU8(value); }
-    [[nodiscard]] Result<u8> decode(B& buf) const { return buf.readU8(); }
+    void encode(B& buf, u8 value) const
+    {
+        buf.writeU8(value);
+    }
+
+    [[nodiscard]] Result<u8> decode(B& buf) const
+    {
+        return buf.readU8();
+    }
 };
 
 template <typename B>
 struct U16Codec {
-    void encode(B& buf, u16 value) const { buf.writeU16(value); }
-    [[nodiscard]] Result<u16> decode(B& buf) const { return buf.readU16(); }
+    void encode(B& buf, u16 value) const
+    {
+        buf.writeU16(value);
+    }
+
+    [[nodiscard]] Result<u16> decode(B& buf) const
+    {
+        return buf.readU16();
+    }
 };
 
 template <typename B>
 struct I16Codec {
-    void encode(B& buf, i16 value) const { buf.writeI16(value); }
-    [[nodiscard]] Result<i16> decode(B& buf) const { return buf.readI16(); }
+    void encode(B& buf, i16 value) const
+    {
+        buf.writeI16(value);
+    }
+
+    [[nodiscard]] Result<i16> decode(B& buf) const
+    {
+        return buf.readI16();
+    }
 };
 
 template <typename B>
 struct U32Codec {
-    void encode(B& buf, u32 value) const { buf.writeU32(value); }
-    [[nodiscard]] Result<u32> decode(B& buf) const { return buf.readU32(); }
+    void encode(B& buf, u32 value) const
+    {
+        buf.writeU32(value);
+    }
+
+    [[nodiscard]] Result<u32> decode(B& buf) const
+    {
+        return buf.readU32();
+    }
 };
 
 template <typename B>
 struct I32Codec {
-    void encode(B& buf, i32 value) const { buf.writeI32(value); }
-    [[nodiscard]] Result<i32> decode(B& buf) const { return buf.readI32(); }
+    void encode(B& buf, i32 value) const
+    {
+        buf.writeI32(value);
+    }
+
+    [[nodiscard]] Result<i32> decode(B& buf) const
+    {
+        return buf.readI32();
+    }
 };
 
 template <typename B>
 struct I64Codec {
-    void encode(B& buf, i64 value) const { buf.writeI64(value); }
-    [[nodiscard]] Result<i64> decode(B& buf) const { return buf.readI64(); }
+    void encode(B& buf, i64 value) const
+    {
+        buf.writeI64(value);
+    }
+
+    [[nodiscard]] Result<i64> decode(B& buf) const
+    {
+        return buf.readI64();
+    }
 };
 
 template <typename B>
 struct F32Codec {
-    void encode(B& buf, f32 value) const { buf.writeF32(value); }
-    [[nodiscard]] Result<f32> decode(B& buf) const { return buf.readF32(); }
+    void encode(B& buf, f32 value) const
+    {
+        buf.writeF32(value);
+    }
+
+    [[nodiscard]] Result<f32> decode(B& buf) const
+    {
+        return buf.readF32();
+    }
 };
 
 template <typename B>
 struct F64Codec {
-    void encode(B& buf, f64 value) const { buf.writeF64(value); }
-    [[nodiscard]] Result<f64> decode(B& buf) const { return buf.readF64(); }
+    void encode(B& buf, f64 value) const
+    {
+        buf.writeF64(value);
+    }
+
+    [[nodiscard]] Result<f64> decode(B& buf) const
+    {
+        return buf.readF64();
+    }
 };
 
 template <typename B>
 struct BoolCodec {
-    void encode(B& buf, bool value) const { buf.writeBool(value); }
-    [[nodiscard]] Result<bool> decode(B& buf) const { return buf.readBool(); }
+    void encode(B& buf, bool value) const
+    {
+        buf.writeBool(value);
+    }
+
+    [[nodiscard]] Result<bool> decode(B& buf) const
+    {
+        return buf.readBool();
+    }
 };
 
 template <typename B>
 struct VarIntCodec {
-    void encode(B& buf, i32 value) const { buf.writeVarInt(value); }
-    [[nodiscard]] Result<i32> decode(B& buf) const { return buf.readVarInt(); }
+    void encode(B& buf, i32 value) const
+    {
+        buf.writeVarInt(value);
+    }
+
+    [[nodiscard]] Result<i32> decode(B& buf) const
+    {
+        return buf.readVarInt();
+    }
 };
 
 template <typename B>
 struct VarLongCodec {
-    void encode(B& buf, i64 value) const { buf.writeVarLong(value); }
-    [[nodiscard]] Result<i64> decode(B& buf) const { return buf.readVarLong(); }
+    void encode(B& buf, i64 value) const
+    {
+        buf.writeVarLong(value);
+    }
+
+    [[nodiscard]] Result<i64> decode(B& buf) const
+    {
+        return buf.readVarLong();
+    }
 };
 
 template <typename B>
 struct StringCodec {
-    void encode(B& buf, std::string_view value) const { buf.writeString(value); }
-    [[nodiscard]] Result<std::string> decode(B& buf) const { return buf.readString(); }
+    void encode(B& buf, std::string_view value) const
+    {
+        buf.writeString(value);
+    }
+
+    [[nodiscard]] Result<std::string> decode(B& buf) const
+    {
+        return buf.readString();
+    }
 };
 
 // ============================================================================

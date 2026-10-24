@@ -56,11 +56,17 @@ TickManager::TickManager(IWorld& world)
     m_blockTicks = std::make_unique<ServerTickList<Block>>(
         world,
         // 过滤器：无过滤
-        [](const Block&) -> bool { return false; },
+        [](const Block&) -> bool {
+            return false;
+        },
         // 序列化：Block -> ResourceLocation
-        [](const Block& block) -> const ResourceLocation& { return block.blockLocation(); },
+        [](const Block& block) -> const ResourceLocation& {
+            return block.blockLocation();
+        },
         // 反序列化：ResourceLocation -> Block*
-        [](const ResourceLocation& id) -> Block* { return BlockRegistry::instance().getBlock(id); },
+        [](const ResourceLocation& id) -> Block* {
+            return BlockRegistry::instance().getBlock(id);
+        },
         // tick回调：执行方块tick
         // 必须检查当前位置的方块是否是调度时的目标方块
         [](IWorld& w, const BlockPos& pos, const Block& block) {
@@ -92,11 +98,17 @@ TickManager::TickManager(IWorld& world)
     // 过滤器：忽略空流体
     m_fluidTicks = std::make_unique<ServerTickList<fluid::Fluid>>(
         world,
-        [](const fluid::Fluid& fluid) -> bool { return fluid.isEmpty(); },
+        [](const fluid::Fluid& fluid) -> bool {
+            return fluid.isEmpty();
+        },
         // 序列化：Fluid -> ResourceLocation
-        [](const fluid::Fluid& fluid) -> const ResourceLocation& { return fluid.fluidLocation(); },
+        [](const fluid::Fluid& fluid) -> const ResourceLocation& {
+            return fluid.fluidLocation();
+        },
         // 反序列化：ResourceLocation -> Fluid*
-        [](const ResourceLocation& id) -> fluid::Fluid* { return fluid::FluidRegistry::instance().getFluid(id); },
+        [](const ResourceLocation& id) -> fluid::Fluid* {
+            return fluid::FluidRegistry::instance().getFluid(id);
+        },
         // tick回调：执行流体tick
         // 必须检查当前位置的流体是否是调度时的目标流体
         [](IWorld& w, const BlockPos& pos, const fluid::Fluid& fluid) {

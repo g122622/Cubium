@@ -71,12 +71,18 @@ public:
     /**
      * @brief 获取当前值
      */
-    [[nodiscard]] const T& get() const { return m_value; }
+    [[nodiscard]] const T& get() const
+    {
+        return m_value;
+    }
 
     /**
      * @brief 获取当前值的引用
      */
-    [[nodiscard]] T& getRef() { return m_value; }
+    [[nodiscard]] T& getRef()
+    {
+        return m_value;
+    }
 
     /**
      * @brief 设置新值
@@ -109,7 +115,10 @@ public:
     /**
      * @brief 隐式转换为值类型
      */
-    operator const T&() const { return m_value; }
+    operator const T&() const
+    {
+        return m_value;
+    }
 
     /**
      * @brief 赋值操作符
@@ -147,8 +156,9 @@ public:
      */
     bool removeObserver(ObserverId id)
     {
-        auto it =
-            std::find_if(m_observers.begin(), m_observers.end(), [id](const auto& pair) { return pair.first == id; });
+        auto it = std::find_if(m_observers.begin(), m_observers.end(), [id](const auto& pair) {
+            return pair.first == id;
+        });
         if (it != m_observers.end()) {
             m_observers.erase(it);
             return true;
@@ -159,17 +169,26 @@ public:
     /**
      * @brief 清除所有观察者
      */
-    void clearObservers() { m_observers.clear(); }
+    void clearObservers()
+    {
+        m_observers.clear();
+    }
 
     /**
      * @brief 获取观察者数量
      */
-    [[nodiscard]] Size observerCount() const { return m_observers.size(); }
+    [[nodiscard]] Size observerCount() const
+    {
+        return m_observers.size();
+    }
 
     /**
      * @brief 修改值并通知观察者（即使值相同）
      */
-    void forceNotify() { _notify(m_value, m_value); }
+    void forceNotify()
+    {
+        _notify(m_value, m_value);
+    }
 
     /**
      * @brief 使用函数修改值
@@ -255,12 +274,18 @@ public:
     /**
      * @brief 标记为需要重新计算
      */
-    void markDirty() { m_dirty = true; }
+    void markDirty()
+    {
+        m_dirty = true;
+    }
 
     /**
      * @brief 隐式转换
      */
-    operator const T&() const { return get(); }
+    operator const T&() const
+    {
+        return get();
+    }
 
 private:
     ComputeFunc m_compute;
@@ -282,12 +307,18 @@ public:
     /**
      * @brief 创建单向绑定（只读）
      */
-    static Binding<T> readOnly(Getter getter) { return Binding<T>(std::move(getter), nullptr); }
+    static Binding<T> readOnly(Getter getter)
+    {
+        return Binding<T>(std::move(getter), nullptr);
+    }
 
     /**
      * @brief 创建双向绑定
      */
-    static Binding<T> twoWay(Getter getter, Setter setter) { return Binding<T>(std::move(getter), std::move(setter)); }
+    static Binding<T> twoWay(Getter getter, Setter setter)
+    {
+        return Binding<T>(std::move(getter), std::move(setter));
+    }
 
     /**
      * @brief 从Reactive创建双向绑定
@@ -295,7 +326,12 @@ public:
     static Binding<T> fromReactive(Reactive<T>& reactive)
     {
         return twoWay(
-            [&reactive]() -> T { return reactive.get(); }, [&reactive](const T& value) { reactive.set(value); });
+            [&reactive]() -> T {
+                return reactive.get();
+            },
+            [&reactive](const T& value) {
+                reactive.set(value);
+            });
     }
 
     /**
@@ -303,13 +339,18 @@ public:
      */
     static Binding<T> constant(const T& value)
     {
-        return readOnly([value]() -> T { return value; });
+        return readOnly([value]() -> T {
+            return value;
+        });
     }
 
     /**
      * @brief 获取值
      */
-    [[nodiscard]] T get() const { return m_getter(); }
+    [[nodiscard]] T get() const
+    {
+        return m_getter();
+    }
 
     /**
      * @brief 设置值
@@ -324,12 +365,18 @@ public:
     /**
      * @brief 检查是否可写
      */
-    [[nodiscard]] bool isWritable() const { return m_setter != nullptr; }
+    [[nodiscard]] bool isWritable() const
+    {
+        return m_setter != nullptr;
+    }
 
     /**
      * @brief 隐式转换
      */
-    operator T() const { return get(); }
+    operator T() const
+    {
+        return get();
+    }
 
 private:
     Binding(Getter getter, Setter setter)

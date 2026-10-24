@@ -129,7 +129,10 @@ TEST_F(TripWireBlockShapeTest, DisarmedProperty_Exists)
 
 class TripWireBlockPowerTest : public ::testing::Test {
 protected:
-    void SetUp() override { block_ = std::make_unique<TripWireBlock>(BlockProperties(Material::AIR)); }
+    void SetUp() override
+    {
+        block_ = std::make_unique<TripWireBlock>(BlockProperties(Material::AIR));
+    }
 
     std::unique_ptr<TripWireBlock> block_;
 };

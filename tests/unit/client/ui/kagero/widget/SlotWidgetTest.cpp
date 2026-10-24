@@ -206,7 +206,9 @@ TEST(SlotWidgetTest, OnSlotClickRightButton)
 
     i32 clickedButton = -1;
 
-    slot.setOnSlotClick([&](i32, i32 button, bool) { clickedButton = button; });
+    slot.setOnSlotClick([&](i32, i32 button, bool) {
+        clickedButton = button;
+    });
 
     slot.onClick(5, 5, 1, 0); // 右键点击
 
@@ -220,7 +222,9 @@ TEST(SlotWidgetTest, OnSlotClickInactive)
     slot.setSlotIndex(3);
 
     bool callbackCalled = false;
-    slot.setOnSlotClick([&](i32, i32, bool) { callbackCalled = true; });
+    slot.setOnSlotClick([&](i32, i32, bool) {
+        callbackCalled = true;
+    });
 
     // onClick 在 inactive 时返回 false，不调用回调
     bool result = slot.onClick(5, 5, 0, 0);

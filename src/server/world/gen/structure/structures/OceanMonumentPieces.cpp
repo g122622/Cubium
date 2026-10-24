@@ -337,12 +337,24 @@ void OceanMonumentDoubleXRoom::generate(IWorldWriter& world,
     setBlockState(world, s_seaLantern, 6, 2, 3, chunkBounds);
     setBlockState(world, s_seaLantern, 9, 2, 3, chunkBounds);
 
-    if (room->hasOpening(3)) makeOpening(world, chunkBounds, 3, 1, 0, 4, 2, 0);
-    if (room->hasOpening(2)) makeOpening(world, chunkBounds, 3, 1, 7, 4, 2, 7);
-    if (room->hasOpening(4)) makeOpening(world, chunkBounds, 0, 1, 3, 0, 2, 4);
-    if (eastRoom->hasOpening(3)) makeOpening(world, chunkBounds, 11, 1, 0, 12, 2, 0);
-    if (eastRoom->hasOpening(2)) makeOpening(world, chunkBounds, 11, 1, 7, 12, 2, 7);
-    if (eastRoom->hasOpening(5)) makeOpening(world, chunkBounds, 15, 1, 3, 15, 2, 4);
+    if (room->hasOpening(3)) {
+        makeOpening(world, chunkBounds, 3, 1, 0, 4, 2, 0);
+    }
+    if (room->hasOpening(2)) {
+        makeOpening(world, chunkBounds, 3, 1, 7, 4, 2, 7);
+    }
+    if (room->hasOpening(4)) {
+        makeOpening(world, chunkBounds, 0, 1, 3, 0, 2, 4);
+    }
+    if (eastRoom->hasOpening(3)) {
+        makeOpening(world, chunkBounds, 11, 1, 0, 12, 2, 0);
+    }
+    if (eastRoom->hasOpening(2)) {
+        makeOpening(world, chunkBounds, 11, 1, 7, 12, 2, 7);
+    }
+    if (eastRoom->hasOpening(5)) {
+        makeOpening(world, chunkBounds, 15, 1, 3, 15, 2, 4);
+    }
 }
 
 OceanMonumentDoubleXYRoom::OceanMonumentDoubleXYRoom(Direction direction, OceanMonumentRoomDefinition* room)
@@ -414,18 +426,42 @@ void OceanMonumentDoubleXYRoom::generate(IWorldWriter& world,
     setBlockState(world, s_seaLantern, 10, 4, 2, chunkBounds);
     setBlockState(world, s_seaLantern, 10, 4, 5, chunkBounds);
 
-    if (room->hasOpening(3)) makeOpening(world, chunkBounds, 3, 1, 0, 4, 2, 0);
-    if (room->hasOpening(2)) makeOpening(world, chunkBounds, 3, 1, 7, 4, 2, 7);
-    if (room->hasOpening(4)) makeOpening(world, chunkBounds, 0, 1, 3, 0, 2, 4);
-    if (eastRoom->hasOpening(3)) makeOpening(world, chunkBounds, 11, 1, 0, 12, 2, 0);
-    if (eastRoom->hasOpening(2)) makeOpening(world, chunkBounds, 11, 1, 7, 12, 2, 7);
-    if (eastRoom->hasOpening(5)) makeOpening(world, chunkBounds, 15, 1, 3, 15, 2, 4);
-    if (upRoom->hasOpening(3)) makeOpening(world, chunkBounds, 3, 5, 0, 4, 6, 0);
-    if (upRoom->hasOpening(2)) makeOpening(world, chunkBounds, 3, 5, 7, 4, 6, 7);
-    if (upRoom->hasOpening(4)) makeOpening(world, chunkBounds, 0, 5, 3, 0, 6, 4);
-    if (eastUpRoom->hasOpening(3)) makeOpening(world, chunkBounds, 11, 5, 0, 12, 6, 0);
-    if (eastUpRoom->hasOpening(2)) makeOpening(world, chunkBounds, 11, 5, 7, 12, 6, 7);
-    if (eastUpRoom->hasOpening(5)) makeOpening(world, chunkBounds, 15, 5, 3, 15, 6, 4);
+    if (room->hasOpening(3)) {
+        makeOpening(world, chunkBounds, 3, 1, 0, 4, 2, 0);
+    }
+    if (room->hasOpening(2)) {
+        makeOpening(world, chunkBounds, 3, 1, 7, 4, 2, 7);
+    }
+    if (room->hasOpening(4)) {
+        makeOpening(world, chunkBounds, 0, 1, 3, 0, 2, 4);
+    }
+    if (eastRoom->hasOpening(3)) {
+        makeOpening(world, chunkBounds, 11, 1, 0, 12, 2, 0);
+    }
+    if (eastRoom->hasOpening(2)) {
+        makeOpening(world, chunkBounds, 11, 1, 7, 12, 2, 7);
+    }
+    if (eastRoom->hasOpening(5)) {
+        makeOpening(world, chunkBounds, 15, 1, 3, 15, 2, 4);
+    }
+    if (upRoom->hasOpening(3)) {
+        makeOpening(world, chunkBounds, 3, 5, 0, 4, 6, 0);
+    }
+    if (upRoom->hasOpening(2)) {
+        makeOpening(world, chunkBounds, 3, 5, 7, 4, 6, 7);
+    }
+    if (upRoom->hasOpening(4)) {
+        makeOpening(world, chunkBounds, 0, 5, 3, 0, 6, 4);
+    }
+    if (eastUpRoom->hasOpening(3)) {
+        makeOpening(world, chunkBounds, 11, 5, 0, 12, 6, 0);
+    }
+    if (eastUpRoom->hasOpening(2)) {
+        makeOpening(world, chunkBounds, 11, 5, 7, 12, 6, 7);
+    }
+    if (eastUpRoom->hasOpening(5)) {
+        makeOpening(world, chunkBounds, 15, 5, 3, 15, 6, 4);
+    }
 }
 
 OceanMonumentDoubleYRoom::OceanMonumentDoubleYRoom(Direction direction, OceanMonumentRoomDefinition* room)
@@ -566,13 +602,27 @@ void OceanMonumentDoubleYZRoom::generate(IWorldWriter& world,
         fillWithBlocks(world, chunkBounds, 3, i, 7, 4, i, 8, block, block, false);
     }
 
-    if (room->hasOpening(3)) makeOpening(world, chunkBounds, 3, 1, 0, 4, 2, 0);
-    if (room->hasOpening(5)) makeOpening(world, chunkBounds, 7, 1, 3, 7, 2, 4);
-    if (room->hasOpening(4)) makeOpening(world, chunkBounds, 0, 1, 3, 0, 2, 4);
-    if (northRoom->hasOpening(2)) makeOpening(world, chunkBounds, 3, 1, 15, 4, 2, 15);
-    if (northRoom->hasOpening(4)) makeOpening(world, chunkBounds, 0, 1, 11, 0, 2, 12);
-    if (northRoom->hasOpening(5)) makeOpening(world, chunkBounds, 7, 1, 11, 7, 2, 12);
-    if (upRoom->hasOpening(3)) makeOpening(world, chunkBounds, 3, 5, 0, 4, 6, 0);
+    if (room->hasOpening(3)) {
+        makeOpening(world, chunkBounds, 3, 1, 0, 4, 2, 0);
+    }
+    if (room->hasOpening(5)) {
+        makeOpening(world, chunkBounds, 7, 1, 3, 7, 2, 4);
+    }
+    if (room->hasOpening(4)) {
+        makeOpening(world, chunkBounds, 0, 1, 3, 0, 2, 4);
+    }
+    if (northRoom->hasOpening(2)) {
+        makeOpening(world, chunkBounds, 3, 1, 15, 4, 2, 15);
+    }
+    if (northRoom->hasOpening(4)) {
+        makeOpening(world, chunkBounds, 0, 1, 11, 0, 2, 12);
+    }
+    if (northRoom->hasOpening(5)) {
+        makeOpening(world, chunkBounds, 7, 1, 11, 7, 2, 12);
+    }
+    if (upRoom->hasOpening(3)) {
+        makeOpening(world, chunkBounds, 3, 5, 0, 4, 6, 0);
+    }
     if (upRoom->hasOpening(5)) {
         makeOpening(world, chunkBounds, 7, 5, 3, 7, 6, 4);
         fillWithBlocks(world, chunkBounds, 5, 4, 2, 6, 4, 5, s_bricksPrismarine, s_bricksPrismarine, false);
@@ -585,7 +635,9 @@ void OceanMonumentDoubleYZRoom::generate(IWorldWriter& world,
         fillWithBlocks(world, chunkBounds, 1, 1, 2, 1, 3, 2, s_bricksPrismarine, s_bricksPrismarine, false);
         fillWithBlocks(world, chunkBounds, 1, 1, 5, 1, 3, 5, s_bricksPrismarine, s_bricksPrismarine, false);
     }
-    if (northUpRoom->hasOpening(2)) makeOpening(world, chunkBounds, 3, 5, 15, 4, 6, 15);
+    if (northUpRoom->hasOpening(2)) {
+        makeOpening(world, chunkBounds, 3, 5, 15, 4, 6, 15);
+    }
     if (northUpRoom->hasOpening(4)) {
         makeOpening(world, chunkBounds, 0, 5, 11, 0, 6, 12);
         fillWithBlocks(world, chunkBounds, 1, 4, 10, 2, 4, 13, s_bricksPrismarine, s_bricksPrismarine, false);
@@ -670,12 +722,24 @@ void OceanMonumentDoubleZRoom::generate(IWorldWriter& world,
     setBlockState(world, s_bricksPrismarine, 2, 3, 10, chunkBounds);
     setBlockState(world, s_bricksPrismarine, 5, 3, 10, chunkBounds);
 
-    if (room->hasOpening(3)) makeOpening(world, chunkBounds, 3, 1, 0, 4, 2, 0);
-    if (room->hasOpening(5)) makeOpening(world, chunkBounds, 7, 1, 3, 7, 2, 4);
-    if (room->hasOpening(4)) makeOpening(world, chunkBounds, 0, 1, 3, 0, 2, 4);
-    if (northRoom->hasOpening(2)) makeOpening(world, chunkBounds, 3, 1, 15, 4, 2, 15);
-    if (northRoom->hasOpening(4)) makeOpening(world, chunkBounds, 0, 1, 11, 0, 2, 12);
-    if (northRoom->hasOpening(5)) makeOpening(world, chunkBounds, 7, 1, 11, 7, 2, 12);
+    if (room->hasOpening(3)) {
+        makeOpening(world, chunkBounds, 3, 1, 0, 4, 2, 0);
+    }
+    if (room->hasOpening(5)) {
+        makeOpening(world, chunkBounds, 7, 1, 3, 7, 2, 4);
+    }
+    if (room->hasOpening(4)) {
+        makeOpening(world, chunkBounds, 0, 1, 3, 0, 2, 4);
+    }
+    if (northRoom->hasOpening(2)) {
+        makeOpening(world, chunkBounds, 3, 1, 15, 4, 2, 15);
+    }
+    if (northRoom->hasOpening(4)) {
+        makeOpening(world, chunkBounds, 0, 1, 11, 0, 2, 12);
+    }
+    if (northRoom->hasOpening(5)) {
+        makeOpening(world, chunkBounds, 7, 1, 11, 7, 2, 12);
+    }
 }
 
 OceanMonumentEntryRoom::OceanMonumentEntryRoom(Direction direction, OceanMonumentRoomDefinition* room)

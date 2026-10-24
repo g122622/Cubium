@@ -66,7 +66,10 @@ public:
      * 豹猫主模型的动画设置（setLivingAnimations）由 _createModelForEntity 的
      * ocelot 分支统一处理。层渲染暂未实现，保持 supportsLayers() 为基类默认 false。
      */
-    [[nodiscard]] bool supportsAnimation() const override { return true; }
+    [[nodiscard]] bool supportsAnimation() const override
+    {
+        return true;
+    }
 
 private:
     model::animal::OcelotModel m_model;

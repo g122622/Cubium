@@ -84,17 +84,26 @@ public:
     /**
      * @brief 获取基础名称
      */
-    [[nodiscard]] const std::string& baseName() const { return m_baseName; }
+    [[nodiscard]] const std::string& baseName() const
+    {
+        return m_baseName;
+    }
 
     /**
      * @brief 获取效果列表
      */
-    [[nodiscard]] const std::vector<entity::effect::EffectInstance>& effects() const { return m_effects; }
+    [[nodiscard]] const std::vector<entity::effect::EffectInstance>& effects() const
+    {
+        return m_effects;
+    }
 
     /**
      * @brief 是否有任何效果
      */
-    [[nodiscard]] bool hasEffects() const { return !m_effects.empty(); }
+    [[nodiscard]] bool hasEffects() const
+    {
+        return !m_effects.empty();
+    }
 
     /**
      * @brief 是否有瞬间效果
@@ -117,7 +126,10 @@ public:
      * @brief 获取药水ID
      * @return 资源位置，未注册返回空ResourceLocation
      */
-    [[nodiscard]] ResourceLocation id() const { return m_id; }
+    [[nodiscard]] ResourceLocation id() const
+    {
+        return m_id;
+    }
 
     // ========== 内部方法（供注册表使用） ==========
 
@@ -125,7 +137,10 @@ public:
      * @brief 设置药水ID（仅供注册表使用）
      * @param id 资源位置
      */
-    void setId(const ResourceLocation& id) { m_id = id; }
+    void setId(const ResourceLocation& id)
+    {
+        m_id = id;
+    }
 
 private:
     std::string m_baseName;

@@ -66,9 +66,13 @@ public:
     {}
 
     void playSound(const ResourceLocation&, sound::SoundCategory, const Vector3&, f32, f32) override {}
+
     void addParticle(particle::ParticleTypeId, const Vector3&, const Vector3&, const Vector3&, u32) override {}
 
-    [[nodiscard]] Difficulty difficulty() const override { return m_difficulty; }
+    [[nodiscard]] Difficulty difficulty() const override
+    {
+        return m_difficulty;
+    }
 
 private:
     Difficulty m_difficulty;
@@ -99,7 +103,10 @@ protected:
         DamageTypeTags::initialize();
     }
 
-    void TearDown() override { item::enchant::EnchantmentRegistry::clear(); }
+    void TearDown() override
+    {
+        item::enchant::EnchantmentRegistry::clear();
+    }
 
     // 在指定难度世界内创建一个满血 Player（maxHealth=20）。
     std::unique_ptr<Player> makePlayer(ScalingTestWorld& world)

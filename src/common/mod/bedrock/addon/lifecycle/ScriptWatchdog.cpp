@@ -34,6 +34,7 @@ namespace mc::mod::bedrock::addon {
 ScriptWatchdog::ScriptWatchdog(Config config)
     : m_config(std::move(config))
 {}
+
 void ScriptWatchdog::tick(ScriptManager& manager)
 {
     if (!m_config.enabled) {

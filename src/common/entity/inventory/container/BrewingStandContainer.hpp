@@ -104,25 +104,37 @@ public:
      * @brief 获取酿造时间
      * @return 酿造剩余时间（ticks），0表示未在酿造
      */
-    [[nodiscard]] i32 getBrewTime() const { return m_brewTime; }
+    [[nodiscard]] i32 getBrewTime() const
+    {
+        return m_brewTime;
+    }
 
     /**
      * @brief 获取燃料等级
      * @return 燃料等级（0-20）
      */
-    [[nodiscard]] i32 getFuelLevel() const { return m_fuel; }
+    [[nodiscard]] i32 getFuelLevel() const
+    {
+        return m_fuel;
+    }
 
     /**
      * @brief 设置酿造时间（用于客户端同步）
      * @param time 酿造时间
      */
-    void setBrewTime(i32 time) { m_brewTime = time; }
+    void setBrewTime(i32 time)
+    {
+        m_brewTime = time;
+    }
 
     /**
      * @brief 设置燃料等级（用于客户端同步）
      * @param fuel 燃料等级
      */
-    void setFuel(i32 fuel) { m_fuel = fuel; }
+    void setFuel(i32 fuel)
+    {
+        m_fuel = fuel;
+    }
 
     // ========== 容器接口 ==========
 
@@ -139,7 +151,10 @@ public:
     /**
      * @brief 获取酿造台背包
      */
-    [[nodiscard]] IInventory* getBrewingStandInventory() const { return m_brewingStandInventory; }
+    [[nodiscard]] IInventory* getBrewingStandInventory() const
+    {
+        return m_brewingStandInventory;
+    }
 
 protected:
     ItemStack quickMoveStack(i32 slotIndex, Player& player) override;

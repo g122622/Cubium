@@ -46,9 +46,10 @@ void LootEntry::addCondition(std::unique_ptr<LootCondition> condition)
 
 bool LootEntry::testConditions(LootContext& context) const
 {
-    return std::all_of(m_conditions.begin(),
-        m_conditions.end(),
-        [&context](const std::unique_ptr<LootCondition>& cond) { return cond && cond->test(context); });
+    return std::all_of(
+        m_conditions.begin(), m_conditions.end(), [&context](const std::unique_ptr<LootCondition>& cond) {
+            return cond && cond->test(context);
+        });
 }
 
 void LootEntry::addFunction(std::unique_ptr<LootFunction> function)

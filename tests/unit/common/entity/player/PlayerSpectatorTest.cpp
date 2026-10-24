@@ -73,10 +73,16 @@ public:
     // ========== 查询接口 ==========
 
     /// onCameraEntityChanged 被调用的次数
-    [[nodiscard]] size_t cameraChangeCallCount() const { return m_cameraChangeCalls.size(); }
+    [[nodiscard]] size_t cameraChangeCallCount() const
+    {
+        return m_cameraChangeCalls.size();
+    }
 
     /// 是否被调用过
-    [[nodiscard]] bool wasCameraChangeCalled() const { return !m_cameraChangeCalls.empty(); }
+    [[nodiscard]] bool wasCameraChangeCalled() const
+    {
+        return !m_cameraChangeCalls.empty();
+    }
 
     /// 获取第 N 次调用的参数（从 0 开始）
     [[nodiscard]] std::optional<EntityInstanceId> oldCameraIdAt(size_t index) const
@@ -96,13 +102,17 @@ public:
     }
 
     /// 清除所有记录的调用
-    void resetCameraChangeCalls() { m_cameraChangeCalls.clear(); }
+    void resetCameraChangeCalls()
+    {
+        m_cameraChangeCalls.clear();
+    }
 
 private:
     struct CameraChangeCall {
         std::optional<EntityInstanceId> oldCameraId;
         std::optional<EntityInstanceId> newCameraId;
     };
+
     std::vector<CameraChangeCall> m_cameraChangeCalls;
 };
 
@@ -115,7 +125,10 @@ protected:
         player = std::make_unique<Player>(EntityInstanceId(1), "TestPlayer", mc::test::testEcsRegistry());
     }
 
-    void TearDown() override { player.reset(); }
+    void TearDown() override
+    {
+        player.reset();
+    }
 
     std::unique_ptr<Player> player;
 };
@@ -278,9 +291,15 @@ TEST_F(PlayerSpectatorTest, IsInputSneakingDefaultFalse)
 
 class CameraChangedTrackingTest : public ::testing::Test {
 protected:
-    void SetUp() override { trackingPlayer = std::make_unique<CameraTrackingTestPlayer>(EntityInstanceId(1)); }
+    void SetUp() override
+    {
+        trackingPlayer = std::make_unique<CameraTrackingTestPlayer>(EntityInstanceId(1));
+    }
 
-    void TearDown() override { trackingPlayer.reset(); }
+    void TearDown() override
+    {
+        trackingPlayer.reset();
+    }
 
     std::unique_ptr<CameraTrackingTestPlayer> trackingPlayer;
 };

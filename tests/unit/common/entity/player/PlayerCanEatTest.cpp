@@ -48,7 +48,10 @@ namespace {
 
 class PlayerCanEatTest : public ::testing::Test {
 protected:
-    void SetUp() override { Items::initialize(); }
+    void SetUp() override
+    {
+        Items::initialize();
+    }
 
     // 创建指定游戏模式、指定饥饿值的 Player。
     std::unique_ptr<Player> makePlayer(GameMode mode, i32 foodLevel)

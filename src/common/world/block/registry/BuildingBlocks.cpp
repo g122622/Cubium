@@ -304,7 +304,7 @@ void registerBuildingBlocks()
     BuildingBlocks::GRINDSTONE =
         &registry.registerBlock<blocks::GrindstoneBlock>(ResourceLocation("minecraft:grindstone"),
             BlockProperties(Material::ROCK)
-                .hardness(3.0f)
+                .hardness(2.0f)
                 .resistance(6.0f)
                 .requiresTool()
                 .harvestTool(HarvestTool::Pickaxe));
@@ -354,7 +354,9 @@ void registerBuildingBlocks()
         ResourceLocation("minecraft:tnt"), BlockProperties(Material::TNT).hardness(0.0f).ignitedByLava());
 
     // ========== 石砖系列 ==========
+    // 石砖系列：方块/楼梯/墙 1.5，台阶 2.0（原版台阶在基方块硬度上 +0.5）。
     BlockProperties stoneBrickProps = BlockProperties(Material::ROCK).hardness(1.5f).resistance(6.0f);
+    BlockProperties stoneBrickSlabProps = BlockProperties(Material::ROCK).hardness(2.0f).resistance(6.0f);
 
     BuildingBlocks::STONE_BRICKS =
         &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:stone_bricks"), stoneBrickProps);
@@ -372,7 +374,7 @@ void registerBuildingBlocks()
             stoneBrickProps);
 
     BuildingBlocks::STONE_BRICK_SLAB =
-        &registry.registerBlock<blocks::SlabBlock>(ResourceLocation("minecraft:stone_brick_slab"), stoneBrickProps);
+        &registry.registerBlock<blocks::SlabBlock>(ResourceLocation("minecraft:stone_brick_slab"), stoneBrickSlabProps);
 
     // 苔藓石砖楼梯、台阶、墙
     BuildingBlocks::MOSSY_STONE_BRICK_STAIRS =
@@ -387,26 +389,34 @@ void registerBuildingBlocks()
         ResourceLocation("minecraft:mossy_stone_brick_wall"), stoneBrickProps);
 
     // ========== 虫蚀方块系列 ==========
-    BlockProperties infestedProps = BlockProperties(Material::EARTH).hardness(0.0f).resistance(0.75f);
+    // 虫蚀方块的硬度取自宿主石头（stone 0.75 / cobblestone 1.0 / stone_bricks 0.75 /
+    // deepslate 1.5），抗性固定 0.75；下面按宿主分别给值。
+    BlockProperties infestedStoneProps = BlockProperties(Material::EARTH).hardness(0.75f).resistance(0.75f);
+    BlockProperties infestedCobblestoneProps = BlockProperties(Material::EARTH).hardness(1.0f).resistance(0.75f);
+    BlockProperties infestedDeepslateProps = BlockProperties(Material::EARTH).hardness(1.5f).resistance(0.75f);
 
     BuildingBlocks::INFESTED_STONE = &registry.registerBlock<blocks::InfestedBlock>(
-        ResourceLocation("minecraft:infested_stone"), BaseBlocks::STONE->blockId(), infestedProps);
-    BuildingBlocks::INFESTED_COBBLESTONE = &registry.registerBlock<blocks::InfestedBlock>(
-        ResourceLocation("minecraft:infested_cobblestone"), BaseBlocks::COBBLESTONE->blockId(), infestedProps);
-    BuildingBlocks::INFESTED_STONE_BRICKS = &registry.registerBlock<blocks::InfestedBlock>(
-        ResourceLocation("minecraft:infested_stone_bricks"), BuildingBlocks::STONE_BRICKS->blockId(), infestedProps);
+        ResourceLocation("minecraft:infested_stone"), BaseBlocks::STONE->blockId(), infestedStoneProps);
+    BuildingBlocks::INFESTED_COBBLESTONE =
+        &registry.registerBlock<blocks::InfestedBlock>(ResourceLocation("minecraft:infested_cobblestone"),
+            BaseBlocks::COBBLESTONE->blockId(),
+            infestedCobblestoneProps);
+    BuildingBlocks::INFESTED_STONE_BRICKS =
+        &registry.registerBlock<blocks::InfestedBlock>(ResourceLocation("minecraft:infested_stone_bricks"),
+            BuildingBlocks::STONE_BRICKS->blockId(),
+            infestedStoneProps);
     BuildingBlocks::INFESTED_MOSSY_STONE_BRICKS =
         &registry.registerBlock<blocks::InfestedBlock>(ResourceLocation("minecraft:infested_mossy_stone_bricks"),
             BuildingBlocks::MOSSY_STONE_BRICKS->blockId(),
-            infestedProps);
+            infestedStoneProps);
     BuildingBlocks::INFESTED_CRACKED_STONE_BRICKS =
         &registry.registerBlock<blocks::InfestedBlock>(ResourceLocation("minecraft:infested_cracked_stone_bricks"),
             BuildingBlocks::CRACKED_STONE_BRICKS->blockId(),
-            infestedProps);
+            infestedStoneProps);
     BuildingBlocks::INFESTED_CHISELED_STONE_BRICKS =
         &registry.registerBlock<blocks::InfestedBlock>(ResourceLocation("minecraft:infested_chiseled_stone_bricks"),
             BuildingBlocks::CHISELED_STONE_BRICKS->blockId(),
-            infestedProps);
+            infestedStoneProps);
 
     // 注册虫蚀方块映射
     blocks::InfestedBlock::registerInfestedBlock(

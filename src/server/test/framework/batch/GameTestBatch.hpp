@@ -29,13 +29,26 @@ public:
         std::function<void()> afterBatch,
         std::shared_ptr<TestEnvironmentDefinition> environment);
 
-    [[nodiscard]] const std::string& name() const noexcept { return m_name; }
+    [[nodiscard]] const std::string& name() const noexcept
+    {
+        return m_name;
+    }
+
     [[nodiscard]] const std::vector<std::shared_ptr<BaseGameTestFunction>>& testFunctions() const noexcept
     {
         return m_testFunctions;
     }
-    [[nodiscard]] const std::function<void()>& beforeBatch() const noexcept { return m_beforeBatch; }
-    [[nodiscard]] const std::function<void()>& afterBatch() const noexcept { return m_afterBatch; }
+
+    [[nodiscard]] const std::function<void()>& beforeBatch() const noexcept
+    {
+        return m_beforeBatch;
+    }
+
+    [[nodiscard]] const std::function<void()>& afterBatch() const noexcept
+    {
+        return m_afterBatch;
+    }
+
     [[nodiscard]] const std::shared_ptr<TestEnvironmentDefinition>& environment() const noexcept
     {
         return m_environment;

@@ -160,7 +160,9 @@ inline void utf8Append(std::string& output, u32 codePoint)
     while (offset < text.size()) {
         const auto start = offset;
         const auto cp = utf8Decode(text, offset);
-        if (text.substr(start, offset - start) != utf8Encode(cp)) return std::nullopt;
+        if (text.substr(start, offset - start) != utf8Encode(cp)) {
+            return std::nullopt;
+        }
         length += cp > 0xffff ? 2 : 1;
     }
     return length;

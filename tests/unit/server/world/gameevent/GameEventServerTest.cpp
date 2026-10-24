@@ -62,10 +62,25 @@ public:
         , m_mode(mode)
     {}
 
-    [[nodiscard]] PositionSource& getListenerSource() override { return m_source; }
-    [[nodiscard]] const PositionSource& getListenerSource() const override { return m_source; }
-    [[nodiscard]] i32 getListenerRadius() const override { return m_radius; }
-    [[nodiscard]] DeliveryMode getDeliveryMode() const override { return m_mode; }
+    [[nodiscard]] PositionSource& getListenerSource() override
+    {
+        return m_source;
+    }
+
+    [[nodiscard]] const PositionSource& getListenerSource() const override
+    {
+        return m_source;
+    }
+
+    [[nodiscard]] i32 getListenerRadius() const override
+    {
+        return m_radius;
+    }
+
+    [[nodiscard]] DeliveryMode getDeliveryMode() const override
+    {
+        return m_mode;
+    }
 
     bool handleGameEvent(
         ServerWorld& /*world*/, const GameEvent& event, const GameEvent::Context& context, const Vector3d& pos) override
@@ -84,9 +99,15 @@ public:
         return false;
     }
 
-    [[nodiscard]] size_t receivedCount() const { return m_receivedEvents.size(); }
+    [[nodiscard]] size_t receivedCount() const
+    {
+        return m_receivedEvents.size();
+    }
 
-    void clearReceived() { m_receivedEvents.clear(); }
+    void clearReceived()
+    {
+        m_receivedEvents.clear();
+    }
 
     struct ReceivedEvent {
         const char* id;
@@ -94,7 +115,10 @@ public:
         const Entity* sourceEntity;
     };
 
-    const std::vector<ReceivedEvent>& receivedEvents() const { return m_receivedEvents; }
+    const std::vector<ReceivedEvent>& receivedEvents() const
+    {
+        return m_receivedEvents;
+    }
 
 private:
     BlockPos m_pos;
@@ -112,10 +136,25 @@ public:
         , m_radius(radius)
     {}
 
-    [[nodiscard]] PositionSource& getListenerSource() override { return m_source; }
-    [[nodiscard]] const PositionSource& getListenerSource() const override { return m_source; }
-    [[nodiscard]] i32 getListenerRadius() const override { return m_radius; }
-    [[nodiscard]] DeliveryMode getDeliveryMode() const override { return DeliveryMode::ByDistance; }
+    [[nodiscard]] PositionSource& getListenerSource() override
+    {
+        return m_source;
+    }
+
+    [[nodiscard]] const PositionSource& getListenerSource() const override
+    {
+        return m_source;
+    }
+
+    [[nodiscard]] i32 getListenerRadius() const override
+    {
+        return m_radius;
+    }
+
+    [[nodiscard]] DeliveryMode getDeliveryMode() const override
+    {
+        return DeliveryMode::ByDistance;
+    }
 
     bool handleGameEvent(ServerWorld& /*world*/,
         const GameEvent& event,
@@ -126,14 +165,20 @@ public:
         return true;
     }
 
-    [[nodiscard]] size_t receivedCount() const { return m_receivedEvents.size(); }
+    [[nodiscard]] size_t receivedCount() const
+    {
+        return m_receivedEvents.size();
+    }
 
     struct ReceivedEvent {
         const char* id;
         Vector3d pos;
     };
 
-    const std::vector<ReceivedEvent>& receivedEvents() const { return m_receivedEvents; }
+    const std::vector<ReceivedEvent>& receivedEvents() const
+    {
+        return m_receivedEvents;
+    }
 
 private:
     BlockPos m_pos;
@@ -170,7 +215,10 @@ protected:
         mc::test::removeTestDir(m_testDir);
     }
 
-    ServerWorld& world() { return *m_world; }
+    ServerWorld& world()
+    {
+        return *m_world;
+    }
 
     void createWorld()
     {
@@ -247,7 +295,9 @@ TEST_F(GameEventServerTest, EuclideanRegistry_VisitInRangeListeners_WithinRadius
 
     int visitCount = 0;
     bool found = registry.visitInRangeListeners(
-        event, eventPos, ctx, [&visitCount](GameEventListener& /*l*/, const Vector3d& /*pos*/) { ++visitCount; });
+        event, eventPos, ctx, [&visitCount](GameEventListener& /*l*/, const Vector3d& /*pos*/) {
+            ++visitCount;
+        });
 
     EXPECT_TRUE(found);
     EXPECT_EQ(visitCount, 1);
@@ -269,7 +319,9 @@ TEST_F(GameEventServerTest, EuclideanRegistry_VisitInRangeListeners_OutsideRadiu
 
     int visitCount = 0;
     bool found = registry.visitInRangeListeners(
-        event, eventPos, ctx, [&visitCount](GameEventListener& /*l*/, const Vector3d& /*pos*/) { ++visitCount; });
+        event, eventPos, ctx, [&visitCount](GameEventListener& /*l*/, const Vector3d& /*pos*/) {
+            ++visitCount;
+        });
 
     EXPECT_FALSE(found);
     EXPECT_EQ(visitCount, 0);
@@ -294,8 +346,9 @@ TEST_F(GameEventServerTest, EuclideanRegistry_VisitInRangeListeners_MultipleList
     Vector3d eventPos(0.5, 0.5, 0.5);
 
     std::vector<GameEventListener*> visited;
-    registry.visitInRangeListeners(
-        event, eventPos, ctx, [&visited](GameEventListener& l, const Vector3d& /*pos*/) { visited.push_back(&l); });
+    registry.visitInRangeListeners(event, eventPos, ctx, [&visited](GameEventListener& l, const Vector3d& /*pos*/) {
+        visited.push_back(&l);
+    });
 
     // listener3 在 (100,0,100) 处，distanceSq = 100*100 + 100*100 = 20000，远超 16*16=256
     EXPECT_EQ(visited.size(), 2u);
@@ -537,9 +590,20 @@ public:
         , m_radius(radius)
     {}
 
-    [[nodiscard]] i32 getListenerRadius() const override { return m_radius; }
-    [[nodiscard]] PositionSource& getPositionSource() override { return m_source; }
-    [[nodiscard]] const PositionSource& getPositionSource() const override { return m_source; }
+    [[nodiscard]] i32 getListenerRadius() const override
+    {
+        return m_radius;
+    }
+
+    [[nodiscard]] PositionSource& getPositionSource() override
+    {
+        return m_source;
+    }
+
+    [[nodiscard]] const PositionSource& getPositionSource() const override
+    {
+        return m_source;
+    }
 
     [[nodiscard]] bool canReceiveVibration(ServerWorld& /*world*/,
         const BlockPos& /*pos*/,
@@ -558,15 +622,36 @@ public:
         m_receivedVibrations.push_back({event.id(), pos, distance});
     }
 
-    [[nodiscard]] bool requiresAdjacentChunksToBeTicking() const override { return m_requireAdjacentChunks; }
+    [[nodiscard]] bool requiresAdjacentChunksToBeTicking() const override
+    {
+        return m_requireAdjacentChunks;
+    }
 
-    void onDataChanged() override { m_dataChangedCount++; }
+    void onDataChanged() override
+    {
+        m_dataChangedCount++;
+    }
 
     // 测试辅助方法
-    void setCanReceive(bool value) { m_canReceive = value; }
-    void setRequireAdjacentChunks(bool value) { m_requireAdjacentChunks = value; }
-    [[nodiscard]] size_t receivedVibrationCount() const { return m_receivedVibrations.size(); }
-    [[nodiscard]] i32 dataChangedCount() const { return m_dataChangedCount; }
+    void setCanReceive(bool value)
+    {
+        m_canReceive = value;
+    }
+
+    void setRequireAdjacentChunks(bool value)
+    {
+        m_requireAdjacentChunks = value;
+    }
+
+    [[nodiscard]] size_t receivedVibrationCount() const
+    {
+        return m_receivedVibrations.size();
+    }
+
+    [[nodiscard]] i32 dataChangedCount() const
+    {
+        return m_dataChangedCount;
+    }
 
     struct ReceivedVibration {
         const char* eventId;
@@ -574,7 +659,10 @@ public:
         f32 distance;
     };
 
-    const std::vector<ReceivedVibration>& receivedVibrations() const { return m_receivedVibrations; }
+    const std::vector<ReceivedVibration>& receivedVibrations() const
+    {
+        return m_receivedVibrations;
+    }
 
 private:
     BlockPos m_pos;
@@ -592,13 +680,35 @@ public:
         : m_user(pos, radius)
     {}
 
-    [[nodiscard]] Data& getVibrationData() override { return m_data; }
-    [[nodiscard]] const Data& getVibrationData() const override { return m_data; }
-    [[nodiscard]] User& getVibrationUser() override { return m_user; }
-    [[nodiscard]] const User& getVibrationUser() const override { return m_user; }
+    [[nodiscard]] Data& getVibrationData() override
+    {
+        return m_data;
+    }
 
-    TestVibrationUser& user() { return m_user; }
-    Data& data() { return m_data; }
+    [[nodiscard]] const Data& getVibrationData() const override
+    {
+        return m_data;
+    }
+
+    [[nodiscard]] User& getVibrationUser() override
+    {
+        return m_user;
+    }
+
+    [[nodiscard]] const User& getVibrationUser() const override
+    {
+        return m_user;
+    }
+
+    TestVibrationUser& user()
+    {
+        return m_user;
+    }
+
+    Data& data()
+    {
+        return m_data;
+    }
 
 private:
     Data m_data;

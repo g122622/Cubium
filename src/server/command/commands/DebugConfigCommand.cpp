@@ -45,7 +45,9 @@ void DebugConfigCommand::registerTo(CommandDispatcher<ServerCommandSource>& disp
     using namespace mc::command;
 
     auto debugConfigNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("debugconfig");
-    debugConfigNode->setRequirement([](const ServerCommandSource& source) { return source.hasPermission(3); });
+    debugConfigNode->setRequirement([](const ServerCommandSource& source) {
+        return source.hasPermission(3);
+    });
     support::applyMetadata(debugConfigNode,
         support::makeMetadata("Debug configuration of a player's connection.",
             "/debugconfig config <player> | /debugconfig unconfig <uuid> | /debugconfig dialog <uuid> <dialog>",
@@ -58,7 +60,9 @@ void DebugConfigCommand::registerTo(CommandDispatcher<ServerCommandSource>& disp
         auto configNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("config");
         auto playerArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, EntitySelector>>(
             "target", EntityArgumentType::players());
-        playerArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _config(ctx); });
+        playerArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+            return _config(ctx);
+        });
         configNode->addChild(playerArg);
         debugConfigNode->addChild(configNode);
     }
@@ -68,7 +72,9 @@ void DebugConfigCommand::registerTo(CommandDispatcher<ServerCommandSource>& disp
         auto unconfigNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("unconfig");
         auto uuidArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
             "target", StringArgumentType::word());
-        uuidArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _unconfig(ctx); });
+        uuidArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+            return _unconfig(ctx);
+        });
         unconfigNode->addChild(uuidArg);
         debugConfigNode->addChild(unconfigNode);
     }
@@ -80,7 +86,9 @@ void DebugConfigCommand::registerTo(CommandDispatcher<ServerCommandSource>& disp
             "target", StringArgumentType::word());
         auto dialogArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
             "dialog", StringArgumentType::word());
-        dialogArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _dialog(ctx); });
+        dialogArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+            return _dialog(ctx);
+        });
         uuidArg->addChild(dialogArg);
         dialogNode->addChild(uuidArg);
         debugConfigNode->addChild(dialogNode);

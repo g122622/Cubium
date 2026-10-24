@@ -535,7 +535,9 @@ void WeatherRenderer::_generateWeatherGeometry(mc::client::ClientWorld* world)
         for (i32 x = camX - radius; x <= camX + radius; ++x) {
             // 计算偏移索引
             i32 idx = ((z - camZ + RAIN_SIZE / 2) * RAIN_SIZE + (x - camX + RAIN_SIZE / 2)) % (RAIN_SIZE * RAIN_SIZE);
-            if (idx < 0) idx += RAIN_SIZE * RAIN_SIZE;
+            if (idx < 0) {
+                idx += RAIN_SIZE * RAIN_SIZE;
+            }
 
             // 偏移值乘以0.5进行缩放
             f64 offsetX = m_rainOffsetX[idx] * 0.5;
@@ -577,8 +579,12 @@ void WeatherRenderer::_generateWeatherGeometry(mc::client::ClientWorld* world)
             i32 j2 = camY - radius; // 下边界初始值
             i32 k2 = camY + radius; // 上边界初始值
 
-            if (j2 < groundY) j2 = groundY; // 下边界不低于地形
-            if (k2 < groundY) k2 = groundY; // 上边界不低于地形
+            if (j2 < groundY) {
+                j2 = groundY; // 下边界不低于地形
+            }
+            if (k2 < groundY) {
+                k2 = groundY; // 上边界不低于地形
+            }
 
             // 如果上下边界相同，跳过（没有渲染空间）
             if (j2 == k2) {
@@ -587,7 +593,9 @@ void WeatherRenderer::_generateWeatherGeometry(mc::client::ClientWorld* world)
 
             // l2 = 光照采样高度 = max(groundY, cameraY)，也用于温度采样
             i32 l2 = groundY;
-            if (groundY < camY) l2 = camY;
+            if (groundY < camY) {
+                l2 = camY;
+            }
 
             // MC 1.21: 使用位置相关温度（噪声 + 海拔调整）
             if (world) {

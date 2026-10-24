@@ -62,7 +62,10 @@ class ChanneledLightningTrigger : public AbstractCriterionTrigger<ChanneledLight
 public:
     static constexpr const char* TRIGGER_ID = "minecraft:channeled_lightning";
 
-    [[nodiscard]] ResourceLocation getId() const override { return ResourceLocation(TRIGGER_ID); }
+    [[nodiscard]] ResourceLocation getId() const override
+    {
+        return ResourceLocation(TRIGGER_ID);
+    }
 
     [[nodiscard]] Result<std::shared_ptr<ICriterionInstance>> fromJson(const nlohmann::json& json) override;
 
@@ -103,7 +106,10 @@ public:
 
     // ========== Getters ==========
 
-    [[nodiscard]] const std::vector<EntityPredicate>& getVictims() const noexcept { return m_victims; }
+    [[nodiscard]] const std::vector<EntityPredicate>& getVictims() const noexcept
+    {
+        return m_victims;
+    }
 
 private:
     std::vector<EntityPredicate> m_victims;

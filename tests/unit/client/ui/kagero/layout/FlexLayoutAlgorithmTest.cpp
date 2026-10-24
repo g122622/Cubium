@@ -87,8 +87,9 @@ inline std::pair<std::unique_ptr<TestWidget>, std::unique_ptr<WidgetLayoutAdapto
     adaptor->setConstraints(constraints);
 
     // 设置自定义测量函数，返回固定尺寸
-    adaptor->setMeasureFunc(
-        [width, height](WidgetLayoutAdaptor*, const MeasureSpec&, const MeasureSpec&) { return Size(width, height); });
+    adaptor->setMeasureFunc([width, height](WidgetLayoutAdaptor*, const MeasureSpec&, const MeasureSpec&) {
+        return Size(width, height);
+    });
 
     return {std::move(widget), std::move(adaptor)};
 }
@@ -99,7 +100,10 @@ inline std::pair<std::unique_ptr<TestWidget>, std::unique_ptr<WidgetLayoutAdapto
 
 class FlexLayoutDetailedTest : public ::testing::Test {
 protected:
-    void SetUp() override { layout = std::make_unique<FlexLayout>(); }
+    void SetUp() override
+    {
+        layout = std::make_unique<FlexLayout>();
+    }
 
     void TearDown() override
     {

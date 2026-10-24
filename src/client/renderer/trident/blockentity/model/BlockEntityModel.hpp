@@ -74,7 +74,10 @@ public:
     /**
      * @brief 获取所有部件
      */
-    [[nodiscard]] const std::vector<std::shared_ptr<entity::model::ModelRenderer>>& getParts() const { return m_parts; }
+    [[nodiscard]] const std::vector<std::shared_ptr<entity::model::ModelRenderer>>& getParts() const
+    {
+        return m_parts;
+    }
 
     // ========== 渲染 ==========
 
@@ -89,8 +92,15 @@ public:
 
     // ========== 纹理 ==========
 
-    [[nodiscard]] i32 textureWidth() const { return m_textureWidth; }
-    [[nodiscard]] i32 textureHeight() const { return m_textureHeight; }
+    [[nodiscard]] i32 textureWidth() const
+    {
+        return m_textureWidth;
+    }
+
+    [[nodiscard]] i32 textureHeight() const
+    {
+        return m_textureHeight;
+    }
 
     void setTextureSize(i32 width, i32 height)
     {

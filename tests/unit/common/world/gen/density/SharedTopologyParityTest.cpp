@@ -171,7 +171,10 @@ TEST(SharedTopologyComputeTest, MapAllPreservesSharedIdentity)
     // 最小透传 visitor：apply 原样返回（不替换任何节点）
     class IdentityVisitor final : public DensityFunction::Visitor {
     public:
-        [[nodiscard]] std::unique_ptr<DensityFunction> apply(std::unique_ptr<DensityFunction> f) override { return f; }
+        [[nodiscard]] std::unique_ptr<DensityFunction> apply(std::unique_ptr<DensityFunction> f) override
+        {
+            return f;
+        }
     } visitor;
 
     auto mapped = shared->mapAll(visitor);

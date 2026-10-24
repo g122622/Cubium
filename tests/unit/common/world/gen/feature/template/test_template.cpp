@@ -62,7 +62,10 @@ protected:
 
 class RuleTestTest : public ::testing::Test {
 protected:
-    void SetUp() override { VanillaBlocks::initialize(); }
+    void SetUp() override
+    {
+        VanillaBlocks::initialize();
+    }
 };
 
 TEST_F(TemplateTest, BedrockGrassRemainsSolidRailSupport)
@@ -76,8 +79,9 @@ TEST_F(TemplateTest, BedrockGrassRemainsSolidRailSupport)
     ASSERT_NE(structure, nullptr);
     ASSERT_NE(structure->getPalette(0), nullptr);
     const auto& blocks = structure->getPalette(0)->blocks();
-    const auto support = std::find_if(
-        blocks.begin(), blocks.end(), [](const PaletteBlock& block) { return block.pos() == BlockPos(9, 5, 7); });
+    const auto support = std::find_if(blocks.begin(), blocks.end(), [](const PaletteBlock& block) {
+        return block.pos() == BlockPos(9, 5, 7);
+    });
     ASSERT_NE(support, blocks.end());
     const auto* state = BlockRegistry::instance().getBlockState(support->blockStateId);
     ASSERT_NE(state, nullptr);

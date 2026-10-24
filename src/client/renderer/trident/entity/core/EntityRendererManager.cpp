@@ -999,10 +999,12 @@ std::unique_ptr<model::EntityModel> EntityRendererManager::_createModelForEntity
         static_cast<f64>(entity.rotationYawHead() - entity.prevRotationYawHead()) * context.partialTicks;
     context.netHeadYaw = headYaw - bodyYaw;
     // 归一化到 -180 到 180
-    while (context.netHeadYaw < -180.0)
+    while (context.netHeadYaw < -180.0) {
         context.netHeadYaw += 360.0;
-    while (context.netHeadYaw > 180.0)
+    }
+    while (context.netHeadYaw > 180.0) {
         context.netHeadYaw -= 360.0;
+    }
 
     context.headPitch = static_cast<f64>(entity.prevPitch()) +
         static_cast<f64>(entity.pitch() - entity.prevPitch()) * context.partialTicks;

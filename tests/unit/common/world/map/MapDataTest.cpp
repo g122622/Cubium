@@ -48,7 +48,10 @@ using namespace mc::world::map;
  */
 class MapDataTest : public ::testing::Test {
 protected:
-    void SetUp() override { MaterialColor::initialize(); }
+    void SetUp() override
+    {
+        MaterialColor::initialize();
+    }
 };
 
 TEST_F(MapDataTest, DefaultConstruction)
@@ -197,7 +200,10 @@ TEST_F(MapDataTest, GetMapName)
  */
 class MapDecorationTest : public ::testing::Test {
 protected:
-    void SetUp() override { MaterialColor::initialize(); }
+    void SetUp() override
+    {
+        MaterialColor::initialize();
+    }
 };
 
 TEST_F(MapDecorationTest, DecorationTypeValues)
@@ -702,7 +708,10 @@ TEST(MapBannerTest, NbtRoundTrip_InvalidJsonFallback)
 
 class MapDataNetherRotationTest : public ::testing::Test {
 protected:
-    void SetUp() override { MaterialColor::initialize(); }
+    void SetUp() override
+    {
+        MaterialColor::initialize();
+    }
 };
 
 TEST_F(MapDataNetherRotationTest, NetherRotationUsesGameTime)
@@ -711,9 +720,20 @@ TEST_F(MapDataNetherRotationTest, NetherRotationUsesGameTime)
     // 使用BaseTestWorld并覆写getGameTime
     class NetherTestWorld : public mc::test::BaseTestWorld {
     public:
-        [[nodiscard]] u64 getGameTime() const override { return m_gameTime; }
-        [[nodiscard]] DimensionId dimension() const override { return -1; } // Nether
-        void setGameTime(u64 time) { m_gameTime = time; }
+        [[nodiscard]] u64 getGameTime() const override
+        {
+            return m_gameTime;
+        }
+
+        [[nodiscard]] DimensionId dimension() const override
+        {
+            return -1;
+        } // Nether
+
+        void setGameTime(u64 time)
+        {
+            m_gameTime = time;
+        }
 
     private:
         u64 m_gameTime = 0;
@@ -748,9 +768,20 @@ TEST_F(MapDataNetherRotationTest, NetherRotationIndependentOfFacing)
 {
     class NetherTestWorld : public mc::test::BaseTestWorld {
     public:
-        [[nodiscard]] u64 getGameTime() const override { return m_gameTime; }
-        [[nodiscard]] DimensionId dimension() const override { return -1; }
-        void setGameTime(u64 time) { m_gameTime = time; }
+        [[nodiscard]] u64 getGameTime() const override
+        {
+            return m_gameTime;
+        }
+
+        [[nodiscard]] DimensionId dimension() const override
+        {
+            return -1;
+        }
+
+        void setGameTime(u64 time)
+        {
+            m_gameTime = time;
+        }
 
     private:
         u64 m_gameTime = 1000;
@@ -797,8 +828,15 @@ TEST_F(MapDataNetherRotationTest, NetherRotationDeterministic)
 {
     class NetherTestWorld : public mc::test::BaseTestWorld {
     public:
-        [[nodiscard]] u64 getGameTime() const override { return 5000; }
-        [[nodiscard]] DimensionId dimension() const override { return -1; }
+        [[nodiscard]] u64 getGameTime() const override
+        {
+            return 5000;
+        }
+
+        [[nodiscard]] DimensionId dimension() const override
+        {
+            return -1;
+        }
     };
 
     NetherTestWorld world;
@@ -821,7 +859,10 @@ TEST_F(MapDataNetherRotationTest, NetherRotationDeterministic)
 
 class MapDataBannerTest : public ::testing::Test {
 protected:
-    void SetUp() override { MaterialColor::initialize(); }
+    void SetUp() override
+    {
+        MaterialColor::initialize();
+    }
 };
 
 TEST_F(MapDataBannerTest, RemoveStaleBanners_RemovesInvalidBanner)
@@ -900,9 +941,15 @@ TEST_F(MapDataBannerTest, RemoveStaleBanners_KeepsValidBanner)
             return nullptr;
         }
 
-        void setBannerPos(const BlockPos& pos) { m_bannerPos = pos; }
+        void setBannerPos(const BlockPos& pos)
+        {
+            m_bannerPos = pos;
+        }
 
-        blockentity::BannerEntity& bannerEntity() { return m_bannerEntity; }
+        blockentity::BannerEntity& bannerEntity()
+        {
+            return m_bannerEntity;
+        }
 
     private:
         BlockPos m_bannerPos;
@@ -943,9 +990,15 @@ TEST_F(MapDataBannerTest, RemoveStaleBanners_RemovesColorChangedBanner)
             return nullptr;
         }
 
-        void setBannerPos(const BlockPos& pos) { m_bannerPos = pos; }
+        void setBannerPos(const BlockPos& pos)
+        {
+            m_bannerPos = pos;
+        }
 
-        blockentity::BannerEntity& bannerEntity() { return m_bannerEntity; }
+        blockentity::BannerEntity& bannerEntity()
+        {
+            return m_bannerEntity;
+        }
 
     private:
         BlockPos m_bannerPos;
@@ -987,9 +1040,15 @@ TEST_F(MapDataBannerTest, TryAddBanner_AddsBanner)
             return nullptr;
         }
 
-        void setBannerPos(const BlockPos& pos) { m_bannerPos = pos; }
+        void setBannerPos(const BlockPos& pos)
+        {
+            m_bannerPos = pos;
+        }
 
-        blockentity::BannerEntity& bannerEntity() { return m_bannerEntity; }
+        blockentity::BannerEntity& bannerEntity()
+        {
+            return m_bannerEntity;
+        }
 
     private:
         BlockPos m_bannerPos;
@@ -1030,9 +1089,15 @@ TEST_F(MapDataBannerTest, TryAddBanner_ToggleRemovesExisting)
             return nullptr;
         }
 
-        void setBannerPos(const BlockPos& pos) { m_bannerPos = pos; }
+        void setBannerPos(const BlockPos& pos)
+        {
+            m_bannerPos = pos;
+        }
 
-        blockentity::BannerEntity& bannerEntity() { return m_bannerEntity; }
+        blockentity::BannerEntity& bannerEntity()
+        {
+            return m_bannerEntity;
+        }
 
     private:
         BlockPos m_bannerPos;
@@ -1084,9 +1149,15 @@ TEST_F(MapDataBannerTest, TryAddBanner_FailsOutOfRange)
 
     class BannerTestWorld : public mc::test::BaseTestWorld {
     public:
-        [[nodiscard]] mc::BlockEntity* getBlockEntity(const BlockPos&) override { return &m_bannerEntity; }
+        [[nodiscard]] mc::BlockEntity* getBlockEntity(const BlockPos&) override
+        {
+            return &m_bannerEntity;
+        }
 
-        blockentity::BannerEntity& bannerEntity() { return m_bannerEntity; }
+        blockentity::BannerEntity& bannerEntity()
+        {
+            return m_bannerEntity;
+        }
 
     private:
         blockentity::BannerEntity m_bannerEntity{BlockPos(0, 0, 0)};

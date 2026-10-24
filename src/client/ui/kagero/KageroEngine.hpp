@@ -150,7 +150,10 @@ public:
     /**
      * @brief 获取层数量
      */
-    [[nodiscard]] size_t layerCount() const { return m_layers.size(); }
+    [[nodiscard]] size_t layerCount() const
+    {
+        return m_layers.size();
+    }
 
     // ==================== 事件处理 ====================
 
@@ -213,24 +216,44 @@ public:
     /**
      * @brief 获取屏幕宽度
      */
-    [[nodiscard]] i32 screenWidth() const { return m_screenWidth; }
+    [[nodiscard]] i32 screenWidth() const
+    {
+        return m_screenWidth;
+    }
 
     /**
      * @brief 获取屏幕高度
      */
-    [[nodiscard]] i32 screenHeight() const { return m_screenHeight; }
+    [[nodiscard]] i32 screenHeight() const
+    {
+        return m_screenHeight;
+    }
 
     /**
      * @brief 获取绘图上下文
      */
-    [[nodiscard]] widget::PaintContext& context() { return *m_context; }
-    [[nodiscard]] const widget::PaintContext& context() const { return *m_context; }
+    [[nodiscard]] widget::PaintContext& context()
+    {
+        return *m_context;
+    }
+
+    [[nodiscard]] const widget::PaintContext& context() const
+    {
+        return *m_context;
+    }
 
     /**
      * @brief 获取画布接口
      */
-    [[nodiscard]] paint::ICanvas& canvas() { return *m_canvas; }
-    [[nodiscard]] const paint::ICanvas& canvas() const { return *m_canvas; }
+    [[nodiscard]] paint::ICanvas& canvas()
+    {
+        return *m_canvas;
+    }
+
+    [[nodiscard]] const paint::ICanvas& canvas() const
+    {
+        return *m_canvas;
+    }
 
 private:
     /**

@@ -36,9 +36,11 @@ namespace mc {
 
 // 前向声明
 class WorldGenRegion;
+
 namespace world::chunk {
 class ChunkPrimer;
 }
+
 using world::chunk::ChunkPrimer;
 class IChunkGenerator;
 class ConfiguredPlacement;
@@ -92,12 +94,18 @@ public:
      * 由 ConfiguredFeatureLoader 在注册时根据 JSON 文件名赋值。
      * 用于 BiomeFilterPlacement 反向查询生物群系是否包含此特征。
      */
-    [[nodiscard]] const ResourceLocation& id() const noexcept { return m_id; }
+    [[nodiscard]] const ResourceLocation& id() const noexcept
+    {
+        return m_id;
+    }
 
     /**
      * @brief 设置特征标识（仅由 ConfiguredFeatureLoader 调用）
      */
-    void setId(ResourceLocation id) noexcept { m_id = std::move(id); }
+    void setId(ResourceLocation id) noexcept
+    {
+        m_id = std::move(id);
+    }
 
 private:
     ResourceLocation m_id;

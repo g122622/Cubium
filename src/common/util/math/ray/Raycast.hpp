@@ -56,7 +56,10 @@ struct RaycastContext {
     /**
      * @brief 获取射线终点
      */
-    [[nodiscard]] Vector3 endPosition() const { return ray.at(maxDistance); }
+    [[nodiscard]] Vector3 endPosition() const
+    {
+        return ray.at(maxDistance);
+    }
 };
 
 /**

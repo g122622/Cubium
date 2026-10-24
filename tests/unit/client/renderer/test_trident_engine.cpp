@@ -78,8 +78,9 @@ protected:
         ASSERT_TRUE(glfwInit()) << "Failed to initialize GLFW";
 
         // 设置 GLFW 错误回调
-        glfwSetErrorCallback(
-            [](int error, const char* description) { FAIL() << "GLFW Error " << error << ": " << description; });
+        glfwSetErrorCallback([](int error, const char* description) {
+            FAIL() << "GLFW Error " << error << ": " << description;
+        });
 
         // 创建无上下文窗口（仅用于 Vulkan surface）
         glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
@@ -145,7 +146,10 @@ protected:
     }
 
     // 辅助方法：轮询事件
-    void pollEvents() { glfwPollEvents(); }
+    void pollEvents()
+    {
+        glfwPollEvents();
+    }
 };
 
 // 静态成员定义
@@ -197,8 +201,12 @@ TEST_F(TridentConfigTest, OptionalExtensions)
     bool hasSynchronization2 = false;
 
     for (const auto& ext : config.optionalDeviceExtensions) {
-        if (ext == VK_KHR_TIMELINE_SEMAPHORE_EXTENSION_NAME) hasTimelineSemaphore = true;
-        if (ext == VK_KHR_SYNCHRONIZATION_2_EXTENSION_NAME) hasSynchronization2 = true;
+        if (ext == VK_KHR_TIMELINE_SEMAPHORE_EXTENSION_NAME) {
+            hasTimelineSemaphore = true;
+        }
+        if (ext == VK_KHR_SYNCHRONIZATION_2_EXTENSION_NAME) {
+            hasSynchronization2 = true;
+        }
     }
 
     EXPECT_TRUE(hasTimelineSemaphore);
@@ -290,7 +298,10 @@ TEST_F(QueueFamilyIndicesTest, CompleteWithAllQueues)
 
 class TridentContextTest : public TridentTestBase {
 protected:
-    void SetUp() override { TridentTestBase::SetUp(); }
+    void SetUp() override
+    {
+        TridentTestBase::SetUp();
+    }
 };
 
 TEST_F(TridentContextTest, InitializationSuccessful)
@@ -416,7 +427,10 @@ TEST_F(TridentContextTest, ValidationEnabled)
 
 class TridentBufferTest : public TridentTestBase {
 protected:
-    void SetUp() override { TridentTestBase::SetUp(); }
+    void SetUp() override
+    {
+        TridentTestBase::SetUp();
+    }
 };
 
 TEST_F(TridentBufferTest, CreateVertexBuffer)
@@ -752,7 +766,10 @@ TEST_F(TridentBufferTest, BufferMoveSemantics)
 
 class TridentTextureTest : public TridentTestBase {
 protected:
-    void SetUp() override { TridentTestBase::SetUp(); }
+    void SetUp() override
+    {
+        TridentTestBase::SetUp();
+    }
 };
 
 TEST_F(TridentTextureTest, CreateTexture2D)
@@ -857,7 +874,10 @@ TEST_F(TridentTextureTest, TextureFormatConversion)
 
 class TridentTextureAtlasTest : public TridentTestBase {
 protected:
-    void SetUp() override { TridentTestBase::SetUp(); }
+    void SetUp() override
+    {
+        TridentTestBase::SetUp();
+    }
 };
 
 TEST_F(TridentTextureAtlasTest, CreateAtlas)
@@ -945,7 +965,10 @@ TEST_F(TridentTextureAtlasTest, UploadAtlasData)
 
 class TextureRegionUploadTest : public TridentTestBase {
 protected:
-    void SetUp() override { TridentTestBase::SetUp(); }
+    void SetUp() override
+    {
+        TridentTestBase::SetUp();
+    }
 };
 
 TEST_F(TextureRegionUploadTest, TextureUploadRegion_Basic)
@@ -1091,7 +1114,10 @@ TEST_F(TextureRegionUploadTest, TextureUploadRegion_InvalidParams)
 
 class FrameManagerTest : public TridentTestBase {
 protected:
-    void SetUp() override { TridentTestBase::SetUp(); }
+    void SetUp() override
+    {
+        TridentTestBase::SetUp();
+    }
 };
 
 TEST_F(FrameManagerTest, CreateFrameManager)
@@ -1127,7 +1153,10 @@ TEST_F(FrameManagerTest, FrameIndexCycling)
 
 class UniformManagerTest : public TridentTestBase {
 protected:
-    void SetUp() override { TridentTestBase::SetUp(); }
+    void SetUp() override
+    {
+        TridentTestBase::SetUp();
+    }
 };
 
 // 注意：UniformManager 需要 DescriptorManager，这里只测试结构大小

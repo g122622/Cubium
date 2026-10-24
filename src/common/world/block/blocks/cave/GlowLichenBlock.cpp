@@ -74,12 +74,24 @@ GlowLichenBlock::GlowLichenBlock(const BlockProperties& properties)
 
                             CollisionShape shape = CollisionShape::empty();
 
-                            if (north) shape = CollisionShape::combine(shape, northShape);
-                            if (south) shape = CollisionShape::combine(shape, southShape);
-                            if (east) shape = CollisionShape::combine(shape, eastShape);
-                            if (west) shape = CollisionShape::combine(shape, westShape);
-                            if (up) shape = CollisionShape::combine(shape, upShape);
-                            if (down) shape = CollisionShape::combine(shape, downShape);
+                            if (north) {
+                                shape = CollisionShape::combine(shape, northShape);
+                            }
+                            if (south) {
+                                shape = CollisionShape::combine(shape, southShape);
+                            }
+                            if (east) {
+                                shape = CollisionShape::combine(shape, eastShape);
+                            }
+                            if (west) {
+                                shape = CollisionShape::combine(shape, westShape);
+                            }
+                            if (up) {
+                                shape = CollisionShape::combine(shape, upShape);
+                            }
+                            if (down) {
+                                shape = CollisionShape::combine(shape, downShape);
+                            }
 
                             // 如果没有面激活，使用完整方块形状（与 MC 原版一致）
                             if (!north && !south && !east && !west && !up && !down) {
@@ -171,12 +183,24 @@ u8 GlowLichenBlock::getLightLevel(const BlockState& state, IWorld* world, const 
 size_t GlowLichenBlock::_getShapeIndex(bool down, bool up, bool north, bool south, bool east, bool west)
 {
     size_t index = 0;
-    if (down) index |= 1;
-    if (up) index |= 2;
-    if (north) index |= 4;
-    if (south) index |= 8;
-    if (east) index |= 16;
-    if (west) index |= 32;
+    if (down) {
+        index |= 1;
+    }
+    if (up) {
+        index |= 2;
+    }
+    if (north) {
+        index |= 4;
+    }
+    if (south) {
+        index |= 8;
+    }
+    if (east) {
+        index |= 16;
+    }
+    if (west) {
+        index |= 32;
+    }
     return index;
 }
 

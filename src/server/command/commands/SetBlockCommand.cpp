@@ -150,7 +150,9 @@ i32 executeSetBlock(CommandContext<ServerCommandSource>& context, bool onlyIfAir
 void SetBlockCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
 {
     auto setblockNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("setblock");
-    setblockNode->setRequirement([](const ServerCommandSource& source) { return source.hasPermission(2); });
+    setblockNode->setRequirement([](const ServerCommandSource& source) {
+        return source.hasPermission(2);
+    });
     support::applyMetadata(setblockNode,
         support::makeMetadata(
             "Changes a block to another block.", "/setblock <pos> <block> [destroy|keep|replace]", 2, {}, false));
@@ -161,19 +163,27 @@ void SetBlockCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatc
 
     auto blockArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, BlockStateInput>>(
         "block", BlockStateArgumentType::blockState());
-    blockArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _setBlockState(ctx); });
+    blockArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _setBlockState(ctx);
+    });
 
     // /setblock <pos> <block> destroy
     auto destroyNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("destroy");
-    destroyNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _setBlockDestroy(ctx); });
+    destroyNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _setBlockDestroy(ctx);
+    });
 
     // /setblock <pos> <block> keep
     auto keepNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("keep");
-    keepNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _setBlockKeep(ctx); });
+    keepNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _setBlockKeep(ctx);
+    });
 
     // /setblock <pos> <block> replace
     auto replaceNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("replace");
-    replaceNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _setBlockReplace(ctx); });
+    replaceNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _setBlockReplace(ctx);
+    });
 
     blockArg->addChild(destroyNode);
     blockArg->addChild(keepNode);

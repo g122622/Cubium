@@ -51,10 +51,21 @@ public:
         const auto it = m_heights.find(ChunkPos(x >> 4, z >> 4));
         return it != m_heights.end() ? it->second : 0;
     }
-    [[nodiscard]] DimensionId dimension() const override { return m_ultraWarm ? 1 : 0; }
-    [[nodiscard]] bool isUltraWarm() const override { return m_ultraWarm; }
 
-    void setHeight(ChunkCoord chunkX, ChunkCoord chunkZ, i32 height) { m_heights[ChunkPos(chunkX, chunkZ)] = height; }
+    [[nodiscard]] DimensionId dimension() const override
+    {
+        return m_ultraWarm ? 1 : 0;
+    }
+
+    [[nodiscard]] bool isUltraWarm() const override
+    {
+        return m_ultraWarm;
+    }
+
+    void setHeight(ChunkCoord chunkX, ChunkCoord chunkZ, i32 height)
+    {
+        m_heights[ChunkPos(chunkX, chunkZ)] = height;
+    }
 
     void setBiome(ChunkCoord chunkX, ChunkCoord chunkZ, BiomeId biomeId)
     {
@@ -70,12 +81,16 @@ public:
         }
     }
 
-    void setUltraWarm(bool value) { m_ultraWarm = value; }
+    void setUltraWarm(bool value)
+    {
+        m_ultraWarm = value;
+    }
 
     [[nodiscard]] world::tick::TickManager& tickManager() override
     {
         throw std::runtime_error("WeatherUtilsTestWorld::tickManager not implemented");
     }
+
     [[nodiscard]] const world::tick::TickManager& tickManager() const override
     {
         throw std::runtime_error("WeatherUtilsTestWorld::tickManager not implemented");
@@ -88,7 +103,10 @@ private:
 
 class WeatherUtilsTest : public ::testing::Test {
 protected:
-    void SetUp() override { BiomeRegistry::instance().initialize(); }
+    void SetUp() override
+    {
+        BiomeRegistry::instance().initialize();
+    }
 };
 
 } // namespace
@@ -263,7 +281,10 @@ class WeatherManagerTest : public ::testing::Test {
 protected:
     WeatherManager manager;
 
-    void SetUp() override { manager.initialize(12345); }
+    void SetUp() override
+    {
+        manager.initialize(12345);
+    }
 };
 
 TEST_F(WeatherManagerTest, InitialStateIsClear)

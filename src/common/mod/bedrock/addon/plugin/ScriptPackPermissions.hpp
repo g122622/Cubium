@@ -69,7 +69,10 @@ public:
     /**
      * @brief 获取原始权限位掩码
      */
-    [[nodiscard]] u32 rawFlags() const noexcept { return m_flags; }
+    [[nodiscard]] u32 rawFlags() const noexcept
+    {
+        return m_flags;
+    }
 
 private:
     u32 m_flags = 0;

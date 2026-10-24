@@ -49,7 +49,10 @@ public:
         : DamageEnchantment(Type::Undead)
     {}
 
-    [[nodiscard]] std::string id() const override { return "minecraft:smite"; }
+    [[nodiscard]] std::string id() const override
+    {
+        return "minecraft:smite";
+    }
 
     [[nodiscard]] std::string getNameKey(i32 level) const override
     {
@@ -57,7 +60,10 @@ public:
         return "enchantment.minecraft.smite";
     }
 
-    [[nodiscard]] EnchantmentRarity rarity() const noexcept override { return EnchantmentRarity::Uncommon; }
+    [[nodiscard]] EnchantmentRarity rarity() const noexcept override
+    {
+        return EnchantmentRarity::Uncommon;
+    }
 };
 
 } // namespace enchant

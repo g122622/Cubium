@@ -218,9 +218,15 @@ TEST_F(StateStoreTest, MultipleSubscribers)
 
     int count1 = 0, count2 = 0, count3 = 0;
 
-    u64 id1 = store.subscribe("test", [&]() { count1++; });
-    u64 id2 = store.subscribe("test", [&]() { count2++; });
-    u64 id3 = store.subscribe("test", [&]() { count3++; });
+    u64 id1 = store.subscribe("test", [&]() {
+        count1++;
+    });
+    u64 id2 = store.subscribe("test", [&]() {
+        count2++;
+    });
+    u64 id3 = store.subscribe("test", [&]() {
+        count3++;
+    });
 
     store.set<i32>("test", 1);
 
@@ -254,9 +260,15 @@ TEST_F(StateStoreTest, UnsubscribeAll)
 
     int count = 0;
 
-    store.subscribe("test", [&]() { count++; });
-    store.subscribe("test", [&]() { count++; });
-    store.subscribe("test", [&]() { count++; });
+    store.subscribe("test", [&]() {
+        count++;
+    });
+    store.subscribe("test", [&]() {
+        count++;
+    });
+    store.subscribe("test", [&]() {
+        count++;
+    });
 
     store.set<i32>("test", 1);
     EXPECT_EQ(count, 3);
@@ -278,8 +290,12 @@ TEST_F(StateStoreTest, SubscribeToDifferentKeys)
     // 订阅捕获栈上局部变量，用例结束前必须取消订阅，
     // 否则悬挂回调会在后续用例 set("player.health"/"player.mana") 时解引用已释放的栈帧导致 SIGSEGV
     // （StateStore 为进程级单例，跨用例存活）。
-    const StateStore::SubscriberId healthId = store.subscribe("player.health", [&]() { healthCount++; });
-    const StateStore::SubscriberId manaId = store.subscribe("player.mana", [&]() { manaCount++; });
+    const StateStore::SubscriberId healthId = store.subscribe("player.health", [&]() {
+        healthCount++;
+    });
+    const StateStore::SubscriberId manaId = store.subscribe("player.mana", [&]() {
+        manaCount++;
+    });
 
     store.set<i32>("player.health", 100);
     EXPECT_EQ(healthCount, 1);
@@ -340,8 +356,9 @@ TEST_F(StateStoreTest, Middleware)
 
     std::vector<std::string> changedKeys;
 
-    store.addMiddleware(
-        [&changedKeys](const std::string& key, const std::any&, StateStore&) { changedKeys.push_back(key); });
+    store.addMiddleware([&changedKeys](const std::string& key, const std::any&, StateStore&) {
+        changedKeys.push_back(key);
+    });
 
     store.set<i32>("a", 1);
     store.set<i32>("b", 2);
@@ -366,9 +383,13 @@ TEST_F(StateStoreTest, MultipleMiddlewares)
     int count = 0;
     std::string lastKey;
 
-    store.addMiddleware([&count](const std::string&, const std::any&, StateStore&) { count++; });
+    store.addMiddleware([&count](const std::string&, const std::any&, StateStore&) {
+        count++;
+    });
 
-    store.addMiddleware([&lastKey](const std::string& key, const std::any&, StateStore&) { lastKey = key; });
+    store.addMiddleware([&lastKey](const std::string& key, const std::any&, StateStore&) {
+        lastKey = key;
+    });
 
     store.set<i32>("test", 42);
 
@@ -404,9 +425,15 @@ TEST_F(StateStoreTest, BatchUpdate)
     StateStore& store = StateStore::instance();
 
     int callCount = 0;
-    store.subscribe("a", [&]() { callCount++; });
-    store.subscribe("b", [&]() { callCount++; });
-    store.subscribe("c", [&]() { callCount++; });
+    store.subscribe("a", [&]() {
+        callCount++;
+    });
+    store.subscribe("b", [&]() {
+        callCount++;
+    });
+    store.subscribe("c", [&]() {
+        callCount++;
+    });
 
     // 批量更新前，每次set都会触发通知
     store.set<i32>("a", 1);
@@ -432,12 +459,16 @@ TEST_F(StateStoreTest, BatchUpdateNested)
     StateStore& store = StateStore::instance();
 
     int callCount = 0;
-    store.subscribe("test", [&]() { callCount++; });
+    store.subscribe("test", [&]() {
+        callCount++;
+    });
 
     // 嵌套批量更新
     store.batchUpdate([](StateStore& s1) {
         s1.set<i32>("test", 1);
-        s1.batchUpdate([](StateStore& s2) { s2.set<i32>("test", 2); });
+        s1.batchUpdate([](StateStore& s2) {
+            s2.set<i32>("test", 2);
+        });
     });
 
     // 应该只在外层批量更新结束时通知
@@ -477,7 +508,9 @@ TEST_F(StateStoreTest, ThreadSafety)
     StateStore& store = StateStore::instance();
 
     std::atomic<int> callCount{0};
-    store.subscribe("counter", [&]() { callCount++; });
+    store.subscribe("counter", [&]() {
+        callCount++;
+    });
 
     const int numThreads = 10;
     const int iterations = 100;
@@ -609,7 +642,9 @@ TEST_F(StateStoreTest, ClearWithSubscribers)
     StateStore& store = StateStore::instance();
 
     int callCount = 0;
-    store.subscribe("test", [&]() { callCount++; });
+    store.subscribe("test", [&]() {
+        callCount++;
+    });
 
     store.set<i32>("test", 1);
     EXPECT_EQ(callCount, 1);
@@ -643,7 +678,9 @@ TEST_F(StateStoreTest, StateBindingPointBind)
     point.set<i32>(0);
 
     int callCount = 0;
-    u64 id = point.bind([&]() { callCount++; });
+    u64 id = point.bind([&]() {
+        callCount++;
+    });
 
     point.set<i32>(42);
     EXPECT_EQ(callCount, 1);
@@ -664,8 +701,9 @@ TEST_F(StateStoreTest, SelectorBasic)
     store.set<i32>("player.baseHealth", 90);
     store.set<i32>("player.healthBonus", 10);
 
-    Selector<i32> totalHealth(
-        [](const StateStore& s) { return s.get<i32>("player.baseHealth", 0) + s.get<i32>("player.healthBonus", 0); });
+    Selector<i32> totalHealth([](const StateStore& s) {
+        return s.get<i32>("player.baseHealth", 0) + s.get<i32>("player.healthBonus", 0);
+    });
 
     EXPECT_EQ(totalHealth.select(), 100);
 }
@@ -676,7 +714,9 @@ TEST_F(StateStoreTest, SelectorWithChangingState)
 
     store.set<i32>("value", 10);
 
-    Selector<i32> selector([](const StateStore& s) { return s.get<i32>("value", 0) * 2; });
+    Selector<i32> selector([](const StateStore& s) {
+        return s.get<i32>("value", 0) * 2;
+    });
 
     EXPECT_EQ(selector.select(), 20);
 

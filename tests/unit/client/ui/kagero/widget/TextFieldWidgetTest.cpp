@@ -42,7 +42,10 @@ class InspectableTextFieldWidget : public TextFieldWidget {
 public:
     using TextFieldWidget::TextFieldWidget;
 
-    [[nodiscard]] i32 scrollOffset() const { return m_scrollOffset; }
+    [[nodiscard]] i32 scrollOffset() const
+    {
+        return m_scrollOffset;
+    }
 };
 
 // ==================== 构造函数测试 ====================
@@ -283,7 +286,9 @@ TEST(TextFieldWidgetTest, ValidatorAcceptsValidInput)
     textField.setValidator([](const std::string& text) {
         // 只允许数字
         for (char c : text) {
-            if (!std::isdigit(c)) return false;
+            if (!std::isdigit(c)) {
+                return false;
+            }
         }
         return true;
     });
@@ -298,7 +303,9 @@ TEST(TextFieldWidgetTest, ValidatorRejectsInvalidInput)
     textField.setValidator([](const std::string& text) {
         // 只允许数字
         for (char c : text) {
-            if (!std::isdigit(c)) return false;
+            if (!std::isdigit(c)) {
+                return false;
+            }
         }
         return true;
     });

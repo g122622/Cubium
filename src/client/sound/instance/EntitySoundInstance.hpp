@@ -112,7 +112,10 @@ public:
     /**
      * @brief 获取关联的实体
      */
-    [[nodiscard]] Entity& entity() const { return m_entity; }
+    [[nodiscard]] Entity& entity() const
+    {
+        return m_entity;
+    }
 
     /**
      * @brief 检查实体是否仍然有效（未被移除且未静音）

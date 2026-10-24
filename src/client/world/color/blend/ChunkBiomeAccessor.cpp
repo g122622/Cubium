@@ -82,10 +82,18 @@ bool ChunkBiomeAccessor::isChunkLoaded(ChunkCoord x, ChunkCoord z) const
     }
 
     // 检查是否是邻居区块
-    if (x == m_chunkX - 1 && z == m_chunkZ) return m_neighbors[0] != nullptr; // 西
-    if (x == m_chunkX + 1 && z == m_chunkZ) return m_neighbors[1] != nullptr; // 东
-    if (x == m_chunkX && z == m_chunkZ - 1) return m_neighbors[2] != nullptr; // 北
-    if (x == m_chunkX && z == m_chunkZ + 1) return m_neighbors[3] != nullptr; // 南
+    if (x == m_chunkX - 1 && z == m_chunkZ) {
+        return m_neighbors[0] != nullptr; // 西
+    }
+    if (x == m_chunkX + 1 && z == m_chunkZ) {
+        return m_neighbors[1] != nullptr; // 东
+    }
+    if (x == m_chunkX && z == m_chunkZ - 1) {
+        return m_neighbors[2] != nullptr; // 北
+    }
+    if (x == m_chunkX && z == m_chunkZ + 1) {
+        return m_neighbors[3] != nullptr; // 南
+    }
 
     return false;
 }

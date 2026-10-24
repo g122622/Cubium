@@ -59,7 +59,10 @@ public:
     /**
      * @brief 获取关联的方块
      */
-    [[nodiscard]] const Block& block() const { return *m_block; }
+    [[nodiscard]] const Block& block() const
+    {
+        return *m_block;
+    }
 
     // ========== Item 接口实现 ==========
 
@@ -136,7 +139,10 @@ public:
      *
      * @return 默认返回 true
      */
-    [[nodiscard]] virtual bool checkPosition() const { return true; }
+    [[nodiscard]] virtual bool checkPosition() const
+    {
+        return true;
+    }
 
 protected:
     /**

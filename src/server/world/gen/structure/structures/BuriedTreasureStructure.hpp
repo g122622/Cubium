@@ -75,7 +75,10 @@ public:
         : Structure(std::move(id))
     {}
 
-    [[nodiscard]] const std::string& name() const override { return m_name; }
+    [[nodiscard]] const std::string& name() const override
+    {
+        return m_name;
+    }
 
     /**
      * @brief 获取结构关联的生物群系标签
@@ -90,7 +93,10 @@ public:
      * MC 1.21.11 中埋藏宝藏使用 (9, 0, 9) 偏移，
      * 使得 /locate 命令指向区块内偏移 9 格的位置而非默认的 8 格。
      */
-    [[nodiscard]] math::Vector3i locateOffset() const { return math::Vector3i(9, 0, 9); }
+    [[nodiscard]] math::Vector3i locateOffset() const
+    {
+        return math::Vector3i(9, 0, 9);
+    }
 
     [[nodiscard]] DecorationStage defaultDecorationStage() const override
     {

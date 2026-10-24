@@ -42,7 +42,9 @@ FollowParentGoal::FollowParentGoal(AnimalEntity* animal, f64 speed)
 
 bool FollowParentGoal::shouldExecute()
 {
-    if (!m_childAnimal) return false;
+    if (!m_childAnimal) {
+        return false;
+    }
 
     // 检查是否是幼体
     if (m_childAnimal->getGrowingAge() >= 0) {
@@ -62,7 +64,9 @@ bool FollowParentGoal::shouldExecute()
 
 bool FollowParentGoal::shouldContinueExecuting()
 {
-    if (!m_childAnimal || !m_parentAnimal) return false;
+    if (!m_childAnimal || !m_parentAnimal) {
+        return false;
+    }
 
     // 检查是否成年
     if (m_childAnimal->getGrowingAge() >= 0) {
@@ -94,7 +98,9 @@ void FollowParentGoal::resetTask()
 
 void FollowParentGoal::tick()
 {
-    if (!m_childAnimal || !m_parentAnimal) return;
+    if (!m_childAnimal || !m_parentAnimal) {
+        return;
+    }
 
     // 移除或析构的引用会自动失效；此处同时处理尚未移除的死亡目标。
     if (!m_parentAnimal->isAlive()) {
@@ -117,7 +123,9 @@ void FollowParentGoal::tick()
 
 AnimalEntity* FollowParentGoal::findParent()
 {
-    if (!m_childAnimal || !m_childAnimal->world()) return nullptr;
+    if (!m_childAnimal || !m_childAnimal->world()) {
+        return nullptr;
+    }
 
     // 在 8x4x8 范围内搜索，找最近的成年同类。
     // 对齐 vanilla FollowParentGoal.getEntitiesOfClass(this.animal.getClass(), ...)：只搜索与自身同类

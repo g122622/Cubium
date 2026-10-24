@@ -25,6 +25,7 @@
 
 #include "common/mod/bedrock/addon/event/ScriptEventBus.hpp"
 
+#include <functional>
 #include <string>
 #include <typeindex>
 #include <vector>
@@ -54,7 +55,10 @@ struct EventSignalInfo {
  * @param eventBus 事件总线
  * @param signals 事件信号列表
  */
-void registerEventBindings(
-    IScriptBindingContext& ctx, void* worldObj, ScriptEventBus& eventBus, const std::vector<EventSignalInfo>& signals);
+void registerEventBindings(IScriptBindingContext& ctx,
+    void* worldObj,
+    ScriptEventBus& eventBus,
+    const std::vector<EventSignalInfo>& signals,
+    std::function<void(IScriptBindingContext&, void*, const std::string&)> initializeEvent);
 
 } // namespace mc::mod::bedrock::addon

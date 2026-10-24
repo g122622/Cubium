@@ -88,8 +88,16 @@ public:
         return true;
     }
 
-    [[nodiscard]] mc::world::chunk::IChunkManager* chunkManager() override { return &m_stubChunks; }
-    [[nodiscard]] const mc::world::chunk::IChunkManager* chunkManager() const override { return &m_stubChunks; }
+    [[nodiscard]] mc::world::chunk::IChunkManager* chunkManager() override
+    {
+        return &m_stubChunks;
+    }
+
+    [[nodiscard]] const mc::world::chunk::IChunkManager* chunkManager() const override
+    {
+        return &m_stubChunks;
+    }
+
     mc::test::StubChunkManager m_stubChunks{nullptr, true};
 
     [[nodiscard]] const fluid::FluidState* getFluidState(i32 x, i32 y, i32 z) const override
@@ -112,11 +120,25 @@ public:
         return &fluid::Fluids::EMPTY()->defaultState();
     }
 
-    [[nodiscard]] world::tick::TickManager& tickManager() override { return m_tickManager; }
-    [[nodiscard]] const world::tick::TickManager& tickManager() const override { return m_tickManager; }
+    [[nodiscard]] world::tick::TickManager& tickManager() override
+    {
+        return m_tickManager;
+    }
 
-    [[nodiscard]] bool isClientSide() const override { return m_isClientSide; }
-    void setClientSide(bool isClient) { m_isClientSide = isClient; }
+    [[nodiscard]] const world::tick::TickManager& tickManager() const override
+    {
+        return m_tickManager;
+    }
+
+    [[nodiscard]] bool isClientSide() const override
+    {
+        return m_isClientSide;
+    }
+
+    void setClientSide(bool isClient)
+    {
+        m_isClientSide = isClient;
+    }
 
     void setBlockDirectly(const BlockPos& pos, const BlockState* state)
     {

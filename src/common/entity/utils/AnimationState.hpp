@@ -65,7 +65,10 @@ public:
      * @brief 强制启动动画（无论是否已在播放）
      * @param tickCount 启动时刻（通常为实体 ticksExisted）
      */
-    void start(i32 tickCount) { m_startTick = tickCount; }
+    void start(i32 tickCount)
+    {
+        m_startTick = tickCount;
+    }
 
     /**
      * @brief 若动画未启动则启动
@@ -95,25 +98,37 @@ public:
     /**
      * @brief 停止动画
      */
-    void stop() { m_startTick = STOPPED; }
+    void stop()
+    {
+        m_startTick = STOPPED;
+    }
 
     /**
      * @brief 是否已启动
      */
-    [[nodiscard]] bool isStarted() const noexcept { return m_startTick != STOPPED; }
+    [[nodiscard]] bool isStarted() const noexcept
+    {
+        return m_startTick != STOPPED;
+    }
 
     /**
      * @brief 获取动画起始 tick
      *
      * 调用前应先检查 isStarted()，未启动时返回哨兵值。
      */
-    [[nodiscard]] i32 startTick() const noexcept { return m_startTick; }
+    [[nodiscard]] i32 startTick() const noexcept
+    {
+        return m_startTick;
+    }
 
     /**
      * @brief 从另一个动画状态复制启动时刻
      * @param other 源动画状态
      */
-    void copyFrom(const AnimationState& other) { m_startTick = other.m_startTick; }
+    void copyFrom(const AnimationState& other)
+    {
+        m_startTick = other.m_startTick;
+    }
 
 private:
     i32 m_startTick = STOPPED;

@@ -60,9 +60,15 @@ public:
 
 class FoxGoalsTest : public ::testing::Test {
 protected:
-    void SetUp() override { fox = std::make_unique<FoxEntity>(EntityInstanceId(1), mc::test::testEcsRegistry()); }
+    void SetUp() override
+    {
+        fox = std::make_unique<FoxEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
+    }
 
-    void TearDown() override { fox.reset(); }
+    void TearDown() override
+    {
+        fox.reset();
+    }
 
     std::unique_ptr<FoxEntity> fox;
 };
@@ -126,7 +132,10 @@ public:
     {}
 
     /// 推进一轮蹲伏量累积（等价于一次 tick 的状态更新）。
-    void advanceCrouch() { _updateCrouchAmount(); }
+    void advanceCrouch()
+    {
+        _updateCrouchAmount();
+    }
 };
 
 } // namespace
@@ -422,9 +431,15 @@ TEST_F(FoxGoalsTest, FoxRevengeGoal_UsesGetPlayersNotAABBSearch)
 
 class FoxEntityStateTest : public ::testing::Test {
 protected:
-    void SetUp() override { fox = std::make_unique<FoxEntity>(EntityInstanceId(1), mc::test::testEcsRegistry()); }
+    void SetUp() override
+    {
+        fox = std::make_unique<FoxEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
+    }
 
-    void TearDown() override { fox.reset(); }
+    void TearDown() override
+    {
+        fox.reset();
+    }
 
     std::unique_ptr<FoxEntity> fox;
 };
@@ -606,9 +621,15 @@ TEST_F(FoxEntityStateTest, WakeUp)
 
 class FoxEntityTrustTest : public ::testing::Test {
 protected:
-    void SetUp() override { fox = std::make_unique<FoxEntity>(EntityInstanceId(1), mc::test::testEcsRegistry()); }
+    void SetUp() override
+    {
+        fox = std::make_unique<FoxEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
+    }
 
-    void TearDown() override { fox.reset(); }
+    void TearDown() override
+    {
+        fox.reset();
+    }
 
     std::unique_ptr<FoxEntity> fox;
 };
@@ -683,9 +704,15 @@ TEST_F(FoxEntityTrustTest, DuplicateTrust)
 
 class FoxEntitySoundTest : public ::testing::Test {
 protected:
-    void SetUp() override { fox = std::make_unique<FoxEntity>(EntityInstanceId(1), mc::test::testEcsRegistry()); }
+    void SetUp() override
+    {
+        fox = std::make_unique<FoxEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
+    }
 
-    void TearDown() override { fox.reset(); }
+    void TearDown() override
+    {
+        fox.reset();
+    }
 
     std::unique_ptr<FoxEntity> fox;
 };
@@ -721,9 +748,15 @@ TEST_F(FoxEntitySoundTest, DeathSound)
 
 class FoxEntityBreedTest : public ::testing::Test {
 protected:
-    void SetUp() override { fox = std::make_unique<FoxEntity>(EntityInstanceId(1), mc::test::testEcsRegistry()); }
+    void SetUp() override
+    {
+        fox = std::make_unique<FoxEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
+    }
 
-    void TearDown() override { fox.reset(); }
+    void TearDown() override
+    {
+        fox.reset();
+    }
 
     std::unique_ptr<FoxEntity> fox;
 };
@@ -815,11 +848,25 @@ public:
         , m_currentTick(1000)
     {}
 
-    void setDayTime(i64 time) { m_dayTime = time; }
-    void setCurrentTick(u64 tick) { m_currentTick = tick; }
+    void setDayTime(i64 time)
+    {
+        m_dayTime = time;
+    }
 
-    [[nodiscard]] i64 dayTime() const override { return m_dayTime; }
-    [[nodiscard]] u64 currentTick() const override { return m_currentTick; }
+    void setCurrentTick(u64 tick)
+    {
+        m_currentTick = tick;
+    }
+
+    [[nodiscard]] i64 dayTime() const override
+    {
+        return m_dayTime;
+    }
+
+    [[nodiscard]] u64 currentTick() const override
+    {
+        return m_currentTick;
+    }
 
     void setBlockStateAt(i32 x, i32 y, i32 z, const BlockState* state)
     {
@@ -1008,7 +1055,10 @@ public:
         : FoxEntity(id, mc::test::testEcsRegistry())
     {}
 
-    entity::ai::GoalSelector& testTargetSelector() { return targetSelector(); }
+    entity::ai::GoalSelector& testTargetSelector()
+    {
+        return targetSelector();
+    }
 };
 
 class FoxTargetGoalsTest : public ::testing::Test {

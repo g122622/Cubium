@@ -168,7 +168,10 @@ public:
      *
      * @warning 调用方不得缓存其中元素地址跨越管理器的增删操作。
      */
-    [[nodiscard]] const std::vector<std::unique_ptr<Raid>>& getAllRaids() const { return m_raids; }
+    [[nodiscard]] const std::vector<std::unique_ptr<Raid>>& getAllRaids() const
+    {
+        return m_raids;
+    }
 
     /**
      * @brief 获取仍在进行中的袭击数量。
@@ -207,22 +210,35 @@ public:
      *
      * @param callback 回调函数对象。
      */
-    void setBadOmenCheckCallback(BadOmenCheckCallback callback) { m_badOmenCheckCallback = std::move(callback); }
+    void setBadOmenCheckCallback(BadOmenCheckCallback callback)
+    {
+        m_badOmenCheckCallback = std::move(callback);
+    }
 
     /**
      * @brief 设置袭击事件回调。
      *
      * @param callbacks 回调结构体。
      */
-    void setCallbacks(RaidCallbacks callbacks) { m_callbacks = std::move(callbacks); }
+    void setCallbacks(RaidCallbacks callbacks)
+    {
+        m_callbacks = std::move(callbacks);
+    }
 
     /**
      * @brief 获取袭击事件回调。
      *
      * @return 回调结构体引用。
      */
-    [[nodiscard]] RaidCallbacks& callbacks() { return m_callbacks; }
-    [[nodiscard]] const RaidCallbacks& callbacks() const { return m_callbacks; }
+    [[nodiscard]] RaidCallbacks& callbacks()
+    {
+        return m_callbacks;
+    }
+
+    [[nodiscard]] const RaidCallbacks& callbacks() const
+    {
+        return m_callbacks;
+    }
 
     /**
      * @brief 执行一次管理器 tick。

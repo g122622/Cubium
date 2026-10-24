@@ -125,7 +125,10 @@ public:
     /**
      * @brief 检查是否可以被碰撞
      */
-    [[nodiscard]] bool canBeCollidedWith() const override { return isAlive(); }
+    [[nodiscard]] bool canBeCollidedWith() const override
+    {
+        return isAlive();
+    }
 
     /**
      * @brief 判断船是否忽略此次爆炸
@@ -138,7 +141,10 @@ public:
     /**
      * @brief 检查是否可以被推动
      */
-    [[nodiscard]] bool canBePushed() const { return true; }
+    [[nodiscard]] bool canBePushed() const
+    {
+        return true;
+    }
 
 protected:
     /**
@@ -159,12 +165,26 @@ protected:
     [[nodiscard]] std::string boatVariantName(bool chest) const;
 
 public:
-    [[nodiscard]] f32 width() const override { return 1.375f; }
-    [[nodiscard]] f32 height() const override { return 0.5625f; }
-    [[nodiscard]] f32 eyeHeight() const override { return height(); }
+    [[nodiscard]] f32 width() const override
+    {
+        return 1.375f;
+    }
+
+    [[nodiscard]] f32 height() const override
+    {
+        return 0.5625f;
+    }
+
+    [[nodiscard]] f32 eyeHeight() const override
+    {
+        return height();
+    }
 
     // 无战利品表，覆写基类方法返回空字符串
-    [[nodiscard]] std::string getLootTableId() const override { return {}; }
+    [[nodiscard]] std::string getLootTableId() const override
+    {
+        return {};
+    }
 
     /**
      * @brief 乘客乘坐高度偏移
@@ -174,7 +194,10 @@ public:
     /**
      * @brief 最大乘客数量
      */
-    [[nodiscard]] i32 getMaxPassengers() const override { return MAX_PASSENGERS; }
+    [[nodiscard]] i32 getMaxPassengers() const override
+    {
+        return MAX_PASSENGERS;
+    }
 
     /**
      * @brief 更新乘客位置
@@ -203,12 +226,18 @@ public:
     /**
      * @brief 获取船的类型
      */
-    [[nodiscard]] Type getBoatType() const { return m_type; }
+    [[nodiscard]] Type getBoatType() const
+    {
+        return m_type;
+    }
 
     /**
      * @brief 设置船的类型
      */
-    void setBoatType(Type type) { m_type = type; }
+    void setBoatType(Type type)
+    {
+        m_type = type;
+    }
 
     /**
      * @brief 获取船对应的物品
@@ -228,17 +257,26 @@ public:
     /**
      * @brief 是否为带箱子的船
      */
-    [[nodiscard]] bool hasChest() const { return m_hasChest; }
+    [[nodiscard]] bool hasChest() const
+    {
+        return m_hasChest;
+    }
 
     /**
      * @brief 设置是否为带箱子的船
      */
-    void setHasChest(bool hasChest) { m_hasChest = hasChest; }
+    void setHasChest(bool hasChest)
+    {
+        m_hasChest = hasChest;
+    }
 
     /**
      * @brief 获取船的状态
      */
-    [[nodiscard]] BoatStatus getStatus() const { return m_status; }
+    [[nodiscard]] BoatStatus getStatus() const
+    {
+        return m_status;
+    }
 
     /**
      * @brief 是否在水下
@@ -259,42 +297,66 @@ public:
      * 对应 MC VehicleEntity.getHurtTime()，范围 0-10，
      * 受击时设为 10，每 tick 递减。渲染器用于计算受损抖动角度。
      */
-    [[nodiscard]] i32 getTimeSinceHit() const { return m_timeSinceHit; }
+    [[nodiscard]] i32 getTimeSinceHit() const
+    {
+        return m_timeSinceHit;
+    }
 
     /**
      * @brief 设置上次受击时间
      */
-    void setTimeSinceHit(i32 time) { m_timeSinceHit = time; }
+    void setTimeSinceHit(i32 time)
+    {
+        m_timeSinceHit = time;
+    }
 
     /**
      * @brief 获取前进方向
      */
-    [[nodiscard]] i32 getForwardDirection() const { return m_forwardDirection; }
+    [[nodiscard]] i32 getForwardDirection() const
+    {
+        return m_forwardDirection;
+    }
 
     /**
      * @brief 设置前进方向
      */
-    void setForwardDirection(i32 direction) { m_forwardDirection = direction; }
+    void setForwardDirection(i32 direction)
+    {
+        m_forwardDirection = direction;
+    }
 
     /**
      * @brief 获取累积伤害
      */
-    [[nodiscard]] f32 getDamageTaken() const { return m_damageTaken; }
+    [[nodiscard]] f32 getDamageTaken() const
+    {
+        return m_damageTaken;
+    }
 
     /**
      * @brief 设置累积伤害
      */
-    void setDamageTaken(f32 damage) { m_damageTaken = damage; }
+    void setDamageTaken(f32 damage)
+    {
+        m_damageTaken = damage;
+    }
 
     /**
      * @brief 获取摇晃tick数
      */
-    [[nodiscard]] i32 getRockingTicks() const { return m_rockingTicks; }
+    [[nodiscard]] i32 getRockingTicks() const
+    {
+        return m_rockingTicks;
+    }
 
     /**
      * @brief 设置摇晃tick数
      */
-    void setRockingTicks(i32 ticks) { m_rockingTicks = ticks; }
+    void setRockingTicks(i32 ticks)
+    {
+        m_rockingTicks = ticks;
+    }
 
     // ========== 桨动画 ==========
 
@@ -304,7 +366,9 @@ public:
      */
     [[nodiscard]] f32 getPaddleState(i32 side) const
     {
-        if (side < 0 || side > 1) return 0.0f;
+        if (side < 0 || side > 1) {
+            return 0.0f;
+        }
         return m_paddlePositions[side];
     }
 
@@ -327,8 +391,12 @@ public:
      */
     [[nodiscard]] bool isPaddleActive(i32 side) const
     {
-        if (side == 0) return m_leftPaddle;
-        if (side == 1) return m_rightPaddle;
+        if (side == 0) {
+            return m_leftPaddle;
+        }
+        if (side == 1) {
+            return m_rightPaddle;
+        }
         return false;
     }
 
@@ -343,8 +411,12 @@ public:
      */
     [[nodiscard]] f32 getRowingTime(i32 side, f32 partialTicks) const
     {
-        if (side < 0 || side > 1) return 0.0f;
-        if (!isPaddleActive(side)) return 0.0f;
+        if (side < 0 || side > 1) {
+            return 0.0f;
+        }
+        if (!isPaddleActive(side)) {
+            return 0.0f;
+        }
         // clampedLerp(partialTicks, paddlePositions[side] - PI/8, paddlePositions[side])
         const f32 lo = m_paddlePositions[side] - math::PI / 8.0f;
         const f32 hi = m_paddlePositions[side];
@@ -378,7 +450,10 @@ public:
     /**
      * @brief 设置船的朝向
      */
-    void setRotation(f32 yaw) { Entity::setRotation(yaw, m_builtIn.rotation->m_rot.y); }
+    void setRotation(f32 yaw)
+    {
+        Entity::setRotation(yaw, m_builtIn.rotation->m_rot.y);
+    }
 
     // ========== 数据参数访问器（供客户端渲染器读取同步状态） ==========
 
@@ -388,12 +463,35 @@ public:
      * 客户端渲染器通过此 ID 从 ClientEntity::dataManager() 读取
      * 服务端同步过来的受击时间，用于计算受损抖动角度。
      */
-    [[nodiscard]] static entity::DataParameter<i32>& getTimeSinceHitParam() { return DATA_TIME_SINCE_HIT_PARAM; }
-    [[nodiscard]] static entity::DataParameter<i32>& getForwardDirectionParam() { return DATA_FORWARD_DIRECTION_PARAM; }
-    [[nodiscard]] static entity::DataParameter<f32>& getDamageTakenParam() { return DATA_DAMAGE_TAKEN_PARAM; }
-    [[nodiscard]] static entity::DataParameter<bool>& getLeftPaddleParam() { return DATA_LEFT_PADDLE_PARAM; }
-    [[nodiscard]] static entity::DataParameter<bool>& getRightPaddleParam() { return DATA_RIGHT_PADDLE_PARAM; }
-    [[nodiscard]] static entity::DataParameter<i32>& getBubbleTimeParam() { return DATA_BUBBLE_TIME_PARAM; }
+    [[nodiscard]] static entity::DataParameter<i32>& getTimeSinceHitParam()
+    {
+        return DATA_TIME_SINCE_HIT_PARAM;
+    }
+
+    [[nodiscard]] static entity::DataParameter<i32>& getForwardDirectionParam()
+    {
+        return DATA_FORWARD_DIRECTION_PARAM;
+    }
+
+    [[nodiscard]] static entity::DataParameter<f32>& getDamageTakenParam()
+    {
+        return DATA_DAMAGE_TAKEN_PARAM;
+    }
+
+    [[nodiscard]] static entity::DataParameter<bool>& getLeftPaddleParam()
+    {
+        return DATA_LEFT_PADDLE_PARAM;
+    }
+
+    [[nodiscard]] static entity::DataParameter<bool>& getRightPaddleParam()
+    {
+        return DATA_RIGHT_PADDLE_PARAM;
+    }
+
+    [[nodiscard]] static entity::DataParameter<i32>& getBubbleTimeParam()
+    {
+        return DATA_BUBBLE_TIME_PARAM;
+    }
 
     /// 本类继承链标识（parent = Entity::classInfo()）。见 Entity::classInfo()。
     /// 字段集对齐 vanilla 1.21.11 AbstractBoat/VehicleEntity（船类型由 EntityType 区分，
@@ -448,12 +546,18 @@ protected:
     /**
      * @brief 设置船的状态（用于测试和子类）
      */
-    void setStatus(BoatStatus status) { m_status = status; }
+    void setStatus(BoatStatus status)
+    {
+        m_status = status;
+    }
 
     /**
      * @brief 设置陆地滑度值（用于测试和子类）
      */
-    void setBoatGlide(f32 glide) { m_boatGlide = glide; }
+    void setBoatGlide(f32 glide)
+    {
+        m_boatGlide = glide;
+    }
 
     /**
      * @brief 获取水下状态

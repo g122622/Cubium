@@ -1,66 +1,31 @@
-# 生命周期管理
+# 脚本生命周期
 
-管理脚本系统的整体生命周期，包括初始化、tick驱动、调度、看门狗和日志。
+## 目录结构树
 
-## 目录结构
-
-```
-src/common/mod/bedrock/addon/lifecycle/
-├── ScriptManager.hpp/.cpp       # 顶层脚本管理器，协调引擎、插件管理器、事件总线、看门狗、调度器等
-├── ScriptTickListener.hpp/.cpp  # 每tick驱动脚本系统（beginTick→tick→endTick）
-├── ScriptScheduler.hpp/.cpp     # 脚本调度器，实现system.run/runInterval/runTimeout/clearRun
-├── ScriptWatchdog.hpp/.cpp      # 脚本超时看门狗，检测执行时间超限和内存越限
-└── ScriptLogger.hpp/.cpp        # 脚本日志桥接，将脚本输出转发到spdlog
+```text
+lifecycle/
+├── ScriptManager.hpp/cpp      # 引擎、插件、包与总线的生命周期门面
+├── ScriptTickListener.hpp/cpp # tick 调度、异步任务和后置事件刷新
+├── ScriptScheduler.hpp/cpp    # 可取消定时任务与生成器时间片
+├── ScriptWatchdog.hpp/cpp     # 脚本耗时及内存监测
+└── ScriptLogger.hpp/cpp       # 脚本日志出口
 ```
 
 ## 内部模块关系
 
-```
-ScriptManager
-├── QuickJSEngine (engine/quickjs/)  — JS引擎
-├── ScriptPluginManager     — 插件管理
-├── ScriptEventBus          — 事件桥接
-├── ScriptScheduler         — 调度器（system.run等）
-├── ScriptWatchdog          — 看门狗
-├── ScriptLogger            — 日志
-└── BehaviorPackList        — 行为包列表
+ScriptManager 拥有引擎、插件管理器、事件总线、包列表、调度器、看门狗和本存档世界动态属性。tick 依次推进调度器、插件和 Promise，随后刷新后置事件并记录耗时。
 
-ScriptTickListener → ScriptManager
-    beginTick()  → watchdog.beginTick()
-    tick(n)      → scheduler.tick(n) → tickPlugins() → executePendingJobs()
-    endTick()    → eventBus.tick() → watchdog.endTick() + watchdog.tick()
-```
+## 上下游外部依赖关系
 
-## ScriptScheduler 调度器
-
-实现基岩版 `system.run()`/`runInterval()`/`runTimeout()`/`clearRun()` API：
-
-| 方法 | 说明 |
-|------|------|
-| `run(callback)` | 下一tick执行回调，返回runId |
-| `runTimeout(callback, tickDelay)` | 延迟N个tick后执行一次 |
-| `runInterval(callback, tickInterval)` | 每隔N个tick执行一次 |
-| `clearRun(runId)` | 取消已注册的调度 |
-| `tick(currentTick)` | 每tick调用，执行到期回调 |
-| `clearAll()` | 清除所有调度 |
-
-线程安全：所有公共方法通过mutex保护。回调在锁外执行以避免死锁。
-
-## 外部依赖关系
-
-### 谁依赖了这个目录
-- `src/server/mod/bedrock/addon/ServerScriptManager` — 服务端脚本管理器
-- `modules/MinecraftModuleFactory` — system.run等API通过ModuleContextData访问调度器
-
-### 这个目录依赖了谁
-- `core/` — IScriptEngine等核心接口
-- `engine/quickjs/` — QuickJSEngine
-- `plugin/` — ScriptPluginManager
-- `event/` — ScriptEventBus
-- `pack/` — BehaviorPackList
+由服务端脚本管理器驱动，System 绑定和 GameTest 使用调度器；本目录依赖脚本核心接口、引擎、插件、事件和包管理。
 
 ## 容易踩的坑
 
-1. **调度器回调中的JS调用**：回调在锁外执行，但JS调用必须在脚本线程中进行，当前实现通过JS_DupValue保持函数引用
-2. **JS函数引用泄漏**：system.run/runTimeout的回调执行后需要JS_FreeValue，runInterval的回调直到clearRun才释放
-3. **ModuleContextData生命周期**：通过JS_SetContextOpaque设置，随JSContext销毁而失效，需要确保在JSContext销毁时释放
+- 定时任务以注册时的游戏 tick 计算截止时间；同一轮尚未执行的回调仍可取消。
+- 回调在调度锁外执行，回调新安排的 system.run 在后续 tick 执行。
+- 生成器轮转执行，每个存活任务至少获得一次推进机会；单次 next 调用仍须遵守脚本执行预算。
+- 异步脚本值使用独立句柄；插件上下文销毁前取消所属任务，不把清理推迟到引擎释放之后。
+
+- 世界属性在脚本重载时保留，保存失败保留脏标记，恢复应在行为包入口执行前完成。
+
+- 内容定义先于脚本入口注册；失败撤销本批新增内容，重载和关闭时撤销所属类型查找。存活实体引用的类型对象保留。

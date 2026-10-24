@@ -60,10 +60,20 @@ public:
 
     // ========== Entity 接口重写 ==========
 
-    [[nodiscard]] f32 width() const override { return 0.25f; }
-    [[nodiscard]] f32 height() const override { return 0.25f; }
+    [[nodiscard]] f32 width() const override
+    {
+        return 0.25f;
+    }
 
-    [[nodiscard]] f32 getGravity() const override { return 0.06f; } // 更高的重力
+    [[nodiscard]] f32 height() const override
+    {
+        return 0.25f;
+    }
+
+    [[nodiscard]] f32 getGravity() const override
+    {
+        return 0.06f;
+    } // 更高的重力
 
 protected:
     void onEntityHit(const RayTraceResult& result) override;
@@ -92,11 +102,21 @@ public:
 
     // ========== Entity 接口重写 ==========
 
-    [[nodiscard]] f32 width() const override { return 0.25f; }
-    [[nodiscard]] f32 height() const override { return 0.25f; }
+    [[nodiscard]] f32 width() const override
+    {
+        return 0.25f;
+    }
+
+    [[nodiscard]] f32 height() const override
+    {
+        return 0.25f;
+    }
 
     // 无战利品表，覆写基类方法返回空字符串
-    [[nodiscard]] std::string getLootTableId() const override { return {}; }
+    [[nodiscard]] std::string getLootTableId() const override
+    {
+        return {};
+    }
 
     void tick() override;
 
@@ -172,7 +192,10 @@ public:
      *
      * @return 数据参数 ID
      */
-    [[nodiscard]] static u16 getHookedEntityParamId() { return DATA_HOOKED_ENTITY_PARAM.id(); }
+    [[nodiscard]] static u16 getHookedEntityParamId()
+    {
+        return DATA_HOOKED_ENTITY_PARAM.id();
+    }
 
     /**
      * @brief 获取 DATA_BITING_PARAM 的参数 ID（客户端元数据同步用）
@@ -184,7 +207,10 @@ public:
      *
      * @return 数据参数 ID
      */
-    [[nodiscard]] static u16 getBitingParamId() { return DATA_BITING_PARAM.id(); }
+    [[nodiscard]] static u16 getBitingParamId()
+    {
+        return DATA_BITING_PARAM.id();
+    }
 
     /**
      * @brief 设置钓鱼附魔加成
@@ -354,16 +380,34 @@ public:
 
     // ========== Entity 接口重写 ==========
 
-    [[nodiscard]] f32 width() const override { return 0.3125f; }
-    [[nodiscard]] f32 height() const override { return 0.3125f; }
+    [[nodiscard]] f32 width() const override
+    {
+        return 0.3125f;
+    }
+
+    [[nodiscard]] f32 height() const override
+    {
+        return 0.3125f;
+    }
 
     void tick() override;
 
     // ========== 投掷物属性 ==========
 
-    [[nodiscard]] bool isBurning() const { return false; }
-    [[nodiscard]] f32 getBrightness() const { return 1.0f; }
-    [[nodiscard]] bool canBeCollidedWith() const override { return true; }
+    [[nodiscard]] bool isBurning() const
+    {
+        return false;
+    }
+
+    [[nodiscard]] f32 getBrightness() const
+    {
+        return 1.0f;
+    }
+
+    [[nodiscard]] bool canBeCollidedWith() const override
+    {
+        return true;
+    }
 
     // ========== 潜影贝子弹方法 ==========
 
@@ -454,11 +498,21 @@ public:
 
     // ========== Entity 接口重写 ==========
 
-    [[nodiscard]] f32 width() const override { return 0.5f; }
-    [[nodiscard]] f32 height() const override { return 0.8f; }
+    [[nodiscard]] f32 width() const override
+    {
+        return 0.5f;
+    }
+
+    [[nodiscard]] f32 height() const override
+    {
+        return 0.8f;
+    }
 
     // 无战利品表，覆写基类方法返回空字符串
-    [[nodiscard]] std::string getLootTableId() const override { return {}; }
+    [[nodiscard]] std::string getLootTableId() const override
+    {
+        return {};
+    }
 
     void tick() override;
 
@@ -554,11 +608,21 @@ public:
 
     // ========== Entity 接口重写 ==========
 
-    [[nodiscard]] f32 width() const override { return 0.25f; }
-    [[nodiscard]] f32 height() const override { return 0.25f; }
+    [[nodiscard]] f32 width() const override
+    {
+        return 0.25f;
+    }
+
+    [[nodiscard]] f32 height() const override
+    {
+        return 0.25f;
+    }
 
     // 无战利品表，覆写基类方法返回空字符串
-    [[nodiscard]] std::string getLootTableId() const override { return {}; }
+    [[nodiscard]] std::string getLootTableId() const override
+    {
+        return {};
+    }
 
     void tick() override;
 
@@ -605,7 +669,10 @@ public:
     // 末影之眼同步其物品本体（玩家手持的末影之眼物品），客户端据此渲染飞行中的物品。
     static entity::DataParameter<network::ir::play::ItemStackView> DATA_ITEM_STACK_PARAM;
 
-    [[nodiscard]] static u16 getItemStackParamId() { return DATA_ITEM_STACK_PARAM.id(); }
+    [[nodiscard]] static u16 getItemStackParamId()
+    {
+        return DATA_ITEM_STACK_PARAM.id();
+    }
 
     /**
      * @brief 注册实体同步数据参数
@@ -657,11 +724,21 @@ public:
 
     // ========== Entity 接口重写 ==========
 
-    [[nodiscard]] f32 width() const override { return 0.25f; }
-    [[nodiscard]] f32 height() const override { return 0.25f; }
+    [[nodiscard]] f32 width() const override
+    {
+        return 0.25f;
+    }
+
+    [[nodiscard]] f32 height() const override
+    {
+        return 0.25f;
+    }
 
     // 无战利品表，覆写基类方法返回空字符串（ProjectileEntity基类已覆写，此处显式标记）
-    [[nodiscard]] std::string getLootTableId() const override { return {}; }
+    [[nodiscard]] std::string getLootTableId() const override
+    {
+        return {};
+    }
 
     void tick() override;
 
@@ -728,7 +805,10 @@ public:
     /**
      * @brief 获取附着目标（可能为 nullptr：目标已卸载/未解析）
      */
-    [[nodiscard]] LivingEntity* attachedToEntity() const { return m_attachedToEntity; }
+    [[nodiscard]] LivingEntity* attachedToEntity() const
+    {
+        return m_attachedToEntity;
+    }
 
     /**
      * @brief 获取飞行时间
@@ -795,9 +875,20 @@ public:
     static entity::DataParameter<entity::OptionalUnsignedIntValue> DATA_ATTACHED_TO_TARGET_PARAM;
     static entity::DataParameter<bool> DATA_SHOT_AT_ANGLE_PARAM;
 
-    [[nodiscard]] static u16 getFireworksItemParamId() { return DATA_FIREWORKS_ITEM_PARAM.id(); }
-    [[nodiscard]] static u16 getAttachedToTargetParamId() { return DATA_ATTACHED_TO_TARGET_PARAM.id(); }
-    [[nodiscard]] static u16 getShotAtAngleParamId() { return DATA_SHOT_AT_ANGLE_PARAM.id(); }
+    [[nodiscard]] static u16 getFireworksItemParamId()
+    {
+        return DATA_FIREWORKS_ITEM_PARAM.id();
+    }
+
+    [[nodiscard]] static u16 getAttachedToTargetParamId()
+    {
+        return DATA_ATTACHED_TO_TARGET_PARAM.id();
+    }
+
+    [[nodiscard]] static u16 getShotAtAngleParamId()
+    {
+        return DATA_SHOT_AT_ANGLE_PARAM.id();
+    }
 
     /**
      * @brief 注册实体同步数据参数

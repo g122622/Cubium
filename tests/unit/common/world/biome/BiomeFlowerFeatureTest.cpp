@@ -109,8 +109,16 @@ public:
     {
         return false;
     }
-    const char* name() const override { return m_name; }
-    DecorationStage stage() const override { return m_stage; }
+
+    const char* name() const override
+    {
+        return m_name;
+    }
+
+    DecorationStage stage() const override
+    {
+        return m_stage;
+    }
 
 private:
     const char* m_name;

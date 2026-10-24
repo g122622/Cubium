@@ -40,12 +40,13 @@ ReferenceAlignment: Left
 DerivePointerAlignment: false
 
 # 函数
-AllowShortFunctionsOnASingleLine: Inline
+AllowShortFunctionsOnASingleLine: Empty
 AllowShortBlocksOnASingleLine: Empty
 AllowShortCaseLabelsOnASingleLine: false
-AllowShortIfStatementsOnASingleLine: WithoutElse
+AllowShortIfStatementsOnASingleLine: Never
 AllowShortLoopsOnASingleLine: false
-AllowShortLambdasOnASingleLine: All
+AllowShortLambdasOnASingleLine: Empty
+InsertBraces: true
 
 # 访问说明符
 AccessModifierOffset: -4
@@ -119,5 +120,5 @@ Cpp11BracedListStyle: true
 FixNamespaceComments: true
 MaxEmptyLinesToKeep: 1
 ReflowComments: true
-SeparateDefinitionBlocks: Leave
+SeparateDefinitionBlocks: Always
 ShortNamespaceLines: 1

@@ -67,19 +67,28 @@ public:
     void cancel(const std::string& url) override;
     void cancelAll() override;
 
-    [[nodiscard]] std::string name() const override { return "HttpSkinLoader"; }
+    [[nodiscard]] std::string name() const override
+    {
+        return "HttpSkinLoader";
+    }
 
     /**
      * @brief 设置连接超时
      * @param timeoutMs 超时时间（毫秒）
      */
-    void setConnectTimeout(u32 timeoutMs) { m_connectTimeout = timeoutMs; }
+    void setConnectTimeout(u32 timeoutMs)
+    {
+        m_connectTimeout = timeoutMs;
+    }
 
     /**
      * @brief 设置读取超时
      * @param timeoutMs 超时时间（毫秒）
      */
-    void setReadTimeout(u32 timeoutMs) { m_readTimeout = timeoutMs; }
+    void setReadTimeout(u32 timeoutMs)
+    {
+        m_readTimeout = timeoutMs;
+    }
 
     /**
      * @brief 注入工作线程池用于异步加载
@@ -89,7 +98,10 @@ public:
      *
      * @param workerPool 工作线程池指针（非所有权）
      */
-    void setWorkerPool(util::UniversalWorkerPool* workerPool) { m_workerPool = workerPool; }
+    void setWorkerPool(util::UniversalWorkerPool* workerPool)
+    {
+        m_workerPool = workerPool;
+    }
 
 private:
     /**

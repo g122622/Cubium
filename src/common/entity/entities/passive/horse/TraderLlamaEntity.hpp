@@ -81,25 +81,37 @@ public:
     /**
      * @brief 当前是否为商队羊驼
      */
-    [[nodiscard]] bool isTraderLlama() const { return true; }
+    [[nodiscard]] bool isTraderLlama() const
+    {
+        return true;
+    }
 
     // ========== 消失倒计时 ==========
 
     /**
      * @brief 获取消失倒计时
      */
-    [[nodiscard]] i32 getDespawnDelay() const { return m_despawnDelay; }
+    [[nodiscard]] i32 getDespawnDelay() const
+    {
+        return m_despawnDelay;
+    }
 
     /**
      * @brief 设置消失倒计时
      */
-    void setDespawnDelay(i32 despawnDelay) { m_despawnDelay = despawnDelay; }
+    void setDespawnDelay(i32 despawnDelay)
+    {
+        m_despawnDelay = despawnDelay;
+    }
 
     /**
      * @brief 以流浪商人倒计时同步自身倒计时
      * @param traderDespawnDelay 流浪商人的消失倒计时
      */
-    void syncDespawnDelayFromTrader(i32 traderDespawnDelay) { m_despawnDelay = traderDespawnDelay - 1; }
+    void syncDespawnDelayFromTrader(i32 traderDespawnDelay)
+    {
+        m_despawnDelay = traderDespawnDelay - 1;
+    }
 
     // ========== 消失逻辑 ==========
 

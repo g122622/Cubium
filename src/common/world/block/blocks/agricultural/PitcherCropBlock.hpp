@@ -89,7 +89,10 @@ public:
     /**
      * @brief 获取最大年龄（4）
      */
-    [[nodiscard]] i32 getMaxAge() const { return MAX_AGE; }
+    [[nodiscard]] i32 getMaxAge() const
+    {
+        return MAX_AGE;
+    }
 
     /**
      * @brief 是否为最大年龄
@@ -140,7 +143,10 @@ public:
     /**
      * @brief 是否需要随机 tick（下半部分需要，上半部分不需要）
      */
-    [[nodiscard]] bool ticksRandomly() const noexcept override { return true; }
+    [[nodiscard]] bool ticksRandomly() const noexcept override
+    {
+        return true;
+    }
 
     /**
      * @brief 随机刻（用于生长）

@@ -62,8 +62,15 @@ void resetKageroSingletons()
 
 class SignEditScreenTest : public ::testing::Test {
 protected:
-    void SetUp() override { resetKageroSingletons(); }
-    void TearDown() override { resetKageroSingletons(); }
+    void SetUp() override
+    {
+        resetKageroSingletons();
+    }
+
+    void TearDown() override
+    {
+        resetKageroSingletons();
+    }
 
     /// 创建一个带有空回调的 SignEditScreen
     std::unique_ptr<SignEditScreen> createScreen()
@@ -130,7 +137,9 @@ protected:
             [this](const BlockPos&, const std::array<std::string, SignEditScreen::LINE_COUNT>&, bool) {
                 m_submitCalled = true;
             },
-            [this]() { m_closeCalled = true; });
+            [this]() {
+                m_closeCalled = true;
+            });
         m_screen->onOpen();
     }
 
@@ -197,7 +206,9 @@ protected:
                 m_capturedLines = lines;
                 m_capturedIsFront = isFrontSide;
             },
-            [this]() { m_closeCalled = true; });
+            [this]() {
+                m_closeCalled = true;
+            });
         m_screen->onOpen();
     }
 
@@ -282,7 +293,9 @@ protected:
             [this](const BlockPos&, const std::array<std::string, SignEditScreen::LINE_COUNT>&, bool) {
                 m_submitCalled = true;
             },
-            [this]() { m_closeCalled = true; });
+            [this]() {
+                m_closeCalled = true;
+            });
         m_screen->onOpen();
     }
 

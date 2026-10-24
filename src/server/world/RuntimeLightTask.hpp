@@ -70,9 +70,18 @@ public:
 
     // === ITask 实现 ===
     bool execute(const std::atomic<bool>& abortSignal) override;
-    util::TaskType type() const override { return util::TaskType::Custom; }
+
+    util::TaskType type() const override
+    {
+        return util::TaskType::Custom;
+    }
+
     std::string description() const override;
-    const char* traceCategory() const override { return "lighting_runtime"; }
+
+    const char* traceCategory() const override
+    {
+        return "lighting_runtime";
+    }
 
 private:
     ServerWorld* m_world;

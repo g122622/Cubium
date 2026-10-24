@@ -51,7 +51,7 @@ function firstEntity(test: Test, type: string): any | null {
 // 用 set_tamed spawn 事件生成已驯服驴（绕开驯服流程），玩家持箱子 interactWithEntity → interactMob
 // 已驯服跳过 makeMad → :70-72 !hasChest() && item==CHEST → equipChest（setChest(true)）。
 //
-// 判定：装箱后 is_chested 组件存在（=== !undefined）+ is_tamed.value===true（双重断言确认 set_tamed 生效）。
+// 判定：装箱后 is_chested 组件存在（=== !undefined）+ is_tamed 组件存在（双重断言确认 set_tamed 生效）。
 function donkeyChestedWhenTamed(test: Test): void {
   // set_tamed 事件生成已驯服驴（setTame(true)），无需先驯服。
   const donkey = test.spawn("donkey<minecraft:set_tamed>", { x: 4, y: 2, z: 4 });
@@ -66,13 +66,13 @@ function donkeyChestedWhenTamed(test: Test): void {
     (player as any).interactWithEntity(donkey);
   });
 
-  // 轮询断言装箱成功：is_chested 组件存在 + is_tamed.value===true（双重断言）。
+  // 轮询断言装箱成功：is_chested 组件存在 + is_tamed 组件存在（双重断言）。
   pollUntilSucceed(test, () => {
     const d = firstEntity(test, "donkey");
     if (d == null) return false;
     const tamedComp = (d as any).getComponent("minecraft:is_tamed");
     const chestedComp = (d as any).getComponent("minecraft:is_chested");
-    return tamedComp !== undefined && tamedComp.value === true && chestedComp !== undefined;
+    return tamedComp !== undefined && chestedComp !== undefined;
   }, {
     startTick: 8,
     interval: 2,
@@ -83,7 +83,7 @@ function donkeyChestedWhenTamed(test: Test): void {
       const chestedComp = d != null ? (d as any).getComponent("minecraft:is_chested") : null;
       test.assert(false,
         `tamed donkey not chested (equipChest broken or is_chested comp missing), `
-        + `is_tamed=${tamedComp === undefined ? "undefined" : `value=${tamedComp.value}`}, `
+        + `is_tamed=${tamedComp != null}, `
         + `is_chested=${chestedComp === undefined ? "undefined" : "present"}`);
     },
   });
@@ -94,7 +94,7 @@ function donkeyChestedWhenTamed(test: Test): void {
 // 未驯服驴持箱子 interactWithEntity → interactMob :64-67 !isTame() → makeMad 返回 Success（不装箱）。
 // 对照组：确认未驯服守卫生效，区别于 donkey_chested_when_tamed 的已驯服装箱路径。
 //
-// 判定：interact 后 is_chested 组件不存在（未装箱）。is_tamed.value===false 确认未驯服。
+// 判定：interact 后 is_chested 组件不存在（未装箱）。is_tamed 组件不存在 确认未驯服。
 function donkeyUntrainedRejectsChest(test: Test): void {
   // 普通 spawn 生成未驯服驴（默认 isTame=false）。
   const donkey = test.spawn("donkey", { x: 4, y: 2, z: 4 });
@@ -107,14 +107,14 @@ function donkeyUntrainedRejectsChest(test: Test): void {
     (player as any).interactWithEntity(donkey);
   });
 
-  // 轮询断言未装箱：is_chested 组件不存在 + is_tamed.value===false。
+  // 轮询断言未装箱：is_chested 组件不存在 + is_tamed 组件不存在。
   // maxTick=40 在 makeMad 后稳定，未驯服驴不会装箱。
   pollUntilSucceed(test, () => {
     const d = firstEntity(test, "donkey");
     if (d == null) return false;
     const tamedComp = (d as any).getComponent("minecraft:is_tamed");
     const chestedComp = (d as any).getComponent("minecraft:is_chested");
-    return tamedComp !== undefined && tamedComp.value === false && chestedComp === undefined;
+    return tamedComp === undefined && chestedComp === undefined;
   }, {
     startTick: 8,
     interval: 2,
@@ -125,7 +125,7 @@ function donkeyUntrainedRejectsChest(test: Test): void {
       const chestedComp = d != null ? (d as any).getComponent("minecraft:is_chested") : null;
       test.assert(false,
         `untrained donkey should not be chested (makeMad guard broken), `
-        + `is_tamed=${tamedComp === undefined ? "undefined" : `value=${tamedComp.value}`}, `
+        + `is_tamed=${tamedComp != null}, `
         + `is_chested=${chestedComp === undefined ? "undefined" : "present"}`);
     },
   });
@@ -148,7 +148,7 @@ function muleChestedWhenTamed(test: Test): void {
     if (m == null) return false;
     const tamedComp = (m as any).getComponent("minecraft:is_tamed");
     const chestedComp = (m as any).getComponent("minecraft:is_chested");
-    return tamedComp !== undefined && tamedComp.value === true && chestedComp !== undefined;
+    return tamedComp !== undefined && chestedComp !== undefined;
   }, {
     startTick: 8,
     interval: 2,
@@ -159,7 +159,7 @@ function muleChestedWhenTamed(test: Test): void {
       const chestedComp = m != null ? (m as any).getComponent("minecraft:is_chested") : null;
       test.assert(false,
         `tamed mule not chested (equipChest broken for mule or is_chested comp missing), `
-        + `is_tamed=${tamedComp === undefined ? "undefined" : `value=${tamedComp.value}`}, `
+        + `is_tamed=${tamedComp != null}, `
         + `is_chested=${chestedComp === undefined ? "undefined" : "present"}`);
     },
   });

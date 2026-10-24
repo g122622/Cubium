@@ -305,18 +305,27 @@ public:
      * - item为nullptr
      * - count为0或负数
      */
-    [[nodiscard]] bool isEmpty() const { return m_item == nullptr || m_count <= 0; }
+    [[nodiscard]] bool isEmpty() const
+    {
+        return m_item == nullptr || m_count <= 0;
+    }
 
     /**
      * @brief 获取物品
      * @return 物品指针，空堆返回nullptr
      */
-    [[nodiscard]] const Item* getItem() const { return m_item; }
+    [[nodiscard]] const Item* getItem() const
+    {
+        return m_item;
+    }
 
     /**
      * @brief 获取数量
      */
-    [[nodiscard]] i32 getCount() const { return m_count; }
+    [[nodiscard]] i32 getCount() const
+    {
+        return m_count;
+    }
 
     /**
      * @brief 设置数量
@@ -329,13 +338,19 @@ public:
      * @brief 增加数量
      * @param amount 增加量（可为负数）
      */
-    void grow(i32 amount) { setCount(m_count + amount); }
+    void grow(i32 amount)
+    {
+        setCount(m_count + amount);
+    }
 
     /**
      * @brief 减少数量
      * @param amount 减少量
      */
-    void shrink(i32 amount) { setCount(m_count - amount); }
+    void shrink(i32 amount)
+    {
+        setCount(m_count - amount);
+    }
 
     /**
      * @brief 获取最大堆叠数量
@@ -359,18 +374,27 @@ public:
      * @brief 获取附魔容器
      * @return 附魔容器的常量引用
      */
-    [[nodiscard]] const item::enchant::EnchantmentContainer& getEnchantments() const { return m_enchantments; }
+    [[nodiscard]] const item::enchant::EnchantmentContainer& getEnchantments() const
+    {
+        return m_enchantments;
+    }
 
     /**
      * @brief 获取可修改的附魔容器
      * @return 附魔容器的引用
      */
-    item::enchant::EnchantmentContainer& getEnchantmentsMutable() { return m_enchantments; }
+    item::enchant::EnchantmentContainer& getEnchantmentsMutable()
+    {
+        return m_enchantments;
+    }
 
     /**
      * @brief 是否有附魔
      */
-    [[nodiscard]] bool hasEnchantments() const { return !m_enchantments.isEmpty(); }
+    [[nodiscard]] bool hasEnchantments() const
+    {
+        return !m_enchantments.isEmpty();
+    }
 
     /**
      * @brief 获取指定附魔的等级
@@ -400,7 +424,10 @@ public:
      * 对齐 vanilla `ItemStack.isDamageableItem()` 中的 `!has(UNBREAKABLE)` 门控：
      * 置位后物品不再消耗耐久，也不会被视为可损坏。
      */
-    [[nodiscard]] bool isUnbreakable() const { return m_extras && m_extras->unbreakable; }
+    [[nodiscard]] bool isUnbreakable() const
+    {
+        return m_extras && m_extras->unbreakable;
+    }
 
     /**
      * @brief 设置/清除不可损坏组件
@@ -623,7 +650,10 @@ public:
     /**
      * @brief 获取当前耐久度（已承受的伤害）
      */
-    [[nodiscard]] i32 getDamage() const { return m_damage; }
+    [[nodiscard]] i32 getDamage() const
+    {
+        return m_damage;
+    }
 
     /**
      * @brief 设置当前耐久度
@@ -775,7 +805,10 @@ public:
      *
      * @return 是否有自定义名称
      */
-    [[nodiscard]] bool hasCustomName() const { return m_customName && !m_customName->getUnformattedText().empty(); }
+    [[nodiscard]] bool hasCustomName() const
+    {
+        return m_customName && !m_customName->getUnformattedText().empty();
+    }
 
     /**
      * @brief 获取自定义名称组件
@@ -784,7 +817,10 @@ public:
      *
      * @return 自定义名称组件指针
      */
-    [[nodiscard]] const text::ITextComponent* getCustomNameComponent() const { return m_customName.get(); }
+    [[nodiscard]] const text::ITextComponent* getCustomNameComponent() const
+    {
+        return m_customName.get();
+    }
 
     /**
      * @brief 获取自定义名称的纯文本
@@ -793,13 +829,19 @@ public:
      *
      * @return 自定义名称纯文本
      */
-    [[nodiscard]] std::string getCustomName() const { return m_customName ? m_customName->getUnformattedText() : ""; }
+    [[nodiscard]] std::string getCustomName() const
+    {
+        return m_customName ? m_customName->getUnformattedText() : "";
+    }
 
     /**
      * @brief 设置自定义名称组件
      * @param name 名称组件（所有权转移）
      */
-    void setCustomNameComponent(std::unique_ptr<text::ITextComponent> name) { m_customName = std::move(name); }
+    void setCustomNameComponent(std::unique_ptr<text::ITextComponent> name)
+    {
+        m_customName = std::move(name);
+    }
 
     /**
      * @brief 设置自定义名称（纯文本，向后兼容）
@@ -817,12 +859,18 @@ public:
     /**
      * @brief 清除自定义名称
      */
-    void clearCustomName() { m_customName = nullptr; }
+    void clearCustomName()
+    {
+        m_customName = nullptr;
+    }
 
     /**
      * @brief 是否有显示名称（自定义名称或物品翻译名称）
      */
-    [[nodiscard]] bool hasDisplayName() const { return hasCustomName(); }
+    [[nodiscard]] bool hasDisplayName() const
+    {
+        return hasCustomName();
+    }
 
     /**
      * @brief 获取显示名称
@@ -840,7 +888,10 @@ public:
      * @brief 是否有 Lore
      * @return 如果有 Lore 返回 true
      */
-    [[nodiscard]] bool hasLore() const { return m_extras && !m_extras->lore.empty(); }
+    [[nodiscard]] bool hasLore() const
+    {
+        return m_extras && !m_extras->lore.empty();
+    }
 
     /**
      * @brief 获取 Lore 列表
@@ -871,7 +922,10 @@ public:
      * @brief 添加一行 Lore
      * @param line Lore 文本组件（所有权转移）
      */
-    void addLoreLine(std::unique_ptr<text::ITextComponent> line) { _ensureExtras().lore.push_back(std::move(line)); }
+    void addLoreLine(std::unique_ptr<text::ITextComponent> line)
+    {
+        _ensureExtras().lore.push_back(std::move(line));
+    }
 
     /**
      * @brief 添加一行 Lore（纯文本）
@@ -901,7 +955,10 @@ public:
      *
      * @return 如果有 CanPlaceOn 标签返回 true
      */
-    [[nodiscard]] bool hasCanPlaceOn() const { return m_extras && !m_extras->canPlaceOn.isEmpty(); }
+    [[nodiscard]] bool hasCanPlaceOn() const
+    {
+        return m_extras && !m_extras->canPlaceOn.isEmpty();
+    }
 
     /**
      * @brief 获取 CanPlaceOn 谓词
@@ -975,7 +1032,10 @@ public:
      *
      * @return 如果有 CanDestroy 标签返回 true
      */
-    [[nodiscard]] bool hasCanDestroy() const { return m_extras && !m_extras->canDestroy.isEmpty(); }
+    [[nodiscard]] bool hasCanDestroy() const
+    {
+        return m_extras && !m_extras->canDestroy.isEmpty();
+    }
 
     /**
      * @brief 获取 CanDestroy 谓词
@@ -1049,7 +1109,10 @@ public:
      *
      * 这是canMergeWith的别名，用于与MC源码命名保持一致。
      */
-    [[nodiscard]] bool canStackWith(const ItemStack& other) const { return canMergeWith(other); }
+    [[nodiscard]] bool canStackWith(const ItemStack& other) const
+    {
+        return canMergeWith(other);
+    }
 
     // ========== 修复成本（铁砧） ==========
 
@@ -1057,13 +1120,19 @@ public:
      * @brief 获取修复成本
      * @return 修复成本
      */
-    [[nodiscard]] i32 getRepairCost() const { return m_repairCost; }
+    [[nodiscard]] i32 getRepairCost() const
+    {
+        return m_repairCost;
+    }
 
     /**
      * @brief 设置修复成本
      * @param cost 修复成本
      */
-    void setRepairCost(i32 cost) { m_repairCost = cost; }
+    void setRepairCost(i32 cost)
+    {
+        m_repairCost = cost;
+    }
 
     // ========== custom_model_data / 附魔光效 / instrument / tool / 不祥之瓶 / container ==========
 
@@ -1150,7 +1219,10 @@ public:
     /**
      * @brief 获取乐器资源位置（instrument 组件），未设置返回空串
      */
-    [[nodiscard]] std::string getInstrument() const { return m_extras ? m_extras->instrument.value_or("") : ""; }
+    [[nodiscard]] std::string getInstrument() const
+    {
+        return m_extras ? m_extras->instrument.value_or("") : "";
+    }
 
     /**
      * @brief 设置乐器资源位置（空串表示移除）
@@ -1197,7 +1269,10 @@ public:
     /**
      * @brief 设置 tool 组件（nullopt 表示移除）
      */
-    void setTool(std::optional<item::component::ToolPayload> tool) { _ensureExtras().tool = std::move(tool); }
+    void setTool(std::optional<item::component::ToolPayload> tool)
+    {
+        _ensureExtras().tool = std::move(tool);
+    }
 
     /**
      * @brief 获取不祥之瓶等级覆盖（0..4；未设置时为物品基础默认值）
@@ -1213,7 +1288,10 @@ public:
     /**
      * @brief 设置不祥之瓶等级覆盖（nullopt 表示移除）
      */
-    void setOminousBottleAmplifier(std::optional<i32> amplifier) { _ensureExtras().ominousBottleAmplifier = amplifier; }
+    void setOminousBottleAmplifier(std::optional<i32> amplifier)
+    {
+        _ensureExtras().ominousBottleAmplifier = amplifier;
+    }
 
     /// 物品形式的容器内容（container 组件）；未设置时返回 nullptr
     [[nodiscard]] const item::component::ItemContainerContentsPayload* getContainerContents() const
@@ -1228,7 +1306,10 @@ public:
     }
 
     /// 移除容器内容组件
-    void clearContainerContents() { m_containerContents.reset(); }
+    void clearContainerContents()
+    {
+        m_containerContents.reset();
+    }
 
     /// 获取充能投射物列表（charged_projectiles 组件）；未设置时返回 nullptr
     [[nodiscard]] const item::component::ChargedProjectilesPayload* getChargedProjectiles() const
@@ -1243,7 +1324,10 @@ public:
     }
 
     /// 移除充能投射物组件
-    void clearChargedProjectiles() { m_chargedProjectiles.reset(); }
+    void clearChargedProjectiles()
+    {
+        m_chargedProjectiles.reset();
+    }
 
     // ========== 药水（potion_contents 组件） ==========
 
@@ -1251,7 +1335,10 @@ public:
      * @brief 获取药水 ID（对应 1.21.11 potion_contents 组件的 potion 字段）
      * @return 药水资源位置字符串，空串表示无药水
      */
-    [[nodiscard]] const std::string& getPotionId() const { return m_extras ? m_extras->potionId : _emptyString(); }
+    [[nodiscard]] const std::string& getPotionId() const
+    {
+        return m_extras ? m_extras->potionId : _emptyString();
+    }
 
     /**
      * @brief 设置药水 ID
@@ -1267,6 +1354,7 @@ public:
         }
         _ensureExtras().potionId = potionId;
     }
+
     void setPotionId(std::string&& potionId)
     {
         if (potionId.empty()) {
@@ -1404,7 +1492,10 @@ public:
      */
     bool operator==(const ItemStack& other) const;
 
-    bool operator!=(const ItemStack& other) const { return !(*this == other); }
+    bool operator!=(const ItemStack& other) const
+    {
+        return !(*this == other);
+    }
 
 private:
     /// 确保 extras 已分配并返回可写引用
@@ -1423,7 +1514,10 @@ private:
     ///
     /// 其余外置字段的只读访问直接复用公开 getter（getLore/getPotionId/getCanPlaceOn/
     /// getCanDestroy），它们的"无 extras 返回共享空实例"语义与旧的内联成员一致。
-    [[nodiscard]] const nlohmann::json& _dataRef() const { return m_extras ? m_extras->customData : _emptyJson(); }
+    [[nodiscard]] const nlohmann::json& _dataRef() const
+    {
+        return m_extras ? m_extras->customData : _emptyJson();
+    }
 
     /// 无 extras 时 _dataRef() 返回的共享空 json
     [[nodiscard]] static const nlohmann::json& _emptyJson();

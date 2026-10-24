@@ -99,7 +99,10 @@ public:
         return m_spawnedEntities.empty() ? nullptr : m_spawnedEntities.back().get();
     }
 
-    [[nodiscard]] size_t spawnedCount() const { return m_spawnedEntities.size(); }
+    [[nodiscard]] size_t spawnedCount() const
+    {
+        return m_spawnedEntities.size();
+    }
 
 private:
     std::unordered_map<BlockPos, std::unique_ptr<BlockState>> m_blocks;

@@ -39,9 +39,10 @@ AndCondition::AndCondition(std::vector<std::unique_ptr<LootCondition>> condition
 bool AndCondition::test(LootContext& context) const
 {
     // 所有子条件都必须满足
-    return std::all_of(m_conditions.begin(),
-        m_conditions.end(),
-        [&context](const std::unique_ptr<LootCondition>& cond) { return cond && cond->test(context); });
+    return std::all_of(
+        m_conditions.begin(), m_conditions.end(), [&context](const std::unique_ptr<LootCondition>& cond) {
+            return cond && cond->test(context);
+        });
 }
 
 std::unique_ptr<LootCondition> AndCondition::clone() const noexcept

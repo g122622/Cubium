@@ -201,17 +201,17 @@ TEST_F(ItemSlotTest, ToPlayerInventorySlot_EquipmentMapping)
     // weapon.offhand -> OFFHAND (40)
     EXPECT_EQ(ItemSlot(99).toPlayerInventorySlot(), 40);
 
-    // armor.head -> ARMOR_HEAD (36)
-    EXPECT_EQ(ItemSlot(100).toPlayerInventorySlot(), 36);
+    // armor.feet (100) -> ARMOR_FEET (39)
+    EXPECT_EQ(ItemSlot(100).toPlayerInventorySlot(), 39);
 
-    // armor.chest -> ARMOR_CHEST (37)
-    EXPECT_EQ(ItemSlot(101).toPlayerInventorySlot(), 37);
+    // armor.legs (101) -> ARMOR_LEGS (38)
+    EXPECT_EQ(ItemSlot(101).toPlayerInventorySlot(), 38);
 
-    // armor.legs -> ARMOR_LEGS (38)
-    EXPECT_EQ(ItemSlot(102).toPlayerInventorySlot(), 38);
+    // armor.chest (102) -> ARMOR_CHEST (37)
+    EXPECT_EQ(ItemSlot(102).toPlayerInventorySlot(), 37);
 
-    // armor.feet -> ARMOR_FEET (39)
-    EXPECT_EQ(ItemSlot(103).toPlayerInventorySlot(), 39);
+    // armor.head (103) -> ARMOR_HEAD (36)
+    EXPECT_EQ(ItemSlot(103).toPlayerInventorySlot(), 36);
 
     // armor.body -> -1 (玩家无 Body 槽位，仅非玩家实体使用)
     EXPECT_EQ(ItemSlot(105).toPlayerInventorySlot(), -1);
@@ -229,10 +229,10 @@ TEST_F(ItemSlotTest, ToEquipmentSlotIndex)
 {
     EXPECT_EQ(ItemSlot(98).toEquipmentSlotIndex(), 0);  // MainHand
     EXPECT_EQ(ItemSlot(99).toEquipmentSlotIndex(), 1);  // OffHand
-    EXPECT_EQ(ItemSlot(100).toEquipmentSlotIndex(), 5); // Head
-    EXPECT_EQ(ItemSlot(101).toEquipmentSlotIndex(), 4); // Chest
-    EXPECT_EQ(ItemSlot(102).toEquipmentSlotIndex(), 3); // Legs
-    EXPECT_EQ(ItemSlot(103).toEquipmentSlotIndex(), 2); // Feet
+    EXPECT_EQ(ItemSlot(100).toEquipmentSlotIndex(), 2); // Feet
+    EXPECT_EQ(ItemSlot(101).toEquipmentSlotIndex(), 3); // Legs
+    EXPECT_EQ(ItemSlot(102).toEquipmentSlotIndex(), 4); // Chest
+    EXPECT_EQ(ItemSlot(103).toEquipmentSlotIndex(), 5); // Head
     EXPECT_EQ(ItemSlot(105).toEquipmentSlotIndex(), 6); // Body (EquipmentSlot::Body)
     EXPECT_EQ(ItemSlot(106).toEquipmentSlotIndex(), 7); // Saddle (EquipmentSlot::Saddle)
     // 非装备槽位
@@ -247,30 +247,27 @@ protected:
     void SetUp() override {}
 };
 
-TEST_F(ItemSlotArgumentTypeTest, ParseNumericSlot)
+// 原版 SlotArgument 没有「纯数字」写法：只认 SlotArgument 里的名字表。
+// `/item replace entity @s 5 ...` 在原版里是语法错误，这里同样拒绝。
+TEST_F(ItemSlotArgumentTypeTest, ParseNumericSlotRejected)
 {
     auto parser = ItemSlotArgumentType::itemSlot();
     StringReader reader("5");
-    ItemSlot result = parser->parse(reader);
-    EXPECT_EQ(result.slotIndex(), 5);
-    EXPECT_TRUE(result.isValid());
+    EXPECT_THROW(parser->parse(reader), CommandException);
 }
 
-TEST_F(ItemSlotArgumentTypeTest, ParseNumericSlotZero)
+TEST_F(ItemSlotArgumentTypeTest, ParseNumericSlotZeroRejected)
 {
     auto parser = ItemSlotArgumentType::itemSlot();
     StringReader reader("0");
-    ItemSlot result = parser->parse(reader);
-    EXPECT_EQ(result.slotIndex(), 0);
-    EXPECT_TRUE(result.isValid());
+    EXPECT_THROW(parser->parse(reader), CommandException);
 }
 
-TEST_F(ItemSlotArgumentTypeTest, ParseNumericSlotMaxContainer)
+TEST_F(ItemSlotArgumentTypeTest, ParseNumericSlotMaxContainerRejected)
 {
     auto parser = ItemSlotArgumentType::itemSlot();
     StringReader reader("53");
-    ItemSlot result = parser->parse(reader);
-    EXPECT_EQ(result.slotIndex(), 53);
+    EXPECT_THROW(parser->parse(reader), CommandException);
 }
 
 TEST_F(ItemSlotArgumentTypeTest, ParseNegativeNumericSlotFails)
@@ -351,17 +348,18 @@ TEST_F(ItemSlotArgumentTypeTest, ParseArmorSlots)
 {
     auto parser = ItemSlotArgumentType::itemSlot();
 
+    // 原版槽位号：head=103、chest=102、legs=101、feet=100（与枚举顺序一致）。
     StringReader r1("armor.head");
-    EXPECT_EQ(parser->parse(r1).slotIndex(), 100);
+    EXPECT_EQ(parser->parse(r1).slotIndex(), 103);
 
     StringReader r2("armor.chest");
-    EXPECT_EQ(parser->parse(r2).slotIndex(), 101);
+    EXPECT_EQ(parser->parse(r2).slotIndex(), 102);
 
     StringReader r3("armor.legs");
-    EXPECT_EQ(parser->parse(r3).slotIndex(), 102);
+    EXPECT_EQ(parser->parse(r3).slotIndex(), 101);
 
     StringReader r4("armor.feet");
-    EXPECT_EQ(parser->parse(r4).slotIndex(), 103);
+    EXPECT_EQ(parser->parse(r4).slotIndex(), 100);
 
     StringReader r5("armor.body");
     EXPECT_EQ(parser->parse(r5).slotIndex(), 105);
@@ -462,9 +460,15 @@ TEST_F(ItemSlotArgumentTypeTest, GetExamples)
     bool hasWeapon = false;
     bool hasArmor = false;
     for (const auto& ex : examples) {
-        if (ex.find("container") != std::string::npos) hasContainer = true;
-        if (ex.find("weapon") != std::string::npos) hasWeapon = true;
-        if (ex.find("armor") != std::string::npos) hasArmor = true;
+        if (ex.find("container") != std::string::npos) {
+            hasContainer = true;
+        }
+        if (ex.find("weapon") != std::string::npos) {
+            hasWeapon = true;
+        }
+        if (ex.find("armor") != std::string::npos) {
+            hasArmor = true;
+        }
     }
     EXPECT_TRUE(hasContainer);
     EXPECT_TRUE(hasWeapon);

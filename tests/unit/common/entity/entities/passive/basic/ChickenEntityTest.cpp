@@ -76,13 +76,17 @@ public:
         return static_cast<EntityInstanceId>(m_spawnedEntities.size());
     }
 
-    [[nodiscard]] const std::vector<ItemStack>& spawnedStacks() const { return m_spawnedStacks; }
+    [[nodiscard]] const std::vector<ItemStack>& spawnedStacks() const
+    {
+        return m_spawnedStacks;
+    }
 
     // TickManager interface (stubbed for tests)
     [[nodiscard]] world::tick::TickManager& tickManager() override
     {
         throw std::runtime_error("ChickenTestWorld::tickManager not implemented");
     }
+
     [[nodiscard]] const world::tick::TickManager& tickManager() const override
     {
         throw std::runtime_error("ChickenTestWorld::tickManager not implemented");

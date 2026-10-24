@@ -32,8 +32,9 @@ namespace mc::server::net {
 Result<mc::network::ir::IrPacket> buildShowDialogIr(const nlohmann::json& definition)
 {
     if (!definition.is_object() || !definition.contains("title") || !definition.contains("type") ||
-        !definition["type"].is_string())
+        !definition["type"].is_string()) {
         return Error(ErrorCode::InvalidData, "Dialog requires type and title");
+    }
     auto tag = mc::nbt::jsonToNbtStrictInt(definition);
     const auto& compound = dynamic_cast<const mc::nbt::tags::compound_tag&>(*tag);
     return mc::network::ir::IrPacket{mc::network::protocol::ConnectionProtocol::Play,

@@ -63,7 +63,10 @@ protected:
      * 对齐原版 SpellcasterIllager.SpellcasterUseSpellGoal.getCastWarmupTime() 默认返回 20。
      * 唤魔者尖牙/召唤恼鬼施法 goal 不重写此方法，用默认 20 tick 蓄力；Wololo 重写为 40。
      */
-    [[nodiscard]] virtual i32 getCastWarmupTime() const noexcept { return 20; }
+    [[nodiscard]] virtual i32 getCastWarmupTime() const noexcept
+    {
+        return 20;
+    }
 
     /**
      * @brief 获取施法持续时间
@@ -106,14 +109,28 @@ class EvokerAttackSpellGoal : public EvokerSpellGoal {
 public:
     explicit EvokerAttackSpellGoal(EvokerEntity* evoker);
 
-    [[nodiscard]] std::string getTypeName() const override { return "EvokerAttackSpellGoal"; }
+    [[nodiscard]] std::string getTypeName() const override
+    {
+        return "EvokerAttackSpellGoal";
+    }
 
 protected:
-    [[nodiscard]] i32 getCastingTime() const noexcept override { return 40; }
-    [[nodiscard]] i32 getCastingInterval() const noexcept override { return 100; }
+    [[nodiscard]] i32 getCastingTime() const noexcept override
+    {
+        return 40;
+    }
+
+    [[nodiscard]] i32 getCastingInterval() const noexcept override
+    {
+        return 100;
+    }
 
     void castSpell() override;
-    [[nodiscard]] i32 getSpellTypeId() const noexcept override { return 2; } // SpellType::Fangs
+
+    [[nodiscard]] i32 getSpellTypeId() const noexcept override
+    {
+        return 2;
+    } // SpellType::Fangs
 
 private:
     LivingEntity* m_target = nullptr;
@@ -137,14 +154,28 @@ public:
 
     [[nodiscard]] bool shouldExecute() override;
 
-    [[nodiscard]] std::string getTypeName() const override { return "EvokerSummonSpellGoal"; }
+    [[nodiscard]] std::string getTypeName() const override
+    {
+        return "EvokerSummonSpellGoal";
+    }
 
 protected:
-    [[nodiscard]] i32 getCastingTime() const noexcept override { return 100; }
-    [[nodiscard]] i32 getCastingInterval() const noexcept override { return 340; }
+    [[nodiscard]] i32 getCastingTime() const noexcept override
+    {
+        return 100;
+    }
+
+    [[nodiscard]] i32 getCastingInterval() const noexcept override
+    {
+        return 340;
+    }
 
     void castSpell() override;
-    [[nodiscard]] i32 getSpellTypeId() const noexcept override { return 1; } // SpellType::SummonVex
+
+    [[nodiscard]] i32 getSpellTypeId() const noexcept override
+    {
+        return 1;
+    } // SpellType::SummonVex
 
 private:
     /**
@@ -167,7 +198,10 @@ public:
     [[nodiscard]] bool shouldContinueExecuting() override;
     void tick() override;
 
-    [[nodiscard]] std::string getTypeName() const override { return "EvokerCastingSpellGoal"; }
+    [[nodiscard]] std::string getTypeName() const override
+    {
+        return "EvokerCastingSpellGoal";
+    }
 
 private:
     EvokerEntity* m_evoker;
@@ -196,7 +230,10 @@ public:
     void resetTask() override;
     void tick() override;
 
-    [[nodiscard]] std::string getTypeName() const override { return "EvokerWololoSpellGoal"; }
+    [[nodiscard]] std::string getTypeName() const override
+    {
+        return "EvokerWololoSpellGoal";
+    }
 
 private:
     /**

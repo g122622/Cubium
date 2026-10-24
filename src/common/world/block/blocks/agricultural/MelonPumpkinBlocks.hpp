@@ -63,13 +63,27 @@ public:
 
     // ========== StemGrownBlock 接口 ==========
 
-    [[nodiscard]] const Block* getStem() const override { return m_stem; }
-    [[nodiscard]] const Block* getAttachedStem() const override { return m_attachedStem; }
+    [[nodiscard]] const Block* getStem() const override
+    {
+        return m_stem;
+    }
+
+    [[nodiscard]] const Block* getAttachedStem() const override
+    {
+        return m_attachedStem;
+    }
 
     // ========== 茎指针设置（用于解决循环依赖） ==========
 
-    void setStem(const Block* stem) { m_stem = stem; }
-    void setAttachedStem(const Block* attachedStem) { m_attachedStem = attachedStem; }
+    void setStem(const Block* stem)
+    {
+        m_stem = stem;
+    }
+
+    void setAttachedStem(const Block* attachedStem)
+    {
+        m_attachedStem = attachedStem;
+    }
 
 private:
     const Block* m_stem;
@@ -90,13 +104,27 @@ public:
 
     // ========== StemGrownBlock 接口 ==========
 
-    [[nodiscard]] const Block* getStem() const override { return m_stem; }
-    [[nodiscard]] const Block* getAttachedStem() const override { return m_attachedStem; }
+    [[nodiscard]] const Block* getStem() const override
+    {
+        return m_stem;
+    }
+
+    [[nodiscard]] const Block* getAttachedStem() const override
+    {
+        return m_attachedStem;
+    }
 
     // ========== 茎指针设置（用于解决循环依赖） ==========
 
-    void setStem(const Block* stem) { m_stem = stem; }
-    void setAttachedStem(const Block* attachedStem) { m_attachedStem = attachedStem; }
+    void setStem(const Block* stem)
+    {
+        m_stem = stem;
+    }
+
+    void setAttachedStem(const Block* attachedStem)
+    {
+        m_attachedStem = attachedStem;
+    }
 
     // ========== 交互接口 ==========
 

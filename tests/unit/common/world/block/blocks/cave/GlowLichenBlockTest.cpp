@@ -41,7 +41,10 @@ namespace {
 /// 发光地衣放置测试用 Mock 世界：仅需按坐标存取方块 + 提供 AIR 兜底。
 class GlowLichenTestWorld final : public mc::test::BaseTestWorld {
 public:
-    GlowLichenTestWorld() { VanillaBlocks::initialize(); }
+    GlowLichenTestWorld()
+    {
+        VanillaBlocks::initialize();
+    }
 
     [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override
     {

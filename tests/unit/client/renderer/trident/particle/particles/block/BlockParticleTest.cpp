@@ -235,7 +235,10 @@ TEST(BlockCrumbleParticleTest, HasGravity)
 
 class BlockMarkerWithBlockTest : public ::testing::Test {
 protected:
-    void SetUp() override { VanillaBlocks::initialize(); }
+    void SetUp() override
+    {
+        VanillaBlocks::initialize();
+    }
 };
 
 TEST_F(BlockMarkerWithBlockTest, CreateWithBlock_ReturnsNonNull)
@@ -272,7 +275,10 @@ TEST_F(BlockMarkerWithBlockTest, CreateWithBlock_TextureIsStone)
 
 class BlockCrumbleWithBlockTest : public ::testing::Test {
 protected:
-    void SetUp() override { VanillaBlocks::initialize(); }
+    void SetUp() override
+    {
+        VanillaBlocks::initialize();
+    }
 };
 
 TEST_F(BlockCrumbleWithBlockTest, CreateWithBlock_ReturnsNonNull)

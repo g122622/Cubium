@@ -60,7 +60,10 @@ struct SpawnCosts {
     /**
      * @brief 检查是否有效（有成本限制）
      */
-    [[nodiscard]] bool isValid() const noexcept { return energyBudget > 0.0 && charge > 0.0; }
+    [[nodiscard]] bool isValid() const noexcept
+    {
+        return energyBudget > 0.0 && charge > 0.0;
+    }
 };
 
 /**
@@ -123,9 +126,15 @@ struct SpawnCategory {
         : maxInstances(maxInst)
     {}
 
-    void addEntry(const SpawnEntry& entry) { entries.push_back(entry); }
+    void addEntry(const SpawnEntry& entry)
+    {
+        entries.push_back(entry);
+    }
 
-    void addEntry(SpawnEntry&& entry) noexcept { entries.push_back(std::move(entry)); }
+    void addEntry(SpawnEntry&& entry) noexcept
+    {
+        entries.push_back(std::move(entry));
+    }
 
     /**
      * @brief 计算所有条目的总权重
@@ -268,49 +277,76 @@ public:
     /**
      * @brief 添加怪物生成条目
      */
-    void addMonsterSpawn(const SpawnEntry& entry) { m_monsters.addEntry(entry); }
+    void addMonsterSpawn(const SpawnEntry& entry)
+    {
+        m_monsters.addEntry(entry);
+    }
 
     /**
      * @brief 添加动物生成条目
      */
-    void addCreatureSpawn(const SpawnEntry& entry) { m_creatures.addEntry(entry); }
+    void addCreatureSpawn(const SpawnEntry& entry)
+    {
+        m_creatures.addEntry(entry);
+    }
 
     /**
      * @brief 添加环境生物生成条目（蝙蝠等）
      */
-    void addAmbientSpawn(const SpawnEntry& entry) { m_ambient.addEntry(entry); }
+    void addAmbientSpawn(const SpawnEntry& entry)
+    {
+        m_ambient.addEntry(entry);
+    }
 
     /**
      * @brief 添加美西螈生成条目
      */
-    void addAxolotlSpawn(const SpawnEntry& entry) { m_axolotls.addEntry(entry); }
+    void addAxolotlSpawn(const SpawnEntry& entry)
+    {
+        m_axolotls.addEntry(entry);
+    }
 
     /**
      * @brief 添加地下水生生物生成条目（发光鱿鱼等）
      */
-    void addUndergroundWaterCreatureSpawn(const SpawnEntry& entry) { m_undergroundWaterCreatures.addEntry(entry); }
+    void addUndergroundWaterCreatureSpawn(const SpawnEntry& entry)
+    {
+        m_undergroundWaterCreatures.addEntry(entry);
+    }
 
     /**
      * @brief 添加水生生物生成条目
      */
-    void addWaterCreatureSpawn(const SpawnEntry& entry) { m_waterCreatures.addEntry(entry); }
+    void addWaterCreatureSpawn(const SpawnEntry& entry)
+    {
+        m_waterCreatures.addEntry(entry);
+    }
 
     /**
      * @brief 添加水生环境生物生成条目（小鱼等）
      */
-    void addWaterAmbientSpawn(const SpawnEntry& entry) { m_waterAmbient.addEntry(entry); }
+    void addWaterAmbientSpawn(const SpawnEntry& entry)
+    {
+        m_waterAmbient.addEntry(entry);
+    }
 
     /**
      * @brief 添加其他生成条目
      */
-    void addMiscSpawn(const SpawnEntry& entry) { m_misc.addEntry(entry); }
+    void addMiscSpawn(const SpawnEntry& entry)
+    {
+        m_misc.addEntry(entry);
+    }
 
     /**
      * @brief 设置生成成本
      * @param entityTypeId 实体类型ID
      * @param costs 生成成本
      */
-    void setSpawnCost(const std::string& entityTypeId, const SpawnCosts& costs) { m_spawnCosts[entityTypeId] = costs; }
+    void setSpawnCost(const std::string& entityTypeId, const SpawnCosts& costs)
+    {
+        m_spawnCosts[entityTypeId] = costs;
+    }
 
     // ========== 获取生成条目 ==========
 
@@ -342,13 +378,25 @@ public:
         }
     }
 
-    [[nodiscard]] const std::vector<SpawnEntry>& getMonsterSpawns() const noexcept { return m_monsters.entries; }
+    [[nodiscard]] const std::vector<SpawnEntry>& getMonsterSpawns() const noexcept
+    {
+        return m_monsters.entries;
+    }
 
-    [[nodiscard]] const std::vector<SpawnEntry>& getCreatureSpawns() const noexcept { return m_creatures.entries; }
+    [[nodiscard]] const std::vector<SpawnEntry>& getCreatureSpawns() const noexcept
+    {
+        return m_creatures.entries;
+    }
 
-    [[nodiscard]] const std::vector<SpawnEntry>& getAmbientSpawns() const noexcept { return m_ambient.entries; }
+    [[nodiscard]] const std::vector<SpawnEntry>& getAmbientSpawns() const noexcept
+    {
+        return m_ambient.entries;
+    }
 
-    [[nodiscard]] const std::vector<SpawnEntry>& getAxolotlSpawns() const noexcept { return m_axolotls.entries; }
+    [[nodiscard]] const std::vector<SpawnEntry>& getAxolotlSpawns() const noexcept
+    {
+        return m_axolotls.entries;
+    }
 
     [[nodiscard]] const std::vector<SpawnEntry>& getUndergroundWaterCreatureSpawns() const noexcept
     {
@@ -365,7 +413,10 @@ public:
         return m_waterAmbient.entries;
     }
 
-    [[nodiscard]] const std::vector<SpawnEntry>& getMiscSpawns() const noexcept { return m_misc.entries; }
+    [[nodiscard]] const std::vector<SpawnEntry>& getMiscSpawns() const noexcept
+    {
+        return m_misc.entries;
+    }
 
     /**
      * @brief 获取实体的生成成本
@@ -380,29 +431,75 @@ public:
 
     // ========== 分类配置 ==========
 
-    [[nodiscard]] i32 getMaxMonsterInstances() const noexcept { return m_monsters.maxInstances; }
-    void setMaxMonsterInstances(i32 max) noexcept { m_monsters.maxInstances = max; }
+    [[nodiscard]] i32 getMaxMonsterInstances() const noexcept
+    {
+        return m_monsters.maxInstances;
+    }
 
-    [[nodiscard]] i32 getMaxCreatureInstances() const noexcept { return m_creatures.maxInstances; }
-    void setMaxCreatureInstances(i32 max) noexcept { m_creatures.maxInstances = max; }
+    void setMaxMonsterInstances(i32 max) noexcept
+    {
+        m_monsters.maxInstances = max;
+    }
 
-    [[nodiscard]] i32 getMaxAmbientInstances() const noexcept { return m_ambient.maxInstances; }
-    void setMaxAmbientInstances(i32 max) noexcept { m_ambient.maxInstances = max; }
+    [[nodiscard]] i32 getMaxCreatureInstances() const noexcept
+    {
+        return m_creatures.maxInstances;
+    }
 
-    [[nodiscard]] i32 getMaxAxolotlInstances() const noexcept { return m_axolotls.maxInstances; }
-    void setMaxAxolotlInstances(i32 max) noexcept { m_axolotls.maxInstances = max; }
+    void setMaxCreatureInstances(i32 max) noexcept
+    {
+        m_creatures.maxInstances = max;
+    }
+
+    [[nodiscard]] i32 getMaxAmbientInstances() const noexcept
+    {
+        return m_ambient.maxInstances;
+    }
+
+    void setMaxAmbientInstances(i32 max) noexcept
+    {
+        m_ambient.maxInstances = max;
+    }
+
+    [[nodiscard]] i32 getMaxAxolotlInstances() const noexcept
+    {
+        return m_axolotls.maxInstances;
+    }
+
+    void setMaxAxolotlInstances(i32 max) noexcept
+    {
+        m_axolotls.maxInstances = max;
+    }
 
     [[nodiscard]] i32 getMaxUndergroundWaterCreatureInstances() const noexcept
     {
         return m_undergroundWaterCreatures.maxInstances;
     }
-    void setMaxUndergroundWaterCreatureInstances(i32 max) noexcept { m_undergroundWaterCreatures.maxInstances = max; }
 
-    [[nodiscard]] i32 getMaxWaterCreatureInstances() const noexcept { return m_waterCreatures.maxInstances; }
-    void setMaxWaterCreatureInstances(i32 max) noexcept { m_waterCreatures.maxInstances = max; }
+    void setMaxUndergroundWaterCreatureInstances(i32 max) noexcept
+    {
+        m_undergroundWaterCreatures.maxInstances = max;
+    }
 
-    [[nodiscard]] i32 getMaxWaterAmbientInstances() const noexcept { return m_waterAmbient.maxInstances; }
-    void setMaxWaterAmbientInstances(i32 max) noexcept { m_waterAmbient.maxInstances = max; }
+    [[nodiscard]] i32 getMaxWaterCreatureInstances() const noexcept
+    {
+        return m_waterCreatures.maxInstances;
+    }
+
+    void setMaxWaterCreatureInstances(i32 max) noexcept
+    {
+        m_waterCreatures.maxInstances = max;
+    }
+
+    [[nodiscard]] i32 getMaxWaterAmbientInstances() const noexcept
+    {
+        return m_waterAmbient.maxInstances;
+    }
+
+    void setMaxWaterAmbientInstances(i32 max) noexcept
+    {
+        m_waterAmbient.maxInstances = max;
+    }
 
     // ========== 生物群系特性 ==========
 
@@ -412,24 +509,36 @@ public:
      * 这是区块生成时放置动物的基础概率
      * 默认值为 0.1F (10%)
      */
-    [[nodiscard]] f32 getCreatureSpawnProbability() const noexcept { return m_creatureSpawnProbability; }
+    [[nodiscard]] f32 getCreatureSpawnProbability() const noexcept
+    {
+        return m_creatureSpawnProbability;
+    }
 
     /**
      * @brief 设置动物生成概率
      */
-    void setCreatureSpawnProbability(f32 probability) noexcept { m_creatureSpawnProbability = probability; }
+    void setCreatureSpawnProbability(f32 probability) noexcept
+    {
+        m_creatureSpawnProbability = probability;
+    }
 
     /**
      * @brief 是否适合玩家生成
      *
      * 用于判断是否可以在该生物群系生成玩家
      */
-    [[nodiscard]] bool isPlayerSpawnFriendly() const noexcept { return m_playerSpawnFriendly; }
+    [[nodiscard]] bool isPlayerSpawnFriendly() const noexcept
+    {
+        return m_playerSpawnFriendly;
+    }
 
     /**
      * @brief 设置是否适合玩家生成
      */
-    void setPlayerSpawnFriendly(bool friendly) noexcept { m_playerSpawnFriendly = friendly; }
+    void setPlayerSpawnFriendly(bool friendly) noexcept
+    {
+        m_playerSpawnFriendly = friendly;
+    }
 
     // ========== 工厂方法 ==========
 

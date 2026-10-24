@@ -72,9 +72,15 @@ protected:
         }
     }
 
-    void SetUp() override { m_world = std::make_unique<ParchedTestWorld>(); }
+    void SetUp() override
+    {
+        m_world = std::make_unique<ParchedTestWorld>();
+    }
 
-    void TearDown() override { m_world.reset(); }
+    void TearDown() override
+    {
+        m_world.reset();
+    }
 
     std::unique_ptr<ParchedTestWorld> m_world;
 };

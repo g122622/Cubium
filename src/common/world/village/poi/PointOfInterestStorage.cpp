@@ -92,7 +92,9 @@ bool PointOfInterestStorage::unregisterPOI(BlockPos pos)
     auto chunkIt = m_chunkPOIs.find(chunkKey);
     if (chunkIt != m_chunkPOIs.end()) {
         auto& chunkPOIs = chunkIt->second;
-        chunkPOIs.remove_if([pos](const PointOfInterest& p) { return p.getPosition() == pos; });
+        chunkPOIs.remove_if([pos](const PointOfInterest& p) {
+            return p.getPosition() == pos;
+        });
     }
 
     return true;

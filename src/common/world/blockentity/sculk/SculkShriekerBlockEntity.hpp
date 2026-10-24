@@ -65,13 +65,23 @@ public:
     /**
      * @brief 获取振动系统数据
      */
-    [[nodiscard]] gameevent::VibrationSystem::Data& getVibrationData() { return m_vibrationData; }
-    [[nodiscard]] const gameevent::VibrationSystem::Data& getVibrationData() const { return m_vibrationData; }
+    [[nodiscard]] gameevent::VibrationSystem::Data& getVibrationData()
+    {
+        return m_vibrationData;
+    }
+
+    [[nodiscard]] const gameevent::VibrationSystem::Data& getVibrationData() const
+    {
+        return m_vibrationData;
+    }
 
     /**
      * @brief 设置振动系统数据（从存档加载时使用）
      */
-    void setVibrationData(gameevent::VibrationSystem::Data data) { m_vibrationData = std::move(data); }
+    void setVibrationData(gameevent::VibrationSystem::Data data)
+    {
+        m_vibrationData = std::move(data);
+    }
 
     // ========== 序列化 ==========
 
@@ -92,13 +102,19 @@ public:
      *
      * @return 警告等级 (0-4)
      */
-    [[nodiscard]] i32 getWarningLevel() const noexcept { return m_warningLevel; }
+    [[nodiscard]] i32 getWarningLevel() const noexcept
+    {
+        return m_warningLevel;
+    }
 
     /**
      * @brief 设置警告等级
      * @param level 警告等级
      */
-    void setWarningLevel(i32 level) { m_warningLevel = level; }
+    void setWarningLevel(i32 level)
+    {
+        m_warningLevel = level;
+    }
 
     /**
      * @brief 检查是否可以召唤监守者
@@ -107,7 +123,10 @@ public:
      *
      * @return 是否可以召唤监守者
      */
-    [[nodiscard]] bool canSummonWarden() const { return m_warningLevel >= MAX_WARNING_LEVEL; }
+    [[nodiscard]] bool canSummonWarden() const
+    {
+        return m_warningLevel >= MAX_WARNING_LEVEL;
+    }
 
     /**
      * @brief 检查尖啸是否刚结束（用于触发 tryRespond）
@@ -115,13 +134,19 @@ public:
      * 当 SHRIEKING 状态到期或方块被移除时设置为 true，
      * 服务端 tick 中检测到此标志后执行响应逻辑。
      */
-    [[nodiscard]] bool isShriekingFinished() const { return m_shriekingFinished; }
+    [[nodiscard]] bool isShriekingFinished() const
+    {
+        return m_shriekingFinished;
+    }
 
     /**
      * @brief 设置尖啸结束标志
      * @param finished 是否结束
      */
-    void setShriekingFinished(bool finished) { m_shriekingFinished = finished; }
+    void setShriekingFinished(bool finished)
+    {
+        m_shriekingFinished = finished;
+    }
 
     /// 最大警告等级
     static constexpr i32 MAX_WARNING_LEVEL = 4;

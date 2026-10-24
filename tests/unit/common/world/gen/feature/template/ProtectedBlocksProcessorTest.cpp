@@ -99,7 +99,10 @@ protected:
         m_world = std::make_unique<ProtectedBlocksTestWorld>();
     }
 
-    void TearDown() override { m_world.reset(); }
+    void TearDown() override
+    {
+        m_world.reset();
+    }
 
     /// 构造 PlacementSettings 并绑定测试世界
     PlacementSettings makeSettings() const

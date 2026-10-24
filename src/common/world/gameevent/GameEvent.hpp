@@ -70,13 +70,19 @@ public:
          * @brief 从实体构造上下文
          * @param sourceEntity 触发事件的实体
          */
-        static Context of(const Entity* sourceEntity) { return Context(sourceEntity, nullptr); }
+        static Context of(const Entity* sourceEntity)
+        {
+            return Context(sourceEntity, nullptr);
+        }
 
         /**
          * @brief 从方块状态构造上下文
          * @param affectedState 受影响的方块状态
          */
-        static Context of(const BlockState* affectedState) { return Context(nullptr, affectedState); }
+        static Context of(const BlockState* affectedState)
+        {
+            return Context(nullptr, affectedState);
+        }
 
         /**
          * @brief 从实体和方块状态构造上下文
@@ -89,10 +95,16 @@ public:
         }
 
         /** @brief 获取触发事件的实体 */
-        [[nodiscard]] const Entity* sourceEntity() const noexcept { return m_sourceEntity; }
+        [[nodiscard]] const Entity* sourceEntity() const noexcept
+        {
+            return m_sourceEntity;
+        }
 
         /** @brief 获取受影响的方块状态 */
-        [[nodiscard]] const BlockState* affectedState() const noexcept { return m_affectedState; }
+        [[nodiscard]] const BlockState* affectedState() const noexcept
+        {
+            return m_affectedState;
+        }
 
     private:
         const Entity* m_sourceEntity = nullptr;
@@ -110,10 +122,16 @@ public:
     {}
 
     /** @brief 获取事件标识符 */
-    [[nodiscard]] const char* id() const noexcept { return m_id; }
+    [[nodiscard]] const char* id() const noexcept
+    {
+        return m_id;
+    }
 
     /** @brief 获取通知半径（格） */
-    [[nodiscard]] i32 notificationRadius() const noexcept { return m_notificationRadius; }
+    [[nodiscard]] i32 notificationRadius() const noexcept
+    {
+        return m_notificationRadius;
+    }
 
     /** @brief 默认通知半径 */
     static constexpr i32 DEFAULT_NOTIFICATION_RADIUS = 16;

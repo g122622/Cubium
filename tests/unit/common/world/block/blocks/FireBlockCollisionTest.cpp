@@ -65,9 +65,20 @@ public:
         return LivingEntity::hurt(source, amount);
     }
 
-    [[nodiscard]] i32 hurtCount() const { return m_hurtCount; }
-    [[nodiscard]] f32 lastDamage() const { return m_lastDamage; }
-    [[nodiscard]] DamageType lastDamageType() const { return m_lastDamageType; }
+    [[nodiscard]] i32 hurtCount() const
+    {
+        return m_hurtCount;
+    }
+
+    [[nodiscard]] f32 lastDamage() const
+    {
+        return m_lastDamage;
+    }
+
+    [[nodiscard]] DamageType lastDamageType() const
+    {
+        return m_lastDamageType;
+    }
 
     void resetHurtStats()
     {
@@ -92,9 +103,15 @@ public:
         , m_immuneToFire(true)
     {}
 
-    [[nodiscard]] bool isImmuneToFire() const override { return m_immuneToFire; }
+    [[nodiscard]] bool isImmuneToFire() const override
+    {
+        return m_immuneToFire;
+    }
 
-    void setImmuneToFire(bool immune) { m_immuneToFire = immune; }
+    void setImmuneToFire(bool immune)
+    {
+        m_immuneToFire = immune;
+    }
 
 private:
     bool m_immuneToFire;
@@ -128,15 +145,22 @@ public:
         return true;
     }
 
-    [[nodiscard]] bool isUltraWarm() const override { return false; }
+    [[nodiscard]] bool isUltraWarm() const override
+    {
+        return false;
+    }
 
-    void setBlockAt(const BlockPos& pos, const BlockState* state) { (void)setBlockState(pos.x, pos.y, pos.z, state); }
+    void setBlockAt(const BlockPos& pos, const BlockState* state)
+    {
+        (void)setBlockState(pos.x, pos.y, pos.z, state);
+    }
 
     [[nodiscard]] world::tick::TickManager& tickManager() override
     {
         ensureTickManager();
         return *m_tickManagerPtr;
     }
+
     [[nodiscard]] const world::tick::TickManager& tickManager() const override
     {
         const_cast<FireTestWorld*>(this)->ensureTickManager();
@@ -157,7 +181,10 @@ private:
 
 class FireBlockCollisionTest : public ::testing::Test {
 protected:
-    void SetUp() override { VanillaBlocks::initialize(); }
+    void SetUp() override
+    {
+        VanillaBlocks::initialize();
+    }
 };
 
 // ========== Entity 火焰方法测试 ==========

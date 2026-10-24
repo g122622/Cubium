@@ -60,7 +60,10 @@ Item* ensureTestItem(const char* path)
 
 class ItemCraftedByTest : public ::testing::Test {
 protected:
-    void SetUp() override { Items::initialize(); }
+    void SetUp() override
+    {
+        Items::initialize();
+    }
 };
 
 TEST_F(ItemCraftedByTest, BaseItemOnCraftedByDoesNotCrash)
@@ -92,7 +95,10 @@ TEST_F(ItemCraftedByTest, BaseItemOnCraftedPostProcessDoesNotCrash)
 
 class ItemStackCraftedByTest : public ::testing::Test {
 protected:
-    void SetUp() override { Items::initialize(); }
+    void SetUp() override
+    {
+        Items::initialize();
+    }
 };
 
 TEST_F(ItemStackCraftedByTest, EmptyStackOnCraftedByDoesNotCrash)
@@ -117,7 +123,10 @@ TEST_F(ItemStackCraftedByTest, StackWithNullItemDoesNotCrash)
 
 class FilledMapItemCraftedTest : public ::testing::Test {
 protected:
-    void SetUp() override { Items::initialize(); }
+    void SetUp() override
+    {
+        Items::initialize();
+    }
 };
 
 TEST_F(FilledMapItemCraftedTest, MapScaleDirectionNbtTagProcessed)

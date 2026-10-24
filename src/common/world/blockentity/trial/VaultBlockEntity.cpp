@@ -437,14 +437,16 @@ std::vector<ItemStack> VaultBlockEntity::resolveItemsToEject(IWorld& world, Play
 
     // 构建战利品上下文
     auto* playerEntity = static_cast<Entity*>(&player);
-    auto context =
-        loot::LootContextBuilder(world)
-            .withRandom(world.getRandom())
-            .withParameter(loot::LootParams::THIS_ENTITY, playerEntity)
-            .withLootTableResolver([ltm](const std::string& id) -> const loot::LootTable* { return ltm->getTable(id); })
-            .withPredicateResolver(
-                [ltm](const std::string& id) -> const loot::LootCondition* { return ltm->getPredicate(id); })
-            .build(loot::LootParameterSets::chest());
+    auto context = loot::LootContextBuilder(world)
+                       .withRandom(world.getRandom())
+                       .withParameter(loot::LootParams::THIS_ENTITY, playerEntity)
+                       .withLootTableResolver([ltm](const std::string& id) -> const loot::LootTable* {
+                           return ltm->getTable(id);
+                       })
+                       .withPredicateResolver([ltm](const std::string& id) -> const loot::LootCondition* {
+                           return ltm->getPredicate(id);
+                       })
+                       .build(loot::LootParameterSets::chest());
 
     if (context == nullptr) {
         return {};

@@ -42,7 +42,10 @@ using namespace mc::entity::ai::goal;
 
 class SheepColorMixingTest : public ::testing::Test {
 protected:
-    void SetUp() override { VanillaBlocks::initialize(); }
+    void SetUp() override
+    {
+        VanillaBlocks::initialize();
+    }
 };
 
 TEST_F(SheepColorMixingTest, SameColorReturnsSameColor)
@@ -146,7 +149,10 @@ TEST_F(SheepColorMixingTest, NoMixingResultReturnsParentColor)
 
 class SheepEntityTest : public ::testing::Test {
 protected:
-    void SetUp() override { VanillaBlocks::initialize(); }
+    void SetUp() override
+    {
+        VanillaBlocks::initialize();
+    }
 };
 
 TEST_F(SheepEntityTest, InitialState)
@@ -295,7 +301,10 @@ class EatGrassTestWorld final : public mc::test::BaseTestWorld {
 public:
     EatGrassTestWorld() = default;
 
-    void setBlock(i32 x, i32 y, i32 z, const BlockState* state) { m_blocks[BlockPos(x, y, z)] = state; }
+    void setBlock(i32 x, i32 y, i32 z, const BlockState* state)
+    {
+        m_blocks[BlockPos(x, y, z)] = state;
+    }
 
     [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override
     {
@@ -331,9 +340,21 @@ public:
         m_broadcastCount++;
     }
 
-    [[nodiscard]] EntityInstanceId getLastBroadcastEntityId() const { return m_lastBroadcastEntityId; }
-    [[nodiscard]] u8 getLastBroadcastStatus() const { return m_lastBroadcastStatus; }
-    [[nodiscard]] i32 getBroadcastCount() const { return m_broadcastCount; }
+    [[nodiscard]] EntityInstanceId getLastBroadcastEntityId() const
+    {
+        return m_lastBroadcastEntityId;
+    }
+
+    [[nodiscard]] u8 getLastBroadcastStatus() const
+    {
+        return m_lastBroadcastStatus;
+    }
+
+    [[nodiscard]] i32 getBroadcastCount() const
+    {
+        return m_broadcastCount;
+    }
+
     void resetBroadcastTracking()
     {
         m_lastBroadcastEntityId = EntityInstanceId(0);
@@ -341,8 +362,15 @@ public:
         m_broadcastCount = 0;
     }
 
-    [[nodiscard]] world::gamerule::GameRules& getGameRules() override { return m_gameRules; }
-    [[nodiscard]] const world::gamerule::GameRules& getGameRules() const override { return m_gameRules; }
+    [[nodiscard]] world::gamerule::GameRules& getGameRules() override
+    {
+        return m_gameRules;
+    }
+
+    [[nodiscard]] const world::gamerule::GameRules& getGameRules() const override
+    {
+        return m_gameRules;
+    }
 
     // 测试辅助方法
     void setMobGriefing(bool value)
@@ -350,10 +378,25 @@ public:
         m_gameRules.setBoolean(world::gamerule::GameRuleKeys::MOB_GRIEFING, value, nullptr);
     }
 
-    [[nodiscard]] i32 getLastEventId() const { return m_lastEventId; }
-    [[nodiscard]] const BlockPos& getLastEventPos() const { return m_lastEventPos; }
-    [[nodiscard]] i32 getLastEventData() const { return m_lastEventData; }
-    void clearLastEvent() { m_lastEventId = -1; }
+    [[nodiscard]] i32 getLastEventId() const
+    {
+        return m_lastEventId;
+    }
+
+    [[nodiscard]] const BlockPos& getLastEventPos() const
+    {
+        return m_lastEventPos;
+    }
+
+    [[nodiscard]] i32 getLastEventData() const
+    {
+        return m_lastEventData;
+    }
+
+    void clearLastEvent()
+    {
+        m_lastEventId = -1;
+    }
 
 private:
     std::unordered_map<BlockPos, const BlockState*> m_blocks;
@@ -383,14 +426,20 @@ public:
         setPosition(static_cast<f32>(x), static_cast<f32>(y), static_cast<f32>(z));
     }
 
-    void setWorldForTest(IWorld* world) { setWorld(world); }
+    void setWorldForTest(IWorld* world)
+    {
+        setWorld(world);
+    }
 };
 
 } // anonymous namespace
 
 class EatGrassGoalGameRuleTest : public ::testing::Test {
 protected:
-    void SetUp() override { VanillaBlocks::initialize(); }
+    void SetUp() override
+    {
+        VanillaBlocks::initialize();
+    }
 
     void TearDown() override {}
 };
@@ -567,7 +616,14 @@ TEST_F(EatGrassGoalGameRuleTest, StartExecutingBroadcastsEatBlockStatus)
     mob.setWorldForTest(&world);
 
     bool eatGrassBonusCalled = false;
-    EatGrassGoal goal(&mob, [&eatGrassBonusCalled]() { eatGrassBonusCalled = true; }, []() { return false; });
+    EatGrassGoal goal(
+        &mob,
+        [&eatGrassBonusCalled]() {
+            eatGrassBonusCalled = true;
+        },
+        []() {
+            return false;
+        });
 
     // 重置广播追踪
     world.resetBroadcastTracking();
@@ -590,7 +646,12 @@ TEST_F(EatGrassGoalGameRuleTest, BroadcastsCorrectEntityId)
     mob.setPositionForTest(0.5, 65.0, 0.5);
     mob.setWorldForTest(&world);
 
-    EatGrassGoal goal(&mob, []() {}, []() { return false; });
+    EatGrassGoal goal(
+        &mob,
+        []() {},
+        []() {
+            return false;
+        });
 
     world.resetBroadcastTracking();
     goal.startExecuting();
@@ -609,7 +670,12 @@ TEST_F(EatGrassGoalGameRuleTest, StartExecutingBroadcastsEvenWithoutGrass)
     mob.setPositionForTest(0.5, 65.0, 0.5);
     mob.setWorldForTest(&world);
 
-    EatGrassGoal goal(&mob, []() {}, []() { return false; });
+    EatGrassGoal goal(
+        &mob,
+        []() {},
+        []() {
+            return false;
+        });
 
     world.resetBroadcastTracking();
     goal.startExecuting();
@@ -626,7 +692,12 @@ TEST_F(EatGrassGoalGameRuleTest, StartExecutingBroadcastsEvenWithoutGrass)
 TEST_F(EatGrassGoalGameRuleTest, ShouldExecuteReturnsFalseWhenMobIsNull)
 {
     // 构造一个 mob 指针为空的 goal
-    EatGrassGoal goal(nullptr, []() {}, []() { return false; });
+    EatGrassGoal goal(
+        nullptr,
+        []() {},
+        []() {
+            return false;
+        });
 
     // shouldExecute 应安全返回 false
     EXPECT_FALSE(goal.shouldExecute());
@@ -638,14 +709,24 @@ TEST_F(EatGrassGoalGameRuleTest, ShouldExecuteReturnsFalseWhenNoWorld)
     mob.setPositionForTest(0.5, 65.0, 0.5);
     // mob 没有 world
 
-    EatGrassGoal goal(&mob, []() {}, []() { return false; });
+    EatGrassGoal goal(
+        &mob,
+        []() {},
+        []() {
+            return false;
+        });
     EXPECT_FALSE(goal.shouldExecute());
 }
 
 TEST_F(EatGrassGoalGameRuleTest, StartExecutingDoesNotCrashWithNullMob)
 {
     // 构造一个 mob 指针为空的 goal
-    EatGrassGoal goal(nullptr, []() {}, []() { return false; });
+    EatGrassGoal goal(
+        nullptr,
+        []() {},
+        []() {
+            return false;
+        });
 
     // startExecuting 不应崩溃（虽然不会广播状态）
     EXPECT_NO_THROW(goal.startExecuting());
@@ -658,7 +739,12 @@ TEST_F(EatGrassGoalGameRuleTest, TickDoesNotCrashWhenNotExecuting)
     mob.setPositionForTest(0.5, 65.0, 0.5);
     mob.setWorldForTest(&world);
 
-    EatGrassGoal goal(&mob, []() {}, []() { return false; });
+    EatGrassGoal goal(
+        &mob,
+        []() {},
+        []() {
+            return false;
+        });
 
     // 没有先调用 shouldExecute/startExecuting，直接 tick 不应崩溃
     EXPECT_NO_THROW(goal.tick());

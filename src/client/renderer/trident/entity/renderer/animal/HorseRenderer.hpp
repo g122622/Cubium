@@ -73,7 +73,10 @@ public:
      * Path B（ModelFactory + AnimatedMeshCache）生成主模型网格。
      * 马主模型的动画设置由 _createModelForEntity 的 horse 分支统一处理。
      */
-    [[nodiscard]] bool supportsAnimation() const override { return true; }
+    [[nodiscard]] bool supportsAnimation() const override
+    {
+        return true;
+    }
 
 private:
     void _setupLayers();

@@ -52,7 +52,9 @@ MeleeAttackGoal::MeleeAttackGoal(CreatureEntity* creature, f64 speed, bool useLo
 
 bool MeleeAttackGoal::shouldExecute()
 {
-    if (!m_creature) return false;
+    if (!m_creature) {
+        return false;
+    }
 
     // 游戏时间节流 - 每20 tick检查一次
     u32 ticksExisted = m_creature->ticksExisted();
@@ -84,7 +86,9 @@ bool MeleeAttackGoal::shouldExecute()
 
 bool MeleeAttackGoal::shouldContinueExecuting()
 {
-    if (!m_creature || !m_attackTarget) return false;
+    if (!m_creature || !m_attackTarget) {
+        return false;
+    }
 
     // 检查目标是否存活
     if (!m_attackTarget->isAlive()) {
@@ -165,7 +169,9 @@ void MeleeAttackGoal::resetTask()
 
 void MeleeAttackGoal::tick()
 {
-    if (!m_creature || !m_attackTarget) return;
+    if (!m_creature || !m_attackTarget) {
+        return;
+    }
 
     // 移除或析构的引用会自动失效；此处同时处理尚未移除的死亡目标。
     if (!m_attackTarget->isAlive()) {
@@ -238,7 +244,9 @@ void MeleeAttackGoal::tick()
 
 bool MeleeAttackGoal::_canAttack(LivingEntity* target) const
 {
-    if (!m_creature || !target) return false;
+    if (!m_creature || !target) {
+        return false;
+    }
 
     // 检查是否在攻击范围内
     f32 attackReachSq = getAttackReachSqr(target);
@@ -249,7 +257,9 @@ bool MeleeAttackGoal::_canAttack(LivingEntity* target) const
 
 void MeleeAttackGoal::checkAndPerformAttack(LivingEntity* target, f64 distToEnemySqr)
 {
-    if (!m_creature || !target) return;
+    if (!m_creature || !target) {
+        return;
+    }
 
     f32 attackReachSq = getAttackReachSqr(target);
 
@@ -264,7 +274,9 @@ void MeleeAttackGoal::checkAndPerformAttack(LivingEntity* target, f64 distToEnem
 
 void MeleeAttackGoal::_attackTarget(LivingEntity* target)
 {
-    if (!m_creature || !target) return;
+    if (!m_creature || !target) {
+        return;
+    }
 
     // 挥动手臂动画（对齐 vanilla MeleeAttackGoal.checkAndPerformAttack：先 swing(MAIN_HAND)）。
     m_creature->swingArm();

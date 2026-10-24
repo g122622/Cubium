@@ -76,8 +76,12 @@ struct POISearchResult {
     const PointOfInterest* poi = nullptr;
     /// 距离搜索中心的距离
     f32 distance = 0.0f;
+
     /// 是否有效
-    [[nodiscard]] bool isValid() const { return poi != nullptr; }
+    [[nodiscard]] bool isValid() const
+    {
+        return poi != nullptr;
+    }
 };
 
 /**

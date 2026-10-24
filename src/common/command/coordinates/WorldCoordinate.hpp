@@ -55,12 +55,18 @@ public:
     /**
      * @brief 是否为相对坐标
      */
-    [[nodiscard]] bool isRelative() const noexcept { return m_relative; }
+    [[nodiscard]] bool isRelative() const noexcept
+    {
+        return m_relative;
+    }
 
     /**
      * @brief 获取原始值
      */
-    [[nodiscard]] f64 value() const noexcept { return m_value; }
+    [[nodiscard]] f64 value() const noexcept
+    {
+        return m_value;
+    }
 
     /**
      * @brief 根据基准值计算最终坐标
@@ -70,14 +76,20 @@ public:
      * 相对坐标: 返回 m_value + baseValue
      * 绝对坐标: 返回 m_value
      */
-    [[nodiscard]] f64 get(f64 baseValue) const noexcept { return m_relative ? m_value + baseValue : m_value; }
+    [[nodiscard]] f64 get(f64 baseValue) const noexcept
+    {
+        return m_relative ? m_value + baseValue : m_value;
+    }
 
     /**
      * @brief 获取整数值（用于方块坐标）
      * @param baseValue 基准值
      * @return 取整后的坐标值
      */
-    [[nodiscard]] i32 getInt(f64 baseValue) const noexcept { return static_cast<i32>(std::floor(get(baseValue))); }
+    [[nodiscard]] i32 getInt(f64 baseValue) const noexcept
+    {
+        return static_cast<i32>(std::floor(get(baseValue)));
+    }
 
 private:
     bool m_relative = false;

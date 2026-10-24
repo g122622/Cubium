@@ -208,7 +208,9 @@ Result<void> SkyRenderer::initialize(VkDevice device,
 
 void SkyRenderer::destroy()
 {
-    if (m_device == VK_NULL_HANDLE) return;
+    if (m_device == VK_NULL_HANDLE) {
+        return;
+    }
 
     VkDevice device = m_device;
 
@@ -468,7 +470,9 @@ void SkyRenderer::_renderSun(VkCommandBuffer cmd)
 void SkyRenderer::_renderMoon(VkCommandBuffer cmd)
 {
     // 白天不渲染月亮（晨昏允许短暂过渡）
-    if (m_sunIntensity > 0.18f || m_moonPipeline == VK_NULL_HANDLE || m_sunMoonVBO == VK_NULL_HANDLE) return;
+    if (m_sunIntensity > 0.18f || m_moonPipeline == VK_NULL_HANDLE || m_sunMoonVBO == VK_NULL_HANDLE) {
+        return;
+    }
 
     vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_moonPipeline);
 
@@ -481,7 +485,9 @@ void SkyRenderer::_renderMoon(VkCommandBuffer cmd)
 
 void SkyRenderer::_renderStars(VkCommandBuffer cmd)
 {
-    if (m_starVertexCount == 0 || m_starPipeline == VK_NULL_HANDLE || m_starVBO == VK_NULL_HANDLE) return;
+    if (m_starVertexCount == 0 || m_starPipeline == VK_NULL_HANDLE || m_starVBO == VK_NULL_HANDLE) {
+        return;
+    }
 
     vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_starPipeline);
 

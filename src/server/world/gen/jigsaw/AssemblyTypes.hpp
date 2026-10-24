@@ -58,6 +58,7 @@ struct PlacedPiece {
     std::vector<JigsawJunction> junctions; ///< JigsawJunction 列表（用于 NoiseChunkGenerator 地形适配）
 
     PlacedPiece() = default;
+
     PlacedPiece(std::unique_ptr<JigsawPiece> p,
         const BlockPos& pos,
         Rotation rot,

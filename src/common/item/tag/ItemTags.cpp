@@ -593,8 +593,9 @@ void ItemTags::initialize()
         return;
     }
 
-    for (const auto name : {"iron_ingot", "gold_ingot", "emerald", "diamond", "netherite_ingot"})
+    for (const auto name : {"iron_ingot", "gold_ingot", "emerald", "diamond", "netherite_ingot"}) {
         BEACON_PAYMENT_ITEMS().add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", name)));
+    }
 
     // 创建 NOTE_BLOCK_TOP_INSTRUMENTS 标签（各类头颅；数据包键 noteblock_top_instruments）。
     // 对齐 vanilla 数据包 noteblock_top_instruments.json：手持这些物品右键音符盒顶面时，
@@ -605,8 +606,9 @@ void ItemTags::initialize()
              "zombie_head",
              "creeper_head",
              "dragon_head",
-             "piglin_head"})
+             "piglin_head"}) {
         NOTE_BLOCK_TOP_INSTRUMENTS().add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", name)));
+    }
 
     // 物品标签的成员列表从数据包动态加载（ItemTagLoader），此处注册内置标签的默认值。
     // 当数据包可用时，ItemTagLoader 会追加或替换（replace=true）这些默认值；

@@ -166,9 +166,20 @@ public:
     void processPendingDestroys(u32 framesToKeep = 32);
 
     // 统计
-    u32 chunkCount() const { return static_cast<u32>(m_chunkBuffers.size()); }
-    u32 totalVertexCount() const { return m_totalVertices; }
-    u32 totalIndexCount() const { return m_totalIndices; }
+    u32 chunkCount() const
+    {
+        return static_cast<u32>(m_chunkBuffers.size());
+    }
+
+    u32 totalVertexCount() const
+    {
+        return m_totalVertices;
+    }
+
+    u32 totalIndexCount() const
+    {
+        return m_totalIndices;
+    }
 
 private:
     [[nodiscard]] static u64 makeBufferKey(const ChunkId& chunkId, ChunkRenderLayer layer)

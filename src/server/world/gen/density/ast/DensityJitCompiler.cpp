@@ -590,20 +590,25 @@ private:
         asmjit::x86::Xmm dst = m_regs[op.dst];
         switch (bop) {
             case BinaryOp::Add:
-                return binary2(
-                    dst, a, b, [&](const asmjit::x86::Xmm& d, const asmjit::x86::Xmm& s) { return m_cc.addsd(d, s); });
+                return binary2(dst, a, b, [&](const asmjit::x86::Xmm& d, const asmjit::x86::Xmm& s) {
+                    return m_cc.addsd(d, s);
+                });
             case BinaryOp::Mul:
-                return binary2(
-                    dst, a, b, [&](const asmjit::x86::Xmm& d, const asmjit::x86::Xmm& s) { return m_cc.mulsd(d, s); });
+                return binary2(dst, a, b, [&](const asmjit::x86::Xmm& d, const asmjit::x86::Xmm& s) {
+                    return m_cc.mulsd(d, s);
+                });
             case BinaryOp::Div:
-                return binary2(
-                    dst, a, b, [&](const asmjit::x86::Xmm& d, const asmjit::x86::Xmm& s) { return m_cc.divsd(d, s); });
+                return binary2(dst, a, b, [&](const asmjit::x86::Xmm& d, const asmjit::x86::Xmm& s) {
+                    return m_cc.divsd(d, s);
+                });
             case BinaryOp::Max:
-                return binary2(
-                    dst, a, b, [&](const asmjit::x86::Xmm& d, const asmjit::x86::Xmm& s) { return m_cc.maxsd(d, s); });
+                return binary2(dst, a, b, [&](const asmjit::x86::Xmm& d, const asmjit::x86::Xmm& s) {
+                    return m_cc.maxsd(d, s);
+                });
             case BinaryOp::Min:
-                return binary2(
-                    dst, a, b, [&](const asmjit::x86::Xmm& d, const asmjit::x86::Xmm& s) { return m_cc.minsd(d, s); });
+                return binary2(dst, a, b, [&](const asmjit::x86::Xmm& d, const asmjit::x86::Xmm& s) {
+                    return m_cc.minsd(d, s);
+                });
         }
         return asmjit::kErrorInvalidState;
     }

@@ -54,72 +54,114 @@ public:
     /**
      * @brief 设置马鞍状态
      */
-    void setSaddled(bool saddled) { m_saddled = saddled; }
+    void setSaddled(bool saddled)
+    {
+        m_saddled = saddled;
+    }
 
     /**
      * @brief 设置是否被骑乘
      */
-    void setRidden(bool ridden) { m_ridden = ridden; }
+    void setRidden(bool ridden)
+    {
+        m_ridden = ridden;
+    }
 
     /**
      * @brief 设置吃草动画进度
      */
-    void setGrassEatingAmount(f32 amount) { m_grassEatingAmount = amount; }
+    void setGrassEatingAmount(f32 amount)
+    {
+        m_grassEatingAmount = amount;
+    }
 
     /**
      * @brief 设置后腿站立动画进度
      */
-    void setRearingAmount(f32 amount) { m_rearingAmount = amount; }
+    void setRearingAmount(f32 amount)
+    {
+        m_rearingAmount = amount;
+    }
 
     /**
      * @brief 设置嘴巴张开角度
      */
-    void setMouthOpennessAngle(f32 angle) { m_mouthOpennessAngle = angle; }
+    void setMouthOpennessAngle(f32 angle)
+    {
+        m_mouthOpennessAngle = angle;
+    }
 
     /**
      * @brief 设置尾巴计数器（用于尾巴摆动）
      */
-    void setTailCounter(i32 counter) { m_tailCounter = counter; }
+    void setTailCounter(i32 counter)
+    {
+        m_tailCounter = counter;
+    }
 
     /**
      * @brief 设置渲染偏航角
      */
-    void setRenderYawOffset(f32 yaw) { m_renderYawOffset = yaw; }
+    void setRenderYawOffset(f32 yaw)
+    {
+        m_renderYawOffset = yaw;
+    }
 
     /**
      * @brief 设置前一个渲染偏航角
      */
-    void setPrevRenderYawOffset(f32 yaw) { m_prevRenderYawOffset = yaw; }
+    void setPrevRenderYawOffset(f32 yaw)
+    {
+        m_prevRenderYawOffset = yaw;
+    }
 
     /**
      * @brief 设置头部偏航角
      */
-    void setRotationYawHead(f32 yaw) { m_rotationYawHead = yaw; }
+    void setRotationYawHead(f32 yaw)
+    {
+        m_rotationYawHead = yaw;
+    }
 
     /**
      * @brief 设置前一个头部偏航角
      */
-    void setPrevRotationYawHead(f32 yaw) { m_prevRotationYawHead = yaw; }
+    void setPrevRotationYawHead(f32 yaw)
+    {
+        m_prevRotationYawHead = yaw;
+    }
 
     /**
      * @brief 设置旋转俯仰角
      */
-    void setRotationPitch(f32 pitch) { m_rotationPitch = pitch; }
+    void setRotationPitch(f32 pitch)
+    {
+        m_rotationPitch = pitch;
+    }
 
     /**
      * @brief 设置前一个旋转俯仰角
      */
-    void setPrevRotationPitch(f32 pitch) { m_prevRotationPitch = pitch; }
+    void setPrevRotationPitch(f32 pitch)
+    {
+        m_prevRotationPitch = pitch;
+    }
 
     /**
      * @brief 设置是否在水中
      */
-    void setInWater(bool inWater) { m_inWater = inWater; }
+    void setInWater(bool inWater)
+    {
+        m_inWater = inWater;
+    }
 
     /**
      * @brief 设置生存时间
      */
-    void setTicksExisted(i32 ticks) { m_ticksExisted = ticks; }
+    void setTicksExisted(i32 ticks)
+    {
+        m_ticksExisted = ticks;
+    }
 
 protected:
     /**

@@ -328,7 +328,9 @@ Result<void> TridentContext::createDevice()
 
 void TridentContext::destroy()
 {
-    if (!m_initialized && m_instance == VK_NULL_HANDLE) return;
+    if (!m_initialized && m_instance == VK_NULL_HANDLE) {
+        return;
+    }
 
     if (m_device != VK_NULL_HANDLE) {
         vkDeviceWaitIdle(m_device);
@@ -496,7 +498,9 @@ Result<void> TridentContext::_createInstance()
 
 Result<void> TridentContext::_setupDebugMessenger()
 {
-    if (!m_validationEnabled) return {};
+    if (!m_validationEnabled) {
+        return {};
+    }
 
     VkDebugUtilsMessengerCreateInfoEXT createInfo{};
     createInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
@@ -614,7 +618,9 @@ bool TridentContext::_checkValidationLayerSupport()
                 break;
             }
         }
-        if (!layerFound) return false;
+        if (!layerFound) {
+            return false;
+        }
     }
 
     return true;

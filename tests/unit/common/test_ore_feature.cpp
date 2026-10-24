@@ -52,7 +52,10 @@ public:
 
 class RuleTestTest : public ::testing::Test {
 protected:
-    void SetUp() override { VanillaBlocks::initialize(); }
+    void SetUp() override
+    {
+        VanillaBlocks::initialize();
+    }
 };
 
 TEST_F(RuleTestTest, StoneRuleTest)
@@ -94,7 +97,10 @@ TEST_F(RuleTestTest, BlockIdRuleTest)
 
 class OreFeatureConfigTest : public ::testing::Test {
 protected:
-    void SetUp() override { VanillaBlocks::initialize(); }
+    void SetUp() override
+    {
+        VanillaBlocks::initialize();
+    }
 };
 
 TEST_F(OreFeatureConfigTest, CreateConfig)
@@ -120,7 +126,10 @@ TEST_F(OreFeatureConfigTest, NaturalStoneTarget)
 
 class PlacementTest : public ::testing::Test {
 protected:
-    void SetUp() override { VanillaBlocks::initialize(); }
+    void SetUp() override
+    {
+        VanillaBlocks::initialize();
+    }
 };
 
 TEST_F(PlacementTest, CountPlacement)
@@ -193,7 +202,10 @@ TEST_F(PlacementTest, ChancePlacementConfig)
 
 class BlockStateProviderTest : public ::testing::Test {
 protected:
-    void SetUp() override { VanillaBlocks::initialize(); }
+    void SetUp() override
+    {
+        VanillaBlocks::initialize();
+    }
 };
 
 TEST_F(BlockStateProviderTest, SimpleProvider)

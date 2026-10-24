@@ -58,7 +58,10 @@ public:
     /**
      * @brief 设置字体
      */
-    void setFont(Font* font) { m_font = font; }
+    void setFont(Font* font)
+    {
+        m_font = font;
+    }
 
     // ========== 标题控制 ==========
 

@@ -132,12 +132,18 @@ public:
     /**
      * @brief 设置是否启用生成
      */
-    void setEnabled(bool enabled) { m_enabled = enabled; }
+    void setEnabled(bool enabled)
+    {
+        m_enabled = enabled;
+    }
 
     /**
      * @brief 检查是否启用
      */
-    [[nodiscard]] bool isEnabled() const { return m_enabled; }
+    [[nodiscard]] bool isEnabled() const
+    {
+        return m_enabled;
+    }
 
 private:
     bool m_enabled = true;

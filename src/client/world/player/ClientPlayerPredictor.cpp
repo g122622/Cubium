@@ -101,10 +101,12 @@ void ClientPlayerPredictor::handleRotationInput(f32 deltaYaw, f32 deltaPitch)
     m_predictedPitch = std::clamp(m_predictedPitch, -90.0f, 90.0f);
 
     // 归一化偏航角到 [-180, 180]
-    while (m_predictedYaw > 180.0f)
+    while (m_predictedYaw > 180.0f) {
         m_predictedYaw -= 360.0f;
-    while (m_predictedYaw < -180.0f)
+    }
+    while (m_predictedYaw < -180.0f) {
         m_predictedYaw += 360.0f;
+    }
 }
 
 void ClientPlayerPredictor::receiveServerPosition(const Vector3& position, f32 yaw, f32 pitch)

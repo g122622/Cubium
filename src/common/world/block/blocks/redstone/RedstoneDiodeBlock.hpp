@@ -215,7 +215,10 @@ protected:
     virtual void updateState(IWorld& world, const BlockPos& pos, const BlockState& state);
 
     /// 是否只接受二极管的侧面输入；中继器锁存使用此限制。
-    [[nodiscard]] virtual bool sideInputDiodesOnly() const { return false; }
+    [[nodiscard]] virtual bool sideInputDiodesOnly() const
+    {
+        return false;
+    }
 
     /**
      * @brief 通知邻居方块更新

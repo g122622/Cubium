@@ -107,7 +107,10 @@ public:
      *
      * @return 首选父容器；返回 nullptr 表示本节点无法作为创建点
      */
-    [[nodiscard]] virtual std::unique_ptr<nbt::tags::tag> createPreferredParentTag() const { return nullptr; }
+    [[nodiscard]] virtual std::unique_ptr<nbt::tags::tag> createPreferredParentTag() const
+    {
+        return nullptr;
+    }
 
     /**
      * @brief 判断本节点是否“总是匹配”任意标签
@@ -115,7 +118,10 @@ public:
      * 复合键过滤器节点在过滤器为 `{}` 时与 {……}（根对象过滤器）节点等价，总是匹配。
      * 该信息用于决定 `set` 时缺失的末级节点是否可以按给定值创建。
      */
-    [[nodiscard]] virtual bool matchesAnyTag() const { return false; }
+    [[nodiscard]] virtual bool matchesAnyTag() const
+    {
+        return false;
+    }
 
     /**
      * @brief 本节点是否直接作用于列表元素（下标/全元素/列表过滤）
@@ -123,7 +129,10 @@ public:
      * 这些节点的 set/remove 需要能原地修改目标列表，因此路径求值前会先把列表转换成
      * tag_list_tag；复合键与复合键过滤器节点本身不作用在列表元素上，返回 false。
      */
-    [[nodiscard]] virtual bool canTargetList() const { return true; }
+    [[nodiscard]] virtual bool canTargetList() const
+    {
+        return true;
+    }
 
     /**
      * @brief 把本节点直接访问的列表原地转换为元素以 unique_ptr<tag> 存储的 tag_list_tag
@@ -151,7 +160,10 @@ public:
      * 以复合过滤器 `{...}` 开头的路径只会匹配复合标签本身，`set` 时不会创建任何父节点，
      * 也无法按过滤器模式创建缺失的末级节点（见 NbtPath::set）。
      */
-    [[nodiscard]] virtual bool isRootObjectFilter() const { return false; }
+    [[nodiscard]] virtual bool isRootObjectFilter() const
+    {
+        return false;
+    }
 
     /**
      * @brief 释放上一次路径求值留下的元素物化缓存
@@ -281,7 +293,10 @@ public:
     /**
      * @brief 路径节点数量，即写入值的实际嵌套层级上限
      */
-    [[nodiscard]] i32 estimatePathDepth() const noexcept { return static_cast<i32>(m_nodes.size()); }
+    [[nodiscard]] i32 estimatePathDepth() const noexcept
+    {
+        return static_cast<i32>(m_nodes.size());
+    }
 
     /**
      * @brief 将值追加到列表末尾
@@ -310,17 +325,26 @@ public:
     /**
      * @brief 获取原始路径字符串
      */
-    [[nodiscard]] const std::string& toString() const noexcept { return m_rawText; }
+    [[nodiscard]] const std::string& toString() const noexcept
+    {
+        return m_rawText;
+    }
 
     /**
      * @brief 检查路径是否为空
      */
-    [[nodiscard]] bool empty() const noexcept { return m_nodes.empty(); }
+    [[nodiscard]] bool empty() const noexcept
+    {
+        return m_nodes.empty();
+    }
 
     /**
      * @brief 获取路径节点数量
      */
-    [[nodiscard]] size_t size() const noexcept { return m_nodes.size(); }
+    [[nodiscard]] size_t size() const noexcept
+    {
+        return m_nodes.size();
+    }
 
 private:
     /**
@@ -363,11 +387,23 @@ public:
         std::function<std::unique_ptr<nbt::tags::tag>()> creator,
         bool overwriteSame) const override;
     [[nodiscard]] std::unique_ptr<nbt::tags::tag> createPreferredParentTag() const override;
-    [[nodiscard]] bool canTargetList() const override { return false; }
-    bool heavyList(nbt::tags::tag* tag) const override;
-    [[nodiscard]] std::string toString() const override { return m_name; }
 
-    [[nodiscard]] const std::string& name() const noexcept { return m_name; }
+    [[nodiscard]] bool canTargetList() const override
+    {
+        return false;
+    }
+
+    bool heavyList(nbt::tags::tag* tag) const override;
+
+    [[nodiscard]] std::string toString() const override
+    {
+        return m_name;
+    }
+
+    [[nodiscard]] const std::string& name() const noexcept
+    {
+        return m_name;
+    }
 
 private:
     std::string m_name;
@@ -398,12 +434,22 @@ public:
     [[nodiscard]] std::vector<nbt::tags::tag*> getOrCreate(nbt::tags::tag* tag,
         std::function<std::unique_ptr<nbt::tags::tag>()> creator,
         bool overwriteSame) const override;
-    [[nodiscard]] std::string toString() const override { return "[" + std::to_string(m_index) + "]"; }
+
+    [[nodiscard]] std::string toString() const override
+    {
+        return "[" + std::to_string(m_index) + "]";
+    }
 
     /// 释放上一次求值物化出的裸值列表元素（见 elementAt）
-    void resetElementCache() const override { m_elementCache.clear(); }
+    void resetElementCache() const override
+    {
+        m_elementCache.clear();
+    }
 
-    [[nodiscard]] i32 index() const noexcept { return m_index; }
+    [[nodiscard]] i32 index() const noexcept
+    {
+        return m_index;
+    }
 
 private:
     i32 m_index;
@@ -435,10 +481,17 @@ public:
     [[nodiscard]] std::vector<nbt::tags::tag*> getOrCreate(nbt::tags::tag* tag,
         std::function<std::unique_ptr<nbt::tags::tag>()> creator,
         bool overwriteSame) const override;
-    [[nodiscard]] std::string toString() const override { return "[]"; }
+
+    [[nodiscard]] std::string toString() const override
+    {
+        return "[]";
+    }
 
     /// 释放上一次求值物化出的裸值列表元素（见 elementAt）
-    void resetElementCache() const override { m_elementCache.clear(); }
+    void resetElementCache() const override
+    {
+        m_elementCache.clear();
+    }
 
 private:
     /// 裸值列表元素的物化缓存，保证 get 返回的元素指针在本次求值期间保持有效
@@ -466,8 +519,17 @@ public:
         std::function<std::unique_ptr<nbt::tags::tag>()> creator,
         bool overwriteSame) const override;
     [[nodiscard]] std::unique_ptr<nbt::tags::tag> createPreferredParentTag() const override;
-    [[nodiscard]] bool matchesAnyTag() const override { return m_filter == nullptr || m_filter->value.empty(); }
-    [[nodiscard]] bool isRootObjectFilter() const override { return !matchesAnyTag(); }
+
+    [[nodiscard]] bool matchesAnyTag() const override
+    {
+        return m_filter == nullptr || m_filter->value.empty();
+    }
+
+    [[nodiscard]] bool isRootObjectFilter() const override
+    {
+        return !matchesAnyTag();
+    }
+
     [[nodiscard]] std::string toString() const override;
 
 private:
@@ -532,7 +594,12 @@ public:
         std::function<std::unique_ptr<nbt::tags::tag>()> creator,
         bool overwriteSame) const override;
     [[nodiscard]] std::unique_ptr<nbt::tags::tag> createPreferredParentTag() const override;
-    [[nodiscard]] bool canTargetList() const override { return false; }
+
+    [[nodiscard]] bool canTargetList() const override
+    {
+        return false;
+    }
+
     bool heavyList(nbt::tags::tag* tag) const override;
     [[nodiscard]] std::string toString() const override;
 

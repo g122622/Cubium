@@ -48,7 +48,10 @@ public:
         : ProtectionEnchantment(Type::Fall)
     {}
 
-    [[nodiscard]] std::string id() const override { return "minecraft:feather_falling"; }
+    [[nodiscard]] std::string id() const override
+    {
+        return "minecraft:feather_falling";
+    }
 
     [[nodiscard]] std::string getNameKey(i32 level) const override
     {
@@ -56,7 +59,10 @@ public:
         return "enchantment.minecraft.feather_falling";
     }
 
-    [[nodiscard]] EnchantmentRarity rarity() const noexcept override { return EnchantmentRarity::Uncommon; }
+    [[nodiscard]] EnchantmentRarity rarity() const noexcept override
+    {
+        return EnchantmentRarity::Uncommon;
+    }
 };
 
 } // namespace enchant

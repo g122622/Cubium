@@ -156,14 +156,20 @@ public:
      * 每次 injectRegion/removeDynamicRegion 自增。用于 AnimatedMeshCache
      * 检测皮肤区域变化并重做 UV（见 AnimationContext::skinRegionVersion）。
      */
-    [[nodiscard]] u32 contentVersion() const { return m_contentVersion; }
+    [[nodiscard]] u32 contentVersion() const
+    {
+        return m_contentVersion;
+    }
 
     /**
      * @brief 是否需要重建
      *
      * 如果在构建后添加了新纹理，返回 true。
      */
-    [[nodiscard]] bool needsRebuild() const { return m_needsRebuild; }
+    [[nodiscard]] bool needsRebuild() const
+    {
+        return m_needsRebuild;
+    }
 
     /**
      * @brief 重建图集
@@ -202,23 +208,39 @@ public:
     /**
      * @brief 获取图集图像视图
      */
-    [[nodiscard]] VkImageView imageView() const { return m_imageView; }
+    [[nodiscard]] VkImageView imageView() const
+    {
+        return m_imageView;
+    }
 
     /**
      * @brief 获取图集采样器
      */
-    [[nodiscard]] VkSampler sampler() const { return m_sampler; }
+    [[nodiscard]] VkSampler sampler() const
+    {
+        return m_sampler;
+    }
 
     /**
      * @brief 是否已构建
      */
-    [[nodiscard]] bool isBuilt() const { return m_built; }
+    [[nodiscard]] bool isBuilt() const
+    {
+        return m_built;
+    }
 
     /**
      * @brief 获取图集尺寸
      */
-    [[nodiscard]] u32 width() const { return m_width; }
-    [[nodiscard]] u32 height() const { return m_height; }
+    [[nodiscard]] u32 width() const
+    {
+        return m_width;
+    }
+
+    [[nodiscard]] u32 height() const
+    {
+        return m_height;
+    }
 
 private:
     VkDevice m_device = VK_NULL_HANDLE;
@@ -245,6 +267,7 @@ private:
         u32 height = 0;
         ResourceLocation location;
     };
+
     std::vector<TextureData> m_textures;
 
     // 等待添加的纹理（构建后添加）

@@ -119,23 +119,35 @@ public:
     /**
      * @brief 获取条目数量
      */
-    [[nodiscard]] size_t size() const { return m_entries.size(); }
+    [[nodiscard]] size_t size() const
+    {
+        return m_entries.size();
+    }
 
     /**
      * @brief 是否为空
      */
-    [[nodiscard]] bool empty() const { return m_entries.empty(); }
+    [[nodiscard]] bool empty() const
+    {
+        return m_entries.empty();
+    }
 
     /**
      * @brief 获取总权重
      */
-    [[nodiscard]] i32 totalWeight() const noexcept { return m_totalWeight; }
+    [[nodiscard]] i32 totalWeight() const noexcept
+    {
+        return m_totalWeight;
+    }
 
     /**
      * @brief 只读访问全部加权条目（用于解析期枚举，如把 weighted_state_provider
      *        的所有状态平铺到 flowers 列表）
      */
-    [[nodiscard]] const std::vector<WeightedStateEntry>& entries() const noexcept { return m_entries; }
+    [[nodiscard]] const std::vector<WeightedStateEntry>& entries() const noexcept
+    {
+        return m_entries;
+    }
 
 private:
     std::vector<WeightedStateEntry> m_entries;

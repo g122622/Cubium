@@ -382,10 +382,12 @@ void FrogEntity::registerAttributes()
     // 对齐 vanilla Frog.createAttributes
     attributes().setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, FROG_MOVEMENT_SPEED);
     attributes().setBaseValue(entity::attribute::Attributes::MAX_HEALTH, FROG_MAX_HEALTH);
+    attributes().registerAttribute(*entity::attribute::Attributes::attackDamage());
     attributes().setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, FROG_ATTACK_DAMAGE);
     // STEP_HEIGHT 在本项目是实体字段而非属性（vanilla 1.21 起才有该属性），直接设置。
     setStepHeight(FROG_STEP_HEIGHT);
     attributes().setBaseValue(entity::attribute::Attributes::FOLLOW_RANGE, FROG_FOLLOW_RANGE);
+    // 原版 Frog.createAttributes 显式写 ARMOR 0。
 }
 
 void FrogEntity::registerData()

@@ -63,6 +63,7 @@ public:
     {
         throw std::runtime_error("ExplosionTestWorld::tickManager not implemented");
     }
+
     [[nodiscard]] const world::tick::TickManager& tickManager() const override
     {
         throw std::runtime_error("ExplosionTestWorld::tickManager not implemented");
@@ -85,7 +86,10 @@ public:
     }
 
     /// 设置 getEntitiesInAABB 返回的实体列表
-    void setEntities(std::vector<Entity*> entities) { m_entities = std::move(entities); }
+    void setEntities(std::vector<Entity*> entities)
+    {
+        m_entities = std::move(entities);
+    }
 
 private:
     std::vector<Entity*> m_entities;

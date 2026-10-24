@@ -93,7 +93,9 @@ bool IronGolemAttackGoal::shouldExecute()
 
 bool IronGolemAttackGoal::shouldContinueExecuting()
 {
-    if (!m_attackTarget) return false;
+    if (!m_attackTarget) {
+        return false;
+    }
 
     // 检查目标是否存活
     if (!m_attackTarget->isAlive()) {
@@ -143,7 +145,9 @@ void IronGolemAttackGoal::resetTask()
 
 void IronGolemAttackGoal::tick()
 {
-    if (!m_attackTarget) return;
+    if (!m_attackTarget) {
+        return;
+    }
 
     // 移除或析构的引用会自动失效；此处同时处理尚未移除的死亡目标。
     if (!m_attackTarget->isAlive()) {
@@ -204,7 +208,9 @@ void IronGolemAttackGoal::tick()
 
 bool IronGolemAttackGoal::canAttack(LivingEntity* target) const
 {
-    if (!target) return false;
+    if (!target) {
+        return false;
+    }
 
     // 检查是否在攻击范围内
     f32 attackReachSq = getAttackReachSqr(target);
@@ -215,7 +221,9 @@ bool IronGolemAttackGoal::canAttack(LivingEntity* target) const
 
 void IronGolemAttackGoal::checkAndPerformAttack(LivingEntity* target, f64 distToEnemySqr)
 {
-    if (!target) return;
+    if (!target) {
+        return;
+    }
 
     f32 attackReachSq = getAttackReachSqr(target);
 
@@ -230,7 +238,9 @@ void IronGolemAttackGoal::checkAndPerformAttack(LivingEntity* target, f64 distTo
 
 void IronGolemAttackGoal::attackTarget(LivingEntity* target)
 {
-    if (!target) return;
+    if (!target) {
+        return;
+    }
 
     // 使用铁傀儡的统一攻击方法，包含伤害、击退、附魔效果和声音
     m_golem->attackEntityAsMob(*target);
@@ -260,7 +270,9 @@ OfferFlowerGoal::OfferFlowerGoal(IronGolemEntity* ironGolem)
 bool OfferFlowerGoal::shouldExecute()
 {
     IWorld* world = m_ironGolem->world();
-    if (!world) return false;
+    if (!world) {
+        return false;
+    }
 
     // 只在室外明亮时执行（与 MC 1.21.11 OfferFlowerGoal.canUse() 中
     // level().isBrightOutside() 一致；雷暴天也会让天空变暗，从而禁止赠花）
@@ -332,7 +344,9 @@ AxisAlignedBB OfferFlowerGoal::_getGolemSearchBox() const
 LivingEntity* OfferFlowerGoal::_findNearestCandidate() const
 {
     IWorld* world = m_ironGolem->world();
-    if (!world) return nullptr;
+    if (!world) {
+        return nullptr;
+    }
 
     // 当标签系统尚未初始化（如单元测试环境）时，直接返回 nullptr，
     // 避免访问空数据。运行时由 MinecraftServer::initializeRegistries() 完成初始化。
@@ -434,7 +448,9 @@ DefendVillageTargetGoal::DefendVillageTargetGoal(IronGolemEntity* golem)
 bool DefendVillageTargetGoal::shouldExecute()
 {
     IWorld* world = m_golem->world();
-    if (!world) return false;
+    if (!world) {
+        return false;
+    }
 
     // 搜索附近攻击村民的实体，找到最近的村民，然后找到攻击该村民的敌对生物
     // 首先找到附近的村民
@@ -499,7 +515,9 @@ bool IronGolemNearestAttackableTargetGoal::shouldExecute()
     }
 
     IWorld* world = m_golem->world();
-    if (!world) return false;
+    if (!world) {
+        return false;
+    }
 
     // 搜索附近的敌对生物，但不包括苦力怕
     // canAttackType 检查排除苦力怕和玩家创建者

@@ -47,6 +47,7 @@ struct BasaltColumnFeatureConfig : public IFeatureConfig {
     std::unique_ptr<world::gen::valueprovider::IntProvider> height;
 
     BasaltColumnFeatureConfig() = default;
+
     BasaltColumnFeatureConfig(std::unique_ptr<world::gen::valueprovider::IntProvider> r,
         std::unique_ptr<world::gen::valueprovider::IntProvider> h)
         : reach(std::move(r))
@@ -89,9 +90,20 @@ public:
         math::IRandom& random,
         const BlockPos& pos) const override;
 
-    [[nodiscard]] const char* name() const override { return m_name.c_str(); }
-    [[nodiscard]] DecorationStage stage() const override { return DecorationStage::UndergroundDecoration; }
-    [[nodiscard]] const BasaltColumnFeatureConfig& getConfig() const { return *m_config; }
+    [[nodiscard]] const char* name() const override
+    {
+        return m_name.c_str();
+    }
+
+    [[nodiscard]] DecorationStage stage() const override
+    {
+        return DecorationStage::UndergroundDecoration;
+    }
+
+    [[nodiscard]] const BasaltColumnFeatureConfig& getConfig() const
+    {
+        return *m_config;
+    }
 
 private:
     std::unique_ptr<BasaltColumnFeatureConfig> m_config;

@@ -53,9 +53,16 @@ public:
 
     [[nodiscard]] ItemStack apply(ItemStack stack, LootContext& context) const override;
     [[nodiscard]] std::unique_ptr<LootFunction> clone() const noexcept override;
-    [[nodiscard]] std::string getType() const noexcept override { return "set_firework_explosion"; }
 
-    [[nodiscard]] const std::optional<item::component::FireworkShape>& getShape() const { return m_shape; }
+    [[nodiscard]] std::string getType() const noexcept override
+    {
+        return "set_firework_explosion";
+    }
+
+    [[nodiscard]] const std::optional<item::component::FireworkShape>& getShape() const
+    {
+        return m_shape;
+    }
 
 private:
     std::optional<item::component::FireworkShape> m_shape;

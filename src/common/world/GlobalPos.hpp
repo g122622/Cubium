@@ -71,19 +71,34 @@ public:
     {}
 
     /** @brief 获取维度ID */
-    [[nodiscard]] DimensionId getDimensionId() const noexcept { return m_dimensionId; }
+    [[nodiscard]] DimensionId getDimensionId() const noexcept
+    {
+        return m_dimensionId;
+    }
 
     /** @brief 获取方块位置 */
-    [[nodiscard]] const BlockPos& getPos() const noexcept { return m_pos; }
+    [[nodiscard]] const BlockPos& getPos() const noexcept
+    {
+        return m_pos;
+    }
 
     /** @brief 获取X坐标 */
-    [[nodiscard]] BlockCoord x() const noexcept { return m_pos.x; }
+    [[nodiscard]] BlockCoord x() const noexcept
+    {
+        return m_pos.x;
+    }
 
     /** @brief 获取Y坐标 */
-    [[nodiscard]] BlockCoord y() const noexcept { return m_pos.y; }
+    [[nodiscard]] BlockCoord y() const noexcept
+    {
+        return m_pos.y;
+    }
 
     /** @brief 获取Z坐标 */
-    [[nodiscard]] BlockCoord z() const noexcept { return m_pos.z; }
+    [[nodiscard]] BlockCoord z() const noexcept
+    {
+        return m_pos.z;
+    }
 
     /**
      * @brief 相等比较
@@ -102,7 +117,10 @@ public:
      * @param other 另一个全局位置
      * @return 是否不相等
      */
-    [[nodiscard]] bool operator!=(const GlobalPos& other) const noexcept { return !(*this == other); }
+    [[nodiscard]] bool operator!=(const GlobalPos& other) const noexcept
+    {
+        return !(*this == other);
+    }
 
     /**
      * @brief 检查是否在同一维度

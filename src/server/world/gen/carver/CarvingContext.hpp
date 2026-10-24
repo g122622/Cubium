@@ -30,15 +30,19 @@ namespace mc {
 
 // 前向声明
 class BlockState;
+
 namespace world::biome {
 class IBiomeSource;
 }
+
 namespace world::gen::aquifer {
 class Aquifer;
 }
+
 namespace world::gen::density {
 class NoiseChunk;
 }
+
 namespace world::gen {
 class RandomState;
 }
@@ -83,13 +87,23 @@ public:
     /**
      * @brief 获取含水层采样器
      */
-    [[nodiscard]] world::gen::aquifer::Aquifer* aquifer() { return m_aquifer; }
-    [[nodiscard]] const world::gen::aquifer::Aquifer* aquifer() const { return m_aquifer; }
+    [[nodiscard]] world::gen::aquifer::Aquifer* aquifer()
+    {
+        return m_aquifer;
+    }
+
+    [[nodiscard]] const world::gen::aquifer::Aquifer* aquifer() const
+    {
+        return m_aquifer;
+    }
 
     /**
      * @brief 含水层是否可用
      */
-    [[nodiscard]] bool hasAquifer() const { return m_aquifer != nullptr; }
+    [[nodiscard]] bool hasAquifer() const
+    {
+        return m_aquifer != nullptr;
+    }
 
     /**
      * @brief 获取噪声区块
@@ -97,7 +111,10 @@ public:
      * MC 1.21: CarvingContext.noiseChunk()
      * 用于雕刻器查询密度值或预备表面高度。
      */
-    [[nodiscard]] const world::gen::density::NoiseChunk* noiseChunk() const { return m_noiseChunk; }
+    [[nodiscard]] const world::gen::density::NoiseChunk* noiseChunk() const
+    {
+        return m_noiseChunk;
+    }
 
     /**
      * @brief 获取随机状态
@@ -105,7 +122,10 @@ public:
      * MC 1.21: CarvingContext.randomState()
      * 用于雕刻器访问密度函数或表面规则。
      */
-    [[nodiscard]] const world::gen::RandomState* randomState() const { return m_randomState; }
+    [[nodiscard]] const world::gen::RandomState* randomState() const
+    {
+        return m_randomState;
+    }
 
     /**
      * @brief 获取指定位置的生物群系地表方块（MC 1.21 CarvingContext.topMaterial）

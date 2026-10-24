@@ -75,7 +75,10 @@ public:
     [[nodiscard]] bool shouldExecute() override;
     void tick() override;
 
-    [[nodiscard]] std::string getTypeName() const override { return "SquidMoveRandomGoal"; }
+    [[nodiscard]] std::string getTypeName() const override
+    {
+        return "SquidMoveRandomGoal";
+    }
 
 private:
     SquidEntity* m_squid;
@@ -131,7 +134,10 @@ public:
     void startExecuting() override;
     void tick() override;
 
-    [[nodiscard]] std::string getTypeName() const override { return "SquidFleeGoal"; }
+    [[nodiscard]] std::string getTypeName() const override
+    {
+        return "SquidFleeGoal";
+    }
 
 private:
     SquidEntity* m_squid;

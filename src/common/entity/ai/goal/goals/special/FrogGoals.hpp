@@ -69,7 +69,10 @@ public:
     void startExecuting() override;
     void resetTask() override;
 
-    [[nodiscard]] std::string getTypeName() const override { return "FrogAttackTargetGoal"; }
+    [[nodiscard]] std::string getTypeName() const override
+    {
+        return "FrogAttackTargetGoal";
+    }
 
 private:
     FrogEntity* m_frog;
@@ -117,7 +120,10 @@ public:
     void resetTask() override;
     void tick() override;
 
-    [[nodiscard]] std::string getTypeName() const override { return "FrogTongueGoal"; }
+    [[nodiscard]] std::string getTypeName() const override
+    {
+        return "FrogTongueGoal";
+    }
 
 private:
     enum class State : u8 {

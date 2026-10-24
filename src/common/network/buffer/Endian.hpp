@@ -38,12 +38,35 @@ struct Endian {
     [[nodiscard]] static u32 swap32(u32 value) noexcept;
     [[nodiscard]] static u64 swap64(u64 value) noexcept;
 
-    [[nodiscard]] static u16 hostToNetwork16(u16 value) noexcept { return swap16(value); }
-    [[nodiscard]] static u32 hostToNetwork32(u32 value) noexcept { return swap32(value); }
-    [[nodiscard]] static u64 hostToNetwork64(u64 value) noexcept { return swap64(value); }
-    [[nodiscard]] static u16 networkToHost16(u16 value) noexcept { return swap16(value); }
-    [[nodiscard]] static u32 networkToHost32(u32 value) noexcept { return swap32(value); }
-    [[nodiscard]] static u64 networkToHost64(u64 value) noexcept { return swap64(value); }
+    [[nodiscard]] static u16 hostToNetwork16(u16 value) noexcept
+    {
+        return swap16(value);
+    }
+
+    [[nodiscard]] static u32 hostToNetwork32(u32 value) noexcept
+    {
+        return swap32(value);
+    }
+
+    [[nodiscard]] static u64 hostToNetwork64(u64 value) noexcept
+    {
+        return swap64(value);
+    }
+
+    [[nodiscard]] static u16 networkToHost16(u16 value) noexcept
+    {
+        return swap16(value);
+    }
+
+    [[nodiscard]] static u32 networkToHost32(u32 value) noexcept
+    {
+        return swap32(value);
+    }
+
+    [[nodiscard]] static u64 networkToHost64(u64 value) noexcept
+    {
+        return swap64(value);
+    }
 };
 
 } // namespace mc::network::buffer

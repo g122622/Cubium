@@ -80,7 +80,10 @@ public:
      * @brief 是否可以生成
      * 检查是否在适合生成的水域
      */
-    [[nodiscard]] virtual bool canSpawnInWater() const { return true; }
+    [[nodiscard]] virtual bool canSpawnInWater() const
+    {
+        return true;
+    }
 
     // ========== 呼吸系统 ==========
 
@@ -88,34 +91,52 @@ public:
      * @brief 获取空气供应量
      * 水生生物使用基类的air()方法
      */
-    [[nodiscard]] i32 getAirSupply() const { return air(); }
+    [[nodiscard]] i32 getAirSupply() const
+    {
+        return air();
+    }
 
     /**
      * @brief 设置空气供应量
      */
-    void setAirSupply(i32 supply) { setAir(supply); }
+    void setAirSupply(i32 supply)
+    {
+        setAir(supply);
+    }
 
     /**
      * @brief 获取最大空气供应量
      */
-    [[nodiscard]] i32 getMaxAirSupply() const { return maxAir(); }
+    [[nodiscard]] i32 getMaxAirSupply() const
+    {
+        return maxAir();
+    }
 
     /**
      * @brief 是否在窒息
      */
-    [[nodiscard]] bool isDrowning() const { return air() <= 0; }
+    [[nodiscard]] bool isDrowning() const
+    {
+        return air() <= 0;
+    }
 
     // ========== 行为 ==========
 
     /**
      * @brief 是否可以游泳
      */
-    [[nodiscard]] virtual bool canSwim() const { return true; }
+    [[nodiscard]] virtual bool canSwim() const
+    {
+        return true;
+    }
 
     /**
      * @brief 是否会被水流推动
      */
-    [[nodiscard]] virtual bool canBePushedByWater() const { return true; }
+    [[nodiscard]] virtual bool canBePushedByWater() const
+    {
+        return true;
+    }
 
     // ========== 寻路权重 ==========
 

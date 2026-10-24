@@ -56,9 +56,15 @@ public:
 
     [[nodiscard]] bool needsMeshUpdate(::mc::client::ClientEntity& entity) const override;
 
-    [[nodiscard]] VkPrimitiveTopology getTopology() const noexcept override { return VK_PRIMITIVE_TOPOLOGY_LINE_LIST; }
+    [[nodiscard]] VkPrimitiveTopology getTopology() const noexcept override
+    {
+        return VK_PRIMITIVE_TOPOLOGY_LINE_LIST;
+    }
 
-    [[nodiscard]] core::PipelineMeshProvider* getPipelineMeshProvider() noexcept override { return this; }
+    [[nodiscard]] core::PipelineMeshProvider* getPipelineMeshProvider() noexcept override
+    {
+        return this;
+    }
 
 private:
     /**

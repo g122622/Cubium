@@ -46,13 +46,19 @@ struct AudioFormat {
      * @brief 获取字节率
      * @return 每秒字节数
      */
-    [[nodiscard]] u32 byteRate() const noexcept { return sampleRate * channels * (bitsPerSample / 8); }
+    [[nodiscard]] u32 byteRate() const noexcept
+    {
+        return sampleRate * channels * (bitsPerSample / 8);
+    }
 
     /**
      * @brief 获取块对齐
      * @return 一个样本块的字节数
      */
-    [[nodiscard]] u16 blockAlign() const noexcept { return channels * (bitsPerSample / 8); }
+    [[nodiscard]] u16 blockAlign() const noexcept
+    {
+        return channels * (bitsPerSample / 8);
+    }
 
     /**
      * @brief 检查格式是否有效
@@ -90,7 +96,10 @@ struct AudioData {
     /**
      * @brief 检查数据是否有效
      */
-    [[nodiscard]] bool isValid() const noexcept { return format.isValid() && !samples.empty(); }
+    [[nodiscard]] bool isValid() const noexcept
+    {
+        return format.isValid() && !samples.empty();
+    }
 
     /**
      * @brief 获取样本数量

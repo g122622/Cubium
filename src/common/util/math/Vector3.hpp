@@ -67,8 +67,15 @@ public:
     {}
 
     // 静态常量方法
-    static Vector3 zero() { return Vector3(static_cast<T>(0), static_cast<T>(0), static_cast<T>(0)); }
-    static Vector3 one() { return Vector3(static_cast<T>(1), static_cast<T>(1), static_cast<T>(1)); }
+    static Vector3 zero()
+    {
+        return Vector3(static_cast<T>(0), static_cast<T>(0), static_cast<T>(0));
+    }
+
+    static Vector3 one()
+    {
+        return Vector3(static_cast<T>(1), static_cast<T>(1), static_cast<T>(1));
+    }
 
     // 算术运算
     [[nodiscard]] Vector3 operator+(const Vector3& other) const noexcept
@@ -81,14 +88,20 @@ public:
         return {x - other.x, y - other.y, z - other.z};
     }
 
-    [[nodiscard]] Vector3 operator*(T scalar) const noexcept { return {x * scalar, y * scalar, z * scalar}; }
+    [[nodiscard]] Vector3 operator*(T scalar) const noexcept
+    {
+        return {x * scalar, y * scalar, z * scalar};
+    }
 
     [[nodiscard]] Vector3 operator*(const Vector3& other) const noexcept
     {
         return {x * other.x, y * other.y, z * other.z};
     }
 
-    [[nodiscard]] Vector3 operator/(T scalar) const noexcept { return {x / scalar, y / scalar, z / scalar}; }
+    [[nodiscard]] Vector3 operator/(T scalar) const noexcept
+    {
+        return {x / scalar, y / scalar, z / scalar};
+    }
 
     [[nodiscard]] Vector3 operator/(const Vector3& other) const noexcept
     {
@@ -127,7 +140,10 @@ public:
         return *this;
     }
 
-    [[nodiscard]] Vector3 operator-() const noexcept { return {-x, -y, -z}; }
+    [[nodiscard]] Vector3 operator-() const noexcept
+    {
+        return {-x, -y, -z};
+    }
 
     // 比较运算
     [[nodiscard]] bool operator==(const Vector3& other) const noexcept
@@ -135,7 +151,10 @@ public:
         return x == other.x && y == other.y && z == other.z;
     }
 
-    [[nodiscard]] bool operator!=(const Vector3& other) const noexcept { return !(*this == other); }
+    [[nodiscard]] bool operator!=(const Vector3& other) const noexcept
+    {
+        return !(*this == other);
+    }
 
     // 向量运算 (仅浮点类型)
     template <typename U = T, typename = std::enable_if_t<std::is_floating_point_v<U>>>
@@ -173,7 +192,10 @@ public:
         *this = normalized();
     }
 
-    [[nodiscard]] T dot(const Vector3& other) const noexcept { return x * other.x + y * other.y + z * other.z; }
+    [[nodiscard]] T dot(const Vector3& other) const noexcept
+    {
+        return x * other.x + y * other.y + z * other.z;
+    }
 
     [[nodiscard]] Vector3 cross(const Vector3& other) const noexcept
     {

@@ -96,12 +96,18 @@ public:
     /**
      * @brief 是否为空谓词（无任何条目）
      */
-    [[nodiscard]] bool isEmpty() const { return m_predicates.empty(); }
+    [[nodiscard]] bool isEmpty() const
+    {
+        return m_predicates.empty();
+    }
 
     /**
      * @brief 获取原始谓词条目列表
      */
-    [[nodiscard]] const std::vector<std::string>& getPredicates() const { return m_predicates; }
+    [[nodiscard]] const std::vector<std::string>& getPredicates() const
+    {
+        return m_predicates;
+    }
 
     /**
      * @brief 检查给定方块状态是否匹配此谓词（纯方块状态，无世界上下文）
@@ -145,7 +151,11 @@ public:
      * @brief 检查两个谓词是否相等
      */
     bool operator==(const AdventureModePredicate& other) const;
-    bool operator!=(const AdventureModePredicate& other) const { return !(*this == other); }
+
+    bool operator!=(const AdventureModePredicate& other) const
+    {
+        return !(*this == other);
+    }
 
 private:
     /**

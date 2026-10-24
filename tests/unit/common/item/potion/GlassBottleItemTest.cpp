@@ -72,6 +72,7 @@ public:
     {
         throw std::runtime_error("GlassBottleTestWorld::tickManager not implemented");
     }
+
     [[nodiscard]] const world::tick::TickManager& tickManager() const override
     {
         throw std::runtime_error("GlassBottleTestWorld::tickManager not implemented");

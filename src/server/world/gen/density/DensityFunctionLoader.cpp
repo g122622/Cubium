@@ -108,7 +108,9 @@ Result<std::unique_ptr<DensityFunction>> resolveElement(const json& element)
         }
         const std::string type = element["type"].get<std::string>();
         ResolveContext ctx;
-        ctx.resolveInline = [](const json& e) { return resolveElement(e); };
+        ctx.resolveInline = [](const json& e) {
+            return resolveElement(e);
+        };
         return DensityFunctionTypeRegistry::instance().create(type, element, ctx);
     }
     return Error(ErrorCode::InvalidData, "density_function JSON element must be number, string, or object");
@@ -187,7 +189,9 @@ Result<std::unique_ptr<DensityFunction>> resolveElementPostLoad(const json& elem
         }
         const std::string type = element["type"].get<std::string>();
         ResolveContext ctx;
-        ctx.resolveInline = [](const json& e) { return resolveElementPostLoad(e); };
+        ctx.resolveInline = [](const json& e) {
+            return resolveElementPostLoad(e);
+        };
         return DensityFunctionTypeRegistry::instance().create(type, element, ctx);
     }
     return Error(ErrorCode::InvalidData, "density_function JSON element must be number, string, or object");

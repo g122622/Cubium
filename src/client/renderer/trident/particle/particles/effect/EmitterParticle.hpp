@@ -84,7 +84,10 @@ public:
     /**
      * @brief 发射器粒子不渲染
      */
-    [[nodiscard]] ParticleRenderType getRenderType() const override { return ParticleRenderType::NO_RENDER; }
+    [[nodiscard]] ParticleRenderType getRenderType() const override
+    {
+        return ParticleRenderType::NO_RENDER;
+    }
 
     /**
      * @brief 发射一个粒子
@@ -125,17 +128,26 @@ public:
     /**
      * @brief 获取剩余发射次数
      */
-    [[nodiscard]] u32 remainingEmitCount() const { return m_emitCount; }
+    [[nodiscard]] u32 remainingEmitCount() const
+    {
+        return m_emitCount;
+    }
 
     /**
      * @brief 获取发射间隔（ticks）
      */
-    [[nodiscard]] u32 emitInterval() const { return m_emitInterval; }
+    [[nodiscard]] u32 emitInterval() const
+    {
+        return m_emitInterval;
+    }
 
     /**
      * @brief 设置发射间隔
      */
-    void setEmitInterval(u32 interval) { m_emitInterval = interval; }
+    void setEmitInterval(u32 interval)
+    {
+        m_emitInterval = interval;
+    }
 
 protected:
     u32 m_emitCount = 0;          ///< 剩余发射次数（0 = 无限）

@@ -61,8 +61,15 @@ public:
         setHealth(20.0f);
     }
 
-    void setKnockbackResistance(f64 value) { attributes().setBaseValue(Attributes::KNOCKBACK_RESISTANCE, value); }
-    void setAttackKnockback(f64 value) { attributes().setBaseValue(Attributes::ATTACK_KNOCKBACK, value); }
+    void setKnockbackResistance(f64 value)
+    {
+        attributes().setBaseValue(Attributes::KNOCKBACK_RESISTANCE, value);
+    }
+
+    void setAttackKnockback(f64 value)
+    {
+        attributes().setBaseValue(Attributes::ATTACK_KNOCKBACK, value);
+    }
 
     static std::unique_ptr<Entity> create(IWorld* /*world*/)
     {
@@ -85,9 +92,15 @@ public:
         setHealth(20.0f);
     }
 
-    void setAttackKnockback(f64 value) { attributes().setBaseValue(Attributes::ATTACK_KNOCKBACK, value); }
+    void setAttackKnockback(f64 value)
+    {
+        attributes().setBaseValue(Attributes::ATTACK_KNOCKBACK, value);
+    }
 
-    static std::unique_ptr<Entity> create(IWorld* /*world*/) { return std::make_unique<KnockbackTestMob>(0); }
+    static std::unique_ptr<Entity> create(IWorld* /*world*/)
+    {
+        return std::make_unique<KnockbackTestMob>(0);
+    }
 };
 
 // ============================================================================

@@ -60,7 +60,10 @@ public:
 
     void tick(mc::client::ClientWorld* world) override;
 
-    [[nodiscard]] ParticleRenderType getRenderType() const override { return ParticleRenderType::PARTICLE_SHEET_LIT; }
+    [[nodiscard]] ParticleRenderType getRenderType() const override
+    {
+        return ParticleRenderType::PARTICLE_SHEET_LIT;
+    }
 
     [[nodiscard]] ResourceLocation getTextureLocation() const override
     {
@@ -101,7 +104,10 @@ public:
 
     void tick(mc::client::ClientWorld* world) override;
 
-    [[nodiscard]] ParticleRenderType getRenderType() const override { return ParticleRenderType::PARTICLE_SHEET_LIT; }
+    [[nodiscard]] ParticleRenderType getRenderType() const override
+    {
+        return ParticleRenderType::PARTICLE_SHEET_LIT;
+    }
 
     [[nodiscard]] ResourceLocation getTextureLocation() const override
     {

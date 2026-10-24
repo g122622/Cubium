@@ -93,7 +93,9 @@ public:
         : NearestAttackableTargetGoal<LivingEntity>(vindicator,
               true, // checkSight
               0,    // chance（每 tick 检查）
-              [](const LivingEntity* target) -> bool { return target != nullptr && target->isAlive(); })
+              [](const LivingEntity* target) -> bool {
+                  return target != nullptr && target->isAlive();
+              })
         , m_vindicator(vindicator)
     {
         MC_ASSERT_RELEASE(vindicator != nullptr);
@@ -109,7 +111,10 @@ public:
         return NearestAttackableTargetGoal<LivingEntity>::shouldExecute();
     }
 
-    [[nodiscard]] std::string getTypeName() const override { return "VindicatorJohnnyAttackGoal"; }
+    [[nodiscard]] std::string getTypeName() const override
+    {
+        return "VindicatorJohnnyAttackGoal";
+    }
 
 private:
     VindicatorEntity* m_vindicator;
@@ -166,7 +171,9 @@ void PillagerEntity::attackEntityWithRangedAttack(LivingEntity* target, f32 char
     // charge 参数对弩不重要，弩使用固定速度
     MC_UNUSED(charge);
 
-    if (!target || !m_world) return;
+    if (!target || !m_world) {
+        return;
+    }
 
     // 获取主手弩
     ItemStack& crossbow = getMutableMainHandItem();
@@ -193,7 +200,9 @@ void PillagerEntity::onCrossbowLoadComplete(ItemStack& crossbow)
 
 void PillagerEntity::shootCrossbow(LivingEntity* target, ItemStack& crossbow, f32 charge)
 {
-    if (!target || !m_world || !crossbow.getItem()) return;
+    if (!target || !m_world || !crossbow.getItem()) {
+        return;
+    }
 
     MC_UNUSED(charge);
 

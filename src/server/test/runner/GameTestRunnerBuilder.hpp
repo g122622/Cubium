@@ -29,21 +29,25 @@ public:
         m_world = &w;
         return *this;
     }
+
     GameTestRunnerBuilder& ticker(GameTestTicker& t) noexcept
     {
         m_ticker = &t;
         return *this;
     }
+
     GameTestRunnerBuilder& batches(std::vector<GameTestBatch> b)
     {
         m_batches = std::move(b);
         return *this;
     }
+
     GameTestRunnerBuilder& gridStart(BlockPos p) noexcept
     {
         m_gridStart = p;
         return *this;
     }
+
     GameTestRunnerBuilder& testsPerRow(std::size_t n) noexcept
     {
         m_testsPerRow = n;

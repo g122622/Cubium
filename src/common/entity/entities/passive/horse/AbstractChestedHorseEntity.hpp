@@ -89,7 +89,10 @@ public:
      *
      * vanilla 驴和骡固定为 5 列，羊驼会覆写成 strength。
      */
-    [[nodiscard]] virtual i32 getInventoryColumns() const { return 5; }
+    [[nodiscard]] virtual i32 getInventoryColumns() const
+    {
+        return 5;
+    }
 
     /**
      * @brief 计算库存大小

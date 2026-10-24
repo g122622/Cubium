@@ -45,8 +45,16 @@ public:
     explicit FeatureJigsawPiece(
         const std::string& featureId, JigsawPlacementBehaviour behaviour = JigsawPlacementBehaviour::Rigid);
 
-    const std::string& getTypeName() const override { return s_typeName; }
-    const std::string& getFeatureId() const { return m_featureId; }
+    const std::string& getTypeName() const override
+    {
+        return s_typeName;
+    }
+
+    const std::string& getFeatureId() const
+    {
+        return m_featureId;
+    }
+
     std::unique_ptr<JigsawPiece> clone() const override
     {
         auto piece = std::make_unique<FeatureJigsawPiece>(m_featureId, getPlacementBehaviour());
@@ -54,8 +62,16 @@ public:
         copyJointsTo(*piece);
         return piece;
     }
-    bool isEmpty() const override { return false; }
-    BlockPos getSize() const override { return BlockPos(0, 0, 0); }
+
+    bool isEmpty() const override
+    {
+        return false;
+    }
+
+    BlockPos getSize() const override
+    {
+        return BlockPos(0, 0, 0);
+    }
 
     void place(IWorldWriter& world,
         const PlacedPiece& placed,

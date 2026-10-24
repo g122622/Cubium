@@ -109,7 +109,10 @@ public:
      * @brief 获取背包指针
      * @return 背包指针，如果无背包返回 nullptr
      */
-    [[nodiscard]] IInventory* get() const noexcept { return m_ptr; }
+    [[nodiscard]] IInventory* get() const noexcept
+    {
+        return m_ptr;
+    }
 
     /**
      * @brief 获取拥有的 ISidedInventory 指针（如果拥有）
@@ -121,34 +124,56 @@ public:
      * @brief 检查是否为空引用
      * @return 如果无背包返回 true
      */
-    [[nodiscard]] bool isEmpty() const noexcept { return m_ptr == nullptr; }
+    [[nodiscard]] bool isEmpty() const noexcept
+    {
+        return m_ptr == nullptr;
+    }
 
     /**
      * @brief 检查是否拥有背包（需要释放）
      * @return 如果拥有背包返回 true
      */
-    [[nodiscard]] bool isOwning() const noexcept { return m_owned != nullptr; }
+    [[nodiscard]] bool isOwning() const noexcept
+    {
+        return m_owned != nullptr;
+    }
 
     /**
      * @brief 通过指针访问背包
      */
-    IInventory* operator->() const noexcept { return m_ptr; }
+    IInventory* operator->() const noexcept
+    {
+        return m_ptr;
+    }
 
     /**
      * @brief 解引用访问背包
      */
-    IInventory& operator*() const noexcept { return *m_ptr; }
+    IInventory& operator*() const noexcept
+    {
+        return *m_ptr;
+    }
 
     /**
      * @brief 隐式转换为 bool，检查是否有背包
      */
-    explicit operator bool() const noexcept { return m_ptr != nullptr; }
+    explicit operator bool() const noexcept
+    {
+        return m_ptr != nullptr;
+    }
 
     /**
      * @brief 与 nullptr 比较
      */
-    bool operator==(std::nullptr_t) const noexcept { return m_ptr == nullptr; }
-    bool operator!=(std::nullptr_t) const noexcept { return m_ptr != nullptr; }
+    bool operator==(std::nullptr_t) const noexcept
+    {
+        return m_ptr == nullptr;
+    }
+
+    bool operator!=(std::nullptr_t) const noexcept
+    {
+        return m_ptr != nullptr;
+    }
 
     /**
      * @brief 释放所有权，返回拥有的 unique_ptr

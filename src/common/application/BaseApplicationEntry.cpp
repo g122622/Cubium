@@ -45,8 +45,15 @@ namespace {
 // 非 Windows 平台 request/release 为空实现。
 class _HighResTimerGuard {
 public:
-    _HighResTimerGuard() { mc::util::PlatformInfo::requestHighResTimer(); }
-    ~_HighResTimerGuard() { mc::util::PlatformInfo::releaseHighResTimer(); }
+    _HighResTimerGuard()
+    {
+        mc::util::PlatformInfo::requestHighResTimer();
+    }
+
+    ~_HighResTimerGuard()
+    {
+        mc::util::PlatformInfo::releaseHighResTimer();
+    }
 
     _HighResTimerGuard(const _HighResTimerGuard&) = delete;
     _HighResTimerGuard& operator=(const _HighResTimerGuard&) = delete;

@@ -39,6 +39,7 @@ namespace mc {
 
 class BlockPos;
 class BlockEntity;
+
 namespace blocks {
 
 /**
@@ -55,7 +56,10 @@ public:
 
     ~TrialSpawnerBlock() override = default;
 
-    [[nodiscard]] bool hasBlockEntity() const noexcept override { return true; }
+    [[nodiscard]] bool hasBlockEntity() const noexcept override
+    {
+        return true;
+    }
 
     [[nodiscard]] std::unique_ptr<BlockEntity> createBlockEntity(const BlockPos& pos) override;
 
@@ -88,7 +92,10 @@ public:
 
     ~VaultBlock() override = default;
 
-    [[nodiscard]] bool hasBlockEntity() const noexcept override { return true; }
+    [[nodiscard]] bool hasBlockEntity() const noexcept override
+    {
+        return true;
+    }
 
     [[nodiscard]] std::unique_ptr<BlockEntity> createBlockEntity(const BlockPos& pos) override;
 
@@ -122,7 +129,10 @@ public:
 
     ~CrafterBlock() override = default;
 
-    [[nodiscard]] bool hasBlockEntity() const noexcept override { return true; }
+    [[nodiscard]] bool hasBlockEntity() const noexcept override
+    {
+        return true;
+    }
 
     [[nodiscard]] std::unique_ptr<BlockEntity> createBlockEntity(const BlockPos& pos) override;
 
@@ -146,7 +156,10 @@ public:
 
     [[nodiscard]] const BlockState& mirror(const BlockState& state, Mirror mirror) const override;
 
-    [[nodiscard]] bool canProvidePower(const BlockState& state) const noexcept override { return true; }
+    [[nodiscard]] bool canProvidePower(const BlockState& state) const noexcept override
+    {
+        return true;
+    }
 
     [[nodiscard]] std::optional<ContainerType> getMenuProvider(
         const BlockState& state, IWorld& world, const BlockPos& pos) const override;

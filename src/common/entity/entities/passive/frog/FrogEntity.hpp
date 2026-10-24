@@ -153,7 +153,11 @@ public:
     // ========== 幼体语义 ==========
 
     /// 青蛙恒为成体（对齐 vanilla Frog.isBaby）
-    [[nodiscard]] bool isChild() const override { return false; }
+    [[nodiscard]] bool isChild() const override
+    {
+        return false;
+    }
+
     /// 青蛙不进入幼体状态（对齐 vanilla Frog.setBaby 为空实现）
     void setChild(bool /*child*/) override {}
 
@@ -172,9 +176,20 @@ public:
 
     // ========== 尺寸与音效 ==========
 
-    [[nodiscard]] f32 getBaseWidth() const override { return WIDTH; }
-    [[nodiscard]] f32 getBaseHeight() const override { return HEIGHT; }
-    [[nodiscard]] f32 eyeHeight() const override { return EYE_HEIGHT; }
+    [[nodiscard]] f32 getBaseWidth() const override
+    {
+        return WIDTH;
+    }
+
+    [[nodiscard]] f32 getBaseHeight() const override
+    {
+        return HEIGHT;
+    }
+
+    [[nodiscard]] f32 eyeHeight() const override
+    {
+        return EYE_HEIGHT;
+    }
 
     [[nodiscard]] std::optional<ResourceLocation> getAmbientSound() const override;
     [[nodiscard]] std::optional<ResourceLocation> getHurtSound(DamageSource& source) const override;

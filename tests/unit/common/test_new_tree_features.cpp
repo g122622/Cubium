@@ -70,7 +70,10 @@ public:
 
 class NewTreeFeatureConfigTest : public ::testing::Test {
 protected:
-    static void SetUpTestSuite() { VanillaBlocks::initialize(); }
+    static void SetUpTestSuite()
+    {
+        VanillaBlocks::initialize();
+    }
 };
 
 TEST_F(NewTreeFeatureConfigTest, FancyOakConfig)
@@ -255,7 +258,10 @@ TEST_F(NewTreeFeatureConfigTest, DeepCopyPreservesTrunkPlacer)
 
 class NewFoliagePlacerTest : public ::testing::Test {
 protected:
-    void SetUp() override { random = std::make_unique<math::Random>(54321); }
+    void SetUp() override
+    {
+        random = std::make_unique<math::Random>(54321);
+    }
 
     std::unique_ptr<math::Random> random;
 };
@@ -651,7 +657,10 @@ TEST(TreeFeatureConfigFoliageProviderTest, GetFoliageStateFallsBackToFoliageBloc
 
 class NewTrunkPlacerTest : public ::testing::Test {
 protected:
-    void SetUp() override { random = std::make_unique<math::Random>(99999); }
+    void SetUp() override
+    {
+        random = std::make_unique<math::Random>(99999);
+    }
 
     std::unique_ptr<math::Random> random;
 };
@@ -1026,7 +1035,10 @@ TEST_F(BendingTrunkPlacerTest, AzaleaTreeConfig)
 
 class NewBlockRegistrationTest : public ::testing::Test {
 protected:
-    static void SetUpTestSuite() { VanillaBlocks::initialize(); }
+    static void SetUpTestSuite()
+    {
+        VanillaBlocks::initialize();
+    }
 };
 
 TEST_F(NewBlockRegistrationTest, FlowerBlocks)

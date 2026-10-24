@@ -56,7 +56,10 @@ public:
         , m_tickManager(*this)
     {}
 
-    [[nodiscard]] const BlockState* getBlockState(i32, i32, i32) const override { return &m_state; }
+    [[nodiscard]] const BlockState* getBlockState(i32, i32, i32) const override
+    {
+        return &m_state;
+    }
 
     bool setBlockState(i32, i32, i32, const BlockState* state) override
     {
@@ -93,12 +96,30 @@ public:
         MC_UNUSED(sourceBlock);
     }
 
-    [[nodiscard]] world::tick::TickManager& tickManager() override { return m_tickManager; }
-    [[nodiscard]] const world::tick::TickManager& tickManager() const override { return m_tickManager; }
+    [[nodiscard]] world::tick::TickManager& tickManager() override
+    {
+        return m_tickManager;
+    }
 
-    [[nodiscard]] i32 setBlockCalls() const { return m_setBlockCalls; }
-    [[nodiscard]] i32 updateNeighborsCalls() const { return m_updateNeighborsCalls; }
-    [[nodiscard]] const BlockPos& lastUpdateNeighborsPos() const { return m_lastUpdateNeighborsPos; }
+    [[nodiscard]] const world::tick::TickManager& tickManager() const override
+    {
+        return m_tickManager;
+    }
+
+    [[nodiscard]] i32 setBlockCalls() const
+    {
+        return m_setBlockCalls;
+    }
+
+    [[nodiscard]] i32 updateNeighborsCalls() const
+    {
+        return m_updateNeighborsCalls;
+    }
+
+    [[nodiscard]] const BlockPos& lastUpdateNeighborsPos() const
+    {
+        return m_lastUpdateNeighborsPos;
+    }
 
     EntityInstanceId spawnEntity(std::unique_ptr<Entity> entity) override
     {
@@ -106,7 +127,10 @@ public:
         return EntityInstanceId(static_cast<u32>(m_spawnedItems.size()));
     }
 
-    [[nodiscard]] i32 spawnCount() const { return static_cast<i32>(m_spawnedItems.size()); }
+    [[nodiscard]] i32 spawnCount() const
+    {
+        return static_cast<i32>(m_spawnedItems.size());
+    }
 
     /// 返回第 index 个生成的物品实体所承载的物品堆
     [[nodiscard]] ItemStack spawnedItemStackAt(std::size_t index) const

@@ -102,7 +102,10 @@ public:
      */
     [[nodiscard]] bool shouldMove() const override;
 
-    [[nodiscard]] std::string getTypeName() const override { return "MoveToLavaGoal"; }
+    [[nodiscard]] std::string getTypeName() const override
+    {
+        return "MoveToLavaGoal";
+    }
 
 protected:
     /**

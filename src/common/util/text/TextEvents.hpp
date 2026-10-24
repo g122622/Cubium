@@ -67,14 +67,24 @@ public:
 
     // ========== 访问器 ==========
 
-    [[nodiscard]] ClickAction getAction() const noexcept { return m_action; }
-    [[nodiscard]] const std::string& getValue() const noexcept { return m_value; }
+    [[nodiscard]] ClickAction getAction() const noexcept
+    {
+        return m_action;
+    }
+
+    [[nodiscard]] const std::string& getValue() const noexcept
+    {
+        return m_value;
+    }
 
     /**
      * @brief 检查事件是否有效
      * @return 如果事件有效返回 true
      */
-    [[nodiscard]] bool isValid() const noexcept { return !m_value.empty(); }
+    [[nodiscard]] bool isValid() const noexcept
+    {
+        return !m_value.empty();
+    }
 
     // ========== 序列化 ==========
 
@@ -97,7 +107,11 @@ public:
     {
         return m_action == other.m_action && m_value == other.m_value;
     }
-    bool operator!=(const ClickEvent& other) const noexcept { return !(*this == other); }
+
+    bool operator!=(const ClickEvent& other) const noexcept
+    {
+        return !(*this == other);
+    }
 
 private:
     ClickAction m_action = ClickAction::RunCommand;
@@ -163,14 +177,24 @@ public:
 
     // ========== 访问器 ==========
 
-    [[nodiscard]] HoverAction getAction() const noexcept { return m_action; }
-    [[nodiscard]] const std::string& getValue() const noexcept { return m_value; }
+    [[nodiscard]] HoverAction getAction() const noexcept
+    {
+        return m_action;
+    }
+
+    [[nodiscard]] const std::string& getValue() const noexcept
+    {
+        return m_value;
+    }
 
     /**
      * @brief 检查事件是否有效
      * @return 如果事件有效返回 true
      */
-    [[nodiscard]] bool isValid() const noexcept { return !m_value.empty(); }
+    [[nodiscard]] bool isValid() const noexcept
+    {
+        return !m_value.empty();
+    }
 
     // ========== 序列化 ==========
 
@@ -193,7 +217,11 @@ public:
     {
         return m_action == other.m_action && m_value == other.m_value;
     }
-    bool operator!=(const HoverEvent& other) const noexcept { return !(*this == other); }
+
+    bool operator!=(const HoverEvent& other) const noexcept
+    {
+        return !(*this == other);
+    }
 
 private:
     HoverAction m_action = HoverAction::ShowText;

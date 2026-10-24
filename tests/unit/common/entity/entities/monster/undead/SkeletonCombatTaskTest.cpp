@@ -47,11 +47,25 @@ class SkeletonCombatTestWorld final : public mc::test::BaseTestWorld {
 public:
     SkeletonCombatTestWorld() = default;
 
-    [[nodiscard]] Difficulty difficulty() const override { return m_difficulty; }
-    void setDifficulty(Difficulty d) { m_difficulty = d; }
+    [[nodiscard]] Difficulty difficulty() const override
+    {
+        return m_difficulty;
+    }
 
-    [[nodiscard]] bool isClientSide() const override { return m_clientSide; }
-    void setClientSide(bool clientSide) { m_clientSide = clientSide; }
+    void setDifficulty(Difficulty d)
+    {
+        m_difficulty = d;
+    }
+
+    [[nodiscard]] bool isClientSide() const override
+    {
+        return m_clientSide;
+    }
+
+    void setClientSide(bool clientSide)
+    {
+        m_clientSide = clientSide;
+    }
 
 private:
     Difficulty m_difficulty = Difficulty::Normal;
@@ -75,9 +89,15 @@ protected:
         }
     }
 
-    void SetUp() override { m_world = std::make_unique<SkeletonCombatTestWorld>(); }
+    void SetUp() override
+    {
+        m_world = std::make_unique<SkeletonCombatTestWorld>();
+    }
 
-    void TearDown() override { m_world.reset(); }
+    void TearDown() override
+    {
+        m_world.reset();
+    }
 
     std::unique_ptr<SkeletonCombatTestWorld> m_world;
 };
@@ -98,7 +118,10 @@ public:
         registerAttributes();
     }
 
-    static std::unique_ptr<Entity> create(IWorld* /*world*/) { return nullptr; }
+    static std::unique_ptr<Entity> create(IWorld* /*world*/)
+    {
+        return nullptr;
+    }
 };
 
 TEST_F(SkeletonCombatTaskTest, GetWeaponHoldingHand_ReturnsMainHandWhenHoldingBowInMainHand)

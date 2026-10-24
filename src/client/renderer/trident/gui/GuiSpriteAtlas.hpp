@@ -106,7 +106,10 @@ public:
     /**
      * @brief 检查是否已初始化
      */
-    [[nodiscard]] bool isInitialized() const { return m_initialized; }
+    [[nodiscard]] bool isInitialized() const
+    {
+        return m_initialized;
+    }
 
     // ==================== 纹理加载 ====================
 
@@ -240,12 +243,18 @@ public:
      *
      * @param slot 槽位ID（2-15，0=字体，1=物品）
      */
-    void setAtlasSlot(u8 slot) { m_atlasSlot = slot; }
+    void setAtlasSlot(u8 slot)
+    {
+        m_atlasSlot = slot;
+    }
 
     /**
      * @brief 获取图集槽位ID
      */
-    [[nodiscard]] u8 atlasSlot() const { return m_atlasSlot; }
+    [[nodiscard]] u8 atlasSlot() const
+    {
+        return m_atlasSlot;
+    }
 
     // ==================== TextureImage创建 ====================
 

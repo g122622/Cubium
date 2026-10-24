@@ -79,7 +79,10 @@ public:
     static std::unique_ptr<Entity> create(IWorld* world, ecs::EntityRegistry& registry);
 
     // 溺尸偏好武器（对齐 Java Drowned.getPreferredWeaponType）：拾取时优先保留三叉戟。
-    [[nodiscard]] std::string getPreferredWeaponType() const override { return "minecraft:drowned_preferred_weapons"; }
+    [[nodiscard]] std::string getPreferredWeaponType() const override
+    {
+        return "minecraft:drowned_preferred_weapons";
+    }
 
     // ========== 水中生活 ==========
 
@@ -91,21 +94,30 @@ public:
     /**
      * @brief 是否可以游泳
      */
-    [[nodiscard]] bool canSwim() const noexcept { return true; }
+    [[nodiscard]] bool canSwim() const noexcept
+    {
+        return true;
+    }
 
     /**
      * @brief 溺尸可以在液体中生成
      *
      * 溺尸是水中生物，增援生成时允许在水中生成。
      */
-    [[nodiscard]] bool canSpawnInLiquids() const override { return true; }
+    [[nodiscard]] bool canSpawnInLiquids() const override
+    {
+        return true;
+    }
 
     /**
      * @brief 溺尸不需要溺水转化（已是溺尸状态）
      *
      * 防止溺尸反复触发溺水转化逻辑。
      */
-    [[nodiscard]] bool shouldDrown() const override { return false; }
+    [[nodiscard]] bool shouldDrown() const override
+    {
+        return false;
+    }
 
     // ========== 游泳状态同步 ==========
 
@@ -142,12 +154,18 @@ public:
     /**
      * @brief 是否手持三叉戟
      */
-    [[nodiscard]] bool hasTrident() const { return m_hasTrident; }
+    [[nodiscard]] bool hasTrident() const
+    {
+        return m_hasTrident;
+    }
 
     /**
      * @brief 设置手持三叉戟
      */
-    void setHasTrident(bool trident) { m_hasTrident = trident; }
+    void setHasTrident(bool trident)
+    {
+        m_hasTrident = trident;
+    }
 
     // ========== 阳光燃烧 ==========
 
@@ -182,12 +200,18 @@ public:
     /**
      * @brief 是否正在搜索陆地
      */
-    [[nodiscard]] bool isSearchingForLand() const { return m_searchingForLand; }
+    [[nodiscard]] bool isSearchingForLand() const
+    {
+        return m_searchingForLand;
+    }
 
     /**
      * @brief 设置搜索陆地状态
      */
-    void setSearchingForLand(bool searching) { m_searchingForLand = searching; }
+    void setSearchingForLand(bool searching)
+    {
+        m_searchingForLand = searching;
+    }
 
     // ========== 远程攻击 (IRangedAttackMob) ==========
 

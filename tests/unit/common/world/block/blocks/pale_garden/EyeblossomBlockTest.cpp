@@ -69,7 +69,10 @@ using namespace mc::SoundEvents;
 
 class EyeblossomTestWorld final : public IBlockReader {
 public:
-    EyeblossomTestWorld() { VanillaBlocks::initialize(); }
+    EyeblossomTestWorld()
+    {
+        VanillaBlocks::initialize();
+    }
 
     using IBlockReader::getBlockState;
     using IBlockReader::setBlockState;
@@ -98,7 +101,10 @@ public:
         return true;
     }
 
-    void setBlockAt(const BlockPos& pos, const BlockState* state) { (void)setBlockState(pos.x, pos.y, pos.z, state); }
+    void setBlockAt(const BlockPos& pos, const BlockState* state)
+    {
+        (void)setBlockState(pos.x, pos.y, pos.z, state);
+    }
 
     [[nodiscard]] const BlockState* getBlockAt(const BlockPos& pos) const
     {
@@ -110,68 +116,172 @@ public:
     {
         return &fluid::Fluids::EMPTY()->defaultState();
     }
-    [[nodiscard]] mc::world::chunk::IChunkManager* chunkManager() override { return &m_stubChunks; }
-    [[nodiscard]] const mc::world::chunk::IChunkManager* chunkManager() const override { return &m_stubChunks; }
+
+    [[nodiscard]] mc::world::chunk::IChunkManager* chunkManager() override
+    {
+        return &m_stubChunks;
+    }
+
+    [[nodiscard]] const mc::world::chunk::IChunkManager* chunkManager() const override
+    {
+        return &m_stubChunks;
+    }
+
     mc::test::StubChunkManager m_stubChunks{nullptr, true};
-    [[nodiscard]] i32 getHeight(i32, i32) const override { return 64; }
 
-    [[nodiscard]] u8 getBlockLight(i32, i32, i32) const override { return 15; }
-    [[nodiscard]] u8 getSkyLight(i32, i32, i32) const override { return 15; }
+    [[nodiscard]] i32 getHeight(i32, i32) const override
+    {
+        return 64;
+    }
 
-    [[nodiscard]] bool hasBlockCollision(const AxisAlignedBB&) const override { return false; }
-    [[nodiscard]] std::vector<AxisAlignedBB> getBlockCollisions(const AxisAlignedBB&) const override { return {}; }
+    [[nodiscard]] u8 getBlockLight(i32, i32, i32) const override
+    {
+        return 15;
+    }
+
+    [[nodiscard]] u8 getSkyLight(i32, i32, i32) const override
+    {
+        return 15;
+    }
+
+    [[nodiscard]] bool hasBlockCollision(const AxisAlignedBB&) const override
+    {
+        return false;
+    }
+
+    [[nodiscard]] std::vector<AxisAlignedBB> getBlockCollisions(const AxisAlignedBB&) const override
+    {
+        return {};
+    }
+
     [[nodiscard]] bool isWithinWorldBounds(i32, i32 y, i32) const override
     {
         return y >= world::MIN_BUILD_HEIGHT && y < world::MAX_BUILD_HEIGHT;
     }
-    [[nodiscard]] bool hasEntityCollision(const AxisAlignedBB&, const Entity*) const override { return false; }
+
+    [[nodiscard]] bool hasEntityCollision(const AxisAlignedBB&, const Entity*) const override
+    {
+        return false;
+    }
+
     [[nodiscard]] std::vector<AxisAlignedBB> getEntityCollisions(const AxisAlignedBB&, const Entity*) const override
     {
         return {};
     }
-    [[nodiscard]] PhysicsEngine* physicsEngine() override { return nullptr; }
-    [[nodiscard]] const PhysicsEngine* physicsEngine() const override { return nullptr; }
+
+    [[nodiscard]] PhysicsEngine* physicsEngine() override
+    {
+        return nullptr;
+    }
+
+    [[nodiscard]] const PhysicsEngine* physicsEngine() const override
+    {
+        return nullptr;
+    }
+
     [[nodiscard]] std::vector<Entity*> getEntitiesInAABB(const AxisAlignedBB&, const Entity*) const override
     {
         return {};
     }
+
     [[nodiscard]] std::vector<Entity*> getEntitiesInRange(const Vector3&, f32, const Entity*) const override
     {
         return {};
     }
 
-    [[nodiscard]] DimensionId dimension() const override { return m_dimension; }
-    [[nodiscard]] u64 seed() const override { return 12345; }
-    [[nodiscard]] u64 currentTick() const override { return m_currentTick; }
-    [[nodiscard]] i64 dayTime() const override { return m_dayTime; }
-    [[nodiscard]] bool isHardcore() const override { return false; }
-    [[nodiscard]] Difficulty difficulty() const override { return m_difficulty; }
-    [[nodiscard]] bool isClientSide() const override { return m_clientSide; }
+    [[nodiscard]] DimensionId dimension() const override
+    {
+        return m_dimension;
+    }
+
+    [[nodiscard]] u64 seed() const override
+    {
+        return 12345;
+    }
+
+    [[nodiscard]] u64 currentTick() const override
+    {
+        return m_currentTick;
+    }
+
+    [[nodiscard]] i64 dayTime() const override
+    {
+        return m_dayTime;
+    }
+
+    [[nodiscard]] bool isHardcore() const override
+    {
+        return false;
+    }
+
+    [[nodiscard]] Difficulty difficulty() const override
+    {
+        return m_difficulty;
+    }
+
+    [[nodiscard]] bool isClientSide() const override
+    {
+        return m_clientSide;
+    }
 
     [[nodiscard]] world::tick::TickManager& tickManager() override
     {
         ensureTickManager();
         return *m_tickManagerPtr;
     }
+
     [[nodiscard]] const world::tick::TickManager& tickManager() const override
     {
         const_cast<EyeblossomTestWorld*>(this)->ensureTickManager();
         return *m_tickManagerPtr;
     }
 
-    [[nodiscard]] math::IRandom& getRandom() override { return m_random; }
-    [[nodiscard]] const math::IRandom& getRandom() const override { return m_random; }
+    [[nodiscard]] math::IRandom& getRandom() override
+    {
+        return m_random;
+    }
 
-    [[nodiscard]] world::border::WorldBorder& worldBorder() override { return m_worldBorder; }
-    [[nodiscard]] const world::border::WorldBorder& worldBorder() const override { return m_worldBorder; }
+    [[nodiscard]] const math::IRandom& getRandom() const override
+    {
+        return m_random;
+    }
+
+    [[nodiscard]] world::border::WorldBorder& worldBorder() override
+    {
+        return m_worldBorder;
+    }
+
+    [[nodiscard]] const world::border::WorldBorder& worldBorder() const override
+    {
+        return m_worldBorder;
+    }
 
     // ========== 测试控制接口 ==========
 
-    void setDayTime(i64 dayTime) { m_dayTime = dayTime; }
-    void setDimension(DimensionId dim) { m_dimension = dim; }
-    void setCurrentTick(u64 tick) { m_currentTick = tick; }
-    void setDifficulty(Difficulty difficulty) { m_difficulty = difficulty; }
-    void setClientSide(bool clientSide) { m_clientSide = clientSide; }
+    void setDayTime(i64 dayTime)
+    {
+        m_dayTime = dayTime;
+    }
+
+    void setDimension(DimensionId dim)
+    {
+        m_dimension = dim;
+    }
+
+    void setCurrentTick(u64 tick)
+    {
+        m_currentTick = tick;
+    }
+
+    void setDifficulty(Difficulty difficulty)
+    {
+        m_difficulty = difficulty;
+    }
+
+    void setClientSide(bool clientSide)
+    {
+        m_clientSide = clientSide;
+    }
 
     // ========== 捕获接口 ==========
 
@@ -182,6 +292,7 @@ public:
         u32 color;
         i32 durationInTicks;
     };
+
     std::vector<TrailParticleCall> trailParticleCalls;
 
     /// 捕获到的 playSound 调用
@@ -192,6 +303,7 @@ public:
         f32 volume;
         f32 pitch;
     };
+
     std::vector<PlaySoundCall> playSoundCalls;
 
     /// 捕获到的 gameEvent 调用次数
@@ -329,9 +441,11 @@ TEST_F(EyeblossomBehaviorTest, TicksRandomly_BothTypes)
     EXPECT_TRUE(closedBlock_->ticksRandomly());
 }
 
-TEST_F(EyeblossomBehaviorTest, LightLevel_OpenIs1)
+TEST_F(EyeblossomBehaviorTest, LightLevel_OpenIs0)
 {
-    EXPECT_EQ(openBlock_->getLightLevel(openBlock_->defaultState(), &world_, nullptr), 1);
+    // 原版 1.21.11：眼眸花没有固有发光，开放/闭合默认状态的光照都是 0
+    // （tests/diff 的 block_properties 差分逐条核对过）。
+    EXPECT_EQ(openBlock_->getLightLevel(openBlock_->defaultState(), &world_, nullptr), 0);
 }
 
 TEST_F(EyeblossomBehaviorTest, LightLevel_ClosedIs0)
@@ -390,7 +504,10 @@ TEST_F(EyeblossomBehaviorTest, ShortSwitchSound_Closed)
 
 class EyeblossomEnvironmentTest : public ::testing::Test {
 protected:
-    void SetUp() override { VanillaBlocks::initialize(); }
+    void SetUp() override
+    {
+        VanillaBlocks::initialize();
+    }
 
     EyeblossomTestWorld world_;
 };
@@ -1052,8 +1169,12 @@ TEST_F(EyeblossomBeeCollisionTest, NonBeeEntity_DoesNotApplyPoison)
         explicit NonBeeAnimal(EntityInstanceId id)
             : AnimalEntity(id, mc::test::testEcsRegistry())
         {}
+
         // AnimalEntity::spawnBaby 是纯虚，必须实现
-        std::unique_ptr<AnimalEntity> spawnBaby(AnimalEntity& /*partner*/) override { return nullptr; }
+        std::unique_ptr<AnimalEntity> spawnBaby(AnimalEntity& /*partner*/) override
+        {
+            return nullptr;
+        }
     };
 
     NonBeeAnimal animal(EntityInstanceId(2));

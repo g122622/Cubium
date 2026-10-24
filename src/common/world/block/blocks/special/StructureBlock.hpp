@@ -60,7 +60,10 @@ public:
 
     // ========== 标记接口 ==========
 
-    [[nodiscard]] bool isGameMaster() const noexcept override { return true; }
+    [[nodiscard]] bool isGameMaster() const noexcept override
+    {
+        return true;
+    }
 
     // ========== 状态属性 ==========
 
@@ -75,7 +78,10 @@ public:
     // ========== 方块实体 ==========
 
     /// 结构方块带方块实体（保存结构名/坐标/尺寸等编辑状态）
-    [[nodiscard]] bool hasBlockEntity() const noexcept override { return true; }
+    [[nodiscard]] bool hasBlockEntity() const noexcept override
+    {
+        return true;
+    }
 
     /// 创建结构方块实体
     [[nodiscard]] std::unique_ptr<BlockEntity> createBlockEntity(const BlockPos& pos) override;

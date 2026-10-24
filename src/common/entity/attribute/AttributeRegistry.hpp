@@ -83,7 +83,10 @@ public:
      * @param name 属性注册名称
      * @return 是否已知
      */
-    [[nodiscard]] bool isKnown(const std::string& name) const { return m_attributes.find(name) != m_attributes.end(); }
+    [[nodiscard]] bool isKnown(const std::string& name) const
+    {
+        return m_attributes.find(name) != m_attributes.end();
+    }
 
     /**
      * @brief 获取属性定义
@@ -141,7 +144,10 @@ public:
     /**
      * @brief 获取已注册属性数量
      */
-    [[nodiscard]] size_t size() const { return m_attributes.size(); }
+    [[nodiscard]] size_t size() const
+    {
+        return m_attributes.size();
+    }
 
     /**
      * @brief 规范化属性名称
@@ -198,7 +204,10 @@ public:
     }
 
 private:
-    AttributeRegistry() { _registerBuiltinAttributes(); }
+    AttributeRegistry()
+    {
+        _registerBuiltinAttributes();
+    }
 
     /**
      * @brief 注册所有内置属性定义

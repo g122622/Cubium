@@ -79,8 +79,9 @@ void FlatLevelGeneratorSettings::updateLayers()
     }
 
     // voidGen 判断：仅当所有展开后的方块都是空气时才为 void
-    m_voidGen =
-        std::all_of(m_layers.begin(), m_layers.end(), [](const BlockState* s) { return s == nullptr || s->isAir(); });
+    m_voidGen = std::all_of(m_layers.begin(), m_layers.end(), [](const BlockState* s) {
+        return s == nullptr || s->isAir();
+    });
 }
 
 FlatLevelGeneratorSettings FlatLevelGeneratorSettings::createDefault()
@@ -183,12 +184,16 @@ Result<FlatLevelGeneratorSettings> FlatLevelGeneratorSettings::fromSettingsObjec
     // features / lakes（bool，缺省 false 对齐原版默认）
     if (settingsObj.contains("features")) {
         auto features = readBool(settingsObj, "features");
-        if (features.failed()) return features.error();
+        if (features.failed()) {
+            return features.error();
+        }
         settings.setDecoration(features.value());
     }
     if (settingsObj.contains("lakes")) {
         auto lakes = readBool(settingsObj, "lakes");
-        if (lakes.failed()) return lakes.error();
+        if (lakes.failed()) {
+            return lakes.error();
+        }
         settings.setLakes(lakes.value());
     }
 
@@ -209,7 +214,9 @@ Result<FlatLevelGeneratorSettings> FlatLevelGeneratorSettings::fromSettingsObjec
         }
         const BlockState* blockState = &block->defaultState();
         auto height = readInt(layerJson, "height");
-        if (height.failed()) return height.error();
+        if (height.failed()) {
+            return height.error();
+        }
         settings.layersInfo().emplace_back(height.value(), blockState);
     }
 

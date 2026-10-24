@@ -76,7 +76,10 @@ public:
      * 因此构造时 fungusGrower 为空，由 server 侧初始化阶段调用此方法
      * 注入真实的 FungusGrower（捕获 FungusType 并调用 HugeFungusFeature::place()）。
      */
-    void setFungusGrower(FungusGrower fungusGrower) { m_fungusGrower = std::move(fungusGrower); }
+    void setFungusGrower(FungusGrower fungusGrower)
+    {
+        m_fungusGrower = std::move(fungusGrower);
+    }
 
     // ========== IGrowable 接口 ==========
 

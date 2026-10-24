@@ -43,7 +43,9 @@ struct Entry {
 
 TEST(StaticChunkCache2DTest, ConstructorFillsAllEntries)
 {
-    StaticChunkCache2D<Entry> cache(0, 0, 2, [](mc::ChunkCoord x, mc::ChunkCoord z) { return Entry{x, z, "entry"}; });
+    StaticChunkCache2D<Entry> cache(0, 0, 2, [](mc::ChunkCoord x, mc::ChunkCoord z) {
+        return Entry{x, z, "entry"};
+    });
 
     // 直径 = 2*2+1 = 5，共 25 个条目
     EXPECT_EQ(cache.diameter(), 5);
@@ -65,7 +67,9 @@ TEST(StaticChunkCache2DTest, ConstructorFillsAllEntries)
 
 TEST(StaticChunkCache2DTest, ConstructorWithNonZeroCenter)
 {
-    StaticChunkCache2D<Entry> cache(10, -5, 1, [](mc::ChunkCoord x, mc::ChunkCoord z) { return Entry{x, z, "ok"}; });
+    StaticChunkCache2D<Entry> cache(10, -5, 1, [](mc::ChunkCoord x, mc::ChunkCoord z) {
+        return Entry{x, z, "ok"};
+    });
 
     EXPECT_EQ(cache.centerX(), 10);
     EXPECT_EQ(cache.centerZ(), -5);
@@ -81,7 +85,9 @@ TEST(StaticChunkCache2DTest, ConstructorWithNonZeroCenter)
 
 TEST(StaticChunkCache2DTest, RadiusZeroIsSingleChunk)
 {
-    StaticChunkCache2D<Entry> cache(7, 7, 0, [](mc::ChunkCoord x, mc::ChunkCoord z) { return Entry{x, z, "only"}; });
+    StaticChunkCache2D<Entry> cache(7, 7, 0, [](mc::ChunkCoord x, mc::ChunkCoord z) {
+        return Entry{x, z, "only"};
+    });
 
     EXPECT_EQ(cache.diameter(), 1);
     EXPECT_EQ(cache.size(), 1u);
@@ -94,7 +100,9 @@ TEST(StaticChunkCache2DTest, RadiusZeroIsSingleChunk)
 
 TEST(StaticChunkCache2DTest, InBoundsCheck)
 {
-    StaticChunkCache2D<Entry> cache(0, 0, 3, [](mc::ChunkCoord x, mc::ChunkCoord z) { return Entry{x, z, ""}; });
+    StaticChunkCache2D<Entry> cache(0, 0, 3, [](mc::ChunkCoord x, mc::ChunkCoord z) {
+        return Entry{x, z, ""};
+    });
 
     EXPECT_TRUE(cache.inBounds(0, 0));
     EXPECT_TRUE(cache.inBounds(3, 3));
@@ -112,7 +120,9 @@ TEST(StaticChunkCache2DTest, InBoundsCheck)
 
 TEST(StaticChunkCache2DTest, InBoundsWithNonZeroCenter)
 {
-    StaticChunkCache2D<Entry> cache(100, 200, 2, [](mc::ChunkCoord x, mc::ChunkCoord z) { return Entry{x, z, ""}; });
+    StaticChunkCache2D<Entry> cache(100, 200, 2, [](mc::ChunkCoord x, mc::ChunkCoord z) {
+        return Entry{x, z, ""};
+    });
 
     EXPECT_TRUE(cache.inBounds(100, 200));
     EXPECT_TRUE(cache.inBounds(102, 202));
@@ -149,7 +159,9 @@ TEST(StaticChunkCache2DTest, SharedPtrEntriesShareUnderlying)
 {
     // 模拟 ChunkSnapshot 共享：多个位置返回同一个 shared_ptr
     auto shared = std::make_shared<Entry>(Entry{0, 0, "shared"});
-    StaticChunkCache2D<std::shared_ptr<Entry>> cache(0, 0, 1, [&](mc::ChunkCoord, mc::ChunkCoord) { return shared; });
+    StaticChunkCache2D<std::shared_ptr<Entry>> cache(0, 0, 1, [&](mc::ChunkCoord, mc::ChunkCoord) {
+        return shared;
+    });
 
     // 所有位置指向同一对象
     for (mc::ChunkCoord dz = -1; dz <= 1; ++dz) {
@@ -166,7 +178,9 @@ TEST(StaticChunkCache2DTest, SharedPtrEntriesShareUnderlying)
 
 TEST(StaticChunkCache2DTest, MoveConstruction)
 {
-    StaticChunkCache2D<Entry> cache0(0, 0, 1, [](mc::ChunkCoord x, mc::ChunkCoord z) { return Entry{x, z, "moved"}; });
+    StaticChunkCache2D<Entry> cache0(0, 0, 1, [](mc::ChunkCoord x, mc::ChunkCoord z) {
+        return Entry{x, z, "moved"};
+    });
 
     StaticChunkCache2D<Entry> cache1(std::move(cache0));
 
@@ -183,7 +197,9 @@ TEST(StaticChunkCache2DTest, MoveConstruction)
 TEST(StaticChunkCache2DTest, LargeRadiusIndexCorrectness)
 {
     // 半径 8（对齐 STRUCTURE_REFERENCES 的邻居半径），共 17*17=289 个条目
-    StaticChunkCache2D<Entry> cache(-7, -2, 8, [](mc::ChunkCoord x, mc::ChunkCoord z) { return Entry{x, z, ""}; });
+    StaticChunkCache2D<Entry> cache(-7, -2, 8, [](mc::ChunkCoord x, mc::ChunkCoord z) {
+        return Entry{x, z, ""};
+    });
 
     EXPECT_EQ(cache.diameter(), 17);
     EXPECT_EQ(cache.size(), 289u);

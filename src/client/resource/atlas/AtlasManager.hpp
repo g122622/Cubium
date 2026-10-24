@@ -207,10 +207,16 @@ public:
      */
     void uploadPendingAnimationFrames(VkCommandBuffer cmd, u32 frameIndex);
 
-    [[nodiscard]] bool isInitialized() const noexcept { return m_device != VK_NULL_HANDLE; }
+    [[nodiscard]] bool isInitialized() const noexcept
+    {
+        return m_device != VK_NULL_HANDLE;
+    }
 
     /// 获取 missingno 兜底区域（任意图集未命中时使用）
-    [[nodiscard]] const TextureRegion* missingRegion() const noexcept { return m_missingRegion.get(); }
+    [[nodiscard]] const TextureRegion* missingRegion() const noexcept
+    {
+        return m_missingRegion.get();
+    }
 
 private:
     /// 根据 atlasId 查采样配置（blocks/items=NEAREST，particles/gui=LINEAR，默认 NEAREST）

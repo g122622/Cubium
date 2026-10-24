@@ -300,13 +300,13 @@ Result<u32> EntityTextureLoader::loadAllEntityTextures(
 
     spdlog::info("EntityTextureLoader: Loading textures for {} registered entity types", allTypes.size());
 
-    for (const auto& type : allTypes) {
+    for (const auto* type : allTypes) {
         // 只加载需要渲染的实体类型
-        if (!needsTexture(type.classification())) {
+        if (!needsTexture(type->classification())) {
             continue;
         }
 
-        const std::string& entityName = type.name();
+        const std::string& entityName = type->name();
 
         // 获取纹理路径
         auto paths = getTexturePaths(entityName);
@@ -315,7 +315,9 @@ Result<u32> EntityTextureLoader::loadAllEntityTextures(
         bool loaded = false;
         for (auto it = packs.rbegin(); it != packs.rend() && !loaded; ++it) {
             auto* pack = *it;
-            if (!pack) continue;
+            if (!pack) {
+                continue;
+            }
 
             for (const auto& loc : paths) {
                 auto result = atlas.addTexture(*pack, loc);
@@ -380,7 +382,9 @@ u32 EntityTextureLoader::_loadAdditionalTextures(const std::vector<IResourcePack
             // 尝试从资源包加载
             for (auto it = packs.rbegin(); it != packs.rend(); ++it) {
                 auto* pack = *it;
-                if (!pack) continue;
+                if (!pack) {
+                    continue;
+                }
 
                 auto result = atlas.addTexture(*pack, loc);
                 if (result.success()) {
@@ -410,13 +414,13 @@ u32 EntityTextureLoader::_loadMiscEntityTextures(const std::vector<IResourcePack
     auto& registry = entity::EntityRegistry::instance();
     const auto& allTypes = registry.getAllTypes();
 
-    for (const auto& type : allTypes) {
+    for (const auto* type : allTypes) {
         // 只处理 Misc 类别
-        if (type.classification() != entity::EntityClassification::Misc) {
+        if (type->classification() != entity::EntityClassification::Misc) {
             continue;
         }
 
-        const std::string& entityName = type.name();
+        const std::string& entityName = type->name();
 
         // 检查是否在 Misc 纹理实体列表中
         bool isMiscTextureEntity = false;
@@ -437,7 +441,9 @@ u32 EntityTextureLoader::_loadMiscEntityTextures(const std::vector<IResourcePack
         bool loaded = false;
         for (auto it = packs.rbegin(); it != packs.rend() && !loaded; ++it) {
             auto* pack = *it;
-            if (!pack) continue;
+            if (!pack) {
+                continue;
+            }
 
             for (const auto& loc : paths) {
                 auto result = atlas.addTexture(*pack, loc);

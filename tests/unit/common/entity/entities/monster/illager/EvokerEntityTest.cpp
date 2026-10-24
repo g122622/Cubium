@@ -78,8 +78,15 @@ public:
         return state != nullptr ? state->getFluidState() : &fluid::Fluids::EMPTY()->defaultState();
     }
 
-    [[nodiscard]] u64 currentTick() const override { return m_currentTick; }
-    [[nodiscard]] Difficulty difficulty() const override { return Difficulty::Normal; }
+    [[nodiscard]] u64 currentTick() const override
+    {
+        return m_currentTick;
+    }
+
+    [[nodiscard]] Difficulty difficulty() const override
+    {
+        return Difficulty::Normal;
+    }
 
     void playSound(const ResourceLocation&, sound::SoundCategory, const Vector3&, f32, f32) override {}
 
@@ -100,10 +107,21 @@ public:
         m_gameEvents.push_back({event.id(), pos, context.sourceEntity()});
     }
 
-    void advanceTick() { m_currentTick++; }
+    void advanceTick()
+    {
+        m_currentTick++;
+    }
 
-    [[nodiscard]] size_t spawnedFangsCount() const { return m_spawnedFangsY.size(); }
-    [[nodiscard]] const std::vector<f32>& spawnedFangsYPositions() const { return m_spawnedFangsY; }
+    [[nodiscard]] size_t spawnedFangsCount() const
+    {
+        return m_spawnedFangsY.size();
+    }
+
+    [[nodiscard]] const std::vector<f32>& spawnedFangsYPositions() const
+    {
+        return m_spawnedFangsY;
+    }
+
     [[nodiscard]] const std::vector<std::tuple<std::string, BlockPos, const Entity*>>& capturedGameEvents() const
     {
         return m_gameEvents;
@@ -268,7 +286,10 @@ TEST(EvokerFangsEntityTest, CreateFactory)
 
 class EvokerFangsCollisionTest : public ::testing::Test {
 protected:
-    void SetUp() override { VanillaBlocks::initialize(); }
+    void SetUp() override
+    {
+        VanillaBlocks::initialize();
+    }
 
     EvokerFangsSpawnTestWorld m_world;
 };

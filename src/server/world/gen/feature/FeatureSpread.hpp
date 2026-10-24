@@ -50,14 +50,20 @@ public:
      * @brief 构造固定值扩散
      * @param value 固定值
      */
-    static FeatureSpread fixed(i32 value) noexcept { return FeatureSpread(value, 0); }
+    static FeatureSpread fixed(i32 value) noexcept
+    {
+        return FeatureSpread(value, 0);
+    }
 
     /**
      * @brief 构造随机扩散
      * @param base 基础值
      * @param spread 扩散范围（0到spread的随机值）
      */
-    static FeatureSpread spread(i32 base, i32 spread) noexcept { return FeatureSpread(base, spread); }
+    static FeatureSpread spread(i32 base, i32 spread) noexcept
+    {
+        return FeatureSpread(base, spread);
+    }
 
     /**
      * @brief 由 IntProvider 构造（MC 1.21 radius/offset 语义）
@@ -89,11 +95,13 @@ public:
 
     FeatureSpread(FeatureSpread&&) noexcept = default;
     FeatureSpread& operator=(FeatureSpread&&) noexcept = default;
+
     FeatureSpread(const FeatureSpread& other)
         : m_base(other.m_base)
         , m_spread(other.m_spread)
         , m_provider(other.m_provider ? other.m_provider->clone() : nullptr)
     {}
+
     FeatureSpread& operator=(const FeatureSpread& other)
     {
         if (this != &other) {
@@ -114,17 +122,26 @@ public:
     /**
      * @brief 获取基础值
      */
-    [[nodiscard]] i32 base() const noexcept { return m_base; }
+    [[nodiscard]] i32 base() const noexcept
+    {
+        return m_base;
+    }
 
     /**
      * @brief 获取扩散范围
      */
-    [[nodiscard]] i32 spread() const noexcept { return m_spread; }
+    [[nodiscard]] i32 spread() const noexcept
+    {
+        return m_spread;
+    }
 
     /**
      * @brief 是否持有 IntProvider（MC 1.21 语义）
      */
-    [[nodiscard]] bool hasProvider() const noexcept { return m_provider != nullptr; }
+    [[nodiscard]] bool hasProvider() const noexcept
+    {
+        return m_provider != nullptr;
+    }
 
 private:
     i32 m_base;

@@ -98,7 +98,9 @@ bool RaidManager::hasRaidAt(BlockPos pos) const
 
 Raid* RaidManager::getRaidForVillage(village::Village* village)
 {
-    if (village == nullptr) return nullptr;
+    if (village == nullptr) {
+        return nullptr;
+    }
 
     for (auto& raid : m_raids) {
         if (raid && raid->village() == village) {
@@ -110,7 +112,9 @@ Raid* RaidManager::getRaidForVillage(village::Village* village)
 
 Raid* RaidManager::getOngoingRaidForVillage(village::Village* village)
 {
-    if (village == nullptr) return nullptr;
+    if (village == nullptr) {
+        return nullptr;
+    }
 
     for (auto& raid : m_raids) {
         if (raid && raid->village() == village && raid->status() == RaidStatus::Ongoing) {
@@ -171,7 +175,9 @@ Raid* RaidManager::tryStartRaid(BlockPos pos, i32 badOmenLevel)
 
 void RaidManager::onPlayerEnterVillage(Player* player, village::Village* village)
 {
-    if (player == nullptr || village == nullptr) return;
+    if (player == nullptr || village == nullptr) {
+        return;
+    }
 
     // 检查玩家是否有不祥之兆效果
     // Player 类已添加独立的效果管理接口
@@ -192,7 +198,9 @@ void RaidManager::onPlayerEnterVillage(Player* player, village::Village* village
 
 void RaidManager::onPlayerEnterVillageWithCallback(const BadOmenCheckCallback& checkBadOmen, village::Village* village)
 {
-    if (!checkBadOmen || village == nullptr) return;
+    if (!checkBadOmen || village == nullptr) {
+        return;
+    }
 
     // 使用回调检查不祥之兆
     i32 badOmenLevel = checkBadOmen(village->getCenter());
@@ -218,7 +226,9 @@ void RaidManager::tick()
 
 void RaidManager::onRaidEnd(Raid* raid)
 {
-    if (raid == nullptr) return;
+    if (raid == nullptr) {
+        return;
+    }
 
     // 清除村庄的袭击状态
     village::Village* village = raid->village();
@@ -272,7 +282,9 @@ void RaidManager::removeCompletedRaids()
     // 移除已完成的袭击
     m_raids.erase(std::remove_if(m_raids.begin(),
                       m_raids.end(),
-                      [](const std::unique_ptr<Raid>& raid) { return raid && raid->status() != RaidStatus::Ongoing; }),
+                      [](const std::unique_ptr<Raid>& raid) {
+                          return raid && raid->status() != RaidStatus::Ongoing;
+                      }),
         m_raids.end());
 }
 

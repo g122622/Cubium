@@ -120,7 +120,9 @@ void LoomScreen::_registerCallbacks()
         // 滚动回调通过ScrollableWidget的setOnScroll设置
     });
 
-    exposeSimpleCallback("onClose", [this]() { _onCloseScreen(); });
+    exposeSimpleCallback("onClose", [this]() {
+        _onCloseScreen();
+    });
 }
 
 void LoomScreen::_initSlots()
@@ -133,32 +135,36 @@ void LoomScreen::_initSlots()
     auto* bannerSlot = dynamic_cast<SlotWidget*>(findWidget("bannerSlot"));
     if (bannerSlot) {
         bannerSlot->setSlotIndex(mc::entity::inventory::container::LoomContainer::SLOT_BANNER);
-        bannerSlot->setOnSlotClick(
-            [this](i32 slotIndex, i32 button, bool shiftHeld) { _onSlotClick(slotIndex, button, shiftHeld); });
+        bannerSlot->setOnSlotClick([this](i32 slotIndex, i32 button, bool shiftHeld) {
+            _onSlotClick(slotIndex, button, shiftHeld);
+        });
     }
 
     // 染料槽
     auto* dyeSlot = dynamic_cast<SlotWidget*>(findWidget("dyeSlot"));
     if (dyeSlot) {
         dyeSlot->setSlotIndex(mc::entity::inventory::container::LoomContainer::SLOT_DYE);
-        dyeSlot->setOnSlotClick(
-            [this](i32 slotIndex, i32 button, bool shiftHeld) { _onSlotClick(slotIndex, button, shiftHeld); });
+        dyeSlot->setOnSlotClick([this](i32 slotIndex, i32 button, bool shiftHeld) {
+            _onSlotClick(slotIndex, button, shiftHeld);
+        });
     }
 
     // 图案物品槽
     auto* patternSlot = dynamic_cast<SlotWidget*>(findWidget("patternSlot"));
     if (patternSlot) {
         patternSlot->setSlotIndex(mc::entity::inventory::container::LoomContainer::SLOT_PATTERN);
-        patternSlot->setOnSlotClick(
-            [this](i32 slotIndex, i32 button, bool shiftHeld) { _onSlotClick(slotIndex, button, shiftHeld); });
+        patternSlot->setOnSlotClick([this](i32 slotIndex, i32 button, bool shiftHeld) {
+            _onSlotClick(slotIndex, button, shiftHeld);
+        });
     }
 
     // 输出槽
     auto* resultSlot = dynamic_cast<SlotWidget*>(findWidget("resultSlot"));
     if (resultSlot) {
         resultSlot->setSlotIndex(mc::entity::inventory::container::LoomContainer::SLOT_RESULT);
-        resultSlot->setOnSlotClick(
-            [this](i32 slotIndex, i32 button, bool shiftHeld) { _onSlotClick(slotIndex, button, shiftHeld); });
+        resultSlot->setOnSlotClick([this](i32 slotIndex, i32 button, bool shiftHeld) {
+            _onSlotClick(slotIndex, button, shiftHeld);
+        });
     }
 
     // 玩家背包槽位（3行x9列）
@@ -169,7 +175,9 @@ void LoomScreen::_initSlots()
             auto* slot = dynamic_cast<SlotWidget*>(findWidget(slotId));
             if (slot) {
                 slot->setSlotIndex(slotIndex);
-                slot->setOnSlotClick([this](i32 si, i32 btn, bool shift) { _onSlotClick(si, btn, shift); });
+                slot->setOnSlotClick([this](i32 si, i32 btn, bool shift) {
+                    _onSlotClick(si, btn, shift);
+                });
             }
         }
     }
@@ -181,7 +189,9 @@ void LoomScreen::_initSlots()
         auto* slot = dynamic_cast<SlotWidget*>(findWidget(slotId));
         if (slot) {
             slot->setSlotIndex(slotIndex);
-            slot->setOnSlotClick([this](i32 si, i32 btn, bool shift) { _onSlotClick(si, btn, shift); });
+            slot->setOnSlotClick([this](i32 si, i32 btn, bool shift) {
+                _onSlotClick(si, btn, shift);
+            });
         }
     }
 }
@@ -214,13 +224,17 @@ void LoomScreen::_initPatternButtons()
 
         // 可选图案列表索引（0-based）
         i32 patternIndex = i;
-        button->setOnPress([this, patternIndex](ButtonWidget&) { _onPatternSelect(patternIndex); });
+        button->setOnPress([this, patternIndex](ButtonWidget&) {
+            _onPatternSelect(patternIndex);
+        });
 
         patternList->addWidget(std::move(button));
     }
 
     // 设置滚动回调
-    patternList->setOnScroll([this](i32 x, i32 y, f64 deltaX, f64 deltaY) { _onPatternScroll(x, y, deltaX, deltaY); });
+    patternList->setOnScroll([this](i32 x, i32 y, f64 deltaX, f64 deltaY) {
+        _onPatternScroll(x, y, deltaX, deltaY);
+    });
 }
 
 void LoomScreen::_refreshSlots()

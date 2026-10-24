@@ -58,15 +58,32 @@ public:
     {}
 
     // 粒子记录
-    std::vector<ParticleRecord>& particles() { return m_particles; }
-    void clearParticles() { m_particles.clear(); }
+    std::vector<ParticleRecord>& particles()
+    {
+        return m_particles;
+    }
+
+    void clearParticles()
+    {
+        m_particles.clear();
+    }
 
     // 配置方法
-    void setInWater(bool inWater) { m_inWater = inWater; }
-    void setClientSide(bool clientSide) { m_clientSide = clientSide; }
+    void setInWater(bool inWater)
+    {
+        m_inWater = inWater;
+    }
+
+    void setClientSide(bool clientSide)
+    {
+        m_clientSide = clientSide;
+    }
 
     // IWorld 接口实现
-    [[nodiscard]] bool isClientSide() const override { return m_clientSide; }
+    [[nodiscard]] bool isClientSide() const override
+    {
+        return m_clientSide;
+    }
 
     [[nodiscard]] const fluid::FluidState* getFluidState(i32 x, i32 y, i32 z) const override
     {
@@ -86,31 +103,95 @@ public:
         m_particles.push_back({type, pos, velocity});
     }
 
-    [[nodiscard]] u64 currentTick() const override { return 0; }
-    [[nodiscard]] Entity* getEntity(EntityInstanceId) override { return nullptr; }
-    [[nodiscard]] const Entity* getEntity(EntityInstanceId) const override { return nullptr; }
-    EntityInstanceId spawnEntity(std::unique_ptr<Entity>) override { return EntityInstanceId(1); }
+    [[nodiscard]] u64 currentTick() const override
+    {
+        return 0;
+    }
+
+    [[nodiscard]] Entity* getEntity(EntityInstanceId) override
+    {
+        return nullptr;
+    }
+
+    [[nodiscard]] const Entity* getEntity(EntityInstanceId) const override
+    {
+        return nullptr;
+    }
+
+    EntityInstanceId spawnEntity(std::unique_ptr<Entity>) override
+    {
+        return EntityInstanceId(1);
+    }
 
     [[nodiscard]] world::tick::TickManager& tickManager() override
     {
         throw std::runtime_error("DamagingProjectileTestWorld::tickManager not implemented");
     }
+
     [[nodiscard]] const world::tick::TickManager& tickManager() const override
     {
         throw std::runtime_error("DamagingProjectileTestWorld::tickManager not implemented");
     }
-    [[nodiscard]] u8 getSkyLight(i32, i32, i32) const override { return 15; }
-    [[nodiscard]] u8 getBlockLight(i32, i32, i32) const override { return 0; }
-    [[nodiscard]] u8 getSkyLight(const BlockPos&) const override { return 15; }
-    [[nodiscard]] u8 getBlockLight(const BlockPos&) const override { return 0; }
-    [[nodiscard]] bool canSeeSky(const BlockPos&) const override { return true; }
-    [[nodiscard]] f32 getBrightness(const BlockPos&) const override { return 1.0f; }
-    [[nodiscard]] u8 getLightSubtracted(const BlockPos&, u32) const override { return 15; }
-    [[nodiscard]] bool isRaining() const override { return false; }
-    [[nodiscard]] bool isThundering() const override { return false; }
-    [[nodiscard]] bool canRainAt(const BlockPos&) const override { return false; }
-    [[nodiscard]] i64 dayTime() const override { return 0; }
-    [[nodiscard]] bool isDaytime() const override { return true; }
+
+    [[nodiscard]] u8 getSkyLight(i32, i32, i32) const override
+    {
+        return 15;
+    }
+
+    [[nodiscard]] u8 getBlockLight(i32, i32, i32) const override
+    {
+        return 0;
+    }
+
+    [[nodiscard]] u8 getSkyLight(const BlockPos&) const override
+    {
+        return 15;
+    }
+
+    [[nodiscard]] u8 getBlockLight(const BlockPos&) const override
+    {
+        return 0;
+    }
+
+    [[nodiscard]] bool canSeeSky(const BlockPos&) const override
+    {
+        return true;
+    }
+
+    [[nodiscard]] f32 getBrightness(const BlockPos&) const override
+    {
+        return 1.0f;
+    }
+
+    [[nodiscard]] u8 getLightSubtracted(const BlockPos&, u32) const override
+    {
+        return 15;
+    }
+
+    [[nodiscard]] bool isRaining() const override
+    {
+        return false;
+    }
+
+    [[nodiscard]] bool isThundering() const override
+    {
+        return false;
+    }
+
+    [[nodiscard]] bool canRainAt(const BlockPos&) const override
+    {
+        return false;
+    }
+
+    [[nodiscard]] i64 dayTime() const override
+    {
+        return 0;
+    }
+
+    [[nodiscard]] bool isDaytime() const override
+    {
+        return true;
+    }
 
 private:
     bool m_inWater;
@@ -131,8 +212,15 @@ public:
         setVelocity(Vector3(1.0f, 0.0f, 0.0f));
     }
 
-    void setTestVelocity(const Vector3& vel) { setVelocity(vel); }
-    void setTestPosition(const Vector3& pos) { setPosition(pos); }
+    void setTestVelocity(const Vector3& vel)
+    {
+        setVelocity(vel);
+    }
+
+    void setTestPosition(const Vector3& pos)
+    {
+        setPosition(pos);
+    }
 
     // 暴露 protected 方法用于测试
     using DamagingProjectileEntity::getParticleType;

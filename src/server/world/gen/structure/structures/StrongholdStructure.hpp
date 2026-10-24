@@ -67,7 +67,10 @@ public:
     explicit StrongholdStructure(ResourceLocation id);
     StrongholdStructure(ResourceLocation id, const Config& config);
 
-    [[nodiscard]] const std::string& name() const noexcept override { return m_name; }
+    [[nodiscard]] const std::string& name() const noexcept override
+    {
+        return m_name;
+    }
 
     /**
      * @brief 获取结构关联的生物群系标签

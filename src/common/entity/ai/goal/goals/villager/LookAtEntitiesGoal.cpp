@@ -55,11 +55,15 @@ LookAtEntitiesGoal::LookAtEntitiesGoal(VillagerEntity* villager)
 
 bool LookAtEntitiesGoal::shouldExecute()
 {
-    if (!m_villager) return false;
+    if (!m_villager) {
+        return false;
+    }
 
     // 概率检查
     math::IRandom& rng = m_villager->getRandom();
-    if (rng.nextFloat() >= LOOK_CHANCE) return false;
+    if (rng.nextFloat() >= LOOK_CHANCE) {
+        return false;
+    }
 
     // 随机选择目标类型
     _selectTargetType();
@@ -96,7 +100,9 @@ bool LookAtEntitiesGoal::shouldExecute()
 
 bool LookAtEntitiesGoal::shouldContinueExecuting()
 {
-    if (!m_villager || m_lookTargetId == 0) return false;
+    if (!m_villager || m_lookTargetId == 0) {
+        return false;
+    }
 
     // 获取目标实体
     Entity* entity = m_villager->world() ? m_villager->world()->getEntity(m_lookTargetId) : nullptr;
@@ -113,7 +119,9 @@ bool LookAtEntitiesGoal::shouldContinueExecuting()
 
     // 检查距离
     f32 distSq = m_villager->distanceSqTo(*target);
-    if (distSq > LOOK_RANGE * LOOK_RANGE) return false;
+    if (distSq > LOOK_RANGE * LOOK_RANGE) {
+        return false;
+    }
 
     return m_lookTime > 0;
 }
@@ -131,7 +139,9 @@ void LookAtEntitiesGoal::resetTask()
 
 void LookAtEntitiesGoal::tick()
 {
-    if (!m_villager || m_lookTargetId == 0) return;
+    if (!m_villager || m_lookTargetId == 0) {
+        return;
+    }
 
     m_lookTime--;
 

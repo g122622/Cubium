@@ -55,10 +55,16 @@ public:
     {}
 
     /** 获取最低 Y 坐标 */
-    [[nodiscard]] i32 minY() const { return m_minY; }
+    [[nodiscard]] i32 minY() const
+    {
+        return m_minY;
+    }
 
     /** 获取列高度 */
-    [[nodiscard]] i32 height() const { return static_cast<i32>(m_column.size()); }
+    [[nodiscard]] i32 height() const
+    {
+        return static_cast<i32>(m_column.size());
+    }
 
     /** 获取指定 Y 坐标的方块状态，越界返回 nullptr（空气） */
     [[nodiscard]] const BlockState* getBlock(i32 y) const

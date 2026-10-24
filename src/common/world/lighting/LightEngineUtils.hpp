@@ -35,9 +35,11 @@ namespace mc {
 
 // 前向声明
 class IWorld;
+
 namespace world::chunk {
 class IChunk;
 }
+
 using world::chunk::IChunk;
 class BlockState;
 class CollisionShape;
@@ -203,12 +205,24 @@ struct DirectionArray {
     DirectionArray result{};
     result.count = 0;
 
-    if (bits & DIR_DOWN) result.dirs[result.count++] = Direction::Down;
-    if (bits & DIR_UP) result.dirs[result.count++] = Direction::Up;
-    if (bits & DIR_NORTH) result.dirs[result.count++] = Direction::North;
-    if (bits & DIR_SOUTH) result.dirs[result.count++] = Direction::South;
-    if (bits & DIR_WEST) result.dirs[result.count++] = Direction::West;
-    if (bits & DIR_EAST) result.dirs[result.count++] = Direction::East;
+    if (bits & DIR_DOWN) {
+        result.dirs[result.count++] = Direction::Down;
+    }
+    if (bits & DIR_UP) {
+        result.dirs[result.count++] = Direction::Up;
+    }
+    if (bits & DIR_NORTH) {
+        result.dirs[result.count++] = Direction::North;
+    }
+    if (bits & DIR_SOUTH) {
+        result.dirs[result.count++] = Direction::South;
+    }
+    if (bits & DIR_WEST) {
+        result.dirs[result.count++] = Direction::West;
+    }
+    if (bits & DIR_EAST) {
+        result.dirs[result.count++] = Direction::East;
+    }
 
     return result;
 }
@@ -264,7 +278,10 @@ public:
     /**
      * @brief 从BlockPos编码位置
      */
-    [[nodiscard]] static constexpr i64 packPos(const BlockPos& pos) { return packPos(pos.x, pos.y, pos.z); }
+    [[nodiscard]] static constexpr i64 packPos(const BlockPos& pos)
+    {
+        return packPos(pos.x, pos.y, pos.z);
+    }
 
     /**
      * @brief 世界位置解码

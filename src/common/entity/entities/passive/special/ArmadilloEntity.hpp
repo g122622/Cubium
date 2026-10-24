@@ -140,7 +140,10 @@ public:
     void switchToState(ArmadilloState state);
 
     /// 是否处于非 IDLE 状态（对齐 vanilla isScared）
-    [[nodiscard]] bool isScared() const { return getState() != ArmadilloState::Idle; }
+    [[nodiscard]] bool isScared() const
+    {
+        return getState() != ArmadilloState::Idle;
+    }
 
     /// 是否藏在壳里（对齐 vanilla shouldHideInShell）
     [[nodiscard]] bool shouldHideInShell() const;
@@ -163,19 +166,34 @@ public:
     [[nodiscard]] bool isScaredBy(const LivingEntity& other) const;
 
     /// 进入当前状态的 tick 数（对齐 vanilla inStateTicks）
-    [[nodiscard]] i64 inStateTicks() const { return m_inStateTicks; }
+    [[nodiscard]] i64 inStateTicks() const
+    {
+        return m_inStateTicks;
+    }
 
     /// 危险记忆剩余 tick（等价 vanilla Brain 的 DANGER_DETECTED_RECENTLY 记忆过期时间）
-    [[nodiscard]] i32 dangerTicksRemaining() const { return m_dangerTicks; }
+    [[nodiscard]] i32 dangerTicksRemaining() const
+    {
+        return m_dangerTicks;
+    }
 
     /// 最近一次"危险在身边"判定的结果（对齐 vanilla dangerWasAround）
-    [[nodiscard]] bool dangerWasAround() const { return m_dangerWasAround; }
+    [[nodiscard]] bool dangerWasAround() const
+    {
+        return m_dangerWasAround;
+    }
 
     /// 下一次探头计时
-    [[nodiscard]] i32 nextPeekTimer() const { return m_nextPeekTimer; }
+    [[nodiscard]] i32 nextPeekTimer() const
+    {
+        return m_nextPeekTimer;
+    }
 
     /// 最近一次惊吓检测的 tick（对齐 vanilla SCARE_CHECK_INTERVAL 节流）
-    [[nodiscard]] i64 lastScareCheckTick() const { return m_lastScareCheckTick; }
+    [[nodiscard]] i64 lastScareCheckTick() const
+    {
+        return m_lastScareCheckTick;
+    }
 
     /// 是否正在恐慌逃跑（PanicGoal 运行中；等价 vanilla ArmadilloAi 的 IS_PANICKING 记忆）
     [[nodiscard]] bool isPanicking() const;
@@ -198,8 +216,16 @@ public:
     // ========== 鳞甲自然掉落 ==========
 
     /// 距离下次自然掉落鳞甲的剩余 tick（对齐 vanilla scuteTime）
-    [[nodiscard]] i32 scuteTime() const { return m_scuteTime; }
-    void setScuteTime(i32 ticks) { m_scuteTime = ticks; }
+    [[nodiscard]] i32 scuteTime() const
+    {
+        return m_scuteTime;
+    }
+
+    void setScuteTime(i32 ticks)
+    {
+        m_scuteTime = ticks;
+    }
+
     /// 刷新下次自然掉落计时（20 分钟起，随机追加 0~20 分钟）
     void resetScuteTime();
 
@@ -216,7 +242,10 @@ public:
     [[nodiscard]] f32 eyeHeight() const override;
 
     /// 幼体缩放（vanilla Armadillo.getAgeScale；项目无 getAgeScale 虚函数，供渲染/尺寸查询使用）
-    [[nodiscard]] f32 ageScale() const { return isChild() ? BABY_SCALE : 1.0f; }
+    [[nodiscard]] f32 ageScale() const
+    {
+        return isChild() ? BABY_SCALE : 1.0f;
+    }
 
     /// 移动控制标记：卷球时禁止移动/跳跃（对齐 vanilla 的 MOVE_TO_TARGET 门控）
     void updateMovementGoalFlags() override;
@@ -244,7 +273,10 @@ public:
 
     // ========== 测试/诊断 ==========
 
-    [[nodiscard]] static u16 getStateParamId() { return DATA_ID_STATE_PARAM.id(); }
+    [[nodiscard]] static u16 getStateParamId()
+    {
+        return DATA_ID_STATE_PARAM.id();
+    }
 
     /// 同步数据参数：DATA_ID_STATE（wire 序列化器 ARMADILLO_STATE=32，值 VarInt(状态 id)）
     static entity::DataParameter<i32> DATA_ID_STATE_PARAM;

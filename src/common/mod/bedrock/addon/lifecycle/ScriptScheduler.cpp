@@ -12,9 +12,9 @@
  * copies or substantial portions of the Software.
  *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, WARRANTIES OF MERCHANTABILITY,
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HAVING BEEN CLAIMED FOR ANY CLAIM, DAMAGES OR OTHER
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
@@ -22,10 +22,12 @@
  */
 
 #include "common/mod/bedrock/addon/lifecycle/ScriptScheduler.hpp"
-#include "common/core/Types.hpp"
-#include <cstddef>
-#include <iterator>
-#include <mutex>
+
+#include "common/util/assert/AssertAll.hpp"
+
+#include <algorithm>
+#include <chrono>
+#include <limits>
 #include <utility>
 #include <vector>
 
@@ -33,27 +35,25 @@ namespace mc::mod::bedrock::addon {
 
 ScriptScheduler::RunId ScriptScheduler::run(Callback callback)
 {
-    std::lock_guard lock(m_mutex);
-    RunId id = _nextId();
-    m_pendingRunCallbacks.push_back(std::move(callback));
-    return id;
+    return runTimeout(std::move(callback), 1);
 }
 
 ScriptScheduler::RunId ScriptScheduler::runTimeout(Callback callback, u32 tickDelay)
 {
     std::lock_guard lock(m_mutex);
-    RunId id = _nextId();
-    // 一次性回调：nextTick=0表示首次tick时设置，recurring=false
-    m_entries.emplace(id, ScheduledEntry{id, std::move(callback), 0, tickDelay, false, false});
+    const RunId id = _nextId();
+    m_entries.emplace(id, ScheduledEntry{std::move(callback), m_currentTick + tickDelay, 0});
+
     return id;
 }
 
 ScriptScheduler::RunId ScriptScheduler::runInterval(Callback callback, u32 tickInterval)
 {
     std::lock_guard lock(m_mutex);
-    RunId id = _nextId();
-    // 周期性回调：recurring=true
-    m_entries.emplace(id, ScheduledEntry{id, std::move(callback), 0, tickInterval, true, false});
+    const RunId id = _nextId();
+    const u32 interval = std::max(tickInterval, 1u);
+    m_entries.emplace(id, ScheduledEntry{std::move(callback), m_currentTick + interval, interval});
+
     return id;
 }
 
@@ -61,87 +61,118 @@ bool ScriptScheduler::clearRun(RunId runId)
 {
     std::lock_guard lock(m_mutex);
 
-    // 检查定时/周期回调
-    auto it = m_entries.find(runId);
-    if (it != m_entries.end()) {
-        it->second.cancelled = true;
-        m_entries.erase(it);
-        return true;
-    }
+    return m_entries.erase(runId) != 0;
+}
 
-    // 下一tick回调无法取消（已经在待执行队列中）
-    return false;
+ScriptScheduler::RunId ScriptScheduler::runJob(JobStep step)
+{
+    std::lock_guard lock(m_mutex);
+    const RunId id = _nextId();
+    m_jobs.emplace(id, std::move(step));
+
+    return id;
+}
+
+bool ScriptScheduler::clearJob(RunId jobId)
+{
+    std::lock_guard lock(m_mutex);
+
+    return m_jobs.erase(jobId) != 0;
 }
 
 void ScriptScheduler::tick(u64 currentTick)
 {
-    // 收集待执行的回调
-    std::vector<Callback> callbacksToRun;
-
+    std::vector<RunId> ready;
     {
         std::lock_guard lock(m_mutex);
+        MC_ASSERT_RELEASE(currentTick >= m_currentTick);
+        m_currentTick = currentTick;
+        ready.reserve(m_entries.size());
+        for (const auto& [id, entry] : m_entries) {
+            if (entry.nextTick <= currentTick) {
+                ready.push_back(id);
+            }
+        }
+    }
 
-        // 1. 处理system.run()的即时回调
-        callbacksToRun.insert(callbacksToRun.end(),
-            std::make_move_iterator(m_pendingRunCallbacks.begin()),
-            std::make_move_iterator(m_pendingRunCallbacks.end()));
-        m_pendingRunCallbacks.clear();
-
-        // 2. 处理定时和周期回调
-        for (auto it = m_entries.begin(); it != m_entries.end();) {
-            auto& entry = it->second;
-            if (entry.cancelled) {
-                it = m_entries.erase(it);
+    // 执行前重新查表，使前面的回调能够取消本轮尚未执行的任务。
+    for (const RunId id : ready) {
+        Callback callback;
+        {
+            std::lock_guard lock(m_mutex);
+            const auto it = m_entries.find(id);
+            if (it == m_entries.end()) {
                 continue;
             }
 
-            // 首次tick时设置nextTick
-            if (entry.nextTick == 0) {
-                entry.nextTick = currentTick + entry.interval;
+            callback = it->second.callback;
+            if (it->second.interval == 0) {
+                m_entries.erase(it);
+            } else {
+                it->second.nextTick = currentTick + it->second.interval;
+            }
+        }
+
+        callback();
+    }
+
+    _tickJobs();
+}
+
+void ScriptScheduler::_tickJobs()
+{
+    std::vector<RunId> active;
+    {
+        std::lock_guard lock(m_mutex);
+        active.reserve(m_jobs.size());
+        for (const auto& [id, step] : m_jobs) {
+            active.push_back(id);
+        }
+    }
+
+    // 先完成一轮，再检查时间预算，保证每个任务至少获得一次推进机会。
+    const auto deadline = std::chrono::steady_clock::now() + std::chrono::milliseconds(1);
+    do {
+        for (auto it = active.begin(); it != active.end();) {
+            JobStep step;
+            {
+                std::lock_guard lock(m_mutex);
+                const auto job = m_jobs.find(*it);
+                if (job != m_jobs.end()) {
+                    step = job->second;
+                }
             }
 
-            // 检查是否到期
-            if (currentTick >= entry.nextTick) {
-                callbacksToRun.push_back(entry.callback);
-
-                if (entry.recurring) {
-                    // 周期性回调：更新下次执行时间
-                    entry.nextTick = currentTick + entry.interval;
-                    ++it;
-                } else {
-                    // 一次性回调：移除
-                    it = m_entries.erase(it);
-                }
+            // 取出回调后释放锁，允许生成器取消自身或其他尚未执行的任务。
+            if (!step || step()) {
+                clearJob(*it);
+                it = active.erase(it);
             } else {
                 ++it;
             }
         }
-    }
-
-    // 3. 在锁外执行回调（避免回调中调用调度方法导致死锁）
-    for (auto& callback : callbacksToRun) {
-        if (callback) {
-            callback();
-        }
-    }
+    } while (!active.empty() && std::chrono::steady_clock::now() < deadline);
 }
 
 void ScriptScheduler::clearAll()
 {
     std::lock_guard lock(m_mutex);
     m_entries.clear();
-    m_pendingRunCallbacks.clear();
+    m_jobs.clear();
 }
 
 size_t ScriptScheduler::pendingCount() const
 {
     std::lock_guard lock(m_mutex);
-    return m_entries.size() + m_pendingRunCallbacks.size();
+
+    return m_entries.size() + m_jobs.size();
 }
 
 ScriptScheduler::RunId ScriptScheduler::_nextId()
 {
-    return m_nextId.fetch_add(1);
+    MC_ASSERT_RELEASE(m_nextId < std::numeric_limits<RunId>::max());
+
+    return m_nextId++;
 }
 
 } // namespace mc::mod::bedrock::addon

@@ -112,10 +112,20 @@ public:
         return true;
     }
 
-    [[nodiscard]] u64 seed() const override { return m_seed; }
-    [[nodiscard]] bool isRaining() const override { return false; }
+    [[nodiscard]] u64 seed() const override
+    {
+        return m_seed;
+    }
 
-    void setSeed(u64 seed) { m_seed = seed; }
+    [[nodiscard]] bool isRaining() const override
+    {
+        return false;
+    }
+
+    void setSeed(u64 seed)
+    {
+        m_seed = seed;
+    }
 
 private:
     static i64 packPos(i32 x, i32 y, i32 z)
@@ -717,15 +727,26 @@ public:
     {
         throw std::runtime_error("CandleCakeInteractionWorld::tickManager not implemented");
     }
+
     [[nodiscard]] const world::tick::TickManager& tickManager() const override
     {
         throw std::runtime_error("CandleCakeInteractionWorld::tickManager not implemented");
     }
 
-    [[nodiscard]] u64 seed() const override { return m_seed; }
-    [[nodiscard]] bool isRaining() const override { return false; }
+    [[nodiscard]] u64 seed() const override
+    {
+        return m_seed;
+    }
 
-    void setSeed(u64 seed) { m_seed = seed; }
+    [[nodiscard]] bool isRaining() const override
+    {
+        return false;
+    }
+
+    void setSeed(u64 seed)
+    {
+        m_seed = seed;
+    }
 
     struct SoundRecord {
         ResourceLocation sound;
@@ -735,8 +756,15 @@ public:
         f32 pitch;
     };
 
-    [[nodiscard]] const std::vector<SoundRecord>& sounds() const { return m_sounds; }
-    void clearSounds() { m_sounds.clear(); }
+    [[nodiscard]] const std::vector<SoundRecord>& sounds() const
+    {
+        return m_sounds;
+    }
+
+    void clearSounds()
+    {
+        m_sounds.clear();
+    }
 
 private:
     static i64 packPos(i32 x, i32 y, i32 z)

@@ -567,9 +567,15 @@ void ItemEntity::_applyNormalPhysics()
 
     // 速度阈值
     constexpr f32 VELOCITY_THRESHOLD = 0.001f;
-    if (std::abs(m_builtIn.velocity->m_velocity.x) < VELOCITY_THRESHOLD) m_builtIn.velocity->m_velocity.x = 0.0f;
-    if (std::abs(m_builtIn.velocity->m_velocity.y) < VELOCITY_THRESHOLD) m_builtIn.velocity->m_velocity.y = 0.0f;
-    if (std::abs(m_builtIn.velocity->m_velocity.z) < VELOCITY_THRESHOLD) m_builtIn.velocity->m_velocity.z = 0.0f;
+    if (std::abs(m_builtIn.velocity->m_velocity.x) < VELOCITY_THRESHOLD) {
+        m_builtIn.velocity->m_velocity.x = 0.0f;
+    }
+    if (std::abs(m_builtIn.velocity->m_velocity.y) < VELOCITY_THRESHOLD) {
+        m_builtIn.velocity->m_velocity.y = 0.0f;
+    }
+    if (std::abs(m_builtIn.velocity->m_velocity.z) < VELOCITY_THRESHOLD) {
+        m_builtIn.velocity->m_velocity.z = 0.0f;
+    }
 }
 
 void ItemEntity::_applyWaterPhysics()

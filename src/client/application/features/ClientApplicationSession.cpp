@@ -92,7 +92,9 @@ ui::minecraft::widgets::ScreenStackWidget* getScreenStackWidget(ClientApplicatio
 
 void ClientApplication::setupStateMachineCallbacks()
 {
-    m_stateMachine.setOnStateChanged([this](ClientAppState from, ClientAppState to) { onStateChanged(from, to); });
+    m_stateMachine.setOnStateChanged([this](ClientAppState from, ClientAppState to) {
+        onStateChanged(from, to);
+    });
 
     m_stateMachine.setLoadingProgressCallback([this](const std::string& stage, f32 progress) {
         spdlog::info("[Loading] {} - {:.0f}%", stage, progress * 100.0f);
@@ -235,8 +237,12 @@ Result<void> ClientApplication::initializeGameSession(const WorldLaunchConfig& c
             "[Session] Login ready: entityId={}, dimension={}, uuid-set={}", entityId, dimension, !uuid.empty());
     });
     m_commandManager = std::make_unique<command::ClientCommandManager>();
-    m_commandManager->setPlayerNameProvider([this]() { return collectPlayerCompletionCandidates(); });
-    m_commandManager->setEntityNameProvider([this]() { return collectEntityCompletionCandidates(); });
+    m_commandManager->setPlayerNameProvider([this]() {
+        return collectPlayerCompletionCandidates();
+    });
+    m_commandManager->setEntityNameProvider([this]() {
+        return collectEntityCompletionCandidates();
+    });
     setupNetworkCallbacks();
 
     // 初始化皮肤管理器
@@ -367,7 +373,9 @@ Result<void> ClientApplication::initializeGameSession(const WorldLaunchConfig& c
         // 设置本地玩家访问器（每帧更新以应对登录/登出切换）
         // 第三人称玩家 GPU 管线路径需要从本地 Player 读取 use-item 状态驱动弩动画
         m_renderer->entityRendererManager().setLocalPlayerAccessor(
-            m_localIdentity.entityId(), [this]() -> ::mc::Player* { return m_player.get(); });
+            m_localIdentity.entityId(), [this]() -> ::mc::Player* {
+                return m_player.get();
+            });
 
         m_world.entityManager().forEachEntity([&](client::ClientEntity& entity) {
             // 本地玩家回填：ClientEntity 的 isRightHanded/playerModelParts 尚未走网络同步
@@ -618,7 +626,9 @@ void ClientApplication::showMainMenu()
     auto mainMenuScreen = std::make_unique<ui::minecraft::MainMenuScreen>();
 
     // 设置回调
-    mainMenuScreen->setOnSinglePlayer([this]() { showWorldSelection(); });
+    mainMenuScreen->setOnSinglePlayer([this]() {
+        showWorldSelection();
+    });
 
     mainMenuScreen->setOnMultiPlayer([this]() {
         // TODO: 多人游戏支持
@@ -632,7 +642,9 @@ void ClientApplication::showMainMenu()
         }
         auto optionsScreen = std::make_unique<ui::minecraft::OptionsScreen>();
         optionsScreen->setBounds(ui::kagero::Rect(0, 0, m_guiScaleState.width, m_guiScaleState.height));
-        optionsScreen->setOnClose([this, screenStack]() { screenStack->pop(); });
+        optionsScreen->setOnClose([this, screenStack]() {
+            screenStack->pop();
+        });
         // 主菜单阶段未进入世界，难度控件禁用（仅集成服进游戏后可改难度，对齐 Java hasSingleplayerServer）
         optionsScreen->setDifficultyControlsEnabled(false);
         screenStack->push(std::move(optionsScreen));
@@ -702,15 +714,21 @@ void ClientApplication::showPauseMenu()
         }
         auto optionsScreen = std::make_unique<ui::minecraft::OptionsScreen>();
         optionsScreen->setBounds(ui::kagero::Rect(0, 0, m_guiScaleState.width, m_guiScaleState.height));
-        optionsScreen->setOnClose([this, screenStack]() { screenStack->pop(); });
+        optionsScreen->setOnClose([this, screenStack]() {
+            screenStack->pop();
+        });
         // 暂停菜单阶段已进入世界：仅集成服启用难度控件，联机服禁用（对齐 Java hasSingleplayerServer）
         const bool canEdit = m_useIntegratedServer && m_integratedServer != nullptr;
         optionsScreen->setDifficultyControlsEnabled(canEdit);
         if (canEdit) {
             optionsScreen->setDifficulty(m_integratedServer->difficulty());
             optionsScreen->setDifficultyLocked(m_integratedServer->isDifficultyLocked());
-            optionsScreen->setOnCycleDifficulty([this](Difficulty diff) { sendChangeDifficulty(diff); });
-            optionsScreen->setOnLockDifficulty([this]() { sendLockDifficulty(); });
+            optionsScreen->setOnCycleDifficulty([this](Difficulty diff) {
+                sendChangeDifficulty(diff);
+            });
+            optionsScreen->setOnLockDifficulty([this]() {
+                sendLockDifficulty();
+            });
         }
         screenStack->push(std::move(optionsScreen));
     });
@@ -786,7 +804,9 @@ void ClientApplication::showWorldSelection()
         }
     });
 
-    worldSelectionScreen->setOnCreateWorld([this]() { showCreateWorld(); });
+    worldSelectionScreen->setOnCreateWorld([this]() {
+        showCreateWorld();
+    });
 
     worldSelectionScreen->setOnBack([this, screenStack]() {
         // 返回主菜单

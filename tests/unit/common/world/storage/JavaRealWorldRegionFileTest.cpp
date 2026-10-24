@@ -73,6 +73,7 @@ TEST(JavaRealWorldRegionFileTest, ListChunksCountsPerRegion)
         i32 regionZ;
         i32 columns;
     };
+
     // 负数区域坐标的文件名形如 r.-1.0.mca，需覆盖负号解析这一分支
     const Case cases[] = {
         {"r.0.0.mca", 0, 0, JavaRealWorld::kColumnsR00},

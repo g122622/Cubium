@@ -638,7 +638,9 @@ protected:
         }
         for (const auto& [band, pairs] : bandPairs) {
             std::vector<std::pair<std::string, i64>> sorted(pairs.begin(), pairs.end());
-            std::sort(sorted.begin(), sorted.end(), [](const auto& a, const auto& b) { return a.second > b.second; });
+            std::sort(sorted.begin(), sorted.end(), [](const auto& a, const auto& b) {
+                return a.second > b.second;
+            });
             const size_t limit = std::min<size_t>(sorted.size(), 6);
             std::printf("[DIAG] (%d,%d) y %4d..%4d 差异对 top %zu / 共 %zu：\n",
                 cx,
@@ -723,6 +725,7 @@ protected:
             i32 maxY = 0;
             std::set<i32> cells;
         };
+
         std::map<std::string, std::pair<SideStats, SideStats>> stats;
 
         const auto accumulate = [&](const ChunkData& chunk, bool isJava) {
@@ -815,6 +818,7 @@ protected:
             i64 java = 0;
             i64 cubium = 0;
         };
+
         std::vector<Row> rows;
         for (const auto& [name, count] : diff.javaBlockCounts) {
             const i64 cubiumCount = diff.cubiumBlockCounts.count(name) != 0 ? diff.cubiumBlockCounts.at(name) : 0;

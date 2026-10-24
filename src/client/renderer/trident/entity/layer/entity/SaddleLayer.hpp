@@ -87,7 +87,10 @@ public:
     /**
      * @brief 设置鞍纹理
      */
-    void setSaddleTexture(const ResourceLocation& texture) { m_saddleTexture = texture; }
+    void setSaddleTexture(const ResourceLocation& texture)
+    {
+        m_saddleTexture = texture;
+    }
 
 protected:
     /**
@@ -101,12 +104,18 @@ protected:
     /**
      * @brief 获取父模型
      */
-    [[nodiscard]] TModel* getParentModel() { return &m_renderer->getModel(); }
+    [[nodiscard]] TModel* getParentModel()
+    {
+        return &m_renderer->getModel();
+    }
 
     /**
      * @brief 获取鞍模型
      */
-    [[nodiscard]] TModel* getSaddleModel() { return m_saddleModel.get(); }
+    [[nodiscard]] TModel* getSaddleModel()
+    {
+        return m_saddleModel.get();
+    }
 
 private:
     /**

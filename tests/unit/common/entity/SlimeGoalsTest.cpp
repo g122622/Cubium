@@ -36,9 +36,15 @@ namespace test {
 
 class SlimeGoalsEntityTest : public ::testing::Test {
 protected:
-    void SetUp() override { slime = std::make_unique<SlimeEntity>(EntityInstanceId(1), mc::test::testEcsRegistry()); }
+    void SetUp() override
+    {
+        slime = std::make_unique<SlimeEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
+    }
 
-    void TearDown() override { slime.reset(); }
+    void TearDown() override
+    {
+        slime.reset();
+    }
 
     std::unique_ptr<SlimeEntity> slime;
 };

@@ -166,21 +166,45 @@ public:
 
     // ========== 状态查询 ==========
 
-    [[nodiscard]] ClientAppState state() const noexcept { return m_state; }
+    [[nodiscard]] ClientAppState state() const noexcept
+    {
+        return m_state;
+    }
 
-    [[nodiscard]] bool isInitializing() const noexcept { return m_state == ClientAppState::Initializing; }
+    [[nodiscard]] bool isInitializing() const noexcept
+    {
+        return m_state == ClientAppState::Initializing;
+    }
 
-    [[nodiscard]] bool isInMainMenu() const noexcept { return m_state == ClientAppState::MainMenu; }
+    [[nodiscard]] bool isInMainMenu() const noexcept
+    {
+        return m_state == ClientAppState::MainMenu;
+    }
 
-    [[nodiscard]] bool isLoadingWorld() const noexcept { return m_state == ClientAppState::LoadingWorld; }
+    [[nodiscard]] bool isLoadingWorld() const noexcept
+    {
+        return m_state == ClientAppState::LoadingWorld;
+    }
 
-    [[nodiscard]] bool isInGame() const noexcept { return m_state == ClientAppState::InGame; }
+    [[nodiscard]] bool isInGame() const noexcept
+    {
+        return m_state == ClientAppState::InGame;
+    }
 
-    [[nodiscard]] bool isPaused() const noexcept { return m_state == ClientAppState::Paused; }
+    [[nodiscard]] bool isPaused() const noexcept
+    {
+        return m_state == ClientAppState::Paused;
+    }
 
-    [[nodiscard]] bool isLeavingWorld() const noexcept { return m_state == ClientAppState::LeavingWorld; }
+    [[nodiscard]] bool isLeavingWorld() const noexcept
+    {
+        return m_state == ClientAppState::LeavingWorld;
+    }
 
-    [[nodiscard]] bool isShuttingDown() const noexcept { return m_state == ClientAppState::ShuttingDown; }
+    [[nodiscard]] bool isShuttingDown() const noexcept
+    {
+        return m_state == ClientAppState::ShuttingDown;
+    }
 
     /**
      * @brief 是否有活跃的游戏会话
@@ -197,17 +221,29 @@ public:
      * @brief 是否可以捕获鼠标
      * 只有 InGame 状态下才能捕获鼠标。
      */
-    [[nodiscard]] bool canCaptureMouse() const noexcept { return m_state == ClientAppState::InGame; }
+    [[nodiscard]] bool canCaptureMouse() const noexcept
+    {
+        return m_state == ClientAppState::InGame;
+    }
 
     /**
      * @brief 是否可以暂停
      * 只有 InGame 状态下才能打开暂停菜单。
      */
-    [[nodiscard]] bool canPause() const noexcept { return m_state == ClientAppState::InGame; }
+    [[nodiscard]] bool canPause() const noexcept
+    {
+        return m_state == ClientAppState::InGame;
+    }
 
-    [[nodiscard]] bool canResumeFromPause() const noexcept { return m_state == ClientAppState::Paused; }
+    [[nodiscard]] bool canResumeFromPause() const noexcept
+    {
+        return m_state == ClientAppState::Paused;
+    }
 
-    [[nodiscard]] bool canStartWorld() const noexcept { return m_state == ClientAppState::MainMenu; }
+    [[nodiscard]] bool canStartWorld() const noexcept
+    {
+        return m_state == ClientAppState::MainMenu;
+    }
 
     [[nodiscard]] bool canReturnToMainMenu() const noexcept
     {
@@ -238,7 +274,10 @@ public:
         return m_state == ClientAppState::InGame || m_state == ClientAppState::Paused;
     }
 
-    [[nodiscard]] bool needsGameTick() const noexcept { return m_state == ClientAppState::InGame; }
+    [[nodiscard]] bool needsGameTick() const noexcept
+    {
+        return m_state == ClientAppState::InGame;
+    }
 
     // ========== 状态转换 ==========
 
@@ -395,12 +434,18 @@ public:
     /**
      * @brief 设置状态变更回调
      */
-    void setOnStateChanged(StateChangeCallback callback) { m_onStateChanged = std::move(callback); }
+    void setOnStateChanged(StateChangeCallback callback)
+    {
+        m_onStateChanged = std::move(callback);
+    }
 
     /**
      * @brief 设置加载进度回调
      */
-    void setLoadingProgressCallback(LoadingProgressCallback callback) { m_onLoadingProgress = std::move(callback); }
+    void setLoadingProgressCallback(LoadingProgressCallback callback)
+    {
+        m_onLoadingProgress = std::move(callback);
+    }
 
     // ========== 世界配置访问 ==========
 
@@ -409,7 +454,10 @@ public:
      *
      * 仅在 LoadingWorld、InGame、Paused、LeavingWorld 状态有效。
      */
-    [[nodiscard]] const std::optional<WorldLaunchConfig>& worldConfig() const noexcept { return m_worldConfig; }
+    [[nodiscard]] const std::optional<WorldLaunchConfig>& worldConfig() const noexcept
+    {
+        return m_worldConfig;
+    }
 
     /**
      * @brief 报告加载进度（仅 LoadingWorld 状态有效）

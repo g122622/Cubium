@@ -266,14 +266,18 @@ void IllusionerEntity::registerGoals()
     // 优先级 9: 看向玩家
     m_goalSelector.addGoal(
         9, std::make_unique<entity::ai::goal::LookAtGoal>(this, 3.0f, 1.0f, [](const LivingEntity* entity) -> bool {
-            if (!entity) return false;
+            if (!entity) {
+                return false;
+            }
             return entity->entityType() == entity::VanillaEntityTypeKeys::PLAYER;
         }));
 
     // 优先级 10: 看向生物
     m_goalSelector.addGoal(
         10, std::make_unique<entity::ai::goal::LookAtGoal>(this, 8.0f, 0.02f, [](const LivingEntity* entity) -> bool {
-            if (!entity) return false;
+            if (!entity) {
+                return false;
+            }
             // 看向所有 MobEntity
             return entity->entityType() != entity::VanillaEntityTypeKeys::PLAYER;
         }));

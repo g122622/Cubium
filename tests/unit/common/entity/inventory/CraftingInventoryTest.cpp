@@ -268,7 +268,9 @@ TEST_F(CraftingInventoryTest, ContentChangedCallback)
     CraftingInventory inv(3, 3);
 
     bool callbackCalled = false;
-    inv.setContentChangedCallback([&callbackCalled]() { callbackCalled = true; });
+    inv.setContentChangedCallback([&callbackCalled]() {
+        callbackCalled = true;
+    });
 
     inv.setItem(0, ItemStack(*stone, 1));
 
@@ -392,7 +394,10 @@ TEST_F(CraftingInventoryTest, SetItems_WrongSize)
 
 class CraftResultInventoryTest : public ::testing::Test {
 protected:
-    void SetUp() override { stone = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "stone")); }
+    void SetUp() override
+    {
+        stone = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "stone"));
+    }
 
     Item* stone = nullptr;
 };

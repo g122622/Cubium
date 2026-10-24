@@ -82,8 +82,9 @@ void GameProfile::addProperty(GameProfileProperty&& property)
 
 const GameProfileProperty* GameProfile::getProperty(const std::string& name) const
 {
-    auto it = std::find_if(
-        m_properties.begin(), m_properties.end(), [&name](const GameProfileProperty& p) { return p.name == name; });
+    auto it = std::find_if(m_properties.begin(), m_properties.end(), [&name](const GameProfileProperty& p) {
+        return p.name == name;
+    });
 
     return it != m_properties.end() ? &(*it) : nullptr;
 }
@@ -191,7 +192,9 @@ i32 GameProfile::uuidHashCode() const noexcept
 
 bool GameProfile::hasValidUUID() const noexcept
 {
-    return std::any_of(m_uuid.begin(), m_uuid.end(), [](u8 byte) { return byte != 0; });
+    return std::any_of(m_uuid.begin(), m_uuid.end(), [](u8 byte) {
+        return byte != 0;
+    });
 }
 
 // ============================================================================

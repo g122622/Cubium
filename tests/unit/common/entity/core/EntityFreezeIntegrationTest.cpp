@@ -48,9 +48,20 @@ public:
 
     void gameEvent(const gameevent::GameEvent&, const BlockPos&, const gameevent::GameEvent::Context&) override {}
 
-    [[nodiscard]] bool isClientSide() const override { return false; }
-    [[nodiscard]] bool isRaining() const override { return false; }
-    [[nodiscard]] bool canRainAt(const BlockPos&) const override { return false; }
+    [[nodiscard]] bool isClientSide() const override
+    {
+        return false;
+    }
+
+    [[nodiscard]] bool isRaining() const override
+    {
+        return false;
+    }
+
+    [[nodiscard]] bool canRainAt(const BlockPos&) const override
+    {
+        return false;
+    }
 
     void clearState() {}
 };
@@ -74,10 +85,25 @@ public:
         }
     }
 
-    [[nodiscard]] f32 width() const override { return 0.6f; }
-    [[nodiscard]] f32 height() const override { return 1.8f; }
-    [[nodiscard]] f32 eyeHeight() const override { return 1.62f; }
-    [[nodiscard]] std::string getLootTableId() const override { return {}; }
+    [[nodiscard]] f32 width() const override
+    {
+        return 0.6f;
+    }
+
+    [[nodiscard]] f32 height() const override
+    {
+        return 1.8f;
+    }
+
+    [[nodiscard]] f32 eyeHeight() const override
+    {
+        return 1.62f;
+    }
+
+    [[nodiscard]] std::string getLootTableId() const override
+    {
+        return {};
+    }
 };
 
 class TestPlayer : public Player {
@@ -92,7 +118,10 @@ public:
         }
     }
 
-    [[nodiscard]] std::string getLootTableId() const override { return {}; }
+    [[nodiscard]] std::string getLootTableId() const override
+    {
+        return {};
+    }
 };
 
 } // namespace

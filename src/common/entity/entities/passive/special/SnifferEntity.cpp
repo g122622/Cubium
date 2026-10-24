@@ -281,7 +281,9 @@ bool SnifferEntity::canMateWith(const AnimalEntity& other) const
         return false;
     }
     // 检查双方状态是否允许繁殖
-    auto isMatingState = [](State s) { return s == State::Idling || s == State::Scenting || s == State::FeelingHappy; };
+    auto isMatingState = [](State s) {
+        return s == State::Idling || s == State::Scenting || s == State::FeelingHappy;
+    };
     if (!isMatingState(getState())) {
         return false;
     }
@@ -513,7 +515,9 @@ void SnifferEntity::registerGoals()
         1.25,
         [](const ItemStack& stack) -> bool {
             const Item* item = stack.getItem();
-            if (item == nullptr) return false;
+            if (item == nullptr) {
+                return false;
+            }
             if (Items::TORCHFLOWER_SEEDS != nullptr && item == Items::TORCHFLOWER_SEEDS) {
                 return true;
             }

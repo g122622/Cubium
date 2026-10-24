@@ -96,12 +96,18 @@ public:
     /**
      * @brief 检查是否包含某个枚举值
      */
-    [[nodiscard]] bool test(E value) const { return m_bits.test(static_cast<size_t>(value)); }
+    [[nodiscard]] bool test(E value) const
+    {
+        return m_bits.test(static_cast<size_t>(value));
+    }
 
     /**
      * @brief 检查是否包含某个枚举值（运算符版本）
      */
-    [[nodiscard]] bool operator[](E value) const { return m_bits[static_cast<size_t>(value)]; }
+    [[nodiscard]] bool operator[](E value) const
+    {
+        return m_bits[static_cast<size_t>(value)];
+    }
 
     /**
      * @brief 清空所有值
@@ -124,27 +130,42 @@ public:
     /**
      * @brief 检查是否为空
      */
-    [[nodiscard]] bool empty() const { return m_bits.none(); }
+    [[nodiscard]] bool empty() const
+    {
+        return m_bits.none();
+    }
 
     /**
      * @brief 检查是否有任何值
      */
-    [[nodiscard]] bool any() const { return m_bits.any(); }
+    [[nodiscard]] bool any() const
+    {
+        return m_bits.any();
+    }
 
     /**
      * @brief 检查是否包含所有值
      */
-    [[nodiscard]] bool all() const { return m_bits.all(); }
+    [[nodiscard]] bool all() const
+    {
+        return m_bits.all();
+    }
 
     /**
      * @brief 计算值的数量
      */
-    [[nodiscard]] size_t count() const { return m_bits.count(); }
+    [[nodiscard]] size_t count() const
+    {
+        return m_bits.count();
+    }
 
     /**
      * @brief 获取大小
      */
-    [[nodiscard]] constexpr size_t size() const { return Size; }
+    [[nodiscard]] constexpr size_t size() const
+    {
+        return Size;
+    }
 
     /**
      * @brief 并集运算
@@ -235,22 +256,34 @@ public:
     /**
      * @brief 相等比较
      */
-    [[nodiscard]] bool operator==(const EnumSet& other) const { return m_bits == other.m_bits; }
+    [[nodiscard]] bool operator==(const EnumSet& other) const
+    {
+        return m_bits == other.m_bits;
+    }
 
     /**
      * @brief 不等比较
      */
-    [[nodiscard]] bool operator!=(const EnumSet& other) const { return m_bits != other.m_bits; }
+    [[nodiscard]] bool operator!=(const EnumSet& other) const
+    {
+        return m_bits != other.m_bits;
+    }
 
     /**
      * @brief 检查是否与另一个集合有交集
      */
-    [[nodiscard]] bool intersects(const EnumSet& other) const { return (m_bits & other.m_bits).any(); }
+    [[nodiscard]] bool intersects(const EnumSet& other) const
+    {
+        return (m_bits & other.m_bits).any();
+    }
 
     /**
      * @brief 检查是否包含另一个集合
      */
-    [[nodiscard]] bool contains(const EnumSet& other) const { return (m_bits & other.m_bits) == other.m_bits; }
+    [[nodiscard]] bool contains(const EnumSet& other) const
+    {
+        return (m_bits & other.m_bits) == other.m_bits;
+    }
 
     /**
      * @brief 遍历所有设置的枚举值
@@ -270,7 +303,10 @@ public:
     /**
      * @brief 转换为底层位集
      */
-    [[nodiscard]] const std::bitset<Size>& bits() const { return m_bits; }
+    [[nodiscard]] const std::bitset<Size>& bits() const
+    {
+        return m_bits;
+    }
 
 private:
     std::bitset<Size> m_bits;

@@ -50,9 +50,11 @@ struct ServerEvent {
     ServerEvent()
         : timestamp(0)
     {}
+
     explicit ServerEvent(u64 tick)
         : timestamp(tick)
     {}
+
     virtual ~ServerEvent() = default;
 
     /**
@@ -60,7 +62,10 @@ struct ServerEvent {
      *
      * 仅对beforeEvent有意义。取消后游戏逻辑将跳过原始操作。
      */
-    [[nodiscard]] bool isCancelled() const { return m_cancelled; }
+    [[nodiscard]] bool isCancelled() const
+    {
+        return m_cancelled;
+    }
 
     /**
      * @brief 取消事件
@@ -68,7 +73,10 @@ struct ServerEvent {
      * 在beforeEvent处理器中调用可阻止游戏执行原始操作。
      * 取消后，后续的beforeEvent处理器仍然会被调用（与基岩版行为一致）。
      */
-    void cancel() const { m_cancelled = true; }
+    void cancel() const
+    {
+        m_cancelled = true;
+    }
 };
 
 /**
@@ -139,7 +147,9 @@ public:
         HandlerEntry entry(
             id,
             priority,
-            [handler = std::move(handler)](const ServerEvent& e) { handler(static_cast<const EventT&>(e)); },
+            [handler = std::move(handler)](const ServerEvent& e) {
+                handler(static_cast<const EventT&>(e));
+            },
             typeInfo);
 
         m_handlers[typeInfo].push_back(std::move(entry));
@@ -169,8 +179,9 @@ public:
         m_handlerToType.erase(typeIt);
 
         auto& handlers = m_handlers[typeInfo];
-        auto it =
-            std::find_if(handlers.begin(), handlers.end(), [id](const HandlerEntry& entry) { return entry.id == id; });
+        auto it = std::find_if(handlers.begin(), handlers.end(), [id](const HandlerEntry& entry) {
+            return entry.id == id;
+        });
 
         if (it != handlers.end()) {
             handlers.erase(it);
@@ -339,12 +350,18 @@ public:
         /**
          * @brief 获取订阅ID
          */
-        [[nodiscard]] HandlerId id() const { return m_id; }
+        [[nodiscard]] HandlerId id() const
+        {
+            return m_id;
+        }
 
         /**
          * @brief 检查是否有效
          */
-        [[nodiscard]] bool valid() const { return m_id != 0; }
+        [[nodiscard]] bool valid() const
+        {
+            return m_id != 0;
+        }
 
         /**
          * @brief 手动取消订阅
@@ -418,6 +435,7 @@ private:
         HandlerEntry() noexcept
             : typeInfo(typeid(void))
         {}
+
         HandlerEntry(HandlerId id_, i32 prio, std::function<void(const ServerEvent&)> h, TypeInfo ti)
             : id(id_)
             , priority(prio)
@@ -429,7 +447,10 @@ private:
     /**
      * @brief 生成下一个ID
      */
-    HandlerId _nextId() noexcept { return m_nextId++; }
+    HandlerId _nextId() noexcept
+    {
+        return m_nextId++;
+    }
 
     /**
      * @brief 按优先级排序处理器

@@ -72,8 +72,12 @@ std::string EnumProperty<blocks::ComparatorMode>::Traits::toString(const blocks:
 
 std::optional<blocks::ComparatorMode> EnumProperty<blocks::ComparatorMode>::Traits::fromName(std::string_view name)
 {
-    if (name == "compare") return blocks::ComparatorMode::Compare;
-    if (name == "subtract") return blocks::ComparatorMode::Subtract;
+    if (name == "compare") {
+        return blocks::ComparatorMode::Compare;
+    }
+    if (name == "subtract") {
+        return blocks::ComparatorMode::Subtract;
+    }
     return std::nullopt;
 }
 
@@ -230,6 +234,7 @@ void RedstoneComparatorBlock::_refreshOutputState(IWorld& world, const BlockPos&
         notifyNeighbors(world, pos, newState);
     }
 }
+
 i32 RedstoneComparatorBlock::_calculateOutput(IWorld& world, const BlockPos& pos, const BlockState& state) const
 {
     // 获取主输入端信号，包含容器信号检测
@@ -285,7 +290,9 @@ i32 RedstoneComparatorBlock::_calculateInputStrength(IWorld& world, const BlockP
             analog = std::max(analog.value_or(0), frame->getAnalogOutput());
         }
         // 找到容器或展示框时，其模拟值覆盖低于满强度的导体输入，即使模拟值更小。
-        if (analog.has_value()) return *analog;
+        if (analog.has_value()) {
+            return *analog;
+        }
     }
     return input;
 }

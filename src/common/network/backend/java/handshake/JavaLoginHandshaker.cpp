@@ -47,6 +47,7 @@ ir::IrPacket makePacket(protocol::ConnectionProtocol phase, ir::HandshakePacket 
 {
     return ir::IrPacket{phase, std::move(p)};
 }
+
 ir::IrPacket makePacket(protocol::ConnectionProtocol phase, ir::LoginPacket p)
 {
     return ir::IrPacket{phase, std::move(p)};

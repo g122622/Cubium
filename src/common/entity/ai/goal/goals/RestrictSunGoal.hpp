@@ -63,7 +63,10 @@ public:
     void startExecuting() override;
     void resetTask() override;
 
-    [[nodiscard]] std::string getTypeName() const override { return "RestrictSunGoal"; }
+    [[nodiscard]] std::string getTypeName() const override
+    {
+        return "RestrictSunGoal";
+    }
 
 private:
     CreatureEntity* m_creature;

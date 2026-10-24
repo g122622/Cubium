@@ -202,7 +202,9 @@ void ObserverBlock::_updateNeighborsInFront(IWorld& world, const BlockPos& pos, 
 
     // 然后通知观察面周围的其他邻居（除了侦测器本身）
     for (Direction dir : Directions::all()) {
-        if (dir == facing) continue; // 跳过侦测器输出方向
+        if (dir == facing) {
+            continue; // 跳过侦测器输出方向
+        }
 
         BlockPos neighborPos = observePos.offset(dir);
         const BlockState* neighborState = world.getBlockState(neighborPos);

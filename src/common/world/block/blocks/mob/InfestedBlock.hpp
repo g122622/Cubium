@@ -77,7 +77,10 @@ public:
 
     // ========== 掉落 ==========
 
-    [[nodiscard]] u32 getHostBlock() const { return m_hostBlock; }
+    [[nodiscard]] u32 getHostBlock() const
+    {
+        return m_hostBlock;
+    }
 
     // ========== 静态方法 ==========
 

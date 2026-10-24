@@ -86,7 +86,10 @@ public:
         // 空操作
     }
 
-    [[nodiscard]] size_t pendingCount() const noexcept override { return 0; }
+    [[nodiscard]] size_t pendingCount() const noexcept override
+    {
+        return 0;
+    }
 
 private:
     EmptyTickList() = default;

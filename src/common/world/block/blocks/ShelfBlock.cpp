@@ -606,12 +606,24 @@ i32 ShelfBlock::getHitSlot(const BlockRaycastResult& hit, Direction facing)
     f32 relZ = static_cast<f32>(hitPos.z - static_cast<f64>(blockPos.z));
 
     // 将坐标限制在 [0, 1) 范围
-    if (relX < 0.0f) relX = 0.0f;
-    if (relX >= 1.0f) relX = 0.999f;
-    if (relY < 0.0f) relY = 0.0f;
-    if (relY >= 1.0f) relY = 0.999f;
-    if (relZ < 0.0f) relZ = 0.0f;
-    if (relZ >= 1.0f) relZ = 0.999f;
+    if (relX < 0.0f) {
+        relX = 0.0f;
+    }
+    if (relX >= 1.0f) {
+        relX = 0.999f;
+    }
+    if (relY < 0.0f) {
+        relY = 0.0f;
+    }
+    if (relY >= 1.0f) {
+        relY = 0.999f;
+    }
+    if (relZ < 0.0f) {
+        relZ = 0.0f;
+    }
+    if (relZ >= 1.0f) {
+        relZ = 0.999f;
+    }
 
     // 根据面朝方向转换为面局部坐标
     // 参考: net.minecraft.world.level.block.SelectableSlotContainer

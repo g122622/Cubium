@@ -200,8 +200,9 @@ void ClientApplication::beginBreakingBlock(
         static_cast<i32>(m_breakingBlockFace),
         "justPressed",
         attackJustPressed,
-        [flow = ::perfetto::Flow::ProcessScoped(m_breakingBlockPos.toId())](
-            ::perfetto::EventContext ctx) { flow(ctx); });
+        [flow = ::perfetto::Flow::ProcessScoped(m_breakingBlockPos.toId())](::perfetto::EventContext ctx) {
+            flow(ctx);
+        });
 
     sendBlockInteraction(network::BlockInteractionAction::StartDestroyBlock, m_breakingBlockPos, m_breakingBlockFace);
 }
@@ -231,8 +232,9 @@ void ClientApplication::completeBreakingBlock(bool instantBreak)
             static_cast<i32>(m_breakingBlockFace),
             "progress",
             m_breakingBlockProgress,
-            [flow = ::perfetto::Flow::ProcessScoped(m_breakingBlockPos.toId())](
-                ::perfetto::EventContext ctx) { flow(ctx); });
+            [flow = ::perfetto::Flow::ProcessScoped(m_breakingBlockPos.toId())](::perfetto::EventContext ctx) {
+                flow(ctx);
+            });
     }
 
     // 对齐 Java MultiPlayerGameMode.startPrediction：在预测守卫作用域内本地预测清方块
@@ -531,7 +533,9 @@ void ClientApplication::sendBlockInteraction(
         fmt::format("({}, {}, {})", pos.x, pos.y, pos.z),
         "face",
         static_cast<i32>(face),
-        [flow = ::perfetto::Flow::ProcessScoped(pos.toId())](::perfetto::EventContext ctx) { flow(ctx); });
+        [flow = ::perfetto::Flow::ProcessScoped(pos.toId())](::perfetto::EventContext ctx) {
+            flow(ctx);
+        });
 
     // 1.21.11 PlayerAction：action 值与旧 BlockInteractionAction 完全一致
     // （0=START_DESTROY 1=ABORT_DESTROY 2=STOP_DESTROY）。

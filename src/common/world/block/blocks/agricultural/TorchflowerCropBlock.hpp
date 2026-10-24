@@ -81,7 +81,10 @@ public:
      * 所以 age=1 时 isMaxAge() 为 false，骨粉仍可使用；
      * 当 grow() 计算 newAge=2 时，getStateForAge(2) 返回火把花方块。
      */
-    [[nodiscard]] i32 getMaxAge() const override { return 2; }
+    [[nodiscard]] i32 getMaxAge() const override
+    {
+        return 2;
+    }
 
     /**
      * @brief 创建指定年龄的状态

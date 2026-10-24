@@ -104,13 +104,17 @@ public:
     {
         throw std::runtime_error("SpawnLocationTestWorld::tickManager not implemented");
     }
+
     [[nodiscard]] const world::tick::TickManager& tickManager() const override
     {
         throw std::runtime_error("SpawnLocationTestWorld::tickManager not implemented");
     }
 
 private:
-    [[nodiscard]] const BlockState* getAirState() const { return &VanillaBlocks::AIR->defaultState(); }
+    [[nodiscard]] const BlockState* getAirState() const
+    {
+        return &VanillaBlocks::AIR->defaultState();
+    }
 };
 
 class SpawnLocationHelperTest : public ::testing::Test {

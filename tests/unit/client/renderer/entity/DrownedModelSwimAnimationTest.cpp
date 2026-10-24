@@ -57,6 +57,7 @@
 
 using namespace mc::client::renderer::entity::model;
 using namespace mc::math;
+
 namespace mc::client::renderer {
 namespace {
 
@@ -89,7 +90,10 @@ protected:
      * 所有动画参数设为 0（headYaw/pitch/limbSwing），scale 取 1/16。
      * ageInTicks 默认 0，使 sin(0.1*0)=sin(0)=0，消除游泳摆动项干扰。
      */
-    void applyAngles(f64 ageInTicks = 0.0) { m_model->setAngles(0.0, 0.0, ageInTicks, 0.0, 0.0, 1.0 / 16.0); }
+    void applyAngles(f64 ageInTicks = 0.0)
+    {
+        m_model->setAngles(0.0, 0.0, ageInTicks, 0.0, 0.0, 1.0 / 16.0);
+    }
 
     std::unique_ptr<monster::DrownedModel> m_model;
 };

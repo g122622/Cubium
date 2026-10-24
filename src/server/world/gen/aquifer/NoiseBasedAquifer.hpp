@@ -76,7 +76,10 @@ public:
 
     [[nodiscard]] const BlockState* computeSubstance(i32 blockX, i32 blockY, i32 blockZ, f64 densityValue) override;
 
-    [[nodiscard]] bool shouldScheduleFluidUpdate() const override { return m_shouldScheduleFluidUpdate; }
+    [[nodiscard]] bool shouldScheduleFluidUpdate() const override
+    {
+        return m_shouldScheduleFluidUpdate;
+    }
 
 private:
     // ========== 网格常量 ==========
@@ -99,13 +102,36 @@ private:
 
     // ========== 网格坐标转换 ==========
     /// MC 1.21: gridX 使用 >> 4（算术右移，等效于 floorDiv(x, 16)）
-    [[nodiscard]] static i32 gridX(i32 x) { return x >> 4; }
-    [[nodiscard]] static i32 gridY(i32 y) { return math::floorDiv(y, Y_SPACING); }
+    [[nodiscard]] static i32 gridX(i32 x)
+    {
+        return x >> 4;
+    }
+
+    [[nodiscard]] static i32 gridY(i32 y)
+    {
+        return math::floorDiv(y, Y_SPACING);
+    }
+
     /// MC 1.21: gridZ 使用 >> 4（算术右移，等效于 floorDiv(z, 16)）
-    [[nodiscard]] static i32 gridZ(i32 z) { return z >> 4; }
-    [[nodiscard]] static i32 fromGridX(i32 gridX, i32 offset) { return (gridX << 4) + offset; }
-    [[nodiscard]] static i32 fromGridY(i32 gridY, i32 offset) { return gridY * Y_SPACING + offset; }
-    [[nodiscard]] static i32 fromGridZ(i32 gridZ, i32 offset) { return (gridZ << 4) + offset; }
+    [[nodiscard]] static i32 gridZ(i32 z)
+    {
+        return z >> 4;
+    }
+
+    [[nodiscard]] static i32 fromGridX(i32 gridX, i32 offset)
+    {
+        return (gridX << 4) + offset;
+    }
+
+    [[nodiscard]] static i32 fromGridY(i32 gridY, i32 offset)
+    {
+        return gridY * Y_SPACING + offset;
+    }
+
+    [[nodiscard]] static i32 fromGridZ(i32 gridZ, i32 offset)
+    {
+        return (gridZ << 4) + offset;
+    }
 
     // ========== 含水层状态缓存 ==========
     /**
@@ -119,7 +145,11 @@ private:
         {
             return fluidLevel == other.fluidLevel && fluidType == other.fluidType;
         }
-        [[nodiscard]] bool operator!=(const AquiferStatus& other) const { return !(*this == other); }
+
+        [[nodiscard]] bool operator!=(const AquiferStatus& other) const
+        {
+            return !(*this == other);
+        }
     };
 
     // ========== 内部方法 ==========
@@ -219,10 +249,25 @@ private:
     // `x << 38 | z << 12 | y`），与解包公式不自洽：负 Z 的区块（如 chunk(2,-2)）会把
     // 含水层中心解成 704511 这类大正数，computeFluid 于是在错误位置采样地表高度，
     // fluidLevel 恒为 WAY_BELOW_MIN_Y，整片海域无水。复用既有工具类即天然获得其测试覆盖。
-    [[nodiscard]] static i64 encodeBlockPos(i32 x, i32 y, i32 z) { return BlockPos::asLong(x, y, z); }
-    [[nodiscard]] static i32 decodeBlockPosX(i64 pos) { return BlockPos::getXFromLong(pos); }
-    [[nodiscard]] static i32 decodeBlockPosY(i64 pos) { return BlockPos::getYFromLong(pos); }
-    [[nodiscard]] static i32 decodeBlockPosZ(i64 pos) { return BlockPos::getZFromLong(pos); }
+    [[nodiscard]] static i64 encodeBlockPos(i32 x, i32 y, i32 z)
+    {
+        return BlockPos::asLong(x, y, z);
+    }
+
+    [[nodiscard]] static i32 decodeBlockPosX(i64 pos)
+    {
+        return BlockPos::getXFromLong(pos);
+    }
+
+    [[nodiscard]] static i32 decodeBlockPosY(i64 pos)
+    {
+        return BlockPos::getYFromLong(pos);
+    }
+
+    [[nodiscard]] static i32 decodeBlockPosZ(i64 pos)
+    {
+        return BlockPos::getZFromLong(pos);
+    }
 
     // ========== 成员变量 ==========
 

@@ -37,7 +37,10 @@ using namespace mc;
 
 class BlockStateGetBlockMutableTest : public ::testing::Test {
 protected:
-    void SetUp() override { VanillaBlocks::initialize(); }
+    void SetUp() override
+    {
+        VanillaBlocks::initialize();
+    }
 };
 
 TEST_F(BlockStateGetBlockMutableTest, GetBlockMutableReturnsSameBlockAsGetBlock)
@@ -99,7 +102,9 @@ TEST_F(BlockStateGetBlockMutableTest, GetBlockMutableWorksForDifferentBlockTypes
     };
 
     for (const Block* block : blocks) {
-        if (block == nullptr) continue;
+        if (block == nullptr) {
+            continue;
+        }
         const BlockState* state = &block->defaultState();
         const Block& constBlock = state->getBlock();
         Block& mutableBlock = state->getBlockMutable();
@@ -112,7 +117,9 @@ TEST_F(BlockStateGetBlockMutableTest, GetBlockMutableWorksWithStateWithPropertie
 {
     // 获取带属性的方块状态
     const BlockState* composterState = &VanillaBlocks::COMPOSTER->defaultState();
-    if (composterState == nullptr) return;
+    if (composterState == nullptr) {
+        return;
+    }
 
     // Level 0 的状态
     Block& block0 = composterState->getBlockMutable();

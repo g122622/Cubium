@@ -605,32 +605,41 @@ void initializeBuiltinDensityFunctionTypes()
     r.registerType("clamp", createClamp);
 
     // 单参数映射（7）
-    r.registerType(
-        "abs", [](const json& j, const ResolveContext& ctx) { return createMapped(j, ctx, MappedType::Abs, "abs"); });
-    r.registerType("square",
-        [](const json& j, const ResolveContext& ctx) { return createMapped(j, ctx, MappedType::Square, "square"); });
-    r.registerType("cube",
-        [](const json& j, const ResolveContext& ctx) { return createMapped(j, ctx, MappedType::Cube, "cube"); });
+    r.registerType("abs", [](const json& j, const ResolveContext& ctx) {
+        return createMapped(j, ctx, MappedType::Abs, "abs");
+    });
+    r.registerType("square", [](const json& j, const ResolveContext& ctx) {
+        return createMapped(j, ctx, MappedType::Square, "square");
+    });
+    r.registerType("cube", [](const json& j, const ResolveContext& ctx) {
+        return createMapped(j, ctx, MappedType::Cube, "cube");
+    });
     r.registerType("half_negative", [](const json& j, const ResolveContext& ctx) {
         return createMapped(j, ctx, MappedType::HalfNegative, "half_negative");
     });
     r.registerType("quarter_negative", [](const json& j, const ResolveContext& ctx) {
         return createMapped(j, ctx, MappedType::QuarterNegative, "quarter_negative");
     });
-    r.registerType("squeeze",
-        [](const json& j, const ResolveContext& ctx) { return createMapped(j, ctx, MappedType::Squeeze, "squeeze"); });
-    r.registerType("invert",
-        [](const json& j, const ResolveContext& ctx) { return createMapped(j, ctx, MappedType::Invert, "invert"); });
+    r.registerType("squeeze", [](const json& j, const ResolveContext& ctx) {
+        return createMapped(j, ctx, MappedType::Squeeze, "squeeze");
+    });
+    r.registerType("invert", [](const json& j, const ResolveContext& ctx) {
+        return createMapped(j, ctx, MappedType::Invert, "invert");
+    });
 
     // 双参数（4）
-    r.registerType("add",
-        [](const json& j, const ResolveContext& ctx) { return createTwoArg(j, ctx, TwoArgumentType::Add, "add"); });
-    r.registerType("mul",
-        [](const json& j, const ResolveContext& ctx) { return createTwoArg(j, ctx, TwoArgumentType::Mul, "mul"); });
-    r.registerType("min",
-        [](const json& j, const ResolveContext& ctx) { return createTwoArg(j, ctx, TwoArgumentType::Min, "min"); });
-    r.registerType("max",
-        [](const json& j, const ResolveContext& ctx) { return createTwoArg(j, ctx, TwoArgumentType::Max, "max"); });
+    r.registerType("add", [](const json& j, const ResolveContext& ctx) {
+        return createTwoArg(j, ctx, TwoArgumentType::Add, "add");
+    });
+    r.registerType("mul", [](const json& j, const ResolveContext& ctx) {
+        return createTwoArg(j, ctx, TwoArgumentType::Mul, "mul");
+    });
+    r.registerType("min", [](const json& j, const ResolveContext& ctx) {
+        return createTwoArg(j, ctx, TwoArgumentType::Min, "min");
+    });
+    r.registerType("max", [](const json& j, const ResolveContext& ctx) {
+        return createTwoArg(j, ctx, TwoArgumentType::Max, "max");
+    });
 
     r.registerType("lerp", createLerp);
     r.registerType("noise", createNoise);
@@ -666,8 +675,9 @@ void initializeBuiltinDensityFunctionTypes()
     r.registerType("flat_cache", [](const json& j, const ResolveContext& ctx) {
         return createMarker(j, ctx, MarkerType::FlatCache, "flat_cache");
     });
-    r.registerType("cache_2d",
-        [](const json& j, const ResolveContext& ctx) { return createMarker(j, ctx, MarkerType::Cache2D, "cache_2d"); });
+    r.registerType("cache_2d", [](const json& j, const ResolveContext& ctx) {
+        return createMarker(j, ctx, MarkerType::Cache2D, "cache_2d");
+    });
 
     // blend（3，Blender 已移除，新世界恒等）
     r.registerType("blend_alpha", createBlendAlpha);

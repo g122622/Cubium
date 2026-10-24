@@ -50,10 +50,17 @@ public:
      */
     DynamicLootEntry(const std::string& name, i32 weight = 1, i32 quality = 0);
 
-    [[nodiscard]] LootEntryType getType() const override { return LootEntryType::Dynamic; }
+    [[nodiscard]] LootEntryType getType() const override
+    {
+        return LootEntryType::Dynamic;
+    }
+
     [[nodiscard]] std::unique_ptr<LootEntry> clone() const override;
 
-    [[nodiscard]] const std::string& getName() const { return m_name; }
+    [[nodiscard]] const std::string& getName() const
+    {
+        return m_name;
+    }
 
     void expand(LootContext& context, std::function<void(LootEntry&)> consumer) const override;
 

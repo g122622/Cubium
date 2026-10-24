@@ -27,6 +27,8 @@
 #include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/entities/vehicle/BoatEntity.hpp"
 #include "common/entity/entities/vehicle/MinecartEntity.hpp"
+#include "common/item/VanillaItemEnchantable.hpp"
+#include "common/item/VanillaItemRarity.hpp"
 #include "common/item/armor/ArmorMaterial.hpp"
 #include "common/item/component/DataComponentMap.hpp"
 #include "common/item/core/Item.hpp"
@@ -117,6 +119,7 @@
 #include "common/world/blockentity/interactive/DecoratedPotPattern.hpp"
 #include "common/world/fluid/FluidRegistry.hpp"
 #include <memory>
+#include <optional>
 #include <string>
 #include <utility>
 
@@ -154,7 +157,9 @@ mc::entity::EntityType makeEntityTypeForSpawnEgg(const char* entityName)
     // EntityRegistry::getType(name)->create(world, registry) 完成）。
     // 此处 lambda 签名须与 EntityFactory = function<unique_ptr<Entity>(IWorld*, ecs::EntityRegistry&)> 一致。
     auto entityType = mc::entity::EntityType::Builder(
-        [](mc::IWorld*, mc::ecs::EntityRegistry&) -> std::unique_ptr<mc::Entity> { return nullptr; },
+        [](mc::IWorld*, mc::ecs::EntityRegistry&) -> std::unique_ptr<mc::Entity> {
+            return nullptr;
+        },
         mc::entity::EntityClassification::Creature)
                           .size(0.6f, 1.8f)
                           .trackingRange(5)
@@ -1633,7 +1638,31 @@ void Items::initialize()
     // 初始化堆肥物品注册表（必须在 Items 注册完成后）
     blocks::CompostableItems::initialize();
 
+    _applyVanillaRarities();
+
     s_initialized = true;
+}
+
+/**
+ * @brief 按原版数据统一套用物品稀有度
+ *
+ * 稀有度和附魔能力散落在上百个注册调用里，逐个手写既难核对也易漏（差分测试首次
+ * 运行就查出 38 个物品稀有度、52 个物品附魔能力不一致）。这里查原版导出的表
+ * （scripts/baking/gen_item_rarity.py / gen_item_enchantable.py 生成），稀有度查不到
+ * 即视为 common、附魔能力查不到即视为 0。放在所有 _register*() 之后执行，覆盖注册
+ * 时写的值。
+ */
+void Items::_applyVanillaRarities()
+{
+    auto& registry = ItemRegistry::instance();
+    registry.forEachItem([](Item& item) {
+        // 注意：itemLocation().toString() 是临时量，直接传给接受 string_view 的
+        // vanillaItemRarity() 会在本语句结束时悬空，因此先落到具名 std::string。
+        const std::string name = item.itemLocation().toString();
+        const std::optional<ItemRarity> rarity = vanillaItemRarity(name);
+        item.setRarity(rarity.value_or(ItemRarity::Common));
+        item.setEnchantable(vanillaItemEnchantable(name));
+    });
 }
 
 void Items::_registerMaterials()
@@ -2571,7 +2600,7 @@ void Items::_registerMisc()
 
     // 鞍 - 用于装备可骑乘实体（猪、炽足兽、马等）
     SADDLE = &registry.registerItem<item::items::SaddleItem>(
-        ResourceLocation("minecraft:saddle"), ItemProperties().maxStackSize(64));
+        ResourceLocation("minecraft:saddle"), ItemProperties().maxStackSize(1));
 
     STRING = &registry.registerItem(ResourceLocation("minecraft:string"), ItemProperties().maxStackSize(64));
 
@@ -2599,15 +2628,17 @@ void Items::_registerMisc()
 
     // 追溯指南针 - 指向玩家上次死亡位置，8个回响碎片围绕1个指南针合成
     RECOVERY_COMPASS =
-        &registry.registerItem(ResourceLocation("minecraft:recovery_compass"), ItemProperties().maxStackSize(1));
+        &registry.registerItem(ResourceLocation("minecraft:recovery_compass"), ItemProperties().maxStackSize(64));
 
     CLOCK = &registry.registerItem(ResourceLocation("minecraft:clock"), ItemProperties().maxStackSize(64));
 
     // 地图物品
     MAP = &registry.registerItem<item::items::EmptyMapItem>(
         ResourceLocation("minecraft:map"), ItemProperties().maxStackSize(64));
+    // vanilla 1.21.11 的 filled_map 没有调用 stacksTo，按 Item.Properties 默认值堆叠 64。
+    // 差分测试 tests/diff（item_summary，对原版 jar 的运行时组件）验证过。
     FILLED_MAP = &registry.registerItem<item::items::FilledMapItem>(
-        ResourceLocation("minecraft:filled_map"), ItemProperties().maxStackSize(1));
+        ResourceLocation("minecraft:filled_map"), ItemProperties().maxStackSize(64));
     PAPER = &registry.registerItem(ResourceLocation("minecraft:paper"), ItemProperties().maxStackSize(64));
 
     // SPIDER_EYE 已在 registerFood() 中注册
@@ -2882,7 +2913,7 @@ void Items::_registerWeapons()
 
     // 弩 - 可装填的远程武器
     CROSSBOW = &registry.registerItem<item::CrossbowItem>(
-        ResourceLocation("minecraft:crossbow"), ItemProperties().maxDamage(326));
+        ResourceLocation("minecraft:crossbow"), ItemProperties().maxDamage(465));
 
     // 三叉戟 - 近战和远程结合的武器
     TRIDENT = &registry.registerItem<item::TridentItem>(
@@ -3022,25 +3053,28 @@ void Items::_registerBuckets()
 
     // 鱼桶
     // 鳕鱼桶 - 可以装鳕鱼的水桶，使用后返回空桶
+    // vanilla 1.21.11 的鱼桶除放鱼外还可以直接吃：注册时挂了 Foods.COD（鳕鱼桶）。
+    // 见原版 Items：`registerItem("cod_bucket", ..., props.stacksTo(1).food(Foods.COD))`。
     COD_BUCKET = &registry.registerItem<item::FishBucketItem>(ResourceLocation("minecraft:cod_bucket"),
         mc::entity::EntityTypeKeys::COD,
-        ItemProperties().maxStackSize(1).containerItem(BUCKET));
+        ItemProperties().maxStackSize(1).containerItem(BUCKET).food(&item::food::Foods::COD));
 
     // 鲑鱼桶
+    // 鱼桶同时是食物（原版挂了 Foods.SALMON / PUFFERFISH / TROPICAL_FISH）。
     SALMON_BUCKET = &registry.registerItem<item::FishBucketItem>(ResourceLocation("minecraft:salmon_bucket"),
         mc::entity::EntityTypeKeys::SALMON,
-        ItemProperties().maxStackSize(1).containerItem(BUCKET));
+        ItemProperties().maxStackSize(1).containerItem(BUCKET).food(&item::food::Foods::SALMON));
 
     // 河豚桶
     PUFFERFISH_BUCKET = &registry.registerItem<item::FishBucketItem>(ResourceLocation("minecraft:pufferfish_bucket"),
         mc::entity::EntityTypeKeys::PUFFERFISH,
-        ItemProperties().maxStackSize(1).containerItem(BUCKET));
+        ItemProperties().maxStackSize(1).containerItem(BUCKET).food(&item::food::Foods::PUFFERFISH));
 
     // 热带鱼桶
     TROPICAL_FISH_BUCKET =
         &registry.registerItem<item::FishBucketItem>(ResourceLocation("minecraft:tropical_fish_bucket"),
             mc::entity::EntityTypeKeys::TROPICAL_FISH,
-            ItemProperties().maxStackSize(1).containerItem(BUCKET));
+            ItemProperties().maxStackSize(1).containerItem(BUCKET).food(&item::food::Foods::TROPICAL_FISH));
 
     // 美西螈桶
     AXOLOTL_BUCKET = &registry.registerItem<item::FishBucketItem>(ResourceLocation("minecraft:axolotl_bucket"),
@@ -3270,19 +3304,21 @@ void Items::_registerHangingItems()
     auto& registry = ItemRegistry::instance();
 
     // 画作
-    PAINTING = &registry.registerItem(ResourceLocation("minecraft:painting"), ItemProperties().maxStackSize(16));
+    PAINTING = &registry.registerItem(ResourceLocation("minecraft:painting"), ItemProperties().maxStackSize(64));
 
     // 物品展示框
+    // vanilla 1.21.11 的物品展示框、荧光展示框与拴绳都未调用 stacksTo，按默认值堆叠 64
+    // （差分测试 tests/diff 的 item_summary 对原版 jar 的运行时组件验证过）。
     ITEM_FRAME = &registry.registerItem<item::items::ItemFrameItem>(
-        ResourceLocation("minecraft:item_frame"), false, ItemProperties().maxStackSize(16));
+        ResourceLocation("minecraft:item_frame"), false, ItemProperties().maxStackSize(64));
 
     // 荧光物品展示框
     GLOW_ITEM_FRAME = &registry.registerItem<item::items::ItemFrameItem>(
-        ResourceLocation("minecraft:glow_item_frame"), true, ItemProperties().maxStackSize(16));
+        ResourceLocation("minecraft:glow_item_frame"), true, ItemProperties().maxStackSize(64));
 
     // 拴绳
     LEAD = &registry.registerItem<item::items::LeadItem>(
-        ResourceLocation("minecraft:lead"), ItemProperties().maxStackSize(16));
+        ResourceLocation("minecraft:lead"), ItemProperties().maxStackSize(64));
 }
 
 void Items::_registerSigns()
@@ -4783,8 +4819,12 @@ void Items::_registerTrialChamberItems()
 
     // 不祥之瓶 - 可饮用，饮用后给予不祥之兆效果（等级I-V由damage值0-4决定）
     // 饮用后返还玻璃瓶
-    OMINOUS_BOTTLE = &registry.registerItem<item::OminousBottleItem>(ResourceLocation("minecraft:ominous_bottle"),
-        ItemProperties().maxStackSize(64).maxDamage(item::OminousBottleItem::MAX_DAMAGE));
+    // vanilla 1.21.11 的 ominous_bottle 同时带耐久（表示不祥之兆等级）与堆叠 64，
+    // 是本项目「有耐久即不可堆叠」默认约定的显式例外。
+    // 注意：原版不祥之瓶没有 MAX_DAMAGE 组件（不可损坏、可堆叠 64）；等级来自
+    // ominous_bottle_amplifier 组件，不要复用 MAX_DAMAGE 常量。
+    OMINOUS_BOTTLE = &registry.registerItem<item::OminousBottleItem>(
+        ResourceLocation("minecraft:ominous_bottle"), ItemProperties().maxStackSize(64));
 
     // ========================================================================
     // 风弹
@@ -4808,7 +4848,7 @@ void Items::_registerTrialChamberItems()
     // 攻击伤害5，攻击速度-2.4，下落攻击加成3/格，最大额外伤害40
     // 支持魔咒：破甲、致密、风爆
     MACE = &registry.registerItem<item::MaceItem>(ResourceLocation("minecraft:mace"),
-        ItemProperties().maxDamage(item::MaceItem::MAX_DURABILITY).rarity(ItemRarity::Rare));
+        ItemProperties().maxDamage(item::MaceItem::MAX_DURABILITY).rarity(ItemRarity::Epic));
 
     // ========================================================================
     // 旗帜图案物品

@@ -106,25 +106,37 @@ public:
      * @brief 获取攻击间隔时间
      * @return 20 ticks (1秒)
      */
-    [[nodiscard]] i32 getAttackInterval() const override { return 20; }
+    [[nodiscard]] i32 getAttackInterval() const override
+    {
+        return 20;
+    }
 
     /**
      * @brief 检查是否可以进行远程攻击
      * @return 如果不在施法状态返回true
      */
-    [[nodiscard]] bool canRangedAttack() const override { return !isSpellcasting(); }
+    [[nodiscard]] bool canRangedAttack() const override
+    {
+        return !isSpellcasting();
+    }
 
     // ========== 状态查询 ==========
 
     /**
      * @brief 是否正在施法
      */
-    [[nodiscard]] bool isCasting() const { return isSpellcasting(); }
+    [[nodiscard]] bool isCasting() const
+    {
+        return isSpellcasting();
+    }
 
     /**
      * @brief 获取眼睛高度
      */
-    [[nodiscard]] f32 eyeHeight() const override { return 1.62f; }
+    [[nodiscard]] f32 eyeHeight() const override
+    {
+        return 1.62f;
+    }
 
     // ========== 镜像分身 ==========
 
@@ -159,7 +171,10 @@ protected:
     /**
      * @brief 获取施法音效ID
      */
-    [[nodiscard]] const char* getSpellSoundId() const noexcept override { return "entity.illusioner.cast_spell"; }
+    [[nodiscard]] const char* getSpellSoundId() const noexcept override
+    {
+        return "entity.illusioner.cast_spell";
+    }
 
 private:
     /**

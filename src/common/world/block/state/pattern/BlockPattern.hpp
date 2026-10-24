@@ -58,12 +58,35 @@ public:
         , m_depth(depth)
     {}
 
-    [[nodiscard]] BlockPos frontTopLeft() const { return m_frontTopLeft; }
-    [[nodiscard]] Direction forwards() const { return m_forwards; }
-    [[nodiscard]] Direction up() const { return m_up; }
-    [[nodiscard]] i32 width() const { return m_width; }
-    [[nodiscard]] i32 height() const { return m_height; }
-    [[nodiscard]] i32 depth() const { return m_depth; }
+    [[nodiscard]] BlockPos frontTopLeft() const
+    {
+        return m_frontTopLeft;
+    }
+
+    [[nodiscard]] Direction forwards() const
+    {
+        return m_forwards;
+    }
+
+    [[nodiscard]] Direction up() const
+    {
+        return m_up;
+    }
+
+    [[nodiscard]] i32 width() const
+    {
+        return m_width;
+    }
+
+    [[nodiscard]] i32 height() const
+    {
+        return m_height;
+    }
+
+    [[nodiscard]] i32 depth() const
+    {
+        return m_depth;
+    }
 
     /**
      * @brief 获取模式内指定位置的方块引用
@@ -119,9 +142,20 @@ public:
      */
     explicit BlockPattern(std::vector<std::vector<std::vector<Predicate>>> pattern);
 
-    [[nodiscard]] i32 depth() const { return m_depth; }
-    [[nodiscard]] i32 height() const { return m_height; }
-    [[nodiscard]] i32 width() const { return m_width; }
+    [[nodiscard]] i32 depth() const
+    {
+        return m_depth;
+    }
+
+    [[nodiscard]] i32 height() const
+    {
+        return m_height;
+    }
+
+    [[nodiscard]] i32 width() const
+    {
+        return m_width;
+    }
 
     /**
      * @brief 在指定位置附近搜索模式匹配

@@ -150,7 +150,10 @@ public:
      * @brief 检查是否为铁活板门
      * @return 如果是铁活板门返回true
      */
-    [[nodiscard]] bool isIronTrapdoor() const { return m_isIron; }
+    [[nodiscard]] bool isIronTrapdoor() const
+    {
+        return m_isIron;
+    }
 
     // ========== 推动反应 ==========
 

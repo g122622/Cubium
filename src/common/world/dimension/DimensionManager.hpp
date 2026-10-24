@@ -94,7 +94,10 @@ public:
     /**
      * @brief 检查是否已初始化
      */
-    [[nodiscard]] bool isInitialized() const { return m_initialized; }
+    [[nodiscard]] bool isInitialized() const
+    {
+        return m_initialized;
+    }
 
     // ========== 维度注册 ==========
 
@@ -186,14 +189,20 @@ public:
     /**
      * @brief 获取维度数量
      */
-    [[nodiscard]] size_t dimensionCount() const { return m_dimensions.size(); }
+    [[nodiscard]] size_t dimensionCount() const
+    {
+        return m_dimensions.size();
+    }
 
     /**
      * @brief 获取默认出生维度
      *
      * 默认为主世界。
      */
-    [[nodiscard]] DimensionId defaultSpawnDimension() const { return OVERWORLD; }
+    [[nodiscard]] DimensionId defaultSpawnDimension() const
+    {
+        return OVERWORLD;
+    }
 
 protected:
     std::unordered_map<DimensionId, std::unique_ptr<Dimension>> m_dimensions;

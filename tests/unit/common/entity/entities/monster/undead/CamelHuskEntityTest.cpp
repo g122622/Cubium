@@ -69,9 +69,15 @@ protected:
         }
     }
 
-    void SetUp() override { m_world = std::make_unique<CamelHuskTestWorld>(); }
+    void SetUp() override
+    {
+        m_world = std::make_unique<CamelHuskTestWorld>();
+    }
 
-    void TearDown() override { m_world.reset(); }
+    void TearDown() override
+    {
+        m_world.reset();
+    }
 
     std::unique_ptr<CamelHuskTestWorld> m_world;
 };

@@ -74,7 +74,10 @@ public:
         return &VanillaBlocks::AIR->defaultState();
     }
 
-    bool setBlockState(i32, i32, i32, const BlockState*) override { return false; }
+    bool setBlockState(i32, i32, i32, const BlockState*) override
+    {
+        return false;
+    }
 
     [[nodiscard]] bool isWithinWorldBounds(i32, i32 y, i32) const override
     {
@@ -133,7 +136,9 @@ public:
 
     EntityInstanceId spawnEntity(std::unique_ptr<Entity> entity) override
     {
-        if (!entity) return EntityInstanceId(0);
+        if (!entity) {
+            return EntityInstanceId(0);
+        }
         EntityInstanceId id = m_nextEntityId;
         m_nextEntityId = EntityInstanceId(static_cast<u32>(m_nextEntityId) + 1);
         entity->setId(id);
@@ -142,17 +147,35 @@ public:
         return id;
     }
 
-    [[nodiscard]] u64 currentTick() const override { return m_currentTick; }
+    [[nodiscard]] u64 currentTick() const override
+    {
+        return m_currentTick;
+    }
 
-    void setCurrentTick(u64 tick) { m_currentTick = tick; }
+    void setCurrentTick(u64 tick)
+    {
+        m_currentTick = tick;
+    }
 
-    [[nodiscard]] i64 dayTime() const override { return m_dayTime; }
+    [[nodiscard]] i64 dayTime() const override
+    {
+        return m_dayTime;
+    }
 
-    void setDayTime(i64 time) { m_dayTime = time; }
+    void setDayTime(i64 time)
+    {
+        m_dayTime = time;
+    }
 
-    [[nodiscard]] Difficulty difficulty() const override { return m_difficulty; }
+    [[nodiscard]] Difficulty difficulty() const override
+    {
+        return m_difficulty;
+    }
 
-    void setDifficulty(Difficulty difficulty) { m_difficulty = difficulty; }
+    void setDifficulty(Difficulty difficulty)
+    {
+        m_difficulty = difficulty;
+    }
 
     [[nodiscard]] Player* getClosestPlayer(const Vector3& pos, f32 maxDistance) override
     {
@@ -185,12 +208,16 @@ public:
         return m_mockPlayer;
     }
 
-    void setMockPlayer(Player* player) { m_mockPlayer = player; }
+    void setMockPlayer(Player* player)
+    {
+        m_mockPlayer = player;
+    }
 
     [[nodiscard]] world::tick::TickManager& tickManager() override
     {
         throw std::runtime_error("SkeletonHorseTrapTestWorld::tickManager not implemented");
     }
+
     [[nodiscard]] const world::tick::TickManager& tickManager() const override
     {
         throw std::runtime_error("SkeletonHorseTrapTestWorld::tickManager not implemented");
@@ -198,9 +225,15 @@ public:
 
     // ========== 测试辅助方法 ==========
 
-    [[nodiscard]] size_t entityCount() const { return m_entities.size(); }
+    [[nodiscard]] size_t entityCount() const
+    {
+        return m_entities.size();
+    }
 
-    [[nodiscard]] const std::vector<std::unique_ptr<Entity>>& entities() const { return m_entities; }
+    [[nodiscard]] const std::vector<std::unique_ptr<Entity>>& entities() const
+    {
+        return m_entities;
+    }
 
     void clearEntities()
     {
@@ -262,9 +295,15 @@ protected:
         }
     }
 
-    void SetUp() override { m_world = std::make_unique<SkeletonHorseTrapTestWorld>(); }
+    void SetUp() override
+    {
+        m_world = std::make_unique<SkeletonHorseTrapTestWorld>();
+    }
 
-    void TearDown() override { m_world.reset(); }
+    void TearDown() override
+    {
+        m_world.reset();
+    }
 
     std::unique_ptr<SkeletonHorseTrapTestWorld> m_world;
 };

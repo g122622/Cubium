@@ -56,6 +56,7 @@ public:
     {}
 
     [[nodiscard]] bool test(const IWorld& world, const BlockPos& pos) const override;
+
     [[nodiscard]] std::unique_ptr<BlockPredicate> clone() const override
     {
         return std::make_unique<MatchingFluidsPredicate>(m_fluids, m_tags, m_offset);

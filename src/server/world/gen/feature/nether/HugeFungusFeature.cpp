@@ -65,7 +65,9 @@ bool HugeFungusFeature::place(
     }
     const BlockState* airState = VanillaBlocks::getState(VanillaBlocks::AIR);
 
-    if (!stemState) return false;
+    if (!stemState) {
+        return false;
+    }
 
     // MC 1.21.11: 仅非种植的巨型真菌才可能生成粗壮菌柄（3x3 菌柄而非 1x1）
     const bool thickStem = !config.planted && random.nextFloat() < 0.06f;
@@ -93,7 +95,9 @@ bool HugeFungusFeature::_canPlaceAt(
 {
     // MC 1.21.11: 检查底部方块是否为菌岩
     const BlockState* groundState = world.getBlockState(pos.x, pos.y - 1, pos.z);
-    if (!groundState) return false;
+    if (!groundState) {
+        return false;
+    }
 
     const Block& ground = groundState->getBlock();
     if (config.fungusType == FungusType::Crimson) {
@@ -118,7 +122,9 @@ bool HugeFungusFeature::_canPlaceAt(
     }
 
     // MC 1.21.11: 如果是种植的，不需要检查空间
-    if (config.planted) return true;
+    if (config.planted) {
+        return true;
+    }
 
     // 检查上方是否有足够空间（检查到高度上限或 16 格）
     for (i32 y = 0; y < 16; ++y) {
@@ -158,7 +164,9 @@ const BlockState* HugeFungusFeature::_getCapState(FungusType type) const
 void HugeFungusFeature::_generateStem(
     WorldGenRegion& world, const BlockPos& pos, i32 height, const BlockState* stemState, bool thickStem)
 {
-    if (!stemState) return;
+    if (!stemState) {
+        return;
+    }
 
     if (thickStem) {
         // MC 1.21.11: 粗壮菌柄 - 3x3 截面
@@ -186,7 +194,9 @@ void HugeFungusFeature::_generateCap(WorldGenRegion& world,
     const BlockState* airState,
     bool thickStem)
 {
-    if (!capState) return;
+    if (!capState) {
+        return;
+    }
 
     // MC 1.21.11: 菌盖是 3x3 或 5x5 的水平区域
     // 对于普通菌柄，菌盖半径为 2（5x5）
@@ -203,7 +213,9 @@ void HugeFungusFeature::_generateCap(WorldGenRegion& world,
                 // MC 的替换概率约为 1/9
                 if (shroomlightState && random.nextInt(9) == 0) {
                     // 不替换菌柄位置
-                    if (dx == 0 && dz == 0) continue;
+                    if (dx == 0 && dz == 0) {
+                        continue;
+                    }
                     world.setBlockState(placePos, shroomlightState);
                 } else {
                     world.setBlockState(placePos, capState);
@@ -225,7 +237,9 @@ void HugeFungusFeature::_generateCap(WorldGenRegion& world,
                 BlockPos placePos(topPos.x + dx, y, topPos.z + dz);
 
                 if (shroomlightState && random.nextInt(9) == 0) {
-                    if (dx == 0 && dz == 0) continue;
+                    if (dx == 0 && dz == 0) {
+                        continue;
+                    }
                     world.setBlockState(placePos, shroomlightState);
                 } else {
                     world.setBlockState(placePos, capState);
@@ -245,16 +259,22 @@ void HugeFungusFeature::_generateVines(
     if (type == FungusType::Crimson) {
         // 垂泪藤：从菌盖底部向下悬挂
         const BlockState* weepingVines = VanillaBlocks::getState(VanillaBlocks::WEEPING_VINES);
-        if (!weepingVines) return;
+        if (!weepingVines) {
+            return;
+        }
 
         // MC 1.21.11: 在菌盖底部的边缘位置随机放置垂泪藤
         constexpr i32 CAP_RADIUS = 2;
         for (i32 dx = -CAP_RADIUS; dx <= CAP_RADIUS; ++dx) {
             for (i32 dz = -CAP_RADIUS; dz <= CAP_RADIUS; ++dz) {
                 // 只在边缘位置放藤蔓
-                if (std::abs(dx) < CAP_RADIUS && std::abs(dz) < CAP_RADIUS) continue;
+                if (std::abs(dx) < CAP_RADIUS && std::abs(dz) < CAP_RADIUS) {
+                    continue;
+                }
 
-                if (random.nextInt(3) != 0) continue;
+                if (random.nextInt(3) != 0) {
+                    continue;
+                }
 
                 i32 vineStartY = stemBase.y + stemHeight - 1;
                 i32 vineLength = 1 + random.nextInt(4);
@@ -273,7 +293,9 @@ void HugeFungusFeature::_generateVines(
     } else {
         // 扭曲藤：从菌岩向上生长
         const BlockState* twistingVines = VanillaBlocks::getState(VanillaBlocks::TWISTING_VINES);
-        if (!twistingVines) return;
+        if (!twistingVines) {
+            return;
+        }
 
         // MC 1.21.11: 在菌岩基座周围放置扭曲藤
         constexpr i32 VINE_RADIUS = 3;
@@ -282,7 +304,9 @@ void HugeFungusFeature::_generateVines(
             i32 dx = random.nextInt(VINE_RADIUS * 2 + 1) - VINE_RADIUS;
             i32 dz = random.nextInt(VINE_RADIUS * 2 + 1) - VINE_RADIUS;
             // 避免与菌柄重叠
-            if (dx == 0 && dz == 0) continue;
+            if (dx == 0 && dz == 0) {
+                continue;
+            }
 
             i32 vineLength = 1 + random.nextInt(4);
             for (i32 vy = 0; vy < vineLength; ++vy) {

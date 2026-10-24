@@ -381,8 +381,9 @@ Palette::Palette(BlockVec blocks, NbtTable nbt)
     , m_nbt(std::move(nbt))
 {
     // 不变式：稀疏 NBT 表按下标严格递增，nbtAt 的二分查找依赖此顺序。
-    MC_ASSERT_RELEASE(
-        std::is_sorted(m_nbt.begin(), m_nbt.end(), [](const auto& a, const auto& b) { return a.first < b.first; }));
+    MC_ASSERT_RELEASE(std::is_sorted(m_nbt.begin(), m_nbt.end(), [](const auto& a, const auto& b) {
+        return a.first < b.first;
+    }));
     MC_ASSERT_RELEASE(m_nbt.empty() || m_nbt.back().first < m_blocks.size());
 
     // FLAG_HAS_NBT 位以稀疏表为唯一事实来源：此处统一回填，杜绝两处状态不一致。
@@ -458,8 +459,9 @@ const nbt::CompoundTag* Palette::nbtAt(size_t index) const
         return nullptr;
     }
     const u32 key = static_cast<u32>(index);
-    auto it =
-        std::lower_bound(m_nbt.begin(), m_nbt.end(), key, [](const auto& entry, u32 k) { return entry.first < k; });
+    auto it = std::lower_bound(m_nbt.begin(), m_nbt.end(), key, [](const auto& entry, u32 k) {
+        return entry.first < k;
+    });
     if (it != m_nbt.end() && it->first == key) {
         return it->second.get();
     }
@@ -752,8 +754,12 @@ bool Template::place(
 
     // 排序函数：按 Y, X, Z 坐标排序
     auto blockComparator = [](const ProcessedBlockInfo& a, const ProcessedBlockInfo& b) {
-        if (a.pos.y != b.pos.y) return a.pos.y < b.pos.y;
-        if (a.pos.x != b.pos.x) return a.pos.x < b.pos.x;
+        if (a.pos.y != b.pos.y) {
+            return a.pos.y < b.pos.y;
+        }
+        if (a.pos.x != b.pos.x) {
+            return a.pos.x < b.pos.x;
+        }
         return a.pos.z < b.pos.z;
     };
 
@@ -1026,11 +1032,15 @@ bool Template::placeInWorld(
 
                 // 查找相邻的最高流体
                 for (const Direction& dir : directions) {
-                    if (!bestFluid || bestFluid->isSource()) break;
+                    if (!bestFluid || bestFluid->isSource()) {
+                        break;
+                    }
 
                     BlockPos adjacentPos = fluidPos.offset(dir);
                     const FluidState* adjacentFluid = world.getFluidState(adjacentPos);
-                    if (!adjacentFluid || adjacentFluid->isEmpty()) continue;
+                    if (!adjacentFluid || adjacentFluid->isEmpty()) {
+                        continue;
+                    }
 
                     // 比较流体高度：更高的流体或源流体优先
                     if (adjacentFluid->getActualHeight(world, adjacentPos) >
@@ -1506,7 +1516,9 @@ u32 JigsawReplacementStructureProcessor::parseBlockStateString(const std::string
                 std::string value = prop.substr(eqPos + 1);
                 properties[key] = value;
             }
-            if (end == std::string::npos) break;
+            if (end == std::string::npos) {
+                break;
+            }
             start = end + 1;
             end = propsStr.find(',', start);
         }
@@ -1529,10 +1541,14 @@ u32 JigsawReplacementStructureProcessor::parseBlockStateString(const std::string
 
         for (const auto& [key, value] : properties) {
             const IProperty* prop = container.getProperty(key);
-            if (!prop) continue;
+            if (!prop) {
+                continue;
+            }
 
             auto parsedValue = prop->parseValue(value);
-            if (!parsedValue) continue;
+            if (!parsedValue) {
+                continue;
+            }
 
             wanted[prop] = *parsedValue;
         }
@@ -1540,7 +1556,9 @@ u32 JigsawReplacementStructureProcessor::parseBlockStateString(const std::string
         // 查找匹配的状态
         if (!wanted.empty()) {
             for (const auto& candidate : container.validStates()) {
-                if (!candidate) continue;
+                if (!candidate) {
+                    continue;
+                }
 
                 bool matches = true;
                 for (const auto& [prop, index] : wanted) {
@@ -2099,7 +2117,9 @@ std::optional<ProcessedBlockInfo> BlackstoneReplacementProcessor::process(const 
                     if (parsedValue) {
                         // 遍历目标方块的所有状态，找到具有目标属性值的状态
                         for (const auto& candidate : targetContainer.validStates()) {
-                            if (!candidate) continue;
+                            if (!candidate) {
+                                continue;
+                            }
                             auto targetValueIndex = candidate->getValueIndex(*targetFacingProp);
                             if (targetValueIndex.has_value() && *targetValueIndex == *parsedValue) {
                                 targetState = candidate.get();
@@ -2121,7 +2141,9 @@ std::optional<ProcessedBlockInfo> BlackstoneReplacementProcessor::process(const 
                     auto parsedValue = targetHalfProp->parseValue(valueStr);
                     if (parsedValue) {
                         for (const auto& candidate : targetContainer.validStates()) {
-                            if (!candidate) continue;
+                            if (!candidate) {
+                                continue;
+                            }
                             // 检查是否保持 FACING 值
                             auto targetFacingValueIndex =
                                 targetFacingProp ? candidate->getValueIndex(*targetFacingProp) : std::nullopt;
@@ -2130,7 +2152,9 @@ std::optional<ProcessedBlockInfo> BlackstoneReplacementProcessor::process(const 
                             bool facingMatches = (targetFacingProp == nullptr) ||
                                 (targetFacingValueIndex.has_value() && sourceFacingValueIndex.has_value() &&
                                     *targetFacingValueIndex == *sourceFacingValueIndex);
-                            if (!facingMatches) continue;
+                            if (!facingMatches) {
+                                continue;
+                            }
 
                             auto targetValueIndex = candidate->getValueIndex(*targetHalfProp);
                             if (targetValueIndex.has_value() && *targetValueIndex == *parsedValue) {
@@ -2153,7 +2177,9 @@ std::optional<ProcessedBlockInfo> BlackstoneReplacementProcessor::process(const 
                     auto parsedValue = targetTypeProp->parseValue(valueStr);
                     if (parsedValue) {
                         for (const auto& candidate : targetContainer.validStates()) {
-                            if (!candidate) continue;
+                            if (!candidate) {
+                                continue;
+                            }
                             auto targetValueIndex = candidate->getValueIndex(*targetTypeProp);
                             if (targetValueIndex.has_value() && *targetValueIndex == *parsedValue) {
                                 targetState = candidate.get();
@@ -2201,7 +2227,9 @@ std::optional<ProcessedBlockInfo> StructureProcessorList::process(const BlockPos
     ProcessedBlockInfo current = ProcessedBlockInfo::fromBlockInfo(blockInfo);
 
     for (const auto& processor : m_processors) {
-        if (!processor) continue;
+        if (!processor) {
+            continue;
+        }
 
         // 创建临时BlockInfo用于处理
         BlockInfo currentInfo;

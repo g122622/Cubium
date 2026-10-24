@@ -76,7 +76,10 @@ public:
     void resetTask() override;
     void tick() override;
 
-    [[nodiscard]] std::string getTypeName() const override { return "IronGolemAttackGoal"; }
+    [[nodiscard]] std::string getTypeName() const override
+    {
+        return "IronGolemAttackGoal";
+    }
 
 protected:
     /**
@@ -154,7 +157,11 @@ public:
     void startExecuting() override;
     void resetTask() override;
     void tick() override;
-    [[nodiscard]] std::string getTypeName() const override { return "OfferFlowerGoal"; }
+
+    [[nodiscard]] std::string getTypeName() const override
+    {
+        return "OfferFlowerGoal";
+    }
 
 private:
     /**
@@ -225,7 +232,10 @@ public:
     void startExecuting() override;
     void resetTask() override;
 
-    [[nodiscard]] std::string getTypeName() const override { return "DefendVillageTargetGoal"; }
+    [[nodiscard]] std::string getTypeName() const override
+    {
+        return "DefendVillageTargetGoal";
+    }
 
 private:
     IronGolemEntity* m_golem;
@@ -252,7 +262,10 @@ public:
     [[nodiscard]] bool shouldExecute() override;
     void startExecuting() override;
 
-    [[nodiscard]] std::string getTypeName() const override { return "IronGolemNearestAttackableTargetGoal"; }
+    [[nodiscard]] std::string getTypeName() const override
+    {
+        return "IronGolemNearestAttackableTargetGoal";
+    }
 
 private:
     IronGolemEntity* m_golem;

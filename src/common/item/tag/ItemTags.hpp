@@ -474,7 +474,10 @@ public:
      *
      * @return 是否已初始化
      */
-    [[nodiscard]] static bool isInitialized() { return s_initialized; }
+    [[nodiscard]] static bool isInitialized()
+    {
+        return s_initialized;
+    }
 
     /**
      * @brief 注册或获取指定ID的标签。

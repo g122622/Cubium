@@ -37,6 +37,7 @@ using namespace mc;
 class SpellcastingIllagerParticleColorTest : public ::testing::Test {
 protected:
     void SetUp() override {}
+
     void TearDown() override {}
 };
 
@@ -218,6 +219,7 @@ TEST_F(SpellcastingIllagerParticleColorTest, ParticleColorsAreInValidRange)
 class SpellcastingIllagerStateTest : public ::testing::Test {
 protected:
     void SetUp() override {}
+
     void TearDown() override {}
 };
 

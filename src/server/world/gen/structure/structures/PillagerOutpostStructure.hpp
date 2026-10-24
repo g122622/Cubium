@@ -51,7 +51,10 @@ public:
     explicit PillagerOutpostStructure(ResourceLocation id);
     ~PillagerOutpostStructure() override = default;
 
-    [[nodiscard]] const std::string& name() const override { return s_name; }
+    [[nodiscard]] const std::string& name() const override
+    {
+        return s_name;
+    }
 
     /**
      * @brief 获取掠夺者前哨站关联的生物群系标签
@@ -63,7 +66,10 @@ public:
      *
      * 掠夺者在完整结构边界框内生成（1 只掠夺者）。
      */
-    [[nodiscard]] const SpawnOverrides* spawnOverrides() const override { return &s_spawnOverrides; }
+    [[nodiscard]] const SpawnOverrides* spawnOverrides() const override
+    {
+        return &s_spawnOverrides;
+    }
 
     [[nodiscard]] bool canGenerate(
         IWorld& world, IChunkGenerator& generator, math::IRandom& rng, i32 chunkX, i32 chunkZ) override;

@@ -222,10 +222,13 @@ bool RedstoneSystem::isTorchBurnedOut(const BlockPos& pos, u64 currentTick) cons
     // 被动复查的时间不限制邻居更新；只有窗口内熄灭次数达到阈值才阻止复燃。
     i32 recentOffEvents = 0;
     for (u64 tick : it->second.flipTimes) {
-        if (currentTick - tick <= static_cast<u64>(BURNOUT_WINDOW)) ++recentOffEvents;
+        if (currentTick - tick <= static_cast<u64>(BURNOUT_WINDOW)) {
+            ++recentOffEvents;
+        }
     }
     return recentOffEvents >= BURNOUT_FLIPS;
 }
+
 void RedstoneSystem::clearTorchRecord(const BlockPos& pos)
 {
     m_torchRecords.erase(pos);

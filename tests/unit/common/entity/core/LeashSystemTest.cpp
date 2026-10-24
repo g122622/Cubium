@@ -74,8 +74,15 @@ public:
         m_gameRules.setBoolean(world::gamerule::GameRuleKeys::DO_ENTITY_DROPS, true, nullptr);
     }
 
-    [[nodiscard]] Difficulty difficulty() const override { return m_difficulty; }
-    void setDifficulty(Difficulty d) { m_difficulty = d; }
+    [[nodiscard]] Difficulty difficulty() const override
+    {
+        return m_difficulty;
+    }
+
+    void setDifficulty(Difficulty d)
+    {
+        m_difficulty = d;
+    }
 
 private:
     Difficulty m_difficulty = Difficulty::Normal;
@@ -96,7 +103,10 @@ protected:
         }
     }
 
-    void SetUp() override { m_world = std::make_unique<LeashTestWorld>(); }
+    void SetUp() override
+    {
+        m_world = std::make_unique<LeashTestWorld>();
+    }
 
     std::unique_ptr<LeashTestWorld> m_world;
 };
@@ -511,8 +521,15 @@ public:
         m_gameRules.setBoolean(world::gamerule::GameRuleKeys::DO_ENTITY_DROPS, true, nullptr);
     }
 
-    [[nodiscard]] Difficulty difficulty() const override { return m_difficulty; }
-    void setDifficulty(Difficulty d) { m_difficulty = d; }
+    [[nodiscard]] Difficulty difficulty() const override
+    {
+        return m_difficulty;
+    }
+
+    void setDifficulty(Difficulty d)
+    {
+        m_difficulty = d;
+    }
 
     // 覆写 getEntityByUuid 以支持 UUID 查找
     [[nodiscard]] Entity* getEntityByUuid(const std::string& uuid) override
@@ -528,10 +545,16 @@ public:
     }
 
     // 注册实体到 UUID 索引
-    void registerEntity(Entity& entity) { m_uuidToEntity[entity.uuid()] = &entity; }
+    void registerEntity(Entity& entity)
+    {
+        m_uuidToEntity[entity.uuid()] = &entity;
+    }
 
     // 从 UUID 索引移除实体
-    void unregisterEntity(const std::string& uuid) { m_uuidToEntity.erase(uuid); }
+    void unregisterEntity(const std::string& uuid)
+    {
+        m_uuidToEntity.erase(uuid);
+    }
 
 private:
     Difficulty m_difficulty = Difficulty::Normal;
@@ -549,7 +572,10 @@ protected:
         }
     }
 
-    void SetUp() override { m_world = std::make_unique<LeashEntityTestWorld>(); }
+    void SetUp() override
+    {
+        m_world = std::make_unique<LeashEntityTestWorld>();
+    }
 
     std::unique_ptr<LeashEntityTestWorld> m_world;
 };

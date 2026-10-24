@@ -69,10 +69,18 @@ public:
 
     [[nodiscard]] bool shouldExecute() override;
     [[nodiscard]] bool shouldContinueExecuting() override;
-    [[nodiscard]] bool isPreemptible() const override { return false; }
+
+    [[nodiscard]] bool isPreemptible() const override
+    {
+        return false;
+    }
+
     void startExecuting() override;
 
-    [[nodiscard]] std::string getTypeName() const override { return "PandaRollGoal"; }
+    [[nodiscard]] std::string getTypeName() const override
+    {
+        return "PandaRollGoal";
+    }
 
 private:
     /**
@@ -122,7 +130,10 @@ public:
     [[nodiscard]] bool shouldContinueExecuting() override;
     void startExecuting() override;
 
-    [[nodiscard]] std::string getTypeName() const override { return "PandaSneezeGoal"; }
+    [[nodiscard]] std::string getTypeName() const override
+    {
+        return "PandaSneezeGoal";
+    }
 
 private:
     PandaEntity* m_panda;
@@ -168,7 +179,10 @@ public:
      */
     [[nodiscard]] bool shouldExecute() override;
 
-    [[nodiscard]] std::string getTypeName() const noexcept override { return "PandaAttackGoal"; }
+    [[nodiscard]] std::string getTypeName() const noexcept override
+    {
+        return "PandaAttackGoal";
+    }
 
 private:
     PandaEntity* m_panda;
@@ -197,7 +211,10 @@ public:
 
     void resetTask() override;
 
-    [[nodiscard]] std::string getTypeName() const noexcept override { return "PandaLieOnBackGoal"; }
+    [[nodiscard]] std::string getTypeName() const noexcept override
+    {
+        return "PandaLieOnBackGoal";
+    }
 
 private:
     PandaEntity* m_panda;
@@ -252,7 +269,10 @@ public:
      */
     void setLookTarget(LivingEntity* target);
 
-    [[nodiscard]] std::string getTypeName() const override { return "PandaLookAtPlayerGoal"; }
+    [[nodiscard]] std::string getTypeName() const override
+    {
+        return "PandaLookAtPlayerGoal";
+    }
 
 private:
     PandaEntity* m_panda;
@@ -274,7 +294,10 @@ public:
 
     void tick() override;
 
-    [[nodiscard]] std::string getTypeName() const noexcept override { return "PandaSitGoal"; }
+    [[nodiscard]] std::string getTypeName() const noexcept override
+    {
+        return "PandaSitGoal";
+    }
 
 private:
     /// 附近 6/8 格内是否有熊猫能吃的物品（对齐 vanilla canPickUpAndEat 过滤）
@@ -299,7 +322,10 @@ public:
 
     [[nodiscard]] bool shouldExecute() override;
 
-    [[nodiscard]] std::string getTypeName() const noexcept override { return "PandaAvoidGoal"; }
+    [[nodiscard]] std::string getTypeName() const noexcept override
+    {
+        return "PandaAvoidGoal";
+    }
 
 private:
     PandaEntity* m_panda;

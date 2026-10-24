@@ -81,15 +81,29 @@ public:
      * @brief 获取合成网格
      * @return 合成网格引用
      */
-    [[nodiscard]] CraftingInventory& getCraftingGrid() noexcept { return m_craftingGrid; }
-    [[nodiscard]] const CraftingInventory& getCraftingGrid() const noexcept { return m_craftingGrid; }
+    [[nodiscard]] CraftingInventory& getCraftingGrid() noexcept
+    {
+        return m_craftingGrid;
+    }
+
+    [[nodiscard]] const CraftingInventory& getCraftingGrid() const noexcept
+    {
+        return m_craftingGrid;
+    }
 
     /**
      * @brief 获取结果槽位
      * @return 结果背包引用
      */
-    [[nodiscard]] CraftResultInventory& getResultInventory() noexcept { return m_result; }
-    [[nodiscard]] const CraftResultInventory& getResultInventory() const noexcept { return m_result; }
+    [[nodiscard]] CraftResultInventory& getResultInventory() noexcept
+    {
+        return m_result;
+    }
+
+    [[nodiscard]] const CraftResultInventory& getResultInventory() const noexcept
+    {
+        return m_result;
+    }
 
     /**
      * @brief 容器内容变化时调用
@@ -131,9 +145,15 @@ public:
      * @brief 获取屏幕类型
      * @return 屏幕类型
      */
-    [[nodiscard]] ScreenType getScreenType() const noexcept { return m_screenType; }
+    [[nodiscard]] ScreenType getScreenType() const noexcept
+    {
+        return m_screenType;
+    }
 
-    [[nodiscard]] i32 getResultSlotIndex() const noexcept override { return RESULT_SLOT; }
+    [[nodiscard]] i32 getResultSlotIndex() const noexcept override
+    {
+        return RESULT_SLOT;
+    }
 
     /**
      * @brief 获取当前匹配的配方ID
@@ -236,15 +256,29 @@ public:
      * @brief 获取合成网格
      * @return 合成网格引用
      */
-    [[nodiscard]] CraftingInventory& getCraftingGrid() noexcept { return m_craftingGrid; }
-    [[nodiscard]] const CraftingInventory& getCraftingGrid() const noexcept { return m_craftingGrid; }
+    [[nodiscard]] CraftingInventory& getCraftingGrid() noexcept
+    {
+        return m_craftingGrid;
+    }
+
+    [[nodiscard]] const CraftingInventory& getCraftingGrid() const noexcept
+    {
+        return m_craftingGrid;
+    }
 
     /**
      * @brief 获取结果槽位
      * @return 结果背包引用
      */
-    [[nodiscard]] CraftResultInventory& getResultInventory() noexcept { return m_result; }
-    [[nodiscard]] const CraftResultInventory& getResultInventory() const noexcept { return m_result; }
+    [[nodiscard]] CraftResultInventory& getResultInventory() noexcept
+    {
+        return m_result;
+    }
+
+    [[nodiscard]] const CraftResultInventory& getResultInventory() const noexcept
+    {
+        return m_result;
+    }
 
     /**
      * @brief 容器内容变化时调用
@@ -259,7 +293,10 @@ public:
      * @param player 玩家
      * @return 总是返回true（玩家背包）
      */
-    [[nodiscard]] bool stillValid(const Player& player) const override { return true; }
+    [[nodiscard]] bool stillValid(const Player& player) const override
+    {
+        return true;
+    }
 
     /**
      * @brief 快速移动物品
@@ -274,7 +311,10 @@ public:
      */
     void updateResult();
 
-    [[nodiscard]] i32 getResultSlotIndex() const noexcept override { return RESULT_SLOT; }
+    [[nodiscard]] i32 getResultSlotIndex() const noexcept override
+    {
+        return RESULT_SLOT;
+    }
 
     /**
      * @brief 获取当前匹配的配方ID

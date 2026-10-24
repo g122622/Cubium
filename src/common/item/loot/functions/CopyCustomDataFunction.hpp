@@ -97,10 +97,21 @@ public:
 
     [[nodiscard]] ItemStack apply(ItemStack stack, LootContext& context) const override;
     [[nodiscard]] std::unique_ptr<LootFunction> clone() const noexcept override;
-    [[nodiscard]] std::string getType() const noexcept override { return "copy_custom_data"; }
 
-    [[nodiscard]] Source getSource() const noexcept { return m_source; }
-    [[nodiscard]] const std::vector<NbtOperation>& getOperations() const noexcept { return m_operations; }
+    [[nodiscard]] std::string getType() const noexcept override
+    {
+        return "copy_custom_data";
+    }
+
+    [[nodiscard]] Source getSource() const noexcept
+    {
+        return m_source;
+    }
+
+    [[nodiscard]] const std::vector<NbtOperation>& getOperations() const noexcept
+    {
+        return m_operations;
+    }
 
 private:
     /**

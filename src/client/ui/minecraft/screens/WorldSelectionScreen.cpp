@@ -70,7 +70,9 @@ void WorldSelectionScreen::_registerCallbacks()
         }
     });
 
-    exposeSimpleCallback("onDelete", [this]() { _requestDeleteWorld(); });
+    exposeSimpleCallback("onDelete", [this]() {
+        _requestDeleteWorld();
+    });
 
     exposeSimpleCallback("onBack", [this]() {
         if (m_onBack) {
@@ -87,8 +89,9 @@ void WorldSelectionScreen::_cacheWidgets()
 
     if (m_worldListWidget) {
         m_worldListWidget->setSelectionMode(kagero::widget::ListWidget::SelectionMode::Single);
-        m_worldListWidget->setOnSelect(
-            [this](size_t index, kagero::widget::IListItem*) { _updateSelection(static_cast<i32>(index)); });
+        m_worldListWidget->setOnSelect([this](size_t index, kagero::widget::IListItem*) {
+            _updateSelection(static_cast<i32>(index));
+        });
         m_worldListWidget->setOnDoubleClick([this](size_t index, kagero::widget::IListItem*) {
             _updateSelection(static_cast<i32>(index));
             if (m_selectedWorld != nullptr && m_onSelectWorld) {

@@ -126,7 +126,10 @@ public:
     /**
      * @brief 添加实体到世界中
      */
-    void addEntity(Entity* entity) { m_entities.push_back(entity); }
+    void addEntity(Entity* entity)
+    {
+        m_entities.push_back(entity);
+    }
 
     /**
      * @brief 清空方块和实体
@@ -156,7 +159,10 @@ protected:
         Items::initialize();
     }
 
-    void TearDown() override { m_world.clear(); }
+    void TearDown() override
+    {
+        m_world.clear();
+    }
 
     DetectorRailTestWorld m_world;
 };

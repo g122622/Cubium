@@ -36,6 +36,7 @@ namespace mc {
 
 // Forward declarations
 class Player;
+
 namespace blockentity {
 class EnderChestEntity;
 } // namespace blockentity
@@ -77,7 +78,11 @@ public:
 
     // ========== IInventory 接口实现 ==========
 
-    [[nodiscard]] i32 getContainerSize() const noexcept override { return ENDER_CHEST_SIZE; }
+    [[nodiscard]] i32 getContainerSize() const noexcept override
+    {
+        return ENDER_CHEST_SIZE;
+    }
+
     [[nodiscard]] bool isEmpty() const override;
     [[nodiscard]] ItemStack getItem(i32 slot) const override;
     void setItem(i32 slot, const ItemStack& stack) override;
@@ -115,12 +120,18 @@ public:
      *
      * @param chest 末影箱方块实体指针，关闭时传 nullptr
      */
-    void setActiveChest(blockentity::EnderChestEntity* chest) { m_activeChest = chest; }
+    void setActiveChest(blockentity::EnderChestEntity* chest)
+    {
+        m_activeChest = chest;
+    }
 
     /**
      * @brief 获取当前关联的末影箱方块实体
      */
-    [[nodiscard]] blockentity::EnderChestEntity* getActiveChest() const { return m_activeChest; }
+    [[nodiscard]] blockentity::EnderChestEntity* getActiveChest() const
+    {
+        return m_activeChest;
+    }
 
     /**
      * @brief 检查当前活跃的末影箱是否仍然有效
@@ -150,7 +161,10 @@ public:
      * @note 此方法为便捷接口，内部将 callback 包装为 ContainerListener 注册。
      *       如果需要更精细的控制，请直接使用 addListener()/removeListener()。
      */
-    void setOnChanged(std::function<void()> callback) { m_onChanged = std::move(callback); }
+    void setOnChanged(std::function<void()> callback)
+    {
+        m_onChanged = std::move(callback);
+    }
 
     /**
      * @brief 添加容器变更监听器

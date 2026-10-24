@@ -108,13 +108,35 @@ public:
         }
     }
 
-    [[nodiscard]] std::optional<i32> getCeiling() const override { return m_ceiling; }
-    [[nodiscard]] std::optional<i32> getFloor() const override { return m_floor; }
-    [[nodiscard]] std::optional<i32> getHeight() const override { return height(); }
+    [[nodiscard]] std::optional<i32> getCeiling() const override
+    {
+        return m_ceiling;
+    }
 
-    [[nodiscard]] i32 ceiling() const noexcept { return m_ceiling; }
-    [[nodiscard]] i32 floor() const noexcept { return m_floor; }
-    [[nodiscard]] i32 height() const noexcept { return m_ceiling - m_floor - 1; }
+    [[nodiscard]] std::optional<i32> getFloor() const override
+    {
+        return m_floor;
+    }
+
+    [[nodiscard]] std::optional<i32> getHeight() const override
+    {
+        return height();
+    }
+
+    [[nodiscard]] i32 ceiling() const noexcept
+    {
+        return m_ceiling;
+    }
+
+    [[nodiscard]] i32 floor() const noexcept
+    {
+        return m_floor;
+    }
+
+    [[nodiscard]] i32 height() const noexcept
+    {
+        return m_ceiling - m_floor - 1;
+    }
 
 private:
     i32 m_floor;
@@ -137,11 +159,16 @@ public:
     {
         return m_pointingUp ? std::nullopt : std::optional<i32>(m_edge);
     }
+
     [[nodiscard]] std::optional<i32> getFloor() const override
     {
         return m_pointingUp ? std::optional<i32>(m_edge) : std::nullopt;
     }
-    [[nodiscard]] std::optional<i32> getHeight() const override { return std::nullopt; }
+
+    [[nodiscard]] std::optional<i32> getHeight() const override
+    {
+        return std::nullopt;
+    }
 
 private:
     i32 m_edge;
@@ -153,9 +180,20 @@ private:
  */
 class Column::Line final : public Column {
 public:
-    [[nodiscard]] std::optional<i32> getCeiling() const override { return std::nullopt; }
-    [[nodiscard]] std::optional<i32> getFloor() const override { return std::nullopt; }
-    [[nodiscard]] std::optional<i32> getHeight() const override { return std::nullopt; }
+    [[nodiscard]] std::optional<i32> getCeiling() const override
+    {
+        return std::nullopt;
+    }
+
+    [[nodiscard]] std::optional<i32> getFloor() const override
+    {
+        return std::nullopt;
+    }
+
+    [[nodiscard]] std::optional<i32> getHeight() const override
+    {
+        return std::nullopt;
+    }
 };
 
 } // namespace mc

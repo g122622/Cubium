@@ -1103,7 +1103,6 @@ add_executable(mc_tests
     server/command/TeamCommandTest.cpp
     server/command/TriggerCommandTest.cpp
     server/command/BlockDataAccessorTest.cpp
-    server/command/WardenSpawnTrackerCommandTest.cpp
     server/command/TeleportPermissionParseTest.cpp
     # 命令参数解析测试（原 mc_command_tests 并入）
     common/command/arguments/BlockStateArgumentTest.cpp
@@ -1786,6 +1785,18 @@ add_executable(mc_tests
     common/world/village/raid/RaidBossBarProgressTest.cpp
     # 基岩版Addon模组系统测试
     common/mod/bedrock/addon/test_lifecycle.cpp
+    common/mod/bedrock/addon/test_runtime_contracts.cpp
+    common/mod/bedrock/addon/test_pack_loading.cpp
+    common/mod/bedrock/addon/test_entity_properties.cpp
+    common/mod/bedrock/addon/test_world_properties.cpp
+    common/mod/bedrock/addon/test_item_properties.cpp
+    common/mod/bedrock/addon/test_entity_definitions.cpp
+    common/mod/bedrock/addon/test_molang.cpp
+    common/mod/bedrock/addon/test_property_definitions.cpp
+    common/mod/bedrock/addon/test_entity_filters.cpp
+    common/mod/bedrock/addon/test_entity_state_queries.cpp
+    common/mod/bedrock/addon/test_entity_lifecycle.cpp
+    server/mod/bedrock/addon/test_event_bridge.cpp
     common/mod/bedrock/addon/test_binding_handle_lifetime.cpp
     common/mod/bedrock/addon/test_block_component_registry.cpp
     common/mod/bedrock/addon/test_item_component_registry.cpp
@@ -2035,6 +2046,16 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/server/command/commands/EffectCommand.cpp
         ${CMAKE_SOURCE_DIR}/src/server/command/commands/EnchantCommand.cpp
         ${CMAKE_SOURCE_DIR}/src/server/command/commands/GameRuleCommand.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/command/commands/VersionCommand.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/command/commands/JfrCommand.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/command/commands/PerfCommand.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/command/commands/TeamMsgCommand.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/command/commands/ReturnCommand.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/command/commands/StopwatchCommand.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/command/commands/RotateCommand.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/command/commands/RideCommand.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/command/commands/DamageCommand.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/command/commands/DebugCommand.cpp
         # P3 命令
         ${CMAKE_SOURCE_DIR}/src/server/command/commands/AdvancementCommand.cpp
         ${CMAKE_SOURCE_DIR}/src/server/command/commands/BossBarCommand.cpp
@@ -2063,7 +2084,6 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/server/command/commands/LocateBiomeCommand.cpp
         ${CMAKE_SOURCE_DIR}/src/server/command/commands/MeCommand.cpp
         ${CMAKE_SOURCE_DIR}/src/server/command/commands/ParticleCommand.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/command/commands/WardenSpawnTrackerCommand.cpp
         # 交互管理器
         ${CMAKE_SOURCE_DIR}/src/server/interaction/BlockInteractionManager.cpp
         ${CMAKE_SOURCE_DIR}/src/server/interaction/MiningManager.cpp

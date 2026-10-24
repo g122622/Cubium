@@ -96,9 +96,20 @@ public:
      */
     bool trySpawn(server::ServerWorld& world);
 
-    [[nodiscard]] i32 tickDelay() const noexcept { return m_tickDelay; }
-    [[nodiscard]] i32 spawnDelay() const noexcept { return m_spawnDelay; }
-    [[nodiscard]] i32 spawnChance() const noexcept { return m_spawnChance; }
+    [[nodiscard]] i32 tickDelay() const noexcept
+    {
+        return m_tickDelay;
+    }
+
+    [[nodiscard]] i32 spawnDelay() const noexcept
+    {
+        return m_spawnDelay;
+    }
+
+    [[nodiscard]] i32 spawnChance() const noexcept
+    {
+        return m_spawnChance;
+    }
 
 private:
     /**

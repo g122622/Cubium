@@ -81,13 +81,19 @@ public:
      * @brief 获取投掷速度
      * @return 投掷速度
      */
-    [[nodiscard]] f32 getThrowVelocity() const override { return 0.5f; }
+    [[nodiscard]] f32 getThrowVelocity() const override
+    {
+        return 0.5f;
+    }
 
     /**
      * @brief 获取投掷偏移
      * @return 投掷偏移
      */
-    [[nodiscard]] f32 getThrowInaccuracy() const override { return 0.0f; }
+    [[nodiscard]] f32 getThrowInaccuracy() const override
+    {
+        return 0.0f;
+    }
 
     // ========== ProjectileItem 接口重写 ==========
 

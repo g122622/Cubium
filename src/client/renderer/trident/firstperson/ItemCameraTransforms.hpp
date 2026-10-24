@@ -155,7 +155,10 @@ struct ItemTransform {
     /**
      * @brief 获取默认变换（无变换）
      */
-    static ItemTransform defaultTransform() { return ItemTransform(); }
+    static ItemTransform defaultTransform()
+    {
+        return ItemTransform();
+    }
 };
 
 /**
@@ -201,12 +204,18 @@ public:
     /**
      * @brief 检查指定类型是否有自定义变换
      */
-    [[nodiscard]] bool hasCustomTransform(TransformType type) const { return !getTransform(type).isDefault(); }
+    [[nodiscard]] bool hasCustomTransform(TransformType type) const
+    {
+        return !getTransform(type).isDefault();
+    }
 
     /**
      * @brief 应用指定类型的变换到矩阵栈
      */
-    void applyTransform(MatrixStack& stack, TransformType type) const { getTransform(type).apply(stack); }
+    void applyTransform(MatrixStack& stack, TransformType type) const
+    {
+        getTransform(type).apply(stack);
+    }
 
     // ========== 静态默认变换 ==========
 

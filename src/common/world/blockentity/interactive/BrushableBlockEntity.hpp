@@ -164,13 +164,19 @@ public:
      *
      * 注意：返回的是拷贝，修改不会影响方块实体内部状态。
      */
-    [[nodiscard]] ItemStack getItem() const { return m_item; }
+    [[nodiscard]] ItemStack getItem() const
+    {
+        return m_item;
+    }
 
     /**
      * @brief 获取命中方向
      * @return 命中方向，若未被刷过返回 std::nullopt
      */
-    [[nodiscard]] std::optional<Direction> getHitDirection() const { return m_hitDirection; }
+    [[nodiscard]] std::optional<Direction> getHitDirection() const
+    {
+        return m_hitDirection;
+    }
 
     /**
      * @brief 获取当前完成度对应的 DUSTED 状态值
@@ -187,12 +193,20 @@ public:
     /**
      * @brief 获取累计刷扫次数
      */
-    [[nodiscard]] i32 getBrushCount() const noexcept { return m_brushCount; }
+    [[nodiscard]] i32 getBrushCount() const noexcept
+    {
+        return m_brushCount;
+    }
 
     // ========== BlockEntity 重写 ==========
 
     void tick(IWorld& world) override;
-    [[nodiscard]] bool needsTick() const noexcept override { return false; }
+
+    [[nodiscard]] bool needsTick() const noexcept override
+    {
+        return false;
+    }
+
     bool load(const nlohmann::json& data) override;
     void save(nlohmann::json& data) const override;
     bool loadFromNBT(const nbt::tags::compound_tag& tag) override;

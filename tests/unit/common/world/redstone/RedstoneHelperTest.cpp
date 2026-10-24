@@ -191,7 +191,10 @@ TEST_F(RedstoneHelperTest, AttenuateThenClamp)
 
 class CalcRedstoneFromInventoryTest : public ::testing::Test {
 protected:
-    void SetUp() override { Items::initialize(); }
+    void SetUp() override
+    {
+        Items::initialize();
+    }
 };
 
 TEST_F(CalcRedstoneFromInventoryTest, EmptyInventory_ReturnsZero)
@@ -312,7 +315,10 @@ TEST_F(CalcRedstoneFromInventoryTest, ThreeSlotInventory_MixedStacks)
 
 class MinecartComparatorOutputTest : public ::testing::Test {
 protected:
-    void SetUp() override { Items::initialize(); }
+    void SetUp() override
+    {
+        Items::initialize();
+    }
 };
 
 TEST_F(MinecartComparatorOutputTest, RideableMinecart_ReturnsZero)
@@ -430,7 +436,10 @@ TEST_F(MinecartComparatorOutputTest, CommandBlockMinecart_SuccessCountOne)
 
 class ItemFrameComparatorOutputTest : public ::testing::Test {
 protected:
-    void SetUp() override { Items::initialize(); }
+    void SetUp() override
+    {
+        Items::initialize();
+    }
 };
 
 TEST_F(ItemFrameComparatorOutputTest, EmptyFrame_ReturnsZero)
@@ -566,7 +575,10 @@ public:
      * @brief 添加实体到世界中（用于测试）
      * 注意：测试负责确保实体生命周期覆盖测试范围
      */
-    void addEntity(Entity* entity) { m_entities.push_back(entity); }
+    void addEntity(Entity* entity)
+    {
+        m_entities.push_back(entity);
+    }
 
 private:
     std::vector<Entity*> m_entities;
@@ -576,7 +588,10 @@ private:
 
 class GetEntitySignalTest : public ::testing::Test {
 protected:
-    void SetUp() override { Items::initialize(); }
+    void SetUp() override
+    {
+        Items::initialize();
+    }
 };
 
 TEST_F(GetEntitySignalTest, EmptyWorld_ReturnsZero)

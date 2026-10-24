@@ -52,19 +52,28 @@ public:
     /**
      * @brief 获取坐标点数量
      */
-    i32 size() const { return m_count + 1; }
+    i32 size() const
+    {
+        return m_count + 1;
+    }
 
     /**
      * @brief 获取指定索引处的坐标值
      * @param index 索引（0 到 m_count）
      * @return 坐标值 = index / m_count
      */
-    f64 getDouble(i32 index) const { return static_cast<f64>(index) / static_cast<f64>(m_count); }
+    f64 getDouble(i32 index) const
+    {
+        return static_cast<f64>(index) / static_cast<f64>(m_count);
+    }
 
     /**
      * @brief 获取段数
      */
-    i32 getCount() const { return m_count; }
+    i32 getCount() const
+    {
+        return m_count;
+    }
 
     /**
      * @brief 将坐标值导出为 vector
@@ -81,8 +90,15 @@ public:
     /**
      * @brief 检查两个 CubePointRange 是否相等
      */
-    bool operator==(const CubePointRange& other) const { return m_count == other.m_count; }
-    bool operator!=(const CubePointRange& other) const { return m_count != other.m_count; }
+    bool operator==(const CubePointRange& other) const
+    {
+        return m_count == other.m_count;
+    }
+
+    bool operator!=(const CubePointRange& other) const
+    {
+        return m_count != other.m_count;
+    }
 
 private:
     i32 m_count;

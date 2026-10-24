@@ -121,11 +121,21 @@ public:
 
     void tick() override;
 
-    [[nodiscard]] f32 width() const override { return 0.5f; }
-    [[nodiscard]] f32 height() const override { return 0.5f; }
+    [[nodiscard]] f32 width() const override
+    {
+        return 0.5f;
+    }
+
+    [[nodiscard]] f32 height() const override
+    {
+        return 0.5f;
+    }
 
     // 无战利品表，覆写基类方法返回空字符串
-    [[nodiscard]] std::string getLootTableId() const override { return {}; }
+    [[nodiscard]] std::string getLootTableId() const override
+    {
+        return {};
+    }
 
     /**
      * @brief 处理经验球实体受到伤害
@@ -141,7 +151,10 @@ public:
     /**
      * @brief 获取经验值
      */
-    [[nodiscard]] i32 getXpValue() const { return m_xpValue; }
+    [[nodiscard]] i32 getXpValue() const
+    {
+        return m_xpValue;
+    }
 
     /**
      * @brief 设置经验值
@@ -161,39 +174,60 @@ public:
     /**
      * @brief 获取存活时间
      */
-    [[nodiscard]] i32 getAge() const { return m_age; }
+    [[nodiscard]] i32 getAge() const
+    {
+        return m_age;
+    }
 
     /**
      * @brief 设置存活时间
      */
-    void setAge(i32 age) { m_age = age; }
+    void setAge(i32 age)
+    {
+        m_age = age;
+    }
 
     /**
      * @brief 获取拾取延迟
      */
-    [[nodiscard]] i32 getPickupDelay() const { return m_pickupDelay; }
+    [[nodiscard]] i32 getPickupDelay() const
+    {
+        return m_pickupDelay;
+    }
 
     /**
      * @brief 设置拾取延迟
      */
-    void setPickupDelay(i32 delay) { m_pickupDelay = delay; }
+    void setPickupDelay(i32 delay)
+    {
+        m_pickupDelay = delay;
+    }
 
     /**
      * @brief 检查是否可以被拾取
      */
-    [[nodiscard]] bool canBePickedUp() const { return m_pickupDelay <= 0; }
+    [[nodiscard]] bool canBePickedUp() const
+    {
+        return m_pickupDelay <= 0;
+    }
 
     // ========== 玩家追踪 ==========
 
     /**
      * @brief 检查是否正在追踪玩家
      */
-    [[nodiscard]] bool isBeingTracked() const { return m_trackingPlayer != nullptr; }
+    [[nodiscard]] bool isBeingTracked() const
+    {
+        return m_trackingPlayer != nullptr;
+    }
 
     /**
      * @brief 获取追踪的玩家
      */
-    [[nodiscard]] Player* getTrackingPlayer() const { return m_trackingPlayer.get(); }
+    [[nodiscard]] Player* getTrackingPlayer() const
+    {
+        return m_trackingPlayer.get();
+    }
 
     // ========== 合并 ==========
 

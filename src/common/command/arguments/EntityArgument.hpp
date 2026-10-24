@@ -73,27 +73,60 @@ public:
         , m_max(std::nullopt)
     {}
 
-    void setMin(f32 min) { m_min = min; }
-    void setMax(f32 max) { m_max = max; }
+    void setMin(f32 min)
+    {
+        m_min = min;
+    }
 
-    [[nodiscard]] bool hasMin() const { return m_min.has_value(); }
-    [[nodiscard]] bool hasMax() const { return m_max.has_value(); }
-    [[nodiscard]] f32 getMin() const { return m_min.value_or(0.0f); }
-    [[nodiscard]] f32 getMax() const { return m_max.value_or(std::numeric_limits<f32>::max()); }
+    void setMax(f32 max)
+    {
+        m_max = max;
+    }
 
-    [[nodiscard]] bool isUnbounded() const { return !m_min.has_value() && !m_max.has_value(); }
+    [[nodiscard]] bool hasMin() const
+    {
+        return m_min.has_value();
+    }
+
+    [[nodiscard]] bool hasMax() const
+    {
+        return m_max.has_value();
+    }
+
+    [[nodiscard]] f32 getMin() const
+    {
+        return m_min.value_or(0.0f);
+    }
+
+    [[nodiscard]] f32 getMax() const
+    {
+        return m_max.value_or(std::numeric_limits<f32>::max());
+    }
+
+    [[nodiscard]] bool isUnbounded() const
+    {
+        return !m_min.has_value() && !m_max.has_value();
+    }
 
     [[nodiscard]] bool test(f32 value) const
     {
-        if (m_min.has_value() && value < m_min.value()) return false;
-        if (m_max.has_value() && value > m_max.value()) return false;
+        if (m_min.has_value() && value < m_min.value()) {
+            return false;
+        }
+        if (m_max.has_value() && value > m_max.value()) {
+            return false;
+        }
         return true;
     }
 
     [[nodiscard]] bool testSquared(f32 valueSq) const
     {
-        if (m_min.has_value() && valueSq < m_min.value() * m_min.value()) return false;
-        if (m_max.has_value() && valueSq > m_max.value() * m_max.value()) return false;
+        if (m_min.has_value() && valueSq < m_min.value() * m_min.value()) {
+            return false;
+        }
+        if (m_max.has_value() && valueSq > m_max.value() * m_max.value()) {
+            return false;
+        }
         return true;
     }
 
@@ -125,20 +158,49 @@ public:
         , m_max(std::nullopt)
     {}
 
-    void setMin(i32 min) { m_min = min; }
-    void setMax(i32 max) { m_max = max; }
+    void setMin(i32 min)
+    {
+        m_min = min;
+    }
 
-    [[nodiscard]] bool hasMin() const { return m_min.has_value(); }
-    [[nodiscard]] bool hasMax() const { return m_max.has_value(); }
-    [[nodiscard]] i32 getMin() const { return m_min.value_or(0); }
-    [[nodiscard]] i32 getMax() const { return m_max.value_or(std::numeric_limits<i32>::max()); }
+    void setMax(i32 max)
+    {
+        m_max = max;
+    }
 
-    [[nodiscard]] bool isUnbounded() const { return !m_min.has_value() && !m_max.has_value(); }
+    [[nodiscard]] bool hasMin() const
+    {
+        return m_min.has_value();
+    }
+
+    [[nodiscard]] bool hasMax() const
+    {
+        return m_max.has_value();
+    }
+
+    [[nodiscard]] i32 getMin() const
+    {
+        return m_min.value_or(0);
+    }
+
+    [[nodiscard]] i32 getMax() const
+    {
+        return m_max.value_or(std::numeric_limits<i32>::max());
+    }
+
+    [[nodiscard]] bool isUnbounded() const
+    {
+        return !m_min.has_value() && !m_max.has_value();
+    }
 
     [[nodiscard]] bool test(i32 value) const
     {
-        if (m_min.has_value() && value < m_min.value()) return false;
-        if (m_max.has_value() && value > m_max.value()) return false;
+        if (m_min.has_value() && value < m_min.value()) {
+            return false;
+        }
+        if (m_max.has_value() && value > m_max.value()) {
+            return false;
+        }
         return true;
     }
 
@@ -162,61 +224,205 @@ public:
 
     // ========== 基础属性 ==========
 
-    [[nodiscard]] EntitySelectorType type() const noexcept { return m_type; }
-    void setType(EntitySelectorType type) { m_type = type; }
+    [[nodiscard]] EntitySelectorType type() const noexcept
+    {
+        return m_type;
+    }
 
-    [[nodiscard]] i32 limit() const noexcept { return m_limit; }
-    void setLimit(i32 limit) { m_limit = limit; }
+    void setType(EntitySelectorType type)
+    {
+        m_type = type;
+    }
 
-    [[nodiscard]] bool isSelf() const noexcept { return m_isSelf; }
-    void setSelf(bool self) { m_isSelf = self; }
+    [[nodiscard]] i32 limit() const noexcept
+    {
+        return m_limit;
+    }
 
-    [[nodiscard]] bool includesNonPlayers() const noexcept { return m_includesNonPlayers; }
-    void setIncludesNonPlayers(bool includes) { m_includesNonPlayers = includes; }
+    void setLimit(i32 limit)
+    {
+        m_limit = limit;
+    }
 
-    [[nodiscard]] bool isSingle() const noexcept { return m_single; }
-    void setSingle(bool single) { m_single = single; }
+    [[nodiscard]] bool isSelf() const noexcept
+    {
+        return m_isSelf;
+    }
 
-    [[nodiscard]] const std::string& username() const noexcept { return m_username; }
-    [[nodiscard]] bool hasUsername() const noexcept { return !m_username.empty(); }
-    void setUsername(const std::string& username) { m_username = username; }
+    void setSelf(bool self)
+    {
+        m_isSelf = self;
+    }
+
+    [[nodiscard]] bool includesNonPlayers() const noexcept
+    {
+        return m_includesNonPlayers;
+    }
+
+    void setIncludesNonPlayers(bool includes)
+    {
+        m_includesNonPlayers = includes;
+    }
+
+    [[nodiscard]] bool isSingle() const noexcept
+    {
+        return m_single;
+    }
+
+    void setSingle(bool single)
+    {
+        m_single = single;
+    }
+
+    [[nodiscard]] const std::string& username() const noexcept
+    {
+        return m_username;
+    }
+
+    [[nodiscard]] bool hasUsername() const noexcept
+    {
+        return !m_username.empty();
+    }
+
+    void setUsername(const std::string& username)
+    {
+        m_username = username;
+    }
 
     // ========== 新增参数 ==========
 
-    [[nodiscard]] const std::string& usernameNegated() const noexcept { return m_usernameNegated; }
-    [[nodiscard]] bool hasUsernameNegated() const noexcept { return !m_usernameNegated.empty(); }
-    void setUsernameNegated(const std::string& name) { m_usernameNegated = name; }
+    [[nodiscard]] const std::string& usernameNegated() const noexcept
+    {
+        return m_usernameNegated;
+    }
 
-    [[nodiscard]] const FloatRange& distance() const noexcept { return m_distance; }
-    FloatRange& distance() { return m_distance; }
+    [[nodiscard]] bool hasUsernameNegated() const noexcept
+    {
+        return !m_usernameNegated.empty();
+    }
 
-    [[nodiscard]] const IntRange& level() const noexcept { return m_level; }
-    IntRange& level() { return m_level; }
+    void setUsernameNegated(const std::string& name)
+    {
+        m_usernameNegated = name;
+    }
 
-    [[nodiscard]] bool hasX() const noexcept { return m_x.has_value(); }
-    [[nodiscard]] bool hasY() const noexcept { return m_y.has_value(); }
-    [[nodiscard]] bool hasZ() const noexcept { return m_z.has_value(); }
-    [[nodiscard]] f32 getX() const { return m_x.value_or(0.0f); }
-    [[nodiscard]] f32 getY() const { return m_y.value_or(0.0f); }
-    [[nodiscard]] f32 getZ() const { return m_z.value_or(0.0f); }
-    void setX(f32 x) { m_x = x; }
-    void setY(f32 y) { m_y = y; }
-    void setZ(f32 z) { m_z = z; }
+    [[nodiscard]] const FloatRange& distance() const noexcept
+    {
+        return m_distance;
+    }
 
-    [[nodiscard]] bool hasDx() const noexcept { return m_dx.has_value(); }
-    [[nodiscard]] bool hasDy() const noexcept { return m_dy.has_value(); }
-    [[nodiscard]] bool hasDz() const noexcept { return m_dz.has_value(); }
-    [[nodiscard]] f32 getDx() const { return m_dx.value_or(0.0f); }
-    [[nodiscard]] f32 getDy() const { return m_dy.value_or(0.0f); }
-    [[nodiscard]] f32 getDz() const { return m_dz.value_or(0.0f); }
-    void setDx(f32 dx) { m_dx = dx; }
-    void setDy(f32 dy) { m_dy = dy; }
-    void setDz(f32 dz) { m_dz = dz; }
+    FloatRange& distance()
+    {
+        return m_distance;
+    }
+
+    [[nodiscard]] const IntRange& level() const noexcept
+    {
+        return m_level;
+    }
+
+    IntRange& level()
+    {
+        return m_level;
+    }
+
+    [[nodiscard]] bool hasX() const noexcept
+    {
+        return m_x.has_value();
+    }
+
+    [[nodiscard]] bool hasY() const noexcept
+    {
+        return m_y.has_value();
+    }
+
+    [[nodiscard]] bool hasZ() const noexcept
+    {
+        return m_z.has_value();
+    }
+
+    [[nodiscard]] f32 getX() const
+    {
+        return m_x.value_or(0.0f);
+    }
+
+    [[nodiscard]] f32 getY() const
+    {
+        return m_y.value_or(0.0f);
+    }
+
+    [[nodiscard]] f32 getZ() const
+    {
+        return m_z.value_or(0.0f);
+    }
+
+    void setX(f32 x)
+    {
+        m_x = x;
+    }
+
+    void setY(f32 y)
+    {
+        m_y = y;
+    }
+
+    void setZ(f32 z)
+    {
+        m_z = z;
+    }
+
+    [[nodiscard]] bool hasDx() const noexcept
+    {
+        return m_dx.has_value();
+    }
+
+    [[nodiscard]] bool hasDy() const noexcept
+    {
+        return m_dy.has_value();
+    }
+
+    [[nodiscard]] bool hasDz() const noexcept
+    {
+        return m_dz.has_value();
+    }
+
+    [[nodiscard]] f32 getDx() const
+    {
+        return m_dx.value_or(0.0f);
+    }
+
+    [[nodiscard]] f32 getDy() const
+    {
+        return m_dy.value_or(0.0f);
+    }
+
+    [[nodiscard]] f32 getDz() const
+    {
+        return m_dz.value_or(0.0f);
+    }
+
+    void setDx(f32 dx)
+    {
+        m_dx = dx;
+    }
+
+    void setDy(f32 dy)
+    {
+        m_dy = dy;
+    }
+
+    void setDz(f32 dz)
+    {
+        m_dz = dz;
+    }
 
     /**
      * @brief 判断是否存在体积过滤条件（dx/dy/dz）。
      */
-    [[nodiscard]] bool hasVolume() const noexcept { return hasDx() || hasDy() || hasDz(); }
+    [[nodiscard]] bool hasVolume() const noexcept
+    {
+        return hasDx() || hasDy() || hasDz();
+    }
 
     /**
      * @brief 根据 dx/dy/dz 参数构造选择器的相对 AABB。
@@ -260,20 +466,47 @@ public:
         return std::nullopt;
     }
 
-    [[nodiscard]] EntitySelectorSort sort() const noexcept { return m_sort; }
-    void setSort(EntitySelectorSort sort) { m_sort = sort; }
+    [[nodiscard]] EntitySelectorSort sort() const noexcept
+    {
+        return m_sort;
+    }
 
-    [[nodiscard]] const std::string& entityType() const noexcept { return m_entityType; }
-    [[nodiscard]] bool hasEntityType() const noexcept { return !m_entityType.empty(); }
-    [[nodiscard]] bool entityTypeNegated() const noexcept { return m_entityTypeNegated; }
+    void setSort(EntitySelectorSort sort)
+    {
+        m_sort = sort;
+    }
+
+    [[nodiscard]] const std::string& entityType() const noexcept
+    {
+        return m_entityType;
+    }
+
+    [[nodiscard]] bool hasEntityType() const noexcept
+    {
+        return !m_entityType.empty();
+    }
+
+    [[nodiscard]] bool entityTypeNegated() const noexcept
+    {
+        return m_entityTypeNegated;
+    }
+
     void setEntityType(const std::string& type, bool negated = false)
     {
         m_entityType = type;
         m_entityTypeNegated = negated;
     }
 
-    [[nodiscard]] const std::vector<std::string>& tags() const noexcept { return m_tags; }
-    [[nodiscard]] const std::vector<std::string>& tagsNegated() const noexcept { return m_tagsNegated; }
+    [[nodiscard]] const std::vector<std::string>& tags() const noexcept
+    {
+        return m_tags;
+    }
+
+    [[nodiscard]] const std::vector<std::string>& tagsNegated() const noexcept
+    {
+        return m_tagsNegated;
+    }
+
     void addTag(const std::string& tag, bool negated = false)
     {
         if (negated) {
@@ -283,18 +516,42 @@ public:
         }
     }
 
-    [[nodiscard]] const std::string& gameMode() const noexcept { return m_gameMode; }
-    [[nodiscard]] bool hasGameMode() const noexcept { return !m_gameMode.empty(); }
-    [[nodiscard]] bool gameModeNegated() const noexcept { return m_gameModeNegated; }
+    [[nodiscard]] const std::string& gameMode() const noexcept
+    {
+        return m_gameMode;
+    }
+
+    [[nodiscard]] bool hasGameMode() const noexcept
+    {
+        return !m_gameMode.empty();
+    }
+
+    [[nodiscard]] bool gameModeNegated() const noexcept
+    {
+        return m_gameModeNegated;
+    }
+
     void setGameMode(const std::string& mode, bool negated = false)
     {
         m_gameMode = mode;
         m_gameModeNegated = negated;
     }
 
-    [[nodiscard]] const std::string& team() const noexcept { return m_team; }
-    [[nodiscard]] bool hasTeam() const noexcept { return !m_team.empty(); }
-    [[nodiscard]] bool teamNegated() const noexcept { return m_teamNegated; }
+    [[nodiscard]] const std::string& team() const noexcept
+    {
+        return m_team;
+    }
+
+    [[nodiscard]] bool hasTeam() const noexcept
+    {
+        return !m_team.empty();
+    }
+
+    [[nodiscard]] bool teamNegated() const noexcept
+    {
+        return m_teamNegated;
+    }
+
     void setTeam(const std::string& team, bool negated = false)
     {
         m_team = team;
@@ -309,8 +566,15 @@ public:
      * x_rotation 用于筛选实体的俯仰角度（pitch）。
      * 范围：-90 到 90 度（-90 为直视下方，90 为直视上方）
      */
-    [[nodiscard]] const FloatRange& xRotation() const noexcept { return m_xRotation; }
-    FloatRange& xRotation() { return m_xRotation; }
+    [[nodiscard]] const FloatRange& xRotation() const noexcept
+    {
+        return m_xRotation;
+    }
+
+    FloatRange& xRotation()
+    {
+        return m_xRotation;
+    }
 
     /**
      * @brief 获取偏航角范围（y_rotation）
@@ -319,11 +583,25 @@ public:
      * 范围：-180 到 180 度
      * 注意：角度范围测试会处理 -180/180 边界环绕问题
      */
-    [[nodiscard]] const FloatRange& yRotation() const noexcept { return m_yRotation; }
-    FloatRange& yRotation() { return m_yRotation; }
+    [[nodiscard]] const FloatRange& yRotation() const noexcept
+    {
+        return m_yRotation;
+    }
 
-    [[nodiscard]] bool currentWorldOnly() const noexcept { return m_currentWorldOnly; }
-    void setCurrentWorldOnly(bool currentWorldOnly) { m_currentWorldOnly = currentWorldOnly; }
+    FloatRange& yRotation()
+    {
+        return m_yRotation;
+    }
+
+    [[nodiscard]] bool currentWorldOnly() const noexcept
+    {
+        return m_currentWorldOnly;
+    }
+
+    void setCurrentWorldOnly(bool currentWorldOnly)
+    {
+        m_currentWorldOnly = currentWorldOnly;
+    }
 
     // ========== 记分板分数条件 ==========
 
@@ -333,9 +611,20 @@ public:
      * 返回格式: {目标名称: 分数范围}
      * 示例: scores={deaths=1..5,kills=10..} 会返回 {"deaths": IntRange(1, unbounded), "kills": IntRange(10, unbounded)}
      */
-    [[nodiscard]] const std::map<std::string, IntRange>& scoreConditions() const noexcept { return m_scores; }
-    void addScoreCondition(const std::string& objective, const IntRange& range) { m_scores[objective] = range; }
-    [[nodiscard]] bool hasScoreConditions() const noexcept { return !m_scores.empty(); }
+    [[nodiscard]] const std::map<std::string, IntRange>& scoreConditions() const noexcept
+    {
+        return m_scores;
+    }
+
+    void addScoreCondition(const std::string& objective, const IntRange& range)
+    {
+        m_scores[objective] = range;
+    }
+
+    [[nodiscard]] bool hasScoreConditions() const noexcept
+    {
+        return !m_scores.empty();
+    }
 
     // ========== 进度条件 ==========
 
@@ -366,11 +655,16 @@ public:
     {
         return m_advancements;
     }
+
     void addAdvancementCondition(const ResourceLocation& advancement, const AdvancementCondition& condition)
     {
         m_advancements[advancement] = condition;
     }
-    [[nodiscard]] bool hasAdvancementConditions() const noexcept { return !m_advancements.empty(); }
+
+    [[nodiscard]] bool hasAdvancementConditions() const noexcept
+    {
+        return !m_advancements.empty();
+    }
 
     // ========== NBT 条件 ==========
 
@@ -383,12 +677,26 @@ public:
         std::shared_ptr<nbt::tags::compound_tag> nbt; // NBT 数据
         bool negated = false;                         // 是否取反
 
-        [[nodiscard]] bool hasCondition() const noexcept { return nbt != nullptr; }
+        [[nodiscard]] bool hasCondition() const noexcept
+        {
+            return nbt != nullptr;
+        }
     };
 
-    [[nodiscard]] const NbtCondition& nbtCondition() const noexcept { return m_nbt; }
-    void setNbtCondition(const NbtCondition& condition) { m_nbt = condition; }
-    [[nodiscard]] bool hasNbtCondition() const noexcept { return m_nbt.hasCondition(); }
+    [[nodiscard]] const NbtCondition& nbtCondition() const noexcept
+    {
+        return m_nbt;
+    }
+
+    void setNbtCondition(const NbtCondition& condition)
+    {
+        m_nbt = condition;
+    }
+
+    [[nodiscard]] bool hasNbtCondition() const noexcept
+    {
+        return m_nbt.hasCondition();
+    }
 
     // ========== 谓词条件 ==========
 
@@ -401,12 +709,26 @@ public:
         ResourceLocation predicate; // 谓词 ID
         bool negated = false;       // 是否取反
 
-        [[nodiscard]] bool hasCondition() const noexcept { return predicate.isValid() && !predicate.path().empty(); }
+        [[nodiscard]] bool hasCondition() const noexcept
+        {
+            return predicate.isValid() && !predicate.path().empty();
+        }
     };
 
-    [[nodiscard]] const PredicateCondition& predicateCondition() const noexcept { return m_predicate; }
-    void setPredicateCondition(const PredicateCondition& condition) { m_predicate = condition; }
-    [[nodiscard]] bool hasPredicateCondition() const noexcept { return m_predicate.hasCondition(); }
+    [[nodiscard]] const PredicateCondition& predicateCondition() const noexcept
+    {
+        return m_predicate;
+    }
+
+    void setPredicateCondition(const PredicateCondition& condition)
+    {
+        m_predicate = condition;
+    }
+
+    [[nodiscard]] bool hasPredicateCondition() const noexcept
+    {
+        return m_predicate.hasCondition();
+    }
 
     // ========== 静态工厂方法 ==========
 
@@ -566,7 +888,10 @@ public:
         return m_mode == Mode::SinglePlayer || m_mode == Mode::MultiplePlayers;
     }
 
-    [[nodiscard]] Mode mode() const noexcept { return m_mode; }
+    [[nodiscard]] Mode mode() const noexcept
+    {
+        return m_mode;
+    }
 
 private:
     [[nodiscard]] EntitySelector _parseSelector(StringReader& reader, i32 start);

@@ -80,7 +80,10 @@ public:
         return true;
     }
 
-    [[nodiscard]] i32 getHeight(i32 /*x*/, i32 /*z*/) const override { return world::MAX_BUILD_HEIGHT; }
+    [[nodiscard]] i32 getHeight(i32 /*x*/, i32 /*z*/) const override
+    {
+        return world::MAX_BUILD_HEIGHT;
+    }
 
     [[nodiscard]] bool isWithinWorldBounds(i32, i32 y, i32) const override
     {
@@ -104,7 +107,10 @@ public:
         return id;
     }
 
-    [[nodiscard]] std::vector<Entity*> getEntitiesByType(const std::string& /*typeId*/) const override { return {}; }
+    [[nodiscard]] std::vector<Entity*> getEntitiesByType(const std::string& /*typeId*/) const override
+    {
+        return {};
+    }
 
     [[nodiscard]] std::vector<Entity*> getEntitiesInAABB(
         const AxisAlignedBB& /*box*/, const Entity* /*exclude*/) const override
@@ -145,7 +151,10 @@ private:
 
 class EndDragonFightFindPortalTest : public ::testing::Test {
 protected:
-    void SetUp() override { VanillaBlocks::initialize(); }
+    void SetUp() override
+    {
+        VanillaBlocks::initialize();
+    }
 
     test::FindPortalTestWorld m_world;
 };

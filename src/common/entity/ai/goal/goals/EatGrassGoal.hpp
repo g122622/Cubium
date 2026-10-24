@@ -79,13 +79,19 @@ public:
     void resetTask() override;
     void tick() override;
 
-    [[nodiscard]] std::string getTypeName() const override { return "EatGrassGoal"; }
+    [[nodiscard]] std::string getTypeName() const override
+    {
+        return "EatGrassGoal";
+    }
 
     /**
      * @brief 获取吃草动画计时器
      * @return 当前计时器值
      */
-    [[nodiscard]] i32 getEatingGrassTimer() const { return m_eatingGrassTimer; }
+    [[nodiscard]] i32 getEatingGrassTimer() const
+    {
+        return m_eatingGrassTimer;
+    }
 
 private:
     /**

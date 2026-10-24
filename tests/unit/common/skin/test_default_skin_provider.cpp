@@ -40,9 +40,15 @@ namespace {
 /// 内存资源包，仿照 tests/client/renderer/test_renderer.cpp 中的同名实现
 class InMemoryResourcePack final : public resource::IResourcePack {
 public:
-    Result<void> initialize() override { return Result<void>::ok(); }
+    Result<void> initialize() override
+    {
+        return Result<void>::ok();
+    }
 
-    [[nodiscard]] const resource::PackMetadata& metadata() const override { return m_metadata; }
+    [[nodiscard]] const resource::PackMetadata& metadata() const override
+    {
+        return m_metadata;
+    }
 
     [[nodiscard]] bool hasResource(resource::PackType type, std::string_view resourcePath) const override
     {
@@ -96,9 +102,15 @@ public:
         return result;
     }
 
-    [[nodiscard]] std::string name() const override { return "InMemoryResourcePack"; }
+    [[nodiscard]] std::string name() const override
+    {
+        return "InMemoryResourcePack";
+    }
 
-    void add(std::string path, std::vector<u8> bytes) { m_resources.emplace(std::move(path), std::move(bytes)); }
+    void add(std::string path, std::vector<u8> bytes)
+    {
+        m_resources.emplace(std::move(path), std::move(bytes));
+    }
 
 private:
     /// readResource 接受的路径已剥离 "assets/" 前缀；这里还原完整键以便查表
@@ -459,7 +471,9 @@ std::vector<u8> makeSolidColor64x64Png(u8 r, u8 g, u8 b, u8 a)
             0x2d02ef8d,
         };
         u32 crc = 0xFFFFFFFFu;
-        auto update = [&](u8 byte) { crc = kCrcTable[(crc ^ byte) & 0xFF] ^ (crc >> 8); };
+        auto update = [&](u8 byte) {
+            crc = kCrcTable[(crc ^ byte) & 0xFF] ^ (crc >> 8);
+        };
         for (int i = 0; i < 4; ++i) {
             update(type[i]);
         }
@@ -518,7 +532,9 @@ TEST(DefaultSkinProviderTest, InitializeWithoutResourcePackFallsBackToZeroPixels
     for (size_t i = 0; i < DEFAULT_SKIN_COUNT; ++i) {
         const auto& data = provider.getSkinData(i);
         EXPECT_EQ(64u * 64u * 4u, data.size());
-        bool allZero = std::all_of(data.begin(), data.end(), [](u8 b) { return b == 0; });
+        bool allZero = std::all_of(data.begin(), data.end(), [](u8 b) {
+            return b == 0;
+        });
         EXPECT_TRUE(allZero) << "Variant " << i << " should be zero-pixel fallback";
     }
 }
@@ -578,7 +594,9 @@ TEST(DefaultSkinProviderTest, InitializeWithPartialResourcePackLoadsAvailablePix
         }
         const auto& data = provider.getSkinData(i);
         EXPECT_EQ(64u * 64u * 4u, data.size());
-        bool allZero = std::all_of(data.begin(), data.end(), [](u8 b) { return b == 0; });
+        bool allZero = std::all_of(data.begin(), data.end(), [](u8 b) {
+            return b == 0;
+        });
         EXPECT_TRUE(allZero) << "Variant " << i << " should be zero-pixel fallback when not in pack";
     }
 }

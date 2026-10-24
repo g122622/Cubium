@@ -68,7 +68,10 @@ public:
      *
      * @return 参数字符串
      */
-    [[nodiscard]] virtual std::string getParameters() const { return ""; }
+    [[nodiscard]] virtual std::string getParameters() const
+    {
+        return "";
+    }
 
     /**
      * @brief 克隆粒子数据

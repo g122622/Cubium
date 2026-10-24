@@ -60,12 +60,35 @@ public:
         , m_repairMaterial(repairMaterial)
     {}
 
-    [[nodiscard]] i32 getMaxUses() const override { return m_maxUses; }
-    [[nodiscard]] f32 getEfficiency() const override { return m_efficiency; }
-    [[nodiscard]] f32 getAttackDamage() const override { return m_attackDamage; }
-    [[nodiscard]] i32 getHarvestLevel() const override { return m_harvestLevel; }
-    [[nodiscard]] i32 getEnchantability() const override { return m_enchantability; }
-    [[nodiscard]] const crafting::Ingredient& getRepairMaterial() const override { return m_repairMaterial; }
+    [[nodiscard]] i32 getMaxUses() const override
+    {
+        return m_maxUses;
+    }
+
+    [[nodiscard]] f32 getEfficiency() const override
+    {
+        return m_efficiency;
+    }
+
+    [[nodiscard]] f32 getAttackDamage() const override
+    {
+        return m_attackDamage;
+    }
+
+    [[nodiscard]] i32 getHarvestLevel() const override
+    {
+        return m_harvestLevel;
+    }
+
+    [[nodiscard]] i32 getEnchantability() const override
+    {
+        return m_enchantability;
+    }
+
+    [[nodiscard]] const crafting::Ingredient& getRepairMaterial() const override
+    {
+        return m_repairMaterial;
+    }
 
 private:
     i32 m_maxUses;

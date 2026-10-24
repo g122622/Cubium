@@ -141,6 +141,7 @@ public:
     {
         throw std::runtime_error("FireChargeTestWorld::tickManager not implemented");
     }
+
     [[nodiscard]] const world::tick::TickManager& tickManager() const override
     {
         throw std::runtime_error("FireChargeTestWorld::tickManager not implemented");
@@ -155,8 +156,15 @@ public:
         f32 pitch;
     };
 
-    [[nodiscard]] const std::vector<SoundRecord>& sounds() const { return m_sounds; }
-    void clearSounds() { m_sounds.clear(); }
+    [[nodiscard]] const std::vector<SoundRecord>& sounds() const
+    {
+        return m_sounds;
+    }
+
+    void clearSounds()
+    {
+        m_sounds.clear();
+    }
 
 private:
     std::unordered_map<BlockPos, std::unique_ptr<BlockState>> m_blocks;

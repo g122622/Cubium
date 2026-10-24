@@ -65,18 +65,39 @@ public:
  */
 class ConstantFloat final : public FloatProvider {
 public:
-    static std::unique_ptr<ConstantFloat> create(f32 value) { return std::make_unique<ConstantFloat>(value); }
+    static std::unique_ptr<ConstantFloat> create(f32 value)
+    {
+        return std::make_unique<ConstantFloat>(value);
+    }
 
     explicit ConstantFloat(f32 value)
         : m_value(value)
     {}
 
-    [[nodiscard]] f32 sample(math::IRandom& /*rng*/) const override { return m_value; }
-    [[nodiscard]] f32 getMinValue() const override { return m_value; }
-    [[nodiscard]] f32 getMaxValue() const override { return m_value; }
-    [[nodiscard]] const char* getTypeName() const override { return "constant"; }
+    [[nodiscard]] f32 sample(math::IRandom& /*rng*/) const override
+    {
+        return m_value;
+    }
 
-    [[nodiscard]] f32 getValue() const { return m_value; }
+    [[nodiscard]] f32 getMinValue() const override
+    {
+        return m_value;
+    }
+
+    [[nodiscard]] f32 getMaxValue() const override
+    {
+        return m_value;
+    }
+
+    [[nodiscard]] const char* getTypeName() const override
+    {
+        return "constant";
+    }
+
+    [[nodiscard]] f32 getValue() const
+    {
+        return m_value;
+    }
 
 private:
     f32 m_value;
@@ -117,9 +138,20 @@ public:
         return m_min + rng.nextFloat() * (m_max - m_min);
     }
 
-    [[nodiscard]] f32 getMinValue() const override { return m_min; }
-    [[nodiscard]] f32 getMaxValue() const override { return m_max; }
-    [[nodiscard]] const char* getTypeName() const override { return "uniform"; }
+    [[nodiscard]] f32 getMinValue() const override
+    {
+        return m_min;
+    }
+
+    [[nodiscard]] f32 getMaxValue() const override
+    {
+        return m_max;
+    }
+
+    [[nodiscard]] const char* getTypeName() const override
+    {
+        return "uniform";
+    }
 
 private:
     f32 m_min;
@@ -167,11 +199,25 @@ public:
         return m_min + rng.nextFloat() * f2 + rng.nextFloat() * f1;
     }
 
-    [[nodiscard]] f32 getMinValue() const override { return m_min; }
-    [[nodiscard]] f32 getMaxValue() const override { return m_max; }
-    [[nodiscard]] const char* getTypeName() const override { return "trapezoid"; }
+    [[nodiscard]] f32 getMinValue() const override
+    {
+        return m_min;
+    }
 
-    [[nodiscard]] f32 getPlateau() const { return m_plateau; }
+    [[nodiscard]] f32 getMaxValue() const override
+    {
+        return m_max;
+    }
+
+    [[nodiscard]] const char* getTypeName() const override
+    {
+        return "trapezoid";
+    }
+
+    [[nodiscard]] f32 getPlateau() const
+    {
+        return m_plateau;
+    }
 
 private:
     f32 m_min;
@@ -207,9 +253,20 @@ public:
         return std::clamp(m_source->sample(rng), m_min, m_max);
     }
 
-    [[nodiscard]] f32 getMinValue() const override { return m_min; }
-    [[nodiscard]] f32 getMaxValue() const override { return m_max; }
-    [[nodiscard]] const char* getTypeName() const override { return "clamped"; }
+    [[nodiscard]] f32 getMinValue() const override
+    {
+        return m_min;
+    }
+
+    [[nodiscard]] f32 getMaxValue() const override
+    {
+        return m_max;
+    }
+
+    [[nodiscard]] const char* getTypeName() const override
+    {
+        return "clamped";
+    }
 
 private:
     std::unique_ptr<FloatProvider> m_source;
@@ -248,12 +305,30 @@ public:
         return sampleStatic(rng, m_mean, m_deviation, m_min, m_max);
     }
 
-    [[nodiscard]] f32 getMinValue() const override { return m_min; }
-    [[nodiscard]] f32 getMaxValue() const override { return m_max; }
-    [[nodiscard]] const char* getTypeName() const override { return "clamped_normal"; }
+    [[nodiscard]] f32 getMinValue() const override
+    {
+        return m_min;
+    }
 
-    [[nodiscard]] f32 getMean() const noexcept { return m_mean; }
-    [[nodiscard]] f32 getDeviation() const noexcept { return m_deviation; }
+    [[nodiscard]] f32 getMaxValue() const override
+    {
+        return m_max;
+    }
+
+    [[nodiscard]] const char* getTypeName() const override
+    {
+        return "clamped_normal";
+    }
+
+    [[nodiscard]] f32 getMean() const noexcept
+    {
+        return m_mean;
+    }
+
+    [[nodiscard]] f32 getDeviation() const noexcept
+    {
+        return m_deviation;
+    }
 
     /**
      * @brief 静态采样：clamp(normal(rng, mean, deviation), min, max)

@@ -64,7 +64,10 @@ struct FluidStatus {
         return fluidLevel == other.fluidLevel && fluidType == other.fluidType;
     }
 
-    [[nodiscard]] bool operator!=(const FluidStatus& other) const { return !(*this == other); }
+    [[nodiscard]] bool operator!=(const FluidStatus& other) const
+    {
+        return !(*this == other);
+    }
 };
 
 // ============================================================================

@@ -96,15 +96,47 @@ public:
         return state != nullptr ? state->getFluidState() : &fluid::Fluids::EMPTY()->defaultState();
     }
 
-    [[nodiscard]] mc::world::chunk::IChunkManager* chunkManager() override { return &m_stubChunks; }
-    [[nodiscard]] const mc::world::chunk::IChunkManager* chunkManager() const override { return &m_stubChunks; }
+    [[nodiscard]] mc::world::chunk::IChunkManager* chunkManager() override
+    {
+        return &m_stubChunks;
+    }
+
+    [[nodiscard]] const mc::world::chunk::IChunkManager* chunkManager() const override
+    {
+        return &m_stubChunks;
+    }
+
     mc::test::StubChunkManager m_stubChunks{nullptr, true};
-    [[nodiscard]] u64 currentTick() const override { return m_currentTick; }
-    [[nodiscard]] Difficulty difficulty() const override { return Difficulty::Normal; }
-    [[nodiscard]] bool isClientSide() const override { return m_isClientSide; }
-    [[nodiscard]] bool isRaining() const override { return false; }
-    [[nodiscard]] bool canRainAt(const BlockPos&) const override { return false; }
-    [[nodiscard]] bool isThundering() const override { return false; }
+
+    [[nodiscard]] u64 currentTick() const override
+    {
+        return m_currentTick;
+    }
+
+    [[nodiscard]] Difficulty difficulty() const override
+    {
+        return Difficulty::Normal;
+    }
+
+    [[nodiscard]] bool isClientSide() const override
+    {
+        return m_isClientSide;
+    }
+
+    [[nodiscard]] bool isRaining() const override
+    {
+        return false;
+    }
+
+    [[nodiscard]] bool canRainAt(const BlockPos&) const override
+    {
+        return false;
+    }
+
+    [[nodiscard]] bool isThundering() const override
+    {
+        return false;
+    }
 
     EntityInstanceId spawnEntity(std::unique_ptr<Entity> entity) override
     {
@@ -123,20 +155,41 @@ public:
     }
 
     // TickManager interface
-    [[nodiscard]] world::tick::TickManager& tickManager() override { return *m_tickManager; }
-    [[nodiscard]] const world::tick::TickManager& tickManager() const override { return *m_tickManager; }
+    [[nodiscard]] world::tick::TickManager& tickManager() override
+    {
+        return *m_tickManager;
+    }
+
+    [[nodiscard]] const world::tick::TickManager& tickManager() const override
+    {
+        return *m_tickManager;
+    }
 
     // 测试辅助方法
-    void setClientSide(bool clientSide) { m_isClientSide = clientSide; }
-    void incrementTick() { m_currentTick++; }
-    void setCurrentTick(u64 tick) { m_currentTick = tick; }
+    void setClientSide(bool clientSide)
+    {
+        m_isClientSide = clientSide;
+    }
+
+    void incrementTick()
+    {
+        m_currentTick++;
+    }
+
+    void setCurrentTick(u64 tick)
+    {
+        m_currentTick = tick;
+    }
 
     void setBlockAt(const BlockPos& pos, const BlockState* state)
     {
         m_blocks[pos] = std::make_unique<BlockState>(*state);
     }
 
-    [[nodiscard]] size_t spawnedEntityCount() const { return m_spawnedEntities.size(); }
+    [[nodiscard]] size_t spawnedEntityCount() const
+    {
+        return m_spawnedEntities.size();
+    }
 
     [[nodiscard]] Entity* getSpawnedEntity(size_t index) const
     {
@@ -146,9 +199,15 @@ public:
         return nullptr;
     }
 
-    void clearSpawnedEntities() { m_spawnedEntities.clear(); }
+    void clearSpawnedEntities()
+    {
+        m_spawnedEntities.clear();
+    }
 
-    [[nodiscard]] const std::vector<std::tuple<i32, BlockPos, i32>>& playedEvents() const { return m_playedEvents; }
+    [[nodiscard]] const std::vector<std::tuple<i32, BlockPos, i32>>& playedEvents() const
+    {
+        return m_playedEvents;
+    }
 
     // 推进 tickManager，触发到期的计划刻
     void advanceTick()
@@ -158,8 +217,15 @@ public:
     }
 
     // GameRules 接口
-    [[nodiscard]] const world::gamerule::GameRules& getGameRules() const override { return m_gameRules; }
-    [[nodiscard]] world::gamerule::GameRules& getGameRules() override { return m_gameRules; }
+    [[nodiscard]] const world::gamerule::GameRules& getGameRules() const override
+    {
+        return m_gameRules;
+    }
+
+    [[nodiscard]] world::gamerule::GameRules& getGameRules() override
+    {
+        return m_gameRules;
+    }
 
 private:
     std::unordered_map<BlockPos, std::unique_ptr<BlockState>> m_blocks;
@@ -692,12 +758,17 @@ TEST_F(SnifferEntityTest, TransitionToDigging_BroadcastsStatus63AndShrinksDimens
     // 捕获实体状态广播（实体状态 63 = 客户端播放 SNIFFER_DIGGING 循环音效）
     class StatusCaptureWorld final : public mc::test::BaseTestWorld {
     public:
-        [[nodiscard]] bool isClientSide() const override { return false; }
+        [[nodiscard]] bool isClientSide() const override
+        {
+            return false;
+        }
+
         void broadcastEntityStatus(EntityInstanceId entityId, u8 status) override
         {
             m_entityId = entityId;
             m_statuses.push_back(status);
         }
+
         std::vector<u8> m_statuses;
         EntityInstanceId m_entityId = INVALID_ENTITY_ID;
     };

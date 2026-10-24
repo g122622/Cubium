@@ -110,17 +110,26 @@ public:
     /**
      * @brief 检查是否有错误
      */
-    [[nodiscard]] bool hasErrors() const { return !m_errors.empty(); }
+    [[nodiscard]] bool hasErrors() const
+    {
+        return !m_errors.empty();
+    }
 
     /**
      * @brief 获取错误列表
      */
-    [[nodiscard]] const std::vector<TemplateErrorInfo>& errors() const { return m_errors; }
+    [[nodiscard]] const std::vector<TemplateErrorInfo>& errors() const
+    {
+        return m_errors;
+    }
 
     /**
      * @brief 获取第一个错误
      */
-    [[nodiscard]] const TemplateErrorInfo* firstError() const { return m_errors.empty() ? nullptr : &m_errors.front(); }
+    [[nodiscard]] const TemplateErrorInfo* firstError() const
+    {
+        return m_errors.empty() ? nullptr : &m_errors.front();
+    }
 
 private:
     // ========== 解析方法 ==========

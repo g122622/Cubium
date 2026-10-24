@@ -92,7 +92,6 @@ public:
      * @brief 获取附魔能力
      * @return 附魔能力值（MC 1.16.5: 1）
      */
-    [[nodiscard]] i32 getItemEnchantability() const override { return 1; }
 
     // ========== OnAStickItem 特有方法 ==========
 
@@ -100,13 +99,19 @@ public:
      * @brief 获取目标实体类型ID
      * @return 实体类型ID字符串
      */
-    [[nodiscard]] const std::string& getEntityTypeId() const { return m_entityId; }
+    [[nodiscard]] const std::string& getEntityTypeId() const
+    {
+        return m_entityId;
+    }
 
     /**
      * @brief 获取每次加速消耗的耐久度
      * @return 耐久度消耗值
      */
-    [[nodiscard]] i32 getDurabilityCost() const { return m_durabilityCost; }
+    [[nodiscard]] i32 getDurabilityCost() const
+    {
+        return m_durabilityCost;
+    }
 
 private:
     std::string m_entityId; ///< 目标实体类型ID

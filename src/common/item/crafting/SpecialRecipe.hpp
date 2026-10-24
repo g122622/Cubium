@@ -68,19 +68,28 @@ public:
     /**
      * @brief 获取配方ID
      */
-    [[nodiscard]] ResourceLocation getId() const override { return m_id; }
+    [[nodiscard]] ResourceLocation getId() const override
+    {
+        return m_id;
+    }
 
     /**
      * @brief 获取配方类型
      * @return RecipeType::Special
      */
-    [[nodiscard]] RecipeType getType() const override { return RecipeType::Special; }
+    [[nodiscard]] RecipeType getType() const override
+    {
+        return RecipeType::Special;
+    }
 
     /**
      * @brief 检查配方是否为特殊配方
      * @return true
      */
-    [[nodiscard]] bool isSpecial() const override { return true; }
+    [[nodiscard]] bool isSpecial() const override
+    {
+        return true;
+    }
 
     /**
      * @brief 检查配方是否为动态配方
@@ -88,13 +97,19 @@ public:
      *
      * 动态配方不会出现在配方书中。
      */
-    [[nodiscard]] bool isDynamic() const override { return true; }
+    [[nodiscard]] bool isDynamic() const override
+    {
+        return true;
+    }
 
     /**
      * @brief 获取结果物品
      * @return ItemStack::EMPTY（动态配方的结果在 assemble() 中生成）
      */
-    [[nodiscard]] ItemStack getResultItem() const override { return ItemStack::EMPTY; }
+    [[nodiscard]] ItemStack getResultItem() const override
+    {
+        return ItemStack::EMPTY;
+    }
 
     /**
      * @brief 获取原料列表

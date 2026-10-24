@@ -89,16 +89,22 @@ void GameModeCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatc
     auto modeArg =
         std::make_shared<ArgumentCommandNode<ServerCommandSource, GameMode>>("mode", GameModeArgumentType::gameMode());
 
-    modeArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _setGameModeSelf(ctx); });
+    modeArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _setGameModeSelf(ctx);
+    });
 
     auto targetArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, EntitySelector>>(
         "target", EntityArgumentType::players());
-    targetArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _setGameModeOthers(ctx); });
+    targetArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _setGameModeOthers(ctx);
+    });
 
     modeArg->addChild(targetArg);
 
     auto literalNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("gamemode");
-    literalNode->setRequirement([](const ServerCommandSource& source) { return source.hasPermission(2); });
+    literalNode->setRequirement([](const ServerCommandSource& source) {
+        return source.hasPermission(2);
+    });
     support::applyMetadata(literalNode,
         support::makeMetadata(
             "Change a player's game mode.", "/gamemode <survival|creative|adventure|spectator> [target]", 2, {}, true));

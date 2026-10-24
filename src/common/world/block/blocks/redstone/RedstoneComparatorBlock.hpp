@@ -104,7 +104,10 @@ public:
      * @brief 是否有方块实体
      * @return true 比较器需要 BlockEntity 存储输出信号
      */
-    [[nodiscard]] bool hasBlockEntity() const noexcept override { return true; }
+    [[nodiscard]] bool hasBlockEntity() const noexcept override
+    {
+        return true;
+    }
 
     /**
      * @brief 创建方块实体

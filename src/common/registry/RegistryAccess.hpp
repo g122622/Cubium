@@ -76,19 +76,28 @@ public:
     /**
      * @brief 按整数 ID 查物品（网络层 VarInt itemId 解码后用）
      */
-    [[nodiscard]] Item* itemById(ItemId id) const { return ItemRegistry::instance().getItem(id); }
+    [[nodiscard]] Item* itemById(ItemId id) const
+    {
+        return ItemRegistry::instance().getItem(id);
+    }
 
     /**
      * @brief 按资源位置查物品
      */
-    [[nodiscard]] Item* itemByKey(const ResourceLocation& key) const { return ItemRegistry::instance().getItem(key); }
+    [[nodiscard]] Item* itemByKey(const ResourceLocation& key) const
+    {
+        return ItemRegistry::instance().getItem(key);
+    }
 
     /**
      * @brief 取物品的整数 ID（网络层编码用）
      *
      * 物品不存在返回 0（空气）。
      */
-    [[nodiscard]] ItemId itemIdOf(const Item* item) const { return item != nullptr ? item->itemId() : 0; }
+    [[nodiscard]] ItemId itemIdOf(const Item* item) const
+    {
+        return item != nullptr ? item->itemId() : 0;
+    }
 
     // ============================================================================
     // 方块注册表
@@ -97,7 +106,10 @@ public:
     /**
      * @brief 按方块整数 ID 查方块
      */
-    [[nodiscard]] Block* blockById(u32 id) const { return BlockRegistry::instance().getBlock(id); }
+    [[nodiscard]] Block* blockById(u32 id) const
+    {
+        return BlockRegistry::instance().getBlock(id);
+    }
 
     /**
      * @brief 按资源位置查方块
@@ -142,7 +154,10 @@ public:
      *
      * 类型为空返回 0。
      */
-    [[nodiscard]] u32 entityTypeIdOf(const entity::EntityType* type) const { return type != nullptr ? type->id() : 0; }
+    [[nodiscard]] u32 entityTypeIdOf(const entity::EntityType* type) const
+    {
+        return type != nullptr ? type->id() : 0;
+    }
 
     // ============================================================================
     // 生物群系注册表

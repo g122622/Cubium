@@ -349,7 +349,9 @@ void ClientWorld::setBlockState(i32 x, i32 y, i32 z, const BlockState* state)
         fmt::format("({}, {}, {})", x, y, z),
         "stateId",
         state ? state->stateId() : 0,
-        [flow = ::perfetto::Flow::ProcessScoped(pos.toId())](::perfetto::EventContext ctx) { flow(ctx); });
+        [flow = ::perfetto::Flow::ProcessScoped(pos.toId())](::perfetto::EventContext ctx) {
+            flow(ctx);
+        });
 
     // 方块状态预测分流（对齐 Java ClientLevel.setBlock :213-225）：若正在预测性操作中，
     // 先记录预测前的服务端权威状态，再写入预测值。ACK 到达后若预测错误则回滚。
@@ -1123,7 +1125,9 @@ void ClientWorld::onLightSection(i32 chunkX, i32 chunkZ, i32 sectionY, bool isSk
         "NibbleSize",
         nibble.size(),
         [flow = ::perfetto::Flow::ProcessScoped(SectionPos(chunkX, sectionY, chunkZ).toLong())](
-            ::perfetto::EventContext ctx) { flow(ctx); });
+            ::perfetto::EventContext ctx) {
+            flow(ctx);
+        });
 
     // 空 nibble（对应 vanilla emptyMask 段，全亮）：该段无数据下发，跳过（不覆盖现有 nibble）。
     if (nibble.size() != NibbleArray::BYTE_SIZE) {

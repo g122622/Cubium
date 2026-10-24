@@ -103,22 +103,34 @@ public:
     /**
      * @brief 获取哞菇类型
      */
-    [[nodiscard]] MooshroomType getMooshroomType() const { return m_mooshroomType; }
+    [[nodiscard]] MooshroomType getMooshroomType() const
+    {
+        return m_mooshroomType;
+    }
 
     /**
      * @brief 设置哞菇类型
      */
-    void setMooshroomType(MooshroomType type) { m_mooshroomType = type; }
+    void setMooshroomType(MooshroomType type)
+    {
+        m_mooshroomType = type;
+    }
 
     /**
      * @brief 是否是红色哞菇
      */
-    [[nodiscard]] bool isRed() const { return m_mooshroomType == MooshroomType::Red; }
+    [[nodiscard]] bool isRed() const
+    {
+        return m_mooshroomType == MooshroomType::Red;
+    }
 
     /**
      * @brief 是否是棕色哞菇
      */
-    [[nodiscard]] bool isBrown() const { return m_mooshroomType == MooshroomType::Brown; }
+    [[nodiscard]] bool isBrown() const
+    {
+        return m_mooshroomType == MooshroomType::Brown;
+    }
 
     // ========== IShearable接口实现 ==========
 
@@ -126,7 +138,10 @@ public:
      * @brief 检查是否可以被剪毛 (IShearable接口实现)
      * @return 如果有蘑菇返回true
      */
-    [[nodiscard]] bool isShearable() const override { return true; }
+    [[nodiscard]] bool isShearable() const override
+    {
+        return true;
+    }
 
     /**
      * @brief 剪毛 (IShearable接口实现)
@@ -151,18 +166,27 @@ public:
     /**
      * @brief 是否存储了迷之炖菜效果
      */
-    [[nodiscard]] bool hasStewEffect() const { return m_stewEffectType.has_value(); }
+    [[nodiscard]] bool hasStewEffect() const
+    {
+        return m_stewEffectType.has_value();
+    }
 
     /**
      * @brief 获取存储的迷之炖菜效果类型
      * @return 效果类型，如果没有则返回 std::nullopt
      */
-    [[nodiscard]] std::optional<entity::effect::EffectType> getStewEffectType() const { return m_stewEffectType; }
+    [[nodiscard]] std::optional<entity::effect::EffectType> getStewEffectType() const
+    {
+        return m_stewEffectType;
+    }
 
     /**
      * @brief 获取存储的迷之炖菜效果持续时间（秒）
      */
-    [[nodiscard]] i32 getStewEffectDuration() const { return m_stewEffectDuration; }
+    [[nodiscard]] i32 getStewEffectDuration() const
+    {
+        return m_stewEffectDuration;
+    }
 
     /**
      * @brief 设置迷之炖菜效果（棕色哞菇被喂食花朵时调用）

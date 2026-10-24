@@ -51,7 +51,10 @@ public:
 
 class CooldownTrackerTest : public ::testing::Test {
 protected:
-    void SetUp() override { tracker = std::make_unique<CooldownTracker>(); }
+    void SetUp() override
+    {
+        tracker = std::make_unique<CooldownTracker>();
+    }
 
     void TearDown() override
     {
@@ -409,8 +412,9 @@ TEST_F(CooldownTrackerTest, GroupCooldownsShareStateAndEmitChanges)
 {
     const ResourceLocation group("test:shared");
     std::vector<std::pair<ResourceLocation, i32>> changes;
-    tracker->setListener(
-        [&](const ResourceLocation& changed, i32 duration) { changes.emplace_back(changed, duration); });
+    tracker->setListener([&](const ResourceLocation& changed, i32 duration) {
+        changes.emplace_back(changed, duration);
+    });
     tracker->setCooldown(group, 2);
     EXPECT_TRUE(tracker->hasCooldown(ResourceLocation("test:shared")));
     EXPECT_FALSE(tracker->hasCooldown(ResourceLocation("test:other")));

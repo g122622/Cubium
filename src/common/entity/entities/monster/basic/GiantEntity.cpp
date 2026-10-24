@@ -72,7 +72,7 @@ void GiantEntity::registerAttributes()
     attributes().setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 100.0f);
     attributes().setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.5f);
     attributes().setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, 50.0f);
-    attributes().setBaseValue(entity::attribute::Attributes::FOLLOW_RANGE, 40.0f);
+    // 原版 Giant 用 Mob 默认跟随范围 16；它没有 AI，跟随范围不参与行为。
 }
 
 std::optional<ResourceLocation> GiantEntity::getAmbientSound() const

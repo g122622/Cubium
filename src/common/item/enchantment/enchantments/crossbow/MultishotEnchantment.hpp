@@ -46,7 +46,10 @@ class MultishotEnchantment : public Enchantment {
 public:
     MultishotEnchantment() = default;
 
-    [[nodiscard]] std::string id() const override { return "minecraft:multishot"; }
+    [[nodiscard]] std::string id() const override
+    {
+        return "minecraft:multishot";
+    }
 
     [[nodiscard]] std::string getNameKey(i32 level) const override
     {
@@ -54,13 +57,25 @@ public:
         return "enchantment.minecraft.multishot";
     }
 
-    [[nodiscard]] EnchantmentType type() const override { return EnchantmentType::Crossbow; }
+    [[nodiscard]] EnchantmentType type() const override
+    {
+        return EnchantmentType::Crossbow;
+    }
 
-    [[nodiscard]] i32 minLevel() const noexcept override { return 1; }
+    [[nodiscard]] i32 minLevel() const noexcept override
+    {
+        return 1;
+    }
 
-    [[nodiscard]] i32 maxLevel() const noexcept override { return 1; }
+    [[nodiscard]] i32 maxLevel() const noexcept override
+    {
+        return 1;
+    }
 
-    [[nodiscard]] EnchantmentRarity rarity() const noexcept override { return EnchantmentRarity::Rare; }
+    [[nodiscard]] EnchantmentRarity rarity() const noexcept override
+    {
+        return EnchantmentRarity::Rare;
+    }
 
     [[nodiscard]] i32 getMinCost(i32 level) const override
     {
@@ -87,7 +102,10 @@ public:
      * @brief 获取箭矢数量
      * @return 箭矢数量（固定为3）
      */
-    [[nodiscard]] static i32 getArrowCount() { return 3; }
+    [[nodiscard]] static i32 getArrowCount()
+    {
+        return 3;
+    }
 };
 
 } // namespace enchant

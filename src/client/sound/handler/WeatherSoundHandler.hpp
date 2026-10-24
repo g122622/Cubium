@@ -85,12 +85,18 @@ public:
     /**
      * @brief 检查是否正在下雨
      */
-    [[nodiscard]] bool isRaining() const noexcept { return m_rainStrength > 0.01f; }
+    [[nodiscard]] bool isRaining() const noexcept
+    {
+        return m_rainStrength > 0.01f;
+    }
 
     /**
      * @brief 检查是否正在雷暴
      */
-    [[nodiscard]] bool isThundering() const noexcept { return m_thunderStrength > 0.9f; }
+    [[nodiscard]] bool isThundering() const noexcept
+    {
+        return m_thunderStrength > 0.9f;
+    }
 
 private:
     /**

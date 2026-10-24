@@ -56,14 +56,21 @@ namespace {
 
 class BlockInteractionTestServer final : public mc::test::BaseTestServer {
 public:
-    explicit BlockInteractionTestServer(server::ServerWorld& world) { setPlayerWorld(&world); }
+    explicit BlockInteractionTestServer(server::ServerWorld& world)
+    {
+        setPlayerWorld(&world);
+    }
 
     // 提供 playerEntityManager：BaseTestServer 默认桩会抛异常，而 _canBreakBlock 经
     // _getPlayerEntity 调用本接口（noexcept），抛异常会触发 std::terminate。
     // 这里返回一个空的 ServerPlayerEntityManager——getPlayerEntity 对未注册玩家返回 nullptr，
     // _canBreakBlock 在 player==nullptr 时会跳过 player 相关权限检查（gameMaster/冒险模式），
     // 走到 _canInteract（仅依赖 PlayerManager），与测试 fixture 仅注入 ServerPlayerData 的语义一致。
-    [[nodiscard]] server::ServerPlayerEntityManager& playerEntityManager() override { return m_playerEntityManager; }
+    [[nodiscard]] server::ServerPlayerEntityManager& playerEntityManager() override
+    {
+        return m_playerEntityManager;
+    }
+
     [[nodiscard]] const server::ServerPlayerEntityManager& playerEntityManager() const override
     {
         return m_playerEntityManager;
@@ -71,8 +78,15 @@ public:
 
     // _getPlayerEntity（noexcept）先按玩家所在维度选择世界；基类桩会抛异常触发 terminate，
     // 这里返回空维度管理器：玩家未注册维度（getPlayerDimension 返回 -1）时回退到目标世界。
-    [[nodiscard]] ServerDimensionManager& dimensionManager() override { return m_dimensionManager; }
-    [[nodiscard]] const ServerDimensionManager& dimensionManager() const override { return m_dimensionManager; }
+    [[nodiscard]] ServerDimensionManager& dimensionManager() override
+    {
+        return m_dimensionManager;
+    }
+
+    [[nodiscard]] const ServerDimensionManager& dimensionManager() const override
+    {
+        return m_dimensionManager;
+    }
 
 private:
     server::ServerPlayerEntityManager m_playerEntityManager;
@@ -138,8 +152,9 @@ protected:
         // PlayerInventory 作为解析结果——仍然是单份数据。
         m_testInventory = std::make_unique<PlayerInventory>(nullptr);
         m_inventoryManager = std::make_unique<server::interaction::InventoryManager>(*m_playerManager);
-        m_inventoryManager->setInventoryResolver(
-            [this](PlayerId /*playerId*/) -> PlayerInventory* { return m_testInventory.get(); });
+        m_inventoryManager->setInventoryResolver([this](PlayerId /*playerId*/) -> PlayerInventory* {
+            return m_testInventory.get();
+        });
 
         m_blockInteractionManager =
             std::make_unique<server::interaction::BlockInteractionManager>(*m_playerManager, m_lootTableManager);
@@ -173,7 +188,11 @@ protected:
         inventory->setItem(0, ItemStack(*blockItem, count));
     }
 
-    [[nodiscard]] ItemStack heldItem() const { return m_inventoryManager->getHeldItem(m_playerId); }
+    [[nodiscard]] ItemStack heldItem() const
+    {
+        return m_inventoryManager->getHeldItem(m_playerId);
+    }
+
     static constexpr PlayerId m_playerId = 1;
 
     std::unique_ptr<server::ServerWorld> m_world;
@@ -612,11 +631,11 @@ TEST_F(BlockInteractionManagerPlacementTest, PlaceTestBlock_CreatesTestBlockEnti
     ASSERT_NE(placed, nullptr);
     EXPECT_TRUE(placed->is(VanillaBlocks::TEST_BLOCK));
 
-    // 测试方块实体已被创建，默认 MODE=Fail
+    // 测试方块实体已被创建，默认 MODE=START（与原版 TestBlock 一致）
     BlockEntity* blockEntity = m_world->getBlockEntity(BlockPos(0, 64, 0));
     ASSERT_NE(blockEntity, nullptr);
     EXPECT_EQ(blockEntity->getType(), BlockEntityType::TestBlock);
-    EXPECT_EQ(placed->get(BlockStateProperties::TEST_BLOCK_MODE()), BlockStateProperties::TestBlockMode::Fail);
+    EXPECT_EQ(placed->get(BlockStateProperties::TEST_BLOCK_MODE()), BlockStateProperties::TestBlockMode::Start);
 }
 
 // ============================================================================

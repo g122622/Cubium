@@ -73,7 +73,10 @@ public:
         return setBlockState(x, y, z, state);
     }
 
-    [[nodiscard]] bool isWithinWorldBounds(i32, i32, i32) const override { return true; }
+    [[nodiscard]] bool isWithinWorldBounds(i32, i32, i32) const override
+    {
+        return true;
+    }
 
     [[nodiscard]] std::vector<Entity*> getEntitiesInAABB(const AxisAlignedBB&, const Entity*) const override
     {
@@ -97,6 +100,7 @@ public:
         }
         return nullptr;
     }
+
     [[nodiscard]] const Entity* getEntityByUuid(const std::string& uuid) const override
     {
         for (const Entity* entity : m_entitiesInRange) {
@@ -124,14 +128,21 @@ public:
         m_blockEntities[pos] = std::move(entity);
     }
 
-    void setEntitiesInRangeResult(const std::vector<Entity*>& entities) { m_entitiesInRange = entities; }
+    void setEntitiesInRangeResult(const std::vector<Entity*>& entities)
+    {
+        m_entitiesInRange = entities;
+    }
 
-    void setEntitiesInAabbResult(const std::vector<Entity*>& entities) { m_entitiesInAabb = entities; }
+    void setEntitiesInAabbResult(const std::vector<Entity*>& entities)
+    {
+        m_entitiesInAabb = entities;
+    }
 
     [[nodiscard]] world::tick::TickManager& tickManager() override
     {
         throw std::runtime_error("ConduitTestWorld::tickManager not implemented");
     }
+
     [[nodiscard]] const world::tick::TickManager& tickManager() const override
     {
         throw std::runtime_error("ConduitTestWorld::tickManager not implemented");
@@ -410,10 +421,16 @@ public:
     {}
 
     // Expose protected method for testing
-    LivingEntity* testFindExistingTarget(IWorld& world) { return _findExistingTarget(world); }
+    LivingEntity* testFindExistingTarget(IWorld& world)
+    {
+        return _findExistingTarget(world);
+    }
 
     // Expose _isWaterAt for testing
-    bool testIsWaterAt(IWorld& world, const BlockPos& pos) const { return _isWaterAt(world, pos); }
+    bool testIsWaterAt(IWorld& world, const BlockPos& pos) const
+    {
+        return _isWaterAt(world, pos);
+    }
 
     void setTargetUuidForTest(const std::string& uuid)
     {
@@ -659,9 +676,15 @@ public:
         return setBlockState(x, y, z, state);
     }
 
-    void setFluidDirectly(const BlockPos& pos, const fluid::FluidState* state) { m_fluidStatesByPos[pos] = state; }
+    void setFluidDirectly(const BlockPos& pos, const fluid::FluidState* state)
+    {
+        m_fluidStatesByPos[pos] = state;
+    }
 
-    [[nodiscard]] bool isWithinWorldBounds(i32, i32, i32) const override { return true; }
+    [[nodiscard]] bool isWithinWorldBounds(i32, i32, i32) const override
+    {
+        return true;
+    }
 
     [[nodiscard]] std::vector<Entity*> getEntitiesInAABB(const AxisAlignedBB&, const Entity*) const override
     {
@@ -673,14 +696,23 @@ public:
         return {};
     }
 
-    [[nodiscard]] BlockEntity* getBlockEntity(const BlockPos&) override { return nullptr; }
-    [[nodiscard]] const BlockEntity* getBlockEntity(const BlockPos&) const override { return nullptr; }
+    [[nodiscard]] BlockEntity* getBlockEntity(const BlockPos&) override
+    {
+        return nullptr;
+    }
+
+    [[nodiscard]] const BlockEntity* getBlockEntity(const BlockPos&) const override
+    {
+        return nullptr;
+    }
+
     void setBlockEntity(const BlockPos&, std::unique_ptr<BlockEntity>) override {}
 
     [[nodiscard]] world::tick::TickManager& tickManager() override
     {
         throw std::runtime_error("ConduitWaterTestWorld::tickManager not implemented");
     }
+
     [[nodiscard]] const world::tick::TickManager& tickManager() const override
     {
         throw std::runtime_error("ConduitWaterTestWorld::tickManager not implemented");

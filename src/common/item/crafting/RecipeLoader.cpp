@@ -381,7 +381,9 @@ ResourceLocation RecipeLoader::pathToRecipeId(const std::string& filePath) const
 
         // 将路径分隔符替换为 /
         for (char& c : recipePath) {
-            if (c == '\\') c = '/';
+            if (c == '\\') {
+                c = '/';
+            }
         }
     }
 

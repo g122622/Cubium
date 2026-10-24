@@ -139,13 +139,21 @@ public:
         return reference;
     }
 
-    [[nodiscard]] math::IRandom& getRandom() override { return m_random; }
-    [[nodiscard]] const math::IRandom& getRandom() const override { return m_random; }
+    [[nodiscard]] math::IRandom& getRandom() override
+    {
+        return m_random;
+    }
+
+    [[nodiscard]] const math::IRandom& getRandom() const override
+    {
+        return m_random;
+    }
 
     [[nodiscard]] world::tick::TickManager& tickManager() override
     {
         throw std::runtime_error("FireworkRocketTestWorld::tickManager not implemented");
     }
+
     [[nodiscard]] const world::tick::TickManager& tickManager() const override
     {
         throw std::runtime_error("FireworkRocketTestWorld::tickManager not implemented");
@@ -153,8 +161,15 @@ public:
 
     // ========== 客户端/服务端切换（用于 lifetime 粒子测试） ==========
 
-    [[nodiscard]] bool isClientSide() const override { return m_isClient; }
-    void setClientSide(bool v) { m_isClient = v; }
+    [[nodiscard]] bool isClientSide() const override
+    {
+        return m_isClient;
+    }
+
+    void setClientSide(bool v)
+    {
+        m_isClient = v;
+    }
 
     // ========== 粒子捕获（用于验证客户端粒子生成时机） ==========
 
@@ -179,8 +194,16 @@ public:
         m_lastParticleType = type;
     }
 
-    [[nodiscard]] i32 particleCount() const { return m_particleCount; }
-    [[nodiscard]] particle::ParticleTypeId lastParticleType() const { return m_lastParticleType; }
+    [[nodiscard]] i32 particleCount() const
+    {
+        return m_particleCount;
+    }
+
+    [[nodiscard]] particle::ParticleTypeId lastParticleType() const
+    {
+        return m_lastParticleType;
+    }
+
     void resetParticleCount()
     {
         m_particleCount = 0;
@@ -393,7 +416,9 @@ TEST(FireworkRocketDamageFormulaTest, BaseDamageCalculation)
     // 3 个爆炸效果：基础伤害 = 5 + 3 * 2 = 11
     // 7 个爆炸效果：基础伤害 = 5 + 7 * 2 = 19
 
-    auto calculateBaseDamage = [](i32 explosionCount) -> f32 { return 5.0f + static_cast<f32>(explosionCount * 2); };
+    auto calculateBaseDamage = [](i32 explosionCount) -> f32 {
+        return 5.0f + static_cast<f32>(explosionCount * 2);
+    };
 
     EXPECT_FLOAT_EQ(calculateBaseDamage(1), 7.0f);
     EXPECT_FLOAT_EQ(calculateBaseDamage(3), 11.0f);
@@ -470,8 +495,15 @@ TEST(FireworkRocketDamageFormulaTest, MaxExplosions)
  */
 class FireworkRocketLineOfSightTest : public ::testing::Test {
 protected:
-    void SetUp() override { m_world = std::make_unique<FireworkRocketTestWorld>(); }
-    void TearDown() override { m_world.reset(); }
+    void SetUp() override
+    {
+        m_world = std::make_unique<FireworkRocketTestWorld>();
+    }
+
+    void TearDown() override
+    {
+        m_world.reset();
+    }
 
     std::unique_ptr<FireworkRocketTestWorld> m_world;
 };
@@ -515,8 +547,15 @@ TEST_F(FireworkRocketLineOfSightTest, CanSeeEntity_DistantTarget)
  */
 class FireworkRocketDamageApplicationTest : public ::testing::Test {
 protected:
-    void SetUp() override { m_world = std::make_unique<FireworkRocketTestWorld>(); }
-    void TearDown() override { m_world.reset(); }
+    void SetUp() override
+    {
+        m_world = std::make_unique<FireworkRocketTestWorld>();
+    }
+
+    void TearDown() override
+    {
+        m_world.reset();
+    }
 
     std::unique_ptr<FireworkRocketTestWorld> m_world;
 };
@@ -937,7 +976,10 @@ TEST(FireworkRocketLifetimeTest, ClientSideFallbackExplodesAtFlightTime10Plus6)
  */
 class FireworkRocketNbtTestFixture : public ::testing::Test {
 protected:
-    void SetUp() override { Items::initialize(); }
+    void SetUp() override
+    {
+        Items::initialize();
+    }
 };
 
 /**

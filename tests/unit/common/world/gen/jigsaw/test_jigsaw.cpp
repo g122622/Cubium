@@ -99,24 +99,64 @@ public:
         , m_genDepth(genDepth)
     {}
 
-    [[nodiscard]] i32 getMinY() const override { return m_minY; }
-    [[nodiscard]] i32 getGenDepth() const override { return m_genDepth; }
+    [[nodiscard]] i32 getMinY() const override
+    {
+        return m_minY;
+    }
 
-    [[nodiscard]] BiomeId getBiome(i32, i32, i32) const override { return 0; }
-    [[nodiscard]] BiomeId getNoiseBiome(i32, i32, i32) const override { return 0; }
-    [[nodiscard]] i32 getHeight(i32, i32, HeightmapType) const override { return 64; }
-    [[nodiscard]] u64 seed() const override { return 12345; }
-    [[nodiscard]] const DimensionSettings& settings() const override { return m_settings; }
-    [[nodiscard]] i32 seaLevel() const override { return m_settings.seaLevel; }
+    [[nodiscard]] i32 getGenDepth() const override
+    {
+        return m_genDepth;
+    }
+
+    [[nodiscard]] BiomeId getBiome(i32, i32, i32) const override
+    {
+        return 0;
+    }
+
+    [[nodiscard]] BiomeId getNoiseBiome(i32, i32, i32) const override
+    {
+        return 0;
+    }
+
+    [[nodiscard]] i32 getHeight(i32, i32, HeightmapType) const override
+    {
+        return 64;
+    }
+
+    [[nodiscard]] u64 seed() const override
+    {
+        return 12345;
+    }
+
+    [[nodiscard]] const DimensionSettings& settings() const override
+    {
+        return m_settings;
+    }
+
+    [[nodiscard]] i32 seaLevel() const override
+    {
+        return m_settings.seaLevel;
+    }
 
     void generateStructureStarts(WorldGenRegion&, ChunkPrimer&) override {}
+
     void generateStructureReferences(WorldGenRegion&, ChunkPrimer&) override {}
+
     void generateBiomes(WorldGenRegion&, ChunkPrimer&) override {}
+
     void generateNoise(WorldGenRegion&, ChunkPrimer&) override {}
+
     void buildSurface(WorldGenRegion&, ChunkPrimer&) override {}
+
     void applyCarvers(WorldGenRegion&, ChunkPrimer&) override {}
+
     void placeFeatures(WorldGenRegion&, ChunkPrimer&) override {}
-    i32 spawnInitialMobs(WorldGenRegion&, ChunkPrimer&, std::vector<SpawnedEntityData>&) override { return 0; }
+
+    i32 spawnInitialMobs(WorldGenRegion&, ChunkPrimer&, std::vector<SpawnedEntityData>&) override
+    {
+        return 0;
+    }
 
 private:
     i32 m_minY;
@@ -478,7 +518,11 @@ public:
         , m_size(size)
     {}
 
-    const std::string& getTypeName() const override { return s_typeName; }
+    const std::string& getTypeName() const override
+    {
+        return s_typeName;
+    }
+
     std::unique_ptr<JigsawPiece> clone() const override
     {
         auto piece = std::make_unique<TestJigsawPiece>(m_size);
@@ -488,8 +532,16 @@ public:
         }
         return piece;
     }
-    BlockPos getSize() const override { return m_size; }
-    void setSize(const BlockPos& size) { m_size = size; }
+
+    BlockPos getSize() const override
+    {
+        return m_size;
+    }
+
+    void setSize(const BlockPos& size)
+    {
+        m_size = size;
+    }
 
     void place(IWorldWriter& /*world*/,
         const PlacedPiece& /*placed*/,

@@ -57,13 +57,19 @@ public:
      * @brief 获取攻击间隔时间（ticks）
      * @return 攻击间隔
      */
-    virtual i32 getAttackInterval() const { return 20; }
+    virtual i32 getAttackInterval() const
+    {
+        return 20;
+    }
 
     /**
      * @brief 检查是否可以进行远程攻击
      * @return 如果可以攻击返回true
      */
-    virtual bool canRangedAttack() const { return true; }
+    virtual bool canRangedAttack() const
+    {
+        return true;
+    }
 };
 
 } // namespace entity

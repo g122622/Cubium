@@ -67,22 +67,34 @@ struct BeaconBeamSegment {
     /**
      * @brief 增加高度
      */
-    void incrementHeight() { ++height; }
+    void incrementHeight()
+    {
+        ++height;
+    }
 
     /**
      * @brief 获取红色分量
      */
-    [[nodiscard]] f32 red() const { return colors[0]; }
+    [[nodiscard]] f32 red() const
+    {
+        return colors[0];
+    }
 
     /**
      * @brief 获取绿色分量
      */
-    [[nodiscard]] f32 green() const { return colors[1]; }
+    [[nodiscard]] f32 green() const
+    {
+        return colors[1];
+    }
 
     /**
      * @brief 获取蓝色分量
      */
-    [[nodiscard]] f32 blue() const { return colors[2]; }
+    [[nodiscard]] f32 blue() const
+    {
+        return colors[2];
+    }
 };
 
 /**
@@ -125,7 +137,10 @@ public:
      * @brief 获取金字塔等级
      * @return 等级 (0-4)
      */
-    [[nodiscard]] i32 getLevel() const { return m_level; }
+    [[nodiscard]] i32 getLevel() const
+    {
+        return m_level;
+    }
 
     /**
      * @brief 设置金字塔等级
@@ -137,7 +152,10 @@ public:
      * @brief 检查是否激活
      * @return 如果激活返回true
      */
-    [[nodiscard]] bool isActive() const { return m_level > 0 && m_primaryEffect.has_value(); }
+    [[nodiscard]] bool isActive() const
+    {
+        return m_level > 0 && m_primaryEffect.has_value();
+    }
 
     /**
      * @brief 获取主效果
@@ -173,7 +191,10 @@ public:
      * @brief 获取支付物品（信标槽位中的物品）
      * @return 支付物品
      */
-    [[nodiscard]] const ItemStack& getPaymentItem() const { return m_paymentItem; }
+    [[nodiscard]] const ItemStack& getPaymentItem() const
+    {
+        return m_paymentItem;
+    }
 
     /**
      * @brief 设置支付物品
@@ -200,24 +221,37 @@ public:
      * @brief 获取光束段列表（客户端渲染用）
      * @return 光束段列表的常量引用
      */
-    [[nodiscard]] const std::vector<BeaconBeamSegment>& getBeamSegments() const { return m_beamSegments; }
+    [[nodiscard]] const std::vector<BeaconBeamSegment>& getBeamSegments() const
+    {
+        return m_beamSegments;
+    }
 
     /**
      * @brief 检查光束是否激活
      * @return 如果有光束段返回true
      */
-    [[nodiscard]] bool hasBeam() const { return !m_beamSegments.empty(); }
+    [[nodiscard]] bool hasBeam() const
+    {
+        return !m_beamSegments.empty();
+    }
 
     /**
      * @brief 获取最大渲染距离平方（客户端渲染用）
      * @return 渲染距离平方（256 格 = 16 个区块）
      */
-    [[nodiscard]] f64 getMaxRenderDistanceSquared() const { return 65536.0; }
+    [[nodiscard]] f64 getMaxRenderDistanceSquared() const
+    {
+        return 65536.0;
+    }
 
     // ========== Tick 更新 ==========
 
     void tick(IWorld& world) override;
-    [[nodiscard]] bool needsTick() const noexcept override { return true; }
+
+    [[nodiscard]] bool needsTick() const noexcept override
+    {
+        return true;
+    }
 
     // ========== 序列化 ==========
 

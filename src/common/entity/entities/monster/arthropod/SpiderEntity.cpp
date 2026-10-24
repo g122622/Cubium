@@ -79,7 +79,10 @@ public:
     }
 
 protected:
-    [[nodiscard]] f32 getAttackReachSqr(LivingEntity* target) const override { return 4.0F + target->width(); }
+    [[nodiscard]] f32 getAttackReachSqr(LivingEntity* target) const override
+    {
+        return 4.0F + target->width();
+    }
 
 private:
     SpiderEntity* m_spider;

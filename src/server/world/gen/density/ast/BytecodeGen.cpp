@@ -50,8 +50,15 @@ struct RegOrConst {
     f64 constValue = 0.0;
     u32 reg = 0;
 
-    [[nodiscard]] static RegOrConst ofConst(f64 v) { return RegOrConst{true, v, 0}; }
-    [[nodiscard]] static RegOrConst ofReg(u32 r) { return RegOrConst{false, 0.0, r}; }
+    [[nodiscard]] static RegOrConst ofConst(f64 v)
+    {
+        return RegOrConst{true, v, 0};
+    }
+
+    [[nodiscard]] static RegOrConst ofReg(u32 r)
+    {
+        return RegOrConst{false, 0.0, r};
+    }
 };
 
 /// 构造一个返回常量 value 的最小求值器（LOAD_CONST reg0, value; RETURN reg0）。
@@ -132,7 +139,10 @@ private:
     std::unordered_map<u64, u32> m_sharedSubtreeIdx;
 
     /// 分配一个新寄存器 slot。
-    [[nodiscard]] u32 allocReg() { return m_nextReg++; }
+    [[nodiscard]] u32 allocReg()
+    {
+        return m_nextReg++;
+    }
 
     /// 若 RegOrConst 是常量，发射 LOAD_CONST 到新寄存器并返回该寄存器；否则返回已有寄存器。
     [[nodiscard]] u32 asReg(const RegOrConst& v)

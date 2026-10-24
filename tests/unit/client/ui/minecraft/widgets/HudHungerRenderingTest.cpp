@@ -280,9 +280,15 @@ TEST(HudHungerRenderingTest, ShakeFrequency_LowerFoodShakesMore)
     i32 shakesAtFood20 = 0;
 
     for (u32 t = 0; t < 1000; ++t) {
-        if (shouldShake(t, 1, 0.0f)) ++shakesAtFood1;
-        if (shouldShake(t, 10, 0.0f)) ++shakesAtFood10;
-        if (shouldShake(t, 20, 0.0f)) ++shakesAtFood20;
+        if (shouldShake(t, 1, 0.0f)) {
+            ++shakesAtFood1;
+        }
+        if (shouldShake(t, 10, 0.0f)) {
+            ++shakesAtFood10;
+        }
+        if (shouldShake(t, 20, 0.0f)) {
+            ++shakesAtFood20;
+        }
     }
 
     // food=1: 每4tick一次，1000/4=250次

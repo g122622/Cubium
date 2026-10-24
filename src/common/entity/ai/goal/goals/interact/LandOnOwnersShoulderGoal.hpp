@@ -104,7 +104,10 @@ public:
     /**
      * @brief 获取目标名称
      */
-    [[nodiscard]] std::string getTypeName() const override { return "LandOnOwnersShoulderGoal"; }
+    [[nodiscard]] std::string getTypeName() const override
+    {
+        return "LandOnOwnersShoulderGoal";
+    }
 
 private:
     ShoulderRidingEntity* m_entity;

@@ -177,7 +177,9 @@ TEST_F(CreeperSwellGoalBasicTest, EnumSet_ForEach)
 {
     EnumSet<GoalFlag> flags{GoalFlag::Move, GoalFlag::Target};
     std::vector<GoalFlag> values;
-    flags.forEach([&values](GoalFlag flag) { values.push_back(flag); });
+    flags.forEach([&values](GoalFlag flag) {
+        values.push_back(flag);
+    });
 
     ASSERT_EQ(values.size(), 2);
     EXPECT_EQ(values[0], GoalFlag::Move);

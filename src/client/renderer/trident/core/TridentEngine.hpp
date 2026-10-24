@@ -222,38 +222,80 @@ public:
     /**
      * @brief 获取 Trident 上下文
      */
-    [[nodiscard]] TridentContext* context() { return m_context.get(); }
-    [[nodiscard]] const TridentContext* context() const { return m_context.get(); }
+    [[nodiscard]] TridentContext* context()
+    {
+        return m_context.get();
+    }
+
+    [[nodiscard]] const TridentContext* context() const
+    {
+        return m_context.get();
+    }
 
     /**
      * @brief 获取交换链
      */
-    [[nodiscard]] TridentSwapchain* swapchain() { return m_swapchain.get(); }
-    [[nodiscard]] const TridentSwapchain* swapchain() const { return m_swapchain.get(); }
+    [[nodiscard]] TridentSwapchain* swapchain()
+    {
+        return m_swapchain.get();
+    }
+
+    [[nodiscard]] const TridentSwapchain* swapchain() const
+    {
+        return m_swapchain.get();
+    }
 
     /**
      * @brief 获取渲染通道管理器
      */
-    [[nodiscard]] RenderPassManager* renderPassManager() { return m_renderPassManager.get(); }
-    [[nodiscard]] const RenderPassManager* renderPassManager() const { return m_renderPassManager.get(); }
+    [[nodiscard]] RenderPassManager* renderPassManager()
+    {
+        return m_renderPassManager.get();
+    }
+
+    [[nodiscard]] const RenderPassManager* renderPassManager() const
+    {
+        return m_renderPassManager.get();
+    }
 
     /**
      * @brief 获取帧管理器
      */
-    [[nodiscard]] FrameManager* frameManager() { return m_frameManager.get(); }
-    [[nodiscard]] const FrameManager* frameManager() const { return m_frameManager.get(); }
+    [[nodiscard]] FrameManager* frameManager()
+    {
+        return m_frameManager.get();
+    }
+
+    [[nodiscard]] const FrameManager* frameManager() const
+    {
+        return m_frameManager.get();
+    }
 
     /**
      * @brief 获取描述符管理器
      */
-    [[nodiscard]] DescriptorManager* descriptorManager() { return m_descriptorManager.get(); }
-    [[nodiscard]] const DescriptorManager* descriptorManager() const { return m_descriptorManager.get(); }
+    [[nodiscard]] DescriptorManager* descriptorManager()
+    {
+        return m_descriptorManager.get();
+    }
+
+    [[nodiscard]] const DescriptorManager* descriptorManager() const
+    {
+        return m_descriptorManager.get();
+    }
 
     /**
      * @brief 获取 Uniform 管理器
      */
-    [[nodiscard]] UniformManager* uniformManager() { return m_uniformManager.get(); }
-    [[nodiscard]] const UniformManager* uniformManager() const { return m_uniformManager.get(); }
+    [[nodiscard]] UniformManager* uniformManager()
+    {
+        return m_uniformManager.get();
+    }
+
+    [[nodiscard]] const UniformManager* uniformManager() const
+    {
+        return m_uniformManager.get();
+    }
 
     /**
      * @brief 获取渲染通道
@@ -321,7 +363,10 @@ public:
     /**
      * @brief 获取已注入的客户端世界
      */
-    [[nodiscard]] mc::client::ClientWorld* clientWorld() const { return m_clientWorld; }
+    [[nodiscard]] mc::client::ClientWorld* clientWorld() const
+    {
+        return m_clientWorld;
+    }
 
     /**
      * @brief 设置闪电闪烁亮度
@@ -460,7 +505,10 @@ public:
     /**
      * @brief 获取最大帧在飞数
      */
-    [[nodiscard]] static constexpr u32 maxFramesInFlightStatic() { return MAX_FRAMES_IN_FLIGHT; }
+    [[nodiscard]] static constexpr u32 maxFramesInFlightStatic()
+    {
+        return MAX_FRAMES_IN_FLIGHT;
+    }
 
     // ========================================================================
     // 渲染回调
@@ -502,21 +550,33 @@ public:
      */
     [[nodiscard]] ChunkRenderer& chunkRenderer();
     [[nodiscard]] const ChunkRenderer& chunkRenderer() const;
-    [[nodiscard]] bool isChunkRendererInitialized() const { return m_chunkRendererInitialized; }
+
+    [[nodiscard]] bool isChunkRendererInitialized() const
+    {
+        return m_chunkRendererInitialized;
+    }
 
     /**
      * @brief 获取天空渲染器
      */
     [[nodiscard]] sky::SkyRenderer& skyRenderer();
     [[nodiscard]] const sky::SkyRenderer& skyRenderer() const;
-    [[nodiscard]] bool isSkyRendererInitialized() const { return m_skyRendererInitialized; }
+
+    [[nodiscard]] bool isSkyRendererInitialized() const
+    {
+        return m_skyRendererInitialized;
+    }
 
     /**
      * @brief 获取 GUI 渲染器
      */
     [[nodiscard]] gui::GuiRenderer& guiRenderer();
     [[nodiscard]] const gui::GuiRenderer& guiRenderer() const;
-    [[nodiscard]] bool isGuiRendererInitialized() const { return m_guiRendererInitialized; }
+
+    [[nodiscard]] bool isGuiRendererInitialized() const
+    {
+        return m_guiRendererInitialized;
+    }
 
     /**
      * @brief 获取字体
@@ -529,7 +589,11 @@ public:
      */
     [[nodiscard]] item::ItemRenderer& itemRenderer();
     [[nodiscard]] const item::ItemRenderer& itemRenderer() const;
-    [[nodiscard]] bool isItemRendererInitialized() const { return m_itemRendererInitialized; }
+
+    [[nodiscard]] bool isItemRendererInitialized() const
+    {
+        return m_itemRendererInitialized;
+    }
 
     /**
      * @brief 获取物品纹理图集
@@ -540,14 +604,21 @@ public:
     /**
      * @brief 统一图集管理器状态（数据驱动）
      */
-    [[nodiscard]] bool isAtlasManagerInitialized() const { return m_atlasManagerInitialized; }
+    [[nodiscard]] bool isAtlasManagerInitialized() const
+    {
+        return m_atlasManagerInitialized;
+    }
 
     /**
      * @brief 获取实体渲染器管理器
      */
     [[nodiscard]] entity::EntityRendererManager& entityRendererManager();
     [[nodiscard]] const entity::EntityRendererManager& entityRendererManager() const;
-    [[nodiscard]] bool isEntityRendererInitialized() const { return m_entityRendererInitialized; }
+
+    [[nodiscard]] bool isEntityRendererInitialized() const
+    {
+        return m_entityRendererInitialized;
+    }
 
     /**
      * @brief 获取实体纹理图集
@@ -560,28 +631,44 @@ public:
      */
     [[nodiscard]] fog::FogManager& fogManager();
     [[nodiscard]] const fog::FogManager& fogManager() const;
-    [[nodiscard]] bool isFogManagerInitialized() const { return m_fogManagerInitialized; }
+
+    [[nodiscard]] bool isFogManagerInitialized() const
+    {
+        return m_fogManagerInitialized;
+    }
 
     /**
      * @brief 获取云渲染器
      */
     [[nodiscard]] cloud::CloudRenderer& cloudRenderer();
     [[nodiscard]] const cloud::CloudRenderer& cloudRenderer() const;
-    [[nodiscard]] bool isCloudRendererInitialized() const { return m_cloudRendererInitialized; }
+
+    [[nodiscard]] bool isCloudRendererInitialized() const
+    {
+        return m_cloudRendererInitialized;
+    }
 
     /**
      * @brief 获取粒子管理器
      */
     [[nodiscard]] particle::ParticleManager& particleManager();
     [[nodiscard]] const particle::ParticleManager& particleManager() const;
-    [[nodiscard]] bool isParticleManagerInitialized() const { return m_particleManagerInitialized; }
+
+    [[nodiscard]] bool isParticleManagerInitialized() const
+    {
+        return m_particleManagerInitialized;
+    }
 
     /**
      * @brief 获取天气渲染器
      */
     [[nodiscard]] weather::WeatherRenderer& weatherRenderer();
     [[nodiscard]] const weather::WeatherRenderer& weatherRenderer() const;
-    [[nodiscard]] bool isWeatherRendererInitialized() const { return m_weatherRendererInitialized; }
+
+    [[nodiscard]] bool isWeatherRendererInitialized() const
+    {
+        return m_weatherRendererInitialized;
+    }
 
     /**
      * @brief 获取光照贴图管理器
@@ -590,28 +677,43 @@ public:
      */
     [[nodiscard]] light::LightTextureManager& lightTextureManager();
     [[nodiscard]] const light::LightTextureManager& lightTextureManager() const;
-    [[nodiscard]] bool isLightTextureManagerInitialized() const { return m_lightTextureManagerInitialized; }
+
+    [[nodiscard]] bool isLightTextureManagerInitialized() const
+    {
+        return m_lightTextureManagerInitialized;
+    }
 
     /**
      * @brief 获取破坏进度渲染器
      */
     [[nodiscard]] block::BreakProgressRenderer& breakProgressRenderer();
     [[nodiscard]] const block::BreakProgressRenderer& breakProgressRenderer() const;
-    [[nodiscard]] bool isBreakProgressRendererInitialized() const { return m_breakProgressRendererInitialized; }
+
+    [[nodiscard]] bool isBreakProgressRendererInitialized() const
+    {
+        return m_breakProgressRendererInitialized;
+    }
 
     /**
      * @brief 获取第一人称手部渲染器
      */
     [[nodiscard]] firstperson::FirstPersonRenderer& firstPersonRenderer();
     [[nodiscard]] const firstperson::FirstPersonRenderer& firstPersonRenderer() const;
-    [[nodiscard]] bool isFirstPersonRendererInitialized() const { return m_firstPersonRendererInitialized; }
+
+    [[nodiscard]] bool isFirstPersonRendererInitialized() const
+    {
+        return m_firstPersonRendererInitialized;
+    }
 
     /**
      * @brief 获取视锥体（用于视锥剔除）
      *
      * 视锥体在每帧 beginFrame 时根据相机状态更新。
      */
-    [[nodiscard]] const mc::math::frustum::Frustum& frustum() const { return m_frustum; }
+    [[nodiscard]] const mc::math::frustum::Frustum& frustum() const
+    {
+        return m_frustum;
+    }
 
     // ========================================================================
     // 子渲染器初始化
@@ -769,7 +871,10 @@ public:
     /**
      * @brief 获取 GUI 缩放倍率
      */
-    [[nodiscard]] f64 guiScaleFactor() const { return m_guiScaleFactor; }
+    [[nodiscard]] f64 guiScaleFactor() const
+    {
+        return m_guiScaleFactor;
+    }
 
 private:
     // 核心组件

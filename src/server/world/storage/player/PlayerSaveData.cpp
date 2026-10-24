@@ -521,15 +521,29 @@ Result<PlayerSaveData> PlayerSaveData::fromNbt(const nbt::tags::compound_tag& ta
     }
 
     // 饥饿值
-    if (auto opt = tryGetInt(tag, nbt_keys::FOOD_LEVEL)) data.foodLevel = *opt;
-    if (auto opt = tryGetFloat(tag, nbt_keys::FOOD_SATURATION)) data.saturationLevel = *opt;
-    if (auto opt = tryGetFloat(tag, nbt_keys::FOOD_EXHAUSTION)) data.exhaustionLevel = *opt;
-    if (auto opt = tryGetInt(tag, nbt_keys::FOOD_TICK_TIMER)) data.foodTickTimer = *opt;
+    if (auto opt = tryGetInt(tag, nbt_keys::FOOD_LEVEL)) {
+        data.foodLevel = *opt;
+    }
+    if (auto opt = tryGetFloat(tag, nbt_keys::FOOD_SATURATION)) {
+        data.saturationLevel = *opt;
+    }
+    if (auto opt = tryGetFloat(tag, nbt_keys::FOOD_EXHAUSTION)) {
+        data.exhaustionLevel = *opt;
+    }
+    if (auto opt = tryGetInt(tag, nbt_keys::FOOD_TICK_TIMER)) {
+        data.foodTickTimer = *opt;
+    }
 
     // 经验
-    if (auto opt = tryGetInt(tag, nbt_keys::XP_LEVEL)) data.experienceLevel = *opt;
-    if (auto opt = tryGetFloat(tag, nbt_keys::XP_PROGRESS)) data.experienceProgress = *opt;
-    if (auto opt = tryGetInt(tag, nbt_keys::XP_TOTAL)) data.totalExperience = *opt;
+    if (auto opt = tryGetInt(tag, nbt_keys::XP_LEVEL)) {
+        data.experienceLevel = *opt;
+    }
+    if (auto opt = tryGetFloat(tag, nbt_keys::XP_PROGRESS)) {
+        data.experienceProgress = *opt;
+    }
+    if (auto opt = tryGetInt(tag, nbt_keys::XP_TOTAL)) {
+        data.totalExperience = *opt;
+    }
     if (auto opt = tryGetInt(tag, nbt_keys::XP_SEED)) {
         data.xpSeed = *opt;
     } else {
@@ -539,11 +553,21 @@ Result<PlayerSaveData> PlayerSaveData::fromNbt(const nbt::tags::compound_tag& ta
 
     // 能力
     if (auto* abilities = tryGetCompound(tag, nbt_keys::ABILITIES)) {
-        if (auto opt = tryGetBool(*abilities, nbt_keys::INVULNERABLE)) data.invulnerable = *opt;
-        if (auto opt = tryGetBool(*abilities, nbt_keys::MAY_FLY)) data.canFly = *opt;
-        if (auto opt = tryGetBool(*abilities, nbt_keys::FLYING)) data.flying = *opt;
-        if (auto opt = tryGetFloat(*abilities, nbt_keys::FLY_SPEED)) data.flySpeed = *opt;
-        if (auto opt = tryGetFloat(*abilities, nbt_keys::WALK_SPEED)) data.walkSpeed = *opt;
+        if (auto opt = tryGetBool(*abilities, nbt_keys::INVULNERABLE)) {
+            data.invulnerable = *opt;
+        }
+        if (auto opt = tryGetBool(*abilities, nbt_keys::MAY_FLY)) {
+            data.canFly = *opt;
+        }
+        if (auto opt = tryGetBool(*abilities, nbt_keys::FLYING)) {
+            data.flying = *opt;
+        }
+        if (auto opt = tryGetFloat(*abilities, nbt_keys::FLY_SPEED)) {
+            data.flySpeed = *opt;
+        }
+        if (auto opt = tryGetFloat(*abilities, nbt_keys::WALK_SPEED)) {
+            data.walkSpeed = *opt;
+        }
     }
 
     // 背包（MC 1.21.11 格式）
@@ -628,12 +652,20 @@ Result<PlayerSaveData> PlayerSaveData::fromNbt(const nbt::tags::compound_tag& ta
     }
 
     // 空气
-    if (auto opt = tryGetInt(tag, nbt_keys::AIR)) data.airSupply = *opt;
-    if (auto opt = tryGetInt(tag, nbt_keys::MAX_AIR)) data.maxAirSupply = *opt;
+    if (auto opt = tryGetInt(tag, nbt_keys::AIR)) {
+        data.airSupply = *opt;
+    }
+    if (auto opt = tryGetInt(tag, nbt_keys::MAX_AIR)) {
+        data.maxAirSupply = *opt;
+    }
 
     // 睡眠
-    if (auto opt = tryGetBool(tag, nbt_keys::SLEEPING)) data.sleeping = *opt;
-    if (auto opt = tryGetInt(tag, nbt_keys::SLEEP_TIMER)) data.sleepTimer = *opt;
+    if (auto opt = tryGetBool(tag, nbt_keys::SLEEPING)) {
+        data.sleeping = *opt;
+    }
+    if (auto opt = tryGetInt(tag, nbt_keys::SLEEP_TIMER)) {
+        data.sleepTimer = *opt;
+    }
     if (auto* bedPos = tryGetCompound(tag, nbt_keys::BED_POSITION)) {
         auto x = tryGetInt(*bedPos, "x");
         auto y = tryGetInt(*bedPos, "y");
@@ -644,9 +676,15 @@ Result<PlayerSaveData> PlayerSaveData::fromNbt(const nbt::tags::compound_tag& ta
     }
 
     // 其他状态
-    if (auto opt = tryGetBool(tag, nbt_keys::ON_GROUND)) data.onGround = *opt;
-    if (auto opt = tryGetBool(tag, nbt_keys::SPRINTING)) data.sprinting = *opt;
-    if (auto opt = tryGetBool(tag, nbt_keys::SNEAKING)) data.sneaking = *opt;
+    if (auto opt = tryGetBool(tag, nbt_keys::ON_GROUND)) {
+        data.onGround = *opt;
+    }
+    if (auto opt = tryGetBool(tag, nbt_keys::SPRINTING)) {
+        data.sprinting = *opt;
+    }
+    if (auto opt = tryGetBool(tag, nbt_keys::SNEAKING)) {
+        data.sneaking = *opt;
+    }
 
     // 冲量上下文
     if (auto* impulsePos = tryGetCompound(tag, "current_explosion_impact_pos")) {

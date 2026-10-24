@@ -76,7 +76,10 @@ public:
     /**
      * @brief 获取权重
      */
-    [[nodiscard]] virtual i32 getWeight() const { return m_weight; }
+    [[nodiscard]] virtual i32 getWeight() const
+    {
+        return m_weight;
+    }
 
     /**
      * @brief 获取有效权重（考虑幸运值）
@@ -89,17 +92,26 @@ public:
     /**
      * @brief 获取质量（幸运值加成系数）
      */
-    [[nodiscard]] i32 getQuality() const { return m_quality; }
+    [[nodiscard]] i32 getQuality() const
+    {
+        return m_quality;
+    }
 
     /**
      * @brief 设置权重
      */
-    void setWeight(i32 weight) { m_weight = weight; }
+    void setWeight(i32 weight)
+    {
+        m_weight = weight;
+    }
 
     /**
      * @brief 设置质量
      */
-    void setQuality(i32 quality) { m_quality = quality; }
+    void setQuality(i32 quality)
+    {
+        m_quality = quality;
+    }
 
     // ========== 条件管理 ==========
 
@@ -115,7 +127,10 @@ public:
     /**
      * @brief 获取所有条件
      */
-    [[nodiscard]] const std::vector<std::unique_ptr<LootCondition>>& getConditions() const { return m_conditions; }
+    [[nodiscard]] const std::vector<std::unique_ptr<LootCondition>>& getConditions() const
+    {
+        return m_conditions;
+    }
 
     /**
      * @brief 检查所有条件是否满足
@@ -140,7 +155,10 @@ public:
     /**
      * @brief 获取所有函数
      */
-    [[nodiscard]] const std::vector<std::unique_ptr<LootFunction>>& getFunctions() const { return m_functions; }
+    [[nodiscard]] const std::vector<std::unique_ptr<LootFunction>>& getFunctions() const
+    {
+        return m_functions;
+    }
 
     /**
      * @brief 应用所有函数到物品堆
@@ -174,6 +192,7 @@ public:
 
 protected:
     LootEntry() = default;
+
     explicit LootEntry(i32 weight, i32 quality = 0)
         : m_weight(weight)
         , m_quality(quality)

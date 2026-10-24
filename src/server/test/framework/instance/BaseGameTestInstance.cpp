@@ -190,13 +190,17 @@ GameTestResult BaseGameTestInstance::_runFinishCallbacks()
     for (const auto& fn : callbacks) {
         if (fn) {
             if (const auto result = fn()) {
-                if (failed) errors += "; ";
+                if (failed) {
+                    errors += "; ";
+                }
                 failed = true;
                 errors += result->formattedMessage();
             }
         }
     }
-    if (!failed) return pass();
+    if (!failed) {
+        return pass();
+    }
     return GameTestError{GameTestErrorType::LevelStateModificationFailed, "Cleanup failed: {0}", {std::move(errors)}};
 }
 

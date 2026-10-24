@@ -62,7 +62,10 @@ public:
         return static_cast<EntityInstanceId>(m_spawnedEntities.size());
     }
 
-    [[nodiscard]] const std::vector<std::unique_ptr<Entity>>& spawnedEntities() const { return m_spawnedEntities; }
+    [[nodiscard]] const std::vector<std::unique_ptr<Entity>>& spawnedEntities() const
+    {
+        return m_spawnedEntities;
+    }
 
 private:
     std::vector<std::unique_ptr<Entity>> m_spawnedEntities;

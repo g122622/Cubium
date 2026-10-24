@@ -411,7 +411,9 @@ void EvokerFangsModel::setAngles(
     // f = limbSwing * 2.0，限制在 [0, 1]
     // f = 1.0 - f * f * f
     f32 f = static_cast<f32>(limbSwing * 2.0);
-    if (f > 1.0f) f = 1.0f;
+    if (f > 1.0f) {
+        f = 1.0f;
+    }
     f = 1.0f - f * f * f;
 
     // 上颚 Z 轴旋转

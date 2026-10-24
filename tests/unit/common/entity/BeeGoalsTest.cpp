@@ -136,28 +136,52 @@ public:
     // ========== 测试辅助方法 ==========
 
     /// 设置指定位置的方块状态
-    void setBlock(const BlockPos& pos, const BlockState* state) { m_blocks[pos] = state; }
+    void setBlock(const BlockPos& pos, const BlockState* state)
+    {
+        m_blocks[pos] = state;
+    }
 
     /// 获取上次 playEvent 的事件 ID
-    [[nodiscard]] i32 lastEventId() const { return m_lastEventId; }
+    [[nodiscard]] i32 lastEventId() const
+    {
+        return m_lastEventId;
+    }
 
     /// 获取上次 playEvent 的位置
-    [[nodiscard]] const BlockPos& lastEventPos() const { return m_lastEventPos; }
+    [[nodiscard]] const BlockPos& lastEventPos() const
+    {
+        return m_lastEventPos;
+    }
 
     /// 获取上次 playEvent 的数据
-    [[nodiscard]] i32 lastEventData() const { return m_lastEventData; }
+    [[nodiscard]] i32 lastEventData() const
+    {
+        return m_lastEventData;
+    }
 
     /// 获取 playEvent 调用次数
-    [[nodiscard]] i32 playEventCount() const { return m_playEventCount; }
+    [[nodiscard]] i32 playEventCount() const
+    {
+        return m_playEventCount;
+    }
 
     /// 获取 setBlockState 调用次数
-    [[nodiscard]] i32 setBlockCount() const { return m_setBlockCount; }
+    [[nodiscard]] i32 setBlockCount() const
+    {
+        return m_setBlockCount;
+    }
 
     /// 获取上次 setBlockState 的位置
-    [[nodiscard]] const BlockPos& lastSetBlockPos() const { return m_lastSetBlockPos; }
+    [[nodiscard]] const BlockPos& lastSetBlockPos() const
+    {
+        return m_lastSetBlockPos;
+    }
 
     /// 获取上次 setBlockState 的状态
-    [[nodiscard]] const BlockState* lastSetBlockState() const { return m_lastSetBlockState; }
+    [[nodiscard]] const BlockState* lastSetBlockState() const
+    {
+        return m_lastSetBlockState;
+    }
 
     /// 重置所有追踪状态
     void resetTracking()
@@ -194,9 +218,15 @@ protected:
         VanillaBlocks::initialize();
     }
 
-    void SetUp() override { bee = std::make_unique<BeeEntity>(EntityInstanceId(0), mc::test::testEcsRegistry()); }
+    void SetUp() override
+    {
+        bee = std::make_unique<BeeEntity>(EntityInstanceId(0), mc::test::testEcsRegistry());
+    }
 
-    void TearDown() override { bee.reset(); }
+    void TearDown() override
+    {
+        bee.reset();
+    }
 
     std::unique_ptr<BeeEntity> bee;
 };
@@ -476,12 +506,30 @@ protected:
             , m_canContinue(true)
         {}
 
-        [[nodiscard]] bool canBeeStart() override { return m_canStart; }
-        [[nodiscard]] bool canBeeContinue() override { return m_canContinue; }
-        [[nodiscard]] std::string getTypeName() const override { return "BeePassiveGoalConcrete"; }
+        [[nodiscard]] bool canBeeStart() override
+        {
+            return m_canStart;
+        }
 
-        void setCanStart(bool value) { m_canStart = value; }
-        void setCanContinue(bool value) { m_canContinue = value; }
+        [[nodiscard]] bool canBeeContinue() override
+        {
+            return m_canContinue;
+        }
+
+        [[nodiscard]] std::string getTypeName() const override
+        {
+            return "BeePassiveGoalConcrete";
+        }
+
+        void setCanStart(bool value)
+        {
+            m_canStart = value;
+        }
+
+        void setCanContinue(bool value)
+        {
+            m_canContinue = value;
+        }
 
     private:
         bool m_canStart;
@@ -1093,7 +1141,10 @@ TEST_F(BeeWanderGoalTest, Constants_AreCorrect)
 
 class BeePollinationTargetTest : public ::testing::Test {
 protected:
-    static void SetUpTestSuite() { VanillaBlocks::initialize(); }
+    static void SetUpTestSuite()
+    {
+        VanillaBlocks::initialize();
+    }
 
     void SetUp() override
     {
@@ -1103,7 +1154,10 @@ protected:
         bee->setPosition(0.5, 64.0, 0.5);
     }
 
-    void TearDown() override { bee.reset(); }
+    void TearDown() override
+    {
+        bee.reset();
+    }
 
     BeeGoalTestWorld world;
     std::unique_ptr<BeeEntity> bee;
@@ -1598,11 +1652,20 @@ TEST_F(BeePollinationTargetTest, WorldEvents_PlantGrowthParticlesValue)
 
 class BeeEnterHiveGoalTest2 : public ::testing::Test {
 protected:
-    static void SetUpTestSuite() { VanillaBlocks::initialize(); }
+    static void SetUpTestSuite()
+    {
+        VanillaBlocks::initialize();
+    }
 
-    void SetUp() override { bee = std::make_unique<BeeEntity>(EntityInstanceId(1), mc::test::testEcsRegistry()); }
+    void SetUp() override
+    {
+        bee = std::make_unique<BeeEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
+    }
 
-    void TearDown() override { bee.reset(); }
+    void TearDown() override
+    {
+        bee.reset();
+    }
 
     std::unique_ptr<BeeEntity> bee;
 };
@@ -1637,7 +1700,10 @@ TEST_F(BeeEnterHiveGoalTest2, StartExecuting_ResetsNectar)
 
 class BeePollinationIntegrationTest : public ::testing::Test {
 protected:
-    static void SetUpTestSuite() { VanillaBlocks::initialize(); }
+    static void SetUpTestSuite()
+    {
+        VanillaBlocks::initialize();
+    }
 
     void SetUp() override
     {
@@ -1645,7 +1711,10 @@ protected:
         bee->setWorld(&world);
     }
 
-    void TearDown() override { bee.reset(); }
+    void TearDown() override
+    {
+        bee.reset();
+    }
 
     BeeGoalTestWorld world;
     std::unique_ptr<BeeEntity> bee;
@@ -1797,10 +1866,16 @@ public:
     {}
 
     /// 暴露 _isPollinationTarget 用于测试
-    [[nodiscard]] bool testIsPollinationTarget(const BlockPos& pos) const { return _isPollinationTarget(pos); }
+    [[nodiscard]] bool testIsPollinationTarget(const BlockPos& pos) const
+    {
+        return _isPollinationTarget(pos);
+    }
 
     /// 暴露 _growCrop 用于测试
-    [[nodiscard]] bool testGrowCrop(const BlockPos& pos) { return _growCrop(pos); }
+    [[nodiscard]] bool testGrowCrop(const BlockPos& pos)
+    {
+        return _growCrop(pos);
+    }
 };
 
 } // anonymous namespace
@@ -1816,7 +1891,10 @@ public:
  */
 class BeeGrowCropTest : public ::testing::Test {
 protected:
-    static void SetUpTestSuite() { VanillaBlocks::initialize(); }
+    static void SetUpTestSuite()
+    {
+        VanillaBlocks::initialize();
+    }
 
     void SetUp() override
     {
@@ -2160,9 +2238,15 @@ public:
         : m_clientSide(clientSide)
     {}
 
-    [[nodiscard]] bool isClientSide() const override { return m_clientSide; }
+    [[nodiscard]] bool isClientSide() const override
+    {
+        return m_clientSide;
+    }
 
-    void setClientSide(bool clientSide) { m_clientSide = clientSide; }
+    void setClientSide(bool clientSide)
+    {
+        m_clientSide = clientSide;
+    }
 
 private:
     bool m_clientSide;
@@ -2293,7 +2377,10 @@ public:
     {}
 
     /// 暴露 _isFlower 用于测试
-    [[nodiscard]] bool testIsFlower(const BlockPos& pos) const { return _isFlower(pos); }
+    [[nodiscard]] bool testIsFlower(const BlockPos& pos) const
+    {
+        return _isFlower(pos);
+    }
 };
 
 } // anonymous namespace
@@ -2310,7 +2397,10 @@ public:
  */
 class BeeIsFlowerTest : public ::testing::Test {
 protected:
-    static void SetUpTestSuite() { VanillaBlocks::initialize(); }
+    static void SetUpTestSuite()
+    {
+        VanillaBlocks::initialize();
+    }
 
     void SetUp() override
     {
@@ -2463,7 +2553,10 @@ public:
     {}
 
     /// 暴露 _isValidLocation 用于测试
-    [[nodiscard]] bool testIsValidLocation(const math::Vector3f& pos) const { return _isValidLocation(pos); }
+    [[nodiscard]] bool testIsValidLocation(const math::Vector3f& pos) const
+    {
+        return _isValidLocation(pos);
+    }
 };
 
 } // anonymous namespace
@@ -2478,7 +2571,10 @@ public:
  */
 class BeeWanderIsValidLocationTest : public ::testing::Test {
 protected:
-    static void SetUpTestSuite() { VanillaBlocks::initialize(); }
+    static void SetUpTestSuite()
+    {
+        VanillaBlocks::initialize();
+    }
 
     void SetUp() override
     {

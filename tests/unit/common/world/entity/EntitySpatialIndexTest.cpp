@@ -89,7 +89,10 @@ std::vector<Entity*> oracleInAABB(
  */
 class EntitySpatialIndexTest : public ::testing::Test {
 protected:
-    void SetUp() override { VanillaEntities::registerAll(); }
+    void SetUp() override
+    {
+        VanillaEntities::registerAll();
+    }
 
     void TearDown() override {}
 

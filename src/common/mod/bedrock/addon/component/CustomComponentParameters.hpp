@@ -60,14 +60,20 @@ public:
      *
      * @return 参数的std::any常量引用，调用者需使用std::any_cast转换
      */
-    [[nodiscard]] const std::any& params() const noexcept { return m_params; }
+    [[nodiscard]] const std::any& params() const noexcept
+    {
+        return m_params;
+    }
 
     /**
      * @brief 是否有参数
      *
      * @return 如果参数有值则返回true
      */
-    [[nodiscard]] bool hasParams() const noexcept { return m_params.has_value(); }
+    [[nodiscard]] bool hasParams() const noexcept
+    {
+        return m_params.has_value();
+    }
 
 private:
     std::any m_params;

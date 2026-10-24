@@ -39,6 +39,7 @@ class Entity;
 class Player;
 class ServerPlayer;
 class MinecraftServer;
+
 namespace server {
 class ServerWorld;
 }
@@ -113,11 +114,23 @@ public:
 class SilentCommandSource : public ICommandSource {
 public:
     void sendMessage(const std::string&, const std::optional<Uuid>&) override {}
+
     void sendError(const std::string&) override {}
 
-    bool shouldReceiveFeedback() const noexcept override { return false; }
-    bool shouldReceiveErrors() const noexcept override { return false; }
-    bool allowLogging() const noexcept override { return false; }
+    bool shouldReceiveFeedback() const noexcept override
+    {
+        return false;
+    }
+
+    bool shouldReceiveErrors() const noexcept override
+    {
+        return false;
+    }
+
+    bool allowLogging() const noexcept override
+    {
+        return false;
+    }
 
     static SilentCommandSource& instance() noexcept
     {

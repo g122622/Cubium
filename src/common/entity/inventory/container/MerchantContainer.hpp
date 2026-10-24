@@ -71,7 +71,11 @@ public:
 
     // ========== IInventory 接口 ==========
 
-    [[nodiscard]] i32 getContainerSize() const override { return CONTAINER_SIZE; }
+    [[nodiscard]] i32 getContainerSize() const override
+    {
+        return CONTAINER_SIZE;
+    }
+
     [[nodiscard]] bool isEmpty() const override;
     [[nodiscard]] ItemStack getItem(i32 slot) const override;
     ItemStack removeItem(i32 slot, i32 count) override;
@@ -109,7 +113,10 @@ public:
      * @brief 获取待获得的经验值
      * @return 待获得的XP数量
      */
-    [[nodiscard]] i32 getFutureXp() const { return m_futureXp; }
+    [[nodiscard]] i32 getFutureXp() const
+    {
+        return m_futureXp;
+    }
 
 private:
     /**

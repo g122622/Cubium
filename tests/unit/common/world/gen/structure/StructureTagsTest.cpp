@@ -844,6 +844,7 @@ struct TestBlockPos {
     i32 z = 0;
 
     TestBlockPos() noexcept = default;
+
     TestBlockPos(i32 x_, i32 y_, i32 z_) noexcept
         : x(x_)
         , y(y_)
@@ -921,9 +922,15 @@ private:
 
 class FindNearestMapStructureTest : public ::testing::Test {
 protected:
-    static void SetUpTestSuite() { StructureTags::initialize(); }
+    static void SetUpTestSuite()
+    {
+        StructureTags::initialize();
+    }
 
-    void SetUp() override { m_simulator = std::make_unique<FindNearestMapStructureSimulator>(); }
+    void SetUp() override
+    {
+        m_simulator = std::make_unique<FindNearestMapStructureSimulator>();
+    }
 
     std::unique_ptr<FindNearestMapStructureSimulator> m_simulator;
 };

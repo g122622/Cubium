@@ -75,14 +75,23 @@ public:
     /**
      * @brief 强制下次执行
      */
-    void makeUpdate() { m_forceUpdate = true; }
+    void makeUpdate()
+    {
+        m_forceUpdate = true;
+    }
 
     /**
      * @brief 设置执行概率倒数
      */
-    void setExecutionChance(i32 chance) { m_executionChance = chance; }
+    void setExecutionChance(i32 chance)
+    {
+        m_executionChance = chance;
+    }
 
-    [[nodiscard]] std::string getTypeName() const noexcept override { return "RandomWalkingGoal"; }
+    [[nodiscard]] std::string getTypeName() const noexcept override
+    {
+        return "RandomWalkingGoal";
+    }
 
 protected:
     /**

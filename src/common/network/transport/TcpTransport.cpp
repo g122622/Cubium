@@ -95,7 +95,9 @@ struct TcpTransport::State : std::enable_shared_from_this<State> {
         MC_ASSERT_RELEASE(strand.running_in_this_thread());
         accepting.store(false);
         stopping.store(true);
-        if (!connected.exchange(false)) return;
+        if (!connected.exchange(false)) {
+            return;
+        }
         asio::error_code ignored;
         (void)timer.cancel(ignored);
         if (const auto error = socket.cancel(ignored); error && error != asio::error::bad_descriptor) {
@@ -105,7 +107,9 @@ struct TcpTransport::State : std::enable_shared_from_this<State> {
             error && error != asio::error::not_connected && error != asio::error::bad_descriptor) {
             spdlog::warn("TCP shutdown failed: {}", error.message());
         }
-        if (const auto error = socket.close(ignored); error) spdlog::warn("TCP close failed: {}", error.message());
+        if (const auto error = socket.close(ignored); error) {
+            spdlog::warn("TCP close failed: {}", error.message());
+        }
         writes.clear();
         pendingBytes.store(0);
         DisconnectCallback disconnected;
@@ -114,15 +118,21 @@ struct TcpTransport::State : std::enable_shared_from_this<State> {
             byteCallback = nullptr;
             disconnected = std::move(disconnectCallback);
         }
-        if (disconnected) disconnected();
+        if (disconnected) {
+            disconnected();
+        }
     }
 
     void _read()
     {
-        if (!connected.load() || draining) return;
+        if (!connected.load() || draining) {
+            return;
+        }
         socket.async_read_some(asio::buffer(readBuffer),
             asio::bind_executor(strand, [self = shared_from_this()](const asio::error_code& error, usize size) {
-                if (!self->connected.load()) return;
+                if (!self->connected.load()) {
+                    return;
+                }
                 if (error) {
                     if (error != asio::error::eof && error != asio::error::operation_aborted &&
                         error != asio::error::connection_reset) {
@@ -161,7 +171,9 @@ struct TcpTransport::State : std::enable_shared_from_this<State> {
         asio::async_write(socket,
             asio::buffer(*bytes),
             asio::bind_executor(strand, [self = shared_from_this(), bytes](const asio::error_code& error, usize) {
-                if (!self->connected.load()) return;
+                if (!self->connected.load()) {
+                    return;
+                }
                 asio::error_code ignored;
                 (void)self->timer.cancel(ignored);
                 if (error) {
@@ -173,17 +185,20 @@ struct TcpTransport::State : std::enable_shared_from_this<State> {
                 }
                 self->pendingBytes.fetch_sub(bytes->size());
                 self->writes.pop_front();
-                if (!self->writes.empty())
+                if (!self->writes.empty()) {
                     self->_write();
-                else if (self->draining)
+                } else if (self->draining) {
                     self->_close();
+                }
             }));
     }
 
     Result<void> _send(std::shared_ptr<std::vector<u8>> bytes)
     {
         MC_ASSERT_RELEASE(strand.running_in_this_thread());
-        if (!connected.load()) return Error(ErrorCode::ConnectionClosed, "TCP is closed", "TcpTransport::send");
+        if (!connected.load()) {
+            return Error(ErrorCode::ConnectionClosed, "TCP is closed", "TcpTransport::send");
+        }
         const usize count = pendingBytes.load();
         if (bytes->size() > MAX_PENDING_WRITE_BYTES - count) {
             spdlog::warn("TCP pending write byte limit exceeded");
@@ -193,7 +208,9 @@ struct TcpTransport::State : std::enable_shared_from_this<State> {
         pendingBytes.store(count + bytes->size());
         const bool idle = writes.empty();
         writes.push_back(std::move(bytes));
-        if (idle) _write();
+        if (idle) {
+            _write();
+        }
         return Result<void>::ok();
     }
 
@@ -220,6 +237,7 @@ struct TcpTransport::State : std::enable_shared_from_this<State> {
 TcpTransport::TcpTransport()
     : m_state(std::make_shared<State>())
 {}
+
 // 析构必须同步取消回调；此路径仅可能因 Asio 调度的内存分配失败而抛异常。
 //
 // NOLINTNEXTLINE(bugprone-exception-escape)
@@ -233,8 +251,12 @@ Result<void> TcpTransport::connect(const Endpoint& endpoint)
     asio::error_code error;
     asio::ip::tcp::resolver resolver(_networkContext());
     const auto endpoints = resolver.resolve(endpoint.host, std::to_string(endpoint.port), error);
-    if (!error) asio::connect(m_state->socket, endpoints, error);
-    if (error) return Error(ErrorCode::ConnectionFailed, error.message(), "TcpTransport::connect");
+    if (!error) {
+        asio::connect(m_state->socket, endpoints, error);
+    }
+    if (error) {
+        return Error(ErrorCode::ConnectionFailed, error.message(), "TcpTransport::connect");
+    }
     m_state->peer = remoteAddress();
     m_state->connected.store(true);
     m_state->accepting.store(true);
@@ -245,10 +267,14 @@ Result<void> TcpTransport::attachConnectedSocket(asio::ip::tcp::socket socket)
 {
     asio::error_code error;
     const auto endpoint = socket.remote_endpoint(error);
-    if (error) return Error(ErrorCode::ConnectionFailed, error.message(), "TcpTransport::attachConnectedSocket");
+    if (error) {
+        return Error(ErrorCode::ConnectionFailed, error.message(), "TcpTransport::attachConnectedSocket");
+    }
     m_state->peer = endpoint.address().to_string() + ":" + std::to_string(endpoint.port());
     const auto handle = socket.release(error);
-    if (error) return Error(ErrorCode::ConnectionFailed, error.message(), "TcpTransport::attachConnectedSocket");
+    if (error) {
+        return Error(ErrorCode::ConnectionFailed, error.message(), "TcpTransport::attachConnectedSocket");
+    }
     const auto assigned = m_state->socket.assign(endpoint.protocol(), handle, error);
     if (assigned) {
         // assign 失败时原 socket 仍负责回收已释放的原生句柄。
@@ -271,9 +297,10 @@ Result<void> TcpTransport::startReceiving()
         }
     }
     return execute([state = m_state] {
-        if (state->receiving)
+        if (state->receiving) {
             return Result<void>(
                 Error(ErrorCode::InvalidState, "TCP receive already started", "TcpTransport::startReceiving"));
+        }
         state->receiving = true;
         state->_read();
         return Result<void>::ok();
@@ -282,7 +309,9 @@ Result<void> TcpTransport::startReceiving()
 
 std::string TcpTransport::remoteAddress() const
 {
-    if (!m_state->peer.empty()) return m_state->peer;
+    if (!m_state->peer.empty()) {
+        return m_state->peer;
+    }
     asio::error_code error;
     const auto endpoint = m_state->socket.remote_endpoint(error);
     return error ? std::string{} : endpoint.address().to_string() + ":" + std::to_string(endpoint.port());
@@ -292,8 +321,9 @@ Result<void> TcpTransport::execute(Task task)
 {
     auto state = m_state;
     if (state->strand.running_in_this_thread()) {
-        if (!state->accepting.load())
+        if (!state->accepting.load()) {
             return Error(ErrorCode::ConnectionClosed, "TCP is closing", "TcpTransport::execute");
+        }
         return task();
     }
     std::lock_guard lock(state->submitMutex);
@@ -315,7 +345,9 @@ Result<void> TcpTransport::execute(Task task)
             std::lock_guard taskLock(state->submitMutex);
             --state->pendingTasks;
         }
-        if (!state->connected.load() || state->stopping.load()) return;
+        if (!state->connected.load() || state->stopping.load()) {
+            return;
+        }
         MC_TRACE_SCOPED_EVENT(::mc::trace::TraceEvents.Server.Network, "NetworkPipelineTask");
         auto result = task();
         if (!result.success()) {
@@ -328,7 +360,9 @@ Result<void> TcpTransport::execute(Task task)
 
 void TcpTransport::synchronize()
 {
-    if (m_state->strand.running_in_this_thread()) return;
+    if (m_state->strand.running_in_this_thread()) {
+        return;
+    }
     std::mutex mutex;
     std::condition_variable completed;
     bool ready = false;
@@ -338,20 +372,30 @@ void TcpTransport::synchronize()
         ready = true;
         completed.notify_one();
     });
-    completed.wait(lock, [&] { return ready; });
+    completed.wait(lock, [&] {
+        return ready;
+    });
 }
 
 Result<void> TcpTransport::send(const u8* data, usize size, DeliveryHint /*hint*/)
 {
-    if (!m_state->connected.load()) return Error(ErrorCode::ConnectionClosed, "TCP is closed", "TcpTransport::send");
-    if (size == 0) return Result<void>::ok();
+    if (!m_state->connected.load()) {
+        return Error(ErrorCode::ConnectionClosed, "TCP is closed", "TcpTransport::send");
+    }
+    if (size == 0) {
+        return Result<void>::ok();
+    }
     if (size > MAX_PENDING_WRITE_BYTES) {
         close();
         return Error(ErrorCode::ResourceExhausted, "TCP write exceeds pending byte limit", "TcpTransport::send");
     }
     auto bytes = std::make_shared<std::vector<u8>>(data, data + size);
-    if (m_state->strand.running_in_this_thread()) return m_state->_send(std::move(bytes));
-    return execute([state = m_state, bytes] { return state->_send(bytes); });
+    if (m_state->strand.running_in_this_thread()) {
+        return m_state->_send(std::move(bytes));
+    }
+    return execute([state = m_state, bytes] {
+        return state->_send(bytes);
+    });
 }
 
 void TcpTransport::onBytes(ByteCallback callback)
@@ -370,6 +414,7 @@ bool TcpTransport::isConnected() const noexcept
 {
     return m_state->connected.load();
 }
+
 usize TcpTransport::pendingWriteBytes() const noexcept
 {
     return m_state->pendingBytes.load();
@@ -382,7 +427,9 @@ void TcpTransport::closeAfterFlush()
     state->accepting.store(false);
     asio::post(state->strand, [state] {
         state->draining = true;
-        if (state->writes.empty()) state->_close();
+        if (state->writes.empty()) {
+            state->_close();
+        }
     });
 }
 
@@ -395,7 +442,9 @@ void TcpTransport::close()
         state->_close();
         return;
     }
-    asio::post(state->strand, [state] { state->_close(); });
+    asio::post(state->strand, [state] {
+        state->_close();
+    });
     synchronize();
 }
 

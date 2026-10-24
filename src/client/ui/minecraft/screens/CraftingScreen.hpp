@@ -64,8 +64,16 @@ public:
 protected:
     // ==================== ContainerScreenBase 钩子 ====================
 
-    [[nodiscard]] i32 guiWidth() const override { return GUI_WIDTH; }
-    [[nodiscard]] i32 guiHeight() const override { return GUI_HEIGHT; }
+    [[nodiscard]] i32 guiWidth() const override
+    {
+        return GUI_WIDTH;
+    }
+
+    [[nodiscard]] i32 guiHeight() const override
+    {
+        return GUI_HEIGHT;
+    }
+
     [[nodiscard]] std::pair<i32, i32> slotLocalPos(i32 slotIndex) const override;
     [[nodiscard]] const mc::ItemStack& getCarriedItem() const override;
     void renderContainerBackground(kagero::widget::PaintContext& ctx) override;

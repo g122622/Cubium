@@ -170,22 +170,54 @@ enum class SpawnReason : u8 {
  */
 [[nodiscard]] inline SpawnReason getSpawnReasonByName(const std::string& name)
 {
-    if (name == "natural") return SpawnReason::Natural;
-    if (name == "chunk_generation") return SpawnReason::ChunkGeneration;
-    if (name == "spawner") return SpawnReason::Spawner;
-    if (name == "structure") return SpawnReason::Structure;
-    if (name == "breeding") return SpawnReason::Breeding;
-    if (name == "mob_summons") return SpawnReason::MobSummons;
-    if (name == "jockey") return SpawnReason::Jockey;
-    if (name == "event") return SpawnReason::Event;
-    if (name == "conversion") return SpawnReason::Conversion;
-    if (name == "reinforcement") return SpawnReason::Reinforcement;
-    if (name == "trigger") return SpawnReason::Trigger;
-    if (name == "bucket") return SpawnReason::Bucket;
-    if (name == "spawn_egg") return SpawnReason::SpawnEgg;
-    if (name == "command") return SpawnReason::Command;
-    if (name == "dispenser") return SpawnReason::Dispenser;
-    if (name == "patrol") return SpawnReason::Patrol;
+    if (name == "natural") {
+        return SpawnReason::Natural;
+    }
+    if (name == "chunk_generation") {
+        return SpawnReason::ChunkGeneration;
+    }
+    if (name == "spawner") {
+        return SpawnReason::Spawner;
+    }
+    if (name == "structure") {
+        return SpawnReason::Structure;
+    }
+    if (name == "breeding") {
+        return SpawnReason::Breeding;
+    }
+    if (name == "mob_summons") {
+        return SpawnReason::MobSummons;
+    }
+    if (name == "jockey") {
+        return SpawnReason::Jockey;
+    }
+    if (name == "event") {
+        return SpawnReason::Event;
+    }
+    if (name == "conversion") {
+        return SpawnReason::Conversion;
+    }
+    if (name == "reinforcement") {
+        return SpawnReason::Reinforcement;
+    }
+    if (name == "trigger") {
+        return SpawnReason::Trigger;
+    }
+    if (name == "bucket") {
+        return SpawnReason::Bucket;
+    }
+    if (name == "spawn_egg") {
+        return SpawnReason::SpawnEgg;
+    }
+    if (name == "command") {
+        return SpawnReason::Command;
+    }
+    if (name == "dispenser") {
+        return SpawnReason::Dispenser;
+    }
+    if (name == "patrol") {
+        return SpawnReason::Patrol;
+    }
     return SpawnReason::Natural;
 }
 
@@ -271,7 +303,10 @@ public:
      * `skyLight > random(32)` 时直接判定过亮。默认实现返回 15（视为天空光充足、不拒绝），
      * 无光照信息的生成期适配器可保持默认。
      */
-    [[nodiscard]] virtual i32 getRawSkyLight(i32 x, i32 y, i32 z) const { return 15; }
+    [[nodiscard]] virtual i32 getRawSkyLight(i32 x, i32 y, i32 z) const
+    {
+        return 15;
+    }
 };
 
 /**

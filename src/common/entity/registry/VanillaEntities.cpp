@@ -138,6 +138,7 @@ std::mutex& registerMutex()
     return mutex;
 }
 } // namespace
+
 void VanillaEntities::registerAll()
 {
     auto& registry = EntityRegistry::instance();
@@ -489,7 +490,7 @@ void VanillaEntities::doRegisterAll()
 
     // 蝌蚪
     registry.registerType(EntityTypeKeys::TADPOLE,
-        EntityType::Builder(&TadpoleEntity::create, EntityClassification::WaterAmbient)
+        EntityType::Builder(&TadpoleEntity::create, EntityClassification::Creature)
             .size(0.4f, 0.3f)
             .trackingRange(8)
             .updateInterval(3)
@@ -502,7 +503,7 @@ void VanillaEntities::doRegisterAll()
     // 变体由 FrogEntity::selectVariantForPosition 按 #spawns_warm_variant_frogs /
     // #spawns_cold_variant_frogs 群系标签选择（数据包缺失时回退到群系直接判定）。
     registry.registerType(EntityTypeKeys::FROG,
-        EntityType::Builder(&FrogEntity::create, EntityClassification::WaterAmbient)
+        EntityType::Builder(&FrogEntity::create, EntityClassification::Creature)
             .size(FrogEntity::WIDTH, FrogEntity::HEIGHT)
             .trackingRange(10)
             .updateInterval(3)

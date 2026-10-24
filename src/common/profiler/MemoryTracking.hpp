@@ -223,7 +223,10 @@ public:
         }
     }
 
-    ~TracyObjectTracker() { unbind(); }
+    ~TracyObjectTracker()
+    {
+        unbind();
+    }
 
     // 不可拷贝、不可移动：地址追踪语义要求宿主显式重绑定（见类注释）
     TracyObjectTracker(const TracyObjectTracker&) = delete;
@@ -275,13 +278,21 @@ public:
     };
 
     TracyTrackingAlloc() noexcept = default;
+
     template <typename U>
     // NOLINTNEXTLINE(google-explicit-constructor)
     TracyTrackingAlloc(const TracyTrackingAlloc<U, kName>&) noexcept
     {}
 
-    [[nodiscard]] T* allocate(std::size_t n) { return std::allocator<T>{}.allocate(n); }
-    void deallocate(T* p, std::size_t n) noexcept { std::allocator<T>{}.deallocate(p, n); }
+    [[nodiscard]] T* allocate(std::size_t n)
+    {
+        return std::allocator<T>{}.allocate(n);
+    }
+
+    void deallocate(T* p, std::size_t n) noexcept
+    {
+        std::allocator<T>{}.deallocate(p, n);
+    }
 };
 
 template <typename T, FixedString kName, typename U, FixedString kOtherName>
@@ -297,12 +308,15 @@ template <FixedString kName>
 class TracyObjectTracker {
 public:
     TracyObjectTracker() noexcept = default;
+
     template <typename T>
     explicit TracyObjectTracker(const T* /*host*/) noexcept
     {}
+
     template <typename T>
     void bind(const T* /*host*/) noexcept
     {}
+
     void unbind() noexcept {}
 };
 

@@ -70,7 +70,11 @@ public:
     {
         return Vector4(static_cast<T>(0), static_cast<T>(0), static_cast<T>(0), static_cast<T>(0));
     }
-    static Vector4 one() { return Vector4(static_cast<T>(1), static_cast<T>(1), static_cast<T>(1), static_cast<T>(1)); }
+
+    static Vector4 one()
+    {
+        return Vector4(static_cast<T>(1), static_cast<T>(1), static_cast<T>(1), static_cast<T>(1));
+    }
 
     // 算术运算
     [[nodiscard]] Vector4 operator+(const Vector4& other) const noexcept
@@ -139,7 +143,10 @@ public:
         return *this;
     }
 
-    [[nodiscard]] Vector4 operator-() const noexcept { return {-x, -y, -z, -w}; }
+    [[nodiscard]] Vector4 operator-() const noexcept
+    {
+        return {-x, -y, -z, -w};
+    }
 
     // 比较运算
     [[nodiscard]] bool operator==(const Vector4& other) const noexcept
@@ -147,7 +154,10 @@ public:
         return x == other.x && y == other.y && z == other.z && w == other.w;
     }
 
-    [[nodiscard]] bool operator!=(const Vector4& other) const noexcept { return !(*this == other); }
+    [[nodiscard]] bool operator!=(const Vector4& other) const noexcept
+    {
+        return !(*this == other);
+    }
 
     // 向量运算 (仅浮点类型)
     template <typename U = T, typename = std::enable_if_t<std::is_floating_point_v<U>>>

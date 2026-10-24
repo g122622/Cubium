@@ -80,14 +80,20 @@ public:
      *
      * 光束需要远距离可见。
      */
-    [[nodiscard]] bool isGlobalRenderer() const override { return true; }
+    [[nodiscard]] bool isGlobalRenderer() const override
+    {
+        return true;
+    }
 
     /**
      * @brief 信标最大渲染距离
      *
      * 光束可以在256格（16个区块）外看到。
      */
-    [[nodiscard]] f64 getMaxRenderDistanceSquared() const override { return 65536.0; }
+    [[nodiscard]] f64 getMaxRenderDistanceSquared() const override
+    {
+        return 65536.0;
+    }
 
 private:
     mc::client::renderer::blockentity::model::BeaconBeamModel m_beamModel; ///< 光束模型

@@ -89,7 +89,10 @@ public:
      * beforeEvent是同步的、可取消的。在游戏逻辑执行之前调用。
      * 脚本可以调用cancel()来阻止原始操作。
      */
-    BeforeEventSignal& beforeEvents() { return *m_beforeEvents; }
+    BeforeEventSignal& beforeEvents()
+    {
+        return *m_beforeEvents;
+    }
 
     /**
      * @brief 获取全局afterEvent信号
@@ -97,7 +100,10 @@ public:
      * afterEvent是延迟的、不可取消的。在游戏逻辑执行之后，
      * 于每tick结束时批量处理。
      */
-    AfterEventSignal& afterEvents() { return *m_afterEvents; }
+    AfterEventSignal& afterEvents()
+    {
+        return *m_afterEvents;
+    }
 
     /**
      * @brief 将游戏事件入队到afterEvent队列

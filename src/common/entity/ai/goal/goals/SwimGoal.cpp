@@ -47,7 +47,9 @@ SwimGoal::SwimGoal(MobEntity* mob)
 
 bool SwimGoal::shouldExecute()
 {
-    if (!m_mob) return false;
+    if (!m_mob) {
+        return false;
+    }
 
     // 检查是否在水中且水位超过眼睛高度，或者在岩浆中
     if (m_mob->isInWater()) {
@@ -60,7 +62,9 @@ bool SwimGoal::shouldExecute()
 
 void SwimGoal::tick()
 {
-    if (!m_mob) return;
+    if (!m_mob) {
+        return;
+    }
 
     // 以 80% 概率跳跃
     math::IRandom& rng = m_mob->getRandom();

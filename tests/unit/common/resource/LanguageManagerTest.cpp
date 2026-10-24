@@ -35,9 +35,15 @@ using namespace mc;
 
 class LanguageManagerTest : public ::testing::Test {
 protected:
-    void SetUp() override { manager.clear(); }
+    void SetUp() override
+    {
+        manager.clear();
+    }
 
-    void TearDown() override { manager.clear(); }
+    void TearDown() override
+    {
+        manager.clear();
+    }
 
     LanguageManager manager;
 };
@@ -212,8 +218,12 @@ TEST_F(LanguageManagerTest, GetBuiltinLanguages)
     bool hasEnUs = false;
     bool hasZhCn = false;
     for (const auto& lang : languages) {
-        if (lang.code == "en_us") hasEnUs = true;
-        if (lang.code == "zh_cn") hasZhCn = true;
+        if (lang.code == "en_us") {
+            hasEnUs = true;
+        }
+        if (lang.code == "zh_cn") {
+            hasZhCn = true;
+        }
     }
     EXPECT_TRUE(hasEnUs);
     EXPECT_TRUE(hasZhCn);
@@ -361,7 +371,9 @@ TEST_F(LanguageManagerTest, LoadMultipleTimesOverwrites)
 TEST_F(LanguageManagerTest, OnLanguageChangedCallback)
 {
     bool callbackCalled = false;
-    manager.setOnLanguageChanged([&callbackCalled]() { callbackCalled = true; });
+    manager.setOnLanguageChanged([&callbackCalled]() {
+        callbackCalled = true;
+    });
 
     // 通过 loadFromJson 加载一些数据后，手动设置语言并调用回调
     std::string jsonContent = R"({"key": "value"})";

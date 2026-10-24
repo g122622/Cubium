@@ -47,7 +47,10 @@ public:
      * 复杂物品需要服务端主动发送更新数据包给客户端，
      * 而不是等待客户端请求。
      */
-    [[nodiscard]] bool isComplex() const { return true; }
+    [[nodiscard]] bool isComplex() const
+    {
+        return true;
+    }
 };
 
 } // namespace mc::item::items

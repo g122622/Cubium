@@ -46,27 +46,47 @@ class VaultTestWorld final : public mc::test::BaseTestWorld {
 public:
     using IWorld::getBlockState;
 
-    void setCurrentTick(u64 tick) { m_currentTick = tick; }
-    [[nodiscard]] u64 currentTick() const override { return m_currentTick; }
+    void setCurrentTick(u64 tick)
+    {
+        m_currentTick = tick;
+    }
 
-    void setEntitiesInRangeResult(const std::vector<Entity*>& entities) { m_entitiesInRange = entities; }
+    [[nodiscard]] u64 currentTick() const override
+    {
+        return m_currentTick;
+    }
+
+    void setEntitiesInRangeResult(const std::vector<Entity*>& entities)
+    {
+        m_entitiesInRange = entities;
+    }
+
     [[nodiscard]] std::vector<Entity*> getEntitiesInRange(const Vector3&, f32, const Entity*) const override
     {
         return m_entitiesInRange;
     }
 
-    void setPlayersResult(const std::vector<Entity*>& players) { m_players = players; }
-    [[nodiscard]] std::vector<Entity*> getPlayers() const override { return m_players; }
+    void setPlayersResult(const std::vector<Entity*>& players)
+    {
+        m_players = players;
+    }
+
+    [[nodiscard]] std::vector<Entity*> getPlayers() const override
+    {
+        return m_players;
+    }
 
     void setBlockEntity(const BlockPos& pos, std::unique_ptr<mc::BlockEntity> entity)
     {
         m_blockEntities[pos] = std::move(entity);
     }
+
     [[nodiscard]] BlockEntity* getBlockEntity(const BlockPos& pos) override
     {
         auto it = m_blockEntities.find(pos);
         return it == m_blockEntities.end() ? nullptr : it->second.get();
     }
+
     [[nodiscard]] const BlockEntity* getBlockEntity(const BlockPos& pos) const override
     {
         auto it = m_blockEntities.find(pos);
@@ -77,6 +97,7 @@ public:
     {
         throw std::runtime_error("VaultTestWorld::tickManager not implemented");
     }
+
     [[nodiscard]] const world::tick::TickManager& tickManager() const override
     {
         throw std::runtime_error("VaultTestWorld::tickManager not implemented");
@@ -87,6 +108,7 @@ public:
         ResourceLocation soundId;
         f32 pitch = 0.0f;
     };
+
     void playSound(const ResourceLocation& soundId,
         sound::SoundCategory category,
         const Vector3& position,
@@ -98,8 +120,16 @@ public:
         MC_UNUSED(volume);
         m_soundCalls.push_back({soundId, pitch});
     }
-    const std::vector<SoundCall>& soundCalls() const { return m_soundCalls; }
-    void clearSoundCalls() { m_soundCalls.clear(); }
+
+    const std::vector<SoundCall>& soundCalls() const
+    {
+        return m_soundCalls;
+    }
+
+    void clearSoundCalls()
+    {
+        m_soundCalls.clear();
+    }
 
 private:
     u64 m_currentTick = 0;
@@ -115,7 +145,10 @@ private:
 
 class VaultBlockEntityTest : public ::testing::Test {
 protected:
-    void SetUp() override { vault_ = std::make_unique<VaultBlockEntity>(BlockPos(10, 64, 20)); }
+    void SetUp() override
+    {
+        vault_ = std::make_unique<VaultBlockEntity>(BlockPos(10, 64, 20));
+    }
 
     std::unique_ptr<VaultBlockEntity> vault_;
 };
@@ -397,7 +430,10 @@ TEST_F(VaultBlockEntityTest, Clone_CreatesDeepCopy)
 
 class VaultStateMachineTest : public ::testing::Test {
 protected:
-    void SetUp() override { vault_ = std::make_unique<VaultBlockEntity>(BlockPos(0, 0, 0)); }
+    void SetUp() override
+    {
+        vault_ = std::make_unique<VaultBlockEntity>(BlockPos(0, 0, 0));
+    }
 
     VaultTestWorld world_;
     std::unique_ptr<VaultBlockEntity> vault_;

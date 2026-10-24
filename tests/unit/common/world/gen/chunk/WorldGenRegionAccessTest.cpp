@@ -184,7 +184,10 @@ protected:
         fluid::FluidRegistry::instance().initialize();
     }
 
-    void TearDown() override { g_primerStorage.clear(); }
+    void TearDown() override
+    {
+        g_primerStorage.clear();
+    }
 };
 
 // ============================================================================

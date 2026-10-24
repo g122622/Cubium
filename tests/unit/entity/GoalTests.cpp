@@ -106,7 +106,9 @@ TEST(EnumSetTest, ForEach)
 {
     EnumSet<TestEnum::Value> set{TestEnum::A, TestEnum::C};
     std::vector<TestEnum::Value> values;
-    set.forEach([&values](TestEnum::Value v) { values.push_back(v); });
+    set.forEach([&values](TestEnum::Value v) {
+        values.push_back(v);
+    });
 
     ASSERT_EQ(values.size(), 2);
     EXPECT_EQ(values[0], TestEnum::A);
@@ -136,23 +138,60 @@ public:
         , m_tickCount(0)
     {}
 
-    [[nodiscard]] bool shouldExecute() override { return m_shouldExecute; }
+    [[nodiscard]] bool shouldExecute() override
+    {
+        return m_shouldExecute;
+    }
 
-    [[nodiscard]] bool shouldContinueExecuting() override { return m_shouldContinue; }
+    [[nodiscard]] bool shouldContinueExecuting() override
+    {
+        return m_shouldContinue;
+    }
 
-    void startExecuting() override { m_startCount++; }
+    void startExecuting() override
+    {
+        m_startCount++;
+    }
 
-    void resetTask() override { m_resetCount++; }
+    void resetTask() override
+    {
+        m_resetCount++;
+    }
 
-    void tick() override { m_tickCount++; }
+    void tick() override
+    {
+        m_tickCount++;
+    }
 
-    [[nodiscard]] std::string getTypeName() const override { return "TestGoal"; }
+    [[nodiscard]] std::string getTypeName() const override
+    {
+        return "TestGoal";
+    }
 
-    void setShouldExecute(bool value) { m_shouldExecute = value; }
-    void setShouldContinue(bool value) { m_shouldContinue = value; }
-    [[nodiscard]] int getStartCount() const { return m_startCount; }
-    [[nodiscard]] int getResetCount() const { return m_resetCount; }
-    [[nodiscard]] int getTickCount() const { return m_tickCount; }
+    void setShouldExecute(bool value)
+    {
+        m_shouldExecute = value;
+    }
+
+    void setShouldContinue(bool value)
+    {
+        m_shouldContinue = value;
+    }
+
+    [[nodiscard]] int getStartCount() const
+    {
+        return m_startCount;
+    }
+
+    [[nodiscard]] int getResetCount() const
+    {
+        return m_resetCount;
+    }
+
+    [[nodiscard]] int getTickCount() const
+    {
+        return m_tickCount;
+    }
 
 private:
     bool m_shouldExecute;
@@ -228,8 +267,15 @@ TEST(PrioritizedGoalTest, NonPreemptible)
 {
     class NonPreemptibleGoal : public Goal {
     public:
-        [[nodiscard]] bool shouldExecute() override { return true; }
-        [[nodiscard]] bool isPreemptible() const override { return false; }
+        [[nodiscard]] bool shouldExecute() override
+        {
+            return true;
+        }
+
+        [[nodiscard]] bool isPreemptible() const override
+        {
+            return false;
+        }
     };
 
     auto lowGoal = std::make_unique<NonPreemptibleGoal>();
@@ -473,7 +519,9 @@ TEST(GoalSelectorTest, ForEachRunningGoal)
     selector.tick();
 
     int count = 0;
-    selector.forEachRunningGoal([&count](PrioritizedGoal& /*goal*/) { count++; });
+    selector.forEachRunningGoal([&count](PrioritizedGoal& /*goal*/) {
+        count++;
+    });
 
     EXPECT_EQ(count, 2);
 }
@@ -504,7 +552,9 @@ using namespace mc::entity::ai::goal;
 TEST(TargetPredicateTest, CanBeCreatedFromLambda)
 {
     // 测试 TargetPredicate 可以从 lambda 创建
-    TargetPredicate pred = [](const LivingEntity* entity) -> bool { return entity != nullptr; };
+    TargetPredicate pred = [](const LivingEntity* entity) -> bool {
+        return entity != nullptr;
+    };
 
     // 验证谓词可以调用
     EXPECT_TRUE(pred(nullptr) == false);

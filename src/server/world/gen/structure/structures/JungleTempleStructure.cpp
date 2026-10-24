@@ -110,13 +110,19 @@ void JungleTemplePiece::_generateTemple(IWorldWriter& world, math::IRandom& rng,
     i32 height = TEMPLE_HEIGHT;
 
     // 随机选择苔石或普通圆石
-    auto randomCobble = [&]() -> const BlockState* { return rng.nextInt(100) < 30 ? mossyCobblestone : cobblestone; };
+    auto randomCobble = [&]() -> const BlockState* {
+        return rng.nextInt(100) < 30 ? mossyCobblestone : cobblestone;
+    };
 
     // 随机选择石砖类型
     auto randomBrick = [&]() -> const BlockState* {
         i32 r = rng.nextInt(100);
-        if (r < 50) return stoneBricks;
-        if (r < 80) return mossyStoneBricks;
+        if (r < 50) {
+            return stoneBricks;
+        }
+        if (r < 80) {
+            return mossyStoneBricks;
+        }
         return chiseledStoneBricks;
     };
 
@@ -599,7 +605,9 @@ std::unique_ptr<StructureStart> JungleTempleStructure::generate(
 
     // 获取地表高度
     i32 startY = generator.getHeight(startX, startZ, HeightmapType::WorldSurfaceWG);
-    if (startY < MIN_GENERATION_HEIGHT) startY = FALLBACK_HEIGHT;
+    if (startY < MIN_GENERATION_HEIGHT) {
+        startY = FALLBACK_HEIGHT;
+    }
 
     BlockPos startPos(startX, startY, startZ);
 

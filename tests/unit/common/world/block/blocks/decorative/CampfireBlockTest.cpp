@@ -97,10 +97,20 @@ public:
         return setBlockState(pos.x, pos.y, pos.z, state);
     }
 
-    [[nodiscard]] u64 seed() const override { return m_seed; }
-    [[nodiscard]] bool isRaining() const override { return false; }
+    [[nodiscard]] u64 seed() const override
+    {
+        return m_seed;
+    }
 
-    void setSeed(u64 seed) { m_seed = seed; }
+    [[nodiscard]] bool isRaining() const override
+    {
+        return false;
+    }
+
+    void setSeed(u64 seed)
+    {
+        m_seed = seed;
+    }
 
 private:
     static i64 packPos(i32 x, i32 y, i32 z)

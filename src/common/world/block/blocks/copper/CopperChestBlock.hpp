@@ -171,7 +171,10 @@ public:
      *
      * 用于双箱合并时比较两侧氧化等级，决定合并后方块类型。
      */
-    [[nodiscard]] BlockStateProperties::OxidationLevel getOxidationLevel() const noexcept { return m_oxidationLevel; }
+    [[nodiscard]] BlockStateProperties::OxidationLevel getOxidationLevel() const noexcept
+    {
+        return m_oxidationLevel;
+    }
 
     /**
      * @brief 是否为涂蜡变体
@@ -180,7 +183,10 @@ public:
      * 将铜块转换为铜箱子时确定氧化等级。
      * 基础（未涂蜡）CopperChestBlock 返回 false，涂蜡变体由子类重写返回 true。
      */
-    [[nodiscard]] virtual bool isWaxed() const noexcept { return false; }
+    [[nodiscard]] virtual bool isWaxed() const noexcept
+    {
+        return false;
+    }
 
     // ========== 铜块 → 铜箱子转换 ==========
 
@@ -233,7 +239,10 @@ public:
      * - Oxidized: BLOCK_COPPER_CHEST_OXIDIZED_OPEN
      * 涂蜡变体复用对应氧化等级的声音（在构造时传入相同的声音引用）。
      */
-    [[nodiscard]] const ResourceLocation& getOpenSound() const override { return m_openSound; }
+    [[nodiscard]] const ResourceLocation& getOpenSound() const override
+    {
+        return m_openSound;
+    }
 
     /**
      * @brief 获取关箱音效
@@ -244,7 +253,10 @@ public:
      * - Oxidized: BLOCK_COPPER_CHEST_OXIDIZED_CLOSE
      * 涂蜡变体复用对应氧化等级的声音（在构造时传入相同的声音引用）。
      */
-    [[nodiscard]] const ResourceLocation& getCloseSound() const override { return m_closeSound; }
+    [[nodiscard]] const ResourceLocation& getCloseSound() const override
+    {
+        return m_closeSound;
+    }
 
 protected:
     /// 当前氧化等级（涂蜡变体也记录对应氧化等级）
@@ -291,27 +303,42 @@ public:
     /**
      * @brief 获取当前氧化等级
      */
-    [[nodiscard]] BlockStateProperties::OxidationLevel getOxidationLevel() const override { return m_oxidationLevel; }
+    [[nodiscard]] BlockStateProperties::OxidationLevel getOxidationLevel() const override
+    {
+        return m_oxidationLevel;
+    }
 
     /**
      * @brief 设置下一氧化等级对应的方块
      */
-    void setNextOxidationBlock(Block* nextBlock) { m_nextOxidationBlock = nextBlock; }
+    void setNextOxidationBlock(Block* nextBlock)
+    {
+        m_nextOxidationBlock = nextBlock;
+    }
 
     /**
      * @brief 获取下一氧化等级对应的方块
      */
-    [[nodiscard]] Block* getNextOxidationBlock() const override { return m_nextOxidationBlock; }
+    [[nodiscard]] Block* getNextOxidationBlock() const override
+    {
+        return m_nextOxidationBlock;
+    }
 
     /**
      * @brief 设置上一氧化等级对应的方块（用于斧头刮削）
      */
-    void setPreviousOxidationBlock(Block* prevBlock) { m_previousOxidationBlock = prevBlock; }
+    void setPreviousOxidationBlock(Block* prevBlock)
+    {
+        m_previousOxidationBlock = prevBlock;
+    }
 
     /**
      * @brief 获取上一氧化等级对应的方块
      */
-    [[nodiscard]] Block* getPreviousOxidationBlock() const override { return m_previousOxidationBlock; }
+    [[nodiscard]] Block* getPreviousOxidationBlock() const override
+    {
+        return m_previousOxidationBlock;
+    }
 
     // ========== 随机 Tick ==========
 
@@ -372,7 +399,10 @@ public:
      * @brief 是否为涂蜡变体
      * @return 始终返回 true
      */
-    [[nodiscard]] bool isWaxed() const noexcept override { return true; }
+    [[nodiscard]] bool isWaxed() const noexcept override
+    {
+        return true;
+    }
 };
 
 } // namespace blocks

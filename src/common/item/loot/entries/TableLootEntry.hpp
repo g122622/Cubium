@@ -64,23 +64,36 @@ public:
      */
     TableLootEntry(std::unique_ptr<LootTable> inlineTable, i32 weight, i32 quality);
 
-    [[nodiscard]] LootEntryType getType() const override { return LootEntryType::Table; }
+    [[nodiscard]] LootEntryType getType() const override
+    {
+        return LootEntryType::Table;
+    }
+
     [[nodiscard]] std::unique_ptr<LootEntry> clone() const override;
 
     // 析构定义在 .cpp，确保 m_inlineTable 销毁时 LootTable 为完整类型
     ~TableLootEntry() override;
 
-    [[nodiscard]] const std::string& getTableId() const { return m_tableId; }
+    [[nodiscard]] const std::string& getTableId() const
+    {
+        return m_tableId;
+    }
 
     /**
      * @brief 是否为内联表型
      */
-    [[nodiscard]] bool isInline() const noexcept { return m_inlineTable != nullptr; }
+    [[nodiscard]] bool isInline() const noexcept
+    {
+        return m_inlineTable != nullptr;
+    }
 
     /**
      * @brief 获取内联掉落表（仅内联型有效，外部引用型返回 nullptr）
      */
-    [[nodiscard]] const LootTable* getInlineTable() const noexcept { return m_inlineTable.get(); }
+    [[nodiscard]] const LootTable* getInlineTable() const noexcept
+    {
+        return m_inlineTable.get();
+    }
 
     void expand(LootContext& context, std::function<void(LootEntry&)> consumer) const override;
 

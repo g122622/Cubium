@@ -34,9 +34,20 @@ public:
         mc::server::ServerWorld& world,
         BlockPos origin);
 
-    [[nodiscard]] mc::server::ServerWorld& world() const noexcept { return m_world; }
-    [[nodiscard]] const BlockPos& origin() const noexcept { return m_origin; }
-    [[nodiscard]] const StructureBounds* bounds() const noexcept { return m_bounds.get(); }
+    [[nodiscard]] mc::server::ServerWorld& world() const noexcept
+    {
+        return m_world;
+    }
+
+    [[nodiscard]] const BlockPos& origin() const noexcept
+    {
+        return m_origin;
+    }
+
+    [[nodiscard]] const StructureBounds* bounds() const noexcept
+    {
+        return m_bounds.get();
+    }
 
 protected:
     [[nodiscard]] bool hasStructureBlock() const noexcept override;

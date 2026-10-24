@@ -96,7 +96,10 @@ public:
     /**
      * @brief 条目数量
      */
-    [[nodiscard]] std::size_t size() const noexcept { return m_tags.size(); }
+    [[nodiscard]] std::size_t size() const noexcept
+    {
+        return m_tags.size();
+    }
 
 private:
     InstrumentTags() = default;

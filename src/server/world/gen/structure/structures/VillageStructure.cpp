@@ -99,11 +99,20 @@ public:
         jigsaw::JigsawPlacer::placePiece(world, m_placed, rng, &chunkBounds, chunk, generator);
     }
 
-    [[nodiscard]] i32 getGroundLevelDelta() const override { return m_groundLevelDelta; }
+    [[nodiscard]] i32 getGroundLevelDelta() const override
+    {
+        return m_groundLevelDelta;
+    }
 
-    [[nodiscard]] const std::vector<jigsaw::JigsawJunction>& getJunctions() const override { return m_junctions; }
+    [[nodiscard]] const std::vector<jigsaw::JigsawJunction>& getJunctions() const override
+    {
+        return m_junctions;
+    }
 
-    [[nodiscard]] bool isJigsawPiece() const override { return true; }
+    [[nodiscard]] bool isJigsawPiece() const override
+    {
+        return true;
+    }
 
     [[nodiscard]] std::string_view templateLocation() const noexcept override
     {

@@ -192,7 +192,9 @@ bool CatEntity::isTameItem(const ItemStack& itemStack) const
 {
     // 猫用生鳕鱼或生鲑鱼驯服
     const Item* item = itemStack.getItem();
-    if (item == nullptr) return false;
+    if (item == nullptr) {
+        return false;
+    }
     return item == Items::COD || item == Items::SALMON;
 }
 
@@ -303,7 +305,9 @@ void CatEntity::registerGoals()
             false, // checkSight = false
             [](const LivingEntity* entity) -> bool {
                 const TurtleEntity* turtle = dynamic_cast<const TurtleEntity*>(entity);
-                if (!turtle) return false;
+                if (!turtle) {
+                    return false;
+                }
                 return turtle->isChild() && !turtle->isInWater();
             }));
 }

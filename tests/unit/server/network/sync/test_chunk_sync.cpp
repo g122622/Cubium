@@ -805,8 +805,9 @@ TEST_F(ChunkSyncManagerExtendedTest, CalculateUpdatesForMultiplePlayers)
 
     // 验证两个玩家的加载区域不重叠
     auto isInRange = [](const std::vector<ChunkPos>& chunks, ChunkCoord x, ChunkCoord z) {
-        return std::find_if(chunks.begin(), chunks.end(), [&](const ChunkPos& p) { return p.x == x && p.z == z; }) !=
-            chunks.end();
+        return std::find_if(chunks.begin(), chunks.end(), [&](const ChunkPos& p) {
+            return p.x == x && p.z == z;
+        }) != chunks.end();
     };
 
     EXPECT_TRUE(isInRange(toLoad1, 0, 0));

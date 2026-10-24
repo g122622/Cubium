@@ -55,6 +55,7 @@ namespace test {
 class RailShapeTest : public ::testing::Test {
 protected:
     void SetUp() override {}
+
     void TearDown() override {}
 };
 
@@ -85,6 +86,7 @@ TEST_F(RailShapeTest, IsAscending_ReturnsFalseForFlatShapes)
 class ChestMinecartEntityTest : public ::testing::Test {
 protected:
     void SetUp() override {}
+
     void TearDown() override {}
 };
 
@@ -146,6 +148,7 @@ TEST_F(ChestMinecartEntityTest, GetInventory_ReturnsNonNullptr)
 class AbstractMinecartEntityTest : public ::testing::Test {
 protected:
     void SetUp() override {}
+
     void TearDown() override {}
 };
 
@@ -270,6 +273,7 @@ TEST_F(AbstractMinecartEntityTest, TNTMinecart_PrimeNegativeFuseNotPrimed)
 class MinecartItemTest : public ::testing::Test {
 protected:
     void SetUp() override {}
+
     void TearDown() override {}
 };
 
@@ -292,6 +296,7 @@ TEST_F(MinecartItemTest, Constructor_StoresType)
 class ChestMinecartInventoryTest : public ::testing::Test {
 protected:
     void SetUp() override {}
+
     void TearDown() override {}
 };
 
@@ -340,6 +345,7 @@ TEST_F(ChestMinecartInventoryTest, RemoveItem_UpdatesInventory)
 class MinecartSpeedTest : public ::testing::Test {
 protected:
     void SetUp() override {}
+
     void TearDown() override {}
 };
 
@@ -377,6 +383,7 @@ TEST_F(MinecartSpeedTest, GetMaxSpeedWithRail_DefaultGameRule_YieldsCorrectSpeed
 class ActivatorRailCallbackTest : public ::testing::Test {
 protected:
     void SetUp() override {}
+
     void TearDown() override {}
 };
 
@@ -486,9 +493,20 @@ public:
         return 1;
     }
 
-    [[nodiscard]] const Vector2f& lastRotation() const { return m_lastRotation; }
-    [[nodiscard]] const Vector3d& lastPosition() const { return m_lastPosition; }
-    [[nodiscard]] i32 lastPermissionLevel() const { return m_lastPermissionLevel; }
+    [[nodiscard]] const Vector2f& lastRotation() const
+    {
+        return m_lastRotation;
+    }
+
+    [[nodiscard]] const Vector3d& lastPosition() const
+    {
+        return m_lastPosition;
+    }
+
+    [[nodiscard]] i32 lastPermissionLevel() const
+    {
+        return m_lastPermissionLevel;
+    }
 
 private:
     std::string m_lastCommand;

@@ -74,6 +74,7 @@ struct JigsawJoint {
     i32 placementPriority = 0;                                  ///< 放置优先级（组装队列中，降序）
 
     JigsawJoint() = default;
+
     JigsawJoint(const BlockPos& src,
         const std::string& srcName,
         const std::string& pool,

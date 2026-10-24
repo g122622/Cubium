@@ -47,17 +47,26 @@ public:
      * @brief 设置关闭回调
      * @param callback 关闭时调用的回调函数
      */
-    void setOnClose(std::function<void()> callback) { m_onClose = std::move(callback); }
+    void setOnClose(std::function<void()> callback)
+    {
+        m_onClose = std::move(callback);
+    }
 
     /**
      * @brief 设置难度循环切换回调（点击难度按钮时触发，参数为切换后的新难度，由调用方发 sb:3）。
      */
-    void setOnCycleDifficulty(std::function<void(Difficulty)> callback) { m_onCycleDifficulty = std::move(callback); }
+    void setOnCycleDifficulty(std::function<void(Difficulty)> callback)
+    {
+        m_onCycleDifficulty = std::move(callback);
+    }
 
     /**
      * @brief 设置难度锁定回调（点击锁定按钮时触发，由调用方发 sb:28）。
      */
-    void setOnLockDifficulty(std::function<void()> callback) { m_onLockDifficulty = std::move(callback); }
+    void setOnLockDifficulty(std::function<void()> callback)
+    {
+        m_onLockDifficulty = std::move(callback);
+    }
 
     /**
      * @brief 设置当前难度并刷新按钮文案。

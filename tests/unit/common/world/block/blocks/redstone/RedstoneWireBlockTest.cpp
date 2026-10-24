@@ -149,7 +149,10 @@ TEST_F(RedstoneWireBlockShapeTest, PowerDoesNotAffectShape)
 
 class RedstoneWireBlockPowerTest : public ::testing::Test {
 protected:
-    void SetUp() override { block_ = std::make_unique<RedstoneWireBlock>(BlockProperties(Material::AIR)); }
+    void SetUp() override
+    {
+        block_ = std::make_unique<RedstoneWireBlock>(BlockProperties(Material::AIR));
+    }
 
     std::unique_ptr<RedstoneWireBlock> block_;
 };

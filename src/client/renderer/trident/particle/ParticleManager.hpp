@@ -171,14 +171,20 @@ public:
      *
      * @param pos 相机位置
      */
-    void setCameraPosition(const glm::vec3& pos) { m_cameraPosition = pos; }
+    void setCameraPosition(const glm::vec3& pos)
+    {
+        m_cameraPosition = pos;
+    }
 
     /**
      * @brief 设置最大粒子距离
      *
      * @param distance 最大距离
      */
-    void setMaxParticleDistance(f32 distance) { m_maxParticleDistance = distance; }
+    void setMaxParticleDistance(f32 distance)
+    {
+        m_maxParticleDistance = distance;
+    }
 
     /**
      * @brief 设置粒子效果模式
@@ -190,12 +196,18 @@ public:
      *
      * @param mode 粒子效果模式
      */
-    void setParticleMode(client::ParticleMode mode) { m_particleMode = mode; }
+    void setParticleMode(client::ParticleMode mode)
+    {
+        m_particleMode = mode;
+    }
 
     /**
      * @brief 获取当前粒子效果模式
      */
-    [[nodiscard]] client::ParticleMode particleMode() const { return m_particleMode; }
+    [[nodiscard]] client::ParticleMode particleMode() const
+    {
+        return m_particleMode;
+    }
 
     /**
      * @brief 判断是否应该生成/显示该类型的粒子
@@ -226,12 +238,18 @@ public:
     /**
      * @brief 获取粒子数量
      */
-    [[nodiscard]] size_t particleCount() const { return m_particles.size(); }
+    [[nodiscard]] size_t particleCount() const
+    {
+        return m_particles.size();
+    }
 
     /**
      * @brief 获取待处理粒子数量
      */
-    [[nodiscard]] size_t pendingParticleCount() const { return m_pendingParticles.size(); }
+    [[nodiscard]] size_t pendingParticleCount() const
+    {
+        return m_pendingParticles.size();
+    }
 
     /**
      * @brief 获取存活的粒子数量
@@ -251,12 +269,18 @@ public:
      *
      * @param world 客户端世界指针（可为空）
      */
-    void setClientWorld(mc::client::ClientWorld* world) { m_clientWorld = world; }
+    void setClientWorld(mc::client::ClientWorld* world)
+    {
+        m_clientWorld = world;
+    }
 
     /**
      * @brief 获取关联的客户端世界
      */
-    [[nodiscard]] mc::client::ClientWorld* clientWorld() const { return m_clientWorld; }
+    [[nodiscard]] mc::client::ClientWorld* clientWorld() const
+    {
+        return m_clientWorld;
+    }
 
     /**
      * @brief 更新所有粒子
@@ -323,8 +347,15 @@ public:
      *
      * @return 纹理图集引用
      */
-    [[nodiscard]] ParticleTextureAtlas& textureAtlas() { return m_textureAtlas; }
-    [[nodiscard]] const ParticleTextureAtlas& textureAtlas() const { return m_textureAtlas; }
+    [[nodiscard]] ParticleTextureAtlas& textureAtlas()
+    {
+        return m_textureAtlas;
+    }
+
+    [[nodiscard]] const ParticleTextureAtlas& textureAtlas() const
+    {
+        return m_textureAtlas;
+    }
 
     // ========================================================================
     // 状态查询
@@ -333,7 +364,10 @@ public:
     /**
      * @brief 检查是否已初始化
      */
-    [[nodiscard]] bool isInitialized() const { return m_initialized; }
+    [[nodiscard]] bool isInitialized() const
+    {
+        return m_initialized;
+    }
 
 private:
     // ========================================================================

@@ -405,10 +405,12 @@ void FoxPounceGoal::tick()
         f32 currentPitch = m_fox->pitch();
         f32 targetPitch = 0.0f;
         f32 diff = targetPitch - currentPitch;
-        while (diff < -180.0f)
+        while (diff < -180.0f) {
             diff += 360.0f;
-        while (diff >= 180.0f)
+        }
+        while (diff >= 180.0f) {
             diff -= 360.0f;
+        }
         f32 newPitch = currentPitch + 0.2f * diff;
         m_fox->setRotation(m_fox->yaw(), newPitch);
     } else {
@@ -1145,13 +1147,19 @@ FoxRevengeGoal::FoxRevengeGoal(FoxEntity* fox)
 
 bool FoxRevengeGoal::shouldExecute()
 {
-    if (!m_foxEntity) return false;
+    if (!m_foxEntity) {
+        return false;
+    }
 
     IWorld* world = m_foxEntity->world();
-    if (!world) return false;
+    if (!world) {
+        return false;
+    }
 
     const auto& trustedPlayers = m_foxEntity->getTrustedPlayers();
-    if (trustedPlayers.empty()) return false;
+    if (trustedPlayers.empty()) {
+        return false;
+    }
 
     // 使用 getPlayers() 遍历玩家列表（通常仅 1~10 名玩家），
     // 比 getEntitiesInAABB() 的 64 格全实体搜索高效得多
@@ -1167,19 +1175,31 @@ bool FoxRevengeGoal::shouldExecute()
             }
         }
 
-        if (trustedPlayer == nullptr) continue;
+        if (trustedPlayer == nullptr) {
+            continue;
+        }
 
         LivingEntity* attacker = trustedPlayer->getLastHurtBy();
-        if (attacker == nullptr || !attacker->isAlive()) continue;
+        if (attacker == nullptr || !attacker->isAlive()) {
+            continue;
+        }
 
-        if (attacker == m_foxEntity) continue;
+        if (attacker == m_foxEntity) {
+            continue;
+        }
 
-        if (attacker == trustedPlayer) continue;
+        if (attacker == trustedPlayer) {
+            continue;
+        }
 
         i32 hurtTimestamp = trustedPlayer->lastHurtByTimestamp();
-        if (hurtTimestamp == m_revengeTimestamp) continue;
+        if (hurtTimestamp == m_revengeTimestamp) {
+            continue;
+        }
 
-        if (!isSuitableTarget(attacker)) continue;
+        if (!isSuitableTarget(attacker)) {
+            continue;
+        }
 
         const Player* attackerPlayer = dynamic_cast<const Player*>(attacker);
         if (attackerPlayer != nullptr && m_foxEntity->trusts(attackerPlayer->playerId())) {

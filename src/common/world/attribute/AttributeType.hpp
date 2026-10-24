@@ -64,11 +64,30 @@ public:
         , m_modifierLibrary(std::move(modifierLibrary))
     {}
 
-    const LerpFunction<Value>& keyframeLerp() const noexcept { return m_keyframeLerp; }
-    const LerpFunction<Value>& stateChangeLerp() const noexcept { return m_stateChangeLerp; }
-    const LerpFunction<Value>& spatialLerp() const noexcept { return m_spatialLerp; }
-    const LerpFunction<Value>& partialTickLerp() const noexcept { return m_partialTickLerp; }
-    const ModifierLibrary& modifierLibrary() const noexcept { return m_modifierLibrary; }
+    const LerpFunction<Value>& keyframeLerp() const noexcept
+    {
+        return m_keyframeLerp;
+    }
+
+    const LerpFunction<Value>& stateChangeLerp() const noexcept
+    {
+        return m_stateChangeLerp;
+    }
+
+    const LerpFunction<Value>& spatialLerp() const noexcept
+    {
+        return m_spatialLerp;
+    }
+
+    const LerpFunction<Value>& partialTickLerp() const noexcept
+    {
+        return m_partialTickLerp;
+    }
+
+    const ModifierLibrary& modifierLibrary() const noexcept
+    {
+        return m_modifierLibrary;
+    }
 
     /**
      * @brief 修饰符是否被本类型允许

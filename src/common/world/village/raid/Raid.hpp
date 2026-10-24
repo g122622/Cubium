@@ -72,6 +72,7 @@ struct RaidParticipant {
     i32 contribution = 0;      ///< 贡献值（击杀袭击者数量）
 
     RaidParticipant() = default;
+
     RaidParticipant(Uuid playerUuid, EntityInstanceId id)
         : uuid(playerUuid)
         , entityId(id)
@@ -114,21 +115,30 @@ public:
     /**
      * @brief 获取袭击 ID。
      */
-    [[nodiscard]] RaidId id() const { return m_id; }
+    [[nodiscard]] RaidId id() const
+    {
+        return m_id;
+    }
 
     /**
      * @brief 获取关联村庄。
      *
      * @return 关联村庄指针，可能为空。
      */
-    [[nodiscard]] village::Village* village() const { return m_village; }
+    [[nodiscard]] village::Village* village() const
+    {
+        return m_village;
+    }
 
     /**
      * @brief 获取当前波次。
      *
      * @return 当前波次编号，0 表示尚未开始。
      */
-    [[nodiscard]] i32 wave() const { return m_wave; }
+    [[nodiscard]] i32 wave() const
+    {
+        return m_wave;
+    }
 
     /**
      * @brief 根据难度计算基础波次数。
@@ -143,31 +153,46 @@ public:
     /**
      * @brief 获取袭击状态。
      */
-    [[nodiscard]] RaidStatus status() const { return m_status; }
+    [[nodiscard]] RaidStatus status() const
+    {
+        return m_status;
+    }
 
     /**
      * @brief 获取袭击中心。
      */
-    [[nodiscard]] BlockPos center() const { return m_center; }
+    [[nodiscard]] BlockPos center() const
+    {
+        return m_center;
+    }
 
     /**
      * @brief 设置袭击中心。
      *
      * @param pos 新的中心方块坐标。
      */
-    void setCenter(BlockPos pos) { m_center = pos; }
+    void setCenter(BlockPos pos)
+    {
+        m_center = pos;
+    }
 
     /**
      * @brief 获取袭击已运行的 tick 数。
      */
-    [[nodiscard]] i64 ticksActive() const { return m_ticksActive; }
+    [[nodiscard]] i64 ticksActive() const
+    {
+        return m_ticksActive;
+    }
 
     /**
      * @brief 获取开始时间戳。
      *
      * @note 当前字段主要为后续序列化和统计预留，默认值为 0。
      */
-    [[nodiscard]] i64 startTime() const { return m_startTime; }
+    [[nodiscard]] i64 startTime() const
+    {
+        return m_startTime;
+    }
 
     /**
      * @brief 获取当前存活袭击者列表。
@@ -176,7 +201,10 @@ public:
      *
      * @warning 该列表只表示当前 Raid 追踪到的实体，不保证实体仍然存在于世界中。
      */
-    [[nodiscard]] const std::vector<EntityInstanceId>& raiders() const { return m_raiders; }
+    [[nodiscard]] const std::vector<EntityInstanceId>& raiders() const
+    {
+        return m_raiders;
+    }
 
     /**
      * @brief 获取仍被追踪为存活的袭击者数量。
@@ -300,7 +328,10 @@ public:
     /**
      * @brief 获取不祥之兆等级。
      */
-    [[nodiscard]] i32 badOmenLevel() const { return m_badOmenLevel; }
+    [[nodiscard]] i32 badOmenLevel() const
+    {
+        return m_badOmenLevel;
+    }
 
     /**
      * @brief 设置不祥之兆等级。
@@ -309,7 +340,10 @@ public:
      *
      * @warning 调用方需保证等级大于等于 1。
      */
-    void setBadOmenLevel(i32 level) { m_badOmenLevel = level; }
+    void setBadOmenLevel(i32 level)
+    {
+        m_badOmenLevel = level;
+    }
 
     // ========== 英雄追踪 ==========
 
@@ -337,7 +371,10 @@ public:
      *
      * @return 英雄 UUID 集合。
      */
-    [[nodiscard]] const std::unordered_set<Uuid, UuidHash>& heroes() const { return m_heroes; }
+    [[nodiscard]] const std::unordered_set<Uuid, UuidHash>& heroes() const
+    {
+        return m_heroes;
+    }
 
     /**
      * @brief 增加玩家贡献值。

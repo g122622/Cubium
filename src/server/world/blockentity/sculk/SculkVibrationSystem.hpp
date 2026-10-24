@@ -75,10 +75,20 @@ public:
         , m_positionSource(entity.getPos())
     {}
 
-    [[nodiscard]] i32 getListenerRadius() const override { return LISTENER_RADIUS; }
+    [[nodiscard]] i32 getListenerRadius() const override
+    {
+        return LISTENER_RADIUS;
+    }
 
-    [[nodiscard]] gameevent::PositionSource& getPositionSource() override { return m_positionSource; }
-    [[nodiscard]] const gameevent::PositionSource& getPositionSource() const override { return m_positionSource; }
+    [[nodiscard]] gameevent::PositionSource& getPositionSource() override
+    {
+        return m_positionSource;
+    }
+
+    [[nodiscard]] const gameevent::PositionSource& getPositionSource() const override
+    {
+        return m_positionSource;
+    }
 
     [[nodiscard]] bool canReceiveVibration(ServerWorld& world,
         const BlockPos& pos,
@@ -91,8 +101,15 @@ public:
         const Entity* sourceEntity,
         f32 distance) override;
 
-    [[nodiscard]] bool requiresAdjacentChunksToBeTicking() const override { return true; }
-    [[nodiscard]] bool canTriggerAvoidVibration() const override { return true; }
+    [[nodiscard]] bool requiresAdjacentChunksToBeTicking() const override
+    {
+        return true;
+    }
+
+    [[nodiscard]] bool canTriggerAvoidVibration() const override
+    {
+        return true;
+    }
 
     /**
      * @brief 标识此 User 为感测体（而非尖啸体）
@@ -100,9 +117,15 @@ public:
      * 用于 SculkVibrationManager::tickAll() 中区分感测体和尖啸体，
      * 以便仅对尖啸体检查 SHRIEKING 结束标志。
      */
-    [[nodiscard]] bool isSculkShrieker() const override { return false; }
+    [[nodiscard]] bool isSculkShrieker() const override
+    {
+        return false;
+    }
 
-    void onDataChanged() override { m_entity.setChanged(); }
+    void onDataChanged() override
+    {
+        m_entity.setChanged();
+    }
 
 private:
     blockentity::SculkSensorBlockEntity& m_entity;
@@ -128,10 +151,20 @@ public:
         , m_positionSource(entity.getPos())
     {}
 
-    [[nodiscard]] i32 getListenerRadius() const override { return LISTENER_RADIUS; }
+    [[nodiscard]] i32 getListenerRadius() const override
+    {
+        return LISTENER_RADIUS;
+    }
 
-    [[nodiscard]] gameevent::PositionSource& getPositionSource() override { return m_positionSource; }
-    [[nodiscard]] const gameevent::PositionSource& getPositionSource() const override { return m_positionSource; }
+    [[nodiscard]] gameevent::PositionSource& getPositionSource() override
+    {
+        return m_positionSource;
+    }
+
+    [[nodiscard]] const gameevent::PositionSource& getPositionSource() const override
+    {
+        return m_positionSource;
+    }
 
     [[nodiscard]] bool canReceiveVibration(ServerWorld& world,
         const BlockPos& pos,
@@ -144,8 +177,15 @@ public:
         const Entity* sourceEntity,
         f32 distance) override;
 
-    [[nodiscard]] bool requiresAdjacentChunksToBeTicking() const override { return true; }
-    [[nodiscard]] bool canTriggerAvoidVibration() const override { return false; }
+    [[nodiscard]] bool requiresAdjacentChunksToBeTicking() const override
+    {
+        return true;
+    }
+
+    [[nodiscard]] bool canTriggerAvoidVibration() const override
+    {
+        return false;
+    }
 
     /**
      * @brief 标识此 User 为尖啸体（而非感测体）
@@ -153,9 +193,15 @@ public:
      * 用于 SculkVibrationManager::tickAll() 中区分感测体和尖啸体，
      * 以便仅对尖啸体检查 SHRIEKING 结束标志。
      */
-    [[nodiscard]] bool isSculkShrieker() const override { return true; }
+    [[nodiscard]] bool isSculkShrieker() const override
+    {
+        return true;
+    }
 
-    void onDataChanged() override { m_entity.setChanged(); }
+    void onDataChanged() override
+    {
+        m_entity.setChanged();
+    }
 
 private:
     blockentity::SculkShriekerBlockEntity& m_entity;
@@ -194,8 +240,15 @@ public:
         , m_data(entity.getVibrationData())
     {}
 
-    [[nodiscard]] Data& getVibrationData() override { return m_data; }
-    [[nodiscard]] const Data& getVibrationData() const override { return m_data; }
+    [[nodiscard]] Data& getVibrationData() override
+    {
+        return m_data;
+    }
+
+    [[nodiscard]] const Data& getVibrationData() const override
+    {
+        return m_data;
+    }
 
     [[nodiscard]] User& getVibrationUser() override
     {
@@ -244,7 +297,10 @@ public:
      * 必须在首次使用前调用。因为 SculkVibrationManager 是 ServerWorld
      * 的成员，在构造时 ServerWorld 尚未完成构造，因此需要延迟设置。
      */
-    void setWorld(ServerWorld& world) { m_world = &world; }
+    void setWorld(ServerWorld& world)
+    {
+        m_world = &world;
+    }
 
     /**
      * @brief 为幽匿感测体注册振动系统

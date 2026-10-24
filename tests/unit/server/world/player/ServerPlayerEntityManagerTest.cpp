@@ -49,8 +49,15 @@ using namespace mc::server;
 /// 玩家实体管理器（世界侧移除通知经它清理映射）。
 class MappingTestServer final : public mc::test::BaseTestServer {
 public:
-    [[nodiscard]] ServerPlayerEntityManager& playerEntityManager() override { return m_entityManager; }
-    [[nodiscard]] const ServerPlayerEntityManager& playerEntityManager() const override { return m_entityManager; }
+    [[nodiscard]] ServerPlayerEntityManager& playerEntityManager() override
+    {
+        return m_entityManager;
+    }
+
+    [[nodiscard]] const ServerPlayerEntityManager& playerEntityManager() const override
+    {
+        return m_entityManager;
+    }
 
 private:
     ServerPlayerEntityManager m_entityManager;
@@ -65,7 +72,10 @@ protected:
         m_world->setServer(&m_server);
     }
 
-    void TearDown() override { m_world.reset(); }
+    void TearDown() override
+    {
+        m_world.reset();
+    }
 
     /// 以原生 Player 实体注册映射（不经过 createPlayerEntity 的完整服务端上下文装配）
     EntityInstanceId registerPlayer(PlayerId playerId)

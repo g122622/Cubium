@@ -74,9 +74,18 @@ public:
     // === ITask 实现 ===
     bool execute(const std::atomic<bool>& abortSignal) override;
     void onCancel() override;
-    util::TaskType type() const override { return util::TaskType::Custom; }
+
+    util::TaskType type() const override
+    {
+        return util::TaskType::Custom;
+    }
+
     std::string description() const override;
-    const char* traceCategory() const override { return "lighting_chunk_load"; }
+
+    const char* traceCategory() const override
+    {
+        return "lighting_chunk_load";
+    }
 
 private:
     ServerWorld* m_world;

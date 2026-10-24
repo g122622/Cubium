@@ -40,13 +40,17 @@ namespace command {
 void MeCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
 {
     auto meNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("me");
-    meNode->setRequirement([](const ServerCommandSource& source) { return source.hasPermission(0); });
+    meNode->setRequirement([](const ServerCommandSource& source) {
+        return source.hasPermission(0);
+    });
     support::applyMetadata(
         meNode, support::makeMetadata("Displays a message about yourself in chat.", "/me <action>", 0, {}, true));
 
     auto actionArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
         "action", StringArgumentType::greedyString());
-    actionArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _performAction(ctx); });
+    actionArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _performAction(ctx);
+    });
     meNode->addChild(actionArg);
 
     dispatcher.registerCommand(meNode);

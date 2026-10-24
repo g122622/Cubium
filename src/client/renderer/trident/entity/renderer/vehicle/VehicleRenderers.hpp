@@ -255,7 +255,10 @@ public:
 
     // ========== PipelineMeshProvider 接口 ==========
 
-    [[nodiscard]] core::PipelineMeshProvider* getPipelineMeshProvider() override { return this; }
+    [[nodiscard]] core::PipelineMeshProvider* getPipelineMeshProvider() override
+    {
+        return this;
+    }
 
     [[nodiscard]] bool generateMesh(::mc::client::ClientEntity& entity,
         std::vector<model::ModelVertex>& vertices,
@@ -370,7 +373,10 @@ public:
 
     // ========== PipelineMeshProvider 接口 ==========
 
-    [[nodiscard]] core::PipelineMeshProvider* getPipelineMeshProvider() override { return this; }
+    [[nodiscard]] core::PipelineMeshProvider* getPipelineMeshProvider() override
+    {
+        return this;
+    }
 
     [[nodiscard]] bool generateMesh(::mc::client::ClientEntity& entity,
         std::vector<model::ModelVertex>& vertices,

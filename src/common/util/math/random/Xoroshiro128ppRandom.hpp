@@ -164,7 +164,10 @@ private:
     /**
      * @brief 左旋转
      */
-    [[nodiscard]] static u64 rotl(u64 x, i32 k) { return (x << k) | (x >> (64 - k)); }
+    [[nodiscard]] static u64 rotl(u64 x, i32 k)
+    {
+        return (x << k) | (x >> (64 - k));
+    }
 };
 
 } // namespace mc::math

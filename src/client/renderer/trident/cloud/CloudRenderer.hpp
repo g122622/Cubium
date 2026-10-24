@@ -172,22 +172,34 @@ public:
     /**
      * @brief 设置云渲染模式
      */
-    void setCloudMode(CloudMode mode) { m_cloudMode = mode; }
+    void setCloudMode(CloudMode mode)
+    {
+        m_cloudMode = mode;
+    }
 
     /**
      * @brief 获取当前云渲染模式
      */
-    [[nodiscard]] CloudMode cloudMode() const { return m_cloudMode; }
+    [[nodiscard]] CloudMode cloudMode() const
+    {
+        return m_cloudMode;
+    }
 
     /**
      * @brief 检查是否已初始化
      */
-    [[nodiscard]] bool isInitialized() const { return m_initialized; }
+    [[nodiscard]] bool isInitialized() const
+    {
+        return m_initialized;
+    }
 
     /**
      * @brief 获取当前云颜色
      */
-    [[nodiscard]] const glm::vec4& cloudColor() const { return m_cloudColor; }
+    [[nodiscard]] const glm::vec4& cloudColor() const
+    {
+        return m_cloudColor;
+    }
 
 private:
     // ========================================================================

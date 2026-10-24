@@ -52,14 +52,23 @@ namespace {
 // 测试夹具：每用例清空注册表，避免 testName 撞或跨用例残留。
 class GameTestRegistrationFixture : public ::testing::Test {
 protected:
-    void SetUp() override { mc::test::GameTestRegistry::instance().clearAllTestMethods(); }
-    void TearDown() override { mc::test::GameTestRegistry::instance().clearAllTestMethods(); }
+    void SetUp() override
+    {
+        mc::test::GameTestRegistry::instance().clearAllTestMethods();
+    }
+
+    void TearDown() override
+    {
+        mc::test::GameTestRegistry::instance().clearAllTestMethods();
+    }
 };
 
 // 构造一个总是通过的 TestBody。
 mc::test::NativeGameTestFunction::TestBody _passBody()
 {
-    return [](mc::test::IGameTestHelper& /*helper*/) { return mc::test::pass(); };
+    return [](mc::test::IGameTestHelper& /*helper*/) {
+        return mc::test::pass();
+    };
 }
 } // namespace
 

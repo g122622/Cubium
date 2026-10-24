@@ -106,7 +106,10 @@ public:
     /**
      * @brief 获取床的颜色
      */
-    [[nodiscard]] DyeColor getColor() const { return m_color; }
+    [[nodiscard]] DyeColor getColor() const
+    {
+        return m_color;
+    }
 
     /**
      * @brief 设置床被占用状态

@@ -36,9 +36,15 @@ using namespace mc::client;
  */
 class ClientPlayerPredictorTest : public ::testing::Test {
 protected:
-    void SetUp() override { predictor = std::make_unique<ClientPlayerPredictor>(); }
+    void SetUp() override
+    {
+        predictor = std::make_unique<ClientPlayerPredictor>();
+    }
 
-    void TearDown() override { predictor.reset(); }
+    void TearDown() override
+    {
+        predictor.reset();
+    }
 
     std::unique_ptr<ClientPlayerPredictor> predictor;
 };

@@ -85,7 +85,10 @@ public:
     /**
      * @brief 设置 VSync 状态（在下次重建交换链时生效）
      */
-    void setVSync(bool enabled) { m_config.vsync = enabled; }
+    void setVSync(bool enabled)
+    {
+        m_config.vsync = enabled;
+    }
 
     /**
      * @brief 获取下一帧图像
@@ -98,16 +101,52 @@ public:
     [[nodiscard]] Result<void> present(u32 imageIndex, VkSemaphore waitSemaphore);
 
     // 访问器
-    [[nodiscard]] VkSwapchainKHR swapchain() const { return m_swapchain; }
-    [[nodiscard]] VkFormat imageFormat() const { return m_imageFormat; }
-    [[nodiscard]] VkFormat format() const { return m_imageFormat; } // 别名
-    [[nodiscard]] VkColorSpaceKHR colorSpace() const { return m_colorSpace; }
-    [[nodiscard]] VkExtent2D extent() const { return m_extent; }
-    [[nodiscard]] const std::vector<VkImage>& images() const { return m_images; }
-    [[nodiscard]] const std::vector<VkImageView>& imageViews() const { return m_imageViews; }
+    [[nodiscard]] VkSwapchainKHR swapchain() const
+    {
+        return m_swapchain;
+    }
+
+    [[nodiscard]] VkFormat imageFormat() const
+    {
+        return m_imageFormat;
+    }
+
+    [[nodiscard]] VkFormat format() const
+    {
+        return m_imageFormat;
+    } // 别名
+
+    [[nodiscard]] VkColorSpaceKHR colorSpace() const
+    {
+        return m_colorSpace;
+    }
+
+    [[nodiscard]] VkExtent2D extent() const
+    {
+        return m_extent;
+    }
+
+    [[nodiscard]] const std::vector<VkImage>& images() const
+    {
+        return m_images;
+    }
+
+    [[nodiscard]] const std::vector<VkImageView>& imageViews() const
+    {
+        return m_imageViews;
+    }
+
     [[nodiscard]] VkImageView imageView(u32 index) const;
-    [[nodiscard]] u32 imageCount() const { return static_cast<u32>(m_images.size()); }
-    [[nodiscard]] bool isInitialized() const { return m_initialized; }
+
+    [[nodiscard]] u32 imageCount() const
+    {
+        return static_cast<u32>(m_images.size());
+    }
+
+    [[nodiscard]] bool isInitialized() const
+    {
+        return m_initialized;
+    }
 
 private:
     // 创建方法

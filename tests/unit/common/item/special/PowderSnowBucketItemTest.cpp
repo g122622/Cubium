@@ -36,6 +36,7 @@
 
 namespace mc {
 using item::PowderSnowBucketItem;
+
 namespace {
 
 // ============================================================================
@@ -50,6 +51,7 @@ public:
     {
         throw std::runtime_error("PowderSnowTestWorld::tickManager not implemented");
     }
+
     [[nodiscard]] const world::tick::TickManager& tickManager() const override
     {
         throw std::runtime_error("PowderSnowTestWorld::tickManager not implemented");
@@ -80,8 +82,15 @@ public:
         m_lastPlayedSound = soundId;
     }
 
-    [[nodiscard]] const std::optional<ResourceLocation>& lastPlayedSound() const { return m_lastPlayedSound; }
-    void clearLastPlayedSound() { m_lastPlayedSound.reset(); }
+    [[nodiscard]] const std::optional<ResourceLocation>& lastPlayedSound() const
+    {
+        return m_lastPlayedSound;
+    }
+
+    void clearLastPlayedSound()
+    {
+        m_lastPlayedSound.reset();
+    }
 
 private:
     static u64 packPos(i32 x, i32 y, i32 z)
@@ -108,7 +117,10 @@ protected:
         Items::initialize();
     }
 
-    void SetUp() override { m_world = std::make_unique<PowderSnowTestWorld>(); }
+    void SetUp() override
+    {
+        m_world = std::make_unique<PowderSnowTestWorld>();
+    }
 
     std::unique_ptr<PowderSnowTestWorld> m_world;
 };

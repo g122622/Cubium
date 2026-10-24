@@ -121,13 +121,19 @@ public:
      * @brief 设置尖刺动画值
      * @param animation 尖刺动画值 (0.0 - 1.0)，从实体获取
      */
-    void setSpikeAnimation(f32 animation) { m_spikeAnimation = animation; }
+    void setSpikeAnimation(f32 animation)
+    {
+        m_spikeAnimation = animation;
+    }
 
     /**
      * @brief 设置尾巴动画值
      * @param animation 尾巴动画值，从实体获取
      */
-    void setTailAnimation(f32 animation) { m_tailAnimation = animation; }
+    void setTailAnimation(f32 animation)
+    {
+        m_tailAnimation = animation;
+    }
 
     /**
      * @brief 设置目标实体眼睛位置（用于眼睛追踪）
@@ -183,11 +189,25 @@ public:
      * @brief 设置开盖动画值
      * @param peekAmount 开盖动画值 (0.0 - 1.0)，从实体获取
      */
-    void setPeekAmount(f32 peekAmount) { m_peekAmount = peekAmount; }
+    void setPeekAmount(f32 peekAmount)
+    {
+        m_peekAmount = peekAmount;
+    }
 
-    [[nodiscard]] std::shared_ptr<ModelRenderer> getBase() const { return m_base; }
-    [[nodiscard]] std::shared_ptr<ModelRenderer> getLid() const { return m_lid; }
-    [[nodiscard]] std::shared_ptr<ModelRenderer> getHead() const { return m_head; }
+    [[nodiscard]] std::shared_ptr<ModelRenderer> getBase() const
+    {
+        return m_base;
+    }
+
+    [[nodiscard]] std::shared_ptr<ModelRenderer> getLid() const
+    {
+        return m_lid;
+    }
+
+    [[nodiscard]] std::shared_ptr<ModelRenderer> getHead() const
+    {
+        return m_head;
+    }
 
 private:
     void _setupParts();

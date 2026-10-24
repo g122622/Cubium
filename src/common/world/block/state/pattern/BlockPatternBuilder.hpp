@@ -59,7 +59,9 @@ public:
     BlockPatternBuilder()
     {
         // 空格默认匹配任何方块
-        m_lookup[' '] = [](const BlockInWorld&) { return true; };
+        m_lookup[' '] = [](const BlockInWorld&) {
+            return true;
+        };
     }
 
     /**
@@ -75,7 +77,10 @@ public:
     /**
      * @brief 创建构建器
      */
-    static BlockPatternBuilder start() { return {}; }
+    static BlockPatternBuilder start()
+    {
+        return {};
+    }
 
     /**
      * @brief 绑定字符到谓词

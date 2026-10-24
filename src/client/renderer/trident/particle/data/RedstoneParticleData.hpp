@@ -69,7 +69,11 @@ public:
     // ParticleData 接口实现
     // ========================================================================
 
-    [[nodiscard]] ParticleTypeId getType() const override { return ParticleTypeId::Redstone; }
+    [[nodiscard]] ParticleTypeId getType() const override
+    {
+        return ParticleTypeId::Redstone;
+    }
+
     [[nodiscard]] std::string getTypeName() const override;
     [[nodiscard]] std::string getParameters() const override;
     [[nodiscard]] std::unique_ptr<ParticleData> clone() const override;
@@ -83,14 +87,20 @@ public:
      *
      * @return RGB 颜色值
      */
-    [[nodiscard]] const glm::vec3& getColor() const { return m_color; }
+    [[nodiscard]] const glm::vec3& getColor() const
+    {
+        return m_color;
+    }
 
     /**
      * @brief 设置颜色
      *
      * @param color RGB 颜色值
      */
-    void setColor(const glm::vec3& color) { m_color = color; }
+    void setColor(const glm::vec3& color)
+    {
+        m_color = color;
+    }
 
 private:
     glm::vec3 m_color; ///< RGB 颜色值

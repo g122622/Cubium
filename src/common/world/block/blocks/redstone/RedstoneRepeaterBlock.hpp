@@ -91,7 +91,10 @@ public:
     [[nodiscard]] bool isLocked(IWorld& world, const BlockPos& pos, const BlockState& state) const override;
 
 protected:
-    [[nodiscard]] bool sideInputDiodesOnly() const override { return true; }
+    [[nodiscard]] bool sideInputDiodesOnly() const override
+    {
+        return true;
+    }
 
 public:
     // ========== 中继器特有方法 ==========

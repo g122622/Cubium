@@ -45,7 +45,10 @@ namespace {
  */
 class WitchModelConstructionTest : public ::testing::Test {
 protected:
-    void SetUp() override { m_model = std::make_unique<WitchModel>(); }
+    void SetUp() override
+    {
+        m_model = std::make_unique<WitchModel>();
+    }
 
     std::unique_ptr<WitchModel> m_model;
 };
@@ -219,7 +222,10 @@ TEST_F(WitchModelConstructionTest, SetEntityIdWorks)
  */
 class WitchModelAnimationTest : public ::testing::Test {
 protected:
-    void SetUp() override { m_model = std::make_unique<WitchModel>(); }
+    void SetUp() override
+    {
+        m_model = std::make_unique<WitchModel>();
+    }
 
     std::unique_ptr<WitchModel> m_model;
 };

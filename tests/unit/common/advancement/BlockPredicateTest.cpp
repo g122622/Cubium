@@ -173,7 +173,10 @@ TEST_F(StatePropertiesPredicateFromJsonTest, ToJsonValueEmpty)
 
 class BlockPredicateTest : public ::testing::Test {
 protected:
-    void SetUp() override { VanillaBlocks::initialize(); }
+    void SetUp() override
+    {
+        VanillaBlocks::initialize();
+    }
 };
 
 TEST_F(BlockPredicateTest, DefaultPredicateMatchesAll)

@@ -24,7 +24,9 @@ public:
         : m_deadline(deadline)
         , m_phase(std::move(phase))
         , m_onTimeout(std::move(onTimeout))
-        , m_thread([this] { _watch(); })
+        , m_thread([this] {
+            _watch();
+        })
     {}
 
     ~GameTestWatchdog()
@@ -79,8 +81,9 @@ private:
         while (!m_stopped) {
             const auto revision = m_revision;
             const auto deadline = m_deadline;
-            if (m_changed.wait_until(
-                    lock, deadline, [this, revision] { return m_stopped || m_revision != revision; })) {
+            if (m_changed.wait_until(lock, deadline, [this, revision] {
+                    return m_stopped || m_revision != revision;
+                })) {
                 continue;
             }
             const auto phase = m_phase;

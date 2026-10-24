@@ -714,8 +714,9 @@ void PlayerBroadcaster::broadcastLightUpdate(ChunkCoord x,
         skyLight.size(),
         "BlockLightSize",
         blockLight.size(),
-        [flow = ::perfetto::Flow::ProcessScoped(SectionPos(x, sectionY, z).toLong())](
-            ::perfetto::EventContext ctx) { flow(ctx); });
+        [flow = ::perfetto::Flow::ProcessScoped(SectionPos(x, sectionY, z).toLong())](::perfetto::EventContext ctx) {
+            flow(ctx);
+        });
 
     // 1.21.11 ClientboundLightUpdatePacket 线格式：
     //   VarInt(x)+VarInt(z)+4×BitSet(skyYMask/blockYMask/emptySkyYMask/emptyBlockYMask)+2×List<byte[≤2048]>

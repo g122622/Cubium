@@ -41,6 +41,7 @@ struct TextureRegion {
     f64 u1 = 1.0f, v1 = 1.0f; // 右下角
 
     TextureRegion() = default;
+
     TextureRegion(f64 u0_, f64 v0_, f64 u1_, f64 v1_)
         : u0(u0_)
         , v0(v0_)
@@ -51,24 +52,36 @@ struct TextureRegion {
     /**
      * @brief 获取区域宽度 (UV单位)
      */
-    [[nodiscard]] f64 width() const { return u1 - u0; }
+    [[nodiscard]] f64 width() const
+    {
+        return u1 - u0;
+    }
 
     /**
      * @brief 获取区域高度 (UV单位)
      */
-    [[nodiscard]] f64 height() const { return v1 - v0; }
+    [[nodiscard]] f64 height() const
+    {
+        return v1 - v0;
+    }
 
     /**
      * @brief 创建默认区域 (整个纹理)
      */
-    static TextureRegion full() { return TextureRegion(0.0f, 0.0f, 1.0f, 1.0f); }
+    static TextureRegion full()
+    {
+        return TextureRegion(0.0f, 0.0f, 1.0f, 1.0f);
+    }
 
     bool operator==(const TextureRegion& other) const
     {
         return u0 == other.u0 && v0 == other.v0 && u1 == other.u1 && v1 == other.v1;
     }
 
-    bool operator!=(const TextureRegion& other) const { return !(*this == other); }
+    bool operator!=(const TextureRegion& other) const
+    {
+        return !(*this == other);
+    }
 };
 
 /**

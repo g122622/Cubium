@@ -12,7 +12,11 @@ namespace mc::test {
 // 样例测试体：空序列 thenSucceed 即通过（验证框架最小路径：注册→放置→tick→序列完成→succeed）
 static void ExampleTests_alwaysSucceed(mc::test::GameTestHelper& helper)
 {
-    helper.startSequence().thenExecute([] { return mc::test::pass(); }).thenSucceed();
+    helper.startSequence()
+        .thenExecute([] {
+            return mc::test::pass();
+        })
+        .thenSucceed();
 }
 
 // 静态注册：maxTicks=20，required=true，结构名 gametest:empty_3x3

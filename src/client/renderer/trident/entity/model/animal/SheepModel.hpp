@@ -56,7 +56,10 @@ public:
      * @brief 设置羊毛状态
      * @param hasWool 是否有羊毛
      */
-    void setWool(bool hasWool) { m_hasWool = hasWool; }
+    void setWool(bool hasWool)
+    {
+        m_hasWool = hasWool;
+    }
 
     /**
      * @brief 设置吃草动画计时器
@@ -64,7 +67,10 @@ public:
      *
      * 收到实体状态码 10 时设为 40，每 tick 递减 1。
      */
-    void setEatAnimationTimer(i32 eatAnimationTimer) { m_eatAnimationTimer = eatAnimationTimer; }
+    void setEatAnimationTimer(i32 eatAnimationTimer)
+    {
+        m_eatAnimationTimer = eatAnimationTimer;
+    }
 
     /**
      * @brief 计算头部吃草 Y 位置缩放因子

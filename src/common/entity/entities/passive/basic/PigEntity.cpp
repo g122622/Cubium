@@ -86,7 +86,9 @@ bool PigEntity::isBreedingItem(const ItemStack& itemStack) const
 {
     // 猪用胡萝卜、马铃薯、甜菜根繁殖
     const Item* item = itemStack.getItem();
-    if (item == nullptr) return false;
+    if (item == nullptr) {
+        return false;
+    }
     return item == Items::CARROT || item == Items::POTATO || item == Items::BEETROOT;
 }
 

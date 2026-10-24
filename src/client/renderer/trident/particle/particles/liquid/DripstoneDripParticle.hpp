@@ -106,7 +106,10 @@ public:
     static std::unique_ptr<Particle> createFalling(
         const glm::vec3& pos, const glm::vec3& velocity, mc::client::ClientWorld* world);
 
-    [[nodiscard]] ParticleRenderType getRenderType() const override { return ParticleRenderType::PARTICLE_SHEET_LIT; }
+    [[nodiscard]] ParticleRenderType getRenderType() const override
+    {
+        return ParticleRenderType::PARTICLE_SHEET_LIT;
+    }
 
     [[nodiscard]] ResourceLocation getTextureLocation() const override
     {

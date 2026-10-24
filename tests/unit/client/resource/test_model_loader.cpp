@@ -1195,13 +1195,20 @@ namespace {
 class MockItemModelResourcePack : public IResourcePack {
 public:
     MockItemModelResourcePack() = default;
+
     explicit MockItemModelResourcePack(std::string name)
         : m_name(std::move(name))
     {}
 
-    Result<void> initialize() override { return Result<void>::ok(); }
+    Result<void> initialize() override
+    {
+        return Result<void>::ok();
+    }
 
-    [[nodiscard]] const PackMetadata& metadata() const override { return m_metadata; }
+    [[nodiscard]] const PackMetadata& metadata() const override
+    {
+        return m_metadata;
+    }
 
     [[nodiscard]] bool hasResource(resource::PackType type, std::string_view resourcePath) const override
     {
@@ -1277,7 +1284,10 @@ public:
         return result;
     }
 
-    [[nodiscard]] std::string name() const override { return m_name; }
+    [[nodiscard]] std::string name() const override
+    {
+        return m_name;
+    }
 
     /// @brief 添加一个文本资源（自动添加类型目录前缀 "assets/"）
     void addTextResource(const std::string& path, const std::string& content)
@@ -1292,14 +1302,24 @@ public:
         m_resources[fullPrefixedPath] = std::vector<u8>(content.begin(), content.end());
     }
 
-    void setListResourcesShouldFail(bool should) { m_listResourcesShouldFail = should; }
-    void setGetNamespacesShouldFail(bool should) { m_getNamespacesShouldFail = should; }
+    void setListResourcesShouldFail(bool should)
+    {
+        m_listResourcesShouldFail = should;
+    }
+
+    void setGetNamespacesShouldFail(bool should)
+    {
+        m_getNamespacesShouldFail = should;
+    }
 
     /// @brief 控制 listResources 返回的路径是否带 "assets/" 前缀。
     ///
     /// 默认 false（与 FolderResourcePack 一致）。设为 true 可模拟错误路径格式，
     /// 用于测试 loadAllModels 的路径解析失败处理。
-    void setReturnPathsWithTypePrefix(bool should) { m_returnPathsWithTypePrefix = should; }
+    void setReturnPathsWithTypePrefix(bool should)
+    {
+        m_returnPathsWithTypePrefix = should;
+    }
 
 private:
     std::string m_name = "MockItemModelResourcePack";

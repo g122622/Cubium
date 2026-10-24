@@ -182,17 +182,24 @@ bool ServerPlayer::sendServerLinks(const std::vector<mc::network::ir::play::Serv
 Result<void> ServerPlayer::showDialog(const nlohmann::json& definition)
 {
     auto packet = server::net::buildShowDialogIr(definition);
-    if (packet.failed()) return packet.error();
-    if (!_sendIrPacket(packet.value()))
+    if (packet.failed()) {
+        return packet.error();
+    }
+    if (!_sendIrPacket(packet.value())) {
         return Error(ErrorCode::InvalidState, "Cannot send dialog without an active Play connection");
+    }
     return {};
 }
+
 Result<void> ServerPlayer::showDialog(const ResourceLocation& name)
 {
     auto packet = server::net::resolveDialogIr(name);
-    if (packet.failed()) return packet.error();
-    if (!_sendIrPacket(packet.value()))
+    if (packet.failed()) {
+        return packet.error();
+    }
+    if (!_sendIrPacket(packet.value())) {
         return Error(ErrorCode::InvalidState, "Cannot send dialog without an active Play connection");
+    }
     return {};
 }
 
@@ -545,8 +552,10 @@ void ServerPlayer::triggerLootTableGenerated(const ResourceLocation& lootTableId
     if (trigger == nullptr) {
         return;
     }
-    trigger->advancement::AbstractCriterionTrigger<advancement::LootTableTriggerInstance>::trigger(*m_advancements,
-        [&lootTableId](const advancement::LootTableTriggerInstance& instance) { return instance.test(lootTableId); });
+    trigger->advancement::AbstractCriterionTrigger<advancement::LootTableTriggerInstance>::trigger(
+        *m_advancements, [&lootTableId](const advancement::LootTableTriggerInstance& instance) {
+            return instance.test(lootTableId);
+        });
 }
 
 void ServerPlayer::triggerUsedTotem(const ItemStack& totem)
@@ -558,8 +567,10 @@ void ServerPlayer::triggerUsedTotem(const ItemStack& totem)
     if (trigger == nullptr) {
         return;
     }
-    trigger->advancement::AbstractCriterionTrigger<advancement::UsedTotemTriggerInstance>::trigger(*m_advancements,
-        [&totem](const advancement::UsedTotemTriggerInstance& instance) { return instance.test(totem); });
+    trigger->advancement::AbstractCriterionTrigger<advancement::UsedTotemTriggerInstance>::trigger(
+        *m_advancements, [&totem](const advancement::UsedTotemTriggerInstance& instance) {
+            return instance.test(totem);
+        });
 }
 
 void ServerPlayer::_onUsingItemTick(const ItemStack& activeItem)
@@ -571,8 +582,10 @@ void ServerPlayer::_onUsingItemTick(const ItemStack& activeItem)
     if (trigger == nullptr) {
         return;
     }
-    trigger->advancement::AbstractCriterionTrigger<advancement::UsingItemTriggerInstance>::trigger(*m_advancements,
-        [&activeItem](const advancement::UsingItemTriggerInstance& instance) { return instance.test(activeItem); });
+    trigger->advancement::AbstractCriterionTrigger<advancement::UsingItemTriggerInstance>::trigger(
+        *m_advancements, [&activeItem](const advancement::UsingItemTriggerInstance& instance) {
+            return instance.test(activeItem);
+        });
 }
 
 void ServerPlayer::triggerPlayerHurtEntity(
@@ -1330,8 +1343,10 @@ void ServerPlayer::triggerStartedRiding()
     advancement::CriterionContext context;
     context.entity = this;
     context.world = Entity::world();
-    trigger->advancement::AbstractCriterionTrigger<advancement::StartRidingTriggerInstance>::trigger(*m_advancements,
-        [&context](const advancement::StartRidingTriggerInstance& instance) { return instance.test(context); });
+    trigger->advancement::AbstractCriterionTrigger<advancement::StartRidingTriggerInstance>::trigger(
+        *m_advancements, [&context](const advancement::StartRidingTriggerInstance& instance) {
+            return instance.test(context);
+        });
 }
 
 void ServerPlayer::triggerLightningStrike(const Entity& lightning, const Entity& bystander)
@@ -1884,7 +1899,9 @@ void ServerPlayer::_handleTeamKill(const std::string& scorerName, const std::str
     if (criteria == nullptr) {
         return;
     }
-    scoreboard->forAllObjectives(*criteria, scorerName, [](scoreboard::Score& score) { score.incrementScore(); });
+    scoreboard->forAllObjectives(*criteria, scorerName, [](scoreboard::Score& score) {
+        score.incrementScore();
+    });
 }
 
 void ServerPlayer::awardKillScore(Entity& killedEntity, const DamageSource& source)
@@ -1922,8 +1939,9 @@ void ServerPlayer::awardKillScore(Entity& killedEntity, const DamageSource& sour
     // 1. 总击杀计数判据递增（KILL_COUNT_ALL）。forAllObjectives 为创建式查找（对齐原版
     //    getOrCreatePlayerScore(forceCreate=true)），首次击杀即创建条目并计数。
     if (auto* totalKillCount = criteriaRegistry.getCriteria(scoreboard::TotalKillCountCriteria::NAME)) {
-        scoreboard->forAllObjectives(
-            *totalKillCount, username(), [](scoreboard::Score& score) { score.incrementScore(); });
+        scoreboard->forAllObjectives(*totalKillCount, username(), [](scoreboard::Score& score) {
+            score.incrementScore();
+        });
     }
 
     // 2. 按被杀者类型递进统计与判据。
@@ -1931,8 +1949,9 @@ void ServerPlayer::awardKillScore(Entity& killedEntity, const DamageSource& sour
     if (killedIsPlayer) {
         // 击杀玩家：递增 playerKillCount 判据 + PLAYER_KILLS 统计。
         if (auto* playerKillCount = criteriaRegistry.getCriteria(scoreboard::PlayerKillCountCriteria::NAME)) {
-            scoreboard->forAllObjectives(
-                *playerKillCount, username(), [](scoreboard::Score& score) { score.incrementScore(); });
+            scoreboard->forAllObjectives(*playerKillCount, username(), [](scoreboard::Score& score) {
+                score.incrementScore();
+            });
         }
         awardCustomStat(ResourceLocation(stats::PLAYER_KILLS), 1);
     } else {

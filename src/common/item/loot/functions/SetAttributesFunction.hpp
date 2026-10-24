@@ -58,6 +58,7 @@ public:
         std::string uuid;               ///< 可选UUID；若为空则运行时随机生成
 
         Modifier() = default;
+
         Modifier(const std::string& n,
             const std::string& attr,
             const math::RandomValueRange& amt,
@@ -85,9 +86,16 @@ public:
 
     [[nodiscard]] ItemStack apply(ItemStack stack, LootContext& context) const override;
     [[nodiscard]] std::unique_ptr<LootFunction> clone() const noexcept override;
-    [[nodiscard]] std::string getType() const override { return "set_attributes"; }
 
-    [[nodiscard]] const std::vector<Modifier>& getModifiers() const { return m_modifiers; }
+    [[nodiscard]] std::string getType() const override
+    {
+        return "set_attributes";
+    }
+
+    [[nodiscard]] const std::vector<Modifier>& getModifiers() const
+    {
+        return m_modifiers;
+    }
 
 private:
     std::vector<Modifier> m_modifiers;

@@ -142,7 +142,9 @@ u32 JigsawReplacementStructureProcessor::parseBlockStateString(const std::string
                 std::string value = prop.substr(eqPos + 1);
                 properties[key] = value;
             }
-            if (end == std::string::npos) break;
+            if (end == std::string::npos) {
+                break;
+            }
             start = end + 1;
             end = propsStr.find(',', start);
         }
@@ -165,10 +167,14 @@ u32 JigsawReplacementStructureProcessor::parseBlockStateString(const std::string
 
         for (const auto& [key, value] : properties) {
             const IProperty* prop = container.getProperty(key);
-            if (!prop) continue;
+            if (!prop) {
+                continue;
+            }
 
             auto parsedValue = prop->parseValue(value);
-            if (!parsedValue) continue;
+            if (!parsedValue) {
+                continue;
+            }
 
             wanted[prop] = *parsedValue;
         }
@@ -176,7 +182,9 @@ u32 JigsawReplacementStructureProcessor::parseBlockStateString(const std::string
         // 查找匹配的状态
         if (!wanted.empty()) {
             for (const auto& candidate : container.validStates()) {
-                if (!candidate) continue;
+                if (!candidate) {
+                    continue;
+                }
 
                 bool matches = true;
                 for (const auto& [prop, index] : wanted) {

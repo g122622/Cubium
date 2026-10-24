@@ -42,11 +42,16 @@ namespace loot {
 class EmptyLootEntry : public LootEntry {
 public:
     EmptyLootEntry() = default;
+
     explicit EmptyLootEntry(i32 weight, i32 quality = 0)
         : LootEntry(weight, quality)
     {}
 
-    [[nodiscard]] LootEntryType getType() const override { return LootEntryType::Empty; }
+    [[nodiscard]] LootEntryType getType() const override
+    {
+        return LootEntryType::Empty;
+    }
+
     [[nodiscard]] std::unique_ptr<LootEntry> clone() const override;
 
     void expand(LootContext& context, std::function<void(LootEntry&)> consumer) const override;

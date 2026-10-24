@@ -58,7 +58,11 @@ public:
     [[nodiscard]] i32 currentTick() const noexcept override;
     [[nodiscard]] i32 maxTicks() const noexcept override;
     [[nodiscard]] Rotation rotation() const noexcept override;
-    [[nodiscard]] const TestTransform& transform() const noexcept override { return m_transform; }
+
+    [[nodiscard]] const TestTransform& transform() const noexcept override
+    {
+        return m_transform;
+    }
 
     // === 2. 序列与调度 ===
     [[nodiscard]] GameTestSequence& startSequence() override;
@@ -161,7 +165,11 @@ public:
     [[nodiscard]] const mc::BlockState* getBlock(BlockPos relativePos) const override;
     [[nodiscard]] FenceConnectivity getFenceConnectivity(BlockPos relativePos) const override;
     [[nodiscard]] std::unique_ptr<mc::blocks::SculkSpreader> getSculkSpreader(BlockPos relativePos) const override;
-    [[nodiscard]] mc::IWorld& world() noexcept override { return m_world; }
+
+    [[nodiscard]] mc::IWorld& world() noexcept override
+    {
+        return m_world;
+    }
 
     // === 9. 工具 ===
     void print(const std::string& text) override;

@@ -58,36 +58,72 @@ class PlacementSettings {
 public:
     PlacementSettings();
 
-    [[nodiscard]] Rotation getRotation() const { return m_rotation; }
+    [[nodiscard]] Rotation getRotation() const
+    {
+        return m_rotation;
+    }
+
     PlacementSettings& setRotation(Rotation rotation);
 
-    [[nodiscard]] Mirror getMirror() const { return m_mirror; }
+    [[nodiscard]] Mirror getMirror() const
+    {
+        return m_mirror;
+    }
+
     PlacementSettings& setMirror(Mirror mirror);
 
-    [[nodiscard]] bool ignoreEntities() const { return m_ignoreEntities; }
+    [[nodiscard]] bool ignoreEntities() const
+    {
+        return m_ignoreEntities;
+    }
+
     PlacementSettings& setIgnoreEntities(bool ignore);
 
-    [[nodiscard]] bool keepLiquids() const { return m_keepLiquids; }
+    [[nodiscard]] bool keepLiquids() const
+    {
+        return m_keepLiquids;
+    }
+
     PlacementSettings& setKeepLiquids(bool keep);
 
-    [[nodiscard]] const structure::StructureBoundingBox* getBoundingBox() const { return m_boundingBox; }
+    [[nodiscard]] const structure::StructureBoundingBox* getBoundingBox() const
+    {
+        return m_boundingBox;
+    }
+
     PlacementSettings& setBoundingBox(const structure::StructureBoundingBox* bounds);
 
-    [[nodiscard]] const BlockPos& getCenterOffset() const { return m_centerOffset; }
+    [[nodiscard]] const BlockPos& getCenterOffset() const
+    {
+        return m_centerOffset;
+    }
+
     PlacementSettings& setCenterOffset(const BlockPos& offset);
 
     // TODO: blockUpdateFlags 目前尚无任何消费点（结构放置的 flags 由 Template::place/placeInWorld
     //       的参数直接指定），待放置流程改由本字段驱动时接入 setBlockState。
-    [[nodiscard]] i32 getBlockUpdateFlags() const { return m_blockUpdateFlags; }
+    [[nodiscard]] i32 getBlockUpdateFlags() const
+    {
+        return m_blockUpdateFlags;
+    }
+
     PlacementSettings& setBlockUpdateFlags(i32 flags);
 
-    [[nodiscard]] const StructureProcessorList* getProcessors() const { return m_processors; }
+    [[nodiscard]] const StructureProcessorList* getProcessors() const
+    {
+        return m_processors;
+    }
+
     PlacementSettings& setProcessors(const StructureProcessorList* processors);
 
     /**
      * @brief 获取世界读取器（用于 GravityStructureProcessor 等需要高度信息的处理器）
      */
-    [[nodiscard]] const IWorld* getWorld() const { return m_world; }
+    [[nodiscard]] const IWorld* getWorld() const
+    {
+        return m_world;
+    }
+
     PlacementSettings& setWorld(const IWorld* world)
     {
         m_world = world;

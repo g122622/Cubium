@@ -77,7 +77,9 @@ namespace {
 void EffectCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
 {
     auto effectNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("effect");
-    effectNode->setRequirement([](const ServerCommandSource& source) { return source.hasPermission(2); });
+    effectNode->setRequirement([](const ServerCommandSource& source) {
+        return source.hasPermission(2);
+    });
     support::applyMetadata(effectNode,
         support::makeMetadata("Gives or removes status effects from players.",
             "/effect (give|clear) <player> [<effect>] [<seconds>] [<amplifier>] [<hideParticles>]",
@@ -98,18 +100,26 @@ void EffectCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatche
     // 可选参数
     auto secondsNode = std::make_shared<ArgumentCommandNode<ServerCommandSource, i32>>(
         "seconds", IntegerArgumentType::integer(0, 1000000));
-    secondsNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _giveEffect(ctx); });
+    secondsNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _giveEffect(ctx);
+    });
 
     auto amplifierNode = std::make_shared<ArgumentCommandNode<ServerCommandSource, i32>>(
         "amplifier", IntegerArgumentType::integer(0, 255));
-    amplifierNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _giveEffect(ctx); });
+    amplifierNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _giveEffect(ctx);
+    });
 
     auto hideParticlesNode =
         std::make_shared<ArgumentCommandNode<ServerCommandSource, bool>>("hideParticles", BoolArgumentType::boolArg());
-    hideParticlesNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _giveEffect(ctx); });
+    hideParticlesNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _giveEffect(ctx);
+    });
 
     // 默认使用效果名称
-    effectNameNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _giveEffect(ctx); });
+    effectNameNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _giveEffect(ctx);
+    });
 
     amplifierNode->addChild(hideParticlesNode);
     secondsNode->addChild(amplifierNode);
@@ -122,11 +132,15 @@ void EffectCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatche
 
     auto clearPlayerNode = std::make_shared<ArgumentCommandNode<ServerCommandSource, EntitySelector>>(
         "player", EntityArgumentType::players());
-    clearPlayerNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _clearAllEffects(ctx); });
+    clearPlayerNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _clearAllEffects(ctx);
+    });
 
     auto clearEffectNode =
         std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>("effect", StringArgumentType::word());
-    clearEffectNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _clearSpecificEffect(ctx); });
+    clearEffectNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _clearSpecificEffect(ctx);
+    });
 
     clearPlayerNode->addChild(clearEffectNode);
     clearNode->addChild(clearPlayerNode);

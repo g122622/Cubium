@@ -105,25 +105,37 @@ public:
     /**
      * @brief 获取村庄ID
      */
-    [[nodiscard]] VillageId getId() const noexcept { return m_id; }
+    [[nodiscard]] VillageId getId() const noexcept
+    {
+        return m_id;
+    }
 
     /**
      * @brief 设置村庄ID（仅由 VillageManager 调用）
      * @param id 村庄ID
      */
-    void setId(VillageId id) noexcept { m_id = id; }
+    void setId(VillageId id) noexcept
+    {
+        m_id = id;
+    }
 
     // ========== 边界管理 ==========
 
     /**
      * @brief 获取村庄中心
      */
-    [[nodiscard]] BlockPos getCenter() const noexcept { return m_center; }
+    [[nodiscard]] BlockPos getCenter() const noexcept
+    {
+        return m_center;
+    }
 
     /**
      * @brief 获取村庄半径
      */
-    [[nodiscard]] f32 getRadius() const noexcept { return m_radius; }
+    [[nodiscard]] f32 getRadius() const noexcept
+    {
+        return m_radius;
+    }
 
     /**
      * @brief 检查位置是否在村庄内
@@ -170,19 +182,28 @@ public:
     /**
      * @brief 获取所有村民ID
      */
-    [[nodiscard]] const std::unordered_set<u64>& getVillagers() const noexcept { return m_villagers; }
+    [[nodiscard]] const std::unordered_set<u64>& getVillagers() const noexcept
+    {
+        return m_villagers;
+    }
 
     /**
      * @brief 获取村民数量
      */
-    [[nodiscard]] i32 getPopulation() const noexcept { return static_cast<i32>(m_villagers.size()); }
+    [[nodiscard]] i32 getPopulation() const noexcept
+    {
+        return static_cast<i32>(m_villagers.size());
+    }
 
     // ========== 床位和繁殖 ==========
 
     /**
      * @brief 获取床位数量
      */
-    [[nodiscard]] i32 getBedCount() const noexcept { return m_bedCount; }
+    [[nodiscard]] i32 getBedCount() const noexcept
+    {
+        return m_bedCount;
+    }
 
     /**
      * @brief 获取可用床位数（床位数 - 村民数）
@@ -193,7 +214,10 @@ public:
      * @brief 更新床位计数
      * @param count 新的床位数量
      */
-    void setBedCount(i32 count) noexcept { m_bedCount = count; }
+    void setBedCount(i32 count) noexcept
+    {
+        m_bedCount = count;
+    }
 
     /**
      * @brief 检查村庄是否可以繁殖更多村民
@@ -205,37 +229,59 @@ public:
     /**
      * @brief 获取工作站数量
      */
-    [[nodiscard]] i32 getWorkstationCount() const noexcept { return m_workstationCount; }
+    [[nodiscard]] i32 getWorkstationCount() const noexcept
+    {
+        return m_workstationCount;
+    }
 
     /**
      * @brief 更新工作站计数
      */
-    void setWorkstationCount(i32 count) noexcept { m_workstationCount = count; }
+    void setWorkstationCount(i32 count) noexcept
+    {
+        m_workstationCount = count;
+    }
 
     // ========== 聚集点 ==========
 
     /**
      * @brief 获取聚集点（钟的位置）
      */
-    [[nodiscard]] std::optional<BlockPos> getMeetingPoint() const noexcept { return m_meetingPoint; }
+    [[nodiscard]] std::optional<BlockPos> getMeetingPoint() const noexcept
+    {
+        return m_meetingPoint;
+    }
 
     /**
      * @brief 设置聚集点
      */
-    void setMeetingPoint(BlockPos pos) noexcept { m_meetingPoint = pos; }
+    void setMeetingPoint(BlockPos pos) noexcept
+    {
+        m_meetingPoint = pos;
+    }
 
     /**
      * @brief 检查是否有聚集点
      */
-    [[nodiscard]] bool hasMeetingPoint() const noexcept { return m_meetingPoint.has_value(); }
+    [[nodiscard]] bool hasMeetingPoint() const noexcept
+    {
+        return m_meetingPoint.has_value();
+    }
 
     // ========== 流言/声誉系统 ==========
 
     /**
      * @brief 获取流言管理器
      */
-    [[nodiscard]] VillageGossipManager& getGossipManager() noexcept { return m_gossipManager; }
-    [[nodiscard]] const VillageGossipManager& getGossipManager() const noexcept { return m_gossipManager; }
+    [[nodiscard]] VillageGossipManager& getGossipManager() noexcept
+    {
+        return m_gossipManager;
+    }
+
+    [[nodiscard]] const VillageGossipManager& getGossipManager() const noexcept
+    {
+        return m_gossipManager;
+    }
 
     /**
      * @brief 添加流言（便捷方法）
@@ -251,34 +297,52 @@ public:
     /**
      * @brief 获取玩家声誉
      */
-    [[nodiscard]] i32 getPlayerReputation(u64 playerId) const { return m_gossipManager.getReputation(playerId); }
+    [[nodiscard]] i32 getPlayerReputation(u64 playerId) const
+    {
+        return m_gossipManager.getReputation(playerId);
+    }
 
     /**
      * @brief 获取价格修正因子
      */
-    [[nodiscard]] f32 getPriceModifier(u64 playerId) const { return m_gossipManager.getPriceModifier(playerId); }
+    [[nodiscard]] f32 getPriceModifier(u64 playerId) const
+    {
+        return m_gossipManager.getPriceModifier(playerId);
+    }
 
     // ========== 袭击状态 ==========
 
     /**
      * @brief 检查村庄是否正在被袭击
      */
-    [[nodiscard]] bool isUnderRaid() const noexcept { return m_underRaid; }
+    [[nodiscard]] bool isUnderRaid() const noexcept
+    {
+        return m_underRaid;
+    }
 
     /**
      * @brief 设置袭击状态
      */
-    void setUnderRaid(bool underRaid) noexcept { m_underRaid = underRaid; }
+    void setUnderRaid(bool underRaid) noexcept
+    {
+        m_underRaid = underRaid;
+    }
 
     /**
      * @brief 获取上次袭击时间
      */
-    [[nodiscard]] i64 getLastRaidTime() const noexcept { return m_lastRaidTime; }
+    [[nodiscard]] i64 getLastRaidTime() const noexcept
+    {
+        return m_lastRaidTime;
+    }
 
     /**
      * @brief 设置上次袭击时间
      */
-    void setLastRaidTime(i64 time) noexcept { m_lastRaidTime = time; }
+    void setLastRaidTime(i64 time) noexcept
+    {
+        m_lastRaidTime = time;
+    }
 
     // ========== Tick更新 ==========
 

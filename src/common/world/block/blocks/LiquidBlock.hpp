@@ -151,7 +151,10 @@ public:
     /**
      * @brief 获取关联的流体
      */
-    [[nodiscard]] fluid::FlowingFluid& getFluid() const { return m_fluid; }
+    [[nodiscard]] fluid::FlowingFluid& getFluid() const
+    {
+        return m_fluid;
+    }
 
     /**
      * @brief 实体与液体方块碰撞时调用
@@ -193,12 +196,18 @@ public:
     /**
      * @brief 检查方块等级是否表示源头
      */
-    [[nodiscard]] static bool isSourceLevel(i32 blockLevel) noexcept { return blockLevel == 0; }
+    [[nodiscard]] static bool isSourceLevel(i32 blockLevel) noexcept
+    {
+        return blockLevel == 0;
+    }
 
     /**
      * @brief 检查方块等级是否表示下落
      */
-    [[nodiscard]] static bool isFallingLevel(i32 blockLevel) noexcept { return blockLevel >= fluid::SOURCE_LEVEL; }
+    [[nodiscard]] static bool isFallingLevel(i32 blockLevel) noexcept
+    {
+        return blockLevel >= fluid::SOURCE_LEVEL;
+    }
 
     /**
      * @brief 获取放置时的方块状态

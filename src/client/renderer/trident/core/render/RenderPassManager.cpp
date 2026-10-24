@@ -268,7 +268,9 @@ Result<void> RenderPassManager::initialize(
 
 void RenderPassManager::destroy()
 {
-    if (!m_initialized) return;
+    if (!m_initialized) {
+        return;
+    }
 
     _destroyFramebuffers();
     _destroyColorResources();
@@ -615,7 +617,9 @@ void RenderPassManager::_destroyDepthResources()
 
 void RenderPassManager::_destroyFramebuffers()
 {
-    if (!m_context) return;
+    if (!m_context) {
+        return;
+    }
 
     VkDevice device = m_context->device();
     for (auto framebuffer : m_framebuffers) {

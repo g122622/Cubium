@@ -214,13 +214,31 @@ public:
         , m_currentTick(1000)
     {}
 
-    void setDayTime(i64 time) { m_dayTime = time; }
-    void setCurrentTick(u64 tick) { m_currentTick = tick; }
+    void setDayTime(i64 time)
+    {
+        m_dayTime = time;
+    }
 
-    [[nodiscard]] i64 dayTime() const override { return m_dayTime; }
-    [[nodiscard]] u64 currentTick() const override { return m_currentTick; }
+    void setCurrentTick(u64 tick)
+    {
+        m_currentTick = tick;
+    }
 
-    [[nodiscard]] world::village::VillageManager* villageManager() override { return m_villageManager.get(); }
+    [[nodiscard]] i64 dayTime() const override
+    {
+        return m_dayTime;
+    }
+
+    [[nodiscard]] u64 currentTick() const override
+    {
+        return m_currentTick;
+    }
+
+    [[nodiscard]] world::village::VillageManager* villageManager() override
+    {
+        return m_villageManager.get();
+    }
+
     [[nodiscard]] const world::village::VillageManager* villageManager() const override
     {
         return m_villageManager.get();

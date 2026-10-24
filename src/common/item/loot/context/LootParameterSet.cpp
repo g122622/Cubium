@@ -38,15 +38,17 @@ namespace loot {
 bool LootParameterSet::contains(std::string_view paramId) const noexcept
 {
     // 在必需参数中查找
-    auto requiredIt = std::find_if(
-        m_requiredParams.begin(), m_requiredParams.end(), [&paramId](const std::string& id) { return id == paramId; });
+    auto requiredIt = std::find_if(m_requiredParams.begin(), m_requiredParams.end(), [&paramId](const std::string& id) {
+        return id == paramId;
+    });
     if (requiredIt != m_requiredParams.end()) {
         return true;
     }
 
     // 在可选参数中查找
-    auto optionalIt = std::find_if(
-        m_optionalParams.begin(), m_optionalParams.end(), [&paramId](const std::string& id) { return id == paramId; });
+    auto optionalIt = std::find_if(m_optionalParams.begin(), m_optionalParams.end(), [&paramId](const std::string& id) {
+        return id == paramId;
+    });
     return optionalIt != m_optionalParams.end();
 }
 
@@ -73,9 +75,10 @@ bool LootParameterSet::validate(const std::vector<std::string>& providedParams,
 
     // 检查2：是否缺少此参数集必需的参数
     for (const auto& required : m_requiredParams) {
-        bool found = std::any_of(providedParams.begin(),
-            providedParams.end(),
-            [&required](const std::string& provided) { return required == provided; });
+        bool found =
+            std::any_of(providedParams.begin(), providedParams.end(), [&required](const std::string& provided) {
+                return required == provided;
+            });
         if (!found) {
             missingParams.push_back(required);
         }
@@ -87,15 +90,17 @@ bool LootParameterSet::validate(const std::vector<std::string>& providedParams,
 bool LootParameterSet::isAllowed(std::string_view paramId) const noexcept
 {
     // 在必需参数中查找
-    auto requiredIt = std::find_if(
-        m_requiredParams.begin(), m_requiredParams.end(), [&paramId](const std::string& id) { return id == paramId; });
+    auto requiredIt = std::find_if(m_requiredParams.begin(), m_requiredParams.end(), [&paramId](const std::string& id) {
+        return id == paramId;
+    });
     if (requiredIt != m_requiredParams.end()) {
         return true;
     }
 
     // 在可选参数中查找
-    auto optionalIt = std::find_if(
-        m_optionalParams.begin(), m_optionalParams.end(), [&paramId](const std::string& id) { return id == paramId; });
+    auto optionalIt = std::find_if(m_optionalParams.begin(), m_optionalParams.end(), [&paramId](const std::string& id) {
+        return id == paramId;
+    });
     return optionalIt != m_optionalParams.end();
 }
 

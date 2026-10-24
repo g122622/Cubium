@@ -161,7 +161,10 @@ public:
     /**
      * @brief 获取字体对象
      */
-    [[nodiscard]] mc::client::Font* font() const { return m_font; }
+    [[nodiscard]] mc::client::Font* font() const
+    {
+        return m_font;
+    }
 
     /**
      * @brief 设置字体缩放因子
@@ -259,17 +262,26 @@ public:
     /**
      * @brief 获取屏幕宽度
      */
-    [[nodiscard]] f64 screenWidth() const { return m_screenWidth; }
+    [[nodiscard]] f64 screenWidth() const
+    {
+        return m_screenWidth;
+    }
 
     /**
      * @brief 获取屏幕高度
      */
-    [[nodiscard]] f64 screenHeight() const { return m_screenHeight; }
+    [[nodiscard]] f64 screenHeight() const
+    {
+        return m_screenHeight;
+    }
 
     /**
      * @brief 检查是否已初始化
      */
-    [[nodiscard]] bool isInitialized() const { return m_initialized; }
+    [[nodiscard]] bool isInitialized() const
+    {
+        return m_initialized;
+    }
 
     /**
      * @brief 设置物品纹理图集
@@ -314,7 +326,10 @@ public:
     /**
      * @brief 检查是否有GUI纹理图集
      */
-    [[nodiscard]] bool hasGuiTextureAtlas() const { return m_guiTextureView != VK_NULL_HANDLE; }
+    [[nodiscard]] bool hasGuiTextureAtlas() const
+    {
+        return m_guiTextureView != VK_NULL_HANDLE;
+    }
 
 private:
     /**

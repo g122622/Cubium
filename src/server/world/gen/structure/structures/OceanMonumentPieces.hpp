@@ -47,13 +47,40 @@ class OceanMonumentRoomDefinition {
 public:
     explicit OceanMonumentRoomDefinition(i32 index);
 
-    [[nodiscard]] i32 getIndex() const { return m_index; }
-    [[nodiscard]] bool isClaimed() const { return m_claimed; }
-    void setClaimed(bool claimed) { m_claimed = claimed; }
-    [[nodiscard]] bool isSource() const { return m_isSource; }
-    void setSource(bool source) { m_isSource = source; }
-    [[nodiscard]] i32 getScanIndex() const { return m_scanIndex; }
-    void setScanIndex(i32 index) { m_scanIndex = index; }
+    [[nodiscard]] i32 getIndex() const
+    {
+        return m_index;
+    }
+
+    [[nodiscard]] bool isClaimed() const
+    {
+        return m_claimed;
+    }
+
+    void setClaimed(bool claimed)
+    {
+        m_claimed = claimed;
+    }
+
+    [[nodiscard]] bool isSource() const
+    {
+        return m_isSource;
+    }
+
+    void setSource(bool source)
+    {
+        m_isSource = source;
+    }
+
+    [[nodiscard]] i32 getScanIndex() const
+    {
+        return m_scanIndex;
+    }
+
+    void setScanIndex(i32 index)
+    {
+        m_scanIndex = index;
+    }
 
     /**
      * @brief 设置房间连接
@@ -158,14 +185,28 @@ public:
      */
     bool spawnElderGuardian(IWorldWriter& world, const StructureBoundingBox& bounds, i32 x, i32 y, i32 z);
 
-    void setRoomDefinition(OceanMonumentRoomDefinition* room) { m_roomDefinition = room; }
-    [[nodiscard]] OceanMonumentRoomDefinition* getRoomDefinition() { return m_roomDefinition; }
-    [[nodiscard]] const OceanMonumentRoomDefinition* getRoomDefinition() const { return m_roomDefinition; }
+    void setRoomDefinition(OceanMonumentRoomDefinition* room)
+    {
+        m_roomDefinition = room;
+    }
+
+    [[nodiscard]] OceanMonumentRoomDefinition* getRoomDefinition()
+    {
+        return m_roomDefinition;
+    }
+
+    [[nodiscard]] const OceanMonumentRoomDefinition* getRoomDefinition() const
+    {
+        return m_roomDefinition;
+    }
 
 protected:
     OceanMonumentRoomDefinition* m_roomDefinition = nullptr;
 
-    static constexpr i32 getRoomIndex(i32 x, i32 y, i32 z) { return y * 25 + z * 5 + x; }
+    static constexpr i32 getRoomIndex(i32 x, i32 y, i32 z)
+    {
+        return y * 25 + z * 5 + x;
+    }
 
     // 静态方块状态常量
     static const BlockState* s_roughPrismarine;

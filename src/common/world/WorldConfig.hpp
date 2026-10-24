@@ -112,7 +112,10 @@ struct WorldConfig {
     /**
      * @brief 是否为调试世界
      */
-    [[nodiscard]] bool isDebugWorld() const { return worldType == WorldType::Debug; }
+    [[nodiscard]] bool isDebugWorld() const
+    {
+        return worldType == WorldType::Debug;
+    }
 };
 
 } // namespace mc

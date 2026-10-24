@@ -76,42 +76,66 @@ public:
     /**
      * @brief 鱼默认只能在水中生成
      */
-    [[nodiscard]] bool canSpawnInWater() const override { return true; }
+    [[nodiscard]] bool canSpawnInWater() const override
+    {
+        return true;
+    }
 
     /**
      * @brief 默认鱼类不具备群游语义
      */
-    [[nodiscard]] virtual bool canSchool() const { return false; }
+    [[nodiscard]] virtual bool canSchool() const
+    {
+        return false;
+    }
 
     /**
      * @brief 当前是否处于游泳状态
      */
-    [[nodiscard]] bool isSwimming() const { return m_swimming; }
+    [[nodiscard]] bool isSwimming() const
+    {
+        return m_swimming;
+    }
 
     /**
      * @brief 设置游泳状态
      */
-    void setSwimming(bool swimming) { m_swimming = swimming; }
+    void setSwimming(bool swimming)
+    {
+        m_swimming = swimming;
+    }
 
     /**
      * @brief 当前游泳朝向
      */
-    [[nodiscard]] f32 getSwimAngle() const { return m_swimAngle; }
+    [[nodiscard]] f32 getSwimAngle() const
+    {
+        return m_swimAngle;
+    }
 
     /**
      * @brief 设置游泳朝向
      */
-    void setSwimAngle(f32 angle) { m_swimAngle = angle; }
+    void setSwimAngle(f32 angle)
+    {
+        m_swimAngle = angle;
+    }
 
     /**
      * @brief 当前是否处于离水扑腾状态
      */
-    [[nodiscard]] bool isFlopping() const { return m_flopping; }
+    [[nodiscard]] bool isFlopping() const
+    {
+        return m_flopping;
+    }
 
     /**
      * @brief 设置离水扑腾状态
      */
-    void setFlopping(bool flopping) { m_flopping = flopping; }
+    void setFlopping(bool flopping)
+    {
+        m_flopping = flopping;
+    }
 
     // ========== 桶装鱼支持 ==========
 
@@ -122,7 +146,10 @@ public:
      *
      * @return 如果是从桶放出的鱼返回 true
      */
-    [[nodiscard]] bool isFromBucket() const override { return m_fromBucket; }
+    [[nodiscard]] bool isFromBucket() const override
+    {
+        return m_fromBucket;
+    }
 
     /**
      * @brief 设置是否来自桶
@@ -140,7 +167,10 @@ public:
 
     // ========== 同步字段 id 访问器（测试/诊断用，抗字段 id 偏移） ==========
 
-    [[nodiscard]] static u16 getFromBucketParamId() { return FROM_BUCKET_PARAM.id(); }
+    [[nodiscard]] static u16 getFromBucketParamId()
+    {
+        return FROM_BUCKET_PARAM.id();
+    }
 
     /**
      * @brief 检查是否应阻止消失
@@ -149,7 +179,10 @@ public:
      *
      * @return 如果来自桶或正在被骑乘返回 true
      */
-    [[nodiscard]] bool preventDespawn() const override { return WaterMobEntity::preventDespawn() || m_fromBucket; }
+    [[nodiscard]] bool preventDespawn() const override
+    {
+        return WaterMobEntity::preventDespawn() || m_fromBucket;
+    }
 
     /**
      * @brief 检查是否可以消失
@@ -169,7 +202,10 @@ public:
      * @brief 获取最大空气供应量
      * 鱼类有更长的最大空气时间（480 ticks = 24秒）
      */
-    [[nodiscard]] i32 maxAir() const override { return MAX_AIR_SUPPLY; }
+    [[nodiscard]] i32 maxAir() const override
+    {
+        return MAX_AIR_SUPPLY;
+    }
 
     /**
      * @brief 是否可以随机游泳
@@ -179,7 +215,10 @@ public:
      *
      * @return 如果可以随机游泳返回 true
      */
-    [[nodiscard]] virtual bool canRandomSwim() const { return true; }
+    [[nodiscard]] virtual bool canRandomSwim() const
+    {
+        return true;
+    }
 
     /**
      * @brief 获取扑腾声音
@@ -188,7 +227,10 @@ public:
      *
      * @return 扑腾声音事件，默认返回空
      */
-    [[nodiscard]] virtual std::optional<ResourceLocation> getFlopSound() const { return std::nullopt; }
+    [[nodiscard]] virtual std::optional<ResourceLocation> getFlopSound() const
+    {
+        return std::nullopt;
+    }
 
     // ========== IBucketable 接口实现（对齐 Java AbstractFish implements Bucketable） ==========
 

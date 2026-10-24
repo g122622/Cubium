@@ -76,11 +76,27 @@ public:
         return state != nullptr ? state->getFluidState() : &fluid::Fluids::EMPTY()->defaultState();
     }
 
-    [[nodiscard]] mc::world::chunk::IChunkManager* chunkManager() override { return &m_stubChunks; }
-    [[nodiscard]] const mc::world::chunk::IChunkManager* chunkManager() const override { return &m_stubChunks; }
+    [[nodiscard]] mc::world::chunk::IChunkManager* chunkManager() override
+    {
+        return &m_stubChunks;
+    }
+
+    [[nodiscard]] const mc::world::chunk::IChunkManager* chunkManager() const override
+    {
+        return &m_stubChunks;
+    }
+
     mc::test::StubChunkManager m_stubChunks{nullptr, true};
-    [[nodiscard]] u64 currentTick() const override { return m_currentTick; }
-    [[nodiscard]] Difficulty difficulty() const override { return m_difficulty; }
+
+    [[nodiscard]] u64 currentTick() const override
+    {
+        return m_currentTick;
+    }
+
+    [[nodiscard]] Difficulty difficulty() const override
+    {
+        return m_difficulty;
+    }
 
     EntityInstanceId spawnEntity(std::unique_ptr<Entity> entity) override
     {
@@ -89,15 +105,32 @@ public:
     }
 
     // 测试辅助方法
-    void incrementTick() { m_currentTick++; }
-    void setCurrentTick(u64 tick) { m_currentTick = tick; }
-    void setDifficulty(Difficulty diff) { m_difficulty = diff; }
+    void incrementTick()
+    {
+        m_currentTick++;
+    }
+
+    void setCurrentTick(u64 tick)
+    {
+        m_currentTick = tick;
+    }
+
+    void setDifficulty(Difficulty diff)
+    {
+        m_difficulty = diff;
+    }
 
     // 光照控制
-    void setBrightness(f32 brightness) { m_brightness = brightness; }
+    void setBrightness(f32 brightness)
+    {
+        m_brightness = brightness;
+    }
 
     // 测试辅助：设置亮度（光照等级 0-15 -> 亮度 0.0-1.0）
-    void setLightLevel(u8 lightLevel) { m_brightness = static_cast<f32>(lightLevel) / 15.0f; }
+    void setLightLevel(u8 lightLevel)
+    {
+        m_brightness = static_cast<f32>(lightLevel) / 15.0f;
+    }
 
 private:
     std::unordered_map<BlockPos, std::unique_ptr<BlockState>> m_blocks;
@@ -113,7 +146,10 @@ private:
 
 class SpiderEntityTest : public ::testing::Test {
 protected:
-    void SetUp() override { m_world = std::make_unique<SpiderTestWorld>(); }
+    void SetUp() override
+    {
+        m_world = std::make_unique<SpiderTestWorld>();
+    }
 
     std::unique_ptr<SpiderTestWorld> m_world;
 };
@@ -174,7 +210,10 @@ TEST_F(SpiderEntityTest, ShouldNotBurnInDaylight)
 
 class SpiderAttackGoalTest : public ::testing::Test {
 protected:
-    void SetUp() override { m_world = std::make_unique<SpiderTestWorld>(); }
+    void SetUp() override
+    {
+        m_world = std::make_unique<SpiderTestWorld>();
+    }
 
     std::unique_ptr<SpiderTestWorld> m_world;
 };
@@ -259,7 +298,10 @@ TEST_F(SpiderAttackGoalTest, OnePercentChanceToStopInBrightness)
 
 class SpiderTargetGoalTest : public ::testing::Test {
 protected:
-    void SetUp() override { m_world = std::make_unique<SpiderTestWorld>(); }
+    void SetUp() override
+    {
+        m_world = std::make_unique<SpiderTestWorld>();
+    }
 
     std::unique_ptr<SpiderTestWorld> m_world;
 };
@@ -302,7 +344,10 @@ TEST_F(SpiderTargetGoalTest, SelectTarget_InDarkness)
 
 class CaveSpiderEntityTest : public ::testing::Test {
 protected:
-    void SetUp() override { m_world = std::make_unique<SpiderTestWorld>(); }
+    void SetUp() override
+    {
+        m_world = std::make_unique<SpiderTestWorld>();
+    }
 
     std::unique_ptr<SpiderTestWorld> m_world;
 };
@@ -360,7 +405,10 @@ TEST_F(CaveSpiderEntityTest, PoisonDuration_CanBeSet)
 
 class CaveSpiderPoisonTest : public ::testing::Test {
 protected:
-    void SetUp() override { m_world = std::make_unique<SpiderTestWorld>(); }
+    void SetUp() override
+    {
+        m_world = std::make_unique<SpiderTestWorld>();
+    }
 
     std::unique_ptr<SpiderTestWorld> m_world;
 };
@@ -529,7 +577,10 @@ TEST_F(SpiderAIPriorityTest, WaterAvoidingWalkSpeed)
 
 class SpiderComparisonTest : public ::testing::Test {
 protected:
-    void SetUp() override { m_world = std::make_unique<SpiderTestWorld>(); }
+    void SetUp() override
+    {
+        m_world = std::make_unique<SpiderTestWorld>();
+    }
 
     std::unique_ptr<SpiderTestWorld> m_world;
 };

@@ -780,7 +780,9 @@ const BlockState* ServerWorld::getBlockState(i32 x, i32 y, i32 z) const
     ChunkCoord chunkZ = CoordConverter::blockToChunk(z);
 
     const ChunkData* chunk = m_chunkManager->tryToGetChunkInMem(chunkX, chunkZ);
-    if (!chunk) return nullptr;
+    if (!chunk) {
+        return nullptr;
+    }
 
     i32 localX = x - chunkX * world::CHUNK_WIDTH;
     i32 localZ = z - chunkZ * world::CHUNK_WIDTH;
@@ -812,8 +814,9 @@ bool ServerWorld::setBlockState(i32 x, i32 y, i32 z, const BlockState* state, i3
         z,
         "state",
         state != nullptr ? state->toString() : std::string("null"),
-        [flow = ::perfetto::Flow::ProcessScoped(BlockPos(x, y, z).toId())](
-            ::perfetto::EventContext ctx) { flow(ctx); });
+        [flow = ::perfetto::Flow::ProcessScoped(BlockPos(x, y, z).toId())](::perfetto::EventContext ctx) {
+            flow(ctx);
+        });
 
     {
         MC_TRACE_SCOPED_EVENT(
@@ -1500,7 +1503,10 @@ public:
               dimensionType, std::move(dayTimeGetter), std::move(gameTimeGetter), biomeResolver))
     {}
 
-    [[nodiscard]] const world::attribute::EnvironmentAttributeSystem& system() const { return *m_system; }
+    [[nodiscard]] const world::attribute::EnvironmentAttributeSystem& system() const
+    {
+        return *m_system;
+    }
 
 private:
     std::unique_ptr<world::attribute::EnvironmentAttributeSystem> m_system;
@@ -1514,9 +1520,15 @@ const world::attribute::EnvironmentAttributeSystem& ServerWorld::environmentAttr
         // dayTimeOfDay 在固定时间维度（下界/末地）返回维度固定的时刻。
         m_environmentAttributes = std::make_unique<_EnvironmentAttributes>(
             getDimensionType(),
-            [this] { return dayTimeOfDay(); },
-            [this] { return dayTimeOfDay(); },
-            [this](const Vector3& pos) { return _biomeAt(pos); });
+            [this] {
+                return dayTimeOfDay();
+            },
+            [this] {
+                return dayTimeOfDay();
+            },
+            [this](const Vector3& pos) {
+                return _biomeAt(pos);
+            });
     }
     return m_environmentAttributes->system();
 }
@@ -1936,21 +1948,29 @@ bool ServerWorld::isBlockInLine(
         // DDA 步进：选择 t 值最小的轴
         if (tMaxX < tMaxY) {
             if (tMaxX < tMaxZ) {
-                if (tMaxX > 1.0) break;
+                if (tMaxX > 1.0) {
+                    break;
+                }
                 currentX += stepX;
                 tMaxX += tDeltaX;
             } else {
-                if (tMaxZ > 1.0) break;
+                if (tMaxZ > 1.0) {
+                    break;
+                }
                 currentZ += stepZ;
                 tMaxZ += tDeltaZ;
             }
         } else {
             if (tMaxY < tMaxZ) {
-                if (tMaxY > 1.0) break;
+                if (tMaxY > 1.0) {
+                    break;
+                }
                 currentY += stepY;
                 tMaxY += tDeltaY;
             } else {
-                if (tMaxZ > 1.0) break;
+                if (tMaxZ > 1.0) {
+                    break;
+                }
                 currentZ += stepZ;
                 tMaxZ += tDeltaZ;
             }
@@ -2069,7 +2089,9 @@ bool _forEachCollisionCandidate(const ServerWorld& world, const AxisAlignedBB& b
     for (ChunkCoord cz = minChunkZ; cz <= maxChunkZ; ++cz) {
         for (ChunkCoord cx = minChunkX; cx <= maxChunkX; ++cx) {
             const ChunkData* chunk = world.chunkManager()->tryToGetChunkInMem(cx, cz);
-            if (!chunk) continue;
+            if (!chunk) {
+                continue;
+            }
 
             i32 minY = std::max(world::MIN_BUILD_HEIGHT, static_cast<i32>(std::floor(box.minY)));
             i32 maxY = std::min(world::MAX_BUILD_HEIGHT - 1, static_cast<i32>(std::ceil(box.maxY)));
@@ -2086,10 +2108,14 @@ bool _forEachCollisionCandidate(const ServerWorld& world, const AxisAlignedBB& b
                         }
 
                         const BlockState* state = chunk->getBlockState(x, y, z);
-                        if (!state || state->isAir()) continue;
+                        if (!state || state->isAir()) {
+                            continue;
+                        }
 
                         const CollisionShape& shape = state->getCollisionShape();
-                        if (shape.isEmpty()) continue;
+                        if (shape.isEmpty()) {
+                            continue;
+                        }
 
                         if (visitor(*state, shape, wx, y, wz)) {
                             return true;

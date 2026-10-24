@@ -62,9 +62,15 @@ public:
     // 对齐 vanilla MeleeAttackGoal.requiresUpdateEveryTick()=true：
     // 该 goal 每 tick 评估（不走 GoalSelector 半 tick 节流），tick 内的路径重算间隔、
     // 攻击冷却经 adjustedTickDelay 减半。
-    [[nodiscard]] bool requiresUpdateEveryTick() const override { return true; }
+    [[nodiscard]] bool requiresUpdateEveryTick() const override
+    {
+        return true;
+    }
 
-    [[nodiscard]] std::string getTypeName() const noexcept override { return "MeleeAttackGoal"; }
+    [[nodiscard]] std::string getTypeName() const noexcept override
+    {
+        return "MeleeAttackGoal";
+    }
 
 protected:
     /**

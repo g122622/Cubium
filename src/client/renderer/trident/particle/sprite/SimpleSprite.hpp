@@ -53,16 +53,35 @@ public:
 
     [[nodiscard]] glm::vec4 getFrameUV(f64 age, f64 maxAge) const override;
     [[nodiscard]] glm::vec4 getRandomFrameUV(u32 seed) const override;
-    [[nodiscard]] bool isAnimated() const override { return false; }
-    [[nodiscard]] u32 frameCount() const override { return 1; }
-    [[nodiscard]] f64 frameTime() const override { return 0.0; }
+
+    [[nodiscard]] bool isAnimated() const override
+    {
+        return false;
+    }
+
+    [[nodiscard]] u32 frameCount() const override
+    {
+        return 1;
+    }
+
+    [[nodiscard]] f64 frameTime() const override
+    {
+        return 0.0;
+    }
 
     // ========================================================================
     // 属性访问器
     // ========================================================================
 
-    [[nodiscard]] const glm::vec2& uvMin() const { return m_uvMin; }
-    [[nodiscard]] const glm::vec2& uvMax() const { return m_uvMax; }
+    [[nodiscard]] const glm::vec2& uvMin() const
+    {
+        return m_uvMin;
+    }
+
+    [[nodiscard]] const glm::vec2& uvMax() const
+    {
+        return m_uvMax;
+    }
 
 private:
     glm::vec2 m_uvMin;

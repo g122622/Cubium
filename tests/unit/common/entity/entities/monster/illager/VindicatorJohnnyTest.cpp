@@ -68,7 +68,10 @@ namespace {
 /// except 为卫道士自身（findClosestEntity 传入），此处忽略以简化。
 class VindicatorJohnnyTestWorld final : public mc::test::BaseTestWorld {
 public:
-    void setNearbyTargets(std::vector<mc::Entity*> targets) { m_targets = std::move(targets); }
+    void setNearbyTargets(std::vector<mc::Entity*> targets)
+    {
+        m_targets = std::move(targets);
+    }
 
     [[nodiscard]] std::vector<mc::Entity*> getEntitiesInRange(const mc::Vector3&, f32, const mc::Entity*) const override
     {
@@ -106,7 +109,10 @@ protected:
         m_vindicator->targetSelector().setTickRate(1);
     }
 
-    void TearDown() override { m_vindicator.reset(); }
+    void TearDown() override
+    {
+        m_vindicator.reset();
+    }
 
     VindicatorJohnnyTestWorld m_world;
     std::unique_ptr<mc::VindicatorEntity> m_vindicator;

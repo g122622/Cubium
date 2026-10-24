@@ -149,7 +149,10 @@ TEST_F(ChunkDataLightTest, SectionSerializationCarriesNoLightBytes)
 
 class LightNibbleArrayTest : public ::testing::Test {
 protected:
-    void SetUp() override { array = std::make_unique<NibbleArray>(); }
+    void SetUp() override
+    {
+        array = std::make_unique<NibbleArray>();
+    }
 
     std::unique_ptr<NibbleArray> array;
 };

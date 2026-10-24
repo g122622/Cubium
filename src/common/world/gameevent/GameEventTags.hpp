@@ -82,7 +82,10 @@ public:
     /**
      * @brief 检查游戏事件标签系统是否已初始化
      */
-    [[nodiscard]] static bool isInitialized() { return s_initialized; }
+    [[nodiscard]] static bool isInitialized()
+    {
+        return s_initialized;
+    }
 
     /**
      * @brief 注册或获取指定ID的标签

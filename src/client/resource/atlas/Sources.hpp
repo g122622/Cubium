@@ -65,8 +65,15 @@ public:
     [[nodiscard]] Result<void> run(IResourcePack& pack, SpriteSourceOutput& output) const override;
     [[nodiscard]] std::string describe() const override;
 
-    const std::string& source() const { return m_source; }
-    const std::string& prefix() const { return m_prefix; }
+    const std::string& source() const
+    {
+        return m_source;
+    }
+
+    const std::string& prefix() const
+    {
+        return m_prefix;
+    }
 
 private:
     std::string m_source;

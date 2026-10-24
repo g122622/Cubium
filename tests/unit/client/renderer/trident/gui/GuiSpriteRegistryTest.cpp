@@ -55,7 +55,9 @@ namespace {
 const ResourceLocation* findMapping(
     const std::vector<std::pair<std::string, ResourceLocation>>& mappings, const std::string& id)
 {
-    auto it = std::find_if(mappings.begin(), mappings.end(), [&](const auto& pair) { return pair.first == id; });
+    auto it = std::find_if(mappings.begin(), mappings.end(), [&](const auto& pair) {
+        return pair.first == id;
+    });
     return (it != mappings.end()) ? &it->second : nullptr;
 }
 

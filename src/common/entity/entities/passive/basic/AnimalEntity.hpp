@@ -152,7 +152,10 @@ public:
     /**
      * @brief 获取喂食玩家的UUID
      */
-    [[nodiscard]] u64 getLoveCause() const noexcept { return m_loveCause; }
+    [[nodiscard]] u64 getLoveCause() const noexcept
+    {
+        return m_loveCause;
+    }
 
     /**
      * @brief 设置喂食玩家
@@ -175,7 +178,10 @@ public:
      *
      * @return 环境音间隔 ticks
      */
-    [[nodiscard]] i32 getTalkInterval() const noexcept override { return 120; }
+    [[nodiscard]] i32 getTalkInterval() const noexcept override
+    {
+        return 120;
+    }
 
     /**
      * @brief 是否可以消失

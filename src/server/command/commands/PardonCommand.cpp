@@ -48,14 +48,18 @@ namespace command {
 void PardonCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
 {
     auto pardonNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("pardon");
-    pardonNode->setRequirement([](const ServerCommandSource& source) { return source.hasPermission(3); });
+    pardonNode->setRequirement([](const ServerCommandSource& source) {
+        return source.hasPermission(3);
+    });
     support::applyMetadata(
         pardonNode, support::makeMetadata("Removes a player from the ban list.", "/pardon <player>", 3, {}, false));
 
     // /pardon <player>
     auto playerArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, EntitySelector>>(
         "player", EntityArgumentType::player());
-    playerArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _pardonPlayer(ctx); });
+    playerArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _pardonPlayer(ctx);
+    });
 
     pardonNode->addChild(playerArg);
     dispatcher.registerCommand(pardonNode);

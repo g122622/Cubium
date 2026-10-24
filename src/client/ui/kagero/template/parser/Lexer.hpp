@@ -98,32 +98,50 @@ struct Token {
     /**
      * @brief 检查是否是特定类型的Token
      */
-    [[nodiscard]] bool is(TokenType t) const { return type == t; }
+    [[nodiscard]] bool is(TokenType t) const
+    {
+        return type == t;
+    }
 
     /**
      * @brief 检查是否是特定类型和值的Token
      */
-    [[nodiscard]] bool is(TokenType t, const std::string& v) const { return type == t && value == v; }
+    [[nodiscard]] bool is(TokenType t, const std::string& v) const
+    {
+        return type == t && value == v;
+    }
 
     /**
      * @brief 检查是否是标识符
      */
-    [[nodiscard]] bool isIdentifier() const { return type == TokenType::Identifier; }
+    [[nodiscard]] bool isIdentifier() const
+    {
+        return type == TokenType::Identifier;
+    }
 
     /**
      * @brief 检查是否是文本
      */
-    [[nodiscard]] bool isText() const { return type == TokenType::Text; }
+    [[nodiscard]] bool isText() const
+    {
+        return type == TokenType::Text;
+    }
 
     /**
      * @brief 检查是否是字符串字面量
      */
-    [[nodiscard]] bool isStringLiteral() const { return type == TokenType::StringLiteral; }
+    [[nodiscard]] bool isStringLiteral() const
+    {
+        return type == TokenType::StringLiteral;
+    }
 
     /**
      * @brief 检查是否是数字字面量
      */
-    [[nodiscard]] bool isNumberLiteral() const { return type == TokenType::NumberLiteral; }
+    [[nodiscard]] bool isNumberLiteral() const
+    {
+        return type == TokenType::NumberLiteral;
+    }
 
     /**
      * @brief 检查是否是关键字
@@ -177,34 +195,52 @@ public:
     /**
      * @brief 获取所有Token
      */
-    [[nodiscard]] const std::vector<Token>& tokens() const { return m_tokens; }
+    [[nodiscard]] const std::vector<Token>& tokens() const
+    {
+        return m_tokens;
+    }
 
     /**
      * @brief 获取所有Token（可变）
      */
-    [[nodiscard]] std::vector<Token>& tokens() { return m_tokens; }
+    [[nodiscard]] std::vector<Token>& tokens()
+    {
+        return m_tokens;
+    }
 
     /**
      * @brief 获取错误信息
      */
-    [[nodiscard]] const std::vector<TemplateErrorInfo>& errors() const { return m_errors; }
+    [[nodiscard]] const std::vector<TemplateErrorInfo>& errors() const
+    {
+        return m_errors;
+    }
 
     /**
      * @brief 检查是否有错误
      */
-    [[nodiscard]] bool hasErrors() const { return !m_errors.empty(); }
+    [[nodiscard]] bool hasErrors() const
+    {
+        return !m_errors.empty();
+    }
 
     /**
      * @brief 获取第一个错误
      */
-    [[nodiscard]] const TemplateErrorInfo* firstError() const { return m_errors.empty() ? nullptr : &m_errors.front(); }
+    [[nodiscard]] const TemplateErrorInfo* firstError() const
+    {
+        return m_errors.empty() ? nullptr : &m_errors.front();
+    }
 
     // ========== 迭代器接口 ==========
 
     /**
      * @brief 检查是否还有下一个Token
      */
-    [[nodiscard]] bool hasNext() const { return m_currentIndex < m_tokens.size(); }
+    [[nodiscard]] bool hasNext() const
+    {
+        return m_currentIndex < m_tokens.size();
+    }
 
     /**
      * @brief 获取当前Token
@@ -238,12 +274,18 @@ public:
     /**
      * @brief 获取当前位置
      */
-    [[nodiscard]] size_t position() const { return m_currentIndex; }
+    [[nodiscard]] size_t position() const
+    {
+        return m_currentIndex;
+    }
 
     /**
      * @brief 设置当前位置
      */
-    void setPosition(size_t pos) { m_currentIndex = pos; }
+    void setPosition(size_t pos)
+    {
+        m_currentIndex = pos;
+    }
 
     /**
      * @brief 跳过空白Token
@@ -275,12 +317,18 @@ public:
     /**
      * @brief 获取源码
      */
-    [[nodiscard]] const std::string& source() const { return m_source; }
+    [[nodiscard]] const std::string& source() const
+    {
+        return m_source;
+    }
 
     /**
      * @brief 获取源文件路径
      */
-    [[nodiscard]] const std::string& sourcePath() const { return m_sourcePath; }
+    [[nodiscard]] const std::string& sourcePath() const
+    {
+        return m_sourcePath;
+    }
 
     /**
      * @brief 获取指定位置的行内容（用于错误上下文）

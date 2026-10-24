@@ -131,14 +131,31 @@ public:
     {
         return y >= mc::world::MIN_BUILD_HEIGHT && y < mc::world::MAX_BUILD_HEIGHT;
     }
-    [[nodiscard]] u64 currentTick() const override { return m_currentTick; }
 
-    [[nodiscard]] bool isClientSide() const override { return m_isClientSide; }
+    [[nodiscard]] u64 currentTick() const override
+    {
+        return m_currentTick;
+    }
 
-    void setClientSide(bool isClient) { m_isClientSide = isClient; }
+    [[nodiscard]] bool isClientSide() const override
+    {
+        return m_isClientSide;
+    }
 
-    [[nodiscard]] world::gamerule::GameRules& getGameRules() override { return m_gameRules; }
-    [[nodiscard]] const world::gamerule::GameRules& getGameRules() const override { return m_gameRules; }
+    void setClientSide(bool isClient)
+    {
+        m_isClientSide = isClient;
+    }
+
+    [[nodiscard]] world::gamerule::GameRules& getGameRules() override
+    {
+        return m_gameRules;
+    }
+
+    [[nodiscard]] const world::gamerule::GameRules& getGameRules() const override
+    {
+        return m_gameRules;
+    }
 
     [[nodiscard]] Entity* getEntity(EntityInstanceId id) override
     {
@@ -238,29 +255,95 @@ public:
         (void)setBlockState(pos.x, pos.y, pos.z, state);
     }
 
-    void advanceTick() { m_currentTick++; }
+    void advanceTick()
+    {
+        m_currentTick++;
+    }
 
-    [[nodiscard]] i32 spawnedTNTCount() const { return m_spawnedTNTCount; }
-    [[nodiscard]] const Vector3& lastTNTPosition() const { return m_lastTNTPosition; }
-    [[nodiscard]] i32 lastTNTFuse() const { return m_lastTNTFuse; }
-    [[nodiscard]] const Vector3& lastTNTVelocity() const { return m_lastTNTVelocity; }
-    [[nodiscard]] Entity* lastTNTOwner() const { return m_lastTNTOwner; }
+    [[nodiscard]] i32 spawnedTNTCount() const
+    {
+        return m_spawnedTNTCount;
+    }
 
-    [[nodiscard]] bool soundPlayed() const { return m_soundPlayed; }
-    [[nodiscard]] const ResourceLocation& lastSoundEvent() const { return m_lastSoundEvent; }
+    [[nodiscard]] const Vector3& lastTNTPosition() const
+    {
+        return m_lastTNTPosition;
+    }
 
-    [[nodiscard]] i32 explosionCount() const { return m_explosionCount; }
-    [[nodiscard]] const Vector3& lastExplosionPos() const { return m_lastExplosionPos; }
-    [[nodiscard]] f32 lastExplosionRadius() const { return m_lastExplosionRadius; }
-    [[nodiscard]] world::explosion::ExplosionMode lastExplosionMode() const { return m_lastExplosionMode; }
-    [[nodiscard]] bool explosionCausesFire() const { return m_explosionCausesFire; }
+    [[nodiscard]] i32 lastTNTFuse() const
+    {
+        return m_lastTNTFuse;
+    }
 
-    [[nodiscard]] i32 setBlockCallCount() const { return m_setBlockCallCount; }
-    [[nodiscard]] i32 lastSetBlockFlags() const { return m_lastSetBlockFlags; }
+    [[nodiscard]] const Vector3& lastTNTVelocity() const
+    {
+        return m_lastTNTVelocity;
+    }
 
-    [[nodiscard]] i32 gameEventCount() const { return m_gameEventCount; }
-    [[nodiscard]] const std::string& lastGameEventId() const { return m_lastGameEventId; }
-    [[nodiscard]] const Entity* lastGameEventSourceEntity() const { return m_lastGameEventSourceEntity; }
+    [[nodiscard]] Entity* lastTNTOwner() const
+    {
+        return m_lastTNTOwner;
+    }
+
+    [[nodiscard]] bool soundPlayed() const
+    {
+        return m_soundPlayed;
+    }
+
+    [[nodiscard]] const ResourceLocation& lastSoundEvent() const
+    {
+        return m_lastSoundEvent;
+    }
+
+    [[nodiscard]] i32 explosionCount() const
+    {
+        return m_explosionCount;
+    }
+
+    [[nodiscard]] const Vector3& lastExplosionPos() const
+    {
+        return m_lastExplosionPos;
+    }
+
+    [[nodiscard]] f32 lastExplosionRadius() const
+    {
+        return m_lastExplosionRadius;
+    }
+
+    [[nodiscard]] world::explosion::ExplosionMode lastExplosionMode() const
+    {
+        return m_lastExplosionMode;
+    }
+
+    [[nodiscard]] bool explosionCausesFire() const
+    {
+        return m_explosionCausesFire;
+    }
+
+    [[nodiscard]] i32 setBlockCallCount() const
+    {
+        return m_setBlockCallCount;
+    }
+
+    [[nodiscard]] i32 lastSetBlockFlags() const
+    {
+        return m_lastSetBlockFlags;
+    }
+
+    [[nodiscard]] i32 gameEventCount() const
+    {
+        return m_gameEventCount;
+    }
+
+    [[nodiscard]] const std::string& lastGameEventId() const
+    {
+        return m_lastGameEventId;
+    }
+
+    [[nodiscard]] const Entity* lastGameEventSourceEntity() const
+    {
+        return m_lastGameEventSourceEntity;
+    }
 
     void clearState()
     {
@@ -341,6 +424,7 @@ private:
             m_tickManagerPtr = std::make_unique<mc::test::DummyTickManager>();
         }
     }
+
     std::unique_ptr<world::tick::TickManager> m_tickManagerPtr;
 };
 
@@ -357,7 +441,10 @@ protected:
         Items::initialize();
     }
 
-    void TearDown() override { m_world.clearState(); }
+    void TearDown() override
+    {
+        m_world.clearState();
+    }
 
     TNTBlockTestWorld m_world;
 };

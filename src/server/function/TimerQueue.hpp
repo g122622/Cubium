@@ -173,7 +173,10 @@ private:
         std::string id;
         u64 triggerTime;
 
-        bool operator==(const EventKey& other) const { return id == other.id && triggerTime == other.triggerTime; }
+        bool operator==(const EventKey& other) const
+        {
+            return id == other.id && triggerTime == other.triggerTime;
+        }
     };
 
     struct EventKeyHash {

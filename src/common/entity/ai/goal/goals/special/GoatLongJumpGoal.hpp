@@ -78,7 +78,10 @@ public:
     void resetTask() override;
     void tick() override;
 
-    [[nodiscard]] std::string getTypeName() const override { return "GoatLongJumpGoal"; }
+    [[nodiscard]] std::string getTypeName() const override
+    {
+        return "GoatLongJumpGoal";
+    }
 
     /// 当前阶段（测试/诊断用）
     enum class Phase : u8 {
@@ -86,11 +89,23 @@ public:
         Preparing, ///< 已选中落点，原地蓄力
         Jumping,   ///< 已在空中
     };
-    [[nodiscard]] Phase phase() const noexcept { return m_phase; }
+
+    [[nodiscard]] Phase phase() const noexcept
+    {
+        return m_phase;
+    }
+
     /// 冷却剩余 tick
-    [[nodiscard]] i32 cooldown() const noexcept { return m_cooldown; }
+    [[nodiscard]] i32 cooldown() const noexcept
+    {
+        return m_cooldown;
+    }
+
     /// 已选中的落点（无则返回无效坐标）
-    [[nodiscard]] const BlockPos& chosenTarget() const noexcept { return m_target; }
+    [[nodiscard]] const BlockPos& chosenTarget() const noexcept
+    {
+        return m_target;
+    }
 
     /// 计算从 from 到 target 的抛射初速度（对齐 vanilla LongJumpUtil.calculateJumpVectorForAngle）
     /// @param from 起跳实体位置（脚底中心）

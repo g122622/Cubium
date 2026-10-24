@@ -67,7 +67,10 @@ public:
     /**
      * @brief 设置地图渲染器（用于结果槽地图预览），未注入则不绘制预览
      */
-    void setMapRenderer(MapRenderer* mapRenderer) { m_mapRenderer = mapRenderer; }
+    void setMapRenderer(MapRenderer* mapRenderer)
+    {
+        m_mapRenderer = mapRenderer;
+    }
 
     // ==================== 事件（转发给 m_interaction） ====================
 
@@ -80,8 +83,16 @@ public:
 protected:
     // ==================== ContainerScreenBase 钩子 ====================
 
-    [[nodiscard]] i32 guiWidth() const override { return GUI_WIDTH; }
-    [[nodiscard]] i32 guiHeight() const override { return GUI_HEIGHT; }
+    [[nodiscard]] i32 guiWidth() const override
+    {
+        return GUI_WIDTH;
+    }
+
+    [[nodiscard]] i32 guiHeight() const override
+    {
+        return GUI_HEIGHT;
+    }
+
     [[nodiscard]] std::pair<i32, i32> slotLocalPos(i32 slotIndex) const override;
     [[nodiscard]] const mc::ItemStack& getCarriedItem() const override;
     void renderContainerBackground(kagero::widget::PaintContext& ctx) override;

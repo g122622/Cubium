@@ -69,9 +69,15 @@ public:
     /**
      * @brief 检查是否正在执行
      */
-    [[nodiscard]] bool isRunning() const { return m_isRunning; }
+    [[nodiscard]] bool isRunning() const
+    {
+        return m_isRunning;
+    }
 
-    [[nodiscard]] std::string getTypeName() const override { return "TemptGoal"; }
+    [[nodiscard]] std::string getTypeName() const override
+    {
+        return "TemptGoal";
+    }
 
 protected:
     /**

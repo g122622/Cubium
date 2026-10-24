@@ -60,8 +60,15 @@ public:
         return false;
     }
 
-    const char* name() const override { return m_name; }
-    DecorationStage stage() const override { return m_stage; }
+    const char* name() const override
+    {
+        return m_name;
+    }
+
+    DecorationStage stage() const override
+    {
+        return m_stage;
+    }
 
 private:
     const char* m_name;
@@ -122,7 +129,9 @@ protected:
         PlacedFeatureRegistry::instance().clear();
         originalAssertConfig_ = mc::assert::AssertManager::instance().config();
         mc::assert::AssertConfig config;
-        config.handler = [](const mc::assert::AssertFailure& failure) { throw mc::assert::AssertException(failure); };
+        config.handler = [](const mc::assert::AssertFailure& failure) {
+            throw mc::assert::AssertException(failure);
+        };
         mc::assert::AssertManager::instance().setConfig(config);
     }
 

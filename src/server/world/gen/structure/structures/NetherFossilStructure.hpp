@@ -69,9 +69,15 @@ public:
      *
      * 必须在 generate 之前调用
      */
-    void setTemplateManager(feature::template_::TemplateManager* manager) { m_templateManager = manager; }
+    void setTemplateManager(feature::template_::TemplateManager* manager)
+    {
+        m_templateManager = manager;
+    }
 
-    [[nodiscard]] const std::string& templateName() const { return m_templateName; }
+    [[nodiscard]] const std::string& templateName() const
+    {
+        return m_templateName;
+    }
 
 private:
     void _loadTemplate();
@@ -93,7 +99,11 @@ class NetherFossilStructure : public Structure {
 public:
     explicit NetherFossilStructure(ResourceLocation id);
 
-    [[nodiscard]] const std::string& name() const override { return s_name; }
+    [[nodiscard]] const std::string& name() const override
+    {
+        return s_name;
+    }
+
     [[nodiscard]] DecorationStage defaultDecorationStage() const override
     {
         return DecorationStage::UndergroundDecoration;
@@ -113,7 +123,10 @@ public:
     /**
      * @brief 设置模板管理器
      */
-    void setTemplateManager(feature::template_::TemplateManager* manager) { m_templateManager = manager; }
+    void setTemplateManager(feature::template_::TemplateManager* manager)
+    {
+        m_templateManager = manager;
+    }
 
     // 模板名称常量（共14个化石模板）
     static const std::vector<std::string> s_fossilTemplates;

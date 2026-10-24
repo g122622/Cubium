@@ -64,9 +64,16 @@ public:
 
     [[nodiscard]] ItemStack apply(ItemStack stack, LootContext& context) const override;
     [[nodiscard]] std::unique_ptr<LootFunction> clone() const noexcept override;
-    [[nodiscard]] std::string getType() const override { return "set_stew_effect"; }
 
-    [[nodiscard]] const std::vector<EffectEntry>& getEffects() const { return m_effects; }
+    [[nodiscard]] std::string getType() const override
+    {
+        return "set_stew_effect";
+    }
+
+    [[nodiscard]] const std::vector<EffectEntry>& getEffects() const
+    {
+        return m_effects;
+    }
 
 private:
     std::vector<EffectEntry> m_effects;

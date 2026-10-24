@@ -98,7 +98,10 @@ public:
     /**
      * @brief 获取状态的拥有者
      */
-    [[nodiscard]] const Owner& owner() const { return *m_owner; }
+    [[nodiscard]] const Owner& owner() const
+    {
+        return *m_owner;
+    }
 
     /**
      * @brief 获取属性值
@@ -248,7 +251,10 @@ public:
     /**
      * @brief 获取状态ID
      */
-    [[nodiscard]] u32 stateId() const { return m_stateId; }
+    [[nodiscard]] u32 stateId() const
+    {
+        return m_stateId;
+    }
 
     /**
      * @brief 转换为字符串表示
@@ -264,7 +270,9 @@ public:
             for (size_t i = 0; i < m_propertyCount; ++i) {
                 const IProperty* prop = layouts[i].property;
                 const size_t valueIndex = m_valueIndices[i];
-                if (!first) ss << ',';
+                if (!first) {
+                    ss << ',';
+                }
                 ss << prop->name() << '=' << prop->valueToString(valueIndex);
                 first = false;
             }
@@ -311,9 +319,15 @@ public:
     /**
      * @brief 比较两个状态是否相等
      */
-    [[nodiscard]] bool operator==(const StateHolder& other) const { return m_stateId == other.m_stateId; }
+    [[nodiscard]] bool operator==(const StateHolder& other) const
+    {
+        return m_stateId == other.m_stateId;
+    }
 
-    [[nodiscard]] bool operator!=(const StateHolder& other) const { return m_stateId != other.m_stateId; }
+    [[nodiscard]] bool operator!=(const StateHolder& other) const
+    {
+        return m_stateId != other.m_stateId;
+    }
 
 protected:
     StateHolder(const Owner* owner,
@@ -337,14 +351,23 @@ protected:
     /**
      * @brief 设置状态ID（由BlockRegistry调用）
      */
-    void setStateId(u32 id) { m_stateId = id; }
+    void setStateId(u32 id)
+    {
+        m_stateId = id;
+    }
 
     /**
      * @brief 获取拥有者名称（子类可重写）
      */
-    [[nodiscard]] virtual std::string ownerName() const { return "Unknown"; }
+    [[nodiscard]] virtual std::string ownerName() const
+    {
+        return "Unknown";
+    }
 
-    [[nodiscard]] const std::vector<PropertyLayout>& propertyLayouts() const { return *m_propertyLayouts; }
+    [[nodiscard]] const std::vector<PropertyLayout>& propertyLayouts() const
+    {
+        return *m_propertyLayouts;
+    }
 
     [[nodiscard]] size_t findPropertySlot(const IProperty& prop) const
     {

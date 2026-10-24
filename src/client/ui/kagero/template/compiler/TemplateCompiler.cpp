@@ -353,7 +353,9 @@ bool TemplateCompiler::_validate(ast::DocumentNode* document)
 
 bool TemplateCompiler::_validateNode(const ast::Node* node, TemplateErrorCollector& collector)
 {
-    if (!node) return true;
+    if (!node) {
+        return true;
+    }
 
     // 根据节点类型验证
     switch (node->type) {
@@ -507,7 +509,9 @@ void TemplateCompiler::_generateBindingPlans(ast::DocumentNode* document, Compil
 void TemplateCompiler::_generateBindingPlansRecursive(
     const ast::Node* node, const std::string& parentPath, CompiledTemplate* result)
 {
-    if (!node) return;
+    if (!node) {
+        return;
+    }
     MC_ASSERT_RELEASE(result != nullptr);
 
     std::string currentPath = parentPath;
@@ -562,7 +566,9 @@ void TemplateCompiler::_generateEventPlans(ast::DocumentNode* document, Compiled
 void TemplateCompiler::_generateEventPlansRecursive(
     const ast::Node* node, const std::string& parentPath, CompiledTemplate* result)
 {
-    if (!node) return;
+    if (!node) {
+        return;
+    }
     MC_ASSERT_RELEASE(result != nullptr);
 
     std::string currentPath = parentPath;

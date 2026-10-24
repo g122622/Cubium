@@ -224,7 +224,10 @@ void registerVegetationBlocks()
         &registry.registerBlock<blocks::LargeFernBlock>(ResourceLocation("minecraft:large_fern"), tallFlowerProps);
 
     // 蘑菇属性
-    BlockProperties mushroomProps = BlockProperties(Material::REPLACEABLE_PLANT).noCollision().notSolid().lightLevel(1);
+    BlockProperties mushroomProps = BlockProperties(Material::REPLACEABLE_PLANT).noCollision().notSolid();
+    // 只有棕色蘑菇发光 1，红色蘑菇不发光（原版）。
+    BlockProperties brownMushroomProps =
+        BlockProperties(Material::REPLACEABLE_PLANT).noCollision().notSolid().lightLevel(1);
 
     // 巨型蘑菇方块属性：可被岩浆点燃（对齐 vanilla）
     BlockProperties hugeMushroomProps = BlockProperties(Material::WOOD).hardness(0.2f).ignitedByLava();
@@ -246,8 +249,10 @@ void registerVegetationBlocks()
 
     // 棕色蘑菇
     // 传入空 generator，由 server 侧 ServerBigMushroomGenerators::injectAll() 后置注入
-    VegetationBlocks::BROWN_MUSHROOM = &registry.registerBlock<blocks::MushroomBlock>(
-        ResourceLocation("minecraft:brown_mushroom"), blocks::MushroomBlock::BigMushroomGenerator{}, mushroomProps);
+    VegetationBlocks::BROWN_MUSHROOM =
+        &registry.registerBlock<blocks::MushroomBlock>(ResourceLocation("minecraft:brown_mushroom"),
+            blocks::MushroomBlock::BigMushroomGenerator{},
+            brownMushroomProps);
 
     // 红色蘑菇
     VegetationBlocks::RED_MUSHROOM = &registry.registerBlock<blocks::MushroomBlock>(
@@ -278,8 +283,13 @@ void registerVegetationBlocks()
         &registry.registerBlock<blocks::BambooBlock>(ResourceLocation("minecraft:bamboo"), bambooProps);
 
     // 竹子幼苗属性：可被岩浆点燃（对齐 vanilla；注意与树木树苗不同，竹子幼苗 vanilla 设置了 ignitedByLava）
-    BlockProperties bambooSaplingProps =
-        BlockProperties(Material::REPLACEABLE_PLANT).noCollision().notSolid().ignitedByLava();
+    // 竹子幼苗：1.0 / 1.0（原版是竹子方块的一半，不是 0——0 会瞬间被空手挖掉）。
+    BlockProperties bambooSaplingProps = BlockProperties(Material::REPLACEABLE_PLANT)
+                                             .noCollision()
+                                             .notSolid()
+                                             .hardness(1.0f)
+                                             .resistance(1.0f)
+                                             .ignitedByLava();
 
     // 竹子幼苗
     VegetationBlocks::BAMBOO_SAPLING = &registry.registerBlock<blocks::BambooSaplingBlock>(

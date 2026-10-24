@@ -59,12 +59,18 @@ public:
     /**
      * @brief 是否为食物
      */
-    [[nodiscard]] bool isFood() const override { return m_food != nullptr; }
+    [[nodiscard]] bool isFood() const override
+    {
+        return m_food != nullptr;
+    }
 
     /**
      * @brief 获取食物属性
      */
-    [[nodiscard]] const food::Food* getFood() const override { return m_food; }
+    [[nodiscard]] const food::Food* getFood() const override
+    {
+        return m_food;
+    }
 
     /**
      * @brief 获取使用时长
@@ -110,8 +116,7 @@ public:
      */
     [[nodiscard]] bool canEat(const ItemStack& stack, const Player& player) const override;
 
-private:
-    const food::Food* m_food;
+    // 食物属性只在基类 Item::m_food 中（构造时经 ItemProperties::food() 写入）。
 };
 
 } // namespace item::items

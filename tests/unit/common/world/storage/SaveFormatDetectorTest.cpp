@@ -39,7 +39,10 @@ protected:
         m_tmpDir = mc::test::makeUniqueTestDir("mc_saveformat_test");
     }
 
-    void TearDown() override { mc::test::removeTestDir(m_tmpDir); }
+    void TearDown() override
+    {
+        mc::test::removeTestDir(m_tmpDir);
+    }
 
     void createFile(const std::filesystem::path& path, const std::vector<u8>& data = {})
     {

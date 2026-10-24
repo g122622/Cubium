@@ -791,10 +791,11 @@ Result<void> ClientPlayVisitor::handle(const mc::network::ir::IrPacket& packet)
             }
             // ---- 实体传送 ----
             else if constexpr (std::is_same_v<T, irplay::Waypoint>) {
-                if (pkt.operation == irplay::WaypointOperation::Untrack)
+                if (pkt.operation == irplay::WaypointOperation::Untrack) {
                     m_waypoints.erase(pkt.identifier);
-                else
+                } else {
                     m_waypoints[pkt.identifier] = pkt;
+                }
                 // TODO: 停止维护的原生客户端尚未提供导航条绘制。
                 return Result<void>::ok();
             } else if constexpr (std::is_same_v<T, irplay::ClearDialog>) {
@@ -1462,7 +1463,9 @@ Result<void> ClientPlayVisitor::handle(const mc::network::ir::IrPacket& packet)
                                     mc::network::ir::PlayPacket{irplay::SignUpdate{pkt2}}});
                         }
                     },
-                    [screenStack]() { screenStack->pop(); });
+                    [screenStack]() {
+                        screenStack->pop();
+                    });
                 signScreen->setBounds(
                     ui::kagero::Rect(0, 0, m_app.m_guiScaleState.width, m_app.m_guiScaleState.height));
                 screenStack->push(std::move(signScreen));

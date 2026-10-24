@@ -80,7 +80,10 @@ public:
     /**
      * @brief 获取眼睛高度
      */
-    [[nodiscard]] f32 eyeHeight() const override { return 0.15f; }
+    [[nodiscard]] f32 eyeHeight() const override
+    {
+        return 0.15f;
+    }
 
     /**
      * @brief 获取扑腾声音

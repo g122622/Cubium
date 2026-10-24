@@ -14,8 +14,9 @@ JUnitTestReporter::JUnitTestReporter(std::filesystem::path reportPath)
 
 JUnitTestReporter::_CaseRecord& JUnitTestReporter::_recordFor(const BaseGameTestFunction& test)
 {
-    auto it =
-        std::find_if(m_records.begin(), m_records.end(), [&](const auto& rec) { return rec.name == test.testName(); });
+    auto it = std::find_if(m_records.begin(), m_records.end(), [&](const auto& rec) {
+        return rec.name == test.testName();
+    });
     if (it != m_records.end()) {
         return *it;
     }

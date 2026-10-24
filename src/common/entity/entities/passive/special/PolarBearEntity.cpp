@@ -383,7 +383,9 @@ void PolarBearEntity::registerGoals()
         std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<Player>>(
             this, true, 10, [this](const LivingEntity* /*entity*/) -> bool {
                 IWorld* world = this->world();
-                if (world == nullptr) return false;
+                if (world == nullptr) {
+                    return false;
+                }
 
                 AxisAlignedBB searchBox = this->boundingBox().expand(8.0, 4.0, 8.0);
                 auto nearbyEntities = world->getEntitiesInAABB(searchBox, this);
@@ -411,7 +413,9 @@ void PolarBearEntity::registerAttributes()
     attributes().setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 30.0);
     attributes().setBaseValue(entity::attribute::Attributes::FOLLOW_RANGE, 20.0);
     attributes().setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.25);
+    attributes().registerAttribute(*entity::attribute::Attributes::attackDamage());
     attributes().setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, 6.0);
+    // 原版 PolarBear.createAttributes 显式写 ARMOR 0。
 }
 
 // ==================== PolarBearMeleeAttackGoal ====================
@@ -459,7 +463,9 @@ PolarBearPanicGoal::PolarBearPanicGoal(PolarBearEntity* bear)
 
 bool PolarBearPanicGoal::shouldPanic() const
 {
-    if (!m_bear) return false;
+    if (!m_bear) {
+        return false;
+    }
 
     // 对齐 vanilla PolarBear：isBaby() ? PANIC_CAUSES : PANIC_ENVIRONMENTAL_CAUSES。
     // 幼熊受任何 PANIC_CAUSES 伤害（含玩家攻击）即恐慌；成年熊仅受 PANIC_ENVIRONMENTAL_CAUSES
@@ -522,7 +528,9 @@ bool PolarBearAttackPlayerGoal::shouldExecute()
     }
 
     IWorld* world = m_bear->world();
-    if (world == nullptr) return false;
+    if (world == nullptr) {
+        return false;
+    }
 
     AxisAlignedBB searchBox = m_bear->boundingBox().expand(8.0, 4.0, 8.0);
     auto nearbyEntities = world->getEntitiesInAABB(searchBox, m_bear);

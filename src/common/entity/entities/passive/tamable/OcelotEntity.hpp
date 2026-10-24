@@ -129,7 +129,10 @@ public:
      * @brief 是否已被信任
      * 豹猫的"驯服"实际上是建立信任
      */
-    [[nodiscard]] bool isTrusting() const { return m_dataManager.get<bool>(DATA_TRUSTING_PARAM); }
+    [[nodiscard]] bool isTrusting() const
+    {
+        return m_dataManager.get<bool>(DATA_TRUSTING_PARAM);
+    }
 
     /**
      * @brief 设置信任状态
@@ -139,14 +142,20 @@ public:
     /**
      * @brief 获取信任玩家ID
      */
-    [[nodiscard]] u64 getTrustingPlayerId() const { return m_trustingPlayerId; }
+    [[nodiscard]] u64 getTrustingPlayerId() const
+    {
+        return m_trustingPlayerId;
+    }
 
     /**
      * @brief 获取信任状态数据参数 ID
      *
      * 用于客户端从元数据中读取信任状态。
      */
-    [[nodiscard]] static u16 getTrustingParamId() { return DATA_TRUSTING_PARAM.id(); }
+    [[nodiscard]] static u16 getTrustingParamId()
+    {
+        return DATA_TRUSTING_PARAM.id();
+    }
 
     // ========== 逃跑状态 ==========
 
@@ -155,33 +164,48 @@ public:
      *
      * 逃跑状态通过 DataParameter 同步到客户端，用于渲染器判断冲刺动画。
      */
-    [[nodiscard]] bool isFleeing() const { return m_dataManager.get<bool>(DATA_FLEEING_PARAM); }
+    [[nodiscard]] bool isFleeing() const
+    {
+        return m_dataManager.get<bool>(DATA_FLEEING_PARAM);
+    }
 
     /**
      * @brief 设置逃跑状态
      *
      * 由 OcelotAvoidPlayerGoal 在开始/停止逃跑时调用。
      */
-    void setFleeing(bool fleeing) { m_dataManager.set(DATA_FLEEING_PARAM, fleeing); }
+    void setFleeing(bool fleeing)
+    {
+        m_dataManager.set(DATA_FLEEING_PARAM, fleeing);
+    }
 
     /**
      * @brief 获取逃跑状态数据参数 ID
      *
      * 用于客户端从元数据中读取逃跑状态。
      */
-    [[nodiscard]] static u16 getFleeingParamId() { return DATA_FLEEING_PARAM.id(); }
+    [[nodiscard]] static u16 getFleeingParamId()
+    {
+        return DATA_FLEEING_PARAM.id();
+    }
 
     // ========== 类型 ==========
 
     /**
      * @brief 获取豹猫类型
      */
-    [[nodiscard]] OcelotType getOcelotType() const { return m_ocelotType; }
+    [[nodiscard]] OcelotType getOcelotType() const
+    {
+        return m_ocelotType;
+    }
 
     /**
      * @brief 设置豹猫类型
      */
-    void setOcelotType(OcelotType type) { m_ocelotType = type; }
+    void setOcelotType(OcelotType type)
+    {
+        m_ocelotType = type;
+    }
 
     // ========== 繁殖 ==========
 
@@ -201,7 +225,10 @@ public:
     /**
      * @brief 获取眼睛高度
      */
-    [[nodiscard]] f32 eyeHeight() const override { return isChild() ? 0.3f : 0.6f; }
+    [[nodiscard]] f32 eyeHeight() const override
+    {
+        return isChild() ? 0.3f : 0.6f;
+    }
 
     // ========== 生命周期 ==========
 
@@ -223,7 +250,10 @@ public:
      * @brief 摔落伤害处理
      * 豹猫免疫摔落伤害
      */
-    [[nodiscard]] bool canTakeFallDamage() const { return false; }
+    [[nodiscard]] bool canTakeFallDamage() const
+    {
+        return false;
+    }
 
     /**
      * @brief 作为生物攻击目标

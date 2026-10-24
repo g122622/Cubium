@@ -59,7 +59,10 @@ protected:
         m_village->setId(1);
     }
 
-    void TearDown() override { m_village.reset(); }
+    void TearDown() override
+    {
+        m_village.reset();
+    }
 
     std::unique_ptr<Village> m_village;
 };

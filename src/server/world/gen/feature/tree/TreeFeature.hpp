@@ -61,6 +61,7 @@ struct AboveRootPlacement {
     f32 chance = 0.0f;
 
     AboveRootPlacement() = default;
+
     AboveRootPlacement(std::unique_ptr<world::gen::feature::state::BlockStateProvider> provider, f32 probability)
         : aboveRootProvider(std::move(provider))
         , chance(probability)
@@ -309,7 +310,10 @@ struct TreeFeatureConfig : public IFeatureConfig {
      * @brief 是否使用树叶状态提供者
      * @return 若 foliageProvider 非空，返回 true
      */
-    [[nodiscard]] bool hasFoliageProvider() const noexcept { return foliageProvider != nullptr; }
+    [[nodiscard]] bool hasFoliageProvider() const noexcept
+    {
+        return foliageProvider != nullptr;
+    }
 
     /**
      * @brief 获取单个树叶方块状态
@@ -517,17 +521,26 @@ public:
     /**
      * @brief 获取特征名称
      */
-    [[nodiscard]] const char* name() const override { return m_name.c_str(); }
+    [[nodiscard]] const char* name() const override
+    {
+        return m_name.c_str();
+    }
 
     /**
      * @brief 获取装饰阶段
      */
-    [[nodiscard]] DecorationStage stage() const override { return DecorationStage::VegetalDecoration; }
+    [[nodiscard]] DecorationStage stage() const override
+    {
+        return DecorationStage::VegetalDecoration;
+    }
 
     /**
      * @brief 获取树木配置
      */
-    [[nodiscard]] const TreeFeatureConfig& getConfig() const { return *m_config; }
+    [[nodiscard]] const TreeFeatureConfig& getConfig() const
+    {
+        return *m_config;
+    }
 
 private:
     std::unique_ptr<TreeFeatureConfig> m_config;

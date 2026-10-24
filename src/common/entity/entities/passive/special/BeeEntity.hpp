@@ -76,7 +76,10 @@ public:
 
     // 节肢生物归类（对齐 Java Bee.getMobType()==ARTHROPOD）。基类默认 Undefined，未覆写会导致
     // 节肢杀手附魔无加成等失效。
-    [[nodiscard]] CreatureAttribute getCreatureAttribute() const override { return CreatureAttribute::Arthropod; }
+    [[nodiscard]] CreatureAttribute getCreatureAttribute() const override
+    {
+        return CreatureAttribute::Arthropod;
+    }
 
     // 禁止拷贝
     BeeEntity(const BeeEntity&) = delete;
@@ -201,27 +204,42 @@ public:
     /**
      * @brief 获取蜂巢位置
      */
-    [[nodiscard]] const BlockPos& getHivePos() const { return m_hivePos; }
+    [[nodiscard]] const BlockPos& getHivePos() const
+    {
+        return m_hivePos;
+    }
 
     /**
      * @brief 是否有蜂巢
      */
-    [[nodiscard]] bool hasHive() const { return m_hasHive; }
+    [[nodiscard]] bool hasHive() const
+    {
+        return m_hasHive;
+    }
 
     /**
      * @brief 设置是否有蜂巢
      */
-    void setHasHive(bool hasHive) { m_hasHive = hasHive; }
+    void setHasHive(bool hasHive)
+    {
+        m_hasHive = hasHive;
+    }
 
     /**
      * @brief 是否正在返回蜂巢
      */
-    [[nodiscard]] bool isReturningToHive() const { return m_returningToHive; }
+    [[nodiscard]] bool isReturningToHive() const
+    {
+        return m_returningToHive;
+    }
 
     /**
      * @brief 设置返回蜂巢状态
      */
-    void setReturningToHive(bool returning) { m_returningToHive = returning; }
+    void setReturningToHive(bool returning)
+    {
+        m_returningToHive = returning;
+    }
 
     /**
      * @brief 检查蜂巢是否有效
@@ -280,49 +298,76 @@ public:
     /**
      * @brief 设置不进入蜂巢的倒计时
      */
-    void setStayOutOfHiveCountdown(i32 countdown) { m_stayOutOfHiveCountdown = countdown; }
+    void setStayOutOfHiveCountdown(i32 countdown)
+    {
+        m_stayOutOfHiveCountdown = countdown;
+    }
 
     /**
      * @brief 获取不进入蜂巢的倒计时
      */
-    [[nodiscard]] i32 getStayOutOfHiveCountdown() const { return m_stayOutOfHiveCountdown; }
+    [[nodiscard]] i32 getStayOutOfHiveCountdown() const
+    {
+        return m_stayOutOfHiveCountdown;
+    }
 
     /**
      * @brief 设置寻找新蜂巢冷却
      */
-    void setHiveLocateCooldown(i32 cooldown) { m_remainingCooldownBeforeLocatingNewHive = cooldown; }
+    void setHiveLocateCooldown(i32 cooldown)
+    {
+        m_remainingCooldownBeforeLocatingNewHive = cooldown;
+    }
 
     /**
      * @brief 获取寻找新蜂巢冷却
      */
-    [[nodiscard]] i32 getHiveLocateCooldown() const { return m_remainingCooldownBeforeLocatingNewHive; }
+    [[nodiscard]] i32 getHiveLocateCooldown() const
+    {
+        return m_remainingCooldownBeforeLocatingNewHive;
+    }
 
     /**
      * @brief 设置寻找新花朵冷却
      */
-    void setFlowerCooldown(i32 cooldown) { m_remainingCooldownBeforeLocatingNewFlower = cooldown; }
+    void setFlowerCooldown(i32 cooldown)
+    {
+        m_remainingCooldownBeforeLocatingNewFlower = cooldown;
+    }
 
     /**
      * @brief 获取寻找新花朵冷却
      */
-    [[nodiscard]] i32 getFlowerCooldown() const { return m_remainingCooldownBeforeLocatingNewFlower; }
+    [[nodiscard]] i32 getFlowerCooldown() const
+    {
+        return m_remainingCooldownBeforeLocatingNewFlower;
+    }
 
     // ========== 飞行系统 (IFlyingAnimal接口) ==========
 
     /**
      * @brief 是否正在飞行 (IFlyingAnimal接口实现)
      */
-    [[nodiscard]] bool isFlying() const override { return m_flying; }
+    [[nodiscard]] bool isFlying() const override
+    {
+        return m_flying;
+    }
 
     /**
      * @brief 设置飞行状态 (IFlyingAnimal接口实现)
      */
-    void setFlying(bool flying) override { m_flying = flying; }
+    void setFlying(bool flying) override
+    {
+        m_flying = flying;
+    }
 
     /**
      * @brief 获取飞行目标位置
      */
-    [[nodiscard]] BlockPos getFlowerPos() const { return m_flowerPos; }
+    [[nodiscard]] BlockPos getFlowerPos() const
+    {
+        return m_flowerPos;
+    }
 
     /**
      * @brief 设置花朵位置
@@ -341,7 +386,10 @@ public:
     /**
      * @brief 是否有花朵目标
      */
-    [[nodiscard]] bool hasFlower() const { return m_hasFlower; }
+    [[nodiscard]] bool hasFlower() const
+    {
+        return m_hasFlower;
+    }
 
     // ========== 繁殖 ==========
 
@@ -361,7 +409,10 @@ public:
     /**
      * @brief 获取眼睛高度
      */
-    [[nodiscard]] f32 eyeHeight() const override { return 0.3f; }
+    [[nodiscard]] f32 eyeHeight() const override
+    {
+        return 0.3f;
+    }
 
     // ========== 生命周期 ==========
 
@@ -380,7 +431,10 @@ public:
     /**
      * @brief 设置攻击目标 (IAngerable)
      */
-    void setAttackTarget(LivingEntity* target) override { MobEntity::setAttackTarget(target); }
+    void setAttackTarget(LivingEntity* target) override
+    {
+        MobEntity::setAttackTarget(target);
+    }
 
     /**
      * @brief 获取攻击目标 (IAngerable)
@@ -404,12 +458,18 @@ public:
     /**
      * @brief 获取复仇计时器 (IAngerable)
      */
-    [[nodiscard]] i32 getRevengeTimer() const override { return m_revengeTimer; }
+    [[nodiscard]] i32 getRevengeTimer() const override
+    {
+        return m_revengeTimer;
+    }
 
     /**
      * @brief 是否愤怒 (IAngerable)
      */
-    [[nodiscard]] bool isAngry() const override { return getAngerTime() > 0; }
+    [[nodiscard]] bool isAngry() const override
+    {
+        return getAngerTime() > 0;
+    }
 
     /**
      * @brief 设置愤怒状态 (IAngerable)
@@ -439,12 +499,18 @@ public:
     /**
      * @brief 是否正在攻击
      */
-    [[nodiscard]] bool isAttacking() const { return m_attacking; }
+    [[nodiscard]] bool isAttacking() const
+    {
+        return m_attacking;
+    }
 
     /**
      * @brief 设置攻击状态
      */
-    void setAttacking(bool attacking) { m_attacking = attacking; }
+    void setAttacking(bool attacking)
+    {
+        m_attacking = attacking;
+    }
 
     // ========== 标记 ==========
 
@@ -452,18 +518,27 @@ public:
      * @brief 设置攻击目标标记
      * 用于通知其他蜜蜂一起攻击
      */
-    void setTargetPlayer(u64 playerId) { m_targetPlayerId = playerId; }
+    void setTargetPlayer(u64 playerId)
+    {
+        m_targetPlayerId = playerId;
+    }
 
     /**
      * @brief 获取攻击目标玩家ID
      */
-    [[nodiscard]] u64 getTargetPlayer() const { return m_targetPlayerId; }
+    [[nodiscard]] u64 getTargetPlayer() const
+    {
+        return m_targetPlayerId;
+    }
 
     /**
      * @brief 获取水下计时器
      * 用于追踪蜜蜂在水中的时间
      */
-    [[nodiscard]] i32 getUnderWaterTimer() const { return m_underWaterTimer; }
+    [[nodiscard]] i32 getUnderWaterTimer() const
+    {
+        return m_underWaterTimer;
+    }
 
     // ========== 导航辅助 ==========
 
@@ -501,44 +576,68 @@ public:
     /**
      * @brief 检查是否正在授粉
      */
-    [[nodiscard]] bool isPollinating() const { return m_pollinating; }
+    [[nodiscard]] bool isPollinating() const
+    {
+        return m_pollinating;
+    }
 
     /**
      * @brief 设置授粉状态
      */
-    void setPollinating(bool pollinating) { m_pollinating = pollinating; }
+    void setPollinating(bool pollinating)
+    {
+        m_pollinating = pollinating;
+    }
 
     /**
      * @brief 重置离巢无花粉计时
      */
-    void resetTicksWithoutNectar() { m_ticksWithoutNectarSinceExitingHive = 0; }
+    void resetTicksWithoutNectar()
+    {
+        m_ticksWithoutNectarSinceExitingHive = 0;
+    }
 
     /**
      * @brief 获取离巢无花粉计时
      */
-    [[nodiscard]] i32 getTicksWithoutNectar() const { return m_ticksWithoutNectarSinceExitingHive; }
+    [[nodiscard]] i32 getTicksWithoutNectar() const
+    {
+        return m_ticksWithoutNectarSinceExitingHive;
+    }
 
     /**
      * @brief 蜜蜂是否厌倦寻找花蜜
      *
      * 离巢后超过 3600 tick（3分钟）仍未获得花蜜时返回 true。
      */
-    [[nodiscard]] bool isTiredOfLookingForNectar() const { return m_ticksWithoutNectarSinceExitingHive > 3600; }
+    [[nodiscard]] bool isTiredOfLookingForNectar() const
+    {
+        return m_ticksWithoutNectarSinceExitingHive > 3600;
+    }
 
     /**
      * @brief 增加授粉作物计数
      */
-    void addCropCounter() { ++m_cropsGrownSincePollination; }
+    void addCropCounter()
+    {
+        ++m_cropsGrownSincePollination;
+    }
 
     /**
      * @brief 重置授粉作物计数
      */
-    void resetCropCounter() { m_cropsGrownSincePollination = 0; }
+    void resetCropCounter()
+    {
+        m_cropsGrownSincePollination = 0;
+    }
 
     /**
      * @brief 获取授粉作物计数
      */
-    [[nodiscard]] i32 getCropsGrownSincePollination() const { return m_cropsGrownSincePollination; }
+    [[nodiscard]] i32 getCropsGrownSincePollination() const
+    {
+        return m_cropsGrownSincePollination;
+    }
 
 protected:
     // ========== AI 目标注册 ==========

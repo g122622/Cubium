@@ -51,6 +51,7 @@ public:
         std::unique_ptr<BlockStateProvider> then;
 
         Rule() = default;
+
         Rule(std::unique_ptr<predicate::BlockPredicate> pred, std::unique_ptr<BlockStateProvider> thenProvider)
             : ifTrue(std::move(pred))
             , then(std::move(thenProvider))

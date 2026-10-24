@@ -57,7 +57,9 @@ bool Shapes::s_initialized = false;
 
 void Shapes::_ensureInitialized()
 {
-    if (s_initialized) return;
+    if (s_initialized) {
+        return;
+    }
 
     // 创建空形状
     auto emptyShape = std::make_shared<DiscreteVoxelShape>(0, 0, 0);

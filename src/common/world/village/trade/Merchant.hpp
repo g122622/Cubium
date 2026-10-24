@@ -73,12 +73,18 @@ public:
     /**
      * @brief 获取交易数量
      */
-    [[nodiscard]] size_t size() const noexcept { return m_offers.size(); }
+    [[nodiscard]] size_t size() const noexcept
+    {
+        return m_offers.size();
+    }
 
     /**
      * @brief 是否为空
      */
-    [[nodiscard]] bool empty() const noexcept { return m_offers.empty(); }
+    [[nodiscard]] bool empty() const noexcept
+    {
+        return m_offers.empty();
+    }
 
     /**
      * @brief 根据支付物品查找匹配的交易

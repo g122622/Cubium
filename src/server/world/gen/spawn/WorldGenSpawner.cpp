@@ -65,20 +65,35 @@ public:
         return m_region.getBlockState(x, y, z);
     }
 
-    [[nodiscard]] bool isInWorldBounds(i32 x, i32 y, i32 z) const override { return world::isValidY(y); }
+    [[nodiscard]] bool isInWorldBounds(i32 x, i32 y, i32 z) const override
+    {
+        return world::isValidY(y);
+    }
 
     [[nodiscard]] i32 getHeight(HeightmapType type, i32 x, i32 z) const override
     {
         return m_region.getTopBlockY(x, z, type);
     }
 
-    [[nodiscard]] BiomeId getBiome(i32 x, i32 y, i32 z) const override { return m_region.getBiome(x, y, z); }
+    [[nodiscard]] BiomeId getBiome(i32 x, i32 y, i32 z) const override
+    {
+        return m_region.getBiome(x, y, z);
+    }
 
-    [[nodiscard]] u64 seed() const override { return m_region.seed(); }
+    [[nodiscard]] u64 seed() const override
+    {
+        return m_region.seed();
+    }
 
-    [[nodiscard]] Difficulty difficulty() const override { return m_region.difficulty(); }
+    [[nodiscard]] Difficulty difficulty() const override
+    {
+        return m_region.difficulty();
+    }
 
-    [[nodiscard]] i64 dayTime() const override { return m_region.dayTime(); }
+    [[nodiscard]] i64 dayTime() const override
+    {
+        return m_region.dayTime();
+    }
 
     [[nodiscard]] i32 getMaxLocalRawBrightness(i32 x, i32 y, i32 z) const override
     {
@@ -89,7 +104,10 @@ public:
         return InternalLightUtils::calculateRawBrightness(blockLight, skyLight, skyDarkening);
     }
 
-    [[nodiscard]] i32 getRawSkyLight(i32 x, i32 y, i32 z) const override { return m_region.getSkyLight(x, y, z); }
+    [[nodiscard]] i32 getRawSkyLight(i32 x, i32 y, i32 z) const override
+    {
+        return m_region.getSkyLight(x, y, z);
+    }
 
 private:
     WorldGenRegion& m_region;

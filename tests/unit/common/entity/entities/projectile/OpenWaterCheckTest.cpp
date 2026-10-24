@@ -42,7 +42,10 @@ namespace entity {
  */
 class FishingBobberTestAccess {
 public:
-    static bool checkOpenWater(FishingBobberEntity& bobber) { return bobber._checkOpenWater(); }
+    static bool checkOpenWater(FishingBobberEntity& bobber)
+    {
+        return bobber._checkOpenWater();
+    }
 
     static FishingWaterType getOpenWaterTypeForBlock(const FishingBobberEntity& bobber, const BlockPos& pos)
     {
@@ -75,7 +78,10 @@ class OpenWaterTestWorld : public mc::test::BaseTestWorld {
 public:
     OpenWaterTestWorld() = default;
 
-    void setBlockStateAt(i32 x, i32 y, i32 z, const BlockState* state) { m_blockStates[BlockPos(x, y, z)] = state; }
+    void setBlockStateAt(i32 x, i32 y, i32 z, const BlockState* state)
+    {
+        m_blockStates[BlockPos(x, y, z)] = state;
+    }
 
     void setFluidStateAt(i32 x, i32 y, i32 z, const fluid::FluidState* state)
     {
@@ -112,7 +118,10 @@ protected:
         fluid::Fluids::initialize();
     }
 
-    void TearDown() override { m_world.reset(); }
+    void TearDown() override
+    {
+        m_world.reset();
+    }
 
     /**
      * @brief 在指定位置填充水源方块

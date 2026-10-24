@@ -56,7 +56,9 @@ bool ConnectionManager::sendToPlayer(PlayerId playerId, const mc::network::ir::I
 void ConnectionManager::broadcast(const mc::network::ir::IrPacket& packet)
 {
     auto shared = std::make_shared<const mc::network::pipeline::OutboundPacket>(packet);
-    m_playerManager.forEachPlayer([&](ServerPlayerData& player) { player.sendShared(shared); });
+    m_playerManager.forEachPlayer([&](ServerPlayerData& player) {
+        player.sendShared(shared);
+    });
 }
 
 void ConnectionManager::broadcastExcept(PlayerId excludePlayerId, const mc::network::ir::IrPacket& packet)
@@ -72,7 +74,9 @@ void ConnectionManager::broadcastExcept(PlayerId excludePlayerId, const mc::netw
 void ConnectionManager::disconnectPlayer(PlayerId playerId, const std::string& reason)
 {
     auto* player = m_playerManager.getPlayer(playerId);
-    if (!player) return;
+    if (!player) {
+        return;
+    }
 
     // 离场广播用的 UUID 必须在 removePlayer 之前取——之后 ServerPlayerData 即被销毁。
     // 判据用 uuid 非空而不用 hasConnection()：被踢时连接可能已先行断开（如 KeepAlive 超时后
@@ -111,12 +115,15 @@ void ConnectionManager::disconnectAll(const std::string& reason)
 {
     // 先收集所有需要断开的连接，避免在遍历时修改
     std::vector<std::pair<PlayerId, std::string>> toDisconnect;
-    m_playerManager.forEachPlayer(
-        [&](ServerPlayerData& player) { toDisconnect.emplace_back(player.playerId, player.username); });
+    m_playerManager.forEachPlayer([&](ServerPlayerData& player) {
+        toDisconnect.emplace_back(player.playerId, player.username);
+    });
 
     for (const auto& [playerId, username] : toDisconnect) {
         auto* player = m_playerManager.getPlayer(playerId);
-        if (!player) continue;
+        if (!player) {
+            continue;
+        }
 
         auto* conn = player->getConnection();
         if (conn) {

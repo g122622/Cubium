@@ -93,7 +93,10 @@ protected:
      * 此门控与公共 flag --profiler-enabled 做 AND 组合：模式门控关闭时仍不启动 profiler；
      * 用户显式 --profiler-enabled=false 时也跳过 profiler 初始化。
      */
-    [[nodiscard]] virtual bool shouldEnableProfiler() const { return true; }
+    [[nodiscard]] virtual bool shouldEnableProfiler() const
+    {
+        return true;
+    }
 
     /**
      * @brief profiler 输出文件路径（Perfetto trace 文件）。子类提供。

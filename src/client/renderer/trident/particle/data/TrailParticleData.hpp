@@ -67,7 +67,11 @@ public:
     // ParticleData 接口实现
     // ========================================================================
 
-    [[nodiscard]] ParticleTypeId getType() const override { return ParticleTypeId::Trail; }
+    [[nodiscard]] ParticleTypeId getType() const override
+    {
+        return ParticleTypeId::Trail;
+    }
+
     [[nodiscard]] std::string getTypeName() const override;
     [[nodiscard]] std::string getParameters() const override;
     [[nodiscard]] std::unique_ptr<ParticleData> clone() const override;
@@ -83,7 +87,10 @@ public:
      *
      * @return 目标位置
      */
-    [[nodiscard]] const Vector3d& targetPosition() const noexcept { return m_targetPosition; }
+    [[nodiscard]] const Vector3d& targetPosition() const noexcept
+    {
+        return m_targetPosition;
+    }
 
     /**
      * @brief 获取粒子颜色
@@ -92,14 +99,20 @@ public:
      *
      * @return ARGB 颜色
      */
-    [[nodiscard]] u32 color() const noexcept { return m_color; }
+    [[nodiscard]] u32 color() const noexcept
+    {
+        return m_color;
+    }
 
     /**
      * @brief 获取飞行持续时间
      *
      * @return 持续时间（tick 数）
      */
-    [[nodiscard]] i32 durationInTicks() const noexcept { return m_durationInTicks; }
+    [[nodiscard]] i32 durationInTicks() const noexcept
+    {
+        return m_durationInTicks;
+    }
 
 private:
     Vector3d m_targetPosition; ///< 目标位置（世界坐标）

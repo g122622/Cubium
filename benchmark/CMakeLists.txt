@@ -142,7 +142,6 @@ target_sources(mc_benchmark
         ${CMAKE_SOURCE_DIR}/src/server/command/commands/ReplaceItemCommand.cpp
         ${CMAKE_SOURCE_DIR}/src/server/command/commands/SpectateCommand.cpp
         ${CMAKE_SOURCE_DIR}/src/server/command/commands/TriggerCommand.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/command/commands/WardenSpawnTrackerCommand.cpp
         # 自然生成（ServerWorld::tick 引用）
         ${CMAKE_SOURCE_DIR}/src/server/world/spawn/NaturalSpawner.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/spawn/SpawnConditions.cpp

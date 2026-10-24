@@ -102,16 +102,25 @@ public:
         return s_instance;
     }
 
-    [[nodiscard]] ChunkData* tryToGetChunkInMem(ChunkCoord /*x*/, ChunkCoord /*z*/) override { return nullptr; }
+    [[nodiscard]] ChunkData* tryToGetChunkInMem(ChunkCoord /*x*/, ChunkCoord /*z*/) override
+    {
+        return nullptr;
+    }
 
     [[nodiscard]] const ChunkData* tryToGetChunkInMem(ChunkCoord /*x*/, ChunkCoord /*z*/) const override
     {
         return nullptr;
     }
 
-    [[nodiscard]] bool hasChunkInMem(ChunkCoord /*x*/, ChunkCoord /*z*/) const override { return false; }
+    [[nodiscard]] bool hasChunkInMem(ChunkCoord /*x*/, ChunkCoord /*z*/) const override
+    {
+        return false;
+    }
 
-    [[nodiscard]] ChunkData* requestFullChunkSync(ChunkCoord /*x*/, ChunkCoord /*z*/) override { return nullptr; }
+    [[nodiscard]] ChunkData* requestFullChunkSync(ChunkCoord /*x*/, ChunkCoord /*z*/) override
+    {
+        return nullptr;
+    }
 
 private:
     EmptyChunkManager() = default;

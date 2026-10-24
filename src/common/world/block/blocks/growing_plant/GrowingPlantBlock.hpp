@@ -85,7 +85,10 @@ public:
     /**
      * @brief 获取生长方向
      */
-    [[nodiscard]] Direction getGrowthDirection() const noexcept { return m_growthDirection; }
+    [[nodiscard]] Direction getGrowthDirection() const noexcept
+    {
+        return m_growthDirection;
+    }
 
 protected:
     Direction m_growthDirection;

@@ -43,7 +43,11 @@ public:
     AlternativesLootEntry() noexcept = default;
     explicit AlternativesLootEntry(std::vector<std::unique_ptr<LootEntry>> children);
 
-    [[nodiscard]] LootEntryType getType() const noexcept override { return LootEntryType::Alternatives; }
+    [[nodiscard]] LootEntryType getType() const noexcept override
+    {
+        return LootEntryType::Alternatives;
+    }
+
     [[nodiscard]] std::unique_ptr<LootEntry> clone() const override;
 
     void addChild(std::unique_ptr<LootEntry> child);

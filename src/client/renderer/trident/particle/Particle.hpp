@@ -169,12 +169,18 @@ public:
      *
      * @return 是否存活
      */
-    [[nodiscard]] bool isAlive() const { return !m_expired; }
+    [[nodiscard]] bool isAlive() const
+    {
+        return !m_expired;
+    }
 
     /**
      * @brief 标记粒子为过期
      */
-    void setExpired() { m_expired = true; }
+    void setExpired()
+    {
+        m_expired = true;
+    }
 
     // ========================================================================
     // 渲染
@@ -273,31 +279,122 @@ public:
     // 属性访问器
     // ========================================================================
 
-    [[nodiscard]] const glm::vec3& position() const { return m_position; }
-    [[nodiscard]] const glm::vec3& prevPosition() const { return m_prevPosition; }
-    [[nodiscard]] const glm::vec3& velocity() const { return m_velocity; }
-    [[nodiscard]] f64 age() const { return m_age; }
-    [[nodiscard]] f64 maxAge() const { return m_maxAge; }
-    [[nodiscard]] f64 gravity() const { return m_gravity; }
-    [[nodiscard]] f64 friction() const { return m_friction; }
-    [[nodiscard]] f64 size() const { return m_size; }
-    [[nodiscard]] const glm::vec4& color() const { return m_color; }
-    [[nodiscard]] bool onGround() const { return m_collisionContext.onGround; }
-    [[nodiscard]] bool hasPhysics() const { return m_hasPhysics; }
-    [[nodiscard]] f64 roll() const { return m_roll; }
-    [[nodiscard]] bool collidedX() const { return m_collisionContext.collidedX; }
-    [[nodiscard]] bool collidedY() const { return m_collisionContext.collidedY; }
-    [[nodiscard]] bool collidedZ() const { return m_collisionContext.collidedZ; }
+    [[nodiscard]] const glm::vec3& position() const
+    {
+        return m_position;
+    }
+
+    [[nodiscard]] const glm::vec3& prevPosition() const
+    {
+        return m_prevPosition;
+    }
+
+    [[nodiscard]] const glm::vec3& velocity() const
+    {
+        return m_velocity;
+    }
+
+    [[nodiscard]] f64 age() const
+    {
+        return m_age;
+    }
+
+    [[nodiscard]] f64 maxAge() const
+    {
+        return m_maxAge;
+    }
+
+    [[nodiscard]] f64 gravity() const
+    {
+        return m_gravity;
+    }
+
+    [[nodiscard]] f64 friction() const
+    {
+        return m_friction;
+    }
+
+    [[nodiscard]] f64 size() const
+    {
+        return m_size;
+    }
+
+    [[nodiscard]] const glm::vec4& color() const
+    {
+        return m_color;
+    }
+
+    [[nodiscard]] bool onGround() const
+    {
+        return m_collisionContext.onGround;
+    }
+
+    [[nodiscard]] bool hasPhysics() const
+    {
+        return m_hasPhysics;
+    }
+
+    [[nodiscard]] f64 roll() const
+    {
+        return m_roll;
+    }
+
+    [[nodiscard]] bool collidedX() const
+    {
+        return m_collisionContext.collidedX;
+    }
+
+    [[nodiscard]] bool collidedY() const
+    {
+        return m_collisionContext.collidedY;
+    }
+
+    [[nodiscard]] bool collidedZ() const
+    {
+        return m_collisionContext.collidedZ;
+    }
 
     void setPosition(const glm::vec3& pos);
-    void setVelocity(const glm::vec3& vel) { m_velocity = vel; }
-    void setGravity(f64 g) { m_gravity = g; }
-    void setFriction(f64 f) { m_friction = f; }
-    void setSize(f64 s) { m_size = s; }
-    void setColor(const glm::vec4& c) { m_color = c; }
-    void setMaxAge(f64 age) { m_maxAge = age; }
-    void setHasPhysics(bool physics) { m_hasPhysics = physics; }
-    void setRoll(f64 roll) { m_roll = roll; }
+
+    void setVelocity(const glm::vec3& vel)
+    {
+        m_velocity = vel;
+    }
+
+    void setGravity(f64 g)
+    {
+        m_gravity = g;
+    }
+
+    void setFriction(f64 f)
+    {
+        m_friction = f;
+    }
+
+    void setSize(f64 s)
+    {
+        m_size = s;
+    }
+
+    void setColor(const glm::vec4& c)
+    {
+        m_color = c;
+    }
+
+    void setMaxAge(f64 age)
+    {
+        m_maxAge = age;
+    }
+
+    void setHasPhysics(bool physics)
+    {
+        m_hasPhysics = physics;
+    }
+
+    void setRoll(f64 roll)
+    {
+        m_roll = roll;
+    }
 
     /**
      * @brief 设置发射回调
@@ -307,12 +404,18 @@ public:
      *
      * @param callback 发射回调函数
      */
-    void setEmitCallback(ParticleEmitCallback callback) { m_emitCallback = std::move(callback); }
+    void setEmitCallback(ParticleEmitCallback callback)
+    {
+        m_emitCallback = std::move(callback);
+    }
 
     /**
      * @brief 获取发射回调
      */
-    [[nodiscard]] const ParticleEmitCallback& emitCallback() const { return m_emitCallback; }
+    [[nodiscard]] const ParticleEmitCallback& emitCallback() const
+    {
+        return m_emitCallback;
+    }
 
 protected:
     // ========================================================================

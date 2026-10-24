@@ -65,15 +65,19 @@ namespace {
 void HelpCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
 {
     auto helpNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("help");
-    helpNode->setRequirement([](const ServerCommandSource& source) { return source.hasPermission(0); });
+    helpNode->setRequirement([](const ServerCommandSource& source) {
+        return source.hasPermission(0);
+    });
     support::applyMetadata(helpNode, support::makeMetadata("Show command help.", "/help [command]", 0));
-    helpNode->setCommand(
-        [&dispatcher](CommandContext<ServerCommandSource>& ctx) { return _showHelp(ctx, dispatcher); });
+    helpNode->setCommand([&dispatcher](CommandContext<ServerCommandSource>& ctx) {
+        return _showHelp(ctx, dispatcher);
+    });
 
     auto commandArg =
         std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>("command", StringArgumentType::word());
-    commandArg->setCommand(
-        [&dispatcher](CommandContext<ServerCommandSource>& ctx) { return _showCommandHelp(ctx, dispatcher); });
+    commandArg->setCommand([&dispatcher](CommandContext<ServerCommandSource>& ctx) {
+        return _showCommandHelp(ctx, dispatcher);
+    });
     helpNode->addChild(commandArg);
 
     dispatcher.registerCommand(helpNode);

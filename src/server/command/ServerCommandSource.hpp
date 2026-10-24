@@ -40,6 +40,7 @@ namespace mc {
 // 前向声明
 class ServerPlayer;
 class Entity;
+
 namespace server {
 class ServerWorld;
 class IServer;
@@ -104,13 +105,19 @@ public:
     /**
      * @brief 获取服务器实例
      */
-    [[nodiscard]] server::IServer* server() const noexcept { return m_server; }
+    [[nodiscard]] server::IServer* server() const noexcept
+    {
+        return m_server;
+    }
 
     /**
      * @brief 获取玩家实例
      * @return 玩家指针，如果不是玩家则返回 nullptr
      */
-    [[nodiscard]] ServerPlayer* player() const noexcept { return m_player; }
+    [[nodiscard]] ServerPlayer* player() const noexcept
+    {
+        return m_player;
+    }
 
     /**
      * @brief 获取执行实体
@@ -118,7 +125,10 @@ public:
      *         当命令由玩家执行时返回该玩家实体；由控制台/命令方块执行时返回 nullptr；
      *         通过 /execute as @e 切换后可返回非玩家实体。
      */
-    [[nodiscard]] Entity* entity() const noexcept { return m_entity; }
+    [[nodiscard]] Entity* entity() const noexcept
+    {
+        return m_entity;
+    }
 
     /**
      * @brief 获取执行实体，如果为空则抛出异常
@@ -130,7 +140,10 @@ public:
     /**
      * @brief 获取逻辑玩家ID
      */
-    [[nodiscard]] PlayerId playerId() const noexcept { return m_playerId; }
+    [[nodiscard]] PlayerId playerId() const noexcept
+    {
+        return m_playerId;
+    }
 
     /**
      * @brief 获取世界实例
@@ -140,37 +153,59 @@ public:
     /**
      * @brief 获取维度ID
      */
-    [[nodiscard]] DimensionId dimensionId() const noexcept { return m_dimensionId; }
+    [[nodiscard]] DimensionId dimensionId() const noexcept
+    {
+        return m_dimensionId;
+    }
 
     // ========== 位置和朝向 ==========
 
-    [[nodiscard]] const Vector3d& position() const noexcept { return m_position; }
-    [[nodiscard]] const Vector2f& rotation() const noexcept { return m_rotation; }
+    [[nodiscard]] const Vector3d& position() const noexcept
+    {
+        return m_position;
+    }
+
+    [[nodiscard]] const Vector2f& rotation() const noexcept
+    {
+        return m_rotation;
+    }
 
     // ========== 权限 ==========
 
-    [[nodiscard]] i32 permissionLevel() const noexcept { return m_permissionLevel; }
+    [[nodiscard]] i32 permissionLevel() const noexcept
+    {
+        return m_permissionLevel;
+    }
 
     /**
      * @brief 检查是否有指定权限等级
      * @param level 要求的权限等级
      * @return true 如果有足够权限
      */
-    [[nodiscard]] bool hasPermission(i32 level) const noexcept { return m_permissionLevel >= level; }
+    [[nodiscard]] bool hasPermission(i32 level) const noexcept
+    {
+        return m_permissionLevel >= level;
+    }
 
     // ========== 显示名称 ==========
 
     /**
      * @brief 获取显示名称
      */
-    [[nodiscard]] const std::string& name() const noexcept { return m_name; }
+    [[nodiscard]] const std::string& name() const noexcept
+    {
+        return m_name;
+    }
 
     // ========== 实体检查 ==========
 
     /**
      * @brief 是否是玩家
      */
-    [[nodiscard]] bool isPlayer() const noexcept { return m_player != nullptr || m_playerId != 0; }
+    [[nodiscard]] bool isPlayer() const noexcept
+    {
+        return m_player != nullptr || m_playerId != 0;
+    }
 
     /**
      * @brief 断言是玩家
@@ -243,12 +278,22 @@ public:
     /**
      * @brief 获取实体锚点类型
      */
-    [[nodiscard]] EntityAnchorType anchor() const noexcept { return m_anchor; }
+    [[nodiscard]] EntityAnchorType anchor() const noexcept
+    {
+        return m_anchor;
+    }
 
     // ========== 反馈控制 ==========
 
-    [[nodiscard]] bool isFeedbackDisabled() const noexcept { return m_feedbackDisabled; }
-    void setFeedbackDisabled(bool disabled) noexcept { m_feedbackDisabled = disabled; }
+    [[nodiscard]] bool isFeedbackDisabled() const noexcept
+    {
+        return m_feedbackDisabled;
+    }
+
+    void setFeedbackDisabled(bool disabled) noexcept
+    {
+        m_feedbackDisabled = disabled;
+    }
 
     // ========== 静态工厂方法 ==========
 

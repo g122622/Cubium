@@ -81,14 +81,28 @@ public:
     /**
      * @brief 获取字体
      */
-    [[nodiscard]] Font& font() { return m_font; }
-    [[nodiscard]] const Font& font() const { return m_font; }
+    [[nodiscard]] Font& font()
+    {
+        return m_font;
+    }
+
+    [[nodiscard]] const Font& font() const
+    {
+        return m_font;
+    }
 
     /**
      * @brief 获取GUI渲染器
      */
-    [[nodiscard]] renderer::trident::gui::GuiRenderer& renderer() { return m_renderer; }
-    [[nodiscard]] const renderer::trident::gui::GuiRenderer& renderer() const { return m_renderer; }
+    [[nodiscard]] renderer::trident::gui::GuiRenderer& renderer()
+    {
+        return m_renderer;
+    }
+
+    [[nodiscard]] const renderer::trident::gui::GuiRenderer& renderer() const
+    {
+        return m_renderer;
+    }
 
 private:
     void _setupStateBindings();

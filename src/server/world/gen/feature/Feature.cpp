@@ -64,7 +64,9 @@ BlockMatchRuleTest::BlockMatchRuleTest(const Block* block)
 bool BlockMatchRuleTest::test(const BlockState& state, math::IRandom& random) const
 {
     (void)random;
-    if (!m_block) return false;
+    if (!m_block) {
+        return false;
+    }
     return state.is(m_block);
 }
 
@@ -84,7 +86,9 @@ BlockStateMatchRuleTest::BlockStateMatchRuleTest(const BlockState* state)
 bool BlockStateMatchRuleTest::test(const BlockState& state, math::IRandom& random) const
 {
     (void)random;
-    if (!m_state) return false;
+    if (!m_state) {
+        return false;
+    }
     // 方块状态完全匹配需要检查 stateId
     return state.stateId() == m_state->stateId();
 }
@@ -105,7 +109,9 @@ RandomBlockMatchRuleTest::RandomBlockMatchRuleTest(const Block* block, f32 proba
 
 bool RandomBlockMatchRuleTest::test(const BlockState& state, math::IRandom& random) const
 {
-    if (!m_block) return false;
+    if (!m_block) {
+        return false;
+    }
     return state.is(m_block) && random.nextFloat() < m_probability;
 }
 
@@ -125,7 +131,9 @@ RandomBlockStateMatchRuleTest::RandomBlockStateMatchRuleTest(const BlockState* s
 
 bool RandomBlockStateMatchRuleTest::test(const BlockState& state, math::IRandom& random) const
 {
-    if (!m_state) return false;
+    if (!m_state) {
+        return false;
+    }
     return state.stateId() == m_state->stateId() && random.nextFloat() < m_probability;
 }
 

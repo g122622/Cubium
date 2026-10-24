@@ -415,17 +415,25 @@ protected:
         // 返回对应的盔甲模型（已缓存）
         switch (slot) {
             case ArmorSlot::Head:
-                if (!m_headArmorModel) m_headArmorModel = std::make_unique<TModel>(0.0f);
+                if (!m_headArmorModel) {
+                    m_headArmorModel = std::make_unique<TModel>(0.0f);
+                }
                 return *m_headArmorModel;
             case ArmorSlot::Chest:
-                if (!m_chestArmorModel) m_chestArmorModel = std::make_unique<TModel>(0.0f);
+                if (!m_chestArmorModel) {
+                    m_chestArmorModel = std::make_unique<TModel>(0.0f);
+                }
                 return *m_chestArmorModel;
             case ArmorSlot::Legs:
-                if (!m_legsArmorModel) m_legsArmorModel = std::make_unique<TModel>(0.0f);
+                if (!m_legsArmorModel) {
+                    m_legsArmorModel = std::make_unique<TModel>(0.0f);
+                }
                 return *m_legsArmorModel;
             case ArmorSlot::Feet:
             default:
-                if (!m_feetArmorModel) m_feetArmorModel = std::make_unique<TModel>(0.0f);
+                if (!m_feetArmorModel) {
+                    m_feetArmorModel = std::make_unique<TModel>(0.0f);
+                }
                 return *m_feetArmorModel;
         }
     }
@@ -496,12 +504,18 @@ protected:
     /**
      * @brief 获取关联的渲染器
      */
-    [[nodiscard]] entity::core::IEntityRenderer<TEntity, TModel>* getRenderer() { return m_renderer; }
+    [[nodiscard]] entity::core::IEntityRenderer<TEntity, TModel>* getRenderer()
+    {
+        return m_renderer;
+    }
 
     /**
      * @brief 获取关联的模型
      */
-    [[nodiscard]] TModel* getParentModel() { return m_renderer ? &m_renderer->getModel() : nullptr; }
+    [[nodiscard]] TModel* getParentModel()
+    {
+        return m_renderer ? &m_renderer->getModel() : nullptr;
+    }
 
 private:
     entity::core::IEntityRenderer<TEntity, TModel>* m_renderer = nullptr;

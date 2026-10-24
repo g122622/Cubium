@@ -791,11 +791,20 @@ bool NaturalSpawner::_canSpawnAt(
             return chunk->getBiomeAtBlock(localX, by, localZ);
         }
 
-        [[nodiscard]] u64 seed() const override { return m_world.seed(); }
+        [[nodiscard]] u64 seed() const override
+        {
+            return m_world.seed();
+        }
 
-        [[nodiscard]] Difficulty difficulty() const override { return m_world.difficulty(); }
+        [[nodiscard]] Difficulty difficulty() const override
+        {
+            return m_world.difficulty();
+        }
 
-        [[nodiscard]] i64 dayTime() const override { return m_world.dayTime(); }
+        [[nodiscard]] i64 dayTime() const override
+        {
+            return m_world.dayTime();
+        }
 
         [[nodiscard]] i32 getMaxLocalRawBrightness(i32 bx, i32 by, i32 bz) const override
         {

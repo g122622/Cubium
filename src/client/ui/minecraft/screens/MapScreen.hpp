@@ -55,12 +55,18 @@ public:
     /**
      * @brief 设置地图渲染器（未注入则不绘制地图内容）
      */
-    void setMapRenderer(MapRenderer* renderer) { m_mapRenderer = renderer; }
+    void setMapRenderer(MapRenderer* renderer)
+    {
+        m_mapRenderer = renderer;
+    }
 
     /**
      * @brief 设置客户端地图数据缓存（地图数据来源，用于绘制装饰）
      */
-    void setMapDataCache(ClientMapDataCache* cache) { m_mapDataCache = cache; }
+    void setMapDataCache(ClientMapDataCache* cache)
+    {
+        m_mapDataCache = cache;
+    }
 
     /**
      * @brief 设置屏幕视口尺寸（由开屏方注入，paint 据此居中绘制地图）
@@ -68,7 +74,10 @@ public:
      * MapScreen 非容器屏，无 ContainerScreenBase 的尺寸机制；此方法把视口尺寸写入
      * Widget bounds，使基类 width()/height() 返回真实视口，供 paint 居中计算。
      */
-    void setScreenSize(i32 width, i32 height) { setBounds(kagero::Rect{0, 0, width, height}); }
+    void setScreenSize(i32 width, i32 height)
+    {
+        setBounds(kagero::Rect{0, 0, width, height});
+    }
 
     /**
      * @brief 绘制地图内容

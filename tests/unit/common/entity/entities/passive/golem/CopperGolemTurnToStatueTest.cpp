@@ -67,7 +67,10 @@ namespace mc::test {
 
 class CopperGolemEntityTestAccessor {
 public:
-    static void turnToStatue(CopperGolemEntity& golem) { golem.turnToStatue(); }
+    static void turnToStatue(CopperGolemEntity& golem)
+    {
+        golem.turnToStatue();
+    }
 };
 
 } // namespace mc::test
@@ -175,12 +178,30 @@ public:
         return static_cast<EntityInstanceId>(m_spawnedEntities.size());
     }
 
-    [[nodiscard]] world::tick::TickManager& tickManager() override { return *m_tickManagerPtr; }
-    [[nodiscard]] const world::tick::TickManager& tickManager() const override { return *m_tickManagerPtr; }
+    [[nodiscard]] world::tick::TickManager& tickManager() override
+    {
+        return *m_tickManagerPtr;
+    }
 
-    [[nodiscard]] u64 seed() const override { return m_seed; }
-    [[nodiscard]] bool isRaining() const override { return false; }
-    [[nodiscard]] bool canRainAt(const BlockPos&) const override { return false; }
+    [[nodiscard]] const world::tick::TickManager& tickManager() const override
+    {
+        return *m_tickManagerPtr;
+    }
+
+    [[nodiscard]] u64 seed() const override
+    {
+        return m_seed;
+    }
+
+    [[nodiscard]] bool isRaining() const override
+    {
+        return false;
+    }
+
+    [[nodiscard]] bool canRainAt(const BlockPos&) const override
+    {
+        return false;
+    }
 
     // ========== 测试辅助方法 ==========
 
@@ -192,10 +213,25 @@ public:
         f32 pitch;
     };
 
-    [[nodiscard]] const std::vector<SoundRecord>& sounds() const { return m_sounds; }
-    [[nodiscard]] const std::vector<std::unique_ptr<Entity>>& spawnedEntities() const { return m_spawnedEntities; }
-    void clearSounds() { m_sounds.clear(); }
-    void clearSpawnedEntities() { m_spawnedEntities.clear(); }
+    [[nodiscard]] const std::vector<SoundRecord>& sounds() const
+    {
+        return m_sounds;
+    }
+
+    [[nodiscard]] const std::vector<std::unique_ptr<Entity>>& spawnedEntities() const
+    {
+        return m_spawnedEntities;
+    }
+
+    void clearSounds()
+    {
+        m_sounds.clear();
+    }
+
+    void clearSpawnedEntities()
+    {
+        m_spawnedEntities.clear();
+    }
 
     /// 显式启用/禁用 DO_ENTITY_DROPS 规则
     void setDoEntityDrops(bool enabled)
@@ -231,7 +267,10 @@ protected:
         }
     }
 
-    void SetUp() override { m_world = std::make_unique<CopperGolemTurnToStatueTestWorld>(); }
+    void SetUp() override
+    {
+        m_world = std::make_unique<CopperGolemTurnToStatueTestWorld>();
+    }
 
     /// 创建一个铜傀儡，放置在 (8, 64, 8) 位置（脚下为空气）
     std::unique_ptr<CopperGolemEntity> createGolemAtStatuePosition()

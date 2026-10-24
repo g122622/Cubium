@@ -34,32 +34,40 @@ namespace mc {
 class AbstractContainerMenu;
 class PlayerInventory;
 class ServerDimensionManager;
+
 namespace function {
 class FunctionManager;
 class TimerQueue;
 } // namespace function
+
 namespace loot {
 class LootTableManager;
 class LootPredicateManager;
 } // namespace loot
+
 namespace resource {
 class DataPackRepository;
 }
+
 namespace server {
 class ServerPlayerEntityManager;
 class ServerWorld;
 } // namespace server
+
 namespace time {
 class GameTime;
 }
+
 namespace world {
 namespace tick {
 class TickManager;
 }
+
 namespace storage {
 class SingleLevelStorageManager;
 }
 } // namespace world
+
 namespace command {
 class CommandRegistry;
 class CommandStorage;

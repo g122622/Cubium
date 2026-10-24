@@ -90,7 +90,10 @@ public:
     /**
      * @brief 是否有方块实体
      */
-    [[nodiscard]] bool hasBlockEntity() const noexcept override { return false; }
+    [[nodiscard]] bool hasBlockEntity() const noexcept override
+    {
+        return false;
+    }
 
     /**
      * @brief 是否有比较器输入覆盖

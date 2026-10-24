@@ -91,9 +91,14 @@ i32 ChunkDistanceGraph::processUpdates(i32 maxToProcess)
         return 0;
     }
     m_processing = true;
+
     struct ProcessingGuard {
         bool& flag;
-        ~ProcessingGuard() { flag = false; }
+
+        ~ProcessingGuard()
+        {
+            flag = false;
+        }
     } guard{m_processing};
 
     i32 processed = 0;
@@ -119,7 +124,9 @@ i32 ChunkDistanceGraph::processUpdates(i32 maxToProcess)
 
         for (i32 dz = -1; dz <= 1; ++dz) {
             for (i32 dx = -1; dx <= 1; ++dx) {
-                if (dx == 0 && dz == 0) continue;
+                if (dx == 0 && dz == 0) {
+                    continue;
+                }
                 const i32 neighborLevel = getLevel(x + dx, z + dz);
                 if (neighborLevel >= MAX_LEVEL) {
                     continue; // 最外沿/未触达的邻居不向外传播
@@ -206,7 +213,9 @@ void ChunkDistanceGraph::_propagateToNeighbors(ChunkCoord x, ChunkCoord z)
     // 无论升/降级，邻居的最优级别都可能依赖当前节点，统一触发重计算。
     for (i32 dz = -1; dz <= 1; ++dz) {
         for (i32 dx = -1; dx <= 1; ++dx) {
-            if (dx == 0 && dz == 0) continue;
+            if (dx == 0 && dz == 0) {
+                continue;
+            }
             _enqueueUpdate(x + dx, z + dz);
         }
     }

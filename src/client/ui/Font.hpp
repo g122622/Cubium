@@ -127,10 +127,20 @@ public:
         f32& outBearingX,
         f32& outBearingY) const override;
 
-    [[nodiscard]] const std::vector<u32>& getCodepoints() const override { return m_codepoints; }
+    [[nodiscard]] const std::vector<u32>& getCodepoints() const override
+    {
+        return m_codepoints;
+    }
 
-    [[nodiscard]] u32 getFontHeight() const override { return m_height; }
-    [[nodiscard]] u32 getAscent() const override { return m_ascent; }
+    [[nodiscard]] u32 getFontHeight() const override
+    {
+        return m_height;
+    }
+
+    [[nodiscard]] u32 getAscent() const override
+    {
+        return m_ascent;
+    }
 
 private:
     /**
@@ -241,19 +251,36 @@ public:
     /**
      * @brief 获取字形纹理图集
      */
-    [[nodiscard]] FontTextureAtlas& atlas() { return m_atlas; }
-    [[nodiscard]] const FontTextureAtlas& atlas() const { return m_atlas; }
+    [[nodiscard]] FontTextureAtlas& atlas()
+    {
+        return m_atlas;
+    }
+
+    [[nodiscard]] const FontTextureAtlas& atlas() const
+    {
+        return m_atlas;
+    }
 
     /**
      * @brief 获取图集像素数据（用于上传到GPU）
      */
-    [[nodiscard]] const u8* atlasPixels() const { return m_atlas.pixelData(); }
-    [[nodiscard]] u32 atlasSize() const { return m_atlas.textureSize(); }
+    [[nodiscard]] const u8* atlasPixels() const
+    {
+        return m_atlas.pixelData();
+    }
+
+    [[nodiscard]] u32 atlasSize() const
+    {
+        return m_atlas.textureSize();
+    }
 
     /**
      * @brief 检查字体是否有效
      */
-    [[nodiscard]] bool isValid() const { return m_atlas.isValid(); }
+    [[nodiscard]] bool isValid() const
+    {
+        return m_atlas.isValid();
+    }
 
 private:
     FontTextureAtlas m_atlas;                                 // 字形纹理图集

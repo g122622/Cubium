@@ -49,10 +49,12 @@ const BlockState* snowBlockState()
 {
     return &VanillaBlocks::SNOW_BLOCK->defaultState();
 }
+
 const BlockState* airState()
 {
     return &VanillaBlocks::AIR->defaultState();
 }
+
 const BlockState* waterState()
 {
     return &VanillaBlocks::WATER->defaultState();
@@ -385,10 +387,18 @@ void IcebergFeature::smooth(IWorld& world, const BlockPos& blockpos, i32 j1, i32
                         const BlockState* north = world.getBlockState(pos.north());
                         const BlockState* south = world.getBlockState(pos.south());
                         i32 nonIceberg = 0;
-                        if (west == nullptr || !isIcebergState(*west)) ++nonIceberg;
-                        if (east == nullptr || !isIcebergState(*east)) ++nonIceberg;
-                        if (north == nullptr || !isIcebergState(*north)) ++nonIceberg;
-                        if (south == nullptr || !isIcebergState(*south)) ++nonIceberg;
+                        if (west == nullptr || !isIcebergState(*west)) {
+                            ++nonIceberg;
+                        }
+                        if (east == nullptr || !isIcebergState(*east)) {
+                            ++nonIceberg;
+                        }
+                        if (north == nullptr || !isIcebergState(*north)) {
+                            ++nonIceberg;
+                        }
+                        if (south == nullptr || !isIcebergState(*south)) {
+                            ++nonIceberg;
+                        }
                         if (nonIceberg >= 3) {
                             world.setBlockState(pos, airState());
                         }

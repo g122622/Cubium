@@ -70,12 +70,18 @@ public:
     /**
      * @brief 获取鹦鹉变种
      */
-    [[nodiscard]] ParrotVariant getVariant() const { return m_variant; }
+    [[nodiscard]] ParrotVariant getVariant() const
+    {
+        return m_variant;
+    }
 
     /**
      * @brief 设置鹦鹉变种
      */
-    void setVariant(ParrotVariant variant) { m_variant = variant; }
+    void setVariant(ParrotVariant variant)
+    {
+        m_variant = variant;
+    }
 
     /**
      * @brief 随机设置变种
@@ -85,32 +91,50 @@ public:
     /**
      * @brief 当前是否飞行
      */
-    [[nodiscard]] bool isFlying() const override { return m_flying; }
+    [[nodiscard]] bool isFlying() const override
+    {
+        return m_flying;
+    }
 
     /**
      * @brief 设置飞行状态
      */
-    void setFlying(bool flying) override { m_flying = flying; }
+    void setFlying(bool flying) override
+    {
+        m_flying = flying;
+    }
 
     /**
      * @brief 鹦鹉始终可以飞
      */
-    [[nodiscard]] bool canFly() const { return true; }
+    [[nodiscard]] bool canFly() const
+    {
+        return true;
+    }
 
     /**
      * @brief 当前是否正在模仿声音
      */
-    [[nodiscard]] bool isImitating() const { return m_imitating; }
+    [[nodiscard]] bool isImitating() const
+    {
+        return m_imitating;
+    }
 
     /**
      * @brief 设置模仿状态
      */
-    void setImitating(bool imitating) { m_imitating = imitating; }
+    void setImitating(bool imitating)
+    {
+        m_imitating = imitating;
+    }
 
     /**
      * @brief 获取模仿目标类型 ID
      */
-    [[nodiscard]] u32 getImitatingTarget() const { return m_imitatingTarget; }
+    [[nodiscard]] u32 getImitatingTarget() const
+    {
+        return m_imitatingTarget;
+    }
 
     /**
      * @brief 设置模仿目标
@@ -147,7 +171,10 @@ public:
     /**
      * @brief 获取眼睛高度
      */
-    [[nodiscard]] f32 eyeHeight() const override { return 0.25f; }
+    [[nodiscard]] f32 eyeHeight() const override
+    {
+        return 0.25f;
+    }
 
     void tick() override;
 
@@ -177,8 +204,17 @@ public:
 protected:
     void registerGoals() override;
     void registerAttributes() override;
-    [[nodiscard]] f32 getBaseWidth() const override { return 0.5f; }
-    [[nodiscard]] f32 getBaseHeight() const override { return 0.9f; }
+
+    [[nodiscard]] f32 getBaseWidth() const override
+    {
+        return 0.5f;
+    }
+
+    [[nodiscard]] f32 getBaseHeight() const override
+    {
+        return 0.9f;
+    }
+
     void onTamed(bool tamed) override;
 
 private:

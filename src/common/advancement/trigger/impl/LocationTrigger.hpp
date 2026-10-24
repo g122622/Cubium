@@ -53,7 +53,10 @@ public:
     /**
      * @brief 获取触发器ID
      */
-    [[nodiscard]] ResourceLocation getId() const override { return ResourceLocation(TRIGGER_ID); }
+    [[nodiscard]] ResourceLocation getId() const override
+    {
+        return ResourceLocation(TRIGGER_ID);
+    }
 
     /**
      * @brief 从JSON反序列化实例
@@ -128,7 +131,10 @@ public:
 
     // ========== Getters ==========
 
-    [[nodiscard]] const LocationPredicate& getLocation() const noexcept { return m_location; }
+    [[nodiscard]] const LocationPredicate& getLocation() const noexcept
+    {
+        return m_location;
+    }
 
 private:
     LocationPredicate m_location;
@@ -146,7 +152,10 @@ class SleptInBedTrigger : public LocationTrigger {
 public:
     static constexpr const char* TRIGGER_ID = "minecraft:slept_in_bed";
 
-    [[nodiscard]] ResourceLocation getId() const override { return ResourceLocation(TRIGGER_ID); }
+    [[nodiscard]] ResourceLocation getId() const override
+    {
+        return ResourceLocation(TRIGGER_ID);
+    }
 };
 
 /**
@@ -158,7 +167,10 @@ class HeroOfTheVillageTrigger : public LocationTrigger {
 public:
     static constexpr const char* TRIGGER_ID = "minecraft:hero_of_the_village";
 
-    [[nodiscard]] ResourceLocation getId() const override { return ResourceLocation(TRIGGER_ID); }
+    [[nodiscard]] ResourceLocation getId() const override
+    {
+        return ResourceLocation(TRIGGER_ID);
+    }
 };
 
 /**
@@ -170,7 +182,10 @@ class VoluntaryExileTrigger : public LocationTrigger {
 public:
     static constexpr const char* TRIGGER_ID = "minecraft:voluntary_exile";
 
-    [[nodiscard]] ResourceLocation getId() const override { return ResourceLocation(TRIGGER_ID); }
+    [[nodiscard]] ResourceLocation getId() const override
+    {
+        return ResourceLocation(TRIGGER_ID);
+    }
 };
 
 } // namespace mc::advancement

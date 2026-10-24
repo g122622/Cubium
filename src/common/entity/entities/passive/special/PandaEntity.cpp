@@ -420,9 +420,13 @@ void PandaEntity::registerGoals()
             1.0,
             [](const ItemStack& stack) -> bool {
                 const Item* item = stack.getItem();
-                if (item == nullptr) return false;
+                if (item == nullptr) {
+                    return false;
+                }
                 // Items::BAMBOO 可能在初始化期间为 nullptr
-                if (Items::BAMBOO == nullptr) return false;
+                if (Items::BAMBOO == nullptr) {
+                    return false;
+                }
                 return item == Items::BAMBOO;
             },
             false));
@@ -609,6 +613,10 @@ void PandaEntity::registerAttributes()
     // 调用父类方法
     AnimalEntity::registerAttributes();
 
+    // 原版 Panda.createAttributes：攻击伤害无条件 6（好斗性格只额外加一次修饰符）。
+    attributes().registerAttribute(*entity::attribute::Attributes::attackDamage());
+    attributes().setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, 6.0);
+
     // 熊猫的基础属性
     f32 maxHealth = 20.0f;
 
@@ -619,11 +627,6 @@ void PandaEntity::registerAttributes()
 
     attributes().setBaseValue(entity::attribute::Attributes::MAX_HEALTH, maxHealth);
     attributes().setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.15); // 熊猫移动较慢
-
-    // 好斗熊猫攻击力更高
-    if (isAggressive()) {
-        attributes().setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, 6.0);
-    }
 }
 
 std::optional<ResourceLocation> PandaEntity::getAmbientSound() const

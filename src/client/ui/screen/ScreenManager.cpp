@@ -68,7 +68,9 @@ void ScreenManager::closeAll()
 bool ScreenManager::closeContainer(i32 containerId)
 {
     const auto* screen = getCurrentKageroScreen();
-    if (screen == nullptr || screen->getContainerId() != containerId) return false;
+    if (screen == nullptr || screen->getContainerId() != containerId) {
+        return false;
+    }
     closeScreen();
     return true;
 }

@@ -84,7 +84,10 @@ public:
     /**
      * @brief 获取基础难度等级
      */
-    [[nodiscard]] Difficulty getDifficulty() const { return m_baseDifficulty; }
+    [[nodiscard]] Difficulty getDifficulty() const
+    {
+        return m_baseDifficulty;
+    }
 
     /**
      * @brief 获取有效难度
@@ -96,7 +99,10 @@ public:
      * - Normal: 0.0 ~ 4.0 (典型)
      * - Hard: 0.0 ~ 6.75 (典型)
      */
-    [[nodiscard]] f32 getEffectiveDifficulty() const { return m_effectiveDifficulty; }
+    [[nodiscard]] f32 getEffectiveDifficulty() const
+    {
+        return m_effectiveDifficulty;
+    }
 
     /**
      * @brief 获取特殊乘数

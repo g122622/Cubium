@@ -72,10 +72,16 @@ public:
     [[nodiscard]] std::string fromJavaRegistryId(u32 javaRegistryId) const;
 
     /// 是否已建立映射。
-    [[nodiscard]] bool isInitialized() const noexcept { return m_initialized; }
+    [[nodiscard]] bool isInitialized() const noexcept
+    {
+        return m_initialized;
+    }
 
     /// 已映射的药水数（诊断用）。
-    [[nodiscard]] size_t matchedCount() const noexcept { return m_javaToName.size(); }
+    [[nodiscard]] size_t matchedCount() const noexcept
+    {
+        return m_javaToName.size();
+    }
 
 private:
     bool m_initialized = false;

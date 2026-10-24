@@ -46,6 +46,7 @@ struct ScriptVec3 {
     f64 z = 0.0;
 
     ScriptVec3() noexcept = default;
+
     ScriptVec3(f64 x_, f64 y_, f64 z_) noexcept
         : x(x_)
         , y(y_)
@@ -80,7 +81,10 @@ struct ScriptVec3 {
     }
 
     /// 转换为Vector3d
-    [[nodiscard]] math::Vector3d toVec3d() const noexcept { return {x, y, z}; }
+    [[nodiscard]] math::Vector3d toVec3d() const noexcept
+    {
+        return {x, y, z};
+    }
 
     /// 转换为BlockPos
     [[nodiscard]] BlockPos toBlockPos() const noexcept

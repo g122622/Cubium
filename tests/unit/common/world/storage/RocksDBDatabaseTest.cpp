@@ -49,10 +49,16 @@ protected:
         m_testDir = mc::test::makeUniqueTestDir("mc_rocksdb_test");
     }
 
-    void TearDown() override { mc::test::removeTestDir(m_testDir); }
+    void TearDown() override
+    {
+        mc::test::removeTestDir(m_testDir);
+    }
 
     /// 获取本次测试的数据库路径（每个测试用例独立路径）
-    std::filesystem::path getDbPath(const std::string& name) const { return m_testDir / name; }
+    std::filesystem::path getDbPath(const std::string& name) const
+    {
+        return m_testDir / name;
+    }
 };
 
 // ============================================================================

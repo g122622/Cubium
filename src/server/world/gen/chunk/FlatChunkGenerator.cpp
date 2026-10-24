@@ -141,7 +141,9 @@ void FlatChunkGenerator::generateStructureStarts(WorldGenRegion& region, ChunkPr
     auto& structureSetRegistry = world::gen::structure::StructureSetRegistry::instance();
 
     for (const auto& structureSetPtr : structureSetRegistry.getAll()) {
-        if (!structureSetPtr) continue;
+        if (!structureSetPtr) {
+            continue;
+        }
 
         const auto& structureSet = *structureSetPtr;
 
@@ -167,7 +169,9 @@ void FlatChunkGenerator::generateStructureStarts(WorldGenRegion& region, ChunkPr
                 break;
             }
         }
-        if (hasExistingStart) continue;
+        if (hasExistingStart) {
+            continue;
+        }
 
         // 三步检查：1. 是否为候选区块
         if (!placement.isStructureChunk(static_cast<i64>(m_seed), chunkX, chunkZ)) {
@@ -179,11 +183,15 @@ void FlatChunkGenerator::generateStructureStarts(WorldGenRegion& region, ChunkPr
         legacyRng.setLargeFeatureSeed(static_cast<i64>(m_seed), chunkX, chunkZ);
         math::Random rng(legacyRng.nextLong());
         const auto* entry = structureSet.selectEntry(rng);
-        if (!entry) continue;
+        if (!entry) {
+            continue;
+        }
 
         // 查找结构定义
         const auto* structure = world::gen::structure::StructureRegistry::get(entry->structureId);
-        if (!structure) continue;
+        if (!structure) {
+            continue;
+        }
 
         // 生成结构起点（生物群系兼容性已由 _hasBiomesForStructureSet 预过滤保证，
         // FlatChunkGenerator 使用 FixedBiomeSource，所有位置生物群系相同，无需逐区块检查）
@@ -332,18 +340,26 @@ void FlatChunkGenerator::placeFeatures(WorldGenRegion& region, ChunkPrimer& chun
         for (const auto& [structureId, refs] : chunk.structureReferences()) {
             const world::gen::structure::Structure* structure =
                 world::gen::structure::StructureRegistry::get(structureId);
-            if (!structure) continue;
+            if (!structure) {
+                continue;
+            }
 
             for (const auto& [refX, refZ] : refs) {
                 // 从源区块获取 StructureStart
                 IChunk* sourceChunk = region.getIChunk(refX, refZ, ChunkStatuses::STRUCTURE_STARTS);
-                if (!sourceChunk) continue;
+                if (!sourceChunk) {
+                    continue;
+                }
 
                 auto* sourcePrimer = dynamic_cast<ChunkPrimer*>(sourceChunk);
-                if (!sourcePrimer) continue;
+                if (!sourcePrimer) {
+                    continue;
+                }
 
                 auto* start = sourcePrimer->getStructureStart(structureId);
-                if (!start || !start->isValid()) continue;
+                if (!start || !start->isValid()) {
+                    continue;
+                }
 
                 const i32 stageOrdinal = static_cast<i32>(structure->decorationStage());
                 structuresByStage[stageOrdinal].emplace_back(structure, start);
@@ -473,7 +489,9 @@ bool FlatChunkGenerator::_hasBiomesForStructureSet(const world::gen::structure::
 
     for (const auto& entry : structureSet.entries()) {
         const auto* structure = world::gen::structure::StructureRegistry::get(entry.structureId);
-        if (!structure) continue;
+        if (!structure) {
+            continue;
+        }
 
         // 使用 isValidBiome() 检查兼容性（内部优先使用 biomeTag，回退到空列表检查）
         if (structure->isValidBiome(flatBiomeId)) {

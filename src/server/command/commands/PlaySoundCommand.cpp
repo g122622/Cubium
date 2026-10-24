@@ -58,17 +58,39 @@ namespace {
  */
 sound::SoundCategory parseSoundCategory(const std::string& name)
 {
-    if (name == "master") return sound::SoundCategory::Master;
-    if (name == "music") return sound::SoundCategory::Music;
-    if (name == "record") return sound::SoundCategory::Records;
-    if (name == "weather") return sound::SoundCategory::Weather;
-    if (name == "block" || name == "blocks") return sound::SoundCategory::Blocks;
-    if (name == "hostile") return sound::SoundCategory::Hostile;
-    if (name == "neutral") return sound::SoundCategory::Neutral;
-    if (name == "player" || name == "players") return sound::SoundCategory::Players;
-    if (name == "ambient") return sound::SoundCategory::Ambient;
-    if (name == "voice") return sound::SoundCategory::Voice;
-    if (name == "ui") return sound::SoundCategory::UI;
+    if (name == "master") {
+        return sound::SoundCategory::Master;
+    }
+    if (name == "music") {
+        return sound::SoundCategory::Music;
+    }
+    if (name == "record") {
+        return sound::SoundCategory::Records;
+    }
+    if (name == "weather") {
+        return sound::SoundCategory::Weather;
+    }
+    if (name == "block" || name == "blocks") {
+        return sound::SoundCategory::Blocks;
+    }
+    if (name == "hostile") {
+        return sound::SoundCategory::Hostile;
+    }
+    if (name == "neutral") {
+        return sound::SoundCategory::Neutral;
+    }
+    if (name == "player" || name == "players") {
+        return sound::SoundCategory::Players;
+    }
+    if (name == "ambient") {
+        return sound::SoundCategory::Ambient;
+    }
+    if (name == "voice") {
+        return sound::SoundCategory::Voice;
+    }
+    if (name == "ui") {
+        return sound::SoundCategory::UI;
+    }
     return sound::SoundCategory::Master;
 }
 
@@ -110,7 +132,9 @@ void sendPlaySoundPacket(server::core::ConnectionManager& connMgr,
 void PlaySoundCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
 {
     auto playsoundNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("playsound");
-    playsoundNode->setRequirement([](const ServerCommandSource& source) { return source.hasPermission(2); });
+    playsoundNode->setRequirement([](const ServerCommandSource& source) {
+        return source.hasPermission(2);
+    });
     support::applyMetadata(playsoundNode,
         support::makeMetadata("Plays a sound effect.",
             "/playsound <sound> <source> <player> [<pos>] [<volume>] [<pitch>] [<minimumVolume>]",

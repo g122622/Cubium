@@ -86,17 +86,26 @@ public:
     /**
      * @brief 获取蜡烛数量属性
      */
-    [[nodiscard]] static const IntegerProperty& CANDLES() { return BlockStateProperties::CANDLES(); }
+    [[nodiscard]] static const IntegerProperty& CANDLES()
+    {
+        return BlockStateProperties::CANDLES();
+    }
 
     /**
      * @brief 获取点燃状态属性
      */
-    [[nodiscard]] static const BooleanProperty& LIT() { return BlockStateProperties::LIT(); }
+    [[nodiscard]] static const BooleanProperty& LIT()
+    {
+        return BlockStateProperties::LIT();
+    }
 
     /**
      * @brief 获取含水状态属性
      */
-    [[nodiscard]] static const BooleanProperty& WATERLOGGED() { return BlockStateProperties::WATERLOGGED(); }
+    [[nodiscard]] static const BooleanProperty& WATERLOGGED()
+    {
+        return BlockStateProperties::WATERLOGGED();
+    }
 
     // ========== 放置逻辑 ==========
 
@@ -207,7 +216,10 @@ public:
      *
      * 蜡烛需要响应随机刻以检测含水状态并熄灭。
      */
-    [[nodiscard]] bool ticksRandomly() const noexcept override { return true; }
+    [[nodiscard]] bool ticksRandomly() const noexcept override
+    {
+        return true;
+    }
 
     // ========== 渲染属性 ==========
 

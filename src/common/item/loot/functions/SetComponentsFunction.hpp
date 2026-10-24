@@ -53,9 +53,16 @@ public:
 
     [[nodiscard]] ItemStack apply(ItemStack stack, LootContext& context) const override;
     [[nodiscard]] std::unique_ptr<LootFunction> clone() const noexcept override;
-    [[nodiscard]] std::string getType() const noexcept override { return "set_components"; }
 
-    [[nodiscard]] const item::component::DataComponentPatch& getComponents() const { return *m_patch; }
+    [[nodiscard]] std::string getType() const noexcept override
+    {
+        return "set_components";
+    }
+
+    [[nodiscard]] const item::component::DataComponentPatch& getComponents() const
+    {
+        return *m_patch;
+    }
 
 private:
     std::shared_ptr<const item::component::DataComponentPatch> m_patch;

@@ -97,7 +97,10 @@ public:
         return state != nullptr ? state->getFluidState() : &fluid::Fluids::EMPTY()->defaultState();
     }
 
-    void playEvent(i32 eventId, const BlockPos& pos, i32 data) override { m_events.push_back({eventId, pos, data}); }
+    void playEvent(i32 eventId, const BlockPos& pos, i32 data) override
+    {
+        m_events.push_back({eventId, pos, data});
+    }
 
     void playSound(const ResourceLocation& sound,
         sound::SoundCategory category,
@@ -145,6 +148,7 @@ public:
     {
         throw std::runtime_error("WaxTestWorld::tickManager not implemented");
     }
+
     [[nodiscard]] const world::tick::TickManager& tickManager() const override
     {
         throw std::runtime_error("WaxTestWorld::tickManager not implemented");
@@ -165,10 +169,25 @@ public:
         f32 pitch;
     };
 
-    [[nodiscard]] const std::vector<EventRecord>& events() const { return m_events; }
-    [[nodiscard]] const std::vector<SoundRecord>& sounds() const { return m_sounds; }
-    void clearEvents() { m_events.clear(); }
-    void clearSounds() { m_sounds.clear(); }
+    [[nodiscard]] const std::vector<EventRecord>& events() const
+    {
+        return m_events;
+    }
+
+    [[nodiscard]] const std::vector<SoundRecord>& sounds() const
+    {
+        return m_sounds;
+    }
+
+    void clearEvents()
+    {
+        m_events.clear();
+    }
+
+    void clearSounds()
+    {
+        m_sounds.clear();
+    }
 
 private:
     // 存储 BlockState 副本，避免悬空指针问题

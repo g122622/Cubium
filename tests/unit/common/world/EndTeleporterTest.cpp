@@ -62,6 +62,7 @@ public:
     {
         throw std::runtime_error("EndTeleporterTestWorld::tickManager not implemented");
     }
+
     [[nodiscard]] const world::tick::TickManager& tickManager() const override
     {
         throw std::runtime_error("EndTeleporterTestWorld::tickManager not implemented");
@@ -69,16 +70,25 @@ public:
 
     // ========== 测试辅助方法 ==========
 
-    [[nodiscard]] const BlockState* getBlockAt(const BlockPos& pos) const { return getBlockState(pos.x, pos.y, pos.z); }
+    [[nodiscard]] const BlockState* getBlockAt(const BlockPos& pos) const
+    {
+        return getBlockState(pos.x, pos.y, pos.z);
+    }
 
     [[nodiscard]] bool hasBlockAt(i32 x, i32 y, i32 z) const
     {
         return m_blocks.find(BlockPos(x, y, z)) != m_blocks.end();
     }
 
-    [[nodiscard]] size_t blockCount() const { return m_blocks.size(); }
+    [[nodiscard]] size_t blockCount() const
+    {
+        return m_blocks.size();
+    }
 
-    void clear() { m_blocks.clear(); }
+    void clear()
+    {
+        m_blocks.clear();
+    }
 
 private:
     std::map<BlockPos, const BlockState*> m_blocks;
@@ -90,7 +100,10 @@ private:
 
 class EndTeleporterTest : public ::testing::Test {
 protected:
-    void SetUp() override { VanillaBlocks::initialize(); }
+    void SetUp() override
+    {
+        VanillaBlocks::initialize();
+    }
 
     EndTeleporterTestWorld m_world;
 };

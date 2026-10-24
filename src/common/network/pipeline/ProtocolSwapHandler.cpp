@@ -107,7 +107,10 @@ TerminalCheck ProtocolSwapHandler::check(const ir::IrPacket& packet, protocol::P
     // std::visit 对阶段变体再对内层阶段包变体取 TerminalProbe。
     // packet.packet 是 std::variant<5 个阶段变体>，每阶段变体是 std::variant<该阶段包>。
     result.isTerminal = std::visit(
-        [](const auto& phaseVariant) { return std::visit(TerminalVisitor{}, phaseVariant).isTerminal; }, packet.packet);
+        [](const auto& phaseVariant) {
+            return std::visit(TerminalVisitor{}, phaseVariant).isTerminal;
+        },
+        packet.packet);
     if (result.isTerminal) {
         result.nextPhase = nextForTerminal(packet, flow);
     } else {

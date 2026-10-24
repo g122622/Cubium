@@ -178,7 +178,10 @@ public:
      *
      * 环境模式粒子更透明、漂浮更慢，用于信标等产生的 ambient 药水效果。
      */
-    [[nodiscard]] bool isAmbient() const noexcept { return m_ambient; }
+    [[nodiscard]] bool isAmbient() const noexcept
+    {
+        return m_ambient;
+    }
 
 private:
     static constexpr f64 DEFAULT_LIFETIME = 8.0;

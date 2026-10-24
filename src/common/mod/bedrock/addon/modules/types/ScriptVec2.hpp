@@ -43,6 +43,7 @@ struct ScriptVec2 {
     f64 y = 0.0;
 
     ScriptVec2() noexcept = default;
+
     ScriptVec2(f64 x_, f64 y_) noexcept
         : x(x_)
         , y(y_)
@@ -61,10 +62,16 @@ struct ScriptVec2 {
     {}
 
     /// 转换为Vector2f
-    [[nodiscard]] math::Vector2f toVec2f() const noexcept { return {static_cast<f32>(x), static_cast<f32>(y)}; }
+    [[nodiscard]] math::Vector2f toVec2f() const noexcept
+    {
+        return {static_cast<f32>(x), static_cast<f32>(y)};
+    }
 
     /// 转换为Vector2d
-    [[nodiscard]] math::Vector2d toVec2d() const noexcept { return {x, y}; }
+    [[nodiscard]] math::Vector2d toVec2d() const noexcept
+    {
+        return {x, y};
+    }
 
     /// 从脚本对象读取Vector2
     static std::optional<ScriptVec2> fromJs(IScriptBindingContext& ctx, void* obj);

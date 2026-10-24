@@ -54,7 +54,10 @@ public:
 
     ~RavagerAttackGoal() noexcept override = default;
 
-    [[nodiscard]] std::string getTypeName() const noexcept override { return "RavagerAttackGoal"; }
+    [[nodiscard]] std::string getTypeName() const noexcept override
+    {
+        return "RavagerAttackGoal";
+    }
 
 protected:
     /**

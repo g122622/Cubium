@@ -92,6 +92,7 @@ public:
     {
         throw std::runtime_error("ParrotTestWorld::tickManager not implemented");
     }
+
     [[nodiscard]] const world::tick::TickManager& tickManager() const override
     {
         throw std::runtime_error("ParrotTestWorld::tickManager not implemented");
@@ -112,8 +113,16 @@ public:
         (void)pitch;
     }
 
-    [[nodiscard]] const ResourceLocation& getLastSoundId() const { return m_lastSoundId; }
-    [[nodiscard]] i32 getSoundPlayCount() const { return m_soundPlayCount; }
+    [[nodiscard]] const ResourceLocation& getLastSoundId() const
+    {
+        return m_lastSoundId;
+    }
+
+    [[nodiscard]] i32 getSoundPlayCount() const
+    {
+        return m_soundPlayCount;
+    }
+
     void resetSoundTracking()
     {
         m_lastSoundId = ResourceLocation();
@@ -128,9 +137,21 @@ public:
         m_broadcastCount++;
     }
 
-    [[nodiscard]] EntityInstanceId getLastBroadcastEntityId() const { return m_lastBroadcastEntityId; }
-    [[nodiscard]] u8 getLastBroadcastStatus() const { return m_lastBroadcastStatus; }
-    [[nodiscard]] i32 getBroadcastCount() const { return m_broadcastCount; }
+    [[nodiscard]] EntityInstanceId getLastBroadcastEntityId() const
+    {
+        return m_lastBroadcastEntityId;
+    }
+
+    [[nodiscard]] u8 getLastBroadcastStatus() const
+    {
+        return m_lastBroadcastStatus;
+    }
+
+    [[nodiscard]] i32 getBroadcastCount() const
+    {
+        return m_broadcastCount;
+    }
+
     void resetBroadcastTracking()
     {
         m_lastBroadcastEntityId = EntityInstanceId(0);

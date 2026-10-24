@@ -131,7 +131,9 @@ void PlaceOnGroundDecorator::_attemptToPlaceBlockAbove(const TreeDecoratorContex
     }
 
     // 条件 2：脚下是完整固体（原版 checkBlock(p -> p.isSolidRender())）。
-    if (!context.checkBlock(pos, [](const BlockState& state) { return state.isSolid(); })) {
+    if (!context.checkBlock(pos, [](const BlockState& state) {
+            return state.isSolid();
+        })) {
         return;
     }
 

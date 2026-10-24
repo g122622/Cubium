@@ -52,7 +52,9 @@ bool RandomPositionGenerator::findRandomTarget(CreatureEntity* creature, i32 xzR
 bool RandomPositionGenerator::findRandomTargetBlockAwayFrom(
     CreatureEntity* creature, i32 xzRange, i32 yRange, const Vector3& avoidPos, Vector3& outPos)
 {
-    if (!creature) return false;
+    if (!creature) {
+        return false;
+    }
 
     // MC 1.16.5: 生成远离指定位置的方向
     // 计算从avoidPos到creature的方向向量，反转它
@@ -75,7 +77,9 @@ bool RandomPositionGenerator::findRandomTargetBlockAwayFrom(
 bool RandomPositionGenerator::findRandomTargetTowards(
     CreatureEntity* creature, i32 xzRange, i32 yRange, const Vector3& targetPos, Vector3& outPos)
 {
-    if (!creature) return false;
+    if (!creature) {
+        return false;
+    }
 
     Vector3 directionBias(0.0f, 0.0f, 0.0f);
 
@@ -93,10 +97,14 @@ bool RandomPositionGenerator::findRandomTargetTowardsScaled(
 {
     // MC 1.16.5: RandomPositionGenerator.findRandomTargetTowardsScaled
     // 在目标方向生成一个缩放后的随机目标位置，角度限制在指定范围内
-    if (!creature) return false;
+    if (!creature) {
+        return false;
+    }
 
     IWorld* world = creature->world();
-    if (!world) return false;
+    if (!world) {
+        return false;
+    }
 
     Vector3 creaturePos(creature->x(), creature->y(), creature->z());
 
@@ -160,10 +168,14 @@ bool RandomPositionGenerator::findRandomTargetTowardsScaled(
 
 bool RandomPositionGenerator::getLandPos(CreatureEntity* creature, i32 xzRange, i32 yRange, Vector3& outPos)
 {
-    if (!creature) return false;
+    if (!creature) {
+        return false;
+    }
 
     IWorld* world = creature->world();
-    if (!world) return false;
+    if (!world) {
+        return false;
+    }
 
     math::IRandom& rng = creature->getRandom();
 
@@ -192,10 +204,14 @@ bool RandomPositionGenerator::getLandPos(CreatureEntity* creature, i32 xzRange, 
 bool RandomPositionGenerator::findRandomTargetAvoidWater(
     CreatureEntity* creature, i32 xzRange, i32 yRange, Vector3& outPos)
 {
-    if (!creature) return false;
+    if (!creature) {
+        return false;
+    }
 
     IWorld* world = creature->world();
-    if (!world) return false;
+    if (!world) {
+        return false;
+    }
 
     math::IRandom& rng = creature->getRandom();
 
@@ -225,10 +241,14 @@ bool RandomPositionGenerator::findRandomTargetAvoidWater(
 bool RandomPositionGenerator::findRandomTargetBlock(
     CreatureEntity* creature, i32 xzRange, i32 yRange, std::optional<Vector3> avoidPos, Vector3& outPos)
 {
-    if (!creature) return false;
+    if (!creature) {
+        return false;
+    }
 
     IWorld* world = creature->world();
-    if (!world) return false;
+    if (!world) {
+        return false;
+    }
 
     math::IRandom& rng = creature->getRandom();
 
@@ -282,10 +302,14 @@ bool RandomPositionGenerator::findRandomTargetBlockTowards(
 {
     // MC 1.16.5: RandomPositionGenerator.findRandomTargetBlockTowards
     // 用于水生生物（如海豚），在朝向目标的方向选择一个方块位置
-    if (!creature) return false;
+    if (!creature) {
+        return false;
+    }
 
     IWorld* world = creature->world();
-    if (!world) return false;
+    if (!world) {
+        return false;
+    }
 
     Vector3 creaturePos(creature->x(), creature->y(), creature->z());
 
@@ -347,17 +371,23 @@ bool RandomPositionGenerator::findRandomTargetBlockTowards(
 
 bool RandomPositionGenerator::isPositionWalkable(CreatureEntity* creature, i32 x, i32 y, i32 z)
 {
-    if (!creature) return false;
+    if (!creature) {
+        return false;
+    }
 
     IWorld* world = creature->world();
-    if (!world) return false;
+    if (!world) {
+        return false;
+    }
 
     // 检查是否有实心地面
     const BlockState* groundBlock = world->getBlockState(x, y - 1, z);
     if (!groundBlock || groundBlock->isAir()) {
         // 检查是否可以在当前位置站立（比如在水中或岩浆中）
         const BlockState* currentBlock = world->getBlockState(x, y, z);
-        if (!currentBlock) return false;
+        if (!currentBlock) {
+            return false;
+        }
     }
 
     // 检查是否有足够空间站立
@@ -392,7 +422,9 @@ bool RandomPositionGenerator::isPositionWalkable(CreatureEntity* creature, i32 x
 
 i32 RandomPositionGenerator::getGroundHeight(IWorld* world, i32 x, i32 startY, i32 z)
 {
-    if (!world) return -1;
+    if (!world) {
+        return -1;
+    }
 
     // 从指定高度向下搜索
     for (i32 y = startY; y > startY - MAX_GROUND_SEARCH && y >= world::MIN_BUILD_HEIGHT; --y) {
@@ -407,10 +439,14 @@ i32 RandomPositionGenerator::getGroundHeight(IWorld* world, i32 x, i32 startY, i
 
 f32 RandomPositionGenerator::calculatePositionScore(CreatureEntity* creature, const Vector3& pos)
 {
-    if (!creature) return -1000.0f;
+    if (!creature) {
+        return -1000.0f;
+    }
 
     IWorld* world = creature->world();
-    if (!world) return -1000.0f;
+    if (!world) {
+        return -1000.0f;
+    }
 
     i32 x = floorTo<i32>(pos.x);
     i32 y = floorTo<i32>(pos.y);
@@ -438,7 +474,9 @@ f32 RandomPositionGenerator::calculatePositionScore(CreatureEntity* creature, co
 std::optional<Vector3> RandomPositionGenerator::generateRandomOffset(
     CreatureEntity* creature, i32 xzRange, i32 yRange, const Vector3& directionBias)
 {
-    if (!creature) return std::nullopt;
+    if (!creature) {
+        return std::nullopt;
+    }
 
     math::IRandom& rng = creature->getRandom();
 
@@ -482,10 +520,14 @@ std::optional<Vector3> RandomPositionGenerator::generateRandomOffset(
 
 bool RandomPositionGenerator::validateAndAdjustPosition(CreatureEntity* creature, Vector3& pos)
 {
-    if (!creature) return false;
+    if (!creature) {
+        return false;
+    }
 
     IWorld* world = creature->world();
-    if (!world) return false;
+    if (!world) {
+        return false;
+    }
 
     i32 x = floorTo<i32>(pos.x);
     i32 y = floorTo<i32>(pos.y);
@@ -515,7 +557,9 @@ bool RandomPositionGenerator::validateAndAdjustPosition(CreatureEntity* creature
 bool RandomPositionGenerator::findBestPosition(
     CreatureEntity* creature, i32 xzRange, i32 yRange, const Vector3& directionBias, Vector3& outPos)
 {
-    if (!creature) return false;
+    if (!creature) {
+        return false;
+    }
 
     math::IRandom& rng = creature->getRandom();
 
@@ -568,9 +612,13 @@ bool RandomPositionGenerator::findHoverPosition(CreatureEntity* creature,
     i32 minAboveSolid,
     Vector3& outPos)
 {
-    if (!creature) return false;
+    if (!creature) {
+        return false;
+    }
     IWorld* world = creature->world();
-    if (!world) return false;
+    if (!world) {
+        return false;
+    }
 
     const bool restricted = isMobRestricted(creature, static_cast<f64>(xzRange));
     const i32 maxY = world->getMaxBuildHeight();
@@ -610,8 +658,9 @@ bool RandomPositionGenerator::findHoverPosition(CreatureEntity* creature,
         // 5. 向上移动到固体方块上方 minAboveSolid~maxAboveSolid 格
         math::IRandom& rng = creature->getRandom();
         i32 aboveSolidAmount = rng.nextInt(maxAboveSolid - minAboveSolid + 1) + minAboveSolid;
-        worldPos = moveUpToAboveSolid(
-            worldPos, aboveSolidAmount, maxY, [&creature](const BlockPos& p) { return isSolidAt(creature, p); });
+        worldPos = moveUpToAboveSolid(worldPos, aboveSolidAmount, maxY, [&creature](const BlockPos& p) {
+            return isSolidAt(creature, p);
+        });
 
         // 6. 检查不在水中且无寻路惩罚
         if (isWaterAt(creature, worldPos) || hasPathfindingMalus(creature, worldPos)) {
@@ -639,9 +688,13 @@ bool RandomPositionGenerator::findHoverPosition(CreatureEntity* creature,
 bool RandomPositionGenerator::findAirAndWaterPosition(
     CreatureEntity* creature, i32 xzRange, i32 yRange, i32 yOffset, f64 xDir, f64 zDir, f32 maxAngle, Vector3& outPos)
 {
-    if (!creature) return false;
+    if (!creature) {
+        return false;
+    }
     IWorld* world = creature->world();
-    if (!world) return false;
+    if (!world) {
+        return false;
+    }
 
     const bool restricted = isMobRestricted(creature, static_cast<f64>(xzRange));
     const i32 maxY = world->getMaxBuildHeight();
@@ -678,7 +731,9 @@ bool RandomPositionGenerator::findAirAndWaterPosition(
         }
 
         // 4. 向上移出固体方块
-        worldPos = moveUpOutOfSolid(worldPos, maxY, [&creature](const BlockPos& p) { return isSolidAt(creature, p); });
+        worldPos = moveUpOutOfSolid(worldPos, maxY, [&creature](const BlockPos& p) {
+            return isSolidAt(creature, p);
+        });
 
         // 5. 检查无寻路惩罚
         if (hasPathfindingMalus(creature, worldPos)) {
@@ -711,7 +766,9 @@ bool RandomPositionGenerator::findAirPositionTowards(CreatureEntity* creature,
     f32 maxAngle,
     Vector3& outPos)
 {
-    if (!creature) return false;
+    if (!creature) {
+        return false;
+    }
 
     // 计算从实体到目标的方向向量
     Vector3 dirVec = targetPos - creature->position();
@@ -852,7 +909,9 @@ BlockPos RandomPositionGenerator::moveUpToAboveSolid(
 bool RandomPositionGenerator::isSolidAt(CreatureEntity* creature, const BlockPos& pos)
 {
     IWorld* world = creature->world();
-    if (!world) return false;
+    if (!world) {
+        return false;
+    }
 
     const BlockState* state = world->getBlockState(pos);
     return state != nullptr && state->isSolid();
@@ -861,7 +920,9 @@ bool RandomPositionGenerator::isSolidAt(CreatureEntity* creature, const BlockPos
 bool RandomPositionGenerator::isWaterAt(CreatureEntity* creature, const BlockPos& pos)
 {
     IWorld* world = creature->world();
-    if (!world) return false;
+    if (!world) {
+        return false;
+    }
 
     return world->isWaterAt(pos.x, pos.y, pos.z);
 }
@@ -901,7 +962,9 @@ bool RandomPositionGenerator::isMobRestricted(CreatureEntity* creature, f64 rang
 bool RandomPositionGenerator::isOutsideBuildHeight(CreatureEntity* creature, const BlockPos& pos)
 {
     IWorld* world = creature->world();
-    if (!world) return true;
+    if (!world) {
+        return true;
+    }
     return pos.y < world->getMinBuildHeight() || pos.y >= world->getMaxBuildHeight();
 }
 

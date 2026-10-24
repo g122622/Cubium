@@ -30,7 +30,10 @@ class FireTickSystem final : public ITickingSystem {
 public:
     FireTickSystem() = default;
 
-    [[nodiscard]] const char* name() const noexcept override { return "FireTickSystem"; }
+    [[nodiscard]] const char* name() const noexcept override
+    {
+        return "FireTickSystem";
+    }
 
     void tick(EntityRegistry& registry) override;
 };

@@ -95,7 +95,9 @@ TEST_F(StateBindingTest, BindCallback)
     point.set(0);
 
     int callCount = 0;
-    u64 id = point.bind([&]() { callCount++; });
+    u64 id = point.bind([&]() {
+        callCount++;
+    });
 
     point.set(42);
     EXPECT_EQ(callCount, 1);
@@ -112,8 +114,12 @@ TEST_F(StateBindingTest, BindMultipleCallbacks)
 
     int count1 = 0, count2 = 0;
 
-    u64 id1 = point.bind([&]() { count1++; });
-    u64 id2 = point.bind([&]() { count2++; });
+    u64 id1 = point.bind([&]() {
+        count1++;
+    });
+    u64 id2 = point.bind([&]() {
+        count2++;
+    });
 
     point.set(42);
 
@@ -173,7 +179,9 @@ TEST_F(StateBindingTest, BindReactivePreventLoop)
     Reactive<i32> value(42);
 
     int reactiveCallCount = 0;
-    value.observe([&](const i32&, const i32&) { reactiveCallCount++; });
+    value.observe([&](const i32&, const i32&) {
+        reactiveCallCount++;
+    });
 
     bindReactive(value, "test.sync.prevent_loop");
 
@@ -242,7 +250,9 @@ TEST_F(StateBindingTest, StateScopeAutoUnsubscribe)
 
     {
         StateScope scope;
-        scope.subscribe("test.scope", [&]() { callCount++; });
+        scope.subscribe("test.scope", [&]() {
+            callCount++;
+        });
 
         StateStore::instance().set<i32>("test.scope", 1);
         EXPECT_EQ(callCount, 1);
@@ -259,7 +269,9 @@ TEST_F(StateBindingTest, StateScopeWatch)
 
     {
         StateScope scope;
-        scope.watch<i32>("test.scope", [&](const i32&, const i32&) { callCount++; });
+        scope.watch<i32>("test.scope", [&](const i32&, const i32&) {
+            callCount++;
+        });
 
         StateStore::instance().set<i32>("test.scope", 1);
         EXPECT_EQ(callCount, 1);
@@ -274,7 +286,9 @@ TEST_F(StateBindingTest, StateScopeClear)
     int callCount = 0;
 
     StateScope scope;
-    scope.subscribe("test.scope", [&]() { callCount++; });
+    scope.subscribe("test.scope", [&]() {
+        callCount++;
+    });
 
     StateStore::instance().set<i32>("test.scope", 1);
     EXPECT_EQ(callCount, 1);
@@ -290,7 +304,9 @@ TEST_F(StateBindingTest, StateScopeMove)
     int callCount = 0;
 
     StateScope scope1;
-    scope1.subscribe("test.scope", [&]() { callCount++; });
+    scope1.subscribe("test.scope", [&]() {
+        callCount++;
+    });
 
     StateStore::instance().set<i32>("test.scope", 1);
     EXPECT_EQ(callCount, 1);
@@ -355,7 +371,9 @@ TEST_F(StateBindingTest, StateContextScope)
     StateContext ctx;
 
     int callCount = 0;
-    ctx.scope().subscribe("test.ctx", [&]() { callCount++; });
+    ctx.scope().subscribe("test.ctx", [&]() {
+        callCount++;
+    });
 
     ctx.set<i32>("test.ctx", 42);
     EXPECT_EQ(callCount, 1);
@@ -370,8 +388,9 @@ TEST_F(StateBindingTest, ComputedHelper)
     StateStore::instance().set<i32>("a", 10);
     StateStore::instance().set<i32>("b", 20);
 
-    auto sum =
-        computed<i32>([]() { return StateStore::instance().get<i32>("a") + StateStore::instance().get<i32>("b"); });
+    auto sum = computed<i32>([]() {
+        return StateStore::instance().get<i32>("a") + StateStore::instance().get<i32>("b");
+    });
 
     EXPECT_EQ(sum.get(), 30);
 

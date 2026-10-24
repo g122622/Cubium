@@ -54,7 +54,10 @@ struct FrustumPlane {
      * @param point 点坐标
      * @return 正值表示点在平面内侧（视锥内），负值表示在外侧
      */
-    [[nodiscard]] f32 distanceToPoint(const Vector3f& point) const noexcept { return normal.dot(point) + distance; }
+    [[nodiscard]] f32 distanceToPoint(const Vector3f& point) const noexcept
+    {
+        return normal.dot(point) + distance;
+    }
 
     /**
      * @brief 计算点到平面的有符号距离（glm 版本）
@@ -164,7 +167,10 @@ public:
      *
      * @param position 相机世界位置
      */
-    void setCameraPosition(const Vector3f& position) noexcept { m_cameraPosition = position; }
+    void setCameraPosition(const Vector3f& position) noexcept
+    {
+        m_cameraPosition = position;
+    }
 
     /**
      * @brief 设置相机位置（glm 版本）
@@ -288,19 +294,28 @@ public:
      * @brief 获取所有平面
      * @return 平面数组
      */
-    [[nodiscard]] const std::array<FrustumPlane, PLANE_COUNT>& getPlanes() const noexcept { return m_planes; }
+    [[nodiscard]] const std::array<FrustumPlane, PLANE_COUNT>& getPlanes() const noexcept
+    {
+        return m_planes;
+    }
 
     /**
      * @brief 获取相机位置
      * @return 相机世界位置
      */
-    [[nodiscard]] const Vector3f& getCameraPosition() const noexcept { return m_cameraPosition; }
+    [[nodiscard]] const Vector3f& getCameraPosition() const noexcept
+    {
+        return m_cameraPosition;
+    }
 
     /**
      * @brief 检查视锥是否已初始化
      * @return true 如果已从矩阵提取平面
      */
-    [[nodiscard]] bool isValid() const noexcept { return m_valid; }
+    [[nodiscard]] bool isValid() const noexcept
+    {
+        return m_valid;
+    }
 
 private:
     std::array<FrustumPlane, PLANE_COUNT> m_planes;

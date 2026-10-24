@@ -61,7 +61,9 @@ BreedGoal::BreedGoal(AnimalEntity* animal, f64 speed)
 
 bool BreedGoal::shouldExecute()
 {
-    if (!m_animal) return false;
+    if (!m_animal) {
+        return false;
+    }
 
     // 检查是否处于爱心状态
     if (!m_animal->isInLove()) {
@@ -75,11 +77,17 @@ bool BreedGoal::shouldExecute()
 
 bool BreedGoal::shouldContinueExecuting()
 {
-    if (!m_targetMate) return false;
+    if (!m_targetMate) {
+        return false;
+    }
 
     // 检查配偶是否存活且仍处于爱心状态，且未超时
-    if (!m_targetMate->isAlive()) return false;
-    if (!m_targetMate->isInLove()) return false;
+    if (!m_targetMate->isAlive()) {
+        return false;
+    }
+    if (!m_targetMate->isInLove()) {
+        return false;
+    }
 
     return m_spawnBabyDelay < constants::SPAWN_BABY_DELAY;
 }
@@ -100,7 +108,9 @@ void BreedGoal::resetTask()
 
 void BreedGoal::tick()
 {
-    if (!m_animal || !m_targetMate) return;
+    if (!m_animal || !m_targetMate) {
+        return;
+    }
 
     // 移除或析构的引用会自动失效；此处同时处理尚未移除的死亡目标。
     if (!m_targetMate->isAlive()) {
@@ -131,22 +141,30 @@ void BreedGoal::tick()
 
 AnimalEntity* BreedGoal::findNearbyMate()
 {
-    if (!m_animal || !m_animal->world()) return nullptr;
+    if (!m_animal || !m_animal->world()) {
+        return nullptr;
+    }
 
     // 在检测范围内寻找配偶
     return EntityUtils::findClosestEntity<AnimalEntity>(m_animal->world(),
         m_animal->position(),
         constants::BREED_DETECTION_RANGE,
         m_animal,
-        [this](AnimalEntity* animal) { return m_animal->canMateWith(*animal); });
+        [this](AnimalEntity* animal) {
+            return m_animal->canMateWith(*animal);
+        });
 }
 
 void BreedGoal::spawnBaby()
 {
-    if (!m_animal || !m_targetMate) return;
+    if (!m_animal || !m_targetMate) {
+        return;
+    }
 
     IWorld* world = m_animal->world();
-    if (world == nullptr) return;
+    if (world == nullptr) {
+        return;
+    }
 
     // 先取出双方繁殖发起者（重置发情状态会改写 loveCause）：
     // 对齐 vanilla finalizeSpawnChildFromBreeding 的

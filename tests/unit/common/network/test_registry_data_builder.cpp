@@ -46,8 +46,9 @@ using namespace mc::network::ir::configuration;
 namespace {
 bool hasRegistry(const std::vector<RegistryData>& registries, const std::string& key)
 {
-    return std::any_of(
-        registries.begin(), registries.end(), [&](const RegistryData& r) { return r.registryKey == key; });
+    return std::any_of(registries.begin(), registries.end(), [&](const RegistryData& r) {
+        return r.registryKey == key;
+    });
 }
 } // namespace
 
@@ -109,21 +110,24 @@ TEST(RegistryDataBuilder, UpdateTagsSendsTimelineDialogAndBannerPattern)
     // no_item_required / pattern_item/* 标签在 freeze() 时未绑定而抛 "Unbound tags"。
     ASSERT_EQ(tags.size(), 3u);
     // timeline: 4 tag（universal/in_overworld/in_nether/in_end）
-    auto timelineIt = std::find_if(
-        tags.begin(), tags.end(), [](const TagRegistry& t) { return t.registryKey == "minecraft:timeline"; });
+    auto timelineIt = std::find_if(tags.begin(), tags.end(), [](const TagRegistry& t) {
+        return t.registryKey == "minecraft:timeline";
+    });
     ASSERT_NE(timelineIt, tags.end());
     EXPECT_EQ(timelineIt->tags.size(), 4u);
     // dialog: 2 空 tag（pause_screen_additions/quick_actions，空 id 列表触发 bindTag 绑定）
-    auto dialogIt = std::find_if(
-        tags.begin(), tags.end(), [](const TagRegistry& t) { return t.registryKey == "minecraft:dialog"; });
+    auto dialogIt = std::find_if(tags.begin(), tags.end(), [](const TagRegistry& t) {
+        return t.registryKey == "minecraft:dialog";
+    });
     ASSERT_NE(dialogIt, tags.end());
     EXPECT_EQ(dialogIt->tags.size(), 2u);
     for (const auto& tag : dialogIt->tags) {
         EXPECT_TRUE(tag.elementIds.empty()) << "dialog tag " << tag.tagName << " 应为空 id 列表";
     }
     // banner_pattern: no_item_required + 10 个 pattern_item/*。
-    auto bannerIt = std::find_if(
-        tags.begin(), tags.end(), [](const TagRegistry& t) { return t.registryKey == "minecraft:banner_pattern"; });
+    auto bannerIt = std::find_if(tags.begin(), tags.end(), [](const TagRegistry& t) {
+        return t.registryKey == "minecraft:banner_pattern";
+    });
     ASSERT_NE(bannerIt, tags.end());
     EXPECT_EQ(bannerIt->tags.size(), 11u);
     // no_item_required 收录全部 loom 图案；pattern_item/* 各含 1 个图案线格式 id。

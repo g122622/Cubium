@@ -115,17 +115,26 @@ public:
     /**
      * @brief 获取 flavor
      */
-    [[nodiscard]] Flavor flavor() const { return m_flavor; }
+    [[nodiscard]] Flavor flavor() const
+    {
+        return m_flavor;
+    }
 
     /**
      * @brief 获取工厂种子低 64 位（Legacy flavor 下即唯一的工厂种子）
      */
-    [[nodiscard]] u64 seedLo() const { return m_seedLo; }
+    [[nodiscard]] u64 seedLo() const
+    {
+        return m_seedLo;
+    }
 
     /**
      * @brief 获取工厂种子高 64 位（Legacy flavor 下恒为 0）
      */
-    [[nodiscard]] u64 seedHi() const { return m_seedHi; }
+    [[nodiscard]] u64 seedHi() const
+    {
+        return m_seedHi;
+    }
 
 private:
     Flavor m_flavor;

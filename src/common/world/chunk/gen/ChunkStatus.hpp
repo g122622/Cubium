@@ -86,17 +86,55 @@ public:
     ChunkStatus(
         const std::string& name, i32 ordinal, const ChunkStatus* parent, HeightmapFlag heightmaps, ChunkType type);
 
-    [[nodiscard]] const std::string& name() const { return m_name; }
-    [[nodiscard]] i32 ordinal() const { return m_ordinal; }
-    [[nodiscard]] const ChunkStatus* parent() const { return m_parent; }
-    [[nodiscard]] HeightmapFlag heightmaps() const { return m_heightmaps; }
-    [[nodiscard]] ChunkType type() const { return m_type; }
-    [[nodiscard]] HeightmapFlag heightmapsAfter() const { return m_heightmaps; }
+    [[nodiscard]] const std::string& name() const
+    {
+        return m_name;
+    }
 
-    [[nodiscard]] bool isAtLeast(const ChunkStatus& status) const { return m_ordinal >= status.m_ordinal; }
-    [[nodiscard]] bool isAfter(const ChunkStatus& status) const { return m_ordinal > status.m_ordinal; }
-    [[nodiscard]] bool isOrBefore(const ChunkStatus& status) const { return m_ordinal <= status.m_ordinal; }
-    [[nodiscard]] bool isBefore(const ChunkStatus& status) const { return m_ordinal < status.m_ordinal; }
+    [[nodiscard]] i32 ordinal() const
+    {
+        return m_ordinal;
+    }
+
+    [[nodiscard]] const ChunkStatus* parent() const
+    {
+        return m_parent;
+    }
+
+    [[nodiscard]] HeightmapFlag heightmaps() const
+    {
+        return m_heightmaps;
+    }
+
+    [[nodiscard]] ChunkType type() const
+    {
+        return m_type;
+    }
+
+    [[nodiscard]] HeightmapFlag heightmapsAfter() const
+    {
+        return m_heightmaps;
+    }
+
+    [[nodiscard]] bool isAtLeast(const ChunkStatus& status) const
+    {
+        return m_ordinal >= status.m_ordinal;
+    }
+
+    [[nodiscard]] bool isAfter(const ChunkStatus& status) const
+    {
+        return m_ordinal > status.m_ordinal;
+    }
+
+    [[nodiscard]] bool isOrBefore(const ChunkStatus& status) const
+    {
+        return m_ordinal <= status.m_ordinal;
+    }
+
+    [[nodiscard]] bool isBefore(const ChunkStatus& status) const
+    {
+        return m_ordinal < status.m_ordinal;
+    }
 
     [[nodiscard]] static const ChunkStatus& max(const ChunkStatus& a, const ChunkStatus& b)
     {
@@ -106,14 +144,41 @@ public:
     [[nodiscard]] static const std::vector<ChunkStatus>& getAll();
     [[nodiscard]] static const ChunkStatus* byName(const std::string& name);
     [[nodiscard]] static const ChunkStatus* byOrdinal(i32 ordinal);
-    [[nodiscard]] static i32 count() { return static_cast<i32>(getAll().size()); }
 
-    bool operator==(const ChunkStatus& other) const { return m_ordinal == other.m_ordinal; }
-    bool operator!=(const ChunkStatus& other) const { return m_ordinal != other.m_ordinal; }
-    bool operator<(const ChunkStatus& other) const { return m_ordinal < other.m_ordinal; }
-    bool operator<=(const ChunkStatus& other) const { return m_ordinal <= other.m_ordinal; }
-    bool operator>(const ChunkStatus& other) const { return m_ordinal > other.m_ordinal; }
-    bool operator>=(const ChunkStatus& other) const { return m_ordinal >= other.m_ordinal; }
+    [[nodiscard]] static i32 count()
+    {
+        return static_cast<i32>(getAll().size());
+    }
+
+    bool operator==(const ChunkStatus& other) const
+    {
+        return m_ordinal == other.m_ordinal;
+    }
+
+    bool operator!=(const ChunkStatus& other) const
+    {
+        return m_ordinal != other.m_ordinal;
+    }
+
+    bool operator<(const ChunkStatus& other) const
+    {
+        return m_ordinal < other.m_ordinal;
+    }
+
+    bool operator<=(const ChunkStatus& other) const
+    {
+        return m_ordinal <= other.m_ordinal;
+    }
+
+    bool operator>(const ChunkStatus& other) const
+    {
+        return m_ordinal > other.m_ordinal;
+    }
+
+    bool operator>=(const ChunkStatus& other) const
+    {
+        return m_ordinal >= other.m_ordinal;
+    }
 
 private:
     std::string m_name;

@@ -89,34 +89,52 @@ public:
     /**
      * @brief 设置左手姿态
      */
-    void setLeftArmPose(ArmPose pose) { m_leftArmPose = pose; }
+    void setLeftArmPose(ArmPose pose)
+    {
+        m_leftArmPose = pose;
+    }
 
     /**
      * @brief 设置右手姿态
      */
-    void setRightArmPose(ArmPose pose) { m_rightArmPose = pose; }
+    void setRightArmPose(ArmPose pose)
+    {
+        m_rightArmPose = pose;
+    }
 
     // ========== 特殊状态 ==========
 
     /**
      * @brief 设置蹲伏状态
      */
-    void setCrouching(bool crouching) { m_crouching = crouching; }
+    void setCrouching(bool crouching)
+    {
+        m_crouching = crouching;
+    }
 
     /**
      * @brief 设置游泳状态
      */
-    void setSwimming(bool swimming) { m_swimming = swimming; }
+    void setSwimming(bool swimming)
+    {
+        m_swimming = swimming;
+    }
 
     /**
      * @brief 设置疾跑状态
      */
-    void setSprinting(bool sprinting) { m_sprinting = sprinting; }
+    void setSprinting(bool sprinting)
+    {
+        m_sprinting = sprinting;
+    }
 
     /**
      * @brief 获取是否使用纤细手臂
      */
-    [[nodiscard]] bool hasSlimArms() const { return m_slimArms; }
+    [[nodiscard]] bool hasSlimArms() const
+    {
+        return m_slimArms;
+    }
 
     // ========== 外观部件 ==========
 

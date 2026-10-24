@@ -70,9 +70,21 @@ public:
     DiscreteVoxelShape& operator=(DiscreteVoxelShape&& other) noexcept;
 
     // === 尺寸查询 ===
-    [[nodiscard]] i32 getXSize() const { return m_xSize; }
-    [[nodiscard]] i32 getYSize() const { return m_ySize; }
-    [[nodiscard]] i32 getZSize() const { return m_zSize; }
+    [[nodiscard]] i32 getXSize() const
+    {
+        return m_xSize;
+    }
+
+    [[nodiscard]] i32 getYSize() const
+    {
+        return m_ySize;
+    }
+
+    [[nodiscard]] i32 getZSize() const
+    {
+        return m_zSize;
+    }
+
     [[nodiscard]] i32 getSize(Axis axis) const;
 
     // === 体素操作 ===

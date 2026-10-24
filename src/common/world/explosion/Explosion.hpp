@@ -150,45 +150,69 @@ public:
      * @brief 获取受影响的方块位置列表
      * @return 受影响方块的坐标列表
      */
-    [[nodiscard]] const std::vector<BlockPos>& affectedBlocks() const noexcept { return m_affectedBlocks; }
+    [[nodiscard]] const std::vector<BlockPos>& affectedBlocks() const noexcept
+    {
+        return m_affectedBlocks;
+    }
 
     /**
      * @brief 获取玩家击退映射
      * @return 玩家ID到击退向量的映射
      */
-    [[nodiscard]] const std::unordered_map<u64, Vector3>& playerKnockback() const noexcept { return m_playerKnockback; }
+    [[nodiscard]] const std::unordered_map<u64, Vector3>& playerKnockback() const noexcept
+    {
+        return m_playerKnockback;
+    }
 
     /**
      * @brief 获取爆炸半径
      */
-    [[nodiscard]] f32 radius() const noexcept { return m_radius; }
+    [[nodiscard]] f32 radius() const noexcept
+    {
+        return m_radius;
+    }
 
     /**
      * @brief 获取爆炸中心位置
      */
-    [[nodiscard]] const Vector3& position() const noexcept { return m_position; }
+    [[nodiscard]] const Vector3& position() const noexcept
+    {
+        return m_position;
+    }
 
     /**
      * @brief 获取实体伤害/影响范围半径（= radius * 2）
      *
      * 既是实体搜索范围，也是伤害公式中距离比例的分母，与 vanilla 一致。
      */
-    [[nodiscard]] f32 damageRadius() const noexcept { return m_radius * game::explosion::ENTITY_RANGE_MULTIPLIER; }
+    [[nodiscard]] f32 damageRadius() const noexcept
+    {
+        return m_radius * game::explosion::ENTITY_RANGE_MULTIPLIER;
+    }
 
     /**
      * @brief 获取爆炸模式
      */
-    [[nodiscard]] ExplosionMode mode() const noexcept { return m_mode; }
+    [[nodiscard]] ExplosionMode mode() const noexcept
+    {
+        return m_mode;
+    }
 
     /**
      * @brief 是否生成火焰
      */
-    [[nodiscard]] bool causesFire() const noexcept { return m_causesFire; }
+    [[nodiscard]] bool causesFire() const noexcept
+    {
+        return m_causesFire;
+    }
 
     /**
      * @brief 获取爆炸源实体
      */
-    [[nodiscard]] Entity* source() const noexcept { return m_source; }
+    [[nodiscard]] Entity* source() const noexcept
+    {
+        return m_source;
+    }
 
     /**
      * @brief 获取爆炸的间接源实体

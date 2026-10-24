@@ -698,7 +698,10 @@ TEST_F(EffectMultiplierTest, SplashPotionMultiplier_IsFull)
 
 class AreaEffectCloudLifecycleTest : public ::testing::Test {
 protected:
-    void SetUp() override { m_cloud = std::make_unique<AreaEffectCloudEntity>(mc::test::testEcsRegistry()); }
+    void SetUp() override
+    {
+        m_cloud = std::make_unique<AreaEffectCloudEntity>(mc::test::testEcsRegistry());
+    }
 
     std::unique_ptr<AreaEffectCloudEntity> m_cloud;
 };
@@ -749,7 +752,10 @@ TEST_F(AreaEffectCloudLifecycleTest, RadiusOnUse_DefaultIsZero)
 
 class AreaEffectCloudColorTest : public ::testing::Test {
 protected:
-    void SetUp() override { m_cloud = std::make_unique<AreaEffectCloudEntity>(mc::test::testEcsRegistry()); }
+    void SetUp() override
+    {
+        m_cloud = std::make_unique<AreaEffectCloudEntity>(mc::test::testEcsRegistry());
+    }
 
     std::unique_ptr<AreaEffectCloudEntity> m_cloud;
 };
@@ -810,7 +816,10 @@ TEST_F(AreaEffectCloudColorTest, NoEffects_ColorIsZero)
 
 class AreaEffectCloudOwnerTest : public ::testing::Test {
 protected:
-    void SetUp() override { m_cloud = std::make_unique<AreaEffectCloudEntity>(mc::test::testEcsRegistry()); }
+    void SetUp() override
+    {
+        m_cloud = std::make_unique<AreaEffectCloudEntity>(mc::test::testEcsRegistry());
+    }
 
     std::unique_ptr<AreaEffectCloudEntity> m_cloud;
 };
@@ -877,7 +886,10 @@ TEST_F(AreaEffectCloudOwnerTest, SetOwnerUuid_DoesNotSetCachePointer)
 
 class AreaEffectCloudNbtTest : public ::testing::Test {
 protected:
-    void SetUp() override { m_cloud = std::make_unique<AreaEffectCloudEntity>(mc::test::testEcsRegistry()); }
+    void SetUp() override
+    {
+        m_cloud = std::make_unique<AreaEffectCloudEntity>(mc::test::testEcsRegistry());
+    }
 
     std::unique_ptr<AreaEffectCloudEntity> m_cloud;
 };
@@ -1001,7 +1013,10 @@ TEST_F(AreaEffectCloudNbtTest, Deserialize_MissingKeys_KeepDefaults)
 
 class AreaEffectCloudOwnerLazyLoadTest : public ::testing::Test {
 protected:
-    void SetUp() override { m_cloud = std::make_unique<AreaEffectCloudEntity>(mc::test::testEcsRegistry()); }
+    void SetUp() override
+    {
+        m_cloud = std::make_unique<AreaEffectCloudEntity>(mc::test::testEcsRegistry());
+    }
 
     std::unique_ptr<AreaEffectCloudEntity> m_cloud;
 };
@@ -1039,7 +1054,10 @@ TEST_F(AreaEffectCloudOwnerLazyLoadTest, OwnerUuid_EmptyStringAfterClear)
 
 class AreaEffectCloudDamageSourceTest : public ::testing::Test {
 protected:
-    void SetUp() override { m_cloud = std::make_unique<AreaEffectCloudEntity>(mc::test::testEcsRegistry()); }
+    void SetUp() override
+    {
+        m_cloud = std::make_unique<AreaEffectCloudEntity>(mc::test::testEcsRegistry());
+    }
 
     std::unique_ptr<AreaEffectCloudEntity> m_cloud;
 };

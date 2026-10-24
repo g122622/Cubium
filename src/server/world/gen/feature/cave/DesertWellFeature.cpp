@@ -49,18 +49,22 @@ const BlockState* sandState()
 {
     return VanillaBlocks::getState(VanillaBlocks::SAND);
 }
+
 const BlockState* sandSlabState()
 {
     return VanillaBlocks::getState(VanillaBlocks::SANDSTONE_SLAB);
 }
+
 const BlockState* sandstoneState()
 {
     return VanillaBlocks::getState(VanillaBlocks::SANDSTONE);
 }
+
 const BlockState* waterState()
 {
     return VanillaBlocks::getState(VanillaBlocks::WATER);
 }
+
 const BlockState* suspiciousSandState()
 {
     return VanillaBlocks::getState(VanillaBlocks::SUSPICIOUS_SAND);

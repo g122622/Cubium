@@ -68,18 +68,23 @@ public:
     struct SetPercentCall {
         f32 percent;
     };
+
     struct SetNameCall {
         std::string text;
     };
+
     struct SetVisibleCall {
         bool visible;
     };
+
     struct AddPlayerCall {
         PlayerId playerId;
     };
+
     struct RemovePlayerCall {
         PlayerId playerId;
     };
+
     struct ReplacePlayersCall {
         std::set<PlayerId> playerIds;
     };
@@ -133,22 +138,72 @@ public:
 
     // ========== 状态查询 ==========
 
-    [[nodiscard]] bool hasPlayers() const override { return !m_players.empty(); }
-    [[nodiscard]] f32 percent() const override { return m_percent; }
-    [[nodiscard]] bool visible() const override { return m_visible; }
-    [[nodiscard]] const std::set<PlayerId>& getPlayers() const override { return m_players; }
+    [[nodiscard]] bool hasPlayers() const override
+    {
+        return !m_players.empty();
+    }
+
+    [[nodiscard]] f32 percent() const override
+    {
+        return m_percent;
+    }
+
+    [[nodiscard]] bool visible() const override
+    {
+        return m_visible;
+    }
+
+    [[nodiscard]] const std::set<PlayerId>& getPlayers() const override
+    {
+        return m_players;
+    }
 
     // ========== 测试断言辅助 ==========
 
-    [[nodiscard]] const std::vector<SetPercentCall>& setPercentCalls() const { return m_setPercentCalls; }
-    [[nodiscard]] const std::vector<SetNameCall>& setNameCalls() const { return m_setNameCalls; }
-    [[nodiscard]] const std::vector<SetVisibleCall>& setVisibleCalls() const { return m_setVisibleCalls; }
-    [[nodiscard]] const std::vector<AddPlayerCall>& addPlayerCalls() const { return m_addPlayerCalls; }
-    [[nodiscard]] const std::vector<RemovePlayerCall>& removePlayerCalls() const { return m_removePlayerCalls; }
-    [[nodiscard]] const std::vector<ReplacePlayersCall>& replacePlayersCalls() const { return m_replacePlayersCalls; }
-    [[nodiscard]] i32 removeAllPlayersCallCount() const { return m_removeAllPlayersCallCount; }
-    [[nodiscard]] const std::set<PlayerId>& players() const { return m_players; }
-    [[nodiscard]] const std::string& nameText() const { return m_nameText; }
+    [[nodiscard]] const std::vector<SetPercentCall>& setPercentCalls() const
+    {
+        return m_setPercentCalls;
+    }
+
+    [[nodiscard]] const std::vector<SetNameCall>& setNameCalls() const
+    {
+        return m_setNameCalls;
+    }
+
+    [[nodiscard]] const std::vector<SetVisibleCall>& setVisibleCalls() const
+    {
+        return m_setVisibleCalls;
+    }
+
+    [[nodiscard]] const std::vector<AddPlayerCall>& addPlayerCalls() const
+    {
+        return m_addPlayerCalls;
+    }
+
+    [[nodiscard]] const std::vector<RemovePlayerCall>& removePlayerCalls() const
+    {
+        return m_removePlayerCalls;
+    }
+
+    [[nodiscard]] const std::vector<ReplacePlayersCall>& replacePlayersCalls() const
+    {
+        return m_replacePlayersCalls;
+    }
+
+    [[nodiscard]] i32 removeAllPlayersCallCount() const
+    {
+        return m_removeAllPlayersCallCount;
+    }
+
+    [[nodiscard]] const std::set<PlayerId>& players() const
+    {
+        return m_players;
+    }
+
+    [[nodiscard]] const std::string& nameText() const
+    {
+        return m_nameText;
+    }
 
     void reset()
     {

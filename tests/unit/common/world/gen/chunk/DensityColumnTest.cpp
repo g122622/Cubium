@@ -213,17 +213,23 @@ TEST_F(DensityColumnTest, CellBoundaryDensityTest)
         noiseChunk->advanceCellX(cellX);
 
         for (i32 cellZ = 0; cellZ < cellConfig.cellCountXZ; ++cellZ) {
-            if (cellZ != 0) continue; // 只看 z=0 的 cell
+            if (cellZ != 0) {
+                continue; // 只看 z=0 的 cell
+            }
 
             for (i32 cellY = cellConfig.cellCountY - 1; cellY >= 0; --cellY) {
                 const i32 cellStartY = (noiseChunk->firstCellY() + cellY) * cellHeight;
-                if (cellStartY + cellHeight < 60 || cellStartY > 70) continue;
+                if (cellStartY + cellHeight < 60 || cellStartY > 70) {
+                    continue;
+                }
 
                 noiseChunk->selectCellXYZ(cellX, cellY, cellZ);
 
                 for (i32 inCellY = cellHeight - 1; inCellY >= 0; --inCellY) {
                     const i32 blockY = cellStartY + inCellY;
-                    if (blockY != 64) continue;
+                    if (blockY != 64) {
+                        continue;
+                    }
 
                     const f64 yLerp = static_cast<f64>(inCellY) / static_cast<f64>(cellHeight);
                     noiseChunk->updateForY(blockY, yLerp);

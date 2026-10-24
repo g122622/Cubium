@@ -56,32 +56,107 @@ public:
     {}
 
     // ====== 状态成员访问 ======
-    void setGameMode(mc::GameMode mode) { m_screen.m_gameMode = mode; }
-    void setWorldType(mc::WorldType type) { m_screen.m_worldType = type; }
-    void setDifficulty(mc::Difficulty difficulty) { m_screen.m_difficulty = difficulty; }
-    void setAllowCommands(bool allow) { m_screen.m_allowCommands = allow; }
-    void setViewDistance(i32 distance) { m_screen.m_viewDistance = distance; }
+    void setGameMode(mc::GameMode mode)
+    {
+        m_screen.m_gameMode = mode;
+    }
 
-    [[nodiscard]] mc::GameMode gameMode() const { return m_screen.m_gameMode; }
-    [[nodiscard]] mc::WorldType worldType() const { return m_screen.m_worldType; }
-    [[nodiscard]] mc::Difficulty difficulty() const { return m_screen.m_difficulty; }
-    [[nodiscard]] bool allowCommands() const { return m_screen.m_allowCommands; }
-    [[nodiscard]] i32 viewDistance() const { return m_screen.m_viewDistance; }
+    void setWorldType(mc::WorldType type)
+    {
+        m_screen.m_worldType = type;
+    }
+
+    void setDifficulty(mc::Difficulty difficulty)
+    {
+        m_screen.m_difficulty = difficulty;
+    }
+
+    void setAllowCommands(bool allow)
+    {
+        m_screen.m_allowCommands = allow;
+    }
+
+    void setViewDistance(i32 distance)
+    {
+        m_screen.m_viewDistance = distance;
+    }
+
+    [[nodiscard]] mc::GameMode gameMode() const
+    {
+        return m_screen.m_gameMode;
+    }
+
+    [[nodiscard]] mc::WorldType worldType() const
+    {
+        return m_screen.m_worldType;
+    }
+
+    [[nodiscard]] mc::Difficulty difficulty() const
+    {
+        return m_screen.m_difficulty;
+    }
+
+    [[nodiscard]] bool allowCommands() const
+    {
+        return m_screen.m_allowCommands;
+    }
+
+    [[nodiscard]] i32 viewDistance() const
+    {
+        return m_screen.m_viewDistance;
+    }
 
     // ====== 控件指针访问（用于注入测试用 widget） ======
-    void setNameField(TextFieldWidget* field) { m_screen.m_nameField = field; }
-    void setSeedField(TextFieldWidget* field) { m_screen.m_seedField = field; }
-    void setDifficultyButton(ButtonWidget* button) { m_screen.m_difficultyButton = button; }
-    void setAllowCommandsCheckbox(CheckboxWidget* checkbox) { m_screen.m_allowCommandsCheckbox = checkbox; }
-    void setViewDistanceSlider(SliderWidget* slider) { m_screen.m_viewDistanceSlider = slider; }
+    void setNameField(TextFieldWidget* field)
+    {
+        m_screen.m_nameField = field;
+    }
+
+    void setSeedField(TextFieldWidget* field)
+    {
+        m_screen.m_seedField = field;
+    }
+
+    void setDifficultyButton(ButtonWidget* button)
+    {
+        m_screen.m_difficultyButton = button;
+    }
+
+    void setAllowCommandsCheckbox(CheckboxWidget* checkbox)
+    {
+        m_screen.m_allowCommandsCheckbox = checkbox;
+    }
+
+    void setViewDistanceSlider(SliderWidget* slider)
+    {
+        m_screen.m_viewDistanceSlider = slider;
+    }
 
     // ====== private 方法调用 ======
-    void cycleDifficulty() { m_screen._cycleDifficulty(); }
-    void toggleAllowCommands() { m_screen._toggleAllowCommands(); }
-    void onViewDistanceChanged() { m_screen._onViewDistanceChanged(); }
-    void updateDifficultyText() { m_screen._updateDifficultyText(); }
+    void cycleDifficulty()
+    {
+        m_screen._cycleDifficulty();
+    }
 
-    [[nodiscard]] world::storage::CreateWorldRequest buildRequest() const { return m_screen.buildRequest(); }
+    void toggleAllowCommands()
+    {
+        m_screen._toggleAllowCommands();
+    }
+
+    void onViewDistanceChanged()
+    {
+        m_screen._onViewDistanceChanged();
+    }
+
+    void updateDifficultyText()
+    {
+        m_screen._updateDifficultyText();
+    }
+
+    [[nodiscard]] world::storage::CreateWorldRequest buildRequest() const
+    {
+        return m_screen.buildRequest();
+    }
 
 private:
     CreateWorldScreen& m_screen;
@@ -106,8 +181,15 @@ void resetKageroSingletons()
 
 class CreateWorldScreenTest : public ::testing::Test {
 protected:
-    void SetUp() override { resetKageroSingletons(); }
-    void TearDown() override { resetKageroSingletons(); }
+    void SetUp() override
+    {
+        resetKageroSingletons();
+    }
+
+    void TearDown() override
+    {
+        resetKageroSingletons();
+    }
 };
 
 // 构造 CreateWorldScreen 需要走真实模板加载链路（TemplateScreen + TemplateInstance），

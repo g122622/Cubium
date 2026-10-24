@@ -93,15 +93,19 @@ namespace mc {
 class BlockPos;
 class INamedContainerProvider;
 enum class ContainerType : u8;
+
 namespace particle {
 enum class ParticleTypeId : u16;
 }
+
 namespace command {
 class CommandRegistry;
 }
+
 namespace gameevent {
 class PositionSource;
 }
+
 namespace network::ir::play {
 struct LevelChunkWithLight;
 struct ContainerClick;
@@ -176,7 +180,11 @@ public:
 
     // ========== IServer 接口实现 ==========
 
-    [[nodiscard]] bool isRunning() const noexcept override { return m_running.load(); }
+    [[nodiscard]] bool isRunning() const noexcept override
+    {
+        return m_running.load();
+    }
+
     void shutdown() override;
     void tick() override;
 
@@ -212,44 +220,121 @@ public:
 
     // ========== 核心管理器 ==========
 
-    [[nodiscard]] core::PlayerManager& playerManager() override { return *m_playerManager; }
-    [[nodiscard]] const core::PlayerManager& playerManager() const override { return *m_playerManager; }
+    [[nodiscard]] core::PlayerManager& playerManager() override
+    {
+        return *m_playerManager;
+    }
 
-    [[nodiscard]] core::ConnectionManager& connectionManager() override { return *m_connectionManager; }
-    [[nodiscard]] const core::ConnectionManager& connectionManager() const override { return *m_connectionManager; }
+    [[nodiscard]] const core::PlayerManager& playerManager() const override
+    {
+        return *m_playerManager;
+    }
 
-    [[nodiscard]] core::TimeManager& timeManager() override { return *m_timeManager; }
-    [[nodiscard]] const core::TimeManager& timeManager() const override { return *m_timeManager; }
+    [[nodiscard]] core::ConnectionManager& connectionManager() override
+    {
+        return *m_connectionManager;
+    }
 
-    [[nodiscard]] core::TeleportManager& teleportManager() override { return *m_teleportManager; }
-    [[nodiscard]] const core::TeleportManager& teleportManager() const override { return *m_teleportManager; }
+    [[nodiscard]] const core::ConnectionManager& connectionManager() const override
+    {
+        return *m_connectionManager;
+    }
 
-    [[nodiscard]] core::KeepAliveManager& keepAliveManager() override { return *m_keepAliveManager; }
-    [[nodiscard]] const core::KeepAliveManager& keepAliveManager() const override { return *m_keepAliveManager; }
+    [[nodiscard]] core::TimeManager& timeManager() override
+    {
+        return *m_timeManager;
+    }
 
-    [[nodiscard]] core::PositionTracker& positionTracker() override { return *m_positionTracker; }
-    [[nodiscard]] const core::PositionTracker& positionTracker() const override { return *m_positionTracker; }
+    [[nodiscard]] const core::TimeManager& timeManager() const override
+    {
+        return *m_timeManager;
+    }
 
-    [[nodiscard]] core::GameModeManager& gameModeManager() override { return *m_gameModeManager; }
-    [[nodiscard]] const core::GameModeManager& gameModeManager() const override { return *m_gameModeManager; }
+    [[nodiscard]] core::TeleportManager& teleportManager() override
+    {
+        return *m_teleportManager;
+    }
+
+    [[nodiscard]] const core::TeleportManager& teleportManager() const override
+    {
+        return *m_teleportManager;
+    }
+
+    [[nodiscard]] core::KeepAliveManager& keepAliveManager() override
+    {
+        return *m_keepAliveManager;
+    }
+
+    [[nodiscard]] const core::KeepAliveManager& keepAliveManager() const override
+    {
+        return *m_keepAliveManager;
+    }
+
+    [[nodiscard]] core::PositionTracker& positionTracker() override
+    {
+        return *m_positionTracker;
+    }
+
+    [[nodiscard]] const core::PositionTracker& positionTracker() const override
+    {
+        return *m_positionTracker;
+    }
+
+    [[nodiscard]] core::GameModeManager& gameModeManager() override
+    {
+        return *m_gameModeManager;
+    }
+
+    [[nodiscard]] const core::GameModeManager& gameModeManager() const override
+    {
+        return *m_gameModeManager;
+    }
 
     // ========== 白名单管理器 ==========
 
-    [[nodiscard]] core::WhitelistManager& whitelistManager() override { return *m_whitelistManager; }
-    [[nodiscard]] const core::WhitelistManager& whitelistManager() const override { return *m_whitelistManager; }
+    [[nodiscard]] core::WhitelistManager& whitelistManager() override
+    {
+        return *m_whitelistManager;
+    }
+
+    [[nodiscard]] const core::WhitelistManager& whitelistManager() const override
+    {
+        return *m_whitelistManager;
+    }
 
     // ========== 封禁管理器 ==========
 
-    [[nodiscard]] core::BannedPlayerList& bannedPlayerList() override { return *m_bannedPlayerList; }
-    [[nodiscard]] const core::BannedPlayerList& bannedPlayerList() const override { return *m_bannedPlayerList; }
+    [[nodiscard]] core::BannedPlayerList& bannedPlayerList() override
+    {
+        return *m_bannedPlayerList;
+    }
 
-    [[nodiscard]] core::BannedIpList& bannedIpList() override { return *m_bannedIpList; }
-    [[nodiscard]] const core::BannedIpList& bannedIpList() const override { return *m_bannedIpList; }
+    [[nodiscard]] const core::BannedPlayerList& bannedPlayerList() const override
+    {
+        return *m_bannedPlayerList;
+    }
+
+    [[nodiscard]] core::BannedIpList& bannedIpList() override
+    {
+        return *m_bannedIpList;
+    }
+
+    [[nodiscard]] const core::BannedIpList& bannedIpList() const override
+    {
+        return *m_bannedIpList;
+    }
 
     // ========== OP 管理器 ==========
 
-    [[nodiscard]] core::OpListManager& opListManager() override { return *m_opListManager; }
-    [[nodiscard]] const core::OpListManager& opListManager() const override { return *m_opListManager; }
+    [[nodiscard]] core::OpListManager& opListManager() override
+    {
+        return *m_opListManager;
+    }
+
+    [[nodiscard]] const core::OpListManager& opListManager() const override
+    {
+        return *m_opListManager;
+    }
 
     // ========== 世界访问（维度感知）==========
 
@@ -272,29 +357,64 @@ public:
 
     // ========== 维度管理器 ==========
 
-    [[nodiscard]] ServerDimensionManager& dimensionManager() override { return *m_dimensionManager; }
-    [[nodiscard]] const ServerDimensionManager& dimensionManager() const override { return *m_dimensionManager; }
+    [[nodiscard]] ServerDimensionManager& dimensionManager() override
+    {
+        return *m_dimensionManager;
+    }
+
+    [[nodiscard]] const ServerDimensionManager& dimensionManager() const override
+    {
+        return *m_dimensionManager;
+    }
 
     // ========== 天气同步服务 ==========
-    [[nodiscard]] sync::WeatherSyncService& weatherSyncService() { return *m_weatherSyncService; }
-    [[nodiscard]] const sync::WeatherSyncService& weatherSyncService() const { return *m_weatherSyncService; }
+    [[nodiscard]] sync::WeatherSyncService& weatherSyncService()
+    {
+        return *m_weatherSyncService;
+    }
+
+    [[nodiscard]] const sync::WeatherSyncService& weatherSyncService() const
+    {
+        return *m_weatherSyncService;
+    }
 
     // ========== 玩家广播门面 ==========
-    [[nodiscard]] net::PlayerBroadcaster& broadcaster() { return *m_broadcaster; }
-    [[nodiscard]] const net::PlayerBroadcaster& broadcaster() const { return *m_broadcaster; }
+    [[nodiscard]] net::PlayerBroadcaster& broadcaster()
+    {
+        return *m_broadcaster;
+    }
+
+    [[nodiscard]] const net::PlayerBroadcaster& broadcaster() const
+    {
+        return *m_broadcaster;
+    }
 
     // ========== 登录流程门面（批6 下沉） ==========
-    [[nodiscard]] net::LoginFlow& loginFlow() { return *m_loginFlow; }
-    [[nodiscard]] const net::LoginFlow& loginFlow() const { return *m_loginFlow; }
+    [[nodiscard]] net::LoginFlow& loginFlow()
+    {
+        return *m_loginFlow;
+    }
+
+    [[nodiscard]] const net::LoginFlow& loginFlow() const
+    {
+        return *m_loginFlow;
+    }
 
     // ========== Play 包处理门面（批7 下沉） ==========
-    [[nodiscard]] net::ServerPlayHandler& playHandler() { return *m_playHandler; }
+    [[nodiscard]] net::ServerPlayHandler& playHandler()
+    {
+        return *m_playHandler;
+    }
 
     /**
      * @brief 获取远程会话门面
      * @return 会话管理器指针；集成服未发布 LAN 时为 nullptr
      */
-    [[nodiscard]] net::ClientSessionManager* clientSessionManager() noexcept { return m_clientSessionManager.get(); }
+    [[nodiscard]] net::ClientSessionManager* clientSessionManager() noexcept
+    {
+        return m_clientSessionManager.get();
+    }
+
     [[nodiscard]] const net::ClientSessionManager* clientSessionManager() const noexcept
     {
         return m_clientSessionManager.get();
@@ -306,7 +426,11 @@ public:
      * 本地客户端（会话 ID 为 0）与未发布 LAN 的集成服返回 nullptr。
      */
     [[nodiscard]] net::ServerClientConnection* connectionForSession(u32 sessionId) const;
-    [[nodiscard]] const net::ServerPlayHandler& playHandler() const { return *m_playHandler; }
+
+    [[nodiscard]] const net::ServerPlayHandler& playHandler() const
+    {
+        return *m_playHandler;
+    }
 
     // ========== 玩家实体管理 ==========
 
@@ -316,7 +440,11 @@ public:
      * 用于管理玩家的实体对象（Player实例）。批2b 已将 m_playerEntityManager 上提为
      * MinecraftServer 值成员，本方法不再纯虚；子类无需 override。
      */
-    [[nodiscard]] ServerPlayerEntityManager& playerEntityManager() override { return m_playerEntityManager; }
+    [[nodiscard]] ServerPlayerEntityManager& playerEntityManager() override
+    {
+        return m_playerEntityManager;
+    }
+
     [[nodiscard]] const ServerPlayerEntityManager& playerEntityManager() const override
     {
         return m_playerEntityManager;
@@ -329,8 +457,15 @@ public:
      *
      * 处理死亡界面确认后的完整重生流程（落点计算、实体重建、状态迁移与重入序列发包）。
      */
-    [[nodiscard]] PlayerRespawnManager& playerRespawnManager() { return m_playerRespawnManager; }
-    [[nodiscard]] const PlayerRespawnManager& playerRespawnManager() const { return m_playerRespawnManager; }
+    [[nodiscard]] PlayerRespawnManager& playerRespawnManager()
+    {
+        return m_playerRespawnManager;
+    }
+
+    [[nodiscard]] const PlayerRespawnManager& playerRespawnManager() const
+    {
+        return m_playerRespawnManager;
+    }
 
     // ========== 交互管理器 ==========
 
@@ -338,19 +473,41 @@ public:
     {
         return *m_blockInteractionManager;
     }
+
     [[nodiscard]] const interaction::BlockInteractionManager& blockInteractionManager() const override
     {
         return *m_blockInteractionManager;
     }
 
-    [[nodiscard]] interaction::MiningManager& miningManager() override { return *m_miningManager; }
-    [[nodiscard]] const interaction::MiningManager& miningManager() const override { return *m_miningManager; }
+    [[nodiscard]] interaction::MiningManager& miningManager() override
+    {
+        return *m_miningManager;
+    }
 
-    [[nodiscard]] interaction::ContainerManager& containerManager() override { return *m_containerManager; }
-    [[nodiscard]] const interaction::ContainerManager& containerManager() const override { return *m_containerManager; }
+    [[nodiscard]] const interaction::MiningManager& miningManager() const override
+    {
+        return *m_miningManager;
+    }
 
-    [[nodiscard]] interaction::InventoryManager& inventoryManager() override { return *m_inventoryManager; }
-    [[nodiscard]] const interaction::InventoryManager& inventoryManager() const override { return *m_inventoryManager; }
+    [[nodiscard]] interaction::ContainerManager& containerManager() override
+    {
+        return *m_containerManager;
+    }
+
+    [[nodiscard]] const interaction::ContainerManager& containerManager() const override
+    {
+        return *m_containerManager;
+    }
+
+    [[nodiscard]] interaction::InventoryManager& inventoryManager() override
+    {
+        return *m_inventoryManager;
+    }
+
+    [[nodiscard]] const interaction::InventoryManager& inventoryManager() const override
+    {
+        return *m_inventoryManager;
+    }
 
     // ========== 调试统计 ==========
 
@@ -359,33 +516,71 @@ public:
      *
      * 原子变量，可从客户端线程安全读取。
      */
-    [[nodiscard]] const ServerDebugStats& debugStats() const { return m_debugStats; }
+    [[nodiscard]] const ServerDebugStats& debugStats() const
+    {
+        return m_debugStats;
+    }
 
     [[nodiscard]] PlayerInventory* playerInventory(PlayerId playerId) override;
     [[nodiscard]] const PlayerInventory* playerInventory(PlayerId playerId) const override;
 
     // ========== 命令系统 ==========
 
-    [[nodiscard]] mc::command::CommandRegistry& commandRegistry() override { return *m_commandRegistry; }
-    [[nodiscard]] const mc::command::CommandRegistry& commandRegistry() const override { return *m_commandRegistry; }
+    [[nodiscard]] mc::command::CommandRegistry& commandRegistry() override
+    {
+        return *m_commandRegistry;
+    }
 
-    [[nodiscard]] mc::command::CommandStorage& commandStorage() override { return *m_commandStorage; }
-    [[nodiscard]] const mc::command::CommandStorage& commandStorage() const override { return *m_commandStorage; }
+    [[nodiscard]] const mc::command::CommandRegistry& commandRegistry() const override
+    {
+        return *m_commandRegistry;
+    }
+
+    [[nodiscard]] mc::command::CommandStorage& commandStorage() override
+    {
+        return *m_commandStorage;
+    }
+
+    [[nodiscard]] const mc::command::CommandStorage& commandStorage() const override
+    {
+        return *m_commandStorage;
+    }
 
     // ========== 记分板系统 ==========
 
-    [[nodiscard]] ServerScoreboard& scoreboard() override { return *m_scoreboard; }
-    [[nodiscard]] const ServerScoreboard& scoreboard() const override { return *m_scoreboard; }
+    [[nodiscard]] ServerScoreboard& scoreboard() override
+    {
+        return *m_scoreboard;
+    }
+
+    [[nodiscard]] const ServerScoreboard& scoreboard() const override
+    {
+        return *m_scoreboard;
+    }
 
     // ========== Boss 栏系统 ==========
 
-    [[nodiscard]] CustomServerBossInfoManager& bossBarManager() override { return *m_bossBarManager; }
-    [[nodiscard]] const CustomServerBossInfoManager& bossBarManager() const override { return *m_bossBarManager; }
+    [[nodiscard]] CustomServerBossInfoManager& bossBarManager() override
+    {
+        return *m_bossBarManager;
+    }
+
+    [[nodiscard]] const CustomServerBossInfoManager& bossBarManager() const override
+    {
+        return *m_bossBarManager;
+    }
 
     // ========== 脚本系统 ==========
 
-    [[nodiscard]] ServerScriptManager* scriptManager() { return m_scriptManager.get(); }
-    [[nodiscard]] const ServerScriptManager* scriptManager() const { return m_scriptManager.get(); }
+    [[nodiscard]] ServerScriptManager* scriptManager()
+    {
+        return m_scriptManager.get();
+    }
+
+    [[nodiscard]] const ServerScriptManager* scriptManager() const
+    {
+        return m_scriptManager.get();
+    }
 
     /**
      * @brief 获取游戏目录（行为包/数据包/存档相对其解析）
@@ -437,23 +632,64 @@ public:
 
     // ========== 配置 ==========
 
-    [[nodiscard]] i32 viewDistance() const override { return m_settings.viewDistance.get(); }
-    [[nodiscard]] i32 simulationDistance() const override { return m_settings.simulationDistance.get(); }
-    [[nodiscard]] i32 maxPlayers() const override { return m_settings.maxPlayers.get(); }
-    [[nodiscard]] u64 seed() const override { return m_settings.parseSeed(); }
+    [[nodiscard]] i32 viewDistance() const override
+    {
+        return m_settings.viewDistance.get();
+    }
+
+    [[nodiscard]] i32 simulationDistance() const override
+    {
+        return m_settings.simulationDistance.get();
+    }
+
+    [[nodiscard]] i32 maxPlayers() const override
+    {
+        return m_settings.maxPlayers.get();
+    }
+
+    [[nodiscard]] u64 seed() const override
+    {
+        return m_settings.parseSeed();
+    }
+
     [[nodiscard]] u64 currentTick() const override;
-    [[nodiscard]] Difficulty difficulty() const override { return m_difficulty; }
+
+    [[nodiscard]] Difficulty difficulty() const override
+    {
+        return m_difficulty;
+    }
+
     void setDifficulty(Difficulty difficulty) override;
-    [[nodiscard]] bool isDifficultyLocked() const noexcept override { return m_difficultyLocked; }
+
+    [[nodiscard]] bool isDifficultyLocked() const noexcept override
+    {
+        return m_difficultyLocked;
+    }
+
     void setDifficultyLocked(bool locked) override;
-    [[nodiscard]] bool isSingleplayerOwner(PlayerId playerId) const noexcept override { return false; }
-    [[nodiscard]] i32 spawnProtectionRadius() const override { return m_settings.spawnProtection.get(); }
+
+    [[nodiscard]] bool isSingleplayerOwner(PlayerId playerId) const noexcept override
+    {
+        return false;
+    }
+
+    [[nodiscard]] i32 spawnProtectionRadius() const override
+    {
+        return m_settings.spawnProtection.get();
+    }
+
     [[nodiscard]] GameMode defaultGameMode() const override
     {
         return static_cast<GameMode>(m_settings.defaultGameMode.get());
     }
+
     void setDefaultGameMode(GameMode mode) override;
-    [[nodiscard]] i32 playerIdleTimeoutMinutes() const override { return m_playerIdleTimeoutMinutes; }
+
+    [[nodiscard]] i32 playerIdleTimeoutMinutes() const override
+    {
+        return m_playerIdleTimeoutMinutes;
+    }
+
     void setPlayerIdleTimeoutMinutes(i32 timeoutMinutes) override;
     bool startConfigurationForPlayer(PlayerId playerId) override;
     void requestStop() override;
@@ -463,20 +699,41 @@ public:
     /**
      * @brief 获取服务端设置
      */
-    [[nodiscard]] ServerSettings& settings() { return m_settings; }
-    [[nodiscard]] const ServerSettings& settings() const { return m_settings; }
+    [[nodiscard]] ServerSettings& settings()
+    {
+        return m_settings;
+    }
+
+    [[nodiscard]] const ServerSettings& settings() const
+    {
+        return m_settings;
+    }
 
     /**
      * @brief 获取计算型 Worker 池
      */
-    [[nodiscard]] util::UniversalWorkerPool& computationWorkerPool() { return m_computationWorkerPool; }
-    [[nodiscard]] const util::UniversalWorkerPool& computationWorkerPool() const { return m_computationWorkerPool; }
+    [[nodiscard]] util::UniversalWorkerPool& computationWorkerPool()
+    {
+        return m_computationWorkerPool;
+    }
+
+    [[nodiscard]] const util::UniversalWorkerPool& computationWorkerPool() const
+    {
+        return m_computationWorkerPool;
+    }
 
     /**
      * @brief 获取 IO Worker 池
      */
-    [[nodiscard]] util::UniversalWorkerPool& ioWorkerPool() { return m_ioWorkerPool; }
-    [[nodiscard]] const util::UniversalWorkerPool& ioWorkerPool() const { return m_ioWorkerPool; }
+    [[nodiscard]] util::UniversalWorkerPool& ioWorkerPool()
+    {
+        return m_ioWorkerPool;
+    }
+
+    [[nodiscard]] const util::UniversalWorkerPool& ioWorkerPool() const
+    {
+        return m_ioWorkerPool;
+    }
 
     /**
      * @brief 遍历所有玩家
@@ -490,29 +747,88 @@ public:
     /**
      * @brief 获取掉落表管理器
      */
-    [[nodiscard]] mc::loot::LootTableManager& lootTableManager() override { return m_lootTableManager; }
-    [[nodiscard]] const mc::loot::LootTableManager& lootTableManager() const override { return m_lootTableManager; }
+    [[nodiscard]] mc::loot::LootTableManager& lootTableManager() override
+    {
+        return m_lootTableManager;
+    }
 
-    [[nodiscard]] mc::function::FunctionManager& functionManager() override { return m_functionManager; }
-    [[nodiscard]] const mc::function::FunctionManager& functionManager() const override { return m_functionManager; }
+    [[nodiscard]] const mc::loot::LootTableManager& lootTableManager() const override
+    {
+        return m_lootTableManager;
+    }
 
-    [[nodiscard]] mc::function::TimerQueue& functionTimerQueue() override { return m_functionTimerQueue; }
-    [[nodiscard]] const mc::function::TimerQueue& functionTimerQueue() const override { return m_functionTimerQueue; }
-    [[nodiscard]] mc::loot::LootPredicateManager& predicateManager() override { return m_predicateManager; }
-    [[nodiscard]] const mc::loot::LootPredicateManager& predicateManager() const override { return m_predicateManager; }
-    [[nodiscard]] world::storage::SingleLevelStorageManager* sharedStorage() override { return m_storage.get(); }
+    [[nodiscard]] mc::function::FunctionManager& functionManager() override
+    {
+        return m_functionManager;
+    }
+
+    [[nodiscard]] const mc::function::FunctionManager& functionManager() const override
+    {
+        return m_functionManager;
+    }
+
+    [[nodiscard]] mc::function::TimerQueue& functionTimerQueue() override
+    {
+        return m_functionTimerQueue;
+    }
+
+    [[nodiscard]] const mc::function::TimerQueue& functionTimerQueue() const override
+    {
+        return m_functionTimerQueue;
+    }
+
+    [[nodiscard]] mc::loot::LootPredicateManager& predicateManager() override
+    {
+        return m_predicateManager;
+    }
+
+    [[nodiscard]] const mc::loot::LootPredicateManager& predicateManager() const override
+    {
+        return m_predicateManager;
+    }
+
+    [[nodiscard]] world::storage::SingleLevelStorageManager* sharedStorage() override
+    {
+        return m_storage.get();
+    }
+
     [[nodiscard]] const world::storage::SingleLevelStorageManager* sharedStorage() const override
     {
         return m_storage.get();
     }
+
     [[nodiscard]] bool isSharedStorageReadonlyForeignWorld() const override;
     [[nodiscard]] Result<size_t> saveAllWorldData(bool sync) override;
-    void setAutoSaveEnabled(bool enabled) override { m_autoSaveEnabled.store(enabled, std::memory_order::relaxed); }
-    [[nodiscard]] bool isAutoSaveEnabled() const override { return m_autoSaveEnabled.load(std::memory_order::relaxed); }
-    [[nodiscard]] PackRepository& resourcePackList() { return m_resourcePackList; }
-    [[nodiscard]] const PackRepository& resourcePackList() const { return m_resourcePackList; }
-    [[nodiscard]] mc::resource::DataPackRepository& dataPackList() override { return m_dataPackList; }
-    [[nodiscard]] const mc::resource::DataPackRepository& dataPackList() const override { return m_dataPackList; }
+
+    void setAutoSaveEnabled(bool enabled) override
+    {
+        m_autoSaveEnabled.store(enabled, std::memory_order::relaxed);
+    }
+
+    [[nodiscard]] bool isAutoSaveEnabled() const override
+    {
+        return m_autoSaveEnabled.load(std::memory_order::relaxed);
+    }
+
+    [[nodiscard]] PackRepository& resourcePackList()
+    {
+        return m_resourcePackList;
+    }
+
+    [[nodiscard]] const PackRepository& resourcePackList() const
+    {
+        return m_resourcePackList;
+    }
+
+    [[nodiscard]] mc::resource::DataPackRepository& dataPackList() override
+    {
+        return m_dataPackList;
+    }
+
+    [[nodiscard]] const mc::resource::DataPackRepository& dataPackList() const override
+    {
+        return m_dataPackList;
+    }
 
     /**
      * @brief 序列化难度同步包
@@ -798,8 +1114,12 @@ public:
     virtual void sendPacketToPlayer(PlayerId playerId, const mc::network::ir::IrPacket& packet);
     /** @brief 替换服务器全局链接并通知在线玩家，登录和重配置时重发。 */
     void setServerLinks(std::vector<mc::network::ir::play::ServerLink> links);
+
     /** @brief 获取当前服务器链接。 */
-    [[nodiscard]] const std::vector<mc::network::ir::play::ServerLink>& serverLinks() const { return m_serverLinks; }
+    [[nodiscard]] const std::vector<mc::network::ir::play::ServerLink>& serverLinks() const
+    {
+        return m_serverLinks;
+    }
 
 protected:
     /**

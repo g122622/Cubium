@@ -78,7 +78,10 @@ public:
     /**
      * @brief 创建miss结果
      */
-    [[nodiscard]] static BlockRaycastResult miss() { return BlockRaycastResult(); }
+    [[nodiscard]] static BlockRaycastResult miss()
+    {
+        return BlockRaycastResult();
+    }
 
     /**
      * @brief 创建hit结果
@@ -98,41 +101,62 @@ public:
     /**
      * @brief 获取结果类型
      */
-    [[nodiscard]] RaycastType type() const { return m_type; }
+    [[nodiscard]] RaycastType type() const
+    {
+        return m_type;
+    }
 
     /**
      * @brief 是否未击中
      */
-    [[nodiscard]] bool isMiss() const { return m_type == RaycastType::Miss; }
+    [[nodiscard]] bool isMiss() const
+    {
+        return m_type == RaycastType::Miss;
+    }
 
     /**
      * @brief 是否击中方块
      */
-    [[nodiscard]] bool isHit() const { return m_type == RaycastType::Block; }
+    [[nodiscard]] bool isHit() const
+    {
+        return m_type == RaycastType::Block;
+    }
 
     /**
      * @brief 获取击中点（世界坐标）
      * @note 仅当isHit()为true时有效
      */
-    [[nodiscard]] const Vector3& hitPosition() const { return m_hitPos; }
+    [[nodiscard]] const Vector3& hitPosition() const
+    {
+        return m_hitPos;
+    }
 
     /**
      * @brief 获取方块位置
      * @note 仅当isHit()为true时有效
      */
-    [[nodiscard]] const BlockPos& blockPos() const { return m_blockPos; }
+    [[nodiscard]] const BlockPos& blockPos() const
+    {
+        return m_blockPos;
+    }
 
     /**
      * @brief 获取击中的面
      * @note 仅当isHit()为true时有效
      */
-    [[nodiscard]] Direction face() const { return m_face; }
+    [[nodiscard]] Direction face() const
+    {
+        return m_face;
+    }
 
     /**
      * @brief 获取从射线起点到击中点的距离
      * @note 仅当isHit()为true时有效
      */
-    [[nodiscard]] f32 distance() const { return m_distance; }
+    [[nodiscard]] f32 distance() const
+    {
+        return m_distance;
+    }
 
     /**
      * @brief 获取相邻方块位置（用于放置方块）

@@ -58,10 +58,14 @@ VillagerBreedGoal::VillagerBreedGoal(VillagerEntity* villager)
 
 bool VillagerBreedGoal::shouldExecute()
 {
-    if (!m_villager) return false;
+    if (!m_villager) {
+        return false;
+    }
 
     // 检查是否愿意繁殖
-    if (!_isWillingToBreed()) return false;
+    if (!_isWillingToBreed()) {
+        return false;
+    }
 
     // MC原版 VillagerMakeLove 不在开始时检查床位，
     // 而是在 _spawnChild 时检查。如果无空床位，双方显示愤怒粒子。
@@ -75,10 +79,14 @@ bool VillagerBreedGoal::shouldExecute()
 
 bool VillagerBreedGoal::shouldContinueExecuting()
 {
-    if (!m_villager) return false;
+    if (!m_villager) {
+        return false;
+    }
 
     // 配偶消失或不再愿意繁殖
-    if (m_partnerId == 0) return false;
+    if (m_partnerId == 0) {
+        return false;
+    }
 
     // 超时
     return m_breedTicks < BREED_TICKS;
@@ -103,7 +111,9 @@ void VillagerBreedGoal::resetTask()
 
 void VillagerBreedGoal::tick()
 {
-    if (!m_villager || m_partnerId == 0) return;
+    if (!m_villager || m_partnerId == 0) {
+        return;
+    }
 
     m_breedTicks++;
 
@@ -140,7 +150,9 @@ void VillagerBreedGoal::tick()
 
 bool VillagerBreedGoal::_hasEnoughBeds() const
 {
-    if (!m_villager) return false;
+    if (!m_villager) {
+        return false;
+    }
 
     // 检查村庄中是否有足够的床位
     // 通过VillageManager获取POI存储，统计可用床位数
@@ -180,7 +192,9 @@ bool VillagerBreedGoal::_hasEnoughBeds() const
 
 bool VillagerBreedGoal::_isWillingToBreed() const
 {
-    if (!m_villager) return false;
+    if (!m_villager) {
+        return false;
+    }
 
     return m_villager->isWillingToBreed();
 }
@@ -199,13 +213,19 @@ void VillagerBreedGoal::_findPartner()
 
     VillagerEntity* partner = EntityUtils::findClosestEntity<VillagerEntity>(
         m_villager->world(), m_villager->position(), PARTNER_SEARCH_RANGE, m_villager, [](VillagerEntity* candidate) {
-            if (!candidate || !candidate->isAlive()) return false;
+            if (!candidate || !candidate->isAlive()) {
+                return false;
+            }
 
             // 检查对方是否也愿意繁殖
-            if (!candidate->isWillingToBreed()) return false;
+            if (!candidate->isWillingToBreed()) {
+                return false;
+            }
 
             // 检查是否是成年村民（不是幼年）
-            if (candidate->isChild()) return false;
+            if (candidate->isChild()) {
+                return false;
+            }
 
             return true;
         });
@@ -217,7 +237,9 @@ void VillagerBreedGoal::_findPartner()
 
 void VillagerBreedGoal::_moveToPartner()
 {
-    if (!m_villager || m_partnerId == 0) return;
+    if (!m_villager || m_partnerId == 0) {
+        return;
+    }
 
     // 获取配偶实体
     Entity* entity = m_villager->world() ? m_villager->world()->getEntity(m_partnerId) : nullptr;
@@ -239,7 +261,9 @@ void VillagerBreedGoal::_moveToPartner()
 
 void VillagerBreedGoal::_spawnChild()
 {
-    if (!m_villager) return;
+    if (!m_villager) {
+        return;
+    }
 
     // MC原版 VillagerMakeLove.tryToGiveBirth: 尝试寻找空床位
     // 如果找不到空床位，双方村民显示愤怒粒子

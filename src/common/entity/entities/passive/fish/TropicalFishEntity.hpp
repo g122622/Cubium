@@ -100,7 +100,10 @@ public:
     /**
      * @brief 获取变种 ID
      */
-    [[nodiscard]] i32 getVariant() const { return m_variant; }
+    [[nodiscard]] i32 getVariant() const
+    {
+        return m_variant;
+    }
 
     /**
      * @brief 设置变种 ID
@@ -136,7 +139,10 @@ public:
     /**
      * @brief 获取眼睛高度
      */
-    [[nodiscard]] f32 eyeHeight() const override { return 0.1f; }
+    [[nodiscard]] f32 eyeHeight() const override
+    {
+        return 0.1f;
+    }
 
     /**
      * @brief 获取扑腾声音

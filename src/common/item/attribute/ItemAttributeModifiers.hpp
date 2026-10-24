@@ -82,7 +82,10 @@ public:
     /**
      * @brief 获取所有修饰符
      */
-    [[nodiscard]] const std::vector<Entry>& getEntries() const { return m_entries; }
+    [[nodiscard]] const std::vector<Entry>& getEntries() const
+    {
+        return m_entries;
+    }
 
     /**
      * @brief 获取指定槽位的修饰符
@@ -94,17 +97,26 @@ public:
     /**
      * @brief 检查是否有修饰符
      */
-    [[nodiscard]] bool isEmpty() const { return m_entries.empty(); }
+    [[nodiscard]] bool isEmpty() const
+    {
+        return m_entries.empty();
+    }
 
     /**
      * @brief 获取修饰符数量
      */
-    [[nodiscard]] size_t size() const { return m_entries.size(); }
+    [[nodiscard]] size_t size() const
+    {
+        return m_entries.size();
+    }
 
     /**
      * @brief 清空所有修饰符
      */
-    void clear() { m_entries.clear(); }
+    void clear()
+    {
+        m_entries.clear();
+    }
 
 private:
     std::vector<Entry> m_entries;

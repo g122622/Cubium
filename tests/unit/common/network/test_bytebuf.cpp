@@ -41,6 +41,7 @@ TEST(ByteBuf, VarIntBoundaryValues)
         i32 value;
         usize bytes;
     };
+
     const Case cases[] = {
         {0, 1},
         {1, 1},
@@ -72,6 +73,7 @@ TEST(ByteBuf, VarUIntSizeClasses)
         u32 value;
         usize bytes;
     };
+
     const Case cases[] = {
         {0, 1},
         {127, 1},
@@ -100,6 +102,7 @@ TEST(ByteBuf, VarLongBoundaryValues)
         i64 value;
         usize bytes;
     };
+
     const Case cases[] = {
         {0, 1},
         {127, 1},

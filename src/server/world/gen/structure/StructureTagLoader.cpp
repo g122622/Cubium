@@ -141,6 +141,7 @@ Result<size_t> StructureTagLoader::loadFromDataPackRepository(const resource::Da
         bool replace = false;
         std::vector<ResourceLocation> structureIds;
     };
+
     std::unordered_map<ResourceLocation, TagParseData> parsedTags;
 
     for (const auto& namespace_ : namespacesResult.value()) {

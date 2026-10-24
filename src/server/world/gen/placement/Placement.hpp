@@ -45,6 +45,7 @@ namespace mc {
 namespace world::chunk {
 class ChunkPrimer;
 }
+
 using world::chunk::ChunkPrimer;
 class WorldGenRegion;
 class IChunkGenerator;
@@ -130,7 +131,10 @@ struct HeightRangePlacementConfig : public IPlacementConfig {
      * @param minY 最小Y
      * @param maxY 最大Y
      */
-    static HeightRangePlacementConfig uniform(i32 minY, i32 maxY) { return HeightRangePlacementConfig(minY, 0, maxY); }
+    static HeightRangePlacementConfig uniform(i32 minY, i32 maxY)
+    {
+        return HeightRangePlacementConfig(minY, 0, maxY);
+    }
 
     /**
      * @brief 创建三角形分布（青金石风格）
@@ -377,7 +381,10 @@ public:
         const IPlacementConfig& config,
         const BlockPos& basePos) const override;
 
-    [[nodiscard]] const char* name() const noexcept override { return "identity"; }
+    [[nodiscard]] const char* name() const noexcept override
+    {
+        return "identity";
+    }
 };
 
 /**
@@ -392,7 +399,10 @@ public:
         const IPlacementConfig& config,
         const BlockPos& basePos) const override;
 
-    [[nodiscard]] const char* name() const noexcept override { return "count"; }
+    [[nodiscard]] const char* name() const noexcept override
+    {
+        return "count";
+    }
 };
 
 /**
@@ -407,7 +417,10 @@ public:
         const IPlacementConfig& config,
         const BlockPos& basePos) const override;
 
-    [[nodiscard]] const char* name() const noexcept override { return "height_range"; }
+    [[nodiscard]] const char* name() const noexcept override
+    {
+        return "height_range";
+    }
 };
 
 /**
@@ -422,7 +435,10 @@ public:
         const IPlacementConfig& config,
         const BlockPos& basePos) const override;
 
-    [[nodiscard]] const char* name() const noexcept override { return "square"; }
+    [[nodiscard]] const char* name() const noexcept override
+    {
+        return "square";
+    }
 };
 
 /**
@@ -437,7 +453,10 @@ public:
         const IPlacementConfig& config,
         const BlockPos& basePos) const override;
 
-    [[nodiscard]] const char* name() const noexcept override { return "biome"; }
+    [[nodiscard]] const char* name() const noexcept override
+    {
+        return "biome";
+    }
 };
 
 /**
@@ -452,7 +471,10 @@ public:
         const IPlacementConfig& config,
         const BlockPos& basePos) const override;
 
-    [[nodiscard]] const char* name() const noexcept override { return "chance"; }
+    [[nodiscard]] const char* name() const noexcept override
+    {
+        return "chance";
+    }
 };
 
 /**
@@ -468,7 +490,10 @@ public:
         const IPlacementConfig& config,
         const BlockPos& basePos) const override;
 
-    [[nodiscard]] const char* name() const noexcept override { return "surface"; }
+    [[nodiscard]] const char* name() const noexcept override
+    {
+        return "surface";
+    }
 };
 
 /**
@@ -484,7 +509,10 @@ public:
         const IPlacementConfig& config,
         const BlockPos& basePos) const override;
 
-    [[nodiscard]] const char* name() const noexcept override { return "heightmap"; }
+    [[nodiscard]] const char* name() const noexcept override
+    {
+        return "heightmap";
+    }
 };
 
 /**
@@ -499,7 +527,10 @@ public:
         const IPlacementConfig& config,
         const BlockPos& basePos) const override;
 
-    [[nodiscard]] const char* name() const noexcept override { return "rarity_filter"; }
+    [[nodiscard]] const char* name() const noexcept override
+    {
+        return "rarity_filter";
+    }
 };
 
 /**
@@ -514,7 +545,10 @@ public:
         const IPlacementConfig& config,
         const BlockPos& basePos) const override;
 
-    [[nodiscard]] const char* name() const noexcept override { return "fixed_placement"; }
+    [[nodiscard]] const char* name() const noexcept override
+    {
+        return "fixed_placement";
+    }
 };
 
 /**
@@ -529,7 +563,10 @@ public:
         const IPlacementConfig& config,
         const BlockPos& basePos) const override;
 
-    [[nodiscard]] const char* name() const noexcept override { return "count_on_every_layer"; }
+    [[nodiscard]] const char* name() const noexcept override
+    {
+        return "count_on_every_layer";
+    }
 };
 
 /**
@@ -544,7 +581,10 @@ public:
         const IPlacementConfig& config,
         const BlockPos& basePos) const override;
 
-    [[nodiscard]] const char* name() const noexcept override { return "noise_threshold_count"; }
+    [[nodiscard]] const char* name() const noexcept override
+    {
+        return "noise_threshold_count";
+    }
 };
 
 /**
@@ -559,7 +599,10 @@ public:
         const IPlacementConfig& config,
         const BlockPos& basePos) const override;
 
-    [[nodiscard]] const char* name() const noexcept override { return "noise_based_count"; }
+    [[nodiscard]] const char* name() const noexcept override
+    {
+        return "noise_based_count";
+    }
 };
 
 /**
@@ -574,7 +617,10 @@ public:
         const IPlacementConfig& config,
         const BlockPos& basePos) const override;
 
-    [[nodiscard]] const char* name() const noexcept override { return "surface_relative_threshold_filter"; }
+    [[nodiscard]] const char* name() const noexcept override
+    {
+        return "surface_relative_threshold_filter";
+    }
 };
 
 /**
@@ -614,10 +660,20 @@ public:
      * @brief 设置下一个放置器
      * @param next 下一个放置器
      */
-    void setNext(std::unique_ptr<ConfiguredPlacement> next) { m_next = std::move(next); }
+    void setNext(std::unique_ptr<ConfiguredPlacement> next)
+    {
+        m_next = std::move(next);
+    }
 
-    [[nodiscard]] ConfiguredPlacement* next() noexcept { return m_next.get(); }
-    [[nodiscard]] const ConfiguredPlacement* next() const noexcept { return m_next.get(); }
+    [[nodiscard]] ConfiguredPlacement* next() noexcept
+    {
+        return m_next.get();
+    }
+
+    [[nodiscard]] const ConfiguredPlacement* next() const noexcept
+    {
+        return m_next.get();
+    }
 
 private:
     std::unique_ptr<Placement> m_placement;

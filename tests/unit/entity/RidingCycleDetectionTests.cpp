@@ -57,7 +57,11 @@ public:
     MultiPassengerEntity(EntityInstanceId id)
         : Entity(id, nullptr, mc::test::testEcsRegistry())
     {}
-    i32 getMaxPassengers() const override { return 2; }
+
+    i32 getMaxPassengers() const override
+    {
+        return 2;
+    }
 };
 
 // ============================================================================

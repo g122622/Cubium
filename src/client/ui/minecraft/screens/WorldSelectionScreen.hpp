@@ -51,19 +51,38 @@ public:
     WorldSelectionScreen();
 
     /** 设置选择世界后的回调 */
-    void setOnSelectWorld(WorldSelectCallback callback) { m_onSelectWorld = std::move(callback); }
+    void setOnSelectWorld(WorldSelectCallback callback)
+    {
+        m_onSelectWorld = std::move(callback);
+    }
+
     /** 设置创建世界按钮的回调 */
-    void setOnCreateWorld(Callback callback) { m_onCreateWorld = std::move(callback); }
+    void setOnCreateWorld(Callback callback)
+    {
+        m_onCreateWorld = std::move(callback);
+    }
+
     /** 设置返回按钮的回调 */
-    void setOnBack(Callback callback) { m_onBack = std::move(callback); }
+    void setOnBack(Callback callback)
+    {
+        m_onBack = std::move(callback);
+    }
+
     /** 设置屏幕栈Widget，用于弹出确认对话框 */
-    void setScreenStack(widgets::ScreenStackWidget* stack) { m_screenStack = stack; }
+    void setScreenStack(widgets::ScreenStackWidget* stack)
+    {
+        m_screenStack = stack;
+    }
 
     void onOpen() override;
     /** 刷新世界列表，从磁盘重新读取 */
     void refreshWorldList();
+
     /** 获取当前选中的世界，未选中时返回 nullptr */
-    [[nodiscard]] const world::storage::WorldListEntry* selectedWorld() const { return m_selectedWorld; }
+    [[nodiscard]] const world::storage::WorldListEntry* selectedWorld() const
+    {
+        return m_selectedWorld;
+    }
 
     bool onKey(i32 key, i32 scanCode, i32 action, i32 mods) override;
 

@@ -70,88 +70,136 @@ public:
     /**
      * @brief 获取维度ID
      */
-    [[nodiscard]] DimensionId id() const { return m_id; }
+    [[nodiscard]] DimensionId id() const
+    {
+        return m_id;
+    }
 
     /**
      * @brief 获取维度类型
      */
-    [[nodiscard]] const DimensionType& type() const { return m_type; }
+    [[nodiscard]] const DimensionType& type() const
+    {
+        return m_type;
+    }
 
     // ========== 维度能力 ==========
 
     /**
      * @brief 是否有天空光照
      */
-    [[nodiscard]] bool hasSkyLight() const { return m_type.hasSkyLight(); }
+    [[nodiscard]] bool hasSkyLight() const
+    {
+        return m_type.hasSkyLight();
+    }
 
     /**
      * @brief 是否有天花板
      */
-    [[nodiscard]] bool hasCeiling() const { return m_type.hasCeiling(); }
+    [[nodiscard]] bool hasCeiling() const
+    {
+        return m_type.hasCeiling();
+    }
 
     /**
      * @brief 最低建筑高度
      */
-    [[nodiscard]] i32 minHeight() const { return m_type.minHeight(); }
+    [[nodiscard]] i32 minHeight() const
+    {
+        return m_type.minHeight();
+    }
 
     /**
      * @brief 最高建筑高度
      */
-    [[nodiscard]] i32 maxHeight() const { return m_type.maxHeight(); }
+    [[nodiscard]] i32 maxHeight() const
+    {
+        return m_type.maxHeight();
+    }
 
     /**
      * @brief 逻辑高度上限（传送门放置等）
      */
-    [[nodiscard]] i32 logicalHeight() const { return m_type.logicalHeight(); }
+    [[nodiscard]] i32 logicalHeight() const
+    {
+        return m_type.logicalHeight();
+    }
 
     // ========== 坐标转换 ==========
 
     /**
      * @brief 从主世界坐标转换到当前维度
      */
-    [[nodiscard]] Vector3d fromOverworld(const Vector3d& pos) const { return m_type.scaleFromOverworld(pos); }
+    [[nodiscard]] Vector3d fromOverworld(const Vector3d& pos) const
+    {
+        return m_type.scaleFromOverworld(pos);
+    }
 
     /**
      * @brief 从当前维度转换到主世界坐标
      */
-    [[nodiscard]] Vector3d toOverworld(const Vector3d& pos) const { return m_type.scaleToOverworld(pos); }
+    [[nodiscard]] Vector3d toOverworld(const Vector3d& pos) const
+    {
+        return m_type.scaleToOverworld(pos);
+    }
 
     // ========== 维度特性 ==========
 
     /**
      * @brief 是否超热（水会蒸发）
      */
-    [[nodiscard]] bool ultraWarm() const { return m_type.ultraWarm(); }
+    [[nodiscard]] bool ultraWarm() const
+    {
+        return m_type.ultraWarm();
+    }
 
     /**
      * @brief 床是否可用
      */
-    [[nodiscard]] bool bedWorks() const { return m_type.bedWorks(); }
+    [[nodiscard]] bool bedWorks() const
+    {
+        return m_type.bedWorks();
+    }
 
     /**
      * @brief 重生锚是否可用
      */
-    [[nodiscard]] bool respawnAnchorWorks() const { return m_type.respawnAnchorWorks(); }
+    [[nodiscard]] bool respawnAnchorWorks() const
+    {
+        return m_type.respawnAnchorWorks();
+    }
 
     /**
      * @brief 是否自然维度
      */
-    [[nodiscard]] bool natural() const { return m_type.natural(); }
+    [[nodiscard]] bool natural() const
+    {
+        return m_type.natural();
+    }
 
     /**
      * @brief 是否有末影龙战斗
      */
-    [[nodiscard]] bool hasEnderDragonFight() const { return m_type.hasEnderDragonFight(); }
+    [[nodiscard]] bool hasEnderDragonFight() const
+    {
+        return m_type.hasEnderDragonFight();
+    }
 
     /**
      * @brief 获取环境光照强度
      */
-    [[nodiscard]] f32 ambientLight() const { return m_type.ambientLight(); }
+    [[nodiscard]] f32 ambientLight() const
+    {
+        return m_type.ambientLight();
+    }
 
     /**
      * @brief 获取固定时间值（如果有）
      */
-    [[nodiscard]] std::optional<i64> fixedTime() const { return m_type.fixedTimeValue(); }
+    [[nodiscard]] std::optional<i64> fixedTime() const
+    {
+        return m_type.fixedTimeValue();
+    }
 
     // ========== 更新 ==========
 

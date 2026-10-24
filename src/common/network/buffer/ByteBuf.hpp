@@ -67,15 +67,42 @@ public:
     // 容量与游标
     // ============================================================================
 
-    [[nodiscard]] usize size() const noexcept { return m_data.size(); }
-    [[nodiscard]] usize readableBytes() const noexcept { return m_data.size() - m_readPos; }
-    [[nodiscard]] usize readPosition() const noexcept { return m_readPos; }
-    void setReadPosition(usize pos) noexcept { m_readPos = pos; }
-    void clear() noexcept;
-    void reserve(usize capacity) { m_data.reserve(capacity); }
+    [[nodiscard]] usize size() const noexcept
+    {
+        return m_data.size();
+    }
 
-    [[nodiscard]] const u8* data() const noexcept { return m_data.data(); }
-    [[nodiscard]] const std::vector<u8>& bytes() const noexcept { return m_data; }
+    [[nodiscard]] usize readableBytes() const noexcept
+    {
+        return m_data.size() - m_readPos;
+    }
+
+    [[nodiscard]] usize readPosition() const noexcept
+    {
+        return m_readPos;
+    }
+
+    void setReadPosition(usize pos) noexcept
+    {
+        m_readPos = pos;
+    }
+
+    void clear() noexcept;
+
+    void reserve(usize capacity)
+    {
+        m_data.reserve(capacity);
+    }
+
+    [[nodiscard]] const u8* data() const noexcept
+    {
+        return m_data.data();
+    }
+
+    [[nodiscard]] const std::vector<u8>& bytes() const noexcept
+    {
+        return m_data;
+    }
 
     /**
      * @brief 取出内部字节（移动语义，写完发送时用）
@@ -86,17 +113,44 @@ public:
     // 定长原语写入（大端）
     // ============================================================================
 
-    void writeU8(u8 value) { m_data.push_back(value); }
-    void writeI8(i8 value) { writeU8(static_cast<u8>(value)); }
+    void writeU8(u8 value)
+    {
+        m_data.push_back(value);
+    }
+
+    void writeI8(i8 value)
+    {
+        writeU8(static_cast<u8>(value));
+    }
+
     void writeU16(u16 value);
-    void writeI16(i16 value) { writeU16(static_cast<u16>(value)); }
+
+    void writeI16(i16 value)
+    {
+        writeU16(static_cast<u16>(value));
+    }
+
     void writeU32(u32 value);
-    void writeI32(i32 value) { writeU32(static_cast<u32>(value)); }
+
+    void writeI32(i32 value)
+    {
+        writeU32(static_cast<u32>(value));
+    }
+
     void writeU64(u64 value);
-    void writeI64(i64 value) { writeU64(static_cast<u64>(value)); }
+
+    void writeI64(i64 value)
+    {
+        writeU64(static_cast<u64>(value));
+    }
+
     void writeF32(f32 value);
     void writeF64(f64 value);
-    void writeBool(bool value) { writeU8(value ? 1 : 0); }
+
+    void writeBool(bool value)
+    {
+        writeU8(value ? 1 : 0);
+    }
 
     void writeBytes(const u8* data, usize size);
     void writeBytes(std::string_view data);
@@ -106,8 +160,16 @@ public:
     // VarInt / VarLong（标准 MC 协议，zigzag 不在此，见 VarInts.hpp 的变体）
     // ============================================================================
 
-    void writeVarInt(i32 value) { writeVarUInt(static_cast<u32>(value)); }
-    void writeVarLong(i64 value) { writeVarULong(static_cast<u64>(value)); }
+    void writeVarInt(i32 value)
+    {
+        writeVarUInt(static_cast<u32>(value));
+    }
+
+    void writeVarLong(i64 value)
+    {
+        writeVarULong(static_cast<u64>(value));
+    }
+
     void writeVarUInt(u32 value);
     void writeVarULong(u64 value);
 
@@ -116,18 +178,24 @@ public:
     // ============================================================================
 
     void writeString(std::string_view value);
-    void writeUtf8(std::string_view value) { writeString(value); }
+
+    void writeUtf8(std::string_view value)
+    {
+        writeString(value);
+    }
 
     // ============================================================================
     // 定长原语读取（大端，越界返回 OutOfBounds）
     // ============================================================================
 
     [[nodiscard]] Result<u8> readU8();
+
     [[nodiscard]] Result<i8> readI8()
     {
         auto r = readU8();
         return r.success() ? Result<i8>(static_cast<i8>(r.value())) : Result<i8>(r.error());
     }
+
     [[nodiscard]] Result<u16> readU16();
     [[nodiscard]] Result<i16> readI16();
     [[nodiscard]] Result<u32> readU32();
@@ -164,11 +232,13 @@ public:
         auto r = readVarUInt();
         return r.success() ? Result<i32>(static_cast<i32>(r.value())) : Result<i32>(r.error());
     }
+
     [[nodiscard]] Result<i64> readVarLong()
     {
         auto r = readVarULong();
         return r.success() ? Result<i64>(static_cast<i64>(r.value())) : Result<i64>(r.error());
     }
+
     [[nodiscard]] Result<u32> readVarUInt();
     [[nodiscard]] Result<u64> readVarULong();
 

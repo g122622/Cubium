@@ -82,21 +82,67 @@ public:
 
     // ========== Getters ==========
 
-    [[nodiscard]] const ItemPredicate& getHead() const noexcept { return m_head; }
-    [[nodiscard]] const ItemPredicate& getChest() const noexcept { return m_chest; }
-    [[nodiscard]] const ItemPredicate& getLegs() const noexcept { return m_legs; }
-    [[nodiscard]] const ItemPredicate& getFeet() const noexcept { return m_feet; }
-    [[nodiscard]] const ItemPredicate& getMainHand() const noexcept { return m_mainHand; }
-    [[nodiscard]] const ItemPredicate& getOffHand() const noexcept { return m_offHand; }
+    [[nodiscard]] const ItemPredicate& getHead() const noexcept
+    {
+        return m_head;
+    }
+
+    [[nodiscard]] const ItemPredicate& getChest() const noexcept
+    {
+        return m_chest;
+    }
+
+    [[nodiscard]] const ItemPredicate& getLegs() const noexcept
+    {
+        return m_legs;
+    }
+
+    [[nodiscard]] const ItemPredicate& getFeet() const noexcept
+    {
+        return m_feet;
+    }
+
+    [[nodiscard]] const ItemPredicate& getMainHand() const noexcept
+    {
+        return m_mainHand;
+    }
+
+    [[nodiscard]] const ItemPredicate& getOffHand() const noexcept
+    {
+        return m_offHand;
+    }
 
     // ========== Setters ==========
 
-    void setHead(ItemPredicate head) { m_head = std::move(head); }
-    void setChest(ItemPredicate chest) { m_chest = std::move(chest); }
-    void setLegs(ItemPredicate legs) { m_legs = std::move(legs); }
-    void setFeet(ItemPredicate feet) { m_feet = std::move(feet); }
-    void setMainHand(ItemPredicate mainHand) { m_mainHand = std::move(mainHand); }
-    void setOffHand(ItemPredicate offHand) { m_offHand = std::move(offHand); }
+    void setHead(ItemPredicate head)
+    {
+        m_head = std::move(head);
+    }
+
+    void setChest(ItemPredicate chest)
+    {
+        m_chest = std::move(chest);
+    }
+
+    void setLegs(ItemPredicate legs)
+    {
+        m_legs = std::move(legs);
+    }
+
+    void setFeet(ItemPredicate feet)
+    {
+        m_feet = std::move(feet);
+    }
+
+    void setMainHand(ItemPredicate mainHand)
+    {
+        m_mainHand = std::move(mainHand);
+    }
+
+    void setOffHand(ItemPredicate offHand)
+    {
+        m_offHand = std::move(offHand);
+    }
 
 private:
     ItemPredicate m_head;     ///< 头盔

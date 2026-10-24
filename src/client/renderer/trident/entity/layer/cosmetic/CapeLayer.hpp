@@ -73,12 +73,18 @@ public:
      * @brief 设置自定义斗篷纹理
      * @param region 纹理区域（可为 nullptr）
      */
-    void setCapeTexture(const TextureRegion* region) { m_customCapeRegion = region; }
+    void setCapeTexture(const TextureRegion* region)
+    {
+        m_customCapeRegion = region;
+    }
 
     /**
      * @brief 获取当前斗篷纹理
      */
-    [[nodiscard]] const TextureRegion* getCapeTexture() const { return m_customCapeRegion; }
+    [[nodiscard]] const TextureRegion* getCapeTexture() const
+    {
+        return m_customCapeRegion;
+    }
 
 private:
     /**

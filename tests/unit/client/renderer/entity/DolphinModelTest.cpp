@@ -109,10 +109,16 @@ f64 expectedBodyXRotDelta(f64 ageInTicks)
 
 class DolphinModelTest : public ::testing::Test {
 protected:
-    void SetUp() override { m_model = std::make_unique<DolphinModel>(); }
+    void SetUp() override
+    {
+        m_model = std::make_unique<DolphinModel>();
+    }
 
     /// @brief 触发一次 setAngles，scale 使用默认值 1/16
-    void applyAngles(f64 ageInTicks = 0.0) { m_model->setAngles(0.0, 0.0, ageInTicks, 0.0, 0.0, 1.0 / 16.0); }
+    void applyAngles(f64 ageInTicks = 0.0)
+    {
+        m_model->setAngles(0.0, 0.0, ageInTicks, 0.0, 0.0, 1.0 / 16.0);
+    }
 
     std::unique_ptr<DolphinModel> m_model;
 };

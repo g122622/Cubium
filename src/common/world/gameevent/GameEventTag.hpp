@@ -59,7 +59,10 @@ public:
     /**
      * @brief 获取标签ID
      */
-    [[nodiscard]] const ResourceLocation& getId() const { return m_id; }
+    [[nodiscard]] const ResourceLocation& getId() const
+    {
+        return m_id;
+    }
 
     /**
      * @brief 添加游戏事件到标签
@@ -97,7 +100,10 @@ public:
     /**
      * @brief 获取标签中的所有游戏事件
      */
-    [[nodiscard]] const std::unordered_set<const GameEvent*>& getEvents() const noexcept { return m_events; }
+    [[nodiscard]] const std::unordered_set<const GameEvent*>& getEvents() const noexcept
+    {
+        return m_events;
+    }
 
 private:
     ResourceLocation m_id;

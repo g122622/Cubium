@@ -77,17 +77,26 @@ public:
     /**
      * @brief 获取属性名称
      */
-    [[nodiscard]] const std::string& name() const override { return m_name; }
+    [[nodiscard]] const std::string& name() const override
+    {
+        return m_name;
+    }
 
     /**
      * @brief 获取允许的值的数量
      */
-    [[nodiscard]] size_t valueCount() const override { return m_values.size(); }
+    [[nodiscard]] size_t valueCount() const override
+    {
+        return m_values.size();
+    }
 
     /**
      * @brief 获取所有允许的值
      */
-    [[nodiscard]] const std::vector<T>& allowedValues() const { return m_values; }
+    [[nodiscard]] const std::vector<T>& allowedValues() const
+    {
+        return m_values;
+    }
 
     /**
      * @brief 查找值的索引
@@ -127,7 +136,10 @@ public:
     /**
      * @brief 将值索引转换为字符串表示
      */
-    [[nodiscard]] std::string valueToString(size_t index) const override { return valueToString(valueAt(index)); }
+    [[nodiscard]] std::string valueToString(size_t index) const override
+    {
+        return valueToString(valueAt(index));
+    }
 
     /**
      * @brief 解析字符串为值
@@ -158,13 +170,21 @@ public:
      */
     [[nodiscard]] bool equals(const IProperty& other) const override
     {
-        if (this == &other) return true;
-        if (typeName() != other.typeName()) return false;
-        if (name() != other.name()) return false;
+        if (this == &other) {
+            return true;
+        }
+        if (typeName() != other.typeName()) {
+            return false;
+        }
+        if (name() != other.name()) {
+            return false;
+        }
 
         // 尝试转换并比较值集合
         const auto* typedOther = dynamic_cast<const Property<T>*>(&other);
-        if (!typedOther) return false;
+        if (!typedOther) {
+            return false;
+        }
 
         return m_values == typedOther->m_values;
     }

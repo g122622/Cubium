@@ -32,8 +32,11 @@
 #include "common/mod/bedrock/addon/plugin/ScriptPackConfiguration.hpp"
 #include "common/mod/bedrock/addon/plugin/ScriptPluginSource.hpp"
 
-#include <cstdio>
+#include <array>
+#include <charconv>
 #include <string>
+#include <string_view>
+#include <system_error>
 #include <utility>
 #include <spdlog/spdlog.h>
 
@@ -50,31 +53,49 @@ namespace {
  * JS_NewCModule 预注册原生模块——否则 entry point 的 `import "@minecraft/server-gametest"` 会落到
  * moduleLoader 回调（该回调只负责相对路径 JS 文件加载，不处理原生模块）。
  */
-std::vector<ModuleDependency> _collectModuleDependencies(const AddonManifest& manifest)
+Result<std::vector<ModuleDependency>> _collectModuleDependencies(const AddonManifest& manifest)
 {
-    std::vector<ModuleDependency> deps;
-    deps.reserve(manifest.dependencies.size());
-    for (const auto& dep : manifest.dependencies) {
-        if (!dep.isModuleDependency()) {
+    std::vector<ModuleDependency> dependencies;
+    for (const auto& dependency : manifest.dependencies) {
+        if (!dependency.isModuleDependency()) {
             continue;
         }
-        ModuleDependency moduleDep;
-        moduleDep.name = dep.moduleName;
-        // 解析 "1.13.0-beta" → major=1, minor=13, patch=0, preRelease="beta"
-        const auto& v = dep.versionString;
-        i32 major = 0;
-        i32 minor = 0;
-        i32 patch = 0;
-        char dummy = 0;
-        if (std::sscanf(v.c_str(), "%d.%d.%d%c", &major, &minor, &patch, &dummy) >= 3) {
-            moduleDep.version = ModuleVersion{major, minor, patch};
+
+        ModuleDependency module;
+        module.name = dependency.moduleName;
+        std::string_view version = dependency.versionString;
+        if (version == "beta") {
+            module.preRelease = "beta";
+            dependencies.push_back(std::move(module));
+            continue;
         }
-        if (const auto pos = v.find('-'); pos != std::string::npos) {
-            moduleDep.preRelease = v.substr(pos + 1);
+
+        if (const auto separator = version.find('-'); separator != std::string_view::npos) {
+            module.preRelease = version.substr(separator + 1);
+            version = version.substr(0, separator);
         }
-        deps.push_back(std::move(moduleDep));
+
+        std::array<i32*, 3> parts{&module.version.major, &module.version.minor, &module.version.patch};
+        for (size_t index = 0; index < parts.size(); ++index) {
+            const auto separator = version.find('.');
+            const auto part = version.substr(0, separator);
+            const auto parsed = std::from_chars(part.data(), part.data() + part.size(), *parts[index]);
+            if (part.empty() || parsed.ec != std::errc{} || parsed.ptr != part.data() + part.size() ||
+                *parts[index] < 0 || (index < 2 && separator == std::string_view::npos) ||
+                (index == 2 && separator != std::string_view::npos)) {
+                return Error(ErrorCode::InvalidData,
+                    "Invalid module version for " + module.name + ": " + dependency.versionString);
+            }
+
+            if (separator != std::string_view::npos) {
+                version.remove_prefix(separator + 1);
+            }
+        }
+
+        dependencies.push_back(std::move(module));
     }
-    return deps;
+
+    return dependencies;
 }
 
 } // namespace
@@ -118,6 +139,7 @@ ScriptPlugin& ScriptPlugin::operator=(ScriptPlugin&& other) noexcept
         m_errorMessage = std::move(other.m_errorMessage);
         other.m_state = State::Unloaded;
     }
+
     return *this;
 }
 
@@ -139,9 +161,25 @@ Result<void> ScriptPlugin::load(IScriptEngine& engine, IDependencyLoader& source
     // 从 manifest 提取原生模块依赖（@minecraft/server 等），交给引擎在 createContext 时预注册，
     // 否则 entry point 的 import 语句无法解析原生模块。
     std::vector<ModuleDependency> moduleDeps;
+    std::optional<ScriptData> entry;
     auto* pluginSource = dynamic_cast<ScriptPluginSource*>(&source);
-    if (pluginSource) {
-        moduleDeps = _collectModuleDependencies(pluginSource->pack().manifest());
+    if (pluginSource != nullptr) {
+        auto dependencies = _collectModuleDependencies(pluginSource->pack().manifest());
+        if (dependencies.failed()) {
+            m_state = State::Error;
+            m_errorMessage = dependencies.error().message();
+
+            return dependencies.error();
+        }
+
+        moduleDeps = std::move(dependencies.value());
+        entry = pluginSource->loadEntryPoint();
+        if (!entry) {
+            m_state = State::Error;
+            m_errorMessage = "Script entry point is missing for plugin: " + m_name;
+
+            return Error(ErrorCode::FileNotFound, m_errorMessage);
+        }
     }
 
     // 创建脚本上下文
@@ -150,31 +188,26 @@ Result<void> ScriptPlugin::load(IScriptEngine& engine, IDependencyLoader& source
         m_state = State::Error;
         m_errorMessage = "Failed to create script context for plugin: " + m_name;
         spdlog::error("[BedrockAddon] {}", m_errorMessage);
+
         return Error(ErrorCode::OperationFailed, m_errorMessage);
     }
 
     m_context = std::move(context);
 
-    // 加载入口脚本
-    if (pluginSource) {
-        auto entryData = pluginSource->loadEntryPoint();
-        if (entryData.has_value()) {
-            auto evalResult = m_context->evaluateModule(entryData->source, entryData->filePath);
-            if (!evalResult.success()) {
-                m_state = State::Error;
-                m_errorMessage = "Failed to execute entry point: " + evalResult.errorMessage();
-                spdlog::error("[BedrockAddon] {}", m_errorMessage);
-                m_context.reset();
-                return Error(ErrorCode::OperationFailed, m_errorMessage);
-            }
-            spdlog::info("[BedrockAddon] Entry point executed: {}", entryData->filePath);
-        } else {
-            spdlog::warn("[BedrockAddon] No entry point found for plugin: {}", m_name);
+    if (entry) {
+        auto result = m_context->evaluateModule(entry->source, entry->filePath);
+        if (!result.success()) {
+            m_state = State::Error;
+            m_errorMessage = "Failed to execute entry point: " + result.errorMessage();
+            m_context.reset();
+
+            return Error(ErrorCode::OperationFailed, m_errorMessage);
         }
     }
 
     m_state = State::Loaded;
     spdlog::info("[BedrockAddon] Plugin loaded: {} ({})", m_name, m_uuid);
+
     return Result<void>::ok();
 }
 
@@ -186,6 +219,7 @@ Result<void> ScriptPlugin::start()
 
     m_state = State::Running;
     spdlog::info("[BedrockAddon] Plugin started: {} ({})", m_name, m_uuid);
+
     return Result<void>::ok();
 }
 
@@ -227,6 +261,7 @@ void ScriptPlugin::tick()
         m_state = State::Error;
         m_errorMessage = "Script context became invalid during tick";
         spdlog::error("[BedrockAddon] {}", m_errorMessage);
+
         return;
     }
 }
@@ -297,6 +332,7 @@ const char* ScriptPlugin::stateName(State state)
         case State::Unloading:
             return "Unloading";
     }
+
     return "Unknown";
 }
 

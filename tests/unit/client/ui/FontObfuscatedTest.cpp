@@ -50,6 +50,7 @@ protected:
 
     Font font;
 };
+
 TEST_F(FontObfuscatedTest, BuildWidthIndexPopulatesGlyphsByWidth)
 {
     // buildWidthIndex 应该填充宽度索引
@@ -151,9 +152,21 @@ TEST_F(FontObfuscatedTest, AddProviderInvalidatesWidthIndex)
         {
             return false;
         }
-        [[nodiscard]] const std::vector<u32>& getCodepoints() const override { return m_empty; }
-        [[nodiscard]] u32 getFontHeight() const override { return 8; }
-        [[nodiscard]] u32 getAscent() const override { return 7; }
+
+        [[nodiscard]] const std::vector<u32>& getCodepoints() const override
+        {
+            return m_empty;
+        }
+
+        [[nodiscard]] u32 getFontHeight() const override
+        {
+            return 8;
+        }
+
+        [[nodiscard]] u32 getAscent() const override
+        {
+            return 7;
+        }
 
     private:
         std::vector<u32> m_empty;

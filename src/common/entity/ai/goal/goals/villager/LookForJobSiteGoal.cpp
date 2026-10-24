@@ -55,23 +55,33 @@ LookForJobSiteGoal::LookForJobSiteGoal(VillagerEntity* villager)
 
 bool LookForJobSiteGoal::shouldExecute()
 {
-    if (!m_villager) return false;
+    if (!m_villager) {
+        return false;
+    }
 
     // 已有工作站点的不需要寻找
-    if (m_villager->workStation() != BlockPos::zero()) return false;
+    if (m_villager->workStation() != BlockPos::zero()) {
+        return false;
+    }
 
     // 傻子村民不找工作
-    if (m_villager->isNitwit()) return false;
+    if (m_villager->isNitwit()) {
+        return false;
+    }
 
     // 冷却时间
-    if (m_searchCooldown > 0) return false;
+    if (m_searchCooldown > 0) {
+        return false;
+    }
 
     return true;
 }
 
 bool LookForJobSiteGoal::shouldContinueExecuting()
 {
-    if (!m_villager) return false;
+    if (!m_villager) {
+        return false;
+    }
 
     // 找到工作站点或超时
     return !m_targetSite.has_value() && m_searchCooldown < SEARCH_COOLDOWN;
@@ -96,7 +106,9 @@ void LookForJobSiteGoal::resetTask()
 
 void LookForJobSiteGoal::tick()
 {
-    if (!m_villager) return;
+    if (!m_villager) {
+        return;
+    }
 
     m_searchCooldown++;
 
@@ -139,11 +151,15 @@ void LookForJobSiteGoal::tick()
 
 void LookForJobSiteGoal::_searchForJobSite()
 {
-    if (!m_villager || !m_villager->world()) return;
+    if (!m_villager || !m_villager->world()) {
+        return;
+    }
 
     auto* world = m_villager->world();
     auto* villageManager = world->villageManager();
-    if (!villageManager) return;
+    if (!villageManager) {
+        return;
+    }
 
     auto& poiStorage = villageManager->getPOIStorage();
     BlockPos entityPos(

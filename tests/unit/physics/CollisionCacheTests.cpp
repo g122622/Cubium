@@ -46,9 +46,15 @@ AxisAlignedBB makeBox(f32 minX, f32 minY, f32 minZ, f32 maxX, f32 maxY, f32 maxZ
  */
 class CollisionCacheTest : public ::testing::Test {
 protected:
-    void SetUp() override { cache = std::make_unique<CollisionCache>(); }
+    void SetUp() override
+    {
+        cache = std::make_unique<CollisionCache>();
+    }
 
-    void TearDown() override { cache.reset(); }
+    void TearDown() override
+    {
+        cache.reset();
+    }
 
     std::unique_ptr<CollisionCache> cache;
 };

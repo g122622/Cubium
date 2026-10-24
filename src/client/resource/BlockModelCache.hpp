@@ -113,7 +113,10 @@ public:
     /**
      * @brief 检查缓存是否已初始化
      */
-    [[nodiscard]] bool isInitialized() const { return m_initialized; }
+    [[nodiscard]] bool isInitialized() const
+    {
+        return m_initialized;
+    }
 
     // ========================================================================
     // 外观查询
@@ -160,12 +163,18 @@ public:
     /**
      * @brief 获取缓存的外观数量
      */
-    [[nodiscard]] size_t cachedAppearanceCount() const { return m_stateCache.size(); }
+    [[nodiscard]] size_t cachedAppearanceCount() const
+    {
+        return m_stateCache.size();
+    }
 
     /**
      * @brief 获取当前绑定的 ResourceManager
      */
-    [[nodiscard]] ResourceManager* resourceManager() const { return m_resourceManager; }
+    [[nodiscard]] ResourceManager* resourceManager() const
+    {
+        return m_resourceManager;
+    }
 
     // ========================================================================
     // 纹理区域查询（供 ChunkMesher 液体路径等使用，查 AtlasManager 的图集 regions）
@@ -181,7 +190,10 @@ public:
      *
      * @param lookup 完整纹理资源位置 → UV 区域指针，未找到返回 nullptr
      */
-    void setRegionLookup(RegionLookup lookup) { m_regionLookup = std::move(lookup); }
+    void setRegionLookup(RegionLookup lookup)
+    {
+        m_regionLookup = std::move(lookup);
+    }
 
     /**
      * @brief 查询纹理区域

@@ -169,7 +169,10 @@ public:
      *
      * @return 如果降雨强度 > 0.2 返回 true
      */
-    [[nodiscard]] bool isRaining() const noexcept { return rainStrength > WeatherConstants::RAIN_THRESHOLD; }
+    [[nodiscard]] bool isRaining() const noexcept
+    {
+        return rainStrength > WeatherConstants::RAIN_THRESHOLD;
+    }
 
     /**
      * @brief 是否正在雷暴（强度检查）
@@ -178,7 +181,10 @@ public:
      *
      * @return 如果雷暴强度 > 0.9 返回 true
      */
-    [[nodiscard]] bool isThundering() const noexcept { return thunderStrength > WeatherConstants::THUNDER_THRESHOLD; }
+    [[nodiscard]] bool isThundering() const noexcept
+    {
+        return thunderStrength > WeatherConstants::THUNDER_THRESHOLD;
+    }
 
     /**
      * @brief 获取插值后的降雨强度

@@ -39,9 +39,10 @@ OrCondition::OrCondition(std::vector<std::unique_ptr<LootCondition>> conditions)
 bool OrCondition::test(LootContext& context) const
 {
     // 任一子条件满足即返回 true
-    return std::any_of(m_conditions.begin(),
-        m_conditions.end(),
-        [&context](const std::unique_ptr<LootCondition>& cond) { return cond && cond->test(context); });
+    return std::any_of(
+        m_conditions.begin(), m_conditions.end(), [&context](const std::unique_ptr<LootCondition>& cond) {
+            return cond && cond->test(context);
+        });
 }
 
 std::unique_ptr<LootCondition> OrCondition::clone() const noexcept

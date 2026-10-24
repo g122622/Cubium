@@ -47,7 +47,11 @@ namespace mc::client::renderer::entity::renderer::aquatic {
  */
 class CodRenderer : public core::LivingRenderer<::mc::LivingEntity, model::aquatic::CodModel> {
 public:
-    CodRenderer() { m_shadowSize = 0.3f; }
+    CodRenderer()
+    {
+        m_shadowSize = 0.3f;
+    }
+
     ~CodRenderer() override = default;
 
     [[nodiscard]] ResourceLocation getEntityTexture(::mc::LivingEntity& entity) override
@@ -55,6 +59,7 @@ public:
         (void)entity;
         return ResourceLocation("minecraft", "textures/entity/fish/cod.png");
     }
+
     [[nodiscard]] ResourceLocation getEntityTexture(const ::mc::LivingEntity& entity) const override
     {
         (void)entity;
@@ -67,7 +72,11 @@ public:
  */
 class SalmonRenderer : public core::LivingRenderer<::mc::LivingEntity, model::aquatic::SalmonModel> {
 public:
-    SalmonRenderer() { m_shadowSize = 0.3f; }
+    SalmonRenderer()
+    {
+        m_shadowSize = 0.3f;
+    }
+
     ~SalmonRenderer() override = default;
 
     [[nodiscard]] ResourceLocation getEntityTexture(::mc::LivingEntity& entity) override
@@ -75,6 +84,7 @@ public:
         (void)entity;
         return ResourceLocation("minecraft", "textures/entity/fish/salmon.png");
     }
+
     [[nodiscard]] ResourceLocation getEntityTexture(const ::mc::LivingEntity& entity) const override
     {
         (void)entity;
@@ -87,7 +97,11 @@ public:
  */
 class DolphinRenderer : public core::LivingRenderer<::mc::LivingEntity, model::aquatic::DolphinModel> {
 public:
-    DolphinRenderer() { m_shadowSize = 0.5f; }
+    DolphinRenderer()
+    {
+        m_shadowSize = 0.5f;
+    }
+
     ~DolphinRenderer() override = default;
 
     [[nodiscard]] ResourceLocation getEntityTexture(::mc::LivingEntity& entity) override
@@ -95,6 +109,7 @@ public:
         (void)entity;
         return ResourceLocation("minecraft", "textures/entity/dolphin.png");
     }
+
     [[nodiscard]] ResourceLocation getEntityTexture(const ::mc::LivingEntity& entity) const override
     {
         (void)entity;
@@ -107,7 +122,11 @@ public:
  */
 class TurtleRenderer : public core::LivingRenderer<::mc::LivingEntity, model::aquatic::TurtleModel> {
 public:
-    TurtleRenderer() { m_shadowSize = 0.5f; }
+    TurtleRenderer()
+    {
+        m_shadowSize = 0.5f;
+    }
+
     ~TurtleRenderer() override = default;
 
     [[nodiscard]] ResourceLocation getEntityTexture(::mc::LivingEntity& entity) override
@@ -115,6 +134,7 @@ public:
         (void)entity;
         return ResourceLocation("minecraft", "textures/entity/turtle/big_sea_turtle.png");
     }
+
     [[nodiscard]] ResourceLocation getEntityTexture(const ::mc::LivingEntity& entity) const override
     {
         (void)entity;
@@ -127,7 +147,11 @@ public:
  */
 class TropicalFishARenderer : public core::LivingRenderer<::mc::LivingEntity, model::aquatic::TropicalFishAModel> {
 public:
-    TropicalFishARenderer() { m_shadowSize = 0.15f; }
+    TropicalFishARenderer()
+    {
+        m_shadowSize = 0.15f;
+    }
+
     ~TropicalFishARenderer() override = default;
 
     [[nodiscard]] ResourceLocation getEntityTexture(::mc::LivingEntity& entity) override
@@ -135,6 +159,7 @@ public:
         (void)entity;
         return ResourceLocation("minecraft", "textures/entity/fish/tropical_a.png");
     }
+
     [[nodiscard]] ResourceLocation getEntityTexture(const ::mc::LivingEntity& entity) const override
     {
         (void)entity;
@@ -147,7 +172,11 @@ public:
  */
 class TropicalFishBRenderer : public core::LivingRenderer<::mc::LivingEntity, model::aquatic::TropicalFishBModel> {
 public:
-    TropicalFishBRenderer() { m_shadowSize = 0.2f; }
+    TropicalFishBRenderer()
+    {
+        m_shadowSize = 0.2f;
+    }
+
     ~TropicalFishBRenderer() override = default;
 
     [[nodiscard]] ResourceLocation getEntityTexture(::mc::LivingEntity& entity) override
@@ -155,6 +184,7 @@ public:
         (void)entity;
         return ResourceLocation("minecraft", "textures/entity/fish/tropical_b.png");
     }
+
     [[nodiscard]] ResourceLocation getEntityTexture(const ::mc::LivingEntity& entity) const override
     {
         (void)entity;
@@ -181,9 +211,13 @@ public:
     {
         m_shadowSize = 0.1f;
     }
+
     ~PufferfishRenderer() override = default;
 
-    [[nodiscard]] bool supportsAnimation() const override { return true; }
+    [[nodiscard]] bool supportsAnimation() const override
+    {
+        return true;
+    }
 
     void render(Entity& entity, f64 partialTicks) override
     {
@@ -294,7 +328,9 @@ private:
         f64 prevAmount = entity.prevLimbSwingAmount();
         f64 amount = entity.limbSwingAmount();
         f64 result = prevAmount + (amount - prevAmount) * partialTicks;
-        if (result > 1.0) result = 1.0;
+        if (result > 1.0) {
+            result = 1.0;
+        }
         return result;
     }
 
@@ -305,10 +341,12 @@ private:
         f64 headYaw =
             entity.prevRotationYawHead() + (entity.rotationYawHead() - entity.prevRotationYawHead()) * partialTicks;
         f64 diff = headYaw - bodyYaw;
-        while (diff < -180.0)
+        while (diff < -180.0) {
             diff += 360.0;
-        while (diff > 180.0)
+        }
+        while (diff > 180.0) {
             diff -= 360.0;
+        }
         return diff;
     }
 
@@ -317,7 +355,10 @@ private:
         return entity.prevPitch() + (entity.pitch() - entity.prevPitch()) * partialTicks;
     }
 
-    static f64 _getAgeInTicks(::mc::LivingEntity& entity) { return static_cast<f64>(entity.ticksExisted()); }
+    static f64 _getAgeInTicks(::mc::LivingEntity& entity)
+    {
+        return static_cast<f64>(entity.ticksExisted());
+    }
 };
 
 /**
@@ -328,7 +369,11 @@ private:
  */
 class AxolotlRenderer : public core::LivingRenderer<::mc::LivingEntity, model::aquatic::AxolotlModel> {
 public:
-    AxolotlRenderer() { m_shadowSize = 0.5f; }
+    AxolotlRenderer()
+    {
+        m_shadowSize = 0.5f;
+    }
+
     ~AxolotlRenderer() override = default;
 
     [[nodiscard]] ResourceLocation getEntityTexture(::mc::LivingEntity& entity) override
@@ -336,6 +381,7 @@ public:
         i32 variant = _getVariant(entity);
         return _getTextureForVariant(variant);
     }
+
     [[nodiscard]] ResourceLocation getEntityTexture(const ::mc::LivingEntity& entity) const override
     {
         // const版本使用默认变体

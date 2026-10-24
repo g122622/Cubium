@@ -36,7 +36,10 @@ using namespace mc::world;
 
 class ChunkTest : public ::testing::Test {
 protected:
-    void SetUp() override { VanillaBlocks::initialize(); }
+    void SetUp() override
+    {
+        VanillaBlocks::initialize();
+    }
 };
 
 // ============================================================================

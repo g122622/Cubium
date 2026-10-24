@@ -46,7 +46,10 @@ class UnbreakingEnchantment : public Enchantment {
 public:
     UnbreakingEnchantment() noexcept = default;
 
-    [[nodiscard]] std::string id() const override { return "minecraft:unbreaking"; }
+    [[nodiscard]] std::string id() const override
+    {
+        return "minecraft:unbreaking";
+    }
 
     [[nodiscard]] std::string getNameKey(i32 level) const override
     {
@@ -54,17 +57,35 @@ public:
         return "enchantment.minecraft.unbreaking";
     }
 
-    [[nodiscard]] EnchantmentType type() const override { return EnchantmentType::Breakable; }
+    [[nodiscard]] EnchantmentType type() const override
+    {
+        return EnchantmentType::Breakable;
+    }
 
-    [[nodiscard]] i32 minLevel() const noexcept override { return 1; }
+    [[nodiscard]] i32 minLevel() const noexcept override
+    {
+        return 1;
+    }
 
-    [[nodiscard]] i32 maxLevel() const noexcept override { return 3; }
+    [[nodiscard]] i32 maxLevel() const noexcept override
+    {
+        return 3;
+    }
 
-    [[nodiscard]] EnchantmentRarity rarity() const noexcept override { return EnchantmentRarity::Uncommon; }
+    [[nodiscard]] EnchantmentRarity rarity() const noexcept override
+    {
+        return EnchantmentRarity::Uncommon;
+    }
 
-    [[nodiscard]] i32 getMinCost(i32 level) const override { return 5 + (level - 1) * 8; }
+    [[nodiscard]] i32 getMinCost(i32 level) const override
+    {
+        return 5 + (level - 1) * 8;
+    }
 
-    [[nodiscard]] i32 getMaxCost(i32 level) const override { return getMinCost(level) + 50; }
+    [[nodiscard]] i32 getMaxCost(i32 level) const override
+    {
+        return getMinCost(level) + 50;
+    }
 
     /**
      * @brief 获取耐久保护概率（非盔甲）

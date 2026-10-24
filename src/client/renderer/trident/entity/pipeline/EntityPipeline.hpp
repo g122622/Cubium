@@ -252,7 +252,10 @@ public:
     /**
      * @brief 是否已初始化
      */
-    [[nodiscard]] bool isInitialized() const { return m_initialized; }
+    [[nodiscard]] bool isInitialized() const
+    {
+        return m_initialized;
+    }
 
 private:
     /// mega-buffer 段：一个大 VkBuffer 内用 OffsetAllocator 子分配
@@ -313,6 +316,7 @@ private:
         bool hasIndex = false;
         u64 enqueueFrame = 0; // 入队时的帧计数器
     };
+
     std::vector<PendingDestroy> m_pendingDestroys;
     u64 m_frameCounter = 0; // 单调递增帧计数器（processPendingDestroys 推进）
 

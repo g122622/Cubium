@@ -48,7 +48,10 @@ using namespace mc::blockentity;
 
 class StructureBlockEntityTest : public ::testing::Test {
 protected:
-    void SetUp() override { m_entity = std::make_unique<StructureBlockEntity>(BlockPos(10, 20, 30)); }
+    void SetUp() override
+    {
+        m_entity = std::make_unique<StructureBlockEntity>(BlockPos(10, 20, 30));
+    }
 
     std::unique_ptr<StructureBlockEntity> m_entity;
 };
@@ -170,6 +173,7 @@ TEST_F(StructureBlockEntityTest, Registry_CreatesStructureBlockEntity)
     ASSERT_NE(entity, nullptr);
     EXPECT_NE(dynamic_cast<StructureBlockEntity*>(entity.get()), nullptr);
 }
+
 // ========== createdBy（记录创建者作者） ==========
 
 TEST_F(StructureBlockEntityTest, CreatedBy_PlayerWritesUsername)

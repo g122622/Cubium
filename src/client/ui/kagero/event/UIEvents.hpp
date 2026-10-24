@@ -37,9 +37,20 @@ class FocusGainedEvent : public Event {
 public:
     FocusGainedEvent() = default;
 
-    [[nodiscard]] EventType getType() const override { return EventType::FocusGained; }
-    [[nodiscard]] const char* getName() const override { return "FocusGained"; }
-    [[nodiscard]] bool bubbles() const override { return false; }
+    [[nodiscard]] EventType getType() const override
+    {
+        return EventType::FocusGained;
+    }
+
+    [[nodiscard]] const char* getName() const override
+    {
+        return "FocusGained";
+    }
+
+    [[nodiscard]] bool bubbles() const override
+    {
+        return false;
+    }
 };
 
 /**
@@ -49,9 +60,20 @@ class FocusLostEvent : public Event {
 public:
     FocusLostEvent() = default;
 
-    [[nodiscard]] EventType getType() const override { return EventType::FocusLost; }
-    [[nodiscard]] const char* getName() const override { return "FocusLost"; }
-    [[nodiscard]] bool bubbles() const override { return false; }
+    [[nodiscard]] EventType getType() const override
+    {
+        return EventType::FocusLost;
+    }
+
+    [[nodiscard]] const char* getName() const override
+    {
+        return "FocusLost";
+    }
+
+    [[nodiscard]] bool bubbles() const override
+    {
+        return false;
+    }
 };
 
 /**
@@ -61,9 +83,20 @@ class WidgetInitEvent : public Event {
 public:
     WidgetInitEvent() = default;
 
-    [[nodiscard]] EventType getType() const override { return EventType::WidgetInit; }
-    [[nodiscard]] const char* getName() const override { return "WidgetInit"; }
-    [[nodiscard]] bool bubbles() const override { return false; }
+    [[nodiscard]] EventType getType() const override
+    {
+        return EventType::WidgetInit;
+    }
+
+    [[nodiscard]] const char* getName() const override
+    {
+        return "WidgetInit";
+    }
+
+    [[nodiscard]] bool bubbles() const override
+    {
+        return false;
+    }
 };
 
 /**
@@ -78,13 +111,35 @@ public:
         , m_newHeight(newHeight)
     {}
 
-    [[nodiscard]] EventType getType() const override { return EventType::WidgetResize; }
-    [[nodiscard]] const char* getName() const override { return "WidgetResize"; }
+    [[nodiscard]] EventType getType() const override
+    {
+        return EventType::WidgetResize;
+    }
 
-    [[nodiscard]] i32 oldWidth() const { return m_oldWidth; }
-    [[nodiscard]] i32 oldHeight() const { return m_oldHeight; }
-    [[nodiscard]] i32 newWidth() const { return m_newWidth; }
-    [[nodiscard]] i32 newHeight() const { return m_newHeight; }
+    [[nodiscard]] const char* getName() const override
+    {
+        return "WidgetResize";
+    }
+
+    [[nodiscard]] i32 oldWidth() const
+    {
+        return m_oldWidth;
+    }
+
+    [[nodiscard]] i32 oldHeight() const
+    {
+        return m_oldHeight;
+    }
+
+    [[nodiscard]] i32 newWidth() const
+    {
+        return m_newWidth;
+    }
+
+    [[nodiscard]] i32 newHeight() const
+    {
+        return m_newHeight;
+    }
 
 private:
     i32 m_oldWidth;
@@ -102,9 +157,20 @@ class WidgetShowEvent : public Event {
 public:
     WidgetShowEvent() = default;
 
-    [[nodiscard]] EventType getType() const override { return EventType::WidgetShow; }
-    [[nodiscard]] const char* getName() const override { return "WidgetShow"; }
-    [[nodiscard]] bool bubbles() const override { return true; }
+    [[nodiscard]] EventType getType() const override
+    {
+        return EventType::WidgetShow;
+    }
+
+    [[nodiscard]] const char* getName() const override
+    {
+        return "WidgetShow";
+    }
+
+    [[nodiscard]] bool bubbles() const override
+    {
+        return true;
+    }
 };
 
 /**
@@ -116,9 +182,20 @@ class WidgetHideEvent : public Event {
 public:
     WidgetHideEvent() = default;
 
-    [[nodiscard]] EventType getType() const override { return EventType::WidgetHide; }
-    [[nodiscard]] const char* getName() const override { return "WidgetHide"; }
-    [[nodiscard]] bool bubbles() const override { return true; }
+    [[nodiscard]] EventType getType() const override
+    {
+        return EventType::WidgetHide;
+    }
+
+    [[nodiscard]] const char* getName() const override
+    {
+        return "WidgetHide";
+    }
+
+    [[nodiscard]] bool bubbles() const override
+    {
+        return true;
+    }
 };
 
 /**
@@ -130,9 +207,20 @@ class WidgetEnableEvent : public Event {
 public:
     WidgetEnableEvent() = default;
 
-    [[nodiscard]] EventType getType() const override { return EventType::WidgetEnable; }
-    [[nodiscard]] const char* getName() const override { return "WidgetEnable"; }
-    [[nodiscard]] bool bubbles() const override { return true; }
+    [[nodiscard]] EventType getType() const override
+    {
+        return EventType::WidgetEnable;
+    }
+
+    [[nodiscard]] const char* getName() const override
+    {
+        return "WidgetEnable";
+    }
+
+    [[nodiscard]] bool bubbles() const override
+    {
+        return true;
+    }
 };
 
 /**
@@ -144,9 +232,20 @@ class WidgetDisableEvent : public Event {
 public:
     WidgetDisableEvent() = default;
 
-    [[nodiscard]] EventType getType() const override { return EventType::WidgetDisable; }
-    [[nodiscard]] const char* getName() const override { return "WidgetDisable"; }
-    [[nodiscard]] bool bubbles() const override { return true; }
+    [[nodiscard]] EventType getType() const override
+    {
+        return EventType::WidgetDisable;
+    }
+
+    [[nodiscard]] const char* getName() const override
+    {
+        return "WidgetDisable";
+    }
+
+    [[nodiscard]] bool bubbles() const override
+    {
+        return true;
+    }
 };
 
 /**
@@ -158,10 +257,20 @@ public:
         : m_screenId(screenId)
     {}
 
-    [[nodiscard]] EventType getType() const override { return EventType::Custom; }
-    [[nodiscard]] const char* getName() const override { return "ScreenOpen"; }
+    [[nodiscard]] EventType getType() const override
+    {
+        return EventType::Custom;
+    }
 
-    [[nodiscard]] const std::string& screenId() const { return m_screenId; }
+    [[nodiscard]] const char* getName() const override
+    {
+        return "ScreenOpen";
+    }
+
+    [[nodiscard]] const std::string& screenId() const
+    {
+        return m_screenId;
+    }
 
 private:
     std::string m_screenId;
@@ -176,10 +285,20 @@ public:
         : m_screenId(screenId)
     {}
 
-    [[nodiscard]] EventType getType() const override { return EventType::Custom; }
-    [[nodiscard]] const char* getName() const override { return "ScreenClose"; }
+    [[nodiscard]] EventType getType() const override
+    {
+        return EventType::Custom;
+    }
 
-    [[nodiscard]] const std::string& screenId() const { return m_screenId; }
+    [[nodiscard]] const char* getName() const override
+    {
+        return "ScreenClose";
+    }
+
+    [[nodiscard]] const std::string& screenId() const
+    {
+        return m_screenId;
+    }
 
 private:
     std::string m_screenId;
@@ -195,11 +314,25 @@ public:
         , m_toScreen(toScreen)
     {}
 
-    [[nodiscard]] EventType getType() const override { return EventType::Custom; }
-    [[nodiscard]] const char* getName() const override { return "ScreenChange"; }
+    [[nodiscard]] EventType getType() const override
+    {
+        return EventType::Custom;
+    }
 
-    [[nodiscard]] const std::string& fromScreen() const { return m_fromScreen; }
-    [[nodiscard]] const std::string& toScreen() const { return m_toScreen; }
+    [[nodiscard]] const char* getName() const override
+    {
+        return "ScreenChange";
+    }
+
+    [[nodiscard]] const std::string& fromScreen() const
+    {
+        return m_fromScreen;
+    }
+
+    [[nodiscard]] const std::string& toScreen() const
+    {
+        return m_toScreen;
+    }
 
 private:
     std::string m_fromScreen;

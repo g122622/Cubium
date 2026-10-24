@@ -121,7 +121,10 @@ public:
      * 测试能直接断言「队列析构后节点数回到基线」，覆盖 pollOrBlockAdds 前移逻辑队首导致的链路
      * 前缀泄漏（该缺陷曾使 nightly 集成测试 20/24 分片以 SIGABRT 退出）。
      */
-    [[nodiscard]] static std::size_t liveNodeCount() noexcept { return s_liveNodes.load(std::memory_order::relaxed); }
+    [[nodiscard]] static std::size_t liveNodeCount() noexcept
+    {
+        return s_liveNodes.load(std::memory_order::relaxed);
+    }
 
     /**
      * @brief 向队尾添加元素
@@ -129,12 +132,18 @@ public:
      * 若队列处于 add-blocked 状态（preventAdds 已调用），返回 false 且不添加。
      * @return true 表示添加成功，false 表示队列 add-blocked
      */
-    bool add(E element) { return offer(element); }
+    bool add(E element)
+    {
+        return offer(element);
+    }
 
     /**
      * @brief 同 add（对齐 Queue.offer 语义）
      */
-    bool offer(E element) { return appendList(element); }
+    bool offer(E element)
+    {
+        return appendList(element);
+    }
 
     /**
      * @brief 强制添加元素，若队列处于 add-blocked 状态则先解除阻止再加入
@@ -318,7 +327,10 @@ private:
             s_liveNodes.fetch_add(1, std::memory_order::relaxed);
         }
 
-        ~LinkedNode() { s_liveNodes.fetch_sub(1, std::memory_order::relaxed); }
+        ~LinkedNode()
+        {
+            s_liveNodes.fetch_sub(1, std::memory_order::relaxed);
+        }
 
         LinkedNode(const LinkedNode&) = delete;
         LinkedNode& operator=(const LinkedNode&) = delete;
@@ -344,7 +356,10 @@ private:
      *
      * 通过 cpuRelax() 提示 CPU 流水线（减少争用功耗、避免内存顺序违例惩罚）。
      */
-    static void backoff() { cpuRelax(); }
+    static void backoff()
+    {
+        cpuRelax();
+    }
 
     /**
      * @brief 内部入队：把单个元素追加到队列尾

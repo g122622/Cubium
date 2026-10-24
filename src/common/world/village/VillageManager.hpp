@@ -96,12 +96,18 @@ public:
     /**
      * @brief 获取所有村庄
      */
-    [[nodiscard]] const std::vector<std::unique_ptr<Village>>& getAllVillages() const { return m_villages; }
+    [[nodiscard]] const std::vector<std::unique_ptr<Village>>& getAllVillages() const
+    {
+        return m_villages;
+    }
 
     /**
      * @brief 获取村庄数量
      */
-    [[nodiscard]] size_t getVillageCount() const { return m_villages.size(); }
+    [[nodiscard]] size_t getVillageCount() const
+    {
+        return m_villages.size();
+    }
 
     /**
      * @brief 根据ID获取村庄
@@ -141,8 +147,15 @@ public:
     /**
      * @brief 获取POI存储
      */
-    [[nodiscard]] poi::PointOfInterestStorage& getPOIStorage() { return m_poiStorage; }
-    [[nodiscard]] const poi::PointOfInterestStorage& getPOIStorage() const { return m_poiStorage; }
+    [[nodiscard]] poi::PointOfInterestStorage& getPOIStorage()
+    {
+        return m_poiStorage;
+    }
+
+    [[nodiscard]] const poi::PointOfInterestStorage& getPOIStorage() const
+    {
+        return m_poiStorage;
+    }
 
     /**
      * @brief 当方块放置时调用（可能创建新POI）
@@ -219,7 +232,10 @@ public:
     /**
      * @brief 设置村庄创建回调
      */
-    void setVillageCreatedCallback(VillageCreatedCallback callback) { m_onVillageCreated = std::move(callback); }
+    void setVillageCreatedCallback(VillageCreatedCallback callback)
+    {
+        m_onVillageCreated = std::move(callback);
+    }
 
 private:
     /**

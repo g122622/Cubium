@@ -47,7 +47,10 @@ struct AtlasSlot {
     VkSampler sampler;     ///< Vulkan 采样器
     std::string name;      ///< 图集名称（调试用）
 
-    [[nodiscard]] bool isValid() const { return imageView != VK_NULL_HANDLE && sampler != VK_NULL_HANDLE; }
+    [[nodiscard]] bool isValid() const
+    {
+        return imageView != VK_NULL_HANDLE && sampler != VK_NULL_HANDLE;
+    }
 };
 
 /**
@@ -166,17 +169,26 @@ public:
     /**
      * @brief 获取描述符集
      */
-    [[nodiscard]] VkDescriptorSet descriptorSet() const { return m_descriptorSet; }
+    [[nodiscard]] VkDescriptorSet descriptorSet() const
+    {
+        return m_descriptorSet;
+    }
 
     /**
      * @brief 检查是否已初始化
      */
-    [[nodiscard]] bool isInitialized() const { return m_initialized; }
+    [[nodiscard]] bool isInitialized() const
+    {
+        return m_initialized;
+    }
 
     /**
      * @brief 获取已注册图集数量
      */
-    [[nodiscard]] u32 atlasCount() const { return m_atlasCount; }
+    [[nodiscard]] u32 atlasCount() const
+    {
+        return m_atlasCount;
+    }
 
     /**
      * @brief 更新描述符集中的图集

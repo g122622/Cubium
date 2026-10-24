@@ -119,7 +119,7 @@ LightningRodBlock::LightningRodBlock(const BlockProperties& properties)
     createBlockState(std::move(container));
 
     setDefaultState(defaultState()
-            .with(FACING(), Direction::North)
+            .with(FACING(), Direction::Up)
             .with(BlockStateProperties::POWERED(), false)
             .with(BlockStateProperties::WATERLOGGED(), false));
 

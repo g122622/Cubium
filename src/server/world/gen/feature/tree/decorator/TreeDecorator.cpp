@@ -79,7 +79,9 @@ TreeDecoratorContext::TreeDecoratorContext(WorldGenRegion& region,
     , m_leaves(std::move(leaves))
     , m_roots(std::move(roots))
 {
-    auto byY = [](const BlockPos& a, const BlockPos& b) { return getY(a) < getY(b); };
+    auto byY = [](const BlockPos& a, const BlockPos& b) {
+        return getY(a) < getY(b);
+    };
     std::sort(m_logs.begin(), m_logs.end(), byY);
     std::sort(m_leaves.begin(), m_leaves.end(), byY);
     std::sort(m_roots.begin(), m_roots.end(), byY);

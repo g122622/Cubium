@@ -44,7 +44,10 @@ using namespace mc::client::renderer::entity::model;
 
 class BipedModelTranslateHandTest : public ::testing::Test {
 protected:
-    void SetUp() override { m_model = std::make_unique<BipedModel>(); }
+    void SetUp() override
+    {
+        m_model = std::make_unique<BipedModel>();
+    }
 
     std::unique_ptr<BipedModel> m_model;
 };

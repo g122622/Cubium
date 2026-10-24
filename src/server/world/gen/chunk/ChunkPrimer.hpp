@@ -123,9 +123,20 @@ public:
     // IChunk 接口实现
     // ============================================================================
 
-    [[nodiscard]] ChunkCoord x() const override { return m_x; }
-    [[nodiscard]] ChunkCoord z() const override { return m_z; }
-    [[nodiscard]] ChunkPos pos() const override { return ChunkPos(m_x, m_z); }
+    [[nodiscard]] ChunkCoord x() const override
+    {
+        return m_x;
+    }
+
+    [[nodiscard]] ChunkCoord z() const override
+    {
+        return m_z;
+    }
+
+    [[nodiscard]] ChunkPos pos() const override
+    {
+        return ChunkPos(m_x, m_z);
+    }
 
     // 方块访问
     [[nodiscard]] const BlockState* getBlockState(BlockCoord x, BlockCoord y, BlockCoord z) const override;
@@ -150,12 +161,26 @@ public:
     [[nodiscard]] BlockCoord getHeightmapFirstAvailable(HeightmapType type, BlockCoord x, BlockCoord z) const override;
 
     // 状态
-    [[nodiscard]] ChunkLoadStatus getStatus() const override { return m_status; }
-    void setStatus(ChunkLoadStatus status) override { m_status = status; }
+    [[nodiscard]] ChunkLoadStatus getStatus() const override
+    {
+        return m_status;
+    }
+
+    void setStatus(ChunkLoadStatus status) override
+    {
+        m_status = status;
+    }
 
     // 标记
-    [[nodiscard]] bool isModified() const override { return m_modified; }
-    void setModified(bool modified) override { m_modified = modified; }
+    [[nodiscard]] bool isModified() const override
+    {
+        return m_modified;
+    }
+
+    void setModified(bool modified) override
+    {
+        m_modified = modified;
+    }
 
     // ============================================================================
     // 生成阶段管理
@@ -164,7 +189,10 @@ public:
     /**
      * @brief 获取当前生成阶段
      */
-    [[nodiscard]] const ChunkStatus& getChunkStatus() const noexcept { return *m_chunkStatus; }
+    [[nodiscard]] const ChunkStatus& getChunkStatus() const noexcept
+    {
+        return *m_chunkStatus;
+    }
 
     /**
      * @brief 设置当前生成阶段
@@ -190,7 +218,10 @@ public:
      * 与 chunkStatus 分离：chunkStatus 是当前正在执行的目标阶段，
      * persistedStatus 是已经确认完成的阶段。
      */
-    [[nodiscard]] const ChunkStatus& getPersistedStatus() const noexcept { return *m_persistedStatus; }
+    [[nodiscard]] const ChunkStatus& getPersistedStatus() const noexcept
+    {
+        return *m_persistedStatus;
+    }
 
     /**
      * @brief 推进持久化状态到目标阶段
@@ -231,7 +262,11 @@ public:
     {
         return m_biomes ? *m_biomes : m_data->getBiomes();
     }
-    [[nodiscard]] BiomeContainer& getBiomes() noexcept { return m_biomes ? *m_biomes : m_data->getBiomes(); }
+
+    [[nodiscard]] BiomeContainer& getBiomes() noexcept
+    {
+        return m_biomes ? *m_biomes : m_data->getBiomes();
+    }
 
     /**
      * @brief 获取方块位置的生物群系
@@ -275,23 +310,39 @@ public:
      * 区块生成过程中调用 WorldGenSpawner 生成的被动动物会存储在这里。
      * 在区块生成完成后，由 ServerWorld 将这些实体真正创建到世界中。
      */
-    [[nodiscard]] std::vector<SpawnedEntityData>& spawnedEntities() { return m_spawnedEntities; }
-    [[nodiscard]] const std::vector<SpawnedEntityData>& spawnedEntities() const { return m_spawnedEntities; }
+    [[nodiscard]] std::vector<SpawnedEntityData>& spawnedEntities()
+    {
+        return m_spawnedEntities;
+    }
+
+    [[nodiscard]] const std::vector<SpawnedEntityData>& spawnedEntities() const
+    {
+        return m_spawnedEntities;
+    }
 
     /**
      * @brief 添加生成的实体数据
      */
-    void addSpawnedEntity(SpawnedEntityData data) { m_spawnedEntities.push_back(std::move(data)); }
+    void addSpawnedEntity(SpawnedEntityData data)
+    {
+        m_spawnedEntities.push_back(std::move(data));
+    }
 
     /**
      * @brief 清空生成的实体列表
      */
-    void clearSpawnedEntities() noexcept { m_spawnedEntities.clear(); }
+    void clearSpawnedEntities() noexcept
+    {
+        m_spawnedEntities.clear();
+    }
 
     /**
      * @brief 获取生成的实体数量
      */
-    [[nodiscard]] size_t spawnedEntityCount() const noexcept { return m_spawnedEntities.size(); }
+    [[nodiscard]] size_t spawnedEntityCount() const noexcept
+    {
+        return m_spawnedEntities.size();
+    }
 
     // ============================================================================
     // 结构起点管理
@@ -366,7 +417,10 @@ public:
     /**
      * @brief 检查是否有结构起点
      */
-    [[nodiscard]] bool hasStructureStarts() const noexcept { return !m_structureStarts.empty(); }
+    [[nodiscard]] bool hasStructureStarts() const noexcept
+    {
+        return !m_structureStarts.empty();
+    }
 
     // ============================================================================
     // 结构引用管理
@@ -414,7 +468,10 @@ public:
     /**
      * @brief 检查是否有结构引用
      */
-    [[nodiscard]] bool hasStructureReferences() const noexcept { return !m_structureReferences.empty(); }
+    [[nodiscard]] bool hasStructureReferences() const noexcept
+    {
+        return !m_structureReferences.empty();
+    }
 
     // ============================================================================
     // 后处理位置
@@ -477,7 +534,10 @@ public:
     /**
      * @brief 清空待执行方块刻（toChunkData 转移到 ChunkData 后调用）
      */
-    void clearPendingBlockTicks() noexcept { m_pendingBlockTicks.clear(); }
+    void clearPendingBlockTicks() noexcept
+    {
+        m_pendingBlockTicks.clear();
+    }
 
     /**
      * @brief 从另一个来源合并后处理位置
@@ -504,7 +564,10 @@ public:
     /**
      * @brief 检查是否已有雕刻掩码
      */
-    [[nodiscard]] bool hasCarvingMask() const noexcept { return m_carvingMask != nullptr; }
+    [[nodiscard]] bool hasCarvingMask() const noexcept
+    {
+        return m_carvingMask != nullptr;
+    }
 
     // ============================================================================
     // NoiseChunk 缓存
@@ -525,13 +588,23 @@ public:
     /**
      * @brief 获取 NoiseChunk（可能为 nullptr）
      */
-    [[nodiscard]] mc::world::gen::density::NoiseChunk* noiseChunk() noexcept { return m_noiseChunk.get(); }
-    [[nodiscard]] const mc::world::gen::density::NoiseChunk* noiseChunk() const noexcept { return m_noiseChunk.get(); }
+    [[nodiscard]] mc::world::gen::density::NoiseChunk* noiseChunk() noexcept
+    {
+        return m_noiseChunk.get();
+    }
+
+    [[nodiscard]] const mc::world::gen::density::NoiseChunk* noiseChunk() const noexcept
+    {
+        return m_noiseChunk.get();
+    }
 
     /**
      * @brief 检查是否已有 NoiseChunk
      */
-    [[nodiscard]] bool hasNoiseChunk() const noexcept { return m_noiseChunk != nullptr; }
+    [[nodiscard]] bool hasNoiseChunk() const noexcept
+    {
+        return m_noiseChunk != nullptr;
+    }
 
     // ============================================================================
     // TODO(临时诊断): 生成期暂存数据的持有状态查询，用于统计"非 FULL primer 仍持有
@@ -539,10 +612,16 @@ public:
     // ============================================================================
 
     /// 是否仍持有 primer 侧的 BiomeContainer 暂存副本（FULL 的 toChunkData 会 reset）
-    [[nodiscard]] bool hasLocalBiomes() const noexcept { return m_biomes != nullptr; }
+    [[nodiscard]] bool hasLocalBiomes() const noexcept
+    {
+        return m_biomes != nullptr;
+    }
 
     /// 是否仍持有 primer 侧的 Heightmap[7] 暂存副本（FULL 的 toChunkData 会 reset）
-    [[nodiscard]] bool hasLocalHeightmaps() const noexcept { return m_heightmaps != nullptr; }
+    [[nodiscard]] bool hasLocalHeightmaps() const noexcept
+    {
+        return m_heightmaps != nullptr;
+    }
 
     // ============================================================================
     // 转换方法
@@ -586,8 +665,15 @@ public:
     /**
      * @brief 获取底层 ChunkData（如果存在）
      */
-    [[nodiscard]] ChunkData* getChunkData() noexcept { return m_data.get(); }
-    [[nodiscard]] const ChunkData* getChunkData() const noexcept { return m_data.get(); }
+    [[nodiscard]] ChunkData* getChunkData() noexcept
+    {
+        return m_data.get();
+    }
+
+    [[nodiscard]] const ChunkData* getChunkData() const noexcept
+    {
+        return m_data.get();
+    }
 
     /**
      * @brief 共享底层 ChunkData 的所有权（非破坏性，不触发收尾）
@@ -600,7 +686,10 @@ public:
      *
      * @return 共享同一份 ChunkData 的 shared_ptr
      */
-    [[nodiscard]] std::shared_ptr<ChunkData> shareChunkData() const noexcept { return m_data; }
+    [[nodiscard]] std::shared_ptr<ChunkData> shareChunkData() const noexcept
+    {
+        return m_data;
+    }
 
     // ============================================================================
     // 静态工具方法

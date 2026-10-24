@@ -71,15 +71,40 @@ public:
      *
      * 惰性解析：构造时属性尚未登记进注册表，只有在注册完成后调用才有效。
      */
-    [[nodiscard]] const std::string& name() const { return m_name(); }
+    [[nodiscard]] const std::string& name() const
+    {
+        return m_name();
+    }
 
-    const AttributeType<Value>& type() const noexcept { return m_type; }
-    const Value& defaultValue() const noexcept { return m_defaultValue; }
-    bool isSyncable() const noexcept { return m_isSyncable; }
-    bool isPositional() const noexcept { return m_isPositional; }
-    bool isSpatiallyInterpolated() const noexcept { return m_isSpatiallyInterpolated; }
+    const AttributeType<Value>& type() const noexcept
+    {
+        return m_type;
+    }
 
-    Value sanitizeValue(Value value) const { return m_valueRange.sanitize(std::move(value)); }
+    const Value& defaultValue() const noexcept
+    {
+        return m_defaultValue;
+    }
+
+    bool isSyncable() const noexcept
+    {
+        return m_isSyncable;
+    }
+
+    bool isPositional() const noexcept
+    {
+        return m_isPositional;
+    }
+
+    bool isSpatiallyInterpolated() const noexcept
+    {
+        return m_isSpatiallyInterpolated;
+    }
+
+    Value sanitizeValue(Value value) const
+    {
+        return m_valueRange.sanitize(std::move(value));
+    }
 
     /**
      * @brief 环境属性构建器

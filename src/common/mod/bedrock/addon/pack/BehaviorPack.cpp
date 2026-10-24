@@ -26,6 +26,7 @@
 #include "common/core/Types.hpp"
 #include "common/mod/bedrock/addon/pack/AddonManifest.hpp"
 
+#include <algorithm>
 #include <exception>
 #include <filesystem>
 #include <fstream>
@@ -35,6 +36,95 @@
 #include <utility>
 
 namespace mc::mod::bedrock::addon {
+namespace {
+
+Result<std::filesystem::path> _resolveContainedPath(const std::string& packPath, const std::string& resource)
+{
+    namespace fs = std::filesystem;
+    const fs::path relative(resource);
+    if (resource.empty() || relative.is_absolute() || relative.has_root_name()) {
+        return Error(ErrorCode::InvalidArgument, "Pack resource path must be relative: " + resource);
+    }
+
+    // 先解析链接和父目录，再验证真实路径归属，单纯检查字符串前缀不能覆盖链接跳转。
+    std::error_code error;
+    const auto root = fs::weakly_canonical(fs::path(packPath), error);
+    if (error) {
+        return Error(ErrorCode::FileReadFailed, "Cannot resolve pack directory: " + error.message());
+    }
+
+    const auto full = fs::weakly_canonical(root / relative, error);
+    if (error) {
+        return Error(ErrorCode::FileReadFailed, "Cannot resolve pack resource: " + error.message());
+    }
+
+    const auto contained = full.lexically_relative(root);
+    if (contained.empty() || contained.is_absolute() || *contained.begin() == "..") {
+        return Error(ErrorCode::InvalidArgument, "Resource path escapes pack directory: " + resource);
+    }
+
+    return full;
+}
+
+Result<std::filesystem::path> _resolveResource(const std::string& packPath, const std::string& resource)
+{
+    auto full = _resolveContainedPath(packPath, resource);
+    if (full.failed()) {
+        return full.error();
+    }
+    std::error_code error;
+    if (!std::filesystem::is_regular_file(full.value(), error)) {
+        return Error(ErrorCode::FileNotFound, "Pack resource is not a regular file: " + full.value().string());
+    }
+
+    return full;
+}
+
+} // namespace
+
+Result<std::vector<std::string>> BehaviorPack::listResources(
+    const std::string& directory, const std::string& suffix) const
+{
+    auto resolved = _resolveContainedPath(m_path, directory);
+    if (resolved.failed()) {
+        return resolved.error();
+    }
+    std::error_code error;
+    if (!std::filesystem::exists(resolved.value(), error)) {
+        if (error) {
+            return Error(ErrorCode::FileReadFailed, "Cannot inspect pack directory: " + error.message());
+        }
+        return std::vector<std::string>{};
+    }
+    if (!std::filesystem::is_directory(resolved.value(), error)) {
+        return Error(ErrorCode::InvalidData, "Pack content path is not a directory: " + directory);
+    }
+
+    std::vector<std::string> files;
+    const auto root = std::filesystem::weakly_canonical(std::filesystem::path(m_path), error);
+    if (error) {
+        return Error(ErrorCode::FileReadFailed, "Cannot resolve pack root: " + error.message());
+    }
+    auto iterator = std::filesystem::recursive_directory_iterator(resolved.value(), error);
+    const auto end = std::filesystem::recursive_directory_iterator();
+    while (iterator != end && !error) {
+        const auto& entry = *iterator;
+        if (entry.is_regular_file(error) && entry.path().generic_string().ends_with(suffix)) {
+            const auto relative = entry.path().lexically_relative(root);
+            auto contained = _resolveResource(m_path, relative.generic_string());
+            if (contained.failed()) {
+                return contained.error();
+            }
+            files.push_back(relative.generic_string());
+        }
+        iterator.increment(error);
+    }
+    if (error) {
+        return Error(ErrorCode::FileReadFailed, "Cannot enumerate pack resources: " + error.message());
+    }
+    std::sort(files.begin(), files.end());
+    return files;
+}
 
 BehaviorPack::BehaviorPack(std::string path, AddonManifest manifest)
     : m_path(std::move(path))
@@ -83,7 +173,12 @@ void BehaviorPack::setPriority(i32 priority)
 
 Result<std::string> BehaviorPack::readScriptFile(const std::string& relativePath) const
 {
-    std::filesystem::path fullPath = std::filesystem::path(m_path) / relativePath;
+    auto resolved = _resolveResource(m_path, relativePath);
+    if (resolved.failed()) {
+        return resolved.error();
+    }
+
+    const auto& fullPath = resolved.value();
 
     if (!std::filesystem::exists(fullPath)) {
         return Error(ErrorCode::FileNotFound, "Script file not found: " + fullPath.string());
@@ -97,6 +192,7 @@ Result<std::string> BehaviorPack::readScriptFile(const std::string& relativePath
     try {
         std::string content((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
         file.close();
+
         return content;
     }
     catch (const std::exception& e) {
@@ -106,7 +202,12 @@ Result<std::string> BehaviorPack::readScriptFile(const std::string& relativePath
 
 Result<std::vector<u8>> BehaviorPack::readResource(const std::string& relativePath) const
 {
-    std::filesystem::path fullPath = std::filesystem::path(m_path) / relativePath;
+    auto resolved = _resolveResource(m_path, relativePath);
+    if (resolved.failed()) {
+        return resolved.error();
+    }
+
+    const auto& fullPath = resolved.value();
 
     if (!std::filesystem::exists(fullPath)) {
         return Error(ErrorCode::FileNotFound, "Resource not found: " + fullPath.string());
@@ -118,7 +219,11 @@ Result<std::vector<u8>> BehaviorPack::readResource(const std::string& relativePa
     }
 
     const std::streamsize fileSize = file.tellg();
-    if (fileSize <= 0) {
+    if (fileSize < 0) {
+        return Error(ErrorCode::FileReadFailed, "Cannot determine resource size: " + fullPath.string());
+    }
+
+    if (fileSize == 0) {
         return std::vector<u8>{};
     }
 

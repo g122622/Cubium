@@ -77,10 +77,16 @@ public:
     [[nodiscard]] ::mc::entity::effect::EffectType fromJavaRegistryId(u32 javaRegistryId) const;
 
     /// 是否已建立映射。
-    [[nodiscard]] bool isInitialized() const noexcept { return m_initialized; }
+    [[nodiscard]] bool isInitialized() const noexcept
+    {
+        return m_initialized;
+    }
 
     /// 已映射的效果类型数（诊断用）。
-    [[nodiscard]] size_t matchedCount() const noexcept { return m_javaToInternal.size(); }
+    [[nodiscard]] size_t matchedCount() const noexcept
+    {
+        return m_javaToInternal.size();
+    }
 
 private:
     bool m_initialized = false;

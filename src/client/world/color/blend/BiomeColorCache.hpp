@@ -37,10 +37,13 @@ namespace mc {
 namespace world::biome {
 class Biome;
 } // namespace world::biome
+
 using world::biome::Biome;
+
 namespace world::chunk {
 class ChunkData;
 }
+
 using world::chunk::ChunkData;
 
 namespace client {
@@ -157,6 +160,7 @@ public:
         size_t cacheHits;    // 缓存命中次数
         size_t cacheMisses;  // 缓存未命中次数
     };
+
     [[nodiscard]] Stats getStats() const;
 
 private:

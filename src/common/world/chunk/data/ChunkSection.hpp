@@ -71,15 +71,30 @@ public:
         }
         return m_blockStates.get(index);
     }
+
     void setBlockStateIdFast(i32 index, u32 stateId);
 
     // 索引计算
-    [[nodiscard]] static i32 blockIndex(i32 x, i32 y, i32 z) { return y * SIZE * SIZE + z * SIZE + x; }
+    [[nodiscard]] static i32 blockIndex(i32 x, i32 y, i32 z)
+    {
+        return y * SIZE * SIZE + z * SIZE + x;
+    }
 
     // 段信息
-    [[nodiscard]] bool isEmpty() const { return m_blockCount == 0; }
-    [[nodiscard]] u16 getBlockCount() const { return m_blockCount; }
-    void setBlockCount(u16 count) { m_blockCount = count; }
+    [[nodiscard]] bool isEmpty() const
+    {
+        return m_blockCount == 0;
+    }
+
+    [[nodiscard]] u16 getBlockCount() const
+    {
+        return m_blockCount;
+    }
+
+    void setBlockCount(u16 count)
+    {
+        m_blockCount = count;
+    }
 
     /**
      * @brief 获取方块状态调色板容器的只读引用
@@ -88,21 +103,51 @@ public:
      * 方块状态的 palette/storage，按 vanilla wire 规则重新打包。容器内存的是项目内部
      * stateId，调用方负责经 JavaBlockStateIdMap 翻译为 Java 全局 block state id。
      */
-    [[nodiscard]] const PalettedContainer& blockStates() const noexcept { return m_blockStates; }
+    [[nodiscard]] const PalettedContainer& blockStates() const noexcept
+    {
+        return m_blockStates;
+    }
 
     /** @brief 接管已验证的紧凑方块数组与持久化计数，不逐方块重建。 */
     void restoreBlockStates(PalettedContainer states, u16 blockCount, u16 blockTickCount, u16 fluidCount);
 
     void rebuildTickCounters();
-    [[nodiscard]] bool needsRecalculate() const { return m_needsRecalculate; }
-    void setNeedsRecalculate(bool value) { m_needsRecalculate = value; }
+
+    [[nodiscard]] bool needsRecalculate() const
+    {
+        return m_needsRecalculate;
+    }
+
+    void setNeedsRecalculate(bool value)
+    {
+        m_needsRecalculate = value;
+    }
 
     // 随机刻计数器（用于性能优化）
-    [[nodiscard]] bool needsRandomTickAny() const { return m_blockTickRefCount > 0 || m_fluidRefCount > 0; }
-    [[nodiscard]] bool needsRandomTick() const { return m_blockTickRefCount > 0; }
-    [[nodiscard]] bool needsRandomTickFluid() const { return m_fluidRefCount > 0; }
-    [[nodiscard]] u16 blockTickRefCount() const { return m_blockTickRefCount; }
-    [[nodiscard]] u16 fluidRefCount() const { return m_fluidRefCount; }
+    [[nodiscard]] bool needsRandomTickAny() const
+    {
+        return m_blockTickRefCount > 0 || m_fluidRefCount > 0;
+    }
+
+    [[nodiscard]] bool needsRandomTick() const
+    {
+        return m_blockTickRefCount > 0;
+    }
+
+    [[nodiscard]] bool needsRandomTickFluid() const
+    {
+        return m_fluidRefCount > 0;
+    }
+
+    [[nodiscard]] u16 blockTickRefCount() const
+    {
+        return m_blockTickRefCount;
+    }
+
+    [[nodiscard]] u16 fluidRefCount() const
+    {
+        return m_fluidRefCount;
+    }
 
     // 光照
     //

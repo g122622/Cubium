@@ -130,7 +130,10 @@ public:
     [[nodiscard]] virtual AstNodeKind kind() const = 0;
 
     /// 求值返回类型（默认 F64，F32 仅 ConstantF32/Spline 等）。
-    [[nodiscard]] virtual ReturnType returnType() const { return ReturnType::F64; }
+    [[nodiscard]] virtual ReturnType returnType() const
+    {
+        return ReturnType::F64;
+    }
 
     /// 子节点列表（transform 自底向上递归遍历用）。叶子节点返回空。
     [[nodiscard]] virtual std::vector<Ptr> children() const = 0;

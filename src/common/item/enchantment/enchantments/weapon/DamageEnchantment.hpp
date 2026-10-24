@@ -54,11 +54,20 @@ public:
 
     // ========== Enchantment 接口实现 ==========
 
-    [[nodiscard]] EnchantmentType type() const override { return EnchantmentType::Weapon; }
+    [[nodiscard]] EnchantmentType type() const override
+    {
+        return EnchantmentType::Weapon;
+    }
 
-    [[nodiscard]] i32 minLevel() const noexcept override { return 1; }
+    [[nodiscard]] i32 minLevel() const noexcept override
+    {
+        return 1;
+    }
 
-    [[nodiscard]] i32 maxLevel() const noexcept override { return 5; }
+    [[nodiscard]] i32 maxLevel() const noexcept override
+    {
+        return 5;
+    }
 
     [[nodiscard]] i32 getMinCost(i32 level) const override;
 
@@ -73,7 +82,10 @@ public:
     /**
      * @brief 获取伤害类型
      */
-    [[nodiscard]] Type getDamageType() const { return m_damageType; }
+    [[nodiscard]] Type getDamageType() const
+    {
+        return m_damageType;
+    }
 
 protected:
     Type m_damageType;

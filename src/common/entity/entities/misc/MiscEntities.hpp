@@ -72,13 +72,31 @@ public:
 
     void tick() override;
 
-    [[nodiscard]] f32 width() const override { return 0.98f; }
-    [[nodiscard]] f32 height() const override { return 0.98f; }
-    [[nodiscard]] bool isPushable() const override { return false; }
-    [[nodiscard]] bool canBeCollidedWith() const override { return false; }
+    [[nodiscard]] f32 width() const override
+    {
+        return 0.98f;
+    }
+
+    [[nodiscard]] f32 height() const override
+    {
+        return 0.98f;
+    }
+
+    [[nodiscard]] bool isPushable() const override
+    {
+        return false;
+    }
+
+    [[nodiscard]] bool canBeCollidedWith() const override
+    {
+        return false;
+    }
 
     // 无战利品表，覆写基类方法返回空字符串
-    [[nodiscard]] std::string getLootTableId() const override { return {}; }
+    [[nodiscard]] std::string getLootTableId() const override
+    {
+        return {};
+    }
 
     /**
      * @brief 处理下落方块实体受到伤害
@@ -104,7 +122,10 @@ public:
      */
     void setBlockId(u32 blockId);
 
-    [[nodiscard]] u32 getBlockId() const { return m_blockId; }
+    [[nodiscard]] u32 getBlockId() const
+    {
+        return m_blockId;
+    }
 
     /**
      * @brief 设置下落时的方块状态
@@ -114,78 +135,139 @@ public:
      */
     void setFallingState(const BlockState* state);
 
-    [[nodiscard]] const BlockState* getFallingState() const { return m_fallingState; }
+    [[nodiscard]] const BlockState* getFallingState() const
+    {
+        return m_fallingState;
+    }
 
     /**
      * @brief 获取下落起始位置参数 ID（供客户端 ClientEntity 读取）
      *
      * 对应 MC 1.21.11 FallingBlockEntity.DATA_START_POS（BlockPos，id8）。
      */
-    [[nodiscard]] static u16 getStartPosParamId() { return DATA_START_POS_PARAM.id(); }
+    [[nodiscard]] static u16 getStartPosParamId()
+    {
+        return DATA_START_POS_PARAM.id();
+    }
 
     /**
      * @brief 设置是否在落地时造成伤害
      */
-    void setHurtEntities(bool hurt) { m_hurtEntities = hurt; }
-    [[nodiscard]] bool shouldHurtEntities() const { return m_hurtEntities; }
+    void setHurtEntities(bool hurt)
+    {
+        m_hurtEntities = hurt;
+    }
+
+    [[nodiscard]] bool shouldHurtEntities() const
+    {
+        return m_hurtEntities;
+    }
 
     /**
      * @brief 设置每格下落伤害系数
      *
      * 默认为 2.0f（铁砧专用值），其他下落方块使用 HURT_AMOUNT 常量。
      */
-    void setFallDamagePerDistance(f32 damage) { m_fallDamagePerDistance = damage; }
-    [[nodiscard]] f32 getFallDamagePerDistance() const { return m_fallDamagePerDistance; }
+    void setFallDamagePerDistance(f32 damage)
+    {
+        m_fallDamagePerDistance = damage;
+    }
+
+    [[nodiscard]] f32 getFallDamagePerDistance() const
+    {
+        return m_fallDamagePerDistance;
+    }
 
     /**
      * @brief 设置最大伤害值
      *
      * 默认为 40（铁砧专用值），其他下落方块使用 MAX_HURT_AMOUNT 常量。
      */
-    void setFallDamageMax(i32 maxDamage) { m_fallDamageMax = maxDamage; }
-    [[nodiscard]] i32 getFallDamageMax() const { return m_fallDamageMax; }
+    void setFallDamageMax(i32 maxDamage)
+    {
+        m_fallDamageMax = maxDamage;
+    }
+
+    [[nodiscard]] i32 getFallDamageMax() const
+    {
+        return m_fallDamageMax;
+    }
 
     /**
      * @brief 设置下落起始位置（用于计算伤害）
      */
-    void setFallStartPos(f64 y) { m_fallStartY = y; }
+    void setFallStartPos(f64 y)
+    {
+        m_fallStartY = y;
+    }
 
     /**
      * @brief 检查是否应该放置方块
      */
-    [[nodiscard]] bool shouldPlaceBlock() const { return m_placeBlock; }
+    [[nodiscard]] bool shouldPlaceBlock() const
+    {
+        return m_placeBlock;
+    }
 
     /**
      * @brief 设置是否应该掉落物品
      *
      * 默认为 true。铁砧完全损坏时设置为 false。
      */
-    void setShouldDropItem(bool drop) { m_shouldDropItem = drop; }
-    [[nodiscard]] bool shouldDropItem() const { return m_shouldDropItem; }
+    void setShouldDropItem(bool drop)
+    {
+        m_shouldDropItem = drop;
+    }
+
+    [[nodiscard]] bool shouldDropItem() const
+    {
+        return m_shouldDropItem;
+    }
 
     /**
      * @brief 设置是否不放置方块
      *
      * 当铁砧损坏时会设置为 true，此时只调用 onBroken 回调。
      */
-    void setDontSetBlock(bool dontSet) { m_dontSetBlock = dontSet; }
-    [[nodiscard]] bool dontSetBlock() const { return m_dontSetBlock; }
+    void setDontSetBlock(bool dontSet)
+    {
+        m_dontSetBlock = dontSet;
+    }
+
+    [[nodiscard]] bool dontSetBlock() const
+    {
+        return m_dontSetBlock;
+    }
 
     /**
      * @brief 设置是否取消掉落物品
      *
      * 当铁砧在最大损坏状态下损坏时设置为 true（铁砧完全摧毁，不掉落物品）。
      */
-    void setCancelDrop(bool cancel) { m_cancelDrop = cancel; }
-    [[nodiscard]] bool cancelDrop() const { return m_cancelDrop; }
+    void setCancelDrop(bool cancel)
+    {
+        m_cancelDrop = cancel;
+    }
+
+    [[nodiscard]] bool cancelDrop() const
+    {
+        return m_cancelDrop;
+    }
 
     /**
      * @brief 设置下落伤害类型
      *
      * 默认为 FallingBlock。钟乳石掉落时应设置为 FallingStalactite。
      */
-    void setFallDamageType(DamageType type) { m_fallDamageType = type; }
-    [[nodiscard]] DamageType getFallDamageType() const { return m_fallDamageType; }
+    void setFallDamageType(DamageType type)
+    {
+        m_fallDamageType = type;
+    }
+
+    [[nodiscard]] DamageType getFallDamageType() const
+    {
+        return m_fallDamageType;
+    }
 
 protected:
     /**
@@ -287,13 +369,31 @@ public:
 
     void tick() override;
 
-    [[nodiscard]] f32 width() const override { return 0.98f; }
-    [[nodiscard]] f32 height() const override { return 0.98f; }
-    [[nodiscard]] bool isPushable() const override { return false; }
-    [[nodiscard]] bool canBeCollidedWith() const override { return false; }
+    [[nodiscard]] f32 width() const override
+    {
+        return 0.98f;
+    }
+
+    [[nodiscard]] f32 height() const override
+    {
+        return 0.98f;
+    }
+
+    [[nodiscard]] bool isPushable() const override
+    {
+        return false;
+    }
+
+    [[nodiscard]] bool canBeCollidedWith() const override
+    {
+        return false;
+    }
 
     // 无战利品表，覆写基类方法返回空字符串
-    [[nodiscard]] std::string getLootTableId() const override { return {}; }
+    [[nodiscard]] std::string getLootTableId() const override
+    {
+        return {};
+    }
 
     /**
      * @brief 获取爆炸倒计时
@@ -313,8 +413,15 @@ public:
     /**
      * @brief 设置爆炸半径
      */
-    void setExplosionRadius(f32 radius) { m_explosionRadius = radius; }
-    [[nodiscard]] f32 getExplosionRadius() const { return m_explosionRadius; }
+    void setExplosionRadius(f32 radius)
+    {
+        m_explosionRadius = radius;
+    }
+
+    [[nodiscard]] f32 getExplosionRadius() const
+    {
+        return m_explosionRadius;
+    }
 
     /**
      * @brief 点燃TNT
@@ -337,7 +444,11 @@ public:
      * 用于追踪爆炸责任的归属。
      */
     void setOwner(LivingEntity* igniter);
-    [[nodiscard]] LivingEntity* getOwner() const { return m_owner.get(); }
+
+    [[nodiscard]] LivingEntity* getOwner() const
+    {
+        return m_owner.get();
+    }
 
     /**
      * @brief 爆炸
@@ -347,19 +458,28 @@ public:
     /**
      * @brief 检查是否已点燃
      */
-    [[nodiscard]] bool isPrimed() const { return m_fuse > 0; }
+    [[nodiscard]] bool isPrimed() const
+    {
+        return m_fuse > 0;
+    }
 
     /**
      * @brief 获取引信参数 ID（供客户端 ClientEntity 读取）
      */
-    [[nodiscard]] static u16 getFuseParamId() { return DATA_FUSE_PARAM.id(); }
+    [[nodiscard]] static u16 getFuseParamId()
+    {
+        return DATA_FUSE_PARAM.id();
+    }
 
     /**
      * @brief 获取 TNT 方块状态参数 ID（供客户端 ClientEntity 读取）
      *
      * 对应 MC 1.21.11 PrimedTnt.DATA_BLOCK_STATE_ID（BLOCK_STATE 序列化器 id14，id9）。
      */
-    [[nodiscard]] static u16 getBlockStateParamId() { return DATA_BLOCK_STATE_PARAM.id(); }
+    [[nodiscard]] static u16 getBlockStateParamId()
+    {
+        return DATA_BLOCK_STATE_PARAM.id();
+    }
 
 protected:
     /**
@@ -427,7 +547,11 @@ public:
     /// 重置所有状态为初始值（由 /warden_spawn_tracker clear 命令调用）
     void reset();
 
-    [[nodiscard]] i32 getWarningLevel() const { return m_warningLevel; }
+    [[nodiscard]] i32 getWarningLevel() const
+    {
+        return m_warningLevel;
+    }
+
     void setWarningLevel(i32 level);
 
     /// 递增警告等级（仅在非冷却期间生效，同时重置递减计时器和设置冷却）
@@ -437,15 +561,28 @@ public:
     void decreaseWarning();
 
     /// 检查是否处于冷却中（冷却期间不可递增警告等级）
-    [[nodiscard]] bool onCooldown() const { return m_cooldownTicks > 0; }
+    [[nodiscard]] bool onCooldown() const
+    {
+        return m_cooldownTicks > 0;
+    }
 
     /// 从另一个追踪器复制数据（同步附近玩家警告等级）
     void copyData(const WardenWarningEffect& other);
 
-    [[nodiscard]] BlockPos getSourcePos() const { return m_sourcePos; }
-    void setSourcePos(BlockPos pos) { m_sourcePos = pos; }
+    [[nodiscard]] BlockPos getSourcePos() const
+    {
+        return m_sourcePos;
+    }
 
-    [[nodiscard]] f32 getWarningRadius() const { return m_warningRadius; }
+    void setSourcePos(BlockPos pos)
+    {
+        m_sourcePos = pos;
+    }
+
+    [[nodiscard]] f32 getWarningRadius() const
+    {
+        return m_warningRadius;
+    }
 
     // ========== 常量 ==========
 

@@ -93,27 +93,42 @@ public:
      * @brief 获取纹理像素数据 (单通道灰度)
      * @return 像素数据指针
      */
-    [[nodiscard]] const u8* pixelData() const { return m_pixels.data(); }
+    [[nodiscard]] const u8* pixelData() const
+    {
+        return m_pixels.data();
+    }
 
     /**
      * @brief 获取纹理数据 (可修改，用于上传到GPU)
      */
-    [[nodiscard]] u8* pixelData() { return m_pixels.data(); }
+    [[nodiscard]] u8* pixelData()
+    {
+        return m_pixels.data();
+    }
 
     /**
      * @brief 获取纹理尺寸
      */
-    [[nodiscard]] u32 textureSize() const { return m_textureSize; }
+    [[nodiscard]] u32 textureSize() const
+    {
+        return m_textureSize;
+    }
 
     /**
      * @brief 检查图集是否有效
      */
-    [[nodiscard]] bool isValid() const { return !m_pixels.empty(); }
+    [[nodiscard]] bool isValid() const
+    {
+        return !m_pixels.empty();
+    }
 
     /**
      * @brief 获取已使用的字形数量
      */
-    [[nodiscard]] size_t glyphCount() const { return m_glyphs.size(); }
+    [[nodiscard]] size_t glyphCount() const
+    {
+        return m_glyphs.size();
+    }
 
 private:
     /**

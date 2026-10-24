@@ -60,10 +60,21 @@ public:
 
     [[nodiscard]] bool test(LootContext& context) const override;
     [[nodiscard]] std::unique_ptr<LootCondition> clone() const noexcept override;
-    [[nodiscard]] std::string getType() const noexcept override { return "time_check"; }
 
-    [[nodiscard]] i64 getPeriod() const noexcept { return m_period; }
-    [[nodiscard]] const RandomValueRange& getValue() const noexcept { return m_value; }
+    [[nodiscard]] std::string getType() const noexcept override
+    {
+        return "time_check";
+    }
+
+    [[nodiscard]] i64 getPeriod() const noexcept
+    {
+        return m_period;
+    }
+
+    [[nodiscard]] const RandomValueRange& getValue() const noexcept
+    {
+        return m_value;
+    }
 
 private:
     i64 m_period = 0;         // 0 表示不取模

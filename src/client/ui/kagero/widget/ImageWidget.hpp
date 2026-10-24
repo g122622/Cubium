@@ -120,58 +120,88 @@ public:
     /**
      * @brief 设置精灵ID（保持已绑定的图集不变）
      */
-    void setSpriteId(std::string spriteId) { m_spriteId = std::move(spriteId); }
+    void setSpriteId(std::string spriteId)
+    {
+        m_spriteId = std::move(spriteId);
+    }
 
     /**
      * @brief 获取精灵ID
      */
-    [[nodiscard]] const std::string& spriteId() const { return m_spriteId; }
+    [[nodiscard]] const std::string& spriteId() const
+    {
+        return m_spriteId;
+    }
 
     /**
      * @brief 设置图集指针
      */
-    void setAtlas(renderer::trident::gui::ISpriteAtlas* atlas) { m_atlas = atlas; }
+    void setAtlas(renderer::trident::gui::ISpriteAtlas* atlas)
+    {
+        m_atlas = atlas;
+    }
 
     /**
      * @brief 获取图集指针
      */
-    [[nodiscard]] renderer::trident::gui::ISpriteAtlas* atlas() const { return m_atlas; }
+    [[nodiscard]] renderer::trident::gui::ISpriteAtlas* atlas() const
+    {
+        return m_atlas;
+    }
 
     /**
      * @brief 设置着色颜色（ARGB）
      *
      * 默认 `0xFFFFFFFF`（白色，全不透明），等价于无着色。
      */
-    void setTint(u32 tint) { m_tint = tint; }
+    void setTint(u32 tint)
+    {
+        m_tint = tint;
+    }
 
     /**
      * @brief 获取着色颜色
      */
-    [[nodiscard]] u32 tint() const { return m_tint; }
+    [[nodiscard]] u32 tint() const
+    {
+        return m_tint;
+    }
 
     /**
      * @brief 设置自动宽度
      *
      * 启用后，绘制宽度取纹理原始像素宽度，忽略 `bounds().width`。
      */
-    void setAutoWidth(bool autoWidth) { m_autoWidth = autoWidth; }
+    void setAutoWidth(bool autoWidth)
+    {
+        m_autoWidth = autoWidth;
+    }
 
     /**
      * @brief 是否启用自动宽度
      */
-    [[nodiscard]] bool autoWidth() const { return m_autoWidth; }
+    [[nodiscard]] bool autoWidth() const
+    {
+        return m_autoWidth;
+    }
 
     /**
      * @brief 设置自动高度
      *
      * 启用后，绘制高度取纹理原始像素高度，忽略 `bounds().height`。
      */
-    void setAutoHeight(bool autoHeight) { m_autoHeight = autoHeight; }
+    void setAutoHeight(bool autoHeight)
+    {
+        m_autoHeight = autoHeight;
+    }
 
     /**
      * @brief 是否启用自动高度
      */
-    [[nodiscard]] bool autoHeight() const { return m_autoHeight; }
+    [[nodiscard]] bool autoHeight() const
+    {
+        return m_autoHeight;
+    }
 
     /**
      * @brief 同时设置自动宽高
@@ -219,7 +249,10 @@ public:
     /**
      * @brief 是否设置了自定义 UV
      */
-    [[nodiscard]] bool hasCustomUV() const { return m_customUV; }
+    [[nodiscard]] bool hasCustomUV() const
+    {
+        return m_customUV;
+    }
 
     /**
      * @brief 绘制图片
@@ -233,7 +266,9 @@ public:
      */
     void paint(PaintContext& ctx) override
     {
-        if (!isVisible()) return;
+        if (!isVisible()) {
+            return;
+        }
 
         const Rect dst = _resolveDrawRect();
 
@@ -356,7 +391,9 @@ private:
      */
     void _drawFallback(PaintContext& ctx, const Rect& dst) const
     {
-        if (!dst.isValid()) return;
+        if (!dst.isValid()) {
+            return;
+        }
         ctx.drawFilledRect(dst, FALLBACK_COLOR);
     }
 };

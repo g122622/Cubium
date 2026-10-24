@@ -44,9 +44,20 @@ public:
      */
     ReadOnlyCriteria(const std::string& name, RenderType renderType);
 
-    [[nodiscard]] const std::string& getName() const noexcept override { return m_name; }
-    [[nodiscard]] bool isReadOnly() const noexcept override { return true; }
-    [[nodiscard]] RenderType getDefaultRenderType() const noexcept override { return m_renderType; }
+    [[nodiscard]] const std::string& getName() const noexcept override
+    {
+        return m_name;
+    }
+
+    [[nodiscard]] bool isReadOnly() const noexcept override
+    {
+        return true;
+    }
+
+    [[nodiscard]] RenderType getDefaultRenderType() const noexcept override
+    {
+        return m_renderType;
+    }
 
 protected:
     std::string m_name;

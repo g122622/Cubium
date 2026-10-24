@@ -86,8 +86,15 @@ public:
         return state != nullptr ? state->getFluidState() : &fluid::Fluids::EMPTY()->defaultState();
     }
 
-    [[nodiscard]] bool isClientSide() const override { return m_isClientSide; }
-    [[nodiscard]] Difficulty difficulty() const override { return m_difficulty; }
+    [[nodiscard]] bool isClientSide() const override
+    {
+        return m_isClientSide;
+    }
+
+    [[nodiscard]] Difficulty difficulty() const override
+    {
+        return m_difficulty;
+    }
 
     EntityInstanceId spawnEntity(std::unique_ptr<Entity> entity) override
     {
@@ -95,8 +102,15 @@ public:
         return static_cast<EntityInstanceId>(m_spawnedEntities.size());
     }
 
-    void setClientSide(bool v) { m_isClientSide = v; }
-    void setDifficulty(Difficulty d) { m_difficulty = d; }
+    void setClientSide(bool v)
+    {
+        m_isClientSide = v;
+    }
+
+    void setDifficulty(Difficulty d)
+    {
+        m_difficulty = d;
+    }
 
     void setBlockAt(i32 x, i32 y, i32 z, const Block* block)
     {
@@ -111,7 +125,10 @@ public:
         return s != nullptr && s->isAir();
     }
 
-    [[nodiscard]] const std::vector<std::unique_ptr<Entity>>& spawnedEntities() const { return m_spawnedEntities; }
+    [[nodiscard]] const std::vector<std::unique_ptr<Entity>>& spawnedEntities() const
+    {
+        return m_spawnedEntities;
+    }
 
 private:
     std::unordered_map<BlockPos, std::unique_ptr<BlockState>> m_blocks;
@@ -124,7 +141,10 @@ private:
 
 class WitherSkullBlockTest : public ::testing::Test {
 protected:
-    void SetUp() override { world_ = std::make_unique<WitherSkullTestWorld>(); }
+    void SetUp() override
+    {
+        world_ = std::make_unique<WitherSkullTestWorld>();
+    }
 
     /// 以 (cx, cy, cz) 为顶点头颅、沿 dx 轴（true=X / false=Z）构建完整凋灵图案
     void buildWitherPattern(i32 cx, i32 cy, i32 cz, bool alongX)

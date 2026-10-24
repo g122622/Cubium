@@ -80,7 +80,6 @@ public:
      * @brief 获取附魔能力
      * @return 附魔书的附魔能力（MC 1.16.5: 1）
      */
-    [[nodiscard]] i32 getItemEnchantability() const override { return 1; }
 
     // ========== 附魔书特有方法 ==========
 

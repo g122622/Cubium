@@ -164,7 +164,10 @@ public:
      *
      * @param atlas 纹理图集指针
      */
-    void setTextureAtlas(const pipeline::EntityTextureAtlas* atlas) { m_textureAtlas = atlas; }
+    void setTextureAtlas(const pipeline::EntityTextureAtlas* atlas)
+    {
+        m_textureAtlas = atlas;
+    }
 
     /**
      * @brief 渲染村民层（GPU管线路径）
@@ -351,7 +354,10 @@ protected:
     /**
      * @brief 获取父模型
      */
-    [[nodiscard]] TModel* getParentModel() { return m_renderer ? &m_renderer->getModel() : nullptr; }
+    [[nodiscard]] TModel* getParentModel()
+    {
+        return m_renderer ? &m_renderer->getModel() : nullptr;
+    }
 
 private:
     /**

@@ -89,7 +89,10 @@ public:
      * @param alias 别名
      * @return 是否有此别名
      */
-    [[nodiscard]] virtual bool hasAlias(const std::string& alias) const { return alias == name(); }
+    [[nodiscard]] virtual bool hasAlias(const std::string& alias) const
+    {
+        return alias == name();
+    }
 };
 
 } // namespace mc::mod::bedrock::addon

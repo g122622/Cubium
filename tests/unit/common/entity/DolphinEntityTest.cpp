@@ -68,15 +68,35 @@ namespace {
  */
 class DolphinTestWorld final : public mc::test::BaseTestWorld {
 public:
-    void setRaining(bool raining) { m_raining = raining; }
-    void setGroundCollision(bool collides) { m_groundCollision = collides; }
-    void setWaterImmersion(bool inWater) { m_waterImmersion = inWater; }
+    void setRaining(bool raining)
+    {
+        m_raining = raining;
+    }
 
-    [[nodiscard]] bool isRaining() const override { return m_raining; }
+    void setGroundCollision(bool collides)
+    {
+        m_groundCollision = collides;
+    }
 
-    [[nodiscard]] bool canRainAt(const BlockPos& /*pos*/) const override { return m_raining; }
+    void setWaterImmersion(bool inWater)
+    {
+        m_waterImmersion = inWater;
+    }
 
-    [[nodiscard]] bool hasBlockCollision(const AxisAlignedBB& /*box*/) const override { return m_groundCollision; }
+    [[nodiscard]] bool isRaining() const override
+    {
+        return m_raining;
+    }
+
+    [[nodiscard]] bool canRainAt(const BlockPos& /*pos*/) const override
+    {
+        return m_raining;
+    }
+
+    [[nodiscard]] bool hasBlockCollision(const AxisAlignedBB& /*box*/) const override
+    {
+        return m_groundCollision;
+    }
 
     [[nodiscard]] const fluid::FluidState* getFluidState(i32 /*x*/, i32 /*y*/, i32 /*z*/) const override
     {
@@ -122,7 +142,10 @@ protected:
         dolphin = std::make_unique<TestableDolphinEntity>(EntityInstanceId(0), mc::test::testEcsRegistry());
     }
 
-    void TearDown() override { dolphin.reset(); }
+    void TearDown() override
+    {
+        dolphin.reset();
+    }
 
     std::unique_ptr<TestableDolphinEntity> dolphin;
 };
@@ -456,6 +479,7 @@ TEST_F(DolphinEntityTest, Moistness_SyncsToDataManager)
     ASSERT_TRUE(rawMoistness.has_value());
     EXPECT_EQ(rawMoistness->get<i32>(), 555);
 }
+
 // ==================== 幼体语义 Tests（vanilla AgeableWaterCreature→AgeableMob） ====================
 
 TEST_F(DolphinEntityTest, BabyState_DefaultIsAdult)

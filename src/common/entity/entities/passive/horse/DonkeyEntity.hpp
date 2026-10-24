@@ -85,7 +85,10 @@ public:
     /**
      * @brief 获取眼睛高度
      */
-    [[nodiscard]] f32 eyeHeight() const override { return 1.45f; }
+    [[nodiscard]] f32 eyeHeight() const override
+    {
+        return 1.45f;
+    }
 
 protected:
     void registerGoals() override;

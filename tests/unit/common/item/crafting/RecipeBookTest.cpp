@@ -351,9 +351,15 @@ TEST_F(RecipeBookTest, ServerRecipeBookGetAllUnlockedRecipes)
     // 验证所有配方都在列表中
     bool found1 = false, found2 = false, found3 = false;
     for (const auto& id : allRecipes) {
-        if (id == recipe1) found1 = true;
-        if (id == recipe2) found2 = true;
-        if (id == recipe3) found3 = true;
+        if (id == recipe1) {
+            found1 = true;
+        }
+        if (id == recipe2) {
+            found2 = true;
+        }
+        if (id == recipe3) {
+            found3 = true;
+        }
     }
     EXPECT_TRUE(found1);
     EXPECT_TRUE(found2);

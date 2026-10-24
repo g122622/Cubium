@@ -90,16 +90,40 @@ public:
         return true;
     }
 
-    void setBlock(const BlockPos& pos, const BlockState& state) { m_blocks[pos] = std::make_unique<BlockState>(state); }
+    void setBlock(const BlockPos& pos, const BlockState& state)
+    {
+        m_blocks[pos] = std::make_unique<BlockState>(state);
+    }
 
-    [[nodiscard]] world::tick::TickManager& tickManager() override { return m_tickManager; }
-    [[nodiscard]] const world::tick::TickManager& tickManager() const override { return m_tickManager; }
+    [[nodiscard]] world::tick::TickManager& tickManager() override
+    {
+        return m_tickManager;
+    }
 
-    void setCreakingActive(bool active) { m_creakingActive = active; }
-    [[nodiscard]] bool isCreakingActive(const BlockPos& /*pos*/) const override { return m_creakingActive; }
+    [[nodiscard]] const world::tick::TickManager& tickManager() const override
+    {
+        return m_tickManager;
+    }
 
-    [[nodiscard]] i32 writeCount() const { return m_writeCount; }
-    void resetWrites() { m_writeCount = 0; }
+    void setCreakingActive(bool active)
+    {
+        m_creakingActive = active;
+    }
+
+    [[nodiscard]] bool isCreakingActive(const BlockPos& /*pos*/) const override
+    {
+        return m_creakingActive;
+    }
+
+    [[nodiscard]] i32 writeCount() const
+    {
+        return m_writeCount;
+    }
+
+    void resetWrites()
+    {
+        m_writeCount = 0;
+    }
 
     /**
      * @brief 推进 TickManager 若干刻，使计划刻到期执行
@@ -137,7 +161,10 @@ protected:
         m_world = std::make_unique<CreakingHeartTestWorld>();
     }
 
-    void TearDown() override { m_world.reset(); }
+    void TearDown() override
+    {
+        m_world.reset();
+    }
 
     /// 在 pos 放置嘎枝之心（写状态到世界）
     BlockState placeHeart(const BlockPos& pos, Axis axis = Axis::Y)

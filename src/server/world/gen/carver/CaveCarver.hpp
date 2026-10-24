@@ -62,13 +62,19 @@ public:
 
 protected:
     /** @brief 获取洞穴最大数量上限，默认返回 15，下界版本重写为 10 */
-    [[nodiscard]] virtual i32 getCaveBound() const noexcept { return 15; }
+    [[nodiscard]] virtual i32 getCaveBound() const noexcept
+    {
+        return 15;
+    }
 
     /** @brief 获取洞穴厚度（半径基础值） */
     [[nodiscard]] virtual f32 getThickness(math::IRandom& rng) const;
 
     /** @brief 获取 Y 缩放因子，默认返回 1.0，下界版本重写为其他值 */
-    [[nodiscard]] virtual f64 getYScale() const noexcept { return 1.0; }
+    [[nodiscard]] virtual f64 getYScale() const noexcept
+    {
+        return 1.0;
+    }
 
 private:
     void _createTunnel(ChunkPrimer& chunk,

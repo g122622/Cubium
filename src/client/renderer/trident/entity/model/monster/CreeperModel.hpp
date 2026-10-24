@@ -52,7 +52,10 @@ public:
      * @brief 获取盔甲层模型
      * 用于闪电苦力怕的充能光效渲染
      */
-    [[nodiscard]] std::shared_ptr<model::ModelRenderer> getArmorHead() const { return m_armorHead; }
+    [[nodiscard]] std::shared_ptr<model::ModelRenderer> getArmorHead() const
+    {
+        return m_armorHead;
+    }
 
 private:
     void _setupParts(f32 scale);

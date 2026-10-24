@@ -72,8 +72,15 @@ public:
     [[nodiscard]] Result<void> initialize() override;
     void shutdown() override;
 
-    [[nodiscard]] bool isIntegrated() const noexcept override { return false; }
-    [[nodiscard]] bool isDedicated() const noexcept override { return true; }
+    [[nodiscard]] bool isIntegrated() const noexcept override
+    {
+        return false;
+    }
+
+    [[nodiscard]] bool isDedicated() const noexcept override
+    {
+        return true;
+    }
 
     /**
      * @brief 发布到局域网（独立服务器不支持）
@@ -83,7 +90,10 @@ public:
      */
     [[nodiscard]] Result<void> publishToLan(i32 port, bool allowCheats) override;
 
-    [[nodiscard]] const GameDirectory& gameDirectory() const noexcept override { return m_gameDirectory; }
+    [[nodiscard]] const GameDirectory& gameDirectory() const noexcept override
+    {
+        return m_gameDirectory;
+    }
 
 protected:
     // 注：pollNetwork/broadcastPacket/getPlayerIdForSession/sendPacketToPlayer 四纯虚
@@ -137,8 +147,15 @@ public:
     /**
      * @brief 获取设置
      */
-    [[nodiscard]] ServerSettings& settings() noexcept { return m_settings; }
-    [[nodiscard]] const ServerSettings& settings() const noexcept { return m_settings; }
+    [[nodiscard]] ServerSettings& settings() noexcept
+    {
+        return m_settings;
+    }
+
+    [[nodiscard]] const ServerSettings& settings() const noexcept
+    {
+        return m_settings;
+    }
 
 private:
     void _mainLoop();

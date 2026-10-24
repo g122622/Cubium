@@ -186,12 +186,24 @@ size_t ChorusPlantBlock::getShapeIndex(const BlockState& state)
 {
     size_t index = 0;
 
-    if (state.get(BlockStateProperties::DOWN())) index |= 1ULL << 0;
-    if (state.get(BlockStateProperties::UP())) index |= 1ULL << 1;
-    if (state.get(BlockStateProperties::NORTH())) index |= 1ULL << 2;
-    if (state.get(BlockStateProperties::SOUTH())) index |= 1ULL << 3;
-    if (state.get(BlockStateProperties::WEST())) index |= 1ULL << 4;
-    if (state.get(BlockStateProperties::EAST())) index |= 1ULL << 5;
+    if (state.get(BlockStateProperties::DOWN())) {
+        index |= 1ULL << 0;
+    }
+    if (state.get(BlockStateProperties::UP())) {
+        index |= 1ULL << 1;
+    }
+    if (state.get(BlockStateProperties::NORTH())) {
+        index |= 1ULL << 2;
+    }
+    if (state.get(BlockStateProperties::SOUTH())) {
+        index |= 1ULL << 3;
+    }
+    if (state.get(BlockStateProperties::WEST())) {
+        index |= 1ULL << 4;
+    }
+    if (state.get(BlockStateProperties::EAST())) {
+        index |= 1ULL << 5;
+    }
 
     return index;
 }

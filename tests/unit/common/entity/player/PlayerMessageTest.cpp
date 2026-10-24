@@ -44,9 +44,15 @@ namespace {
  */
 class PlayerMessageTest : public ::testing::Test {
 protected:
-    void SetUp() override { player = std::make_unique<Player>(1, "TestPlayer", mc::test::testEcsRegistry()); }
+    void SetUp() override
+    {
+        player = std::make_unique<Player>(1, "TestPlayer", mc::test::testEcsRegistry());
+    }
 
-    void TearDown() override { player.reset(); }
+    void TearDown() override
+    {
+        player.reset();
+    }
 
     std::unique_ptr<Player> player;
 };

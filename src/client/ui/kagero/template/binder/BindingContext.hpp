@@ -56,43 +56,52 @@ public:
     explicit Value(std::nullptr_t)
         : m_type(ValueType::Null)
     {}
+
     explicit Value(bool v)
         : m_type(ValueType::Bool)
         , m_boolValue(v)
     {}
+
     // 32 位整型构造（内部以 i64 存储，无损扩展）
     explicit Value(i32 v)
         : m_type(ValueType::Integer)
         , m_intValue(static_cast<i64>(v))
     {}
+
     // 64 位整型构造（原生支持，避免 i64 → i32 精度丢失）
     explicit Value(i64 v)
         : m_type(ValueType::Integer)
         , m_intValue(v)
     {}
+
     // 32 位无符号整型构造（内部以 i64 存储，无损）
     explicit Value(u32 v)
         : m_type(ValueType::Integer)
         , m_intValue(static_cast<i64>(v))
     {}
+
     // 32 位浮点构造（内部以 f64 存储，无损扩展）
     explicit Value(f32 v)
         : m_type(ValueType::Float)
         , m_floatValue(static_cast<f64>(v))
     {}
+
     // 64 位浮点构造（原生支持，避免 f64 → f32 精度丢失）
     explicit Value(f64 v)
         : m_type(ValueType::Float)
         , m_floatValue(v)
     {}
+
     explicit Value(const std::string& v)
         : m_type(ValueType::String)
         , m_stringValue(v)
     {}
+
     explicit Value(std::string&& v)
         : m_type(ValueType::String)
         , m_stringValue(std::move(v))
     {}
+
     explicit Value(const char* v)
         : m_type(ValueType::String)
         , m_stringValue(v ? v : "")
@@ -103,6 +112,7 @@ public:
         : m_type(ValueType::Array)
         , m_arrayValue(v)
     {}
+
     explicit Value(std::vector<Value>&& v)
         : m_type(ValueType::Array)
         , m_arrayValue(std::move(v))
@@ -112,14 +122,45 @@ public:
     static Value fromAny(const std::any& any);
 
     // 类型检查
-    [[nodiscard]] bool isNull() const { return m_type == ValueType::Null; }
-    [[nodiscard]] bool isBool() const { return m_type == ValueType::Bool; }
-    [[nodiscard]] bool isInteger() const { return m_type == ValueType::Integer; }
-    [[nodiscard]] bool isFloat() const { return m_type == ValueType::Float; }
-    [[nodiscard]] bool isString() const { return m_type == ValueType::String; }
-    [[nodiscard]] bool isArray() const { return m_type == ValueType::Array; }
-    [[nodiscard]] bool isObject() const { return m_type == ValueType::Object; }
-    [[nodiscard]] bool isNumber() const { return isInteger() || isFloat(); }
+    [[nodiscard]] bool isNull() const
+    {
+        return m_type == ValueType::Null;
+    }
+
+    [[nodiscard]] bool isBool() const
+    {
+        return m_type == ValueType::Bool;
+    }
+
+    [[nodiscard]] bool isInteger() const
+    {
+        return m_type == ValueType::Integer;
+    }
+
+    [[nodiscard]] bool isFloat() const
+    {
+        return m_type == ValueType::Float;
+    }
+
+    [[nodiscard]] bool isString() const
+    {
+        return m_type == ValueType::String;
+    }
+
+    [[nodiscard]] bool isArray() const
+    {
+        return m_type == ValueType::Array;
+    }
+
+    [[nodiscard]] bool isObject() const
+    {
+        return m_type == ValueType::Object;
+    }
+
+    [[nodiscard]] bool isNumber() const
+    {
+        return isInteger() || isFloat();
+    }
 
     // 值获取
     [[nodiscard]] bool asBool() const;
@@ -139,19 +180,42 @@ public:
     // 数组操作
     [[nodiscard]] size_t arraySize() const;
     [[nodiscard]] Value arrayGet(size_t index) const;
-    [[nodiscard]] const std::vector<Value>& asArray() const { return m_arrayValue; }
-    [[nodiscard]] std::vector<Value>& asArray() { return m_arrayValue; }
+
+    [[nodiscard]] const std::vector<Value>& asArray() const
+    {
+        return m_arrayValue;
+    }
+
+    [[nodiscard]] std::vector<Value>& asArray()
+    {
+        return m_arrayValue;
+    }
 
     // 创建数组值
-    static Value fromArray(const std::vector<Value>& values) { return Value(values); }
-    static Value emptyArray() { return Value(std::vector<Value>{}); }
+    static Value fromArray(const std::vector<Value>& values)
+    {
+        return Value(values);
+    }
+
+    static Value emptyArray()
+    {
+        return Value(std::vector<Value>{});
+    }
 
     // 对象操作
     [[nodiscard]] Value getProperty(const std::string& name) const;
     void setProperty(const std::string& name, const Value& value);
     [[nodiscard]] bool hasProperty(const std::string& name) const;
-    [[nodiscard]] const std::unordered_map<std::string, Value>& asObject() const { return m_objectValue; }
-    [[nodiscard]] std::unordered_map<std::string, Value>& asObject() { return m_objectValue; }
+
+    [[nodiscard]] const std::unordered_map<std::string, Value>& asObject() const
+    {
+        return m_objectValue;
+    }
+
+    [[nodiscard]] std::unordered_map<std::string, Value>& asObject()
+    {
+        return m_objectValue;
+    }
 
     // 创建对象值
     static Value fromObject(std::unordered_map<std::string, Value> properties)
@@ -175,12 +239,19 @@ public:
 
     // 比较
     bool operator==(const Value& other) const;
-    bool operator!=(const Value& other) const { return !(*this == other); }
+
+    bool operator!=(const Value& other) const
+    {
+        return !(*this == other);
+    }
 
     // 类型枚举
     enum class ValueType : u8 { Null, Bool, Integer, Float, String, Array, Object };
 
-    [[nodiscard]] ValueType type() const { return m_type; }
+    [[nodiscard]] ValueType type() const
+    {
+        return m_type;
+    }
 
 private:
     ValueType m_type;
@@ -266,7 +337,9 @@ public:
         var.ptr = const_cast<T*>(ptr);
         var.typeId = typeid(T).hash_code();
         var.typeName = typeid(T).name();
-        var.readFunc = [ptr]() -> Value { return Value(*ptr); };
+        var.readFunc = [ptr]() -> Value {
+            return Value(*ptr);
+        };
         var.onUpdate = std::move(onUpdate);
         m_exposedVars[path] = std::move(var);
     }
@@ -287,7 +360,9 @@ public:
         var.typeId = typeid(T).hash_code();
         var.typeName = typeid(T).name();
         var.isWritable = true;
-        var.readFunc = [ptr]() -> Value { return Value(*ptr); };
+        var.readFunc = [ptr]() -> Value {
+            return Value(*ptr);
+        };
         var.writeFunc = [ptr](const Value& v) {
             if constexpr (std::is_same_v<T, bool>) {
                 *ptr = v.toBool();
@@ -331,7 +406,9 @@ public:
         var.typeId = typeid(T).hash_code();
         var.typeName = typeid(T).name();
         var.isWritable = true;
-        var.readFunc = [&reactive]() -> Value { return Value(reactive.get()); };
+        var.readFunc = [&reactive]() -> Value {
+            return Value(reactive.get());
+        };
         var.writeFunc = [&reactive](const Value& v) {
             if constexpr (std::is_same_v<T, bool>) {
                 reactive.set(v.toBool());
@@ -524,14 +601,28 @@ public:
     /**
      * @brief 获取状态存储
      */
-    [[nodiscard]] state::StateStore& store() { return m_store; }
-    [[nodiscard]] const state::StateStore& store() const { return m_store; }
+    [[nodiscard]] state::StateStore& store()
+    {
+        return m_store;
+    }
+
+    [[nodiscard]] const state::StateStore& store() const
+    {
+        return m_store;
+    }
 
     /**
      * @brief 获取事件总线
      */
-    [[nodiscard]] event::EventBus& eventBus() { return m_eventBus; }
-    [[nodiscard]] const event::EventBus& eventBus() const { return m_eventBus; }
+    [[nodiscard]] event::EventBus& eventBus()
+    {
+        return m_eventBus;
+    }
+
+    [[nodiscard]] const event::EventBus& eventBus() const
+    {
+        return m_eventBus;
+    }
 
     /**
      * @brief 清除所有暴露的变量和回调

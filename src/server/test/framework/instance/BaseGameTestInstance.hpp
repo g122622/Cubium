@@ -72,13 +72,40 @@ public:
         }
     }
 
-    [[nodiscard]] const BaseGameTestFunction& function() const noexcept { return m_function; }
-    [[nodiscard]] GameTestState state() const noexcept { return m_state; }
-    [[nodiscard]] i32 tickCount() const noexcept { return m_tickCount; }
-    [[nodiscard]] const std::optional<GameTestError>& error() const noexcept { return m_error; }
-    [[nodiscard]] IGameTestHelper& helper() noexcept { return *m_helper; }
-    [[nodiscard]] const RetryOptions& retryOptions() const noexcept { return m_retryOptions; }
-    void setRetryOptions(RetryOptions options) noexcept { m_retryOptions = options; }
+    [[nodiscard]] const BaseGameTestFunction& function() const noexcept
+    {
+        return m_function;
+    }
+
+    [[nodiscard]] GameTestState state() const noexcept
+    {
+        return m_state;
+    }
+
+    [[nodiscard]] i32 tickCount() const noexcept
+    {
+        return m_tickCount;
+    }
+
+    [[nodiscard]] const std::optional<GameTestError>& error() const noexcept
+    {
+        return m_error;
+    }
+
+    [[nodiscard]] IGameTestHelper& helper() noexcept
+    {
+        return *m_helper;
+    }
+
+    [[nodiscard]] const RetryOptions& retryOptions() const noexcept
+    {
+        return m_retryOptions;
+    }
+
+    void setRetryOptions(RetryOptions options) noexcept
+    {
+        m_retryOptions = options;
+    }
 
     // === 注册回调（供 IGameTestHelper 实现调用，转发了 helper 的 runAtTickTime/succeedWhen/failIf 等）===
     void registerRunAtTickTime(i32 tick, std::function<GameTestResult()> fn);
@@ -100,7 +127,10 @@ protected:
     void _notifyPassed();
     void _notifyFailed();
 
-    IGameTestHelper& _helperRef() noexcept { return *m_helper; }
+    IGameTestHelper& _helperRef() noexcept
+    {
+        return *m_helper;
+    }
 
 private:
     void _runTestFunction();

@@ -84,7 +84,10 @@ public:
      * @brief 获取输出信号强度
      * @return 输出信号强度 0-15
      */
-    [[nodiscard]] i32 getOutputSignal() const { return m_outputSignal; }
+    [[nodiscard]] i32 getOutputSignal() const
+    {
+        return m_outputSignal;
+    }
 
     /**
      * @brief 设置输出信号强度

@@ -64,7 +64,9 @@ void PiglinAi::angerNearbyPiglins(IWorld& world, Player& player, bool requireLin
         if (world.getGameRules().getBoolean(world::gamerule::GameRuleKeys::UNIVERSAL_ANGER)) {
             // 全局愤怒模式下，猪灵攻击最近的可见玩家
             Player* nearestPlayer = EntityUtils::findClosestEntity<Player>(
-                &world, piglin->position(), PLAYER_ANGER_RANGE, nullptr, [](Player* p) { return p->isAlive(); });
+                &world, piglin->position(), PLAYER_ANGER_RANGE, nullptr, [](Player* p) {
+                    return p->isAlive();
+                });
             if (nearestPlayer != nullptr) {
                 piglin->setAttackTarget(nearestPlayer);
             } else {

@@ -70,15 +70,24 @@ public:
 
     [[nodiscard]] i32 getSpreadDistance(IWorld& world) const override;
 
-    [[nodiscard]] bool canSourcesMultiply() const override { return false; }
+    [[nodiscard]] bool canSourcesMultiply() const override
+    {
+        return false;
+    }
 
     [[nodiscard]] const BlockState* getBlockState(const FluidState& state) const override;
 
-    [[nodiscard]] f32 getExplosionResistance() const override { return 100.0f; }
+    [[nodiscard]] f32 getExplosionResistance() const override
+    {
+        return 100.0f;
+    }
 
     void randomTick(IWorld& world, const BlockPos& pos, const FluidState& state, math::IRandom& random) override;
 
-    [[nodiscard]] bool ticksRandomly() const noexcept override { return true; }
+    [[nodiscard]] bool ticksRandomly() const noexcept override
+    {
+        return true;
+    }
 
     /**
      * @brief 检查是否等效于指定流体
@@ -163,7 +172,11 @@ public:
     }
 
     [[nodiscard]] FlowingFluid& getFlowing() override;
-    [[nodiscard]] FlowingFluid& getStill() override { return *this; }
+
+    [[nodiscard]] FlowingFluid& getStill() override
+    {
+        return *this;
+    }
 
     /**
      * @brief 检查是否等效于指定流体
@@ -196,7 +209,11 @@ public:
 
     [[nodiscard]] i32 getLevel(const FluidState& state) const override;
 
-    [[nodiscard]] FlowingFluid& getFlowing() override { return *this; }
+    [[nodiscard]] FlowingFluid& getFlowing() override
+    {
+        return *this;
+    }
+
     [[nodiscard]] FlowingFluid& getStill() override;
 
     /**

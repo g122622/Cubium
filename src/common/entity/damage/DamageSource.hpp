@@ -164,13 +164,19 @@ public:
      * @brief 获取伤害来源实体（如果有）
      * @return 伤害来源实体，没有则返回nullptr
      */
-    [[nodiscard]] virtual Entity* source() const { return nullptr; }
+    [[nodiscard]] virtual Entity* source() const
+    {
+        return nullptr;
+    }
 
     /**
      * @brief 获取直接伤害来源实体
      * @return 直接造成伤害的实体，没有则返回nullptr
      */
-    [[nodiscard]] virtual Entity* directSource() const { return nullptr; }
+    [[nodiscard]] virtual Entity* directSource() const
+    {
+        return nullptr;
+    }
 
     /**
      * @brief 获取造成伤害的实体
@@ -178,14 +184,20 @@ public:
      * 对于直接伤害返回source()，对于间接伤害返回source()
      * CombatTracker使用此方法获取攻击者
      */
-    [[nodiscard]] virtual Entity* getEntity() const { return source(); }
+    [[nodiscard]] virtual Entity* getEntity() const
+    {
+        return source();
+    }
 
     /**
      * @brief 获取真正的伤害来源
      *
      * 返回造成伤害的实体，用于 HurtByTargetGoal 等目标选择。
      */
-    [[nodiscard]] virtual Entity* getTrueSource() const { return getEntity(); }
+    [[nodiscard]] virtual Entity* getTrueSource() const
+    {
+        return getEntity();
+    }
 
     /**
      * @brief 获取伤害来源的世界位置（DamageSource.getSourcePosition）
@@ -193,46 +205,73 @@ public:
      * 用于计算受伤方向（hurtDir / damageTilt）。优先返回显式记录的位置，
      * 否则回退到直接来源实体（directSource）的位置。无实体来源时返回 nullopt。
      */
-    [[nodiscard]] virtual std::optional<math::Vector3f> sourcePosition() const { return std::nullopt; }
+    [[nodiscard]] virtual std::optional<math::Vector3f> sourcePosition() const
+    {
+        return std::nullopt;
+    }
 
     /** @brief 显式指定的伤害位置，不回退到来源实体位置，用于网络来源重建。 */
-    [[nodiscard]] virtual std::optional<math::Vector3f> sourcePositionRaw() const { return std::nullopt; }
+    [[nodiscard]] virtual std::optional<math::Vector3f> sourcePositionRaw() const
+    {
+        return std::nullopt;
+    }
 
     /**
      * @brief 是否可以绕过护甲
      */
-    [[nodiscard]] virtual bool bypassesArmor() const { return false; }
+    [[nodiscard]] virtual bool bypassesArmor() const
+    {
+        return false;
+    }
 
     /**
      * @brief 是否可以绕过无敌
      * 忽略药水效果和附魔
      */
-    [[nodiscard]] virtual bool bypassesInvulnerability() const { return false; }
+    [[nodiscard]] virtual bool bypassesInvulnerability() const
+    {
+        return false;
+    }
 
     /**
      * @brief 是否可以在创造模式下造成伤害
      */
-    [[nodiscard]] virtual bool canDamageCreative() const { return false; }
+    [[nodiscard]] virtual bool canDamageCreative() const
+    {
+        return false;
+    }
 
     /**
      * @brief 是否是火焰伤害
      */
-    [[nodiscard]] virtual bool isFire() const { return false; }
+    [[nodiscard]] virtual bool isFire() const
+    {
+        return false;
+    }
 
     /**
      * @brief 是否是投射物伤害
      */
-    [[nodiscard]] virtual bool isProjectile() const { return false; }
+    [[nodiscard]] virtual bool isProjectile() const
+    {
+        return false;
+    }
 
     /**
      * @brief 是否是魔法伤害
      */
-    [[nodiscard]] virtual bool isMagic() const { return false; }
+    [[nodiscard]] virtual bool isMagic() const
+    {
+        return false;
+    }
 
     /**
      * @brief 是否是爆炸伤害
      */
-    [[nodiscard]] virtual bool isExplosion() const { return false; }
+    [[nodiscard]] virtual bool isExplosion() const
+    {
+        return false;
+    }
 
     /**
      * @brief 获取死亡消息键
@@ -242,17 +281,26 @@ public:
     /**
      * @brief 是否来自实体
      */
-    [[nodiscard]] virtual bool isEntitySource() const { return false; }
+    [[nodiscard]] virtual bool isEntitySource() const
+    {
+        return false;
+    }
 
     /**
      * @brief 是否来自玩家
      */
-    [[nodiscard]] virtual bool isPlayerSource() const { return false; }
+    [[nodiscard]] virtual bool isPlayerSource() const
+    {
+        return false;
+    }
 
     /**
      * @brief 是否受难度缩放
      */
-    [[nodiscard]] virtual bool isDifficultyScaled() const { return false; }
+    [[nodiscard]] virtual bool isDifficultyScaled() const
+    {
+        return false;
+    }
 
     /**
      * @brief 该伤害是否随难度缩放（对齐 vanilla DamageSource.scalesWithDifficulty()，
@@ -295,18 +343,27 @@ public:
     /**
      * @brief 是否是荆棘伤害
      */
-    [[nodiscard]] virtual bool isThornsDamage() const { return false; }
+    [[nodiscard]] virtual bool isThornsDamage() const
+    {
+        return false;
+    }
 
     /**
      * @brief 获取饥饿消耗值
      * 玩家受伤时会消耗饱食度，默认 0.1，护甲穿透伤害为 0.0
      */
-    [[nodiscard]] virtual f32 hungerDamage() const { return 0.1f; }
+    [[nodiscard]] virtual f32 hungerDamage() const
+    {
+        return 0.1f;
+    }
 
     /**
      * @brief 是否忽略药水效果和附魔
      */
-    [[nodiscard]] virtual bool isDamageAbsolute() const { return false; }
+    [[nodiscard]] virtual bool isDamageAbsolute() const
+    {
+        return false;
+    }
 
     /**
      * @brief 是否是摔落伤害
@@ -321,27 +378,42 @@ public:
     /**
      * @brief 是否是岩浆伤害
      */
-    [[nodiscard]] bool isLava() const { return type() == DamageType::Lava; }
+    [[nodiscard]] bool isLava() const
+    {
+        return type() == DamageType::Lava;
+    }
 
     /**
      * @brief 是否是仙人掌伤害
      */
-    [[nodiscard]] bool isCactus() const { return type() == DamageType::Cactus; }
+    [[nodiscard]] bool isCactus() const
+    {
+        return type() == DamageType::Cactus;
+    }
 
     /**
      * @brief 是否是饥饿伤害
      */
-    [[nodiscard]] bool isStarve() const { return type() == DamageType::Starve; }
+    [[nodiscard]] bool isStarve() const
+    {
+        return type() == DamageType::Starve;
+    }
 
     /**
      * @brief 是否是溺水伤害
      */
-    [[nodiscard]] bool isDrown() const { return type() == DamageType::Drown; }
+    [[nodiscard]] bool isDrown() const
+    {
+        return type() == DamageType::Drown;
+    }
 
     /**
      * @brief 是否是甜浆果丛伤害
      */
-    [[nodiscard]] bool isSweetBerryBush() const { return type() == DamageType::SweetBerryBush; }
+    [[nodiscard]] bool isSweetBerryBush() const
+    {
+        return type() == DamageType::SweetBerryBush;
+    }
 
     /**
      * @brief 是否是冰冻伤害
@@ -349,7 +421,10 @@ public:
      * 冰冻伤害对冻结额外伤害标签中的实体（烈焰人、岩浆怪、炽足兽）造成5倍伤害。
      * 玩家的冰冻伤害可通过 freeze_damage 游戏规则禁用。
      */
-    [[nodiscard]] virtual bool isFreezing() const { return type() == DamageType::Freeze; }
+    [[nodiscard]] virtual bool isFreezing() const
+    {
+        return type() == DamageType::Freeze;
+    }
 
     /**
      * @brief 检查伤害类型是否属于指定标签
@@ -393,7 +468,10 @@ public:
         return std::make_unique<EnvironmentalDamage>(m_type);
     }
 
-    [[nodiscard]] DamageType type() const override { return m_type; }
+    [[nodiscard]] DamageType type() const override
+    {
+        return m_type;
+    }
 
     [[nodiscard]] bool bypassesArmor() const override
     {
@@ -424,7 +502,10 @@ public:
         return m_type == DamageType::OutOfWorld || m_type == DamageType::GenericKill;
     }
 
-    [[nodiscard]] bool canDamageCreative() const override { return m_type == DamageType::OutOfWorld; }
+    [[nodiscard]] bool canDamageCreative() const override
+    {
+        return m_type == DamageType::OutOfWorld;
+    }
 
     [[nodiscard]] bool isFire() const override
     {
@@ -454,11 +535,20 @@ public:
             m_type == DamageType::ExplosionPlayer || m_type == DamageType::BadRespawnPoint;
     }
 
-    [[nodiscard]] bool isFreezing() const override { return m_type == DamageType::Freeze; }
+    [[nodiscard]] bool isFreezing() const override
+    {
+        return m_type == DamageType::Freeze;
+    }
 
-    [[nodiscard]] f32 hungerDamage() const override { return m_hungerDamage; }
+    [[nodiscard]] f32 hungerDamage() const override
+    {
+        return m_hungerDamage;
+    }
 
-    [[nodiscard]] bool isDamageAbsolute() const override { return m_isDamageAbsolute; }
+    [[nodiscard]] bool isDamageAbsolute() const override
+    {
+        return m_isDamageAbsolute;
+    }
 
     [[nodiscard]] std::string deathMessageKey() const override
     {
@@ -582,16 +672,33 @@ public:
         return result;
     }
 
-    [[nodiscard]] DamageType type() const override { return m_type; }
+    [[nodiscard]] DamageType type() const override
+    {
+        return m_type;
+    }
 
-    [[nodiscard]] Entity* source() const override { return m_source; }
-    [[nodiscard]] Entity* directSource() const override { return m_source; }
-    [[nodiscard]] Entity* getTrueSource() const override { return m_source; }
+    [[nodiscard]] Entity* source() const override
+    {
+        return m_source;
+    }
+
+    [[nodiscard]] Entity* directSource() const override
+    {
+        return m_source;
+    }
+
+    [[nodiscard]] Entity* getTrueSource() const override
+    {
+        return m_source;
+    }
 
     /// 直接来源实体位置（EntityDamageSource 回退 directEntity.position()）。
     [[nodiscard]] std::optional<math::Vector3f> sourcePosition() const override;
 
-    [[nodiscard]] bool isFire() const override { return m_type == DamageType::Fireball; }
+    [[nodiscard]] bool isFire() const override
+    {
+        return m_type == DamageType::Fireball;
+    }
 
     // isProjectile 查 DamageTypeTags::IS_PROJECTILE 标签（对齐 vanilla source.is(IS_PROJECTILE)），
     // 实现在 DamageSource.cpp（需 DamageTypeTags 完整定义）。此前硬编码 Arrow/Trident/MobProjectile/
@@ -599,15 +706,30 @@ public:
     // WindBurst/UnattributedFireball，硬编码漏掉它们致对应伤害源 isProjectile() 返 false。
     [[nodiscard]] bool isProjectile() const override;
 
-    [[nodiscard]] bool isExplosion() const override { return m_isExplosion; }
+    [[nodiscard]] bool isExplosion() const override
+    {
+        return m_isExplosion;
+    }
 
-    [[nodiscard]] bool isMagic() const override { return m_isMagic; }
+    [[nodiscard]] bool isMagic() const override
+    {
+        return m_isMagic;
+    }
 
-    [[nodiscard]] bool isEntitySource() const override { return true; }
+    [[nodiscard]] bool isEntitySource() const override
+    {
+        return true;
+    }
 
-    [[nodiscard]] bool isPlayerSource() const override { return m_type == DamageType::PlayerAttack; }
+    [[nodiscard]] bool isPlayerSource() const override
+    {
+        return m_type == DamageType::PlayerAttack;
+    }
 
-    [[nodiscard]] bool isThornsDamage() const override { return m_isThornsDamage; }
+    [[nodiscard]] bool isThornsDamage() const override
+    {
+        return m_isThornsDamage;
+    }
 
     /**
      * @brief 设置为荆棘伤害
@@ -717,11 +839,25 @@ public:
         return result;
     }
 
-    [[nodiscard]] DamageType type() const override { return m_type; }
+    [[nodiscard]] DamageType type() const override
+    {
+        return m_type;
+    }
 
-    [[nodiscard]] Entity* source() const override { return m_source; }
-    [[nodiscard]] Entity* directSource() const override { return m_directSource; }
-    [[nodiscard]] Entity* getEntity() const override { return m_source; }
+    [[nodiscard]] Entity* source() const override
+    {
+        return m_source;
+    }
+
+    [[nodiscard]] Entity* directSource() const override
+    {
+        return m_directSource;
+    }
+
+    [[nodiscard]] Entity* getEntity() const override
+    {
+        return m_source;
+    }
 
     /// 直接来源（投射物本身）位置（IndirectEntityDamageSource 回退 directEntity.position()）。
     [[nodiscard]] std::optional<math::Vector3f> sourcePosition() const override;
@@ -730,7 +866,10 @@ public:
      * @brief 获取真正的伤害来源
      * 返回间接来源（射击者）
      */
-    [[nodiscard]] Entity* getTrueSource() const override { return m_source; }
+    [[nodiscard]] Entity* getTrueSource() const override
+    {
+        return m_source;
+    }
 
     [[nodiscard]] bool isFire() const override
     {
@@ -742,15 +881,30 @@ public:
 
     [[nodiscard]] bool isProjectile() const override;
 
-    [[nodiscard]] bool isExplosion() const override { return m_isExplosion; }
+    [[nodiscard]] bool isExplosion() const override
+    {
+        return m_isExplosion;
+    }
 
-    [[nodiscard]] bool isMagic() const override { return m_isMagic; }
+    [[nodiscard]] bool isMagic() const override
+    {
+        return m_isMagic;
+    }
 
-    [[nodiscard]] bool isEntitySource() const override { return true; }
+    [[nodiscard]] bool isEntitySource() const override
+    {
+        return true;
+    }
 
-    [[nodiscard]] bool isPlayerSource() const override { return m_isPlayer; }
+    [[nodiscard]] bool isPlayerSource() const override
+    {
+        return m_isPlayer;
+    }
 
-    [[nodiscard]] bool bypassesArmor() const override { return m_bypassesArmor; }
+    [[nodiscard]] bool bypassesArmor() const override
+    {
+        return m_bypassesArmor;
+    }
 
     /**
      * @brief 设置为投射物伤害

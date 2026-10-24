@@ -58,7 +58,10 @@ public:
 
     BreachEnchantment() = default;
 
-    [[nodiscard]] std::string id() const override { return ENCHANTMENT_ID; }
+    [[nodiscard]] std::string id() const override
+    {
+        return ENCHANTMENT_ID;
+    }
 
     [[nodiscard]] std::string getNameKey(i32 level) const override
     {
@@ -66,18 +69,40 @@ public:
         return "enchantment.minecraft.breach";
     }
 
-    [[nodiscard]] i32 minLevel() const noexcept override { return 1; }
-    [[nodiscard]] i32 maxLevel() const noexcept override { return 4; }
+    [[nodiscard]] i32 minLevel() const noexcept override
+    {
+        return 1;
+    }
 
-    [[nodiscard]] EnchantmentType type() const override { return EnchantmentType::Weapon; }
+    [[nodiscard]] i32 maxLevel() const noexcept override
+    {
+        return 4;
+    }
 
-    [[nodiscard]] EnchantmentRarity rarity() const noexcept override { return EnchantmentRarity::Uncommon; }
+    [[nodiscard]] EnchantmentType type() const override
+    {
+        return EnchantmentType::Weapon;
+    }
 
-    [[nodiscard]] i32 getMinCost(i32 level) const override { return 15 + (level - 1) * 9; }
+    [[nodiscard]] EnchantmentRarity rarity() const noexcept override
+    {
+        return EnchantmentRarity::Uncommon;
+    }
 
-    [[nodiscard]] i32 getMaxCost(i32 level) const override { return 65 + (level - 1) * 9; }
+    [[nodiscard]] i32 getMinCost(i32 level) const override
+    {
+        return 15 + (level - 1) * 9;
+    }
 
-    [[nodiscard]] bool isTreasure() const noexcept override { return false; }
+    [[nodiscard]] i32 getMaxCost(i32 level) const override
+    {
+        return 65 + (level - 1) * 9;
+    }
+
+    [[nodiscard]] bool isTreasure() const noexcept override
+    {
+        return false;
+    }
 
     /**
      * @brief 破甲与伤害类附魔（锋利、亡灵杀手、节肢杀手）和致密互斥

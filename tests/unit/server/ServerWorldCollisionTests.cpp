@@ -105,7 +105,11 @@ public:
     TestPushableEntity(EntityInstanceId id, IWorld* world)
         : Entity(id, world, mc::test::testEcsRegistry())
     {}
-    [[nodiscard]] bool isPushable() const override { return true; }
+
+    [[nodiscard]] bool isPushable() const override
+    {
+        return true;
+    }
 };
 } // namespace
 

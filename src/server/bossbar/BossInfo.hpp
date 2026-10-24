@@ -127,12 +127,18 @@ public:
     /**
      * @brief 获取唯一标识符
      */
-    [[nodiscard]] const Uuid& uuid() const noexcept { return m_uuid; }
+    [[nodiscard]] const Uuid& uuid() const noexcept
+    {
+        return m_uuid;
+    }
 
     /**
      * @brief 获取显示名称
      */
-    [[nodiscard]] const text::ITextComponent& name() const noexcept { return *m_name; }
+    [[nodiscard]] const text::ITextComponent& name() const noexcept
+    {
+        return *m_name;
+    }
 
     /**
      * @brief 设置显示名称
@@ -144,7 +150,10 @@ public:
     /**
      * @brief 获取生命值百分比 (0.0 ~ 1.0)
      */
-    [[nodiscard]] f32 percent() const noexcept { return m_percent; }
+    [[nodiscard]] f32 percent() const noexcept
+    {
+        return m_percent;
+    }
 
     /**
      * @brief 设置生命值百分比
@@ -156,7 +165,10 @@ public:
     /**
      * @brief 获取颜色
      */
-    [[nodiscard]] BossInfoColor color() const noexcept { return m_color; }
+    [[nodiscard]] BossInfoColor color() const noexcept
+    {
+        return m_color;
+    }
 
     /**
      * @brief 设置颜色
@@ -168,7 +180,10 @@ public:
     /**
      * @brief 获取样式
      */
-    [[nodiscard]] BossInfoOverlay overlay() const noexcept { return m_overlay; }
+    [[nodiscard]] BossInfoOverlay overlay() const noexcept
+    {
+        return m_overlay;
+    }
 
     /**
      * @brief 设置样式
@@ -180,7 +195,10 @@ public:
     /**
      * @brief 是否变暗天空
      */
-    [[nodiscard]] bool darkenSky() const noexcept { return m_darkenSky; }
+    [[nodiscard]] bool darkenSky() const noexcept
+    {
+        return m_darkenSky;
+    }
 
     /**
      * @brief 设置是否变暗天空
@@ -192,7 +210,10 @@ public:
     /**
      * @brief 是否播放末影龙 Boss 音乐
      */
-    [[nodiscard]] bool playEndBossMusic() const noexcept { return m_playEndBossMusic; }
+    [[nodiscard]] bool playEndBossMusic() const noexcept
+    {
+        return m_playEndBossMusic;
+    }
 
     /**
      * @brief 设置是否播放末影龙 Boss 音乐
@@ -204,7 +225,10 @@ public:
     /**
      * @brief 是否创建迷雾
      */
-    [[nodiscard]] bool createFog() const noexcept { return m_createFog; }
+    [[nodiscard]] bool createFog() const noexcept
+    {
+        return m_createFog;
+    }
 
     /**
      * @brief 设置是否创建迷雾
@@ -216,7 +240,10 @@ public:
     /**
      * @brief 是否可见
      */
-    [[nodiscard]] bool visible() const noexcept { return m_visible; }
+    [[nodiscard]] bool visible() const noexcept
+    {
+        return m_visible;
+    }
 
     /**
      * @brief 设置是否可见

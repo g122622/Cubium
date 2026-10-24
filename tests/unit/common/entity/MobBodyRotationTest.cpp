@@ -55,7 +55,10 @@ public:
 
 class MobBodyRotationTest : public ::testing::Test {
 protected:
-    void SetUp() override { VanillaBlocks::initialize(); }
+    void SetUp() override
+    {
+        VanillaBlocks::initialize();
+    }
 
     BodyRotationTestWorld m_world;
 };

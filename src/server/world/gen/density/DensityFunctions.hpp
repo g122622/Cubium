@@ -71,11 +71,25 @@ public:
         : m_value(value)
     {}
 
-    [[nodiscard]] f64 compute(i32, i32, i32) const override { return m_value; }
-    [[nodiscard]] f64 minValue() const override { return m_value; }
-    [[nodiscard]] f64 maxValue() const override { return m_value; }
+    [[nodiscard]] f64 compute(i32, i32, i32) const override
+    {
+        return m_value;
+    }
 
-    [[nodiscard]] f64 value() const { return m_value; }
+    [[nodiscard]] f64 minValue() const override
+    {
+        return m_value;
+    }
+
+    [[nodiscard]] f64 maxValue() const override
+    {
+        return m_value;
+    }
+
+    [[nodiscard]] f64 value() const
+    {
+        return m_value;
+    }
 
     DENSITY_FUNCTION_MAP_ALL_LEAF(Constant, m_value)
 
@@ -111,13 +125,35 @@ public:
             static_cast<f64>(blockY), static_cast<f64>(m_fromY), static_cast<f64>(m_toY), m_fromValue, m_toValue);
     }
 
-    [[nodiscard]] f64 minValue() const override { return m_minValue; }
-    [[nodiscard]] f64 maxValue() const override { return m_maxValue; }
+    [[nodiscard]] f64 minValue() const override
+    {
+        return m_minValue;
+    }
 
-    [[nodiscard]] i32 fromY() const { return m_fromY; }
-    [[nodiscard]] i32 toY() const { return m_toY; }
-    [[nodiscard]] f64 fromValue() const { return m_fromValue; }
-    [[nodiscard]] f64 toValue() const { return m_toValue; }
+    [[nodiscard]] f64 maxValue() const override
+    {
+        return m_maxValue;
+    }
+
+    [[nodiscard]] i32 fromY() const
+    {
+        return m_fromY;
+    }
+
+    [[nodiscard]] i32 toY() const
+    {
+        return m_toY;
+    }
+
+    [[nodiscard]] f64 fromValue() const
+    {
+        return m_fromValue;
+    }
+
+    [[nodiscard]] f64 toValue() const
+    {
+        return m_toValue;
+    }
 
     DENSITY_FUNCTION_MAP_ALL_LEAF(YClampedGradient, m_fromY, m_toY, m_fromValue, m_toValue)
 
@@ -131,12 +167,19 @@ private:
 
     [[nodiscard]] static f64 clampedLerp(f64 t, f64 from, f64 to)
     {
-        if (t < 0.0) return from;
-        if (t > 1.0) return to;
+        if (t < 0.0) {
+            return from;
+        }
+        if (t > 1.0) {
+            return to;
+        }
         return from + t * (to - from);
     }
 
-    [[nodiscard]] static f64 inverseLerp(f64 value, f64 from, f64 to) { return (value - from) / (to - from); }
+    [[nodiscard]] static f64 inverseLerp(f64 value, f64 from, f64 to)
+    {
+        return (value - from) / (to - from);
+    }
 
     [[nodiscard]] static f64 clampedMap(f64 value, f64 fromMin, f64 fromMax, f64 toMin, f64 toMax)
     {
@@ -166,10 +209,20 @@ public:
         return std::clamp(m_input->compute(blockX, blockY, blockZ), m_minValue, m_maxValue);
     }
 
-    [[nodiscard]] f64 minValue() const override { return m_minValue; }
-    [[nodiscard]] f64 maxValue() const override { return m_maxValue; }
+    [[nodiscard]] f64 minValue() const override
+    {
+        return m_minValue;
+    }
 
-    [[nodiscard]] const DensityFunction& input() const { return *m_input; }
+    [[nodiscard]] f64 maxValue() const override
+    {
+        return m_maxValue;
+    }
+
+    [[nodiscard]] const DensityFunction& input() const
+    {
+        return *m_input;
+    }
 
     [[nodiscard]] std::unique_ptr<DensityFunction> mapAll(Visitor& visitor) const override
     {
@@ -218,11 +271,25 @@ public:
         return transform(value);
     }
 
-    [[nodiscard]] f64 minValue() const override { return m_minValue; }
-    [[nodiscard]] f64 maxValue() const override { return m_maxValue; }
+    [[nodiscard]] f64 minValue() const override
+    {
+        return m_minValue;
+    }
 
-    [[nodiscard]] MappedType type() const { return m_type; }
-    [[nodiscard]] const DensityFunction& input() const { return *m_input; }
+    [[nodiscard]] f64 maxValue() const override
+    {
+        return m_maxValue;
+    }
+
+    [[nodiscard]] MappedType type() const
+    {
+        return m_type;
+    }
+
+    [[nodiscard]] const DensityFunction& input() const
+    {
+        return *m_input;
+    }
 
     [[nodiscard]] std::unique_ptr<DensityFunction> mapAll(Visitor& visitor) const override
     {
@@ -358,12 +425,30 @@ public:
         return 0.0;
     }
 
-    [[nodiscard]] f64 minValue() const override { return m_minValue; }
-    [[nodiscard]] f64 maxValue() const override { return m_maxValue; }
+    [[nodiscard]] f64 minValue() const override
+    {
+        return m_minValue;
+    }
 
-    [[nodiscard]] TwoArgumentType type() const { return m_type; }
-    [[nodiscard]] const DensityFunction& arg1() const { return *m_arg1; }
-    [[nodiscard]] const DensityFunction& arg2() const { return *m_arg2; }
+    [[nodiscard]] f64 maxValue() const override
+    {
+        return m_maxValue;
+    }
+
+    [[nodiscard]] TwoArgumentType type() const
+    {
+        return m_type;
+    }
+
+    [[nodiscard]] const DensityFunction& arg1() const
+    {
+        return *m_arg1;
+    }
+
+    [[nodiscard]] const DensityFunction& arg2() const
+    {
+        return *m_arg2;
+    }
 
     [[nodiscard]] std::unique_ptr<DensityFunction> mapAll(Visitor& visitor) const override
     {
@@ -449,18 +534,40 @@ public:
     {
         const f64 d = m_delta->compute(blockX, blockY, blockZ);
         const f64 s = m_start->compute(blockX, blockY, blockZ);
-        if (d <= 0.0) return s;
+        if (d <= 0.0) {
+            return s;
+        }
         const f64 e = m_end->compute(blockX, blockY, blockZ);
-        if (d >= 1.0) return e;
+        if (d >= 1.0) {
+            return e;
+        }
         return s + d * (e - s);
     }
 
-    [[nodiscard]] f64 minValue() const override { return m_minValue; }
-    [[nodiscard]] f64 maxValue() const override { return m_maxValue; }
+    [[nodiscard]] f64 minValue() const override
+    {
+        return m_minValue;
+    }
 
-    [[nodiscard]] const DensityFunction& delta() const { return *m_delta; }
-    [[nodiscard]] const DensityFunction& start() const { return *m_start; }
-    [[nodiscard]] const DensityFunction& end() const { return *m_end; }
+    [[nodiscard]] f64 maxValue() const override
+    {
+        return m_maxValue;
+    }
+
+    [[nodiscard]] const DensityFunction& delta() const
+    {
+        return *m_delta;
+    }
+
+    [[nodiscard]] const DensityFunction& start() const
+    {
+        return *m_start;
+    }
+
+    [[nodiscard]] const DensityFunction& end() const
+    {
+        return *m_end;
+    }
 
     [[nodiscard]] std::unique_ptr<DensityFunction> mapAll(Visitor& visitor) const override
     {
@@ -527,8 +634,15 @@ public:
         return m_fromValue + noiseVal * (m_toValue - m_fromValue);
     }
 
-    [[nodiscard]] f64 minValue() const override { return m_minValue; }
-    [[nodiscard]] f64 maxValue() const override { return m_maxValue; }
+    [[nodiscard]] f64 minValue() const override
+    {
+        return m_minValue;
+    }
+
+    [[nodiscard]] f64 maxValue() const override
+    {
+        return m_maxValue;
+    }
 
     // NormalNoise::getValue 是 const 无 mutable，mapAll 前后语义等价，
     // 因此共享 m_noise（不再 clone），仅重建叶子壳子。详见 RandomState::getOrCreateNoiseShared。
@@ -569,12 +683,30 @@ public:
             static_cast<f64>(blockZ) * m_xzScale);
     }
 
-    [[nodiscard]] f64 minValue() const override { return m_minValue; }
-    [[nodiscard]] f64 maxValue() const override { return m_maxValue; }
+    [[nodiscard]] f64 minValue() const override
+    {
+        return m_minValue;
+    }
 
-    [[nodiscard]] const noise::NormalNoise& noise() const { return *m_noise; }
-    [[nodiscard]] f64 xzScale() const { return m_xzScale; }
-    [[nodiscard]] f64 yScale() const { return m_yScale; }
+    [[nodiscard]] f64 maxValue() const override
+    {
+        return m_maxValue;
+    }
+
+    [[nodiscard]] const noise::NormalNoise& noise() const
+    {
+        return *m_noise;
+    }
+
+    [[nodiscard]] f64 xzScale() const
+    {
+        return m_xzScale;
+    }
+
+    [[nodiscard]] f64 yScale() const
+    {
+        return m_yScale;
+    }
 
     // NormalNoise::getValue 是 const 无 mutable，mapAll 前后语义等价，
     // 因此共享 m_noise（不再 clone），仅重建叶子壳子。详见 RandomState::getOrCreateNoiseShared。
@@ -627,15 +759,45 @@ public:
         return m_noise->getValue(sx, sy, sz);
     }
 
-    [[nodiscard]] f64 minValue() const override { return m_minValue; }
-    [[nodiscard]] f64 maxValue() const override { return m_maxValue; }
+    [[nodiscard]] f64 minValue() const override
+    {
+        return m_minValue;
+    }
 
-    [[nodiscard]] const noise::NormalNoise& noise() const { return *m_noise; }
-    [[nodiscard]] f64 xzScale() const { return m_xzScale; }
-    [[nodiscard]] f64 yScale() const { return m_yScale; }
-    [[nodiscard]] const DensityFunction& shiftX() const { return *m_shiftX; }
-    [[nodiscard]] const DensityFunction& shiftY() const { return *m_shiftY; }
-    [[nodiscard]] const DensityFunction& shiftZ() const { return *m_shiftZ; }
+    [[nodiscard]] f64 maxValue() const override
+    {
+        return m_maxValue;
+    }
+
+    [[nodiscard]] const noise::NormalNoise& noise() const
+    {
+        return *m_noise;
+    }
+
+    [[nodiscard]] f64 xzScale() const
+    {
+        return m_xzScale;
+    }
+
+    [[nodiscard]] f64 yScale() const
+    {
+        return m_yScale;
+    }
+
+    [[nodiscard]] const DensityFunction& shiftX() const
+    {
+        return *m_shiftX;
+    }
+
+    [[nodiscard]] const DensityFunction& shiftY() const
+    {
+        return *m_shiftY;
+    }
+
+    [[nodiscard]] const DensityFunction& shiftZ() const
+    {
+        return *m_shiftZ;
+    }
 
     // m_noise 共享（NormalNoise const 无 mutable，mapAll 前后等价，不再 clone）；
     // m_shiftX/Y/Z 是复合子函数，仍递归 mapAll 重建（与原语义一致）。
@@ -703,11 +865,25 @@ public:
         return 0.0;
     }
 
-    [[nodiscard]] f64 minValue() const override { return m_minValue; }
-    [[nodiscard]] f64 maxValue() const override { return m_maxValue; }
+    [[nodiscard]] f64 minValue() const override
+    {
+        return m_minValue;
+    }
 
-    [[nodiscard]] ShiftType type() const { return m_type; }
-    [[nodiscard]] const noise::NormalNoise& noise() const { return *m_noise; }
+    [[nodiscard]] f64 maxValue() const override
+    {
+        return m_maxValue;
+    }
+
+    [[nodiscard]] ShiftType type() const
+    {
+        return m_type;
+    }
+
+    [[nodiscard]] const noise::NormalNoise& noise() const
+    {
+        return *m_noise;
+    }
 
     // NormalNoise const 无 mutable，mapAll 前后等价，共享 m_noise 不再 clone。
     [[nodiscard]] std::unique_ptr<DensityFunction> mapAll(Visitor& visitor) const override
@@ -757,14 +933,40 @@ public:
         return m_whenOutOfRange->compute(blockX, blockY, blockZ);
     }
 
-    [[nodiscard]] f64 minValue() const override { return m_minValue; }
-    [[nodiscard]] f64 maxValue() const override { return m_maxValue; }
+    [[nodiscard]] f64 minValue() const override
+    {
+        return m_minValue;
+    }
 
-    [[nodiscard]] const DensityFunction& input() const { return *m_input; }
-    [[nodiscard]] f64 minInclusive() const { return m_minInclusive; }
-    [[nodiscard]] f64 maxExclusive() const { return m_maxExclusive; }
-    [[nodiscard]] const DensityFunction& whenInRange() const { return *m_whenInRange; }
-    [[nodiscard]] const DensityFunction& whenOutOfRange() const { return *m_whenOutOfRange; }
+    [[nodiscard]] f64 maxValue() const override
+    {
+        return m_maxValue;
+    }
+
+    [[nodiscard]] const DensityFunction& input() const
+    {
+        return *m_input;
+    }
+
+    [[nodiscard]] f64 minInclusive() const
+    {
+        return m_minInclusive;
+    }
+
+    [[nodiscard]] f64 maxExclusive() const
+    {
+        return m_maxExclusive;
+    }
+
+    [[nodiscard]] const DensityFunction& whenInRange() const
+    {
+        return *m_whenInRange;
+    }
+
+    [[nodiscard]] const DensityFunction& whenOutOfRange() const
+    {
+        return *m_whenOutOfRange;
+    }
 
     [[nodiscard]] std::unique_ptr<DensityFunction> mapAll(Visitor& visitor) const override
     {
@@ -862,11 +1064,25 @@ public:
 
     [[nodiscard]] f64 compute(i32 blockX, i32 blockY, i32 blockZ) const override;
 
-    [[nodiscard]] f64 minValue() const override { return m_minValue; }
-    [[nodiscard]] f64 maxValue() const override { return m_maxValue; }
+    [[nodiscard]] f64 minValue() const override
+    {
+        return m_minValue;
+    }
 
-    [[nodiscard]] const DensityFunction& input() const { return *m_input; }
-    [[nodiscard]] const std::vector<SplinePoint>& points() const { return m_points; }
+    [[nodiscard]] f64 maxValue() const override
+    {
+        return m_maxValue;
+    }
+
+    [[nodiscard]] const DensityFunction& input() const
+    {
+        return *m_input;
+    }
+
+    [[nodiscard]] const std::vector<SplinePoint>& points() const
+    {
+        return m_points;
+    }
 
     [[nodiscard]] std::unique_ptr<DensityFunction> mapAll(Visitor& visitor) const override;
 
@@ -940,10 +1156,20 @@ public:
         return m_cachedValue;
     }
 
-    [[nodiscard]] f64 minValue() const override { return m_input->minValue(); }
-    [[nodiscard]] f64 maxValue() const override { return m_input->maxValue(); }
+    [[nodiscard]] f64 minValue() const override
+    {
+        return m_input->minValue();
+    }
 
-    [[nodiscard]] const DensityFunction& input() const { return *m_input; }
+    [[nodiscard]] f64 maxValue() const override
+    {
+        return m_input->maxValue();
+    }
+
+    [[nodiscard]] const DensityFunction& input() const
+    {
+        return *m_input;
+    }
 
     [[nodiscard]] std::unique_ptr<DensityFunction> mapAll(Visitor& visitor) const override
     {
@@ -1032,10 +1258,20 @@ public:
         return m_cachedValue;
     }
 
-    [[nodiscard]] f64 minValue() const override { return m_input->minValue(); }
-    [[nodiscard]] f64 maxValue() const override { return m_input->maxValue(); }
+    [[nodiscard]] f64 minValue() const override
+    {
+        return m_input->minValue();
+    }
 
-    [[nodiscard]] const DensityFunction& input() const { return *m_input; }
+    [[nodiscard]] f64 maxValue() const override
+    {
+        return m_input->maxValue();
+    }
+
+    [[nodiscard]] const DensityFunction& input() const
+    {
+        return *m_input;
+    }
 
     [[nodiscard]] std::unique_ptr<DensityFunction> mapAll(Visitor& visitor) const override
     {
@@ -1094,15 +1330,28 @@ public:
         return value;
     }
 
-    [[nodiscard]] f64 minValue() const override { return m_input->minValue(); }
-    [[nodiscard]] f64 maxValue() const override { return m_input->maxValue(); }
+    [[nodiscard]] f64 minValue() const override
+    {
+        return m_input->minValue();
+    }
 
-    [[nodiscard]] const DensityFunction& input() const { return *m_input; }
+    [[nodiscard]] f64 maxValue() const override
+    {
+        return m_input->maxValue();
+    }
+
+    [[nodiscard]] const DensityFunction& input() const
+    {
+        return *m_input;
+    }
 
     /**
      * @brief 清除缓存（每个新区块开始时调用）
      */
-    void clearCache() const { m_cache.clear(); }
+    void clearCache() const
+    {
+        m_cache.clear();
+    }
 
     [[nodiscard]] std::unique_ptr<DensityFunction> mapAll(Visitor& visitor) const override
     {
@@ -1161,12 +1410,30 @@ public:
             rarityValue;
     }
 
-    [[nodiscard]] f64 minValue() const override { return m_minValue; }
-    [[nodiscard]] f64 maxValue() const override { return m_maxValue; }
+    [[nodiscard]] f64 minValue() const override
+    {
+        return m_minValue;
+    }
 
-    [[nodiscard]] const DensityFunction& input() const { return *m_input; }
-    [[nodiscard]] const noise::NormalNoise& noise() const { return *m_noise; }
-    [[nodiscard]] WeirdScaledSamplerType type() const { return m_type; }
+    [[nodiscard]] f64 maxValue() const override
+    {
+        return m_maxValue;
+    }
+
+    [[nodiscard]] const DensityFunction& input() const
+    {
+        return *m_input;
+    }
+
+    [[nodiscard]] const noise::NormalNoise& noise() const
+    {
+        return *m_noise;
+    }
+
+    [[nodiscard]] WeirdScaledSamplerType type() const
+    {
+        return m_type;
+    }
 
     // m_noise 共享（const 无 mutable，mapAll 前后等价，不再 clone）；
     // m_input 仍递归 mapAll 重建。
@@ -1187,16 +1454,30 @@ private:
     {
         // MC 1.21 的 rarity 映射
         if (m_type == WeirdScaledSamplerType::Type1) {
-            if (value < -0.5) return 0.75;
-            if (value < 0.0) return 1.0;
-            if (value < 0.5) return 1.5;
+            if (value < -0.5) {
+                return 0.75;
+            }
+            if (value < 0.0) {
+                return 1.0;
+            }
+            if (value < 0.5) {
+                return 1.5;
+            }
             return 2.0;
         }
         // Type2 (sphaghettiRarity2D in MC 1.21)
-        if (value < -0.75) return 0.5;
-        if (value < -0.5) return 0.75;
-        if (value < 0.5) return 1.0;
-        if (value < 0.75) return 2.0;
+        if (value < -0.75) {
+            return 0.5;
+        }
+        if (value < -0.5) {
+            return 0.75;
+        }
+        if (value < 0.5) {
+            return 1.0;
+        }
+        if (value < 0.75) {
+            return 2.0;
+        }
         return 3.0;
     }
 
@@ -1259,11 +1540,25 @@ public:
         return m_wrapped->compute(blockX, blockY, blockZ);
     }
 
-    [[nodiscard]] f64 minValue() const override { return m_wrapped->minValue(); }
-    [[nodiscard]] f64 maxValue() const override { return m_wrapped->maxValue(); }
+    [[nodiscard]] f64 minValue() const override
+    {
+        return m_wrapped->minValue();
+    }
 
-    [[nodiscard]] MarkerType markerType() const { return m_type; }
-    [[nodiscard]] const DensityFunction& wrapped() const { return *m_wrapped; }
+    [[nodiscard]] f64 maxValue() const override
+    {
+        return m_wrapped->maxValue();
+    }
+
+    [[nodiscard]] MarkerType markerType() const
+    {
+        return m_type;
+    }
+
+    [[nodiscard]] const DensityFunction& wrapped() const
+    {
+        return *m_wrapped;
+    }
 
     [[nodiscard]] std::unique_ptr<DensityFunction> mapAll(Visitor& visitor) const override
     {
@@ -1301,10 +1596,20 @@ public:
         return m_shared->compute(blockX, blockY, blockZ);
     }
 
-    [[nodiscard]] f64 minValue() const override { return m_shared->minValue(); }
-    [[nodiscard]] f64 maxValue() const override { return m_shared->maxValue(); }
+    [[nodiscard]] f64 minValue() const override
+    {
+        return m_shared->minValue();
+    }
 
-    [[nodiscard]] const DensityFunction& inner() const { return *m_shared; }
+    [[nodiscard]] f64 maxValue() const override
+    {
+        return m_shared->maxValue();
+    }
+
+    [[nodiscard]] const DensityFunction& inner() const
+    {
+        return *m_shared;
+    }
 
     [[nodiscard]] std::unique_ptr<DensityFunction> mapAll(Visitor& visitor) const override
     {
@@ -1352,11 +1657,21 @@ public:
         return m_shared->compute(blockX, blockY, blockZ);
     }
 
-    [[nodiscard]] f64 minValue() const override { return m_shared->minValue(); }
-    [[nodiscard]] f64 maxValue() const override { return m_shared->maxValue(); }
+    [[nodiscard]] f64 minValue() const override
+    {
+        return m_shared->minValue();
+    }
+
+    [[nodiscard]] f64 maxValue() const override
+    {
+        return m_shared->maxValue();
+    }
 
     /** 被共享的只读子树 */
-    [[nodiscard]] const DensityFunction& inner() const { return *m_shared; }
+    [[nodiscard]] const DensityFunction& inner() const
+    {
+        return *m_shared;
+    }
 
     [[nodiscard]] std::unique_ptr<DensityFunction> mapAll(Visitor& visitor) const override
     {
@@ -1391,10 +1706,20 @@ public:
 
     [[nodiscard]] f64 compute(i32 blockX, i32 blockY, i32 blockZ) const override;
 
-    [[nodiscard]] f64 minValue() const override { return -0.84375; }
-    [[nodiscard]] f64 maxValue() const override { return 0.5625; }
+    [[nodiscard]] f64 minValue() const override
+    {
+        return -0.84375;
+    }
 
-    [[nodiscard]] u64 seed() const { return m_seed; }
+    [[nodiscard]] f64 maxValue() const override
+    {
+        return 0.5625;
+    }
+
+    [[nodiscard]] u64 seed() const
+    {
+        return m_seed;
+    }
 
     DENSITY_FUNCTION_MAP_ALL_LEAF(EndIslands, m_seed)
 
@@ -1471,30 +1796,111 @@ public:
         , m_smearScaleMultiplier(smearScaleMultiplier)
     {}
 
-    [[nodiscard]] f64 compute(i32, i32, i32) const override { return 0.0; }
-    [[nodiscard]] f64 minValue() const override { return 0.0; }
-    [[nodiscard]] f64 maxValue() const override { return 0.0; }
+    [[nodiscard]] f64 compute(i32, i32, i32) const override
+    {
+        return 0.0;
+    }
 
-    [[nodiscard]] const std::string& noiseName() const { return m_noiseName; }
-    [[nodiscard]] f64 xzScale() const { return m_xzScale; }
-    [[nodiscard]] f64 yScale() const { return m_yScale; }
-    [[nodiscard]] Kind kind() const { return m_kind; }
-    [[nodiscard]] const std::unique_ptr<DensityFunction>& shiftX() const { return m_shiftX; }
-    [[nodiscard]] const std::unique_ptr<DensityFunction>& shiftY() const { return m_shiftY; }
-    [[nodiscard]] const std::unique_ptr<DensityFunction>& shiftZ() const { return m_shiftZ; }
-    [[nodiscard]] const std::unique_ptr<DensityFunction>& input() const { return m_input; }
-    [[nodiscard]] std::optional<f64> fromValue() const { return m_fromValue; }
-    [[nodiscard]] std::optional<f64> toValue() const { return m_toValue; }
-    [[nodiscard]] WeirdScaledSamplerType weirdType() const { return m_weirdType; }
-    [[nodiscard]] f64 xzFactor() const { return m_xzFactor; }
-    [[nodiscard]] f64 yFactor() const { return m_yFactor; }
-    [[nodiscard]] f64 smearScaleMultiplier() const { return m_smearScaleMultiplier; }
+    [[nodiscard]] f64 minValue() const override
+    {
+        return 0.0;
+    }
+
+    [[nodiscard]] f64 maxValue() const override
+    {
+        return 0.0;
+    }
+
+    [[nodiscard]] const std::string& noiseName() const
+    {
+        return m_noiseName;
+    }
+
+    [[nodiscard]] f64 xzScale() const
+    {
+        return m_xzScale;
+    }
+
+    [[nodiscard]] f64 yScale() const
+    {
+        return m_yScale;
+    }
+
+    [[nodiscard]] Kind kind() const
+    {
+        return m_kind;
+    }
+
+    [[nodiscard]] const std::unique_ptr<DensityFunction>& shiftX() const
+    {
+        return m_shiftX;
+    }
+
+    [[nodiscard]] const std::unique_ptr<DensityFunction>& shiftY() const
+    {
+        return m_shiftY;
+    }
+
+    [[nodiscard]] const std::unique_ptr<DensityFunction>& shiftZ() const
+    {
+        return m_shiftZ;
+    }
+
+    [[nodiscard]] const std::unique_ptr<DensityFunction>& input() const
+    {
+        return m_input;
+    }
+
+    [[nodiscard]] std::optional<f64> fromValue() const
+    {
+        return m_fromValue;
+    }
+
+    [[nodiscard]] std::optional<f64> toValue() const
+    {
+        return m_toValue;
+    }
+
+    [[nodiscard]] WeirdScaledSamplerType weirdType() const
+    {
+        return m_weirdType;
+    }
+
+    [[nodiscard]] f64 xzFactor() const
+    {
+        return m_xzFactor;
+    }
+
+    [[nodiscard]] f64 yFactor() const
+    {
+        return m_yFactor;
+    }
+
+    [[nodiscard]] f64 smearScaleMultiplier() const
+    {
+        return m_smearScaleMultiplier;
+    }
 
     /// 移出子 DF 所有权（NoiseBindingVisitor 绑定 ShiftedNoise/WeirdScaledSampler 时消费本占位）
-    [[nodiscard]] std::unique_ptr<DensityFunction> releaseShiftX() { return std::move(m_shiftX); }
-    [[nodiscard]] std::unique_ptr<DensityFunction> releaseShiftY() { return std::move(m_shiftY); }
-    [[nodiscard]] std::unique_ptr<DensityFunction> releaseShiftZ() { return std::move(m_shiftZ); }
-    [[nodiscard]] std::unique_ptr<DensityFunction> releaseInput() { return std::move(m_input); }
+    [[nodiscard]] std::unique_ptr<DensityFunction> releaseShiftX()
+    {
+        return std::move(m_shiftX);
+    }
+
+    [[nodiscard]] std::unique_ptr<DensityFunction> releaseShiftY()
+    {
+        return std::move(m_shiftY);
+    }
+
+    [[nodiscard]] std::unique_ptr<DensityFunction> releaseShiftZ()
+    {
+        return std::move(m_shiftZ);
+    }
+
+    [[nodiscard]] std::unique_ptr<DensityFunction> releaseInput()
+    {
+        return std::move(m_input);
+    }
 
     [[nodiscard]] std::unique_ptr<DensityFunction> mapAll(Visitor& visitor) const override
     {
@@ -1546,9 +1952,20 @@ class UnboundEndIslands final : public DensityFunction {
 public:
     UnboundEndIslands() = default;
 
-    [[nodiscard]] f64 compute(i32, i32, i32) const override { return 0.0; }
-    [[nodiscard]] f64 minValue() const override { return -0.84375; }
-    [[nodiscard]] f64 maxValue() const override { return 0.5625; }
+    [[nodiscard]] f64 compute(i32, i32, i32) const override
+    {
+        return 0.0;
+    }
+
+    [[nodiscard]] f64 minValue() const override
+    {
+        return -0.84375;
+    }
+
+    [[nodiscard]] f64 maxValue() const override
+    {
+        return 0.5625;
+    }
 
     DENSITY_FUNCTION_MAP_ALL_LEAF(UnboundEndIslands)
 };
@@ -1603,13 +2020,35 @@ public:
         return static_cast<f64>(m_lowerBound);
     }
 
-    [[nodiscard]] f64 minValue() const override { return m_minValue; }
-    [[nodiscard]] f64 maxValue() const override { return m_maxValue; }
+    [[nodiscard]] f64 minValue() const override
+    {
+        return m_minValue;
+    }
 
-    [[nodiscard]] const DensityFunction& density() const { return *m_density; }
-    [[nodiscard]] const DensityFunction& upperBound() const { return *m_upperBound; }
-    [[nodiscard]] i32 lowerBound() const { return m_lowerBound; }
-    [[nodiscard]] i32 cellHeight() const { return m_cellHeight; }
+    [[nodiscard]] f64 maxValue() const override
+    {
+        return m_maxValue;
+    }
+
+    [[nodiscard]] const DensityFunction& density() const
+    {
+        return *m_density;
+    }
+
+    [[nodiscard]] const DensityFunction& upperBound() const
+    {
+        return *m_upperBound;
+    }
+
+    [[nodiscard]] i32 lowerBound() const
+    {
+        return m_lowerBound;
+    }
+
+    [[nodiscard]] i32 cellHeight() const
+    {
+        return m_cellHeight;
+    }
 
     [[nodiscard]] std::unique_ptr<DensityFunction> mapAll(Visitor& visitor) const override
     {

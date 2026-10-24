@@ -51,25 +51,32 @@ namespace entity {
  */
 class FishingBobberTestAccess {
 public:
-    static void syncCaughtEntityId(FishingBobberEntity& bobber) { bobber._syncCaughtEntityId(); }
+    static void syncCaughtEntityId(FishingBobberEntity& bobber)
+    {
+        bobber._syncCaughtEntityId();
+    }
+
     static void setCaughtEntity(FishingBobberEntity& bobber, Entity* entity, ecs::EntityRegistry& /*registry*/)
     {
         if (auto* c = bobber.tryGetComponent<ecs::FishingBobberComponent>()) {
             c->m_caughtEntity = entity;
         }
     }
+
     static void setState(FishingBobberEntity& bobber, FishingBobberState state)
     {
         if (auto* c = bobber.tryGetComponent<ecs::FishingBobberComponent>()) {
             c->m_state = state;
         }
     }
+
     static void setTicksCatchable(FishingBobberEntity& bobber, i32 value)
     {
         if (auto* c = bobber.tryGetComponent<ecs::FishingBobberComponent>()) {
             c->m_ticksCatchable = value;
         }
     }
+
     static void setTicksCatchableDelay(FishingBobberEntity& bobber, i32 value)
     {
         if (auto* c = bobber.tryGetComponent<ecs::FishingBobberComponent>()) {
@@ -143,13 +150,21 @@ public:
         return reference;
     }
 
-    [[nodiscard]] math::IRandom& getRandom() override { return m_random; }
-    [[nodiscard]] const math::IRandom& getRandom() const override { return m_random; }
+    [[nodiscard]] math::IRandom& getRandom() override
+    {
+        return m_random;
+    }
+
+    [[nodiscard]] const math::IRandom& getRandom() const override
+    {
+        return m_random;
+    }
 
     [[nodiscard]] world::tick::TickManager& tickManager() override
     {
         throw std::runtime_error("FishingBobberTestWorld::tickManager not implemented");
     }
+
     [[nodiscard]] const world::tick::TickManager& tickManager() const override
     {
         throw std::runtime_error("FishingBobberTestWorld::tickManager not implemented");
@@ -169,8 +184,15 @@ public:
         : Entity(id, nullptr, mc::test::testEcsRegistry())
     {}
 
-    [[nodiscard]] bool canBeCollidedWith() const override { return m_collidable; }
-    void setCollidable(bool value) { m_collidable = value; }
+    [[nodiscard]] bool canBeCollidedWith() const override
+    {
+        return m_collidable;
+    }
+
+    void setCollidable(bool value)
+    {
+        m_collidable = value;
+    }
 
 private:
     bool m_collidable = true;
@@ -181,9 +203,15 @@ private:
  */
 class FishingBobberHookEntityTest : public ::testing::Test {
 protected:
-    void SetUp() override { m_world = std::make_unique<FishingBobberTestWorld>(); }
+    void SetUp() override
+    {
+        m_world = std::make_unique<FishingBobberTestWorld>();
+    }
 
-    void TearDown() override { m_world.reset(); }
+    void TearDown() override
+    {
+        m_world.reset();
+    }
 
     std::unique_ptr<FishingBobberTestWorld> m_world;
 };

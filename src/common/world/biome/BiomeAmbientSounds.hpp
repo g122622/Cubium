@@ -57,10 +57,25 @@ public:
         , m_offset(offset)
     {}
 
-    [[nodiscard]] const ResourceLocation& soundEvent() const noexcept { return m_soundEvent; }
-    [[nodiscard]] i32 tickDelay() const noexcept { return m_tickDelay; }
-    [[nodiscard]] i32 blockSearchExtent() const noexcept { return m_blockSearchExtent; }
-    [[nodiscard]] f64 offset() const noexcept { return m_offset; }
+    [[nodiscard]] const ResourceLocation& soundEvent() const noexcept
+    {
+        return m_soundEvent;
+    }
+
+    [[nodiscard]] i32 tickDelay() const noexcept
+    {
+        return m_tickDelay;
+    }
+
+    [[nodiscard]] i32 blockSearchExtent() const noexcept
+    {
+        return m_blockSearchExtent;
+    }
+
+    [[nodiscard]] f64 offset() const noexcept
+    {
+        return m_offset;
+    }
 
     /// 默认洞穴心境音效
     static MoodSoundAmbience defaultCaveMood()
@@ -101,8 +116,15 @@ public:
         , m_tickChance(tickChance)
     {}
 
-    [[nodiscard]] const ResourceLocation& soundEvent() const noexcept { return m_soundEvent; }
-    [[nodiscard]] f64 tickChance() const noexcept { return m_tickChance; }
+    [[nodiscard]] const ResourceLocation& soundEvent() const noexcept
+    {
+        return m_soundEvent;
+    }
+
+    [[nodiscard]] f64 tickChance() const noexcept
+    {
+        return m_tickChance;
+    }
 
 private:
     ResourceLocation m_soundEvent;
@@ -135,13 +157,31 @@ public:
         , m_replaceCurrent(replaceCurrent)
     {}
 
-    [[nodiscard]] const ResourceLocation& soundEvent() const noexcept { return m_soundEvent; }
-    [[nodiscard]] u32 minDelayTicks() const noexcept { return m_minDelayTicks; }
-    [[nodiscard]] u32 maxDelayTicks() const noexcept { return m_maxDelayTicks; }
-    [[nodiscard]] bool replaceCurrent() const noexcept { return m_replaceCurrent; }
+    [[nodiscard]] const ResourceLocation& soundEvent() const noexcept
+    {
+        return m_soundEvent;
+    }
+
+    [[nodiscard]] u32 minDelayTicks() const noexcept
+    {
+        return m_minDelayTicks;
+    }
+
+    [[nodiscard]] u32 maxDelayTicks() const noexcept
+    {
+        return m_maxDelayTicks;
+    }
+
+    [[nodiscard]] bool replaceCurrent() const noexcept
+    {
+        return m_replaceCurrent;
+    }
 
     /// 是否有效（有音乐事件）
-    [[nodiscard]] bool isValid() const noexcept { return !m_soundEvent.toString().empty(); }
+    [[nodiscard]] bool isValid() const noexcept
+    {
+        return !m_soundEvent.toString().empty();
+    }
 
 private:
     ResourceLocation m_soundEvent;
@@ -161,20 +201,47 @@ public:
 
     // === Getters ===
 
-    [[nodiscard]] const std::optional<ResourceLocation>& loopSound() const noexcept { return m_loopSound; }
-    [[nodiscard]] const std::optional<MoodSoundAmbience>& moodSound() const noexcept { return m_moodSound; }
+    [[nodiscard]] const std::optional<ResourceLocation>& loopSound() const noexcept
+    {
+        return m_loopSound;
+    }
+
+    [[nodiscard]] const std::optional<MoodSoundAmbience>& moodSound() const noexcept
+    {
+        return m_moodSound;
+    }
+
     [[nodiscard]] const std::optional<SoundAdditionsAmbience>& additionsSound() const noexcept
     {
         return m_additionsSound;
     }
-    [[nodiscard]] const std::optional<BiomeMusic>& music() const noexcept { return m_music; }
+
+    [[nodiscard]] const std::optional<BiomeMusic>& music() const noexcept
+    {
+        return m_music;
+    }
 
     // === Setters ===
 
-    void setLoopSound(const ResourceLocation& sound) noexcept { m_loopSound = sound; }
-    void setMoodSound(const MoodSoundAmbience& mood) noexcept { m_moodSound = mood; }
-    void setAdditionsSound(const SoundAdditionsAmbience& additions) noexcept { m_additionsSound = additions; }
-    void setMusic(const BiomeMusic& music) noexcept { m_music = music; }
+    void setLoopSound(const ResourceLocation& sound) noexcept
+    {
+        m_loopSound = sound;
+    }
+
+    void setMoodSound(const MoodSoundAmbience& mood) noexcept
+    {
+        m_moodSound = mood;
+    }
+
+    void setAdditionsSound(const SoundAdditionsAmbience& additions) noexcept
+    {
+        m_additionsSound = additions;
+    }
+
+    void setMusic(const BiomeMusic& music) noexcept
+    {
+        m_music = music;
+    }
 
     /// 是否有任何环境音效
     [[nodiscard]] bool hasAnySound() const noexcept
@@ -183,7 +250,10 @@ public:
     }
 
     /// 是否有音乐
-    [[nodiscard]] bool hasMusic() const noexcept { return m_music.has_value() && m_music->isValid(); }
+    [[nodiscard]] bool hasMusic() const noexcept
+    {
+        return m_music.has_value() && m_music->isValid();
+    }
 
 private:
     std::optional<ResourceLocation> m_loopSound;

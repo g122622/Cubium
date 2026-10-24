@@ -66,7 +66,9 @@ RangedAttackGoal::RangedAttackGoal(
 
 bool RangedAttackGoal::shouldExecute()
 {
-    if (!m_mob) return false;
+    if (!m_mob) {
+        return false;
+    }
 
     LivingEntity* target = m_mob->attackTarget();
     if (!target || !target->isAlive()) {
@@ -109,7 +111,9 @@ void RangedAttackGoal::resetTask()
 
 void RangedAttackGoal::tick()
 {
-    if (!m_mob || !m_target) return;
+    if (!m_mob || !m_target) {
+        return;
+    }
 
     // 移除或析构的引用会自动失效；此处同时处理尚未移除的死亡目标。
     if (!m_target->isAlive()) {
@@ -193,7 +197,9 @@ RangedBowAttackGoal::RangedBowAttackGoal(MobEntity* mob, f64 speed, i32 attackIn
 
 bool RangedBowAttackGoal::shouldExecute()
 {
-    if (!m_mob) return false;
+    if (!m_mob) {
+        return false;
+    }
 
     const ItemStack& mainHand = m_mob->getMainHandItem();
     const Item* item = mainHand.getItem();
@@ -231,7 +237,9 @@ void RangedBowAttackGoal::resetTask()
 
 void RangedBowAttackGoal::tick()
 {
-    if (!m_mob || !m_target) return;
+    if (!m_mob || !m_target) {
+        return;
+    }
 
     // 移除或析构的引用会自动失效；此处同时处理尚未移除的死亡目标。
     if (!m_target->isAlive()) {
@@ -361,13 +369,19 @@ RangedCrossbowAttackGoal::RangedCrossbowAttackGoal(MobEntity* mob, f64 speed, f3
 
 bool RangedCrossbowAttackGoal::shouldExecute()
 {
-    if (!m_mob) return false;
+    if (!m_mob) {
+        return false;
+    }
 
     // 检查是否持有弩
-    if (!_isHoldingCrossbow()) return false;
+    if (!_isHoldingCrossbow()) {
+        return false;
+    }
 
     LivingEntity* target = m_mob->attackTarget();
-    if (!target || !target->isAlive()) return false;
+    if (!target || !target->isAlive()) {
+        return false;
+    }
 
     m_target = target;
     return true;
@@ -376,14 +390,20 @@ bool RangedCrossbowAttackGoal::shouldExecute()
 bool RangedCrossbowAttackGoal::shouldContinueExecuting()
 {
     // 继续执行条件
-    if (!m_mob || !m_target) return false;
+    if (!m_mob || !m_target) {
+        return false;
+    }
 
     // 目标仍然有效
-    if (!m_target->isAlive()) return false;
+    if (!m_target->isAlive()) {
+        return false;
+    }
 
     // 仍在追踪范围内
     f64 distSq = m_mob->distanceSqTo(m_target->x(), m_target->y(), m_target->z());
-    if (distSq > static_cast<f64>(m_attackRadiusSq * 4.0f)) return false; // 2倍追踪距离
+    if (distSq > static_cast<f64>(m_attackRadiusSq * 4.0f)) {
+        return false; // 2倍追踪距离
+    }
 
     // 仍持有弩
     return _isHoldingCrossbow();
@@ -428,7 +448,9 @@ void RangedCrossbowAttackGoal::resetTask()
 
 void RangedCrossbowAttackGoal::tick()
 {
-    if (!m_mob || !m_target) return;
+    if (!m_mob || !m_target) {
+        return;
+    }
 
     // 移除或析构的引用会自动失效；此处同时处理尚未移除的死亡目标。
     if (!m_target->isAlive()) {
@@ -489,7 +511,9 @@ void RangedCrossbowAttackGoal::tick()
 
 bool RangedCrossbowAttackGoal::_isHoldingCrossbow() const
 {
-    if (!m_mob) return false;
+    if (!m_mob) {
+        return false;
+    }
 
     const ItemStack& mainHand = m_mob->getMainHandItem();
     const Item* item = mainHand.getItem();
@@ -500,7 +524,9 @@ bool RangedCrossbowAttackGoal::_isHoldingCrossbow() const
 
 void RangedCrossbowAttackGoal::_updateSeenTime()
 {
-    if (!m_mob || !m_target) return;
+    if (!m_mob || !m_target) {
+        return;
+    }
 
     bool canSee = m_mob->canSee(*m_target);
 
@@ -509,7 +535,9 @@ void RangedCrossbowAttackGoal::_updateSeenTime()
         ++m_seenTime;
     } else {
         --m_seenTime;
-        if (m_seenTime < 0) m_seenTime = 0;
+        if (m_seenTime < 0) {
+            m_seenTime = 0;
+        }
     }
 }
 

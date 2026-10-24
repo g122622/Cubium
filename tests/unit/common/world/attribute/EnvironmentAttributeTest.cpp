@@ -69,7 +69,9 @@ class FixedClockSampler {
 public:
     FixedClockSampler(const timeline::Timeline& trackSource, const EnvironmentAttribute<Value>& attribute, Value base)
         : m_base(std::move(base))
-        , m_sampler(trackSource.createTrackSampler<Value, Value>(attribute, [this]() { return m_dayTime; }))
+        , m_sampler(trackSource.createTrackSampler<Value, Value>(attribute, [this]() {
+            return m_dayTime;
+        }))
     {}
 
     /// 推进 tick 并采样指定 dayTime（模拟新的一 tick）
@@ -81,7 +83,10 @@ public:
     }
 
     /// 在当前 tick 内再次采样（与 sample 等价，只是语义上强调同 tick）
-    [[nodiscard]] Value sampleAt(i64 dayTime) { return sample(dayTime); }
+    [[nodiscard]] Value sampleAt(i64 dayTime)
+    {
+        return sample(dayTime);
+    }
 
 private:
     Value m_base;
@@ -337,8 +342,9 @@ TEST(EnvironmentAttributeSystemTest, ConstantLayerAppliesBeforeTimelineLayer)
     const std::unique_ptr<EnvironmentAttributeSystem> system = [&] {
         EnvironmentAttributeSystemBuilder systemBuilder;
         systemBuilder.addConstantLayer(attribute, EnvironmentAttributeMap::Builder().set(attribute, 4.0f).build());
-        systemBuilder.addTimeBasedLayer(
-            attribute, timeline.createTrackSampler<f32, f32>(attribute, [] { return dayTime; }));
+        systemBuilder.addTimeBasedLayer(attribute, timeline.createTrackSampler<f32, f32>(attribute, [] {
+            return dayTime;
+        }));
         return std::make_unique<EnvironmentAttributeSystem>(systemBuilder.build());
     }();
 
@@ -378,7 +384,9 @@ TEST(EnvironmentAttributeSystemTest, InvalidateTickCacheResamplesTimelineLayer)
     dayTime = 0;
     EnvironmentAttributeSystemBuilder builder;
     builder.addConstantLayer(attribute, EnvironmentAttributeMap::Builder().set(attribute, 4.0f).build());
-    builder.addTimeBasedLayer(attribute, timeline.createTrackSampler<f32, f32>(attribute, [] { return dayTime; }));
+    builder.addTimeBasedLayer(attribute, timeline.createTrackSampler<f32, f32>(attribute, [] {
+        return dayTime;
+    }));
     const EnvironmentAttributeSystem system = builder.build();
 
     // 每个 tick 只应用一次"系统序号 → 采样器缓存"：失效后必须按新 dayTime 重新采样，
@@ -400,8 +408,9 @@ TEST(EnvironmentAttributeSystemTest, PositionalLayerSkippedForNonPositionalQuery
     const auto& attribute = _testFloatAttribute();
 
     EnvironmentAttributeSystemBuilder builder;
-    builder.addPositionalLayer<f32>(
-        attribute, [](const f32& value, const Vector3& pos) -> f32 { return value + pos.x; });
+    builder.addPositionalLayer<f32>(attribute, [](const f32& value, const Vector3& pos) -> f32 {
+        return value + pos.x;
+    });
     const EnvironmentAttributeSystem system = builder.build();
 
     EXPECT_TRUE(system.isAffectedByPosition(attribute));
@@ -438,7 +447,13 @@ TEST(DimensionAttributesTest, OverworldEyeblossomFollowsDayTime)
 
     const auto makeSystem = [](i64 dayTime) {
         return DimensionAttributes::createSystem(
-            DimensionType::overworld(), [dayTime]() { return dayTime; }, [dayTime]() { return dayTime; });
+            DimensionType::overworld(),
+            [dayTime]() {
+                return dayTime;
+            },
+            [dayTime]() {
+                return dayTime;
+            });
     };
 
     EXPECT_EQ(makeSystem(6000)->getDimensionValue(EnvironmentAttributes::EYEBLOSSOM_OPEN()), util::TriState::False);
@@ -450,7 +465,13 @@ TEST(DimensionAttributesTest, NetherKeepsDefaultValues)
     timeline::Timelines::bootstrap();
 
     const std::unique_ptr<EnvironmentAttributeSystem> system = DimensionAttributes::createSystem(
-        DimensionType::nether(), [] { return i64{18000}; }, [] { return i64{18000}; });
+        DimensionType::nether(),
+        [] {
+            return i64{18000};
+        },
+        [] {
+            return i64{18000};
+        });
 
     // 下界不声明日夜时间线：眼眸花保持默认（不主动切换）
     EXPECT_EQ(system->getDimensionValue(EnvironmentAttributes::EYEBLOSSOM_OPEN()), util::TriState::Default);
@@ -525,7 +546,14 @@ TEST(DimensionAttributesTest, BiomeLayerAppliesBiomeAttributesByPosition)
         return pos.x >= 0.0f ? Biomes::Plains : Biomes::Desert;
     };
     const std::unique_ptr<EnvironmentAttributeSystem> system = DimensionAttributes::createSystem(
-        DimensionType::nether(), [] { return i64{0}; }, [] { return i64{0}; }, resolver);
+        DimensionType::nether(),
+        [] {
+            return i64{0};
+        },
+        [] {
+            return i64{0};
+        },
+        resolver);
 
     EXPECT_TRUE(system->getValue(EnvironmentAttributes::INCREASED_FIRE_BURNOUT(), Vector3(4.0f, 64.0f, 4.0f)));
     EXPECT_FALSE(system->getValue(EnvironmentAttributes::INCREASED_FIRE_BURNOUT(), Vector3(-4.0f, 64.0f, 4.0f)));
@@ -553,7 +581,14 @@ TEST(DimensionAttributesTest, CreakingActiveResolvesFromBiomeLayer)
         return pos.x >= 0.0f ? Biomes::PaleGarden : Biomes::Plains;
     };
     const std::unique_ptr<EnvironmentAttributeSystem> system = DimensionAttributes::createSystem(
-        DimensionType::overworld(), [] { return i64{0}; }, [] { return i64{0}; }, resolver);
+        DimensionType::overworld(),
+        [] {
+            return i64{0};
+        },
+        [] {
+            return i64{0};
+        },
+        resolver);
 
     EXPECT_TRUE(system->getValue(EnvironmentAttributes::CREAKING_ACTIVE(), Vector3(4.0f, 64.0f, 4.0f)));
     EXPECT_FALSE(system->getValue(EnvironmentAttributes::CREAKING_ACTIVE(), Vector3(-4.0f, 64.0f, 4.0f)));

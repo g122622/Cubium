@@ -352,7 +352,9 @@ void UniversalWorkerPool::waitForCompletion()
     //   1) 回调在 m_runningTaskCount 递减之后才执行；
     //   2) worker 出队与标记运行之间，队列已空且运行数为 0，任务却尚未开始执行。
     std::unique_lock<std::mutex> lock(m_completionMutex);
-    m_completionCondition.wait(lock, [this] { return m_outstandingTaskCount.load(std::memory_order::acquire) == 0; });
+    m_completionCondition.wait(lock, [this] {
+        return m_outstandingTaskCount.load(std::memory_order::acquire) == 0;
+    });
 }
 
 void UniversalWorkerPool::_releaseOutstandingTask()
@@ -490,7 +492,9 @@ void UniversalWorkerPool::workerThread(i32 workerId)
             std::unique_lock<std::mutex> lock(m_queueMutex);
 
             // 等待任务或停止信号
-            m_condition.wait(lock, [this] { return !m_taskQueue.empty() || m_stop.load(std::memory_order::acquire); });
+            m_condition.wait(lock, [this] {
+                return !m_taskQueue.empty() || m_stop.load(std::memory_order::acquire);
+            });
 
             if (m_taskQueue.empty() && m_stop.load(std::memory_order::acquire)) {
                 return;

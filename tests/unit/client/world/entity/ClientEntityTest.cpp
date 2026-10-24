@@ -47,9 +47,15 @@ protected:
         Items::initialize();
     }
 
-    void SetUp() override { entity = std::make_unique<ClientEntity>(EntityInstanceId(1), "test_entity"); }
+    void SetUp() override
+    {
+        entity = std::make_unique<ClientEntity>(EntityInstanceId(1), "test_entity");
+    }
 
-    void TearDown() override { entity.reset(); }
+    void TearDown() override
+    {
+        entity.reset();
+    }
 
     std::unique_ptr<ClientEntity> entity;
 };
@@ -667,9 +673,15 @@ TEST_F(ClientEntityTest, PartialTickConsistencyMultipleCalls)
 
 class ClientEntityOcelotSyncTest : public ::testing::Test {
 protected:
-    void SetUp() override { entity = std::make_unique<ClientEntity>(EntityInstanceId(1), "minecraft:ocelot"); }
+    void SetUp() override
+    {
+        entity = std::make_unique<ClientEntity>(EntityInstanceId(1), "minecraft:ocelot");
+    }
 
-    void TearDown() override { entity.reset(); }
+    void TearDown() override
+    {
+        entity.reset();
+    }
 
     std::unique_ptr<ClientEntity> entity;
 };
@@ -716,9 +728,15 @@ TEST_F(ClientEntityOcelotSyncTest, TrustingState_SyncFromDataManager)
 
 class ClientEntityWolfSyncTest : public ::testing::Test {
 protected:
-    void SetUp() override { entity = std::make_unique<ClientEntity>(EntityInstanceId(1), "minecraft:wolf"); }
+    void SetUp() override
+    {
+        entity = std::make_unique<ClientEntity>(EntityInstanceId(1), "minecraft:wolf");
+    }
 
-    void TearDown() override { entity.reset(); }
+    void TearDown() override
+    {
+        entity.reset();
+    }
 
     std::unique_ptr<ClientEntity> entity;
 };
@@ -1006,9 +1024,15 @@ protected:
         mc::entity::VanillaEntities::registerAll();
     }
 
-    void SetUp() override { entity = std::make_unique<ClientEntity>(EntityInstanceId(1), "minecraft:pig"); }
+    void SetUp() override
+    {
+        entity = std::make_unique<ClientEntity>(EntityInstanceId(1), "minecraft:pig");
+    }
 
-    void TearDown() override { entity.reset(); }
+    void TearDown() override
+    {
+        entity.reset();
+    }
 
     std::unique_ptr<ClientEntity> entity;
 };
@@ -1203,10 +1227,11 @@ TEST_F(ClientEntityEyeHeightTest, DifferentEntityTypesHaveDifferentEyeHeights)
     EXPECT_NE(pigEyeHeight, cowEyeHeight);
     EXPECT_NE(pigEyeHeight, chickenEyeHeight);
 
-    // 验证具体值：pig=0.9*0.85=0.765, cow=1.4*0.85=1.19, chicken=0.7*0.85=0.595
+    // 验证具体值：与原版 EntityType.Builder.eyeHeight 一致（pig 0.765、cow 1.3、chicken 0.644），
+    // 不是 height * 0.85 的旧口径（牛 1.19、鸡 0.595 都来自这个错误公式）。
     EXPECT_FLOAT_EQ(pigEyeHeight, 0.765f);
-    EXPECT_FLOAT_EQ(cowEyeHeight, 1.19f);
-    EXPECT_FLOAT_EQ(chickenEyeHeight, 0.595f);
+    EXPECT_FLOAT_EQ(cowEyeHeight, 1.3f);
+    EXPECT_FLOAT_EQ(chickenEyeHeight, 0.644f);
 }
 
 TEST_F(ClientEntityEyeHeightTest, EyeHeightInitialValueBeforeRefresh)
@@ -1236,9 +1261,15 @@ TEST_F(ClientEntityEyeHeightTest, DimensionsInitializedWithDefault)
 
 class ClientEntityRabbitJumpTest : public ::testing::Test {
 protected:
-    void SetUp() override { entity = std::make_unique<ClientEntity>(EntityInstanceId(1), "minecraft:rabbit"); }
+    void SetUp() override
+    {
+        entity = std::make_unique<ClientEntity>(EntityInstanceId(1), "minecraft:rabbit");
+    }
 
-    void TearDown() override { entity.reset(); }
+    void TearDown() override
+    {
+        entity.reset();
+    }
 
     std::unique_ptr<ClientEntity> entity;
 };

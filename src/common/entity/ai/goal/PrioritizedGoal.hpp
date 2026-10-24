@@ -127,11 +127,20 @@ public:
 
     // ========== Goal 接口实现 ==========
 
-    [[nodiscard]] bool shouldExecute() override { return m_inner && m_inner->shouldExecute(); }
+    [[nodiscard]] bool shouldExecute() override
+    {
+        return m_inner && m_inner->shouldExecute();
+    }
 
-    [[nodiscard]] bool shouldContinueExecuting() override { return m_inner && m_inner->shouldContinueExecuting(); }
+    [[nodiscard]] bool shouldContinueExecuting() override
+    {
+        return m_inner && m_inner->shouldContinueExecuting();
+    }
 
-    [[nodiscard]] bool isPreemptible() const noexcept override { return !m_inner || m_inner->isPreemptible(); }
+    [[nodiscard]] bool isPreemptible() const noexcept override
+    {
+        return !m_inner || m_inner->isPreemptible();
+    }
 
     // 必须转发到内部目标：GoalSelector::tickRunningGoalsEveryTick 经包装器查询，
     // 遗漏转发会使所有 goal 都被当成"不必每 tick 更新"，半 tick 帧永不 tick。
@@ -178,34 +187,52 @@ public:
         return m_inner ? m_inner->getMutexFlags() : emptyFlags;
     }
 
-    [[nodiscard]] std::string getTypeName() const override { return m_inner ? m_inner->getTypeName() : "DUMMY"; }
+    [[nodiscard]] std::string getTypeName() const override
+    {
+        return m_inner ? m_inner->getTypeName() : "DUMMY";
+    }
 
     // ========== PrioritizedGoal 特有方法 ==========
 
     /**
      * @brief 获取优先级
      */
-    [[nodiscard]] i32 getPriority() const noexcept { return m_priority; }
+    [[nodiscard]] i32 getPriority() const noexcept
+    {
+        return m_priority;
+    }
 
     /**
      * @brief 是否正在运行
      */
-    [[nodiscard]] bool isRunning() const noexcept { return m_running; }
+    [[nodiscard]] bool isRunning() const noexcept
+    {
+        return m_running;
+    }
 
     /**
      * @brief 获取内部目标
      */
-    [[nodiscard]] Goal* getGoal() noexcept { return m_inner.get(); }
+    [[nodiscard]] Goal* getGoal() noexcept
+    {
+        return m_inner.get();
+    }
 
     /**
      * @brief 获取内部目标（const版本）
      */
-    [[nodiscard]] const Goal* getGoal() const noexcept { return m_inner.get(); }
+    [[nodiscard]] const Goal* getGoal() const noexcept
+    {
+        return m_inner.get();
+    }
 
     /**
      * @brief 检查是否为空（DUMMY对象）
      */
-    [[nodiscard]] bool isNull() const noexcept { return m_inner == nullptr; }
+    [[nodiscard]] bool isNull() const noexcept
+    {
+        return m_inner == nullptr;
+    }
 
     /**
      * @brief 相等比较
@@ -228,7 +255,10 @@ public:
     /**
      * @brief 不等比较
      */
-    [[nodiscard]] bool operator!=(const PrioritizedGoal& other) const noexcept { return !(*this == other); }
+    [[nodiscard]] bool operator!=(const PrioritizedGoal& other) const noexcept
+    {
+        return !(*this == other);
+    }
 
 private:
     i32 m_priority;                // 优先级

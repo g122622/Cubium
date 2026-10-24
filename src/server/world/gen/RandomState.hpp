@@ -68,8 +68,15 @@ public:
     // === 核心访问器 ===
 
     /** 噪声路由器（持有 15 个密度函数） */
-    [[nodiscard]] density::NoiseRouter& router() { return *m_router; }
-    [[nodiscard]] const density::NoiseRouter& router() const { return *m_router; }
+    [[nodiscard]] density::NoiseRouter& router()
+    {
+        return *m_router;
+    }
+
+    [[nodiscard]] const density::NoiseRouter& router() const
+    {
+        return *m_router;
+    }
 
     /**
      * @brief 维度级编译产物（方案X 阶段5-6）
@@ -91,30 +98,71 @@ public:
     }
 
     /** 气候采样器（6 个气候密度函数的封装） */
-    [[nodiscard]] biome::climate::Sampler& sampler() { return *m_sampler; }
-    [[nodiscard]] const biome::climate::Sampler& sampler() const { return *m_sampler; }
+    [[nodiscard]] biome::climate::Sampler& sampler()
+    {
+        return *m_sampler;
+    }
+
+    [[nodiscard]] const biome::climate::Sampler& sampler() const
+    {
+        return *m_sampler;
+    }
 
     /** 表面规则系统 */
-    [[nodiscard]] surface::SurfaceSystem& surfaceSystem() { return *m_surfaceSystem; }
-    [[nodiscard]] const surface::SurfaceSystem& surfaceSystem() const { return *m_surfaceSystem; }
+    [[nodiscard]] surface::SurfaceSystem& surfaceSystem()
+    {
+        return *m_surfaceSystem;
+    }
+
+    [[nodiscard]] const surface::SurfaceSystem& surfaceSystem() const
+    {
+        return *m_surfaceSystem;
+    }
 
     /** 含水层随机工厂 */
-    [[nodiscard]] ::mc::math::PositionalRandomFactory& aquiferRandom() { return *m_aquiferRandom; }
-    [[nodiscard]] const ::mc::math::PositionalRandomFactory& aquiferRandom() const { return *m_aquiferRandom; }
+    [[nodiscard]] ::mc::math::PositionalRandomFactory& aquiferRandom()
+    {
+        return *m_aquiferRandom;
+    }
+
+    [[nodiscard]] const ::mc::math::PositionalRandomFactory& aquiferRandom() const
+    {
+        return *m_aquiferRandom;
+    }
 
     /** 矿石脉随机工厂 */
-    [[nodiscard]] ::mc::math::PositionalRandomFactory& oreRandom() { return *m_oreRandom; }
-    [[nodiscard]] const ::mc::math::PositionalRandomFactory& oreRandom() const { return *m_oreRandom; }
+    [[nodiscard]] ::mc::math::PositionalRandomFactory& oreRandom()
+    {
+        return *m_oreRandom;
+    }
+
+    [[nodiscard]] const ::mc::math::PositionalRandomFactory& oreRandom() const
+    {
+        return *m_oreRandom;
+    }
 
     /** 通用位置随机工厂 */
-    [[nodiscard]] ::mc::math::PositionalRandomFactory& positionalRandom() { return *m_positionalRandom; }
-    [[nodiscard]] const ::mc::math::PositionalRandomFactory& positionalRandom() const { return *m_positionalRandom; }
+    [[nodiscard]] ::mc::math::PositionalRandomFactory& positionalRandom()
+    {
+        return *m_positionalRandom;
+    }
+
+    [[nodiscard]] const ::mc::math::PositionalRandomFactory& positionalRandom() const
+    {
+        return *m_positionalRandom;
+    }
 
     /** 维度设置 */
-    [[nodiscard]] const DimensionSettings& settings() const { return m_settings; }
+    [[nodiscard]] const DimensionSettings& settings() const
+    {
+        return m_settings;
+    }
 
     /** 世界种子 */
-    [[nodiscard]] u64 worldSeed() const { return m_worldSeed; }
+    [[nodiscard]] u64 worldSeed() const
+    {
+        return m_worldSeed;
+    }
 
     // === MC 1.21 噪声/随机工厂缓存 ===
 

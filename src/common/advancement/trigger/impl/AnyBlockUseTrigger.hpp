@@ -49,7 +49,10 @@ class AnyBlockUseTrigger : public AbstractCriterionTrigger<AnyBlockUseTriggerIns
 public:
     static constexpr const char* TRIGGER_ID = "minecraft:default_block_use";
 
-    [[nodiscard]] ResourceLocation getId() const override { return ResourceLocation(TRIGGER_ID); }
+    [[nodiscard]] ResourceLocation getId() const override
+    {
+        return ResourceLocation(TRIGGER_ID);
+    }
 
     [[nodiscard]] Result<std::shared_ptr<ICriterionInstance>> fromJson(const nlohmann::json& json) override;
 };
@@ -65,7 +68,10 @@ class ItemUsedOnBlockTrigger : public AbstractCriterionTrigger<AnyBlockUseTrigge
 public:
     static constexpr const char* TRIGGER_ID = "minecraft:item_used_on_block";
 
-    [[nodiscard]] ResourceLocation getId() const override { return ResourceLocation(TRIGGER_ID); }
+    [[nodiscard]] ResourceLocation getId() const override
+    {
+        return ResourceLocation(TRIGGER_ID);
+    }
 
     [[nodiscard]] Result<std::shared_ptr<ICriterionInstance>> fromJson(const nlohmann::json& json) override;
 };
@@ -84,7 +90,10 @@ public:
     /**
      * @brief 检查条件是否满足（无 location 条件时恒真）
      */
-    [[nodiscard]] bool test() const { return true; }
+    [[nodiscard]] bool test() const
+    {
+        return true;
+    }
 
     /**
      * @brief 携带上下文判定（location 条件支持 ContextAwarePredicate 条件列表写法）

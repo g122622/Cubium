@@ -78,30 +78,82 @@ public:
     [[nodiscard]] std::unique_ptr<BlockEntity> clone() const override;
 
     /// 拼图方块属于管理员方块：仅 OP 可通过物品 NBT 改写
-    [[nodiscard]] bool onlyOpsCanSetNbt() const noexcept override { return true; }
+    [[nodiscard]] bool onlyOpsCanSetNbt() const noexcept override
+    {
+        return true;
+    }
 
     // ========== 连接信息 ==========
 
-    [[nodiscard]] const std::string& getName() const noexcept { return m_name; }
-    void setName(const std::string& name) { m_name = name; }
+    [[nodiscard]] const std::string& getName() const noexcept
+    {
+        return m_name;
+    }
 
-    [[nodiscard]] const std::string& getTarget() const noexcept { return m_target; }
-    void setTarget(const std::string& target) { m_target = target; }
+    void setName(const std::string& name)
+    {
+        m_name = name;
+    }
 
-    [[nodiscard]] const std::string& getPool() const noexcept { return m_pool; }
-    void setPool(const std::string& pool) { m_pool = pool; }
+    [[nodiscard]] const std::string& getTarget() const noexcept
+    {
+        return m_target;
+    }
 
-    [[nodiscard]] const std::string& getFinalState() const noexcept { return m_finalState; }
-    void setFinalState(const std::string& finalState) { m_finalState = finalState; }
+    void setTarget(const std::string& target)
+    {
+        m_target = target;
+    }
 
-    [[nodiscard]] world::gen::jigsaw::JigsawJointType getJoint() const noexcept { return m_joint; }
-    void setJoint(world::gen::jigsaw::JigsawJointType joint) { m_joint = joint; }
+    [[nodiscard]] const std::string& getPool() const noexcept
+    {
+        return m_pool;
+    }
 
-    [[nodiscard]] i32 getPlacementPriority() const noexcept { return m_placementPriority; }
-    void setPlacementPriority(i32 priority) { m_placementPriority = priority; }
+    void setPool(const std::string& pool)
+    {
+        m_pool = pool;
+    }
 
-    [[nodiscard]] i32 getSelectionPriority() const noexcept { return m_selectionPriority; }
-    void setSelectionPriority(i32 priority) { m_selectionPriority = priority; }
+    [[nodiscard]] const std::string& getFinalState() const noexcept
+    {
+        return m_finalState;
+    }
+
+    void setFinalState(const std::string& finalState)
+    {
+        m_finalState = finalState;
+    }
+
+    [[nodiscard]] world::gen::jigsaw::JigsawJointType getJoint() const noexcept
+    {
+        return m_joint;
+    }
+
+    void setJoint(world::gen::jigsaw::JigsawJointType joint)
+    {
+        m_joint = joint;
+    }
+
+    [[nodiscard]] i32 getPlacementPriority() const noexcept
+    {
+        return m_placementPriority;
+    }
+
+    void setPlacementPriority(i32 priority)
+    {
+        m_placementPriority = priority;
+    }
+
+    [[nodiscard]] i32 getSelectionPriority() const noexcept
+    {
+        return m_selectionPriority;
+    }
+
+    void setSelectionPriority(i32 priority)
+    {
+        m_selectionPriority = priority;
+    }
 
     /// 连接点朝向（前方方向），供默认 joint 类型推断与结构拼装使用
     [[nodiscard]] Direction frontFacing() const;

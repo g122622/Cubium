@@ -84,19 +84,39 @@ public:
         return setBlockState(x, y, z, state);
     }
 
-    void setBlockAt(const BlockPos& pos, const BlockState* state) { (void)setBlockState(pos.x, pos.y, pos.z, state); }
+    void setBlockAt(const BlockPos& pos, const BlockState* state)
+    {
+        (void)setBlockState(pos.x, pos.y, pos.z, state);
+    }
 
-    void clearBlockAt(const BlockPos& pos) { m_blocks.erase(key(pos.x, pos.y, pos.z)); }
+    void clearBlockAt(const BlockPos& pos)
+    {
+        m_blocks.erase(key(pos.x, pos.y, pos.z));
+    }
 
     // ========== 光照 ==========
 
-    [[nodiscard]] u8 getBlockLight(i32, i32, i32) const override { return 15; }
-    [[nodiscard]] u8 getSkyLight(i32, i32, i32) const override { return 15; }
+    [[nodiscard]] u8 getBlockLight(i32, i32, i32) const override
+    {
+        return 15;
+    }
+
+    [[nodiscard]] u8 getSkyLight(i32, i32, i32) const override
+    {
+        return 15;
+    }
 
     // ========== 种子控制 ==========
 
-    void setSeed(u64 seed) { m_seed = seed; }
-    [[nodiscard]] u64 seed() const override { return m_seed; }
+    void setSeed(u64 seed)
+    {
+        m_seed = seed;
+    }
+
+    [[nodiscard]] u64 seed() const override
+    {
+        return m_seed;
+    }
 
 private:
     static i64 key(i32 x, i32 y, i32 z)
@@ -493,10 +513,18 @@ TEST_F(TryGrowFruitTest, FisherYatesShuffle_ProducesValidPermutation)
     // 在4个方向都可用的情况下，如果实现正确地随机洗牌，
     // 至少应该有2个不同的方向被选中（统计上几乎不可能只选一个方向）
     int uniqueDirections = 0;
-    if (northCount > 0) uniqueDirections++;
-    if (southCount > 0) uniqueDirections++;
-    if (eastCount > 0) uniqueDirections++;
-    if (westCount > 0) uniqueDirections++;
+    if (northCount > 0) {
+        uniqueDirections++;
+    }
+    if (southCount > 0) {
+        uniqueDirections++;
+    }
+    if (eastCount > 0) {
+        uniqueDirections++;
+    }
+    if (westCount > 0) {
+        uniqueDirections++;
+    }
 
     EXPECT_GT(totalPlacements, 0) << "Should have placed at least some fruits across 200 attempts";
     EXPECT_GE(uniqueDirections, 2) << "Fisher-Yates shuffle should produce varied directions. "

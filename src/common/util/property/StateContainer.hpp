@@ -122,7 +122,10 @@ public:
         /**
          * @brief 添加布尔属性
          */
-        Builder& addBoolean(const std::string& name) { return add(BooleanProperty::create(name)); }
+        Builder& addBoolean(const std::string& name)
+        {
+            return add(BooleanProperty::create(name));
+        }
 
         /**
          * @brief 添加整数属性
@@ -135,7 +138,10 @@ public:
         /**
          * @brief 添加方向属性（所有方向）
          */
-        Builder& addDirection(const std::string& name) { return add(DirectionProperty::create(name)); }
+        Builder& addDirection(const std::string& name)
+        {
+            return add(DirectionProperty::create(name));
+        }
 
         /**
          * @brief 添加方向属性（仅水平方向）
@@ -148,7 +154,10 @@ public:
         /**
          * @brief 添加坐标轴属性
          */
-        Builder& addAxis(const std::string& name) { return add(AxisProperty::create(name)); }
+        Builder& addAxis(const std::string& name)
+        {
+            return add(AxisProperty::create(name));
+        }
 
         /**
          * @brief 构建状态容器
@@ -185,11 +194,30 @@ public:
         }
     };
 
-    [[nodiscard]] const State& baseState() const { return *m_states[0]; }
-    [[nodiscard]] const std::vector<std::unique_ptr<State>>& validStates() const { return m_states; }
-    [[nodiscard]] size_t stateCount() const { return m_states.size(); }
-    [[nodiscard]] const Owner& owner() const { return m_owner; }
-    [[nodiscard]] const std::unordered_map<std::string, const IProperty*>& properties() const { return m_properties; }
+    [[nodiscard]] const State& baseState() const
+    {
+        return *m_states[0];
+    }
+
+    [[nodiscard]] const std::vector<std::unique_ptr<State>>& validStates() const
+    {
+        return m_states;
+    }
+
+    [[nodiscard]] size_t stateCount() const
+    {
+        return m_states.size();
+    }
+
+    [[nodiscard]] const Owner& owner() const
+    {
+        return m_owner;
+    }
+
+    [[nodiscard]] const std::unordered_map<std::string, const IProperty*>& properties() const
+    {
+        return m_properties;
+    }
 
     [[nodiscard]] const IProperty* getProperty(std::string_view name) const
     {
@@ -205,7 +233,9 @@ public:
             ss << ", properties=[";
             bool first = true;
             for (const auto& [name, prop] : m_properties) {
-                if (!first) ss << ", ";
+                if (!first) {
+                    ss << ", ";
+                }
                 ss << name;
                 first = false;
             }

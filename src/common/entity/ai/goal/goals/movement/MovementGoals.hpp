@@ -149,7 +149,11 @@ public:
     [[nodiscard]] bool shouldContinueExecuting() override;
     void startExecuting() override;
     void resetTask() override;
-    [[nodiscard]] std::string getTypeName() const override { return "MoveTowardsTargetGoal"; }
+
+    [[nodiscard]] std::string getTypeName() const override
+    {
+        return "MoveTowardsTargetGoal";
+    }
 
 private:
     CreatureEntity* m_creature;
@@ -184,7 +188,11 @@ public:
     void startExecuting() override;
     void resetTask() override;
     void tick() override;
-    [[nodiscard]] std::string getTypeName() const override { return "MoveTowardsRestrictionGoal"; }
+
+    [[nodiscard]] std::string getTypeName() const override
+    {
+        return "MoveTowardsRestrictionGoal";
+    }
 
 private:
     /**

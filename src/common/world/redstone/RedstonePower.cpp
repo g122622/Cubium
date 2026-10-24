@@ -112,7 +112,9 @@ bool RedstonePower::isPowered(IWorld& world, const BlockPos& pos)
 i32 RedstonePower::getSignal(IWorld& world, const BlockPos& pos, Direction side)
 {
     const BlockState* state = world.getBlockState(pos);
-    if (state == nullptr || state->isAir()) return MIN_POWER;
+    if (state == nullptr || state->isAir()) {
+        return MIN_POWER;
+    }
     i32 power = state->getBlock().getWeakPower(*state, world, pos, side);
     if (RedstoneHelper::isRedstoneConductor(world, pos, *state)) {
         power = std::max(power, getStrongPower(world, pos));
@@ -123,7 +125,9 @@ i32 RedstonePower::getSignal(IWorld& world, const BlockPos& pos, Direction side)
 bool RedstonePower::isIndirectlyPowered(IWorld& world, const BlockPos& pos)
 {
     for (Direction dir : Directions::all()) {
-        if (getSignal(world, pos.offset(dir), dir) > 0) return true;
+        if (getSignal(world, pos.offset(dir), dir) > 0) {
+            return true;
+        }
     }
     return false;
 }
@@ -132,6 +136,7 @@ bool RedstonePower::isSidePowered(IWorld& world, const BlockPos& pos, Direction 
 {
     return getSignal(world, pos.offset(side), side) > 0;
 }
+
 // ========== 特殊信号计算 ==========
 
 i32 RedstonePower::getWireInputPower(IWorld& world, const BlockPos& pos)
@@ -246,10 +251,13 @@ i32 RedstonePower::getRedstonePowerFromNeighbors(IWorld& world, const BlockPos& 
     i32 maxPower = MIN_POWER;
     for (Direction dir : Directions::all()) {
         maxPower = std::max(maxPower, getSignal(world, pos.offset(dir), dir));
-        if (maxPower >= MAX_POWER) break;
+        if (maxPower >= MAX_POWER) {
+            break;
+        }
     }
     return maxPower;
 }
+
 // ========== 私有方法 ==========
 
 bool RedstonePower::_canConnectRedstone(const BlockState& state)

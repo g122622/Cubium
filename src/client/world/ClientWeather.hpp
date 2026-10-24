@@ -127,7 +127,10 @@ public:
     /**
      * @brief 是否正在下雨（强度检查）
      */
-    [[nodiscard]] bool isRaining() const noexcept { return m_rainStrength > weather::WeatherConstants::RAIN_THRESHOLD; }
+    [[nodiscard]] bool isRaining() const noexcept
+    {
+        return m_rainStrength > weather::WeatherConstants::RAIN_THRESHOLD;
+    }
 
     /**
      * @brief 是否正在雷暴（强度检查）
@@ -164,12 +167,18 @@ public:
     /**
      * @brief 获取当前降雨强度（无插值）
      */
-    [[nodiscard]] f32 rainStrength() const noexcept { return m_rainStrength; }
+    [[nodiscard]] f32 rainStrength() const noexcept
+    {
+        return m_rainStrength;
+    }
 
     /**
      * @brief 获取当前雷暴强度（无插值）
      */
-    [[nodiscard]] f32 thunderStrength() const noexcept { return m_thunderStrength; }
+    [[nodiscard]] f32 thunderStrength() const noexcept
+    {
+        return m_thunderStrength;
+    }
 
     /**
      * @brief 计算天空颜色混合因子
@@ -194,7 +203,10 @@ public:
      * @param partialTick 部分 tick
      * @return 可见度 (0.0=不可见, 1.0=完全可见)
      */
-    [[nodiscard]] f32 celestialVisibility(f32 partialTick) const noexcept { return 1.0f - rainStrength(partialTick); }
+    [[nodiscard]] f32 celestialVisibility(f32 partialTick) const noexcept
+    {
+        return 1.0f - rainStrength(partialTick);
+    }
 
     /**
      * @brief 计算天空光照上限
@@ -220,21 +232,30 @@ public:
      *
      * @param time 闪烁时间（ticks），通常为 2
      */
-    void setTimeLightningFlash(i32 time) noexcept { m_lightningFlashTime = time; }
+    void setTimeLightningFlash(i32 time) noexcept
+    {
+        m_lightningFlashTime = time;
+    }
 
     /**
      * @brief 获取当前闪电闪烁时间
      *
      * @return 当前闪烁时间（ticks），0表示无闪烁
      */
-    [[nodiscard]] i32 lightningFlashTime() const noexcept { return m_lightningFlashTime; }
+    [[nodiscard]] i32 lightningFlashTime() const noexcept
+    {
+        return m_lightningFlashTime;
+    }
 
     /**
      * @brief 检查是否有闪电闪烁效果
      *
      * @return 如果有闪烁效果返回 true
      */
-    [[nodiscard]] bool hasLightningFlash() const noexcept { return m_lightningFlashTime > 0; }
+    [[nodiscard]] bool hasLightningFlash() const noexcept
+    {
+        return m_lightningFlashTime > 0;
+    }
 
     /**
      * @brief 每 tick 更新闪电闪烁时间

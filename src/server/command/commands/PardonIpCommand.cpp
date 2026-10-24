@@ -62,14 +62,18 @@ bool isValidIpv4(const std::string& str)
 void PardonIpCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
 {
     auto pardonIpNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("pardon-ip");
-    pardonIpNode->setRequirement([](const ServerCommandSource& source) { return source.hasPermission(3); });
+    pardonIpNode->setRequirement([](const ServerCommandSource& source) {
+        return source.hasPermission(3);
+    });
     support::applyMetadata(pardonIpNode,
         support::makeMetadata("Removes an IP address from the ban list.", "/pardon-ip <target>", 3, {}, false));
 
     // /pardon-ip <target>
     auto targetArg =
         std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>("target", StringArgumentType::string());
-    targetArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _pardonIp(ctx); });
+    targetArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _pardonIp(ctx);
+    });
 
     pardonIpNode->addChild(targetArg);
     dispatcher.registerCommand(pardonIpNode);

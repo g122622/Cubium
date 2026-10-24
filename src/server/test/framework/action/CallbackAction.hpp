@@ -29,9 +29,15 @@ public:
         , m_isWait(isWait)
     {}
 
-    [[nodiscard]] GameTestResult run() override { return m_callback(); }
+    [[nodiscard]] GameTestResult run() override
+    {
+        return m_callback();
+    }
 
-    [[nodiscard]] bool isWait() const noexcept { return m_isWait; }
+    [[nodiscard]] bool isWait() const noexcept
+    {
+        return m_isWait;
+    }
 
 private:
     std::function<GameTestResult()> m_callback;

@@ -35,6 +35,7 @@ namespace mc {
 namespace world::chunk {
 class IChunk;
 }
+
 using world::chunk::IChunk;
 
 /**
@@ -127,17 +128,26 @@ public:
     /**
      * @brief 获取最小区块段Y
      */
-    [[nodiscard]] i32 getMinSection() const noexcept { return m_minSection; }
+    [[nodiscard]] i32 getMinSection() const noexcept
+    {
+        return m_minSection;
+    }
 
     /**
      * @brief 获取最大区块段Y
      */
-    [[nodiscard]] i32 getMaxSection() const noexcept { return m_maxSection; }
+    [[nodiscard]] i32 getMaxSection() const noexcept
+    {
+        return m_maxSection;
+    }
 
     /**
      * @brief 获取区块段数量
      */
-    [[nodiscard]] i32 getSectionCount() const noexcept { return m_sectionCount; }
+    [[nodiscard]] i32 getSectionCount() const noexcept
+    {
+        return m_sectionCount;
+    }
 
 private:
     // 世界高度范围（从世界高度常量计算）
@@ -157,7 +167,10 @@ private:
     /**
      * @brief 区块段Y转索引
      */
-    [[nodiscard]] i32 _sectionYToIndex(i32 sectionY) const noexcept { return sectionY - m_minSection; }
+    [[nodiscard]] i32 _sectionYToIndex(i32 sectionY) const noexcept
+    {
+        return sectionY - m_minSection;
+    }
 };
 
 // ============================================================================

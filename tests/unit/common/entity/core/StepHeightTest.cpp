@@ -46,7 +46,10 @@ public:
         : Entity(id, nullptr, mc::test::testEcsRegistry())
     {}
 
-    static std::unique_ptr<Entity> create(IWorld* /*world*/) { return std::make_unique<TestEntity>(); }
+    static std::unique_ptr<Entity> create(IWorld* /*world*/)
+    {
+        return std::make_unique<TestEntity>();
+    }
 };
 
 /**
@@ -58,10 +61,16 @@ public:
         : LivingEntity(id, nullptr, mc::test::testEcsRegistry())
     {}
 
-    static std::unique_ptr<Entity> create(IWorld* /*world*/) { return std::make_unique<TestLivingEntity>(); }
+    static std::unique_ptr<Entity> create(IWorld* /*world*/)
+    {
+        return std::make_unique<TestLivingEntity>();
+    }
 
 protected:
-    void registerAttributes() override { LivingEntity::registerAttributes(); }
+    void registerAttributes() override
+    {
+        LivingEntity::registerAttributes();
+    }
 };
 
 // ============================================================================

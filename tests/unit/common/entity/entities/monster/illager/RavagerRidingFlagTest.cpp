@@ -82,13 +82,17 @@ class RavagerRidingTestWorld final : public mc::test::BaseTestWorld {
 public:
     RavagerRidingTestWorld() = default;
 
-    void addTestEntity(Entity* entity) { m_testEntities[entity->id()] = entity; }
+    void addTestEntity(Entity* entity)
+    {
+        m_testEntities[entity->id()] = entity;
+    }
 
     [[nodiscard]] Entity* getEntity(EntityInstanceId id) override
     {
         auto it = m_testEntities.find(id);
         return it != m_testEntities.end() ? it->second : nullptr;
     }
+
     [[nodiscard]] const Entity* getEntity(EntityInstanceId id) const override
     {
         auto it = m_testEntities.find(id);
@@ -103,7 +107,11 @@ public:
         return id;
     }
 
-    [[nodiscard]] world::tick::TickManager& tickManager() override { throw std::runtime_error("not implemented"); }
+    [[nodiscard]] world::tick::TickManager& tickManager() override
+    {
+        throw std::runtime_error("not implemented");
+    }
+
     [[nodiscard]] const world::tick::TickManager& tickManager() const override
     {
         throw std::runtime_error("not implemented");
@@ -126,9 +134,15 @@ protected:
         EntityTypeTags::initialize();
     }
 
-    void SetUp() override { m_world = std::make_unique<RavagerRidingTestWorld>(); }
+    void SetUp() override
+    {
+        m_world = std::make_unique<RavagerRidingTestWorld>();
+    }
 
-    void TearDown() override { m_world.reset(); }
+    void TearDown() override
+    {
+        m_world.reset();
+    }
 
     std::unique_ptr<RavagerRidingTestWorld> m_world;
 };

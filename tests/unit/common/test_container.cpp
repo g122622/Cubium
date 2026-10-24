@@ -77,7 +77,11 @@ TEST_F(AbstractContainerMenuTest, QuickMoveShiftClickMovesStack)
             }
             m_playerInvStart = 1;
         }
-        bool stillValid(const Player& player) const override { return true; }
+
+        bool stillValid(const Player& player) const override
+        {
+            return true;
+        }
     };
 
     TestMenu menu(&inventory);
@@ -114,7 +118,11 @@ TEST_F(AbstractContainerMenuTest, SwapWithNumberKey)
             }
             m_playerInvStart = 0;
         }
-        bool stillValid(const Player& player) const override { return true; }
+
+        bool stillValid(const Player& player) const override
+        {
+            return true;
+        }
     };
 
     TestMenu menu(&inventory);
@@ -145,7 +153,11 @@ TEST_F(AbstractContainerMenuTest, DragDistributionEvenly)
             }
             m_playerInvStart = 0;
         }
-        bool stillValid(const Player& player) const override { return true; }
+
+        bool stillValid(const Player& player) const override
+        {
+            return true;
+        }
     };
 
     TestMenu menu(&inventory);
@@ -203,7 +215,11 @@ TEST_F(AbstractContainerMenuTest, PickAllDoubleClick)
             }
             m_playerInvStart = 0;
         }
-        bool stillValid(const Player& player) const override { return true; }
+
+        bool stillValid(const Player& player) const override
+        {
+            return true;
+        }
     };
 
     TestMenu menu(&inventory);
@@ -238,7 +254,11 @@ TEST_F(AbstractContainerMenuTest, PickAllCollectsIntoExistingCarriedStack)
             }
             m_playerInvStart = 0;
         }
-        bool stillValid(const Player& player) const override { return true; }
+
+        bool stillValid(const Player& player) const override
+        {
+            return true;
+        }
     };
 
     TestMenu menu(&inventory);
@@ -275,7 +295,11 @@ TEST_F(AbstractContainerMenuTest, PickAllSkipsFullStacksInFirstPass)
             }
             m_playerInvStart = 0;
         }
-        bool stillValid(const Player& player) const override { return true; }
+
+        bool stillValid(const Player& player) const override
+        {
+            return true;
+        }
     };
 
     TestMenu menu(&inventory);
@@ -308,7 +332,11 @@ public:
         }
         m_playerInvStart = 0;
     }
-    bool stillValid(const Player& player) const override { return true; }
+
+    bool stillValid(const Player& player) const override
+    {
+        return true;
+    }
 
     [[nodiscard]] bool _canTakeItemForPickAll(const ItemStack& stack, const Slot& slot) const override
     {
@@ -391,7 +419,11 @@ TEST_F(AbstractContainerMenuTest, CloneInCreativeMode)
             }
             m_playerInvStart = 0;
         }
-        bool stillValid(const Player& player) const override { return true; }
+
+        bool stillValid(const Player& player) const override
+        {
+            return true;
+        }
     };
 
     TestMenu menu(&inventory);

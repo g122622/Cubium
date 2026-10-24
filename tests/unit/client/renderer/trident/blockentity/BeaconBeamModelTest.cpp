@@ -35,7 +35,10 @@ using ModelVertex = mc::client::renderer::entity::model::ModelVertex;
 
 class BeaconBeamModelTest : public ::testing::Test {
 protected:
-    void SetUp() override { model_ = std::make_unique<BeaconBeamModel>(); }
+    void SetUp() override
+    {
+        model_ = std::make_unique<BeaconBeamModel>();
+    }
 
     std::unique_ptr<BeaconBeamModel> model_;
 };

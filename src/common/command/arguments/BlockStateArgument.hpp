@@ -31,6 +31,7 @@
 
 #include "ArgumentType.hpp"
 #include "common/command/StringReader.hpp"
+#include "common/command/arguments/GameModeArgument.hpp"
 #include "common/command/exceptions/CommandExceptions.hpp"
 #include "common/core/Types.hpp"
 #include "common/resource/ResourceLocation.hpp"
@@ -52,6 +53,7 @@ namespace command {
 class BlockStateInput {
 public:
     BlockStateInput() noexcept = default;
+
     explicit BlockStateInput(const BlockState* state) noexcept
         : m_state(state)
     {}
@@ -61,14 +63,32 @@ public:
         , m_explicitProps(std::move(explicitProps))
     {}
 
-    [[nodiscard]] const BlockState* state() const noexcept { return m_state; }
-    [[nodiscard]] bool isValid() const noexcept { return m_state != nullptr; }
-    [[nodiscard]] const Block& getBlock() const noexcept { return m_state->getBlock(); }
-    [[nodiscard]] u32 stateId() const noexcept { return m_state ? m_state->stateId() : 0; }
+    [[nodiscard]] const BlockState* state() const noexcept
+    {
+        return m_state;
+    }
+
+    [[nodiscard]] bool isValid() const noexcept
+    {
+        return m_state != nullptr;
+    }
+
+    [[nodiscard]] const Block& getBlock() const noexcept
+    {
+        return m_state->getBlock();
+    }
+
+    [[nodiscard]] u32 stateId() const noexcept
+    {
+        return m_state ? m_state->stateId() : 0;
+    }
 
     // /clone filtered 等命令需区分"显式指定的属性"与"默认值"：vanilla BlockPredicate 仅匹配
     // filter 中显式写出的属性，未写出属性任意值都算匹配。此集合记录解析时方括号内出现的属性。
-    [[nodiscard]] const std::vector<const IProperty*>& explicitProps() const noexcept { return m_explicitProps; }
+    [[nodiscard]] const std::vector<const IProperty*>& explicitProps() const noexcept
+    {
+        return m_explicitProps;
+    }
 
 private:
     const BlockState* m_state = nullptr;
@@ -91,21 +111,29 @@ public:
     {
         i32 start = reader.getCursor();
 
-        // 读取方块 ID 部分（可能包含命名空间和属性）
+        // 读取整个方块状态文本（id 与 `[属性=值,...]`）。原版这一步用
+        // BlockStateParser.parseForBlock 一次读完块名和属性列表；这里先把整段文本读回来，
+        // 下面再按 `[` / `]` 拆开——块名部分随后按 Identifier 规则严格校验。
         std::string blockIdStr = reader.readString();
 
         // 解析方块 ID 和属性
         return _parseBlockState(blockIdStr, reader, start);
     }
 
-    [[nodiscard]] std::string getTypeName() const noexcept override { return "block_state"; }
+    [[nodiscard]] std::string getTypeName() const noexcept override
+    {
+        return "block_state";
+    }
 
     [[nodiscard]] std::vector<std::string> getExamples() const override
     {
         return {"stone", "minecraft:stone", "stone[facing=north]", "oak_stairs[half=top,facing=east]"};
     }
 
-    static std::shared_ptr<BlockStateArgumentType> blockState() { return std::make_shared<BlockStateArgumentType>(); }
+    static std::shared_ptr<BlockStateArgumentType> blockState()
+    {
+        return std::make_shared<BlockStateArgumentType>();
+    }
 
 private:
     /**
@@ -186,7 +214,9 @@ private:
             while (startPos < propsStr.size() && (propsStr[startPos] == ' ' || propsStr[startPos] == '\t')) {
                 startPos++;
             }
-            if (startPos >= propsStr.size()) break;
+            if (startPos >= propsStr.size()) {
+                break;
+            }
 
             // 读取属性名
             size_t eqPos = propsStr.find('=', startPos);
@@ -254,7 +284,9 @@ private:
         if (!wantedProps.empty()) {
             // 遍历所有状态查找匹配的
             for (const auto& candidate : container.validStates()) {
-                if (!candidate) continue;
+                if (!candidate) {
+                    continue;
+                }
 
                 bool matches = true;
                 for (const auto& [prop, index] : wantedProps) {
@@ -274,7 +306,9 @@ private:
             std::string errorMsg = "No matching block state found for properties: ";
             bool first = true;
             for (const auto& [prop, index] : wantedProps) {
-                if (!first) errorMsg += ", ";
+                if (!first) {
+                    errorMsg += ", ";
+                }
                 errorMsg += prop->name() + "=" + prop->valueToString(index);
                 first = false;
             }

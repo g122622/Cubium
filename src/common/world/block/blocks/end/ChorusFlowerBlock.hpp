@@ -61,7 +61,11 @@ public:
 
     [[nodiscard]] i32 getAge(const BlockState& state) const;
     [[nodiscard]] BlockState withAge(i32 age) const;
-    [[nodiscard]] i32 getMaxAge() const { return 5; }
+
+    [[nodiscard]] i32 getMaxAge() const
+    {
+        return 5;
+    }
 
     // ========== 放置逻辑 ==========
 
@@ -74,7 +78,10 @@ public:
 
     void randomTick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random) override;
 
-    [[nodiscard]] bool ticksRandomly() const noexcept override { return true; }
+    [[nodiscard]] bool ticksRandomly() const noexcept override
+    {
+        return true;
+    }
 
     // ========== 形状 ==========
 

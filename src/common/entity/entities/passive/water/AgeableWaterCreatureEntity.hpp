@@ -76,7 +76,10 @@ public:
     /**
      * @brief 获取年龄（负数=幼体，0或正数=成体）
      */
-    [[nodiscard]] i32 getGrowingAge() const { return m_growingAge; }
+    [[nodiscard]] i32 getGrowingAge() const
+    {
+        return m_growingAge;
+    }
 
     /**
      * @brief 设置年龄
@@ -86,10 +89,16 @@ public:
     /**
      * @brief 是否为幼体
      */
-    [[nodiscard]] bool isChild() const override { return m_growingAge < 0; }
+    [[nodiscard]] bool isChild() const override
+    {
+        return m_growingAge < 0;
+    }
 
     /// 同步字段 id 访问器（测试/诊断用，抗字段 id 偏移）
-    [[nodiscard]] static u16 getBabyParamId() { return DATA_BABY_PARAM.id(); }
+    [[nodiscard]] static u16 getBabyParamId()
+    {
+        return DATA_BABY_PARAM.id();
+    }
 
     /**
      * @brief 设置为幼体/成体

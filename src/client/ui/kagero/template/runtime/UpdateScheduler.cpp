@@ -123,7 +123,9 @@ u32 UpdateScheduler::executeLowPriority()
 
 u32 UpdateScheduler::executeBatch()
 {
-    if (!m_updateCallback) return 0;
+    if (!m_updateCallback) {
+        return 0;
+    }
 
     _deduplicatePaths();
 
@@ -131,16 +133,24 @@ u32 UpdateScheduler::executeBatch()
     std::set<std::string> processedPaths;
 
     for (const auto& task : m_tasks) {
-        if (task->cancelled) continue;
-        if (!_isDue(*task, false)) continue;
-        if (processedPaths.count(task->path) > 0) continue;
+        if (task->cancelled) {
+            continue;
+        }
+        if (!_isDue(*task, false)) {
+            continue;
+        }
+        if (processedPaths.count(task->path) > 0) {
+            continue;
+        }
 
         m_updateCallback(task->path);
         processedPaths.insert(task->path);
         task->cancelled = true;
         ++count;
 
-        if (processedPaths.size() >= m_maxBatchSize) break;
+        if (processedPaths.size() >= m_maxBatchSize) {
+            break;
+        }
     }
 
     _cleanupCancelled();
@@ -172,7 +182,9 @@ u32 UpdateScheduler::pendingCount() const
 {
     u32 count = 0;
     for (const auto& task : m_tasks) {
-        if (!task->cancelled) ++count;
+        if (!task->cancelled) {
+            ++count;
+        }
     }
     return count;
 }
@@ -181,7 +193,9 @@ u32 UpdateScheduler::pendingCount(Priority priority) const
 {
     u32 count = 0;
     for (const auto& task : m_tasks) {
-        if (!task->cancelled && task->priority == priority) ++count;
+        if (!task->cancelled && task->priority == priority) {
+            ++count;
+        }
     }
     return count;
 }
@@ -195,8 +209,12 @@ u32 UpdateScheduler::dueCount(u64 currentMs) const
 
     u32 count = 0;
     for (const auto& task : m_tasks) {
-        if (task->cancelled) continue;
-        if (task->dueTimeMs <= currentMs) ++count;
+        if (task->cancelled) {
+            continue;
+        }
+        if (task->dueTimeMs <= currentMs) {
+            ++count;
+        }
     }
     return count;
 }
@@ -208,14 +226,22 @@ u64 UpdateScheduler::currentTimestamp() const
 
 u32 UpdateScheduler::_executePriority(Priority priority, bool forceDue)
 {
-    if (!m_updateCallback) return 0;
+    if (!m_updateCallback) {
+        return 0;
+    }
 
     // 先收集要执行的任务，避免在迭代过程中修改容器
     std::vector<std::pair<u64, std::string>> tasksToExecute;
     for (const auto& task : m_tasks) {
-        if (task->cancelled) continue;
-        if (task->priority != priority) continue;
-        if (!_isDue(*task, forceDue)) continue;
+        if (task->cancelled) {
+            continue;
+        }
+        if (task->priority != priority) {
+            continue;
+        }
+        if (!_isDue(*task, forceDue)) {
+            continue;
+        }
 
         tasksToExecute.emplace_back(reinterpret_cast<u64>(task.get()), task->path);
     }
@@ -231,7 +257,9 @@ u32 UpdateScheduler::_executePriority(Priority priority, bool forceDue)
                 break;
             }
         }
-        if (!stillValid) continue;
+        if (!stillValid) {
+            continue;
+        }
 
         m_updateCallback(path);
 
@@ -250,8 +278,12 @@ u32 UpdateScheduler::_executePriority(Priority priority, bool forceDue)
 
 bool UpdateScheduler::_isDue(const UpdateTask& task, bool forceDue) const
 {
-    if (forceDue) return true;
-    if (!m_deferredUpdate) return true;
+    if (forceDue) {
+        return true;
+    }
+    if (!m_deferredUpdate) {
+        return true;
+    }
     return task.dueTimeMs <= m_nowMs;
 }
 
@@ -259,7 +291,9 @@ void UpdateScheduler::_deduplicatePaths()
 {
     // 对每个路径只保留最新任务
     for (auto& [path, taskIds] : m_pathToTasks) {
-        if (taskIds.size() <= 1) continue;
+        if (taskIds.size() <= 1) {
+            continue;
+        }
 
         // 找到最新任务（最高 timestamp）
         u64 latestTaskId = 0;

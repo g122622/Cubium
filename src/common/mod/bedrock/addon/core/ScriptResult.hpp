@@ -79,38 +79,85 @@ public:
     ScriptValue()
         : m_type(ScriptValueType::Undefined)
     {}
+
     explicit ScriptValue(std::nullptr_t)
         : m_type(ScriptValueType::Null)
     {}
+
     explicit ScriptValue(bool val)
         : m_type(ScriptValueType::Boolean)
         , m_data(val)
     {}
+
     explicit ScriptValue(f64 val)
         : m_type(ScriptValueType::Number)
         , m_data(val)
     {}
+
     explicit ScriptValue(i32 val)
         : m_type(ScriptValueType::Number)
         , m_data(static_cast<f64>(val))
     {}
+
     explicit ScriptValue(std::string val)
         : m_type(ScriptValueType::String)
         , m_data(std::move(val))
     {}
 
-    [[nodiscard]] ScriptValueType type() const { return m_type; }
-    [[nodiscard]] bool isUndefined() const { return m_type == ScriptValueType::Undefined; }
-    [[nodiscard]] bool isNull() const { return m_type == ScriptValueType::Null; }
-    [[nodiscard]] bool isBoolean() const { return m_type == ScriptValueType::Boolean; }
-    [[nodiscard]] bool isNumber() const { return m_type == ScriptValueType::Number; }
-    [[nodiscard]] bool isString() const { return m_type == ScriptValueType::String; }
-    [[nodiscard]] bool isObject() const { return m_type == ScriptValueType::Object; }
-    [[nodiscard]] bool isArray() const { return m_type == ScriptValueType::Array; }
+    [[nodiscard]] ScriptValueType type() const
+    {
+        return m_type;
+    }
 
-    [[nodiscard]] bool asBoolean() const { return std::get<bool>(m_data); }
-    [[nodiscard]] f64 asNumber() const { return std::get<f64>(m_data); }
-    [[nodiscard]] const std::string& asString() const { return std::get<std::string>(m_data); }
+    [[nodiscard]] bool isUndefined() const
+    {
+        return m_type == ScriptValueType::Undefined;
+    }
+
+    [[nodiscard]] bool isNull() const
+    {
+        return m_type == ScriptValueType::Null;
+    }
+
+    [[nodiscard]] bool isBoolean() const
+    {
+        return m_type == ScriptValueType::Boolean;
+    }
+
+    [[nodiscard]] bool isNumber() const
+    {
+        return m_type == ScriptValueType::Number;
+    }
+
+    [[nodiscard]] bool isString() const
+    {
+        return m_type == ScriptValueType::String;
+    }
+
+    [[nodiscard]] bool isObject() const
+    {
+        return m_type == ScriptValueType::Object;
+    }
+
+    [[nodiscard]] bool isArray() const
+    {
+        return m_type == ScriptValueType::Array;
+    }
+
+    [[nodiscard]] bool asBoolean() const
+    {
+        return std::get<bool>(m_data);
+    }
+
+    [[nodiscard]] f64 asNumber() const
+    {
+        return std::get<f64>(m_data);
+    }
+
+    [[nodiscard]] const std::string& asString() const
+    {
+        return std::get<std::string>(m_data);
+    }
 
 private:
     ScriptValueType m_type;
@@ -122,15 +169,35 @@ private:
  */
 class ScriptResult {
 public:
-    static ScriptResult ok(ScriptValue value = ScriptValue()) { return ScriptResult(std::move(value), true, ""); }
+    static ScriptResult ok(ScriptValue value = ScriptValue())
+    {
+        return ScriptResult(std::move(value), true, "");
+    }
 
-    static ScriptResult error(std::string message) { return ScriptResult(ScriptValue(), false, std::move(message)); }
+    static ScriptResult error(std::string message)
+    {
+        return ScriptResult(ScriptValue(), false, std::move(message));
+    }
 
-    [[nodiscard]] bool success() const { return m_success; }
-    [[nodiscard]] const std::string& errorMessage() const { return m_errorMessage; }
-    [[nodiscard]] const ScriptValue& value() const { return m_value; }
+    [[nodiscard]] bool success() const
+    {
+        return m_success;
+    }
 
-    [[nodiscard]] ScriptValue takeValue() { return std::move(m_value); }
+    [[nodiscard]] const std::string& errorMessage() const
+    {
+        return m_errorMessage;
+    }
+
+    [[nodiscard]] const ScriptValue& value() const
+    {
+        return m_value;
+    }
+
+    [[nodiscard]] ScriptValue takeValue()
+    {
+        return std::move(m_value);
+    }
 
 private:
     ScriptResult(ScriptValue value, bool success, std::string errorMessage)

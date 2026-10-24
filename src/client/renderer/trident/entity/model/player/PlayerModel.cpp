@@ -235,39 +235,67 @@ void PlayerModel::setVisible(bool visible)
 {
     BipedModel::setVisible(visible);
 
-    if (m_leftArmwear) m_leftArmwear->setVisible(visible);
-    if (m_rightArmwear) m_rightArmwear->setVisible(visible);
-    if (m_leftLegwear) m_leftLegwear->setVisible(visible);
-    if (m_rightLegwear) m_rightLegwear->setVisible(visible);
-    if (m_bodywear) m_bodywear->setVisible(visible);
-    if (m_cape) m_cape->setVisible(visible);
-    if (m_ears) m_ears->setVisible(visible);
+    if (m_leftArmwear) {
+        m_leftArmwear->setVisible(visible);
+    }
+    if (m_rightArmwear) {
+        m_rightArmwear->setVisible(visible);
+    }
+    if (m_leftLegwear) {
+        m_leftLegwear->setVisible(visible);
+    }
+    if (m_rightLegwear) {
+        m_rightLegwear->setVisible(visible);
+    }
+    if (m_bodywear) {
+        m_bodywear->setVisible(visible);
+    }
+    if (m_cape) {
+        m_cape->setVisible(visible);
+    }
+    if (m_ears) {
+        m_ears->setVisible(visible);
+    }
 }
 
 void PlayerModel::setPartVisible(PlayerModelPart part, bool visible)
 {
     switch (part) {
         case PlayerModelPart::Cape:
-            if (m_cape) m_cape->setVisible(visible);
+            if (m_cape) {
+                m_cape->setVisible(visible);
+            }
             break;
         case PlayerModelPart::Jacket:
-            if (m_bodywear) m_bodywear->setVisible(visible);
+            if (m_bodywear) {
+                m_bodywear->setVisible(visible);
+            }
             break;
         case PlayerModelPart::LeftSleeve:
-            if (m_leftArmwear) m_leftArmwear->setVisible(visible);
+            if (m_leftArmwear) {
+                m_leftArmwear->setVisible(visible);
+            }
             break;
         case PlayerModelPart::RightSleeve:
-            if (m_rightArmwear) m_rightArmwear->setVisible(visible);
+            if (m_rightArmwear) {
+                m_rightArmwear->setVisible(visible);
+            }
             break;
         case PlayerModelPart::LeftPantsLeg:
-            if (m_leftLegwear) m_leftLegwear->setVisible(visible);
+            if (m_leftLegwear) {
+                m_leftLegwear->setVisible(visible);
+            }
             break;
         case PlayerModelPart::RightPantsLeg:
-            if (m_rightLegwear) m_rightLegwear->setVisible(visible);
+            if (m_rightLegwear) {
+                m_rightLegwear->setVisible(visible);
+            }
             break;
         case PlayerModelPart::Hat:
             // Hat 是头部外层，在基类 BipedModel 中是 m_headwear
-            if (m_headwear) m_headwear->setVisible(visible);
+            if (m_headwear) {
+                m_headwear->setVisible(visible);
+            }
             break;
     }
 }

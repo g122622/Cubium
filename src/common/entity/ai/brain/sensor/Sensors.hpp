@@ -47,6 +47,7 @@ class IWorld;
 namespace world {
 namespace village {
 class VillageManager;
+
 namespace poi {
 class PointOfInterestStorage;
 enum class PointOfInterestType : u16;

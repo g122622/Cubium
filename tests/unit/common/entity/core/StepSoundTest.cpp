@@ -51,8 +51,15 @@ public:
         f32 pitch;
     };
 
-    void setBelowBlock(const BlockState* state) { m_belowBlock = state; }
-    void setAboveBlock(const BlockState* state) { m_aboveBlock = state; }
+    void setBelowBlock(const BlockState* state)
+    {
+        m_belowBlock = state;
+    }
+
+    void setAboveBlock(const BlockState* state)
+    {
+        m_aboveBlock = state;
+    }
 
     [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override
     {
@@ -77,15 +84,27 @@ public:
         m_sounds.push_back(SoundRecord{soundEventId, category, volume, pitch});
     }
 
-    [[nodiscard]] const std::vector<SoundRecord>& sounds() const { return m_sounds; }
-    void clearSounds() { m_sounds.clear(); }
-    [[nodiscard]] size_t soundCount() const { return m_sounds.size(); }
+    [[nodiscard]] const std::vector<SoundRecord>& sounds() const
+    {
+        return m_sounds;
+    }
+
+    void clearSounds()
+    {
+        m_sounds.clear();
+    }
+
+    [[nodiscard]] size_t soundCount() const
+    {
+        return m_sounds.size();
+    }
 
     // TickManager 接口（桩实现）
     [[nodiscard]] world::tick::TickManager& tickManager() override
     {
         throw std::runtime_error("StepSoundTestWorld::tickManager not implemented");
     }
+
     [[nodiscard]] const world::tick::TickManager& tickManager() const override
     {
         throw std::runtime_error("StepSoundTestWorld::tickManager not implemented");

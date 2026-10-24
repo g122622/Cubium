@@ -65,7 +65,10 @@ public:
      *
      * 仅 Simple 子类返回其固定状态；其余子类返回 nullptr（需随机源/世界才能采样）。
      */
-    [[nodiscard]] virtual const BlockState* asSingleState() const noexcept { return nullptr; }
+    [[nodiscard]] virtual const BlockState* asSingleState() const noexcept
+    {
+        return nullptr;
+    }
 
     /**
      * @brief 深拷贝当前提供者（含递归子提供者）

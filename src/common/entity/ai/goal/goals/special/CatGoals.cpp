@@ -314,8 +314,9 @@ void CatRelaxOnOwnerGoal::_giveMorningGift()
                                .withRandom(m_cat->getRandom())
                                .withParameter(loot::LootParams::THIS_ENTITY, static_cast<Entity*>(m_cat))
                                .withOwnedValue(loot::LootParams::BLOCK_POS, catPos)
-                               .withLootTableResolver(
-                                   [ltm](const std::string& id) -> const loot::LootTable* { return ltm->getTable(id); })
+                               .withLootTableResolver([ltm](const std::string& id) -> const loot::LootTable* {
+                                   return ltm->getTable(id);
+                               })
                                .withPredicateResolver([ltm](const std::string& id) -> const loot::LootCondition* {
                                    return ltm->getPredicate(id);
                                })
@@ -342,6 +343,7 @@ void CatRelaxOnOwnerGoal::_giveMorningGift()
         const Item* item;
         i32 weight;
     };
+
     const GiftItem giftItems[] = {
         {Items::RABBIT_HIDE, 10},     // 兔子皮
         {Items::RABBIT_FOOT, 10},     // 兔子脚

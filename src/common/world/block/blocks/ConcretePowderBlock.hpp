@@ -95,7 +95,10 @@ public:
     /**
      * @brief 获取对应颜色的混凝土方块
      */
-    [[nodiscard]] const Block* getConcreteBlock() const { return m_concrete; }
+    [[nodiscard]] const Block* getConcreteBlock() const
+    {
+        return m_concrete;
+    }
 
 private:
     /**

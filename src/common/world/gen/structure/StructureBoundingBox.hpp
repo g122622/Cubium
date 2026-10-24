@@ -85,33 +85,79 @@ public:
         i32 sizeZ,
         Direction direction) noexcept;
 
-    [[nodiscard]] i32 minX() const noexcept { return m_minX; }
-    [[nodiscard]] i32 minY() const noexcept { return m_minY; }
-    [[nodiscard]] i32 minZ() const noexcept { return m_minZ; }
-    [[nodiscard]] i32 maxX() const noexcept { return m_maxX; }
-    [[nodiscard]] i32 maxY() const noexcept { return m_maxY; }
-    [[nodiscard]] i32 maxZ() const noexcept { return m_maxZ; }
+    [[nodiscard]] i32 minX() const noexcept
+    {
+        return m_minX;
+    }
 
-    [[nodiscard]] i32 xSpan() const noexcept { return m_maxX - m_minX + 1; }
-    [[nodiscard]] i32 ySpan() const noexcept { return m_maxY - m_minY + 1; }
-    [[nodiscard]] i32 zSpan() const noexcept { return m_maxZ - m_minZ + 1; }
+    [[nodiscard]] i32 minY() const noexcept
+    {
+        return m_minY;
+    }
+
+    [[nodiscard]] i32 minZ() const noexcept
+    {
+        return m_minZ;
+    }
+
+    [[nodiscard]] i32 maxX() const noexcept
+    {
+        return m_maxX;
+    }
+
+    [[nodiscard]] i32 maxY() const noexcept
+    {
+        return m_maxY;
+    }
+
+    [[nodiscard]] i32 maxZ() const noexcept
+    {
+        return m_maxZ;
+    }
+
+    [[nodiscard]] i32 xSpan() const noexcept
+    {
+        return m_maxX - m_minX + 1;
+    }
+
+    [[nodiscard]] i32 ySpan() const noexcept
+    {
+        return m_maxY - m_minY + 1;
+    }
+
+    [[nodiscard]] i32 zSpan() const noexcept
+    {
+        return m_maxZ - m_minZ + 1;
+    }
 
     /**
      * @brief 获取中心 X 坐标
      */
-    [[nodiscard]] i32 centerX() const noexcept { return (m_minX + m_maxX) / 2; }
+    [[nodiscard]] i32 centerX() const noexcept
+    {
+        return (m_minX + m_maxX) / 2;
+    }
 
     /**
      * @brief 获取中心 Y 坐标
      */
-    [[nodiscard]] i32 centerY() const noexcept { return (m_minY + m_maxY) / 2; }
+    [[nodiscard]] i32 centerY() const noexcept
+    {
+        return (m_minY + m_maxY) / 2;
+    }
 
     /**
      * @brief 获取中心 Z 坐标
      */
-    [[nodiscard]] i32 centerZ() const noexcept { return (m_minZ + m_maxZ) / 2; }
+    [[nodiscard]] i32 centerZ() const noexcept
+    {
+        return (m_minZ + m_maxZ) / 2;
+    }
 
-    [[nodiscard]] bool isValid() const noexcept { return m_valid; }
+    [[nodiscard]] bool isValid() const noexcept
+    {
+        return m_valid;
+    }
 
     [[nodiscard]] bool contains(i32 x, i32 y, i32 z) const noexcept
     {
@@ -121,7 +167,10 @@ public:
     /**
      * @brief 检查点是否在边界框内（BlockPos版本）
      */
-    [[nodiscard]] bool isVecInside(i32 x, i32 y, i32 z) const noexcept { return contains(x, y, z); }
+    [[nodiscard]] bool isVecInside(i32 x, i32 y, i32 z) const noexcept
+    {
+        return contains(x, y, z);
+    }
 
     /**
      * @brief 检查是否与另一个边界框相交
@@ -135,12 +184,18 @@ public:
     /**
      * @brief 检查是否与另一个边界框相交（别名）
      */
-    [[nodiscard]] bool intersects(const StructureBoundingBox& other) const noexcept { return intersectsWith(other); }
+    [[nodiscard]] bool intersects(const StructureBoundingBox& other) const noexcept
+    {
+        return intersectsWith(other);
+    }
 
     /**
      * @brief 检查点是否在边界框内（别名）
      */
-    [[nodiscard]] bool isInside(i32 x, i32 y, i32 z) const noexcept { return contains(x, y, z); }
+    [[nodiscard]] bool isInside(i32 x, i32 y, i32 z) const noexcept
+    {
+        return contains(x, y, z);
+    }
 
     [[nodiscard]] bool intersectsChunk(i32 chunkX, i32 chunkZ) const noexcept
     {

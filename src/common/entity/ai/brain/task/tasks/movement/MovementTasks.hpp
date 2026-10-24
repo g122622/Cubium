@@ -83,7 +83,10 @@ public:
         , m_stuckCheckZ(0.0)
     {}
 
-    std::string getName() const override { return "MoveToTargetTask"; }
+    std::string getName() const override
+    {
+        return "MoveToTargetTask";
+    }
 
 protected:
     bool shouldExecute(IWorld* world, E* owner) override
@@ -317,7 +320,10 @@ public:
         , m_yRange(static_cast<i32>(goal::constants::RANDOM_WALK_VERTICAL_RANGE))
     {}
 
-    std::string getName() const override { return "StrollTask"; }
+    std::string getName() const override
+    {
+        return "StrollTask";
+    }
 
 protected:
     bool shouldExecute(IWorld* world, E* owner) override
@@ -378,7 +384,10 @@ public:
         , m_probability(probability)
     {}
 
-    std::string getName() const override { return "LookAtEntityTask"; }
+    std::string getName() const override
+    {
+        return "LookAtEntityTask";
+    }
 
 protected:
     bool shouldExecute(IWorld* world, E* owner) override
@@ -501,7 +510,10 @@ protected:
         }
     }
 
-    void resetTask(IWorld* world, E* owner, i64 gameTime) override { m_lookTargetId = INVALID_ENTITY_ID; }
+    void resetTask(IWorld* world, E* owner, i64 gameTime) override
+    {
+        m_lookTargetId = INVALID_ENTITY_ID;
+    }
 
 private:
     f32 m_range;
@@ -526,7 +538,10 @@ public:
         , m_speed(speed)
     {}
 
-    std::string getName() const override { return "FindHiddenBlockTask"; }
+    std::string getName() const override
+    {
+        return "FindHiddenBlockTask";
+    }
 
 protected:
     bool shouldExecute(IWorld* world, E* owner) override
@@ -616,7 +631,10 @@ public:
         , m_stopDistance(stopDistance)
     {}
 
-    std::string getName() const override { return "ChaseTask"; }
+    std::string getName() const override
+    {
+        return "ChaseTask";
+    }
 
 protected:
     bool shouldExecute(IWorld* world, E* owner) override
@@ -669,9 +687,15 @@ protected:
         return distSq > m_stopDistance * m_stopDistance;
     }
 
-    void startExecuting(IWorld* world, E* owner, i64 gameTime) override { _updateWalkAndLookTarget(world, owner); }
+    void startExecuting(IWorld* world, E* owner, i64 gameTime) override
+    {
+        _updateWalkAndLookTarget(world, owner);
+    }
 
-    void updateTask(IWorld* world, E* owner, i64 gameTime) override { _updateWalkAndLookTarget(world, owner); }
+    void updateTask(IWorld* world, E* owner, i64 gameTime) override
+    {
+        _updateWalkAndLookTarget(world, owner);
+    }
 
     void resetTask(IWorld* world, E* owner, i64 gameTime) override
     {
@@ -737,7 +761,10 @@ public:
         , m_fleeDistance(fleeDistance)
     {}
 
-    std::string getName() const override { return "FleeTask"; }
+    std::string getName() const override
+    {
+        return "FleeTask";
+    }
 
 protected:
     bool shouldExecute(IWorld* world, E* owner) override
@@ -763,7 +790,10 @@ protected:
         return distSq <= goal::constants::AVOID_DETECTION_RANGE * goal::constants::AVOID_DETECTION_RANGE;
     }
 
-    void startExecuting(IWorld* world, E* owner, i64 gameTime) override { _setFleeTarget(world, owner); }
+    void startExecuting(IWorld* world, E* owner, i64 gameTime) override
+    {
+        _setFleeTarget(world, owner);
+    }
 
     void updateTask(IWorld* world, E* owner, i64 gameTime) override
     {

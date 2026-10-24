@@ -56,7 +56,9 @@ using mc::i32; // i32 属 mc::（非 mc::test），测试内简写
 namespace {
 mc::test::NativeGameTestFunction::TestBody _passBody()
 {
-    return [](mc::test::IGameTestHelper& /*h*/) { return mc::test::pass(); };
+    return [](mc::test::IGameTestHelper& /*h*/) {
+        return mc::test::pass();
+    };
 }
 
 std::shared_ptr<mc::test::NativeGameTestFunction> _makeFunction(const std::string& name)
@@ -152,8 +154,12 @@ TEST(GameTestRunner, BatchHoldsFunctionsAndAccessors)
     mc::test::GameTestBatch batch(
         std::string{"day"},
         std::move(fns),
-        [&beforeCalled] { beforeCalled = true; },
-        [&afterCalled] { afterCalled = true; },
+        [&beforeCalled] {
+            beforeCalled = true;
+        },
+        [&afterCalled] {
+            afterCalled = true;
+        },
         env);
 
     EXPECT_EQ(batch.name(), "day");

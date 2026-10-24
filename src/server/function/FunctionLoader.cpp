@@ -159,6 +159,7 @@ Size FunctionLoader::loadFunctionTags(const mc::resource::DataPackRepository& da
         bool replace = false;
         std::vector<TagEntry> entries;
     };
+
     std::unordered_map<ResourceLocation, TagParseData> parsedTags;
 
     for (const auto& namespace_ : namespacesResult.value()) {
@@ -223,6 +224,7 @@ Size FunctionLoader::loadFunctionTags(const mc::resource::DataPackRepository& da
         std::vector<ResourceLocation> directFunctionIds; // 标签直接声明的函数条目
         std::vector<ResourceLocation> tagReferences;     // 需要展开的标签引用（# 前缀）
     };
+
     std::unordered_map<ResourceLocation, MergedTag> mergedTags;
 
     // 建立条目ID到required的映射，用于后续验证
@@ -230,6 +232,7 @@ Size FunctionLoader::loadFunctionTags(const mc::resource::DataPackRepository& da
         std::unordered_map<ResourceLocation, bool> functionRequired;
         std::unordered_map<ResourceLocation, bool> tagRequired;
     };
+
     std::unordered_map<ResourceLocation, RequiredMaps> requiredMaps;
 
     // 第一步：将条目分类收集（直接函数引用 + 标签引用）

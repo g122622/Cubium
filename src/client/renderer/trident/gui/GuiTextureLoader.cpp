@@ -237,7 +237,9 @@ Result<u32> GuiTextureLoader::buildSpriteAtlas(GuiSpriteAtlas& atlas, const std:
         bool found = false;
         for (auto it = m_resourcePacks.rbegin(); it != m_resourcePacks.rend() && !found; ++it) {
             auto& pack = *it;
-            if (!pack) continue;
+            if (!pack) {
+                continue;
+            }
 
             if (!pack->hasResource(resource::PackType::ClientResources, pngPath)) {
                 continue;

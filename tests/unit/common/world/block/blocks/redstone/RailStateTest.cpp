@@ -80,7 +80,10 @@ public:
         setBlockState(x, y, z, &state);
     }
 
-    void clearAll() { m_blocks.clear(); }
+    void clearAll()
+    {
+        m_blocks.clear();
+    }
 
 private:
     std::map<BlockPos, std::unique_ptr<BlockState>> m_blocks;

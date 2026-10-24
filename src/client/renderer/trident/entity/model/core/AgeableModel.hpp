@@ -96,25 +96,37 @@ public:
      * @brief 设置幼体状态
      * @param isChild 是否为幼体
      */
-    void setChild(bool isChild) { m_isChild = isChild; }
+    void setChild(bool isChild)
+    {
+        m_isChild = isChild;
+    }
 
     /**
      * @brief 是否为幼体
      */
-    [[nodiscard]] bool isChild() const { return m_isChild; }
+    [[nodiscard]] bool isChild() const
+    {
+        return m_isChild;
+    }
 
 protected:
     /**
      * @brief 获取头部部件
      * @return 头部模型部件列表
      */
-    virtual std::vector<std::shared_ptr<ModelRenderer>> getHeadParts() const { return {}; }
+    virtual std::vector<std::shared_ptr<ModelRenderer>> getHeadParts() const
+    {
+        return {};
+    }
 
     /**
      * @brief 获取身体部件
      * @return 身体模型部件列表
      */
-    virtual std::vector<std::shared_ptr<ModelRenderer>> getBodyParts() const { return m_parts; }
+    virtual std::vector<std::shared_ptr<ModelRenderer>> getBodyParts() const
+    {
+        return m_parts;
+    }
 
     // ========== 幼体参数 ==========
     bool m_isChildHeadScaled = false;

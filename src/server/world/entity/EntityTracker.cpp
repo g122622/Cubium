@@ -116,7 +116,9 @@ void EntityTracker::trackEntity(Entity* entity)
         "typeId",
         entity ? entity->getTypeId() : "");
 
-    if (!entity) return;
+    if (!entity) {
+        return;
+    }
 
     std::lock_guard<std::mutex> lock(m_mutex);
 
@@ -148,6 +150,7 @@ void EntityTracker::notifyEntityTracked(IServer& server, ServerWorld& world, Ent
         PlayerId playerId;
         Vector3 position;
     };
+
     std::vector<PlayerView> onlinePlayers;
     const std::vector<PlayerId> playerIds = server.playerManager().getPlayerIds();
     onlinePlayers.reserve(playerIds.size());
@@ -518,7 +521,9 @@ void EntityTracker::updatePlayerTracking(
     // 检查所有被追踪的实体
     for (auto& [entityId, tracked] : m_trackedEntities) {
         Entity* entity = world.entityManager().getEntity(entityId);
-        if (!entity) continue;
+        if (!entity) {
+            continue;
+        }
 
         // 跳过玩家自身实体：本地玩家由 login 包直接建立，不应再收到自己的
         // SpawnEntity/SpawnMob 包，否则客户端 spawnEntity 会撞已存在的本地玩家
@@ -614,8 +619,9 @@ void EntityTracker::tick(IServer& server, ServerWorld& world)
 
             tracked.updateCounter++;
             tracked.absoluteSyncTicks++;
-            if (tracked.absoluteSyncTicks > 400 || tracked.lastOnGround != entity->onGround())
+            if (tracked.absoluteSyncTicks > 400 || tracked.lastOnGround != entity->onGround()) {
                 tracked.needsFullUpdate = true;
+            }
 
             Vector3 currentPos = entity->position();
             f32 currentYaw = entity->yaw();
@@ -640,7 +646,9 @@ void EntityTracker::tick(IServer& server, ServerWorld& world)
                 tracked.lastPosition = currentPos;
                 tracked.lastYaw = currentYaw;
                 tracked.lastPitch = currentPitch;
-                if (resetAbsoluteTicks) tracked.absoluteSyncTicks = 0;
+                if (resetAbsoluteTicks) {
+                    tracked.absoluteSyncTicks = 0;
+                }
                 tracked.lastOnGround = entity->onGround();
                 tracked.needsFullUpdate = false;
             }
@@ -722,11 +730,15 @@ bool EntityTracker::_shouldTrack(const Vector3& playerPos, const Vector3& entity
 
 void EntityTracker::_sendSpawnPacket(IServer& server, PlayerId playerId, Entity* entity)
 {
-    if (!entity) return;
+    if (!entity) {
+        return;
+    }
 
     // 获取玩家数据
     ServerPlayerData* player = server.playerManager().getPlayer(playerId);
-    if (!player || !player->hasConnection()) return;
+    if (!player || !player->hasConnection()) {
+        return;
+    }
 
     // 1.21.11 统一用 AddEntity 生成实体（含经验球/掉落物/Mob），
     // 元数据走独立的 SetEntityData 包。MobEntity 的 headYaw 经 AddEntity.yHeadRot 透传。
@@ -791,10 +803,14 @@ void EntityTracker::_sendSpawnPacket(IServer& server, PlayerId playerId, Entity*
 void EntityTracker::_sendMetadataPacket(
     IServer& server, PlayerId playerId, Entity* entity, const std::vector<u8>& metadata)
 {
-    if (!entity || metadata.empty()) return;
+    if (!entity || metadata.empty()) {
+        return;
+    }
 
     ServerPlayerData* player = server.playerManager().getPlayer(playerId);
-    if (!player || !player->hasConnection()) return;
+    if (!player || !player->hasConnection()) {
+        return;
+    }
 
     // 1.21.11 SetEntityData：entityId + 已序列化的元数据字节（含 EOF 0xFF）。
     mc::network::ir::play::SetEntityData pkt;
@@ -806,7 +822,9 @@ void EntityTracker::_sendMetadataPacket(
 void EntityTracker::_sendDestroyPacket(IServer& server, PlayerId playerId, EntityInstanceId entityId)
 {
     ServerPlayerData* player = server.playerManager().getPlayer(playerId);
-    if (!player || !player->hasConnection()) return;
+    if (!player || !player->hasConnection()) {
+        return;
+    }
 
     // 1.21.11 RemoveEntities：VarInt(count) + count×VarInt(entityId)。
     mc::network::ir::play::RemoveEntities pkt;
@@ -829,10 +847,14 @@ void EntityTracker::_sendMovePacket(IServer& server,
     bool positionChanged,
     bool rotationChanged)
 {
-    if (!entity) return;
+    if (!entity) {
+        return;
+    }
 
     ServerPlayerData* player = server.playerManager().getPlayer(playerId);
-    if (!player || !player->hasConnection()) return;
+    if (!player || !player->hasConnection()) {
+        return;
+    }
 
     // 计算 1/4096 定点 delta（对齐 vanilla 1.21.11 MoveEntity*.deltaX/Y/Z: Short）。
     // 超出 i16 范围时发送绝对位置和当前速度的完整快照。
@@ -922,10 +944,14 @@ void EntityTracker::_sendHeadRotatePacket(IServer& server, PlayerId playerId, En
 
 void EntityTracker::_sendVelocityPacket(IServer& server, PlayerId playerId, Entity* entity)
 {
-    if (!entity) return;
+    if (!entity) {
+        return;
+    }
 
     ServerPlayerData* player = server.playerManager().getPlayer(playerId);
-    if (!player || !player->hasConnection()) return;
+    if (!player || !player->hasConnection()) {
+        return;
+    }
 
     // 1.21.11 SetEntityMotion：entityId + LpVec3 速度（m/tick）。
     // 旧路径用 1/8000 i16；1.21.11 codec 用 LpVec3 直接承载 f64。

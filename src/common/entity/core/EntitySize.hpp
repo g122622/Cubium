@@ -26,6 +26,8 @@
 #include "common/core/Types.hpp"
 #include "common/util/AxisAlignedBB.hpp"
 #include "common/util/math/Vector3.hpp"
+#include <optional>
+#include <string_view>
 
 namespace mc::entity {
 
@@ -71,17 +73,26 @@ public:
     /**
      * @brief 获取宽度
      */
-    [[nodiscard]] constexpr f32 width() const { return m_width; }
+    [[nodiscard]] constexpr f32 width() const
+    {
+        return m_width;
+    }
 
     /**
      * @brief 获取高度
      */
-    [[nodiscard]] constexpr f32 height() const { return m_height; }
+    [[nodiscard]] constexpr f32 height() const
+    {
+        return m_height;
+    }
 
     /**
      * @brief 获取眼睛高度
      */
-    [[nodiscard]] constexpr f32 eyeHeight() const { return m_eyeHeight; }
+    [[nodiscard]] constexpr f32 eyeHeight() const
+    {
+        return m_eyeHeight;
+    }
 
     /**
      * @brief 是否为固定尺寸
@@ -89,7 +100,10 @@ public:
      * 固定尺寸的实体不会根据姿态（如蹲下、游泳）调整尺寸。
      * 例如：船、矿车、盔甲架
      */
-    [[nodiscard]] constexpr bool isFixed() const { return m_fixed; }
+    [[nodiscard]] constexpr bool isFixed() const
+    {
+        return m_fixed;
+    }
 
     /**
      * @brief 创建碰撞箱
@@ -98,7 +112,10 @@ public:
      * @param z 实体Z坐标
      * @return AABB碰撞箱
      */
-    [[nodiscard]] AxisAlignedBB createBoundingBox(f64 x, f64 y, f64 z) const { return makeBoundingBox(x, y, z); }
+    [[nodiscard]] AxisAlignedBB createBoundingBox(f64 x, f64 y, f64 z) const
+    {
+        return makeBoundingBox(x, y, z);
+    }
 
     /**
      * @brief 创建碰撞箱
@@ -153,7 +170,10 @@ public:
      *
      * 如果是固定尺寸，返回原尺寸。
      */
-    [[nodiscard]] EntitySize scale(f32 factor) const { return scale(factor, factor); }
+    [[nodiscard]] EntitySize scale(f32 factor) const
+    {
+        return scale(factor, factor);
+    }
 
     /**
      * @brief 分别缩放宽度和高度
@@ -174,12 +194,18 @@ public:
     /**
      * @brief 创建可变尺寸
      */
-    static constexpr EntitySize flexible(f32 width, f32 height) { return EntitySize(width, height, false); }
+    static constexpr EntitySize flexible(f32 width, f32 height)
+    {
+        return EntitySize(width, height, false);
+    }
 
     /**
      * @brief 创建固定尺寸
      */
-    static constexpr EntitySize fixed(f32 width, f32 height) { return EntitySize(width, height, true); }
+    static constexpr EntitySize fixed(f32 width, f32 height)
+    {
+        return EntitySize(width, height, true);
+    }
 
     /**
      * @brief 比较操作符
@@ -190,15 +216,42 @@ public:
             m_fixed == other.m_fixed;
     }
 
-    [[nodiscard]] bool operator!=(const EntitySize& other) const noexcept { return !(*this == other); }
+    [[nodiscard]] bool operator!=(const EntitySize& other) const noexcept
+    {
+        return !(*this == other);
+    }
 
 private:
-    [[nodiscard]] static constexpr f32 _defaultEyeHeight(f32 height) { return height * 0.85f; }
+    [[nodiscard]] static constexpr f32 _defaultEyeHeight(f32 height)
+    {
+        return height * 0.85f;
+    }
 
     f32 m_width;
     f32 m_height;
     f32 m_eyeHeight;
     bool m_fixed;
 };
+
+/**
+ * @brief 查原版实体类型的碰撞箱尺寸
+ *
+ * 原版把尺寸定义在实体类里（EntityType.Builder.sized），本项目另有一份注册表；
+ * 两边不同步会导致碰撞判定偏大/偏小。数据表由
+ * scripts/baking/gen_entity_dimensions.py 从原版 1.21.11 jar 生成
+ * （见 VanillaEntityDimensions.cpp），注册时用它覆盖宽高与眼高。
+ *
+ * @param entityName 实体资源位置，如 "minecraft:zombie"
+ * @return 原版尺寸；表中没有该实体时返回 nullopt
+ */
+[[nodiscard]] std::optional<EntitySize> vanillaEntitySize(std::string_view entityName);
+
+/**
+ * @brief 查原版实体类型的眼睛高度（vanillaEntitySize 的便捷重载）
+ *
+ * @param entityName 实体资源位置，如 "minecraft:zombie"
+ * @return 原版眼高；表中没有该实体时返回 nullopt
+ */
+[[nodiscard]] std::optional<f32> vanillaEyeHeight(std::string_view entityName);
 
 } // namespace mc::entity

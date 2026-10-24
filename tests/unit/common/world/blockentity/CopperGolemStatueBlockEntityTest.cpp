@@ -58,7 +58,10 @@ namespace {
 
 class CopperGolemStatueEntityTestWorld final : public mc::test::BaseTestWorld {
 public:
-    CopperGolemStatueEntityTestWorld() { m_tickManagerPtr = std::make_unique<world::tick::TickManager>(*this); }
+    CopperGolemStatueEntityTestWorld()
+    {
+        m_tickManagerPtr = std::make_unique<world::tick::TickManager>(*this);
+    }
 
     bool setBlockState(i32 x, i32 y, i32 z, const BlockState* state) override
     {
@@ -132,12 +135,30 @@ public:
         return static_cast<EntityInstanceId>(m_spawnedEntities.size());
     }
 
-    [[nodiscard]] world::tick::TickManager& tickManager() override { return *m_tickManagerPtr; }
-    [[nodiscard]] const world::tick::TickManager& tickManager() const override { return *m_tickManagerPtr; }
+    [[nodiscard]] world::tick::TickManager& tickManager() override
+    {
+        return *m_tickManagerPtr;
+    }
 
-    [[nodiscard]] u64 seed() const override { return m_seed; }
-    [[nodiscard]] bool isRaining() const override { return false; }
-    [[nodiscard]] bool canRainAt(const BlockPos&) const override { return false; }
+    [[nodiscard]] const world::tick::TickManager& tickManager() const override
+    {
+        return *m_tickManagerPtr;
+    }
+
+    [[nodiscard]] u64 seed() const override
+    {
+        return m_seed;
+    }
+
+    [[nodiscard]] bool isRaining() const override
+    {
+        return false;
+    }
+
+    [[nodiscard]] bool canRainAt(const BlockPos&) const override
+    {
+        return false;
+    }
 
     // ========== 测试辅助 ==========
 
@@ -155,10 +176,25 @@ public:
         gameevent::GameEvent::Context context;
     };
 
-    [[nodiscard]] const std::vector<SoundRecord>& sounds() const { return m_sounds; }
-    [[nodiscard]] const std::vector<std::unique_ptr<Entity>>& spawnedEntities() const { return m_spawnedEntities; }
-    [[nodiscard]] const std::vector<GameEventRecord>& gameEvents() const { return m_gameEvents; }
-    void clearSounds() { m_sounds.clear(); }
+    [[nodiscard]] const std::vector<SoundRecord>& sounds() const
+    {
+        return m_sounds;
+    }
+
+    [[nodiscard]] const std::vector<std::unique_ptr<Entity>>& spawnedEntities() const
+    {
+        return m_spawnedEntities;
+    }
+
+    [[nodiscard]] const std::vector<GameEventRecord>& gameEvents() const
+    {
+        return m_gameEvents;
+    }
+
+    void clearSounds()
+    {
+        m_sounds.clear();
+    }
 
 private:
     std::unordered_map<BlockPos, std::unique_ptr<BlockState>> m_blocks;

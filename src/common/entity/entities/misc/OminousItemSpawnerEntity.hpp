@@ -97,8 +97,15 @@ public:
 
     // ========== 实体尺寸 ==========
 
-    f32 width() const override { return 0.25f; }
-    f32 height() const override { return 0.25f; }
+    f32 width() const override
+    {
+        return 0.25f;
+    }
+
+    f32 height() const override
+    {
+        return 0.25f;
+    }
 
     // ========== 生命周期 ==========
 
@@ -110,7 +117,10 @@ public:
      * @brief 获取存储的物品
      * @return 物品堆的常引用，空物品表示无物品
      */
-    [[nodiscard]] const ItemStack& getItem() const { return m_item; }
+    [[nodiscard]] const ItemStack& getItem() const
+    {
+        return m_item;
+    }
 
     /**
      * @brief 设置存储的物品
@@ -124,7 +134,10 @@ public:
      * @brief 获取活塞推动反应
      * @return PushReaction::Ignore，实体不受活塞推动
      */
-    [[nodiscard]] PushReaction getPushReaction() const override { return PushReaction::Ignore; }
+    [[nodiscard]] PushReaction getPushReaction() const override
+    {
+        return PushReaction::Ignore;
+    }
 
     /**
      * @brief 检查实体是否不触发压力板/绊线
@@ -132,7 +145,10 @@ public:
      *
      * 对应 MC Java 的 OminousItemSpawner.isIgnoringBlockTriggers()
      */
-    [[nodiscard]] bool doesEntityNotTriggerPressurePlate() const override { return true; }
+    [[nodiscard]] bool doesEntityNotTriggerPressurePlate() const override
+    {
+        return true;
+    }
 
     /**
      * @brief 检查此实体是否根本可以接受乘客
@@ -140,7 +156,10 @@ public:
      *
      * 对应 MC Java 的 OminousItemSpawner.couldAcceptPassenger()
      */
-    [[nodiscard]] bool couldAcceptPassenger() const override { return false; }
+    [[nodiscard]] bool couldAcceptPassenger() const override
+    {
+        return false;
+    }
 
     /**
      * @brief 检查此实体是否可以添加指定乘客
@@ -148,7 +167,10 @@ public:
      *
      * 对应 MC Java 的 OminousItemSpawner.canAddPassenger(Entity)
      */
-    [[nodiscard]] bool canAddPassenger(const Entity& /*passenger*/) const override { return false; }
+    [[nodiscard]] bool canAddPassenger(const Entity& /*passenger*/) const override
+    {
+        return false;
+    }
 
     // ========== 序列化 ==========
 

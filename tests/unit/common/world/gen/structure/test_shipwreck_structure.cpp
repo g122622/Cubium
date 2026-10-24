@@ -41,7 +41,10 @@ using namespace mc::world::gen::feature::template_;
 
 class ShipwreckStructureTest : public ::testing::Test {
 protected:
-    void SetUp() override { VanillaBlocks::initialize(); }
+    void SetUp() override
+    {
+        VanillaBlocks::initialize();
+    }
 };
 
 // ============================================================================
@@ -186,10 +189,18 @@ TEST_F(ShipwreckStructureTest, Structure_AllTemplateList)
     bool hasWithMast = false;
 
     for (const auto& name : templates) {
-        if (name.find("upsidedown") != std::string::npos) hasUpsidedown = true;
-        if (name.find("sideways") != std::string::npos) hasSideways = true;
-        if (name.find("rightsideup") != std::string::npos) hasRightsideup = true;
-        if (name.find("with_mast") != std::string::npos) hasWithMast = true;
+        if (name.find("upsidedown") != std::string::npos) {
+            hasUpsidedown = true;
+        }
+        if (name.find("sideways") != std::string::npos) {
+            hasSideways = true;
+        }
+        if (name.find("rightsideup") != std::string::npos) {
+            hasRightsideup = true;
+        }
+        if (name.find("with_mast") != std::string::npos) {
+            hasWithMast = true;
+        }
     }
 
     EXPECT_TRUE(hasUpsidedown) << "Missing upsidedown template";
@@ -277,8 +288,12 @@ TEST_F(ShipwreckStructureTest, TemplateVariants_Half)
     bool hasBackHalf = false;
 
     for (const auto& name : all) {
-        if (name.find("fronthalf") != std::string::npos) hasFrontHalf = true;
-        if (name.find("backhalf") != std::string::npos) hasBackHalf = true;
+        if (name.find("fronthalf") != std::string::npos) {
+            hasFrontHalf = true;
+        }
+        if (name.find("backhalf") != std::string::npos) {
+            hasBackHalf = true;
+        }
     }
 
     EXPECT_TRUE(hasFrontHalf) << "Missing fronthalf template variant";

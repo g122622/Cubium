@@ -266,8 +266,9 @@ public:
 
         const std::string& key = keyIt->second;
         auto& subscribers = m_subscribers[key];
-        auto it =
-            std::find_if(subscribers.begin(), subscribers.end(), [id](const auto& pair) { return pair.first == id; });
+        auto it = std::find_if(subscribers.begin(), subscribers.end(), [id](const auto& pair) {
+            return pair.first == id;
+        });
 
         if (it != subscribers.end()) {
             subscribers.erase(it);
@@ -314,7 +315,10 @@ public:
      *
      * @param action 动作函数
      */
-    void dispatch(Action action) { action(*this); }
+    void dispatch(Action action)
+    {
+        action(*this);
+    }
 
     /**
      * @brief 添加中间件
@@ -441,12 +445,18 @@ public:
     /**
      * @brief 执行选择
      */
-    [[nodiscard]] T select() const { return m_select(StateStore::instance()); }
+    [[nodiscard]] T select() const
+    {
+        return m_select(StateStore::instance());
+    }
 
     /**
      * @brief 设置订阅键
      */
-    void setKey(const std::string& key) { m_key = key; }
+    void setKey(const std::string& key)
+    {
+        m_key = key;
+    }
 
     /**
      * @brief 订阅选择结果变化
@@ -520,17 +530,26 @@ public:
     /**
      * @brief 绑定更新回调
      */
-    u64 bind(UpdateCallback callback) { return StateStore::instance().subscribe(m_storeKey, std::move(callback)); }
+    u64 bind(UpdateCallback callback)
+    {
+        return StateStore::instance().subscribe(m_storeKey, std::move(callback));
+    }
 
     /**
      * @brief 解除绑定
      */
-    void unbind(u64 id) { StateStore::instance().unsubscribe(id); }
+    void unbind(u64 id)
+    {
+        StateStore::instance().unsubscribe(id);
+    }
 
     /**
      * @brief 获取存储键
      */
-    [[nodiscard]] const std::string& key() const { return m_storeKey; }
+    [[nodiscard]] const std::string& key() const
+    {
+        return m_storeKey;
+    }
 
 private:
     std::string m_storeKey;

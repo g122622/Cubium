@@ -72,7 +72,10 @@ TEST_F(DragonFireballParticleTest, DefaultValues_AreCorrect)
 
 class DragonBreathCloudParticleTest : public ::testing::Test {
 protected:
-    void SetUp() override { m_cloud = std::make_unique<AreaEffectCloudEntity>(mc::test::testEcsRegistry()); }
+    void SetUp() override
+    {
+        m_cloud = std::make_unique<AreaEffectCloudEntity>(mc::test::testEcsRegistry());
+    }
 
     std::unique_ptr<AreaEffectCloudEntity> m_cloud;
 };

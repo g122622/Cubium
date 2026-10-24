@@ -52,12 +52,18 @@ public:
     /**
      * @brief 获取字体高度
      */
-    [[nodiscard]] static constexpr u32 fontHeight() { return 8; }
+    [[nodiscard]] static constexpr u32 fontHeight()
+    {
+        return 8;
+    }
 
     /**
      * @brief 获取字体宽度
      */
-    [[nodiscard]] static constexpr u32 fontWidth() { return 8; }
+    [[nodiscard]] static constexpr u32 fontWidth()
+    {
+        return 8;
+    }
 
 private:
     /**

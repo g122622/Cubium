@@ -12,6 +12,7 @@ TEST(BlockPositionRandomTest, PackedPositionSequenceMatchesJavaIntWrapping)
         i32 seed;
         std::array<i32, 8> expected;
     };
+
     // 由独立 Java int LCG 程序生成；覆盖正常值、符号位和乘加溢出。
     const std::array<Case, 4> cases = {
         {{0, {253476055, -59837601, 73963252, 475365814, -467910151, -76512571, 23938342, 325291084}},

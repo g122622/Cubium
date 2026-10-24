@@ -76,7 +76,10 @@ public:
     void cancel(const std::string& url) override;
     void cancelAll() override;
 
-    [[nodiscard]] std::string name() const override { return "FileSkinLoader"; }
+    [[nodiscard]] std::string name() const override
+    {
+        return "FileSkinLoader";
+    }
 
     /**
      * @brief 注入工作线程池用于异步加载
@@ -86,7 +89,10 @@ public:
      *
      * @param workerPool 工作线程池指针（非所有权）
      */
-    void setWorkerPool(util::UniversalWorkerPool* workerPool) { m_workerPool = workerPool; }
+    void setWorkerPool(util::UniversalWorkerPool* workerPool)
+    {
+        m_workerPool = workerPool;
+    }
 
     /**
      * @brief 设置资源包列表（用于从资源包加载皮肤）
@@ -97,7 +103,10 @@ public:
      *
      * @param resourcePacks 资源包指针列表（非所有权）
      */
-    void setResourcePacks(std::vector<IResourcePack*> resourcePacks) { m_resourcePacks = std::move(resourcePacks); }
+    void setResourcePacks(std::vector<IResourcePack*> resourcePacks)
+    {
+        m_resourcePacks = std::move(resourcePacks);
+    }
 
 private:
     /**

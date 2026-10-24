@@ -90,15 +90,37 @@ public:
             static_cast<f32>(m_y.get(static_cast<f64>(rotation.y))));
     }
 
-    [[nodiscard]] bool isXRelative() const override { return m_x.isRelative(); }
-    [[nodiscard]] bool isYRelative() const override { return m_y.isRelative(); }
-    [[nodiscard]] bool isZRelative() const override { return m_z.isRelative(); }
+    [[nodiscard]] bool isXRelative() const override
+    {
+        return m_x.isRelative();
+    }
+
+    [[nodiscard]] bool isYRelative() const override
+    {
+        return m_y.isRelative();
+    }
+
+    [[nodiscard]] bool isZRelative() const override
+    {
+        return m_z.isRelative();
+    }
 
     // ========== 分量访问 ==========
 
-    [[nodiscard]] const WorldCoordinate& x() const noexcept { return m_x; }
-    [[nodiscard]] const WorldCoordinate& y() const noexcept { return m_y; }
-    [[nodiscard]] const WorldCoordinate& z() const noexcept { return m_z; }
+    [[nodiscard]] const WorldCoordinate& x() const noexcept
+    {
+        return m_x;
+    }
+
+    [[nodiscard]] const WorldCoordinate& y() const noexcept
+    {
+        return m_y;
+    }
+
+    [[nodiscard]] const WorldCoordinate& z() const noexcept
+    {
+        return m_z;
+    }
 
 private:
     WorldCoordinate m_x;

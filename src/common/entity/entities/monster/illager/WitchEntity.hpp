@@ -86,34 +86,52 @@ public:
     /**
      * @brief 是否正在喝药水
      */
-    [[nodiscard]] bool isDrinking() const { return m_drinking; }
+    [[nodiscard]] bool isDrinking() const
+    {
+        return m_drinking;
+    }
 
     /**
      * @brief 设置喝药水状态
      */
-    void setDrinking(bool drinking) { m_drinking = drinking; }
+    void setDrinking(bool drinking)
+    {
+        m_drinking = drinking;
+    }
 
     /**
      * @brief 获取喝药水计时器
      */
-    [[nodiscard]] i32 getDrinkTimer() const { return m_drinkTimer; }
+    [[nodiscard]] i32 getDrinkTimer() const
+    {
+        return m_drinkTimer;
+    }
 
     /**
      * @brief 设置喝药水计时器
      */
-    void setDrinkTimer(i32 timer) { m_drinkTimer = timer; }
+    void setDrinkTimer(i32 timer)
+    {
+        m_drinkTimer = timer;
+    }
 
     // ========== 攻击 ==========
 
     /**
      * @brief 获取攻击冷却
      */
-    [[nodiscard]] i32 getAttackCooldown() const { return m_attackCooldown; }
+    [[nodiscard]] i32 getAttackCooldown() const
+    {
+        return m_attackCooldown;
+    }
 
     /**
      * @brief 重置攻击冷却
      */
-    void resetAttackCooldown() { m_attackCooldown = ATTACK_COOLDOWN; }
+    void resetAttackCooldown()
+    {
+        m_attackCooldown = ATTACK_COOLDOWN;
+    }
 
     // ========== 常量 ==========
 
@@ -130,24 +148,36 @@ public:
     /**
      * @brief 女巫不在阳光下燃烧
      */
-    [[nodiscard]] bool shouldBurnInDaylight() const override { return false; }
+    [[nodiscard]] bool shouldBurnInDaylight() const override
+    {
+        return false;
+    }
 
     // ========== 属性 ==========
 
     /**
      * @brief 获取实体宽度
      */
-    [[nodiscard]] f32 width() const override { return 0.6f; }
+    [[nodiscard]] f32 width() const override
+    {
+        return 0.6f;
+    }
 
     /**
      * @brief 获取实体高度
      */
-    [[nodiscard]] f32 height() const override { return 1.95f; }
+    [[nodiscard]] f32 height() const override
+    {
+        return 1.95f;
+    }
 
     /**
      * @brief 获取眼睛高度
      */
-    [[nodiscard]] f32 eyeHeight() const override { return 1.62f; }
+    [[nodiscard]] f32 eyeHeight() const override
+    {
+        return 1.62f;
+    }
 
     // ========== 防御 ==========
 
@@ -186,13 +216,19 @@ public:
      * @brief 获取攻击间隔时间
      * @return 60 ticks (3秒)
      */
-    [[nodiscard]] i32 getAttackInterval() const override { return ATTACK_COOLDOWN; }
+    [[nodiscard]] i32 getAttackInterval() const override
+    {
+        return ATTACK_COOLDOWN;
+    }
 
     /**
      * @brief 检查是否可以进行远程攻击
      * @return 如果不在喝药水状态返回true
      */
-    [[nodiscard]] bool canRangedAttack() const override { return !m_drinking; }
+    [[nodiscard]] bool canRangedAttack() const override
+    {
+        return !m_drinking;
+    }
 
     // ========== 生命周期 ==========
 

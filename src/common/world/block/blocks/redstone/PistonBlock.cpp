@@ -398,7 +398,9 @@ bool PistonBlock::_doMove(IWorld& world, const BlockPos& pos, Direction facing, 
     for (auto it = toMove.rbegin(); it != toMove.rend(); ++it) {
         const BlockPos& movePos = *it;
         const BlockState* moveState = world.getBlockState(movePos);
-        if (!moveState) continue;
+        if (!moveState) {
+            continue;
+        }
 
         BlockPos newPos = movePos.offset(moveDir);
 

@@ -91,16 +91,28 @@ public:
     std::unique_ptr<StructurePlacement> clone() const override;
 
     /// 获取环距离参数
-    [[nodiscard]] i32 distance() const { return m_distance; }
+    [[nodiscard]] i32 distance() const
+    {
+        return m_distance;
+    }
 
     /// 获取角度偏移范围
-    [[nodiscard]] i32 spread() const { return m_spread; }
+    [[nodiscard]] i32 spread() const
+    {
+        return m_spread;
+    }
 
     /// 获取总要塞数量
-    [[nodiscard]] i32 count() const { return m_count; }
+    [[nodiscard]] i32 count() const
+    {
+        return m_count;
+    }
 
     /// 获取首选生物群系列表（要塞按此偏置定位）
-    [[nodiscard]] const std::vector<BiomeId>& preferredBiomes() const { return m_preferredBiomes; }
+    [[nodiscard]] const std::vector<BiomeId>& preferredBiomes() const
+    {
+        return m_preferredBiomes;
+    }
 
     /**
      * @brief 获取所有环形位置（惰性计算并缓存）

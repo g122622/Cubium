@@ -57,7 +57,10 @@ class HappyGhastTestWorld final : public mc::test::BaseTestWorld {
 public:
     HappyGhastTestWorld() = default;
 
-    void sendPositionSyncToTrackingPlayers(EntityInstanceId id) override { syncedIds.push_back(id); }
+    void sendPositionSyncToTrackingPlayers(EntityInstanceId id) override
+    {
+        syncedIds.push_back(id);
+    }
 
     /// 记录服务端要求补发绝对位置快照的实体（快乐恶魂静止超时入口）。
     std::vector<EntityInstanceId> syncedIds;

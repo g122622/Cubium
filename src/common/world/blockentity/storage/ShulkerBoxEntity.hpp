@@ -88,7 +88,10 @@ public:
 
     // ========== IInventory 接口实现 ==========
 
-    [[nodiscard]] IInventory* getInventory() override { return &m_inventory; }
+    [[nodiscard]] IInventory* getInventory() override
+    {
+        return &m_inventory;
+    }
 
     /**
      * @brief 潜影盒被移除时不掉落内容物
@@ -97,8 +100,16 @@ public:
      * 移除时若再散落一次会导致内容物重复。
      */
     void preRemoveSideEffects(const BlockPos& pos, const BlockState& state) override;
-    [[nodiscard]] const IInventory* getInventory() const override { return &m_inventory; }
-    [[nodiscard]] i32 getContainerSize() const override { return SHULKER_BOX_SIZE; }
+
+    [[nodiscard]] const IInventory* getInventory() const override
+    {
+        return &m_inventory;
+    }
+
+    [[nodiscard]] i32 getContainerSize() const override
+    {
+        return SHULKER_BOX_SIZE;
+    }
 
     // ========== IInventory 委托方法 ==========
 
@@ -109,14 +120,25 @@ public:
     // 参考: net.minecraft.RandomizableContainerBlockEntity 中的 getItem/setItem/removeItem/removeItemNoUpdate
 
     // isEmpty 委托给基类（会触发 _unpackLootTable）
-    [[nodiscard]] bool isEmpty() const override { return LootableContainerBlockEntity::isEmpty(); }
+    [[nodiscard]] bool isEmpty() const override
+    {
+        return LootableContainerBlockEntity::isEmpty();
+    }
 
-    [[nodiscard]] i32 getMaxStackSize() const override { return m_inventory.getMaxStackSize(); }
+    [[nodiscard]] i32 getMaxStackSize() const override
+    {
+        return m_inventory.getMaxStackSize();
+    }
+
     [[nodiscard]] bool canPlaceItem(i32 slot, const ItemStack& stack) const override
     {
         return m_inventory.canPlaceItem(slot, stack);
     }
-    void setChanged() override { LootableContainerBlockEntity::setChanged(); }
+
+    void setChanged() override
+    {
+        LootableContainerBlockEntity::setChanged();
+    }
 
     // ========== IInventory 接口实现（带战利品表延迟填充）==========
 
@@ -192,7 +214,10 @@ public:
      * @brief 获取动画状态
      * @return 动画状态
      */
-    [[nodiscard]] AnimationStatus getAnimationStatus() const { return m_animationStatus; }
+    [[nodiscard]] AnimationStatus getAnimationStatus() const
+    {
+        return m_animationStatus;
+    }
 
     /**
      * @brief 获取打开进度（0.0 - 1.0）
@@ -247,7 +272,11 @@ public:
     // ========== Tick 更新 ==========
 
     void tick(IWorld& world) override;
-    [[nodiscard]] bool needsTick() const noexcept override { return true; }
+
+    [[nodiscard]] bool needsTick() const noexcept override
+    {
+        return true;
+    }
 
     // ========== 序列化 ==========
 
@@ -272,7 +301,10 @@ public:
     [[nodiscard]] std::unique_ptr<BlockEntity> clone() const override;
 
 protected:
-    [[nodiscard]] std::string getDefaultName() const override { return "container.shulkerBox"; }
+    [[nodiscard]] std::string getDefaultName() const override
+    {
+        return "container.shulkerBox";
+    }
 
 private:
     /**

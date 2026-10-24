@@ -136,7 +136,10 @@ public:
     /**
      * @brief 获取上次加载结果
      */
-    [[nodiscard]] const LoadResult& getLastResult() const { return m_lastResult; }
+    [[nodiscard]] const LoadResult& getLastResult() const
+    {
+        return m_lastResult;
+    }
 
     /**
      * @brief 重置加载结果
@@ -147,7 +150,10 @@ public:
      * @brief 设置加载前是否清空已有表
      * @param clear 是否清空（默认为 true）
      */
-    void setClearBeforeLoad(bool clear) { m_clearBeforeLoad = clear; }
+    void setClearBeforeLoad(bool clear)
+    {
+        m_clearBeforeLoad = clear;
+    }
 
 private:
     void _clearIfNeeded();

@@ -42,52 +42,106 @@ public:
 
     // ========== 私有字段读取器 ==========
 
-    [[nodiscard]] i32 ticksSinceDragonSeen() const { return m_fight.m_ticksSinceDragonSeen; }
+    [[nodiscard]] i32 ticksSinceDragonSeen() const
+    {
+        return m_fight.m_ticksSinceDragonSeen;
+    }
 
-    [[nodiscard]] i32 ticksSinceLastPlayerScan() const { return m_fight.m_ticksSinceLastPlayerScan; }
+    [[nodiscard]] i32 ticksSinceLastPlayerScan() const
+    {
+        return m_fight.m_ticksSinceLastPlayerScan;
+    }
 
-    [[nodiscard]] IDragonBossBar& dragonBossBar() { return m_fight.dragonBossBar(); }
+    [[nodiscard]] IDragonBossBar& dragonBossBar()
+    {
+        return m_fight.dragonBossBar();
+    }
 
-    [[nodiscard]] const std::string& dragonUUID() const { return m_fight.m_dragonUUID; }
+    [[nodiscard]] const std::string& dragonUUID() const
+    {
+        return m_fight.m_dragonUUID;
+    }
 
-    [[nodiscard]] bool dragonKilled() const { return m_fight.m_dragonKilled; }
+    [[nodiscard]] bool dragonKilled() const
+    {
+        return m_fight.m_dragonKilled;
+    }
 
     // ========== 重生序列字段读取器 ==========
 
-    [[nodiscard]] std::optional<DragonRespawnAnimation> respawnStage() const { return m_fight.m_respawnStage; }
+    [[nodiscard]] std::optional<DragonRespawnAnimation> respawnStage() const
+    {
+        return m_fight.m_respawnStage;
+    }
 
-    [[nodiscard]] i32 respawnTime() const { return m_fight.m_respawnTime; }
+    [[nodiscard]] i32 respawnTime() const
+    {
+        return m_fight.m_respawnTime;
+    }
 
     [[nodiscard]] const std::vector<entity::EnderCrystalEntity*>& respawnCrystals() const
     {
         return m_fight.m_respawnCrystals;
     }
 
-    [[nodiscard]] i32 crystalsAlive() const { return m_fight.m_crystalsAlive; }
+    [[nodiscard]] i32 crystalsAlive() const
+    {
+        return m_fight.m_crystalsAlive;
+    }
 
-    [[nodiscard]] i32 ticksSinceCrystalsScanned() const { return m_fight.m_ticksSinceCrystalsScanned; }
+    [[nodiscard]] i32 ticksSinceCrystalsScanned() const
+    {
+        return m_fight.m_ticksSinceCrystalsScanned;
+    }
 
     // ========== 私有字段设置器 ==========
 
-    void setTicksSinceDragonSeen(i32 value) { m_fight.m_ticksSinceDragonSeen = value; }
+    void setTicksSinceDragonSeen(i32 value)
+    {
+        m_fight.m_ticksSinceDragonSeen = value;
+    }
 
-    void setTicksSinceLastPlayerScan(i32 value) { m_fight.m_ticksSinceLastPlayerScan = value; }
+    void setTicksSinceLastPlayerScan(i32 value)
+    {
+        m_fight.m_ticksSinceLastPlayerScan = value;
+    }
 
-    void setDragonUUID(const std::string& uuid) { m_fight.m_dragonUUID = uuid; }
+    void setDragonUUID(const std::string& uuid)
+    {
+        m_fight.m_dragonUUID = uuid;
+    }
 
-    void setDragonKilledFlag(bool value) { m_fight.m_dragonKilled = value; }
+    void setDragonKilledFlag(bool value)
+    {
+        m_fight.m_dragonKilled = value;
+    }
 
-    void setRespawnStage(std::optional<DragonRespawnAnimation> stage) { m_fight.m_respawnStage = stage; }
+    void setRespawnStage(std::optional<DragonRespawnAnimation> stage)
+    {
+        m_fight.m_respawnStage = stage;
+    }
 
-    void setRespawnTime(i32 value) { m_fight.m_respawnTime = value; }
+    void setRespawnTime(i32 value)
+    {
+        m_fight.m_respawnTime = value;
+    }
 
-    void setCrystalsAlive(i32 value) { m_fight.m_crystalsAlive = value; }
+    void setCrystalsAlive(i32 value)
+    {
+        m_fight.m_crystalsAlive = value;
+    }
 
     // ========== 私有方法调用器 ==========
 
-    void updatePlayers(IWorld& world) { m_fight._updatePlayers(world); }
+    void updatePlayers(IWorld& world)
+    {
+        m_fight._updatePlayers(world);
+    }
 
-    void findOrCreateDragon(IWorld& world) { m_fight._findOrCreateDragon(world); }
+    void findOrCreateDragon(IWorld& world)
+    {
+        m_fight._findOrCreateDragon(world);
+    }
 
     /// 调用 _findExitPortal，返回出口讲台的 BlockPatternMatch（nullopt 表示未找到）
     std::optional<blockpattern::BlockPatternMatch> findExitPortal(IWorld& world)
@@ -97,9 +151,15 @@ public:
 
     /// 调用 _createNewDragon，返回新龙实体指针（nullptr 表示创建失败）
     /// 对齐 EndDragonFight::_createNewDragon 的返回类型
-    Entity* createNewDragon(IWorld& world) { return m_fight._createNewDragon(world); }
+    Entity* createNewDragon(IWorld& world)
+    {
+        return m_fight._createNewDragon(world);
+    }
 
-    void updateCrystalCount(IWorld& world) { m_fight._updateCrystalCount(world); }
+    void updateCrystalCount(IWorld& world)
+    {
+        m_fight._updateCrystalCount(world);
+    }
 
     void respawnDragon(IWorld& world, std::vector<entity::EnderCrystalEntity*> crystals)
     {

@@ -74,13 +74,19 @@ public:
      *
      * @return 放置位置
      */
-    [[nodiscard]] BlockPos placementPos() const { return m_placementPos; }
+    [[nodiscard]] BlockPos placementPos() const
+    {
+        return m_placementPos;
+    }
 
     /**
      * @brief 获取相邻位置（击中面的另一侧）
      * @return 相邻方块位置
      */
-    [[nodiscard]] BlockPos adjacentPos() const { return m_adjacentPos; }
+    [[nodiscard]] BlockPos adjacentPos() const
+    {
+        return m_adjacentPos;
+    }
 
     // ========== 状态检查 ==========
 
@@ -103,7 +109,10 @@ public:
      *
      * @return 是否替换点击的方块
      */
-    [[nodiscard]] bool replacingClickedBlock() const { return m_replacingClickedBlock; }
+    [[nodiscard]] bool replacingClickedBlock() const
+    {
+        return m_replacingClickedBlock;
+    }
 
     // ========== 方向相关 ==========
 
@@ -116,7 +125,10 @@ public:
      *
      * @return 水平方向
      */
-    [[nodiscard]] Direction horizontalDirection() const { return m_horizontalDirection; }
+    [[nodiscard]] Direction horizontalDirection() const
+    {
+        return m_horizontalDirection;
+    }
 
     /**
      * @brief 获取放置时的面向方向
@@ -138,20 +150,33 @@ public:
      * @brief 获取世界引用
      * @return 世界引用
      */
-    [[nodiscard]] IWorld& getWorld() { return m_world; }
-    [[nodiscard]] const IWorld& getWorld() const { return m_world; }
+    [[nodiscard]] IWorld& getWorld()
+    {
+        return m_world;
+    }
+
+    [[nodiscard]] const IWorld& getWorld() const
+    {
+        return m_world;
+    }
 
     /**
      * @brief 获取物品堆（可修改）
      * @return 物品堆引用
      */
-    [[nodiscard]] ItemStack& getItemStack() { return ItemUseContext::getItemStackMut(); }
+    [[nodiscard]] ItemStack& getItemStack()
+    {
+        return ItemUseContext::getItemStackMut();
+    }
 
     /**
      * @brief 获取物品堆（只读）
      * @return 物品堆引用
      */
-    [[nodiscard]] const ItemStack& getItemStack() const { return ItemUseContext::getItemStack(); }
+    [[nodiscard]] const ItemStack& getItemStack() const
+    {
+        return ItemUseContext::getItemStack();
+    }
 
     /**
      * @brief 获取玩家视线最近的方向（单数）

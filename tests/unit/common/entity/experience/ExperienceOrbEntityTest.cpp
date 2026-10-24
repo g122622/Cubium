@@ -48,7 +48,10 @@ protected:
         orb = std::make_unique<ExperienceOrbEntity>(10, mc::test::testEcsRegistry()); // 10 XP orb
     }
 
-    void TearDown() override { orb.reset(); }
+    void TearDown() override
+    {
+        orb.reset();
+    }
 
     std::unique_ptr<ExperienceOrbEntity> orb;
 };
@@ -269,7 +272,11 @@ namespace {
 class _OrbTrackingWorld final : public mc::test::BaseTestWorld {
 public:
     std::vector<Entity*> players;
-    std::vector<Entity*> getEntitiesInRange(const Vector3&, f32, const Entity*) const override { return players; }
+
+    std::vector<Entity*> getEntitiesInRange(const Vector3&, f32, const Entity*) const override
+    {
+        return players;
+    }
 };
 } // namespace
 
@@ -451,10 +458,25 @@ public:
         m_gameEventCount++;
     }
 
-    [[nodiscard]] i32 gameEventCount() const { return m_gameEventCount; }
-    [[nodiscard]] const std::string& lastGameEventId() const { return m_lastGameEventId; }
-    [[nodiscard]] const BlockPos& lastGameEventPos() const { return m_lastGameEventPos; }
-    [[nodiscard]] const Entity* lastGameEventSourceEntity() const { return m_lastGameEventSourceEntity; }
+    [[nodiscard]] i32 gameEventCount() const
+    {
+        return m_gameEventCount;
+    }
+
+    [[nodiscard]] const std::string& lastGameEventId() const
+    {
+        return m_lastGameEventId;
+    }
+
+    [[nodiscard]] const BlockPos& lastGameEventPos() const
+    {
+        return m_lastGameEventPos;
+    }
+
+    [[nodiscard]] const Entity* lastGameEventSourceEntity() const
+    {
+        return m_lastGameEventSourceEntity;
+    }
 
     void clearGameState()
     {
@@ -473,7 +495,10 @@ private:
 
 class ExperienceOrbHurtTest : public ::testing::Test {
 protected:
-    void SetUp() override { m_world.clearGameState(); }
+    void SetUp() override
+    {
+        m_world.clearGameState();
+    }
 
     ExperienceOrbHurtTestWorld m_world;
 };

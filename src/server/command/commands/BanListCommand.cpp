@@ -44,20 +44,28 @@ namespace command {
 void BanListCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
 {
     auto banlistNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("banlist");
-    banlistNode->setRequirement([](const ServerCommandSource& source) { return source.hasPermission(3); });
+    banlistNode->setRequirement([](const ServerCommandSource& source) {
+        return source.hasPermission(3);
+    });
     support::applyMetadata(
         banlistNode, support::makeMetadata("Shows the server ban list.", "/banlist [players|ips]", 3, {}, false));
 
     // /banlist (无参数，显示所有)
-    banlistNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return listAll(ctx); });
+    banlistNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return listAll(ctx);
+    });
 
     // /banlist players
     auto playersNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("players");
-    playersNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return listPlayers(ctx); });
+    playersNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return listPlayers(ctx);
+    });
 
     // /banlist ips
     auto ipsNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("ips");
-    ipsNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return listIps(ctx); });
+    ipsNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return listIps(ctx);
+    });
 
     banlistNode->addChild(playersNode);
     banlistNode->addChild(ipsNode);
@@ -94,7 +102,9 @@ i32 BanListCommand::listAll(CommandContext<ServerCommandSource>& context)
         std::sort(bannedPlayers.begin(), bannedPlayers.end());
         ss << "Players [";
         for (size_t i = 0; i < bannedPlayers.size(); ++i) {
-            if (i > 0) ss << ", ";
+            if (i > 0) {
+                ss << ", ";
+            }
             ss << bannedPlayers[i];
         }
         ss << "]";
@@ -102,11 +112,15 @@ i32 BanListCommand::listAll(CommandContext<ServerCommandSource>& context)
 
     // 列出封禁的 IP
     if (!bannedIps.empty()) {
-        if (!bannedPlayers.empty()) ss << ", ";
+        if (!bannedPlayers.empty()) {
+            ss << ", ";
+        }
         std::sort(bannedIps.begin(), bannedIps.end());
         ss << "IPs [";
         for (size_t i = 0; i < bannedIps.size(); ++i) {
-            if (i > 0) ss << ", ";
+            if (i > 0) {
+                ss << ", ";
+            }
             ss << bannedIps[i];
         }
         ss << "]";
@@ -144,7 +158,9 @@ i32 BanListCommand::listPlayers(CommandContext<ServerCommandSource>& context)
     ss << "There are " << entries.size() << " banned player(s): ";
 
     for (size_t i = 0; i < entries.size(); ++i) {
-        if (i > 0) ss << ", ";
+        if (i > 0) {
+            ss << ", ";
+        }
         ss << entries[i].name;
     }
 
@@ -170,15 +186,18 @@ i32 BanListCommand::listIps(CommandContext<ServerCommandSource>& context)
     }
 
     // 按 IP 排序
-    std::sort(entries.begin(),
-        entries.end(),
-        [](const server::core::BannedIpEntry& a, const server::core::BannedIpEntry& b) { return a.ip < b.ip; });
+    std::sort(
+        entries.begin(), entries.end(), [](const server::core::BannedIpEntry& a, const server::core::BannedIpEntry& b) {
+            return a.ip < b.ip;
+        });
 
     std::ostringstream ss;
     ss << "There are " << entries.size() << " banned IP(s): ";
 
     for (size_t i = 0; i < entries.size(); ++i) {
-        if (i > 0) ss << ", ";
+        if (i > 0) {
+            ss << ", ";
+        }
         ss << entries[i].ip;
     }
 

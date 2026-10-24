@@ -70,7 +70,10 @@ public:
      * _createModelForEntity 的 cat 分支统一处理。
      * 层渲染（颈圈等）暂未实现，保持 supportsLayers() 为基类默认 false。
      */
-    [[nodiscard]] bool supportsAnimation() const override { return true; }
+    [[nodiscard]] bool supportsAnimation() const override
+    {
+        return true;
+    }
 
 private:
     model::animal::CatModel m_model;

@@ -55,6 +55,7 @@ public:
         "minecraft:triangle_top",
         "minecraft:triangles_bottom",
         "minecraft:triangles_top"};
+
     /** @brief 根据资源名查找同步注册 ID。 */
     [[nodiscard]] static std::optional<i32> toWireId(std::string_view name)
     {

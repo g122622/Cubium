@@ -79,7 +79,10 @@ public:
     /**
      * @brief 获取任务状态
      */
-    [[nodiscard]] TaskStatus getStatus() const { return m_status; }
+    [[nodiscard]] TaskStatus getStatus() const
+    {
+        return m_status;
+    }
 
     /**
      * @brief 尝试启动任务
@@ -138,18 +141,27 @@ public:
     /**
      * @brief 获取任务名称
      */
-    [[nodiscard]] virtual std::string getName() const { return "Task"; }
+    [[nodiscard]] virtual std::string getName() const
+    {
+        return "Task";
+    }
 
 protected:
     /**
      * @brief 检查是否应该执行
      */
-    virtual bool shouldExecute(IWorld* /*world*/, E* /*owner*/) { return true; }
+    virtual bool shouldExecute(IWorld* /*world*/, E* /*owner*/)
+    {
+        return true;
+    }
 
     /**
      * @brief 检查是否应该继续执行
      */
-    virtual bool shouldContinueExecuting(IWorld* /*world*/, E* /*owner*/, i64 /*gameTime*/) { return false; }
+    virtual bool shouldContinueExecuting(IWorld* /*world*/, E* /*owner*/, i64 /*gameTime*/)
+    {
+        return false;
+    }
 
     /**
      * @brief 开始执行时的回调
@@ -169,7 +181,10 @@ protected:
     /**
      * @brief 检查是否超时
      */
-    [[nodiscard]] bool isTimedOut(i64 gameTime) const { return gameTime > m_stopTime; }
+    [[nodiscard]] bool isTimedOut(i64 gameTime) const
+    {
+        return gameTime > m_stopTime;
+    }
 
     MemoryStateMap m_requiredMemoryState;
 

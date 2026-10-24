@@ -101,9 +101,15 @@ public:
         m_visibleIndices = visibleIndices;
     }
 
-    void setItemPaintCallback(ItemPaintCallback callback) { m_itemPaintCallback = std::move(callback); }
+    void setItemPaintCallback(ItemPaintCallback callback)
+    {
+        m_itemPaintCallback = std::move(callback);
+    }
 
-    void setPaletteClickCallback(PaletteClickCallback callback) { m_paletteClickCallback = std::move(callback); }
+    void setPaletteClickCallback(PaletteClickCallback callback)
+    {
+        m_paletteClickCallback = std::move(callback);
+    }
 
     void setVisibleRows(i32 rows)
     {
@@ -112,16 +118,29 @@ public:
         clampScrollRows();
     }
 
-    [[nodiscard]] i32 scrollRows() const { return m_scrollRows; }
-    [[nodiscard]] i32 maxScrollRows() const { return _computeMaxScrollRows(); }
+    [[nodiscard]] i32 scrollRows() const
+    {
+        return m_scrollRows;
+    }
+
+    [[nodiscard]] i32 maxScrollRows() const
+    {
+        return _computeMaxScrollRows();
+    }
 
     /** @brief 滚动到顶部（搜索文本变化时调用） */
-    void scrollToTop() { m_scrollRows = 0; }
+    void scrollToTop()
+    {
+        m_scrollRows = 0;
+    }
 
     /**
      * @brief 重建后重算行数并夹紧滚动（搜索过滤/物品池变化后调用）
      */
-    void refresh() { clampScrollRows(); }
+    void refresh()
+    {
+        clampScrollRows();
+    }
 
     // ==================== 生命周期 ====================
 
@@ -276,7 +295,10 @@ private:
         return std::max(0, totalRows - m_visibleRows);
     }
 
-    void clampScrollRows() { m_scrollRows = std::clamp(m_scrollRows, 0, _computeMaxScrollRows()); }
+    void clampScrollRows()
+    {
+        m_scrollRows = std::clamp(m_scrollRows, 0, _computeMaxScrollRows());
+    }
 
     const std::vector<mc::CreativeInventoryEntry>* m_entries = nullptr;
     const std::vector<i32>* m_visibleIndices = nullptr;

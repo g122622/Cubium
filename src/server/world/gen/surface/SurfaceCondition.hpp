@@ -164,7 +164,10 @@ public:
         : m_condition(std::move(condition))
     {}
 
-    [[nodiscard]] bool test(const SurfaceRuleContext& ctx) const override { return !m_condition->test(ctx); }
+    [[nodiscard]] bool test(const SurfaceRuleContext& ctx) const override
+    {
+        return !m_condition->test(ctx);
+    }
 
 private:
     std::unique_ptr<SurfaceCondition> m_condition;

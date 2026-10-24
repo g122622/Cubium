@@ -85,11 +85,21 @@ public:
     {
         return y >= mc::world::MIN_BUILD_HEIGHT && y < mc::world::MAX_BUILD_HEIGHT;
     }
-    [[nodiscard]] u64 currentTick() const override { return m_currentTick; }
 
-    [[nodiscard]] bool isClientSide() const override { return m_isClientSide; }
+    [[nodiscard]] u64 currentTick() const override
+    {
+        return m_currentTick;
+    }
 
-    void setClientSide(bool isClient) { m_isClientSide = isClient; }
+    [[nodiscard]] bool isClientSide() const override
+    {
+        return m_isClientSide;
+    }
+
+    void setClientSide(bool isClient)
+    {
+        m_isClientSide = isClient;
+    }
 
     [[nodiscard]] world::tick::TickManager& tickManager() override
     {
@@ -112,22 +122,34 @@ public:
         }
     }
 
-    void advanceTick() { m_currentTick++; }
+    void advanceTick()
+    {
+        m_currentTick++;
+    }
 
     /**
      * @brief 设置世界边界大小
      * @param size 边界直径
      */
-    void setWorldBorderSize(double size) { m_worldBorder.setSize(size); }
+    void setWorldBorderSize(double size)
+    {
+        m_worldBorder.setSize(size);
+    }
 
     /**
      * @brief 设置世界边界中心
      * @param x X 坐标
      * @param z Z 坐标
      */
-    void setWorldBorderCenter(double x, double z) { m_worldBorder.setCenter(x, z); }
+    void setWorldBorderCenter(double x, double z)
+    {
+        m_worldBorder.setCenter(x, z);
+    }
 
-    void clearState() { m_blocks.clear(); }
+    void clearState()
+    {
+        m_blocks.clear();
+    }
 
 private:
     std::unordered_map<BlockPos, std::unique_ptr<BlockState>> m_blocks;
@@ -140,9 +162,15 @@ private:
  */
 class PistonBlockTest : public ::testing::Test {
 protected:
-    void SetUp() override { VanillaBlocks::initialize(); }
+    void SetUp() override
+    {
+        VanillaBlocks::initialize();
+    }
 
-    void TearDown() override { m_world.clearState(); }
+    void TearDown() override
+    {
+        m_world.clearState();
+    }
 
     PistonBlockTestWorld m_world;
 };

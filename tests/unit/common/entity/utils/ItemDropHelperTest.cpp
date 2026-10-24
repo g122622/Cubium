@@ -532,10 +532,18 @@ TEST_F(ItemDropHelperTest, PlayerDropAroundProducesScatter)
 
     for (int i = 0; i < 100; ++i) {
         Vector3 velocity = ItemDropHelper::getPlayerDropVelocity(rng, true);
-        if (velocity.x > 0.01f) hasPositiveX = true;
-        if (velocity.x < -0.01f) hasNegativeX = true;
-        if (velocity.z > 0.01f) hasPositiveZ = true;
-        if (velocity.z < -0.01f) hasNegativeZ = true;
+        if (velocity.x > 0.01f) {
+            hasPositiveX = true;
+        }
+        if (velocity.x < -0.01f) {
+            hasNegativeX = true;
+        }
+        if (velocity.z > 0.01f) {
+            hasPositiveZ = true;
+        }
+        if (velocity.z < -0.01f) {
+            hasNegativeZ = true;
+        }
     }
 
     // 散射应该覆盖所有方向

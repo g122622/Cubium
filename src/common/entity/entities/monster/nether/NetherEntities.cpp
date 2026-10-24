@@ -298,11 +298,13 @@ void GhastEntity::registerAttributes()
 {
     MonsterEntity::registerAttributes();
 
-    // 恶魂有极远的追踪范围
+    // 对齐原版 Ghast.createAttributes：生命值 10、追踪范围 100、飞行速度 0.06；
+    // 它不覆盖移动速度，沿用 LivingEntity 默认的 0.7（飞行由 GhastMoveControl 驱动）。
     attributes().setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 10.0);
     attributes().setBaseValue(entity::attribute::Attributes::FOLLOW_RANGE, 100.0);
-    attributes().setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.0);
-    attributes().setBaseValue(entity::attribute::Attributes::FLYING_SPEED, 0.9);
+    attributes().setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.7);
+    attributes().registerAttribute(*entity::attribute::Attributes::flyingSpeed());
+    attributes().setBaseValue(entity::attribute::Attributes::FLYING_SPEED, 0.06);
 }
 
 // MagmaCubeEntity
@@ -450,7 +452,9 @@ void PiglinEntity::attackEntityWithRangedAttack(LivingEntity* target, f32 charge
     // charge 参数对弩不重要，弩使用固定速度
     MC_UNUSED(charge);
 
-    if (!target || !m_world) return;
+    if (!target || !m_world) {
+        return;
+    }
 
     // 获取主手弩
     ItemStack& crossbow = getMutableMainHandItem();
@@ -475,7 +479,9 @@ void PiglinEntity::onCrossbowLoadComplete(ItemStack& crossbow)
 
 void PiglinEntity::shootCrossbow(LivingEntity* target, ItemStack& crossbow, f32 charge)
 {
-    if (!target || !m_world || !crossbow.getItem()) return;
+    if (!target || !m_world || !crossbow.getItem()) {
+        return;
+    }
 
     MC_UNUSED(charge);
 
@@ -560,7 +566,9 @@ void PiglinEntity::registerGoals()
     m_goalSelector.addGoal(5,
         std::make_unique<entity::ai::goal::AvoidEntityGoal>(
             this, 24.0f, 1.0, 1.2, entity::ai::goal::AvoidEntityGoal::EntityPredicate([](const LivingEntity* entity) {
-                if (!entity || !entity->isAlive()) return false;
+                if (!entity || !entity->isAlive()) {
+                    return false;
+                }
                 // 避开僵尸猪灵和僵尸疣兽
                 auto type = entity->entityType();
                 return type == entity::VanillaEntityTypeKeys::ZOMBIFIED_PIGLIN ||
@@ -600,7 +608,9 @@ void PiglinEntity::registerGoals()
             std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<Player>>(
                 this, true, 10, [](const LivingEntity* entity) {
                     const Player* player = dynamic_cast<const Player*>(entity);
-                    if (!player || !player->isAlive()) return false;
+                    if (!player || !player->isAlive()) {
+                        return false;
+                    }
                     // 攻击未穿戴金装备的玩家
                     return !entity::PiglinAi::isWearingGold(*player);
                 }));
@@ -834,10 +844,12 @@ void PiglinBruteEntity::registerAttributes()
 {
     AbstractPiglinEntity::registerAttributes();
 
-    // 猪灵蛮兵属性（金斧额外 +4 伤害）
+    // 猪灵蛮兵属性（金斧额外 +4 伤害）。对齐原版 PiglinBrute.createAttributes：
+    // 追踪范围收窄到 12（普通猪灵是 16）。
     attributes().setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 50.0);
     attributes().setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.35);
     attributes().setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, 7.0);
+    attributes().setBaseValue(entity::attribute::Attributes::FOLLOW_RANGE, 12.0);
 }
 
 // ZombifiedPiglinEntity
@@ -901,9 +913,13 @@ void ZombifiedPiglinEntity::registerAttributes()
 {
     MonsterEntity::registerAttributes();
 
+    // 原版 ZombifiedPiglin.createAttributes 基于 Zombie.createAttributes（所以跟随范围 35、
+    // 护甲 2），再加速度 0.23 / 攻击力 5 / 增援概率 0。生命值、跟随范围、护甲都沿用僵尸。
     attributes().setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 20.0);
     attributes().setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.23);
     attributes().setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, 5.0);
+    attributes().setBaseValue(entity::attribute::Attributes::FOLLOW_RANGE, 35.0);
+    attributes().setBaseValue(entity::attribute::Attributes::ARMOR, 2.0);
 }
 
 // HoglinEntity
@@ -1237,12 +1253,18 @@ void ZoglinEntity::registerGoals()
         m_targetSelector.addGoal(3,
             std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<LivingEntity>>(
                 this, true, 10, entity::ai::goal::TargetPredicate([](const LivingEntity* entity) {
-                    if (!entity || !entity->isAlive()) return false;
+                    if (!entity || !entity->isAlive()) {
+                        return false;
+                    }
                     auto type = entity->entityType();
                     // 排除僵尸疣兽自己
-                    if (type == entity::VanillaEntityTypeKeys::ZOGLIN) return false;
+                    if (type == entity::VanillaEntityTypeKeys::ZOGLIN) {
+                        return false;
+                    }
                     // 排除苦力怕（MC 原版 Zoglin 不攻击 Creeper）
-                    if (type == entity::VanillaEntityTypeKeys::CREEPER) return false;
+                    if (type == entity::VanillaEntityTypeKeys::CREEPER) {
+                        return false;
+                    }
                     return true;
                 })));
     }

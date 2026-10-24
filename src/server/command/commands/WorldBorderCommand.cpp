@@ -44,7 +44,9 @@ namespace command {
 void WorldBorderCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
 {
     auto borderNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("worldborder");
-    borderNode->setRequirement([](const ServerCommandSource& source) { return source.hasPermission(2); });
+    borderNode->setRequirement([](const ServerCommandSource& source) {
+        return source.hasPermission(2);
+    });
     support::applyMetadata(borderNode,
         support::makeMetadata(
             "Controls the world border.", "/worldborder <set|center|damage|warning|get|add>", 2, {}, true));
@@ -54,10 +56,14 @@ void WorldBorderCommand::registerTo(CommandDispatcher<ServerCommandSource>& disp
     auto setSizeArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, f32>>(
         "size", FloatArgumentType::floatArg(1.0f, static_cast<f32>(world::border::WorldBorder::MAX_SIZE)));
     auto setTimeArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, i32>>("time", TimeArgumentType::time());
-    setTimeArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _setBorder(ctx); });
+    setTimeArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _setBorder(ctx);
+    });
     setSizeArg->addChild(setTimeArg);
     // 默认时间为 0（立即）
-    setSizeArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _setBorder(ctx); });
+    setSizeArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _setBorder(ctx);
+    });
     setNode->addChild(setSizeArg);
     borderNode->addChild(setNode);
 
@@ -65,7 +71,9 @@ void WorldBorderCommand::registerTo(CommandDispatcher<ServerCommandSource>& disp
     auto centerNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("center");
     auto xArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, f32>>("x", FloatArgumentType::floatArg());
     auto zArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, f32>>("z", FloatArgumentType::floatArg());
-    zArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _setCenter(ctx); });
+    zArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _setCenter(ctx);
+    });
     xArg->addChild(zArg);
     centerNode->addChild(xArg);
     borderNode->addChild(centerNode);
@@ -75,14 +83,18 @@ void WorldBorderCommand::registerTo(CommandDispatcher<ServerCommandSource>& disp
     auto amountNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("amount");
     auto amountArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, f32>>(
         "damagePerBlock", FloatArgumentType::floatArg(0.0f));
-    amountArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _setDamageAmount(ctx); });
+    amountArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _setDamageAmount(ctx);
+    });
     amountNode->addChild(amountArg);
     damageNode->addChild(amountNode);
 
     auto bufferNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("buffer");
     auto bufferArg =
         std::make_shared<ArgumentCommandNode<ServerCommandSource, f32>>("distance", FloatArgumentType::floatArg(0.0f));
-    bufferArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _setDamageBuffer(ctx); });
+    bufferArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _setDamageBuffer(ctx);
+    });
     bufferNode->addChild(bufferArg);
     damageNode->addChild(bufferNode);
     borderNode->addChild(damageNode);
@@ -92,21 +104,27 @@ void WorldBorderCommand::registerTo(CommandDispatcher<ServerCommandSource>& disp
     auto timeNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("time");
     auto warnTimeArg =
         std::make_shared<ArgumentCommandNode<ServerCommandSource, i32>>("seconds", TimeArgumentType::time());
-    warnTimeArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _setWarningTime(ctx); });
+    warnTimeArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _setWarningTime(ctx);
+    });
     timeNode->addChild(warnTimeArg);
     warningNode->addChild(timeNode);
 
     auto distanceNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("distance");
     auto warnDistArg =
         std::make_shared<ArgumentCommandNode<ServerCommandSource, i32>>("blocks", IntegerArgumentType::integer(0));
-    warnDistArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _setWarningDistance(ctx); });
+    warnDistArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _setWarningDistance(ctx);
+    });
     distanceNode->addChild(warnDistArg);
     warningNode->addChild(distanceNode);
     borderNode->addChild(warningNode);
 
     // /worldborder get
     auto getNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("get");
-    getNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _getBorder(ctx); });
+    getNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _getBorder(ctx);
+    });
     borderNode->addChild(getNode);
 
     // /worldborder add <distance> [time]
@@ -114,10 +132,14 @@ void WorldBorderCommand::registerTo(CommandDispatcher<ServerCommandSource>& disp
     auto addDistArg =
         std::make_shared<ArgumentCommandNode<ServerCommandSource, f32>>("distance", FloatArgumentType::floatArg());
     auto addTimeArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, i32>>("time", TimeArgumentType::time());
-    addTimeArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _addBorder(ctx); });
+    addTimeArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _addBorder(ctx);
+    });
     addDistArg->addChild(addTimeArg);
     // 默认时间为 0（立即）
-    addDistArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _addBorder(ctx); });
+    addDistArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _addBorder(ctx);
+    });
     addNode->addChild(addDistArg);
     borderNode->addChild(addNode);
 

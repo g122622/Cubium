@@ -55,10 +55,16 @@ public:
     virtual ~SculkBehaviour() = default;
 
     /// MC SculkBehaviour.canChangeBlockStateOnSpread：扩散后是否可能改变方块状态。
-    [[nodiscard]] virtual bool canChangeBlockStateOnSpread() const { return true; }
+    [[nodiscard]] virtual bool canChangeBlockStateOnSpread() const
+    {
+        return true;
+    }
 
     /// MC SculkBehaviour.getSculkSpreadDelay：游标每次 update 后的延迟（tick）。
-    [[nodiscard]] virtual u8 getSculkSpreadDelay() const { return 1; }
+    [[nodiscard]] virtual u8 getSculkSpreadDelay() const
+    {
+        return 1;
+    }
 
     /// MC SculkBehaviour.onDischarged：电荷耗尽时回调（默认无操作）。
     virtual void onDischarged(IWorld& world, const BlockState& state, const BlockPos& pos, math::IRandom& random)
@@ -79,7 +85,10 @@ public:
     }
 
     /// MC SculkBehaviour.updateDecayDelay：更新衰减延迟（默认 1）。
-    [[nodiscard]] virtual i32 updateDecayDelay(i32 decayDelay) const { return 1; }
+    [[nodiscard]] virtual i32 updateDecayDelay(i32 decayDelay) const
+    {
+        return 1;
+    }
 
     /**
      * @brief MC SculkBehaviour.attemptSpreadVein：

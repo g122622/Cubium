@@ -64,7 +64,10 @@ public:
         MC_UNUSED(pressed);
     }
 
-    void setHasEntity(bool hasEntity) { m_hasEntity = hasEntity; }
+    void setHasEntity(bool hasEntity)
+    {
+        m_hasEntity = hasEntity;
+    }
 
 private:
     i32 m_tickDelay = 10;
@@ -77,7 +80,10 @@ private:
 
 class AbstractPressurePlateBlockShapeTest : public ::testing::Test {
 protected:
-    void SetUp() override { block_ = std::make_unique<TestPressurePlateBlock>(BlockProperties(Material::WOOD)); }
+    void SetUp() override
+    {
+        block_ = std::make_unique<TestPressurePlateBlock>(BlockProperties(Material::WOOD));
+    }
 
     std::unique_ptr<TestPressurePlateBlock> block_;
 };
@@ -127,7 +133,10 @@ TEST_F(AbstractPressurePlateBlockShapeTest, PressedShape_LowerThanUnpressed)
 
 class AbstractPressurePlateBlockPowerTest : public ::testing::Test {
 protected:
-    void SetUp() override { block_ = std::make_unique<TestPressurePlateBlock>(BlockProperties(Material::WOOD)); }
+    void SetUp() override
+    {
+        block_ = std::make_unique<TestPressurePlateBlock>(BlockProperties(Material::WOOD));
+    }
 
     std::unique_ptr<TestPressurePlateBlock> block_;
 };
@@ -173,7 +182,10 @@ TEST_F(AbstractPressurePlateBlockPowerTest, DefaultPowered_IsFalse)
 
 class AbstractPressurePlateBlockPropertyTest : public ::testing::Test {
 protected:
-    void SetUp() override { block_ = std::make_unique<TestPressurePlateBlock>(BlockProperties(Material::WOOD)); }
+    void SetUp() override
+    {
+        block_ = std::make_unique<TestPressurePlateBlock>(BlockProperties(Material::WOOD));
+    }
 
     std::unique_ptr<TestPressurePlateBlock> block_;
 };

@@ -39,7 +39,10 @@ using namespace mc::blockentity;
 
 class FurnaceInventoryTest : public ::testing::Test {
 protected:
-    void SetUp() override { inventory_ = std::make_unique<FurnaceInventory>(); }
+    void SetUp() override
+    {
+        inventory_ = std::make_unique<FurnaceInventory>();
+    }
 
     std::unique_ptr<FurnaceInventory> inventory_;
 };
@@ -93,7 +96,9 @@ TEST_F(FurnaceInventoryTest, SetInputItem_UpdatesInput)
 TEST_F(FurnaceInventoryTest, SetChanged_Callback)
 {
     bool callbackCalled = false;
-    FurnaceInventory invWithCallback([&callbackCalled]() { callbackCalled = true; });
+    FurnaceInventory invWithCallback([&callbackCalled]() {
+        callbackCalled = true;
+    });
 
     invWithCallback.setChanged();
     EXPECT_TRUE(callbackCalled);
@@ -133,7 +138,10 @@ TEST_F(FurnaceInventoryTest, GetMaxStackSize_ReturnsDefault)
 
 class FurnaceEntityTest : public ::testing::Test {
 protected:
-    void SetUp() override { furnace_ = std::make_unique<FurnaceEntity>(BlockPos(10, 20, 30)); }
+    void SetUp() override
+    {
+        furnace_ = std::make_unique<FurnaceEntity>(BlockPos(10, 20, 30));
+    }
 
     std::unique_ptr<FurnaceEntity> furnace_;
 };
@@ -231,7 +239,10 @@ TEST_F(FurnaceEntityTest, Load_LoadsBurnTime)
 
 class BlastFurnaceEntityTest : public ::testing::Test {
 protected:
-    void SetUp() override { blastFurnace_ = std::make_unique<BlastFurnaceEntity>(BlockPos(5, 10, 15)); }
+    void SetUp() override
+    {
+        blastFurnace_ = std::make_unique<BlastFurnaceEntity>(BlockPos(5, 10, 15));
+    }
 
     std::unique_ptr<BlastFurnaceEntity> blastFurnace_;
 };
@@ -264,7 +275,10 @@ TEST_F(BlastFurnaceEntityTest, NeedsTick_ReturnsTrue)
 
 class SmokerEntityTest : public ::testing::Test {
 protected:
-    void SetUp() override { smoker_ = std::make_unique<SmokerEntity>(BlockPos(1, 2, 3)); }
+    void SetUp() override
+    {
+        smoker_ = std::make_unique<SmokerEntity>(BlockPos(1, 2, 3));
+    }
 
     std::unique_ptr<SmokerEntity> smoker_;
 };

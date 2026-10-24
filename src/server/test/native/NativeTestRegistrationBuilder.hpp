@@ -34,31 +34,37 @@ public:
         m_data.setBatchName(std::move(name));
         return *this;
     }
+
     NativeTestRegistrationBuilder& maxAttempts(i32 n) noexcept
     {
         m_data.setMaxAttempts(n);
         return *this;
     }
+
     NativeTestRegistrationBuilder& maxTicks(i32 n) noexcept
     {
         m_data.setMaxTicks(n);
         return *this;
     }
+
     NativeTestRegistrationBuilder& padding(i32 n) noexcept
     {
         m_data.setPadding(n);
         return *this;
     }
+
     NativeTestRegistrationBuilder& required(bool r) noexcept
     {
         m_data.setRequired(r);
         return *this;
     }
+
     NativeTestRegistrationBuilder& requiredSuccessfulAttempts(i32 n) noexcept
     {
         m_data.setRequiredSuccesses(n);
         return *this;
     }
+
     NativeTestRegistrationBuilder& rotate(bool r) noexcept
     {
         // JS `rotateTest(bool)`：true=允许 4 旋转压测；此处暂存为标签，--verify 由 GameTestServer 展开
@@ -66,22 +72,26 @@ public:
         m_rotate = r;
         return *this;
     }
+
     NativeTestRegistrationBuilder& setupTicks(i32 n) noexcept
     {
         m_data.setSetupTicks(n);
         return *this;
     }
+
     NativeTestRegistrationBuilder& structureName(std::string name)
     {
         m_data.setStructure(std::move(name));
         return *this;
     }
+
     NativeTestRegistrationBuilder& structureLocation(std::string name)
     {
         // JS `structureLocation` 等价 `structureName`（结构资源位置）
         m_data.setStructure(std::move(name));
         return *this;
     }
+
     NativeTestRegistrationBuilder& tag(std::string t)
     {
         m_tags.push_back(std::move(t));

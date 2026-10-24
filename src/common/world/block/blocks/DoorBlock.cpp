@@ -334,10 +334,18 @@ BlockStateProperties::DoorHinge DoorBlock::_calculateHingeSide(BlockItemUseConte
     const BlockState* rightUpState = reader.getBlockState(rightUpPos);
 
     i32 score = 0;
-    if (leftState != nullptr && leftState->hasOpaqueCollisionShape()) score--;
-    if (leftUpState != nullptr && leftUpState->hasOpaqueCollisionShape()) score--;
-    if (rightState != nullptr && rightState->hasOpaqueCollisionShape()) score++;
-    if (rightUpState != nullptr && rightUpState->hasOpaqueCollisionShape()) score++;
+    if (leftState != nullptr && leftState->hasOpaqueCollisionShape()) {
+        score--;
+    }
+    if (leftUpState != nullptr && leftUpState->hasOpaqueCollisionShape()) {
+        score--;
+    }
+    if (rightState != nullptr && rightState->hasOpaqueCollisionShape()) {
+        score++;
+    }
+    if (rightUpState != nullptr && rightUpState->hasOpaqueCollisionShape()) {
+        score++;
+    }
 
     bool hasLeftDoor = leftState != nullptr && &leftState->getBlock() == this &&
         leftState->get(BlockStateProperties::DOUBLE_BLOCK_HALF()) == BlockStateProperties::DoubleBlockHalf::Lower;

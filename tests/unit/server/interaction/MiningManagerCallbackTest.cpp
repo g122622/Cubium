@@ -79,8 +79,9 @@ protected:
         // PlayerInventory 作为解析结果——仍然是单份数据。
         m_testInventory = std::make_unique<PlayerInventory>(nullptr);
         m_inventoryManager = std::make_unique<server::interaction::InventoryManager>(*m_playerManager);
-        m_inventoryManager->setInventoryResolver(
-            [this](PlayerId /*playerId*/) -> PlayerInventory* { return m_testInventory.get(); });
+        m_inventoryManager->setInventoryResolver([this](PlayerId /*playerId*/) -> PlayerInventory* {
+            return m_testInventory.get();
+        });
 
         // 创建连接管理器
         m_connectionManager = std::make_unique<server::core::ConnectionManager>(*m_playerManager);
@@ -155,7 +156,9 @@ TEST_F(MiningManagerCallbackTest, EntityIdResolverNotCalledWhenNotSet)
 TEST_F(MiningManagerCallbackTest, EntityIdResolverReturnsInvalidEntityId)
 {
     // 当 entityIdResolver 返回 INVALID_ENTITY_ID (0) 时，startMining 应正常工作
-    m_miningManager->setEntityIdResolver([](PlayerId) -> EntityInstanceId { return INVALID_ENTITY_ID; });
+    m_miningManager->setEntityIdResolver([](PlayerId) -> EntityInstanceId {
+        return INVALID_ENTITY_ID;
+    });
 
     m_miningManager->handleBlockInteraction(
         m_playerId, BlockPos(5, 63, 10), network::BlockInteractionAction::StartDestroyBlock);
@@ -186,8 +189,12 @@ TEST_F(MiningManagerCallbackTest, EntityIdResolverReturnsDifferentIdsForDifferen
 
     // 设置解析器：player1 -> entityId 100, player2 -> entityId 200
     m_miningManager->setEntityIdResolver([](PlayerId pid) -> EntityInstanceId {
-        if (pid == 1) return 100;
-        if (pid == 2) return 200;
+        if (pid == 1) {
+            return 100;
+        }
+        if (pid == 2) {
+            return 200;
+        }
         return INVALID_ENTITY_ID;
     });
 
@@ -197,9 +204,11 @@ TEST_F(MiningManagerCallbackTest, EntityIdResolverReturnsDifferentIdsForDifferen
         i32 x = 0, y = 0, z = 0;
         i8 stage = 0;
     };
+
     std::vector<BroadcastRecord> broadcasts;
-    m_miningManager->setOnBreakAnimBroadcast(
-        [&broadcasts](PlayerId pid, i32 x, i32 y, i32 z, i8 stage) { broadcasts.push_back({pid, x, y, z, stage}); });
+    m_miningManager->setOnBreakAnimBroadcast([&broadcasts](PlayerId pid, i32 x, i32 y, i32 z, i8 stage) {
+        broadcasts.push_back({pid, x, y, z, stage});
+    });
 
     // 设置挖掘完成回调
     m_miningManager->setOnMiningComplete([](PlayerId, const BlockPos&) {});
@@ -238,8 +247,9 @@ TEST_F(MiningManagerCallbackTest, BreakAnimBroadcastCallbackIsSettable)
     // 验证广播回调可以被设置并且不会导致崩溃
     bool callbackInvoked = false;
 
-    m_miningManager->setOnBreakAnimBroadcast(
-        [&callbackInvoked](PlayerId, i32, i32, i32, i8) { callbackInvoked = true; });
+    m_miningManager->setOnBreakAnimBroadcast([&callbackInvoked](PlayerId, i32, i32, i32, i8) {
+        callbackInvoked = true;
+    });
 
     // 设置挖掘完成回调
     m_miningManager->setOnMiningComplete([](PlayerId, const BlockPos&) {});
@@ -280,9 +290,11 @@ TEST_F(MiningManagerCallbackTest, AbortMiningBroadcastsRemoveAnimationAfterTickS
         i32 x = 0, y = 0, z = 0;
         i8 stage = 0;
     };
+
     std::vector<BroadcastRecord> broadcasts;
-    m_miningManager->setOnBreakAnimBroadcast(
-        [&broadcasts](PlayerId pid, i32 x, i32 y, i32 z, i8 stage) { broadcasts.push_back({pid, x, y, z, stage}); });
+    m_miningManager->setOnBreakAnimBroadcast([&broadcasts](PlayerId pid, i32 x, i32 y, i32 z, i8 stage) {
+        broadcasts.push_back({pid, x, y, z, stage});
+    });
 
     // 直接调用 startMining 并设置 entityId
     BlockPos miningPos(5, 63, 10);
@@ -313,9 +325,11 @@ TEST_F(MiningManagerCallbackTest, AbortMiningNoRemoveAnimationWhenNeverStarted)
         i32 x = 0, y = 0, z = 0;
         i8 stage = 0;
     };
+
     std::vector<BroadcastRecord> broadcasts;
-    m_miningManager->setOnBreakAnimBroadcast(
-        [&broadcasts](PlayerId pid, i32 x, i32 y, i32 z, i8 stage) { broadcasts.push_back({pid, x, y, z, stage}); });
+    m_miningManager->setOnBreakAnimBroadcast([&broadcasts](PlayerId pid, i32 x, i32 y, i32 z, i8 stage) {
+        broadcasts.push_back({pid, x, y, z, stage});
+    });
 
     // 不开始挖掘，直接中止
     m_miningManager->abortMining(m_playerId);
@@ -343,9 +357,11 @@ TEST_F(MiningManagerCallbackTest, MultipleStartMiningOverwritesPrevious)
         i32 x = 0, y = 0, z = 0;
         i8 stage = 0;
     };
+
     std::vector<BroadcastRecord> broadcasts;
-    m_miningManager->setOnBreakAnimBroadcast(
-        [&broadcasts](PlayerId pid, i32 x, i32 y, i32 z, i8 stage) { broadcasts.push_back({pid, x, y, z, stage}); });
+    m_miningManager->setOnBreakAnimBroadcast([&broadcasts](PlayerId pid, i32 x, i32 y, i32 z, i8 stage) {
+        broadcasts.push_back({pid, x, y, z, stage});
+    });
 
     // 开始挖掘位置 A
     m_miningManager->startMining(m_playerId, BlockPos(1, 63, 1), 100);
@@ -367,7 +383,9 @@ TEST_F(MiningManagerCallbackTest, MultipleStartMiningOverwritesPrevious)
 TEST_F(MiningManagerCallbackTest, SetEntityIdResolverCanBeNull)
 {
     // 设置解析器后可以设置空解析器（std::function 可以为空）
-    m_miningManager->setEntityIdResolver([](PlayerId) -> EntityInstanceId { return 42; });
+    m_miningManager->setEntityIdResolver([](PlayerId) -> EntityInstanceId {
+        return 42;
+    });
 
     m_miningManager->handleBlockInteraction(
         m_playerId, BlockPos(5, 63, 10), network::BlockInteractionAction::StartDestroyBlock);

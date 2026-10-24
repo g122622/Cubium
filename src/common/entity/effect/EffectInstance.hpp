@@ -87,12 +87,35 @@ public:
 
     // ========== 基本属性 ==========
 
-    [[nodiscard]] EffectType type() const noexcept { return m_type; }
-    [[nodiscard]] i32 duration() const noexcept { return m_duration; }
-    [[nodiscard]] i32 amplifier() const noexcept { return m_amplifier; }
-    [[nodiscard]] bool isAmbient() const noexcept { return m_ambient; }
-    [[nodiscard]] bool isVisible() const noexcept { return m_visible; }
-    [[nodiscard]] bool showIcon() const noexcept { return m_showIcon; }
+    [[nodiscard]] EffectType type() const noexcept
+    {
+        return m_type;
+    }
+
+    [[nodiscard]] i32 duration() const noexcept
+    {
+        return m_duration;
+    }
+
+    [[nodiscard]] i32 amplifier() const noexcept
+    {
+        return m_amplifier;
+    }
+
+    [[nodiscard]] bool isAmbient() const noexcept
+    {
+        return m_ambient;
+    }
+
+    [[nodiscard]] bool isVisible() const noexcept
+    {
+        return m_visible;
+    }
+
+    [[nodiscard]] bool showIcon() const noexcept
+    {
+        return m_showIcon;
+    }
 
     /// 被覆盖的旧效果（vanilla MobEffectInstance.hiddenEffect）。当同类型更强效果施加时，
     /// 旧效果被"隐藏"保留于此，新效果结束后恢复。wire codec 透传（递归 optional Details）。
@@ -101,22 +124,35 @@ public:
     {
         return m_hiddenEffect ? m_hiddenEffect.get() : nullptr;
     }
-    void setHiddenEffect(std::shared_ptr<EffectInstance> effect) { m_hiddenEffect = std::move(effect); }
+
+    void setHiddenEffect(std::shared_ptr<EffectInstance> effect)
+    {
+        m_hiddenEffect = std::move(effect);
+    }
 
     /**
      * @brief 获取效果等级（1-based，用于显示）
      */
-    [[nodiscard]] i32 getEffectLevel() const noexcept { return m_amplifier + 1; }
+    [[nodiscard]] i32 getEffectLevel() const noexcept
+    {
+        return m_amplifier + 1;
+    }
 
     /**
      * @brief 检查效果是否过期
      */
-    [[nodiscard]] bool isExpired() const noexcept { return m_duration == 0; }
+    [[nodiscard]] bool isExpired() const noexcept
+    {
+        return m_duration == 0;
+    }
 
     /**
      * @brief 检查效果是否永久
      */
-    [[nodiscard]] bool isPermanent() const noexcept { return m_duration < 0; }
+    [[nodiscard]] bool isPermanent() const noexcept
+    {
+        return m_duration < 0;
+    }
 
     /**
      * @brief 检查效果是否将在指定tick数内结束
@@ -134,7 +170,10 @@ public:
     /**
      * @brief 检查属性修改器是否已应用
      */
-    [[nodiscard]] bool isApplied() const noexcept { return m_applied; }
+    [[nodiscard]] bool isApplied() const noexcept
+    {
+        return m_applied;
+    }
 
     // ========== 更新 ==========
 

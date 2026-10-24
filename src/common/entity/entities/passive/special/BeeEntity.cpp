@@ -442,7 +442,12 @@ void BeeEntity::registerGoals()
     // 保留原始指针供 FindPollinationTargetGoal 判定"已被玩家用花朵吸引"，此时不催熟作物
     // （对齐 vanilla Bee.isTempted 读 TemptGoal 是否在跑）。
     auto temptGoal = std::make_unique<entity::ai::goal::TemptGoal>(
-        this, 1.25, [](const ItemStack& stack) -> bool { return isTemptingItem(stack); }, false);
+        this,
+        1.25,
+        [](const ItemStack& stack) -> bool {
+            return isTemptingItem(stack);
+        },
+        false);
     m_temptGoal = temptGoal.get();
     m_goalSelector.addGoal(3, std::move(temptGoal));
 
@@ -522,7 +527,7 @@ void BeeEntity::registerAttributes()
     attributes().setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.3);
     attributes().setBaseValue(entity::attribute::Attributes::FLYING_SPEED, 0.6);
     attributes().setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, 2.0);
-    attributes().setBaseValue(entity::attribute::Attributes::FOLLOW_RANGE, 48.0);
+    // 原版 Bee 用 Mob.createMobAttributes 的默认跟随范围 16，没有 48。
 }
 
 std::optional<ResourceLocation> BeeEntity::getAmbientSound() const

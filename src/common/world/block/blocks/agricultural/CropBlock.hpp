@@ -79,7 +79,10 @@ public:
     /**
      * @brief 获取最大年龄
      */
-    [[nodiscard]] virtual i32 getMaxAge() const { return 7; }
+    [[nodiscard]] virtual i32 getMaxAge() const
+    {
+        return 7;
+    }
 
     /**
      * @brief 获取当前年龄
@@ -122,7 +125,10 @@ public:
      * 注意：Block::ticksRandomly() 是无状态方法，无法检查作物是否成熟。
      * 成熟检查在 randomTick() 中进行。
      */
-    [[nodiscard]] bool ticksRandomly() const noexcept override { return true; }
+    [[nodiscard]] bool ticksRandomly() const noexcept override
+    {
+        return true;
+    }
 
     // ========== IGrowable 接口实现 ==========
 

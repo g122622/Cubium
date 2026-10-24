@@ -49,10 +49,21 @@ public:
 
     [[nodiscard]] ItemStack apply(ItemStack stack, LootContext& context) const override;
     [[nodiscard]] std::unique_ptr<LootFunction> clone() const noexcept override;
-    [[nodiscard]] std::string getType() const noexcept override { return "set_written_book_pages"; }
 
-    [[nodiscard]] const nlohmann::json& getPages() const { return m_pages; }
-    [[nodiscard]] ListOperationKind getMode() const { return m_mode; }
+    [[nodiscard]] std::string getType() const noexcept override
+    {
+        return "set_written_book_pages";
+    }
+
+    [[nodiscard]] const nlohmann::json& getPages() const
+    {
+        return m_pages;
+    }
+
+    [[nodiscard]] ListOperationKind getMode() const
+    {
+        return m_mode;
+    }
 
 private:
     nlohmann::json m_pages;

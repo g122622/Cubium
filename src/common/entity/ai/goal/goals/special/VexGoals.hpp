@@ -61,7 +61,10 @@ public:
     void resetTask() override;
     void tick() override;
 
-    [[nodiscard]] std::string getTypeName() const override { return "VexChargeAttackGoal"; }
+    [[nodiscard]] std::string getTypeName() const override
+    {
+        return "VexChargeAttackGoal";
+    }
 
 private:
     /**
@@ -101,7 +104,10 @@ public:
     [[nodiscard]] bool shouldContinueExecuting() override;
     void tick() override;
 
-    [[nodiscard]] std::string getTypeName() const override { return "VexMoveRandomGoal"; }
+    [[nodiscard]] std::string getTypeName() const override
+    {
+        return "VexMoveRandomGoal";
+    }
 
 private:
     VexEntity* m_vex;
@@ -132,7 +138,10 @@ public:
     [[nodiscard]] bool shouldExecute() override;
     void startExecuting() override;
 
-    [[nodiscard]] std::string getTypeName() const override { return "VexCopyOwnerTargetGoal"; }
+    [[nodiscard]] std::string getTypeName() const override
+    {
+        return "VexCopyOwnerTargetGoal";
+    }
 
 private:
     VexEntity* m_vex;

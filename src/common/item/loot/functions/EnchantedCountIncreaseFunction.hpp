@@ -56,10 +56,21 @@ public:
 
     [[nodiscard]] ItemStack apply(ItemStack stack, LootContext& context) const override;
     [[nodiscard]] std::unique_ptr<LootFunction> clone() const noexcept override;
-    [[nodiscard]] std::string getType() const override { return "enchanted_count_increase"; }
 
-    [[nodiscard]] const RandomValueRange& getCount() const { return m_count; }
-    [[nodiscard]] i32 getLimit() const { return m_limit; }
+    [[nodiscard]] std::string getType() const override
+    {
+        return "enchanted_count_increase";
+    }
+
+    [[nodiscard]] const RandomValueRange& getCount() const
+    {
+        return m_count;
+    }
+
+    [[nodiscard]] i32 getLimit() const
+    {
+        return m_limit;
+    }
 
 private:
     RandomValueRange m_count;

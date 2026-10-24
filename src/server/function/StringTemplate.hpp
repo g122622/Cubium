@@ -77,10 +77,16 @@ public:
     {}
 
     /** @brief 文本片段列表 */
-    [[nodiscard]] const std::vector<std::string>& segments() const noexcept { return m_segments; }
+    [[nodiscard]] const std::vector<std::string>& segments() const noexcept
+    {
+        return m_segments;
+    }
 
     /** @brief 变量名列表 */
-    [[nodiscard]] const std::vector<std::string>& variables() const noexcept { return m_variables; }
+    [[nodiscard]] const std::vector<std::string>& variables() const noexcept
+    {
+        return m_variables;
+    }
 
     /**
      * @brief 用实参值列表填充模板

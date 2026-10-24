@@ -53,11 +53,30 @@ public:
     /** @brief 创建一个表示"无目标"的空快照 */
     [[nodiscard]] static TargetInfoSnapshot none();
 
-    [[nodiscard]] bool hasTarget() const noexcept { return m_kind != TargetInfoKind::None; }
-    [[nodiscard]] TargetInfoKind kind() const noexcept { return m_kind; }
-    [[nodiscard]] const std::string& title() const noexcept { return m_title; }
-    [[nodiscard]] const std::vector<std::string>& details() const noexcept { return m_details; }
-    [[nodiscard]] u32 accentColor() const noexcept { return m_accentColor; }
+    [[nodiscard]] bool hasTarget() const noexcept
+    {
+        return m_kind != TargetInfoKind::None;
+    }
+
+    [[nodiscard]] TargetInfoKind kind() const noexcept
+    {
+        return m_kind;
+    }
+
+    [[nodiscard]] const std::string& title() const noexcept
+    {
+        return m_title;
+    }
+
+    [[nodiscard]] const std::vector<std::string>& details() const noexcept
+    {
+        return m_details;
+    }
+
+    [[nodiscard]] u32 accentColor() const noexcept
+    {
+        return m_accentColor;
+    }
 
 private:
     TargetInfoKind m_kind;

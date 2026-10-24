@@ -50,9 +50,15 @@ public:
         , m_factory(std::move(factory))
     {}
 
-    [[nodiscard]] const std::string& getName() const { return m_name; }
+    [[nodiscard]] const std::string& getName() const
+    {
+        return m_name;
+    }
 
-    [[nodiscard]] std::unique_ptr<Sensor<E>> create() const { return m_factory(); }
+    [[nodiscard]] std::unique_ptr<Sensor<E>> create() const
+    {
+        return m_factory();
+    }
 
 private:
     std::string m_name;

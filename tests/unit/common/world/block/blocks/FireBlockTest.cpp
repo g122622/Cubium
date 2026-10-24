@@ -99,63 +99,180 @@ public:
         return true;
     }
 
-    [[nodiscard]] const fluid::FluidState* getFluidState(i32, i32, i32) const override { return nullptr; }
+    [[nodiscard]] const fluid::FluidState* getFluidState(i32, i32, i32) const override
+    {
+        return nullptr;
+    }
+
     // 默认返回 nullptr（保持现有 41 个测试行为）；flag1 链路测试经 setChunkData 注入带 biome 的 ChunkData。
-    [[nodiscard]] mc::world::chunk::IChunkManager* chunkManager() override { return &m_stubChunks; }
-    [[nodiscard]] const mc::world::chunk::IChunkManager* chunkManager() const override { return &m_stubChunks; }
+    [[nodiscard]] mc::world::chunk::IChunkManager* chunkManager() override
+    {
+        return &m_stubChunks;
+    }
+
+    [[nodiscard]] const mc::world::chunk::IChunkManager* chunkManager() const override
+    {
+        return &m_stubChunks;
+    }
+
     mc::test::StubChunkManager m_stubChunks{nullptr, false};
-    [[nodiscard]] i32 getHeight(i32, i32) const override { return 64; }
-    [[nodiscard]] u8 getBlockLight(i32, i32, i32) const override { return 0; }
-    [[nodiscard]] u8 getSkyLight(i32, i32, i32) const override { return 15; }
-    [[nodiscard]] bool hasBlockCollision(const AxisAlignedBB&) const override { return false; }
-    [[nodiscard]] std::vector<AxisAlignedBB> getBlockCollisions(const AxisAlignedBB&) const override { return {}; }
+
+    [[nodiscard]] i32 getHeight(i32, i32) const override
+    {
+        return 64;
+    }
+
+    [[nodiscard]] u8 getBlockLight(i32, i32, i32) const override
+    {
+        return 0;
+    }
+
+    [[nodiscard]] u8 getSkyLight(i32, i32, i32) const override
+    {
+        return 15;
+    }
+
+    [[nodiscard]] bool hasBlockCollision(const AxisAlignedBB&) const override
+    {
+        return false;
+    }
+
+    [[nodiscard]] std::vector<AxisAlignedBB> getBlockCollisions(const AxisAlignedBB&) const override
+    {
+        return {};
+    }
+
     [[nodiscard]] bool isWithinWorldBounds(i32, i32 y, i32) const override
     {
         return y >= mc::world::MIN_BUILD_HEIGHT && y < mc::world::MAX_BUILD_HEIGHT;
     }
-    [[nodiscard]] bool hasEntityCollision(const AxisAlignedBB&, const Entity*) const override { return false; }
+
+    [[nodiscard]] bool hasEntityCollision(const AxisAlignedBB&, const Entity*) const override
+    {
+        return false;
+    }
+
     [[nodiscard]] std::vector<AxisAlignedBB> getEntityCollisions(const AxisAlignedBB&, const Entity*) const override
     {
         return {};
     }
-    [[nodiscard]] PhysicsEngine* physicsEngine() override { return nullptr; }
-    [[nodiscard]] const PhysicsEngine* physicsEngine() const override { return nullptr; }
+
+    [[nodiscard]] PhysicsEngine* physicsEngine() override
+    {
+        return nullptr;
+    }
+
+    [[nodiscard]] const PhysicsEngine* physicsEngine() const override
+    {
+        return nullptr;
+    }
+
     [[nodiscard]] std::vector<Entity*> getEntitiesInAABB(const AxisAlignedBB&, const Entity*) const override
     {
         return {};
     }
+
     [[nodiscard]] std::vector<Entity*> getEntitiesInRange(const Vector3&, f32, const Entity*) const override
     {
         return {};
     }
-    [[nodiscard]] DimensionId dimension() const override { return 0; }
-    [[nodiscard]] u64 seed() const override { return 12345; }
-    [[nodiscard]] u64 currentTick() const override { return 0; }
-    [[nodiscard]] i64 dayTime() const override { return 0; }
-    [[nodiscard]] bool isHardcore() const override { return false; }
-    [[nodiscard]] bool isClientSide() const override { return false; }
-    [[nodiscard]] bool isUltraWarm() const override { return false; }
 
-    [[nodiscard]] bool doFireTick() const override { return m_doFireTick; }
+    [[nodiscard]] DimensionId dimension() const override
+    {
+        return 0;
+    }
+
+    [[nodiscard]] u64 seed() const override
+    {
+        return 12345;
+    }
+
+    [[nodiscard]] u64 currentTick() const override
+    {
+        return 0;
+    }
+
+    [[nodiscard]] i64 dayTime() const override
+    {
+        return 0;
+    }
+
+    [[nodiscard]] bool isHardcore() const override
+    {
+        return false;
+    }
+
+    [[nodiscard]] bool isClientSide() const override
+    {
+        return false;
+    }
+
+    [[nodiscard]] bool isUltraWarm() const override
+    {
+        return false;
+    }
+
+    [[nodiscard]] bool doFireTick() const override
+    {
+        return m_doFireTick;
+    }
+
     // 测试世界不模拟玩家实体：门控结果由用例显式设置，避免依赖 IWorld 默认游戏规则表
-    [[nodiscard]] bool canSpreadFireAround(const BlockPos&) const override { return m_canSpreadFireAround; }
-    [[nodiscard]] bool isRaining() const override { return m_isRaining; }
+    [[nodiscard]] bool canSpreadFireAround(const BlockPos&) const override
+    {
+        return m_canSpreadFireAround;
+    }
+
+    [[nodiscard]] bool isRaining() const override
+    {
+        return m_isRaining;
+    }
+
     [[nodiscard]] bool canRainAt(const BlockPos& pos) const override
     {
         MC_UNUSED(pos);
         return m_canRainAtResult;
     }
-    [[nodiscard]] Difficulty difficulty() const override { return m_difficulty; }
 
-    void setBlockAt(const BlockPos& pos, const BlockState* state) { (void)setBlockState(pos.x, pos.y, pos.z, state); }
+    [[nodiscard]] Difficulty difficulty() const override
+    {
+        return m_difficulty;
+    }
 
-    [[nodiscard]] const BlockState* getBlockAt(const BlockPos& pos) const { return getBlockState(pos.x, pos.y, pos.z); }
+    void setBlockAt(const BlockPos& pos, const BlockState* state)
+    {
+        (void)setBlockState(pos.x, pos.y, pos.z, state);
+    }
 
-    void setDoFireTick(bool value) { m_doFireTick = value; }
-    void setCanSpreadFireAround(bool value) { m_canSpreadFireAround = value; }
-    void setRaining(bool value) { m_isRaining = value; }
-    void setCanRainAtResult(bool value) { m_canRainAtResult = value; }
-    void setDifficulty(Difficulty value) { m_difficulty = value; }
+    [[nodiscard]] const BlockState* getBlockAt(const BlockPos& pos) const
+    {
+        return getBlockState(pos.x, pos.y, pos.z);
+    }
+
+    void setDoFireTick(bool value)
+    {
+        m_doFireTick = value;
+    }
+
+    void setCanSpreadFireAround(bool value)
+    {
+        m_canSpreadFireAround = value;
+    }
+
+    void setRaining(bool value)
+    {
+        m_isRaining = value;
+    }
+
+    void setCanRainAtResult(bool value)
+    {
+        m_canRainAtResult = value;
+    }
+
+    void setDifficulty(Difficulty value)
+    {
+        m_difficulty = value;
+    }
 
     // 注入带 biome 的 ChunkData 供 FireBlock::getIncreasedFireBurnout 链路测试。
     void setChunkData(std::unique_ptr<ChunkData> chunk)
@@ -164,24 +281,43 @@ public:
         m_stubChunks.setChunk(m_chunkData.get());
         m_stubChunks.setChunkLoaded(m_chunkData != nullptr);
     }
-    [[nodiscard]] ChunkData* mutableChunkData() { return m_chunkData.get(); }
+
+    [[nodiscard]] ChunkData* mutableChunkData()
+    {
+        return m_chunkData.get();
+    }
 
     [[nodiscard]] world::tick::TickManager& tickManager() override
     {
         ensureTickManager();
         return *m_tickManagerPtr;
     }
+
     [[nodiscard]] const world::tick::TickManager& tickManager() const override
     {
         const_cast<FireSpreadTestWorld*>(this)->ensureTickManager();
         return *m_tickManagerPtr;
     }
 
-    [[nodiscard]] math::IRandom& getRandom() override { return m_random; }
-    [[nodiscard]] const math::IRandom& getRandom() const override { return m_random; }
+    [[nodiscard]] math::IRandom& getRandom() override
+    {
+        return m_random;
+    }
 
-    [[nodiscard]] world::border::WorldBorder& worldBorder() override { return m_worldBorder; }
-    [[nodiscard]] const world::border::WorldBorder& worldBorder() const override { return m_worldBorder; }
+    [[nodiscard]] const math::IRandom& getRandom() const override
+    {
+        return m_random;
+    }
+
+    [[nodiscard]] world::border::WorldBorder& worldBorder() override
+    {
+        return m_worldBorder;
+    }
+
+    [[nodiscard]] const world::border::WorldBorder& worldBorder() const override
+    {
+        return m_worldBorder;
+    }
 
 private:
     void ensureTickManager() const
@@ -234,7 +370,10 @@ protected:
         FireInfoRegistry::instance().initializeVanillaFireInfos();
     }
 
-    void TearDown() override { FireInfoRegistry::instance().clear(); }
+    void TearDown() override
+    {
+        FireInfoRegistry::instance().clear();
+    }
 };
 
 // ========== FireInfoRegistry 测试 ==========
@@ -1237,7 +1376,10 @@ TEST_F(FireInfoRegistryTest, Beehive_BeeNest_FireInfo)
 
 class BlockTagIntegrationTest : public ::testing::Test {
 protected:
-    void SetUp() override { VanillaBlocks::initialize(); }
+    void SetUp() override
+    {
+        VanillaBlocks::initialize();
+    }
 };
 
 // 验证 WOODEN_FENCES 标签包含所有木质栅栏
@@ -1291,7 +1433,10 @@ TEST_F(BlockTagIntegrationTest, Beehives_ContainsBeehiveAndBeeNest)
 
 class NewBlockIntegrationTest : public ::testing::Test {
 protected:
-    void SetUp() override { VanillaBlocks::initialize(); }
+    void SetUp() override
+    {
+        VanillaBlocks::initialize();
+    }
 };
 
 // 验证新注册栅栏方块能够创建有效的 BlockState

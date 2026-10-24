@@ -70,7 +70,10 @@ protected:
         world = createTestWorld(config);
     }
 
-    void TearDown() override { world.reset(); }
+    void TearDown() override
+    {
+        world.reset();
+    }
 
     std::unique_ptr<ServerWorld> world;
 };

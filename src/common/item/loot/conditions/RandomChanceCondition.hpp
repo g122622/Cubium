@@ -51,10 +51,21 @@ public:
 
     [[nodiscard]] bool test(LootContext& context) const override;
     [[nodiscard]] std::unique_ptr<LootCondition> clone() const noexcept override;
-    [[nodiscard]] std::string getType() const override { return "random_chance"; }
 
-    [[nodiscard]] f32 getChance() const { return m_chance; }
-    [[nodiscard]] bool isAffectedByLuck() const { return m_affectedByLuck; }
+    [[nodiscard]] std::string getType() const override
+    {
+        return "random_chance";
+    }
+
+    [[nodiscard]] f32 getChance() const
+    {
+        return m_chance;
+    }
+
+    [[nodiscard]] bool isAffectedByLuck() const
+    {
+        return m_affectedByLuck;
+    }
 
 private:
     f32 m_chance;

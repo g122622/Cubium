@@ -55,7 +55,10 @@ protected:
         container->setBounds(Rect(0, 0, 400, 300));
     }
 
-    void TearDown() override { container.reset(); }
+    void TearDown() override
+    {
+        container.reset();
+    }
 
     std::unique_ptr<ContainerWidget> container;
 };
@@ -94,7 +97,9 @@ TEST_F(ContainerWidgetEventTest, Click_PropagatesToVisibleChild)
     auto button = std::make_unique<ButtonWidget>("btn", 10, 10, 100, 20, "Test");
     button->setActive(true);
     bool clicked = false;
-    button->setOnPress([&clicked](ButtonWidget&) { clicked = true; });
+    button->setOnPress([&clicked](ButtonWidget&) {
+        clicked = true;
+    });
 
     container->addChild(std::move(button));
 
@@ -115,7 +120,9 @@ TEST_F(ContainerWidgetEventTest, Click_DoesNotHitInvisibleWidget)
     auto button = std::make_unique<ButtonWidget>("btn", 10, 10, 100, 20, "Test");
     button->setVisible(false);
     bool clicked = false;
-    button->setOnPress([&clicked](ButtonWidget&) { clicked = true; });
+    button->setOnPress([&clicked](ButtonWidget&) {
+        clicked = true;
+    });
 
     container->addChild(std::move(button));
 
@@ -129,10 +136,14 @@ TEST_F(ContainerWidgetEventTest, Click_TopWidgetReceivesEvent)
     bool bottomClicked = false;
 
     auto bottom = std::make_unique<ButtonWidget>("bottom", 10, 10, 100, 20, "Bottom");
-    bottom->setOnPress([&bottomClicked](ButtonWidget&) { bottomClicked = true; });
+    bottom->setOnPress([&bottomClicked](ButtonWidget&) {
+        bottomClicked = true;
+    });
 
     auto top = std::make_unique<ButtonWidget>("top", 10, 10, 100, 20, "Top");
-    top->setOnPress([&topClicked](ButtonWidget&) { topClicked = true; });
+    top->setOnPress([&topClicked](ButtonWidget&) {
+        topClicked = true;
+    });
 
     container->addChild(std::move(bottom));
     container->addChild(std::move(top)); // 后添加的在上面
@@ -312,9 +323,15 @@ public:
         : Widget(id)
     {}
 
-    void setBounds(Rect r) { Widget::setBounds(r); }
+    void setBounds(Rect r)
+    {
+        Widget::setBounds(r);
+    }
 
-    bool onClick(i32, i32, i32, i32) override { return true; }
+    bool onClick(i32, i32, i32, i32) override
+    {
+        return true;
+    }
 
     bool onDragStart(i32 x, i32 y, i32 button, i32 mods) override
     {

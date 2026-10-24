@@ -90,13 +90,19 @@ public:
      * @brief 获取防御值
      * @return 防御值
      */
-    [[nodiscard]] i32 getShieldDefenseValue() const { return SHIELD_DEFENSE_VALUE; }
+    [[nodiscard]] i32 getShieldDefenseValue() const
+    {
+        return SHIELD_DEFENSE_VALUE;
+    }
 
     /**
      * @brief 获取盾牌冷却时间（被斧攻击后）
      * @return 冷却时间 (tick)
      */
-    [[nodiscard]] static i32 getShieldDisableTime() { return SHIELD_DISABLE_TIME; }
+    [[nodiscard]] static i32 getShieldDisableTime()
+    {
+        return SHIELD_DISABLE_TIME;
+    }
 
     /**
      * @brief 检查物品是否可以作为盾牌使用

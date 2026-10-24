@@ -46,6 +46,7 @@ struct ChunkId {
         , z(0)
         , dimension(0)
     {}
+
     ChunkId(ChunkCoord x, ChunkCoord z, i32 dim)
         : x(x)
         , z(z)
@@ -85,19 +86,29 @@ struct ChunkId {
     /**
      * @brief 转换为区块位置（不含维度）
      */
-    [[nodiscard]] ChunkPos chunkPos() const noexcept { return ChunkPos(x, z); }
+    [[nodiscard]] ChunkPos chunkPos() const noexcept
+    {
+        return ChunkPos(x, z);
+    }
 
     bool operator==(const ChunkId& other) const noexcept
     {
         return x == other.x && z == other.z && dimension == other.dimension;
     }
 
-    bool operator!=(const ChunkId& other) const noexcept { return !(*this == other); }
+    bool operator!=(const ChunkId& other) const noexcept
+    {
+        return !(*this == other);
+    }
 
     bool operator<(const ChunkId& other) const noexcept
     {
-        if (dimension != other.dimension) return dimension < other.dimension;
-        if (x != other.x) return x < other.x;
+        if (dimension != other.dimension) {
+            return dimension < other.dimension;
+        }
+        if (x != other.x) {
+            return x < other.x;
+        }
         return z < other.z;
     }
 };
@@ -112,6 +123,9 @@ using ChunkId = world::chunk::ChunkId;
 namespace std {
 template <>
 struct hash<mc::world::chunk::ChunkId> {
-    size_t operator()(const mc::world::chunk::ChunkId& id) const noexcept { return static_cast<size_t>(id.toId()); }
+    size_t operator()(const mc::world::chunk::ChunkId& id) const noexcept
+    {
+        return static_cast<size_t>(id.toId());
+    }
 };
 } // namespace std

@@ -70,7 +70,10 @@ protected:
         salmon = std::make_unique<TestableSalmonEntity>(EntityInstanceId(0), mc::test::testEcsRegistry());
     }
 
-    void TearDown() override { salmon.reset(); }
+    void TearDown() override
+    {
+        salmon.reset();
+    }
 
     std::unique_ptr<TestableSalmonEntity> salmon;
 };

@@ -111,7 +111,10 @@ public:
      */
     void resetTask() override;
 
-    [[nodiscard]] std::string getTypeName() const override { return "UseItemGoal"; }
+    [[nodiscard]] std::string getTypeName() const override
+    {
+        return "UseItemGoal";
+    }
 
 private:
     class MobEntity* m_mob;
@@ -141,7 +144,10 @@ public:
     void resetTask() override;
     void tick() override;
 
-    [[nodiscard]] std::string getTypeName() const override { return "LookAtCustomerGoal"; }
+    [[nodiscard]] std::string getTypeName() const override
+    {
+        return "LookAtCustomerGoal";
+    }
 
 private:
     class MobEntity* m_mob;
@@ -173,7 +179,10 @@ public:
     void startExecuting() override;
     void resetTask() override;
 
-    [[nodiscard]] std::string getTypeName() const override { return "TradeWithPlayerGoal"; }
+    [[nodiscard]] std::string getTypeName() const override
+    {
+        return "TradeWithPlayerGoal";
+    }
 
 private:
     class MobEntity* m_mob;
@@ -207,7 +216,10 @@ public:
     void resetTask() override;
     void tick() override;
 
-    [[nodiscard]] std::string getTypeName() const override { return "MoveToWanderTargetGoal"; }
+    [[nodiscard]] std::string getTypeName() const override
+    {
+        return "MoveToWanderTargetGoal";
+    }
 
     static constexpr f64 INTERMEDIATE_DISTANCE = 10.0; // 远距离时分段接近的中间航点距离
 

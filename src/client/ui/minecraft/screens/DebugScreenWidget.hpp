@@ -43,6 +43,7 @@ namespace mc::client {
 class Camera;
 class ClientWorld;
 class ClientEntityManager;
+
 namespace net {
 class ClientNetwork;
 } // namespace net
@@ -73,37 +74,58 @@ public:
     /**
      * @brief 设置相机
      */
-    void setCamera(const mc::client::Camera* camera) { m_camera = camera; }
+    void setCamera(const mc::client::Camera* camera)
+    {
+        m_camera = camera;
+    }
 
     /**
      * @brief 设置世界
      */
-    void setWorld(const mc::client::ClientWorld* world) { m_world = world; }
+    void setWorld(const mc::client::ClientWorld* world)
+    {
+        m_world = world;
+    }
 
     /**
      * @brief 设置实体管理器
      */
-    void setEntityManager(const mc::client::ClientEntityManager* manager) { m_entityManager = manager; }
+    void setEntityManager(const mc::client::ClientEntityManager* manager)
+    {
+        m_entityManager = manager;
+    }
 
     /**
      * @brief 设置网络客户端
      */
-    void setClientNetwork(const mc::client::net::ClientNetwork* client) { m_clientNetwork = client; }
+    void setClientNetwork(const mc::client::net::ClientNetwork* client)
+    {
+        m_clientNetwork = client;
+    }
 
     /**
      * @brief 设置目标方块
      */
-    void setTargetBlock(const mc::BlockRaycastResult* result) { m_targetBlock = result; }
+    void setTargetBlock(const mc::BlockRaycastResult* result)
+    {
+        m_targetBlock = result;
+    }
 
     /**
      * @brief 设置玩家
      */
-    void setPlayer(const mc::Player* player) { m_player = player; }
+    void setPlayer(const mc::Player* player)
+    {
+        m_player = player;
+    }
 
     /**
      * @brief 设置维度管理器
      */
-    void setDimensionManager(const mc::ClientDimensionManager* dm) { m_dimensionManager = dm; }
+    void setDimensionManager(const mc::ClientDimensionManager* dm)
+    {
+        m_dimensionManager = dm;
+    }
 
     /**
      * @brief 设置GPU信息
@@ -113,32 +135,50 @@ public:
     /**
      * @brief 设置渲染距离
      */
-    void setRenderDistance(i32 distance) { m_renderDistance = distance; }
+    void setRenderDistance(i32 distance)
+    {
+        m_renderDistance = distance;
+    }
 
     /**
      * @brief 设置版本字符串
      */
-    void setVersion(const std::string& version) { m_version = version; }
+    void setVersion(const std::string& version)
+    {
+        m_version = version;
+    }
 
     /**
      * @brief 设置渲染器信息
      */
-    void setRendererInfo(const std::string& info) { m_rendererInfo = info; }
+    void setRendererInfo(const std::string& info)
+    {
+        m_rendererInfo = info;
+    }
 
     /**
      * @brief 设置服务端tick耗时
      */
-    void setServerTickTimeMs(f32 ms) { m_serverTickTimeMs = ms; }
+    void setServerTickTimeMs(f32 ms)
+    {
+        m_serverTickTimeMs = ms;
+    }
 
     /**
      * @brief 设置服务端目标每tick毫秒数
      */
-    void setServerTargetMsPerTick(f32 ms) { m_serverTargetMsPerTick = ms; }
+    void setServerTargetMsPerTick(f32 ms)
+    {
+        m_serverTargetMsPerTick = ms;
+    }
 
     /**
      * @brief 设置强制加载区块计数
      */
-    void setForcedChunkCount(i32 count) { m_forcedChunkCount = count; }
+    void setForcedChunkCount(i32 count)
+    {
+        m_forcedChunkCount = count;
+    }
 
     // ========== Widget接口 ==========
 
@@ -160,7 +200,10 @@ public:
     /**
      * @brief 设置字体高度（行高）
      */
-    void setLineHeight(i32 lineHeight) { m_lineHeight = lineHeight; }
+    void setLineHeight(i32 lineHeight)
+    {
+        m_lineHeight = lineHeight;
+    }
 
 private:
     /**

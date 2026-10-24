@@ -83,7 +83,10 @@ public:
      * @brief 获取下蛋计时器
      * @return 到下次下蛋的时间（tick）
      */
-    [[nodiscard]] i32 getEggTimer() const { return m_eggTimer; }
+    [[nodiscard]] i32 getEggTimer() const
+    {
+        return m_eggTimer;
+    }
 
     /**
      * @brief 重置下蛋计时器
@@ -103,7 +106,10 @@ public:
     /**
      * @brief 获取声音音量
      */
-    [[nodiscard]] f32 getSoundVolume() const override { return 1.0f; }
+    [[nodiscard]] f32 getSoundVolume() const override
+    {
+        return 1.0f;
+    }
 
     /**
      * @brief 获取环境音效
@@ -140,23 +146,35 @@ public:
     /**
      * @brief 获取翅膀旋转角度（用于渲染）
      */
-    [[nodiscard]] f32 getWingRotation() const { return m_wingRotation; }
+    [[nodiscard]] f32 getWingRotation() const
+    {
+        return m_wingRotation;
+    }
 
     /**
      * @brief 获取上一帧翅膀旋转角度
      */
-    [[nodiscard]] f32 getPrevWingRotation() const { return m_prevWingRotation; }
+    [[nodiscard]] f32 getPrevWingRotation() const
+    {
+        return m_prevWingRotation;
+    }
 
     /**
      * @brief 是否是鸡骑士
      * 鸡骑士模式下不下蛋
      */
-    [[nodiscard]] bool isChickenJockey() const { return m_chickenJockey; }
+    [[nodiscard]] bool isChickenJockey() const
+    {
+        return m_chickenJockey;
+    }
 
     /**
      * @brief 设置是否是鸡骑士
      */
-    void setChickenJockey(bool jockey) { m_chickenJockey = jockey; }
+    void setChickenJockey(bool jockey)
+    {
+        m_chickenJockey = jockey;
+    }
 
     // ========== 变种 ==========
 
@@ -179,7 +197,10 @@ public:
     /**
      * @brief 获取 DATA_VARIANT_ID 的参数 id（测试/诊断用）
      */
-    [[nodiscard]] static u16 getVariantParamId() { return DATA_VARIANT_ID_PARAM.id(); }
+    [[nodiscard]] static u16 getVariantParamId()
+    {
+        return DATA_VARIANT_ID_PARAM.id();
+    }
 
     /**
      * @brief 按群系为位置选择变种（对齐 vanilla VariantUtils.selectVariantToSpawn）
@@ -228,8 +249,15 @@ protected:
 
     // ========== 尺寸 ==========
 
-    [[nodiscard]] f32 getBaseWidth() const override { return 0.4f; }
-    [[nodiscard]] f32 getBaseHeight() const override { return 0.7f; }
+    [[nodiscard]] f32 getBaseWidth() const override
+    {
+        return 0.4f;
+    }
+
+    [[nodiscard]] f32 getBaseHeight() const override
+    {
+        return 0.7f;
+    }
 
 private:
     i32 m_eggTimer = 0; // 下蛋计时器

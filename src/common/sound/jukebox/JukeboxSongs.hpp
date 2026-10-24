@@ -78,7 +78,10 @@ public:
      * @brief 检查注册表是否已初始化
      * @return 如果已初始化返回 true
      */
-    [[nodiscard]] static bool isInitialized() noexcept { return s_initialized; }
+    [[nodiscard]] static bool isInitialized() noexcept
+    {
+        return s_initialized;
+    }
 
 private:
     /**

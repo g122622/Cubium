@@ -190,15 +190,29 @@ public:
      * @brief 获取填充画笔（用于绘制填充形状）
      * @note 返回的画笔已被缓存，可直接修改
      */
-    [[nodiscard]] paint::IPaint& fillPaint() { return *m_fillPaint; }
-    [[nodiscard]] const paint::IPaint& fillPaint() const { return *m_fillPaint; }
+    [[nodiscard]] paint::IPaint& fillPaint()
+    {
+        return *m_fillPaint;
+    }
+
+    [[nodiscard]] const paint::IPaint& fillPaint() const
+    {
+        return *m_fillPaint;
+    }
 
     /**
      * @brief 获取描边画笔（用于绘制边框）
      * @note 返回的画笔已被缓存，可直接修改
      */
-    [[nodiscard]] paint::IPaint& strokePaint() { return *m_strokePaint; }
-    [[nodiscard]] const paint::IPaint& strokePaint() const { return *m_strokePaint; }
+    [[nodiscard]] paint::IPaint& strokePaint()
+    {
+        return *m_strokePaint;
+    }
+
+    [[nodiscard]] const paint::IPaint& strokePaint() const
+    {
+        return *m_strokePaint;
+    }
 
 private:
     paint::ICanvas& m_canvas;

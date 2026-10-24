@@ -34,17 +34,17 @@ namespace mc {
 namespace command {
 
 /**
- * @brief LocateBiomeCommand - 定位生物群系
+ * @brief 定位生物群系的实现（原版 `/locate biome` 分支）
  *
- * 用法: /locatebiome <biome>
- * 权限: 0 (所有玩家)
+ * 原版 1.19 起没有独立的 `/locatebiome` 命令，生物群系定位是 `/locate biome <biome>`
+ * 的一个分支；这里保留实现、去掉旧的根命令，由 {@link LocateCommand} 挂到 `biome` 字面量下。
  */
 class LocateBiomeCommand {
 public:
-    static void registerTo(CommandDispatcher<ServerCommandSource>& dispatcher);
+    /// `/locate biome <biome>` 的处理函数（参数名 `biome`）。
+    static i32 locateBiome(CommandContext<ServerCommandSource>& context);
 
 private:
-    static i32 _locateBiome(CommandContext<ServerCommandSource>& context);
     static std::optional<BiomeId> _parseBiomeId(const std::string& name) noexcept;
 };
 

@@ -66,15 +66,21 @@ void GameRuleCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatc
     // 在设置路径上报「is of wrong type」，二者由下方 execute 区分。
     auto ruleArg =
         std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>("rule", StringArgumentType::string());
-    ruleArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _executeQuery(ctx); });
+    ruleArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _executeQuery(ctx);
+    });
 
     for (const std::string_view classType :
         {world::gamerule::GameRuleClassNames::BOOLEAN, world::gamerule::GameRuleClassNames::INTEGER}) {
         auto classArg = std::make_shared<LiteralCommandNode<ServerCommandSource>>(std::string(classType));
-        classArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _executeQuery(ctx); });
+        classArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+            return _executeQuery(ctx);
+        });
 
         auto valueArg = std::make_shared<LiteralCommandNode<ServerCommandSource>>("value");
-        valueArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _executeSet(ctx); });
+        valueArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+            return _executeSet(ctx);
+        });
 
         classArg->addChild(valueArg);
         ruleArg->addChild(classArg);

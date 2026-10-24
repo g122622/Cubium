@@ -109,8 +109,9 @@ protected:
 
         // 设置区块加载回调计数器：每个区块完成主线程后处理（onChunkLoaded + callback）时 +1。
         // 用于验证去重：同一区块的 callback 至多触发一次（m_postProcessedChunks 保证）。
-        m_manager->setChunkLoadedCallback(
-            [this](ChunkCoord, ChunkCoord) { m_chunkLoadedCallCount.fetch_add(1, std::memory_order::relaxed); });
+        m_manager->setChunkLoadedCallback([this](ChunkCoord, ChunkCoord) {
+            m_chunkLoadedCallCount.fetch_add(1, std::memory_order::relaxed);
+        });
 
         ASSERT_TRUE(m_world->initialize().success()) << "ServerWorld::initialize failed";
     }
@@ -466,7 +467,11 @@ TEST_F(ServerChunkManagerTest, UnloadCooldownRetainsExistingChunkUntilExpiry)
     }
     m_manager->tick();
     EXPECT_FALSE(tickets.hasTicket(cooldown, 0, 0, level, world::chunk::Unit{}));
-    EXPECT_TRUE(pumpUntil([&]() { return !m_manager->hasChunkInMem(0, 0); }, 5000));
+    EXPECT_TRUE(pumpUntil(
+        [&]() {
+            return !m_manager->hasChunkInMem(0, 0);
+        },
+        5000));
 }
 
 TEST_F(ServerChunkManagerTest, RemovePlayer)
@@ -600,10 +605,12 @@ TEST_F(ServerChunkManagerTest, ConcurrentChunkAccess)
     constexpr int kThreads = 4;
     constexpr int kPerThread = 10;
     constexpr int kTotal = kThreads * kPerThread;
+
     struct ChunkReq {
         int x;
         int z;
     };
+
     std::vector<ChunkReq> requests;
     std::mutex requestsMutex;
     std::atomic<int> produced{0};
@@ -893,8 +900,9 @@ TEST_F(ServerChunkManagerTest, PostProcessDoneFlag_AfterGeneration)
 
     // tick 触发 _drainPendingPostProcess：执行 _postProcessChunk 并置 isPostProcessingDone=true。
     // 按条件等待，避免后处理入队尚未完成时 tick 空转（见 pumpUntil 注释）。
-    EXPECT_TRUE(pumpUntil([chunk] { return chunk->isPostProcessingDone(); }))
-        << "postProcess 应在 tick() drain 之后完成";
+    EXPECT_TRUE(pumpUntil([chunk] {
+        return chunk->isPostProcessingDone();
+    })) << "postProcess 应在 tick() drain 之后完成";
     EXPECT_EQ(m_chunkLoadedCallCount.load(std::memory_order::acquire), 1) << "区块加载回调应恰好触发一次";
 
     m_manager->shutdown();
@@ -910,8 +918,9 @@ TEST_F(ServerChunkManagerTest, OnChunkLoadedOnce_GenerationPath)
     ASSERT_NE(chunk, nullptr);
 
     // 等待主线程后处理入队并被 tick 出队执行（见 pumpUntil 注释）。
-    ASSERT_TRUE(pumpUntil([this] { return m_chunkLoadedCallCount.load(std::memory_order::acquire) == 1; }))
-        << "区块加载回调应在后处理完成后触发一次";
+    ASSERT_TRUE(pumpUntil([this] {
+        return m_chunkLoadedCallCount.load(std::memory_order::acquire) == 1;
+    })) << "区块加载回调应在后处理完成后触发一次";
 
     // 多次 tick 不应重复触发后处理（m_postProcessedChunks 去重）。
     m_manager->tick();
@@ -929,8 +938,9 @@ TEST_F(ServerChunkManagerTest, UnloadClearsPostProcessedFlag)
     m_manager->initialize();
 
     m_manager->requestFullChunkSync(0, 0);
-    ASSERT_TRUE(pumpUntil([this] { return m_chunkLoadedCallCount.load(std::memory_order::acquire) == 1; }))
-        << "区块加载回调应在后处理完成后触发一次";
+    ASSERT_TRUE(pumpUntil([this] {
+        return m_chunkLoadedCallCount.load(std::memory_order::acquire) == 1;
+    })) << "区块加载回调应在后处理完成后触发一次";
 
     // 卸载：unloadChunkSync 触发异步存档保存（stage1/2），stage3 收尾（清 m_chunks 与
     // m_postProcessedChunks key）由 _drainPendingUnloadFinishes 在后续 tick() 中完成。
@@ -945,8 +955,9 @@ TEST_F(ServerChunkManagerTest, UnloadClearsPostProcessedFlag)
     // 重新生成：存档中 isPostProcessingDone 不持久化（重载为新 ChunkData，标志为 false），
     // 重新入队 PendingPostProcess，tick 后应再次触发回调（计数 +1）。
     m_manager->requestFullChunkSync(0, 0);
-    EXPECT_TRUE(pumpUntil([this] { return m_chunkLoadedCallCount.load(std::memory_order::acquire) == 2; }))
-        << "卸载后重新加载应重新执行后处理（m_postProcessedChunks 已清除 key）";
+    EXPECT_TRUE(pumpUntil([this] {
+        return m_chunkLoadedCallCount.load(std::memory_order::acquire) == 2;
+    })) << "卸载后重新加载应重新执行后处理（m_postProcessedChunks 已清除 key）";
 
     m_manager->shutdown();
     m_workerPool->shutdown();
@@ -970,7 +981,9 @@ TEST_F(ServerChunkManagerTest, PostProcessDoneFlag_NotSetBeforeTick)
     // 故 requestFullChunkSync 返回时该条目可能尚未入队，此刻 tick() 会空转。CI 上实测偶发
     // 失败（本用例断言 Actual: false / Expected: true，而同一提交的 PostProcessDoneFlag_
     // AfterGeneration 用 pumpUntil 从不失败）。按条件等待，与同文件既有范式一致。
-    EXPECT_TRUE(pumpUntil([chunk] { return chunk->isPostProcessingDone(); })) << "tick 之后 postProcess 应完成";
+    EXPECT_TRUE(pumpUntil([chunk] {
+        return chunk->isPostProcessingDone();
+    })) << "tick 之后 postProcess 应完成";
 
     m_manager->shutdown();
     m_workerPool->shutdown();

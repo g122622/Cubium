@@ -41,6 +41,7 @@ namespace server {
 
 // Forward declarations
 class ServerPlayer;
+
 namespace core {
 class PlayerManager;
 }
@@ -133,7 +134,10 @@ public:
      * @param id 统计ID
      * @param delta 减量（默认为1）
      */
-    void decrement(StatType type, const ResourceLocation& id, ValueType delta = 1) { increment(type, id, -delta); }
+    void decrement(StatType type, const ResourceLocation& id, ValueType delta = 1)
+    {
+        increment(type, id, -delta);
+    }
 
     /**
      * @brief 重置统计值
@@ -189,7 +193,10 @@ public:
      *
      * @param blockId 方块ID
      */
-    void incrementMined(const ResourceLocation& blockId) { increment(StatType::Mined, blockId); }
+    void incrementMined(const ResourceLocation& blockId)
+    {
+        increment(StatType::Mined, blockId);
+    }
 
     /**
      * @brief 增加合成统计
@@ -207,14 +214,20 @@ public:
      *
      * @param itemId 物品ID
      */
-    void incrementUsed(const ResourceLocation& itemId) { increment(StatType::Used, itemId); }
+    void incrementUsed(const ResourceLocation& itemId)
+    {
+        increment(StatType::Used, itemId);
+    }
 
     /**
      * @brief 增加损坏统计
      *
      * @param itemId 物品ID
      */
-    void incrementBroken(const ResourceLocation& itemId) { increment(StatType::Broken, itemId); }
+    void incrementBroken(const ResourceLocation& itemId)
+    {
+        increment(StatType::Broken, itemId);
+    }
 
     /**
      * @brief 增加拾取统计
@@ -243,14 +256,20 @@ public:
      *
      * @param entityId 实体ID
      */
-    void incrementKilled(const ResourceLocation& entityId) { increment(StatType::Killed, entityId); }
+    void incrementKilled(const ResourceLocation& entityId)
+    {
+        increment(StatType::Killed, entityId);
+    }
 
     /**
      * @brief 增加被击杀统计
      *
      * @param entityId 实体ID
      */
-    void incrementKilledBy(const ResourceLocation& entityId) { increment(StatType::KilledBy, entityId); }
+    void incrementKilledBy(const ResourceLocation& entityId)
+    {
+        increment(StatType::KilledBy, entityId);
+    }
 
     /**
      * @brief 增加自定义统计
@@ -266,23 +285,35 @@ public:
     /**
      * @brief 标记为已修改
      */
-    void markDirty() { m_dirty = true; }
+    void markDirty()
+    {
+        m_dirty = true;
+    }
 
     /**
      * @brief 清除已修改标记
      */
-    void clearDirty() { m_dirty = false; }
+    void clearDirty()
+    {
+        m_dirty = false;
+    }
 
     /**
      * @brief 检查是否已修改
      */
-    [[nodiscard]] bool isDirty() const { return m_dirty; }
+    [[nodiscard]] bool isDirty() const
+    {
+        return m_dirty;
+    }
 
     /** @brief 构建完整或增量统计包，重置过的条目以零值同步。 */
     [[nodiscard]] mc::network::ir::play::AwardStats createNetworkUpdate(bool all) const;
 
     /** @brief 发送成功后清除网络脏标记，保留独立的存档脏标记。 */
-    void clearNetworkDirty() { m_networkDirty.clear(); }
+    void clearNetworkDirty()
+    {
+        m_networkDirty.clear();
+    }
 
 private:
     // 使用完整统计ID作为键

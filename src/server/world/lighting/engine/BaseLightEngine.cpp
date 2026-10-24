@@ -79,15 +79,18 @@ bool StarLightEngine::s_directionsInitialized = false;
 
 void StarLightEngine::_initializeDirections()
 {
-    if (s_directionsInitialized) return;
+    if (s_directionsInitialized) {
+        return;
+    }
 
     for (i32 i = 0; i < 64; ++i) {
         std::vector<LightAxisDirection> directions;
         for (i32 bitset = i, count = 0; count < 6 && bitset != 0; ++count) {
             i32 trailing = bitset & -bitset; // 获取最低位1
             i32 index = 0;
-            while ((1 << index) != trailing)
+            while ((1 << index) != trailing) {
                 ++index;
+            }
             directions.push_back(static_cast<LightAxisDirection>(index));
             bitset ^= trailing;
         }

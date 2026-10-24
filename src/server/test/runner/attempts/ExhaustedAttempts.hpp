@@ -35,10 +35,25 @@ public:
                 std::to_string(m_actualSuccesses)}};
     }
 
-    [[nodiscard]] const std::string& testName() const noexcept { return m_testName; }
-    [[nodiscard]] i32 attempts() const noexcept { return m_attempts; }
-    [[nodiscard]] i32 requiredSuccesses() const noexcept { return m_requiredSuccesses; }
-    [[nodiscard]] i32 actualSuccesses() const noexcept { return m_actualSuccesses; }
+    [[nodiscard]] const std::string& testName() const noexcept
+    {
+        return m_testName;
+    }
+
+    [[nodiscard]] i32 attempts() const noexcept
+    {
+        return m_attempts;
+    }
+
+    [[nodiscard]] i32 requiredSuccesses() const noexcept
+    {
+        return m_requiredSuccesses;
+    }
+
+    [[nodiscard]] i32 actualSuccesses() const noexcept
+    {
+        return m_actualSuccesses;
+    }
 
 private:
     std::string m_testName;

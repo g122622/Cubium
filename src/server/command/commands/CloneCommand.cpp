@@ -359,7 +359,9 @@ i32 executeClone(CommandContext<ServerCommandSource>& context,
 void CloneCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
 {
     auto cloneNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("clone");
-    cloneNode->setRequirement([](const ServerCommandSource& source) { return source.hasPermission(2); });
+    cloneNode->setRequirement([](const ServerCommandSource& source) {
+        return source.hasPermission(2);
+    });
     support::applyMetadata(cloneNode,
         support::makeMetadata("Clones blocks from one region to another.",
             "/clone <begin> <end> <destination> [replace|masked|filtered] [normal|force|move]",
@@ -378,11 +380,15 @@ void CloneCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher
         "destination", BlockPosArgumentType::blockPos());
 
     // 默认执行：replace + normal
-    destArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _doCloneDefault(ctx); });
+    destArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _doCloneDefault(ctx);
+    });
 
     // ============ replace 模式 ============
     auto replaceNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("replace");
-    replaceNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _doCloneDefault(ctx); });
+    replaceNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _doCloneDefault(ctx);
+    });
 
     // /clone ... replace force
     auto replaceForceNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("force");
@@ -438,23 +444,27 @@ void CloneCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher
     auto filteredNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("filtered");
     auto filterArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, BlockStateInput>>(
         "filter", BlockStateArgumentType::blockState());
-    filterArg->setCommand(
-        [](CommandContext<ServerCommandSource>& ctx) { return _doCloneFilteredStatic(ctx, CloneMode::Normal); });
+    filterArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _doCloneFilteredStatic(ctx, CloneMode::Normal);
+    });
 
     // /clone ... filtered <filter> force
     auto filteredForceNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("force");
-    filteredForceNode->setCommand(
-        [](CommandContext<ServerCommandSource>& ctx) { return _doCloneFilteredStatic(ctx, CloneMode::Force); });
+    filteredForceNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _doCloneFilteredStatic(ctx, CloneMode::Force);
+    });
 
     // /clone ... filtered <filter> move
     auto filteredMoveNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("move");
-    filteredMoveNode->setCommand(
-        [](CommandContext<ServerCommandSource>& ctx) { return _doCloneFilteredStatic(ctx, CloneMode::Move); });
+    filteredMoveNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _doCloneFilteredStatic(ctx, CloneMode::Move);
+    });
 
     // /clone ... filtered <filter> normal
     auto filteredNormalNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("normal");
-    filteredNormalNode->setCommand(
-        [](CommandContext<ServerCommandSource>& ctx) { return _doCloneFilteredStatic(ctx, CloneMode::Normal); });
+    filteredNormalNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _doCloneFilteredStatic(ctx, CloneMode::Normal);
+    });
 
     filterArg->addChild(filteredForceNode);
     filterArg->addChild(filteredMoveNode);

@@ -81,22 +81,57 @@ public:
         return true;
     }
 
-    [[nodiscard]] mc::world::chunk::IChunkManager* chunkManager() override { return &m_stubChunks; }
-    [[nodiscard]] const mc::world::chunk::IChunkManager* chunkManager() const override { return &m_stubChunks; }
+    [[nodiscard]] mc::world::chunk::IChunkManager* chunkManager() override
+    {
+        return &m_stubChunks;
+    }
+
+    [[nodiscard]] const mc::world::chunk::IChunkManager* chunkManager() const override
+    {
+        return &m_stubChunks;
+    }
+
     mc::test::StubChunkManager m_stubChunks{nullptr, true};
-    [[nodiscard]] i32 getHeight(i32, i32) const override { return 64; }
 
-    [[nodiscard]] u8 getBlockLight(i32 x, i32 y, i32 z) const override { return sampleLight(m_blockLight, x, y, z); }
+    [[nodiscard]] i32 getHeight(i32, i32) const override
+    {
+        return 64;
+    }
 
-    [[nodiscard]] u8 getSkyLight(i32 x, i32 y, i32 z) const override { return sampleLight(m_skyLight, x, y, z); }
+    [[nodiscard]] u8 getBlockLight(i32 x, i32 y, i32 z) const override
+    {
+        return sampleLight(m_blockLight, x, y, z);
+    }
 
-    [[nodiscard]] u64 currentTick() const override { return m_currentTick; }
-    [[nodiscard]] bool isUltraWarm() const override { return false; }
+    [[nodiscard]] u8 getSkyLight(i32 x, i32 y, i32 z) const override
+    {
+        return sampleLight(m_skyLight, x, y, z);
+    }
 
-    void setBlockAt(const BlockPos& pos, const BlockState* state) { (void)setBlockState(pos.x, pos.y, pos.z, state); }
+    [[nodiscard]] u64 currentTick() const override
+    {
+        return m_currentTick;
+    }
 
-    void setSkyLightAt(const BlockPos& pos, u8 light) { m_skyLight[pos] = light; }
-    void setBlockLightAt(const BlockPos& pos, u8 light) { m_blockLight[pos] = light; }
+    [[nodiscard]] bool isUltraWarm() const override
+    {
+        return false;
+    }
+
+    void setBlockAt(const BlockPos& pos, const BlockState* state)
+    {
+        (void)setBlockState(pos.x, pos.y, pos.z, state);
+    }
+
+    void setSkyLightAt(const BlockPos& pos, u8 light)
+    {
+        m_skyLight[pos] = light;
+    }
+
+    void setBlockLightAt(const BlockPos& pos, u8 light)
+    {
+        m_blockLight[pos] = light;
+    }
 
     [[nodiscard]] const BlockState* getBlockAt(const BlockPos& pos) const
     {
@@ -116,13 +151,17 @@ public:
         ensureTickManager();
         return *m_tickManagerPtr;
     }
+
     [[nodiscard]] const world::tick::TickManager& tickManager() const override
     {
         const_cast<NyliumTestWorld*>(this)->ensureTickManager();
         return *m_tickManagerPtr;
     }
 
-    void advanceTick() { ++m_currentTick; }
+    void advanceTick()
+    {
+        ++m_currentTick;
+    }
 
 private:
     [[nodiscard]] static u8 sampleLight(const std::map<BlockPos, u8>& lights, i32 x, i32 y, i32 z)

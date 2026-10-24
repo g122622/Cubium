@@ -52,7 +52,10 @@ public:
     /**
      * @brief 检查是否已完成
      */
-    [[nodiscard]] bool isObtained() const noexcept { return m_obtainedTime.has_value(); }
+    [[nodiscard]] bool isObtained() const noexcept
+    {
+        return m_obtainedTime.has_value();
+    }
 
     /**
      * @brief 标记为已完成
@@ -67,7 +70,10 @@ public:
     /**
      * @brief 获取完成时间（毫秒时间戳）
      */
-    [[nodiscard]] std::optional<i64> getObtainedTime() const noexcept { return m_obtainedTime; }
+    [[nodiscard]] std::optional<i64> getObtainedTime() const noexcept
+    {
+        return m_obtainedTime;
+    }
 
     /**
      * @brief 从JSON解析
@@ -176,12 +182,18 @@ public:
     /**
      * @brief 获取所有条件进度
      */
-    [[nodiscard]] const std::map<std::string, CriterionProgress>& getCriteria() const noexcept { return m_criteria; }
+    [[nodiscard]] const std::map<std::string, CriterionProgress>& getCriteria() const noexcept
+    {
+        return m_criteria;
+    }
 
     /**
      * @brief 获取关联的成就
      */
-    [[nodiscard]] Advancement::Ptr getAdvancement() const noexcept { return m_advancement; }
+    [[nodiscard]] Advancement::Ptr getAdvancement() const noexcept
+    {
+        return m_advancement;
+    }
 
     // ========== 更新 ==========
 

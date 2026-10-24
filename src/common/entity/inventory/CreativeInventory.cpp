@@ -107,8 +107,9 @@ void fillCreativeModeInventory(PlayerInventory& inventory)
 
     std::vector<const BlockItem*> blockItems;
     blockItems.reserve(BlockItemRegistry::instance().size());
-    BlockItemRegistry::instance().forEachBlockItem(
-        [&blockItems](const BlockItem& item) { blockItems.push_back(&item); });
+    BlockItemRegistry::instance().forEachBlockItem([&blockItems](const BlockItem& item) {
+        blockItems.push_back(&item);
+    });
 
     std::sort(blockItems.begin(), blockItems.end(), [](const BlockItem* left, const BlockItem* right) {
         return left->itemLocation().toString() < right->itemLocation().toString();

@@ -140,8 +140,9 @@ Result<mc::ContainerId> ContainerManager::openContainer(PlayerId playerId, mc::C
             auto it = m_openContainers.find(playerId);
             if (it != m_openContainers.end() && it->second.menu != nullptr && it->second.menu->getId() == openedId) {
                 if (std::find(it->second.changedSlots.begin(), it->second.changedSlots.end(), slot) ==
-                    it->second.changedSlots.end())
+                    it->second.changedSlots.end()) {
                     it->second.changedSlots.push_back(slot);
+                }
             }
         });
     }
@@ -203,8 +204,9 @@ bool ContainerManager::openEntityContainer(PlayerId playerId, INamedContainerPro
             auto it = m_openContainers.find(playerId);
             if (it != m_openContainers.end() && it->second.menu != nullptr && it->second.menu->getId() == openedId) {
                 if (std::find(it->second.changedSlots.begin(), it->second.changedSlots.end(), slot) ==
-                    it->second.changedSlots.end())
+                    it->second.changedSlots.end()) {
                     it->second.changedSlots.push_back(slot);
+                }
             }
         });
     }
@@ -348,8 +350,9 @@ void ContainerManager::tickMenus()
         // 因为槽位变化正是它比对出来的。合并到一个 tick 发一次，避免一 tick 内多槽变化时重发多次。
         if (!openContainer.changedSlots.empty()) {
             if (m_onContainerSlotUpdate) {
-                for (const auto slot : openContainer.changedSlots)
+                for (const auto slot : openContainer.changedSlots) {
                     m_onContainerSlotUpdate(playerId, *menu, slot, menu->getSlot(slot)->getItem());
+                }
             } else if (m_onContainerUpdate) {
                 m_onContainerUpdate(playerId, *menu);
             }

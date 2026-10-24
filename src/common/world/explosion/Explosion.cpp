@@ -336,8 +336,9 @@ void Explosion::explode()
         m_causesFire,
         "sourceId",
         (m_source != nullptr) ? static_cast<i64>(m_source->id()) : -1,
-        [flow = ::perfetto::Flow::ProcessScoped(BlockPos(m_position).toId())](
-            ::perfetto::EventContext ctx) { flow(ctx); });
+        [flow = ::perfetto::Flow::ProcessScoped(BlockPos(m_position).toId())](::perfetto::EventContext ctx) {
+            flow(ctx);
+        });
 
     using clock = std::chrono::steady_clock;
     const clock::time_point t0 = clock::now();
@@ -373,8 +374,9 @@ void Explosion::_calculateAffectedBlocks()
         fmt::format("({}, {}, {})", m_position.x, m_position.y, m_position.z),
         "radius",
         m_radius,
-        [flow = ::perfetto::Flow::ProcessScoped(BlockPos(m_position).toId())](
-            ::perfetto::EventContext ctx) { flow(ctx); });
+        [flow = ::perfetto::Flow::ProcessScoped(BlockPos(m_position).toId())](::perfetto::EventContext ctx) {
+            flow(ctx);
+        });
 
     // 使用 std::unordered_set 避免重复
     std::unordered_set<i64> affectedPositions;
@@ -454,9 +456,15 @@ void Explosion::_calculateAffectedBlocks()
         i32 by = static_cast<i32>((posKey >> 24) & 0xFFFFLL);
         i32 bz = static_cast<i32>((posKey >> 40) & 0xFFFFFFLL);
         // 处理符号位
-        if (bx >= 0x800000) bx -= 0x1000000;
-        if (by >= 0x8000) by -= 0x10000;
-        if (bz >= 0x800000) bz -= 0x1000000;
+        if (bx >= 0x800000) {
+            bx -= 0x1000000;
+        }
+        if (by >= 0x8000) {
+            by -= 0x10000;
+        }
+        if (bz >= 0x800000) {
+            bz -= 0x1000000;
+        }
         m_affectedBlocks.emplace_back(bx, by, bz);
     }
 
@@ -470,8 +478,9 @@ void Explosion::_calculateAffectedEntities()
         "Explosion::_calculateAffectedEntities",
         "pos",
         fmt::format("({}, {}, {})", m_position.x, m_position.y, m_position.z),
-        [flow = ::perfetto::Flow::ProcessScoped(BlockPos(m_position).toId())](
-            ::perfetto::EventContext ctx) { flow(ctx); });
+        [flow = ::perfetto::Flow::ProcessScoped(BlockPos(m_position).toId())](::perfetto::EventContext ctx) {
+            flow(ctx);
+        });
 
     // 实体影响范围 = radius * 2
     f32 range = m_radius * ENTITY_RANGE_MULTIPLIER;
@@ -719,8 +728,9 @@ void Explosion::_destroyBlocks()
         static_cast<i64>(m_affectedBlocks.size()),
         "mode",
         static_cast<u8>(m_mode),
-        [flow = ::perfetto::Flow::ProcessScoped(BlockPos(m_position).toId())](
-            ::perfetto::EventContext ctx) { flow(ctx); });
+        [flow = ::perfetto::Flow::ProcessScoped(BlockPos(m_position).toId())](::perfetto::EventContext ctx) {
+            flow(ctx);
+        });
 
     if (m_mode == ExplosionMode::None) {
         return; // 不破坏方块
@@ -967,7 +977,9 @@ bool Explosion::_isLineOfSightBlocked(
     const f32 tDeltaY = (stepY == 0) ? std::numeric_limits<f32>::max() : static_cast<f32>(stepY) / dy;
     const f32 tDeltaZ = (stepZ == 0) ? std::numeric_limits<f32>::max() : static_cast<f32>(stepZ) / dz;
 
-    const auto fractVal = [](f32 v) { return v - std::floor(v); };
+    const auto fractVal = [](f32 v) {
+        return v - std::floor(v);
+    };
     f32 tMaxX = (stepX == 0) ? std::numeric_limits<f32>::max()
                              : tDeltaX * (stepX > 0 ? (1.0f - fractVal(adjustedStart.x)) : fractVal(adjustedStart.x));
     f32 tMaxY = (stepY == 0) ? std::numeric_limits<f32>::max()
@@ -1093,8 +1105,9 @@ void Explosion::_spawnFire()
         "Explosion::_spawnFire",
         "affectedCount",
         static_cast<i64>(m_affectedBlocks.size()),
-        [flow = ::perfetto::Flow::ProcessScoped(BlockPos(m_position).toId())](
-            ::perfetto::EventContext ctx) { flow(ctx); });
+        [flow = ::perfetto::Flow::ProcessScoped(BlockPos(m_position).toId())](::perfetto::EventContext ctx) {
+            flow(ctx);
+        });
 
     // 1/3 概率在空位置生成火焰，前提是下方方块是不透明固体方块
 
@@ -1125,8 +1138,9 @@ std::vector<ItemStack> Explosion::_generateBlockDrops(const BlockPos& pos, const
         "Explosion::_generateBlockDrops",
         "pos",
         fmt::format("({}, {}, {})", pos.x, pos.y, pos.z),
-        [flow = ::perfetto::Flow::ProcessScoped(BlockPos(m_position).toId())](
-            ::perfetto::EventContext ctx) { flow(ctx); });
+        [flow = ::perfetto::Flow::ProcessScoped(BlockPos(m_position).toId())](::perfetto::EventContext ctx) {
+            flow(ctx);
+        });
 
     if (m_lootTableManager == nullptr) {
         return {};
@@ -1201,7 +1215,11 @@ std::vector<ItemStack> Explosion::_generateBlockDrops(const BlockPos& pos, const
     }
 
     // 移除空掉落物
-    drops.erase(std::remove_if(drops.begin(), drops.end(), [](const ItemStack& stack) { return stack.isEmpty(); }),
+    drops.erase(std::remove_if(drops.begin(),
+                    drops.end(),
+                    [](const ItemStack& stack) {
+                        return stack.isEmpty();
+                    }),
         drops.end());
 
     return drops;

@@ -250,6 +250,7 @@ bool GoatRamGoal::_chooseRamStartPosition()
         BlockPos pos;
         f64 distanceSq;
     };
+
     std::vector<Candidate> candidates;
 
     constexpr Direction HORIZONTAL[4] = {Direction::North, Direction::South, Direction::East, Direction::West};

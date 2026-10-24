@@ -45,7 +45,10 @@ class BoatGlideTestWorld : public mc::test::BaseTestWorld {
 public:
     BoatGlideTestWorld() = default;
 
-    void setBlockStateAt(i32 x, i32 y, i32 z, const BlockState* state) { m_blockStates[BlockPos(x, y, z)] = state; }
+    void setBlockStateAt(i32 x, i32 y, i32 z, const BlockState* state)
+    {
+        m_blockStates[BlockPos(x, y, z)] = state;
+    }
 
     [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override
     {
@@ -65,7 +68,10 @@ protected:
         VanillaBlocks::initialize();
     }
 
-    void TearDown() override { m_world.reset(); }
+    void TearDown() override
+    {
+        m_world.reset();
+    }
 
     std::unique_ptr<BoatGlideTestWorld> m_world;
 };

@@ -278,7 +278,9 @@ void EffectInstance::_applyEffect(LivingEntity& entity) const
         case EffectType::Regeneration: {
             // 每 50/(level+1) tick 治疗 1 HP
             i32 interval = 50 >> m_amplifier;
-            if (interval <= 0) interval = 1;
+            if (interval <= 0) {
+                interval = 1;
+            }
             if (m_duration % interval == 0) {
                 if (entity.health() < entity.maxHealth()) {
                     entity.heal(1.0f);
@@ -290,7 +292,9 @@ void EffectInstance::_applyEffect(LivingEntity& entity) const
         case EffectType::Poison: {
             // 每 25/(level+1) tick 造成 1 HP 伤害（不能致死）
             i32 interval = 25 >> m_amplifier;
-            if (interval <= 0) interval = 1;
+            if (interval <= 0) {
+                interval = 1;
+            }
             if (m_duration % interval == 0) {
                 if (entity.health() > 1.0f) {
                     auto source = DamageSources::magic();
@@ -303,7 +307,9 @@ void EffectInstance::_applyEffect(LivingEntity& entity) const
         case EffectType::Wither: {
             // 每 40/(level+1) tick 造成 1 HP 伤害
             i32 interval = 40 >> m_amplifier;
-            if (interval <= 0) interval = 1;
+            if (interval <= 0) {
+                interval = 1;
+            }
             if (m_duration % interval == 0) {
                 auto source = DamageSources::wither();
                 entity.hurt(source, 1.0f);

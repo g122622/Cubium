@@ -72,7 +72,10 @@ protected:
     }
 
     // 创建测试用记分板
-    Scoreboard createTestScoreboard() { return Scoreboard(); }
+    Scoreboard createTestScoreboard()
+    {
+        return Scoreboard();
+    }
 };
 
 // ========== ScoreCriteriaRegistry 测试 ==========
@@ -755,8 +758,9 @@ TEST_F(ScoreboardTest, ForAllObjectives)
 
     // 统计所有死亡计数目标的分数
     i32 totalDeaths = 0;
-    scoreboard.forAllObjectives(
-        *deathCount, "Steve", [&totalDeaths](Score& score) { totalDeaths += score.getScorePoints(); });
+    scoreboard.forAllObjectives(*deathCount, "Steve", [&totalDeaths](Score& score) {
+        totalDeaths += score.getScorePoints();
+    });
 
     EXPECT_EQ(totalDeaths, 30); // 10 + 20
 }

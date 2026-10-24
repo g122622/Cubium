@@ -94,6 +94,7 @@ public:
     {
         return m_stackWidget ? m_stackWidget->top() : nullptr;
     }
+
     [[nodiscard]] const ui::minecraft::Screen* getCurrentKageroScreen() const noexcept
     {
         return m_stackWidget ? m_stackWidget->top() : nullptr;
@@ -103,13 +104,19 @@ public:
      * @brief 检查是否有打开的屏幕
      * @return 如果有屏幕返回true
      */
-    [[nodiscard]] bool hasScreen() const noexcept { return m_stackWidget ? m_stackWidget->hasScreen() : false; }
+    [[nodiscard]] bool hasScreen() const noexcept
+    {
+        return m_stackWidget ? m_stackWidget->hasScreen() : false;
+    }
 
     /**
      * @brief 获取屏幕栈深度
      * @return 屏幕数量
      */
-    [[nodiscard]] size_t getScreenCount() const noexcept { return m_stackWidget ? m_stackWidget->screenCount() : 0; }
+    [[nodiscard]] size_t getScreenCount() const noexcept
+    {
+        return m_stackWidget ? m_stackWidget->screenCount() : 0;
+    }
 
     /**
      * @brief 每帧更新

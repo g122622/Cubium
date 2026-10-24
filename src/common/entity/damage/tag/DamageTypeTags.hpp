@@ -257,7 +257,10 @@ public:
     /**
      * @brief 检查标签系统是否已初始化
      */
-    [[nodiscard]] static bool isInitialized() { return s_initialized; }
+    [[nodiscard]] static bool isInitialized()
+    {
+        return s_initialized;
+    }
 
     /**
      * @brief 根据ID获取标签

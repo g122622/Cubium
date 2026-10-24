@@ -103,8 +103,15 @@ public:
         math::IRandom& random,
         const BlockPos& pos) const override;
 
-    [[nodiscard]] const char* name() const override { return "monster_room"; }
-    [[nodiscard]] DecorationStage stage() const override { return DecorationStage::UndergroundStructures; }
+    [[nodiscard]] const char* name() const override
+    {
+        return "monster_room";
+    }
+
+    [[nodiscard]] DecorationStage stage() const override
+    {
+        return DecorationStage::UndergroundStructures;
+    }
 
 private:
     mutable MonsterRoomFeature m_feature;

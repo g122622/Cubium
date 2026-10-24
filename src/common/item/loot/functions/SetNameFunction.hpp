@@ -47,10 +47,21 @@ public:
 
     [[nodiscard]] ItemStack apply(ItemStack stack, LootContext& context) const override;
     [[nodiscard]] std::unique_ptr<LootFunction> clone() const noexcept override;
-    [[nodiscard]] std::string getType() const noexcept override { return "set_name"; }
 
-    [[nodiscard]] const std::string& getName() const noexcept { return m_name; }
-    [[nodiscard]] bool isReplace() const noexcept { return m_replace; }
+    [[nodiscard]] std::string getType() const noexcept override
+    {
+        return "set_name";
+    }
+
+    [[nodiscard]] const std::string& getName() const noexcept
+    {
+        return m_name;
+    }
+
+    [[nodiscard]] bool isReplace() const noexcept
+    {
+        return m_replace;
+    }
 
 private:
     std::string m_name;

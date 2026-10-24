@@ -182,7 +182,10 @@ class StateScope {
 public:
     StateScope() = default;
 
-    ~StateScope() { clear(); }
+    ~StateScope()
+    {
+        clear();
+    }
 
     // 禁止拷贝
     StateScope(const StateScope&) = delete;
@@ -237,7 +240,10 @@ public:
     /**
      * @brief 获取订阅数量
      */
-    [[nodiscard]] Size size() const { return m_subscriptions.size(); }
+    [[nodiscard]] Size size() const
+    {
+        return m_subscriptions.size();
+    }
 
 private:
     std::vector<u64> m_subscriptions;
@@ -322,7 +328,10 @@ public:
     /**
      * @brief 获取状态作用域
      */
-    StateScope& scope() { return m_scope; }
+    StateScope& scope()
+    {
+        return m_scope;
+    }
 
     /**
      * @brief 清除所有响应式状态

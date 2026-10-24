@@ -37,7 +37,9 @@ namespace mc {
 namespace world::chunk {
 class ChunkData;
 }
+
 using world::chunk::ChunkData;
+
 namespace world::biome {
 class BiomeRegistry;
 } // namespace world::biome
@@ -126,19 +128,28 @@ public:
     /**
      * @brief 获取当前混合半径
      */
-    [[nodiscard]] i32 blendRadius() const noexcept { return m_blendRadius; }
+    [[nodiscard]] i32 blendRadius() const noexcept
+    {
+        return m_blendRadius;
+    }
 
     /**
      * @brief 启用/禁用缓存
      *
      * 默认启用。禁用后每次都重新计算。
      */
-    void setCacheEnabled(bool enabled) { m_cacheEnabled = enabled; }
+    void setCacheEnabled(bool enabled)
+    {
+        m_cacheEnabled = enabled;
+    }
 
     /**
      * @brief 缓存是否启用
      */
-    [[nodiscard]] bool isCacheEnabled() const noexcept { return m_cacheEnabled; }
+    [[nodiscard]] bool isCacheEnabled() const noexcept
+    {
+        return m_cacheEnabled;
+    }
 
     // ========================================================================
     // Colormap 设置
@@ -148,19 +159,28 @@ public:
      * @brief 设置草颜色映射表
      * @param colorMap 256x256 颜色映射表指针（调用方保证生命周期）
      */
-    void setGrassColorMap(const std::array<u32, 65536>* colorMap) { m_grassColorMap = colorMap; }
+    void setGrassColorMap(const std::array<u32, 65536>* colorMap)
+    {
+        m_grassColorMap = colorMap;
+    }
 
     /**
      * @brief 设置树叶颜色映射表
      * @param colorMap 256x256 颜色映射表指针（调用方保证生命周期）
      */
-    void setFoliageColorMap(const std::array<u32, 65536>* colorMap) { m_foliageColorMap = colorMap; }
+    void setFoliageColorMap(const std::array<u32, 65536>* colorMap)
+    {
+        m_foliageColorMap = colorMap;
+    }
 
     /**
      * @brief 设置干枯植被颜色映射表
      * @param colorMap 256x256 颜色映射表指针（调用方保证生命周期）
      */
-    void setDryFoliageColorMap(const std::array<u32, 65536>* colorMap) { m_dryFoliageColorMap = colorMap; }
+    void setDryFoliageColorMap(const std::array<u32, 65536>* colorMap)
+    {
+        m_dryFoliageColorMap = colorMap;
+    }
 
     // ========================================================================
     // 颜色获取
@@ -198,8 +218,15 @@ public:
     /**
      * @brief 获取颜色缓存
      */
-    [[nodiscard]] BiomeColorCache& cache() { return m_cache; }
-    [[nodiscard]] const BiomeColorCache& cache() const { return m_cache; }
+    [[nodiscard]] BiomeColorCache& cache()
+    {
+        return m_cache;
+    }
+
+    [[nodiscard]] const BiomeColorCache& cache() const
+    {
+        return m_cache;
+    }
 
     /**
      * @brief 使指定区块的缓存失效

@@ -58,7 +58,10 @@ protected:
         pufferfish = std::make_unique<PufferfishEntity>(EntityInstanceId(0), mc::test::testEcsRegistry());
     }
 
-    void TearDown() override { pufferfish.reset(); }
+    void TearDown() override
+    {
+        pufferfish.reset();
+    }
 
     std::unique_ptr<PufferfishEntity> pufferfish;
 };
@@ -336,7 +339,10 @@ protected:
         pufferfish = std::make_unique<PufferfishEntity>(EntityInstanceId(0), mc::test::testEcsRegistry());
     }
 
-    void TearDown() override { pufferfish.reset(); }
+    void TearDown() override
+    {
+        pufferfish.reset();
+    }
 
     std::unique_ptr<PufferfishEntity> pufferfish;
 };

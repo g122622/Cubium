@@ -486,8 +486,9 @@ RayTraceResult ProjectileEntity::rayTraceEntities(const Vector3& start, const Ve
 
     const AxisAlignedBB searchBox = ProjectileHelper::createMovementSearchBox(*this, end - start, 1.0f);
 
-    return ProjectileHelper::rayTraceEntities(
-        *m_world, *this, start, end, searchBox, [this](const Entity& candidate) { return canHitEntity(candidate); });
+    return ProjectileHelper::rayTraceEntities(*m_world, *this, start, end, searchBox, [this](const Entity& candidate) {
+        return canHitEntity(candidate);
+    });
 }
 
 RayTraceResult ProjectileEntity::rayTraceBlocks(const Vector3& start, const Vector3& end)

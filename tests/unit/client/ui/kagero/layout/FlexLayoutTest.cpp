@@ -135,9 +135,15 @@ TEST_F(FlexConfigTest, ShouldWrap)
 
 class FlexLayoutTest : public ::testing::Test {
 protected:
-    void SetUp() override { layout = std::make_unique<FlexLayout>(); }
+    void SetUp() override
+    {
+        layout = std::make_unique<FlexLayout>();
+    }
 
-    void TearDown() override { layout.reset(); }
+    void TearDown() override
+    {
+        layout.reset();
+    }
 
     std::unique_ptr<FlexLayout> layout;
 };

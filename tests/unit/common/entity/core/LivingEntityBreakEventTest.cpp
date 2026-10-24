@@ -72,8 +72,16 @@ public:
         m_soundRecords.push_back(SoundRecord{soundEventId, category, position, volume, pitch});
     }
 
-    [[nodiscard]] const std::vector<StatusRecord>& statusRecords() const { return m_statusRecords; }
-    [[nodiscard]] const std::vector<SoundRecord>& soundRecords() const { return m_soundRecords; }
+    [[nodiscard]] const std::vector<StatusRecord>& statusRecords() const
+    {
+        return m_statusRecords;
+    }
+
+    [[nodiscard]] const std::vector<SoundRecord>& soundRecords() const
+    {
+        return m_soundRecords;
+    }
+
     void clearRecords()
     {
         m_statusRecords.clear();
@@ -85,6 +93,7 @@ public:
     {
         throw std::runtime_error("BreakEventTestWorld::tickManager not implemented");
     }
+
     [[nodiscard]] const world::tick::TickManager& tickManager() const override
     {
         throw std::runtime_error("BreakEventTestWorld::tickManager not implemented");
@@ -118,7 +127,10 @@ public:
 
 class LivingEntityBreakEventTest : public ::testing::Test {
 protected:
-    static void SetUpTestSuite() { Items::initialize(); }
+    static void SetUpTestSuite()
+    {
+        Items::initialize();
+    }
 
     void SetUp() override
     {
@@ -257,6 +269,7 @@ TEST_F(LivingEntityBreakEventTest, OnEquippedItemBrokenNoWorldNoCrash)
 TEST_F(LivingEntityBreakEventTest, OnEquippedItemBrokenAllSlotsCorrectStatus)
 {
     ASSERT_NE(Items::IRON_SWORD, nullptr);
+
     // 验证每个装备槽位对应的正确状态码
     struct TestCase {
         EquipmentSlot slot;

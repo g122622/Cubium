@@ -41,7 +41,10 @@ using namespace mc::world::gen::feature::template_;
 
 class OceanRuinStructureTest : public ::testing::Test {
 protected:
-    void SetUp() override { VanillaBlocks::initialize(); }
+    void SetUp() override
+    {
+        VanillaBlocks::initialize();
+    }
 };
 
 // ============================================================================

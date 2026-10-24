@@ -69,14 +69,22 @@ protected:
             return true;
         }
 
-        [[nodiscard]] u64 currentTick() const override { return m_currentTick; }
-        void setCurrentTick(u64 tick) { m_currentTick = tick; }
+        [[nodiscard]] u64 currentTick() const override
+        {
+            return m_currentTick;
+        }
+
+        void setCurrentTick(u64 tick)
+        {
+            m_currentTick = tick;
+        }
 
         [[nodiscard]] Entity* getEntity(EntityInstanceId id) override
         {
             auto it = m_entities.find(static_cast<u64>(id));
             return it != m_entities.end() ? it->second : nullptr;
         }
+
         [[nodiscard]] const Entity* getEntity(EntityInstanceId id) const override
         {
             auto it = m_entities.find(static_cast<u64>(id));
@@ -87,17 +95,36 @@ protected:
         {
             throw std::runtime_error("RaidTestWorld::tickManager not implemented");
         }
+
         [[nodiscard]] const world::tick::TickManager& tickManager() const override
         {
             throw std::runtime_error("RaidTestWorld::tickManager not implemented");
         }
 
-        [[nodiscard]] VillageManager* villageManager() override { return m_villageManager; }
-        [[nodiscard]] const VillageManager* villageManager() const override { return m_villageManager; }
-        void setVillageManager(VillageManager* vm) { m_villageManager = vm; }
+        [[nodiscard]] VillageManager* villageManager() override
+        {
+            return m_villageManager;
+        }
 
-        void addTestEntity(Entity* entity, u64 id) { m_entities[id] = entity; }
-        void removeTestEntity(u64 id) { m_entities.erase(id); }
+        [[nodiscard]] const VillageManager* villageManager() const override
+        {
+            return m_villageManager;
+        }
+
+        void setVillageManager(VillageManager* vm)
+        {
+            m_villageManager = vm;
+        }
+
+        void addTestEntity(Entity* entity, u64 id)
+        {
+            m_entities[id] = entity;
+        }
+
+        void removeTestEntity(u64 id)
+        {
+            m_entities.erase(id);
+        }
 
     private:
         std::unordered_map<BlockPos, std::unique_ptr<BlockState>> m_blocks;
@@ -114,7 +141,10 @@ protected:
         m_raidManager = std::make_unique<RaidManager>(m_world, m_villageManager);
     }
 
-    void TearDown() override { m_raidManager.reset(); }
+    void TearDown() override
+    {
+        m_raidManager.reset();
+    }
 
     RaidTestWorld m_world;
     VillageManager m_villageManager{m_world};
@@ -227,38 +257,74 @@ protected:
             auto it = m_entities.find(static_cast<u64>(id));
             return it != m_entities.end() ? it->second : nullptr;
         }
+
         [[nodiscard]] const Entity* getEntity(EntityInstanceId id) const override
         {
             auto it = m_entities.find(static_cast<u64>(id));
             return it != m_entities.end() ? it->second : nullptr;
         }
 
-        [[nodiscard]] u64 currentTick() const override { return m_currentTick; }
-        void setCurrentTick(u64 tick) { m_currentTick = tick; }
+        [[nodiscard]] u64 currentTick() const override
+        {
+            return m_currentTick;
+        }
+
+        void setCurrentTick(u64 tick)
+        {
+            m_currentTick = tick;
+        }
 
         [[nodiscard]] world::tick::TickManager& tickManager() override
         {
             throw std::runtime_error("RaidCheckTestWorld::tickManager not implemented");
         }
+
         [[nodiscard]] const world::tick::TickManager& tickManager() const override
         {
             throw std::runtime_error("RaidCheckTestWorld::tickManager not implemented");
         }
 
         /// 注入 RaidManager 指针，用于 Village::_tickRaidCheck 通过 IWorld::raidManager() 访问
-        void setRaidManager(RaidManager* rm) { m_raidManager = rm; }
+        void setRaidManager(RaidManager* rm)
+        {
+            m_raidManager = rm;
+        }
 
-        [[nodiscard]] RaidManager* raidManager() override { return m_raidManager; }
-        [[nodiscard]] const RaidManager* raidManager() const override { return m_raidManager; }
+        [[nodiscard]] RaidManager* raidManager() override
+        {
+            return m_raidManager;
+        }
+
+        [[nodiscard]] const RaidManager* raidManager() const override
+        {
+            return m_raidManager;
+        }
 
         /// 注入 VillageManager 指针
-        void setVillageManager(VillageManager* vm) { m_villageManager = vm; }
+        void setVillageManager(VillageManager* vm)
+        {
+            m_villageManager = vm;
+        }
 
-        [[nodiscard]] VillageManager* villageManager() override { return m_villageManager; }
-        [[nodiscard]] const VillageManager* villageManager() const override { return m_villageManager; }
+        [[nodiscard]] VillageManager* villageManager() override
+        {
+            return m_villageManager;
+        }
 
-        void addTestEntity(Entity* entity, u64 id) { m_entities[id] = entity; }
-        void removeTestEntity(u64 id) { m_entities.erase(id); }
+        [[nodiscard]] const VillageManager* villageManager() const override
+        {
+            return m_villageManager;
+        }
+
+        void addTestEntity(Entity* entity, u64 id)
+        {
+            m_entities[id] = entity;
+        }
+
+        void removeTestEntity(u64 id)
+        {
+            m_entities.erase(id);
+        }
 
     private:
         std::unordered_map<BlockPos, std::unique_ptr<BlockState>> m_blocks;

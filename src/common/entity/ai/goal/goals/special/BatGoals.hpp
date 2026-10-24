@@ -85,7 +85,10 @@ public:
     /**
      * @brief 获取目标名称
      */
-    std::string getTypeName() const override { return "BatFloatGoal"; }
+    std::string getTypeName() const override
+    {
+        return "BatFloatGoal";
+    }
 
 private:
     /**
@@ -144,7 +147,10 @@ public:
      * @brief 目标是否可以被抢占
      * @return 可以被抢占（玩家靠近时会飞走）
      */
-    bool isPreemptible() const override { return true; }
+    bool isPreemptible() const override
+    {
+        return true;
+    }
 
     /**
      * @brief 开始执行时调用
@@ -167,7 +173,10 @@ public:
     /**
      * @brief 获取目标名称
      */
-    std::string getTypeName() const override { return "BatRestGoal"; }
+    std::string getTypeName() const override
+    {
+        return "BatRestGoal";
+    }
 
 private:
     /**

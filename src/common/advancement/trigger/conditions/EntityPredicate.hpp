@@ -118,7 +118,10 @@ public:
     /**
      * @brief 检查是否匹配任意实体
      */
-    [[nodiscard]] bool isAny() const noexcept { return m_isAny; }
+    [[nodiscard]] bool isAny() const noexcept
+    {
+        return m_isAny;
+    }
 
     /**
      * @brief 从JSON解析
@@ -132,20 +135,56 @@ public:
 
     // ========== Getters ==========
 
-    [[nodiscard]] const std::optional<ResourceLocation>& getType() const noexcept { return m_type; }
-    [[nodiscard]] const DistancePredicate& getDistance() const noexcept { return m_distance; }
-    [[nodiscard]] const LocationPredicate& getLocation() const noexcept { return m_location; }
-    [[nodiscard]] const MobEffectsPredicate& getEffects() const noexcept { return m_effects; }
-    [[nodiscard]] const NBTPredicate& getNbt() const noexcept { return m_nbt; }
-    [[nodiscard]] const EntityFlagsPredicate& getFlags() const noexcept { return m_flags; }
-    [[nodiscard]] const EntityEquipmentPredicate& getEquipment() const noexcept { return m_equipment; }
-    [[nodiscard]] const std::vector<EntityComponentFilter>& getComponents() const noexcept { return m_components; }
-    [[nodiscard]] const EntityPredicate* getVehicle() const noexcept { return m_vehicle.get(); }
+    [[nodiscard]] const std::optional<ResourceLocation>& getType() const noexcept
+    {
+        return m_type;
+    }
+
+    [[nodiscard]] const DistancePredicate& getDistance() const noexcept
+    {
+        return m_distance;
+    }
+
+    [[nodiscard]] const LocationPredicate& getLocation() const noexcept
+    {
+        return m_location;
+    }
+
+    [[nodiscard]] const MobEffectsPredicate& getEffects() const noexcept
+    {
+        return m_effects;
+    }
+
+    [[nodiscard]] const NBTPredicate& getNbt() const noexcept
+    {
+        return m_nbt;
+    }
+
+    [[nodiscard]] const EntityFlagsPredicate& getFlags() const noexcept
+    {
+        return m_flags;
+    }
+
+    [[nodiscard]] const EntityEquipmentPredicate& getEquipment() const noexcept
+    {
+        return m_equipment;
+    }
+
+    [[nodiscard]] const std::vector<EntityComponentFilter>& getComponents() const noexcept
+    {
+        return m_components;
+    }
+
+    [[nodiscard]] const EntityPredicate* getVehicle() const noexcept
+    {
+        return m_vehicle.get();
+    }
 
     EntityPredicate(const EntityPredicate& other);
     EntityPredicate& operator=(const EntityPredicate& other);
     EntityPredicate(EntityPredicate&&) noexcept = default;
     EntityPredicate& operator=(EntityPredicate&&) noexcept = default;
+
     [[nodiscard]] const std::optional<EntityTypeSpecificPredicate>& getTypeSpecific() const noexcept
     {
         return m_typeSpecific;
@@ -158,31 +197,37 @@ public:
         m_type = std::move(type);
         _updateIsAny();
     }
+
     void setDistance(DistancePredicate distance)
     {
         m_distance = std::move(distance);
         _updateIsAny();
     }
+
     void setLocation(LocationPredicate location)
     {
         m_location = std::move(location);
         _updateIsAny();
     }
+
     void setEffects(MobEffectsPredicate effects)
     {
         m_effects = std::move(effects);
         _updateIsAny();
     }
+
     void setNbt(NBTPredicate nbt)
     {
         m_nbt = std::move(nbt);
         _updateIsAny();
     }
+
     void setFlags(EntityFlagsPredicate flags)
     {
         m_flags = std::move(flags);
         _updateIsAny();
     }
+
     void setEquipment(EntityEquipmentPredicate equipment)
     {
         m_equipment = std::move(equipment);
@@ -243,7 +288,10 @@ public:
     /**
      * @brief 检查是否匹配任意伤害源
      */
-    [[nodiscard]] bool isAny() const noexcept { return m_isAny; }
+    [[nodiscard]] bool isAny() const noexcept
+    {
+        return m_isAny;
+    }
 
     /**
      * @brief 从JSON解析
@@ -257,26 +305,70 @@ public:
 
     // ========== Getters ==========
 
-    [[nodiscard]] const std::optional<bool>& isProjectile() const noexcept { return m_isProjectile; }
-    [[nodiscard]] const std::optional<bool>& isExplosion() const noexcept { return m_isExplosion; }
-    [[nodiscard]] const std::optional<bool>& isFire() const noexcept { return m_isFire; }
-    [[nodiscard]] const std::optional<bool>& isMagic() const noexcept { return m_isMagic; }
-    [[nodiscard]] const std::optional<bool>& isLightning() const noexcept { return m_isLightning; }
-    [[nodiscard]] const std::optional<bool>& bypassesArmor() const noexcept { return m_bypassesArmor; }
+    [[nodiscard]] const std::optional<bool>& isProjectile() const noexcept
+    {
+        return m_isProjectile;
+    }
+
+    [[nodiscard]] const std::optional<bool>& isExplosion() const noexcept
+    {
+        return m_isExplosion;
+    }
+
+    [[nodiscard]] const std::optional<bool>& isFire() const noexcept
+    {
+        return m_isFire;
+    }
+
+    [[nodiscard]] const std::optional<bool>& isMagic() const noexcept
+    {
+        return m_isMagic;
+    }
+
+    [[nodiscard]] const std::optional<bool>& isLightning() const noexcept
+    {
+        return m_isLightning;
+    }
+
+    [[nodiscard]] const std::optional<bool>& bypassesArmor() const noexcept
+    {
+        return m_bypassesArmor;
+    }
+
     [[nodiscard]] const std::optional<bool>& bypassesInvulnerability() const noexcept
     {
         return m_bypassesInvulnerability;
     }
-    [[nodiscard]] const std::optional<bool>& bypassesMagic() const noexcept { return m_bypassesMagic; }
-    [[nodiscard]] const std::optional<EntityPredicate>& sourceEntity() const noexcept { return m_sourceEntity; }
-    [[nodiscard]] const std::optional<EntityPredicate>& directEntity() const noexcept { return m_directEntity; }
+
+    [[nodiscard]] const std::optional<bool>& bypassesMagic() const noexcept
+    {
+        return m_bypassesMagic;
+    }
+
+    [[nodiscard]] const std::optional<EntityPredicate>& sourceEntity() const noexcept
+    {
+        return m_sourceEntity;
+    }
+
+    [[nodiscard]] const std::optional<EntityPredicate>& directEntity() const noexcept
+    {
+        return m_directEntity;
+    }
 
     DamageSourcePredicate(const DamageSourcePredicate& other);
     DamageSourcePredicate& operator=(const DamageSourcePredicate& other);
     DamageSourcePredicate(DamageSourcePredicate&&) noexcept = default;
     DamageSourcePredicate& operator=(DamageSourcePredicate&&) noexcept = default;
-    [[nodiscard]] const std::optional<ResourceLocation>& type() const noexcept { return m_type; }
-    [[nodiscard]] const std::vector<DamageTypeTagFilter>& typeTags() const noexcept { return m_typeTags; }
+
+    [[nodiscard]] const std::optional<ResourceLocation>& type() const noexcept
+    {
+        return m_type;
+    }
+
+    [[nodiscard]] const std::vector<DamageTypeTagFilter>& typeTags() const noexcept
+    {
+        return m_typeTags;
+    }
 
 private:
     std::optional<bool> m_isProjectile;            ///< 是否为投射物伤害

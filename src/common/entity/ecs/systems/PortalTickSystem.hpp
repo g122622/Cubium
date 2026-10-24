@@ -30,7 +30,10 @@ class PortalTickSystem final : public ITickingSystem {
 public:
     PortalTickSystem() = default;
 
-    [[nodiscard]] const char* name() const noexcept override { return "PortalTickSystem"; }
+    [[nodiscard]] const char* name() const noexcept override
+    {
+        return "PortalTickSystem";
+    }
 
     void tick(EntityRegistry& registry) override;
 };

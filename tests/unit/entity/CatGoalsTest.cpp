@@ -48,14 +48,20 @@ public:
         : CatEntity(id, mc::test::testEcsRegistry())
     {}
 
-    entity::ai::GoalSelector& testGoalSelector() { return goalSelector(); }
+    entity::ai::GoalSelector& testGoalSelector()
+    {
+        return goalSelector();
+    }
 };
 
 // ==================== CatLieOnBedGoal 测试 ====================
 
 class CatLieOnBedGoalTest : public ::testing::Test {
 protected:
-    void SetUp() override { VanillaBlocks::initialize(); }
+    void SetUp() override
+    {
+        VanillaBlocks::initialize();
+    }
 };
 
 TEST_F(CatLieOnBedGoalTest, Construction_DoesNotCrash)
@@ -135,7 +141,10 @@ TEST_F(CatLieOnBedGoalTest, ResetTask_ClearsLieDown)
 
 class CatRelaxOnOwnerGoalTest : public ::testing::Test {
 protected:
-    void SetUp() override { VanillaBlocks::initialize(); }
+    void SetUp() override
+    {
+        VanillaBlocks::initialize();
+    }
 };
 
 TEST_F(CatRelaxOnOwnerGoalTest, Construction_DoesNotCrash)

@@ -89,7 +89,9 @@ public:
      */
     void paint(PaintContext& ctx) override
     {
-        if (!isVisible() || m_text.empty()) return;
+        if (!isVisible() || m_text.empty()) {
+            return;
+        }
 
         switch (m_alignment) {
             case TextAlignment::Left:
@@ -121,47 +123,74 @@ public:
     /**
      * @brief 获取文本内容
      */
-    [[nodiscard]] const std::string& text() const { return m_text; }
+    [[nodiscard]] const std::string& text() const
+    {
+        return m_text;
+    }
 
     /**
      * @brief 设置文本颜色（ARGB格式）
      */
-    void setColor(u32 color) { m_color = color; }
+    void setColor(u32 color)
+    {
+        m_color = color;
+    }
 
     /**
      * @brief 获取文本颜色
      */
-    [[nodiscard]] u32 color() const { return m_color; }
+    [[nodiscard]] u32 color() const
+    {
+        return m_color;
+    }
 
     /**
      * @brief 设置是否绘制文本阴影
      */
-    void setShadow(bool shadow) { m_shadow = shadow; }
+    void setShadow(bool shadow)
+    {
+        m_shadow = shadow;
+    }
 
     /**
      * @brief 是否绘制文本阴影
      */
-    [[nodiscard]] bool hasShadow() const { return m_shadow; }
+    [[nodiscard]] bool hasShadow() const
+    {
+        return m_shadow;
+    }
 
     /**
      * @brief 设置阴影颜色（ARGB格式）
      */
-    void setShadowColor(u32 color) { m_shadowColor = color; }
+    void setShadowColor(u32 color)
+    {
+        m_shadowColor = color;
+    }
 
     /**
      * @brief 获取阴影颜色
      */
-    [[nodiscard]] u32 shadowColor() const { return m_shadowColor; }
+    [[nodiscard]] u32 shadowColor() const
+    {
+        return m_shadowColor;
+    }
 
     /**
      * @brief 设置文本对齐方式
      */
-    void setAlignment(TextAlignment alignment) { m_alignment = alignment; }
+    void setAlignment(TextAlignment alignment)
+    {
+        m_alignment = alignment;
+    }
 
     /**
      * @brief 获取文本对齐方式
      */
-    [[nodiscard]] TextAlignment alignment() const { return m_alignment; }
+    [[nodiscard]] TextAlignment alignment() const
+    {
+        return m_alignment;
+    }
 
     /**
      * @brief 设置最大行数
@@ -176,7 +205,10 @@ public:
     /**
      * @brief 获取最大行数
      */
-    [[nodiscard]] i32 maxLines() const { return m_maxLines; }
+    [[nodiscard]] i32 maxLines() const
+    {
+        return m_maxLines;
+    }
 
     /**
      * @brief 设置是否启用自动换行
@@ -190,17 +222,26 @@ public:
     /**
      * @brief 是否启用自动换行
      */
-    [[nodiscard]] bool wordWrap() const { return m_wordWrap; }
+    [[nodiscard]] bool wordWrap() const
+    {
+        return m_wordWrap;
+    }
 
     /**
      * @brief 设置行高（像素）
      */
-    void setLineHeight(i32 lineHeight) { m_lineHeight = lineHeight; }
+    void setLineHeight(i32 lineHeight)
+    {
+        m_lineHeight = lineHeight;
+    }
 
     /**
      * @brief 获取行高
      */
-    [[nodiscard]] i32 lineHeight() const { return m_lineHeight; }
+    [[nodiscard]] i32 lineHeight() const
+    {
+        return m_lineHeight;
+    }
 
     /**
      * @brief 设置文本缩放比例
@@ -214,7 +255,10 @@ public:
     /**
      * @brief 获取文本缩放比例
      */
-    [[nodiscard]] f32 scale() const { return m_scale; }
+    [[nodiscard]] f32 scale() const
+    {
+        return m_scale;
+    }
 
     /**
      * @brief 获取文本渲染宽度（考虑缩放）
@@ -246,7 +290,10 @@ public:
     /**
      * @brief 获取当前文本行数
      */
-    [[nodiscard]] i32 getLineCount() const { return static_cast<i32>(_ensureLines().size()); }
+    [[nodiscard]] i32 getLineCount() const
+    {
+        return static_cast<i32>(_ensureLines().size());
+    }
 
     /**
      * @brief 获取指定行的文本内容
@@ -277,13 +324,19 @@ public:
     /**
      * @brief 获取字体指针
      */
-    [[nodiscard]] ::mc::client::Font* font() const { return m_font; }
+    [[nodiscard]] ::mc::client::Font* font() const
+    {
+        return m_font;
+    }
 
 protected:
     /**
      * @brief 尺寸变化后使行缓存失效
      */
-    void onSizeChanged() override { m_linesDirty = true; }
+    void onSizeChanged() override
+    {
+        m_linesDirty = true;
+    }
 
     // 成员变量
     std::string m_text;                              ///< 文本内容
@@ -340,7 +393,10 @@ private:
     /**
      * @brief 追加一行到缓存
      */
-    void _appendLine(std::string line) const { m_lines.emplace_back(std::move(line)); }
+    void _appendLine(std::string line) const
+    {
+        m_lines.emplace_back(std::move(line));
+    }
 
     /**
      * @brief 将当前文本按可用宽度构建成行缓存
@@ -437,7 +493,10 @@ private:
     /**
      * @brief 获取当前可换行宽度（组件宽度减去水平内边距）
      */
-    [[nodiscard]] i32 _getWrapWidth() const { return std::max(0, bounds().width - padding().horizontal()); }
+    [[nodiscard]] i32 _getWrapWidth() const
+    {
+        return std::max(0, bounds().width - padding().horizontal());
+    }
 };
 
 } // namespace mc::client::ui::kagero::widget

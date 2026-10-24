@@ -771,7 +771,9 @@ bool VillagerEntity::isBreedingItem(const ItemStack& itemStack) const
 {
     // 村民用食物繁殖：面包、土豆、胡萝卜、甜菜根
     const Item* item = itemStack.getItem();
-    if (item == nullptr) return false;
+    if (item == nullptr) {
+        return false;
+    }
 
     return item == Items::BREAD || item == Items::POTATO || item == Items::CARROT || item == Items::BEETROOT;
 }
@@ -865,7 +867,9 @@ bool VillagerEntity::canPickUpItem(const ItemStack& itemStack) const
 {
     // 村民可以拾取的默认物品列表
     const Item* item = itemStack.getItem();
-    if (item == nullptr) return false;
+    if (item == nullptr) {
+        return false;
+    }
 
     // 默认可拾取物品：面包、土豆、胡萝卜、小麦、小麦种子、甜菜根、甜菜根种子
     static const Item* allowedItems[] = {Items::BREAD,
@@ -1007,7 +1011,9 @@ void VillagerEntity::play()
 
 void VillagerEntity::spreadGossipTo(VillagerEntity* other)
 {
-    if (!other || !m_world) return;
+    if (!other || !m_world) {
+        return;
+    }
 
     // 每次传播最多传播 10 条流言
     // 冷却时间 1200 tick (60秒)
@@ -1021,7 +1027,9 @@ void VillagerEntity::spreadGossipTo(VillagerEntity* other)
 
     // 获取村庄管理器
     auto* villageManager = m_world->villageManager();
-    if (!villageManager) return;
+    if (!villageManager) {
+        return;
+    }
 
     // 获取村民所在村庄的流言管理器
     // 注意：流言是村庄级别的，不是村民级别的
@@ -1042,7 +1050,9 @@ void VillagerEntity::spreadGossipTo(VillagerEntity* other)
 
 void VillagerEntity::trySpreadGossip()
 {
-    if (!m_world) return;
+    if (!m_world) {
+        return;
+    }
 
     // 检查冷却时间
     i64 currentTime = m_world->currentTick();
@@ -1134,7 +1144,9 @@ void VillagerEntity::registerAttributes()
 
 bool VillagerEntity::shouldRestock()
 {
-    if (!m_world) return false;
+    if (!m_world) {
+        return false;
+    }
 
     // 补货判定逻辑：
     // 1. 检测是否跨天（距上次补货超过12000tick 或 新的游戏日开始）
@@ -1184,7 +1196,9 @@ void VillagerEntity::restock()
 bool VillagerEntity::needsToRestock() const
 {
     // 任意交易被使用过则需要补货
-    if (!m_offers) return false;
+    if (!m_offers) {
+        return false;
+    }
     return m_offers->needsRestockAny();
 }
 
@@ -1214,7 +1228,9 @@ void VillagerEntity::_catchUpDemand()
 {
     // 需求补偿：昨日若补货次数不足 2 次，先一次性重置使用次数，
     // 再按错过的次数逐次更新需求（uses 已清零，每次需求 -maxUses）。
-    if (!m_offers) return;
+    if (!m_offers) {
+        return;
+    }
 
     const i32 missedRestocks = 2 - m_numberOfRestocksToday;
     if (missedRestocks > 0) {
@@ -1763,9 +1779,9 @@ void WanderingTraderEntity::registerAttributes()
 {
     AgeableEntity::registerAttributes();
 
-    // 流浪商人属性
+    // 流浪商人：原版用 Mob.createMobAttributes()，不覆盖移动速度（LivingEntity 默认 0.7）。
     attributes().setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 20.0);
-    attributes().setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.5);
+    attributes().setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.7);
 }
 
 void WanderingTraderEntity::updateOffers()

@@ -51,7 +51,9 @@ namespace command {
 void EnchantCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
 {
     auto enchantNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("enchant");
-    enchantNode->setRequirement([](const ServerCommandSource& source) { return source.hasPermission(2); });
+    enchantNode->setRequirement([](const ServerCommandSource& source) {
+        return source.hasPermission(2);
+    });
     support::applyMetadata(enchantNode,
         support::makeMetadata(
             "Adds an enchantment to a player's held item.", "/enchant <player> <enchantment> [<level>]", 2, {}, true));
@@ -63,12 +65,16 @@ void EnchantCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatch
     // /enchant <player> <enchantment>
     auto enchantmentNode = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
         "enchantment", StringArgumentType::word());
-    enchantmentNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _enchantItem(ctx); });
+    enchantmentNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _enchantItem(ctx);
+    });
 
     // /enchant <player> <enchantment> <level>
     auto levelNode = std::make_shared<ArgumentCommandNode<ServerCommandSource, i32>>(
         "level", IntegerArgumentType::integer(0, 32767));
-    levelNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _enchantItem(ctx); });
+    levelNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _enchantItem(ctx);
+    });
 
     enchantmentNode->addChild(levelNode);
     playerNode->addChild(enchantmentNode);

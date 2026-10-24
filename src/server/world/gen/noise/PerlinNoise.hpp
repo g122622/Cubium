@@ -149,7 +149,10 @@ public:
     /**
      * @brief 噪声最大可能输出值
      */
-    [[nodiscard]] f64 maxValue() const { return m_maxValue; }
+    [[nodiscard]] f64 maxValue() const
+    {
+        return m_maxValue;
+    }
 
     /**
      * @brief 计算给定 Y 输入范围下的最大可能输出值
@@ -173,12 +176,18 @@ public:
     /**
      * @brief 首个倍频索引
      */
-    [[nodiscard]] i32 firstOctave() const { return m_firstOctave; }
+    [[nodiscard]] i32 firstOctave() const
+    {
+        return m_firstOctave;
+    }
 
     /**
      * @brief 振幅列表
      */
-    [[nodiscard]] const std::vector<f64>& amplitudes() const { return m_amplitudes; }
+    [[nodiscard]] const std::vector<f64>& amplitudes() const
+    {
+        return m_amplitudes;
+    }
 
     /**
      * @brief Perlin 噪声核心层（对应 MC ImprovedNoise，每个倍频层使用一个实例）
@@ -209,10 +218,25 @@ public:
         [[nodiscard]] f64 noiseWithSmear(f64 x, f64 y, f64 z, f64 yOffset, f64 yFraction) const;
 
         // ---- SoA 构造期访问器(buildSoA 从各 layer 收集置换表与偏移到连续块)----
-        [[nodiscard]] const std::vector<u8>& permutation() const noexcept { return m_permutation; }
-        [[nodiscard]] f64 xOffset() const noexcept { return m_xOffset; }
-        [[nodiscard]] f64 yOffset() const noexcept { return m_yOffset; }
-        [[nodiscard]] f64 zOffset() const noexcept { return m_zOffset; }
+        [[nodiscard]] const std::vector<u8>& permutation() const noexcept
+        {
+            return m_permutation;
+        }
+
+        [[nodiscard]] f64 xOffset() const noexcept
+        {
+            return m_xOffset;
+        }
+
+        [[nodiscard]] f64 yOffset() const noexcept
+        {
+            return m_yOffset;
+        }
+
+        [[nodiscard]] f64 zOffset() const noexcept
+        {
+            return m_zOffset;
+        }
 
     private:
         [[nodiscard]] f64 sampleAndLerp(
@@ -251,11 +275,30 @@ public:
     }
 
     // ---- SoA 访问器(buildSoA 收集后,NormalNoise/BlendedNoise 的向量化求值读取)----
-    [[nodiscard]] const std::vector<std::unique_ptr<PerlinLayer>>& layers() const noexcept { return m_layers; }
-    [[nodiscard]] const std::vector<f64>& amplitudesVec() const noexcept { return m_amplitudes; }
-    [[nodiscard]] f64 lowestFreqInputFactor() const noexcept { return m_lowestFreqInputFactor; }
-    [[nodiscard]] f64 lowestFreqValueFactor() const noexcept { return m_lowestFreqValueFactor; }
-    [[nodiscard]] const PerlinNoiseSoA& soa() const noexcept { return m_soa; }
+    [[nodiscard]] const std::vector<std::unique_ptr<PerlinLayer>>& layers() const noexcept
+    {
+        return m_layers;
+    }
+
+    [[nodiscard]] const std::vector<f64>& amplitudesVec() const noexcept
+    {
+        return m_amplitudes;
+    }
+
+    [[nodiscard]] f64 lowestFreqInputFactor() const noexcept
+    {
+        return m_lowestFreqInputFactor;
+    }
+
+    [[nodiscard]] f64 lowestFreqValueFactor() const noexcept
+    {
+        return m_lowestFreqValueFactor;
+    }
+
+    [[nodiscard]] const PerlinNoiseSoA& soa() const noexcept
+    {
+        return m_soa;
+    }
 
     /**
      * @brief 把所有非空 octave 子层拍平到连续 SoA 块

@@ -49,7 +49,11 @@ public:
         m_regionSeed.store(region.seed(), std::memory_order_relaxed);
         NoiseChunkGenerator::placeFeatures(region, chunk);
     }
-    [[nodiscard]] u64 observedSeed() const { return m_regionSeed.load(std::memory_order_relaxed); }
+
+    [[nodiscard]] u64 observedSeed() const
+    {
+        return m_regionSeed.load(std::memory_order_relaxed);
+    }
 
 private:
     std::atomic<u64> m_regionSeed{0};
@@ -270,7 +274,9 @@ TEST_F(ServerChunkManagerCallbackTest, ResetCallback)
 {
     int callCount = 0;
 
-    m_manager->setEntitySpawnCallback([&callCount](const std::vector<mc::SpawnedEntityData>&) { callCount++; });
+    m_manager->setEntitySpawnCallback([&callCount](const std::vector<mc::SpawnedEntityData>&) {
+        callCount++;
+    });
 
     // 重置为空回调
     m_manager->setEntitySpawnCallback(nullptr);

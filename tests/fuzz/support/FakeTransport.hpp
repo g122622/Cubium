@@ -46,9 +46,17 @@ namespace mc::fuzz {
  */
 class FakeTransport final : public network::transport::ITransport {
 public:
-    [[nodiscard]] Result<void> execute(Task task) override { return task(); }
+    [[nodiscard]] Result<void> execute(Task task) override
+    {
+        return task();
+    }
+
     void synchronize() override {}
-    void closeAfterFlush() override { close(); }
+
+    void closeAfterFlush() override
+    {
+        close();
+    }
 
     [[nodiscard]] Result<void> send(const u8* data, usize size, network::transport::DeliveryHint hint) override
     {
@@ -62,11 +70,20 @@ public:
         return Result<void>::ok();
     }
 
-    void onBytes(ByteCallback callback) override { m_onBytes = std::move(callback); }
+    void onBytes(ByteCallback callback) override
+    {
+        m_onBytes = std::move(callback);
+    }
 
-    void onDisconnect(DisconnectCallback callback) override { m_onDisconnect = std::move(callback); }
+    void onDisconnect(DisconnectCallback callback) override
+    {
+        m_onDisconnect = std::move(callback);
+    }
 
-    [[nodiscard]] bool isConnected() const noexcept override { return m_connected; }
+    [[nodiscard]] bool isConnected() const noexcept override
+    {
+        return m_connected;
+    }
 
     void close() override
     {
@@ -93,7 +110,10 @@ public:
     }
 
     /// 上层经本传输写出的全部字节（按写入顺序累积）
-    [[nodiscard]] const std::vector<u8>& sentBytes() const noexcept { return m_sent; }
+    [[nodiscard]] const std::vector<u8>& sentBytes() const noexcept
+    {
+        return m_sent;
+    }
 
 private:
     ByteCallback m_onBytes;

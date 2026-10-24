@@ -79,10 +79,20 @@ public:
      *
      * 必须在 generate 之前调用
      */
-    void setTemplateManager(feature::template_::TemplateManager* manager) { m_templateManager = manager; }
+    void setTemplateManager(feature::template_::TemplateManager* manager)
+    {
+        m_templateManager = manager;
+    }
 
-    [[nodiscard]] const std::string& templateName() const { return m_templateName; }
-    [[nodiscard]] bool isBeached() const { return m_isBeached; }
+    [[nodiscard]] const std::string& templateName() const
+    {
+        return m_templateName;
+    }
+
+    [[nodiscard]] bool isBeached() const
+    {
+        return m_isBeached;
+    }
 
     // 结构偏移
     static const BlockPos STRUCTURE_OFFSET;
@@ -107,7 +117,10 @@ class ShipwreckStructure : public Structure {
 public:
     explicit ShipwreckStructure(ResourceLocation id);
 
-    [[nodiscard]] const std::string& name() const override { return m_name; }
+    [[nodiscard]] const std::string& name() const override
+    {
+        return m_name;
+    }
 
     [[nodiscard]] const biome::BiomeTag* defaultBiomeTag() const override;
 
@@ -120,14 +133,23 @@ public:
     /**
      * @brief 设置模板管理器
      */
-    void setTemplateManager(feature::template_::TemplateManager* manager) { m_templateManager = manager; }
+    void setTemplateManager(feature::template_::TemplateManager* manager)
+    {
+        m_templateManager = manager;
+    }
 
     /**
      * @brief 设置配置
      */
-    void setConfig(const ShipwreckConfig& config) { m_config = config; }
+    void setConfig(const ShipwreckConfig& config)
+    {
+        m_config = config;
+    }
 
-    [[nodiscard]] const ShipwreckConfig& config() const { return m_config; }
+    [[nodiscard]] const ShipwreckConfig& config() const
+    {
+        return m_config;
+    }
 
     // 模板名称常量（公开供测试访问）
     // 搁浅沉船变体（只有部分变体）

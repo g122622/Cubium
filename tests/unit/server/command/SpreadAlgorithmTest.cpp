@@ -110,13 +110,17 @@ public:
     {
         throw std::runtime_error("SpreadTestWorld::tickManager not implemented");
     }
+
     [[nodiscard]] const world::tick::TickManager& tickManager() const override
     {
         throw std::runtime_error("SpreadTestWorld::tickManager not implemented");
     }
 
 private:
-    [[nodiscard]] const BlockState* getAirState() const { return &VanillaBlocks::AIR->defaultState(); }
+    [[nodiscard]] const BlockState* getAirState() const
+    {
+        return &VanillaBlocks::AIR->defaultState();
+    }
 };
 
 // ============================================================================
@@ -582,8 +586,15 @@ TEST_F(SpreadAlgorithmTest, IWorldDefaultHeightMethods)
 // 自定义测试世界，覆写 getMinBuildHeight/getMaxBuildHeight 以模拟非主世界维度
 class NetherHeightTestWorld : public SpreadTestWorld {
 public:
-    [[nodiscard]] i32 getMinBuildHeight() const override { return 0; }
-    [[nodiscard]] i32 getMaxBuildHeight() const override { return 128; }
+    [[nodiscard]] i32 getMinBuildHeight() const override
+    {
+        return 0;
+    }
+
+    [[nodiscard]] i32 getMaxBuildHeight() const override
+    {
+        return 128;
+    }
 };
 
 TEST_F(SpreadAlgorithmTest, IsSafeReturnsFalseWhenMaxHeightBelowMinBuildHeight)

@@ -83,7 +83,10 @@ public:
     /**
      * @brief 获取药水数量
      */
-    [[nodiscard]] size_t size() const { return m_potions.size(); }
+    [[nodiscard]] size_t size() const
+    {
+        return m_potions.size();
+    }
 
     // ========== 预定义药水指针 ==========
 

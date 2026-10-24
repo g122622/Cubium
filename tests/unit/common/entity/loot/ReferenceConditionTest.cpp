@@ -50,6 +50,7 @@ public:
     {
         throw std::runtime_error("ReferenceConditionTestWorld::tickManager not implemented");
     }
+
     [[nodiscard]] const world::tick::TickManager& tickManager() const override
     {
         throw std::runtime_error("ReferenceConditionTestWorld::tickManager not implemented");
@@ -79,8 +80,9 @@ protected:
     {
         return LootContextBuilder(m_world)
             .withRandom(m_random)
-            .withPredicateResolver(
-                [this](const std::string& id) -> const LootCondition* { return m_predicateManager.getPredicate(id); })
+            .withPredicateResolver([this](const std::string& id) -> const LootCondition* {
+                return m_predicateManager.getPredicate(id);
+            })
             .build();
     }
 };
@@ -183,7 +185,10 @@ public:
         return std::make_unique<SelfReferencingCondition>(m_selfId);
     }
 
-    [[nodiscard]] std::string getType() const override { return "self_referencing"; }
+    [[nodiscard]] std::string getType() const override
+    {
+        return "self_referencing";
+    }
 
 private:
     std::string m_selfId;
@@ -220,7 +225,10 @@ public:
         return std::make_unique<MutualRefConditionA>();
     }
 
-    [[nodiscard]] std::string getType() const override { return "mutual_ref_a"; }
+    [[nodiscard]] std::string getType() const override
+    {
+        return "mutual_ref_a";
+    }
 };
 
 /**
@@ -241,7 +249,10 @@ public:
         return std::make_unique<MutualRefConditionB>();
     }
 
-    [[nodiscard]] std::string getType() const override { return "mutual_ref_b"; }
+    [[nodiscard]] std::string getType() const override
+    {
+        return "mutual_ref_b";
+    }
 };
 
 TEST_F(ReferenceConditionTest, MutualCircularReference_DetectsAndReturnsFalse)

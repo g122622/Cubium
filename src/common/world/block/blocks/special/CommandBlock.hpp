@@ -66,7 +66,10 @@ public:
 
     // ========== 标记接口 ==========
 
-    [[nodiscard]] bool isGameMaster() const noexcept override { return true; }
+    [[nodiscard]] bool isGameMaster() const noexcept override
+    {
+        return true;
+    }
 
     // ========== 状态属性 ==========
 
@@ -129,7 +132,10 @@ public:
 
     // ========== 方块实体 ==========
 
-    [[nodiscard]] bool hasBlockEntity() const noexcept override { return true; }
+    [[nodiscard]] bool hasBlockEntity() const noexcept override
+    {
+        return true;
+    }
 
     [[nodiscard]] std::unique_ptr<BlockEntity> createBlockEntity(const BlockPos& pos) override;
 
@@ -180,7 +186,10 @@ protected:
      * 对齐 vanilla CommandBlock 构造参数 automatic：脉冲与连锁为 false，循环为 true。
      * 派生类（RepeatingCommandBlock）重写返回 true。
      */
-    [[nodiscard]] virtual bool defaultAutomatic() const noexcept { return false; }
+    [[nodiscard]] virtual bool defaultAutomatic() const noexcept
+    {
+        return false;
+    }
 
     /**
      * @brief 刷新供电状态并在供电上升沿调度执行（对齐 vanilla CommandBlock.setPoweredAndUpdate）

@@ -73,7 +73,10 @@ public:
     /**
      * @brief 尸壳不在阳光下燃烧
      */
-    [[nodiscard]] bool shouldBurnInDaylight() const override { return false; }
+    [[nodiscard]] bool shouldBurnInDaylight() const override
+    {
+        return false;
+    }
 
     // ========== 饥饿攻击 ==========
 

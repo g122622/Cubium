@@ -89,18 +89,35 @@ public:
 
     ~ServerCommandSourceTestServer() override = default;
 
-    [[nodiscard]] ServerDimensionManager& dimensionManager() override { return m_dimensionManager; }
+    [[nodiscard]] ServerDimensionManager& dimensionManager() override
+    {
+        return m_dimensionManager;
+    }
 
-    [[nodiscard]] const ServerDimensionManager& dimensionManager() const override { return m_dimensionManager; }
+    [[nodiscard]] const ServerDimensionManager& dimensionManager() const override
+    {
+        return m_dimensionManager;
+    }
 
-    [[nodiscard]] ServerPlayerEntityManager& playerEntityManager() override { return m_playerEntityManager; }
+    [[nodiscard]] ServerPlayerEntityManager& playerEntityManager() override
+    {
+        return m_playerEntityManager;
+    }
+
     [[nodiscard]] const ServerPlayerEntityManager& playerEntityManager() const override
     {
         return m_playerEntityManager;
     }
 
-    [[nodiscard]] ServerWorld* getPlayerWorld(PlayerId) override { return m_world; }
-    [[nodiscard]] ServerWorld* world() const { return m_world; }
+    [[nodiscard]] ServerWorld* getPlayerWorld(PlayerId) override
+    {
+        return m_world;
+    }
+
+    [[nodiscard]] ServerWorld* world() const
+    {
+        return m_world;
+    }
 
     EntityInstanceId spawnEntity(std::unique_ptr<Entity> entity)
     {

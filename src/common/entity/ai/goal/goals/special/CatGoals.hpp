@@ -104,7 +104,10 @@ public:
     void tick() override;
     void resetTask() override;
 
-    [[nodiscard]] std::string getTypeName() const override { return "CatLieOnBedGoal"; }
+    [[nodiscard]] std::string getTypeName() const override
+    {
+        return "CatLieOnBedGoal";
+    }
 
 protected:
     [[nodiscard]] bool shouldMoveTo(IWorld* world, const BlockPos& pos) override;
@@ -142,7 +145,10 @@ public:
     void tick() override;
     void resetTask() override;
 
-    [[nodiscard]] std::string getTypeName() const override { return "CatRelaxOnOwnerGoal"; }
+    [[nodiscard]] std::string getTypeName() const override
+    {
+        return "CatRelaxOnOwnerGoal";
+    }
 
 private:
     /**

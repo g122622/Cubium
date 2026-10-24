@@ -60,7 +60,10 @@ struct TextureMetadata {
     /**
      * @brief 是否有效（必须有URL）
      */
-    [[nodiscard]] bool isValid() const noexcept { return !url.empty(); }
+    [[nodiscard]] bool isValid() const noexcept
+    {
+        return !url.empty();
+    }
 };
 
 /**
@@ -98,110 +101,170 @@ public:
      * @brief 获取皮肤 ResourceLocation
      * @return 皮肤位置，不存在返回空optional
      */
-    [[nodiscard]] const std::optional<ResourceLocation>& getSkin() const noexcept { return m_skin; }
+    [[nodiscard]] const std::optional<ResourceLocation>& getSkin() const noexcept
+    {
+        return m_skin;
+    }
 
     /**
      * @brief 获取披风 ResourceLocation
      * @return 披风位置，不存在返回空optional
      */
-    [[nodiscard]] const std::optional<ResourceLocation>& getCape() const noexcept { return m_cape; }
+    [[nodiscard]] const std::optional<ResourceLocation>& getCape() const noexcept
+    {
+        return m_cape;
+    }
 
     /**
      * @brief 获取鞘翅 ResourceLocation
      * @return 鞘翅位置，不存在返回空optional
      */
-    [[nodiscard]] const std::optional<ResourceLocation>& getElytra() const noexcept { return m_elytra; }
+    [[nodiscard]] const std::optional<ResourceLocation>& getElytra() const noexcept
+    {
+        return m_elytra;
+    }
 
     /**
      * @brief 获取皮肤类型
      */
-    [[nodiscard]] SkinType skinType() const noexcept { return m_skinType; }
+    [[nodiscard]] SkinType skinType() const noexcept
+    {
+        return m_skinType;
+    }
 
     // ========== 纹理设置 ==========
 
     /**
      * @brief 设置皮肤位置
      */
-    void setSkin(const ResourceLocation& location) { m_skin = location; }
+    void setSkin(const ResourceLocation& location)
+    {
+        m_skin = location;
+    }
 
     /**
      * @brief 设置披风位置
      */
-    void setCape(const ResourceLocation& location) { m_cape = location; }
+    void setCape(const ResourceLocation& location)
+    {
+        m_cape = location;
+    }
 
     /**
      * @brief 设置鞘翅位置
      */
-    void setElytra(const ResourceLocation& location) { m_elytra = location; }
+    void setElytra(const ResourceLocation& location)
+    {
+        m_elytra = location;
+    }
 
     /**
      * @brief 设置皮肤类型
      */
-    void setSkinType(SkinType type) noexcept { m_skinType = type; }
+    void setSkinType(SkinType type) noexcept
+    {
+        m_skinType = type;
+    }
 
     // ========== URL 获取（用于下载） ==========
 
     /**
      * @brief 获取皮肤下载URL
      */
-    [[nodiscard]] const std::optional<std::string>& skinUrl() const noexcept { return m_skinUrl; }
+    [[nodiscard]] const std::optional<std::string>& skinUrl() const noexcept
+    {
+        return m_skinUrl;
+    }
 
     /**
      * @brief 获取披风下载URL
      */
-    [[nodiscard]] const std::optional<std::string>& capeUrl() const noexcept { return m_capeUrl; }
+    [[nodiscard]] const std::optional<std::string>& capeUrl() const noexcept
+    {
+        return m_capeUrl;
+    }
 
     /**
      * @brief 获取鞘翅下载URL
      */
-    [[nodiscard]] const std::optional<std::string>& elytraUrl() const noexcept { return m_elytraUrl; }
+    [[nodiscard]] const std::optional<std::string>& elytraUrl() const noexcept
+    {
+        return m_elytraUrl;
+    }
 
     /**
      * @brief 设置皮肤下载URL
      */
-    void setSkinUrl(const std::string& url) { m_skinUrl = url; }
+    void setSkinUrl(const std::string& url)
+    {
+        m_skinUrl = url;
+    }
 
     /**
      * @brief 设置披风下载URL
      */
-    void setCapeUrl(const std::string& url) { m_capeUrl = url; }
+    void setCapeUrl(const std::string& url)
+    {
+        m_capeUrl = url;
+    }
 
     /**
      * @brief 设置鞘翅下载URL
      */
-    void setElytraUrl(const std::string& url) { m_elytraUrl = url; }
+    void setElytraUrl(const std::string& url)
+    {
+        m_elytraUrl = url;
+    }
 
     // ========== 哈希获取（用于缓存） ==========
 
     /**
      * @brief 获取皮肤哈希
      */
-    [[nodiscard]] const std::optional<std::string>& skinHash() const noexcept { return m_skinHash; }
+    [[nodiscard]] const std::optional<std::string>& skinHash() const noexcept
+    {
+        return m_skinHash;
+    }
 
     /**
      * @brief 获取披风哈希
      */
-    [[nodiscard]] const std::optional<std::string>& capeHash() const noexcept { return m_capeHash; }
+    [[nodiscard]] const std::optional<std::string>& capeHash() const noexcept
+    {
+        return m_capeHash;
+    }
 
     /**
      * @brief 获取鞘翅哈希
      */
-    [[nodiscard]] const std::optional<std::string>& elytraHash() const noexcept { return m_elytraHash; }
+    [[nodiscard]] const std::optional<std::string>& elytraHash() const noexcept
+    {
+        return m_elytraHash;
+    }
 
     /**
      * @brief 设置皮肤哈希
      */
-    void setSkinHash(const std::string& hash) { m_skinHash = hash; }
+    void setSkinHash(const std::string& hash)
+    {
+        m_skinHash = hash;
+    }
 
     /**
      * @brief 设置披风哈希
      */
-    void setCapeHash(const std::string& hash) { m_capeHash = hash; }
+    void setCapeHash(const std::string& hash)
+    {
+        m_capeHash = hash;
+    }
 
     /**
      * @brief 设置鞘翅哈希
      */
-    void setElytraHash(const std::string& hash) { m_elytraHash = hash; }
+    void setElytraHash(const std::string& hash)
+    {
+        m_elytraHash = hash;
+    }
 
     // ========== 状态检查 ==========
 
@@ -217,22 +280,34 @@ public:
      * hasSkin()+skinHash() 决定是否走缓存）与渲染阶段（PlayerSkinInfo 依据
      * hasSkin() 决定是否使用 getSkin() 返回的 ResourceLocation）的使用需求。
      */
-    [[nodiscard]] bool hasSkin() const noexcept { return m_skinUrl.has_value() || m_skin.has_value(); }
+    [[nodiscard]] bool hasSkin() const noexcept
+    {
+        return m_skinUrl.has_value() || m_skin.has_value();
+    }
 
     /**
      * @brief 是否有披风
      */
-    [[nodiscard]] bool hasCape() const noexcept { return m_capeUrl.has_value() || m_cape.has_value(); }
+    [[nodiscard]] bool hasCape() const noexcept
+    {
+        return m_capeUrl.has_value() || m_cape.has_value();
+    }
 
     /**
      * @brief 是否有鞘翅
      */
-    [[nodiscard]] bool hasElytra() const noexcept { return m_elytraUrl.has_value() || m_elytra.has_value(); }
+    [[nodiscard]] bool hasElytra() const noexcept
+    {
+        return m_elytraUrl.has_value() || m_elytra.has_value();
+    }
 
     /**
      * @brief 是否有任何纹理
      */
-    [[nodiscard]] bool hasAnyTexture() const noexcept { return hasSkin() || hasCape() || hasElytra(); }
+    [[nodiscard]] bool hasAnyTexture() const noexcept
+    {
+        return hasSkin() || hasCape() || hasElytra();
+    }
 
     // ========== 缓存键生成 ==========
 

@@ -139,7 +139,10 @@ public:
     // ========== 冲撞状态机（GoatRamGoal 使用）==========
 
     /// 冲撞冷却剩余 tick（对齐 vanilla RAM_COOLDOWN_TICKS 记忆）
-    [[nodiscard]] i32 ramCooldown() const { return m_ramCooldown; }
+    [[nodiscard]] i32 ramCooldown() const
+    {
+        return m_ramCooldown;
+    }
 
     /// 长跳中的姿态缩放（vanilla Goat.LONG_JUMPING_DIMENSIONS = 0.9x1.3 scale 0.7）
     static constexpr f32 LONG_JUMPING_SCALE = 0.7f;
@@ -154,16 +157,27 @@ public:
     [[nodiscard]] i32 pickNextRamCooldown() const;
 
     /// 是否正在低头（对齐 vanilla isLoweringHead，由实体事件 58/59 切换）
-    [[nodiscard]] bool isLoweringHead() const { return m_isLoweringHead; }
+    [[nodiscard]] bool isLoweringHead() const
+    {
+        return m_isLoweringHead;
+    }
+
     void setLoweringHead(bool lowering);
+
     /// 低头进度 0..20（对齐 vanilla lowerHeadTick）
-    [[nodiscard]] i32 lowerHeadTick() const { return m_lowerHeadTick; }
+    [[nodiscard]] i32 lowerHeadTick() const
+    {
+        return m_lowerHeadTick;
+    }
 
     // ========== 交互 / 伤害 / 声音 ==========
 
     [[nodiscard]] ActionResultType interactMob(Player& player, Hand hand) override;
 
-    [[nodiscard]] i32 fallDamageReduction() const override { return GOAT_FALL_DAMAGE_REDUCTION; }
+    [[nodiscard]] i32 fallDamageReduction() const override
+    {
+        return GOAT_FALL_DAMAGE_REDUCTION;
+    }
 
     [[nodiscard]] std::optional<ResourceLocation> getAmbientSound() const override;
     [[nodiscard]] std::optional<ResourceLocation> getHurtSound(DamageSource& source) const override;
@@ -196,9 +210,20 @@ public:
     /// DATA_HAS_RIGHT_HORN（Boolean，默认 true）
     static entity::DataParameter<bool> DATA_HAS_RIGHT_HORN_PARAM;
 
-    [[nodiscard]] static u16 getScreamingParamId() { return DATA_IS_SCREAMING_GOAT_PARAM.id(); }
-    [[nodiscard]] static u16 getHasLeftHornParamId() { return DATA_HAS_LEFT_HORN_PARAM.id(); }
-    [[nodiscard]] static u16 getHasRightHornParamId() { return DATA_HAS_RIGHT_HORN_PARAM.id(); }
+    [[nodiscard]] static u16 getScreamingParamId()
+    {
+        return DATA_IS_SCREAMING_GOAT_PARAM.id();
+    }
+
+    [[nodiscard]] static u16 getHasLeftHornParamId()
+    {
+        return DATA_HAS_LEFT_HORN_PARAM.id();
+    }
+
+    [[nodiscard]] static u16 getHasRightHornParamId()
+    {
+        return DATA_HAS_RIGHT_HORN_PARAM.id();
+    }
 
 protected:
     void registerGoals() override;

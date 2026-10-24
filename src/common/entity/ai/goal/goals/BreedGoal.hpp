@@ -57,7 +57,10 @@ public:
     void resetTask() override;
     void tick() override;
 
-    [[nodiscard]] std::string getTypeName() const override { return "BreedGoal"; }
+    [[nodiscard]] std::string getTypeName() const override
+    {
+        return "BreedGoal";
+    }
 
     /**
      * @brief 执行一次繁殖产出与繁殖后处理

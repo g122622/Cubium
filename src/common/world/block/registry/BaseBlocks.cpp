@@ -239,7 +239,7 @@ void registerBaseBlocks()
                 BaseBlocks::WATER =
                     &registry.registerBlock<::mc::block::LiquidBlock>(ResourceLocation("minecraft:water"),
                         *flowingWater,
-                        BlockProperties(Material::WATER).noCollision().notSolid().opacity(0));
+                        BlockProperties(Material::WATER).noCollision().notSolid().opacity(0).hardness(100.0f));
             }
         }
     }
@@ -252,7 +252,7 @@ void registerBaseBlocks()
             if (flowingLava != nullptr) {
                 BaseBlocks::LAVA = &registry.registerBlock<::mc::block::LiquidBlock>(ResourceLocation("minecraft:lava"),
                     *flowingLava,
-                    BlockProperties(Material::LAVA).noCollision().notSolid().lightLevel(15));
+                    BlockProperties(Material::LAVA).noCollision().notSolid().lightLevel(15).hardness(100.0f));
             }
         }
     }
@@ -271,26 +271,25 @@ void registerBaseBlocks()
 
     // 雪层
     BaseBlocks::SNOW = &registry.registerBlock<blocks::SnowBlock>(
-        ResourceLocation("minecraft:snow"), BlockProperties(Material::SNOW).hardness(0.2f).notSolid().noOcclusion());
+        ResourceLocation("minecraft:snow"), BlockProperties(Material::SNOW).hardness(0.1f).notSolid().noOcclusion());
 
     // 雪块
     BaseBlocks::SNOW_BLOCK = &registry.registerBlock<SimpleBlock>(
         ResourceLocation("minecraft:snow_block"), BlockProperties(Material::SNOW).hardness(0.2f));
 
     // 冰
-    // 对齐 vanilla Blocks.ICE：hardness(0.5) + friction(0.98) + sound(GLASS) + noOcclusion()。
-    // noOcclusion（canOcclude=false）使 lightBlock 走默认分支：遮挡形状为完整立方体 →
-    // propagatesSkylightDown=false → lightBlock=1（冰只衰减 1 级光，融化门槛 > 11-1=10）。
     BaseBlocks::ICE = &registry.registerBlock<blocks::IceBlock>(ResourceLocation("minecraft:ice"),
-        BlockProperties(Material::ICE).hardness(0.5f).notSolid().noOcclusion().slipperiness(physics::SLIPPERINESS_ICE));
+        BlockProperties(Material::ICE)
+            .hardness(0.5f)
+            .notSolid()
+            // 对齐 vanilla Blocks.ICE：注册 noOcclusion()，遮挡形状为完整立方体 →
+            // propagatesSkylightDown=false → lightBlock=1，且不再按材质判定为实体渲染。
+            .noOcclusion()
+            .slipperiness(physics::SLIPPERINESS_ICE));
 
     // 玻璃
-    // 对齐 vanilla glassProperties：hardness(0.3) + sound(GLASS) + noOcclusion()。
-    // 玻璃未重写 getOpacity，lightBlock 走 isSolidRender=false 的默认分支：遮挡形状为完整立方体
-    // → propagatesSkylightDown=false → lightBlock=1（衰减 1 级）。此前注册的 opacity(0)+pSD=true
-    // 使其完全不衰减天空光，与 vanilla 不符。
-    BaseBlocks::GLASS = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:glass"),
-        BlockProperties(Material::GLASS).hardness(0.3f).notSolid().noOcclusion().soundType(BlockSoundTypes::GLASS));
+    BaseBlocks::GLASS = &registry.registerBlock<SimpleBlock>(
+        ResourceLocation("minecraft:glass"), BlockProperties(Material::GLASS).hardness(0.3f).notSolid().noOcclusion());
 
     // 下界岩
     // NetherrackBlock 实现 IGrowable：骨粉可将下界岩转化为周围存在的对应菌岩
@@ -380,8 +379,9 @@ void registerBaseBlocks()
             BlockProperties(Material::ROCK).hardness(3.0f).resistance(3.0f).noOcclusion());
     BaseBlocks::NETHER_GOLD_ORE = &registry.registerBlock<SimpleBlock>(
         ResourceLocation("minecraft:nether_gold_ore"), BlockProperties(Material::ROCK).hardness(3.0f).resistance(3.0f));
+    // 远古残骸：30 / 1200（原版；不是 50，也不是方解石那样的 0.75）。
     BaseBlocks::ANCIENT_DEBRIS = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:ancient_debris"),
-        BlockProperties(Material::ROCK).hardness(50.0f).resistance(1200.0f));
+        BlockProperties(Material::ROCK).hardness(30.0f).resistance(1200.0f));
 
     // ========== 矿物方块 ==========
     BaseBlocks::COAL_BLOCK = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:coal_block"),
@@ -421,7 +421,6 @@ void registerBaseBlocks()
                                       .flammable()
                                       .ignitedByLava()
                                       .notSolid()
-                                      .noOcclusion()
                                       .opacity(1)
                                       .propagatesSkylightDown();
 

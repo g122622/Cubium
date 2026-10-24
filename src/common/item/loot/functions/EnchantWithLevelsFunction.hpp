@@ -52,10 +52,21 @@ public:
 
     [[nodiscard]] ItemStack apply(ItemStack stack, LootContext& context) const override;
     [[nodiscard]] std::unique_ptr<LootFunction> clone() const noexcept override;
-    [[nodiscard]] std::string getType() const noexcept override { return "enchant_with_levels"; }
 
-    [[nodiscard]] const RandomValueRange& getLevels() const noexcept { return m_levels; }
-    [[nodiscard]] bool isTreasure() const noexcept { return m_treasure; }
+    [[nodiscard]] std::string getType() const noexcept override
+    {
+        return "enchant_with_levels";
+    }
+
+    [[nodiscard]] const RandomValueRange& getLevels() const noexcept
+    {
+        return m_levels;
+    }
+
+    [[nodiscard]] bool isTreasure() const noexcept
+    {
+        return m_treasure;
+    }
 
 private:
     RandomValueRange m_levels;

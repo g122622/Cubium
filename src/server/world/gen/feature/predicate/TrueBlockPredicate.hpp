@@ -34,7 +34,11 @@ namespace mc::world::gen::feature::predicate {
  */
 class TrueBlockPredicate : public BlockPredicate {
 public:
-    [[nodiscard]] bool test(const IWorld& /*world*/, const BlockPos& /*pos*/) const override { return true; }
+    [[nodiscard]] bool test(const IWorld& /*world*/, const BlockPos& /*pos*/) const override
+    {
+        return true;
+    }
+
     [[nodiscard]] std::unique_ptr<BlockPredicate> clone() const override
     {
         return std::make_unique<TrueBlockPredicate>();

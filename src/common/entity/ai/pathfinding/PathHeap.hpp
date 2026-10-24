@@ -44,7 +44,10 @@ public:
      * @brief 构造函数，预分配容量
      * @param capacity 初始容量
      */
-    explicit PathHeap(size_t capacity) { m_heap.reserve(capacity); }
+    explicit PathHeap(size_t capacity)
+    {
+        m_heap.reserve(capacity);
+    }
 
     // ========== 堆操作 ==========
 
@@ -119,22 +122,34 @@ public:
     /**
      * @brief 检查堆是否为空
      */
-    [[nodiscard]] bool empty() const { return m_heap.empty(); }
+    [[nodiscard]] bool empty() const
+    {
+        return m_heap.empty();
+    }
 
     /**
      * @brief 获取堆中元素数量
      */
-    [[nodiscard]] size_t size() const { return m_heap.size(); }
+    [[nodiscard]] size_t size() const
+    {
+        return m_heap.size();
+    }
 
     /**
      * @brief 清空堆
      */
-    void clear() { m_heap.clear(); }
+    void clear()
+    {
+        m_heap.clear();
+    }
 
     /**
      * @brief 获取堆顶元素（不弹出）
      */
-    [[nodiscard]] PathPoint* peek() const { return m_heap.empty() ? nullptr : m_heap[0]; }
+    [[nodiscard]] PathPoint* peek() const
+    {
+        return m_heap.empty() ? nullptr : m_heap[0];
+    }
 
     // ========== 调试方法 ==========
 

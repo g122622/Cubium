@@ -642,11 +642,21 @@ TEST_F(NetherBiomeBuilderTest, BuildParameterListReturnsNetherBiomes)
     bool hasBasaltDeltas = false;
 
     for (const auto& [param, biomeId] : params) {
-        if (biomeId == Biomes::NetherWastes) hasNetherWastes = true;
-        if (biomeId == Biomes::SoulSandValley) hasSoulSandValley = true;
-        if (biomeId == Biomes::CrimsonForest) hasCrimsonForest = true;
-        if (biomeId == Biomes::WarpedForest) hasWarpedForest = true;
-        if (biomeId == Biomes::BasaltDeltas) hasBasaltDeltas = true;
+        if (biomeId == Biomes::NetherWastes) {
+            hasNetherWastes = true;
+        }
+        if (biomeId == Biomes::SoulSandValley) {
+            hasSoulSandValley = true;
+        }
+        if (biomeId == Biomes::CrimsonForest) {
+            hasCrimsonForest = true;
+        }
+        if (biomeId == Biomes::WarpedForest) {
+            hasWarpedForest = true;
+        }
+        if (biomeId == Biomes::BasaltDeltas) {
+            hasBasaltDeltas = true;
+        }
     }
 
     EXPECT_TRUE(hasNetherWastes);
@@ -694,11 +704,21 @@ TEST_F(EndBiomeSourceTest, PossibleBiomesReturnsEndBiomes)
     bool hasEndBarrens = false;
 
     for (BiomeId id : biomes) {
-        if (id == Biomes::TheEnd) hasTheEnd = true;
-        if (id == Biomes::EndHighlands) hasEndHighlands = true;
-        if (id == Biomes::EndMidlands) hasEndMidlands = true;
-        if (id == Biomes::SmallEndIslands) hasSmallEndIslands = true;
-        if (id == Biomes::EndBarrens) hasEndBarrens = true;
+        if (id == Biomes::TheEnd) {
+            hasTheEnd = true;
+        }
+        if (id == Biomes::EndHighlands) {
+            hasEndHighlands = true;
+        }
+        if (id == Biomes::EndMidlands) {
+            hasEndMidlands = true;
+        }
+        if (id == Biomes::SmallEndIslands) {
+            hasSmallEndIslands = true;
+        }
+        if (id == Biomes::EndBarrens) {
+            hasEndBarrens = true;
+        }
     }
 
     EXPECT_TRUE(hasTheEnd);
@@ -793,9 +813,15 @@ public:
         : IBiomeSource(seed)
     {}
 
-    [[nodiscard]] BiomeId getNoiseBiome(i32 x, i32 y, i32 z) const override { return getBiomeAtPosition(x * 4, z * 4); }
+    [[nodiscard]] BiomeId getNoiseBiome(i32 x, i32 y, i32 z) const override
+    {
+        return getBiomeAtPosition(x * 4, z * 4);
+    }
 
-    [[nodiscard]] const std::vector<BiomeId>& possibleBiomes() const override { return m_biomes; }
+    [[nodiscard]] const std::vector<BiomeId>& possibleBiomes() const override
+    {
+        return m_biomes;
+    }
 
 private:
     std::vector<BiomeId> m_biomes = {Biomes::Plains, Biomes::Forest, Biomes::Desert};
@@ -826,7 +852,9 @@ TEST_F(BiomeSourceFindBiomeTest, FindBiomeNearCenter)
     math::Random random(12345);
 
     // 在原点附近搜索平原
-    auto predicate = [](BiomeId biome) { return biome == Biomes::Plains; };
+    auto predicate = [](BiomeId biome) {
+        return biome == Biomes::Plains;
+    };
 
     auto result = source.findBiome(0, 64, 0, 50, 8, predicate, random, true);
     EXPECT_TRUE(result.has_value());
@@ -840,7 +868,9 @@ TEST_F(BiomeSourceFindBiomeTest, FindDesertBiome)
     MockBiomeSource source(12345);
     math::Random random(12345);
 
-    auto predicate = [](BiomeId biome) { return biome == Biomes::Desert; };
+    auto predicate = [](BiomeId biome) {
+        return biome == Biomes::Desert;
+    };
 
     // 从原点开始搜索，沙漠在 X > 100, Z > 100 区域
     auto result = source.findBiome(0, 64, 0, 500, 16, predicate, random, true);
@@ -855,7 +885,9 @@ TEST_F(BiomeSourceFindBiomeTest, FindTaigaBiome)
     MockBiomeSource source(12345);
     math::Random random(12345);
 
-    auto predicate = [](BiomeId biome) { return biome == Biomes::Taiga; };
+    auto predicate = [](BiomeId biome) {
+        return biome == Biomes::Taiga;
+    };
 
     // 从原点开始搜索，针叶林在 X < -100, Z < -100 区域
     auto result = source.findBiome(0, 64, 0, 500, 16, predicate, random, true);
@@ -883,7 +915,9 @@ TEST_F(BiomeSourceFindBiomeTest, StopOnFirstVsRandomSelection)
 {
     MockBiomeSource source(12345);
 
-    auto predicate = [](BiomeId biome) { return biome == Biomes::Plains; };
+    auto predicate = [](BiomeId biome) {
+        return biome == Biomes::Plains;
+    };
 
     // stopOnFirst = true: 总是返回第一个找到的
     math::Random random1(12345);
@@ -904,7 +938,9 @@ TEST_F(BiomeSourceFindBiomeTest, SearchFromDifferentCenters)
     MockBiomeSource source(12345);
     math::Random random(12345);
 
-    auto predicate = [](BiomeId biome) { return biome == Biomes::Desert; };
+    auto predicate = [](BiomeId biome) {
+        return biome == Biomes::Desert;
+    };
 
     // 从沙漠中心开始搜索，应该立即找到
     auto result = source.findBiome(200, 64, 200, 50, 8, predicate, random, true);
@@ -919,7 +955,9 @@ TEST_F(BiomeSourceFindBiomeTest, SearchRadiusLimit)
     MockBiomeSource source(12345);
     math::Random random(12345);
 
-    auto predicate = [](BiomeId biome) { return biome == Biomes::Desert; };
+    auto predicate = [](BiomeId biome) {
+        return biome == Biomes::Desert;
+    };
 
     // 使用非常小的搜索半径，从远点开始搜索
     // 针叶林在 X < -100, Z < -100，从 (1000, 1000) 开始用半径 50 搜索
@@ -938,7 +976,9 @@ TEST_F(BiomeSourceFindBiomeTest, FindBiomeWithRealOverworldSource)
 
     math::Random random(12345);
 
-    auto predicate = [](BiomeId biome) { return biome == Biomes::Plains; };
+    auto predicate = [](BiomeId biome) {
+        return biome == Biomes::Plains;
+    };
 
     // 平原是常见生物群系，应该容易找到
     auto result = source->findBiome(0, 64, 0, 1000, 64, predicate, random, true);
@@ -955,7 +995,9 @@ TEST_F(BiomeSourceFindBiomeTest, FindAnyBiomeWithRealOverworldSource)
     math::Random random(54321);
 
     // 搜索任意有效生物群系（非空，小于 Count）
-    auto predicate = [](BiomeId biome) { return biome < Biomes::Count; };
+    auto predicate = [](BiomeId biome) {
+        return biome < Biomes::Count;
+    };
 
     auto result = source->findBiome(0, 64, 0, 1000, 64, predicate, random, true);
     EXPECT_TRUE(result.has_value());
@@ -967,7 +1009,10 @@ TEST_F(BiomeSourceFindBiomeTest, FindAnyBiomeWithRealOverworldSource)
 
 class IsOceanOrRiverBiomeTest : public ::testing::Test {
 protected:
-    void SetUp() override { BiomeTags::initialize(); }
+    void SetUp() override
+    {
+        BiomeTags::initialize();
+    }
 };
 
 TEST_F(IsOceanOrRiverBiomeTest, OceanBiomesReturnTrue)

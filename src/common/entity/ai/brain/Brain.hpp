@@ -142,19 +142,27 @@ public:
         const world::attribute::EnvironmentAttribute<schedule::Activity>& activityAttribute)
     {
         m_timelinePtr = timeline;
-        m_activitySampler = timeline->createTrackSampler<schedule::Activity, schedule::Activity>(
-            activityAttribute, [this]() { return m_currentDayTime; });
+        m_activitySampler =
+            timeline->createTrackSampler<schedule::Activity, schedule::Activity>(activityAttribute, [this]() {
+                return m_currentDayTime;
+            });
     }
 
     /**
      * @brief 获取时间线
      */
-    [[nodiscard]] const world::timeline::Timeline* getTimeline() const noexcept { return m_timelinePtr; }
+    [[nodiscard]] const world::timeline::Timeline* getTimeline() const noexcept
+    {
+        return m_timelinePtr;
+    }
 
     /**
      * @brief 设置后备活动
      */
-    void setFallbackActivity(const schedule::Activity& activity) noexcept { m_fallbackActivity = activity; }
+    void setFallbackActivity(const schedule::Activity& activity) noexcept
+    {
+        m_fallbackActivity = activity;
+    }
 
     /**
      * @brief 设置默认活动

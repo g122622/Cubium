@@ -78,7 +78,10 @@ public:
      *
      * @return 延迟 tick 数
      */
-    [[nodiscard]] virtual i32 getFallDelay() const { return FALL_DELAY_TICKS; }
+    [[nodiscard]] virtual i32 getFallDelay() const
+    {
+        return FALL_DELAY_TICKS;
+    }
 
     /**
      * @brief 开始下落时的回调

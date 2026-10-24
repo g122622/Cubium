@@ -107,7 +107,10 @@ public:
      *
      * 眼眸花两种状态都响应随机刻，以便在昼夜节律下切换状态。
      */
-    [[nodiscard]] bool ticksRandomly() const noexcept override { return true; }
+    [[nodiscard]] bool ticksRandomly() const noexcept override
+    {
+        return true;
+    }
 
     /**
      * @brief 随机刻处理
@@ -166,12 +169,18 @@ public:
     /**
      * @brief 获取眼眸花类型
      */
-    [[nodiscard]] Type type() const noexcept { return m_type; }
+    [[nodiscard]] Type type() const noexcept
+    {
+        return m_type;
+    }
 
     /**
      * @brief 是否为开放状态
      */
-    [[nodiscard]] bool isOpen() const noexcept { return m_type == Type::Open; }
+    [[nodiscard]] bool isOpen() const noexcept
+    {
+        return m_type == Type::Open;
+    }
 
     /**
      * @brief 获取当前方块对应的"反状态"方块（Open <-> Closed）

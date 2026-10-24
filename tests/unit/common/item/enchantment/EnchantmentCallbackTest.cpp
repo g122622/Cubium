@@ -68,8 +68,16 @@ public:
         attributes().setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 20.0);
         setHealth(20.0f);
     }
-    [[nodiscard]] CreatureAttribute getCreatureAttribute() const override { return CreatureAttribute::Arthropod; }
-    [[nodiscard]] std::string getTypeId() const override { return "minecraft:spider"; }
+
+    [[nodiscard]] CreatureAttribute getCreatureAttribute() const override
+    {
+        return CreatureAttribute::Arthropod;
+    }
+
+    [[nodiscard]] std::string getTypeId() const override
+    {
+        return "minecraft:spider";
+    }
 };
 
 class TestUndeadEntity : public LivingEntity {
@@ -81,8 +89,16 @@ public:
         attributes().setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 20.0);
         setHealth(20.0f);
     }
-    [[nodiscard]] CreatureAttribute getCreatureAttribute() const override { return CreatureAttribute::Undead; }
-    [[nodiscard]] std::string getTypeId() const override { return "minecraft:zombie"; }
+
+    [[nodiscard]] CreatureAttribute getCreatureAttribute() const override
+    {
+        return CreatureAttribute::Undead;
+    }
+
+    [[nodiscard]] std::string getTypeId() const override
+    {
+        return "minecraft:zombie";
+    }
 };
 
 class TestNormalEntity : public LivingEntity {
@@ -94,6 +110,7 @@ public:
         attributes().setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 20.0);
         setHealth(20.0f);
     }
+
     // 基类 getCreatureAttribute()=Undefined, getTypeId() 返回空串（非水生/亡灵/节肢）
 };
 
@@ -109,7 +126,11 @@ public:
         attributes().setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 20.0);
         setHealth(20.0f);
     }
-    [[nodiscard]] std::string getTypeId() const override { return "minecraft:squid"; }
+
+    [[nodiscard]] std::string getTypeId() const override
+    {
+        return "minecraft:squid";
+    }
 };
 
 // 僵尸马桩：getTypeId() 返 "minecraft:zombie_horse"（对齐 vanilla 1.21.11 已补入 UNDEAD /
@@ -126,7 +147,11 @@ public:
         attributes().setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 20.0);
         setHealth(20.0f);
     }
-    [[nodiscard]] std::string getTypeId() const override { return "minecraft:zombie_horse"; }
+
+    [[nodiscard]] std::string getTypeId() const override
+    {
+        return "minecraft:zombie_horse";
+    }
 };
 
 } // namespace
@@ -146,7 +171,10 @@ protected:
         EntityTypeTags::initialize();
     }
 
-    void TearDown() override { EnchantmentRegistry::clear(); }
+    void TearDown() override
+    {
+        EnchantmentRegistry::clear();
+    }
 };
 
 TEST_F(BaneOfArthropodsEnchantmentTest, Properties)
@@ -234,7 +262,10 @@ protected:
         EntityTypeTags::initialize();
     }
 
-    void TearDown() override { EnchantmentRegistry::clear(); }
+    void TearDown() override
+    {
+        EnchantmentRegistry::clear();
+    }
 };
 
 TEST_F(SmiteEnchantmentTest, Properties)
@@ -299,7 +330,10 @@ protected:
         EnchantmentRegistry::initialize();
     }
 
-    void TearDown() override { EnchantmentRegistry::clear(); }
+    void TearDown() override
+    {
+        EnchantmentRegistry::clear();
+    }
 };
 
 TEST_F(SharpnessEnchantmentTest, GetDamageBonusAgainstAll)
@@ -330,7 +364,10 @@ protected:
         EnchantmentRegistry::initialize();
     }
 
-    void TearDown() override { EnchantmentRegistry::clear(); }
+    void TearDown() override
+    {
+        EnchantmentRegistry::clear();
+    }
 };
 
 TEST_F(ThornsEnchantmentTest, Properties)
@@ -441,7 +478,10 @@ protected:
         EnchantmentRegistry::initialize();
     }
 
-    void TearDown() override { EnchantmentRegistry::clear(); }
+    void TearDown() override
+    {
+        EnchantmentRegistry::clear();
+    }
 };
 
 TEST_F(EnchantmentHelperCallbackTest, ApplyArthropodEnchantmentDamageWithEmptyStack)
@@ -476,7 +516,10 @@ protected:
         EnchantmentRegistry::initialize();
     }
 
-    void TearDown() override { EnchantmentRegistry::clear(); }
+    void TearDown() override
+    {
+        EnchantmentRegistry::clear();
+    }
 };
 
 TEST_F(EnchantmentHelperToolTest, ShouldIgnoreDurabilityLoss)
@@ -687,7 +730,10 @@ protected:
         EntityTypeTags::initialize();
     }
 
-    void TearDown() override { EnchantmentRegistry::clear(); }
+    void TearDown() override
+    {
+        EnchantmentRegistry::clear();
+    }
 };
 
 TEST_F(ImpalingEnchantmentTest, Properties)

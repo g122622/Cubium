@@ -45,7 +45,10 @@ public:
         refreshDimensions();
     }
 
-    [[nodiscard]] std::string getTypeId() const override { return "minecraft:test_entity"; }
+    [[nodiscard]] std::string getTypeId() const override
+    {
+        return "minecraft:test_entity";
+    }
 };
 
 /**
@@ -68,9 +71,15 @@ public:
 
 class EntityMotionMultiplierTest : public ::testing::Test {
 protected:
-    void SetUp() override { entity = std::make_unique<TestEntity>(); }
+    void SetUp() override
+    {
+        entity = std::make_unique<TestEntity>();
+    }
 
-    void TearDown() override { entity.reset(); }
+    void TearDown() override
+    {
+        entity.reset();
+    }
 
     std::unique_ptr<TestEntity> entity;
 };

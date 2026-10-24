@@ -76,7 +76,10 @@ public:
      * 羊驼主模型的动画设置由 _createModelForEntity 的 llama 分支统一处理。
      * 层渲染（背上的地毯等）暂未实现，保持 supportsLayers() 为基类默认 false。
      */
-    [[nodiscard]] bool supportsAnimation() const override { return true; }
+    [[nodiscard]] bool supportsAnimation() const override
+    {
+        return true;
+    }
 
 private:
     model::animal::LlamaModel m_model;

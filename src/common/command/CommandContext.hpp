@@ -63,12 +63,22 @@ public:
 
     // ========== 命令源 ==========
 
-    [[nodiscard]] S& getSource() noexcept { return m_source; }
-    [[nodiscard]] const S& getSource() const noexcept { return m_source; }
+    [[nodiscard]] S& getSource() noexcept
+    {
+        return m_source;
+    }
+
+    [[nodiscard]] const S& getSource() const noexcept
+    {
+        return m_source;
+    }
 
     // ========== 输入 ==========
 
-    [[nodiscard]] std::string_view getInput() const noexcept { return m_input; }
+    [[nodiscard]] std::string_view getInput() const noexcept
+    {
+        return m_input;
+    }
 
     // ========== 参数获取 ==========
 
@@ -137,17 +147,26 @@ public:
     /**
      * @brief 获取根节点
      */
-    [[nodiscard]] NodePtr getRootNode() const noexcept { return m_rootNode; }
+    [[nodiscard]] NodePtr getRootNode() const noexcept
+    {
+        return m_rootNode;
+    }
 
     /**
      * @brief 获取当前节点
      */
-    [[nodiscard]] NodePtr getCurrentNode() const noexcept { return m_currentNode; }
+    [[nodiscard]] NodePtr getCurrentNode() const noexcept
+    {
+        return m_currentNode;
+    }
 
     /**
      * @brief 设置当前节点
      */
-    void setCurrentNode(NodePtr node) { m_currentNode = std::move(node); }
+    void setCurrentNode(NodePtr node)
+    {
+        m_currentNode = std::move(node);
+    }
 
     // ========== 参数范围 ==========
 
@@ -214,16 +233,40 @@ public:
     ParseResults(const ParseResults&) = delete;
     ParseResults& operator=(const ParseResults&) = delete;
 
-    [[nodiscard]] bool isSuccess() const noexcept { return !m_error.has_value(); }
-    [[nodiscard]] bool isFailure() const noexcept { return m_error.has_value(); }
+    [[nodiscard]] bool isSuccess() const noexcept
+    {
+        return !m_error.has_value();
+    }
 
-    [[nodiscard]] CommandContext<S>* getContext() noexcept { return m_context.get(); }
-    [[nodiscard]] const CommandContext<S>* getContext() const noexcept { return m_context.get(); }
+    [[nodiscard]] bool isFailure() const noexcept
+    {
+        return m_error.has_value();
+    }
 
-    [[nodiscard]] std::string_view getRemaining() const noexcept { return m_remaining; }
+    [[nodiscard]] CommandContext<S>* getContext() noexcept
+    {
+        return m_context.get();
+    }
 
-    [[nodiscard]] const std::optional<CommandException>& getError() const noexcept { return m_error; }
-    [[nodiscard]] i32 getErrorCursor() const noexcept { return m_errorCursor; }
+    [[nodiscard]] const CommandContext<S>* getContext() const noexcept
+    {
+        return m_context.get();
+    }
+
+    [[nodiscard]] std::string_view getRemaining() const noexcept
+    {
+        return m_remaining;
+    }
+
+    [[nodiscard]] const std::optional<CommandException>& getError() const noexcept
+    {
+        return m_error;
+    }
+
+    [[nodiscard]] i32 getErrorCursor() const noexcept
+    {
+        return m_errorCursor;
+    }
 
     /**
      * @brief 获取异常（如果有）

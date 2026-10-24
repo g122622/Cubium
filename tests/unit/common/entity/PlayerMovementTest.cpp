@@ -63,14 +63,20 @@ protected:
         m_player->setGameMode(GameMode::Creative);
     }
 
-    void TearDown() override { m_player.reset(); }
+    void TearDown() override
+    {
+        m_player.reset();
+    }
 
     std::unique_ptr<Player> m_player;
 };
 
 class GroundSupportWorld final : public mc::test::BaseTestWorld {
 public:
-    void setSupportEnabled(bool enabled) { m_supportEnabled = enabled; }
+    void setSupportEnabled(bool enabled)
+    {
+        m_supportEnabled = enabled;
+    }
 
     struct SoundRecord {
         ResourceLocation soundEventId;
@@ -80,8 +86,15 @@ public:
         f32 pitch;
     };
 
-    [[nodiscard]] bool hasSoundRecord() const { return m_lastSound.has_value(); }
-    [[nodiscard]] const SoundRecord& lastSound() const { return *m_lastSound; }
+    [[nodiscard]] bool hasSoundRecord() const
+    {
+        return m_lastSound.has_value();
+    }
+
+    [[nodiscard]] const SoundRecord& lastSound() const
+    {
+        return *m_lastSound;
+    }
 
     [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override
     {
@@ -125,6 +138,7 @@ public:
     {
         throw std::runtime_error("GroundSupportWorld::tickManager not implemented");
     }
+
     [[nodiscard]] const world::tick::TickManager& tickManager() const override
     {
         throw std::runtime_error("GroundSupportWorld::tickManager not implemented");
@@ -137,11 +151,30 @@ private:
 
 class EmptyCollisionWorld final : public ICollisionWorld {
 public:
-    [[nodiscard]] const BlockState* getBlockState(i32, i32, i32) const override { return nullptr; }
-    [[nodiscard]] bool isWithinWorldBounds(i32, i32, i32) const override { return true; }
-    [[nodiscard]] const ChunkData* getChunkAt(ChunkCoord, ChunkCoord) const override { return nullptr; }
-    [[nodiscard]] i32 getMinBuildHeight() const override { return mc::world::MIN_BUILD_HEIGHT; }
-    [[nodiscard]] i32 getMaxBuildHeight() const override { return mc::world::MAX_BUILD_HEIGHT; }
+    [[nodiscard]] const BlockState* getBlockState(i32, i32, i32) const override
+    {
+        return nullptr;
+    }
+
+    [[nodiscard]] bool isWithinWorldBounds(i32, i32, i32) const override
+    {
+        return true;
+    }
+
+    [[nodiscard]] const ChunkData* getChunkAt(ChunkCoord, ChunkCoord) const override
+    {
+        return nullptr;
+    }
+
+    [[nodiscard]] i32 getMinBuildHeight() const override
+    {
+        return mc::world::MIN_BUILD_HEIGHT;
+    }
+
+    [[nodiscard]] i32 getMaxBuildHeight() const override
+    {
+        return mc::world::MAX_BUILD_HEIGHT;
+    }
 };
 
 // ============================================================================

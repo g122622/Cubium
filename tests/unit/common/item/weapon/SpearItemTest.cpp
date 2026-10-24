@@ -57,6 +57,7 @@ public:
     {
         throw std::runtime_error("SpearTestWorld::tickManager not implemented");
     }
+
     [[nodiscard]] const world::tick::TickManager& tickManager() const override
     {
         throw std::runtime_error("SpearTestWorld::tickManager not implemented");
@@ -75,7 +76,10 @@ public:
         // 测试中忽略粒子效果
     }
 
-    [[nodiscard]] const std::vector<Entity*>& spawnedEntities() const { return m_spawnedEntities; }
+    [[nodiscard]] const std::vector<Entity*>& spawnedEntities() const
+    {
+        return m_spawnedEntities;
+    }
 
 private:
     EntityInstanceId m_lastEntityId = 0;

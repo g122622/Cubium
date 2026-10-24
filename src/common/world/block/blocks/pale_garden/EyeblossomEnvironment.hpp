@@ -70,7 +70,13 @@ namespace env_attribute = ::mc::world::attribute;
     // 维度级环境属性系统：层序与 vanilla 一致（常量层 → 时间线层）
     const std::unique_ptr<env_attribute::EnvironmentAttributeSystem> system =
         env_attribute::DimensionAttributes::createSystem(
-            dimType, [dayTime]() { return dayTime; }, [gameTime]() { return gameTime; });
+            dimType,
+            [dayTime]() {
+                return dayTime;
+            },
+            [gameTime]() {
+                return gameTime;
+            });
 
     return system->getValue(env_attribute::EnvironmentAttributes::EYEBLOSSOM_OPEN(),
         Vector3(static_cast<f32>(pos.x), static_cast<f32>(pos.y), static_cast<f32>(pos.z)));

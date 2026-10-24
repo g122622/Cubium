@@ -61,12 +61,22 @@ namespace {
 /// 记录方块状态的最小测试世界
 class ButtonTestWorld final : public ::mc::test::BaseTestWorld {
 public:
-    ButtonTestWorld() { m_tickManager = std::make_unique<world::tick::TickManager>(*this); }
+    ButtonTestWorld()
+    {
+        m_tickManager = std::make_unique<world::tick::TickManager>(*this);
+    }
 
     using IWorld::getBlockState;
 
-    [[nodiscard]] world::tick::TickManager& tickManager() override { return *m_tickManager; }
-    [[nodiscard]] const world::tick::TickManager& tickManager() const override { return *m_tickManager; }
+    [[nodiscard]] world::tick::TickManager& tickManager() override
+    {
+        return *m_tickManager;
+    }
+
+    [[nodiscard]] const world::tick::TickManager& tickManager() const override
+    {
+        return *m_tickManager;
+    }
 
     [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override
     {
@@ -84,7 +94,10 @@ public:
         return true;
     }
 
-    void setBlockAt(const BlockPos& pos, const BlockState* state) { setBlockState(pos.x, pos.y, pos.z, state); }
+    void setBlockAt(const BlockPos& pos, const BlockState* state)
+    {
+        setBlockState(pos.x, pos.y, pos.z, state);
+    }
 
     /// 记录每一次邻居更新通知（位置 + 触发源方块）
     void updateNeighbors(const BlockPos& pos, Block& sourceBlock) override
@@ -94,11 +107,15 @@ public:
 
     [[nodiscard]] bool wasUpdated(const BlockPos& pos) const
     {
-        return std::any_of(
-            m_updates.begin(), m_updates.end(), [&pos](const auto& entry) { return entry.first == pos; });
+        return std::any_of(m_updates.begin(), m_updates.end(), [&pos](const auto& entry) {
+            return entry.first == pos;
+        });
     }
 
-    [[nodiscard]] std::size_t updateCount() const { return m_updates.size(); }
+    [[nodiscard]] std::size_t updateCount() const
+    {
+        return m_updates.size();
+    }
 
 private:
     std::vector<std::pair<BlockPos, Block*>> m_updates;
@@ -120,7 +137,10 @@ BlockState _button(Direction facing, AttachFace face, bool powered)
 
 class ButtonBlockSignalTest : public ::testing::Test {
 protected:
-    void SetUp() override { VanillaBlocks::initialize(); }
+    void SetUp() override
+    {
+        VanillaBlocks::initialize();
+    }
 };
 
 // ========== 输出方向 ==========

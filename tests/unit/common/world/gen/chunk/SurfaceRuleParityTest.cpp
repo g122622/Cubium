@@ -172,7 +172,10 @@ protected:
     /**
      * @brief 检查方块是否为特定 VanillaBlock
      */
-    static bool isBlock(const BlockState* state, const Block* block) { return state != nullptr && state->is(block); }
+    static bool isBlock(const BlockState* state, const Block* block)
+    {
+        return state != nullptr && state->is(block);
+    }
 };
 
 // 判断生物群系是否为海洋变体。海洋生物群系的海床不应用默认 onFloor 表面规则

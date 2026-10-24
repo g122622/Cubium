@@ -69,7 +69,11 @@ class DragonExplosionTestWorld final : public mc::test::BaseTestWorld {
 public:
     DragonExplosionTestWorld() = default;
 
-    [[nodiscard]] world::tick::TickManager& tickManager() override { throw std::runtime_error("not implemented"); }
+    [[nodiscard]] world::tick::TickManager& tickManager() override
+    {
+        throw std::runtime_error("not implemented");
+    }
+
     [[nodiscard]] const world::tick::TickManager& tickManager() const override
     {
         throw std::runtime_error("not implemented");

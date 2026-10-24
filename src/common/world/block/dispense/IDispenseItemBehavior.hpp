@@ -99,7 +99,10 @@ public:
      *
      * @return true 如果成功发射
      */
-    [[nodiscard]] virtual bool isSuccess() const { return true; }
+    [[nodiscard]] virtual bool isSuccess() const
+    {
+        return true;
+    }
 };
 
 /**
@@ -260,14 +263,20 @@ public:
         : m_success(true)
     {}
 
-    [[nodiscard]] bool isSuccess() const override { return m_success; }
+    [[nodiscard]] bool isSuccess() const override
+    {
+        return m_success;
+    }
 
 protected:
     /**
      * @brief 设置发射结果
      * @param success 是否成功
      */
-    void _setSuccess(bool success) { m_success = success; }
+    void _setSuccess(bool success)
+    {
+        m_success = success;
+    }
 
     /**
      * @brief 播放音效（根据成功/失败播放不同音效）

@@ -87,20 +87,63 @@ public:
 
     // ========== IInventory 接口实现 ==========
 
-    [[nodiscard]] IInventory* getInventory() override { return &m_inventory; }
-    [[nodiscard]] const IInventory* getInventory() const override { return &m_inventory; }
-    [[nodiscard]] i32 getContainerSize() const override { return TOTAL_SLOTS; }
+    [[nodiscard]] IInventory* getInventory() override
+    {
+        return &m_inventory;
+    }
+
+    [[nodiscard]] const IInventory* getInventory() const override
+    {
+        return &m_inventory;
+    }
+
+    [[nodiscard]] i32 getContainerSize() const override
+    {
+        return TOTAL_SLOTS;
+    }
 
     // ========== IInventory 委托方法 ==========
 
-    [[nodiscard]] bool isEmpty() const override { return m_inventory.isEmpty(); }
-    [[nodiscard]] i32 getMaxStackSize() const override { return m_inventory.getMaxStackSize(); }
-    [[nodiscard]] ItemStack getItem(i32 slot) const override { return m_inventory.getItem(slot); }
-    void setItem(i32 slot, const ItemStack& stack) override { m_inventory.setItem(slot, stack); }
-    ItemStack removeItem(i32 slot, i32 count) override { return m_inventory.removeItem(slot, count); }
-    ItemStack removeItemNoUpdate(i32 slot) override { return m_inventory.removeItemNoUpdate(slot); }
-    void clear() override { m_inventory.clear(); }
-    void setChanged() override { ContainerBlockEntity::setChanged(); }
+    [[nodiscard]] bool isEmpty() const override
+    {
+        return m_inventory.isEmpty();
+    }
+
+    [[nodiscard]] i32 getMaxStackSize() const override
+    {
+        return m_inventory.getMaxStackSize();
+    }
+
+    [[nodiscard]] ItemStack getItem(i32 slot) const override
+    {
+        return m_inventory.getItem(slot);
+    }
+
+    void setItem(i32 slot, const ItemStack& stack) override
+    {
+        m_inventory.setItem(slot, stack);
+    }
+
+    ItemStack removeItem(i32 slot, i32 count) override
+    {
+        return m_inventory.removeItem(slot, count);
+    }
+
+    ItemStack removeItemNoUpdate(i32 slot) override
+    {
+        return m_inventory.removeItemNoUpdate(slot);
+    }
+
+    void clear() override
+    {
+        m_inventory.clear();
+    }
+
+    void setChanged() override
+    {
+        ContainerBlockEntity::setChanged();
+    }
+
     [[nodiscard]] bool canPlaceItem(i32 slot, const ItemStack& stack) const override;
 
     // ========== ISidedInventory 接口实现 ==========
@@ -154,7 +197,10 @@ public:
      * @brief 获取燃料等级
      * @return 燃料等级 (0-20)
      */
-    [[nodiscard]] i32 getFuelLevel() const { return m_fuel; }
+    [[nodiscard]] i32 getFuelLevel() const
+    {
+        return m_fuel;
+    }
 
     /**
      * @brief 设置燃料等级
@@ -166,19 +212,28 @@ public:
      * @brief 获取酿造时间
      * @return 酿造时间 (0-400)
      */
-    [[nodiscard]] i32 getBrewTime() const { return m_brewTime; }
+    [[nodiscard]] i32 getBrewTime() const
+    {
+        return m_brewTime;
+    }
 
     /**
      * @brief 检查是否正在酿造
      * @return 如果正在酿造返回true
      */
-    [[nodiscard]] bool isBrewing() const { return m_brewTime > 0; }
+    [[nodiscard]] bool isBrewing() const
+    {
+        return m_brewTime > 0;
+    }
 
     /**
      * @brief 检查是否有燃料
      * @return 如果有燃料返回true
      */
-    [[nodiscard]] bool hasFuel() const { return m_fuel > 0; }
+    [[nodiscard]] bool hasFuel() const
+    {
+        return m_fuel > 0;
+    }
 
     /**
      * @brief 检查槽位是否有瓶子
@@ -202,7 +257,11 @@ public:
     // ========== Tick 更新 ==========
 
     void tick(IWorld& world) override;
-    [[nodiscard]] bool needsTick() const noexcept override { return true; }
+
+    [[nodiscard]] bool needsTick() const noexcept override
+    {
+        return true;
+    }
 
     // ========== 自定义名称 ==========
 
@@ -210,7 +269,10 @@ public:
      * @brief 获取自定义名称
      * @return 自定义名称（空字符串表示无自定义名称）
      */
-    [[nodiscard]] std::string getCustomName() const override { return m_customName; }
+    [[nodiscard]] std::string getCustomName() const override
+    {
+        return m_customName;
+    }
 
     /**
      * @brief 设置自定义名称

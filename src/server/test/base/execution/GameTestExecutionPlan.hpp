@@ -33,7 +33,9 @@ public:
     [[nodiscard]] static std::optional<GameTestShard> parseShard(std::string_view specification)
     {
         const auto separator = specification.find('/');
-        if (separator == std::string_view::npos) return std::nullopt;
+        if (separator == std::string_view::npos) {
+            return std::nullopt;
+        }
         u32 index;
         u32 count;
         const auto first = std::from_chars(specification.data(), specification.data() + separator, index);
@@ -53,7 +55,9 @@ public:
         std::vector<usize> order(items.size());
         std::iota(order.begin(), order.end(), 0);
         std::sort(order.begin(), order.end(), [&](usize left, usize right) {
-            if (items[left].ticks != items[right].ticks) return items[left].ticks > items[right].ticks;
+            if (items[left].ticks != items[right].ticks) {
+                return items[left].ticks > items[right].ticks;
+            }
             return items[left].id < items[right].id;
         });
         std::vector<u64> costs(shard.count, 0);
@@ -70,7 +74,9 @@ public:
             // 以单进程总期限截断估计成本，并计入每个隔离重跑的启动成本。
             costs[destination] += std::min<u64>(items[item].ticks, 17400) + 100;
             ++counts[destination];
-            if (destination == shard.index) selected.push_back(item);
+            if (destination == shard.index) {
+                selected.push_back(item);
+            }
         }
         std::sort(selected.begin(), selected.end(), [&](usize left, usize right) {
             return items[left].id < items[right].id;

@@ -104,7 +104,9 @@ std::string buildStopSoundFeedback(
 void StopSoundCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
 {
     auto stopsoundNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("stopsound");
-    stopsoundNode->setRequirement([](const ServerCommandSource& source) { return source.hasPermission(2); });
+    stopsoundNode->setRequirement([](const ServerCommandSource& source) {
+        return source.hasPermission(2);
+    });
     support::applyMetadata(stopsoundNode,
         support::makeMetadata(
             "Stops playing a sound effect.", "/stopsound <player> [<source>] [<sound>]", 2, {}, true));
@@ -112,12 +114,15 @@ void StopSoundCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispat
     // /stopsound <player> - 停止所有声音
     auto playerNode = std::make_shared<ArgumentCommandNode<ServerCommandSource, EntitySelector>>(
         "player", EntityArgumentType::players());
-    playerNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _stopAllSounds(ctx); });
+    playerNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _stopAllSounds(ctx);
+    });
 
     // /stopsound <player> * [<sound>] - 通配符：停止所有类别的声音
     auto wildcardNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("*");
-    wildcardNode->setCommand(
-        [](CommandContext<ServerCommandSource>& ctx) { return _stopSounds(ctx, std::nullopt, std::nullopt); });
+    wildcardNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _stopSounds(ctx, std::nullopt, std::nullopt);
+    });
     auto wildcardSoundNode = std::make_shared<ArgumentCommandNode<ServerCommandSource, ResourceLocation>>(
         "sound", ResourceLocationArgumentType::resourceLocation());
     wildcardSoundNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
@@ -135,8 +140,9 @@ void StopSoundCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispat
         auto sourceNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>(categoryName);
 
         // /stopsound <player> <source> - 停止该类别所有声音
-        sourceNode->setCommand(
-            [category](CommandContext<ServerCommandSource>& ctx) { return _stopSounds(ctx, category, std::nullopt); });
+        sourceNode->setCommand([category](CommandContext<ServerCommandSource>& ctx) {
+            return _stopSounds(ctx, category, std::nullopt);
+        });
 
         // /stopsound <player> <source> <sound> - 停止特定声音
         auto soundNode = std::make_shared<ArgumentCommandNode<ServerCommandSource, ResourceLocation>>(

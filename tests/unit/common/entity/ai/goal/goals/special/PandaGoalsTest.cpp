@@ -46,7 +46,10 @@ protected:
         panda = std::make_unique<PandaEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
     }
 
-    void TearDown() override { panda.reset(); }
+    void TearDown() override
+    {
+        panda.reset();
+    }
 
     std::unique_ptr<PandaEntity> panda;
 };
@@ -220,7 +223,10 @@ protected:
         panda = std::make_unique<PandaEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
     }
 
-    void TearDown() override { panda.reset(); }
+    void TearDown() override
+    {
+        panda.reset();
+    }
 
     std::unique_ptr<PandaEntity> panda;
 };
@@ -305,7 +311,10 @@ protected:
         panda = std::make_unique<PandaEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
     }
 
-    void TearDown() override { panda.reset(); }
+    void TearDown() override
+    {
+        panda.reset();
+    }
 
     std::unique_ptr<PandaEntity> panda;
 };
@@ -404,7 +413,10 @@ protected:
         panda = std::make_unique<PandaEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
     }
 
-    void TearDown() override { panda.reset(); }
+    void TearDown() override
+    {
+        panda.reset();
+    }
 
     std::unique_ptr<PandaEntity> panda;
 };

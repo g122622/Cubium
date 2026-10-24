@@ -80,10 +80,25 @@ public:
     u8 updateLocalProgress(const BlockPos& pos, f64 progress);
     void stopBreaking();
 
-    [[nodiscard]] bool isBreaking() const { return m_localBreaking; }
-    [[nodiscard]] const BlockPos& getLocalBreakPos() const { return m_localBreakPos; }
-    [[nodiscard]] f64 getLocalProgress() const { return m_localProgress; }
-    [[nodiscard]] u8 getLocalDamageStage() const { return m_localDamageStage; }
+    [[nodiscard]] bool isBreaking() const
+    {
+        return m_localBreaking;
+    }
+
+    [[nodiscard]] const BlockPos& getLocalBreakPos() const
+    {
+        return m_localBreakPos;
+    }
+
+    [[nodiscard]] f64 getLocalProgress() const
+    {
+        return m_localProgress;
+    }
+
+    [[nodiscard]] u8 getLocalDamageStage() const
+    {
+        return m_localDamageStage;
+    }
 
     // 远程玩家挖掘进度（多人游戏）
     void updateRemoteProgress(EntityInstanceId breakerId, const BlockPos& pos, i8 stage, u64 currentTick);
@@ -108,7 +123,10 @@ public:
      *
      * @param callback 回调函数
      */
-    void setHitSoundCallback(HitSoundCallback callback) { m_hitSoundCallback = std::move(callback); }
+    void setHitSoundCallback(HitSoundCallback callback)
+    {
+        m_hitSoundCallback = std::move(callback);
+    }
 
 private:
     BreakProgressManager() = default;

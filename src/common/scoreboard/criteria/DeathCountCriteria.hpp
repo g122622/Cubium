@@ -44,9 +44,20 @@ public:
      */
     DeathCountCriteria();
 
-    [[nodiscard]] const std::string& getName() const noexcept override { return m_name; }
-    [[nodiscard]] bool isReadOnly() const noexcept override { return false; }
-    [[nodiscard]] RenderType getDefaultRenderType() const noexcept override { return RenderType::Integer; }
+    [[nodiscard]] const std::string& getName() const noexcept override
+    {
+        return m_name;
+    }
+
+    [[nodiscard]] bool isReadOnly() const noexcept override
+    {
+        return false;
+    }
+
+    [[nodiscard]] RenderType getDefaultRenderType() const noexcept override
+    {
+        return RenderType::Integer;
+    }
 
     void onPlayerDeath(const std::string& playerName, Scoreboard& scoreboard) override;
 

@@ -89,13 +89,19 @@ struct ChatMessage {
      * @brief 获取纯文本内容
      * @return 纯文本字符串
      */
-    [[nodiscard]] std::string getPlainText() const { return content ? content->getUnformattedText() : ""; }
+    [[nodiscard]] std::string getPlainText() const
+    {
+        return content ? content->getUnformattedText() : "";
+    }
 
     /**
      * @brief 获取格式化文本（§ 代码格式）
      * @return 格式化文本字符串
      */
-    [[nodiscard]] std::string getFormattedText() const { return content ? content->getFormattedText() : ""; }
+    [[nodiscard]] std::string getFormattedText() const
+    {
+        return content ? content->getFormattedText() : "";
+    }
 };
 
 /**
@@ -155,7 +161,10 @@ public:
     /**
      * @brief 获取所有消息
      */
-    [[nodiscard]] const std::deque<ChatMessage>& allMessages() const { return m_messages; }
+    [[nodiscard]] const std::deque<ChatMessage>& allMessages() const
+    {
+        return m_messages;
+    }
 
     // ========== 输入历史 ==========
 

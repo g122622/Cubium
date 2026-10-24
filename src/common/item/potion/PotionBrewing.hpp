@@ -47,9 +47,13 @@ struct MixPredicate {
     std::function<const T*()> output; ///< 输出提供者
 
     MixPredicate(const T* inputIn, crafting::Ingredient reagentIn, const T* outputIn)
-        : input([inputIn]() { return inputIn; })
+        : input([inputIn]() {
+            return inputIn;
+        })
         , reagent(std::move(reagentIn))
-        , output([outputIn]() { return outputIn; })
+        , output([outputIn]() {
+            return outputIn;
+        })
     {}
 };
 

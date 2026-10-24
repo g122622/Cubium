@@ -80,7 +80,8 @@ constexpr SpawnListClassificationCase kSpawnListClassifications[] = {
     {"minecraft:drowned", EntityClassification::Monster},
     {"minecraft:enderman", EntityClassification::Monster},
     {"minecraft:fox", EntityClassification::Creature},
-    {"minecraft:frog", EntityClassification::WaterAmbient},
+    {"minecraft:frog", EntityClassification::Creature},
+    // 青蛙的原版 MobCategory 是 creature（此前误抄成 water_ambient，与 Cubium 注册一致才通过）。
     {"minecraft:ghast", EntityClassification::Monster},
     {"minecraft:glow_squid", EntityClassification::UndergroundWaterCreature},
     {"minecraft:hoglin", EntityClassification::Monster},

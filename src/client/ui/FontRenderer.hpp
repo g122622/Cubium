@@ -115,19 +115,36 @@ public:
     /**
      * @brief 获取顶点数据
      */
-    [[nodiscard]] const std::vector<GuiVertex>& vertices() const { return m_vertices; }
-    [[nodiscard]] std::vector<GuiVertex>& vertices() { return m_vertices; }
+    [[nodiscard]] const std::vector<GuiVertex>& vertices() const
+    {
+        return m_vertices;
+    }
+
+    [[nodiscard]] std::vector<GuiVertex>& vertices()
+    {
+        return m_vertices;
+    }
 
     /**
      * @brief 获取索引数据
      */
-    [[nodiscard]] const std::vector<u32>& indices() const { return m_indices; }
-    [[nodiscard]] std::vector<u32>& indices() { return m_indices; }
+    [[nodiscard]] const std::vector<u32>& indices() const
+    {
+        return m_indices;
+    }
+
+    [[nodiscard]] std::vector<u32>& indices()
+    {
+        return m_indices;
+    }
 
     /**
      * @brief 获取关联的字体
      */
-    [[nodiscard]] Font* font() const { return m_font; }
+    [[nodiscard]] Font* font() const
+    {
+        return m_font;
+    }
 
     /**
      * @brief 获取文本宽度
@@ -152,12 +169,18 @@ public:
      * @brief 设置缩放因子
      * @param scale 缩放因子（默认1.0）
      */
-    void setScale(f32 scale) { m_scale = scale; }
+    void setScale(f32 scale)
+    {
+        m_scale = scale;
+    }
 
     /**
      * @brief 获取缩放因子
      */
-    [[nodiscard]] f32 scale() const { return m_scale; }
+    [[nodiscard]] f32 scale() const
+    {
+        return m_scale;
+    }
 
     /**
      * @brief 计算绘制文本所需的顶点数

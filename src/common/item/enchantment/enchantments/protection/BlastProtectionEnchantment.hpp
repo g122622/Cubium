@@ -53,7 +53,10 @@ public:
         : ProtectionEnchantment(Type::Explosion)
     {}
 
-    [[nodiscard]] std::string id() const override { return "minecraft:blast_protection"; }
+    [[nodiscard]] std::string id() const override
+    {
+        return "minecraft:blast_protection";
+    }
 
     [[nodiscard]] std::string getNameKey(i32 level) const override
     {
@@ -61,7 +64,10 @@ public:
         return "enchantment.minecraft.blast_protection";
     }
 
-    [[nodiscard]] EnchantmentRarity rarity() const noexcept override { return EnchantmentRarity::Rare; }
+    [[nodiscard]] EnchantmentRarity rarity() const noexcept override
+    {
+        return EnchantmentRarity::Rare;
+    }
 
     /**
      * @brief 爆炸保护附魔的属性修饰符

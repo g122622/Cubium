@@ -33,7 +33,10 @@ protected:
         phantom = std::make_unique<PhantomEntity>(EntityInstanceId(0), mc::test::testEcsRegistry());
     }
 
-    void TearDown() override { phantom.reset(); }
+    void TearDown() override
+    {
+        phantom.reset();
+    }
 
     std::unique_ptr<PhantomEntity> phantom;
 };
@@ -562,8 +565,16 @@ public:
         (void)pitch;
     }
 
-    [[nodiscard]] const ResourceLocation& getLastSoundId() const { return m_lastSoundId; }
-    [[nodiscard]] i32 getSoundPlayCount() const { return m_soundPlayCount; }
+    [[nodiscard]] const ResourceLocation& getLastSoundId() const
+    {
+        return m_lastSoundId;
+    }
+
+    [[nodiscard]] i32 getSoundPlayCount() const
+    {
+        return m_soundPlayCount;
+    }
+
     void resetSoundTracking()
     {
         m_lastSoundId = ResourceLocation();
@@ -972,7 +983,11 @@ protected:
     {
         phantom = std::make_unique<PhantomEntity>(EntityInstanceId(0), mc::test::testEcsRegistry());
     }
-    void TearDown() override { phantom.reset(); }
+
+    void TearDown() override
+    {
+        phantom.reset();
+    }
 
     std::unique_ptr<PhantomEntity> phantom;
 };

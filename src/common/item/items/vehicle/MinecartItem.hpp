@@ -56,7 +56,10 @@ public:
     /**
      * @brief 获取矿车类型
      */
-    [[nodiscard]] entity::AbstractMinecartEntity::Type getMinecartType() const { return m_minecartType; }
+    [[nodiscard]] entity::AbstractMinecartEntity::Type getMinecartType() const
+    {
+        return m_minecartType;
+    }
 
 private:
     entity::AbstractMinecartEntity::Type m_minecartType;

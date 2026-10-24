@@ -455,8 +455,9 @@ std::vector<mc::network::ir::configuration::RegistryData> buildConfigurationRegi
     // 22. dialog（3）。
     mc::network::ir::configuration::RegistryData dialogs{};
     dialogs.registryKey = "minecraft:dialog";
-    for (const auto name : _dialogIds)
+    for (const auto name : _dialogIds) {
         dialogs.entries.push_back({std::string(name), std::nullopt});
+    }
     registries.push_back(std::move(dialogs));
 
     // 23. timeline（4）。顺序固定对齐 Timelines.bootstrap：DAY, MOON, VILLAGER_SCHEDULE,
@@ -626,23 +627,32 @@ std::vector<mc::network::ir::configuration::RegistryData> buildConfigurationRegi
 
 Result<nlohmann::json> loadDialogDefinition(std::string_view id)
 {
-    if (g_registryDatapackRepo == nullptr)
+    if (g_registryDatapackRepo == nullptr) {
         return Error(ErrorCode::InvalidState, "Dialog datapack source is not configured");
+    }
     auto text = g_registryDatapackRepo->readTextResource(registryEntryResourcePath(id, "dialog"));
-    if (text.failed()) return text.error();
+    if (text.failed()) {
+        return text.error();
+    }
     auto definition = nlohmann::json::parse(text.value(), nullptr, false);
-    if (definition.is_discarded()) return Error(ErrorCode::InvalidData, "Invalid dialog JSON");
+    if (definition.is_discarded()) {
+        return Error(ErrorCode::InvalidData, "Invalid dialog JSON");
+    }
     return definition;
 }
 
 Result<mc::network::ir::IrPacket> resolveDialogIr(const ResourceLocation& name)
 {
-    for (i32 i = 0; i < static_cast<i32>(_dialogIds.size()); ++i)
-        if (name.toString() == _dialogIds[i])
+    for (i32 i = 0; i < static_cast<i32>(_dialogIds.size()); ++i) {
+        if (name.toString() == _dialogIds[i]) {
             return mc::network::ir::IrPacket{mc::network::protocol::ConnectionProtocol::Play,
                 mc::network::ir::PlayPacket{mc::network::ir::play::ShowDialog{i}}};
+        }
+    }
     auto definition = loadDialogDefinition(name.toString());
-    if (definition.failed()) return definition.error();
+    if (definition.failed()) {
+        return definition.error();
+    }
     return buildShowDialogIr(definition.value());
 }
 

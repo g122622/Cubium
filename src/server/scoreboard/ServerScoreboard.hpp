@@ -81,7 +81,10 @@ public:
      *
      * @param dataManager 数据管理器（可选）
      */
-    void setDataManager(mc::scoreboard::ScoreboardDataManager* dataManager) { m_dataManager = dataManager; }
+    void setDataManager(mc::scoreboard::ScoreboardDataManager* dataManager)
+    {
+        m_dataManager = dataManager;
+    }
 
     // ========== 玩家管理 ==========
 
@@ -187,14 +190,20 @@ public:
      *
      * 数据将在下次保存时写入磁盘。
      */
-    void markDirty() { m_dirty = true; }
+    void markDirty()
+    {
+        m_dirty = true;
+    }
 
     /**
      * @brief 检查数据是否为脏
      *
      * @return true 如果需要保存
      */
-    [[nodiscard]] bool isDirty() const { return m_dirty; }
+    [[nodiscard]] bool isDirty() const
+    {
+        return m_dirty;
+    }
 
     /**
      * @brief 保存数据

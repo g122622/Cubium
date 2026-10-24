@@ -171,7 +171,9 @@ TEST_F(PlayerManagerTest, RemovePlayerBySessionId)
 
     // 两条移除路径都必须触发资源释放钩子，否则该玩家的区块票据会永久残留
     mc::PlayerId hookedPlayerId = 0;
-    manager.setPlayerRemovalHook([&](mc::PlayerId playerId) { hookedPlayerId = playerId; });
+    manager.setPlayerRemovalHook([&](mc::PlayerId playerId) {
+        hookedPlayerId = playerId;
+    });
 
     manager.addPlayer(1, mc::util::uuidToString(mc::util::generateOfflineUuid("Steve")), "Steve", nullptr);
     manager.mapSessionToPlayer(100, 1);
@@ -191,7 +193,9 @@ TEST_F(PlayerManagerTest, ForEachPlayer)
     manager.addPlayer(2, mc::util::uuidToString(mc::util::generateOfflineUuid("Alex")), "Alex", nullptr);
 
     std::vector<mc::PlayerId> ids;
-    manager.forEachPlayer([&ids](mc::server::ServerPlayerData& player) { ids.push_back(player.playerId); });
+    manager.forEachPlayer([&ids](mc::server::ServerPlayerData& player) {
+        ids.push_back(player.playerId);
+    });
 
     EXPECT_EQ(ids.size(), 2u);
     EXPECT_NE(std::find(ids.begin(), ids.end(), mc::PlayerId(1)), ids.end());

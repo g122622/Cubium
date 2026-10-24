@@ -36,9 +36,20 @@ namespace {
 /// 测试用回调计数器，用于验证 onChanged 是否被调用
 class ChangeCallbackCounter {
 public:
-    void operator()() { m_callCount++; }
-    [[nodiscard]] i32 callCount() const { return m_callCount; }
-    void reset() { m_callCount = 0; }
+    void operator()()
+    {
+        m_callCount++;
+    }
+
+    [[nodiscard]] i32 callCount() const
+    {
+        return m_callCount;
+    }
+
+    void reset()
+    {
+        m_callCount = 0;
+    }
 
 private:
     i32 m_callCount = 0;
@@ -82,7 +93,9 @@ TEST_F(PlayerEnderChestInventoryTest, InitiallyEmpty)
 TEST_F(PlayerEnderChestInventoryTest, SetChangedCallsOnChangedCallback)
 {
     bool called = false;
-    inventory.setOnChanged([&called]() { called = true; });
+    inventory.setOnChanged([&called]() {
+        called = true;
+    });
 
     inventory.setChanged();
     EXPECT_TRUE(called);
@@ -175,12 +188,16 @@ TEST_F(PlayerEnderChestInventoryTest, OnChangedCallbackCanBeReplaced)
     i32 counter1 = 0;
     i32 counter2 = 0;
 
-    inventory.setOnChanged([&counter1]() { counter1++; });
+    inventory.setOnChanged([&counter1]() {
+        counter1++;
+    });
     inventory.setItem(0, ItemStack(*diamondItem, 1));
     EXPECT_EQ(counter1, 1);
     EXPECT_EQ(counter2, 0);
 
-    inventory.setOnChanged([&counter2]() { counter2++; });
+    inventory.setOnChanged([&counter2]() {
+        counter2++;
+    });
     inventory.setItem(1, ItemStack(*diamondItem, 1));
     EXPECT_EQ(counter1, 1); // 不再增加
     EXPECT_EQ(counter2, 1);
@@ -277,8 +294,16 @@ public:
         m_lastInventory = &inventory;
     }
 
-    [[nodiscard]] i32 callCount() const { return m_callCount; }
-    [[nodiscard]] IInventory* lastInventory() const { return m_lastInventory; }
+    [[nodiscard]] i32 callCount() const
+    {
+        return m_callCount;
+    }
+
+    [[nodiscard]] IInventory* lastInventory() const
+    {
+        return m_lastInventory;
+    }
+
     void reset()
     {
         m_callCount = 0;
@@ -343,7 +368,9 @@ TEST_F(PlayerEnderChestInventoryTest, ListenerAndOnChangedCallback_BothCalled)
     ChangeCallbackCounter callback;
     TestContainerListener listener;
 
-    inventory.setOnChanged([&callback]() { callback(); });
+    inventory.setOnChanged([&callback]() {
+        callback();
+    });
     inventory.addListener(&listener);
 
     inventory.setItem(0, ItemStack());

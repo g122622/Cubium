@@ -486,8 +486,9 @@ void ChestBoatEntity::unpackLootTable(Player* player)
     }
 
     // 设置战利品表解析器（支持嵌套战利品表）
-    builder.withLootTableResolver(
-        [lootTableManager](const std::string& id) -> const loot::LootTable* { return lootTableManager->getTable(id); });
+    builder.withLootTableResolver([lootTableManager](const std::string& id) -> const loot::LootTable* {
+        return lootTableManager->getTable(id);
+    });
     builder.withPredicateResolver([lootTableManager](const std::string& id) -> const loot::LootCondition* {
         return lootTableManager->getPredicate(id);
     });

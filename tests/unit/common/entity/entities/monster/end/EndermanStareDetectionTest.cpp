@@ -57,7 +57,10 @@ protected:
         player = std::make_unique<Player>(static_cast<EntityInstanceId>(1), "TestPlayer", mc::test::testEcsRegistry());
     }
 
-    void TearDown() override { player.reset(); }
+    void TearDown() override
+    {
+        player.reset();
+    }
 
     std::unique_ptr<Player> player;
 };
@@ -148,7 +151,10 @@ protected:
         player = std::make_unique<Player>(static_cast<EntityInstanceId>(1), "TestPlayer", mc::test::testEcsRegistry());
     }
 
-    void TearDown() override { player.reset(); }
+    void TearDown() override
+    {
+        player.reset();
+    }
 
     std::unique_ptr<Player> player;
 };
@@ -187,7 +193,10 @@ protected:
         player = std::make_unique<Player>(static_cast<EntityInstanceId>(1), "TestPlayer", mc::test::testEcsRegistry());
     }
 
-    void TearDown() override { player.reset(); }
+    void TearDown() override
+    {
+        player.reset();
+    }
 
     std::unique_ptr<Player> player;
 };
@@ -322,7 +331,10 @@ protected:
         enderman = std::make_unique<EndermanEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
     }
 
-    void TearDown() override { enderman.reset(); }
+    void TearDown() override
+    {
+        enderman.reset();
+    }
 
     std::unique_ptr<EndermanEntity> enderman;
 };
@@ -364,7 +376,10 @@ protected:
         enderman = std::make_unique<EndermanEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
     }
 
-    void TearDown() override { enderman.reset(); }
+    void TearDown() override
+    {
+        enderman.reset();
+    }
 
     std::unique_ptr<EndermanEntity> enderman;
 };
@@ -499,7 +514,10 @@ protected:
         player = std::make_unique<Player>(static_cast<EntityInstanceId>(1), "TestPlayer", mc::test::testEcsRegistry());
     }
 
-    void TearDown() override { player.reset(); }
+    void TearDown() override
+    {
+        player.reset();
+    }
 
     std::unique_ptr<Player> player;
 };

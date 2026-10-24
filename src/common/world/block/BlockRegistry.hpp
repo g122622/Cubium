@@ -213,12 +213,18 @@ public:
     /**
      * @brief 获取方块数量
      */
-    [[nodiscard]] size_t blockCount() const { return m_blocks.size(); }
+    [[nodiscard]] size_t blockCount() const
+    {
+        return m_blocks.size();
+    }
 
     /**
      * @brief 获取状态数量
      */
-    [[nodiscard]] size_t stateCount() const { return m_statesById.size(); }
+    [[nodiscard]] size_t stateCount() const
+    {
+        return m_statesById.size();
+    }
 
     /**
      * @brief 根据资源位置获取方块状态（便捷方法）
@@ -263,7 +269,10 @@ private:
     /**
      * @brief 分配状态ID
      */
-    u32 _allocateStateId() noexcept { return m_nextStateId++; }
+    u32 _allocateStateId() noexcept
+    {
+        return m_nextStateId++;
+    }
 
     std::unordered_map<ResourceLocation, std::unique_ptr<Block>> m_blocks;
     std::unordered_map<ResourceLocation, u32> m_numericIds; // 字符串ID -> 数字ID

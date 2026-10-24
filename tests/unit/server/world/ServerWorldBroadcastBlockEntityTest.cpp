@@ -151,7 +151,9 @@ TEST_F(ServerWorldBroadcastBlockEntityTest, BroadcastBlockEntityPassesCorrectCoo
 
     for (const auto& expectedPos : testCases) {
         BlockPos capturedPos(0, 0, 0);
-        world->setOnBroadcastBlockEntity([&capturedPos](const BlockPos& pos) { capturedPos = pos; });
+        world->setOnBroadcastBlockEntity([&capturedPos](const BlockPos& pos) {
+            capturedPos = pos;
+        });
 
         world->broadcastBlockEntity(expectedPos);
         EXPECT_EQ(capturedPos, expectedPos);
@@ -219,8 +221,12 @@ TEST_F(ServerWorldBroadcastBlockEntityTest, GlobalLevelEventFallsBackToPlayEvent
 
     bool globalInvoked = false;
     bool playInvoked = false;
-    world->setOnBroadcastGlobalLevelEvent([&](DimensionId, i32, i32, i32, i32, i32) { globalInvoked = true; });
-    world->setOnBroadcastWorldEvent([&](i32, i32, i32, i32, i32) { playInvoked = true; });
+    world->setOnBroadcastGlobalLevelEvent([&](DimensionId, i32, i32, i32, i32, i32) {
+        globalInvoked = true;
+    });
+    world->setOnBroadcastWorldEvent([&](i32, i32, i32, i32, i32) {
+        playInvoked = true;
+    });
 
     world->globalLevelEvent(1028, BlockPos(1, 2, 3), 0);
     EXPECT_FALSE(globalInvoked);

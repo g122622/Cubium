@@ -12,9 +12,9 @@
  * copies or substantial portions of the Software.
  *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, WARRANTIES OF MERCHANTABILITY,
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HAVING BEEN CLAIMED FOR ANY CLAIM, DAMAGES OR OTHER
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
@@ -23,8 +23,13 @@
 
 #include "common/mod/bedrock/addon/lifecycle/ScriptManager.hpp"
 #include "common/core/Result.hpp"
+#include "common/mod/bedrock/addon/binding/IScriptBindingContext.hpp"
 #include "common/mod/bedrock/addon/binding/ScriptClassRegistry.hpp"
+#include "common/mod/bedrock/addon/content/AddonContentManager.hpp"
+#include "common/mod/bedrock/addon/content/base/properties/AddonDynamicProperties.hpp"
+#include "common/mod/bedrock/addon/content/entity/events/EntityEventProgram.hpp"
 #include "common/mod/bedrock/addon/core/IScriptEngine.hpp"
+#include "common/mod/bedrock/addon/event/ScriptEventData.hpp"
 #include "common/mod/bedrock/addon/lifecycle/ScriptLogger.hpp"
 #include "common/mod/bedrock/addon/lifecycle/ScriptTickListener.hpp"
 #include "common/mod/bedrock/addon/lifecycle/ScriptWatchdog.hpp"
@@ -49,6 +54,8 @@ ScriptManager::ScriptManager()
     , m_logger(std::make_unique<ScriptLogger>())
     , m_scheduler(std::make_unique<ScriptScheduler>())
     , m_packList(std::make_unique<BehaviorPackList>())
+    , m_worldProperties(std::make_shared<AddonDynamicProperties>())
+    , m_content(std::make_unique<AddonContentManager>())
 {}
 
 ScriptManager::~ScriptManager()
@@ -77,6 +84,7 @@ Result<void> ScriptManager::initialize()
 
     m_initialized = true;
     spdlog::info("[BedrockAddon] Script manager initialized");
+
     return Result<void>::ok();
 }
 
@@ -91,13 +99,9 @@ void ScriptManager::shutdown()
     // 停止所有插件
     m_pluginManager->stopAllPlugins();
 
-    // 丢弃跨模块类原型注册表条目：其中存的 proto 是各绑定上下文借出的句柄（所有权归上下文，
-    // 见 IScriptBindingContext::createClassProto）。上下文析构时会逐条 unregisterClass，故本行
-    // 并非正确性的唯一依赖，而是引擎关闭期的显式收尾：同时清掉 ScriptHandleRegistry 中指向
-    // ObjectData* 的条目，避免同进程内下次重建引擎前被 invalidateAll 解引用到已 delete 的对象。
-    ScriptClassRegistry::instance().clear();
-
     m_pluginManager->unloadAllPlugins();
+    m_content->clear();
+    m_content->setEntityEventSink({});
 
     // 关闭事件总线
     m_eventBus->shutdown();
@@ -126,6 +130,10 @@ Result<void> ScriptManager::loadPacks(const std::string& globalPackDir, const st
     // 扫描全局行为包目录
     if (!globalPackDir.empty()) {
         auto result = m_packList->scanDirectory(globalPackDir);
+        if (result.failed() && result.error().code() != ErrorCode::FileNotFound) {
+            return result;
+        }
+
         if (result.failed()) {
             spdlog::warn("[BedrockAddon] Failed to scan global pack directory '{}': {}",
                 globalPackDir,
@@ -136,6 +144,10 @@ Result<void> ScriptManager::loadPacks(const std::string& globalPackDir, const st
     // 扫描世界级行为包目录
     if (!worldPackDir.empty()) {
         auto result = m_packList->scanDirectory(worldPackDir);
+        if (result.failed() && result.error().code() != ErrorCode::FileNotFound) {
+            return result;
+        }
+
         if (result.failed()) {
             spdlog::warn(
                 "[BedrockAddon] Failed to scan world pack directory '{}': {}", worldPackDir, result.error().message());
@@ -144,15 +156,24 @@ Result<void> ScriptManager::loadPacks(const std::string& globalPackDir, const st
 
     if (m_packList->empty()) {
         spdlog::info("[BedrockAddon] No behavior packs found");
+
         return Result<void>::ok();
     }
 
     spdlog::info("[BedrockAddon] Found {} behavior pack(s)", m_packList->size());
 
+    MC_TRY(m_packList->resolveDependencies());
+    auto content = m_content->loadEntityDefinitions(*m_packList);
+    if (content.failed()) {
+        return content.error();
+    }
+
     // 加载插件
     auto result = m_pluginManager->loadPlugins(*m_engine, *m_packList);
     if (result.failed()) {
+        m_content->rollback(content.value());
         spdlog::error("[BedrockAddon] Failed to load plugins: {}", result.error().message());
+
         return result;
     }
 
@@ -166,6 +187,9 @@ void ScriptManager::startPlugins()
     }
 
     m_pluginManager->startAllPlugins();
+    std::any startup = ScriptEventData{};
+    m_eventBus->dispatchBeforeEvent(typeid(ScriptStartupEvent), startup);
+    m_eventBus->enqueueAfterEvent(typeid(ScriptWorldLoadEvent), ScriptEventData{});
 }
 
 void ScriptManager::stopPlugins()
@@ -206,6 +230,7 @@ void ScriptManager::reload()
     // 停止并卸载所有插件
     m_pluginManager->stopAllPlugins();
     m_pluginManager->unloadAllPlugins();
+    m_content->clear();
 
     // 清除调度器
     m_scheduler->clearAll();
@@ -294,13 +319,49 @@ const BehaviorPackList* ScriptManager::packList() const
 
 void ScriptManager::_registerBuiltinModules()
 {
+    m_content->setEntityEventSink([this](mc::Entity& entity, const EntityEventNotification& event) {
+        ScriptEventData data;
+        data.setEntity("entity", &entity);
+        data.setString("eventId", event.id);
+        data.setValue("getModifiers", [changes = event.componentChanges](IScriptBindingContext& context) {
+            // TODO: 补齐 DefinitionModifier 的可修改列表与原生待执行操作之间的回写。
+            return context.createFunction(
+                [changes](IScriptBindingContext& bindings, void*, i32, void**) {
+                    void* result = bindings.createArray();
+                    u32 index = 0;
+                    for (const auto& change : changes) {
+                        void* modifier = bindings.createObject();
+                        void* added = bindings.createArray();
+                        void* removed = bindings.createArray();
+                        bindings.setArrayElementString(change.add ? added : removed, 0, change.group);
+                        bindings.setProperty(modifier, "addedComponentGroups", added);
+                        bindings.setProperty(modifier, "removedComponentGroups", removed);
+                        bindings.releaseValue(added);
+                        bindings.releaseValue(removed);
+                        // TODO: 为实验版 DefinitionModifier.triggers 提供完整的目标引用和嵌套触发快照。
+                        void* triggers = bindings.createArray();
+                        bindings.setProperty(modifier, "triggers", triggers);
+                        bindings.releaseValue(triggers);
+                        bindings.setArrayElement(result, index++, modifier);
+                        bindings.releaseValue(modifier);
+                    }
+                    return result;
+                },
+                "getModifiers",
+                0);
+        });
+        m_eventBus->enqueueAfterEvent(typeid(ScriptDataDrivenEntityEvent), std::move(data));
+    });
+
     // 注册 @minecraft/server 模块
     auto minecraftFactory = std::make_unique<MinecraftModuleFactory>();
     minecraftFactory->setScheduler(m_scheduler.get());
     minecraftFactory->setEventBus(m_eventBus.get());
+    minecraftFactory->setWorldProperties(m_worldProperties);
     if (!m_eventSignals.empty()) {
         minecraftFactory->setEventSignals(m_eventSignals);
     }
+
     m_engine->addModuleFactory(std::move(minecraftFactory));
     spdlog::info("[BedrockAddon] Registered @minecraft/server module factory");
 }
@@ -308,6 +369,26 @@ void ScriptManager::_registerBuiltinModules()
 void ScriptManager::setEventSignals(const std::vector<EventSignalInfo>& signals)
 {
     m_eventSignals = signals;
+}
+
+nlohmann::json ScriptManager::saveWorldProperties() const
+{
+    return m_worldProperties->save();
+}
+
+Result<void> ScriptManager::loadWorldProperties(const nlohmann::json& saved)
+{
+    return m_worldProperties->load(saved);
+}
+
+bool ScriptManager::worldPropertiesDirty() const
+{
+    return m_worldProperties->isDirty();
+}
+
+void ScriptManager::markWorldPropertiesSaved()
+{
+    m_worldProperties->markSaved();
 }
 
 } // namespace mc::mod::bedrock::addon

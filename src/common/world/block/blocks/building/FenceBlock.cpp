@@ -105,10 +105,18 @@ FenceBlock::FenceBlock(const BlockProperties& properties)
 
                     CollisionShape shape = pillar;
 
-                    if (north) shape = CollisionShape::combine(shape, railNorth);
-                    if (east) shape = CollisionShape::combine(shape, railEast);
-                    if (south) shape = CollisionShape::combine(shape, railSouth);
-                    if (west) shape = CollisionShape::combine(shape, railWest);
+                    if (north) {
+                        shape = CollisionShape::combine(shape, railNorth);
+                    }
+                    if (east) {
+                        shape = CollisionShape::combine(shape, railEast);
+                    }
+                    if (south) {
+                        shape = CollisionShape::combine(shape, railSouth);
+                    }
+                    if (west) {
+                        shape = CollisionShape::combine(shape, railWest);
+                    }
 
                     m_shapes[idx] = shape;
                 }
@@ -297,10 +305,18 @@ bool FenceBlock::_canConnect(const BlockState& state, bool isNeighborSolid, Dire
 size_t FenceBlock::_getShapeIndex(bool north, bool east, bool south, bool west)
 {
     size_t index = 0;
-    if (north) index |= 1;
-    if (east) index |= 2;
-    if (south) index |= 4;
-    if (west) index |= 8;
+    if (north) {
+        index |= 1;
+    }
+    if (east) {
+        index |= 2;
+    }
+    if (south) {
+        index |= 4;
+    }
+    if (west) {
+        index |= 8;
+    }
     return index;
 }
 

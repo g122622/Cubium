@@ -44,7 +44,11 @@ public:
     GroupLootEntry() noexcept = default;
     explicit GroupLootEntry(std::vector<std::unique_ptr<LootEntry>> children) noexcept;
 
-    [[nodiscard]] LootEntryType getType() const override { return LootEntryType::Group; }
+    [[nodiscard]] LootEntryType getType() const override
+    {
+        return LootEntryType::Group;
+    }
+
     [[nodiscard]] std::unique_ptr<LootEntry> clone() const override;
 
     void addChild(std::unique_ptr<LootEntry> child);

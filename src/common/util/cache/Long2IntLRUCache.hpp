@@ -102,7 +102,10 @@ public:
     /**
      * @brief 获取互斥锁（用于批量操作）
      */
-    std::mutex& getMutex() const { return m_mutex; }
+    std::mutex& getMutex() const
+    {
+        return m_mutex;
+    }
 
     /**
      * @brief 获取缓存值（调用方已持有锁）

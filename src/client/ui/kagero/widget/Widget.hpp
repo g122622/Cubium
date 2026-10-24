@@ -123,7 +123,10 @@ public:
      * @brief 每帧更新
      * @param dt 增量时间（秒）
      */
-    virtual void tick(f32 dt) { (void)dt; }
+    virtual void tick(f32 dt)
+    {
+        (void)dt;
+    }
 
     /**
      * @brief 绘制组件
@@ -134,7 +137,10 @@ public:
      *
      * @param ctx 绘图上下文
      */
-    virtual void paint(PaintContext& ctx) { (void)ctx; }
+    virtual void paint(PaintContext& ctx)
+    {
+        (void)ctx;
+    }
 
     /**
      * @brief 窗口尺寸改变时调用
@@ -250,7 +256,10 @@ public:
      * @brief 设置双击回调
      * @param callback 回调函数
      */
-    void setOnDoubleClickCallback(DoubleClickCallback callback) { m_onDoubleClickCallback = std::move(callback); }
+    void setOnDoubleClickCallback(DoubleClickCallback callback)
+    {
+        m_onDoubleClickCallback = std::move(callback);
+    }
 
     /**
      * @brief 右键点击回调类型
@@ -263,7 +272,10 @@ public:
      * @brief 设置右键点击回调
      * @param callback 回调函数
      */
-    void setOnRightClickCallback(RightClickCallback callback) { m_onRightClickCallback = std::move(callback); }
+    void setOnRightClickCallback(RightClickCallback callback)
+    {
+        m_onRightClickCallback = std::move(callback);
+    }
 
     /**
      * @brief 鼠标拖动事件
@@ -460,47 +472,71 @@ public:
      * @brief 设置边距
      * @param margin 边距
      */
-    void setMargin(const Margin& margin) { m_margin = margin; }
+    void setMargin(const Margin& margin)
+    {
+        m_margin = margin;
+    }
 
     /**
      * @brief 设置内边距
      * @param padding 内边距
      */
-    void setPadding(const Padding& padding) { m_padding = padding; }
+    void setPadding(const Padding& padding)
+    {
+        m_padding = padding;
+    }
 
     // ==================== 状态查询 ====================
 
     /**
      * @brief 检查是否可见
      */
-    [[nodiscard]] bool isVisible() const { return m_visible; }
+    [[nodiscard]] bool isVisible() const
+    {
+        return m_visible;
+    }
 
     /**
      * @brief 检查是否激活（可交互）
      */
-    [[nodiscard]] bool isActive() const { return m_active; }
+    [[nodiscard]] bool isActive() const
+    {
+        return m_active;
+    }
 
     /**
      * @brief 检查鼠标是否悬停
      */
-    [[nodiscard]] bool isHovered() const { return m_hovered; }
+    [[nodiscard]] bool isHovered() const
+    {
+        return m_hovered;
+    }
 
     /**
      * @brief 检查是否获得焦点
      */
-    [[nodiscard]] bool isFocused() const { return m_focused; }
+    [[nodiscard]] bool isFocused() const
+    {
+        return m_focused;
+    }
 
     /**
      * @brief 检查组件是否被禁用
      */
-    [[nodiscard]] bool isDisabled() const { return !m_active; }
+    [[nodiscard]] bool isDisabled() const
+    {
+        return !m_active;
+    }
 
     /**
      * @brief 检查点是否在组件内
      * @param x X坐标
      * @param y Y坐标
      */
-    [[nodiscard]] bool contains(i32 x, i32 y) const { return m_visible && m_bounds.contains(x, y); }
+    [[nodiscard]] bool contains(i32 x, i32 y) const
+    {
+        return m_visible && m_bounds.contains(x, y);
+    }
 
     /**
      * @brief 检查鼠标是否在组件上
@@ -571,34 +607,52 @@ public:
     /**
      * @brief 设置Z索引
      */
-    void setZIndex(i32 z) { m_zIndex = z; }
+    void setZIndex(i32 z)
+    {
+        m_zIndex = z;
+    }
 
     /**
      * @brief 获取Z索引
      */
-    [[nodiscard]] i32 zIndex() const { return m_zIndex; }
+    [[nodiscard]] i32 zIndex() const
+    {
+        return m_zIndex;
+    }
 
     /**
      * @brief 设置父容器
      */
-    void setParent(IWidgetContainer* parent) { m_parent = parent; }
+    void setParent(IWidgetContainer* parent)
+    {
+        m_parent = parent;
+    }
 
     /**
      * @brief 获取父容器
      */
-    [[nodiscard]] IWidgetContainer* parent() const { return m_parent; }
+    [[nodiscard]] IWidgetContainer* parent() const
+    {
+        return m_parent;
+    }
 
     // ==================== 属性访问 ====================
 
     /**
      * @brief 获取组件ID
      */
-    [[nodiscard]] const std::string& id() const { return m_id; }
+    [[nodiscard]] const std::string& id() const
+    {
+        return m_id;
+    }
 
     /**
      * @brief 设置组件ID
      */
-    void setId(std::string id) { m_id = std::move(id); }
+    void setId(std::string id)
+    {
+        m_id = std::move(id);
+    }
 
     // ==================== 自定义数据 ====================
 
@@ -607,7 +661,10 @@ public:
      * @param key 数据键
      * @param value 数据值
      */
-    void setUserData(const std::string& key, const std::string& value) { m_userData[key] = value; }
+    void setUserData(const std::string& key, const std::string& value)
+    {
+        m_userData[key] = value;
+    }
 
     /**
      * @brief 获取自定义字符串数据
@@ -623,82 +680,130 @@ public:
     /**
      * @brief 获取边界
      */
-    [[nodiscard]] const Rect& bounds() const { return m_bounds; }
+    [[nodiscard]] const Rect& bounds() const
+    {
+        return m_bounds;
+    }
 
     /**
      * @brief 获取X坐标
      */
-    [[nodiscard]] i32 x() const { return m_bounds.x; }
+    [[nodiscard]] i32 x() const
+    {
+        return m_bounds.x;
+    }
 
     /**
      * @brief 获取Y坐标
      */
-    [[nodiscard]] i32 y() const { return m_bounds.y; }
+    [[nodiscard]] i32 y() const
+    {
+        return m_bounds.y;
+    }
 
     /**
      * @brief 获取宽度
      */
-    [[nodiscard]] i32 width() const { return m_bounds.width; }
+    [[nodiscard]] i32 width() const
+    {
+        return m_bounds.width;
+    }
 
     /**
      * @brief 获取高度
      */
-    [[nodiscard]] i32 height() const { return m_bounds.height; }
+    [[nodiscard]] i32 height() const
+    {
+        return m_bounds.height;
+    }
 
     /**
      * @brief 获取锚点
      */
-    [[nodiscard]] Anchor anchor() const { return m_anchor; }
+    [[nodiscard]] Anchor anchor() const
+    {
+        return m_anchor;
+    }
 
     /**
      * @brief 获取边距
      */
-    [[nodiscard]] const Margin& margin() const { return m_margin; }
+    [[nodiscard]] const Margin& margin() const
+    {
+        return m_margin;
+    }
 
     /**
      * @brief 获取内边距
      */
-    [[nodiscard]] const Padding& padding() const { return m_padding; }
+    [[nodiscard]] const Padding& padding() const
+    {
+        return m_padding;
+    }
 
     /**
      * @brief 获取透明度
      */
-    [[nodiscard]] f32 alpha() const { return m_alpha; }
+    [[nodiscard]] f32 alpha() const
+    {
+        return m_alpha;
+    }
 
     /**
      * @brief 设置透明度
      */
-    void setAlpha(f32 alpha) { m_alpha = alpha; }
+    void setAlpha(f32 alpha)
+    {
+        m_alpha = alpha;
+    }
 
     /**
      * @brief 获取背景色
      */
-    [[nodiscard]] u32 backgroundColor() const { return m_backgroundColor; }
+    [[nodiscard]] u32 backgroundColor() const
+    {
+        return m_backgroundColor;
+    }
 
     /**
      * @brief 设置背景色
      */
-    void setBackgroundColor(u32 color) { m_backgroundColor = color; }
+    void setBackgroundColor(u32 color)
+    {
+        m_backgroundColor = color;
+    }
 
     /**
      * @brief 获取边框色
      */
-    [[nodiscard]] u32 borderColor() const { return m_borderColor; }
+    [[nodiscard]] u32 borderColor() const
+    {
+        return m_borderColor;
+    }
 
     /**
      * @brief 设置边框色
      */
-    void setBorderColor(u32 color) { m_borderColor = color; }
+    void setBorderColor(u32 color)
+    {
+        m_borderColor = color;
+    }
 
     /**
      * @brief 获取圆角半径
      */
-    [[nodiscard]] i32 cornerRadius() const { return m_cornerRadius; }
+    [[nodiscard]] i32 cornerRadius() const
+    {
+        return m_cornerRadius;
+    }
 
     /**
      * @brief 设置圆角半径
      */
-    void setCornerRadius(i32 radius) { m_cornerRadius = radius; }
+    void setCornerRadius(i32 radius)
+    {
+        m_cornerRadius = radius;
+    }
 
     /**
      * @brief 更新悬停状态
@@ -730,7 +835,10 @@ public:
      * button->setTooltip(tooltip);
      * @endcode
      */
-    void setTooltip(const Tooltip& tooltip) { m_tooltip = tooltip; }
+    void setTooltip(const Tooltip& tooltip)
+    {
+        m_tooltip = tooltip;
+    }
 
     /**
      * @brief 设置单行 Tooltip
@@ -739,22 +847,34 @@ public:
      *
      * @param text 提示文本
      */
-    void setTooltip(const std::string& text) { m_tooltip = Tooltip::create(text); }
+    void setTooltip(const std::string& text)
+    {
+        m_tooltip = Tooltip::create(text);
+    }
 
     /**
      * @brief 清除 Tooltip
      */
-    void clearTooltip() { m_tooltip = Tooltip(); }
+    void clearTooltip()
+    {
+        m_tooltip = Tooltip();
+    }
 
     /**
      * @brief 获取 Tooltip
      */
-    [[nodiscard]] const Tooltip& tooltip() const { return m_tooltip; }
+    [[nodiscard]] const Tooltip& tooltip() const
+    {
+        return m_tooltip;
+    }
 
     /**
      * @brief 检查是否设置了 Tooltip
      */
-    [[nodiscard]] bool hasTooltip() const { return !m_tooltip.isEmpty(); }
+    [[nodiscard]] bool hasTooltip() const
+    {
+        return !m_tooltip.isEmpty();
+    }
 
     /**
      * @brief 设置 Tooltip 显示延迟
@@ -768,12 +888,18 @@ public:
      * button->setTooltipDelay(500); // 悬停500ms后显示提示
      * @endcode
      */
-    void setTooltipDelay(i32 delayMs) { m_tooltipDelayMs = delayMs; }
+    void setTooltipDelay(i32 delayMs)
+    {
+        m_tooltipDelayMs = delayMs;
+    }
 
     /**
      * @brief 获取 Tooltip 显示延迟
      */
-    [[nodiscard]] i32 tooltipDelay() const { return m_tooltipDelayMs; }
+    [[nodiscard]] i32 tooltipDelay() const
+    {
+        return m_tooltipDelayMs;
+    }
 
     /**
      * @brief 刷新并渲染 Tooltip（如果应显示）
@@ -791,12 +917,18 @@ public:
     /**
      * @brief 获取鼠标最后已知的X坐标（在 updateHover 中更新）
      */
-    [[nodiscard]] i32 lastMouseX() const { return m_lastMouseX; }
+    [[nodiscard]] i32 lastMouseX() const
+    {
+        return m_lastMouseX;
+    }
 
     /**
      * @brief 获取鼠标最后已知的Y坐标（在 updateHover 中更新）
      */
-    [[nodiscard]] i32 lastMouseY() const { return m_lastMouseY; }
+    [[nodiscard]] i32 lastMouseY() const
+    {
+        return m_lastMouseY;
+    }
 
     // ==================== UI音效支持 ====================
 
@@ -825,12 +957,18 @@ public:
      * });
      * @endcode
      */
-    static void setUiSoundCallback(UiSoundCallback callback) { s_uiSoundCallback = std::move(callback); }
+    static void setUiSoundCallback(UiSoundCallback callback)
+    {
+        s_uiSoundCallback = std::move(callback);
+    }
 
     /**
      * @brief 获取UI音效回调
      */
-    [[nodiscard]] static const UiSoundCallback& uiSoundCallback() { return s_uiSoundCallback; }
+    [[nodiscard]] static const UiSoundCallback& uiSoundCallback()
+    {
+        return s_uiSoundCallback;
+    }
 
     /**
      * @brief 播放UI音效
@@ -861,12 +999,18 @@ protected:
     /**
      * @brief 可见性改变时调用
      */
-    virtual void onVisibilityChanged(bool visible) { (void)visible; }
+    virtual void onVisibilityChanged(bool visible)
+    {
+        (void)visible;
+    }
 
     /**
      * @brief 激活状态改变时调用
      */
-    virtual void onActiveChanged(bool active) { (void)active; }
+    virtual void onActiveChanged(bool active)
+    {
+        (void)active;
+    }
 
     // 成员变量
     std::string m_id;                                        ///< 组件ID

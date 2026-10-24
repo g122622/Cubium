@@ -85,12 +85,18 @@ public:
     /**
      * @brief 获取水平朝向属性
      */
-    static const DirectionProperty& FACING() { return BlockStateProperties::HORIZONTAL_FACING(); }
+    static const DirectionProperty& FACING()
+    {
+        return BlockStateProperties::HORIZONTAL_FACING();
+    }
 
     /**
      * @brief 获取枯叶段数属性
      */
-    static const IntegerProperty& SEGMENT_AMOUNT() { return BlockStateProperties::SEGMENT_AMOUNT(); }
+    static const IntegerProperty& SEGMENT_AMOUNT()
+    {
+        return BlockStateProperties::SEGMENT_AMOUNT();
+    }
 
     // ========== 放置逻辑 ==========
 

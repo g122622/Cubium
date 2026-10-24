@@ -67,7 +67,10 @@ public:
      * @brief 获取年龄
      * @return 年龄值（负数=幼体，0或正数=成体）
      */
-    [[nodiscard]] i32 getGrowingAge() const { return m_growingAge; }
+    [[nodiscard]] i32 getGrowingAge() const
+    {
+        return m_growingAge;
+    }
 
     /**
      * @brief 设置年龄
@@ -78,11 +81,17 @@ public:
     /**
      * @brief 是否为幼体
      */
-    [[nodiscard]] bool isChild() const override { return m_growingAge < 0; }
+    [[nodiscard]] bool isChild() const override
+    {
+        return m_growingAge < 0;
+    }
 
     // ========== 同步字段 id 访问器（测试/诊断用，抗字段 id 偏移） ==========
 
-    [[nodiscard]] static u16 getBabyParamId() { return DATA_BABY_PARAM.id(); }
+    [[nodiscard]] static u16 getBabyParamId()
+    {
+        return DATA_BABY_PARAM.id();
+    }
 
     /**
      * @brief 设置为幼体
@@ -112,25 +121,37 @@ public:
     /**
      * @brief 获取成长速度倍率
      */
-    [[nodiscard]] f32 getGrowthSpeed() const { return m_growthSpeed; }
+    [[nodiscard]] f32 getGrowthSpeed() const
+    {
+        return m_growthSpeed;
+    }
 
     /**
      * @brief 设置成长速度倍率
      * @param speed 速度倍率（1.0=正常）
      */
-    void setGrowthSpeed(f32 speed) { m_growthSpeed = speed; }
+    void setGrowthSpeed(f32 speed)
+    {
+        m_growthSpeed = speed;
+    }
 
     // ========== 繁殖相关 ==========
 
     /**
      * @brief 获取繁殖冷却时间
      */
-    [[nodiscard]] i32 getLoveTimer() const { return m_loveTimer; }
+    [[nodiscard]] i32 getLoveTimer() const
+    {
+        return m_loveTimer;
+    }
 
     /**
      * @brief 设置繁殖冷却时间
      */
-    void setLoveTimer(i32 timer) { m_loveTimer = timer; }
+    void setLoveTimer(i32 timer)
+    {
+        m_loveTimer = timer;
+    }
 
     /**
      * @brief 是否可以繁殖
@@ -140,7 +161,10 @@ public:
     /**
      * @brief 是否处于爱心状态（可以繁殖）
      */
-    [[nodiscard]] bool isInLove() const { return m_loveTimer > 0; }
+    [[nodiscard]] bool isInLove() const
+    {
+        return m_loveTimer > 0;
+    }
 
     // ========== 常量 ==========
 
@@ -175,7 +199,10 @@ public:
     /**
      * @brief 重置爱心状态
      */
-    void resetLove() { m_loveTimer = 0; }
+    void resetLove()
+    {
+        m_loveTimer = 0;
+    }
 
     // ========== 生命周期 ==========
 
@@ -217,30 +244,45 @@ protected:
      * @brief 获取基础宽度（子类应重写）
      * @return 成体的宽度
      */
-    [[nodiscard]] virtual f32 getBaseWidth() const { return CreatureEntity::width(); }
+    [[nodiscard]] virtual f32 getBaseWidth() const
+    {
+        return CreatureEntity::width();
+    }
 
     /**
      * @brief 幼体缩放比例（对齐 vanilla AgeableMob.getBabyScale）
      *
      * vanilla 默认 0.5；个别生物不同（如快乐恶魂 HappyGhast.BABY_SCALE = 0.2375）。
      */
-    [[nodiscard]] virtual f32 babyScale() const { return BABY_SCALE; }
+    [[nodiscard]] virtual f32 babyScale() const
+    {
+        return BABY_SCALE;
+    }
 
     /**
      * @brief 获取基础高度（子类应重写）
      * @return 成体的高度
      */
-    [[nodiscard]] virtual f32 getBaseHeight() const { return CreatureEntity::height(); }
+    [[nodiscard]] virtual f32 getBaseHeight() const
+    {
+        return CreatureEntity::height();
+    }
 
     /**
      * @brief 获取实体宽度（考虑幼体缩放）
      */
-    [[nodiscard]] f32 width() const override { return getBaseWidth() * (isChild() ? babyScale() : 1.0f); }
+    [[nodiscard]] f32 width() const override
+    {
+        return getBaseWidth() * (isChild() ? babyScale() : 1.0f);
+    }
 
     /**
      * @brief 获取实体高度（考虑幼体缩放）
      */
-    [[nodiscard]] f32 height() const override { return getBaseHeight() * (isChild() ? babyScale() : 1.0f); }
+    [[nodiscard]] f32 height() const override
+    {
+        return getBaseHeight() * (isChild() ? babyScale() : 1.0f);
+    }
 
     /**
      * @brief 幼体变成成体时调用

@@ -110,7 +110,10 @@ public:
      * MC 1.21.11 Warden.getDefaultDimensions() 在非 Digging/Emerging 状态下
      * 宽度为 0.9f。
      */
-    [[nodiscard]] f32 width() const override { return 0.9f; }
+    [[nodiscard]] f32 width() const override
+    {
+        return 0.9f;
+    }
 
     /**
      * @brief 实体高度
@@ -118,14 +121,20 @@ public:
      * MC 1.21.11 Warden.getDefaultDimensions() 在非 Digging/Emerging 状态下
      * 高度为 2.9f。
      */
-    [[nodiscard]] f32 height() const override { return 2.9f; }
+    [[nodiscard]] f32 height() const override
+    {
+        return 2.9f;
+    }
 
     /**
      * @brief 眼睛高度
      *
      * MC 1.21.11 Warden 模型中眼睛高度约为 2.4f（实体高度 2.9f 的 0.83 倍）。
      */
-    [[nodiscard]] f32 eyeHeight() const override { return 2.4f; }
+    [[nodiscard]] f32 eyeHeight() const override
+    {
+        return 2.4f;
+    }
 
     // ========== LivingEntity 接口重写 ==========
 
@@ -191,7 +200,10 @@ public:
      * 让监守者返回 isNonBoss() == false，使其与凋灵/末影龙在生成限制上
      * 保持一致。
      */
-    [[nodiscard]] bool isNonBoss() const override { return false; }
+    [[nodiscard]] bool isNonBoss() const override
+    {
+        return false;
+    }
 
     /**
      * @brief 是否处于钻地（Digging）或钻出（Emerging）姿态
@@ -215,14 +227,20 @@ public:
      * MC 1.21.11 Warden.removeWhenFarAway() 返回 false，监守者无论距离玩家
      * 多远都不会被自然消失机制清除。
      */
-    [[nodiscard]] bool preventDespawn() const override { return true; }
+    [[nodiscard]] bool preventDespawn() const override
+    {
+        return true;
+    }
 
     /**
      * @brief 和平难度下消失
      *
      * 监守者继承自 MonsterEntity，和平难度下会被清除。
      */
-    [[nodiscard]] bool isDespawnPeaceful() const override { return true; }
+    [[nodiscard]] bool isDespawnPeaceful() const override
+    {
+        return true;
+    }
 
     /**
      * @brief 抑制振动
@@ -230,7 +248,10 @@ public:
      * MC 1.21.11 Warden.dampensVibrations() 返回 true，监守者触发的
      * game_event（脚步、跳跃等）会被振动系统减弱。
      */
-    [[nodiscard]] bool dampensVibrations() const override { return true; }
+    [[nodiscard]] bool dampensVibrations() const override
+    {
+        return true;
+    }
 
     /**
      * @brief 监守者攻击破盾秒数（对齐 MC Java 1.21.11 Warden.getSecondsToDisableBlocking:166-168）
@@ -239,7 +260,10 @@ public:
      * 不依赖 WEAPON 组件）。对齐 BlocksAttacks.disable：受害者举盾格挡监守者近战时盾牌被禁用
      * round(5.0*20)=100 tick。
      */
-    [[nodiscard]] f32 getSecondsToDisableBlocking() const noexcept override { return 5.0f; }
+    [[nodiscard]] f32 getSecondsToDisableBlocking() const noexcept override
+    {
+        return 5.0f;
+    }
 
     // ========== 怒气等级（AngerLevel） ==========
 

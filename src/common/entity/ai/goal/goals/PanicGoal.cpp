@@ -59,7 +59,9 @@ PanicGoal::PanicGoal(CreatureEntity* creature, f64 speed, DamageTypeTag& panicCa
 
 bool PanicGoal::shouldPanic() const
 {
-    if (!m_creature) return false;
+    if (!m_creature) {
+        return false;
+    }
 
     // 对齐 vanilla PanicGoal.shouldPanic:61-63：
     //   mob.getLastDamageSource() != null && mob.getLastDamageSource().is(panicCausingDamageTypes)
@@ -78,7 +80,9 @@ bool PanicGoal::shouldPanic() const
 
 bool PanicGoal::shouldExecute()
 {
-    if (!m_creature) return false;
+    if (!m_creature) {
+        return false;
+    }
 
     // 对齐 vanilla PanicGoal.canUse:42-59：先 shouldPanic，false 则直接返 false（不着火也不查水）。
     // 此前 Cubium 用 getLastHurtBy()!=null || isOnFire() 判定，偏离 vanilla：
@@ -106,7 +110,9 @@ bool PanicGoal::shouldExecute()
 
 bool PanicGoal::shouldContinueExecuting()
 {
-    if (!m_creature) return false;
+    if (!m_creature) {
+        return false;
+    }
 
     // 继续执行直到路径完成
     auto* nav = m_creature->navigator();
@@ -140,7 +146,9 @@ void PanicGoal::tick()
 
 bool PanicGoal::_findRandomPosition()
 {
-    if (!m_creature) return false;
+    if (!m_creature) {
+        return false;
+    }
 
     // 使用 RandomPositionGenerator 寻找随机逃跑位置
     Vector3 targetPos;

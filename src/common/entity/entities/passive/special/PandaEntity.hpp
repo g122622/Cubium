@@ -104,12 +104,18 @@ public:
     /**
      * @brief 获取性格
      */
-    [[nodiscard]] Personality getPersonality() const { return m_personality; }
+    [[nodiscard]] Personality getPersonality() const
+    {
+        return m_personality;
+    }
 
     /**
      * @brief 设置性格
      */
-    void setPersonality(Personality personality) { m_personality = personality; }
+    void setPersonality(Personality personality)
+    {
+        m_personality = personality;
+    }
 
     /**
      * @brief 随机生成性格
@@ -119,54 +125,84 @@ public:
     /**
      * @brief 是否是懒惰性格
      */
-    [[nodiscard]] bool isLazy() const { return m_personality == Personality::Lazy; }
+    [[nodiscard]] bool isLazy() const
+    {
+        return m_personality == Personality::Lazy;
+    }
 
     /**
      * @brief 是否是好斗性格
      */
-    [[nodiscard]] bool isAggressive() const { return m_personality == Personality::Aggressive; }
+    [[nodiscard]] bool isAggressive() const
+    {
+        return m_personality == Personality::Aggressive;
+    }
 
     /**
      * @brief 是否是顽皮性格
      */
-    [[nodiscard]] bool isPlayful() const { return m_personality == Personality::Playful; }
+    [[nodiscard]] bool isPlayful() const
+    {
+        return m_personality == Personality::Playful;
+    }
 
     /**
      * @brief 是否是忧愁性格
      */
-    [[nodiscard]] bool isWorried() const { return m_personality == Personality::Worried; }
+    [[nodiscard]] bool isWorried() const
+    {
+        return m_personality == Personality::Worried;
+    }
 
     /**
      * @brief 是否是虚弱性格
      */
-    [[nodiscard]] bool isWeak() const { return m_personality == Personality::Weak; }
+    [[nodiscard]] bool isWeak() const
+    {
+        return m_personality == Personality::Weak;
+    }
 
     /**
      * @brief 是否是棕色变种
      */
-    [[nodiscard]] bool isBrown() const { return m_personality == Personality::Brown; }
+    [[nodiscard]] bool isBrown() const
+    {
+        return m_personality == Personality::Brown;
+    }
 
     // ========== 基因系统 ==========
 
     /**
      * @brief 获取主基因
      */
-    [[nodiscard]] u8 getMainGene() const { return m_mainGene; }
+    [[nodiscard]] u8 getMainGene() const
+    {
+        return m_mainGene;
+    }
 
     /**
      * @brief 设置主基因
      */
-    void setMainGene(u8 gene) { m_mainGene = gene; }
+    void setMainGene(u8 gene)
+    {
+        m_mainGene = gene;
+    }
 
     /**
      * @brief 获取隐藏基因
      */
-    [[nodiscard]] u8 getHiddenGene() const { return m_hiddenGene; }
+    [[nodiscard]] u8 getHiddenGene() const
+    {
+        return m_hiddenGene;
+    }
 
     /**
      * @brief 设置隐藏基因
      */
-    void setHiddenGene(u8 gene) { m_hiddenGene = gene; }
+    void setHiddenGene(u8 gene)
+    {
+        m_hiddenGene = gene;
+    }
 
     /**
      * @brief 根据主基因和隐藏基因计算表达的性格
@@ -197,37 +233,55 @@ public:
      * （如 GameTest spawnEvent 设好斗基因），需调本方法重设属性使好斗熊猫 ATTACK_DAMAGE=6.0、
      * 虚弱熊猫 MAX_HEALTH=10 等性格相关属性生效。内部直接调 registerAttributes（幂等 setBaseValue）。
      */
-    void refreshAttributesForPersonality() { registerAttributes(); }
+    void refreshAttributesForPersonality()
+    {
+        registerAttributes();
+    }
 
     // ========== 行为状态 ==========
 
     /**
      * @brief 是否正在打滚
      */
-    [[nodiscard]] bool isRolling() const { return m_rolling; }
+    [[nodiscard]] bool isRolling() const
+    {
+        return m_rolling;
+    }
 
     /**
      * @brief 设置打滚状态
      */
-    void setRolling(bool rolling) { m_rolling = rolling; }
+    void setRolling(bool rolling)
+    {
+        m_rolling = rolling;
+    }
 
     /**
      * @brief 获取打滚计时器
      */
-    [[nodiscard]] i32 getRollTimer() const { return m_rollTimer; }
+    [[nodiscard]] i32 getRollTimer() const
+    {
+        return m_rollTimer;
+    }
 
     /**
      * @brief 设置打滚计时器
      * @param timer 计时器值（ticks）
      */
-    void setRollTimer(i32 timer) { m_rollTimer = timer; }
+    void setRollTimer(i32 timer)
+    {
+        m_rollTimer = timer;
+    }
 
     /**
      * @brief 检查是否可以执行动作
      *
      * 检查熊猫是否不在任何阻止动作的状态
      */
-    [[nodiscard]] bool canPerformAction() const { return !isSneezing() && !isEating() && !isLying() && !isRolling(); }
+    [[nodiscard]] bool canPerformAction() const
+    {
+        return !isSneezing() && !isEating() && !isLying() && !isRolling();
+    }
 
     /**
      * @brief 是否正在打喷嚏
@@ -242,12 +296,18 @@ public:
     /**
      * @brief 获取打喷嚏计时器
      */
-    [[nodiscard]] i32 getSneezeTimer() const { return m_sneezeTimer; }
+    [[nodiscard]] i32 getSneezeTimer() const
+    {
+        return m_sneezeTimer;
+    }
 
     /**
      * @brief 设置打喷嚏计时器
      */
-    void setSneezeTimer(i32 timer) { m_sneezeTimer = timer; }
+    void setSneezeTimer(i32 timer)
+    {
+        m_sneezeTimer = timer;
+    }
 
     /**
      * @brief 是否正在吃东西
@@ -262,12 +322,18 @@ public:
     /**
      * @brief 是否正在躺着
      */
-    [[nodiscard]] bool isLying() const { return m_lying; }
+    [[nodiscard]] bool isLying() const
+    {
+        return m_lying;
+    }
 
     /**
      * @brief 设置躺着状态
      */
-    void setLying(bool lying) { m_lying = lying; }
+    void setLying(bool lying)
+    {
+        m_lying = lying;
+    }
 
     // ========== 繁殖 ==========
 
@@ -284,7 +350,10 @@ public:
     // ========== 看向玩家目标 ==========
 
     /// 看向玩家目标实例（未注册时为空；供 PandaBreedGoal 预置"不满"时的注视对象）
-    [[nodiscard]] entity::ai::goal::PandaLookAtPlayerGoal* lookAtPlayerGoal() const { return m_lookAtPlayerGoal; }
+    [[nodiscard]] entity::ai::goal::PandaLookAtPlayerGoal* lookAtPlayerGoal() const
+    {
+        return m_lookAtPlayerGoal;
+    }
 
     // ========== 不满计时器（对齐 vanilla Panda.unhappyCounter） ==========
 
@@ -295,17 +364,26 @@ public:
      * 在第 29 / 14 tick 播放 PANDA_CANT_BREED，同时阻止坐下（PandaSitGoal）
      * 与再次发起繁殖尝试（PandaBreedGoal）。
      */
-    [[nodiscard]] i32 unhappyCounter() const { return m_unhappyCounter; }
+    [[nodiscard]] i32 unhappyCounter() const
+    {
+        return m_unhappyCounter;
+    }
 
     /// 设置不满计时器（对齐 vanilla Panda.setUnhappyCounter）
-    void setUnhappyCounter(i32 value) { m_unhappyCounter = value; }
+    void setUnhappyCounter(i32 value)
+    {
+        m_unhappyCounter = value;
+    }
 
     // ========== 属性 ==========
 
     /**
      * @brief 获取眼睛高度
      */
-    [[nodiscard]] f32 eyeHeight() const override { return isChild() ? 0.6f : 1.2f; }
+    [[nodiscard]] f32 eyeHeight() const override
+    {
+        return isChild() ? 0.6f : 1.2f;
+    }
 
     // ========== 音效 ==========
 
@@ -395,12 +473,26 @@ public:
     // ========== 反击终止标志（对齐 vanilla Panda.gotBamboo / didBite） ==========
 
     /// 被反击中的熊猫收到食物时置位：下次 canContinueToUse 终止反击（Panda.java:846-853）
-    [[nodiscard]] bool gotBamboo() const { return m_gotBamboo; }
-    void setGotBamboo(bool gotBamboo) { m_gotBamboo = gotBamboo; }
+    [[nodiscard]] bool gotBamboo() const
+    {
+        return m_gotBamboo;
+    }
+
+    void setGotBamboo(bool gotBamboo)
+    {
+        m_gotBamboo = gotBamboo;
+    }
 
     /// 非好斗熊猫咬到目标时置位：同样终止反击（Panda.doHurtTarget:316-320）
-    [[nodiscard]] bool didBite() const { return m_didBite; }
-    void setDidBite(bool didBite) { m_didBite = didBite; }
+    [[nodiscard]] bool didBite() const
+    {
+        return m_didBite;
+    }
+
+    void setDidBite(bool didBite)
+    {
+        m_didBite = didBite;
+    }
 
     /// 攻击目标变更钩子：目标被清空时同时清零两个终止标志（Panda.tick:341-345）
     void setAttackTarget(LivingEntity* target) override;

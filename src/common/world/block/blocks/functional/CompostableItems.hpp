@@ -72,7 +72,10 @@ public:
     /**
      * @brief 检查注册表是否已初始化
      */
-    [[nodiscard]] static bool isInitialized() noexcept { return s_initialized; }
+    [[nodiscard]] static bool isInitialized() noexcept
+    {
+        return s_initialized;
+    }
 
 private:
     // 物品到堆肥概率的映射

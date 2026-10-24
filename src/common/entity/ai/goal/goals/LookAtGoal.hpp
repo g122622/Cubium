@@ -130,7 +130,10 @@ public:
     void resetTask() override;
     void tick() override;
 
-    [[nodiscard]] std::string getTypeName() const override { return "LookAtGoal"; }
+    [[nodiscard]] std::string getTypeName() const override
+    {
+        return "LookAtGoal";
+    }
 
 protected:
     /**
@@ -158,7 +161,9 @@ LookAtGoal::LookAtGoal(MobEntity* mob, f32 maxDistance, f32 chance, TypeFilter<T
 {
     setMutexFlags(EnumSet<GoalFlag>{GoalFlag::Look});
     // 设置类型过滤谓词：使用 dynamic_cast 检查类型
-    m_filter = [](const LivingEntity* entity) -> bool { return dynamic_cast<const T*>(entity) != nullptr; };
+    m_filter = [](const LivingEntity* entity) -> bool {
+        return dynamic_cast<const T*>(entity) != nullptr;
+    };
 }
 
 /**
@@ -183,9 +188,15 @@ public:
     // 对齐 vanilla RandomLookAroundGoal.requiresUpdateEveryTick()=true：
     // 该 goal 每 tick 评估（不走 GoalSelector 半 tick 节流），故 shouldExecute 概率
     // 与 startExecuting 的 lookTime 均用裸值，不经 adjustedTickDelay 减半。
-    [[nodiscard]] bool requiresUpdateEveryTick() const override { return true; }
+    [[nodiscard]] bool requiresUpdateEveryTick() const override
+    {
+        return true;
+    }
 
-    [[nodiscard]] std::string getTypeName() const override { return "LookRandomlyGoal"; }
+    [[nodiscard]] std::string getTypeName() const override
+    {
+        return "LookRandomlyGoal";
+    }
 
 private:
     MobEntity* m_mob;

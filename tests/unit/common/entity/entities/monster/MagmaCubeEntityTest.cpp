@@ -91,14 +91,23 @@ public:
     {
         throw std::runtime_error("MagmaCubeTestWorld::tickManager not implemented");
     }
+
     [[nodiscard]] const world::tick::TickManager& tickManager() const override
     {
         throw std::runtime_error("MagmaCubeTestWorld::tickManager not implemented");
     }
 
     // 测试辅助方法
-    [[nodiscard]] size_t spawnedMagmaCubeCount() const { return m_spawnedMagmaCubeCount; }
-    [[nodiscard]] const std::vector<i32>& spawnedMagmaCubeSizes() const { return m_spawnedMagmaCubeSizes; }
+    [[nodiscard]] size_t spawnedMagmaCubeCount() const
+    {
+        return m_spawnedMagmaCubeCount;
+    }
+
+    [[nodiscard]] const std::vector<i32>& spawnedMagmaCubeSizes() const
+    {
+        return m_spawnedMagmaCubeSizes;
+    }
+
     void clearSpawnedEntities()
     {
         m_spawnedEntities.clear();
@@ -115,7 +124,10 @@ private:
 
 class MagmaCubeEntityTest : public ::testing::Test {
 protected:
-    void SetUp() override { VanillaBlocks::initialize(); }
+    void SetUp() override
+    {
+        VanillaBlocks::initialize();
+    }
 
     MagmaCubeTestWorld m_world;
 };

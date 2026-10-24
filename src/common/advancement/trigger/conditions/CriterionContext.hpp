@@ -90,7 +90,11 @@ class ContextAwarePredicate {
 public:
     ContextAwarePredicate() = default;
 
-    [[nodiscard]] bool isAny() const noexcept { return m_empty; }
+    [[nodiscard]] bool isAny() const noexcept
+    {
+        return m_empty;
+    }
+
     [[nodiscard]] bool test(const CriterionContext& context) const;
 
     static Result<ContextAwarePredicate> fromJson(const nlohmann::json& json);

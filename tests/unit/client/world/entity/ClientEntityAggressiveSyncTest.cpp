@@ -110,13 +110,22 @@ void setMobFlagsParam(ClientEntity& entity, i8 value)
 
 class ClientEntityZombieAggressiveSyncTest : public ::testing::Test {
 protected:
-    static void SetUpTestSuite() { Items::initialize(); }
+    static void SetUpTestSuite()
+    {
+        Items::initialize();
+    }
+
     void SetUp() override
     {
         ensureMobFlagsParamAllocated();
         entity = std::make_unique<ClientEntity>(EntityInstanceId(1), "minecraft:zombie");
     }
-    void TearDown() override { entity.reset(); }
+
+    void TearDown() override
+    {
+        entity.reset();
+    }
+
     std::unique_ptr<ClientEntity> entity;
 };
 
@@ -221,13 +230,22 @@ TEST_F(ClientEntityZombieAggressiveSyncTest, SyncFromDataManager_AllFlagsSet_Bit
 
 class ClientEntityHuskAggressiveSyncTest : public ::testing::Test {
 protected:
-    static void SetUpTestSuite() { Items::initialize(); }
+    static void SetUpTestSuite()
+    {
+        Items::initialize();
+    }
+
     void SetUp() override
     {
         ensureMobFlagsParamAllocated();
         entity = std::make_unique<ClientEntity>(EntityInstanceId(1), "minecraft:husk");
     }
-    void TearDown() override { entity.reset(); }
+
+    void TearDown() override
+    {
+        entity.reset();
+    }
+
     std::unique_ptr<ClientEntity> entity;
 };
 
@@ -242,13 +260,22 @@ TEST_F(ClientEntityHuskAggressiveSyncTest, SyncFromDataManager_FlagSet_SetsIsAgg
 
 class ClientEntityDrownedAggressiveSyncTest : public ::testing::Test {
 protected:
-    static void SetUpTestSuite() { Items::initialize(); }
+    static void SetUpTestSuite()
+    {
+        Items::initialize();
+    }
+
     void SetUp() override
     {
         ensureMobFlagsParamAllocated();
         entity = std::make_unique<ClientEntity>(EntityInstanceId(1), "minecraft:drowned");
     }
-    void TearDown() override { entity.reset(); }
+
+    void TearDown() override
+    {
+        entity.reset();
+    }
+
     std::unique_ptr<ClientEntity> entity;
 };
 
@@ -263,13 +290,22 @@ TEST_F(ClientEntityDrownedAggressiveSyncTest, SyncFromDataManager_FlagSet_SetsIs
 
 class ClientEntityZombieVillagerAggressiveSyncTest : public ::testing::Test {
 protected:
-    static void SetUpTestSuite() { Items::initialize(); }
+    static void SetUpTestSuite()
+    {
+        Items::initialize();
+    }
+
     void SetUp() override
     {
         ensureMobFlagsParamAllocated();
         entity = std::make_unique<ClientEntity>(EntityInstanceId(1), "minecraft:zombie_villager");
     }
-    void TearDown() override { entity.reset(); }
+
+    void TearDown() override
+    {
+        entity.reset();
+    }
+
     std::unique_ptr<ClientEntity> entity;
 };
 

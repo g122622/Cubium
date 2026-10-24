@@ -47,7 +47,10 @@ namespace {
 
 class NaturalSpawnerClassificationTest : public ::testing::Test {
 protected:
-    void SetUp() override { VanillaEntities::registerAll(); }
+    void SetUp() override
+    {
+        VanillaEntities::registerAll();
+    }
 
     EntityManager m_manager{mc::test::testEcsRegistry()};
 };

@@ -279,6 +279,7 @@ Result<void> PalettedPermutationsSource::run(IResourcePack& pack, SpriteSourceOu
         std::string name;
         std::vector<u8> palettePixels; // 与 keyImg 等尺寸
     };
+
     std::vector<PaletteMapping> mappings;
     mappings.reserve(m_permutations.size());
     for (const auto& [name, paletteLoc] : m_permutations) {

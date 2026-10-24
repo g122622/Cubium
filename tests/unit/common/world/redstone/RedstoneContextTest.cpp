@@ -37,7 +37,10 @@ class RedstoneContextTest : public ::testing::Test {
 protected:
     RedstoneContext context;
 
-    void SetUp() override { context.clear(); }
+    void SetUp() override
+    {
+        context.clear();
+    }
 };
 
 // ========== 基本功能测试 ==========

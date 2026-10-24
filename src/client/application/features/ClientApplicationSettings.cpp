@@ -190,8 +190,9 @@ void ClientApplication::setupSettingCallbacks()
         }
     });
 
-    m_settings.antiAliasing.onChange(
-        [](bool enabled) { spdlog::info("Anti-aliasing changed to: {} (restart required)", enabled); });
+    m_settings.antiAliasing.onChange([](bool enabled) {
+        spdlog::info("Anti-aliasing changed to: {} (restart required)", enabled);
+    });
 }
 
 void ClientApplication::applyGuiScale()

@@ -354,9 +354,10 @@ void registerPaleGardenBlocks()
                 .ignitedByLava());
 
     // 树脂块（固体）
+    // 树脂块：硬度 0（徒手瞬间破坏），抗性 3。
     PaleGardenBlocks::RESIN_BLOCK = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:resin_block"),
         BlockProperties(Material::ROCK)
-            .hardness(1.5f)
+            .hardness(0.0f)
             .resistance(3.0f)
             .harvestTool(HarvestTool::Pickaxe)
             .soundType(BlockSoundTypes::RESIN));

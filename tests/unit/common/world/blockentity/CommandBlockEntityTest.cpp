@@ -36,7 +36,10 @@ using namespace mc::blockentity;
 
 class CommandBlockEntityTest : public ::testing::Test {
 protected:
-    void SetUp() override { entity_ = std::make_unique<CommandBlockEntity>(BlockPos(10, 20, 30)); }
+    void SetUp() override
+    {
+        entity_ = std::make_unique<CommandBlockEntity>(BlockPos(10, 20, 30));
+    }
 
     std::unique_ptr<CommandBlockEntity> entity_;
 };
@@ -129,7 +132,10 @@ TEST_F(CommandBlockEntityModeTest, Create_SequenceMode_HasCorrectMode)
 
 class CommandBlockEntityCommandTest : public ::testing::Test {
 protected:
-    void SetUp() override { entity_ = std::make_unique<CommandBlockEntity>(BlockPos(0, 0, 0)); }
+    void SetUp() override
+    {
+        entity_ = std::make_unique<CommandBlockEntity>(BlockPos(0, 0, 0));
+    }
 
     std::unique_ptr<CommandBlockEntity> entity_;
 };
@@ -191,7 +197,10 @@ TEST_F(CommandBlockEntityCommandTest, SetCustomName_UpdatesValue)
 
 class CommandBlockEntityStateTest : public ::testing::Test {
 protected:
-    void SetUp() override { entity_ = std::make_unique<CommandBlockEntity>(BlockPos(0, 0, 0)); }
+    void SetUp() override
+    {
+        entity_ = std::make_unique<CommandBlockEntity>(BlockPos(0, 0, 0));
+    }
 
     std::unique_ptr<CommandBlockEntity> entity_;
 };
@@ -237,7 +246,10 @@ TEST_F(CommandBlockEntityStateTest, SetMode_UpdatesValue)
 
 class CommandBlockEntitySourceTest : public ::testing::Test {
 protected:
-    void SetUp() override { entity_ = std::make_unique<CommandBlockEntity>(BlockPos(0, 0, 0)); }
+    void SetUp() override
+    {
+        entity_ = std::make_unique<CommandBlockEntity>(BlockPos(0, 0, 0));
+    }
 
     std::unique_ptr<CommandBlockEntity> entity_;
 };
@@ -278,7 +290,10 @@ TEST_F(CommandBlockEntitySourceTest, SendMessage_WhenTrackOutputDisabled_DoesNot
 
 class CommandBlockEntityJsonTest : public ::testing::Test {
 protected:
-    void SetUp() override { entity_ = std::make_unique<CommandBlockEntity>(BlockPos(5, 10, 15)); }
+    void SetUp() override
+    {
+        entity_ = std::make_unique<CommandBlockEntity>(BlockPos(5, 10, 15));
+    }
 
     std::unique_ptr<CommandBlockEntity> entity_;
 };
@@ -474,7 +489,10 @@ TEST_F(CommandBlockEntityJsonTest, SaveLoad_PreservesData)
 
 class CommandBlockEntityCloneTest : public ::testing::Test {
 protected:
-    void SetUp() override { entity_ = std::make_unique<CommandBlockEntity>(BlockPos(1, 2, 3)); }
+    void SetUp() override
+    {
+        entity_ = std::make_unique<CommandBlockEntity>(BlockPos(1, 2, 3));
+    }
 
     std::unique_ptr<CommandBlockEntity> entity_;
 };
@@ -524,7 +542,10 @@ TEST_F(CommandBlockEntityCloneTest, Clone_PreservesConditionMet)
 
 class CommandBlockEntityEasterEggTest : public ::testing::Test {
 protected:
-    void SetUp() override { entity_ = std::make_unique<CommandBlockEntity>(BlockPos(0, 0, 0)); }
+    void SetUp() override
+    {
+        entity_ = std::make_unique<CommandBlockEntity>(BlockPos(0, 0, 0));
+    }
 
     std::unique_ptr<CommandBlockEntity> entity_;
 };
@@ -629,7 +650,10 @@ TEST_F(CommandBlockEntityModeBehaviorTest, SequenceMode_DefaultAutoDisabled)
 
 class CommandBlockEntityEdgeCaseTest : public ::testing::Test {
 protected:
-    void SetUp() override { entity_ = std::make_unique<CommandBlockEntity>(BlockPos(0, 0, 0)); }
+    void SetUp() override
+    {
+        entity_ = std::make_unique<CommandBlockEntity>(BlockPos(0, 0, 0));
+    }
 
     std::unique_ptr<CommandBlockEntity> entity_;
 };

@@ -146,13 +146,19 @@ struct AnimationMetadata {
      * @brief 检查是否为有效动画
      * @return 如果有有效的帧配置返回true
      */
-    [[nodiscard]] bool isValidAnimation() const noexcept { return frametime > 0 && width > 0 && height > 0; }
+    [[nodiscard]] bool isValidAnimation() const noexcept
+    {
+        return frametime > 0 && width > 0 && height > 0;
+    }
 
     /**
      * @brief 获取总帧数
      * @return 如果有自定义帧序列返回序列长度，否则返回0表示需要从图像计算
      */
-    [[nodiscard]] Size getFrameCount() const noexcept { return frames.size(); }
+    [[nodiscard]] Size getFrameCount() const noexcept
+    {
+        return frames.size();
+    }
 
     /**
      * @brief 获取指定位置的帧索引

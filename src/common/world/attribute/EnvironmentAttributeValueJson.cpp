@@ -163,38 +163,50 @@ bool _readActivity(const nlohmann::json& json, entity::ai::brain::schedule::Acti
 template <>
 std::function<bool(const void* json, bool& out)> valueJsonReader<bool>()
 {
-    return [](const void* json, bool& out) { return _readBool(_json(json), out); };
+    return [](const void* json, bool& out) {
+        return _readBool(_json(json), out);
+    };
 }
 
 template <>
 std::function<bool(const void* json, f32& out)> valueJsonReader<f32>()
 {
-    return [](const void* json, f32& out) { return _readFloat(_json(json), out); };
+    return [](const void* json, f32& out) {
+        return _readFloat(_json(json), out);
+    };
 }
 
 template <>
 std::function<bool(const void* json, i32& out)> valueJsonReader<i32>()
 {
-    return [](const void* json, i32& out) { return _readInt(_json(json), out); };
+    return [](const void* json, i32& out) {
+        return _readInt(_json(json), out);
+    };
 }
 
 template <>
 std::function<bool(const void* json, util::TriState& out)> valueJsonReader<util::TriState>()
 {
-    return [](const void* json, util::TriState& out) { return _readTriState(_json(json), out); };
+    return [](const void* json, util::TriState& out) {
+        return _readTriState(_json(json), out);
+    };
 }
 
 template <>
 std::function<bool(const void* json, MoonPhase& out)> valueJsonReader<MoonPhase>()
 {
-    return [](const void* json, MoonPhase& out) { return _readMoonPhase(_json(json), out); };
+    return [](const void* json, MoonPhase& out) {
+        return _readMoonPhase(_json(json), out);
+    };
 }
 
 template <>
 std::function<bool(const void* json, entity::ai::brain::schedule::Activity& out)>
 valueJsonReader<entity::ai::brain::schedule::Activity>()
 {
-    return [](const void* json, entity::ai::brain::schedule::Activity& out) { return _readActivity(_json(json), out); };
+    return [](const void* json, entity::ai::brain::schedule::Activity& out) {
+        return _readActivity(_json(json), out);
+    };
 }
 
 } // namespace attribute

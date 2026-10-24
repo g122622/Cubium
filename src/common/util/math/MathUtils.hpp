@@ -248,8 +248,12 @@ template <typename T>
 [[nodiscard]] inline f64 clampedMap(f64 value, f64 fromMin, f64 fromMax, f64 toMin, f64 toMax) noexcept
 {
     f64 t = (value - fromMin) / (fromMax - fromMin);
-    if (t < 0.0) t = 0.0;
-    if (t > 1.0) t = 1.0;
+    if (t < 0.0) {
+        t = 0.0;
+    }
+    if (t > 1.0) {
+        t = 1.0;
+    }
     return toMin + t * (toMax - toMin);
 }
 

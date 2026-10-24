@@ -107,11 +107,17 @@ public:
         return m_groundCollisionEnabled;
     }
 
-    void setGroundCollisionEnabled(bool enabled) { m_groundCollisionEnabled = enabled; }
+    void setGroundCollisionEnabled(bool enabled)
+    {
+        m_groundCollisionEnabled = enabled;
+    }
 
     /// 注入 getEntitiesInRange 的返回列表，供目标选择器（NearestAttackableTargetGoal 经
     /// findClosestEntity→world->getEntitiesInRange）能发现测试实体。
-    void setEntitiesInRange(std::vector<Entity*> entities) { m_entitiesInRange = std::move(entities); }
+    void setEntitiesInRange(std::vector<Entity*> entities)
+    {
+        m_entitiesInRange = std::move(entities);
+    }
 
     [[nodiscard]] std::vector<Entity*> getEntitiesInRange(const Vector3&, f32, const Entity*) const override
     {
@@ -132,13 +138,17 @@ public:
         return static_cast<EntityInstanceId>(m_spawnedEntities.size());
     }
 
-    [[nodiscard]] i32 getSpawnedEntityCount() const { return static_cast<i32>(m_spawnedEntities.size()); }
+    [[nodiscard]] i32 getSpawnedEntityCount() const
+    {
+        return static_cast<i32>(m_spawnedEntities.size());
+    }
 
     // TickManager interface (stubbed for tests)
     [[nodiscard]] world::tick::TickManager& tickManager() override
     {
         throw std::runtime_error("WolfTestWorld::tickManager not implemented");
     }
+
     [[nodiscard]] const world::tick::TickManager& tickManager() const override
     {
         throw std::runtime_error("WolfTestWorld::tickManager not implemented");
@@ -159,8 +169,16 @@ public:
         (void)pitch;
     }
 
-    [[nodiscard]] const ResourceLocation& getLastSoundId() const { return m_lastSoundId; }
-    [[nodiscard]] i32 getSoundPlayCount() const { return m_soundPlayCount; }
+    [[nodiscard]] const ResourceLocation& getLastSoundId() const
+    {
+        return m_lastSoundId;
+    }
+
+    [[nodiscard]] i32 getSoundPlayCount() const
+    {
+        return m_soundPlayCount;
+    }
+
     void resetSoundTracking()
     {
         m_lastSoundId = ResourceLocation();
@@ -175,9 +193,21 @@ public:
         m_broadcastCount++;
     }
 
-    [[nodiscard]] EntityInstanceId getLastBroadcastEntityId() const { return m_lastBroadcastEntityId; }
-    [[nodiscard]] u8 getLastBroadcastStatus() const { return m_lastBroadcastStatus; }
-    [[nodiscard]] i32 getBroadcastCount() const { return m_broadcastCount; }
+    [[nodiscard]] EntityInstanceId getLastBroadcastEntityId() const
+    {
+        return m_lastBroadcastEntityId;
+    }
+
+    [[nodiscard]] u8 getLastBroadcastStatus() const
+    {
+        return m_lastBroadcastStatus;
+    }
+
+    [[nodiscard]] i32 getBroadcastCount() const
+    {
+        return m_broadcastCount;
+    }
+
     void resetBroadcastTracking()
     {
         m_lastBroadcastEntityId = EntityInstanceId(0);
@@ -193,9 +223,21 @@ public:
         m_lastTameAnimal = animal;
     }
 
-    [[nodiscard]] bool wasTameAnimalCalled() const { return m_tameAnimalCalled; }
-    [[nodiscard]] PlayerId getLastTamePlayerId() const { return m_lastTamePlayerId; }
-    [[nodiscard]] Entity* getLastTameAnimal() const { return m_lastTameAnimal; }
+    [[nodiscard]] bool wasTameAnimalCalled() const
+    {
+        return m_tameAnimalCalled;
+    }
+
+    [[nodiscard]] PlayerId getLastTamePlayerId() const
+    {
+        return m_lastTamePlayerId;
+    }
+
+    [[nodiscard]] Entity* getLastTameAnimal() const
+    {
+        return m_lastTameAnimal;
+    }
+
     void resetTameTracking()
     {
         m_tameAnimalCalled = false;
@@ -259,7 +301,11 @@ public:
     {}
 
     using WolfEntity::tick;
-    entity::ai::GoalSelector& testTargetSelector() { return targetSelector(); }
+
+    entity::ai::GoalSelector& testTargetSelector()
+    {
+        return targetSelector();
+    }
 };
 
 // ============================================================================
@@ -488,16 +534,13 @@ TEST_F(WolfEntityTestFixture, OnTamed_IncreasesAttackDamage)
 {
     WolfEntity wolf(EntityInstanceId(0), mc::test::testEcsRegistry());
 
-    // 驯服前攻击力为 2
-    // 注意：需要使用 getAttributeValueUnsafe 或检查属性是否存在
+    // 原版 Wolf.createAttributes 的 ATTACK_DAMAGE 固定为 4，驯服前后一致（1.21 起不再加压）。
     f32 baseDamage = wolf.getAttributeValue(entity::attribute::Attributes::ATTACK_DAMAGE, -1.0f);
-    // 如果属性未注册，默认值为 -1，跳过此测试
     if (baseDamage < 0) {
         GTEST_SKIP() << "Attack damage attribute not registered in test fixture";
     }
-    EXPECT_NEAR(baseDamage, 2.0f, 0.1f);
+    EXPECT_NEAR(baseDamage, 4.0f, 0.1f);
 
-    // 驯服后攻击力为 4
     wolf.setTamed(true);
     f32 tamedDamage = wolf.getAttributeValue(entity::attribute::Attributes::ATTACK_DAMAGE, -1.0f);
     EXPECT_NEAR(tamedDamage, 4.0f, 0.1f);
@@ -2688,21 +2731,39 @@ public:
         : WolfEntity(id, mc::test::testEcsRegistry())
     {}
 
-    [[nodiscard]] bool isInWaterOrRain() const override { return m_forceInWaterOrRain; }
+    [[nodiscard]] bool isInWaterOrRain() const override
+    {
+        return m_forceInWaterOrRain;
+    }
 
-    void setForceInWaterOrRain(bool value) { m_forceInWaterOrRain = value; }
+    void setForceInWaterOrRain(bool value)
+    {
+        m_forceInWaterOrRain = value;
+    }
 
     /// 直接设置 isWet 状态（绕过 isInWaterOrRain）用于测试已湿润场景
-    void setWetForTest(bool value) { _setWetForTest(value); }
+    void setWetForTest(bool value)
+    {
+        _setWetForTest(value);
+    }
 
     /// 直接设置 isShaking 状态（绕过触发条件）用于测试甩水进度
-    void setShakingForTest(bool value) { _setShakingForTest(value); }
+    void setShakingForTest(bool value)
+    {
+        _setShakingForTest(value);
+    }
 
     /// 直接设置 interested 状态用于测试 interestedAngle 插值
-    void setInterestedForTest(bool value) { setInterested(value); }
+    void setInterestedForTest(bool value)
+    {
+        setInterested(value);
+    }
 
     /// 直接设置 shakeAnim 用于测试数学方法
-    void setShakeAnimForTest(f32 anim, f32 animO) { _setShakeAnimForTest(anim, animO); }
+    void setShakeAnimForTest(f32 anim, f32 animO)
+    {
+        _setShakeAnimForTest(anim, animO);
+    }
 
 private:
     bool m_forceInWaterOrRain = false;

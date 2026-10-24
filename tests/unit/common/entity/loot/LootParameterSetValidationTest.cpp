@@ -267,8 +267,12 @@ TEST_F(LootParameterSetValidationTest, GetRequiredParams_BlockSet)
     bool hasBlockState = false;
     bool hasBlockPos = false;
     for (const auto& param : required) {
-        if (param == LootParams::BLOCK_STATE.getId()) hasBlockState = true;
-        if (param == LootParams::BLOCK_POS.getId()) hasBlockPos = true;
+        if (param == LootParams::BLOCK_STATE.getId()) {
+            hasBlockState = true;
+        }
+        if (param == LootParams::BLOCK_POS.getId()) {
+            hasBlockPos = true;
+        }
     }
     EXPECT_TRUE(hasBlockState);
     EXPECT_TRUE(hasBlockPos);
@@ -310,7 +314,10 @@ TEST_F(LootParameterSetValidationTest, GetRequiredParams_GenericSet)
 
 class LootContextBuilderValidationTest : public ::testing::Test {
 protected:
-    void SetUp() override { VanillaBlocks::initialize(); }
+    void SetUp() override
+    {
+        VanillaBlocks::initialize();
+    }
 
     class TestWorld : public mc::test::BaseTestWorld {
     public:
@@ -318,10 +325,12 @@ protected:
         {
             return y >= mc::world::MIN_BUILD_HEIGHT && y < mc::world::MAX_BUILD_HEIGHT;
         }
+
         [[nodiscard]] world::tick::TickManager& tickManager() override
         {
             throw std::runtime_error("TestWorld::tickManager not implemented");
         }
+
         [[nodiscard]] const world::tick::TickManager& tickManager() const override
         {
             throw std::runtime_error("TestWorld::tickManager not implemented");

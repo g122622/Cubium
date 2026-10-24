@@ -126,7 +126,10 @@ public:
     /**
      * @brief 是否可以破门
      */
-    [[nodiscard]] bool canBreakDoors() const { return m_canBreakDoors; }
+    [[nodiscard]] bool canBreakDoors() const
+    {
+        return m_canBreakDoors;
+    }
 
     /**
      * @brief 设置破门能力
@@ -138,12 +141,18 @@ public:
     /**
      * @brief 是否正在转化为溺尸
      */
-    [[nodiscard]] bool isConverting() const { return m_converting; }
+    [[nodiscard]] bool isConverting() const
+    {
+        return m_converting;
+    }
 
     /**
      * @brief 获取转化时间
      */
-    [[nodiscard]] i32 getConversionTime() const { return m_conversionTime; }
+    [[nodiscard]] i32 getConversionTime() const
+    {
+        return m_conversionTime;
+    }
 
     /**
      * @brief 开始溺水转化
@@ -158,7 +167,10 @@ public:
      * 注意：此方法仅用于溺水转化逻辑，不用于增援生成检查。
      * 增援生成中的液体检查使用 canSpawnInLiquids()。
      */
-    [[nodiscard]] virtual bool shouldDrown() const { return true; }
+    [[nodiscard]] virtual bool shouldDrown() const
+    {
+        return true;
+    }
 
     /**
      * @brief 转化为溺尸
@@ -177,7 +189,10 @@ public:
     /**
      * @brief 是否是婴儿僵尸
      */
-    [[nodiscard]] bool isBaby() const { return m_isBaby; }
+    [[nodiscard]] bool isBaby() const
+    {
+        return m_isBaby;
+    }
 
     /**
      * @brief 设置婴儿状态
@@ -186,9 +201,20 @@ public:
 
     // ========== 同步字段 id 访问器（测试/诊断用，抗字段 id 偏移） ==========
 
-    [[nodiscard]] static u16 getBabyParamId() { return DATA_BABY_PARAM.id(); }
-    [[nodiscard]] static u16 getSpecialTypeParamId() { return DATA_SPECIAL_TYPE_PARAM.id(); }
-    [[nodiscard]] static u16 getDrownedConversionParamId() { return DATA_DROWNED_CONVERSION_PARAM.id(); }
+    [[nodiscard]] static u16 getBabyParamId()
+    {
+        return DATA_BABY_PARAM.id();
+    }
+
+    [[nodiscard]] static u16 getSpecialTypeParamId()
+    {
+        return DATA_SPECIAL_TYPE_PARAM.id();
+    }
+
+    [[nodiscard]] static u16 getDrownedConversionParamId()
+    {
+        return DATA_DROWNED_CONVERSION_PARAM.id();
+    }
 
     // ========== 增援系统 ==========
 
@@ -215,22 +241,34 @@ public:
     // 默认 Undefined，未覆写会导致：canBreatheUnderwater()=false 在水中溺水死亡（远早于 600tick 溺水
     // 转化阈值）、亡灵杀手(Smite)附魔无加成、瞬间治疗/伤害药水不反转、凋灵玫瑰不免疫、凋灵同族互伤。
     // 子类 HuskEntity/DrownedEntity/ZombieVillagerEntity 继承此覆写自动归类 Undead。
-    [[nodiscard]] CreatureAttribute getCreatureAttribute() const override { return CreatureAttribute::Undead; }
+    [[nodiscard]] CreatureAttribute getCreatureAttribute() const override
+    {
+        return CreatureAttribute::Undead;
+    }
 
     /**
      * @brief 获取眼睛高度
      */
-    [[nodiscard]] f32 eyeHeight() const override { return m_isBaby ? 0.93f : 1.74f; }
+    [[nodiscard]] f32 eyeHeight() const override
+    {
+        return m_isBaby ? 0.93f : 1.74f;
+    }
 
     /**
      * @brief 获取实体宽度
      */
-    [[nodiscard]] f32 width() const override { return m_isBaby ? 0.3f : 0.6f; }
+    [[nodiscard]] f32 width() const override
+    {
+        return m_isBaby ? 0.3f : 0.6f;
+    }
 
     /**
      * @brief 获取实体高度
      */
-    [[nodiscard]] f32 height() const override { return m_isBaby ? 0.975f : 1.95f; }
+    [[nodiscard]] f32 height() const override
+    {
+        return m_isBaby ? 0.975f : 1.95f;
+    }
 
     // ========== 伤害处理 ==========
 

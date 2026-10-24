@@ -102,7 +102,9 @@ public:
 
     void paint(PaintContext& ctx) override
     {
-        if (!isVisible()) return;
+        if (!isVisible()) {
+            return;
+        }
         ctx.drawFilledRect(bounds(), Colors::fromARGB(255, 16, 16, 20));
         ctx.drawBorder(bounds(), 1.0f, Colors::fromARGB(255, 90, 90, 120));
     }
@@ -115,7 +117,9 @@ public:
         (void)mouseY;
         (void)mods;
 
-        if (!isActive() || !isVisible()) return false;
+        if (!isActive() || !isVisible()) {
+            return false;
+        }
 
         if (button == 0) { // 左键拖动旋转
             m_dragging = true;
@@ -147,7 +151,9 @@ public:
         (void)mouseY;
         (void)button;
 
-        if (!m_dragging) return false;
+        if (!m_dragging) {
+            return false;
+        }
 
         // 旋转视角
         m_yaw += static_cast<f32>(deltaX) * m_rotationSensitivity;
@@ -163,7 +169,9 @@ public:
     {
         (void)mods;
         // onClick 已经设置了 m_dragging 并记录起始坐标，onDragStart 仅确认拖拽按钮
-        if (button != 0) return false;
+        if (button != 0) {
+            return false;
+        }
         return m_dragging;
     }
 
@@ -174,7 +182,9 @@ public:
         (void)dropped;
         // onDragEnd 仅作为拖拽结束通知，不清理 m_dragging。
         // 状态清理由 onRelease 统一完成（与原设计一致，避免双重清理）。
-        if (button != 0) return false;
+        if (button != 0) {
+            return false;
+        }
         return m_dragging;
     }
 
@@ -183,7 +193,9 @@ public:
         (void)mouseX;
         (void)mouseY;
 
-        if (!isActive() || !isVisible()) return false;
+        if (!isActive() || !isVisible()) {
+            return false;
+        }
 
         // 缩放距离
         m_cameraDistance -= static_cast<f32>(delta) * m_zoomSensitivity;
@@ -206,7 +218,10 @@ public:
     /**
      * @brief 获取要渲染的实体
      */
-    [[nodiscard]] mc::Entity* entity() const { return m_entity; }
+    [[nodiscard]] mc::Entity* entity() const
+    {
+        return m_entity;
+    }
 
     /**
      * @brief 设置要渲染的玩家
@@ -221,7 +236,10 @@ public:
     /**
      * @brief 获取要渲染的玩家
      */
-    [[nodiscard]] mc::Player* player() const { return m_player; }
+    [[nodiscard]] mc::Player* player() const
+    {
+        return m_player;
+    }
 
     // ==================== 相机操作 ====================
 
@@ -236,7 +254,10 @@ public:
     /**
      * @brief 获取相机距离
      */
-    [[nodiscard]] f32 cameraDistance() const { return m_cameraDistance; }
+    [[nodiscard]] f32 cameraDistance() const
+    {
+        return m_cameraDistance;
+    }
 
     /**
      * @brief 设置相机旋转
@@ -260,12 +281,18 @@ public:
     /**
      * @brief 获取俯仰角
      */
-    [[nodiscard]] f32 pitch() const { return m_pitch; }
+    [[nodiscard]] f32 pitch() const
+    {
+        return m_pitch;
+    }
 
     /**
      * @brief 获取偏航角
      */
-    [[nodiscard]] f32 yaw() const { return m_yaw; }
+    [[nodiscard]] f32 yaw() const
+    {
+        return m_yaw;
+    }
 
     /**
      * @brief 重置相机角度
@@ -281,42 +308,66 @@ public:
     /**
      * @brief 设置渲染模式
      */
-    void setRenderMode(RenderMode mode) { m_renderMode = mode; }
+    void setRenderMode(RenderMode mode)
+    {
+        m_renderMode = mode;
+    }
 
     /**
      * @brief 获取渲染模式
      */
-    [[nodiscard]] RenderMode renderMode() const { return m_renderMode; }
+    [[nodiscard]] RenderMode renderMode() const
+    {
+        return m_renderMode;
+    }
 
     /**
      * @brief 设置背景颜色
      */
-    void setBackgroundColor(u32 color) { m_backgroundColor = color; }
+    void setBackgroundColor(u32 color)
+    {
+        m_backgroundColor = color;
+    }
 
     /**
      * @brief 获取背景颜色
      */
-    [[nodiscard]] u32 backgroundColor() const { return m_backgroundColor; }
+    [[nodiscard]] u32 backgroundColor() const
+    {
+        return m_backgroundColor;
+    }
 
     /**
      * @brief 设置是否显示背景
      */
-    void setShowBackground(bool show) { m_showBackground = show; }
+    void setShowBackground(bool show)
+    {
+        m_showBackground = show;
+    }
 
     /**
      * @brief 是否显示背景
      */
-    [[nodiscard]] bool showBackground() const { return m_showBackground; }
+    [[nodiscard]] bool showBackground() const
+    {
+        return m_showBackground;
+    }
 
     /**
      * @brief 设置旋转灵敏度
      */
-    void setRotationSensitivity(f32 sensitivity) { m_rotationSensitivity = sensitivity; }
+    void setRotationSensitivity(f32 sensitivity)
+    {
+        m_rotationSensitivity = sensitivity;
+    }
 
     /**
      * @brief 设置缩放灵敏度
      */
-    void setZoomSensitivity(f32 sensitivity) { m_zoomSensitivity = sensitivity; }
+    void setZoomSensitivity(f32 sensitivity)
+    {
+        m_zoomSensitivity = sensitivity;
+    }
 
     /**
      * @brief 设置缩放范围
@@ -331,22 +382,34 @@ public:
     /**
      * @brief 设置是否自动旋转
      */
-    void setAutoRotate(bool autoRotate) { m_autoRotate = autoRotate; }
+    void setAutoRotate(bool autoRotate)
+    {
+        m_autoRotate = autoRotate;
+    }
 
     /**
      * @brief 是否自动旋转
      */
-    [[nodiscard]] bool autoRotate() const { return m_autoRotate; }
+    [[nodiscard]] bool autoRotate() const
+    {
+        return m_autoRotate;
+    }
 
     /**
      * @brief 设置自动旋转速度
      */
-    void setAutoRotateSpeed(f32 speed) { m_autoRotateSpeed = speed; }
+    void setAutoRotateSpeed(f32 speed)
+    {
+        m_autoRotateSpeed = speed;
+    }
 
     /**
      * @brief 获取自动旋转速度
      */
-    [[nodiscard]] f32 autoRotateSpeed() const { return m_autoRotateSpeed; }
+    [[nodiscard]] f32 autoRotateSpeed() const
+    {
+        return m_autoRotateSpeed;
+    }
 
 protected:
     /**

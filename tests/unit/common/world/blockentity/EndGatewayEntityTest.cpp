@@ -92,7 +92,10 @@ TEST_F(EndGatewayEntityRegistryTest, CreateFromJson_EndGatewayEntity)
 
 class EndGatewayEntityTest : public ::testing::Test {
 protected:
-    void SetUp() override { gatewayEntity = std::make_unique<EndGatewayEntity>(BlockPos(100, 50, 0)); }
+    void SetUp() override
+    {
+        gatewayEntity = std::make_unique<EndGatewayEntity>(BlockPos(100, 50, 0));
+    }
 
     std::unique_ptr<EndGatewayEntity> gatewayEntity;
 };
@@ -363,7 +366,10 @@ TEST_F(EndGatewayEntityTest, TriggerEvent_UnknownEvent_ReturnsFalse)
 // 测试用的 Mock World，支持 setBlockState/getBlockState 和 getBlockEntity
 class EndGatewayTestWorld : public mc::test::BaseTestWorld {
 public:
-    EndGatewayTestWorld() { VanillaBlocks::initialize(); }
+    EndGatewayTestWorld()
+    {
+        VanillaBlocks::initialize();
+    }
 
     bool setBlockState(i32 x, i32 y, i32 z, const BlockState* state) override
     {
@@ -388,7 +394,10 @@ public:
         m_blockEntities[pos] = std::move(entity);
     }
 
-    bool isClientSide() const override { return false; }
+    bool isClientSide() const override
+    {
+        return false;
+    }
 
     // 获取指定位置的方块，如果未设置则返回空气
     const BlockState* getBlockStateOrAir(const BlockPos& pos) const
@@ -667,9 +676,15 @@ public:
         : EndGatewayEntity(pos)
     {}
 
-    [[nodiscard]] static bool testIsChunkEmpty(const world::chunk::ChunkData* chunk) { return _isChunkEmpty(chunk); }
+    [[nodiscard]] static bool testIsChunkEmpty(const world::chunk::ChunkData* chunk)
+    {
+        return _isChunkEmpty(chunk);
+    }
 
-    void testGenerateExitPortal(IWorld& world) { _generateExitPortal(world); }
+    void testGenerateExitPortal(IWorld& world)
+    {
+        _generateExitPortal(world);
+    }
 };
 } // namespace mc::blockentity
 
@@ -677,7 +692,10 @@ public:
 // 方块读写、方块实体注入
 class EndGatewayChunkTestWorld : public mc::test::BaseChunkBackedTestWorld {
 public:
-    EndGatewayChunkTestWorld() { mc::VanillaBlocks::initialize(); }
+    EndGatewayChunkTestWorld()
+    {
+        mc::VanillaBlocks::initialize();
+    }
 
     [[nodiscard]] const mc::BlockState* getBlockState(i32 x, i32 y, i32 z) const override
     {
@@ -707,10 +725,16 @@ public:
         m_blockEntities[pos] = std::move(entity);
     }
 
-    [[nodiscard]] bool isClientSide() const override { return false; }
+    [[nodiscard]] bool isClientSide() const override
+    {
+        return false;
+    }
 
 private:
-    [[nodiscard]] const mc::BlockState* getAirState() const { return &mc::VanillaBlocks::AIR->defaultState(); }
+    [[nodiscard]] const mc::BlockState* getAirState() const
+    {
+        return &mc::VanillaBlocks::AIR->defaultState();
+    }
 
     std::unordered_map<mc::BlockPos, std::unique_ptr<mc::BlockEntity>> m_blockEntities;
 };

@@ -81,10 +81,14 @@ Result<GuiSpriteDefinition> GuiSpriteParser::parse(const std::string& jsonConten
         // 支持格式: "button": { "normal": "button_normal", "hover": "button_hover", "disabled": "button_disabled" }
         if (root.contains("state_variants") && root["state_variants"].is_object()) {
             for (const auto& [baseId, variants] : root["state_variants"].items()) {
-                if (!variants.is_object()) continue;
+                if (!variants.is_object()) {
+                    continue;
+                }
 
                 auto baseIt = result.sprites.find(baseId);
-                if (baseIt == result.sprites.end()) continue;
+                if (baseIt == result.sprites.end()) {
+                    continue;
+                }
 
                 if (variants.contains("hover")) {
                     baseIt->second.hoverSprite = variants["hover"].get<std::string>();

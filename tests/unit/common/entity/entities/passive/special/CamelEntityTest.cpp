@@ -57,9 +57,20 @@ namespace {
  */
 class CamelTestWorld final : public mc::test::BaseTestWorld {
 public:
-    [[nodiscard]] u64 currentTick() const override { return m_tick; }
-    void setTick(u64 tick) { m_tick = tick; }
-    void advance(u64 ticks) { m_tick += ticks; }
+    [[nodiscard]] u64 currentTick() const override
+    {
+        return m_tick;
+    }
+
+    void setTick(u64 tick)
+    {
+        m_tick = tick;
+    }
+
+    void advance(u64 ticks)
+    {
+        m_tick += ticks;
+    }
 
 private:
     u64 m_tick = 0;

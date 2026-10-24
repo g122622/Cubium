@@ -22,7 +22,10 @@ public:
     EntityReference() noexcept = default;
 
     /** @brief 从当前有效的实体指针构造引用 */
-    EntityReference(T* entity) { *this = entity; }
+    EntityReference(T* entity)
+    {
+        *this = entity;
+    }
 
     /** @brief 绑定当前有效的实体指针，空指针表示清除引用 */
     EntityReference& operator=(T* entity)
@@ -34,13 +37,22 @@ public:
     }
 
     /** @brief 取得尚未移除或析构的实体，失效引用返回空指针 */
-    [[nodiscard]] T* get() const noexcept { return m_lifetime.expired() ? nullptr : m_entity; }
+    [[nodiscard]] T* get() const noexcept
+    {
+        return m_lifetime.expired() ? nullptr : m_entity;
+    }
 
     /** @brief 判断引用是否仍有效 */
-    [[nodiscard]] explicit operator bool() const noexcept { return get() != nullptr; }
+    [[nodiscard]] explicit operator bool() const noexcept
+    {
+        return get() != nullptr;
+    }
 
     /** @brief 判断引用是否为空或已经失效 */
-    [[nodiscard]] bool operator==(std::nullptr_t) const noexcept { return get() == nullptr; }
+    [[nodiscard]] bool operator==(std::nullptr_t) const noexcept
+    {
+        return get() == nullptr;
+    }
 
     /** @brief 访问有效引用，调用方必须先检查引用 */
     [[nodiscard]] T* operator->() const
@@ -51,7 +63,10 @@ public:
     }
 
     /** @brief 解引用有效引用，调用方必须先检查引用 */
-    [[nodiscard]] T& operator*() const { return *operator->(); }
+    [[nodiscard]] T& operator*() const
+    {
+        return *operator->();
+    }
 
 private:
     T* m_entity = nullptr;

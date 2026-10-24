@@ -123,7 +123,9 @@ void ServerClientConnection::drainInbound()
     }
     for (auto& pkt : local) {
         handler(pkt);
-        if (m_state == HandshakeState::Disconnected) break;
+        if (m_state == HandshakeState::Disconnected) {
+            break;
+        }
     }
 }
 

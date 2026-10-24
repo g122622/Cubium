@@ -78,7 +78,9 @@ void ClientSessionManager::onClientConnect(ServerClientConnection& conn)
     // Status（服务器列表 ping）信息提供者：读 MinecraftServer 的周期性状态缓存
     // （MOTD/玩家数/样本/favicon/enforcesSecureChat，由 buildServerStatus 组装，每 5 秒重建一次）。
     // 与 vanilla ServerStatusPacketListenerImpl 持 status 快照一致：一次 ping 用一份完整状态。
-    session->handshake().onStatusRequest([this]() -> StatusInfo { return m_server.statusInfo(); });
+    session->handshake().onStatusRequest([this]() -> StatusInfo {
+        return m_server.statusInfo();
+    });
 
     // 装配 Wire 入站派发分支（主线程 drainInbound 调用）：会话自行完成
     // 「握手状态机 → phase/playerId 守卫 → Play 处理器」的整条派发链。
@@ -92,7 +94,9 @@ void ClientSessionManager::onClientConnect(ServerClientConnection& conn)
 
     // 接收线程仅入队，不跑游戏逻辑（跨线程安全）。
     ServerClientConnection* connPtr = &conn;
-    conn.onPacket([connPtr](const mc::network::ir::IrPacket& packet) { connPtr->enqueueInbound(packet); });
+    conn.onPacket([connPtr](const mc::network::ir::IrPacket& packet) {
+        connPtr->enqueueInbound(packet);
+    });
 
     {
         std::lock_guard<std::mutex> lock(m_sessionsMutex);

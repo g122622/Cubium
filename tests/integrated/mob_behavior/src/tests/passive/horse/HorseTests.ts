@@ -9,7 +9,7 @@
 //      TameableEntity（继承 AnimalEntity+IJumpingMount+IEquipable）但有独立 isTame()/setTame()，
 //      故 getComponent("minecraft:is_tamed") 对马返 undefined，脚本无法断言马驯服。本次补
 //      dynamic_cast<AbstractHorseEntity*> 分支（与 is_saddled 对马类的双路范式一致），使马驯服
-//      状态可经 is_tamed.value 精确断言。
+//      状态可经 is_tamed 组件存在性 精确断言。
 //   2. applySpawnEvent 新增 set_tamed spawn 事件（对齐 set_trap 范式）：test.spawn("horse<minecraft:set_tamed>", pos)
 //      生成已驯服马（setTame(true)）。解锁装鞍测试——装鞍需先驯服，而驯服后玩家留在马上（setTamedBy 不甩人），
 //      玩家在马上时 HorseEntity::interactMob:270 !isBeingRidden()=false 短路到基类不装鞍，故无法在同一次
@@ -113,9 +113,9 @@ function horseRiddenByPlayerUntrained(test: Test): void {
 //
 // 驯服循环：玩家被甩下后重新 interactWithEntity 再骑，驱动 RunAroundLikeCrazyGoal 反复检查累积 temper。
 // temper 单调递增（每次检查失败 +5），maxTemper=100，达 100 时 nextInt(100)<100 恒成立 → 必然驯服。
-// 驯服后 is_tamed.value===true（验证 is_tamed 组件对 AbstractHorseEntity 的补全分支）。
+// 驯服后 is_tamed 组件存在（验证 is_tamed 组件对 AbstractHorseEntity 的补全分支）。
 //
-// 注：驯服成功 setTamedBy 不甩人（玩家留在马上），故本测试只验证驯服（is_tamed.value===true），
+// 注：驯服成功 setTamedBy 不甩人（玩家留在马上），故本测试只验证驯服（is_tamed 组件存在），
 // 不接着装鞍——装鞍需玩家先下马，脚本无 dismount API，故装鞍由独立的 horse_saddled_when_tamed
 // 测试用 set_tamed 事件生成已驯服马覆盖。
 //
@@ -155,7 +155,7 @@ function horseTamedByRepeatedRiding(test: Test): void {
   // 反复检查累积 temper）；马已被骑时 interactMob isBeingRidden 短路走基类（无副作用）。
   // interactOn/startRiding 无距离门控，马乱跑到角落也能跨距离骑上，无需 teleport。
   // 驯服成功后 setTamedBy 不甩人，玩家留在马上，后续 interact 走基类无害，由下方 pollUntilSucceed
-  // 检测 is_tamed.value===true 终止。
+  // 检测 is_tamed 组件存在 终止。
   const driveTicks: number[] = [];
   for (let t = 3; t < 5997; t += 3) {
     driveTicks.push(t);
@@ -166,13 +166,13 @@ function horseTamedByRepeatedRiding(test: Test): void {
     });
   }
 
-  // 轮询断言驯服成功：is_tamed 组件 value===true（验证组件补全 + 驯服链路）。
+  // 轮询断言驯服成功：is_tamed 组件存在（验证组件补全 + 驯服链路）。
   // startTick=40 留驯服时序，maxTick=5980 在 driveTicks 范围内。
   pollUntilSucceed(test, () => {
     const h = firstEntity(test, "horse");
     if (h == null) return false;
     const tamedComp = (h as any).getComponent("minecraft:is_tamed");
-    return tamedComp !== undefined && tamedComp.value === true;
+    return tamedComp !== undefined;
   }, {
     startTick: 40,
     interval: 10,
@@ -183,7 +183,7 @@ function horseTamedByRepeatedRiding(test: Test): void {
       const riding = isPlayerRidingHorse(test);
       test.assert(false,
         `horse not tamed after repeated riding (RunAroundLikeCrazyGoal broken or is_tamed comp missing), `
-        + `is_tamed=${tamedComp === undefined ? "undefined" : `value=${tamedComp.value}`}, `
+        + `is_tamed=${tamedComp != null}, `
         + `playerRiding=${riding}`);
     },
   });
@@ -197,7 +197,7 @@ function horseTamedByRepeatedRiding(test: Test): void {
 // （setSaddle(true)）。马未被骑（玩家不先骑），HorseEntity::interactMob:270 !isBeingRidden()=true 不短路，
 // 走完整装鞍分支。
 //
-// 判定：装鞍后 is_saddled 组件存在（=== !undefined）+ is_tamed.value===true（双重断言确认 set_tamed 生效）。
+// 判定：装鞍后 is_saddled 组件存在（=== !undefined）+ is_tamed 组件存在（双重断言确认 set_tamed 生效）。
 function horseSaddledWhenTamed(test: Test): void {
   // set_tamed 事件生成已驯服马（setTame(true)），无需先驯服。
   const horse = test.spawn("horse<minecraft:set_tamed>", { x: 4, y: 2, z: 4 });
@@ -212,13 +212,13 @@ function horseSaddledWhenTamed(test: Test): void {
     (player as any).interactWithEntity(horse);
   });
 
-  // 轮询断言装鞍成功：is_saddled 组件存在 + is_tamed.value===true（双重断言）。
+  // 轮询断言装鞍成功：is_saddled 组件存在 + is_tamed 组件存在（双重断言）。
   pollUntilSucceed(test, () => {
     const h = firstEntity(test, "horse");
     if (h == null) return false;
     const tamedComp = (h as any).getComponent("minecraft:is_tamed");
     const saddledComp = (h as any).getComponent("minecraft:is_saddled");
-    return tamedComp !== undefined && tamedComp.value === true && saddledComp !== undefined;
+    return tamedComp !== undefined && saddledComp !== undefined;
   }, {
     startTick: 8,
     interval: 2,
@@ -229,7 +229,7 @@ function horseSaddledWhenTamed(test: Test): void {
       const saddledComp = h != null ? (h as any).getComponent("minecraft:is_saddled") : null;
       test.assert(false,
         `tamed horse not saddled (SaddleItem::itemInteractionForEntity broken or set_tamed event missing), `
-        + `is_tamed=${tamedComp === undefined ? "undefined" : `value=${tamedComp.value}`}, `
+        + `is_tamed=${tamedComp != null}, `
         + `is_saddled=${saddledComp === undefined ? "undefined" : "present"}`);
     },
   });

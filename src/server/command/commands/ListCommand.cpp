@@ -44,9 +44,13 @@ void ListCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
     using namespace mc::command;
 
     auto listNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("list");
-    listNode->setRequirement([](const ServerCommandSource& source) { return source.hasPermission(0); });
+    listNode->setRequirement([](const ServerCommandSource& source) {
+        return source.hasPermission(0);
+    });
     support::applyMetadata(listNode, support::makeMetadata("List online players.", "/list", 0));
-    listNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _listPlayers(ctx); });
+    listNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _listPlayers(ctx);
+    });
 
     dispatcher.registerCommand(listNode);
 }

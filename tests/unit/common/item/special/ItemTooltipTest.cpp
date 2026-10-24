@@ -54,7 +54,10 @@ namespace {
 
 class ItemTooltipTest : public ::testing::Test {
 protected:
-    static void SetUpTestSuite() { Items::initialize(); }
+    static void SetUpTestSuite()
+    {
+        Items::initialize();
+    }
 };
 
 // ============================================================================
@@ -357,7 +360,10 @@ class TooltipTestWorld : public mc::test::BaseTestWorld {};
 
 class ItemTooltipIntegrationTest : public ::testing::Test {
 protected:
-    static void SetUpTestSuite() { Items::initialize(); }
+    static void SetUpTestSuite()
+    {
+        Items::initialize();
+    }
 
     TooltipTestWorld m_world;
 };

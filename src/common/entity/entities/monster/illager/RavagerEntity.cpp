@@ -104,7 +104,9 @@ void RavagerEntity::tick()
 {
     AbstractRaiderEntity::tick();
 
-    if (!isAlive()) return;
+    if (!isAlive()) {
+        return;
+    }
 
     // 更新速度属性（根据攻击状态调整）
     if (isMovementBlocked()) {
@@ -268,10 +270,14 @@ void RavagerEntity::blockedByItem(LivingEntity& victim)
 
 void RavagerEntity::_roar()
 {
-    if (!isAlive()) return;
+    if (!isAlive()) {
+        return;
+    }
 
     IWorld* worldPtr = world();
-    if (!worldPtr) return;
+    if (!worldPtr) {
+        return;
+    }
 
     // 获取周围 4 格内的所有 LivingEntity
     AxisAlignedBB searchBox = boundingBox().grow(ROAR_RANGE);
@@ -280,7 +286,9 @@ void RavagerEntity::_roar()
     for (Entity* entity : entities) {
         // 排除劫掠兽自己和掠夺者类实体
         LivingEntity* living = dynamic_cast<LivingEntity*>(entity);
-        if (!living) continue;
+        if (!living) {
+            continue;
+        }
 
         // 掠夺者类实体免疫咆哮伤害，但仍会被击退
         if (dynamic_cast<AbstractRaiderEntity*>(living)) {
@@ -302,7 +310,9 @@ void RavagerEntity::_roar()
 
 void RavagerEntity::_launchEntity(Entity* entity)
 {
-    if (!entity) return;
+    if (!entity) {
+        return;
+    }
 
     // 计算发射方向
     f64 dx = entity->x() - x();
@@ -330,10 +340,14 @@ void RavagerEntity::_spawnStunParticles()
     // 1/6 概率生成 ENTITY_EFFECT 粒子
     // 颜色常量 STUNNED_COLOR = 8356754 即 RGB(127, 131, 146) -> R=0.498, G=0.514, B=0.573
     math::IRandom& rng = getRandom();
-    if (rng.nextInt(6) != 0) return;
+    if (rng.nextInt(6) != 0) {
+        return;
+    }
 
     IWorld* worldPtr = world();
-    if (!worldPtr) return;
+    if (!worldPtr) {
+        return;
+    }
 
     // 计算粒子位置（在实体身体上方偏移）
     f32 renderYawOffsetRad = math::toRadians(renderYawOffset());
@@ -354,7 +368,9 @@ void RavagerEntity::_spawnStunParticles()
 void RavagerEntity::_breakLeavesOnCollision()
 {
     IWorld* worldPtr = world();
-    if (!worldPtr || !m_canBreakBlocks) return;
+    if (!worldPtr || !m_canBreakBlocks) {
+        return;
+    }
 
     // 检查 mobGriefing 游戏规则
     if (!worldPtr->getGameRules().getBoolean(world::gamerule::GameRuleKeys::MOB_GRIEFING)) {
@@ -379,7 +395,9 @@ void RavagerEntity::_breakLeavesOnCollision()
                 BlockPos pos(bx, by, bz);
                 const BlockState* state = worldPtr->getBlockState(pos);
 
-                if (!state) continue;
+                if (!state) {
+                    continue;
+                }
 
                 // 只破坏树叶 (LeavesBlock)
                 if (BlockTags::LEAVES().contains(*state)) {

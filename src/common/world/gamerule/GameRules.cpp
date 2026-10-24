@@ -76,7 +76,9 @@ bool _isCanonicalDecimalInteger(std::string_view value)
         return false;
     }
 
-    return std::all_of(digits.begin(), digits.end(), [](char c) { return c >= '0' && c <= '9'; });
+    return std::all_of(digits.begin(), digits.end(), [](char c) {
+        return c >= '0' && c <= '9';
+    });
 }
 
 // 规则类型注册表

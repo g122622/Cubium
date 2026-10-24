@@ -53,65 +53,153 @@ const Item* getOrRegisterTestItem(const std::string& name)
 // ========== Mock Merchant 用于测试 ==========
 class MockMerchant : public world::village::trade::IMerchant {
 public:
-    MockMerchant() { m_offers = std::make_unique<world::village::trade::MerchantOffers>(); }
+    MockMerchant()
+    {
+        m_offers = std::make_unique<world::village::trade::MerchantOffers>();
+    }
 
     // IMerchant 接口实现
-    [[nodiscard]] world::village::trade::MerchantOffers& getOffers() override { return *m_offers; }
-    [[nodiscard]] const world::village::trade::MerchantOffers& getOffers() const override { return *m_offers; }
+    [[nodiscard]] world::village::trade::MerchantOffers& getOffers() override
+    {
+        return *m_offers;
+    }
+
+    [[nodiscard]] const world::village::trade::MerchantOffers& getOffers() const override
+    {
+        return *m_offers;
+    }
+
     void setOffers(world::village::trade::MerchantOffers offers) override
     {
         m_offers = std::make_unique<world::village::trade::MerchantOffers>(std::move(offers));
     }
+
     void overrideOffers(world::village::trade::MerchantOffers offers) override
     {
         m_offers = std::make_unique<world::village::trade::MerchantOffers>(std::move(offers));
     }
-    [[nodiscard]] bool hasOffers() const override { return m_offers != nullptr && !m_offers->empty(); }
-    [[nodiscard]] Player* getTradingPlayer() const override { return m_tradingPlayer; }
-    void startTrading(Player* player) override { m_tradingPlayer = player; }
-    void stopTrading() override { m_tradingPlayer = nullptr; }
-    [[nodiscard]] bool isTrading() const override { return m_tradingPlayer != nullptr; }
-    [[nodiscard]] i32 getExperience() const override { return m_experience; }
-    void setExperience(i32 exp) override { m_experience = exp; }
-    void addExperience(i32 amount) override { m_experience += amount; }
+
+    [[nodiscard]] bool hasOffers() const override
+    {
+        return m_offers != nullptr && !m_offers->empty();
+    }
+
+    [[nodiscard]] Player* getTradingPlayer() const override
+    {
+        return m_tradingPlayer;
+    }
+
+    void startTrading(Player* player) override
+    {
+        m_tradingPlayer = player;
+    }
+
+    void stopTrading() override
+    {
+        m_tradingPlayer = nullptr;
+    }
+
+    [[nodiscard]] bool isTrading() const override
+    {
+        return m_tradingPlayer != nullptr;
+    }
+
+    [[nodiscard]] i32 getExperience() const override
+    {
+        return m_experience;
+    }
+
+    void setExperience(i32 exp) override
+    {
+        m_experience = exp;
+    }
+
+    void addExperience(i32 amount) override
+    {
+        m_experience += amount;
+    }
+
     void restock() override
     {
         if (m_offers) {
             m_offers->restockAll();
         }
     }
+
     void notifyTrade(world::village::trade::MerchantOffer& offer) override
     {
         offer.increaseUses();
         m_lastTradeXp = offer.getXp();
         m_notifyTradeCount++;
     }
+
     void notifyTradeUpdated(const ItemStack& resultStack) override
     {
         m_lastResultStack = resultStack;
         m_notifyTradeUpdatedCount++;
     }
-    [[nodiscard]] i32 getVillagerXp() const override { return m_experience; }
-    void overrideXp(i32 xp) override { m_experience = xp; }
-    [[nodiscard]] bool showProgressBar() const override { return true; }
-    [[nodiscard]] bool canRestock() const override { return true; }
-    [[nodiscard]] bool isClientSide() const override { return false; }
+
+    [[nodiscard]] i32 getVillagerXp() const override
+    {
+        return m_experience;
+    }
+
+    void overrideXp(i32 xp) override
+    {
+        m_experience = xp;
+    }
+
+    [[nodiscard]] bool showProgressBar() const override
+    {
+        return true;
+    }
+
+    [[nodiscard]] bool canRestock() const override
+    {
+        return true;
+    }
+
+    [[nodiscard]] bool isClientSide() const override
+    {
+        return false;
+    }
+
     [[nodiscard]] bool stillValid(const Player& player) const override
     {
         (void)player;
         return true;
     }
-    [[nodiscard]] Entity* asEntity() override { return nullptr; }
-    [[nodiscard]] const Entity* asEntity() const override { return nullptr; }
+
+    [[nodiscard]] Entity* asEntity() override
+    {
+        return nullptr;
+    }
+
+    [[nodiscard]] const Entity* asEntity() const override
+    {
+        return nullptr;
+    }
 
     // 测试辅助
     void addTestOffer(std::unique_ptr<world::village::trade::MerchantOffer> offer)
     {
         m_offers->addOffer(std::move(offer));
     }
-    i32 getNotifyTradeCount() const { return m_notifyTradeCount; }
-    i32 getNotifyTradeUpdatedCount() const { return m_notifyTradeUpdatedCount; }
-    i32 getLastTradeXp() const { return m_lastTradeXp; }
+
+    i32 getNotifyTradeCount() const
+    {
+        return m_notifyTradeCount;
+    }
+
+    i32 getNotifyTradeUpdatedCount() const
+    {
+        return m_notifyTradeUpdatedCount;
+    }
+
+    i32 getLastTradeXp() const
+    {
+        return m_lastTradeXp;
+    }
 
 private:
     std::unique_ptr<world::village::trade::MerchantOffers> m_offers;

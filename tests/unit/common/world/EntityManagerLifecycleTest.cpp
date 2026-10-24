@@ -67,7 +67,10 @@ public:
         Entity::onRemoval(reason);
     }
 
-    [[nodiscard]] std::optional<RemovalReason> lastReason() const { return m_lastReason; }
+    [[nodiscard]] std::optional<RemovalReason> lastReason() const
+    {
+        return m_lastReason;
+    }
 
 private:
     i32* m_destroyCounter = nullptr;
@@ -85,7 +88,10 @@ private:
  */
 class EntityManagerLifecycleTest : public ::testing::Test {
 protected:
-    void SetUp() override { m_manager.setSimulationDistance(32); }
+    void SetUp() override
+    {
+        m_manager.setSimulationDistance(32);
+    }
 
     /// 创建并登记一个探针实体，返回其 id
     EntityInstanceId addProbe()

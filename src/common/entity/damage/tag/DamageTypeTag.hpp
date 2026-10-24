@@ -69,7 +69,10 @@ public:
     /**
      * @brief 获取标签ID
      */
-    [[nodiscard]] const ResourceLocation& getId() const { return m_id; }
+    [[nodiscard]] const ResourceLocation& getId() const
+    {
+        return m_id;
+    }
 
     /**
      * @brief 添加伤害类型到标签
@@ -119,7 +122,10 @@ public:
     /**
      * @brief 获取标签中的所有伤害类型
      */
-    [[nodiscard]] const std::unordered_set<DamageType>& getDamageTypes() const { return m_damageTypes; }
+    [[nodiscard]] const std::unordered_set<DamageType>& getDamageTypes() const
+    {
+        return m_damageTypes;
+    }
 
 private:
     ResourceLocation m_id;

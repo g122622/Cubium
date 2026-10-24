@@ -63,9 +63,15 @@ public:
         }
     }
 
-    [[nodiscard]] bool canBeSilent() const override { return true; }
+    [[nodiscard]] bool canBeSilent() const override
+    {
+        return true;
+    }
 
-    [[nodiscard]] i32 getTickCount() const { return m_tickCount; }
+    [[nodiscard]] i32 getTickCount() const
+    {
+        return m_tickCount;
+    }
 
 private:
     i32 m_tickCount = 0;
@@ -73,7 +79,10 @@ private:
 
 class TickableSoundTest : public ::testing::Test {
 protected:
-    void SetUp() override { testLocation = ResourceLocation("minecraft:test.tickable"); }
+    void SetUp() override
+    {
+        testLocation = ResourceLocation("minecraft:test.tickable");
+    }
 
     ResourceLocation testLocation;
 };
@@ -164,7 +173,10 @@ TEST_F(TickableSoundTest, SetAndGetId)
 
 class EntitySoundHandlerTest : public ::testing::Test {
 protected:
-    void SetUp() override { handler = std::make_unique<EntitySoundHandler>(); }
+    void SetUp() override
+    {
+        handler = std::make_unique<EntitySoundHandler>();
+    }
 
     std::unique_ptr<EntitySoundHandler> handler;
 };

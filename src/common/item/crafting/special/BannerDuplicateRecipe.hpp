@@ -71,6 +71,7 @@ private:
         i32 targetIndex; ///< 无图案的旗帜索引
         DyeColor color;  ///< 旗帜颜色
     };
+
     [[nodiscard]] std::optional<BannerPair> _findBannerPair(const CraftingInventory& inventory) const;
 };
 

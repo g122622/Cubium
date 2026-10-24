@@ -79,14 +79,20 @@ public:
      * @brief 检查是否激活
      * @return 如果激活返回true
      */
-    [[nodiscard]] bool isActive() const { return m_active; }
+    [[nodiscard]] bool isActive() const
+    {
+        return m_active;
+    }
 
     /**
      * @brief 检查眼睛是否睁开
      * 眼睛睁开时表示可以攻击敌对生物
      * @return 如果眼睛睁开返回true
      */
-    [[nodiscard]] bool isEyeOpen() const { return m_eyeOpen; }
+    [[nodiscard]] bool isEyeOpen() const
+    {
+        return m_eyeOpen;
+    }
 
     /**
      * @brief 获取激活旋转角度（客户端渲染用）
@@ -99,13 +105,19 @@ public:
      * @brief 获取海晶石框架位置列表
      * @return 框架方块位置列表
      */
-    [[nodiscard]] const std::vector<BlockPos>& getPrismarinePositions() const { return m_prismarinePositions; }
+    [[nodiscard]] const std::vector<BlockPos>& getPrismarinePositions() const
+    {
+        return m_prismarinePositions;
+    }
 
     /**
      * @brief 获取当前攻击目标
      * @return 目标实体，如果没有返回nullptr
      */
-    [[nodiscard]] LivingEntity* getTarget() const { return m_target; }
+    [[nodiscard]] LivingEntity* getTarget() const
+    {
+        return m_target;
+    }
 
     /**
      * @brief 获取效果范围
@@ -116,7 +128,11 @@ public:
     // ========== Tick 更新 ==========
 
     void tick(IWorld& world) override;
-    [[nodiscard]] bool needsTick() const noexcept override { return true; }
+
+    [[nodiscard]] bool needsTick() const noexcept override
+    {
+        return true;
+    }
 
     // ========== 序列化 ==========
 

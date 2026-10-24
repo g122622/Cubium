@@ -61,14 +61,17 @@ class ItemTextureAtlas;
 namespace mc::client::renderer::entity::model {
 class EntityModel;
 class BipedModel;
+
 namespace player {
 class PlayerModel;
 } // namespace player
+
 namespace monster {
 class SkeletonModel;
 class ZombieModel;
 class DrownedModel;
 } // namespace monster
+
 namespace aquatic {
 class DolphinModel;
 } // namespace aquatic
@@ -206,7 +209,10 @@ public:
     /**
      * @brief 设置实体渲染管线
      */
-    void setPipeline(pipeline::EntityPipeline* pipeline) { m_pipeline = pipeline; }
+    void setPipeline(pipeline::EntityPipeline* pipeline)
+    {
+        m_pipeline = pipeline;
+    }
 
     /**
      * @brief 设置实体纹理图集（用于UV重映射）
@@ -220,7 +226,10 @@ public:
      * _remapUvToAtlasRegion 在玩家分支调用此接口查皮肤区域；非玩家或皮肤未就绪
      * 时返回 nullptr，回退到默认实体纹理路径。
      */
-    void setSkinRegionProvider(const core::PlayerSkinRegionProvider* provider) { m_skinRegionProvider = provider; }
+    void setSkinRegionProvider(const core::PlayerSkinRegionProvider* provider)
+    {
+        m_skinRegionProvider = provider;
+    }
 
     /**
      * @brief 设置物品纹理图集（用于 ItemEntity 渲染）
@@ -229,12 +238,18 @@ public:
      * 注意：与 setTextureAtlas 不同，本方法只赋值不清缓存——
      * 调用方需在图集首次注入后手动 clearMeshes()，强制旧 ItemEntity 网格重做 UV 映射。
      */
-    void setItemTextureAtlas(::mc::client::ItemTextureAtlas* itemAtlas) { m_itemTextureAtlas = itemAtlas; }
+    void setItemTextureAtlas(::mc::client::ItemTextureAtlas* itemAtlas)
+    {
+        m_itemTextureAtlas = itemAtlas;
+    }
 
     /**
      * @brief 获取物品纹理图集
      */
-    [[nodiscard]] ::mc::client::ItemTextureAtlas* itemTextureAtlas() { return m_itemTextureAtlas; }
+    [[nodiscard]] ::mc::client::ItemTextureAtlas* itemTextureAtlas()
+    {
+        return m_itemTextureAtlas;
+    }
 
     /**
      * @brief 设置方块图集（blocks atlas 的 GPU 句柄，用于末影人手持方块渲染）
@@ -253,13 +268,19 @@ public:
      *
      * 用于层渲染器访问纹理UV区域信息。
      */
-    [[nodiscard]] const pipeline::EntityTextureAtlas* textureAtlas() const { return m_textureAtlas; }
+    [[nodiscard]] const pipeline::EntityTextureAtlas* textureAtlas() const
+    {
+        return m_textureAtlas;
+    }
 
     /**
      * @brief 设置相机描述符集
      * @param descriptorSet 相机描述符集（set = 0）
      */
-    void setCameraDescriptorSet(VkDescriptorSet descriptorSet) { m_cameraDescriptorSet = descriptorSet; }
+    void setCameraDescriptorSet(VkDescriptorSet descriptorSet)
+    {
+        m_cameraDescriptorSet = descriptorSet;
+    }
 
     /**
      * @brief 设置相机信息（用于名称标签渲染）
@@ -276,29 +297,44 @@ public:
     /**
      * @brief 获取实体渲染管线
      */
-    [[nodiscard]] pipeline::EntityPipeline* pipeline() { return m_pipeline; }
+    [[nodiscard]] pipeline::EntityPipeline* pipeline()
+    {
+        return m_pipeline;
+    }
 
     // ========== 渲染设置 ==========
 
     /**
      * @brief 设置是否渲染阴影
      */
-    void setRenderShadows(bool render) { m_renderShadows = render; }
+    void setRenderShadows(bool render)
+    {
+        m_renderShadows = render;
+    }
 
     /**
      * @brief 获取是否渲染阴影
      */
-    [[nodiscard]] bool renderShadows() const { return m_renderShadows; }
+    [[nodiscard]] bool renderShadows() const
+    {
+        return m_renderShadows;
+    }
 
     /**
      * @brief 设置是否渲染名称标签
      */
-    void setRenderNameTags(bool render) { m_renderNameTags = render; }
+    void setRenderNameTags(bool render)
+    {
+        m_renderNameTags = render;
+    }
 
     /**
      * @brief 获取是否渲染名称标签
      */
-    [[nodiscard]] bool renderNameTags() const { return m_renderNameTags; }
+    [[nodiscard]] bool renderNameTags() const
+    {
+        return m_renderNameTags;
+    }
 
     // ========== 本地玩家访问 ==========
 

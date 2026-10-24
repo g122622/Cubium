@@ -83,7 +83,11 @@ public:
     // ========== BlockEntity 接口 ==========
 
     void tick(IWorld& world) override;
-    [[nodiscard]] bool needsTick() const noexcept override { return true; }
+
+    [[nodiscard]] bool needsTick() const noexcept override
+    {
+        return true;
+    }
 
     /**
      * @brief 创建方块实体副本
@@ -95,18 +99,31 @@ public:
     /**
      * @brief 获取背包
      */
-    [[nodiscard]] IInventory* getInventory() override { return &m_inventory; }
-    [[nodiscard]] const IInventory* getInventory() const override { return &m_inventory; }
+    [[nodiscard]] IInventory* getInventory() override
+    {
+        return &m_inventory;
+    }
+
+    [[nodiscard]] const IInventory* getInventory() const override
+    {
+        return &m_inventory;
+    }
 
     /**
      * @brief 获取容器大小
      */
-    [[nodiscard]] i32 getContainerSize() const override { return HOPPER_SIZE; }
+    [[nodiscard]] i32 getContainerSize() const override
+    {
+        return HOPPER_SIZE;
+    }
 
     // ========== LockableBlockEntity 接口 ==========
 
 protected:
-    [[nodiscard]] std::string getDefaultName() const override { return "container.hopper"; }
+    [[nodiscard]] std::string getDefaultName() const override
+    {
+        return "container.hopper";
+    }
 
 public:
     // ========== 序列化 ==========
@@ -116,12 +133,35 @@ public:
 
     // ========== IHopper 接口 ==========
 
-    [[nodiscard]] IWorld* getWorld() override { return m_world; }
-    [[nodiscard]] const IWorld* getWorld() const override { return m_world; }
-    [[nodiscard]] f64 getXPos() const override { return static_cast<f64>(getPos().x) + 0.5; }
-    [[nodiscard]] f64 getYPos() const override { return static_cast<f64>(getPos().y) + 0.5; }
-    [[nodiscard]] f64 getZPos() const override { return static_cast<f64>(getPos().z) + 0.5; }
-    [[nodiscard]] BlockPos getHopperPos() const override { return getPos(); }
+    [[nodiscard]] IWorld* getWorld() override
+    {
+        return m_world;
+    }
+
+    [[nodiscard]] const IWorld* getWorld() const override
+    {
+        return m_world;
+    }
+
+    [[nodiscard]] f64 getXPos() const override
+    {
+        return static_cast<f64>(getPos().x) + 0.5;
+    }
+
+    [[nodiscard]] f64 getYPos() const override
+    {
+        return static_cast<f64>(getPos().y) + 0.5;
+    }
+
+    [[nodiscard]] f64 getZPos() const override
+    {
+        return static_cast<f64>(getPos().z) + 0.5;
+    }
+
+    [[nodiscard]] BlockPos getHopperPos() const override
+    {
+        return getPos();
+    }
 
     /**
      * @brief 获取漏斗输出方向
@@ -139,7 +179,10 @@ public:
      * 实现 IHopper::getHopperInventory()，返回内部 SimpleInventory。
      * 用于 pullItems/captureItem 中获取漏斗的背包指针。
      */
-    [[nodiscard]] IInventory* getHopperInventory() override { return &m_inventory; }
+    [[nodiscard]] IInventory* getHopperInventory() override
+    {
+        return &m_inventory;
+    }
 
     // ========== 漏斗特定方法 ==========
 
@@ -147,7 +190,10 @@ public:
      * @brief 检查漏斗是否为空
      * @return 如果所有槽位都为空返回true
      */
-    [[nodiscard]] bool isEmpty() const override { return m_inventory.isEmpty(); }
+    [[nodiscard]] bool isEmpty() const override
+    {
+        return m_inventory.isEmpty();
+    }
 
     /**
      * @brief 检查漏斗是否已满
@@ -159,7 +205,10 @@ public:
      * @brief 获取传输冷却
      * @return 当前冷却tick
      */
-    [[nodiscard]] i32 getTransferCooldown() const { return m_transferCooldown; }
+    [[nodiscard]] i32 getTransferCooldown() const
+    {
+        return m_transferCooldown;
+    }
 
     /**
      * @brief 设置传输冷却
@@ -171,7 +220,10 @@ public:
      * @brief 检查是否处于传输冷却中
      * @return 如果正在冷却返回true
      */
-    [[nodiscard]] bool isOnTransferCooldown() const { return m_transferCooldown > 0; }
+    [[nodiscard]] bool isOnTransferCooldown() const
+    {
+        return m_transferCooldown > 0;
+    }
 
     /**
      * @brief 检查是否处于自定义冷却中（冷却时间超过正常传输冷却）
@@ -181,7 +233,10 @@ public:
      * isOnCustomCooldown() 返回 true，跳过链式冷却缩减。
      * MC Java 中 isOnCustomCooldown() = cooldownTime > MOVE_ITEM_SPEED(8)。
      */
-    [[nodiscard]] bool isOnCustomCooldown() const { return m_transferCooldown > TRANSFER_COOLDOWN; }
+    [[nodiscard]] bool isOnCustomCooldown() const
+    {
+        return m_transferCooldown > TRANSFER_COOLDOWN;
+    }
 
     /**
      * @brief 处理实体碰撞

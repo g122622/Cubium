@@ -72,7 +72,9 @@ Result<void> ClientNetwork::connectLocal(
     m_username = username;
     m_conn = std::make_unique<ClientConn>(
         std::move(serverSideTransport), m_tables, mc::network::protocol::PacketFlow::Serverbound);
-    m_conn->onPacket([this](const mc::network::ir::IrPacket& packet) { _handleInbound(packet); });
+    m_conn->onPacket([this](const mc::network::ir::IrPacket& packet) {
+        _handleInbound(packet);
+    });
 
     _setState(ClientConnState::LoggingIn);
     return _sendHandshakeHello();
@@ -89,7 +91,9 @@ Result<void> ClientNetwork::connectTcp(const std::string& host, u16 port, const 
     auto* tcpTransport = transport.get();
     m_conn =
         std::make_unique<ClientConn>(std::move(transport), m_tables, mc::network::protocol::PacketFlow::Serverbound);
-    m_conn->onPacket([this](const mc::network::ir::IrPacket& packet) { _handleInbound(packet); });
+    m_conn->onPacket([this](const mc::network::ir::IrPacket& packet) {
+        _handleInbound(packet);
+    });
 
     _setState(ClientConnState::Connecting);
     auto receiving = tcpTransport->startReceiving();

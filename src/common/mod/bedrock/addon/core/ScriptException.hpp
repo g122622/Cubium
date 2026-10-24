@@ -60,11 +60,30 @@ public:
         , m_column(column)
     {}
 
-    [[nodiscard]] ScriptErrorType type() const { return m_type; }
-    [[nodiscard]] const std::string& message() const { return m_message; }
-    [[nodiscard]] const std::string& filename() const { return m_filename; }
-    [[nodiscard]] i32 line() const { return m_line; }
-    [[nodiscard]] i32 column() const { return m_column; }
+    [[nodiscard]] ScriptErrorType type() const
+    {
+        return m_type;
+    }
+
+    [[nodiscard]] const std::string& message() const
+    {
+        return m_message;
+    }
+
+    [[nodiscard]] const std::string& filename() const
+    {
+        return m_filename;
+    }
+
+    [[nodiscard]] i32 line() const
+    {
+        return m_line;
+    }
+
+    [[nodiscard]] i32 column() const
+    {
+        return m_column;
+    }
 
     [[nodiscard]] std::string toString() const
     {

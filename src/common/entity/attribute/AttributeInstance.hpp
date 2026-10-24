@@ -57,12 +57,18 @@ public:
     /**
      * @brief 获取属性定义
      */
-    [[nodiscard]] const Attribute& attribute() const noexcept { return m_attribute; }
+    [[nodiscard]] const Attribute& attribute() const noexcept
+    {
+        return m_attribute;
+    }
 
     /**
      * @brief 获取基础值
      */
-    [[nodiscard]] f64 baseValue() const noexcept { return m_baseValue; }
+    [[nodiscard]] f64 baseValue() const noexcept
+    {
+        return m_baseValue;
+    }
 
     /**
      * @brief 设置基础值
@@ -110,8 +116,9 @@ public:
     bool removeModifier(const std::string& id)
     {
         std::lock_guard<std::mutex> lock(m_mutex);
-        auto it = std::find_if(
-            m_modifiers.begin(), m_modifiers.end(), [&id](const AttributeModifier& m) { return m.id() == id; });
+        auto it = std::find_if(m_modifiers.begin(), m_modifiers.end(), [&id](const AttributeModifier& m) {
+            return m.id() == id;
+        });
         if (it != m_modifiers.end()) {
             m_modifiers.erase(it);
             m_dirty = true;
@@ -133,7 +140,10 @@ public:
     /**
      * @brief 获取所有修改器
      */
-    [[nodiscard]] const std::vector<AttributeModifier>& modifiers() const noexcept { return m_modifiers; }
+    [[nodiscard]] const std::vector<AttributeModifier>& modifiers() const noexcept
+    {
+        return m_modifiers;
+    }
 
     /**
      * @brief 检查是否有修改器
@@ -141,8 +151,9 @@ public:
      */
     [[nodiscard]] bool hasModifier(const std::string& id) const
     {
-        return std::any_of(
-            m_modifiers.begin(), m_modifiers.end(), [&id](const AttributeModifier& m) { return m.id() == id; });
+        return std::any_of(m_modifiers.begin(), m_modifiers.end(), [&id](const AttributeModifier& m) {
+            return m.id() == id;
+        });
     }
 
     /**
@@ -152,20 +163,27 @@ public:
      */
     [[nodiscard]] const AttributeModifier* getModifier(const std::string& id) const
     {
-        auto it = std::find_if(
-            m_modifiers.begin(), m_modifiers.end(), [&id](const AttributeModifier& m) { return m.id() == id; });
+        auto it = std::find_if(m_modifiers.begin(), m_modifiers.end(), [&id](const AttributeModifier& m) {
+            return m.id() == id;
+        });
         return it != m_modifiers.end() ? &(*it) : nullptr;
     }
 
     /**
      * @brief 是否需要同步
      */
-    [[nodiscard]] bool isDirty() const noexcept { return m_dirty; }
+    [[nodiscard]] bool isDirty() const noexcept
+    {
+        return m_dirty;
+    }
 
     /**
      * @brief 标记为已同步
      */
-    void markSynced() noexcept { m_dirty = false; }
+    void markSynced() noexcept
+    {
+        m_dirty = false;
+    }
 
 private:
     /**

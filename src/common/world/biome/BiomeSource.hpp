@@ -93,7 +93,10 @@ public:
      */
     [[nodiscard]] virtual const Biome& getBiomeDefinition(BiomeId id) const;
 
-    [[nodiscard]] u64 seed() const { return m_seed; }
+    [[nodiscard]] u64 seed() const
+    {
+        return m_seed;
+    }
 
     // ========== 生物群系搜索 ==========
 

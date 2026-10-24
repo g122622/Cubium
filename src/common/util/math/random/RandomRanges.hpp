@@ -90,10 +90,12 @@ public:
         : m_min(0.0f)
         , m_max(0.0f)
     {}
+
     RandomValueRange(f32 value)
         : m_min(value)
         , m_max(value)
     {}
+
     RandomValueRange(f32 min, f32 max)
         : m_min(min)
         , m_max(max)
@@ -102,12 +104,18 @@ public:
     /**
      * @brief 获取最小值
      */
-    [[nodiscard]] f32 getMin() const override { return m_min; }
+    [[nodiscard]] f32 getMin() const override
+    {
+        return m_min;
+    }
 
     /**
      * @brief 获取最大值
      */
-    [[nodiscard]] f32 getMax() const override { return m_max; }
+    [[nodiscard]] f32 getMax() const override
+    {
+        return m_max;
+    }
 
     /**
      * @brief 生成随机浮点数
@@ -134,16 +142,25 @@ public:
     /**
      * @brief 是否为固定值
      */
-    [[nodiscard]] bool isFixed() const override { return m_min == m_max; }
+    [[nodiscard]] bool isFixed() const override
+    {
+        return m_min == m_max;
+    }
 
     [[nodiscard]] std::unique_ptr<IRandomRange> clone() const override
     {
         return std::make_unique<RandomValueRange>(*this);
     }
 
-    bool operator==(const RandomValueRange& other) const { return m_min == other.m_min && m_max == other.m_max; }
+    bool operator==(const RandomValueRange& other) const
+    {
+        return m_min == other.m_min && m_max == other.m_max;
+    }
 
-    bool operator!=(const RandomValueRange& other) const { return !(*this == other); }
+    bool operator!=(const RandomValueRange& other) const
+    {
+        return !(*this == other);
+    }
 
 private:
     f32 m_min;
@@ -166,12 +183,18 @@ public:
     /**
      * @brief 获取试验次数
      */
-    [[nodiscard]] i32 getN() const { return m_n; }
+    [[nodiscard]] i32 getN() const
+    {
+        return m_n;
+    }
 
     /**
      * @brief 获取成功概率
      */
-    [[nodiscard]] f32 getP() const { return m_p; }
+    [[nodiscard]] f32 getP() const
+    {
+        return m_p;
+    }
 
     /**
      * @brief 生成随机整数
@@ -191,17 +214,26 @@ public:
     /**
      * @brief 是否为固定值
      */
-    [[nodiscard]] bool isFixed() const override { return m_n == 0 || m_p <= 0.0f || m_p >= 1.0f; }
+    [[nodiscard]] bool isFixed() const override
+    {
+        return m_n == 0 || m_p <= 0.0f || m_p >= 1.0f;
+    }
 
     /**
      * @brief 获取最小值
      */
-    [[nodiscard]] f32 getMin() const override { return 0.0f; }
+    [[nodiscard]] f32 getMin() const override
+    {
+        return 0.0f;
+    }
 
     /**
      * @brief 获取最大值
      */
-    [[nodiscard]] f32 getMax() const override { return static_cast<f32>(m_n); }
+    [[nodiscard]] f32 getMax() const override
+    {
+        return static_cast<f32>(m_n);
+    }
 
     [[nodiscard]] std::unique_ptr<IRandomRange> clone() const override
     {
@@ -236,32 +268,50 @@ public:
     /**
      * @brief 获取值
      */
-    [[nodiscard]] i32 getValue() const { return m_value; }
+    [[nodiscard]] i32 getValue() const
+    {
+        return m_value;
+    }
 
     /**
      * @brief 生成随机整数（固定值）
      */
-    [[nodiscard]] i32 generateInt(math::IRandom& /*random*/) const override { return m_value; }
+    [[nodiscard]] i32 generateInt(math::IRandom& /*random*/) const override
+    {
+        return m_value;
+    }
 
     /**
      * @brief 生成随机浮点数（固定值）
      */
-    [[nodiscard]] f32 generateFloat(math::IRandom& /*random*/) const override { return static_cast<f32>(m_value); }
+    [[nodiscard]] f32 generateFloat(math::IRandom& /*random*/) const override
+    {
+        return static_cast<f32>(m_value);
+    }
 
     /**
      * @brief 是否为固定值
      */
-    [[nodiscard]] bool isFixed() const override { return true; }
+    [[nodiscard]] bool isFixed() const override
+    {
+        return true;
+    }
 
     /**
      * @brief 获取最小值
      */
-    [[nodiscard]] f32 getMin() const override { return static_cast<f32>(m_value); }
+    [[nodiscard]] f32 getMin() const override
+    {
+        return static_cast<f32>(m_value);
+    }
 
     /**
      * @brief 获取最大值
      */
-    [[nodiscard]] f32 getMax() const override { return static_cast<f32>(m_value); }
+    [[nodiscard]] f32 getMax() const override
+    {
+        return static_cast<f32>(m_value);
+    }
 
     [[nodiscard]] std::unique_ptr<IRandomRange> clone() const override
     {

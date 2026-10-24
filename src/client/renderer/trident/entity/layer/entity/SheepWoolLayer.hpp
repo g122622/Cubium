@@ -97,12 +97,18 @@ protected:
     /**
      * @brief 获取父模型
      */
-    [[nodiscard]] TModel* getParentModel() { return m_renderer ? &m_renderer->getModel() : nullptr; }
+    [[nodiscard]] TModel* getParentModel()
+    {
+        return m_renderer ? &m_renderer->getModel() : nullptr;
+    }
 
     /**
      * @brief 获取羊毛模型
      */
-    [[nodiscard]] TModel* getWoolModel() { return m_woolModel.get(); }
+    [[nodiscard]] TModel* getWoolModel()
+    {
+        return m_woolModel.get();
+    }
 
     /**
      * @brief 获取羊毛颜色

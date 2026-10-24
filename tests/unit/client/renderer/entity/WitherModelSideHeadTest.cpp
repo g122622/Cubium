@@ -68,7 +68,10 @@ constexpr f64 degToRad(f64 deg)
 
 class WitherModelSideHeadTest : public ::testing::Test {
 protected:
-    void SetUp() override { m_model = std::make_unique<WitherModel>(); }
+    void SetUp() override
+    {
+        m_model = std::make_unique<WitherModel>();
+    }
 
     /// @brief 触发一次 setAngles，scale 使用默认值
     void applyAngles()
@@ -78,13 +81,22 @@ protected:
     }
 
     /// @brief 获取主头（head0）部件
-    std::shared_ptr<ModelRenderer> getMainHead() { return m_model->getParts().at(3); }
+    std::shared_ptr<ModelRenderer> getMainHead()
+    {
+        return m_model->getParts().at(3);
+    }
 
     /// @brief 获取左头（head1）部件
-    std::shared_ptr<ModelRenderer> getLeftHead() { return m_model->getParts().at(4); }
+    std::shared_ptr<ModelRenderer> getLeftHead()
+    {
+        return m_model->getParts().at(4);
+    }
 
     /// @brief 获取右头（head2）部件
-    std::shared_ptr<ModelRenderer> getRightHead() { return m_model->getParts().at(5); }
+    std::shared_ptr<ModelRenderer> getRightHead()
+    {
+        return m_model->getParts().at(5);
+    }
 
     std::unique_ptr<WitherModel> m_model;
 };

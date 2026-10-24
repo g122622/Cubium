@@ -77,7 +77,10 @@ public:
     /**
      * @brief 在指定位置放置方块状态
      */
-    void setBlock(const BlockPos& pos, const BlockState* state) { m_blocks[pos] = state; }
+    void setBlock(const BlockPos& pos, const BlockState* state)
+    {
+        m_blocks[pos] = state;
+    }
 
     /**
      * @brief 获取指定位置的方块状态
@@ -91,7 +94,10 @@ public:
     /**
      * @brief 检查指定位置是否发生过方块变化
      */
-    [[nodiscard]] bool wasBlockSet(const BlockPos& pos) const { return m_blocks.find(pos) != m_blocks.end(); }
+    [[nodiscard]] bool wasBlockSet(const BlockPos& pos) const
+    {
+        return m_blocks.find(pos) != m_blocks.end();
+    }
 
 private:
     mutable std::unordered_map<BlockPos, const BlockState*> m_blocks;
@@ -309,7 +315,9 @@ TEST_F(OxidizableBlockTest, TryOxidize_SameAgeNeighborSlowsOxidation)
     // 放置多个同等级邻居
     for (int dx = -1; dx <= 1; ++dx) {
         for (int dz = -1; dz <= 1; ++dz) {
-            if (dx == 0 && dz == 0) continue;
+            if (dx == 0 && dz == 0) {
+                continue;
+            }
             BlockPos neighbor(dx, 64, dz);
             world.setBlock(neighbor, &unaffectedBlock->defaultState());
         }
@@ -599,7 +607,10 @@ TEST_F(WithPropertiesOfTest, BlockStatePropertiesSingletonEnsuresPointerEquality
 
 class PreviousOxidationChainTest : public ::testing::Test {
 protected:
-    static void SetUpTestSuite() { VanillaBlocks::initialize(); }
+    static void SetUpTestSuite()
+    {
+        VanillaBlocks::initialize();
+    }
 };
 
 TEST_F(PreviousOxidationChainTest, CopperBlock_ReverseChain)

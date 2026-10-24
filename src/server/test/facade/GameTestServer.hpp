@@ -113,18 +113,32 @@ public:
 
     // ========== IServer 接口实现 ==========
 
-    [[nodiscard]] mc::Result<void> initialize() override { return initialize(GameTestServerParams{}); }
+    [[nodiscard]] mc::Result<void> initialize() override
+    {
+        return initialize(GameTestServerParams{});
+    }
+
     void shutdown() override;
 
-    [[nodiscard]] bool isIntegrated() const noexcept override { return false; }
-    [[nodiscard]] bool isDedicated() const noexcept override { return false; }
+    [[nodiscard]] bool isIntegrated() const noexcept override
+    {
+        return false;
+    }
+
+    [[nodiscard]] bool isDedicated() const noexcept override
+    {
+        return false;
+    }
 
     [[nodiscard]] mc::Result<void> publishToLan(i32 /*port*/, bool /*allowCheats*/) override
     {
         return mc::Error(mc::ErrorCode::Unsupported, "GameTestServer does not support LAN publishing");
     }
 
-    [[nodiscard]] const mc::GameDirectory& gameDirectory() const noexcept override { return m_gameDirectory; }
+    [[nodiscard]] const mc::GameDirectory& gameDirectory() const noexcept override
+    {
+        return m_gameDirectory;
+    }
 
     // ========== GameTestServer 特有接口 ==========
 
@@ -155,7 +169,10 @@ public:
      */
     void stop();
 
-    [[nodiscard]] const GameTestServerParams& params() const noexcept { return m_params; }
+    [[nodiscard]] const GameTestServerParams& params() const noexcept
+    {
+        return m_params;
+    }
 
 private:
     /**

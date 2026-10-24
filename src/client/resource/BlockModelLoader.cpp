@@ -76,7 +76,9 @@ Direction parseDirection(std::string_view str)
 
 std::string directionToString(Direction dir)
 {
-    if (dir == Direction::None) return "";
+    if (dir == Direction::None) {
+        return "";
+    }
     return Directions::toString(dir);
 }
 
@@ -353,7 +355,9 @@ std::string BlockStateDefinition::_normalizeStateKey(std::string_view stateKey)
         return "normal";
     }
 
-    std::sort(props.begin(), props.end(), [](const auto& a, const auto& b) { return a.first < b.first; });
+    std::sort(props.begin(), props.end(), [](const auto& a, const auto& b) {
+        return a.first < b.first;
+    });
 
     std::string normalized;
     for (size_t i = 0; i < props.size(); ++i) {

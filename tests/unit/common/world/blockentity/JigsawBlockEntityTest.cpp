@@ -48,7 +48,10 @@ using world::gen::jigsaw::JigsawJointType;
 
 class JigsawBlockEntityTest : public ::testing::Test {
 protected:
-    void SetUp() override { m_entity = std::make_unique<JigsawBlockEntity>(BlockPos(1, 2, 3)); }
+    void SetUp() override
+    {
+        m_entity = std::make_unique<JigsawBlockEntity>(BlockPos(1, 2, 3));
+    }
 
     std::unique_ptr<JigsawBlockEntity> m_entity;
 };

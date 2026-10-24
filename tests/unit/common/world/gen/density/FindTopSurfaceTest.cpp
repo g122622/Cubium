@@ -196,7 +196,10 @@ TEST(FindTopSurfaceTest, MapAllIsIdentityForNoOpVisitor)
 {
     class IdentityVisitor : public DensityFunction::Visitor {
     public:
-        std::unique_ptr<DensityFunction> apply(std::unique_ptr<DensityFunction> func) override { return func; }
+        std::unique_ptr<DensityFunction> apply(std::unique_ptr<DensityFunction> func) override
+        {
+            return func;
+        }
     };
 
     auto density = constantFunc(1.0);

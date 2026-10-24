@@ -100,7 +100,9 @@ public:
 
     void paint(PaintContext& ctx) override
     {
-        if (!isVisible()) return;
+        if (!isVisible()) {
+            return;
+        }
 
         // 绘制滑块轨道背景
         ctx.drawFilledRect(bounds(), Colors::fromARGB(255, 45, 45, 45));
@@ -130,8 +132,12 @@ public:
     bool onClick(i32 mouseX, i32 mouseY, i32 button, i32 mods) override
     {
         (void)mods;
-        if (!isActive() || !isVisible()) return false;
-        if (button != 0) return false; // 只响应左键
+        if (!isActive() || !isVisible()) {
+            return false;
+        }
+        if (button != 0) {
+            return false; // 只响应左键
+        }
 
         // 设置焦点
         setFocused(true);
@@ -149,7 +155,9 @@ public:
         (void)mouseY;
         (void)mods;
 
-        if (button != 0) return false;
+        if (button != 0) {
+            return false;
+        }
 
         if (m_dragging) {
             m_dragging = false;
@@ -170,7 +178,9 @@ public:
         (void)deltaY;
         (void)button;
 
-        if (!m_dragging) return false;
+        if (!m_dragging) {
+            return false;
+        }
 
         setValueFromMouse(mouseX);
         return true;
@@ -182,7 +192,9 @@ public:
         (void)mouseY;
         (void)mods;
         // onClick 已经设置了 m_dragging 并设置了焦点，onDragStart 仅确认拖拽按钮
-        if (button != 0) return false;
+        if (button != 0) {
+            return false;
+        }
         return m_dragging;
     }
 
@@ -194,7 +206,9 @@ public:
         // onDragEnd 仅作为拖拽结束通知，不清理 m_dragging，也不触发回调。
         // 状态清理与最终回调由 onRelease 统一完成（与原设计一致，
         // 避免 onDragEnd→onRelease 双重触发回调）。
-        if (button != 0) return false;
+        if (button != 0) {
+            return false;
+        }
         return m_dragging;
     }
 
@@ -203,7 +217,9 @@ public:
         (void)mouseX;
         (void)mouseY;
 
-        if (!isActive() || !isVisible()) return false;
+        if (!isActive() || !isVisible()) {
+            return false;
+        }
 
         // 滚轮调整值
         f64 step = (m_stepSize > 0) ? m_stepSize : (m_maxValue - m_minValue) / 20.0;
@@ -217,8 +233,12 @@ public:
         (void)scanCode;
         (void)mods;
 
-        if (!isActive() || !isVisible() || !isFocused()) return false;
-        if (action != static_cast<i32>(KeyAction::Press) && action != static_cast<i32>(KeyAction::Repeat)) return false;
+        if (!isActive() || !isVisible() || !isFocused()) {
+            return false;
+        }
+        if (action != static_cast<i32>(KeyAction::Press) && action != static_cast<i32>(KeyAction::Repeat)) {
+            return false;
+        }
 
         f64 step = (m_stepSize > 0) ? m_stepSize : (m_maxValue - m_minValue) / 20.0;
 
@@ -255,7 +275,10 @@ public:
     /**
      * @brief 获取值
      */
-    [[nodiscard]] f64 value() const { return m_value; }
+    [[nodiscard]] f64 value() const
+    {
+        return m_value;
+    }
 
     /**
      * @brief 设置最小值
@@ -269,7 +292,10 @@ public:
     /**
      * @brief 获取最小值
      */
-    [[nodiscard]] f64 minValue() const { return m_minValue; }
+    [[nodiscard]] f64 minValue() const
+    {
+        return m_minValue;
+    }
 
     /**
      * @brief 设置最大值
@@ -283,7 +309,10 @@ public:
     /**
      * @brief 获取最大值
      */
-    [[nodiscard]] f64 maxValue() const { return m_maxValue; }
+    [[nodiscard]] f64 maxValue() const
+    {
+        return m_maxValue;
+    }
 
     /**
      * @brief 设置值范围
@@ -298,19 +327,27 @@ public:
     /**
      * @brief 设置步长
      */
-    void setStepSize(f64 step) { m_stepSize = step; }
+    void setStepSize(f64 step)
+    {
+        m_stepSize = step;
+    }
 
     /**
      * @brief 获取步长
      */
-    [[nodiscard]] f64 stepSize() const { return m_stepSize; }
+    [[nodiscard]] f64 stepSize() const
+    {
+        return m_stepSize;
+    }
 
     /**
      * @brief 获取滑块位置比例（0.0-1.0）
      */
     [[nodiscard]] f64 getRatio() const
     {
-        if (m_maxValue <= m_minValue) return 0.0;
+        if (m_maxValue <= m_minValue) {
+            return 0.0;
+        }
         return (m_value - m_minValue) / (m_maxValue - m_minValue);
     }
 
@@ -328,7 +365,10 @@ public:
     /**
      * @brief 设置显示文本
      */
-    void setDisplayText(const std::string& text) { m_displayText = text; }
+    void setDisplayText(const std::string& text)
+    {
+        m_displayText = text;
+    }
 
     /**
      * @brief 获取显示文本
@@ -347,22 +387,34 @@ public:
     /**
      * @brief 设置格式化回调
      */
-    void setFormatCallback(FormatCallback callback) { m_formatCallback = std::move(callback); }
+    void setFormatCallback(FormatCallback callback)
+    {
+        m_formatCallback = std::move(callback);
+    }
 
     /**
      * @brief 设置值变化回调
      */
-    void setOnValueChanged(OnValueChangedCallback callback) { m_onValueChanged = std::move(callback); }
+    void setOnValueChanged(OnValueChangedCallback callback)
+    {
+        m_onValueChanged = std::move(callback);
+    }
 
     /**
      * @brief 设置是否显示值
      */
-    void setShowValue(bool show) { m_showValue = show; }
+    void setShowValue(bool show)
+    {
+        m_showValue = show;
+    }
 
     /**
      * @brief 是否显示值
      */
-    [[nodiscard]] bool showValue() const { return m_showValue; }
+    [[nodiscard]] bool showValue() const
+    {
+        return m_showValue;
+    }
 
     /**
      * @brief 获取滑块手柄位置（像素）
@@ -376,7 +428,10 @@ public:
     /**
      * @brief 检查是否正在拖动
      */
-    [[nodiscard]] bool isDragging() const { return m_dragging; }
+    [[nodiscard]] bool isDragging() const
+    {
+        return m_dragging;
+    }
 
 protected:
     /**
@@ -451,14 +506,26 @@ class IntSliderWidget : public SliderWidget {
 public:
     using SliderWidget::SliderWidget;
 
-    void setValue(f64 value) override { SliderWidget::setValue(std::round(value)); }
+    void setValue(f64 value) override
+    {
+        SliderWidget::setValue(std::round(value));
+    }
 
-    [[nodiscard]] i32 intValue() const { return static_cast<i32>(value()); }
+    [[nodiscard]] i32 intValue() const
+    {
+        return static_cast<i32>(value());
+    }
 
-    void setIntValue(i32 val) { setValue(static_cast<f64>(val)); }
+    void setIntValue(i32 val)
+    {
+        setValue(static_cast<f64>(val));
+    }
 
 protected:
-    [[nodiscard]] std::string formatValue(f64 val) const override { return std::to_string(static_cast<i32>(val)); }
+    [[nodiscard]] std::string formatValue(f64 val) const override
+    {
+        return std::to_string(static_cast<i32>(val));
+    }
 };
 
 } // namespace mc::client::ui::kagero::widget

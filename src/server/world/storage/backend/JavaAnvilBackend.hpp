@@ -76,10 +76,25 @@ public:
 
     [[nodiscard]] Result<LevelRuntimeData> loadLevelData() override;
 
-    [[nodiscard]] SaveFormat format() const override { return SaveFormat::JavaAnvil; }
-    [[nodiscard]] const SaveFormatInfo& formatInfo() const override { return m_formatInfo; }
-    [[nodiscard]] bool isReadonly() const override { return true; }
-    [[nodiscard]] const std::filesystem::path& worldPath() const override { return m_worldPath; }
+    [[nodiscard]] SaveFormat format() const override
+    {
+        return SaveFormat::JavaAnvil;
+    }
+
+    [[nodiscard]] const SaveFormatInfo& formatInfo() const override
+    {
+        return m_formatInfo;
+    }
+
+    [[nodiscard]] bool isReadonly() const override
+    {
+        return true;
+    }
+
+    [[nodiscard]] const std::filesystem::path& worldPath() const override
+    {
+        return m_worldPath;
+    }
 
 private:
     std::filesystem::path m_worldPath;

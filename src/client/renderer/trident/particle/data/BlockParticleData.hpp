@@ -67,7 +67,11 @@ public:
     // ParticleData 接口实现
     // ========================================================================
 
-    [[nodiscard]] ParticleTypeId getType() const override { return m_type; }
+    [[nodiscard]] ParticleTypeId getType() const override
+    {
+        return m_type;
+    }
+
     [[nodiscard]] std::string getTypeName() const override;
     [[nodiscard]] std::string getParameters() const override;
     [[nodiscard]] std::unique_ptr<ParticleData> clone() const override;
@@ -81,7 +85,10 @@ public:
      *
      * @return 方块状态
      */
-    [[nodiscard]] const BlockState& getBlockState() const { return m_blockState; }
+    [[nodiscard]] const BlockState& getBlockState() const
+    {
+        return m_blockState;
+    }
 
 private:
     ParticleTypeId m_type;

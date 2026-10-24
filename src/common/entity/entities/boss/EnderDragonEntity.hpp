@@ -74,32 +74,50 @@ public:
     /**
      * @brief 获取生命条显示范围
      */
-    [[nodiscard]] virtual f32 getHealthBarRange() const { return 100.0f; }
+    [[nodiscard]] virtual f32 getHealthBarRange() const
+    {
+        return 100.0f;
+    }
 
     /**
      * @brief 是否显示生命条
      */
-    [[nodiscard]] bool shouldDisplayHealthBar() const { return m_displayHealthBar; }
+    [[nodiscard]] bool shouldDisplayHealthBar() const
+    {
+        return m_displayHealthBar;
+    }
 
     /**
      * @brief 设置是否显示生命条
      */
-    void setDisplayHealthBar(bool display) { m_displayHealthBar = display; }
+    void setDisplayHealthBar(bool display)
+    {
+        m_displayHealthBar = display;
+    }
 
     /**
      * @brief 获取生命条颜色
      */
-    [[nodiscard]] virtual u32 getHealthBarColor() const { return 0xFF0000; } // 红色
+    [[nodiscard]] virtual u32 getHealthBarColor() const
+    {
+        return 0xFF0000;
+    } // 红色
 
     /**
      * @brief 是否为Boss战
      */
-    [[nodiscard]] bool inBossFight() const { return m_inBossFight; }
+    [[nodiscard]] bool inBossFight() const
+    {
+        return m_inBossFight;
+    }
 
     /**
      * @brief 设置Boss战状态
      */
-    void setBossFight(bool fighting) { m_inBossFight = fighting; }
+    void setBossFight(bool fighting)
+    {
+        m_inBossFight = fighting;
+    }
 
 protected:
     bool m_displayHealthBar = true;
@@ -143,22 +161,34 @@ public:
     /**
      * @brief 获取父龙
      */
-    [[nodiscard]] Entity* parentDragon() const { return m_parent; }
+    [[nodiscard]] Entity* parentDragon() const
+    {
+        return m_parent;
+    }
 
     /**
      * @brief 设置父龙
      */
-    void setParentDragon(Entity* parent) { m_parent = parent; }
+    void setParentDragon(Entity* parent)
+    {
+        m_parent = parent;
+    }
 
     /**
      * @brief 获取部件类型
      */
-    [[nodiscard]] Part part() const { return m_part; }
+    [[nodiscard]] Part part() const
+    {
+        return m_part;
+    }
 
     /**
      * @brief 设置部件类型
      */
-    void setPart(Part part) { m_part = part; }
+    void setPart(Part part)
+    {
+        m_part = part;
+    }
 
     /**
      * @brief 更新部件位置
@@ -236,13 +266,27 @@ public:
     /**
      * @brief 获取声音音量
      */
-    [[nodiscard]] f32 getSoundVolume() const override { return 5.0f; }
+    [[nodiscard]] f32 getSoundVolume() const override
+    {
+        return 5.0f;
+    }
 
     // ========== Entity 接口重写 ==========
 
-    [[nodiscard]] f32 width() const override { return 16.0f; }
-    [[nodiscard]] f32 height() const override { return 8.0f; }
-    [[nodiscard]] f32 eyeHeight() const override { return 6.0f; }
+    [[nodiscard]] f32 width() const override
+    {
+        return 16.0f;
+    }
+
+    [[nodiscard]] f32 height() const override
+    {
+        return 8.0f;
+    }
+
+    [[nodiscard]] f32 eyeHeight() const override
+    {
+        return 6.0f;
+    }
 
     void tick() override;
 
@@ -254,17 +298,26 @@ public:
      * 实际逻辑实现在 _onDeathUpdate() 中，由 LivingEntity::tick() 在 isDead() 时
      * 通过本重写方法调用。
      */
-    void tickDeath() override { _onDeathUpdate(); }
+    void tickDeath() override
+    {
+        _onDeathUpdate();
+    }
 
     /**
      * @brief 末影龙不能被骑乘
      */
-    [[nodiscard]] bool canBeRidden(const Entity& /*vehicle*/) const override { return false; }
+    [[nodiscard]] bool canBeRidden(const Entity& /*vehicle*/) const override
+    {
+        return false;
+    }
 
     /**
      * @brief 末影龙是Boss
      */
-    [[nodiscard]] bool isNonBoss() const override { return false; }
+    [[nodiscard]] bool isNonBoss() const override
+    {
+        return false;
+    }
 
     /**
      * @brief 末影龙免疫药水效果
@@ -286,15 +339,26 @@ public:
         }
         return "Ender Dragon";
     }
-    [[nodiscard]] f32 getHealthBarRange() const override { return 256.0f; }
-    [[nodiscard]] u32 getHealthBarColor() const override { return 0x800080; } // 紫色
+
+    [[nodiscard]] f32 getHealthBarRange() const override
+    {
+        return 256.0f;
+    }
+
+    [[nodiscard]] u32 getHealthBarColor() const override
+    {
+        return 0x800080;
+    } // 紫色
 
     // ========== 末影龙特有 ==========
 
     /**
      * @brief 获取当前阶段
      */
-    [[nodiscard]] Phase phase() const { return m_phase; }
+    [[nodiscard]] Phase phase() const
+    {
+        return m_phase;
+    }
 
     /**
      * @brief 设置阶段
@@ -304,17 +368,26 @@ public:
     /**
      * @brief 获取龙部件数组
      */
-    [[nodiscard]] const std::vector<EnderDragonPartEntity*>& getDragonParts() const { return m_dragonParts; }
+    [[nodiscard]] const std::vector<EnderDragonPartEntity*>& getDragonParts() const
+    {
+        return m_dragonParts;
+    }
 
     /**
      * @brief 获取最近的末影水晶
      */
-    [[nodiscard]] entity::EnderCrystalEntity* closestEnderCrystal() const { return m_closestEnderCrystal; }
+    [[nodiscard]] entity::EnderCrystalEntity* closestEnderCrystal() const
+    {
+        return m_closestEnderCrystal;
+    }
 
     /**
      * @brief 设置最近的末影水晶
      */
-    void setClosestEnderCrystal(entity::EnderCrystalEntity* crystal) { m_closestEnderCrystal = crystal; }
+    void setClosestEnderCrystal(entity::EnderCrystalEntity* crystal)
+    {
+        m_closestEnderCrystal = crystal;
+    }
 
     /**
      * @brief 是否在栖息点
@@ -328,7 +401,10 @@ public:
     /**
      * @brief 是否正在死亡
      */
-    [[nodiscard]] bool isDying() const { return m_phase == Phase::Dying; }
+    [[nodiscard]] bool isDying() const
+    {
+        return m_phase == Phase::Dying;
+    }
 
     /**
      * @brief 是否碰墙减速中（MC 原版 inWall）
@@ -336,22 +412,34 @@ public:
      * 当龙头、颈或身碰到 DRAGON_IMMUNE 方块时为 true，
      * 导致翅膀扇动速度减半，飞行速度乘以 0.8。
      */
-    [[nodiscard]] bool isSlowed() const { return m_slowed; }
+    [[nodiscard]] bool isSlowed() const
+    {
+        return m_slowed;
+    }
 
     /**
      * @brief 获取死亡计时器
      */
-    [[nodiscard]] i32 deathTicks() const { return m_deathTicks; }
+    [[nodiscard]] i32 deathTicks() const
+    {
+        return m_deathTicks;
+    }
 
     /**
      * @brief 获取攻击目标
      */
-    [[nodiscard]] LivingEntity* getAttackTarget() const { return const_cast<EnderDragonEntity*>(this)->attackTarget(); }
+    [[nodiscard]] LivingEntity* getAttackTarget() const
+    {
+        return const_cast<EnderDragonEntity*>(this)->attackTarget();
+    }
 
     /**
      * @brief 设置攻击目标
      */
-    void setAttackTarget(LivingEntity* target) override { MobEntity::setAttackTarget(target); }
+    void setAttackTarget(LivingEntity* target) override
+    {
+        MobEntity::setAttackTarget(target);
+    }
 
     /**
      * @brief 龙部件受到伤害

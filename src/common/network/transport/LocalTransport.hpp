@@ -94,7 +94,11 @@ public:
 class LocalTransport final : public ILocalTransport {
 public:
     LocalTransport() = default;
-    ~LocalTransport() override { close(); }
+
+    ~LocalTransport() override
+    {
+        close();
+    }
 
     LocalTransport(const LocalTransport&) = delete;
     LocalTransport& operator=(const LocalTransport&) = delete;
@@ -110,7 +114,10 @@ public:
     /**
      * @brief 绑定对端（由 LocalTransportPair 在配对时调用）
      */
-    void setPeer(LocalTransport* peer) noexcept { m_peer = peer; }
+    void setPeer(LocalTransport* peer) noexcept
+    {
+        m_peer = peer;
+    }
 
 private:
     LocalTransport* m_peer = nullptr;

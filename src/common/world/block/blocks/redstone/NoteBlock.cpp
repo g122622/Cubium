@@ -295,7 +295,9 @@ BlockProperties::Instrument NoteBlock::blockInstrumentByType(const Block* block)
     if (block == nullptr) {
         return Instrument::Harp;
     }
-    const auto is = [block](const Block* target) { return target != nullptr && block == target; };
+    const auto is = [block](const Block* target) {
+        return target != nullptr && block == target;
+    };
 
     // 陶土 -> 长笛（FLUTE）
     if (is(VanillaBlocks::CLAY)) {

@@ -148,32 +148,50 @@ public:
     /**
      * @brief 获取商民等级
      */
-    [[nodiscard]] i32 getTraderLevel() const { return m_merchantLevel; }
+    [[nodiscard]] i32 getTraderLevel() const
+    {
+        return m_merchantLevel;
+    }
 
     /**
      * @brief 设置商民等级
      */
-    void setMerchantLevel(i32 level) { m_merchantLevel = level; }
+    void setMerchantLevel(i32 level)
+    {
+        m_merchantLevel = level;
+    }
 
     /**
      * @brief 是否显示经验进度条
      */
-    [[nodiscard]] bool showProgressBar() const { return m_showProgressBar; }
+    [[nodiscard]] bool showProgressBar() const
+    {
+        return m_showProgressBar;
+    }
 
     /**
      * @brief 设置是否显示经验进度条
      */
-    void setShowProgressBar(bool show) { m_showProgressBar = show; }
+    void setShowProgressBar(bool show)
+    {
+        m_showProgressBar = show;
+    }
 
     /**
      * @brief 是否可以补货
      */
-    [[nodiscard]] bool canRestock() const { return m_canRestock; }
+    [[nodiscard]] bool canRestock() const
+    {
+        return m_canRestock;
+    }
 
     /**
      * @brief 设置是否可以补货
      */
-    void setCanRestock(bool restock) { m_canRestock = restock; }
+    void setCanRestock(bool restock)
+    {
+        m_canRestock = restock;
+    }
 
     /**
      * @brief 当玩家选择交易时，尝试从背包填充支付槽
@@ -181,7 +199,10 @@ public:
      */
     void tryMoveItems(i32 offerIndex);
 
-    [[nodiscard]] i32 getResultSlotIndex() const noexcept override { return SLOT_RESULT; }
+    [[nodiscard]] i32 getResultSlotIndex() const noexcept override
+    {
+        return SLOT_RESULT;
+    }
 
 protected:
     /**

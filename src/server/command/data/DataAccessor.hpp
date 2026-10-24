@@ -124,12 +124,18 @@ public:
      * @brief 检查位置是否有方块实体
      * @return 如果有方块实体返回 true
      */
-    [[nodiscard]] bool isValid() const noexcept { return m_blockEntity != nullptr; }
+    [[nodiscard]] bool isValid() const noexcept
+    {
+        return m_blockEntity != nullptr;
+    }
 
     /**
      * @brief 获取方块位置
      */
-    [[nodiscard]] const BlockPos& getPosition() const noexcept { return m_pos; }
+    [[nodiscard]] const BlockPos& getPosition() const noexcept
+    {
+        return m_pos;
+    }
 
 private:
     ::mc::IWorld* m_world;
@@ -160,7 +166,10 @@ public:
     /**
      * @brief 检查实体是否有效
      */
-    [[nodiscard]] bool isValid() const noexcept { return m_entity != nullptr; }
+    [[nodiscard]] bool isValid() const noexcept
+    {
+        return m_entity != nullptr;
+    }
 
     /**
      * @brief 检查是否是玩家实体
@@ -241,12 +250,18 @@ public:
     /**
      * @brief 标记存储已修改（需要保存）
      */
-    void markDirty() { m_dirty = true; }
+    void markDirty()
+    {
+        m_dirty = true;
+    }
 
     /**
      * @brief 检查是否需要保存
      */
-    [[nodiscard]] bool isDirty() const { return m_dirty; }
+    [[nodiscard]] bool isDirty() const
+    {
+        return m_dirty;
+    }
 
     /**
      * @brief 保存到 JSON

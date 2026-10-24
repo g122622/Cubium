@@ -66,7 +66,10 @@ public:
 
 class BreedTaskMemoryTest : public ::testing::Test {
 protected:
-    void SetUp() override { MemoryModuleTypes::initialize(); }
+    void SetUp() override
+    {
+        MemoryModuleTypes::initialize();
+    }
 };
 
 // 测试：BreedTask 的记忆模块需求 - VISIBLE_MOBS 必须存在
@@ -212,7 +215,10 @@ TEST_F(BreedTaskTest, ResetTaskClearsMemories)
 
 class PlayDeadTaskMemoryTest : public ::testing::Test {
 protected:
-    void SetUp() override { MemoryModuleTypes::initialize(); }
+    void SetUp() override
+    {
+        MemoryModuleTypes::initialize();
+    }
 };
 
 // 测试：PlayDeadTask 的记忆模块需求 - PLAY_DEAD_TICKS 必须存在
@@ -351,7 +357,10 @@ TEST_F(PlayDeadTaskTest, ShouldNotExecuteWhenAlreadyPacified)
 
 class JumpTaskMemoryTest : public ::testing::Test {
 protected:
-    void SetUp() override { MemoryModuleTypes::initialize(); }
+    void SetUp() override
+    {
+        MemoryModuleTypes::initialize();
+    }
 };
 
 // 测试：JumpTask 的记忆模块需求 - JUMP_COOLDOWN 必须不存在
@@ -382,7 +391,10 @@ TEST_F(JumpTaskMemoryTest, GetNameAndConstructor)
 
 class KickTaskMemoryTest : public ::testing::Test {
 protected:
-    void SetUp() override { MemoryModuleTypes::initialize(); }
+    void SetUp() override
+    {
+        MemoryModuleTypes::initialize();
+    }
 };
 
 // 测试：KickTask 的记忆模块需求 - ATTACK_TARGET 必须存在

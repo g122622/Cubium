@@ -59,16 +59,24 @@ ShareItemsGoal::ShareItemsGoal(VillagerEntity* villager)
 
 bool ShareItemsGoal::shouldExecute()
 {
-    if (!m_villager || !m_villager->world()) return false;
+    if (!m_villager || !m_villager->world()) {
+        return false;
+    }
 
     // 只有农民职业会分享食物
-    if (m_villager->profession() != VillagerProfession::Farmer) return false;
+    if (m_villager->profession() != VillagerProfession::Farmer) {
+        return false;
+    }
 
     // 冷却时间
-    if (m_shareCooldown > 0) return false;
+    if (m_shareCooldown > 0) {
+        return false;
+    }
 
     // 检查是否有多余的食物可以分享（食物点数 >= 24 或小麦超过半组）
-    if (!_canAbandonItems()) return false;
+    if (!_canAbandonItems()) {
+        return false;
+    }
 
     // 查找附近需要食物的村民
     // 农民只要有食物过剩就会分享给任意村民（无论对方是否需要），
@@ -99,7 +107,9 @@ bool ShareItemsGoal::shouldExecute()
 
 bool ShareItemsGoal::shouldContinueExecuting()
 {
-    if (!m_villager || m_targetVillagerId == 0) return false;
+    if (!m_villager || m_targetVillagerId == 0) {
+        return false;
+    }
 
     Entity* entity = m_villager->world() ? m_villager->world()->getEntity(m_targetVillagerId) : nullptr;
     if (!entity) {
@@ -140,7 +150,9 @@ void ShareItemsGoal::resetTask()
 
 void ShareItemsGoal::tick()
 {
-    if (!m_villager || m_targetVillagerId == 0) return;
+    if (!m_villager || m_targetVillagerId == 0) {
+        return;
+    }
 
     if (m_shareCooldown > 0) {
         m_shareCooldown--;
@@ -177,7 +189,9 @@ void ShareItemsGoal::tick()
 
 bool ShareItemsGoal::_canAbandonItems() const
 {
-    if (!m_villager) return false;
+    if (!m_villager) {
+        return false;
+    }
 
     // 1. 如果村民有食物过剩（食物点数 >= 24），则可以分享食物
     // 2. 如果是农民且小麦超过半组（>32），则可以分享小麦
@@ -200,16 +214,22 @@ bool ShareItemsGoal::_canAbandonItems() const
 bool ShareItemsGoal::_targetNeedsFoodForTarget(VillagerEntity* target) const
 {
     // 检查目标村民是否需要食物（食物点数 < 12）
-    if (!target) return false;
+    if (!target) {
+        return false;
+    }
     return target->wantsMoreFood();
 }
 
 void ShareItemsGoal::_shareFoodWithTarget()
 {
-    if (!m_villager || m_targetVillagerId == 0) return;
+    if (!m_villager || m_targetVillagerId == 0) {
+        return;
+    }
 
     IWorld* world = m_villager->world();
-    if (!world) return;
+    if (!world) {
+        return;
+    }
 
     // 获取目标
     Entity* entity = world->getEntity(m_targetVillagerId);

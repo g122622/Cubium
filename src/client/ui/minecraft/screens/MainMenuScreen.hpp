@@ -42,10 +42,25 @@ public:
 
     MainMenuScreen();
 
-    void setOnSinglePlayer(Callback callback) { m_onSinglePlayer = std::move(callback); }
-    void setOnMultiPlayer(Callback callback) { m_onMultiPlayer = std::move(callback); }
-    void setOnOptions(Callback callback) { m_onOptions = std::move(callback); }
-    void setOnQuit(Callback callback) { m_onQuit = std::move(callback); }
+    void setOnSinglePlayer(Callback callback)
+    {
+        m_onSinglePlayer = std::move(callback);
+    }
+
+    void setOnMultiPlayer(Callback callback)
+    {
+        m_onMultiPlayer = std::move(callback);
+    }
+
+    void setOnOptions(Callback callback)
+    {
+        m_onOptions = std::move(callback);
+    }
+
+    void setOnQuit(Callback callback)
+    {
+        m_onQuit = std::move(callback);
+    }
 
     bool onKey(i32 key, i32 scanCode, i32 action, i32 mods) override;
 

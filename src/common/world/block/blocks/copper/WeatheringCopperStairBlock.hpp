@@ -46,15 +46,30 @@ public:
 
     ~WeatheringCopperStairBlock() override = default;
 
-    [[nodiscard]] BlockStateProperties::OxidationLevel getOxidationLevel() const override { return m_oxidationLevel; }
+    [[nodiscard]] BlockStateProperties::OxidationLevel getOxidationLevel() const override
+    {
+        return m_oxidationLevel;
+    }
 
-    [[nodiscard]] Block* getNextOxidationBlock() const override { return m_nextOxidationBlock; }
+    [[nodiscard]] Block* getNextOxidationBlock() const override
+    {
+        return m_nextOxidationBlock;
+    }
 
-    void setNextOxidationBlock(Block* nextBlock) { m_nextOxidationBlock = nextBlock; }
+    void setNextOxidationBlock(Block* nextBlock)
+    {
+        m_nextOxidationBlock = nextBlock;
+    }
 
-    void setPreviousOxidationBlock(Block* prevBlock) { m_previousOxidationBlock = prevBlock; }
+    void setPreviousOxidationBlock(Block* prevBlock)
+    {
+        m_previousOxidationBlock = prevBlock;
+    }
 
-    [[nodiscard]] Block* getPreviousOxidationBlock() const override { return m_previousOxidationBlock; }
+    [[nodiscard]] Block* getPreviousOxidationBlock() const override
+    {
+        return m_previousOxidationBlock;
+    }
 
     [[nodiscard]] f32 getOxidationChanceModifier() const override
     {

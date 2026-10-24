@@ -734,8 +734,12 @@ FloatRange EntityArgumentType::_parseFloatRange(StringReader& reader)
         }
     }
 
-    if (hasMin) range.setMin(minValue);
-    if (hasMax) range.setMax(maxValue);
+    if (hasMin) {
+        range.setMin(minValue);
+    }
+    if (hasMax) {
+        range.setMax(maxValue);
+    }
 
     return range;
 }
@@ -779,8 +783,12 @@ IntRange EntityArgumentType::_parseIntRange(StringReader& reader)
         }
     }
 
-    if (hasMin) range.setMin(minValue);
-    if (hasMax) range.setMax(maxValue);
+    if (hasMin) {
+        range.setMin(minValue);
+    }
+    if (hasMax) {
+        range.setMax(maxValue);
+    }
 
     return range;
 }

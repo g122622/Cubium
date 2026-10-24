@@ -105,9 +105,20 @@ public:
         math::IRandom& random,
         const BlockPos& pos) const override;
 
-    [[nodiscard]] const char* name() const override { return m_name.c_str(); }
-    [[nodiscard]] DecorationStage stage() const override { return DecorationStage::SurfaceStructures; }
-    [[nodiscard]] const IceSpikeFeatureConfig& getConfig() const { return *m_config; }
+    [[nodiscard]] const char* name() const override
+    {
+        return m_name.c_str();
+    }
+
+    [[nodiscard]] DecorationStage stage() const override
+    {
+        return DecorationStage::SurfaceStructures;
+    }
+
+    [[nodiscard]] const IceSpikeFeatureConfig& getConfig() const
+    {
+        return *m_config;
+    }
 
 private:
     std::unique_ptr<IceSpikeFeatureConfig> m_config;

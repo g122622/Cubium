@@ -48,7 +48,10 @@ namespace {
  */
 class HorseTamingTestWorld final : public mc::test::BaseTestWorld {
 public:
-    void setBlock(i32 x, i32 y, i32 z, const BlockState* state) { m_blocks[BlockPos(x, y, z)] = state; }
+    void setBlock(i32 x, i32 y, i32 z, const BlockState* state)
+    {
+        m_blocks[BlockPos(x, y, z)] = state;
+    }
 
     [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override
     {
@@ -65,18 +68,33 @@ public:
         return true;
     }
 
-    [[nodiscard]] f32 getBrightness(const BlockPos& /*pos*/) const override { return 1.0f; }
+    [[nodiscard]] f32 getBrightness(const BlockPos& /*pos*/) const override
+    {
+        return 1.0f;
+    }
 
-    [[nodiscard]] mc::world::chunk::IChunkManager* chunkManager() override { return &m_stubChunks; }
-    [[nodiscard]] const mc::world::chunk::IChunkManager* chunkManager() const override { return &m_stubChunks; }
+    [[nodiscard]] mc::world::chunk::IChunkManager* chunkManager() override
+    {
+        return &m_stubChunks;
+    }
+
+    [[nodiscard]] const mc::world::chunk::IChunkManager* chunkManager() const override
+    {
+        return &m_stubChunks;
+    }
+
     mc::test::StubChunkManager m_stubChunks{nullptr, true};
 
-    EntityInstanceId spawnEntity(std::unique_ptr<Entity>) override { return 0; }
+    EntityInstanceId spawnEntity(std::unique_ptr<Entity>) override
+    {
+        return 0;
+    }
 
     [[nodiscard]] world::tick::TickManager& tickManager() override
     {
         throw std::runtime_error("HorseTamingTestWorld::tickManager not implemented");
     }
+
     [[nodiscard]] const world::tick::TickManager& tickManager() const override
     {
         throw std::runtime_error("HorseTamingTestWorld::tickManager not implemented");
@@ -90,9 +108,21 @@ public:
         m_broadcastCount++;
     }
 
-    [[nodiscard]] EntityInstanceId getLastBroadcastEntityId() const { return m_lastBroadcastEntityId; }
-    [[nodiscard]] u8 getLastBroadcastStatus() const { return m_lastBroadcastStatus; }
-    [[nodiscard]] i32 getBroadcastCount() const { return m_broadcastCount; }
+    [[nodiscard]] EntityInstanceId getLastBroadcastEntityId() const
+    {
+        return m_lastBroadcastEntityId;
+    }
+
+    [[nodiscard]] u8 getLastBroadcastStatus() const
+    {
+        return m_lastBroadcastStatus;
+    }
+
+    [[nodiscard]] i32 getBroadcastCount() const
+    {
+        return m_broadcastCount;
+    }
+
     void resetBroadcastTracking()
     {
         m_lastBroadcastEntityId = EntityInstanceId(0);
@@ -481,10 +511,10 @@ TEST(HorseTamingTest, Speed_IsInitialized)
     HorseEntity horse(EntityInstanceId(1), mc::test::testEcsRegistry());
     horse.setWorld(&world);
 
-    // 速度应该在 MIN_SPEED 和 MAX_SPEED 之间
+    // 原版 AbstractHorse.generateSpeed 的值域是 [0.1125, 0.3375)
     f32 speed = horse.getSpeed();
-    EXPECT_GT(speed, 0.0f);
-    EXPECT_LT(speed, 1.0f);
+    EXPECT_GE(speed, 0.1125f);
+    EXPECT_LT(speed, 0.3375f);
 }
 
 // ============================================================================

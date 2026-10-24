@@ -47,6 +47,7 @@ struct SimpleBlockConfig {
     bool scheduleTick = false;
 
     SimpleBlockConfig() = default;
+
     /// 由单一状态构造（内部包装为 SimpleBlockStateProvider）
     explicit SimpleBlockConfig(const BlockState* state, bool tick = false)
         : provider(std::make_unique<state::SimpleBlockStateProvider>(state))
@@ -90,8 +91,16 @@ public:
         IChunkGenerator& generator,
         math::IRandom& random,
         const BlockPos& pos) const override;
-    [[nodiscard]] const char* name() const override { return m_name.c_str(); }
-    [[nodiscard]] DecorationStage stage() const override { return DecorationStage::VegetalDecoration; }
+
+    [[nodiscard]] const char* name() const override
+    {
+        return m_name.c_str();
+    }
+
+    [[nodiscard]] DecorationStage stage() const override
+    {
+        return DecorationStage::VegetalDecoration;
+    }
 
 private:
     std::unique_ptr<SimpleBlockConfig> m_config;

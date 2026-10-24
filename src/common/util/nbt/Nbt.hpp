@@ -133,7 +133,9 @@ namespace nbt {
 inline i32 cheof(std::istream& input)
 {
     i32 value = input.get();
-    if (value == EOF) throw std::runtime_error("Unexpected EOF while reading NBT data");
+    if (value == EOF) {
+        throw std::runtime_error("Unexpected EOF while reading NBT data");
+    }
     return value;
 }
 
@@ -149,10 +151,12 @@ template <typename number_t>
 number_t reverse(number_t number)
 {
     constexpr std::size_t n = sizeof(number_t);
+
     union {
         number_t number;
         std::uint8_t data[n];
     } tmp{number};
+
     for (std::size_t i = 0; i < n / 2; ++i) {
         std::uint8_t z = tmp.data[i];
         tmp.data[i] = tmp.data[n - 1 - i];
@@ -340,10 +344,12 @@ template <typename number_t>
 number_t load_flat(std::istream& input, const Context::Order order)
 {
     constexpr std::size_t n = sizeof(number_t);
+
     union {
         number_t number;
         char data[n];
     } tmp{};
+
     input.read(tmp.data, n);
     if (!input) {
         throw std::runtime_error("NBT: unexpected end of stream while reading a fixed-width number");
@@ -384,10 +390,11 @@ f64 load_text<f64>(std::istream& input);
 template <typename number_t>
 number_t load(std::istream& input, const Context& ctxt)
 {
-    if (ctxt.format == Context::Format::Mojangson)
+    if (ctxt.format == Context::Format::Mojangson) {
         return load_text<number_t>(input);
-    else
+    } else {
         return load_flat<number_t>(input, ctxt.order);
+    }
 }
 
 template <>
@@ -541,8 +548,9 @@ std::vector<number_t> load_array_bin(std::istream& input, const Context& ctxt)
     validateBinaryElementCount(input, size, sizeof(number_t), "NBT array");
     std::vector<number_t> result;
     result.reserve(std::min(size, MAX_NBT_RESERVE_HINT));
-    for (std::size_t i = 0; i < size; i++)
+    for (std::size_t i = 0; i < size; i++) {
         result.emplace_back(load<number_t>(input, ctxt));
+    }
     return result;
 }
 
@@ -552,10 +560,11 @@ std::vector<number_t> load_array_bin(std::istream& input, const Context& ctxt)
 template <typename number_t>
 std::vector<number_t> load_array(std::istream& input, const Context& ctxt)
 {
-    if (ctxt.format == Context::Format::Mojangson)
+    if (ctxt.format == Context::Format::Mojangson) {
         return load_array_text<number_t>(input);
-    else
+    } else {
         return load_array_bin<number_t>(input, ctxt);
+    }
 }
 
 /**
@@ -565,10 +574,12 @@ template <typename number_t>
 void dump_flat(std::ostream& output, number_t number, const Context::Order order)
 {
     constexpr std::size_t n = sizeof(number_t);
+
     union {
         number_t number;
         char data[n];
     } tmp{correct_order(number, order)};
+
     output.write(tmp.data, n);
 }
 
@@ -605,10 +616,11 @@ void dump_text<f64>(std::ostream& output, f64 number);
 template <typename number_t>
 void dump(std::ostream& output, number_t number, const Context& ctxt)
 {
-    if (ctxt.format == Context::Format::Mojangson)
+    if (ctxt.format == Context::Format::Mojangson) {
         dump_text(output, number);
-    else
+    } else {
         dump_flat(output, number, ctxt.order);
+    }
 }
 
 template <>
@@ -642,8 +654,9 @@ template <typename number_t>
 void dump_array_bin(std::ostream& output, const std::vector<number_t>& array, const Context& ctxt)
 {
     dump_size(output, ctxt, array.size());
-    for (const auto& element : array)
+    for (const auto& element : array) {
         dump(output, element, ctxt);
+    }
 }
 
 /**
@@ -652,10 +665,11 @@ void dump_array_bin(std::ostream& output, const std::vector<number_t>& array, co
 template <typename number_t>
 void dump_array(std::ostream& output, const std::vector<number_t>& array, const Context& ctxt)
 {
-    if (ctxt.format == Context::Format::Mojangson)
+    if (ctxt.format == Context::Format::Mojangson) {
         dump_array_text(output, array);
-    else
+    } else {
         dump_array_bin(output, array, ctxt);
+    }
 }
 
 /**
@@ -677,11 +691,15 @@ void dump_list(std::ostream& output, TagId aid, const std::vector<element_type>&
     if (iter != end) {
         action(*iter, ctxt);
         for (++iter; iter != end; ++iter) {
-            if (ctxt.format == Context::Format::Mojangson) output << ',';
+            if (ctxt.format == Context::Format::Mojangson) {
+                output << ',';
+            }
             action(*iter, ctxt);
         }
     }
-    if (ctxt.format == Context::Format::Mojangson) output << ']';
+    if (ctxt.format == Context::Format::Mojangson) {
+        output << ']';
+    }
 }
 
 /**
@@ -699,10 +717,13 @@ std::unique_ptr<tag_type> load_list(std::istream& input, F action)
         // 可读字节数。缺失此校验时畸形报文可用一个巨大长度诱导数 GB 预分配。
         validateBinaryElementCount(input, size, 1, "NBT list");
         result.reserve(std::min(size, MAX_NBT_RESERVE_HINT));
-        for (std::size_t i = 0; i < size; i++)
+        for (std::size_t i = 0; i < size; i++) {
             result.emplace_back(action(ctxt));
+        }
     } else {
-        scan_sequence_text(input, [&] { result.emplace_back(action(ctxt)); });
+        scan_sequence_text(input, [&] {
+            result.emplace_back(action(ctxt));
+        });
     }
     result.shrink_to_fit();
     return ptr;
@@ -787,10 +808,19 @@ using tag_of = typename find_of<value_type>::type;
 struct end_tag final : public tag {
     typedef std::nullptr_t value_type;
     static constexpr TagId tid = TagId::End;
-    virtual TagId id() const noexcept override { return tid; }
+
+    virtual TagId id() const noexcept override
+    {
+        return tid;
+    }
+
     virtual void write(std::ostream& output) const override;
     virtual std::unique_ptr<tag> copy() const override;
-    virtual bool equals(const tag& other) const override { return other.id() == TagId::End; }
+
+    virtual bool equals(const tag& other) const override
+    {
+        return other.id() == TagId::End;
+    }
 };
 
 inline end_tag end;
@@ -804,17 +834,33 @@ struct numeric_tag : public tag {
     typedef number_t value_type;
     value_type value;
     static constexpr TagId tid = TID;
-    virtual TagId id() const noexcept override { return tid; }
+
+    virtual TagId id() const noexcept override
+    {
+        return tid;
+    }
+
     numeric_tag() = default;
+
     constexpr numeric_tag(value_type number)
         : value(number)
     {}
+
     static std::unique_ptr<numeric_tag> read(std::istream& input)
     {
         return std::make_unique<numeric_tag>(load<value_type>(input, Context::get(input)));
     }
-    virtual void write(std::ostream& output) const override { dump(output, value, Context::get(output)); }
-    virtual std::unique_ptr<tag> copy() const override { return std::make_unique<numeric_tag>(value); }
+
+    virtual void write(std::ostream& output) const override
+    {
+        dump(output, value, Context::get(output));
+    }
+
+    virtual std::unique_ptr<tag> copy() const override
+    {
+        return std::make_unique<numeric_tag>(value);
+    }
+
     virtual bool equals(const tag& other) const override
     {
         if (other.id() != tid) {
@@ -847,25 +893,39 @@ struct array_tag final : public tag {
     static constexpr char prefix = prefix_c;
     value_type value;
     static constexpr TagId tid = TID;
-    virtual TagId id() const noexcept override { return tid; }
+
+    virtual TagId id() const noexcept override
+    {
+        return tid;
+    }
+
     array_tag() = default;
+
     array_tag(const value_type& array)
         : value(array)
     {}
+
     array_tag(value_type&& array)
         : value(std::move(array))
     {}
+
     static std::unique_ptr<array_tag> read(std::istream& input)
     {
         const Context& ctxt = Context::get(input);
         return std::make_unique<array_tag>(load_array<element_type>(input, ctxt));
     }
+
     virtual void write(std::ostream& output) const override
     {
         const Context& ctxt = Context::get(output);
         dump_array(output, value, ctxt);
     }
-    virtual std::unique_ptr<tag> copy() const override { return std::make_unique<array_tag>(value); }
+
+    virtual std::unique_ptr<tag> copy() const override
+    {
+        return std::make_unique<array_tag>(value);
+    }
+
     virtual bool equals(const tag& other) const override
     {
         if (other.id() != tid) {
@@ -892,13 +952,19 @@ struct string_tag final : public tag {
     typedef std::string value_type;
     value_type value;
     static constexpr TagId tid = TagId::String;
-    virtual TagId id() const noexcept override { return TagId::String; }
+
+    virtual TagId id() const noexcept override
+    {
+        return TagId::String;
+    }
+
     string_tag() = default;
     string_tag(const value_type& string);
     string_tag(value_type&& string);
     static std::unique_ptr<string_tag> read(std::istream& input);
     virtual void write(std::ostream& output) const override;
     virtual std::unique_ptr<tag> copy() const override;
+
     virtual bool equals(const tag& other) const override
     {
         if (other.id() != TagId::String) {
@@ -917,7 +983,12 @@ struct tag_list_tag;
  */
 struct list_tag : public tag {
     static constexpr TagId tid = TagId::List;
-    virtual TagId id() const noexcept override { return TagId::List; }
+
+    virtual TagId id() const noexcept override
+    {
+        return TagId::List;
+    }
+
     virtual TagId element_id() const noexcept = 0;
     virtual size_t size() const noexcept = 0;
     virtual bool heavy() const noexcept = 0;
@@ -940,12 +1011,22 @@ struct tag_list_tag final : public list_tag {
     typedef std::unique_ptr<tag> element_type;
     typedef std::vector<element_type> value_type;
     value_type value;
+
     virtual TagId element_id() const noexcept override
     {
         return value.empty() ? eid : (eid != TagId::End ? eid : value[0]->id());
     }
-    virtual size_t size() const noexcept override { return value.size(); }
-    virtual bool heavy() const noexcept override { return true; }
+
+    virtual size_t size() const noexcept override
+    {
+        return value.size();
+    }
+
+    virtual bool heavy() const noexcept override
+    {
+        return true;
+    }
+
     virtual std::unique_ptr<tag> operator[](size_t i) const override;
     tag_list_tag();
     explicit tag_list_tag(TagId tid);
@@ -988,9 +1069,22 @@ struct end_list_tag final : public list_tag {
     typedef typename end_tag::value_type element_type;
     typedef std::vector<element_type> value_type;
     static constexpr TagId eid = tag_type::tid;
-    virtual TagId element_id() const noexcept override { return eid; }
-    virtual size_t size() const noexcept override { return 0u; }
-    virtual bool heavy() const noexcept override { return false; }
+
+    virtual TagId element_id() const noexcept override
+    {
+        return eid;
+    }
+
+    virtual size_t size() const noexcept override
+    {
+        return 0u;
+    }
+
+    virtual bool heavy() const noexcept override
+    {
+        return false;
+    }
+
     virtual std::unique_ptr<tag> operator[](size_t i) const override;
     end_list_tag() = default;
     static std::unique_ptr<end_list_tag> read_content(std::istream& input);
@@ -1013,36 +1107,65 @@ struct number_list_tag final : public list_tag {
     typedef typename T::value_type element_type;
     typedef std::vector<element_type> value_type;
     static constexpr TagId eid = tag_type::tid;
-    virtual TagId element_id() const noexcept override { return eid; }
+
+    virtual TagId element_id() const noexcept override
+    {
+        return eid;
+    }
+
     value_type value;
-    virtual size_t size() const noexcept override { return value.size(); }
-    virtual bool heavy() const noexcept override { return false; }
-    virtual std::unique_ptr<tag> operator[](size_t i) const override { return std::make_unique<tag_type>(value.at(i)); }
+
+    virtual size_t size() const noexcept override
+    {
+        return value.size();
+    }
+
+    virtual bool heavy() const noexcept override
+    {
+        return false;
+    }
+
+    virtual std::unique_ptr<tag> operator[](size_t i) const override
+    {
+        return std::make_unique<tag_type>(value.at(i));
+    }
+
     number_list_tag() = default;
+
     number_list_tag(const value_type& list)
         : value(list)
     {}
+
     number_list_tag(value_type&& list)
         : value(std::move(list))
     {}
+
     static std::unique_ptr<number_list_tag> read_content(std::istream& input)
     {
-        return load_list<number_list_tag>(
-            input, [&input](const Context&) -> element_type { return load<element_type>(input, Context::get(input)); });
+        return load_list<number_list_tag>(input, [&input](const Context&) -> element_type {
+            return load<element_type>(input, Context::get(input));
+        });
     }
+
     virtual void write(std::ostream& output) const override
     {
         dump_list(output, eid, value, [&output](const element_type& number, const Context& ctxt) {
             dump(output, number, ctxt);
         });
     }
-    virtual std::unique_ptr<tag> copy() const override { return std::make_unique<number_list_tag>(*this); }
+
+    virtual std::unique_ptr<tag> copy() const override
+    {
+        return std::make_unique<number_list_tag>(*this);
+    }
+
     virtual tag_list_tag as_tags() override
     {
         tag_list_tag result(eid);
         result.value.reserve(value.size());
-        for (auto each : value)
+        for (auto each : value) {
             result.value.push_back(std::make_unique<tag_type>(each));
+        }
         value.clear();
         value.shrink_to_fit();
         return result;
@@ -1072,37 +1195,65 @@ struct array_list_tag final : public list_tag {
     typedef typename T::value_type element_type;
     typedef std::vector<element_type> value_type;
     static constexpr TagId eid = tag_type::tid;
-    virtual TagId element_id() const noexcept override { return eid; }
+
+    virtual TagId element_id() const noexcept override
+    {
+        return eid;
+    }
+
     value_type value;
-    virtual size_t size() const noexcept override { return value.size(); }
-    virtual bool heavy() const noexcept override { return false; }
-    virtual std::unique_ptr<tag> operator[](size_t i) const override { return std::make_unique<tag_type>(value.at(i)); }
+
+    virtual size_t size() const noexcept override
+    {
+        return value.size();
+    }
+
+    virtual bool heavy() const noexcept override
+    {
+        return false;
+    }
+
+    virtual std::unique_ptr<tag> operator[](size_t i) const override
+    {
+        return std::make_unique<tag_type>(value.at(i));
+    }
+
     array_list_tag() = default;
+
     array_list_tag(const value_type& list)
         : value(list)
     {}
+
     array_list_tag(value_type&& list)
         : value(std::move(list))
     {}
+
     static std::unique_ptr<array_list_tag> read_content(std::istream& input)
     {
         return load_list<array_list_tag>(input, [&input](const Context& ctxt) -> element_type {
             return load_array<typename element_type::value_type>(input, ctxt);
         });
     }
+
     virtual void write(std::ostream& output) const override
     {
         dump_list(output, eid, value, [&output](const element_type& element, const Context& ctxt) {
             dump_array(output, element, ctxt);
         });
     }
-    virtual std::unique_ptr<tag> copy() const override { return std::make_unique<array_list_tag>(*this); }
+
+    virtual std::unique_ptr<tag> copy() const override
+    {
+        return std::make_unique<array_list_tag>(*this);
+    }
+
     virtual tag_list_tag as_tags() override
     {
         tag_list_tag result(eid);
         result.value.reserve(value.size());
-        for (auto& each : value)
+        for (auto& each : value) {
             result.value.push_back(std::make_unique<tag_type>(std::move(each)));
+        }
         value.clear();
         value.shrink_to_fit();
         return result;
@@ -1127,10 +1278,24 @@ struct string_list_tag final : public list_tag {
     typedef std::string element_type;
     typedef std::vector<element_type> value_type;
     static constexpr TagId eid = tag_type::tid;
-    virtual TagId element_id() const noexcept override { return eid; }
+
+    virtual TagId element_id() const noexcept override
+    {
+        return eid;
+    }
+
     value_type value;
-    virtual size_t size() const noexcept override { return value.size(); }
-    virtual bool heavy() const noexcept override { return false; }
+
+    virtual size_t size() const noexcept override
+    {
+        return value.size();
+    }
+
+    virtual bool heavy() const noexcept override
+    {
+        return false;
+    }
+
     virtual std::unique_ptr<tag> operator[](size_t i) const override;
     string_list_tag() = default;
     string_list_tag(const value_type& list);
@@ -1151,10 +1316,24 @@ struct list_list_tag final : public list_tag {
     typedef std::unique_ptr<tag_type> element_type;
     typedef std::vector<element_type> value_type;
     static constexpr TagId eid = tag_type::tid;
-    virtual TagId element_id() const noexcept override { return eid; }
+
+    virtual TagId element_id() const noexcept override
+    {
+        return eid;
+    }
+
     value_type value;
-    virtual size_t size() const noexcept override { return value.size(); }
-    virtual bool heavy() const noexcept override { return false; }
+
+    virtual size_t size() const noexcept override
+    {
+        return value.size();
+    }
+
+    virtual bool heavy() const noexcept override
+    {
+        return false;
+    }
+
     virtual std::unique_ptr<tag> operator[](size_t i) const override;
     list_list_tag() = default;
     list_list_tag(const list_list_tag& other);
@@ -1186,7 +1365,12 @@ struct compound_tag final : public tag {
     bool is_root = false;
     value_type value;
     static constexpr TagId tid = TagId::Compound;
-    virtual TagId id() const noexcept override { return TagId::Compound; }
+
+    virtual TagId id() const noexcept override
+    {
+        return TagId::Compound;
+    }
+
     compound_tag() = default;
     compound_tag(const compound_tag& other);
     explicit compound_tag(bool root);
@@ -1272,10 +1456,24 @@ struct compound_list_tag final : public list_tag {
     typedef tag_type element_type;
     typedef std::vector<element_type> value_type;
     static constexpr TagId eid = tag_type::tid;
-    virtual TagId element_id() const noexcept override { return eid; }
+
+    virtual TagId element_id() const noexcept override
+    {
+        return eid;
+    }
+
     value_type value;
-    virtual size_t size() const noexcept override { return value.size(); }
-    virtual bool heavy() const noexcept override { return false; }
+
+    virtual size_t size() const noexcept override
+    {
+        return value.size();
+    }
+
+    virtual bool heavy() const noexcept override
+    {
+        return false;
+    }
+
     virtual std::unique_ptr<tag> operator[](size_t i) const override;
     compound_list_tag() = default;
     compound_list_tag(const value_type& list);
@@ -1407,12 +1605,20 @@ std::vector<number_t> load_array_text_impl(std::istream& input)
     std::vector<number_t> result;
     skip_space(input);
     char a = static_cast<char>(cheof(input));
-    if (a != '[') throw std::runtime_error("failed to open array tag");
+    if (a != '[') {
+        throw std::runtime_error("failed to open array tag");
+    }
     a = static_cast<char>(cheof(input));
-    if (a != tags::tag_of<std::vector<number_t>>::prefix) throw std::runtime_error("wrong array tag type");
+    if (a != tags::tag_of<std::vector<number_t>>::prefix) {
+        throw std::runtime_error("wrong array tag type");
+    }
     a = static_cast<char>(cheof(input));
-    if (a != ';') throw std::runtime_error("unexpected symbol in array tag");
-    scan_sequence_text(input, [&] { result.push_back(load_text<number_t>(input)); });
+    if (a != ';') {
+        throw std::runtime_error("unexpected symbol in array tag");
+    }
+    scan_sequence_text(input, [&] {
+        result.push_back(load_text<number_t>(input));
+    });
     result.shrink_to_fit();
     return result;
 }
@@ -1423,7 +1629,9 @@ void dump_array_text_impl(std::ostream& output, const std::vector<number_t>& arr
     output << '[' << tags::tag_of<std::vector<number_t>>::prefix << ';';
     auto iter = array.cbegin();
     auto end = array.cend();
-    if (iter == end) return;
+    if (iter == end) {
+        return;
+    }
     dump_text(output, *iter);
     for (++iter; iter != end; ++iter) {
         output << ',';

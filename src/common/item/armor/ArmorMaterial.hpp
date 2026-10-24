@@ -143,7 +143,10 @@ public:
      * 韧性减少高伤害攻击的护甲穿透。
      * 钻石=2.0, 下界合金=3.0, 其他=0.0
      */
-    [[nodiscard]] virtual f32 getToughness() const { return 0.0f; }
+    [[nodiscard]] virtual f32 getToughness() const
+    {
+        return 0.0f;
+    }
 
     /**
      * @brief 获取击退抗性
@@ -151,7 +154,10 @@ public:
      *
      * 下界合金=0.1, 其他=0.0
      */
-    [[nodiscard]] virtual f32 getKnockbackResistance() const { return 0.0f; }
+    [[nodiscard]] virtual f32 getKnockbackResistance() const
+    {
+        return 0.0f;
+    }
 
     // ========== 工具方法 ==========
 
@@ -218,11 +224,24 @@ public:
  */
 class LeatherArmorMaterial : public ArmorMaterial {
 public:
-    [[nodiscard]] std::string getName() const override { return "leather"; }
-    [[nodiscard]] std::string getAssetId() const override { return "leather"; }
+    [[nodiscard]] std::string getName() const override
+    {
+        return "leather";
+    }
+
+    [[nodiscard]] std::string getAssetId() const override
+    {
+        return "leather";
+    }
+
     [[nodiscard]] i32 getDurability(ArmorSlot slot) const override;
     [[nodiscard]] i32 getDefense(ArmorSlot slot) const override;
-    [[nodiscard]] i32 getEnchantability() const override { return 15; }
+
+    [[nodiscard]] i32 getEnchantability() const override
+    {
+        return 15;
+    }
+
     [[nodiscard]] sound::SoundEvent getEquipSound() const override;
     [[nodiscard]] crafting::Ingredient getRepairMaterial() const override;
 };
@@ -235,11 +254,24 @@ public:
  */
 class ChainArmorMaterial : public ArmorMaterial {
 public:
-    [[nodiscard]] std::string getName() const override { return "chain"; }
-    [[nodiscard]] std::string getAssetId() const override { return "chainmail"; }
+    [[nodiscard]] std::string getName() const override
+    {
+        return "chain";
+    }
+
+    [[nodiscard]] std::string getAssetId() const override
+    {
+        return "chainmail";
+    }
+
     [[nodiscard]] i32 getDurability(ArmorSlot slot) const override;
     [[nodiscard]] i32 getDefense(ArmorSlot slot) const override;
-    [[nodiscard]] i32 getEnchantability() const override { return 12; }
+
+    [[nodiscard]] i32 getEnchantability() const override
+    {
+        return 12;
+    }
+
     [[nodiscard]] sound::SoundEvent getEquipSound() const override;
     [[nodiscard]] crafting::Ingredient getRepairMaterial() const override;
 };
@@ -255,11 +287,24 @@ public:
  */
 class CopperArmorMaterial : public ArmorMaterial {
 public:
-    [[nodiscard]] std::string getName() const override { return "copper"; }
-    [[nodiscard]] std::string getAssetId() const override { return "copper"; }
+    [[nodiscard]] std::string getName() const override
+    {
+        return "copper";
+    }
+
+    [[nodiscard]] std::string getAssetId() const override
+    {
+        return "copper";
+    }
+
     [[nodiscard]] i32 getDurability(ArmorSlot slot) const override;
     [[nodiscard]] i32 getDefense(ArmorSlot slot) const override;
-    [[nodiscard]] i32 getEnchantability() const override { return 8; }
+
+    [[nodiscard]] i32 getEnchantability() const override
+    {
+        return 8;
+    }
+
     [[nodiscard]] sound::SoundEvent getEquipSound() const override;
     [[nodiscard]] crafting::Ingredient getRepairMaterial() const override;
 };
@@ -272,11 +317,24 @@ public:
  */
 class IronArmorMaterial : public ArmorMaterial {
 public:
-    [[nodiscard]] std::string getName() const override { return "iron"; }
-    [[nodiscard]] std::string getAssetId() const override { return "iron"; }
+    [[nodiscard]] std::string getName() const override
+    {
+        return "iron";
+    }
+
+    [[nodiscard]] std::string getAssetId() const override
+    {
+        return "iron";
+    }
+
     [[nodiscard]] i32 getDurability(ArmorSlot slot) const override;
     [[nodiscard]] i32 getDefense(ArmorSlot slot) const override;
-    [[nodiscard]] i32 getEnchantability() const override { return 9; }
+
+    [[nodiscard]] i32 getEnchantability() const override
+    {
+        return 9;
+    }
+
     [[nodiscard]] sound::SoundEvent getEquipSound() const override;
     [[nodiscard]] crafting::Ingredient getRepairMaterial() const override;
 };
@@ -290,11 +348,24 @@ public:
  */
 class GoldArmorMaterial : public ArmorMaterial {
 public:
-    [[nodiscard]] std::string getName() const override { return "gold"; }
-    [[nodiscard]] std::string getAssetId() const override { return "gold"; }
+    [[nodiscard]] std::string getName() const override
+    {
+        return "gold";
+    }
+
+    [[nodiscard]] std::string getAssetId() const override
+    {
+        return "gold";
+    }
+
     [[nodiscard]] i32 getDurability(ArmorSlot slot) const override;
     [[nodiscard]] i32 getDefense(ArmorSlot slot) const override;
-    [[nodiscard]] i32 getEnchantability() const override { return 25; }
+
+    [[nodiscard]] i32 getEnchantability() const override
+    {
+        return 25;
+    }
+
     [[nodiscard]] sound::SoundEvent getEquipSound() const override;
     [[nodiscard]] crafting::Ingredient getRepairMaterial() const override;
 };
@@ -308,14 +379,31 @@ public:
  */
 class DiamondArmorMaterial : public ArmorMaterial {
 public:
-    [[nodiscard]] std::string getName() const override { return "diamond"; }
-    [[nodiscard]] std::string getAssetId() const override { return "diamond"; }
+    [[nodiscard]] std::string getName() const override
+    {
+        return "diamond";
+    }
+
+    [[nodiscard]] std::string getAssetId() const override
+    {
+        return "diamond";
+    }
+
     [[nodiscard]] i32 getDurability(ArmorSlot slot) const override;
     [[nodiscard]] i32 getDefense(ArmorSlot slot) const override;
-    [[nodiscard]] i32 getEnchantability() const override { return 10; }
+
+    [[nodiscard]] i32 getEnchantability() const override
+    {
+        return 10;
+    }
+
     [[nodiscard]] sound::SoundEvent getEquipSound() const override;
     [[nodiscard]] crafting::Ingredient getRepairMaterial() const override;
-    [[nodiscard]] f32 getToughness() const override { return 2.0f; }
+
+    [[nodiscard]] f32 getToughness() const override
+    {
+        return 2.0f;
+    }
 };
 
 /**
@@ -326,11 +414,24 @@ public:
  */
 class TurtleArmorMaterial : public ArmorMaterial {
 public:
-    [[nodiscard]] std::string getName() const override { return "turtle"; }
-    [[nodiscard]] std::string getAssetId() const override { return "turtle_scute"; }
+    [[nodiscard]] std::string getName() const override
+    {
+        return "turtle";
+    }
+
+    [[nodiscard]] std::string getAssetId() const override
+    {
+        return "turtle_scute";
+    }
+
     [[nodiscard]] i32 getDurability(ArmorSlot slot) const override;
     [[nodiscard]] i32 getDefense(ArmorSlot slot) const override;
-    [[nodiscard]] i32 getEnchantability() const override { return 9; }
+
+    [[nodiscard]] i32 getEnchantability() const override
+    {
+        return 9;
+    }
+
     [[nodiscard]] sound::SoundEvent getEquipSound() const override;
     [[nodiscard]] crafting::Ingredient getRepairMaterial() const override;
 };
@@ -346,15 +447,36 @@ public:
  */
 class NetheriteArmorMaterial : public ArmorMaterial {
 public:
-    [[nodiscard]] std::string getName() const override { return "netherite"; }
-    [[nodiscard]] std::string getAssetId() const override { return "netherite"; }
+    [[nodiscard]] std::string getName() const override
+    {
+        return "netherite";
+    }
+
+    [[nodiscard]] std::string getAssetId() const override
+    {
+        return "netherite";
+    }
+
     [[nodiscard]] i32 getDurability(ArmorSlot slot) const override;
     [[nodiscard]] i32 getDefense(ArmorSlot slot) const override;
-    [[nodiscard]] i32 getEnchantability() const override { return 15; }
+
+    [[nodiscard]] i32 getEnchantability() const override
+    {
+        return 15;
+    }
+
     [[nodiscard]] sound::SoundEvent getEquipSound() const override;
     [[nodiscard]] crafting::Ingredient getRepairMaterial() const override;
-    [[nodiscard]] f32 getToughness() const override { return 3.0f; }
-    [[nodiscard]] f32 getKnockbackResistance() const override { return 0.1f; }
+
+    [[nodiscard]] f32 getToughness() const override
+    {
+        return 3.0f;
+    }
+
+    [[nodiscard]] f32 getKnockbackResistance() const override
+    {
+        return 0.1f;
+    }
 };
 
 /**
@@ -370,11 +492,24 @@ public:
  */
 class ArmadilloScuteArmorMaterial : public ArmorMaterial {
 public:
-    [[nodiscard]] std::string getName() const override { return "armadillo_scute"; }
-    [[nodiscard]] std::string getAssetId() const override { return "armadillo_scute"; }
+    [[nodiscard]] std::string getName() const override
+    {
+        return "armadillo_scute";
+    }
+
+    [[nodiscard]] std::string getAssetId() const override
+    {
+        return "armadillo_scute";
+    }
+
     [[nodiscard]] i32 getDurability(ArmorSlot slot) const override;
     [[nodiscard]] i32 getDefense(ArmorSlot slot) const override;
-    [[nodiscard]] i32 getEnchantability() const override { return 10; }
+
+    [[nodiscard]] i32 getEnchantability() const override
+    {
+        return 10;
+    }
+
     [[nodiscard]] sound::SoundEvent getEquipSound() const override;
     [[nodiscard]] crafting::Ingredient getRepairMaterial() const override;
 };

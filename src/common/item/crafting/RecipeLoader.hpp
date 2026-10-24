@@ -136,18 +136,27 @@ public:
      * @brief 获取最后加载的结果
      * @return 最后一次加载的结果
      */
-    [[nodiscard]] const LoadResult& getLastResult() const noexcept { return m_lastResult; }
+    [[nodiscard]] const LoadResult& getLastResult() const noexcept
+    {
+        return m_lastResult;
+    }
 
     /**
      * @brief 重置加载结果
      */
-    void resetResult() noexcept { m_lastResult = LoadResult{}; }
+    void resetResult() noexcept
+    {
+        m_lastResult = LoadResult{};
+    }
 
     /**
      * @brief 设置是否在加载前清空配方管理器
      * @param clear 是否清空
      */
-    void setClearBeforeLoad(bool clear) noexcept { m_clearBeforeLoad = clear; }
+    void setClearBeforeLoad(bool clear) noexcept
+    {
+        m_clearBeforeLoad = clear;
+    }
 
     /**
      * @brief 从文件路径推导配方ID

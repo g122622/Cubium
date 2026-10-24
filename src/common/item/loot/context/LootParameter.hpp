@@ -41,9 +41,15 @@ public:
         : m_id(id)
     {}
 
-    [[nodiscard]] const std::string& getId() const noexcept { return m_id; }
+    [[nodiscard]] const std::string& getId() const noexcept
+    {
+        return m_id;
+    }
 
-    bool operator==(const LootParameter& other) const noexcept { return m_id == other.m_id; }
+    bool operator==(const LootParameter& other) const noexcept
+    {
+        return m_id == other.m_id;
+    }
 
 private:
     std::string m_id;

@@ -290,11 +290,13 @@ TEST(DensityAstUlpTest, BlendedNoiseComputeSoAVsScalar)
 {
     i64 maxUlp = 0;
     f64 maxAbsDiff = 0.0;
+
     // 三维度 BlendedNoise 参数(主世界/下界/末地),多 seed。
     struct BlendedCase {
         f64 xzScale, yScale, xzFactor, yFactor, smearScaleMultiplier;
         const char* label;
     };
+
     const std::vector<BlendedCase> bcases = {
         {0.25, 0.125, 80.0, 160.0, 8.0, "overworld"},
         {0.25, 0.375, 80.0, 60.0, 8.0, "nether"},

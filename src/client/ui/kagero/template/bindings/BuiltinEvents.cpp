@@ -51,7 +51,9 @@ BuiltinEvents& BuiltinEvents::instance()
 
 void BuiltinEvents::initialize()
 {
-    if (m_initialized) return;
+    if (m_initialized) {
+        return;
+    }
 
     _registerClickEvents();
     _registerHoverEvents();
@@ -545,8 +547,9 @@ i32 parseKeyCode(const std::string& keyName)
     };
 
     std::string lower = keyName;
-    std::transform(
-        lower.begin(), lower.end(), lower.begin(), [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+    std::transform(lower.begin(), lower.end(), lower.begin(), [](unsigned char c) {
+        return static_cast<char>(std::tolower(c));
+    });
 
     auto it = keyMap.find(lower);
     if (it != keyMap.end()) {
@@ -570,14 +573,25 @@ i32 parseKeyCode(const std::string& keyName)
 i32 parseMouseButton(const std::string& buttonName)
 {
     std::string lower = buttonName;
-    std::transform(
-        lower.begin(), lower.end(), lower.begin(), [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+    std::transform(lower.begin(), lower.end(), lower.begin(), [](unsigned char c) {
+        return static_cast<char>(std::tolower(c));
+    });
 
-    if (lower == "left" || lower == "0") return 0;
-    if (lower == "right" || lower == "1") return 1;
-    if (lower == "middle" || lower == "2") return 2;
-    if (lower == "button4" || lower == "3") return 3;
-    if (lower == "button5" || lower == "4") return 4;
+    if (lower == "left" || lower == "0") {
+        return 0;
+    }
+    if (lower == "right" || lower == "1") {
+        return 1;
+    }
+    if (lower == "middle" || lower == "2") {
+        return 2;
+    }
+    if (lower == "button4" || lower == "3") {
+        return 3;
+    }
+    if (lower == "button5" || lower == "4") {
+        return 4;
+    }
 
     return 0;
 }
@@ -588,17 +602,28 @@ i32 parseKeyMods(const std::string& mods)
 
     // 解析修饰键字符串，格式如 "shift+ctrl" 或 "alt"
     std::string lower = mods;
-    std::transform(
-        lower.begin(), lower.end(), lower.begin(), [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+    std::transform(lower.begin(), lower.end(), lower.begin(), [](unsigned char c) {
+        return static_cast<char>(std::tolower(c));
+    });
 
-    if (lower.find("shift") != std::string::npos) result |= static_cast<i32>(KeyMods::Shift);
-    if (lower.find("ctrl") != std::string::npos || lower.find("control") != std::string::npos)
+    if (lower.find("shift") != std::string::npos) {
+        result |= static_cast<i32>(KeyMods::Shift);
+    }
+    if (lower.find("ctrl") != std::string::npos || lower.find("control") != std::string::npos) {
         result |= static_cast<i32>(KeyMods::Control);
-    if (lower.find("alt") != std::string::npos) result |= static_cast<i32>(KeyMods::Alt);
-    if (lower.find("super") != std::string::npos || lower.find("meta") != std::string::npos)
+    }
+    if (lower.find("alt") != std::string::npos) {
+        result |= static_cast<i32>(KeyMods::Alt);
+    }
+    if (lower.find("super") != std::string::npos || lower.find("meta") != std::string::npos) {
         result |= static_cast<i32>(KeyMods::Super);
-    if (lower.find("caps") != std::string::npos) result |= static_cast<i32>(KeyMods::CapsLock);
-    if (lower.find("num") != std::string::npos) result |= static_cast<i32>(KeyMods::NumLock);
+    }
+    if (lower.find("caps") != std::string::npos) {
+        result |= static_cast<i32>(KeyMods::CapsLock);
+    }
+    if (lower.find("num") != std::string::npos) {
+        result |= static_cast<i32>(KeyMods::NumLock);
+    }
 
     return result;
 }

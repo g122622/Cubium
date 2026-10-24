@@ -41,39 +41,162 @@ public:
     }
 
     // IWorld 纯虚方法实现
-    const BlockState* getBlockState(i32, i32, i32) const override { return nullptr; }
-    bool setBlockState(i32, i32, i32, const BlockState*) override { return false; }
-    const fluid::FluidState* getFluidState(i32, i32, i32) const override { return nullptr; }
-    bool isWithinWorldBounds(i32, i32, i32) const override { return true; }
-    i32 getHeight(i32, i32) const override { return 0; }
-    u8 getBlockLight(i32, i32, i32) const override { return 0; }
-    u8 getSkyLight(i32, i32, i32) const override { return 15; }
-    bool hasBlockCollision(const AxisAlignedBB&) const override { return false; }
-    std::vector<AxisAlignedBB> getBlockCollisions(const AxisAlignedBB&) const override { return {}; }
-    bool hasEntityCollision(const AxisAlignedBB&, const Entity*) const override { return false; }
-    std::vector<AxisAlignedBB> getEntityCollisions(const AxisAlignedBB&, const Entity*) const override { return {}; }
-    std::vector<Entity*> getEntitiesInAABB(const AxisAlignedBB&, const Entity*) const override { return {}; }
-    std::vector<Entity*> getEntitiesInRange(const Vector3&, f32, const Entity*) const override { return {}; }
-    std::vector<Entity*> getPlayers() const override { return {}; }
-    PhysicsEngine* physicsEngine() override { return nullptr; }
-    const PhysicsEngine* physicsEngine() const override { return nullptr; }
-    world::tick::TickManager& tickManager() override { return m_tickManager; }
-    const world::tick::TickManager& tickManager() const override { return m_tickManager; }
+    const BlockState* getBlockState(i32, i32, i32) const override
+    {
+        return nullptr;
+    }
+
+    bool setBlockState(i32, i32, i32, const BlockState*) override
+    {
+        return false;
+    }
+
+    const fluid::FluidState* getFluidState(i32, i32, i32) const override
+    {
+        return nullptr;
+    }
+
+    bool isWithinWorldBounds(i32, i32, i32) const override
+    {
+        return true;
+    }
+
+    i32 getHeight(i32, i32) const override
+    {
+        return 0;
+    }
+
+    u8 getBlockLight(i32, i32, i32) const override
+    {
+        return 0;
+    }
+
+    u8 getSkyLight(i32, i32, i32) const override
+    {
+        return 15;
+    }
+
+    bool hasBlockCollision(const AxisAlignedBB&) const override
+    {
+        return false;
+    }
+
+    std::vector<AxisAlignedBB> getBlockCollisions(const AxisAlignedBB&) const override
+    {
+        return {};
+    }
+
+    bool hasEntityCollision(const AxisAlignedBB&, const Entity*) const override
+    {
+        return false;
+    }
+
+    std::vector<AxisAlignedBB> getEntityCollisions(const AxisAlignedBB&, const Entity*) const override
+    {
+        return {};
+    }
+
+    std::vector<Entity*> getEntitiesInAABB(const AxisAlignedBB&, const Entity*) const override
+    {
+        return {};
+    }
+
+    std::vector<Entity*> getEntitiesInRange(const Vector3&, f32, const Entity*) const override
+    {
+        return {};
+    }
+
+    std::vector<Entity*> getPlayers() const override
+    {
+        return {};
+    }
+
+    PhysicsEngine* physicsEngine() override
+    {
+        return nullptr;
+    }
+
+    const PhysicsEngine* physicsEngine() const override
+    {
+        return nullptr;
+    }
+
+    world::tick::TickManager& tickManager() override
+    {
+        return m_tickManager;
+    }
+
+    const world::tick::TickManager& tickManager() const override
+    {
+        return m_tickManager;
+    }
+
     // attachPassengers 经 world.entityRegistry() 取 ECS registry 反序列化乘客，
     // 须返回测试 registry（与实体构造所用一致），否则 MC_ASSERT_RELEASE(nullptr) 崩溃。
-    [[nodiscard]] ecs::EntityRegistry* entityRegistry() override { return &mc::test::testEcsRegistry(); }
-    [[nodiscard]] const ecs::EntityRegistry* entityRegistry() const override { return &mc::test::testEcsRegistry(); }
-    DimensionId dimension() const override { return 0; }
-    u64 seed() const override { return 0; }
-    u64 currentTick() const override { return 0; }
-    i64 dayTime() const override { return 0; }
-    bool isClientSide() const override { return false; }
-    bool isHardcore() const override { return false; }
-    Difficulty difficulty() const override { return Difficulty::Normal; }
-    math::IRandom& getRandom() override { return m_random; }
-    const math::IRandom& getRandom() const override { return m_random; }
-    world::border::WorldBorder& worldBorder() override { return m_worldBorder; }
-    const world::border::WorldBorder& worldBorder() const override { return m_worldBorder; }
+    [[nodiscard]] ecs::EntityRegistry* entityRegistry() override
+    {
+        return &mc::test::testEcsRegistry();
+    }
+
+    [[nodiscard]] const ecs::EntityRegistry* entityRegistry() const override
+    {
+        return &mc::test::testEcsRegistry();
+    }
+
+    DimensionId dimension() const override
+    {
+        return 0;
+    }
+
+    u64 seed() const override
+    {
+        return 0;
+    }
+
+    u64 currentTick() const override
+    {
+        return 0;
+    }
+
+    i64 dayTime() const override
+    {
+        return 0;
+    }
+
+    bool isClientSide() const override
+    {
+        return false;
+    }
+
+    bool isHardcore() const override
+    {
+        return false;
+    }
+
+    Difficulty difficulty() const override
+    {
+        return Difficulty::Normal;
+    }
+
+    math::IRandom& getRandom() override
+    {
+        return m_random;
+    }
+
+    const math::IRandom& getRandom() const override
+    {
+        return m_random;
+    }
+
+    world::border::WorldBorder& worldBorder() override
+    {
+        return m_worldBorder;
+    }
+
+    const world::border::WorldBorder& worldBorder() const override
+    {
+        return m_worldBorder;
+    }
 
 private:
     std::unordered_map<EntityInstanceId, std::unique_ptr<Entity>> m_entities;

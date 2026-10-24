@@ -92,7 +92,10 @@ public:
      * @brief 检查是否需要tick
      * @return 始终返回true，营火需要持续更新
      */
-    [[nodiscard]] bool needsTick() const noexcept override { return true; }
+    [[nodiscard]] bool needsTick() const noexcept override
+    {
+        return true;
+    }
 
     /**
      * @brief 从JSON加载数据
@@ -119,14 +122,24 @@ public:
      * @brief 获取容器
      * @return 容器指针
      */
-    [[nodiscard]] IInventory* getInventory() noexcept override { return &m_inventory; }
-    [[nodiscard]] const IInventory* getInventory() const noexcept override { return &m_inventory; }
+    [[nodiscard]] IInventory* getInventory() noexcept override
+    {
+        return &m_inventory;
+    }
+
+    [[nodiscard]] const IInventory* getInventory() const noexcept override
+    {
+        return &m_inventory;
+    }
 
     /**
      * @brief 获取容器大小
      * @return 4个槽位
      */
-    [[nodiscard]] i32 getContainerSize() const noexcept override { return SLOT_COUNT; }
+    [[nodiscard]] i32 getContainerSize() const noexcept override
+    {
+        return SLOT_COUNT;
+    }
 
     // ========== 营火特有方法 ==========
 
@@ -168,7 +181,10 @@ public:
      * @param slot 槽位索引 (0-3)
      * @return 已烹饪时间（tick）
      */
-    [[nodiscard]] i32 getCookTime(i32 slot) const noexcept { return _isValidSlot(slot) ? m_cookTimes[slot] : 0; }
+    [[nodiscard]] i32 getCookTime(i32 slot) const noexcept
+    {
+        return _isValidSlot(slot) ? m_cookTimes[slot] : 0;
+    }
 
     /**
      * @brief 获取指定槽位的总烹饪时间
@@ -206,7 +222,10 @@ private:
      * @param slot 槽位索引
      * @return 如果有效返回true
      */
-    [[nodiscard]] bool _isValidSlot(i32 slot) const noexcept { return slot >= 0 && slot < SLOT_COUNT; }
+    [[nodiscard]] bool _isValidSlot(i32 slot) const noexcept
+    {
+        return slot >= 0 && slot < SLOT_COUNT;
+    }
 
     /// 物品库存（4个槽位）
     SimpleInventory m_inventory;

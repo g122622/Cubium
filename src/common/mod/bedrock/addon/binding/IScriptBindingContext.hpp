@@ -1,15 +1,38 @@
-// Copyright (c) 2024 Cubium Project
-// SPDX-License-Identifier: MIT
+/*
+ * Copyright (c) 2026 Guo Yi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ */
 
 #pragma once
 
 #include "common/core/Types.hpp"
+#include "common/mod/bedrock/addon/binding/ScriptClassRegistry.hpp"
 
 #include <cstddef>
 #include <functional>
 #include <optional>
 #include <string>
 #include <string_view>
+#include <unordered_map>
+#include <utility>
 #include <vector>
 
 namespace mc::mod::bedrock::addon {
@@ -90,6 +113,39 @@ class IScriptBindingContext {
 public:
     virtual ~IScriptBindingContext() = default;
 
+    /** @brief 获取本上下文内的类注册表，不共享其他插件的原型。 */
+    [[nodiscard]] ScriptClassRegistry& classRegistry() noexcept
+    {
+        return m_classRegistry;
+    }
+
+    /** @brief 设置行为包身份，动态属性使用该身份隔离命名空间。 */
+    void setPackId(std::string identity)
+    {
+        m_packId = std::move(identity);
+    }
+
+    /** @brief 获取当前行为包身份。 */
+    [[nodiscard]] const std::string& packId() const
+    {
+        return m_packId;
+    }
+
+    /** @brief 登记必须在底层脚本上下文释放前执行的清理操作。 */
+    [[nodiscard]] u64 onDispose(std::function<void()> cleanup)
+    {
+        const u64 id = m_nextCleanupId++;
+        m_cleanupCallbacks.emplace(id, std::move(cleanup));
+
+        return id;
+    }
+
+    /** @brief 移除已经完成或被取消的资源清理操作。 */
+    void removeDisposeCallback(u64 id)
+    {
+        m_cleanupCallbacks.erase(id);
+    }
+
     // ===== 值创建 =====
 
     [[nodiscard]] virtual void* createUndefined() = 0;
@@ -134,6 +190,8 @@ public:
     [[nodiscard]] virtual bool isNumber(void* value) const = 0;
     [[nodiscard]] virtual bool isString(void* value) const = 0;
     [[nodiscard]] virtual bool isException(void* value) const = 0;
+    /** @brief 检查属性读取或键枚举是否留下待处理异常，不消耗该异常。 */
+    [[nodiscard]] virtual bool hasException() const = 0;
 
     // ===== 值转换 =====
 
@@ -297,7 +355,10 @@ public:
      * 默认返回 0：不跟踪类原型句柄的后端（或测试替身）无需实现本方法，只有确实按借用语义持有
      * 句柄的引擎才覆写它。故意不做成纯虚——本方法仅用于诊断，不应成为每个实现的编译负担。
      */
-    [[nodiscard]] virtual std::size_t liveClassProtoHandleCount() const noexcept { return 0; }
+    [[nodiscard]] virtual std::size_t liveClassProtoHandleCount() const noexcept
+    {
+        return 0;
+    }
 
     /** 注册原生方法（nativeFunc为引擎特定的C函数指针） */
     virtual void registerNativeMethod(void* proto, const char* name, void* nativeFunc, i32 length = 0) = 0;
@@ -396,6 +457,23 @@ public:
 
     virtual void setContextData(void* data) = 0;
     [[nodiscard]] virtual void* getContextData() const = 0;
+
+protected:
+    /** @brief 由引擎后端在销毁任何脚本值之前清理外部引用。 */
+    void disposeBindings()
+    {
+        auto callbacks = std::move(m_cleanupCallbacks);
+        m_cleanupCallbacks.clear();
+        for (auto& [id, cleanup] : callbacks) {
+            cleanup();
+        }
+    }
+
+private:
+    std::unordered_map<u64, std::function<void()>> m_cleanupCallbacks;
+    u64 m_nextCleanupId = 1;
+    ScriptClassRegistry m_classRegistry;
+    std::string m_packId;
 };
 
 } // namespace mc::mod::bedrock::addon

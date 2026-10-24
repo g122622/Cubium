@@ -93,7 +93,10 @@ public:
         return getBlockState(pos.x, pos.y, pos.z);
     }
 
-    [[nodiscard]] bool isWithinWorldBounds(i32, i32, i32) const override { return true; }
+    [[nodiscard]] bool isWithinWorldBounds(i32, i32, i32) const override
+    {
+        return true;
+    }
 
     [[nodiscard]] std::vector<Entity*> getEntitiesInAABB(
         const AxisAlignedBB& aabb, const Entity* exclude) const override
@@ -134,7 +137,9 @@ public:
 
     EntityInstanceId spawnEntity(std::unique_ptr<Entity> entity) override
     {
-        if (!entity) return EntityInstanceId(0);
+        if (!entity) {
+            return EntityInstanceId(0);
+        }
         EntityInstanceId id = m_nextEntityId;
         m_nextEntityId = EntityInstanceId(static_cast<u32>(m_nextEntityId) + 1);
         entity->setId(id);
@@ -143,13 +148,25 @@ public:
         return id;
     }
 
-    [[nodiscard]] u64 currentTick() const override { return m_currentTick; }
+    [[nodiscard]] u64 currentTick() const override
+    {
+        return m_currentTick;
+    }
 
-    void setCurrentTick(u64 tick) { m_currentTick = tick; }
+    void setCurrentTick(u64 tick)
+    {
+        m_currentTick = tick;
+    }
 
-    [[nodiscard]] i64 dayTime() const override { return 6000; }
+    [[nodiscard]] i64 dayTime() const override
+    {
+        return 6000;
+    }
 
-    [[nodiscard]] Difficulty difficulty() const override { return Difficulty::Normal; }
+    [[nodiscard]] Difficulty difficulty() const override
+    {
+        return Difficulty::Normal;
+    }
 
     [[nodiscard]] world::tick::TickManager& tickManager() override
     {
@@ -179,7 +196,10 @@ protected:
         m_world = std::make_unique<WitherTestWorld>();
     }
 
-    void TearDown() override { m_world.reset(); }
+    void TearDown() override
+    {
+        m_world.reset();
+    }
 
     std::unique_ptr<WitherTestWorld> m_world;
 };

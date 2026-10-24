@@ -153,7 +153,10 @@ public:
      * @brief 检查玩家是否能接收消息（重写 Player 基类）。
      * @return 如果有有效网络连接返回 true
      */
-    [[nodiscard]] bool canReceiveMessages() const override { return hasConnection(); }
+    [[nodiscard]] bool canReceiveMessages() const override
+    {
+        return hasConnection();
+    }
 
     /**
      * @brief 向此玩家客户端发送速度同步包
@@ -248,20 +251,29 @@ public:
      * @brief 绑定网络连接。
      * @param connection 玩家连接（非拥有，可为 nullptr）。
      */
-    void setConnection(mc::server::net::ServerClientConnection* connection) { m_connection = connection; }
+    void setConnection(mc::server::net::ServerClientConnection* connection)
+    {
+        m_connection = connection;
+    }
 
     /**
      * @brief 获取网络连接。
      * @return 网络连接指针（非拥有，可能为 nullptr）。
      * @note 调用方需结合 hasConnection() 使用。
      */
-    [[nodiscard]] mc::server::net::ServerClientConnection* connection() const { return m_connection; }
+    [[nodiscard]] mc::server::net::ServerClientConnection* connection() const
+    {
+        return m_connection;
+    }
 
     /**
      * @brief 检查网络连接是否可用。
      * @return true 表示连接存在且仍处于连接状态。
      */
-    [[nodiscard]] bool hasConnection() const { return m_connection != nullptr && m_connection->isConnected(); }
+    [[nodiscard]] bool hasConnection() const
+    {
+        return m_connection != nullptr && m_connection->isConnected();
+    }
 
     // ========== 世界相关 ==========
 
@@ -287,13 +299,19 @@ public:
      * @brief 设置服务器引用。
      * @param server 服务器接口指针。
      */
-    void setServer(server::IServer* server) { m_server = server; }
+    void setServer(server::IServer* server)
+    {
+        m_server = server;
+    }
 
     /**
      * @brief 获取服务器引用。
      * @return 服务器接口指针。
      */
-    [[nodiscard]] server::IServer* getServer() const { return m_server; }
+    [[nodiscard]] server::IServer* getServer() const
+    {
+        return m_server;
+    }
 
     // ========== 队伍系统 ==========
 
@@ -383,7 +401,11 @@ public:
      * @brief 获取左肩实体 NBT
      * @return 左肩实体 NBT 的 const 引用
      */
-    [[nodiscard]] const nbt::tags::compound_tag& getShoulderEntityLeft() const noexcept { return m_shoulderEntityLeft; }
+    [[nodiscard]] const nbt::tags::compound_tag& getShoulderEntityLeft() const noexcept
+    {
+        return m_shoulderEntityLeft;
+    }
+
     /**
      * @brief 获取右肩实体 NBT
      * @return 右肩实体 NBT 的 const 引用
@@ -392,30 +414,52 @@ public:
     {
         return m_shoulderEntityRight;
     }
+
     /**
      * @brief 设置左肩实体 NBT
      * @param tag 肩部实体 NBT
      */
-    void setShoulderEntityLeft(nbt::tags::compound_tag tag) { m_shoulderEntityLeft = std::move(tag); }
+    void setShoulderEntityLeft(nbt::tags::compound_tag tag)
+    {
+        m_shoulderEntityLeft = std::move(tag);
+    }
+
     /**
      * @brief 设置右肩实体 NBT
      * @param tag 肩部实体 NBT
      */
-    void setShoulderEntityRight(nbt::tags::compound_tag tag) { m_shoulderEntityRight = std::move(tag); }
+    void setShoulderEntityRight(nbt::tags::compound_tag tag)
+    {
+        m_shoulderEntityRight = std::move(tag);
+    }
 
     /**
      * @brief 获取配方书（重写 Player 基类虚方法）
      * @return 配方书指针
      */
-    [[nodiscard]] crafting::RecipeBook* getRecipeBook() override { return &m_recipeBook; }
-    [[nodiscard]] const crafting::RecipeBook* getRecipeBook() const override { return &m_recipeBook; }
+    [[nodiscard]] crafting::RecipeBook* getRecipeBook() override
+    {
+        return &m_recipeBook;
+    }
+
+    [[nodiscard]] const crafting::RecipeBook* getRecipeBook() const override
+    {
+        return &m_recipeBook;
+    }
 
     /**
      * @brief 获取服务端配方书（具体类型访问）
      * @return 服务端配方书引用
      */
-    [[nodiscard]] crafting::ServerRecipeBook& serverRecipeBook() { return m_recipeBook; }
-    [[nodiscard]] const crafting::ServerRecipeBook& serverRecipeBook() const { return m_recipeBook; }
+    [[nodiscard]] crafting::ServerRecipeBook& serverRecipeBook()
+    {
+        return m_recipeBook;
+    }
+
+    [[nodiscard]] const crafting::ServerRecipeBook& serverRecipeBook() const
+    {
+        return m_recipeBook;
+    }
 
     /**
      * @brief 将肩部实体生成回世界（对齐 vanilla ServerPlayer.respawnEntityOnShoulder）
@@ -469,8 +513,15 @@ public:
      * @brief 转换为 ServerPlayer 指针（重写 Player 基类）
      * @return 返回 this 指针
      */
-    [[nodiscard]] ServerPlayer* asServerPlayer() override { return this; }
-    [[nodiscard]] const ServerPlayer* asServerPlayer() const override { return this; }
+    [[nodiscard]] ServerPlayer* asServerPlayer() override
+    {
+        return this;
+    }
+
+    [[nodiscard]] const ServerPlayer* asServerPlayer() const override
+    {
+        return this;
+    }
 
     [[nodiscard]] scoreboard::Scoreboard* getScoreboard() override;
     [[nodiscard]] const scoreboard::Scoreboard* getScoreboard() const override;
@@ -481,8 +532,15 @@ public:
      * @brief 获取玩家成就进度管理器
      * @return 成就进度管理器指针
      */
-    [[nodiscard]] server::PlayerAdvancements* getAdvancements() { return m_advancements.get(); }
-    [[nodiscard]] const server::PlayerAdvancements* getAdvancements() const { return m_advancements.get(); }
+    [[nodiscard]] server::PlayerAdvancements* getAdvancements()
+    {
+        return m_advancements.get();
+    }
+
+    [[nodiscard]] const server::PlayerAdvancements* getAdvancements() const
+    {
+        return m_advancements.get();
+    }
 
     /**
      * @brief 初始化成就系统
@@ -495,8 +553,15 @@ public:
      * @brief 获取玩家统计管理器
      * @return 统计管理器引用
      */
-    [[nodiscard]] server::stats::StatisticsManager& getStats() { return m_statistics; }
-    [[nodiscard]] const server::stats::StatisticsManager& getStats() const { return m_statistics; }
+    [[nodiscard]] server::stats::StatisticsManager& getStats()
+    {
+        return m_statistics;
+    }
+
+    [[nodiscard]] const server::stats::StatisticsManager& getStats() const
+    {
+        return m_statistics;
+    }
 
     /**
      * @brief 增加物品使用统计（重写 Player 基类）
@@ -631,13 +696,19 @@ public:
      * @brief 检查玩家是否在线。
      * @return true 表示在线。
      */
-    [[nodiscard]] bool isOnline() const { return m_online; }
+    [[nodiscard]] bool isOnline() const
+    {
+        return m_online;
+    }
 
     /**
      * @brief 设置在线状态。
      * @param online 新的在线状态。
      */
-    void setOnline(bool online) { m_online = online; }
+    void setOnline(bool online)
+    {
+        m_online = online;
+    }
 
     // ========== 睡眠系统 ==========
 
@@ -666,7 +737,10 @@ public:
      * @param bedPos 床头位置
      * @return 睡眠结果
      */
-    entity::SleepResult tryStartSleeping(const BlockPos& bedPos) override { return trySleep(bedPos); }
+    entity::SleepResult tryStartSleeping(const BlockPos& bedPos) override
+    {
+        return trySleep(bedPos);
+    }
 
     /**
      * @brief 停止睡眠
@@ -876,22 +950,60 @@ public:
      * 每 tick 末由 ServerPlayer::tick 复位为 knownMovePacketCount（对齐 Java
      * ServerGamePacketListenerImpl.tick 的 receivedMovePacketCount=knownMovePacketCount）。
      */
-    void incrementReceivedMovePacketCount() { ++m_receivedMovePacketCount; }
-    void syncMovePacketCounters() { m_knownMovePacketCount = m_receivedMovePacketCount; }
-    [[nodiscard]] i32 receivedMovePacketCount() const { return m_receivedMovePacketCount; }
-    [[nodiscard]] i32 knownMovePacketCount() const { return m_knownMovePacketCount; }
+    void incrementReceivedMovePacketCount()
+    {
+        ++m_receivedMovePacketCount;
+    }
+
+    void syncMovePacketCounters()
+    {
+        m_knownMovePacketCount = m_receivedMovePacketCount;
+    }
+
+    [[nodiscard]] i32 receivedMovePacketCount() const
+    {
+        return m_receivedMovePacketCount;
+    }
+
+    [[nodiscard]] i32 knownMovePacketCount() const
+    {
+        return m_knownMovePacketCount;
+    }
 
     /**
      * @brief 反飞行基线位置（玩家上一合法坐标）。
      * firstGood 为本 tick 起始基线，lastGood 为最近一次通过校验的坐标。
      * 超限时回弹至 lastGood。首次进入 Play 阶段由 resetAntiFlightBaseline 初始化。
      */
-    [[nodiscard]] f64 firstGoodX() const { return m_firstGoodX; }
-    [[nodiscard]] f64 firstGoodY() const { return m_firstGoodY; }
-    [[nodiscard]] f64 firstGoodZ() const { return m_firstGoodZ; }
-    [[nodiscard]] f64 lastGoodX() const { return m_lastGoodX; }
-    [[nodiscard]] f64 lastGoodY() const { return m_lastGoodY; }
-    [[nodiscard]] f64 lastGoodZ() const { return m_lastGoodZ; }
+    [[nodiscard]] f64 firstGoodX() const
+    {
+        return m_firstGoodX;
+    }
+
+    [[nodiscard]] f64 firstGoodY() const
+    {
+        return m_firstGoodY;
+    }
+
+    [[nodiscard]] f64 firstGoodZ() const
+    {
+        return m_firstGoodZ;
+    }
+
+    [[nodiscard]] f64 lastGoodX() const
+    {
+        return m_lastGoodX;
+    }
+
+    [[nodiscard]] f64 lastGoodY() const
+    {
+        return m_lastGoodY;
+    }
+
+    [[nodiscard]] f64 lastGoodZ() const
+    {
+        return m_lastGoodZ;
+    }
 
     /**
      * @brief 初始化反飞行基线为当前坐标（登录/传送后调用）。
@@ -921,19 +1033,49 @@ public:
     }
 
     /// 反飞行基线是否已初始化（首次进入 Play 阶段置位）。
-    [[nodiscard]] bool hasAntiFlightBaselineInited() const { return m_antiFlightBaselineInited; }
-    void markAntiFlightBaselineInited() { m_antiFlightBaselineInited = true; }
+    [[nodiscard]] bool hasAntiFlightBaselineInited() const
+    {
+        return m_antiFlightBaselineInited;
+    }
+
+    void markAntiFlightBaselineInited()
+    {
+        m_antiFlightBaselineInited = true;
+    }
 
     // ========== 载具反飞行基线（跨 tick 状态） ==========
     // 对齐 Java ServerGamePacketListenerImpl.handleMoveVehicle 的 vehicleFirstGood/
     // vehicleLastGood。骑乘载具时按载具坐标做 moved-too-quickly/wrongly 校验。
 
-    [[nodiscard]] f64 vehicleFirstGoodX() const { return m_vehicleFirstGoodX; }
-    [[nodiscard]] f64 vehicleFirstGoodY() const { return m_vehicleFirstGoodY; }
-    [[nodiscard]] f64 vehicleFirstGoodZ() const { return m_vehicleFirstGoodZ; }
-    [[nodiscard]] f64 vehicleLastGoodX() const { return m_vehicleLastGoodX; }
-    [[nodiscard]] f64 vehicleLastGoodY() const { return m_vehicleLastGoodY; }
-    [[nodiscard]] f64 vehicleLastGoodZ() const { return m_vehicleLastGoodZ; }
+    [[nodiscard]] f64 vehicleFirstGoodX() const
+    {
+        return m_vehicleFirstGoodX;
+    }
+
+    [[nodiscard]] f64 vehicleFirstGoodY() const
+    {
+        return m_vehicleFirstGoodY;
+    }
+
+    [[nodiscard]] f64 vehicleFirstGoodZ() const
+    {
+        return m_vehicleFirstGoodZ;
+    }
+
+    [[nodiscard]] f64 vehicleLastGoodX() const
+    {
+        return m_vehicleLastGoodX;
+    }
+
+    [[nodiscard]] f64 vehicleLastGoodY() const
+    {
+        return m_vehicleLastGoodY;
+    }
+
+    [[nodiscard]] f64 vehicleLastGoodZ() const
+    {
+        return m_vehicleLastGoodZ;
+    }
 
     void resetVehicleAntiFlightBaseline(f64 x, f64 y, f64 z)
     {
@@ -944,25 +1086,46 @@ public:
         m_vehicleLastGoodY = y;
         m_vehicleLastGoodZ = z;
     }
+
     void advanceVehicleLastGood(f64 x, f64 y, f64 z)
     {
         m_vehicleLastGoodX = x;
         m_vehicleLastGoodY = y;
         m_vehicleLastGoodZ = z;
     }
+
     void rollVehicleFirstGoodToLastGood()
     {
         m_vehicleFirstGoodX = m_vehicleLastGoodX;
         m_vehicleFirstGoodY = m_vehicleLastGoodY;
         m_vehicleFirstGoodZ = m_vehicleLastGoodZ;
     }
-    [[nodiscard]] bool hasVehicleAntiFlightInited() const { return m_vehicleAntiFlightInited; }
-    void markVehicleAntiFlightInited() { m_vehicleAntiFlightInited = true; }
-    void clearVehicleAntiFlightInited() { m_vehicleAntiFlightInited = false; }
+
+    [[nodiscard]] bool hasVehicleAntiFlightInited() const
+    {
+        return m_vehicleAntiFlightInited;
+    }
+
+    void markVehicleAntiFlightInited()
+    {
+        m_vehicleAntiFlightInited = true;
+    }
+
+    void clearVehicleAntiFlightInited()
+    {
+        m_vehicleAntiFlightInited = false;
+    }
 
     /// 上次反飞行校验的载具实体ID，用于检测载具切换并重置基线。
-    [[nodiscard]] EntityInstanceId lastVehicleId() const { return m_lastVehicleId; }
-    void setLastVehicleId(EntityInstanceId id) { m_lastVehicleId = id; }
+    [[nodiscard]] EntityInstanceId lastVehicleId() const
+    {
+        return m_lastVehicleId;
+    }
+
+    void setLastVehicleId(EntityInstanceId id)
+    {
+        m_lastVehicleId = id;
+    }
 
     /**
      * @brief 滚动 firstGood 到 lastGood（tick 末调用）。

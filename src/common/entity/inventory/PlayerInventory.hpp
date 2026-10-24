@@ -101,7 +101,10 @@ public:
 
     // ========== IInventory 接口实现 ==========
 
-    [[nodiscard]] i32 getContainerSize() const override { return TOTAL_SIZE; }
+    [[nodiscard]] i32 getContainerSize() const override
+    {
+        return TOTAL_SIZE;
+    }
 
     [[nodiscard]] bool isEmpty() const override;
 
@@ -123,7 +126,10 @@ public:
      * @brief 获取当前选中的快捷栏槽位
      * @return 槽位索引 (0-8)
      */
-    [[nodiscard]] i32 getSelectedSlot() const { return m_selectedSlot; }
+    [[nodiscard]] i32 getSelectedSlot() const
+    {
+        return m_selectedSlot;
+    }
 
     /**
      * @brief 设置选中的快捷栏槽位
@@ -140,7 +146,10 @@ public:
      * @brief 获取当前选中物品的引用（可修改）
      * @return 物品堆引用
      */
-    [[nodiscard]] ItemStack& getSelectedStackRef() { return m_items[static_cast<std::size_t>(m_selectedSlot)]; }
+    [[nodiscard]] ItemStack& getSelectedStackRef()
+    {
+        return m_items[static_cast<std::size_t>(m_selectedSlot)];
+    }
 
     /**
      * @brief 获取当前选中物品的const引用
@@ -235,88 +244,152 @@ public:
     /**
      * @brief 获取头盔槽物品
      */
-    [[nodiscard]] ItemStack getHelmet() const { return m_items[InventorySlots::ARMOR_HEAD]; }
+    [[nodiscard]] ItemStack getHelmet() const
+    {
+        return m_items[InventorySlots::ARMOR_HEAD];
+    }
 
     /**
      * @brief 获取头盔槽物品引用（可修改）
      */
-    [[nodiscard]] ItemStack& getHelmetRef() { return m_items[InventorySlots::ARMOR_HEAD]; }
-    [[nodiscard]] const ItemStack& getHelmetRef() const { return m_items[InventorySlots::ARMOR_HEAD]; }
+    [[nodiscard]] ItemStack& getHelmetRef()
+    {
+        return m_items[InventorySlots::ARMOR_HEAD];
+    }
+
+    [[nodiscard]] const ItemStack& getHelmetRef() const
+    {
+        return m_items[InventorySlots::ARMOR_HEAD];
+    }
 
     /**
      * @brief 获取胸甲槽物品
      */
-    [[nodiscard]] ItemStack getChestplate() const { return m_items[InventorySlots::ARMOR_CHEST]; }
+    [[nodiscard]] ItemStack getChestplate() const
+    {
+        return m_items[InventorySlots::ARMOR_CHEST];
+    }
 
     /**
      * @brief 获取胸甲槽物品引用（可修改）
      */
-    [[nodiscard]] ItemStack& getChestplateRef() { return m_items[InventorySlots::ARMOR_CHEST]; }
-    [[nodiscard]] const ItemStack& getChestplateRef() const { return m_items[InventorySlots::ARMOR_CHEST]; }
+    [[nodiscard]] ItemStack& getChestplateRef()
+    {
+        return m_items[InventorySlots::ARMOR_CHEST];
+    }
+
+    [[nodiscard]] const ItemStack& getChestplateRef() const
+    {
+        return m_items[InventorySlots::ARMOR_CHEST];
+    }
 
     /**
      * @brief 获取护腿槽物品
      */
-    [[nodiscard]] ItemStack getLeggings() const { return m_items[InventorySlots::ARMOR_LEGS]; }
+    [[nodiscard]] ItemStack getLeggings() const
+    {
+        return m_items[InventorySlots::ARMOR_LEGS];
+    }
 
     /**
      * @brief 获取护腿槽物品引用（可修改）
      */
-    [[nodiscard]] ItemStack& getLeggingsRef() { return m_items[InventorySlots::ARMOR_LEGS]; }
-    [[nodiscard]] const ItemStack& getLeggingsRef() const { return m_items[InventorySlots::ARMOR_LEGS]; }
+    [[nodiscard]] ItemStack& getLeggingsRef()
+    {
+        return m_items[InventorySlots::ARMOR_LEGS];
+    }
+
+    [[nodiscard]] const ItemStack& getLeggingsRef() const
+    {
+        return m_items[InventorySlots::ARMOR_LEGS];
+    }
 
     /**
      * @brief 获取靴子槽物品
      */
-    [[nodiscard]] ItemStack getBoots() const { return m_items[InventorySlots::ARMOR_FEET]; }
+    [[nodiscard]] ItemStack getBoots() const
+    {
+        return m_items[InventorySlots::ARMOR_FEET];
+    }
 
     /**
      * @brief 获取靴子槽物品引用（可修改）
      */
-    [[nodiscard]] ItemStack& getBootsRef() { return m_items[InventorySlots::ARMOR_FEET]; }
-    [[nodiscard]] const ItemStack& getBootsRef() const { return m_items[InventorySlots::ARMOR_FEET]; }
+    [[nodiscard]] ItemStack& getBootsRef()
+    {
+        return m_items[InventorySlots::ARMOR_FEET];
+    }
+
+    [[nodiscard]] const ItemStack& getBootsRef() const
+    {
+        return m_items[InventorySlots::ARMOR_FEET];
+    }
 
     /**
      * @brief 获取副手物品
      */
-    [[nodiscard]] ItemStack getOffhandItem() const { return m_items[InventorySlots::OFFHAND]; }
+    [[nodiscard]] ItemStack getOffhandItem() const
+    {
+        return m_items[InventorySlots::OFFHAND];
+    }
 
     /**
      * @brief 获取副手物品的引用（可修改）
      * @return 物品堆引用
      */
-    [[nodiscard]] ItemStack& getOffhandItemRef() { return m_items[InventorySlots::OFFHAND]; }
+    [[nodiscard]] ItemStack& getOffhandItemRef()
+    {
+        return m_items[InventorySlots::OFFHAND];
+    }
 
     /**
      * @brief 获取副手物品的const引用
      * @return 物品堆引用
      */
-    [[nodiscard]] const ItemStack& getOffhandItemRef() const { return m_items[InventorySlots::OFFHAND]; }
+    [[nodiscard]] const ItemStack& getOffhandItemRef() const
+    {
+        return m_items[InventorySlots::OFFHAND];
+    }
 
     /**
      * @brief 设置头盔
      */
-    void setHelmet(const ItemStack& stack) { m_items[InventorySlots::ARMOR_HEAD] = stack; }
+    void setHelmet(const ItemStack& stack)
+    {
+        m_items[InventorySlots::ARMOR_HEAD] = stack;
+    }
 
     /**
      * @brief 设置胸甲
      */
-    void setChestplate(const ItemStack& stack) { m_items[InventorySlots::ARMOR_CHEST] = stack; }
+    void setChestplate(const ItemStack& stack)
+    {
+        m_items[InventorySlots::ARMOR_CHEST] = stack;
+    }
 
     /**
      * @brief 设置护腿
      */
-    void setLeggings(const ItemStack& stack) { m_items[InventorySlots::ARMOR_LEGS] = stack; }
+    void setLeggings(const ItemStack& stack)
+    {
+        m_items[InventorySlots::ARMOR_LEGS] = stack;
+    }
 
     /**
      * @brief 设置靴子
      */
-    void setBoots(const ItemStack& stack) { m_items[InventorySlots::ARMOR_FEET] = stack; }
+    void setBoots(const ItemStack& stack)
+    {
+        m_items[InventorySlots::ARMOR_FEET] = stack;
+    }
 
     /**
      * @brief 设置副手物品
      */
-    void setOffhandItem(const ItemStack& stack) { m_items[InventorySlots::OFFHAND] = stack; }
+    void setOffhandItem(const ItemStack& stack)
+    {
+        m_items[InventorySlots::OFFHAND] = stack;
+    }
 
     // ========== 槽位操作 ==========
 
@@ -357,7 +430,10 @@ public:
     /**
      * @brief 获取拥有此背包的玩家
      */
-    [[nodiscard]] Player* getPlayer() const { return m_player; }
+    [[nodiscard]] Player* getPlayer() const
+    {
+        return m_player;
+    }
 
     /**
      * @brief 绑定拥有此背包的玩家
@@ -366,7 +442,10 @@ public:
      * 容器菜单前须绑定菜单玩家，使 AbstractContainerMenu 的点击逻辑（如
      * _handleClickPick 经 m_playerInventory->getPlayer() 解引用玩家）不致空引用。
      */
-    void setPlayer(Player* player) { m_player = player; }
+    void setPlayer(Player* player)
+    {
+        m_player = player;
+    }
 
     // ========== IInventory 接口扩展 ==========
 
@@ -444,19 +523,28 @@ public:
      * @brief 获取鼠标持有的物品
      * @return 鼠标物品
      */
-    [[nodiscard]] const ItemStack& getCarriedItem() const { return m_carriedItem; }
+    [[nodiscard]] const ItemStack& getCarriedItem() const
+    {
+        return m_carriedItem;
+    }
 
     /**
      * @brief 获取鼠标持有的物品（可修改）
      * @return 鼠标物品引用
      */
-    [[nodiscard]] ItemStack& getCarriedItemRef() { return m_carriedItem; }
+    [[nodiscard]] ItemStack& getCarriedItemRef()
+    {
+        return m_carriedItem;
+    }
 
     /**
      * @brief 设置鼠标持有的物品
      * @param stack 物品堆
      */
-    void setCarriedItem(const ItemStack& stack) { m_carriedItem = stack; }
+    void setCarriedItem(const ItemStack& stack)
+    {
+        m_carriedItem = stack;
+    }
 
     // ========== 变更追踪 ==========
 
@@ -472,18 +560,27 @@ public:
      * @brief 设置变更回调
      * @param callback 回调函数
      */
-    void setChangeCallback(ChangeCallback callback) { m_changeCallback = std::move(callback); }
+    void setChangeCallback(ChangeCallback callback)
+    {
+        m_changeCallback = std::move(callback);
+    }
 
     /**
      * @brief 清除变更回调
      */
-    void clearChangeCallback() { m_changeCallback = nullptr; }
+    void clearChangeCallback()
+    {
+        m_changeCallback = nullptr;
+    }
 
     /**
      * @brief 获取变更计数
      * @return 变更次数
      */
-    [[nodiscard]] i32 getTimesChanged() const { return m_timesChanged; }
+    [[nodiscard]] i32 getTimesChanged() const
+    {
+        return m_timesChanged;
+    }
 
     /**
      * @brief 将背包数据序列化到 NBT 标签

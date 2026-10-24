@@ -70,11 +70,25 @@ public:
         Vector3 velocity;
     };
 
-    void setClientSide(bool client) { m_clientSide = client; }
-    [[nodiscard]] bool isClientSide() const override { return m_clientSide; }
+    void setClientSide(bool client)
+    {
+        m_clientSide = client;
+    }
 
-    std::vector<ParticleRecord>& particles() { return m_particles; }
-    void clearParticles() { m_particles.clear(); }
+    [[nodiscard]] bool isClientSide() const override
+    {
+        return m_clientSide;
+    }
+
+    std::vector<ParticleRecord>& particles()
+    {
+        return m_particles;
+    }
+
+    void clearParticles()
+    {
+        m_particles.clear();
+    }
 
     void addParticle(particle::ParticleTypeId type, const Vector3& pos, const Vector3& velocity) override
     {
@@ -137,7 +151,10 @@ protected:
         m_glowSquid = std::make_unique<TestableGlowSquidEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
     }
 
-    void TearDown() override { m_glowSquid.reset(); }
+    void TearDown() override
+    {
+        m_glowSquid.reset();
+    }
 
     std::unique_ptr<TestableGlowSquidEntity> m_glowSquid;
 };

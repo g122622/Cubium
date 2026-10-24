@@ -101,7 +101,10 @@ public:
     }
 
     /// MC SpreadConfig.isOtherBlockValidAsSource（默认 false）。
-    [[nodiscard]] virtual bool isOtherBlockValidAsSource(const BlockState& /*state*/) const { return false; }
+    [[nodiscard]] virtual bool isOtherBlockValidAsSource(const BlockState& /*state*/) const
+    {
+        return false;
+    }
 
     /// MC SpreadConfig.canSpreadFrom（isOtherBlockValidAsSource || hasFace）。
     [[nodiscard]] bool canSpreadFrom(const BlockState& state, Direction direction) const

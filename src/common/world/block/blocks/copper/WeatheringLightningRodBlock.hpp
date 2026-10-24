@@ -63,15 +63,30 @@ public:
 
     // ========== IOxidizableBlock 接口实现 ==========
 
-    [[nodiscard]] BlockStateProperties::OxidationLevel getOxidationLevel() const override { return m_oxidationLevel; }
+    [[nodiscard]] BlockStateProperties::OxidationLevel getOxidationLevel() const override
+    {
+        return m_oxidationLevel;
+    }
 
-    [[nodiscard]] Block* getNextOxidationBlock() const override { return m_nextOxidationBlock; }
+    [[nodiscard]] Block* getNextOxidationBlock() const override
+    {
+        return m_nextOxidationBlock;
+    }
 
-    [[nodiscard]] Block* getPreviousOxidationBlock() const override { return m_previousOxidationBlock; }
+    [[nodiscard]] Block* getPreviousOxidationBlock() const override
+    {
+        return m_previousOxidationBlock;
+    }
 
-    void setNextOxidationBlock(Block* block) { m_nextOxidationBlock = block; }
+    void setNextOxidationBlock(Block* block)
+    {
+        m_nextOxidationBlock = block;
+    }
 
-    void setPreviousOxidationBlock(Block* block) { m_previousOxidationBlock = block; }
+    void setPreviousOxidationBlock(Block* block)
+    {
+        m_previousOxidationBlock = block;
+    }
 
     // ========== 随机 Tick（氧化） ==========
 

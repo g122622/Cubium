@@ -61,18 +61,27 @@ public:
     /**
      * @brief 是否有跳跃请求（对应 MC RabbitJumpControl.wantJump()）
      */
-    [[nodiscard]] bool wantJump() const { return isJumping(); }
+    [[nodiscard]] bool wantJump() const
+    {
+        return isJumping();
+    }
 
     /**
      * @brief 是否允许跳跃（对应 MC RabbitJumpControl.canJump()）
      */
-    [[nodiscard]] bool canJump() const { return m_canJump; }
+    [[nodiscard]] bool canJump() const
+    {
+        return m_canJump;
+    }
 
     /**
      * @brief 设置允许跳跃标志（对应 MC RabbitJumpControl.setCanJump()）
      * @param canJump 是否允许
      */
-    void setCanJump(bool canJump) { m_canJump = canJump; }
+    void setCanJump(bool canJump)
+    {
+        m_canJump = canJump;
+    }
 
 private:
     RabbitEntity* m_rabbit;

@@ -132,7 +132,10 @@ public:
     [[nodiscard]] bool shouldContinueExecuting() override;
     void tick() override;
 
-    [[nodiscard]] std::string getTypeName() const override { return "IllusionerCastingSpellGoal"; }
+    [[nodiscard]] std::string getTypeName() const override
+    {
+        return "IllusionerCastingSpellGoal";
+    }
 
 private:
     IllusionerEntity* m_illusioner;
@@ -158,7 +161,10 @@ public:
     [[nodiscard]] bool shouldExecute() override;
     void startExecuting() override;
 
-    [[nodiscard]] std::string getTypeName() const override { return "IllusionerBlindnessSpellGoal"; }
+    [[nodiscard]] std::string getTypeName() const override
+    {
+        return "IllusionerBlindnessSpellGoal";
+    }
 
 protected:
     [[nodiscard]] i32 getCastWarmupTime() const override;
@@ -195,7 +201,10 @@ public:
 
     [[nodiscard]] bool shouldExecute() override;
 
-    [[nodiscard]] std::string getTypeName() const override { return "IllusionerMirrorSpellGoal"; }
+    [[nodiscard]] std::string getTypeName() const override
+    {
+        return "IllusionerMirrorSpellGoal";
+    }
 
 protected:
     [[nodiscard]] i32 getCastWarmupTime() const override;

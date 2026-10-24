@@ -46,9 +46,16 @@ public:
 
     [[nodiscard]] ItemStack apply(ItemStack stack, LootContext& context) const override;
     [[nodiscard]] std::unique_ptr<LootFunction> clone() const noexcept override;
-    [[nodiscard]] std::string getType() const noexcept override { return "set_item"; }
 
-    [[nodiscard]] const ResourceLocation& getItemId() const { return m_itemId; }
+    [[nodiscard]] std::string getType() const noexcept override
+    {
+        return "set_item";
+    }
+
+    [[nodiscard]] const ResourceLocation& getItemId() const
+    {
+        return m_itemId;
+    }
 
 private:
     ResourceLocation m_itemId;

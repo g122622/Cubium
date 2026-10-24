@@ -60,7 +60,9 @@ namespace command {
 void FunctionCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
 {
     auto functionNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("function");
-    functionNode->setRequirement([](const ServerCommandSource& source) { return source.hasPermission(2); });
+    functionNode->setRequirement([](const ServerCommandSource& source) {
+        return source.hasPermission(2);
+    });
     support::applyMetadata(functionNode,
         support::makeMetadata(
             "Runs a function from a data pack.", "/function <name> [<arguments>|with <source> [path]]", 2, {}, true));
@@ -69,13 +71,17 @@ void FunctionCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatc
     auto nameArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, FunctionArgumentResult>>(
         "name", FunctionArgumentType::functions());
     nameArg->setCustomSuggestions(std::make_shared<FunctionSuggestionProvider>());
-    nameArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _runFunction(ctx); });
+    nameArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _runFunction(ctx);
+    });
 
     // /function <name> <arguments>
     auto argumentsArg =
         std::make_shared<ArgumentCommandNode<ServerCommandSource, std::shared_ptr<nbt::tags::compound_tag>>>(
             "arguments", NbtCompoundArgumentType::nbtCompound());
-    argumentsArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _runFunctionWithArguments(ctx); });
+    argumentsArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _runFunctionWithArguments(ctx);
+    });
 
     // /function <name> with <entity|block|storage> [path]
     auto withNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("with");
@@ -86,9 +92,13 @@ void FunctionCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatc
         "target", EntityArgumentType::entity());
     auto withEntityPathArg =
         std::make_shared<ArgumentCommandNode<ServerCommandSource, NbtPath>>("path", NbtPathArgumentType::nbtPath());
-    withEntityPathArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _runWithEntity(ctx); });
+    withEntityPathArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _runWithEntity(ctx);
+    });
     withEntityTargetArg->addChild(withEntityPathArg);
-    withEntityTargetArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _runWithEntity(ctx); });
+    withEntityTargetArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _runWithEntity(ctx);
+    });
     withEntityNode->addChild(withEntityTargetArg);
 
     // with block <pos> [path]
@@ -97,9 +107,13 @@ void FunctionCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatc
         "pos", BlockPosArgumentType::blockPos());
     auto withBlockPathArg =
         std::make_shared<ArgumentCommandNode<ServerCommandSource, NbtPath>>("path", NbtPathArgumentType::nbtPath());
-    withBlockPathArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _runWithBlock(ctx); });
+    withBlockPathArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _runWithBlock(ctx);
+    });
     withBlockPosArg->addChild(withBlockPathArg);
-    withBlockPosArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _runWithBlock(ctx); });
+    withBlockPosArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _runWithBlock(ctx);
+    });
     withBlockNode->addChild(withBlockPosArg);
 
     // with storage <id> [path]
@@ -108,9 +122,13 @@ void FunctionCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatc
         "id", ResourceLocationArgumentType::resourceLocation());
     auto withStoragePathArg =
         std::make_shared<ArgumentCommandNode<ServerCommandSource, NbtPath>>("path", NbtPathArgumentType::nbtPath());
-    withStoragePathArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _runWithStorage(ctx); });
+    withStoragePathArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _runWithStorage(ctx);
+    });
     withStorageIdArg->addChild(withStoragePathArg);
-    withStorageIdArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _runWithStorage(ctx); });
+    withStorageIdArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _runWithStorage(ctx);
+    });
     withStorageNode->addChild(withStorageIdArg);
 
     withNode->addChild(withEntityNode);

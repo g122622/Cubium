@@ -72,7 +72,10 @@ public:
         , m_range(range)
     {}
 
-    std::string getName() const noexcept override { return "VillagerInteractTask"; }
+    std::string getName() const noexcept override
+    {
+        return "VillagerInteractTask";
+    }
 
 protected:
     bool shouldExecute(IWorld* world, E* owner) override
@@ -176,7 +179,10 @@ public:
               40)
     {}
 
-    std::string getName() const noexcept override { return "InteractWithDoorTask"; }
+    std::string getName() const noexcept override
+    {
+        return "InteractWithDoorTask";
+    }
 
 protected:
     bool shouldExecute(IWorld* world, E* owner) override
@@ -321,7 +327,10 @@ public:
         , m_pathRecalcCounter(0)
     {}
 
-    std::string getName() const noexcept override { return "FollowOwnerTask"; }
+    std::string getName() const noexcept override
+    {
+        return "FollowOwnerTask";
+    }
 
 protected:
     bool shouldExecute(IWorld* world, E* owner) override
@@ -364,7 +373,10 @@ protected:
         return distSq > m_stopDistance * m_stopDistance;
     }
 
-    void startExecuting(IWorld* world, E* owner, i64 gameTime) override { m_pathRecalcCounter = 0; }
+    void startExecuting(IWorld* world, E* owner, i64 gameTime) override
+    {
+        m_pathRecalcCounter = 0;
+    }
 
     void updateTask(IWorld* world, E* owner, i64 gameTime) override
     {
@@ -482,7 +494,10 @@ public:
         , m_protectRange(protectRange)
     {}
 
-    std::string getName() const noexcept override { return "ProtectOwnerTask"; }
+    std::string getName() const noexcept override
+    {
+        return "ProtectOwnerTask";
+    }
 
 protected:
     bool shouldExecute(IWorld* world, E* owner) override
@@ -630,7 +645,10 @@ public:
         , m_pathRecalcCounter(0)
     {}
 
-    std::string getName() const noexcept override { return "PickupItemTask"; }
+    std::string getName() const noexcept override
+    {
+        return "PickupItemTask";
+    }
 
 protected:
     bool shouldExecute(IWorld* world, E* owner) override
@@ -773,7 +791,10 @@ public:
         , m_pathRecalcCounter(0)
     {}
 
-    std::string getName() const noexcept override { return "FollowParentTask"; }
+    std::string getName() const noexcept override
+    {
+        return "FollowParentTask";
+    }
 
 protected:
     bool shouldExecute(IWorld* world, E* owner) override
@@ -928,7 +949,10 @@ public:
         , m_pathRecalcCounter(0)
     {}
 
-    std::string getName() const noexcept override { return "TemptTask"; }
+    std::string getName() const noexcept override
+    {
+        return "TemptTask";
+    }
 
 protected:
     bool shouldExecute(IWorld* world, E* owner) override

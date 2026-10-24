@@ -72,7 +72,10 @@ public:
             std::vector<u32>(m_blocksToIgnore.begin(), m_blocksToIgnore.end()));
     }
 
-    [[nodiscard]] const std::unordered_set<u32>& blocksToIgnore() const { return m_blocksToIgnore; }
+    [[nodiscard]] const std::unordered_set<u32>& blocksToIgnore() const
+    {
+        return m_blocksToIgnore;
+    }
 
 private:
     std::unordered_set<u32> m_blocksToIgnore;

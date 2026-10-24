@@ -498,9 +498,15 @@ bool AmbientOcclusionCalculator::hasOpaqueCollisionShape(const BlockState* state
 u32 AmbientOcclusionCalculator::getAoBrightness(u32 br1, u32 br2, u32 br3, u32 br4)
 {
     // 如果值为0，使用中心亮度(br4)
-    if (br1 == 0) br1 = br4;
-    if (br2 == 0) br2 = br4;
-    if (br3 == 0) br3 = br4;
+    if (br1 == 0) {
+        br1 = br4;
+    }
+    if (br2 == 0) {
+        br2 = br4;
+    }
+    if (br3 == 0) {
+        br3 = br4;
+    }
 
     // 打包格式: skyLight << 20 | blockLight << 4
     u32 skyBr = (((br1 >> 20) & 0xF) + ((br2 >> 20) & 0xF) + ((br3 >> 20) & 0xF) + ((br4 >> 20) & 0xF)) >> 2;

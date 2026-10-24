@@ -62,7 +62,10 @@ public:
         return true;
     }
 
-    void setHeight(i32 x, i32 z, i32 height) { m_heights[{x, z}] = height; }
+    void setHeight(i32 x, i32 z, i32 height)
+    {
+        m_heights[{x, z}] = height;
+    }
 
     [[nodiscard]] i32 getHeight(i32 x, i32 z) const override
     {
@@ -70,12 +73,16 @@ public:
         return it != m_heights.end() ? it->second : 64;
     }
 
-    void playEvent(i32 eventId, const BlockPos& pos, i32 data) override { m_events.push_back({eventId, pos, data}); }
+    void playEvent(i32 eventId, const BlockPos& pos, i32 data) override
+    {
+        m_events.push_back({eventId, pos, data});
+    }
 
     [[nodiscard]] world::tick::TickManager& tickManager() override
     {
         throw std::runtime_error("DragonFightTestWorld::tickManager not implemented");
     }
+
     [[nodiscard]] const world::tick::TickManager& tickManager() const override
     {
         throw std::runtime_error("DragonFightTestWorld::tickManager not implemented");
@@ -83,14 +90,20 @@ public:
 
     // ========== 测试辅助方法 ==========
 
-    [[nodiscard]] const BlockState* getBlockAt(const BlockPos& pos) const { return getBlockState(pos.x, pos.y, pos.z); }
+    [[nodiscard]] const BlockState* getBlockAt(const BlockPos& pos) const
+    {
+        return getBlockState(pos.x, pos.y, pos.z);
+    }
 
     [[nodiscard]] bool hasBlockAt(i32 x, i32 y, i32 z) const
     {
         return m_blocks.find(BlockPos(x, y, z)) != m_blocks.end();
     }
 
-    [[nodiscard]] size_t blockCount() const { return m_blocks.size(); }
+    [[nodiscard]] size_t blockCount() const
+    {
+        return m_blocks.size();
+    }
 
     struct PlayEventCall {
         i32 eventId;
@@ -98,7 +111,10 @@ public:
         i32 data;
     };
 
-    [[nodiscard]] const std::vector<PlayEventCall>& playedEvents() const { return m_events; }
+    [[nodiscard]] const std::vector<PlayEventCall>& playedEvents() const
+    {
+        return m_events;
+    }
 
     // ========== 实体模拟支持 ==========
 
@@ -123,7 +139,10 @@ public:
      * 调用后 getEntitiesByType(ENDER_DRAGON) 将返回该实体。
      * 传入 nullptr 可清除模拟龙。
      */
-    void setMockDragon(std::unique_ptr<Entity> dragon) { m_mockDragon = std::move(dragon); }
+    void setMockDragon(std::unique_ptr<Entity> dragon)
+    {
+        m_mockDragon = std::move(dragon);
+    }
 
     void clear()
     {
@@ -146,7 +165,10 @@ private:
 
 class EndDragonFightTest : public ::testing::Test {
 protected:
-    void SetUp() override { VanillaBlocks::initialize(); }
+    void SetUp() override
+    {
+        VanillaBlocks::initialize();
+    }
 
     DragonFightTestWorld m_world;
 };

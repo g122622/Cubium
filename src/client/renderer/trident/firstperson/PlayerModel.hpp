@@ -89,86 +89,134 @@ public:
     /**
      * @brief 获取右臂
      */
-    [[nodiscard]] std::shared_ptr<ModelRenderer> rightArm() const { return m_rightArm; }
+    [[nodiscard]] std::shared_ptr<ModelRenderer> rightArm() const
+    {
+        return m_rightArm;
+    }
 
     /**
      * @brief 获取左臂
      */
-    [[nodiscard]] std::shared_ptr<ModelRenderer> leftArm() const { return m_leftArm; }
+    [[nodiscard]] std::shared_ptr<ModelRenderer> leftArm() const
+    {
+        return m_leftArm;
+    }
 
     /**
      * @brief 获取右臂袖子（外层）
      */
-    [[nodiscard]] std::shared_ptr<ModelRenderer> rightArmWear() const { return m_rightArmWear; }
+    [[nodiscard]] std::shared_ptr<ModelRenderer> rightArmWear() const
+    {
+        return m_rightArmWear;
+    }
 
     /**
      * @brief 获取左臂袖子（外层）
      */
-    [[nodiscard]] std::shared_ptr<ModelRenderer> leftArmWear() const { return m_leftArmWear; }
+    [[nodiscard]] std::shared_ptr<ModelRenderer> leftArmWear() const
+    {
+        return m_leftArmWear;
+    }
 
     /**
      * @brief 获取右腿
      */
-    [[nodiscard]] std::shared_ptr<ModelRenderer> rightLeg() const { return m_rightLeg; }
+    [[nodiscard]] std::shared_ptr<ModelRenderer> rightLeg() const
+    {
+        return m_rightLeg;
+    }
 
     /**
      * @brief 获取左腿
      */
-    [[nodiscard]] std::shared_ptr<ModelRenderer> leftLeg() const { return m_leftLeg; }
+    [[nodiscard]] std::shared_ptr<ModelRenderer> leftLeg() const
+    {
+        return m_leftLeg;
+    }
 
     /**
      * @brief 获取右腿裤腿（外层）
      */
-    [[nodiscard]] std::shared_ptr<ModelRenderer> rightLegWear() const { return m_rightLegWear; }
+    [[nodiscard]] std::shared_ptr<ModelRenderer> rightLegWear() const
+    {
+        return m_rightLegWear;
+    }
 
     /**
      * @brief 获取左腿裤腿（外层）
      */
-    [[nodiscard]] std::shared_ptr<ModelRenderer> leftLegWear() const { return m_leftLegWear; }
+    [[nodiscard]] std::shared_ptr<ModelRenderer> leftLegWear() const
+    {
+        return m_leftLegWear;
+    }
 
     /**
      * @brief 获取身体外套（外层）
      */
-    [[nodiscard]] std::shared_ptr<ModelRenderer> bodyWear() const { return m_bodyWear; }
+    [[nodiscard]] std::shared_ptr<ModelRenderer> bodyWear() const
+    {
+        return m_bodyWear;
+    }
 
     // ========== 手臂姿态设置 ==========
 
     /**
      * @brief 设置右手手臂姿态
      */
-    void setRightArmPose(ArmPose pose) { m_rightArmPose = pose; }
+    void setRightArmPose(ArmPose pose)
+    {
+        m_rightArmPose = pose;
+    }
 
     /**
      * @brief 设置左手手臂姿态
      */
-    void setLeftArmPose(ArmPose pose) { m_leftArmPose = pose; }
+    void setLeftArmPose(ArmPose pose)
+    {
+        m_leftArmPose = pose;
+    }
 
     /**
      * @brief 获取右手手臂姿态
      */
-    [[nodiscard]] ArmPose rightArmPose() const { return m_rightArmPose; }
+    [[nodiscard]] ArmPose rightArmPose() const
+    {
+        return m_rightArmPose;
+    }
 
     /**
      * @brief 获取左手手臂姿态
      */
-    [[nodiscard]] ArmPose leftArmPose() const { return m_leftArmPose; }
+    [[nodiscard]] ArmPose leftArmPose() const
+    {
+        return m_leftArmPose;
+    }
 
     // ========== 状态设置 ==========
 
     /**
      * @brief 设置是否正在潜行
      */
-    void setSneaking(bool sneaking) { m_sneaking = sneaking; }
+    void setSneaking(bool sneaking)
+    {
+        m_sneaking = sneaking;
+    }
 
     /**
      * @brief 设置是否正在游泳
      */
-    void setSwimming(bool swimming) { m_swimming = swimming; }
+    void setSwimming(bool swimming)
+    {
+        m_swimming = swimming;
+    }
 
     /**
      * @brief 设置是否正在使用鞘翅飞行
      */
-    void setFallFlying(bool fallFlying) { m_fallFlying = fallFlying; }
+    void setFallFlying(bool fallFlying)
+    {
+        m_fallFlying = fallFlying;
+    }
 
     /**
      * @brief 设置所有部件的可见性
@@ -203,7 +251,10 @@ public:
     /**
      * @brief 获取是否使用细手臂
      */
-    [[nodiscard]] bool isSmallArms() const { return m_smallArms; }
+    [[nodiscard]] bool isSmallArms() const
+    {
+        return m_smallArms;
+    }
 
 protected:
     /**

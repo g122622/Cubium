@@ -273,7 +273,9 @@ void AbstractSkeletonEntity::registerGoals()
     m_goalSelector.addGoal(3,
         std::make_unique<entity::ai::goal::AvoidEntityGoal>(
             this, 6.0f, 1.0, 1.2, [](const LivingEntity* entity) -> bool {
-                if (!entity) return false;
+                if (!entity) {
+                    return false;
+                }
                 return entity->entityType() == entity::VanillaEntityTypeKeys::WOLF;
             }));
 
@@ -310,7 +312,9 @@ void AbstractSkeletonEntity::registerGoals()
             [](const LivingEntity* entity) -> bool {
                 // BABY_ON_LAND_SELECTOR: 只攻击陆地上不在水中的幼年海龟
                 const TurtleEntity* turtle = dynamic_cast<const TurtleEntity*>(entity);
-                if (!turtle) return false;
+                if (!turtle) {
+                    return false;
+                }
                 return turtle->isChild() && !turtle->isInWater();
             }));
 }

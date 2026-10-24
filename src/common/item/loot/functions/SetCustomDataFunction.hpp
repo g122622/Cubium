@@ -57,9 +57,16 @@ public:
 
     [[nodiscard]] ItemStack apply(ItemStack stack, LootContext& context) const override;
     [[nodiscard]] std::unique_ptr<LootFunction> clone() const noexcept override;
-    [[nodiscard]] std::string getType() const noexcept override { return "set_custom_data"; }
 
-    [[nodiscard]] const std::string& getNbtString() const noexcept { return m_nbtString; }
+    [[nodiscard]] std::string getType() const noexcept override
+    {
+        return "set_custom_data";
+    }
+
+    [[nodiscard]] const std::string& getNbtString() const noexcept
+    {
+        return m_nbtString;
+    }
 
     /**
      * @brief 直接构造（不做校验），仅供 create() 使用

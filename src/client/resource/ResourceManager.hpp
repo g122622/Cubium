@@ -84,7 +84,9 @@ struct BlockAppearance {
     [[nodiscard]] bool hasAnyFaceTexture() const
     {
         for (const auto& t : faceTextures) {
-            if (t.has_value()) return true;
+            if (t.has_value()) {
+                return true;
+            }
         }
         return false;
     }
@@ -95,7 +97,9 @@ struct BlockAppearance {
     [[nodiscard]] bool hasAnyFaceTextureLayer() const
     {
         for (const auto& l : faceTextureLayers) {
-            if (l.has_value() && !l->empty()) return true;
+            if (l.has_value() && !l->empty()) {
+                return true;
+            }
         }
         return false;
     }
@@ -222,8 +226,15 @@ public:
     /**
      * @brief 获取资源包数量
      */
-    [[nodiscard]] size_t resourcePackCount() const { return m_resourcePacks.size(); }
-    [[nodiscard]] const std::vector<ResourcePackPtr>& resourcePacks() const { return m_resourcePacks; }
+    [[nodiscard]] size_t resourcePackCount() const
+    {
+        return m_resourcePacks.size();
+    }
+
+    [[nodiscard]] const std::vector<ResourcePackPtr>& resourcePacks() const
+    {
+        return m_resourcePacks;
+    }
 
     // ========================================================================
     // 资源加载
@@ -281,14 +292,28 @@ public:
     /**
      * @brief 获取模型加载器
      */
-    [[nodiscard]] BlockModelLoader& modelLoader() { return m_modelLoader; }
-    [[nodiscard]] const BlockModelLoader& modelLoader() const { return m_modelLoader; }
+    [[nodiscard]] BlockModelLoader& modelLoader()
+    {
+        return m_modelLoader;
+    }
+
+    [[nodiscard]] const BlockModelLoader& modelLoader() const
+    {
+        return m_modelLoader;
+    }
 
     /**
      * @brief 获取方块状态加载器
      */
-    [[nodiscard]] BlockStateLoader& blockStateLoader() { return m_blockStateLoader; }
-    [[nodiscard]] const BlockStateLoader& blockStateLoader() const { return m_blockStateLoader; }
+    [[nodiscard]] BlockStateLoader& blockStateLoader()
+    {
+        return m_blockStateLoader;
+    }
+
+    [[nodiscard]] const BlockStateLoader& blockStateLoader() const
+    {
+        return m_blockStateLoader;
+    }
 
     /**
      * @brief 获取第一个资源包（用于纹理加载）

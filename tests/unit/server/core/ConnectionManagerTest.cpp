@@ -52,8 +52,9 @@ protected:
         m_playerManager = std::make_unique<PlayerManager>();
         // 生产环境下该钩子由 MinecraftServer 注入（MinecraftServer::releasePlayerChunkResources）。
         // PlayerManager::removePlayer 会断言钩子已安装——不存在不需要释放区块资源的玩家。
-        m_playerManager->setPlayerRemovalHook(
-            [this](mc::PlayerId playerId) { m_releasedPlayerIds.push_back(playerId); });
+        m_playerManager->setPlayerRemovalHook([this](mc::PlayerId playerId) {
+            m_releasedPlayerIds.push_back(playerId);
+        });
         m_connectionManager = std::make_unique<ConnectionManager>(*m_playerManager);
     }
 

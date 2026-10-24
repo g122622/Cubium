@@ -62,8 +62,15 @@ public:
 
     // ========== 充能与触发 ==========
 
-    [[nodiscard]] bool isPowered() const noexcept { return m_powered; }
-    void setPowered(bool powered) { m_powered = powered; }
+    [[nodiscard]] bool isPowered() const noexcept
+    {
+        return m_powered;
+    }
+
+    void setPowered(bool powered)
+    {
+        m_powered = powered;
+    }
 
     /**
      * @brief 触发测试方块
@@ -82,12 +89,22 @@ public:
      */
     void reset();
 
-    [[nodiscard]] bool hasTriggered() const noexcept { return m_triggered; }
+    [[nodiscard]] bool hasTriggered() const noexcept
+    {
+        return m_triggered;
+    }
 
     // ========== 消息 ==========
 
-    [[nodiscard]] const std::string& getMessage() const noexcept { return m_message; }
-    void setMessage(const std::string& message) { m_message = message; }
+    [[nodiscard]] const std::string& getMessage() const noexcept
+    {
+        return m_message;
+    }
+
+    void setMessage(const std::string& message)
+    {
+        m_message = message;
+    }
 
     /**
      * @brief 输出日志（对齐 vanilla TestBlockEntity#log）
@@ -103,7 +120,10 @@ public:
     [[nodiscard]] std::unique_ptr<BlockEntity> clone() const override;
 
     /// 测试方块为管理员方块，NBT 仅允许 OP 修改
-    [[nodiscard]] bool onlyOpsCanSetNbt() const noexcept override { return true; }
+    [[nodiscard]] bool onlyOpsCanSetNbt() const noexcept override
+    {
+        return true;
+    }
 
 private:
     std::string m_message;    ///< 日志消息

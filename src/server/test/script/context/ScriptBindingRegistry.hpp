@@ -69,8 +69,15 @@ public:
      * 供 `ScriptGameTestFunction::run` 经 `proto(testClassId)` 取 Test 原型创建对象，
      * 以及 `ScriptTestHelper` 各方法 `getOpaque(thisVal, testClassId)` 取 helper。
      */
-    void setTestClassId(u64 classId) noexcept { m_testClassId = classId; }
-    [[nodiscard]] u64 testClassId() const noexcept { return m_testClassId; }
+    void setTestClassId(u64 classId) noexcept
+    {
+        m_testClassId = classId;
+    }
+
+    [[nodiscard]] u64 testClassId() const noexcept
+    {
+        return m_testClassId;
+    }
 
     /**
      * @brief 设置 RegistrationBuilder 类 classId（注册期 `registerRegistrationBuilderClassBinding` 后调）。
@@ -79,8 +86,15 @@ public:
      * `getOpaque(thisVal, classId)` 取 C++ builder；classId 默认 0 会让 JS_GetOpaque2 因
      * class_id 不匹配返回 nullptr（见 JS_GetOpaque 的 p->class_id != class_id 判定）。
      */
-    void setRegistrationBuilderClassId(u64 classId) noexcept { m_registrationBuilderClassId = classId; }
-    [[nodiscard]] u64 registrationBuilderClassId() const noexcept { return m_registrationBuilderClassId; }
+    void setRegistrationBuilderClassId(u64 classId) noexcept
+    {
+        m_registrationBuilderClassId = classId;
+    }
+
+    [[nodiscard]] u64 registrationBuilderClassId() const noexcept
+    {
+        return m_registrationBuilderClassId;
+    }
 
     /**
      * @brief 注入脚本调度器（`GameTestModuleBinding::setScheduler` 转调）。
@@ -88,8 +102,15 @@ public:
      * `ScriptTestHelper::idle(ticks)` 用 `scheduler->runTimeout` 在指定 tick 后 resolve Promise，
      * 实现 JS `await test.idle(n)` 的暂停语义。
      */
-    void setScheduler(mc::mod::bedrock::addon::ScriptScheduler* scheduler) noexcept { m_scheduler = scheduler; }
-    [[nodiscard]] mc::mod::bedrock::addon::ScriptScheduler* scheduler() const noexcept { return m_scheduler; }
+    void setScheduler(mc::mod::bedrock::addon::ScriptScheduler* scheduler) noexcept
+    {
+        m_scheduler = scheduler;
+    }
+
+    [[nodiscard]] mc::mod::bedrock::addon::ScriptScheduler* scheduler() const noexcept
+    {
+        return m_scheduler;
+    }
 
     /**
      * @brief 清空所有条目（脚本引擎重建/测试隔离用）。

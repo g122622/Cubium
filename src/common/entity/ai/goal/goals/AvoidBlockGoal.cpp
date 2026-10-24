@@ -73,7 +73,9 @@ AvoidBlockGoal::AvoidBlockGoal(CreatureEntity* creature,
 
 bool AvoidBlockGoal::shouldExecute()
 {
-    if (!m_creature) return false;
+    if (!m_creature) {
+        return false;
+    }
 
     // 寻找附近的排斥方块
     if (!_findNearestRepellent()) {
@@ -93,7 +95,9 @@ bool AvoidBlockGoal::shouldExecute()
 
 bool AvoidBlockGoal::shouldContinueExecuting()
 {
-    if (!m_creature) return false;
+    if (!m_creature) {
+        return false;
+    }
 
     // 检查是否仍在排斥方块附近
     // 如果已经远离排斥方块，不再需要继续逃跑
@@ -149,7 +153,9 @@ void AvoidBlockGoal::resetTask()
 
 void AvoidBlockGoal::tick()
 {
-    if (!m_creature) return;
+    if (!m_creature) {
+        return;
+    }
 
     // 持续导航到逃跑位置
     // PathNavigator 的 tick 由 MobEntity::tick 调用，无需手动调用
@@ -211,7 +217,9 @@ bool AvoidBlockGoal::_findNearestRepellent()
 
 bool AvoidBlockGoal::_findEscapePosition()
 {
-    if (!m_creature) return false;
+    if (!m_creature) {
+        return false;
+    }
 
     // 使用 RandomPositionGenerator 找到远离排斥方块的位置
     // 对应 MC 1.21.11 的 LandRandomPos.getPosAway(mob, 16, 7, repellantPos)
@@ -239,7 +247,9 @@ bool AvoidBlockGoal::_findEscapePosition()
 
 bool AvoidBlockGoal::_isEscapePositionValid(const Vector3& escapePos) const
 {
-    if (!m_creature) return false;
+    if (!m_creature) {
+        return false;
+    }
 
     // 计算排斥方块到逃跑位置的距离
     const f64 avoidToEscapeX = escapePos.x - static_cast<f64>(m_nearestRepellentPos.x);

@@ -34,7 +34,10 @@ using namespace mc::world::map;
  */
 class MaterialColorTest : public ::testing::Test {
 protected:
-    static void SetUpTestSuite() { MaterialColor::initialize(); }
+    static void SetUpTestSuite()
+    {
+        MaterialColor::initialize();
+    }
 };
 
 TEST_F(MaterialColorTest, InitializeColors)

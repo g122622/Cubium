@@ -569,7 +569,9 @@ void WorldTextRenderer::renderText(VkCommandBuffer cmd,
     size_t pos = 0;
     while (pos < text.size()) {
         u32 codepoint = decodeCodepoint(text, pos);
-        if (codepoint == 0) break;
+        if (codepoint == 0) {
+            break;
+        }
 
         const WorldGlyphMesh* glyph = getGlyphMesh(codepoint);
         if (glyph == nullptr) {
@@ -703,7 +705,9 @@ f32 WorldTextRenderer::calculateTextWidth(const std::string& text, f32 scale)
     size_t pos = 0;
     while (pos < text.size()) {
         u32 codepoint = decodeCodepoint(text, pos);
-        if (codepoint == 0) break;
+        if (codepoint == 0) {
+            break;
+        }
 
         const WorldGlyphMesh* glyph = getGlyphMesh(codepoint);
         if (glyph != nullptr) {
@@ -782,18 +786,24 @@ u32 WorldTextRenderer::decodeCodepoint(const std::string& text, size_t& pos)
         return c;
     } else if ((c & 0xE0) == 0xC0) {
         // 双字节
-        if (pos >= text.size()) return c;
+        if (pos >= text.size()) {
+            return c;
+        }
         u8 c2 = static_cast<u8>(text[pos++]);
         return (static_cast<u32>(c & 0x1F) << 6) | static_cast<u32>(c2 & 0x3F);
     } else if ((c & 0xF0) == 0xE0) {
         // 三字节
-        if (pos + 1 >= text.size()) return c;
+        if (pos + 1 >= text.size()) {
+            return c;
+        }
         u8 c2 = static_cast<u8>(text[pos++]);
         u8 c3 = static_cast<u8>(text[pos++]);
         return (static_cast<u32>(c & 0x0F) << 12) | (static_cast<u32>(c2 & 0x3F) << 6) | static_cast<u32>(c3 & 0x3F);
     } else if ((c & 0xF8) == 0xF0) {
         // 四字节
-        if (pos + 2 >= text.size()) return c;
+        if (pos + 2 >= text.size()) {
+            return c;
+        }
         u8 c2 = static_cast<u8>(text[pos++]);
         u8 c3 = static_cast<u8>(text[pos++]);
         u8 c4 = static_cast<u8>(text[pos++]);

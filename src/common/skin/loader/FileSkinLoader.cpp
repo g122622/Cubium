@@ -84,7 +84,9 @@ void FileSkinLoader::shutdown()
     // 等待所有在途任务回调完成，避免回调访问已销毁对象
     {
         std::unique_lock<std::mutex> lock(m_shutdownMutex);
-        m_shutdownCondition.wait(lock, [this] { return m_pendingCount.load() == 0; });
+        m_shutdownCondition.wait(lock, [this] {
+            return m_pendingCount.load() == 0;
+        });
     }
 }
 

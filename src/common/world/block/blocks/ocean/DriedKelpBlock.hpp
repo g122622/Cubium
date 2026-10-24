@@ -55,7 +55,10 @@ public:
      * 干海带块可以作为燃料，燃烧时间为200tick（10秒）
      * @return 燃烧时间（tick），0表示不可燃
      */
-    [[nodiscard]] i32 getBurnTime() const { return 200; }
+    [[nodiscard]] i32 getBurnTime() const
+    {
+        return 200;
+    }
 
     // 注意: 可燃性参数 (flammability=60, encouragement=30) 已移至 FireInfoRegistry 统一管理
     // 参见 FireInfoRegistry::initializeVanillaFireInfos() 中的注册

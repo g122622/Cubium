@@ -64,41 +64,62 @@ public:
         , m_slots(size)
     {}
 
-    i32 getContainerSize() const override { return m_size; }
+    i32 getContainerSize() const override
+    {
+        return m_size;
+    }
+
     bool isEmpty() const override
     {
         for (const auto& slot : m_slots) {
-            if (!slot.isEmpty()) return true;
+            if (!slot.isEmpty()) {
+                return true;
+            }
         }
         return false;
     }
+
     ItemStack getItem(i32 index) const override
     {
-        if (index < 0 || index >= m_size) return ItemStack::EMPTY;
+        if (index < 0 || index >= m_size) {
+            return ItemStack::EMPTY;
+        }
         return m_slots[static_cast<std::size_t>(index)];
     }
+
     ItemStack removeItem(i32 index, i32 count) override
     {
-        if (index < 0 || index >= m_size) return ItemStack::EMPTY;
+        if (index < 0 || index >= m_size) {
+            return ItemStack::EMPTY;
+        }
         ItemStack& slot = m_slots[static_cast<std::size_t>(index)];
-        if (slot.isEmpty()) return ItemStack::EMPTY;
+        if (slot.isEmpty()) {
+            return ItemStack::EMPTY;
+        }
         ItemStack result = slot.split(count);
         setChanged();
         return result;
     }
+
     ItemStack removeItemNoUpdate(i32 index) override
     {
-        if (index < 0 || index >= m_size) return ItemStack::EMPTY;
+        if (index < 0 || index >= m_size) {
+            return ItemStack::EMPTY;
+        }
         ItemStack result = std::move(m_slots[static_cast<std::size_t>(index)]);
         m_slots[static_cast<std::size_t>(index)] = ItemStack::EMPTY;
         return result;
     }
+
     void setItem(i32 index, const ItemStack& stack) override
     {
-        if (index < 0 || index >= m_size) return;
+        if (index < 0 || index >= m_size) {
+            return;
+        }
         m_slots[static_cast<std::size_t>(index)] = stack;
         setChanged();
     }
+
     void clear() override
     {
         for (auto& slot : m_slots) {
@@ -106,12 +127,28 @@ public:
         }
         setChanged();
     }
-    void setChanged() override { m_changed = true; }
-    bool isChanged() const { return m_changed; }
-    void clearChanged() { m_changed = false; }
+
+    void setChanged() override
+    {
+        m_changed = true;
+    }
+
+    bool isChanged() const
+    {
+        return m_changed;
+    }
+
+    void clearChanged()
+    {
+        m_changed = false;
+    }
 
     // 实现可选方法
-    i32 getMaxStackSize() const override { return 64; }
+    i32 getMaxStackSize() const override
+    {
+        return 64;
+    }
+
     bool canPlaceItem(i32 index, const ItemStack& stack) const override
     {
         (void)index;

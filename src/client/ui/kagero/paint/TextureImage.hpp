@@ -90,60 +90,102 @@ public:
 
     // ==================== IImage 接口实现 ====================
 
-    [[nodiscard]] i32 width() const override { return m_width; }
-    [[nodiscard]] i32 height() const override { return m_height; }
-    [[nodiscard]] ImageFormat format() const override { return m_format; }
-    [[nodiscard]] const std::string& debugName() const override { return m_debugName; }
+    [[nodiscard]] i32 width() const override
+    {
+        return m_width;
+    }
+
+    [[nodiscard]] i32 height() const override
+    {
+        return m_height;
+    }
+
+    [[nodiscard]] ImageFormat format() const override
+    {
+        return m_format;
+    }
+
+    [[nodiscard]] const std::string& debugName() const override
+    {
+        return m_debugName;
+    }
 
     // ==================== 纹理访问 ====================
 
     /**
      * @brief 获取 Vulkan 图像视图
      */
-    [[nodiscard]] VkImageView imageView() const { return m_imageView; }
+    [[nodiscard]] VkImageView imageView() const
+    {
+        return m_imageView;
+    }
 
     /**
      * @brief 获取 Vulkan 采样器
      */
-    [[nodiscard]] VkSampler sampler() const { return m_sampler; }
+    [[nodiscard]] VkSampler sampler() const
+    {
+        return m_sampler;
+    }
 
     /**
      * @brief 获取纹理坐标 U0
      */
-    [[nodiscard]] f32 u0() const { return m_u0; }
+    [[nodiscard]] f32 u0() const
+    {
+        return m_u0;
+    }
 
     /**
      * @brief 获取纹理坐标 V0
      */
-    [[nodiscard]] f32 v0() const { return m_v0; }
+    [[nodiscard]] f32 v0() const
+    {
+        return m_v0;
+    }
 
     /**
      * @brief 获取纹理坐标 U1
      */
-    [[nodiscard]] f32 u1() const { return m_u1; }
+    [[nodiscard]] f32 u1() const
+    {
+        return m_u1;
+    }
 
     /**
      * @brief 获取纹理坐标 V1
      */
-    [[nodiscard]] f32 v1() const { return m_v1; }
+    [[nodiscard]] f32 v1() const
+    {
+        return m_v1;
+    }
 
     /**
      * @brief 获取图集槽位ID
      */
-    [[nodiscard]] u8 atlasSlot() const { return m_atlasSlot; }
+    [[nodiscard]] u8 atlasSlot() const
+    {
+        return m_atlasSlot;
+    }
 
     /**
      * @brief 设置图集槽位ID
      * @param slot 新的槽位ID
      */
-    void setAtlasSlot(u8 slot) { m_atlasSlot = slot; }
+    void setAtlasSlot(u8 slot)
+    {
+        m_atlasSlot = slot;
+    }
 
     /**
      * @brief 获取着色颜色（ARGB）
      *
      * 绘制时与纹理像素做逐通道相乘，默认 `DEFAULT_TINT`（白色全不透明）等价于无着色。
      */
-    [[nodiscard]] u32 tint() const { return m_tint; }
+    [[nodiscard]] u32 tint() const
+    {
+        return m_tint;
+    }
 
     /**
      * @brief 设置着色颜色（ARGB）
@@ -153,12 +195,18 @@ public:
      *
      * @param tint ARGB 颜色（0xAARRGGBB）
      */
-    void setTint(u32 tint) { m_tint = tint; }
+    void setTint(u32 tint)
+    {
+        m_tint = tint;
+    }
 
     /**
      * @brief 检查纹理是否有效
      */
-    [[nodiscard]] bool isValid() const { return m_imageView != VK_NULL_HANDLE; }
+    [[nodiscard]] bool isValid() const
+    {
+        return m_imageView != VK_NULL_HANDLE;
+    }
 
 private:
     VkImageView m_imageView = VK_NULL_HANDLE;

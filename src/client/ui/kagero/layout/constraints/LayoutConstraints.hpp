@@ -109,12 +109,18 @@ struct FlexItem {
     /**
      * @brief 检查是否有增长能力
      */
-    [[nodiscard]] bool canGrow() const { return grow > 0.0f; }
+    [[nodiscard]] bool canGrow() const
+    {
+        return grow > 0.0f;
+    }
 
     /**
      * @brief 检查是否有缩小能力
      */
-    [[nodiscard]] bool canShrink() const { return shrink > 0.0f; }
+    [[nodiscard]] bool canShrink() const
+    {
+        return shrink > 0.0f;
+    }
 
     /**
      * @brief 检查是否有最小/最大宽度限制
@@ -135,12 +141,18 @@ struct FlexItem {
     /**
      * @brief 将宽度限制在约束范围内
      */
-    [[nodiscard]] i32 clampWidth(i32 width) const { return std::max(minWidth, std::min(maxWidth, width)); }
+    [[nodiscard]] i32 clampWidth(i32 width) const
+    {
+        return std::max(minWidth, std::min(maxWidth, width));
+    }
 
     /**
      * @brief 将高度限制在约束范围内
      */
-    [[nodiscard]] i32 clampHeight(i32 height) const { return std::max(minHeight, std::min(maxHeight, height)); }
+    [[nodiscard]] i32 clampHeight(i32 height) const
+    {
+        return std::max(minHeight, std::min(maxHeight, height));
+    }
 };
 
 /**
@@ -159,17 +171,26 @@ struct GridItem {
     /**
      * @brief 检查是否跨越单个单元格
      */
-    [[nodiscard]] bool isSingleCell() const { return columnSpan == 1 && rowSpan == 1; }
+    [[nodiscard]] bool isSingleCell() const
+    {
+        return columnSpan == 1 && rowSpan == 1;
+    }
 
     /**
      * @brief 获取结束列（不含）
      */
-    [[nodiscard]] i32 columnEnd() const { return column + columnSpan; }
+    [[nodiscard]] i32 columnEnd() const
+    {
+        return column + columnSpan;
+    }
 
     /**
      * @brief 获取结束行（不含）
      */
-    [[nodiscard]] i32 rowEnd() const { return row + rowSpan; }
+    [[nodiscard]] i32 rowEnd() const
+    {
+        return row + rowSpan;
+    }
 };
 
 /**
@@ -209,14 +230,23 @@ struct AnchorConstraints {
     /**
      * @brief 检查是否是拉伸定位（同时约束两个相对边）
      */
-    [[nodiscard]] bool isStretchHorizontal() const { return left.has_value() && right.has_value(); }
+    [[nodiscard]] bool isStretchHorizontal() const
+    {
+        return left.has_value() && right.has_value();
+    }
 
-    [[nodiscard]] bool isStretchVertical() const { return top.has_value() && bottom.has_value(); }
+    [[nodiscard]] bool isStretchVertical() const
+    {
+        return top.has_value() && bottom.has_value();
+    }
 
     /**
      * @brief 检查是否使用百分比定位
      */
-    [[nodiscard]] bool hasPercentPosition() const { return leftPercent.has_value() || topPercent.has_value(); }
+    [[nodiscard]] bool hasPercentPosition() const
+    {
+        return leftPercent.has_value() || topPercent.has_value();
+    }
 };
 
 /**
@@ -332,7 +362,9 @@ struct LayoutConstraints {
     {
         // 首先计算去掉边距后的可用空间
         i32 availableWidth = parentSpec.size - margin.horizontal();
-        if (availableWidth < 0) availableWidth = 0;
+        if (availableWidth < 0) {
+            availableWidth = 0;
+        }
 
         switch (parentSpec.mode) {
             case MeasureMode::Exactly:
@@ -365,7 +397,9 @@ struct LayoutConstraints {
     [[nodiscard]] MeasureSpec resolveHeight(const MeasureSpec& parentSpec) const
     {
         i32 availableHeight = parentSpec.size - margin.vertical();
-        if (availableHeight < 0) availableHeight = 0;
+        if (availableHeight < 0) {
+            availableHeight = 0;
+        }
 
         switch (parentSpec.mode) {
             case MeasureMode::Exactly:
@@ -395,12 +429,18 @@ struct LayoutConstraints {
     /**
      * @brief 检查是否有固定的期望尺寸
      */
-    [[nodiscard]] bool hasPreferredSize() const { return preferredWidth >= 0 && preferredHeight >= 0; }
+    [[nodiscard]] bool hasPreferredSize() const
+    {
+        return preferredWidth >= 0 && preferredHeight >= 0;
+    }
 
     /**
      * @brief 检查是否有尺寸下限约束
      */
-    [[nodiscard]] bool hasMinConstraints() const { return minWidth > 0 || minHeight > 0; }
+    [[nodiscard]] bool hasMinConstraints() const
+    {
+        return minWidth > 0 || minHeight > 0;
+    }
 
     /**
      * @brief 检查是否有尺寸上限约束
@@ -431,17 +471,26 @@ struct LayoutConstraints {
     /**
      * @brief 获取包含边距的总宽度
      */
-    [[nodiscard]] i32 totalWidth(i32 contentWidth) const { return contentWidth + margin.horizontal(); }
+    [[nodiscard]] i32 totalWidth(i32 contentWidth) const
+    {
+        return contentWidth + margin.horizontal();
+    }
 
     /**
      * @brief 获取包含边距的总高度
      */
-    [[nodiscard]] i32 totalHeight(i32 contentHeight) const { return contentHeight + margin.vertical(); }
+    [[nodiscard]] i32 totalHeight(i32 contentHeight) const
+    {
+        return contentHeight + margin.vertical();
+    }
 
     /**
      * @brief 检查是否参与布局
      */
-    [[nodiscard]] bool isLayoutEnabled() const { return enabled; }
+    [[nodiscard]] bool isLayoutEnabled() const
+    {
+        return enabled;
+    }
 };
 
 } // namespace mc::client::ui::kagero::layout

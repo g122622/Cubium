@@ -81,12 +81,18 @@ public:
     /**
      * @brief 玩家渲染器支持动画（进入 GPU 管线 Path B）
      */
-    [[nodiscard]] bool supportsAnimation() const override { return true; }
+    [[nodiscard]] bool supportsAnimation() const override
+    {
+        return true;
+    }
 
     /**
      * @brief 玩家渲染器支持层渲染
      */
-    [[nodiscard]] bool supportsLayers() const override { return true; }
+    [[nodiscard]] bool supportsLayers() const override
+    {
+        return true;
+    }
 
     /**
      * @brief 渲染层（GPU管线路径，ClientEntity 版本）
@@ -102,13 +108,23 @@ public:
     /**
      * @brief 获取是否使用纤细手臂
      */
-    [[nodiscard]] bool hasSlimArms() const { return m_slimArms; }
+    [[nodiscard]] bool hasSlimArms() const
+    {
+        return m_slimArms;
+    }
 
     /**
      * @brief 获取模型（IEntityRenderer 接口，供层渲染器获取父模型）
      */
-    [[nodiscard]] model::player::PlayerModel& getModel() override { return m_model; }
-    [[nodiscard]] const model::player::PlayerModel& getModel() const override { return m_model; }
+    [[nodiscard]] model::player::PlayerModel& getModel() override
+    {
+        return m_model;
+    }
+
+    [[nodiscard]] const model::player::PlayerModel& getModel() const override
+    {
+        return m_model;
+    }
 
     /**
      * @brief 获取实体纹理（IEntityRenderer 接口契约实现）

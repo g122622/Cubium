@@ -96,14 +96,17 @@ void BlockEntityRendererDispatcher::initializeDefaults()
     spdlog::info("BlockEntityRendererDispatcher: Initializing default renderers");
 
     // 注册已实现的渲染器
-    registerRenderer(BlockEntityType::Beacon,
-        []() -> std::unique_ptr<BlockEntityRendererBase> { return std::make_unique<BeaconRenderer>(); });
+    registerRenderer(BlockEntityType::Beacon, []() -> std::unique_ptr<BlockEntityRendererBase> {
+        return std::make_unique<BeaconRenderer>();
+    });
 
-    registerRenderer(BlockEntityType::Chest,
-        []() -> std::unique_ptr<BlockEntityRendererBase> { return std::make_unique<ChestRenderer>(); });
+    registerRenderer(BlockEntityType::Chest, []() -> std::unique_ptr<BlockEntityRendererBase> {
+        return std::make_unique<ChestRenderer>();
+    });
 
-    registerRenderer(BlockEntityType::Banner,
-        []() -> std::unique_ptr<BlockEntityRendererBase> { return std::make_unique<BannerRenderer>(); });
+    registerRenderer(BlockEntityType::Banner, []() -> std::unique_ptr<BlockEntityRendererBase> {
+        return std::make_unique<BannerRenderer>();
+    });
 
     // 注册其他渲染器将在各自实现完成后添加
     // - SignRenderer (告示牌)

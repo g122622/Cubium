@@ -53,8 +53,15 @@ public:
         VanillaBlocks::initialize();
     }
 
-    [[nodiscard]] Difficulty difficulty() const override { return m_difficulty; }
-    void setDifficulty(Difficulty d) { m_difficulty = d; }
+    [[nodiscard]] Difficulty difficulty() const override
+    {
+        return m_difficulty;
+    }
+
+    void setDifficulty(Difficulty d)
+    {
+        m_difficulty = d;
+    }
 
 private:
     Difficulty m_difficulty = Difficulty::Normal;
@@ -75,7 +82,10 @@ protected:
         }
     }
 
-    void SetUp() override { m_world = std::make_unique<MobEquipmentTestWorld>(); }
+    void SetUp() override
+    {
+        m_world = std::make_unique<MobEquipmentTestWorld>();
+    }
 
     std::unique_ptr<MobEquipmentTestWorld> m_world;
 };

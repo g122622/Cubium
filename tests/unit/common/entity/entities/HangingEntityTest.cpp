@@ -301,10 +301,10 @@ TEST_F(HangingEntityTest, ItemRegistration)
     EXPECT_NE(Items::ITEM_FRAME, nullptr);
     EXPECT_NE(Items::LEAD, nullptr);
 
-    // 验证物品属性
-    EXPECT_EQ(Items::PAINTING->maxStackSize(), 16);
-    EXPECT_EQ(Items::ITEM_FRAME->maxStackSize(), 16);
-    EXPECT_EQ(Items::LEAD->maxStackSize(), 16);
+    // 验证物品属性（原版 1.21.11 的 MAX_STACK_SIZE 都是 64，见 tests/diff 差分）
+    EXPECT_EQ(Items::PAINTING->maxStackSize(), 64);
+    EXPECT_EQ(Items::ITEM_FRAME->maxStackSize(), 64);
+    EXPECT_EQ(Items::LEAD->maxStackSize(), 64);
 }
 
 // ============================================================================
@@ -366,10 +366,20 @@ public:
         m_gameEventCount++;
     }
 
-    [[nodiscard]] i32 gameEventCount() const { return m_gameEventCount; }
+    [[nodiscard]] i32 gameEventCount() const
+    {
+        return m_gameEventCount;
+    }
 
-    [[nodiscard]] math::IRandom& getRandom() override { return m_random; }
-    [[nodiscard]] const math::IRandom& getRandom() const override { return m_random; }
+    [[nodiscard]] math::IRandom& getRandom() override
+    {
+        return m_random;
+    }
+
+    [[nodiscard]] const math::IRandom& getRandom() const override
+    {
+        return m_random;
+    }
 
 private:
     std::vector<std::unique_ptr<Entity>> m_spawnedEntities;
@@ -615,7 +625,10 @@ public:
         m_gameEvents.push_back({std::string(event.id()), pos, context.sourceEntity(), context.affectedState()});
     }
 
-    [[nodiscard]] i32 gameEventCount() const { return static_cast<i32>(m_gameEvents.size()); }
+    [[nodiscard]] i32 gameEventCount() const
+    {
+        return static_cast<i32>(m_gameEvents.size());
+    }
 
     [[nodiscard]] bool hasGameEvent(const std::string& eventId) const
     {
@@ -654,8 +667,15 @@ public:
         return BlockPos(0, 0, 0);
     }
 
-    [[nodiscard]] math::IRandom& getRandom() override { return m_random; }
-    [[nodiscard]] const math::IRandom& getRandom() const override { return m_random; }
+    [[nodiscard]] math::IRandom& getRandom() override
+    {
+        return m_random;
+    }
+
+    [[nodiscard]] const math::IRandom& getRandom() const override
+    {
+        return m_random;
+    }
 
 private:
     struct GameEventRecord {

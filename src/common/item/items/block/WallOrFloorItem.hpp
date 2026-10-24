@@ -54,7 +54,10 @@ public:
      * @brief 获取墙壁方块
      * @return 墙壁方块引用
      */
-    [[nodiscard]] const Block& wallBlock() const { return *m_wallBlock; }
+    [[nodiscard]] const Block& wallBlock() const
+    {
+        return *m_wallBlock;
+    }
 
 protected:
     /**

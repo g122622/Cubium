@@ -68,7 +68,10 @@ namespace test {
  */
 class AnvilBlockTest : public ::testing::Test {
 protected:
-    void SetUp() override { VanillaBlocks::initialize(); }
+    void SetUp() override
+    {
+        VanillaBlocks::initialize();
+    }
 
     void TearDown() override {}
 };
@@ -91,7 +94,10 @@ public:
 
     // ========== IWorld 核心接口 ==========
 
-    [[nodiscard]] bool isClientSide() const override { return m_isClient; }
+    [[nodiscard]] bool isClientSide() const override
+    {
+        return m_isClient;
+    }
 
     [[nodiscard]] ::mc::server::ServerWorld* asServerWorld() override
     {
@@ -108,9 +114,20 @@ public:
 
     // ========== 测试验证方法 ==========
 
-    [[nodiscard]] bool wasOpenContainerCalled() const { return m_openContainerCalled; }
-    [[nodiscard]] ContainerType getLastContainerType() const { return m_lastContainerType; }
-    [[nodiscard]] BlockPos getLastContainerPos() const { return m_lastContainerPos; }
+    [[nodiscard]] bool wasOpenContainerCalled() const
+    {
+        return m_openContainerCalled;
+    }
+
+    [[nodiscard]] ContainerType getLastContainerType() const
+    {
+        return m_lastContainerType;
+    }
+
+    [[nodiscard]] BlockPos getLastContainerPos() const
+    {
+        return m_lastContainerPos;
+    }
 
 private:
     bool m_isClient;

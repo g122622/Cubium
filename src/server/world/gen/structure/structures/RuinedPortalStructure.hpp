@@ -103,11 +103,25 @@ public:
      *
      * 必须在 generate 之前调用
      */
-    void setTemplateManager(feature::template_::TemplateManager* manager) { m_templateManager = manager; }
+    void setTemplateManager(feature::template_::TemplateManager* manager)
+    {
+        m_templateManager = manager;
+    }
 
-    [[nodiscard]] const std::string& templateName() const { return m_templateName; }
-    [[nodiscard]] RuinedPortalLocation location() const { return m_location; }
-    [[nodiscard]] const RuinedPortalProperties& properties() const { return m_properties; }
+    [[nodiscard]] const std::string& templateName() const
+    {
+        return m_templateName;
+    }
+
+    [[nodiscard]] RuinedPortalLocation location() const
+    {
+        return m_location;
+    }
+
+    [[nodiscard]] const RuinedPortalProperties& properties() const
+    {
+        return m_properties;
+    }
 
 private:
     void _loadTemplate();
@@ -149,7 +163,10 @@ class RuinedPortalStructure : public Structure {
 public:
     explicit RuinedPortalStructure(ResourceLocation id);
 
-    [[nodiscard]] const std::string& name() const override { return s_name; }
+    [[nodiscard]] const std::string& name() const override
+    {
+        return s_name;
+    }
 
     /**
      * @brief 获取结构关联的生物群系标签
@@ -168,7 +185,10 @@ public:
     /**
      * @brief 设置模板管理器
      */
-    void setTemplateManager(feature::template_::TemplateManager* manager) { m_templateManager = manager; }
+    void setTemplateManager(feature::template_::TemplateManager* manager)
+    {
+        m_templateManager = manager;
+    }
 
     /**
      * @brief 根据生物群系确定传送门类型
@@ -180,12 +200,18 @@ public:
     /**
      * @brief 获取普通传送门模板列表
      */
-    [[nodiscard]] static const std::vector<std::string>& getNormalTemplates() { return s_normalTemplates; }
+    [[nodiscard]] static const std::vector<std::string>& getNormalTemplates()
+    {
+        return s_normalTemplates;
+    }
 
     /**
      * @brief 获取巨型传送门模板列表
      */
-    [[nodiscard]] static const std::vector<std::string>& getGiantTemplates() { return s_giantTemplates; }
+    [[nodiscard]] static const std::vector<std::string>& getGiantTemplates()
+    {
+        return s_giantTemplates;
+    }
 
     // 模板名称常量
     static const std::vector<std::string> s_normalTemplates;

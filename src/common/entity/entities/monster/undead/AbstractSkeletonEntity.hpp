@@ -74,11 +74,17 @@ public:
     // 亡灵生物归类（对齐 Java AbstractSkeleton.getMobType()==UNDEAD）。基类默认 Undefined，未覆写会导致
     // 骷髅在水中溺水死亡、亡灵杀手附魔无加成、瞬间治疗/伤害药水不反转、凋灵玫瑰不免疫、白天燃烧判定
     // 等亡灵特性失效。子类 SkeletonEntity/StrayEntity/WitherSkeletonEntity/BoggedEntity 继承此覆写。
-    [[nodiscard]] CreatureAttribute getCreatureAttribute() const override { return CreatureAttribute::Undead; }
+    [[nodiscard]] CreatureAttribute getCreatureAttribute() const override
+    {
+        return CreatureAttribute::Undead;
+    }
 
     // 骷髅偏好武器（对齐 Java AbstractSkeleton.getPreferredWeaponType）：拾取主手物品时优先保留弓，
     // 即使别的武器攻击伤害更高。WitherSkeleton 覆写返回空（无偏好）。
-    [[nodiscard]] std::string getPreferredWeaponType() const override { return "minecraft:skeleton_preferred_weapons"; }
+    [[nodiscard]] std::string getPreferredWeaponType() const override
+    {
+        return "minecraft:skeleton_preferred_weapons";
+    }
 
     // ========== 常量 ==========
     /// 这些常量在测试中需要访问
@@ -119,11 +125,25 @@ public:
     // 发送 id16 致真 Java 客户端 set_entity_data "Index 16 out of bounds for length 16"
     // 崩溃，故移除该字段，统一走 aggressive 位。
 
-    [[nodiscard]] i32 getAttackTimer() const { return m_attackTimer; }
-    void setAttackTimer(i32 timer) { m_attackTimer = timer; }
+    [[nodiscard]] i32 getAttackTimer() const
+    {
+        return m_attackTimer;
+    }
 
-    [[nodiscard]] i32 getAttackCooldown() const { return m_attackCooldown; }
-    void setAttackCooldown(i32 cooldown) { m_attackCooldown = cooldown; }
+    void setAttackTimer(i32 timer)
+    {
+        m_attackTimer = timer;
+    }
+
+    [[nodiscard]] i32 getAttackCooldown() const
+    {
+        return m_attackCooldown;
+    }
+
+    void setAttackCooldown(i32 cooldown)
+    {
+        m_attackCooldown = cooldown;
+    }
 
     // ========== 战斗目标管理 ==========
 
@@ -167,7 +187,10 @@ public:
      *
      * @return 困难难度下的最小攻击间隔（ticks）
      */
-    [[nodiscard]] virtual i32 getHardAttackInterval() const { return HARD_ATTACK_INTERVAL; }
+    [[nodiscard]] virtual i32 getHardAttackInterval() const
+    {
+        return HARD_ATTACK_INTERVAL;
+    }
 
     /**
      * @brief 获取非困难难度下的最小攻击间隔
@@ -180,7 +203,10 @@ public:
      *
      * @return 非困难难度下的最小攻击间隔（ticks）
      */
-    [[nodiscard]] i32 getAttackInterval() const override { return NORMAL_ATTACK_INTERVAL; }
+    [[nodiscard]] i32 getAttackInterval() const override
+    {
+        return NORMAL_ATTACK_INTERVAL;
+    }
 
     // ========== 生命周期 ==========
 

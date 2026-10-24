@@ -40,6 +40,7 @@
 namespace mc {
 
 using namespace world::gen::noise;
+
 namespace {
 
 /**

@@ -42,10 +42,25 @@ public:
         : Entity(id, nullptr, mc::test::testEcsRegistry())
     {}
 
-    [[nodiscard]] f32 width() const override { return 0.6f; }
-    [[nodiscard]] f32 height() const override { return 1.8f; }
-    [[nodiscard]] std::string getTypeId() const override { return "test:rideable"; }
-    [[nodiscard]] bool canBeCollidedWith() const override { return true; }
+    [[nodiscard]] f32 width() const override
+    {
+        return 0.6f;
+    }
+
+    [[nodiscard]] f32 height() const override
+    {
+        return 1.8f;
+    }
+
+    [[nodiscard]] std::string getTypeId() const override
+    {
+        return "test:rideable";
+    }
+
+    [[nodiscard]] bool canBeCollidedWith() const override
+    {
+        return true;
+    }
 };
 
 /**
@@ -57,7 +72,10 @@ public:
         : ProjectileEntity(id, mc::test::testEcsRegistry())
     {}
 
-    [[nodiscard]] std::string getTypeId() const override { return "test:projectile"; }
+    [[nodiscard]] std::string getTypeId() const override
+    {
+        return "test:projectile";
+    }
 };
 
 /**
@@ -98,8 +116,15 @@ private:
 
 class CanHitEntityTest : public ::testing::Test {
 protected:
-    void SetUp() override { m_world = std::make_unique<CanHitEntityTestWorld>(); }
-    void TearDown() override { m_world.reset(); }
+    void SetUp() override
+    {
+        m_world = std::make_unique<CanHitEntityTestWorld>();
+    }
+
+    void TearDown() override
+    {
+        m_world.reset();
+    }
 
     std::unique_ptr<CanHitEntityTestWorld> m_world;
 };
@@ -257,10 +282,26 @@ TEST_F(CanHitEntityTest, CannotHitNonCollidableEntity)
         explicit NonCollidableEntity(EntityInstanceId id)
             : Entity(id, nullptr, mc::test::testEcsRegistry())
         {}
-        [[nodiscard]] f32 width() const override { return 0.6f; }
-        [[nodiscard]] f32 height() const override { return 1.8f; }
-        [[nodiscard]] std::string getTypeId() const override { return "test:non_collidable"; }
-        [[nodiscard]] bool canBeCollidedWith() const override { return false; }
+
+        [[nodiscard]] f32 width() const override
+        {
+            return 0.6f;
+        }
+
+        [[nodiscard]] f32 height() const override
+        {
+            return 1.8f;
+        }
+
+        [[nodiscard]] std::string getTypeId() const override
+        {
+            return "test:non_collidable";
+        }
+
+        [[nodiscard]] bool canBeCollidedWith() const override
+        {
+            return false;
+        }
     };
 
     TestProjectile projectile(EntityInstanceId(1));
@@ -284,11 +325,31 @@ TEST_F(CanHitEntityTest, CannotHitDeadEntity)
         explicit DeadEntity(EntityInstanceId id)
             : Entity(id, nullptr, mc::test::testEcsRegistry())
         {}
-        [[nodiscard]] f32 width() const override { return 0.6f; }
-        [[nodiscard]] f32 height() const override { return 1.8f; }
-        [[nodiscard]] std::string getTypeId() const override { return "test:dead"; }
-        [[nodiscard]] bool canBeCollidedWith() const override { return true; }
-        [[nodiscard]] bool isAlive() const override { return false; }
+
+        [[nodiscard]] f32 width() const override
+        {
+            return 0.6f;
+        }
+
+        [[nodiscard]] f32 height() const override
+        {
+            return 1.8f;
+        }
+
+        [[nodiscard]] std::string getTypeId() const override
+        {
+            return "test:dead";
+        }
+
+        [[nodiscard]] bool canBeCollidedWith() const override
+        {
+            return true;
+        }
+
+        [[nodiscard]] bool isAlive() const override
+        {
+            return false;
+        }
     };
 
     TestProjectile projectile(EntityInstanceId(1));

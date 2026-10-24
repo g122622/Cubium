@@ -122,9 +122,20 @@ public:
         return &fluid::Fluids::EMPTY()->defaultState();
     }
 
-    [[nodiscard]] u64 seed() const override { return m_seed; }
-    [[nodiscard]] bool isRaining() const override { return false; }
-    [[nodiscard]] bool canRainAt(const BlockPos&) const override { return false; }
+    [[nodiscard]] u64 seed() const override
+    {
+        return m_seed;
+    }
+
+    [[nodiscard]] bool isRaining() const override
+    {
+        return false;
+    }
+
+    [[nodiscard]] bool canRainAt(const BlockPos&) const override
+    {
+        return false;
+    }
 
     EntityInstanceId spawnEntity(std::unique_ptr<Entity> entity) override
     {
@@ -137,6 +148,7 @@ public:
         ensureTickManager();
         return *m_tickManagerPtr;
     }
+
     [[nodiscard]] const world::tick::TickManager& tickManager() const override
     {
         const_cast<WaterlogTestWorld*>(this)->ensureTickManager();
@@ -174,7 +186,10 @@ BlockItemUseContext makePlacementContext(IWorld& world, const BlockPos& pos, Dir
 
 class WaterLoggableHelpersTest : public ::testing::Test {
 protected:
-    void SetUp() override { VanillaBlocks::initialize(); }
+    void SetUp() override
+    {
+        VanillaBlocks::initialize();
+    }
 };
 
 TEST_F(WaterLoggableHelpersTest, IsWaterFluidState_ReturnsTrueForWater)
@@ -256,7 +271,10 @@ TEST_F(WaterLoggableHelpersTest, GetWaterFluidState_ReturnsNullptrWhenNotWaterlo
 
 class FenceBlockWaterlogTest : public ::testing::Test {
 protected:
-    void SetUp() override { VanillaBlocks::initialize(); }
+    void SetUp() override
+    {
+        VanillaBlocks::initialize();
+    }
 };
 
 TEST_F(FenceBlockWaterlogTest, GetFluidState_ReturnsWaterWhenWaterlogged)
@@ -314,7 +332,10 @@ TEST_F(FenceBlockWaterlogTest, Placement_WaterloggedInWater)
 
 class WallBlockWaterlogTest : public ::testing::Test {
 protected:
-    void SetUp() override { VanillaBlocks::initialize(); }
+    void SetUp() override
+    {
+        VanillaBlocks::initialize();
+    }
 };
 
 TEST_F(WallBlockWaterlogTest, GetFluidState_ReturnsWaterWhenWaterlogged)
@@ -350,7 +371,10 @@ TEST_F(WallBlockWaterlogTest, Placement_WaterloggedInWater)
 
 class TrapDoorBlockWaterlogTest : public ::testing::Test {
 protected:
-    void SetUp() override { VanillaBlocks::initialize(); }
+    void SetUp() override
+    {
+        VanillaBlocks::initialize();
+    }
 };
 
 TEST_F(TrapDoorBlockWaterlogTest, GetFluidState_ReturnsWaterWhenWaterlogged)
@@ -386,7 +410,10 @@ TEST_F(TrapDoorBlockWaterlogTest, Placement_WaterloggedInWater)
 
 class SlabBlockWaterlogTest : public ::testing::Test {
 protected:
-    void SetUp() override { VanillaBlocks::initialize(); }
+    void SetUp() override
+    {
+        VanillaBlocks::initialize();
+    }
 };
 
 TEST_F(SlabBlockWaterlogTest, GetFluidState_ReturnsWaterWhenWaterlogged)
@@ -420,7 +447,10 @@ TEST_F(SlabBlockWaterlogTest, GetFluidState_ReturnsEmptyForDoubleSlab)
 
 class StairsBlockWaterlogTest : public ::testing::Test {
 protected:
-    void SetUp() override { VanillaBlocks::initialize(); }
+    void SetUp() override
+    {
+        VanillaBlocks::initialize();
+    }
 };
 
 TEST_F(StairsBlockWaterlogTest, GetFluidState_ReturnsWaterWhenWaterlogged)

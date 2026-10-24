@@ -44,7 +44,10 @@ class FlameEnchantment : public Enchantment {
 public:
     FlameEnchantment() = default;
 
-    [[nodiscard]] std::string id() const override { return "minecraft:flame"; }
+    [[nodiscard]] std::string id() const override
+    {
+        return "minecraft:flame";
+    }
 
     [[nodiscard]] std::string getNameKey(i32 level) const override
     {
@@ -52,13 +55,25 @@ public:
         return "enchantment.minecraft.flame";
     }
 
-    [[nodiscard]] EnchantmentType type() const override { return EnchantmentType::Bow; }
+    [[nodiscard]] EnchantmentType type() const override
+    {
+        return EnchantmentType::Bow;
+    }
 
-    [[nodiscard]] i32 minLevel() const noexcept override { return 1; }
+    [[nodiscard]] i32 minLevel() const noexcept override
+    {
+        return 1;
+    }
 
-    [[nodiscard]] i32 maxLevel() const noexcept override { return 1; }
+    [[nodiscard]] i32 maxLevel() const noexcept override
+    {
+        return 1;
+    }
 
-    [[nodiscard]] EnchantmentRarity rarity() const noexcept override { return EnchantmentRarity::Rare; }
+    [[nodiscard]] EnchantmentRarity rarity() const noexcept override
+    {
+        return EnchantmentRarity::Rare;
+    }
 
     [[nodiscard]] i32 getMinCost(i32 level) const override
     {

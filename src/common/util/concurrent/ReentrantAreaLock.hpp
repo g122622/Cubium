@@ -164,6 +164,7 @@ public:
     class LockHandle {
     public:
         LockHandle() noexcept = default;
+
         LockHandle(std::nullptr_t) noexcept {}
 
         explicit LockHandle(std::shared_ptr<Node> node) noexcept
@@ -186,25 +187,46 @@ public:
             return *this;
         }
 
-        ~LockHandle() { reset(); }
+        ~LockHandle()
+        {
+            reset();
+        }
 
-        [[nodiscard]] Node& operator*() const noexcept { return *m_node; }
-        [[nodiscard]] Node* operator->() const noexcept { return m_node.get(); }
-        [[nodiscard]] Node* get() const noexcept { return m_node.get(); }
-        [[nodiscard]] explicit operator bool() const noexcept { return m_node != nullptr; }
+        [[nodiscard]] Node& operator*() const noexcept
+        {
+            return *m_node;
+        }
+
+        [[nodiscard]] Node* operator->() const noexcept
+        {
+            return m_node.get();
+        }
+
+        [[nodiscard]] Node* get() const noexcept
+        {
+            return m_node.get();
+        }
+
+        [[nodiscard]] explicit operator bool() const noexcept
+        {
+            return m_node != nullptr;
+        }
 
         [[nodiscard]] friend bool operator==(const LockHandle& h, std::nullptr_t) noexcept
         {
             return h.m_node == nullptr;
         }
+
         [[nodiscard]] friend bool operator!=(const LockHandle& h, std::nullptr_t) noexcept
         {
             return h.m_node != nullptr;
         }
+
         [[nodiscard]] friend bool operator==(std::nullptr_t, const LockHandle& h) noexcept
         {
             return h.m_node == nullptr;
         }
+
         [[nodiscard]] friend bool operator!=(std::nullptr_t, const LockHandle& h) noexcept
         {
             return h.m_node != nullptr;
@@ -297,7 +319,10 @@ public:
     /**
      * @brief 获取分区位移位数
      */
-    [[nodiscard]] i32 coordinateShift() const { return m_coordinateShift; }
+    [[nodiscard]] i32 coordinateShift() const
+    {
+        return m_coordinateShift;
+    }
 
 private:
     /**

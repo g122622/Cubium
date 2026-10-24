@@ -64,7 +64,10 @@ public:
      * @brief 获取条件类型标识
      * @return 类型标识字符串 "and"
      */
-    [[nodiscard]] std::string getType() const override { return "and"; }
+    [[nodiscard]] std::string getType() const override
+    {
+        return "and";
+    }
 
     /**
      * @brief 添加子条件
@@ -76,7 +79,10 @@ public:
      * @brief 获取所有子条件
      * @return 子条件列表的常量引用
      */
-    [[nodiscard]] const std::vector<std::unique_ptr<LootCondition>>& getConditions() const { return m_conditions; }
+    [[nodiscard]] const std::vector<std::unique_ptr<LootCondition>>& getConditions() const
+    {
+        return m_conditions;
+    }
 
 private:
     std::vector<std::unique_ptr<LootCondition>> m_conditions;

@@ -269,7 +269,9 @@ Result<BlockPlacementResult> BlockInteractionManager::handleBlockPlacement(
         playerId,
         "face",
         Directions::toString(face),
-        [flow = ::perfetto::Flow::ProcessScoped(pos.toId())](::perfetto::EventContext ctx) { flow(ctx); });
+        [flow = ::perfetto::Flow::ProcessScoped(pos.toId())](::perfetto::EventContext ctx) {
+            flow(ctx);
+        });
 
     // 检查世界修改权限
     ServerWorld* world = _getPlayerWorld(playerId);
@@ -395,7 +397,9 @@ Result<BlockUseResult> BlockInteractionManager::handleItemUseOn(PlayerId playerI
         playerId,
         "face",
         Directions::toString(face),
-        [flow = ::perfetto::Flow::ProcessScoped(pos.toId())](::perfetto::EventContext ctx) { flow(ctx); });
+        [flow = ::perfetto::Flow::ProcessScoped(pos.toId())](::perfetto::EventContext ctx) {
+            flow(ctx);
+        });
 
     ServerWorld* world = _getPlayerWorld(playerId);
     if (world == nullptr) {
@@ -688,7 +692,9 @@ Result<BlockUseResult> BlockInteractionManager::handleBlockUse(
         playerId,
         "hand",
         hand == Hand::MainHand ? "main" : "off",
-        [flow = ::perfetto::Flow::ProcessScoped(pos.toId())](::perfetto::EventContext ctx) { flow(ctx); });
+        [flow = ::perfetto::Flow::ProcessScoped(pos.toId())](::perfetto::EventContext ctx) {
+            flow(ctx);
+        });
 
     // 验证前置条件（不检查 Y 范围；出生点保护对所有玩家生效）。
     // vanilla `ServerGamePacketListenerImpl.handleUseItemOn` 在调 `gameMode.useItemOn` 之前
@@ -841,7 +847,9 @@ Result<BlockBreakResult> BlockInteractionManager::handleBlockBreak(PlayerId play
         pos.toString(),
         "playerId",
         playerId,
-        [flow = ::perfetto::Flow::ProcessScoped(pos.toId())](::perfetto::EventContext ctx) { flow(ctx); });
+        [flow = ::perfetto::Flow::ProcessScoped(pos.toId())](::perfetto::EventContext ctx) {
+            flow(ctx);
+        });
 
     // 检查世界修改权限
     ServerWorld* world = _getPlayerWorld(playerId);
@@ -1074,7 +1082,9 @@ void BlockInteractionManager::_generateBlockDrops(
         pos.toString(),
         "playerId",
         playerId,
-        [flow = ::perfetto::Flow::ProcessScoped(pos.toId())](::perfetto::EventContext ctx) { flow(ctx); });
+        [flow = ::perfetto::Flow::ProcessScoped(pos.toId())](::perfetto::EventContext ctx) {
+            flow(ctx);
+        });
 
     Player* player = _getPlayerEntity(playerId, world);
 

@@ -74,14 +74,20 @@ public:
      *
      * 活塞可能推动方块到相邻区块，需要跨区块可见。
      */
-    [[nodiscard]] bool isGlobalRenderer() const override { return true; }
+    [[nodiscard]] bool isGlobalRenderer() const override
+    {
+        return true;
+    }
 
     /**
      * @brief 活塞最大渲染距离
      *
      * 活塞通常在视距内，返回默认值。
      */
-    [[nodiscard]] f64 getMaxRenderDistanceSquared() const override { return 64.0; }
+    [[nodiscard]] f64 getMaxRenderDistanceSquared() const override
+    {
+        return 64.0;
+    }
 
 private:
     BlockEntityRendererHelper m_helper; ///< 渲染辅助工具

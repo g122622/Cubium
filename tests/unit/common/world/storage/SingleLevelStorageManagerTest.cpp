@@ -45,7 +45,10 @@ protected:
         testDir = mc::test::makeUniqueTestDir(prefix);
     }
 
-    void TearDown() override { mc::test::removeTestDir(testDir); }
+    void TearDown() override
+    {
+        mc::test::removeTestDir(testDir);
+    }
 };
 
 class SingleLevelStorageManagerTest : public StorageTestBase {};
@@ -189,8 +192,9 @@ TEST_F(SingleLevelStorageManagerTest, AsyncLoadAfterSaveReadsSavedDataWithSingle
     // 保存尚未完成就立刻发起同区块的异步加载
     std::promise<bool> saveDone;
     auto saveFuture = saveDone.get_future();
-    storage.saveChunkAsyncCallback(
-        chunk, 0, [&saveDone](std::optional<ChunkPos>, Result<void> result) { saveDone.set_value(result.success()); });
+    storage.saveChunkAsyncCallback(chunk, 0, [&saveDone](std::optional<ChunkPos>, Result<void> result) {
+        saveDone.set_value(result.success());
+    });
 
     std::promise<Result<std::optional<ChunkData>>> loadDone;
     auto loadFuture = loadDone.get_future();
@@ -273,7 +277,9 @@ TEST_F(SingleLevelStorageManagerTest, CloseWaitsForPinnedReadAssemblyBeforeDestr
     computePool.submit(std::move(blocker), nullptr, util::TaskPriority::High, nullptr);
     auto loaded = storage.loadChunkAsync(3, 4, 0, nullptr, util::TaskPriority::Normal);
     ioPool.waitForCompletion();
-    auto closing = std::async(std::launch::async, [&storage] { storage.close(); });
+    auto closing = std::async(std::launch::async, [&storage] {
+        storage.close();
+    });
     EXPECT_EQ(closing.wait_for(std::chrono::milliseconds(20)), std::future_status::timeout);
     releaseCompute.set_value();
     ASSERT_EQ(closing.wait_for(std::chrono::seconds(10)), std::future_status::ready);
@@ -317,7 +323,9 @@ TEST_F(SingleLevelStorageManagerTest, CloseDoesNotWaitForUnrelatedSharedPoolTask
         nullptr,
         util::TaskPriority::Normal,
         nullptr);
-    auto closing = std::async(std::launch::async, [&storage] { storage.close(); });
+    auto closing = std::async(std::launch::async, [&storage] {
+        storage.close();
+    });
     const auto status = closing.wait_for(std::chrono::seconds(1));
     release.set_value();
     EXPECT_EQ(status, std::future_status::ready);

@@ -40,9 +40,11 @@
 // 前向声明
 namespace mc {
 class BlockState;
+
 namespace world::gen::density {
 class DensityFunction;
 }
+
 namespace world::gen::surface {
 class SurfaceRule;
 }

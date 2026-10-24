@@ -52,11 +52,22 @@ public:
      */
     ItemLootEntry(const std::string& itemId, const RandomValueRange& count, i32 weight, i32 quality);
 
-    [[nodiscard]] LootEntryType getType() const override { return LootEntryType::Item; }
+    [[nodiscard]] LootEntryType getType() const override
+    {
+        return LootEntryType::Item;
+    }
+
     [[nodiscard]] std::unique_ptr<LootEntry> clone() const override;
 
-    [[nodiscard]] const std::string& getItemId() const { return m_itemId; }
-    [[nodiscard]] const RandomValueRange& getCount() const { return m_count; }
+    [[nodiscard]] const std::string& getItemId() const
+    {
+        return m_itemId;
+    }
+
+    [[nodiscard]] const RandomValueRange& getCount() const
+    {
+        return m_count;
+    }
 
     void expand(LootContext& context, std::function<void(LootEntry&)> consumer) const override;
 
@@ -65,7 +76,10 @@ public:
     /**
      * @brief 设置数量范围
      */
-    void setCount(const RandomValueRange& count) { m_count = count; }
+    void setCount(const RandomValueRange& count)
+    {
+        m_count = count;
+    }
 
 private:
     std::string m_itemId;

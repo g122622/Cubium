@@ -120,9 +120,15 @@ public:
         return *m_tickManagerPtr;
     }
 
-    [[nodiscard]] u64 seed() const override { return m_seed; }
+    [[nodiscard]] u64 seed() const override
+    {
+        return m_seed;
+    }
 
-    void setSeed(u64 seed) { m_seed = seed; }
+    void setSeed(u64 seed)
+    {
+        m_seed = seed;
+    }
 
     // 判断 setBlockState 是否被调用过（用于验证方块被移除）
     [[nodiscard]] bool blockWasSetToAir(const BlockPos& pos) const

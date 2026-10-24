@@ -57,12 +57,18 @@ public:
      * @brief 获取桶中装的流体
      * @return 流体指针，空桶返回 nullptr
      */
-    [[nodiscard]] fluid::Fluid* getContainedFluid() const { return m_containedFluid; }
+    [[nodiscard]] fluid::Fluid* getContainedFluid() const
+    {
+        return m_containedFluid;
+    }
 
     /**
      * @brief 检查是否为空桶
      */
-    [[nodiscard]] bool isEmpty() const { return m_containedFluid == nullptr; }
+    [[nodiscard]] bool isEmpty() const
+    {
+        return m_containedFluid == nullptr;
+    }
 
     /**
      * @brief 在方块上使用物品

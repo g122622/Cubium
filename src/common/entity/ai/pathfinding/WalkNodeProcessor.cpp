@@ -197,7 +197,9 @@ PathNodeType WalkNodeProcessor::getNodeTypeWithEntity(i32 x, i32 y, i32 z)
             for (i32 dy = -1; dy <= 1; ++dy) {
                 for (i32 dz = -1; dz <= 1; ++dz) {
                     // 跳过自身
-                    if (dx == 0 && dy == 0 && dz == 0) continue;
+                    if (dx == 0 && dy == 0 && dz == 0) {
+                        continue;
+                    }
 
                     i32 nx = x + dx;
                     i32 ny = y + dy;
@@ -205,7 +207,9 @@ PathNodeType WalkNodeProcessor::getNodeTypeWithEntity(i32 x, i32 y, i32 z)
 
                     // 检查危险方块类型
                     const BlockState* neighborState = m_region->getBlockState(nx, ny, nz);
-                    if (neighborState == nullptr) continue;
+                    if (neighborState == nullptr) {
+                        continue;
+                    }
 
                     const Block& neighborBlock = neighborState->getBlock();
 
@@ -271,7 +275,9 @@ PathNodeType WalkNodeProcessor::getNodeTypeWithEntity(i32 x, i32 y, i32 z)
         for (i32 bx = minX; bx <= maxX; ++bx) {
             for (i32 bz = minZ; bz <= maxZ; ++bz) {
                 // 跳过中心位置（已经检查过）
-                if (bx == x && bz == z) continue;
+                if (bx == x && bz == z) {
+                    continue;
+                }
 
                 PathNodeType boxType = getNodeType(bx, y, bz);
                 if (boxType == PathNodeType::Blocked) {
@@ -451,7 +457,9 @@ PathNodeType WalkNodeProcessor::_applyDoorCapabilities(PathNodeType type) const
 
 bool WalkNodeProcessor::_isWalkableAt(i32 x, i32 y, i32 z) const
 {
-    if (!m_region) return false;
+    if (!m_region) {
+        return false;
+    }
 
     // 检查位置本身是否可以站立
     return m_region->isWalkable(x, y, z);
@@ -459,7 +467,9 @@ bool WalkNodeProcessor::_isWalkableAt(i32 x, i32 y, i32 z) const
 
 bool WalkNodeProcessor::_canStandOn(i32 x, i32 y, i32 z) const
 {
-    if (!m_region) return false;
+    if (!m_region) {
+        return false;
+    }
 
     // 检查脚下是否有支撑
     return m_region->isWalkable(x, y, z) && _isPassable(x, y + 1, z);
@@ -467,7 +477,9 @@ bool WalkNodeProcessor::_canStandOn(i32 x, i32 y, i32 z) const
 
 bool WalkNodeProcessor::_isSafe(i32 x, i32 y, i32 z) const
 {
-    if (!m_region) return false;
+    if (!m_region) {
+        return false;
+    }
 
     // 检查位置本身和周围是否有危险
     // 首先检查岩浆
@@ -479,7 +491,9 @@ bool WalkNodeProcessor::_isSafe(i32 x, i32 y, i32 z) const
     for (i32 dx = -1; dx <= 1; ++dx) {
         for (i32 dy = -1; dy <= 1; ++dy) {
             for (i32 dz = -1; dz <= 1; ++dz) {
-                if (dx == 0 && dy == 0 && dz == 0) continue;
+                if (dx == 0 && dy == 0 && dz == 0) {
+                    continue;
+                }
                 if (isDangerous(x + dx, y + dy, z + dz)) {
                     return false;
                 }
@@ -492,7 +506,9 @@ bool WalkNodeProcessor::_isSafe(i32 x, i32 y, i32 z) const
 
 bool WalkNodeProcessor::isDangerous(i32 x, i32 y, i32 z) const
 {
-    if (!m_region) return false;
+    if (!m_region) {
+        return false;
+    }
 
     // 检查火焰、岩浆、岩浆块、点燃的营火等危险方块
 
@@ -552,7 +568,9 @@ bool WalkNodeProcessor::isDangerous(i32 x, i32 y, i32 z) const
 
 i32 WalkNodeProcessor::_getGroundHeight(i32 x, i32 y, i32 z) const
 {
-    if (!m_region) return y;
+    if (!m_region) {
+        return y;
+    }
 
     // 从指定位置向下搜索地面
     for (i32 checkY = y; checkY >= world::MIN_BUILD_HEIGHT; --checkY) {
@@ -566,7 +584,9 @@ i32 WalkNodeProcessor::_getGroundHeight(i32 x, i32 y, i32 z) const
 
 bool WalkNodeProcessor::_isPassable(i32 x, i32 y, i32 z) const
 {
-    if (!m_region) return true;
+    if (!m_region) {
+        return true;
+    }
 
     // 检查位置是否可以穿过（空气、水等）
     return !m_region->isWalkable(x, y, z) || m_region->isWater(x, y, z);

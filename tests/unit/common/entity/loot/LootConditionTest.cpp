@@ -62,6 +62,7 @@ public:
     {
         throw std::runtime_error("LootConditionTestWorld::tickManager not implemented");
     }
+
     [[nodiscard]] const world::tick::TickManager& tickManager() const override
     {
         throw std::runtime_error("LootConditionTestWorld::tickManager not implemented");

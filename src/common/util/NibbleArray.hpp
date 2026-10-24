@@ -171,13 +171,19 @@ public:
      * @brief 检查数组是否为空
      * @return 如果未分配内存返回true
      */
-    [[nodiscard]] bool isEmpty() const noexcept { return m_data.empty(); }
+    [[nodiscard]] bool isEmpty() const noexcept
+    {
+        return m_data.empty();
+    }
 
     /**
      * @brief 检查数组是否已分配
      * @return 如果已分配内存返回true
      */
-    [[nodiscard]] bool isValid() const noexcept { return !m_data.empty(); }
+    [[nodiscard]] bool isValid() const noexcept
+    {
+        return !m_data.empty();
+    }
 
     // ========================================================================
     // 数据访问
@@ -187,7 +193,10 @@ public:
      * @brief 获取底层数据（只读）
      * @return 字节数组引用
      */
-    [[nodiscard]] const std::vector<u8>& data() const noexcept { return m_data; }
+    [[nodiscard]] const std::vector<u8>& data() const noexcept
+    {
+        return m_data;
+    }
 
     /**
      * @brief 获取底层数据（可变）
@@ -201,13 +210,19 @@ public:
      * @brief 获取数据指针
      * @return 数据指针，如果为空返回nullptr
      */
-    [[nodiscard]] const u8* rawData() const noexcept { return m_data.empty() ? nullptr : m_data.data(); }
+    [[nodiscard]] const u8* rawData() const noexcept
+    {
+        return m_data.empty() ? nullptr : m_data.data();
+    }
 
     /**
      * @brief 获取数据指针（可变）
      * @return 数据指针，如果为空返回nullptr
      */
-    [[nodiscard]] u8* rawData() noexcept { return m_data.empty() ? nullptr : m_data.data(); }
+    [[nodiscard]] u8* rawData() noexcept
+    {
+        return m_data.empty() ? nullptr : m_data.data();
+    }
 
     // ========================================================================
     // 工具方法
@@ -259,7 +274,10 @@ private:
      * @param index 线性索引
      * @return 如果是低4位返回true
      */
-    [[nodiscard]] static constexpr bool isLowerNibble(i32 index) { return (index & 1) == 0; }
+    [[nodiscard]] static constexpr bool isLowerNibble(i32 index)
+    {
+        return (index & 1) == 0;
+    }
 
     std::vector<u8> m_data;
 };

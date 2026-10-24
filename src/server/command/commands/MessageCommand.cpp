@@ -69,7 +69,9 @@ void MessageCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatch
 
     auto messageNode = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
         "message", StringArgumentType::greedyString());
-    messageNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _sendMessage(ctx); });
+    messageNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _sendMessage(ctx);
+    });
 
     playerNode->addChild(messageNode);
     msgNode->addChild(playerNode);

@@ -84,7 +84,10 @@ public:
         }
     }
 
-    [[nodiscard]] bool canBeSilent() const override { return true; }
+    [[nodiscard]] bool canBeSilent() const override
+    {
+        return true;
+    }
 
     void updateFromState(const EntitySoundState& state)
     {
@@ -153,7 +156,10 @@ protected:
     }
 
 public:
-    [[nodiscard]] bool needsSwitchToAngry() const { return m_needsSwitch; }
+    [[nodiscard]] bool needsSwitchToAngry() const
+    {
+        return m_needsSwitch;
+    }
 
 private:
     bool m_needsSwitch = false;
@@ -178,7 +184,10 @@ protected:
     }
 
 public:
-    [[nodiscard]] bool needsSwitchToFlight() const { return m_needsSwitch; }
+    [[nodiscard]] bool needsSwitchToFlight() const
+    {
+        return m_needsSwitch;
+    }
 
 private:
     bool m_needsSwitch = false;
@@ -219,7 +228,10 @@ public:
         }
     }
 
-    [[nodiscard]] bool canBeSilent() const override { return true; }
+    [[nodiscard]] bool canBeSilent() const override
+    {
+        return true;
+    }
 
     void updateFromState(const EntitySoundState& state)
     {
@@ -298,7 +310,10 @@ public:
         }
     }
 
-    [[nodiscard]] bool canBeSilent() const override { return true; }
+    [[nodiscard]] bool canBeSilent() const override
+    {
+        return true;
+    }
 
     void updateFromState(const EntitySoundState& state)
     {

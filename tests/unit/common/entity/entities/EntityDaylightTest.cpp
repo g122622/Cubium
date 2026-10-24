@@ -88,29 +88,77 @@ public:
     {}
 
     // 世界时间配置
-    void setDayTime(i64 time) { m_dayTime = time; }
-    [[nodiscard]] i64 dayTime() const override { return m_dayTime; }
+    void setDayTime(i64 time)
+    {
+        m_dayTime = time;
+    }
+
+    [[nodiscard]] i64 dayTime() const override
+    {
+        return m_dayTime;
+    }
 
     // 光照配置
-    void setSkyLight(u8 light) { m_skyLight = light; }
-    void setBlockLight(u8 light) { m_blockLight = light; }
-    void setCanSeeSky(bool canSee) { m_canSeeSky = canSee; }
-    void setBrightness(f32 brightness) { m_brightness = brightness; }
+    void setSkyLight(u8 light)
+    {
+        m_skyLight = light;
+    }
+
+    void setBlockLight(u8 light)
+    {
+        m_blockLight = light;
+    }
+
+    void setCanSeeSky(bool canSee)
+    {
+        m_canSeeSky = canSee;
+    }
+
+    void setBrightness(f32 brightness)
+    {
+        m_brightness = brightness;
+    }
+
     // 注入 getMaxLocalRawBrightness 的原始亮度（0-15）。Entity::getBrightness() 对齐 vanilla
     // 走 getMaxLocalRawBrightness + gamma 曲线（Entity.cpp:1023-1054），不再消费 getBrightness(pos)。
     // 故测试须通过 setRawBrightness 控制 getMaxLocalRawBrightness 的返回值，使 gamma 公式消费
     // 测试意图的亮度。未设置时回落到由 skyLight/blockLight/skyDarkening 计算的默认值（基类实现）。
-    void setRawBrightness(i32 raw) { m_rawBrightness = raw; }
+    void setRawBrightness(i32 raw)
+    {
+        m_rawBrightness = raw;
+    }
+
     // 按位置注入原始亮度：仅特定 y 层返回指定亮度，其余返回 0。用于验证 getBrightness 查询
     // 的是眼睛高度位置而非脚位置（UsesEyeHeightForPosition）。
-    void setRawBrightnessAtY(i32 y, i32 raw) { m_rawBrightnessByY[y] = raw; }
+    void setRawBrightnessAtY(i32 y, i32 raw)
+    {
+        m_rawBrightnessByY[y] = raw;
+    }
 
-    [[nodiscard]] u8 getSkyLight(i32, i32, i32) const override { return m_skyLight; }
-    [[nodiscard]] u8 getBlockLight(i32, i32, i32) const override { return m_blockLight; }
-    [[nodiscard]] u8 getSkyLight(const BlockPos&) const override { return m_skyLight; }
-    [[nodiscard]] u8 getBlockLight(const BlockPos&) const override { return m_blockLight; }
+    [[nodiscard]] u8 getSkyLight(i32, i32, i32) const override
+    {
+        return m_skyLight;
+    }
 
-    [[nodiscard]] bool canSeeSky(const BlockPos&) const override { return m_canSeeSky; }
+    [[nodiscard]] u8 getBlockLight(i32, i32, i32) const override
+    {
+        return m_blockLight;
+    }
+
+    [[nodiscard]] u8 getSkyLight(const BlockPos&) const override
+    {
+        return m_skyLight;
+    }
+
+    [[nodiscard]] u8 getBlockLight(const BlockPos&) const override
+    {
+        return m_blockLight;
+    }
+
+    [[nodiscard]] bool canSeeSky(const BlockPos&) const override
+    {
+        return m_canSeeSky;
+    }
 
     [[nodiscard]] f32 getBrightness(const BlockPos&) const override
     {
@@ -138,27 +186,63 @@ public:
     }
 
     // 天气配置
-    void setRaining(bool raining) { m_isRaining = raining; }
-    [[nodiscard]] bool isRaining() const override { return m_isRaining; }
-    [[nodiscard]] bool isThundering() const override { return false; }
-    [[nodiscard]] bool canRainAt(const BlockPos&) const override { return m_isRaining; }
+    void setRaining(bool raining)
+    {
+        m_isRaining = raining;
+    }
+
+    [[nodiscard]] bool isRaining() const override
+    {
+        return m_isRaining;
+    }
+
+    [[nodiscard]] bool isThundering() const override
+    {
+        return false;
+    }
+
+    [[nodiscard]] bool canRainAt(const BlockPos&) const override
+    {
+        return m_isRaining;
+    }
 
     // 昼夜检测
-    [[nodiscard]] bool isDaytime() const override { return m_dayTime < 12000; }
+    [[nodiscard]] bool isDaytime() const override
+    {
+        return m_dayTime < 12000;
+    }
 
-    [[nodiscard]] u64 currentTick() const override { return 0; }
-    [[nodiscard]] Difficulty difficulty() const override { return Difficulty::Normal; }
+    [[nodiscard]] u64 currentTick() const override
+    {
+        return 0;
+    }
+
+    [[nodiscard]] Difficulty difficulty() const override
+    {
+        return Difficulty::Normal;
+    }
+
     void playSound(const ResourceLocation&, sound::SoundCategory, const Vector3&, f32, f32) override {}
+
     void addParticle(particle::ParticleTypeId, const Vector3&, const Vector3&, const Vector3&, u32) override {}
 
     // 实体管理（用于测试船骑乘）
-    void addTestEntity(Entity* entity) { m_testEntities[entity->id()] = entity; }
-    void removeTestEntity(EntityInstanceId id) { m_testEntities.erase(id); }
+    void addTestEntity(Entity* entity)
+    {
+        m_testEntities[entity->id()] = entity;
+    }
+
+    void removeTestEntity(EntityInstanceId id)
+    {
+        m_testEntities.erase(id);
+    }
+
     [[nodiscard]] Entity* getEntity(EntityInstanceId id) override
     {
         auto it = m_testEntities.find(id);
         return it != m_testEntities.end() ? it->second : nullptr;
     }
+
     [[nodiscard]] const Entity* getEntity(EntityInstanceId id) const override
     {
         auto it = m_testEntities.find(id);
@@ -169,11 +253,16 @@ public:
     {
         throw std::runtime_error("EntityTestWorld::tickManager not implemented");
     }
+
     [[nodiscard]] const world::tick::TickManager& tickManager() const override
     {
         throw std::runtime_error("EntityTestWorld::tickManager not implemented");
     }
-    EntityInstanceId spawnEntity(std::unique_ptr<Entity>) override { return EntityInstanceId(1); }
+
+    EntityInstanceId spawnEntity(std::unique_ptr<Entity>) override
+    {
+        return EntityInstanceId(1);
+    }
 
 private:
     i64 m_dayTime;
@@ -195,9 +284,15 @@ private:
 
 class IsInDaylightTest : public ::testing::Test {
 protected:
-    void SetUp() override { m_world = std::make_unique<EntityTestWorld>(); }
+    void SetUp() override
+    {
+        m_world = std::make_unique<EntityTestWorld>();
+    }
 
-    void TearDown() override { m_world.reset(); }
+    void TearDown() override
+    {
+        m_world.reset();
+    }
 
     std::unique_ptr<EntityTestWorld> m_world;
 };
@@ -281,9 +376,15 @@ TEST_F(IsInDaylightTest, ReturnsTrueDuringDayWithHighBrightness)
 // 参考 commit 49936ac20 的同类问题处理方式。
 class PhantomEntityDaylightTest : public ::testing::Test {
 protected:
-    void SetUp() override { m_world = std::make_unique<EntityTestWorld>(); }
+    void SetUp() override
+    {
+        m_world = std::make_unique<EntityTestWorld>();
+    }
 
-    void TearDown() override { m_world.reset(); }
+    void TearDown() override
+    {
+        m_world.reset();
+    }
 
     std::unique_ptr<EntityTestWorld> m_world;
 };
@@ -343,9 +444,15 @@ TEST_F(PhantomEntityDaylightTest, AttackPhaseDefaultIsCircle)
 
 class DaytimeTest : public ::testing::Test {
 protected:
-    void SetUp() override { m_world = std::make_unique<EntityTestWorld>(); }
+    void SetUp() override
+    {
+        m_world = std::make_unique<EntityTestWorld>();
+    }
 
-    void TearDown() override { m_world.reset(); }
+    void TearDown() override
+    {
+        m_world.reset();
+    }
 
     std::unique_ptr<EntityTestWorld> m_world;
 };
@@ -392,9 +499,15 @@ TEST_F(DaytimeTest, IsNightJustBeforeDawn)
 
 class GetBrightnessTest : public ::testing::Test {
 protected:
-    void SetUp() override { m_world = std::make_unique<EntityTestWorld>(); }
+    void SetUp() override
+    {
+        m_world = std::make_unique<EntityTestWorld>();
+    }
 
-    void TearDown() override { m_world.reset(); }
+    void TearDown() override
+    {
+        m_world.reset();
+    }
 
     std::unique_ptr<EntityTestWorld> m_world;
 };
@@ -462,9 +575,15 @@ TEST_F(GetBrightnessTest, UsesEyeHeightForPosition)
 
 class MiningFatigueEffectTest : public ::testing::Test {
 protected:
-    void SetUp() override { m_world = std::make_unique<EntityTestWorld>(); }
+    void SetUp() override
+    {
+        m_world = std::make_unique<EntityTestWorld>();
+    }
 
-    void TearDown() override { m_world.reset(); }
+    void TearDown() override
+    {
+        m_world.reset();
+    }
 
     std::unique_ptr<EntityTestWorld> m_world;
 };
@@ -505,7 +624,10 @@ TEST_F(MiningFatigueEffectTest, MiningFatigueInterval)
 
 class BoatRidingDaylightTest : public ::testing::Test {
 protected:
-    void SetUp() override { m_world = std::make_unique<EntityTestWorld>(); }
+    void SetUp() override
+    {
+        m_world = std::make_unique<EntityTestWorld>();
+    }
 
     void TearDown() override
     {
@@ -662,9 +784,15 @@ TEST_F(BoatRidingDaylightTest, BoatEntityDifferentTypes)
 
 class IsInDaylightWetTest : public ::testing::Test {
 protected:
-    void SetUp() override { m_world = std::make_unique<EntityTestWorld>(); }
+    void SetUp() override
+    {
+        m_world = std::make_unique<EntityTestWorld>();
+    }
 
-    void TearDown() override { m_world.reset(); }
+    void TearDown() override
+    {
+        m_world.reset();
+    }
 
     std::unique_ptr<EntityTestWorld> m_world;
 };
@@ -710,9 +838,15 @@ TEST_F(IsInDaylightWetTest, ReturnsFalseWhenNotRainingAndNotInWater)
 
 class BurnUndeadTest : public ::testing::Test {
 protected:
-    void SetUp() override { m_world = std::make_unique<EntityTestWorld>(); }
+    void SetUp() override
+    {
+        m_world = std::make_unique<EntityTestWorld>();
+    }
 
-    void TearDown() override { m_world.reset(); }
+    void TearDown() override
+    {
+        m_world.reset();
+    }
 
     std::unique_ptr<EntityTestWorld> m_world;
 };
@@ -909,9 +1043,15 @@ TEST_F(SunProtectionSlotTest, PhantomUsesDefaultHeadSlot)
 
 class ZombieHorseBurnTest : public ::testing::Test {
 protected:
-    void SetUp() override { m_world = std::make_unique<EntityTestWorld>(); }
+    void SetUp() override
+    {
+        m_world = std::make_unique<EntityTestWorld>();
+    }
 
-    void TearDown() override { m_world.reset(); }
+    void TearDown() override
+    {
+        m_world.reset();
+    }
 
     std::unique_ptr<EntityTestWorld> m_world;
 };

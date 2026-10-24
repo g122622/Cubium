@@ -48,24 +48,44 @@ public:
         , m_flow(flow)
     {}
 
-    [[nodiscard]] ConnectionProtocol phase() const noexcept { return m_phase; }
-    [[nodiscard]] PacketFlow flow() const noexcept { return m_flow; }
+    [[nodiscard]] ConnectionProtocol phase() const noexcept
+    {
+        return m_phase;
+    }
+
+    [[nodiscard]] PacketFlow flow() const noexcept
+    {
+        return m_flow;
+    }
 
     /**
      * @brief 取包表（供 Connection 编解码调用）
      */
-    [[nodiscard]] codec::IdDispatchCodec<B, Variant>& dispatch() noexcept { return m_dispatch; }
-    [[nodiscard]] const codec::IdDispatchCodec<B, Variant>& dispatch() const noexcept { return m_dispatch; }
+    [[nodiscard]] codec::IdDispatchCodec<B, Variant>& dispatch() noexcept
+    {
+        return m_dispatch;
+    }
+
+    [[nodiscard]] const codec::IdDispatchCodec<B, Variant>& dispatch() const noexcept
+    {
+        return m_dispatch;
+    }
 
     /**
      * @brief 编码一个包（写 id + payload）
      */
-    [[nodiscard]] Result<void> encode(B& buf, const Variant& value) const { return m_dispatch.encode(buf, value); }
+    [[nodiscard]] Result<void> encode(B& buf, const Variant& value) const
+    {
+        return m_dispatch.encode(buf, value);
+    }
 
     /**
      * @brief 解码一个包（读 id + payload）
      */
-    [[nodiscard]] Result<Variant> decode(B& buf) const { return m_dispatch.decode(buf); }
+    [[nodiscard]] Result<Variant> decode(B& buf) const
+    {
+        return m_dispatch.decode(buf);
+    }
 
 private:
     ConnectionProtocol m_phase;

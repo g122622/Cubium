@@ -116,8 +116,9 @@ protected:
         // PlayerInventory 作为解析结果——仍然是单份数据。
         m_testInventory = std::make_unique<PlayerInventory>(nullptr);
         m_inventoryManager = std::make_unique<server::interaction::InventoryManager>(*m_playerManager);
-        m_inventoryManager->setInventoryResolver(
-            [this](PlayerId /*playerId*/) -> PlayerInventory* { return m_testInventory.get(); });
+        m_inventoryManager->setInventoryResolver([this](PlayerId /*playerId*/) -> PlayerInventory* {
+            return m_testInventory.get();
+        });
 
         // 创建连接管理器
         m_connectionManager = std::make_unique<server::core::ConnectionManager>(*m_playerManager);
@@ -169,7 +170,10 @@ protected:
     /**
      * @brief 获取玩家数据
      */
-    server::ServerPlayerData* getPlayerData() { return m_playerManager->getPlayer(m_playerId); }
+    server::ServerPlayerData* getPlayerData()
+    {
+        return m_playerManager->getPlayer(m_playerId);
+    }
 
 protected:
     static constexpr PlayerId m_playerId = 1;

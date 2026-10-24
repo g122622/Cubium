@@ -227,7 +227,9 @@ void GiveCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
     using namespace mc::command;
 
     auto giveNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("give");
-    giveNode->setRequirement([](const ServerCommandSource& source) { return source.hasPermission(2); });
+    giveNode->setRequirement([](const ServerCommandSource& source) {
+        return source.hasPermission(2);
+    });
     support::applyMetadata(
         giveNode, support::makeMetadata("Give items to players.", "/give <targets> <item> [<count>]", 2, {}, false));
 
@@ -237,11 +239,15 @@ void GiveCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
 
     auto itemArg =
         std::make_shared<ArgumentCommandNode<ServerCommandSource, ItemInput>>("item", ItemArgumentType::item());
-    itemArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _giveItem(ctx); });
+    itemArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _giveItem(ctx);
+    });
 
     auto countArg =
         std::make_shared<ArgumentCommandNode<ServerCommandSource, i32>>("count", IntegerArgumentType::integer(1, 64));
-    countArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _giveItem(ctx); });
+    countArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _giveItem(ctx);
+    });
 
     itemArg->addChild(countArg);
     targetsArg->addChild(itemArg);

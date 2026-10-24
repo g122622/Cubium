@@ -118,7 +118,10 @@ struct PendingChunkSave {
 
     std::shared_ptr<const Owner> owner;
 
-    [[nodiscard]] bool empty() const noexcept { return owner == nullptr; }
+    [[nodiscard]] bool empty() const noexcept
+    {
+        return owner == nullptr;
+    }
 };
 
 /// 追踪表中等待某个区块保存结束后再读盘的加载任务
@@ -175,7 +178,10 @@ public:
      * @brief 检查当前是否已打开存档
      * @return 已打开返回 true
      */
-    [[nodiscard]] bool isOpen() const { return m_db != nullptr || m_backend != nullptr; }
+    [[nodiscard]] bool isOpen() const
+    {
+        return m_db != nullptr || m_backend != nullptr;
+    }
 
     /**
      * @brief 从内存区块直接构建一个批次并提交，返回保存的段数。
@@ -365,6 +371,12 @@ public:
      */
     Result<void> saveDragonFightData(const nlohmann::json& data);
 
+    /** @brief 从本存档的原生元数据读取世界 addon 属性，缺失时返回空值。 */
+    [[nodiscard]] Result<std::optional<nlohmann::json>> loadAddonWorldProperties();
+
+    /** @brief 原子写入世界 addon 属性；sync 表示等待 WAL 刷盘。 */
+    Result<void> saveAddonWorldProperties(const nlohmann::json& data, bool sync);
+
     /**
      * @brief 注入存储 IO 线程池
      *
@@ -382,28 +394,52 @@ public:
      *
      * @param workerPool 反序列化线程池指针，可为 nullptr（降级内联）
      */
-    void setComputeWorkerPool(util::UniversalWorkerPool* workerPool) { m_computeWorkerPool = workerPool; }
+    void setComputeWorkerPool(util::UniversalWorkerPool* workerPool)
+    {
+        m_computeWorkerPool = workerPool;
+    }
 
     /**
      * @brief 获取玩家数据管理器
      * @return 玩家数据管理器指针；未打开时返回 nullptr
      */
-    [[nodiscard]] PlayerDataManager* playerDataManager() { return m_playerDataManager.get(); }
-    [[nodiscard]] const PlayerDataManager* playerDataManager() const { return m_playerDataManager.get(); }
+    [[nodiscard]] PlayerDataManager* playerDataManager()
+    {
+        return m_playerDataManager.get();
+    }
+
+    [[nodiscard]] const PlayerDataManager* playerDataManager() const
+    {
+        return m_playerDataManager.get();
+    }
 
     /**
      * @brief 获取实体存储管理器
      * @return 实体存储管理器指针；未打开时返回 nullptr
      */
-    [[nodiscard]] EntityStorageManager* entityStorage() { return m_entityStorage.get(); }
-    [[nodiscard]] const EntityStorageManager* entityStorage() const { return m_entityStorage.get(); }
+    [[nodiscard]] EntityStorageManager* entityStorage()
+    {
+        return m_entityStorage.get();
+    }
+
+    [[nodiscard]] const EntityStorageManager* entityStorage() const
+    {
+        return m_entityStorage.get();
+    }
 
     /**
      * @brief 获取方块实体存储管理器
      * @return 方块实体存储管理器指针；未打开时返回 nullptr
      */
-    [[nodiscard]] BlockEntityStorageManager* blockEntityStorage() { return m_blockEntityStorage.get(); }
-    [[nodiscard]] const BlockEntityStorageManager* blockEntityStorage() const { return m_blockEntityStorage.get(); }
+    [[nodiscard]] BlockEntityStorageManager* blockEntityStorage()
+    {
+        return m_blockEntityStorage.get();
+    }
+
+    [[nodiscard]] const BlockEntityStorageManager* blockEntityStorage() const
+    {
+        return m_blockEntityStorage.get();
+    }
 
     /**
      * @brief 获取记分板数据管理器
@@ -413,6 +449,7 @@ public:
     {
         return m_scoreboardDataManager.get();
     }
+
     [[nodiscard]] const mc::scoreboard::ScoreboardDataManager* scoreboardDataManager() const
     {
         return m_scoreboardDataManager.get();
@@ -437,7 +474,10 @@ public:
      * @brief 获取当前存储配置
      * @return 配置只读引用
      */
-    [[nodiscard]] const SingleLevelStorageConfig& config() const { return m_config; }
+    [[nodiscard]] const SingleLevelStorageConfig& config() const
+    {
+        return m_config;
+    }
 
     /**
      * @brief 修改一致性模式
@@ -449,7 +489,10 @@ public:
      * @brief 获取已打开存档目录
      * @return 存档目录路径
      */
-    [[nodiscard]] const std::filesystem::path& worldPath() const { return m_worldPath; }
+    [[nodiscard]] const std::filesystem::path& worldPath() const
+    {
+        return m_worldPath;
+    }
 
     /**
      * @brief 获取当前已创建的维度列表
@@ -461,13 +504,19 @@ public:
      * @brief 获取存档格式信息
      * @return 格式信息
      */
-    [[nodiscard]] const SaveFormatInfo& formatInfo() const { return m_config.formatInfo; }
+    [[nodiscard]] const SaveFormatInfo& formatInfo() const
+    {
+        return m_config.formatInfo;
+    }
 
     /**
      * @brief 检查是否使用外来格式后端
      * @return 使用外来格式返回 true
      */
-    [[nodiscard]] bool isForeignFormat() const { return m_backend != nullptr; }
+    [[nodiscard]] bool isForeignFormat() const
+    {
+        return m_backend != nullptr;
+    }
 
     /// 区块卸载保存的收尾需要清理进行中保存追踪表，该表是本类的内部状态，
     /// 只有掌握"该区块保存已完成且无新保存启动"这一前提的 ServerChunkManager 才可调用。
@@ -555,8 +604,15 @@ private:
     mutable std::mutex m_pendingChunkSavesMutex;
     std::unordered_map<SectionKey, PendingChunkSaveEntry, SectionKey::Hash> m_pendingChunkSaves;
 
-    [[nodiscard]] RocksDBDatabase* _database() { return m_db.get(); }
-    [[nodiscard]] const RocksDBDatabase* _database() const { return m_db.get(); }
+    [[nodiscard]] RocksDBDatabase* _database()
+    {
+        return m_db.get();
+    }
+
+    [[nodiscard]] const RocksDBDatabase* _database() const
+    {
+        return m_db.get();
+    }
 };
 
 } // namespace mc::world::storage

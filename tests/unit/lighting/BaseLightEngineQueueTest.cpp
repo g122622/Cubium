@@ -57,33 +57,65 @@ public:
         bool isDecreasing = false;
     };
 
-    [[nodiscard]] const std::vector<Visit>& visits() const { return m_visits; }
+    [[nodiscard]] const std::vector<Visit>& visits() const
+    {
+        return m_visits;
+    }
 
-    void clearVisits() { m_visits.clear(); }
+    void clearVisits()
+    {
+        m_visits.clear();
+    }
 
     // 实现抽象方法
-    [[nodiscard]] const bool* getEmptinessMap(const mc::IChunk*) const override { return nullptr; }
+    [[nodiscard]] const bool* getEmptinessMap(const mc::IChunk*) const override
+    {
+        return nullptr;
+    }
+
     void setEmptinessMap(const mc::IChunk*, const bool*) override {}
-    [[nodiscard]] mc::SWMRNibbleArray* const* getNibblesOnChunk(const mc::IChunk*) const override { return nullptr; }
+
+    [[nodiscard]] mc::SWMRNibbleArray* const* getNibblesOnChunk(const mc::IChunk*) const override
+    {
+        return nullptr;
+    }
+
     void setNibbles(const mc::IChunk*, mc::SWMRNibbleArray* const*) override {}
-    [[nodiscard]] bool canUseChunk(const mc::IChunk*) const override { return true; }
+
+    [[nodiscard]] bool canUseChunk(const mc::IChunk*) const override
+    {
+        return true;
+    }
+
     void initNibble(mc::i32, mc::i32, mc::i32, bool, bool) override {}
+
     void setNibbleNull(mc::i32, mc::i32, mc::i32) override {}
 
     void checkBlock(mc::StarLightLightingProvider*, mc::i32, mc::i32, mc::i32) override {}
+
     [[nodiscard]] mc::i32 calculateLightValue(
         mc::StarLightLightingProvider*, mc::i32, mc::i32, mc::i32, mc::i32 expected) override
     {
         return expected;
     }
+
     void propagateBlockChanges(
         mc::StarLightLightingProvider*, const mc::IChunk*, const std::vector<mc::BlockPos>&) override
     {}
+
     void lightChunk(mc::StarLightLightingProvider*, const mc::IChunk*, bool) override {}
 
     void setData(const mc::SectionPos&, const mc::NibbleArray&, bool) override {}
-    [[nodiscard]] mc::SWMRNibbleArray* getData(const mc::SectionPos&) override { return nullptr; }
-    [[nodiscard]] const mc::SWMRNibbleArray* getData(const mc::SectionPos&) const override { return nullptr; }
+
+    [[nodiscard]] mc::SWMRNibbleArray* getData(const mc::SectionPos&) override
+    {
+        return nullptr;
+    }
+
+    [[nodiscard]] const mc::SWMRNibbleArray* getData(const mc::SectionPos&) const override
+    {
+        return nullptr;
+    }
 
     // 暴露 protected 方法用于测试
     using mc::StarLightEngine::appendToDecreaseQueue;
@@ -105,7 +137,10 @@ private:
 
 class TestChunkProvider final : public mc::StarLightLightingProvider {
 public:
-    void setChunk(mc::ChunkData* chunk) { m_chunk = chunk; }
+    void setChunk(mc::ChunkData* chunk)
+    {
+        m_chunk = chunk;
+    }
 
     mc::IChunk* getChunkForLight(mc::ChunkCoord x, mc::ChunkCoord z) override
     {
@@ -123,21 +158,42 @@ public:
         return nullptr;
     }
 
-    const mc::BlockState* getBlockStateForLight(const mc::BlockPos&) const override { return nullptr; }
+    const mc::BlockState* getBlockStateForLight(const mc::BlockPos&) const override
+    {
+        return nullptr;
+    }
 
-    mc::IWorld* getWorld() override { return nullptr; }
+    mc::IWorld* getWorld() override
+    {
+        return nullptr;
+    }
 
-    const mc::IWorld* getWorld() const override { return nullptr; }
+    const mc::IWorld* getWorld() const override
+    {
+        return nullptr;
+    }
 
     void markLightChanged(mc::LightType, const mc::SectionPos&) override {}
 
-    bool hasSkyLight() const override { return false; }
+    bool hasSkyLight() const override
+    {
+        return false;
+    }
 
-    mc::i32 getMinBuildHeight() const override { return 0; }
+    mc::i32 getMinBuildHeight() const override
+    {
+        return 0;
+    }
 
-    mc::i32 getMaxBuildHeight() const override { return mc::world::MAX_BUILD_HEIGHT; }
+    mc::i32 getMaxBuildHeight() const override
+    {
+        return mc::world::MAX_BUILD_HEIGHT;
+    }
 
-    mc::i32 getSectionCount() const override { return mc::world::CHUNK_SECTIONS; }
+    mc::i32 getSectionCount() const override
+    {
+        return mc::world::CHUNK_SECTIONS;
+    }
 
 private:
     mc::ChunkData* m_chunk = nullptr;

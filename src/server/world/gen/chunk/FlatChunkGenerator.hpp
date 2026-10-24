@@ -89,8 +89,15 @@ public:
     [[nodiscard]] i32 getHeight(i32 x, i32 z, HeightmapType type) const override;
     [[nodiscard]] i32 getGroundHeight() const override;
 
-    [[nodiscard]] world::biome::IBiomeSource* getBiomeSource() override { return m_biomeSource.get(); }
-    [[nodiscard]] const world::biome::IBiomeSource* getBiomeSource() const override { return m_biomeSource.get(); }
+    [[nodiscard]] world::biome::IBiomeSource* getBiomeSource() override
+    {
+        return m_biomeSource.get();
+    }
+
+    [[nodiscard]] const world::biome::IBiomeSource* getBiomeSource() const override
+    {
+        return m_biomeSource.get();
+    }
 
     // === 结构缓存 ===
 
@@ -98,6 +105,7 @@ public:
     {
         return m_structureManager ? &m_structureManager->structureCheck() : nullptr;
     }
+
     [[nodiscard]] const world::gen::structure::StructureCheck* structureCheck() const override
     {
         return m_structureManager ? &m_structureManager->structureCheck() : nullptr;
@@ -111,9 +119,20 @@ public:
      */
     void clearStructureCache() override;
 
-    [[nodiscard]] i32 getGenDepth() const override { return world::CHUNK_HEIGHT; }
-    [[nodiscard]] i32 getMinY() const override { return 0; }
-    i32 seaLevel() const override { return -63; }
+    [[nodiscard]] i32 getGenDepth() const override
+    {
+        return world::CHUNK_HEIGHT;
+    }
+
+    [[nodiscard]] i32 getMinY() const override
+    {
+        return 0;
+    }
+
+    i32 seaLevel() const override
+    {
+        return -63;
+    }
 
     /**
      * @brief 获取指定位置的基础列方块状态

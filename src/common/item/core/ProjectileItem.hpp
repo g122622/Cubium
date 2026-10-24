@@ -53,7 +53,10 @@ struct ProjectileDispenseConfig {
     /**
      * @brief 构建默认配置
      */
-    static ProjectileDispenseConfig defaults() { return {}; }
+    static ProjectileDispenseConfig defaults()
+    {
+        return {};
+    }
 
     /**
      * @brief 构建药水投掷配置（散布减半、力度增加 25%）
@@ -61,7 +64,10 @@ struct ProjectileDispenseConfig {
      * uncertainty = DEFAULT * 0.5 = 3.0
      * power = DEFAULT * 1.25 = 1.375
      */
-    static ProjectileDispenseConfig potion() { return {.power = 1.375f, .uncertainty = 3.0f}; }
+    static ProjectileDispenseConfig potion()
+    {
+        return {.power = 1.375f, .uncertainty = 3.0f};
+    }
 
     /**
      * @brief 构建箭矢配置
@@ -69,7 +75,10 @@ struct ProjectileDispenseConfig {
      * 与默认配置相同（power=1.1, uncertainty=6.0）。
      * 箭矢发射参数与大多数投掷物一致。
      */
-    static ProjectileDispenseConfig arrow() { return {.power = 1.1f, .uncertainty = 6.0f}; }
+    static ProjectileDispenseConfig arrow()
+    {
+        return {.power = 1.1f, .uncertainty = 6.0f};
+    }
 
     /**
      * @brief 构建火焰弹配置
@@ -78,14 +87,20 @@ struct ProjectileDispenseConfig {
      * 火焰弹不需要设置初速度（shoot() 为空操作），
      * 在 asProjectile() 中通过 setAcceleration 指定飞行方向，加速力取 vanilla 默认 0.1。
      */
-    static ProjectileDispenseConfig fireCharge() { return {.power = 1.0f, .uncertainty = 6.0f}; }
+    static ProjectileDispenseConfig fireCharge()
+    {
+        return {.power = 1.0f, .uncertainty = 6.0f};
+    }
 
     /**
      * @brief 构建风弹配置
      *
      * power = 1.0, uncertainty = 6.6666665
      */
-    static ProjectileDispenseConfig windCharge() { return {.power = 1.0f, .uncertainty = 6.6666665f}; }
+    static ProjectileDispenseConfig windCharge()
+    {
+        return {.power = 1.0f, .uncertainty = 6.6666665f};
+    }
 
     /**
      * @brief 构建烟花火箭配置
@@ -93,7 +108,10 @@ struct ProjectileDispenseConfig {
      * power = 0.5（较慢），uncertainty = 1.0（较精确）
      * 烟花火箭速度较慢且散布较小，保证近似垂直上升。
      */
-    static ProjectileDispenseConfig fireworkRocket() { return {.power = 0.5f, .uncertainty = 1.0f}; }
+    static ProjectileDispenseConfig fireworkRocket()
+    {
+        return {.power = 0.5f, .uncertainty = 1.0f};
+    }
 };
 
 /**

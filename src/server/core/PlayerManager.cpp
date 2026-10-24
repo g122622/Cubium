@@ -106,7 +106,9 @@ void PlayerManager::removePlayer(PlayerId playerId)
     std::lock_guard<std::recursive_mutex> lock(m_mutex);
 
     auto it = m_players.find(playerId);
-    if (it == m_players.end()) return;
+    if (it == m_players.end()) {
+        return;
+    }
 
     // 先释放玩家占用的区块资源、再摘除玩家记录。顺序不可颠倒：释放钩子需要在玩家仍在册时定位其维度。
     _notifyPlayerRemoval(playerId);
@@ -127,11 +129,15 @@ void PlayerManager::removePlayerBySessionId(u32 sessionId)
     std::lock_guard<std::recursive_mutex> lock(m_mutex);
 
     auto it = m_sessionToPlayer.find(sessionId);
-    if (it == m_sessionToPlayer.end()) return;
+    if (it == m_sessionToPlayer.end()) {
+        return;
+    }
 
     PlayerId playerId = it->second;
     auto playerIt = m_players.find(playerId);
-    if (playerIt == m_players.end()) return;
+    if (playerIt == m_players.end()) {
+        return;
+    }
 
     // 与 removePlayer 同理：必须先释放区块资源
     _notifyPlayerRemoval(playerId);
@@ -148,7 +154,9 @@ ServerPlayerData* PlayerManager::findBySessionId(u32 sessionId)
 {
     std::lock_guard<std::recursive_mutex> lock(m_mutex);
     auto it = m_sessionToPlayer.find(sessionId);
-    if (it == m_sessionToPlayer.end()) return nullptr;
+    if (it == m_sessionToPlayer.end()) {
+        return nullptr;
+    }
     auto playerIt = m_players.find(it->second);
     return playerIt != m_players.end() ? &playerIt->second : nullptr;
 }
@@ -157,7 +165,9 @@ const ServerPlayerData* PlayerManager::findBySessionId(u32 sessionId) const
 {
     std::lock_guard<std::recursive_mutex> lock(m_mutex);
     auto it = m_sessionToPlayer.find(sessionId);
-    if (it == m_sessionToPlayer.end()) return nullptr;
+    if (it == m_sessionToPlayer.end()) {
+        return nullptr;
+    }
     auto playerIt = m_players.find(it->second);
     return playerIt != m_players.end() ? &playerIt->second : nullptr;
 }
@@ -221,7 +231,9 @@ void PlayerManager::unmapSession(u32 sessionId)
     std::lock_guard<std::recursive_mutex> lock(m_mutex);
 
     auto it = m_sessionToPlayer.find(sessionId);
-    if (it == m_sessionToPlayer.end()) return;
+    if (it == m_sessionToPlayer.end()) {
+        return;
+    }
 
     PlayerId playerId = it->second;
     m_sessionToPlayer.erase(sessionId);

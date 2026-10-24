@@ -41,10 +41,22 @@ class EmptyJigsawPiece : public JigsawPiece {
 public:
     static EmptyJigsawPiece& instance();
 
-    const std::string& getTypeName() const override { return s_typeName; }
+    const std::string& getTypeName() const override
+    {
+        return s_typeName;
+    }
+
     std::unique_ptr<JigsawPiece> clone() const override;
-    bool isEmpty() const override { return true; }
-    BlockPos getSize() const override { return BlockPos(0, 0, 0); }
+
+    bool isEmpty() const override
+    {
+        return true;
+    }
+
+    BlockPos getSize() const override
+    {
+        return BlockPos(0, 0, 0);
+    }
 
     void place(IWorldWriter& world,
         const PlacedPiece& placed,

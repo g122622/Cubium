@@ -172,17 +172,26 @@ public:
     /**
      * @brief 获取纹理图集图像视图
      */
-    [[nodiscard]] VkImageView imageView() const { return m_imageView; }
+    [[nodiscard]] VkImageView imageView() const
+    {
+        return m_imageView;
+    }
 
     /**
      * @brief 获取纹理图集采样器
      */
-    [[nodiscard]] VkSampler sampler() const { return m_sampler; }
+    [[nodiscard]] VkSampler sampler() const
+    {
+        return m_sampler;
+    }
 
     /**
      * @brief 检查是否已初始化
      */
-    [[nodiscard]] bool isInitialized() const { return m_initialized; }
+    [[nodiscard]] bool isInitialized() const
+    {
+        return m_initialized;
+    }
 
     // ==================== 精灵管理 ====================
 
@@ -234,7 +243,10 @@ public:
     /**
      * @brief 获取精灵数量
      */
-    [[nodiscard]] size_t spriteCount() const { return m_sprites.size(); }
+    [[nodiscard]] size_t spriteCount() const
+    {
+        return m_sprites.size();
+    }
 
     /**
      * @brief 设置当前图集尺寸（用于UV计算）
@@ -246,12 +258,18 @@ public:
     /**
      * @brief 获取图集宽度
      */
-    [[nodiscard]] i32 atlasWidth() const { return m_atlasWidth; }
+    [[nodiscard]] i32 atlasWidth() const
+    {
+        return m_atlasWidth;
+    }
 
     /**
      * @brief 获取图集高度
      */
-    [[nodiscard]] i32 atlasHeight() const { return m_atlasHeight; }
+    [[nodiscard]] i32 atlasHeight() const
+    {
+        return m_atlasHeight;
+    }
 
 private:
     /**

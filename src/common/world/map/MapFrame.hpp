@@ -60,9 +60,20 @@ public:
      */
     [[nodiscard]] static std::string getIdForPos(BlockPos pos);
 
-    [[nodiscard]] BlockPos pos() const noexcept { return m_pos; }
-    [[nodiscard]] i32 rotation() const noexcept { return m_rotation; }
-    [[nodiscard]] i32 entityId() const noexcept { return m_entityId; }
+    [[nodiscard]] BlockPos pos() const noexcept
+    {
+        return m_pos;
+    }
+
+    [[nodiscard]] i32 rotation() const noexcept
+    {
+        return m_rotation;
+    }
+
+    [[nodiscard]] i32 entityId() const noexcept
+    {
+        return m_entityId;
+    }
 
 private:
     BlockPos m_pos;

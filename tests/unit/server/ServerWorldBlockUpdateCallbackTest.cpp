@@ -100,8 +100,9 @@ TEST_F(ServerWorldBlockUpdateCallbackTest, SetBlockInvokesBlockChangedCallback)
 {
     std::vector<std::pair<BlockPos, u32>> blockUpdates;
 
-    m_world->setOnBlockChanged(
-        [&blockUpdates](const BlockPos& pos, u32 blockStateId) { blockUpdates.emplace_back(pos, blockStateId); });
+    m_world->setOnBlockChanged([&blockUpdates](const BlockPos& pos, u32 blockStateId) {
+        blockUpdates.emplace_back(pos, blockStateId);
+    });
 
     const BlockState* stoneState = &VanillaBlocks::STONE->defaultState();
     m_world->setBlockState(0, 64, 0, stoneState);
@@ -121,8 +122,9 @@ TEST_F(ServerWorldBlockUpdateCallbackTest, BreakingIceAboveSolidTurnsIntoWater)
     m_world->setBlockState(0, 63, 0, &VanillaBlocks::STONE->defaultState());
     m_world->setBlockState(0, 64, 0, &VanillaBlocks::ICE->defaultState());
 
-    m_world->setOnBlockChanged(
-        [&blockUpdates](const BlockPos& pos, u32 blockStateId) { blockUpdates.emplace_back(pos, blockStateId); });
+    m_world->setOnBlockChanged([&blockUpdates](const BlockPos& pos, u32 blockStateId) {
+        blockUpdates.emplace_back(pos, blockStateId);
+    });
 
     ASSERT_TRUE(m_world->setBlockState(0, 64, 0, nullptr));
 
@@ -142,8 +144,9 @@ TEST_F(ServerWorldBlockUpdateCallbackTest, BreakingIceWithoutSupportTurnsIntoAir
     m_world->setBlockState(0, 63, 0, nullptr);
     m_world->setBlockState(0, 64, 0, &VanillaBlocks::ICE->defaultState());
 
-    m_world->setOnBlockChanged(
-        [&blockUpdates](const BlockPos& pos, u32 blockStateId) { blockUpdates.emplace_back(pos, blockStateId); });
+    m_world->setOnBlockChanged([&blockUpdates](const BlockPos& pos, u32 blockStateId) {
+        blockUpdates.emplace_back(pos, blockStateId);
+    });
 
     ASSERT_TRUE(m_world->setBlockState(0, 64, 0, nullptr));
 
@@ -165,8 +168,9 @@ TEST_F(ServerWorldBlockUpdateCallbackTest, NotifyBlockUpdate_InvokesCallback)
     m_world->setBlockState(5, 64, 5, stoneState);
 
     std::vector<std::pair<BlockPos, u32>> blockUpdates;
-    m_world->setOnBlockChanged(
-        [&blockUpdates](const BlockPos& pos, u32 blockStateId) { blockUpdates.emplace_back(pos, blockStateId); });
+    m_world->setOnBlockChanged([&blockUpdates](const BlockPos& pos, u32 blockStateId) {
+        blockUpdates.emplace_back(pos, blockStateId);
+    });
 
     // notifyBlockUpdate 应该即使方块状态未改变也触发回调
     m_world->notifyBlockUpdate(BlockPos(5, 64, 5));
@@ -205,8 +209,9 @@ TEST_F(ServerWorldBlockUpdateCallbackTest, NotifyBlockUpdate_WithoutCallback_Doe
 TEST_F(ServerWorldBlockUpdateCallbackTest, NotifyBlockUpdate_UnloadedChunk_DoesNotCrash)
 {
     std::vector<std::pair<BlockPos, u32>> blockUpdates;
-    m_world->setOnBlockChanged(
-        [&blockUpdates](const BlockPos& pos, u32 blockStateId) { blockUpdates.emplace_back(pos, blockStateId); });
+    m_world->setOnBlockChanged([&blockUpdates](const BlockPos& pos, u32 blockStateId) {
+        blockUpdates.emplace_back(pos, blockStateId);
+    });
 
     // 远处未加载区块的坐标，getBlockState 应返回 nullptr
     m_world->notifyBlockUpdate(BlockPos(10000, 64, 10000));

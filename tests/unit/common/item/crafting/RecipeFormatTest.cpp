@@ -40,7 +40,10 @@ protected:
         crafting::RecipeManager::instance().clear();
     }
 
-    void TearDown() override { crafting::RecipeManager::instance().clear(); }
+    void TearDown() override
+    {
+        crafting::RecipeManager::instance().clear();
+    }
 };
 
 // ============================================================================

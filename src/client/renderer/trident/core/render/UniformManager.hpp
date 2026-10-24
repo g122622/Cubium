@@ -135,9 +135,18 @@ public:
 
     // 访问器
     [[nodiscard]] VkBuffer cameraBuffer(u32 frameIndex) const;
-    [[nodiscard]] VkBuffer lightingBuffer() const { return m_lightingBuffer; }
+
+    [[nodiscard]] VkBuffer lightingBuffer() const
+    {
+        return m_lightingBuffer;
+    }
+
     [[nodiscard]] VkDescriptorSet cameraDescriptorSet(u32 frameIndex) const;
-    [[nodiscard]] bool isValid() const { return !m_cameraBuffers.empty() && m_cameraBuffers[0] != VK_NULL_HANDLE; }
+
+    [[nodiscard]] bool isValid() const
+    {
+        return !m_cameraBuffers.empty() && m_cameraBuffers[0] != VK_NULL_HANDLE;
+    }
 
 private:
     // 创建方法

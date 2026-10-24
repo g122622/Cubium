@@ -50,7 +50,10 @@ constexpr i32 MAGIC_NUMBER = 289; // 17^2，原版刷怪区块计数基准
 
 class NaturalSpawnerCapTest : public ::testing::Test {
 protected:
-    void SetUp() override { VanillaEntities::registerAll(); }
+    void SetUp() override
+    {
+        VanillaEntities::registerAll();
+    }
 
     // 构造一个使用指定刷怪区块计数的密度管理器
     EntityDensityManager makeManager(

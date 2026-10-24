@@ -195,7 +195,10 @@ public:
     /**
      * @brief 获取缓存目录路径
      */
-    [[nodiscard]] const std::filesystem::path& cacheDir() const noexcept { return m_cacheDir; }
+    [[nodiscard]] const std::filesystem::path& cacheDir() const noexcept
+    {
+        return m_cacheDir;
+    }
 
 private:
     /**

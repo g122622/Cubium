@@ -45,7 +45,12 @@ public:
     PineFoliagePlacer(const FeatureSpread& radius, const FeatureSpread& offset, i32 height);
 
     [[nodiscard]] i32 getFoliageHeight(math::IRandom& random, i32 trunkHeight) const override;
-    [[nodiscard]] const char* name() const override { return "pine"; }
+
+    [[nodiscard]] const char* name() const override
+    {
+        return "pine";
+    }
+
     [[nodiscard]] std::unique_ptr<FoliagePlacer> clone() const override;
 
 protected:
@@ -81,7 +86,12 @@ public:
     SpruceFoliagePlacer(const FeatureSpread& radius, const FeatureSpread& offset, i32 height);
 
     [[nodiscard]] i32 getFoliageHeight(math::IRandom& random, i32 trunkHeight) const override;
-    [[nodiscard]] const char* name() const override { return "spruce"; }
+
+    [[nodiscard]] const char* name() const override
+    {
+        return "spruce";
+    }
+
     [[nodiscard]] std::unique_ptr<FoliagePlacer> clone() const override;
 
 protected:
@@ -121,7 +131,12 @@ public:
     AcaciaFoliagePlacer(const FeatureSpread& radius, const FeatureSpread& offset);
 
     [[nodiscard]] i32 getFoliageHeight(math::IRandom& random, i32 trunkHeight) const override;
-    [[nodiscard]] const char* name() const override { return "acacia"; }
+
+    [[nodiscard]] const char* name() const override
+    {
+        return "acacia";
+    }
+
     [[nodiscard]] std::unique_ptr<FoliagePlacer> clone() const override;
 
 protected:
@@ -159,7 +174,12 @@ public:
     DarkOakFoliagePlacer(const FeatureSpread& radius, const FeatureSpread& offset, i32 height);
 
     [[nodiscard]] i32 getFoliageHeight(math::IRandom& random, i32 trunkHeight) const override;
-    [[nodiscard]] const char* name() const override { return "dark_oak"; }
+
+    [[nodiscard]] const char* name() const override
+    {
+        return "dark_oak";
+    }
+
     [[nodiscard]] std::unique_ptr<FoliagePlacer> clone() const override;
 
 protected:
@@ -201,7 +221,12 @@ public:
     JungleFoliagePlacer(const FeatureSpread& radius, const FeatureSpread& offset, i32 height);
 
     [[nodiscard]] i32 getFoliageHeight(math::IRandom& random, i32 trunkHeight) const override;
-    [[nodiscard]] const char* name() const override { return "jungle"; }
+
+    [[nodiscard]] const char* name() const override
+    {
+        return "jungle";
+    }
+
     [[nodiscard]] std::unique_ptr<FoliagePlacer> clone() const override;
 
 protected:
@@ -232,7 +257,12 @@ public:
     MegaPineFoliagePlacer(const FeatureSpread& radius, const FeatureSpread& offset, i32 height);
 
     [[nodiscard]] i32 getFoliageHeight(math::IRandom& random, i32 trunkHeight) const override;
-    [[nodiscard]] const char* name() const override { return "mega_pine"; }
+
+    [[nodiscard]] const char* name() const override
+    {
+        return "mega_pine";
+    }
+
     [[nodiscard]] std::unique_ptr<FoliagePlacer> clone() const override;
 
 protected:
@@ -263,7 +293,12 @@ public:
     BushFoliagePlacer(const FeatureSpread& radius, const FeatureSpread& offset);
 
     [[nodiscard]] i32 getFoliageHeight(math::IRandom& random, i32 trunkHeight) const override;
-    [[nodiscard]] const char* name() const override { return "bush"; }
+
+    [[nodiscard]] const char* name() const override
+    {
+        return "bush";
+    }
+
     [[nodiscard]] std::unique_ptr<FoliagePlacer> clone() const override;
 
 protected:
@@ -291,7 +326,12 @@ public:
     FancyFoliagePlacer(const FeatureSpread& radius, const FeatureSpread& offset, i32 height);
 
     [[nodiscard]] i32 getFoliageHeight(math::IRandom& random, i32 trunkHeight) const override;
-    [[nodiscard]] const char* name() const override { return "fancy"; }
+
+    [[nodiscard]] const char* name() const override
+    {
+        return "fancy";
+    }
+
     [[nodiscard]] std::unique_ptr<FoliagePlacer> clone() const override;
 
 protected:

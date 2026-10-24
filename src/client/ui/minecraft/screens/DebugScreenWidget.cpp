@@ -77,7 +77,9 @@ void DebugScreenWidget::setGpuInfo(const DebugGpuInfo& info)
 
 void DebugScreenWidget::tick(f32 dt)
 {
-    if (!isVisible()) return;
+    if (!isVisible()) {
+        return;
+    }
 
     _updateFps(dt);
     _updateSystemInfo();
@@ -441,8 +443,12 @@ void DebugScreenWidget::_measureTexts()
 
 void DebugScreenWidget::paint(kagero::widget::PaintContext& ctx)
 {
-    if (!isVisible()) return;
-    if (m_leftLines.empty() && m_rightLines.empty()) return;
+    if (!isVisible()) {
+        return;
+    }
+    if (m_leftLines.empty() && m_rightLines.empty()) {
+        return;
+    }
 
     const f32 screenWidth = static_cast<f32>(width());
 

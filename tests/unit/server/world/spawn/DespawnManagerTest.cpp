@@ -67,7 +67,11 @@ public:
         setTypeId(EntityTypeKeys::ZOMBIE);
     }
 
-    void tick() override { MobEntity::tick(); }
+    void tick() override
+    {
+        MobEntity::tick();
+    }
+
     void registerGoals() override {}
 };
 
@@ -94,24 +98,50 @@ public:
         setTypeId(EntityTypeKeys::COW);
     }
 
-    std::unique_ptr<AnimalEntity> spawnBaby(AnimalEntity& /*partner*/) override { return nullptr; }
+    std::unique_ptr<AnimalEntity> spawnBaby(AnimalEntity& /*partner*/) override
+    {
+        return nullptr;
+    }
 };
 
 // 简化的测试世界
 class DespawnTestWorld : public mc::test::BaseTestWorld {
 public:
-    [[nodiscard]] bool isWithinWorldBounds(i32, i32, i32) const override { return true; }
-    [[nodiscard]] bool isUltraWarm() const override { return false; }
-    [[nodiscard]] u64 currentTick() const override { return m_currentTick; }
-    [[nodiscard]] Difficulty difficulty() const override { return m_difficulty; }
+    [[nodiscard]] bool isWithinWorldBounds(i32, i32, i32) const override
+    {
+        return true;
+    }
+
+    [[nodiscard]] bool isUltraWarm() const override
+    {
+        return false;
+    }
+
+    [[nodiscard]] u64 currentTick() const override
+    {
+        return m_currentTick;
+    }
+
+    [[nodiscard]] Difficulty difficulty() const override
+    {
+        return m_difficulty;
+    }
 
     // TickManager 接口
     [[nodiscard]] world::tick::TickManager& tickManager() override
     {
         throw std::runtime_error("DespawnTestWorld::tickManager not implemented");
     }
-    void setCurrentTick(u64 tick) { m_currentTick = tick; }
-    void setDifficulty(Difficulty diff) { m_difficulty = diff; }
+
+    void setCurrentTick(u64 tick)
+    {
+        m_currentTick = tick;
+    }
+
+    void setDifficulty(Difficulty diff)
+    {
+        m_difficulty = diff;
+    }
 
 private:
     u64 m_currentTick = 0;

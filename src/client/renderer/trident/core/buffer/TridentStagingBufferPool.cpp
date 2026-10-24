@@ -158,10 +158,14 @@ Result<void> TridentStagingBufferPool::initialize(void* context, u64 initialCapa
 
 void TridentStagingBufferPool::destroy()
 {
-    if (m_buffer == VK_NULL_HANDLE) return;
+    if (m_buffer == VK_NULL_HANDLE) {
+        return;
+    }
 
     VkDevice device = m_context ? m_context->device() : VK_NULL_HANDLE;
-    if (device == VK_NULL_HANDLE) return;
+    if (device == VK_NULL_HANDLE) {
+        return;
+    }
 
     // 兜底回收所有在飞异步 copy：调用方（TridentEngine::destroy）已 waitIdle，此刻所有
     // fence 必然 signaled，pollAsyncCopies 会一次性清空队列、release 全部 staging 区间、
@@ -250,7 +254,9 @@ void TridentStagingBufferPool::_free(OffsetAllocator::Allocation alloc, u64 alig
 api::StagingHandle TridentStagingBufferPool::stage(u64 size)
 {
     api::StagingHandle handle;
-    if (size == 0) return handle;
+    if (size == 0) {
+        return handle;
+    }
 
     const u64 alignedSize = _alignUp(size);
     OffsetAllocator::Allocation alloc = _allocate(alignedSize);
@@ -293,7 +299,9 @@ Result<void> TridentStagingBufferPool::copyToBuffer(const api::StagingHandle& ha
 
 void TridentStagingBufferPool::release(const api::StagingHandle& handle)
 {
-    if (!handle.valid) return;
+    if (!handle.valid) {
+        return;
+    }
 
     // 重建完整 Allocation（offset + metadata），metadata 是 free 定位 node 的关键
     OffsetAllocator::Allocation alloc;
@@ -311,7 +319,9 @@ void TridentStagingBufferPool::release(const api::StagingHandle& handle)
 api::StagingHandle TridentStagingBufferPool::stageAsync(u64 size, u32 frameIndex)
 {
     api::StagingHandle handle;
-    if (size == 0) return handle;
+    if (size == 0) {
+        return handle;
+    }
 
     const u64 alignedSize = _alignUp(size);
     OffsetAllocator::Allocation alloc = _allocate(alignedSize);

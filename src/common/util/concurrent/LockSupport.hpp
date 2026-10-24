@@ -77,7 +77,10 @@ public:
         /**
          * @brief 该句柄对应的线程 id（诊断/断言用）
          */
-        [[nodiscard]] std::thread::id threadId() const { return m_threadId; }
+        [[nodiscard]] std::thread::id threadId() const
+        {
+            return m_threadId;
+        }
 
         /**
          * @brief 构造句柄（仅用于 std::make_shared，构造为 public 因 MSVC 的 std::make_shared
@@ -137,7 +140,10 @@ public:
      * 若当前线程 permit 为 1，消费之并立即返回；否则阻塞。
      * 调用方必须在循环中检查阻塞条件（伪唤醒可能）。
      */
-    static void park() { parkInternal(nullptr); }
+    static void park()
+    {
+        parkInternal(nullptr);
+    }
 
     /**
      * @brief 阻塞当前线程最多 nanos 纳秒，或直到被 unpark

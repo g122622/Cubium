@@ -47,7 +47,11 @@ struct PacketType {
     {
         return flow == other.flow && id == other.id;
     }
-    [[nodiscard]] bool operator!=(const PacketType& other) const noexcept { return !(*this == other); }
+
+    [[nodiscard]] bool operator!=(const PacketType& other) const noexcept
+    {
+        return !(*this == other);
+    }
 };
 
 /**

@@ -36,14 +36,20 @@ public:
     using LookController::LookController;
 
 protected:
-    [[nodiscard]] bool shouldResetPitch() const override { return false; }
+    [[nodiscard]] bool shouldResetPitch() const override
+    {
+        return false;
+    }
 };
 
 // Entity::canSee 经 raycastBlocks(*m_world) 做视线检测，无 world 时直接返回 false。
 // EntitySensesTestWorld 提供 getBlockState=nullptr（空气）的空世界，使视线无阻挡。
 class EntitySensesTestWorld final : public mc::test::BaseTestWorld {
 public:
-    [[nodiscard]] bool isWithinWorldBounds(i32, i32, i32) const override { return true; }
+    [[nodiscard]] bool isWithinWorldBounds(i32, i32, i32) const override
+    {
+        return true;
+    }
 };
 
 TEST(EntitySensesTest, VisibleEntityIsCachedWithinSameTick)

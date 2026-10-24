@@ -62,12 +62,31 @@ public:
 
     [[nodiscard]] bool test(LootContext& context) const override;
     [[nodiscard]] std::unique_ptr<LootCondition> clone() const noexcept override;
-    [[nodiscard]] std::string getType() const noexcept override { return "location_check"; }
 
-    [[nodiscard]] const advancement::LocationPredicate& getPredicate() const noexcept { return m_predicate; }
-    [[nodiscard]] i32 getOffsetX() const noexcept { return m_offsetX; }
-    [[nodiscard]] i32 getOffsetY() const noexcept { return m_offsetY; }
-    [[nodiscard]] i32 getOffsetZ() const noexcept { return m_offsetZ; }
+    [[nodiscard]] std::string getType() const noexcept override
+    {
+        return "location_check";
+    }
+
+    [[nodiscard]] const advancement::LocationPredicate& getPredicate() const noexcept
+    {
+        return m_predicate;
+    }
+
+    [[nodiscard]] i32 getOffsetX() const noexcept
+    {
+        return m_offsetX;
+    }
+
+    [[nodiscard]] i32 getOffsetY() const noexcept
+    {
+        return m_offsetY;
+    }
+
+    [[nodiscard]] i32 getOffsetZ() const noexcept
+    {
+        return m_offsetZ;
+    }
 
 private:
     advancement::LocationPredicate m_predicate;

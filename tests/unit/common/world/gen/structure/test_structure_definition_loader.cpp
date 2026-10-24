@@ -47,7 +47,11 @@ protected:
         // 类型注册表未装配时对任何 type 都会断言崩溃，故与生产/其它夹具同款先注册内置类型。
         initializeBuiltinStructureTypes();
     }
-    void TearDown() override { StructureDefinitionLoader::clear(); }
+
+    void TearDown() override
+    {
+        StructureDefinitionLoader::clear();
+    }
 
     /// 加载 JSON 并断言成功，返回解析后的定义指针
     static const StructureDefinition* loadOk(const std::string& json, const ResourceLocation& id)

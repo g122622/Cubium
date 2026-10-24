@@ -58,13 +58,19 @@ public:
      * @brief 获取护甲值
      * @return 护甲值
      */
-    [[nodiscard]] i32 getArmorValue() const { return m_armorValue; }
+    [[nodiscard]] i32 getArmorValue() const
+    {
+        return m_armorValue;
+    }
 
     /**
      * @brief 获取马铠材质路径
      * @return 材质路径
      */
-    [[nodiscard]] const ResourceLocation& getTexturePath() const { return m_texturePath; }
+    [[nodiscard]] const ResourceLocation& getTexturePath() const
+    {
+        return m_texturePath;
+    }
 
 private:
     i32 m_armorValue;

@@ -57,8 +57,16 @@ public:
     CreateWorldScreen();
 
     void onOpen() override;
-    void setOnCreate(CreateCallback callback) { m_onCreate = std::move(callback); }
-    void setOnCancel(Callback callback) { m_onCancel = std::move(callback); }
+
+    void setOnCreate(CreateCallback callback)
+    {
+        m_onCreate = std::move(callback);
+    }
+
+    void setOnCancel(Callback callback)
+    {
+        m_onCancel = std::move(callback);
+    }
 
     [[nodiscard]] world::storage::CreateWorldRequest buildRequest() const;
 

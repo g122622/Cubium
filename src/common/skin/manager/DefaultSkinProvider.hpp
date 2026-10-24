@@ -100,24 +100,36 @@ public:
     /**
      * @brief 获取 Steve (wide) 皮肤位置（向后兼容）
      */
-    [[nodiscard]] ResourceLocation getSteveSkin() const noexcept { return getSkinLocation(15); }
+    [[nodiscard]] ResourceLocation getSteveSkin() const noexcept
+    {
+        return getSkinLocation(15);
+    }
 
     /**
      * @brief 获取 Alex (slim) 皮肤位置（向后兼容）
      */
-    [[nodiscard]] ResourceLocation getAlexSkin() const noexcept { return getSkinLocation(0); }
+    [[nodiscard]] ResourceLocation getAlexSkin() const noexcept
+    {
+        return getSkinLocation(0);
+    }
 
     /**
      * @brief 获取 Steve 皮肤 RGBA 像素数据（向后兼容）
      * @return 64x64 RGBA 像素数据（共 16384 字节）
      */
-    [[nodiscard]] const std::vector<u8>& getSteveSkinData() const noexcept { return m_skinData[15]; }
+    [[nodiscard]] const std::vector<u8>& getSteveSkinData() const noexcept
+    {
+        return m_skinData[15];
+    }
 
     /**
      * @brief 获取 Alex 皮肤 RGBA 像素数据（向后兼容）
      * @return 64x64 RGBA 像素数据（共 16384 字节）
      */
-    [[nodiscard]] const std::vector<u8>& getAlexSkinData() const noexcept { return m_skinData[0]; }
+    [[nodiscard]] const std::vector<u8>& getAlexSkinData() const noexcept
+    {
+        return m_skinData[0];
+    }
 
     /**
      * @brief 获取指定变体的皮肤 RGBA 像素数据
@@ -136,7 +148,10 @@ public:
     /**
      * @brief 检查是否已初始化
      */
-    [[nodiscard]] bool isInitialized() const noexcept { return m_initialized; }
+    [[nodiscard]] bool isInitialized() const noexcept
+    {
+        return m_initialized;
+    }
 
     // ========== 资源包设置 ==========
 
@@ -150,12 +165,18 @@ public:
      *
      * @param resourcePacks 资源包指针列表（非所有权，调用方保证生命周期）
      */
-    void setResourcePacks(std::vector<IResourcePack*> resourcePacks) { m_resourcePacks = std::move(resourcePacks); }
+    void setResourcePacks(std::vector<IResourcePack*> resourcePacks)
+    {
+        m_resourcePacks = std::move(resourcePacks);
+    }
 
     /**
      * @brief 获取已设置的资源包列表
      */
-    [[nodiscard]] const std::vector<IResourcePack*>& resourcePacks() const noexcept { return m_resourcePacks; }
+    [[nodiscard]] const std::vector<IResourcePack*>& resourcePacks() const noexcept
+    {
+        return m_resourcePacks;
+    }
 
 private:
     /**

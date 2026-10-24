@@ -114,7 +114,10 @@ protected:
         DamageTypeTags::initialize();
     }
 
-    void TearDown() override { item::enchant::EnchantmentRegistry::clear(); }
+    void TearDown() override
+    {
+        item::enchant::EnchantmentRegistry::clear();
+    }
 
     // 给实体穿上全套保护 IV 护甲（头盔/胸甲/护腿/靴子各 protection IV，EPF=16）。
     void equipFullProtectionIV(TestLivingEntity& entity) const

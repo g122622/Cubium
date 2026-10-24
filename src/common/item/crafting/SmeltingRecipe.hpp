@@ -79,11 +79,28 @@ public:
 
     [[nodiscard]] bool matches(const blockentity::FurnaceInventory& inventory) const override;
     [[nodiscard]] ItemStack assemble(const blockentity::FurnaceInventory& inventory) const override;
-    [[nodiscard]] ItemStack getResultItem() const override { return m_result; }
+
+    [[nodiscard]] ItemStack getResultItem() const override
+    {
+        return m_result;
+    }
+
     [[nodiscard]] const std::vector<Ingredient>& getIngredients() const override;
-    [[nodiscard]] const std::string& getGroup() const override { return m_group; }
-    [[nodiscard]] ResourceLocation getId() const override { return m_id; }
-    [[nodiscard]] RecipeType getType() const override { return RecipeType::Smelting; }
+
+    [[nodiscard]] const std::string& getGroup() const override
+    {
+        return m_group;
+    }
+
+    [[nodiscard]] ResourceLocation getId() const override
+    {
+        return m_id;
+    }
+
+    [[nodiscard]] RecipeType getType() const override
+    {
+        return RecipeType::Smelting;
+    }
 
     /**
      * @brief 熔炼类配方可以适应任何尺寸（始终返回 true）
@@ -109,19 +126,28 @@ public:
      * @brief 获取经验值
      * @return 熔炼获得的经验值
      */
-    [[nodiscard]] f32 getExperience() const { return m_experience; }
+    [[nodiscard]] f32 getExperience() const
+    {
+        return m_experience;
+    }
 
     /**
      * @brief 获取熔炼时间
      * @return 熔炼时间（tick）
      */
-    [[nodiscard]] i32 getCookTime() const { return m_cookTime; }
+    [[nodiscard]] i32 getCookTime() const
+    {
+        return m_cookTime;
+    }
 
     /**
      * @brief 获取输入原料
      * @return 输入原料
      */
-    [[nodiscard]] const Ingredient& getIngredient() const { return m_ingredient; }
+    [[nodiscard]] const Ingredient& getIngredient() const
+    {
+        return m_ingredient;
+    }
 
 protected:
     ResourceLocation m_id;
@@ -144,7 +170,10 @@ class BlastingRecipe : public SmeltingRecipe {
 public:
     using SmeltingRecipe::SmeltingRecipe;
 
-    [[nodiscard]] RecipeType getType() const override { return RecipeType::Blasting; }
+    [[nodiscard]] RecipeType getType() const override
+    {
+        return RecipeType::Blasting;
+    }
 };
 
 /**
@@ -158,7 +187,10 @@ class SmokingRecipe : public SmeltingRecipe {
 public:
     using SmeltingRecipe::SmeltingRecipe;
 
-    [[nodiscard]] RecipeType getType() const override { return RecipeType::Smoking; }
+    [[nodiscard]] RecipeType getType() const override
+    {
+        return RecipeType::Smoking;
+    }
 };
 
 /**
@@ -171,7 +203,10 @@ class CampfireCookingRecipe : public SmeltingRecipe {
 public:
     using SmeltingRecipe::SmeltingRecipe;
 
-    [[nodiscard]] RecipeType getType() const override { return RecipeType::CampfireCooking; }
+    [[nodiscard]] RecipeType getType() const override
+    {
+        return RecipeType::CampfireCooking;
+    }
 };
 
 } // namespace crafting

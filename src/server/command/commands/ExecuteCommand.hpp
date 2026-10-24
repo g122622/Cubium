@@ -64,8 +64,12 @@ private:
      * @param command 要执行的命令字符串
      * @return 命令执行结果（成功返回结果值，失败返回 0）
      */
-    static i32 _executeNestedCommand(ServerCommandSource& source, const std::string& command);
 
+public:
+    /// 执行一条嵌套命令（/execute run 与 /return run 共用）。
+    static i32 executeNestedCommand(ServerCommandSource& source, const std::string& command);
+
+private:
     // ========== 子命令执行 ==========
 
     static i32 _executeAs(CommandContext<ServerCommandSource>& context);

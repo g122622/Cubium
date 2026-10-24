@@ -65,8 +65,12 @@ inline constexpr const char* toString(AdvancementFrame frame) noexcept
  */
 inline AdvancementFrame parseFrame(const std::string& str) noexcept
 {
-    if (str == "challenge") return AdvancementFrame::Challenge;
-    if (str == "goal") return AdvancementFrame::Goal;
+    if (str == "challenge") {
+        return AdvancementFrame::Challenge;
+    }
+    if (str == "goal") {
+        return AdvancementFrame::Goal;
+    }
     return AdvancementFrame::Task;
 }
 

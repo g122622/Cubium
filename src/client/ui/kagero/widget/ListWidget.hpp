@@ -176,7 +176,10 @@ public:
         updateContentHeight();
     }
 
-    void tick(f32 dt) override { ScrollableWidget::tick(dt); }
+    void tick(f32 dt) override
+    {
+        ScrollableWidget::tick(dt);
+    }
 
     bool onMouseMove(i32 mouseX, i32 mouseY) override
     {
@@ -184,7 +187,9 @@ public:
         // 但保留调用以确保未来扩展时不遗漏）
         bool handled = ScrollableWidget::onMouseMove(mouseX, mouseY);
 
-        if (!isActive() || !isVisible()) return handled;
+        if (!isActive() || !isVisible()) {
+            return handled;
+        }
 
         i32 newIndex = getIndexAt(mouseX, mouseY);
         if (newIndex != m_hoveredIndex) {
@@ -195,7 +200,9 @@ public:
 
     void paint(PaintContext& ctx) override
     {
-        if (!isVisible()) return;
+        if (!isVisible()) {
+            return;
+        }
 
         // 绘制背景
         ctx.drawFilledRect(bounds(), Colors::fromARGB(255, 18, 18, 18));
@@ -238,7 +245,9 @@ public:
     bool onClick(i32 mouseX, i32 mouseY, i32 button, i32 mods) override
     {
         (void)mods;
-        if (!isActive() || !isVisible()) return false;
+        if (!isActive() || !isVisible()) {
+            return false;
+        }
 
         // 首先检查滚动条（垂直或水平）
         if ((m_showScrollbar && isOnScrollbar(mouseX, mouseY)) ||
@@ -277,8 +286,12 @@ public:
     bool onDoubleClick(i32 mouseX, i32 mouseY, i32 button, i32 mods) override
     {
         (void)mods;
-        if (!isActive() || !isVisible()) return false;
-        if (button != 0) return false; // 仅左键双击
+        if (!isActive() || !isVisible()) {
+            return false;
+        }
+        if (button != 0) {
+            return false; // 仅左键双击
+        }
 
         i32 index = getIndexAt(mouseX, mouseY);
         if (index >= 0) {
@@ -352,7 +365,10 @@ public:
     /**
      * @brief 获取项目数量
      */
-    [[nodiscard]] size_t itemCount() const { return m_items.size(); }
+    [[nodiscard]] size_t itemCount() const
+    {
+        return m_items.size();
+    }
 
     /**
      * @brief 获取项目
@@ -383,8 +399,12 @@ public:
      */
     void selectItem(size_t index)
     {
-        if (m_selectionMode == SelectionMode::None) return;
-        if (index >= m_items.size()) return;
+        if (m_selectionMode == SelectionMode::None) {
+            return;
+        }
+        if (index >= m_items.size()) {
+            return;
+        }
 
         i32 oldIndex = m_selectedIndex;
         i32 newIndex = static_cast<i32>(index);
@@ -428,7 +448,10 @@ public:
     /**
      * @brief 获取选中索引
      */
-    [[nodiscard]] i32 selectedIndex() const { return m_selectedIndex; }
+    [[nodiscard]] i32 selectedIndex() const
+    {
+        return m_selectedIndex;
+    }
 
     /**
      * @brief 获取选中项目
@@ -462,14 +485,19 @@ public:
     /**
      * @brief 是否启用多选
      */
-    [[nodiscard]] bool isMultiSelect() const { return m_selectionMode == SelectionMode::Multiple; }
+    [[nodiscard]] bool isMultiSelect() const
+    {
+        return m_selectionMode == SelectionMode::Multiple;
+    }
 
     /**
      * @brief 设置选中的索引列表
      */
     void setSelectedIndices(const std::vector<i32>& indices)
     {
-        if (m_selectionMode == SelectionMode::None) return;
+        if (m_selectionMode == SelectionMode::None) {
+            return;
+        }
 
         m_selectedIndices.clear();
         for (i32 idx : indices) {
@@ -485,7 +513,10 @@ public:
     /**
      * @brief 获取选中的索引列表
      */
-    [[nodiscard]] const std::vector<i32>& selectedIndices() const { return m_selectedIndices; }
+    [[nodiscard]] const std::vector<i32>& selectedIndices() const
+    {
+        return m_selectedIndices;
+    }
 
     /**
      * @brief 检查指定索引是否被选中
@@ -509,14 +540,20 @@ public:
     /**
      * @brief 获取选择模式
      */
-    [[nodiscard]] SelectionMode selectionMode() const { return m_selectionMode; }
+    [[nodiscard]] SelectionMode selectionMode() const
+    {
+        return m_selectionMode;
+    }
 
     // ==================== 回调设置 ====================
 
     /**
      * @brief 设置选择回调
      */
-    void setOnSelect(OnSelectCallback callback) { m_onSelect = std::move(callback); }
+    void setOnSelect(OnSelectCallback callback)
+    {
+        m_onSelect = std::move(callback);
+    }
 
     /**
      * @brief 设置选择变化回调（与文档一致）
@@ -524,12 +561,18 @@ public:
      * 当选择从一项变为另一项时触发
      * @param callback 回调函数，参数为(旧索引, 新索引)
      */
-    void setOnSelectionChanged(std::function<void(i32, i32)> callback) { m_onSelectionChanged = std::move(callback); }
+    void setOnSelectionChanged(std::function<void(i32, i32)> callback)
+    {
+        m_onSelectionChanged = std::move(callback);
+    }
 
     /**
      * @brief 设置双击回调
      */
-    void setOnDoubleClick(OnDoubleClickCallback callback) { m_onDoubleClick = std::move(callback); }
+    void setOnDoubleClick(OnDoubleClickCallback callback)
+    {
+        m_onDoubleClick = std::move(callback);
+    }
 
     /**
      * @brief 设置项目高度（固定高度模式）
@@ -543,14 +586,20 @@ public:
     /**
      * @brief 获取项目高度
      */
-    [[nodiscard]] i32 itemHeight() const { return m_fixedItemHeight; }
+    [[nodiscard]] i32 itemHeight() const
+    {
+        return m_fixedItemHeight;
+    }
 
     /**
      * @brief 获取当前悬停项索引
      *
      * 返回鼠标当前悬停的列表项索引，无悬停时返回 -1。
      */
-    [[nodiscard]] i32 hoveredIndex() const { return m_hoveredIndex; }
+    [[nodiscard]] i32 hoveredIndex() const
+    {
+        return m_hoveredIndex;
+    }
 
     // ==================== 数据绑定 ====================
 
@@ -578,19 +627,28 @@ public:
      * 用于自定义从 Value 创建 IListItem 的方式
      * @param factory 工厂函数
      */
-    void setItemFactory(ItemFactory factory) { m_itemFactory = std::move(factory); }
+    void setItemFactory(ItemFactory factory)
+    {
+        m_itemFactory = std::move(factory);
+    }
 
     /**
      * @brief 获取项目工厂
      */
-    [[nodiscard]] const ItemFactory& itemFactory() const { return m_itemFactory; }
+    [[nodiscard]] const ItemFactory& itemFactory() const
+    {
+        return m_itemFactory;
+    }
 
     /**
      * @brief 设置数据变更回调
      *
      * 当列表数据更新时调用（包括 setItemsFromValue 与 refreshItems 重建后）
      */
-    void setOnItemsChanged(std::function<void()> callback) { m_onItemsChanged = std::move(callback); }
+    void setOnItemsChanged(std::function<void()> callback)
+    {
+        m_onItemsChanged = std::move(callback);
+    }
 
     /**
      * @brief 刷新列表项
@@ -610,7 +668,10 @@ public:
      *
      * @return 是否存在可通过 refreshItems 重建的数据源
      */
-    [[nodiscard]] bool hasCachedDataSource() const { return m_dataSource != nullptr; }
+    [[nodiscard]] bool hasCachedDataSource() const
+    {
+        return m_dataSource != nullptr;
+    }
 
 protected:
     /**
@@ -634,8 +695,12 @@ protected:
      */
     [[nodiscard]] i32 getIndexAt(i32 mouseX, i32 mouseY) const
     {
-        if (mouseX < m_bounds.x || mouseX >= m_bounds.right()) return -1;
-        if (mouseY < m_bounds.y || mouseY >= m_bounds.bottom()) return -1;
+        if (mouseX < m_bounds.x || mouseX >= m_bounds.right()) {
+            return -1;
+        }
+        if (mouseY < m_bounds.y || mouseY >= m_bounds.bottom()) {
+            return -1;
+        }
 
         i32 relativeY = mouseY - m_bounds.y + m_scrollY - m_padding.top;
 
@@ -715,7 +780,10 @@ public:
         , m_height(height)
     {}
 
-    [[nodiscard]] i32 getHeight() const override { return m_height; }
+    [[nodiscard]] i32 getHeight() const override
+    {
+        return m_height;
+    }
 
     void paintItem(PaintContext& ctx, i32 x, i32 y, i32 width, bool selected, bool hovered) override
     {
@@ -732,14 +800,35 @@ public:
         ctx.drawText(m_text, x + 4, textY, m_textColor);
     }
 
-    void setText(const std::string& text) { m_text = text; }
-    [[nodiscard]] const std::string& text() const { return m_text; }
+    void setText(const std::string& text)
+    {
+        m_text = text;
+    }
 
-    void setTextColor(u32 color) { m_textColor = color; }
-    [[nodiscard]] u32 textColor() const { return m_textColor; }
+    [[nodiscard]] const std::string& text() const
+    {
+        return m_text;
+    }
 
-    void setSelectedColor(u32 color) { m_selectedColor = color; }
-    void setHoveredColor(u32 color) { m_hoveredColor = color; }
+    void setTextColor(u32 color)
+    {
+        m_textColor = color;
+    }
+
+    [[nodiscard]] u32 textColor() const
+    {
+        return m_textColor;
+    }
+
+    void setSelectedColor(u32 color)
+    {
+        m_selectedColor = color;
+    }
+
+    void setHoveredColor(u32 color)
+    {
+        m_hoveredColor = color;
+    }
 
 private:
     std::string m_text;

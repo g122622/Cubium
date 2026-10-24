@@ -50,42 +50,66 @@ public:
     /**
      * @brief 获取材质的颜色索引（用于地图渲染）
      */
-    [[nodiscard]] u8 materialColor() const noexcept { return m_materialColor; }
+    [[nodiscard]] u8 materialColor() const noexcept
+    {
+        return m_materialColor;
+    }
 
     /**
      * @brief 是否阻挡移动
      */
-    [[nodiscard]] bool blocksMovement() const noexcept { return m_blocksMovement; }
+    [[nodiscard]] bool blocksMovement() const noexcept
+    {
+        return m_blocksMovement;
+    }
 
     /**
      * @brief 是否可燃
      */
-    [[nodiscard]] bool isFlammable() const noexcept { return m_flammable; }
+    [[nodiscard]] bool isFlammable() const noexcept
+    {
+        return m_flammable;
+    }
 
     /**
      * @brief 是否为液体
      */
-    [[nodiscard]] bool isLiquid() const noexcept { return m_liquid; }
+    [[nodiscard]] bool isLiquid() const noexcept
+    {
+        return m_liquid;
+    }
 
     /**
      * @brief 是否为固体
      */
-    [[nodiscard]] bool isSolid() const noexcept { return m_solid; }
+    [[nodiscard]] bool isSolid() const noexcept
+    {
+        return m_solid;
+    }
 
     /**
      * @brief 是否可替换
      */
-    [[nodiscard]] bool isReplaceable() const noexcept { return m_replaceable; }
+    [[nodiscard]] bool isReplaceable() const noexcept
+    {
+        return m_replaceable;
+    }
 
     /**
      * @brief 是否不透明
      */
-    [[nodiscard]] bool isOpaque() const noexcept { return m_opaque; }
+    [[nodiscard]] bool isOpaque() const noexcept
+    {
+        return m_opaque;
+    }
 
     /**
      * @brief 获取推动反应
      */
-    [[nodiscard]] PushReaction getPushReaction() const noexcept { return m_pushReaction; }
+    [[nodiscard]] PushReaction getPushReaction() const noexcept
+    {
+        return m_pushReaction;
+    }
 
     // ========================================================================
     // 预定义材质
@@ -227,12 +251,18 @@ public:
      *
      * 通过比较内存地址判断是否为同一材质实例。
      */
-    [[nodiscard]] bool operator==(const Material& other) const noexcept { return this == &other; }
+    [[nodiscard]] bool operator==(const Material& other) const noexcept
+    {
+        return this == &other;
+    }
 
     /**
      * @brief 比较两个材质是否不同
      */
-    [[nodiscard]] bool operator!=(const Material& other) const noexcept { return this != &other; }
+    [[nodiscard]] bool operator!=(const Material& other) const noexcept
+    {
+        return this != &other;
+    }
 
 private:
     friend class MaterialBuilder;

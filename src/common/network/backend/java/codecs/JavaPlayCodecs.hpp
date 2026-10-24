@@ -232,7 +232,10 @@ inline void writeSpawnInfo(B& buf, const ir::play::CommonPlayerSpawnInfo& s)
 /// KeepAlive（双向，I64(id) 固定8字节大端，对齐 vanilla writeLong/readLong）
 [[nodiscard]] inline auto keepAliveCodec()
 {
-    return makeCodec<ir::play::KeepAlive>([](B& buf, const ir::play::KeepAlive& v) { buf.writeI64(v.id); },
+    return makeCodec<ir::play::KeepAlive>(
+        [](B& buf, const ir::play::KeepAlive& v) {
+            buf.writeI64(v.id);
+        },
         [](B& buf) -> Result<ir::play::KeepAlive> {
             ir::play::KeepAlive v{};
             MC_TRY_ASSIGN(v.id, buf.readI64());
@@ -244,7 +247,9 @@ inline void writeSpawnInfo(B& buf, const ir::play::CommonPlayerSpawnInfo& s)
 [[nodiscard]] inline auto playDisconnectCodec()
 {
     return makeCodec<ir::play::Disconnect>(
-        [](B& buf, const ir::play::Disconnect& v) { writeTextComponentNbt(buf, v.reason); },
+        [](B& buf, const ir::play::Disconnect& v) {
+            writeTextComponentNbt(buf, v.reason);
+        },
         [](B& buf) -> Result<ir::play::Disconnect> {
             ir::play::Disconnect v{};
             MC_TRY_ASSIGN(v.reason, readTextComponentNbt(buf));
@@ -296,7 +301,10 @@ inline void writeSpawnInfo(B& buf, const ir::play::CommonPlayerSpawnInfo& s)
 /// command 字段不含 '/'，CommandDispatcher::parse 会自动剥离前导 '/'（若有），故直接透传。
 [[nodiscard]] inline auto chatCommandCodec()
 {
-    return makeCodec<ir::play::ChatCommand>([](B& buf, const ir::play::ChatCommand& v) { buf.writeString(v.command); },
+    return makeCodec<ir::play::ChatCommand>(
+        [](B& buf, const ir::play::ChatCommand& v) {
+            buf.writeString(v.command);
+        },
         [](B& buf) -> Result<ir::play::ChatCommand> {
             ir::play::ChatCommand v{};
             MC_TRY_ASSIGN(v.command, buf.readString());
@@ -380,7 +388,9 @@ inline void writeSpawnInfo(B& buf, const ir::play::CommonPlayerSpawnInfo& s)
 [[nodiscard]] inline auto movePlayerStatusOnlyCodec()
 {
     return makeCodec<ir::play::MovePlayerStatusOnly>(
-        [](B& buf, const ir::play::MovePlayerStatusOnly& v) { buf.writeU8(v.flags.pack()); },
+        [](B& buf, const ir::play::MovePlayerStatusOnly& v) {
+            buf.writeU8(v.flags.pack());
+        },
         [](B& buf) -> Result<ir::play::MovePlayerStatusOnly> {
             ir::play::MovePlayerStatusOnly v{};
             u8 flags = 0;
@@ -394,7 +404,9 @@ inline void writeSpawnInfo(B& buf, const ir::play::CommonPlayerSpawnInfo& s)
 [[nodiscard]] inline auto acceptTeleportationCodec()
 {
     return makeCodec<ir::play::AcceptTeleportation>(
-        [](B& buf, const ir::play::AcceptTeleportation& v) { buf.writeVarInt(v.teleportId); },
+        [](B& buf, const ir::play::AcceptTeleportation& v) {
+            buf.writeVarInt(v.teleportId);
+        },
         [](B& buf) -> Result<ir::play::AcceptTeleportation> {
             ir::play::AcceptTeleportation v{};
             MC_TRY_ASSIGN(v.teleportId, buf.readVarInt());
@@ -423,7 +435,10 @@ inline void writeSpawnInfo(B& buf, const ir::play::CommonPlayerSpawnInfo& s)
 /// PlayerInput（C→S，id=42）
 [[nodiscard]] inline auto playerInputCodec()
 {
-    return makeCodec<ir::play::PlayerInput>([](B& buf, const ir::play::PlayerInput& v) { buf.writeU8(v.input); },
+    return makeCodec<ir::play::PlayerInput>(
+        [](B& buf, const ir::play::PlayerInput& v) {
+            buf.writeU8(v.input);
+        },
         [](B& buf) -> Result<ir::play::PlayerInput> {
             ir::play::PlayerInput v{};
             MC_TRY_ASSIGN(v.input, buf.readU8());
@@ -511,7 +526,10 @@ inline void writeSpawnInfo(B& buf, const ir::play::CommonPlayerSpawnInfo& s)
 /// SetCarriedItem（C→S，id=52）：Short(slot)
 [[nodiscard]] inline auto setCarriedItemCodec()
 {
-    return makeCodec<ir::play::SetCarriedItem>([](B& buf, const ir::play::SetCarriedItem& v) { buf.writeI16(v.slot); },
+    return makeCodec<ir::play::SetCarriedItem>(
+        [](B& buf, const ir::play::SetCarriedItem& v) {
+            buf.writeI16(v.slot);
+        },
         [](B& buf) -> Result<ir::play::SetCarriedItem> {
             ir::play::SetCarriedItem v{};
             MC_TRY_ASSIGN(v.slot, buf.readI16());
@@ -583,7 +601,9 @@ inline void writeSpawnInfo(B& buf, const ir::play::CommonPlayerSpawnInfo& s)
 [[nodiscard]] inline auto containerCloseCodec()
 {
     return makeCodec<ir::play::ContainerClose>(
-        [](B& buf, const ir::play::ContainerClose& v) { buf.writeVarInt(v.containerId); },
+        [](B& buf, const ir::play::ContainerClose& v) {
+            buf.writeVarInt(v.containerId);
+        },
         [](B& buf) -> Result<ir::play::ContainerClose> {
             ir::play::ContainerClose v{};
             MC_TRY_ASSIGN(v.containerId, buf.readVarInt());
@@ -595,14 +615,18 @@ inline void writeSpawnInfo(B& buf, const ir::play::CommonPlayerSpawnInfo& s)
 [[nodiscard]] inline auto configurationAcknowledgedCodec()
 {
     return makeCodec<ir::play::ConfigurationAcknowledged>([](B&, const ir::play::ConfigurationAcknowledged&) {},
-        [](B&) -> Result<ir::play::ConfigurationAcknowledged> { return ir::play::ConfigurationAcknowledged{}; });
+        [](B&) -> Result<ir::play::ConfigurationAcknowledged> {
+            return ir::play::ConfigurationAcknowledged{};
+        });
 }
 
 /// ClientTickEnd（C→S，id=12，空包）：客户端每 tick 结束时发送，无 payload
 [[nodiscard]] inline auto clientTickEndCodec()
 {
     return makeCodec<ir::play::ClientTickEnd>([](B&, const ir::play::ClientTickEnd&) {},
-        [](B&) -> Result<ir::play::ClientTickEnd> { return ir::play::ClientTickEnd{}; });
+        [](B&) -> Result<ir::play::ClientTickEnd> {
+            return ir::play::ClientTickEnd{};
+        });
 }
 
 // ============================================================================
@@ -726,7 +750,10 @@ inline void writeSpawnInfo(B& buf, const ir::play::CommonPlayerSpawnInfo& s)
 /// SetHeldSlot（S→C，id=103）
 [[nodiscard]] inline auto setHeldSlotCodec()
 {
-    return makeCodec<ir::play::SetHeldSlot>([](B& buf, const ir::play::SetHeldSlot& v) { buf.writeVarInt(v.slot); },
+    return makeCodec<ir::play::SetHeldSlot>(
+        [](B& buf, const ir::play::SetHeldSlot& v) {
+            buf.writeVarInt(v.slot);
+        },
         [](B& buf) -> Result<ir::play::SetHeldSlot> {
             ir::play::SetHeldSlot v{};
             MC_TRY_ASSIGN(v.slot, buf.readVarInt());
@@ -1532,6 +1559,7 @@ inline constexpr u16 kActionUpdateLatency = 1u << 4;     // UPDATE_LATENCY(4)
 inline constexpr u16 kActionUpdateDisplayName = 1u << 5; // UPDATE_DISPLAY_NAME(5)
 inline constexpr u16 kActionUpdateListOrder = 1u << 6;   // UPDATE_LIST_ORDER(6)
 inline constexpr u16 kActionUpdateHat = 1u << 7;         // UPDATE_HAT(7)
+
 // Action 枚举仅 8 个值（ordinal 0..7），writeEnumSet→writeFixedBitSet(bitset, 8) = 1 字节，
 // 故 actions 线格式为单字节 fixedBitSet（非 9 位/2 字节）。
 
@@ -1758,7 +1786,9 @@ inline void writeEntry(B& buf, u16 actions, const ir::play::PlayerInfoEntry& e)
 [[nodiscard]] inline auto setChunkCacheRadiusCodec()
 {
     return makeCodec<ir::play::SetChunkCacheRadius>(
-        [](B& buf, const ir::play::SetChunkCacheRadius& v) { buf.writeVarInt(v.radius); },
+        [](B& buf, const ir::play::SetChunkCacheRadius& v) {
+            buf.writeVarInt(v.radius);
+        },
         [](B& buf) -> Result<ir::play::SetChunkCacheRadius> {
             ir::play::SetChunkCacheRadius v{};
             MC_TRY_ASSIGN(v.radius, buf.readVarInt());
@@ -1770,7 +1800,9 @@ inline void writeEntry(B& buf, u16 actions, const ir::play::PlayerInfoEntry& e)
 [[nodiscard]] inline auto setSimulationDistanceCodec()
 {
     return makeCodec<ir::play::SetSimulationDistance>(
-        [](B& buf, const ir::play::SetSimulationDistance& v) { buf.writeVarInt(v.simulationDistance); },
+        [](B& buf, const ir::play::SetSimulationDistance& v) {
+            buf.writeVarInt(v.simulationDistance);
+        },
         [](B& buf) -> Result<ir::play::SetSimulationDistance> {
             ir::play::SetSimulationDistance v{};
             MC_TRY_ASSIGN(v.simulationDistance, buf.readVarInt());
@@ -1848,7 +1880,10 @@ inline void writeEntry(B& buf, u16 actions, const ir::play::PlayerInfoEntry& e)
 /// ClientboundPing（S→C，id=59，common 通道）：Int(id)
 [[nodiscard]] inline auto clientboundPingCodec()
 {
-    return makeCodec<ir::play::ClientboundPing>([](B& buf, const ir::play::ClientboundPing& v) { buf.writeI32(v.id); },
+    return makeCodec<ir::play::ClientboundPing>(
+        [](B& buf, const ir::play::ClientboundPing& v) {
+            buf.writeI32(v.id);
+        },
         [](B& buf) -> Result<ir::play::ClientboundPing> {
             ir::play::ClientboundPing v{};
             MC_TRY_ASSIGN(v.id, buf.readI32());
@@ -1859,7 +1894,10 @@ inline void writeEntry(B& buf, u16 actions, const ir::play::PlayerInfoEntry& e)
 /// PongResponse（S→C，id=60，ping 协议通道）：Long(time)
 [[nodiscard]] inline auto pongResponseCodec()
 {
-    return makeCodec<ir::play::PongResponse>([](B& buf, const ir::play::PongResponse& v) { buf.writeI64(v.time); },
+    return makeCodec<ir::play::PongResponse>(
+        [](B& buf, const ir::play::PongResponse& v) {
+            buf.writeI64(v.time);
+        },
         [](B& buf) -> Result<ir::play::PongResponse> {
             ir::play::PongResponse v{};
             MC_TRY_ASSIGN(v.time, buf.readI64());
@@ -1871,7 +1909,9 @@ inline void writeEntry(B& buf, u16 actions, const ir::play::PlayerInfoEntry& e)
 [[nodiscard]] inline auto serverboundPingRequestCodec()
 {
     return makeCodec<ir::play::ServerboundPingRequest>(
-        [](B& buf, const ir::play::ServerboundPingRequest& v) { buf.writeI64(v.time); },
+        [](B& buf, const ir::play::ServerboundPingRequest& v) {
+            buf.writeI64(v.time);
+        },
         [](B& buf) -> Result<ir::play::ServerboundPingRequest> {
             ir::play::ServerboundPingRequest v{};
             MC_TRY_ASSIGN(v.time, buf.readI64());
@@ -1882,7 +1922,10 @@ inline void writeEntry(B& buf, u16 actions, const ir::play::PlayerInfoEntry& e)
 /// ServerboundPong（C→S，id=44，common 通道）：Int(id)
 [[nodiscard]] inline auto serverboundPongCodec()
 {
-    return makeCodec<ir::play::ServerboundPong>([](B& buf, const ir::play::ServerboundPong& v) { buf.writeI32(v.id); },
+    return makeCodec<ir::play::ServerboundPong>(
+        [](B& buf, const ir::play::ServerboundPong& v) {
+            buf.writeI32(v.id);
+        },
         [](B& buf) -> Result<ir::play::ServerboundPong> {
             ir::play::ServerboundPong v{};
             MC_TRY_ASSIGN(v.id, buf.readI32());
@@ -1894,7 +1937,9 @@ inline void writeEntry(B& buf, u16 actions, const ir::play::PlayerInfoEntry& e)
 [[nodiscard]] inline auto serverboundChangeDifficultyCodec()
 {
     return makeCodec<ir::play::ServerboundChangeDifficulty>(
-        [](B& buf, const ir::play::ServerboundChangeDifficulty& v) { buf.writeVarInt(v.difficulty); },
+        [](B& buf, const ir::play::ServerboundChangeDifficulty& v) {
+            buf.writeVarInt(v.difficulty);
+        },
         [](B& buf) -> Result<ir::play::ServerboundChangeDifficulty> {
             ir::play::ServerboundChangeDifficulty v{};
             MC_TRY_ASSIGN(v.difficulty, buf.readVarInt());
@@ -1906,7 +1951,9 @@ inline void writeEntry(B& buf, u16 actions, const ir::play::PlayerInfoEntry& e)
 [[nodiscard]] inline auto lockDifficultyCodec()
 {
     return makeCodec<ir::play::LockDifficulty>(
-        [](B& buf, const ir::play::LockDifficulty& v) { buf.writeBool(v.locked); },
+        [](B& buf, const ir::play::LockDifficulty& v) {
+            buf.writeBool(v.locked);
+        },
         [](B& buf) -> Result<ir::play::LockDifficulty> {
             ir::play::LockDifficulty v{};
             MC_TRY_ASSIGN(v.locked, buf.readBool());
@@ -1924,14 +1971,18 @@ inline void writeEntry(B& buf, u16 actions, const ir::play::PlayerInfoEntry& e)
 [[nodiscard]] inline auto bundleDelimiterCodec()
 {
     return makeCodec<ir::play::BundleDelimiter>([](B&, const ir::play::BundleDelimiter&) {},
-        [](B&) -> Result<ir::play::BundleDelimiter> { return ir::play::BundleDelimiter{}; });
+        [](B&) -> Result<ir::play::BundleDelimiter> {
+            return ir::play::BundleDelimiter{};
+        });
 }
 
 /// BlockChangedAck（S→C，id=4）：VarInt(sequence)
 [[nodiscard]] inline auto blockChangedAckCodec()
 {
     return makeCodec<ir::play::BlockChangedAck>(
-        [](B& buf, const ir::play::BlockChangedAck& v) { buf.writeVarInt(v.sequence); },
+        [](B& buf, const ir::play::BlockChangedAck& v) {
+            buf.writeVarInt(v.sequence);
+        },
         [](B& buf) -> Result<ir::play::BlockChangedAck> {
             ir::play::BlockChangedAck v{};
             MC_TRY_ASSIGN(v.sequence, buf.readVarInt());
@@ -1943,7 +1994,9 @@ inline void writeEntry(B& buf, u16 actions, const ir::play::PlayerInfoEntry& e)
 [[nodiscard]] inline auto chunkBatchFinishedCodec()
 {
     return makeCodec<ir::play::ChunkBatchFinished>(
-        [](B& buf, const ir::play::ChunkBatchFinished& v) { buf.writeVarInt(v.batchSize); },
+        [](B& buf, const ir::play::ChunkBatchFinished& v) {
+            buf.writeVarInt(v.batchSize);
+        },
         [](B& buf) -> Result<ir::play::ChunkBatchFinished> {
             ir::play::ChunkBatchFinished v{};
             MC_TRY_ASSIGN(v.batchSize, buf.readVarInt());
@@ -1955,14 +2008,18 @@ inline void writeEntry(B& buf, u16 actions, const ir::play::PlayerInfoEntry& e)
 [[nodiscard]] inline auto chunkBatchStartCodec()
 {
     return makeCodec<ir::play::ChunkBatchStart>([](B&, const ir::play::ChunkBatchStart&) {},
-        [](B&) -> Result<ir::play::ChunkBatchStart> { return ir::play::ChunkBatchStart{}; });
+        [](B&) -> Result<ir::play::ChunkBatchStart> {
+            return ir::play::ChunkBatchStart{};
+        });
 }
 
 /// StartConfiguration（S→C，id=116，terminal）：无负载（StreamCodec.unit）
 [[nodiscard]] inline auto startConfigurationCodec()
 {
     return makeCodec<ir::play::StartConfiguration>([](B&, const ir::play::StartConfiguration&) {},
-        [](B&) -> Result<ir::play::StartConfiguration> { return ir::play::StartConfiguration{}; });
+        [](B&) -> Result<ir::play::StartConfiguration> {
+            return ir::play::StartConfiguration{};
+        });
 }
 
 /// ChunkBiomes（S→C，id=13）：VarInt(count) + count×{Long(packedChunkPos) + ByteArray(data)}
@@ -2004,7 +2061,9 @@ inline void writeEntry(B& buf, u16 actions, const ir::play::PlayerInfoEntry& e)
 [[nodiscard]] inline auto forgetLevelChunkCodec()
 {
     return makeCodec<ir::play::ForgetLevelChunk>(
-        [](B& buf, const ir::play::ForgetLevelChunk& v) { buf.writeI64(v.packedPos); },
+        [](B& buf, const ir::play::ForgetLevelChunk& v) {
+            buf.writeI64(v.packedPos);
+        },
         [](B& buf) -> Result<ir::play::ForgetLevelChunk> {
             ir::play::ForgetLevelChunk v{};
             MC_TRY_ASSIGN(v.packedPos, buf.readI64());
@@ -2046,7 +2105,9 @@ inline void writeEntry(B& buf, u16 actions, const ir::play::PlayerInfoEntry& e)
 [[nodiscard]] inline auto chunkBatchReceivedCodec()
 {
     return makeCodec<ir::play::ChunkBatchReceived>(
-        [](B& buf, const ir::play::ChunkBatchReceived& v) { buf.writeF32(v.chunksPerTick); },
+        [](B& buf, const ir::play::ChunkBatchReceived& v) {
+            buf.writeF32(v.chunksPerTick);
+        },
         [](B& buf) -> Result<ir::play::ChunkBatchReceived> {
             ir::play::ChunkBatchReceived v{};
             MC_TRY_ASSIGN(v.chunksPerTick, buf.readF32());

@@ -113,7 +113,10 @@ struct RandomOffsetConfig : public IPlacementConfig {
     /**
      * @brief 便捷构造：仅垂直偏移（XZ为0）
      */
-    static std::unique_ptr<RandomOffsetConfig> vertical(i32 y) { return std::make_unique<RandomOffsetConfig>(0, y); }
+    static std::unique_ptr<RandomOffsetConfig> vertical(i32 y)
+    {
+        return std::make_unique<RandomOffsetConfig>(0, y);
+    }
 
     static std::unique_ptr<RandomOffsetConfig> vertical(
         std::unique_ptr<world::gen::valueprovider::IntProvider> yProvider)
@@ -173,7 +176,10 @@ public:
         const IPlacementConfig& config,
         const BlockPos& basePos) const override;
 
-    [[nodiscard]] const char* name() const noexcept override { return "noise"; }
+    [[nodiscard]] const char* name() const noexcept override
+    {
+        return "noise";
+    }
 };
 
 /**
@@ -188,7 +194,10 @@ public:
         const IPlacementConfig& config,
         const BlockPos& basePos) const override;
 
-    [[nodiscard]] const char* name() const noexcept override { return "count_noise"; }
+    [[nodiscard]] const char* name() const noexcept override
+    {
+        return "count_noise";
+    }
 };
 
 /**
@@ -203,7 +212,10 @@ public:
         const IPlacementConfig& config,
         const BlockPos& basePos) const override;
 
-    [[nodiscard]] const char* name() const noexcept override { return "depth_average"; }
+    [[nodiscard]] const char* name() const noexcept override
+    {
+        return "depth_average";
+    }
 };
 
 /**
@@ -218,7 +230,10 @@ public:
         const IPlacementConfig& config,
         const BlockPos& basePos) const override;
 
-    [[nodiscard]] const char* name() const noexcept override { return "top_solid"; }
+    [[nodiscard]] const char* name() const noexcept override
+    {
+        return "top_solid";
+    }
 };
 
 /**
@@ -233,7 +248,10 @@ public:
         const IPlacementConfig& config,
         const BlockPos& basePos) const override;
 
-    [[nodiscard]] const char* name() const noexcept override { return "carving_mask"; }
+    [[nodiscard]] const char* name() const noexcept override
+    {
+        return "carving_mask";
+    }
 };
 
 /**
@@ -248,7 +266,10 @@ public:
         const IPlacementConfig& config,
         const BlockPos& basePos) const override;
 
-    [[nodiscard]] const char* name() const noexcept override { return "random_offset"; }
+    [[nodiscard]] const char* name() const noexcept override
+    {
+        return "random_offset";
+    }
 };
 
 /**
@@ -263,7 +284,10 @@ public:
         const IPlacementConfig& config,
         const BlockPos& basePos) const override;
 
-    [[nodiscard]] const char* name() const noexcept override { return "water_depth_threshold"; }
+    [[nodiscard]] const char* name() const noexcept override
+    {
+        return "water_depth_threshold";
+    }
 };
 
 /**
@@ -278,7 +302,10 @@ public:
         const IPlacementConfig& config,
         const BlockPos& basePos) const override;
 
-    [[nodiscard]] const char* name() const noexcept override { return "sea_level"; }
+    [[nodiscard]] const char* name() const noexcept override
+    {
+        return "sea_level";
+    }
 };
 
 /**
@@ -293,7 +320,10 @@ public:
         const IPlacementConfig& config,
         const BlockPos& basePos) const override;
 
-    [[nodiscard]] const char* name() const noexcept override { return "spread"; }
+    [[nodiscard]] const char* name() const noexcept override
+    {
+        return "spread";
+    }
 };
 
 } // namespace mc

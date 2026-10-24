@@ -53,7 +53,11 @@ public:
     }
 
     void synchronize() override {}
-    void closeAfterFlush() override { close(); }
+
+    void closeAfterFlush() override
+    {
+        close();
+    }
 
     /**
      * @brief 基岩版连接（RakNet Offline→Online 握手）
@@ -81,7 +85,10 @@ public:
         // TODO(bedrock): 注册断开回调
     }
 
-    [[nodiscard]] bool isConnected() const noexcept override { return false; }
+    [[nodiscard]] bool isConnected() const noexcept override
+    {
+        return false;
+    }
 
     void close() override
     {

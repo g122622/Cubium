@@ -46,15 +46,30 @@ class PlayerChunkTracker {
 public:
     explicit PlayerChunkTracker(PlayerId playerId);
 
-    [[nodiscard]] PlayerId playerId() const { return m_playerId; }
-    [[nodiscard]] const ChunkView& view() const { return m_view; }
-    ChunkView& view() { return m_view; }
+    [[nodiscard]] PlayerId playerId() const
+    {
+        return m_playerId;
+    }
+
+    [[nodiscard]] const ChunkView& view() const
+    {
+        return m_view;
+    }
+
+    ChunkView& view()
+    {
+        return m_view;
+    }
 
     // 已加载区块管理
     void addLoadedChunk(ChunkCoord x, ChunkCoord z);
     void removeLoadedChunk(ChunkCoord x, ChunkCoord z);
     [[nodiscard]] bool hasChunk(ChunkCoord x, ChunkCoord z) const;
-    [[nodiscard]] const std::unordered_set<ChunkId>& loadedChunks() const { return m_loadedChunks; }
+
+    [[nodiscard]] const std::unordered_set<ChunkId>& loadedChunks() const
+    {
+        return m_loadedChunks;
+    }
 
     // 更新视距中心
     void updateCenter(ChunkCoord x, ChunkCoord z);
@@ -64,7 +79,11 @@ public:
 
     // 设置视距
     void setViewDistance(i32 distance);
-    [[nodiscard]] i32 viewDistance() const { return m_view.viewDistance; }
+
+    [[nodiscard]] i32 viewDistance() const
+    {
+        return m_view.viewDistance;
+    }
 
     // 清空所有已加载区块
     void clear();

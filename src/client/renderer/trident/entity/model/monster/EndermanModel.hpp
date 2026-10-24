@@ -44,22 +44,34 @@ public:
     /**
      * @brief 设置携带状态
      */
-    void setCarrying(bool carrying) { m_carrying = carrying; }
+    void setCarrying(bool carrying)
+    {
+        m_carrying = carrying;
+    }
 
     /**
      * @brief 设置尖叫/攻击状态
      */
-    void setAttacking(bool attacking) { m_attacking = attacking; }
+    void setAttacking(bool attacking)
+    {
+        m_attacking = attacking;
+    }
 
     /**
      * @brief 获取携带状态
      */
-    [[nodiscard]] bool isCarrying() const { return m_carrying; }
+    [[nodiscard]] bool isCarrying() const
+    {
+        return m_carrying;
+    }
 
     /**
      * @brief 获取攻击状态
      */
-    [[nodiscard]] bool isAttacking() const { return m_attacking; }
+    [[nodiscard]] bool isAttacking() const
+    {
+        return m_attacking;
+    }
 
 private:
     void setupParts() override;

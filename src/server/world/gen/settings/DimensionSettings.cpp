@@ -54,13 +54,27 @@ using json = nlohmann::json;
 /// 用户决策：JSON 只提供 noise 4 尺寸字段，scaling/slides/densityFactor 等由预设补全。
 DimensionKind dimensionKindFromPath(std::string_view path)
 {
-    if (path == "overworld") return DimensionKind::Overworld;
-    if (path == "large_biomes") return DimensionKind::LargeBiomes;
-    if (path == "amplified") return DimensionKind::Amplified;
-    if (path == "nether") return DimensionKind::Nether;
-    if (path == "end") return DimensionKind::End;
-    if (path == "caves") return DimensionKind::Caves;
-    if (path == "floating_islands") return DimensionKind::FloatingIslands;
+    if (path == "overworld") {
+        return DimensionKind::Overworld;
+    }
+    if (path == "large_biomes") {
+        return DimensionKind::LargeBiomes;
+    }
+    if (path == "amplified") {
+        return DimensionKind::Amplified;
+    }
+    if (path == "nether") {
+        return DimensionKind::Nether;
+    }
+    if (path == "end") {
+        return DimensionKind::End;
+    }
+    if (path == "caves") {
+        return DimensionKind::Caves;
+    }
+    if (path == "floating_islands") {
+        return DimensionKind::FloatingIslands;
+    }
     return DimensionKind::Overworld;
 }
 
@@ -87,6 +101,7 @@ struct RouterField {
     const char* key;
     RouterSlot slot;
 };
+
 const RouterField kRouterFields[] = {
     {"barrier", RouterSlot::Barrier},
     {"fluid_level_floodedness", RouterSlot::FluidLevelFloodedness},
@@ -273,13 +288,21 @@ Result<DimensionSettings> DimensionSettings::fromJson(const json& root, const re
     }
     const json& noiseObj = root["noise"];
     auto minY = readInt(noiseObj, "min_y");
-    if (minY.failed()) return minY.error();
+    if (minY.failed()) {
+        return minY.error();
+    }
     auto height = readInt(noiseObj, "height");
-    if (height.failed()) return height.error();
+    if (height.failed()) {
+        return height.error();
+    }
     auto sizeH = readInt(noiseObj, "size_horizontal");
-    if (sizeH.failed()) return sizeH.error();
+    if (sizeH.failed()) {
+        return sizeH.error();
+    }
     auto sizeV = readInt(noiseObj, "size_vertical");
-    if (sizeV.failed()) return sizeV.error();
+    if (sizeV.failed()) {
+        return sizeV.error();
+    }
     // 用户决策：JSON 只提供 4 尺寸字段，scaling/slides/densityFactor/densityOffset/
     // simplexSurfaceNoise/randomDensityOffset/isAmplified/aquifersEnabled/useLegacyRandomSource
     // 全部由 dimensionKind 对应的 C++ 预设 noise 带入（上面基底已设），仅覆盖 4 尺寸。
@@ -309,27 +332,37 @@ Result<DimensionSettings> DimensionSettings::fromJson(const json& root, const re
     // 4. 标量字段（覆盖预设；缺省保留预设值）
     if (root.contains("sea_level")) {
         auto seaLevel = readInt(root, "sea_level");
-        if (seaLevel.failed()) return seaLevel.error();
+        if (seaLevel.failed()) {
+            return seaLevel.error();
+        }
         settings.seaLevel = seaLevel.value();
     }
     if (root.contains("disable_mob_generation")) {
         auto v = readBool(root, "disable_mob_generation");
-        if (v.failed()) return v.error();
+        if (v.failed()) {
+            return v.error();
+        }
         settings.disableMobGeneration = v.value();
     }
     if (root.contains("ore_veins_enabled")) {
         auto v = readBool(root, "ore_veins_enabled");
-        if (v.failed()) return v.error();
+        if (v.failed()) {
+            return v.error();
+        }
         settings.oreVeinsEnabled = v.value();
     }
     if (root.contains("aquifers_enabled")) {
         auto v = readBool(root, "aquifers_enabled");
-        if (v.failed()) return v.error();
+        if (v.failed()) {
+            return v.error();
+        }
         settings.noise.aquifersEnabled = v.value();
     }
     if (root.contains("legacy_random_source")) {
         auto v = readBool(root, "legacy_random_source");
-        if (v.failed()) return v.error();
+        if (v.failed()) {
+            return v.error();
+        }
         settings.noise.useLegacyRandomSource = v.value();
     }
 

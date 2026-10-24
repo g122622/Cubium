@@ -45,7 +45,10 @@ class DepthStriderEnchantment : public Enchantment {
 public:
     DepthStriderEnchantment() = default;
 
-    [[nodiscard]] std::string id() const override { return "minecraft:depth_strider"; }
+    [[nodiscard]] std::string id() const override
+    {
+        return "minecraft:depth_strider";
+    }
 
     [[nodiscard]] std::string getNameKey(i32 level) const override
     {
@@ -53,17 +56,35 @@ public:
         return "enchantment.minecraft.depth_strider";
     }
 
-    [[nodiscard]] EnchantmentType type() const override { return EnchantmentType::ArmorFeet; }
+    [[nodiscard]] EnchantmentType type() const override
+    {
+        return EnchantmentType::ArmorFeet;
+    }
 
-    [[nodiscard]] i32 minLevel() const noexcept override { return 1; }
+    [[nodiscard]] i32 minLevel() const noexcept override
+    {
+        return 1;
+    }
 
-    [[nodiscard]] i32 maxLevel() const noexcept override { return 3; }
+    [[nodiscard]] i32 maxLevel() const noexcept override
+    {
+        return 3;
+    }
 
-    [[nodiscard]] EnchantmentRarity rarity() const noexcept override { return EnchantmentRarity::Rare; }
+    [[nodiscard]] EnchantmentRarity rarity() const noexcept override
+    {
+        return EnchantmentRarity::Rare;
+    }
 
-    [[nodiscard]] i32 getMinCost(i32 level) const noexcept override { return 10 + (level - 1) * 10; }
+    [[nodiscard]] i32 getMinCost(i32 level) const noexcept override
+    {
+        return 10 + (level - 1) * 10;
+    }
 
-    [[nodiscard]] i32 getMaxCost(i32 level) const noexcept override { return getMinCost(level) + 15; }
+    [[nodiscard]] i32 getMaxCost(i32 level) const noexcept override
+    {
+        return getMinCost(level) + 15;
+    }
 
     /**
      * @brief 获取水下移动速度乘数

@@ -51,7 +51,10 @@ public:
         ++m_tickCount;
     }
 
-    [[nodiscard]] i32 tickCount() const { return m_tickCount; }
+    [[nodiscard]] i32 tickCount() const
+    {
+        return m_tickCount;
+    }
 
 private:
     i32 m_tickCount = 0;
@@ -73,7 +76,10 @@ constexpr EntityInstanceId PLAYER_ID_BASE = 1000;
  */
 class EntityManagerSimulationDistanceTest : public ::testing::Test {
 protected:
-    void SetUp() override { VanillaEntities::registerAll(); }
+    void SetUp() override
+    {
+        VanillaEntities::registerAll();
+    }
 
     void TearDown() override {}
 

@@ -59,27 +59,42 @@ public:
     /**
      * @brief 获取注册名称
      */
-    [[nodiscard]] const std::string& registryName() const { return m_registryName; }
+    [[nodiscard]] const std::string& registryName() const
+    {
+        return m_registryName;
+    }
 
     /**
      * @brief 获取默认值
      */
-    [[nodiscard]] f64 defaultValue() const { return m_defaultValue; }
+    [[nodiscard]] f64 defaultValue() const
+    {
+        return m_defaultValue;
+    }
 
     /**
      * @brief 获取最小值
      */
-    [[nodiscard]] f64 minValue() const { return m_minValue; }
+    [[nodiscard]] f64 minValue() const
+    {
+        return m_minValue;
+    }
 
     /**
      * @brief 获取最大值
      */
-    [[nodiscard]] f64 maxValue() const { return m_maxValue; }
+    [[nodiscard]] f64 maxValue() const
+    {
+        return m_maxValue;
+    }
 
     /**
      * @brief 是否应该同步到客户端
      */
-    [[nodiscard]] virtual bool shouldSync() const { return true; }
+    [[nodiscard]] virtual bool shouldSync() const
+    {
+        return true;
+    }
 
     /**
      * @brief 克隆属性
@@ -92,9 +107,15 @@ public:
     /**
      * @brief 比较操作符
      */
-    bool operator==(const Attribute& other) const { return m_registryName == other.m_registryName; }
+    bool operator==(const Attribute& other) const
+    {
+        return m_registryName == other.m_registryName;
+    }
 
-    bool operator!=(const Attribute& other) const { return m_registryName != other.m_registryName; }
+    bool operator!=(const Attribute& other) const
+    {
+        return m_registryName != other.m_registryName;
+    }
 
 private:
     std::string m_registryName;

@@ -67,25 +67,37 @@ public:
      * @brief 获取方块实体类型
      * @return 方块实体类型
      */
-    [[nodiscard]] BlockEntityType getType() const noexcept { return m_type; }
+    [[nodiscard]] BlockEntityType getType() const noexcept
+    {
+        return m_type;
+    }
 
     /**
      * @brief 获取方块位置
      * @return 世界坐标位置
      */
-    [[nodiscard]] BlockPos getPos() const noexcept { return m_pos; }
+    [[nodiscard]] BlockPos getPos() const noexcept
+    {
+        return m_pos;
+    }
 
     /**
      * @brief 获取世界引用
      * @return 世界引用，可能为nullptr
      */
-    [[nodiscard]] IWorld* getWorld() const noexcept { return m_world; }
+    [[nodiscard]] IWorld* getWorld() const noexcept
+    {
+        return m_world;
+    }
 
     /**
      * @brief 设置世界引用
      * @param world 世界引用
      */
-    void setWorld(IWorld* world) { m_world = world; }
+    void setWorld(IWorld* world)
+    {
+        m_world = world;
+    }
 
     /**
      * @brief 从JSON加载数据
@@ -155,7 +167,10 @@ public:
      * 服务端每游戏tick调用一次。
      * 用于处理熔炉燃烧、漏斗传输等逻辑。
      */
-    virtual void tick(IWorld& world) { MC_UNUSED(world); }
+    virtual void tick(IWorld& world)
+    {
+        MC_UNUSED(world);
+    }
 
     /**
      * @brief 检查是否需要tick
@@ -163,7 +178,10 @@ public:
      *
      * 用于优化性能，静态方块实体可以返回false。
      */
-    [[nodiscard]] virtual bool needsTick() const noexcept { return false; }
+    [[nodiscard]] virtual bool needsTick() const noexcept
+    {
+        return false;
+    }
 
     /**
      * @brief 获取方块实体的方块状态
@@ -175,20 +193,29 @@ public:
      * @brief 检查是否已修改
      * @return 如果已修改返回true
      */
-    [[nodiscard]] bool isChanged() const noexcept { return m_changed; }
+    [[nodiscard]] bool isChanged() const noexcept
+    {
+        return m_changed;
+    }
 
     /**
      * @brief 清除修改标记
      *
      * 在保存后调用。
      */
-    void clearChanged() noexcept { m_changed = false; }
+    void clearChanged() noexcept
+    {
+        m_changed = false;
+    }
 
     /**
      * @brief 检查方块实体是否已被移除
      * @return 如果已被移除返回true
      */
-    [[nodiscard]] bool isRemoved() const noexcept { return m_removed; }
+    [[nodiscard]] bool isRemoved() const noexcept
+    {
+        return m_removed;
+    }
 
     /**
      * @brief 标记方块实体为已移除
@@ -196,7 +223,10 @@ public:
      * 当方块实体从世界中移除时调用。
      * 子类可重写此方法进行清理工作。
      */
-    virtual void remove() { m_removed = true; }
+    virtual void remove()
+    {
+        m_removed = true;
+    }
 
     /**
      * @brief 方块实体被移除前的副作用处理
@@ -217,7 +247,10 @@ public:
      * 在方块实体添加到世界时调用。
      * 子类可重写此方法进行额外验证。
      */
-    virtual void validate() { m_removed = false; }
+    virtual void validate()
+    {
+        m_removed = false;
+    }
 
     /**
      * @brief 标记方块实体已修改并更新世界
@@ -233,13 +266,19 @@ public:
      *
      * 用于重命名的方块实体（如重命名箱子）。
      */
-    [[nodiscard]] virtual std::string getCustomName() const { return ""; }
+    [[nodiscard]] virtual std::string getCustomName() const
+    {
+        return "";
+    }
 
     /**
      * @brief 设置自定义名称
      * @param name 名称
      */
-    virtual void setCustomName(const std::string& name) { MC_UNUSED(name); }
+    virtual void setCustomName(const std::string& name)
+    {
+        MC_UNUSED(name);
+    }
 
     /**
      * @brief 处理客户端方块事件
@@ -273,7 +312,10 @@ public:
      *
      * @return 如果仅OP可修改NBT返回true，默认false
      */
-    [[nodiscard]] virtual bool onlyOpsCanSetNbt() const noexcept { return false; }
+    [[nodiscard]] virtual bool onlyOpsCanSetNbt() const noexcept
+    {
+        return false;
+    }
 
     /**
      * @brief 创建方块实体的副本

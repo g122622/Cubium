@@ -114,22 +114,34 @@ public:
     /**
      * @brief 获取当前围攻状态
      */
-    [[nodiscard]] State getState() const { return m_state; }
+    [[nodiscard]] State getState() const
+    {
+        return m_state;
+    }
 
     /**
      * @brief 检查是否正在进行围攻
      */
-    [[nodiscard]] bool isSiegeActive() const { return m_state == State::Tonight && m_siegeCount > 0; }
+    [[nodiscard]] bool isSiegeActive() const
+    {
+        return m_state == State::Tonight && m_siegeCount > 0;
+    }
 
     /**
      * @brief 获取剩余僵尸数量
      */
-    [[nodiscard]] i32 getRemainingZombies() const { return m_siegeCount; }
+    [[nodiscard]] i32 getRemainingZombies() const
+    {
+        return m_siegeCount;
+    }
 
     /**
      * @brief 获取生成中心位置
      */
-    [[nodiscard]] const BlockPos& getSpawnCenter() const { return m_spawnCenter; }
+    [[nodiscard]] const BlockPos& getSpawnCenter() const
+    {
+        return m_spawnCenter;
+    }
 
     // ========== 配置 ==========
 

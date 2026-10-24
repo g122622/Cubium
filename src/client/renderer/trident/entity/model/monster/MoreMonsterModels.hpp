@@ -57,18 +57,31 @@ public:
     void setAngles(
         f64 limbSwing, f64 limbSwingAmount, f64 ageInTicks, f64 netHeadYaw, f64 headPitch, f64 scale) override;
 
-    [[nodiscard]] std::shared_ptr<ModelRenderer> getHead() const { return m_head; }
-    [[nodiscard]] std::shared_ptr<ModelRenderer> getHat() const { return m_hat; }
+    [[nodiscard]] std::shared_ptr<ModelRenderer> getHead() const
+    {
+        return m_head;
+    }
+
+    [[nodiscard]] std::shared_ptr<ModelRenderer> getHat() const
+    {
+        return m_hat;
+    }
 
     /**
      * @brief 设置手臂姿态
      */
-    void setArmPose(IllagerArmPose pose) { m_armPose = pose; }
+    void setArmPose(IllagerArmPose pose)
+    {
+        m_armPose = pose;
+    }
 
     /**
      * @brief 设置主手是否为空
      */
-    void setMainHandEmpty(bool empty) { m_mainHandEmpty = empty; }
+    void setMainHandEmpty(bool empty)
+    {
+        m_mainHandEmpty = empty;
+    }
 
 protected:
     void setupParts(f32 scale, f32 yOffset, i32 textureWidth, i32 textureHeight);
@@ -102,13 +115,19 @@ public:
      * @brief 设置充电状态
      * @param charging 是否处于充电状态
      */
-    void setCharging(bool charging) { m_charging = charging; }
+    void setCharging(bool charging)
+    {
+        m_charging = charging;
+    }
 
     /**
      * @brief 设置主手持物品是否为空
      * @param empty 主手是否为空
      */
-    void setMainHandEmpty(bool empty) { m_mainHandEmpty = empty; }
+    void setMainHandEmpty(bool empty)
+    {
+        m_mainHandEmpty = empty;
+    }
 
 private:
     std::shared_ptr<ModelRenderer> m_leftWing;
@@ -131,7 +150,10 @@ public:
     void setAngles(
         f64 limbSwing, f64 limbSwingAmount, f64 ageInTicks, f64 netHeadYaw, f64 headPitch, f64 scale) override;
 
-    [[nodiscard]] std::shared_ptr<ModelRenderer> getRightArm() const { return m_rightArm; }
+    [[nodiscard]] std::shared_ptr<ModelRenderer> getRightArm() const
+    {
+        return m_rightArm;
+    }
 
 private:
     void _setupParts();
@@ -156,7 +178,10 @@ public:
     void setAngles(
         f64 limbSwing, f64 limbSwingAmount, f64 ageInTicks, f64 netHeadYaw, f64 headPitch, f64 scale) override;
 
-    [[nodiscard]] std::shared_ptr<ModelRenderer> getHead() const { return m_head; }
+    [[nodiscard]] std::shared_ptr<ModelRenderer> getHead() const
+    {
+        return m_head;
+    }
 
 private:
     void _setupParts();
@@ -187,9 +212,20 @@ public:
     void setAngles(
         f64 limbSwing, f64 limbSwingAmount, f64 ageInTicks, f64 netHeadYaw, f64 headPitch, f64 scale) override;
 
-    [[nodiscard]] std::shared_ptr<ModelRenderer> getHead() const { return m_head; }
-    [[nodiscard]] std::shared_ptr<ModelRenderer> getRightArm() const { return m_rightArm; }
-    [[nodiscard]] std::shared_ptr<ModelRenderer> getLeftArm() const { return m_leftArm; }
+    [[nodiscard]] std::shared_ptr<ModelRenderer> getHead() const
+    {
+        return m_head;
+    }
+
+    [[nodiscard]] std::shared_ptr<ModelRenderer> getRightArm() const
+    {
+        return m_rightArm;
+    }
+
+    [[nodiscard]] std::shared_ptr<ModelRenderer> getLeftArm() const
+    {
+        return m_leftArm;
+    }
 
 private:
     void _setupParts();

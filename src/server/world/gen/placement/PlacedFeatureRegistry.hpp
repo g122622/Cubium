@@ -65,7 +65,10 @@ public:
     /**
      * @brief 获取所有已注册放置特征的数量
      */
-    [[nodiscard]] size_t size() const noexcept { return m_ownedPlacedFeatures.size(); }
+    [[nodiscard]] size_t size() const noexcept
+    {
+        return m_ownedPlacedFeatures.size();
+    }
 
     /**
      * @brief 清除所有放置特征

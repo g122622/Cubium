@@ -91,12 +91,20 @@ public:
     explicit FortressStructure(ResourceLocation id);
     FortressStructure(ResourceLocation id, const Config& config);
 
-    [[nodiscard]] const std::string& name() const override { return m_name; }
+    [[nodiscard]] const std::string& name() const override
+    {
+        return m_name;
+    }
+
     [[nodiscard]] DecorationStage defaultDecorationStage() const override
     {
         return DecorationStage::UndergroundDecoration;
     }
-    [[nodiscard]] const SpawnOverrides* spawnOverrides() const override { return &s_spawnOverrides; }
+
+    [[nodiscard]] const SpawnOverrides* spawnOverrides() const override
+    {
+        return &s_spawnOverrides;
+    }
 
     /**
      * @brief 获取结构关联的生物群系标签

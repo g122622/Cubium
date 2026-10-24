@@ -53,7 +53,9 @@ namespace command {
 void TellRawCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
 {
     auto tellrawNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("tellraw");
-    tellrawNode->setRequirement([](const ServerCommandSource& source) { return source.hasPermission(2); });
+    tellrawNode->setRequirement([](const ServerCommandSource& source) {
+        return source.hasPermission(2);
+    });
     support::applyMetadata(tellrawNode,
         support::makeMetadata(
             "Sends a raw JSON message to a player.", "/tellraw <player> <json message>", 2, {}, true));
@@ -64,7 +66,9 @@ void TellRawCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatch
 
     auto jsonNode = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
         "json", StringArgumentType::greedyString());
-    jsonNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _sendRawMessage(ctx); });
+    jsonNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _sendRawMessage(ctx);
+    });
 
     playerNode->addChild(jsonNode);
     tellrawNode->addChild(playerNode);

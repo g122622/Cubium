@@ -71,7 +71,10 @@ public:
     [[nodiscard]] bool shouldContinueExecuting() override;
     void startExecuting() override;
 
-    [[nodiscard]] std::string getTypeName() const noexcept override { return "SilverfishHideInStoneGoal"; }
+    [[nodiscard]] std::string getTypeName() const noexcept override
+    {
+        return "SilverfishHideInStoneGoal";
+    }
 
     // 常量（公开用于测试）
     static constexpr i32 MERGE_CHANCE = 10;
@@ -121,7 +124,10 @@ public:
     [[nodiscard]] bool shouldExecute() override;
     void tick() override;
 
-    [[nodiscard]] std::string getTypeName() const override { return "SilverfishSummonOthersGoal"; }
+    [[nodiscard]] std::string getTypeName() const override
+    {
+        return "SilverfishSummonOthersGoal";
+    }
 
     // 常量（公开用于测试）
     static constexpr i32 SUMMON_DURATION = 20;

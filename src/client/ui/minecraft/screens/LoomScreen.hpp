@@ -86,7 +86,10 @@ public:
     /**
      * @brief 获取屏幕标题
      */
-    [[nodiscard]] std::string getTitle() const { return "Loom"; }
+    [[nodiscard]] std::string getTitle() const
+    {
+        return "Loom";
+    }
 
     [[nodiscard]] std::optional<i32> getContainerId() const noexcept override
     {

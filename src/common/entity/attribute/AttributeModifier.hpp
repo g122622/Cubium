@@ -85,34 +85,55 @@ public:
     /**
      * @brief 获取修改器ID
      */
-    [[nodiscard]] const std::string& id() const { return m_id; }
+    [[nodiscard]] const std::string& id() const
+    {
+        return m_id;
+    }
 
     /**
      * @brief 获取修改器名称
      */
-    [[nodiscard]] const std::string& name() const { return m_name; }
+    [[nodiscard]] const std::string& name() const
+    {
+        return m_name;
+    }
 
     /**
      * @brief 获取修改量
      */
-    [[nodiscard]] f64 amount() const { return m_amount; }
+    [[nodiscard]] f64 amount() const
+    {
+        return m_amount;
+    }
 
     /**
      * @brief 获取操作类型
      */
-    [[nodiscard]] Operation operation() const { return m_operation; }
+    [[nodiscard]] Operation operation() const
+    {
+        return m_operation;
+    }
 
     /**
      * @brief 设置修改量
      */
-    void setAmount(f64 amount) { m_amount = amount; }
+    void setAmount(f64 amount)
+    {
+        m_amount = amount;
+    }
 
     /**
      * @brief 比较操作符
      */
-    bool operator==(const AttributeModifier& other) const { return m_id == other.m_id; }
+    bool operator==(const AttributeModifier& other) const
+    {
+        return m_id == other.m_id;
+    }
 
-    bool operator!=(const AttributeModifier& other) const { return m_id != other.m_id; }
+    bool operator!=(const AttributeModifier& other) const
+    {
+        return m_id != other.m_id;
+    }
 
 private:
     std::string m_id;

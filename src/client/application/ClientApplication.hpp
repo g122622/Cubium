@@ -149,43 +149,88 @@ public:
     /**
      * @brief 检查客户端是否正在运行
      */
-    [[nodiscard]] bool isRunning() const noexcept { return m_running.load(); }
+    [[nodiscard]] bool isRunning() const noexcept
+    {
+        return m_running.load();
+    }
 
     /**
      * @brief 获取窗口
      */
-    [[nodiscard]] Window& window() noexcept { return m_window; }
-    [[nodiscard]] const Window& window() const noexcept { return m_window; }
+    [[nodiscard]] Window& window() noexcept
+    {
+        return m_window;
+    }
+
+    [[nodiscard]] const Window& window() const noexcept
+    {
+        return m_window;
+    }
 
     /**
      * @brief 获取输入管理器
      */
-    [[nodiscard]] InputManager& input() noexcept { return m_input; }
-    [[nodiscard]] const InputManager& input() const noexcept { return m_input; }
+    [[nodiscard]] InputManager& input() noexcept
+    {
+        return m_input;
+    }
+
+    [[nodiscard]] const InputManager& input() const noexcept
+    {
+        return m_input;
+    }
 
     /**
      * @brief 获取设置
      */
-    [[nodiscard]] ClientSettings& settings() noexcept { return m_settings; }
-    [[nodiscard]] const ClientSettings& settings() const noexcept { return m_settings; }
+    [[nodiscard]] ClientSettings& settings() noexcept
+    {
+        return m_settings;
+    }
+
+    [[nodiscard]] const ClientSettings& settings() const noexcept
+    {
+        return m_settings;
+    }
 
     /**
      * @brief 获取渲染器
      */
-    [[nodiscard]] renderer::trident::TridentEngine& renderer() noexcept { return *m_renderer; }
-    [[nodiscard]] const renderer::trident::TridentEngine& renderer() const noexcept { return *m_renderer; }
+    [[nodiscard]] renderer::trident::TridentEngine& renderer() noexcept
+    {
+        return *m_renderer;
+    }
+
+    [[nodiscard]] const renderer::trident::TridentEngine& renderer() const noexcept
+    {
+        return *m_renderer;
+    }
 
     /**
      * @brief 获取相机
      */
-    [[nodiscard]] Camera& camera() noexcept { return m_camera; }
-    [[nodiscard]] const Camera& camera() const noexcept { return m_camera; }
+    [[nodiscard]] Camera& camera() noexcept
+    {
+        return m_camera;
+    }
+
+    [[nodiscard]] const Camera& camera() const noexcept
+    {
+        return m_camera;
+    }
 
     /**
      * @brief 获取世界
      */
-    [[nodiscard]] ClientWorld& world() noexcept { return m_world; }
-    [[nodiscard]] const ClientWorld& world() const noexcept { return m_world; }
+    [[nodiscard]] ClientWorld& world() noexcept
+    {
+        return m_world;
+    }
+
+    [[nodiscard]] const ClientWorld& world() const noexcept
+    {
+        return m_world;
+    }
 
     /**
      * @brief 获取客户端统一计算池（ClientCompute）
@@ -194,7 +239,11 @@ public:
      * 由 ClientApplication 持有，生命周期长于单个游戏会话；mesh 系统与皮肤管理器
      * 均通过注入引用/指针消费此池。
      */
-    [[nodiscard]] util::UniversalWorkerPool& clientComputeWorkerPool() noexcept { return m_clientComputeWorkerPool; }
+    [[nodiscard]] util::UniversalWorkerPool& clientComputeWorkerPool() noexcept
+    {
+        return m_clientComputeWorkerPool;
+    }
+
     [[nodiscard]] const util::UniversalWorkerPool& clientComputeWorkerPool() const noexcept
     {
         return m_clientComputeWorkerPool;
@@ -203,20 +252,41 @@ public:
     /**
      * @brief 获取皮肤管理器
      */
-    [[nodiscard]] skin::ClientSkinManager& skinManager() noexcept { return *m_skinManager; }
-    [[nodiscard]] const skin::ClientSkinManager& skinManager() const noexcept { return *m_skinManager; }
+    [[nodiscard]] skin::ClientSkinManager& skinManager() noexcept
+    {
+        return *m_skinManager;
+    }
+
+    [[nodiscard]] const skin::ClientSkinManager& skinManager() const noexcept
+    {
+        return *m_skinManager;
+    }
 
     /**
      * @brief 获取状态机
      */
-    [[nodiscard]] ClientAppStateMachine& stateMachine() noexcept { return m_stateMachine; }
-    [[nodiscard]] const ClientAppStateMachine& stateMachine() const noexcept { return m_stateMachine; }
+    [[nodiscard]] ClientAppStateMachine& stateMachine() noexcept
+    {
+        return m_stateMachine;
+    }
+
+    [[nodiscard]] const ClientAppStateMachine& stateMachine() const noexcept
+    {
+        return m_stateMachine;
+    }
 
     /**
      * @brief 获取维度管理器
      */
-    [[nodiscard]] ClientDimensionManager& dimensionManager() noexcept { return m_dimensionManager; }
-    [[nodiscard]] const ClientDimensionManager& dimensionManager() const noexcept { return m_dimensionManager; }
+    [[nodiscard]] ClientDimensionManager& dimensionManager() noexcept
+    {
+        return m_dimensionManager;
+    }
+
+    [[nodiscard]] const ClientDimensionManager& dimensionManager() const noexcept
+    {
+        return m_dimensionManager;
+    }
 
     // ========== 游戏会话管理 ==========
 

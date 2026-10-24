@@ -876,14 +876,16 @@ void TrialSpawnerBlockEntity::ejectRewardForPlayer(IWorld& world, Player& player
 
     // 构建战利品上下文
     auto* playerEntity = static_cast<Entity*>(&player);
-    auto context =
-        loot::LootContextBuilder(world)
-            .withRandom(world.getRandom())
-            .withParameter(loot::LootParams::THIS_ENTITY, playerEntity)
-            .withLootTableResolver([ltm](const std::string& id) -> const loot::LootTable* { return ltm->getTable(id); })
-            .withPredicateResolver(
-                [ltm](const std::string& id) -> const loot::LootCondition* { return ltm->getPredicate(id); })
-            .build(loot::LootParameterSets::chest());
+    auto context = loot::LootContextBuilder(world)
+                       .withRandom(world.getRandom())
+                       .withParameter(loot::LootParams::THIS_ENTITY, playerEntity)
+                       .withLootTableResolver([ltm](const std::string& id) -> const loot::LootTable* {
+                           return ltm->getTable(id);
+                       })
+                       .withPredicateResolver([ltm](const std::string& id) -> const loot::LootCondition* {
+                           return ltm->getPredicate(id);
+                       })
+                       .build(loot::LootParameterSets::chest());
 
     if (context == nullptr) {
         return;
@@ -946,13 +948,15 @@ void TrialSpawnerBlockEntity::ejectReward(IWorld& world)
         return;
     }
 
-    auto context =
-        loot::LootContextBuilder(world)
-            .withRandom(world.getRandom())
-            .withLootTableResolver([ltm](const std::string& id) -> const loot::LootTable* { return ltm->getTable(id); })
-            .withPredicateResolver(
-                [ltm](const std::string& id) -> const loot::LootCondition* { return ltm->getPredicate(id); })
-            .build(loot::LootParameterSets::empty());
+    auto context = loot::LootContextBuilder(world)
+                       .withRandom(world.getRandom())
+                       .withLootTableResolver([ltm](const std::string& id) -> const loot::LootTable* {
+                           return ltm->getTable(id);
+                       })
+                       .withPredicateResolver([ltm](const std::string& id) -> const loot::LootCondition* {
+                           return ltm->getPredicate(id);
+                       })
+                       .build(loot::LootParameterSets::empty());
 
     if (context == nullptr) {
         return;

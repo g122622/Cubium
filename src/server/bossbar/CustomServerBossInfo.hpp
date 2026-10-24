@@ -72,7 +72,10 @@ public:
     /**
      * @brief 获取资源位置 ID
      */
-    [[nodiscard]] const ResourceLocation& id() const noexcept { return m_id; }
+    [[nodiscard]] const ResourceLocation& id() const noexcept
+    {
+        return m_id;
+    }
 
     // ========== 数值管理 ==========
 
@@ -81,7 +84,10 @@ public:
      *
      * @return 当前值 (0 ~ max)
      */
-    [[nodiscard]] i32 value() const noexcept { return m_value; }
+    [[nodiscard]] i32 value() const noexcept
+    {
+        return m_value;
+    }
 
     /**
      * @brief 设置当前值
@@ -95,7 +101,10 @@ public:
      *
      * @return 最大值
      */
-    [[nodiscard]] i32 max() const noexcept { return m_max; }
+    [[nodiscard]] i32 max() const noexcept
+    {
+        return m_max;
+    }
 
     /**
      * @brief 设置最大值
@@ -145,7 +154,10 @@ public:
      *
      * 用于重连恢复。
      */
-    [[nodiscard]] const std::set<std::string>& playerUuids() const noexcept { return m_playerUuids; }
+    [[nodiscard]] const std::set<std::string>& playerUuids() const noexcept
+    {
+        return m_playerUuids;
+    }
 
     // ========== 格式化名称 ==========
 

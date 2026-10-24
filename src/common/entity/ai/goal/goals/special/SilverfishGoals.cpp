@@ -193,9 +193,15 @@ void SilverfishSummonOthersGoal::tick()
         for (i32 dy = 0; dy <= 5 || -dy <= 5; dy = (dy <= 0) ? 1 - dy : -dy) {
             for (i32 dx = 0; dx <= 10 || -dx <= 10; dx = (dx <= 0) ? 1 - dx : -dx) {
                 for (i32 dz = 0; dz <= 10 || -dz <= 10; dz = (dz <= 0) ? 1 - dz : -dz) {
-                    if (std::abs(dy) > 5) goto endYLoop;
-                    if (std::abs(dx) > 10) goto endXLoop;
-                    if (std::abs(dz) > 10) goto endZLoop;
+                    if (std::abs(dy) > 5) {
+                        goto endYLoop;
+                    }
+                    if (std::abs(dx) > 10) {
+                        goto endXLoop;
+                    }
+                    if (std::abs(dz) > 10) {
+                        goto endZLoop;
+                    }
 
                     BlockPos checkPos(centerPos.x + dx, centerPos.y + dy, centerPos.z + dz);
                     const BlockState* state = world->getBlockState(checkPos);

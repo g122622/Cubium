@@ -378,7 +378,9 @@ TEST(DirectionPropertyTest, CreateHorizontal)
 
 TEST(DirectionPropertyTest, CreateWithFilter)
 {
-    auto prop = DirectionProperty::create("facing", [](Direction d) { return d != Direction::Up; });
+    auto prop = DirectionProperty::create("facing", [](Direction d) {
+        return d != Direction::Up;
+    });
 
     EXPECT_EQ(prop->valueCount(), 5);
 

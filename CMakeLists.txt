@@ -33,6 +33,10 @@ option(MC_BUILD_BENCHMARKS "Build benchmark application" ON)
 # 默认 OFF：fuzz 目标需要 clang 的 -fsanitize=fuzzer 运行时，且只在专门的 fuzz preset
 # 下构建（见 docs/test/FUZZING.md）。开启后目标均标 EXCLUDE_FROM_ALL，不参与常规构建。
 option(MC_BUILD_FUZZERS "Build libFuzzer protocol fuzz targets (tests/fuzz)" OFF)
+# 差分测试探针（tests/diff）：同一份输入喂给 Cubium 与参照实现，要求输出逐字节相同。
+# 默认 OFF：依赖原版数据（minecraft-data 的 blocks.json 等）与 Java oracle，属于专门的
+# 一致性验证流程。开启后目标仍为 EXCLUDE_FROM_ALL，须显式 --target diff_probes 构建。
+option(MC_BUILD_DIFF_PROBES "Build differential probes (tests/diff)" OFF)
 option(MC_ENABLE_SANITIZERS "Enable sanitizers for debug builds" OFF)
 option(MC_ENABLE_VULKAN_VALIDATION "Enable Vulkan validation layers" OFF)
 option(MC_ENABLE_TRACING "Enable Perfetto tracing" ON)
@@ -390,6 +394,12 @@ if(MC_BUILD_FUZZERS)
     # 协议模糊测试目标（libFuzzer）。目标均为 EXCLUDE_FROM_ALL：不参与 `cmake --build`
     # 的全量构建，须显式 --target 指定。构建与运行方式见 docs/test/FUZZING.md。
     add_subdirectory(tests/fuzz)
+endif()
+
+if(MC_BUILD_DIFF_PROBES)
+    # 差分测试探针。同样 EXCLUDE_FROM_ALL，须显式 --target diff_probes。
+    # 构建与运行方式见 tests/diff/README.md。
+    add_subdirectory(tests/diff)
 endif()
 
 # 安装配置

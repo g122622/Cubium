@@ -52,14 +52,18 @@ namespace command {
 void OpCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
 {
     auto opNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("op");
-    opNode->setRequirement([](const ServerCommandSource& source) { return source.hasPermission(3); });
+    opNode->setRequirement([](const ServerCommandSource& source) {
+        return source.hasPermission(3);
+    });
     support::applyMetadata(
         opNode, support::makeMetadata("Grants operator status to a player.", "/op <player>", 3, {}, false));
 
     // /op <player>
     auto playerArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, EntitySelector>>(
         "player", EntityArgumentType::player());
-    playerArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _opPlayer(ctx); });
+    playerArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _opPlayer(ctx);
+    });
 
     opNode->addChild(playerArg);
     dispatcher.registerCommand(opNode);

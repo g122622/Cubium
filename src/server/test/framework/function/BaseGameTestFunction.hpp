@@ -54,13 +54,36 @@ public:
     [[nodiscard]] virtual std::unique_ptr<IGameTestFunctionRunResult> run(
         IGameTestHelper& helper, IGameTestFunctionContext& context) const = 0;
 
-    [[nodiscard]] const std::string& batchName() const noexcept { return m_batchName; }
-    [[nodiscard]] const std::string& testName() const noexcept { return m_testName; }
-    [[nodiscard]] const std::string& structureName() const noexcept { return m_structureName; }
-    [[nodiscard]] const TestData& data() const noexcept { return m_data; }
-    [[nodiscard]] const std::vector<std::string>& tags() const noexcept { return m_tags; }
+    [[nodiscard]] const std::string& batchName() const noexcept
+    {
+        return m_batchName;
+    }
 
-    void addTag(std::string tag) { m_tags.push_back(std::move(tag)); }
+    [[nodiscard]] const std::string& testName() const noexcept
+    {
+        return m_testName;
+    }
+
+    [[nodiscard]] const std::string& structureName() const noexcept
+    {
+        return m_structureName;
+    }
+
+    [[nodiscard]] const TestData& data() const noexcept
+    {
+        return m_data;
+    }
+
+    [[nodiscard]] const std::vector<std::string>& tags() const noexcept
+    {
+        return m_tags;
+    }
+
+    void addTag(std::string tag)
+    {
+        m_tags.push_back(std::move(tag));
+    }
+
     [[nodiscard]] bool hasTag(std::string_view tag) const noexcept;
 
     /**
@@ -85,11 +108,17 @@ public:
      *
      * 原生测试函数不依赖 JS runtime，跨 GameTestServer 实例可复用，故返回 false 并保留注册。
      */
-    [[nodiscard]] virtual bool isScriptBacked() const { return false; }
+    [[nodiscard]] virtual bool isScriptBacked() const
+    {
+        return false;
+    }
 
 protected:
     // 子类（NativeGameTestFunction/ScriptGameTestFunction）可改写元数据
-    void setTestData(TestData data) { m_data = std::move(data); }
+    void setTestData(TestData data)
+    {
+        m_data = std::move(data);
+    }
 
 private:
     std::string m_batchName;

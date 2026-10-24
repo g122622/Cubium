@@ -97,7 +97,10 @@ public:
     /**
      * @brief 判断快照是否为空
      */
-    [[nodiscard]] bool empty() const noexcept { return nodes.empty(); }
+    [[nodiscard]] bool empty() const noexcept
+    {
+        return nodes.empty();
+    }
 
     /**
      * @brief 序列化为 JSON 对象
@@ -291,6 +294,7 @@ template <typename NodeT>
         {"rotation", 29},
         {"item_slot", 34},
         {"resource_location", 36},
+        {"identifier", 36},
         {"function", 37},
         {"dimension", 41},
         {"gamemode", 42},

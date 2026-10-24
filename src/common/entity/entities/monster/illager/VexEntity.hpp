@@ -77,22 +77,34 @@ public:
     /**
      * @brief 是否有限生命
      */
-    [[nodiscard]] bool hasLimitedLife() const { return m_limitedLife; }
+    [[nodiscard]] bool hasLimitedLife() const
+    {
+        return m_limitedLife;
+    }
 
     /**
      * @brief 设置有限生命
      */
-    void setLimitedLife(bool limited) { m_limitedLife = limited; }
+    void setLimitedLife(bool limited)
+    {
+        m_limitedLife = limited;
+    }
 
     /**
      * @brief 获取剩余生命时间
      */
-    [[nodiscard]] i32 getLifeTime() const { return m_lifeTime; }
+    [[nodiscard]] i32 getLifeTime() const
+    {
+        return m_lifeTime;
+    }
 
     /**
      * @brief 设置生命时间
      */
-    void setLifeTime(i32 time) { m_lifeTime = time; }
+    void setLifeTime(i32 time)
+    {
+        m_lifeTime = time;
+    }
 
     // ========== 主人系统 ==========
 
@@ -115,41 +127,62 @@ public:
     /**
      * @brief 是否正在充电攻击
      */
-    [[nodiscard]] bool isCharging() const { return m_charging; }
+    [[nodiscard]] bool isCharging() const
+    {
+        return m_charging;
+    }
 
     /**
      * @brief 设置充电攻击状态
      */
-    void setCharging(bool charging) { m_charging = charging; }
+    void setCharging(bool charging)
+    {
+        m_charging = charging;
+    }
 
     // ========== 飞行系统 ==========
 
     /**
      * @brief 恼鬼可以飞行
      */
-    [[nodiscard]] bool canFly() const { return true; }
+    [[nodiscard]] bool canFly() const
+    {
+        return true;
+    }
 
     // ========== 属性 ==========
 
     /**
      * @brief 获取实体宽度
      */
-    [[nodiscard]] f32 width() const override { return 0.4f; }
+    [[nodiscard]] f32 width() const override
+    {
+        return 0.4f;
+    }
 
     /**
      * @brief 获取实体高度
      */
-    [[nodiscard]] f32 height() const override { return 0.8f; }
+    [[nodiscard]] f32 height() const override
+    {
+        return 0.8f;
+    }
 
     /**
      * @brief 获取眼睛高度
      */
-    [[nodiscard]] f32 eyeHeight() const override { return 0.4f; }
+    [[nodiscard]] f32 eyeHeight() const override
+    {
+        return 0.4f;
+    }
 
     /**
      * @brief 恼鬼不会燃烧
      */
-    [[nodiscard]] bool shouldBurnInDaylight() const override { return false; }
+    [[nodiscard]] bool shouldBurnInDaylight() const override
+    {
+        return false;
+    }
 
     // ========== 生命周期 ==========
 

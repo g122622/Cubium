@@ -59,26 +59,34 @@ namespace command {
 void SetWorldSpawnCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
 {
     auto setWorldSpawnNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("setworldspawn");
-    setWorldSpawnNode->setRequirement([](const ServerCommandSource& source) { return source.hasPermission(2); });
+    setWorldSpawnNode->setRequirement([](const ServerCommandSource& source) {
+        return source.hasPermission(2);
+    });
     support::applyMetadata(setWorldSpawnNode,
         support::makeMetadata("Sets the world spawn point.", "/setworldspawn [<pos> [<rotation>]]", 2, {}, true));
 
     // /setworldspawn - 设置当前位置为世界出生点（BlockPos.containing(source.position())，floor 成整数 BlockPos），
     // 朝向 ZERO_ROTATION（0,0）。对齐 MC 1.21.11: setSpawn(source, BlockPos.containing(getPosition()), ZERO_ROTATION)。
-    setWorldSpawnNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _setCurrentPosition(ctx); });
+    setWorldSpawnNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _setCurrentPosition(ctx);
+    });
 
     // /setworldspawn <pos> - pos 用 BlockPosArgumentType（整数 floor，对齐 vanilla BlockPosArgument），
     // 非 Vec3ArgumentType（centerCorrect 给绝对整数加 0.5 偏移致出生点偏 0.5，已修）。
     auto posNode = std::make_shared<ArgumentCommandNode<ServerCommandSource, Coordinates::Ptr>>(
         "pos", BlockPosArgumentType::blockPos());
-    posNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _setPosition(ctx); });
+    posNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _setPosition(ctx);
+    });
 
     // /setworldspawn <pos> <rotation> - rotation 用 RotationArgumentType（接 yaw pitch，对齐 vanilla
     // RotationArgument）。yaw/pitch 随 spawn 复合标签一起持久化。
     // 完整建模后补）。
     auto rotationNode = std::make_shared<ArgumentCommandNode<ServerCommandSource, Coordinates::Ptr>>(
         "rotation", RotationArgumentType::rotation());
-    rotationNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _setPositionWithRotation(ctx); });
+    rotationNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _setPositionWithRotation(ctx);
+    });
 
     posNode->addChild(rotationNode);
     setWorldSpawnNode->addChild(posNode);

@@ -149,11 +149,20 @@ public:
         return collisions;
     }
 
-    [[nodiscard]] u64 currentTick() const override { return m_currentTick; }
+    [[nodiscard]] u64 currentTick() const override
+    {
+        return m_currentTick;
+    }
 
-    [[nodiscard]] bool isClientSide() const override { return m_isClientSide; }
+    [[nodiscard]] bool isClientSide() const override
+    {
+        return m_isClientSide;
+    }
 
-    void setClientSide(bool isClient) { m_isClientSide = isClient; }
+    void setClientSide(bool isClient)
+    {
+        m_isClientSide = isClient;
+    }
 
     EntityInstanceId spawnEntity(std::unique_ptr<Entity> entity) override
     {
@@ -197,8 +206,15 @@ public:
         return result;
     }
 
-    [[nodiscard]] world::gamerule::GameRules& getGameRules() override { return m_gameRules; }
-    [[nodiscard]] const world::gamerule::GameRules& getGameRules() const override { return m_gameRules; }
+    [[nodiscard]] world::gamerule::GameRules& getGameRules() override
+    {
+        return m_gameRules;
+    }
+
+    [[nodiscard]] const world::gamerule::GameRules& getGameRules() const override
+    {
+        return m_gameRules;
+    }
 
     [[nodiscard]] world::tick::TickManager& tickManager() override
     {
@@ -212,9 +228,15 @@ public:
 
     // 测试辅助方法
 
-    void advanceTick() { m_currentTick++; }
+    void advanceTick()
+    {
+        m_currentTick++;
+    }
 
-    [[nodiscard]] size_t spawnedEntityCount() const { return m_spawnedEntities.size(); }
+    [[nodiscard]] size_t spawnedEntityCount() const
+    {
+        return m_spawnedEntities.size();
+    }
 
     [[nodiscard]] Entity* getLastSpawnedEntity()
     {
@@ -224,15 +246,30 @@ public:
         return m_spawnedEntities.back().get();
     }
 
-    [[nodiscard]] i32 blockSetCount() const { return m_blockSetCount; }
+    [[nodiscard]] i32 blockSetCount() const
+    {
+        return m_blockSetCount;
+    }
 
-    [[nodiscard]] const BlockPos& lastSetBlockPos() const { return m_lastSetBlockPos; }
+    [[nodiscard]] const BlockPos& lastSetBlockPos() const
+    {
+        return m_lastSetBlockPos;
+    }
 
-    [[nodiscard]] const BlockState* lastSetBlockState() const { return m_lastSetBlockState; }
+    [[nodiscard]] const BlockState* lastSetBlockState() const
+    {
+        return m_lastSetBlockState;
+    }
 
-    void clearSpawnedEntities() { m_spawnedEntities.clear(); }
+    void clearSpawnedEntities()
+    {
+        m_spawnedEntities.clear();
+    }
 
-    void clearBlocks() { m_blocks.clear(); }
+    void clearBlocks()
+    {
+        m_blocks.clear();
+    }
 
     void setBlockAt(i32 x, i32 y, i32 z, const BlockState* state)
     {
@@ -243,8 +280,15 @@ public:
         }
     }
 
-    math::IRandom& getRandom() override { return m_random; }
-    [[nodiscard]] const math::IRandom& getRandom() const override { return m_random; }
+    math::IRandom& getRandom() override
+    {
+        return m_random;
+    }
+
+    [[nodiscard]] const math::IRandom& getRandom() const override
+    {
+        return m_random;
+    }
 
 private:
     std::unordered_map<BlockPos, std::unique_ptr<BlockState>> m_blocks;

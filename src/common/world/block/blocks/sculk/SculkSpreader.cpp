@@ -95,9 +95,15 @@ bool closerThan(const BlockPos& a, const BlockPos& b, f64 distance) noexcept
 /// MC SculkBehaviour.DEFAULT：非 SculkBehaviour 方块的占位行为。
 class DefaultSculkBehaviour final : public SculkBehaviour {
 public:
-    [[nodiscard]] bool canChangeBlockStateOnSpread() const override { return true; }
+    [[nodiscard]] bool canChangeBlockStateOnSpread() const override
+    {
+        return true;
+    }
 
-    [[nodiscard]] i32 updateDecayDelay(i32 decayDelay) const override { return std::max(decayDelay - 1, 0); }
+    [[nodiscard]] i32 updateDecayDelay(i32 decayDelay) const override
+    {
+        return std::max(decayDelay - 1, 0);
+    }
 
     [[nodiscard]] bool attemptSpreadVein(IWorld& world,
         const BlockPos& pos,

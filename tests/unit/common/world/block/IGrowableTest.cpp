@@ -89,7 +89,10 @@ public:
         IWorld& /*world*/, math::IRandom& /*random*/, const BlockPos& /*pos*/, const BlockState& /*state*/) override
     {}
 
-    [[nodiscard]] BoneMealType getBoneMealType() const override { return BoneMealType::NEIGHBOR_SPREADER; }
+    [[nodiscard]] BoneMealType getBoneMealType() const override
+    {
+        return BoneMealType::NEIGHBOR_SPREADER;
+    }
 };
 
 // ============================================================================

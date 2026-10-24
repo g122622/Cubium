@@ -126,12 +126,18 @@ public:
     /**
      * @brief 获取世界种子
      */
-    [[nodiscard]] i64 seed() const { return m_seed; }
+    [[nodiscard]] i64 seed() const
+    {
+        return m_seed;
+    }
 
     /**
      * @brief 设置引用距离
      */
-    void setReferenceDistance(i32 distance) { m_referenceDistance = distance; }
+    void setReferenceDistance(i32 distance)
+    {
+        m_referenceDistance = distance;
+    }
 
     /**
      * @brief 在指定区块生成结构起点
@@ -187,8 +193,15 @@ public:
      * - NoiseChunkGenerator::generateStructureReferences() 通过此方法调用 incrementReference()
      * - ServerWorld::findNearestStructure() 通过 IChunkGenerator::structureCheck() 调用 checkStart()
      */
-    [[nodiscard]] StructureCheck& structureCheck() { return m_structureCheck; }
-    [[nodiscard]] const StructureCheck& structureCheck() const { return m_structureCheck; }
+    [[nodiscard]] StructureCheck& structureCheck()
+    {
+        return m_structureCheck;
+    }
+
+    [[nodiscard]] const StructureCheck& structureCheck() const
+    {
+        return m_structureCheck;
+    }
 
 private:
     i64 m_seed;

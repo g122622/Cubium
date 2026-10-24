@@ -136,20 +136,70 @@ public:
 
     // ========== 访问器 ==========
 
-    [[nodiscard]] i32 blockX() const { return m_blockX; }
-    [[nodiscard]] i32 blockY() const { return m_blockY; }
-    [[nodiscard]] i32 blockZ() const { return m_blockZ; }
-    [[nodiscard]] i32 stoneDepthAbove() const { return m_stoneDepthAbove; }
-    [[nodiscard]] i32 stoneDepthBelow() const { return m_stoneDepthBelow; }
-    [[nodiscard]] i32 waterHeight() const { return m_waterHeight; }
-    [[nodiscard]] i32 surfaceDepth() const { return m_surfaceDepth; }
-    [[nodiscard]] i32 seaLevel() const { return m_seaLevel; }
-    [[nodiscard]] i32 minY() const { return m_minY; }
-    [[nodiscard]] i32 height() const { return m_height; }
-    [[nodiscard]] BiomeId biome() const { return m_biome; }
-    [[nodiscard]] world::gen::RandomState* randomState() const { return m_randomState; }
+    [[nodiscard]] i32 blockX() const
+    {
+        return m_blockX;
+    }
 
-    void setBiome(BiomeId biome) { m_biome = biome; }
+    [[nodiscard]] i32 blockY() const
+    {
+        return m_blockY;
+    }
+
+    [[nodiscard]] i32 blockZ() const
+    {
+        return m_blockZ;
+    }
+
+    [[nodiscard]] i32 stoneDepthAbove() const
+    {
+        return m_stoneDepthAbove;
+    }
+
+    [[nodiscard]] i32 stoneDepthBelow() const
+    {
+        return m_stoneDepthBelow;
+    }
+
+    [[nodiscard]] i32 waterHeight() const
+    {
+        return m_waterHeight;
+    }
+
+    [[nodiscard]] i32 surfaceDepth() const
+    {
+        return m_surfaceDepth;
+    }
+
+    [[nodiscard]] i32 seaLevel() const
+    {
+        return m_seaLevel;
+    }
+
+    [[nodiscard]] i32 minY() const
+    {
+        return m_minY;
+    }
+
+    [[nodiscard]] i32 height() const
+    {
+        return m_height;
+    }
+
+    [[nodiscard]] BiomeId biome() const
+    {
+        return m_biome;
+    }
+
+    [[nodiscard]] world::gen::RandomState* randomState() const
+    {
+        return m_randomState;
+    }
+
+    void setBiome(BiomeId biome)
+    {
+        m_biome = biome;
+    }
 
     /** 地表次要噪声值（MC: getSurfaceSecondary） */
     [[nodiscard]] f64 surfaceSecondary() const;
@@ -167,10 +217,16 @@ public:
     [[nodiscard]] bool temperature() const;
 
     /** 判断是否为 hole（surfaceDepth <= 0） */
-    [[nodiscard]] bool hole() const { return m_surfaceDepth <= 0; }
+    [[nodiscard]] bool hole() const
+    {
+        return m_surfaceDepth <= 0;
+    }
 
     /** 获取最小表面高度（MC: SurfaceRules.Context.getMinSurfaceLevel） */
-    [[nodiscard]] i32 minSurfaceLevel() const { return _minSurfaceLevel(); }
+    [[nodiscard]] i32 minSurfaceLevel() const
+    {
+        return _minSurfaceLevel();
+    }
 
 private:
     [[nodiscard]] i32 _minSurfaceLevel() const;
@@ -221,6 +277,7 @@ private:
         u64 stamp;
         bool value;
     };
+
     mutable std::unordered_map<const SurfaceCondition*, ConditionCacheEntry> m_conditionCache;
 
     // per-chunk 随机工厂解析缓存：condition 身份 → RandomState 持有的工厂指针。

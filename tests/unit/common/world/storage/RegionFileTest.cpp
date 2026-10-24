@@ -37,7 +37,10 @@ protected:
         m_tmpDir = mc::test::makeUniqueTestDir("mc_region_test");
     }
 
-    void TearDown() override { mc::test::removeTestDir(m_tmpDir); }
+    void TearDown() override
+    {
+        mc::test::removeTestDir(m_tmpDir);
+    }
 
     /// 创建一个最简的 .mca 文件（空区域，无区块数据）
     void createEmptyRegionFile(const std::filesystem::path& path)

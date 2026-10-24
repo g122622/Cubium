@@ -50,22 +50,7 @@
 namespace mc {
 namespace command {
 
-void LocateBiomeCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
-{
-    auto locateBiomeNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("locatebiome");
-    locateBiomeNode->setRequirement([](const ServerCommandSource& source) { return source.hasPermission(0); });
-    support::applyMetadata(
-        locateBiomeNode, support::makeMetadata("Locates the closest biome.", "/locatebiome <biome>", 0, {}, true));
-
-    auto biomeArg =
-        std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>("biome", StringArgumentType::string());
-    biomeArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _locateBiome(ctx); });
-    locateBiomeNode->addChild(biomeArg);
-
-    dispatcher.registerCommand(locateBiomeNode);
-}
-
-i32 LocateBiomeCommand::_locateBiome(CommandContext<ServerCommandSource>& context)
+i32 LocateBiomeCommand::locateBiome(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
     auto* server = source.server();
@@ -81,7 +66,7 @@ i32 LocateBiomeCommand::_locateBiome(CommandContext<ServerCommandSource>& contex
     auto biomeId = _parseBiomeId(biomeName);
     if (!biomeId.has_value()) {
         source.sendError("Unknown biome: " + biomeName);
-        source.sendError("Use /locatebiome with a valid biome ID (e.g., plains, desert, forest)");
+        source.sendError("Use /locate biome with a valid biome ID (e.g., plains, desert, forest)");
         return 0;
     }
 
@@ -114,7 +99,9 @@ i32 LocateBiomeCommand::_locateBiome(CommandContext<ServerCommandSource>& contex
     source.sendMessage(ss.str());
 
     // 创建生物群系匹配谓词
-    auto predicate = [targetBiome = biomeId.value()](BiomeId biome) { return biome == targetBiome; };
+    auto predicate = [targetBiome = biomeId.value()](BiomeId biome) {
+        return biome == targetBiome;
+    };
 
     // 创建随机数生成器
     math::Random random(static_cast<u64>(std::chrono::system_clock::now().time_since_epoch().count()));

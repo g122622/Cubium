@@ -84,12 +84,18 @@ public:
     /**
      * @brief 获取世界引用
      */
-    [[nodiscard]] IWorld& world() const { return m_world; }
+    [[nodiscard]] IWorld& world() const
+    {
+        return m_world;
+    }
 
     /**
      * @brief 获取方块位置
      */
-    [[nodiscard]] const BlockPos& pos() const { return m_pos; }
+    [[nodiscard]] const BlockPos& pos() const
+    {
+        return m_pos;
+    }
 
     /**
      * @brief 创建状态谓词

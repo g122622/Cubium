@@ -19,12 +19,21 @@ using namespace mc;
  */
 class GameDirectoryTest : public ::testing::Test {
 protected:
-    void SetUp() override { m_tempDir = mc::test::makeUniqueTestDir("mc_game_directory_test"); }
+    void SetUp() override
+    {
+        m_tempDir = mc::test::makeUniqueTestDir("mc_game_directory_test");
+    }
 
-    void TearDown() override { mc::test::removeTestDir(m_tempDir); }
+    void TearDown() override
+    {
+        mc::test::removeTestDir(m_tempDir);
+    }
 
     /// 规范化后的临时目录，用作期望值（弱规范化的结果与之相等）
-    [[nodiscard]] fs::path canonicalRoot() const { return fs::canonical(m_tempDir); }
+    [[nodiscard]] fs::path canonicalRoot() const
+    {
+        return fs::canonical(m_tempDir);
+    }
 
     fs::path m_tempDir;
 };

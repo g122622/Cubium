@@ -80,14 +80,20 @@ public:
      *
      * @return 目标名称
      */
-    [[nodiscard]] const std::string& getName() const noexcept { return m_name; }
+    [[nodiscard]] const std::string& getName() const noexcept
+    {
+        return m_name;
+    }
 
     /**
      * @brief 获取判据
      *
      * @return 判据引用
      */
-    [[nodiscard]] ScoreCriteria& getCriteria() const noexcept { return *m_criteria; }
+    [[nodiscard]] ScoreCriteria& getCriteria() const noexcept
+    {
+        return *m_criteria;
+    }
 
     /**
      * @brief 获取显示名称
@@ -122,7 +128,10 @@ public:
      *
      * @return 渲染类型
      */
-    [[nodiscard]] RenderType getRenderType() const noexcept { return m_renderType; }
+    [[nodiscard]] RenderType getRenderType() const noexcept
+    {
+        return m_renderType;
+    }
 
     /**
      * @brief 设置渲染类型
@@ -138,7 +147,10 @@ public:
      *
      * @return 记分板引用
      */
-    [[nodiscard]] Scoreboard& getScoreboard() const noexcept { return m_scoreboard; }
+    [[nodiscard]] Scoreboard& getScoreboard() const noexcept
+    {
+        return m_scoreboard;
+    }
 
 private:
     /**

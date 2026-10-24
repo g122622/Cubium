@@ -353,8 +353,9 @@ public:
      */
     static const DirectionProperty& VERTICAL_DIRECTION()
     {
-        static auto prop = DirectionProperty::create(
-            "vertical_direction", [](Direction d) { return d == Direction::Up || d == Direction::Down; });
+        static auto prop = DirectionProperty::create("vertical_direction", [](Direction d) {
+            return d == Direction::Up || d == Direction::Down;
+        });
         return *prop;
     }
 
@@ -363,7 +364,9 @@ public:
      */
     static const DirectionProperty& FACING_EXCEPT_UP()
     {
-        static auto prop = DirectionProperty::create("facing", [](Direction d) { return d != Direction::Up; });
+        static auto prop = DirectionProperty::create("facing", [](Direction d) {
+            return d != Direction::Up;
+        });
         return *prop;
     }
 
@@ -1590,7 +1593,10 @@ public:
     /**
      * @brief 判断侧链部分是否处于连接状态
      */
-    [[nodiscard]] static bool isConnected(SideChainPart part) { return part != SideChainPart::Unconnected; }
+    [[nodiscard]] static bool isConnected(SideChainPart part)
+    {
+        return part != SideChainPart::Unconnected;
+    }
 
     /**
      * @brief 判断侧链部分是否朝指定方向连接
@@ -1605,7 +1611,10 @@ public:
      * @brief 判断侧链部分是否为链的端点
      * 只有 CENTER 不是链的端点
      */
-    [[nodiscard]] static bool isChainEnd(SideChainPart part) { return part != SideChainPart::Center; }
+    [[nodiscard]] static bool isChainEnd(SideChainPart part)
+    {
+        return part != SideChainPart::Center;
+    }
 
     /**
      * @brief 当右侧连接时的侧链状态变化
@@ -2013,6 +2022,7 @@ struct mc::EnumProperty<mc::world::gen::jigsaw::JigsawOrientation>::Traits {
     {
         return mc::world::gen::jigsaw::JigsawOrientations::toString(value);
     }
+
     static std::optional<mc::world::gen::jigsaw::JigsawOrientation> fromName(std::string_view name)
     {
         return mc::world::gen::jigsaw::JigsawOrientations::fromName(name);

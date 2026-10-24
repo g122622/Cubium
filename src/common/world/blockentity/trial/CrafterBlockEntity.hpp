@@ -73,9 +73,21 @@ public:
 
     // ========== 容器接口 ==========
 
-    [[nodiscard]] IInventory* getInventory() override { return &m_inventory; }
-    [[nodiscard]] const IInventory* getInventory() const override { return &m_inventory; }
-    [[nodiscard]] i32 getContainerSize() const override { return CONTAINER_SIZE; }
+    [[nodiscard]] IInventory* getInventory() override
+    {
+        return &m_inventory;
+    }
+
+    [[nodiscard]] const IInventory* getInventory() const override
+    {
+        return &m_inventory;
+    }
+
+    [[nodiscard]] i32 getContainerSize() const override
+    {
+        return CONTAINER_SIZE;
+    }
+
     void clearContainer() override;
 
     /**
@@ -110,18 +122,27 @@ public:
     /**
      * @brief 检查合成器是否被红石触发
      */
-    [[nodiscard]] bool isTriggered() const { return m_triggered; }
+    [[nodiscard]] bool isTriggered() const
+    {
+        return m_triggered;
+    }
 
     /**
      * @brief 设置合成动画剩余tick数
      * @param ticks 剩余tick数
      */
-    void setCraftingTicksRemaining(i32 ticks) { m_craftingTicksRemaining = ticks; }
+    void setCraftingTicksRemaining(i32 ticks)
+    {
+        m_craftingTicksRemaining = ticks;
+    }
 
     /**
      * @brief 获取合成动画剩余tick数
      */
-    [[nodiscard]] i32 getCraftingTicksRemaining() const { return m_craftingTicksRemaining; }
+    [[nodiscard]] i32 getCraftingTicksRemaining() const
+    {
+        return m_craftingTicksRemaining;
+    }
 
     /**
      * @brief 构建合成输入
@@ -140,12 +161,18 @@ public:
     /**
      * @brief 设置自定义名称
      */
-    void setCustomName(const std::string& name) override { m_customName = name; }
+    void setCustomName(const std::string& name) override
+    {
+        m_customName = name;
+    }
 
     /**
      * @brief 获取自定义名称
      */
-    [[nodiscard]] std::string getCustomName() const override { return m_customName; }
+    [[nodiscard]] std::string getCustomName() const override
+    {
+        return m_customName;
+    }
 
 private:
     /**

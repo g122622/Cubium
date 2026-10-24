@@ -92,7 +92,10 @@ struct TaskSignals {
     std::atomic<bool> completed{false};
 
     // 等待任务进入执行
-    void waitEntered() { entered.wait(false); }
+    void waitEntered()
+    {
+        entered.wait(false);
+    }
 
     // 允许任务继续执行
     void release()
@@ -102,7 +105,10 @@ struct TaskSignals {
     }
 
     // 等待任务执行结束
-    void waitCompleted() { completed.wait(false); }
+    void waitCompleted()
+    {
+        completed.wait(false);
+    }
 };
 
 // 带信号灯的区域任务：execute 期间阻塞，直到 signals.release() 被调用。
@@ -133,8 +139,15 @@ public:
         return true;
     }
 
-    TaskType type() const override { return TaskType::Custom; }
-    std::string description() const override { return "BlockingAreaTask"; }
+    TaskType type() const override
+    {
+        return TaskType::Custom;
+    }
+
+    std::string description() const override
+    {
+        return "BlockingAreaTask";
+    }
 
 private:
     ConcurrencyTracker& m_tracker;
@@ -162,8 +175,15 @@ public:
         return true;
     }
 
-    TaskType type() const override { return TaskType::Custom; }
-    std::string description() const override { return "CountingTask"; }
+    TaskType type() const override
+    {
+        return TaskType::Custom;
+    }
+
+    std::string description() const override
+    {
+        return "CountingTask";
+    }
 
 private:
     ConcurrencyTracker& m_tracker;
@@ -476,8 +496,15 @@ TEST(UniversalWorkerPoolAreaMutexTest, MultipleTasksSameAreaAllComplete)
             return true;
         }
 
-        TaskType type() const override { return TaskType::Custom; }
-        std::string description() const override { return "ShortAreaTask"; }
+        TaskType type() const override
+        {
+            return TaskType::Custom;
+        }
+
+        std::string description() const override
+        {
+            return "ShortAreaTask";
+        }
 
     private:
         std::atomic<int>& m_counter;

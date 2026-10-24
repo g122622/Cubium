@@ -91,11 +91,22 @@ public:
 
     [[nodiscard]] f32 width() const override;
     [[nodiscard]] f32 height() const override;
-    [[nodiscard]] bool isPushable() const override { return false; }
-    [[nodiscard]] bool canBeCollidedWith() const override { return false; }
+
+    [[nodiscard]] bool isPushable() const override
+    {
+        return false;
+    }
+
+    [[nodiscard]] bool canBeCollidedWith() const override
+    {
+        return false;
+    }
 
     // 无战利品表，覆写基类方法返回空字符串
-    [[nodiscard]] std::string getLootTableId() const override { return {}; }
+    [[nodiscard]] std::string getLootTableId() const override
+    {
+        return {};
+    }
 
     /**
      * @brief 受伤入口
@@ -115,19 +126,34 @@ public:
     /**
      * @brief 检查是否显示基岩
      */
-    [[nodiscard]] bool shouldShowBottom() const { return m_showBottom; }
-    void setShowBottom(bool show) { m_showBottom = show; }
+    [[nodiscard]] bool shouldShowBottom() const
+    {
+        return m_showBottom;
+    }
+
+    void setShowBottom(bool show)
+    {
+        m_showBottom = show;
+    }
 
     /**
      * @brief 获取内部旋转计数器（用于渲染动画）
      */
-    [[nodiscard]] i32 innerRotation() const { return m_innerRotation; }
+    [[nodiscard]] i32 innerRotation() const
+    {
+        return m_innerRotation;
+    }
 
     /**
      * @brief 设置关联的末地传送门位置
      */
     void setBeamTarget(BlockPos pos);
-    [[nodiscard]] const BlockPos& getBeamTarget() const { return m_beamTarget; }
+
+    [[nodiscard]] const BlockPos& getBeamTarget() const
+    {
+        return m_beamTarget;
+    }
+
     [[nodiscard]] bool hasBeamTarget() const;
 
     /**
@@ -172,49 +198,89 @@ public:
 
     [[nodiscard]] f32 width() const override;
     [[nodiscard]] f32 height() const override;
-    [[nodiscard]] bool isPushable() const override { return false; }
-    [[nodiscard]] bool canBeCollidedWith() const override { return false; }
+
+    [[nodiscard]] bool isPushable() const override
+    {
+        return false;
+    }
+
+    [[nodiscard]] bool canBeCollidedWith() const override
+    {
+        return false;
+    }
 
     // 无战利品表，覆写基类方法返回空字符串
-    [[nodiscard]] std::string getLootTableId() const override { return {}; }
+    [[nodiscard]] std::string getLootTableId() const override
+    {
+        return {};
+    }
 
     /**
      * @brief 设置是否只有效果（不造成伤害、不点燃方块）
      */
-    void setEffectOnly(bool effectOnly) { m_effectOnly = effectOnly; }
-    [[nodiscard]] bool isEffectOnly() const { return m_effectOnly; }
+    void setEffectOnly(bool effectOnly)
+    {
+        m_effectOnly = effectOnly;
+    }
+
+    [[nodiscard]] bool isEffectOnly() const
+    {
+        return m_effectOnly;
+    }
 
     /// 视觉专用闪电（对齐 vanilla LightningBolt.getEffectOnly()）
-    [[nodiscard]] bool getEffectOnly() const { return m_effectOnly; }
+    [[nodiscard]] bool getEffectOnly() const
+    {
+        return m_effectOnly;
+    }
 
     /**
      * @brief 设置触发者（用于引雷附魔等）
      * @param casterId 触发者的玩家ID
      */
-    void setCaster(PlayerId casterId) { m_caster = casterId; }
-    [[nodiscard]] PlayerId caster() const { return m_caster; }
+    void setCaster(PlayerId casterId)
+    {
+        m_caster = casterId;
+    }
+
+    [[nodiscard]] PlayerId caster() const
+    {
+        return m_caster;
+    }
 
     /**
      * @brief 获取闪电状态值
      * 用于渲染闪电的闪烁效果
      */
-    [[nodiscard]] i32 lightningState() const { return m_lightningState; }
+    [[nodiscard]] i32 lightningState() const
+    {
+        return m_lightningState;
+    }
 
     /**
      * @brief 获取闪电视觉效果剩余次数
      */
-    [[nodiscard]] i32 boltLivingTime() const { return m_boltLivingTime; }
+    [[nodiscard]] i32 boltLivingTime() const
+    {
+        return m_boltLivingTime;
+    }
 
     /**
      * @brief 获取闪电形状随机种子
      * 用于渲染器生成一致的闪电形状
      */
-    [[nodiscard]] u64 boltVertex() const { return m_boltVertex; }
+    [[nodiscard]] u64 boltVertex() const
+    {
+        return m_boltVertex;
+    }
 
     /**
      * @brief 获取声音类别
      */
-    [[nodiscard]] sound::SoundCategory getSoundCategory() const override { return sound::SoundCategory::Weather; }
+    [[nodiscard]] sound::SoundCategory getSoundCategory() const override
+    {
+        return sound::SoundCategory::Weather;
+    }
 
 private:
     /**
@@ -262,11 +328,22 @@ public:
 
     [[nodiscard]] f32 width() const override;
     [[nodiscard]] f32 height() const override;
-    [[nodiscard]] bool isPushable() const override { return false; }
-    [[nodiscard]] bool canBeCollidedWith() const override { return false; }
+
+    [[nodiscard]] bool isPushable() const override
+    {
+        return false;
+    }
+
+    [[nodiscard]] bool canBeCollidedWith() const override
+    {
+        return false;
+    }
 
     // 无战利品表，覆写基类方法返回空字符串
-    [[nodiscard]] std::string getLootTableId() const override { return {}; }
+    [[nodiscard]] std::string getLootTableId() const override
+    {
+        return {};
+    }
 
     // ========== 半径 ==========
 
@@ -278,46 +355,79 @@ public:
     /**
      * @brief 获取效果半径
      */
-    [[nodiscard]] f32 getRadius() const { return m_radius; }
+    [[nodiscard]] f32 getRadius() const
+    {
+        return m_radius;
+    }
 
     /**
      * @brief 设置每次应用效果时半径变化
      */
-    void setRadiusOnUse(f32 radiusOnUse) { m_radiusOnUse = radiusOnUse; }
+    void setRadiusOnUse(f32 radiusOnUse)
+    {
+        m_radiusOnUse = radiusOnUse;
+    }
 
     /**
      * @brief 设置每tick半径变化
      */
-    void setRadiusPerTick(f32 radiusPerTick) { m_radiusPerTick = radiusPerTick; }
+    void setRadiusPerTick(f32 radiusPerTick)
+    {
+        m_radiusPerTick = radiusPerTick;
+    }
 
     // ========== 持续时间 ==========
 
     /**
      * @brief 设置持续时间
      */
-    void setDuration(i32 duration) { m_duration = duration; }
-    [[nodiscard]] i32 getDuration() const { return m_duration; }
+    void setDuration(i32 duration)
+    {
+        m_duration = duration;
+    }
+
+    [[nodiscard]] i32 getDuration() const
+    {
+        return m_duration;
+    }
 
     /**
      * @brief 设置每次应用效果时持续时间变化
      */
-    void setDurationOnUse(i32 durationOnUse) { m_durationOnUse = durationOnUse; }
+    void setDurationOnUse(i32 durationOnUse)
+    {
+        m_durationOnUse = durationOnUse;
+    }
 
     // ========== 等待时间 ==========
 
     /**
      * @brief 设置等待时间（应用效果前的延迟）
      */
-    void setWaitTime(i32 waitTime) { m_waitTime = waitTime; }
-    [[nodiscard]] i32 getWaitTime() const { return m_waitTime; }
+    void setWaitTime(i32 waitTime)
+    {
+        m_waitTime = waitTime;
+    }
+
+    [[nodiscard]] i32 getWaitTime() const
+    {
+        return m_waitTime;
+    }
 
     // ========== 重应用延迟 ==========
 
     /**
      * @brief 设置效果重应用延迟
      */
-    void setReapplicationDelay(i32 delay) { m_reapplicationDelay = delay; }
-    [[nodiscard]] i32 getReapplicationDelay() const { return m_reapplicationDelay; }
+    void setReapplicationDelay(i32 delay)
+    {
+        m_reapplicationDelay = delay;
+    }
+
+    [[nodiscard]] i32 getReapplicationDelay() const
+    {
+        return m_reapplicationDelay;
+    }
 
     // ========== 颜色 ==========
 
@@ -329,12 +439,19 @@ public:
         m_color = color;
         m_colorSet = true;
     }
-    [[nodiscard]] u32 getColor() const { return m_color; }
+
+    [[nodiscard]] u32 getColor() const
+    {
+        return m_color;
+    }
 
     /**
      * @brief 设置是否固定颜色
      */
-    void setColorFixed(bool fixed) { m_colorSet = fixed; }
+    void setColorFixed(bool fixed)
+    {
+        m_colorSet = fixed;
+    }
 
     // ========== 效果管理 ==========
 
@@ -346,12 +463,18 @@ public:
     /**
      * @brief 获取所有效果
      */
-    [[nodiscard]] const std::vector<effect::EffectInstance>& getEffects() const { return m_effects; }
+    [[nodiscard]] const std::vector<effect::EffectInstance>& getEffects() const
+    {
+        return m_effects;
+    }
 
     /**
      * @brief 清空所有效果
      */
-    void clearEffects() { m_effects.clear(); }
+    void clearEffects()
+    {
+        m_effects.clear();
+    }
 
     // ========== 拥有者 ==========
 
@@ -382,13 +505,19 @@ public:
      *
      * @return 拥有者实体指针，可能为 nullptr
      */
-    [[nodiscard]] LivingEntity* getOwner() const { return m_owner; }
+    [[nodiscard]] LivingEntity* getOwner() const
+    {
+        return m_owner;
+    }
 
     /**
      * @brief 获取拥有者的 UUID
      * @return 拥有者 UUID 字符串（32 字符十六进制），如果无拥有者则为空字符串
      */
-    [[nodiscard]] const std::string& ownerUuid() const { return m_ownerUuid; }
+    [[nodiscard]] const std::string& ownerUuid() const
+    {
+        return m_ownerUuid;
+    }
 
     /**
      * @brief 仅通过 UUID 设置拥有者（用于 NBT 反序列化）
@@ -417,8 +546,15 @@ public:
      * @brief 设置粒子类型
      * 注：当前项目粒子系统简化，此方法预留接口
      */
-    void setParticleType(u32 particleType) { m_particleType = particleType; }
-    [[nodiscard]] u32 getParticleType() const { return m_particleType; }
+    void setParticleType(u32 particleType)
+    {
+        m_particleType = particleType;
+    }
+
+    [[nodiscard]] u32 getParticleType() const
+    {
+        return m_particleType;
+    }
 
     // ========== 创建工厂 ==========
 
@@ -513,8 +649,16 @@ public:
 
     [[nodiscard]] f32 width() const override;
     [[nodiscard]] f32 height() const override;
-    [[nodiscard]] bool isPushable() const override { return !m_marker; }
-    [[nodiscard]] bool canBeCollidedWith() const override { return !m_marker; }
+
+    [[nodiscard]] bool isPushable() const override
+    {
+        return !m_marker;
+    }
+
+    [[nodiscard]] bool canBeCollidedWith() const override
+    {
+        return !m_marker;
+    }
 
     /**
      * @brief 检查实体是否不触发压力板/绊线
@@ -522,7 +666,10 @@ public:
      *
      * 标记模式的盔甲架不触发压力板和绊线。
      */
-    [[nodiscard]] bool doesEntityNotTriggerPressurePlate() const override { return m_marker; }
+    [[nodiscard]] bool doesEntityNotTriggerPressurePlate() const override
+    {
+        return m_marker;
+    }
 
     /**
      * @brief 判断盔甲架是否忽略此次爆炸
@@ -535,13 +682,23 @@ public:
     /**
      * @brief 检查是否有重力
      */
-    [[nodiscard]] bool hasGravity() const { return m_hasGravity; }
-    void setGravity(bool gravity) { m_hasGravity = gravity; }
+    [[nodiscard]] bool hasGravity() const
+    {
+        return m_hasGravity;
+    }
+
+    void setGravity(bool gravity)
+    {
+        m_hasGravity = gravity;
+    }
 
     /**
      * @brief 检查是否可见（非不可见、非标记模式）
      */
-    [[nodiscard]] bool isVisible() const { return !isInvisible() && !m_marker; }
+    [[nodiscard]] bool isVisible() const
+    {
+        return !isInvisible() && !m_marker;
+    }
 
     /**
      * @brief 不可见状态（存放在 ArmorStandStateComponent）
@@ -549,7 +706,11 @@ public:
      * 不可见盔甲架在 shouldAffectBlocklikeEntities 为真时仍忽略爆炸（vanilla
      * ArmorStand.ignoreExplosion 用 Entity.isInvisible() 判定）。
      */
-    [[nodiscard]] bool isInvisible() const { return armorStandState().m_invisible; }
+    [[nodiscard]] bool isInvisible() const
+    {
+        return armorStandState().m_invisible;
+    }
+
     void setInvisible(bool invisible)
     {
         mutableArmorStandState().m_invisible = invisible;
@@ -559,13 +720,24 @@ public:
     /**
      * @brief 检查是否为标记模式
      */
-    [[nodiscard]] bool isMarker() const { return m_marker; }
-    void setMarker(bool marker) { m_marker = marker; }
+    [[nodiscard]] bool isMarker() const
+    {
+        return m_marker;
+    }
+
+    void setMarker(bool marker)
+    {
+        m_marker = marker;
+    }
 
     /**
      * @brief 检查是否有底座
      */
-    [[nodiscard]] bool hasBasePlate() const { return armorStandState().m_basePlate; }
+    [[nodiscard]] bool hasBasePlate() const
+    {
+        return armorStandState().m_basePlate;
+    }
+
     void setBasePlate(bool basePlate)
     {
         mutableArmorStandState().m_basePlate = basePlate;
@@ -594,12 +766,20 @@ public:
         mutableArmorStandState().m_disabledSlots = disabledSlots;
         _syncClientFlags();
     }
-    [[nodiscard]] i32 disabledSlots() const { return armorStandState().m_disabledSlots; }
+
+    [[nodiscard]] i32 disabledSlots() const
+    {
+        return armorStandState().m_disabledSlots;
+    }
 
     /**
      * @brief 检查是否显示手臂（为 false 时手部槽位不可交互）
      */
-    [[nodiscard]] bool hasArms() const { return armorStandState().m_arms; }
+    [[nodiscard]] bool hasArms() const
+    {
+        return armorStandState().m_arms;
+    }
+
     void setArms(bool arms)
     {
         mutableArmorStandState().m_arms = arms;
@@ -619,7 +799,11 @@ public:
     /**
      * @brief 检查是否是小型
      */
-    [[nodiscard]] bool isSmall() const { return armorStandState().m_small; }
+    [[nodiscard]] bool isSmall() const
+    {
+        return armorStandState().m_small;
+    }
+
     void setSmall(bool small)
     {
         mutableArmorStandState().m_small = small;
@@ -643,9 +827,20 @@ public:
     /**
      * @brief 当前生命值（自带 health，对齐 vanilla ArmorStand.MAX_HEALTH=2）
      */
-    [[nodiscard]] f32 health() const { return m_health; }
-    void setHealth(f32 health) { m_health = health; }
-    [[nodiscard]] f32 maxHealth() const { return ARMOR_STAND_MAX_HEALTH; }
+    [[nodiscard]] f32 health() const
+    {
+        return m_health;
+    }
+
+    void setHealth(f32 health)
+    {
+        m_health = health;
+    }
+
+    [[nodiscard]] f32 maxHealth() const
+    {
+        return ARMOR_STAND_MAX_HEALTH;
+    }
 
     /**
      * @brief 可交互槽位判定（对齐 vanilla ArmorStand.canUseSlot）

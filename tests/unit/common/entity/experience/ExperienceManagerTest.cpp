@@ -42,7 +42,10 @@ protected:
         manager = &player->experienceManager();
     }
 
-    void TearDown() override { player.reset(); }
+    void TearDown() override
+    {
+        player.reset();
+    }
 
     std::unique_ptr<Player> player;
     ExperienceManager* manager; // 非拥有指针，指向 Player 内部的 manager
@@ -394,7 +397,9 @@ TEST_F(ExperienceManagerTest, ExperienceChangeCallback)
 {
     i32 callbackTotalXp = -1;
 
-    manager->setExperienceChangeCallback([&](i32 totalXp) { callbackTotalXp = totalXp; });
+    manager->setExperienceChangeCallback([&](i32 totalXp) {
+        callbackTotalXp = totalXp;
+    });
 
     manager->addExperience(100);
 
@@ -548,7 +553,9 @@ TEST_F(ExperienceManagerTest, LevelUpAtMultiplesOfFive)
 {
     // 验证每5级升级时回调正确触发
     std::vector<i32> levelChanges;
-    manager->setLevelChangeCallback([&](i32 oldLevel, i32 newLevel) { levelChanges.push_back(newLevel); });
+    manager->setLevelChangeCallback([&](i32 oldLevel, i32 newLevel) {
+        levelChanges.push_back(newLevel);
+    });
 
     // 升到5级
     i32 xpForLevel5 = ExperienceManager::getExperienceForLevel(5);

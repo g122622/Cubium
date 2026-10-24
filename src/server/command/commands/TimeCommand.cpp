@@ -115,7 +115,9 @@ void TimeCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
     });
 
     auto setArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, i32>>("value", TimeArgumentType::time());
-    setArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _setTime(ctx); });
+    setArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _setTime(ctx);
+    });
 
     setValueNode->addChild(dayNode);
     setValueNode->addChild(noonNode);
@@ -125,17 +127,23 @@ void TimeCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
 
     auto addValueNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("add");
     auto addArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, i32>>("value", TimeArgumentType::time());
-    addArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _addTime(ctx); });
+    addArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _addTime(ctx);
+    });
     addValueNode->addChild(addArg);
 
     auto queryNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("query");
     auto queryArg =
         std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>("type", StringArgumentType::word());
-    queryArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _queryTime(ctx); });
+    queryArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _queryTime(ctx);
+    });
     queryNode->addChild(queryArg);
 
     auto timeNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("time");
-    timeNode->setRequirement([](const ServerCommandSource& source) { return source.hasPermission(2); });
+    timeNode->setRequirement([](const ServerCommandSource& source) {
+        return source.hasPermission(2);
+    });
     support::applyMetadata(
         timeNode, support::makeMetadata("Change or query the world time.", "/time <set|add|query> ...", 2));
     timeNode->addChild(setValueNode);

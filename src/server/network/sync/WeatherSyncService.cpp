@@ -52,7 +52,9 @@ void WeatherSyncService::tick()
 
     // 天气仅存在于主世界
     auto* overworld = m_server.dimensionManager().getOverworld();
-    if (!overworld || !overworld->world() || !overworld->world()->weatherManager()) return;
+    if (!overworld || !overworld->world() || !overworld->world()->weatherManager()) {
+        return;
+    }
 
     auto& weatherMgr = *overworld->world()->weatherManager();
     f32 rainStrength = weatherMgr.rainStrength();
@@ -112,7 +114,9 @@ void WeatherSyncService::sendInitialWeatherStateToPlayer(PlayerId playerId)
 
     // 天气仅存在于主世界
     auto* overworld = m_server.dimensionManager().getOverworld();
-    if (!overworld || !overworld->world() || !overworld->world()->weatherManager()) return;
+    if (!overworld || !overworld->world() || !overworld->world()->weatherManager()) {
+        return;
+    }
 
     auto& weatherMgr = *overworld->world()->weatherManager();
     f32 rainStrength = weatherMgr.rainStrength();

@@ -58,7 +58,10 @@ public:
     /**
      * @brief 设置是否坐下
      */
-    void setSitting(bool sitting) { m_isSitting = sitting; }
+    void setSitting(bool sitting)
+    {
+        m_isSitting = sitting;
+    }
 
 private:
     f32 m_lieDownAmount = 0.0f;

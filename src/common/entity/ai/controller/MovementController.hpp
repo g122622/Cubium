@@ -90,32 +90,50 @@ public:
     /**
      * @brief 是否正在更新（移动中）
      */
-    [[nodiscard]] bool isUpdating() const { return m_action == MoveAction::MoveTo; }
+    [[nodiscard]] bool isUpdating() const
+    {
+        return m_action == MoveAction::MoveTo;
+    }
 
     /**
      * @brief 获取移动速度倍率
      */
-    [[nodiscard]] f64 speed() const { return m_speed; }
+    [[nodiscard]] f64 speed() const
+    {
+        return m_speed;
+    }
 
     /**
      * @brief 获取目标X坐标
      */
-    [[nodiscard]] f64 getX() const { return m_posX; }
+    [[nodiscard]] f64 getX() const
+    {
+        return m_posX;
+    }
 
     /**
      * @brief 获取目标Y坐标
      */
-    [[nodiscard]] f64 getY() const { return m_posY; }
+    [[nodiscard]] f64 getY() const
+    {
+        return m_posY;
+    }
 
     /**
      * @brief 获取目标Z坐标
      */
-    [[nodiscard]] f64 getZ() const { return m_posZ; }
+    [[nodiscard]] f64 getZ() const
+    {
+        return m_posZ;
+    }
 
     /**
      * @brief 获取当前动作
      */
-    [[nodiscard]] MoveAction action() const { return m_action; }
+    [[nodiscard]] MoveAction action() const
+    {
+        return m_action;
+    }
 
     /**
      * @brief 刻更新

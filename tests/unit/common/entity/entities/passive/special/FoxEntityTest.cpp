@@ -76,13 +76,17 @@ public:
         return static_cast<EntityInstanceId>(m_spawnedEntities.size());
     }
 
-    [[nodiscard]] const std::vector<std::unique_ptr<Entity>>& spawnedEntities() const { return m_spawnedEntities; }
+    [[nodiscard]] const std::vector<std::unique_ptr<Entity>>& spawnedEntities() const
+    {
+        return m_spawnedEntities;
+    }
 
     // TickManager interface (stubbed for tests)
     [[nodiscard]] world::tick::TickManager& tickManager() override
     {
         throw std::runtime_error("FoxTestWorld::tickManager not implemented");
     }
+
     [[nodiscard]] const world::tick::TickManager& tickManager() const override
     {
         throw std::runtime_error("FoxTestWorld::tickManager not implemented");
@@ -548,8 +552,12 @@ TEST_F(FoxEntityTest, Goals_HasBasicAnimalGoals)
 
     for (const auto& goal : goals) {
         const std::string typeName = goal.getGoal()->getTypeName();
-        if (typeName == "AvoidEntityGoal") hasAvoidEntityGoal = true;
-        if (typeName == "TemptGoal") hasTemptGoal = true;
+        if (typeName == "AvoidEntityGoal") {
+            hasAvoidEntityGoal = true;
+        }
+        if (typeName == "TemptGoal") {
+            hasTemptGoal = true;
+        }
     }
 
     // 验证我们实现的目标存在

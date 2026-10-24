@@ -91,10 +91,16 @@ protected:
         mc::test::removeTestDir(m_testDir);
     }
 
-    ServerWorld& world() { return *m_world; }
+    ServerWorld& world()
+    {
+        return *m_world;
+    }
 
     /// 确保指定区块坐标处的区块已加载
-    void ensureChunk(i32 chunkX, i32 chunkZ) { m_world->chunkManager()->requestFullChunkSync(chunkX, chunkZ); }
+    void ensureChunk(i32 chunkX, i32 chunkZ)
+    {
+        m_world->chunkManager()->requestFullChunkSync(chunkX, chunkZ);
+    }
 
     /// 在指定位置放置羊毛方块（属于 OCCLUDES_VIBRATION_SIGNALS 标签）
     void placeWool(i32 x, i32 y, i32 z)
@@ -129,7 +135,9 @@ TEST_F(IsBlockInLineTest, SameStartAndEndPoint_NoMatchingBlock_ReturnsFalse)
 
     // Y=300 远高于地形生成高度，保证该位置是空气
     Vector3d pos(5.5, 300.5, 5.5);
-    bool result = world().isBlockInLine(pos, pos, [](const BlockState&) { return true; });
+    bool result = world().isBlockInLine(pos, pos, [](const BlockState&) {
+        return true;
+    });
     EXPECT_FALSE(result);
 }
 
@@ -141,8 +149,9 @@ TEST_F(IsBlockInLineTest, SameStartAndEndPoint_MatchingBlock_ReturnsTrue)
     placeStone(5, 300, 5);
 
     Vector3d pos(5.5, 300.5, 5.5);
-    bool result = world().isBlockInLine(
-        pos, pos, [](const BlockState& state) { return state.blockId() == VanillaBlocks::STONE->blockId(); });
+    bool result = world().isBlockInLine(pos, pos, [](const BlockState& state) {
+        return state.blockId() == VanillaBlocks::STONE->blockId();
+    });
     EXPECT_TRUE(result);
 }
 
@@ -153,7 +162,9 @@ TEST_F(IsBlockInLineTest, AxisAlignedX_NoMatchingBlock_ReturnsFalse)
     // Y=300，沿 X 轴方向遍历，全部是空气
     Vector3d from(0.5, 300.5, 0.5);
     Vector3d to(15.5, 300.5, 0.5);
-    bool result = world().isBlockInLine(from, to, [](const BlockState&) { return true; });
+    bool result = world().isBlockInLine(from, to, [](const BlockState&) {
+        return true;
+    });
     EXPECT_FALSE(result);
 }
 
@@ -166,8 +177,9 @@ TEST_F(IsBlockInLineTest, AxisAlignedX_BlockInPath_ReturnsTrue)
 
     Vector3d from(0.5, 300.5, 0.5);
     Vector3d to(15.5, 300.5, 0.5);
-    bool result = world().isBlockInLine(
-        from, to, [](const BlockState& state) { return state.blockId() == VanillaBlocks::STONE->blockId(); });
+    bool result = world().isBlockInLine(from, to, [](const BlockState& state) {
+        return state.blockId() == VanillaBlocks::STONE->blockId();
+    });
     EXPECT_TRUE(result);
 }
 
@@ -180,8 +192,9 @@ TEST_F(IsBlockInLineTest, AxisAlignedX_BlockNotOnPath_ReturnsFalse)
 
     Vector3d from(0.5, 300.5, 0.5);
     Vector3d to(15.5, 300.5, 0.5);
-    bool result = world().isBlockInLine(
-        from, to, [](const BlockState& state) { return state.blockId() == VanillaBlocks::STONE->blockId(); });
+    bool result = world().isBlockInLine(from, to, [](const BlockState& state) {
+        return state.blockId() == VanillaBlocks::STONE->blockId();
+    });
     EXPECT_FALSE(result);
 }
 
@@ -194,8 +207,9 @@ TEST_F(IsBlockInLineTest, AxisAlignedZ_BlockInPath_ReturnsTrue)
 
     Vector3d from(0.5, 300.5, 0.5);
     Vector3d to(0.5, 300.5, 15.5);
-    bool result = world().isBlockInLine(
-        from, to, [](const BlockState& state) { return state.blockId() == VanillaBlocks::STONE->blockId(); });
+    bool result = world().isBlockInLine(from, to, [](const BlockState& state) {
+        return state.blockId() == VanillaBlocks::STONE->blockId();
+    });
     EXPECT_TRUE(result);
 }
 
@@ -208,8 +222,9 @@ TEST_F(IsBlockInLineTest, AxisAlignedY_BlockInPath_ReturnsTrue)
 
     Vector3d from(0.5, 290.5, 0.5);
     Vector3d to(0.5, 310.5, 0.5);
-    bool result = world().isBlockInLine(
-        from, to, [](const BlockState& state) { return state.blockId() == VanillaBlocks::STONE->blockId(); });
+    bool result = world().isBlockInLine(from, to, [](const BlockState& state) {
+        return state.blockId() == VanillaBlocks::STONE->blockId();
+    });
     EXPECT_TRUE(result);
 }
 
@@ -222,8 +237,9 @@ TEST_F(IsBlockInLineTest, DiagonalRay_BlockInPath_ReturnsTrue)
 
     Vector3d from(0.5, 300.5, 0.5);
     Vector3d to(10.5, 300.5, 10.5);
-    bool result = world().isBlockInLine(
-        from, to, [](const BlockState& state) { return state.blockId() == VanillaBlocks::STONE->blockId(); });
+    bool result = world().isBlockInLine(from, to, [](const BlockState& state) {
+        return state.blockId() == VanillaBlocks::STONE->blockId();
+    });
     EXPECT_TRUE(result);
 }
 
@@ -237,8 +253,9 @@ TEST_F(IsBlockInLineTest, NegativeCoordinates_BlockInPath_ReturnsTrue)
 
     Vector3d from(-10.5, 300.5, -10.5);
     Vector3d to(0.5, 300.5, 0.5);
-    bool result = world().isBlockInLine(
-        from, to, [](const BlockState& state) { return state.blockId() == VanillaBlocks::STONE->blockId(); });
+    bool result = world().isBlockInLine(from, to, [](const BlockState& state) {
+        return state.blockId() == VanillaBlocks::STONE->blockId();
+    });
     EXPECT_TRUE(result);
 }
 
@@ -253,8 +270,9 @@ TEST_F(IsBlockInLineTest, PredicateNeverMatches_ReturnsFalse)
 
     Vector3d from(0.5, 300.5, 0.5);
     Vector3d to(10.5, 300.5, 0.5);
-    bool result = world().isBlockInLine(
-        from, to, [](const BlockState& state) { return state.blockId() == VanillaBlocks::WHITE_WOOL->blockId(); });
+    bool result = world().isBlockInLine(from, to, [](const BlockState& state) {
+        return state.blockId() == VanillaBlocks::WHITE_WOOL->blockId();
+    });
     EXPECT_FALSE(result);
 }
 
@@ -271,8 +289,9 @@ TEST_F(IsBlockInLineTest, PredicateMatchesWool_ReturnsTrue)
     Vector3d to(10.5, 300.5, 0.5);
 
     // 搜索羊毛方块
-    bool result = world().isBlockInLine(
-        from, to, [](const BlockState& state) { return state.blockId() == VanillaBlocks::WHITE_WOOL->blockId(); });
+    bool result = world().isBlockInLine(from, to, [](const BlockState& state) {
+        return state.blockId() == VanillaBlocks::WHITE_WOOL->blockId();
+    });
     EXPECT_TRUE(result);
 }
 
@@ -285,8 +304,9 @@ TEST_F(IsBlockInLineTest, BlockAfterEndPoint_NotFound)
 
     Vector3d from(0.5, 300.5, 0.5);
     Vector3d to(10.5, 300.5, 0.5);
-    bool result = world().isBlockInLine(
-        from, to, [](const BlockState& state) { return state.blockId() == VanillaBlocks::STONE->blockId(); });
+    bool result = world().isBlockInLine(from, to, [](const BlockState& state) {
+        return state.blockId() == VanillaBlocks::STONE->blockId();
+    });
     EXPECT_FALSE(result);
 }
 
@@ -310,8 +330,9 @@ TEST_F(IsBlockInLineTest, BlockAtStartPoint_ReturnsTrue)
 
     Vector3d from(0.5, 300.5, 0.5);
     Vector3d to(5.5, 300.5, 0.5);
-    bool result = world().isBlockInLine(
-        from, to, [](const BlockState& state) { return state.blockId() == VanillaBlocks::STONE->blockId(); });
+    bool result = world().isBlockInLine(from, to, [](const BlockState& state) {
+        return state.blockId() == VanillaBlocks::STONE->blockId();
+    });
     EXPECT_TRUE(result);
 }
 
@@ -324,8 +345,9 @@ TEST_F(IsBlockInLineTest, BlockAtEndPoint_ReturnsTrue)
 
     Vector3d from(0.5, 300.5, 0.5);
     Vector3d to(5.5, 300.5, 0.5);
-    bool result = world().isBlockInLine(
-        from, to, [](const BlockState& state) { return state.blockId() == VanillaBlocks::STONE->blockId(); });
+    bool result = world().isBlockInLine(from, to, [](const BlockState& state) {
+        return state.blockId() == VanillaBlocks::STONE->blockId();
+    });
     EXPECT_TRUE(result);
 }
 
@@ -338,8 +360,9 @@ TEST_F(IsBlockInLineTest, BlockTagPredicate_WoolInPath_ReturnsTrue)
 
     Vector3d from(0.5, 300.5, 0.5);
     Vector3d to(10.5, 300.5, 0.5);
-    bool result = world().isBlockInLine(
-        from, to, [](const BlockState& state) { return BlockTags::OCCLUDES_VIBRATION_SIGNALS().contains(state); });
+    bool result = world().isBlockInLine(from, to, [](const BlockState& state) {
+        return BlockTags::OCCLUDES_VIBRATION_SIGNALS().contains(state);
+    });
     EXPECT_TRUE(result);
 }
 
@@ -352,8 +375,9 @@ TEST_F(IsBlockInLineTest, BlockTagPredicate_StoneInPath_ReturnsFalse)
 
     Vector3d from(0.5, 300.5, 0.5);
     Vector3d to(10.5, 300.5, 0.5);
-    bool result = world().isBlockInLine(
-        from, to, [](const BlockState& state) { return BlockTags::OCCLUDES_VIBRATION_SIGNALS().contains(state); });
+    bool result = world().isBlockInLine(from, to, [](const BlockState& state) {
+        return BlockTags::OCCLUDES_VIBRATION_SIGNALS().contains(state);
+    });
     EXPECT_FALSE(result);
 }
 
@@ -366,8 +390,9 @@ TEST_F(IsBlockInLineTest, ReverseDirection_BlockInPath_ReturnsTrue)
 
     Vector3d from(10.5, 300.5, 0.5);
     Vector3d to(0.5, 300.5, 0.5);
-    bool result = world().isBlockInLine(
-        from, to, [](const BlockState& state) { return state.blockId() == VanillaBlocks::STONE->blockId(); });
+    bool result = world().isBlockInLine(from, to, [](const BlockState& state) {
+        return state.blockId() == VanillaBlocks::STONE->blockId();
+    });
     EXPECT_TRUE(result);
 }
 

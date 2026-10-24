@@ -227,7 +227,10 @@ public:
      * @brief 检查是否为铁门
      * @return 如果是铁门返回true
      */
-    [[nodiscard]] bool isIronDoor() const noexcept { return m_isIron; }
+    [[nodiscard]] bool isIronDoor() const noexcept
+    {
+        return m_isIron;
+    }
 
     /**
      * @brief 检查是否为木门

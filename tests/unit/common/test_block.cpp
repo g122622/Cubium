@@ -203,48 +203,123 @@ public:
         return &fluid::Fluids::EMPTY()->defaultState();
     }
 
-    [[nodiscard]] i32 getHeight(i32, i32) const override { return 64; }
+    [[nodiscard]] i32 getHeight(i32, i32) const override
+    {
+        return 64;
+    }
+
     [[nodiscard]] u8 getBlockLight(i32 x, i32 y, i32 z) const override
     {
         return sampleLight(m_blockLight, x, y, z, 15);
     }
-    [[nodiscard]] u8 getSkyLight(i32 x, i32 y, i32 z) const override { return sampleLight(m_skyLight, x, y, z, 15); }
-    [[nodiscard]] bool hasBlockCollision(const AxisAlignedBB&) const override { return false; }
-    [[nodiscard]] std::vector<AxisAlignedBB> getBlockCollisions(const AxisAlignedBB&) const override { return {}; }
+
+    [[nodiscard]] u8 getSkyLight(i32 x, i32 y, i32 z) const override
+    {
+        return sampleLight(m_skyLight, x, y, z, 15);
+    }
+
+    [[nodiscard]] bool hasBlockCollision(const AxisAlignedBB&) const override
+    {
+        return false;
+    }
+
+    [[nodiscard]] std::vector<AxisAlignedBB> getBlockCollisions(const AxisAlignedBB&) const override
+    {
+        return {};
+    }
+
     [[nodiscard]] bool isWithinWorldBounds(i32, i32 y, i32) const override
     {
         return y >= mc::world::MIN_BUILD_HEIGHT && y < mc::world::MAX_BUILD_HEIGHT;
     }
-    [[nodiscard]] bool hasEntityCollision(const AxisAlignedBB&, const Entity*) const override { return false; }
+
+    [[nodiscard]] bool hasEntityCollision(const AxisAlignedBB&, const Entity*) const override
+    {
+        return false;
+    }
+
     [[nodiscard]] std::vector<AxisAlignedBB> getEntityCollisions(const AxisAlignedBB&, const Entity*) const override
     {
         return {};
     }
-    [[nodiscard]] PhysicsEngine* physicsEngine() override { return nullptr; }
-    [[nodiscard]] const PhysicsEngine* physicsEngine() const override { return nullptr; }
+
+    [[nodiscard]] PhysicsEngine* physicsEngine() override
+    {
+        return nullptr;
+    }
+
+    [[nodiscard]] const PhysicsEngine* physicsEngine() const override
+    {
+        return nullptr;
+    }
+
     [[nodiscard]] std::vector<Entity*> getEntitiesInAABB(const AxisAlignedBB&, const Entity*) const override
     {
         return {};
     }
+
     [[nodiscard]] std::vector<Entity*> getEntitiesInRange(const Vector3&, f32, const Entity*) const override
     {
         return {};
     }
-    [[nodiscard]] DimensionId dimension() const override { return DimensionId(0); }
-    [[nodiscard]] u64 seed() const override { return m_seed; }
-    [[nodiscard]] u64 currentTick() const override { return 0; }
-    [[nodiscard]] i64 dayTime() const override { return 0; }
-    [[nodiscard]] bool isHardcore() const override { return false; }
-    [[nodiscard]] Difficulty difficulty() const override { return Difficulty::Peaceful; }
-    [[nodiscard]] bool isClientSide() const override { return false; }
-    [[nodiscard]] bool isRaining() const override { return m_isRaining; }
-    [[nodiscard]] bool canRainAt(const BlockPos&) const override { return m_canRainAt; }
+
+    [[nodiscard]] DimensionId dimension() const override
+    {
+        return DimensionId(0);
+    }
+
+    [[nodiscard]] u64 seed() const override
+    {
+        return m_seed;
+    }
+
+    [[nodiscard]] u64 currentTick() const override
+    {
+        return 0;
+    }
+
+    [[nodiscard]] i64 dayTime() const override
+    {
+        return 0;
+    }
+
+    [[nodiscard]] bool isHardcore() const override
+    {
+        return false;
+    }
+
+    [[nodiscard]] Difficulty difficulty() const override
+    {
+        return Difficulty::Peaceful;
+    }
+
+    [[nodiscard]] bool isClientSide() const override
+    {
+        return false;
+    }
+
+    [[nodiscard]] bool isRaining() const override
+    {
+        return m_isRaining;
+    }
+
+    [[nodiscard]] bool canRainAt(const BlockPos&) const override
+    {
+        return m_canRainAt;
+    }
 
     // 提供 ECS 实体注册表：方块 tick（如 FallingBlock::tick）在 ECS 迁移后构造实体需 registry
     // 句柄，world.entityRegistry()==nullptr 时静默跳过 spawn（沙子不掉落）。返回共享测试 registry
     // 与 BaseTestWorld 对齐，使 FallingBlock 等能正常 spawn 实体。
-    [[nodiscard]] ecs::EntityRegistry* entityRegistry() override { return &mc::test::testEcsRegistry(); }
-    [[nodiscard]] const ecs::EntityRegistry* entityRegistry() const override { return &mc::test::testEcsRegistry(); }
+    [[nodiscard]] ecs::EntityRegistry* entityRegistry() override
+    {
+        return &mc::test::testEcsRegistry();
+    }
+
+    [[nodiscard]] const ecs::EntityRegistry* entityRegistry() const override
+    {
+        return &mc::test::testEcsRegistry();
+    }
 
     EntityInstanceId spawnEntity(std::unique_ptr<Entity> entity) override
     {
@@ -253,19 +328,40 @@ public:
         return m_spawnEntityResult;
     }
 
-    void setSpawnEntityResult(EntityInstanceId result) { m_spawnEntityResult = result; }
+    void setSpawnEntityResult(EntityInstanceId result)
+    {
+        m_spawnEntityResult = result;
+    }
 
-    void setSeed(u64 seed) { m_seed = seed; }
+    void setSeed(u64 seed)
+    {
+        m_seed = seed;
+    }
 
-    void setRaining(bool raining) { m_isRaining = raining; }
+    void setRaining(bool raining)
+    {
+        m_isRaining = raining;
+    }
 
-    void setCanRainAt(bool canRainAt) { m_canRainAt = canRainAt; }
+    void setCanRainAt(bool canRainAt)
+    {
+        m_canRainAt = canRainAt;
+    }
 
-    void setSkyLightAt(const BlockPos& pos, u8 light) { m_skyLight[pos] = light; }
+    void setSkyLightAt(const BlockPos& pos, u8 light)
+    {
+        m_skyLight[pos] = light;
+    }
 
-    void setBlockLightAt(const BlockPos& pos, u8 light) { m_blockLight[pos] = light; }
+    void setBlockLightAt(const BlockPos& pos, u8 light)
+    {
+        m_blockLight[pos] = light;
+    }
 
-    [[nodiscard]] i32 spawnedEntityCount() const { return m_spawnedEntityCount; }
+    [[nodiscard]] i32 spawnedEntityCount() const
+    {
+        return m_spawnedEntityCount;
+    }
 
     // TickManager interface
     void ensureTickManager()
@@ -274,11 +370,13 @@ public:
             m_tickManagerPtr = std::make_unique<world::tick::TickManager>(*this);
         }
     }
+
     [[nodiscard]] world::tick::TickManager& tickManager() override
     {
         ensureTickManager();
         return *m_tickManagerPtr;
     }
+
     [[nodiscard]] const world::tick::TickManager& tickManager() const override
     {
         const_cast<BlockRulesTestWorld*>(this)->ensureTickManager();
@@ -286,12 +384,26 @@ public:
     }
 
     // Random interface
-    [[nodiscard]] math::IRandom& getRandom() override { return m_random; }
-    [[nodiscard]] const math::IRandom& getRandom() const override { return m_random; }
+    [[nodiscard]] math::IRandom& getRandom() override
+    {
+        return m_random;
+    }
+
+    [[nodiscard]] const math::IRandom& getRandom() const override
+    {
+        return m_random;
+    }
 
     // WorldBorder interface
-    [[nodiscard]] world::border::WorldBorder& worldBorder() override { return m_worldBorder; }
-    [[nodiscard]] const world::border::WorldBorder& worldBorder() const override { return m_worldBorder; }
+    [[nodiscard]] world::border::WorldBorder& worldBorder() override
+    {
+        return m_worldBorder;
+    }
+
+    [[nodiscard]] const world::border::WorldBorder& worldBorder() const override
+    {
+        return m_worldBorder;
+    }
 
 private:
     [[nodiscard]] static u8 sampleLight(const std::map<BlockPos, u8>& lights, i32 x, i32 y, i32 z, u8 fallback)
@@ -355,8 +467,15 @@ public:
         setDefaultState(defaultState().with(BlockStateProperties::AGE_0_7(), 0));
     }
 
-    [[nodiscard]] u32 getCropItem() const override { return 0; }
-    [[nodiscard]] u32 getSeedItem() const override { return 0; }
+    [[nodiscard]] u32 getCropItem() const override
+    {
+        return 0;
+    }
+
+    [[nodiscard]] u32 getSeedItem() const override
+    {
+        return 0;
+    }
 };
 
 class TestStemBlock final : public blocks::StemBlock {
@@ -380,7 +499,10 @@ public:
         setDefaultState(defaultState().with(BlockStateProperties::AGE_0_7(), 0));
     }
 
-    [[nodiscard]] u32 getSeedItem() const override { return 0; }
+    [[nodiscard]] u32 getSeedItem() const override
+    {
+        return 0;
+    }
 };
 
 } // namespace
@@ -856,7 +978,9 @@ TEST(BlockRegistryTest, ForEachBlock)
         ResourceLocation("test:blockB_reg"), BlockProperties{Material::WOOD});
 
     int count = 0;
-    BlockRegistry::instance().forEachBlock([&count](Block&) { count++; });
+    BlockRegistry::instance().forEachBlock([&count](Block&) {
+        count++;
+    });
 
     EXPECT_GT(count, 0);
 }
@@ -867,7 +991,9 @@ TEST(BlockRegistryTest, ForEachBlockState)
         ResourceLocation("test:block_with_axis_reg2"), BlockProperties{Material::WOOD});
 
     int count = 0;
-    BlockRegistry::instance().forEachBlockState([&count](const BlockState&) { count++; });
+    BlockRegistry::instance().forEachBlockState([&count](const BlockState&) {
+        count++;
+    });
 
     // axis has 3 values, so at least 3 states
     EXPECT_GE(count, 3);

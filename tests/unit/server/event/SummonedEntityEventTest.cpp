@@ -132,8 +132,10 @@ TEST_F(SummonedEntityEventTest, ServerWorld_OnSummonedEntity_MultipleEvents)
     // 订阅事件并计数
     std::atomic<i32> eventCount{0};
 
-    auto subscription = event::ServerEventBus::instance().makeSubscription<SummonedEntityEvent>(
-        [&](const SummonedEntityEvent&) { eventCount++; });
+    auto subscription =
+        event::ServerEventBus::instance().makeSubscription<SummonedEntityEvent>([&](const SummonedEntityEvent&) {
+            eventCount++;
+        });
 
     // 发布多个事件（模拟多个玩家召唤不同实体）
     m_world->onSummonedEntity(PlayerId{1}, reinterpret_cast<Entity*>(0x10));
@@ -152,8 +154,10 @@ TEST_F(SummonedEntityEventTest, ServerWorld_OnSummonedEntity_DifferentPlayers)
     // 测试不同玩家召唤实体的事件
     std::vector<PlayerId> receivedPlayerIds;
 
-    auto subscription = event::ServerEventBus::instance().makeSubscription<SummonedEntityEvent>(
-        [&](const SummonedEntityEvent& e) { receivedPlayerIds.push_back(e.playerId); });
+    auto subscription =
+        event::ServerEventBus::instance().makeSubscription<SummonedEntityEvent>([&](const SummonedEntityEvent& e) {
+            receivedPlayerIds.push_back(e.playerId);
+        });
 
     // 模拟多个玩家召唤实体
     m_world->onSummonedEntity(PlayerId{100}, reinterpret_cast<Entity*>(0x10));
@@ -207,8 +211,10 @@ TEST_F(SummonedEntityEventTest, Timestamp_UsesWorldTick)
 
     // 订阅事件
     u64 receivedTick = 0;
-    auto subscription = event::ServerEventBus::instance().makeSubscription<SummonedEntityEvent>(
-        [&](const SummonedEntityEvent& e) { receivedTick = e.timestamp; });
+    auto subscription =
+        event::ServerEventBus::instance().makeSubscription<SummonedEntityEvent>([&](const SummonedEntityEvent& e) {
+            receivedTick = e.timestamp;
+        });
 
     // 发布事件
     m_world->onSummonedEntity(PlayerId{1}, reinterpret_cast<Entity*>(0x10));
@@ -242,8 +248,10 @@ TEST_F(SummonedEntityEventTest, Unsubscribe_StopsReceivingEvents)
     // 订阅事件
     std::atomic<i32> eventCount{0};
 
-    auto subscription = event::ServerEventBus::instance().makeSubscription<SummonedEntityEvent>(
-        [&](const SummonedEntityEvent&) { eventCount++; });
+    auto subscription =
+        event::ServerEventBus::instance().makeSubscription<SummonedEntityEvent>([&](const SummonedEntityEvent&) {
+            eventCount++;
+        });
 
     // 发布事件 - 应该收到
     m_world->onSummonedEntity(PlayerId{1}, reinterpret_cast<Entity*>(0x10));
@@ -267,11 +275,15 @@ TEST_F(SummonedEntityEventTest, MultipleSubscribers_AllReceiveEvent)
     std::atomic<i32> count1{0};
     std::atomic<i32> count2{0};
 
-    auto sub1 = event::ServerEventBus::instance().makeSubscription<SummonedEntityEvent>(
-        [&](const SummonedEntityEvent&) { count1++; });
+    auto sub1 =
+        event::ServerEventBus::instance().makeSubscription<SummonedEntityEvent>([&](const SummonedEntityEvent&) {
+            count1++;
+        });
 
-    auto sub2 = event::ServerEventBus::instance().makeSubscription<SummonedEntityEvent>(
-        [&](const SummonedEntityEvent&) { count2++; });
+    auto sub2 =
+        event::ServerEventBus::instance().makeSubscription<SummonedEntityEvent>([&](const SummonedEntityEvent&) {
+            count2++;
+        });
 
     // 发布事件
     m_world->onSummonedEntity(PlayerId{1}, reinterpret_cast<Entity*>(0x10));

@@ -402,6 +402,7 @@ inline std::unique_ptr<Attribute> waypointTransmitRange()
 {
     return std::make_unique<Attribute>("generic.waypoint_transmit_range", 0.0, 0.0, 60000000.0);
 }
+
 /** @brief 导航点接收范围。 */
 inline std::unique_ptr<Attribute> waypointReceiveRange()
 {

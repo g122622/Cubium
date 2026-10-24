@@ -75,9 +75,17 @@ public:
         setHealth(maxHealth());
     }
 
-    [[nodiscard]] bool canBlockDamageSource(DamageSource& /*source*/) const override { return true; }
+    [[nodiscard]] bool canBlockDamageSource(DamageSource& /*source*/) const override
+    {
+        return true;
+    }
+
     void damageShield(f32 /*amount*/) override {} // 空实现，避免盾牌物品栏依赖
-    void blockedByItem(LivingEntity& /*victim*/) override { m_blockedFlag = true; }
+
+    void blockedByItem(LivingEntity& /*victim*/) override
+    {
+        m_blockedFlag = true;
+    }
 
     bool m_blockedFlag = false;
 };
@@ -99,7 +107,10 @@ protected:
         DamageTypeTags::initialize();
     }
 
-    void TearDown() override { item::enchant::EnchantmentRegistry::clear(); }
+    void TearDown() override
+    {
+        item::enchant::EnchantmentRegistry::clear();
+    }
 
     TestWorld m_world;
 };

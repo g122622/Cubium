@@ -48,9 +48,15 @@ namespace {
 // ============================================================================
 class MemoryResourcePack final : public IResourcePack {
 public:
-    Result<void> initialize() override { return {}; }
+    Result<void> initialize() override
+    {
+        return {};
+    }
 
-    const PackMetadata& metadata() const override { return m_metadata; }
+    const PackMetadata& metadata() const override
+    {
+        return m_metadata;
+    }
 
     bool hasResource(mc::resource::PackType type, std::string_view resourcePath) const override
     {
@@ -111,9 +117,15 @@ public:
         return result;
     }
 
-    std::string name() const override { return "AtlasSourceTestPack"; }
+    std::string name() const override
+    {
+        return "AtlasSourceTestPack";
+    }
 
-    void addResource(const std::string& path, const std::vector<u8>& data) { m_resources[path] = data; }
+    void addResource(const std::string& path, const std::vector<u8>& data)
+    {
+        m_resources[path] = data;
+    }
 
 private:
     PackMetadata m_metadata{6, "test"};

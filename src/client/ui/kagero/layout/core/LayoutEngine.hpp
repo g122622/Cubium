@@ -203,26 +203,46 @@ public:
     /**
      * @brief 获取上次布局统计
      */
-    [[nodiscard]] const LayoutStats& getLastStats() const { return m_stats; }
+    [[nodiscard]] const LayoutStats& getLastStats() const
+    {
+        return m_stats;
+    }
 
     /**
      * @brief 重置统计信息
      */
-    void resetStats() { m_stats.reset(); }
+    void resetStats()
+    {
+        m_stats.reset();
+    }
 
     // ==================== 调试选项 ====================
 
     /**
      * @brief 启用/禁用调试可视化
      */
-    void setDebugVisualize(bool enabled) { m_debugVisualize = enabled; }
-    [[nodiscard]] bool isDebugVisualize() const { return m_debugVisualize; }
+    void setDebugVisualize(bool enabled)
+    {
+        m_debugVisualize = enabled;
+    }
+
+    [[nodiscard]] bool isDebugVisualize() const
+    {
+        return m_debugVisualize;
+    }
 
     /**
      * @brief 启用/禁用性能追踪
      */
-    void setProfiling(bool enabled) { m_profiling = enabled; }
-    [[nodiscard]] bool isProfiling() const { return m_profiling; }
+    void setProfiling(bool enabled)
+    {
+        m_profiling = enabled;
+    }
+
+    [[nodiscard]] bool isProfiling() const
+    {
+        return m_profiling;
+    }
 
 private:
     LayoutEngine();
@@ -265,8 +285,15 @@ public:
         : m_config(config)
     {}
 
-    void setConfig(const FlexConfig& config) { m_config = config; }
-    [[nodiscard]] const FlexConfig& config() const { return m_config; }
+    void setConfig(const FlexConfig& config)
+    {
+        m_config = config;
+    }
+
+    [[nodiscard]] const FlexConfig& config() const
+    {
+        return m_config;
+    }
 
     [[nodiscard]] std::vector<LayoutResult> compute(const Rect& containerBounds,
         const std::vector<WidgetLayoutAdaptor*>& children,
@@ -286,7 +313,10 @@ public:
         return layout.measure(widthSpec, heightSpec, children);
     }
 
-    [[nodiscard]] std::string name() const override { return "flex"; }
+    [[nodiscard]] std::string name() const override
+    {
+        return "flex";
+    }
 
 private:
     FlexConfig m_config;

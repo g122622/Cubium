@@ -42,17 +42,32 @@ public:
 
     // ========== Fluid接口实现 ==========
 
-    [[nodiscard]] bool isSource(const FluidState& state) const override { return false; }
+    [[nodiscard]] bool isSource(const FluidState& state) const override
+    {
+        return false;
+    }
 
-    [[nodiscard]] i32 getLevel(const FluidState& state) const override { return 0; }
+    [[nodiscard]] i32 getLevel(const FluidState& state) const override
+    {
+        return 0;
+    }
 
-    [[nodiscard]] i32 getTickDelay() const override { return 0; }
+    [[nodiscard]] i32 getTickDelay() const override
+    {
+        return 0;
+    }
 
-    [[nodiscard]] bool canSourcesMultiply() const override { return false; }
+    [[nodiscard]] bool canSourcesMultiply() const override
+    {
+        return false;
+    }
 
     [[nodiscard]] const BlockState* getBlockState(const FluidState& state) const override;
 
-    [[nodiscard]] f32 getExplosionResistance() const override { return 0.0f; }
+    [[nodiscard]] f32 getExplosionResistance() const override
+    {
+        return 0.0f;
+    }
 
     [[nodiscard]] Vector3 getFlow(IBlockReader& world, const BlockPos& pos, const FluidState& state) const override
     {
@@ -78,9 +93,15 @@ public:
         return true;
     }
 
-    [[nodiscard]] bool ticksRandomly() const noexcept override { return false; }
+    [[nodiscard]] bool ticksRandomly() const noexcept override
+    {
+        return false;
+    }
 
-    [[nodiscard]] bool isEmpty() const override { return true; }
+    [[nodiscard]] bool isEmpty() const override
+    {
+        return true;
+    }
 };
 
 } // namespace fluid

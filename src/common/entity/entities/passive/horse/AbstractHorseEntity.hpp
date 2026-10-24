@@ -25,6 +25,7 @@
 
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
+#include "common/entity/combat/DifficultyInstance.hpp"
 #include "common/entity/core/AgeableEntity.hpp"
 #include "common/entity/core/DataParameter.hpp"
 #include "common/entity/core/Entity.hpp"
@@ -45,6 +46,7 @@
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/nbt/Nbt.hpp"
 #include "common/world/blockentity/core/SimpleInventory.hpp"
+#include "common/world/spawn/EntitySpawnPlacementRegistry.hpp"
 #include <memory>
 #include <optional>
 #include <string>
@@ -148,7 +150,10 @@ public:
      * MC 1.21.11: canPerformRearing()
      * 羊驼不扬蹄，覆写返回 false。其他马类默认返回 true。
      */
-    [[nodiscard]] virtual bool canPerformRearing() const { return true; }
+    [[nodiscard]] virtual bool canPerformRearing() const
+    {
+        return true;
+    }
 
     /**
      * @brief 让马后腿站立（扬蹄）
@@ -223,7 +228,10 @@ public:
      *
      * @return 愤怒音效资源位置，如果没有返回空
      */
-    [[nodiscard]] virtual std::optional<ResourceLocation> getAngrySound() const { return std::nullopt; }
+    [[nodiscard]] virtual std::optional<ResourceLocation> getAngrySound() const
+    {
+        return std::nullopt;
+    }
 
     /**
      * @brief 获取进食音效
@@ -233,7 +241,10 @@ public:
      *
      * @return 进食音效资源位置
      */
-    [[nodiscard]] virtual std::optional<ResourceLocation> getEatSound() const { return std::nullopt; }
+    [[nodiscard]] virtual std::optional<ResourceLocation> getEatSound() const
+    {
+        return std::nullopt;
+    }
 
     /**
      * @brief 获取主人UUID
@@ -293,7 +304,10 @@ public:
      * MC 1.21.11: canEatGrass()
      * 大多数马类可以吃草，骷髅马和僵尸马覆写返回 false。
      */
-    [[nodiscard]] virtual bool canEatGrass() const { return true; }
+    [[nodiscard]] virtual bool canEatGrass() const
+    {
+        return true;
+    }
 
     /**
      * @brief 检查物品是否可用于驯服
@@ -334,7 +348,10 @@ public:
     /**
      * @brief 获取装备栏大小
      */
-    [[nodiscard]] virtual i32 getInventorySize() const { return 2; } // 鞍槽 + 马铠槽
+    [[nodiscard]] virtual i32 getInventorySize() const
+    {
+        return 2;
+    } // 鞍槽 + 马铠槽
 
     /**
      * @brief 是否有马铠
@@ -375,7 +392,10 @@ public:
     /**
      * @brief 获取装备槽数量
      */
-    [[nodiscard]] i32 getEquipmentSlotCount() const override { return getInventorySize(); }
+    [[nodiscard]] i32 getEquipmentSlotCount() const override
+    {
+        return getInventorySize();
+    }
 
     /**
      * @brief 获取指定槽位的装备
@@ -408,7 +428,10 @@ public:
      *
      * @return 如果可以装备鞍返回 true
      */
-    [[nodiscard]] virtual bool canEquipSaddle() const { return true; }
+    [[nodiscard]] virtual bool canEquipSaddle() const
+    {
+        return true;
+    }
 
     /**
      * @brief 检查是否支持马铠/装饰槽位
@@ -418,7 +441,10 @@ public:
      *
      * @return 如果支持马铠/装饰槽位返回 true
      */
-    [[nodiscard]] virtual bool hasArmorSlot() const { return false; }
+    [[nodiscard]] virtual bool hasArmorSlot() const
+    {
+        return false;
+    }
 
     /**
      * @brief 检查物品是否是有效的马铠/装饰
@@ -621,8 +647,15 @@ protected:
     // ========== 尺寸 ==========
     // 子类应该重写这些方法以提供正确的尺寸
 
-    [[nodiscard]] f32 getBaseWidth() const override { return 1.3964844f; }
-    [[nodiscard]] f32 getBaseHeight() const override { return 1.6f; }
+    [[nodiscard]] f32 getBaseWidth() const override
+    {
+        return 1.3964844f;
+    }
+
+    [[nodiscard]] f32 getBaseHeight() const override
+    {
+        return 1.6f;
+    }
 
     /**
      * @brief 更新骑乘状态
@@ -650,6 +683,37 @@ protected:
      * 马的跳跃、速度、生命值在生成时随机确定
      */
     void initRandomAttributes();
+
+    /**
+     * @brief 生成初始化：把随机属性写回 AttributeMap
+     *
+     * 对齐 vanilla AbstractHorse.finalizeSpawn 里先 randomizeAttributes 再 super 的顺序。
+     */
+    void finalizeSpawn(IWorld& world,
+        const entity::combat::DifficultyInstance& difficulty,
+        world::spawn::SpawnReason spawnReason) override;
+
+    // ========== 属性工厂默认值（原版 createBaseHorseAttributes 系列） ==========
+
+    /**
+     * 马的「默认」生命值。
+     *
+     * 原版只在 finalizeSpawn 用随机数覆盖生命值/速度/跳跃力，所以「刚创建」的实体拿到
+     * 的是属性工厂里的默认值（先于任何随机改写）。
+     */
+    static constexpr f32 BASE_MAX_HEALTH = 53.0f;
+    /** 马族默认移动速度：AbstractHorse.createBaseHorseAttributes。 */
+    static constexpr f32 BASE_MOVEMENT_SPEED = 0.225f;
+    /** 箱型马（驴/骡/羊驼）默认移动速度：AbstractChestedHorse.createBaseChestedHorseAttributes。 */
+    static constexpr f32 BASE_CHESTED_SPEED = 0.175f;
+
+    /**
+     * @brief 把组件里随机生成的生命值/速度/跳跃力写回 AttributeMap
+     *
+     * 对应原版 AbstractHorse.finalizeSpawn 里 randomizeAttributes() 的副作用：
+     * 只有真的「生成」出来才改写属性，`new` 出来的实体保留属性工厂的默认值。
+     */
+    void applyRandomAttributes();
 
     /**
      * @brief 初始化马背包
@@ -680,16 +744,13 @@ public:
      * 返回 u16 id 而非 DataParameter 引用，对齐 TameableEntity::getTamedParamId 范式
      * （ClientEntity::_readMetadata 形参为 u16）。
      */
-    [[nodiscard]] static u16 getStatusParamId() { return STATUS_PARAM.id(); }
+    [[nodiscard]] static u16 getStatusParamId()
+    {
+        return STATUS_PARAM.id();
+    }
 
 private:
     // 常量
-    static constexpr f32 MIN_SPEED = 0.1127f;      // 最小速度
-    static constexpr f32 MAX_SPEED = 0.3375f;      // 最大速度
-    static constexpr f32 MIN_JUMP = 0.4f;          // 最小跳跃
-    static constexpr f32 MAX_JUMP = 1.0f;          // 最大跳跃
-    static constexpr f32 MIN_HEALTH = 15.0f;       // 最小生命值
-    static constexpr f32 MAX_HEALTH = 30.0f;       // 最大生命值
     static constexpr i32 MAX_BOOST_TIME = 300;     // 最大加速时间（ticks）
     static constexpr f32 JUMP_POWER_SCALE = 0.98f; // 跳跃蓄力缩放
 };

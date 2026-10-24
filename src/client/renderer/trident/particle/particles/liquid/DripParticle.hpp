@@ -139,8 +139,15 @@ public:
 
     [[nodiscard]] f64 getScale(f64 partialTick) const override;
 
-    [[nodiscard]] DripState dripState() const { return m_dripState; }
-    [[nodiscard]] f64 dripProgress() const { return m_dripProgress; }
+    [[nodiscard]] DripState dripState() const
+    {
+        return m_dripState;
+    }
+
+    [[nodiscard]] f64 dripProgress() const
+    {
+        return m_dripProgress;
+    }
 
 protected:
     /**

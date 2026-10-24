@@ -287,8 +287,9 @@ void ClientEntityManager::tick()
             if (typeId == "minecraft:wither" || typeId == "wither") {
                 // 实体查找回调：通过 this->getEntity(id) 查找目标实体
                 // 使用引用捕获 this，避免拷贝；回调在当前 tick 内立即使用，生命周期安全。
-                entity->tickWitherSideHeads(
-                    [this](EntityInstanceId targetId) -> const ClientEntity* { return this->getEntity(targetId); });
+                entity->tickWitherSideHeads([this](EntityInstanceId targetId) -> const ClientEntity* {
+                    return this->getEntity(targetId);
+                });
             }
         }
     }

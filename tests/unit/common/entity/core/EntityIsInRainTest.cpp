@@ -55,8 +55,15 @@ public:
     {}
 
     // IWorld 天气接口
-    [[nodiscard]] bool isRaining() const override { return m_isRaining; }
-    void setRaining(bool raining) { m_isRaining = raining; }
+    [[nodiscard]] bool isRaining() const override
+    {
+        return m_isRaining;
+    }
+
+    void setRaining(bool raining)
+    {
+        m_isRaining = raining;
+    }
 
     [[nodiscard]] bool canRainAt(const BlockPos& pos) const override
     {
@@ -64,7 +71,10 @@ public:
         return m_canRainAtResult;
     }
 
-    void setCanRainAtResult(bool can) { m_canRainAtResult = can; }
+    void setCanRainAtResult(bool can)
+    {
+        m_canRainAtResult = can;
+    }
 
 private:
     bool m_isRaining;

@@ -54,8 +54,15 @@ public:
         item::tag::ItemTags::initialize();
     }
 
-    [[nodiscard]] Difficulty difficulty() const override { return m_difficulty; }
-    void setDifficulty(Difficulty d) { m_difficulty = d; }
+    [[nodiscard]] Difficulty difficulty() const override
+    {
+        return m_difficulty;
+    }
+
+    void setDifficulty(Difficulty d)
+    {
+        m_difficulty = d;
+    }
 
 private:
     Difficulty m_difficulty = Difficulty::Normal;
@@ -76,7 +83,10 @@ protected:
         }
     }
 
-    void SetUp() override { m_world = std::make_unique<HorseInteractTestWorld>(); }
+    void SetUp() override
+    {
+        m_world = std::make_unique<HorseInteractTestWorld>();
+    }
 
     std::unique_ptr<HorseInteractTestWorld> m_world;
 };

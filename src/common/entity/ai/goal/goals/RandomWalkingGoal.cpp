@@ -58,10 +58,14 @@ RandomWalkingGoal::RandomWalkingGoal(CreatureEntity* creature, f64 speed, i32 ch
 bool RandomWalkingGoal::shouldExecute()
 {
     // creature 为 null 时安全返回 false（与 WaterAvoidingRandomWalkingGoal 保持一致）
-    if (!m_creature) return false;
+    if (!m_creature) {
+        return false;
+    }
 
     // 检查是否被骑乘
-    if (m_creature->isBeingRidden()) return false;
+    if (m_creature->isBeingRidden()) {
+        return false;
+    }
 
     // 如果不需要强制更新，检查概率
     if (!m_forceUpdate) {
@@ -95,13 +99,19 @@ bool RandomWalkingGoal::shouldExecute()
 bool RandomWalkingGoal::shouldContinueExecuting()
 {
     // creature 为 null 时安全返回 false（与 WaterAvoidingRandomWalkingGoal 保持一致）
-    if (!m_creature) return false;
+    if (!m_creature) {
+        return false;
+    }
 
     // 检查是否被骑乘
-    if (m_creature->isBeingRidden()) return false;
+    if (m_creature->isBeingRidden()) {
+        return false;
+    }
 
     // 检查超时
-    if (m_timeoutCounter <= 0) return false;
+    if (m_timeoutCounter <= 0) {
+        return false;
+    }
 
     // 继续执行直到路径完成
     auto* nav = m_creature->navigator();
@@ -111,7 +121,9 @@ bool RandomWalkingGoal::shouldContinueExecuting()
 void RandomWalkingGoal::startExecuting()
 {
     // creature 为 null 时直接返回（与 WaterAvoidingRandomWalkingGoal 保持一致）
-    if (!m_creature) return;
+    if (!m_creature) {
+        return;
+    }
 
     // 使用 navigator.tryMoveToXYZ
     if (auto* nav = m_creature->navigator()) {
@@ -124,7 +136,9 @@ void RandomWalkingGoal::startExecuting()
 void RandomWalkingGoal::resetTask()
 {
     // creature 为 null 时直接返回（与 WaterAvoidingRandomWalkingGoal 保持一致）
-    if (!m_creature) return;
+    if (!m_creature) {
+        return;
+    }
 
     // 清除路径
     m_creature->clearNavigation();
@@ -143,7 +157,9 @@ void RandomWalkingGoal::tick()
 bool RandomWalkingGoal::getRandomPosition(Vector3& outPos)
 {
     // creature 为 null 时安全返回 false（与 WaterAvoidingRandomWalkingGoal 保持一致）
-    if (!m_creature) return false;
+    if (!m_creature) {
+        return false;
+    }
 
     // 使用 RandomPositionGenerator.findRandomTarget(creature, 10, 7)
     // xzRange=10, yRange=7 是默认参数

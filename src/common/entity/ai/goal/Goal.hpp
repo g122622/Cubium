@@ -58,7 +58,10 @@ public:
      *
      * @return true 如果应该继续执行
      */
-    [[nodiscard]] virtual bool shouldContinueExecuting() { return shouldExecute(); }
+    [[nodiscard]] virtual bool shouldContinueExecuting()
+    {
+        return shouldExecute();
+    }
 
     /**
      * @brief 是否可以被抢占
@@ -68,7 +71,10 @@ public:
      *
      * @return true 如果可以被抢占
      */
-    [[nodiscard]] virtual bool isPreemptible() const { return true; }
+    [[nodiscard]] virtual bool isPreemptible() const
+    {
+        return true;
+    }
 
     /**
      * @brief 是否每 tick 都需要更新评估
@@ -83,7 +89,10 @@ public:
      *
      * @return true 表示该 goal 每 tick 都评估（adjustedTickDelay 不补偿）
      */
-    [[nodiscard]] virtual bool requiresUpdateEveryTick() const { return false; }
+    [[nodiscard]] virtual bool requiresUpdateEveryTick() const
+    {
+        return false;
+    }
 
     /**
      * @brief 调整 tick 延迟/概率门槛以补偿半 tick 评估
@@ -116,7 +125,10 @@ public:
      * @param serverTicks vanilla 原始 tick 数
      * @return ceil(serverTicks / 2)
      */
-    [[nodiscard]] static constexpr i32 reducedTickDelay(i32 serverTicks) noexcept { return (serverTicks + 1) / 2; }
+    [[nodiscard]] static constexpr i32 reducedTickDelay(i32 serverTicks) noexcept
+    {
+        return (serverTicks + 1) / 2;
+    }
 
     // GoalSelector 现已按 vanilla Mob.serverAiStep 的 (tickCount+id)%2 门控（见
     // GoalSelector::tickRunningGoalsEveryTick），requiresUpdateEveryTick() 的语义与 vanilla 一致：
@@ -145,10 +157,16 @@ public:
      * 用于实体侧查询“某个行为当前是否活跃”，对齐 vanilla Brain 的 Activity 查询
      * （如 Sniffer.isTempted / isPanicking 读取 IS_TEMPTED / IS_PANICKING 记忆）。
      */
-    [[nodiscard]] bool isRunning() const noexcept { return m_running; }
+    [[nodiscard]] bool isRunning() const noexcept
+    {
+        return m_running;
+    }
 
     /// 设置执行状态（仅供 GoalSelector 调用）
-    void setRunning(bool running) noexcept { m_running = running; }
+    void setRunning(bool running) noexcept
+    {
+        m_running = running;
+    }
 
     /**
      * @brief 重置任务
@@ -173,19 +191,28 @@ public:
      *
      * @param flags 互斥标志集合
      */
-    void setMutexFlags(const EnumSet<GoalFlag>& flags) { m_flags = flags; }
+    void setMutexFlags(const EnumSet<GoalFlag>& flags)
+    {
+        m_flags = flags;
+    }
 
     /**
      * @brief 获取互斥标志
      *
      * @return 当前设置的互斥标志
      */
-    [[nodiscard]] const EnumSet<GoalFlag>& getMutexFlags() const { return m_flags; }
+    [[nodiscard]] const EnumSet<GoalFlag>& getMutexFlags() const
+    {
+        return m_flags;
+    }
 
     /**
      * @brief 获取类型名称（用于调试）
      */
-    [[nodiscard]] virtual std::string getTypeName() const { return "Goal"; }
+    [[nodiscard]] virtual std::string getTypeName() const
+    {
+        return "Goal";
+    }
 
 protected:
     Goal() = default;

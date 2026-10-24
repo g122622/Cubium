@@ -86,16 +86,34 @@ public:
 
     // ========== 访问器 ==========
 
-    [[nodiscard]] DecoratedPotPattern back() const noexcept { return m_patterns[0]; }
-    [[nodiscard]] DecoratedPotPattern left() const noexcept { return m_patterns[1]; }
-    [[nodiscard]] DecoratedPotPattern right() const noexcept { return m_patterns[2]; }
-    [[nodiscard]] DecoratedPotPattern front() const noexcept { return m_patterns[3]; }
+    [[nodiscard]] DecoratedPotPattern back() const noexcept
+    {
+        return m_patterns[0];
+    }
+
+    [[nodiscard]] DecoratedPotPattern left() const noexcept
+    {
+        return m_patterns[1];
+    }
+
+    [[nodiscard]] DecoratedPotPattern right() const noexcept
+    {
+        return m_patterns[2];
+    }
+
+    [[nodiscard]] DecoratedPotPattern front() const noexcept
+    {
+        return m_patterns[3];
+    }
 
     /**
      * @brief 获取有序图案列表
      * @return [back, left, right, front] 的图案列表
      */
-    [[nodiscard]] const std::array<DecoratedPotPattern, 4>& ordered() const noexcept { return m_patterns; }
+    [[nodiscard]] const std::array<DecoratedPotPattern, 4>& ordered() const noexcept
+    {
+        return m_patterns;
+    }
 
     /**
      * @brief 检查是否为空图案（全部为砖块面）
@@ -106,7 +124,11 @@ public:
      * @brief 比较运算符
      */
     bool operator==(const PotDecorations& other) const noexcept;
-    bool operator!=(const PotDecorations& other) const noexcept { return !(*this == other); }
+
+    bool operator!=(const PotDecorations& other) const noexcept
+    {
+        return !(*this == other);
+    }
 
     // ========== 序列化 ==========
 
@@ -174,16 +196,30 @@ public:
 
     // ========== IInventory 接口实现 ==========
 
-    [[nodiscard]] IInventory* getInventory() override { return &m_inventory; }
-    [[nodiscard]] const IInventory* getInventory() const override { return &m_inventory; }
-    [[nodiscard]] i32 getContainerSize() const override { return 1; }
+    [[nodiscard]] IInventory* getInventory() override
+    {
+        return &m_inventory;
+    }
+
+    [[nodiscard]] const IInventory* getInventory() const override
+    {
+        return &m_inventory;
+    }
+
+    [[nodiscard]] i32 getContainerSize() const override
+    {
+        return 1;
+    }
 
     // ========== 图案管理 ==========
 
     /**
      * @brief 获取四面图案
      */
-    [[nodiscard]] const PotDecorations& getDecorations() const noexcept { return m_decorations; }
+    [[nodiscard]] const PotDecorations& getDecorations() const noexcept
+    {
+        return m_decorations;
+    }
 
     /**
      * @brief 设置四面图案
@@ -234,12 +270,18 @@ public:
      * @brief 获取摇晃动画开始时间
      * @return 游戏tick，0表示无动画
      */
-    [[nodiscard]] i64 wobbleStartedAtTick() const noexcept { return m_wobbleStartedAtTick; }
+    [[nodiscard]] i64 wobbleStartedAtTick() const noexcept
+    {
+        return m_wobbleStartedAtTick;
+    }
 
     /**
      * @brief 获取最近一次摇晃样式
      */
-    [[nodiscard]] const WobbleStyle& lastWobbleStyle() const noexcept { return m_lastWobbleStyle; }
+    [[nodiscard]] const WobbleStyle& lastWobbleStyle() const noexcept
+    {
+        return m_lastWobbleStyle;
+    }
 
     /**
      * @brief 检查是否正在摇晃

@@ -61,8 +61,15 @@ public:
     /**
      * @brief 获取命令分发器
      */
-    [[nodiscard]] Dispatcher& dispatcher() noexcept { return m_dispatcher; }
-    [[nodiscard]] const Dispatcher& dispatcher() const noexcept { return m_dispatcher; }
+    [[nodiscard]] Dispatcher& dispatcher() noexcept
+    {
+        return m_dispatcher;
+    }
+
+    [[nodiscard]] const Dispatcher& dispatcher() const noexcept
+    {
+        return m_dispatcher;
+    }
 
     /**
      * @brief 执行命令

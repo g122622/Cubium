@@ -102,7 +102,10 @@ public:
 
     void tick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random) override;
 
-    [[nodiscard]] bool ticksRandomly() const noexcept override { return true; }
+    [[nodiscard]] bool ticksRandomly() const noexcept override
+    {
+        return true;
+    }
 
     // ========== 方块实体 ==========
 
@@ -110,7 +113,10 @@ public:
      * @brief 检查是否有方块实体
      * @return 返回true，营火有方块实体
      */
-    [[nodiscard]] bool hasBlockEntity() const noexcept override { return true; }
+    [[nodiscard]] bool hasBlockEntity() const noexcept override
+    {
+        return true;
+    }
 
     /**
      * @brief 创建方块实体
@@ -208,7 +214,10 @@ public:
     /**
      * @brief 是否点燃
      */
-    [[nodiscard]] static bool isLit(const BlockState& state) { return state.get(BlockStateProperties::LIT()); }
+    [[nodiscard]] static bool isLit(const BlockState& state)
+    {
+        return state.get(BlockStateProperties::LIT());
+    }
 
     /**
      * @brief 是否为信号火

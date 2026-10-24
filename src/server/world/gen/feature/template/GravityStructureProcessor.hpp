@@ -69,8 +69,15 @@ public:
         return std::make_unique<GravityStructureProcessor>(m_heightmapType, m_offset);
     }
 
-    [[nodiscard]] i32 heightmapType() const { return m_heightmapType; }
-    [[nodiscard]] i32 offset() const { return m_offset; }
+    [[nodiscard]] i32 heightmapType() const
+    {
+        return m_heightmapType;
+    }
+
+    [[nodiscard]] i32 offset() const
+    {
+        return m_offset;
+    }
 
 private:
     i32 m_heightmapType;

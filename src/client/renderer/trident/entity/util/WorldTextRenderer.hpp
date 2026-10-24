@@ -182,12 +182,18 @@ public:
     /**
      * @brief 获取字体纹理视图（用于绑定到管线）
      */
-    [[nodiscard]] static VkImageView fontTextureView() { return s_fontTextureView; }
+    [[nodiscard]] static VkImageView fontTextureView()
+    {
+        return s_fontTextureView;
+    }
 
     /**
      * @brief 获取字体采样器
      */
-    [[nodiscard]] static VkSampler fontSampler() { return s_fontSampler; }
+    [[nodiscard]] static VkSampler fontSampler()
+    {
+        return s_fontSampler;
+    }
 
 private:
     /**

@@ -62,7 +62,10 @@ public:
         const IPlacementConfig& config,
         const BlockPos& basePos) const override;
 
-    [[nodiscard]] const char* name() const noexcept override { return "block_predicate_filter"; }
+    [[nodiscard]] const char* name() const noexcept override
+    {
+        return "block_predicate_filter";
+    }
 };
 
 } // namespace mc

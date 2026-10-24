@@ -90,16 +90,28 @@ public:
     }
 
     /// 读取 m_tick
-    static i32 getTick(const entity::ai::goal::OfferFlowerGoal& goal) { return goal.m_tick; }
+    static i32 getTick(const entity::ai::goal::OfferFlowerGoal& goal)
+    {
+        return goal.m_tick;
+    }
 
     /// 设置 m_tick
-    static void setTick(entity::ai::goal::OfferFlowerGoal& goal, i32 tick) { goal.m_tick = tick; }
+    static void setTick(entity::ai::goal::OfferFlowerGoal& goal, i32 tick)
+    {
+        goal.m_tick = tick;
+    }
 
     /// 读取 m_target
-    static LivingEntity* getTarget(const entity::ai::goal::OfferFlowerGoal& goal) { return goal.m_target.get(); }
+    static LivingEntity* getTarget(const entity::ai::goal::OfferFlowerGoal& goal)
+    {
+        return goal.m_target.get();
+    }
 
     /// 设置 m_target
-    static void setTarget(entity::ai::goal::OfferFlowerGoal& goal, LivingEntity* target) { goal.m_target = target; }
+    static void setTarget(entity::ai::goal::OfferFlowerGoal& goal, LivingEntity* target)
+    {
+        goal.m_target = target;
+    }
 };
 
 } // namespace mc::test
@@ -120,10 +132,22 @@ class OfferFlowerTestWorld final : public mc::test::BaseTestWorld {
 public:
     OfferFlowerTestWorld() = default;
 
-    [[nodiscard]] mc::world::chunk::IChunkManager* chunkManager() override { return &m_stubChunks; }
-    [[nodiscard]] const mc::world::chunk::IChunkManager* chunkManager() const override { return &m_stubChunks; }
+    [[nodiscard]] mc::world::chunk::IChunkManager* chunkManager() override
+    {
+        return &m_stubChunks;
+    }
+
+    [[nodiscard]] const mc::world::chunk::IChunkManager* chunkManager() const override
+    {
+        return &m_stubChunks;
+    }
+
     mc::test::StubChunkManager m_stubChunks{nullptr, true};
-    [[nodiscard]] bool isClientSide() const override { return false; }
+
+    [[nodiscard]] bool isClientSide() const override
+    {
+        return false;
+    }
 
     [[nodiscard]] std::vector<Entity*> getEntitiesInAABB(const AxisAlignedBB&, const Entity*) const override
     {
@@ -137,11 +161,21 @@ public:
     }
 
     /// 设置 _findNearestCandidate 的搜索结果
-    void setNearbyEntities(std::vector<Entity*> entities) { m_nearbyEntities = std::move(entities); }
+    void setNearbyEntities(std::vector<Entity*> entities)
+    {
+        m_nearbyEntities = std::move(entities);
+    }
 
     /// 获取 spawnEntity 捕获的实体（用于验证 dropPreservedEquipment 生成的 ItemEntity）
-    [[nodiscard]] const std::vector<std::unique_ptr<Entity>>& spawnedEntities() const { return m_spawnedEntities; }
-    [[nodiscard]] size_t spawnedEntityCount() const { return m_spawnedEntities.size(); }
+    [[nodiscard]] const std::vector<std::unique_ptr<Entity>>& spawnedEntities() const
+    {
+        return m_spawnedEntities;
+    }
+
+    [[nodiscard]] size_t spawnedEntityCount() const
+    {
+        return m_spawnedEntities.size();
+    }
 
 private:
     std::vector<Entity*> m_nearbyEntities;

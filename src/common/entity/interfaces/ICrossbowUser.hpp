@@ -74,7 +74,10 @@ public:
      * @brief 获取弩装填时间（ticks）
      * @return 装填时间
      */
-    virtual i32 getCrossbowChargeTime() const { return 25; }
+    virtual i32 getCrossbowChargeTime() const
+    {
+        return 25;
+    }
 };
 
 } // namespace entity

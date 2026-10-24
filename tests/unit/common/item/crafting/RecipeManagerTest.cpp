@@ -79,20 +79,40 @@ public:
         return m_result.copy();
     }
 
-    ItemStack getResultItem() const override { return m_result; }
+    ItemStack getResultItem() const override
+    {
+        return m_result;
+    }
 
     std::vector<ItemStack> getRemainingItems(const CraftingInventory& inventory) const override
     {
         return RecipeUtils::getDefaultRemainingItems(inventory);
     }
 
-    const std::vector<Ingredient>& getIngredients() const override { return m_ingredients; }
+    const std::vector<Ingredient>& getIngredients() const override
+    {
+        return m_ingredients;
+    }
 
-    i32 getRecipeWidth() const override { return m_width; }
-    i32 getRecipeHeight() const override { return m_height; }
+    i32 getRecipeWidth() const override
+    {
+        return m_width;
+    }
 
-    ResourceLocation getId() const override { return m_id; }
-    RecipeType getType() const override { return m_type; }
+    i32 getRecipeHeight() const override
+    {
+        return m_height;
+    }
+
+    ResourceLocation getId() const override
+    {
+        return m_id;
+    }
+
+    RecipeType getType() const override
+    {
+        return m_type;
+    }
 
 private:
     ResourceLocation m_id;
@@ -382,7 +402,9 @@ TEST_F(RecipeManagerTest, ForEachRecipe)
     RecipeManager::instance().registerRecipe(std::move(recipe2));
 
     std::vector<ResourceLocation> ids;
-    RecipeManager::instance().forEachRecipe([&ids](const CraftingRecipe& recipe) { ids.push_back(recipe.getId()); });
+    RecipeManager::instance().forEachRecipe([&ids](const CraftingRecipe& recipe) {
+        ids.push_back(recipe.getId());
+    });
 
     EXPECT_EQ(ids.size(), 2u);
     EXPECT_NE(std::find(ids.begin(), ids.end(), ResourceLocation("test", "recipe1")), ids.end());

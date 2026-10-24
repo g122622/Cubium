@@ -63,7 +63,10 @@ struct MovePlayerFlags {
         return v;
     }
 
-    static MovePlayerFlags unpack(u8 v) noexcept { return MovePlayerFlags{(v & 0x01) != 0, (v & 0x02) != 0}; }
+    static MovePlayerFlags unpack(u8 v) noexcept
+    {
+        return MovePlayerFlags{(v & 0x01) != 0, (v & 0x02) != 0};
+    }
 
     [[nodiscard]] friend bool operator==(const MovePlayerFlags&, const MovePlayerFlags&) noexcept = default;
 };
@@ -321,6 +324,7 @@ struct HashedStackComponentHash {
     [[nodiscard]] friend bool operator==(
         const HashedStackComponentHash&, const HashedStackComponentHash&) noexcept = default;
 };
+
 struct HashedStack {
     bool present;
     u32 itemId; // present=false 时无意义
@@ -345,6 +349,7 @@ struct ChangedSlot {
     HashedStack stack;
     [[nodiscard]] friend bool operator==(const ChangedSlot&, const ChangedSlot&) noexcept = default;
 };
+
 struct ContainerClick {
     i32 containerId;
     i32 stateId;

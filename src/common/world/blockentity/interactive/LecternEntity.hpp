@@ -98,7 +98,10 @@ public:
      * @brief 获取当前页码
      * @return 当前页码（从0开始）
      */
-    [[nodiscard]] i32 getPage() const { return m_page; }
+    [[nodiscard]] i32 getPage() const
+    {
+        return m_page;
+    }
 
     /**
      * @brief 设置当前页码
@@ -136,7 +139,10 @@ public:
      * @brief 获取打开计数
      * @return 当前打开的玩家数量
      */
-    [[nodiscard]] i32 getOpenCount() const { return m_openCount; }
+    [[nodiscard]] i32 getOpenCount() const
+    {
+        return m_openCount;
+    }
 
     /**
      * @brief 玩家打开讲台
@@ -151,7 +157,11 @@ public:
     // ========== Tick 更新 ==========
 
     void tick(IWorld& world) override;
-    [[nodiscard]] bool needsTick() const noexcept override { return false; }
+
+    [[nodiscard]] bool needsTick() const noexcept override
+    {
+        return false;
+    }
 
     /**
      * @brief 方块移除副作用：掉落书本
@@ -175,7 +185,10 @@ public:
      *
      * 参考 MC Java: BlockEntityType.OP_ONLY_CUSTOM_DATA 包含 LECTERN
      */
-    [[nodiscard]] bool onlyOpsCanSetNbt() const noexcept override { return true; }
+    [[nodiscard]] bool onlyOpsCanSetNbt() const noexcept override
+    {
+        return true;
+    }
 
 private:
     /**

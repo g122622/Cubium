@@ -92,8 +92,15 @@ StructureDefinition makeJigsawDef(
 
 class StructureTypeRegistryTest : public ::testing::Test {
 protected:
-    void SetUp() override { initializeBuiltinStructureTypes(); }
-    void TearDown() override { StructureTypeRegistry::instance().clear(); }
+    void SetUp() override
+    {
+        initializeBuiltinStructureTypes();
+    }
+
+    void TearDown() override
+    {
+        StructureTypeRegistry::instance().clear();
+    }
 };
 
 // ============================================================================
@@ -136,25 +143,63 @@ TEST_F(StructureTypeRegistryTest, DispatchesProceduralTypesToSubclasses)
 
     const std::vector<std::pair<std::string, std::function<bool(const Structure*)>>> cases = {
         {"buried_treasure",
-            [](const Structure* s) { return dynamic_cast<const BuriedTreasureStructure*>(s) != nullptr; }},
+            [](const Structure* s) {
+                return dynamic_cast<const BuriedTreasureStructure*>(s) != nullptr;
+            }},
         {"desert_pyramid",
-            [](const Structure* s) { return dynamic_cast<const DesertPyramidStructure*>(s) != nullptr; }},
-        {"end_city", [](const Structure* s) { return dynamic_cast<const EndCityStructure*>(s) != nullptr; }},
-        {"fortress", [](const Structure* s) { return dynamic_cast<const FortressStructure*>(s) != nullptr; }},
-        {"igloo", [](const Structure* s) { return dynamic_cast<const IglooStructure*>(s) != nullptr; }},
+            [](const Structure* s) {
+                return dynamic_cast<const DesertPyramidStructure*>(s) != nullptr;
+            }},
+        {"end_city",
+            [](const Structure* s) {
+                return dynamic_cast<const EndCityStructure*>(s) != nullptr;
+            }},
+        {"fortress",
+            [](const Structure* s) {
+                return dynamic_cast<const FortressStructure*>(s) != nullptr;
+            }},
+        {"igloo",
+            [](const Structure* s) {
+                return dynamic_cast<const IglooStructure*>(s) != nullptr;
+            }},
         // 原版 1.21 已把该类型由 jungle_pyramid 改名为 jungle_temple
-        {"jungle_temple", [](const Structure* s) { return dynamic_cast<const JungleTempleStructure*>(s) != nullptr; }},
-        {"nether_fossil", [](const Structure* s) { return dynamic_cast<const NetherFossilStructure*>(s) != nullptr; }},
+        {"jungle_temple",
+            [](const Structure* s) {
+                return dynamic_cast<const JungleTempleStructure*>(s) != nullptr;
+            }},
+        {"nether_fossil",
+            [](const Structure* s) {
+                return dynamic_cast<const NetherFossilStructure*>(s) != nullptr;
+            }},
         // 原版 1.21 已把该类型由 monument 改名为 ocean_monument
         {"ocean_monument",
-            [](const Structure* s) { return dynamic_cast<const OceanMonumentStructure*>(s) != nullptr; }},
-        {"ocean_ruin", [](const Structure* s) { return dynamic_cast<const OceanRuinStructure*>(s) != nullptr; }},
-        {"ruined_portal", [](const Structure* s) { return dynamic_cast<const RuinedPortalStructure*>(s) != nullptr; }},
-        {"shipwreck", [](const Structure* s) { return dynamic_cast<const ShipwreckStructure*>(s) != nullptr; }},
-        {"stronghold", [](const Structure* s) { return dynamic_cast<const StrongholdStructure*>(s) != nullptr; }},
-        {"swamp_hut", [](const Structure* s) { return dynamic_cast<const SwampHutStructure*>(s) != nullptr; }},
+            [](const Structure* s) {
+                return dynamic_cast<const OceanMonumentStructure*>(s) != nullptr;
+            }},
+        {"ocean_ruin",
+            [](const Structure* s) {
+                return dynamic_cast<const OceanRuinStructure*>(s) != nullptr;
+            }},
+        {"ruined_portal",
+            [](const Structure* s) {
+                return dynamic_cast<const RuinedPortalStructure*>(s) != nullptr;
+            }},
+        {"shipwreck",
+            [](const Structure* s) {
+                return dynamic_cast<const ShipwreckStructure*>(s) != nullptr;
+            }},
+        {"stronghold",
+            [](const Structure* s) {
+                return dynamic_cast<const StrongholdStructure*>(s) != nullptr;
+            }},
+        {"swamp_hut",
+            [](const Structure* s) {
+                return dynamic_cast<const SwampHutStructure*>(s) != nullptr;
+            }},
         {"woodland_mansion",
-            [](const Structure* s) { return dynamic_cast<const WoodlandMansionStructure*>(s) != nullptr; }},
+            [](const Structure* s) {
+                return dynamic_cast<const WoodlandMansionStructure*>(s) != nullptr;
+            }},
     };
 
     for (const auto& [type, isMatch] : cases) {

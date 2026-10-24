@@ -131,7 +131,9 @@ inline void writeKnownPack(B& buf, const ir::configuration::KnownPack& kp)
 [[nodiscard]] inline auto configurationDisconnectCodec()
 {
     return makeCodec<ir::configuration::Disconnect>(
-        [](B& buf, const ir::configuration::Disconnect& v) { writeTextComponentNbt(buf, v.reason); },
+        [](B& buf, const ir::configuration::Disconnect& v) {
+            writeTextComponentNbt(buf, v.reason);
+        },
         [](B& buf) -> Result<ir::configuration::Disconnect> {
             ir::configuration::Disconnect v{};
             MC_TRY_ASSIGN(v.reason, readTextComponentNbt(buf));
@@ -143,14 +145,18 @@ inline void writeKnownPack(B& buf, const ir::configuration::KnownPack& kp)
 [[nodiscard]] inline auto finishConfigurationCodec()
 {
     return makeCodec<ir::configuration::FinishConfiguration>([](B&, const ir::configuration::FinishConfiguration&) {},
-        [](B&) -> Result<ir::configuration::FinishConfiguration> { return ir::configuration::FinishConfiguration{}; });
+        [](B&) -> Result<ir::configuration::FinishConfiguration> {
+            return ir::configuration::FinishConfiguration{};
+        });
 }
 
 /// KeepAlive（配置阶段双向，id=4）：I64(id) 固定8字节大端，对齐 vanilla writeLong/readLong
 [[nodiscard]] inline auto configurationKeepAliveCodec()
 {
     return makeCodec<ir::configuration::KeepAlive>(
-        [](B& buf, const ir::configuration::KeepAlive& v) { buf.writeI64(v.id); },
+        [](B& buf, const ir::configuration::KeepAlive& v) {
+            buf.writeI64(v.id);
+        },
         [](B& buf) -> Result<ir::configuration::KeepAlive> {
             ir::configuration::KeepAlive v{};
             MC_TRY_ASSIGN(v.id, buf.readI64());
@@ -162,7 +168,9 @@ inline void writeKnownPack(B& buf, const ir::configuration::KnownPack& kp)
 [[nodiscard]] inline auto configurationPingCodec()
 {
     return makeCodec<ir::configuration::Ping>(
-        [](B& buf, const ir::configuration::Ping& v) { buf.writeI32(v.parameter); },
+        [](B& buf, const ir::configuration::Ping& v) {
+            buf.writeI32(v.parameter);
+        },
         [](B& buf) -> Result<ir::configuration::Ping> {
             ir::configuration::Ping v{};
             MC_TRY_ASSIGN(v.parameter, buf.readI32());

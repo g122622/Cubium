@@ -134,7 +134,10 @@ public:
     /**
      * @brief 获取工具类型
      */
-    [[nodiscard]] ToolType getToolType() const noexcept { return m_toolType; }
+    [[nodiscard]] ToolType getToolType() const noexcept
+    {
+        return m_toolType;
+    }
 
     /**
      * @brief 获取总攻击伤害
@@ -143,13 +146,19 @@ public:
      *
      * @return 攻击伤害值
      */
-    [[nodiscard]] f32 getAttackDamage() const noexcept { return m_attackDamage; }
+    [[nodiscard]] f32 getAttackDamage() const noexcept
+    {
+        return m_attackDamage;
+    }
 
     /**
      * @brief 获取攻击速度修正
      * @return 攻击速度修正值
      */
-    [[nodiscard]] f32 getAttackSpeed() const noexcept { return m_attackSpeed; }
+    [[nodiscard]] f32 getAttackSpeed() const noexcept
+    {
+        return m_attackSpeed;
+    }
 
     /**
      * @brief 获取有效方块集合

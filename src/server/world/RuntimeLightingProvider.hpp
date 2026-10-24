@@ -34,9 +34,11 @@
 
 namespace mc {
 class WorldLightManager;
+
 namespace world::chunk {
 class ChunkData;
 }
+
 using world::chunk::ChunkData;
 
 namespace server {
@@ -129,7 +131,10 @@ public:
      *
      * 返回内部 m_chunkPtrs 的 const 引用（KEEPALIVE_COUNT 个，未加载槽位为 nullptr）。
      */
-    [[nodiscard]] const std::array<ChunkData*, KEEPALIVE_COUNT>& keepaliveChunkPtrs() const { return m_chunkPtrs; }
+    [[nodiscard]] const std::array<ChunkData*, KEEPALIVE_COUNT>& keepaliveChunkPtrs() const
+    {
+        return m_chunkPtrs;
+    }
 
 private:
     /// (dx+radius) + (dz+radius)*extent → 5×5 平面索引

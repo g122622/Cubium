@@ -72,7 +72,10 @@ struct TemplateConfig {
     /**
      * @brief 获取默认配置
      */
-    static TemplateConfig defaults() { return TemplateConfig{}; }
+    static TemplateConfig defaults()
+    {
+        return TemplateConfig{};
+    }
 
     /**
      * @brief 获取开发模式配置（启用调试）
@@ -113,6 +116,7 @@ struct SourceLocation {
     Size offset = 0; ///< 文件偏移量
 
     SourceLocation() = default;
+
     SourceLocation(Size line_, Size column_, Size offset_ = 0)
         : line(line_)
         , column(column_)
@@ -122,12 +126,18 @@ struct SourceLocation {
     /**
      * @brief 创建无效位置
      */
-    static SourceLocation invalid() { return SourceLocation(0, 0, 0); }
+    static SourceLocation invalid()
+    {
+        return SourceLocation(0, 0, 0);
+    }
 
     /**
      * @brief 检查是否有效
      */
-    [[nodiscard]] bool isValid() const { return line > 0 && column > 0; }
+    [[nodiscard]] bool isValid() const
+    {
+        return line > 0 && column > 0;
+    }
 
     /**
      * @brief 转换为字符串
@@ -146,6 +156,7 @@ struct SourceRange {
     SourceLocation end;
 
     SourceRange() = default;
+
     SourceRange(SourceLocation start_, SourceLocation end_)
         : start(start_)
         , end(end_)
@@ -154,7 +165,10 @@ struct SourceRange {
     /**
      * @brief 从单个位置创建范围
      */
-    static SourceRange at(const SourceLocation& loc) { return SourceRange(loc, loc); }
+    static SourceRange at(const SourceLocation& loc)
+    {
+        return SourceRange(loc, loc);
+    }
 
     /**
      * @brief 合并两个范围

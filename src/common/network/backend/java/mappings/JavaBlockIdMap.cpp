@@ -119,11 +119,13 @@ Result<void> JavaBlockIdMap::initialize()
     size_t matched = 0;
     size_t fallback = 0;
     size_t maxInternalId = 0;
+
     // 命中的 (internalBlockId, javaId) 暂存,待正向稠密表预分配后批量填入。
     struct Pending {
         u32 internalBlockId;
         u32 javaId;
     };
+
     std::vector<Pending> pendings;
     ::mc::Block::forEachBlock([&](::mc::Block& block) {
         if (block.blockId() > maxInternalId) {

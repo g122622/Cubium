@@ -139,7 +139,10 @@ public:
      * 由 TridentEngine 在 AtlasManager 加载 blocks atlas 后调用，
      * 绑定到 AtlasManager::findSpriteByTexturePath(block/destroy_stage_<stage>)。
      */
-    void setStageRegionLookup(StageRegionLookup lookup) { m_stageRegionLookup = std::move(lookup); }
+    void setStageRegionLookup(StageRegionLookup lookup)
+    {
+        m_stageRegionLookup = std::move(lookup);
+    }
 
     /**
      * @brief 更新破坏进度网格
@@ -166,12 +169,18 @@ public:
     /**
      * @brief 检查是否有破坏进度需要渲染
      */
-    [[nodiscard]] bool hasProgressToRender() const { return !m_progressEntries.empty(); }
+    [[nodiscard]] bool hasProgressToRender() const
+    {
+        return !m_progressEntries.empty();
+    }
 
     /**
      * @brief 检查是否已初始化
      */
-    [[nodiscard]] bool isInitialized() const { return m_initialized; }
+    [[nodiscard]] bool isInitialized() const
+    {
+        return m_initialized;
+    }
 
 private:
     /**

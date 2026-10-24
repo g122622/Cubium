@@ -230,13 +230,19 @@ public:
      * @brief 获取下一个玩家ID（线程安全）
      * @return 新的玩家ID
      */
-    [[nodiscard]] PlayerId nextPlayerId() noexcept { return m_nextPlayerId.fetch_add(1); }
+    [[nodiscard]] PlayerId nextPlayerId() noexcept
+    {
+        return m_nextPlayerId.fetch_add(1);
+    }
 
     /**
      * @brief 获取下一个会话ID（线程安全）
      * @return 新的会话ID
      */
-    [[nodiscard]] u32 nextSessionId() noexcept { return m_nextSessionId.fetch_add(1); }
+    [[nodiscard]] u32 nextSessionId() noexcept
+    {
+        return m_nextSessionId.fetch_add(1);
+    }
 
     // ========== 配置 ==========
 
@@ -244,20 +250,33 @@ public:
      * @brief 设置最大玩家数
      * @param maxPlayers 最大玩家数
      */
-    void setMaxPlayers(i32 maxPlayers) noexcept { m_maxPlayers = maxPlayers; }
+    void setMaxPlayers(i32 maxPlayers) noexcept
+    {
+        m_maxPlayers = maxPlayers;
+    }
 
     /**
      * @brief 获取最大玩家数
      */
-    [[nodiscard]] i32 maxPlayers() const noexcept { return m_maxPlayers; }
+    [[nodiscard]] i32 maxPlayers() const noexcept
+    {
+        return m_maxPlayers;
+    }
 
     // ========== 区块同步 ==========
 
     /**
      * @brief 获取区块同步管理器
      */
-    [[nodiscard]] sync::ChunkSyncManager& chunkSyncManager() { return m_chunkSyncManager; }
-    [[nodiscard]] const sync::ChunkSyncManager& chunkSyncManager() const { return m_chunkSyncManager; }
+    [[nodiscard]] sync::ChunkSyncManager& chunkSyncManager()
+    {
+        return m_chunkSyncManager;
+    }
+
+    [[nodiscard]] const sync::ChunkSyncManager& chunkSyncManager() const
+    {
+        return m_chunkSyncManager;
+    }
 
     // ========== 会话映射 ==========
 

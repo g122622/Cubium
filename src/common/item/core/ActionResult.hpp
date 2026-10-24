@@ -109,48 +109,75 @@ public:
      * @brief 创建失败结果
      * @param result 结果值
      */
-    [[nodiscard]] static ActionResult fail(T result) { return ActionResult(ActionResultType::Fail, std::move(result)); }
+    [[nodiscard]] static ActionResult fail(T result)
+    {
+        return ActionResult(ActionResultType::Fail, std::move(result));
+    }
 
     /**
      * @brief 创建传递结果
      * @param result 结果值
      */
-    [[nodiscard]] static ActionResult pass(T result) { return ActionResult(ActionResultType::Pass, std::move(result)); }
+    [[nodiscard]] static ActionResult pass(T result)
+    {
+        return ActionResult(ActionResultType::Pass, std::move(result));
+    }
 
     /**
      * @brief 获取结果类型
      */
-    [[nodiscard]] ActionResultType getType() const noexcept { return m_type; }
+    [[nodiscard]] ActionResultType getType() const noexcept
+    {
+        return m_type;
+    }
 
     /**
      * @brief 获取结果值
      */
-    [[nodiscard]] const T& getResult() const noexcept { return m_result; }
+    [[nodiscard]] const T& getResult() const noexcept
+    {
+        return m_result;
+    }
 
     /**
      * @brief 获取结果值（可修改）
      */
-    [[nodiscard]] T& getResult() noexcept { return m_result; }
+    [[nodiscard]] T& getResult() noexcept
+    {
+        return m_result;
+    }
 
     /**
      * @brief 是否成功
      */
-    [[nodiscard]] bool isSuccess() const noexcept { return m_type == ActionResultType::Success; }
+    [[nodiscard]] bool isSuccess() const noexcept
+    {
+        return m_type == ActionResultType::Success;
+    }
 
     /**
      * @brief 是否消耗
      */
-    [[nodiscard]] bool isConsume() const noexcept { return m_type == ActionResultType::Consume; }
+    [[nodiscard]] bool isConsume() const noexcept
+    {
+        return m_type == ActionResultType::Consume;
+    }
 
     /**
      * @brief 是否失败
      */
-    [[nodiscard]] bool isFail() const noexcept { return m_type == ActionResultType::Fail; }
+    [[nodiscard]] bool isFail() const noexcept
+    {
+        return m_type == ActionResultType::Fail;
+    }
 
     /**
      * @brief 是否传递
      */
-    [[nodiscard]] bool isPass() const noexcept { return m_type == ActionResultType::Pass; }
+    [[nodiscard]] bool isPass() const noexcept
+    {
+        return m_type == ActionResultType::Pass;
+    }
 
     /**
      * @brief 是否成功或消耗（表示动作已处理）
@@ -158,7 +185,10 @@ public:
      * 等价于 `consumesAction()`：`Success` / `Consume` / `SuccessServer` / `SuccessServerWithoutItem`
      * 均表示动作已被处理，`TryEmptyHandInteraction` / `Fail` / `Pass` 不是。
      */
-    [[nodiscard]] bool isSuccessOrConsume() const noexcept { return consumesAction(); }
+    [[nodiscard]] bool isSuccessOrConsume() const noexcept
+    {
+        return consumesAction();
+    }
 
     /**
      * @brief 是否消费了动作（对应 vanilla `InteractionResult.consumesAction()`）

@@ -38,7 +38,9 @@ namespace mc {
 
 CrafterBlockEntity::CrafterBlockEntity(const BlockPos& pos)
     : ContainerBlockEntity(BlockEntityType::Crafter, pos)
-    , m_inventory(CONTAINER_SIZE, [this]() { _onInventoryChanged(); })
+    , m_inventory(CONTAINER_SIZE, [this]() {
+        _onInventoryChanged();
+    })
 {
     m_slotStates.fill(SLOT_ENABLED);
 }

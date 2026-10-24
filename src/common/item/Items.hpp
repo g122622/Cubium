@@ -1660,6 +1660,7 @@ private:
     static void _registerHarnesses();
     static void _registerBundles();
     static void _registerSpawnEggs();
+    static void _applyVanillaRarities();
 };
 
 } // namespace mc

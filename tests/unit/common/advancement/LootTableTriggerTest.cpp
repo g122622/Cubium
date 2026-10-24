@@ -45,9 +45,15 @@ namespace {
 
 class LootTableTriggerTest : public ::testing::Test {
 protected:
-    void SetUp() override { advancement::CriterionTriggers::instance().registerBuiltinTriggers(); }
+    void SetUp() override
+    {
+        advancement::CriterionTriggers::instance().registerBuiltinTriggers();
+    }
 
-    void TearDown() override { advancement::CriterionTriggers::instance().clear(); }
+    void TearDown() override
+    {
+        advancement::CriterionTriggers::instance().clear();
+    }
 };
 
 TEST_F(LootTableTriggerTest, IsRegistered)

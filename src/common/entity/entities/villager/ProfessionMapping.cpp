@@ -42,7 +42,9 @@ std::vector<world::village::poi::PointOfInterestType> ProfessionMapping::s_acqui
 
 void ProfessionMapping::_initializeMappings()
 {
-    if (s_initialized) return;
+    if (s_initialized) {
+        return;
+    }
     s_initialized = true;
 
     // 职业到POI工作站的映射
@@ -160,23 +162,53 @@ const char* ProfessionMapping::getProfessionName(VillagerProfession profession) 
 
 VillagerProfession ProfessionMapping::getProfessionFromName(const char* name) noexcept
 {
-    if (name == nullptr) return VillagerProfession::None;
+    if (name == nullptr) {
+        return VillagerProfession::None;
+    }
 
     // 使用字符串比较
-    if (strcmp(name, "armorer") == 0) return VillagerProfession::Armorer;
-    if (strcmp(name, "butcher") == 0) return VillagerProfession::Butcher;
-    if (strcmp(name, "cartographer") == 0) return VillagerProfession::Cartographer;
-    if (strcmp(name, "cleric") == 0) return VillagerProfession::Cleric;
-    if (strcmp(name, "farmer") == 0) return VillagerProfession::Farmer;
-    if (strcmp(name, "fisherman") == 0) return VillagerProfession::Fisherman;
-    if (strcmp(name, "fletcher") == 0) return VillagerProfession::Fletcher;
-    if (strcmp(name, "leatherworker") == 0) return VillagerProfession::Leatherworker;
-    if (strcmp(name, "librarian") == 0) return VillagerProfession::Librarian;
-    if (strcmp(name, "mason") == 0) return VillagerProfession::Mason;
-    if (strcmp(name, "nitwit") == 0) return VillagerProfession::Nitwit;
-    if (strcmp(name, "shepherd") == 0) return VillagerProfession::Shepherd;
-    if (strcmp(name, "toolsmith") == 0) return VillagerProfession::Toolsmith;
-    if (strcmp(name, "weaponsmith") == 0) return VillagerProfession::Weaponsmith;
+    if (strcmp(name, "armorer") == 0) {
+        return VillagerProfession::Armorer;
+    }
+    if (strcmp(name, "butcher") == 0) {
+        return VillagerProfession::Butcher;
+    }
+    if (strcmp(name, "cartographer") == 0) {
+        return VillagerProfession::Cartographer;
+    }
+    if (strcmp(name, "cleric") == 0) {
+        return VillagerProfession::Cleric;
+    }
+    if (strcmp(name, "farmer") == 0) {
+        return VillagerProfession::Farmer;
+    }
+    if (strcmp(name, "fisherman") == 0) {
+        return VillagerProfession::Fisherman;
+    }
+    if (strcmp(name, "fletcher") == 0) {
+        return VillagerProfession::Fletcher;
+    }
+    if (strcmp(name, "leatherworker") == 0) {
+        return VillagerProfession::Leatherworker;
+    }
+    if (strcmp(name, "librarian") == 0) {
+        return VillagerProfession::Librarian;
+    }
+    if (strcmp(name, "mason") == 0) {
+        return VillagerProfession::Mason;
+    }
+    if (strcmp(name, "nitwit") == 0) {
+        return VillagerProfession::Nitwit;
+    }
+    if (strcmp(name, "shepherd") == 0) {
+        return VillagerProfession::Shepherd;
+    }
+    if (strcmp(name, "toolsmith") == 0) {
+        return VillagerProfession::Toolsmith;
+    }
+    if (strcmp(name, "weaponsmith") == 0) {
+        return VillagerProfession::Weaponsmith;
+    }
 
     return VillagerProfession::None;
 }

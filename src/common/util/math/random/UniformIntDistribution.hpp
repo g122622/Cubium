@@ -64,7 +64,10 @@ public:
      * @param random 随机数生成器
      * @return [min, max] 范围内的随机整数
      */
-    [[nodiscard]] i32 operator()(math::IRandom& random) const { return random.nextInt(m_min, m_max); }
+    [[nodiscard]] i32 operator()(math::IRandom& random) const
+    {
+        return random.nextInt(m_min, m_max);
+    }
 
     /**
      * @brief 创建一个新的 Random 并生成随机数（便捷方法）
@@ -77,22 +80,34 @@ public:
     /**
      * @brief 设置最小值
      */
-    void setMin(i32 min) { m_min = min; }
+    void setMin(i32 min)
+    {
+        m_min = min;
+    }
 
     /**
      * @brief 设置最大值
      */
-    void setMax(i32 max) { m_max = max; }
+    void setMax(i32 max)
+    {
+        m_max = max;
+    }
 
     /**
      * @brief 获取最小值
      */
-    [[nodiscard]] i32 min() const { return m_min; }
+    [[nodiscard]] i32 min() const
+    {
+        return m_min;
+    }
 
     /**
      * @brief 获取最大值
      */
-    [[nodiscard]] i32 max() const { return m_max; }
+    [[nodiscard]] i32 max() const
+    {
+        return m_max;
+    }
 
 private:
     i32 m_min;

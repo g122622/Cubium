@@ -117,8 +117,8 @@ void TropicalFishEntity::randomizeVariant()
 void TropicalFishEntity::registerAttributes()
 {
     AbstractGroupFishEntity::registerAttributes();
+    // 原版 TropicalFish 不覆盖移动速度（沿用 AbstractFish/LivingEntity 的 0.7）。
     attributes().setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 3.0);
-    attributes().setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.3);
 }
 
 std::optional<ResourceLocation> TropicalFishEntity::getFlopSound() const

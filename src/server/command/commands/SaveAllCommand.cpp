@@ -83,16 +83,22 @@ constexpr size_t SAVE_FAILED = std::numeric_limits<size_t>::max();
 void SaveAllCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
 {
     auto saveAllNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("save-all");
-    saveAllNode->setRequirement([](const ServerCommandSource& source) { return source.hasPermission(4); });
+    saveAllNode->setRequirement([](const ServerCommandSource& source) {
+        return source.hasPermission(4);
+    });
     support::applyMetadata(
         saveAllNode, support::makeMetadata("Saves the server to disk.", "/save-all [flush]", 4, {}, false));
 
     // /save-all
-    saveAllNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _saveAll(ctx); });
+    saveAllNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _saveAll(ctx);
+    });
 
     // /save-all flush
     auto flushNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("flush");
-    flushNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _saveAllFlush(ctx); });
+    flushNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _saveAllFlush(ctx);
+    });
 
     saveAllNode->addChild(flushNode);
     dispatcher.registerCommand(saveAllNode);

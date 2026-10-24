@@ -79,7 +79,10 @@ public:
     /**
      * @brief 检查是否匹配任意方块
      */
-    [[nodiscard]] bool isAny() const noexcept { return m_isAny; }
+    [[nodiscard]] bool isAny() const noexcept
+    {
+        return m_isAny;
+    }
 
     /**
      * @brief 从JSON解析
@@ -93,10 +96,25 @@ public:
 
     // ========== Getters ==========
 
-    [[nodiscard]] const std::optional<ResourceLocation>& getBlock() const noexcept { return m_block; }
-    [[nodiscard]] const std::optional<ResourceLocation>& getTag() const noexcept { return m_tag; }
-    [[nodiscard]] const std::vector<ResourceLocation>& getBlocks() const noexcept { return m_blocks; }
-    [[nodiscard]] const StatePropertiesPredicate& getState() const noexcept { return m_state; }
+    [[nodiscard]] const std::optional<ResourceLocation>& getBlock() const noexcept
+    {
+        return m_block;
+    }
+
+    [[nodiscard]] const std::optional<ResourceLocation>& getTag() const noexcept
+    {
+        return m_tag;
+    }
+
+    [[nodiscard]] const std::vector<ResourceLocation>& getBlocks() const noexcept
+    {
+        return m_blocks;
+    }
+
+    [[nodiscard]] const StatePropertiesPredicate& getState() const noexcept
+    {
+        return m_state;
+    }
 
 private:
     std::optional<ResourceLocation> m_block; ///< 方块ID（单值，保留兼容）
@@ -126,7 +144,10 @@ public:
     /**
      * @brief 检查是否匹配任意流体
      */
-    [[nodiscard]] bool isAny() const noexcept { return m_isAny; }
+    [[nodiscard]] bool isAny() const noexcept
+    {
+        return m_isAny;
+    }
 
     /**
      * @brief 从JSON解析

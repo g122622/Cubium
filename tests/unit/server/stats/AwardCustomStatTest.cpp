@@ -54,7 +54,10 @@ protected:
         StatRegistry::instance().registerBuiltinStats();
     }
 
-    void TearDown() override { StatRegistry::instance().clear(); }
+    void TearDown() override
+    {
+        StatRegistry::instance().clear();
+    }
 };
 
 // ========== Stats 常量与 StatRegistry 一致性测试 ==========

@@ -48,8 +48,13 @@ public:
     using Encoder = std::function<Result<std::vector<u8>>()>;
 
     explicit OutboundPacket(ir::IrPacket packet);
+
     /** @brief 获取仅供读取的包快照。 */
-    [[nodiscard]] const ir::IrPacket& packet() const noexcept { return m_packet; }
+    [[nodiscard]] const ir::IrPacket& packet() const noexcept
+    {
+        return m_packet;
+    }
+
     /** @brief 返回对应编码配置的缓存帧，首次访问时执行编码。 */
     [[nodiscard]] Result<Bytes> prepare(
         const void* tables, protocol::PacketFlow flow, i32 threshold, const Encoder& encoder) const;

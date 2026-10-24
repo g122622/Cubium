@@ -57,7 +57,10 @@ class SoulSpeedEnchantment : public Enchantment {
 public:
     SoulSpeedEnchantment() = default;
 
-    [[nodiscard]] std::string id() const override { return "minecraft:soul_speed"; }
+    [[nodiscard]] std::string id() const override
+    {
+        return "minecraft:soul_speed";
+    }
 
     [[nodiscard]] std::string getNameKey(i32 level) const override
     {
@@ -65,13 +68,25 @@ public:
         return "enchantment.minecraft.soul_speed";
     }
 
-    [[nodiscard]] EnchantmentType type() const override { return EnchantmentType::ArmorFeet; }
+    [[nodiscard]] EnchantmentType type() const override
+    {
+        return EnchantmentType::ArmorFeet;
+    }
 
-    [[nodiscard]] i32 minLevel() const noexcept override { return 1; }
+    [[nodiscard]] i32 minLevel() const noexcept override
+    {
+        return 1;
+    }
 
-    [[nodiscard]] i32 maxLevel() const noexcept override { return 3; }
+    [[nodiscard]] i32 maxLevel() const noexcept override
+    {
+        return 3;
+    }
 
-    [[nodiscard]] EnchantmentRarity rarity() const noexcept override { return EnchantmentRarity::VeryRare; }
+    [[nodiscard]] EnchantmentRarity rarity() const noexcept override
+    {
+        return EnchantmentRarity::VeryRare;
+    }
 
     [[nodiscard]] bool isTreasure() const noexcept override
     {
@@ -88,9 +103,15 @@ public:
         return false; // 不能在战利品表中生成
     }
 
-    [[nodiscard]] i32 getMinCost(i32 level) const override { return 10 + (level - 1) * 10; }
+    [[nodiscard]] i32 getMinCost(i32 level) const override
+    {
+        return 10 + (level - 1) * 10;
+    }
 
-    [[nodiscard]] i32 getMaxCost(i32 level) const override { return getMinCost(level) + 15; }
+    [[nodiscard]] i32 getMaxCost(i32 level) const override
+    {
+        return getMinCost(level) + 15;
+    }
 
     /**
      * @brief 获取灵魂疾行的 MOVEMENT_SPEED 修饰符值
@@ -113,7 +134,10 @@ public:
      * 当 MOVEMENT_EFFICIENCY=1.0 时，在灵魂沙上 (speedFactor=0.4) 将从 0.4 插值到 1.0，
      * 完全抵消减速效果。
      */
-    [[nodiscard]] static f32 getMovementEfficiencyBonus() { return 1.0f; }
+    [[nodiscard]] static f32 getMovementEfficiencyBonus()
+    {
+        return 1.0f;
+    }
 
     /**
      * @brief 获取耐久消耗概率

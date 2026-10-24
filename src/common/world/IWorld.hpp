@@ -62,9 +62,11 @@ namespace mc {
 class Entity;
 class DamageSource;
 class BlockState;
+
 namespace world::chunk {
 class ChunkData;
 }
+
 using world::chunk::ChunkData;
 class BlockPos;
 class PhysicsEngine;
@@ -195,6 +197,7 @@ public:
         (void)pos;
         return nullptr;
     }
+
     [[nodiscard]] virtual const BlockEntity* getBlockEntity(const BlockPos& pos) const
     {
         (void)pos;
@@ -248,7 +251,10 @@ public:
      * @brief 移除方块实体
      * @param pos 方块位置
      */
-    virtual void removeBlockEntity(const BlockPos& pos) { (void)pos; }
+    virtual void removeBlockEntity(const BlockPos& pos)
+    {
+        (void)pos;
+    }
 
     // ========== 方块更新 ==========
 
@@ -318,7 +324,10 @@ public:
     /**
      * @brief 检查位置是否有流体（使用 BlockPos）
      */
-    [[nodiscard]] virtual bool hasFluid(const BlockPos& pos) const { return hasFluid(pos.x, pos.y, pos.z); }
+    [[nodiscard]] virtual bool hasFluid(const BlockPos& pos) const
+    {
+        return hasFluid(pos.x, pos.y, pos.z);
+    }
 
     /**
      * @brief 检查位置是否为水
@@ -328,7 +337,10 @@ public:
     /**
      * @brief 检查位置是否为水（使用 BlockPos）
      */
-    [[nodiscard]] virtual bool isWaterAt(const BlockPos& pos) const { return isWaterAt(pos.x, pos.y, pos.z); }
+    [[nodiscard]] virtual bool isWaterAt(const BlockPos& pos) const
+    {
+        return isWaterAt(pos.x, pos.y, pos.z);
+    }
 
     /**
      * @brief 检查位置是否为岩浆
@@ -338,7 +350,10 @@ public:
     /**
      * @brief 检查位置是否为岩浆（使用 BlockPos）
      */
-    [[nodiscard]] virtual bool isLavaAt(const BlockPos& pos) const { return isLavaAt(pos.x, pos.y, pos.z); }
+    [[nodiscard]] virtual bool isLavaAt(const BlockPos& pos) const
+    {
+        return isLavaAt(pos.x, pos.y, pos.z);
+    }
 
     /**
      * @brief 检查碰撞箱范围内是否包含任何流体
@@ -515,7 +530,10 @@ public:
      *
      * @param pos 方块位置
      */
-    virtual void notifyBlockUpdate(const BlockPos& pos) { (void)pos; }
+    virtual void notifyBlockUpdate(const BlockPos& pos)
+    {
+        (void)pos;
+    }
 
     // ========== 方块事件 ==========
 
@@ -559,7 +577,10 @@ public:
      * 对应 MC Java 版 LevelHeightAccessor.getMinY()。
      * 主世界和末地返回 -64，下界返回 0。
      */
-    [[nodiscard]] virtual i32 getMinBuildHeight() const { return world::MIN_BUILD_HEIGHT; }
+    [[nodiscard]] virtual i32 getMinBuildHeight() const
+    {
+        return world::MIN_BUILD_HEIGHT;
+    }
 
     /**
      * @brief 获取最高建筑高度（不含）
@@ -568,7 +589,10 @@ public:
      * 主世界和末地返回 320，下界返回 128。
      * 注意：此值为独占上界，有效方块 Y 范围是 [getMinBuildHeight(), getMaxBuildHeight())。
      */
-    [[nodiscard]] virtual i32 getMaxBuildHeight() const { return world::MAX_BUILD_HEIGHT; }
+    [[nodiscard]] virtual i32 getMaxBuildHeight() const
+    {
+        return world::MAX_BUILD_HEIGHT;
+    }
 
     /**
      * @brief 获取最高可站立方块高度
@@ -591,7 +615,10 @@ public:
      * @param pos 方块位置
      * @return 光照等级 (0-15)
      */
-    [[nodiscard]] virtual u8 getBlockLight(const BlockPos& pos) const { return getBlockLight(pos.x, pos.y, pos.z); }
+    [[nodiscard]] virtual u8 getBlockLight(const BlockPos& pos) const
+    {
+        return getBlockLight(pos.x, pos.y, pos.z);
+    }
 
     /**
      * @brief 获取天空光照
@@ -605,7 +632,10 @@ public:
      * @param pos 方块位置
      * @return 光照等级 (0-15)
      */
-    [[nodiscard]] virtual u8 getSkyLight(const BlockPos& pos) const { return getSkyLight(pos.x, pos.y, pos.z); }
+    [[nodiscard]] virtual u8 getSkyLight(const BlockPos& pos) const
+    {
+        return getSkyLight(pos.x, pos.y, pos.z);
+    }
 
     /**
      * @brief 获取综合光照等级
@@ -861,8 +891,15 @@ public:
      *
      * @return ECS 实体注册表指针，未接入 ECS 的世界返回 nullptr
      */
-    [[nodiscard]] virtual ecs::EntityRegistry* entityRegistry() { return nullptr; }
-    [[nodiscard]] virtual const ecs::EntityRegistry* entityRegistry() const { return nullptr; }
+    [[nodiscard]] virtual ecs::EntityRegistry* entityRegistry()
+    {
+        return nullptr;
+    }
+
+    [[nodiscard]] virtual const ecs::EntityRegistry* entityRegistry() const
+    {
+        return nullptr;
+    }
 
     /**
      * @brief 生成实体到世界中
@@ -886,6 +923,7 @@ public:
         (void)id;
         return nullptr;
     }
+
     [[nodiscard]] virtual const Entity* getEntity(EntityInstanceId id) const
     {
         (void)id;
@@ -907,6 +945,7 @@ public:
         (void)uuid;
         return nullptr;
     }
+
     [[nodiscard]] virtual const Entity* getEntityByUuid(const std::string& uuid) const
     {
         (void)uuid;
@@ -938,7 +977,10 @@ public:
      * @brief 获取所有玩家实体
      * @return 玩家实体列表
      */
-    [[nodiscard]] virtual std::vector<Entity*> getPlayers() const { return {}; }
+    [[nodiscard]] virtual std::vector<Entity*> getPlayers() const
+    {
+        return {};
+    }
 
     /**
      * @brief 获取指定类型的所有实体
@@ -970,6 +1012,7 @@ public:
         (void)maxDistance;
         return nullptr;
     }
+
     [[nodiscard]] virtual const Player* getClosestPlayer(const Vector3& pos, f32 maxDistance = -1.0f) const
     {
         (void)pos;
@@ -992,6 +1035,7 @@ public:
         (void)exclude;
         return nullptr;
     }
+
     [[nodiscard]] virtual const Player* getClosestPlayer(
         const Vector3& pos, f32 maxDistance, const Entity* exclude) const
     {
@@ -1062,12 +1106,18 @@ public:
      * 服务端世界按维度级环境属性系统求值；默认实现返回 false（DORMANT），与 vanilla 在
      * 非苍白花园环境的取值一致。
      */
-    [[nodiscard]] virtual bool isCreakingActive(const BlockPos& /*pos*/) const { return false; }
+    [[nodiscard]] virtual bool isCreakingActive(const BlockPos& /*pos*/) const
+    {
+        return false;
+    }
 
     /**
      * @brief 是否允许火焰 tick（读取 doFireTick 游戏规则）
      */
-    [[nodiscard]] virtual bool doFireTick() const { return true; }
+    [[nodiscard]] virtual bool doFireTick() const
+    {
+        return true;
+    }
 
     /**
      * @brief 指定位置的火焰是否允许蔓延
@@ -1091,7 +1141,10 @@ public:
      * @param radius 距离上限（方块坐标单位）
      * @return 是否存在满足条件的玩家
      */
-    [[nodiscard]] virtual bool anyPlayerCloseEnoughTo(const BlockPos& /*pos*/, i32 /*radius*/) const { return false; }
+    [[nodiscard]] virtual bool anyPlayerCloseEnoughTo(const BlockPos& /*pos*/, i32 /*radius*/) const
+    {
+        return false;
+    }
 
     /**
      * @brief 获取世界种子
@@ -1118,14 +1171,20 @@ public:
      *
      * 用于天体角度计算、时间显示、睡眠检测等场景。
      */
-    [[nodiscard]] virtual i64 dayTimeOfDay() const { return dayTime() % 24000; }
+    [[nodiscard]] virtual i64 dayTimeOfDay() const
+    {
+        return dayTime() % 24000;
+    }
 
     /**
      * @brief 检查是否为白天
      *
      * dayTimeOfDay() < 12000 为白天 (0-11999 = 白天, 12000-23999 = 夜晚)
      */
-    [[nodiscard]] virtual bool isDaytime() const { return dayTimeOfDay() < 12000; }
+    [[nodiscard]] virtual bool isDaytime() const
+    {
+        return dayTimeOfDay() < 12000;
+    }
 
     /**
      * @brief 检查外面是否明亮
@@ -1150,7 +1209,10 @@ public:
      *
      * 与 currentTick() 相同，提供更明确的语义。
      */
-    [[nodiscard]] virtual u64 getGameTime() const { return currentTick(); }
+    [[nodiscard]] virtual u64 getGameTime() const
+    {
+        return currentTick();
+    }
 
     /**
      * @brief 检查是否为客户端世界
@@ -1186,7 +1248,10 @@ public:
      *
      * @return 如果允许 PvP 返回 true
      */
-    [[nodiscard]] virtual bool isPvpAllowed() const { return true; }
+    [[nodiscard]] virtual bool isPvpAllowed() const
+    {
+        return true;
+    }
 
     // ========== 天气 ==========
 
@@ -1197,7 +1262,10 @@ public:
      *
      * @return 是否正在下雨
      */
-    [[nodiscard]] virtual bool isRaining() const { return false; }
+    [[nodiscard]] virtual bool isRaining() const
+    {
+        return false;
+    }
 
     /**
      * @brief 是否正在雷暴（强度检查）
@@ -1206,7 +1274,10 @@ public:
      *
      * @return 是否正在雷暴
      */
-    [[nodiscard]] virtual bool isThundering() const { return false; }
+    [[nodiscard]] virtual bool isThundering() const
+    {
+        return false;
+    }
 
     /**
      * @brief 该方块位置是否正在降水（对齐 vanilla Level.precipitationAt）
@@ -1233,7 +1304,10 @@ public:
      * @param entityTopY 实体包围盒顶部 y
      * @return 是否位于云层内
      */
-    [[nodiscard]] virtual bool isInCloudLayer(f64 /*y*/, f64 /*entityTopY*/) const { return false; }
+    [[nodiscard]] virtual bool isInCloudLayer(f64 /*y*/, f64 /*entityTopY*/) const
+    {
+        return false;
+    }
 
     /**
      * @brief 获取降雨强度
@@ -1294,7 +1368,10 @@ public:
      *
      * @return 当前闪烁时间（ticks），0表示无闪烁
      */
-    [[nodiscard]] virtual i32 lightningFlashTime() const { return 0; }
+    [[nodiscard]] virtual i32 lightningFlashTime() const
+    {
+        return 0;
+    }
 
     /**
      * @brief 检查碰撞箱是否无碰撞
@@ -1551,8 +1628,15 @@ public:
      *
      * @return ServerWorld指针，如果不是ServerWorld返回nullptr
      */
-    [[nodiscard]] virtual server::ServerWorld* asServerWorld() { return nullptr; }
-    [[nodiscard]] virtual const server::ServerWorld* asServerWorld() const { return nullptr; }
+    [[nodiscard]] virtual server::ServerWorld* asServerWorld()
+    {
+        return nullptr;
+    }
+
+    [[nodiscard]] virtual const server::ServerWorld* asServerWorld() const
+    {
+        return nullptr;
+    }
 
     // ========== 按需特征放置 ==========
 
@@ -1572,7 +1656,10 @@ public:
      * @param position 中心位置
      * @return 创建的 WorldGenRegion（以 IWorld 接口返回），如果区块未加载则返回 nullptr
      */
-    [[nodiscard]] virtual std::unique_ptr<IWorld> createFeatureRegion(const BlockPos& /*position*/) { return nullptr; }
+    [[nodiscard]] virtual std::unique_ptr<IWorld> createFeatureRegion(const BlockPos& /*position*/)
+    {
+        return nullptr;
+    }
 
     // ========== 村庄管理 ==========
 
@@ -1583,8 +1670,15 @@ public:
      *
      * @return VillageManager指针，如果不存在返回nullptr
      */
-    [[nodiscard]] virtual world::village::VillageManager* villageManager() { return nullptr; }
-    [[nodiscard]] virtual const world::village::VillageManager* villageManager() const { return nullptr; }
+    [[nodiscard]] virtual world::village::VillageManager* villageManager()
+    {
+        return nullptr;
+    }
+
+    [[nodiscard]] virtual const world::village::VillageManager* villageManager() const
+    {
+        return nullptr;
+    }
 
     // ========== 袭击管理 ==========
 
@@ -1595,8 +1689,15 @@ public:
      *
      * @return RaidManager指针，如果不存在返回nullptr
      */
-    [[nodiscard]] virtual world::village::raid::RaidManager* raidManager() { return nullptr; }
-    [[nodiscard]] virtual const world::village::raid::RaidManager* raidManager() const { return nullptr; }
+    [[nodiscard]] virtual world::village::raid::RaidManager* raidManager()
+    {
+        return nullptr;
+    }
+
+    [[nodiscard]] virtual const world::village::raid::RaidManager* raidManager() const
+    {
+        return nullptr;
+    }
 
     // ========== 末影龙战斗管理 ==========
 
@@ -1608,8 +1709,15 @@ public:
      *
      * @return EndDragonFight指针，如果不存在返回nullptr
      */
-    [[nodiscard]] virtual class EndDragonFight* dragonFight() { return nullptr; }
-    [[nodiscard]] virtual const class EndDragonFight* dragonFight() const { return nullptr; }
+    [[nodiscard]] virtual class EndDragonFight* dragonFight()
+    {
+        return nullptr;
+    }
+
+    [[nodiscard]] virtual const class EndDragonFight* dragonFight() const
+    {
+        return nullptr;
+    }
 
     // ========== 战利品表管理 ==========
 
@@ -1621,7 +1729,10 @@ public:
      *
      * @return LootTableManager指针，如果不存在返回nullptr
      */
-    [[nodiscard]] virtual const loot::LootTableManager* lootTableManager() const { return nullptr; }
+    [[nodiscard]] virtual const loot::LootTableManager* lootTableManager() const
+    {
+        return nullptr;
+    }
 
     // ========== 地图数据管理 ==========
 
@@ -1633,8 +1744,15 @@ public:
      *
      * @return MapDataManager指针，如果不存在返回nullptr
      */
-    [[nodiscard]] virtual world::map::MapDataManager* mapDataManager() { return nullptr; }
-    [[nodiscard]] virtual const world::map::MapDataManager* mapDataManager() const { return nullptr; }
+    [[nodiscard]] virtual world::map::MapDataManager* mapDataManager()
+    {
+        return nullptr;
+    }
+
+    [[nodiscard]] virtual const world::map::MapDataManager* mapDataManager() const
+    {
+        return nullptr;
+    }
 
     // ========== 世界边界 ==========
 
@@ -1748,7 +1866,10 @@ public:
      *
      * @param vehicleId 载具实体ID
      */
-    virtual void broadcastPassengersChanged(EntityInstanceId vehicleId) { (void)vehicleId; }
+    virtual void broadcastPassengersChanged(EntityInstanceId vehicleId)
+    {
+        (void)vehicleId;
+    }
 
     // ========== 实体装备广播 ==========
 
@@ -1767,7 +1888,10 @@ public:
      * 对齐 vanilla ChunkMap.sendToTrackingPlayers(ClientboundEntityPositionSyncPacket)：
      * 用于服务端主动要求客户端立即收敛位置的场景（如快乐恶魂进入静止状态）。
      */
-    virtual void sendPositionSyncToTrackingPlayers(EntityInstanceId entityId) { (void)entityId; }
+    virtual void sendPositionSyncToTrackingPlayers(EntityInstanceId entityId)
+    {
+        (void)entityId;
+    }
 
     virtual void broadcastEquipmentChanged(EntityInstanceId entityId, const std::vector<EquipmentSlot>& changedSlots)
     {

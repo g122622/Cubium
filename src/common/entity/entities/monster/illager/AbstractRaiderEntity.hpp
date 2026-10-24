@@ -75,7 +75,10 @@ public:
     /**
      * @brief 获取当前状态
      */
-    [[nodiscard]] RaiderState getState() const { return m_state; }
+    [[nodiscard]] RaiderState getState() const
+    {
+        return m_state;
+    }
 
     /**
      * @brief 设置状态
@@ -90,44 +93,65 @@ public:
     /**
      * @brief 是否正在庆祝
      */
-    [[nodiscard]] bool isCelebrating() const { return m_state == RaiderState::Celebrating; }
+    [[nodiscard]] bool isCelebrating() const
+    {
+        return m_state == RaiderState::Celebrating;
+    }
 
     // ========== 同步字段 id 访问器（测试/诊断用，抗字段 id 偏移） ==========
 
-    [[nodiscard]] static u16 getIsCelebratingParamId() { return IS_CELEBRATING_PARAM.id(); }
+    [[nodiscard]] static u16 getIsCelebratingParamId()
+    {
+        return IS_CELEBRATING_PARAM.id();
+    }
 
     // ========== 袭击系统 ==========
 
     /**
      * @brief 判断是否拥有袭击队长加成。
      */
-    [[nodiscard]] bool hasRaidLeaderBonus() const { return m_hasLeaderBonus; }
+    [[nodiscard]] bool hasRaidLeaderBonus() const
+    {
+        return m_hasLeaderBonus;
+    }
 
     /**
      * @brief 设置袭击队长加成状态。
      *
      * @param bonus 是否拥有加成。
      */
-    void setRaidLeaderBonus(bool bonus) { m_hasLeaderBonus = bonus; }
+    void setRaidLeaderBonus(bool bonus)
+    {
+        m_hasLeaderBonus = bonus;
+    }
 
     /**
      * @brief 判断是否允许加入袭击。
      */
-    [[nodiscard]] bool canJoinRaid() const { return m_canJoinRaid; }
+    [[nodiscard]] bool canJoinRaid() const
+    {
+        return m_canJoinRaid;
+    }
 
     /**
      * @brief 设置是否允许加入袭击。
      *
      * @param canJoin 是否允许加入。
      */
-    void setCanJoinRaid(bool canJoin) { m_canJoinRaid = canJoin; }
+    void setCanJoinRaid(bool canJoin)
+    {
+        m_canJoinRaid = canJoin;
+    }
 
     /**
      * @brief 获取当前所属袭击。
      *
      * @return 当前 Raid 指针；若未加入则返回 `nullptr`。
      */
-    [[nodiscard]] world::village::raid::Raid* getCurrentRaid() const { return m_raid; }
+    [[nodiscard]] world::village::raid::Raid* getCurrentRaid() const
+    {
+        return m_raid;
+    }
 
     /**
      * @brief 加入指定袭击。
@@ -145,19 +169,28 @@ public:
     /**
      * @brief 获取当前所属波次。
      */
-    [[nodiscard]] i32 getRaidWave() const { return m_wave; }
+    [[nodiscard]] i32 getRaidWave() const
+    {
+        return m_wave;
+    }
 
     /**
      * @brief 设置当前所属波次。
      *
      * @param wave 波次编号。
      */
-    void setRaidWave(i32 wave) { m_wave = wave; }
+    void setRaidWave(i32 wave)
+    {
+        m_wave = wave;
+    }
 
     /**
      * @brief 获取庆祝剩余时间。
      */
-    [[nodiscard]] i32 getCelebrationTime() const { return m_celebrationTime; }
+    [[nodiscard]] i32 getCelebrationTime() const
+    {
+        return m_celebrationTime;
+    }
 
     /**
      * @brief 进入庆祝状态。

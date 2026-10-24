@@ -58,7 +58,10 @@ public:
     static std::unique_ptr<Entity> create(IWorld* world, ecs::EntityRegistry& registry);
 
     // 掠夺者偏好武器（对齐 Java Pillager.getPreferredWeaponType）：拾取时优先保留弩。
-    [[nodiscard]] std::string getPreferredWeaponType() const override { return "minecraft:pillager_preferred_weapons"; }
+    [[nodiscard]] std::string getPreferredWeaponType() const override
+    {
+        return "minecraft:pillager_preferred_weapons";
+    }
 
     /**
      * @brief 构造函数
@@ -82,40 +85,72 @@ public:
     // ========== IRangedAttackMob 接口 ==========
 
     void attackEntityWithRangedAttack(LivingEntity* target, f32 charge) override;
-    [[nodiscard]] i32 getAttackInterval() const override { return 20; }
-    [[nodiscard]] bool canRangedAttack() const override { return true; }
+
+    [[nodiscard]] i32 getAttackInterval() const override
+    {
+        return 20;
+    }
+
+    [[nodiscard]] bool canRangedAttack() const override
+    {
+        return true;
+    }
 
     // ========== 尺寸 ==========
 
     /**
      * @brief 获取实体宽度
      */
-    [[nodiscard]] f32 width() const override { return 0.6f; }
+    [[nodiscard]] f32 width() const override
+    {
+        return 0.6f;
+    }
 
     /**
      * @brief 获取实体高度
      */
-    [[nodiscard]] f32 height() const override { return 1.95f; }
+    [[nodiscard]] f32 height() const override
+    {
+        return 1.95f;
+    }
 
     // ========== ICrossbowUser 接口 ==========
 
-    void setChargingCrossbow(bool charging) override { m_isCharging = charging; }
-    [[nodiscard]] bool isChargingCrossbow() const override { return m_isCharging; }
+    void setChargingCrossbow(bool charging) override
+    {
+        m_isCharging = charging;
+    }
+
+    [[nodiscard]] bool isChargingCrossbow() const override
+    {
+        return m_isCharging;
+    }
+
     void onCrossbowLoadComplete(::mc::ItemStack& crossbow) override;
     void shootCrossbow(::mc::LivingEntity* target, ::mc::ItemStack& crossbow, f32 charge) override;
-    [[nodiscard]] i32 getCrossbowChargeTime() const override { return 25; }
+
+    [[nodiscard]] i32 getCrossbowChargeTime() const override
+    {
+        return 25;
+    }
 
     // ========== 弩相关（旧接口，保持兼容） ==========
 
     /**
      * @brief 是否正在装填弩
      */
-    [[nodiscard]] bool isCharging() const { return m_isCharging; }
+    [[nodiscard]] bool isCharging() const
+    {
+        return m_isCharging;
+    }
 
     /**
      * @brief 设置装填状态
      */
-    void setCharging(bool charging) { m_isCharging = charging; }
+    void setCharging(bool charging)
+    {
+        m_isCharging = charging;
+    }
 
     // ========== 生命周期 ==========
 
@@ -171,12 +206,18 @@ public:
     /**
      * @brief 是否处于攻击状态
      */
-    [[nodiscard]] bool isAggressive() const { return m_aggressive; }
+    [[nodiscard]] bool isAggressive() const
+    {
+        return m_aggressive;
+    }
 
     /**
      * @brief 设置攻击状态
      */
-    void setAggressive(bool aggressive) { m_aggressive = aggressive; }
+    void setAggressive(bool aggressive)
+    {
+        m_aggressive = aggressive;
+    }
 
     // ========== Johnny 彩蛋 ==========
 
@@ -188,12 +229,18 @@ public:
      * 玩家/村民/铁傀儡）。一旦激活即锁存（即便后续改名也不再取消），对齐 vanilla
      * setCustomName 中 `if (!isJohnny && name.equals("Johnny")) isJohnny = true`。
      */
-    [[nodiscard]] bool isJohnny() const { return m_isJohnny; }
+    [[nodiscard]] bool isJohnny() const
+    {
+        return m_isJohnny;
+    }
 
     /**
      * @brief 设置 Johnny 模式（测试/存档恢复用）
      */
-    void setJohnny(bool johnny) { m_isJohnny = johnny; }
+    void setJohnny(bool johnny)
+    {
+        m_isJohnny = johnny;
+    }
 
     /**
      * @brief 重写命名设置以触发 Johnny 锁存
@@ -209,12 +256,18 @@ public:
     /**
      * @brief 获取实体宽度
      */
-    [[nodiscard]] f32 width() const override { return 0.6f; }
+    [[nodiscard]] f32 width() const override
+    {
+        return 0.6f;
+    }
 
     /**
      * @brief 获取实体高度
      */
-    [[nodiscard]] f32 height() const override { return 1.95f; }
+    [[nodiscard]] f32 height() const override
+    {
+        return 1.95f;
+    }
 
     // ========== 生命周期 ==========
 

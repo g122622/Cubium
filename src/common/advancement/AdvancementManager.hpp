@@ -101,35 +101,57 @@ public:
     /**
      * @brief 获取成就列表
      */
-    [[nodiscard]] AdvancementList& getList() noexcept { return m_list; }
-    [[nodiscard]] const AdvancementList& getList() const noexcept { return m_list; }
+    [[nodiscard]] AdvancementList& getList() noexcept
+    {
+        return m_list;
+    }
+
+    [[nodiscard]] const AdvancementList& getList() const noexcept
+    {
+        return m_list;
+    }
 
     /**
      * @brief 获取所有根成就
      */
-    [[nodiscard]] const std::vector<Advancement::Ptr>& getRoots() const { return m_list.getRoots(); }
+    [[nodiscard]] const std::vector<Advancement::Ptr>& getRoots() const
+    {
+        return m_list.getRoots();
+    }
 
     /**
      * @brief 获取所有非根成就
      */
-    [[nodiscard]] const std::vector<Advancement::Ptr>& getNonRoots() const { return m_list.getNonRoots(); }
+    [[nodiscard]] const std::vector<Advancement::Ptr>& getNonRoots() const
+    {
+        return m_list.getNonRoots();
+    }
 
     /**
      * @brief 遍历所有成就
      */
-    void forEach(std::function<bool(Advancement::Ptr)> callback) const { m_list.forEach(std::move(callback)); }
+    void forEach(std::function<bool(Advancement::Ptr)> callback) const
+    {
+        m_list.forEach(std::move(callback));
+    }
 
     // ========== 监听器 ==========
 
     /**
      * @brief 添加成就变化监听器
      */
-    void addListener(AdvancementList::IListener* listener) { m_list.addListener(listener); }
+    void addListener(AdvancementList::IListener* listener)
+    {
+        m_list.addListener(listener);
+    }
 
     /**
      * @brief 移除成就变化监听器
      */
-    void removeListener(AdvancementList::IListener* listener) { m_list.removeListener(listener); }
+    void removeListener(AdvancementList::IListener* listener)
+    {
+        m_list.removeListener(listener);
+    }
 
     // ========== 热重载 ==========
 

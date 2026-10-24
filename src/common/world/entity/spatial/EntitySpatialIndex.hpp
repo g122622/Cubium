@@ -116,7 +116,10 @@ public:
 
     // ========== 玩家专表（O(1)） ==========
 
-    [[nodiscard]] const std::vector<Entity*>& players() const noexcept { return m_players; }
+    [[nodiscard]] const std::vector<Entity*>& players() const noexcept
+    {
+        return m_players;
+    }
 
     /**
      * @brief 取距 pos 最近、距离 <= maxDistance 的玩家（exclude 跳过）
@@ -139,8 +142,15 @@ public:
 
     // ========== 统计/诊断 ==========
 
-    [[nodiscard]] size_t sectionCount() const noexcept { return m_sections.size(); }
-    [[nodiscard]] size_t entityCount() const noexcept { return m_entitySection.size(); }
+    [[nodiscard]] size_t sectionCount() const noexcept
+    {
+        return m_sections.size();
+    }
+
+    [[nodiscard]] size_t entityCount() const noexcept
+    {
+        return m_entitySection.size();
+    }
 
     /**
      * @brief DEBUG 一致性断言（仅调试构建生效）

@@ -250,8 +250,9 @@ void ServerDimensionManager::playerLeaveDimension(PlayerId playerId)
     DimensionId oldDimId = it->second;
     auto* dim = getDimension(oldDimId);
     if (dim) {
-        if (dim->world() != nullptr && m_server != nullptr)
+        if (dim->world() != nullptr && m_server != nullptr) {
             dim->world()->waypointManager().removePlayer(*m_server, playerId);
+        }
         dim->removePlayer(playerId);
     }
 
@@ -327,7 +328,9 @@ bool ServerDimensionManager::transferPlayerToDimension(
 
 void ServerDimensionManager::tick()
 {
-    forEachDimension([](Dimension& dim) { dim.tick(); });
+    forEachDimension([](Dimension& dim) {
+        dim.tick();
+    });
 }
 
 // ============================================================================
@@ -551,7 +554,9 @@ std::unique_ptr<server::ServerWorld> ServerDimensionManager::_createServerWorld(
     world->setChunkManager(std::move(chunkManager));
     world->setSharedStorage(m_server->sharedStorage());
     world->setTimeManager(&m_server->timeManager());
-    world->setDifficultyCallback([server = m_server]() { return server->difficulty(); });
+    world->setDifficultyCallback([server = m_server]() {
+        return server->difficulty();
+    });
     world->setLootTableManager(&m_server->lootTableManager());
     return world;
 }

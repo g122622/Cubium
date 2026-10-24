@@ -39,7 +39,9 @@ VexMovementController::VexMovementController(VexEntity* vex)
 
 void VexMovementController::tick()
 {
-    if (!m_vex) return;
+    if (!m_vex) {
+        return;
+    }
 
     // 恼鬼使用直接修改velocity的方式飞行，不使用传统导航
     if (m_action == MoveAction::MoveTo) {

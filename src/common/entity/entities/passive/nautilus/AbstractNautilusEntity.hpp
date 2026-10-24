@@ -97,7 +97,12 @@ public:
     // ========== IJumpingMount 接口实现 ==========
 
     void onJump() override;
-    [[nodiscard]] i32 getJumpCharge() const override { return m_dashCooldown; }
+
+    [[nodiscard]] i32 getJumpCharge() const override
+    {
+        return m_dashCooldown;
+    }
+
     void setJumpCharge(i32 power) override;
     [[nodiscard]] f32 getMaxJumpHeight() const override;
     [[nodiscard]] bool canJump() const override;
@@ -112,7 +117,11 @@ public:
     using LivingEntity::getEquipment;
     using LivingEntity::setEquipment;
 
-    [[nodiscard]] i32 getEquipmentSlotCount() const override { return 2; }
+    [[nodiscard]] i32 getEquipmentSlotCount() const override
+    {
+        return 2;
+    }
+
     [[nodiscard]] ItemStack getEquipment(i32 slot) const override;
     void setEquipment(i32 slot, const ItemStack& item) override;
     [[nodiscard]] bool canEquip(const ItemStack& item, i32 slot) const override;
@@ -156,20 +165,29 @@ public:
      * @brief 获取骑乘者（玩家）
      * @return 骑乘者指针，如果没有则返回 nullptr
      */
-    [[nodiscard]] Player* getRider() const { return m_rider; }
+    [[nodiscard]] Player* getRider() const
+    {
+        return m_rider;
+    }
 
     /**
      * @brief 设置骑乘者
      * @param rider 骑乘者
      */
-    void setRider(Player* rider) { m_rider = rider; }
+    void setRider(Player* rider)
+    {
+        m_rider = rider;
+    }
 
     // ========== 冲刺系统 ==========
 
     /**
      * @brief 检查是否正在冲刺
      */
-    [[nodiscard]] bool isDashing() const { return m_dataManager.get<bool>(DATA_DASH_PARAM); }
+    [[nodiscard]] bool isDashing() const
+    {
+        return m_dataManager.get<bool>(DATA_DASH_PARAM);
+    }
 
     /**
      * @brief 获取冲刺状态数据参数 ID
@@ -177,7 +195,10 @@ public:
      * 返回 DATA_DASH_PARAM 的 id（vanilla AbstractNautilus.DASH，Boolean 类型）。
      * 测试/诊断用。
      */
-    [[nodiscard]] static u16 getDashParamId() { return DATA_DASH_PARAM.id(); }
+    [[nodiscard]] static u16 getDashParamId()
+    {
+        return DATA_DASH_PARAM.id();
+    }
 
     /**
      * @brief 设置冲刺状态
@@ -187,21 +208,30 @@ public:
     /**
      * @brief 获取冲刺冷却剩余时间（ticks）
      */
-    [[nodiscard]] i32 getDashCooldown() const { return m_dashCooldown; }
+    [[nodiscard]] i32 getDashCooldown() const
+    {
+        return m_dashCooldown;
+    }
 
     /**
      * @brief 获取冲刺音效
      *
      * 子类应重写提供具体音效
      */
-    [[nodiscard]] virtual std::optional<ResourceLocation> getDashSound() const { return std::nullopt; }
+    [[nodiscard]] virtual std::optional<ResourceLocation> getDashSound() const
+    {
+        return std::nullopt;
+    }
 
     /**
      * @brief 获取冲刺就绪音效
      *
      * 子类应重写提供具体音效
      */
-    [[nodiscard]] virtual std::optional<ResourceLocation> getDashReadySound() const { return std::nullopt; }
+    [[nodiscard]] virtual std::optional<ResourceLocation> getDashReadySound() const
+    {
+        return std::nullopt;
+    }
 
     // ========== 水生行为 ==========
 
@@ -210,14 +240,20 @@ public:
      *
      * 鹦鹉螺是水生动物，可以在水下呼吸
      */
-    [[nodiscard]] bool canBreatheUnderwater() const override { return true; }
+    [[nodiscard]] bool canBreatheUnderwater() const override
+    {
+        return true;
+    }
 
     /**
      * @brief 获取最大空气供应量
      *
      * 鹦鹉螺最大空气 300 tick（15秒）
      */
-    [[nodiscard]] i32 maxAir() const override { return MAX_AIR_SUPPLY; }
+    [[nodiscard]] i32 maxAir() const override
+    {
+        return MAX_AIR_SUPPLY;
+    }
 
     /**
      * @brief 是否会被水流推动
@@ -229,7 +265,10 @@ public:
      * 这里直接提供同名方法供本类及调用方使用（非覆写）。
      * 若水流推动系统需要查询该接口，应通过 dynamic_cast 检查。
      */
-    [[nodiscard]] bool canBePushedByWater() const { return false; }
+    [[nodiscard]] bool canBePushedByWater() const
+    {
+        return false;
+    }
 
     /**
      * @brief 获取路径权重
@@ -246,7 +285,10 @@ public:
      *
      * 子类应重写提供具体音效
      */
-    [[nodiscard]] virtual std::optional<ResourceLocation> getEatSound() const { return std::nullopt; }
+    [[nodiscard]] virtual std::optional<ResourceLocation> getEatSound() const
+    {
+        return std::nullopt;
+    }
 
     // ========== 生命周期 ==========
 
@@ -312,7 +354,10 @@ public:
     void _onEquipmentInventoryChanged();
 
     /// 鹦鹉螺库存指针（菜单有效性校验用：库存被重建即视为原菜单失效）
-    [[nodiscard]] blockentity::SimpleInventory* inventoryPtr() const { return m_inventory.get(); }
+    [[nodiscard]] blockentity::SimpleInventory* inventoryPtr() const
+    {
+        return m_inventory.get();
+    }
 
     /// IEquipable 槽位索引 → EquipmentSlot 映射（0 = Saddle，1 = Body）
     [[nodiscard]] static EquipmentSlot equipmentSlotForContainerSlot(i32 slot);

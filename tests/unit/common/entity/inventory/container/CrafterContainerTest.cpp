@@ -541,7 +541,10 @@ protected:
         crafterEntity_ = std::make_unique<CrafterBlockEntity>(BlockPos(0, 64, 0));
     }
 
-    void TearDown() override { crafting::RecipeManager::instance().clear(); }
+    void TearDown() override
+    {
+        crafting::RecipeManager::instance().clear();
+    }
 
     std::unique_ptr<Player> player_;
     std::unique_ptr<PlayerInventory> playerInventory_;

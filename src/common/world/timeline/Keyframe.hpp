@@ -45,8 +45,15 @@ public:
         , m_value(std::move(value))
     {}
 
-    [[nodiscard]] i32 ticks() const noexcept { return m_ticks; }
-    [[nodiscard]] const T& value() const noexcept { return m_value; }
+    [[nodiscard]] i32 ticks() const noexcept
+    {
+        return m_ticks;
+    }
+
+    [[nodiscard]] const T& value() const noexcept
+    {
+        return m_value;
+    }
 
 private:
     i32 m_ticks;

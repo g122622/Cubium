@@ -108,7 +108,10 @@ public:
     /**
      * @brief 获取参数ID
      */
-    [[nodiscard]] constexpr u16 id() const { return m_id; }
+    [[nodiscard]] constexpr u16 id() const
+    {
+        return m_id;
+    }
 
     /**
      * @brief 运行时分配真实 id（由 EntityDataManager::registerParam 调用）
@@ -117,7 +120,10 @@ public:
      * 而非静态 createKey 时。静态成员在 createKey 后持哨兵 0xFFFF，registerParam
      * 填入真实 id，之后 set/get 用 id() 取得正确值。
      */
-    void assignId(u16 id) noexcept { m_id = id; }
+    void assignId(u16 id) noexcept
+    {
+        m_id = id;
+    }
 
     /**
      * @brief 获取参数类型
@@ -127,8 +133,15 @@ public:
     /**
      * @brief 比较操作符
      */
-    [[nodiscard]] bool operator==(const DataParameter& other) const noexcept { return m_id == other.m_id; }
-    [[nodiscard]] bool operator!=(const DataParameter& other) const noexcept { return m_id != other.m_id; }
+    [[nodiscard]] bool operator==(const DataParameter& other) const noexcept
+    {
+        return m_id == other.m_id;
+    }
+
+    [[nodiscard]] bool operator!=(const DataParameter& other) const noexcept
+    {
+        return m_id != other.m_id;
+    }
 
 private:
     u16 m_id;
@@ -140,46 +153,55 @@ inline DataSerializerType DataParameter<i8>::type() const noexcept
 {
     return DataSerializerType::Byte;
 }
+
 template <>
 inline DataSerializerType DataParameter<i32>::type() const noexcept
 {
     return DataSerializerType::Int;
 }
+
 template <>
 inline DataSerializerType DataParameter<i64>::type() const noexcept
 {
     return DataSerializerType::Long;
 }
+
 template <>
 inline DataSerializerType DataParameter<f32>::type() const noexcept
 {
     return DataSerializerType::Float;
 }
+
 template <>
 inline DataSerializerType DataParameter<std::string>::type() const noexcept
 {
     return DataSerializerType::String;
 }
+
 template <>
 inline DataSerializerType DataParameter<bool>::type() const noexcept
 {
     return DataSerializerType::Boolean;
 }
+
 template <>
 inline DataSerializerType DataParameter<Vector3i>::type() const noexcept
 {
     return DataSerializerType::BlockPos;
 }
+
 template <>
 inline DataSerializerType DataParameter<Vector2f>::type() const noexcept
 {
     return DataSerializerType::Rotation;
 }
+
 template <>
 inline DataSerializerType DataParameter<Vector3f>::type() const noexcept
 {
     return DataSerializerType::Vector3f;
 }
+
 template <>
 inline DataSerializerType DataParameter<Vector3d>::type() const noexcept
 {

@@ -132,17 +132,26 @@ public:
     /**
      * @brief 设置Trident上下文
      */
-    void setContext(TridentContext* context) { m_context = context; }
+    void setContext(TridentContext* context)
+    {
+        m_context = context;
+    }
 
     /**
      * @brief 设置纹理图集
      */
-    void setTextureAtlas(TridentTextureAtlas* atlas) { m_textureAtlas = atlas; }
+    void setTextureAtlas(TridentTextureAtlas* atlas)
+    {
+        m_textureAtlas = atlas;
+    }
 
     /**
      * @brief 设置模型缓存
      */
-    void setModelCache(resource::BlockModelCache* cache) { m_modelCache = cache; }
+    void setModelCache(resource::BlockModelCache* cache)
+    {
+        m_modelCache = cache;
+    }
 
     // ========== 初始化 ==========
 

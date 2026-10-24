@@ -39,14 +39,46 @@ public:
         : m_inventory(size)
     {}
 
-    [[nodiscard]] i32 getContainerSize() const noexcept override { return m_inventory.getContainerSize(); }
-    [[nodiscard]] bool isEmpty() const noexcept override { return m_inventory.isEmpty(); }
-    [[nodiscard]] ItemStack getItem(i32 slot) const override { return m_inventory.getItem(slot); }
-    void setItem(i32 slot, const ItemStack& stack) override { m_inventory.setItem(slot, stack); }
-    ItemStack removeItem(i32 slot, i32 count) override { return m_inventory.removeItem(slot, count); }
-    ItemStack removeItemNoUpdate(i32 slot) override { return m_inventory.removeItemNoUpdate(slot); }
-    void clear() override { m_inventory.clear(); }
-    void setChanged() override { m_inventory.setChanged(); }
+    [[nodiscard]] i32 getContainerSize() const noexcept override
+    {
+        return m_inventory.getContainerSize();
+    }
+
+    [[nodiscard]] bool isEmpty() const noexcept override
+    {
+        return m_inventory.isEmpty();
+    }
+
+    [[nodiscard]] ItemStack getItem(i32 slot) const override
+    {
+        return m_inventory.getItem(slot);
+    }
+
+    void setItem(i32 slot, const ItemStack& stack) override
+    {
+        m_inventory.setItem(slot, stack);
+    }
+
+    ItemStack removeItem(i32 slot, i32 count) override
+    {
+        return m_inventory.removeItem(slot, count);
+    }
+
+    ItemStack removeItemNoUpdate(i32 slot) override
+    {
+        return m_inventory.removeItemNoUpdate(slot);
+    }
+
+    void clear() override
+    {
+        m_inventory.clear();
+    }
+
+    void setChanged() override
+    {
+        m_inventory.setChanged();
+    }
+
     [[nodiscard]] std::vector<i32> getSlotsForFace(Direction side) const override
     {
         if (side == Direction::Up) {
@@ -58,12 +90,14 @@ public:
         }
         return {};
     }
+
     [[nodiscard]] bool canInsertItem(i32 slot, const ItemStack& stack, Direction direction) const override
     {
         MC_UNUSED(slot);
         MC_UNUSED(stack);
         return direction == Direction::Up;
     }
+
     [[nodiscard]] bool canExtractItem(i32 slot, const ItemStack& stack, Direction direction) const override
     {
         MC_UNUSED(slot);

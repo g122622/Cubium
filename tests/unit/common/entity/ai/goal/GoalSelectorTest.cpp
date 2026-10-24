@@ -43,20 +43,40 @@ namespace test {
  */
 class AlwaysExecuteGoal : public entity::ai::Goal {
 public:
-    AlwaysExecuteGoal() { setMutexFlags(EnumSet<entity::ai::GoalFlag>{entity::ai::GoalFlag::Move}); }
+    AlwaysExecuteGoal()
+    {
+        setMutexFlags(EnumSet<entity::ai::GoalFlag>{entity::ai::GoalFlag::Move});
+    }
 
-    [[nodiscard]] bool shouldExecute() override { return true; }
-    [[nodiscard]] bool shouldContinueExecuting() override { return true; }
-    [[nodiscard]] std::string getTypeName() const override { return "AlwaysExecuteGoal"; }
+    [[nodiscard]] bool shouldExecute() override
+    {
+        return true;
+    }
+
+    [[nodiscard]] bool shouldContinueExecuting() override
+    {
+        return true;
+    }
+
+    [[nodiscard]] std::string getTypeName() const override
+    {
+        return "AlwaysExecuteGoal";
+    }
 };
 
 // ==================== GoalSelector::removeGoalsOfType 测试 ====================
 
 class GoalSelectorRemoveGoalsOfTypeTest : public ::testing::Test {
 protected:
-    void SetUp() override { pig = std::make_unique<PigEntity>(EntityInstanceId(1), mc::test::testEcsRegistry()); }
+    void SetUp() override
+    {
+        pig = std::make_unique<PigEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
+    }
 
-    void TearDown() override { pig.reset(); }
+    void TearDown() override
+    {
+        pig.reset();
+    }
 
     std::unique_ptr<PigEntity> pig;
 };
@@ -136,7 +156,9 @@ TEST_F(GoalSelectorRemoveGoalsOfTypeTest, RemoveGoalsOfType_StopsRunningGoalsBef
 
     // 验证目标正在运行
     bool hasRunning = false;
-    selector.forEachRunningGoal([&](entity::ai::PrioritizedGoal& pg) { hasRunning = true; });
+    selector.forEachRunningGoal([&](entity::ai::PrioritizedGoal& pg) {
+        hasRunning = true;
+    });
     EXPECT_TRUE(hasRunning);
 
     // 移除运行中的目标
@@ -186,9 +208,15 @@ TEST_F(GoalSelectorRemoveGoalsOfTypeTest, RemoveAllGoals_ClearsEverything)
 
 class GoalSelectorBasicTest : public ::testing::Test {
 protected:
-    void SetUp() override { pig = std::make_unique<PigEntity>(EntityInstanceId(1), mc::test::testEcsRegistry()); }
+    void SetUp() override
+    {
+        pig = std::make_unique<PigEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
+    }
 
-    void TearDown() override { pig.reset(); }
+    void TearDown() override
+    {
+        pig.reset();
+    }
 
     std::unique_ptr<PigEntity> pig;
 };
@@ -236,7 +264,9 @@ TEST_F(GoalSelectorBasicTest, RemoveGoal_StopsRunningGoal)
 
     // 目标应该正在运行
     bool hasRunning = false;
-    selector.forEachRunningGoal([&](entity::ai::PrioritizedGoal& pg) { hasRunning = true; });
+    selector.forEachRunningGoal([&](entity::ai::PrioritizedGoal& pg) {
+        hasRunning = true;
+    });
     EXPECT_TRUE(hasRunning);
 
     // 移除目标
@@ -281,11 +311,31 @@ public:
         ++canUseCalls;
         return m_canUse;
     }
-    [[nodiscard]] bool shouldContinueExecuting() override { return true; }
-    void tick() override { ++tickCalls; }
-    void resetTask() override { ++resetCalls; }
-    [[nodiscard]] bool requiresUpdateEveryTick() const override { return m_everyTick; }
-    [[nodiscard]] std::string getTypeName() const override { return "CountingGoal"; }
+
+    [[nodiscard]] bool shouldContinueExecuting() override
+    {
+        return true;
+    }
+
+    void tick() override
+    {
+        ++tickCalls;
+    }
+
+    void resetTask() override
+    {
+        ++resetCalls;
+    }
+
+    [[nodiscard]] bool requiresUpdateEveryTick() const override
+    {
+        return m_everyTick;
+    }
+
+    [[nodiscard]] std::string getTypeName() const override
+    {
+        return "CountingGoal";
+    }
 
     i32 canUseCalls = 0;
     i32 tickCalls = 0;
@@ -300,8 +350,15 @@ private:
 
 class GoalSelectorTickGateTest : public ::testing::Test {
 protected:
-    void SetUp() override { pig = std::make_unique<PigEntity>(EntityInstanceId(1), mc::test::testEcsRegistry()); }
-    void TearDown() override { pig.reset(); }
+    void SetUp() override
+    {
+        pig = std::make_unique<PigEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
+    }
+
+    void TearDown() override
+    {
+        pig.reset();
+    }
 
     std::unique_ptr<PigEntity> pig;
 };
@@ -375,7 +432,9 @@ TEST_F(GoalSelectorTickGateTest, PreemptionStopsLowerPriorityOnce)
     EXPECT_EQ(lowRaw->resetCalls, 1) << "低优先级目标被抢占时应停止一次";
     EXPECT_EQ(highRaw->canUseCalls, 1);
     i32 running = 0;
-    selector.forEachRunningGoal([&running](entity::ai::PrioritizedGoal&) { ++running; });
+    selector.forEachRunningGoal([&running](entity::ai::PrioritizedGoal&) {
+        ++running;
+    });
     EXPECT_EQ(running, 1) << "同一时刻同标志只允许一个目标运行";
 }
 

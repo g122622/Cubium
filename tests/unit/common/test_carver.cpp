@@ -54,7 +54,10 @@ using namespace mc::world::gen::surface;
 
 class CarvingMaskTest : public ::testing::Test {
 protected:
-    void SetUp() override { mask = std::make_unique<CarvingMask>(0, 0, world::MIN_BUILD_HEIGHT, world::CHUNK_HEIGHT); }
+    void SetUp() override
+    {
+        mask = std::make_unique<CarvingMask>(0, 0, world::MIN_BUILD_HEIGHT, world::CHUNK_HEIGHT);
+    }
 
     std::unique_ptr<CarvingMask> mask;
 };
@@ -107,7 +110,10 @@ TEST_F(CarvingMaskTest, BoundaryCheck)
 
 class WorldCarverTest : public ::testing::Test {
 protected:
-    void SetUp() override { VanillaBlocks::initialize(); }
+    void SetUp() override
+    {
+        VanillaBlocks::initialize();
+    }
 };
 
 TEST_F(WorldCarverTest, CanReplaceBlockWithTag)
@@ -212,6 +218,7 @@ TEST_F(CaveCarverTest, MatchesJavaCaveAndCanyonMasksIncludingBranchesAndNeighbor
         u64 hash;
         bool canyon;
     };
+
     for (const auto& sample : {Sample{2, 0, 241, 0x53703c8d30f9f8e2ULL, false},
              Sample{4, 0, 700, 0x5f1be55c68bbdf99ULL, false},
              Sample{42, 0, 95, 0x51223dce1f6cb7f0ULL, false},

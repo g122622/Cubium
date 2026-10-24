@@ -104,17 +104,26 @@ public:
     /**
      * @brief 检查数据库是否已打开
      */
-    [[nodiscard]] bool isOpen() const noexcept { return m_db != nullptr; }
+    [[nodiscard]] bool isOpen() const noexcept
+    {
+        return m_db != nullptr;
+    }
 
     /**
      * @brief 获取数据库路径
      */
-    [[nodiscard]] const std::filesystem::path& path() const noexcept { return m_path; }
+    [[nodiscard]] const std::filesystem::path& path() const noexcept
+    {
+        return m_path;
+    }
 
     /**
      * @brief 获取配置
      */
-    [[nodiscard]] const RocksDBConfig& config() const noexcept { return m_config; }
+    [[nodiscard]] const RocksDBConfig& config() const noexcept
+    {
+        return m_config;
+    }
 
     /**
      * @brief 单点读取

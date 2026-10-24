@@ -52,7 +52,10 @@ namespace {
 /// 命令方块测试世界：稀疏方块 + 方块实体注册 + 命令执行记录。
 class CommandBlockTestWorld final : public mc::test::BaseTestWorld {
 public:
-    CommandBlockTestWorld() { m_tickManager = std::make_unique<world::tick::TickManager>(*this); }
+    CommandBlockTestWorld()
+    {
+        m_tickManager = std::make_unique<world::tick::TickManager>(*this);
+    }
 
     [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override
     {
@@ -84,8 +87,15 @@ public:
         return it != m_blockEntities.end() ? it->second.get() : nullptr;
     }
 
-    [[nodiscard]] world::tick::TickManager& tickManager() override { return *m_tickManager; }
-    [[nodiscard]] const world::tick::TickManager& tickManager() const override { return *m_tickManager; }
+    [[nodiscard]] world::tick::TickManager& tickManager() override
+    {
+        return *m_tickManager;
+    }
+
+    [[nodiscard]] const world::tick::TickManager& tickManager() const override
+    {
+        return *m_tickManager;
+    }
 
     i32 executeCommand(
         const std::string& command, const Vector3d&, i32, const Vector2f&, Player* /*player*/ = nullptr) override
@@ -124,10 +134,16 @@ public:
         return ref;
     }
 
-    [[nodiscard]] const std::vector<std::string>& executedCommands() const { return m_executedCommands; }
+    [[nodiscard]] const std::vector<std::string>& executedCommands() const
+    {
+        return m_executedCommands;
+    }
 
     /// 清空命令执行记录（同一次用例内分阶段断言时使用）。
-    void clearExecutedCommands() { m_executedCommands.clear(); }
+    void clearExecutedCommands()
+    {
+        m_executedCommands.clear();
+    }
 
     /// 模拟 BlockItem 放置完成后的方块侧回调（携带普通物品堆，无方块实体数据）。
     void placeBlock(const Block& block, const BlockPos& pos)
@@ -170,7 +186,10 @@ protected:
         Items::initialize();
     }
 
-    void SetUp() override { world.reset(); }
+    void SetUp() override
+    {
+        world.reset();
+    }
 
     CommandBlockTestWorld world;
     Block* commandBlock = VanillaBlocks::COMMAND_BLOCK;

@@ -63,7 +63,10 @@ public:
     /**
      * @brief 获取 LAYERS 属性
      */
-    [[nodiscard]] static const IntegerProperty& LAYERS() { return BlockStateProperties::LAYERS_1_8(); }
+    [[nodiscard]] static const IntegerProperty& LAYERS()
+    {
+        return BlockStateProperties::LAYERS_1_8();
+    }
 
     /**
      * @brief 构造雪层方块
@@ -80,7 +83,10 @@ public:
     /**
      * @brief 是否响应随机刻
      */
-    [[nodiscard]] bool ticksRandomly() const noexcept override { return true; }
+    [[nodiscard]] bool ticksRandomly() const noexcept override
+    {
+        return true;
+    }
 
     /**
      * @brief 检查是否可以放置在指定位置

@@ -76,14 +76,37 @@ public:
     [[nodiscard]] BiomeId getBiome(i32 x, i32 y, i32 z) const override;
     [[nodiscard]] BiomeId getNoiseBiome(i32 noiseX, i32 noiseY, i32 noiseZ) const override;
     [[nodiscard]] i32 getHeight(i32 x, i32 z, HeightmapType type) const override;
-    [[nodiscard]] i32 getGroundHeight() const override { return 0; }
-    [[nodiscard]] i32 seaLevel() const override { return world::SEA_LEVEL; }
 
-    [[nodiscard]] world::biome::IBiomeSource* getBiomeSource() override { return m_biomeSource.get(); }
-    [[nodiscard]] const world::biome::IBiomeSource* getBiomeSource() const override { return m_biomeSource.get(); }
+    [[nodiscard]] i32 getGroundHeight() const override
+    {
+        return 0;
+    }
 
-    [[nodiscard]] i32 getGenDepth() const override { return world::CHUNK_HEIGHT; }
-    [[nodiscard]] i32 getMinY() const override { return 0; }
+    [[nodiscard]] i32 seaLevel() const override
+    {
+        return world::SEA_LEVEL;
+    }
+
+    [[nodiscard]] world::biome::IBiomeSource* getBiomeSource() override
+    {
+        return m_biomeSource.get();
+    }
+
+    [[nodiscard]] const world::biome::IBiomeSource* getBiomeSource() const override
+    {
+        return m_biomeSource.get();
+    }
+
+    [[nodiscard]] i32 getGenDepth() const override
+    {
+        return world::CHUNK_HEIGHT;
+    }
+
+    [[nodiscard]] i32 getMinY() const override
+    {
+        return 0;
+    }
+
     [[nodiscard]] NoiseColumn getBaseColumn(i32 x, i32 z) const override
     {
         MC_UNUSED(x);
@@ -95,7 +118,10 @@ public:
      * @brief 调试世界生成器标识
      * @return true（调试世界生成器）
      */
-    [[nodiscard]] bool isDebugGenerator() const override { return true; }
+    [[nodiscard]] bool isDebugGenerator() const override
+    {
+        return true;
+    }
 
     // === 调试模式特有方法 ===
 

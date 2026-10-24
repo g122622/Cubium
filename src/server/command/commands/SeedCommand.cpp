@@ -42,9 +42,13 @@ void SeedCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
     using namespace mc::command;
 
     auto seedNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("seed");
-    seedNode->setRequirement([](const ServerCommandSource& source) { return source.hasPermission(2); });
+    seedNode->setRequirement([](const ServerCommandSource& source) {
+        return source.hasPermission(2);
+    });
     support::applyMetadata(seedNode, support::makeMetadata("Show the world seed.", "/seed", 2));
-    seedNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _showSeed(ctx); });
+    seedNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _showSeed(ctx);
+    });
 
     dispatcher.registerCommand(seedNode);
 }

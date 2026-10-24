@@ -99,12 +99,21 @@ public:
     ~EntityResolverTestServer() override = default;
 
     // 覆盖 dimensionManager，返回包含测试世界的维度管理器
-    [[nodiscard]] ServerDimensionManager& dimensionManager() override { return m_dimensionManager; }
+    [[nodiscard]] ServerDimensionManager& dimensionManager() override
+    {
+        return m_dimensionManager;
+    }
 
-    [[nodiscard]] const ServerDimensionManager& dimensionManager() const override { return m_dimensionManager; }
+    [[nodiscard]] const ServerDimensionManager& dimensionManager() const override
+    {
+        return m_dimensionManager;
+    }
 
     // 覆盖 playerEntityManager
-    [[nodiscard]] ServerPlayerEntityManager& playerEntityManager() override { return m_playerEntityManager; }
+    [[nodiscard]] ServerPlayerEntityManager& playerEntityManager() override
+    {
+        return m_playerEntityManager;
+    }
 
     [[nodiscard]] const ServerPlayerEntityManager& playerEntityManager() const override
     {
@@ -112,10 +121,16 @@ public:
     }
 
     // 覆盖 getPlayerWorld，返回测试世界
-    [[nodiscard]] ServerWorld* getPlayerWorld(PlayerId) override { return m_world; }
+    [[nodiscard]] ServerWorld* getPlayerWorld(PlayerId) override
+    {
+        return m_world;
+    }
 
     // 获取测试世界
-    [[nodiscard]] ServerWorld* world() const { return m_world; }
+    [[nodiscard]] ServerWorld* world() const
+    {
+        return m_world;
+    }
 
     // 在测试世界中生成实体
     EntityInstanceId spawnEntity(std::unique_ptr<Entity> entity)

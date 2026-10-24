@@ -109,12 +109,17 @@ public:
     using IWorld::setBlockState;
 
     // ========== 方块状态存储 ==========
-    void setBlockStateAt(const BlockPos& pos, const BlockState* state) { m_blockStates[pos] = state; }
+    void setBlockStateAt(const BlockPos& pos, const BlockState* state)
+    {
+        m_blockStates[pos] = state;
+    }
+
     [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override
     {
         auto it = m_blockStates.find(BlockPos(x, y, z));
         return it != m_blockStates.end() ? it->second : nullptr;
     }
+
     bool setBlockState(i32 x, i32 y, i32 z, const BlockState* state) override
     {
         m_blockStates[BlockPos(x, y, z)] = state;
@@ -126,17 +131,23 @@ public:
     {
         m_blockEntities[pos] = std::move(entity);
     }
+
     [[nodiscard]] BlockEntity* getBlockEntity(const BlockPos& pos) override
     {
         auto it = m_blockEntities.find(pos);
         return it != m_blockEntities.end() ? it->second.get() : nullptr;
     }
+
     [[nodiscard]] const BlockEntity* getBlockEntity(const BlockPos& pos) const override
     {
         auto it = m_blockEntities.find(pos);
         return it != m_blockEntities.end() ? it->second.get() : nullptr;
     }
-    void removeBlockEntity(const BlockPos& pos) override { m_blockEntities.erase(pos); }
+
+    void removeBlockEntity(const BlockPos& pos) override
+    {
+        m_blockEntities.erase(pos);
+    }
 
     // ========== 战利品表管理器 ==========
     [[nodiscard]] const loot::LootTableManager* lootTableManager() const override
@@ -146,17 +157,43 @@ public:
         }
         return m_customManager != nullptr ? m_customManager : &m_lootTableManager;
     }
-    void setLootTableManager(loot::LootTableManager* manager) { m_customManager = manager; }
-    void setNoLootTableManager() { m_noManager = true; }
-    [[nodiscard]] loot::LootTableManager& mutableLootTableManager() { return m_lootTableManager; }
+
+    void setLootTableManager(loot::LootTableManager* manager)
+    {
+        m_customManager = manager;
+    }
+
+    void setNoLootTableManager()
+    {
+        m_noManager = true;
+    }
+
+    [[nodiscard]] loot::LootTableManager& mutableLootTableManager()
+    {
+        return m_lootTableManager;
+    }
 
     // ========== 时间 ==========
-    void setGameTime(u64 tick) { m_gameTime = tick; }
-    [[nodiscard]] u64 currentTick() const override { return m_gameTime; }
+    void setGameTime(u64 tick)
+    {
+        m_gameTime = tick;
+    }
+
+    [[nodiscard]] u64 currentTick() const override
+    {
+        return m_gameTime;
+    }
 
     // ========== 客户端标志 ==========
-    void setClientSide(bool client) { m_clientSide = client; }
-    [[nodiscard]] bool isClientSide() const override { return m_clientSide; }
+    void setClientSide(bool client)
+    {
+        m_clientSide = client;
+    }
+
+    [[nodiscard]] bool isClientSide() const override
+    {
+        return m_clientSide;
+    }
 
     // ========== playEvent 追踪 ==========
     struct EventCall {
@@ -164,11 +201,17 @@ public:
         BlockPos pos;
         i32 data = 0;
     };
+
     void playEvent(i32 eventId, const BlockPos& pos, i32 data) override
     {
         m_eventCalls.push_back({eventId, pos, data});
     }
-    [[nodiscard]] const std::vector<EventCall>& eventCalls() const { return m_eventCalls; }
+
+    [[nodiscard]] const std::vector<EventCall>& eventCalls() const
+    {
+        return m_eventCalls;
+    }
+
     [[nodiscard]] bool hasEvent(i32 eventId) const
     {
         for (const auto& call : m_eventCalls) {
@@ -185,10 +228,17 @@ public:
         m_spawnedEntities.push_back(std::move(entity));
         return EntityInstanceId(static_cast<u64>(m_spawnedEntities.size()));
     }
-    [[nodiscard]] size_t spawnedEntityCount() const { return m_spawnedEntities.size(); }
+
+    [[nodiscard]] size_t spawnedEntityCount() const
+    {
+        return m_spawnedEntities.size();
+    }
 
     // ========== 边界 ==========
-    [[nodiscard]] bool isWithinWorldBounds(i32, i32, i32) const override { return true; }
+    [[nodiscard]] bool isWithinWorldBounds(i32, i32, i32) const override
+    {
+        return true;
+    }
 
 private:
     std::unordered_map<BlockPos, const BlockState*> m_blockStates;

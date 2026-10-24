@@ -123,7 +123,10 @@ protected:
         AdvancementManager::instance().clear();
     }
 
-    void TearDown() override { AdvancementManager::instance().clear(); }
+    void TearDown() override
+    {
+        AdvancementManager::instance().clear();
+    }
 };
 
 TEST_F(AdvancementLoaderTest, PathToAdvancementId_SingularAdvancement)
@@ -516,7 +519,9 @@ TEST_F(AdvancementLoaderTest, LoadFromDataPackRepository_ProgressCallback)
     Size callbackCount = 0;
     AdvancementLoader loader;
     auto result = loader.loadFromDataPackRepository(
-        dataPacks, [&callbackCount](Size /*current*/, Size /*total*/, const std::string& /*id*/) { ++callbackCount; });
+        dataPacks, [&callbackCount](Size /*current*/, Size /*total*/, const std::string& /*id*/) {
+            ++callbackCount;
+        });
 
     ASSERT_TRUE(result.success());
     EXPECT_GT(callbackCount, 0u) << "Progress callback should be invoked for each advancement";

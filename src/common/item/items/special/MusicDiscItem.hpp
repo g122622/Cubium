@@ -58,19 +58,28 @@ public:
      * @brief 获取比较器信号强度
      * @return 信号强度 (1-15)
      */
-    [[nodiscard]] i32 getComparatorOutput() const noexcept { return m_comparatorOutput; }
+    [[nodiscard]] i32 getComparatorOutput() const noexcept
+    {
+        return m_comparatorOutput;
+    }
 
     /**
      * @brief 获取声音事件ID
      * @return 声音事件的资源位置
      */
-    [[nodiscard]] const ResourceLocation& getSoundEventId() const noexcept { return m_soundEventId; }
+    [[nodiscard]] const ResourceLocation& getSoundEventId() const noexcept
+    {
+        return m_soundEventId;
+    }
 
     /**
      * @brief 检查该物品是否为音乐唱片
      * @return 始终返回 true
      */
-    [[nodiscard]] bool isMusicDisc() const noexcept override { return true; }
+    [[nodiscard]] bool isMusicDisc() const noexcept override
+    {
+        return true;
+    }
 
 private:
     i32 m_comparatorOutput;          ///< 比较器信号强度 (1-15)

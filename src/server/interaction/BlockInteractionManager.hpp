@@ -41,9 +41,11 @@ namespace mc {
 class BlockState;
 class Player;
 class ServerPlayer;
+
 namespace loot {
 class LootTableManager;
 }
+
 namespace server {
 struct ServerPlayerData; // 前向声明（struct 而非 class）
 class IServer;
@@ -54,10 +56,12 @@ namespace mc::server {
 
 // 前向声明
 class ServerWorld;
+
 namespace core {
 class PlayerManager;
 class ConnectionManager;
 } // namespace core
+
 namespace interaction {
 class InventoryManager;
 }
@@ -138,7 +142,10 @@ public:
      * @brief 设置服务器接口（用于告示牌命令执行等）
      * @param server 服务器接口指针
      */
-    void setServer(IServer* server) { m_server = server; }
+    void setServer(IServer* server)
+    {
+        m_server = server;
+    }
 
     /**
      * @brief 处理方块放置（对应 vanilla `BlockItem.place`，经 `Item::useOn` 触发）

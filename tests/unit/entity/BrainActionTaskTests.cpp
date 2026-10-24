@@ -56,7 +56,10 @@ namespace {
 
 class AttackTaskMemoryTest : public ::testing::Test {
 protected:
-    void SetUp() override { MemoryModuleTypes::initialize(); }
+    void SetUp() override
+    {
+        MemoryModuleTypes::initialize();
+    }
 };
 
 // 测试：AttackTask 的记忆模块需求 - ATTACK_TARGET 必须存在
@@ -360,7 +363,10 @@ TEST_F(AttackTaskTest, CustomCooldownTicks)
 
 class AttackTaskIntegrationTest : public ::testing::Test {
 protected:
-    void SetUp() override { MemoryModuleTypes::initialize(); }
+    void SetUp() override
+    {
+        MemoryModuleTypes::initialize();
+    }
 };
 
 // 测试：VillagerEntity Brain 注册了 ATTACK_COOLING_DOWN 记忆模块

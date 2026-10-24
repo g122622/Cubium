@@ -44,7 +44,10 @@ using namespace mc::math;
 
 class PosRuleTestTest : public ::testing::Test {
 protected:
-    void SetUp() override { VanillaBlocks::initialize(); }
+    void SetUp() override
+    {
+        VanillaBlocks::initialize();
+    }
 
     BlockPos originalPos{0, 0, 0};
     BlockPos seedPos{0, 0, 0};
@@ -282,7 +285,10 @@ TEST_F(PosRuleTestTest, AxisAlignedLinearClone)
 
 class ProcessorListPosPredicateTest : public ::testing::Test {
 protected:
-    void SetUp() override { VanillaBlocks::initialize(); }
+    void SetUp() override
+    {
+        VanillaBlocks::initialize();
+    }
 };
 
 TEST_F(ProcessorListPosPredicateTest, ParseAlwaysTruePosPredicate)

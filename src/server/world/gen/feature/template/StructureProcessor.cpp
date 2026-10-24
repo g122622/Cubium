@@ -84,7 +84,9 @@ std::optional<ProcessedBlockInfo> StructureProcessorList::process(const BlockPos
     ProcessedBlockInfo current = ProcessedBlockInfo::fromBlockInfo(blockInfo);
 
     for (const auto& processor : m_processors) {
-        if (!processor) continue;
+        if (!processor) {
+            continue;
+        }
 
         // 创建临时BlockInfo用于处理
         BlockInfo currentInfo;

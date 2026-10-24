@@ -1184,9 +1184,15 @@ bool Player::jump()
 
 void Player::_clampMotion()
 {
-    if (std::abs(m_builtIn.velocity->m_velocity.x) < physics::MOTION_THRESHOLD) m_builtIn.velocity->m_velocity.x = 0.0f;
-    if (std::abs(m_builtIn.velocity->m_velocity.y) < physics::MOTION_THRESHOLD) m_builtIn.velocity->m_velocity.y = 0.0f;
-    if (std::abs(m_builtIn.velocity->m_velocity.z) < physics::MOTION_THRESHOLD) m_builtIn.velocity->m_velocity.z = 0.0f;
+    if (std::abs(m_builtIn.velocity->m_velocity.x) < physics::MOTION_THRESHOLD) {
+        m_builtIn.velocity->m_velocity.x = 0.0f;
+    }
+    if (std::abs(m_builtIn.velocity->m_velocity.y) < physics::MOTION_THRESHOLD) {
+        m_builtIn.velocity->m_velocity.y = 0.0f;
+    }
+    if (std::abs(m_builtIn.velocity->m_velocity.z) < physics::MOTION_THRESHOLD) {
+        m_builtIn.velocity->m_velocity.z = 0.0f;
+    }
 }
 
 f32 Player::_groundSlipperiness() const
@@ -2374,7 +2380,9 @@ void Player::updatePose()
 
     // 检查是否有足够的游泳空间（用于姿态切换的后备检查）
     // isPoseClear 在 MC 中检查指定姿态的碰撞箱是否与方块冲突
-    auto isPoseClear = [this](EntityPose pose) -> bool { return _canFitPose(pose); };
+    auto isPoseClear = [this](EntityPose pose) -> bool {
+        return _canFitPose(pose);
+    };
 
     // 如果姿态被禁止，不进行自动更新
     // MC: if (this.forcedPose != null) { this.setPose(this.forcedPose); return; }

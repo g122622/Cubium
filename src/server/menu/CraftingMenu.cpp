@@ -114,7 +114,9 @@ CraftingMenu::CraftingMenu(ContainerId id, PlayerInventory* playerInventory)
     // 添加玩家快捷栏 (槽位 37-45)
     addPlayerHotbarSlots(8, 142);
 
-    m_craftingGrid.setContentChangedCallback([this]() { slotsChanged(&m_craftingGrid); });
+    m_craftingGrid.setContentChangedCallback([this]() {
+        slotsChanged(&m_craftingGrid);
+    });
 
     updateResult();
 }
@@ -130,7 +132,9 @@ CraftingMenu::CraftingMenu(ContainerId id, PlayerInventory* playerInventory, i32
     addPlayerInventorySlots(8, 84);
     addPlayerHotbarSlots(8, 142);
 
-    m_craftingGrid.setContentChangedCallback([this]() { slotsChanged(&m_craftingGrid); });
+    m_craftingGrid.setContentChangedCallback([this]() {
+        slotsChanged(&m_craftingGrid);
+    });
 
     updateResult();
 }
@@ -342,7 +346,9 @@ InventoryCraftingMenu::InventoryCraftingMenu(ContainerId id, PlayerInventory* pl
     addPlayerOffhandSlot(77, 62);
 
     // 设置合成网格变化回调
-    m_craftingGrid.setContentChangedCallback([this]() { slotsChanged(&m_craftingGrid); });
+    m_craftingGrid.setContentChangedCallback([this]() {
+        slotsChanged(&m_craftingGrid);
+    });
 
     updateResult();
 }

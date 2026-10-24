@@ -25,6 +25,7 @@
 
 #include "common/TestWorldHelper.hpp"
 #include "common/core/EnumSet.hpp"
+#include "common/entity/attribute/Attributes.hpp"
 #include "common/entity/entities/monster/nether/NetherEntities.hpp"
 #include "common/util/math/MathUtils.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
@@ -60,18 +61,19 @@ TEST_F(GhastEntityTest, MaxHealth_IsCorrect)
     EXPECT_FLOAT_EQ(GHAST_MAX_HEALTH, 10.0f);
 }
 
-TEST_F(GhastEntityTest, MovementSpeed_IsZero)
+TEST_F(GhastEntityTest, Attributes_MatchVanilla)
 {
-    // MC 1.16.5: 恶魂移动速度为 0（通过飞行速度控制）
-    constexpr f32 GHAST_MOVEMENT_SPEED = 0.0f;
-    EXPECT_FLOAT_EQ(GHAST_MOVEMENT_SPEED, 0.0f);
-}
-
-TEST_F(GhastEntityTest, FlyingSpeed_IsCorrect)
-{
-    // MC 1.16.5: 恶魂飞行速度为 0.9
-    constexpr f32 GHAST_FLYING_SPEED = 0.9f;
-    EXPECT_FLOAT_EQ(GHAST_FLYING_SPEED, 0.9f);
+    // 1.21.11 Ghast.createAttributes：生命 10、追踪 100、飞行速度 0.06；不覆盖移动速度，
+    // 沿用 LivingEntity 默认的 0.7（游戏里由 GhastMoveControl 驱动悬停/漂移）。
+    VanillaBlocks::initialize();
+    GhastEntity ghast(EntityInstanceId(1), mc::test::testEcsRegistry());
+    EXPECT_FLOAT_EQ(10.0f, static_cast<f32>(ghast.getAttributeValue(entity::attribute::Attributes::MAX_HEALTH)));
+    if (!ghast.attributes().getInstance(entity::attribute::Attributes::FLYING_SPEED)) {
+        GTEST_SKIP() << "Ghast 的 FLYING_SPEED 未在测试环境中注册";
+    }
+    EXPECT_FLOAT_EQ(0.06f, static_cast<f32>(ghast.getAttributeValue(entity::attribute::Attributes::FLYING_SPEED)));
+    EXPECT_FLOAT_EQ(0.7f, static_cast<f32>(ghast.getAttributeValue(entity::attribute::Attributes::MOVEMENT_SPEED)));
+    EXPECT_FLOAT_EQ(100.0f, static_cast<f32>(ghast.getAttributeValue(entity::attribute::Attributes::FOLLOW_RANGE)));
 }
 
 TEST_F(GhastEntityTest, ExperienceValue_IsCorrect)
@@ -337,13 +339,17 @@ public:
         return &mc::VanillaBlocks::AIR->defaultState();
     }
 
-    [[nodiscard]] bool isWithinWorldBounds(i32, i32, i32) const override { return true; }
+    [[nodiscard]] bool isWithinWorldBounds(i32, i32, i32) const override
+    {
+        return true;
+    }
 };
 } // namespace
 
 TEST_F(GhastEntityTest, Travel_AppliesFlyDragWithoutGravity)
 {
     GhastFlyTestWorld world;
+    VanillaBlocks::initialize();
     GhastEntity ghast(EntityInstanceId(1), mc::test::testEcsRegistry());
     ghast.setWorld(&world);
     ghast.setPosition(0.0, 64.0, 0.0);

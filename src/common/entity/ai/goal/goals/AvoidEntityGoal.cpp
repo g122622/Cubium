@@ -60,7 +60,9 @@ AvoidEntityGoal::AvoidEntityGoal(
 
 bool AvoidEntityGoal::shouldExecute()
 {
-    if (!m_creature) return false;
+    if (!m_creature) {
+        return false;
+    }
 
     // 寻找要避开的实体
     m_avoidTarget = _findEntityToAvoid();
@@ -85,7 +87,9 @@ bool AvoidEntityGoal::shouldExecute()
 
 bool AvoidEntityGoal::shouldContinueExecuting()
 {
-    if (!m_creature) return false;
+    if (!m_creature) {
+        return false;
+    }
 
     // 移除或析构的引用会自动失效；此处同时处理尚未移除的死亡目标。
     if (m_avoidTarget == nullptr || !m_avoidTarget->isAlive()) {
@@ -120,7 +124,9 @@ void AvoidEntityGoal::resetTask()
 
 void AvoidEntityGoal::tick()
 {
-    if (!m_creature || !m_avoidTarget) return;
+    if (!m_creature || !m_avoidTarget) {
+        return;
+    }
 
     // 移除或析构的引用会自动失效；此处同时处理尚未移除的死亡目标。
     if (!m_avoidTarget->isAlive()) {
@@ -144,7 +150,9 @@ void AvoidEntityGoal::tick()
 
 LivingEntity* AvoidEntityGoal::_findEntityToAvoid()
 {
-    if (!m_creature || !m_creature->world()) return nullptr;
+    if (!m_creature || !m_creature->world()) {
+        return nullptr;
+    }
 
     // 在避开距离内搜索，垂直扩展 3.0D
     constexpr f32 verticalExpand = 3.0f;
@@ -155,7 +163,9 @@ LivingEntity* AvoidEntityGoal::_findEntityToAvoid()
 
 bool AvoidEntityGoal::_findEscapePosition()
 {
-    if (!m_creature || !m_avoidTarget) return false;
+    if (!m_creature || !m_avoidTarget) {
+        return false;
+    }
 
     // 使用 RandomPositionGenerator.findRandomTargetBlockAwayFrom
     Vector3 avoidPos(m_avoidTarget->x(), m_avoidTarget->y(), m_avoidTarget->z());
@@ -180,7 +190,9 @@ bool AvoidEntityGoal::_findEscapePosition()
 
 bool AvoidEntityGoal::_isEscapePositionValid(const Vector3& escapePos) const
 {
-    if (!m_avoidTarget || !m_creature) return false;
+    if (!m_avoidTarget || !m_creature) {
+        return false;
+    }
 
     // 检查逃跑位置到目标的距离是否大于当前位置到目标的距离
     f64 distToEscapePos = m_avoidTarget->distanceSqTo(escapePos.x, escapePos.y, escapePos.z);

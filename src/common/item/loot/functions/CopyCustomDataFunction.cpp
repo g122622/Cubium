@@ -224,7 +224,9 @@ void CopyCustomDataFunction::_applyOperation(
         case Operation::Replace: {
             // 替换：将目标路径设置为源路径的最后一个匹配值
             const nbt::tags::tag* lastValue = sourceValues.back();
-            op.parsedTargetPath.set(targetTag, [lastValue]() { return lastValue->copy(); });
+            op.parsedTargetPath.set(targetTag, [lastValue]() {
+                return lastValue->copy();
+            });
             break;
         }
         case Operation::Append: {

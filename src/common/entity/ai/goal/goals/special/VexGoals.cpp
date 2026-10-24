@@ -51,7 +51,9 @@ VexChargeAttackGoal::VexChargeAttackGoal(VexEntity* vex)
 
 bool VexChargeAttackGoal::shouldExecute()
 {
-    if (!m_vex) return false;
+    if (!m_vex) {
+        return false;
+    }
 
     // 条件检查：
     // 1. 有攻击目标
@@ -82,7 +84,9 @@ bool VexChargeAttackGoal::shouldExecute()
 
 bool VexChargeAttackGoal::shouldContinueExecuting()
 {
-    if (!m_vex) return false;
+    if (!m_vex) {
+        return false;
+    }
 
     auto* moveController = m_vex->moveController();
     LivingEntity* attackTarget = m_vex->attackTarget();
@@ -97,10 +101,14 @@ bool VexChargeAttackGoal::shouldContinueExecuting()
 
 void VexChargeAttackGoal::startExecuting()
 {
-    if (!m_vex) return;
+    if (!m_vex) {
+        return;
+    }
 
     LivingEntity* attackTarget = m_vex->attackTarget();
-    if (!attackTarget) return;
+    if (!attackTarget) {
+        return;
+    }
 
     // 获取目标的眼睛位置
     Vector3 targetEyePos(static_cast<f64>(attackTarget->x()),
@@ -130,7 +138,9 @@ void VexChargeAttackGoal::resetTask()
 
 void VexChargeAttackGoal::tick()
 {
-    if (!m_vex) return;
+    if (!m_vex) {
+        return;
+    }
 
     LivingEntity* attackTarget = m_vex->attackTarget();
     if (!attackTarget || !attackTarget->isAlive()) {
@@ -172,10 +182,14 @@ void VexChargeAttackGoal::tick()
 
 void VexChargeAttackGoal::_checkAndPerformAttack(LivingEntity* target, f64 /*distSq*/)
 {
-    if (!m_vex || !target) return;
+    if (!m_vex || !target) {
+        return;
+    }
 
     // 检查攻击冷却
-    if (m_attackCooldown > 0) return;
+    if (m_attackCooldown > 0) {
+        return;
+    }
 
     // 执行攻击
     m_vex->attackEntityAsMob(*target);
@@ -195,7 +209,9 @@ VexMoveRandomGoal::VexMoveRandomGoal(VexEntity* vex)
 
 bool VexMoveRandomGoal::shouldExecute()
 {
-    if (!m_vex) return false;
+    if (!m_vex) {
+        return false;
+    }
 
     // 条件检查：
     // 1. 移动控制器未更新
@@ -217,10 +233,14 @@ bool VexMoveRandomGoal::shouldContinueExecuting()
 
 void VexMoveRandomGoal::tick()
 {
-    if (!m_vex) return;
+    if (!m_vex) {
+        return;
+    }
 
     IWorld* world = m_vex->world();
-    if (!world) return;
+    if (!world) {
+        return;
+    }
 
     // 获取绑定原点（主人的位置或当前位置）
     BlockPos origin(m_vex->position());
@@ -275,15 +295,21 @@ VexCopyOwnerTargetGoal::VexCopyOwnerTargetGoal(VexEntity* vex)
 
 bool VexCopyOwnerTargetGoal::shouldExecute()
 {
-    if (!m_vex) return false;
+    if (!m_vex) {
+        return false;
+    }
 
     // 检查主人是否存在且有攻击目标
     LivingEntity* owner = m_vex->getOwner();
-    if (!owner) return false;
+    if (!owner) {
+        return false;
+    }
 
     // 主人必须是 MobEntity 才有 attackTarget
     MobEntity* ownerMob = dynamic_cast<MobEntity*>(owner);
-    if (!ownerMob) return false;
+    if (!ownerMob) {
+        return false;
+    }
 
     LivingEntity* ownerTarget = ownerMob->attackTarget();
     if (!ownerTarget || !ownerTarget->isAlive()) {

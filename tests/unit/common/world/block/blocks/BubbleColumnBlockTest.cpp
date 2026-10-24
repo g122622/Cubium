@@ -91,66 +91,177 @@ public:
         return nullptr;
     }
 
-    void setFluidState(i32 x, i32 y, i32 z, const fluid::FluidState& state) { m_fluids[BlockPos(x, y, z)] = state; }
+    void setFluidState(i32 x, i32 y, i32 z, const fluid::FluidState& state)
+    {
+        m_fluids[BlockPos(x, y, z)] = state;
+    }
 
-    [[nodiscard]] i32 getHeight(i32, i32) const override { return 64; }
-    [[nodiscard]] u8 getBlockLight(i32, i32, i32) const override { return 0; }
-    [[nodiscard]] u8 getSkyLight(i32, i32, i32) const override { return 15; }
-    [[nodiscard]] bool hasBlockCollision(const AxisAlignedBB&) const override { return false; }
-    [[nodiscard]] std::vector<AxisAlignedBB> getBlockCollisions(const AxisAlignedBB&) const override { return {}; }
+    [[nodiscard]] i32 getHeight(i32, i32) const override
+    {
+        return 64;
+    }
+
+    [[nodiscard]] u8 getBlockLight(i32, i32, i32) const override
+    {
+        return 0;
+    }
+
+    [[nodiscard]] u8 getSkyLight(i32, i32, i32) const override
+    {
+        return 15;
+    }
+
+    [[nodiscard]] bool hasBlockCollision(const AxisAlignedBB&) const override
+    {
+        return false;
+    }
+
+    [[nodiscard]] std::vector<AxisAlignedBB> getBlockCollisions(const AxisAlignedBB&) const override
+    {
+        return {};
+    }
+
     [[nodiscard]] bool isWithinWorldBounds(i32, i32 y, i32) const override
     {
         return y >= mc::world::MIN_BUILD_HEIGHT && y < mc::world::MAX_BUILD_HEIGHT;
     }
-    [[nodiscard]] bool hasEntityCollision(const AxisAlignedBB&, const Entity*) const override { return false; }
+
+    [[nodiscard]] bool hasEntityCollision(const AxisAlignedBB&, const Entity*) const override
+    {
+        return false;
+    }
+
     [[nodiscard]] std::vector<AxisAlignedBB> getEntityCollisions(const AxisAlignedBB&, const Entity*) const override
     {
         return {};
     }
-    [[nodiscard]] PhysicsEngine* physicsEngine() override { return nullptr; }
-    [[nodiscard]] const PhysicsEngine* physicsEngine() const override { return nullptr; }
+
+    [[nodiscard]] PhysicsEngine* physicsEngine() override
+    {
+        return nullptr;
+    }
+
+    [[nodiscard]] const PhysicsEngine* physicsEngine() const override
+    {
+        return nullptr;
+    }
+
     [[nodiscard]] std::vector<Entity*> getEntitiesInAABB(const AxisAlignedBB&, const Entity*) const override
     {
         return {};
     }
+
     [[nodiscard]] std::vector<Entity*> getEntitiesInRange(const Vector3&, f32, const Entity*) const override
     {
         return {};
     }
-    [[nodiscard]] DimensionId dimension() const override { return 0; }
-    [[nodiscard]] u64 seed() const override { return 12345; }
-    [[nodiscard]] u64 currentTick() const override { return m_currentTick; }
-    [[nodiscard]] i64 dayTime() const override { return 0; }
-    [[nodiscard]] bool isHardcore() const override { return false; }
-    [[nodiscard]] bool isClientSide() const override { return false; }
-    [[nodiscard]] bool isUltraWarm() const override { return false; }
-    [[nodiscard]] bool doFireTick() const override { return true; }
-    [[nodiscard]] bool canSpreadFireAround(const BlockPos&) const override { return true; }
-    [[nodiscard]] bool isRaining() const override { return false; }
-    [[nodiscard]] bool canRainAt(const BlockPos&) const override { return false; }
-    [[nodiscard]] Difficulty difficulty() const override { return Difficulty::Normal; }
 
-    void setBlockAt(const BlockPos& pos, const BlockState* state) { (void)setBlockState(pos.x, pos.y, pos.z, state); }
-    [[nodiscard]] const BlockState* getBlockAt(const BlockPos& pos) const { return getBlockState(pos.x, pos.y, pos.z); }
+    [[nodiscard]] DimensionId dimension() const override
+    {
+        return 0;
+    }
+
+    [[nodiscard]] u64 seed() const override
+    {
+        return 12345;
+    }
+
+    [[nodiscard]] u64 currentTick() const override
+    {
+        return m_currentTick;
+    }
+
+    [[nodiscard]] i64 dayTime() const override
+    {
+        return 0;
+    }
+
+    [[nodiscard]] bool isHardcore() const override
+    {
+        return false;
+    }
+
+    [[nodiscard]] bool isClientSide() const override
+    {
+        return false;
+    }
+
+    [[nodiscard]] bool isUltraWarm() const override
+    {
+        return false;
+    }
+
+    [[nodiscard]] bool doFireTick() const override
+    {
+        return true;
+    }
+
+    [[nodiscard]] bool canSpreadFireAround(const BlockPos&) const override
+    {
+        return true;
+    }
+
+    [[nodiscard]] bool isRaining() const override
+    {
+        return false;
+    }
+
+    [[nodiscard]] bool canRainAt(const BlockPos&) const override
+    {
+        return false;
+    }
+
+    [[nodiscard]] Difficulty difficulty() const override
+    {
+        return Difficulty::Normal;
+    }
+
+    void setBlockAt(const BlockPos& pos, const BlockState* state)
+    {
+        (void)setBlockState(pos.x, pos.y, pos.z, state);
+    }
+
+    [[nodiscard]] const BlockState* getBlockAt(const BlockPos& pos) const
+    {
+        return getBlockState(pos.x, pos.y, pos.z);
+    }
 
     [[nodiscard]] world::tick::TickManager& tickManager() override
     {
         ensureTickManager();
         return *m_tickManagerPtr;
     }
+
     [[nodiscard]] const world::tick::TickManager& tickManager() const override
     {
         const_cast<BubbleColumnTestWorld*>(this)->ensureTickManager();
         return *m_tickManagerPtr;
     }
 
-    [[nodiscard]] math::IRandom& getRandom() override { return m_random; }
-    [[nodiscard]] const math::IRandom& getRandom() const override { return m_random; }
+    [[nodiscard]] math::IRandom& getRandom() override
+    {
+        return m_random;
+    }
 
-    [[nodiscard]] world::border::WorldBorder& worldBorder() override { return m_worldBorder; }
-    [[nodiscard]] const world::border::WorldBorder& worldBorder() const override { return m_worldBorder; }
+    [[nodiscard]] const math::IRandom& getRandom() const override
+    {
+        return m_random;
+    }
 
-    void setCurrentTick(u64 tick) { m_currentTick = tick; }
+    [[nodiscard]] world::border::WorldBorder& worldBorder() override
+    {
+        return m_worldBorder;
+    }
+
+    [[nodiscard]] const world::border::WorldBorder& worldBorder() const override
+    {
+        return m_worldBorder;
+    }
+
+    void setCurrentTick(u64 tick)
+    {
+        m_currentTick = tick;
+    }
 
 private:
     void ensureTickManager() const
@@ -375,10 +486,11 @@ TEST_F(BubbleColumnBlockTest, IsDrag_ReturnsCorrectValue)
 
 // ========== 默认状态测试 ==========
 
-TEST_F(BubbleColumnBlockTest, DefaultState_IsNotDrag)
+TEST_F(BubbleColumnBlockTest, DefaultState_IsDrag)
 {
+    // 原版气泡柱的默认状态是 drag=true（向上涌流在放置时由流体状态改写）。
     const BlockState& defaultState = VanillaBlocks::BUBBLE_COLUMN->defaultState();
-    EXPECT_FALSE(defaultState.get(BlockStateProperties::DRAG()));
+    EXPECT_TRUE(defaultState.get(BlockStateProperties::DRAG()));
 }
 
 // ========== MagmaBlock 测试 ==========
@@ -459,17 +571,47 @@ public:
         return LivingEntity::hurt(source, amount);
     }
 
-    [[nodiscard]] i32 hurtCount() const { return m_hurtCount; }
-    [[nodiscard]] f32 lastDamage() const { return m_lastDamage; }
-    [[nodiscard]] DamageType lastDamageType() const { return m_lastDamageType; }
+    [[nodiscard]] i32 hurtCount() const
+    {
+        return m_hurtCount;
+    }
 
-    [[nodiscard]] bool isSneaking() const override { return m_sneaking; }
-    void setSneaking(bool sneaking) { m_sneaking = sneaking; }
+    [[nodiscard]] f32 lastDamage() const
+    {
+        return m_lastDamage;
+    }
+
+    [[nodiscard]] DamageType lastDamageType() const
+    {
+        return m_lastDamageType;
+    }
+
+    [[nodiscard]] bool isSneaking() const override
+    {
+        return m_sneaking;
+    }
+
+    void setSneaking(bool sneaking)
+    {
+        m_sneaking = sneaking;
+    }
 
     void tick() override {}
-    [[nodiscard]] f32 width() const override { return 0.6f; }
-    [[nodiscard]] f32 height() const override { return 1.8f; }
-    [[nodiscard]] f32 eyeHeight() const override { return 1.62f; }
+
+    [[nodiscard]] f32 width() const override
+    {
+        return 0.6f;
+    }
+
+    [[nodiscard]] f32 height() const override
+    {
+        return 1.8f;
+    }
+
+    [[nodiscard]] f32 eyeHeight() const override
+    {
+        return 1.62f;
+    }
 
 private:
     i32 m_hurtCount = 0;

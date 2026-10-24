@@ -102,7 +102,10 @@ public:
 
     // 对齐 vanilla MoveToBlockGoal.requiresUpdateEveryTick()=true：该 goal 每 tick 运行 tick()
     // （vanilla Mob.serverAiStep 在半 tick 帧用 tickRunningGoals(false) 只更新这些 goal）。
-    [[nodiscard]] bool requiresUpdateEveryTick() const override { return true; }
+    [[nodiscard]] bool requiresUpdateEveryTick() const override
+    {
+        return true;
+    }
 
     /**
      * @brief 是否应该重新导航

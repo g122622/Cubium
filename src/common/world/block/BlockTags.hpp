@@ -60,7 +60,10 @@ public:
     /**
      * @brief 获取标签ID
      */
-    [[nodiscard]] const ResourceLocation& getId() const { return m_id; }
+    [[nodiscard]] const ResourceLocation& getId() const
+    {
+        return m_id;
+    }
 
     /**
      * @brief 添加方块到标签
@@ -126,12 +129,18 @@ public:
     /**
      * @brief 获取标签中的所有方块ID（不含引用标签）
      */
-    [[nodiscard]] const std::unordered_set<ResourceLocation>& getBlockIds() const { return m_blockIds; }
+    [[nodiscard]] const std::unordered_set<ResourceLocation>& getBlockIds() const
+    {
+        return m_blockIds;
+    }
 
     /**
      * @brief 获取本标签引用的其它标签 ID
      */
-    [[nodiscard]] const std::vector<ResourceLocation>& getReferencedTagIds() const { return m_referencedTagIds; }
+    [[nodiscard]] const std::vector<ResourceLocation>& getReferencedTagIds() const
+    {
+        return m_referencedTagIds;
+    }
 
     /**
      * @brief 检查 searcher 是否包含 target（searcher 或其引用的任一标签包含 target）
@@ -737,7 +746,10 @@ public:
      *
      * @return 是否已初始化
      */
-    [[nodiscard]] static bool isInitialized() { return s_initialized; }
+    [[nodiscard]] static bool isInitialized()
+    {
+        return s_initialized;
+    }
 
     /**
      * @brief 注册或获取指定ID的标签

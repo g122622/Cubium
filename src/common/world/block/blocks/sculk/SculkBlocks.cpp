@@ -81,10 +81,16 @@ public:
     // 暴露基类 1 参 stateCanBeReplaced，避免 5 参重载将其隐藏（-Woverloaded-virtual）。
     using DefaultSpreaderConfig::stateCanBeReplaced;
 
-    [[nodiscard]] const std::vector<MultifaceSpreadType>& getSpreadTypes() const override { return m_spreadTypes; }
+    [[nodiscard]] const std::vector<MultifaceSpreadType>& getSpreadTypes() const override
+    {
+        return m_spreadTypes;
+    }
 
     /// MC SculkVeinSpreaderConfig.isOtherBlockValidAsSource = !is(SCULK_VEIN)。
-    [[nodiscard]] bool isOtherBlockValidAsSource(const BlockState& state) const override { return !state.is(&m_vein); }
+    [[nodiscard]] bool isOtherBlockValidAsSource(const BlockState& state) const override
+    {
+        return !state.is(&m_vein);
+    }
 
     /// MC SculkVeinSpreaderConfig.stateCanBeReplaced（覆写为带 sourcePos/face 的版本）。
     [[nodiscard]] bool stateCanBeReplaced(IWorld& world,
@@ -382,6 +388,15 @@ bool SculkSensorBlock::canActivate(const BlockState& state)
     return state.get(BlockStateProperties::SCULK_SENSOR_PHASE()) == BlockStateProperties::SculkSensorPhase::Inactive;
 }
 
+u8 SculkSensorBlock::getLightLevel(const BlockState& state, IWorld* world, const BlockPos* pos) const
+{
+    MC_UNUSED(state);
+    MC_UNUSED(world);
+    MC_UNUSED(pos);
+    // 原版：幽匿感测体与校准幽匿感测体固有发光 1（learned 相位另加 POWER，不在默认状态里）。
+    return 1;
+}
+
 BlockStateProperties::SculkSensorPhase SculkSensorBlock::getPhase(const BlockState& state)
 {
     return state.get(BlockStateProperties::SCULK_SENSOR_PHASE());
@@ -629,12 +644,24 @@ SculkVeinBlock::SculkVeinBlock(const BlockProperties& properties)
                             const size_t idx = static_cast<size_t>(
                                 (down) | (up << 1) | (north << 2) | (south << 3) | (east << 4) | (west << 5));
                             CollisionShape shape = CollisionShape::empty();
-                            if (north) shape = CollisionShape::combine(shape, northShape);
-                            if (south) shape = CollisionShape::combine(shape, southShape);
-                            if (east) shape = CollisionShape::combine(shape, eastShape);
-                            if (west) shape = CollisionShape::combine(shape, westShape);
-                            if (up) shape = CollisionShape::combine(shape, upShape);
-                            if (down) shape = CollisionShape::combine(shape, downShape);
+                            if (north) {
+                                shape = CollisionShape::combine(shape, northShape);
+                            }
+                            if (south) {
+                                shape = CollisionShape::combine(shape, southShape);
+                            }
+                            if (east) {
+                                shape = CollisionShape::combine(shape, eastShape);
+                            }
+                            if (west) {
+                                shape = CollisionShape::combine(shape, westShape);
+                            }
+                            if (up) {
+                                shape = CollisionShape::combine(shape, upShape);
+                            }
+                            if (down) {
+                                shape = CollisionShape::combine(shape, downShape);
+                            }
                             if (!north && !south && !east && !west && !up && !down) {
                                 shape = CollisionShape::fullBlock();
                             }
@@ -650,12 +677,24 @@ SculkVeinBlock::SculkVeinBlock(const BlockProperties& properties)
 size_t SculkVeinBlock::shapeIndex(const BlockState& state)
 {
     size_t index = 0;
-    if (state.get(BlockStateProperties::DOWN())) index |= 1;
-    if (state.get(BlockStateProperties::UP())) index |= 2;
-    if (state.get(BlockStateProperties::NORTH())) index |= 4;
-    if (state.get(BlockStateProperties::SOUTH())) index |= 8;
-    if (state.get(BlockStateProperties::EAST())) index |= 16;
-    if (state.get(BlockStateProperties::WEST())) index |= 32;
+    if (state.get(BlockStateProperties::DOWN())) {
+        index |= 1;
+    }
+    if (state.get(BlockStateProperties::UP())) {
+        index |= 2;
+    }
+    if (state.get(BlockStateProperties::NORTH())) {
+        index |= 4;
+    }
+    if (state.get(BlockStateProperties::SOUTH())) {
+        index |= 8;
+    }
+    if (state.get(BlockStateProperties::EAST())) {
+        index |= 16;
+    }
+    if (state.get(BlockStateProperties::WEST())) {
+        index |= 32;
+    }
     return index;
 }
 

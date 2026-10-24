@@ -289,7 +289,9 @@ TEST(EntityType, Builder)
 
 TEST(EntityType, FixedSize)
 {
-    auto factory = [](IWorld*, ecs::EntityRegistry& registry) -> std::unique_ptr<Entity> { return nullptr; };
+    auto factory = [](IWorld*, ecs::EntityRegistry& registry) -> std::unique_ptr<Entity> {
+        return nullptr;
+    };
 
     entity::EntityType type =
         entity::EntityType::Builder(factory, EntityClassification::Misc).fixedSize(1.0f, 1.0f).build();
@@ -299,7 +301,9 @@ TEST(EntityType, FixedSize)
 
 TEST(EntityType, Flags)
 {
-    auto factory = [](IWorld*, ecs::EntityRegistry& registry) -> std::unique_ptr<Entity> { return nullptr; };
+    auto factory = [](IWorld*, ecs::EntityRegistry& registry) -> std::unique_ptr<Entity> {
+        return nullptr;
+    };
 
     entity::EntityType type = entity::EntityType::Builder(factory, EntityClassification::Monster)
                                   .immuneToFire()
@@ -407,7 +411,9 @@ TEST(EntityRegistry, GetTypeByName)
     EntityRegistry& registry = EntityRegistry::instance();
     registry.clear();
 
-    auto factory = [](IWorld*, ecs::EntityRegistry& registry) -> std::unique_ptr<Entity> { return nullptr; };
+    auto factory = [](IWorld*, ecs::EntityRegistry& registry) -> std::unique_ptr<Entity> {
+        return nullptr;
+    };
 
     auto result = registry.registerType(
         "test:cow", entity::EntityType::Builder(factory, EntityClassification::Creature).size(0.9f, 0.9f).build());
@@ -430,7 +436,9 @@ TEST(EntityRegistry, HasType)
     EntityRegistry& registry = EntityRegistry::instance();
     registry.clear();
 
-    auto factory = [](IWorld*, ecs::EntityRegistry& registry) -> std::unique_ptr<Entity> { return nullptr; };
+    auto factory = [](IWorld*, ecs::EntityRegistry& registry) -> std::unique_ptr<Entity> {
+        return nullptr;
+    };
 
     EXPECT_FALSE(registry.hasType("test:sheep"));
 
@@ -448,7 +456,9 @@ TEST(EntityRegistry, Size)
     EntityRegistry& registry = EntityRegistry::instance();
     registry.clear();
 
-    auto factory = [](IWorld*, ecs::EntityRegistry& registry) -> std::unique_ptr<Entity> { return nullptr; };
+    auto factory = [](IWorld*, ecs::EntityRegistry& registry) -> std::unique_ptr<Entity> {
+        return nullptr;
+    };
 
     EXPECT_EQ(registry.size(), 0u);
 
@@ -762,11 +772,30 @@ public:
     }
 
     // 测试辅助方法
-    void setReturnValue(ActionResultType value) { m_returnValue = value; }
-    bool wasProcessInitialInteractCalled() const { return m_processInitialInteractCalled; }
-    bool wasApplyPlayerInteractionCalled() const { return m_applyPlayerInteractionCalled; }
-    const Vector3& lastHitPosition() const { return m_lastHitPosition; }
-    Hand lastHand() const { return m_lastHand; }
+    void setReturnValue(ActionResultType value)
+    {
+        m_returnValue = value;
+    }
+
+    bool wasProcessInitialInteractCalled() const
+    {
+        return m_processInitialInteractCalled;
+    }
+
+    bool wasApplyPlayerInteractionCalled() const
+    {
+        return m_applyPlayerInteractionCalled;
+    }
+
+    const Vector3& lastHitPosition() const
+    {
+        return m_lastHitPosition;
+    }
+
+    Hand lastHand() const
+    {
+        return m_lastHand;
+    }
 
     void reset()
     {

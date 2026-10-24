@@ -137,7 +137,10 @@ public:
     /**
      * @brief 检查是否已初始化
      */
-    [[nodiscard]] bool isInitialized() const { return m_initialized; }
+    [[nodiscard]] bool isInitialized() const
+    {
+        return m_initialized;
+    }
 
 private:
     ResourceManager* m_resourceManager = nullptr; // TODO: 当前未使用，待后续方块模型渲染等功能需要时启用

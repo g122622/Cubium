@@ -328,7 +328,9 @@ const BlockAppearance* ResourceManager::getBlockAppearance(
         cacheKey += "?";
         bool first = true;
         for (const auto& [key, value] : properties) {
-            if (!first) cacheKey += ",";
+            if (!first) {
+                cacheKey += ",";
+            }
             cacheKey += key + "=" + value;
             first = false;
         }
@@ -495,7 +497,9 @@ Result<void> ResourceManager::_bakeAllModels()
 
     for (const auto& blockId : blockStates) {
         const auto* def = m_blockStateLoader.getBlockState(blockId);
-        if (!def) continue;
+        if (!def) {
+            continue;
+        }
 
         // 烘焙所有变体的模型
         for (const auto& [stateStr, variantList] : def->getAllVariants()) {
@@ -549,7 +553,9 @@ void ResourceManager::computeBlockAppearances(
 
     for (const auto& blockId : blockStates) {
         const auto* def = m_blockStateLoader.getBlockState(blockId);
-        if (!def) continue;
+        if (!def) {
+            continue;
+        }
 
         // 处理每个状态变体
         for (const auto& [stateStr, variantList] : def->getAllVariants()) {
@@ -561,13 +567,17 @@ void ResourceManager::computeBlockAppearances(
             }
 
             // 选择第一个变体 (或默认变体)
-            if (variantList.variants.empty()) continue;
+            if (variantList.variants.empty()) {
+                continue;
+            }
 
             const auto& variant = variantList.variants[0];
 
             // 获取烘焙模型
             auto it = m_bakedModels.find(variant.model);
-            if (it == m_bakedModels.end()) continue;
+            if (it == m_bakedModels.end()) {
+                continue;
+            }
 
             const auto& bakedModel = it->second;
 

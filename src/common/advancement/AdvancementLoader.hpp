@@ -141,18 +141,27 @@ public:
     /**
      * @brief 获取最后加载的结果
      */
-    [[nodiscard]] const LoadResult& getLastResult() const { return m_lastResult; }
+    [[nodiscard]] const LoadResult& getLastResult() const
+    {
+        return m_lastResult;
+    }
 
     /**
      * @brief 重置加载结果
      */
-    void resetResult() { m_lastResult = LoadResult{}; }
+    void resetResult()
+    {
+        m_lastResult = LoadResult{};
+    }
 
     /**
      * @brief 设置是否在加载前清空管理器
      * @param clear 是否清空
      */
-    void setClearBeforeLoad(bool clear) { m_clearBeforeLoad = clear; }
+    void setClearBeforeLoad(bool clear)
+    {
+        m_clearBeforeLoad = clear;
+    }
 
     /**
      * @brief 从文件路径推导成就ID

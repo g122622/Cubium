@@ -71,7 +71,9 @@ CreeperSwellGoal::CreeperSwellGoal(CreeperEntity* creeper)
 
 bool CreeperSwellGoal::shouldExecute()
 {
-    if (!m_creeper) return false;
+    if (!m_creeper) {
+        return false;
+    }
 
     // 如果已经在膨胀状态，继续执行
     if (m_creeper->getCreeperState() > 0) {
@@ -96,7 +98,9 @@ bool CreeperSwellGoal::shouldExecute()
 
 void CreeperSwellGoal::startExecuting()
 {
-    if (!m_creeper) return;
+    if (!m_creeper) {
+        return;
+    }
 
     // 清除导航路径，停止移动
     m_creeper->clearNavigation();
@@ -113,7 +117,9 @@ void CreeperSwellGoal::resetTask()
 
 void CreeperSwellGoal::tick()
 {
-    if (!m_creeper) return;
+    if (!m_creeper) {
+        return;
+    }
 
     // 情况1: 攻击目标为空 -> 取消膨胀
     if (!m_attackTarget) {
@@ -161,11 +167,17 @@ RunAroundLikeCrazyGoal::RunAroundLikeCrazyGoal(AbstractHorseEntity* horse, f64 s
 bool RunAroundLikeCrazyGoal::shouldExecute()
 {
     // 只在未被驯服且被玩家骑乘时执行
-    if (!m_horse) return false;
+    if (!m_horse) {
+        return false;
+    }
 
     // 检查是否未被驯服且被骑乘
-    if (m_horse->isTame()) return false;
-    if (!m_horse->isBeingRidden()) return false;
+    if (m_horse->isTame()) {
+        return false;
+    }
+    if (!m_horse->isBeingRidden()) {
+        return false;
+    }
 
     // 找到随机目标位置
     return _findTarget();
@@ -173,15 +185,23 @@ bool RunAroundLikeCrazyGoal::shouldExecute()
 
 bool RunAroundLikeCrazyGoal::shouldContinueExecuting()
 {
-    if (!m_horse) return false;
+    if (!m_horse) {
+        return false;
+    }
 
     // 检查是否还在被骑乘且未被驯服
-    if (m_horse->isTame()) return false;
-    if (!m_horse->isBeingRidden()) return false;
+    if (m_horse->isTame()) {
+        return false;
+    }
+    if (!m_horse->isBeingRidden()) {
+        return false;
+    }
 
     // 检查是否还有路径
     if (auto* nav = m_horse->navigator()) {
-        if (nav->noPath()) return false;
+        if (nav->noPath()) {
+            return false;
+        }
     }
 
     return true;
@@ -189,7 +209,9 @@ bool RunAroundLikeCrazyGoal::shouldContinueExecuting()
 
 void RunAroundLikeCrazyGoal::startExecuting()
 {
-    if (!m_horse) return;
+    if (!m_horse) {
+        return;
+    }
 
     // 移动到目标位置
     if (auto* nav = m_horse->navigator()) {
@@ -206,7 +228,9 @@ void RunAroundLikeCrazyGoal::resetTask()
 
 void RunAroundLikeCrazyGoal::tick()
 {
-    if (!m_horse) return;
+    if (!m_horse) {
+        return;
+    }
 
     // 每tick有概率增加驯服进度或甩下玩家
     // 有 1/50 的概率执行驯服检查
@@ -215,16 +239,24 @@ void RunAroundLikeCrazyGoal::tick()
     if (rng.nextInt(50) == 0) {
         // 获取骑乘者
         const auto& passengers = m_horse->getPassengers();
-        if (passengers.empty()) return;
+        if (passengers.empty()) {
+            return;
+        }
 
         IWorld* worldPtr = m_horse->world();
-        if (!worldPtr) return;
+        if (!worldPtr) {
+            return;
+        }
 
         Entity* passenger = worldPtr->getEntity(passengers[0]);
-        if (!passenger) return;
+        if (!passenger) {
+            return;
+        }
 
         // 检查是否为玩家
-        if (passenger->entityType() != entity::VanillaEntityTypeKeys::PLAYER) return;
+        if (passenger->entityType() != entity::VanillaEntityTypeKeys::PLAYER) {
+            return;
+        }
 
         ::mc::Player* player = static_cast<::mc::Player*>(passenger);
 
@@ -254,7 +286,9 @@ void RunAroundLikeCrazyGoal::tick()
 
 bool RunAroundLikeCrazyGoal::_findTarget()
 {
-    if (!m_horse) return false;
+    if (!m_horse) {
+        return false;
+    }
 
     // 使用 RandomPositionGenerator 找随机位置
     Vector3 targetPos;
@@ -284,8 +318,12 @@ PuffGoal::PuffGoal(::mc::PufferfishEntity* fish)
 
 bool PuffGoal::shouldExecute()
 {
-    if (!m_fish || !m_fish->isAlive()) return false;
-    if (!m_fish->world()) return false;
+    if (!m_fish || !m_fish->isAlive()) {
+        return false;
+    }
+    if (!m_fish->world()) {
+        return false;
+    }
 
     return _findNearbyEnemy();
 }
@@ -298,7 +336,9 @@ bool PuffGoal::shouldContinueExecuting()
 
 void PuffGoal::startExecuting()
 {
-    if (!m_fish) return;
+    if (!m_fish) {
+        return;
+    }
 
     // 开始膨胀计时器
     m_fish->startPuffTimer();
@@ -306,7 +346,9 @@ void PuffGoal::startExecuting()
 
 void PuffGoal::resetTask()
 {
-    if (!m_fish) return;
+    if (!m_fish) {
+        return;
+    }
 
     // 重置膨胀计时器
     m_fish->resetPuffTimer();
@@ -349,7 +391,9 @@ bool PuffGoal::_isEnemy(const LivingEntity* entity)
 
 bool PuffGoal::_findNearbyEnemy()
 {
-    if (!m_fish || !m_fish->world()) return false;
+    if (!m_fish || !m_fish->world()) {
+        return false;
+    }
 
     m_nearbyEnemy = nullptr;
 
@@ -360,11 +404,15 @@ bool PuffGoal::_findNearbyEnemy()
     std::vector<Entity*> entities = m_fish->world()->getEntitiesInAABB(searchBox, m_fish);
 
     for (Entity* entity : entities) {
-        if (!entity || !entity->isAlive()) continue;
+        if (!entity || !entity->isAlive()) {
+            continue;
+        }
 
         // 只检测生物实体
         LivingEntity* living = dynamic_cast<LivingEntity*>(entity);
-        if (!living) continue;
+        if (!living) {
+            continue;
+        }
 
         if (_isEnemy(living)) {
             m_nearbyEnemy = living;

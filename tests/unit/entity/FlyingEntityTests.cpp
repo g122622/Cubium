@@ -59,8 +59,16 @@ public:
  */
 class StubWorld final : public mc::test::BaseTestWorld {
 public:
-    void setInWater(bool inWater) { m_inWater = inWater; }
-    void setInLava(bool inLava) { m_inLava = inLava; }
+    void setInWater(bool inWater)
+    {
+        m_inWater = inWater;
+    }
+
+    void setInLava(bool inLava)
+    {
+        m_inLava = inLava;
+    }
+
     void setOnGround(bool onGround, const BlockState* groundBlock = nullptr)
     {
         m_onGround = onGround;
@@ -77,7 +85,10 @@ public:
         return nullptr;
     }
 
-    bool setBlockState(i32, i32, i32, const BlockState*) override { return false; }
+    bool setBlockState(i32, i32, i32, const BlockState*) override
+    {
+        return false;
+    }
 
     [[nodiscard]] const fluid::FluidState* getFluidState(i32 x, i32 y, i32 z) const override
     {
@@ -92,13 +103,17 @@ public:
 
     [[nodiscard]] bool hasBlockCollision(const AxisAlignedBB& box) const override
     {
-        if (!m_onGround) return false;
+        if (!m_onGround) {
+            return false;
+        }
         return box.maxY <= 0.1f && box.minY >= -1.0f;
     }
 
     [[nodiscard]] std::vector<AxisAlignedBB> getBlockCollisions(const AxisAlignedBB& box) const override
     {
-        if (!hasBlockCollision(box)) return {};
+        if (!hasBlockCollision(box)) {
+            return {};
+        }
         return {AxisAlignedBB(-10.0f, -1.0f, -10.0f, 10.0f, 0.0f, 10.0f)};
     }
 
@@ -108,6 +123,7 @@ public:
     {
         throw std::runtime_error("StubWorld::tickManager not implemented");
     }
+
     [[nodiscard]] const world::tick::TickManager& tickManager() const override
     {
         throw std::runtime_error("StubWorld::tickManager not implemented");

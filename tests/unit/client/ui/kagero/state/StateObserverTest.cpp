@@ -98,7 +98,9 @@ TEST(AutoObserverTest, MoveConstructor)
 
     int callCount = 0;
 
-    AutoObserver<i32> observer1(value, [&](const i32&) { callCount++; });
+    AutoObserver<i32> observer1(value, [&](const i32&) {
+        callCount++;
+    });
 
     AutoObserver<i32> observer2 = std::move(observer1);
 
@@ -116,7 +118,9 @@ TEST(AutoObserverTest, MoveAssignmentDeleted)
 
     Reactive<i32> value(100);
     int count = 0;
-    AutoObserver<i32> observer(value, [&](const i32&) { count++; });
+    AutoObserver<i32> observer(value, [&](const i32&) {
+        count++;
+    });
 
     // 以下代码不应该编译（移动赋值已删除）：
     // AutoObserver<i32> observer2(value, [&](const i32&) {});
@@ -131,7 +135,9 @@ TEST(AutoObserverTest, DifferentTypes)
     Reactive<std::string> name("Steve");
 
     std::string lastValue;
-    AutoObserver<std::string> observer(name, [&](const std::string& v) { lastValue = v; });
+    AutoObserver<std::string> observer(name, [&](const std::string& v) {
+        lastValue = v;
+    });
 
     name.set("Alex");
     EXPECT_EQ(lastValue, "Alex");
@@ -151,7 +157,9 @@ TEST(MultiStateObserverTest, ObserveMultiple)
     MultiStateObserver observer;
     observer.observe(&health);
     observer.observe(&mana);
-    observer.setCallback([&]() { callCount++; });
+    observer.setCallback([&]() {
+        callCount++;
+    });
 
     health.set(80);
     EXPECT_EQ(callCount, 1);
@@ -176,7 +184,9 @@ TEST(MultiStateObserverTest, Clear)
     MultiStateObserver observer;
     observer.observe(&a);
     observer.observe(&b);
-    observer.setCallback([&]() { callCount++; });
+    observer.setCallback([&]() {
+        callCount++;
+    });
 
     a.set(1);
     EXPECT_EQ(callCount, 1);
@@ -195,7 +205,9 @@ TEST(MultiStateObserverTest, SetCallbackBeforeObserve)
     int callCount = 0;
 
     MultiStateObserver observer;
-    observer.setCallback([&]() { callCount++; });
+    observer.setCallback([&]() {
+        callCount++;
+    });
     observer.observe(&value);
 
     value.set(1);
@@ -326,7 +338,12 @@ TEST(DebouncedObserverTest, UpdateWithoutPending)
 
     int callCount = 0;
 
-    DebouncedObserver<i32> observer(value, [&](const i32&) { callCount++; }, 50);
+    DebouncedObserver<i32> observer(
+        value,
+        [&](const i32&) {
+            callCount++;
+        },
+        50);
 
     // 没有待处理的更新
     observer.update();
@@ -339,7 +356,12 @@ TEST(DebouncedObserverTest, NoUpdateWithinDelay)
 
     int callCount = 0;
 
-    DebouncedObserver<i32> observer(value, [&](const i32&) { callCount++; }, 100);
+    DebouncedObserver<i32> observer(
+        value,
+        [&](const i32&) {
+            callCount++;
+        },
+        100);
 
     value.set(1);
 
@@ -355,7 +377,10 @@ TEST(DebouncedObserverTest, NoUpdateWithinDelay)
 
 class TestStateObserver : public IStateObserver {
 public:
-    void onStateChanged() override { callCount++; }
+    void onStateChanged() override
+    {
+        callCount++;
+    }
 
     int callCount = 0;
 };
@@ -465,7 +490,9 @@ TEST(MultiStateObserverTest, SameStateMultipleTimes)
     MultiStateObserver observer;
     observer.observe(&value);
     observer.observe(&value); // 同一个状态多次观察
-    observer.setCallback([&]() { callCount++; });
+    observer.setCallback([&]() {
+        callCount++;
+    });
 
     value.set(1);
     // 每次观察都会注册一个观察者，所以会触发多次
@@ -482,7 +509,12 @@ TEST(DebouncedObserverTest, RapidFlush)
 
     int callCount = 0;
 
-    DebouncedObserver<i32> observer(value, [&](const i32&) { callCount++; }, 100);
+    DebouncedObserver<i32> observer(
+        value,
+        [&](const i32&) {
+            callCount++;
+        },
+        100);
 
     value.set(1);
     observer.flush();

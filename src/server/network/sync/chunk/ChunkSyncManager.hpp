@@ -95,8 +95,15 @@ public:
     }
 
     // 全局设置
-    void setDefaultViewDistance(i32 distance) { m_defaultViewDistance = distance; }
-    [[nodiscard]] i32 defaultViewDistance() const { return m_defaultViewDistance; }
+    void setDefaultViewDistance(i32 distance)
+    {
+        m_defaultViewDistance = distance;
+    }
+
+    [[nodiscard]] i32 defaultViewDistance() const
+    {
+        return m_defaultViewDistance;
+    }
 
     // 区块坐标转换工具
     static ChunkCoord blockToChunk(f64 blockCoord)

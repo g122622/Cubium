@@ -139,8 +139,10 @@ TEST_F(PlayerDestroyItemEventTest, ServerWorld_OnPlayerDestroyItem_MultipleEvent
     // 订阅事件并计数
     std::atomic<i32> eventCount{0};
 
-    auto subscription = event::ServerEventBus::instance().makeSubscription<PlayerDestroyItemEvent>(
-        [&](const PlayerDestroyItemEvent&) { eventCount++; });
+    auto subscription =
+        event::ServerEventBus::instance().makeSubscription<PlayerDestroyItemEvent>([&](const PlayerDestroyItemEvent&) {
+            eventCount++;
+        });
 
     // 发布多个事件
     ItemStack item1(Items::DIAMOND_SWORD, 1);
@@ -168,7 +170,9 @@ TEST_F(PlayerDestroyItemEventTest, DifferentItemTypes)
     std::vector<ItemStack> receivedItems;
 
     auto subscription = event::ServerEventBus::instance().makeSubscription<PlayerDestroyItemEvent>(
-        [&](const PlayerDestroyItemEvent& e) { receivedItems.push_back(e.item); });
+        [&](const PlayerDestroyItemEvent& e) {
+            receivedItems.push_back(e.item);
+        });
 
     // 发布不同物品的事件
     ItemStack sword(Items::DIAMOND_SWORD, 1);
@@ -207,7 +211,9 @@ TEST_F(PlayerDestroyItemEventTest, Timestamp_UsesWorldTick)
     // 订阅事件
     u64 receivedTick = 0;
     auto subscription = event::ServerEventBus::instance().makeSubscription<PlayerDestroyItemEvent>(
-        [&](const PlayerDestroyItemEvent& e) { receivedTick = e.timestamp; });
+        [&](const PlayerDestroyItemEvent& e) {
+            receivedTick = e.timestamp;
+        });
 
     // 发布事件
     ItemStack item(Items::DIAMOND_SWORD, 1);

@@ -54,22 +54,34 @@ public:
     /**
      * @brief 创建一个永不过期的记忆
      */
-    static Memory<T> permanent(const T& value) { return Memory<T>(value, std::numeric_limits<i64>::max()); }
+    static Memory<T> permanent(const T& value)
+    {
+        return Memory<T>(value, std::numeric_limits<i64>::max());
+    }
 
     /**
      * @brief 创建一个带TTL的记忆
      */
-    static Memory<T> timed(const T& value, i64 ttl) { return Memory<T>(value, ttl); }
+    static Memory<T> timed(const T& value, i64 ttl)
+    {
+        return Memory<T>(value, ttl);
+    }
 
     /**
      * @brief 获取记忆值
      */
-    [[nodiscard]] const T& getValue() const noexcept { return m_value; }
+    [[nodiscard]] const T& getValue() const noexcept
+    {
+        return m_value;
+    }
 
     /**
      * @brief 获取可变记忆值
      */
-    T& getValue() noexcept { return m_value; }
+    T& getValue() noexcept
+    {
+        return m_value;
+    }
 
     /**
      * @brief 每tick调用，减少TTL
@@ -84,17 +96,26 @@ public:
     /**
      * @brief 检查记忆是否已过期
      */
-    [[nodiscard]] bool isExpired() const noexcept { return m_ttl <= 0; }
+    [[nodiscard]] bool isExpired() const noexcept
+    {
+        return m_ttl <= 0;
+    }
 
     /**
      * @brief 检查是否有TTL限制
      */
-    [[nodiscard]] bool hasTTL() const noexcept { return m_ttl != std::numeric_limits<i64>::max(); }
+    [[nodiscard]] bool hasTTL() const noexcept
+    {
+        return m_ttl != std::numeric_limits<i64>::max();
+    }
 
     /**
      * @brief 获取剩余TTL
      */
-    [[nodiscard]] i64 getTTL() const noexcept { return m_ttl; }
+    [[nodiscard]] i64 getTTL() const noexcept
+    {
+        return m_ttl;
+    }
 
 private:
     T m_value;

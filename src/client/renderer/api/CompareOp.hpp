@@ -112,7 +112,10 @@ struct DepthState {
         return testEnabled == other.testEnabled && writeEnabled == other.writeEnabled && compareOp == other.compareOp;
     }
 
-    bool operator!=(const DepthState& other) const { return !(*this == other); }
+    bool operator!=(const DepthState& other) const
+    {
+        return !(*this == other);
+    }
 };
 
 } // namespace mc::client::renderer::api

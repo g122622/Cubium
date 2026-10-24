@@ -107,7 +107,10 @@ protected:
         m_wither->setEyeHeight(2.0f);
     }
 
-    void TearDown() override { m_wither.reset(); }
+    void TearDown() override
+    {
+        m_wither.reset();
+    }
 
     /// @brief 创建一个目标 ClientEntity 并返回其 EntityInstanceId
     EntityInstanceId makeTargetClientEntity(f32 x, f32 y, f32 z, f32 eyeHeight = 1.62f)
@@ -226,8 +229,9 @@ TEST_F(ClientEntityWitherSideHeadTest, WithTarget_YawConvergesTowardTarget)
     m_wither->syncMetadataFromDataManager();
 
     // 用 lambda 捕获 this 提供实体查找
-    m_wither->tickWitherSideHeads(
-        [this](EntityInstanceId id) -> const ClientEntity* { return this->lookupEntity(id); });
+    m_wither->tickWitherSideHeads([this](EntityInstanceId id) -> const ClientEntity* {
+        return this->lookupEntity(id);
+    });
 
     // 侧头1 yaw 朝 0° 逼近，初始也是 0°，diff=0，yaw 保持 0°
     EXPECT_NEAR(m_wither->getInterpolatedWitherSideHeadYaw(0, 1.0f), 0.0f, 0.5f);
@@ -248,8 +252,9 @@ TEST_F(ClientEntityWitherSideHeadTest, WithTarget_YawRateLimitedTo10DegreesPerTi
         *m_wither, ::mc::entity::WitherEntity::getHeadTarget2ParamId(), static_cast<i32>(static_cast<u32>(targetId)));
     m_wither->syncMetadataFromDataManager();
 
-    m_wither->tickWitherSideHeads(
-        [this](EntityInstanceId id) -> const ClientEntity* { return this->lookupEntity(id); });
+    m_wither->tickWitherSideHeads([this](EntityInstanceId id) -> const ClientEntity* {
+        return this->lookupEntity(id);
+    });
 
     // yaw 从 0 朝 -180 逼近，限速 10°/tick
     EXPECT_NEAR(m_wither->getInterpolatedWitherSideHeadYaw(0, 1.0f), -10.0f, 0.01f);
@@ -271,8 +276,9 @@ TEST_F(ClientEntityWitherSideHeadTest, WithTarget_PitchRateLimitedTo40DegreesPer
         *m_wither, ::mc::entity::WitherEntity::getHeadTarget2ParamId(), static_cast<i32>(static_cast<u32>(targetId)));
     m_wither->syncMetadataFromDataManager();
 
-    m_wither->tickWitherSideHeads(
-        [this](EntityInstanceId id) -> const ClientEntity* { return this->lookupEntity(id); });
+    m_wither->tickWitherSideHeads([this](EntityInstanceId id) -> const ClientEntity* {
+        return this->lookupEntity(id);
+    });
 
     // pitch 限速 40°/tick，从 0 朝 88.57 逼近，第一次 tick = 40
     EXPECT_NEAR(m_wither->getInterpolatedWitherSideHeadPitch(0, 1.0f), 40.0f, 0.01f);
@@ -292,8 +298,9 @@ TEST_F(ClientEntityWitherSideHeadTest, WithTarget_MultipleTicks_ConvergesToTarge
 
     // 推进 20 tick（10°/tick * 18 = 180°，足够收敛）
     for (i32 i = 0; i < 20; ++i) {
-        m_wither->tickWitherSideHeads(
-            [this](EntityInstanceId id) -> const ClientEntity* { return this->lookupEntity(id); });
+        m_wither->tickWitherSideHeads([this](EntityInstanceId id) -> const ClientEntity* {
+            return this->lookupEntity(id);
+        });
     }
 
     EXPECT_NEAR(m_wither->getInterpolatedWitherSideHeadYaw(0, 1.0f), -180.0f, 1.0f);
@@ -315,7 +322,9 @@ TEST_F(ClientEntityWitherSideHeadTest, TargetIdPositive_ButLookupReturnsNull_Fal
     m_wither->syncMetadataFromDataManager();
 
     // lookup 回调始终返回 nullptr
-    m_wither->tickWitherSideHeads([](EntityInstanceId) -> const ClientEntity* { return nullptr; });
+    m_wither->tickWitherSideHeads([](EntityInstanceId) -> const ClientEntity* {
+        return nullptr;
+    });
 
     // 无目标分支：yaw 朝 bodyRot=30 逼近 10°/tick
     EXPECT_NEAR(m_wither->getInterpolatedWitherSideHeadYaw(0, 1.0f), 10.0f, 0.01f);
@@ -406,8 +415,9 @@ TEST_F(ClientEntityWitherSideHeadTest, TwoSideHeads_IndependentTargets)
         *m_wither, ::mc::entity::WitherEntity::getHeadTarget3ParamId(), static_cast<i32>(static_cast<u32>(target2Id)));
     m_wither->syncMetadataFromDataManager();
 
-    m_wither->tickWitherSideHeads(
-        [this](EntityInstanceId id) -> const ClientEntity* { return this->lookupEntity(id); });
+    m_wither->tickWitherSideHeads([this](EntityInstanceId id) -> const ClientEntity* {
+        return this->lookupEntity(id);
+    });
 
     // 侧头1 朝 +Z（targetYaw=0），yaw 保持 0
     EXPECT_NEAR(m_wither->getInterpolatedWitherSideHeadYaw(0, 1.0f), 0.0f, 0.5f);
@@ -433,14 +443,16 @@ TEST_F(ClientEntityWitherSideHeadTest, MetadataSync_HEAD_TARGET_2_PopulatesLeftH
         *m_wither, ::mc::entity::WitherEntity::getHeadTarget2ParamId(), static_cast<i32>(static_cast<u32>(targetId)));
 
     // 同步前：无目标 → yaw 保持 0
-    m_wither->tickWitherSideHeads(
-        [this](EntityInstanceId id) -> const ClientEntity* { return this->lookupEntity(id); });
+    m_wither->tickWitherSideHeads([this](EntityInstanceId id) -> const ClientEntity* {
+        return this->lookupEntity(id);
+    });
     EXPECT_FLOAT_EQ(m_wither->getInterpolatedWitherSideHeadYaw(0, 1.0f), 0.0f);
 
     // 同步后：侧头1 有目标在 +Z（targetYaw=0），yaw 仍保持 0（diff=0）
     m_wither->syncMetadataFromDataManager();
-    m_wither->tickWitherSideHeads(
-        [this](EntityInstanceId id) -> const ClientEntity* { return this->lookupEntity(id); });
+    m_wither->tickWitherSideHeads([this](EntityInstanceId id) -> const ClientEntity* {
+        return this->lookupEntity(id);
+    });
 
     // yaw 仍为 0（targetYaw=0, current=0, diff=0）
     EXPECT_NEAR(m_wither->getInterpolatedWitherSideHeadYaw(0, 1.0f), 0.0f, 0.5f);
@@ -480,8 +492,9 @@ TEST_F(ClientEntityWitherSideHeadTest, MetadataSync_ReadsCorrectParamId)
 
     // 应读取 HEAD_TARGET_2 而非 otherParam
     // 侧头1 有目标在 +Z（targetYaw=0），yaw 保持 0（而非朝 bodyRot 逼近）
-    m_wither->tickWitherSideHeads(
-        [this](EntityInstanceId id) -> const ClientEntity* { return this->lookupEntity(id); });
+    m_wither->tickWitherSideHeads([this](EntityInstanceId id) -> const ClientEntity* {
+        return this->lookupEntity(id);
+    });
     EXPECT_NEAR(m_wither->getInterpolatedWitherSideHeadYaw(0, 1.0f), 0.0f, 0.5f)
         << "应读取 HEAD_TARGET_2 而非其他 i32 参数";
 }

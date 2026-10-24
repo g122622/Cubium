@@ -426,8 +426,11 @@ void EndDragonFight::_findOrCreateDragon(IWorld& world)
     std::vector<Entity*> dragons = world.getEntitiesByType(entity::EntityTypeKeys::ENDER_DRAGON);
 
     // 过滤已死亡/已移除的实体（防御性，正常情况下 getEntitiesByType 不返回死亡实体）
-    dragons.erase(
-        std::remove_if(dragons.begin(), dragons.end(), [](Entity* e) { return e == nullptr || e->isRemoved(); }),
+    dragons.erase(std::remove_if(dragons.begin(),
+                      dragons.end(),
+                      [](Entity* e) {
+                          return e == nullptr || e->isRemoved();
+                      }),
         dragons.end());
 
     if (!dragons.empty()) {
@@ -653,7 +656,9 @@ std::unique_ptr<blockpattern::BlockPattern> EndDragonFight::_buildExitPortalPatt
         .aisle({"       ", "       ", "       ", "   #   ", "       ", "       ", "       "})
         .aisle({"  ###  ", " #   # ", "#     #", "#  #  #", "#     #", " #   # ", "  ###  "})
         .aisle({"       ", "  ###  ", " ##### ", " ##### ", " ##### ", "  ###  ", "       "})
-        .where('#', BlockInWorld::hasState([bedrockBlock](const BlockState& s) { return s.is(bedrockBlock); }))
+        .where('#', BlockInWorld::hasState([bedrockBlock](const BlockState& s) {
+            return s.is(bedrockBlock);
+        }))
         .build();
 }
 

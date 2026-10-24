@@ -73,13 +73,23 @@ public:
      * @brief 设置关联的 ServerPlayer
      * @param player 服务器玩家指针（非拥有）
      */
-    void setServerPlayer(::mc::ServerPlayer* player) { m_player = player; }
+    void setServerPlayer(::mc::ServerPlayer* player)
+    {
+        m_player = player;
+    }
 
     /**
      * @brief 获取关联的 ServerPlayer
      */
-    [[nodiscard]] ::mc::ServerPlayer* getServerPlayer() noexcept { return m_player; }
-    [[nodiscard]] const ::mc::ServerPlayer* getServerPlayer() const noexcept { return m_player; }
+    [[nodiscard]] ::mc::ServerPlayer* getServerPlayer() noexcept
+    {
+        return m_player;
+    }
+
+    [[nodiscard]] const ::mc::ServerPlayer* getServerPlayer() const noexcept
+    {
+        return m_player;
+    }
 
     // ========== 进度操作 ==========
 
@@ -167,12 +177,18 @@ public:
      * 对齐 Java PlayerAdvancements.setSelectedTab：仅记录选中项，用于持久化与下次登录
      * 恢复标签页。传 nullptr 等价于清除选中（CLOSED_SCREEN 时 vanilla 不清除，保留原值）。
      */
-    void setSelectedTab(mc::advancement::AdvancementPtr advancement) { m_selectedTab = std::move(advancement); }
+    void setSelectedTab(mc::advancement::AdvancementPtr advancement)
+    {
+        m_selectedTab = std::move(advancement);
+    }
 
     /**
      * @brief 获取当前选中的成就标签页
      */
-    [[nodiscard]] mc::advancement::AdvancementPtr getSelectedTab() const noexcept { return m_selectedTab; }
+    [[nodiscard]] mc::advancement::AdvancementPtr getSelectedTab() const noexcept
+    {
+        return m_selectedTab;
+    }
 
     // ========== 成就重载响应 ==========
 
@@ -213,7 +229,10 @@ public:
     /**
      * @brief 获取玩家ID
      */
-    PlayerId getPlayerId() const noexcept { return m_playerId; }
+    PlayerId getPlayerId() const noexcept
+    {
+        return m_playerId;
+    }
 
     // ========== 触发器监听管理 ==========
 

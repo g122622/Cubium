@@ -642,7 +642,9 @@ void TNTEntity::ignite(i32 fuseTicks)
 
 void TNTEntity::explode()
 {
-    if (m_exploded) return;
+    if (m_exploded) {
+        return;
+    }
     m_exploded = true;
 
     IWorld* worldPtr = world();

@@ -78,24 +78,36 @@ public:
     /**
      * @brief 是否正在飞行
      */
-    [[nodiscard]] bool isFlying() const { return m_flying; }
+    [[nodiscard]] bool isFlying() const
+    {
+        return m_flying;
+    }
 
     /**
      * @brief 设置飞行状态
      */
-    void setFlying(bool flying) { m_flying = flying; }
+    void setFlying(bool flying)
+    {
+        m_flying = flying;
+    }
 
     // ========== 休息状态 ==========
 
     /**
      * @brief 是否正在休息（倒挂）
      */
-    [[nodiscard]] bool isResting() const { return m_resting; }
+    [[nodiscard]] bool isResting() const
+    {
+        return m_resting;
+    }
 
     /**
      * @brief 设置休息状态
      */
-    void setResting(bool resting) { m_resting = resting; }
+    void setResting(bool resting)
+    {
+        m_resting = resting;
+    }
 
     /**
      * @brief 是否可以休息
@@ -108,16 +120,25 @@ public:
     /**
      * @brief 获取眼睛高度
      */
-    [[nodiscard]] f32 eyeHeight() const override { return 0.1f; }
+    [[nodiscard]] f32 eyeHeight() const override
+    {
+        return 0.1f;
+    }
 
     /**
      * @brief 蝙蝠不触发压力板和绊线
      * @return true 蝙蝠不触发压力板
      */
-    [[nodiscard]] bool doesEntityNotTriggerPressurePlate() const override { return true; }
+    [[nodiscard]] bool doesEntityNotTriggerPressurePlate() const override
+    {
+        return true;
+    }
 
     /// 蝙蝠不参与实体推挤（对齐 vanilla Bat.isPushable=false / pushEntities 空实现）
-    [[nodiscard]] bool isPushable() const override { return false; }
+    [[nodiscard]] bool isPushable() const override
+    {
+        return false;
+    }
 
     /// 是否正在扇翅（对齐 vanilla Bat.isFlapping：非休息且 tickCount % 10 == 0）
     [[nodiscard]] bool isFlapping() const;
@@ -130,7 +151,10 @@ public:
     [[nodiscard]] std::optional<ResourceLocation> getAmbientSound() const override;
 
     /// 音量 0.1（对齐 vanilla Bat.getSoundVolume）
-    [[nodiscard]] f32 getSoundVolume() const override { return 0.1f; }
+    [[nodiscard]] f32 getSoundVolume() const override
+    {
+        return 0.1f;
+    }
 
     /// 受击时若在休息则立即起飞（对齐 vanilla Bat.hurtServer）
     bool hurt(DamageSource& source, f32 amount) override;
@@ -155,7 +179,8 @@ private:
     i32 m_flyTimer = 0;
 
     // 常量
-    static constexpr f32 FLY_SPEED = 0.1f;
+    /** 飞行速度（原版 Bat 的移动速度就是 LivingEntity 默认的 0.7，不能拿它当飞行速度）。 */
+    static constexpr f32 FLY_SPEED = 0.7f;
 };
 
 } // namespace mc

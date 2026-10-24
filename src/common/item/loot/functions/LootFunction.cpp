@@ -42,9 +42,10 @@ void LootFunction::addCondition(std::unique_ptr<LootCondition> condition)
 
 bool LootFunction::testConditions(LootContext& context) const
 {
-    return std::all_of(m_conditions.begin(),
-        m_conditions.end(),
-        [&context](const std::unique_ptr<LootCondition>& cond) { return cond && cond->test(context); });
+    return std::all_of(
+        m_conditions.begin(), m_conditions.end(), [&context](const std::unique_ptr<LootCondition>& cond) {
+            return cond && cond->test(context);
+        });
 }
 
 } // namespace loot

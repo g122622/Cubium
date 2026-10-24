@@ -45,7 +45,10 @@ using namespace mc;
 
 class ShearsItemTest : public ::testing::Test {
 protected:
-    void SetUp() override { Items::initialize(); }
+    void SetUp() override
+    {
+        Items::initialize();
+    }
 };
 
 TEST_F(ShearsItemTest, ShearsRegistered)
@@ -109,7 +112,10 @@ TEST_F(ShearsItemTest, ShearsBreaksAtMaxDamage)
 
 class FlintAndSteelItemTest : public ::testing::Test {
 protected:
-    void SetUp() override { Items::initialize(); }
+    void SetUp() override
+    {
+        Items::initialize();
+    }
 };
 
 TEST_F(FlintAndSteelItemTest, FlintAndSteelRegistered)
@@ -153,7 +159,10 @@ TEST_F(FlintAndSteelItemTest, FlintAndSteelUseDuration)
 
 class MilkBucketItemTest : public ::testing::Test {
 protected:
-    void SetUp() override { Items::initialize(); }
+    void SetUp() override
+    {
+        Items::initialize();
+    }
 };
 
 TEST_F(MilkBucketItemTest, MilkBucketRegistered)
@@ -210,7 +219,10 @@ TEST_F(MilkBucketItemTest, MilkBucketHasContainerItem)
 
 class ToolItemTest : public ::testing::Test {
 protected:
-    void SetUp() override { Items::initialize(); }
+    void SetUp() override
+    {
+        Items::initialize();
+    }
 };
 
 TEST_F(ToolItemTest, AllTierToolsRegistered)
@@ -302,7 +314,10 @@ TEST_F(BlockTagsTest, WoolTagContainsWoolBlocks)
 
 class EnchantedBookItemTest : public ::testing::Test {
 protected:
-    void SetUp() override { Items::initialize(); }
+    void SetUp() override
+    {
+        Items::initialize();
+    }
 };
 
 TEST_F(EnchantedBookItemTest, EnchantedBookRegistered)
@@ -332,7 +347,8 @@ TEST_F(EnchantedBookItemTest, EnchantedBookEnchantability)
 {
     Item* enchantedBook = ItemRegistry::instance().getItem(ResourceLocation("minecraft:enchanted_book"));
     ASSERT_NE(enchantedBook, nullptr);
-    EXPECT_EQ(enchantedBook->getItemEnchantability(), 1);
+    // 原版 1.21.11 的附魔书没有 ENCHANTABLE 组件，即不可附魔（0）。
+    EXPECT_EQ(enchantedBook->getItemEnchantability(), 0);
 }
 
 TEST_F(EnchantedBookItemTest, EmptyBookHasNoEnchantments)
@@ -428,7 +444,10 @@ TEST_F(NetherWoodTest, StrippedWarpedHyphaeRegistered)
 
 class TippedArrowItemTest : public ::testing::Test {
 protected:
-    void SetUp() override { Items::initialize(); }
+    void SetUp() override
+    {
+        Items::initialize();
+    }
 };
 
 TEST_F(TippedArrowItemTest, TippedArrowRegistered)
@@ -461,7 +480,10 @@ TEST_F(TippedArrowItemTest, TippedArrowNotInfiniteInSurvival)
 
 class SplashPotionItemTest : public ::testing::Test {
 protected:
-    void SetUp() override { Items::initialize(); }
+    void SetUp() override
+    {
+        Items::initialize();
+    }
 };
 
 TEST_F(SplashPotionItemTest, SplashPotionRegistered)
@@ -485,7 +507,10 @@ TEST_F(SplashPotionItemTest, SplashPotionIsStackable)
 
 class LingeringPotionItemTest : public ::testing::Test {
 protected:
-    void SetUp() override { Items::initialize(); }
+    void SetUp() override
+    {
+        Items::initialize();
+    }
 };
 
 TEST_F(LingeringPotionItemTest, LingeringPotionRegistered)
@@ -574,7 +599,10 @@ TEST_F(FlintAndSteelSoulFireTest, SoulFireBaseBlocksTagDoesNotContainOtherBlocks
 
 class SignItemTest : public ::testing::Test {
 protected:
-    void SetUp() override { Items::initialize(); }
+    void SetUp() override
+    {
+        Items::initialize();
+    }
 };
 
 TEST_F(SignItemTest, OakSignRegistered)

@@ -72,7 +72,10 @@ protected:
         player->setWorld(&m_world);
     }
 
-    void TearDown() override { player.reset(); }
+    void TearDown() override
+    {
+        player.reset();
+    }
 
     PlayerSwimWorld m_world;
     std::unique_ptr<Player> player;

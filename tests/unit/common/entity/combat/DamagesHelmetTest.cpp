@@ -122,7 +122,10 @@ protected:
         DamageTypeTags::initialize();
     }
 
-    void TearDown() override { item::enchant::EnchantmentRegistry::clear(); }
+    void TearDown() override
+    {
+        item::enchant::EnchantmentRegistry::clear();
+    }
 
     // 给实体戴上钻石头盔（无附魔，本测试只关心 DAMAGES_HELMET ×0.75 减伤，与附魔无关）。
     void equipHelmet(TestLivingEntity& entity) const

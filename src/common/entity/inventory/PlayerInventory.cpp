@@ -217,7 +217,9 @@ i32 PlayerInventory::add(ItemStack& stack)
 
     // 3. 尝试合并到快捷栏（排除当前选中槽位）
     for (i32 i = 0; i < HOTBAR_SIZE; ++i) {
-        if (i == m_selectedSlot) continue;
+        if (i == m_selectedSlot) {
+            continue;
+        }
         if (_canMergeStacks(m_items[static_cast<size_t>(i)], stack)) {
             i32 maxStack = std::min(m_items[static_cast<size_t>(i)].getMaxStackSize(), getMaxStackSize());
             i32 space = maxStack - m_items[static_cast<size_t>(i)].getCount();

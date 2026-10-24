@@ -54,8 +54,15 @@ void resetKageroSingletons()
 
 class MessageScreenTest : public ::testing::Test {
 protected:
-    void SetUp() override { resetKageroSingletons(); }
-    void TearDown() override { resetKageroSingletons(); }
+    void SetUp() override
+    {
+        resetKageroSingletons();
+    }
+
+    void TearDown() override
+    {
+        resetKageroSingletons();
+    }
 };
 
 // 构造时不崩溃，且模板加载成功时实例有效
@@ -87,7 +94,9 @@ protected:
     {
         resetKageroSingletons();
         m_callbackInvoked = false;
-        m_screen = std::make_unique<MessageScreen>("Title", "Message", "OK", [this]() { m_callbackInvoked = true; });
+        m_screen = std::make_unique<MessageScreen>("Title", "Message", "OK", [this]() {
+            m_callbackInvoked = true;
+        });
     }
 
     void TearDown() override
@@ -154,15 +163,24 @@ TEST_F(MessageScreenOnKeyTest, NonEscKeyReturnsBool)
 
 class MessageScreenCallbackTest : public ::testing::Test {
 protected:
-    void SetUp() override { resetKageroSingletons(); }
-    void TearDown() override { resetKageroSingletons(); }
+    void SetUp() override
+    {
+        resetKageroSingletons();
+    }
+
+    void TearDown() override
+    {
+        resetKageroSingletons();
+    }
 };
 
 // 回调可以多次触发（无状态限制）
 TEST_F(MessageScreenCallbackTest, CallbackCanBeInvokedMultipleTimes)
 {
     i32 invokeCount = 0;
-    MessageScreen screen("Title", "Message", "OK", [&invokeCount]() { ++invokeCount; });
+    MessageScreen screen("Title", "Message", "OK", [&invokeCount]() {
+        ++invokeCount;
+    });
 
     screen.onKey(GLFW_KEY_ESCAPE, 0, GLFW_PRESS, 0);
     screen.onKey(GLFW_KEY_ESCAPE, 0, GLFW_PRESS, 0);
@@ -176,7 +194,9 @@ TEST_F(MessageScreenCallbackTest, CallbackCapturesContext)
 {
     std::string captured;
     std::string outerValue = "hello";
-    MessageScreen screen("Title", "Message", "OK", [&captured, &outerValue]() { captured = outerValue + " world"; });
+    MessageScreen screen("Title", "Message", "OK", [&captured, &outerValue]() {
+        captured = outerValue + " world";
+    });
 
     screen.onKey(GLFW_KEY_ESCAPE, 0, GLFW_PRESS, 0);
     EXPECT_EQ(captured, "hello world");

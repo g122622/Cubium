@@ -47,9 +47,16 @@ public:
 
     [[nodiscard]] ItemStack apply(ItemStack stack, LootContext& context) const override;
     [[nodiscard]] std::unique_ptr<LootFunction> clone() const noexcept override;
-    [[nodiscard]] std::string getType() const noexcept override { return "set_ominous_bottle_amplifier"; }
 
-    [[nodiscard]] const RandomValueRange& getAmplifier() const { return m_amplifier; }
+    [[nodiscard]] std::string getType() const noexcept override
+    {
+        return "set_ominous_bottle_amplifier";
+    }
+
+    [[nodiscard]] const RandomValueRange& getAmplifier() const
+    {
+        return m_amplifier;
+    }
 
 private:
     RandomValueRange m_amplifier;

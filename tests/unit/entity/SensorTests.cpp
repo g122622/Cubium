@@ -52,8 +52,15 @@ class MockTestEntity {
 public:
     Brain<MockTestEntity> brain;
 
-    Brain<MockTestEntity>& getBrain() { return brain; }
-    const Brain<MockTestEntity>& getBrain() const { return brain; }
+    Brain<MockTestEntity>& getBrain()
+    {
+        return brain;
+    }
+
+    const Brain<MockTestEntity>& getBrain() const
+    {
+        return brain;
+    }
 };
 
 // ============================================================================
@@ -70,7 +77,10 @@ public:
     int updateCount = 0;
 
     // Public accessor for testing
-    std::unordered_set<const memory::MemoryModuleTypeBase*> testGetUsedMemories() const { return getUsedMemories(); }
+    std::unordered_set<const memory::MemoryModuleTypeBase*> testGetUsedMemories() const
+    {
+        return getUsedMemories();
+    }
 
 protected:
     void update(IWorld* world, MockTestEntity* entity) override

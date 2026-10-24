@@ -414,6 +414,7 @@ TEST(DiscreteCubeMergerTest, BasicMerge)
 class VoxelShapeJoinTest : public ::testing::Test {
 protected:
     void SetUp() override {}
+
     void TearDown() override {}
 };
 

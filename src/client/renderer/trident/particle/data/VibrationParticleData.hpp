@@ -89,7 +89,11 @@ public:
     // ParticleData 接口实现
     // ========================================================================
 
-    [[nodiscard]] ParticleTypeId getType() const override { return ParticleTypeId::Vibration; }
+    [[nodiscard]] ParticleTypeId getType() const override
+    {
+        return ParticleTypeId::Vibration;
+    }
+
     [[nodiscard]] std::string getTypeName() const override;
     [[nodiscard]] std::string getParameters() const override;
     [[nodiscard]] std::unique_ptr<ParticleData> clone() const override;
@@ -101,17 +105,26 @@ public:
     /**
      * @brief 获取目标来源类型
      */
-    [[nodiscard]] TargetKind kind() const noexcept { return m_kind; }
+    [[nodiscard]] TargetKind kind() const noexcept
+    {
+        return m_kind;
+    }
 
     /**
      * @brief 是否为方块来源
      */
-    [[nodiscard]] bool isBlockSource() const noexcept { return m_kind == TargetKind::Block; }
+    [[nodiscard]] bool isBlockSource() const noexcept
+    {
+        return m_kind == TargetKind::Block;
+    }
 
     /**
      * @brief 是否为实体来源
      */
-    [[nodiscard]] bool isEntitySource() const noexcept { return m_kind == TargetKind::Entity; }
+    [[nodiscard]] bool isEntitySource() const noexcept
+    {
+        return m_kind == TargetKind::Entity;
+    }
 
     /**
      * @brief 获取目标位置（方块来源）
@@ -121,7 +134,10 @@ public:
      *
      * @return 目标位置
      */
-    [[nodiscard]] const Vector3d& targetPosition() const noexcept { return m_targetPosition; }
+    [[nodiscard]] const Vector3d& targetPosition() const noexcept
+    {
+        return m_targetPosition;
+    }
 
     /**
      * @brief 获取目标实体 ID（实体来源）
@@ -130,7 +146,10 @@ public:
      *
      * @return 目标实体 ID
      */
-    [[nodiscard]] EntityInstanceId targetEntityId() const noexcept { return m_targetEntityId; }
+    [[nodiscard]] EntityInstanceId targetEntityId() const noexcept
+    {
+        return m_targetEntityId;
+    }
 
     /**
      * @brief 获取 Y 轴偏移（实体来源）
@@ -139,7 +158,10 @@ public:
      *
      * @return Y 轴偏移
      */
-    [[nodiscard]] f32 yOffset() const noexcept { return m_yOffset; }
+    [[nodiscard]] f32 yOffset() const noexcept
+    {
+        return m_yOffset;
+    }
 
     /**
      * @brief 获取到达目标的剩余 tick 数
@@ -148,7 +170,10 @@ public:
      *
      * @return 剩余 tick 数
      */
-    [[nodiscard]] i32 arrivalInTicks() const noexcept { return m_arrivalInTicks; }
+    [[nodiscard]] i32 arrivalInTicks() const noexcept
+    {
+        return m_arrivalInTicks;
+    }
 
 private:
     TargetKind m_kind = TargetKind::Block;

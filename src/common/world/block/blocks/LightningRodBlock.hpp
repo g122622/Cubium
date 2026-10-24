@@ -90,7 +90,10 @@ public:
     /**
      * @brief 避雷针可提供红石信号
      */
-    [[nodiscard]] bool canProvidePower(const BlockState& state) const noexcept override { return true; }
+    [[nodiscard]] bool canProvidePower(const BlockState& state) const noexcept override
+    {
+        return true;
+    }
 
     /**
      * @brief 获取弱信号强度（POWERED时为15）
@@ -122,6 +125,7 @@ public:
     // ========== IWaterLoggable ==========
 
     [[nodiscard]] const fluid::FluidState* getFluidState(const BlockState& state) const override;
+
     [[nodiscard]] bool isWaterlogged(const BlockState& state) const override
     {
         return state.get(BlockStateProperties::WATERLOGGED());

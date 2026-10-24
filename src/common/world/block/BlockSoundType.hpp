@@ -82,7 +82,10 @@ public:
      * 方块被破坏时播放的声音。
      * 例如：石头破坏声 "minecraft:block.stone.break"
      */
-    [[nodiscard]] const ResourceLocation& getBreakSound() const noexcept { return m_breakSound; }
+    [[nodiscard]] const ResourceLocation& getBreakSound() const noexcept
+    {
+        return m_breakSound;
+    }
 
     /**
      * @brief 获取踩踏声音事件ID
@@ -90,7 +93,10 @@ public:
      * 玩家在方块上行走时播放的声音。
      * 例如：石头踩踏声 "minecraft:block.stone.step"
      */
-    [[nodiscard]] const ResourceLocation& getStepSound() const noexcept { return m_stepSound; }
+    [[nodiscard]] const ResourceLocation& getStepSound() const noexcept
+    {
+        return m_stepSound;
+    }
 
     /**
      * @brief 获取放置声音事件ID
@@ -98,7 +104,10 @@ public:
      * 方块被放置时播放的声音。
      * 例如：石头放置声 "minecraft:block.stone.place"
      */
-    [[nodiscard]] const ResourceLocation& getPlaceSound() const noexcept { return m_placeSound; }
+    [[nodiscard]] const ResourceLocation& getPlaceSound() const noexcept
+    {
+        return m_placeSound;
+    }
 
     /**
      * @brief 获取击打声音事件ID
@@ -106,7 +115,10 @@ public:
      * 玩家左键点击（挖掘）方块时播放的声音。
      * 例如：石头击打声 "minecraft:block.stone.hit"
      */
-    [[nodiscard]] const ResourceLocation& getHitSound() const noexcept { return m_hitSound; }
+    [[nodiscard]] const ResourceLocation& getHitSound() const noexcept
+    {
+        return m_hitSound;
+    }
 
     /**
      * @brief 获取坠落声音事件ID
@@ -114,7 +126,10 @@ public:
      * 实体从高处坠落到此方块上时播放的声音。
      * 例如：石头坠落声 "minecraft:block.stone.fall"
      */
-    [[nodiscard]] const ResourceLocation& getFallSound() const noexcept { return m_fallSound; }
+    [[nodiscard]] const ResourceLocation& getFallSound() const noexcept
+    {
+        return m_fallSound;
+    }
 
     // ========================================================================
     // 音量和音调
@@ -128,7 +143,10 @@ public:
      *
      * @return 音量倍率 (默认 1.0)
      */
-    [[nodiscard]] f32 getVolume() const noexcept { return m_volume; }
+    [[nodiscard]] f32 getVolume() const noexcept
+    {
+        return m_volume;
+    }
 
     /**
      * @brief 获取音调倍率
@@ -138,7 +156,10 @@ public:
      *
      * @return 音调倍率 (默认 1.0)
      */
-    [[nodiscard]] f32 getPitch() const noexcept { return m_pitch; }
+    [[nodiscard]] f32 getPitch() const noexcept
+    {
+        return m_pitch;
+    }
 
 private:
     ResourceLocation m_breakSound;

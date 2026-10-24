@@ -74,13 +74,19 @@ public:
      * Cubium 以 MobEntity::preventDespawn() 反向表达同一语义：默认实现
      * return isRiding()（被骑乘才免消失），此处直接返回 false 即"任何情况下都不免消失"。
      */
-    [[nodiscard]] bool preventDespawn() const override { return false; }
+    [[nodiscard]] bool preventDespawn() const override
+    {
+        return false;
+    }
 
     /// 是否被生物控制（首个乘客是 Mob；对齐 vanilla CamelHusk.isMobControlled）
     [[nodiscard]] bool isMobControlled() const;
 
     /// 被生物骑乘时不可被拴绳牵引（对齐 vanilla CamelHusk.canBeLeashed）
-    [[nodiscard]] bool canBeLeashed() const override { return !isMobControlled(); }
+    [[nodiscard]] bool canBeLeashed() const override
+    {
+        return !isMobControlled();
+    }
 
     /// 不可繁殖（对齐 vanilla CamelHusk.canMate = false）
     [[nodiscard]] bool canMateWith(const AnimalEntity& other) const override
@@ -90,13 +96,19 @@ public:
     }
 
     /// 不可进入求偶状态（对齐 vanilla CamelHusk.canFallInLove = false）
-    [[nodiscard]] bool canBreed() const override { return false; }
+    [[nodiscard]] bool canBreed() const override
+    {
+        return false;
+    }
 
     /// 任意玩家交互都标记持久化（对齐 vanilla CamelHusk.interact）
     ActionResultType interactMob(Player& player, Hand hand) override;
 
     /// 冲锋速度修正（对齐 vanilla CamelHusk.chargeSpeedModifier = 4.0F）
-    [[nodiscard]] f32 chargeSpeedModifier() const override { return CHARGE_SPEED_MODIFIER; }
+    [[nodiscard]] f32 chargeSpeedModifier() const override
+    {
+        return CHARGE_SPEED_MODIFIER;
+    }
 
     /// 食物：#minecraft:camel_husk_food（兔子脚，与骆驼的 #camel_food 不同）
     [[nodiscard]] bool isFoodItem(const ItemStack& itemStack) const override;

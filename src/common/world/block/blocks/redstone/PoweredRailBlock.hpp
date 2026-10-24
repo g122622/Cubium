@@ -116,7 +116,10 @@ public:
     /**
      * @brief 获取激活属性
      */
-    static const BooleanProperty& POWERED() { return BlockStateProperties::POWERED(); }
+    static const BooleanProperty& POWERED()
+    {
+        return BlockStateProperties::POWERED();
+    }
 
 private:
     /// 检查同轴、同类型的带电轨道，并追踪到真正的外部电源。

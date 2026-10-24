@@ -51,6 +51,7 @@ struct FireInfo {
     i32 flammability = 0;  ///< 可燃性 (0-300)
 
     constexpr FireInfo() = default;
+
     constexpr FireInfo(i32 enc, i32 flam)
         : encouragement(enc)
         , flammability(flam)

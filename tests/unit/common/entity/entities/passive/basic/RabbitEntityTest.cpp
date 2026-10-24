@@ -93,7 +93,10 @@ public:
         return static_cast<EntityInstanceId>(m_spawnedEntities.size());
     }
 
-    [[nodiscard]] const std::vector<std::unique_ptr<Entity>>& spawnedEntities() const { return m_spawnedEntities; }
+    [[nodiscard]] const std::vector<std::unique_ptr<Entity>>& spawnedEntities() const
+    {
+        return m_spawnedEntities;
+    }
 
     // 追踪 broadcastEntityStatus 调用（用于验证 RabbitJump 状态码广播）
     void broadcastEntityStatus(EntityInstanceId entityId, u8 status) override
@@ -103,9 +106,21 @@ public:
         m_broadcastCount++;
     }
 
-    [[nodiscard]] EntityInstanceId lastBroadcastEntityId() const { return m_lastBroadcastEntityId; }
-    [[nodiscard]] u8 lastBroadcastStatus() const { return m_lastBroadcastStatus; }
-    [[nodiscard]] i32 broadcastCount() const { return m_broadcastCount; }
+    [[nodiscard]] EntityInstanceId lastBroadcastEntityId() const
+    {
+        return m_lastBroadcastEntityId;
+    }
+
+    [[nodiscard]] u8 lastBroadcastStatus() const
+    {
+        return m_lastBroadcastStatus;
+    }
+
+    [[nodiscard]] i32 broadcastCount() const
+    {
+        return m_broadcastCount;
+    }
+
     void resetBroadcastTracking()
     {
         m_lastBroadcastEntityId = EntityInstanceId(0);
@@ -118,6 +133,7 @@ public:
     {
         throw std::runtime_error("RabbitTestWorld::tickManager not implemented");
     }
+
     [[nodiscard]] const world::tick::TickManager& tickManager() const override
     {
         throw std::runtime_error("RabbitTestWorld::tickManager not implemented");

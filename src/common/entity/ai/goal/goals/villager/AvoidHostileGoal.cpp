@@ -55,7 +55,9 @@ AvoidHostileGoal::AvoidHostileGoal(VillagerEntity* villager)
 
 bool AvoidHostileGoal::shouldExecute()
 {
-    if (!m_villager) return false;
+    if (!m_villager) {
+        return false;
+    }
 
     // 查找附近的敌对生物
     _findNearestHostile();
@@ -64,10 +66,14 @@ bool AvoidHostileGoal::shouldExecute()
 
 bool AvoidHostileGoal::shouldContinueExecuting()
 {
-    if (!m_villager) return false;
+    if (!m_villager) {
+        return false;
+    }
 
     // 敌对生物消失或距离足够远
-    if (m_hostileEntity == 0) return false;
+    if (m_hostileEntity == 0) {
+        return false;
+    }
 
     // 检查敌对生物是否仍然存在
     Entity* entity = m_villager->world() ? m_villager->world()->getEntity(m_hostileEntity) : nullptr;
@@ -109,7 +115,9 @@ void AvoidHostileGoal::resetTask()
 
 void AvoidHostileGoal::tick()
 {
-    if (!m_villager || m_hostileEntity == 0) return;
+    if (!m_villager || m_hostileEntity == 0) {
+        return;
+    }
 
     // 继续逃跑
     _fleeFromHostile();
@@ -129,7 +137,9 @@ void AvoidHostileGoal::_findNearestHostile()
     LivingEntity* hostile = EntityUtils::findClosestEntity<LivingEntity>(
         m_villager->world(), m_villager->position(), FLEE_RANGE, m_villager, [](LivingEntity* entity) {
             // 检查是否存活
-            if (!entity || !entity->isAlive()) return false;
+            if (!entity || !entity->isAlive()) {
+                return false;
+            }
 
             // 使用 MobFlagComponent 标记组件判断是否是敌对生物
             // MonsterEntity 子类构造时 attach 此 tag，替代 dynamic_cast<IMob*>
@@ -143,7 +153,9 @@ void AvoidHostileGoal::_findNearestHostile()
 
 void AvoidHostileGoal::_fleeFromHostile()
 {
-    if (!m_villager || m_hostileEntity == 0) return;
+    if (!m_villager || m_hostileEntity == 0) {
+        return;
+    }
 
     // 获取敌对生物位置
     Entity* entity = m_villager->world() ? m_villager->world()->getEntity(m_hostileEntity) : nullptr;

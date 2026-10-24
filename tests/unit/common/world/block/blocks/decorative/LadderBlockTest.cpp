@@ -80,7 +80,10 @@ public:
     }
 
 private:
-    static i64 packPos(i32 x, i32 y, i32 z) { return (static_cast<i64>(x) << 42) ^ (static_cast<i64>(y) << 21) ^ z; }
+    static i64 packPos(i32 x, i32 y, i32 z)
+    {
+        return (static_cast<i64>(x) << 42) ^ (static_cast<i64>(y) << 21) ^ z;
+    }
 
     std::unordered_map<i64, const BlockState*> m_blocks;
     std::vector<std::unique_ptr<BlockState>> m_storedStates;
@@ -116,7 +119,10 @@ const BlockState& dirtBlock()
 
 class LadderAttachmentTest : public ::testing::Test {
 protected:
-    void SetUp() override { VanillaBlocks::initialize(); }
+    void SetUp() override
+    {
+        VanillaBlocks::initialize();
+    }
 
     LadderTestWorld world;
 };

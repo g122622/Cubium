@@ -688,15 +688,19 @@ protected:
         EventBus::instance().clear();
     }
 
-    void TearDown() override { EventBus::instance().clear(); }
+    void TearDown() override
+    {
+        EventBus::instance().clear();
+    }
 };
 
 TEST_F(EventBusTest, SubscribeAndPublish)
 {
     i32 clickCount = 0;
 
-    auto id =
-        EventBus::instance().subscribe<MouseClickEvent>([&clickCount](const MouseClickEvent& e) { clickCount++; });
+    auto id = EventBus::instance().subscribe<MouseClickEvent>([&clickCount](const MouseClickEvent& e) {
+        clickCount++;
+    });
 
     EXPECT_NE(id, 0u);
 
@@ -710,8 +714,9 @@ TEST_F(EventBusTest, Unsubscribe)
 {
     i32 clickCount = 0;
 
-    auto id =
-        EventBus::instance().subscribe<MouseClickEvent>([&clickCount](const MouseClickEvent& e) { clickCount++; });
+    auto id = EventBus::instance().subscribe<MouseClickEvent>([&clickCount](const MouseClickEvent& e) {
+        clickCount++;
+    });
 
     EventBus::instance().publish(MouseClickEvent(100, 200, 0, 1));
     EXPECT_EQ(clickCount, 1);
@@ -735,9 +740,15 @@ TEST_F(EventBusTest, MultipleSubscribers)
 {
     i32 count1 = 0, count2 = 0, count3 = 0;
 
-    auto id1 = EventBus::instance().subscribe<MouseClickEvent>([&count1](const MouseClickEvent&) { count1++; });
-    auto id2 = EventBus::instance().subscribe<MouseClickEvent>([&count2](const MouseClickEvent&) { count2++; });
-    auto id3 = EventBus::instance().subscribe<MouseClickEvent>([&count3](const MouseClickEvent&) { count3++; });
+    auto id1 = EventBus::instance().subscribe<MouseClickEvent>([&count1](const MouseClickEvent&) {
+        count1++;
+    });
+    auto id2 = EventBus::instance().subscribe<MouseClickEvent>([&count2](const MouseClickEvent&) {
+        count2++;
+    });
+    auto id3 = EventBus::instance().subscribe<MouseClickEvent>([&count3](const MouseClickEvent&) {
+        count3++;
+    });
 
     EventBus::instance().publish(MouseClickEvent(100, 200, 0, 1));
 
@@ -754,13 +765,22 @@ TEST_F(EventBusTest, Priority)
 {
     std::vector<i32> order;
 
-    auto id1 = EventBus::instance().subscribe<MouseClickEvent>([&order](const MouseClickEvent&) { order.push_back(1); },
+    auto id1 = EventBus::instance().subscribe<MouseClickEvent>(
+        [&order](const MouseClickEvent&) {
+            order.push_back(1);
+        },
         0 // 默认优先级
     );
-    auto id2 = EventBus::instance().subscribe<MouseClickEvent>([&order](const MouseClickEvent&) { order.push_back(2); },
+    auto id2 = EventBus::instance().subscribe<MouseClickEvent>(
+        [&order](const MouseClickEvent&) {
+            order.push_back(2);
+        },
         100 // 高优先级
     );
-    auto id3 = EventBus::instance().subscribe<MouseClickEvent>([&order](const MouseClickEvent&) { order.push_back(3); },
+    auto id3 = EventBus::instance().subscribe<MouseClickEvent>(
+        [&order](const MouseClickEvent&) {
+            order.push_back(3);
+        },
         -100 // 低优先级
     );
 
@@ -831,8 +851,9 @@ TEST_F(EventBusTest, EventFilter)
         return true;
     });
 
-    auto subId =
-        EventBus::instance().subscribe<MouseClickEvent>([&clickCount](const MouseClickEvent&) { clickCount++; });
+    auto subId = EventBus::instance().subscribe<MouseClickEvent>([&clickCount](const MouseClickEvent&) {
+        clickCount++;
+    });
 
     // x = 10，应该被过滤
     EventBus::instance().publish(MouseClickEvent(10, 200, 0, 1));
@@ -850,11 +871,14 @@ TEST_F(EventBusTest, RemoveFilter)
 {
     i32 clickCount = 0;
 
-    auto filterId = EventBus::instance().addFilter([](const Event&) { return false; } // 过滤所有事件
+    auto filterId = EventBus::instance().addFilter([](const Event&) {
+        return false;
+    } // 过滤所有事件
     );
 
-    auto subId =
-        EventBus::instance().subscribe<MouseClickEvent>([&clickCount](const MouseClickEvent&) { clickCount++; });
+    auto subId = EventBus::instance().subscribe<MouseClickEvent>([&clickCount](const MouseClickEvent&) {
+        clickCount++;
+    });
 
     EventBus::instance().publish(MouseClickEvent(100, 200, 0, 1));
     EXPECT_EQ(clickCount, 0);
@@ -880,10 +904,13 @@ TEST_F(EventBusTest, AddFilterWithId)
     i32 clickCount = 0;
 
     // 使用 addFilterWithId 添加过滤器
-    EventBus::instance().addFilterWithId(42, [](const Event&) { return false; });
+    EventBus::instance().addFilterWithId(42, [](const Event&) {
+        return false;
+    });
 
-    auto subId =
-        EventBus::instance().subscribe<MouseClickEvent>([&clickCount](const MouseClickEvent&) { clickCount++; });
+    auto subId = EventBus::instance().subscribe<MouseClickEvent>([&clickCount](const MouseClickEvent&) {
+        clickCount++;
+    });
 
     EventBus::instance().publish(MouseClickEvent(100, 200, 0, 1));
     EXPECT_EQ(clickCount, 0); // 过滤器阻止了事件
@@ -918,8 +945,9 @@ TEST_F(EventBusTest, MultipleFilters)
         return true;
     });
 
-    auto subId =
-        EventBus::instance().subscribe<MouseClickEvent>([&clickCount](const MouseClickEvent&) { clickCount++; });
+    auto subId = EventBus::instance().subscribe<MouseClickEvent>([&clickCount](const MouseClickEvent&) {
+        clickCount++;
+    });
 
     // x=0, y=100 - 被第一个过滤器阻止
     EventBus::instance().publish(MouseClickEvent(0, 100, 0, 1));
@@ -958,7 +986,9 @@ TEST_F(EventBusTest, HandlerCount)
 TEST_F(EventBusTest, Clear)
 {
     auto id1 = EventBus::instance().subscribe<MouseClickEvent>([](const MouseClickEvent&) {});
-    auto filterId = EventBus::instance().addFilter([](const Event&) { return true; });
+    auto filterId = EventBus::instance().addFilter([](const Event&) {
+        return true;
+    });
 
     EXPECT_EQ(EventBus::instance().handlerCount<MouseClickEvent>(), 1u);
 
@@ -971,9 +1001,12 @@ TEST_F(EventBusTest, DifferentEventTypes)
 {
     i32 clickCount = 0, keyCount = 0;
 
-    auto clickId =
-        EventBus::instance().subscribe<MouseClickEvent>([&clickCount](const MouseClickEvent&) { clickCount++; });
-    auto keyId = EventBus::instance().subscribe<KeyEvent>([&keyCount](const KeyEvent&) { keyCount++; });
+    auto clickId = EventBus::instance().subscribe<MouseClickEvent>([&clickCount](const MouseClickEvent&) {
+        clickCount++;
+    });
+    auto keyId = EventBus::instance().subscribe<KeyEvent>([&keyCount](const KeyEvent&) {
+        keyCount++;
+    });
 
     EventBus::instance().publish(MouseClickEvent(100, 200, 0, 1));
     EventBus::instance().publish(KeyEvent(65, 0, 1, 0));
@@ -989,9 +1022,15 @@ TEST_F(EventBusTest, DifferentEventTypes)
 
 class EventSubscriptionTest : public ::testing::Test {
 protected:
-    void SetUp() override { EventBus::instance().clear(); }
+    void SetUp() override
+    {
+        EventBus::instance().clear();
+    }
 
-    void TearDown() override { EventBus::instance().clear(); }
+    void TearDown() override
+    {
+        EventBus::instance().clear();
+    }
 };
 
 TEST_F(EventSubscriptionTest, AutoUnsubscribe)
@@ -999,7 +1038,9 @@ TEST_F(EventSubscriptionTest, AutoUnsubscribe)
     i32 clickCount = 0;
 
     {
-        EventSubscription<MouseClickEvent> subscription([&clickCount](const MouseClickEvent&) { clickCount++; });
+        EventSubscription<MouseClickEvent> subscription([&clickCount](const MouseClickEvent&) {
+            clickCount++;
+        });
 
         EXPECT_TRUE(subscription.valid());
         EXPECT_NE(subscription.id(), 0u);
@@ -1016,7 +1057,9 @@ TEST_F(EventSubscriptionTest, ManualUnsubscribe)
 {
     i32 clickCount = 0;
 
-    EventSubscription<MouseClickEvent> subscription([&clickCount](const MouseClickEvent&) { clickCount++; });
+    EventSubscription<MouseClickEvent> subscription([&clickCount](const MouseClickEvent&) {
+        clickCount++;
+    });
 
     EXPECT_TRUE(subscription.valid());
 
@@ -1031,7 +1074,9 @@ TEST_F(EventSubscriptionTest, MoveSemantics)
 {
     i32 clickCount = 0;
 
-    EventSubscription<MouseClickEvent> subscription1([&clickCount](const MouseClickEvent&) { clickCount++; });
+    EventSubscription<MouseClickEvent> subscription1([&clickCount](const MouseClickEvent&) {
+        clickCount++;
+    });
 
     EXPECT_TRUE(subscription1.valid());
     auto id = subscription1.id();
@@ -1051,7 +1096,9 @@ TEST_F(EventSubscriptionTest, MoveAssignment)
 {
     i32 clickCount = 0;
 
-    EventSubscription<MouseClickEvent> subscription1([&clickCount](const MouseClickEvent&) { clickCount++; });
+    EventSubscription<MouseClickEvent> subscription1([&clickCount](const MouseClickEvent&) {
+        clickCount++;
+    });
 
     EventSubscription<MouseClickEvent> subscription2([](const MouseClickEvent&) {} // 空处理器
     );
@@ -1074,8 +1121,16 @@ TEST_F(EventSubscriptionTest, Priority)
 {
     std::vector<i32> order;
 
-    EventSubscription<MouseClickEvent> sub1([&order](const MouseClickEvent&) { order.push_back(1); }, 0);
-    EventSubscription<MouseClickEvent> sub2([&order](const MouseClickEvent&) { order.push_back(2); }, 100);
+    EventSubscription<MouseClickEvent> sub1(
+        [&order](const MouseClickEvent&) {
+            order.push_back(1);
+        },
+        0);
+    EventSubscription<MouseClickEvent> sub2(
+        [&order](const MouseClickEvent&) {
+            order.push_back(2);
+        },
+        100);
 
     EventBus::instance().publish(MouseClickEvent(100, 200, 0, 1));
 
@@ -1088,16 +1143,24 @@ TEST_F(EventSubscriptionTest, Priority)
 
 class EventBusThreadSafetyTest : public ::testing::Test {
 protected:
-    void SetUp() override { EventBus::instance().clear(); }
+    void SetUp() override
+    {
+        EventBus::instance().clear();
+    }
 
-    void TearDown() override { EventBus::instance().clear(); }
+    void TearDown() override
+    {
+        EventBus::instance().clear();
+    }
 };
 
 TEST_F(EventBusThreadSafetyTest, ConcurrentPublish)
 {
     std::atomic<i32> clickCount{0};
 
-    auto id = EventBus::instance().subscribe<MouseClickEvent>([&clickCount](const MouseClickEvent&) { clickCount++; });
+    auto id = EventBus::instance().subscribe<MouseClickEvent>([&clickCount](const MouseClickEvent&) {
+        clickCount++;
+    });
 
     const int numThreads = 4;
     const int eventsPerThread = 100;
@@ -1155,9 +1218,15 @@ TEST_F(EventBusThreadSafetyTest, ConcurrentSubscribeUnsubscribe)
 
 class CustomEventTest : public ::testing::Test {
 protected:
-    void SetUp() override { EventBus::instance().clear(); }
+    void SetUp() override
+    {
+        EventBus::instance().clear();
+    }
 
-    void TearDown() override { EventBus::instance().clear(); }
+    void TearDown() override
+    {
+        EventBus::instance().clear();
+    }
 };
 
 // 自定义事件类
@@ -1168,11 +1237,25 @@ public:
         , m_cause(cause)
     {}
 
-    EventType getType() const override { return EventType::Custom; }
-    const char* getName() const override { return "PlayerDeath"; }
+    EventType getType() const override
+    {
+        return EventType::Custom;
+    }
 
-    i32 playerId() const { return m_playerId; }
-    const std::string& cause() const { return m_cause; }
+    const char* getName() const override
+    {
+        return "PlayerDeath";
+    }
+
+    i32 playerId() const
+    {
+        return m_playerId;
+    }
+
+    const std::string& cause() const
+    {
+        return m_cause;
+    }
 
 private:
     i32 m_playerId;
@@ -1215,7 +1298,9 @@ TEST_F(CustomEventTest, SimpleEventUsage)
     i32 value = 0;
 
     auto id = EventBus::instance().subscribe<SimpleEvent<i32, EventType::ValueChange>>(
-        [&value](const SimpleEvent<i32, EventType::ValueChange>& e) { value = e.data(); });
+        [&value](const SimpleEvent<i32, EventType::ValueChange>& e) {
+            value = e.data();
+        });
 
     EventBus::instance().publish(SimpleEvent<i32, EventType::ValueChange>(42));
 

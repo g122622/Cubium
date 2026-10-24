@@ -72,10 +72,20 @@ public:
      *
      * 必须在 generate 之前调用
      */
-    void setTemplateManager(feature::template_::TemplateManager* manager) { m_templateManager = manager; }
+    void setTemplateManager(feature::template_::TemplateManager* manager)
+    {
+        m_templateManager = manager;
+    }
 
-    [[nodiscard]] bool hasBasement() const { return m_hasBasement; }
-    [[nodiscard]] i32 middleCount() const { return m_middleCount; }
+    [[nodiscard]] bool hasBasement() const
+    {
+        return m_hasBasement;
+    }
+
+    [[nodiscard]] i32 middleCount() const
+    {
+        return m_middleCount;
+    }
 
 private:
     void _loadTemplates();
@@ -109,7 +119,10 @@ class IglooStructure : public Structure {
 public:
     explicit IglooStructure(ResourceLocation id);
 
-    [[nodiscard]] const std::string& name() const override { return s_name; }
+    [[nodiscard]] const std::string& name() const override
+    {
+        return s_name;
+    }
 
     /**
      * @brief 获取结构关联的生物群系标签
@@ -127,7 +140,10 @@ public:
     /**
      * @brief 设置模板管理器
      */
-    void setTemplateManager(feature::template_::TemplateManager* manager) { m_templateManager = manager; }
+    void setTemplateManager(feature::template_::TemplateManager* manager)
+    {
+        m_templateManager = manager;
+    }
 
     // 模板名称常量
     static const std::string s_topTemplateName;

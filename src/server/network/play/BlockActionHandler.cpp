@@ -121,7 +121,9 @@ void BlockActionHandler::handleBlockInteractionPacket(PlayerId playerId, const m
         pos.toString(),
         "playerId",
         playerId,
-        [flow = ::perfetto::Flow::ProcessScoped(pos.toId())](::perfetto::EventContext ctx) { flow(ctx); });
+        [flow = ::perfetto::Flow::ProcessScoped(pos.toId())](::perfetto::EventContext ctx) {
+            flow(ctx);
+        });
 
     // 物品相关 action 3-6（不带 sequence，不 ack）对齐 Java
     // ServerGamePacketListenerImpl.handlePlayerAction(:1245-1268)。
@@ -334,6 +336,7 @@ void BlockActionHandler::handleBlockPlacementPacket(PlayerId playerId, const mc:
         ServerWorld* world;
         BlockPos pos;
         Direction face;
+
         ~PlacementBlockUpdateGuard()
         {
             if (world != nullptr) {
@@ -341,6 +344,7 @@ void BlockActionHandler::handleBlockPlacementPacket(PlayerId playerId, const mc:
             }
         }
     };
+
     PlacementBlockUpdateGuard guard{m_server, playerId, placementWorld, pos, face};
     (void)guard;
 
@@ -707,8 +711,10 @@ void BlockActionHandler::_triggerAnyBlockUse(
     context.item = &usedItem;
     context.blockPos = &pos;
     context.entity = &player;
-    trigger->AbstractCriterionTrigger<mc::advancement::AnyBlockUseTriggerInstance>::trigger(*advancements,
-        [&context](const mc::advancement::AnyBlockUseTriggerInstance& instance) { return instance.test(context); });
+    trigger->AbstractCriterionTrigger<mc::advancement::AnyBlockUseTriggerInstance>::trigger(
+        *advancements, [&context](const mc::advancement::AnyBlockUseTriggerInstance& instance) {
+            return instance.test(context);
+        });
 
     // item_used_on_block：与 default_block_use 同一触发点（vanilla 两条在 useOn 成功处相邻触发）
     auto* itemUsedTrigger =
@@ -716,8 +722,10 @@ void BlockActionHandler::_triggerAnyBlockUse(
     if (itemUsedTrigger == nullptr) {
         return;
     }
-    itemUsedTrigger->AbstractCriterionTrigger<mc::advancement::AnyBlockUseTriggerInstance>::trigger(*advancements,
-        [&context](const mc::advancement::AnyBlockUseTriggerInstance& instance) { return instance.test(context); });
+    itemUsedTrigger->AbstractCriterionTrigger<mc::advancement::AnyBlockUseTriggerInstance>::trigger(
+        *advancements, [&context](const mc::advancement::AnyBlockUseTriggerInstance& instance) {
+            return instance.test(context);
+        });
 }
 
 } // namespace mc::server::net

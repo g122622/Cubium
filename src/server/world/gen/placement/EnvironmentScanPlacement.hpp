@@ -89,7 +89,10 @@ public:
         const IPlacementConfig& config,
         const BlockPos& basePos) const override;
 
-    [[nodiscard]] const char* name() const noexcept override { return "environment_scan"; }
+    [[nodiscard]] const char* name() const noexcept override
+    {
+        return "environment_scan";
+    }
 };
 
 } // namespace mc

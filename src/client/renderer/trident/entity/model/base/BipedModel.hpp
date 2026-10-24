@@ -91,42 +91,66 @@ public:
     /**
      * @brief 设置是否蹲伏
      */
-    void setSneaking(bool sneaking) { m_isSneaking = sneaking; }
+    void setSneaking(bool sneaking)
+    {
+        m_isSneaking = sneaking;
+    }
 
     /**
      * @brief 设置是否坐着
      */
-    void setSitting(bool sitting) { m_isSitting = sitting; }
+    void setSitting(bool sitting)
+    {
+        m_isSitting = sitting;
+    }
 
     /**
      * @brief 设置游泳动画进度
      */
-    void setSwimAnimation(f32 animation) { m_swimAnimation = animation; }
+    void setSwimAnimation(f32 animation)
+    {
+        m_swimAnimation = animation;
+    }
 
     /**
      * @brief 设置挥动进度
      */
-    void setSwingProgress(f32 progress) { m_swingProgress = progress; }
+    void setSwingProgress(f32 progress)
+    {
+        m_swingProgress = progress;
+    }
 
     /**
      * @brief 设置左手姿态
      */
-    void setLeftArmPose(ArmPose pose) { m_leftArmPose = pose; }
+    void setLeftArmPose(ArmPose pose)
+    {
+        m_leftArmPose = pose;
+    }
 
     /**
      * @brief 设置右手姿态
      */
-    void setRightArmPose(ArmPose pose) { m_rightArmPose = pose; }
+    void setRightArmPose(ArmPose pose)
+    {
+        m_rightArmPose = pose;
+    }
 
     /**
      * @brief 设置主手
      */
-    void setMainHand(HandSide hand) { m_mainHand = hand; }
+    void setMainHand(HandSide hand)
+    {
+        m_mainHand = hand;
+    }
 
     /**
      * @brief 设置挥动的手
      */
-    void setSwingingHand(HandSide hand) { m_swingingHand = hand; }
+    void setSwingingHand(HandSide hand)
+    {
+        m_swingingHand = hand;
+    }
 
     /**
      * @brief 设置鞘翅飞行过渡 tick 计数
@@ -141,7 +165,10 @@ public:
      * 推送给 BipedModel 以支持未来扩展（如自定义过渡动画），但 MC 1.21.11
      * 原版渲染器不读取此字段。
      */
-    void setElytraFlyingTicks(i32 ticks) { m_elytraFlyingTicks = ticks; }
+    void setElytraFlyingTicks(i32 ticks)
+    {
+        m_elytraFlyingTicks = ticks;
+    }
 
     /**
      * @brief 设置是否处于鞘翅飞行状态
@@ -150,7 +177,10 @@ public:
      * 由渲染器在 setAngles 前从 ClientEntity::isFallFlying() /
      * Entity::isElytraFlying() 推送。控制头部角度（飞行时强制 -π/4）。
      */
-    void setFallFlying(bool flying) { m_isFallFlying = flying; }
+    void setFallFlying(bool flying)
+    {
+        m_isFallFlying = flying;
+    }
 
     /**
      * @brief 设置鞘翅飞行速度因子
@@ -162,12 +192,18 @@ public:
      *   - 最终钳制到 [1.0, +∞)
      * 该值作为手臂/腿部摆动振幅的除数：值越大，摆动越慢（视觉上像风阻）。
      */
-    void setSpeedValue(f32 speedValue) { m_speedValue = speedValue; }
+    void setSpeedValue(f32 speedValue)
+    {
+        m_speedValue = speedValue;
+    }
 
     /**
      * @brief 设置是否真正游泳
      */
-    void setActuallySwimming(bool swimming) { m_isActuallySwimming = swimming; }
+    void setActuallySwimming(bool swimming)
+    {
+        m_isActuallySwimming = swimming;
+    }
 
     /**
      * @brief 设置弩装填进度（已使用 ticks，含 partialTick 插值）
@@ -176,7 +212,10 @@ public:
      * 调用 PlayerEntity::getTicksUsingItem(partialTick) 计算。
      * 仅当 m_leftArmPose 或 m_rightArmPose 为 CrossbowCharge 时使用。
      */
-    void setCrossbowChargeTicks(f32 ticks) { m_crossbowChargeTicks = ticks; }
+    void setCrossbowChargeTicks(f32 ticks)
+    {
+        m_crossbowChargeTicks = ticks;
+    }
 
     /**
      * @brief 设置弩的最大装填时长（ticks）
@@ -185,7 +224,10 @@ public:
      * 由渲染器调用 CrossbowItem::getChargeTime(stack) 计算。
      * 用于将 m_crossbowChargeTicks 归一化为 [0,1] 进度比。
      */
-    void setMaxCrossbowChargeDuration(f32 duration) { m_maxCrossbowChargeDuration = duration; }
+    void setMaxCrossbowChargeDuration(f32 duration)
+    {
+        m_maxCrossbowChargeDuration = duration;
+    }
 
     /**
      * @brief 设置所有部件可见性
@@ -205,37 +247,58 @@ public:
     /**
      * @brief 获取头部模型
      */
-    std::shared_ptr<ModelRenderer> getModelHead() { return m_bipedHead; }
+    std::shared_ptr<ModelRenderer> getModelHead()
+    {
+        return m_bipedHead;
+    }
 
     /**
      * @brief 获取帽子层模型
      */
-    std::shared_ptr<ModelRenderer> getModelHeadwear() { return m_bipedHeadwear; }
+    std::shared_ptr<ModelRenderer> getModelHeadwear()
+    {
+        return m_bipedHeadwear;
+    }
 
     /**
      * @brief 获取身体模型
      */
-    std::shared_ptr<ModelRenderer> getModelBody() { return m_bipedBody; }
+    std::shared_ptr<ModelRenderer> getModelBody()
+    {
+        return m_bipedBody;
+    }
 
     /**
      * @brief 获取右臂模型
      */
-    std::shared_ptr<ModelRenderer> getRightArm() { return m_bipedRightArm; }
+    std::shared_ptr<ModelRenderer> getRightArm()
+    {
+        return m_bipedRightArm;
+    }
 
     /**
      * @brief 获取左臂模型
      */
-    std::shared_ptr<ModelRenderer> getLeftArm() { return m_bipedLeftArm; }
+    std::shared_ptr<ModelRenderer> getLeftArm()
+    {
+        return m_bipedLeftArm;
+    }
 
     /**
      * @brief 获取右腿模型
      */
-    std::shared_ptr<ModelRenderer> getRightLeg() { return m_bipedRightLeg; }
+    std::shared_ptr<ModelRenderer> getRightLeg()
+    {
+        return m_bipedRightLeg;
+    }
 
     /**
      * @brief 获取左腿模型
      */
-    std::shared_ptr<ModelRenderer> getLeftLeg() { return m_bipedLeftLeg; }
+    std::shared_ptr<ModelRenderer> getLeftLeg()
+    {
+        return m_bipedLeftLeg;
+    }
 
     /**
      * @brief 平移手部用于手持物品渲染

@@ -48,25 +48,49 @@ public:
         , m_sanitize(std::move(sanitizeFn))
     {}
 
-    bool validate(Value value) const { return m_validate(value); }
-    Value sanitize(Value value) const { return m_sanitize(value); }
+    bool validate(Value value) const
+    {
+        return m_validate(value);
+    }
+
+    Value sanitize(Value value) const
+    {
+        return m_sanitize(value);
+    }
 
     static AttributeRange<Value> any()
     {
-        return AttributeRange<Value>([](Value) { return true; }, [](Value v) { return v; });
+        return AttributeRange<Value>(
+            [](Value) {
+                return true;
+            },
+            [](Value v) {
+                return v;
+            });
     }
 
     static AttributeRange<f32> ofFloat(f32 min, f32 max)
     {
         return AttributeRange<f32>(
-            [min, max](f32 v) { return v >= min && v <= max; }, [min, max](f32 v) { return std::clamp(v, min, max); });
+            [min, max](f32 v) {
+                return v >= min && v <= max;
+            },
+            [min, max](f32 v) {
+                return std::clamp(v, min, max);
+            });
     }
 
     /// 单位浮点区间 [0, 1]
-    static AttributeRange<f32> unitFloat() { return ofFloat(0.0f, 1.0f); }
+    static AttributeRange<f32> unitFloat()
+    {
+        return ofFloat(0.0f, 1.0f);
+    }
 
     /// 非负浮点区间 [0, +inf)
-    static AttributeRange<f32> nonNegativeFloat() { return ofFloat(0.0f, std::numeric_limits<f32>::infinity()); }
+    static AttributeRange<f32> nonNegativeFloat()
+    {
+        return ofFloat(0.0f, std::numeric_limits<f32>::infinity());
+    }
 
 private:
     std::function<bool(Value)> m_validate;

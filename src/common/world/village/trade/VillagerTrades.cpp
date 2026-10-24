@@ -603,6 +603,7 @@ private:
     i32 m_maxUses;
     i32 m_xp;
 };
+
 /**
  * @brief 商店与旅行商人共用的条目构造辅助
  */

@@ -40,6 +40,7 @@ class Entity;
 class Player;
 class ServerPlayer;
 class MinecraftServer;
+
 namespace server {
 class ServerWorld;
 }
@@ -98,14 +99,32 @@ public:
 
     // ========== 位置和朝向 ==========
 
-    [[nodiscard]] const Vector3d& position() const noexcept { return m_position; }
-    [[nodiscard]] const Vector2f& rotation() const noexcept { return m_rotation; }
-    [[nodiscard]] server::ServerWorld* world() const noexcept { return m_world; }
+    [[nodiscard]] const Vector3d& position() const noexcept
+    {
+        return m_position;
+    }
+
+    [[nodiscard]] const Vector2f& rotation() const noexcept
+    {
+        return m_rotation;
+    }
+
+    [[nodiscard]] server::ServerWorld* world() const noexcept
+    {
+        return m_world;
+    }
 
     // ========== 实体信息 ==========
 
-    [[nodiscard]] Entity* entity() const noexcept { return m_entity; }
-    [[nodiscard]] const std::string& name() const noexcept { return m_name; }
+    [[nodiscard]] Entity* entity() const noexcept
+    {
+        return m_entity;
+    }
+
+    [[nodiscard]] const std::string& name() const noexcept
+    {
+        return m_name;
+    }
 
     /**
      * @brief 获取玩家实体
@@ -127,16 +146,25 @@ public:
 
     // ========== 权限 ==========
 
-    [[nodiscard]] i32 permissionLevel() const noexcept { return m_permissionLevel; }
+    [[nodiscard]] i32 permissionLevel() const noexcept
+    {
+        return m_permissionLevel;
+    }
 
     /**
      * @brief 检查是否有指定权限等级
      */
-    [[nodiscard]] bool hasPermission(i32 level) const noexcept { return m_permissionLevel >= level; }
+    [[nodiscard]] bool hasPermission(i32 level) const noexcept
+    {
+        return m_permissionLevel >= level;
+    }
 
     // ========== 服务器 ==========
 
-    [[nodiscard]] MinecraftServer* server() const noexcept { return m_server; }
+    [[nodiscard]] MinecraftServer* server() const noexcept
+    {
+        return m_server;
+    }
 
     // ========== 消息发送 ==========
 
@@ -196,8 +224,15 @@ public:
 
     // ========== 状态 ==========
 
-    [[nodiscard]] bool isFeedbackDisabled() const noexcept { return m_feedbackDisabled; }
-    [[nodiscard]] EntityAnchorType anchor() const noexcept { return m_anchor; }
+    [[nodiscard]] bool isFeedbackDisabled() const noexcept
+    {
+        return m_feedbackDisabled;
+    }
+
+    [[nodiscard]] EntityAnchorType anchor() const noexcept
+    {
+        return m_anchor;
+    }
 
 private:
     std::shared_ptr<ICommandSource> m_source;

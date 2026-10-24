@@ -44,29 +44,64 @@ public:
         , m_mods(mods)
     {}
 
-    [[nodiscard]] EventType getType() const override { return EventType::MouseClick; }
-    [[nodiscard]] const char* getName() const override { return "MouseClick"; }
+    [[nodiscard]] EventType getType() const override
+    {
+        return EventType::MouseClick;
+    }
 
-    [[nodiscard]] i32 x() const { return m_x; }
-    [[nodiscard]] i32 y() const { return m_y; }
-    [[nodiscard]] i32 button() const { return m_button; }
-    [[nodiscard]] i32 clicks() const { return m_clicks; }
-    [[nodiscard]] i32 mods() const { return m_mods; }
+    [[nodiscard]] const char* getName() const override
+    {
+        return "MouseClick";
+    }
+
+    [[nodiscard]] i32 x() const
+    {
+        return m_x;
+    }
+
+    [[nodiscard]] i32 y() const
+    {
+        return m_y;
+    }
+
+    [[nodiscard]] i32 button() const
+    {
+        return m_button;
+    }
+
+    [[nodiscard]] i32 clicks() const
+    {
+        return m_clicks;
+    }
+
+    [[nodiscard]] i32 mods() const
+    {
+        return m_mods;
+    }
 
     /**
      * @brief 检查是否是左键点击
      */
-    [[nodiscard]] bool isLeftButton() const { return m_button == 0; }
+    [[nodiscard]] bool isLeftButton() const
+    {
+        return m_button == 0;
+    }
 
     /**
      * @brief 检查是否是右键点击
      */
-    [[nodiscard]] bool isRightButton() const { return m_button == 1; }
+    [[nodiscard]] bool isRightButton() const
+    {
+        return m_button == 1;
+    }
 
     /**
      * @brief 检查是否是双击
      */
-    [[nodiscard]] bool isDoubleClick() const { return m_clicks == 2; }
+    [[nodiscard]] bool isDoubleClick() const
+    {
+        return m_clicks == 2;
+    }
 
 private:
     i32 m_x;
@@ -88,13 +123,35 @@ public:
         , m_mods(mods)
     {}
 
-    [[nodiscard]] EventType getType() const override { return EventType::MouseRelease; }
-    [[nodiscard]] const char* getName() const override { return "MouseRelease"; }
+    [[nodiscard]] EventType getType() const override
+    {
+        return EventType::MouseRelease;
+    }
 
-    [[nodiscard]] i32 x() const { return m_x; }
-    [[nodiscard]] i32 y() const { return m_y; }
-    [[nodiscard]] i32 button() const { return m_button; }
-    [[nodiscard]] i32 mods() const { return m_mods; }
+    [[nodiscard]] const char* getName() const override
+    {
+        return "MouseRelease";
+    }
+
+    [[nodiscard]] i32 x() const
+    {
+        return m_x;
+    }
+
+    [[nodiscard]] i32 y() const
+    {
+        return m_y;
+    }
+
+    [[nodiscard]] i32 button() const
+    {
+        return m_button;
+    }
+
+    [[nodiscard]] i32 mods() const
+    {
+        return m_mods;
+    }
 
 private:
     i32 m_x;
@@ -116,14 +173,40 @@ public:
         , m_button(button)
     {}
 
-    [[nodiscard]] EventType getType() const override { return EventType::MouseDrag; }
-    [[nodiscard]] const char* getName() const override { return "MouseDrag"; }
+    [[nodiscard]] EventType getType() const override
+    {
+        return EventType::MouseDrag;
+    }
 
-    [[nodiscard]] i32 x() const { return m_x; }
-    [[nodiscard]] i32 y() const { return m_y; }
-    [[nodiscard]] i32 deltaX() const { return m_deltaX; }
-    [[nodiscard]] i32 deltaY() const { return m_deltaY; }
-    [[nodiscard]] i32 button() const { return m_button; }
+    [[nodiscard]] const char* getName() const override
+    {
+        return "MouseDrag";
+    }
+
+    [[nodiscard]] i32 x() const
+    {
+        return m_x;
+    }
+
+    [[nodiscard]] i32 y() const
+    {
+        return m_y;
+    }
+
+    [[nodiscard]] i32 deltaX() const
+    {
+        return m_deltaX;
+    }
+
+    [[nodiscard]] i32 deltaY() const
+    {
+        return m_deltaY;
+    }
+
+    [[nodiscard]] i32 button() const
+    {
+        return m_button;
+    }
 
 private:
     i32 m_x;
@@ -145,23 +228,51 @@ public:
         , m_deltaY(deltaY)
     {}
 
-    [[nodiscard]] EventType getType() const override { return EventType::MouseScroll; }
-    [[nodiscard]] const char* getName() const override { return "MouseScroll"; }
+    [[nodiscard]] EventType getType() const override
+    {
+        return EventType::MouseScroll;
+    }
 
-    [[nodiscard]] i32 x() const { return m_x; }
-    [[nodiscard]] i32 y() const { return m_y; }
-    [[nodiscard]] f64 deltaX() const { return m_deltaX; }
-    [[nodiscard]] f64 deltaY() const { return m_deltaY; }
+    [[nodiscard]] const char* getName() const override
+    {
+        return "MouseScroll";
+    }
+
+    [[nodiscard]] i32 x() const
+    {
+        return m_x;
+    }
+
+    [[nodiscard]] i32 y() const
+    {
+        return m_y;
+    }
+
+    [[nodiscard]] f64 deltaX() const
+    {
+        return m_deltaX;
+    }
+
+    [[nodiscard]] f64 deltaY() const
+    {
+        return m_deltaY;
+    }
 
     /**
      * @brief 检查是否是向上滚动
      */
-    [[nodiscard]] bool isScrollUp() const { return m_deltaY > 0; }
+    [[nodiscard]] bool isScrollUp() const
+    {
+        return m_deltaY > 0;
+    }
 
     /**
      * @brief 检查是否是向下滚动
      */
-    [[nodiscard]] bool isScrollDown() const { return m_deltaY < 0; }
+    [[nodiscard]] bool isScrollDown() const
+    {
+        return m_deltaY < 0;
+    }
 
 private:
     i32 m_x;
@@ -182,13 +293,35 @@ public:
         , m_deltaY(deltaY)
     {}
 
-    [[nodiscard]] EventType getType() const override { return EventType::MouseMove; }
-    [[nodiscard]] const char* getName() const override { return "MouseMove"; }
+    [[nodiscard]] EventType getType() const override
+    {
+        return EventType::MouseMove;
+    }
 
-    [[nodiscard]] i32 x() const { return m_x; }
-    [[nodiscard]] i32 y() const { return m_y; }
-    [[nodiscard]] i32 deltaX() const { return m_deltaX; }
-    [[nodiscard]] i32 deltaY() const { return m_deltaY; }
+    [[nodiscard]] const char* getName() const override
+    {
+        return "MouseMove";
+    }
+
+    [[nodiscard]] i32 x() const
+    {
+        return m_x;
+    }
+
+    [[nodiscard]] i32 y() const
+    {
+        return m_y;
+    }
+
+    [[nodiscard]] i32 deltaX() const
+    {
+        return m_deltaX;
+    }
+
+    [[nodiscard]] i32 deltaY() const
+    {
+        return m_deltaY;
+    }
 
 private:
     i32 m_x;
@@ -207,11 +340,25 @@ public:
         , m_y(y)
     {}
 
-    [[nodiscard]] EventType getType() const override { return EventType::MouseEnter; }
-    [[nodiscard]] const char* getName() const override { return "MouseEnter"; }
+    [[nodiscard]] EventType getType() const override
+    {
+        return EventType::MouseEnter;
+    }
 
-    [[nodiscard]] i32 x() const { return m_x; }
-    [[nodiscard]] i32 y() const { return m_y; }
+    [[nodiscard]] const char* getName() const override
+    {
+        return "MouseEnter";
+    }
+
+    [[nodiscard]] i32 x() const
+    {
+        return m_x;
+    }
+
+    [[nodiscard]] i32 y() const
+    {
+        return m_y;
+    }
 
 private:
     i32 m_x;
@@ -228,11 +375,25 @@ public:
         , m_y(y)
     {}
 
-    [[nodiscard]] EventType getType() const override { return EventType::MouseLeave; }
-    [[nodiscard]] const char* getName() const override { return "MouseLeave"; }
+    [[nodiscard]] EventType getType() const override
+    {
+        return EventType::MouseLeave;
+    }
 
-    [[nodiscard]] i32 x() const { return m_x; }
-    [[nodiscard]] i32 y() const { return m_y; }
+    [[nodiscard]] const char* getName() const override
+    {
+        return "MouseLeave";
+    }
+
+    [[nodiscard]] i32 x() const
+    {
+        return m_x;
+    }
+
+    [[nodiscard]] i32 y() const
+    {
+        return m_y;
+    }
 
 private:
     i32 m_x;
@@ -279,33 +440,72 @@ public:
         }
     }
 
-    [[nodiscard]] i32 key() const { return m_key; }
-    [[nodiscard]] i32 scanCode() const { return m_scanCode; }
-    [[nodiscard]] i32 action() const { return m_action; }
-    [[nodiscard]] i32 mods() const { return m_mods; }
+    [[nodiscard]] i32 key() const
+    {
+        return m_key;
+    }
+
+    [[nodiscard]] i32 scanCode() const
+    {
+        return m_scanCode;
+    }
+
+    [[nodiscard]] i32 action() const
+    {
+        return m_action;
+    }
+
+    [[nodiscard]] i32 mods() const
+    {
+        return m_mods;
+    }
 
     /**
      * @brief 检查是否按下
      */
-    [[nodiscard]] bool isPressed() const { return static_cast<KeyAction>(m_action) == KeyAction::Press; }
+    [[nodiscard]] bool isPressed() const
+    {
+        return static_cast<KeyAction>(m_action) == KeyAction::Press;
+    }
 
     /**
      * @brief 检查是否释放
      */
-    [[nodiscard]] bool isReleased() const { return static_cast<KeyAction>(m_action) == KeyAction::Release; }
+    [[nodiscard]] bool isReleased() const
+    {
+        return static_cast<KeyAction>(m_action) == KeyAction::Release;
+    }
 
     /**
      * @brief 检查是否重复
      */
-    [[nodiscard]] bool isRepeat() const { return static_cast<KeyAction>(m_action) == KeyAction::Repeat; }
+    [[nodiscard]] bool isRepeat() const
+    {
+        return static_cast<KeyAction>(m_action) == KeyAction::Repeat;
+    }
 
     /**
      * @brief 检查修饰键
      */
-    [[nodiscard]] bool hasShift() const { return hasMod(static_cast<KeyMods>(m_mods), KeyMods::Shift); }
-    [[nodiscard]] bool hasControl() const { return hasMod(static_cast<KeyMods>(m_mods), KeyMods::Control); }
-    [[nodiscard]] bool hasAlt() const { return hasMod(static_cast<KeyMods>(m_mods), KeyMods::Alt); }
-    [[nodiscard]] bool hasSuper() const { return hasMod(static_cast<KeyMods>(m_mods), KeyMods::Super); }
+    [[nodiscard]] bool hasShift() const
+    {
+        return hasMod(static_cast<KeyMods>(m_mods), KeyMods::Shift);
+    }
+
+    [[nodiscard]] bool hasControl() const
+    {
+        return hasMod(static_cast<KeyMods>(m_mods), KeyMods::Control);
+    }
+
+    [[nodiscard]] bool hasAlt() const
+    {
+        return hasMod(static_cast<KeyMods>(m_mods), KeyMods::Alt);
+    }
+
+    [[nodiscard]] bool hasSuper() const
+    {
+        return hasMod(static_cast<KeyMods>(m_mods), KeyMods::Super);
+    }
 
 private:
     i32 m_key;
@@ -323,15 +523,28 @@ public:
         : m_codePoint(codePoint)
     {}
 
-    [[nodiscard]] EventType getType() const override { return EventType::CharInput; }
-    [[nodiscard]] const char* getName() const override { return "CharInput"; }
+    [[nodiscard]] EventType getType() const override
+    {
+        return EventType::CharInput;
+    }
 
-    [[nodiscard]] u32 codePoint() const { return m_codePoint; }
+    [[nodiscard]] const char* getName() const override
+    {
+        return "CharInput";
+    }
+
+    [[nodiscard]] u32 codePoint() const
+    {
+        return m_codePoint;
+    }
 
     /**
      * @brief 获取UTF-8字符串
      */
-    [[nodiscard]] std::string toUtf8() const { return util::text::utf8Encode(m_codePoint); }
+    [[nodiscard]] std::string toUtf8() const
+    {
+        return util::text::utf8Encode(m_codePoint);
+    }
 
 private:
     u32 m_codePoint;

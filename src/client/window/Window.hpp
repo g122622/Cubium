@@ -94,19 +94,36 @@ public:
     /**
      * @brief 获取窗口尺寸
      */
-    [[nodiscard]] i32 width() const noexcept { return m_width; }
-    [[nodiscard]] i32 height() const noexcept { return m_height; }
+    [[nodiscard]] i32 width() const noexcept
+    {
+        return m_width;
+    }
+
+    [[nodiscard]] i32 height() const noexcept
+    {
+        return m_height;
+    }
 
     /**
      * @brief 获取帧缓冲尺寸
      */
-    [[nodiscard]] i32 framebufferWidth() const noexcept { return m_framebufferWidth; }
-    [[nodiscard]] i32 framebufferHeight() const noexcept { return m_framebufferHeight; }
+    [[nodiscard]] i32 framebufferWidth() const noexcept
+    {
+        return m_framebufferWidth;
+    }
+
+    [[nodiscard]] i32 framebufferHeight() const noexcept
+    {
+        return m_framebufferHeight;
+    }
 
     /**
      * @brief 获取宽高比
      */
-    [[nodiscard]] f32 aspectRatio() const noexcept { return static_cast<f32>(m_width) / static_cast<f32>(m_height); }
+    [[nodiscard]] f32 aspectRatio() const noexcept
+    {
+        return static_cast<f32>(m_width) / static_cast<f32>(m_height);
+    }
 
     /**
      * @brief 设置窗口标题
@@ -131,7 +148,10 @@ public:
     /**
      * @brief 检查是否全屏
      */
-    [[nodiscard]] bool isFullscreen() const noexcept { return m_fullscreen; }
+    [[nodiscard]] bool isFullscreen() const noexcept
+    {
+        return m_fullscreen;
+    }
 
     /**
      * @brief 显示/隐藏光标
@@ -141,17 +161,26 @@ public:
     /**
      * @brief 检查光标是否可见
      */
-    [[nodiscard]] bool isCursorVisible() const noexcept { return m_cursorVisible; }
+    [[nodiscard]] bool isCursorVisible() const noexcept
+    {
+        return m_cursorVisible;
+    }
 
     /**
      * @brief 获取原生窗口句柄
      */
-    [[nodiscard]] GLFWwindow* handle() const noexcept { return m_window; }
+    [[nodiscard]] GLFWwindow* handle() const noexcept
+    {
+        return m_window;
+    }
 
     /**
      * @brief 检查窗口是否有效
      */
-    [[nodiscard]] bool isValid() const noexcept { return m_window != nullptr; }
+    [[nodiscard]] bool isValid() const noexcept
+    {
+        return m_window != nullptr;
+    }
 
     // 回调设置
     using ResizeCallback = void (*)(i32 width, i32 height, void* userData);

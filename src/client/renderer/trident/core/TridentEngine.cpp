@@ -163,22 +163,50 @@ public:
         return m_atlas.create(context, width, height, tileSize);
     }
 
-    [[nodiscard]] u32 width() const override { return m_atlas.width(); }
-    [[nodiscard]] u32 height() const override { return m_atlas.height(); }
-    [[nodiscard]] u32 tileSize() const override { return m_atlas.tileSize(); }
-    [[nodiscard]] u32 tilesPerRow() const override { return m_atlas.tilesPerRow(); }
+    [[nodiscard]] u32 width() const override
+    {
+        return m_atlas.width();
+    }
+
+    [[nodiscard]] u32 height() const override
+    {
+        return m_atlas.height();
+    }
+
+    [[nodiscard]] u32 tileSize() const override
+    {
+        return m_atlas.tileSize();
+    }
+
+    [[nodiscard]] u32 tilesPerRow() const override
+    {
+        return m_atlas.tilesPerRow();
+    }
 
     [[nodiscard]] api::TextureRegion getRegion(u32 tileX, u32 tileY) const override
     {
         return m_atlas.getRegion(tileX, tileY);
     }
 
-    [[nodiscard]] api::TextureRegion getRegion(u32 tileIndex) const override { return m_atlas.getRegion(tileIndex); }
+    [[nodiscard]] api::TextureRegion getRegion(u32 tileIndex) const override
+    {
+        return m_atlas.getRegion(tileIndex);
+    }
 
-    [[nodiscard]] api::ITexture* texture() override { return &m_atlas.texture(); }
-    [[nodiscard]] const api::ITexture* texture() const override { return &m_atlas.texture(); }
+    [[nodiscard]] api::ITexture* texture() override
+    {
+        return &m_atlas.texture();
+    }
 
-    [[nodiscard]] bool isValid() const override { return m_atlas.isValid(); }
+    [[nodiscard]] const api::ITexture* texture() const override
+    {
+        return &m_atlas.texture();
+    }
+
+    [[nodiscard]] bool isValid() const override
+    {
+        return m_atlas.isValid();
+    }
 
 private:
     TridentTextureAtlas m_atlas;
@@ -364,7 +392,9 @@ Result<void> TridentEngine::initialize(void* window, const api::RenderEngineConf
 
 void TridentEngine::destroy()
 {
-    if (!m_initialized) return;
+    if (!m_initialized) {
+        return;
+    }
 
     // 等待设备空闲
     if (m_context) {
@@ -1045,7 +1075,9 @@ Result<void> TridentEngine::render()
 
 Result<void> TridentEngine::onResize(u32 width, u32 height)
 {
-    if (!m_initialized) return {};
+    if (!m_initialized) {
+        return {};
+    }
 
     if (width == 0 || height == 0) {
         m_minimized = true;
@@ -1237,7 +1269,9 @@ void TridentEngine::bindUniformBuffer(u32 binding, const api::IUniformBuffer* bu
 void TridentEngine::drawIndexed(u32 indexCount, u32 firstIndex, i32 vertexOffset)
 {
     VkCommandBuffer cmd = m_frameManager->currentCommandBuffer();
-    if (cmd == VK_NULL_HANDLE) return;
+    if (cmd == VK_NULL_HANDLE) {
+        return;
+    }
 
     vkCmdDrawIndexed(cmd, indexCount, 1, firstIndex, vertexOffset, 0);
 }
@@ -1245,7 +1279,9 @@ void TridentEngine::drawIndexed(u32 indexCount, u32 firstIndex, i32 vertexOffset
 void TridentEngine::draw(u32 vertexCount, u32 firstVertex)
 {
     VkCommandBuffer cmd = m_frameManager->currentCommandBuffer();
-    if (cmd == VK_NULL_HANDLE) return;
+    if (cmd == VK_NULL_HANDLE) {
+        return;
+    }
 
     vkCmdDraw(cmd, vertexCount, 1, firstVertex, 0);
 }
@@ -1254,7 +1290,9 @@ void TridentEngine::drawIndexedInstanced(
     u32 indexCount, u32 instanceCount, u32 firstIndex, i32 vertexOffset, u32 firstInstance)
 {
     VkCommandBuffer cmd = m_frameManager->currentCommandBuffer();
-    if (cmd == VK_NULL_HANDLE) return;
+    if (cmd == VK_NULL_HANDLE) {
+        return;
+    }
 
     vkCmdDrawIndexed(cmd, indexCount, instanceCount, firstIndex, vertexOffset, firstInstance);
 }
@@ -1349,7 +1387,9 @@ VkDescriptorSetLayout TridentEngine::fogDescriptorLayout() const
 
 VkDescriptorSet TridentEngine::cameraDescriptorSet() const
 {
-    if (!m_uniformManager || !m_frameManager) return VK_NULL_HANDLE;
+    if (!m_uniformManager || !m_frameManager) {
+        return VK_NULL_HANDLE;
+    }
     return m_uniformManager->cameraDescriptorSet(m_frameManager->currentFrameIndex());
 }
 

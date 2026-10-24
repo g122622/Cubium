@@ -85,7 +85,10 @@ public:
     explicit VillageStructure(ResourceLocation id, VillageType type = VillageType::Plains);
     explicit VillageStructure(ResourceLocation id, const VillageConfig& config);
 
-    [[nodiscard]] const std::string& name() const override { return m_name; }
+    [[nodiscard]] const std::string& name() const override
+    {
+        return m_name;
+    }
 
     /**
      * @brief 获取结构关联的生物群系标签

@@ -61,6 +61,7 @@ enum class FeatureSizeType : u8 {
 class FeatureSize {
 public:
     FeatureSize() = default;
+
     explicit FeatureSize(std::optional<i32> minClippedHeight)
         : m_minClippedHeight(minClippedHeight)
     {}
@@ -86,7 +87,10 @@ public:
      *
      * 若返回非空值，当实际可用高度不足 trunkHeight 但 >= 该值时，仍允许生成。
      */
-    [[nodiscard]] std::optional<i32> minClippedHeight() const noexcept { return m_minClippedHeight; }
+    [[nodiscard]] std::optional<i32> minClippedHeight() const noexcept
+    {
+        return m_minClippedHeight;
+    }
 
     /**
      * @brief 克隆本对象（深拷贝）
@@ -129,16 +133,30 @@ public:
         , m_upperSize(upperSize)
     {}
 
-    [[nodiscard]] FeatureSizeType type() const noexcept override { return FeatureSizeType::TwoLayers; }
+    [[nodiscard]] FeatureSizeType type() const noexcept override
+    {
+        return FeatureSizeType::TwoLayers;
+    }
 
     [[nodiscard]] i32 getSizeAtHeight(i32 /*trunkHeight*/, i32 y) const noexcept override
     {
         return y < m_limit ? m_lowerSize : m_upperSize;
     }
 
-    [[nodiscard]] i32 limit() const noexcept { return m_limit; }
-    [[nodiscard]] i32 lowerSize() const noexcept { return m_lowerSize; }
-    [[nodiscard]] i32 upperSize() const noexcept { return m_upperSize; }
+    [[nodiscard]] i32 limit() const noexcept
+    {
+        return m_limit;
+    }
+
+    [[nodiscard]] i32 lowerSize() const noexcept
+    {
+        return m_lowerSize;
+    }
+
+    [[nodiscard]] i32 upperSize() const noexcept
+    {
+        return m_upperSize;
+    }
 
     [[nodiscard]] std::unique_ptr<FeatureSize> clone() const override
     {
@@ -195,7 +213,10 @@ public:
         , m_upperSize(upperSize)
     {}
 
-    [[nodiscard]] FeatureSizeType type() const noexcept override { return FeatureSizeType::ThreeLayers; }
+    [[nodiscard]] FeatureSizeType type() const noexcept override
+    {
+        return FeatureSizeType::ThreeLayers;
+    }
 
     [[nodiscard]] i32 getSizeAtHeight(i32 trunkHeight, i32 y) const noexcept override
     {
@@ -205,11 +226,30 @@ public:
         return y >= trunkHeight - m_upperLimit ? m_upperSize : m_middleSize;
     }
 
-    [[nodiscard]] i32 limit() const noexcept { return m_limit; }
-    [[nodiscard]] i32 upperLimit() const noexcept { return m_upperLimit; }
-    [[nodiscard]] i32 lowerSize() const noexcept { return m_lowerSize; }
-    [[nodiscard]] i32 middleSize() const noexcept { return m_middleSize; }
-    [[nodiscard]] i32 upperSize() const noexcept { return m_upperSize; }
+    [[nodiscard]] i32 limit() const noexcept
+    {
+        return m_limit;
+    }
+
+    [[nodiscard]] i32 upperLimit() const noexcept
+    {
+        return m_upperLimit;
+    }
+
+    [[nodiscard]] i32 lowerSize() const noexcept
+    {
+        return m_lowerSize;
+    }
+
+    [[nodiscard]] i32 middleSize() const noexcept
+    {
+        return m_middleSize;
+    }
+
+    [[nodiscard]] i32 upperSize() const noexcept
+    {
+        return m_upperSize;
+    }
 
     [[nodiscard]] std::unique_ptr<FeatureSize> clone() const override
     {

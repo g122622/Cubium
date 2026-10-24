@@ -291,12 +291,18 @@ struct AnimationContext {
      *
      * 基于状态哈希进行比较
      */
-    bool operator==(const AnimationContext& other) const { return stateHash == other.stateHash; }
+    bool operator==(const AnimationContext& other) const
+    {
+        return stateHash == other.stateHash;
+    }
 
     /**
      * @brief 比较两个动画上下文是否不相等
      */
-    bool operator!=(const AnimationContext& other) const { return stateHash != other.stateHash; }
+    bool operator!=(const AnimationContext& other) const
+    {
+        return stateHash != other.stateHash;
+    }
 
     /**
      * @brief 检查动画状态是否有显著变化

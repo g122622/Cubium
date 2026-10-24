@@ -48,9 +48,15 @@ namespace {
 u8 packBossFlags(bool darkenSky, bool playEndBossMusic, bool createFog)
 {
     u8 flags = 0;
-    if (darkenSky) flags |= 0x01;
-    if (playEndBossMusic) flags |= 0x02;
-    if (createFog) flags |= 0x04;
+    if (darkenSky) {
+        flags |= 0x01;
+    }
+    if (playEndBossMusic) {
+        flags |= 0x02;
+    }
+    if (createFog) {
+        flags |= 0x04;
+    }
     return flags;
 }
 

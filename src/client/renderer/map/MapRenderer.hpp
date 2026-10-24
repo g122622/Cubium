@@ -123,7 +123,10 @@ public:
     /**
      * @brief 设置GUI渲染器（用于drawText等）
      */
-    void setGuiRenderer(renderer::trident::gui::GuiRenderer* gui) { m_gui = gui; }
+    void setGuiRenderer(renderer::trident::gui::GuiRenderer* gui)
+    {
+        m_gui = gui;
+    }
 
 private:
     /**

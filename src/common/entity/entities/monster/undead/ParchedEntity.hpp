@@ -87,14 +87,20 @@ public:
      *
      * 对应原版 Parched.getHardAttackInterval() = 50。
      */
-    [[nodiscard]] i32 getHardAttackInterval() const override { return INCREASED_HARD_ATTACK_INTERVAL; }
+    [[nodiscard]] i32 getHardAttackInterval() const override
+    {
+        return INCREASED_HARD_ATTACK_INTERVAL;
+    }
 
     /**
      * @brief 非困难难度最小攻击间隔（70 ticks，比普通骷髅 40 慢）
      *
      * 对应原版 Parched.getAttackInterval() = 70。
      */
-    [[nodiscard]] i32 getAttackInterval() const override { return INCREASED_NORMAL_ATTACK_INTERVAL; }
+    [[nodiscard]] i32 getAttackInterval() const override
+    {
+        return INCREASED_NORMAL_ATTACK_INTERVAL;
+    }
 
     // ========== 药水效果免疫 ==========
 

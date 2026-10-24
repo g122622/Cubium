@@ -131,7 +131,10 @@ public:
      */
     bool clickMenuButton(Player& player, i32 id) override;
 
-    [[nodiscard]] i32 getResultSlotIndex() const noexcept override { return SLOT_RESULT; }
+    [[nodiscard]] i32 getResultSlotIndex() const noexcept override
+    {
+        return SLOT_RESULT;
+    }
 
     /** @brief 当前可选列表中的索引，无选择时为 -1。 */
     [[nodiscard]] i32 getSelectedPatternIndex() const noexcept;
@@ -146,12 +149,18 @@ public:
     /**
      * @brief 获取输入库存
      */
-    [[nodiscard]] IInventory& getInputInventory() { return *m_inputInventory; }
+    [[nodiscard]] IInventory& getInputInventory()
+    {
+        return *m_inputInventory;
+    }
 
     /**
      * @brief 获取输出库存
      */
-    [[nodiscard]] IInventory& getOutputInventory() { return *m_outputInventory; }
+    [[nodiscard]] IInventory& getOutputInventory()
+    {
+        return *m_outputInventory;
+    }
 
 private:
     /** @brief 依据输入和图案卷重建可选列表。 */

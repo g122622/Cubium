@@ -658,10 +658,14 @@ bool TemplateInstance::instantiate()
 
     // 实例化根节点
     const ast::DocumentNode* doc = m_compiled->astRoot();
-    if (!doc) return false;
+    if (!doc) {
+        return false;
+    }
 
     const ast::ElementNode* rootElement = doc->rootElement();
-    if (!rootElement) return false;
+    if (!rootElement) {
+        return false;
+    }
 
     m_rootWidget = _instantiateElement(rootElement, nullptr);
 
@@ -671,8 +675,9 @@ bool TemplateInstance::instantiate()
 
     // 设置状态变更订阅
     for (const auto& path : m_compiled->watchedPaths()) {
-        u64 subId =
-            m_context->subscribe(path, [this](const std::string& p, const binder::Value&) { notifyStateChange(p); });
+        u64 subId = m_context->subscribe(path, [this](const std::string& p, const binder::Value&) {
+            notifyStateChange(p);
+        });
         m_subscriptionIds.push_back(subId);
     }
 
@@ -698,17 +703,23 @@ bool TemplateInstance::instantiateInto(widget::IWidgetContainer* container)
 
 void TemplateInstance::updateBindings()
 {
-    if (!m_compiled || !m_context) return;
+    if (!m_compiled || !m_context) {
+        return;
+    }
 
     for (const auto& plan : m_compiled->bindingPlans()) {
         auto it = m_widgetByPath.find(plan.widgetPath);
         if (it == m_widgetByPath.end()) {
             it = m_widgetById.find(plan.widgetPath);
-            if (it == m_widgetById.end()) continue;
+            if (it == m_widgetById.end()) {
+                continue;
+            }
         }
 
         widget::Widget* widget = it->second;
-        if (!widget) continue;
+        if (!widget) {
+            continue;
+        }
 
         binder::Value value = m_context->resolveBinding(plan.statePath, plan.loopVarName, binder::Value());
 
@@ -721,20 +732,28 @@ void TemplateInstance::updateBindings()
 
 bool TemplateInstance::updateBinding(const std::string& path)
 {
-    if (!m_compiled || !m_context) return false;
+    if (!m_compiled || !m_context) {
+        return false;
+    }
 
     bool updated = false;
     for (const auto& plan : m_compiled->bindingPlans()) {
-        if (plan.statePath != path) continue;
+        if (plan.statePath != path) {
+            continue;
+        }
 
         auto it = m_widgetByPath.find(plan.widgetPath);
         if (it == m_widgetByPath.end()) {
             it = m_widgetById.find(plan.widgetPath);
-            if (it == m_widgetById.end()) continue;
+            if (it == m_widgetById.end()) {
+                continue;
+            }
         }
 
         widget::Widget* widget = it->second;
-        if (!widget) continue;
+        if (!widget) {
+            continue;
+        }
 
         binder::Value value = m_context->resolveBinding(plan.statePath, plan.loopVarName, binder::Value());
 
@@ -778,7 +797,9 @@ void TemplateInstance::_rebindSchedulerCallback()
 {
     // 调度器回调捕获 this 指针，移动构造/赋值后需重新绑定
     m_scheduler.setUpdateCallback([this](const std::string& path) -> bool {
-        if (!m_compiled || !m_context) return false;
+        if (!m_compiled || !m_context) {
+            return false;
+        }
         return updateBinding(path);
     });
 }
@@ -812,7 +833,9 @@ std::string TemplateInstance::debugInfo() const
 
 std::unique_ptr<widget::Widget> TemplateInstance::_instantiateNode(const ast::Node* node, widget::Widget* parent)
 {
-    if (!node) return nullptr;
+    if (!node) {
+        return nullptr;
+    }
 
     switch (node->type) {
         case ast::NodeType::TextContent:
@@ -836,7 +859,9 @@ std::unique_ptr<widget::Widget> TemplateInstance::_instantiateElement(
     const ast::ElementNode* element, widget::Widget* parent)
 {
 
-    if (!element) return nullptr;
+    if (!element) {
+        return nullptr;
+    }
 
     // 1. 条件渲染检查（优先）
     if (element->condition.has_value()) {
@@ -862,7 +887,9 @@ std::unique_ptr<widget::Widget> TemplateInstance::_instantiateElement(
     // 4. 创建Widget
     std::string id = element->id.empty() ? "" : element->id;
     auto widget = _createWidget(element->tagName, id, staticAttrs);
-    if (!widget) return nullptr;
+    if (!widget) {
+        return nullptr;
+    }
 
     // 5. 设置父Widget容器
     if (auto* containerParent = dynamic_cast<widget::IWidgetContainer*>(parent)) {
@@ -903,7 +930,9 @@ std::unique_ptr<widget::Widget> TemplateInstance::_instantiateText(
     const ast::TextNode* textNode, widget::Widget* parent)
 {
 
-    if (!textNode || textNode->isWhitespace) return nullptr;
+    if (!textNode || textNode->isWhitespace) {
+        return nullptr;
+    }
 
     auto widget = std::make_unique<widget::TextWidget>();
     widget->setText(textNode->text);
@@ -940,7 +969,9 @@ std::unique_ptr<widget::Widget> TemplateInstance::_createWidget(
 
 void TemplateInstance::_applyStaticAttributes(widget::Widget* widget, const std::vector<ast::Attribute>& attrs)
 {
-    if (!widget) return;
+    if (!widget) {
+        return;
+    }
 
     for (const auto& attr : attrs) {
         auto setterIt = m_attributeSetters.find(attr.name);
@@ -954,10 +985,14 @@ void TemplateInstance::_applyStaticAttributes(widget::Widget* widget, const std:
 void TemplateInstance::_applyBindingAttributes(
     widget::Widget* widget, const std::vector<ast::Attribute>& attrs, const std::string& widgetPath)
 {
-    if (!widget || !m_context) return;
+    if (!widget || !m_context) {
+        return;
+    }
 
     for (const auto& attr : attrs) {
-        if (!attr.binding.has_value()) continue;
+        if (!attr.binding.has_value()) {
+            continue;
+        }
 
         // 解析绑定值，支持循环变量
         binder::Value value;
@@ -1001,7 +1036,9 @@ void TemplateInstance::_applyBindingAttributes(
 void TemplateInstance::_applyEventBindings(
     widget::Widget* widget, const std::vector<ast::Attribute>& attrs, const std::string& widgetPath)
 {
-    if (!widget || !m_context) return;
+    if (!widget || !m_context) {
+        return;
+    }
 
     for (const auto& attr : attrs) {
         std::string eventName = attr.baseName();
@@ -1031,7 +1068,9 @@ binder::Value TemplateInstance::_parseStaticValue(const ast::Attribute& attr) co
 
 std::string TemplateInstance::_buildWidgetPath(const ast::ElementNode* element, const std::string& parentPath) const
 {
-    if (!element) return parentPath;
+    if (!element) {
+        return parentPath;
+    }
 
     if (!element->id.empty()) {
         return parentPath.empty() ? element->id : parentPath + "." + element->id;
@@ -1057,14 +1096,18 @@ void TemplateInstance::_instantiateLoopChildren(const ast::ElementNode* element,
     const std::string& indexVarName)
 {
 
-    if (!element || !m_context) return;
+    if (!element || !m_context) {
+        return;
+    }
 
     // 解析集合
     auto collection = _resolveCollection(collectionPath);
 
     // 获取父容器
     auto* container = dynamic_cast<widget::IWidgetContainer*>(parent);
-    if (!container) return;
+    if (!container) {
+        return;
+    }
 
     // 为每个元素创建子节点
     for (size_t i = 0; i < collection.size(); ++i) {
@@ -1092,14 +1135,18 @@ void TemplateInstance::_instantiateLoopChildren(const ast::ElementNode* element,
 
 std::vector<binder::Value> TemplateInstance::_resolveCollection(const std::string& path) const
 {
-    if (!m_context) return {};
+    if (!m_context) {
+        return {};
+    }
 
     return m_context->resolveCollection(path);
 }
 
 bool TemplateInstance::_evaluateCondition(const ast::ConditionInfo& condition) const
 {
-    if (!m_context) return false;
+    if (!m_context) {
+        return false;
+    }
 
     auto value = m_context->resolveBinding(condition.booleanPath);
     bool visible = value.asBool();

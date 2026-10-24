@@ -77,7 +77,10 @@ public:
     [[nodiscard]] Result<void> initialize();
     void shutdown();
 
-    [[nodiscard]] bool isLoaded() const noexcept { return m_loaded.load(); }
+    [[nodiscard]] bool isLoaded() const noexcept
+    {
+        return m_loaded.load();
+    }
 
     void play(std::unique_ptr<ISoundInstance> sound);
     void playDelayed(std::unique_ptr<ISoundInstance> sound, u32 delayTicks);
@@ -309,11 +312,13 @@ private:
         u32 biomeId = 0;
         bool underwater = false;
         bool paused = false;
+
         // 气泡柱状态
         struct BubbleColumnState {
             bool inBubbleColumn = false;
             bool isDrag = false;
         } bubbleColumn;
+
         // 音乐状态
         i32 dimension = 0;
         bool inCreative = false;

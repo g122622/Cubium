@@ -86,11 +86,13 @@ struct TagListEntry {
     std::vector<i32> elementIds;
     [[nodiscard]] friend bool operator==(const TagListEntry&, const TagListEntry&) noexcept = default;
 };
+
 struct TagRegistry {
     std::string registryKey;
     std::vector<TagListEntry> tags;
     [[nodiscard]] friend bool operator==(const TagRegistry&, const TagRegistry&) noexcept = default;
 };
+
 struct UpdateTags {
     std::vector<TagRegistry> registries;
     BedrockMeta bedrock{};

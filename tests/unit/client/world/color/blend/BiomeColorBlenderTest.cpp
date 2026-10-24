@@ -103,7 +103,10 @@ public:
         : m_color(color)
     {}
 
-    [[nodiscard]] u32 getColor(const Biome& /*biome*/, f64 /*x*/, f64 /*z*/) const override { return m_color; }
+    [[nodiscard]] u32 getColor(const Biome& /*biome*/, f64 /*x*/, f64 /*z*/) const override
+    {
+        return m_color;
+    }
 
 private:
     u32 m_color;
@@ -207,7 +210,9 @@ TEST(BiomeColorCacheTest, CacheStats)
 {
     BiomeColorCache cache;
 
-    auto compute = []() { return 0xFFFFFFu; };
+    auto compute = []() {
+        return 0xFFFFFFu;
+    };
 
     // 产生 2 次未命中
     cache.getOrCompute(0, 0, 0, 0, 0, compute);

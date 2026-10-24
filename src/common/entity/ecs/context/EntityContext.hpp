@@ -31,18 +31,38 @@ public:
     {}
 
     /** 所属 registry */
-    [[nodiscard]] EntityRegistry& registry() noexcept { return m_registry; }
-    [[nodiscard]] const EntityRegistry& registry() const noexcept { return m_registry; }
+    [[nodiscard]] EntityRegistry& registry() noexcept
+    {
+        return m_registry;
+    }
+
+    [[nodiscard]] const EntityRegistry& registry() const noexcept
+    {
+        return m_registry;
+    }
 
     /** 底层 entt registry */
-    [[nodiscard]] entt::basic_registry<EntityId>& enttRegistry() noexcept { return m_enttRegistry; }
-    [[nodiscard]] const entt::basic_registry<EntityId>& enttRegistry() const noexcept { return m_enttRegistry; }
+    [[nodiscard]] entt::basic_registry<EntityId>& enttRegistry() noexcept
+    {
+        return m_enttRegistry;
+    }
+
+    [[nodiscard]] const entt::basic_registry<EntityId>& enttRegistry() const noexcept
+    {
+        return m_enttRegistry;
+    }
 
     /** 实体 id */
-    [[nodiscard]] EntityId entity() const noexcept { return m_entity; }
+    [[nodiscard]] EntityId entity() const noexcept
+    {
+        return m_entity;
+    }
 
     /** 实体是否仍有效 */
-    [[nodiscard]] bool valid() const noexcept { return m_enttRegistry.valid(m_entity); }
+    [[nodiscard]] bool valid() const noexcept
+    {
+        return m_enttRegistry.valid(m_entity);
+    }
 
     /** 查询组件（const 重载，不存在返回 nullptr） */
     template <class T>
@@ -71,6 +91,7 @@ public:
     {
         return m_enttRegistry.get<T>(m_entity);
     }
+
     template <class T>
     [[nodiscard]] const T& getComponent() const
     {

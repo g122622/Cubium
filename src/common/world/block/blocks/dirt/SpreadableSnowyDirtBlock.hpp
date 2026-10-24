@@ -67,7 +67,10 @@ public:
     /**
      * @brief 是否响应随机刻
      */
-    [[nodiscard]] bool ticksRandomly() const noexcept override { return true; }
+    [[nodiscard]] bool ticksRandomly() const noexcept override
+    {
+        return true;
+    }
 
 protected:
     /**
@@ -129,7 +132,10 @@ public:
      * 因此构造时 flowerPlacer 为空，由 server 侧初始化阶段调用此方法
      * 注入真实的 FlowerPlacer。
      */
-    void setFlowerPlacer(FlowerPlacer flowerPlacer) { m_flowerPlacer = std::move(flowerPlacer); }
+    void setFlowerPlacer(FlowerPlacer flowerPlacer)
+    {
+        m_flowerPlacer = std::move(flowerPlacer);
+    }
 
     // ========== IGrowable 接口实现 ==========
 
@@ -162,7 +168,10 @@ public:
      *
      * 粒子在方块上方水平扩散，数量为传入值的3倍。
      */
-    [[nodiscard]] BoneMealType getBoneMealType() const override { return BoneMealType::NEIGHBOR_SPREADER; }
+    [[nodiscard]] BoneMealType getBoneMealType() const override
+    {
+        return BoneMealType::NEIGHBOR_SPREADER;
+    }
 
 private:
     /// 花卉放置器回调（由 server 侧后置注入）

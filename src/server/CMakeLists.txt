@@ -474,6 +474,16 @@ add_executable(minecraft-server
     command/commands/DataPackCommand.cpp
     command/commands/ForceLoadCommand.cpp
     command/commands/GameRuleCommand.cpp
+    command/commands/VersionCommand.cpp
+    command/commands/JfrCommand.cpp
+    command/commands/PerfCommand.cpp
+    command/commands/TeamMsgCommand.cpp
+    command/commands/ReturnCommand.cpp
+    command/commands/StopwatchCommand.cpp
+    command/commands/RotateCommand.cpp
+    command/commands/RideCommand.cpp
+    command/commands/DamageCommand.cpp
+    command/commands/DebugCommand.cpp
     command/commands/LootCommand.cpp
     command/commands/PublishCommand.cpp
     command/commands/RecipeCommand.cpp
@@ -481,7 +491,6 @@ add_executable(minecraft-server
     command/commands/ReplaceItemCommand.cpp
     command/commands/SpectateCommand.cpp
     command/commands/TriggerCommand.cpp
-    command/commands/WardenSpawnTrackerCommand.cpp
     # 菜单系统
     menu/CraftingMenu.cpp
     # Boss栏系统

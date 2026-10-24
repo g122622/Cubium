@@ -197,7 +197,10 @@ public:
         return m_fixedBiome;
     }
 
-    [[nodiscard]] const std::vector<BiomeId>& possibleBiomes() const override { return m_possibleBiomes; }
+    [[nodiscard]] const std::vector<BiomeId>& possibleBiomes() const override
+    {
+        return m_possibleBiomes;
+    }
 
 private:
     BiomeId m_fixedBiome;
@@ -220,7 +223,10 @@ public:
         return static_cast<BiomeId>(((quartX & 1) << 1) | (quartZ & 1));
     }
 
-    [[nodiscard]] const std::vector<BiomeId>& possibleBiomes() const override { return m_possibleBiomes; }
+    [[nodiscard]] const std::vector<BiomeId>& possibleBiomes() const override
+    {
+        return m_possibleBiomes;
+    }
 
 private:
     std::vector<BiomeId> m_possibleBiomes;

@@ -29,10 +29,14 @@ i32 _show(CommandContext<ServerCommandSource>& context)
     }
     const auto targets = support::resolvePlayerIds(source, context.getArgument<EntitySelector>("targets"));
     i32 sent = 0;
-    for (const auto playerId : targets)
-        if (source.server()->connectionManager().sendToPlayer(playerId, packet.value())) ++sent;
+    for (const auto playerId : targets) {
+        if (source.server()->connectionManager().sendToPlayer(playerId, packet.value())) {
+            ++sent;
+        }
+    }
     return sent;
 }
+
 i32 _clear(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
@@ -40,8 +44,11 @@ i32 _clear(CommandContext<ServerCommandSource>& context)
     const mc::network::ir::IrPacket packet{mc::network::protocol::ConnectionProtocol::Play,
         mc::network::ir::PlayPacket{mc::network::ir::play::ClearDialog{}}};
     i32 sent = 0;
-    for (const auto playerId : targets)
-        if (source.server()->connectionManager().sendToPlayer(playerId, packet)) ++sent;
+    for (const auto playerId : targets) {
+        if (source.server()->connectionManager().sendToPlayer(playerId, packet)) {
+            ++sent;
+        }
+    }
     return sent;
 }
 } // namespace
@@ -49,7 +56,9 @@ i32 _clear(CommandContext<ServerCommandSource>& context)
 void DialogCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
 {
     auto root = std::make_shared<LiteralCommandNode<ServerCommandSource>>("dialog");
-    root->setRequirement([](const ServerCommandSource& source) { return source.hasPermission(2); });
+    root->setRequirement([](const ServerCommandSource& source) {
+        return source.hasPermission(2);
+    });
     support::applyMetadata(root,
         support::makeMetadata(
             "Shows or clears data driven dialogs.", "/dialog (show <targets> <id|JSON>|clear <targets>)", 2, {}, true));

@@ -77,7 +77,10 @@ public:
     void resetTask() override;
     void tick() override;
 
-    [[nodiscard]] std::string getTypeName() const override { return "FrogLongJumpGoal"; }
+    [[nodiscard]] std::string getTypeName() const override
+    {
+        return "FrogLongJumpGoal";
+    }
 
     /// 当前阶段（测试/诊断用）
     enum class Phase : u8 {
@@ -85,9 +88,21 @@ public:
         Preparing,
         Jumping,
     };
-    [[nodiscard]] Phase phase() const noexcept { return m_phase; }
-    [[nodiscard]] i32 cooldown() const noexcept { return m_cooldown; }
-    [[nodiscard]] const BlockPos& chosenTarget() const noexcept { return m_target; }
+
+    [[nodiscard]] Phase phase() const noexcept
+    {
+        return m_phase;
+    }
+
+    [[nodiscard]] i32 cooldown() const noexcept
+    {
+        return m_cooldown;
+    }
+
+    [[nodiscard]] const BlockPos& chosenTarget() const noexcept
+    {
+        return m_target;
+    }
 
     /// 计算抛射初速度（与山羊长跳共用同一套物理求解；实现见 GoatLongJumpGoal）
     [[nodiscard]] std::optional<Vector3> calculateJumpVector(

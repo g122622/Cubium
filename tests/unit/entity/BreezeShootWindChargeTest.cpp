@@ -56,9 +56,15 @@ public:
         : m_breeze(breeze)
     {}
 
-    void shootWindCharge() { m_breeze.shootWindCharge(); }
+    void shootWindCharge()
+    {
+        m_breeze.shootWindCharge();
+    }
 
-    void setShootCooldown(i32 ticks) { m_breeze.setShootCooldown(ticks); }
+    void setShootCooldown(i32 ticks)
+    {
+        m_breeze.setShootCooldown(ticks);
+    }
 
 private:
     BreezeEntity& m_breeze;
@@ -76,14 +82,31 @@ public:
         : LivingEntity(id, nullptr, registry)
     {}
 
-    [[nodiscard]] std::string getTypeId() const override { return "minecraft:test_target"; }
+    [[nodiscard]] std::string getTypeId() const override
+    {
+        return "minecraft:test_target";
+    }
 
     // 测试中允许直接控制目标高度，以验证不同 partialY 比例下的瞄准点
-    [[nodiscard]] f32 height() const override { return m_height; }
-    [[nodiscard]] f32 width() const override { return 0.6f; }
-    [[nodiscard]] f32 eyeHeight() const override { return m_height * 0.85f; }
+    [[nodiscard]] f32 height() const override
+    {
+        return m_height;
+    }
 
-    void setHeight(f32 h) { m_height = h; }
+    [[nodiscard]] f32 width() const override
+    {
+        return 0.6f;
+    }
+
+    [[nodiscard]] f32 eyeHeight() const override
+    {
+        return m_height * 0.85f;
+    }
+
+    void setHeight(f32 h)
+    {
+        m_height = h;
+    }
 
 private:
     f32 m_height = 1.8f;
@@ -96,7 +119,10 @@ public:
         : LivingEntity(id, nullptr, registry)
     {}
 
-    [[nodiscard]] std::string getTypeId() const override { return "minecraft:test_vehicle"; }
+    [[nodiscard]] std::string getTypeId() const override
+    {
+        return "minecraft:test_vehicle";
+    }
 };
 
 /**
@@ -116,6 +142,7 @@ public:
     {
         throw std::runtime_error("BreezeShootTestWorld::tickManager not implemented");
     }
+
     [[nodiscard]] const world::tick::TickManager& tickManager() const override
     {
         throw std::runtime_error("BreezeShootTestWorld::tickManager not implemented");
@@ -150,10 +177,16 @@ public:
     }
 
     /// 注册实体到 ID 索引，便于 getEntity 查找（用于骑乘关系建立）
-    void registerEntity(Entity* entity) { m_entityById[entity->id()] = entity; }
+    void registerEntity(Entity* entity)
+    {
+        m_entityById[entity->id()] = entity;
+    }
 
     /// 获取捕获到的所有 spawn 调用产生的实体
-    [[nodiscard]] const std::vector<std::unique_ptr<Entity>>& spawnedEntities() const { return m_spawnedEntities; }
+    [[nodiscard]] const std::vector<std::unique_ptr<Entity>>& spawnedEntities() const
+    {
+        return m_spawnedEntities;
+    }
 
 private:
     std::vector<std::unique_ptr<Entity>> m_spawnedEntities;

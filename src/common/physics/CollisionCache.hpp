@@ -147,12 +147,18 @@ public:
     /**
      * @brief 获取缓存命中次数
      */
-    [[nodiscard]] u64 hitCount() const { return m_hitCount; }
+    [[nodiscard]] u64 hitCount() const
+    {
+        return m_hitCount;
+    }
 
     /**
      * @brief 获取缓存未命中次数
      */
-    [[nodiscard]] u64 missCount() const { return m_missCount; }
+    [[nodiscard]] u64 missCount() const
+    {
+        return m_missCount;
+    }
 
     /**
      * @brief 重置统计计数器

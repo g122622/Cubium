@@ -48,7 +48,10 @@ struct Matrix {
     /**
      * @brief 创建单位矩阵
      */
-    [[nodiscard]] static Matrix identity() { return Matrix{}; }
+    [[nodiscard]] static Matrix identity()
+    {
+        return Matrix{};
+    }
 
     /**
      * @brief 创建平移矩阵

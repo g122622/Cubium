@@ -74,7 +74,10 @@ public:
     /**
      * @brief 检查玩家是否在气泡柱中
      */
-    [[nodiscard]] bool isInBubbleColumn() const noexcept { return m_isInBubbleColumn; }
+    [[nodiscard]] bool isInBubbleColumn() const noexcept
+    {
+        return m_isInBubbleColumn;
+    }
 
 private:
     /// 是否在气泡柱中

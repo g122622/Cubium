@@ -471,10 +471,12 @@ void CopperGolemEntity::turnToStatue()
     f32 yawValue = yaw();
     Direction facing = Direction::North; // 默认北
     // 将 yaw 规范化到 [0, 360)
-    while (yawValue < 0.0f)
+    while (yawValue < 0.0f) {
         yawValue += 360.0f;
-    while (yawValue >= 360.0f)
+    }
+    while (yawValue >= 360.0f) {
         yawValue -= 360.0f;
+    }
     if (yawValue >= 45.0f && yawValue < 135.0f) {
         facing = Direction::West;
     } else if (yawValue >= 135.0f && yawValue < 225.0f) {

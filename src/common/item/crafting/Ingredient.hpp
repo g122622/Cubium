@@ -185,7 +185,10 @@ public:
      * 仅返回显式指定的物品堆，不包含标签解析后的物品。
      * 如需获取包含标签物品的完整列表，请使用getAllMatchingItems()。
      */
-    [[nodiscard]] const std::vector<ItemStack>& getMatchingStacks() const { return m_matchingStacks; }
+    [[nodiscard]] const std::vector<ItemStack>& getMatchingStacks() const
+    {
+        return m_matchingStacks;
+    }
 
     /**
      * @brief 获取所有匹配的物品（包括标签解析后的物品）
@@ -210,19 +213,28 @@ public:
      * @brief 检查是否为空Ingredient
      * @return 如果没有任何匹配项返回true
      */
-    [[nodiscard]] bool isEmpty() const { return m_matchingStacks.empty() && !m_hasTag; }
+    [[nodiscard]] bool isEmpty() const
+    {
+        return m_matchingStacks.empty() && !m_hasTag;
+    }
 
     /**
      * @brief 检查是否有物品标签
      * @return 如果使用标签匹配返回true
      */
-    [[nodiscard]] bool hasTag() const { return m_hasTag; }
+    [[nodiscard]] bool hasTag() const
+    {
+        return m_hasTag;
+    }
 
     /**
      * @brief 获取物品标签（如果有）
      * @return 物品标签名，如果没有则返回空字符串
      */
-    [[nodiscard]] const std::string& getTag() const { return m_tag; }
+    [[nodiscard]] const std::string& getTag() const
+    {
+        return m_tag;
+    }
 
     /**
      * @brief 合并多个原料为一个
@@ -241,7 +253,10 @@ public:
     /**
      * @brief 比较两个Ingredient是否不相等
      */
-    bool operator!=(const Ingredient& other) const { return !(*this == other); }
+    bool operator!=(const Ingredient& other) const
+    {
+        return !(*this == other);
+    }
 
     /**
      * @brief 获取用于哈希的值
@@ -287,6 +302,9 @@ private:
 namespace std {
 template <>
 struct hash<mc::crafting::Ingredient> {
-    size_t operator()(const mc::crafting::Ingredient& ingredient) const { return ingredient.hash(); }
+    size_t operator()(const mc::crafting::Ingredient& ingredient) const
+    {
+        return ingredient.hash();
+    }
 };
 } // namespace std

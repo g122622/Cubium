@@ -65,11 +65,22 @@ public:
 
     // Entity overrides
     void tick() override;
-    [[nodiscard]] bool isPushable() const override { return false; }
-    [[nodiscard]] bool canBeCollidedWith() const override { return true; }
+
+    [[nodiscard]] bool isPushable() const override
+    {
+        return false;
+    }
+
+    [[nodiscard]] bool canBeCollidedWith() const override
+    {
+        return true;
+    }
 
     // 无战利品表，覆写基类方法返回空字符串
-    [[nodiscard]] std::string getLootTableId() const override { return {}; }
+    [[nodiscard]] std::string getLootTableId() const override
+    {
+        return {};
+    }
 
     /**
      * @brief 处理悬挂实体受到伤害
@@ -94,12 +105,18 @@ public:
     /**
      * @brief 获取悬挂的方块位置
      */
-    [[nodiscard]] BlockPos getHangingBlockPos() const { return m_hangingPos; }
+    [[nodiscard]] BlockPos getHangingBlockPos() const
+    {
+        return m_hangingPos;
+    }
 
     /**
      * @brief 获取悬挂方向
      */
-    [[nodiscard]] Direction getDirection() const { return m_direction; }
+    [[nodiscard]] Direction getDirection() const
+    {
+        return m_direction;
+    }
 
     /**
      * @brief 检查是否有效悬挂位置
@@ -171,7 +188,11 @@ public:
     [[nodiscard]] i32 getWidth() const override;
     [[nodiscard]] i32 getHeight() const override;
 
-    [[nodiscard]] const std::string& getMotive() const { return m_motive; }
+    [[nodiscard]] const std::string& getMotive() const
+    {
+        return m_motive;
+    }
+
     void setMotive(const std::string& motive);
 
 private:
@@ -217,8 +238,15 @@ public:
      */
     ActionResultType processInitialInteract(Player& player, Hand hand) override;
 
-    [[nodiscard]] i32 getWidth() const override { return 1; }
-    [[nodiscard]] i32 getHeight() const override { return 1; }
+    [[nodiscard]] i32 getWidth() const override
+    {
+        return 1;
+    }
+
+    [[nodiscard]] i32 getHeight() const override
+    {
+        return 1;
+    }
 
     /**
      * @brief 设置展示的物品
@@ -231,12 +259,18 @@ public:
      * @brief 获取展示的物品堆
      * @return 展示的物品堆（可能为空）
      */
-    [[nodiscard]] const ItemStack& getDisplayedItem() const { return m_displayedItem; }
+    [[nodiscard]] const ItemStack& getDisplayedItem() const
+    {
+        return m_displayedItem;
+    }
 
     /**
      * @brief 检查是否有展示物品
      */
-    [[nodiscard]] bool hasItem() const { return !m_displayedItem.isEmpty(); }
+    [[nodiscard]] bool hasItem() const
+    {
+        return !m_displayedItem.isEmpty();
+    }
 
     /**
      * @brief 设置物品旋转
@@ -249,7 +283,10 @@ public:
      * @brief 获取物品旋转值
      * @return 旋转值 0-7
      */
-    [[nodiscard]] i32 getItemRotation() const { return m_rotation; }
+    [[nodiscard]] i32 getItemRotation() const
+    {
+        return m_rotation;
+    }
 
     /**
      * @brief 旋转物品（右键交互时调用）
@@ -281,7 +318,10 @@ public:
      *
      * @return 红石信号强度（0-8）
      */
-    [[nodiscard]] i32 getComparatorOutput() const override { return getAnalogOutput(); }
+    [[nodiscard]] i32 getComparatorOutput() const override
+    {
+        return getAnalogOutput();
+    }
 
     /**
      * @brief 获取水平朝向（MC 方向）
@@ -295,8 +335,15 @@ public:
     /**
      * @brief 检查是否为无形展示框（Glow Item Frame）
      */
-    [[nodiscard]] bool isGlowing() const { return m_glowing; }
-    void setGlowing(bool glowing) { m_glowing = glowing; }
+    [[nodiscard]] bool isGlowing() const
+    {
+        return m_glowing;
+    }
+
+    void setGlowing(bool glowing)
+    {
+        m_glowing = glowing;
+    }
 
 private:
     ItemStack m_displayedItem; ///< 展示的物品堆
@@ -332,8 +379,15 @@ public:
      */
     ActionResultType processInitialInteract(Player& player, Hand hand) override;
 
-    [[nodiscard]] i32 getWidth() const override { return 1; }
-    [[nodiscard]] i32 getHeight() const override { return 1; }
+    [[nodiscard]] i32 getWidth() const override
+    {
+        return 1;
+    }
+
+    [[nodiscard]] i32 getHeight() const override
+    {
+        return 1;
+    }
 
     /**
      * @brief 获取或创建指定栅栏位置的拴绳结
@@ -372,7 +426,10 @@ public:
     /**
      * @brief 获取所有绑定的实体
      */
-    [[nodiscard]] const std::vector<Entity*>& getLeashedEntities() const { return m_leashedEntities; }
+    [[nodiscard]] const std::vector<Entity*>& getLeashedEntities() const
+    {
+        return m_leashedEntities;
+    }
 
     /**
      * @brief 检查栅栏是否还在

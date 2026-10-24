@@ -47,7 +47,9 @@ namespace command {
 void SpectateCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
 {
     auto spectateNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("spectate");
-    spectateNode->setRequirement([](const ServerCommandSource& source) { return source.hasPermission(2); });
+    spectateNode->setRequirement([](const ServerCommandSource& source) {
+        return source.hasPermission(2);
+    });
     support::applyMetadata(spectateNode,
         support::makeMetadata(
             "Makes a player in spectator mode spectate another entity.", "/spectate <target> [player]", 2, {}, true));
@@ -57,18 +59,26 @@ void SpectateCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatc
         "target", EntityArgumentType::entity());
     auto playerArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, EntitySelector>>(
         "player", EntityArgumentType::player());
-    playerArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _startSpectating(ctx); });
+    playerArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _startSpectating(ctx);
+    });
     targetArg->addChild(playerArg);
-    targetArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _startSpectating(ctx); });
+    targetArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _startSpectating(ctx);
+    });
     spectateNode->addChild(targetArg);
 
     // /spectate stop [player]
     auto stopNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("stop");
     auto stopPlayerArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, EntitySelector>>(
         "player", EntityArgumentType::player());
-    stopPlayerArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _stopSpectating(ctx); });
+    stopPlayerArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _stopSpectating(ctx);
+    });
     stopNode->addChild(stopPlayerArg);
-    stopNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _stopSpectating(ctx); });
+    stopNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _stopSpectating(ctx);
+    });
     spectateNode->addChild(stopNode);
 
     dispatcher.registerCommand(spectateNode);

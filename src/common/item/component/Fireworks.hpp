@@ -52,7 +52,10 @@ struct Fireworks {
         return flightDuration == other.flightDuration && explosions == other.explosions;
     }
 
-    [[nodiscard]] bool operator!=(const Fireworks& other) const noexcept { return !(*this == other); }
+    [[nodiscard]] bool operator!=(const Fireworks& other) const noexcept
+    {
+        return !(*this == other);
+    }
 };
 
 } // namespace component

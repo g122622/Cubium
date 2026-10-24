@@ -102,24 +102,36 @@ public:
     /**
      * @brief 噪声最大可能输出值
      */
-    [[nodiscard]] f64 maxValue() const { return m_maxValue; }
+    [[nodiscard]] f64 maxValue() const
+    {
+        return m_maxValue;
+    }
 
     /**
      * @brief 首个倍频索引
      */
-    [[nodiscard]] i32 firstOctave() const { return m_firstOctave; }
+    [[nodiscard]] i32 firstOctave() const
+    {
+        return m_firstOctave;
+    }
 
     /**
      * @brief 振幅列表
      */
-    [[nodiscard]] const std::vector<f64>& amplitudes() const { return m_amplitudes; }
+    [[nodiscard]] const std::vector<f64>& amplitudes() const
+    {
+        return m_amplitudes;
+    }
 
     /**
      * @brief 构造时使用的种子
      *
      * 仅当通过种子构造时有效；通过 math::IRandom& 构造时为 nullopt。
      */
-    [[nodiscard]] const std::optional<u64>& seed() const { return m_seed; }
+    [[nodiscard]] const std::optional<u64>& seed() const
+    {
+        return m_seed;
+    }
 
     /**
      * @brief 计算期望标准差，用于归一化

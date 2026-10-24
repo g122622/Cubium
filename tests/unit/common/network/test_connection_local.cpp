@@ -200,7 +200,9 @@ TEST(ConnectionLocal, Bidirectional)
 {
     auto pair = makePair();
     std::atomic<int> clientCount{0};
-    pair.client->onPacket([&](const ir::IrPacket& /*pkt*/) { clientCount++; });
+    pair.client->onPacket([&](const ir::IrPacket& /*pkt*/) {
+        clientCount++;
+    });
 
     ASSERT_TRUE(pair.server->send(makeKeepAlive(5)).success());
     pair.client->pumpLocal(); // client 收件箱驱动

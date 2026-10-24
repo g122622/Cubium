@@ -119,10 +119,12 @@ BlockActionResult PumpkinBlock::useItemOn(ItemStack& stack,
     Direction facing = hit.face();
     if (facing == Direction::Up || facing == Direction::Down) {
         f32 yaw = player.yaw();
-        while (yaw < 0.0f)
+        while (yaw < 0.0f) {
             yaw += 360.0f;
-        while (yaw >= 360.0f)
+        }
+        while (yaw >= 360.0f) {
             yaw -= 360.0f;
+        }
 
         Direction playerFacing;
         if (yaw < 45.0f || yaw >= 315.0f) {

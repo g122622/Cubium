@@ -57,7 +57,10 @@ public:
     }
 
     // 设置空闲时间
-    void setIdleTimeForTest(i32 time) { m_idleTime = time; }
+    void setIdleTimeForTest(i32 time)
+    {
+        m_idleTime = time;
+    }
 };
 
 // ============================================================================
@@ -191,7 +194,10 @@ protected:
         creature->setPositionForTest(0.0, 64.0, 0.0);
     }
 
-    void TearDown() override { creature.reset(); }
+    void TearDown() override
+    {
+        creature.reset();
+    }
 
     std::unique_ptr<TestCreatureEntity> creature;
 };
@@ -244,7 +250,10 @@ protected:
         creature->setPositionForTest(0.0, 64.0, 0.0);
     }
 
-    void TearDown() override { creature.reset(); }
+    void TearDown() override
+    {
+        creature.reset();
+    }
 
     std::unique_ptr<TestCreatureEntity> creature;
 };

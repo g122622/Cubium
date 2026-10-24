@@ -69,9 +69,15 @@ public:
     /**
      * @brief 检查是否正在逃跑
      */
-    [[nodiscard]] bool isRunning() const noexcept { return m_running; }
+    [[nodiscard]] bool isRunning() const noexcept
+    {
+        return m_running;
+    }
 
-    [[nodiscard]] std::string getTypeName() const override { return "PanicGoal"; }
+    [[nodiscard]] std::string getTypeName() const override
+    {
+        return "PanicGoal";
+    }
 
 protected:
     /**

@@ -78,13 +78,37 @@ public:
     [[nodiscard]] Result<void> recreate(u32 width, u32 height);
 
     // 访问器
-    [[nodiscard]] VkRenderPass renderPass() const { return m_renderPass; }
+    [[nodiscard]] VkRenderPass renderPass() const
+    {
+        return m_renderPass;
+    }
+
     [[nodiscard]] VkFramebuffer framebuffer(u32 index) const;
-    [[nodiscard]] VkImageView depthImageView() const { return m_depthImageView; }
-    [[nodiscard]] VkFormat depthFormat() const { return m_depthFormat; }
-    [[nodiscard]] VkSampleCountFlagBits sampleCount() const { return m_sampleCount; }
-    [[nodiscard]] bool isValid() const { return m_renderPass != VK_NULL_HANDLE; }
-    [[nodiscard]] u32 framebufferCount() const { return static_cast<u32>(m_framebuffers.size()); }
+
+    [[nodiscard]] VkImageView depthImageView() const
+    {
+        return m_depthImageView;
+    }
+
+    [[nodiscard]] VkFormat depthFormat() const
+    {
+        return m_depthFormat;
+    }
+
+    [[nodiscard]] VkSampleCountFlagBits sampleCount() const
+    {
+        return m_sampleCount;
+    }
+
+    [[nodiscard]] bool isValid() const
+    {
+        return m_renderPass != VK_NULL_HANDLE;
+    }
+
+    [[nodiscard]] u32 framebufferCount() const
+    {
+        return static_cast<u32>(m_framebuffers.size());
+    }
 
 private:
     // 创建方法

@@ -39,6 +39,7 @@ struct SlideSettings {
     i32 offset = 0; ///< 偏移
 
     SlideSettings() = default;
+
     SlideSettings(i32 target_, i32 size_, i32 offset_)
         : target(target_)
         , size(size_)

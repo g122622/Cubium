@@ -423,7 +423,9 @@ void DolphinEntity::registerGoals()
     m_goalSelector.addGoal(9,
         std::make_unique<entity::ai::goal::AvoidEntityGoal>(
             this, 8.0f, 1.0, 1.0, [](const LivingEntity* entity) -> bool {
-                if (!entity) return false;
+                if (!entity) {
+                    return false;
+                }
                 auto type = entity->entityType();
                 return type == entity::VanillaEntityTypeKeys::GUARDIAN ||
                     type == entity::VanillaEntityTypeKeys::ELDER_GUARDIAN;
@@ -434,7 +436,9 @@ void DolphinEntity::registerGoals()
     // 海豚不会反击守卫者和远古守卫者，但会警醒同类
     m_targetSelector.addGoal(
         1, std::make_unique<entity::ai::goal::HurtByTargetGoal>(this, true, [](const LivingEntity* attacker) -> bool {
-            if (!attacker) return false;
+            if (!attacker) {
+                return false;
+            }
             auto type = attacker->entityType();
             return type == entity::VanillaEntityTypeKeys::GUARDIAN ||
                 type == entity::VanillaEntityTypeKeys::ELDER_GUARDIAN;
@@ -450,8 +454,11 @@ void DolphinEntity::registerAttributes()
     // 最大生命值: 10.0
     // 移动速度: 1.2
     // 攻击伤害: 3.0
+    // 护甲: 0（原版 Dolphin.createAttributes 显式写 ARMOR 0）
     attributes().setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 10.0);
     attributes().setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 1.2);
+    // 原版 Dolphin.createAttributes 自带 ATTACK_DAMAGE 3。
+    attributes().registerAttribute(*entity::attribute::Attributes::attackDamage());
     attributes().setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, 3.0);
 }
 

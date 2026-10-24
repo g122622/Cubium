@@ -86,12 +86,18 @@ public:
     /**
      * @brief 设置字体
      */
-    void setFont(Font* font) { m_font = font; }
+    void setFont(Font* font)
+    {
+        m_font = font;
+    }
 
     /**
      * @brief 设置GUI渲染器
      */
-    void setGuiRenderer(renderer::trident::gui::GuiRenderer* gui) { m_gui = gui; }
+    void setGuiRenderer(renderer::trident::gui::GuiRenderer* gui)
+    {
+        m_gui = gui;
+    }
 
     /**
      * @brief 设置命令回调
@@ -120,14 +126,20 @@ public:
      * 而非在聊天窗口中显示。与 MC Java 版一致：
      * Chat/System 消息显示在聊天窗口，Actionbar/GameInfo 消息显示在动作栏。
      */
-    void setActionbarCallback(ActionbarCallback callback) { m_actionbarCallback = std::move(callback); }
+    void setActionbarCallback(ActionbarCallback callback)
+    {
+        m_actionbarCallback = std::move(callback);
+    }
 
     // ========== 状态 ==========
 
     /**
      * @brief 获取当前状态
      */
-    [[nodiscard]] bool isOpen() const { return m_open; }
+    [[nodiscard]] bool isOpen() const
+    {
+        return m_open;
+    }
 
     /**
      * @brief 打开聊天框
@@ -194,15 +206,25 @@ public:
     /**
      * @brief 获取聊天历史
      */
-    [[nodiscard]] ChatHistory& history() { return m_history; }
-    [[nodiscard]] const ChatHistory& history() const { return m_history; }
+    [[nodiscard]] ChatHistory& history()
+    {
+        return m_history;
+    }
+
+    [[nodiscard]] const ChatHistory& history() const
+    {
+        return m_history;
+    }
 
     // ========== 输入 ==========
 
     /**
      * @brief 获取当前输入
      */
-    [[nodiscard]] const std::string& input() const { return m_input; }
+    [[nodiscard]] const std::string& input() const
+    {
+        return m_input;
+    }
 
     /**
      * @brief 设置输入文本

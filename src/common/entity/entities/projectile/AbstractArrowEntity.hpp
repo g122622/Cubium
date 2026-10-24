@@ -44,6 +44,7 @@
 namespace mc {
 // 前向声明 - ItemStack 在 mc 命名空间中
 class ItemStack;
+
 namespace entity {
 
 /**
@@ -58,8 +59,15 @@ public:
 
     // ========== Entity 接口重写 ==========
 
-    [[nodiscard]] f32 width() const override { return 0.5f; }
-    [[nodiscard]] f32 height() const override { return 0.5f; }
+    [[nodiscard]] f32 width() const override
+    {
+        return 0.5f;
+    }
+
+    [[nodiscard]] f32 height() const override
+    {
+        return 0.5f;
+    }
 
     void tick() override;
 
@@ -169,9 +177,20 @@ public:
 
     // ========== 物理 ==========
 
-    [[nodiscard]] f32 getGravity() const override { return 0.05f; }
-    [[nodiscard]] f32 getAirDrag() const override { return 0.99f; }
-    [[nodiscard]] virtual f32 getWaterDrag() const override { return 0.6f; }
+    [[nodiscard]] f32 getGravity() const override
+    {
+        return 0.05f;
+    }
+
+    [[nodiscard]] f32 getAirDrag() const override
+    {
+        return 0.99f;
+    }
+
+    [[nodiscard]] virtual f32 getWaterDrag() const override
+    {
+        return 0.6f;
+    }
 
     // ========== 箭矢特有方法 ==========
 
@@ -328,17 +347,26 @@ protected:
      * 客户端 ClientEntity::syncMetadataFromDataManager() 通过此 ID 读取箭矢标志位，
      * 用于驱动暴击粒子等渲染。
      */
-    [[nodiscard]] static u16 getArrowFlagsParamId() { return DATA_ARROW_FLAGS_PARAM.id(); }
+    [[nodiscard]] static u16 getArrowFlagsParamId()
+    {
+        return DATA_ARROW_FLAGS_PARAM.id();
+    }
 
     /**
      * @brief 获取 DATA_PIERCE_LEVEL_PARAM 的参数 ID（客户端元数据同步用）
      */
-    [[nodiscard]] static u16 getPierceLevelParamId() { return DATA_PIERCE_LEVEL_PARAM.id(); }
+    [[nodiscard]] static u16 getPierceLevelParamId()
+    {
+        return DATA_PIERCE_LEVEL_PARAM.id();
+    }
 
     /**
      * @brief 获取 DATA_IN_GROUND_PARAM 的参数 ID（客户端元数据同步用）
      */
-    [[nodiscard]] static u16 getInGroundParamId() { return DATA_IN_GROUND_PARAM.id(); }
+    [[nodiscard]] static u16 getInGroundParamId()
+    {
+        return DATA_IN_GROUND_PARAM.id();
+    }
 
 protected:
     /**

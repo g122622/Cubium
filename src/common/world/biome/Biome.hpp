@@ -69,15 +69,32 @@ public:
     Biome(BiomeId id, std::string_view name) noexcept;
 
     // === 基本信息 ===
-    [[nodiscard]] BiomeId id() const { return m_id; }
-    [[nodiscard]] const std::string& name() const { return m_name; }
+    [[nodiscard]] BiomeId id() const
+    {
+        return m_id;
+    }
+
+    [[nodiscard]] const std::string& name() const
+    {
+        return m_name;
+    }
 
     // === 地形参数 ===
-    [[nodiscard]] f32 depth() const { return m_depth; }
-    [[nodiscard]] f32 scale() const { return m_scale; }
+    [[nodiscard]] f32 depth() const
+    {
+        return m_depth;
+    }
+
+    [[nodiscard]] f32 scale() const
+    {
+        return m_scale;
+    }
 
     // === 气候参数 ===
-    [[nodiscard]] const BiomeClimate& climate() const { return m_climate; }
+    [[nodiscard]] const BiomeClimate& climate() const
+    {
+        return m_climate;
+    }
 
     /**
      * @brief 获取指定位置的高度调整温度（带缓存）
@@ -210,7 +227,10 @@ public:
      * MC 1.21.11: Biome.hasPrecipitation()
      * 返回 ClimateSettings 中的 hasPrecipitation 布尔值。
      */
-    [[nodiscard]] bool hasPrecipitation() const { return m_climate.hasPrecipitation; }
+    [[nodiscard]] bool hasPrecipitation() const
+    {
+        return m_climate.hasPrecipitation;
+    }
 
     /**
      * @brief 获取指定位置的降水类型
@@ -284,22 +304,76 @@ public:
     [[nodiscard]] bool shouldSnow(const IWorld& world, i32 x, i32 y, i32 z, i32 seaLevel) const;
 
     // === 方块设置 ===
-    [[nodiscard]] const BlockState* surfaceBlock() const { return m_surfaceBlock; }
-    [[nodiscard]] const BlockState* subSurfaceBlock() const { return m_subSurfaceBlock; }
-    [[nodiscard]] const BlockState* underWaterBlock() const { return m_underWaterBlock; }
-    [[nodiscard]] const BlockState* bedrockBlock() const { return m_bedrockBlock; }
+    [[nodiscard]] const BlockState* surfaceBlock() const
+    {
+        return m_surfaceBlock;
+    }
+
+    [[nodiscard]] const BlockState* subSurfaceBlock() const
+    {
+        return m_subSurfaceBlock;
+    }
+
+    [[nodiscard]] const BlockState* underWaterBlock() const
+    {
+        return m_underWaterBlock;
+    }
+
+    [[nodiscard]] const BlockState* bedrockBlock() const
+    {
+        return m_bedrockBlock;
+    }
 
     // === 设置器 ===
-    void setDepth(f32 value) { m_depth = value; }
-    void setScale(f32 value) { m_scale = value; }
-    void setClimate(const BiomeClimate& climate) { m_climate = climate; }
-    void setTemperature(f32 value) { m_climate.temperature = value; }
-    void setHumidity(f32 value) { m_climate.humidity = value; }
-    void setContinentalness(f32 value) { m_climate.continentalness = value; }
-    void setErosion(f32 value) { m_climate.erosion = value; }
-    void setDownfall(f32 value) { m_climate.downfall = value; }
-    void setHasPrecipitation(bool value) { m_climate.hasPrecipitation = value; }
-    void setTemperatureModifier(BiomeClimate::TemperatureModifier value) { m_climate.temperatureModifier = value; }
+    void setDepth(f32 value)
+    {
+        m_depth = value;
+    }
+
+    void setScale(f32 value)
+    {
+        m_scale = value;
+    }
+
+    void setClimate(const BiomeClimate& climate)
+    {
+        m_climate = climate;
+    }
+
+    void setTemperature(f32 value)
+    {
+        m_climate.temperature = value;
+    }
+
+    void setHumidity(f32 value)
+    {
+        m_climate.humidity = value;
+    }
+
+    void setContinentalness(f32 value)
+    {
+        m_climate.continentalness = value;
+    }
+
+    void setErosion(f32 value)
+    {
+        m_climate.erosion = value;
+    }
+
+    void setDownfall(f32 value)
+    {
+        m_climate.downfall = value;
+    }
+
+    void setHasPrecipitation(bool value)
+    {
+        m_climate.hasPrecipitation = value;
+    }
+
+    void setTemperatureModifier(BiomeClimate::TemperatureModifier value)
+    {
+        m_climate.temperatureModifier = value;
+    }
 
     /**
      * @brief 是否为"火焰加速熄灭"群系（vanilla EnvironmentAttributes.INCREASED_FIRE_BURNOUT）
@@ -312,8 +386,15 @@ public:
      *
      * @return 是否为火焰加速熄灭群系
      */
-    [[nodiscard]] bool isIncreasedFireBurnout() const noexcept { return m_increasedFireBurnout; }
-    void setIncreasedFireBurnout(bool value) noexcept { m_increasedFireBurnout = value; }
+    [[nodiscard]] bool isIncreasedFireBurnout() const noexcept
+    {
+        return m_increasedFireBurnout;
+    }
+
+    void setIncreasedFireBurnout(bool value) noexcept
+    {
+        m_increasedFireBurnout = value;
+    }
 
     /**
      * @brief 群系声明的环境属性表（vanilla 1.21.11 Biome.getAttributes）
@@ -321,23 +402,72 @@ public:
      * 由 BiomeLoader 从数据包 `biome.attributes` 解析；维度级环境属性系统把它作为位置层，
      * 按查询位置的群系应用，与维度常量层、时间线层叠加。
      */
-    [[nodiscard]] const world::attribute::EnvironmentAttributeMap& attributes() const noexcept { return m_attributes; }
-    void setAttributes(world::attribute::EnvironmentAttributeMap attributes) { m_attributes = std::move(attributes); }
-    void setSurfaceBlock(const BlockState* block) { m_surfaceBlock = block; }
-    void setSubSurfaceBlock(const BlockState* block) { m_subSurfaceBlock = block; }
-    void setUnderWaterBlock(const BlockState* block) { m_underWaterBlock = block; }
-    void setBedrockBlock(const BlockState* block) { m_bedrockBlock = block; }
+    [[nodiscard]] const world::attribute::EnvironmentAttributeMap& attributes() const noexcept
+    {
+        return m_attributes;
+    }
+
+    void setAttributes(world::attribute::EnvironmentAttributeMap attributes)
+    {
+        m_attributes = std::move(attributes);
+    }
+
+    void setSurfaceBlock(const BlockState* block)
+    {
+        m_surfaceBlock = block;
+    }
+
+    void setSubSurfaceBlock(const BlockState* block)
+    {
+        m_subSurfaceBlock = block;
+    }
+
+    void setUnderWaterBlock(const BlockState* block)
+    {
+        m_underWaterBlock = block;
+    }
+
+    void setBedrockBlock(const BlockState* block)
+    {
+        m_bedrockBlock = block;
+    }
 
     // === 生成设置 ===
-    [[nodiscard]] const BiomeGenerationSettings& generationSettings() const { return m_generationSettings; }
-    [[nodiscard]] BiomeGenerationSettings& generationSettings() { return m_generationSettings; }
-    void setGenerationSettings(BiomeGenerationSettings settings) { m_generationSettings = std::move(settings); }
+    [[nodiscard]] const BiomeGenerationSettings& generationSettings() const
+    {
+        return m_generationSettings;
+    }
+
+    [[nodiscard]] BiomeGenerationSettings& generationSettings()
+    {
+        return m_generationSettings;
+    }
+
+    void setGenerationSettings(BiomeGenerationSettings settings)
+    {
+        m_generationSettings = std::move(settings);
+    }
 
     // === 生物生成设置 ===
-    [[nodiscard]] const MobSpawnInfo& spawnInfo() const { return m_spawnInfo; }
-    [[nodiscard]] MobSpawnInfo& spawnInfo() { return m_spawnInfo; }
-    void setSpawnInfo(const MobSpawnInfo& info) { m_spawnInfo = info; }
-    void setSpawnInfo(MobSpawnInfo&& info) { m_spawnInfo = std::move(info); }
+    [[nodiscard]] const MobSpawnInfo& spawnInfo() const
+    {
+        return m_spawnInfo;
+    }
+
+    [[nodiscard]] MobSpawnInfo& spawnInfo()
+    {
+        return m_spawnInfo;
+    }
+
+    void setSpawnInfo(const MobSpawnInfo& info)
+    {
+        m_spawnInfo = info;
+    }
+
+    void setSpawnInfo(MobSpawnInfo&& info)
+    {
+        m_spawnInfo = std::move(info);
+    }
 
     /**
      * @brief 获取动物生成概率
@@ -348,7 +478,10 @@ public:
      *
      * @return 生成概率 (0.0 - 1.0)
      */
-    [[nodiscard]] f32 creatureSpawnProbability() const { return m_spawnInfo.getCreatureSpawnProbability(); }
+    [[nodiscard]] f32 creatureSpawnProbability() const
+    {
+        return m_spawnInfo.getCreatureSpawnProbability();
+    }
 
     // === 视觉效果 ===
 
@@ -356,14 +489,24 @@ public:
      * @brief 获取生物群系视觉效果
      * @return BiomeEffects 引用
      */
-    [[nodiscard]] const BiomeEffects& effects() const { return m_effects; }
-    [[nodiscard]] BiomeEffects& effects() { return m_effects; }
+    [[nodiscard]] const BiomeEffects& effects() const
+    {
+        return m_effects;
+    }
+
+    [[nodiscard]] BiomeEffects& effects()
+    {
+        return m_effects;
+    }
 
     /**
      * @brief 设置生物群系视觉效果
      * @param effects 视觉效果配置
      */
-    void setEffects(const BiomeEffects& effects) { m_effects = effects; }
+    void setEffects(const BiomeEffects& effects)
+    {
+        m_effects = effects;
+    }
 
     // === 环境音效 ===
 
@@ -371,14 +514,24 @@ public:
      * @brief 获取环境音效配置
      * @return BiomeAmbientSounds 常量引用
      */
-    [[nodiscard]] const BiomeAmbientSounds& ambientSounds() const { return m_ambientSounds; }
-    [[nodiscard]] BiomeAmbientSounds& ambientSounds() { return m_ambientSounds; }
+    [[nodiscard]] const BiomeAmbientSounds& ambientSounds() const
+    {
+        return m_ambientSounds;
+    }
+
+    [[nodiscard]] BiomeAmbientSounds& ambientSounds()
+    {
+        return m_ambientSounds;
+    }
 
     /**
      * @brief 设置环境音效配置
      * @param sounds 环境音效配置
      */
-    void setAmbientSounds(const BiomeAmbientSounds& sounds) { m_ambientSounds = sounds; }
+    void setAmbientSounds(const BiomeAmbientSounds& sounds)
+    {
+        m_ambientSounds = sounds;
+    }
 
     // === 温度缓存 ===
 

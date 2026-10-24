@@ -104,7 +104,10 @@ public:
     /**
      * @brief 获取当前维度ID
      */
-    [[nodiscard]] DimensionId currentDimension() const { return m_currentDimension; }
+    [[nodiscard]] DimensionId currentDimension() const
+    {
+        return m_currentDimension;
+    }
 
     /**
      * @brief 设置当前维度
@@ -141,29 +144,44 @@ public:
     /**
      * @brief 获取切换状态
      */
-    [[nodiscard]] TransitionState transitionState() const { return m_transitionState; }
+    [[nodiscard]] TransitionState transitionState() const
+    {
+        return m_transitionState;
+    }
 
     /**
      * @brief 是否正在切换维度
      */
-    [[nodiscard]] bool isChangingDimension() const { return m_transitionState != TransitionState::None; }
+    [[nodiscard]] bool isChangingDimension() const
+    {
+        return m_transitionState != TransitionState::None;
+    }
 
     /**
      * @brief 获取目标维度
      */
-    [[nodiscard]] DimensionId targetDimension() const { return m_targetDimension; }
+    [[nodiscard]] DimensionId targetDimension() const
+    {
+        return m_targetDimension;
+    }
 
     /**
      * @brief 获取目标位置
      */
-    [[nodiscard]] const Vector3d& targetPosition() const { return m_targetPosition; }
+    [[nodiscard]] const Vector3d& targetPosition() const
+    {
+        return m_targetPosition;
+    }
 
     // ========== 维度信息 ==========
 
     /**
      * @brief 获取可用维度ID列表
      */
-    [[nodiscard]] const std::vector<DimensionId>& availableDimensions() const { return m_availableDimensionIds; }
+    [[nodiscard]] const std::vector<DimensionId>& availableDimensions() const
+    {
+        return m_availableDimensionIds;
+    }
 
     /**
      * @brief 获取可用维度信息列表
@@ -201,12 +219,18 @@ public:
      *
      * 维度切换时需要清除区块缓存等。
      */
-    [[nodiscard]] bool needsRenderReset() const { return m_needsRenderReset; }
+    [[nodiscard]] bool needsRenderReset() const
+    {
+        return m_needsRenderReset;
+    }
 
     /**
      * @brief 标记渲染已重置
      */
-    void markRenderReset() { m_needsRenderReset = false; }
+    void markRenderReset()
+    {
+        m_needsRenderReset = false;
+    }
 
 private:
     DimensionId m_currentDimension = DimensionManager::OVERWORLD;

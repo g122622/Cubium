@@ -52,7 +52,10 @@ public:
         setHealth(20.0f);
     }
 
-    void tick() override { LivingEntity::tick(); }
+    void tick() override
+    {
+        LivingEntity::tick();
+    }
 };
 
 /**

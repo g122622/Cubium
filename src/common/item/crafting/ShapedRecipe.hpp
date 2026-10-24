@@ -100,43 +100,64 @@ public:
      * @brief 获取结果物品
      * @return 结果物品堆（数量始终为配方定义的数量）
      */
-    [[nodiscard]] ItemStack getResultItem() const noexcept override { return m_result; }
+    [[nodiscard]] ItemStack getResultItem() const noexcept override
+    {
+        return m_result;
+    }
 
     /**
      * @brief 获取原料列表
      * @return 原料列表（按行优先顺序）
      */
-    [[nodiscard]] const std::vector<Ingredient>& getIngredients() const noexcept override { return m_ingredients; }
+    [[nodiscard]] const std::vector<Ingredient>& getIngredients() const noexcept override
+    {
+        return m_ingredients;
+    }
 
     /**
      * @brief 获取配方分组
      * @return 分组名，如果无分组返回空字符串
      */
-    [[nodiscard]] const std::string& getGroup() const noexcept override { return m_group; }
+    [[nodiscard]] const std::string& getGroup() const noexcept override
+    {
+        return m_group;
+    }
 
     /**
      * @brief 获取配方宽度
      * @return 宽度
      */
-    [[nodiscard]] i32 getRecipeWidth() const noexcept override { return m_width; }
+    [[nodiscard]] i32 getRecipeWidth() const noexcept override
+    {
+        return m_width;
+    }
 
     /**
      * @brief 获取配方高度
      * @return 高度
      */
-    [[nodiscard]] i32 getRecipeHeight() const noexcept override { return m_height; }
+    [[nodiscard]] i32 getRecipeHeight() const noexcept override
+    {
+        return m_height;
+    }
 
     /**
      * @brief 获取配方ID
      * @return 配方ID
      */
-    [[nodiscard]] ResourceLocation getId() const noexcept override { return m_id; }
+    [[nodiscard]] ResourceLocation getId() const noexcept override
+    {
+        return m_id;
+    }
 
     /**
      * @brief 获取配方类型
      * @return RecipeType::ShapedCrafting
      */
-    [[nodiscard]] RecipeType getType() const noexcept override { return RecipeType::ShapedCrafting; }
+    [[nodiscard]] RecipeType getType() const noexcept override
+    {
+        return RecipeType::ShapedCrafting;
+    }
 
     /**
      * @brief 检查配方是否适合给定尺寸的网格

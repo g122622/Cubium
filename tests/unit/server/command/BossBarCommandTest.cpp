@@ -29,9 +29,14 @@ public:
     BossBarCommandTestServer()
         : m_bossBarManager(*this)
     {}
+
     ~BossBarCommandTestServer() override = default;
 
-    [[nodiscard]] server::CustomServerBossInfoManager& bossBarManager() override { return m_bossBarManager; }
+    [[nodiscard]] server::CustomServerBossInfoManager& bossBarManager() override
+    {
+        return m_bossBarManager;
+    }
+
     [[nodiscard]] const server::CustomServerBossInfoManager& bossBarManager() const override
     {
         return m_bossBarManager;

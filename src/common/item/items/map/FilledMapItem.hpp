@@ -131,12 +131,18 @@ public:
     /**
      * @brief 获取使用动作
      */
-    [[nodiscard]] UseAction getUseAction(const ItemStack& /*stack*/) const override { return UseAction::None; }
+    [[nodiscard]] UseAction getUseAction(const ItemStack& /*stack*/) const override
+    {
+        return UseAction::None;
+    }
 
     /**
      * @brief 地图不可堆叠
      */
-    [[nodiscard]] i32 getMaxStackSize() const { return 1; }
+    [[nodiscard]] i32 getMaxStackSize() const
+    {
+        return 1;
+    }
 
     /**
      * @brief 添加提示信息（地图ID和缩放级别）

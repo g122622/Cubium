@@ -116,7 +116,10 @@ public:
      * 读构造期缓存的 m_isAir（由 Block::isAir 虚函数在 _cacheProperties 中计算一次），
      * 避免每次调用走虚分发。世界生成/方块写入热路径每方块至少调用一次。
      */
-    [[nodiscard]] bool isAir() const noexcept { return m_isAir; }
+    [[nodiscard]] bool isAir() const noexcept
+    {
+        return m_isAir;
+    }
 
     /**
      * @brief 是否应该生成地形粒子
@@ -127,7 +130,10 @@ public:
      *
      * @return 如果应生成地形粒子返回 true
      */
-    [[nodiscard]] bool shouldSpawnTerrainParticles() const { return !isAir(); }
+    [[nodiscard]] bool shouldSpawnTerrainParticles() const
+    {
+        return !isAir();
+    }
 
     /**
      * @brief 获取方块的渲染类型是否为不可见
@@ -142,50 +148,77 @@ public:
     /**
      * @brief 是否为固体
      */
-    [[nodiscard]] bool isSolid() const { return m_isSolid; }
+    [[nodiscard]] bool isSolid() const
+    {
+        return m_isSolid;
+    }
 
     /**
      * @brief 是否不透明
      */
-    [[nodiscard]] bool isOpaque() const { return m_isOpaque; }
+    [[nodiscard]] bool isOpaque() const
+    {
+        return m_isOpaque;
+    }
 
     /**
      * @brief 是否透明
      */
-    [[nodiscard]] bool isTransparent() const { return !m_isOpaque; }
+    [[nodiscard]] bool isTransparent() const
+    {
+        return !m_isOpaque;
+    }
 
     /**
      * @brief 是否阻挡移动
      */
-    [[nodiscard]] bool blocksMovement() const { return m_blocksMovement; }
+    [[nodiscard]] bool blocksMovement() const
+    {
+        return m_blocksMovement;
+    }
 
     /**
      * @brief 是否为液体
      */
-    [[nodiscard]] bool isLiquid() const { return m_isLiquid; }
+    [[nodiscard]] bool isLiquid() const
+    {
+        return m_isLiquid;
+    }
 
     /**
      * @brief 是否可燃
      */
-    [[nodiscard]] bool isFlammable() const { return m_isFlammable; }
+    [[nodiscard]] bool isFlammable() const
+    {
+        return m_isFlammable;
+    }
 
     /**
      * @brief 获取光照等级
      */
-    [[nodiscard]] u8 lightLevel() const { return m_lightLevel; }
+    [[nodiscard]] u8 lightLevel() const
+    {
+        return m_lightLevel;
+    }
 
     /**
      * @brief 检查此状态是否属于指定方块
      * @param block 方块指针
      * @return 如果此状态的方块与给定方块相同则返回true
      */
-    [[nodiscard]] bool is(const Block* block) const { return block != nullptr && &owner() == block; }
+    [[nodiscard]] bool is(const Block* block) const
+    {
+        return block != nullptr && &owner() == block;
+    }
 
     /**
      * @brief 获取此状态所属的方块
      * @return 方块的const引用
      */
-    [[nodiscard]] const Block& getBlock() const { return owner(); }
+    [[nodiscard]] const Block& getBlock() const
+    {
+        return owner();
+    }
 
     /**
      * @brief 获取此状态所属方块的可变引用
@@ -202,7 +235,10 @@ public:
      *
      * @return 方块的可变引用
      */
-    [[nodiscard]] Block& getBlockMutable() const { return const_cast<Block&>(owner()); }
+    [[nodiscard]] Block& getBlockMutable() const
+    {
+        return const_cast<Block&>(owner());
+    }
 
     /**
      * @brief 获取光照透明度 (0-15)
@@ -216,22 +252,34 @@ public:
     /**
      * @brief 检查是否传播天空光向下
      */
-    [[nodiscard]] bool propagatesSkylightDown() const { return m_propagatesSkylightDown; }
+    [[nodiscard]] bool propagatesSkylightDown() const
+    {
+        return m_propagatesSkylightDown;
+    }
 
     /**
      * @brief 获取硬度
      */
-    [[nodiscard]] f32 hardness() const { return m_hardness; }
+    [[nodiscard]] f32 hardness() const
+    {
+        return m_hardness;
+    }
 
     /**
      * @brief 获取抗性
      */
-    [[nodiscard]] f32 resistance() const { return m_resistance; }
+    [[nodiscard]] f32 resistance() const
+    {
+        return m_resistance;
+    }
 
     /**
      * @brief 获取方块ID
      */
-    [[nodiscard]] u32 blockId() const { return m_blockId; }
+    [[nodiscard]] u32 blockId() const
+    {
+        return m_blockId;
+    }
 
     /**
      * @brief 获取碰撞形状
@@ -287,14 +335,20 @@ public:
      *
      * @return 是否使用形状进行光照遮挡
      */
-    [[nodiscard]] bool useShapeForLightOcclusion() const { return m_useShapeForLightOcclusion; }
+    [[nodiscard]] bool useShapeForLightOcclusion() const
+    {
+        return m_useShapeForLightOcclusion;
+    }
 
     /**
      * @brief 该状态是否参与遮挡计算（vanilla `BlockState#canOcclude`）
      *
      * 由方块注册属性 `BlockProperties::noOcclusion()` 决定，与材质无关。
      */
-    [[nodiscard]] bool canOcclude() const { return m_canOccludeCache; }
+    [[nodiscard]] bool canOcclude() const
+    {
+        return m_canOccludeCache;
+    }
 
     /**
      * @brief 是否为"实体渲染"方块（vanilla `BlockState#isSolidRender`）
@@ -336,7 +390,10 @@ public:
      *
      * 参考: ca.spottedleaf.moonrise.patches.starlight.blockstate.StarlightAbstractBlockState
      */
-    [[nodiscard]] bool isConditionallyFullOpaque() const { return m_canOccludeCache && m_useShapeForLightOcclusion; }
+    [[nodiscard]] bool isConditionallyFullOpaque() const
+    {
+        return m_canOccludeCache && m_useShapeForLightOcclusion;
+    }
 
     /**
      * @brief 是否有不透明碰撞形状
@@ -535,7 +592,10 @@ public:
      * 用于：世界生成谓词(ReplaceablePredicate)、掉落方块判断、AI寻路等场景。
      * 不适用于：玩家放置时的替换判断（应使用 Block::isReplaceable(state, context)）。
      */
-    [[nodiscard]] bool canBeReplaced() const { return m_canBeReplaced; }
+    [[nodiscard]] bool canBeReplaced() const
+    {
+        return m_canBeReplaced;
+    }
 
     /**
      * @brief 检查此方块状态是否可被流体替换

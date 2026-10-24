@@ -190,8 +190,9 @@ loot::LootContextBuilder createBaseContextBuilder(ServerCommandSource& source)
     auto builder = loot::LootContextBuilder(*world)
                        .withSeed(generateSeed())
                        .withLootTableResolver(
-                           [&manager = server->lootTableManager()](
-                               const std::string& id) -> const loot::LootTable* { return manager.getTable(id); })
+                           [&manager = server->lootTableManager()](const std::string& id) -> const loot::LootTable* {
+                               return manager.getTable(id);
+                           })
                        .withPredicateResolver([&manager = server->lootTableManager()](
                                                   const std::string& id) -> const loot::LootCondition* {
                            return manager.getPredicate(id);
@@ -554,7 +555,9 @@ ItemStack resolveTool(CommandContext<ServerCommandSource>& context)
 void LootCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
 {
     auto lootNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("loot");
-    lootNode->setRequirement([](const ServerCommandSource& source) { return source.hasPermission(2); });
+    lootNode->setRequirement([](const ServerCommandSource& source) {
+        return source.hasPermission(2);
+    });
     support::applyMetadata(lootNode,
         support::makeMetadata("Drops items from a loot table.",
             "/loot <fish|loot|kill|mine> ... <give|spawn|insert|replace> ...",
@@ -574,21 +577,27 @@ void LootCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
         auto giveNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("give");
         auto playersArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, EntitySelector>>(
             "players", EntityArgumentType::players());
-        playersArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return lootGive(ctx); });
+        playersArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+            return lootGive(ctx);
+        });
         giveNode->addChild(playersArg);
 
         // spawn
         auto spawnNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("spawn");
         auto spawnPosArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, Coordinates::Ptr>>(
             "target_pos", Vec3ArgumentType::vec3());
-        spawnPosArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return lootSpawn(ctx); });
+        spawnPosArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+            return lootSpawn(ctx);
+        });
         spawnNode->addChild(spawnPosArg);
 
         // insert
         auto insertNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("insert");
         auto insertPosArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, Coordinates::Ptr>>(
             "insert_pos", BlockPosArgumentType::blockPos());
-        insertPosArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return lootInsert(ctx); });
+        insertPosArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+            return lootInsert(ctx);
+        });
         insertNode->addChild(insertPosArg);
 
         // replace entity
@@ -600,9 +609,13 @@ void LootCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
             std::make_shared<ArgumentCommandNode<ServerCommandSource, i32>>("slot", IntegerArgumentType::integer(0));
         auto entityCountArg =
             std::make_shared<ArgumentCommandNode<ServerCommandSource, i32>>("count", IntegerArgumentType::integer(1));
-        entityCountArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return lootReplaceEntity(ctx); });
+        entityCountArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+            return lootReplaceEntity(ctx);
+        });
         entitySlotArg->addChild(entityCountArg);
-        entitySlotArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return lootReplaceEntity(ctx); });
+        entitySlotArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+            return lootReplaceEntity(ctx);
+        });
         entityTargetsArg->addChild(entitySlotArg);
         entityNode->addChild(entityTargetsArg);
 
@@ -614,9 +627,13 @@ void LootCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
             std::make_shared<ArgumentCommandNode<ServerCommandSource, i32>>("slot", IntegerArgumentType::integer(0));
         auto blockCountArg =
             std::make_shared<ArgumentCommandNode<ServerCommandSource, i32>>("count", IntegerArgumentType::integer(1));
-        blockCountArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return lootReplaceBlock(ctx); });
+        blockCountArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+            return lootReplaceBlock(ctx);
+        });
         blockSlotArg->addChild(blockCountArg);
-        blockSlotArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return lootReplaceBlock(ctx); });
+        blockSlotArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+            return lootReplaceBlock(ctx);
+        });
         blockPosArg->addChild(blockSlotArg);
         blockNode->addChild(blockPosArg);
 
@@ -653,21 +670,27 @@ void LootCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
             auto giveNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("give");
             auto playersArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, EntitySelector>>(
                 "players", EntityArgumentType::players());
-            playersArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return fishGive(ctx); });
+            playersArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+                return fishGive(ctx);
+            });
             giveNode->addChild(playersArg);
 
             // spawn
             auto spawnNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("spawn");
             auto spawnPosArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, Coordinates::Ptr>>(
                 "target_pos", Vec3ArgumentType::vec3());
-            spawnPosArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return fishSpawn(ctx); });
+            spawnPosArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+                return fishSpawn(ctx);
+            });
             spawnNode->addChild(spawnPosArg);
 
             // insert
             auto insertNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("insert");
             auto insertPosArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, Coordinates::Ptr>>(
                 "insert_pos", BlockPosArgumentType::blockPos());
-            insertPosArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return fishInsert(ctx); });
+            insertPosArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+                return fishInsert(ctx);
+            });
             insertNode->addChild(insertPosArg);
 
             // replace entity
@@ -679,9 +702,13 @@ void LootCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
                 "slot", IntegerArgumentType::integer(0));
             auto entityCountArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, i32>>(
                 "count", IntegerArgumentType::integer(1));
-            entityCountArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return fishReplaceEntity(ctx); });
+            entityCountArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+                return fishReplaceEntity(ctx);
+            });
             entitySlotArg->addChild(entityCountArg);
-            entitySlotArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return fishReplaceEntity(ctx); });
+            entitySlotArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+                return fishReplaceEntity(ctx);
+            });
             entityTargetsArg->addChild(entitySlotArg);
             entityNode->addChild(entityTargetsArg);
 
@@ -693,9 +720,13 @@ void LootCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
                 "slot2", IntegerArgumentType::integer(0));
             auto blockCountArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, i32>>(
                 "count2", IntegerArgumentType::integer(1));
-            blockCountArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return fishReplaceBlock(ctx); });
+            blockCountArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+                return fishReplaceBlock(ctx);
+            });
             blockSlotArg->addChild(blockCountArg);
-            blockSlotArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return fishReplaceBlock(ctx); });
+            blockSlotArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+                return fishReplaceBlock(ctx);
+            });
             blockPosArg2->addChild(blockSlotArg);
             blockNode->addChild(blockPosArg2);
 
@@ -736,21 +767,27 @@ void LootCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
         auto giveNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("give");
         auto playersArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, EntitySelector>>(
             "players", EntityArgumentType::players());
-        playersArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return killGive(ctx); });
+        playersArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+            return killGive(ctx);
+        });
         giveNode->addChild(playersArg);
 
         // spawn
         auto spawnNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("spawn");
         auto spawnPosArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, Coordinates::Ptr>>(
             "target_pos", Vec3ArgumentType::vec3());
-        spawnPosArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return killSpawn(ctx); });
+        spawnPosArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+            return killSpawn(ctx);
+        });
         spawnNode->addChild(spawnPosArg);
 
         // insert
         auto insertNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("insert");
         auto insertPosArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, Coordinates::Ptr>>(
             "insert_pos", BlockPosArgumentType::blockPos());
-        insertPosArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return killInsert(ctx); });
+        insertPosArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+            return killInsert(ctx);
+        });
         insertNode->addChild(insertPosArg);
 
         // replace (simplified)
@@ -760,7 +797,9 @@ void LootCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
             "entities", EntityArgumentType::entities());
         auto entitySlotArg =
             std::make_shared<ArgumentCommandNode<ServerCommandSource, i32>>("slot", IntegerArgumentType::integer(0));
-        entitySlotArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return killReplaceEntity(ctx); });
+        entitySlotArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+            return killReplaceEntity(ctx);
+        });
         entityTargetsArg->addChild(entitySlotArg);
         entityNode->addChild(entityTargetsArg);
         replaceNode->addChild(entityNode);
@@ -790,19 +829,25 @@ void LootCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
             auto giveNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("give");
             auto playersArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, EntitySelector>>(
                 "players", EntityArgumentType::players());
-            playersArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return mineGive(ctx); });
+            playersArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+                return mineGive(ctx);
+            });
             giveNode->addChild(playersArg);
 
             auto spawnNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("spawn");
             auto spawnPosArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, Coordinates::Ptr>>(
                 "target_pos", Vec3ArgumentType::vec3());
-            spawnPosArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return mineSpawn(ctx); });
+            spawnPosArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+                return mineSpawn(ctx);
+            });
             spawnNode->addChild(spawnPosArg);
 
             auto insertNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("insert");
             auto insertPosArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, Coordinates::Ptr>>(
                 "insert_pos", BlockPosArgumentType::blockPos());
-            insertPosArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return mineInsert(ctx); });
+            insertPosArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+                return mineInsert(ctx);
+            });
             insertNode->addChild(insertPosArg);
 
             auto replaceNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("replace");
@@ -811,7 +856,9 @@ void LootCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
                 "target_pos", BlockPosArgumentType::blockPos());
             auto blockSlotArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, i32>>(
                 "slot", IntegerArgumentType::integer(0));
-            blockSlotArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return mineReplaceBlock(ctx); });
+            blockSlotArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+                return mineReplaceBlock(ctx);
+            });
             blockPosArg->addChild(blockSlotArg);
             blockNode->addChild(blockPosArg);
             replaceNode->addChild(blockNode);

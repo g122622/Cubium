@@ -59,9 +59,15 @@ thread_local bool s_skipIceReplacementCallback = false;
 
 class IceReplacementGuard {
 public:
-    IceReplacementGuard() { s_skipIceReplacementCallback = true; }
+    IceReplacementGuard()
+    {
+        s_skipIceReplacementCallback = true;
+    }
 
-    ~IceReplacementGuard() { s_skipIceReplacementCallback = false; }
+    ~IceReplacementGuard()
+    {
+        s_skipIceReplacementCallback = false;
+    }
 };
 
 [[nodiscard]] const BlockState* getWaterState()

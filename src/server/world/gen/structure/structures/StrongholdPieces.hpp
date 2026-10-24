@@ -96,8 +96,15 @@ public:
 
     StrongholdPiece(i32 type, i32 minX, i32 minY, i32 minZ, i32 maxX, i32 maxY, i32 maxZ);
 
-    [[nodiscard]] Door entryDoor() const { return m_entryDoor; }
-    void setEntryDoor(Door door) { m_entryDoor = door; }
+    [[nodiscard]] Door entryDoor() const
+    {
+        return m_entryDoor;
+    }
+
+    void setEntryDoor(Door door)
+    {
+        m_entryDoor = door;
+    }
 
     /**
      * @brief 获取随机门类型
@@ -470,30 +477,68 @@ public:
     void buildComponent(
         StructurePiece* component, std::vector<std::unique_ptr<StructurePiece>>& pieces, math::IRandom& rng) override;
 
-    [[nodiscard]] StrongholdPieceWeight* lastPlaced() const { return m_lastPlaced; }
-    void setLastPlaced(StrongholdPieceWeight* weight) { m_lastPlaced = weight; }
-    StrongholdPieceWeight*& lastPlacedRef() { return m_lastPlaced; }
+    [[nodiscard]] StrongholdPieceWeight* lastPlaced() const
+    {
+        return m_lastPlaced;
+    }
 
-    [[nodiscard]] StrongholdPiece* portalRoom() const { return m_portalRoom; }
-    void setPortalRoom(StrongholdPiece* room) { m_portalRoom = room; }
+    void setLastPlaced(StrongholdPieceWeight* weight)
+    {
+        m_lastPlaced = weight;
+    }
 
-    [[nodiscard]] const std::vector<StructurePiece*>& pendingChildren() const { return m_pendingChildren; }
-    void addPendingChild(StructurePiece* piece) { m_pendingChildren.push_back(piece); }
+    StrongholdPieceWeight*& lastPlacedRef()
+    {
+        return m_lastPlaced;
+    }
 
-    [[nodiscard]] std::vector<StrongholdPieceWeight>& weights() { return m_weights; }
-    [[nodiscard]] const std::vector<StrongholdPieceWeight>& weights() const { return m_weights; }
+    [[nodiscard]] StrongholdPiece* portalRoom() const
+    {
+        return m_portalRoom;
+    }
+
+    void setPortalRoom(StrongholdPiece* room)
+    {
+        m_portalRoom = room;
+    }
+
+    [[nodiscard]] const std::vector<StructurePiece*>& pendingChildren() const
+    {
+        return m_pendingChildren;
+    }
+
+    void addPendingChild(StructurePiece* piece)
+    {
+        m_pendingChildren.push_back(piece);
+    }
+
+    [[nodiscard]] std::vector<StrongholdPieceWeight>& weights()
+    {
+        return m_weights;
+    }
+
+    [[nodiscard]] const std::vector<StrongholdPieceWeight>& weights() const
+    {
+        return m_weights;
+    }
 
     /**
      * @brief 获取强制片段类型
      * 对应 MC Java 的 imposedPiece 字段，当非空时下一个片段必须为指定类型
      */
-    [[nodiscard]] i32 imposedPieceType() const { return m_imposedPieceType; }
+    [[nodiscard]] i32 imposedPieceType() const
+    {
+        return m_imposedPieceType;
+    }
 
     /**
      * @brief 设置强制片段类型并清除
      * @param type 片段类型（设为 -1 表示无强制）
      */
-    void setImposedPieceType(i32 type) { m_imposedPieceType = type; }
+    void setImposedPieceType(i32 type)
+    {
+        m_imposedPieceType = type;
+    }
 
 private:
     std::vector<StrongholdPieceWeight> m_weights;   ///< 片段权重列表
@@ -628,7 +673,10 @@ public:
         Direction direction,
         i32 depth);
 
-    [[nodiscard]] bool isLargeRoom() const { return m_isLargeRoom; }
+    [[nodiscard]] bool isLargeRoom() const
+    {
+        return m_isLargeRoom;
+    }
 
 private:
     bool m_isLargeRoom;

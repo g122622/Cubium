@@ -65,7 +65,10 @@ public:
     /**
      * @brief 获取原生JSRuntime指针
      */
-    [[nodiscard]] JSRuntime* nativeRuntime() const { return m_runtime; }
+    [[nodiscard]] JSRuntime* nativeRuntime() const
+    {
+        return m_runtime;
+    }
 
 private:
     JSRuntime* m_runtime = nullptr;

@@ -33,6 +33,7 @@ namespace mc {
 namespace world::chunk {
 class ChunkData;
 }
+
 using world::chunk::ChunkData;
 class BlockState;
 

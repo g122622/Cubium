@@ -114,7 +114,10 @@ public:
         : m_fn(std::move(fn))
     {}
 
-    Value applyPositional(Value value, const Vector3& pos) const override { return m_fn(value, pos); }
+    Value applyPositional(Value value, const Vector3& pos) const override
+    {
+        return m_fn(value, pos);
+    }
 
 private:
     ApplyFn m_fn;
@@ -134,7 +137,10 @@ public:
         : m_fn(std::move(fn))
     {}
 
-    Value applyConstant(Value value) const override { return m_fn(value); }
+    Value applyConstant(Value value) const override
+    {
+        return m_fn(value);
+    }
 
 private:
     ApplyFn m_fn;

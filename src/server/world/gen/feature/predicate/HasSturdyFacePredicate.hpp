@@ -50,13 +50,21 @@ public:
     {}
 
     [[nodiscard]] bool test(const IWorld& world, const BlockPos& pos) const override;
+
     [[nodiscard]] std::unique_ptr<BlockPredicate> clone() const override
     {
         return std::make_unique<HasSturdyFacePredicate>(m_direction, m_offset);
     }
 
-    [[nodiscard]] Direction getDirection() const { return m_direction; }
-    [[nodiscard]] const BlockPos& getOffset() const { return m_offset; }
+    [[nodiscard]] Direction getDirection() const
+    {
+        return m_direction;
+    }
+
+    [[nodiscard]] const BlockPos& getOffset() const
+    {
+        return m_offset;
+    }
 
 private:
     Direction m_direction;

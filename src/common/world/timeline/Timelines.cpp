@@ -264,7 +264,9 @@ const Timeline& Timelines::DAY()
             .addModifierTrack(attribute::EnvironmentAttributes::CAT_WAKING_UP_GIFT_CHANCE(),
                 _floatModifier(AttributeModifierOperation::Maximum),
                 EasingType::CONSTANT,
-                [](KeyframeTrack<f32>::Builder& builder) { builder.addKeyframe(362, 0.0f).addKeyframe(23667, 0.7f); })
+                [](KeyframeTrack<f32>::Builder& builder) {
+                    builder.addKeyframe(362, 0.0f).addKeyframe(23667, 0.7f);
+                })
             .addModifierTrack(attribute::EnvironmentAttributes::BEES_STAY_IN_HIVE(),
                 _booleanModifier(AttributeModifierOperation::Or),
                 std::nullopt,
@@ -346,7 +348,9 @@ const Timeline& Timelines::EARLY_GAME()
             .addModifierTrack(attribute::EnvironmentAttributes::CAN_PILLAGER_PATROL_SPAWN(),
                 _booleanModifier(AttributeModifierOperation::And),
                 std::nullopt,
-                [](KeyframeTrack<bool>::Builder& builder) { builder.addKeyframe(0, false).addKeyframe(120000, true); })
+                [](KeyframeTrack<bool>::Builder& builder) {
+                    builder.addKeyframe(0, false).addKeyframe(120000, true);
+                })
             .build();
     }();
     return instance;

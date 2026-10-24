@@ -46,7 +46,10 @@ namespace blockentity {
 
 CampfireBlockEntity::CampfireBlockEntity(const BlockPos& pos)
     : ContainerBlockEntity(BlockEntityType::Campfire, pos)
-    , m_inventory(SLOT_COUNT, [this]() { ContainerBlockEntity::setChanged(); })
+    , m_inventory(SLOT_COUNT,
+          [this]() {
+              ContainerBlockEntity::setChanged();
+          })
     , m_cookTimes{}
     , m_cookTimesTotal{}
 {}

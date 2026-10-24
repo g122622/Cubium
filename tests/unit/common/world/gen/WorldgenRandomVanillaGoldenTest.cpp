@@ -86,6 +86,7 @@ TEST(WorldgenRandomVanillaGoldenTest, DecorationSeedMatchesVanilla)
         i32 chunkZ;
         i64 expected;
     };
+
     // 期望值由 Java 参考实现导出（见文件头）
     const std::vector<Case> cases = {
         {2, -2, -775238004229461257LL},
@@ -223,6 +224,7 @@ TEST(WorldgenRandomVanillaGoldenTest, LargeFeatureSeedWrapsLikeJava)
         i32 chunkZ;
         i64 expectedNextLong;
     };
+
     // 由 Java Random 与大型特征种子公式独立生成，包含触发服务端 UBSan 的坐标。
     const std::array<Case, 6> cases = {{{0, 15, 0, -4478964318266472651LL},
         {0, -15, 31, 3529680530055902621LL},

@@ -67,13 +67,26 @@ public:
         , m_right(std::move(right))
     {}
 
-    [[nodiscard]] const Ptr& left() const { return m_left; }
-    [[nodiscard]] const Ptr& right() const { return m_right; }
+    [[nodiscard]] const Ptr& left() const
+    {
+        return m_left;
+    }
 
-    [[nodiscard]] std::vector<Ptr> children() const override { return {m_left, m_right}; }
+    [[nodiscard]] const Ptr& right() const
+    {
+        return m_right;
+    }
+
+    [[nodiscard]] std::vector<Ptr> children() const override
+    {
+        return {m_left, m_right};
+    }
 
     /// 可交换性（TreeNormalization 把常量规范到左边用）。Add/Mul/Div 可交换，Min/Max 不可。
-    [[nodiscard]] virtual bool canSwapOperandsSafely() const { return true; }
+    [[nodiscard]] virtual bool canSwapOperandsSafely() const
+    {
+        return true;
+    }
 
     /// 用新子节点重建同类节点（transform 重建用）。
     [[nodiscard]] virtual Ptr newInstance(Ptr left, Ptr right) const = 0;
@@ -122,9 +135,21 @@ public:
         , m_rightMax(rightMax)
     {}
 
-    [[nodiscard]] AstNodeKind kind() const override { return AstNodeKind::MaxShort; }
-    [[nodiscard]] bool canSwapOperandsSafely() const override { return false; }
-    [[nodiscard]] f64 rightMax() const { return m_rightMax; }
+    [[nodiscard]] AstNodeKind kind() const override
+    {
+        return AstNodeKind::MaxShort;
+    }
+
+    [[nodiscard]] bool canSwapOperandsSafely() const override
+    {
+        return false;
+    }
+
+    [[nodiscard]] f64 rightMax() const
+    {
+        return m_rightMax;
+    }
+
     [[nodiscard]] Ptr newInstance(Ptr left, Ptr right) const override;
     [[nodiscard]] Ptr transform(AstTransformer& t) const override;
     [[nodiscard]] bool relaxedEquals(const AstNode& other) const override;
@@ -144,9 +169,21 @@ public:
         , m_rightMin(rightMin)
     {}
 
-    [[nodiscard]] AstNodeKind kind() const override { return AstNodeKind::MinShort; }
-    [[nodiscard]] bool canSwapOperandsSafely() const override { return false; }
-    [[nodiscard]] f64 rightMin() const { return m_rightMin; }
+    [[nodiscard]] AstNodeKind kind() const override
+    {
+        return AstNodeKind::MinShort;
+    }
+
+    [[nodiscard]] bool canSwapOperandsSafely() const override
+    {
+        return false;
+    }
+
+    [[nodiscard]] f64 rightMin() const
+    {
+        return m_rightMin;
+    }
+
     [[nodiscard]] Ptr newInstance(Ptr left, Ptr right) const override;
     [[nodiscard]] Ptr transform(AstTransformer& t) const override;
     [[nodiscard]] bool relaxedEquals(const AstNode& other) const override;
@@ -168,9 +205,16 @@ public:
         : m_operand(std::move(operand))
     {}
 
-    [[nodiscard]] const Ptr& operand() const { return m_operand; }
+    [[nodiscard]] const Ptr& operand() const
+    {
+        return m_operand;
+    }
 
-    [[nodiscard]] std::vector<Ptr> children() const override { return {m_operand}; }
+    [[nodiscard]] std::vector<Ptr> children() const override
+    {
+        return {m_operand};
+    }
+
     [[nodiscard]] virtual Ptr newInstance(Ptr operand) const = 0;
 
     [[nodiscard]] bool relaxedEquals(const AstNode& other) const override;
@@ -215,8 +259,16 @@ public:
         , m_negMul(negMul)
     {}
 
-    [[nodiscard]] AstNodeKind kind() const override { return AstNodeKind::NegMul; }
-    [[nodiscard]] f64 negMul() const { return m_negMul; }
+    [[nodiscard]] AstNodeKind kind() const override
+    {
+        return AstNodeKind::NegMul;
+    }
+
+    [[nodiscard]] f64 negMul() const
+    {
+        return m_negMul;
+    }
+
     [[nodiscard]] Ptr newInstance(Ptr operand) const override;
     [[nodiscard]] Ptr transform(AstTransformer& t) const override;
     [[nodiscard]] bool relaxedEquals(const AstNode& other) const override;
@@ -238,9 +290,21 @@ public:
         : m_value(value)
     {}
 
-    [[nodiscard]] AstNodeKind kind() const override { return AstNodeKind::Constant; }
-    [[nodiscard]] f64 value() const { return m_value; }
-    [[nodiscard]] std::vector<Ptr> children() const override { return {}; }
+    [[nodiscard]] AstNodeKind kind() const override
+    {
+        return AstNodeKind::Constant;
+    }
+
+    [[nodiscard]] f64 value() const
+    {
+        return m_value;
+    }
+
+    [[nodiscard]] std::vector<Ptr> children() const override
+    {
+        return {};
+    }
+
     [[nodiscard]] Ptr transform(AstTransformer& t) const override;
     [[nodiscard]] bool relaxedEquals(const AstNode& other) const override;
     [[nodiscard]] size_t relaxedHashCode() const override;
@@ -257,10 +321,26 @@ public:
         : m_value(value)
     {}
 
-    [[nodiscard]] AstNodeKind kind() const override { return AstNodeKind::ConstantF32; }
-    [[nodiscard]] ReturnType returnType() const override { return ReturnType::F32; }
-    [[nodiscard]] f32 value() const { return m_value; }
-    [[nodiscard]] std::vector<Ptr> children() const override { return {}; }
+    [[nodiscard]] AstNodeKind kind() const override
+    {
+        return AstNodeKind::ConstantF32;
+    }
+
+    [[nodiscard]] ReturnType returnType() const override
+    {
+        return ReturnType::F32;
+    }
+
+    [[nodiscard]] f32 value() const
+    {
+        return m_value;
+    }
+
+    [[nodiscard]] std::vector<Ptr> children() const override
+    {
+        return {};
+    }
+
     [[nodiscard]] Ptr transform(AstTransformer& t) const override;
     [[nodiscard]] bool relaxedEquals(const AstNode& other) const override;
     [[nodiscard]] size_t relaxedHashCode() const override;
@@ -277,9 +357,21 @@ public:
         : m_axis(axis)
     {}
 
-    [[nodiscard]] AstNodeKind kind() const override { return AstNodeKind::Coordinate; }
-    [[nodiscard]] Axis axis() const { return m_axis; }
-    [[nodiscard]] std::vector<Ptr> children() const override { return {}; }
+    [[nodiscard]] AstNodeKind kind() const override
+    {
+        return AstNodeKind::Coordinate;
+    }
+
+    [[nodiscard]] Axis axis() const
+    {
+        return m_axis;
+    }
+
+    [[nodiscard]] std::vector<Ptr> children() const override
+    {
+        return {};
+    }
+
     [[nodiscard]] Ptr transform(AstTransformer& t) const override;
     [[nodiscard]] bool relaxedEquals(const AstNode& other) const override;
     [[nodiscard]] size_t relaxedHashCode() const override;
@@ -299,12 +391,36 @@ public:
         , m_toValue(toValue)
     {}
 
-    [[nodiscard]] AstNodeKind kind() const override { return AstNodeKind::YClampedGradient; }
-    [[nodiscard]] i32 fromY() const { return m_fromY; }
-    [[nodiscard]] i32 toY() const { return m_toY; }
-    [[nodiscard]] f64 fromValue() const { return m_fromValue; }
-    [[nodiscard]] f64 toValue() const { return m_toValue; }
-    [[nodiscard]] std::vector<Ptr> children() const override { return {}; }
+    [[nodiscard]] AstNodeKind kind() const override
+    {
+        return AstNodeKind::YClampedGradient;
+    }
+
+    [[nodiscard]] i32 fromY() const
+    {
+        return m_fromY;
+    }
+
+    [[nodiscard]] i32 toY() const
+    {
+        return m_toY;
+    }
+
+    [[nodiscard]] f64 fromValue() const
+    {
+        return m_fromValue;
+    }
+
+    [[nodiscard]] f64 toValue() const
+    {
+        return m_toValue;
+    }
+
+    [[nodiscard]] std::vector<Ptr> children() const override
+    {
+        return {};
+    }
+
     [[nodiscard]] Ptr transform(AstTransformer& t) const override;
     [[nodiscard]] bool relaxedEquals(const AstNode& other) const override;
     [[nodiscard]] size_t relaxedHashCode() const override;
@@ -328,9 +444,21 @@ public:
         : m_endIslands(endIslands)
     {}
 
-    [[nodiscard]] AstNodeKind kind() const override { return AstNodeKind::EndIslands; }
-    [[nodiscard]] const ::mc::world::gen::density::DensityFunction* endIslands() const { return m_endIslands; }
-    [[nodiscard]] std::vector<Ptr> children() const override { return {}; }
+    [[nodiscard]] AstNodeKind kind() const override
+    {
+        return AstNodeKind::EndIslands;
+    }
+
+    [[nodiscard]] const ::mc::world::gen::density::DensityFunction* endIslands() const
+    {
+        return m_endIslands;
+    }
+
+    [[nodiscard]] std::vector<Ptr> children() const override
+    {
+        return {};
+    }
+
     [[nodiscard]] Ptr transform(AstTransformer& t) const override;
     [[nodiscard]] bool relaxedEquals(const AstNode& other) const override;
     [[nodiscard]] size_t relaxedHashCode() const override;
@@ -357,12 +485,36 @@ public:
         , m_noise(noise)
     {}
 
-    [[nodiscard]] AstNodeKind kind() const override { return AstNodeKind::GenericShiftedNoise; }
-    [[nodiscard]] const Ptr& inputX() const { return m_inputX; }
-    [[nodiscard]] const Ptr& inputY() const { return m_inputY; }
-    [[nodiscard]] const Ptr& inputZ() const { return m_inputZ; }
-    [[nodiscard]] const ::mc::world::gen::noise::NormalNoise* noise() const { return m_noise; }
-    [[nodiscard]] std::vector<Ptr> children() const override { return {m_inputX, m_inputY, m_inputZ}; }
+    [[nodiscard]] AstNodeKind kind() const override
+    {
+        return AstNodeKind::GenericShiftedNoise;
+    }
+
+    [[nodiscard]] const Ptr& inputX() const
+    {
+        return m_inputX;
+    }
+
+    [[nodiscard]] const Ptr& inputY() const
+    {
+        return m_inputY;
+    }
+
+    [[nodiscard]] const Ptr& inputZ() const
+    {
+        return m_inputZ;
+    }
+
+    [[nodiscard]] const ::mc::world::gen::noise::NormalNoise* noise() const
+    {
+        return m_noise;
+    }
+
+    [[nodiscard]] std::vector<Ptr> children() const override
+    {
+        return {m_inputX, m_inputY, m_inputZ};
+    }
+
     [[nodiscard]] Ptr transform(AstTransformer& t) const override;
     [[nodiscard]] bool relaxedEquals(const AstNode& other) const override;
     [[nodiscard]] size_t relaxedHashCode() const override;
@@ -385,11 +537,31 @@ public:
         , m_type(type)
     {}
 
-    [[nodiscard]] AstNodeKind kind() const override { return AstNodeKind::WeirdScaledSampler; }
-    [[nodiscard]] const Ptr& input() const { return m_input; }
-    [[nodiscard]] const ::mc::world::gen::noise::NormalNoise* noise() const { return m_noise; }
-    [[nodiscard]] WeirdType type() const { return m_type; }
-    [[nodiscard]] std::vector<Ptr> children() const override { return {m_input}; }
+    [[nodiscard]] AstNodeKind kind() const override
+    {
+        return AstNodeKind::WeirdScaledSampler;
+    }
+
+    [[nodiscard]] const Ptr& input() const
+    {
+        return m_input;
+    }
+
+    [[nodiscard]] const ::mc::world::gen::noise::NormalNoise* noise() const
+    {
+        return m_noise;
+    }
+
+    [[nodiscard]] WeirdType type() const
+    {
+        return m_type;
+    }
+
+    [[nodiscard]] std::vector<Ptr> children() const override
+    {
+        return {m_input};
+    }
+
     [[nodiscard]] Ptr transform(AstTransformer& t) const override;
     [[nodiscard]] bool relaxedEquals(const AstNode& other) const override;
     [[nodiscard]] size_t relaxedHashCode() const override;
@@ -413,9 +585,21 @@ public:
         : m_blendedNoise(blendedNoise)
     {}
 
-    [[nodiscard]] AstNodeKind kind() const override { return AstNodeKind::BlendedNoise; }
-    [[nodiscard]] const ::mc::world::gen::density::DensityFunction* blendedNoise() const { return m_blendedNoise; }
-    [[nodiscard]] std::vector<Ptr> children() const override { return {}; }
+    [[nodiscard]] AstNodeKind kind() const override
+    {
+        return AstNodeKind::BlendedNoise;
+    }
+
+    [[nodiscard]] const ::mc::world::gen::density::DensityFunction* blendedNoise() const
+    {
+        return m_blendedNoise;
+    }
+
+    [[nodiscard]] std::vector<Ptr> children() const override
+    {
+        return {};
+    }
+
     [[nodiscard]] Ptr transform(AstTransformer& t) const override;
     [[nodiscard]] bool relaxedEquals(const AstNode& other) const override;
     [[nodiscard]] size_t relaxedHashCode() const override;
@@ -449,10 +633,26 @@ public:
         , m_points(std::move(points))
     {}
 
-    [[nodiscard]] AstNodeKind kind() const override { return AstNodeKind::Spline; }
-    [[nodiscard]] ReturnType returnType() const override { return ReturnType::F32; }
-    [[nodiscard]] const Ptr& locationFunction() const { return m_locationFunction; }
-    [[nodiscard]] const std::vector<Point>& points() const { return m_points; }
+    [[nodiscard]] AstNodeKind kind() const override
+    {
+        return AstNodeKind::Spline;
+    }
+
+    [[nodiscard]] ReturnType returnType() const override
+    {
+        return ReturnType::F32;
+    }
+
+    [[nodiscard]] const Ptr& locationFunction() const
+    {
+        return m_locationFunction;
+    }
+
+    [[nodiscard]] const std::vector<Point>& points() const
+    {
+        return m_points;
+    }
+
     [[nodiscard]] std::vector<Ptr> children() const override;
     [[nodiscard]] Ptr transform(AstTransformer& t) const override;
     [[nodiscard]] bool relaxedEquals(const AstNode& other) const override;
@@ -480,13 +680,41 @@ public:
         , m_whenOutOfRange(std::move(whenOutOfRange))
     {}
 
-    [[nodiscard]] AstNodeKind kind() const override { return AstNodeKind::RangeChoice; }
-    [[nodiscard]] const Ptr& input() const { return m_input; }
-    [[nodiscard]] f64 minInclusive() const { return m_minInclusive; }
-    [[nodiscard]] f64 maxExclusive() const { return m_maxExclusive; }
-    [[nodiscard]] const Ptr& whenInRange() const { return m_whenInRange; }
-    [[nodiscard]] const Ptr& whenOutOfRange() const { return m_whenOutOfRange; }
-    [[nodiscard]] std::vector<Ptr> children() const override { return {m_input, m_whenInRange, m_whenOutOfRange}; }
+    [[nodiscard]] AstNodeKind kind() const override
+    {
+        return AstNodeKind::RangeChoice;
+    }
+
+    [[nodiscard]] const Ptr& input() const
+    {
+        return m_input;
+    }
+
+    [[nodiscard]] f64 minInclusive() const
+    {
+        return m_minInclusive;
+    }
+
+    [[nodiscard]] f64 maxExclusive() const
+    {
+        return m_maxExclusive;
+    }
+
+    [[nodiscard]] const Ptr& whenInRange() const
+    {
+        return m_whenInRange;
+    }
+
+    [[nodiscard]] const Ptr& whenOutOfRange() const
+    {
+        return m_whenOutOfRange;
+    }
+
+    [[nodiscard]] std::vector<Ptr> children() const override
+    {
+        return {m_input, m_whenInRange, m_whenOutOfRange};
+    }
+
     [[nodiscard]] Ptr transform(AstTransformer& t) const override;
     [[nodiscard]] bool relaxedEquals(const AstNode& other) const override;
     [[nodiscard]] size_t relaxedHashCode() const override;
@@ -509,11 +737,31 @@ public:
         , m_max(max)
     {}
 
-    [[nodiscard]] AstNodeKind kind() const override { return AstNodeKind::Clamp; }
-    [[nodiscard]] const Ptr& input() const { return m_input; }
-    [[nodiscard]] f64 min() const { return m_min; }
-    [[nodiscard]] f64 max() const { return m_max; }
-    [[nodiscard]] std::vector<Ptr> children() const override { return {m_input}; }
+    [[nodiscard]] AstNodeKind kind() const override
+    {
+        return AstNodeKind::Clamp;
+    }
+
+    [[nodiscard]] const Ptr& input() const
+    {
+        return m_input;
+    }
+
+    [[nodiscard]] f64 min() const
+    {
+        return m_min;
+    }
+
+    [[nodiscard]] f64 max() const
+    {
+        return m_max;
+    }
+
+    [[nodiscard]] std::vector<Ptr> children() const override
+    {
+        return {m_input};
+    }
+
     [[nodiscard]] Ptr transform(AstTransformer& t) const override;
     [[nodiscard]] bool relaxedEquals(const AstNode& other) const override;
     [[nodiscard]] size_t relaxedHashCode() const override;
@@ -534,11 +782,31 @@ public:
         , m_end(std::move(end))
     {}
 
-    [[nodiscard]] AstNodeKind kind() const override { return AstNodeKind::Lerp; }
-    [[nodiscard]] const Ptr& delta() const { return m_delta; }
-    [[nodiscard]] const Ptr& start() const { return m_start; }
-    [[nodiscard]] const Ptr& end() const { return m_end; }
-    [[nodiscard]] std::vector<Ptr> children() const override { return {m_delta, m_start, m_end}; }
+    [[nodiscard]] AstNodeKind kind() const override
+    {
+        return AstNodeKind::Lerp;
+    }
+
+    [[nodiscard]] const Ptr& delta() const
+    {
+        return m_delta;
+    }
+
+    [[nodiscard]] const Ptr& start() const
+    {
+        return m_start;
+    }
+
+    [[nodiscard]] const Ptr& end() const
+    {
+        return m_end;
+    }
+
+    [[nodiscard]] std::vector<Ptr> children() const override
+    {
+        return {m_delta, m_start, m_end};
+    }
+
     [[nodiscard]] Ptr transform(AstTransformer& t) const override;
     [[nodiscard]] bool relaxedEquals(const AstNode& other) const override;
     [[nodiscard]] size_t relaxedHashCode() const override;
@@ -572,12 +840,36 @@ public:
         , m_delegateMaxValue(delegateMaxValue)
     {}
 
-    [[nodiscard]] AstNodeKind kind() const override { return AstNodeKind::Marker; }
-    [[nodiscard]] MarkerType markerType() const { return m_type; }
-    [[nodiscard]] const Ptr& delegate() const { return m_delegate; }
-    [[nodiscard]] f64 delegateMinValue() const { return m_delegateMinValue; }
-    [[nodiscard]] f64 delegateMaxValue() const { return m_delegateMaxValue; }
-    [[nodiscard]] std::vector<Ptr> children() const override { return {m_delegate}; }
+    [[nodiscard]] AstNodeKind kind() const override
+    {
+        return AstNodeKind::Marker;
+    }
+
+    [[nodiscard]] MarkerType markerType() const
+    {
+        return m_type;
+    }
+
+    [[nodiscard]] const Ptr& delegate() const
+    {
+        return m_delegate;
+    }
+
+    [[nodiscard]] f64 delegateMinValue() const
+    {
+        return m_delegateMinValue;
+    }
+
+    [[nodiscard]] f64 delegateMaxValue() const
+    {
+        return m_delegateMaxValue;
+    }
+
+    [[nodiscard]] std::vector<Ptr> children() const override
+    {
+        return {m_delegate};
+    }
+
     [[nodiscard]] Ptr transform(AstTransformer& t) const override;
     [[nodiscard]] bool relaxedEquals(const AstNode& other) const override;
     [[nodiscard]] size_t relaxedHashCode() const override;
@@ -596,8 +888,16 @@ class BeardifierNode final : public AstNode {
 public:
     BeardifierNode() = default;
 
-    [[nodiscard]] AstNodeKind kind() const override { return AstNodeKind::Beardifier; }
-    [[nodiscard]] std::vector<Ptr> children() const override { return {}; }
+    [[nodiscard]] AstNodeKind kind() const override
+    {
+        return AstNodeKind::Beardifier;
+    }
+
+    [[nodiscard]] std::vector<Ptr> children() const override
+    {
+        return {};
+    }
+
     [[nodiscard]] Ptr transform(AstTransformer& t) const override;
     [[nodiscard]] bool relaxedEquals(const AstNode& other) const override;
     [[nodiscard]] size_t relaxedHashCode() const override;
@@ -624,10 +924,26 @@ public:
         , m_inner(std::move(inner))
     {}
 
-    [[nodiscard]] AstNodeKind kind() const override { return AstNodeKind::SharedSubtreeRef; }
-    [[nodiscard]] u64 subTreeId() const { return m_subTreeId; }
-    [[nodiscard]] const Ptr& inner() const { return m_inner; }
-    [[nodiscard]] std::vector<Ptr> children() const override { return {}; }
+    [[nodiscard]] AstNodeKind kind() const override
+    {
+        return AstNodeKind::SharedSubtreeRef;
+    }
+
+    [[nodiscard]] u64 subTreeId() const
+    {
+        return m_subTreeId;
+    }
+
+    [[nodiscard]] const Ptr& inner() const
+    {
+        return m_inner;
+    }
+
+    [[nodiscard]] std::vector<Ptr> children() const override
+    {
+        return {};
+    }
+
     [[nodiscard]] Ptr transform(AstTransformer& t) const override;
     [[nodiscard]] bool relaxedEquals(const AstNode& other) const override;
     [[nodiscard]] size_t relaxedHashCode() const override;
@@ -649,12 +965,36 @@ public:
         , m_cellHeight(cellHeight)
     {}
 
-    [[nodiscard]] AstNodeKind kind() const override { return AstNodeKind::FindTopSurface; }
-    [[nodiscard]] const Ptr& density() const { return m_density; }
-    [[nodiscard]] const Ptr& upperBound() const { return m_upperBound; }
-    [[nodiscard]] i32 lowerBound() const { return m_lowerBound; }
-    [[nodiscard]] i32 cellHeight() const { return m_cellHeight; }
-    [[nodiscard]] std::vector<Ptr> children() const override { return {m_density, m_upperBound}; }
+    [[nodiscard]] AstNodeKind kind() const override
+    {
+        return AstNodeKind::FindTopSurface;
+    }
+
+    [[nodiscard]] const Ptr& density() const
+    {
+        return m_density;
+    }
+
+    [[nodiscard]] const Ptr& upperBound() const
+    {
+        return m_upperBound;
+    }
+
+    [[nodiscard]] i32 lowerBound() const
+    {
+        return m_lowerBound;
+    }
+
+    [[nodiscard]] i32 cellHeight() const
+    {
+        return m_cellHeight;
+    }
+
+    [[nodiscard]] std::vector<Ptr> children() const override
+    {
+        return {m_density, m_upperBound};
+    }
+
     [[nodiscard]] Ptr transform(AstTransformer& t) const override;
     [[nodiscard]] bool relaxedEquals(const AstNode& other) const override;
     [[nodiscard]] size_t relaxedHashCode() const override;
@@ -681,12 +1021,21 @@ public:
         : m_densityFunction(densityFunction)
     {}
 
-    [[nodiscard]] AstNodeKind kind() const override { return AstNodeKind::Delegate; }
+    [[nodiscard]] AstNodeKind kind() const override
+    {
+        return AstNodeKind::Delegate;
+    }
+
     [[nodiscard]] const ::mc::world::gen::density::DensityFunction* densityFunction() const
     {
         return m_densityFunction;
     }
-    [[nodiscard]] std::vector<Ptr> children() const override { return {}; }
+
+    [[nodiscard]] std::vector<Ptr> children() const override
+    {
+        return {};
+    }
+
     [[nodiscard]] Ptr transform(AstTransformer& t) const override;
     [[nodiscard]] bool relaxedEquals(const AstNode& other) const override;
     [[nodiscard]] size_t relaxedHashCode() const override;

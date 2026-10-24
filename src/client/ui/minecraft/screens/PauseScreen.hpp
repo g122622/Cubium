@@ -36,9 +36,20 @@ public:
 
     PauseScreen();
 
-    void setOnResume(Callback callback) { m_onResume = std::move(callback); }
-    void setOnOptions(Callback callback) { m_onOptions = std::move(callback); }
-    void setOnSaveAndQuit(Callback callback) { m_onSaveAndQuit = std::move(callback); }
+    void setOnResume(Callback callback)
+    {
+        m_onResume = std::move(callback);
+    }
+
+    void setOnOptions(Callback callback)
+    {
+        m_onOptions = std::move(callback);
+    }
+
+    void setOnSaveAndQuit(Callback callback)
+    {
+        m_onSaveAndQuit = std::move(callback);
+    }
 
     bool onKey(i32 key, i32 scanCode, i32 action, i32 mods) override;
 

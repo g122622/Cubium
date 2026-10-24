@@ -73,11 +73,17 @@ public:
      * @brief 获取旗帜底色
      * @return 染料颜色
      */
-    [[nodiscard]] DyeColor getColor() const noexcept { return m_color; }
+    [[nodiscard]] DyeColor getColor() const noexcept
+    {
+        return m_color;
+    }
 
     // ========== 方块实体 ==========
 
-    [[nodiscard]] bool hasBlockEntity() const noexcept override { return true; }
+    [[nodiscard]] bool hasBlockEntity() const noexcept override
+    {
+        return true;
+    }
 
     /**
      * @brief 创建旗帜方块实体

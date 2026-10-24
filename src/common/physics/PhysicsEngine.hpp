@@ -77,12 +77,18 @@ public:
     /**
      * @brief 获取世界最小Y坐标
      */
-    [[nodiscard]] virtual i32 getMinBuildHeight() const { return world::MIN_BUILD_HEIGHT; }
+    [[nodiscard]] virtual i32 getMinBuildHeight() const
+    {
+        return world::MIN_BUILD_HEIGHT;
+    }
 
     /**
      * @brief 获取世界最大Y坐标
      */
-    [[nodiscard]] virtual i32 getMaxBuildHeight() const { return world::MAX_BUILD_HEIGHT; }
+    [[nodiscard]] virtual i32 getMaxBuildHeight() const
+    {
+        return world::MAX_BUILD_HEIGHT;
+    }
 };
 
 /**
@@ -181,22 +187,34 @@ public:
     /**
      * @brief 设置碰撞世界
      */
-    void setWorld(ICollisionWorld& world) { m_world = &world; }
+    void setWorld(ICollisionWorld& world)
+    {
+        m_world = &world;
+    }
 
     /**
      * @brief 获取碰撞世界
      */
-    [[nodiscard]] ICollisionWorld* getWorld() const { return m_world; }
+    [[nodiscard]] ICollisionWorld* getWorld() const
+    {
+        return m_world;
+    }
 
     /**
      * @brief 检测上次移动是否有垂直碰撞
      */
-    [[nodiscard]] bool collidedVertically() const { return m_collidedVertically; }
+    [[nodiscard]] bool collidedVertically() const
+    {
+        return m_collidedVertically;
+    }
 
     /**
      * @brief 检测上次移动是否有水平碰撞
      */
-    [[nodiscard]] bool collidedHorizontally() const { return m_collidedHorizontally; }
+    [[nodiscard]] bool collidedHorizontally() const
+    {
+        return m_collidedHorizontally;
+    }
 
 private:
     /**

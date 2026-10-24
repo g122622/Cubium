@@ -69,7 +69,11 @@ public:
     // （FireBlock 已迁移到计划刻范式且 ticksRandomly()=false，SoulFireBlock 继承 onBlockAdded 会调度
     // 一次计划刻，命中此空 tick 后不再续期，灵魂火不参与刻，符合 vanilla。）
     void tick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random) override;
-    [[nodiscard]] bool ticksRandomly() const noexcept override { return false; }
+
+    [[nodiscard]] bool ticksRandomly() const noexcept override
+    {
+        return false;
+    }
 
     /**
      * @brief 检查方块是否可以作为灵魂火的基座

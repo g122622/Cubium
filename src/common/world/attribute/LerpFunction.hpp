@@ -50,7 +50,10 @@ public:
         : m_fn(std::move(fn))
     {}
 
-    T apply(f32 progress, T from, T to) const { return m_fn(progress, from, to); }
+    T apply(f32 progress, T from, T to) const
+    {
+        return m_fn(progress, from, to);
+    }
 
     /**
      * @brief 以后处理函数转换插值目标类型
@@ -76,7 +79,9 @@ public:
      */
     static LerpFunction<f32> ofFloat()
     {
-        return LerpFunction<f32>([](f32 progress, f32 from, f32 to) { return from + progress * (to - from); });
+        return LerpFunction<f32>([](f32 progress, f32 from, f32 to) {
+            return from + progress * (to - from);
+        });
     }
 
     /**
@@ -96,7 +101,9 @@ public:
     template <typename U>
     static LerpFunction<U> ofConstant()
     {
-        return LerpFunction<U>([](f32, U from, U) { return from; });
+        return LerpFunction<U>([](f32, U from, U) {
+            return from;
+        });
     }
 
     /**
@@ -106,7 +113,9 @@ public:
      */
     static LerpFunction<T> ofStep(f32 threshold)
     {
-        return LerpFunction<T>([threshold](f32 progress, T from, T to) { return progress >= threshold ? to : from; });
+        return LerpFunction<T>([threshold](f32 progress, T from, T to) {
+            return progress >= threshold ? to : from;
+        });
     }
 
     /**
@@ -114,7 +123,9 @@ public:
      */
     static LerpFunction<i32> ofColor()
     {
-        return LerpFunction<i32>([](f32 progress, i32 from, i32 to) { return srgbLerp(progress, from, to); });
+        return LerpFunction<i32>([](f32 progress, i32 from, i32 to) {
+            return srgbLerp(progress, from, to);
+        });
     }
 
     /**
@@ -154,7 +165,10 @@ public:
     }
 
     /// 角度归一化到 [-180, 180)
-    static f32 _wrapDegrees(f32 degrees) { return math::wrapDegrees(degrees); }
+    static f32 _wrapDegrees(f32 degrees)
+    {
+        return math::wrapDegrees(degrees);
+    }
 
     std::function<T(f32, T, T)> m_fn;
 };

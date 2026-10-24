@@ -53,7 +53,10 @@ public:
         : ProtectionEnchantment(Type::Fire)
     {}
 
-    [[nodiscard]] std::string id() const noexcept override { return "minecraft:fire_protection"; }
+    [[nodiscard]] std::string id() const noexcept override
+    {
+        return "minecraft:fire_protection";
+    }
 
     [[nodiscard]] std::string getNameKey(i32 level) const noexcept override
     {
@@ -61,7 +64,10 @@ public:
         return "enchantment.minecraft.fire_protection";
     }
 
-    [[nodiscard]] EnchantmentRarity rarity() const noexcept override { return EnchantmentRarity::Uncommon; }
+    [[nodiscard]] EnchantmentRarity rarity() const noexcept override
+    {
+        return EnchantmentRarity::Uncommon;
+    }
 
     /**
      * @brief 火焰保护附魔的属性修饰符

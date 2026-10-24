@@ -84,12 +84,18 @@ public:
      * @brief 设置是否启用消失检查
      * @param enabled 是否启用
      */
-    void setEnabled(bool enabled) { m_enabled = enabled; }
+    void setEnabled(bool enabled)
+    {
+        m_enabled = enabled;
+    }
 
     /**
      * @brief 获取是否启用消失检查
      */
-    [[nodiscard]] bool isEnabled() const { return m_enabled; }
+    [[nodiscard]] bool isEnabled() const
+    {
+        return m_enabled;
+    }
 
     /**
      * @brief 纯函数消失决策（Mob.checkDespawn）

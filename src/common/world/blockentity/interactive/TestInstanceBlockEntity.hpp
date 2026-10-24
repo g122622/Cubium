@@ -85,12 +85,31 @@ public:
 
     // ========== 数据访问 ==========
 
-    [[nodiscard]] const std::string& getTestId() const noexcept { return m_testId; }
-    void setTestId(const std::string& testId) { m_testId = testId; }
+    [[nodiscard]] const std::string& getTestId() const noexcept
+    {
+        return m_testId;
+    }
 
-    [[nodiscard]] i32 getSizeX() const noexcept { return m_sizeX; }
-    [[nodiscard]] i32 getSizeY() const noexcept { return m_sizeY; }
-    [[nodiscard]] i32 getSizeZ() const noexcept { return m_sizeZ; }
+    void setTestId(const std::string& testId)
+    {
+        m_testId = testId;
+    }
+
+    [[nodiscard]] i32 getSizeX() const noexcept
+    {
+        return m_sizeX;
+    }
+
+    [[nodiscard]] i32 getSizeY() const noexcept
+    {
+        return m_sizeY;
+    }
+
+    [[nodiscard]] i32 getSizeZ() const noexcept
+    {
+        return m_sizeZ;
+    }
+
     void setSize(i32 x, i32 y, i32 z)
     {
         m_sizeX = x;
@@ -98,20 +117,42 @@ public:
         m_sizeZ = z;
     }
 
-    [[nodiscard]] Rotation getRotation() const noexcept { return m_rotation; }
-    void setRotation(Rotation rotation) { m_rotation = rotation; }
+    [[nodiscard]] Rotation getRotation() const noexcept
+    {
+        return m_rotation;
+    }
 
-    [[nodiscard]] bool ignoreEntities() const noexcept { return m_ignoreEntities; }
-    void setIgnoreEntities(bool ignore) { m_ignoreEntities = ignore; }
+    void setRotation(Rotation rotation)
+    {
+        m_rotation = rotation;
+    }
 
-    [[nodiscard]] Status getStatus() const noexcept { return m_status; }
+    [[nodiscard]] bool ignoreEntities() const noexcept
+    {
+        return m_ignoreEntities;
+    }
+
+    void setIgnoreEntities(bool ignore)
+    {
+        m_ignoreEntities = ignore;
+    }
+
+    [[nodiscard]] Status getStatus() const noexcept
+    {
+        return m_status;
+    }
+
     void setStatus(Status status)
     {
         m_status = status;
         setChanged();
     }
 
-    [[nodiscard]] const std::string& getErrorMessage() const noexcept { return m_errorMessage; }
+    [[nodiscard]] const std::string& getErrorMessage() const noexcept
+    {
+        return m_errorMessage;
+    }
+
     void setErrorMessage(const std::string& message)
     {
         m_errorMessage = message;
@@ -126,7 +167,11 @@ public:
 
     // ========== 错误标记 ==========
 
-    [[nodiscard]] const std::vector<ErrorMarker>& getErrorMarkers() const noexcept { return m_errorMarkers; }
+    [[nodiscard]] const std::vector<ErrorMarker>& getErrorMarkers() const noexcept
+    {
+        return m_errorMarkers;
+    }
+
     void markError(const BlockPos& pos, const std::string& text);
     void clearErrorMarkers();
 
@@ -139,7 +184,10 @@ public:
     [[nodiscard]] std::unique_ptr<BlockEntity> clone() const override;
 
     /// 测试实例方块为管理员方块，NBT 仅允许 OP 修改
-    [[nodiscard]] bool onlyOpsCanSetNbt() const noexcept override { return true; }
+    [[nodiscard]] bool onlyOpsCanSetNbt() const noexcept override
+    {
+        return true;
+    }
 
     // ========== 未实现的结构操作（留 TODO） ==========
 

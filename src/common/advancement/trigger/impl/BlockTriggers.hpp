@@ -60,7 +60,10 @@ class EnterBlockTrigger : public AbstractCriterionTrigger<EnterBlockTriggerInsta
 public:
     static constexpr const char* TRIGGER_ID = "minecraft:enter_block";
 
-    [[nodiscard]] ResourceLocation getId() const override { return ResourceLocation(TRIGGER_ID); }
+    [[nodiscard]] ResourceLocation getId() const override
+    {
+        return ResourceLocation(TRIGGER_ID);
+    }
 
     [[nodiscard]] Result<std::shared_ptr<ICriterionInstance>> fromJson(const nlohmann::json& json) override;
 
@@ -117,7 +120,10 @@ class PlacedBlockTrigger : public AbstractCriterionTrigger<PlacedBlockTriggerIns
 public:
     static constexpr const char* TRIGGER_ID = "minecraft:placed_block";
 
-    [[nodiscard]] ResourceLocation getId() const override { return ResourceLocation(TRIGGER_ID); }
+    [[nodiscard]] ResourceLocation getId() const override
+    {
+        return ResourceLocation(TRIGGER_ID);
+    }
 
     [[nodiscard]] Result<std::shared_ptr<ICriterionInstance>> fromJson(const nlohmann::json& json) override;
 
@@ -161,7 +167,10 @@ class SlideDownBlockTrigger : public AbstractCriterionTrigger<SlideDownBlockTrig
 public:
     static constexpr const char* TRIGGER_ID = "minecraft:slide_down_block";
 
-    [[nodiscard]] ResourceLocation getId() const override { return ResourceLocation(TRIGGER_ID); }
+    [[nodiscard]] ResourceLocation getId() const override
+    {
+        return ResourceLocation(TRIGGER_ID);
+    }
 
     [[nodiscard]] Result<std::shared_ptr<ICriterionInstance>> fromJson(const nlohmann::json& json) override;
 
@@ -196,7 +205,10 @@ class BeeNestDestroyedTrigger : public AbstractCriterionTrigger<BeeNestDestroyed
 public:
     static constexpr const char* TRIGGER_ID = "minecraft:bee_nest_destroyed";
 
-    [[nodiscard]] ResourceLocation getId() const override { return ResourceLocation(TRIGGER_ID); }
+    [[nodiscard]] ResourceLocation getId() const override
+    {
+        return ResourceLocation(TRIGGER_ID);
+    }
 
     [[nodiscard]] Result<std::shared_ptr<ICriterionInstance>> fromJson(const nlohmann::json& json) override;
 

@@ -68,17 +68,41 @@ public:
 
     // IBuffer 接口实现
     void destroy() override;
-    [[nodiscard]] u64 size() const override { return m_size; }
-    [[nodiscard]] api::BufferUsage usage() const override { return m_usage; }
-    [[nodiscard]] bool isValid() const override { return m_buffer != VK_NULL_HANDLE; }
+
+    [[nodiscard]] u64 size() const override
+    {
+        return m_size;
+    }
+
+    [[nodiscard]] api::BufferUsage usage() const override
+    {
+        return m_usage;
+    }
+
+    [[nodiscard]] bool isValid() const override
+    {
+        return m_buffer != VK_NULL_HANDLE;
+    }
+
     [[nodiscard]] void* map() override;
     void unmap() override;
     [[nodiscard]] Result<void> upload(const void* data, u64 size, u64 offset = 0) override;
-    [[nodiscard]] void* nativeHandle() const override { return m_buffer; }
+
+    [[nodiscard]] void* nativeHandle() const override
+    {
+        return m_buffer;
+    }
 
     // Vulkan 特有访问器
-    [[nodiscard]] VkBuffer buffer() const { return m_buffer; }
-    [[nodiscard]] VkDeviceMemory memory() const { return m_memory; }
+    [[nodiscard]] VkBuffer buffer() const
+    {
+        return m_buffer;
+    }
+
+    [[nodiscard]] VkDeviceMemory memory() const
+    {
+        return m_memory;
+    }
 
 protected:
     TridentContext* m_context = nullptr;
@@ -114,21 +138,46 @@ public:
 
     // IBuffer 接口实现
     void destroy() override;
-    [[nodiscard]] u64 size() const override { return m_size; }
-    [[nodiscard]] api::BufferUsage usage() const override { return api::BufferUsage::Vertex; }
-    [[nodiscard]] bool isValid() const override { return m_buffer != VK_NULL_HANDLE; }
+
+    [[nodiscard]] u64 size() const override
+    {
+        return m_size;
+    }
+
+    [[nodiscard]] api::BufferUsage usage() const override
+    {
+        return api::BufferUsage::Vertex;
+    }
+
+    [[nodiscard]] bool isValid() const override
+    {
+        return m_buffer != VK_NULL_HANDLE;
+    }
+
     [[nodiscard]] void* map() override;
     void unmap() override;
     [[nodiscard]] Result<void> upload(const void* data, u64 size, u64 offset = 0) override;
-    [[nodiscard]] void* nativeHandle() const override { return m_buffer; }
+
+    [[nodiscard]] void* nativeHandle() const override
+    {
+        return m_buffer;
+    }
 
     // IVertexBuffer 接口实现
     [[nodiscard]] u32 vertexCount() const override;
-    [[nodiscard]] u32 vertexStride() const override { return m_vertexStride; }
+
+    [[nodiscard]] u32 vertexStride() const override
+    {
+        return m_vertexStride;
+    }
+
     void bind(void* commandBuffer) override;
 
     // Vulkan 特有访问器
-    [[nodiscard]] VkBuffer buffer() const { return m_buffer; }
+    [[nodiscard]] VkBuffer buffer() const
+    {
+        return m_buffer;
+    }
 
 private:
     TridentContext* m_context = nullptr;
@@ -162,21 +211,49 @@ public:
 
     // IBuffer 接口实现
     void destroy() override;
-    [[nodiscard]] u64 size() const override { return m_size; }
-    [[nodiscard]] api::BufferUsage usage() const override { return api::BufferUsage::Index; }
-    [[nodiscard]] bool isValid() const override { return m_buffer != VK_NULL_HANDLE; }
+
+    [[nodiscard]] u64 size() const override
+    {
+        return m_size;
+    }
+
+    [[nodiscard]] api::BufferUsage usage() const override
+    {
+        return api::BufferUsage::Index;
+    }
+
+    [[nodiscard]] bool isValid() const override
+    {
+        return m_buffer != VK_NULL_HANDLE;
+    }
+
     [[nodiscard]] void* map() override;
     void unmap() override;
     [[nodiscard]] Result<void> upload(const void* data, u64 size, u64 offset = 0) override;
-    [[nodiscard]] void* nativeHandle() const override { return m_buffer; }
+
+    [[nodiscard]] void* nativeHandle() const override
+    {
+        return m_buffer;
+    }
 
     // IIndexBuffer 接口实现
-    [[nodiscard]] api::IndexType indexType() const override { return m_indexType; }
-    [[nodiscard]] u32 indexCount() const override { return m_indexCount; }
+    [[nodiscard]] api::IndexType indexType() const override
+    {
+        return m_indexType;
+    }
+
+    [[nodiscard]] u32 indexCount() const override
+    {
+        return m_indexCount;
+    }
+
     void bind(void* commandBuffer) override;
 
     // Vulkan 特有访问器
-    [[nodiscard]] VkBuffer buffer() const { return m_buffer; }
+    [[nodiscard]] VkBuffer buffer() const
+    {
+        return m_buffer;
+    }
 
 private:
     TridentContext* m_context = nullptr;
@@ -217,21 +294,43 @@ public:
 
     // IBuffer 接口实现
     void destroy() override;
-    [[nodiscard]] u64 size() const override { return m_size; }
-    [[nodiscard]] api::BufferUsage usage() const override { return api::BufferUsage::Uniform; }
-    [[nodiscard]] bool isValid() const override { return !m_buffers.empty() && m_buffers[0] != VK_NULL_HANDLE; }
+
+    [[nodiscard]] u64 size() const override
+    {
+        return m_size;
+    }
+
+    [[nodiscard]] api::BufferUsage usage() const override
+    {
+        return api::BufferUsage::Uniform;
+    }
+
+    [[nodiscard]] bool isValid() const override
+    {
+        return !m_buffers.empty() && m_buffers[0] != VK_NULL_HANDLE;
+    }
+
     [[nodiscard]] void* map() override;
     void unmap() override;
     [[nodiscard]] Result<void> upload(const void* data, u64 size, u64 offset = 0) override;
+
     [[nodiscard]] void* nativeHandle() const override
     {
         return m_buffers.empty() ? VK_NULL_HANDLE : m_buffers[m_currentFrame];
     }
 
     // IUniformBuffer 接口实现
-    [[nodiscard]] u32 currentFrameIndex() const override { return m_currentFrame; }
+    [[nodiscard]] u32 currentFrameIndex() const override
+    {
+        return m_currentFrame;
+    }
+
     void advanceFrame() override;
-    [[nodiscard]] u32 frameCount() const override { return m_frameCount; }
+
+    [[nodiscard]] u32 frameCount() const override
+    {
+        return m_frameCount;
+    }
 
     // Vulkan 特有访问器
     [[nodiscard]] VkBuffer buffer(u32 frameIndex) const;

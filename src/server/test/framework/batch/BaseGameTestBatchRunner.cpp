@@ -125,7 +125,9 @@ void BaseGameTestBatchRunner::tick()
     // 检查当前批次所有实例是否完成
     const bool allDone = std::all_of(m_currentBatchInstances.begin(),
         m_currentBatchInstances.end(),
-        [](const std::unique_ptr<BaseGameTestInstance>& inst) { return isDone(inst->state()); });
+        [](const std::unique_ptr<BaseGameTestInstance>& inst) {
+            return isDone(inst->state());
+        });
     if (!allDone) {
         return;
     }

@@ -126,7 +126,9 @@ Result<void> FrameManager::initialize(TridentContext* context, u32 maxFramesInFl
 
 void FrameManager::destroy()
 {
-    if (!m_initialized) return;
+    if (!m_initialized) {
+        return;
+    }
 
     m_context->waitIdle();
 
@@ -261,7 +263,9 @@ Result<void> FrameManager::submitAndPresent(TridentSwapchain* swapchain)
 
 void FrameManager::beginFrame()
 {
-    if (m_frameStarted) return;
+    if (m_frameStarted) {
+        return;
+    }
 
     MC_ASSERT_RELEASE(m_imageIndex < m_commandBuffers.size());
 
@@ -279,7 +283,9 @@ void FrameManager::beginFrame()
 
 void FrameManager::endFrame()
 {
-    if (!m_frameStarted) return;
+    if (!m_frameStarted) {
+        return;
+    }
 
     MC_ASSERT_RELEASE(m_imageIndex < m_commandBuffers.size());
 
@@ -470,7 +476,9 @@ void FrameManager::_destroyCommandBuffers()
 
 void FrameManager::_destroySyncObjects()
 {
-    if (!m_context) return;
+    if (!m_context) {
+        return;
+    }
 
     VkDevice device = m_context->device();
 

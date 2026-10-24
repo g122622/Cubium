@@ -69,17 +69,27 @@ public:
 
     [[nodiscard]] bool test(LootContext& context) const override;
     [[nodiscard]] std::unique_ptr<LootCondition> clone() const noexcept override;
-    [[nodiscard]] std::string getType() const override { return "table_bonus"; }
+
+    [[nodiscard]] std::string getType() const override
+    {
+        return "table_bonus";
+    }
 
     /**
      * @brief 获取附魔ID
      */
-    [[nodiscard]] const std::string& getEnchantmentId() const { return m_enchantmentId; }
+    [[nodiscard]] const std::string& getEnchantmentId() const
+    {
+        return m_enchantmentId;
+    }
 
     /**
      * @brief 获取概率表
      */
-    [[nodiscard]] const std::vector<f32>& getChances() const { return m_chances; }
+    [[nodiscard]] const std::vector<f32>& getChances() const
+    {
+        return m_chances;
+    }
 
 private:
     std::string m_enchantmentId;

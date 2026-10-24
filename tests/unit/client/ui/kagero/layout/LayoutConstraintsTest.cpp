@@ -40,6 +40,7 @@ using mc::i32;
 class LayoutConstraintsTest : public ::testing::Test {
 protected:
     void SetUp() override {}
+
     void TearDown() override {}
 };
 

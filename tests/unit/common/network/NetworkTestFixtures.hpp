@@ -238,23 +238,59 @@ protected:
     }
 
     /// 驱动服务端连接 pump 一次（主线程派发对端投递的包）。
-    void pumpServer() { m_serverConn->pumpLocal(); }
+    void pumpServer()
+    {
+        m_serverConn->pumpLocal();
+    }
 
-    [[nodiscard]] mc::server::net::ServerClientConnection* serverConn() const noexcept { return m_serverConn; }
-    [[nodiscard]] mc::server::net::ServerNetwork& net() const noexcept { return *m_serverNetwork; }
-    [[nodiscard]] int playerReadyCount() const noexcept { return m_playerReadyCount; }
-    [[nodiscard]] int playPacketCount() const noexcept { return m_playPacketCount; }
-    [[nodiscard]] int inboundErrorCount() const noexcept { return m_inboundErrorCount; }
-    [[nodiscard]] const std::string& lastInboundError() const noexcept { return m_lastInboundError; }
-    [[nodiscard]] const std::string& readyUsername() const noexcept { return m_readyUsername; }
-    [[nodiscard]] const std::array<u8, 16>& readyUuid() const noexcept { return m_readyUuid; }
+    [[nodiscard]] mc::server::net::ServerClientConnection* serverConn() const noexcept
+    {
+        return m_serverConn;
+    }
+
+    [[nodiscard]] mc::server::net::ServerNetwork& net() const noexcept
+    {
+        return *m_serverNetwork;
+    }
+
+    [[nodiscard]] int playerReadyCount() const noexcept
+    {
+        return m_playerReadyCount;
+    }
+
+    [[nodiscard]] int playPacketCount() const noexcept
+    {
+        return m_playPacketCount;
+    }
+
+    [[nodiscard]] int inboundErrorCount() const noexcept
+    {
+        return m_inboundErrorCount;
+    }
+
+    [[nodiscard]] const std::string& lastInboundError() const noexcept
+    {
+        return m_lastInboundError;
+    }
+
+    [[nodiscard]] const std::string& readyUsername() const noexcept
+    {
+        return m_readyUsername;
+    }
+
+    [[nodiscard]] const std::array<u8, 16>& readyUuid() const noexcept
+    {
+        return m_readyUuid;
+    }
 
     /// 从客户端侧 transport 的入站队列中取出服务端发出的下一个包（无包返回 nullopt）。
     /// 用于断言 StatusResponse 等 S→C 包内容：服务端 send → 客户端队列，再 pumpClient 取回。
     [[nodiscard]] std::optional<mc::network::ir::IrPacket> pumpClient()
     {
         std::optional<mc::network::ir::IrPacket> received;
-        m_clientTransport->onPacket([&received](const mc::network::ir::IrPacket& packet) { received = packet; });
+        m_clientTransport->onPacket([&received](const mc::network::ir::IrPacket& packet) {
+            received = packet;
+        });
         m_clientTransport->pump();
         return received;
     }

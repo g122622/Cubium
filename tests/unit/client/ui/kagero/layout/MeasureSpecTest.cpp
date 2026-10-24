@@ -36,6 +36,7 @@ using namespace mc::client::ui::kagero::layout;
 class MeasureSpecTest : public ::testing::Test {
 protected:
     void SetUp() override {}
+
     void TearDown() override {}
 };
 

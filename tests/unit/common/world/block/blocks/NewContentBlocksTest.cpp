@@ -107,15 +107,37 @@ public:
         return &fluid::Fluids::EMPTY()->defaultState();
     }
 
-    [[nodiscard]] mc::world::chunk::IChunkManager* chunkManager() override { return &m_stubChunks; }
-    [[nodiscard]] const mc::world::chunk::IChunkManager* chunkManager() const override { return &m_stubChunks; }
+    [[nodiscard]] mc::world::chunk::IChunkManager* chunkManager() override
+    {
+        return &m_stubChunks;
+    }
+
+    [[nodiscard]] const mc::world::chunk::IChunkManager* chunkManager() const override
+    {
+        return &m_stubChunks;
+    }
+
     mc::test::StubChunkManager m_stubChunks{nullptr, true};
 
-    [[nodiscard]] Difficulty difficulty() const override { return Difficulty::Normal; }
-    [[nodiscard]] bool isClientSide() const override { return false; }
+    [[nodiscard]] Difficulty difficulty() const override
+    {
+        return Difficulty::Normal;
+    }
 
-    [[nodiscard]] world::tick::TickManager& tickManager() override { return *m_tickManager; }
-    [[nodiscard]] const world::tick::TickManager& tickManager() const override { return *m_tickManager; }
+    [[nodiscard]] bool isClientSide() const override
+    {
+        return false;
+    }
+
+    [[nodiscard]] world::tick::TickManager& tickManager() override
+    {
+        return *m_tickManager;
+    }
+
+    [[nodiscard]] const world::tick::TickManager& tickManager() const override
+    {
+        return *m_tickManager;
+    }
 
     void playSound(const ResourceLocation& soundId, sound::SoundCategory, const Vector3&, f32, f32) override
     {
@@ -128,7 +150,10 @@ public:
         m_blocks[pos] = std::make_unique<BlockState>(*state);
     }
 
-    void clearBlockAt(const BlockPos& pos) { m_blocks.erase(pos); }
+    void clearBlockAt(const BlockPos& pos)
+    {
+        m_blocks.erase(pos);
+    }
 
     [[nodiscard]] bool hasPlayedSound(const ResourceLocation& soundId) const
     {
@@ -140,7 +165,10 @@ public:
         return false;
     }
 
-    void clearSounds() { m_playedSounds.clear(); }
+    void clearSounds()
+    {
+        m_playedSounds.clear();
+    }
 
     EntityInstanceId spawnEntity(std::unique_ptr<Entity> entity) override
     {
@@ -149,7 +177,10 @@ public:
         return static_cast<EntityInstanceId>(m_spawnedEntities.size());
     }
 
-    void clearSpawnedEntities() { m_spawnedEntities.clear(); }
+    void clearSpawnedEntities()
+    {
+        m_spawnedEntities.clear();
+    }
 
     /// 最近一次生成的实体（无则 nullptr）
     [[nodiscard]] Entity* lastSpawnedEntity() const

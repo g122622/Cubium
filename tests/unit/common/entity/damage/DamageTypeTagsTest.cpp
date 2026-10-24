@@ -194,7 +194,10 @@ TEST(DamageTypeNamesTest, FromStringHandlesNamespace)
 
 class DamageTypeTagsTest : public ::testing::Test {
 protected:
-    static void SetUpTestSuite() { DamageTypeTags::initialize(); }
+    static void SetUpTestSuite()
+    {
+        DamageTypeTags::initialize();
+    }
 };
 
 // ========== BYPASSES_ARMOR 标签测试 ==========
@@ -667,7 +670,10 @@ TEST(DamageSourceIsTagTest, IsProjectileFlagStillWorksAsOverrideWhenTagNotInitia
 
 class DamageTypeTagLoaderTest : public ::testing::Test {
 protected:
-    static void SetUpTestSuite() { DamageTypeTags::initialize(); }
+    static void SetUpTestSuite()
+    {
+        DamageTypeTags::initialize();
+    }
 };
 
 TEST_F(DamageTypeTagLoaderTest, LoadFromJsonBasicDirectTypes)

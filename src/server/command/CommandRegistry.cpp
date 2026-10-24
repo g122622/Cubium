@@ -30,9 +30,11 @@
 #include "commands/BossBarCommand.hpp"
 #include "commands/ClearCommand.hpp"
 #include "commands/CloneCommand.hpp"
+#include "commands/DamageCommand.hpp"
 #include "commands/DataCommand.hpp"
 #include "commands/DataPackCommand.hpp"
 #include "commands/DeOpCommand.hpp"
+#include "commands/DebugCommand.hpp"
 #include "commands/DebugConfigCommand.hpp"
 #include "commands/DefaultGameModeCommand.hpp"
 #include "commands/DifficultyCommand.hpp"
@@ -47,10 +49,10 @@
 #include "commands/GameRuleCommand.hpp"
 #include "commands/GiveCommand.hpp"
 #include "commands/HelpCommand.hpp"
+#include "commands/JfrCommand.hpp"
 #include "commands/KickCommand.hpp"
 #include "commands/KillCommand.hpp"
 #include "commands/ListCommand.hpp"
-#include "commands/LocateBiomeCommand.hpp"
 #include "commands/LocateCommand.hpp"
 #include "commands/LootCommand.hpp"
 #include "commands/MeCommand.hpp"
@@ -59,11 +61,15 @@
 #include "commands/PardonCommand.hpp"
 #include "commands/PardonIpCommand.hpp"
 #include "commands/ParticleCommand.hpp"
+#include "commands/PerfCommand.hpp"
 #include "commands/PlaySoundCommand.hpp"
 #include "commands/PublishCommand.hpp"
 #include "commands/RecipeCommand.hpp"
 #include "commands/ReloadCommand.hpp"
 #include "commands/ReplaceItemCommand.hpp"
+#include "commands/ReturnCommand.hpp"
+#include "commands/RideCommand.hpp"
+#include "commands/RotateCommand.hpp"
 #include "commands/SaveAllCommand.hpp"
 #include "commands/SaveOffCommand.hpp"
 #include "commands/SaveOnCommand.hpp"
@@ -79,15 +85,17 @@
 #include "commands/SpreadPlayersCommand.hpp"
 #include "commands/StopCommand.hpp"
 #include "commands/StopSoundCommand.hpp"
+#include "commands/StopwatchCommand.hpp"
 #include "commands/SummonCommand.hpp"
 #include "commands/TagCommand.hpp"
 #include "commands/TeamCommand.hpp"
+#include "commands/TeamMsgCommand.hpp"
 #include "commands/TeleportCommand.hpp"
 #include "commands/TellRawCommand.hpp"
 #include "commands/TimeCommand.hpp"
 #include "commands/TitleCommand.hpp"
 #include "commands/TriggerCommand.hpp"
-#include "commands/WardenSpawnTrackerCommand.hpp"
+#include "commands/VersionCommand.hpp"
 #include "commands/WeatherCommand.hpp"
 #include "commands/WhitelistCommand.hpp"
 #include "commands/WorldBorderCommand.hpp"
@@ -197,7 +205,6 @@ void CommandRegistry::registerDefaults()
     MeCommand::registerTo(m_dispatcher);
     ParticleCommand::registerTo(m_dispatcher);
     LocateCommand::registerTo(m_dispatcher);
-    LocateBiomeCommand::registerTo(m_dispatcher);
     AttributeCommand::registerTo(m_dispatcher);
     CloneCommand::registerTo(m_dispatcher);
     DataCommand::registerTo(m_dispatcher);
@@ -220,7 +227,16 @@ void CommandRegistry::registerDefaults()
     SpectateCommand::registerTo(m_dispatcher);
     TriggerCommand::registerTo(m_dispatcher);
     GameRuleCommand::registerTo(m_dispatcher);
-    WardenSpawnTrackerCommand::registerTo(m_dispatcher);
+    VersionCommand::registerTo(m_dispatcher);
+    JfrCommand::registerTo(m_dispatcher);
+    PerfCommand::registerTo(m_dispatcher);
+    TeamMsgCommand::registerTo(m_dispatcher);
+    ReturnCommand::registerTo(m_dispatcher);
+    StopwatchCommand::registerTo(m_dispatcher);
+    RotateCommand::registerTo(m_dispatcher);
+    RideCommand::registerTo(m_dispatcher);
+    DamageCommand::registerTo(m_dispatcher);
+    DebugCommand::registerTo(m_dispatcher);
     m_defaultsRegistered = true;
 
     spdlog::info("[CommandRegistry] Registered {} default commands", getCommandNames().size());

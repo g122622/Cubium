@@ -50,7 +50,11 @@ public:
 
     [[nodiscard]] ItemStack apply(ItemStack stack, LootContext& context) const override;
     [[nodiscard]] std::unique_ptr<LootFunction> clone() const noexcept override;
-    [[nodiscard]] std::string getType() const noexcept override { return "toggle_tooltips"; }
+
+    [[nodiscard]] std::string getType() const noexcept override
+    {
+        return "toggle_tooltips";
+    }
 
     [[nodiscard]] const std::vector<std::pair<item::component::DataComponentType, bool>>& getToggles() const
     {

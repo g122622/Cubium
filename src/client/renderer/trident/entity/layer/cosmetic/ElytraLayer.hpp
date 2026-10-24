@@ -87,12 +87,18 @@ public:
     /**
      * @brief 获取当前鞘翅纹理
      */
-    [[nodiscard]] const TextureRegion* getElytraTexture() const { return m_customElytraRegion; }
+    [[nodiscard]] const TextureRegion* getElytraTexture() const
+    {
+        return m_customElytraRegion;
+    }
 
     /**
      * @brief 获取披风纹理
      */
-    [[nodiscard]] const TextureRegion* getCapeTexture() const { return m_capeRegion; }
+    [[nodiscard]] const TextureRegion* getCapeTexture() const
+    {
+        return m_capeRegion;
+    }
 
 private:
     /**

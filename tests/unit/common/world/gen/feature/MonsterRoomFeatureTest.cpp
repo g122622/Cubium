@@ -46,23 +46,54 @@ using namespace mc::world::gen::feature;
 class MonsterRoomStubGenerator : public IChunkGenerator {
 public:
     void generateStructureStarts(WorldGenRegion& /*region*/, ChunkPrimer& /*chunk*/) override {}
+
     void generateStructureReferences(WorldGenRegion& /*region*/, ChunkPrimer& /*chunk*/) override {}
+
     void generateBiomes(WorldGenRegion& /*region*/, ChunkPrimer& /*chunk*/) override {}
+
     void generateNoise(WorldGenRegion& /*region*/, ChunkPrimer& /*chunk*/) override {}
+
     void buildSurface(WorldGenRegion& /*region*/, ChunkPrimer& /*chunk*/) override {}
+
     void applyCarvers(WorldGenRegion& /*region*/, ChunkPrimer& /*chunk*/) override {}
+
     void placeFeatures(WorldGenRegion& /*region*/, ChunkPrimer& /*chunk*/) override {}
+
     i32 spawnInitialMobs(
         WorldGenRegion& /*region*/, ChunkPrimer& /*chunk*/, std::vector<SpawnedEntityData>& /*outEntities*/) override
     {
         return 0;
     }
-    [[nodiscard]] BiomeId getBiome(i32 /*x*/, i32 /*y*/, i32 /*z*/) const override { return 0; }
-    [[nodiscard]] BiomeId getNoiseBiome(i32 /*noiseX*/, i32 /*noiseY*/, i32 /*noiseZ*/) const override { return 0; }
-    [[nodiscard]] i32 getHeight(i32 /*x*/, i32 /*z*/, HeightmapType /*type*/) const override { return 64; }
-    [[nodiscard]] u64 seed() const override { return 0; }
-    [[nodiscard]] const DimensionSettings& settings() const override { return DimensionSettings::overworld(); }
-    [[nodiscard]] i32 seaLevel() const override { return 63; }
+
+    [[nodiscard]] BiomeId getBiome(i32 /*x*/, i32 /*y*/, i32 /*z*/) const override
+    {
+        return 0;
+    }
+
+    [[nodiscard]] BiomeId getNoiseBiome(i32 /*noiseX*/, i32 /*noiseY*/, i32 /*noiseZ*/) const override
+    {
+        return 0;
+    }
+
+    [[nodiscard]] i32 getHeight(i32 /*x*/, i32 /*z*/, HeightmapType /*type*/) const override
+    {
+        return 64;
+    }
+
+    [[nodiscard]] u64 seed() const override
+    {
+        return 0;
+    }
+
+    [[nodiscard]] const DimensionSettings& settings() const override
+    {
+        return DimensionSettings::overworld();
+    }
+
+    [[nodiscard]] i32 seaLevel() const override
+    {
+        return 63;
+    }
 };
 
 // ============================================================================
@@ -151,9 +182,15 @@ protected:
         fillAir(-5, oy, -1, 5, oy + 1, 0);
     }
 
-    [[nodiscard]] const BlockState* blockAt(i32 x, i32 y, i32 z) const { return m_region->getBlockState(x, y, z); }
+    [[nodiscard]] const BlockState* blockAt(i32 x, i32 y, i32 z) const
+    {
+        return m_region->getBlockState(x, y, z);
+    }
 
-    ChunkPrimer& centerChunk() { return *m_ownedChunks[4]; }
+    ChunkPrimer& centerChunk()
+    {
+        return *m_ownedChunks[4];
+    }
 
     std::vector<IChunk*> m_chunks;
     std::vector<std::unique_ptr<ChunkPrimer>> m_ownedChunks;
@@ -289,7 +326,9 @@ TEST_F(MonsterRoomFeatureTest, InteriorIsAirOrCaveAir)
     for (i32 x = -2; x <= 2 && !foundAir; ++x) {
         for (i32 y = oy; y <= oy + 2 && !foundAir; ++y) {
             for (i32 z = -2; z <= 2 && !foundAir; ++z) {
-                if (x == 0 && y == oy && z == 0) continue; // 跳过 spawner
+                if (x == 0 && y == oy && z == 0) {
+                    continue; // 跳过 spawner
+                }
                 const BlockState* s = blockAt(x, y, z);
                 if (s != nullptr && (s->isAir() || s->is(VanillaBlocks::CAVE_AIR))) {
                     foundAir = true;

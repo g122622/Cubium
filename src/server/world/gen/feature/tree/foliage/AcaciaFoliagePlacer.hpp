@@ -44,7 +44,12 @@ public:
     AcaciaFoliagePlacer(const FeatureSpread& radius, const FeatureSpread& offset);
 
     [[nodiscard]] i32 getFoliageHeight(math::IRandom& random, i32 trunkHeight) const override;
-    [[nodiscard]] const char* name() const override { return "acacia"; }
+
+    [[nodiscard]] const char* name() const override
+    {
+        return "acacia";
+    }
+
     [[nodiscard]] std::unique_ptr<FoliagePlacer> clone() const override;
 
 protected:

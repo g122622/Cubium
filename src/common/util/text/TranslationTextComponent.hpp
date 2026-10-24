@@ -154,19 +154,28 @@ public:
      * @brief 获取翻译键
      * @return 翻译键
      */
-    [[nodiscard]] const std::string& getKey() const noexcept { return m_key; }
+    [[nodiscard]] const std::string& getKey() const noexcept
+    {
+        return m_key;
+    }
 
     /**
      * @brief 设置翻译键
      * @param key 翻译键
      */
-    void setKey(std::string key) { m_key = std::move(key); }
+    void setKey(std::string key)
+    {
+        m_key = std::move(key);
+    }
 
     /**
      * @brief 获取参数列表
      * @return 参数列表的常量引用
      */
-    [[nodiscard]] const std::vector<std::unique_ptr<ITextComponent>>& getParams() const noexcept { return m_params; }
+    [[nodiscard]] const std::vector<std::unique_ptr<ITextComponent>>& getParams() const noexcept
+    {
+        return m_params;
+    }
 
     /**
      * @brief 添加翻译参数
@@ -182,7 +191,10 @@ public:
     /**
      * @brief 清空参数列表
      */
-    void clearParams() { m_params.clear(); }
+    void clearParams()
+    {
+        m_params.clear();
+    }
 
     /**
      * @brief 设置全局语言管理器
@@ -192,13 +204,19 @@ public:
      *
      * @param manager 语言管理器指针（生命周期由调用者管理）
      */
-    static void setLanguageManager(resource::LanguageManager* manager) { s_languageManager = manager; }
+    static void setLanguageManager(resource::LanguageManager* manager)
+    {
+        s_languageManager = manager;
+    }
 
     /**
      * @brief 获取全局语言管理器
      * @return 语言管理器指针，可能为 nullptr
      */
-    static resource::LanguageManager* getLanguageManager() { return s_languageManager; }
+    static resource::LanguageManager* getLanguageManager()
+    {
+        return s_languageManager;
+    }
 
 private:
     std::string m_key;

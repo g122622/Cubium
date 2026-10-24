@@ -409,15 +409,47 @@ public:
         return state != nullptr ? state->getFluidState() : &fluid::Fluids::EMPTY()->defaultState();
     }
 
-    [[nodiscard]] mc::world::chunk::IChunkManager* chunkManager() override { return &m_stubChunks; }
-    [[nodiscard]] const mc::world::chunk::IChunkManager* chunkManager() const override { return &m_stubChunks; }
+    [[nodiscard]] mc::world::chunk::IChunkManager* chunkManager() override
+    {
+        return &m_stubChunks;
+    }
+
+    [[nodiscard]] const mc::world::chunk::IChunkManager* chunkManager() const override
+    {
+        return &m_stubChunks;
+    }
+
     mc::test::StubChunkManager m_stubChunks{nullptr, true};
-    [[nodiscard]] u64 currentTick() const override { return m_currentTick; }
-    [[nodiscard]] Difficulty difficulty() const override { return Difficulty::Normal; }
-    [[nodiscard]] bool isClientSide() const override { return m_isClientSide; }
-    [[nodiscard]] bool isRaining() const override { return false; }
-    [[nodiscard]] bool canRainAt(const BlockPos&) const override { return false; }
-    [[nodiscard]] bool isThundering() const override { return false; }
+
+    [[nodiscard]] u64 currentTick() const override
+    {
+        return m_currentTick;
+    }
+
+    [[nodiscard]] Difficulty difficulty() const override
+    {
+        return Difficulty::Normal;
+    }
+
+    [[nodiscard]] bool isClientSide() const override
+    {
+        return m_isClientSide;
+    }
+
+    [[nodiscard]] bool isRaining() const override
+    {
+        return false;
+    }
+
+    [[nodiscard]] bool canRainAt(const BlockPos&) const override
+    {
+        return false;
+    }
+
+    [[nodiscard]] bool isThundering() const override
+    {
+        return false;
+    }
 
     EntityInstanceId spawnEntity(std::unique_ptr<Entity> entity) override
     {
@@ -435,15 +467,27 @@ public:
     {
         throw std::runtime_error("MobBlocksTestWorld::tickManager not implemented");
     }
+
     [[nodiscard]] const world::tick::TickManager& tickManager() const override
     {
         throw std::runtime_error("MobBlocksTestWorld::tickManager not implemented");
     }
 
     // 测试辅助方法
-    void setClientSide(bool clientSide) { m_isClientSide = clientSide; }
-    void incrementTick() { m_currentTick++; }
-    void setCurrentTick(u64 tick) { m_currentTick = tick; }
+    void setClientSide(bool clientSide)
+    {
+        m_isClientSide = clientSide;
+    }
+
+    void incrementTick()
+    {
+        m_currentTick++;
+    }
+
+    void setCurrentTick(u64 tick)
+    {
+        m_currentTick = tick;
+    }
 
     void setBlockAt(const BlockPos& pos, const BlockState* state)
     {
@@ -459,7 +503,10 @@ public:
         }
     }
 
-    [[nodiscard]] size_t spawnedEntityCount() const { return m_spawnedEntities.size(); }
+    [[nodiscard]] size_t spawnedEntityCount() const
+    {
+        return m_spawnedEntities.size();
+    }
 
     [[nodiscard]] Entity* getSpawnedEntity(size_t index) const
     {
@@ -469,11 +516,21 @@ public:
         return nullptr;
     }
 
-    void clearSpawnedEntities() { m_spawnedEntities.clear(); }
+    void clearSpawnedEntities()
+    {
+        m_spawnedEntities.clear();
+    }
 
     // GameRules 接口
-    [[nodiscard]] const world::gamerule::GameRules& getGameRules() const override { return m_gameRules; }
-    [[nodiscard]] world::gamerule::GameRules& getGameRules() override { return m_gameRules; }
+    [[nodiscard]] const world::gamerule::GameRules& getGameRules() const override
+    {
+        return m_gameRules;
+    }
+
+    [[nodiscard]] world::gamerule::GameRules& getGameRules() override
+    {
+        return m_gameRules;
+    }
 
 private:
     std::unordered_map<BlockPos, std::unique_ptr<BlockState>> m_blocks;
@@ -508,16 +565,31 @@ public:
         (void)entityType();
     }
 
-    void setTypeIdOverride(std::string typeId) { m_typeIdOverride = std::move(typeId); }
+    void setTypeIdOverride(std::string typeId)
+    {
+        m_typeIdOverride = std::move(typeId);
+    }
 
 private:
     std::string m_typeIdOverride;
 
 public:
     void tick() override {}
-    [[nodiscard]] f32 width() const override { return 0.6f; }
-    [[nodiscard]] f32 height() const override { return 1.8f; }
-    [[nodiscard]] f32 eyeHeight() const override { return 1.62f; }
+
+    [[nodiscard]] f32 width() const override
+    {
+        return 0.6f;
+    }
+
+    [[nodiscard]] f32 height() const override
+    {
+        return 1.8f;
+    }
+
+    [[nodiscard]] f32 eyeHeight() const override
+    {
+        return 1.62f;
+    }
 };
 
 /**
@@ -530,7 +602,11 @@ public:
     {}
 
     void tick() override {}
-    [[nodiscard]] std::string getTypeId() const override { return "minecraft:player"; }
+
+    [[nodiscard]] std::string getTypeId() const override
+    {
+        return "minecraft:player";
+    }
 };
 
 } // anonymous namespace
@@ -1027,14 +1103,37 @@ public:
         return LivingEntity::hurt(source, amount);
     }
 
-    [[nodiscard]] i32 hurtCount() const { return m_hurtCount; }
-    [[nodiscard]] f32 lastDamage() const { return m_lastDamage; }
-    [[nodiscard]] DamageType lastDamageType() const { return m_lastDamageType; }
+    [[nodiscard]] i32 hurtCount() const
+    {
+        return m_hurtCount;
+    }
+
+    [[nodiscard]] f32 lastDamage() const
+    {
+        return m_lastDamage;
+    }
+
+    [[nodiscard]] DamageType lastDamageType() const
+    {
+        return m_lastDamageType;
+    }
 
     void tick() override {}
-    [[nodiscard]] f32 width() const override { return 0.6f; }
-    [[nodiscard]] f32 height() const override { return 1.8f; }
-    [[nodiscard]] f32 eyeHeight() const override { return 1.62f; }
+
+    [[nodiscard]] f32 width() const override
+    {
+        return 0.6f;
+    }
+
+    [[nodiscard]] f32 height() const override
+    {
+        return 1.8f;
+    }
+
+    [[nodiscard]] f32 eyeHeight() const override
+    {
+        return 1.62f;
+    }
 
 private:
     i32 m_hurtCount;
@@ -1205,7 +1304,10 @@ TEST_F(DragonBreathBlockCollisionTest, OnEntityCollision_DifferentEntityTypes_No
 
 class BeehiveBlockEntityTest : public ::testing::Test {
 protected:
-    void SetUp() override { entity_ = std::make_unique<mc::blockentity::BeehiveBlockEntity>(BlockPos(10, 64, 20)); }
+    void SetUp() override
+    {
+        entity_ = std::make_unique<mc::blockentity::BeehiveBlockEntity>(BlockPos(10, 64, 20));
+    }
 
     std::unique_ptr<mc::blockentity::BeehiveBlockEntity> entity_;
 };

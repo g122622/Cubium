@@ -73,6 +73,7 @@ struct MeasureSpec {
     MeasureMode mode = MeasureMode::Unspecified; ///< 测量模式
 
     MeasureSpec() = default;
+
     MeasureSpec(i32 s, MeasureMode m)
         : size(s)
         , mode(m)
@@ -102,22 +103,34 @@ struct MeasureSpec {
      * @brief 创建无限制规格
      * @return 测量规格
      */
-    [[nodiscard]] static MeasureSpec MakeUnspecified() { return MeasureSpec(0, MeasureMode::Unspecified); }
+    [[nodiscard]] static MeasureSpec MakeUnspecified()
+    {
+        return MeasureSpec(0, MeasureMode::Unspecified);
+    }
 
     /**
      * @brief 检查是否是精确模式
      */
-    [[nodiscard]] bool isExactly() const { return mode == MeasureMode::Exactly; }
+    [[nodiscard]] bool isExactly() const
+    {
+        return mode == MeasureMode::Exactly;
+    }
 
     /**
      * @brief 检查是否是最大值模式
      */
-    [[nodiscard]] bool isAtMost() const { return mode == MeasureMode::AtMost; }
+    [[nodiscard]] bool isAtMost() const
+    {
+        return mode == MeasureMode::AtMost;
+    }
 
     /**
      * @brief 检查是否是无限制模式
      */
-    [[nodiscard]] bool isUnspecified() const { return mode == MeasureMode::Unspecified; }
+    [[nodiscard]] bool isUnspecified() const
+    {
+        return mode == MeasureMode::Unspecified;
+    }
 
     /**
      * @brief 根据测量结果解析最终尺寸
@@ -169,9 +182,15 @@ struct MeasureSpec {
     /**
      * @brief 比较两个测量规格是否相等
      */
-    bool operator==(const MeasureSpec& other) const { return size == other.size && mode == other.mode; }
+    bool operator==(const MeasureSpec& other) const
+    {
+        return size == other.size && mode == other.mode;
+    }
 
-    bool operator!=(const MeasureSpec& other) const { return !(*this == other); }
+    bool operator!=(const MeasureSpec& other) const
+    {
+        return !(*this == other);
+    }
 };
 
 /**
@@ -184,6 +203,7 @@ struct Size {
     i32 height = 0;
 
     Size() = default;
+
     Size(i32 w, i32 h)
         : width(w)
         , height(h)
@@ -192,7 +212,10 @@ struct Size {
     /**
      * @brief 检查尺寸是否有效（非负）
      */
-    [[nodiscard]] bool isValid() const { return width >= 0 && height >= 0; }
+    [[nodiscard]] bool isValid() const
+    {
+        return width >= 0 && height >= 0;
+    }
 
     /**
      * @brief 创建无限尺寸
@@ -202,9 +225,15 @@ struct Size {
         return Size(std::numeric_limits<i32>::max(), std::numeric_limits<i32>::max());
     }
 
-    bool operator==(const Size& other) const { return width == other.width && height == other.height; }
+    bool operator==(const Size& other) const
+    {
+        return width == other.width && height == other.height;
+    }
 
-    bool operator!=(const Size& other) const { return !(*this == other); }
+    bool operator!=(const Size& other) const
+    {
+        return !(*this == other);
+    }
 };
 
 } // namespace mc::client::ui::kagero::layout

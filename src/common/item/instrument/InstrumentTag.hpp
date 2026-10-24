@@ -49,17 +49,26 @@ public:
     /**
      * @brief 标签资源位置
      */
-    [[nodiscard]] const ResourceLocation& id() const noexcept { return m_id; }
+    [[nodiscard]] const ResourceLocation& id() const noexcept
+    {
+        return m_id;
+    }
 
     /**
      * @brief 是否替换已有内容
      */
-    [[nodiscard]] bool isReplace() const noexcept { return m_replace; }
+    [[nodiscard]] bool isReplace() const noexcept
+    {
+        return m_replace;
+    }
 
     /**
      * @brief 设置替换标志
      */
-    void setReplace(bool replace) noexcept { m_replace = replace; }
+    void setReplace(bool replace) noexcept
+    {
+        m_replace = replace;
+    }
 
     /**
      * @brief 添加成员（重复添加无效）
@@ -84,12 +93,18 @@ public:
     /**
      * @brief 成员列表（按资源名升序）
      */
-    [[nodiscard]] const std::vector<ResourceLocation>& members() const noexcept { return m_members; }
+    [[nodiscard]] const std::vector<ResourceLocation>& members() const noexcept
+    {
+        return m_members;
+    }
 
     /**
      * @brief 成员数量
      */
-    [[nodiscard]] std::size_t size() const noexcept { return m_members.size(); }
+    [[nodiscard]] std::size_t size() const noexcept
+    {
+        return m_members.size();
+    }
 
 private:
     ResourceLocation m_id;

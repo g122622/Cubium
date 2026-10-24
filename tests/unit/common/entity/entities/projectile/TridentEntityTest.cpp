@@ -63,7 +63,11 @@ public:
 
     // 批次6 子目标2：m_dealtDamage/m_timeInGround 已迁入 ecs::ProjectileArrowStateComponent。
     // dealtDamage 走基类 public setter；timeInGround 通过组件直接写（无 public setter）。
-    void setDealtDamage(bool dealt) { AbstractArrowEntity::setDealtDamage(dealt); }
+    void setDealtDamage(bool dealt)
+    {
+        AbstractArrowEntity::setDealtDamage(dealt);
+    }
+
     void setTimeInGround(i32 time)
     {
         if (auto* c = tryGetComponent<ecs::ProjectileArrowStateComponent>()) {
@@ -140,20 +144,31 @@ public:
         return reference;
     }
 
-    [[nodiscard]] math::IRandom& getRandom() override { return m_random; }
-    [[nodiscard]] const math::IRandom& getRandom() const override { return m_random; }
+    [[nodiscard]] math::IRandom& getRandom() override
+    {
+        return m_random;
+    }
+
+    [[nodiscard]] const math::IRandom& getRandom() const override
+    {
+        return m_random;
+    }
 
     [[nodiscard]] world::tick::TickManager& tickManager() override
     {
         throw std::runtime_error("TridentLoyaltyTestWorld::tickManager not implemented");
     }
+
     [[nodiscard]] const world::tick::TickManager& tickManager() const override
     {
         throw std::runtime_error("TridentLoyaltyTestWorld::tickManager not implemented");
     }
 
     /// 获取已生成的实体数量
-    [[nodiscard]] size_t entityCount() const { return m_entities.size(); }
+    [[nodiscard]] size_t entityCount() const
+    {
+        return m_entities.size();
+    }
 
     /// 查找指定类型的实体
     template <typename T>
@@ -187,7 +202,10 @@ protected:
         m_world = std::make_unique<TridentLoyaltyTestWorld>();
     }
 
-    void TearDown() override { m_world.reset(); }
+    void TearDown() override
+    {
+        m_world.reset();
+    }
 
     /// 创建一个可测试的三叉戟实体并设置基本属性
     TestableTridentEntity& createTrident(EntityInstanceId id = EntityInstanceId(1))

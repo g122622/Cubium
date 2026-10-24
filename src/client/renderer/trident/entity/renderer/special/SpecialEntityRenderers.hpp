@@ -76,7 +76,10 @@ public:
 
     void render(Entity& entity, f64 partialTicks) override;
 
-    [[nodiscard]] bool isFullbright() const override { return true; }
+    [[nodiscard]] bool isFullbright() const override
+    {
+        return true;
+    }
 
 private:
     std::shared_ptr<model::projectile::ShulkerBulletModel> m_model;
@@ -123,7 +126,10 @@ public:
 
     void render(Entity& entity, f64 partialTicks) override;
 
-    [[nodiscard]] bool isFullbright() const override { return true; }
+    [[nodiscard]] bool isFullbright() const override
+    {
+        return true;
+    }
 
 private:
     std::shared_ptr<model::projectile::WitherSkullModel> m_model;
@@ -142,7 +148,10 @@ public:
 
     void render(Entity& entity, f64 partialTicks) override;
 
-    [[nodiscard]] bool isFullbright() const override { return true; }
+    [[nodiscard]] bool isFullbright() const override
+    {
+        return true;
+    }
 
 private:
     std::shared_ptr<model::projectile::DragonFireballModel> m_model;
@@ -307,7 +316,10 @@ public:
      *
      * 由 EntityRendererManager 注入。用于在渲染方块后恢复纹理图集。
      */
-    void setEntityTextureAtlas(const pipeline::EntityTextureAtlas* atlas) { m_entityTextureAtlas = atlas; }
+    void setEntityTextureAtlas(const pipeline::EntityTextureAtlas* atlas)
+    {
+        m_entityTextureAtlas = atlas;
+    }
 
 private:
     /**
@@ -460,7 +472,10 @@ public:
     /**
      * @brief 设置实体纹理图集引用
      */
-    void setEntityTextureAtlas(const pipeline::EntityTextureAtlas* atlas) { m_entityTextureAtlas = atlas; }
+    void setEntityTextureAtlas(const pipeline::EntityTextureAtlas* atlas)
+    {
+        m_entityTextureAtlas = atlas;
+    }
 
 private:
     /**

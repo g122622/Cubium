@@ -312,8 +312,12 @@ Result<void> OpListManager::load(const std::filesystem::path& path)
             if (item.contains("level")) {
                 i32 level = item["level"].get<i32>();
                 // 限制等级范围 0-4
-                if (level < 0) level = 0;
-                if (level > 4) level = 4;
+                if (level < 0) {
+                    level = 0;
+                }
+                if (level > 4) {
+                    level = 4;
+                }
                 entry.level = static_cast<OpLevel>(level);
             } else {
                 // MC 1.16.5 默认等级为 2

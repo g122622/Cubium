@@ -75,7 +75,10 @@ public:
     /**
      * @brief 活塞需要每tick更新。
      */
-    [[nodiscard]] bool needsTick() const noexcept override { return true; }
+    [[nodiscard]] bool needsTick() const noexcept override
+    {
+        return true;
+    }
 
     /**
      * @brief 每tick更新移动进度并处理实体推动。
@@ -85,9 +88,20 @@ public:
 
     [[nodiscard]] std::unique_ptr<BlockEntity> clone() const override;
 
-    [[nodiscard]] bool isExtending() const noexcept { return m_extending; }
-    [[nodiscard]] Direction getFacing() const noexcept { return m_facing; }
-    [[nodiscard]] bool shouldRenderPistonHead() const noexcept { return m_shouldRenderHead; }
+    [[nodiscard]] bool isExtending() const noexcept
+    {
+        return m_extending;
+    }
+
+    [[nodiscard]] Direction getFacing() const noexcept
+    {
+        return m_facing;
+    }
+
+    [[nodiscard]] bool shouldRenderPistonHead() const noexcept
+    {
+        return m_shouldRenderHead;
+    }
 
     /**
      * @brief 获取移动进度（0.0 - 1.0）。
@@ -96,8 +110,16 @@ public:
      */
     [[nodiscard]] f32 getProgress(f32 partialTick) const;
 
-    [[nodiscard]] f32 getLastProgress() const noexcept { return m_lastProgress; }
-    [[nodiscard]] const BlockState* getPistonState() const noexcept { return m_pistonState; }
+    [[nodiscard]] f32 getLastProgress() const noexcept
+    {
+        return m_lastProgress;
+    }
+
+    [[nodiscard]] const BlockState* getPistonState() const noexcept
+    {
+        return m_pistonState;
+    }
+
     [[nodiscard]] Direction getMotionDirection() const noexcept;
     [[nodiscard]] f32 getOffsetX(f32 partialTick) const;
     [[nodiscard]] f32 getOffsetY(f32 partialTick) const;
@@ -109,8 +131,15 @@ public:
      */
     void clearPistonBlockEntity(IWorld& world);
 
-    [[nodiscard]] bool isComplete() const noexcept { return m_progress >= 1.0f; }
-    [[nodiscard]] i64 getLastTicked() const noexcept { return m_lastTicked; }
+    [[nodiscard]] bool isComplete() const noexcept
+    {
+        return m_progress >= 1.0f;
+    }
+
+    [[nodiscard]] i64 getLastTicked() const noexcept
+    {
+        return m_lastTicked;
+    }
 
     /**
      * @brief 计算扩展进度

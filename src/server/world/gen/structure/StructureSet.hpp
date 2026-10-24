@@ -71,16 +71,28 @@ public:
         std::unique_ptr<placement::StructurePlacement> placement);
 
     /** 获取集合 ID */
-    [[nodiscard]] const ResourceLocation& id() const { return m_id; }
+    [[nodiscard]] const ResourceLocation& id() const
+    {
+        return m_id;
+    }
 
     /** 获取所有条目 */
-    [[nodiscard]] const std::vector<StructureSelectionEntry>& entries() const { return m_entries; }
+    [[nodiscard]] const std::vector<StructureSelectionEntry>& entries() const
+    {
+        return m_entries;
+    }
 
     /** 获取放置规则 */
-    [[nodiscard]] const placement::StructurePlacement& placement() const { return *m_placement; }
+    [[nodiscard]] const placement::StructurePlacement& placement() const
+    {
+        return *m_placement;
+    }
 
     /** 获取放置规则（可变） */
-    [[nodiscard]] placement::StructurePlacement& placement() { return *m_placement; }
+    [[nodiscard]] placement::StructurePlacement& placement()
+    {
+        return *m_placement;
+    }
 
     /**
      * @brief 按权重随机选择一个条目
@@ -135,7 +147,10 @@ public:
     [[nodiscard]] const StructureSet* findByStructure(const ResourceLocation& structureId) const;
 
     /** 获取所有结构集合 */
-    [[nodiscard]] const std::vector<std::unique_ptr<StructureSet>>& getAll() const { return m_sets; }
+    [[nodiscard]] const std::vector<std::unique_ptr<StructureSet>>& getAll() const
+    {
+        return m_sets;
+    }
 
     /** 清除所有注册 */
     void clear();

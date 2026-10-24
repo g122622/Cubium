@@ -12,7 +12,7 @@
 //      + onTameAnimal + broadcastEntityStatus(TamingSucceeded 心形粒子)。失败广播烟雾粒子。
 //   5) 返回 Success。
 //
-// 判定手段：getComponent("minecraft:is_tamed").value === true（驯服成功）。
+// 判定手段：getComponent("minecraft:is_tamed") !== undefined（驯服成功）。
 // is_tamed 组件经 TameableEntity::isTamed()（DATA_FLAGS_PARAM 位 4）读取，由本次会话补全的
 // IsTamedComponent 绑定（MinecraftModuleFactory.cpp getComponent "minecraft:is_tamed" 分支）。
 // 此前 WolfTests 驯服判定用 effectiveMax>=20（驯服后血量上限 8→20）间接断言，hacky 且不适用
@@ -40,10 +40,10 @@ const PARROT = "minecraft:parrot";
 const PEN_FROM = { x: 0, y: 0, z: 0 };
 const PEN_VOLUME = { x: 9, y: 5, z: 9 };
 
-// 读鹦鹉 is_tamed 组件 value（true=已驯服）。
+// 读取鹦鹉 is_tamed 组件存在性（存在即已驯服）。
 function isParrotTamed(parrot: any): boolean {
   const comp = parrot.getComponent("minecraft:is_tamed") as any;
-  return comp?.value === true;
+  return comp !== undefined;
 }
 
 // 玩家持种子反复右键未驯服鹦鹉，1/10 概率驯服成功（wiki tech_鹦鹉.txt#驯服）。
@@ -70,7 +70,7 @@ function parrotTamedBySeedsTest(test: Test): void {
     });
   }
 
-  // 轮询断言：鹦鹉 is_tamed.value === true（驯服成功）。
+  // 轮询断言：鹦鹉 is_tamed 组件存在（驯服成功）。
   // startTick=10 等 1-2 次喂食后开始查，interval=3 与喂食周期对齐，maxTick=700 留足 65 次喂食周期。
   pollUntilSucceed(test, () => {
     return isParrotTamed(parrot);
@@ -86,14 +86,14 @@ function parrotTamedBySeedsTest(test: Test): void {
   });
 }
 
-// 对照：未驯服鹦鹉 is_tamed.value === false（验证组件默认值正确，排除"组件恒 true"假通过）。
+// 对照：未驯服鹦鹉 is_tamed 组件不存在（验证组件默认值正确，排除"组件恒 true"假通过）。
 //
-// spawn 鹦鹉但不喂食，断言 is_tamed.value === false。验证 is_tamed 组件对未驯服鹦鹉返回 false
+// spawn 鹦鹉但不喂食，断言 is_tamed 组件不存在。验证未驯服鹦鹉没有 is_tamed 组件
 // （而非恒 true 致 parrotTamedBySeedsTest 假通过）。maxTick=40 短窗，不喂食鹦鹉保持未驯服。
 function parrotUntamedByDefaultTest(test: Test): void {
   const parrot = test.spawn(PARROT, { x: 5, y: 2, z: 4 });
 
-  // tick 20 断言未驯服（is_tamed.value === false）+ succeed。
+  // tick 20 断言未驯服（is_tamed 组件不存在）+ succeed。
   test.runAtTickTime(20, () => {
     test.assert(!isParrotTamed(parrot),
       `parrot should be untamed by default, is_tamed=${isParrotTamed(parrot)} (expected false)`);

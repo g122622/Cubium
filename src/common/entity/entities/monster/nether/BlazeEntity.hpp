@@ -111,12 +111,18 @@ public:
     /**
      * @brief 是否正在充能（全身冒火）
      */
-    [[nodiscard]] bool isCharged() const { return m_charging; }
+    [[nodiscard]] bool isCharged() const
+    {
+        return m_charging;
+    }
 
     /**
      * @brief 设置充能状态
      */
-    void setCharging(bool charging) { m_charging = charging; }
+    void setCharging(bool charging)
+    {
+        m_charging = charging;
+    }
 
     // ========== 悬浮高度 ==========
 
@@ -127,7 +133,10 @@ public:
      * 烈焰人眼高 + allowedHeightOffset 时，烈焰人会上升。
      * 每 100 tick 通过三角分布重新随机化。
      */
-    [[nodiscard]] f32 allowedHeightOffset() const { return m_allowedHeightOffset; }
+    [[nodiscard]] f32 allowedHeightOffset() const
+    {
+        return m_allowedHeightOffset;
+    }
 
     // ========== 水敏感性 ==========
 
@@ -140,7 +149,10 @@ public:
      * 同时被 PotionEntity::onHitAsWater 查询：水瓶命中范围内水敏感实体
      * 受 1.0 indirectMagic 伤害（AbstractThrownPotion.onHitAsWater:93-95）。
      */
-    [[nodiscard]] bool isWaterSensitive() const override { return true; }
+    [[nodiscard]] bool isWaterSensitive() const override
+    {
+        return true;
+    }
 
     // ========== 阳光燃烧 ==========
 
@@ -151,38 +163,56 @@ public:
      * 且注册为 fireImmune()，因此不会在阳光下燃烧。
      * 即使 burnUndead() 被调用，fireImmune 也会在 baseTick 中立即清除火焰。
      */
-    [[nodiscard]] bool shouldBurnInDaylight() const override { return false; }
+    [[nodiscard]] bool shouldBurnInDaylight() const override
+    {
+        return false;
+    }
 
     // ========== 亮度 ==========
 
     /**
      * @brief 获取亮度（充能时全身冒火，亮度为1）
      */
-    [[nodiscard]] f32 getBrightness() const { return 1.0f; }
+    [[nodiscard]] f32 getBrightness() const
+    {
+        return 1.0f;
+    }
 
     // ========== 摔落伤害 ==========
 
     /**
      * @brief 烈焰人免疫摔落伤害
      */
-    [[nodiscard]] bool canTakeFallDamage() const { return false; }
+    [[nodiscard]] bool canTakeFallDamage() const
+    {
+        return false;
+    }
 
     // ========== 属性 ==========
 
     /**
      * @brief 获取眼睛高度
      */
-    [[nodiscard]] f32 eyeHeight() const override { return 1.0f; }
+    [[nodiscard]] f32 eyeHeight() const override
+    {
+        return 1.0f;
+    }
 
     /**
      * @brief 获取实体宽度
      */
-    [[nodiscard]] f32 width() const override { return 0.6f; }
+    [[nodiscard]] f32 width() const override
+    {
+        return 0.6f;
+    }
 
     /**
      * @brief 获取实体高度
      */
-    [[nodiscard]] f32 height() const override { return 1.8f; }
+    [[nodiscard]] f32 height() const override
+    {
+        return 1.8f;
+    }
 
     // ========== 行为常量 ==========
     // 对齐 MC 1.21.11 Blaze 行为参数，公开以便测试引用

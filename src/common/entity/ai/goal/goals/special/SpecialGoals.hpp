@@ -76,9 +76,15 @@ public:
 
     // 对齐 vanilla SwellGoal.requiresUpdateEveryTick()=true：该 goal 每 tick 运行 tick()
     // （vanilla Mob.serverAiStep 在半 tick 帧用 tickRunningGoals(false) 只更新这些 goal）。
-    [[nodiscard]] bool requiresUpdateEveryTick() const override { return true; }
+    [[nodiscard]] bool requiresUpdateEveryTick() const override
+    {
+        return true;
+    }
 
-    [[nodiscard]] std::string getTypeName() const override { return "CreeperSwellGoal"; }
+    [[nodiscard]] std::string getTypeName() const override
+    {
+        return "CreeperSwellGoal";
+    }
 
 private:
     CreeperEntity* m_creeper;
@@ -119,7 +125,10 @@ public:
     void resetTask() override;
     void tick() override;
 
-    [[nodiscard]] std::string getTypeName() const override { return "LlamaFollowCaravanGoal"; }
+    [[nodiscard]] std::string getTypeName() const override
+    {
+        return "LlamaFollowCaravanGoal";
+    }
 
     // 常量（公开用于测试）
     static constexpr f64 SEARCH_RADIUS = 9.0;            // 搜索半径
@@ -214,7 +223,10 @@ public:
     void startExecuting() override;
     void resetTask() override;
 
-    [[nodiscard]] std::string getTypeName() const override { return "PuffGoal"; }
+    [[nodiscard]] std::string getTypeName() const override
+    {
+        return "PuffGoal";
+    }
 
 private:
     /**
@@ -262,7 +274,10 @@ public:
     void startExecuting() override;
     void resetTask() override;
 
-    [[nodiscard]] std::string getTypeName() const override { return "LlamaDefendTargetGoal"; }
+    [[nodiscard]] std::string getTypeName() const override
+    {
+        return "LlamaDefendTargetGoal";
+    }
 
     // 常量（公开用于测试）
     static constexpr f64 TARGET_RANGE = 16.0;          // 基础检测范围
@@ -304,7 +319,10 @@ public:
     [[nodiscard]] bool shouldExecute() override;
     void startExecuting() override;
 
-    [[nodiscard]] std::string getTypeName() const override { return "TraderLlamaDefendWanderingTraderGoal"; }
+    [[nodiscard]] std::string getTypeName() const override
+    {
+        return "TraderLlamaDefendWanderingTraderGoal";
+    }
 
 private:
     TraderLlamaEntity* m_llama;
@@ -340,7 +358,10 @@ public:
     [[nodiscard]] bool shouldExecute() override;
     void tick() override;
 
-    [[nodiscard]] std::string getTypeName() const override { return "TriggerSkeletonTrapGoal"; }
+    [[nodiscard]] std::string getTypeName() const override
+    {
+        return "TriggerSkeletonTrapGoal";
+    }
 
     // 常量（公开用于测试）
     static constexpr f64 PLAYER_DETECTION_RANGE = 10.0;     // 玩家检测范围

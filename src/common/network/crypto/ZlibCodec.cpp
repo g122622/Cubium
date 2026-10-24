@@ -60,6 +60,7 @@ struct VarIntRead {
     u32 value;
     usize consumed;
 };
+
 bool readVarInt(const u8* data, usize size, VarIntRead& out)
 {
     u32 value = 0;

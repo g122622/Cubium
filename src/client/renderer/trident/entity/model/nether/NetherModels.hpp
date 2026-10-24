@@ -103,12 +103,18 @@ public:
     /**
      * @brief 设置动作状态
      */
-    void setAction(i32 action) { m_action = action; }
+    void setAction(i32 action)
+    {
+        m_action = action;
+    }
 
     /**
      * @brief 设置是否左撇子
      */
-    void setLeftHanded(bool leftHanded) { m_leftHanded = leftHanded; }
+    void setLeftHanded(bool leftHanded)
+    {
+        m_leftHanded = leftHanded;
+    }
 
     /**
      * @brief 复制角度到外层部件
@@ -174,7 +180,10 @@ public:
      *
      * @param ticks 剩余 tick 数（0 = 无攻击动画）
      */
-    void setAttackAnimationTicks(i32 ticks) { m_attackAnimationTicks = ticks; }
+    void setAttackAnimationTicks(i32 ticks)
+    {
+        m_attackAnimationTicks = ticks;
+    }
 
 protected:
     std::vector<std::shared_ptr<ModelRenderer>> getHeadParts() const override;
@@ -224,7 +233,10 @@ public:
     /**
      * @brief 设置是否有乘客
      */
-    void setHasPassengers(bool hasPassengers) { m_hasPassengers = hasPassengers; }
+    void setHasPassengers(bool hasPassengers)
+    {
+        m_hasPassengers = hasPassengers;
+    }
 
 private:
     void _setupParts();

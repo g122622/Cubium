@@ -78,7 +78,10 @@ public:
         return std::make_unique<BlockAgeProcessor>(m_mossiness);
     }
 
-    [[nodiscard]] f32 mossiness() const { return m_mossiness; }
+    [[nodiscard]] f32 mossiness() const
+    {
+        return m_mossiness;
+    }
 
 private:
     f32 m_mossiness;

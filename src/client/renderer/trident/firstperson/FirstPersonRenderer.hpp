@@ -165,7 +165,10 @@ public:
     /**
      * @brief 检查是否已初始化
      */
-    [[nodiscard]] bool isInitialized() const { return m_initialized; }
+    [[nodiscard]] bool isInitialized() const
+    {
+        return m_initialized;
+    }
 
     /**
      * @brief 标记当前帧索引并推进延迟销毁队列
@@ -224,8 +227,15 @@ public:
     /**
      * @brief 获取玩家模型
      */
-    [[nodiscard]] PlayerModel& model() { return m_model; }
-    [[nodiscard]] const PlayerModel& model() const { return m_model; }
+    [[nodiscard]] PlayerModel& model()
+    {
+        return m_model;
+    }
+
+    [[nodiscard]] const PlayerModel& model() const
+    {
+        return m_model;
+    }
 
     /**
      * @brief 设置物品纹理图集
@@ -253,8 +263,15 @@ public:
     /**
      * @brief 获取手持物品渲染器
      */
-    [[nodiscard]] ItemInHandRenderer& itemInHandRenderer() { return m_itemInHandRenderer; }
-    [[nodiscard]] const ItemInHandRenderer& itemInHandRenderer() const { return m_itemInHandRenderer; }
+    [[nodiscard]] ItemInHandRenderer& itemInHandRenderer()
+    {
+        return m_itemInHandRenderer;
+    }
+
+    [[nodiscard]] const ItemInHandRenderer& itemInHandRenderer() const
+    {
+        return m_itemInHandRenderer;
+    }
 
     /**
      * @brief 设置玩家皮肤纹理位置
@@ -268,7 +285,10 @@ public:
     /**
      * @brief 获取当前玩家皮肤纹理位置
      */
-    [[nodiscard]] const ResourceLocation& playerSkinLocation() const { return m_playerSkinLocation; }
+    [[nodiscard]] const ResourceLocation& playerSkinLocation() const
+    {
+        return m_playerSkinLocation;
+    }
 
 private:
     // ========== 内部渲染方法 ==========

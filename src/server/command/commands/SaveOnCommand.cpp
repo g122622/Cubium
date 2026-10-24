@@ -39,11 +39,15 @@ namespace command {
 void SaveOnCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
 {
     auto saveOnNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("save-on");
-    saveOnNode->setRequirement([](const ServerCommandSource& source) { return source.hasPermission(4); });
+    saveOnNode->setRequirement([](const ServerCommandSource& source) {
+        return source.hasPermission(4);
+    });
     support::applyMetadata(
         saveOnNode, support::makeMetadata("Enables server automatic saving.", "/save-on", 4, {}, false));
 
-    saveOnNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _enableAutoSave(ctx); });
+    saveOnNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _enableAutoSave(ctx);
+    });
 
     dispatcher.registerCommand(saveOnNode);
 }

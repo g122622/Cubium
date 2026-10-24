@@ -86,35 +86,53 @@ public:
     /**
      * @brief 攻击是否会中毒
      */
-    [[nodiscard]] bool canPoison() const { return true; }
+    [[nodiscard]] bool canPoison() const
+    {
+        return true;
+    }
 
     /**
      * @brief 获取中毒持续时间（秒）
      * @note 返回的是默认值，实际持续时间取决于游戏难度
      */
-    [[nodiscard]] i32 getPoisonDuration() const { return m_poisonDuration; }
+    [[nodiscard]] i32 getPoisonDuration() const
+    {
+        return m_poisonDuration;
+    }
 
     /**
      * @brief 设置中毒持续时间
      */
-    void setPoisonDuration(i32 duration) { m_poisonDuration = duration; }
+    void setPoisonDuration(i32 duration)
+    {
+        m_poisonDuration = duration;
+    }
 
     // ========== 属性 ==========
 
     /**
      * @brief 获取眼睛高度
      */
-    [[nodiscard]] f32 eyeHeight() const override { return 0.45f; }
+    [[nodiscard]] f32 eyeHeight() const override
+    {
+        return 0.45f;
+    }
 
     /**
      * @brief 获取实体宽度
      */
-    [[nodiscard]] f32 width() const override { return 0.7f; }
+    [[nodiscard]] f32 width() const override
+    {
+        return 0.7f;
+    }
 
     /**
      * @brief 获取实体高度
      */
-    [[nodiscard]] f32 height() const override { return 0.5f; }
+    [[nodiscard]] f32 height() const override
+    {
+        return 0.5f;
+    }
 
 protected:
     void registerAttributes() override;

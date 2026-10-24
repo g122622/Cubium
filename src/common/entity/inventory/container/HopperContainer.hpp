@@ -107,7 +107,10 @@ public:
     /**
      * @brief 获取漏斗背包
      */
-    [[nodiscard]] IInventory* getHopperInventory() const { return m_hopperInventory; }
+    [[nodiscard]] IInventory* getHopperInventory() const
+    {
+        return m_hopperInventory;
+    }
 
 protected:
     ItemStack quickMoveStack(i32 slotIndex, Player& player) override;

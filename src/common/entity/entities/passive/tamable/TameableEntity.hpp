@@ -89,7 +89,10 @@ public:
      * TamableAnimal.DATA_FLAGS_ID & 4）。服务端调用 setTamed 修改后自动经元数据同步到客户端。
      * 客户端 ClientEntity::setWolfTamed 镜像此状态（读同一 Byte 字段解 bit2）。
      */
-    [[nodiscard]] bool isTamed() const { return (m_dataManager.get<i8>(DATA_FLAGS_PARAM) & 0x04) != 0; }
+    [[nodiscard]] bool isTamed() const
+    {
+        return (m_dataManager.get<i8>(DATA_FLAGS_PARAM) & 0x04) != 0;
+    }
 
     /**
      * @brief 设置驯服状态
@@ -124,7 +127,10 @@ public:
      * 对齐 vanilla TamableAnimal.getOwnerReference()（1.21.11 为 Optional<EntityReference>，
      * 内部即 UUID）。getOwner() 据此 UUID 在世界中查找主人玩家实体。
      */
-    [[nodiscard]] std::optional<Uuid> getOwnerId() const { return m_ownerId; }
+    [[nodiscard]] std::optional<Uuid> getOwnerId() const
+    {
+        return m_ownerId;
+    }
 
     /**
      * @brief 设置主人 UUID
@@ -145,7 +151,10 @@ public:
      * @param playerId 玩家的 profile UUID
      * @return 如果是主人返回true
      */
-    [[nodiscard]] bool isOwner(Uuid playerId) const { return m_ownerId.has_value() && m_ownerId.value() == playerId; }
+    [[nodiscard]] bool isOwner(Uuid playerId) const
+    {
+        return m_ownerId.has_value() && m_ownerId.value() == playerId;
+    }
 
     /**
      * @brief 获取驯服/坐下标志数据参数 ID
@@ -154,7 +163,10 @@ public:
      * 客户端 ClientEntity 据此 id 读取 Byte 并解 bit2=tame / bit0=sitting 镜像状态。
      * 名字保留 getTamedParamId 以兼容现有调用方（语义为「flags 字段 id」）。
      */
-    [[nodiscard]] static u16 getTamedParamId() { return DATA_FLAGS_PARAM.id(); }
+    [[nodiscard]] static u16 getTamedParamId()
+    {
+        return DATA_FLAGS_PARAM.id();
+    }
 
     /**
      * @brief 获取主人 UUID 数据参数 ID
@@ -162,7 +174,10 @@ public:
      * 返回 DATA_OWNERUUID_PARAM 的 id（vanilla TamableAnimal.DATA_OWNERUUID_ID，
      * OptionalLivingEntityRef 类型）。测试/诊断用。
      */
-    [[nodiscard]] static u16 getOwnerUuidParamId() { return DATA_OWNERUUID_PARAM.id(); }
+    [[nodiscard]] static u16 getOwnerUuidParamId()
+    {
+        return DATA_OWNERUUID_PARAM.id();
+    }
 
     /**
      * @brief 获取主人实体
@@ -204,7 +219,10 @@ public:
      * @brief 检查是否坐下
      * @return 如果坐下返回true
      */
-    [[nodiscard]] bool isSitting() const { return m_sitting; }
+    [[nodiscard]] bool isSitting() const
+    {
+        return m_sitting;
+    }
 
     /**
      * @brief 设置坐下状态
@@ -215,22 +233,44 @@ public:
     /**
      * @brief 切换坐下状态
      */
-    void toggleSitting() { setSitting(!m_sitting); }
+    void toggleSitting()
+    {
+        setSitting(!m_sitting);
+    }
 
     // ========== IAngerable 接口实现 ==========
 
     void setAttackTarget(LivingEntity* target) override;
+
     [[nodiscard]] LivingEntity* getAttackTarget() const override
     {
         return const_cast<TameableEntity*>(this)->MobEntity::attackTarget();
     }
+
     void setRevengeTarget(LivingEntity* target) override;
     [[nodiscard]] LivingEntity* getRevengeTarget() const override;
-    [[nodiscard]] i32 getRevengeTimer() const override { return m_revengeTimer; }
-    [[nodiscard]] bool isAngry() const override { return m_angerTime > 0; }
+
+    [[nodiscard]] i32 getRevengeTimer() const override
+    {
+        return m_revengeTimer;
+    }
+
+    [[nodiscard]] bool isAngry() const override
+    {
+        return m_angerTime > 0;
+    }
+
     void setAngry(bool angry) override;
-    [[nodiscard]] i32 getAngerTime() const override { return m_angerTime; }
-    void setAngerTime(i32 time) override { m_angerTime = time; }
+
+    [[nodiscard]] i32 getAngerTime() const override
+    {
+        return m_angerTime;
+    }
+
+    void setAngerTime(i32 time) override
+    {
+        m_angerTime = time;
+    }
 
     // ========== 生命周期 ==========
 
@@ -288,7 +328,10 @@ protected:
      *
      * 子类可重写此方法来处理驯服状态变化的副作用
      */
-    virtual void onTamed(bool tamed) { MC_UNUSED(tamed); }
+    virtual void onTamed(bool tamed)
+    {
+        MC_UNUSED(tamed);
+    }
 
 private:
     // ========== 数据同步 ==========

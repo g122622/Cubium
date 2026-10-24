@@ -61,7 +61,10 @@ public:
     // 亡灵生物归类（对齐 Java SkeletonHorse.getMobType()==UNDEAD）。本类已覆写 canBreatheUnderwater
     // 直接返回 true，但未覆写 getCreatureAttribute 致亡灵杀手附魔无加成、瞬间治疗/伤害药水不反转、
     // 凋灵玫瑰不免疫等亡灵特性失效。补覆写统一归类（canBreatheUnderwater 子类覆写优先不受影响）。
-    [[nodiscard]] CreatureAttribute getCreatureAttribute() const override { return CreatureAttribute::Undead; }
+    [[nodiscard]] CreatureAttribute getCreatureAttribute() const override
+    {
+        return CreatureAttribute::Undead;
+    }
 
     // 禁止拷贝
     SkeletonHorseEntity(const SkeletonHorseEntity&) = delete;
@@ -107,19 +110,28 @@ public:
     /**
      * @brief 是否免疫溺水
      */
-    [[nodiscard]] bool canBreatheUnderwater() const override { return true; }
+    [[nodiscard]] bool canBreatheUnderwater() const override
+    {
+        return true;
+    }
 
     /**
      * @brief 骷髅马不能吃草
      */
-    [[nodiscard]] bool canEatGrass() const override { return false; }
+    [[nodiscard]] bool canEatGrass() const override
+    {
+        return false;
+    }
 
     // ========== 属性 ==========
 
     /**
      * @brief 获取眼睛高度
      */
-    [[nodiscard]] f32 eyeHeight() const override { return 1.6f; }
+    [[nodiscard]] f32 eyeHeight() const override
+    {
+        return 1.6f;
+    }
 
     // ========== 骷髅马陷阱 ==========
 
@@ -130,7 +142,10 @@ public:
      * - 生成一只骷髅骑手
      * - 变成普通骷髅马
      */
-    [[nodiscard]] bool isTrap() const { return m_trap; }
+    [[nodiscard]] bool isTrap() const
+    {
+        return m_trap;
+    }
 
     /**
      * @brief 设置陷阱马状态

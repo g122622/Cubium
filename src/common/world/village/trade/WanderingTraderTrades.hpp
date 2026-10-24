@@ -68,7 +68,10 @@ public:
     /**
      * @brief 检查是否已初始化
      */
-    [[nodiscard]] static bool isInitialized() { return s_initialized; }
+    [[nodiscard]] static bool isInitialized()
+    {
+        return s_initialized;
+    }
 
     /**
      * @brief 获取指定池的条目数量

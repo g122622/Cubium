@@ -64,15 +64,30 @@ class OminousItemSpawnerTestWorld final : public mc::test::BaseTestWorld {
 public:
     OminousItemSpawnerTestWorld() = default;
 
-    [[nodiscard]] bool isClientSide() const override { return m_isClientSide; }
+    [[nodiscard]] bool isClientSide() const override
+    {
+        return m_isClientSide;
+    }
 
-    void setClientSide(bool isClient) { m_isClientSide = isClient; }
+    void setClientSide(bool isClient)
+    {
+        m_isClientSide = isClient;
+    }
 
-    [[nodiscard]] u64 getGameTime() const override { return m_gameTime; }
+    [[nodiscard]] u64 getGameTime() const override
+    {
+        return m_gameTime;
+    }
 
-    void setGameTime(u64 time) { m_gameTime = time; }
+    void setGameTime(u64 time)
+    {
+        m_gameTime = time;
+    }
 
-    void advanceGameTime() { m_gameTime++; }
+    void advanceGameTime()
+    {
+        m_gameTime++;
+    }
 
     EntityInstanceId spawnEntity(std::unique_ptr<Entity> entity) override
     {
@@ -126,7 +141,10 @@ public:
 
     // 测试辅助方法
 
-    [[nodiscard]] size_t spawnedEntityCount() const { return m_spawnedEntities.size(); }
+    [[nodiscard]] size_t spawnedEntityCount() const
+    {
+        return m_spawnedEntities.size();
+    }
 
     [[nodiscard]] Entity* getLastSpawnedEntity()
     {
@@ -136,24 +154,75 @@ public:
         return m_spawnedEntities.back().get();
     }
 
-    void clearSpawnedEntities() { m_spawnedEntities.clear(); }
+    void clearSpawnedEntities()
+    {
+        m_spawnedEntities.clear();
+    }
 
-    [[nodiscard]] i32 soundPlayCount() const { return m_soundPlayCount; }
-    [[nodiscard]] const ResourceLocation& lastSoundEventId() const { return m_lastSoundEventId; }
-    [[nodiscard]] const Vector3& lastSoundPosition() const { return m_lastSoundPosition; }
+    [[nodiscard]] i32 soundPlayCount() const
+    {
+        return m_soundPlayCount;
+    }
 
-    [[nodiscard]] i32 playEventCount() const { return m_playEventCount; }
-    [[nodiscard]] i32 lastPlayEventId() const { return m_lastPlayEventId; }
-    [[nodiscard]] const BlockPos& lastPlayEventPos() const { return m_lastPlayEventPos; }
-    [[nodiscard]] i32 lastPlayEventData() const { return m_lastPlayEventData; }
+    [[nodiscard]] const ResourceLocation& lastSoundEventId() const
+    {
+        return m_lastSoundEventId;
+    }
 
-    [[nodiscard]] i32 gameEventCount() const { return m_gameEventCount; }
-    [[nodiscard]] const std::string& lastGameEventId() const { return m_lastGameEventId; }
-    [[nodiscard]] const BlockPos& lastGameEventPos() const { return m_lastGameEventPos; }
-    [[nodiscard]] const Entity* lastGameEventSourceEntity() const { return m_lastGameEventSourceEntity; }
+    [[nodiscard]] const Vector3& lastSoundPosition() const
+    {
+        return m_lastSoundPosition;
+    }
 
-    [[nodiscard]] i32 particleCount() const { return m_particleCount; }
-    [[nodiscard]] particle::ParticleTypeId lastParticleType() const { return m_lastParticleType; }
+    [[nodiscard]] i32 playEventCount() const
+    {
+        return m_playEventCount;
+    }
+
+    [[nodiscard]] i32 lastPlayEventId() const
+    {
+        return m_lastPlayEventId;
+    }
+
+    [[nodiscard]] const BlockPos& lastPlayEventPos() const
+    {
+        return m_lastPlayEventPos;
+    }
+
+    [[nodiscard]] i32 lastPlayEventData() const
+    {
+        return m_lastPlayEventData;
+    }
+
+    [[nodiscard]] i32 gameEventCount() const
+    {
+        return m_gameEventCount;
+    }
+
+    [[nodiscard]] const std::string& lastGameEventId() const
+    {
+        return m_lastGameEventId;
+    }
+
+    [[nodiscard]] const BlockPos& lastGameEventPos() const
+    {
+        return m_lastGameEventPos;
+    }
+
+    [[nodiscard]] const Entity* lastGameEventSourceEntity() const
+    {
+        return m_lastGameEventSourceEntity;
+    }
+
+    [[nodiscard]] i32 particleCount() const
+    {
+        return m_particleCount;
+    }
+
+    [[nodiscard]] particle::ParticleTypeId lastParticleType() const
+    {
+        return m_lastParticleType;
+    }
 
 private:
     std::vector<std::unique_ptr<Entity>> m_spawnedEntities;
@@ -195,7 +264,10 @@ protected:
         Items::initialize();
     }
 
-    void SetUp() override { m_world.clearSpawnedEntities(); }
+    void SetUp() override
+    {
+        m_world.clearSpawnedEntities();
+    }
 
     OminousItemSpawnerTestWorld m_world;
 };
@@ -690,7 +762,10 @@ protected:
         entity::VanillaEntities::registerAll();
     }
 
-    void SetUp() override { m_world.clearSpawnedEntities(); }
+    void SetUp() override
+    {
+        m_world.clearSpawnedEntities();
+    }
 
     OminousItemSpawnerTestWorld m_world;
 };

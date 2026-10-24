@@ -62,13 +62,22 @@ public:
     explicit ChunkDependencies(std::vector<const ChunkStatus*> dependencyByRadius);
 
     /** @brief 依赖列表是否为空 */
-    [[nodiscard]] bool empty() const { return m_dependencyByRadius.empty(); }
+    [[nodiscard]] bool empty() const
+    {
+        return m_dependencyByRadius.empty();
+    }
 
     /** @brief 获取依赖半径数量（= 最大半径 + 1） */
-    [[nodiscard]] i32 size() const { return static_cast<i32>(m_dependencyByRadius.size()); }
+    [[nodiscard]] i32 size() const
+    {
+        return static_cast<i32>(m_dependencyByRadius.size());
+    }
 
     /** @brief 获取最大依赖半径（= size - 1） */
-    [[nodiscard]] i32 getRadius() const { return std::max(0, static_cast<i32>(m_dependencyByRadius.size()) - 1); }
+    [[nodiscard]] i32 getRadius() const
+    {
+        return std::max(0, static_cast<i32>(m_dependencyByRadius.size()) - 1);
+    }
 
     /**
      * @brief 获取指定半径处的依赖状态
@@ -87,7 +96,10 @@ public:
     /**
      * @brief 获取底层依赖列表（用于调试/测试）
      */
-    [[nodiscard]] const std::vector<const ChunkStatus*>& asList() const { return m_dependencyByRadius; }
+    [[nodiscard]] const std::vector<const ChunkStatus*>& asList() const
+    {
+        return m_dependencyByRadius;
+    }
 
 private:
     /** 按半径索引的依赖状态列表 */

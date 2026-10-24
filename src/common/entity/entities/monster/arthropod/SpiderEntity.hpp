@@ -74,7 +74,10 @@ public:
     // 节肢生物归类（对齐 Java Spider.getMobType()==ARTHROPOD）。基类默认 Undefined，未覆写会导致
     // 节肢杀手(Bane of Arthropods)附魔无加成、节肢类瞬间伤害药水无额外效果等失效。
     // 子类 CaveSpiderEntity 继承此覆写自动归类 Arthropod。
-    [[nodiscard]] CreatureAttribute getCreatureAttribute() const override { return CreatureAttribute::Arthropod; }
+    [[nodiscard]] CreatureAttribute getCreatureAttribute() const override
+    {
+        return CreatureAttribute::Arthropod;
+    }
 
     // 禁止拷贝
     SpiderEntity(const SpiderEntity&) = delete;
@@ -96,24 +99,36 @@ public:
     /**
      * @brief 是否正在攀爬
      */
-    [[nodiscard]] bool isClimbing() const { return m_climbing; }
+    [[nodiscard]] bool isClimbing() const
+    {
+        return m_climbing;
+    }
 
     /**
      * @brief 设置攀爬状态
      */
-    void setClimbing(bool climbing) { m_climbing = climbing; }
+    void setClimbing(bool climbing)
+    {
+        m_climbing = climbing;
+    }
 
     /**
      * @brief 是否可以攀爬
      */
-    [[nodiscard]] bool canClimb() const { return true; }
+    [[nodiscard]] bool canClimb() const
+    {
+        return true;
+    }
 
     // ========== 阳光燃烧 ==========
 
     /**
      * @brief 蜘蛛不在阳光下燃烧
      */
-    [[nodiscard]] bool shouldBurnInDaylight() const override { return false; }
+    [[nodiscard]] bool shouldBurnInDaylight() const override
+    {
+        return false;
+    }
 
     // ========== 药水效果免疫 ==========
 
@@ -139,17 +154,26 @@ public:
     /**
      * @brief 获取眼睛高度
      */
-    [[nodiscard]] f32 eyeHeight() const override { return 0.65f; }
+    [[nodiscard]] f32 eyeHeight() const override
+    {
+        return 0.65f;
+    }
 
     /**
      * @brief 获取实体宽度
      */
-    [[nodiscard]] f32 width() const override { return 1.4f; }
+    [[nodiscard]] f32 width() const override
+    {
+        return 1.4f;
+    }
 
     /**
      * @brief 获取实体高度
      */
-    [[nodiscard]] f32 height() const override { return 0.9f; }
+    [[nodiscard]] f32 height() const override
+    {
+        return 0.9f;
+    }
 
     // ========== 生命周期 ==========
 

@@ -37,10 +37,12 @@ namespace mc {
 
 // 前向声明
 class CollisionShape;
+
 namespace world::chunk {
 class ChunkSection;
 class ChunkData;
 } // namespace world::chunk
+
 using world::chunk::ChunkData;
 using world::chunk::ChunkSection;
 

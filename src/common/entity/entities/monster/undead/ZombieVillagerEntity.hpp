@@ -100,7 +100,10 @@ public:
     /**
      * @brief 获取村民数据复合字段参数 ID（用于客户端元数据同步/测试）
      */
-    [[nodiscard]] static u16 getVillagerDataParamId() { return VILLAGER_DATA_PARAM.id(); }
+    [[nodiscard]] static u16 getVillagerDataParamId()
+    {
+        return VILLAGER_DATA_PARAM.id();
+    }
 
     /**
      * @brief 从数据管理器同步元数据
@@ -113,7 +116,10 @@ public:
     /**
      * @brief 获取村民数据
      */
-    [[nodiscard]] const entity::VillagerData& villagerData() const { return m_villagerData; }
+    [[nodiscard]] const entity::VillagerData& villagerData() const
+    {
+        return m_villagerData;
+    }
 
     /**
      * @brief 设置村民数据
@@ -123,13 +129,26 @@ public:
     // ========== 交易与流言（治愈后交还村民） ==========
 
     /// 交易列表；未设置时返回 nullptr（对应 vanilla ZombieVillager.getOffers 的惰性创建）
-    [[nodiscard]] const world::village::trade::MerchantOffers* offers() const { return m_offers.get(); }
+    [[nodiscard]] const world::village::trade::MerchantOffers* offers() const
+    {
+        return m_offers.get();
+    }
 
     /// 整体设置交易列表（nullptr 表示清空）
-    void setOffers(std::unique_ptr<world::village::trade::MerchantOffers> offers) { m_offers = std::move(offers); }
+    void setOffers(std::unique_ptr<world::village::trade::MerchantOffers> offers)
+    {
+        m_offers = std::move(offers);
+    }
 
-    [[nodiscard]] const world::village::VillageGossipManager& gossips() const { return m_gossips; }
-    [[nodiscard]] world::village::VillageGossipManager& gossips() { return m_gossips; }
+    [[nodiscard]] const world::village::VillageGossipManager& gossips() const
+    {
+        return m_gossips;
+    }
+
+    [[nodiscard]] world::village::VillageGossipManager& gossips()
+    {
+        return m_gossips;
+    }
 
     void addAdditionalSaveData(nbt::tags::compound_tag& tag) const override;
     Result<void> readAdditionalSaveData(const nbt::tags::compound_tag& tag) override;
@@ -137,7 +156,10 @@ public:
     /**
      * @brief 获取村民职业
      */
-    [[nodiscard]] entity::VillagerProfession getProfession() const { return m_villagerData.profession(); }
+    [[nodiscard]] entity::VillagerProfession getProfession() const
+    {
+        return m_villagerData.profession();
+    }
 
     /**
      * @brief 设置村民职业
@@ -147,7 +169,10 @@ public:
     /**
      * @brief 获取村民类型
      */
-    [[nodiscard]] entity::VillagerType getVillagerType() const { return m_villagerData.type(); }
+    [[nodiscard]] entity::VillagerType getVillagerType() const
+    {
+        return m_villagerData.type();
+    }
 
     /**
      * @brief 设置村民类型
@@ -157,7 +182,10 @@ public:
     /**
      * @brief 获取交易等级
      */
-    [[nodiscard]] i32 getTradingLevel() const { return m_villagerData.level(); }
+    [[nodiscard]] i32 getTradingLevel() const
+    {
+        return m_villagerData.level();
+    }
 
     /**
      * @brief 设置交易等级
@@ -167,7 +195,10 @@ public:
     /**
      * @brief 获取交易经验
      */
-    [[nodiscard]] i32 getTradingExperience() const { return m_villagerData.experience(); }
+    [[nodiscard]] i32 getTradingExperience() const
+    {
+        return m_villagerData.experience();
+    }
 
     /**
      * @brief 设置交易经验
@@ -179,13 +210,19 @@ public:
     /**
      * @brief 是否正在治愈
      */
-    [[nodiscard]] bool isConverting() const { return m_converting; }
+    [[nodiscard]] bool isConverting() const
+    {
+        return m_converting;
+    }
 
     /**
      * @brief 获取治愈时间
      * @return 剩余治愈时间（ticks），0表示未在治愈
      */
-    [[nodiscard]] i32 getConversionTime() const { return m_conversionTime; }
+    [[nodiscard]] i32 getConversionTime() const
+    {
+        return m_conversionTime;
+    }
 
     /**
      * @brief 设置治愈时间
@@ -224,12 +261,18 @@ public:
     /**
      * @brief 获取治愈发起者的UUID
      */
-    [[nodiscard]] const std::string& getConversionStarterUuid() const { return m_conversionStarterUuid; }
+    [[nodiscard]] const std::string& getConversionStarterUuid() const
+    {
+        return m_conversionStarterUuid;
+    }
 
     /**
      * @brief 设置治愈发起者的UUID
      */
-    void setConversionStarterUuid(const std::string& uuid) { m_conversionStarterUuid = uuid; }
+    void setConversionStarterUuid(const std::string& uuid)
+    {
+        m_conversionStarterUuid = uuid;
+    }
 
     // ========== 属性 ==========
 
@@ -283,7 +326,10 @@ protected:
     /**
      * @brief 僵尸村民不应该溺水转化
      */
-    [[nodiscard]] bool shouldDrown() const override { return false; }
+    [[nodiscard]] bool shouldDrown() const override
+    {
+        return false;
+    }
 
 private:
     // 村民数据

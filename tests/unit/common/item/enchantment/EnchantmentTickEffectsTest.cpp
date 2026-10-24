@@ -81,16 +81,25 @@ public:
         return it != m_blocks.end() ? it->second : &VanillaBlocks::AIR->defaultState();
     }
 
-    [[nodiscard]] bool isClientSide() const override { return false; }
+    [[nodiscard]] bool isClientSide() const override
+    {
+        return false;
+    }
 
     void addParticle(particle::ParticleTypeId type, const Vector3& pos, const Vector3& velocity) override
     {
         m_particles.push_back({type, pos, velocity});
     }
 
-    void setBlock(const BlockPos& pos, const BlockState* state) { m_blocks[pos] = state; }
+    void setBlock(const BlockPos& pos, const BlockState* state)
+    {
+        m_blocks[pos] = state;
+    }
 
-    [[nodiscard]] const std::vector<ParticleRecord>& particles() const { return m_particles; }
+    [[nodiscard]] const std::vector<ParticleRecord>& particles() const
+    {
+        return m_particles;
+    }
 
 private:
     std::map<BlockPos, const BlockState*> m_blocks;
@@ -102,11 +111,30 @@ private:
  */
 class TickProbeEnchantment final : public Enchantment {
 public:
-    [[nodiscard]] std::string id() const override { return "test:tick_probe"; }
-    [[nodiscard]] std::string getNameKey(i32) const override { return "enchantment.test.tick_probe"; }
-    [[nodiscard]] EnchantmentType type() const override { return EnchantmentType::All; }
-    [[nodiscard]] i32 minLevel() const noexcept override { return 1; }
-    [[nodiscard]] i32 maxLevel() const noexcept override { return 1; }
+    [[nodiscard]] std::string id() const override
+    {
+        return "test:tick_probe";
+    }
+
+    [[nodiscard]] std::string getNameKey(i32) const override
+    {
+        return "enchantment.test.tick_probe";
+    }
+
+    [[nodiscard]] EnchantmentType type() const override
+    {
+        return EnchantmentType::All;
+    }
+
+    [[nodiscard]] i32 minLevel() const noexcept override
+    {
+        return 1;
+    }
+
+    [[nodiscard]] i32 maxLevel() const noexcept override
+    {
+        return 1;
+    }
 
     void onTick(LivingEntity& entity, const ItemStack& stack, EquipmentSlot slot, i32 level) const override
     {
@@ -138,7 +166,10 @@ public:
     }
 
     /// 测试辅助：直接设定已存在刻数（决定 TICK 组件的周期刻采样点）。
-    void setTicksExistedForTest(u32 ticks) { m_ticksExisted = ticks; }
+    void setTicksExistedForTest(u32 ticks)
+    {
+        m_ticksExisted = ticks;
+    }
 };
 
 class EnchantmentTickEffectsTest : public ::testing::Test {

@@ -233,14 +233,28 @@ public:
     /**
      * @brief 获取方块tick列表
      */
-    [[nodiscard]] ServerTickList<Block>& blockTicks() { return *m_blockTicks; }
-    [[nodiscard]] const ServerTickList<Block>& blockTicks() const { return *m_blockTicks; }
+    [[nodiscard]] ServerTickList<Block>& blockTicks()
+    {
+        return *m_blockTicks;
+    }
+
+    [[nodiscard]] const ServerTickList<Block>& blockTicks() const
+    {
+        return *m_blockTicks;
+    }
 
     /**
      * @brief 获取流体tick列表
      */
-    [[nodiscard]] ServerTickList<fluid::Fluid>& fluidTicks() { return *m_fluidTicks; }
-    [[nodiscard]] const ServerTickList<fluid::Fluid>& fluidTicks() const { return *m_fluidTicks; }
+    [[nodiscard]] ServerTickList<fluid::Fluid>& fluidTicks()
+    {
+        return *m_fluidTicks;
+    }
+
+    [[nodiscard]] const ServerTickList<fluid::Fluid>& fluidTicks() const
+    {
+        return *m_fluidTicks;
+    }
 
 private:
     IWorld& m_world;

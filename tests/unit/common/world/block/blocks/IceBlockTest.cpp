@@ -95,33 +95,102 @@ public:
         return setBlockState(x, y, z, state);
     }
 
-    [[nodiscard]] mc::world::chunk::IChunkManager* chunkManager() override { return &m_stubChunks; }
-    [[nodiscard]] const mc::world::chunk::IChunkManager* chunkManager() const override { return &m_stubChunks; }
+    [[nodiscard]] mc::world::chunk::IChunkManager* chunkManager() override
+    {
+        return &m_stubChunks;
+    }
+
+    [[nodiscard]] const mc::world::chunk::IChunkManager* chunkManager() const override
+    {
+        return &m_stubChunks;
+    }
+
     mc::test::StubChunkManager m_stubChunks{nullptr, true};
-    [[nodiscard]] i32 getHeight(i32, i32) const override { return 64; }
 
-    [[nodiscard]] u8 getBlockLight(i32 x, i32 y, i32 z) const override { return sampleLight(m_blockLight, x, y, z); }
+    [[nodiscard]] i32 getHeight(i32, i32) const override
+    {
+        return 64;
+    }
 
-    [[nodiscard]] u8 getSkyLight(i32 x, i32 y, i32 z) const override { return sampleLight(m_skyLight, x, y, z); }
+    [[nodiscard]] u8 getBlockLight(i32 x, i32 y, i32 z) const override
+    {
+        return sampleLight(m_blockLight, x, y, z);
+    }
 
-    [[nodiscard]] u64 currentTick() const override { return m_currentTick; }
-    [[nodiscard]] bool isUltraWarm() const override { return m_isUltraWarm; }
-    [[nodiscard]] DimensionId dimension() const override { return m_dimension; }
-    [[nodiscard]] i64 dayTime() const override { return m_dayTime; }
-    [[nodiscard]] bool isRaining() const override { return m_isRaining; }
-    [[nodiscard]] bool isThundering() const override { return m_isThundering; }
+    [[nodiscard]] u8 getSkyLight(i32 x, i32 y, i32 z) const override
+    {
+        return sampleLight(m_skyLight, x, y, z);
+    }
 
-    void setUltraWarm(bool value) { m_isUltraWarm = value; }
-    void setDimension(DimensionId dim) { m_dimension = dim; }
-    void setDayTime(i64 time) { m_dayTime = time; }
-    void setRaining(bool value) { m_isRaining = value; }
-    void setThundering(bool value) { m_isThundering = value; }
+    [[nodiscard]] u64 currentTick() const override
+    {
+        return m_currentTick;
+    }
 
-    void setBlockAt(const BlockPos& pos, const BlockState* state) { (void)setBlockState(pos.x, pos.y, pos.z, state); }
+    [[nodiscard]] bool isUltraWarm() const override
+    {
+        return m_isUltraWarm;
+    }
 
-    void setSkyLightAt(const BlockPos& pos, u8 light) { m_skyLight[pos] = light; }
+    [[nodiscard]] DimensionId dimension() const override
+    {
+        return m_dimension;
+    }
 
-    void setBlockLightAt(const BlockPos& pos, u8 light) { m_blockLight[pos] = light; }
+    [[nodiscard]] i64 dayTime() const override
+    {
+        return m_dayTime;
+    }
+
+    [[nodiscard]] bool isRaining() const override
+    {
+        return m_isRaining;
+    }
+
+    [[nodiscard]] bool isThundering() const override
+    {
+        return m_isThundering;
+    }
+
+    void setUltraWarm(bool value)
+    {
+        m_isUltraWarm = value;
+    }
+
+    void setDimension(DimensionId dim)
+    {
+        m_dimension = dim;
+    }
+
+    void setDayTime(i64 time)
+    {
+        m_dayTime = time;
+    }
+
+    void setRaining(bool value)
+    {
+        m_isRaining = value;
+    }
+
+    void setThundering(bool value)
+    {
+        m_isThundering = value;
+    }
+
+    void setBlockAt(const BlockPos& pos, const BlockState* state)
+    {
+        (void)setBlockState(pos.x, pos.y, pos.z, state);
+    }
+
+    void setSkyLightAt(const BlockPos& pos, u8 light)
+    {
+        m_skyLight[pos] = light;
+    }
+
+    void setBlockLightAt(const BlockPos& pos, u8 light)
+    {
+        m_blockLight[pos] = light;
+    }
 
     // TickManager interface
     [[nodiscard]] world::tick::TickManager& tickManager() override
@@ -129,13 +198,17 @@ public:
         ensureTickManager();
         return *m_tickManagerPtr;
     }
+
     [[nodiscard]] const world::tick::TickManager& tickManager() const override
     {
         const_cast<IceTestWorld*>(this)->ensureTickManager();
         return *m_tickManagerPtr;
     }
 
-    void setCurrentTick(u64 tick) { m_currentTick = tick; }
+    void setCurrentTick(u64 tick)
+    {
+        m_currentTick = tick;
+    }
 
     void advanceTick()
     {
@@ -179,40 +252,70 @@ public:
         m_index = 0;
     }
 
-    [[nodiscard]] u64 nextU64() override { return static_cast<u64>(nextValue()); }
+    [[nodiscard]] u64 nextU64() override
+    {
+        return static_cast<u64>(nextValue());
+    }
 
-    [[nodiscard]] u32 nextU32() override { return static_cast<u32>(nextValue()); }
+    [[nodiscard]] u32 nextU32() override
+    {
+        return static_cast<u32>(nextValue());
+    }
 
-    [[nodiscard]] i32 nextInt(i32 bound) override { return nextValue() % bound; }
+    [[nodiscard]] i32 nextInt(i32 bound) override
+    {
+        return nextValue() % bound;
+    }
 
-    [[nodiscard]] i32 nextInt() override { return nextValue(); }
+    [[nodiscard]] i32 nextInt() override
+    {
+        return nextValue();
+    }
 
-    [[nodiscard]] i32 nextInt(i32 min, i32 max) override { return min + (nextValue() % (max - min + 1)); }
+    [[nodiscard]] i32 nextInt(i32 min, i32 max) override
+    {
+        return min + (nextValue() % (max - min + 1));
+    }
 
-    [[nodiscard]] bool nextBoolean() override { return (nextValue() & 1) != 0; }
+    [[nodiscard]] bool nextBoolean() override
+    {
+        return (nextValue() & 1) != 0;
+    }
 
     [[nodiscard]] f32 nextFloat() override
     {
         return static_cast<f32>(nextValue() & 0x00FFFFFF) / static_cast<f32>(1 << 24);
     }
 
-    [[nodiscard]] f32 nextFloat(f32 min, f32 max) override { return min + nextFloat() * (max - min); }
+    [[nodiscard]] f32 nextFloat(f32 min, f32 max) override
+    {
+        return min + nextFloat() * (max - min);
+    }
 
     [[nodiscard]] f64 nextDouble() override
     {
         return static_cast<f64>(nextValue() & 0x001FFFFFFFFFFFFF) / static_cast<f64>(1ULL << 53);
     }
 
-    [[nodiscard]] f64 nextDouble(f64 min, f64 max) override { return min + nextDouble() * (max - min); }
+    [[nodiscard]] f64 nextDouble(f64 min, f64 max) override
+    {
+        return min + nextDouble() * (max - min);
+    }
 
     [[nodiscard]] f32 nextGaussian(f32 mean, f32 stddev) override
     {
         return mean + stddev * static_cast<f32>(nextValue());
     }
 
-    [[nodiscard]] i64 nextLong() override { return static_cast<i64>(nextValue()); }
+    [[nodiscard]] i64 nextLong() override
+    {
+        return static_cast<i64>(nextValue());
+    }
 
-    [[nodiscard]] i64 nextLong(i64 bound) override { return static_cast<i64>(nextValue() % bound); }
+    [[nodiscard]] i64 nextLong(i64 bound) override
+    {
+        return static_cast<i64>(nextValue() % bound);
+    }
 
     [[nodiscard]] math::PositionalRandomFactory forkPositional() override
     {
@@ -390,7 +493,9 @@ TEST_F(IceBlockTest, FrostedIceTick_MeltsWithHighLightInOverworld)
     // 霜冰需要 4 次 tick 才能融化（age 0->1->2->3->melt）
     for (int i = 0; i < 4; ++i) {
         const BlockState* currentState = world.getBlockState(pos);
-        if (currentState == nullptr) break;
+        if (currentState == nullptr) {
+            break;
+        }
         BlockState mutableState = *currentState;
         VanillaBlocks::FROSTED_ICE->tick(world, pos, mutableState, world.getRandom());
     }
@@ -447,7 +552,9 @@ TEST_F(IceBlockTest, FrostedIceTick_MeltsInEndWithHighBlockLight)
     // 霜冰需要 4 次 tick 才能融化
     for (int i = 0; i < 4; ++i) {
         const BlockState* currentState = world.getBlockState(pos);
-        if (currentState == nullptr) break;
+        if (currentState == nullptr) {
+            break;
+        }
         BlockState mutableState = *currentState;
         VanillaBlocks::FROSTED_ICE->tick(world, pos, mutableState, world.getRandom());
     }

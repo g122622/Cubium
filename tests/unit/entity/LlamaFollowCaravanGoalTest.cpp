@@ -57,7 +57,10 @@ namespace {
  */
 class CaravanTestWorld final : public mc::test::BaseTestWorld {
 public:
-    void setBlock(i32 x, i32 y, i32 z, const BlockState* state) { m_blocks[BlockPos(x, y, z)] = state; }
+    void setBlock(i32 x, i32 y, i32 z, const BlockState* state)
+    {
+        m_blocks[BlockPos(x, y, z)] = state;
+    }
 
     [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override
     {
@@ -74,25 +77,43 @@ public:
         return true;
     }
 
-    [[nodiscard]] mc::world::chunk::IChunkManager* chunkManager() override { return &m_stubChunks; }
-    [[nodiscard]] const mc::world::chunk::IChunkManager* chunkManager() const override { return &m_stubChunks; }
+    [[nodiscard]] mc::world::chunk::IChunkManager* chunkManager() override
+    {
+        return &m_stubChunks;
+    }
+
+    [[nodiscard]] const mc::world::chunk::IChunkManager* chunkManager() const override
+    {
+        return &m_stubChunks;
+    }
+
     mc::test::StubChunkManager m_stubChunks{nullptr, true};
 
-    EntityInstanceId spawnEntity(std::unique_ptr<Entity>) override { return EntityInstanceId(0); }
+    EntityInstanceId spawnEntity(std::unique_ptr<Entity>) override
+    {
+        return EntityInstanceId(0);
+    }
 
     [[nodiscard]] std::vector<Entity*> getEntitiesInAABB(const AxisAlignedBB&, const Entity*) const override
     {
         return m_nearbyEntities;
     }
 
-    [[nodiscard]] Entity* getEntityByUuid(const std::string&) const override { return nullptr; }
+    [[nodiscard]] Entity* getEntityByUuid(const std::string&) const override
+    {
+        return nullptr;
+    }
 
-    void setNearbyEntities(std::vector<Entity*> entities) { m_nearbyEntities = std::move(entities); }
+    void setNearbyEntities(std::vector<Entity*> entities)
+    {
+        m_nearbyEntities = std::move(entities);
+    }
 
     [[nodiscard]] world::tick::TickManager& tickManager() override
     {
         throw std::runtime_error("CaravanTestWorld::tickManager not implemented");
     }
+
     [[nodiscard]] const world::tick::TickManager& tickManager() const override
     {
         throw std::runtime_error("CaravanTestWorld::tickManager not implemented");

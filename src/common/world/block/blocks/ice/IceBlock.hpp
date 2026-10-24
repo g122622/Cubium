@@ -72,7 +72,10 @@ public:
     /**
      * @brief 是否响应随机刻
      */
-    [[nodiscard]] bool ticksRandomly() const noexcept override { return true; }
+    [[nodiscard]] bool ticksRandomly() const noexcept override
+    {
+        return true;
+    }
 };
 
 /**
@@ -147,17 +150,26 @@ public:
     /**
      * @brief 是否响应随机刻
      */
-    [[nodiscard]] bool ticksRandomly() const noexcept override { return true; }
+    [[nodiscard]] bool ticksRandomly() const noexcept override
+    {
+        return true;
+    }
 
     /**
      * @brief 获取 AGE 属性
      */
-    [[nodiscard]] static const IntegerProperty& AGE_PROP() { return BlockStateProperties::AGE_0_3(); }
+    [[nodiscard]] static const IntegerProperty& AGE_PROP()
+    {
+        return BlockStateProperties::AGE_0_3();
+    }
 
     /**
      * @brief 获取霜冰年龄
      */
-    [[nodiscard]] static i32 getAge(const BlockState& state) { return state.get(AGE_PROP()); }
+    [[nodiscard]] static i32 getAge(const BlockState& state)
+    {
+        return state.get(AGE_PROP());
+    }
 
 private:
     /**

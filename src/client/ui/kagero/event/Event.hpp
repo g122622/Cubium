@@ -103,56 +103,86 @@ public:
     /**
      * @brief 检查事件是否被取消
      */
-    [[nodiscard]] bool isCancelled() const { return m_cancelled; }
+    [[nodiscard]] bool isCancelled() const
+    {
+        return m_cancelled;
+    }
 
     /**
      * @brief 取消事件
      *
      * 取消事件将阻止事件继续传播
      */
-    void cancel() const { m_cancelled = true; }
+    void cancel() const
+    {
+        m_cancelled = true;
+    }
 
     /**
      * @brief 获取事件时间戳
      */
-    [[nodiscard]] u64 timestamp() const { return m_timestamp; }
+    [[nodiscard]] u64 timestamp() const
+    {
+        return m_timestamp;
+    }
 
     /**
      * @brief 设置事件时间戳
      */
-    void setTimestamp(u64 ts) { m_timestamp = ts; }
+    void setTimestamp(u64 ts)
+    {
+        m_timestamp = ts;
+    }
 
     /**
      * @brief 检查是否是气泡事件
      *
      * 气泡事件会从目标组件向上传播到父组件
      */
-    [[nodiscard]] virtual bool bubbles() const { return true; }
+    [[nodiscard]] virtual bool bubbles() const
+    {
+        return true;
+    }
 
     /**
      * @brief 检查是否是可取消事件
      */
-    [[nodiscard]] virtual bool isCancellable() const { return true; }
+    [[nodiscard]] virtual bool isCancellable() const
+    {
+        return true;
+    }
 
     /**
      * @brief 获取事件目标
      */
-    [[nodiscard]] void* target() const { return m_target; }
+    [[nodiscard]] void* target() const
+    {
+        return m_target;
+    }
 
     /**
      * @brief 设置事件目标
      */
-    void setTarget(void* target) { m_target = target; }
+    void setTarget(void* target)
+    {
+        m_target = target;
+    }
 
     /**
      * @brief 获取事件当前目标
      */
-    [[nodiscard]] void* currentTarget() const { return m_currentTarget; }
+    [[nodiscard]] void* currentTarget() const
+    {
+        return m_currentTarget;
+    }
 
     /**
      * @brief 设置事件当前目标
      */
-    void setCurrentTarget(void* target) { m_currentTarget = target; }
+    void setCurrentTarget(void* target)
+    {
+        m_currentTarget = target;
+    }
 
 protected:
     mutable bool m_cancelled = false; // mutable 以允许在 const 上下文中取消
@@ -176,7 +206,10 @@ public:
         : m_data(std::move(data))
     {}
 
-    [[nodiscard]] EventType getType() const override { return Type; }
+    [[nodiscard]] EventType getType() const override
+    {
+        return Type;
+    }
 
     [[nodiscard]] const char* getName() const override
     {
@@ -214,8 +247,15 @@ public:
     /**
      * @brief 获取事件数据
      */
-    [[nodiscard]] const T& data() const { return m_data; }
-    [[nodiscard]] T& data() { return m_data; }
+    [[nodiscard]] const T& data() const
+    {
+        return m_data;
+    }
+
+    [[nodiscard]] T& data()
+    {
+        return m_data;
+    }
 
 private:
     T m_data;

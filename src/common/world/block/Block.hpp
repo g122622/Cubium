@@ -367,7 +367,10 @@ public:
     /**
      * @brief 是否显式禁止掉落表
      */
-    [[nodiscard]] bool noLootTable() const noexcept { return m_noLootTable; }
+    [[nodiscard]] bool noLootTable() const noexcept
+    {
+        return m_noLootTable;
+    }
 
     /**
      * @brief 设置声音类型
@@ -509,31 +512,130 @@ public:
     }
 
     // Getters
-    [[nodiscard]] const Material& material() const noexcept { return *m_material; }
-    [[nodiscard]] f32 hardness() const noexcept { return m_hardness; }
-    [[nodiscard]] f32 resistance() const noexcept { return m_resistance; }
-    [[nodiscard]] u8 lightLevel() const noexcept { return m_lightLevel; }
-    [[nodiscard]] bool hasCollision() const noexcept { return m_hasCollision; }
-    [[nodiscard]] bool isSolid() const noexcept { return m_isSolid; }
-    [[nodiscard]] bool isFlammable() const noexcept { return m_isFlammable; }
-    [[nodiscard]] bool requiresTool() const noexcept { return m_requiresTool; }
-    [[nodiscard]] bool isReplaceable() const noexcept { return m_isReplaceable; }
-    [[nodiscard]] i32 opacity() const noexcept { return m_opacity; }
-    [[nodiscard]] bool canOcclude() const noexcept { return m_canOcclude; }
-    [[nodiscard]] bool doesPropagateSkylightDown() const noexcept { return m_propagatesSkylightDown; }
-    [[nodiscard]] u8 harvestTool() const noexcept { return m_harvestTool; }
-    [[nodiscard]] i32 harvestLevel() const noexcept { return m_harvestLevel; }
-    [[nodiscard]] const std::string& lootTableId() const noexcept { return m_lootTableId; }
-    [[nodiscard]] const BlockSoundType* soundType() const noexcept { return m_soundType; }
-    [[nodiscard]] f32 slipperiness() const noexcept { return m_slipperiness; }
-    [[nodiscard]] f32 speedFactor() const noexcept { return m_speedFactor; }
-    [[nodiscard]] f32 jumpFactor() const noexcept { return m_jumpFactor; }
-    [[nodiscard]] bool ticksRandomly() const noexcept { return m_ticksRandomly; }
-    [[nodiscard]] world::map::MaterialColorId mapColor() const noexcept { return m_mapColor; }
-    [[nodiscard]] bool hasMapColor() const noexcept { return m_hasMapColor; }
-    [[nodiscard]] bool isIgnitedByLava() const noexcept { return m_ignitedByLava; }
-    [[nodiscard]] OffsetType getOffsetType() const noexcept { return m_offsetType; }
-    [[nodiscard]] Instrument getInstrument() const noexcept { return m_instrument.value_or(Instrument::Harp); }
+    [[nodiscard]] const Material& material() const noexcept
+    {
+        return *m_material;
+    }
+
+    [[nodiscard]] f32 hardness() const noexcept
+    {
+        return m_hardness;
+    }
+
+    [[nodiscard]] f32 resistance() const noexcept
+    {
+        return m_resistance;
+    }
+
+    [[nodiscard]] u8 lightLevel() const noexcept
+    {
+        return m_lightLevel;
+    }
+
+    [[nodiscard]] bool hasCollision() const noexcept
+    {
+        return m_hasCollision;
+    }
+
+    [[nodiscard]] bool isSolid() const noexcept
+    {
+        return m_isSolid;
+    }
+
+    [[nodiscard]] bool isFlammable() const noexcept
+    {
+        return m_isFlammable;
+    }
+
+    [[nodiscard]] bool requiresTool() const noexcept
+    {
+        return m_requiresTool;
+    }
+
+    [[nodiscard]] bool isReplaceable() const noexcept
+    {
+        return m_isReplaceable;
+    }
+
+    [[nodiscard]] i32 opacity() const noexcept
+    {
+        return m_opacity;
+    }
+
+    [[nodiscard]] bool canOcclude() const noexcept
+    {
+        return m_canOcclude;
+    }
+
+    [[nodiscard]] bool doesPropagateSkylightDown() const noexcept
+    {
+        return m_propagatesSkylightDown;
+    }
+
+    [[nodiscard]] u8 harvestTool() const noexcept
+    {
+        return m_harvestTool;
+    }
+
+    [[nodiscard]] i32 harvestLevel() const noexcept
+    {
+        return m_harvestLevel;
+    }
+
+    [[nodiscard]] const std::string& lootTableId() const noexcept
+    {
+        return m_lootTableId;
+    }
+
+    [[nodiscard]] const BlockSoundType* soundType() const noexcept
+    {
+        return m_soundType;
+    }
+
+    [[nodiscard]] f32 slipperiness() const noexcept
+    {
+        return m_slipperiness;
+    }
+
+    [[nodiscard]] f32 speedFactor() const noexcept
+    {
+        return m_speedFactor;
+    }
+
+    [[nodiscard]] f32 jumpFactor() const noexcept
+    {
+        return m_jumpFactor;
+    }
+
+    [[nodiscard]] bool ticksRandomly() const noexcept
+    {
+        return m_ticksRandomly;
+    }
+
+    [[nodiscard]] world::map::MaterialColorId mapColor() const noexcept
+    {
+        return m_mapColor;
+    }
+
+    [[nodiscard]] bool hasMapColor() const noexcept
+    {
+        return m_hasMapColor;
+    }
+
+    [[nodiscard]] bool isIgnitedByLava() const noexcept
+    {
+        return m_ignitedByLava;
+    }
+
+    [[nodiscard]] OffsetType getOffsetType() const noexcept
+    {
+        return m_offsetType;
+    }
+
+    [[nodiscard]] Instrument getInstrument() const noexcept
+    {
+        return m_instrument.value_or(Instrument::Harp);
+    }
 
 private:
     friend class Block;
@@ -631,42 +733,66 @@ public:
     /**
      * @brief 获取方块资源位置
      */
-    [[nodiscard]] const ResourceLocation& blockLocation() const noexcept { return m_blockLocation; }
+    [[nodiscard]] const ResourceLocation& blockLocation() const noexcept
+    {
+        return m_blockLocation;
+    }
 
     /**
      * @brief 获取方块ID
      */
-    [[nodiscard]] u32 blockId() const noexcept { return m_blockId; }
+    [[nodiscard]] u32 blockId() const noexcept
+    {
+        return m_blockId;
+    }
 
     /**
      * @brief 获取材质
      */
-    [[nodiscard]] const Material& material() const noexcept { return *m_material; }
+    [[nodiscard]] const Material& material() const noexcept
+    {
+        return *m_material;
+    }
 
     /**
      * @brief 获取状态容器
      */
-    [[nodiscard]] const StateContainer<Block, BlockState>& stateContainer() const noexcept { return *m_stateContainer; }
+    [[nodiscard]] const StateContainer<Block, BlockState>& stateContainer() const noexcept
+    {
+        return *m_stateContainer;
+    }
 
     /**
      * @brief 获取默认状态
      */
-    [[nodiscard]] const BlockState& defaultState() const noexcept { return *m_defaultState; }
+    [[nodiscard]] const BlockState& defaultState() const noexcept
+    {
+        return *m_defaultState;
+    }
 
     /**
      * @brief 获取硬度
      */
-    [[nodiscard]] f32 hardness() const noexcept { return m_hardness; }
+    [[nodiscard]] f32 hardness() const noexcept
+    {
+        return m_hardness;
+    }
 
     /**
      * @brief 获取抗性
      */
-    [[nodiscard]] f32 resistance() const noexcept { return m_resistance; }
+    [[nodiscard]] f32 resistance() const noexcept
+    {
+        return m_resistance;
+    }
 
     /**
      * @brief 获取光照等级
      */
-    [[nodiscard]] u8 lightLevel() const noexcept { return m_lightLevel; }
+    [[nodiscard]] u8 lightLevel() const noexcept
+    {
+        return m_lightLevel;
+    }
 
     /**
      * @brief 获取方块状态的动态光照等级
@@ -692,7 +818,10 @@ public:
     /**
      * @brief 获取方块光照透明度 (0-15)
      */
-    [[nodiscard]] i32 opacity() const noexcept { return m_opacity; }
+    [[nodiscard]] i32 opacity() const noexcept
+    {
+        return m_opacity;
+    }
 
     /**
      * @brief 获取方块的遮光亮度
@@ -749,7 +878,10 @@ public:
     /**
      * @brief 检查是否传播天空光向下
      */
-    [[nodiscard]] bool doesPropagateSkylightDown() const noexcept { return m_propagatesSkylightDown; }
+    [[nodiscard]] bool doesPropagateSkylightDown() const noexcept
+    {
+        return m_propagatesSkylightDown;
+    }
 
     /**
      * @brief 获取挖掘工具类型
@@ -759,7 +891,10 @@ public:
      *
      * @return 工具类型值
      */
-    [[nodiscard]] u8 harvestTool() const noexcept { return m_harvestTool; }
+    [[nodiscard]] u8 harvestTool() const noexcept
+    {
+        return m_harvestTool;
+    }
 
     /**
      * @brief 获取挖掘等级
@@ -773,7 +908,10 @@ public:
      *
      * @return 挖掘等级（0-4）
      */
-    [[nodiscard]] i32 harvestLevel() const noexcept { return m_harvestLevel; }
+    [[nodiscard]] i32 harvestLevel() const noexcept
+    {
+        return m_harvestLevel;
+    }
 
     /**
      * @brief 是否需要正确工具才能采集
@@ -783,7 +921,10 @@ public:
      *
      * @return 是否需要正确工具
      */
-    [[nodiscard]] bool requiresTool() const noexcept { return m_requiresTool; }
+    [[nodiscard]] bool requiresTool() const noexcept
+    {
+        return m_requiresTool;
+    }
 
     /**
      * @brief 获取方块是否可被替换（无上下文）
@@ -797,7 +938,10 @@ public:
      *
      * @return 是否可被替换
      */
-    [[nodiscard]] bool isReplaceable() const noexcept { return m_isReplaceable; }
+    [[nodiscard]] bool isReplaceable() const noexcept
+    {
+        return m_isReplaceable;
+    }
 
     // ========== 声音类型 ==========
 
@@ -808,7 +952,10 @@ public:
      *
      * @return 声音类型的常量引用
      */
-    [[nodiscard]] const BlockSoundType& getSoundType() const noexcept { return *m_soundType; }
+    [[nodiscard]] const BlockSoundType& getSoundType() const noexcept
+    {
+        return *m_soundType;
+    }
 
     // ========== 掉落表 ==========
 
@@ -825,7 +972,10 @@ public:
      *
      * @return 掉落表ID，如 "minecraft:blocks/stone"，空字符串表示无掉落表
      */
-    [[nodiscard]] virtual std::string getLootTableId() const noexcept { return m_lootTableId; }
+    [[nodiscard]] virtual std::string getLootTableId() const noexcept
+    {
+        return m_lootTableId;
+    }
 
     /**
      * @brief 获取方块的掉落表
@@ -842,7 +992,10 @@ public:
      *
      * @param id 掉落表ID
      */
-    void setLootTableId(const std::string& id) noexcept { m_lootTableId = id; }
+    void setLootTableId(const std::string& id) noexcept
+    {
+        m_lootTableId = id;
+    }
 
     /**
      * @brief 获取中键选取方块时获得的物品堆
@@ -1012,7 +1165,10 @@ public:
      *
      * 参考: net.minecraft.world.level.block.state.BlockBehaviour.BlockStateBase#canOcclude
      */
-    [[nodiscard]] bool canOcclude() const noexcept { return m_canOcclude; }
+    [[nodiscard]] bool canOcclude() const noexcept
+    {
+        return m_canOcclude;
+    }
 
     /**
      * @brief 刷新全部状态的光照缓存（opacity / propagatesSkylightDown）
@@ -1480,7 +1636,10 @@ public:
      *
      * @return 是否响应随机刻
      */
-    [[nodiscard]] virtual bool ticksRandomly() const noexcept { return m_ticksRandomly; }
+    [[nodiscard]] virtual bool ticksRandomly() const noexcept
+    {
+        return m_ticksRandomly;
+    }
 
     /**
      * @brief 是否可被岩浆点燃
@@ -1490,7 +1649,10 @@ public:
      *
      * 参考: net.minecraft.block.Block.isIgnitedByLava
      */
-    [[nodiscard]] bool isIgnitedByLava() const noexcept { return m_ignitedByLava; }
+    [[nodiscard]] bool isIgnitedByLava() const noexcept
+    {
+        return m_ignitedByLava;
+    }
 
     /**
      * @brief 获取模型偏移类型
@@ -1500,7 +1662,10 @@ public:
      *
      * 参考: net.minecraft.block.Block.getOffsetType
      */
-    [[nodiscard]] BlockProperties::OffsetType getOffsetType() const noexcept { return m_offsetType; }
+    [[nodiscard]] BlockProperties::OffsetType getOffsetType() const noexcept
+    {
+        return m_offsetType;
+    }
 
     /**
      * @brief 获取音符盒乐器
@@ -1520,10 +1685,16 @@ public:
      *
      * 用于子类构造函数中覆盖音符盒乐器（如头颅按种类设定），不依赖虚派发。
      */
-    void setNonVirtualInstrument(BlockProperties::Instrument instrument) noexcept { m_instrument = instrument; }
+    void setNonVirtualInstrument(BlockProperties::Instrument instrument) noexcept
+    {
+        m_instrument = instrument;
+    }
 
     /// 是否显式设置了音符盒乐器（否则由音符盒按方块类型默认规则推导）
-    [[nodiscard]] bool hasExplicitInstrument() const noexcept { return m_instrument.has_value(); }
+    [[nodiscard]] bool hasExplicitInstrument() const noexcept
+    {
+        return m_instrument.has_value();
+    }
 
     // ========================================================================
     // 方块状态
@@ -1741,7 +1912,10 @@ public:
      *
      * @return 如果此方块有对应的方块实体返回true
      */
-    [[nodiscard]] virtual bool hasBlockEntity() const noexcept { return false; }
+    [[nodiscard]] virtual bool hasBlockEntity() const noexcept
+    {
+        return false;
+    }
 
     /**
      * @brief 检查是否为游戏管理员方块
@@ -1756,7 +1930,10 @@ public:
      *
      * @return 如果此方块为游戏管理员方块返回true
      */
-    [[nodiscard]] virtual bool isGameMaster() const noexcept { return false; }
+    [[nodiscard]] virtual bool isGameMaster() const noexcept
+    {
+        return false;
+    }
 
     /**
      * @brief 创建方块实体
@@ -2500,7 +2677,10 @@ public:
     /**
      * @brief 转换为字符串
      */
-    [[nodiscard]] virtual std::string toString() const noexcept { return m_blockLocation.toString(); }
+    [[nodiscard]] virtual std::string toString() const noexcept
+    {
+        return m_blockLocation.toString();
+    }
 
 protected:
     friend class BlockRegistry;

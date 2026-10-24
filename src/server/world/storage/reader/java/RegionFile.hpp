@@ -74,7 +74,10 @@ public:
     /**
      * @brief 检查是否已打开
      */
-    [[nodiscard]] bool isOpen() const { return m_isOpen; }
+    [[nodiscard]] bool isOpen() const
+    {
+        return m_isOpen;
+    }
 
     /**
      * @brief 检查指定区块是否存在
@@ -100,17 +103,26 @@ public:
     /**
      * @brief 获取区域 X 坐标
      */
-    [[nodiscard]] i32 regionX() const { return m_regionX; }
+    [[nodiscard]] i32 regionX() const
+    {
+        return m_regionX;
+    }
 
     /**
      * @brief 获取区域 Z 坐标
      */
-    [[nodiscard]] i32 regionZ() const { return m_regionZ; }
+    [[nodiscard]] i32 regionZ() const
+    {
+        return m_regionZ;
+    }
 
     /**
      * @brief 获取文件路径
      */
-    [[nodiscard]] const std::filesystem::path& path() const { return m_path; }
+    [[nodiscard]] const std::filesystem::path& path() const
+    {
+        return m_path;
+    }
 
 private:
     // 区域尺寸常量

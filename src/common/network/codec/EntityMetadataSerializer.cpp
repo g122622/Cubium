@@ -437,7 +437,9 @@ bool EntityMetadataSerializer::deserialize(const std::vector<u8>& data, entity::
 
         switch (sid) {
             case MetadataSerializerId::Byte: {
-                if (offset >= data.size()) return false;
+                if (offset >= data.size()) {
+                    return false;
+                }
                 const i8 value = static_cast<i8>(data[offset++]);
                 (void)manager.setRaw(index, entity::DataValue(value));
                 manager.clearDirty(index);
@@ -457,7 +459,9 @@ bool EntityMetadataSerializer::deserialize(const std::vector<u8>& data, entity::
             }
             case MetadataSerializerId::Float: {
                 f32 val;
-                if (!_readBigEndianF32(data.data(), data.size(), offset, val)) return false;
+                if (!_readBigEndianF32(data.data(), data.size(), offset, val)) {
+                    return false;
+                }
                 (void)manager.setRaw(index, entity::DataValue(val));
                 manager.clearDirty(index);
                 break;
@@ -474,19 +478,27 @@ bool EntityMetadataSerializer::deserialize(const std::vector<u8>& data, entity::
             case MetadataSerializerId::OptionalComponent: {
                 // 1.21.11 OPTIONAL_COMPONENT = 1 byte present + 若 present 则 NBT Component。
                 // 本项目纯文本折叠为 StringTag 0x08 + U16 BE 长度 + UTF8（与 writeTextComponentNbt 同源）。
-                if (offset >= data.size()) return false;
+                if (offset >= data.size()) {
+                    return false;
+                }
                 const bool present = data[offset++] != 0;
                 std::string text;
                 if (present) {
-                    if (offset >= data.size()) return false;
+                    if (offset >= data.size()) {
+                        return false;
+                    }
                     const u8 tagId = data[offset++];
                     if (tagId != 0x08) {
                         // 非 StringTag 折叠形式（真复合 NBT 组件），暂不支持——停止解析。
                         return false;
                     }
                     u16 len = 0;
-                    if (!_readBigEndianU16(data.data(), data.size(), offset, len)) return false;
-                    if (offset + static_cast<size_t>(len) > data.size()) return false;
+                    if (!_readBigEndianU16(data.data(), data.size(), offset, len)) {
+                        return false;
+                    }
+                    if (offset + static_cast<size_t>(len) > data.size()) {
+                        return false;
+                    }
                     text.assign(reinterpret_cast<const char*>(data.data() + offset), static_cast<size_t>(len));
                     offset += static_cast<size_t>(len);
                 }
@@ -504,7 +516,9 @@ bool EntityMetadataSerializer::deserialize(const std::vector<u8>& data, entity::
                 break;
             }
             case MetadataSerializerId::Boolean: {
-                if (offset >= data.size()) return false;
+                if (offset >= data.size()) {
+                    return false;
+                }
                 bool value = data[offset++] != 0;
                 (void)manager.setRaw(index, entity::DataValue(value));
                 manager.clearDirty(index);
@@ -512,7 +526,9 @@ bool EntityMetadataSerializer::deserialize(const std::vector<u8>& data, entity::
             }
             case MetadataSerializerId::BlockPos: {
                 i64 packed;
-                if (!_readBigEndianI64(data.data(), data.size(), offset, packed)) return false;
+                if (!_readBigEndianI64(data.data(), data.size(), offset, packed)) {
+                    return false;
+                }
                 const BlockPos pos = BlockPos::fromLong(packed);
                 (void)manager.setRaw(index, entity::DataValue(entity::Vector3i(pos.x, pos.y, pos.z)));
                 manager.clearDirty(index);
@@ -525,9 +541,15 @@ bool EntityMetadataSerializer::deserialize(const std::vector<u8>& data, entity::
                 f32 x;
                 f32 y;
                 f32 z;
-                if (!_readBigEndianF32(data.data(), data.size(), offset, x)) return false;
-                if (!_readBigEndianF32(data.data(), data.size(), offset, y)) return false;
-                if (!_readBigEndianF32(data.data(), data.size(), offset, z)) return false;
+                if (!_readBigEndianF32(data.data(), data.size(), offset, x)) {
+                    return false;
+                }
+                if (!_readBigEndianF32(data.data(), data.size(), offset, y)) {
+                    return false;
+                }
+                if (!_readBigEndianF32(data.data(), data.size(), offset, z)) {
+                    return false;
+                }
                 (void)manager.setRaw(index, entity::DataValue(entity::Vector3f(x, y, z)));
                 manager.clearDirty(index);
                 break;
@@ -562,12 +584,16 @@ bool EntityMetadataSerializer::deserialize(const std::vector<u8>& data, entity::
             }
             case MetadataSerializerId::OptionalBlockPos: {
                 // 1.21.11 OPTIONAL_BLOCK_POS = 1 byte present + 若 present 则大端 packed i64。
-                if (offset >= data.size()) return false;
+                if (offset >= data.size()) {
+                    return false;
+                }
                 const bool present = data[offset++] != 0;
                 entity::Vector3i pos{0, 0, 0};
                 if (present) {
                     i64 packed;
-                    if (!_readBigEndianI64(data.data(), data.size(), offset, packed)) return false;
+                    if (!_readBigEndianI64(data.data(), data.size(), offset, packed)) {
+                        return false;
+                    }
                     const BlockPos bp = BlockPos::fromLong(packed);
                     pos = entity::Vector3i(bp.x, bp.y, bp.z);
                 }
@@ -618,7 +644,9 @@ bool EntityMetadataSerializer::deserialize(const std::vector<u8>& data, entity::
             }
             case MetadataSerializerId::OptionalUnsignedInt: {
                 // 1 byte isPresent + 若 present 则 VarInt(value)。
-                if (offset >= data.size()) return false;
+                if (offset >= data.size()) {
+                    return false;
+                }
                 const bool present = data[offset++] != 0;
                 i32 v = 0;
                 if (present) {
@@ -664,11 +692,15 @@ bool EntityMetadataSerializer::deserialize(const std::vector<u8>& data, entity::
                 // 1 byte present + 若 present 则 16 字节大端连续 UUID。
                 // （对齐 vanilla OPTIONAL_LIVING_ENTITY_REFERENCE = EntityReference.streamCodec()
                 // = UUIDUtil.STREAM_CODEC = FriendlyByteBuf.readUUID/writeUUID，16 字节大端连续）
-                if (offset >= data.size()) return false;
+                if (offset >= data.size()) {
+                    return false;
+                }
                 const bool present = data[offset++] != 0;
                 mc::Uuid uuid{};
                 if (present) {
-                    if (offset + 16 > data.size()) return false;
+                    if (offset + 16 > data.size()) {
+                        return false;
+                    }
                     std::memcpy(uuid.data(), data.data() + offset, 16);
                     offset += 16;
                 }
@@ -811,7 +843,9 @@ void EntityMetadataSerializer::_writeBigEndianI64(i64 value, std::vector<u8>& ou
 
 bool EntityMetadataSerializer::_readBigEndianF32(const u8* data, size_t size, size_t& offset, f32& out) noexcept
 {
-    if (offset + sizeof(f32) > size) return false;
+    if (offset + sizeof(f32) > size) {
+        return false;
+    }
     u32 bits = (static_cast<u32>(data[offset]) << 24) | (static_cast<u32>(data[offset + 1]) << 16) |
         (static_cast<u32>(data[offset + 2]) << 8) | static_cast<u32>(data[offset + 3]);
     std::memcpy(&out, &bits, sizeof(f32));
@@ -821,7 +855,9 @@ bool EntityMetadataSerializer::_readBigEndianF32(const u8* data, size_t size, si
 
 bool EntityMetadataSerializer::_readBigEndianI64(const u8* data, size_t size, size_t& offset, i64& out) noexcept
 {
-    if (offset + sizeof(i64) > size) return false;
+    if (offset + sizeof(i64) > size) {
+        return false;
+    }
     u64 bits = 0;
     for (i32 i = 0; i < 8; ++i) {
         bits = (bits << 8) | static_cast<u64>(data[offset + i]);
@@ -839,7 +875,9 @@ void EntityMetadataSerializer::_writeBigEndianU16(u16 value, std::vector<u8>& ou
 
 bool EntityMetadataSerializer::_readBigEndianU16(const u8* data, size_t size, size_t& offset, u16& out) noexcept
 {
-    if (offset + sizeof(u16) > size) return false;
+    if (offset + sizeof(u16) > size) {
+        return false;
+    }
     out = static_cast<u16>((static_cast<u16>(data[offset]) << 8) | static_cast<u16>(data[offset + 1]));
     offset += sizeof(u16);
     return true;

@@ -126,24 +126,36 @@ public:
      *
      * @param world 世界指针（不获取所有权）
      */
-    void setWorld(mc::IWorld* world) { m_world = world; }
+    void setWorld(mc::IWorld* world)
+    {
+        m_world = world;
+    }
 
     // ========== 天气状态查询 ==========
 
     /**
      * @brief 获取当前天气状态
      */
-    [[nodiscard]] const WeatherState& state() const { return m_state; }
+    [[nodiscard]] const WeatherState& state() const
+    {
+        return m_state;
+    }
 
     /**
      * @brief 是否正在降雨（强度检查）
      */
-    [[nodiscard]] bool isRaining() const { return m_state.isRaining(); }
+    [[nodiscard]] bool isRaining() const
+    {
+        return m_state.isRaining();
+    }
 
     /**
      * @brief 是否正在雷暴（强度检查）
      */
-    [[nodiscard]] bool isThundering() const { return m_state.isThundering(); }
+    [[nodiscard]] bool isThundering() const
+    {
+        return m_state.isThundering();
+    }
 
     /**
      * @brief 获取降雨强度
@@ -151,7 +163,10 @@ public:
      * @param partialTick 部分 tick (0.0 - 1.0)
      * @return 插值后的强度值
      */
-    [[nodiscard]] f32 rainStrength(f32 partialTick = 0.0f) const { return m_state.getRainStrength(partialTick); }
+    [[nodiscard]] f32 rainStrength(f32 partialTick = 0.0f) const
+    {
+        return m_state.getRainStrength(partialTick);
+    }
 
     /**
      * @brief 获取雷暴强度
@@ -159,26 +174,38 @@ public:
      * @param partialTick 部分 tick (0.0 - 1.0)
      * @return 插值后的强度值
      */
-    [[nodiscard]] f32 thunderStrength(f32 partialTick = 0.0f) const { return m_state.getThunderStrength(partialTick); }
+    [[nodiscard]] f32 thunderStrength(f32 partialTick = 0.0f) const
+    {
+        return m_state.getThunderStrength(partialTick);
+    }
 
     /**
      * @brief 获取当前天气类型
      */
-    [[nodiscard]] WeatherType weatherType() const { return m_state.weatherType(); }
+    [[nodiscard]] WeatherType weatherType() const
+    {
+        return m_state.weatherType();
+    }
 
     /**
      * @brief 检查天气是否发生变化
      *
      * 在 tick() 后检查，仅当降雨/雷暴状态切换时返回 true
      */
-    [[nodiscard]] bool hasWeatherChanged() const { return m_weatherChanged; }
+    [[nodiscard]] bool hasWeatherChanged() const
+    {
+        return m_weatherChanged;
+    }
 
     /**
      * @brief 检查天气强度是否发生变化
      *
      * 在 tick() 后检查，强度变化时返回 true
      */
-    [[nodiscard]] bool hasStrengthChanged() const { return m_strengthChanged; }
+    [[nodiscard]] bool hasStrengthChanged() const
+    {
+        return m_strengthChanged;
+    }
 
     // ========== 天气命令 ==========
 
@@ -226,12 +253,18 @@ public:
      *
      * @param enabled 是否启用
      */
-    void setWeatherCycleEnabled(bool enabled) { m_state.weatherCycleEnabled = enabled; }
+    void setWeatherCycleEnabled(bool enabled)
+    {
+        m_state.weatherCycleEnabled = enabled;
+    }
 
     /**
      * @brief 获取天气周期是否启用
      */
-    [[nodiscard]] bool weatherCycleEnabled() const { return m_state.weatherCycleEnabled; }
+    [[nodiscard]] bool weatherCycleEnabled() const
+    {
+        return m_state.weatherCycleEnabled;
+    }
 
     // ========== 主循环 ==========
 
@@ -259,14 +292,20 @@ public:
      *
      * @param callback 闪电生成时调用的回调函数
      */
-    void setLightningCallback(LightningSpawnCallback callback) { m_lightningCallback = std::move(callback); }
+    void setLightningCallback(LightningSpawnCallback callback)
+    {
+        m_lightningCallback = std::move(callback);
+    }
 
     /**
      * @brief 设置天气变化回调
      *
      * @param callback 天气变化时调用的回调函数
      */
-    void setWeatherChangeCallback(WeatherChangeCallback callback) { m_weatherChangeCallback = std::move(callback); }
+    void setWeatherChangeCallback(WeatherChangeCallback callback)
+    {
+        m_weatherChangeCallback = std::move(callback);
+    }
 
     // ========== 序列化 ==========
 

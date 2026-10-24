@@ -55,7 +55,11 @@ public:
         std::set<BlockPos>& trunkBlocks,
         const BlockState* trunkBlock) override;
 
-    [[nodiscard]] const char* name() const override { return "dark_oak"; }
+    [[nodiscard]] const char* name() const override
+    {
+        return "dark_oak";
+    }
+
     [[nodiscard]] std::unique_ptr<TrunkPlacer> clone() const override;
 };
 

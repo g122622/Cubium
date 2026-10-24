@@ -58,7 +58,10 @@ public:
         setPosition(static_cast<f32>(x), static_cast<f32>(y), static_cast<f32>(z));
     }
 
-    void setIdleTimeForTest(i32 time) { m_idleTime = time; }
+    void setIdleTimeForTest(i32 time)
+    {
+        m_idleTime = time;
+    }
 };
 
 // ============================================================================
@@ -73,7 +76,10 @@ protected:
         creature->setPositionForTest(0.0, 64.0, 0.0);
     }
 
-    void TearDown() override { creature.reset(); }
+    void TearDown() override
+    {
+        creature.reset();
+    }
 
     std::unique_ptr<TestCreature> creature;
 };
@@ -179,7 +185,10 @@ protected:
         enderman = std::make_unique<EndermanEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
     }
 
-    void TearDown() override { enderman.reset(); }
+    void TearDown() override
+    {
+        enderman.reset();
+    }
 
     std::unique_ptr<EndermanEntity> enderman;
 };
@@ -276,7 +285,10 @@ protected:
         // registerAttributes 在构造函数中已调用
     }
 
-    void TearDown() override { enderman.reset(); }
+    void TearDown() override
+    {
+        enderman.reset();
+    }
 
     std::unique_ptr<EndermanEntity> enderman;
 };

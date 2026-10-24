@@ -48,8 +48,15 @@ namespace mc::world::chunk {
  */
 struct Unit {
     // 为 Unit 类型提供比较运算符
-    bool operator<(const Unit&) const noexcept { return false; }
-    bool operator==(const Unit&) const noexcept { return true; }
+    bool operator<(const Unit&) const noexcept
+    {
+        return false;
+    }
+
+    bool operator==(const Unit&) const noexcept
+    {
+        return true;
+    }
 };
 
 /**
@@ -82,19 +89,28 @@ public:
      * @brief 获取显式 ticket 类型名称
      * @return 类型名称字符串
      */
-    [[nodiscard]] const std::string& name() const noexcept { return m_name; }
+    [[nodiscard]] const std::string& name() const noexcept
+    {
+        return m_name;
+    }
 
     /**
      * @brief 获取生命周期（tick 数）
      * @return 生命周期，0 表示永不过期
      */
-    [[nodiscard]] u32 lifespan() const noexcept { return m_lifespan; }
+    [[nodiscard]] u32 lifespan() const noexcept
+    {
+        return m_lifespan;
+    }
 
     /**
      * @brief 获取比较器
      * @return 用于比较同类型票据的比较器
      */
-    [[nodiscard]] const Comparator& comparator() const noexcept { return m_comparator; }
+    [[nodiscard]] const Comparator& comparator() const noexcept
+    {
+        return m_comparator;
+    }
 
     /**
      * @brief 创建不带生命周期的显式 ticket 类型
@@ -123,9 +139,15 @@ public:
         return ChunkLoadTicketType<T>(name, comp, lifespan);
     }
 
-    bool operator==(const ChunkLoadTicketType& other) const noexcept { return m_name == other.m_name; }
+    bool operator==(const ChunkLoadTicketType& other) const noexcept
+    {
+        return m_name == other.m_name;
+    }
 
-    bool operator!=(const ChunkLoadTicketType& other) const noexcept { return m_name != other.m_name; }
+    bool operator!=(const ChunkLoadTicketType& other) const noexcept
+    {
+        return m_name != other.m_name;
+    }
 
 private:
     std::string m_name;
@@ -138,7 +160,10 @@ private:
         , m_lifespan(lifespan)
     {}
 
-    static bool defaultCompare(const T& a, const T& b) { return a < b; }
+    static bool defaultCompare(const T& a, const T& b)
+    {
+        return a < b;
+    }
 };
 
 // ============================================================================
@@ -280,32 +305,61 @@ public:
             m_intValue == other.m_intValue;
     }
 
-    bool operator!=(const ChunkLoadTicket& other) const noexcept { return !(*this == other); }
+    bool operator!=(const ChunkLoadTicket& other) const noexcept
+    {
+        return !(*this == other);
+    }
 
     /** @brief 获取 ticket 级别 */
-    [[nodiscard]] i32 level() const noexcept { return m_level; }
+    [[nodiscard]] i32 level() const noexcept
+    {
+        return m_level;
+    }
 
     /** @brief 获取 ticket 类型名称 */
-    [[nodiscard]] const std::string& typeName() const noexcept { return m_typeName; }
+    [[nodiscard]] const std::string& typeName() const noexcept
+    {
+        return m_typeName;
+    }
 
     /** @brief 获取区块值 */
-    [[nodiscard]] ChunkPos chunkValue() const noexcept { return m_chunkValue; }
-    [[nodiscard]] bool hasChunkValue() const noexcept { return m_hasChunkValue; }
+    [[nodiscard]] ChunkPos chunkValue() const noexcept
+    {
+        return m_chunkValue;
+    }
+
+    [[nodiscard]] bool hasChunkValue() const noexcept
+    {
+        return m_hasChunkValue;
+    }
 
     /** @brief 获取整数值 */
-    [[nodiscard]] u32 intValue() const noexcept { return m_intValue; }
-    [[nodiscard]] bool hasIntValue() const noexcept { return m_hasIntValue; }
+    [[nodiscard]] u32 intValue() const noexcept
+    {
+        return m_intValue;
+    }
+
+    [[nodiscard]] bool hasIntValue() const noexcept
+    {
+        return m_hasIntValue;
+    }
 
     /**
      * @brief 获取票据生命周期（tick 数）
      * @return 生命周期；0 表示永不过期
      */
-    [[nodiscard]] u32 lifespan() const noexcept { return m_lifespan; }
+    [[nodiscard]] u32 lifespan() const noexcept
+    {
+        return m_lifespan;
+    }
 
     /**
      * @brief 是否带生命周期（需要逐 tick 递减剩余存活时间）
      */
-    [[nodiscard]] bool hasTimeout() const noexcept { return m_lifespan > 0; }
+    [[nodiscard]] bool hasTimeout() const noexcept
+    {
+        return m_lifespan > 0;
+    }
 
     /**
      * @brief 递减剩余生命周期一个 tick
@@ -377,7 +431,10 @@ public:
     [[nodiscard]] i32 getMinLevel() const noexcept;
 
     /** @brief 是否为空 */
-    [[nodiscard]] bool empty() const { return m_tickets.empty(); }
+    [[nodiscard]] bool empty() const
+    {
+        return m_tickets.empty();
+    }
 
     /**
      * @brief 递减本集合内所有带生命周期票据的剩余存活时间，并移除到期者
@@ -394,10 +451,16 @@ public:
     [[nodiscard]] i32 timedTicketCount() const;
 
     /** @brief 票据数量 */
-    [[nodiscard]] size_t size() const { return m_tickets.size(); }
+    [[nodiscard]] size_t size() const
+    {
+        return m_tickets.size();
+    }
 
     /** @brief 获取所有票据 */
-    [[nodiscard]] const std::vector<ChunkLoadTicket>& tickets() const { return m_tickets; }
+    [[nodiscard]] const std::vector<ChunkLoadTicket>& tickets() const
+    {
+        return m_tickets;
+    }
 
 private:
     std::vector<ChunkLoadTicket> m_tickets;

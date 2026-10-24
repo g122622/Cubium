@@ -388,14 +388,37 @@ public:
         return LivingEntity::hurt(source, amount);
     }
 
-    [[nodiscard]] i32 hurtCount() const { return m_hurtCount; }
-    [[nodiscard]] f32 lastDamage() const { return m_lastDamage; }
-    [[nodiscard]] DamageType lastDamageType() const { return m_lastDamageType; }
+    [[nodiscard]] i32 hurtCount() const
+    {
+        return m_hurtCount;
+    }
+
+    [[nodiscard]] f32 lastDamage() const
+    {
+        return m_lastDamage;
+    }
+
+    [[nodiscard]] DamageType lastDamageType() const
+    {
+        return m_lastDamageType;
+    }
 
     void tick() override {}
-    [[nodiscard]] f32 width() const override { return 0.6f; }
-    [[nodiscard]] f32 height() const override { return 1.8f; }
-    [[nodiscard]] f32 eyeHeight() const override { return 1.62f; }
+
+    [[nodiscard]] f32 width() const override
+    {
+        return 0.6f;
+    }
+
+    [[nodiscard]] f32 height() const override
+    {
+        return 1.8f;
+    }
+
+    [[nodiscard]] f32 eyeHeight() const override
+    {
+        return 1.62f;
+    }
 
 private:
     i32 m_hurtCount = 0;
@@ -424,7 +447,10 @@ public:
 
     void playSound(const ResourceLocation&, sound::SoundCategory, const Vector3&, f32, f32) override {}
 
-    void setBlockAt(const BlockPos& pos, const BlockState* state) { m_blocks[pos] = state; }
+    void setBlockAt(const BlockPos& pos, const BlockState* state)
+    {
+        m_blocks[pos] = state;
+    }
 
 private:
     std::map<BlockPos, const BlockState*> m_blocks;

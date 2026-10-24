@@ -70,7 +70,10 @@ protected:
         WanderingTraderTrades::initialize();
     }
 
-    void TearDown() override { item::enchant::EnchantmentRegistry::clear(); }
+    void TearDown() override
+    {
+        item::enchant::EnchantmentRegistry::clear();
+    }
 
     /**
      * @brief 构造离线交易上下文

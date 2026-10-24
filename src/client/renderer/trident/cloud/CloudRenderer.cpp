@@ -334,7 +334,9 @@ Result<void> CloudRenderer::initialize(VkDevice device,
 
 void CloudRenderer::destroy()
 {
-    if (m_device == VK_NULL_HANDLE) return;
+    if (m_device == VK_NULL_HANDLE) {
+        return;
+    }
 
     VkDevice device = m_device;
 

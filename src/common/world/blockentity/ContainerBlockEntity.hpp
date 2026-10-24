@@ -56,14 +56,24 @@ public:
      * @brief 获取容器
      * @return 容器指针，如果没有返回nullptr
      */
-    [[nodiscard]] virtual IInventory* getInventory() { return nullptr; }
-    [[nodiscard]] virtual const IInventory* getInventory() const { return nullptr; }
+    [[nodiscard]] virtual IInventory* getInventory()
+    {
+        return nullptr;
+    }
+
+    [[nodiscard]] virtual const IInventory* getInventory() const
+    {
+        return nullptr;
+    }
 
     /**
      * @brief 获取容器大小
      * @return 槽位数量
      */
-    [[nodiscard]] virtual i32 getContainerSize() const { return 0; }
+    [[nodiscard]] virtual i32 getContainerSize() const
+    {
+        return 0;
+    }
 
     /**
      * @brief 玩家打开容器
@@ -87,7 +97,10 @@ public:
      * @brief 获取打开容器的玩家数量
      * @return 打开计数
      */
-    [[nodiscard]] i32 getOpenCount() const { return m_openCount; }
+    [[nodiscard]] i32 getOpenCount() const
+    {
+        return m_openCount;
+    }
 
     /**
      * @brief 检查容器是否为空

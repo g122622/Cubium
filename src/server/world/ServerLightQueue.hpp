@@ -79,12 +79,18 @@ public:
     /**
      * @brief 队列是否为空
      */
-    [[nodiscard]] bool empty() const noexcept { return m_chunkTasks.empty(); }
+    [[nodiscard]] bool empty() const noexcept
+    {
+        return m_chunkTasks.empty();
+    }
 
     /**
      * @brief 获取待处理区块数
      */
-    [[nodiscard]] size_t pendingChunkCount() const noexcept { return m_chunkTasks.size(); }
+    [[nodiscard]] size_t pendingChunkCount() const noexcept
+    {
+        return m_chunkTasks.size();
+    }
 
 private:
     /**

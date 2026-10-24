@@ -44,6 +44,7 @@ struct ModelVertex {
     Vector3f normal;   // 法线
 
     ModelVertex() = default;
+
     ModelVertex(f64 x, f64 y, f64 z, f64 u, f64 v, f64 nx = 0, f64 ny = 0, f64 nz = 0)
         : position(static_cast<f32>(x), static_cast<f32>(y), static_cast<f32>(z))
         , texCoord(static_cast<f32>(u), static_cast<f32>(v))
@@ -152,11 +153,18 @@ struct ModelBox {
     /**
      * @brief 获取构造/重算时固化的纹理偏移X
      */
-    [[nodiscard]] i32 texOffX() const { return m_texOffX; }
+    [[nodiscard]] i32 texOffX() const
+    {
+        return m_texOffX;
+    }
+
     /**
      * @brief 获取构造/重算时固化的纹理偏移Y
      */
-    [[nodiscard]] i32 texOffY() const { return m_texOffY; }
+    [[nodiscard]] i32 texOffY() const
+    {
+        return m_texOffY;
+    }
 
 private:
     // 构造时固化的 UV 相关原始参数，供 rebuildQuads 重算使用
@@ -279,15 +287,25 @@ public:
     /**
      * @brief 清除所有盒子
      */
-    void clearBoxes() { m_boxes.clear(); }
+    void clearBoxes()
+    {
+        m_boxes.clear();
+    }
 
     // ========== 镜像 ==========
 
     /**
      * @brief 设置镜像模式
      */
-    void setMirror(bool mirror) { m_mirror = mirror; }
-    [[nodiscard]] bool mirror() const { return m_mirror; }
+    void setMirror(bool mirror)
+    {
+        m_mirror = mirror;
+    }
+
+    [[nodiscard]] bool mirror() const
+    {
+        return m_mirror;
+    }
 
     // ========== 子部件 ==========
 
@@ -295,12 +313,18 @@ public:
      * @brief 添加子部件
      * @param child 子部件
      */
-    void addChild(std::shared_ptr<ModelRenderer> child) { m_children.push_back(child); }
+    void addChild(std::shared_ptr<ModelRenderer> child)
+    {
+        m_children.push_back(child);
+    }
 
     /**
      * @brief 获取子部件列表
      */
-    [[nodiscard]] const std::vector<std::shared_ptr<ModelRenderer>>& children() const { return m_children; }
+    [[nodiscard]] const std::vector<std::shared_ptr<ModelRenderer>>& children() const
+    {
+        return m_children;
+    }
 
     /**
      * @brief 创建并添加子部件
@@ -358,7 +382,10 @@ public:
     /**
      * @brief 获取部件名称
      */
-    [[nodiscard]] const std::string& name() const { return m_name; }
+    [[nodiscard]] const std::string& name() const
+    {
+        return m_name;
+    }
 
     /**
      * @brief 是否可见
@@ -366,8 +393,15 @@ public:
      * 不可见的模型部件不会渲染。
      * 此属性会传递给所有子部件。
      */
-    [[nodiscard]] bool isVisible() const { return m_visible; }
-    void setVisible(bool visible) { m_visible = visible; }
+    [[nodiscard]] bool isVisible() const
+    {
+        return m_visible;
+    }
+
+    void setVisible(bool visible)
+    {
+        m_visible = visible;
+    }
 
     // ========== 变换矩阵 ==========
 
@@ -379,33 +413,99 @@ public:
 
     // ========== 旋转访问器 ==========
 
-    [[nodiscard]] f64 rotateAngleX() const { return m_rotateAngleX; }
-    [[nodiscard]] f64 rotateAngleY() const { return m_rotateAngleY; }
-    [[nodiscard]] f64 rotateAngleZ() const { return m_rotateAngleZ; }
+    [[nodiscard]] f64 rotateAngleX() const
+    {
+        return m_rotateAngleX;
+    }
+
+    [[nodiscard]] f64 rotateAngleY() const
+    {
+        return m_rotateAngleY;
+    }
+
+    [[nodiscard]] f64 rotateAngleZ() const
+    {
+        return m_rotateAngleZ;
+    }
 
     // 兼容性别名
-    [[nodiscard]] f64 getRotateAngleX() const { return m_rotateAngleX; }
-    [[nodiscard]] f64 getRotateAngleY() const { return m_rotateAngleY; }
-    [[nodiscard]] f64 getRotateAngleZ() const { return m_rotateAngleZ; }
+    [[nodiscard]] f64 getRotateAngleX() const
+    {
+        return m_rotateAngleX;
+    }
 
-    void setRotateAngleX(f64 angle) { m_rotateAngleX = angle; }
-    void setRotateAngleY(f64 angle) { m_rotateAngleY = angle; }
-    void setRotateAngleZ(f64 angle) { m_rotateAngleZ = angle; }
+    [[nodiscard]] f64 getRotateAngleY() const
+    {
+        return m_rotateAngleY;
+    }
+
+    [[nodiscard]] f64 getRotateAngleZ() const
+    {
+        return m_rotateAngleZ;
+    }
+
+    void setRotateAngleX(f64 angle)
+    {
+        m_rotateAngleX = angle;
+    }
+
+    void setRotateAngleY(f64 angle)
+    {
+        m_rotateAngleY = angle;
+    }
+
+    void setRotateAngleZ(f64 angle)
+    {
+        m_rotateAngleZ = angle;
+    }
 
     // ========== 旋转点访问器 ==========
 
-    [[nodiscard]] f64 rotationPointX() const { return m_rotationPointX; }
-    [[nodiscard]] f64 rotationPointY() const { return m_rotationPointY; }
-    [[nodiscard]] f64 rotationPointZ() const { return m_rotationPointZ; }
+    [[nodiscard]] f64 rotationPointX() const
+    {
+        return m_rotationPointX;
+    }
+
+    [[nodiscard]] f64 rotationPointY() const
+    {
+        return m_rotationPointY;
+    }
+
+    [[nodiscard]] f64 rotationPointZ() const
+    {
+        return m_rotationPointZ;
+    }
 
     // 兼容性别名
-    [[nodiscard]] f64 getRotationPointX() const { return m_rotationPointX; }
-    [[nodiscard]] f64 getRotationPointY() const { return m_rotationPointY; }
-    [[nodiscard]] f64 getRotationPointZ() const { return m_rotationPointZ; }
+    [[nodiscard]] f64 getRotationPointX() const
+    {
+        return m_rotationPointX;
+    }
 
-    void setRotationPointX(f64 x) { m_rotationPointX = x; }
-    void setRotationPointY(f64 y) { m_rotationPointY = y; }
-    void setRotationPointZ(f64 z) { m_rotationPointZ = z; }
+    [[nodiscard]] f64 getRotationPointY() const
+    {
+        return m_rotationPointY;
+    }
+
+    [[nodiscard]] f64 getRotationPointZ() const
+    {
+        return m_rotationPointZ;
+    }
+
+    void setRotationPointX(f64 x)
+    {
+        m_rotationPointX = x;
+    }
+
+    void setRotationPointY(f64 y)
+    {
+        m_rotationPointY = y;
+    }
+
+    void setRotationPointZ(f64 z)
+    {
+        m_rotationPointZ = z;
+    }
 
     // ========== 复制旋转 ==========
 

@@ -232,7 +232,9 @@ void NoiseChunkGenerator::generateStructureStarts(WorldGenRegion& region, ChunkP
     std::vector<std::string> dbgCreatedIds;         ///< 实际产出 StructureStart 的 "set/结构" 对
 
     for (const auto& structureSetPtr : structureSetRegistry.getAll()) {
-        if (!structureSetPtr) continue;
+        if (!structureSetPtr) {
+            continue;
+        }
         // ++dbgSets;
 
         const auto& structureSet = *structureSetPtr;
@@ -633,7 +635,9 @@ void NoiseChunkGenerator::buildSurface(WorldGenRegion& region, ChunkPrimer& chun
 
     // 地表规则使用区域内已生成的区块群系，并由区域进行方块分辨率的抖动缩放。
     // 不能直接取原始 quart，也不能重新计算噪声源覆盖存档中的群系数据。
-    const auto getBiomeAt = [&region](i32 x, i32 y, i32 z) -> BiomeId { return region.getBiome(x, y, z); };
+    const auto getBiomeAt = [&region](i32 x, i32 y, i32 z) -> BiomeId {
+        return region.getBiome(x, y, z);
+    };
     // SurfaceRules.Context 直接持有 NoiseChunk 引用，
     // 通过 NoiseChunk.samplePreliminarySurfaceLevel() 查询预备表面高度
     // NoiseChunk 在 generateNoise 阶段已创建，此处直接获取
@@ -820,18 +824,26 @@ void NoiseChunkGenerator::placeFeatures(WorldGenRegion& region, ChunkPrimer& chu
         for (const auto& [structureId, refs] : chunk.structureReferences()) {
             const world::gen::structure::Structure* structure =
                 world::gen::structure::StructureRegistry::get(structureId);
-            if (!structure) continue;
+            if (!structure) {
+                continue;
+            }
 
             for (const auto& [refX, refZ] : refs) {
                 // 从源区块获取 StructureStart
                 IChunk* sourceChunk = region.getIChunk(refX, refZ, ChunkStatuses::STRUCTURE_STARTS);
-                if (!sourceChunk) continue;
+                if (!sourceChunk) {
+                    continue;
+                }
 
                 auto* sourcePrimer = dynamic_cast<ChunkPrimer*>(sourceChunk);
-                if (!sourcePrimer) continue;
+                if (!sourcePrimer) {
+                    continue;
+                }
 
                 auto* start = sourcePrimer->getStructureStart(structureId);
-                if (!start || !start->isValid()) continue;
+                if (!start || !start->isValid()) {
+                    continue;
+                }
 
                 const i32 stageOrdinal = static_cast<i32>(structure->decorationStage());
                 structuresByStage[stageOrdinal].emplace_back(structure, start);
@@ -952,7 +964,9 @@ i32 NoiseChunkGenerator::getHeight(i32 x, i32 z, HeightmapType type) const
     noiseChunk->advanceCellX(0);
 
     // 判定逻辑统一委托 Heightmap::isOpaqueForType，避免与 Heightmap 内部判定复制漂移。
-    auto matchesHeightmap = [type](const BlockState* state) -> bool { return Heightmap::isOpaqueForType(type, state); };
+    auto matchesHeightmap = [type](const BlockState* state) -> bool {
+        return Heightmap::isOpaqueForType(type, state);
+    };
 
     for (i32 cellY = cellCountY - 1; cellY >= 0; --cellY) {
         // MC 1.21: iterateNoiseColumn 使用 selectCellYZ 而非 selectCellXYZ

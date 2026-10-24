@@ -40,7 +40,10 @@ class SnowballItem : public ThrowableItem {
 public:
     explicit SnowballItem(const ItemProperties& properties);
 
-    [[nodiscard]] f32 getThrowVelocity() const override { return 1.5f; }
+    [[nodiscard]] f32 getThrowVelocity() const override
+    {
+        return 1.5f;
+    }
 
 protected:
     [[nodiscard]] entity::ProjectileItemEntity* createProjectile(
@@ -59,7 +62,10 @@ class EggItem : public ThrowableItem {
 public:
     explicit EggItem(const ItemProperties& properties);
 
-    [[nodiscard]] f32 getThrowVelocity() const override { return 1.5f; }
+    [[nodiscard]] f32 getThrowVelocity() const override
+    {
+        return 1.5f;
+    }
 
 protected:
     [[nodiscard]] entity::ProjectileItemEntity* createProjectile(
@@ -78,7 +84,10 @@ class EnderPearlItem : public ThrowableItem {
 public:
     explicit EnderPearlItem(const ItemProperties& properties);
 
-    [[nodiscard]] f32 getThrowVelocity() const override { return 1.5f; }
+    [[nodiscard]] f32 getThrowVelocity() const override
+    {
+        return 1.5f;
+    }
 
 protected:
     [[nodiscard]] entity::ProjectileItemEntity* createProjectile(
@@ -98,7 +107,10 @@ class ExperienceBottleItem : public ThrowableItem {
 public:
     explicit ExperienceBottleItem(const ItemProperties& properties);
 
-    [[nodiscard]] f32 getThrowVelocity() const override { return 1.5f; }
+    [[nodiscard]] f32 getThrowVelocity() const override
+    {
+        return 1.5f;
+    }
 
     /**
      * @brief 获取发射器配置（药水/经验瓶专用）

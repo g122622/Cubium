@@ -52,46 +52,88 @@ public:
     {}
 
     /// @brief 直接调用私有 _updateBossBar。
-    void updateBossBar(IWorld& world) { m_raid._updateBossBar(world); }
+    void updateBossBar(IWorld& world)
+    {
+        m_raid._updateBossBar(world);
+    }
 
     /// @brief 直接调用私有 _getHealthOfLivingRaiders。
-    [[nodiscard]] f32 getHealthOfLivingRaiders(IWorld& world) const { return m_raid._getHealthOfLivingRaiders(world); }
+    [[nodiscard]] f32 getHealthOfLivingRaiders(IWorld& world) const
+    {
+        return m_raid._getHealthOfLivingRaiders(world);
+    }
 
     /// @brief 直接读取缓存的进度（绕过 getBossBarProgress 的状态过滤）。
-    [[nodiscard]] f32 cachedProgress() const { return m_raid.m_cachedProgress; }
+    [[nodiscard]] f32 cachedProgress() const
+    {
+        return m_raid.m_cachedProgress;
+    }
 
     /// @brief 直接读取当前波总血量。
-    [[nodiscard]] f32 totalHealth() const { return m_raid.m_totalHealth; }
+    [[nodiscard]] f32 totalHealth() const
+    {
+        return m_raid.m_totalHealth;
+    }
 
     /// @brief 设置当前波总血量（用于在不调用 spawnRaiders 的情况下构造分母）。
-    void setTotalHealth(f32 value) { m_raid.m_totalHealth = value; }
+    void setTotalHealth(f32 value)
+    {
+        m_raid.m_totalHealth = value;
+    }
 
     /// @brief 直接读取波间冷却倒计时。
-    [[nodiscard]] i32 raidCooldownTicks() const { return m_raid.m_raidCooldownTicks; }
+    [[nodiscard]] i32 raidCooldownTicks() const
+    {
+        return m_raid.m_raidCooldownTicks;
+    }
 
     /// @brief 设置波间冷却倒计时（模拟 onRaiderDeath 启动冷却后的中间状态）。
-    void setRaidCooldownTicks(i32 ticks) { m_raid.m_raidCooldownTicks = ticks; }
+    void setRaidCooldownTicks(i32 ticks)
+    {
+        m_raid.m_raidCooldownTicks = ticks;
+    }
 
     /// @brief 直接设置当前波次编号，绕过 startNextWave 触发的生成流程。
-    void setWave(i32 wave) { m_raid.m_wave = wave; }
+    void setWave(i32 wave)
+    {
+        m_raid.m_wave = wave;
+    }
 
     /// @brief 直接设置袭击状态。
-    void setStatus(world::village::raid::RaidStatus status) { m_raid.m_status = status; }
+    void setStatus(world::village::raid::RaidStatus status)
+    {
+        m_raid.m_status = status;
+    }
 
     /// @brief 直接设置难度（用于 maxWaves 等下游计算）。
-    void setDifficulty(Difficulty difficulty) { m_raid.m_difficulty = difficulty; }
+    void setDifficulty(Difficulty difficulty)
+    {
+        m_raid.m_difficulty = difficulty;
+    }
 
     /// @brief 直接设置不祥之兆等级。
-    void setBadOmenLevel(i32 level) { m_raid.m_badOmenLevel = level; }
+    void setBadOmenLevel(i32 level)
+    {
+        m_raid.m_badOmenLevel = level;
+    }
 
     /// @brief 通过公开接口 addRaider 添加追踪 ID。
-    void addRaider(EntityInstanceId id) { m_raid.addRaider(id); }
+    void addRaider(EntityInstanceId id)
+    {
+        m_raid.addRaider(id);
+    }
 
     /// @brief 通过公开接口 removeRaider 移除追踪 ID。
-    void removeRaider(EntityInstanceId id) { m_raid.removeRaider(id); }
+    void removeRaider(EntityInstanceId id)
+    {
+        m_raid.removeRaider(id);
+    }
 
     /// @brief 暴露内部 raiders 列表大小，便于断言死亡后是否被正确移除。
-    [[nodiscard]] size_t trackedRaidersCount() const { return m_raid.raiders().size(); }
+    [[nodiscard]] size_t trackedRaidersCount() const
+    {
+        return m_raid.raiders().size();
+    }
 
 private:
     world::village::raid::Raid& m_raid;
@@ -135,11 +177,25 @@ protected:
             return it != m_entities.end() ? it->second.get() : nullptr;
         }
 
-        [[nodiscard]] Difficulty difficulty() const override { return m_difficulty; }
-        void setDifficulty(Difficulty difficulty) { m_difficulty = difficulty; }
+        [[nodiscard]] Difficulty difficulty() const override
+        {
+            return m_difficulty;
+        }
 
-        [[nodiscard]] u64 currentTick() const override { return m_currentTick; }
-        void setCurrentTick(u64 tick) { m_currentTick = tick; }
+        void setDifficulty(Difficulty difficulty)
+        {
+            m_difficulty = difficulty;
+        }
+
+        [[nodiscard]] u64 currentTick() const override
+        {
+            return m_currentTick;
+        }
+
+        void setCurrentTick(u64 tick)
+        {
+            m_currentTick = tick;
+        }
 
         /// @brief 注册一个裸 LivingEntity 并指定初始血量。
         EntityInstanceId addLivingEntityWithHealth(EntityInstanceId id, f32 health)
@@ -161,7 +217,10 @@ protected:
         }
 
         /// @brief 从世界中移除实体，模拟实体已离开世界（getEntity 返回 nullptr）。
-        void removeEntity(EntityInstanceId id) { m_entities.erase(static_cast<u64>(id)); }
+        void removeEntity(EntityInstanceId id)
+        {
+            m_entities.erase(static_cast<u64>(id));
+        }
 
         /// @brief 直接修改已注册实体的血量。
         void setEntityHealth(EntityInstanceId id, f32 health)

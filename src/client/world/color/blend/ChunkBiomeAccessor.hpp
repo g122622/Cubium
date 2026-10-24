@@ -100,8 +100,15 @@ public:
     /**
      * @brief 获取当前区块坐标
      */
-    [[nodiscard]] ChunkCoord chunkX() const { return m_chunkX; }
-    [[nodiscard]] ChunkCoord chunkZ() const { return m_chunkZ; }
+    [[nodiscard]] ChunkCoord chunkX() const
+    {
+        return m_chunkX;
+    }
+
+    [[nodiscard]] ChunkCoord chunkZ() const
+    {
+        return m_chunkZ;
+    }
 
 private:
     /**

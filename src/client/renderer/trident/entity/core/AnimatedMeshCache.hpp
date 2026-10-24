@@ -89,7 +89,10 @@ public:
     /**
      * @brief 获取缓存的实体数量
      */
-    [[nodiscard]] Size size() const { return m_cache.size(); }
+    [[nodiscard]] Size size() const
+    {
+        return m_cache.size();
+    }
 
     /**
      * @brief 设置 UV 重映射回调
@@ -99,7 +102,11 @@ public:
      */
     using UvRemapFunc =
         std::function<void(EntityInstanceId entityId, const std::string& typeId, std::vector<model::ModelVertex>&)>;
-    void setUvRemapFunc(UvRemapFunc func) { m_uvRemapFunc = std::move(func); }
+
+    void setUvRemapFunc(UvRemapFunc func)
+    {
+        m_uvRemapFunc = std::move(func);
+    }
 
 private:
     /**

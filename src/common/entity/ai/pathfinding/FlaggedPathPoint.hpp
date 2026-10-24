@@ -55,27 +55,42 @@ public:
     /**
      * @brief 获取内部路径点
      */
-    [[nodiscard]] PathPoint* getPoint() const { return m_point; }
+    [[nodiscard]] PathPoint* getPoint() const
+    {
+        return m_point;
+    }
 
     /**
      * @brief 获取最佳距离
      */
-    [[nodiscard]] f32 bestDistance() const { return m_bestDistance; }
+    [[nodiscard]] f32 bestDistance() const
+    {
+        return m_bestDistance;
+    }
 
     /**
      * @brief 获取最佳前驱
      */
-    [[nodiscard]] PathPoint* bestPredecessor() const { return m_bestPredecessor; }
+    [[nodiscard]] PathPoint* bestPredecessor() const
+    {
+        return m_bestPredecessor;
+    }
 
     /**
      * @brief 检查是否已到达
      */
-    [[nodiscard]] bool isReached() const { return m_reached; }
+    [[nodiscard]] bool isReached() const
+    {
+        return m_reached;
+    }
 
     /**
      * @brief 标记为已到达
      */
-    void markReached() { m_reached = true; }
+    void markReached()
+    {
+        m_reached = true;
+    }
 
     /**
      * @brief 更新最佳距离和前驱
@@ -99,12 +114,26 @@ public:
     /**
      * @brief 检查路径点是否为空
      */
-    [[nodiscard]] bool isNull() const { return m_point == nullptr; }
+    [[nodiscard]] bool isNull() const
+    {
+        return m_point == nullptr;
+    }
 
     // PathPoint代理方法
-    [[nodiscard]] i32 x() const { return m_point ? m_point->x() : 0; }
-    [[nodiscard]] i32 y() const { return m_point ? m_point->y() : 0; }
-    [[nodiscard]] i32 z() const { return m_point ? m_point->z() : 0; }
+    [[nodiscard]] i32 x() const
+    {
+        return m_point ? m_point->x() : 0;
+    }
+
+    [[nodiscard]] i32 y() const
+    {
+        return m_point ? m_point->y() : 0;
+    }
+
+    [[nodiscard]] i32 z() const
+    {
+        return m_point ? m_point->z() : 0;
+    }
 
 private:
     PathPoint* m_point = nullptr;

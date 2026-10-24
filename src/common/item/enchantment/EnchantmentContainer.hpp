@@ -78,7 +78,10 @@ struct EnchantmentInstance {
         return enchantmentId == other.enchantmentId && level == other.level;
     }
 
-    bool operator!=(const EnchantmentInstance& other) const { return !(*this == other); }
+    bool operator!=(const EnchantmentInstance& other) const
+    {
+        return !(*this == other);
+    }
 };
 
 /**
@@ -99,12 +102,18 @@ public:
     /**
      * @brief 是否有任何附魔
      */
-    [[nodiscard]] bool isEmpty() const { return m_enchantments.empty(); }
+    [[nodiscard]] bool isEmpty() const
+    {
+        return m_enchantments.empty();
+    }
 
     /**
      * @brief 获取附魔数量
      */
-    [[nodiscard]] size_t size() const { return m_enchantments.size(); }
+    [[nodiscard]] size_t size() const
+    {
+        return m_enchantments.size();
+    }
 
     /**
      * @brief 获取指定附魔的等级
@@ -128,7 +137,10 @@ public:
     /**
      * @brief 获取所有附魔
      */
-    [[nodiscard]] const std::vector<EnchantmentInstance>& getAll() const { return m_enchantments; }
+    [[nodiscard]] const std::vector<EnchantmentInstance>& getAll() const
+    {
+        return m_enchantments;
+    }
 
     // ========== 修改 ==========
 
@@ -149,7 +161,10 @@ public:
     /**
      * @brief 清除所有附魔
      */
-    void clear() { m_enchantments.clear(); }
+    void clear()
+    {
+        m_enchantments.clear();
+    }
 
     // ========== 兼容性检查 ==========
 
@@ -208,7 +223,10 @@ public:
         return true;
     }
 
-    bool operator!=(const EnchantmentContainer& other) const { return !(*this == other); }
+    bool operator!=(const EnchantmentContainer& other) const
+    {
+        return !(*this == other);
+    }
 
 private:
     std::vector<EnchantmentInstance> m_enchantments;

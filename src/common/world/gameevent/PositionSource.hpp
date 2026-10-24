@@ -32,6 +32,7 @@
 namespace mc {
 
 class Entity; // 前向声明
+
 namespace server {
 class ServerWorld; // 前向声明
 } // namespace server
@@ -85,9 +86,15 @@ public:
         return Vector3d(m_pos.x + 0.5, m_pos.y + 0.5, m_pos.z + 0.5);
     }
 
-    [[nodiscard]] const char* type() const noexcept override { return "block"; }
+    [[nodiscard]] const char* type() const noexcept override
+    {
+        return "block";
+    }
 
-    [[nodiscard]] const BlockPos& pos() const noexcept { return m_pos; }
+    [[nodiscard]] const BlockPos& pos() const noexcept
+    {
+        return m_pos;
+    }
 
 private:
     BlockPos m_pos;
@@ -114,10 +121,20 @@ public:
 
     [[nodiscard]] std::optional<Vector3d> getPosition(const server::ServerWorld* world) const override;
 
-    [[nodiscard]] const char* type() const noexcept override { return "entity"; }
+    [[nodiscard]] const char* type() const noexcept override
+    {
+        return "entity";
+    }
 
-    [[nodiscard]] EntityInstanceId entityId() const noexcept { return m_entityId; }
-    [[nodiscard]] f32 yOffset() const noexcept { return m_yOffset; }
+    [[nodiscard]] EntityInstanceId entityId() const noexcept
+    {
+        return m_entityId;
+    }
+
+    [[nodiscard]] f32 yOffset() const noexcept
+    {
+        return m_yOffset;
+    }
 
 private:
     EntityInstanceId m_entityId;

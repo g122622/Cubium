@@ -64,7 +64,10 @@ public:
         return index;
     }
 
-    [[nodiscard]] const gameevent::GameEvent* at(std::size_t index) const { return m_events.at(index); }
+    [[nodiscard]] const gameevent::GameEvent* at(std::size_t index) const
+    {
+        return m_events.at(index);
+    }
 
 private:
     std::vector<const gameevent::GameEvent*> m_events;

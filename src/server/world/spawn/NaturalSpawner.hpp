@@ -82,12 +82,18 @@ public:
     /**
      * @brief 清除所有密度数据
      */
-    void clear() { m_charges.clear(); }
+    void clear()
+    {
+        m_charges.clear();
+    }
 
     /**
      * @brief 获取密度条目数量
      */
-    [[nodiscard]] size_t size() const { return m_charges.size(); }
+    [[nodiscard]] size_t size() const
+    {
+        return m_charges.size();
+    }
 
 private:
     struct ChargeEntry {
@@ -195,7 +201,10 @@ public:
     /**
      * @brief 获取刷怪区块计数
      */
-    [[nodiscard]] i32 spawnableChunkCount() const { return m_spawnableChunkCount; }
+    [[nodiscard]] i32 spawnableChunkCount() const
+    {
+        return m_spawnableChunkCount;
+    }
 
 private:
     i32 m_spawnableChunkCount;
@@ -302,32 +311,50 @@ public:
     /**
      * @brief 设置生成距离（区块）
      */
-    void setSpawnDistance(i32 chunks) { m_spawnDistance = chunks; }
+    void setSpawnDistance(i32 chunks)
+    {
+        m_spawnDistance = chunks;
+    }
 
     /**
      * @brief 获取生成距离
      */
-    [[nodiscard]] i32 getSpawnDistance() const { return m_spawnDistance; }
+    [[nodiscard]] i32 getSpawnDistance() const
+    {
+        return m_spawnDistance;
+    }
 
     /**
      * @brief 设置玩家周围生成范围
      */
-    void setSpawnRange(i32 range) { m_spawnRange = range; }
+    void setSpawnRange(i32 range)
+    {
+        m_spawnRange = range;
+    }
 
     /**
      * @brief 获取玩家周围生成范围
      */
-    [[nodiscard]] i32 getSpawnRange() const { return m_spawnRange; }
+    [[nodiscard]] i32 getSpawnRange() const
+    {
+        return m_spawnRange;
+    }
 
     /**
      * @brief 设置最大实体数量
      */
-    void setMaxEntities(i32 max) { m_maxEntities = max; }
+    void setMaxEntities(i32 max)
+    {
+        m_maxEntities = max;
+    }
 
     /**
      * @brief 获取最大实体数量
      */
-    [[nodiscard]] i32 getMaxEntities() const { return m_maxEntities; }
+    [[nodiscard]] i32 getMaxEntities() const
+    {
+        return m_maxEntities;
+    }
 
     // ========== 常量 ==========
 

@@ -63,7 +63,9 @@ template <typename T>
 {
     static_assert(std::is_base_of<Entity, T>::value, "T must be derived from Entity");
 
-    if (!world) return nullptr;
+    if (!world) {
+        return nullptr;
+    }
 
     auto entities = world->getEntitiesInRange(pos, range, except);
     T* closest = nullptr;
@@ -72,13 +74,19 @@ template <typename T>
     for (Entity* entity : entities) {
         // 尝试转换为目标类型
         T* typed = dynamic_cast<T*>(entity);
-        if (!typed) continue;
+        if (!typed) {
+            continue;
+        }
 
         // 检查是否存活
-        if (!typed->isAlive()) continue;
+        if (!typed->isAlive()) {
+            continue;
+        }
 
         // 检查过滤条件
-        if (predicate && !predicate(typed)) continue;
+        if (predicate && !predicate(typed)) {
+            continue;
+        }
 
         // 计算距离
         f32 distSq = pos.distanceSquared(typed->position());
@@ -126,15 +134,23 @@ template <typename T>
     static_assert(std::is_base_of<Entity, T>::value, "T must be derived from Entity");
 
     std::vector<T*> result;
-    if (!world) return result;
+    if (!world) {
+        return result;
+    }
 
     auto entities = world->getEntitiesInRange(pos, range, except);
 
     for (Entity* entity : entities) {
         T* typed = dynamic_cast<T*>(entity);
-        if (!typed) continue;
-        if (!typed->isAlive()) continue;
-        if (predicate && !predicate(typed)) continue;
+        if (!typed) {
+            continue;
+        }
+        if (!typed->isAlive()) {
+            continue;
+        }
+        if (predicate && !predicate(typed)) {
+            continue;
+        }
 
         result.push_back(typed);
     }

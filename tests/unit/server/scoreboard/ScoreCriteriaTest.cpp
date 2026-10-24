@@ -446,7 +446,10 @@ TEST_F(ScoreCriteriaTest, RegisterCustomCriteria)
             return name;
         }
 
-        bool isReadOnly() const noexcept override { return false; }
+        bool isReadOnly() const noexcept override
+        {
+            return false;
+        }
     };
 
     // 注册

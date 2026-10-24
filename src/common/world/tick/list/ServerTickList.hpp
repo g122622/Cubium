@@ -179,24 +179,36 @@ public:
     /**
      * @brief 获取当前tick正在处理的数量
      */
-    [[nodiscard]] size_t currentTickCount() const { return m_ticksThisTick.size(); }
+    [[nodiscard]] size_t currentTickCount() const
+    {
+        return m_ticksThisTick.size();
+    }
 
     /**
      * @brief 获取已执行的数量（用于调试）
      */
-    [[nodiscard]] size_t executedThisTickCount() const { return m_executedThisTick.size(); }
+    [[nodiscard]] size_t executedThisTickCount() const
+    {
+        return m_executedThisTick.size();
+    }
 
     /**
      * @brief 设置当前游戏刻（用于调度时计算目标时间）
      *
      * @param tick 当前游戏刻
      */
-    void setCurrentTick(u64 tick) { mCurrentTick = tick; }
+    void setCurrentTick(u64 tick)
+    {
+        mCurrentTick = tick;
+    }
 
     /**
      * @brief 获取当前游戏刻
      */
-    [[nodiscard]] u64 currentTick() const { return mCurrentTick; }
+    [[nodiscard]] u64 currentTick() const
+    {
+        return mCurrentTick;
+    }
 
 private:
     /**
@@ -379,8 +391,9 @@ void ServerTickList<T>::tick(u64 currentTick, size_t maxTicks)
                     tick.scheduledTick,
                     "priority",
                     static_cast<i8>(tick.priority),
-                    [flow = ::perfetto::Flow::ProcessScoped(tick.position.toId())](
-                        ::perfetto::EventContext ctx) { flow(ctx); });
+                    [flow = ::perfetto::Flow::ProcessScoped(tick.position.toId())](::perfetto::EventContext ctx) {
+                        flow(ctx);
+                    });
 
                 m_tickFunction(m_world, tick.position, *tick.target);
                 ++m_totalProcessed;

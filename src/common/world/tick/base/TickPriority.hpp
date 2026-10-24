@@ -62,8 +62,12 @@ enum class TickPriority : i8 {
  */
 [[nodiscard]] inline TickPriority fromInt(i32 value) noexcept
 {
-    if (value < -3) return TickPriority::ExtremelyHigh;
-    if (value > 3) return TickPriority::ExtremelyLow;
+    if (value < -3) {
+        return TickPriority::ExtremelyHigh;
+    }
+    if (value > 3) {
+        return TickPriority::ExtremelyLow;
+    }
     return static_cast<TickPriority>(value);
 }
 

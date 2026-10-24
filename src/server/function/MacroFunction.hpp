@@ -78,7 +78,10 @@ struct MacroFunctionEntry {
     }
 
     /** @brief 是否为宏行 */
-    [[nodiscard]] bool isMacro() const noexcept { return std::holds_alternative<Macro>(data); }
+    [[nodiscard]] bool isMacro() const noexcept
+    {
+        return std::holds_alternative<Macro>(data);
+    }
 
     /**
      * @brief 用实参值列表实例化条目
@@ -146,16 +149,28 @@ public:
 
     // ========== IFunction 接口实现 ==========
 
-    [[nodiscard]] const ResourceLocation& id() const noexcept override { return m_id; }
+    [[nodiscard]] const ResourceLocation& id() const noexcept override
+    {
+        return m_id;
+    }
 
     /**
      * @brief 获取条目数量（宏行 + 纯文本行）
      */
-    [[nodiscard]] Size commandCount() const noexcept override { return m_entries.size(); }
+    [[nodiscard]] Size commandCount() const noexcept override
+    {
+        return m_entries.size();
+    }
 
-    [[nodiscard]] bool isEmpty() const noexcept override { return m_entries.empty(); }
+    [[nodiscard]] bool isEmpty() const noexcept override
+    {
+        return m_entries.empty();
+    }
 
-    [[nodiscard]] bool isMacro() const noexcept override { return true; }
+    [[nodiscard]] bool isMacro() const noexcept override
+    {
+        return true;
+    }
 
     /**
      * @brief 执行宏函数
@@ -175,10 +190,16 @@ public:
     // ========== 公开工具方法 ==========
 
     /** @brief 形参名列表（已去重） */
-    [[nodiscard]] const std::vector<std::string>& parameters() const noexcept { return m_parameters; }
+    [[nodiscard]] const std::vector<std::string>& parameters() const noexcept
+    {
+        return m_parameters;
+    }
 
     /** @brief 条目列表 */
-    [[nodiscard]] const std::vector<Entry>& entries() const noexcept { return m_entries; }
+    [[nodiscard]] const std::vector<Entry>& entries() const noexcept
+    {
+        return m_entries;
+    }
 
     /**
      * @brief 将 NBT 标签转换为宏参数字符串
@@ -221,6 +242,7 @@ private:
         std::vector<std::string> key;
         std::vector<std::string> commands;
     };
+
     mutable std::list<CacheEntry> m_cacheList;
     mutable std::unordered_map<std::string, std::list<CacheEntry>::iterator> m_cacheMap;
 

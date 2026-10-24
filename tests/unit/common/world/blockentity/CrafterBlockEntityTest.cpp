@@ -65,7 +65,10 @@ class CrafterTestWorld final : public mc::test::BaseTestWorld {
 public:
     using IWorld::getBlockState;
 
-    void setBlockStateForPos(const BlockPos& pos, const BlockState* state) { m_blockStates[pos] = state; }
+    void setBlockStateForPos(const BlockPos& pos, const BlockState* state)
+    {
+        m_blockStates[pos] = state;
+    }
 
     [[nodiscard]] const BlockState* getBlockState(const BlockPos& pos) const override
     {
@@ -86,11 +89,13 @@ public:
     {
         m_blockEntities[pos] = std::move(entity);
     }
+
     [[nodiscard]] BlockEntity* getBlockEntity(const BlockPos& pos) override
     {
         auto it = m_blockEntities.find(pos);
         return it == m_blockEntities.end() ? nullptr : it->second.get();
     }
+
     [[nodiscard]] const BlockEntity* getBlockEntity(const BlockPos& pos) const override
     {
         auto it = m_blockEntities.find(pos);
@@ -101,12 +106,16 @@ public:
     {
         throw std::runtime_error("CrafterTestWorld::tickManager not implemented");
     }
+
     [[nodiscard]] const world::tick::TickManager& tickManager() const override
     {
         throw std::runtime_error("CrafterTestWorld::tickManager not implemented");
     }
 
-    i32 lastSetBlockFlags() const { return m_lastSetBlockFlags; }
+    i32 lastSetBlockFlags() const
+    {
+        return m_lastSetBlockFlags;
+    }
 
 private:
     std::unordered_map<BlockPos, const BlockState*> m_blockStates;

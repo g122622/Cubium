@@ -50,7 +50,10 @@ public:
         : m_coords(std::move(coords))
     {}
 
-    [[nodiscard]] const std::vector<f64>& getList() const noexcept override { return m_coords; }
+    [[nodiscard]] const std::vector<f64>& getList() const noexcept override
+    {
+        return m_coords;
+    }
 
     [[nodiscard]] bool forMergedIndexes(const std::function<bool(i32, i32, i32)>& consumer) const override
     {
@@ -63,7 +66,10 @@ public:
         return true;
     }
 
-    [[nodiscard]] i32 size() const noexcept override { return static_cast<i32>(m_coords.size()); }
+    [[nodiscard]] i32 size() const noexcept override
+    {
+        return static_cast<i32>(m_coords.size());
+    }
 
 private:
     std::vector<f64> m_coords;
@@ -121,7 +127,10 @@ public:
         }
     }
 
-    [[nodiscard]] const std::vector<f64>& getList() const noexcept override { return m_merged; }
+    [[nodiscard]] const std::vector<f64>& getList() const noexcept override
+    {
+        return m_merged;
+    }
 
     [[nodiscard]] bool forMergedIndexes(const std::function<bool(i32, i32, i32)>& consumer) const override
     {
@@ -134,7 +143,10 @@ public:
         return forNonSwappedIndexes(consumer);
     }
 
-    [[nodiscard]] i32 size() const noexcept override { return static_cast<i32>(m_merged.size()); }
+    [[nodiscard]] i32 size() const noexcept override
+    {
+        return static_cast<i32>(m_merged.size());
+    }
 
 private:
     std::vector<f64> m_lower;
@@ -273,7 +285,10 @@ public:
         }
     }
 
-    [[nodiscard]] const std::vector<f64>& getList() const noexcept override { return m_coords; }
+    [[nodiscard]] const std::vector<f64>& getList() const noexcept override
+    {
+        return m_coords;
+    }
 
     [[nodiscard]] bool forMergedIndexes(const std::function<bool(i32, i32, i32)>& consumer) const override
     {
@@ -287,7 +302,10 @@ public:
         return true;
     }
 
-    [[nodiscard]] i32 size() const noexcept override { return m_resultLength; }
+    [[nodiscard]] i32 size() const noexcept override
+    {
+        return m_resultLength;
+    }
 
 private:
     std::vector<f64> m_coords;
@@ -326,7 +344,10 @@ public:
         }
     }
 
-    [[nodiscard]] const std::vector<f64>& getList() const noexcept override { return m_coords; }
+    [[nodiscard]] const std::vector<f64>& getList() const noexcept override
+    {
+        return m_coords;
+    }
 
     [[nodiscard]] bool forMergedIndexes(const std::function<bool(i32, i32, i32)>& consumer) const override
     {
@@ -340,11 +361,25 @@ public:
         return true;
     }
 
-    [[nodiscard]] i32 size() const noexcept override { return m_lcmSegs + 1; }
+    [[nodiscard]] i32 size() const noexcept override
+    {
+        return m_lcmSegs + 1;
+    }
 
-    i32 getLcmSegs() const { return m_lcmSegs; }
-    i32 getFirstScale() const { return m_firstScale; }
-    i32 getSecondScale() const { return m_secondScale; }
+    i32 getLcmSegs() const
+    {
+        return m_lcmSegs;
+    }
+
+    i32 getFirstScale() const
+    {
+        return m_firstScale;
+    }
+
+    i32 getSecondScale() const
+    {
+        return m_secondScale;
+    }
 
 private:
     i32 m_firstSegs;

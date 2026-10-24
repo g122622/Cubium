@@ -78,7 +78,10 @@ const std::vector<ExpectedDye>& _allVanillaDyes()
 
 class DyeItemHelperTest : public ::testing::Test {
 protected:
-    void SetUp() override { Items::initialize(); }
+    void SetUp() override
+    {
+        Items::initialize();
+    }
 };
 
 // ============================================================================

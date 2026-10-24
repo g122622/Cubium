@@ -170,14 +170,18 @@ void GuardianEntity::registerGoals()
     // 优先级 8: 看向玩家 (8格内)
     m_goalSelector.addGoal(
         8, std::make_unique<entity::ai::goal::LookAtGoal>(this, 8.0f, 0.02f, [](const LivingEntity* entity) -> bool {
-            if (!entity) return false;
+            if (!entity) {
+                return false;
+            }
             return entity->entityType() == entity::VanillaEntityTypeKeys::PLAYER;
         }));
 
     // 优先级 8: 看向同类守卫者 (12格内，低频率)
     m_goalSelector.addGoal(
         8, std::make_unique<entity::ai::goal::LookAtGoal>(this, 12.0f, 0.01f, [](const LivingEntity* entity) -> bool {
-            if (!entity) return false;
+            if (!entity) {
+                return false;
+            }
             auto type = entity->entityType();
             return type == entity::VanillaEntityTypeKeys::GUARDIAN ||
                 type == entity::VanillaEntityTypeKeys::ELDER_GUARDIAN;

@@ -57,7 +57,10 @@ using namespace mc::advancement;
  */
 class AdvancementVisibilityEvaluatorTest : public ::testing::Test {
 protected:
-    void SetUp() override { CriterionTriggers::instance().registerBuiltinTriggers(); }
+    void SetUp() override
+    {
+        CriterionTriggers::instance().registerBuiltinTriggers();
+    }
 
     void TearDown() override
     {
@@ -149,8 +152,12 @@ TEST_F(AdvancementVisibilityEvaluatorTest, CompletedAdvancementAlwaysVisible)
     std::map<Advancement::Ptr, bool> visibility;
     AdvancementVisibilityEvaluator::evaluateVisibility(
         root,
-        [](Advancement::Ptr) { return true; }, // 所有成就标记为完成
-        [&](Advancement::Ptr adv, bool visible) { visibility[adv] = visible; });
+        [](Advancement::Ptr) {
+            return true;
+        }, // 所有成就标记为完成
+        [&](Advancement::Ptr adv, bool visible) {
+            visibility[adv] = visible;
+        });
 
     EXPECT_TRUE(visibility[root]);
 }
@@ -166,8 +173,12 @@ TEST_F(AdvancementVisibilityEvaluatorTest, NoDisplayAdvancementWithChildrenDoneS
     std::map<Advancement::Ptr, bool> visibility;
     AdvancementVisibilityEvaluator::evaluateVisibility(
         root,
-        [](Advancement::Ptr) { return true; }, // 完成
-        [&](Advancement::Ptr adv, bool visible) { visibility[adv] = visible; });
+        [](Advancement::Ptr) {
+            return true;
+        }, // 完成
+        [&](Advancement::Ptr adv, bool visible) {
+            visibility[adv] = visible;
+        });
 
     // 算法层面：anyChildDone=true -> 可见（但 UI 层应过滤不渲染）
     EXPECT_TRUE(visibility[root]);
@@ -182,8 +193,12 @@ TEST_F(AdvancementVisibilityEvaluatorTest, HiddenAdvancementNotVisibleBeforeComp
     std::map<Advancement::Ptr, bool> visibility;
     AdvancementVisibilityEvaluator::evaluateVisibility(
         root,
-        [](Advancement::Ptr) { return false; }, // 未完成
-        [&](Advancement::Ptr adv, bool visible) { visibility[adv] = visible; });
+        [](Advancement::Ptr) {
+            return false;
+        }, // 未完成
+        [&](Advancement::Ptr adv, bool visible) {
+            visibility[adv] = visible;
+        });
 
     EXPECT_FALSE(visibility[root]);
 }
@@ -197,8 +212,12 @@ TEST_F(AdvancementVisibilityEvaluatorTest, HiddenAdvancementVisibleAfterCompleti
     std::map<Advancement::Ptr, bool> visibility;
     AdvancementVisibilityEvaluator::evaluateVisibility(
         root,
-        [](Advancement::Ptr) { return true; },
-        [&](Advancement::Ptr adv, bool visible) { visibility[adv] = visible; });
+        [](Advancement::Ptr) {
+            return true;
+        },
+        [&](Advancement::Ptr adv, bool visible) {
+            visibility[adv] = visible;
+        });
 
     EXPECT_TRUE(visibility[root]);
 }
@@ -221,8 +240,12 @@ TEST_F(AdvancementVisibilityEvaluatorTest, UnfinishedChildVisibleWhenParentDone)
     std::map<Advancement::Ptr, bool> visibility;
     AdvancementVisibilityEvaluator::evaluateVisibility(
         root,
-        [&doneSet](Advancement::Ptr adv) { return doneSet.count(adv->getId().toString()) > 0; },
-        [&](Advancement::Ptr adv, bool visible) { visibility[adv] = visible; });
+        [&doneSet](Advancement::Ptr adv) {
+            return doneSet.count(adv->getId().toString()) > 0;
+        },
+        [&](Advancement::Ptr adv, bool visible) {
+            visibility[adv] = visible;
+        });
 
     EXPECT_TRUE(visibility[root]);  // 父成就完成 -> 可见
     EXPECT_TRUE(visibility[child]); // 父成就完成 -> 子成就可见
@@ -241,8 +264,12 @@ TEST_F(AdvancementVisibilityEvaluatorTest, UnfinishedChildNotVisibleWhenParentNo
     std::map<Advancement::Ptr, bool> visibility;
     AdvancementVisibilityEvaluator::evaluateVisibility(
         root,
-        [](Advancement::Ptr) { return false; }, // 全部未完成
-        [&](Advancement::Ptr adv, bool visible) { visibility[adv] = visible; });
+        [](Advancement::Ptr) {
+            return false;
+        }, // 全部未完成
+        [&](Advancement::Ptr adv, bool visible) {
+            visibility[adv] = visible;
+        });
 
     EXPECT_FALSE(visibility[root]);  // 根未完成且无祖先 -> 不可见
     EXPECT_FALSE(visibility[child]); // 子未完成且无已完成祖先 -> 不可见
@@ -268,8 +295,12 @@ TEST_F(AdvancementVisibilityEvaluatorTest, VisibilityDepthTwoAncestors)
     std::map<Advancement::Ptr, bool> visibility;
     AdvancementVisibilityEvaluator::evaluateVisibility(
         root,
-        [&doneSet](Advancement::Ptr adv) { return doneSet.count(adv->getId().toString()) > 0; },
-        [&](Advancement::Ptr adv, bool visible) { visibility[adv] = visible; });
+        [&doneSet](Advancement::Ptr adv) {
+            return doneSet.count(adv->getId().toString()) > 0;
+        },
+        [&](Advancement::Ptr adv, bool visible) {
+            visibility[adv] = visible;
+        });
 
     EXPECT_TRUE(visibility[root]);    // 完成 -> 可见
     EXPECT_TRUE(visibility[child1]);  // 父 root 完成 -> 可见
@@ -295,8 +326,12 @@ TEST_F(AdvancementVisibilityEvaluatorTest, VisibilityDepthHiddenParentBlocksProp
     std::map<Advancement::Ptr, bool> visibility;
     AdvancementVisibilityEvaluator::evaluateVisibility(
         root,
-        [&doneSet](Advancement::Ptr adv) { return doneSet.count(adv->getId().toString()) > 0; },
-        [&](Advancement::Ptr adv, bool visible) { visibility[adv] = visible; });
+        [&doneSet](Advancement::Ptr adv) {
+            return doneSet.count(adv->getId().toString()) > 0;
+        },
+        [&](Advancement::Ptr adv, bool visible) {
+            visibility[adv] = visible;
+        });
 
     EXPECT_TRUE(visibility[root]);         // 完成 -> 可见
     EXPECT_FALSE(visibility[hiddenChild]); // 隐藏且未完成 -> 不可见
@@ -323,8 +358,12 @@ TEST_F(AdvancementVisibilityEvaluatorTest, NoDisplayParentBlocksPropagation)
     std::map<Advancement::Ptr, bool> visibility;
     AdvancementVisibilityEvaluator::evaluateVisibility(
         root,
-        [&doneSet](Advancement::Ptr adv) { return doneSet.count(adv->getId().toString()) > 0; },
-        [&](Advancement::Ptr adv, bool visible) { visibility[adv] = visible; });
+        [&doneSet](Advancement::Ptr adv) {
+            return doneSet.count(adv->getId().toString()) > 0;
+        },
+        [&](Advancement::Ptr adv, bool visible) {
+            visibility[adv] = visible;
+        });
 
     EXPECT_TRUE(visibility[root]);            // 完成 -> 可见
     EXPECT_FALSE(visibility[noDisplayChild]); // 无 display -> 不可见
@@ -350,8 +389,12 @@ TEST_F(AdvancementVisibilityEvaluatorTest, CompletedDescendantMakesAncestorsVisi
     std::map<Advancement::Ptr, bool> visibility;
     AdvancementVisibilityEvaluator::evaluateVisibility(
         root,
-        [&doneSet](Advancement::Ptr adv) { return doneSet.count(adv->getId().toString()) > 0; },
-        [&](Advancement::Ptr adv, bool visible) { visibility[adv] = visible; });
+        [&doneSet](Advancement::Ptr adv) {
+            return doneSet.count(adv->getId().toString()) > 0;
+        },
+        [&](Advancement::Ptr adv, bool visible) {
+            visibility[adv] = visible;
+        });
 
     EXPECT_TRUE(visibility[root]);       // 子树有完成 -> 可见
     EXPECT_TRUE(visibility[child]);      // 子树有完成 -> 可见
@@ -375,8 +418,12 @@ TEST_F(AdvancementVisibilityEvaluatorTest, CompletedDescendantMakesNoDisplayAnce
     std::map<Advancement::Ptr, bool> visibility;
     AdvancementVisibilityEvaluator::evaluateVisibility(
         root,
-        [&doneSet](Advancement::Ptr adv) { return doneSet.count(adv->getId().toString()) > 0; },
-        [&](Advancement::Ptr adv, bool visible) { visibility[adv] = visible; });
+        [&doneSet](Advancement::Ptr adv) {
+            return doneSet.count(adv->getId().toString()) > 0;
+        },
+        [&](Advancement::Ptr adv, bool visible) {
+            visibility[adv] = visible;
+        });
 
     // 算法层面：root 的 anyChildDone=true -> 可见（但 UI 层应过滤不渲染）
     EXPECT_TRUE(visibility[root]);
@@ -408,8 +455,12 @@ TEST_F(AdvancementVisibilityEvaluatorTest, MultipleBranchesVisibility)
     std::map<Advancement::Ptr, bool> visibility;
     AdvancementVisibilityEvaluator::evaluateVisibility(
         root,
-        [&doneSet](Advancement::Ptr adv) { return doneSet.count(adv->getId().toString()) > 0; },
-        [&](Advancement::Ptr adv, bool visible) { visibility[adv] = visible; });
+        [&doneSet](Advancement::Ptr adv) {
+            return doneSet.count(adv->getId().toString()) > 0;
+        },
+        [&](Advancement::Ptr adv, bool visible) {
+            visibility[adv] = visible;
+        });
 
     EXPECT_TRUE(visibility[root]);        // 完成 -> 可见
     EXPECT_TRUE(visibility[childA]);      // 父 root 完成 -> 可见
@@ -443,8 +494,12 @@ TEST_F(AdvancementVisibilityEvaluatorTest, MultipleBranchesWithCompletedDescenda
     std::map<Advancement::Ptr, bool> visibility;
     AdvancementVisibilityEvaluator::evaluateVisibility(
         root,
-        [&doneSet](Advancement::Ptr adv) { return doneSet.count(adv->getId().toString()) > 0; },
-        [&](Advancement::Ptr adv, bool visible) { visibility[adv] = visible; });
+        [&doneSet](Advancement::Ptr adv) {
+            return doneSet.count(adv->getId().toString()) > 0;
+        },
+        [&](Advancement::Ptr adv, bool visible) {
+            visibility[adv] = visible;
+        });
 
     EXPECT_TRUE(visibility[root]);         // anyChildDone=true -> 可见
     EXPECT_TRUE(visibility[childA]);       // 自身完成 -> 可见
@@ -537,8 +592,12 @@ TEST_F(AdvancementVisibilityEvaluatorTest, EvaluateVisibilityFromNode)
     AdvancementVisibilityEvaluator::evaluateVisibilityFromNode(
         grandchild,
         manager,
-        [&doneSet](Advancement::Ptr adv) { return doneSet.count(adv->getId().toString()) > 0; },
-        [&](Advancement::Ptr adv, bool visible) { visibility[adv] = visible; });
+        [&doneSet](Advancement::Ptr adv) {
+            return doneSet.count(adv->getId().toString()) > 0;
+        },
+        [&](Advancement::Ptr adv, bool visible) {
+            visibility[adv] = visible;
+        });
 
     EXPECT_TRUE(visibility[root]);       // 完成 -> 可见
     EXPECT_TRUE(visibility[child]);      // 父完成 -> 可见
@@ -551,7 +610,12 @@ TEST_F(AdvancementVisibilityEvaluatorTest, EvaluateVisibilityFromNullNode)
 
     // 从空节点评估不应崩溃
     AdvancementVisibilityEvaluator::evaluateVisibilityFromNode(
-        nullptr, manager, [](Advancement::Ptr) { return false; }, [](Advancement::Ptr, bool) {});
+        nullptr,
+        manager,
+        [](Advancement::Ptr) {
+            return false;
+        },
+        [](Advancement::Ptr, bool) {});
 }
 
 // ========== 边界条件测试 ==========
@@ -561,8 +625,12 @@ TEST_F(AdvancementVisibilityEvaluatorTest, NullStartNode)
     std::map<Advancement::Ptr, bool> visibility;
     AdvancementVisibilityEvaluator::evaluateVisibility(
         nullptr,
-        [](Advancement::Ptr) { return false; },
-        [&](Advancement::Ptr adv, bool visible) { visibility[adv] = visible; });
+        [](Advancement::Ptr) {
+            return false;
+        },
+        [&](Advancement::Ptr adv, bool visible) {
+            visibility[adv] = visible;
+        });
 
     EXPECT_TRUE(visibility.empty());
 }
@@ -575,8 +643,12 @@ TEST_F(AdvancementVisibilityEvaluatorTest, SingleRootNodeAllDone)
     std::map<Advancement::Ptr, bool> visibility;
     AdvancementVisibilityEvaluator::evaluateVisibility(
         root,
-        [](Advancement::Ptr) { return true; },
-        [&](Advancement::Ptr adv, bool visible) { visibility[adv] = visible; });
+        [](Advancement::Ptr) {
+            return true;
+        },
+        [&](Advancement::Ptr adv, bool visible) {
+            visibility[adv] = visible;
+        });
 
     EXPECT_TRUE(visibility[root]);
 }
@@ -589,8 +661,12 @@ TEST_F(AdvancementVisibilityEvaluatorTest, SingleRootNodeNoneDone)
     std::map<Advancement::Ptr, bool> visibility;
     AdvancementVisibilityEvaluator::evaluateVisibility(
         root,
-        [](Advancement::Ptr) { return false; },
-        [&](Advancement::Ptr adv, bool visible) { visibility[adv] = visible; });
+        [](Advancement::Ptr) {
+            return false;
+        },
+        [&](Advancement::Ptr adv, bool visible) {
+            visibility[adv] = visible;
+        });
 
     // 根成就未完成、非隐藏 -> 没有已完成祖先 -> 不可见
     EXPECT_FALSE(visibility[root]);
@@ -620,8 +696,12 @@ TEST_F(AdvancementVisibilityEvaluatorTest, MixedTreeWithNoDisplayAndHidden)
     std::map<Advancement::Ptr, bool> visibility;
     AdvancementVisibilityEvaluator::evaluateVisibility(
         root,
-        [&doneSet](Advancement::Ptr adv) { return doneSet.count(adv->getId().toString()) > 0; },
-        [&](Advancement::Ptr adv, bool visible) { visibility[adv] = visible; });
+        [&doneSet](Advancement::Ptr adv) {
+            return doneSet.count(adv->getId().toString()) > 0;
+        },
+        [&](Advancement::Ptr adv, bool visible) {
+            visibility[adv] = visible;
+        });
 
     EXPECT_TRUE(visibility[root]);         // 完成 -> 可见
     EXPECT_FALSE(visibility[techNode]);    // 无 display -> 不可见
@@ -657,8 +737,12 @@ TEST_F(AdvancementVisibilityEvaluatorTest, VisibilityDepthExact)
     std::map<Advancement::Ptr, bool> visibility;
     AdvancementVisibilityEvaluator::evaluateVisibility(
         root,
-        [&doneSet](Advancement::Ptr adv) { return doneSet.count(adv->getId().toString()) > 0; },
-        [&](Advancement::Ptr adv, bool visible) { visibility[adv] = visible; });
+        [&doneSet](Advancement::Ptr adv) {
+            return doneSet.count(adv->getId().toString()) > 0;
+        },
+        [&](Advancement::Ptr adv, bool visible) {
+            visibility[adv] = visible;
+        });
 
     EXPECT_TRUE(visibility[root]); // 完成 -> 可见
     EXPECT_TRUE(visibility[L1]);   // depth 1 处 root Show -> 可见
@@ -677,8 +761,12 @@ TEST_F(AdvancementVisibilityEvaluatorTest, VisibilityRuleShowForDone)
     std::map<Advancement::Ptr, bool> visibility;
     AdvancementVisibilityEvaluator::evaluateVisibility(
         root,
-        [](Advancement::Ptr) { return true; },
-        [&](Advancement::Ptr adv, bool visible) { visibility[adv] = visible; });
+        [](Advancement::Ptr) {
+            return true;
+        },
+        [&](Advancement::Ptr adv, bool visible) {
+            visibility[adv] = visible;
+        });
 
     EXPECT_TRUE(visibility[root]); // Show -> 可见
 }
@@ -694,8 +782,12 @@ TEST_F(AdvancementVisibilityEvaluatorTest, VisibilityRuleHideForNoDisplay)
     std::map<Advancement::Ptr, bool> visibility;
     AdvancementVisibilityEvaluator::evaluateVisibility(
         root,
-        [](Advancement::Ptr) { return true; },
-        [&](Advancement::Ptr adv, bool visible) { visibility[adv] = visible; });
+        [](Advancement::Ptr) {
+            return true;
+        },
+        [&](Advancement::Ptr adv, bool visible) {
+            visibility[adv] = visible;
+        });
 
     // 算法层面：anyChildDone=true -> 可见（但 UI 层应过滤）
     EXPECT_TRUE(visibility[root]);
@@ -710,8 +802,12 @@ TEST_F(AdvancementVisibilityEvaluatorTest, VisibilityRuleHideForHiddenNotDone)
     std::map<Advancement::Ptr, bool> visibility;
     AdvancementVisibilityEvaluator::evaluateVisibility(
         root,
-        [](Advancement::Ptr) { return false; },
-        [&](Advancement::Ptr adv, bool visible) { visibility[adv] = visible; });
+        [](Advancement::Ptr) {
+            return false;
+        },
+        [&](Advancement::Ptr adv, bool visible) {
+            visibility[adv] = visible;
+        });
 
     EXPECT_FALSE(visibility[root]); // Hide -> 不可见
 }
@@ -726,8 +822,12 @@ TEST_F(AdvancementVisibilityEvaluatorTest, VisibilityRuleNoChangeForUnfinishedVi
     std::map<Advancement::Ptr, bool> visibility;
     AdvancementVisibilityEvaluator::evaluateVisibility(
         root,
-        [](Advancement::Ptr) { return false; },
-        [&](Advancement::Ptr adv, bool visible) { visibility[adv] = visible; });
+        [](Advancement::Ptr) {
+            return false;
+        },
+        [&](Advancement::Ptr adv, bool visible) {
+            visibility[adv] = visible;
+        });
 
     EXPECT_FALSE(visibility[root]); // NoChange + 没有已完成祖先 -> 不可见
 }
@@ -752,8 +852,12 @@ TEST_F(AdvancementVisibilityEvaluatorTest, CompletingMiddleNodeAffectsSubtree)
     std::map<Advancement::Ptr, bool> visibility;
     AdvancementVisibilityEvaluator::evaluateVisibility(
         root,
-        [&doneSet](Advancement::Ptr adv) { return doneSet.count(adv->getId().toString()) > 0; },
-        [&](Advancement::Ptr adv, bool visible) { visibility[adv] = visible; });
+        [&doneSet](Advancement::Ptr adv) {
+            return doneSet.count(adv->getId().toString()) > 0;
+        },
+        [&](Advancement::Ptr adv, bool visible) {
+            visibility[adv] = visible;
+        });
 
     EXPECT_TRUE(visibility[root]);   // 子树 middle 完成(anyChildDone) -> 可见
     EXPECT_TRUE(visibility[middle]); // 自身完成 -> 可见
@@ -775,8 +879,12 @@ TEST_F(AdvancementVisibilityEvaluatorTest, AllNodesComplete)
     std::map<Advancement::Ptr, bool> visibility;
     AdvancementVisibilityEvaluator::evaluateVisibility(
         root,
-        [](Advancement::Ptr) { return true; },
-        [&](Advancement::Ptr adv, bool visible) { visibility[adv] = visible; });
+        [](Advancement::Ptr) {
+            return true;
+        },
+        [&](Advancement::Ptr adv, bool visible) {
+            visibility[adv] = visible;
+        });
 
     EXPECT_TRUE(visibility[root]);
     EXPECT_TRUE(visibility[child]);
@@ -800,8 +908,12 @@ TEST_F(AdvancementVisibilityEvaluatorTest, HiddenMiddleCompletedShowsChildren)
     std::map<Advancement::Ptr, bool> visibility;
     AdvancementVisibilityEvaluator::evaluateVisibility(
         root,
-        [&doneSet](Advancement::Ptr adv) { return doneSet.count(adv->getId().toString()) > 0; },
-        [&](Advancement::Ptr adv, bool visible) { visibility[adv] = visible; });
+        [&doneSet](Advancement::Ptr adv) {
+            return doneSet.count(adv->getId().toString()) > 0;
+        },
+        [&](Advancement::Ptr adv, bool visible) {
+            visibility[adv] = visible;
+        });
 
     EXPECT_TRUE(visibility[root]);         // 完成 -> 可见
     EXPECT_TRUE(visibility[hiddenMiddle]); // 隐藏但已完成 -> 可见
@@ -827,14 +939,22 @@ TEST_F(AdvancementVisibilityEvaluatorTest, MultipleTreesEvaluation)
     std::map<Advancement::Ptr, bool> vis1;
     AdvancementVisibilityEvaluator::evaluateVisibility(
         tree1Root,
-        [&doneSet](Advancement::Ptr adv) { return doneSet.count(adv->getId().toString()) > 0; },
-        [&](Advancement::Ptr adv, bool visible) { vis1[adv] = visible; });
+        [&doneSet](Advancement::Ptr adv) {
+            return doneSet.count(adv->getId().toString()) > 0;
+        },
+        [&](Advancement::Ptr adv, bool visible) {
+            vis1[adv] = visible;
+        });
 
     std::map<Advancement::Ptr, bool> vis2;
     AdvancementVisibilityEvaluator::evaluateVisibility(
         tree2Root,
-        [&doneSet](Advancement::Ptr adv) { return doneSet.count(adv->getId().toString()) > 0; },
-        [&](Advancement::Ptr adv, bool visible) { vis2[adv] = visible; });
+        [&doneSet](Advancement::Ptr adv) {
+            return doneSet.count(adv->getId().toString()) > 0;
+        },
+        [&](Advancement::Ptr adv, bool visible) {
+            vis2[adv] = visible;
+        });
 
     EXPECT_TRUE(vis1[tree1Root]);  // tree1 完成 -> 可见
     EXPECT_FALSE(vis2[tree2Root]); // tree2 未完成 -> 不可见

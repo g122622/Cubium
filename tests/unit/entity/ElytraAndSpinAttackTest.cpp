@@ -67,9 +67,20 @@ public:
     }
 
     // 暴露 protected 方法用于单元测试
-    [[nodiscard]] Vector3 publicGetLookAngle() const { return getLookAngle(); }
-    [[nodiscard]] f64 publicGetEffectiveGravity() const { return getEffectiveGravity(); }
-    Vector3 publicUpdateFallFlyingMovement(const Vector3& v) const { return updateFallFlyingMovement(v); }
+    [[nodiscard]] Vector3 publicGetLookAngle() const
+    {
+        return getLookAngle();
+    }
+
+    [[nodiscard]] f64 publicGetEffectiveGravity() const
+    {
+        return getEffectiveGravity();
+    }
+
+    Vector3 publicUpdateFallFlyingMovement(const Vector3& v) const
+    {
+        return updateFallFlyingMovement(v);
+    }
 };
 
 } // namespace
@@ -79,7 +90,10 @@ public:
  */
 class ElytraFlyingTest : public ::testing::Test {
 protected:
-    void SetUp() override { entity = std::make_unique<TestLivingEntity>(); }
+    void SetUp() override
+    {
+        entity = std::make_unique<TestLivingEntity>();
+    }
 
     std::unique_ptr<TestLivingEntity> entity;
 };
@@ -142,7 +156,10 @@ TEST_F(ElytraFlyingTest, FallFlyingFlagValue)
  */
 class SpinAttackTest : public ::testing::Test {
 protected:
-    void SetUp() override { entity = std::make_unique<TestLivingEntity>(); }
+    void SetUp() override
+    {
+        entity = std::make_unique<TestLivingEntity>();
+    }
 
     std::unique_ptr<TestLivingEntity> entity;
 };
@@ -265,7 +282,10 @@ TEST_F(EntityPoseTest, StringToPose)
  */
 class PoseAndFlagIntegrationTest : public ::testing::Test {
 protected:
-    void SetUp() override { entity = std::make_unique<TestLivingEntity>(); }
+    void SetUp() override
+    {
+        entity = std::make_unique<TestLivingEntity>();
+    }
 
     std::unique_ptr<TestLivingEntity> entity;
 };
@@ -324,7 +344,10 @@ TEST_F(PoseAndFlagIntegrationTest, ElytraFlyingHigherPriorityThanSpinAttack)
  */
 class ElytraGlideTest : public ::testing::Test {
 protected:
-    void SetUp() override { entity = std::make_unique<TestLivingEntity>(); }
+    void SetUp() override
+    {
+        entity = std::make_unique<TestLivingEntity>();
+    }
 
     std::unique_ptr<TestLivingEntity> entity;
 };

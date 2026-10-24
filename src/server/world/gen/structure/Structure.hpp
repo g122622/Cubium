@@ -46,9 +46,11 @@ namespace mc {
 // 前向声明
 class IWorld;
 class IWorldWriter;
+
 namespace world::chunk {
 class ChunkPrimer;
 }
+
 using world::chunk::ChunkPrimer;
 class IChunkGenerator;
 class BlockState;
@@ -157,6 +159,7 @@ public:
         BlockSelector()
             : m_blockState(nullptr)
         {}
+
         virtual ~BlockSelector() = default;
 
         /**
@@ -169,7 +172,10 @@ public:
          */
         virtual void selectBlocks(math::IRandom& rng, i32 x, i32 y, i32 z, bool isWall) = 0;
 
-        [[nodiscard]] const BlockState* getBlockState() const { return m_blockState; }
+        [[nodiscard]] const BlockState* getBlockState() const
+        {
+            return m_blockState;
+        }
 
     protected:
         const BlockState* m_blockState;
@@ -178,14 +184,45 @@ public:
     StructurePiece(i32 type, i32 minX, i32 minY, i32 minZ, i32 maxX, i32 maxY, i32 maxZ);
     virtual ~StructurePiece() = default;
 
-    [[nodiscard]] i32 type() const noexcept { return m_type; }
-    [[nodiscard]] i32 getComponentType() const noexcept { return m_type; } ///< 别名
-    [[nodiscard]] i32 minX() const noexcept { return m_minX; }
-    [[nodiscard]] i32 minY() const noexcept { return m_minY; }
-    [[nodiscard]] i32 minZ() const noexcept { return m_minZ; }
-    [[nodiscard]] i32 maxX() const noexcept { return m_maxX; }
-    [[nodiscard]] i32 maxY() const noexcept { return m_maxY; }
-    [[nodiscard]] i32 maxZ() const noexcept { return m_maxZ; }
+    [[nodiscard]] i32 type() const noexcept
+    {
+        return m_type;
+    }
+
+    [[nodiscard]] i32 getComponentType() const noexcept
+    {
+        return m_type;
+    } ///< 别名
+
+    [[nodiscard]] i32 minX() const noexcept
+    {
+        return m_minX;
+    }
+
+    [[nodiscard]] i32 minY() const noexcept
+    {
+        return m_minY;
+    }
+
+    [[nodiscard]] i32 minZ() const noexcept
+    {
+        return m_minZ;
+    }
+
+    [[nodiscard]] i32 maxX() const noexcept
+    {
+        return m_maxX;
+    }
+
+    [[nodiscard]] i32 maxY() const noexcept
+    {
+        return m_maxY;
+    }
+
+    [[nodiscard]] i32 maxZ() const noexcept
+    {
+        return m_maxZ;
+    }
 
     /**
      * @brief 获取边界框
@@ -215,7 +252,10 @@ public:
     /**
      * @brief 获取基础方向
      */
-    [[nodiscard]] Direction getCoordBaseMode() const noexcept { return m_coordBaseMode; }
+    [[nodiscard]] Direction getCoordBaseMode() const noexcept
+    {
+        return m_coordBaseMode;
+    }
 
     /**
      * @brief 设置基础方向（自动设置镜像和旋转）
@@ -225,22 +265,34 @@ public:
     /**
      * @brief 获取镜像
      */
-    [[nodiscard]] Mirror getMirror() const noexcept { return m_mirror; }
+    [[nodiscard]] Mirror getMirror() const noexcept
+    {
+        return m_mirror;
+    }
 
     /**
      * @brief 设置镜像
      */
-    void setMirror(Mirror mirror) noexcept { m_mirror = mirror; }
+    void setMirror(Mirror mirror) noexcept
+    {
+        m_mirror = mirror;
+    }
 
     /**
      * @brief 获取旋转
      */
-    [[nodiscard]] Rotation getRotation() const noexcept { return m_rotation; }
+    [[nodiscard]] Rotation getRotation() const noexcept
+    {
+        return m_rotation;
+    }
 
     /**
      * @brief 设置旋转
      */
-    void setRotation(Rotation rotation) noexcept { m_rotation = rotation; }
+    void setRotation(Rotation rotation) noexcept
+    {
+        m_rotation = rotation;
+    }
 
     // ========== 坐标变换方法 ==========
 
@@ -533,7 +585,10 @@ public:
      *
      * @return 地面高度偏移，默认返回 0
      */
-    [[nodiscard]] virtual i32 getGroundLevelDelta() const { return 0; }
+    [[nodiscard]] virtual i32 getGroundLevelDelta() const
+    {
+        return 0;
+    }
 
     /**
      * @brief 获取 Jigsaw 连接点列表
@@ -553,7 +608,10 @@ public:
      *
      * @return 是否是 Jigsaw 结构片段
      */
-    [[nodiscard]] virtual bool isJigsawPiece() const { return false; }
+    [[nodiscard]] virtual bool isJigsawPiece() const
+    {
+        return false;
+    }
 
     /**
      * @brief 获取片段的模板资源路径
@@ -562,7 +620,10 @@ public:
      * 用于诊断与校验"装配出的构件是否与原版一致"——仅凭包围盒无法区分装配选错了模板
      * 还是摆放位置有偏差。非 Jigsaw 片段（或模板未加载成功）返回空字符串。
      */
-    [[nodiscard]] virtual std::string_view templateLocation() const noexcept { return {}; }
+    [[nodiscard]] virtual std::string_view templateLocation() const noexcept
+    {
+        return {};
+    }
 
     /**
      * @brief 获取片段投影类型 — MC 1.21 PoolElementStructurePiece.getElement().getProjection()
@@ -573,7 +634,10 @@ public:
      * - Rigid: 作为 Rigid piece 添加（影响地形密度）
      * - TerrainMatching: 不作为 Rigid piece（地形自适应），只收集 JigsawJunction
      */
-    [[nodiscard]] virtual StructurePieceProjection getProjection() const { return StructurePieceProjection::Rigid; }
+    [[nodiscard]] virtual StructurePieceProjection getProjection() const
+    {
+        return StructurePieceProjection::Rigid;
+    }
 
     // ========== 静态工具方法 ==========
 
@@ -607,18 +671,44 @@ public:
     ~StructureStart() = default;
 
     void addPiece(std::unique_ptr<StructurePiece> piece);
-    [[nodiscard]] const std::vector<std::unique_ptr<StructurePiece>>& pieces() const noexcept { return m_pieces; }
-    [[nodiscard]] std::vector<std::unique_ptr<StructurePiece>>& pieces() noexcept { return m_pieces; }
-    [[nodiscard]] size_t pieceCount() const noexcept { return m_pieces.size(); }
-    [[nodiscard]] bool isValid() const noexcept { return !m_pieces.empty(); }
 
-    [[nodiscard]] i32 chunkX() const noexcept { return m_chunkX; }
-    [[nodiscard]] i32 chunkZ() const noexcept { return m_chunkZ; }
+    [[nodiscard]] const std::vector<std::unique_ptr<StructurePiece>>& pieces() const noexcept
+    {
+        return m_pieces;
+    }
+
+    [[nodiscard]] std::vector<std::unique_ptr<StructurePiece>>& pieces() noexcept
+    {
+        return m_pieces;
+    }
+
+    [[nodiscard]] size_t pieceCount() const noexcept
+    {
+        return m_pieces.size();
+    }
+
+    [[nodiscard]] bool isValid() const noexcept
+    {
+        return !m_pieces.empty();
+    }
+
+    [[nodiscard]] i32 chunkX() const noexcept
+    {
+        return m_chunkX;
+    }
+
+    [[nodiscard]] i32 chunkZ() const noexcept
+    {
+        return m_chunkZ;
+    }
 
     /**
      * @brief 获取边界框
      */
-    [[nodiscard]] const StructureBoundingBox& getBoundingBox() const noexcept { return m_boundingBox; }
+    [[nodiscard]] const StructureBoundingBox& getBoundingBox() const noexcept
+    {
+        return m_boundingBox;
+    }
 
     /**
      * @brief 重新计算结构大小
@@ -635,17 +725,26 @@ public:
     /**
      * @brief 增加引用计数
      */
-    void incrementRefCount() noexcept { ++m_references; }
+    void incrementRefCount() noexcept
+    {
+        ++m_references;
+    }
 
     /**
      * @brief 获取引用计数
      */
-    [[nodiscard]] i32 getRefCount() const noexcept { return m_references; }
+    [[nodiscard]] i32 getRefCount() const noexcept
+    {
+        return m_references;
+    }
 
     /**
      * @brief 获取最大引用计数
      */
-    [[nodiscard]] static constexpr i32 getMaxRefCount() noexcept { return 1; }
+    [[nodiscard]] static constexpr i32 getMaxRefCount() noexcept
+    {
+        return 1;
+    }
 
     /**
      * @brief 移动结构
@@ -675,7 +774,10 @@ public:
      *
      * 使用 MC 标准命名空间格式，如 minecraft:village_plains。
      */
-    [[nodiscard]] const ResourceLocation& id() const noexcept { return m_id; }
+    [[nodiscard]] const ResourceLocation& id() const noexcept
+    {
+        return m_id;
+    }
 
     /**
      * @brief 获取结构的名称字符串（兼容旧接口）
@@ -706,7 +808,10 @@ public:
      *
      * 数据驱动未注入标签时使用。默认返回 nullptr。
      */
-    [[nodiscard]] virtual const biome::BiomeTag* defaultBiomeTag() const { return nullptr; }
+    [[nodiscard]] virtual const biome::BiomeTag* defaultBiomeTag() const
+    {
+        return nullptr;
+    }
 
     /**
      * @brief 注入数据驱动的生物群系标签
@@ -714,7 +819,10 @@ public:
      * 由 StructureTypeRegistry 工厂在从结构定义构造后调用，覆盖子类默认标签。
      * 传入 nullptr 清除注入，回退到 defaultBiomeTag()。
      */
-    void setBiomeTag(const biome::BiomeTag* tag) noexcept { m_biomeTag = tag; }
+    void setBiomeTag(const biome::BiomeTag* tag) noexcept
+    {
+        m_biomeTag = tag;
+    }
 
     /**
      * @brief 检查生物群系是否在此结构的有效生物群系中
@@ -754,7 +862,10 @@ public:
      * 返回 false（默认）：调用方在区块中心（y=0）处校验，与迁移前的行为一致。
      * TODO: 其余 jigsaw 结构（掠夺者前哨站、试炼密室等）也应改为按真实候选点校验。
      */
-    [[nodiscard]] virtual bool validatesBiomeOnCandidatePoint() const { return false; }
+    [[nodiscard]] virtual bool validatesBiomeOnCandidatePoint() const
+    {
+        return false;
+    }
 
     /**
      * @brief 获取结构的地形适配模式
@@ -773,12 +884,18 @@ public:
     /**
      * @brief 子类默认的地形适配模式（硬编码）
      */
-    [[nodiscard]] virtual TerrainAdaptation defaultTerrainAdaptation() const { return TerrainAdaptation::None; }
+    [[nodiscard]] virtual TerrainAdaptation defaultTerrainAdaptation() const
+    {
+        return TerrainAdaptation::None;
+    }
 
     /**
      * @brief 注入数据驱动的地形适配模式
      */
-    void setTerrainAdaptation(TerrainAdaptation adaptation) noexcept { m_terrainAdaptation = adaptation; }
+    void setTerrainAdaptation(TerrainAdaptation adaptation) noexcept
+    {
+        m_terrainAdaptation = adaptation;
+    }
 
     /**
      * @brief 获取结构的装饰阶段
@@ -802,7 +919,10 @@ public:
     /**
      * @brief 子类默认的装饰阶段（硬编码）
      */
-    [[nodiscard]] virtual DecorationStage defaultDecorationStage() const { return DecorationStage::SurfaceStructures; }
+    [[nodiscard]] virtual DecorationStage defaultDecorationStage() const
+    {
+        return DecorationStage::SurfaceStructures;
+    }
 
     /**
      * @brief 注入数据驱动的装饰阶段
@@ -820,7 +940,10 @@ public:
      * 例如海洋纪念碑覆盖守卫者生成。
      * 默认返回 nullptr（无覆盖）。
      */
-    [[nodiscard]] virtual const SpawnOverrides* spawnOverrides() const { return nullptr; }
+    [[nodiscard]] virtual const SpawnOverrides* spawnOverrides() const
+    {
+        return nullptr;
+    }
 
     /**
      * @brief 检查是否可以在指定位置生成结构

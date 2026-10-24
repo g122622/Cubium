@@ -633,7 +633,9 @@ constexpr i32 FIRE_CRACKLE_CHANCE = 20;
 
 AbstractFurnaceEntity::AbstractFurnaceEntity(BlockEntityType type, const BlockPos& pos)
     : LockableBlockEntity(type, pos)
-    , m_inventory([this]() { this->BlockEntity::setChanged(); })
+    , m_inventory([this]() {
+        this->BlockEntity::setChanged();
+    })
 {}
 
 void AbstractFurnaceEntity::tick(IWorld& world)

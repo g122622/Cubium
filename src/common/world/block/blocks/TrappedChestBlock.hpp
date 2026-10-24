@@ -65,7 +65,10 @@ public:
      * @brief 检查是否可以提供红石信号
      * @return 始终返回true
      */
-    [[nodiscard]] bool canProvidePower(const BlockState& state) const noexcept override { return true; }
+    [[nodiscard]] bool canProvidePower(const BlockState& state) const noexcept override
+    {
+        return true;
+    }
 
     /**
      * @brief 获取弱红石信号
@@ -93,7 +96,10 @@ public:
      * @brief 获取方块实体类型
      * @return TrappedChest类型
      */
-    [[nodiscard]] BlockEntityType getBlockEntityType() const override { return BlockEntityType::TrappedChest; }
+    [[nodiscard]] BlockEntityType getBlockEntityType() const override
+    {
+        return BlockEntityType::TrappedChest;
+    }
 };
 
 } // namespace blocks

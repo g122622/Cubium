@@ -112,22 +112,43 @@ public:
         m_packets.push_back(std::move(packet));
         return mc::Result<void>::ok();
     }
+
     [[nodiscard]] mc::Result<void> sendShared(
         std::shared_ptr<const mc::network::pipeline::OutboundPacket> packet) override
     {
         return send(packet->packet());
     }
-    void close() override { m_connected = false; }
-    [[nodiscard]] bool isConnected() const noexcept override { return m_connected; }
+
+    void close() override
+    {
+        m_connected = false;
+    }
+
+    [[nodiscard]] bool isConnected() const noexcept override
+    {
+        return m_connected;
+    }
+
     void disconnect(const std::string& reason) override
     {
         m_disconnectReason = reason;
         m_connected = false;
     }
-    [[nodiscard]] std::string peerAddress() const override { return {}; }
 
-    [[nodiscard]] const std::vector<mc::network::ir::IrPacket>& packets() const noexcept { return m_packets; }
-    [[nodiscard]] const std::string& disconnectReason() const noexcept { return m_disconnectReason; }
+    [[nodiscard]] std::string peerAddress() const override
+    {
+        return {};
+    }
+
+    [[nodiscard]] const std::vector<mc::network::ir::IrPacket>& packets() const noexcept
+    {
+        return m_packets;
+    }
+
+    [[nodiscard]] const std::string& disconnectReason() const noexcept
+    {
+        return m_disconnectReason;
+    }
 
 private:
     bool m_connected = true;
@@ -142,9 +163,16 @@ private:
 // ============================================================================
 class SpawnEggE2ETestServer final : public mc::test::BaseTestServer {
 public:
-    explicit SpawnEggE2ETestServer(server::ServerWorld& world) { setPlayerWorld(&world); }
+    explicit SpawnEggE2ETestServer(server::ServerWorld& world)
+    {
+        setPlayerWorld(&world);
+    }
 
-    [[nodiscard]] server::ServerPlayerEntityManager& playerEntityManager() override { return m_playerEntityManager; }
+    [[nodiscard]] server::ServerPlayerEntityManager& playerEntityManager() override
+    {
+        return m_playerEntityManager;
+    }
+
     [[nodiscard]] const server::ServerPlayerEntityManager& playerEntityManager() const override
     {
         return m_playerEntityManager;
@@ -153,8 +181,15 @@ public:
     // BlockInteractionManager::_getPlayerWorld/_getPlayerEntity 会调用 dimensionManager()
     // 解析玩家所在维度；基类桩抛异常且调用点是 noexcept，会触发 std::terminate。
     // 返回空维度管理器：玩家未注册维度时回退到 m_playerWorld（构造时注入的测试世界）。
-    [[nodiscard]] ServerDimensionManager& dimensionManager() override { return m_dimensionManager; }
-    [[nodiscard]] const ServerDimensionManager& dimensionManager() const override { return m_dimensionManager; }
+    [[nodiscard]] ServerDimensionManager& dimensionManager() override
+    {
+        return m_dimensionManager;
+    }
+
+    [[nodiscard]] const ServerDimensionManager& dimensionManager() const override
+    {
+        return m_dimensionManager;
+    }
 
 private:
     server::ServerPlayerEntityManager m_playerEntityManager;
@@ -247,7 +282,9 @@ protected:
         // ServerWorld::difficulty() 经 m_difficultyCallback 获取（无回调返回 Normal），
         // 注入回调委托到 test server 的难度，使 setDifficulty(Peaceful) 能被 spawnEntity 的
         // 和平难度检查（对齐 Java isAllowedInPeaceful）正确感知
-        m_world->setDifficultyCallback([this]() { return m_server->difficulty(); });
+        m_world->setDifficultyCallback([this]() {
+            return m_server->difficulty();
+        });
 
         // 玩家必须注册到 m_server->playerManager()（而非独立实例）：
         // EntityTracker::notifyEntityTracked 经 server.playerManager().getPlayerIds() 遍历观察者，
@@ -272,8 +309,9 @@ protected:
         // 本测试只关心背包读写语义、不构造完整玩家实体，故注入一个测试持有的
         // PlayerInventory 作为解析结果——仍然是单份数据。
         m_testInventory = std::make_unique<PlayerInventory>(nullptr);
-        m_server->inventoryManager().setInventoryResolver(
-            [this](PlayerId /*playerId*/) -> PlayerInventory* { return m_testInventory.get(); });
+        m_server->inventoryManager().setInventoryResolver([this](PlayerId /*playerId*/) -> PlayerInventory* {
+            return m_testInventory.get();
+        });
 
         // BlockInteractionManager 必须绑定 m_server->playerManager()，使 _validatePlayer/_canInteract
         // 与 EntityTracker 的观察者遍历使用同一份玩家数据
@@ -305,7 +343,10 @@ protected:
         inventory->setItem(0, ItemStack(*item, count));
     }
 
-    [[nodiscard]] ItemStack heldItem() const { return m_server->inventoryManager().getHeldItem(m_playerId); }
+    [[nodiscard]] ItemStack heldItem() const
+    {
+        return m_server->inventoryManager().getHeldItem(m_playerId);
+    }
 
     std::unique_ptr<server::ServerWorld> m_world;
     std::unique_ptr<SpawnEggE2ETestServer> m_server;
@@ -448,7 +489,9 @@ TEST_F(SpawnEggAddEntityE2ETest, UnknownEntityTypeEggSendsNoAddEntity)
 {
     // 构造一个 name 不在 EntityRegistry 中的刷怪蛋：spawnEntity 反查失败返回 false
     auto unknownType = entity::EntityType::Builder(
-        [](mc::IWorld*, mc::ecs::EntityRegistry&) -> std::unique_ptr<mc::Entity> { return nullptr; },
+        [](mc::IWorld*, mc::ecs::EntityRegistry&) -> std::unique_ptr<mc::Entity> {
+            return nullptr;
+        },
         entity::EntityClassification::Creature)
                            .build();
     const_cast<std::string&>(unknownType.name()) = "minecraft:nonexistent_entity";

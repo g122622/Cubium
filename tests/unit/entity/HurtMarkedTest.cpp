@@ -133,7 +133,10 @@ public:
             box.minZ < 1.0f;
     }
 
-    void setSupportEnabled(bool enabled) { m_supportEnabled = enabled; }
+    void setSupportEnabled(bool enabled)
+    {
+        m_supportEnabled = enabled;
+    }
 
 private:
     bool m_supportEnabled = true;

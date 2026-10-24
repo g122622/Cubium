@@ -109,7 +109,10 @@ public:
     /**
      * @brief 获取类型名称
      */
-    [[nodiscard]] const char* typeName() const override { return "DirectionProperty"; }
+    [[nodiscard]] const char* typeName() const override
+    {
+        return "DirectionProperty";
+    }
 
 private:
     DirectionProperty(const std::string& name, const std::vector<Direction>& values)

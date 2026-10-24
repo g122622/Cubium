@@ -96,18 +96,47 @@ public:
 
     // ========== 迭代器 ==========
 
-    iterator begin() noexcept { return m_order.begin(); }
-    const_iterator begin() const noexcept { return m_order.begin(); }
-    const_iterator cbegin() const noexcept { return m_order.cbegin(); }
+    iterator begin() noexcept
+    {
+        return m_order.begin();
+    }
 
-    iterator end() noexcept { return m_order.end(); }
-    const_iterator end() const noexcept { return m_order.end(); }
-    const_iterator cend() const noexcept { return m_order.cend(); }
+    const_iterator begin() const noexcept
+    {
+        return m_order.begin();
+    }
+
+    const_iterator cbegin() const noexcept
+    {
+        return m_order.cbegin();
+    }
+
+    iterator end() noexcept
+    {
+        return m_order.end();
+    }
+
+    const_iterator end() const noexcept
+    {
+        return m_order.end();
+    }
+
+    const_iterator cend() const noexcept
+    {
+        return m_order.cend();
+    }
 
     // ========== 容量 ==========
 
-    [[nodiscard]] bool empty() const noexcept { return m_order.empty(); }
-    [[nodiscard]] size_type size() const noexcept { return m_order.size(); }
+    [[nodiscard]] bool empty() const noexcept
+    {
+        return m_order.empty();
+    }
+
+    [[nodiscard]] size_type size() const noexcept
+    {
+        return m_order.size();
+    }
 
     // ========== 修改器 ==========
 
@@ -202,7 +231,10 @@ public:
     /**
      * @brief 检查元素是否存在
      */
-    [[nodiscard]] bool contains(const T& value) const { return m_lookup.find(value) != m_lookup.end(); }
+    [[nodiscard]] bool contains(const T& value) const
+    {
+        return m_lookup.find(value) != m_lookup.end();
+    }
 
     /**
      * @brief 返回匹配元素的迭代器，未找到则返回 end()
@@ -231,7 +263,10 @@ public:
     /**
      * @brief 返回匹配元素的数量（0 或 1）
      */
-    [[nodiscard]] size_type count(const T& value) const { return m_lookup.count(value); }
+    [[nodiscard]] size_type count(const T& value) const
+    {
+        return m_lookup.count(value);
+    }
 
 private:
     std::list<T> m_order;                     ///< 保持插入顺序的双向链表

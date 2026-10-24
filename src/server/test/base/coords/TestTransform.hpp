@@ -33,19 +33,42 @@ namespace mc::test {
 class TestTransform {
 public:
     TestTransform() noexcept = default;
+
     TestTransform(BlockPos origin, BlockPos size, Rotation rotation) noexcept
         : m_origin(origin)
         , m_size(size)
         , m_rotation(rotation)
     {}
 
-    [[nodiscard]] const BlockPos& origin() const noexcept { return m_origin; }
-    [[nodiscard]] const BlockPos& size() const noexcept { return m_size; }
-    [[nodiscard]] Rotation rotation() const noexcept { return m_rotation; }
+    [[nodiscard]] const BlockPos& origin() const noexcept
+    {
+        return m_origin;
+    }
 
-    void setOrigin(BlockPos origin) noexcept { m_origin = origin; }
-    void setSize(BlockPos size) noexcept { m_size = size; }
-    void setRotation(Rotation rotation) noexcept { m_rotation = rotation; }
+    [[nodiscard]] const BlockPos& size() const noexcept
+    {
+        return m_size;
+    }
+
+    [[nodiscard]] Rotation rotation() const noexcept
+    {
+        return m_rotation;
+    }
+
+    void setOrigin(BlockPos origin) noexcept
+    {
+        m_origin = origin;
+    }
+
+    void setSize(BlockPos size) noexcept
+    {
+        m_size = size;
+    }
+
+    void setRotation(Rotation rotation) noexcept
+    {
+        m_rotation = rotation;
+    }
 
     /**
      * @brief 相对方块坐标 → 世界绝对方块坐标。

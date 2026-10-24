@@ -61,10 +61,12 @@ public:
     {
         return y >= mc::world::MIN_BUILD_HEIGHT && y < mc::world::MAX_BUILD_HEIGHT;
     }
+
     [[nodiscard]] world::tick::TickManager& tickManager() override
     {
         throw std::runtime_error("LootSerializersTestWorld::tickManager not implemented");
     }
+
     [[nodiscard]] const world::tick::TickManager& tickManager() const override
     {
         throw std::runtime_error("LootSerializersTestWorld::tickManager not implemented");

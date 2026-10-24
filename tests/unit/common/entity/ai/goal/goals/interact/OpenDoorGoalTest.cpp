@@ -56,7 +56,10 @@ class OpenDoorTestWorld final : public mc::test::BaseTestWorld {
 public:
     OpenDoorTestWorld() = default;
 
-    void setBlock(i32 x, i32 y, i32 z, const BlockState* state) { m_blocks[BlockPos(x, y, z)] = state; }
+    void setBlock(i32 x, i32 y, i32 z, const BlockState* state)
+    {
+        m_blocks[BlockPos(x, y, z)] = state;
+    }
 
     [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override
     {
@@ -91,12 +94,25 @@ public:
         (void)progress;
     }
 
-    [[nodiscard]] world::gamerule::GameRules& getGameRules() override { return m_gameRules; }
-    [[nodiscard]] const world::gamerule::GameRules& getGameRules() const override { return m_gameRules; }
+    [[nodiscard]] world::gamerule::GameRules& getGameRules() override
+    {
+        return m_gameRules;
+    }
 
-    [[nodiscard]] Difficulty difficulty() const override { return m_difficulty; }
+    [[nodiscard]] const world::gamerule::GameRules& getGameRules() const override
+    {
+        return m_gameRules;
+    }
 
-    void setDifficulty(Difficulty difficulty) { m_difficulty = difficulty; }
+    [[nodiscard]] Difficulty difficulty() const override
+    {
+        return m_difficulty;
+    }
+
+    void setDifficulty(Difficulty difficulty)
+    {
+        m_difficulty = difficulty;
+    }
 
     [[nodiscard]] const BlockState* getBlockStateAt(const BlockPos& pos) const
     {
@@ -126,7 +142,10 @@ public:
         setPosition(static_cast<f32>(x), static_cast<f32>(y), static_cast<f32>(z));
     }
 
-    void setWorldForTest(IWorld* world) { setWorld(world); }
+    void setWorldForTest(IWorld* world)
+    {
+        setWorld(world);
+    }
 
     void setCollidedHorizontallyForTest(bool value)
     {
@@ -154,7 +173,10 @@ public:
 
 class OpenDoorGoalTest : public ::testing::Test {
 protected:
-    void SetUp() override { VanillaBlocks::initialize(); }
+    void SetUp() override
+    {
+        VanillaBlocks::initialize();
+    }
 };
 
 TEST_F(OpenDoorGoalTest, TypeName)
@@ -375,7 +397,10 @@ TEST_F(OpenDoorGoalTest, NoCloseDoorModeNeverContinue)
 
 class RaiderOpenDoorGoalTest : public ::testing::Test {
 protected:
-    void SetUp() override { VanillaBlocks::initialize(); }
+    void SetUp() override
+    {
+        VanillaBlocks::initialize();
+    }
 };
 
 TEST_F(RaiderOpenDoorGoalTest, TypeName)

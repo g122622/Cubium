@@ -149,9 +149,20 @@ public:
 
     // ========== 玩家特有属性 ==========
 
-    [[nodiscard]] const std::string& username() const { return m_username; }
-    [[nodiscard]] PlayerId playerId() const { return m_playerId; }
-    void setPlayerId(PlayerId id) { m_playerId = id; }
+    [[nodiscard]] const std::string& username() const
+    {
+        return m_username;
+    }
+
+    [[nodiscard]] PlayerId playerId() const
+    {
+        return m_playerId;
+    }
+
+    void setPlayerId(PlayerId id)
+    {
+        m_playerId = id;
+    }
 
     /**
      * @brief 玩家幸运值（对齐 vanilla Player.getLuck()）
@@ -164,10 +175,20 @@ public:
     // 对齐 vanilla TamableAnimal.getOwnerReference().resolve()）。
     // 由 Entity::uuid()（string）解析得到；uuid() 在 createPlayerForConnection 回填为
     // 离线 profile UUID（util::generateOfflineUuid），故此处即玩家稳定身份标识。
-    [[nodiscard]] Uuid uuidBytes() const { return util::uuidFromString(uuid()); }
+    [[nodiscard]] Uuid uuidBytes() const
+    {
+        return util::uuidFromString(uuid());
+    }
 
-    [[nodiscard]] ChatVisibility chatVisibility() const { return m_chatVisibility; }
-    void setChatVisibility(ChatVisibility visibility) { m_chatVisibility = visibility; }
+    [[nodiscard]] ChatVisibility chatVisibility() const
+    {
+        return m_chatVisibility;
+    }
+
+    void setChatVisibility(ChatVisibility visibility)
+    {
+        m_chatVisibility = visibility;
+    }
 
     /** @brief 更新惯用手并同步玩家实体元数据。 */
     void setPrimaryHand(HandSide hand)
@@ -176,7 +197,11 @@ public:
         m_dataManager.set(DATA_PLAYER_MAIN_HAND_PARAM, entity::HumanoidArmValue{static_cast<i32>(hand)});
     }
 
-    [[nodiscard]] u8 playerModelParts() const { return m_playerModelParts; }
+    [[nodiscard]] u8 playerModelParts() const
+    {
+        return m_playerModelParts;
+    }
+
     void setPlayerModelParts(u8 modelPartsMask)
     {
         m_playerModelParts = modelPartsMask;
@@ -201,20 +226,30 @@ public:
     }
 
     // 游戏模式
-    [[nodiscard]] GameMode gameMode() const { return m_gameMode; }
+    [[nodiscard]] GameMode gameMode() const
+    {
+        return m_gameMode;
+    }
+
     void setGameMode(GameMode mode);
 
     /**
      * @brief 检查是否是创造模式
      */
-    [[nodiscard]] bool isCreative() const { return entity::GameModeUtils::isCreative(m_gameMode); }
+    [[nodiscard]] bool isCreative() const
+    {
+        return entity::GameModeUtils::isCreative(m_gameMode);
+    }
 
     /**
      * @brief 检查是否是观察者模式
      *
      * 重写 Entity::isSpectator()，返回实际的旁观者模式状态。
      */
-    [[nodiscard]] bool isSpectator() const override { return entity::GameModeUtils::isSpectator(m_gameMode); }
+    [[nodiscard]] bool isSpectator() const override
+    {
+        return entity::GameModeUtils::isSpectator(m_gameMode);
+    }
 
     /**
      * @brief 玩家是否参与实体间碰撞（重写 LivingEntity）
@@ -223,7 +258,10 @@ public:
      * （LivingEntity.java:3221-3223）：isAlive() && !isSpectator() && !onClimbable()。
      * 旁观者不与世界碰撞，故不能挡住方块放置。
      */
-    [[nodiscard]] bool isPushable() const override { return LivingEntity::isPushable() && !isSpectator(); }
+    [[nodiscard]] bool isPushable() const override
+    {
+        return LivingEntity::isPushable() && !isSpectator();
+    }
 
     /**
      * @brief 弹射物是否可命中此玩家
@@ -246,13 +284,19 @@ public:
      *
      * @return 旁观目标的实体ID，或 std::nullopt 表示正常视角
      */
-    [[nodiscard]] std::optional<EntityInstanceId> getCameraEntityId() const { return m_cameraEntityId; }
+    [[nodiscard]] std::optional<EntityInstanceId> getCameraEntityId() const
+    {
+        return m_cameraEntityId;
+    }
 
     /**
      * @brief 检查当前是否正在旁观某个实体
      * @return 如果有旁观目标返回 true
      */
-    [[nodiscard]] bool isSpectating() const { return m_cameraEntityId.has_value(); }
+    [[nodiscard]] bool isSpectating() const
+    {
+        return m_cameraEntityId.has_value();
+    }
 
     /**
      * @brief 设置旁观目标实体ID
@@ -288,18 +332,31 @@ public:
      *
      * 用于追踪玩家在深暗之域中被幽匿尖啸体警告的等级和冷却。
      */
-    [[nodiscard]] entity::WardenWarningEffect& wardenWarningEffect() { return m_wardenWarningEffect; }
-    [[nodiscard]] const entity::WardenWarningEffect& wardenWarningEffect() const { return m_wardenWarningEffect; }
+    [[nodiscard]] entity::WardenWarningEffect& wardenWarningEffect()
+    {
+        return m_wardenWarningEffect;
+    }
+
+    [[nodiscard]] const entity::WardenWarningEffect& wardenWarningEffect() const
+    {
+        return m_wardenWarningEffect;
+    }
 
     /**
      * @brief 检查是否是生存模式
      */
-    [[nodiscard]] bool isSurvival() const { return m_gameMode == GameMode::Survival; }
+    [[nodiscard]] bool isSurvival() const
+    {
+        return m_gameMode == GameMode::Survival;
+    }
 
     /**
      * @brief 检查是否是冒险模式
      */
-    [[nodiscard]] bool isAdventure() const { return m_gameMode == GameMode::Adventure; }
+    [[nodiscard]] bool isAdventure() const
+    {
+        return m_gameMode == GameMode::Adventure;
+    }
 
     /**
      * @brief 检查玩家是否可以在指定位置与方块交互
@@ -332,20 +389,29 @@ public:
      *
      * @return 权限等级 (0-4)
      */
-    [[nodiscard]] i32 permissionLevel() const { return m_permissionLevel; }
+    [[nodiscard]] i32 permissionLevel() const
+    {
+        return m_permissionLevel;
+    }
 
     /**
      * @brief 设置玩家权限等级
      * @param level 权限等级 (0-4)
      */
-    void setPermissionLevel(i32 level) { m_permissionLevel = level; }
+    void setPermissionLevel(i32 level)
+    {
+        m_permissionLevel = level;
+    }
 
     /**
      * @brief 检查玩家是否拥有指定权限等级
      * @param level 所需的最低权限等级
      * @return 如果玩家权限等级 >= level 则返回 true
      */
-    [[nodiscard]] bool hasPermission(i32 level) const { return m_permissionLevel >= level; }
+    [[nodiscard]] bool hasPermission(i32 level) const
+    {
+        return m_permissionLevel >= level;
+    }
 
     /**
      * @brief 检查玩家是否可以使用游戏管理员方块
@@ -357,7 +423,10 @@ public:
      *
      * @return 如果玩家可以使用游戏管理员方块则返回 true
      */
-    [[nodiscard]] bool canUseGameMasterBlocks() const { return m_abilities.creativeMode && m_permissionLevel >= 2; }
+    [[nodiscard]] bool canUseGameMasterBlocks() const
+    {
+        return m_abilities.creativeMode && m_permissionLevel >= 2;
+    }
 
     /**
      * @brief 检查玩家是否有建造权限
@@ -368,7 +437,10 @@ public:
      *
      * @return 如果玩家有建造权限返回 true
      */
-    [[nodiscard]] bool mayBuild() const { return m_abilities.allowEdit; }
+    [[nodiscard]] bool mayBuild() const
+    {
+        return m_abilities.allowEdit;
+    }
 
     /**
      * @brief 检查玩家是否可以在指定位置使用物品
@@ -400,10 +472,20 @@ public:
     [[nodiscard]] bool blockActionRestricted(IWorld& world, const BlockPos& pos) const;
 
     // 维度
-    [[nodiscard]] DimensionId dimension() const { return m_dimension; }
-    void setDimension(DimensionId dim) { m_dimension = dim; }
+    [[nodiscard]] DimensionId dimension() const
+    {
+        return m_dimension;
+    }
 
-    [[nodiscard]] sound::SoundCategory getSoundCategory() const override { return sound::SoundCategory::Players; }
+    void setDimension(DimensionId dim)
+    {
+        m_dimension = dim;
+    }
+
+    [[nodiscard]] sound::SoundCategory getSoundCategory() const override
+    {
+        return sound::SoundCategory::Players;
+    }
 
     // ========== 传送门 ==========
 
@@ -415,7 +497,10 @@ public:
      *
      * @return 创造模式返回 1，其他返回 80
      */
-    [[nodiscard]] i32 getMaxInPortalTime() const override { return m_abilities.invulnerable ? 1 : 80; }
+    [[nodiscard]] i32 getMaxInPortalTime() const override
+    {
+        return m_abilities.invulnerable ? 1 : 80;
+    }
 
     /**
      * @brief 获取传送冷却时间
@@ -424,7 +509,10 @@ public:
      *
      * @return 10 tick
      */
-    [[nodiscard]] i32 getPortalCooldown() const override { return 10; }
+    [[nodiscard]] i32 getPortalCooldown() const override
+    {
+        return 10;
+    }
 
     // ========== 火焰系统 ==========
 
@@ -437,7 +525,10 @@ public:
      *
      * @return 20 tick
      */
-    [[nodiscard]] i32 getFireImmuneTicks() const override { return 20; }
+    [[nodiscard]] i32 getFireImmuneTicks() const override
+    {
+        return 20;
+    }
 
     /**
      * @brief 强制设置火焰计时器（创造模式限制）
@@ -456,14 +547,25 @@ public:
      * @brief 设置位置并重置步距采样
      */
     void setPosition(f32 x, f32 y, f32 z);
-    void setPosition(const Vector3& pos) { setPosition(pos.x, pos.y, pos.z); }
+
+    void setPosition(const Vector3& pos)
+    {
+        setPosition(pos.x, pos.y, pos.z);
+    }
 
     // 生命值和饥饿
     void setHealth(f32 health);
     void heal(f32 amount);
 
-    [[nodiscard]] const FoodStats& foodStats() const { return m_foodStats; }
-    FoodStats& foodStats() { return m_foodStats; }
+    [[nodiscard]] const FoodStats& foodStats() const
+    {
+        return m_foodStats;
+    }
+
+    FoodStats& foodStats()
+    {
+        return m_foodStats;
+    }
 
     /**
      * @brief 检查玩家是否可以进食
@@ -514,13 +616,32 @@ public:
     {
         return *m_experienceManager;
     }
-    entity::experience::ExperienceManager& experienceManager() { return *m_experienceManager; }
+
+    entity::experience::ExperienceManager& experienceManager()
+    {
+        return *m_experienceManager;
+    }
 
     // 经验相关便捷方法（委托给 ExperienceManager）
-    [[nodiscard]] i32 experienceLevel() const { return m_experienceManager->getLevel(); }
-    [[nodiscard]] f32 experienceProgress() const { return m_experienceManager->getProgress(); }
-    [[nodiscard]] i32 totalExperience() const { return m_experienceManager->getTotalExperience(); }
-    [[nodiscard]] i32 xpSeed() const { return m_experienceManager->getXpSeed(); }
+    [[nodiscard]] i32 experienceLevel() const
+    {
+        return m_experienceManager->getLevel();
+    }
+
+    [[nodiscard]] f32 experienceProgress() const
+    {
+        return m_experienceManager->getProgress();
+    }
+
+    [[nodiscard]] i32 totalExperience() const
+    {
+        return m_experienceManager->getTotalExperience();
+    }
+
+    [[nodiscard]] i32 xpSeed() const
+    {
+        return m_experienceManager->getXpSeed();
+    }
 
     /**
      * @brief 添加经验值
@@ -589,7 +710,10 @@ public:
      *
      * @return 如果玩家能接收消息返回 true
      */
-    [[nodiscard]] virtual bool canReceiveMessages() const { return false; }
+    [[nodiscard]] virtual bool canReceiveMessages() const
+    {
+        return false;
+    }
 
     // ========== 统计系统 ==========
 
@@ -663,7 +787,10 @@ public:
      *
      * 基类为空实现（仅服务端玩家处理进度）。
      */
-    virtual void triggerLootTableGenerated(const ResourceLocation& lootTableId) { MC_UNUSED(lootTableId); }
+    virtual void triggerLootTableGenerated(const ResourceLocation& lootTableId)
+    {
+        MC_UNUSED(lootTableId);
+    }
 
     /**
      * @brief 消耗不死图腾时触发进度（对齐 vanilla CriteriaTriggers.USED_TOTEM）
@@ -672,7 +799,10 @@ public:
      *
      * 基类为空实现（仅服务端玩家处理进度）。
      */
-    virtual void triggerUsedTotem(const ItemStack& totem) { MC_UNUSED(totem); }
+    virtual void triggerUsedTotem(const ItemStack& totem)
+    {
+        MC_UNUSED(totem);
+    }
 
     /**
      * @brief 玩家对实体造成伤害时触发进度（对齐 vanilla CriteriaTriggers.PLAYER_HURT_ENTITY）
@@ -870,8 +1000,15 @@ public:
      *
      * @return 配方书指针，如果不是 ServerPlayer 则返回 nullptr
      */
-    [[nodiscard]] virtual crafting::RecipeBook* getRecipeBook() { return nullptr; }
-    [[nodiscard]] virtual const crafting::RecipeBook* getRecipeBook() const { return nullptr; }
+    [[nodiscard]] virtual crafting::RecipeBook* getRecipeBook()
+    {
+        return nullptr;
+    }
+
+    [[nodiscard]] virtual const crafting::RecipeBook* getRecipeBook() const
+    {
+        return nullptr;
+    }
 
     // ========== 类型转换 ==========
 
@@ -883,8 +1020,15 @@ public:
      *
      * @return ServerPlayer 指针，如果不是 ServerPlayer 返回 nullptr
      */
-    [[nodiscard]] virtual class ServerPlayer* asServerPlayer() { return nullptr; }
-    [[nodiscard]] virtual const ServerPlayer* asServerPlayer() const { return nullptr; }
+    [[nodiscard]] virtual class ServerPlayer* asServerPlayer()
+    {
+        return nullptr;
+    }
+
+    [[nodiscard]] virtual const ServerPlayer* asServerPlayer() const
+    {
+        return nullptr;
+    }
 
     // ========== 客户端已知运动量 ==========
 
@@ -897,7 +1041,10 @@ public:
      *
      * 消费方：横扫攻击的"几乎静止"判定（见 isSweepStationary）。
      */
-    [[nodiscard]] virtual Vector3 getKnownMovement() const { return velocity(); }
+    [[nodiscard]] virtual Vector3 getKnownMovement() const
+    {
+        return velocity();
+    }
 
     /**
      * @brief 向玩家客户端发送速度同步包
@@ -909,7 +1056,10 @@ public:
      *
      * @return true 如果成功发送了速度包，false 如果未发送（非 ServerPlayer）
      */
-    [[nodiscard]] virtual bool sendVelocityPacket() { return false; }
+    [[nodiscard]] virtual bool sendVelocityPacket()
+    {
+        return false;
+    }
 
     /**
      * @brief 获取玩家所在的记分板
@@ -919,8 +1069,15 @@ public:
      *
      * @return 记分板指针，如果不可用返回 nullptr
      */
-    [[nodiscard]] virtual scoreboard::Scoreboard* getScoreboard() { return nullptr; }
-    [[nodiscard]] virtual const scoreboard::Scoreboard* getScoreboard() const { return nullptr; }
+    [[nodiscard]] virtual scoreboard::Scoreboard* getScoreboard()
+    {
+        return nullptr;
+    }
+
+    [[nodiscard]] virtual const scoreboard::Scoreboard* getScoreboard() const
+    {
+        return nullptr;
+    }
 
     /**
      * @brief 掉落经验（死亡时调用）
@@ -1017,26 +1174,49 @@ public:
      * @brief 获取 XP 冷却时间
      * @return 剩余冷却 ticks
      */
-    [[nodiscard]] i32 xpCooldown() const { return m_xpCooldown; }
+    [[nodiscard]] i32 xpCooldown() const
+    {
+        return m_xpCooldown;
+    }
 
     /**
      * @brief 设置 XP 冷却时间
      * @param cooldown 冷却 ticks
      */
-    void setXpCooldown(i32 cooldown) { m_xpCooldown = cooldown; }
+    void setXpCooldown(i32 cooldown)
+    {
+        m_xpCooldown = cooldown;
+    }
 
     /**
      * @brief 检查是否可以拾取 XP
      */
-    [[nodiscard]] bool canPickupXp() const { return m_xpCooldown <= 0; }
+    [[nodiscard]] bool canPickupXp() const
+    {
+        return m_xpCooldown <= 0;
+    }
 
     // 能力
-    [[nodiscard]] const PlayerAbilities& abilities() const { return m_abilities; }
-    PlayerAbilities& abilities() { return m_abilities; }
+    [[nodiscard]] const PlayerAbilities& abilities() const
+    {
+        return m_abilities;
+    }
+
+    PlayerAbilities& abilities()
+    {
+        return m_abilities;
+    }
 
     // 状态
-    [[nodiscard]] bool isOnGround() const { return m_builtIn.physicsState->m_onGround; }
-    [[nodiscard]] bool isSprinting() const { return m_isSprinting; }
+    [[nodiscard]] bool isOnGround() const
+    {
+        return m_builtIn.physicsState->m_onGround;
+    }
+
+    [[nodiscard]] bool isSprinting() const
+    {
+        return m_isSprinting;
+    }
 
     /**
      * @brief 横扫攻击的"几乎静止"判定
@@ -1055,9 +1235,20 @@ public:
      * 否则因空间不足被动蹲伏的玩家会被当作按住潜行键处理（禁用自动跳跃、
      * isSteppingCarefully() 使岩浆块免伤、潜行边缘保护等）。
      */
-    [[nodiscard]] bool isSneaking() const override { return m_isSneaking; }
-    [[nodiscard]] bool isSwimming() const { return m_isSwimming; }
-    [[nodiscard]] bool isSleeping() const override { return m_isSleeping; }
+    [[nodiscard]] bool isSneaking() const override
+    {
+        return m_isSneaking;
+    }
+
+    [[nodiscard]] bool isSwimming() const
+    {
+        return m_isSwimming;
+    }
+
+    [[nodiscard]] bool isSleeping() const override
+    {
+        return m_isSleeping;
+    }
 
     /**
      * @brief 获取玩家是否正在输入潜行
@@ -1065,19 +1256,28 @@ public:
      * 与 isSneaking() 不同，此方法返回的是玩家是否按住了潜行键，
      * 而非实际的潜行状态（旁观者模式下输入潜行用于退出旁观跟踪）。
      */
-    [[nodiscard]] bool isInputSneaking() const { return m_inputSneaking; }
+    [[nodiscard]] bool isInputSneaking() const
+    {
+        return m_inputSneaking;
+    }
 
     /**
      * @brief 获取玩家前进移动输入
      * @return 前进移动值 (-1到1，负为后退)
      */
-    [[nodiscard]] f32 moveForward() const { return m_inputForward; }
+    [[nodiscard]] f32 moveForward() const
+    {
+        return m_inputForward;
+    }
 
     /**
      * @brief 获取玩家横向移动输入
      * @return 横向移动值 (-1到1，负为左)
      */
-    [[nodiscard]] f32 moveStrafing() const { return m_inputStrafe; }
+    [[nodiscard]] f32 moveStrafing() const
+    {
+        return m_inputStrafe;
+    }
 
     void setSprinting(bool sprinting);
     void setSneaking(bool sneaking);
@@ -1093,8 +1293,15 @@ public:
      * bit0=forward bit1=backward bit2=left bit3=right
      * bit4=jump bit5=shift bit6=sprint。
      */
-    void setLastClientInput(u8 input) { m_lastClientInput = input; }
-    [[nodiscard]] u8 lastClientInput() const { return m_lastClientInput; }
+    void setLastClientInput(u8 input)
+    {
+        m_lastClientInput = input;
+    }
+
+    [[nodiscard]] u8 lastClientInput() const
+    {
+        return m_lastClientInput;
+    }
 
     // ========== 睡眠系统 ==========
 
@@ -1102,18 +1309,27 @@ public:
      * @brief 获取当前睡眠位置
      * @return 床位位置，如果不在睡眠则返回空
      */
-    [[nodiscard]] std::optional<BlockPos> getSleepingPosition() const { return m_sleepingPosition; }
+    [[nodiscard]] std::optional<BlockPos> getSleepingPosition() const
+    {
+        return m_sleepingPosition;
+    }
 
     /**
      * @brief 设置睡眠位置
      * @param pos 床位位置
      */
-    void setSleepingPosition(const BlockPos& pos) { m_sleepingPosition = pos; }
+    void setSleepingPosition(const BlockPos& pos)
+    {
+        m_sleepingPosition = pos;
+    }
 
     /**
      * @brief 清除睡眠位置
      */
-    void clearSleepingPosition() { m_sleepingPosition = std::nullopt; }
+    void clearSleepingPosition()
+    {
+        m_sleepingPosition = std::nullopt;
+    }
 
     /**
      * @brief 检查玩家是否完全入睡
@@ -1123,19 +1339,28 @@ public:
      *
      * @return true 如果睡眠计时器 >= 100
      */
-    [[nodiscard]] bool isPlayerFullyAsleep() const { return m_isSleeping && m_sleepTimer >= 100; }
+    [[nodiscard]] bool isPlayerFullyAsleep() const
+    {
+        return m_isSleeping && m_sleepTimer >= 100;
+    }
 
     /**
      * @brief 获取睡眠计时器
      * @return 睡眠计时器值 (0-100 完全入睡后保持)
      */
-    [[nodiscard]] i32 getSleepTimer() const { return m_sleepTimer; }
+    [[nodiscard]] i32 getSleepTimer() const
+    {
+        return m_sleepTimer;
+    }
 
     /**
      * @brief 设置睡眠计时器
      * @param value 计时器值
      */
-    void setSleepTimer(i32 value) { m_sleepTimer = value; }
+    void setSleepTimer(i32 value)
+    {
+        m_sleepTimer = value;
+    }
 
     /**
      * @brief 开始睡眠（基础状态管理）
@@ -1179,7 +1404,10 @@ public:
      * @brief 获取个人重生点配置
      * @return 重生点配置（维度、方块位置、朝向、是否强制），未设置时返回空
      */
-    [[nodiscard]] std::optional<RespawnConfig> getRespawnConfig() const { return m_respawnConfig; }
+    [[nodiscard]] std::optional<RespawnConfig> getRespawnConfig() const
+    {
+        return m_respawnConfig;
+    }
 
     /**
      * @brief 设置个人重生点配置
@@ -1213,18 +1441,27 @@ public:
      *
      * @return 进入下界时的位置，如果未记录则返回空
      */
-    [[nodiscard]] std::optional<Vector3d> getEnteredNetherPosition() const { return m_enteredNetherPosition; }
+    [[nodiscard]] std::optional<Vector3d> getEnteredNetherPosition() const
+    {
+        return m_enteredNetherPosition;
+    }
 
     /**
      * @brief 设置进入下界时的位置
      * @param pos 位置
      */
-    void setEnteredNetherPosition(const Vector3d& pos) { m_enteredNetherPosition = pos; }
+    void setEnteredNetherPosition(const Vector3d& pos)
+    {
+        m_enteredNetherPosition = pos;
+    }
 
     /**
      * @brief 清除进入下界时的位置
      */
-    void clearEnteredNetherPosition() { m_enteredNetherPosition = std::nullopt; }
+    void clearEnteredNetherPosition()
+    {
+        m_enteredNetherPosition = std::nullopt;
+    }
 
     // ========== 死亡位置追踪 ==========
 
@@ -1232,13 +1469,19 @@ public:
      * @brief 获取上次死亡位置
      * @return 死亡位置（维度+方块位置），如果未记录则返回空
      */
-    [[nodiscard]] std::optional<GlobalPos> getLastDeathLocation() const { return m_lastDeathLocation; }
+    [[nodiscard]] std::optional<GlobalPos> getLastDeathLocation() const
+    {
+        return m_lastDeathLocation;
+    }
 
     /**
      * @brief 设置上次死亡位置
      * @param location 死亡位置（维度+方块位置），传入 nullopt 清除
      */
-    void setLastDeathLocation(std::optional<GlobalPos> location) { m_lastDeathLocation = std::move(location); }
+    void setLastDeathLocation(std::optional<GlobalPos> location)
+    {
+        m_lastDeathLocation = std::move(location);
+    }
 
     /**
      * @brief 切换飞行状态
@@ -1262,14 +1505,24 @@ public:
     }
 
     /// 当前是否处于飞行状态（创造/旁观玩家双击空格后的飞行）
-    [[nodiscard]] bool isFlying() const { return m_abilities.flying; }
+    [[nodiscard]] bool isFlying() const
+    {
+        return m_abilities.flying;
+    }
 
     /// 是否拥有飞行能力（创造/旁观模式）
-    [[nodiscard]] bool canFly() const { return m_abilities.canFly; }
+    [[nodiscard]] bool canFly() const
+    {
+        return m_abilities.canFly;
+    }
 
     // ========== 重写尺寸方法 ==========
 
-    [[nodiscard]] f32 width() const override { return PLAYER_WIDTH; }
+    [[nodiscard]] f32 width() const override
+    {
+        return PLAYER_WIDTH;
+    }
+
     /**
      * @brief 获取指定姿态下的玩家尺寸
      * @param pose 目标姿态
@@ -1278,7 +1531,11 @@ public:
     [[nodiscard]] entity::EntitySize getDimensions(EntityPose pose) const override;
     [[nodiscard]] f32 height() const override;
     [[nodiscard]] f32 eyeHeight() const override;
-    [[nodiscard]] f32 stepHeight() const override { return physics::STEP_HEIGHT; }
+
+    [[nodiscard]] f32 stepHeight() const override
+    {
+        return physics::STEP_HEIGHT;
+    }
 
     /**
      * @brief 获取乘客Y偏移
@@ -1287,7 +1544,10 @@ public:
      * 当玩家作为乘客时，相对于载具骑乘点的 Y 偏移。
      * 这个负值使玩家稍微下沉到载具上，使骑乘动画看起来更自然。
      */
-    [[nodiscard]] f64 getYOffset() const override { return -0.35; }
+    [[nodiscard]] f64 getYOffset() const override
+    {
+        return -0.35;
+    }
 
     /**
      * @brief 检查是否是本地玩家
@@ -1298,7 +1558,10 @@ public:
      *
      * 用于 canPassengerSteer() 判断控制权。
      */
-    [[nodiscard]] virtual bool isLocalPlayer() const { return false; }
+    [[nodiscard]] virtual bool isLocalPlayer() const
+    {
+        return false;
+    }
 
     // ========== 水中物理和游泳 ==========
 
@@ -1371,8 +1634,15 @@ public:
      * @brief 获取游泳动画进度
      * @return 0.0-1.0 之间的插值
      */
-    [[nodiscard]] f32 swimAnimation() const { return m_swimAnimation; }
-    [[nodiscard]] f32 prevSwimAnimation() const { return m_prevSwimAnimation; }
+    [[nodiscard]] f32 swimAnimation() const
+    {
+        return m_swimAnimation;
+    }
+
+    [[nodiscard]] f32 prevSwimAnimation() const
+    {
+        return m_prevSwimAnimation;
+    }
 
     /**
      * @brief 处理水中跳跃（向上游泳）
@@ -1425,27 +1695,42 @@ public:
     /**
      * @brief 检查是否应该播放脚步声
      */
-    [[nodiscard]] bool shouldPlayStepSound() const { return m_shouldPlayStepSound; }
+    [[nodiscard]] bool shouldPlayStepSound() const
+    {
+        return m_shouldPlayStepSound;
+    }
 
     /**
      * @brief 检查是否应该播放游泳声
      */
-    [[nodiscard]] bool shouldPlaySwimSound() const { return m_shouldPlaySwimSound; }
+    [[nodiscard]] bool shouldPlaySwimSound() const
+    {
+        return m_shouldPlaySwimSound;
+    }
 
     /**
      * @brief 获取游泳声音量
      */
-    [[nodiscard]] f32 swimSoundVolume() const { return m_swimSoundVolume; }
+    [[nodiscard]] f32 swimSoundVolume() const
+    {
+        return m_swimSoundVolume;
+    }
 
     /**
      * @brief 获取上一tick是否在水中（用于检测入水/出水）
      */
-    [[nodiscard]] bool wasInWater() const { return m_wasInWater; }
+    [[nodiscard]] bool wasInWater() const
+    {
+        return m_wasInWater;
+    }
 
     /**
      * @brief 获取脚步声位置
      */
-    [[nodiscard]] BlockPos stepSoundPos() const { return m_stepSoundPos; }
+    [[nodiscard]] BlockPos stepSoundPos() const
+    {
+        return m_stepSoundPos;
+    }
 
     // ========== 受伤/死亡 ==========
 
@@ -1584,7 +1869,10 @@ public:
      * @brief 检查是否忽略当前冲量造成的坠落伤害
      * @return 如果忽略则返回 true
      */
-    [[nodiscard]] bool isIgnoringFallDamageFromCurrentImpulse() const { return m_ignoreFallDamageFromCurrentImpulse; }
+    [[nodiscard]] bool isIgnoringFallDamageFromCurrentImpulse() const
+    {
+        return m_ignoreFallDamageFromCurrentImpulse;
+    }
 
     /**
      * @brief 应用冲量后宽限期
@@ -1600,13 +1888,19 @@ public:
      * @brief 检查是否处于冲量后宽限期
      * @return 如果宽限期计时器 > 0 则返回 true
      */
-    [[nodiscard]] bool isInPostImpulseGraceTime() const { return m_currentImpulseContextResetGraceTime > 0; }
+    [[nodiscard]] bool isInPostImpulseGraceTime() const
+    {
+        return m_currentImpulseContextResetGraceTime > 0;
+    }
 
     /**
      * @brief 获取冲量上下文重置宽限期剩余 tick 数
      * @return 剩余宽限期 tick 数，0 表示无宽限期
      */
-    [[nodiscard]] i32 currentImpulseContextResetGraceTime() const { return m_currentImpulseContextResetGraceTime; }
+    [[nodiscard]] i32 currentImpulseContextResetGraceTime() const
+    {
+        return m_currentImpulseContextResetGraceTime;
+    }
 
     /**
      * @brief 尝试重置冲量上下文
@@ -1626,25 +1920,37 @@ public:
      * @brief 获取当前冲量冲击位置
      * @return 冲击位置，如果没有活跃冲量则返回空
      */
-    [[nodiscard]] const std::optional<Vector3>& currentImpulseImpactPos() const { return m_currentImpulseImpactPos; }
+    [[nodiscard]] const std::optional<Vector3>& currentImpulseImpactPos() const
+    {
+        return m_currentImpulseImpactPos;
+    }
 
     /**
      * @brief 设置当前冲量冲击位置
      * @param pos 冲击位置
      */
-    void setCurrentImpulseImpactPos(const Vector3& pos) { m_currentImpulseImpactPos = pos; }
+    void setCurrentImpulseImpactPos(const Vector3& pos)
+    {
+        m_currentImpulseImpactPos = pos;
+    }
 
     /**
      * @brief 获取当前爆炸原因实体ID
      * @return 实体ID，0 表示无
      */
-    [[nodiscard]] EntityInstanceId currentExplosionCause() const { return m_currentExplosionCause; }
+    [[nodiscard]] EntityInstanceId currentExplosionCause() const
+    {
+        return m_currentExplosionCause;
+    }
 
     /**
      * @brief 设置当前爆炸原因实体ID
      * @param entityId 实体ID
      */
-    void setCurrentExplosionCause(EntityInstanceId entityId) { m_currentExplosionCause = entityId; }
+    void setCurrentExplosionCause(EntityInstanceId entityId)
+    {
+        m_currentExplosionCause = entityId;
+    }
 
     /**
      * @brief 计算重锤砸地攻击的冲击位置
@@ -1735,32 +2041,50 @@ public:
     /**
      * @brief 获取行走距离累计（用于视野晃动）
      */
-    [[nodiscard]] f32 moveDistanceWalked() const { return m_moveDistanceWalked; }
+    [[nodiscard]] f32 moveDistanceWalked() const
+    {
+        return m_moveDistanceWalked;
+    }
 
     /**
      * @brief 获取游泳距离累计
      */
-    [[nodiscard]] f32 moveDistanceSwam() const { return m_moveDistanceSwam; }
+    [[nodiscard]] f32 moveDistanceSwam() const
+    {
+        return m_moveDistanceSwam;
+    }
 
     /**
      * @brief 获取上一tick的行走距离
      */
-    [[nodiscard]] f32 prevMoveDistanceWalked() const { return m_prevMoveDistanceWalked; }
+    [[nodiscard]] f32 prevMoveDistanceWalked() const
+    {
+        return m_prevMoveDistanceWalked;
+    }
 
     /**
      * @brief 获取当前视野晃动强度
      */
-    [[nodiscard]] f32 cameraYaw() const { return m_cameraYaw; }
+    [[nodiscard]] f32 cameraYaw() const
+    {
+        return m_cameraYaw;
+    }
 
     /**
      * @brief 获取上一 tick 的视野晃动强度
      */
-    [[nodiscard]] f32 prevCameraYaw() const { return m_prevCameraYaw; }
+    [[nodiscard]] f32 prevCameraYaw() const
+    {
+        return m_prevCameraYaw;
+    }
 
     /**
      * @brief 获取上一tick的游泳距离
      */
-    [[nodiscard]] f32 prevMoveDistanceSwam() const { return m_prevMoveDistanceSwam; }
+    [[nodiscard]] f32 prevMoveDistanceSwam() const
+    {
+        return m_prevMoveDistanceSwam;
+    }
 
     // ========== 更新 ==========
 
@@ -1791,8 +2115,15 @@ public:
     /**
      * @brief 当前缓存的移动输入（供调用方核对手动驱动输入的生效情况，如 GameTest 模拟玩家）
      */
-    [[nodiscard]] f32 movementInputForward() const { return m_inputForward; }
-    [[nodiscard]] f32 movementInputStrafe() const { return m_inputStrafe; }
+    [[nodiscard]] f32 movementInputForward() const
+    {
+        return m_inputForward;
+    }
+
+    [[nodiscard]] f32 movementInputStrafe() const
+    {
+        return m_inputStrafe;
+    }
 
     /**
      * @brief 执行跳跃
@@ -1833,14 +2164,28 @@ public:
     /**
      * @brief 获取玩家背包
      */
-    [[nodiscard]] const PlayerInventory& inventory() const { return m_inventory; }
-    PlayerInventory& inventory() { return m_inventory; }
+    [[nodiscard]] const PlayerInventory& inventory() const
+    {
+        return m_inventory;
+    }
+
+    PlayerInventory& inventory()
+    {
+        return m_inventory;
+    }
 
     /**
      * @brief 获取末影箱物品栏
      */
-    [[nodiscard]] const PlayerEnderChestInventory& enderChestInventory() const { return m_enderChestInventory; }
-    PlayerEnderChestInventory& enderChestInventory() { return m_enderChestInventory; }
+    [[nodiscard]] const PlayerEnderChestInventory& enderChestInventory() const
+    {
+        return m_enderChestInventory;
+    }
+
+    PlayerEnderChestInventory& enderChestInventory()
+    {
+        return m_enderChestInventory;
+    }
 
     /**
      * @brief 获取玩家分数
@@ -1895,19 +2240,32 @@ public:
      * @brief 获取当前打开的容器菜单
      * @return 当前打开的菜单指针，如果没有打开容器则返回 nullptr
      */
-    [[nodiscard]] AbstractContainerMenu* openContainerMenu() { return m_openContainerMenu; }
-    [[nodiscard]] const AbstractContainerMenu* openContainerMenu() const { return m_openContainerMenu; }
+    [[nodiscard]] AbstractContainerMenu* openContainerMenu()
+    {
+        return m_openContainerMenu;
+    }
+
+    [[nodiscard]] const AbstractContainerMenu* openContainerMenu() const
+    {
+        return m_openContainerMenu;
+    }
 
     /**
      * @brief 设置当前打开的容器菜单
      * @param menu 容器菜单指针
      */
-    void setOpenContainerMenu(AbstractContainerMenu* menu) { m_openContainerMenu = menu; }
+    void setOpenContainerMenu(AbstractContainerMenu* menu)
+    {
+        m_openContainerMenu = menu;
+    }
 
     /**
      * @brief 清空当前打开的容器菜单
      */
-    void clearOpenContainerMenu() { m_openContainerMenu = nullptr; }
+    void clearOpenContainerMenu()
+    {
+        m_openContainerMenu = nullptr;
+    }
 
     /**
      * @brief 打开实体容器
@@ -1945,7 +2303,10 @@ public:
      *
      * @param pos 命令方块位置
      */
-    virtual void openCommandBlock(const BlockPos& pos) { MC_UNUSED(pos); }
+    virtual void openCommandBlock(const BlockPos& pos)
+    {
+        MC_UNUSED(pos);
+    }
 
     /**
      * @brief 打开结构方块编辑界面
@@ -1956,7 +2317,10 @@ public:
      *
      * @param pos 结构方块位置
      */
-    virtual void openStructureBlock(const BlockPos& pos) { MC_UNUSED(pos); }
+    virtual void openStructureBlock(const BlockPos& pos)
+    {
+        MC_UNUSED(pos);
+    }
 
     /**
      * @brief 打开拼图方块编辑界面
@@ -1967,7 +2331,10 @@ public:
      *
      * @param pos 拼图方块位置
      */
-    virtual void openJigsawBlock(const BlockPos& pos) { MC_UNUSED(pos); }
+    virtual void openJigsawBlock(const BlockPos& pos)
+    {
+        MC_UNUSED(pos);
+    }
 
     /**
      * @brief 打开测试方块编辑界面
@@ -1977,7 +2344,10 @@ public:
      *
      * @param pos 测试方块位置
      */
-    virtual void openTestBlock(const BlockPos& pos) { MC_UNUSED(pos); }
+    virtual void openTestBlock(const BlockPos& pos)
+    {
+        MC_UNUSED(pos);
+    }
 
     /**
      * @brief 打开测试实例方块编辑界面
@@ -1988,7 +2358,10 @@ public:
      *
      * @param pos 测试实例方块位置
      */
-    virtual void openTestInstanceBlock(const BlockPos& pos) { MC_UNUSED(pos); }
+    virtual void openTestInstanceBlock(const BlockPos& pos)
+    {
+        MC_UNUSED(pos);
+    }
 
     /**
      * @brief 当前正在编辑的命令方块位置（对齐 vanilla ServerPlayer.commandBlock 字段）
@@ -1996,17 +2369,26 @@ public:
      * 玩家打开命令方块界面时记录位置，服务端收到 set_command_block 时校验一致性，
      * 防止客户端在未打开界面时远程改写任意命令方块。
      */
-    [[nodiscard]] const std::optional<BlockPos>& commandBlock() const { return m_commandBlock; }
+    [[nodiscard]] const std::optional<BlockPos>& commandBlock() const
+    {
+        return m_commandBlock;
+    }
 
     /**
      * @brief 设置正在编辑的命令方块位置
      */
-    void setCommandBlock(std::optional<BlockPos> pos) { m_commandBlock = std::move(pos); }
+    void setCommandBlock(std::optional<BlockPos> pos)
+    {
+        m_commandBlock = std::move(pos);
+    }
 
     /**
      * @brief 清空正在编辑的命令方块位置
      */
-    void clearCommandBlock() { m_commandBlock.reset(); }
+    void clearCommandBlock()
+    {
+        m_commandBlock.reset();
+    }
 
     /**
      * @brief 获取手持物品
@@ -2070,7 +2452,10 @@ public:
      *
      * @return 跳跃因子（0.0 - 1.0）
      */
-    [[nodiscard]] virtual f32 getJumpFactor() const { return 1.0f; }
+    [[nodiscard]] virtual f32 getJumpFactor() const
+    {
+        return 1.0f;
+    }
 
     // ========== 注视检测 ==========
 
@@ -2199,8 +2584,15 @@ public:
     /**
      * @brief 获取自动跳跃系统
      */
-    [[nodiscard]] entity::movement::AutoJump& autoJump() { return m_autoJump; }
-    [[nodiscard]] const entity::movement::AutoJump& autoJump() const { return m_autoJump; }
+    [[nodiscard]] entity::movement::AutoJump& autoJump()
+    {
+        return m_autoJump;
+    }
+
+    [[nodiscard]] const entity::movement::AutoJump& autoJump() const
+    {
+        return m_autoJump;
+    }
 
     // ========== 攻击系统 ==========
 
@@ -2238,7 +2630,10 @@ public:
     /**
      * @brief 获取上次攻击后的 tick 数
      */
-    [[nodiscard]] i32 ticksSinceLastAttack() const { return m_ticksSinceLastAttack; }
+    [[nodiscard]] i32 ticksSinceLastAttack() const
+    {
+        return m_ticksSinceLastAttack;
+    }
 
     // ========== 钓鱼系统 ==========
 
@@ -2246,19 +2641,28 @@ public:
      * @brief 获取钓鱼浮标实体ID
      * @return 钓鱼浮标实体ID，0表示未投掷
      */
-    [[nodiscard]] EntityInstanceId fishingBobber() const { return m_fishingBobber; }
+    [[nodiscard]] EntityInstanceId fishingBobber() const
+    {
+        return m_fishingBobber;
+    }
 
     /**
      * @brief 设置钓鱼浮标实体ID
      * @param bobberId 浮标实体ID，0表示清除
      */
-    void setFishingBobber(EntityInstanceId bobberId) { m_fishingBobber = bobberId; }
+    void setFishingBobber(EntityInstanceId bobberId)
+    {
+        m_fishingBobber = bobberId;
+    }
 
     /**
      * @brief 检查是否正在钓鱼
      * @return 如果有投掷的浮标返回 true
      */
-    [[nodiscard]] bool isFishing() const { return m_fishingBobber != 0; }
+    [[nodiscard]] bool isFishing() const
+    {
+        return m_fishingBobber != 0;
+    }
 
     // ========== 物品冷却系统 ==========
 
@@ -2266,8 +2670,15 @@ public:
      * @brief 获取物品冷却追踪器
      * @return 冷却追踪器的常量引用
      */
-    [[nodiscard]] const CooldownTracker& cooldownTracker() const { return m_cooldownTracker; }
-    CooldownTracker& cooldownTracker() { return m_cooldownTracker; }
+    [[nodiscard]] const CooldownTracker& cooldownTracker() const
+    {
+        return m_cooldownTracker;
+    }
+
+    CooldownTracker& cooldownTracker()
+    {
+        return m_cooldownTracker;
+    }
 
     /**
      * @brief 获取物品冷却进度
@@ -2289,14 +2700,20 @@ public:
      * @param item 物品指针
      * @return 如果物品在冷却中返回 true
      */
-    [[nodiscard]] bool hasItemCooldown(const Item* item) const { return m_cooldownTracker.hasCooldown(item); }
+    [[nodiscard]] bool hasItemCooldown(const Item* item) const
+    {
+        return m_cooldownTracker.hasCooldown(item);
+    }
 
     /**
      * @brief 设置物品冷却
      * @param item 物品指针
      * @param ticks 冷却时间（tick）
      */
-    void setItemCooldown(const Item* item, i32 ticks) { m_cooldownTracker.setCooldown(item, ticks); }
+    void setItemCooldown(const Item* item, i32 ticks)
+    {
+        m_cooldownTracker.setCooldown(item, ticks);
+    }
 
     // ========== 挖掘系统 ==========
 

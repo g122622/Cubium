@@ -76,8 +76,15 @@ public:
 
     [[nodiscard]] f64 compute(i32 blockX, i32 blockY, i32 blockZ) const override;
 
-    [[nodiscard]] f64 minValue() const override { return -m_maxValue; }
-    [[nodiscard]] f64 maxValue() const override { return m_maxValue; }
+    [[nodiscard]] f64 minValue() const override
+    {
+        return -m_maxValue;
+    }
+
+    [[nodiscard]] f64 maxValue() const override
+    {
+        return m_maxValue;
+    }
 
     [[nodiscard]] std::unique_ptr<DensityFunction> mapAll(Visitor& visitor) const override
     {

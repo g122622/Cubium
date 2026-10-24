@@ -114,7 +114,10 @@ public:
      * @brief 获取洞穴蜘蛛缩放因子
      * @return 0.7f - 洞穴蜘蛛比普通蜘蛛小 0.7 倍
      */
-    static constexpr f32 getScaleFactor() { return 0.7f; }
+    static constexpr f32 getScaleFactor()
+    {
+        return 0.7f;
+    }
 };
 
 /**

@@ -522,7 +522,9 @@ TEST(Utf8ForEachCodepoint, EmptyString)
 {
     std::string text;
     int count = 0;
-    utf8ForEachCodepoint(text, [&](u32, size_t, size_t) { ++count; });
+    utf8ForEachCodepoint(text, [&](u32, size_t, size_t) {
+        ++count;
+    });
     EXPECT_EQ(count, 0);
 }
 
@@ -592,7 +594,9 @@ TEST(Utf8ForEachCodepoint, VoidCallbackIteratesAll)
     // 测试 void 回调遍历全部码点
     std::string text = "ABCDE";
     int count = 0;
-    utf8ForEachCodepoint(text, [&](u32, size_t, size_t) { ++count; });
+    utf8ForEachCodepoint(text, [&](u32, size_t, size_t) {
+        ++count;
+    });
     EXPECT_EQ(count, 5);
 }
 
@@ -661,7 +665,9 @@ TEST(Utf8RoundTrip, EncodeDecodeAppend)
     }
 
     std::vector<u32> decoded;
-    utf8ForEachCodepoint(built, [&](u32 cp, size_t, size_t) { decoded.push_back(cp); });
+    utf8ForEachCodepoint(built, [&](u32 cp, size_t, size_t) {
+        decoded.push_back(cp);
+    });
 
     EXPECT_EQ(decoded.size(), 7u);
     for (size_t i = 0; i < decoded.size(); ++i) {

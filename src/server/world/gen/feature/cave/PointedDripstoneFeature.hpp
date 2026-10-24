@@ -50,6 +50,7 @@ struct PointedDripstoneConfig : public IFeatureConfig {
     f32 chanceOfSpreadRadius3 = 0.5F;
 
     PointedDripstoneConfig() = default;
+
     PointedDripstoneConfig(f32 taller, f32 dirSpread, f32 radius2, f32 radius3)
         : chanceOfTallerDripstone(taller)
         , chanceOfDirectionalSpread(dirSpread)
@@ -89,9 +90,20 @@ public:
         math::IRandom& random,
         const BlockPos& pos) const override;
 
-    [[nodiscard]] const char* name() const override { return m_name.c_str(); }
-    [[nodiscard]] DecorationStage stage() const override { return DecorationStage::UndergroundDecoration; }
-    [[nodiscard]] const PointedDripstoneConfig& getConfig() const { return *m_config; }
+    [[nodiscard]] const char* name() const override
+    {
+        return m_name.c_str();
+    }
+
+    [[nodiscard]] DecorationStage stage() const override
+    {
+        return DecorationStage::UndergroundDecoration;
+    }
+
+    [[nodiscard]] const PointedDripstoneConfig& getConfig() const
+    {
+        return *m_config;
+    }
 
 private:
     std::unique_ptr<PointedDripstoneConfig> m_config;

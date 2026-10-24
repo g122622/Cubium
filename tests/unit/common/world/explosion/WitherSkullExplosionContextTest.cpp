@@ -80,7 +80,10 @@ public:
         createBlockState(std::move(container));
     }
 
-    [[nodiscard]] static BlockProperties makeProperties() { return BlockProperties(Material::EARTH).resistance(0.5f); }
+    [[nodiscard]] static BlockProperties makeProperties()
+    {
+        return BlockProperties(Material::EARTH).resistance(0.5f);
+    }
 };
 
 } // namespace

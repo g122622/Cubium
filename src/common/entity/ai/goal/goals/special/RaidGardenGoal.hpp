@@ -96,7 +96,10 @@ public:
     [[nodiscard]] bool shouldContinueExecuting() override;
     void tick() override;
 
-    [[nodiscard]] std::string getTypeName() const override { return "RaidGardenGoal"; }
+    [[nodiscard]] std::string getTypeName() const override
+    {
+        return "RaidGardenGoal";
+    }
 
 protected:
     /**

@@ -68,17 +68,26 @@ protected:
     /**
      * @brief 获取默认显示名称
      */
-    [[nodiscard]] std::string getDefaultName() const override { return "container.blast_furnace"; }
+    [[nodiscard]] std::string getDefaultName() const override
+    {
+        return "container.blast_furnace";
+    }
 
     /**
      * @brief 获取默认熔炼时间
      */
-    [[nodiscard]] i32 getDefaultCookTime() const override { return DEFAULT_COOK_TIME; }
+    [[nodiscard]] i32 getDefaultCookTime() const override
+    {
+        return DEFAULT_COOK_TIME;
+    }
 
     /**
      * @brief 获取熔炼配方类型
      */
-    [[nodiscard]] crafting::RecipeType getRecipeType() const override { return crafting::RecipeType::Blasting; }
+    [[nodiscard]] crafting::RecipeType getRecipeType() const override
+    {
+        return crafting::RecipeType::Blasting;
+    }
 
     /**
      * @brief 检查是否可以熔炼
@@ -95,7 +104,10 @@ protected:
      * @param stack 物品堆
      * @return 燃烧时间（tick），如果不是燃料返回0
      */
-    [[nodiscard]] i32 getBurnTimeForFuel(const ItemStack& stack) const override { return getBurnTime(stack) / 2; }
+    [[nodiscard]] i32 getBurnTimeForFuel(const ItemStack& stack) const override
+    {
+        return getBurnTime(stack) / 2;
+    }
 
     /**
      * @brief 获取火苗噼啪声

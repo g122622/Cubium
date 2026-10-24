@@ -68,17 +68,26 @@ protected:
     /**
      * @brief 获取默认显示名称
      */
-    [[nodiscard]] std::string getDefaultName() const override { return "container.furnace"; }
+    [[nodiscard]] std::string getDefaultName() const override
+    {
+        return "container.furnace";
+    }
 
     /**
      * @brief 获取默认熔炼时间
      */
-    [[nodiscard]] i32 getDefaultCookTime() const override { return DEFAULT_COOK_TIME; }
+    [[nodiscard]] i32 getDefaultCookTime() const override
+    {
+        return DEFAULT_COOK_TIME;
+    }
 
     /**
      * @brief 获取熔炼配方类型
      */
-    [[nodiscard]] crafting::RecipeType getRecipeType() const override { return crafting::RecipeType::Smelting; }
+    [[nodiscard]] crafting::RecipeType getRecipeType() const override
+    {
+        return crafting::RecipeType::Smelting;
+    }
 
     /**
      * @brief 获取火苗噼啪声

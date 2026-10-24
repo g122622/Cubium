@@ -83,9 +83,21 @@ TEST(DeliveryModeTest, DefaultIsUnspecified)
     // 创建一个简单的测试监听器
     class TestListener : public GameEventListener {
     public:
-        [[nodiscard]] PositionSource& getListenerSource() override { return m_source; }
-        [[nodiscard]] const PositionSource& getListenerSource() const override { return m_source; }
-        [[nodiscard]] i32 getListenerRadius() const override { return 16; }
+        [[nodiscard]] PositionSource& getListenerSource() override
+        {
+            return m_source;
+        }
+
+        [[nodiscard]] const PositionSource& getListenerSource() const override
+        {
+            return m_source;
+        }
+
+        [[nodiscard]] i32 getListenerRadius() const override
+        {
+            return 16;
+        }
+
         bool handleGameEvent(
             server::ServerWorld&, const GameEvent&, const GameEvent::Context&, const Vector3d&) override
         {
@@ -151,9 +163,21 @@ TEST(NoopGameEventListenerRegistryTest, RegisterDoesNothing)
     // 创建一个简单的测试监听器
     class TestListener : public GameEventListener {
     public:
-        [[nodiscard]] PositionSource& getListenerSource() override { return m_source; }
-        [[nodiscard]] const PositionSource& getListenerSource() const override { return m_source; }
-        [[nodiscard]] i32 getListenerRadius() const override { return 16; }
+        [[nodiscard]] PositionSource& getListenerSource() override
+        {
+            return m_source;
+        }
+
+        [[nodiscard]] const PositionSource& getListenerSource() const override
+        {
+            return m_source;
+        }
+
+        [[nodiscard]] i32 getListenerRadius() const override
+        {
+            return 16;
+        }
+
         bool handleGameEvent(
             server::ServerWorld&, const GameEvent&, const GameEvent::Context&, const Vector3d&) override
         {
@@ -179,7 +203,9 @@ TEST(NoopGameEventListenerRegistryTest, VisitReturnsFalse)
     GameEvent event("test");
     GameEvent::Context ctx;
     bool visitorCalled = false;
-    auto visitor = [&visitorCalled](GameEventListener&, const Vector3d&) { visitorCalled = true; };
+    auto visitor = [&visitorCalled](GameEventListener&, const Vector3d&) {
+        visitorCalled = true;
+    };
 
     bool result = noop.visitInRangeListeners(event, Vector3d(0, 0, 0), ctx, visitor);
     EXPECT_FALSE(result);

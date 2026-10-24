@@ -89,7 +89,10 @@ public:
      *
      * @note 使用 XOR 打包，比 OR 更分散
      */
-    [[nodiscard]] static i64 packCoords(i32 x, i32 z) { return (static_cast<i64>(x) << 32) ^ static_cast<i64>(z); }
+    [[nodiscard]] static i64 packCoords(i32 x, i32 z)
+    {
+        return (static_cast<i64>(x) << 32) ^ static_cast<i64>(z);
+    }
 
     /**
      * @brief 获取缓存大小
@@ -104,7 +107,10 @@ public:
     /**
      * @brief 获取互斥锁（用于批量操作）
      */
-    std::mutex& getMutex() const { return m_mutex; }
+    std::mutex& getMutex() const
+    {
+        return m_mutex;
+    }
 
     /**
      * @brief 获取缓存值（调用方已持有锁）
@@ -128,12 +134,18 @@ public:
     /**
      * @brief 获取命中次数（用于性能分析）
      */
-    [[nodiscard]] u64 hitCount() const { return m_hitCount.load(); }
+    [[nodiscard]] u64 hitCount() const
+    {
+        return m_hitCount.load();
+    }
 
     /**
      * @brief 获取未命中次数（用于性能分析）
      */
-    [[nodiscard]] u64 missCount() const { return m_missCount.load(); }
+    [[nodiscard]] u64 missCount() const
+    {
+        return m_missCount.load();
+    }
 
     /**
      * @brief 重置统计计数器

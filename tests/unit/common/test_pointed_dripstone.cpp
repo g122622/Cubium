@@ -42,7 +42,10 @@ using namespace mc::blocks;
 
 class PointedDripstoneStaticMethodTest : public ::testing::Test {
 protected:
-    void SetUp() override { VanillaBlocks::initialize(); }
+    void SetUp() override
+    {
+        VanillaBlocks::initialize();
+    }
 
     // 从注册的 POINTED_DRIPSTONE 默认状态派生一个指定方向/厚度/含水状态的状态
     static const BlockState& makeState(

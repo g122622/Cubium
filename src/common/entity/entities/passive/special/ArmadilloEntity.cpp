@@ -205,7 +205,12 @@ void ArmadilloEntity::registerGoals()
     // 优先级 3：诱惑（对齐 ArmadilloAi FollowTemptation，速度倍率 1.25；食物 = 蜘蛛眼）
     m_goalSelector.addGoal(3,
         std::make_unique<entity::ai::goal::TemptGoal>(
-            this, 1.25, [](const ItemStack& stack) { return stack.getItem() == Items::SPIDER_EYE; }, false));
+            this,
+            1.25,
+            [](const ItemStack& stack) {
+                return stack.getItem() == Items::SPIDER_EYE;
+            },
+            false));
 
     // 优先级 4：幼体跟随成体（对齐 ArmadilloAi BabyFollowAdult）
     m_goalSelector.addGoal(4, std::make_unique<entity::ai::goal::FollowParentGoal>(this, 1.25));

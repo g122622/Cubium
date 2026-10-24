@@ -48,9 +48,16 @@ public:
 
     [[nodiscard]] ItemStack apply(ItemStack stack, LootContext& context) const override;
     [[nodiscard]] std::unique_ptr<LootFunction> clone() const noexcept override;
-    [[nodiscard]] std::string getType() const noexcept override { return "sequence"; }
 
-    [[nodiscard]] const std::vector<std::unique_ptr<LootFunction>>& getFunctions() const { return m_functions; }
+    [[nodiscard]] std::string getType() const noexcept override
+    {
+        return "sequence";
+    }
+
+    [[nodiscard]] const std::vector<std::unique_ptr<LootFunction>>& getFunctions() const
+    {
+        return m_functions;
+    }
 
 private:
     std::vector<std::unique_ptr<LootFunction>> m_functions;

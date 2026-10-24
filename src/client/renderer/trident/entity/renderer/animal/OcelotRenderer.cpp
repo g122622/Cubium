@@ -82,10 +82,12 @@ void OcelotRenderer::render(Entity& entity, f64 partialTicks)
     f64 headYawRaw = static_cast<f64>(ocelot.prevRotationYawHead()) +
         (static_cast<f64>(ocelot.rotationYawHead()) - static_cast<f64>(ocelot.prevRotationYawHead())) * partialTicks;
     f64 netHeadYaw = headYawRaw - bodyYaw;
-    while (netHeadYaw < -180.0)
+    while (netHeadYaw < -180.0) {
         netHeadYaw += 360.0;
-    while (netHeadYaw > 180.0)
+    }
+    while (netHeadYaw > 180.0) {
         netHeadYaw -= 360.0;
+    }
 
     // headPitch: 头部俯仰角
     f64 headPitch = static_cast<f64>(ocelot.prevPitch()) +

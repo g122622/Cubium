@@ -70,7 +70,10 @@ public:
      * @brief 是否还有元素
      * @return true 表示还有元素可出队
      */
-    bool hasNext() const { return !m_queues.empty(); }
+    bool hasNext() const
+    {
+        return !m_queues.empty();
+    }
 
     /**
      * @brief 取出并移除当前最高优先级队列的队首元素

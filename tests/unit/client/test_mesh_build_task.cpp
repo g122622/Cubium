@@ -72,7 +72,10 @@ struct MeshTaskFixture {
     std::shared_ptr<MeshDataPool> dataPool = std::make_shared<MeshDataPool>();
     std::shared_ptr<MeshResultQueue> resultQueue = std::make_shared<MeshResultQueue>();
 
-    void start() { pool.start(); }
+    void start()
+    {
+        pool.start();
+    }
 
     void submitTask(ChunkCoord x, ChunkCoord z, u64 taskId, std::shared_ptr<std::atomic<bool>> abortSignal = nullptr)
     {
@@ -93,7 +96,10 @@ struct MeshTaskFixture {
 
 class MeshBuildTaskTest : public ::testing::Test {
 protected:
-    void SetUp() override { VanillaBlocks::initialize(); }
+    void SetUp() override
+    {
+        VanillaBlocks::initialize();
+    }
 };
 
 TEST_F(MeshBuildTaskTest, StartStop)
@@ -144,7 +150,11 @@ TEST_F(MeshBuildTaskTest, DrainRespectsMaxCount)
     waitUntilQueueSizeAtLeast(*fx.resultQueue, 6);
 
     i32 callbackCount = 0;
-    fx.resultQueue->drain([&callbackCount](MeshWorkerResult&&) { ++callbackCount; }, 3);
+    fx.resultQueue->drain(
+        [&callbackCount](MeshWorkerResult&&) {
+            ++callbackCount;
+        },
+        3);
 
     EXPECT_EQ(callbackCount, 3);
     EXPECT_EQ(fx.resultQueue->size(), 3u);
@@ -221,7 +231,11 @@ TEST_F(MeshBuildTaskTest, ConcurrentSubmission)
 
     size_t drainedCount = 0;
     while (fx.resultQueue->size() > 0) {
-        fx.resultQueue->drain([&drainedCount](MeshWorkerResult&&) { ++drainedCount; }, 16);
+        fx.resultQueue->drain(
+            [&drainedCount](MeshWorkerResult&&) {
+                ++drainedCount;
+            },
+            16);
     }
 
     EXPECT_EQ(drainedCount, expectedCount);

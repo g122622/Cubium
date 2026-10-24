@@ -150,32 +150,50 @@ public:
     /**
      * @brief 获取世界
      */
-    [[nodiscard]] IWorld& getWorld() const noexcept { return m_world; }
+    [[nodiscard]] IWorld& getWorld() const noexcept
+    {
+        return m_world;
+    }
 
     /**
      * @brief 获取随机数生成器
      */
-    [[nodiscard]] math::IRandom& getRandom() const noexcept { return m_random; }
+    [[nodiscard]] math::IRandom& getRandom() const noexcept
+    {
+        return m_random;
+    }
 
     /**
      * @brief 获取幸运值
      */
-    [[nodiscard]] f32 getLuck() const noexcept { return m_luck; }
+    [[nodiscard]] f32 getLuck() const noexcept
+    {
+        return m_luck;
+    }
 
     /**
      * @brief 设置幸运值
      */
-    void setLuck(f32 luck) noexcept { m_luck = luck; }
+    void setLuck(f32 luck) noexcept
+    {
+        m_luck = luck;
+    }
 
     /**
      * @brief 获取掠夺附魔等级
      */
-    [[nodiscard]] i32 getLootingModifier() const noexcept { return m_lootingModifier; }
+    [[nodiscard]] i32 getLootingModifier() const noexcept
+    {
+        return m_lootingModifier;
+    }
 
     /**
      * @brief 设置掠夺附魔等级
      */
-    void setLootingModifier(i32 level) noexcept { m_lootingModifier = level; }
+    void setLootingModifier(i32 level) noexcept
+    {
+        m_lootingModifier = level;
+    }
 
     // ========== 谓词访问 ==========
 
@@ -186,7 +204,10 @@ public:
      *
      * @param resolver 谓词解析器函数
      */
-    void setPredicateResolver(PredicateResolver resolver) noexcept { m_predicateResolver = std::move(resolver); }
+    void setPredicateResolver(PredicateResolver resolver) noexcept
+    {
+        m_predicateResolver = std::move(resolver);
+    }
 
     /**
      * @brief 获取命名谓词
@@ -201,7 +222,10 @@ public:
     /**
      * @brief 设置掉落表解析器
      */
-    void setLootTableResolver(LootTableResolver resolver) noexcept { m_lootTableResolver = std::move(resolver); }
+    void setLootTableResolver(LootTableResolver resolver) noexcept
+    {
+        m_lootTableResolver = std::move(resolver);
+    }
 
     /**
      * @brief 获取掉落表

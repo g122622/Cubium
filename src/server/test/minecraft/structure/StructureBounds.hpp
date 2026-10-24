@@ -47,9 +47,20 @@ public:
      */
     [[nodiscard]] StructureBoundingBox paddingBounds(i32 padding) const noexcept;
 
-    [[nodiscard]] const BlockPos& origin() const noexcept { return m_origin; }
-    [[nodiscard]] const BlockPos& size() const noexcept { return m_size; }
-    [[nodiscard]] Rotation rotation() const noexcept { return m_rotation; }
+    [[nodiscard]] const BlockPos& origin() const noexcept
+    {
+        return m_origin;
+    }
+
+    [[nodiscard]] const BlockPos& size() const noexcept
+    {
+        return m_size;
+    }
+
+    [[nodiscard]] Rotation rotation() const noexcept
+    {
+        return m_rotation;
+    }
 
 private:
     BlockPos m_origin;

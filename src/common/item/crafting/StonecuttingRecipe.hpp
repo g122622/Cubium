@@ -74,11 +74,28 @@ public:
 
     [[nodiscard]] bool matches(const IInventory& inventory) const override;
     [[nodiscard]] ItemStack assemble(const IInventory& inventory) const override;
-    [[nodiscard]] ItemStack getResultItem() const override { return m_result; }
+
+    [[nodiscard]] ItemStack getResultItem() const override
+    {
+        return m_result;
+    }
+
     [[nodiscard]] const std::vector<Ingredient>& getIngredients() const override;
-    [[nodiscard]] const std::string& getGroup() const override { return m_group; }
-    [[nodiscard]] ResourceLocation getId() const override { return m_id; }
-    [[nodiscard]] RecipeType getType() const override { return RecipeType::Stonecutting; }
+
+    [[nodiscard]] const std::string& getGroup() const override
+    {
+        return m_group;
+    }
+
+    [[nodiscard]] ResourceLocation getId() const override
+    {
+        return m_id;
+    }
+
+    [[nodiscard]] RecipeType getType() const override
+    {
+        return RecipeType::Stonecutting;
+    }
 
     /**
      * @brief 切石机配方始终可以适应（只有一个输入槽）
@@ -103,13 +120,19 @@ public:
      * @brief 获取输入原料
      * @return 输入原料
      */
-    [[nodiscard]] const Ingredient& getIngredient() const { return m_ingredient; }
+    [[nodiscard]] const Ingredient& getIngredient() const
+    {
+        return m_ingredient;
+    }
 
     /**
      * @brief 获取结果数量
      * @return 结果数量
      */
-    [[nodiscard]] i32 getCount() const { return m_count; }
+    [[nodiscard]] i32 getCount() const
+    {
+        return m_count;
+    }
 
 private:
     ResourceLocation m_id;

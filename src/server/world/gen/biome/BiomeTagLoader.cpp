@@ -155,6 +155,7 @@ Result<size_t> BiomeTagLoader::loadFromDataPackRepository(const resource::DataPa
         bool replace = false;
         std::vector<BiomeId> biomeIds;
     };
+
     std::unordered_map<ResourceLocation, TagParseData> parsedTags;
 
     for (const auto& namespace_ : namespacesResult.value()) {

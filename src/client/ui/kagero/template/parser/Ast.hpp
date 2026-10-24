@@ -171,7 +171,10 @@ struct BindingInfo {
     /**
      * @brief 检查是否有效
      */
-    [[nodiscard]] bool isValid() const { return !path.empty() || isLoopVariable; }
+    [[nodiscard]] bool isValid() const
+    {
+        return !path.empty() || isLoopVariable;
+    }
 
     /**
      * @brief 解析绑定路径
@@ -225,17 +228,26 @@ struct Attribute {
     /**
      * @brief 检查是否是绑定属性
      */
-    [[nodiscard]] bool isBinding() const { return type == AttributeType::Binding; }
+    [[nodiscard]] bool isBinding() const
+    {
+        return type == AttributeType::Binding;
+    }
 
     /**
      * @brief 检查是否是事件属性
      */
-    [[nodiscard]] bool isEvent() const { return type == AttributeType::Event; }
+    [[nodiscard]] bool isEvent() const
+    {
+        return type == AttributeType::Event;
+    }
 
     /**
      * @brief 检查是否是静态属性
      */
-    [[nodiscard]] bool isStatic() const { return type == AttributeType::Static; }
+    [[nodiscard]] bool isStatic() const
+    {
+        return type == AttributeType::Static;
+    }
 };
 
 /**
@@ -257,7 +269,10 @@ struct LoopInfo {
     /**
      * @brief 检查是否有效
      */
-    [[nodiscard]] bool isValid() const { return !collectionPath.empty() && !itemVarName.empty(); }
+    [[nodiscard]] bool isValid() const
+    {
+        return !collectionPath.empty() && !itemVarName.empty();
+    }
 };
 
 /**
@@ -273,7 +288,10 @@ struct ConditionInfo {
     /**
      * @brief 检查是否有效
      */
-    [[nodiscard]] bool isValid() const { return !booleanPath.empty(); }
+    [[nodiscard]] bool isValid() const
+    {
+        return !booleanPath.empty();
+    }
 };
 
 /**
@@ -287,6 +305,7 @@ struct Node {
     explicit Node(NodeType t)
         : type(t)
     {}
+
     virtual ~Node() = default;
 
     // 禁止拷贝

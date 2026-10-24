@@ -122,7 +122,10 @@ TEST_F(ParticleManagerPendingTest, PendingParticleLimit)
  */
 class ParticleManagerDistanceCullingTest : public ::testing::Test {
 protected:
-    void SetUp() override { ParticleRegistry::instance(); }
+    void SetUp() override
+    {
+        ParticleRegistry::instance();
+    }
 };
 
 /**
@@ -202,7 +205,10 @@ TEST_F(ParticleManagerDistanceCullingTest, DisableDistanceCulling)
  */
 class ParticleManagerAliveCountTest : public ::testing::Test {
 protected:
-    void SetUp() override { ParticleRegistry::instance(); }
+    void SetUp() override
+    {
+        ParticleRegistry::instance();
+    }
 };
 
 /**
@@ -234,7 +240,10 @@ TEST_F(ParticleManagerAliveCountTest, ClearParticles)
  */
 class ParticleManagerInitTest : public ::testing::Test {
 protected:
-    void SetUp() override { ParticleRegistry::instance(); }
+    void SetUp() override
+    {
+        ParticleRegistry::instance();
+    }
 };
 
 /**

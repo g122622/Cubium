@@ -49,9 +49,16 @@ public:
 
     [[nodiscard]] bool test(LootContext& context) const override;
     [[nodiscard]] std::unique_ptr<LootCondition> clone() const noexcept override;
-    [[nodiscard]] std::string getType() const override { return "inverted"; }
 
-    [[nodiscard]] const LootCondition* getInnerCondition() const noexcept { return m_condition.get(); }
+    [[nodiscard]] std::string getType() const override
+    {
+        return "inverted";
+    }
+
+    [[nodiscard]] const LootCondition* getInnerCondition() const noexcept
+    {
+        return m_condition.get();
+    }
 
 private:
     std::unique_ptr<LootCondition> m_condition;

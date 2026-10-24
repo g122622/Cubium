@@ -51,7 +51,10 @@ class RespirationEnchantment : public Enchantment {
 public:
     RespirationEnchantment() = default;
 
-    [[nodiscard]] std::string id() const override { return "minecraft:respiration"; }
+    [[nodiscard]] std::string id() const override
+    {
+        return "minecraft:respiration";
+    }
 
     [[nodiscard]] std::string getNameKey(i32 level) const override
     {
@@ -59,17 +62,35 @@ public:
         return "enchantment.minecraft.respiration";
     }
 
-    [[nodiscard]] EnchantmentType type() const noexcept override { return EnchantmentType::ArmorHead; }
+    [[nodiscard]] EnchantmentType type() const noexcept override
+    {
+        return EnchantmentType::ArmorHead;
+    }
 
-    [[nodiscard]] i32 minLevel() const noexcept override { return 1; }
+    [[nodiscard]] i32 minLevel() const noexcept override
+    {
+        return 1;
+    }
 
-    [[nodiscard]] i32 maxLevel() const noexcept override { return 3; }
+    [[nodiscard]] i32 maxLevel() const noexcept override
+    {
+        return 3;
+    }
 
-    [[nodiscard]] EnchantmentRarity rarity() const noexcept override { return EnchantmentRarity::Rare; }
+    [[nodiscard]] EnchantmentRarity rarity() const noexcept override
+    {
+        return EnchantmentRarity::Rare;
+    }
 
-    [[nodiscard]] i32 getMinCost(i32 level) const noexcept override { return 10 * level; }
+    [[nodiscard]] i32 getMinCost(i32 level) const noexcept override
+    {
+        return 10 * level;
+    }
 
-    [[nodiscard]] i32 getMaxCost(i32 level) const noexcept override { return getMinCost(level) + 30; }
+    [[nodiscard]] i32 getMaxCost(i32 level) const noexcept override
+    {
+        return getMinCost(level) + 30;
+    }
 
     /**
      * @brief 水下呼吸附魔的属性修饰符

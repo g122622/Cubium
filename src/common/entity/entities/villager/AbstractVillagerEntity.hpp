@@ -92,17 +92,32 @@ public:
 
     // ========== 类型 ==========
 
-    [[nodiscard]] VillagerType type() const { return m_type; }
-    void setType(VillagerType type) { m_type = type; }
+    [[nodiscard]] VillagerType type() const
+    {
+        return m_type;
+    }
+
+    void setType(VillagerType type)
+    {
+        m_type = type;
+    }
 
     // ========== 职业 ==========
 
-    [[nodiscard]] VillagerProfession profession() const { return m_profession; }
+    [[nodiscard]] VillagerProfession profession() const
+    {
+        return m_profession;
+    }
+
     void setProfession(VillagerProfession profession);
 
     // ========== 等级 ==========
 
-    [[nodiscard]] i32 level() const { return m_level; }
+    [[nodiscard]] i32 level() const
+    {
+        return m_level;
+    }
+
     void setLevel(i32 level);
 
     /**
@@ -114,12 +129,18 @@ public:
     /**
      * @brief 获取当前经验值
      */
-    [[nodiscard]] i32 experience() const { return m_experience; }
+    [[nodiscard]] i32 experience() const
+    {
+        return m_experience;
+    }
 
     /**
      * @brief 设置经验值
      */
-    void setExperience(i32 exp) { m_experience = exp; }
+    void setExperience(i32 exp)
+    {
+        m_experience = exp;
+    }
 
     // ========== 等级上限 ==========
 
@@ -133,7 +154,10 @@ public:
     /**
      * @brief 获取等级上限
      */
-    [[nodiscard]] static constexpr i32 getMaxLevel() { return 5; }
+    [[nodiscard]] static constexpr i32 getMaxLevel()
+    {
+        return 5;
+    }
 
 private:
     VillagerType m_type = VillagerType::Plains;
@@ -209,7 +233,10 @@ public:
     /**
      * @brief 是否有交易
      */
-    [[nodiscard]] bool hasOffers() const override { return m_offers != nullptr; }
+    [[nodiscard]] bool hasOffers() const override
+    {
+        return m_offers != nullptr;
+    }
 
     /**
      * @brief 更新交易列表
@@ -222,7 +249,10 @@ public:
      * VillagerEntity 返回 villagerData.level()
      * WanderingTraderEntity 返回 0（流浪商人没有等级系统）
      */
-    [[nodiscard]] virtual i32 getTradingLevel() const { return 0; }
+    [[nodiscard]] virtual i32 getTradingLevel() const
+    {
+        return 0;
+    }
 
     /**
      * @brief 获取经验条填充度（0-1）
@@ -234,20 +264,33 @@ public:
     /**
      * @brief 获取库存
      */
-    [[nodiscard]] IInventory& inventory() { return *m_inventory; }
-    [[nodiscard]] const IInventory& inventory() const { return *m_inventory; }
+    [[nodiscard]] IInventory& inventory()
+    {
+        return *m_inventory;
+    }
+
+    [[nodiscard]] const IInventory& inventory() const
+    {
+        return *m_inventory;
+    }
 
     // ========== 其他 ==========
 
     /**
      * @brief 是否愿意繁殖
      */
-    [[nodiscard]] bool isWillingToBreed() const { return m_willingToBreed; }
+    [[nodiscard]] bool isWillingToBreed() const
+    {
+        return m_willingToBreed;
+    }
 
     /**
      * @brief 设置繁殖意愿
      */
-    void setWillingToBreed(bool willing) { m_willingToBreed = willing; }
+    void setWillingToBreed(bool willing)
+    {
+        m_willingToBreed = willing;
+    }
 
     /**
      * @brief 重置繁殖意愿
@@ -270,7 +313,10 @@ public:
     /**
      * @brief 获取当前交易对象（IMerchant 接口）
      */
-    [[nodiscard]] Player* getTradingPlayer() const override { return m_tradingPlayer; }
+    [[nodiscard]] Player* getTradingPlayer() const override
+    {
+        return m_tradingPlayer;
+    }
 
     /**
      * @brief 开始交易（IMerchant 接口）
@@ -285,17 +331,26 @@ public:
     /**
      * @brief 是否正在交易（IMerchant 接口）
      */
-    [[nodiscard]] bool isTrading() const override { return m_tradingPlayer != nullptr; }
+    [[nodiscard]] bool isTrading() const override
+    {
+        return m_tradingPlayer != nullptr;
+    }
 
     /**
      * @brief 获取经验值（IMerchant 接口）
      */
-    [[nodiscard]] i32 getExperience() const override { return m_experience; }
+    [[nodiscard]] i32 getExperience() const override
+    {
+        return m_experience;
+    }
 
     /**
      * @brief 设置经验值（IMerchant 接口）
      */
-    void setExperience(i32 exp) override { m_experience = exp; }
+    void setExperience(i32 exp) override
+    {
+        m_experience = exp;
+    }
 
     /**
      * @brief 增加经验值（IMerchant 接口）
@@ -325,22 +380,34 @@ public:
     /**
      * @brief 获取村民经验值（IMerchant 接口）
      */
-    [[nodiscard]] i32 getVillagerXp() const override { return m_experience; }
+    [[nodiscard]] i32 getVillagerXp() const override
+    {
+        return m_experience;
+    }
 
     /**
      * @brief 覆盖经验值（IMerchant 接口）
      */
-    void overrideXp(i32 xp) override { m_experience = xp; }
+    void overrideXp(i32 xp) override
+    {
+        m_experience = xp;
+    }
 
     /**
      * @brief 是否显示经验进度条（IMerchant 接口）
      */
-    [[nodiscard]] bool showProgressBar() const override { return true; }
+    [[nodiscard]] bool showProgressBar() const override
+    {
+        return true;
+    }
 
     /**
      * @brief 是否可以补货（IMerchant 接口）
      */
-    [[nodiscard]] bool canRestock() const override { return true; }
+    [[nodiscard]] bool canRestock() const override
+    {
+        return true;
+    }
 
     /**
      * @brief 是否在客户端（IMerchant 接口）
@@ -355,8 +422,15 @@ public:
     /**
      * @brief 获取商人对应的实体（IMerchant 接口）
      */
-    [[nodiscard]] Entity* asEntity() override { return this; }
-    [[nodiscard]] const Entity* asEntity() const override { return this; }
+    [[nodiscard]] Entity* asEntity() override
+    {
+        return this;
+    }
+
+    [[nodiscard]] const Entity* asEntity() const override
+    {
+        return this;
+    }
 
     /**
      * @brief 通知交易执行后的经验奖励（子类实现）

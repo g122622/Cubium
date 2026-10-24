@@ -59,7 +59,10 @@ namespace {
 
 class InteractTaskMemoryTest : public ::testing::Test {
 protected:
-    void SetUp() override { MemoryModuleTypes::initialize(); }
+    void SetUp() override
+    {
+        MemoryModuleTypes::initialize();
+    }
 };
 
 // 测试：InteractWithDoorTask 的记忆需求
@@ -153,19 +156,26 @@ TEST_F(InteractTaskMemoryTest, PickupItemTaskMemoryRequirements)
 
 class SensorUsedMemoriesTest : public ::testing::Test {
 protected:
-    void SetUp() override { MemoryModuleTypes::initialize(); }
+    void SetUp() override
+    {
+        MemoryModuleTypes::initialize();
+    }
 };
 
 // 测试：TemptingPlayerSensor 报告的记忆需求
 TEST_F(SensorUsedMemoriesTest, TemptingPlayerSensorUsedMemories)
 {
     using namespace mc::entity::ai::brain::sensor;
-    TemptingPlayerSensor<VillagerEntity> sensor([](const ItemStack&) { return false; });
+    TemptingPlayerSensor<VillagerEntity> sensor([](const ItemStack&) {
+        return false;
+    });
     auto usedMemories = sensor.getUsedMemories();
 
     bool hasTemptingPlayer = false;
     for (auto* mem : usedMemories) {
-        if (mem == MemoryModuleTypes::TEMPTING_PLAYER) hasTemptingPlayer = true;
+        if (mem == MemoryModuleTypes::TEMPTING_PLAYER) {
+            hasTemptingPlayer = true;
+        }
     }
 
     EXPECT_TRUE(hasTemptingPlayer) << "TemptingPlayerSensor 应使用 TEMPTING_PLAYER 记忆";
@@ -181,8 +191,12 @@ TEST_F(SensorUsedMemoriesTest, InteractableDoorsSensorUsedMemories)
     bool hasDoors = false;
     bool hasOpenedDoors = false;
     for (auto* mem : usedMemories) {
-        if (mem == MemoryModuleTypes::INTERACTABLE_DOORS) hasDoors = true;
-        if (mem == MemoryModuleTypes::OPENED_DOORS) hasOpenedDoors = true;
+        if (mem == MemoryModuleTypes::INTERACTABLE_DOORS) {
+            hasDoors = true;
+        }
+        if (mem == MemoryModuleTypes::OPENED_DOORS) {
+            hasOpenedDoors = true;
+        }
     }
 
     EXPECT_TRUE(hasDoors) << "InteractableDoorsSensor 应使用 INTERACTABLE_DOORS 记忆";
@@ -198,7 +212,9 @@ TEST_F(SensorUsedMemoriesTest, OwnerHurtBySensorUsedMemories)
 
     bool hasOwnerHurtBy = false;
     for (auto* mem : usedMemories) {
-        if (mem == MemoryModuleTypes::OWNER_HURT_BY) hasOwnerHurtBy = true;
+        if (mem == MemoryModuleTypes::OWNER_HURT_BY) {
+            hasOwnerHurtBy = true;
+        }
     }
 
     EXPECT_TRUE(hasOwnerHurtBy) << "OwnerHurtBySensor 应使用 OWNER_HURT_BY 记忆";
@@ -209,12 +225,19 @@ TEST_F(SensorUsedMemoriesTest, TemptingPlayerSensorCustomConfig)
 {
     using namespace mc::entity::ai::brain::sensor;
     // 自定义范围=15.0f，间隔=40
-    TemptingPlayerSensor<VillagerEntity> sensor([](const ItemStack&) { return false; }, 15.0f, 40);
+    TemptingPlayerSensor<VillagerEntity> sensor(
+        [](const ItemStack&) {
+            return false;
+        },
+        15.0f,
+        40);
     auto usedMemories = sensor.getUsedMemories();
 
     bool hasTemptingPlayer = false;
     for (auto* mem : usedMemories) {
-        if (mem == MemoryModuleTypes::TEMPTING_PLAYER) hasTemptingPlayer = true;
+        if (mem == MemoryModuleTypes::TEMPTING_PLAYER) {
+            hasTemptingPlayer = true;
+        }
     }
     EXPECT_TRUE(hasTemptingPlayer);
 }
@@ -225,7 +248,10 @@ TEST_F(SensorUsedMemoriesTest, TemptingPlayerSensorCustomConfig)
 
 class VillagerBrainIntegrationTest : public ::testing::Test {
 protected:
-    void SetUp() override { MemoryModuleTypes::initialize(); }
+    void SetUp() override
+    {
+        MemoryModuleTypes::initialize();
+    }
 };
 
 // 测试：VillagerEntity 的 Brain 注册了必要的交互记忆模块

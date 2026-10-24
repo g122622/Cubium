@@ -116,7 +116,10 @@ public:
     /**
      * @brief 获取已吃的片数
      */
-    [[nodiscard]] static i32 getBites(const BlockState& state) { return state.get(BlockStateProperties::BITES_0_6()); }
+    [[nodiscard]] static i32 getBites(const BlockState& state)
+    {
+        return state.get(BlockStateProperties::BITES_0_6());
+    }
 
     /**
      * @brief 尝试吃蛋糕

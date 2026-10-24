@@ -103,7 +103,9 @@ TEST_F(BiomeFilterTest, NetherStructureSet_SkippedInOverworldBiome)
     bool anyNetherStructureValidInPlains = false;
     for (const auto& entry : entries) {
         const auto* structure = world::gen::structure::StructureRegistry::get(entry.structureId);
-        if (!structure) continue; // 未注册的结构跳过
+        if (!structure) {
+            continue; // 未注册的结构跳过
+        }
         if (structure->isValidBiome(Biomes::Plains)) {
             anyNetherStructureValidInPlains = true;
             break;
@@ -121,16 +123,22 @@ TEST_F(BiomeFilterTest, OverworldStructureSet_CompatibleWithOverworldBiome)
     bool foundCompatible = false;
     const auto& allSets = world::gen::structure::StructureSetRegistry::instance().getAll();
     for (const auto& setPtr : allSets) {
-        if (!setPtr) continue;
+        if (!setPtr) {
+            continue;
+        }
         for (const auto& entry : setPtr->entries()) {
             const auto* structure = world::gen::structure::StructureRegistry::get(entry.structureId);
-            if (!structure) continue;
+            if (!structure) {
+                continue;
+            }
             if (structure->isValidBiome(Biomes::Plains)) {
                 foundCompatible = true;
                 break;
             }
         }
-        if (foundCompatible) break;
+        if (foundCompatible) {
+            break;
+        }
     }
     EXPECT_TRUE(foundCompatible) << "At least one registered structure should be valid in Plains biome";
 }
@@ -147,10 +155,14 @@ TEST_F(BiomeFilterTest, StructureWithNullBiomeTag_TreatedAsIncompatible)
     // 遍历所有注册结构，验证 isValidBiome 不会崩溃
     const auto& allSets = world::gen::structure::StructureSetRegistry::instance().getAll();
     for (const auto& setPtr : allSets) {
-        if (!setPtr) continue;
+        if (!setPtr) {
+            continue;
+        }
         for (const auto& entry : setPtr->entries()) {
             const auto* structure = world::gen::structure::StructureRegistry::get(entry.structureId);
-            if (!structure) continue;
+            if (!structure) {
+                continue;
+            }
             // biomeTag() 返回 nullptr 意味着结构无法在已知生物群系中生成
             // 但我们不应该崩溃
             structure->isValidBiome(Biomes::Plains); // 不崩溃即可
@@ -184,8 +196,12 @@ TEST_F(BiomeFilterTest, MultiNoiseBiomeSource_ContainsManyOverworldBiomes)
     bool hasPlains = false;
     bool hasDesert = false;
     for (BiomeId id : possibleBiomes) {
-        if (id == Biomes::Plains) hasPlains = true;
-        if (id == Biomes::Desert) hasDesert = true;
+        if (id == Biomes::Plains) {
+            hasPlains = true;
+        }
+        if (id == Biomes::Desert) {
+            hasDesert = true;
+        }
     }
     EXPECT_TRUE(hasPlains) << "Overworld should contain Plains";
     EXPECT_TRUE(hasDesert) << "Overworld should contain Desert";
@@ -221,14 +237,18 @@ TEST_F(BiomeFilterTest, GenerateStructureStarts_NetherBiomeSource_NetherStructur
     bool hasCompatible = false;
     for (const auto& entry : netherComplexSet->entries()) {
         const auto* structure = world::gen::structure::StructureRegistry::get(entry.structureId);
-        if (!structure) continue;
+        if (!structure) {
+            continue;
+        }
         for (BiomeId biomeId : possibleBiomes) {
             if (structure->isValidBiome(biomeId)) {
                 hasCompatible = true;
                 break;
             }
         }
-        if (hasCompatible) break;
+        if (hasCompatible) {
+            break;
+        }
     }
     EXPECT_TRUE(hasCompatible) << "Nether structure should be compatible with nether biomes";
 }
@@ -278,10 +298,14 @@ TEST_F(BiomeFilterTest, isValidBiome_ConsistentWithBiomeTag)
     // 验证 Structure::isValidBiome 与 BiomeTag::contains 行为一致
     const auto& allSets = world::gen::structure::StructureSetRegistry::instance().getAll();
     for (const auto& setPtr : allSets) {
-        if (!setPtr) continue;
+        if (!setPtr) {
+            continue;
+        }
         for (const auto& entry : setPtr->entries()) {
             const auto* structure = world::gen::structure::StructureRegistry::get(entry.structureId);
-            if (!structure) continue;
+            if (!structure) {
+                continue;
+            }
 
             const world::biome::BiomeTag* tag = structure->biomeTag();
             if (!tag) {

@@ -64,13 +64,22 @@ public:
 
     // ========== BlockEntity 接口 ==========
 
-    [[nodiscard]] bool needsTick() const noexcept override { return true; }
+    [[nodiscard]] bool needsTick() const noexcept override
+    {
+        return true;
+    }
+
     void tick(IWorld& world) override;
     bool load(const nlohmann::json& data) override;
     void save(nlohmann::json& data) const override;
     bool loadFromNBT(const nbt::CompoundTag& tag) override;
     void saveToNBT(nbt::CompoundTag& tag) const override;
-    [[nodiscard]] bool onlyOpsCanSetNbt() const noexcept override { return true; }
+
+    [[nodiscard]] bool onlyOpsCanSetNbt() const noexcept override
+    {
+        return true;
+    }
+
     [[nodiscard]] std::unique_ptr<BlockEntity> clone() const override;
     [[nodiscard]] bool triggerEvent(i32 id, i32 type) override;
 
@@ -105,27 +114,75 @@ public:
 
     // ========== 参数访问 ==========
 
-    [[nodiscard]] i32 getMinSpawnDelay() const { return m_minSpawnDelay; }
-    void setMinSpawnDelay(i32 delay) { m_minSpawnDelay = delay; }
+    [[nodiscard]] i32 getMinSpawnDelay() const
+    {
+        return m_minSpawnDelay;
+    }
 
-    [[nodiscard]] i32 getMaxSpawnDelay() const { return m_maxSpawnDelay; }
-    void setMaxSpawnDelay(i32 delay) { m_maxSpawnDelay = delay; }
+    void setMinSpawnDelay(i32 delay)
+    {
+        m_minSpawnDelay = delay;
+    }
 
-    [[nodiscard]] i32 getSpawnCount() const { return m_spawnCount; }
-    void setSpawnCount(i32 count) { m_spawnCount = count; }
+    [[nodiscard]] i32 getMaxSpawnDelay() const
+    {
+        return m_maxSpawnDelay;
+    }
 
-    [[nodiscard]] i32 getMaxNearbyEntities() const { return m_maxNearbyEntities; }
-    void setMaxNearbyEntities(i32 max) { m_maxNearbyEntities = max; }
+    void setMaxSpawnDelay(i32 delay)
+    {
+        m_maxSpawnDelay = delay;
+    }
 
-    [[nodiscard]] i32 getRequiredPlayerRange() const { return m_requiredPlayerRange; }
-    void setRequiredPlayerRange(i32 range) { m_requiredPlayerRange = range; }
+    [[nodiscard]] i32 getSpawnCount() const
+    {
+        return m_spawnCount;
+    }
 
-    [[nodiscard]] i32 getSpawnRange() const { return m_spawnRange; }
-    void setSpawnRange(i32 range) { m_spawnRange = range; }
+    void setSpawnCount(i32 count)
+    {
+        m_spawnCount = count;
+    }
 
-    [[nodiscard]] const std::vector<SpawnEntry>& getSpawnPotentials() const { return m_spawnPotentials; }
+    [[nodiscard]] i32 getMaxNearbyEntities() const
+    {
+        return m_maxNearbyEntities;
+    }
 
-    [[nodiscard]] const ResourceLocation& getNextEntityId() const { return m_nextEntityId; }
+    void setMaxNearbyEntities(i32 max)
+    {
+        m_maxNearbyEntities = max;
+    }
+
+    [[nodiscard]] i32 getRequiredPlayerRange() const
+    {
+        return m_requiredPlayerRange;
+    }
+
+    void setRequiredPlayerRange(i32 range)
+    {
+        m_requiredPlayerRange = range;
+    }
+
+    [[nodiscard]] i32 getSpawnRange() const
+    {
+        return m_spawnRange;
+    }
+
+    void setSpawnRange(i32 range)
+    {
+        m_spawnRange = range;
+    }
+
+    [[nodiscard]] const std::vector<SpawnEntry>& getSpawnPotentials() const
+    {
+        return m_spawnPotentials;
+    }
+
+    [[nodiscard]] const ResourceLocation& getNextEntityId() const
+    {
+        return m_nextEntityId;
+    }
 
 private:
     // ========== 生成逻辑 ==========

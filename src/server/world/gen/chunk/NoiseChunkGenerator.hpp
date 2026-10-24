@@ -102,10 +102,23 @@ public:
     [[nodiscard]] BiomeId getBiome(i32 x, i32 y, i32 z) const override;
     [[nodiscard]] BiomeId getNoiseBiome(i32 noiseX, i32 noiseY, i32 noiseZ) const override;
     [[nodiscard]] i32 getHeight(i32 x, i32 z, HeightmapType type) const override;
-    [[nodiscard]] i32 getGroundHeight() const override { return m_settings.seaLevel + 1; }
+
+    [[nodiscard]] i32 getGroundHeight() const override
+    {
+        return m_settings.seaLevel + 1;
+    }
+
     [[nodiscard]] NoiseColumn getBaseColumn(i32 x, i32 z) const override;
-    [[nodiscard]] i32 getGenDepth() const override { return m_settings.noise.height; }
-    [[nodiscard]] i32 getMinY() const override { return m_settings.noise.minY; }
+
+    [[nodiscard]] i32 getGenDepth() const override
+    {
+        return m_settings.noise.height;
+    }
+
+    [[nodiscard]] i32 getMinY() const override
+    {
+        return m_settings.noise.minY;
+    }
 
     // === 生物群系源 ===
 
@@ -121,8 +134,15 @@ public:
                                          : world::biome::Biomes::Plains;
     }
 
-    [[nodiscard]] world::biome::IBiomeSource* getBiomeSource() override { return m_biomeSource.get(); }
-    [[nodiscard]] const world::biome::IBiomeSource* getBiomeSource() const override { return m_biomeSource.get(); }
+    [[nodiscard]] world::biome::IBiomeSource* getBiomeSource() override
+    {
+        return m_biomeSource.get();
+    }
+
+    [[nodiscard]] const world::biome::IBiomeSource* getBiomeSource() const override
+    {
+        return m_biomeSource.get();
+    }
 
     // === 结构缓存 ===
 
@@ -130,6 +150,7 @@ public:
     {
         return m_structureManager ? &m_structureManager->structureCheck() : nullptr;
     }
+
     [[nodiscard]] const world::gen::structure::StructureCheck* structureCheck() const override
     {
         return m_structureManager ? &m_structureManager->structureCheck() : nullptr;
@@ -156,7 +177,10 @@ public:
      *
      * @return 随机状态共享指针
      */
-    [[nodiscard]] const std::shared_ptr<world::gen::RandomState>& randomState() const { return m_randomState; }
+    [[nodiscard]] const std::shared_ptr<world::gen::RandomState>& randomState() const
+    {
+        return m_randomState;
+    }
 
     // === 结构地形平滑 ===
 

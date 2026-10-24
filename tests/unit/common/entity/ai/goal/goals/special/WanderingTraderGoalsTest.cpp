@@ -50,11 +50,25 @@ public:
         , m_currentTick(0)
     {}
 
-    void setDayTime(i64 time) { m_dayTime = time; }
-    void setCurrentTick(u64 tick) { m_currentTick = tick; }
+    void setDayTime(i64 time)
+    {
+        m_dayTime = time;
+    }
 
-    [[nodiscard]] i64 dayTime() const override { return m_dayTime; }
-    [[nodiscard]] u64 currentTick() const override { return m_currentTick; }
+    void setCurrentTick(u64 tick)
+    {
+        m_currentTick = tick;
+    }
+
+    [[nodiscard]] i64 dayTime() const override
+    {
+        return m_dayTime;
+    }
+
+    [[nodiscard]] u64 currentTick() const override
+    {
+        return m_currentTick;
+    }
 
 private:
     i64 m_dayTime = 0;
@@ -366,7 +380,9 @@ TEST_F(UseItemGoalTest, Construction)
     ItemStack stack(Items::POTION, 1);
     ResourceLocation sound("entity.wandering_trader.drink");
 
-    auto condition = [](MobEntity*) -> bool { return true; };
+    auto condition = [](MobEntity*) -> bool {
+        return true;
+    };
     auto goal = std::make_unique<UseItemGoal>(m_trader.get(), stack, sound, condition);
     EXPECT_NE(goal, nullptr);
     EXPECT_EQ(goal->getTypeName(), "UseItemGoal");
@@ -378,7 +394,9 @@ TEST_F(UseItemGoalTest, MutexFlags)
     ItemStack stack(Items::POTION, 1);
     ResourceLocation sound("entity.wandering_trader.drink");
 
-    auto condition = [](MobEntity*) -> bool { return true; };
+    auto condition = [](MobEntity*) -> bool {
+        return true;
+    };
     auto goal = std::make_unique<UseItemGoal>(m_trader.get(), stack, sound, condition);
 
     // UseItemGoal 应该只有 Look 标志
@@ -396,7 +414,9 @@ TEST_F(UseItemGoalTest, ShouldExecuteWithTrueCondition)
     ResourceLocation sound("entity.wandering_trader.drink");
 
     // 条件始终为真
-    auto condition = [](MobEntity*) -> bool { return true; };
+    auto condition = [](MobEntity*) -> bool {
+        return true;
+    };
     auto goal = std::make_unique<UseItemGoal>(m_trader.get(), stack, sound, condition);
 
     EXPECT_TRUE(goal->shouldExecute());
@@ -409,7 +429,9 @@ TEST_F(UseItemGoalTest, ShouldNotExecuteWithFalseCondition)
     ResourceLocation sound("entity.wandering_trader.drink");
 
     // 条件始终为假
-    auto condition = [](MobEntity*) -> bool { return false; };
+    auto condition = [](MobEntity*) -> bool {
+        return false;
+    };
     auto goal = std::make_unique<UseItemGoal>(m_trader.get(), stack, sound, condition);
 
     EXPECT_FALSE(goal->shouldExecute());
@@ -425,7 +447,9 @@ TEST_F(UseItemGoalTest, ConditionPreventsReExecution)
     ResourceLocation sound("entity.wandering_trader.drink");
 
     bool conditionResult = true;
-    auto condition = [&conditionResult](MobEntity*) -> bool { return conditionResult; };
+    auto condition = [&conditionResult](MobEntity*) -> bool {
+        return conditionResult;
+    };
     auto goal = std::make_unique<UseItemGoal>(m_trader.get(), stack, sound, condition);
 
     // 条件为真时可以执行
@@ -471,7 +495,9 @@ TEST_F(UseItemGoalTest, ShouldContinueExecutingWhenUsingItem)
     ItemStack stack(Items::POTION, 1);
     ResourceLocation sound("entity.wandering_trader.drink");
 
-    auto condition = [](MobEntity*) -> bool { return true; };
+    auto condition = [](MobEntity*) -> bool {
+        return true;
+    };
     auto goal = std::make_unique<UseItemGoal>(m_trader.get(), stack, sound, condition);
 
     // 未调用 startExecuting 时，实体未在使用物品，shouldContinueExecuting 应为 false
@@ -498,7 +524,9 @@ TEST_F(UseItemGoalTest, StartExecutingSetsMainHandItem)
     ItemStack stack(Items::MILK_BUCKET, 1);
     ResourceLocation sound("entity.wandering_trader.drink");
 
-    auto condition = [](MobEntity*) -> bool { return true; };
+    auto condition = [](MobEntity*) -> bool {
+        return true;
+    };
     auto goal = std::make_unique<UseItemGoal>(m_trader.get(), stack, sound, condition);
 
     // 主手初始应为空
@@ -523,7 +551,9 @@ TEST_F(UseItemGoalTest, ResetTaskClearsMainHandItem)
     ItemStack stack(Items::MILK_BUCKET, 1);
     ResourceLocation sound("entity.wandering_trader.drink");
 
-    auto condition = [](MobEntity*) -> bool { return true; };
+    auto condition = [](MobEntity*) -> bool {
+        return true;
+    };
     auto goal = std::make_unique<UseItemGoal>(m_trader.get(), stack, sound, condition);
 
     // startExecuting 后主手为牛奶桶（非空），处于使用状态

@@ -102,7 +102,9 @@ void MiningManager::startMining(PlayerId playerId, const BlockPos& pos, EntityIn
         playerId,
         "pos",
         pos.toString(),
-        [flow = ::perfetto::Flow::ProcessScoped(pos.toId())](::perfetto::EventContext ctx) { flow(ctx); });
+        [flow = ::perfetto::Flow::ProcessScoped(pos.toId())](::perfetto::EventContext ctx) {
+            flow(ctx);
+        });
 
     auto& state = m_miningStates[playerId];
     state.position = pos;
@@ -262,8 +264,9 @@ void MiningManager::tick(ServerWorld& world)
                 playerId,
                 "pos",
                 state.position.toString(),
-                [flow = ::perfetto::Flow::ProcessScoped(state.position.toId())](
-                    ::perfetto::EventContext ctx) { flow(ctx); });
+                [flow = ::perfetto::Flow::ProcessScoped(state.position.toId())](::perfetto::EventContext ctx) {
+                    flow(ctx);
+                });
 
             // 调用挖掘完成回调
             if (m_onMiningComplete) {
@@ -306,7 +309,9 @@ bool MiningManager::tryCompleteMining(PlayerId playerId, const BlockPos& pos, Se
         playerId,
         "pos",
         pos.toString(),
-        [flow = ::perfetto::Flow::ProcessScoped(pos.toId())](::perfetto::EventContext ctx) { flow(ctx); });
+        [flow = ::perfetto::Flow::ProcessScoped(pos.toId())](::perfetto::EventContext ctx) {
+            flow(ctx);
+        });
 
     // 容错：状态不存在直接返回 false（对齐原版 :210 equals(destroyPos) 守卫）。
     // 此前为 MC_ASSERT_RELEASE(it != end())，STOP 乱序/重复/creative 已 erase 后到达会触发断言崩溃，
@@ -379,7 +384,9 @@ f32 MiningManager::_calculateMiningSpeed(ServerWorld& world, const BlockPos& pos
         pos.toString(),
         "playerId",
         playerId,
-        [flow = ::perfetto::Flow::ProcessScoped(pos.toId())](::perfetto::EventContext ctx) { flow(ctx); });
+        [flow = ::perfetto::Flow::ProcessScoped(pos.toId())](::perfetto::EventContext ctx) {
+            flow(ctx);
+        });
 
     // 1. 获取方块状态
     const BlockState* state = world.getBlockState(pos);

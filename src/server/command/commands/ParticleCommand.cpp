@@ -51,17 +51,23 @@ namespace command {
 void ParticleCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
 {
     auto particleNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("particle");
-    particleNode->setRequirement([](const ServerCommandSource& source) { return source.hasPermission(2); });
+    particleNode->setRequirement([](const ServerCommandSource& source) {
+        return source.hasPermission(2);
+    });
     support::applyMetadata(particleNode,
         support::makeMetadata("Creates particles at a position.", "/particle <name> [<pos>]", 2, {}, true));
 
     auto nameArg =
         std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>("name", StringArgumentType::string());
-    nameArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _spawnParticle(ctx); });
+    nameArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _spawnParticle(ctx);
+    });
 
     auto posArg =
         std::make_shared<ArgumentCommandNode<ServerCommandSource, Coordinates::Ptr>>("pos", Vec3ArgumentType::vec3());
-    posArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _spawnParticle(ctx); });
+    posArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _spawnParticle(ctx);
+    });
 
     nameArg->addChild(posArg);
     particleNode->addChild(nameArg);

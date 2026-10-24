@@ -49,10 +49,21 @@ public:
 
     [[nodiscard]] ItemStack apply(ItemStack stack, LootContext& context) const override;
     [[nodiscard]] std::unique_ptr<LootFunction> clone() const noexcept override;
-    [[nodiscard]] std::string getType() const override { return "set_damage"; }
 
-    [[nodiscard]] const RandomValueRange& getDurability() const { return m_durability; }
-    [[nodiscard]] bool isAdd() const { return m_add; }
+    [[nodiscard]] std::string getType() const override
+    {
+        return "set_damage";
+    }
+
+    [[nodiscard]] const RandomValueRange& getDurability() const
+    {
+        return m_durability;
+    }
+
+    [[nodiscard]] bool isAdd() const
+    {
+        return m_add;
+    }
 
 private:
     RandomValueRange m_durability; // 损坏程度范围（0.0 = 完好，1.0 = 完全损坏）

@@ -39,21 +39,67 @@ namespace {
  */
 class MockWorldForLightLevel final : public BaseTestWorld {
 public:
-    void setSkyLightValue(u8 value) { m_skyLightValue = value; }
-    void setBlockLightValue(u8 value) { m_blockLightValue = value; }
-    void setDayTime(i64 value) { m_dayTime = value; }
-    void setRaining(bool value) { m_raining = value; }
-    void setThundering(bool value) { m_thundering = value; }
-    void setHasSkyLight(bool value) { m_hasSkyLight = value; }
+    void setSkyLightValue(u8 value)
+    {
+        m_skyLightValue = value;
+    }
+
+    void setBlockLightValue(u8 value)
+    {
+        m_blockLightValue = value;
+    }
+
+    void setDayTime(i64 value)
+    {
+        m_dayTime = value;
+    }
+
+    void setRaining(bool value)
+    {
+        m_raining = value;
+    }
+
+    void setThundering(bool value)
+    {
+        m_thundering = value;
+    }
+
+    void setHasSkyLight(bool value)
+    {
+        m_hasSkyLight = value;
+    }
 
     // ========== IWorld 接口实现 ==========
 
-    [[nodiscard]] u8 getSkyLight(i32, i32, i32) const override { return m_skyLightValue; }
-    [[nodiscard]] u8 getBlockLight(i32, i32, i32) const override { return m_blockLightValue; }
-    [[nodiscard]] i64 dayTime() const override { return m_dayTime; }
-    [[nodiscard]] bool isRaining() const override { return m_raining; }
-    [[nodiscard]] bool isThundering() const override { return m_thundering; }
-    [[nodiscard]] bool hasSkyLight() const override { return m_hasSkyLight; }
+    [[nodiscard]] u8 getSkyLight(i32, i32, i32) const override
+    {
+        return m_skyLightValue;
+    }
+
+    [[nodiscard]] u8 getBlockLight(i32, i32, i32) const override
+    {
+        return m_blockLightValue;
+    }
+
+    [[nodiscard]] i64 dayTime() const override
+    {
+        return m_dayTime;
+    }
+
+    [[nodiscard]] bool isRaining() const override
+    {
+        return m_raining;
+    }
+
+    [[nodiscard]] bool isThundering() const override
+    {
+        return m_thundering;
+    }
+
+    [[nodiscard]] bool hasSkyLight() const override
+    {
+        return m_hasSkyLight;
+    }
 
 private:
     u8 m_skyLightValue = 15;

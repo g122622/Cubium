@@ -40,7 +40,10 @@ public:
         : BlockEntity(type, pos)
     {}
 
-    std::unique_ptr<BlockEntity> clone() const override { return std::make_unique<TestBlockEntity>(m_type, m_pos); }
+    std::unique_ptr<BlockEntity> clone() const override
+    {
+        return std::make_unique<TestBlockEntity>(m_type, m_pos);
+    }
 };
 
 // 测试用的容器方块实体
@@ -78,12 +81,30 @@ public:
         , m_inventory(kSize)
     {}
 
-    [[nodiscard]] IInventory* getInventory() override { return &m_inventory; }
-    [[nodiscard]] const IInventory* getInventory() const override { return &m_inventory; }
-    [[nodiscard]] i32 getContainerSize() const override { return m_inventory.getContainerSize(); }
+    [[nodiscard]] IInventory* getInventory() override
+    {
+        return &m_inventory;
+    }
 
-    [[nodiscard]] std::string getCustomName() const override { return m_customName; }
-    void setCustomName(const std::string& name) override { m_customName = name; }
+    [[nodiscard]] const IInventory* getInventory() const override
+    {
+        return &m_inventory;
+    }
+
+    [[nodiscard]] i32 getContainerSize() const override
+    {
+        return m_inventory.getContainerSize();
+    }
+
+    [[nodiscard]] std::string getCustomName() const override
+    {
+        return m_customName;
+    }
+
+    void setCustomName(const std::string& name) override
+    {
+        m_customName = name;
+    }
 
     std::unique_ptr<BlockEntity> clone() const override
     {

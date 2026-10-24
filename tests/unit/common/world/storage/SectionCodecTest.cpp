@@ -109,12 +109,16 @@ TEST_F(SectionKeyTest, SectionYRange)
 
 class SectionCodecTest : public ::testing::Test {
 protected:
-    void SetUp() override { mc::VanillaBlocks::initialize(); }
+    void SetUp() override
+    {
+        mc::VanillaBlocks::initialize();
+    }
 };
 
 class _capturedValue final : public rocksdb::WriteBatch::Handler {
 public:
     std::string bytes;
+
     rocksdb::Status PutCF(uint32_t, const rocksdb::Slice&, const rocksdb::Slice& value) override
     {
         bytes.assign(value.data(), value.size());

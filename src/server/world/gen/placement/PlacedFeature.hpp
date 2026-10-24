@@ -35,9 +35,11 @@ namespace mc {
 
 // 前向声明
 class WorldGenRegion;
+
 namespace world::chunk {
 class ChunkPrimer;
 }
+
 using world::chunk::ChunkPrimer;
 class IChunkGenerator;
 
@@ -86,17 +88,26 @@ public:
     /**
      * @brief 获取放置特征的 ResourceLocation id
      */
-    [[nodiscard]] const ResourceLocation& id() const noexcept { return m_id; }
+    [[nodiscard]] const ResourceLocation& id() const noexcept
+    {
+        return m_id;
+    }
 
     /**
      * @brief 获取配置化特征
      */
-    [[nodiscard]] const ConfiguredFeatureBase* feature() const noexcept { return m_feature; }
+    [[nodiscard]] const ConfiguredFeatureBase* feature() const noexcept
+    {
+        return m_feature;
+    }
 
     /**
      * @brief 获取装饰阶段（委托给配置化特征）
      */
-    [[nodiscard]] DecorationStage stage() const noexcept { return m_feature->stage(); }
+    [[nodiscard]] DecorationStage stage() const noexcept
+    {
+        return m_feature->stage();
+    }
 
 private:
     const ConfiguredFeatureBase* m_feature;

@@ -166,7 +166,10 @@ TEST_F(EntityPlayerModelTest, SetVisible_ShowsAllParts)
  */
 class PlayerModelArmRenderTest : public ::testing::Test {
 protected:
-    void SetUp() override { m_model = std::make_unique<PlayerModel>(0.0, false); }
+    void SetUp() override
+    {
+        m_model = std::make_unique<PlayerModel>(0.0, false);
+    }
 
     /**
      * @brief 计算可见部件数量
@@ -174,13 +177,27 @@ protected:
     size_t countVisibleParts()
     {
         size_t count = 0;
-        if (m_model->getModelHead()->isVisible()) count++;
-        if (m_model->getModelHeadwear()->isVisible()) count++;
-        if (m_model->getModelBody()->isVisible()) count++;
-        if (m_model->getLeftArm()->isVisible()) count++;
-        if (m_model->getRightArm()->isVisible()) count++;
-        if (m_model->getLeftLeg()->isVisible()) count++;
-        if (m_model->getRightLeg()->isVisible()) count++;
+        if (m_model->getModelHead()->isVisible()) {
+            count++;
+        }
+        if (m_model->getModelHeadwear()->isVisible()) {
+            count++;
+        }
+        if (m_model->getModelBody()->isVisible()) {
+            count++;
+        }
+        if (m_model->getLeftArm()->isVisible()) {
+            count++;
+        }
+        if (m_model->getRightArm()->isVisible()) {
+            count++;
+        }
+        if (m_model->getLeftLeg()->isVisible()) {
+            count++;
+        }
+        if (m_model->getRightLeg()->isVisible()) {
+            count++;
+        }
         return count;
     }
 
@@ -560,7 +577,10 @@ TEST_F(EntityPlayerModelTest, TranslateHand_PolymorphismDispatchesToPlayerModel)
  */
 class PlayerModelPartVisibilityTest : public ::testing::Test {
 protected:
-    void SetUp() override { m_model = std::make_unique<PlayerModel>(0.0, false); }
+    void SetUp() override
+    {
+        m_model = std::make_unique<PlayerModel>(0.0, false);
+    }
 
     std::unique_ptr<PlayerModel> m_model;
 };

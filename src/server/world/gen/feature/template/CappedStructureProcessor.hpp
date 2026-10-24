@@ -104,8 +104,15 @@ public:
 
     [[nodiscard]] std::unique_ptr<StructureProcessor> clone() const override;
 
-    [[nodiscard]] const StructureProcessor* getDelegate() const { return m_delegate.get(); }
-    [[nodiscard]] const valueprovider::IntProvider* getLimitProvider() const { return m_limitProvider.get(); }
+    [[nodiscard]] const StructureProcessor* getDelegate() const
+    {
+        return m_delegate.get();
+    }
+
+    [[nodiscard]] const valueprovider::IntProvider* getLimitProvider() const
+    {
+        return m_limitProvider.get();
+    }
 
 private:
     std::unique_ptr<StructureProcessor> m_delegate;

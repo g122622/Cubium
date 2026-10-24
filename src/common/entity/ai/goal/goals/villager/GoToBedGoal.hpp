@@ -55,7 +55,11 @@ public:
     void startExecuting() override;
     void resetTask() override;
     void tick() override;
-    [[nodiscard]] std::string getTypeName() const override { return "GoToBedGoal"; }
+
+    [[nodiscard]] std::string getTypeName() const override
+    {
+        return "GoToBedGoal";
+    }
 
 private:
     VillagerEntity* m_villager;

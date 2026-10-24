@@ -116,19 +116,52 @@ public:
         return state != nullptr ? state->getFluidState() : &fluid::Fluids::EMPTY()->defaultState();
     }
 
-    [[nodiscard]] mc::world::chunk::IChunkManager* chunkManager() override { return &m_stubChunks; }
-    [[nodiscard]] const mc::world::chunk::IChunkManager* chunkManager() const override { return &m_stubChunks; }
+    [[nodiscard]] mc::world::chunk::IChunkManager* chunkManager() override
+    {
+        return &m_stubChunks;
+    }
+
+    [[nodiscard]] const mc::world::chunk::IChunkManager* chunkManager() const override
+    {
+        return &m_stubChunks;
+    }
+
     mc::test::StubChunkManager m_stubChunks{nullptr, true};
+
     [[nodiscard]] bool isWithinWorldBounds(i32, i32 y, i32) const override
     {
         return y >= mc::world::MIN_BUILD_HEIGHT && y < mc::world::MAX_BUILD_HEIGHT;
     }
-    [[nodiscard]] u64 currentTick() const override { return m_currentTick; }
-    [[nodiscard]] Difficulty difficulty() const override { return Difficulty::Normal; }
-    [[nodiscard]] bool isClientSide() const override { return m_isClientSide; }
-    [[nodiscard]] bool isRaining() const override { return false; }
-    [[nodiscard]] bool canRainAt(const BlockPos&) const override { return false; }
-    [[nodiscard]] bool isThundering() const override { return false; }
+
+    [[nodiscard]] u64 currentTick() const override
+    {
+        return m_currentTick;
+    }
+
+    [[nodiscard]] Difficulty difficulty() const override
+    {
+        return Difficulty::Normal;
+    }
+
+    [[nodiscard]] bool isClientSide() const override
+    {
+        return m_isClientSide;
+    }
+
+    [[nodiscard]] bool isRaining() const override
+    {
+        return false;
+    }
+
+    [[nodiscard]] bool canRainAt(const BlockPos&) const override
+    {
+        return false;
+    }
+
+    [[nodiscard]] bool isThundering() const override
+    {
+        return false;
+    }
 
     EntityInstanceId spawnEntity(std::unique_ptr<Entity> entity) override
     {
@@ -157,15 +190,27 @@ public:
     {
         throw std::runtime_error("GolemTestWorld::tickManager not implemented");
     }
+
     [[nodiscard]] const world::tick::TickManager& tickManager() const override
     {
         throw std::runtime_error("GolemTestWorld::tickManager not implemented");
     }
 
     // 测试辅助方法
-    void setClientSide(bool clientSide) { m_isClientSide = clientSide; }
-    void incrementTick() { m_currentTick++; }
-    void setCurrentTick(u64 tick) { m_currentTick = tick; }
+    void setClientSide(bool clientSide)
+    {
+        m_isClientSide = clientSide;
+    }
+
+    void incrementTick()
+    {
+        m_currentTick++;
+    }
+
+    void setCurrentTick(u64 tick)
+    {
+        m_currentTick = tick;
+    }
 
     void setBlockAt(const BlockPos& pos, const BlockState* state)
     {
@@ -176,7 +221,10 @@ public:
         }
     }
 
-    void setBlockAt(i32 x, i32 y, i32 z, const BlockState* state) { setBlockAt(BlockPos(x, y, z), state); }
+    void setBlockAt(i32 x, i32 y, i32 z, const BlockState* state)
+    {
+        setBlockAt(BlockPos(x, y, z), state);
+    }
 
     void setIronBlockAt(i32 x, i32 y, i32 z)
     {
@@ -206,9 +254,15 @@ public:
         }
     }
 
-    void clearBlocks() { m_blocks.clear(); }
+    void clearBlocks()
+    {
+        m_blocks.clear();
+    }
 
-    [[nodiscard]] size_t spawnedEntityCount() const { return m_spawnedEntities.size(); }
+    [[nodiscard]] size_t spawnedEntityCount() const
+    {
+        return m_spawnedEntities.size();
+    }
 
     [[nodiscard]] Entity* getSpawnedEntity(size_t index) const
     {
@@ -224,9 +278,21 @@ public:
         m_spawnedEntityPtrs.clear();
     }
 
-    [[nodiscard]] bool wasSoundPlayed() const { return m_soundPlayed; }
-    [[nodiscard]] i32 getLastEventId() const { return m_lastEventId; }
-    [[nodiscard]] i32 getEventCount() const { return m_eventCount; }
+    [[nodiscard]] bool wasSoundPlayed() const
+    {
+        return m_soundPlayed;
+    }
+
+    [[nodiscard]] i32 getLastEventId() const
+    {
+        return m_lastEventId;
+    }
+
+    [[nodiscard]] i32 getEventCount() const
+    {
+        return m_eventCount;
+    }
+
     void resetEventCount()
     {
         m_eventCount = 0;

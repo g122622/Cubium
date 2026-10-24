@@ -95,7 +95,10 @@ public:
     /**
      * @brief 获取处理器类型ID
      */
-    [[nodiscard]] virtual u32 getProcessorType() const { return 0; }
+    [[nodiscard]] virtual u32 getProcessorType() const
+    {
+        return 0;
+    }
 };
 
 /**
@@ -106,8 +109,16 @@ public:
     StructureProcessorList() = default;
 
     void addProcessor(std::unique_ptr<StructureProcessor> processor);
-    [[nodiscard]] size_t size() const { return m_processors.size(); }
-    [[nodiscard]] bool empty() const { return m_processors.empty(); }
+
+    [[nodiscard]] size_t size() const
+    {
+        return m_processors.size();
+    }
+
+    [[nodiscard]] bool empty() const
+    {
+        return m_processors.empty();
+    }
 
     /**
      * @brief 深拷贝处理器列表
@@ -122,19 +133,31 @@ public:
      *
      * 用于遍历处理器进行克隆或查询。
      */
-    [[nodiscard]] const std::vector<std::unique_ptr<StructureProcessor>>& getProcessors() const { return m_processors; }
+    [[nodiscard]] const std::vector<std::unique_ptr<StructureProcessor>>& getProcessors() const
+    {
+        return m_processors;
+    }
 
     // 迭代器支持
     [[nodiscard]] std::vector<std::unique_ptr<StructureProcessor>>::const_iterator begin() const
     {
         return m_processors.begin();
     }
+
     [[nodiscard]] std::vector<std::unique_ptr<StructureProcessor>>::const_iterator end() const
     {
         return m_processors.end();
     }
-    [[nodiscard]] std::vector<std::unique_ptr<StructureProcessor>>::iterator begin() { return m_processors.begin(); }
-    [[nodiscard]] std::vector<std::unique_ptr<StructureProcessor>>::iterator end() { return m_processors.end(); }
+
+    [[nodiscard]] std::vector<std::unique_ptr<StructureProcessor>>::iterator begin()
+    {
+        return m_processors.begin();
+    }
+
+    [[nodiscard]] std::vector<std::unique_ptr<StructureProcessor>>::iterator end()
+    {
+        return m_processors.end();
+    }
 
     [[nodiscard]] std::optional<ProcessedBlockInfo> process(const BlockPos& seedPos,
         const BlockPos& pos,

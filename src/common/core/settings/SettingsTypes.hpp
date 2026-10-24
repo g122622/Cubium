@@ -155,9 +155,15 @@ public:
         , m_default(defaultValue)
     {}
 
-    [[nodiscard]] std::string getKey() const override { return m_key; }
+    [[nodiscard]] std::string getKey() const override
+    {
+        return m_key;
+    }
 
-    [[nodiscard]] SettingsValue getValue() const override { return m_value; }
+    [[nodiscard]] SettingsValue getValue() const override
+    {
+        return m_value;
+    }
 
     bool setValue(const SettingsValue& value) override
     {
@@ -168,7 +174,10 @@ public:
         return false;
     }
 
-    void serialize(nlohmann::json& j) const override { j[m_key] = m_value; }
+    void serialize(nlohmann::json& j) const override
+    {
+        j[m_key] = m_value;
+    }
 
     void deserialize(const nlohmann::json& j) override
     {
@@ -177,16 +186,25 @@ public:
         }
     }
 
-    void reset() override { set(m_default); }
+    void reset() override
+    {
+        set(m_default);
+    }
 
-    [[nodiscard]] bool isDefault() const override { return m_value == m_default; }
+    [[nodiscard]] bool isDefault() const override
+    {
+        return m_value == m_default;
+    }
 
     // 便捷方法
 
     /**
      * @brief 获取当前布尔值
      */
-    [[nodiscard]] bool get() const { return m_value; }
+    [[nodiscard]] bool get() const
+    {
+        return m_value;
+    }
 
     /**
      * @brief 设置布尔值
@@ -205,13 +223,19 @@ public:
     /**
      * @brief 隐式转换为布尔值
      */
-    [[nodiscard]] operator bool() const { return m_value; }
+    [[nodiscard]] operator bool() const
+    {
+        return m_value;
+    }
 
     /**
      * @brief 设置变更回调
      * @param callback 变更时调用的函数
      */
-    void onChange(SettingsCallback<bool> callback) { m_callback = std::move(callback); }
+    void onChange(SettingsCallback<bool> callback)
+    {
+        m_callback = std::move(callback);
+    }
 
 private:
     std::string m_key;
@@ -257,9 +281,15 @@ public:
         , m_default(clamp(defaultValue))
     {}
 
-    [[nodiscard]] std::string getKey() const override { return m_key; }
+    [[nodiscard]] std::string getKey() const override
+    {
+        return m_key;
+    }
 
-    [[nodiscard]] SettingsValue getValue() const override { return m_value; }
+    [[nodiscard]] SettingsValue getValue() const override
+    {
+        return m_value;
+    }
 
     bool setValue(const SettingsValue& value) override
     {
@@ -275,7 +305,10 @@ public:
         return false;
     }
 
-    void serialize(nlohmann::json& j) const override { j[m_key] = m_value; }
+    void serialize(nlohmann::json& j) const override
+    {
+        j[m_key] = m_value;
+    }
 
     void deserialize(const nlohmann::json& j) override
     {
@@ -288,16 +321,25 @@ public:
         }
     }
 
-    void reset() override { set(m_default); }
+    void reset() override
+    {
+        set(m_default);
+    }
 
-    [[nodiscard]] bool isDefault() const override { return m_value == m_default; }
+    [[nodiscard]] bool isDefault() const override
+    {
+        return m_value == m_default;
+    }
 
     // 便捷方法
 
     /**
      * @brief 获取当前整数值
      */
-    [[nodiscard]] i32 get() const { return m_value; }
+    [[nodiscard]] i32 get() const
+    {
+        return m_value;
+    }
 
     /**
      * @brief 设置整数值
@@ -317,27 +359,42 @@ public:
     /**
      * @brief 隐式转换为整数
      */
-    [[nodiscard]] operator i32() const { return m_value; }
+    [[nodiscard]] operator i32() const
+    {
+        return m_value;
+    }
 
     /**
      * @brief 获取最小值
      */
-    [[nodiscard]] i32 min() const { return m_min; }
+    [[nodiscard]] i32 min() const
+    {
+        return m_min;
+    }
 
     /**
      * @brief 获取最大值
      */
-    [[nodiscard]] i32 max() const { return m_max; }
+    [[nodiscard]] i32 max() const
+    {
+        return m_max;
+    }
 
     /**
      * @brief 获取默认值
      */
-    [[nodiscard]] i32 defaultValue() const { return m_default; }
+    [[nodiscard]] i32 defaultValue() const
+    {
+        return m_default;
+    }
 
     /**
      * @brief 设置变更回调
      */
-    void onChange(SettingsCallback<i32> callback) { m_callback = std::move(callback); }
+    void onChange(SettingsCallback<i32> callback)
+    {
+        m_callback = std::move(callback);
+    }
 
 private:
     std::string m_key;
@@ -349,8 +406,12 @@ private:
 
     [[nodiscard]] i32 clamp(i32 value) const
     {
-        if (value < m_min) return m_min;
-        if (value > m_max) return m_max;
+        if (value < m_min) {
+            return m_min;
+        }
+        if (value > m_max) {
+            return m_max;
+        }
         return value;
     }
 };
@@ -389,9 +450,15 @@ public:
         , m_default(clamp(defaultValue))
     {}
 
-    [[nodiscard]] std::string getKey() const override { return m_key; }
+    [[nodiscard]] std::string getKey() const override
+    {
+        return m_key;
+    }
 
-    [[nodiscard]] SettingsValue getValue() const override { return m_value; }
+    [[nodiscard]] SettingsValue getValue() const override
+    {
+        return m_value;
+    }
 
     bool setValue(const SettingsValue& value) override
     {
@@ -407,7 +474,10 @@ public:
         return false;
     }
 
-    void serialize(nlohmann::json& j) const override { j[m_key] = m_value; }
+    void serialize(nlohmann::json& j) const override
+    {
+        j[m_key] = m_value;
+    }
 
     void deserialize(const nlohmann::json& j) override
     {
@@ -416,7 +486,10 @@ public:
         }
     }
 
-    void reset() override { set(m_default); }
+    void reset() override
+    {
+        set(m_default);
+    }
 
     [[nodiscard]] bool isDefault() const override
     {
@@ -430,7 +503,10 @@ public:
     /**
      * @brief 获取当前浮点值
      */
-    [[nodiscard]] f32 get() const { return m_value; }
+    [[nodiscard]] f32 get() const
+    {
+        return m_value;
+    }
 
     /**
      * @brief 设置浮点值
@@ -452,27 +528,42 @@ public:
     /**
      * @brief 隐式转换为浮点数
      */
-    [[nodiscard]] operator f32() const { return m_value; }
+    [[nodiscard]] operator f32() const
+    {
+        return m_value;
+    }
 
     /**
      * @brief 获取最小值
      */
-    [[nodiscard]] f32 min() const { return m_min; }
+    [[nodiscard]] f32 min() const
+    {
+        return m_min;
+    }
 
     /**
      * @brief 获取最大值
      */
-    [[nodiscard]] f32 max() const { return m_max; }
+    [[nodiscard]] f32 max() const
+    {
+        return m_max;
+    }
 
     /**
      * @brief 获取默认值
      */
-    [[nodiscard]] f32 defaultValue() const { return m_default; }
+    [[nodiscard]] f32 defaultValue() const
+    {
+        return m_default;
+    }
 
     /**
      * @brief 设置变更回调
      */
-    void onChange(SettingsCallback<f32> callback) { m_callback = std::move(callback); }
+    void onChange(SettingsCallback<f32> callback)
+    {
+        m_callback = std::move(callback);
+    }
 
 private:
     std::string m_key;
@@ -484,8 +575,12 @@ private:
 
     [[nodiscard]] f32 clamp(f32 value) const
     {
-        if (value < m_min) return m_min;
-        if (value > m_max) return m_max;
+        if (value < m_min) {
+            return m_min;
+        }
+        if (value > m_max) {
+            return m_max;
+        }
         return value;
     }
 };
@@ -535,9 +630,15 @@ public:
         }
     }
 
-    [[nodiscard]] std::string getKey() const override { return m_key; }
+    [[nodiscard]] std::string getKey() const override
+    {
+        return m_key;
+    }
 
-    [[nodiscard]] SettingsValue getValue() const override { return static_cast<i32>(m_value); }
+    [[nodiscard]] SettingsValue getValue() const override
+    {
+        return static_cast<i32>(m_value);
+    }
 
     bool setValue(const SettingsValue& value) override
     {
@@ -548,7 +649,10 @@ public:
         return false;
     }
 
-    void serialize(nlohmann::json& j) const override { j[m_key] = getName(); }
+    void serialize(nlohmann::json& j) const override
+    {
+        j[m_key] = getName();
+    }
 
     void deserialize(const nlohmann::json& j) override
     {
@@ -561,16 +665,25 @@ public:
         }
     }
 
-    void reset() override { set(m_default); }
+    void reset() override
+    {
+        set(m_default);
+    }
 
-    [[nodiscard]] bool isDefault() const override { return m_value == m_default; }
+    [[nodiscard]] bool isDefault() const override
+    {
+        return m_value == m_default;
+    }
 
     // 便捷方法
 
     /**
      * @brief 获取当前枚举值
      */
-    [[nodiscard]] T get() const { return m_value; }
+    [[nodiscard]] T get() const
+    {
+        return m_value;
+    }
 
     /**
      * @brief 设置枚举值
@@ -586,7 +699,9 @@ public:
                 break;
             }
         }
-        if (!valid) return;
+        if (!valid) {
+            return;
+        }
 
         if (m_value != value) {
             m_value = value;
@@ -628,22 +743,34 @@ public:
     /**
      * @brief 隐式转换为枚举值
      */
-    [[nodiscard]] operator T() const { return m_value; }
+    [[nodiscard]] operator T() const
+    {
+        return m_value;
+    }
 
     /**
      * @brief 获取所有允许的值
      */
-    [[nodiscard]] const std::vector<T>& values() const { return m_values; }
+    [[nodiscard]] const std::vector<T>& values() const
+    {
+        return m_values;
+    }
 
     /**
      * @brief 获取所有值名称
      */
-    [[nodiscard]] const std::vector<std::string>& names() const { return m_names; }
+    [[nodiscard]] const std::vector<std::string>& names() const
+    {
+        return m_names;
+    }
 
     /**
      * @brief 设置变更回调
      */
-    void onChange(SettingsCallback<T> callback) { m_callback = std::move(callback); }
+    void onChange(SettingsCallback<T> callback)
+    {
+        m_callback = std::move(callback);
+    }
 
 private:
     std::string m_key;
@@ -677,9 +804,15 @@ public:
         , m_default(m_value)
     {}
 
-    [[nodiscard]] std::string getKey() const override { return m_key; }
+    [[nodiscard]] std::string getKey() const override
+    {
+        return m_key;
+    }
 
-    [[nodiscard]] SettingsValue getValue() const override { return m_value; }
+    [[nodiscard]] SettingsValue getValue() const override
+    {
+        return m_value;
+    }
 
     bool setValue(const SettingsValue& value) override
     {
@@ -690,7 +823,10 @@ public:
         return false;
     }
 
-    void serialize(nlohmann::json& j) const override { j[m_key] = m_value; }
+    void serialize(nlohmann::json& j) const override
+    {
+        j[m_key] = m_value;
+    }
 
     void deserialize(const nlohmann::json& j) override
     {
@@ -699,16 +835,25 @@ public:
         }
     }
 
-    void reset() override { set(m_default); }
+    void reset() override
+    {
+        set(m_default);
+    }
 
-    [[nodiscard]] bool isDefault() const override { return m_value == m_default; }
+    [[nodiscard]] bool isDefault() const override
+    {
+        return m_value == m_default;
+    }
 
     // 便捷方法
 
     /**
      * @brief 获取当前字符串值
      */
-    [[nodiscard]] const std::string& get() const { return m_value; }
+    [[nodiscard]] const std::string& get() const
+    {
+        return m_value;
+    }
 
     /**
      * @brief 设置字符串值
@@ -726,17 +871,26 @@ public:
     /**
      * @brief 隐式转换为字符串视图
      */
-    [[nodiscard]] operator std::string_view() const { return m_value; }
+    [[nodiscard]] operator std::string_view() const
+    {
+        return m_value;
+    }
 
     /**
      * @brief 获取默认值
      */
-    [[nodiscard]] const std::string& defaultValue() const { return m_default; }
+    [[nodiscard]] const std::string& defaultValue() const
+    {
+        return m_default;
+    }
 
     /**
      * @brief 设置变更回调
      */
-    void onChange(SettingsCallback<std::string> callback) { m_callback = std::move(callback); }
+    void onChange(SettingsCallback<std::string> callback)
+    {
+        m_callback = std::move(callback);
+    }
 
 private:
     std::string m_key;

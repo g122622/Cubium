@@ -57,11 +57,20 @@ class HeldItemMesh3DTest : public ::testing::Test {
 protected:
     static mc::Item* s_testItem;
 
-    static void SetUpTestSuite() { s_testItem = &registerTestItem(mc::ResourceLocation("test", "held_mesh_3d_item")); }
+    static void SetUpTestSuite()
+    {
+        s_testItem = &registerTestItem(mc::ResourceLocation("test", "held_mesh_3d_item"));
+    }
 
-    void SetUp() override { ItemMeshBuilder::setItemTextureAtlas(nullptr); }
+    void SetUp() override
+    {
+        ItemMeshBuilder::setItemTextureAtlas(nullptr);
+    }
 
-    void TearDown() override { ItemMeshBuilder::setItemTextureAtlas(nullptr); }
+    void TearDown() override
+    {
+        ItemMeshBuilder::setItemTextureAtlas(nullptr);
+    }
 };
 
 mc::Item* HeldItemMesh3DTest::s_testItem = nullptr;

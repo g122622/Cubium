@@ -50,20 +50,36 @@ struct ModuleVersion {
         return major == other.major && minor == other.minor && patch == other.patch;
     }
 
-    [[nodiscard]] bool operator!=(const ModuleVersion& other) const noexcept { return !(*this == other); }
+    [[nodiscard]] bool operator!=(const ModuleVersion& other) const noexcept
+    {
+        return !(*this == other);
+    }
 
     [[nodiscard]] bool operator<(const ModuleVersion& other) const noexcept
     {
-        if (major != other.major) return major < other.major;
-        if (minor != other.minor) return minor < other.minor;
+        if (major != other.major) {
+            return major < other.major;
+        }
+        if (minor != other.minor) {
+            return minor < other.minor;
+        }
         return patch < other.patch;
     }
 
-    [[nodiscard]] bool operator<=(const ModuleVersion& other) const noexcept { return *this < other || *this == other; }
+    [[nodiscard]] bool operator<=(const ModuleVersion& other) const noexcept
+    {
+        return *this < other || *this == other;
+    }
 
-    [[nodiscard]] bool operator>(const ModuleVersion& other) const noexcept { return other < *this; }
+    [[nodiscard]] bool operator>(const ModuleVersion& other) const noexcept
+    {
+        return other < *this;
+    }
 
-    [[nodiscard]] bool operator>=(const ModuleVersion& other) const noexcept { return other <= *this; }
+    [[nodiscard]] bool operator>=(const ModuleVersion& other) const noexcept
+    {
+        return other <= *this;
+    }
 
     [[nodiscard]] bool isCompatibleWith(const ModuleVersion& required) const noexcept
     {

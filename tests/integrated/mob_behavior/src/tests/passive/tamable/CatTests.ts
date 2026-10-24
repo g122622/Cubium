@@ -123,7 +123,7 @@ function catHuntsRabbit(test: Test): void {
 //   4) _tryToTame（:569）：rng.nextInt(3)==0（1/3 概率）→ setTamed(true) + setOwnerId。
 //   5) 返回 Success。
 //
-// 判定手段：getComponent("minecraft:is_tamed").value === true（驯服成功）。is_tamed 组件经
+// 判定手段：getComponent("minecraft:is_tamed") !== undefined（驯服成功）。is_tamed 组件经
 // TameableEntity::isTamed() 读取，由 IsTamedComponent 绑定（MinecraftModuleFactory.cpp）。
 //
 // 驯服概率 1/3，创造模式不消耗鱼可反复喂。tick 5..100 每 3 tick 喂一次（约32次，1/3 概率，
@@ -150,11 +150,11 @@ function catTamedByFishTest(test: Test): void {
     });
   }
 
-  // 轮询断言：猫 is_tamed.value === true（驯服成功）。
+  // 轮询断言：猫 is_tamed 组件存在（驯服成功）。
   // startTick=10 等 1-2 次喂食后开始查，interval=3 与喂食周期对齐，maxTick=400 留足 32 次喂食周期。
   pollUntilSucceed(test, () => {
     const comp = cat.getComponent("minecraft:is_tamed") as any;
-    return comp?.value === true;
+    return comp !== undefined;
   }, {
     startTick: 10,
     interval: 3,
@@ -163,7 +163,7 @@ function catTamedByFishTest(test: Test): void {
       const comp = cat.getComponent("minecraft:is_tamed") as any;
       test.assert(false,
         `cat not tamed after feeding fish 32 times (1/3 chance, `
-        + `is_tamed=${comp?.value} expected true)`);
+        + `is_tamed=${comp !== undefined} expected true)`);
     },
   });
 }

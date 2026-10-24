@@ -95,24 +95,37 @@ void ContainerActionHandler::handleContainerButtonClickPacket(
 void ContainerActionHandler::handleEditBookPacket(PlayerId playerId, const mc::network::ir::IrPacket& packet)
 {
     auto* player = _player(playerId);
-    if (player == nullptr || player->isSpectator()) return;
+    if (player == nullptr || player->isSpectator()) {
+        return;
+    }
     const auto& request =
         std::get<mc::network::ir::play::EditBook>(std::get<mc::network::ir::PlayPacket>(packet.packet));
-    if ((request.slot < 0 || request.slot > 8) && request.slot != 40) return;
-    if (request.pages.size() > 100) return;
+    if ((request.slot < 0 || request.slot > 8) && request.slot != 40) {
+        return;
+    }
+    if (request.pages.size() > 100) {
+        return;
+    }
     for (const auto& page : request.pages) {
         const auto length = util::text::utf16Length(page);
-        if (!length || *length > 1024) return;
+        if (!length || *length > 1024) {
+            return;
+        }
     }
     if (request.title) {
         const auto length = util::text::utf16Length(*request.title);
-        if (!length || *length > 32) return;
+        if (!length || *length > 32) {
+            return;
+        }
     }
     auto stack = player->inventory().getItem(request.slot);
-    if (stack.getItem() != Items::WRITABLE_BOOK) return;
+    if (stack.getItem() != Items::WRITABLE_BOOK) {
+        return;
+    }
     auto pages = nlohmann::json::array();
-    for (const auto& page : request.pages)
+    for (const auto& page : request.pages) {
         pages.push_back(request.title ? nlohmann::json{{"text", page}} : nlohmann::json(page));
+    }
     if (request.title) {
         auto patch = stack.toComponentPatch();
         stack = ItemStack(Items::WRITTEN_BOOK, stack.getCount());
@@ -134,16 +147,21 @@ void ContainerActionHandler::handleEditBookPacket(PlayerId playerId, const mc::n
 void ContainerActionHandler::handleBundleItemSelectedPacket(PlayerId playerId, const mc::network::ir::IrPacket& packet)
 {
     auto* player = _player(playerId);
-    if (player == nullptr || player->isSpectator()) return;
+    if (player == nullptr || player->isSpectator()) {
+        return;
+    }
     auto* menu = _menu(playerId, *player);
     const auto& request =
         std::get<mc::network::ir::play::BundleItemSelected>(std::get<mc::network::ir::PlayPacket>(packet.packet));
     if (menu == nullptr || request.slotId < 0 || request.slotId >= menu->getSlotCount() ||
-        request.selectedItemIndex < -1)
+        request.selectedItemIndex < -1) {
         return;
+    }
     auto* slot = menu->getSlot(request.slotId);
     auto stack = slot->getItem();
-    if (!item::items::BundleItem::isBundleItem(stack)) return;
+    if (!item::items::BundleItem::isBundleItem(stack)) {
+        return;
+    }
     item::items::BundleItem::toggleSelectedItem(stack, request.selectedItemIndex);
     slot->set(stack);
 }
@@ -151,13 +169,19 @@ void ContainerActionHandler::handleBundleItemSelectedPacket(PlayerId playerId, c
 void ContainerActionHandler::handleSetBeaconPacket(PlayerId playerId, const mc::network::ir::IrPacket& packet)
 {
     auto* player = _player(playerId);
-    if (player == nullptr || player->isSpectator()) return;
+    if (player == nullptr || player->isSpectator()) {
+        return;
+    }
     auto* menu = dynamic_cast<BeaconContainer*>(_menu(playerId, *player));
-    if (menu == nullptr) return;
+    if (menu == nullptr) {
+        return;
+    }
     const auto& request =
         std::get<mc::network::ir::play::SetBeacon>(std::get<mc::network::ir::PlayPacket>(packet.packet));
     auto translate = [](std::optional<i32> id) -> std::optional<entity::effect::EffectType> {
-        if (!id || *id < 0 || *id >= 40) return std::nullopt;
+        if (!id || *id < 0 || *id >= 40) {
+            return std::nullopt;
+        }
         return mc::network::backend::java::JavaMobEffectIdMap::instance().fromJavaRegistryId(static_cast<u32>(*id));
     };
     menu->updateEffects(translate(request.primary), translate(request.secondary));

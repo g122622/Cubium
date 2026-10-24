@@ -46,7 +46,10 @@ public:
     void startExecuting() override;
     void resetTask() override;
 
-    [[nodiscard]] std::string getTypeName() const override { return "CamelSitGoal"; }
+    [[nodiscard]] std::string getTypeName() const override
+    {
+        return "CamelSitGoal";
+    }
 
 private:
     CamelEntity* m_camel;

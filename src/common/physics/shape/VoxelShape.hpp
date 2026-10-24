@@ -207,8 +207,15 @@ public:
 
     // === 底层访问 ===
 
-    [[nodiscard]] const DiscreteVoxelShape& shape() const { return *m_shape; }
-    [[nodiscard]] std::shared_ptr<DiscreteVoxelShape> shapePtr() const { return m_shape; }
+    [[nodiscard]] const DiscreteVoxelShape& shape() const
+    {
+        return *m_shape;
+    }
+
+    [[nodiscard]] std::shared_ptr<DiscreteVoxelShape> shapePtr() const
+    {
+        return m_shape;
+    }
 
     // === 索引查找 ===
 

@@ -72,7 +72,10 @@ public:
     /**
      * @brief 获取下一次跳跃的速度倍率
      */
-    [[nodiscard]] f64 nextJumpSpeed() const { return m_nextJumpSpeed; }
+    [[nodiscard]] f64 nextJumpSpeed() const
+    {
+        return m_nextJumpSpeed;
+    }
 
 private:
     RabbitEntity* m_rabbit;

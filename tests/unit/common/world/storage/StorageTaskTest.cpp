@@ -87,7 +87,9 @@ TEST(StorageTaskTest, TaskManagerSubmitsToPool)
     auto taskId = manager.submit(
         std::move(task),
         util::TaskPriority::Normal,
-        [&success](bool taskSuccess, util::ITask*) { success.store(taskSuccess, std::memory_order::release); },
+        [&success](bool taskSuccess, util::ITask*) {
+            success.store(taskSuccess, std::memory_order::release);
+        },
         std::make_shared<std::atomic<bool>>(false));
 
     ASSERT_NE(taskId, 0u);

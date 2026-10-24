@@ -173,6 +173,9 @@ enum class PotionPrefix : u8 {
 namespace std {
 template <>
 struct hash<mc::potion::PotionId> {
-    size_t operator()(mc::potion::PotionId id) const noexcept { return static_cast<size_t>(id); }
+    size_t operator()(mc::potion::PotionId id) const noexcept
+    {
+        return static_cast<size_t>(id);
+    }
 };
 } // namespace std

@@ -59,7 +59,10 @@ namespace {
  */
 class FlowerBedTestWorld : public mc::test::BaseTestWorld {
 public:
-    FlowerBedTestWorld() { m_airState = &VanillaBlocks::AIR->defaultState(); }
+    FlowerBedTestWorld()
+    {
+        m_airState = &VanillaBlocks::AIR->defaultState();
+    }
 
     [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override
     {
@@ -81,8 +84,16 @@ public:
         return true;
     }
 
-    [[nodiscard]] mc::world::chunk::IChunkManager* chunkManager() override { return &m_stubChunks; }
-    [[nodiscard]] const mc::world::chunk::IChunkManager* chunkManager() const override { return &m_stubChunks; }
+    [[nodiscard]] mc::world::chunk::IChunkManager* chunkManager() override
+    {
+        return &m_stubChunks;
+    }
+
+    [[nodiscard]] const mc::world::chunk::IChunkManager* chunkManager() const override
+    {
+        return &m_stubChunks;
+    }
+
     mc::test::StubChunkManager m_stubChunks{nullptr, true};
 
     [[nodiscard]] const fluid::FluidState* getFluidState(i32 x, i32 y, i32 z) const override
@@ -104,7 +115,10 @@ public:
             ((static_cast<i64>(z) & 0x3FFFFFF) << 38);
     }
 
-    void setBlockAt(const BlockPos& pos, const BlockState* state) { (void)setBlockState(pos.x, pos.y, pos.z, state); }
+    void setBlockAt(const BlockPos& pos, const BlockState* state)
+    {
+        (void)setBlockState(pos.x, pos.y, pos.z, state);
+    }
 
 private:
     std::unordered_map<i64, const BlockState*> m_blocks;
@@ -620,7 +634,10 @@ TEST_F(FlowerBedBlockTest, Grow_AtFour_DoesNotIncreaseAmount)
 
 class FlowerBedRegistrationTest : public ::testing::Test {
 protected:
-    void SetUp() override { VanillaBlocks::initialize(); }
+    void SetUp() override
+    {
+        VanillaBlocks::initialize();
+    }
 };
 
 TEST_F(FlowerBedRegistrationTest, PinkPetalsIsRegistered)

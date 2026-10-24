@@ -75,7 +75,10 @@ public:
 
     // ========== IWorld 核心接口 ==========
 
-    [[nodiscard]] bool isClientSide() const override { return m_isClient; }
+    [[nodiscard]] bool isClientSide() const override
+    {
+        return m_isClient;
+    }
 
     [[nodiscard]] server::ServerWorld* asServerWorld() override
     {
@@ -85,7 +88,9 @@ public:
     // IWorldWriter 接口
     bool setBlockState(i32 x, i32 y, i32 z, const BlockState* state) override
     {
-        if (state == nullptr) return false;
+        if (state == nullptr) {
+            return false;
+        }
         m_blockStates[BlockPos(x, y, z)] = state;
         return true;
     }
@@ -132,12 +137,30 @@ public:
 
     // ========== 测试验证方法 ==========
 
-    [[nodiscard]] bool wasOpenContainerCalled() const { return m_openContainerCalled; }
-    [[nodiscard]] ContainerType getLastContainerType() const { return m_lastContainerType; }
-    [[nodiscard]] BlockPos getLastContainerPos() const { return m_lastContainerPos; }
-    [[nodiscard]] Player* getLastContainerPlayer() const { return m_lastContainerPlayer; }
+    [[nodiscard]] bool wasOpenContainerCalled() const
+    {
+        return m_openContainerCalled;
+    }
 
-    void setBlockStateAt(const BlockPos& pos, const BlockState* state) { m_blockStates[pos] = state; }
+    [[nodiscard]] ContainerType getLastContainerType() const
+    {
+        return m_lastContainerType;
+    }
+
+    [[nodiscard]] BlockPos getLastContainerPos() const
+    {
+        return m_lastContainerPos;
+    }
+
+    [[nodiscard]] Player* getLastContainerPlayer() const
+    {
+        return m_lastContainerPlayer;
+    }
+
+    void setBlockStateAt(const BlockPos& pos, const BlockState* state)
+    {
+        m_blockStates[pos] = state;
+    }
 
     // ========== IWorld 存根方法 ==========
 
@@ -145,12 +168,14 @@ public:
     {
         return y >= mc::world::MIN_BUILD_HEIGHT && y < mc::world::MAX_BUILD_HEIGHT;
     }
+
     void playSound(const ResourceLocation&, sound::SoundCategory, const Vector3&, f32, f32) override {}
 
     [[nodiscard]] world::tick::TickManager& tickManager() override
     {
         throw std::runtime_error("EnchantingTableTestWorld::tickManager not implemented");
     }
+
     [[nodiscard]] const world::tick::TickManager& tickManager() const override
     {
         throw std::runtime_error("EnchantingTableTestWorld::tickManager not implemented");

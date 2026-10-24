@@ -130,7 +130,10 @@ public:
      *
      * 对应 MC Java: CopperGolem.getWeatherState()
      */
-    [[nodiscard]] entity::CopperGolemWeatherState getWeatherState() const noexcept { return m_weatherState; }
+    [[nodiscard]] entity::CopperGolemWeatherState getWeatherState() const noexcept
+    {
+        return m_weatherState;
+    }
 
     /**
      * @brief 设置氧化等级
@@ -138,7 +141,10 @@ public:
      *
      * 对应 MC Java: CopperGolem.setWeatherState(WeatherState)
      */
-    void setWeatherState(entity::CopperGolemWeatherState state) noexcept { m_weatherState = state; }
+    void setWeatherState(entity::CopperGolemWeatherState state) noexcept
+    {
+        m_weatherState = state;
+    }
 
     // ========== 行为状态 ==========
 
@@ -148,7 +154,10 @@ public:
      *
      * 对应 MC Java: CopperGolem.getState()
      */
-    [[nodiscard]] entity::CopperGolemState getBehaviorState() const noexcept { return m_behaviorState; }
+    [[nodiscard]] entity::CopperGolemState getBehaviorState() const noexcept
+    {
+        return m_behaviorState;
+    }
 
     /**
      * @brief 设置行为状态
@@ -156,7 +165,10 @@ public:
      *
      * 对应 MC Java: CopperGolem.setState(CopperGolemState)
      */
-    void setBehaviorState(entity::CopperGolemState state) noexcept { m_behaviorState = state; }
+    void setBehaviorState(entity::CopperGolemState state) noexcept
+    {
+        m_behaviorState = state;
+    }
 
     // ========== 生成 ==========
 
@@ -201,7 +213,10 @@ public:
      *
      * @return 交互半径（3.0 方块）
      */
-    [[nodiscard]] f64 getContainerInteractionRange() const override { return CONTAINER_INTERACTION_RANGE; }
+    [[nodiscard]] f64 getContainerInteractionRange() const override
+    {
+        return CONTAINER_INTERACTION_RANGE;
+    }
 
     /**
      * @brief 获取实现此接口的 LivingEntity 指针
@@ -220,7 +235,10 @@ public:
      *
      * @param pos 打开的箱子位置
      */
-    void setOpenedChestPos(const BlockPos& pos) { m_openedChestPos = pos; }
+    void setOpenedChestPos(const BlockPos& pos)
+    {
+        m_openedChestPos = pos;
+    }
 
     /**
      * @brief 清除当前打开的箱子位置
@@ -228,7 +246,10 @@ public:
      * 对应 MC 1.21.11 CopperGolem.clearOpenedChestPos()。
      * 由 TransportItemsBetweenContainersGoal 在交互结束（ticks==60）或寻路中调用。
      */
-    void clearOpenedChestPos() { m_openedChestPos.reset(); }
+    void clearOpenedChestPos()
+    {
+        m_openedChestPos.reset();
+    }
 
     // ========== IShearable 接口实现 ==========
 
@@ -262,19 +283,28 @@ public:
      * MC 1.21.11 CopperGolem 默认尺寸：宽 0.49，高 0.98
      * 眼睛高度按比例取约 0.45（接近高度的一半）。
      */
-    [[nodiscard]] f32 eyeHeight() const override { return 0.45f; }
+    [[nodiscard]] f32 eyeHeight() const override
+    {
+        return 0.45f;
+    }
 
     /**
      * @brief 获取实体宽度
      * MC 1.21.11 CopperGolem.createAttributes() 中的尺寸为 0.49f。
      */
-    [[nodiscard]] f32 width() const override { return 0.49f; }
+    [[nodiscard]] f32 width() const override
+    {
+        return 0.49f;
+    }
 
     /**
      * @brief 获取实体高度
      * MC 1.21.11 CopperGolem.createAttributes() 中的尺寸为 0.98f。
      */
-    [[nodiscard]] f32 height() const override { return 0.98f; }
+    [[nodiscard]] f32 height() const override
+    {
+        return 0.98f;
+    }
 
     // ========== 声音 ==========
 

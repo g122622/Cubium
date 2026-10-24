@@ -147,12 +147,18 @@ public:
     /**
      * @brief 获取当前雾 UBO 数据
      */
-    [[nodiscard]] const FogUBO& fogUBO() const { return m_fogUBO; }
+    [[nodiscard]] const FogUBO& fogUBO() const
+    {
+        return m_fogUBO;
+    }
 
     /**
      * @brief 检查是否已初始化
      */
-    [[nodiscard]] bool isInitialized() const { return m_initialized; }
+    [[nodiscard]] bool isInitialized() const
+    {
+        return m_initialized;
+    }
 
 private:
     /**

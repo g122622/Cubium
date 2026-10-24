@@ -62,6 +62,7 @@ namespace mc::renderer::layer::test {
 class WolfCollarLayerColorTest : public ::testing::Test {
 protected:
     void SetUp() override {}
+
     void TearDown() override {}
 };
 
@@ -272,7 +273,10 @@ protected:
         entity = std::make_unique<ClientEntity>(EntityInstanceId(1), "minecraft:wolf");
     }
 
-    void TearDown() override { entity.reset(); }
+    void TearDown() override
+    {
+        entity.reset();
+    }
 
     std::unique_ptr<ClientEntity> entity;
 };

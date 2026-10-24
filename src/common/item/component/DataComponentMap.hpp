@@ -252,13 +252,26 @@ class DataComponentPatch {
 public:
     DataComponentPatch() = default;
 
-    [[nodiscard]] bool isEmpty() const noexcept { return m_added.empty() && m_removed.empty(); }
+    [[nodiscard]] bool isEmpty() const noexcept
+    {
+        return m_added.empty() && m_removed.empty();
+    }
 
-    [[nodiscard]] const std::vector<DataComponentEntry>& added() const noexcept { return m_added; }
-    [[nodiscard]] const std::vector<i32>& removed() const noexcept { return m_removed; }
+    [[nodiscard]] const std::vector<DataComponentEntry>& added() const noexcept
+    {
+        return m_added;
+    }
+
+    [[nodiscard]] const std::vector<i32>& removed() const noexcept
+    {
+        return m_removed;
+    }
 
     /// 增加一个组件值（typeId 必须在落地子集内）
-    void add(i32 typeId, DataComponentPayload value) { m_added.push_back({typeId, std::move(value)}); }
+    void add(i32 typeId, DataComponentPayload value)
+    {
+        m_added.push_back({typeId, std::move(value)});
+    }
 
     /// 增加一个组件值（枚举入口）
     void add(DataComponentType type, DataComponentPayload value)
@@ -267,11 +280,25 @@ public:
     }
 
     /// 标记移除一个组件
-    void remove(i32 typeId) { m_removed.push_back(typeId); }
-    void remove(DataComponentType type) { m_removed.push_back(componentTypeId(type)); }
+    void remove(i32 typeId)
+    {
+        m_removed.push_back(typeId);
+    }
 
-    [[nodiscard]] std::vector<DataComponentEntry>& addedMut() noexcept { return m_added; }
-    [[nodiscard]] std::vector<i32>& removedMut() noexcept { return m_removed; }
+    void remove(DataComponentType type)
+    {
+        m_removed.push_back(componentTypeId(type));
+    }
+
+    [[nodiscard]] std::vector<DataComponentEntry>& addedMut() noexcept
+    {
+        return m_added;
+    }
+
+    [[nodiscard]] std::vector<i32>& removedMut() noexcept
+    {
+        return m_removed;
+    }
 
 private:
     std::vector<DataComponentEntry> m_added;

@@ -97,7 +97,10 @@ public:
         }
 
         /** 是否为空 */
-        [[nodiscard]] bool empty() const noexcept { return features.empty(); }
+        [[nodiscard]] bool empty() const noexcept
+        {
+            return features.empty();
+        }
     };
 
     /**
@@ -124,7 +127,9 @@ private:
 
         bool operator<(const FeatureData& other) const
         {
-            if (step != other.step) return step < other.step;
+            if (step != other.step) {
+                return step < other.step;
+            }
             return globalIndex < other.globalIndex;
         }
     };

@@ -79,7 +79,10 @@ public:
      *
      * @return true 如果是只读判据
      */
-    [[nodiscard]] virtual bool isReadOnly() const noexcept { return false; }
+    [[nodiscard]] virtual bool isReadOnly() const noexcept
+    {
+        return false;
+    }
 
     /**
      * @brief 获取默认渲染类型
@@ -89,7 +92,10 @@ public:
      *
      * @return 默认渲染类型
      */
-    [[nodiscard]] virtual RenderType getDefaultRenderType() const noexcept { return RenderType::Integer; }
+    [[nodiscard]] virtual RenderType getDefaultRenderType() const noexcept
+    {
+        return RenderType::Integer;
+    }
 
     /**
      * @brief 分数变更时调用

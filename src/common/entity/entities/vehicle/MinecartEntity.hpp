@@ -130,7 +130,10 @@ public:
     /**
      * @brief 检查是否可以被碰撞
      */
-    [[nodiscard]] bool canBeCollidedWith() const override { return isAlive(); }
+    [[nodiscard]] bool canBeCollidedWith() const override
+    {
+        return isAlive();
+    }
 
     /**
      * @brief 判断矿车是否忽略此次爆炸
@@ -160,34 +163,52 @@ public:
     /**
      * @brief 矿车宽度
      */
-    [[nodiscard]] f32 width() const override { return 0.98f; }
+    [[nodiscard]] f32 width() const override
+    {
+        return 0.98f;
+    }
 
     /**
      * @brief 矿车高度
      */
-    [[nodiscard]] f32 height() const override { return 0.7f; }
+    [[nodiscard]] f32 height() const override
+    {
+        return 0.7f;
+    }
 
     /**
      * @brief 矿车眼睛高度（乘客坐在矿车水平面上）
      */
-    [[nodiscard]] f32 eyeHeight() const override { return 0.0f; }
+    [[nodiscard]] f32 eyeHeight() const override
+    {
+        return 0.0f;
+    }
 
     // 无战利品表，覆写基类方法返回空字符串
-    [[nodiscard]] std::string getLootTableId() const override { return {}; }
+    [[nodiscard]] std::string getLootTableId() const override
+    {
+        return {};
+    }
 
     // ========== 矿车类型 ==========
 
     /**
      * @brief 获取矿车类型
      */
-    [[nodiscard]] Type getMinecartType() const { return m_type; }
+    [[nodiscard]] Type getMinecartType() const
+    {
+        return m_type;
+    }
 
     // ========== 速度和物理 ==========
 
     /**
      * @brief 获取最大速度
      */
-    [[nodiscard]] virtual f32 getMaxSpeed() const { return DEFAULT_MAX_SPEED; }
+    [[nodiscard]] virtual f32 getMaxSpeed() const
+    {
+        return DEFAULT_MAX_SPEED;
+    }
 
     /**
      * @brief 获取铁轨上的最大速度
@@ -336,21 +357,40 @@ public:
     //   CUSTOM_DISPLAY_BLOCK(11,Optional<BlockState>) / DISPLAY_OFFSET(12,i32)
     // 旧实现 rolling_amp/rolling_dir/show_block 为项目自创 ghost 字段(vanilla 无),已删;
     // display_tile 旧 i32 类型与 vanilla Optional<BlockState> 不符致真客户端 field11 崩,已改类型。
-    [[nodiscard]] static entity::DataParameter<i32>& getHurtParam() { return DATA_HURT_PARAM; }
-    [[nodiscard]] static entity::DataParameter<i32>& getHurtDirParam() { return DATA_HURTDIR_PARAM; }
-    [[nodiscard]] static entity::DataParameter<f32>& getDamageParam() { return DATA_DAMAGE_PARAM; }
+    [[nodiscard]] static entity::DataParameter<i32>& getHurtParam()
+    {
+        return DATA_HURT_PARAM;
+    }
+
+    [[nodiscard]] static entity::DataParameter<i32>& getHurtDirParam()
+    {
+        return DATA_HURTDIR_PARAM;
+    }
+
+    [[nodiscard]] static entity::DataParameter<f32>& getDamageParam()
+    {
+        return DATA_DAMAGE_PARAM;
+    }
+
     [[nodiscard]] static entity::DataParameter<entity::OptionalBlockStateValue>& getCustomDisplayBlockParam()
     {
         return DATA_CUSTOM_DISPLAY_BLOCK_PARAM;
     }
-    [[nodiscard]] static entity::DataParameter<i32>& getDisplayOffsetParam() { return DATA_DISPLAY_OFFSET_PARAM; }
+
+    [[nodiscard]] static entity::DataParameter<i32>& getDisplayOffsetParam()
+    {
+        return DATA_DISPLAY_OFFSET_PARAM;
+    }
 
     // ========== 乘客和碰撞 ==========
 
     /**
      * @brief 乘客乘坐高度偏移
      */
-    [[nodiscard]] f64 getMountedYOffset() const override { return 0.0; }
+    [[nodiscard]] f64 getMountedYOffset() const override
+    {
+        return 0.0;
+    }
 
     /**
      * @brief 应用力到矿车上（被推动时）
@@ -375,7 +415,10 @@ public:
     /**
      * @brief 检查矿车是否已激活
      */
-    [[nodiscard]] virtual bool isActivated() const { return false; }
+    [[nodiscard]] virtual bool isActivated() const
+    {
+        return false;
+    }
 
     /**
      * @brief 激活铁轨通过回调
@@ -427,7 +470,10 @@ protected:
     /**
      * @brief 获取斜坡调整值
      */
-    [[nodiscard]] static constexpr f64 getSlopeAdjustment() { return SLOPE_ADJUSTMENT; }
+    [[nodiscard]] static constexpr f64 getSlopeAdjustment()
+    {
+        return SLOPE_ADJUSTMENT;
+    }
 
     /**
      * @brief 处理实体碰撞
@@ -474,7 +520,10 @@ protected:
     /**
      * @brief 是否应该执行铁轨特殊功能
      */
-    [[nodiscard]] bool shouldDoRailFunctions() const { return true; }
+    [[nodiscard]] bool shouldDoRailFunctions() const
+    {
+        return true;
+    }
 
     /**
      * @brief 在铁轨上移动矿车
@@ -652,7 +701,10 @@ public:
     /**
      * @brief 熔炉矿车速度较慢
      */
-    [[nodiscard]] f32 getMaxSpeed() const override { return 0.2f; }
+    [[nodiscard]] f32 getMaxSpeed() const override
+    {
+        return 0.2f;
+    }
 
     /**
      * @brief 添加燃料
@@ -863,25 +915,52 @@ public:
 
     // ========== IHopper 接口实现 ==========
 
-    [[nodiscard]] IWorld* getWorld() override { return Entity::world(); }
-    [[nodiscard]] const IWorld* getWorld() const override { return Entity::world(); }
-    [[nodiscard]] f64 getXPos() const override { return x(); }
-    [[nodiscard]] f64 getYPos() const override { return y(); }
-    [[nodiscard]] f64 getZPos() const override { return z(); }
+    [[nodiscard]] IWorld* getWorld() override
+    {
+        return Entity::world();
+    }
+
+    [[nodiscard]] const IWorld* getWorld() const override
+    {
+        return Entity::world();
+    }
+
+    [[nodiscard]] f64 getXPos() const override
+    {
+        return x();
+    }
+
+    [[nodiscard]] f64 getYPos() const override
+    {
+        return y();
+    }
+
+    [[nodiscard]] f64 getZPos() const override
+    {
+        return z();
+    }
+
     [[nodiscard]] BlockPos getHopperPos() const override
     {
         return BlockPos(static_cast<BlockCoord>(std::floor(x())),
             static_cast<BlockCoord>(std::floor(y())),
             static_cast<BlockCoord>(std::floor(z())));
     }
-    [[nodiscard]] Direction getOutputDirection() const override { return Direction::Down; }
+
+    [[nodiscard]] Direction getOutputDirection() const override
+    {
+        return Direction::Down;
+    }
 
     /**
      * @brief 漏斗矿车不与网格对齐
      * MC Java 中 HopperMinecart.isGridAligned() 返回 false，
      * 因此漏斗矿车不会因为上方方块的碰撞形状而跳过物品吸取。
      */
-    [[nodiscard]] bool isGridAligned() const override { return false; }
+    [[nodiscard]] bool isGridAligned() const override
+    {
+        return false;
+    }
 
     /**
      * @brief 获取漏斗矿车的物品背包
@@ -889,7 +968,10 @@ public:
      *
      * 实现 IHopper::getHopperInventory()，返回矿车内部背包。
      */
-    [[nodiscard]] IInventory* getHopperInventory() override { return getInventory(); }
+    [[nodiscard]] IInventory* getHopperInventory() override
+    {
+        return getInventory();
+    }
 
     // ========== IInventory 代理方法 ==========
 

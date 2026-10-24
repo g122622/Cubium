@@ -114,10 +114,16 @@ public:
         math::IRandom& rng, ChunkCoord chunkX, ChunkCoord chunkZ, const Config& config) const = 0;
 
     /** @brief 获取雕刻器的影响范围（以区块为单位），默认 4 */
-    [[nodiscard]] virtual i32 getRange() const { return 4; }
+    [[nodiscard]] virtual i32 getRange() const
+    {
+        return 4;
+    }
 
     /** @brief 获取最大雕刻高度 */
-    [[nodiscard]] i32 getMaxHeight() const { return m_maxHeight; }
+    [[nodiscard]] i32 getMaxHeight() const
+    {
+        return m_maxHeight;
+    }
 
     /** @brief 返回 CAVE_AIR 方块状态 */
     [[nodiscard]] virtual const BlockState* getCaveAirState() const;
@@ -128,10 +134,16 @@ public:
     [[nodiscard]] virtual bool canReplaceBlock(const BlockState& state, const Config& config) const;
 
     /** @brief 是否在雕刻时处理草地/菌丝表面替换 */
-    [[nodiscard]] virtual bool handlesSurfaceReplacement() const { return true; }
+    [[nodiscard]] virtual bool handlesSurfaceReplacement() const
+    {
+        return true;
+    }
 
     /** @brief 是否在雕刻前检查区域是否有流体 */
-    [[nodiscard]] virtual bool shouldCheckForFluid() const { return true; }
+    [[nodiscard]] virtual bool shouldCheckForFluid() const
+    {
+        return true;
+    }
 
 protected:
     i32 m_maxHeight;
@@ -245,9 +257,20 @@ public:
         return m_carver->shouldCarve(rng, chunkX, chunkZ, m_config);
     }
 
-    [[nodiscard]] Carver& getCarver() { return *m_carver; }
-    [[nodiscard]] const Carver& getCarver() const { return *m_carver; }
-    [[nodiscard]] const Config& getConfig() const { return m_config; }
+    [[nodiscard]] Carver& getCarver()
+    {
+        return *m_carver;
+    }
+
+    [[nodiscard]] const Carver& getCarver() const
+    {
+        return *m_carver;
+    }
+
+    [[nodiscard]] const Config& getConfig() const
+    {
+        return m_config;
+    }
 
 private:
     std::unique_ptr<Carver> m_carver;

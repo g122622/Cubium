@@ -59,13 +59,19 @@ public:
      * @brief 获取船的类型
      * @return 船的木材类型
      */
-    [[nodiscard]] entity::BoatEntity::Type getBoatType() const noexcept { return m_boatType; }
+    [[nodiscard]] entity::BoatEntity::Type getBoatType() const noexcept
+    {
+        return m_boatType;
+    }
 
     /**
      * @brief 是否为带箱子的船
      * @return true 表示带箱子的船，false 表示普通船
      */
-    [[nodiscard]] bool hasChest() const noexcept { return m_hasChest; }
+    [[nodiscard]] bool hasChest() const noexcept
+    {
+        return m_hasChest;
+    }
 
     /**
      * @brief 在方块上使用物品

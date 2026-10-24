@@ -95,26 +95,73 @@ public:
     // ========== BlockEntity 接口 ==========
 
     void tick(IWorld& world) override;
-    [[nodiscard]] bool needsTick() const noexcept override { return true; }
+
+    [[nodiscard]] bool needsTick() const noexcept override
+    {
+        return true;
+    }
 
     // ========== IInventory 接口（委托给 FurnaceInventory） ==========
 
-    [[nodiscard]] bool isEmpty() const override { return m_inventory.isEmpty(); }
-    [[nodiscard]] i32 getMaxStackSize() const override { return m_inventory.getMaxStackSize(); }
-    [[nodiscard]] ItemStack getItem(i32 slot) const override { return m_inventory.getItem(slot); }
-    void setItem(i32 slot, const ItemStack& stack) override { m_inventory.setItem(slot, stack); }
-    ItemStack removeItem(i32 slot, i32 count) override { return m_inventory.removeItem(slot, count); }
-    ItemStack removeItemNoUpdate(i32 slot) override { return m_inventory.removeItemNoUpdate(slot); }
-    void clear() override { m_inventory.clear(); }
-    void setChanged() override { LockableBlockEntity::setChanged(); }
+    [[nodiscard]] bool isEmpty() const override
+    {
+        return m_inventory.isEmpty();
+    }
+
+    [[nodiscard]] i32 getMaxStackSize() const override
+    {
+        return m_inventory.getMaxStackSize();
+    }
+
+    [[nodiscard]] ItemStack getItem(i32 slot) const override
+    {
+        return m_inventory.getItem(slot);
+    }
+
+    void setItem(i32 slot, const ItemStack& stack) override
+    {
+        m_inventory.setItem(slot, stack);
+    }
+
+    ItemStack removeItem(i32 slot, i32 count) override
+    {
+        return m_inventory.removeItem(slot, count);
+    }
+
+    ItemStack removeItemNoUpdate(i32 slot) override
+    {
+        return m_inventory.removeItemNoUpdate(slot);
+    }
+
+    void clear() override
+    {
+        m_inventory.clear();
+    }
+
+    void setChanged() override
+    {
+        LockableBlockEntity::setChanged();
+    }
+
     [[nodiscard]] bool canPlaceItem(i32 slot, const ItemStack& stack) const override
     {
         return m_inventory.canPlaceItem(slot, stack);
     }
 
-    [[nodiscard]] IInventory* getInventory() override { return &m_inventory; }
-    [[nodiscard]] const IInventory* getInventory() const override { return &m_inventory; }
-    [[nodiscard]] i32 getContainerSize() const override { return 3; }
+    [[nodiscard]] IInventory* getInventory() override
+    {
+        return &m_inventory;
+    }
+
+    [[nodiscard]] const IInventory* getInventory() const override
+    {
+        return &m_inventory;
+    }
+
+    [[nodiscard]] i32 getContainerSize() const override
+    {
+        return 3;
+    }
 
     // ========== ISidedInventory 接口 ==========
 
@@ -172,13 +219,19 @@ public:
      * @brief 获取累积的熔炼经验
      * @return 累积的经验值
      */
-    [[nodiscard]] f32 getStoredExperience() const { return m_storedExperience; }
+    [[nodiscard]] f32 getStoredExperience() const
+    {
+        return m_storedExperience;
+    }
 
     /**
      * @brief 设置累积的熔炼经验
      * @param xp 经验值
      */
-    void setStoredExperience(f32 xp) { m_storedExperience = xp; }
+    void setStoredExperience(f32 xp)
+    {
+        m_storedExperience = xp;
+    }
 
     /**
      * @brief 提取并清除累积的熔炼经验
@@ -195,31 +248,46 @@ public:
      * @brief 检查是否正在燃烧
      * @return 如果燃烧中返回true
      */
-    [[nodiscard]] bool isBurning() const { return m_burnTime > 0; }
+    [[nodiscard]] bool isBurning() const
+    {
+        return m_burnTime > 0;
+    }
 
     /**
      * @brief 获取当前燃烧时间
      * @return 剩余燃烧时间（tick）
      */
-    [[nodiscard]] i32 getBurnTime() const { return m_burnTime; }
+    [[nodiscard]] i32 getBurnTime() const
+    {
+        return m_burnTime;
+    }
 
     /**
      * @brief 获取当前燃料的总燃烧时间
      * @return 总燃烧时间（tick）
      */
-    [[nodiscard]] i32 getBurnTimeTotal() const { return m_burnTimeTotal; }
+    [[nodiscard]] i32 getBurnTimeTotal() const
+    {
+        return m_burnTimeTotal;
+    }
 
     /**
      * @brief 获取熔炼进度
      * @return 当前熔炼时间（tick）
      */
-    [[nodiscard]] i32 getCookTime() const { return m_cookTime; }
+    [[nodiscard]] i32 getCookTime() const
+    {
+        return m_cookTime;
+    }
 
     /**
      * @brief 获取总熔炼时间
      * @return 总熔炼时间（tick）
      */
-    [[nodiscard]] i32 getCookTimeTotal() const { return m_cookTimeTotal; }
+    [[nodiscard]] i32 getCookTimeTotal() const
+    {
+        return m_cookTimeTotal;
+    }
 
     /**
      * @brief 获取红石比较器信号
@@ -252,13 +320,23 @@ public:
      * @param stack 物品堆
      * @return 燃烧时间（tick），如果不是燃料返回0
      */
-    [[nodiscard]] virtual i32 getBurnTimeForFuel(const ItemStack& stack) const { return getBurnTime(stack); }
+    [[nodiscard]] virtual i32 getBurnTimeForFuel(const ItemStack& stack) const
+    {
+        return getBurnTime(stack);
+    }
 
     /**
      * @brief 获取背包
      */
-    [[nodiscard]] FurnaceInventory& getFurnaceInventory() { return m_inventory; }
-    [[nodiscard]] const FurnaceInventory& getFurnaceInventory() const { return m_inventory; }
+    [[nodiscard]] FurnaceInventory& getFurnaceInventory()
+    {
+        return m_inventory;
+    }
+
+    [[nodiscard]] const FurnaceInventory& getFurnaceInventory() const
+    {
+        return m_inventory;
+    }
 
 protected:
     /**
@@ -273,7 +351,10 @@ protected:
      * - 普通熔炉：200 tick
      * - 高炉/烟熏炉：100 tick
      */
-    [[nodiscard]] virtual i32 getDefaultCookTime() const { return 200; }
+    [[nodiscard]] virtual i32 getDefaultCookTime() const
+    {
+        return 200;
+    }
 
     /**
      * @brief 获取当前配方的熔炼时间

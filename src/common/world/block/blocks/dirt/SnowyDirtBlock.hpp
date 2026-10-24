@@ -86,7 +86,10 @@ public:
      * @brief 获取 SNOWY 属性
      * @return SNOWY 布尔属性引用
      */
-    [[nodiscard]] static const BooleanProperty& SNOWY() { return BlockStateProperties::SNOWY(); }
+    [[nodiscard]] static const BooleanProperty& SNOWY()
+    {
+        return BlockStateProperties::SNOWY();
+    }
 };
 
 } // namespace blocks

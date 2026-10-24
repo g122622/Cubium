@@ -51,20 +51,45 @@ class MobSpawnerTestWorld final : public mc::test::BaseTestWorld {
 public:
     using IWorld::getBlockState;
 
-    void setCurrentTick(u64 tick) { m_currentTick = tick; }
-    [[nodiscard]] u64 currentTick() const override { return m_currentTick; }
+    void setCurrentTick(u64 tick)
+    {
+        m_currentTick = tick;
+    }
 
-    void setSeed(u64 seed) { m_seed = seed; }
-    [[nodiscard]] u64 seed() const override { return m_seed; }
+    [[nodiscard]] u64 currentTick() const override
+    {
+        return m_currentTick;
+    }
 
-    void setEntitiesInRangeResult(std::vector<Entity*> entities) { m_entitiesInRange = std::move(entities); }
+    void setSeed(u64 seed)
+    {
+        m_seed = seed;
+    }
+
+    [[nodiscard]] u64 seed() const override
+    {
+        return m_seed;
+    }
+
+    void setEntitiesInRangeResult(std::vector<Entity*> entities)
+    {
+        m_entitiesInRange = std::move(entities);
+    }
+
     [[nodiscard]] std::vector<Entity*> getEntitiesInRange(const Vector3&, f32, const Entity*) const override
     {
         return m_entitiesInRange;
     }
 
-    void setDifficulty(Difficulty diff) { m_difficulty = diff; }
-    [[nodiscard]] Difficulty difficulty() const override { return m_difficulty; }
+    void setDifficulty(Difficulty diff)
+    {
+        m_difficulty = diff;
+    }
+
+    [[nodiscard]] Difficulty difficulty() const override
+    {
+        return m_difficulty;
+    }
 
     [[nodiscard]] EntityInstanceId spawnEntity(std::unique_ptr<Entity> entity) override
     {
@@ -82,19 +107,28 @@ public:
     {
         throw std::runtime_error("MobSpawnerTestWorld::tickManager not implemented");
     }
+
     [[nodiscard]] const world::tick::TickManager& tickManager() const override
     {
         throw std::runtime_error("MobSpawnerTestWorld::tickManager not implemented");
     }
 
     // 测试辅助
-    size_t spawnedCount() const { return m_spawnedEntities.size(); }
+    size_t spawnedCount() const
+    {
+        return m_spawnedEntities.size();
+    }
+
     void clearSpawnedEntities()
     {
         m_spawnedEntities.clear();
         m_ownedEntities.clear();
     }
-    const std::vector<Entity*>& spawnedEntities() const { return m_spawnedEntities; }
+
+    const std::vector<Entity*>& spawnedEntities() const
+    {
+        return m_spawnedEntities;
+    }
 
     // playEvent 记录
     struct PlayEventCall {
@@ -108,8 +142,15 @@ public:
         m_playEventCalls.push_back({eventId, pos, data});
     }
 
-    [[nodiscard]] const std::vector<PlayEventCall>& playEventCalls() const { return m_playEventCalls; }
-    void clearPlayEventCalls() { m_playEventCalls.clear(); }
+    [[nodiscard]] const std::vector<PlayEventCall>& playEventCalls() const
+    {
+        return m_playEventCalls;
+    }
+
+    void clearPlayEventCalls()
+    {
+        m_playEventCalls.clear();
+    }
 
 private:
     u64 m_currentTick = 0;
@@ -128,7 +169,10 @@ private:
 
 class MobSpawnerBlockEntityTest : public ::testing::Test {
 protected:
-    void SetUp() override { spawner_ = std::make_unique<MobSpawnerBlockEntity>(BlockPos(10, 64, 20)); }
+    void SetUp() override
+    {
+        spawner_ = std::make_unique<MobSpawnerBlockEntity>(BlockPos(10, 64, 20));
+    }
 
     std::unique_ptr<MobSpawnerBlockEntity> spawner_;
 };
@@ -924,16 +968,50 @@ class MobSpawnerLightTestWorld final : public mc::test::BaseTestWorld {
 public:
     using IWorld::getBlockState;
 
-    void setBlockLightValue(u8 value) { m_blockLight = value; }
-    void setSkyLightValue(u8 value) { m_skyLight = value; }
-    void setDifficulty(Difficulty diff) { m_difficulty = diff; }
-    void setSeed(u64 seed) { m_seed = seed; }
-    void setEntitiesInRangeResult(std::vector<Entity*> entities) { m_entitiesInRange = std::move(entities); }
+    void setBlockLightValue(u8 value)
+    {
+        m_blockLight = value;
+    }
 
-    [[nodiscard]] u8 getBlockLight(i32, i32, i32) const override { return m_blockLight; }
-    [[nodiscard]] u8 getSkyLight(i32, i32, i32) const override { return m_skyLight; }
-    [[nodiscard]] Difficulty difficulty() const override { return m_difficulty; }
-    [[nodiscard]] u64 seed() const override { return m_seed; }
+    void setSkyLightValue(u8 value)
+    {
+        m_skyLight = value;
+    }
+
+    void setDifficulty(Difficulty diff)
+    {
+        m_difficulty = diff;
+    }
+
+    void setSeed(u64 seed)
+    {
+        m_seed = seed;
+    }
+
+    void setEntitiesInRangeResult(std::vector<Entity*> entities)
+    {
+        m_entitiesInRange = std::move(entities);
+    }
+
+    [[nodiscard]] u8 getBlockLight(i32, i32, i32) const override
+    {
+        return m_blockLight;
+    }
+
+    [[nodiscard]] u8 getSkyLight(i32, i32, i32) const override
+    {
+        return m_skyLight;
+    }
+
+    [[nodiscard]] Difficulty difficulty() const override
+    {
+        return m_difficulty;
+    }
+
+    [[nodiscard]] u64 seed() const override
+    {
+        return m_seed;
+    }
 
     [[nodiscard]] std::vector<Entity*> getEntitiesInRange(const Vector3&, f32, const Entity*) const override
     {
@@ -955,6 +1033,7 @@ public:
     {
         throw std::runtime_error("MobSpawnerLightTestWorld::tickManager not implemented");
     }
+
     [[nodiscard]] const world::tick::TickManager& tickManager() const override
     {
         throw std::runtime_error("MobSpawnerLightTestWorld::tickManager not implemented");

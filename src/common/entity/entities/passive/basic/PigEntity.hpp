@@ -116,9 +116,15 @@ public:
     // BoostHelper（m_initialized=false），故 BoostHelper.getSaddled() 恒返 false，
     // hasSaddle() 读它会致装鞍后仍判无鞍、骑乘分支永不命中。改用独立 bool 成员（与
     // StriderEntity::m_saddled 同构）保证装鞍状态正确读写。
-    [[nodiscard]] bool hasSaddle() const override { return m_saddled; }
+    [[nodiscard]] bool hasSaddle() const override
+    {
+        return m_saddled;
+    }
 
-    void setSaddle(bool saddle) override { m_saddled = saddle; }
+    void setSaddle(bool saddle) override
+    {
+        m_saddled = saddle;
+    }
 
     void onPlayerStartRiding(Player* player) override;
 
@@ -132,9 +138,15 @@ public:
 
     bool boost() override;
 
-    [[nodiscard]] i32 getBoostTime() const override { return m_boostHelper.getBoostTime(); }
+    [[nodiscard]] i32 getBoostTime() const override
+    {
+        return m_boostHelper.getBoostTime();
+    }
 
-    void setBoostTime(i32 time) override { m_boostHelper.setBoostTime(time); }
+    void setBoostTime(i32 time) override
+    {
+        m_boostHelper.setBoostTime(time);
+    }
 
     /**
      * @brief 检查是否可以被控制方向
@@ -159,7 +171,10 @@ public:
      * @brief 获取装备槽数量
      * 猪只有一个鞍槽
      */
-    [[nodiscard]] i32 getEquipmentSlotCount() const override { return 1; }
+    [[nodiscard]] i32 getEquipmentSlotCount() const override
+    {
+        return 1;
+    }
 
     /**
      * @brief 获取指定槽位的装备
@@ -205,13 +220,23 @@ protected:
 
     // ========== 尺寸 ==========
 
-    [[nodiscard]] f32 getBaseWidth() const override { return 0.9f; }
-    [[nodiscard]] f32 getBaseHeight() const override { return 0.9f; }
+    [[nodiscard]] f32 getBaseWidth() const override
+    {
+        return 0.9f;
+    }
+
+    [[nodiscard]] f32 getBaseHeight() const override
+    {
+        return 0.9f;
+    }
 
     /**
      * @brief 获取眼睛高度
      */
-    [[nodiscard]] f32 eyeHeight() const override { return 0.4f * height(); }
+    [[nodiscard]] f32 eyeHeight() const override
+    {
+        return 0.4f * height();
+    }
 
 private:
     BoostHelper m_boostHelper; ///< 加速辅助器

@@ -219,7 +219,9 @@ TEST_F(EntityPeacefulFlagTest, NotInPeacefulIndependentFromCanSummon)
 // ============================================================================
 TEST_F(EntityPeacefulFlagTest, BuilderNotInPeacefulFlagSemantics)
 {
-    auto factory = [](IWorld*, ecs::EntityRegistry&) -> std::unique_ptr<Entity> { return nullptr; };
+    auto factory = [](IWorld*, ecs::EntityRegistry&) -> std::unique_ptr<Entity> {
+        return nullptr;
+    };
 
     // 默认无标志 → 和平可召。
     EntityType defaultType = EntityType::Builder(factory, EntityClassification::Monster).build();

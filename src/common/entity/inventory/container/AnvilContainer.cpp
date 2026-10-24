@@ -110,7 +110,10 @@ public:
         return m_container != nullptr && m_container->canTakeResult(player);
     }
 
-    ItemStack remove(i32 amount) override { return amount > 0 ? Slot::remove(getItem().getCount()) : ItemStack::EMPTY; }
+    ItemStack remove(i32 amount) override
+    {
+        return amount > 0 ? Slot::remove(getItem().getCount()) : ItemStack::EMPTY;
+    }
 
     ItemStack onTake(Player& player, ItemStack stack) override
     {
@@ -129,9 +132,15 @@ class _AnvilInventory : public IInventory {
 public:
     static constexpr i32 SIZE = 3; // 输入1 + 输入2 + 输出
 
-    i32 getContainerSize() const override { return SIZE; }
+    i32 getContainerSize() const override
+    {
+        return SIZE;
+    }
 
-    bool isEmpty() const override { return m_items[0].isEmpty() && m_items[1].isEmpty() && m_items[2].isEmpty(); }
+    bool isEmpty() const override
+    {
+        return m_items[0].isEmpty() && m_items[1].isEmpty() && m_items[2].isEmpty();
+    }
 
     ItemStack getItem(i32 slot) const override
     {
@@ -175,10 +184,20 @@ public:
         setChanged();
     }
 
-    void setChanged() override { m_changed = true; }
+    void setChanged() override
+    {
+        m_changed = true;
+    }
 
-    bool isChanged() const { return m_changed; }
-    void clearChanged() { m_changed = false; }
+    bool isChanged() const
+    {
+        return m_changed;
+    }
+
+    void clearChanged()
+    {
+        m_changed = false;
+    }
 
 private:
     std::array<ItemStack, SIZE> m_items;
@@ -199,7 +218,13 @@ AnvilContainer::AnvilContainer(
 
     MC_ASSERT(playerInventory != nullptr);
     _initSlots(playerInventory);
-    trackInt([this]() { return m_repairCost; }, [this](i32 cost) { m_repairCost = cost; });
+    trackInt(
+        [this]() {
+            return m_repairCost;
+        },
+        [this](i32 cost) {
+            m_repairCost = cost;
+        });
 }
 
 // ========== 重命名 ==========
@@ -244,7 +269,9 @@ bool AnvilContainer::stillValid(const Player& player) const
     if (!isWithinDistance(player, m_position)) {
         return false;
     }
-    if (m_world == nullptr) return true;
+    if (m_world == nullptr) {
+        return true;
+    }
     const auto* state = m_world->getBlockState(m_position);
     return player.world() == m_world && state != nullptr && BlockTags::ANVIL().contains(state->getBlock());
 }
@@ -481,7 +508,9 @@ void AnvilContainer::_updateRepairOutput()
             bool hasIncompatibleEnchantment = false;
 
             for (const auto& [enchant2, level2] : enchantments2) {
-                if (enchant2 == nullptr) continue;
+                if (enchant2 == nullptr) {
+                    continue;
+                }
 
                 // 查找是否已有此附魔
                 i32 existingLevel = 0;

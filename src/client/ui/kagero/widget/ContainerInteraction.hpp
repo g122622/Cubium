@@ -265,13 +265,20 @@ public:
 
     // ==================== 状态查询 ====================
 
-    [[nodiscard]] mc::ItemStack& getCarriedItem() { return m_menu ? m_menu->getCarriedItem() : s_emptyStack; }
+    [[nodiscard]] mc::ItemStack& getCarriedItem()
+    {
+        return m_menu ? m_menu->getCarriedItem() : s_emptyStack;
+    }
+
     [[nodiscard]] const mc::ItemStack& getCarriedItem() const
     {
         return m_menu ? m_menu->getCarriedItem() : s_emptyStack;
     }
 
-    [[nodiscard]] i32 getHoveredSlotIndex() const { return m_hoveredSlotIndex; }
+    [[nodiscard]] i32 getHoveredSlotIndex() const
+    {
+        return m_hoveredSlotIndex;
+    }
 
     /**
      * @brief 更新悬停槽位索引（宿主每帧调用）

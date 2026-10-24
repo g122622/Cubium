@@ -58,7 +58,10 @@ namespace {
 /// 块存储测试世界：记录任意方块状态，用于放置排斥物。
 class HoglinTestWorld final : public mc::test::BaseTestWorld {
 public:
-    HoglinTestWorld() { VanillaBlocks::initialize(); }
+    HoglinTestWorld()
+    {
+        VanillaBlocks::initialize();
+    }
 
     [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override
     {
@@ -76,7 +79,10 @@ public:
         return true;
     }
 
-    void setBlock(const BlockPos& pos, const BlockState* state) { setBlockState(pos.x, pos.y, pos.z, state); }
+    void setBlock(const BlockPos& pos, const BlockState* state)
+    {
+        setBlockState(pos.x, pos.y, pos.z, state);
+    }
 
 private:
     std::unordered_map<BlockPos, const BlockState*> m_blocks;

@@ -42,7 +42,10 @@ protected:
             std::make_unique<Player>(static_cast<EntityInstanceId>(1), "TestPlayer", mc::test::testEcsRegistry());
     }
 
-    void TearDown() override { m_player.reset(); }
+    void TearDown() override
+    {
+        m_player.reset();
+    }
 
     std::unique_ptr<Player> m_player;
 };

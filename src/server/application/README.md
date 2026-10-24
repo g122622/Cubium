@@ -38,7 +38,7 @@ src/server/application/
 2. 清理断开连接玩家
 3. `m_dimensionManager->tick()` - 驱动所有维度（各维度内部执行世界tick、实体同步、区块发送、刷怪等）
 4. 自动保存（周期 6000 tick / 5 分钟，受 `/save-on` `/save-off` 控制）：先数一遍各维度的脏区块，
-   有改动才调 `saveAllWorldData(false)` 落盘
+   脏区块或世界 addon 属性有改动才调 `saveAllWorldData(false)` 落盘
 5. `tickEntities()` - 实体tick、物品拾取、实体追踪
 6. `miningManager().tick()` - 更新挖掘进度
 7. `pollNetwork()` - 处理网络事件
@@ -222,3 +222,7 @@ IntegratedServer 运行在独立线程，访问 `clientInventory()` 需要使用
 主线程筛选接收者并提交出站包；TCP 编码、压缩和异步写入由独立 NetworkIO 执行。
 广播共享 OutboundPacket，send/sendShared 的成功表示成功入队，异步错误通过断连处理。
 存档 IO 池不承载网络连接，网络任务不读取玩家或世界可变状态。
+
+### 世界 addon 属性保存
+
+世界动态属性参与自动保存、显式保存和关服保存；即使没有脏区块，属性脏标记也会触发周期保存。写入失败保留脏标记，恢复发生在脚本入口执行之前。

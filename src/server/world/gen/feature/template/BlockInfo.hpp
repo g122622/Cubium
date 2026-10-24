@@ -66,10 +66,12 @@ struct ProcessedBlockInfo {
     std::unique_ptr<nbt::CompoundTag> nbt;
 
     ProcessedBlockInfo() = default;
+
     ProcessedBlockInfo(const BlockPos& p, u32 stateId)
         : pos(p)
         , blockStateId(stateId)
     {}
+
     ProcessedBlockInfo(const ProcessedBlockInfo& other);
     ProcessedBlockInfo(ProcessedBlockInfo&& other) noexcept;
     ProcessedBlockInfo& operator=(const ProcessedBlockInfo& other);

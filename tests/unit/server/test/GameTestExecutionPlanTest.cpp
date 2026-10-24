@@ -36,8 +36,9 @@ TEST(GameTestExecutionPlanTest, PartitionsAreCompleteDisjointAndIndependentOfReg
             EXPECT_TRUE(all.insert(items[index].id).second);
             first.insert(items[index].id);
         }
-        for (const auto index : GameTestExecutionPlan::select(reversed, {shard, 3}))
+        for (const auto index : GameTestExecutionPlan::select(reversed, {shard, 3})) {
             second.insert(reversed[index].id);
+        }
         EXPECT_EQ(first, second);
         EXPECT_FALSE(first.empty());
     }

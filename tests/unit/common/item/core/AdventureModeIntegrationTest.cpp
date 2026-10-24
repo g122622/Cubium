@@ -79,7 +79,10 @@ public:
 
     void playSound(const ResourceLocation&, sound::SoundCategory, const Vector3&, f32, f32) override {}
 
-    void clearState() { m_blocks.clear(); }
+    void clearState()
+    {
+        m_blocks.clear();
+    }
 
 private:
     std::unordered_map<BlockPos, std::unique_ptr<BlockState>> m_blocks;
@@ -96,7 +99,10 @@ protected:
         Items::initialize();
     }
 
-    void TearDown() override { m_world.clearState(); }
+    void TearDown() override
+    {
+        m_world.clearState();
+    }
 
     AdventureModeTestWorld m_world;
 };
@@ -426,7 +432,10 @@ TEST_F(PlayerMayInteractAdventureTest, AdventureMode_AirBlock_ReturnsFalse)
 
 class ItemStackAdventureModeNbtTest : public ::testing::Test {
 protected:
-    void SetUp() override { Items::initialize(); }
+    void SetUp() override
+    {
+        Items::initialize();
+    }
 };
 
 TEST_F(ItemStackAdventureModeNbtTest, CanPlaceOnRoundTrip)
@@ -753,7 +762,10 @@ protected:
         BlockTags::initialize();
     }
 
-    void TearDown() override { m_world.clearState(); }
+    void TearDown() override
+    {
+        m_world.clearState();
+    }
 
     NbtMatchingTestWorld m_world;
 };

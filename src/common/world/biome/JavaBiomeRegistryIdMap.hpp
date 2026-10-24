@@ -84,10 +84,16 @@ public:
     [[nodiscard]] std::optional<BiomeId> biomeIdByName(const std::string& biomeName) const;
 
     /// 是否已建立映射。
-    [[nodiscard]] bool isInitialized() const noexcept { return m_initialized; }
+    [[nodiscard]] bool isInitialized() const noexcept
+    {
+        return m_initialized;
+    }
 
     /// 已匹配的 biome 对数（诊断用）。
-    [[nodiscard]] size_t matchedCount() const noexcept { return m_toJava.size(); }
+    [[nodiscard]] size_t matchedCount() const noexcept
+    {
+        return m_toJava.size();
+    }
 
 private:
     bool m_initialized = false;

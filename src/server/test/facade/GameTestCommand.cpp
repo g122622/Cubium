@@ -45,7 +45,9 @@ void GameTestCommand::cleanupCompletedInstances()
     auto& held = _heldInstances();
     held.erase(std::remove_if(held.begin(),
                    held.end(),
-                   [](const std::unique_ptr<BaseGameTestInstance>& inst) { return inst && isDone(inst->state()); }),
+                   [](const std::unique_ptr<BaseGameTestInstance>& inst) {
+                       return inst && isDone(inst->state());
+                   }),
         held.end());
 }
 
@@ -68,7 +70,9 @@ void GameTestCommand::registerTo(mc::command::CommandDispatcher<mc::command::Ser
     auto runNode = std::make_shared<LiteralCommandNode<mc::command::ServerCommandSource>>("run");
     auto runNameArg = std::make_shared<ArgumentCommandNode<mc::command::ServerCommandSource, std::string>>(
         "testName", StringArgumentType::greedyString());
-    runNameArg->setCommand([](CommandContext<mc::command::ServerCommandSource>& ctx) { return _run(ctx); });
+    runNameArg->setCommand([](CommandContext<mc::command::ServerCommandSource>& ctx) {
+        return _run(ctx);
+    });
     // 无参形式：注入默认 "*" 通配符后委托
     runNode->setCommand([](CommandContext<mc::command::ServerCommandSource>& ctx) {
         ctx.setArgument("testName", std::string{"*"});
@@ -78,30 +82,39 @@ void GameTestCommand::registerTo(mc::command::CommandDispatcher<mc::command::Ser
 
     // /gametest runall
     auto runAllNode = std::make_shared<LiteralCommandNode<mc::command::ServerCommandSource>>("runall");
-    runAllNode->setCommand([](CommandContext<mc::command::ServerCommandSource>& ctx) { return _runAll(ctx); });
+    runAllNode->setCommand([](CommandContext<mc::command::ServerCommandSource>& ctx) {
+        return _runAll(ctx);
+    });
 
     // /gametest pos <blockPos>
     auto posNode = std::make_shared<LiteralCommandNode<mc::command::ServerCommandSource>>("pos");
     auto posArg = std::make_shared<ArgumentCommandNode<mc::command::ServerCommandSource, Coordinates::Ptr>>(
         "pos", BlockPosArgumentType::blockPos());
-    posArg->setCommand([](CommandContext<mc::command::ServerCommandSource>& ctx) { return _pos(ctx); });
+    posArg->setCommand([](CommandContext<mc::command::ServerCommandSource>& ctx) {
+        return _pos(ctx);
+    });
     posNode->addChild(posArg);
 
     // /gametest locate <testName>
     auto locateNode = std::make_shared<LiteralCommandNode<mc::command::ServerCommandSource>>("locate");
     auto locateArg = std::make_shared<ArgumentCommandNode<mc::command::ServerCommandSource, std::string>>(
         "testName", StringArgumentType::word());
-    locateArg->setCommand([](CommandContext<mc::command::ServerCommandSource>& ctx) { return _locate(ctx); });
+    locateArg->setCommand([](CommandContext<mc::command::ServerCommandSource>& ctx) {
+        return _locate(ctx);
+    });
     locateNode->addChild(locateArg);
 
     // /gametest clear
     auto clearNode = std::make_shared<LiteralCommandNode<mc::command::ServerCommandSource>>("clear");
-    clearNode->setCommand([](CommandContext<mc::command::ServerCommandSource>& ctx) { return _clear(ctx); });
+    clearNode->setCommand([](CommandContext<mc::command::ServerCommandSource>& ctx) {
+        return _clear(ctx);
+    });
 
     // 根节点 gametest（OP-only 权限 2）
     auto gametestNode = std::make_shared<LiteralCommandNode<mc::command::ServerCommandSource>>("gametest");
-    gametestNode->setRequirement(
-        [](const mc::command::ServerCommandSource& source) { return source.hasPermission(2); });
+    gametestNode->setRequirement([](const mc::command::ServerCommandSource& source) {
+        return source.hasPermission(2);
+    });
     mc::command::support::applyMetadata(gametestNode,
         mc::command::support::makeMetadata("Run game tests.", "/gametest <run|runall|pos|locate|clear> ...", 2));
     gametestNode->addChild(runNode);

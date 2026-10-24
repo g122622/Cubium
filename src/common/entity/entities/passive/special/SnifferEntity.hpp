@@ -202,17 +202,35 @@ public:
      *
      * 目标存在时嗅探兽不进入挖掘，而是先寻路到该目标。
      */
-    [[nodiscard]] bool hasSniffingTarget() const noexcept { return m_hasSniffingTarget; }
-    void setSniffingTarget(bool value) noexcept { m_hasSniffingTarget = value; }
+    [[nodiscard]] bool hasSniffingTarget() const noexcept
+    {
+        return m_hasSniffingTarget;
+    }
+
+    void setSniffingTarget(bool value) noexcept
+    {
+        m_hasSniffingTarget = value;
+    }
 
     /// 标记下次嗅探结束时掉种（对齐 vanilla onDiggingComplete(timedOut) 的效果）
-    void setShouldDropSeed(bool value) noexcept { m_shouldDropSeed = value; }
+    void setShouldDropSeed(bool value) noexcept
+    {
+        m_shouldDropSeed = value;
+    }
+
     /// 取出并清除“本次嗅探结束时掉种”标记
     [[nodiscard]] bool consumeShouldDropSeed();
 
     /// 开心标记（对齐 vanilla MemoryModuleType.SNIFFER_HAPPY）
-    [[nodiscard]] bool isHappy() const noexcept { return m_happy; }
-    void setHappy(bool value) noexcept { m_happy = value; }
+    [[nodiscard]] bool isHappy() const noexcept
+    {
+        return m_happy;
+    }
+
+    void setHappy(bool value) noexcept
+    {
+        m_happy = value;
+    }
 
     /// 设置嗅探冷却 tick（对齐 vanilla SNIFF_COOLDOWN，挖掘超时后 9600 tick）
     void setSniffCooldownTicks(u64 ticks);
@@ -225,9 +243,16 @@ public:
     void storeExploredPosition(const BlockPos& pos);
 
     /// 食物诱惑目标（对齐 vanilla TEMPTING_PLAYER / IS_TEMPTED 记忆）
-    [[nodiscard]] entity::ai::goal::TemptGoal* temptGoal() const noexcept { return m_temptGoal; }
+    [[nodiscard]] entity::ai::goal::TemptGoal* temptGoal() const noexcept
+    {
+        return m_temptGoal;
+    }
+
     /// 恐慌逃跑目标（对齐 vanilla IS_PANICKING 记忆）
-    [[nodiscard]] entity::ai::goal::PanicGoal* panicGoal() const noexcept { return m_panicGoal; }
+    [[nodiscard]] entity::ai::goal::PanicGoal* panicGoal() const noexcept
+    {
+        return m_panicGoal;
+    }
 
     // ========== 声音 ==========
 
@@ -266,8 +291,15 @@ public:
         return isChild() ? 0.525f : 1.05f;
     }
 
-    [[nodiscard]] f32 getBaseWidth() const override { return 1.9f; }
-    [[nodiscard]] f32 getBaseHeight() const override { return 1.75f; }
+    [[nodiscard]] f32 getBaseWidth() const override
+    {
+        return 1.9f;
+    }
+
+    [[nodiscard]] f32 getBaseHeight() const override
+    {
+        return 1.75f;
+    }
 
     /**
      * @brief 实体尺寸

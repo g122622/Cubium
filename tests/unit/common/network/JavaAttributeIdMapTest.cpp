@@ -45,7 +45,10 @@ protected:
         ASSERT_TRUE(result.success()) << result.error().toString();
     }
 
-    static const JavaAttributeIdMap& map() { return JavaAttributeIdMap::instance(); }
+    static const JavaAttributeIdMap& map()
+    {
+        return JavaAttributeIdMap::instance();
+    }
 };
 
 TEST_F(JavaAttributeIdMapTest, VanillaIdsMatchDeclarationOrder)

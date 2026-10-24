@@ -63,8 +63,15 @@ public:
 
     // ========== GameRules 访问 ==========
 
-    [[nodiscard]] const GameRules& getGameRules() const override { return m_gameRules; }
-    [[nodiscard]] GameRules& getGameRules() override { return m_gameRules; }
+    [[nodiscard]] const GameRules& getGameRules() const override
+    {
+        return m_gameRules;
+    }
+
+    [[nodiscard]] GameRules& getGameRules() override
+    {
+        return m_gameRules;
+    }
 
     // ========== 测试辅助方法 ==========
 
@@ -92,21 +99,45 @@ public:
         , m_ingredients()
     {}
 
-    [[nodiscard]] ResourceLocation getId() const override { return m_id; }
+    [[nodiscard]] ResourceLocation getId() const override
+    {
+        return m_id;
+    }
 
-    [[nodiscard]] bool matches(const IInventory&) const override { return true; }
+    [[nodiscard]] bool matches(const IInventory&) const override
+    {
+        return true;
+    }
 
-    [[nodiscard]] ItemStack assemble(const IInventory&) const override { return ItemStack(); }
+    [[nodiscard]] ItemStack assemble(const IInventory&) const override
+    {
+        return ItemStack();
+    }
 
-    [[nodiscard]] ItemStack getResultItem() const override { return ItemStack(); }
+    [[nodiscard]] ItemStack getResultItem() const override
+    {
+        return ItemStack();
+    }
 
-    [[nodiscard]] bool isDynamic() const override { return m_isDynamic; }
+    [[nodiscard]] bool isDynamic() const override
+    {
+        return m_isDynamic;
+    }
 
-    [[nodiscard]] crafting::RecipeType getType() const override { return crafting::RecipeType::Crafting; }
+    [[nodiscard]] crafting::RecipeType getType() const override
+    {
+        return crafting::RecipeType::Crafting;
+    }
 
-    [[nodiscard]] const std::vector<crafting::Ingredient>& getIngredients() const override { return m_ingredients; }
+    [[nodiscard]] const std::vector<crafting::Ingredient>& getIngredients() const override
+    {
+        return m_ingredients;
+    }
 
-    [[nodiscard]] std::vector<ItemStack> getRemainingItems(const IInventory&) const override { return {}; }
+    [[nodiscard]] std::vector<ItemStack> getRemainingItems(const IInventory&) const override
+    {
+        return {};
+    }
 
 private:
     ResourceLocation m_id;
@@ -123,9 +154,15 @@ public:
         : m_recipeUsed(nullptr)
     {}
 
-    void setRecipeUsed(const crafting::IRecipe<IInventory>* recipe) override { m_recipeUsed = recipe; }
+    void setRecipeUsed(const crafting::IRecipe<IInventory>* recipe) override
+    {
+        m_recipeUsed = recipe;
+    }
 
-    [[nodiscard]] const crafting::IRecipe<IInventory>* getRecipeUsed() const override { return m_recipeUsed; }
+    [[nodiscard]] const crafting::IRecipe<IInventory>* getRecipeUsed() const override
+    {
+        return m_recipeUsed;
+    }
 
 private:
     const crafting::IRecipe<IInventory>* m_recipeUsed;

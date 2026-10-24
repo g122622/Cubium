@@ -66,11 +66,25 @@ public:
         }
     }
 
-    void unlockRecipe(const ResourceLocation& recipeId) override { m_unlockedRecipes.push_back(recipeId); }
+    void unlockRecipe(const ResourceLocation& recipeId) override
+    {
+        m_unlockedRecipes.push_back(recipeId);
+    }
 
-    [[nodiscard]] const std::vector<ResourceLocation>& unlockedRecipes() const { return m_unlockedRecipes; }
-    [[nodiscard]] i32 unlockedRecipeCount() const { return static_cast<i32>(m_unlockedRecipes.size()); }
-    void clearUnlockedRecipes() { m_unlockedRecipes.clear(); }
+    [[nodiscard]] const std::vector<ResourceLocation>& unlockedRecipes() const
+    {
+        return m_unlockedRecipes;
+    }
+
+    [[nodiscard]] i32 unlockedRecipeCount() const
+    {
+        return static_cast<i32>(m_unlockedRecipes.size());
+    }
+
+    void clearUnlockedRecipes()
+    {
+        m_unlockedRecipes.clear();
+    }
 
 private:
     std::vector<ResourceLocation> m_unlockedRecipes;
@@ -86,16 +100,40 @@ public:
         : m_id(id)
     {}
 
-    [[nodiscard]] bool matches(const CraftingInventory& /*inventory*/) const override { return true; }
-    [[nodiscard]] ItemStack assemble(const CraftingInventory& /*inventory*/) const override { return ItemStack(); }
-    [[nodiscard]] ItemStack getResultItem() const override { return ItemStack(); }
+    [[nodiscard]] bool matches(const CraftingInventory& /*inventory*/) const override
+    {
+        return true;
+    }
+
+    [[nodiscard]] ItemStack assemble(const CraftingInventory& /*inventory*/) const override
+    {
+        return ItemStack();
+    }
+
+    [[nodiscard]] ItemStack getResultItem() const override
+    {
+        return ItemStack();
+    }
+
     [[nodiscard]] std::vector<ItemStack> getRemainingItems(const CraftingInventory& inventory) const override
     {
         return crafting::RecipeUtils::getDefaultRemainingItems(inventory);
     }
-    [[nodiscard]] const std::vector<crafting::Ingredient>& getIngredients() const override { return m_ingredients; }
-    [[nodiscard]] ResourceLocation getId() const override { return m_id; }
-    [[nodiscard]] crafting::RecipeType getType() const override { return crafting::RecipeType::ShapelessCrafting; }
+
+    [[nodiscard]] const std::vector<crafting::Ingredient>& getIngredients() const override
+    {
+        return m_ingredients;
+    }
+
+    [[nodiscard]] ResourceLocation getId() const override
+    {
+        return m_id;
+    }
+
+    [[nodiscard]] crafting::RecipeType getType() const override
+    {
+        return crafting::RecipeType::ShapelessCrafting;
+    }
 
 private:
     ResourceLocation m_id;
@@ -246,10 +284,10 @@ TEST_F(TrailsItemsRegistrationTest, RecoveryCompass_CorrectItemId)
     EXPECT_EQ(Items::RECOVERY_COMPASS->itemLocation(), ResourceLocation("minecraft", "recovery_compass"));
 }
 
-TEST_F(TrailsItemsRegistrationTest, RecoveryCompass_MaxStackSize1)
+TEST_F(TrailsItemsRegistrationTest, RecoveryCompass_MaxStackSize)
 {
-    // 指南针类物品堆叠数为1
-    EXPECT_EQ(Items::RECOVERY_COMPASS->maxStackSize(), 1);
+    // 原版 1.21.11 的回复罗盘没有 MAX_STACK_SIZE 限制，堆叠 64。
+    EXPECT_EQ(Items::RECOVERY_COMPASS->maxStackSize(), 64);
 }
 
 TEST_F(TrailsItemsRegistrationTest, RecoveryCompass_RegistryLookup)
@@ -378,7 +416,10 @@ protected:
         m_player = std::make_unique<KnowledgeBookTestPlayer>(m_world.get());
     }
 
-    void TearDown() override { crafting::RecipeManager::instance().clear(); }
+    void TearDown() override
+    {
+        crafting::RecipeManager::instance().clear();
+    }
 
     std::unique_ptr<KnowledgeBookTestWorld> m_world;
     std::unique_ptr<KnowledgeBookTestPlayer> m_player;

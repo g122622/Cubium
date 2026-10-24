@@ -60,7 +60,9 @@ void DataCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
 {
     // 创建主命令节点
     auto dataNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("data");
-    dataNode->setRequirement([](const ServerCommandSource& source) { return source.hasPermission(2); });
+    dataNode->setRequirement([](const ServerCommandSource& source) {
+        return source.hasPermission(2);
+    });
     support::applyMetadata(dataNode,
         support::makeMetadata("Gets, merges, modifies, or removes block entity and entity NBT data.",
             "/data <get|set|merge|remove> <target> [<path>]",
@@ -80,11 +82,17 @@ void DataCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
     auto getBlockScaleArg =
         std::make_shared<ArgumentCommandNode<ServerCommandSource, f32>>("scale", FloatArgumentType::floatArg());
 
-    getBlockScaleArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _getBlock(ctx); });
+    getBlockScaleArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _getBlock(ctx);
+    });
     getBlockPathArg->addChild(getBlockScaleArg);
-    getBlockPathArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _getBlock(ctx); });
+    getBlockPathArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _getBlock(ctx);
+    });
     getBlockPosArg->addChild(getBlockPathArg);
-    getBlockPosArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _getBlock(ctx); });
+    getBlockPosArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _getBlock(ctx);
+    });
     getBlockNode->addChild(getBlockPosArg);
     getNode->addChild(getBlockNode);
 
@@ -97,11 +105,17 @@ void DataCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
     auto getEntityScaleArg =
         std::make_shared<ArgumentCommandNode<ServerCommandSource, f32>>("scale", FloatArgumentType::floatArg());
 
-    getEntityScaleArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _getEntity(ctx); });
+    getEntityScaleArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _getEntity(ctx);
+    });
     getEntityPathArg->addChild(getEntityScaleArg);
-    getEntityPathArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _getEntity(ctx); });
+    getEntityPathArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _getEntity(ctx);
+    });
     getEntityTargetArg->addChild(getEntityPathArg);
-    getEntityTargetArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _getEntity(ctx); });
+    getEntityTargetArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _getEntity(ctx);
+    });
     getEntityNode->addChild(getEntityTargetArg);
     getNode->addChild(getEntityNode);
 
@@ -114,11 +128,17 @@ void DataCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
     auto getStorageScaleArg =
         std::make_shared<ArgumentCommandNode<ServerCommandSource, f32>>("scale", FloatArgumentType::floatArg());
 
-    getStorageScaleArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _getStorage(ctx); });
+    getStorageScaleArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _getStorage(ctx);
+    });
     getStoragePathArg->addChild(getStorageScaleArg);
-    getStoragePathArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _getStorage(ctx); });
+    getStoragePathArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _getStorage(ctx);
+    });
     getStorageIdArg->addChild(getStoragePathArg);
-    getStorageIdArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _getStorage(ctx); });
+    getStorageIdArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _getStorage(ctx);
+    });
     getStorageNode->addChild(getStorageIdArg);
     getNode->addChild(getStorageNode);
 
@@ -136,7 +156,9 @@ void DataCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
     auto setBlockValueArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::shared_ptr<nbt::tags::tag>>>(
         "value", NbtTagArgumentType::nbtTag());
 
-    setBlockValueArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _setBlock(ctx); });
+    setBlockValueArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _setBlock(ctx);
+    });
     setBlockPathArg->addChild(setBlockValueArg);
     setBlockPosArg->addChild(setBlockPathArg);
     setBlockNode->addChild(setBlockPosArg);
@@ -152,7 +174,9 @@ void DataCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
         std::make_shared<ArgumentCommandNode<ServerCommandSource, std::shared_ptr<nbt::tags::tag>>>(
             "value", NbtTagArgumentType::nbtTag());
 
-    setEntityValueArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _setEntity(ctx); });
+    setEntityValueArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _setEntity(ctx);
+    });
     setEntityPathArg->addChild(setEntityValueArg);
     setEntityTargetArg->addChild(setEntityPathArg);
     setEntityNode->addChild(setEntityTargetArg);
@@ -168,7 +192,9 @@ void DataCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
         std::make_shared<ArgumentCommandNode<ServerCommandSource, std::shared_ptr<nbt::tags::tag>>>(
             "value", NbtTagArgumentType::nbtTag());
 
-    setStorageValueArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _setStorage(ctx); });
+    setStorageValueArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _setStorage(ctx);
+    });
     setStoragePathArg->addChild(setStorageValueArg);
     setStorageIdArg->addChild(setStoragePathArg);
     setStorageNode->addChild(setStorageIdArg);
@@ -187,7 +213,9 @@ void DataCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
         std::make_shared<ArgumentCommandNode<ServerCommandSource, std::shared_ptr<nbt::tags::compound_tag>>>(
             "nbt", NbtCompoundArgumentType::nbtCompound());
 
-    mergeBlockNbtArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _mergeBlock(ctx); });
+    mergeBlockNbtArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _mergeBlock(ctx);
+    });
     mergeBlockPosArg->addChild(mergeBlockNbtArg);
     mergeBlockNode->addChild(mergeBlockPosArg);
     mergeNode->addChild(mergeBlockNode);
@@ -200,7 +228,9 @@ void DataCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
         std::make_shared<ArgumentCommandNode<ServerCommandSource, std::shared_ptr<nbt::tags::compound_tag>>>(
             "nbt", NbtCompoundArgumentType::nbtCompound());
 
-    mergeEntityNbtArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _mergeEntity(ctx); });
+    mergeEntityNbtArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _mergeEntity(ctx);
+    });
     mergeEntityTargetArg->addChild(mergeEntityNbtArg);
     mergeEntityNode->addChild(mergeEntityTargetArg);
     mergeNode->addChild(mergeEntityNode);
@@ -213,7 +243,9 @@ void DataCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
         std::make_shared<ArgumentCommandNode<ServerCommandSource, std::shared_ptr<nbt::tags::compound_tag>>>(
             "nbt", NbtCompoundArgumentType::nbtCompound());
 
-    mergeStorageNbtArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _mergeStorage(ctx); });
+    mergeStorageNbtArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _mergeStorage(ctx);
+    });
     mergeStorageIdArg->addChild(mergeStorageNbtArg);
     mergeStorageNode->addChild(mergeStorageIdArg);
     mergeNode->addChild(mergeStorageNode);
@@ -230,7 +262,9 @@ void DataCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
     auto removeBlockPathArg =
         std::make_shared<ArgumentCommandNode<ServerCommandSource, NbtPath>>("path", NbtPathArgumentType::nbtPath());
 
-    removeBlockPathArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _removeBlock(ctx); });
+    removeBlockPathArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _removeBlock(ctx);
+    });
     removeBlockPosArg->addChild(removeBlockPathArg);
     removeBlockNode->addChild(removeBlockPosArg);
     removeNode->addChild(removeBlockNode);
@@ -242,7 +276,9 @@ void DataCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
     auto removeEntityPathArg =
         std::make_shared<ArgumentCommandNode<ServerCommandSource, NbtPath>>("path", NbtPathArgumentType::nbtPath());
 
-    removeEntityPathArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _removeEntity(ctx); });
+    removeEntityPathArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _removeEntity(ctx);
+    });
     removeEntityTargetArg->addChild(removeEntityPathArg);
     removeEntityNode->addChild(removeEntityTargetArg);
     removeNode->addChild(removeEntityNode);
@@ -254,7 +290,9 @@ void DataCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
     auto removeStoragePathArg =
         std::make_shared<ArgumentCommandNode<ServerCommandSource, NbtPath>>("path", NbtPathArgumentType::nbtPath());
 
-    removeStoragePathArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _removeStorage(ctx); });
+    removeStoragePathArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _removeStorage(ctx);
+    });
     removeStorageIdArg->addChild(removeStoragePathArg);
     removeStorageNode->addChild(removeStorageIdArg);
     removeNode->addChild(removeStorageNode);
@@ -497,7 +535,9 @@ i32 DataCommand::_setBlock(CommandContext<ServerCommandSource>& context)
         auto data = accessor.getData();
 
         // 设置值
-        i32 count = path.set(*data, [&value]() { return value->copy(); });
+        i32 count = path.set(*data, [&value]() {
+            return value->copy();
+        });
 
         if (count == 0) {
             _sendError(source, "commands.data.set.pathNotFound");
@@ -548,7 +588,9 @@ i32 DataCommand::_setEntity(CommandContext<ServerCommandSource>& context)
     try {
         auto data = accessor.getData();
 
-        i32 count = path.set(*data, [&value]() { return value->copy(); });
+        i32 count = path.set(*data, [&value]() {
+            return value->copy();
+        });
 
         if (count == 0) {
             _sendError(source, "commands.data.set.pathNotFound");
@@ -586,7 +628,9 @@ i32 DataCommand::_setStorage(CommandContext<ServerCommandSource>& context)
     try {
         auto data = accessor.getData();
 
-        i32 count = path.set(*data, [&value]() { return value->copy(); });
+        i32 count = path.set(*data, [&value]() {
+            return value->copy();
+        });
 
         if (count == 0) {
             _sendError(source, "commands.data.set.pathNotFound");

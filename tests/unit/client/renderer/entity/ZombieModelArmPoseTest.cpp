@@ -84,7 +84,10 @@ protected:
      * 所有参数设为 0（headYaw/pitch/limbSwing/ageInTicks），scale 取 1/16。
      * ageInTicks=0 使 bobArms 的 sin(0*0.067)*0.05=0，cos(0*0.09)*0.05+0.05=0.1。
      */
-    void applyAngles() { m_model->setAngles(0.0, 0.0, 0.0, 0.0, 0.0, 1.0 / 16.0); }
+    void applyAngles()
+    {
+        m_model->setAngles(0.0, 0.0, 0.0, 0.0, 0.0, 1.0 / 16.0);
+    }
 
     std::unique_ptr<monster::ZombieModel> m_model;
 };

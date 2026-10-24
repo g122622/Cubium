@@ -46,7 +46,10 @@ class ImpalingEnchantment : public Enchantment {
 public:
     ImpalingEnchantment() = default;
 
-    [[nodiscard]] std::string id() const override { return "minecraft:impaling"; }
+    [[nodiscard]] std::string id() const override
+    {
+        return "minecraft:impaling";
+    }
 
     [[nodiscard]] std::string getNameKey(i32 level) const override
     {
@@ -54,17 +57,35 @@ public:
         return "enchantment.minecraft.impaling";
     }
 
-    [[nodiscard]] EnchantmentType type() const override { return EnchantmentType::Trident; }
+    [[nodiscard]] EnchantmentType type() const override
+    {
+        return EnchantmentType::Trident;
+    }
 
-    [[nodiscard]] i32 minLevel() const noexcept override { return 1; }
+    [[nodiscard]] i32 minLevel() const noexcept override
+    {
+        return 1;
+    }
 
-    [[nodiscard]] i32 maxLevel() const noexcept override { return 5; }
+    [[nodiscard]] i32 maxLevel() const noexcept override
+    {
+        return 5;
+    }
 
-    [[nodiscard]] EnchantmentRarity rarity() const noexcept override { return EnchantmentRarity::Rare; }
+    [[nodiscard]] EnchantmentRarity rarity() const noexcept override
+    {
+        return EnchantmentRarity::Rare;
+    }
 
-    [[nodiscard]] i32 getMinCost(i32 level) const override { return 1 + (level - 1) * 8; }
+    [[nodiscard]] i32 getMinCost(i32 level) const override
+    {
+        return 1 + (level - 1) * 8;
+    }
 
-    [[nodiscard]] i32 getMaxCost(i32 level) const override { return getMinCost(level) + 20; }
+    [[nodiscard]] i32 getMaxCost(i32 level) const override
+    {
+        return getMinCost(level) + 20;
+    }
 
     /**
      * @brief 穿刺与伤害类附魔（锋利、亡灵杀手、节肢杀手）和重锤附魔（致密、破甲）互斥

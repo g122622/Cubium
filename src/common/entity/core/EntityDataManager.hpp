@@ -68,12 +68,20 @@ struct PoseValue {
     EntityPose value{EntityPose::Standing};
 
     PoseValue() = default;
+
     explicit PoseValue(EntityPose v) noexcept
         : value(v)
     {}
 
-    bool operator==(const PoseValue& other) const noexcept { return value == other.value; }
-    bool operator!=(const PoseValue& other) const noexcept { return value != other.value; }
+    bool operator==(const PoseValue& other) const noexcept
+    {
+        return value == other.value;
+    }
+
+    bool operator!=(const PoseValue& other) const noexcept
+    {
+        return value != other.value;
+    }
 };
 
 /**
@@ -88,6 +96,7 @@ struct OptionalComponentValue {
     std::string text; // present 时为组件纯文本（getUnformattedText）
 
     OptionalComponentValue() = default;
+
     OptionalComponentValue(bool p, std::string t) noexcept
         : present(p)
         , text(std::move(t))
@@ -97,7 +106,11 @@ struct OptionalComponentValue {
     {
         return present == other.present && text == other.text;
     }
-    bool operator!=(const OptionalComponentValue& other) const noexcept { return !(*this == other); }
+
+    bool operator!=(const OptionalComponentValue& other) const noexcept
+    {
+        return !(*this == other);
+    }
 };
 
 /**
@@ -112,6 +125,7 @@ struct OptionalBlockPosValue {
     Vector3i pos; // present 时为方块位置
 
     OptionalBlockPosValue() = default;
+
     OptionalBlockPosValue(bool p, Vector3i p_pos) noexcept
         : present(p)
         , pos(p_pos)
@@ -121,7 +135,11 @@ struct OptionalBlockPosValue {
     {
         return present == other.present && pos == other.pos;
     }
-    bool operator!=(const OptionalBlockPosValue& other) const noexcept { return !(*this == other); }
+
+    bool operator!=(const OptionalBlockPosValue& other) const noexcept
+    {
+        return !(*this == other);
+    }
 };
 
 /**
@@ -138,12 +156,20 @@ struct ParticlesValue {
     bool empty{true}; // 仅空列表场景；扩展粒子同步时改为承载粒子列表
 
     ParticlesValue() = default;
+
     explicit ParticlesValue(bool e) noexcept
         : empty(e)
     {}
 
-    bool operator==(const ParticlesValue& other) const noexcept { return empty == other.empty; }
-    bool operator!=(const ParticlesValue& other) const noexcept { return !(*this == other); }
+    bool operator==(const ParticlesValue& other) const noexcept
+    {
+        return empty == other.empty;
+    }
+
+    bool operator!=(const ParticlesValue& other) const noexcept
+    {
+        return !(*this == other);
+    }
 };
 
 /**
@@ -158,12 +184,20 @@ struct HumanoidArmValue {
     i32 arm{0}; // 0=LEFT, 1=RIGHT（HumanoidArm.ordinal）
 
     HumanoidArmValue() = default;
+
     explicit HumanoidArmValue(i32 a) noexcept
         : arm(a)
     {}
 
-    bool operator==(const HumanoidArmValue& other) const noexcept { return arm == other.arm; }
-    bool operator!=(const HumanoidArmValue& other) const noexcept { return !(*this == other); }
+    bool operator==(const HumanoidArmValue& other) const noexcept
+    {
+        return arm == other.arm;
+    }
+
+    bool operator!=(const HumanoidArmValue& other) const noexcept
+    {
+        return !(*this == other);
+    }
 };
 
 /**
@@ -182,6 +216,7 @@ struct OptionalUuidValue {
     Uuid uuid{}; // present 时为 16 字节 UUID（std::array<u8,16>）
 
     OptionalUuidValue() = default;
+
     OptionalUuidValue(bool p, Uuid u) noexcept
         : present(p)
         , uuid(u)
@@ -191,7 +226,11 @@ struct OptionalUuidValue {
     {
         return present == other.present && uuid == other.uuid;
     }
-    bool operator!=(const OptionalUuidValue& other) const noexcept { return !(*this == other); }
+
+    bool operator!=(const OptionalUuidValue& other) const noexcept
+    {
+        return !(*this == other);
+    }
 };
 
 /**
@@ -206,6 +245,7 @@ struct OptionalBlockStateValue {
     u32 stateId{0};      // present 时为 BlockState 的 stateId
 
     OptionalBlockStateValue() = default;
+
     OptionalBlockStateValue(bool p, u32 id) noexcept
         : present(p)
         , stateId(id)
@@ -215,7 +255,11 @@ struct OptionalBlockStateValue {
     {
         return present == other.present && stateId == other.stateId;
     }
-    bool operator!=(const OptionalBlockStateValue& other) const noexcept { return !(*this == other); }
+
+    bool operator!=(const OptionalBlockStateValue& other) const noexcept
+    {
+        return !(*this == other);
+    }
 };
 
 /**
@@ -228,12 +272,20 @@ struct BlockStateValue {
     u32 stateId{0};
 
     BlockStateValue() = default;
+
     explicit BlockStateValue(u32 id) noexcept
         : stateId(id)
     {}
 
-    bool operator==(const BlockStateValue& other) const noexcept { return stateId == other.stateId; }
-    bool operator!=(const BlockStateValue& other) const noexcept { return !(*this == other); }
+    bool operator==(const BlockStateValue& other) const noexcept
+    {
+        return stateId == other.stateId;
+    }
+
+    bool operator!=(const BlockStateValue& other) const noexcept
+    {
+        return !(*this == other);
+    }
 };
 
 /**
@@ -247,12 +299,20 @@ struct DirectionValue {
     i32 direction{0}; // mc::Direction 枚举值
 
     DirectionValue() = default;
+
     explicit DirectionValue(i32 d) noexcept
         : direction(d)
     {}
 
-    bool operator==(const DirectionValue& other) const noexcept { return direction == other.direction; }
-    bool operator!=(const DirectionValue& other) const noexcept { return !(*this == other); }
+    bool operator==(const DirectionValue& other) const noexcept
+    {
+        return direction == other.direction;
+    }
+
+    bool operator!=(const DirectionValue& other) const noexcept
+    {
+        return !(*this == other);
+    }
 };
 
 /**
@@ -267,6 +327,7 @@ struct OptionalUnsignedIntValue {
     i32 value{0}; // present 时为无符号值（VarInt 编码）
 
     OptionalUnsignedIntValue() = default;
+
     OptionalUnsignedIntValue(bool p, i32 v) noexcept
         : present(p)
         , value(v)
@@ -276,7 +337,11 @@ struct OptionalUnsignedIntValue {
     {
         return present == other.present && value == other.value;
     }
-    bool operator!=(const OptionalUnsignedIntValue& other) const noexcept { return !(*this == other); }
+
+    bool operator!=(const OptionalUnsignedIntValue& other) const noexcept
+    {
+        return !(*this == other);
+    }
 };
 
 /**
@@ -297,6 +362,7 @@ struct HolderVariantValue {
     i32 registryId{0};
 
     HolderVariantValue() = default;
+
     explicit HolderVariantValue(i32 id) noexcept
         : registryId(id)
     {}
@@ -311,7 +377,11 @@ struct HolderVariantValue {
     {
         return serializerId == other.serializerId && registryId == other.registryId;
     }
-    bool operator!=(const HolderVariantValue& other) const noexcept { return !(*this == other); }
+
+    bool operator!=(const HolderVariantValue& other) const noexcept
+    {
+        return !(*this == other);
+    }
 };
 
 /**
@@ -328,6 +398,7 @@ struct VillagerDataValue {
     i32 level{1};      // 1..5
 
     VillagerDataValue() = default;
+
     VillagerDataValue(i32 t, i32 p, i32 l) noexcept
         : type(t)
         , profession(p)
@@ -338,7 +409,11 @@ struct VillagerDataValue {
     {
         return type == other.type && profession == other.profession && level == other.level;
     }
-    bool operator!=(const VillagerDataValue& other) const noexcept { return !(*this == other); }
+
+    bool operator!=(const VillagerDataValue& other) const noexcept
+    {
+        return !(*this == other);
+    }
 };
 
 /**
@@ -352,12 +427,20 @@ struct SnifferStateValue {
     i32 stateId{0}; // Sniffer.State.id（0..6）
 
     SnifferStateValue() = default;
+
     explicit SnifferStateValue(i32 id) noexcept
         : stateId(id)
     {}
 
-    bool operator==(const SnifferStateValue& other) const noexcept { return stateId == other.stateId; }
-    bool operator!=(const SnifferStateValue& other) const noexcept { return !(*this == other); }
+    bool operator==(const SnifferStateValue& other) const noexcept
+    {
+        return stateId == other.stateId;
+    }
+
+    bool operator!=(const SnifferStateValue& other) const noexcept
+    {
+        return !(*this == other);
+    }
 };
 
 /**
@@ -426,12 +509,25 @@ public:
         m_value = value;
     }
 
-    [[nodiscard]] const ValueType& value() const noexcept { return m_value; }
-    [[nodiscard]] size_t index() const noexcept { return m_value.index(); }
+    [[nodiscard]] const ValueType& value() const noexcept
+    {
+        return m_value;
+    }
 
-    bool operator==(const DataValue& other) const noexcept { return m_value == other.m_value; }
+    [[nodiscard]] size_t index() const noexcept
+    {
+        return m_value.index();
+    }
 
-    bool operator!=(const DataValue& other) const noexcept { return m_value != other.m_value; }
+    bool operator==(const DataValue& other) const noexcept
+    {
+        return m_value == other.m_value;
+    }
+
+    bool operator!=(const DataValue& other) const noexcept
+    {
+        return m_value != other.m_value;
+    }
 
 private:
     ValueType m_value;
@@ -515,7 +611,11 @@ public:
         {
             m_dm.beginClassRegistration(cls);
         }
-        ~ClassRegisterGuard() { m_dm.endClassRegistration(); }
+
+        ~ClassRegisterGuard()
+        {
+            m_dm.endClassRegistration();
+        }
 
         ClassRegisterGuard(const ClassRegisterGuard&) = delete;
         ClassRegisterGuard& operator=(const ClassRegisterGuard&) = delete;
@@ -763,7 +863,10 @@ public:
      * 返回按 id 升序稠密排列的数组，**不是**稀疏的已注册条目列表：调用方须自行跳过
      * `present == false` 的槽位。id 即数组下标。
      */
-    [[nodiscard]] const std::vector<DataEntry>& getAllEntries() const { return m_entries; }
+    [[nodiscard]] const std::vector<DataEntry>& getAllEntries() const
+    {
+        return m_entries;
+    }
 
     /**
      * @brief 从其他管理器复制数据
@@ -791,7 +894,10 @@ private:
     std::vector<DataEntry> m_entries;
 
     /// 槽位是否在数组范围内且已注册
-    [[nodiscard]] bool _isPresent(u16 id) const { return id < m_entries.size() && m_entries[id].present; }
+    [[nodiscard]] bool _isPresent(u16 id) const
+    {
+        return id < m_entries.size() && m_entries[id].present;
+    }
 
     /// 确保 id 对应的槽位存在并返回可写引用（按需扩容，id 即下标）
     DataEntry& _ensureSlot(u16 id)

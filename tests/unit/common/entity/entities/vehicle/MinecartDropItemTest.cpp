@@ -389,7 +389,10 @@ public:
     }
 
     // 提供纯虚函数的最小化实现
-    void tick() override { Entity::tick(); }
+    void tick() override
+    {
+        Entity::tick();
+    }
 
     [[nodiscard]] ItemStack getArrowStack() const override
     {

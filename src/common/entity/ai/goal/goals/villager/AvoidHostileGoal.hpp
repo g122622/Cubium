@@ -49,7 +49,11 @@ public:
     void startExecuting() override;
     void resetTask() override;
     void tick() override;
-    [[nodiscard]] std::string getTypeName() const override { return "AvoidHostileGoal"; }
+
+    [[nodiscard]] std::string getTypeName() const override
+    {
+        return "AvoidHostileGoal";
+    }
 
 private:
     /**

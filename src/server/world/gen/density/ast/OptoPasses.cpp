@@ -109,26 +109,42 @@ public:
             case AstNodeKind::MinShort:
                 return foldMinShort(node);
             case AstNodeKind::Abs:
-                return foldUnary(node, [](f64 v) { return std::abs(v); });
+                return foldUnary(node, [](f64 v) {
+                    return std::abs(v);
+                });
             case AstNodeKind::Square:
-                return foldUnary(node, [](f64 v) { return v * v; });
+                return foldUnary(node, [](f64 v) {
+                    return v * v;
+                });
             case AstNodeKind::Cube:
-                return foldUnary(node, [](f64 v) { return v * v * v; });
+                return foldUnary(node, [](f64 v) {
+                    return v * v * v;
+                });
             case AstNodeKind::Squeeze:
                 return foldUnary(node, [](f64 v) {
                     const f64 c = std::clamp(v, -1.0, 1.0);
                     return c / 2.0 - c * c * c / 24.0;
                 });
             case AstNodeKind::Sqrt:
-                return foldUnary(node, [](f64 v) { return std::sqrt(v); });
+                return foldUnary(node, [](f64 v) {
+                    return std::sqrt(v);
+                });
             case AstNodeKind::Sin:
-                return foldUnary(node, [](f64 v) { return std::sin(v); });
+                return foldUnary(node, [](f64 v) {
+                    return std::sin(v);
+                });
             case AstNodeKind::Cos:
-                return foldUnary(node, [](f64 v) { return std::cos(v); });
+                return foldUnary(node, [](f64 v) {
+                    return std::cos(v);
+                });
             case AstNodeKind::Floor:
-                return foldUnary(node, [](f64 v) { return std::floor(v); });
+                return foldUnary(node, [](f64 v) {
+                    return std::floor(v);
+                });
             case AstNodeKind::Ceil:
-                return foldUnary(node, [](f64 v) { return std::ceil(v); });
+                return foldUnary(node, [](f64 v) {
+                    return std::ceil(v);
+                });
             case AstNodeKind::NegMul:
                 return foldNegMul(node);
             case AstNodeKind::Lerp:
@@ -151,7 +167,10 @@ private:
         return isConstant(a, va) && isConstant(b, vb);
     }
 
-    [[nodiscard]] static Ptr constantNode(f64 v) { return std::make_shared<ConstantNode>(v); }
+    [[nodiscard]] static Ptr constantNode(f64 v)
+    {
+        return std::make_shared<ConstantNode>(v);
+    }
 
     // ---- Add ----
     [[nodiscard]] static Ptr foldAdd(const Ptr& node)

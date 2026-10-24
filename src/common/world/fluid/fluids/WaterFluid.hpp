@@ -48,7 +48,10 @@ public:
 
     using FlowingFluid::getTickDelay;
 
-    [[nodiscard]] i32 getTickDelay() const override { return 5; }
+    [[nodiscard]] i32 getTickDelay() const override
+    {
+        return 5;
+    }
 
     [[nodiscard]] bool canDisplace(
         const FluidState& state, IWorld& world, const BlockPos& pos, const Fluid& fluid, Direction dir) const override;
@@ -65,9 +68,15 @@ public:
         return 4;
     }
 
-    [[nodiscard]] bool canSourcesMultiply() const override { return true; }
+    [[nodiscard]] bool canSourcesMultiply() const override
+    {
+        return true;
+    }
 
-    [[nodiscard]] f32 getExplosionResistance() const override { return 100.0f; }
+    [[nodiscard]] f32 getExplosionResistance() const override
+    {
+        return 100.0f;
+    }
 
     [[nodiscard]] const BlockState* getBlockState(const FluidState& state) const override;
 
@@ -107,7 +116,11 @@ public:
     }
 
     [[nodiscard]] FlowingFluid& getFlowing() override;
-    [[nodiscard]] FlowingFluid& getStill() override { return *this; }
+
+    [[nodiscard]] FlowingFluid& getStill() override
+    {
+        return *this;
+    }
 
 private:
     mutable FlowingFluid* m_flowingCache = nullptr;
@@ -130,7 +143,11 @@ public:
 
     [[nodiscard]] i32 getLevel(const FluidState& state) const override;
 
-    [[nodiscard]] FlowingFluid& getFlowing() override { return *this; }
+    [[nodiscard]] FlowingFluid& getFlowing() override
+    {
+        return *this;
+    }
+
     [[nodiscard]] FlowingFluid& getStill() override;
 
     /**

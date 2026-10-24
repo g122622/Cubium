@@ -257,7 +257,9 @@ void FlowingFluid::tick(IWorld& world, const BlockPos& pos, FluidState& state)
         pos.toString(),
         "fluidState",
         state.toString(),
-        [flow = ::perfetto::Flow::ProcessScoped(pos.toId())](::perfetto::EventContext ctx) { flow(ctx); });
+        [flow = ::perfetto::Flow::ProcessScoped(pos.toId())](::perfetto::EventContext ctx) {
+            flow(ctx);
+        });
 
     if (!state.isSource()) {
         const BlockState* currentBlock = world.getBlockState(pos);
@@ -401,7 +403,9 @@ void FlowingFluid::flowAround(IWorld& world, const BlockPos& pos, const FluidSta
         pos.toString(),
         "fluidState",
         state.toString(),
-        [flow = ::perfetto::Flow::ProcessScoped(pos.toId())](::perfetto::EventContext ctx) { flow(ctx); });
+        [flow = ::perfetto::Flow::ProcessScoped(pos.toId())](::perfetto::EventContext ctx) {
+            flow(ctx);
+        });
 
     if (state.isEmpty()) {
         return;
@@ -435,7 +439,9 @@ void FlowingFluid::spreadHorizontally(
         pos.toString(),
         "fluidState",
         state.toString(),
-        [flow = ::perfetto::Flow::ProcessScoped(pos.toId())](::perfetto::EventContext ctx) { flow(ctx); });
+        [flow = ::perfetto::Flow::ProcessScoped(pos.toId())](::perfetto::EventContext ctx) {
+            flow(ctx);
+        });
 
     i32 spreadLevel = state.isFalling() ? 7 : state.getLevel() - getLevelDecrease(world);
     if (spreadLevel <= 0) {
@@ -469,7 +475,9 @@ void FlowingFluid::flowInto(
         Directions::toString(dir),
         "fluidState",
         state.toString(),
-        [flow = ::perfetto::Flow::ProcessScoped(pos.toId())](::perfetto::EventContext ctx) { flow(ctx); });
+        [flow = ::perfetto::Flow::ProcessScoped(pos.toId())](::perfetto::EventContext ctx) {
+            flow(ctx);
+        });
 
     if (blockState != nullptr) {
         Block* blockRef = Block::getBlock(blockState->blockId());

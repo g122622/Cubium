@@ -111,18 +111,41 @@ public:
 
     [[nodiscard]] virtual NodeType getType() const noexcept = 0;
     [[nodiscard]] virtual std::string getName() const noexcept = 0;
-    [[nodiscard]] virtual std::string getTypeName() const { return getName(); }
-    [[nodiscard]] virtual std::vector<std::string> getExamples() const { return {}; }
-    [[nodiscard]] virtual nlohmann::json getMetadata() const { return nlohmann::json::object(); }
+
+    [[nodiscard]] virtual std::string getTypeName() const
+    {
+        return getName();
+    }
+
+    [[nodiscard]] virtual std::vector<std::string> getExamples() const
+    {
+        return {};
+    }
+
+    [[nodiscard]] virtual nlohmann::json getMetadata() const
+    {
+        return nlohmann::json::object();
+    }
+
     virtual void parse(StringReader& reader, CommandContext<S>& context) const = 0;
 
-    [[nodiscard]] const std::string& getUsageText() const noexcept { return m_usageText; }
-    void setUsageText(const std::string& text) noexcept { m_usageText = text; }
+    [[nodiscard]] const std::string& getUsageText() const noexcept
+    {
+        return m_usageText;
+    }
+
+    void setUsageText(const std::string& text) noexcept
+    {
+        m_usageText = text;
+    }
 
     /**
      * @brief Get metadata for this node.
      */
-    [[nodiscard]] const Metadata& getMetadataInfo() const noexcept { return m_metadataInfo; }
+    [[nodiscard]] const Metadata& getMetadataInfo() const noexcept
+    {
+        return m_metadataInfo;
+    }
 
     /**
      * @brief Set metadata for this node.
@@ -137,14 +160,28 @@ public:
 
     // ========== 命令 ==========
 
-    [[nodiscard]] bool hasCommand() const noexcept { return m_command != nullptr; }
-    [[nodiscard]] const CommandCallback<S>& getCommand() const noexcept { return m_command; }
-    void setCommand(CommandCallback<S> command) noexcept { m_command = std::move(command); }
+    [[nodiscard]] bool hasCommand() const noexcept
+    {
+        return m_command != nullptr;
+    }
+
+    [[nodiscard]] const CommandCallback<S>& getCommand() const noexcept
+    {
+        return m_command;
+    }
+
+    void setCommand(CommandCallback<S> command) noexcept
+    {
+        m_command = std::move(command);
+    }
 
     /**
      * @brief 检查是否携带自定义建议提供器
      */
-    [[nodiscard]] bool hasCustomSuggestions() const noexcept { return static_cast<bool>(m_customSuggestions); }
+    [[nodiscard]] bool hasCustomSuggestions() const noexcept
+    {
+        return static_cast<bool>(m_customSuggestions);
+    }
 
     /**
      * @brief 获取自定义建议提供器
@@ -164,10 +201,20 @@ public:
 
     // ========== 权限 ==========
 
-    [[nodiscard]] const RequirementPredicate<S>& getRequirement() const noexcept { return m_requirement; }
-    void setRequirement(RequirementPredicate<S> requirement) noexcept { m_requirement = std::move(requirement); }
+    [[nodiscard]] const RequirementPredicate<S>& getRequirement() const noexcept
+    {
+        return m_requirement;
+    }
 
-    [[nodiscard]] bool canUse(const S& source) const { return m_requirement(source); }
+    void setRequirement(RequirementPredicate<S> requirement) noexcept
+    {
+        m_requirement = std::move(requirement);
+    }
+
+    [[nodiscard]] bool canUse(const S& source) const
+    {
+        return m_requirement(source);
+    }
 
     // ========== 子节点 ==========
 
@@ -192,14 +239,32 @@ public:
         return it != m_children.end() ? it->second : nullptr;
     }
 
-    [[nodiscard]] const std::set<std::string>& getLiterals() const noexcept { return m_literals; }
-    [[nodiscard]] const std::set<std::string>& getArguments() const noexcept { return m_arguments; }
+    [[nodiscard]] const std::set<std::string>& getLiterals() const noexcept
+    {
+        return m_literals;
+    }
+
+    [[nodiscard]] const std::set<std::string>& getArguments() const noexcept
+    {
+        return m_arguments;
+    }
 
     // ========== 重定向 ==========
 
-    [[nodiscard]] std::shared_ptr<CommandNode<S>> getRedirect() const noexcept { return m_redirect; }
-    [[nodiscard]] bool hasRedirect() const noexcept { return static_cast<bool>(m_redirect); }
-    [[nodiscard]] RedirectModifier getRedirectModifier() const noexcept { return m_redirectModifier; }
+    [[nodiscard]] std::shared_ptr<CommandNode<S>> getRedirect() const noexcept
+    {
+        return m_redirect;
+    }
+
+    [[nodiscard]] bool hasRedirect() const noexcept
+    {
+        return static_cast<bool>(m_redirect);
+    }
+
+    [[nodiscard]] RedirectModifier getRedirectModifier() const noexcept
+    {
+        return m_redirectModifier;
+    }
 
     /**
      * @brief 设置重定向目标
@@ -218,7 +283,10 @@ public:
         m_redirectModifier = modifier;
     }
 
-    [[nodiscard]] bool isFork() const noexcept { return m_redirectModifier == RedirectModifier::Fork; }
+    [[nodiscard]] bool isFork() const noexcept
+    {
+        return m_redirectModifier == RedirectModifier::Fork;
+    }
 
     // ========== 比较 ==========
 
@@ -240,7 +308,9 @@ protected:
     CommandNode() = default;
 
     CommandCallback<S> m_command;
-    RequirementPredicate<S> m_requirement = [](const S&) { return true; };
+    RequirementPredicate<S> m_requirement = [](const S&) {
+        return true;
+    };
     std::shared_ptr<ISuggestionProvider<S>> m_customSuggestions;
     std::unordered_map<std::string, std::shared_ptr<CommandNode<S>>> m_children;
     std::set<std::string> m_literals;
@@ -259,8 +329,16 @@ class RootCommandNode : public CommandNode<S> {
 public:
     RootCommandNode() = default;
 
-    [[nodiscard]] NodeType getType() const noexcept override { return NodeType::Root; }
-    [[nodiscard]] std::string getName() const noexcept override { return ""; }
+    [[nodiscard]] NodeType getType() const noexcept override
+    {
+        return NodeType::Root;
+    }
+
+    [[nodiscard]] std::string getName() const noexcept override
+    {
+        return "";
+    }
+
     void parse(StringReader& /*reader*/, CommandContext<S>& /*context*/) const override {}
 };
 
@@ -276,9 +354,20 @@ public:
         : m_literal(literal)
     {}
 
-    [[nodiscard]] NodeType getType() const noexcept override { return NodeType::Literal; }
-    [[nodiscard]] std::string getName() const noexcept override { return m_literal; }
-    [[nodiscard]] const std::string& getLiteral() const noexcept { return m_literal; }
+    [[nodiscard]] NodeType getType() const noexcept override
+    {
+        return NodeType::Literal;
+    }
+
+    [[nodiscard]] std::string getName() const noexcept override
+    {
+        return m_literal;
+    }
+
+    [[nodiscard]] const std::string& getLiteral() const noexcept
+    {
+        return m_literal;
+    }
 
     void parse(StringReader& reader, CommandContext<S>& /*context*/) const override
     {
@@ -293,8 +382,12 @@ public:
 
     bool equals(const CommandNode<S>& other) const noexcept override
     {
-        if (!CommandNode<S>::equals(other)) return false;
-        if (other.getType() != NodeType::Literal) return false;
+        if (!CommandNode<S>::equals(other)) {
+            return false;
+        }
+        if (other.getType() != NodeType::Literal) {
+            return false;
+        }
         return m_literal == static_cast<const LiteralCommandNode<S>&>(other).m_literal;
     }
 
@@ -345,8 +438,16 @@ public:
         , m_argumentType(std::move(argumentType))
     {}
 
-    [[nodiscard]] NodeType getType() const noexcept override { return NodeType::Argument; }
-    [[nodiscard]] std::string getName() const noexcept override { return m_name; }
+    [[nodiscard]] NodeType getType() const noexcept override
+    {
+        return NodeType::Argument;
+    }
+
+    [[nodiscard]] std::string getName() const noexcept override
+    {
+        return m_name;
+    }
+
     [[nodiscard]] std::string getTypeName() const override
     {
         return m_argumentType ? m_argumentType->getTypeName() : "argument";
@@ -390,12 +491,19 @@ public:
     /**
      * @brief 获取底层参数类型
      */
-    [[nodiscard]] std::shared_ptr<ArgumentType<T>> getArgumentType() const noexcept { return m_argumentType; }
+    [[nodiscard]] std::shared_ptr<ArgumentType<T>> getArgumentType() const noexcept
+    {
+        return m_argumentType;
+    }
 
     bool equals(const CommandNode<S>& other) const noexcept override
     {
-        if (!CommandNode<S>::equals(other)) return false;
-        if (other.getType() != NodeType::Argument) return false;
+        if (!CommandNode<S>::equals(other)) {
+            return false;
+        }
+        if (other.getType() != NodeType::Argument) {
+            return false;
+        }
         return m_name == static_cast<const ArgumentCommandNode<S, T>&>(other).m_name;
     }
 

@@ -116,12 +116,18 @@ public:
     /**
      * @brief 获取变体
      */
-    [[nodiscard]] AxolotlVariant getVariant() const noexcept { return m_variant; }
+    [[nodiscard]] AxolotlVariant getVariant() const noexcept
+    {
+        return m_variant;
+    }
 
     /**
      * @brief 设置变体
      */
-    void setVariant(AxolotlVariant variant) noexcept { m_variant = variant; }
+    void setVariant(AxolotlVariant variant) noexcept
+    {
+        m_variant = variant;
+    }
 
     /**
      * @brief 随机选择一个普通变体（Lucy/Wild/Gold/Cyan）
@@ -133,7 +139,10 @@ public:
     /**
      * @brief 是否正在装死
      */
-    [[nodiscard]] bool isPlayingDead() const noexcept { return m_playingDead; }
+    [[nodiscard]] bool isPlayingDead() const noexcept
+    {
+        return m_playingDead;
+    }
 
     /**
      * @brief 设置装死状态
@@ -143,12 +152,18 @@ public:
     /**
      * @brief 装死剩余tick数
      */
-    [[nodiscard]] i32 getPlayingDeadTimer() const noexcept { return m_playingDeadTimer; }
+    [[nodiscard]] i32 getPlayingDeadTimer() const noexcept
+    {
+        return m_playingDeadTimer;
+    }
 
     /**
      * @brief 设置装死计时器
      */
-    void setPlayingDeadTimer(i32 ticks) { m_playingDeadTimer = ticks; }
+    void setPlayingDeadTimer(i32 ticks)
+    {
+        m_playingDeadTimer = ticks;
+    }
 
     // ========== 桶装 ==========
 
@@ -158,14 +173,20 @@ public:
      *
      * override IBucketable::isFromBucket（对齐 Java Axolotl implements Bucketable）。
      */
-    [[nodiscard]] bool isFromBucket() const noexcept override { return m_fromBucket; }
+    [[nodiscard]] bool isFromBucket() const noexcept override
+    {
+        return m_fromBucket;
+    }
 
     /**
      * @brief 设置来自桶标记
      *
      * override IBucketable::setFromBucket。
      */
-    void setFromBucket(bool fromBucket) noexcept override { m_fromBucket = fromBucket; }
+    void setFromBucket(bool fromBucket) noexcept override
+    {
+        m_fromBucket = fromBucket;
+    }
 
     // ========== IBucketable 接口实现（对齐 Java Axolotl implements Bucketable） ==========
 
@@ -204,13 +225,19 @@ public:
     /**
      * @brief 是否在狩猎冷却中
      */
-    [[nodiscard]] bool hasHuntingCooldown() const noexcept { return m_huntingCooldown > 0; }
+    [[nodiscard]] bool hasHuntingCooldown() const noexcept
+    {
+        return m_huntingCooldown > 0;
+    }
 
     /**
      * @brief 设置狩猎冷却
      * @param ticks 冷却tick数
      */
-    void setHuntingCooldown(i32 ticks) { m_huntingCooldown = ticks; }
+    void setHuntingCooldown(i32 ticks)
+    {
+        m_huntingCooldown = ticks;
+    }
 
     // ========== 繁殖 ==========
 
@@ -224,23 +251,35 @@ public:
     /**
      * @brief 获取眼睛高度
      */
-    [[nodiscard]] f32 eyeHeight() const noexcept override { return 0.2751f; }
+    [[nodiscard]] f32 eyeHeight() const noexcept override
+    {
+        return 0.2751f;
+    }
 
     /**
      * @brief 获取实体宽度
      */
-    [[nodiscard]] f32 width() const noexcept override { return 0.75f; }
+    [[nodiscard]] f32 width() const noexcept override
+    {
+        return 0.75f;
+    }
 
     /**
      * @brief 获取实体高度
      */
-    [[nodiscard]] f32 height() const noexcept override { return 0.42f; }
+    [[nodiscard]] f32 height() const noexcept override
+    {
+        return 0.42f;
+    }
 
     /**
      * @brief 获取最大空气供应量
      * 美西螈有 6000 tick (5分钟) 的空气储备
      */
-    [[nodiscard]] i32 maxAir() const noexcept override { return MAX_AIR_SUPPLY; }
+    [[nodiscard]] i32 maxAir() const noexcept override
+    {
+        return MAX_AIR_SUPPLY;
+    }
 
     /**
      * @brief 补充空气（被水瓶命中时调用）
@@ -253,13 +292,19 @@ public:
     /**
      * @brief 是否可以被拴绳牵引
      */
-    [[nodiscard]] bool canBeLeashed() const override { return true; }
+    [[nodiscard]] bool canBeLeashed() const override
+    {
+        return true;
+    }
 
     /**
      * @brief 是否会被水流推动
      * 美西螈不会被水流推动
      */
-    [[nodiscard]] bool canBePushedByWater() const override { return false; }
+    [[nodiscard]] bool canBePushedByWater() const override
+    {
+        return false;
+    }
 
     /**
      * @brief 是否可以被作为敌人看到

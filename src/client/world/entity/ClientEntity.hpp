@@ -85,7 +85,10 @@ public:
 
     // ========== 基本信息 ==========
 
-    [[nodiscard]] EntityInstanceId id() const { return m_id; }
+    [[nodiscard]] EntityInstanceId id() const
+    {
+        return m_id;
+    }
 
     /**
      * @brief 获取实体类型标识符字符串
@@ -94,7 +97,10 @@ public:
      * 与服务端 Entity::getTypeId() 命名统一。字符串用途（渲染查找、ResourceLocation
      * 解析、调试显示）请用本方法；类型判等请用 entityType() 指针比较。
      */
-    [[nodiscard]] const std::string& getTypeId() const { return m_typeId; }
+    [[nodiscard]] const std::string& getTypeId() const
+    {
+        return m_typeId;
+    }
 
     /**
      * @brief 获取实体类型的运行时指针（懒查询）
@@ -108,8 +114,15 @@ public:
      */
     [[nodiscard]] const entity::EntityType* entityType() const;
 
-    [[nodiscard]] const std::string& uuid() const { return m_uuid; }
-    void setUuid(const std::string& uuid) { m_uuid = uuid; }
+    [[nodiscard]] const std::string& uuid() const
+    {
+        return m_uuid;
+    }
+
+    void setUuid(const std::string& uuid)
+    {
+        m_uuid = uuid;
+    }
 
     // ========== 位置插值配置 ==========
 
@@ -122,29 +135,72 @@ public:
     /**
      * @brief 获取位置插值速度
      */
-    [[nodiscard]] f32 interpolationSpeed() const { return m_interpolationSpeed; }
+    [[nodiscard]] f32 interpolationSpeed() const
+    {
+        return m_interpolationSpeed;
+    }
 
     /**
      * @brief 启用/禁用平滑插值
      */
-    void setSmoothInterpolation(bool enabled) { m_smoothInterpolation = enabled; }
-    [[nodiscard]] bool smoothInterpolationEnabled() const { return m_smoothInterpolation; }
+    void setSmoothInterpolation(bool enabled)
+    {
+        m_smoothInterpolation = enabled;
+    }
+
+    [[nodiscard]] bool smoothInterpolationEnabled() const
+    {
+        return m_smoothInterpolation;
+    }
 
     // ========== 位置 ==========
 
-    [[nodiscard]] Vector3 position() const { return m_position; }
-    [[nodiscard]] f32 x() const { return m_position.x; }
-    [[nodiscard]] f32 y() const { return m_position.y; }
-    [[nodiscard]] f32 z() const { return m_position.z; }
+    [[nodiscard]] Vector3 position() const
+    {
+        return m_position;
+    }
+
+    [[nodiscard]] f32 x() const
+    {
+        return m_position.x;
+    }
+
+    [[nodiscard]] f32 y() const
+    {
+        return m_position.y;
+    }
+
+    [[nodiscard]] f32 z() const
+    {
+        return m_position.z;
+    }
 
     // 上一帧位置（用于插值）
-    [[nodiscard]] Vector3 prevPosition() const { return m_prevPosition; }
-    [[nodiscard]] f32 prevX() const { return m_prevPosition.x; }
-    [[nodiscard]] f32 prevY() const { return m_prevPosition.y; }
-    [[nodiscard]] f32 prevZ() const { return m_prevPosition.z; }
+    [[nodiscard]] Vector3 prevPosition() const
+    {
+        return m_prevPosition;
+    }
+
+    [[nodiscard]] f32 prevX() const
+    {
+        return m_prevPosition.x;
+    }
+
+    [[nodiscard]] f32 prevY() const
+    {
+        return m_prevPosition.y;
+    }
+
+    [[nodiscard]] f32 prevZ() const
+    {
+        return m_prevPosition.z;
+    }
 
     // 目标位置（从网络包接收）
-    [[nodiscard]] Vector3 targetPosition() const { return m_targetPosition; }
+    [[nodiscard]] Vector3 targetPosition() const
+    {
+        return m_targetPosition;
+    }
 
     /**
      * @brief 设置实体位置（立即传送）
@@ -171,19 +227,52 @@ public:
 
     // ========== 旋转 ==========
 
-    [[nodiscard]] f32 yaw() const { return m_yaw; }
-    [[nodiscard]] f32 pitch() const { return m_pitch; }
-    [[nodiscard]] f32 prevYaw() const { return m_prevYaw; }
-    [[nodiscard]] f32 prevPitch() const { return m_prevPitch; }
+    [[nodiscard]] f32 yaw() const
+    {
+        return m_yaw;
+    }
+
+    [[nodiscard]] f32 pitch() const
+    {
+        return m_pitch;
+    }
+
+    [[nodiscard]] f32 prevYaw() const
+    {
+        return m_prevYaw;
+    }
+
+    [[nodiscard]] f32 prevPitch() const
+    {
+        return m_prevPitch;
+    }
 
     // 头部朝向（用于动物渲染）
-    [[nodiscard]] f32 headYaw() const { return m_headYaw; }
-    [[nodiscard]] f32 prevHeadYaw() const { return m_prevHeadYaw; }
+    [[nodiscard]] f32 headYaw() const
+    {
+        return m_headYaw;
+    }
+
+    [[nodiscard]] f32 prevHeadYaw() const
+    {
+        return m_prevHeadYaw;
+    }
 
     // 目标旋转（用于平滑插值）
-    [[nodiscard]] f32 targetYaw() const { return m_targetYaw; }
-    [[nodiscard]] f32 targetPitch() const { return m_targetPitch; }
-    [[nodiscard]] f32 targetHeadYaw() const { return m_targetHeadYaw; }
+    [[nodiscard]] f32 targetYaw() const
+    {
+        return m_targetYaw;
+    }
+
+    [[nodiscard]] f32 targetPitch() const
+    {
+        return m_targetPitch;
+    }
+
+    [[nodiscard]] f32 targetHeadYaw() const
+    {
+        return m_targetHeadYaw;
+    }
 
     /**
      * @brief 设置旋转（立即设置）
@@ -227,7 +316,11 @@ public:
 
     // ========== 速度 ==========
 
-    [[nodiscard]] Vector3 velocity() const { return m_velocity; }
+    [[nodiscard]] Vector3 velocity() const
+    {
+        return m_velocity;
+    }
+
     void setVelocity(f32 x, f32 y, f32 z);
 
     // ========== 动画状态 ==========
@@ -235,24 +328,36 @@ public:
     /**
      * @brief 获取上一帧腿部摆动进度
      */
-    [[nodiscard]] f32 prevLimbSwing() const { return m_prevLimbSwing; }
+    [[nodiscard]] f32 prevLimbSwing() const
+    {
+        return m_prevLimbSwing;
+    }
 
     /**
      * @brief 获取腿部摆动进度
      * 用于行走动画，范围 0 到 2π
      */
-    [[nodiscard]] f32 limbSwing() const { return m_limbSwing; }
+    [[nodiscard]] f32 limbSwing() const
+    {
+        return m_limbSwing;
+    }
 
     /**
      * @brief 获取上一帧腿部摆动强度
      */
-    [[nodiscard]] f32 prevLimbSwingAmount() const { return m_prevLimbSwingAmount; }
+    [[nodiscard]] f32 prevLimbSwingAmount() const
+    {
+        return m_prevLimbSwingAmount;
+    }
 
     /**
      * @brief 获取腿部摆动强度
      * 表示移动速度，0表示静止，越大表示移动越快
      */
-    [[nodiscard]] f32 limbSwingAmount() const { return m_limbSwingAmount; }
+    [[nodiscard]] f32 limbSwingAmount() const
+    {
+        return m_limbSwingAmount;
+    }
 
     /**
      * @brief 更新动画状态
@@ -265,22 +370,34 @@ public:
     /**
      * @brief 获取渲染用的身体偏航角
      */
-    [[nodiscard]] f32 renderYawOffset() const { return m_yaw; }
+    [[nodiscard]] f32 renderYawOffset() const
+    {
+        return m_yaw;
+    }
 
     /**
      * @brief 获取上一帧渲染用的身体偏航角
      */
-    [[nodiscard]] f32 prevRenderYawOffset() const { return m_prevYaw; }
+    [[nodiscard]] f32 prevRenderYawOffset() const
+    {
+        return m_prevYaw;
+    }
 
     /**
      * @brief 获取头部偏航角
      */
-    [[nodiscard]] f32 rotationYawHead() const { return m_headYaw; }
+    [[nodiscard]] f32 rotationYawHead() const
+    {
+        return m_headYaw;
+    }
 
     /**
      * @brief 获取上一帧头部偏航角
      */
-    [[nodiscard]] f32 prevRotationYawHead() const { return m_prevHeadYaw; }
+    [[nodiscard]] f32 prevRotationYawHead() const
+    {
+        return m_prevHeadYaw;
+    }
 
     // ========== 追踪位置系统（用于披风摆动） ==========
 
@@ -288,32 +405,50 @@ public:
      * @brief 获取追踪位置 X
      * 用于计算披风摆动角度
      */
-    [[nodiscard]] f64 chasingPosX() const { return m_chasingPosX; }
+    [[nodiscard]] f64 chasingPosX() const
+    {
+        return m_chasingPosX;
+    }
 
     /**
      * @brief 获取追踪位置 Y
      */
-    [[nodiscard]] f64 chasingPosY() const { return m_chasingPosY; }
+    [[nodiscard]] f64 chasingPosY() const
+    {
+        return m_chasingPosY;
+    }
 
     /**
      * @brief 获取追踪位置 Z
      */
-    [[nodiscard]] f64 chasingPosZ() const { return m_chasingPosZ; }
+    [[nodiscard]] f64 chasingPosZ() const
+    {
+        return m_chasingPosZ;
+    }
 
     /**
      * @brief 获取上一帧追踪位置 X
      */
-    [[nodiscard]] f64 prevChasingPosX() const { return m_prevChasingPosX; }
+    [[nodiscard]] f64 prevChasingPosX() const
+    {
+        return m_prevChasingPosX;
+    }
 
     /**
      * @brief 获取上一帧追踪位置 Y
      */
-    [[nodiscard]] f64 prevChasingPosY() const { return m_prevChasingPosY; }
+    [[nodiscard]] f64 prevChasingPosY() const
+    {
+        return m_prevChasingPosY;
+    }
 
     /**
      * @brief 获取上一帧追踪位置 Z
      */
-    [[nodiscard]] f64 prevChasingPosZ() const { return m_prevChasingPosZ; }
+    [[nodiscard]] f64 prevChasingPosZ() const
+    {
+        return m_prevChasingPosZ;
+    }
 
     // ========== 相机偏航角系统（用于披风摆动） ==========
 
@@ -321,29 +456,44 @@ public:
      * @brief 获取相机偏航角
      * 用于计算披风摆动强度
      */
-    [[nodiscard]] f32 cameraYaw() const { return m_cameraYaw; }
+    [[nodiscard]] f32 cameraYaw() const
+    {
+        return m_cameraYaw;
+    }
 
     /**
      * @brief 获取上一帧相机偏航角
      */
-    [[nodiscard]] f32 prevCameraYaw() const { return m_prevCameraYaw; }
+    [[nodiscard]] f32 prevCameraYaw() const
+    {
+        return m_prevCameraYaw;
+    }
 
     // ========== 鞘翅角度系统（用于鞘翅展开动画） ==========
 
     /**
      * @brief 获取鞘翅 X 轴旋转角度
      */
-    [[nodiscard]] f32 rotateElytraX() const { return m_rotateElytraX; }
+    [[nodiscard]] f32 rotateElytraX() const
+    {
+        return m_rotateElytraX;
+    }
 
     /**
      * @brief 获取鞘翅 Y 轴旋转角度
      */
-    [[nodiscard]] f32 rotateElytraY() const { return m_rotateElytraY; }
+    [[nodiscard]] f32 rotateElytraY() const
+    {
+        return m_rotateElytraY;
+    }
 
     /**
      * @brief 获取鞘翅 Z 轴旋转角度
      */
-    [[nodiscard]] f32 rotateElytraZ() const { return m_rotateElytraZ; }
+    [[nodiscard]] f32 rotateElytraZ() const
+    {
+        return m_rotateElytraZ;
+    }
 
     /**
      * @brief 更新鞘翅角度（每tick调用）
@@ -359,39 +509,76 @@ public:
      * @brief 获取悬浮起始偏移
      * 用于物品实体的浮动动画随机化
      */
-    [[nodiscard]] f32 hoverStart() const { return m_hoverStart; }
+    [[nodiscard]] f32 hoverStart() const
+    {
+        return m_hoverStart;
+    }
 
     /**
      * @brief 设置悬浮起始偏移
      */
-    void setHoverStart(f32 hoverStart) { m_hoverStart = hoverStart; }
+    void setHoverStart(f32 hoverStart)
+    {
+        m_hoverStart = hoverStart;
+    }
 
     // ========== 状态标志 ==========
 
-    [[nodiscard]] bool onGround() const { return m_onGround; }
-    void setOnGround(bool onGround) { m_onGround = onGround; }
+    [[nodiscard]] bool onGround() const
+    {
+        return m_onGround;
+    }
 
-    [[nodiscard]] bool isRemoved() const { return m_removed; }
-    void remove() { m_removed = true; }
+    void setOnGround(bool onGround)
+    {
+        m_onGround = onGround;
+    }
+
+    [[nodiscard]] bool isRemoved() const
+    {
+        return m_removed;
+    }
+
+    void remove()
+    {
+        m_removed = true;
+    }
 
     /**
      * @brief 检查是否存活（未移除）
      */
-    [[nodiscard]] bool isAlive() const { return !m_removed; }
+    [[nodiscard]] bool isAlive() const
+    {
+        return !m_removed;
+    }
 
     // ========== 实体尺寸 ==========
 
     /**
      * @brief 获取实体宽度
      */
-    [[nodiscard]] f32 width() const { return m_width; }
-    void setWidth(f32 width) { m_width = width; }
+    [[nodiscard]] f32 width() const
+    {
+        return m_width;
+    }
+
+    void setWidth(f32 width)
+    {
+        m_width = width;
+    }
 
     /**
      * @brief 获取实体高度
      */
-    [[nodiscard]] f32 height() const { return m_height; }
-    void setHeight(f32 height) { m_height = height; }
+    [[nodiscard]] f32 height() const
+    {
+        return m_height;
+    }
+
+    void setHeight(f32 height)
+    {
+        m_height = height;
+    }
 
     /**
      * @brief 获取实体眼睛高度（从脚底到眼睛的距离）
@@ -402,13 +589,19 @@ public:
      * 对于其他实体，使用实体注册表中注册的 EntitySize 的眼高，
      * 幼年个体眼高为站立时的一半。
      */
-    [[nodiscard]] f32 eyeHeight() const { return m_eyeHeight; }
+    [[nodiscard]] f32 eyeHeight() const
+    {
+        return m_eyeHeight;
+    }
 
     /**
      * @brief 设置实体眼睛高度
      * @param eyeHeight 眼睛高度
      */
-    void setEyeHeight(f32 eyeHeight) { m_eyeHeight = eyeHeight; }
+    void setEyeHeight(f32 eyeHeight)
+    {
+        m_eyeHeight = eyeHeight;
+    }
 
     /**
      * @brief 根据实体类型和当前状态刷新眼睛高度
@@ -423,7 +616,11 @@ public:
     /**
      * @brief 是否是幼年个体
      */
-    [[nodiscard]] bool isChild() const { return m_child; }
+    [[nodiscard]] bool isChild() const
+    {
+        return m_child;
+    }
+
     void setChild(bool child)
     {
         if (m_child != child) {
@@ -438,30 +635,55 @@ public:
      * @brief 获取受伤时间
      * 用于渲染受伤闪烁效果，范围 0-10
      */
-    [[nodiscard]] i32 hurtTime() const { return m_hurtTime; }
-    void setHurtTime(i32 time) { m_hurtTime = time; }
+    [[nodiscard]] i32 hurtTime() const
+    {
+        return m_hurtTime;
+    }
+
+    void setHurtTime(i32 time)
+    {
+        m_hurtTime = time;
+    }
 
     /**
      * @brief 获取受伤方向角（度，相对实体朝向）
      *
      * 由服务端 hurt 动画包同步，第三人称实体渲染的 damageTilt 据此倾斜。
      */
-    [[nodiscard]] f32 hurtDir() const { return m_hurtDir; }
-    void setHurtDir(f32 dir) { m_hurtDir = dir; }
+    [[nodiscard]] f32 hurtDir() const
+    {
+        return m_hurtDir;
+    }
+
+    void setHurtDir(f32 dir)
+    {
+        m_hurtDir = dir;
+    }
 
     /**
      * @brief 获取死亡时间
      * 用于渲染死亡淡出效果
      */
-    [[nodiscard]] i32 deathTime() const { return m_deathTime; }
-    void setDeathTime(i32 time) { m_deathTime = time; }
+    [[nodiscard]] i32 deathTime() const
+    {
+        return m_deathTime;
+    }
+
+    void setDeathTime(i32 time)
+    {
+        m_deathTime = time;
+    }
 
     // ========== 行为状态 ==========
 
     /**
      * @brief 是否正在蹲伏
      */
-    [[nodiscard]] bool isSneaking() const { return m_sneaking; }
+    [[nodiscard]] bool isSneaking() const
+    {
+        return m_sneaking;
+    }
+
     void setSneaking(bool sneaking)
     {
         if (m_sneaking != sneaking) {
@@ -473,7 +695,11 @@ public:
     /**
      * @brief 是否正在游泳
      */
-    [[nodiscard]] bool isSwimming() const { return m_swimming; }
+    [[nodiscard]] bool isSwimming() const
+    {
+        return m_swimming;
+    }
+
     void setSwimming(bool swimming)
     {
         if (m_swimming != swimming) {
@@ -493,17 +719,26 @@ public:
      * 该返回值驱动 ClientEntity::tick() 中 m_swimAmount 的渐入渐出，
      * 进而通过 getInterpolatedSwimAmount 供渲染器读取。
      */
-    [[nodiscard]] bool isVisuallySwimming() const { return isSwimming() && !isRiding(); }
+    [[nodiscard]] bool isVisuallySwimming() const
+    {
+        return isSwimming() && !isRiding();
+    }
 
     /**
      * @brief 获取上一帧游泳动画渐变量
      */
-    [[nodiscard]] f32 swimAmountO() const noexcept { return m_swimAmountO; }
+    [[nodiscard]] f32 swimAmountO() const noexcept
+    {
+        return m_swimAmountO;
+    }
 
     /**
      * @brief 获取当前帧游泳动画渐变量
      */
-    [[nodiscard]] f32 swimAmount() const noexcept { return m_swimAmount; }
+    [[nodiscard]] f32 swimAmount() const noexcept
+    {
+        return m_swimAmount;
+    }
 
     /**
      * @brief 计算指定 partialTicks 下的插值游泳动画量
@@ -524,24 +759,44 @@ public:
     /**
      * @brief 是否正在乘坐载具
      */
-    [[nodiscard]] bool isRiding() const { return m_riding; }
-    void setRiding(bool riding) { m_riding = riding; }
+    [[nodiscard]] bool isRiding() const
+    {
+        return m_riding;
+    }
+
+    void setRiding(bool riding)
+    {
+        m_riding = riding;
+    }
 
     /**
      * @brief 获取正在骑乘的载具ID
      */
-    [[nodiscard]] EntityInstanceId vehicleId() const { return m_vehicleId; }
-    void setVehicleId(EntityInstanceId vehicleId) { m_vehicleId = vehicleId; }
+    [[nodiscard]] EntityInstanceId vehicleId() const
+    {
+        return m_vehicleId;
+    }
+
+    void setVehicleId(EntityInstanceId vehicleId)
+    {
+        m_vehicleId = vehicleId;
+    }
 
     /**
      * @brief 获取乘客列表（如果此实体是载具）
      */
-    [[nodiscard]] const std::vector<u32>& passengers() const { return m_passengers; }
+    [[nodiscard]] const std::vector<u32>& passengers() const
+    {
+        return m_passengers;
+    }
 
     /**
      * @brief 设置乘客列表（由 SetPassengersPacket 更新）
      */
-    void setPassengers(std::vector<u32> passengers) { m_passengers = std::move(passengers); }
+    void setPassengers(std::vector<u32> passengers)
+    {
+        m_passengers = std::move(passengers);
+    }
 
     /**
      * @brief 拴绳持有者实体 ID（由 SetEntityLink 包同步，0=未被拴）
@@ -552,19 +807,37 @@ public:
      *
      * TODO: 实现客户端牵绳渲染（LeashRopeRenderer），当前仅存字段。
      */
-    [[nodiscard]] EntityInstanceId leashHolderId() const { return m_leashHolderId; }
-    void setLeashHolderId(EntityInstanceId id) { m_leashHolderId = id; }
+    [[nodiscard]] EntityInstanceId leashHolderId() const
+    {
+        return m_leashHolderId;
+    }
+
+    void setLeashHolderId(EntityInstanceId id)
+    {
+        m_leashHolderId = id;
+    }
 
     /**
      * @brief 是否正在坐下（用于动物）
      */
-    [[nodiscard]] bool isSitting() const { return m_sitting; }
-    void setSitting(bool sitting) { m_sitting = sitting; }
+    [[nodiscard]] bool isSitting() const
+    {
+        return m_sitting;
+    }
+
+    void setSitting(bool sitting)
+    {
+        m_sitting = sitting;
+    }
 
     /**
      * @brief 是否正在睡眠
      */
-    [[nodiscard]] bool isSleeping() const { return m_sleeping; }
+    [[nodiscard]] bool isSleeping() const
+    {
+        return m_sleeping;
+    }
+
     void setSleeping(bool sleeping)
     {
         if (m_sleeping != sleeping) {
@@ -578,21 +851,46 @@ public:
      *
      * 当实体睡眠时，床的方块位置。
      */
-    [[nodiscard]] const BlockPos& sleepingPosition() const { return m_sleepingPosition; }
-    void setSleepingPosition(const BlockPos& pos) { m_sleepingPosition = pos; }
-    void clearSleepingPosition() { m_sleepingPosition = BlockPos(0, 0, 0); }
+    [[nodiscard]] const BlockPos& sleepingPosition() const
+    {
+        return m_sleepingPosition;
+    }
+
+    void setSleepingPosition(const BlockPos& pos)
+    {
+        m_sleepingPosition = pos;
+    }
+
+    void clearSleepingPosition()
+    {
+        m_sleepingPosition = BlockPos(0, 0, 0);
+    }
 
     /**
      * @brief 是否正在燃烧
      */
-    [[nodiscard]] bool isOnFire() const { return m_onFire; }
-    void setOnFire(bool onFire) { m_onFire = onFire; }
+    [[nodiscard]] bool isOnFire() const
+    {
+        return m_onFire;
+    }
+
+    void setOnFire(bool onFire)
+    {
+        m_onFire = onFire;
+    }
 
     /**
      * @brief 是否不可见（隐身效果）
      */
-    [[nodiscard]] bool isInvisible() const { return m_invisible; }
-    void setInvisible(bool invisible) { m_invisible = invisible; }
+    [[nodiscard]] bool isInvisible() const
+    {
+        return m_invisible;
+    }
+
+    void setInvisible(bool invisible)
+    {
+        m_invisible = invisible;
+    }
 
     /**
      * @brief 是否正在鞘翅飞行
@@ -607,24 +905,40 @@ public:
      * @brief 获取攻击进度
      * @return 攻击进度 (0.0-1.0)
      */
-    [[nodiscard]] f32 swingProgress() const { return m_swingProgress; }
-    void setSwingProgress(f32 progress) { m_swingProgress = progress; }
+    [[nodiscard]] f32 swingProgress() const
+    {
+        return m_swingProgress;
+    }
+
+    void setSwingProgress(f32 progress)
+    {
+        m_swingProgress = progress;
+    }
 
     /**
      * @brief 获取上一帧攻击进度
      */
-    [[nodiscard]] f32 prevSwingProgress() const { return m_prevSwingProgress; }
+    [[nodiscard]] f32 prevSwingProgress() const
+    {
+        return m_prevSwingProgress;
+    }
 
     /**
      * @brief 获取正在挥动的手
      * @return 0=主手, 1=副手
      */
-    [[nodiscard]] i32 swingHand() const { return m_swingHand; }
+    [[nodiscard]] i32 swingHand() const
+    {
+        return m_swingHand;
+    }
 
     /**
      * @brief 检查是否正在进行挥动动画
      */
-    [[nodiscard]] bool isSwingInProgress() const { return m_swingInProgress; }
+    [[nodiscard]] bool isSwingInProgress() const
+    {
+        return m_swingInProgress;
+    }
 
     /**
      * @brief 触发挥动动画
@@ -667,21 +981,42 @@ public:
     /**
      * @brief 是否正在站立（北极熊特有）
      */
-    [[nodiscard]] bool isStanding() const { return m_isStanding; }
-    void setStanding(bool standing) { m_isStanding = standing; }
+    [[nodiscard]] bool isStanding() const
+    {
+        return m_isStanding;
+    }
+
+    void setStanding(bool standing)
+    {
+        m_isStanding = standing;
+    }
 
     /**
      * @brief 获取站立动画进度
      * 范围 [0, 6]，0 表示四足站立，6 表示完全站立
      */
-    [[nodiscard]] f32 clientSideStandAnimation() const { return m_clientSideStandAnimation; }
-    void setClientSideStandAnimation(f32 value) { m_clientSideStandAnimation = value; }
+    [[nodiscard]] f32 clientSideStandAnimation() const
+    {
+        return m_clientSideStandAnimation;
+    }
+
+    void setClientSideStandAnimation(f32 value)
+    {
+        m_clientSideStandAnimation = value;
+    }
 
     /**
      * @brief 获取上一帧站立动画进度
      */
-    [[nodiscard]] f32 clientSideStandAnimation0() const { return m_clientSideStandAnimation0; }
-    void setClientSideStandAnimation0(f32 value) { m_clientSideStandAnimation0 = value; }
+    [[nodiscard]] f32 clientSideStandAnimation0() const
+    {
+        return m_clientSideStandAnimation0;
+    }
+
+    void setClientSideStandAnimation0(f32 value)
+    {
+        m_clientSideStandAnimation0 = value;
+    }
 
     /**
      * @brief 获取站立动画缩放值
@@ -706,8 +1041,15 @@ public:
      * @brief 获取河豚膨胀状态
      * 0 = Deflated, 1 = SemiPuffed, 2 = FullyPuffed
      */
-    [[nodiscard]] i32 puffState() const { return m_puffState; }
-    void setPuffState(i32 state) { m_puffState = std::clamp(state, 0, 2); }
+    [[nodiscard]] i32 puffState() const
+    {
+        return m_puffState;
+    }
+
+    void setPuffState(i32 state)
+    {
+        m_puffState = std::clamp(state, 0, 2);
+    }
 
     // ========== 吃草动画状态 ==========
 
@@ -721,13 +1063,19 @@ public:
      * → EntityRendererManager 传递给 SheepModel::setEatAnimationTimer()
      * → SheepModel 计算 getHeadEatPositionScale/getHeadEatAngleScale 驱动头部动画
      */
-    [[nodiscard]] i32 eatAnimationTimer() const { return m_eatAnimationTimer; }
+    [[nodiscard]] i32 eatAnimationTimer() const
+    {
+        return m_eatAnimationTimer;
+    }
 
     /**
      * @brief 设置吃草动画计时器
      * @param timer 计时器值（原版为 40 ticks）
      */
-    void setEatAnimationTimer(i32 timer) { m_eatAnimationTimer = timer; }
+    void setEatAnimationTimer(i32 timer)
+    {
+        m_eatAnimationTimer = timer;
+    }
 
     // ========== TNT 矿车引信状态 ==========
 
@@ -739,13 +1087,19 @@ public:
      * 数据流：ClientApplicationNetwork.onEntityStatus(EatBlock, typeId == "minecraft:tnt_minecart")
      * → setFuseTimer(80) → ClientEntity.tick() 递减 → 渲染器用于闪烁效果
      */
-    [[nodiscard]] i32 fuseTimer() const { return m_fuseTimer; }
+    [[nodiscard]] i32 fuseTimer() const
+    {
+        return m_fuseTimer;
+    }
 
     /**
      * @brief 设置 TNT 矿车引信计时器
      * @param timer 引信计时器值（原版为 80 ticks，-1 表示未引燃）
      */
-    void setFuseTimer(i32 timer) { m_fuseTimer = timer; }
+    void setFuseTimer(i32 timer)
+    {
+        m_fuseTimer = timer;
+    }
 
     // ========== 美西螈状态 ==========
 
@@ -753,36 +1107,71 @@ public:
      * @brief 获取美西螈变体
      * 0=Lucy(白化), 1=Wild(野生), 2=Gold(金色), 3=Cyan(青色), 4=Blue(蓝色)
      */
-    [[nodiscard]] i32 axolotlVariant() const { return m_axolotlVariant; }
-    void setAxolotlVariant(i32 variant) { m_axolotlVariant = std::clamp(variant, 0, 4); }
+    [[nodiscard]] i32 axolotlVariant() const
+    {
+        return m_axolotlVariant;
+    }
+
+    void setAxolotlVariant(i32 variant)
+    {
+        m_axolotlVariant = std::clamp(variant, 0, 4);
+    }
 
     /**
      * @brief 获取美西螈装死状态
      */
-    [[nodiscard]] bool axolotlPlayingDead() const { return m_axolotlPlayingDead; }
-    void setAxolotlPlayingDead(bool playingDead) { m_axolotlPlayingDead = playingDead; }
+    [[nodiscard]] bool axolotlPlayingDead() const
+    {
+        return m_axolotlPlayingDead;
+    }
+
+    void setAxolotlPlayingDead(bool playingDead)
+    {
+        m_axolotlPlayingDead = playingDead;
+    }
 
     // ========== 豹猫信任状态 ==========
 
     /**
      * @brief 是否已被信任（豹猫特有）
      */
-    [[nodiscard]] bool isTrusting() const { return m_trusting; }
-    void setTrusting(bool trusting) { m_trusting = trusting; }
+    [[nodiscard]] bool isTrusting() const
+    {
+        return m_trusting;
+    }
+
+    void setTrusting(bool trusting)
+    {
+        m_trusting = trusting;
+    }
 
     // ========== 猫动画状态 ==========
 
     /**
      * @brief 猫是否躺下
      */
-    [[nodiscard]] bool isCatLieDown() const { return m_catLieDown; }
-    void setCatLieDown(bool lying) { m_catLieDown = lying; }
+    [[nodiscard]] bool isCatLieDown() const
+    {
+        return m_catLieDown;
+    }
+
+    void setCatLieDown(bool lying)
+    {
+        m_catLieDown = lying;
+    }
 
     /**
      * @brief 猫是否处于放松状态（看向睡眠主人）
      */
-    [[nodiscard]] bool isCatRelaxStateOne() const { return m_catRelaxStateOne; }
-    void setCatRelaxStateOne(bool relax) { m_catRelaxStateOne = relax; }
+    [[nodiscard]] bool isCatRelaxStateOne() const
+    {
+        return m_catRelaxStateOne;
+    }
+
+    void setCatRelaxStateOne(bool relax)
+    {
+        m_catRelaxStateOne = relax;
+    }
 
     // ========== 装备（用于层渲染） ==========
 
@@ -790,56 +1179,111 @@ public:
      * @brief 获取主手物品
      * @return 物品堆指针，如果没有返回 nullptr
      */
-    [[nodiscard]] const ItemStack* getMainHandItem() const { return m_mainHandItem ? &*m_mainHandItem : nullptr; }
-    void setMainHandItem(const ItemStack& item) { m_mainHandItem = std::make_unique<ItemStack>(item); }
+    [[nodiscard]] const ItemStack* getMainHandItem() const
+    {
+        return m_mainHandItem ? &*m_mainHandItem : nullptr;
+    }
+
+    void setMainHandItem(const ItemStack& item)
+    {
+        m_mainHandItem = std::make_unique<ItemStack>(item);
+    }
 
     /**
      * @brief 获取副手物品
      * @return 物品堆指针，如果没有返回 nullptr
      */
-    [[nodiscard]] const ItemStack* getOffHandItem() const { return m_offHandItem ? &*m_offHandItem : nullptr; }
-    void setOffHandItem(const ItemStack& item) { m_offHandItem = std::make_unique<ItemStack>(item); }
+    [[nodiscard]] const ItemStack* getOffHandItem() const
+    {
+        return m_offHandItem ? &*m_offHandItem : nullptr;
+    }
+
+    void setOffHandItem(const ItemStack& item)
+    {
+        m_offHandItem = std::make_unique<ItemStack>(item);
+    }
 
     /**
      * @brief 获取头部装备
      */
-    [[nodiscard]] const ItemStack* getHeadArmor() const { return m_headArmor ? &*m_headArmor : nullptr; }
-    void setHeadArmor(const ItemStack& item) { m_headArmor = std::make_unique<ItemStack>(item); }
+    [[nodiscard]] const ItemStack* getHeadArmor() const
+    {
+        return m_headArmor ? &*m_headArmor : nullptr;
+    }
+
+    void setHeadArmor(const ItemStack& item)
+    {
+        m_headArmor = std::make_unique<ItemStack>(item);
+    }
 
     /**
      * @brief 获取胸甲
      */
-    [[nodiscard]] const ItemStack* getChestArmor() const { return m_chestArmor ? &*m_chestArmor : nullptr; }
-    void setChestArmor(const ItemStack& item) { m_chestArmor = std::make_unique<ItemStack>(item); }
+    [[nodiscard]] const ItemStack* getChestArmor() const
+    {
+        return m_chestArmor ? &*m_chestArmor : nullptr;
+    }
+
+    void setChestArmor(const ItemStack& item)
+    {
+        m_chestArmor = std::make_unique<ItemStack>(item);
+    }
 
     /**
      * @brief 获取护腿
      */
-    [[nodiscard]] const ItemStack* getLegsArmor() const { return m_legsArmor ? &*m_legsArmor : nullptr; }
-    void setLegsArmor(const ItemStack& item) { m_legsArmor = std::make_unique<ItemStack>(item); }
+    [[nodiscard]] const ItemStack* getLegsArmor() const
+    {
+        return m_legsArmor ? &*m_legsArmor : nullptr;
+    }
+
+    void setLegsArmor(const ItemStack& item)
+    {
+        m_legsArmor = std::make_unique<ItemStack>(item);
+    }
 
     /**
      * @brief 获取靴子
      */
-    [[nodiscard]] const ItemStack* getFeetArmor() const { return m_feetArmor ? &*m_feetArmor : nullptr; }
-    void setFeetArmor(const ItemStack& item) { m_feetArmor = std::make_unique<ItemStack>(item); }
+    [[nodiscard]] const ItemStack* getFeetArmor() const
+    {
+        return m_feetArmor ? &*m_feetArmor : nullptr;
+    }
+
+    void setFeetArmor(const ItemStack& item)
+    {
+        m_feetArmor = std::make_unique<ItemStack>(item);
+    }
 
     // ========== 存活时间 ==========
 
-    [[nodiscard]] u32 ticksExisted() const { return m_ticksExisted; }
+    [[nodiscard]] u32 ticksExisted() const
+    {
+        return m_ticksExisted;
+    }
 
     // ========== 元数据缓存 ==========
 
     /**
      * @brief 获取原始实体元数据
      */
-    [[nodiscard]] const std::vector<u8>& metadata() const { return m_metadata; }
+    [[nodiscard]] const std::vector<u8>& metadata() const
+    {
+        return m_metadata;
+    }
 
     /**
      * @brief 获取元数据管理器
      */
-    [[nodiscard]] entity::EntityDataManager& dataManager() { return m_dataManager; }
-    [[nodiscard]] const entity::EntityDataManager& dataManager() const { return m_dataManager; }
+    [[nodiscard]] entity::EntityDataManager& dataManager()
+    {
+        return m_dataManager;
+    }
+
+    [[nodiscard]] const entity::EntityDataManager& dataManager() const
+    {
+        return m_dataManager;
+    }
 
     /**
      * @brief 设置原始实体元数据
@@ -878,13 +1322,19 @@ public:
      * @brief 是否持有物品
      * 用于 ItemEntity 渲染
      */
-    [[nodiscard]] bool hasItem() const { return m_itemStack != nullptr; }
+    [[nodiscard]] bool hasItem() const
+    {
+        return m_itemStack != nullptr;
+    }
 
     /**
      * @brief 获取物品堆
      * @return 物品堆指针，如果没有物品返回 nullptr
      */
-    [[nodiscard]] const ItemStack* itemStack() const { return m_itemStack.get(); }
+    [[nodiscard]] const ItemStack* itemStack() const
+    {
+        return m_itemStack.get();
+    }
 
     /**
      * @brief 设置物品堆
@@ -893,9 +1343,21 @@ public:
      */
     void setItemStack(const ItemStack& stack);
     void clearItemStack();
-    [[nodiscard]] u32 itemRenderStateVersion() const { return m_itemRenderStateVersion; }
-    [[nodiscard]] std::optional<i32> metadataPickupDelay() const { return m_metadataPickupDelay; }
-    [[nodiscard]] std::optional<i32> metadataAge() const { return m_metadataAge; }
+
+    [[nodiscard]] u32 itemRenderStateVersion() const
+    {
+        return m_itemRenderStateVersion;
+    }
+
+    [[nodiscard]] std::optional<i32> metadataPickupDelay() const
+    {
+        return m_metadataPickupDelay;
+    }
+
+    [[nodiscard]] std::optional<i32> metadataAge() const
+    {
+        return m_metadataAge;
+    }
 
     // ========== XP 支持（用于 ExperienceOrb 渲染） ==========
 
@@ -903,14 +1365,20 @@ public:
      * @brief 获取经验值
      * 用于 ExperienceOrb 渲染
      */
-    [[nodiscard]] i32 xpValue() const { return m_xpValue; }
+    [[nodiscard]] i32 xpValue() const
+    {
+        return m_xpValue;
+    }
 
     /**
      * @brief 设置经验值
      * 用于客户端接收 SpawnExperienceOrb 包时设置经验球的值
      * @param value 经验值
      */
-    void setXpValue(i32 value) { m_xpValue = value; }
+    void setXpValue(i32 value)
+    {
+        m_xpValue = value;
+    }
 
     // ========== 属性（update_attributes 包） ==========
 
@@ -942,13 +1410,19 @@ public:
      * @brief 获取闪电形状随机种子
      * 用于 LightningBoltRenderer 生成一致的闪电形状
      */
-    [[nodiscard]] u64 boltVertex() const { return m_boltVertex; }
+    [[nodiscard]] u64 boltVertex() const
+    {
+        return m_boltVertex;
+    }
 
     /**
      * @brief 设置闪电形状随机种子
      * @param boltVertex 随机种子
      */
-    void setBoltVertex(u64 boltVertex) { m_boltVertex = boltVertex; }
+    void setBoltVertex(u64 boltVertex)
+    {
+        m_boltVertex = boltVertex;
+    }
 
     // ========== 铁傀儡状态 ==========
 
@@ -957,33 +1431,51 @@ public:
      * 铁傀儡举臂攻击动画，收到 IronGolemAttack 状态包时设为 10，
      * 每tick递减，为0时动画结束。
      */
-    [[nodiscard]] i32 ironGolemAttackTimer() const { return m_ironGolemAttackTimer; }
+    [[nodiscard]] i32 ironGolemAttackTimer() const
+    {
+        return m_ironGolemAttackTimer;
+    }
 
     /**
      * @brief 设置攻击动画计时器
      * @param timer 计时器值（原版为 10 ticks）
      */
-    void setIronGolemAttackTimer(i32 timer) { m_ironGolemAttackTimer = timer; }
+    void setIronGolemAttackTimer(i32 timer)
+    {
+        m_ironGolemAttackTimer = timer;
+    }
 
     /**
      * @brief 是否举起手臂（攻击动画）
      */
-    [[nodiscard]] bool ironGolemArmsRaised() const { return m_ironGolemArmsRaised; }
+    [[nodiscard]] bool ironGolemArmsRaised() const
+    {
+        return m_ironGolemArmsRaised;
+    }
 
     /**
      * @brief 设置手臂举起状态
      */
-    void setIronGolemArmsRaised(bool raised) { m_ironGolemArmsRaised = raised; }
+    void setIronGolemArmsRaised(bool raised)
+    {
+        m_ironGolemArmsRaised = raised;
+    }
 
     /**
      * @brief 是否手持罂粟花（给村民送花动画）
      */
-    [[nodiscard]] bool ironGolemHoldingRose() const { return m_ironGolemHoldingRose; }
+    [[nodiscard]] bool ironGolemHoldingRose() const
+    {
+        return m_ironGolemHoldingRose;
+    }
 
     /**
      * @brief 设置手持花朵状态
      */
-    void setIronGolemHoldingRose(bool holding) { m_ironGolemHoldingRose = holding; }
+    void setIronGolemHoldingRose(bool holding)
+    {
+        m_ironGolemHoldingRose = holding;
+    }
 
     // ========== 疣猪兽/僵尸疣兽攻击动画 ==========
 
@@ -996,13 +1488,19 @@ public:
      * 数据流：ClientApplicationNetwork.onEntityStatus(HoglinAttack)
      * → setFlingAnimationTicks(10) → ClientEntity.tick() 递减 → AnimationContext → BoarModel
      */
-    [[nodiscard]] i32 flingAnimationTicks() const { return m_flingAnimationTicks; }
+    [[nodiscard]] i32 flingAnimationTicks() const
+    {
+        return m_flingAnimationTicks;
+    }
 
     /**
      * @brief 设置撞飞攻击动画剩余 tick
      * @param ticks 剩余 tick 数（原版为 10 ticks）
      */
-    void setFlingAnimationTicks(i32 ticks) { m_flingAnimationTicks = ticks; }
+    void setFlingAnimationTicks(i32 ticks)
+    {
+        m_flingAnimationTicks = ticks;
+    }
 
     // ========== 狼甩水动画状态 ==========
 
@@ -1016,13 +1514,19 @@ public:
      * → setWolfShaking(true) → ClientEntity.tick() 推进 shakeAnim
      * → AnimationContext.wolfShakeAnim → WolfModel::setAnimState
      */
-    [[nodiscard]] bool wolfShaking() const { return m_wolfIsShaking; }
+    [[nodiscard]] bool wolfShaking() const
+    {
+        return m_wolfIsShaking;
+    }
 
     /**
      * @brief 设置狼甩水状态
      * @param shaking 是否正在甩水
      */
-    void setWolfShaking(bool shaking) { m_wolfIsShaking = shaking; }
+    void setWolfShaking(bool shaking)
+    {
+        m_wolfIsShaking = shaking;
+    }
 
     /**
      * @brief 获取狼甩水动画进度（当前 tick）
@@ -1030,24 +1534,36 @@ public:
      * 范围 [0, 2]，每 tick +0.05，达到 2.0 时甩水完成。
      * 对应 MC Wolf.shakeAnim。
      */
-    [[nodiscard]] f32 wolfShakeAnim() const { return m_wolfShakeAnim; }
+    [[nodiscard]] f32 wolfShakeAnim() const
+    {
+        return m_wolfShakeAnim;
+    }
 
     /**
      * @brief 设置狼甩水动画进度
      * @param anim 甩水进度（0.0-2.0）
      */
-    void setWolfShakeAnim(f32 anim) { m_wolfShakeAnim = anim; }
+    void setWolfShakeAnim(f32 anim)
+    {
+        m_wolfShakeAnim = anim;
+    }
 
     /**
      * @brief 获取上一 tick 的狼甩水进度（用于插值）
      */
-    [[nodiscard]] f32 wolfShakeAnimO() const { return m_wolfShakeAnimO; }
+    [[nodiscard]] f32 wolfShakeAnimO() const
+    {
+        return m_wolfShakeAnimO;
+    }
 
     /**
      * @brief 设置上一 tick 的狼甩水进度
      * @param anim 上一 tick 的甩水进度
      */
-    void setWolfShakeAnimO(f32 anim) { m_wolfShakeAnimO = anim; }
+    void setWolfShakeAnimO(f32 anim)
+    {
+        m_wolfShakeAnimO = anim;
+    }
 
     /**
      * @brief 获取狼湿润状态
@@ -1055,37 +1571,55 @@ public:
      * 收到 ShakeOffWater 时设为 true，甩水完成时设为 false。
      * 用于渲染湿润着色（变暗）。
      */
-    [[nodiscard]] bool wolfIsWet() const { return m_wolfIsWet; }
+    [[nodiscard]] bool wolfIsWet() const
+    {
+        return m_wolfIsWet;
+    }
 
     /**
      * @brief 设置狼湿润状态
      * @param wet 是否湿润
      */
-    void setWolfIsWet(bool wet) { m_wolfIsWet = wet; }
+    void setWolfIsWet(bool wet)
+    {
+        m_wolfIsWet = wet;
+    }
 
     /**
      * @brief 获取狼乞求食物头部角度（当前 tick）
      *
      * 对应 MC Wolf.interestedAngle。范围 [0, 1]。
      */
-    [[nodiscard]] f32 wolfInterestedAngle() const { return m_wolfInterestedAngle; }
+    [[nodiscard]] f32 wolfInterestedAngle() const
+    {
+        return m_wolfInterestedAngle;
+    }
 
     /**
      * @brief 设置狼乞求食物头部角度
      * @param angle 乞求角度（0.0-1.0）
      */
-    void setWolfInterestedAngle(f32 angle) { m_wolfInterestedAngle = angle; }
+    void setWolfInterestedAngle(f32 angle)
+    {
+        m_wolfInterestedAngle = angle;
+    }
 
     /**
      * @brief 获取上一 tick 的狼乞求角度（用于插值）
      */
-    [[nodiscard]] f32 wolfInterestedAngleO() const { return m_wolfInterestedAngleO; }
+    [[nodiscard]] f32 wolfInterestedAngleO() const
+    {
+        return m_wolfInterestedAngleO;
+    }
 
     /**
      * @brief 设置上一 tick 的狼乞求角度
      * @param angle 上一 tick 的乞求角度
      */
-    void setWolfInterestedAngleO(f32 angle) { m_wolfInterestedAngleO = angle; }
+    void setWolfInterestedAngleO(f32 angle)
+    {
+        m_wolfInterestedAngleO = angle;
+    }
 
     /**
      * @brief 获取狼是否感兴趣（乞求食物）
@@ -1094,7 +1628,10 @@ public:
      * 由 BegGoal.startExecuting/resetTask 在服务端调用 setInterested 修改。
      * ClientEntity::tick 根据 m_wolfIsInterested 推进 m_wolfInterestedAngle 插值。
      */
-    [[nodiscard]] bool wolfIsInterested() const { return m_wolfIsInterested; }
+    [[nodiscard]] bool wolfIsInterested() const
+    {
+        return m_wolfIsInterested;
+    }
 
     /**
      * @brief 设置狼是否感兴趣
@@ -1104,7 +1641,10 @@ public:
      *
      * @param interested 是否感兴趣
      */
-    void setWolfIsInterested(bool interested) { m_wolfIsInterested = interested; }
+    void setWolfIsInterested(bool interested)
+    {
+        m_wolfIsInterested = interested;
+    }
 
     /**
      * @brief 获取狼是否已被驯服
@@ -1113,7 +1653,10 @@ public:
      * 由 syncMetadataFromDataManager 在收到元数据更新时调用 setWolfTamed 更新。
      * WolfCollarLayer::shouldRender 读取此状态判断是否渲染项圈。
      */
-    [[nodiscard]] bool wolfTamed() const { return m_wolfTamed; }
+    [[nodiscard]] bool wolfTamed() const
+    {
+        return m_wolfTamed;
+    }
 
     /**
      * @brief 设置狼是否已被驯服
@@ -1122,7 +1665,10 @@ public:
      *
      * @param tamed 是否已被驯服
      */
-    void setWolfTamed(bool tamed) { m_wolfTamed = tamed; }
+    void setWolfTamed(bool tamed)
+    {
+        m_wolfTamed = tamed;
+    }
 
     /**
      * @brief 获取狼颈圈颜色
@@ -1133,7 +1679,10 @@ public:
      *
      * @return 染料颜色（DyeColor 枚举值）
      */
-    [[nodiscard]] DyeColor wolfCollarColor() const { return m_wolfCollarColor; }
+    [[nodiscard]] DyeColor wolfCollarColor() const
+    {
+        return m_wolfCollarColor;
+    }
 
     /**
      * @brief 设置狼颈圈颜色
@@ -1142,7 +1691,10 @@ public:
      *
      * @param color 染料颜色
      */
-    void setWolfCollarColor(DyeColor color) { m_wolfCollarColor = color; }
+    void setWolfCollarColor(DyeColor color)
+    {
+        m_wolfCollarColor = color;
+    }
 
     /**
      * @brief 获取狼是否处于愤怒状态
@@ -1155,7 +1707,10 @@ public:
      *
      * @return 如果狼处于愤怒状态返回 true
      */
-    [[nodiscard]] bool wolfIsAngry() const { return m_wolfIsAngry; }
+    [[nodiscard]] bool wolfIsAngry() const
+    {
+        return m_wolfIsAngry;
+    }
 
     /**
      * @brief 设置狼是否处于愤怒状态
@@ -1164,7 +1719,10 @@ public:
      *
      * @param angry 是否处于愤怒状态
      */
-    void setWolfIsAngry(bool angry) { m_wolfIsAngry = angry; }
+    void setWolfIsAngry(bool angry)
+    {
+        m_wolfIsAngry = angry;
+    }
 
     // ========== 马类状态 ==========
 
@@ -1176,9 +1734,15 @@ public:
      * 7 个马类子类（Horse/Donkey/Mule/Llama/TraderLlama/SkeletonHorse/ZombieHorse）
      * 共用同一 STATUS_PARAM，经 typeId 判断 + hasParam 自动覆盖。
      */
-    [[nodiscard]] bool horseTamed() const { return m_horseTamed; }
+    [[nodiscard]] bool horseTamed() const
+    {
+        return m_horseTamed;
+    }
 
-    void setHorseTamed(bool tamed) { m_horseTamed = tamed; }
+    void setHorseTamed(bool tamed)
+    {
+        m_horseTamed = tamed;
+    }
 
     /**
      * @brief 马类是否装备鞍
@@ -1186,18 +1750,30 @@ public:
      * 通过元数据同步自服务端 AbstractHorseEntity::STATUS_PARAM（bit2, mask 0x04）。
      * HorseRenderer 鞍渲染层读取此状态判断是否渲染鞍。
      */
-    [[nodiscard]] bool horseSaddled() const { return m_horseSaddled; }
+    [[nodiscard]] bool horseSaddled() const
+    {
+        return m_horseSaddled;
+    }
 
-    void setHorseSaddled(bool saddled) { m_horseSaddled = saddled; }
+    void setHorseSaddled(bool saddled)
+    {
+        m_horseSaddled = saddled;
+    }
 
     /**
      * @brief 马类是否已繁殖
      *
      * 通过元数据同步自服务端 AbstractHorseEntity::STATUS_PARAM（bit3, mask 0x08）。
      */
-    [[nodiscard]] bool horseBred() const { return m_horseBred; }
+    [[nodiscard]] bool horseBred() const
+    {
+        return m_horseBred;
+    }
 
-    void setHorseBred(bool bred) { m_horseBred = bred; }
+    void setHorseBred(bool bred)
+    {
+        m_horseBred = bred;
+    }
 
     /**
      * @brief 马类是否正在吃草
@@ -1205,9 +1781,15 @@ public:
      * 通过元数据同步自服务端 AbstractHorseEntity::STATUS_PARAM（bit4, mask 0x10）。
      * 驱动低头吃草动画（headLean 插值）。
      */
-    [[nodiscard]] bool horseEating() const { return m_horseEating; }
+    [[nodiscard]] bool horseEating() const
+    {
+        return m_horseEating;
+    }
 
-    void setHorseEating(bool eating) { m_horseEating = eating; }
+    void setHorseEating(bool eating)
+    {
+        m_horseEating = eating;
+    }
 
     /**
      * @brief 马类是否正在扬蹄
@@ -1215,9 +1797,15 @@ public:
      * 通过元数据同步自服务端 AbstractHorseEntity::STATUS_PARAM（bit5, mask 0x20）。
      * 驱动扬蹄动画（rearingAmount 插值）与乘客位置偏移。
      */
-    [[nodiscard]] bool horseRearing() const { return m_horseRearing; }
+    [[nodiscard]] bool horseRearing() const
+    {
+        return m_horseRearing;
+    }
 
-    void setHorseRearing(bool rearing) { m_horseRearing = rearing; }
+    void setHorseRearing(bool rearing)
+    {
+        m_horseRearing = rearing;
+    }
 
     /**
      * @brief 马类嘴巴是否张开
@@ -1225,9 +1813,15 @@ public:
      * 通过元数据同步自服务端 AbstractHorseEntity::STATUS_PARAM（bit6, mask 0x40）。
      * 驱动张嘴动画（mouthOpenness 插值）。
      */
-    [[nodiscard]] bool horseMouthOpen() const { return m_horseMouthOpen; }
+    [[nodiscard]] bool horseMouthOpen() const
+    {
+        return m_horseMouthOpen;
+    }
 
-    void setHorseMouthOpen(bool open) { m_horseMouthOpen = open; }
+    void setHorseMouthOpen(bool open)
+    {
+        m_horseMouthOpen = open;
+    }
 
     // ========== 末影人状态 ==========
 
@@ -1241,7 +1835,10 @@ public:
      *
      * 由 HeldBlockLayer 读取以渲染末影人手持方块。
      */
-    [[nodiscard]] const ::mc::BlockState* endermanHeldBlockState() const { return m_endermanHeldBlockState; }
+    [[nodiscard]] const ::mc::BlockState* endermanHeldBlockState() const
+    {
+        return m_endermanHeldBlockState;
+    }
 
     /**
      * @brief 设置末影人持有的方块状态
@@ -1250,7 +1847,10 @@ public:
      *
      * @param state 方块状态指针（nullptr 表示未持有）
      */
-    void setEndermanHeldBlockState(const ::mc::BlockState* state) { m_endermanHeldBlockState = state; }
+    void setEndermanHeldBlockState(const ::mc::BlockState* state)
+    {
+        m_endermanHeldBlockState = state;
+    }
 
     /**
      * @brief 末影人是否正在被注视（尖叫状态）
@@ -1258,7 +1858,10 @@ public:
      * 通过元数据同步自服务端 EndermanEntity::DATA_SCREAMING_PARAM。
      * 由 EndermanModel 读取以设置 setAttacking 姿态。
      */
-    [[nodiscard]] bool endermanScreaming() const { return m_endermanScreaming; }
+    [[nodiscard]] bool endermanScreaming() const
+    {
+        return m_endermanScreaming;
+    }
 
     /**
      * @brief 设置末影人注视状态
@@ -1267,7 +1870,10 @@ public:
      *
      * @param screaming 是否正在被注视
      */
-    void setEndermanScreaming(bool screaming) { m_endermanScreaming = screaming; }
+    void setEndermanScreaming(bool screaming)
+    {
+        m_endermanScreaming = screaming;
+    }
 
     // ========== 下落方块状态 ==========
 
@@ -1280,7 +1886,10 @@ public:
      *
      * 由 FallingBlockRenderer 读取以渲染下落方块模型。
      */
-    [[nodiscard]] const ::mc::BlockState* fallingBlockState() const { return m_fallingBlockState; }
+    [[nodiscard]] const ::mc::BlockState* fallingBlockState() const
+    {
+        return m_fallingBlockState;
+    }
 
     /**
      * @brief 设置下落方块的方块状态
@@ -1289,7 +1898,10 @@ public:
      *
      * @param state 方块状态指针（nullptr 表示未设置）
      */
-    void setFallingBlockState(const ::mc::BlockState* state) { m_fallingBlockState = state; }
+    void setFallingBlockState(const ::mc::BlockState* state)
+    {
+        m_fallingBlockState = state;
+    }
 
     // ========== TNT 实体状态 ==========
 
@@ -1300,14 +1912,20 @@ public:
      * 对应 MC 1.21.11 PrimedTnt.getFuse()。
      * 由 TNTRenderer 读取以计算闪烁缩放和白色闪烁帧。
      */
-    [[nodiscard]] i32 tntFuse() const { return m_tntFuse; }
+    [[nodiscard]] i32 tntFuse() const
+    {
+        return m_tntFuse;
+    }
 
     /**
      * @brief 设置 TNT 引信剩余 tick
      *
      * 由 syncMetadataFromDataManager 在收到元数据更新时调用。
      */
-    void setTntFuse(i32 fuse) { m_tntFuse = fuse; }
+    void setTntFuse(i32 fuse)
+    {
+        m_tntFuse = fuse;
+    }
 
     /**
      * @brief 获取 TNT 方块状态
@@ -1316,14 +1934,20 @@ public:
      * 对应 MC 1.21.11 PrimedTnt.getBlockState()。
      * 由 TNTRenderer 读取以渲染 TNT 方块模型。
      */
-    [[nodiscard]] const ::mc::BlockState* tntBlockState() const { return m_tntBlockState; }
+    [[nodiscard]] const ::mc::BlockState* tntBlockState() const
+    {
+        return m_tntBlockState;
+    }
 
     /**
      * @brief 设置 TNT 方块状态
      *
      * 由 syncMetadataFromDataManager 在收到元数据更新时调用。
      */
-    void setTntBlockState(const ::mc::BlockState* state) { m_tntBlockState = state; }
+    void setTntBlockState(const ::mc::BlockState* state)
+    {
+        m_tntBlockState = state;
+    }
 
     // ========== 骷髅拉弓状态 ==========
     // 注：骷髅拉弓渲染状态不再用独立镜像字段——对齐 vanilla 1.21.11
@@ -1358,14 +1982,20 @@ public:
      *
      * @return 是否处于激怒状态
      */
-    [[nodiscard]] bool isAggressive() const { return m_isAggressive; }
+    [[nodiscard]] bool isAggressive() const
+    {
+        return m_isAggressive;
+    }
 
     /**
      * @brief 设置 Mob 是否处于激怒/攻击中状态
      *
      * @param aggressive 是否处于激怒状态
      */
-    void setIsAggressive(bool aggressive) { m_isAggressive = aggressive; }
+    void setIsAggressive(bool aggressive)
+    {
+        m_isAggressive = aggressive;
+    }
 
     // ========== 玩家渲染状态（供 PlayerRenderer 层 GPU 管线路径读取） ==========
     //
@@ -1381,8 +2011,15 @@ public:
      * 由 HeldItemLayer 读取以决定主/副手物品映射到左右手的渲染槽。
      * @return true 右撇子（默认）；本地玩家由真实 Player 回填
      */
-    [[nodiscard]] bool isRightHanded() const { return m_rightHanded; }
-    void setRightHanded(bool rightHanded) { m_rightHanded = rightHanded; }
+    [[nodiscard]] bool isRightHanded() const
+    {
+        return m_rightHanded;
+    }
+
+    void setRightHanded(bool rightHanded)
+    {
+        m_rightHanded = rightHanded;
+    }
 
     /**
      * @brief 玩家皮肤部件可见性位掩码（PlayerModelPart）
@@ -1391,8 +2028,16 @@ public:
      * 默认 PLAYER_MODEL_PARTS_ALL_MASK（全部件显示）。
      * @return 部件位掩码
      */
-    [[nodiscard]] u8 playerModelParts() const { return m_playerModelParts; }
-    void setPlayerModelParts(u8 mask) { m_playerModelParts = mask; }
+    [[nodiscard]] u8 playerModelParts() const
+    {
+        return m_playerModelParts;
+    }
+
+    void setPlayerModelParts(u8 mask)
+    {
+        m_playerModelParts = mask;
+    }
+
     [[nodiscard]] bool isWearing(PlayerModelPart part) const
     {
         return (m_playerModelParts & getPlayerModelPartMask(part)) != 0;
@@ -1415,7 +2060,10 @@ public:
      *
      * @return 被钩住实体 ID（+1 偏移），0 表示无
      */
-    [[nodiscard]] i32 fishingHookedEntityId() const { return m_fishingHookedEntityId; }
+    [[nodiscard]] i32 fishingHookedEntityId() const
+    {
+        return m_fishingHookedEntityId;
+    }
 
     /**
      * @brief 获取是否咬钩（客户端镜像）
@@ -1428,7 +2076,10 @@ public:
      *
      * @return 如果浮标正处于咬钩状态返回 true
      */
-    [[nodiscard]] bool fishingBiting() const { return m_fishingBiting; }
+    [[nodiscard]] bool fishingBiting() const
+    {
+        return m_fishingBiting;
+    }
 
     // ========== 兔子跳跃动画状态 ==========
 
@@ -1471,7 +2122,10 @@ public:
     /**
      * @brief 兔子是否正在跳跃动画中
      */
-    [[nodiscard]] bool rabbitIsJumping() const { return m_rabbitJumpDuration != 0; }
+    [[nodiscard]] bool rabbitIsJumping() const
+    {
+        return m_rabbitJumpDuration != 0;
+    }
 
     /**
      * @brief 推进兔子跳跃动画计时器（每 tick 调用一次）

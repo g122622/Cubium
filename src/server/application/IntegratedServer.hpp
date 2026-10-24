@@ -106,8 +106,15 @@ public:
     void shutdown() override;
     void requestStop() override;
 
-    [[nodiscard]] bool isIntegrated() const noexcept override { return true; }
-    [[nodiscard]] bool isDedicated() const noexcept override { return false; }
+    [[nodiscard]] bool isIntegrated() const noexcept override
+    {
+        return true;
+    }
+
+    [[nodiscard]] bool isDedicated() const noexcept override
+    {
+        return false;
+    }
 
     /**
      * @brief 单机主机作弊提升：主机在开启作弊时运行时视为 OP（Owner 级），不写 ops.json。
@@ -137,7 +144,10 @@ public:
      */
     [[nodiscard]] Result<void> publishToLan(i32 port, bool allowCheats) override;
 
-    [[nodiscard]] const GameDirectory& gameDirectory() const noexcept override { return m_gameDirectory; }
+    [[nodiscard]] const GameDirectory& gameDirectory() const noexcept override
+    {
+        return m_gameDirectory;
+    }
 
 protected:
     /**
@@ -190,18 +200,31 @@ public:
     /**
      * @brief 获取初始化参数
      */
-    [[nodiscard]] const IntegratedServerParams& params() const noexcept { return m_params; }
+    [[nodiscard]] const IntegratedServerParams& params() const noexcept
+    {
+        return m_params;
+    }
 
     /**
      * @brief 获取客户端玩家ID
      */
-    [[nodiscard]] PlayerId clientPlayerId() const noexcept { return m_clientPlayerId; }
+    [[nodiscard]] PlayerId clientPlayerId() const noexcept
+    {
+        return m_clientPlayerId;
+    }
 
     /**
      * @brief 获取客户端物品栏
      */
-    [[nodiscard]] PlayerInventory& clientInventory() noexcept { return m_clientInventory; }
-    [[nodiscard]] const PlayerInventory& clientInventory() const noexcept { return m_clientInventory; }
+    [[nodiscard]] PlayerInventory& clientInventory() noexcept
+    {
+        return m_clientInventory;
+    }
+
+    [[nodiscard]] const PlayerInventory& clientInventory() const noexcept
+    {
+        return m_clientInventory;
+    }
 
     [[nodiscard]] PlayerInventory* playerInventory(PlayerId playerId) override;
     [[nodiscard]] const PlayerInventory* playerInventory(PlayerId playerId) const override;

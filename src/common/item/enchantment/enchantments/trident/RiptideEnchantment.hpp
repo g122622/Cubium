@@ -46,7 +46,10 @@ class RiptideEnchantment : public Enchantment {
 public:
     RiptideEnchantment() = default;
 
-    [[nodiscard]] std::string id() const override { return "minecraft:riptide"; }
+    [[nodiscard]] std::string id() const override
+    {
+        return "minecraft:riptide";
+    }
 
     [[nodiscard]] std::string getNameKey(i32 level) const override
     {
@@ -54,16 +57,31 @@ public:
         return "enchantment.minecraft.riptide";
     }
 
-    [[nodiscard]] EnchantmentType type() const override { return EnchantmentType::Trident; }
+    [[nodiscard]] EnchantmentType type() const override
+    {
+        return EnchantmentType::Trident;
+    }
 
-    [[nodiscard]] i32 minLevel() const noexcept override { return 1; }
+    [[nodiscard]] i32 minLevel() const noexcept override
+    {
+        return 1;
+    }
 
-    [[nodiscard]] i32 maxLevel() const noexcept override { return 3; }
+    [[nodiscard]] i32 maxLevel() const noexcept override
+    {
+        return 3;
+    }
 
-    [[nodiscard]] EnchantmentRarity rarity() const noexcept override { return EnchantmentRarity::Rare; }
+    [[nodiscard]] EnchantmentRarity rarity() const noexcept override
+    {
+        return EnchantmentRarity::Rare;
+    }
 
     // 等级1: 17, 等级2: 24, 等级3: 31
-    [[nodiscard]] i32 getMinCost(i32 level) const override { return 10 + level * 7; }
+    [[nodiscard]] i32 getMinCost(i32 level) const override
+    {
+        return 10 + level * 7;
+    }
 
     // 最大附魔成本固定为50
     [[nodiscard]] i32 getMaxCost(i32 level) const override

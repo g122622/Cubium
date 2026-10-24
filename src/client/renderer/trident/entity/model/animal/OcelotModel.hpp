@@ -55,17 +55,26 @@ public:
     /**
      * @brief 设置蹲伏状态
      */
-    void setCrouching(bool crouching) { m_isCrouching = crouching; }
+    void setCrouching(bool crouching)
+    {
+        m_isCrouching = crouching;
+    }
 
     /**
      * @brief 设置奔跑状态
      */
-    void setSprinting(bool sprinting) { m_isSprinting = sprinting; }
+    void setSprinting(bool sprinting)
+    {
+        m_isSprinting = sprinting;
+    }
 
     /**
      * @brief 获取当前状态
      */
-    [[nodiscard]] i32 getState() const { return m_state; }
+    [[nodiscard]] i32 getState() const
+    {
+        return m_state;
+    }
 
 protected:
     // 模型部件

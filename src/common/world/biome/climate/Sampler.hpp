@@ -82,12 +82,18 @@ public:
      *
      * 用于 SpawnFinder 计算出生点。
      */
-    [[nodiscard]] const std::vector<ParameterPoint>& spawnTarget() const { return m_spawnTarget; }
+    [[nodiscard]] const std::vector<ParameterPoint>& spawnTarget() const
+    {
+        return m_spawnTarget;
+    }
 
     /**
      * @brief 设置生成目标参数列表
      */
-    void setSpawnTarget(std::vector<ParameterPoint> target) { m_spawnTarget = std::move(target); }
+    void setSpawnTarget(std::vector<ParameterPoint> target)
+    {
+        m_spawnTarget = std::move(target);
+    }
 
     /**
      * @brief 使用气候采样器查找出生点

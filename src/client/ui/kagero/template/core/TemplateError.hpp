@@ -191,22 +191,34 @@ public:
     /**
      * @brief 获取错误信息
      */
-    [[nodiscard]] const TemplateErrorInfo& info() const { return m_info; }
+    [[nodiscard]] const TemplateErrorInfo& info() const
+    {
+        return m_info;
+    }
 
     /**
      * @brief 获取错误类型
      */
-    [[nodiscard]] TemplateErrorType type() const { return m_info.type; }
+    [[nodiscard]] TemplateErrorType type() const
+    {
+        return m_info.type;
+    }
 
     /**
      * @brief 获取错误位置
      */
-    [[nodiscard]] const SourceLocation& location() const { return m_info.location; }
+    [[nodiscard]] const SourceLocation& location() const
+    {
+        return m_info.location;
+    }
 
     /**
      * @brief 添加上下文信息
      */
-    void setContext(const std::string& context) { m_info.context = context; }
+    void setContext(const std::string& context)
+    {
+        m_info.context = context;
+    }
 
     // ========== 工厂方法 ==========
 
@@ -290,7 +302,10 @@ public:
     /**
      * @brief 添加错误
      */
-    void addError(TemplateErrorInfo error) { m_errors.push_back(std::move(error)); }
+    void addError(TemplateErrorInfo error)
+    {
+        m_errors.push_back(std::move(error));
+    }
 
     /**
      * @brief 添加错误（简化版）
@@ -303,27 +318,42 @@ public:
     /**
      * @brief 检查是否有错误
      */
-    [[nodiscard]] bool hasErrors() const { return !m_errors.empty(); }
+    [[nodiscard]] bool hasErrors() const
+    {
+        return !m_errors.empty();
+    }
 
     /**
      * @brief 获取错误数量
      */
-    [[nodiscard]] Size errorCount() const { return m_errors.size(); }
+    [[nodiscard]] Size errorCount() const
+    {
+        return m_errors.size();
+    }
 
     /**
      * @brief 获取所有错误
      */
-    [[nodiscard]] const std::vector<TemplateErrorInfo>& errors() const { return m_errors; }
+    [[nodiscard]] const std::vector<TemplateErrorInfo>& errors() const
+    {
+        return m_errors;
+    }
 
     /**
      * @brief 获取第一个错误
      */
-    [[nodiscard]] const TemplateErrorInfo* firstError() const { return m_errors.empty() ? nullptr : &m_errors.front(); }
+    [[nodiscard]] const TemplateErrorInfo* firstError() const
+    {
+        return m_errors.empty() ? nullptr : &m_errors.front();
+    }
 
     /**
      * @brief 清除所有错误
      */
-    void clear() { m_errors.clear(); }
+    void clear()
+    {
+        m_errors.clear();
+    }
 
     /**
      * @brief 如果有错误则抛出第一个错误

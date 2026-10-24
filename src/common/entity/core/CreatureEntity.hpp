@@ -76,12 +76,18 @@ public:
     /**
      * @brief 获取移动速度倍率
      */
-    [[nodiscard]] f64 moveSpeed() const { return m_moveSpeed; }
+    [[nodiscard]] f64 moveSpeed() const
+    {
+        return m_moveSpeed;
+    }
 
     /**
      * @brief 设置移动速度倍率
      */
-    void setMoveSpeed(f64 speed) { m_moveSpeed = speed; }
+    void setMoveSpeed(f64 speed)
+    {
+        m_moveSpeed = speed;
+    }
 
     // ========== 寻路权重 ==========
 

@@ -43,7 +43,10 @@ public:
     /**
      * @brief 获取 FACING 属性
      */
-    static const DirectionProperty& FACING() { return BlockStateProperties::FACING(); }
+    static const DirectionProperty& FACING()
+    {
+        return BlockStateProperties::FACING();
+    }
 
     /**
      * @brief 构造函数

@@ -50,14 +50,30 @@ namespace mc::client::resource {
 
 ItemDisplayContext parseDisplayContext(std::string_view str)
 {
-    if (str == "thirdperson_righthand") return ItemDisplayContext::ThirdPersonRightHand;
-    if (str == "thirdperson_lefthand") return ItemDisplayContext::ThirdPersonLeftHand;
-    if (str == "firstperson_righthand") return ItemDisplayContext::FirstPersonRightHand;
-    if (str == "firstperson_lefthand") return ItemDisplayContext::FirstPersonLeftHand;
-    if (str == "head") return ItemDisplayContext::Head;
-    if (str == "gui") return ItemDisplayContext::Gui;
-    if (str == "ground") return ItemDisplayContext::Ground;
-    if (str == "fixed") return ItemDisplayContext::Fixed;
+    if (str == "thirdperson_righthand") {
+        return ItemDisplayContext::ThirdPersonRightHand;
+    }
+    if (str == "thirdperson_lefthand") {
+        return ItemDisplayContext::ThirdPersonLeftHand;
+    }
+    if (str == "firstperson_righthand") {
+        return ItemDisplayContext::FirstPersonRightHand;
+    }
+    if (str == "firstperson_lefthand") {
+        return ItemDisplayContext::FirstPersonLeftHand;
+    }
+    if (str == "head") {
+        return ItemDisplayContext::Head;
+    }
+    if (str == "gui") {
+        return ItemDisplayContext::Gui;
+    }
+    if (str == "ground") {
+        return ItemDisplayContext::Ground;
+    }
+    if (str == "fixed") {
+        return ItemDisplayContext::Fixed;
+    }
     return ItemDisplayContext::Gui; // 默认
 }
 
@@ -257,6 +273,7 @@ Result<void> ItemModelLoader::loadAllModels()
         std::string name;
         size_t loaded = 0;
     };
+
     std::vector<PackStat> packStats;
     packStats.reserve(m_resourcePacks.size());
 
@@ -354,7 +371,9 @@ Result<std::string> ItemModelLoader::_readModelFromResourcePacks(const std::stri
     const std::string& relativePath = filePath;
 
     for (const auto& pack : m_resourcePacks) {
-        if (pack == nullptr) continue;
+        if (pack == nullptr) {
+            continue;
+        }
 
         auto result = pack->readTextResource(mc::resource::PackType::ClientResources, relativePath);
         if (result.success() && !result.value().empty()) {
@@ -460,10 +479,14 @@ void ItemModelLoader::_parseTextures(UnbakedItemModel& model, const nlohmann::js
 void ItemModelLoader::_parseDisplay(UnbakedItemModel& model, const nlohmann::json& display)
 {
     for (auto& [key, value] : display.items()) {
-        if (!value.is_object()) continue;
+        if (!value.is_object()) {
+            continue;
+        }
 
         ItemDisplayContext ctx = parseDisplayContext(key);
-        if (ctx == ItemDisplayContext::Count) continue;
+        if (ctx == ItemDisplayContext::Count) {
+            continue;
+        }
 
         model.display[ctx] = ItemTransform::fromJson(value);
     }
@@ -472,7 +495,9 @@ void ItemModelLoader::_parseDisplay(UnbakedItemModel& model, const nlohmann::jso
 void ItemModelLoader::_parseOverrides(UnbakedItemModel& model, const nlohmann::json& overrides)
 {
     for (const auto& override : overrides) {
-        if (!override.is_object()) continue;
+        if (!override.is_object()) {
+            continue;
+        }
         model.overrides.push_back(ItemModelOverride::fromJson(override));
     }
 }
@@ -482,7 +507,9 @@ Result<void> ItemModelLoader::_parseElements(UnbakedItemModel& model, const nloh
     // 复用 BlockModelLoader::parseElement 共享的元素解析逻辑，
     // 包含默认 UV 计算等完整功能
     for (const auto& elemJson : elements) {
-        if (!elemJson.is_object()) continue;
+        if (!elemJson.is_object()) {
+            continue;
+        }
 
         auto result = BlockModelLoader::parseElement(elemJson);
         if (result.success()) {

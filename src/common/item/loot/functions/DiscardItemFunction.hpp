@@ -45,7 +45,11 @@ public:
 
     [[nodiscard]] ItemStack apply(ItemStack stack, LootContext& context) const override;
     [[nodiscard]] std::unique_ptr<LootFunction> clone() const noexcept override;
-    [[nodiscard]] std::string getType() const noexcept override { return "discard"; }
+
+    [[nodiscard]] std::string getType() const noexcept override
+    {
+        return "discard";
+    }
 };
 
 } // namespace loot

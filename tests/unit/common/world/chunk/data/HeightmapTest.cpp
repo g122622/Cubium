@@ -38,7 +38,10 @@ namespace {
 
 class HeightmapStorageTest : public ::testing::Test {
 protected:
-    static void SetUpTestSuite() { VanillaBlocks::initialize(); }
+    static void SetUpTestSuite()
+    {
+        VanillaBlocks::initialize();
+    }
 };
 
 // ============================================================================

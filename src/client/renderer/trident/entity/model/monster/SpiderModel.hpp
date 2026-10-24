@@ -50,7 +50,10 @@ public:
     /**
      * @brief 获取头部模型
      */
-    std::shared_ptr<model::ModelRenderer> getModelHead() { return m_head; }
+    std::shared_ptr<model::ModelRenderer> getModelHead()
+    {
+        return m_head;
+    }
 
 private:
     void _setupParts();

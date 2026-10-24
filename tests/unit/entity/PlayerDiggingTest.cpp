@@ -67,7 +67,10 @@ protected:
         m_player->setOnGround(true);
     }
 
-    void TearDown() override { m_player.reset(); }
+    void TearDown() override
+    {
+        m_player.reset();
+    }
 
     /**
      * @brief 设置玩家手持物品

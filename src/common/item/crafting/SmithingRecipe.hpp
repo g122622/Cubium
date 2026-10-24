@@ -78,16 +78,36 @@ public:
 
     [[nodiscard]] bool matches(const IInventory& inventory) const override;
     [[nodiscard]] ItemStack assemble(const IInventory& inventory) const override;
-    [[nodiscard]] ItemStack getResultItem() const override { return m_result; }
+
+    [[nodiscard]] ItemStack getResultItem() const override
+    {
+        return m_result;
+    }
+
     [[nodiscard]] const std::vector<Ingredient>& getIngredients() const override;
-    [[nodiscard]] const std::string& getGroup() const override { return EMPTY_GROUP; }
-    [[nodiscard]] ResourceLocation getId() const override { return m_id; }
-    [[nodiscard]] RecipeType getType() const override { return RecipeType::Smithing; }
+
+    [[nodiscard]] const std::string& getGroup() const override
+    {
+        return EMPTY_GROUP;
+    }
+
+    [[nodiscard]] ResourceLocation getId() const override
+    {
+        return m_id;
+    }
+
+    [[nodiscard]] RecipeType getType() const override
+    {
+        return RecipeType::Smithing;
+    }
 
     /**
      * @brief 锻造台配方需要2个输入槽位
      */
-    [[nodiscard]] bool canFitIn(i32 width, i32 height) const override { return width * height >= 2; }
+    [[nodiscard]] bool canFitIn(i32 width, i32 height) const override
+    {
+        return width * height >= 2;
+    }
 
     /**
      * @brief 获取合成后剩余的物品堆
@@ -102,13 +122,19 @@ public:
      * @brief 获取基础物品原料
      * @return 基础物品原料
      */
-    [[nodiscard]] const Ingredient& getBase() const { return m_base; }
+    [[nodiscard]] const Ingredient& getBase() const
+    {
+        return m_base;
+    }
 
     /**
      * @brief 获取添加物原料
      * @return 添加物原料
      */
-    [[nodiscard]] const Ingredient& getAddition() const { return m_addition; }
+    [[nodiscard]] const Ingredient& getAddition() const
+    {
+        return m_addition;
+    }
 
 private:
     static const std::string EMPTY_GROUP;

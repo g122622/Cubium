@@ -42,7 +42,11 @@ namespace blockentity {
 JukeboxEntity::JukeboxEntity(const BlockPos& pos)
     : ContainerBlockEntity(BlockEntityType::Jukebox, pos)
     , m_inventory(1)
-    , m_songPlayer([this]() { onSongChanged(); }, pos)
+    , m_songPlayer(
+          [this]() {
+              onSongChanged();
+          },
+          pos)
 {}
 
 JukeboxEntity::~JukeboxEntity() noexcept = default;

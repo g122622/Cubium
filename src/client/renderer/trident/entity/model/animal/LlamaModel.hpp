@@ -59,12 +59,18 @@ public:
      *
      * 羊驼可以装备箱子，装备后会在身体两侧显示箱子模型。
      */
-    void setHasChest(bool hasChest) { m_hasChest = hasChest; }
+    void setHasChest(bool hasChest)
+    {
+        m_hasChest = hasChest;
+    }
 
     /**
      * @brief 获取是否装备箱子
      */
-    [[nodiscard]] bool hasChest() const { return m_hasChest; }
+    [[nodiscard]] bool hasChest() const
+    {
+        return m_hasChest;
+    }
 
 protected:
     /**

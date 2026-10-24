@@ -124,7 +124,10 @@ public:
     /**
      * @brief 获取生物群系缩放种子
      */
-    [[nodiscard]] u64 biomeZoomSeed() const { return m_biomeZoomSeed; }
+    [[nodiscard]] u64 biomeZoomSeed() const
+    {
+        return m_biomeZoomSeed;
+    }
 
 private:
     const IBiomeSource* m_source; ///< 非拥有引用

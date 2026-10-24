@@ -91,14 +91,23 @@ public:
     {
         throw std::runtime_error("SlimeTestWorld::tickManager not implemented");
     }
+
     [[nodiscard]] const world::tick::TickManager& tickManager() const override
     {
         throw std::runtime_error("SlimeTestWorld::tickManager not implemented");
     }
 
     // 测试辅助方法
-    [[nodiscard]] size_t spawnedSlimeCount() const { return m_spawnedSlimeCount; }
-    [[nodiscard]] const std::vector<i32>& spawnedSlimeSizes() const { return m_spawnedSlimeSizes; }
+    [[nodiscard]] size_t spawnedSlimeCount() const
+    {
+        return m_spawnedSlimeCount;
+    }
+
+    [[nodiscard]] const std::vector<i32>& spawnedSlimeSizes() const
+    {
+        return m_spawnedSlimeSizes;
+    }
+
     void clearSpawnedEntities()
     {
         m_spawnedEntities.clear();
@@ -475,8 +484,15 @@ public:
     }
 
     // 客户端/服务端模式控制
-    [[nodiscard]] bool isClientSide() const override { return m_isClientSide; }
-    void setClientSide(bool clientSide) { m_isClientSide = clientSide; }
+    [[nodiscard]] bool isClientSide() const override
+    {
+        return m_isClientSide;
+    }
+
+    void setClientSide(bool clientSide)
+    {
+        m_isClientSide = clientSide;
+    }
 
     EntityInstanceId spawnEntity(std::unique_ptr<Entity> entity) override
     {
@@ -489,6 +505,7 @@ public:
     {
         throw std::runtime_error("ParticleTestWorld::tickManager not implemented");
     }
+
     [[nodiscard]] const world::tick::TickManager& tickManager() const override
     {
         throw std::runtime_error("ParticleTestWorld::tickManager not implemented");
@@ -518,9 +535,20 @@ public:
     }
 
     // 测试辅助方法
-    [[nodiscard]] size_t particleCount() const { return m_particles.size(); }
-    [[nodiscard]] const std::vector<ParticleInfo>& particles() const { return m_particles; }
-    void clearParticles() { m_particles.clear(); }
+    [[nodiscard]] size_t particleCount() const
+    {
+        return m_particles.size();
+    }
+
+    [[nodiscard]] const std::vector<ParticleInfo>& particles() const
+    {
+        return m_particles;
+    }
+
+    void clearParticles()
+    {
+        m_particles.clear();
+    }
 
 private:
     std::unordered_map<BlockPos, std::unique_ptr<BlockState>> m_blocks;
@@ -531,7 +559,10 @@ private:
 
 class SlimeParticleTest : public ::testing::Test {
 protected:
-    void SetUp() override { VanillaBlocks::initialize(); }
+    void SetUp() override
+    {
+        VanillaBlocks::initialize();
+    }
 
     ParticleTestWorld m_world;
 };
@@ -605,7 +636,10 @@ TEST_F(SlimeParticleTest, ParticleType_IsItemSlime)
  */
 class SlimeTargetSelectorTest : public ::testing::Test {
 protected:
-    void SetUp() override { VanillaBlocks::initialize(); }
+    void SetUp() override
+    {
+        VanillaBlocks::initialize();
+    }
 
     SlimeTestWorld m_world;
 };

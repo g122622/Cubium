@@ -81,12 +81,18 @@ struct Glyph {
     /**
      * @brief 获取粗体偏移量
      */
-    [[nodiscard]] static constexpr f32 getBoldOffset() { return 1.0f; }
+    [[nodiscard]] static constexpr f32 getBoldOffset()
+    {
+        return 1.0f;
+    }
 
     /**
      * @brief 获取阴影偏移量
      */
-    [[nodiscard]] static constexpr f32 getShadowOffset() { return 1.0f; }
+    [[nodiscard]] static constexpr f32 getShadowOffset()
+    {
+        return 1.0f;
+    }
 };
 
 /**
@@ -153,7 +159,10 @@ struct GuiVertex {
      * @brief 计算顶点结构大小
      * @return 顶点字节数
      */
-    [[nodiscard]] static constexpr size_t stride() { return sizeof(GuiVertex); }
+    [[nodiscard]] static constexpr size_t stride()
+    {
+        return sizeof(GuiVertex);
+    }
 };
 
 /**
@@ -165,6 +174,7 @@ struct GuiRect {
     u32 color; // ARGB颜色
 
     GuiRect() = default;
+
     GuiRect(f32 px, f32 py, f32 w, f32 h, u32 col = 0xFFFFFFFF)
         : x(px)
         , y(py)
@@ -187,6 +197,7 @@ struct TextStyle {
     bool obfuscated = false;    // 混淆（§k，随机替换字符）
 
     TextStyle() = default;
+
     explicit TextStyle(u32 col, bool sh = true)
         : color(col)
         , shadow(sh)

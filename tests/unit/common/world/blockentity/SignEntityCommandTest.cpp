@@ -79,7 +79,10 @@ protected:
         signEntity_ = std::make_unique<SignEntity>(BlockPos(10, 64, 20));
     }
 
-    void TearDown() override { signEntity_.reset(); }
+    void TearDown() override
+    {
+        signEntity_.reset();
+    }
 
     std::unique_ptr<SignEntity> signEntity_;
 };

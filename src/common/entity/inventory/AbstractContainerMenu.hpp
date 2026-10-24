@@ -114,8 +114,15 @@ public:
         , m_setter(std::move(setter))
     {}
 
-    [[nodiscard]] i32 get() const override { return m_getter(); }
-    void set(i32 value) override { m_setter(value); }
+    [[nodiscard]] i32 get() const override
+    {
+        return m_getter();
+    }
+
+    void set(i32 value) override
+    {
+        m_setter(value);
+    }
 
 private:
     Getter m_getter;
@@ -156,13 +163,19 @@ public:
      * @brief 获取容器ID
      * @return 容器ID
      */
-    [[nodiscard]] ContainerId getId() const { return m_id; }
+    [[nodiscard]] ContainerId getId() const
+    {
+        return m_id;
+    }
 
     /**
      * @brief 获取槽位数量
      * @return 槽位总数
      */
-    [[nodiscard]] i32 getSlotCount() const { return static_cast<i32>(m_slots.size()); }
+    [[nodiscard]] i32 getSlotCount() const
+    {
+        return static_cast<i32>(m_slots.size());
+    }
 
     /**
      * @brief 获取槽位
@@ -212,7 +225,10 @@ public:
      * @brief 容器内容变化时调用
      * @param inventory 变化的背包
      */
-    virtual void slotsChanged(IInventory* inventory) { (void)inventory; }
+    virtual void slotsChanged(IInventory* inventory)
+    {
+        (void)inventory;
+    }
 
     /**
      * @brief 检查玩家是否可以访问容器
@@ -225,7 +241,10 @@ public:
      * @brief 获取结果槽位索引
      * @return 结果槽位索引，不存在则返回-1
      */
-    [[nodiscard]] virtual i32 getResultSlotIndex() const { return -1; }
+    [[nodiscard]] virtual i32 getResultSlotIndex() const
+    {
+        return -1;
+    }
 
     /**
      * @brief 获取当前匹配的配方ID
@@ -234,7 +253,10 @@ public:
      * 用于合成容器获取当前匹配的配方ID，以便同步到客户端。
      * 子类（如 CraftingMenu、InventoryCraftingMenu）应重写此方法。
      */
-    [[nodiscard]] virtual ResourceLocation getCurrentRecipeId() const { return ResourceLocation(); }
+    [[nodiscard]] virtual ResourceLocation getCurrentRecipeId() const
+    {
+        return ResourceLocation();
+    }
 
     /**
      * @brief 关闭容器
@@ -248,15 +270,29 @@ public:
      * @brief 获取玩家背包
      * @return 玩家背包指针
      */
-    [[nodiscard]] PlayerInventory* getPlayerInventory() { return m_playerInventory; }
-    [[nodiscard]] const PlayerInventory* getPlayerInventory() const { return m_playerInventory; }
+    [[nodiscard]] PlayerInventory* getPlayerInventory()
+    {
+        return m_playerInventory;
+    }
+
+    [[nodiscard]] const PlayerInventory* getPlayerInventory() const
+    {
+        return m_playerInventory;
+    }
 
     /**
      * @brief 获取玩家持有的物品
      * @return 持有物品的引用
      */
-    [[nodiscard]] ItemStack& getCarriedItem() { return m_carried; }
-    [[nodiscard]] const ItemStack& getCarriedItem() const { return m_carried; }
+    [[nodiscard]] ItemStack& getCarriedItem()
+    {
+        return m_carried;
+    }
+
+    [[nodiscard]] const ItemStack& getCarriedItem() const
+    {
+        return m_carried;
+    }
 
     /**
      * @brief 设置玩家持有的物品
@@ -271,13 +307,19 @@ public:
      * 当物品需要丢弃到世界中时调用此回调。
      * 上层（ServerWorld/IntegratedServer）应注入实现来生成物品实体。
      */
-    void setItemDropCallback(ItemDropCallback callback) { m_itemDropCallback = std::move(callback); }
+    void setItemDropCallback(ItemDropCallback callback)
+    {
+        m_itemDropCallback = std::move(callback);
+    }
 
     /**
      * @brief 获取物品丢弃回调
      * @return 回调函数
      */
-    [[nodiscard]] const ItemDropCallback& getItemDropCallback() const { return m_itemDropCallback; }
+    [[nodiscard]] const ItemDropCallback& getItemDropCallback() const
+    {
+        return m_itemDropCallback;
+    }
 
     /**
      * @brief 丢弃物品到世界
@@ -338,7 +380,10 @@ public:
     /**
      * @brief 获取追踪的整型数据数量
      */
-    [[nodiscard]] i32 getTrackedIntCount() const { return static_cast<i32>(m_trackedInts.size()); }
+    [[nodiscard]] i32 getTrackedIntCount() const
+    {
+        return static_cast<i32>(m_trackedInts.size());
+    }
 
     /**
      * @brief 获取追踪的整型数据
@@ -373,19 +418,28 @@ public:
      * @brief 获取当前事务ID并递增
      * @return 当前事务ID
      */
-    [[nodiscard]] i16 incrementTransactionId() { return m_transactionId++; }
+    [[nodiscard]] i16 incrementTransactionId()
+    {
+        return m_transactionId++;
+    }
 
     /**
      * @brief 获取当前事务ID（不递增）
      * @return 当前事务ID
      */
-    [[nodiscard]] i16 getTransactionId() const { return m_transactionId; }
+    [[nodiscard]] i16 getTransactionId() const
+    {
+        return m_transactionId;
+    }
 
     /**
      * @brief 设置事务ID（用于客户端同步）
      * @param id 事务ID
      */
-    void setTransactionId(i16 id) { m_transactionId = id; }
+    void setTransactionId(i16 id)
+    {
+        m_transactionId = id;
+    }
 
     /**
      * @brief 获取当前容器状态ID（stateId）
@@ -395,7 +449,10 @@ public:
      * 前自增并随包发送，客户端收包时写回菜单 stateId，出站 ContainerClick 时回填该值，服务端
      * 校验一致性（不一致则全量重发）。与 m_transactionId（防重放，i16）是两个不同概念。
      */
-    [[nodiscard]] i32 getStateId() const noexcept { return m_stateId; }
+    [[nodiscard]] i32 getStateId() const noexcept
+    {
+        return m_stateId;
+    }
 
     /**
      * @brief 自增并返回新的 stateId（& 32767 环绕）
@@ -415,7 +472,10 @@ public:
      * @brief 设置 stateId（客户端收到 ContainerSetContent/SetSlot 时写回）
      * @param id 新 stateId
      */
-    void setStateId(i32 id) noexcept { m_stateId = id; }
+    void setStateId(i32 id) noexcept
+    {
+        m_stateId = id;
+    }
 
     // ========== 静态工具方法 ==========
 

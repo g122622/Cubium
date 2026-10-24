@@ -44,7 +44,10 @@ using namespace mc::blockentity;
 
 class BellBlockEntityTest : public ::testing::Test {
 protected:
-    void SetUp() override { bell_ = std::make_unique<BellBlockEntity>(BlockPos(10, 64, 20)); }
+    void SetUp() override
+    {
+        bell_ = std::make_unique<BellBlockEntity>(BlockPos(10, 64, 20));
+    }
 
     std::unique_ptr<BellBlockEntity> bell_;
 };
@@ -266,12 +269,30 @@ public:
         : LivingEntity(id, nullptr, mc::test::testEcsRegistry())
     {}
 
-    void setAlive(bool alive) { m_alive = alive; }
-    void setTypeId(std::string typeId) { m_typeId = std::move(typeId); }
-    void setPos(const Vector3& pos) { setPosition(pos); }
+    void setAlive(bool alive)
+    {
+        m_alive = alive;
+    }
 
-    [[nodiscard]] bool isAlive() const override { return m_alive; }
-    [[nodiscard]] std::string getTypeId() const override { return m_typeId; }
+    void setTypeId(std::string typeId)
+    {
+        m_typeId = std::move(typeId);
+    }
+
+    void setPos(const Vector3& pos)
+    {
+        setPosition(pos);
+    }
+
+    [[nodiscard]] bool isAlive() const override
+    {
+        return m_alive;
+    }
+
+    [[nodiscard]] std::string getTypeId() const override
+    {
+        return m_typeId;
+    }
 
 private:
     bool m_alive = true;
@@ -281,13 +302,31 @@ private:
 /// @brief 测试用世界桩，控制 getEntitiesInAABB/currentTick/isClientSide/playSound/addParticle
 class BellTestWorld final : public mc::test::BaseTestWorld {
 public:
-    void setCurrentTick(u64 tick) { m_currentTick = tick; }
-    [[nodiscard]] u64 currentTick() const override { return m_currentTick; }
+    void setCurrentTick(u64 tick)
+    {
+        m_currentTick = tick;
+    }
 
-    void setClientSide(bool client) { m_clientSide = client; }
-    [[nodiscard]] bool isClientSide() const override { return m_clientSide; }
+    [[nodiscard]] u64 currentTick() const override
+    {
+        return m_currentTick;
+    }
 
-    void setEntities(const std::vector<LivingEntity*>& entities) { m_entities = entities; }
+    void setClientSide(bool client)
+    {
+        m_clientSide = client;
+    }
+
+    [[nodiscard]] bool isClientSide() const override
+    {
+        return m_clientSide;
+    }
+
+    void setEntities(const std::vector<LivingEntity*>& entities)
+    {
+        m_entities = entities;
+    }
+
     [[nodiscard]] std::vector<Entity*> getEntitiesInAABB(const AxisAlignedBB&, const Entity*) const override
     {
         std::vector<Entity*> result;
@@ -304,6 +343,7 @@ public:
         f32 volume = 0.0f;
         f32 pitch = 0.0f;
     };
+
     void playSound(const ResourceLocation& soundId,
         sound::SoundCategory category,
         const Vector3& position,
@@ -314,21 +354,38 @@ public:
         MC_UNUSED(position);
         m_soundCalls.push_back({soundId, volume, pitch});
     }
-    [[nodiscard]] const std::vector<SoundCall>& soundCalls() const { return m_soundCalls; }
-    void clearSoundCalls() { m_soundCalls.clear(); }
+
+    [[nodiscard]] const std::vector<SoundCall>& soundCalls() const
+    {
+        return m_soundCalls;
+    }
+
+    void clearSoundCalls()
+    {
+        m_soundCalls.clear();
+    }
 
     /// 记录 addParticle 调用
     struct ParticleCall {
         particle::ParticleTypeId type;
         Vector3 pos;
     };
+
     void addParticle(particle::ParticleTypeId type, const Vector3& pos, const Vector3& velocity) override
     {
         MC_UNUSED(velocity);
         m_particleCalls.push_back({type, pos});
     }
-    [[nodiscard]] const std::vector<ParticleCall>& particleCalls() const { return m_particleCalls; }
-    void clearParticleCalls() { m_particleCalls.clear(); }
+
+    [[nodiscard]] const std::vector<ParticleCall>& particleCalls() const
+    {
+        return m_particleCalls;
+    }
+
+    void clearParticleCalls()
+    {
+        m_particleCalls.clear();
+    }
 
     /// 记录 addEntityEffectParticle 调用（BellBlockEntity 使用此接口发射带颜色的 EntityEffect 粒子）
     struct EntityEffectParticleCall {
@@ -338,16 +395,22 @@ public:
         u32 count;
         u32 color;
     };
+
     void addEntityEffectParticle(
         const Vector3& pos, const Vector3& velocity, const Vector3& offset, u32 count, u32 color) override
     {
         m_entityEffectParticleCalls.push_back({pos, velocity, offset, count, color});
     }
+
     [[nodiscard]] const std::vector<EntityEffectParticleCall>& entityEffectParticleCalls() const
     {
         return m_entityEffectParticleCalls;
     }
-    void clearEntityEffectParticleCalls() { m_entityEffectParticleCalls.clear(); }
+
+    void clearEntityEffectParticleCalls()
+    {
+        m_entityEffectParticleCalls.clear();
+    }
 
 private:
     u64 m_currentTick = 0;

@@ -100,17 +100,26 @@ public:
     /**
      * @brief 检查是否有路径
      */
-    [[nodiscard]] bool hasPath() const noexcept { return m_path && !m_path->empty(); }
+    [[nodiscard]] bool hasPath() const noexcept
+    {
+        return m_path && !m_path->empty();
+    }
 
     /**
      * @brief 检查是否没有路径（用于AI目标判断）
      */
-    [[nodiscard]] bool noPath() const noexcept { return !hasPath(); }
+    [[nodiscard]] bool noPath() const noexcept
+    {
+        return !hasPath();
+    }
 
     /**
      * @brief 获取当前路径
      */
-    [[nodiscard]] const Path* getPath() const noexcept { return m_path.get(); }
+    [[nodiscard]] const Path* getPath() const noexcept
+    {
+        return m_path.get();
+    }
 
     /**
      * @brief 获取当前路径点索引
@@ -120,19 +129,28 @@ public:
     /**
      * @brief 检查路径是否完成
      */
-    [[nodiscard]] bool isDone() const noexcept { return !m_path || m_path->isFinished(); }
+    [[nodiscard]] bool isDone() const noexcept
+    {
+        return !m_path || m_path->isFinished();
+    }
 
     /**
      * @brief 检查是否正在跟随路径
      */
-    [[nodiscard]] bool isInProgress() const noexcept { return hasPath() && !isDone(); }
+    [[nodiscard]] bool isInProgress() const noexcept
+    {
+        return hasPath() && !isDone();
+    }
 
     // ========== 路径控制 ==========
 
     /**
      * @brief 清除当前路径
      */
-    void clearPath() noexcept { m_path.reset(); }
+    void clearPath() noexcept
+    {
+        m_path.reset();
+    }
 
     /**
      * @brief 停止导航
@@ -161,7 +179,10 @@ public:
     /**
      * @brief 设置最大搜索距离
      */
-    void setMaxDistance(i32 distance) noexcept { m_maxDistance = distance; }
+    void setMaxDistance(i32 distance) noexcept
+    {
+        m_maxDistance = distance;
+    }
 
     /**
      * @brief 设置已访问节点数倍率
@@ -174,7 +195,10 @@ public:
      *
      * @param multiplier 倍率，必须为正数
      */
-    void setMaxVisitedNodesMultiplier(f32 multiplier) noexcept { m_maxVisitedNodesMultiplier = multiplier; }
+    void setMaxVisitedNodesMultiplier(f32 multiplier) noexcept
+    {
+        m_maxVisitedNodesMultiplier = multiplier;
+    }
 
     /**
      * @brief 重置已访问节点数倍率为默认值（1.0F）
@@ -183,22 +207,34 @@ public:
      * 通常在 AI Goal 的 stop() 或 resetTask() 中调用，
      * 确保倍率不会影响后续不相关的寻路请求。
      */
-    void resetMaxVisitedNodesMultiplier() noexcept { m_maxVisitedNodesMultiplier = 1.0f; }
+    void resetMaxVisitedNodesMultiplier() noexcept
+    {
+        m_maxVisitedNodesMultiplier = 1.0f;
+    }
 
     /**
      * @brief 获取已访问节点数倍率
      */
-    [[nodiscard]] f32 getMaxVisitedNodesMultiplier() const noexcept { return m_maxVisitedNodesMultiplier; }
+    [[nodiscard]] f32 getMaxVisitedNodesMultiplier() const noexcept
+    {
+        return m_maxVisitedNodesMultiplier;
+    }
 
     /**
      * @brief 设置重试间隔
      */
-    void setRetryInterval(i32 interval) noexcept { m_retryInterval = interval; }
+    void setRetryInterval(i32 interval) noexcept
+    {
+        m_retryInterval = interval;
+    }
 
     /**
      * @brief 设置是否可以游泳
      */
-    void setCanSwim(bool canSwim) noexcept { m_canSwim = canSwim; }
+    void setCanSwim(bool canSwim) noexcept
+    {
+        m_canSwim = canSwim;
+    }
 
     /**
      * @brief 设置是否可以开门
@@ -211,7 +247,10 @@ public:
     /**
      * @brief 获取是否可以开门
      */
-    [[nodiscard]] bool canOpenDoors() const noexcept { return m_canOpenDoors; }
+    [[nodiscard]] bool canOpenDoors() const noexcept
+    {
+        return m_canOpenDoors;
+    }
 
     /**
      * @brief 设置是否可以通过门
@@ -226,7 +265,10 @@ public:
     /**
      * @brief 获取是否可以通过门
      */
-    [[nodiscard]] bool canEnterDoors() const noexcept { return m_canEnterDoors; }
+    [[nodiscard]] bool canEnterDoors() const noexcept
+    {
+        return m_canEnterDoors;
+    }
 
     /**
      * @brief 设置寻路时是否避开阳光
@@ -243,29 +285,44 @@ public:
     /**
      * @brief 设置关联的实体
      */
-    void setEntity(LivingEntity* entity) noexcept { m_entity = entity; }
+    void setEntity(LivingEntity* entity) noexcept
+    {
+        m_entity = entity;
+    }
 
     /**
      * @brief 设置移动速度
      */
-    void setSpeed(f64 speed) noexcept { m_speed = speed; }
+    void setSpeed(f64 speed) noexcept
+    {
+        m_speed = speed;
+    }
 
     // ========== 调试 ==========
 
     /**
      * @brief 获取寻路器
      */
-    [[nodiscard]] PathFinder* getPathFinder() noexcept { return m_pathFinder.get(); }
+    [[nodiscard]] PathFinder* getPathFinder() noexcept
+    {
+        return m_pathFinder.get();
+    }
 
     /**
      * @brief 获取当前速度
      */
-    [[nodiscard]] f64 getSpeed() const noexcept { return m_speed; }
+    [[nodiscard]] f64 getSpeed() const noexcept
+    {
+        return m_speed;
+    }
 
     /**
      * @brief 检查是否卡住
      */
-    [[nodiscard]] bool isStuck() const noexcept { return m_isStuck; }
+    [[nodiscard]] bool isStuck() const noexcept
+    {
+        return m_isStuck;
+    }
 
 protected:
     std::unique_ptr<PathFinder> m_pathFinder;
@@ -384,7 +441,10 @@ public:
      * @param waypoint 路径点
      * @return 移动目标 Y 坐标
      */
-    [[nodiscard]] f64 groundYForTest(const PathPoint& waypoint) const { return _getGroundY(waypoint); }
+    [[nodiscard]] f64 groundYForTest(const PathPoint& waypoint) const
+    {
+        return _getGroundY(waypoint);
+    }
 
     /**
      * @brief 使用指定世界计算路径点地面高度（单元测试入口）

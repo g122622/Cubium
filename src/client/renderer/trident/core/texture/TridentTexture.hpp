@@ -78,22 +78,62 @@ public:
 
     // ITexture 接口实现
     void destroy() override;
-    [[nodiscard]] u32 width() const override { return m_width; }
-    [[nodiscard]] u32 height() const override { return m_height; }
-    [[nodiscard]] u32 depth() const override { return m_depth; }
-    [[nodiscard]] u32 mipLevels() const override { return m_mipLevels; }
-    [[nodiscard]] api::TextureFormat format() const override { return m_format; }
-    [[nodiscard]] bool isValid() const override { return m_image != VK_NULL_HANDLE; }
+
+    [[nodiscard]] u32 width() const override
+    {
+        return m_width;
+    }
+
+    [[nodiscard]] u32 height() const override
+    {
+        return m_height;
+    }
+
+    [[nodiscard]] u32 depth() const override
+    {
+        return m_depth;
+    }
+
+    [[nodiscard]] u32 mipLevels() const override
+    {
+        return m_mipLevels;
+    }
+
+    [[nodiscard]] api::TextureFormat format() const override
+    {
+        return m_format;
+    }
+
+    [[nodiscard]] bool isValid() const override
+    {
+        return m_image != VK_NULL_HANDLE;
+    }
+
     [[nodiscard]] Result<void> upload(const void* data, u64 size, u32 level) override;
     [[nodiscard]] Result<void> uploadRegion(
         const void* data, u64 size, u32 offsetX, u32 offsetY, u32 width, u32 height, u32 level, u32 rowLength) override;
     void bind(u32 binding) override;
 
     // Vulkan 特有方法
-    [[nodiscard]] VkImage image() const { return m_image; }
-    [[nodiscard]] VkImageView imageView() const { return m_imageView; }
-    [[nodiscard]] VkSampler sampler() const { return m_sampler; }
-    [[nodiscard]] VkImageLayout layout() const { return m_layout; }
+    [[nodiscard]] VkImage image() const
+    {
+        return m_image;
+    }
+
+    [[nodiscard]] VkImageView imageView() const
+    {
+        return m_imageView;
+    }
+
+    [[nodiscard]] VkSampler sampler() const
+    {
+        return m_sampler;
+    }
+
+    [[nodiscard]] VkImageLayout layout() const
+    {
+        return m_layout;
+    }
 
     /**
      * @brief 转换图像布局
@@ -201,13 +241,40 @@ public:
     void destroy();
 
     // 获取器
-    [[nodiscard]] TridentTexture& texture() { return m_texture; }
-    [[nodiscard]] const TridentTexture& texture() const { return m_texture; }
-    [[nodiscard]] u32 width() const { return m_width; }
-    [[nodiscard]] u32 height() const { return m_height; }
-    [[nodiscard]] u32 tileSize() const { return m_tileSize; }
-    [[nodiscard]] u32 tilesPerRow() const { return m_tilesPerRow; }
-    [[nodiscard]] bool isValid() const { return m_texture.isValid(); }
+    [[nodiscard]] TridentTexture& texture()
+    {
+        return m_texture;
+    }
+
+    [[nodiscard]] const TridentTexture& texture() const
+    {
+        return m_texture;
+    }
+
+    [[nodiscard]] u32 width() const
+    {
+        return m_width;
+    }
+
+    [[nodiscard]] u32 height() const
+    {
+        return m_height;
+    }
+
+    [[nodiscard]] u32 tileSize() const
+    {
+        return m_tileSize;
+    }
+
+    [[nodiscard]] u32 tilesPerRow() const
+    {
+        return m_tilesPerRow;
+    }
+
+    [[nodiscard]] bool isValid() const
+    {
+        return m_texture.isValid();
+    }
 
     /**
      * @brief 获取指定位置的纹理区域

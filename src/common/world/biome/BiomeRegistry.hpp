@@ -89,7 +89,10 @@ public:
     /**
      * @brief 获取所有已注册的生物群系
      */
-    [[nodiscard]] const std::vector<Biome>& allBiomes() const { return m_biomes; }
+    [[nodiscard]] const std::vector<Biome>& allBiomes() const
+    {
+        return m_biomes;
+    }
 
 private:
     BiomeRegistry();

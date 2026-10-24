@@ -53,8 +53,15 @@ public:
 
     static std::unique_ptr<Entity> create(IWorld* world, ecs::EntityRegistry& registry);
 
-    [[nodiscard]] bool isCasting() const { return isSpellcasting(); }
-    [[nodiscard]] i32 getSpellType() const { return static_cast<i32>(spellType()); }
+    [[nodiscard]] bool isCasting() const
+    {
+        return isSpellcasting();
+    }
+
+    [[nodiscard]] i32 getSpellType() const
+    {
+        return static_cast<i32>(spellType());
+    }
 
     void startCasting(i32 spellType);
     void finishCasting();
@@ -69,17 +76,31 @@ public:
      */
     void summonVex();
 
-    [[nodiscard]] i32 getFangsCooldown() const { return m_fangsCooldown; }
-    [[nodiscard]] i32 getSummonCooldown() const { return m_summonCooldown; }
+    [[nodiscard]] i32 getFangsCooldown() const
+    {
+        return m_fangsCooldown;
+    }
 
-    [[nodiscard]] f32 eyeHeight() const override { return 1.62f; }
+    [[nodiscard]] i32 getSummonCooldown() const
+    {
+        return m_summonCooldown;
+    }
+
+    [[nodiscard]] f32 eyeHeight() const override
+    {
+        return 1.62f;
+    }
 
     void tick() override;
 
 protected:
     void registerGoals() override;
     void registerAttributes() override;
-    [[nodiscard]] const char* getSpellSoundId() const noexcept override { return "entity.evoker.cast_spell"; }
+
+    [[nodiscard]] const char* getSpellSoundId() const noexcept override
+    {
+        return "entity.evoker.cast_spell";
+    }
 
 private:
     /**

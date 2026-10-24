@@ -39,6 +39,7 @@ enum class ClickAction : u8;
 
 namespace mc::client {
 class ClientApplication;
+
 namespace ui::minecraft::widgets {
 class ScreenStackWidget;
 }

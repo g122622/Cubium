@@ -97,7 +97,11 @@ public:
         }
     }
 
-    [[nodiscard]] const std::vector<std::unique_ptr<Entity>>& spawnedEntities() const { return m_spawned; }
+    [[nodiscard]] const std::vector<std::unique_ptr<Entity>>& spawnedEntities() const
+    {
+        return m_spawned;
+    }
+
     [[nodiscard]] bool playedSound(const ResourceLocation& id) const
     {
         for (const auto& played : m_playedSounds) {
@@ -109,7 +113,10 @@ public:
     }
 
     /// 登记参与世界查询的实体（配偶定位走 getEntitiesInRange）。
-    void addEntity(Entity* entity) { m_entities.push_back(entity); }
+    void addEntity(Entity* entity)
+    {
+        m_entities.push_back(entity);
+    }
 
     [[nodiscard]] std::vector<Entity*> getEntitiesInRange(
         const Vector3& pos, f32 range, const Entity* except) const override

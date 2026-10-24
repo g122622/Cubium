@@ -53,19 +53,31 @@ public:
 
 protected:
     /** @brief 下界洞穴最大数量上限为 10 */
-    [[nodiscard]] i32 getCaveBound() const noexcept override { return 10; }
+    [[nodiscard]] i32 getCaveBound() const noexcept override
+    {
+        return 10;
+    }
 
     /** @brief 下界洞穴半径更大：(nextFloat() * 2.0 + nextFloat()) * 2.0 */
     [[nodiscard]] f32 getThickness(math::IRandom& rng) const override;
 
     /** @brief 下界洞穴更扁平，Y 缩放因子为 5.0 */
-    [[nodiscard]] f64 getYScale() const noexcept override { return 5.0; }
+    [[nodiscard]] f64 getYScale() const noexcept override
+    {
+        return 5.0;
+    }
 
     /** @brief 下界不执行草地/菌丝表面替换 */
-    [[nodiscard]] bool handlesSurfaceReplacement() const noexcept override { return false; }
+    [[nodiscard]] bool handlesSurfaceReplacement() const noexcept override
+    {
+        return false;
+    }
 
     /** @brief 下界不检查流体（有熔岩） */
-    [[nodiscard]] bool shouldCheckForFluid() const noexcept override { return false; }
+    [[nodiscard]] bool shouldCheckForFluid() const noexcept override
+    {
+        return false;
+    }
 
     /**
      * @brief 下界雕刻后方块状态：Y <= minY + 31 填充熔岩，否则填充空气

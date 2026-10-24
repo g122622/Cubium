@@ -144,7 +144,10 @@ TEST_F(DecoratedPotPatternTest, ByNameAndGetNameAreInverse)
 
 class PotterySherdItemTest : public ::testing::Test {
 protected:
-    static void SetUpTestSuite() { Items::initialize(); }
+    static void SetUpTestSuite()
+    {
+        Items::initialize();
+    }
 };
 
 TEST_F(PotterySherdItemTest, AllSherdsAreRegistered)
@@ -217,7 +220,10 @@ TEST_F(PotterySherdItemTest, SherdMaxStackSize)
 
 class SmithingTemplateItemTest : public ::testing::Test {
 protected:
-    static void SetUpTestSuite() { Items::initialize(); }
+    static void SetUpTestSuite()
+    {
+        Items::initialize();
+    }
 };
 
 TEST_F(SmithingTemplateItemTest, AllTemplatesAreRegistered)

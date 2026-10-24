@@ -312,7 +312,10 @@ protected:
         EnchantmentRegistry::initialize();
     }
 
-    void TearDown() override { EnchantmentRegistry::clear(); }
+    void TearDown() override
+    {
+        EnchantmentRegistry::clear();
+    }
 
     SoulSpeedEnchantment soulSpeed;
 };
@@ -399,7 +402,10 @@ protected:
         EnchantmentRegistry::initialize();
     }
 
-    void TearDown() override { EnchantmentRegistry::clear(); }
+    void TearDown() override
+    {
+        EnchantmentRegistry::clear();
+    }
 };
 
 TEST_F(EnchantmentLocationEffectTest, DefaultOnLocationChangedReturnsFalse)
@@ -457,7 +463,10 @@ protected:
         EnchantmentRegistry::initialize();
     }
 
-    void TearDown() override { EnchantmentRegistry::clear(); }
+    void TearDown() override
+    {
+        EnchantmentRegistry::clear();
+    }
 };
 
 TEST_F(EnchantmentHelperLocationTest, HasFrostWalkerOnEmptyStack)
@@ -607,10 +616,22 @@ public:
         return false;
     }
 
-    [[nodiscard]] mc::world::chunk::IChunkManager* chunkManager() override { return &m_stubChunks; }
-    [[nodiscard]] const mc::world::chunk::IChunkManager* chunkManager() const override { return &m_stubChunks; }
+    [[nodiscard]] mc::world::chunk::IChunkManager* chunkManager() override
+    {
+        return &m_stubChunks;
+    }
+
+    [[nodiscard]] const mc::world::chunk::IChunkManager* chunkManager() const override
+    {
+        return &m_stubChunks;
+    }
+
     mc::test::StubChunkManager m_stubChunks{nullptr, true};
-    [[nodiscard]] i32 getHeight(i32, i32) const override { return 64; }
+
+    [[nodiscard]] i32 getHeight(i32, i32) const override
+    {
+        return 64;
+    }
 
     void addParticle(particle::ParticleTypeId type, const Vector3& pos, const Vector3& velocity) override
     {
@@ -626,11 +647,20 @@ public:
         (void)setBlockState(pos.x, pos.y, pos.z, state);
     }
 
-    void setFluidDirectly(const BlockPos& pos, const fluid::FluidState* state) { m_fluids[pos] = state; }
+    void setFluidDirectly(const BlockPos& pos, const fluid::FluidState* state)
+    {
+        m_fluids[pos] = state;
+    }
 
-    void setWaterAt(const BlockPos& pos, bool isWater = true) { m_waterPositions[pos] = isWater; }
+    void setWaterAt(const BlockPos& pos, bool isWater = true)
+    {
+        m_waterPositions[pos] = isWater;
+    }
 
-    [[nodiscard]] size_t blockChangeCount() const { return m_blockChanges.size(); }
+    [[nodiscard]] size_t blockChangeCount() const
+    {
+        return m_blockChanges.size();
+    }
 
     [[nodiscard]] const BlockState* getLastBlockChange() const
     {
@@ -650,7 +680,10 @@ public:
         return false;
     }
 
-    void clearBlockChanges() { m_blockChanges.clear(); }
+    void clearBlockChanges()
+    {
+        m_blockChanges.clear();
+    }
 
 private:
     std::map<BlockPos, const BlockState*> m_blocks;
@@ -677,7 +710,10 @@ public:
      * @brief 测试辅助方法：设置骑乘状态
      * Entity::setVehicle() 是 protected 方法，测试中通过此辅助方法访问
      */
-    void setVehicleForTest(EntityInstanceId vehicle) { setVehicle(vehicle); }
+    void setVehicleForTest(EntityInstanceId vehicle)
+    {
+        setVehicle(vehicle);
+    }
 };
 
 } // namespace

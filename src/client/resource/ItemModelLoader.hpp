@@ -142,7 +142,10 @@ struct UnbakedItemModel {
     /**
      * @brief 检查是否有父模型
      */
-    [[nodiscard]] bool hasParent() const { return !parentLocation.path().empty(); }
+    [[nodiscard]] bool hasParent() const
+    {
+        return !parentLocation.path().empty();
+    }
 };
 
 /**

@@ -28,7 +28,10 @@ using namespace mc::blockentity;
 
 class BoatItemTest : public ::testing::Test {
 protected:
-    void SetUp() override { Items::initialize(); }
+    void SetUp() override
+    {
+        Items::initialize();
+    }
 };
 
 // ============================================================================

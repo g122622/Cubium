@@ -56,7 +56,10 @@ public:
     // 会自然设置 m_inWater/m_inLava，由世界流体驱动环境状态的语义。
     // 默认 nullptr 表示该坐标无流体。直接返回 nullptr 而非 EMPTY 状态，
     // 使 updateEnvironmentState 视该坐标为无流体。
-    void setFluidOverride(const fluid::FluidState* state) { m_fluidOverride = state; }
+    void setFluidOverride(const fluid::FluidState* state)
+    {
+        m_fluidOverride = state;
+    }
 
     [[nodiscard]] const fluid::FluidState* getFluidState(i32 x, i32 y, i32 z) const override
     {
@@ -87,18 +90,32 @@ public:
         m_gameEventCount++;
     }
 
-    [[nodiscard]] bool isClientSide() const override { return false; }
+    [[nodiscard]] bool isClientSide() const override
+    {
+        return false;
+    }
 
     // 天气接口（用于雨中灭火测试）
-    [[nodiscard]] bool isRaining() const override { return m_isRaining; }
-    void setRaining(bool raining) { m_isRaining = raining; }
+    [[nodiscard]] bool isRaining() const override
+    {
+        return m_isRaining;
+    }
+
+    void setRaining(bool raining)
+    {
+        m_isRaining = raining;
+    }
 
     [[nodiscard]] bool canRainAt(const BlockPos& pos) const override
     {
         MC_UNUSED(pos);
         return m_canRainAt;
     }
-    void setCanRainAt(bool can) { m_canRainAt = can; }
+
+    void setCanRainAt(bool can)
+    {
+        m_canRainAt = can;
+    }
 
     void clearState()
     {
@@ -112,11 +129,30 @@ public:
         m_fluidOverride = nullptr;
     }
 
-    [[nodiscard]] i32 soundPlayCount() const { return m_soundPlayCount; }
-    [[nodiscard]] const ResourceLocation& lastSoundId() const { return m_lastSoundId; }
-    [[nodiscard]] f32 lastSoundVolume() const { return m_lastSoundVolume; }
-    [[nodiscard]] f32 lastSoundPitch() const { return m_lastSoundPitch; }
-    [[nodiscard]] i32 gameEventCount() const { return m_gameEventCount; }
+    [[nodiscard]] i32 soundPlayCount() const
+    {
+        return m_soundPlayCount;
+    }
+
+    [[nodiscard]] const ResourceLocation& lastSoundId() const
+    {
+        return m_lastSoundId;
+    }
+
+    [[nodiscard]] f32 lastSoundVolume() const
+    {
+        return m_lastSoundVolume;
+    }
+
+    [[nodiscard]] f32 lastSoundPitch() const
+    {
+        return m_lastSoundPitch;
+    }
+
+    [[nodiscard]] i32 gameEventCount() const
+    {
+        return m_gameEventCount;
+    }
 
 private:
     i32 m_soundPlayCount = 0;
@@ -150,10 +186,25 @@ public:
         }
     }
 
-    [[nodiscard]] f32 width() const override { return 0.6f; }
-    [[nodiscard]] f32 height() const override { return 1.8f; }
-    [[nodiscard]] f32 eyeHeight() const override { return 1.62f; }
-    [[nodiscard]] std::string getLootTableId() const override { return {}; }
+    [[nodiscard]] f32 width() const override
+    {
+        return 0.6f;
+    }
+
+    [[nodiscard]] f32 height() const override
+    {
+        return 1.8f;
+    }
+
+    [[nodiscard]] f32 eyeHeight() const override
+    {
+        return 1.62f;
+    }
+
+    [[nodiscard]] std::string getLootTableId() const override
+    {
+        return {};
+    }
 };
 
 class TestPlayer : public Player {
@@ -168,7 +219,10 @@ public:
         }
     }
 
-    [[nodiscard]] std::string getLootTableId() const override { return {}; }
+    [[nodiscard]] std::string getLootTableId() const override
+    {
+        return {};
+    }
 };
 
 } // namespace
@@ -187,7 +241,10 @@ protected:
         ItemTags::initialize();
     }
 
-    void SetUp() override { m_world.clearState(); }
+    void SetUp() override
+    {
+        m_world.clearState();
+    }
 
     // 让测试世界在实体所在坐标返回水源流体状态。
     // baseTick() 中 updateEnvironmentState() 会据此把 m_inWater 置 true，

@@ -1234,19 +1234,23 @@ item::component::DataComponentPatch ItemStack::toComponentPatch() const
                 DataComponentPayload{
                     std::in_place_index<ComponentPayloadIndex::Json>, custom["BlockEntityTag"]["Patterns"]});
             custom["BlockEntityTag"].erase("Patterns");
-            if (custom["BlockEntityTag"].empty()) custom.erase("BlockEntityTag");
+            if (custom["BlockEntityTag"].empty()) {
+                custom.erase("BlockEntityTag");
+            }
         }
         if (custom.contains("StoredEnchantments")) {
             item::enchant::EnchantmentContainer stored;
-            for (const auto& entry : custom["StoredEnchantments"])
+            for (const auto& entry : custom["StoredEnchantments"]) {
                 stored.set(entry.at("id").get<std::string>(), entry.at("lvl").get<i32>());
+            }
             patch.add(DataComponentType::StoredEnchantments,
                 DataComponentPayload{std::in_place_index<ComponentPayloadIndex::Enchantments>, std::move(stored)});
             custom.erase("StoredEnchantments");
         }
-        if (!custom.empty())
+        if (!custom.empty()) {
             patch.add(DataComponentType::CustomData,
                 DataComponentPayload{std::in_place_index<ComponentPayloadIndex::Json>, std::move(custom)});
+        }
     }
     // 数据组件覆盖（仅非空时写出）
     if (m_extras) {
@@ -1424,8 +1428,9 @@ void ItemStack::applyComponentPatch(const item::component::DataComponentPatch& p
                 break;
             case DataComponentType::StoredEnchantments: {
                 auto stored = nlohmann::json::array();
-                for (const auto& value : std::get<item::enchant::EnchantmentContainer>(entry.value).getAll())
+                for (const auto& value : std::get<item::enchant::EnchantmentContainer>(entry.value).getAll()) {
                     stored.push_back({{"id", value.enchantmentId}, {"lvl", value.level}});
+                }
                 getOrCreateTag()["StoredEnchantments"] = std::move(stored);
                 break;
             }
@@ -1563,20 +1568,29 @@ void ItemStack::applyComponentPatch(const item::component::DataComponentPatch& p
                 setCanDestroy(AdventureModePredicate{});
                 break;
             case DataComponentType::BundleContents:
-                if (m_extras) m_extras->customData.erase("BundleContents");
+                if (m_extras) {
+                    m_extras->customData.erase("BundleContents");
+                }
                 break;
             case DataComponentType::WritableBookContent:
-                if (m_extras) m_extras->customData.erase("writable_book_content");
+                if (m_extras) {
+                    m_extras->customData.erase("writable_book_content");
+                }
                 break;
             case DataComponentType::WrittenBookContent:
-                if (m_extras) m_extras->customData.erase("written_book_content");
+                if (m_extras) {
+                    m_extras->customData.erase("written_book_content");
+                }
                 break;
             case DataComponentType::BannerPatterns:
-                if (m_extras && m_extras->customData.contains("BlockEntityTag"))
+                if (m_extras && m_extras->customData.contains("BlockEntityTag")) {
                     m_extras->customData["BlockEntityTag"].erase("Patterns");
+                }
                 break;
             case DataComponentType::StoredEnchantments:
-                if (m_extras) m_extras->customData.erase("StoredEnchantments");
+                if (m_extras) {
+                    m_extras->customData.erase("StoredEnchantments");
+                }
                 break;
             case DataComponentType::CustomData:
                 // 清除不该反向分配 extras

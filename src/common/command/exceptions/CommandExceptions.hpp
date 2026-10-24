@@ -148,9 +148,20 @@ public:
         return *this;
     }
 
-    [[nodiscard]] CommandErrorType type() const noexcept { return m_type; }
-    [[nodiscard]] const std::string& message() const noexcept { return m_message; }
-    [[nodiscard]] i32 cursor() const noexcept { return m_cursor; }
+    [[nodiscard]] CommandErrorType type() const noexcept
+    {
+        return m_type;
+    }
+
+    [[nodiscard]] const std::string& message() const noexcept
+    {
+        return m_message;
+    }
+
+    [[nodiscard]] i32 cursor() const noexcept
+    {
+        return m_cursor;
+    }
 
     /**
      * @brief 创建带有上下文的异常
@@ -163,12 +174,18 @@ public:
         return result;
     }
 
-    [[nodiscard]] const std::string& input() const noexcept { return m_input; }
+    [[nodiscard]] const std::string& input() const noexcept
+    {
+        return m_input;
+    }
 
     /**
      * @brief 设置输入字符串（内部使用）
      */
-    void setInput(const std::string& input) { m_input = input; }
+    void setInput(const std::string& input)
+    {
+        m_input = input;
+    }
 
 private:
     CommandErrorType m_type;
@@ -205,7 +222,10 @@ public:
         return *this;
     }
 
-    [[nodiscard]] CommandException create() const { return CommandException(m_type, m_message); }
+    [[nodiscard]] CommandException create() const
+    {
+        return CommandException(m_type, m_message);
+    }
 
     [[nodiscard]] CommandException createWithContext(i32 cursor, std::string_view input) const
     {

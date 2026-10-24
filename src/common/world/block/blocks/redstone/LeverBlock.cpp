@@ -200,7 +200,9 @@ BlockActionResult LeverBlock::useWithoutItem(
 {
     MC_UNUSED(player);
     MC_UNUSED(hit);
-    if (!world.isClientSide()) toggle(world, pos, state);
+    if (!world.isClientSide()) {
+        toggle(world, pos, state);
+    }
     return ActionResultType::Success;
 }
 
@@ -266,10 +268,11 @@ void LeverBlock::_notifyNeighbors(IWorld& world, const BlockPos& pos, const Bloc
 {
     AttachFace face = state.get(BlockStateProperties::ATTACH_FACE());
     BlockPos supportPos = pos.offset(Directions::opposite(getFacing(state)));
-    if (face == AttachFace::Floor)
+    if (face == AttachFace::Floor) {
         supportPos = pos.down();
-    else if (face == AttachFace::Ceiling)
+    } else if (face == AttachFace::Ceiling) {
         supportPos = pos.up();
+    }
     Block& block = state.getBlockMutable();
     world.updateNeighbors(pos, block);
     // 强充能附着后，附着另一侧的消费者也必须收到更新。

@@ -118,24 +118,60 @@ inline const char* getPoseName(EntityPose pose)
  */
 inline EntityPose getPoseByName(const std::string& name)
 {
-    if (name == "standing") return EntityPose::Standing;
-    if (name == "fall_flying") return EntityPose::FallFlying;
-    if (name == "sleeping") return EntityPose::Sleeping;
-    if (name == "swimming") return EntityPose::Swimming;
-    if (name == "spin_attack") return EntityPose::SpinAttack;
-    if (name == "crouching") return EntityPose::Crouching;
-    if (name == "long_jumping") return EntityPose::LongJumping;
-    if (name == "dying") return EntityPose::Dying;
-    if (name == "croaking") return EntityPose::Croaking;
-    if (name == "using_tongue") return EntityPose::UsingTongue;
-    if (name == "sitting") return EntityPose::Sitting;
-    if (name == "roaring") return EntityPose::Roaring;
-    if (name == "sniffing") return EntityPose::Sniffing;
-    if (name == "emerging") return EntityPose::Emerging;
-    if (name == "digging") return EntityPose::Digging;
-    if (name == "sliding") return EntityPose::Sliding;
-    if (name == "shooting") return EntityPose::Shooting;
-    if (name == "inhaling") return EntityPose::Inhaling;
+    if (name == "standing") {
+        return EntityPose::Standing;
+    }
+    if (name == "fall_flying") {
+        return EntityPose::FallFlying;
+    }
+    if (name == "sleeping") {
+        return EntityPose::Sleeping;
+    }
+    if (name == "swimming") {
+        return EntityPose::Swimming;
+    }
+    if (name == "spin_attack") {
+        return EntityPose::SpinAttack;
+    }
+    if (name == "crouching") {
+        return EntityPose::Crouching;
+    }
+    if (name == "long_jumping") {
+        return EntityPose::LongJumping;
+    }
+    if (name == "dying") {
+        return EntityPose::Dying;
+    }
+    if (name == "croaking") {
+        return EntityPose::Croaking;
+    }
+    if (name == "using_tongue") {
+        return EntityPose::UsingTongue;
+    }
+    if (name == "sitting") {
+        return EntityPose::Sitting;
+    }
+    if (name == "roaring") {
+        return EntityPose::Roaring;
+    }
+    if (name == "sniffing") {
+        return EntityPose::Sniffing;
+    }
+    if (name == "emerging") {
+        return EntityPose::Emerging;
+    }
+    if (name == "digging") {
+        return EntityPose::Digging;
+    }
+    if (name == "sliding") {
+        return EntityPose::Sliding;
+    }
+    if (name == "shooting") {
+        return EntityPose::Shooting;
+    }
+    if (name == "inhaling") {
+        return EntityPose::Inhaling;
+    }
     return EntityPose::Standing;
 }
 

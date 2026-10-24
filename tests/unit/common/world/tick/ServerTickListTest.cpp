@@ -52,14 +52,31 @@ public:
 
 class ServerTickListTestWorld final : public mc::test::BaseTestWorld {
 public:
-    [[nodiscard]] bool isUltraWarm() const override { return false; }
-    [[nodiscard]] mc::world::tick::TickManager& tickManager() override { throw std::runtime_error("unused"); }
+    [[nodiscard]] bool isUltraWarm() const override
+    {
+        return false;
+    }
+
+    [[nodiscard]] mc::world::tick::TickManager& tickManager() override
+    {
+        throw std::runtime_error("unused");
+    }
+
     [[nodiscard]] const mc::world::tick::TickManager& tickManager() const override
     {
         throw std::runtime_error("unused");
     }
-    [[nodiscard]] mc::world::chunk::IChunkManager* chunkManager() override { return &m_stubChunks; }
-    [[nodiscard]] const mc::world::chunk::IChunkManager* chunkManager() const override { return &m_stubChunks; }
+
+    [[nodiscard]] mc::world::chunk::IChunkManager* chunkManager() override
+    {
+        return &m_stubChunks;
+    }
+
+    [[nodiscard]] const mc::world::chunk::IChunkManager* chunkManager() const override
+    {
+        return &m_stubChunks;
+    }
+
     mc::test::StubChunkManager m_stubChunks{nullptr, true};
 };
 
@@ -242,13 +259,19 @@ TEST(ServerTickListTest, TickRemovesEntryFromPendingSetBeforeExecution)
 
     ServerTickList<MockTickTarget> tickList(
         world,
-        [](const MockTickTarget&) { return false; },
+        [](const MockTickTarget&) {
+            return false;
+        },
         [](const MockTickTarget&) -> const mc::ResourceLocation& {
             static const mc::ResourceLocation id("test", "mock_target");
             return id;
         },
-        [](const mc::ResourceLocation&) -> MockTickTarget* { return nullptr; },
-        [&executionCount](mc::IWorld&, const mc::BlockPos&, const MockTickTarget&) { ++executionCount; });
+        [](const mc::ResourceLocation&) -> MockTickTarget* {
+            return nullptr;
+        },
+        [&executionCount](mc::IWorld&, const mc::BlockPos&, const MockTickTarget&) {
+            ++executionCount;
+        });
 
     const mc::BlockPos pos(64, 62, 87);
     tickList.setCurrentTick(20);
@@ -282,12 +305,16 @@ TEST(ServerTickListTest, ConstReferenceScheduleTick)
 
     ServerTickList<MockTickTarget> tickList(
         world,
-        [](const MockTickTarget&) { return false; },
+        [](const MockTickTarget&) {
+            return false;
+        },
         [](const MockTickTarget&) -> const mc::ResourceLocation& {
             static const mc::ResourceLocation id("test", "mock_target");
             return id;
         },
-        [](const mc::ResourceLocation&) -> MockTickTarget* { return nullptr; },
+        [](const mc::ResourceLocation&) -> MockTickTarget* {
+            return nullptr;
+        },
         [&executionCount](mc::IWorld&, const mc::BlockPos&, const MockTickTarget& target) {
             EXPECT_EQ(target.id, 42);
             ++executionCount;
@@ -316,13 +343,19 @@ TEST(ServerTickListTest, ConstReferenceIsTickScheduledAndPending)
 
     ServerTickList<MockTickTarget> tickList(
         world,
-        [](const MockTickTarget&) { return false; },
+        [](const MockTickTarget&) {
+            return false;
+        },
         [](const MockTickTarget&) -> const mc::ResourceLocation& {
             static const mc::ResourceLocation id("test", "mock_target");
             return id;
         },
-        [](const mc::ResourceLocation&) -> MockTickTarget* { return nullptr; },
-        [&callbackExecuted](mc::IWorld&, const mc::BlockPos&, const MockTickTarget&) { callbackExecuted = true; });
+        [](const mc::ResourceLocation&) -> MockTickTarget* {
+            return nullptr;
+        },
+        [&callbackExecuted](mc::IWorld&, const mc::BlockPos&, const MockTickTarget&) {
+            callbackExecuted = true;
+        });
 
     const mc::BlockPos pos(5, 10, 15);
     tickList.setCurrentTick(100);
@@ -349,12 +382,16 @@ TEST(ServerTickListTest, ConstReferenceCancelTick)
 
     ServerTickList<MockTickTarget> tickList(
         world,
-        [](const MockTickTarget&) { return false; },
+        [](const MockTickTarget&) {
+            return false;
+        },
         [](const MockTickTarget&) -> const mc::ResourceLocation& {
             static const mc::ResourceLocation id("test", "mock_target");
             return id;
         },
-        [](const mc::ResourceLocation&) -> MockTickTarget* { return nullptr; },
+        [](const mc::ResourceLocation&) -> MockTickTarget* {
+            return nullptr;
+        },
         [](mc::IWorld&, const mc::BlockPos&, const MockTickTarget&) {});
 
     const mc::BlockPos pos(1, 2, 3);
@@ -377,12 +414,16 @@ TEST(ServerTickListTest, TickCallbackReceivesConstReference)
 
     ServerTickList<MockTickTarget> tickList(
         world,
-        [](const MockTickTarget&) { return false; },
+        [](const MockTickTarget&) {
+            return false;
+        },
         [](const MockTickTarget&) -> const mc::ResourceLocation& {
             static const mc::ResourceLocation id("test", "mock_target");
             return id;
         },
-        [](const mc::ResourceLocation&) -> MockTickTarget* { return nullptr; },
+        [](const mc::ResourceLocation&) -> MockTickTarget* {
+            return nullptr;
+        },
         [&capturedId](mc::IWorld&, const mc::BlockPos&, const MockTickTarget& target) {
             capturedId = target.id; // 可以读取 const 引用的数据
         });

@@ -58,10 +58,21 @@ public:
 
     [[nodiscard]] ItemStack apply(ItemStack stack, LootContext& context) const override;
     [[nodiscard]] std::unique_ptr<LootFunction> clone() const noexcept override;
-    [[nodiscard]] std::string getType() const noexcept override { return "set_fireworks"; }
 
-    [[nodiscard]] const std::optional<ExplosionListOperation>& getExplosions() const { return m_explosions; }
-    [[nodiscard]] const std::optional<i32>& getFlightDuration() const { return m_flightDuration; }
+    [[nodiscard]] std::string getType() const noexcept override
+    {
+        return "set_fireworks";
+    }
+
+    [[nodiscard]] const std::optional<ExplosionListOperation>& getExplosions() const
+    {
+        return m_explosions;
+    }
+
+    [[nodiscard]] const std::optional<i32>& getFlightDuration() const
+    {
+        return m_flightDuration;
+    }
 
 private:
     std::optional<ExplosionListOperation> m_explosions;

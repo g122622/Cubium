@@ -44,7 +44,12 @@ public:
     MegaPineFoliagePlacer(const FeatureSpread& radius, const FeatureSpread& offset, i32 height);
 
     [[nodiscard]] i32 getFoliageHeight(math::IRandom& random, i32 trunkHeight) const override;
-    [[nodiscard]] const char* name() const override { return "mega_pine"; }
+
+    [[nodiscard]] const char* name() const override
+    {
+        return "mega_pine";
+    }
+
     [[nodiscard]] std::unique_ptr<FoliagePlacer> clone() const override;
 
 protected:

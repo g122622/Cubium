@@ -39,11 +39,16 @@ public:
     {
         m_possibleBiomes = {Biomes::Plains, Biomes::Forest};
     }
+
     [[nodiscard]] BiomeId getNoiseBiome(i32 x, i32 y, i32 z) const override
     {
         return ((x + y + z) & 1) == 0 ? Biomes::Plains : Biomes::Forest;
     }
-    [[nodiscard]] const std::vector<BiomeId>& possibleBiomes() const override { return m_possibleBiomes; }
+
+    [[nodiscard]] const std::vector<BiomeId>& possibleBiomes() const override
+    {
+        return m_possibleBiomes;
+    }
 };
 
 class WorldGenRegionAlignmentTest : public ::testing::Test {

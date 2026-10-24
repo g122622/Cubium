@@ -62,10 +62,21 @@ public:
 
     [[nodiscard]] bool test(LootContext& context) const override;
     [[nodiscard]] std::unique_ptr<LootCondition> clone() const noexcept override;
-    [[nodiscard]] std::string getType() const override { return "weather_check"; }
 
-    [[nodiscard]] const std::optional<bool>& getRaining() const { return m_raining; }
-    [[nodiscard]] const std::optional<bool>& getThundering() const { return m_thundering; }
+    [[nodiscard]] std::string getType() const override
+    {
+        return "weather_check";
+    }
+
+    [[nodiscard]] const std::optional<bool>& getRaining() const
+    {
+        return m_raining;
+    }
+
+    [[nodiscard]] const std::optional<bool>& getThundering() const
+    {
+        return m_thundering;
+    }
 
 private:
     std::optional<bool> m_raining;

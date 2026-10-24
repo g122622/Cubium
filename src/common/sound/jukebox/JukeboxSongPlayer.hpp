@@ -102,19 +102,28 @@ public:
      * @brief 是否正在播放
      * @return 如果当前正在播放歌曲返回 true
      */
-    [[nodiscard]] bool isPlaying() const noexcept { return m_song != nullptr; }
+    [[nodiscard]] bool isPlaying() const noexcept
+    {
+        return m_song != nullptr;
+    }
 
     /**
      * @brief 获取当前歌曲
      * @return 当前歌曲指针，如果未在播放返回 nullptr
      */
-    [[nodiscard]] const JukeboxSong* getSong() const noexcept { return m_song; }
+    [[nodiscard]] const JukeboxSong* getSong() const noexcept
+    {
+        return m_song;
+    }
 
     /**
      * @brief 获取歌曲开始后经过的tick数
      * @return 经过的tick数
      */
-    [[nodiscard]] i64 getTicksSinceSongStarted() const noexcept { return m_ticksSinceSongStarted; }
+    [[nodiscard]] i64 getTicksSinceSongStarted() const noexcept
+    {
+        return m_ticksSinceSongStarted;
+    }
 
     // ========== Tick 更新 ==========
 

@@ -67,7 +67,10 @@ public:
     void closeContainer(Player* player) override;
 
 protected:
-    [[nodiscard]] std::string getDefaultName() const override { return "container.chestTrapped"; }
+    [[nodiscard]] std::string getDefaultName() const override
+    {
+        return "container.chestTrapped";
+    }
 
 private:
     /**

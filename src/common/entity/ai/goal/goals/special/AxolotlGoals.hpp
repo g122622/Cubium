@@ -56,7 +56,11 @@ public:
 
     [[nodiscard]] bool shouldExecute() override;
     [[nodiscard]] bool shouldContinueExecuting() override;
-    [[nodiscard]] bool isPreemptible() const override { return false; }
+
+    [[nodiscard]] bool isPreemptible() const override
+    {
+        return false;
+    }
 
     void startExecuting() override;
     void resetTask() override;

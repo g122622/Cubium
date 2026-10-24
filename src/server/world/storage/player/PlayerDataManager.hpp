@@ -244,7 +244,10 @@ public:
      *
      * @param callback 回调函数
      */
-    void setOnPlayerSaved(PlayerDataCallback callback) { m_onPlayerSaved = std::move(callback); }
+    void setOnPlayerSaved(PlayerDataCallback callback)
+    {
+        m_onPlayerSaved = std::move(callback);
+    }
 
 private:
     /**

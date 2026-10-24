@@ -75,13 +75,22 @@ public:
 
     virtual ~MemoryModuleTypeBase() = default;
 
-    [[nodiscard]] const std::string& getName() const { return m_name; }
+    [[nodiscard]] const std::string& getName() const
+    {
+        return m_name;
+    }
 
     [[nodiscard]] virtual size_t getTypeHash() const = 0;
 
-    bool operator==(const MemoryModuleTypeBase& other) const { return m_name == other.m_name; }
+    bool operator==(const MemoryModuleTypeBase& other) const
+    {
+        return m_name == other.m_name;
+    }
 
-    bool operator!=(const MemoryModuleTypeBase& other) const { return !(*this == other); }
+    bool operator!=(const MemoryModuleTypeBase& other) const
+    {
+        return !(*this == other);
+    }
 
 protected:
     std::string m_name;
@@ -97,7 +106,10 @@ public:
         : MemoryModuleTypeBase(name)
     {}
 
-    [[nodiscard]] size_t getTypeHash() const override { return std::hash<std::string>{}(m_name); }
+    [[nodiscard]] size_t getTypeHash() const override
+    {
+        return std::hash<std::string>{}(m_name);
+    }
 };
 
 /**

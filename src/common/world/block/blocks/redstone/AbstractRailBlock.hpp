@@ -183,7 +183,10 @@ public:
      *
      * 普通铁轨返回false（支持弯轨），动力铁轨/探测铁轨/激活铁轨返回true。
      */
-    [[nodiscard]] bool isStraight() const noexcept { return m_isStraight; }
+    [[nodiscard]] bool isStraight() const noexcept
+    {
+        return m_isStraight;
+    }
 
     /**
      * @brief 是否为动力铁轨类型（可提供红石信号）
@@ -191,7 +194,10 @@ public:
      * 动力铁轨和探测铁轨返回true，普通铁轨和激活铁轨返回false。
      * 注意：这不代表铁轨当前是否被充能，仅表示铁轨类型。
      */
-    [[nodiscard]] bool isPoweredType() const noexcept { return m_isPowered; }
+    [[nodiscard]] bool isPoweredType() const noexcept
+    {
+        return m_isPowered;
+    }
 
     /**
      * @brief 检查状态是否有铁轨形状属性

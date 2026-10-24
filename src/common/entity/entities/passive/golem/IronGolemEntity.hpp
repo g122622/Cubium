@@ -80,46 +80,70 @@ public:
     /**
      * @brief 是否举起手臂
      */
-    [[nodiscard]] bool isArmsRaised() const { return m_armsRaised; }
+    [[nodiscard]] bool isArmsRaised() const
+    {
+        return m_armsRaised;
+    }
 
     /**
      * @brief 设置手臂状态
      */
-    void setArmsRaised(bool raised) { m_armsRaised = raised; }
+    void setArmsRaised(bool raised)
+    {
+        m_armsRaised = raised;
+    }
 
     /**
      * @brief 获取攻击计时器
      */
-    [[nodiscard]] i32 getAttackTimer() const { return m_attackTimer; }
+    [[nodiscard]] i32 getAttackTimer() const
+    {
+        return m_attackTimer;
+    }
 
     /**
      * @brief 设置攻击计时器
      */
-    void setAttackTimer(i32 timer) { m_attackTimer = timer; }
+    void setAttackTimer(i32 timer)
+    {
+        m_attackTimer = timer;
+    }
 
     // ========== 生成 ==========
 
     /**
      * @brief 是否由玩家创建
      */
-    [[nodiscard]] bool isPlayerCreated() const { return m_playerCreated; }
+    [[nodiscard]] bool isPlayerCreated() const
+    {
+        return m_playerCreated;
+    }
 
     /**
      * @brief 设置玩家创建标记
      */
-    void setPlayerCreated(bool created) { m_playerCreated = created; }
+    void setPlayerCreated(bool created)
+    {
+        m_playerCreated = created;
+    }
 
     // ========== 送花状态 ==========
 
     /**
      * @brief 是否手持花朵（给村民展示罂粟花）
      */
-    [[nodiscard]] bool isHoldingRose() const { return m_holdRoseTick > 0; }
+    [[nodiscard]] bool isHoldingRose() const
+    {
+        return m_holdRoseTick > 0;
+    }
 
     /**
      * @brief 获取持花倒计时
      */
-    [[nodiscard]] i32 getHoldRoseTick() const { return m_holdRoseTick; }
+    [[nodiscard]] i32 getHoldRoseTick() const
+    {
+        return m_holdRoseTick;
+    }
 
     /**
      * @brief 设置手持花朵状态
@@ -134,17 +158,26 @@ public:
     /**
      * @brief 获取眼睛高度
      */
-    [[nodiscard]] f32 eyeHeight() const override { return 2.1f; }
+    [[nodiscard]] f32 eyeHeight() const override
+    {
+        return 2.1f;
+    }
 
     /**
      * @brief 获取实体宽度
      */
-    [[nodiscard]] f32 width() const override { return 1.4f; }
+    [[nodiscard]] f32 width() const override
+    {
+        return 1.4f;
+    }
 
     /**
      * @brief 获取实体高度
      */
-    [[nodiscard]] f32 height() const override { return 2.7f; }
+    [[nodiscard]] f32 height() const override
+    {
+        return 2.7f;
+    }
 
     // ========== 生命周期 ==========
 

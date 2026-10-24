@@ -69,7 +69,10 @@ public:
     /**
      * @brief 获取所有已注册雕刻器的数量
      */
-    [[nodiscard]] size_t size() const noexcept { return m_ownedCarvers.size(); }
+    [[nodiscard]] size_t size() const noexcept
+    {
+        return m_ownedCarvers.size();
+    }
 
     /**
      * @brief 清除所有雕刻器

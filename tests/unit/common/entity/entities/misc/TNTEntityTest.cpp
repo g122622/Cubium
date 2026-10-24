@@ -102,14 +102,30 @@ public:
         return collisions;
     }
 
-    [[nodiscard]] u64 currentTick() const override { return m_currentTick; }
+    [[nodiscard]] u64 currentTick() const override
+    {
+        return m_currentTick;
+    }
 
-    [[nodiscard]] bool isClientSide() const override { return m_isClientSide; }
+    [[nodiscard]] bool isClientSide() const override
+    {
+        return m_isClientSide;
+    }
 
-    void setClientSide(bool isClient) { m_isClientSide = isClient; }
+    void setClientSide(bool isClient)
+    {
+        m_isClientSide = isClient;
+    }
 
-    [[nodiscard]] world::gamerule::GameRules& getGameRules() override { return m_gameRules; }
-    [[nodiscard]] const world::gamerule::GameRules& getGameRules() const override { return m_gameRules; }
+    [[nodiscard]] world::gamerule::GameRules& getGameRules() override
+    {
+        return m_gameRules;
+    }
+
+    [[nodiscard]] const world::gamerule::GameRules& getGameRules() const override
+    {
+        return m_gameRules;
+    }
 
     EntityInstanceId spawnEntity(std::unique_ptr<Entity> entity) override
     {
@@ -161,9 +177,15 @@ public:
 
     // 测试辅助方法
 
-    void advanceTick() { m_currentTick++; }
+    void advanceTick()
+    {
+        m_currentTick++;
+    }
 
-    [[nodiscard]] size_t spawnedEntityCount() const { return m_spawnedEntities.size(); }
+    [[nodiscard]] size_t spawnedEntityCount() const
+    {
+        return m_spawnedEntities.size();
+    }
 
     [[nodiscard]] Entity* getLastSpawnedEntity()
     {
@@ -173,19 +195,40 @@ public:
         return m_spawnedEntities.back().get();
     }
 
-    [[nodiscard]] i32 explosionCount() const { return m_explosionCount; }
+    [[nodiscard]] i32 explosionCount() const
+    {
+        return m_explosionCount;
+    }
 
-    [[nodiscard]] const Vector3& lastExplosionPos() const { return m_lastExplosionPos; }
+    [[nodiscard]] const Vector3& lastExplosionPos() const
+    {
+        return m_lastExplosionPos;
+    }
 
-    [[nodiscard]] f32 lastExplosionRadius() const { return m_lastExplosionRadius; }
+    [[nodiscard]] f32 lastExplosionRadius() const
+    {
+        return m_lastExplosionRadius;
+    }
 
-    [[nodiscard]] world::explosion::ExplosionMode lastExplosionMode() const { return m_lastExplosionMode; }
+    [[nodiscard]] world::explosion::ExplosionMode lastExplosionMode() const
+    {
+        return m_lastExplosionMode;
+    }
 
-    [[nodiscard]] bool lastExplosionCausesFire() const { return m_lastExplosionCausesFire; }
+    [[nodiscard]] bool lastExplosionCausesFire() const
+    {
+        return m_lastExplosionCausesFire;
+    }
 
-    [[nodiscard]] Entity* lastExplosionSource() const { return m_lastExplosionSource; }
+    [[nodiscard]] Entity* lastExplosionSource() const
+    {
+        return m_lastExplosionSource;
+    }
 
-    void clearSpawnedEntities() { m_spawnedEntities.clear(); }
+    void clearSpawnedEntities()
+    {
+        m_spawnedEntities.clear();
+    }
 
 private:
     std::unordered_map<BlockPos, std::unique_ptr<BlockState>> m_blocks;
@@ -229,11 +272,20 @@ public:
         (void)offset;
     }
 
-    [[nodiscard]] bool shouldSpawnParticleAt(const Vector3&, f32) const override { return true; }
+    [[nodiscard]] bool shouldSpawnParticleAt(const Vector3&, f32) const override
+    {
+        return true;
+    }
 
-    [[nodiscard]] i32 particleCount() const { return m_particleCount; }
+    [[nodiscard]] i32 particleCount() const
+    {
+        return m_particleCount;
+    }
 
-    [[nodiscard]] particle::ParticleTypeId lastParticleType() const { return m_lastParticleType; }
+    [[nodiscard]] particle::ParticleTypeId lastParticleType() const
+    {
+        return m_lastParticleType;
+    }
 
     void resetParticleCount()
     {

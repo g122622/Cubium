@@ -77,16 +77,28 @@ public:
     // === 属性访问 ===
 
     /** @brief 目标区块状态 */
-    [[nodiscard]] const ChunkStatus* targetStatus() const { return m_targetStatus; }
+    [[nodiscard]] const ChunkStatus* targetStatus() const
+    {
+        return m_targetStatus;
+    }
 
     /** @brief 直接依赖（本阶段要求的邻居状态） */
-    [[nodiscard]] const ChunkDependencies& directDependencies() const { return m_directDependencies; }
+    [[nodiscard]] const ChunkDependencies& directDependencies() const
+    {
+        return m_directDependencies;
+    }
 
     /** @brief 累积依赖（合并所有前序步骤的依赖） */
-    [[nodiscard]] const ChunkDependencies& accumulatedDependencies() const { return m_accumulatedDependencies; }
+    [[nodiscard]] const ChunkDependencies& accumulatedDependencies() const
+    {
+        return m_accumulatedDependencies;
+    }
 
     /** @brief 可写方块状态的半径（-1=不写，0=仅中心，1=含1格邻居） */
-    [[nodiscard]] i32 blockStateWriteRadius() const { return m_blockStateWriteRadius; }
+    [[nodiscard]] i32 blockStateWriteRadius() const
+    {
+        return m_blockStateWriteRadius;
+    }
 
     /**
      * @brief 获取指定状态在累积依赖中的半径
@@ -104,12 +116,18 @@ public:
     /**
      * @brief 获取直接依赖半径
      */
-    [[nodiscard]] i32 directRadius() const { return m_directDependencies.getRadius(); }
+    [[nodiscard]] i32 directRadius() const
+    {
+        return m_directDependencies.getRadius();
+    }
 
     /**
      * @brief 获取累积依赖半径
      */
-    [[nodiscard]] i32 accumulatedRadius() const { return m_accumulatedDependencies.getRadius(); }
+    [[nodiscard]] i32 accumulatedRadius() const
+    {
+        return m_accumulatedDependencies.getRadius();
+    }
 
     /**
      * @brief 邻居读取半径（= accumulatedRadius）
@@ -118,7 +136,10 @@ public:
      * schedule 遍历 `[center±radius, center±radius]` 范围内的邻居，
      * 对每个邻居调用 getRequiredStatusAtRadius(distance) 查询其所需状态。
      */
-    [[nodiscard]] i32 neighbourReadRadius() const { return accumulatedRadius(); }
+    [[nodiscard]] i32 neighbourReadRadius() const
+    {
+        return accumulatedRadius();
+    }
 
     /**
      * @brief 按距离查询邻居所需状态（byRadius[] 查找表）
@@ -196,7 +217,10 @@ public:
     /**
      * @brief byRadius[] 查找表是否已构建
      */
-    [[nodiscard]] bool hasRequiredStatusByRadius() const { return !m_requiredStatusByRadius.empty(); }
+    [[nodiscard]] bool hasRequiredStatusByRadius() const
+    {
+        return !m_requiredStatusByRadius.empty();
+    }
 
 private:
     const ChunkStatus* m_targetStatus = nullptr;

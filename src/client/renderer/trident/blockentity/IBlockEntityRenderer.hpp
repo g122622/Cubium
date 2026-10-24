@@ -59,13 +59,19 @@ public:
      * 全局渲染器可以在任意距离看到（如信标光束）。
      * 普通渲染器受渲染距离限制。
      */
-    [[nodiscard]] virtual bool isGlobalRenderer() const { return false; }
+    [[nodiscard]] virtual bool isGlobalRenderer() const
+    {
+        return false;
+    }
 
     /**
      * @brief 获取最大渲染距离平方
      * @return 渲染距离平方（方块数），默认64（8格）
      */
-    [[nodiscard]] virtual f64 getMaxRenderDistanceSquared() const { return 64.0; }
+    [[nodiscard]] virtual f64 getMaxRenderDistanceSquared() const
+    {
+        return 64.0;
+    }
 };
 
 /**

@@ -93,8 +93,9 @@ Result<std::vector<u8>> ChunkSerializer::serializeChunk(const ChunkData& chunk)
 {
     MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Network,
         "ChunkSerializer::serializeChunk",
-        [flow = ::perfetto::Flow::ProcessScoped(ChunkPos(chunk.x(), chunk.z()).toId())](
-            ::perfetto::EventContext ctx) { flow(ctx); });
+        [flow = ::perfetto::Flow::ProcessScoped(ChunkPos(chunk.x(), chunk.z()).toId())](::perfetto::EventContext ctx) {
+            flow(ctx);
+        });
 
     const auto biomeData = chunk.getBiomes().serialize();
     const u32 sectionMask = calculateSectionMask(chunk);
@@ -113,10 +114,14 @@ Result<std::vector<u8>> ChunkSerializer::serializeChunk(const ChunkData& chunk)
 
     size_t expectedSize = 4 + 4 + 4 + 4 + biomeData.size();
     for (i32 i = 0; i < world::CHUNK_SECTIONS; ++i) {
-        if ((sectionMask & (1U << i)) == 0) continue;
+        if ((sectionMask & (1U << i)) == 0) {
+            continue;
+        }
 
         const ChunkSection* section = chunk.getSection(i);
-        if (!section) continue;
+        if (!section) {
+            continue;
+        }
 
         expectedSize += 2 + calculateSectionSize(*section);
     }
@@ -138,10 +143,14 @@ Result<std::vector<u8>> ChunkSerializer::serializeChunk(const ChunkData& chunk)
 
     // 写入区块段数据
     for (i32 i = 0; i < world::CHUNK_SECTIONS; ++i) {
-        if ((sectionMask & (1U << i)) == 0) continue;
+        if ((sectionMask & (1U << i)) == 0) {
+            continue;
+        }
 
         const ChunkSection* section = chunk.getSection(i);
-        if (!section) continue;
+        if (!section) {
+            continue;
+        }
 
         auto sectionData = ChunkSerializer::serializeSection(*section);
         if (sectionData.empty()) {
@@ -186,7 +195,9 @@ Result<std::unique_ptr<ChunkData>> ChunkSerializer::deserializeChunk(
 {
     MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Network,
         "ChunkSerializer::deserializeChunk",
-        [flow = ::perfetto::Flow::ProcessScoped(ChunkPos(x, z).toId())](::perfetto::EventContext ctx) { flow(ctx); });
+        [flow = ::perfetto::Flow::ProcessScoped(ChunkPos(x, z).toId())](::perfetto::EventContext ctx) {
+            flow(ctx);
+        });
 
     PacketDeserializer deser(data, size);
 
@@ -244,7 +255,9 @@ Result<std::unique_ptr<ChunkData>> ChunkSerializer::deserializeChunk(
     for (i32 i = 0; i < world::CHUNK_SECTIONS; ++i) {
         MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Network, "ChunkSerializer::deserializeChunk.section");
 
-        if ((sectionMask & (1U << i)) == 0) continue;
+        if ((sectionMask & (1U << i)) == 0) {
+            continue;
+        }
 
         auto sizeResult = deser.readU16();
         if (sizeResult.failed()) {
@@ -339,10 +352,14 @@ size_t ChunkSerializer::calculateChunkSize(const ChunkData& chunk)
     //       +-- i32 chunkX
 
     for (i32 i = 0; i < world::CHUNK_SECTIONS; ++i) {
-        if ((sectionMask & (1U << i)) == 0) continue;
+        if ((sectionMask & (1U << i)) == 0) {
+            continue;
+        }
 
         const ChunkSection* section = chunk.getSection(i);
-        if (!section) continue;
+        if (!section) {
+            continue;
+        }
 
         size += 2 + calculateSectionSize(*section); // u16 长度前缀 + sectionData
     }

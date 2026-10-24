@@ -62,11 +62,20 @@ public:
         : WalkTarget(BlockPos(targetPos), speedModifier, closeEnoughDist)
     {}
 
-    [[nodiscard]] const PositionTargetPtr& getTarget() const noexcept { return m_target; }
+    [[nodiscard]] const PositionTargetPtr& getTarget() const noexcept
+    {
+        return m_target;
+    }
 
-    [[nodiscard]] f32 getSpeed() const noexcept { return m_speedModifier; }
+    [[nodiscard]] f32 getSpeed() const noexcept
+    {
+        return m_speedModifier;
+    }
 
-    [[nodiscard]] i32 getDistance() const noexcept { return m_closeEnoughDist; }
+    [[nodiscard]] i32 getDistance() const noexcept
+    {
+        return m_closeEnoughDist;
+    }
 
 private:
     PositionTargetPtr m_target;

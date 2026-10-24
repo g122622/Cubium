@@ -68,7 +68,10 @@ public:
     /**
      * @brief 滞留药水是滞留型
      */
-    [[nodiscard]] bool isLingering() const override { return true; }
+    [[nodiscard]] bool isLingering() const override
+    {
+        return true;
+    }
 
 protected:
     /**

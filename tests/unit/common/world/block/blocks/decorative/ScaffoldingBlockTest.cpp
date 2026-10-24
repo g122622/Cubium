@@ -155,14 +155,40 @@ public:
         return *m_tickManagerPtr;
     }
 
-    [[nodiscard]] u64 seed() const override { return m_seed; }
-    [[nodiscard]] bool isRaining() const override { return false; }
-    [[nodiscard]] bool canRainAt(const BlockPos&) const override { return false; }
+    [[nodiscard]] u64 seed() const override
+    {
+        return m_seed;
+    }
 
-    void setSeed(u64 seed) { m_seed = seed; }
-    void setSpawnEntityFail(bool fail) { m_spawnEntityFail = fail; }
-    [[nodiscard]] size_t spawnedEntityCount() const { return m_spawnedEntityCount; }
-    void setSetBlockStateFail(bool fail) { m_setBlockStateFail = fail; }
+    [[nodiscard]] bool isRaining() const override
+    {
+        return false;
+    }
+
+    [[nodiscard]] bool canRainAt(const BlockPos&) const override
+    {
+        return false;
+    }
+
+    void setSeed(u64 seed)
+    {
+        m_seed = seed;
+    }
+
+    void setSpawnEntityFail(bool fail)
+    {
+        m_spawnEntityFail = fail;
+    }
+
+    [[nodiscard]] size_t spawnedEntityCount() const
+    {
+        return m_spawnedEntityCount;
+    }
+
+    void setSetBlockStateFail(bool fail)
+    {
+        m_setBlockStateFail = fail;
+    }
 
 private:
     [[nodiscard]] static i64 packPos(i32 x, i32 y, i32 z)
@@ -219,6 +245,7 @@ protected:
         scaffolding_ =
             std::make_unique<ScaffoldingBlock>(BlockProperties(Material::AIR).hardness(0.0f).resistance(0.0f));
     }
+
     std::unique_ptr<ScaffoldingBlock> scaffolding_;
 };
 
@@ -314,6 +341,7 @@ protected:
             std::make_unique<ScaffoldingBlock>(BlockProperties(Material::AIR).hardness(0.0f).resistance(0.0f));
         world_.ensureTickManager();
     }
+
     std::unique_ptr<ScaffoldingBlock> scaffolding_;
     ScaffoldingTestWorld world_;
 };

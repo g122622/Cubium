@@ -48,11 +48,25 @@ public:
         setTarget(source);
     }
 
-    [[nodiscard]] EventType getType() const override { return EventType::ValueChange; }
-    [[nodiscard]] const char* getName() const override { return "ValueChange"; }
+    [[nodiscard]] EventType getType() const override
+    {
+        return EventType::ValueChange;
+    }
 
-    [[nodiscard]] const T& oldValue() const { return m_oldValue; }
-    [[nodiscard]] const T& newValue() const { return m_newValue; }
+    [[nodiscard]] const char* getName() const override
+    {
+        return "ValueChange";
+    }
+
+    [[nodiscard]] const T& oldValue() const
+    {
+        return m_oldValue;
+    }
+
+    [[nodiscard]] const T& newValue() const
+    {
+        return m_newValue;
+    }
 
 private:
     T m_oldValue;
@@ -71,11 +85,25 @@ public:
         setTarget(source);
     }
 
-    [[nodiscard]] EventType getType() const override { return EventType::TextChange; }
-    [[nodiscard]] const char* getName() const override { return "TextChange"; }
+    [[nodiscard]] EventType getType() const override
+    {
+        return EventType::TextChange;
+    }
 
-    [[nodiscard]] const std::string& oldText() const { return m_oldText; }
-    [[nodiscard]] const std::string& newText() const { return m_newText; }
+    [[nodiscard]] const char* getName() const override
+    {
+        return "TextChange";
+    }
+
+    [[nodiscard]] const std::string& oldText() const
+    {
+        return m_oldText;
+    }
+
+    [[nodiscard]] const std::string& newText() const
+    {
+        return m_newText;
+    }
 
 private:
     std::string m_oldText;
@@ -93,11 +121,25 @@ public:
         setTarget(button);
     }
 
-    [[nodiscard]] EventType getType() const override { return EventType::MouseClick; }
-    [[nodiscard]] const char* getName() const override { return "ButtonClick"; }
-    [[nodiscard]] bool bubbles() const override { return true; }
+    [[nodiscard]] EventType getType() const override
+    {
+        return EventType::MouseClick;
+    }
 
-    [[nodiscard]] i32 buttonIndex() const { return m_buttonIndex; }
+    [[nodiscard]] const char* getName() const override
+    {
+        return "ButtonClick";
+    }
+
+    [[nodiscard]] bool bubbles() const override
+    {
+        return true;
+    }
+
+    [[nodiscard]] i32 buttonIndex() const
+    {
+        return m_buttonIndex;
+    }
 
 private:
     i32 m_buttonIndex;
@@ -127,16 +169,33 @@ public:
         setTarget(source);
     }
 
-    [[nodiscard]] EventType getType() const override { return EventType::ValueChange; }
-    [[nodiscard]] const char* getName() const override { return "Selection"; }
+    [[nodiscard]] EventType getType() const override
+    {
+        return EventType::ValueChange;
+    }
 
-    [[nodiscard]] i32 oldIndex() const { return m_oldIndex; }
-    [[nodiscard]] i32 newIndex() const { return m_newIndex; }
+    [[nodiscard]] const char* getName() const override
+    {
+        return "Selection";
+    }
+
+    [[nodiscard]] i32 oldIndex() const
+    {
+        return m_oldIndex;
+    }
+
+    [[nodiscard]] i32 newIndex() const
+    {
+        return m_newIndex;
+    }
 
     /**
      * @brief 检查是否有选择
      */
-    [[nodiscard]] bool hasSelection() const { return m_newIndex >= 0; }
+    [[nodiscard]] bool hasSelection() const
+    {
+        return m_newIndex >= 0;
+    }
 
 private:
     i32 m_oldIndex;
@@ -155,11 +214,25 @@ public:
         setTarget(source);
     }
 
-    [[nodiscard]] EventType getType() const override { return EventType::ValueChange; }
-    [[nodiscard]] const char* getName() const override { return "MultiSelection"; }
+    [[nodiscard]] EventType getType() const override
+    {
+        return EventType::ValueChange;
+    }
 
-    [[nodiscard]] const std::vector<i32>& oldIndices() const { return m_oldIndices; }
-    [[nodiscard]] const std::vector<i32>& newIndices() const { return m_newIndices; }
+    [[nodiscard]] const char* getName() const override
+    {
+        return "MultiSelection";
+    }
+
+    [[nodiscard]] const std::vector<i32>& oldIndices() const
+    {
+        return m_oldIndices;
+    }
+
+    [[nodiscard]] const std::vector<i32>& newIndices() const
+    {
+        return m_newIndices;
+    }
 
 private:
     std::vector<i32> m_oldIndices;
@@ -179,22 +252,46 @@ public:
         setTarget(source);
     }
 
-    [[nodiscard]] EventType getType() const override { return EventType::MouseClick; }
-    [[nodiscard]] const char* getName() const override { return "SlotClick"; }
+    [[nodiscard]] EventType getType() const override
+    {
+        return EventType::MouseClick;
+    }
 
-    [[nodiscard]] i32 slotIndex() const { return m_slotIndex; }
-    [[nodiscard]] i32 button() const { return m_button; }
-    [[nodiscard]] bool isShiftHeld() const { return m_shiftHeld; }
+    [[nodiscard]] const char* getName() const override
+    {
+        return "SlotClick";
+    }
+
+    [[nodiscard]] i32 slotIndex() const
+    {
+        return m_slotIndex;
+    }
+
+    [[nodiscard]] i32 button() const
+    {
+        return m_button;
+    }
+
+    [[nodiscard]] bool isShiftHeld() const
+    {
+        return m_shiftHeld;
+    }
 
     /**
      * @brief 检查是否是左键点击
      */
-    [[nodiscard]] bool isLeftClick() const { return m_button == 0; }
+    [[nodiscard]] bool isLeftClick() const
+    {
+        return m_button == 0;
+    }
 
     /**
      * @brief 检查是否是右键点击
      */
-    [[nodiscard]] bool isRightClick() const { return m_button == 1; }
+    [[nodiscard]] bool isRightClick() const
+    {
+        return m_button == 1;
+    }
 
 private:
     i32 m_slotIndex;
@@ -207,10 +304,20 @@ private:
  */
 class ContainerCloseEvent : public Event {
 public:
-    explicit ContainerCloseEvent(void* container = nullptr) { setTarget(container); }
+    explicit ContainerCloseEvent(void* container = nullptr)
+    {
+        setTarget(container);
+    }
 
-    [[nodiscard]] EventType getType() const override { return EventType::Custom; }
-    [[nodiscard]] const char* getName() const override { return "ContainerClose"; }
+    [[nodiscard]] EventType getType() const override
+    {
+        return EventType::Custom;
+    }
+
+    [[nodiscard]] const char* getName() const override
+    {
+        return "ContainerClose";
+    }
 };
 
 /**
@@ -222,10 +329,20 @@ public:
         : m_formId(formId)
     {}
 
-    [[nodiscard]] EventType getType() const override { return EventType::Custom; }
-    [[nodiscard]] const char* getName() const override { return "FormSubmit"; }
+    [[nodiscard]] EventType getType() const override
+    {
+        return EventType::Custom;
+    }
 
-    [[nodiscard]] const std::string& formId() const { return m_formId; }
+    [[nodiscard]] const char* getName() const override
+    {
+        return "FormSubmit";
+    }
+
+    [[nodiscard]] const std::string& formId() const
+    {
+        return m_formId;
+    }
 
 private:
     std::string m_formId;
@@ -253,18 +370,47 @@ public:
         setTarget(source);
     }
 
-    [[nodiscard]] EventType getType() const override { return EventType::Custom; }
-    [[nodiscard]] const char* getName() const override { return "DragStart"; }
+    [[nodiscard]] EventType getType() const override
+    {
+        return EventType::Custom;
+    }
 
-    [[nodiscard]] i32 x() const { return m_x; }
-    [[nodiscard]] i32 y() const { return m_y; }
-    [[nodiscard]] i32 button() const { return m_button; }
-    [[nodiscard]] i32 mods() const { return m_mods; }
+    [[nodiscard]] const char* getName() const override
+    {
+        return "DragStart";
+    }
+
+    [[nodiscard]] i32 x() const
+    {
+        return m_x;
+    }
+
+    [[nodiscard]] i32 y() const
+    {
+        return m_y;
+    }
+
+    [[nodiscard]] i32 button() const
+    {
+        return m_button;
+    }
+
+    [[nodiscard]] i32 mods() const
+    {
+        return m_mods;
+    }
 
     /// 是否为左键触发（button == 0）
-    [[nodiscard]] bool isLeftButton() const { return m_button == 0; }
+    [[nodiscard]] bool isLeftButton() const
+    {
+        return m_button == 0;
+    }
+
     /// 是否为右键触发（button == 1）
-    [[nodiscard]] bool isRightButton() const { return m_button == 1; }
+    [[nodiscard]] bool isRightButton() const
+    {
+        return m_button == 1;
+    }
 
 private:
     i32 m_x;
@@ -296,18 +442,47 @@ public:
         setTarget(source);
     }
 
-    [[nodiscard]] EventType getType() const override { return EventType::Custom; }
-    [[nodiscard]] const char* getName() const override { return "DragEnd"; }
+    [[nodiscard]] EventType getType() const override
+    {
+        return EventType::Custom;
+    }
 
-    [[nodiscard]] i32 x() const { return m_x; }
-    [[nodiscard]] i32 y() const { return m_y; }
-    [[nodiscard]] i32 button() const { return m_button; }
-    [[nodiscard]] bool wasDropped() const { return m_dropped; }
+    [[nodiscard]] const char* getName() const override
+    {
+        return "DragEnd";
+    }
+
+    [[nodiscard]] i32 x() const
+    {
+        return m_x;
+    }
+
+    [[nodiscard]] i32 y() const
+    {
+        return m_y;
+    }
+
+    [[nodiscard]] i32 button() const
+    {
+        return m_button;
+    }
+
+    [[nodiscard]] bool wasDropped() const
+    {
+        return m_dropped;
+    }
 
     /// 是否为左键触发（button == 0）
-    [[nodiscard]] bool isLeftButton() const { return m_button == 0; }
+    [[nodiscard]] bool isLeftButton() const
+    {
+        return m_button == 0;
+    }
+
     /// 是否为右键触发（button == 1）
-    [[nodiscard]] bool isRightButton() const { return m_button == 1; }
+    [[nodiscard]] bool isRightButton() const
+    {
+        return m_button == 1;
+    }
 
 private:
     i32 m_x;

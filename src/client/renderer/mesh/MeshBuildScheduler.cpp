@@ -474,7 +474,9 @@ void MeshBuildScheduler::_dispatchPendingTasks()
         // 与原 MeshWorkerPool 检查 task.abortSignal 语义一致。
         m_workerPool.submit(
             std::move(buildTask),
-            [this](bool, ::mc::util::ITask*) { m_inflightTaskCount.fetch_sub(1, std::memory_order::acq_rel); },
+            [this](bool, ::mc::util::ITask*) {
+                m_inflightTaskCount.fetch_sub(1, std::memory_order::acq_rel);
+            },
             ::mc::util::TaskPriority::Normal,
             task.abortSignal);
         taskDispatched = true;

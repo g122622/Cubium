@@ -44,7 +44,10 @@ class AquaAffinityEnchantment : public Enchantment {
 public:
     AquaAffinityEnchantment() = default;
 
-    [[nodiscard]] std::string id() const noexcept override { return "minecraft:aqua_affinity"; }
+    [[nodiscard]] std::string id() const noexcept override
+    {
+        return "minecraft:aqua_affinity";
+    }
 
     [[nodiscard]] std::string getNameKey(i32 level) const noexcept override
     {
@@ -52,13 +55,25 @@ public:
         return "enchantment.minecraft.aqua_affinity";
     }
 
-    [[nodiscard]] EnchantmentType type() const noexcept override { return EnchantmentType::ArmorHead; }
+    [[nodiscard]] EnchantmentType type() const noexcept override
+    {
+        return EnchantmentType::ArmorHead;
+    }
 
-    [[nodiscard]] i32 minLevel() const noexcept override { return 1; }
+    [[nodiscard]] i32 minLevel() const noexcept override
+    {
+        return 1;
+    }
 
-    [[nodiscard]] i32 maxLevel() const noexcept override { return 1; }
+    [[nodiscard]] i32 maxLevel() const noexcept override
+    {
+        return 1;
+    }
 
-    [[nodiscard]] EnchantmentRarity rarity() const noexcept override { return EnchantmentRarity::Rare; }
+    [[nodiscard]] EnchantmentRarity rarity() const noexcept override
+    {
+        return EnchantmentRarity::Rare;
+    }
 
     [[nodiscard]] i32 getMinCost(i32 level) const noexcept override
     {

@@ -71,7 +71,10 @@ public:
     /**
      * @brief 获取声音音量
      */
-    [[nodiscard]] f32 getSoundVolume() const override { return 0.4f; }
+    [[nodiscard]] f32 getSoundVolume() const override
+    {
+        return 0.4f;
+    }
 
     /**
      * @brief 获取环境音效
@@ -106,8 +109,15 @@ protected:
 
     // ========== 尺寸 ==========
 
-    [[nodiscard]] f32 getBaseWidth() const override { return 0.9f; }
-    [[nodiscard]] f32 getBaseHeight() const override { return 1.4f; }
+    [[nodiscard]] f32 getBaseWidth() const override
+    {
+        return 0.9f;
+    }
+
+    [[nodiscard]] f32 getBaseHeight() const override
+    {
+        return 1.4f;
+    }
 
 private:
     // 挤奶功能已由 BucketItem::itemInteractionForEntity() 实现

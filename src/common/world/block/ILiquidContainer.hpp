@@ -31,6 +31,7 @@ namespace mc {
 class IWorld;
 class BlockPos;
 class BlockState;
+
 namespace fluid {
 class Fluid;
 class FluidState;

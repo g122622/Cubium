@@ -93,10 +93,12 @@ void CatRenderer::render(Entity& entity, f64 partialTicks)
     f64 headYaw = static_cast<f64>(cat.prevRotationYawHead()) +
         (static_cast<f64>(cat.rotationYawHead()) - static_cast<f64>(cat.prevRotationYawHead())) * partialTicks;
     f64 netHeadYaw = headYaw - bodyYaw;
-    while (netHeadYaw < -180.0)
+    while (netHeadYaw < -180.0) {
         netHeadYaw += 360.0;
-    while (netHeadYaw > 180.0)
+    }
+    while (netHeadYaw > 180.0) {
         netHeadYaw -= 360.0;
+    }
 
     f64 headPitch = static_cast<f64>(cat.prevPitch()) +
         (static_cast<f64>(cat.pitch()) - static_cast<f64>(cat.prevPitch())) * partialTicks;

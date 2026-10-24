@@ -250,17 +250,26 @@ public:
     /**
      * @brief 检查是否已初始化
      */
-    [[nodiscard]] bool isInitialized() const { return m_initialized; }
+    [[nodiscard]] bool isInitialized() const
+    {
+        return m_initialized;
+    }
 
     /**
      * @brief 是否正在下雨
      */
-    [[nodiscard]] bool isRaining() const { return m_rainStrength > 0.01; }
+    [[nodiscard]] bool isRaining() const
+    {
+        return m_rainStrength > 0.01;
+    }
 
     /**
      * @brief 是否正在雷暴
      */
-    [[nodiscard]] bool isThundering() const { return m_thunderStrength > 0.9; }
+    [[nodiscard]] bool isThundering() const
+    {
+        return m_thunderStrength > 0.9;
+    }
 
 private:
     // ========================================================================

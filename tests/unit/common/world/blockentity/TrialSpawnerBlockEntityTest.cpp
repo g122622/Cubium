@@ -55,27 +55,47 @@ class TrialSpawnerTestWorld final : public mc::test::BaseTestWorld {
 public:
     using IWorld::getBlockState;
 
-    void setCurrentTick(u64 tick) { m_currentTick = tick; }
-    [[nodiscard]] u64 currentTick() const override { return m_currentTick; }
+    void setCurrentTick(u64 tick)
+    {
+        m_currentTick = tick;
+    }
 
-    void setEntitiesInRangeResult(const std::vector<Entity*>& entities) { m_entitiesInRange = entities; }
+    [[nodiscard]] u64 currentTick() const override
+    {
+        return m_currentTick;
+    }
+
+    void setEntitiesInRangeResult(const std::vector<Entity*>& entities)
+    {
+        m_entitiesInRange = entities;
+    }
+
     [[nodiscard]] std::vector<Entity*> getEntitiesInRange(const Vector3&, f32, const Entity*) const override
     {
         return m_entitiesInRange;
     }
 
-    void setPlayersResult(const std::vector<Entity*>& players) { m_players = players; }
-    [[nodiscard]] std::vector<Entity*> getPlayers() const override { return m_players; }
+    void setPlayersResult(const std::vector<Entity*>& players)
+    {
+        m_players = players;
+    }
+
+    [[nodiscard]] std::vector<Entity*> getPlayers() const override
+    {
+        return m_players;
+    }
 
     void setBlockEntity(const BlockPos& pos, std::unique_ptr<mc::BlockEntity> entity)
     {
         m_blockEntities[pos] = std::move(entity);
     }
+
     [[nodiscard]] BlockEntity* getBlockEntity(const BlockPos& pos) override
     {
         auto it = m_blockEntities.find(pos);
         return it == m_blockEntities.end() ? nullptr : it->second.get();
     }
+
     [[nodiscard]] const BlockEntity* getBlockEntity(const BlockPos& pos) const override
     {
         auto it = m_blockEntities.find(pos);
@@ -86,6 +106,7 @@ public:
     {
         throw std::runtime_error("TrialSpawnerTestWorld::tickManager not implemented");
     }
+
     [[nodiscard]] const world::tick::TickManager& tickManager() const override
     {
         throw std::runtime_error("TrialSpawnerTestWorld::tickManager not implemented");
@@ -96,6 +117,7 @@ public:
         ResourceLocation soundId;
         f32 pitch = 0.0f;
     };
+
     void playSound(const ResourceLocation& soundId,
         sound::SoundCategory category,
         const Vector3& position,
@@ -107,8 +129,16 @@ public:
         MC_UNUSED(volume);
         m_soundCalls.push_back({soundId, pitch});
     }
-    const std::vector<SoundCall>& soundCalls() const { return m_soundCalls; }
-    void clearSoundCalls() { m_soundCalls.clear(); }
+
+    const std::vector<SoundCall>& soundCalls() const
+    {
+        return m_soundCalls;
+    }
+
+    void clearSoundCalls()
+    {
+        m_soundCalls.clear();
+    }
 
 private:
     u64 m_currentTick = 0;
@@ -124,7 +154,10 @@ private:
 
 class TrialSpawnerBlockEntityTest : public ::testing::Test {
 protected:
-    void SetUp() override { spawner_ = std::make_unique<TrialSpawnerBlockEntity>(BlockPos(10, 64, 20)); }
+    void SetUp() override
+    {
+        spawner_ = std::make_unique<TrialSpawnerBlockEntity>(BlockPos(10, 64, 20));
+    }
 
     std::unique_ptr<TrialSpawnerBlockEntity> spawner_;
 };
@@ -489,7 +522,10 @@ TEST_F(TrialSpawnerBlockEntityTest, Clone_CreatesDeepCopy)
 
 class TrialSpawnerStateMachineTest : public ::testing::Test {
 protected:
-    void SetUp() override { spawner_ = std::make_unique<TrialSpawnerBlockEntity>(BlockPos(0, 0, 0)); }
+    void SetUp() override
+    {
+        spawner_ = std::make_unique<TrialSpawnerBlockEntity>(BlockPos(0, 0, 0));
+    }
 
     TrialSpawnerTestWorld world_;
     std::unique_ptr<TrialSpawnerBlockEntity> spawner_;
@@ -674,32 +710,62 @@ class TrialSpawnerSpawnTestWorld final : public mc::test::BaseTestWorld {
 public:
     using IWorld::getBlockState;
 
-    void setCurrentTick(u64 tick) { m_currentTick = tick; }
-    [[nodiscard]] u64 currentTick() const override { return m_currentTick; }
+    void setCurrentTick(u64 tick)
+    {
+        m_currentTick = tick;
+    }
 
-    void setSeed(u64 seed) { m_random = math::Random(seed); }
+    [[nodiscard]] u64 currentTick() const override
+    {
+        return m_currentTick;
+    }
 
-    void setEntitiesInRangeResult(const std::vector<Entity*>& entities) { m_entitiesInRange = entities; }
+    void setSeed(u64 seed)
+    {
+        m_random = math::Random(seed);
+    }
+
+    void setEntitiesInRangeResult(const std::vector<Entity*>& entities)
+    {
+        m_entitiesInRange = entities;
+    }
+
     [[nodiscard]] std::vector<Entity*> getEntitiesInRange(const Vector3&, f32, const Entity*) const override
     {
         return m_entitiesInRange;
     }
 
-    void setPlayersResult(const std::vector<Entity*>& players) { m_players = players; }
-    [[nodiscard]] std::vector<Entity*> getPlayers() const override { return m_players; }
+    void setPlayersResult(const std::vector<Entity*>& players)
+    {
+        m_players = players;
+    }
 
-    void setDifficulty(Difficulty diff) { m_difficulty = diff; }
-    [[nodiscard]] Difficulty difficulty() const override { return m_difficulty; }
+    [[nodiscard]] std::vector<Entity*> getPlayers() const override
+    {
+        return m_players;
+    }
+
+    void setDifficulty(Difficulty diff)
+    {
+        m_difficulty = diff;
+    }
+
+    [[nodiscard]] Difficulty difficulty() const override
+    {
+        return m_difficulty;
+    }
 
     void setBlockEntity(const BlockPos& pos, std::unique_ptr<mc::BlockEntity> entity)
     {
         m_blockEntities[pos] = std::move(entity);
     }
+
     [[nodiscard]] BlockEntity* getBlockEntity(const BlockPos& pos) override
     {
         auto it = m_blockEntities.find(pos);
         return it == m_blockEntities.end() ? nullptr : it->second.get();
     }
+
     [[nodiscard]] const BlockEntity* getBlockEntity(const BlockPos& pos) const override
     {
         auto it = m_blockEntities.find(pos);
@@ -751,26 +817,49 @@ public:
         m_playEventCalls.push_back({eventId, pos, data});
     }
 
-    [[nodiscard]] const std::vector<PlayEventCall>& playEventCalls() const { return m_playEventCalls; }
-    void clearPlayEventCalls() { m_playEventCalls.clear(); }
+    [[nodiscard]] const std::vector<PlayEventCall>& playEventCalls() const
+    {
+        return m_playEventCalls;
+    }
+
+    void clearPlayEventCalls()
+    {
+        m_playEventCalls.clear();
+    }
 
     // 测试辅助方法
-    size_t spawnedCount() const { return m_spawnedEntities.size(); }
+    size_t spawnedCount() const
+    {
+        return m_spawnedEntities.size();
+    }
+
     void clearSpawnedEntities()
     {
         m_spawnedEntities.clear();
         m_ownedEntities.clear();
     }
-    const std::vector<Entity*>& spawnedEntities() const { return m_spawnedEntities; }
+
+    const std::vector<Entity*>& spawnedEntities() const
+    {
+        return m_spawnedEntities;
+    }
 
     // 碰撞控制：默认无碰撞（与 BaseTestWorld 一致），可手动设为 true 阻止生成
-    void setBlockCollision(bool hasCollision) { m_hasBlockCollision = hasCollision; }
-    [[nodiscard]] bool hasBlockCollision(const AxisAlignedBB&) const override { return m_hasBlockCollision; }
+    void setBlockCollision(bool hasCollision)
+    {
+        m_hasBlockCollision = hasCollision;
+    }
+
+    [[nodiscard]] bool hasBlockCollision(const AxisAlignedBB&) const override
+    {
+        return m_hasBlockCollision;
+    }
 
     [[nodiscard]] world::tick::TickManager& tickManager() override
     {
         throw std::runtime_error("TrialSpawnerSpawnTestWorld::tickManager not implemented");
     }
+
     [[nodiscard]] const world::tick::TickManager& tickManager() const override
     {
         throw std::runtime_error("TrialSpawnerSpawnTestWorld::tickManager not implemented");
@@ -787,10 +876,12 @@ private:
     u64 m_nextEntityId = 0;
     bool m_hasBlockCollision = false;
     std::vector<PlayEventCall> m_playEventCalls;
+
     struct SoundCall {
         ResourceLocation soundId;
         f32 pitch;
     };
+
     std::vector<SoundCall> m_soundCalls;
 };
 
@@ -807,25 +898,55 @@ public:
     {}
 
     // 暴露 _selectNextEntity 供测试调用
-    [[nodiscard]] const ResourceLocation* testSelectNextEntity(IWorld& world) { return _selectNextEntity(world); }
+    [[nodiscard]] const ResourceLocation* testSelectNextEntity(IWorld& world)
+    {
+        return _selectNextEntity(world);
+    }
 
     // 暴露 _findSpawnPosition 供测试调用
-    [[nodiscard]] std::optional<Vector3> testFindSpawnPosition(IWorld& world) { return _findSpawnPosition(world); }
+    [[nodiscard]] std::optional<Vector3> testFindSpawnPosition(IWorld& world)
+    {
+        return _findSpawnPosition(world);
+    }
 
     // 暴露 spawnMob 供测试调用（已是 public，但通过子类统一访问入口）
-    void testSpawnMob(IWorld& world) { spawnMob(world); }
+    void testSpawnMob(IWorld& world)
+    {
+        spawnMob(world);
+    }
 
     // 访问内部状态
-    [[nodiscard]] i32 testSpawnedMobsCount() const { return m_spawnedMobsCount; }
-    [[nodiscard]] i32 testCurrentMobsCount() const { return m_currentMobsCount; }
-    [[nodiscard]] const std::unordered_set<std::string>& testTrackedMobs() const { return m_trackedMobs; }
-    [[nodiscard]] const ResourceLocation& testNextSpawnEntityId() const { return m_nextSpawnEntityId; }
+    [[nodiscard]] i32 testSpawnedMobsCount() const
+    {
+        return m_spawnedMobsCount;
+    }
+
+    [[nodiscard]] i32 testCurrentMobsCount() const
+    {
+        return m_currentMobsCount;
+    }
+
+    [[nodiscard]] const std::unordered_set<std::string>& testTrackedMobs() const
+    {
+        return m_trackedMobs;
+    }
+
+    [[nodiscard]] const ResourceLocation& testNextSpawnEntityId() const
+    {
+        return m_nextSpawnEntityId;
+    }
 
     // 设置下次生成实体缓存
-    void setNextSpawnEntityId(const ResourceLocation& id) { m_nextSpawnEntityId = id; }
+    void setNextSpawnEntityId(const ResourceLocation& id)
+    {
+        m_nextSpawnEntityId = id;
+    }
 
     // 清除下次生成实体缓存
-    void clearNextSpawnEntityId() { m_nextSpawnEntityId = ResourceLocation(); }
+    void clearNextSpawnEntityId()
+    {
+        m_nextSpawnEntityId = ResourceLocation();
+    }
 };
 
 } // namespace mc
@@ -1355,15 +1476,35 @@ class TrialSpawnerLineOfSightTestWorld final : public mc::test::BaseTestWorld {
 public:
     using IWorld::getBlockState;
 
-    void setCurrentTick(u64 tick) { m_currentTick = tick; }
-    [[nodiscard]] u64 currentTick() const override { return m_currentTick; }
+    void setCurrentTick(u64 tick)
+    {
+        m_currentTick = tick;
+    }
 
-    void setSeed(u64 seed) { m_random = math::Random(seed); }
+    [[nodiscard]] u64 currentTick() const override
+    {
+        return m_currentTick;
+    }
 
-    void setBlockCollisionFlag(bool hasCollision) { m_hasBlockCollision = hasCollision; }
-    [[nodiscard]] bool hasBlockCollision(const AxisAlignedBB&) const override { return m_hasBlockCollision; }
+    void setSeed(u64 seed)
+    {
+        m_random = math::Random(seed);
+    }
 
-    void setBlockStateAt(i32 x, i32 y, i32 z, const BlockState* state) { m_blockStates[key(x, y, z)] = state; }
+    void setBlockCollisionFlag(bool hasCollision)
+    {
+        m_hasBlockCollision = hasCollision;
+    }
+
+    [[nodiscard]] bool hasBlockCollision(const AxisAlignedBB&) const override
+    {
+        return m_hasBlockCollision;
+    }
+
+    void setBlockStateAt(i32 x, i32 y, i32 z, const BlockState* state)
+    {
+        m_blockStates[key(x, y, z)] = state;
+    }
 
     [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override
     {
@@ -1371,7 +1512,10 @@ public:
         return it != m_blockStates.end() ? it->second : nullptr;
     }
 
-    void clearBlocks() { m_blockStates.clear(); }
+    void clearBlocks()
+    {
+        m_blockStates.clear();
+    }
 
     // 实体生成存根
     [[nodiscard]] EntityInstanceId spawnEntity(std::unique_ptr<Entity> entity) override
@@ -1420,23 +1564,41 @@ public:
     {
         throw std::runtime_error("TrialSpawnerLineOfSightTestWorld::tickManager not implemented");
     }
+
     [[nodiscard]] const world::tick::TickManager& tickManager() const override
     {
         throw std::runtime_error("TrialSpawnerLineOfSightTestWorld::tickManager not implemented");
     }
 
-    [[nodiscard]] Difficulty difficulty() const override { return m_difficulty; }
-    void setDifficulty(Difficulty diff) { m_difficulty = diff; }
+    [[nodiscard]] Difficulty difficulty() const override
+    {
+        return m_difficulty;
+    }
+
+    void setDifficulty(Difficulty diff)
+    {
+        m_difficulty = diff;
+    }
 
     [[nodiscard]] std::vector<Entity*> getEntitiesInRange(const Vector3&, f32, const Entity*) const override
     {
         return {};
     }
 
-    [[nodiscard]] std::vector<Entity*> getPlayers() const override { return {}; }
+    [[nodiscard]] std::vector<Entity*> getPlayers() const override
+    {
+        return {};
+    }
 
-    [[nodiscard]] BlockEntity* getBlockEntity(const BlockPos&) override { return nullptr; }
-    [[nodiscard]] const BlockEntity* getBlockEntity(const BlockPos&) const override { return nullptr; }
+    [[nodiscard]] BlockEntity* getBlockEntity(const BlockPos&) override
+    {
+        return nullptr;
+    }
+
+    [[nodiscard]] const BlockEntity* getBlockEntity(const BlockPos&) const override
+    {
+        return nullptr;
+    }
 
 private:
     u64 m_currentTick = 0;

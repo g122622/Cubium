@@ -256,7 +256,10 @@ TEST_F(TemplateErrorTest, ErrorCollectorMerge)
 
 class LexerTest : public ::testing::Test {
 protected:
-    parser::Lexer createLexer(const std::string& source) { return parser::Lexer(source, "<test>"); }
+    parser::Lexer createLexer(const std::string& source)
+    {
+        return parser::Lexer(source, "<test>");
+    }
 };
 
 TEST_F(LexerTest, EmptySource)
@@ -317,10 +320,18 @@ TEST_F(LexerTest, TagWithAttributes)
     bool foundId = false, foundPos = false, foundString1 = false, foundString2 = false;
 
     for (const auto& token : tokens) {
-        if (token.value == "id") foundId = true;
-        if (token.value == "pos") foundPos = true;
-        if (token.value == "btn1") foundString1 = true;
-        if (token.value == "10,20") foundString2 = true;
+        if (token.value == "id") {
+            foundId = true;
+        }
+        if (token.value == "pos") {
+            foundPos = true;
+        }
+        if (token.value == "btn1") {
+            foundString1 = true;
+        }
+        if (token.value == "10,20") {
+            foundString2 = true;
+        }
     }
 
     EXPECT_TRUE(foundId);
@@ -651,7 +662,10 @@ TEST_F(LexerTest, LexerStaticMethods)
 
 class ParserTest : public ::testing::Test {
 protected:
-    void SetUp() override { m_config = core::TemplateConfig::defaults(); }
+    void SetUp() override
+    {
+        m_config = core::TemplateConfig::defaults();
+    }
 
     std::unique_ptr<ast::DocumentNode> parse(const std::string& source)
     {
@@ -1599,19 +1613,22 @@ TEST_F(AstVisitorTest, PostorderTraversal)
 
 TEST_F(AstVisitorTest, FindFirst)
 {
-    auto* found = ast::traversal::findFirst(
-        *m_document, [](const ast::Node& node) { return node.type == ast::NodeType::Button; });
+    auto* found = ast::traversal::findFirst(*m_document, [](const ast::Node& node) {
+        return node.type == ast::NodeType::Button;
+    });
     ASSERT_NE(found, nullptr);
 
-    auto* notFound =
-        ast::traversal::findFirst(*m_document, [](const ast::Node& node) { return node.type == ast::NodeType::Grid; });
+    auto* notFound = ast::traversal::findFirst(*m_document, [](const ast::Node& node) {
+        return node.type == ast::NodeType::Grid;
+    });
     EXPECT_EQ(notFound, nullptr);
 }
 
 TEST_F(AstVisitorTest, FindAll)
 {
-    auto elements = ast::traversal::findAll(*m_document,
-        [](const ast::Node& node) { return node.type == ast::NodeType::Button || node.type == ast::NodeType::Text; });
+    auto elements = ast::traversal::findAll(*m_document, [](const ast::Node& node) {
+        return node.type == ast::NodeType::Button || node.type == ast::NodeType::Text;
+    });
     EXPECT_EQ(elements.size(), 2u);
 }
 
@@ -1629,6 +1646,7 @@ TEST_F(AstVisitorTest, VisitorStop)
     class CountingVisitor : public ast::AstVisitor {
     public:
         int& count;
+
         CountingVisitor(int& c)
             : count(c)
         {}
@@ -1656,6 +1674,7 @@ TEST_F(AstVisitorTest, ConstVisitor)
     class ConstTagCollector : public ast::ConstAstVisitor {
     public:
         std::vector<std::string>& tags;
+
         ConstTagCollector(std::vector<std::string>& t)
             : tags(t)
         {}
@@ -1677,7 +1696,10 @@ TEST_F(AstVisitorTest, ConstVisitor)
 
 class TemplateCompilerTest : public ::testing::Test {
 protected:
-    void SetUp() override { m_config = core::TemplateConfig::defaults(); }
+    void SetUp() override
+    {
+        m_config = core::TemplateConfig::defaults();
+    }
 
     core::TemplateConfig m_config;
 };
@@ -1966,7 +1988,9 @@ TEST_F(BindingContextTest, ExposeSimpleCallback)
 {
     bool callbackCalled = false;
 
-    m_ctx->exposeSimpleCallback("onStart", [&]() { callbackCalled = true; });
+    m_ctx->exposeSimpleCallback("onStart", [&]() {
+        callbackCalled = true;
+    });
 
     EXPECT_TRUE(m_ctx->hasCallback("onStart"));
 
@@ -2015,8 +2039,9 @@ TEST_F(BindingContextTest, Subscribe)
     m_ctx->expose("player.name", &playerName);
 
     std::string lastValue;
-    u64 subId = m_ctx->subscribe(
-        "player.name", [&](const std::string& path, const binder::Value& value) { lastValue = value.asString(); });
+    u64 subId = m_ctx->subscribe("player.name", [&](const std::string& path, const binder::Value& value) {
+        lastValue = value.asString();
+    });
 
     EXPECT_GT(subId, 0u);
 
@@ -2276,6 +2301,7 @@ TEST_F(BindingContextTest, FromAnyUnsupportedTypeReturnsNull)
     struct CustomType {
         int x;
     };
+
     CustomType custom{42};
     auto fromCustom = binder::Value::fromAny(std::any(custom));
     EXPECT_TRUE(fromCustom.isNull());
@@ -2436,7 +2462,10 @@ TEST_F(TemplateErrorCollectorTest, BasicOperations)
 
 class IntegrationTest : public ::testing::Test {
 protected:
-    void SetUp() override { m_config = core::TemplateConfig::defaults(); }
+    void SetUp() override
+    {
+        m_config = core::TemplateConfig::defaults();
+    }
 
     core::TemplateConfig m_config;
 };
@@ -2507,7 +2536,9 @@ TEST_F(IntegrationTest, BindingContextWithTemplate)
 
     // Test callback
     bool callbackCalled = false;
-    ctx.exposeSimpleCallback("onClose", [&]() { callbackCalled = true; });
+    ctx.exposeSimpleCallback("onClose", [&]() {
+        callbackCalled = true;
+    });
 
     mc::client::ui::kagero::event::FocusGainedEvent event;
     EXPECT_TRUE(ctx.invokeCallback("onClose", nullptr, event));
@@ -2580,7 +2611,10 @@ TEST_F(IntegrationTest, ParseComplexAttributeValues)
 
 class LoopDirectiveTest : public ::testing::Test {
 protected:
-    void SetUp() override { m_config = core::TemplateConfig::defaults(); }
+    void SetUp() override
+    {
+        m_config = core::TemplateConfig::defaults();
+    }
 
     std::unique_ptr<ast::DocumentNode> parse(const std::string& source)
     {
@@ -2672,7 +2706,10 @@ TEST_F(LoopDirectiveTest, LoopWithNestedBindings)
 
 class ConditionDirectiveTest : public ::testing::Test {
 protected:
-    void SetUp() override { m_config = core::TemplateConfig::defaults(); }
+    void SetUp() override
+    {
+        m_config = core::TemplateConfig::defaults();
+    }
 
     std::unique_ptr<ast::DocumentNode> parse(const std::string& source)
     {
@@ -3414,7 +3451,9 @@ TEST_F(UpdateSchedulerTest, NowMsReflectsLastTick)
 TEST_F(UpdateSchedulerTest, FlushOnEmptyScheduler)
 {
     // 在空调度器上调用 flush 应安全返回 0
-    m_scheduler->setUpdateCallback([](const std::string&) -> bool { return true; });
+    m_scheduler->setUpdateCallback([](const std::string&) -> bool {
+        return true;
+    });
 
     u32 executed = m_scheduler->flush();
     EXPECT_EQ(executed, 0u);
@@ -3424,7 +3463,9 @@ TEST_F(UpdateSchedulerTest, FlushOnEmptyScheduler)
 TEST_F(UpdateSchedulerTest, TickOnEmptyScheduler)
 {
     // 在空调度器上调用 tick 应安全返回 0
-    m_scheduler->setUpdateCallback([](const std::string&) -> bool { return true; });
+    m_scheduler->setUpdateCallback([](const std::string&) -> bool {
+        return true;
+    });
 
     u32 executed = m_scheduler->tick(1000);
     EXPECT_EQ(executed, 0u);
@@ -3496,7 +3537,10 @@ TEST_F(UpdateSchedulerTest, HighPriorityExecutesBeforeNormalAndLow)
 
 class CompiledTemplateTest : public ::testing::Test {
 protected:
-    void SetUp() override { m_config = core::TemplateConfig::defaults(); }
+    void SetUp() override
+    {
+        m_config = core::TemplateConfig::defaults();
+    }
 
     core::TemplateConfig m_config;
 };
@@ -3619,7 +3663,10 @@ TEST_F(CompiledTemplateTest, DebugDump)
 
 class TemplateCompilerConfigTest : public ::testing::Test {
 protected:
-    void SetUp() override { m_config = core::TemplateConfig::defaults(); }
+    void SetUp() override
+    {
+        m_config = core::TemplateConfig::defaults();
+    }
 
     core::TemplateConfig m_config;
 };
@@ -3749,8 +3796,12 @@ TEST_F(BindingContextAdvancedTest, MultipleSubscribers)
     int callCount1 = 0;
     int callCount2 = 0;
 
-    u64 sub1 = m_ctx->subscribe("player.xp", [&](const std::string&, const binder::Value&) { callCount1++; });
-    u64 sub2 = m_ctx->subscribe("player.xp", [&](const std::string&, const binder::Value&) { callCount2++; });
+    u64 sub1 = m_ctx->subscribe("player.xp", [&](const std::string&, const binder::Value&) {
+        callCount1++;
+    });
+    u64 sub2 = m_ctx->subscribe("player.xp", [&](const std::string&, const binder::Value&) {
+        callCount2++;
+    });
 
     m_ctx->notifyChange("player.xp", binder::Value(100));
 
@@ -3875,7 +3926,10 @@ protected:
             mc::client::ui::kagero::state::StateStore::instance(), mc::client::ui::kagero::event::EventBus::instance());
     }
 
-    void TearDown() override { m_ctx->clear(); }
+    void TearDown() override
+    {
+        m_ctx->clear();
+    }
 
     std::unique_ptr<binder::BindingContext> m_ctx;
     core::TemplateConfig m_config;
@@ -3933,7 +3987,9 @@ TEST_F(DocumentationExampleTest, SimpleCallbackExample)
 {
     bool simpleCallbackCalled = false;
 
-    m_ctx->exposeSimpleCallback("onCancel", [&]() { simpleCallbackCalled = true; });
+    m_ctx->exposeSimpleCallback("onCancel", [&]() {
+        simpleCallbackCalled = true;
+    });
 
     EXPECT_TRUE(m_ctx->hasCallback("onCancel"));
     mc::client::ui::kagero::event::FocusGainedEvent event;
@@ -4067,7 +4123,10 @@ TEST_F(DocumentationExampleTest, UpdateSchedulerWorkflow)
 
 class LexerEdgeCaseTest : public ::testing::Test {
 protected:
-    parser::Lexer createLexer(const std::string& source) { return parser::Lexer(source, "<test>"); }
+    parser::Lexer createLexer(const std::string& source)
+    {
+        return parser::Lexer(source, "<test>");
+    }
 };
 
 TEST_F(LexerEdgeCaseTest, EmptyAttributeValue)
@@ -4310,8 +4369,12 @@ TEST_F(LexerEdgeCaseTest, AttributeNameWithHyphen)
     auto& tokens = lexer.tokens();
     bool foundDataValue = false, foundCustomAttr = false;
     for (const auto& token : tokens) {
-        if (token.value == "data-value") foundDataValue = true;
-        if (token.value == "custom-attr") foundCustomAttr = true;
+        if (token.value == "data-value") {
+            foundDataValue = true;
+        }
+        if (token.value == "custom-attr") {
+            foundCustomAttr = true;
+        }
     }
     EXPECT_TRUE(foundDataValue);
     EXPECT_TRUE(foundCustomAttr);
@@ -4327,8 +4390,12 @@ TEST_F(LexerEdgeCaseTest, AttributeNameWithColon)
     auto& tokens = lexer.tokens();
     bool foundBind = false, foundEvent = false;
     for (const auto& token : tokens) {
-        if (token.value == "bind:text") foundBind = true;
-        if (token.value == "on:click") foundEvent = true;
+        if (token.value == "bind:text") {
+            foundBind = true;
+        }
+        if (token.value == "on:click") {
+            foundEvent = true;
+        }
     }
     EXPECT_TRUE(foundBind);
     EXPECT_TRUE(foundEvent);
@@ -4405,7 +4472,10 @@ TEST_F(LexerEdgeCaseTest, TagNameWithNumbers)
 
 class ParserEdgeCaseTest : public ::testing::Test {
 protected:
-    void SetUp() override { m_config = core::TemplateConfig::defaults(); }
+    void SetUp() override
+    {
+        m_config = core::TemplateConfig::defaults();
+    }
 
     std::unique_ptr<ast::DocumentNode> parse(const std::string& source)
     {
@@ -5043,7 +5113,10 @@ protected:
             mc::client::ui::kagero::state::StateStore::instance(), mc::client::ui::kagero::event::EventBus::instance());
     }
 
-    void TearDown() override { m_ctx->clear(); }
+    void TearDown() override
+    {
+        m_ctx->clear();
+    }
 
     std::unique_ptr<binder::BindingContext> m_ctx;
 };
@@ -5138,7 +5211,9 @@ TEST_F(BindingContextEdgeCaseTest, SetBindingOnNonexistentPath)
 TEST_F(BindingContextEdgeCaseTest, CallbackThrowsException)
 {
     // 回调中抛出异常
-    m_ctx->exposeCallback("throwingCallback", [](auto*, const auto&) { throw std::runtime_error("Test exception"); });
+    m_ctx->exposeCallback("throwingCallback", [](auto*, const auto&) {
+        throw std::runtime_error("Test exception");
+    });
 
     EXPECT_TRUE(m_ctx->hasCallback("throwingCallback"));
     // 调用可能会传播异常
@@ -5150,7 +5225,9 @@ TEST_F(BindingContextEdgeCaseTest, SubscribeToNonexistentPath)
 {
     // 订阅不存在的路径应该成功（可能在未来创建）
     bool called = false;
-    u64 subId = m_ctx->subscribe("future.path", [&](const std::string&, const binder::Value&) { called = true; });
+    u64 subId = m_ctx->subscribe("future.path", [&](const std::string&, const binder::Value&) {
+        called = true;
+    });
 
     EXPECT_GT(subId, 0u);
 
@@ -5184,9 +5261,15 @@ TEST_F(BindingContextEdgeCaseTest, MultipleSubscribersSamePath)
 
     int callCount1 = 0, callCount2 = 0, callCount3 = 0;
 
-    u64 sub1 = m_ctx->subscribe("test.value", [&](const std::string&, const binder::Value&) { callCount1++; });
-    u64 sub2 = m_ctx->subscribe("test.value", [&](const std::string&, const binder::Value&) { callCount2++; });
-    u64 sub3 = m_ctx->subscribe("test.value", [&](const std::string&, const binder::Value&) { callCount3++; });
+    u64 sub1 = m_ctx->subscribe("test.value", [&](const std::string&, const binder::Value&) {
+        callCount1++;
+    });
+    u64 sub2 = m_ctx->subscribe("test.value", [&](const std::string&, const binder::Value&) {
+        callCount2++;
+    });
+    u64 sub3 = m_ctx->subscribe("test.value", [&](const std::string&, const binder::Value&) {
+        callCount3++;
+    });
 
     m_ctx->notifyChange("test.value", binder::Value(100));
 
@@ -5549,7 +5632,9 @@ TEST_F(UpdateSchedulerEdgeCaseTest, TimestampIncreases)
 
 TEST_F(UpdateSchedulerEdgeCaseTest, CallbackThrowsException)
 {
-    m_scheduler->setUpdateCallback([](const std::string&) -> bool { throw std::runtime_error("Test exception"); });
+    m_scheduler->setUpdateCallback([](const std::string&) -> bool {
+        throw std::runtime_error("Test exception");
+    });
 
     m_scheduler->schedule("test", runtime::UpdateScheduler::Priority::Normal);
 
@@ -5590,7 +5675,10 @@ TEST_F(UpdateSchedulerEdgeCaseTest, ReentrantSchedule)
 
 class CompiledTemplateEdgeCaseTest : public ::testing::Test {
 protected:
-    void SetUp() override { m_config = core::TemplateConfig::defaults(); }
+    void SetUp() override
+    {
+        m_config = core::TemplateConfig::defaults();
+    }
 
     core::TemplateConfig m_config;
 };

@@ -65,7 +65,10 @@ public:
      * 必须在 loadDefaultSkins / getOrCreateRegion 之前调用。图集须已 build()。
      * 图集生命周期由调用方（TridentEngine）管理，本类不持有所有权。
      */
-    void setTextureAtlas(renderer::entity::pipeline::EntityTextureAtlas* atlas) { m_textureAtlas = atlas; }
+    void setTextureAtlas(renderer::entity::pipeline::EntityTextureAtlas* atlas)
+    {
+        m_textureAtlas = atlas;
+    }
 
     /**
      * @brief 上传 18 种默认皮肤变体到图集动态区域

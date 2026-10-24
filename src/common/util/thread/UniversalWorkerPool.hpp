@@ -114,7 +114,10 @@ public:
     /**
      * @brief 检查是否正在运行
      */
-    [[nodiscard]] bool isRunning() const { return m_running.load(std::memory_order::acquire); }
+    [[nodiscard]] bool isRunning() const
+    {
+        return m_running.load(std::memory_order::acquire);
+    }
 
     // ============================================================================
     // 任务提交
@@ -233,7 +236,10 @@ public:
     /**
      * @brief 获取线程数量
      */
-    [[nodiscard]] i32 threadCount() const { return m_threadCount; }
+    [[nodiscard]] i32 threadCount() const
+    {
+        return m_threadCount;
+    }
 
     /**
      * @brief 诊断：转储工作线程池状态（运行区域、队列任务区域分布）
@@ -409,6 +415,7 @@ private:
         ChunkCoord areaCenterZ = 0;
         i32 areaWriteRadius = 0;
     };
+
     std::mutex m_runningTaskMutex;
     std::unordered_map<i32, RunningTaskInfo> m_runningTaskInfo; // key = workerId
 

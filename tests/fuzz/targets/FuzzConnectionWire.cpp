@@ -67,7 +67,14 @@ constexpr usize kHeaderSize = 4;
 /// 遍历到叶子包，确保"某变体无人认领"不会让整条解码结果被优化掉。
 void _consume(const ir::IrPacket& packet)
 {
-    std::visit([](const auto& phaseVariant) { std::visit([](const auto& leaf) { (void)leaf; }, phaseVariant); },
+    std::visit(
+        [](const auto& phaseVariant) {
+            std::visit(
+                [](const auto& leaf) {
+                    (void)leaf;
+                },
+                phaseVariant);
+        },
         packet.packet);
 }
 

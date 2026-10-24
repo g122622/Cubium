@@ -151,12 +151,26 @@ public:
 
     // ========== Entity 接口重写 ==========
 
-    [[nodiscard]] f32 width() const override { return 0.25f; }
-    [[nodiscard]] f32 height() const override { return 0.25f; }
-    [[nodiscard]] f32 eyeHeight() const override { return 0.125f; }
+    [[nodiscard]] f32 width() const override
+    {
+        return 0.25f;
+    }
+
+    [[nodiscard]] f32 height() const override
+    {
+        return 0.25f;
+    }
+
+    [[nodiscard]] f32 eyeHeight() const override
+    {
+        return 0.125f;
+    }
 
     // 无战利品表，覆写基类方法返回空字符串
-    [[nodiscard]] std::string getLootTableId() const override { return {}; }
+    [[nodiscard]] std::string getLootTableId() const override
+    {
+        return {};
+    }
 
     void tick() override;
 
@@ -209,7 +223,10 @@ public:
     /**
      * @brief 获取物品堆
      */
-    [[nodiscard]] const ItemStack& getItemStack() const { return m_itemStack; }
+    [[nodiscard]] const ItemStack& getItemStack() const
+    {
+        return m_itemStack;
+    }
 
     /**
      * @brief 设置物品堆
@@ -219,44 +236,68 @@ public:
     /**
      * @brief 获取物品数量
      */
-    [[nodiscard]] i32 getCount() const { return m_itemStack.getCount(); }
+    [[nodiscard]] i32 getCount() const
+    {
+        return m_itemStack.getCount();
+    }
 
     /**
      * @brief 获取年龄（ticks）
      */
-    [[nodiscard]] i32 getAge() const { return m_age; }
+    [[nodiscard]] i32 getAge() const
+    {
+        return m_age;
+    }
 
     /**
      * @brief 获取拾取延迟
      */
-    [[nodiscard]] i32 getPickupDelay() const { return m_pickupDelay; }
+    [[nodiscard]] i32 getPickupDelay() const
+    {
+        return m_pickupDelay;
+    }
 
     /**
      * @brief 设置拾取延迟
      * @param delay 延迟ticks
      */
-    void setPickupDelay(i32 delay) { m_pickupDelay = delay; }
+    void setPickupDelay(i32 delay)
+    {
+        m_pickupDelay = delay;
+    }
 
     /**
      * @brief 是否可以被拾取
      */
-    [[nodiscard]] bool canBePickedUp() const { return m_pickupDelay <= 0 && !m_unpickable; }
+    [[nodiscard]] bool canBePickedUp() const
+    {
+        return m_pickupDelay <= 0 && !m_unpickable;
+    }
 
     /**
      * @brief 设置不可拾取（创造模式丢弃的物品）
      */
-    void setUnpickable() { m_unpickable = true; }
+    void setUnpickable()
+    {
+        m_unpickable = true;
+    }
 
     /**
      * @brief 检查是否已过期（应该消失）
      */
-    [[nodiscard]] bool isExpired() const { return m_lifetime != INFINITE_LIFETIME && m_age >= m_lifetime; }
+    [[nodiscard]] bool isExpired() const
+    {
+        return m_lifetime != INFINITE_LIFETIME && m_age >= m_lifetime;
+    }
 
     /**
      * @brief 设置存活时间
      * @param lifetime 存活时间（ticks），-1表示无限
      */
-    void setLifetime(i32 lifetime) { m_lifetime = lifetime; }
+    void setLifetime(i32 lifetime)
+    {
+        m_lifetime = lifetime;
+    }
 
     /**
      * @brief 设置所有者（防止立即拾取自己的物品）
@@ -268,23 +309,35 @@ public:
     /**
      * @brief 获取所有者UUID
      */
-    [[nodiscard]] const std::string& ownerUuid() const { return m_ownerUuid; }
+    [[nodiscard]] const std::string& ownerUuid() const
+    {
+        return m_ownerUuid;
+    }
 
     /**
      * @brief 获取投掷者UUID
      */
-    [[nodiscard]] const std::string& throwerUuid() const { return m_throwerUuid; }
+    [[nodiscard]] const std::string& throwerUuid() const
+    {
+        return m_throwerUuid;
+    }
 
     /**
      * @brief 获取生命值
      */
-    [[nodiscard]] i32 getHealth() const { return m_health; }
+    [[nodiscard]] i32 getHealth() const
+    {
+        return m_health;
+    }
 
     /**
      * @brief 设置生命值
      * @param health 生命值
      */
-    void setHealth(i32 health) { m_health = health; }
+    void setHealth(i32 health)
+    {
+        m_health = health;
+    }
 
     // ========== 玩家拾取 ==========
 

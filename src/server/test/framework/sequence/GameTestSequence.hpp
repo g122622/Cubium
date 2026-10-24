@@ -75,12 +75,18 @@ public:
     /**
      * @brief 序列是否已完成（成功或失败）。
      */
-    [[nodiscard]] bool isComplete() const noexcept { return m_completed; }
+    [[nodiscard]] bool isComplete() const noexcept
+    {
+        return m_completed;
+    }
 
     /**
      * @brief 序列是否以 succeed 终止（仅 `thenSucceed` 触发）。
      */
-    [[nodiscard]] bool isSucceeded() const noexcept { return m_succeeded; }
+    [[nodiscard]] bool isSucceeded() const noexcept
+    {
+        return m_succeeded;
+    }
 
 private:
     enum class StepKind {

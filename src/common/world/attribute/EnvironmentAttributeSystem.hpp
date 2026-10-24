@@ -221,7 +221,10 @@ public:
     void invalidateTickCache() const;
 
     /// 已登记属性数量
-    [[nodiscard]] size_t attributeCount() const noexcept { return m_attributes.size(); }
+    [[nodiscard]] size_t attributeCount() const noexcept
+    {
+        return m_attributes.size();
+    }
 
 private:
     friend class EnvironmentAttributeSystemBuilder;
@@ -249,4 +252,5 @@ private:
 } // namespace attribute
 } // namespace world
 } // namespace mc
+
 #include "common/world/attribute/EnvironmentAttributeSystem.inl"

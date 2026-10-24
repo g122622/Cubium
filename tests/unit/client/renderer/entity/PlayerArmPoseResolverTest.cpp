@@ -78,6 +78,7 @@ public:
     {
         throw std::runtime_error("ArmPoseTestWorld::tickManager not implemented");
     }
+
     [[nodiscard]] const world::tick::TickManager& tickManager() const override
     {
         throw std::runtime_error("ArmPoseTestWorld::tickManager not implemented");
@@ -102,9 +103,15 @@ public:
 
     // 望远镜使用时长 1200 ticks（MC 1.21.11 SpyglassItem.USE_DURATION = 1200）
     // 仅需 >0 即可让 LivingEntity::setActiveHand 进入使用状态
-    [[nodiscard]] i32 getUseDuration(const ItemStack&) const override { return 1200; }
+    [[nodiscard]] i32 getUseDuration(const ItemStack&) const override
+    {
+        return 1200;
+    }
 
-    [[nodiscard]] UseAction getUseAction(const ItemStack&) const override { return UseAction::Spyglass; }
+    [[nodiscard]] UseAction getUseAction(const ItemStack&) const override
+    {
+        return UseAction::Spyglass;
+    }
 };
 
 // ============================================================================
@@ -124,7 +131,10 @@ protected:
         item::tag::ItemTags::initialize();
     }
 
-    void SetUp() override { m_world = std::make_unique<ArmPoseTestWorld>(); }
+    void SetUp() override
+    {
+        m_world = std::make_unique<ArmPoseTestWorld>();
+    }
 
     std::unique_ptr<ArmPoseTestWorld> m_world;
 };

@@ -72,9 +72,15 @@ public:
             , m_apply(std::move(apply))
         {}
 
-        [[nodiscard]] AttributeModifierOperation operation() const noexcept { return m_operation; }
+        [[nodiscard]] AttributeModifierOperation operation() const noexcept
+        {
+            return m_operation;
+        }
 
-        void applyModifier(void* value, const void* attribute) const { m_apply(value, attribute); }
+        void applyModifier(void* value, const void* attribute) const
+        {
+            m_apply(value, attribute);
+        }
 
     private:
         AttributeModifierOperation m_operation;
@@ -89,7 +95,10 @@ public:
     ~EnvironmentAttributeMap();
 
     /// 判断是否包含某属性
-    [[nodiscard]] bool contains(const void* attribute) const { return m_entries.contains(attribute); }
+    [[nodiscard]] bool contains(const void* attribute) const
+    {
+        return m_entries.contains(attribute);
+    }
 
     /**
      * @brief 若包含该属性，按其修改器与参数改写 value
@@ -109,12 +118,21 @@ public:
     template <typename Value>
     void set(const EnvironmentAttribute<Value>& attribute, Value value)
     {
-        m_entries[&attribute] = std::make_shared<const Entry>(AttributeModifierOperation::Override,
-            [argument = std::move(value)](void* target, const void*) { *static_cast<Value*>(target) = argument; });
+        m_entries[&attribute] = std::make_shared<const Entry>(
+            AttributeModifierOperation::Override, [argument = std::move(value)](void* target, const void*) {
+                *static_cast<Value*>(target) = argument;
+            });
     }
 
-    [[nodiscard]] bool empty() const noexcept { return m_entries.empty(); }
-    [[nodiscard]] size_t size() const noexcept { return m_entries.size(); }
+    [[nodiscard]] bool empty() const noexcept
+    {
+        return m_entries.empty();
+    }
+
+    [[nodiscard]] size_t size() const noexcept
+    {
+        return m_entries.size();
+    }
 
     /// 全部属性地址
     [[nodiscard]] std::vector<const void*> attributes() const
@@ -216,7 +234,10 @@ public:
             return *this;
         }
 
-        [[nodiscard]] EnvironmentAttributeMap build() { return EnvironmentAttributeMap(m_entries); }
+        [[nodiscard]] EnvironmentAttributeMap build()
+        {
+            return EnvironmentAttributeMap(m_entries);
+        }
 
     private:
         template <typename Value>

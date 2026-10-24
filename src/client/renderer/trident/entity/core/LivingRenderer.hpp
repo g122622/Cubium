@@ -67,8 +67,15 @@ public:
 
     // ========== IEntityRenderer 接口实现 ==========
 
-    [[nodiscard]] TModel& getModel() override { return m_model; }
-    [[nodiscard]] const TModel& getModel() const override { return m_model; }
+    [[nodiscard]] TModel& getModel() override
+    {
+        return m_model;
+    }
+
+    [[nodiscard]] const TModel& getModel() const override
+    {
+        return m_model;
+    }
 
     // 注：getEntityTexture 需要子类实现
 
@@ -77,12 +84,18 @@ public:
     /**
      * @brief LivingEntity 渲染器支持动画
      */
-    [[nodiscard]] bool supportsAnimation() const override { return true; }
+    [[nodiscard]] bool supportsAnimation() const override
+    {
+        return true;
+    }
 
     /**
      * @brief LivingEntity 渲染器支持层渲染
      */
-    [[nodiscard]] bool supportsLayers() const override { return true; }
+    [[nodiscard]] bool supportsLayers() const override
+    {
+        return true;
+    }
 
     /**
      * @brief 渲染层（GPU管线路径）
@@ -130,7 +143,10 @@ public:
     /**
      * @brief 获取层渲染器数量
      */
-    [[nodiscard]] size_t getLayerCount() const { return m_layers.size(); }
+    [[nodiscard]] size_t getLayerCount() const
+    {
+        return m_layers.size();
+    }
 
     // ========== 动画状态计算（管线路径使用） ==========
 
@@ -333,10 +349,12 @@ f64 LivingRenderer<TEntity, TModel>::getHeadYaw(TEntity& entity, f64 partialTick
     f64 diff = headYaw - bodyYaw;
 
     // 归一化到 -180 到 180
-    while (diff < -180.0)
+    while (diff < -180.0) {
         diff += 360.0;
-    while (diff > 180.0)
+    }
+    while (diff > 180.0) {
         diff -= 360.0;
+    }
 
     return diff;
 }

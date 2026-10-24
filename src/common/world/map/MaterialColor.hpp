@@ -164,12 +164,18 @@ public:
     /**
      * @brief 获取颜色ID
      */
-    [[nodiscard]] MaterialColorId id() const { return m_id; }
+    [[nodiscard]] MaterialColorId id() const
+    {
+        return m_id;
+    }
 
     /**
      * @brief 获取原始RGB颜色值
      */
-    [[nodiscard]] u32 rgb() const { return m_rgb; }
+    [[nodiscard]] u32 rgb() const
+    {
+        return m_rgb;
+    }
 
 private:
     MaterialColorId m_id;

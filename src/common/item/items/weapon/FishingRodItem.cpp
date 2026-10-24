@@ -61,12 +61,6 @@ FishingRodItem::FishingRodItem(const ItemProperties& properties)
 // 使用默认值：getUseDuration() 返回 0，getUseAction() 返回 NONE
 // 这意味着钓鱼竿是即时使用物品，没有使用动画
 
-i32 FishingRodItem::getItemEnchantability() const
-{
-    // 钓鱼竿附魔能力为 1
-    return 1;
-}
-
 ItemActionResult FishingRodItem::onItemRightClick(IWorld& world, Player& player, Hand hand)
 {
     ItemStack& rodStack = player.getHeldItem(hand);

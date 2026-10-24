@@ -639,8 +639,9 @@ void StandaloneServer::_setupContainerCallbacks()
         switch (type) {
             case mc::ContainerType::Beacon: {
                 auto* beacon = dynamic_cast<blockentity::BeaconEntity*>(world->getBlockEntity(pos));
-                if (beacon != nullptr)
+                if (beacon != nullptr) {
                     result.menu = std::make_unique<BeaconContainer>(containerId, playerInventory, *world, *beacon);
+                }
                 return result;
             }
             case mc::ContainerType::Crafting: {
@@ -890,8 +891,9 @@ void StandaloneServer::_setupContainerCallbacks()
                     mc::network::protocol::ConnectionProtocol::Play, mc::network::ir::PlayPacket{std::move(update)}});
         });
     containerManager().setOnContainerUpdate(
-        [this, sendContainerContent](
-            PlayerId playerId, const AbstractContainerMenu& menu) { sendContainerContent(playerId, menu); });
+        [this, sendContainerContent](PlayerId playerId, const AbstractContainerMenu& menu) {
+            sendContainerContent(playerId, menu);
+        });
 
     // 容器进度数据（container_set_data，cb 19）：熔炉的火焰燃烧与箭头熔炼进度。
     // 菜单的 tracked i32 每 tick 由 ContainerManager::tickMenus() 刷新，变化时经这里下发。

@@ -74,7 +74,10 @@ public:
      */
     void tick() override;
 
-    [[nodiscard]] std::string getTypeName() const override { return "CongregateGoal"; }
+    [[nodiscard]] std::string getTypeName() const override
+    {
+        return "CongregateGoal";
+    }
 
 private:
     /**

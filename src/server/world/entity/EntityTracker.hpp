@@ -192,12 +192,18 @@ public:
      * @brief 设置实体追踪距离
      * @param chunks 区块数
      */
-    void setTrackingDistance(i32 chunks) { m_trackingDistance = chunks; }
+    void setTrackingDistance(i32 chunks)
+    {
+        m_trackingDistance = chunks;
+    }
 
     /**
      * @brief 获取实体追踪距离
      */
-    [[nodiscard]] i32 trackingDistance() const { return m_trackingDistance; }
+    [[nodiscard]] i32 trackingDistance() const
+    {
+        return m_trackingDistance;
+    }
 
 private:
     /**

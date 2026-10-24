@@ -91,17 +91,26 @@ public:
     /**
      * @brief 获取地图总数
      */
-    [[nodiscard]] size_t mapCount() const { return m_mapData.size(); }
+    [[nodiscard]] size_t mapCount() const
+    {
+        return m_mapData.size();
+    }
 
     /**
      * @brief 获取所有地图数据（用于遍历更新）
      */
-    [[nodiscard]] const std::unordered_map<i32, std::unique_ptr<MapData>>& getAllMapData() const { return m_mapData; }
+    [[nodiscard]] const std::unordered_map<i32, std::unique_ptr<MapData>>& getAllMapData() const
+    {
+        return m_mapData;
+    }
 
     /**
      * @brief 获取所有地图数据（可变，用于更新）
      */
-    [[nodiscard]] std::unordered_map<i32, std::unique_ptr<MapData>>& getAllMapData() { return m_mapData; }
+    [[nodiscard]] std::unordered_map<i32, std::unique_ptr<MapData>>& getAllMapData()
+    {
+        return m_mapData;
+    }
 
 private:
     std::unordered_map<i32, std::unique_ptr<MapData>> m_mapData;

@@ -49,10 +49,21 @@ public:
 
     [[nodiscard]] ItemStack apply(ItemStack stack, LootContext& context) const override;
     [[nodiscard]] std::unique_ptr<LootFunction> clone() const noexcept override;
-    [[nodiscard]] std::string getType() const override { return "set_lore"; }
 
-    [[nodiscard]] const std::vector<std::string>& getLore() const { return m_lore; }
-    [[nodiscard]] bool isReplace() const { return m_replace; }
+    [[nodiscard]] std::string getType() const override
+    {
+        return "set_lore";
+    }
+
+    [[nodiscard]] const std::vector<std::string>& getLore() const
+    {
+        return m_lore;
+    }
+
+    [[nodiscard]] bool isReplace() const
+    {
+        return m_replace;
+    }
 
 private:
     std::vector<std::string> m_lore;

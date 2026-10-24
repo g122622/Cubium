@@ -705,7 +705,9 @@ std::vector<EquipmentSlot> MobEntity::dropPreservedEquipment(const std::function
 
 std::vector<EquipmentSlot> MobEntity::dropPreservedEquipment()
 {
-    return dropPreservedEquipment([](const ItemStack&) { return true; });
+    return dropPreservedEquipment([](const ItemStack&) {
+        return true;
+    });
 }
 
 bool MobEntity::isInDaylight() const
@@ -1446,6 +1448,7 @@ void MobEntity::addAdditionalSaveData(nbt::tags::compound_tag& tag) const
     // 与 MC Java DropChances.filterDefaultValues 一致。
     {
         nbt::tags::compound_tag dropChancesTag;
+
         // 装备槽位名称映射
         static constexpr struct {
             EquipmentSlot slot;
@@ -1460,6 +1463,7 @@ void MobEntity::addAdditionalSaveData(nbt::tags::compound_tag& tag) const
             {EquipmentSlot::Body, "body"},
             {EquipmentSlot::Saddle, "saddle"},
         };
+
         for (const auto& entry : slotNames) {
             f32 chance = m_equipmentDropChances[static_cast<size_t>(entry.slot)];
             // 仅写入非默认值（与 MC DropChances.filterDefaultValues 一致）
@@ -1545,6 +1549,7 @@ Result<void> MobEntity::readAdditionalSaveData(const nbt::tags::compound_tag& ta
             {"body", EquipmentSlot::Body},
             {"saddle", EquipmentSlot::Saddle},
         };
+
         for (const auto& entry : slotNames) {
             if (auto chance = nbt_helper::tryGetFloat(*dropChancesCompound, entry.name)) {
                 m_equipmentDropChances[static_cast<size_t>(entry.slot)] = *chance;

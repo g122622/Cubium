@@ -58,7 +58,10 @@ public:
     void resetTask() override;
     void tick() override;
 
-    [[nodiscard]] std::string getTypeName() const override { return "GoatRamGoal"; }
+    [[nodiscard]] std::string getTypeName() const override
+    {
+        return "GoatRamGoal";
+    }
 
     /// 当前阶段（测试/诊断用）
     enum class Phase : u8 {
@@ -66,7 +69,12 @@ public:
         Preparing,
         Ramming,
     };
-    [[nodiscard]] Phase phase() const noexcept { return m_phase; }
+
+    [[nodiscard]] Phase phase() const noexcept
+    {
+        return m_phase;
+    }
+
     /// 当前选中目标（无目标为 nullptr）
     [[nodiscard]] LivingEntity* target() const;
 

@@ -24,6 +24,7 @@ public:
     enum class Type : u8 { Clear, Rain, Thunder };
 
     WeatherEnvironment() = default;
+
     explicit WeatherEnvironment(Type type) noexcept
         : m_type(type)
     {}
@@ -31,7 +32,10 @@ public:
     GameTestResult setup(BaseGameTestInstance& instance) override;
     GameTestResult teardown(BaseGameTestInstance& instance) override;
 
-    [[nodiscard]] Type type() const noexcept { return m_type; }
+    [[nodiscard]] Type type() const noexcept
+    {
+        return m_type;
+    }
 
     /**
      * @brief 枚举→Java codec 键名（clear/rain/thunder）。

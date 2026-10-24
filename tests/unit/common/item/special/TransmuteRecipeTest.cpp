@@ -53,9 +53,15 @@ protected:
         ItemTags::initialize();
     }
 
-    void SetUp() override { RecipeManager::instance().clear(); }
+    void SetUp() override
+    {
+        RecipeManager::instance().clear();
+    }
 
-    void TearDown() override { RecipeManager::instance().clear(); }
+    void TearDown() override
+    {
+        RecipeManager::instance().clear();
+    }
 };
 
 // ============================================================================

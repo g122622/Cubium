@@ -71,17 +71,26 @@ public:
     /**
      * @brief 获取玩家档案
      */
-    [[nodiscard]] const GameProfile& profile() const noexcept { return m_profile; }
+    [[nodiscard]] const GameProfile& profile() const noexcept
+    {
+        return m_profile;
+    }
 
     /**
      * @brief 获取玩家UUID
      */
-    [[nodiscard]] const std::array<u8, 16>& uuid() const noexcept { return m_profile.uuid(); }
+    [[nodiscard]] const std::array<u8, 16>& uuid() const noexcept
+    {
+        return m_profile.uuid();
+    }
 
     /**
      * @brief 获取玩家名称
      */
-    [[nodiscard]] const std::string& name() const noexcept { return m_profile.name(); }
+    [[nodiscard]] const std::string& name() const noexcept
+    {
+        return m_profile.name();
+    }
 
     // ========== 皮肤纹理 ==========
 
@@ -116,17 +125,42 @@ public:
     /**
      * @brief 获取皮肤纹理集合
      */
-    [[nodiscard]] const SkinTextures& textures() const noexcept { return m_textures; }
+    [[nodiscard]] const SkinTextures& textures() const noexcept
+    {
+        return m_textures;
+    }
 
     // ========== 加载状态 ==========
 
-    [[nodiscard]] SkinLoadState loadState() const noexcept { return m_loadState.load(); }
-    void setLoadState(SkinLoadState state) noexcept { m_loadState.store(state); }
+    [[nodiscard]] SkinLoadState loadState() const noexcept
+    {
+        return m_loadState.load();
+    }
 
-    [[nodiscard]] bool isLoaded() const noexcept { return m_loadState == SkinLoadState::Loaded; }
-    [[nodiscard]] bool isLoading() const noexcept { return m_loadState == SkinLoadState::Loading; }
-    [[nodiscard]] bool isFailed() const noexcept { return m_loadState == SkinLoadState::Failed; }
-    [[nodiscard]] bool isUsingDefault() const noexcept { return m_loadState == SkinLoadState::UsingDefault; }
+    void setLoadState(SkinLoadState state) noexcept
+    {
+        m_loadState.store(state);
+    }
+
+    [[nodiscard]] bool isLoaded() const noexcept
+    {
+        return m_loadState == SkinLoadState::Loaded;
+    }
+
+    [[nodiscard]] bool isLoading() const noexcept
+    {
+        return m_loadState == SkinLoadState::Loading;
+    }
+
+    [[nodiscard]] bool isFailed() const noexcept
+    {
+        return m_loadState == SkinLoadState::Failed;
+    }
+
+    [[nodiscard]] bool isUsingDefault() const noexcept
+    {
+        return m_loadState == SkinLoadState::UsingDefault;
+    }
 
     // ========== 纹理设置（由 SkinManager 调用） ==========
 
@@ -143,7 +177,10 @@ public:
     /**
      * @brief 设置皮肤类型
      */
-    void setSkinType(SkinType type) noexcept { m_textures.setSkinType(type); }
+    void setSkinType(SkinType type) noexcept
+    {
+        m_textures.setSkinType(type);
+    }
 
     /**
      * @brief 设置披风位置
@@ -169,12 +206,18 @@ public:
      * - Bit 5: Right Pants Leg (右裤腿)
      * - Bit 6: Hat (帽子)
      */
-    [[nodiscard]] u8 modelParts() const noexcept { return m_modelParts; }
+    [[nodiscard]] u8 modelParts() const noexcept
+    {
+        return m_modelParts;
+    }
 
     /**
      * @brief 设置皮肤部件可见性掩码
      */
-    void setModelParts(u8 parts) noexcept { m_modelParts = parts; }
+    void setModelParts(u8 parts) noexcept
+    {
+        m_modelParts = parts;
+    }
 
     /**
      * @brief 检查是否穿着指定部件
@@ -211,19 +254,28 @@ public:
      *
      * 非本地玩家且 secure=false 时，MC 客户端会回退到默认皮肤。
      */
-    [[nodiscard]] bool isSecure() const noexcept { return m_secure; }
+    [[nodiscard]] bool isSecure() const noexcept
+    {
+        return m_secure;
+    }
 
     /**
      * @brief 设置皮肤安全状态
      * @param secure 是否安全
      */
-    void setSecure(bool secure) noexcept { m_secure = secure; }
+    void setSecure(bool secure) noexcept
+    {
+        m_secure = secure;
+    }
 
     /**
      * @brief 获取签名状态
      * @return 签名状态
      */
-    [[nodiscard]] SignatureState signatureState() const noexcept { return m_signatureState; }
+    [[nodiscard]] SignatureState signatureState() const noexcept
+    {
+        return m_signatureState;
+    }
 
     /**
      * @brief 设置签名状态

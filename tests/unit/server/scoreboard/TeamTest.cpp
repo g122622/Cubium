@@ -59,7 +59,10 @@ protected:
     }
 
     // 创建测试用记分板
-    Scoreboard createTestScoreboard() { return Scoreboard(); }
+    Scoreboard createTestScoreboard()
+    {
+        return Scoreboard();
+    }
 };
 
 // ========== 队伍创建测试 ==========

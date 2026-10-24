@@ -1126,6 +1126,10 @@ void WitherEntity::registerAttributes()
     attributes().setBaseValue(entity::attribute::Attributes::FLYING_SPEED, 0.6);
     attributes().setBaseValue(entity::attribute::Attributes::FOLLOW_RANGE, 40.0);
     attributes().setBaseValue(entity::attribute::Attributes::ARMOR, 4.0);
+    // 原版 WitherBoss.createAttributes 不含 ATTACK_DAMAGE，默认供应器里的 2.0 来自
+    // Monster.createMonsterAttributes 的工厂默认值。Cubium 的 WitherEntity 直接继承
+    // MobEntity（不带 ATTACK_DAMAGE 属性），对应「凋灵没有这一项属性」的原版意图；
+    // 伤害管理不影响玩法（凋灵伤害来自颅骨），因此不比对，见 README「未对齐项」。
 }
 
 void WitherEntity::launchWitherSkullToPosition(i32 head, f64 targetX, f64 targetY, f64 targetZ, bool isBlue)

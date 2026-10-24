@@ -44,7 +44,10 @@ class PunchEnchantment : public Enchantment {
 public:
     PunchEnchantment() = default;
 
-    [[nodiscard]] std::string id() const override { return "minecraft:punch"; }
+    [[nodiscard]] std::string id() const override
+    {
+        return "minecraft:punch";
+    }
 
     [[nodiscard]] std::string getNameKey(i32 level) const override
     {
@@ -52,17 +55,35 @@ public:
         return "enchantment.minecraft.punch";
     }
 
-    [[nodiscard]] EnchantmentType type() const override { return EnchantmentType::Bow; }
+    [[nodiscard]] EnchantmentType type() const override
+    {
+        return EnchantmentType::Bow;
+    }
 
-    [[nodiscard]] i32 minLevel() const noexcept override { return 1; }
+    [[nodiscard]] i32 minLevel() const noexcept override
+    {
+        return 1;
+    }
 
-    [[nodiscard]] i32 maxLevel() const noexcept override { return 2; }
+    [[nodiscard]] i32 maxLevel() const noexcept override
+    {
+        return 2;
+    }
 
-    [[nodiscard]] EnchantmentRarity rarity() const noexcept override { return EnchantmentRarity::Rare; }
+    [[nodiscard]] EnchantmentRarity rarity() const noexcept override
+    {
+        return EnchantmentRarity::Rare;
+    }
 
-    [[nodiscard]] i32 getMinCost(i32 level) const override { return 12 + (level - 1) * 20; }
+    [[nodiscard]] i32 getMinCost(i32 level) const override
+    {
+        return 12 + (level - 1) * 20;
+    }
 
-    [[nodiscard]] i32 getMaxCost(i32 level) const override { return getMinCost(level) + 25; }
+    [[nodiscard]] i32 getMaxCost(i32 level) const override
+    {
+        return getMinCost(level) + 25;
+    }
 
     /**
      * @brief 获取击退距离加成

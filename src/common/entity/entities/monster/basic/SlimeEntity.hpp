@@ -120,7 +120,10 @@ public:
      * @brief 获取史莱姆尺寸
      * 尺寸范围 1-4，1=微小，2=小，4=大
      */
-    [[nodiscard]] i32 getSlimeSize() const { return m_size; }
+    [[nodiscard]] i32 getSlimeSize() const
+    {
+        return m_size;
+    }
 
     /**
      * @brief 设置史莱姆尺寸
@@ -132,7 +135,10 @@ public:
     /**
      * @brief 是否是小史莱姆
      */
-    [[nodiscard]] bool isSmallSlime() const { return m_size <= 1; }
+    [[nodiscard]] bool isSmallSlime() const
+    {
+        return m_size <= 1;
+    }
 
     /**
      * @brief 是否可以对玩家造成伤害
@@ -144,23 +150,35 @@ public:
     /**
      * @brief 获取挤压量
      */
-    [[nodiscard]] f32 squishAmount() const { return m_squishAmount; }
+    [[nodiscard]] f32 squishAmount() const
+    {
+        return m_squishAmount;
+    }
 
     /**
      * @brief 设置挤压量
      * @brief 供子类使用（如岩浆怪）
      */
-    void setSquishAmount(f32 amount) { m_squishAmount = amount; }
+    void setSquishAmount(f32 amount)
+    {
+        m_squishAmount = amount;
+    }
 
     /**
      * @brief 获取挤压因子
      */
-    [[nodiscard]] f32 squishFactor() const { return m_squishFactor; }
+    [[nodiscard]] f32 squishFactor() const
+    {
+        return m_squishFactor;
+    }
 
     /**
      * @brief 获取上一帧挤压因子
      */
-    [[nodiscard]] f32 prevSquishFactor() const { return m_prevSquishFactor; }
+    [[nodiscard]] f32 prevSquishFactor() const
+    {
+        return m_prevSquishFactor;
+    }
 
     // ========== 弹跳 ==========
 
@@ -173,7 +191,10 @@ public:
     /**
      * @brief 跳跃时是否发出声音
      */
-    [[nodiscard]] bool makesSoundOnJump() const { return m_size > 0; }
+    [[nodiscard]] bool makesSoundOnJump() const
+    {
+        return m_size > 0;
+    }
 
     // ========== 分裂 ==========
 
@@ -192,7 +213,10 @@ public:
     /**
      * @brief 检查是否可以分裂
      */
-    [[nodiscard]] bool canSplit() const { return m_size > 1; }
+    [[nodiscard]] bool canSplit() const
+    {
+        return m_size > 1;
+    }
 
     // ========== 攻击 ==========
 
@@ -228,7 +252,10 @@ public:
     /**
      * @brief 史莱姆不在阳光下燃烧
      */
-    [[nodiscard]] bool shouldBurnInDaylight() const override { return false; }
+    [[nodiscard]] bool shouldBurnInDaylight() const override
+    {
+        return false;
+    }
 
     // ========== 属性 ==========
 
@@ -245,13 +272,19 @@ public:
     /**
      * @brief 获取声音音量
      */
-    [[nodiscard]] f32 getSoundVolume() const override { return 0.4f * static_cast<f32>(m_size); }
+    [[nodiscard]] f32 getSoundVolume() const override
+    {
+        return 0.4f * static_cast<f32>(m_size);
+    }
 
     /**
      * @brief 获取垂直面部旋转速度
      * 史莱姆不会抬头低头
      */
-    [[nodiscard]] f32 getVerticalFaceSpeed() const override { return 0.0f; }
+    [[nodiscard]] f32 getVerticalFaceSpeed() const override
+    {
+        return 0.0f;
+    }
 
     // ========== 经验值 ==========
 

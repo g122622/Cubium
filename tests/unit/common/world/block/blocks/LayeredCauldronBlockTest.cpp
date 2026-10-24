@@ -106,8 +106,16 @@ public:
         return setBlockState(x, y, z, state);
     }
 
-    [[nodiscard]] mc::world::chunk::IChunkManager* chunkManager() override { return &m_stubChunks; }
-    [[nodiscard]] const mc::world::chunk::IChunkManager* chunkManager() const override { return &m_stubChunks; }
+    [[nodiscard]] mc::world::chunk::IChunkManager* chunkManager() override
+    {
+        return &m_stubChunks;
+    }
+
+    [[nodiscard]] const mc::world::chunk::IChunkManager* chunkManager() const override
+    {
+        return &m_stubChunks;
+    }
+
     mc::test::StubChunkManager m_stubChunks{nullptr, true};
 
     [[nodiscard]] world::tick::TickManager& tickManager() override
@@ -122,16 +130,36 @@ public:
         return *m_tickManagerPtr;
     }
 
-    void setRaining(bool raining) { m_isRaining = raining; }
-    void setThundering(bool thundering) { m_isThundering = thundering; }
+    void setRaining(bool raining)
+    {
+        m_isRaining = raining;
+    }
 
-    [[nodiscard]] bool isRaining() const override { return m_isRaining; }
-    [[nodiscard]] bool isThundering() const override { return m_isThundering; }
+    void setThundering(bool thundering)
+    {
+        m_isThundering = thundering;
+    }
 
-    void setBlockAt(const BlockPos& pos, const BlockState* state) { (void)setBlockState(pos.x, pos.y, pos.z, state); }
+    [[nodiscard]] bool isRaining() const override
+    {
+        return m_isRaining;
+    }
+
+    [[nodiscard]] bool isThundering() const override
+    {
+        return m_isThundering;
+    }
+
+    void setBlockAt(const BlockPos& pos, const BlockState* state)
+    {
+        (void)setBlockState(pos.x, pos.y, pos.z, state);
+    }
 
     /// 设置随机数种子以控制 nextFloat() 结果
-    void setRandomSeed(u64 seed) { m_random.setSeed(seed); }
+    void setRandomSeed(u64 seed)
+    {
+        m_random.setSeed(seed);
+    }
 
     /// 获取指定位置的水炼药锅水位
     [[nodiscard]] i32 getCauldronLevel(const BlockPos& pos) const
@@ -542,9 +570,15 @@ public:
         setHealth(20.0f);
     }
 
-    [[nodiscard]] bool isImmuneToFire() const override { return m_immuneToFire; }
+    [[nodiscard]] bool isImmuneToFire() const override
+    {
+        return m_immuneToFire;
+    }
 
-    void setImmuneToFire(bool immune) { m_immuneToFire = immune; }
+    void setImmuneToFire(bool immune)
+    {
+        m_immuneToFire = immune;
+    }
 
 private:
     bool m_immuneToFire = false;
@@ -1035,8 +1069,16 @@ public:
         return setBlockState(x, y, z, state);
     }
 
-    [[nodiscard]] mc::world::chunk::IChunkManager* chunkManager() override { return &m_stubChunks; }
-    [[nodiscard]] const mc::world::chunk::IChunkManager* chunkManager() const override { return &m_stubChunks; }
+    [[nodiscard]] mc::world::chunk::IChunkManager* chunkManager() override
+    {
+        return &m_stubChunks;
+    }
+
+    [[nodiscard]] const mc::world::chunk::IChunkManager* chunkManager() const override
+    {
+        return &m_stubChunks;
+    }
+
     mc::test::StubChunkManager m_stubChunks{nullptr, true};
 
     [[nodiscard]] world::tick::TickManager& tickManager() override
@@ -1051,15 +1093,35 @@ public:
         return *m_tickManagerPtr;
     }
 
-    void setRaining(bool raining) { m_isRaining = raining; }
-    void setThundering(bool thundering) { m_isThundering = thundering; }
+    void setRaining(bool raining)
+    {
+        m_isRaining = raining;
+    }
 
-    [[nodiscard]] bool isRaining() const override { return m_isRaining; }
-    [[nodiscard]] bool isThundering() const override { return m_isThundering; }
+    void setThundering(bool thundering)
+    {
+        m_isThundering = thundering;
+    }
 
-    void setBlockAt(const BlockPos& pos, const BlockState* state) { (void)setBlockState(pos.x, pos.y, pos.z, state); }
+    [[nodiscard]] bool isRaining() const override
+    {
+        return m_isRaining;
+    }
 
-    void setRandomSeed(u64 seed) { m_random.setSeed(seed); }
+    [[nodiscard]] bool isThundering() const override
+    {
+        return m_isThundering;
+    }
+
+    void setBlockAt(const BlockPos& pos, const BlockState* state)
+    {
+        (void)setBlockState(pos.x, pos.y, pos.z, state);
+    }
+
+    void setRandomSeed(u64 seed)
+    {
+        m_random.setSeed(seed);
+    }
 
     [[nodiscard]] i32 getCauldronLevel(const BlockPos& pos) const
     {
@@ -1412,8 +1474,16 @@ public:
         return setBlockState(x, y, z, state);
     }
 
-    [[nodiscard]] mc::world::chunk::IChunkManager* chunkManager() override { return &m_stubChunks; }
-    [[nodiscard]] const mc::world::chunk::IChunkManager* chunkManager() const override { return &m_stubChunks; }
+    [[nodiscard]] mc::world::chunk::IChunkManager* chunkManager() override
+    {
+        return &m_stubChunks;
+    }
+
+    [[nodiscard]] const mc::world::chunk::IChunkManager* chunkManager() const override
+    {
+        return &m_stubChunks;
+    }
+
     mc::test::StubChunkManager m_stubChunks{nullptr, true};
 
     [[nodiscard]] world::tick::TickManager& tickManager() override
@@ -1428,19 +1498,45 @@ public:
         return *m_tickManagerPtr;
     }
 
-    [[nodiscard]] bool isClientSide() const override { return m_isClientSide; }
+    [[nodiscard]] bool isClientSide() const override
+    {
+        return m_isClientSide;
+    }
 
-    void setClientSide(bool clientSide) { m_isClientSide = clientSide; }
+    void setClientSide(bool clientSide)
+    {
+        m_isClientSide = clientSide;
+    }
 
-    void setRaining(bool raining) { m_isRaining = raining; }
-    void setThundering(bool thundering) { m_isThundering = thundering; }
+    void setRaining(bool raining)
+    {
+        m_isRaining = raining;
+    }
 
-    [[nodiscard]] bool isRaining() const override { return m_isRaining; }
-    [[nodiscard]] bool isThundering() const override { return m_isThundering; }
+    void setThundering(bool thundering)
+    {
+        m_isThundering = thundering;
+    }
 
-    void setBlockAt(const BlockPos& pos, const BlockState* state) { (void)setBlockState(pos.x, pos.y, pos.z, state); }
+    [[nodiscard]] bool isRaining() const override
+    {
+        return m_isRaining;
+    }
 
-    void setRandomSeed(u64 seed) { m_random.setSeed(seed); }
+    [[nodiscard]] bool isThundering() const override
+    {
+        return m_isThundering;
+    }
+
+    void setBlockAt(const BlockPos& pos, const BlockState* state)
+    {
+        (void)setBlockState(pos.x, pos.y, pos.z, state);
+    }
+
+    void setRandomSeed(u64 seed)
+    {
+        m_random.setSeed(seed);
+    }
 
     // IWorld stub 方法
     void playSound(const ResourceLocation& soundId,
@@ -1454,7 +1550,10 @@ public:
         MC_UNUSED(category, pos, volume, pitch);
     }
 
-    void playEvent(i32 eventId, const BlockPos& pos, i32 data) override { MC_UNUSED(eventId, pos, data); }
+    void playEvent(i32 eventId, const BlockPos& pos, i32 data) override
+    {
+        MC_UNUSED(eventId, pos, data);
+    }
 
     void gameEvent(
         const gameevent::GameEvent& event, const BlockPos& pos, const gameevent::GameEvent::Context& context) override
@@ -1463,7 +1562,10 @@ public:
         m_gameEventFired = true;
     }
 
-    [[nodiscard]] bool wasGameEventFired() const { return m_gameEventFired; }
+    [[nodiscard]] bool wasGameEventFired() const
+    {
+        return m_gameEventFired;
+    }
 
     EntityInstanceId spawnEntity(std::unique_ptr<Entity> entity) override
     {
@@ -1473,9 +1575,20 @@ public:
     }
 
     // 测试辅助方法
-    [[nodiscard]] bool wasSoundPlayed() const { return m_soundPlayed; }
-    [[nodiscard]] const ResourceLocation& lastSoundId() const { return m_lastSoundId; }
-    [[nodiscard]] size_t spawnedEntityCount() const { return m_spawnedEntities.size(); }
+    [[nodiscard]] bool wasSoundPlayed() const
+    {
+        return m_soundPlayed;
+    }
+
+    [[nodiscard]] const ResourceLocation& lastSoundId() const
+    {
+        return m_lastSoundId;
+    }
+
+    [[nodiscard]] size_t spawnedEntityCount() const
+    {
+        return m_spawnedEntities.size();
+    }
 
     [[nodiscard]] i32 getCauldronLevel(const BlockPos& pos) const
     {

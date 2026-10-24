@@ -42,12 +42,24 @@ class ListJigsawPiece : public JigsawPiece {
 public:
     explicit ListJigsawPiece(JigsawPlacementBehaviour behaviour = JigsawPlacementBehaviour::Rigid);
 
-    const std::string& getTypeName() const override { return s_typeName; }
+    const std::string& getTypeName() const override
+    {
+        return s_typeName;
+    }
+
     std::unique_ptr<JigsawPiece> clone() const override;
 
     void addPiece(std::unique_ptr<JigsawPiece> piece);
-    const std::vector<std::unique_ptr<JigsawPiece>>& getPieces() const { return m_pieces; }
-    size_t getPieceCount() const { return m_pieces.size(); }
+
+    const std::vector<std::unique_ptr<JigsawPiece>>& getPieces() const
+    {
+        return m_pieces;
+    }
+
+    size_t getPieceCount() const
+    {
+        return m_pieces.size();
+    }
 
     void place(IWorldWriter& world,
         const PlacedPiece& placed,

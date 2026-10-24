@@ -140,29 +140,68 @@ public:
     /// reason 为纯文本，内部包成 NBT 文本组件。已断开时为幂等 no-op。
     void disconnect(const std::string& reason) override;
 
-    [[nodiscard]] HandshakeState state() const noexcept { return m_state; }
-    void setState(HandshakeState s) noexcept { m_state = s; }
+    [[nodiscard]] HandshakeState state() const noexcept
+    {
+        return m_state;
+    }
 
-    [[nodiscard]] u32 sessionId() const noexcept { return m_sessionId; }
-    [[nodiscard]] bool isLocalMode() const noexcept { return m_conn.isLocalMode(); }
-    [[nodiscard]] bool isConnected() const noexcept override { return m_conn.isConnected(); }
-    [[nodiscard]] mc::network::protocol::ConnectionProtocol phase() const noexcept { return m_conn.phase(); }
-    void setPhase(mc::network::protocol::ConnectionProtocol p) noexcept { m_conn.setPhase(p); }
+    void setState(HandshakeState s) noexcept
+    {
+        m_state = s;
+    }
+
+    [[nodiscard]] u32 sessionId() const noexcept
+    {
+        return m_sessionId;
+    }
+
+    [[nodiscard]] bool isLocalMode() const noexcept
+    {
+        return m_conn.isLocalMode();
+    }
+
+    [[nodiscard]] bool isConnected() const noexcept override
+    {
+        return m_conn.isConnected();
+    }
+
+    [[nodiscard]] mc::network::protocol::ConnectionProtocol phase() const noexcept
+    {
+        return m_conn.phase();
+    }
+
+    void setPhase(mc::network::protocol::ConnectionProtocol p) noexcept
+    {
+        m_conn.setPhase(p);
+    }
+
     /// 入站阶段（解码表）。对齐 MC Java setupInboundProtocol。
     [[nodiscard]] mc::network::protocol::ConnectionProtocol inboundPhase() const noexcept
     {
         return m_conn.inboundPhase();
     }
-    void setInboundPhase(mc::network::protocol::ConnectionProtocol p) noexcept { m_conn.setInboundPhase(p); }
+
+    void setInboundPhase(mc::network::protocol::ConnectionProtocol p) noexcept
+    {
+        m_conn.setInboundPhase(p);
+    }
+
     /// 出站阶段（编码表）。对齐 MC Java setupOutboundProtocol。监听器在发新阶段包前显式切换。
     [[nodiscard]] mc::network::protocol::ConnectionProtocol outboundPhase() const noexcept
     {
         return m_conn.outboundPhase();
     }
-    void setOutboundPhase(mc::network::protocol::ConnectionProtocol p) noexcept { m_conn.setOutboundPhase(p); }
+
+    void setOutboundPhase(mc::network::protocol::ConnectionProtocol p) noexcept
+    {
+        m_conn.setOutboundPhase(p);
+    }
 
     /// 装入压缩层（收到 LoginCompression 阈值后）
-    void setupCompression(i32 threshold) { m_conn.setupCompression(threshold); }
+    void setupCompression(i32 threshold)
+    {
+        m_conn.setupCompression(threshold);
+    }
 
     /// 装入加密层（在线模式 RSA 握手后）
     [[nodiscard]] Result<void> setupEncryption(const std::array<u8, mc::network::crypto::kSharedSecretBytes>& secret)
@@ -170,12 +209,22 @@ public:
         return m_conn.setupEncryption(secret);
     }
 
-    [[nodiscard]] ClientConn& raw() noexcept { return m_conn; }
-    [[nodiscard]] const ClientConn& raw() const noexcept { return m_conn; }
+    [[nodiscard]] ClientConn& raw() noexcept
+    {
+        return m_conn;
+    }
+
+    [[nodiscard]] const ClientConn& raw() const noexcept
+    {
+        return m_conn;
+    }
 
     /// IServerClientConnection::peerAddress：返回构造时快照的对端地址（Wire 模式
     /// "host:port"，Local 模式空串）。socket close 后仍可用（地址在构造时缓存）。
-    [[nodiscard]] std::string peerAddress() const override { return m_peerAddress; }
+    [[nodiscard]] std::string peerAddress() const override
+    {
+        return m_peerAddress;
+    }
 
 private:
     // 注意声明顺序：m_peerAddress 须先于 m_conn，使初始化列表中先取 wireTransport

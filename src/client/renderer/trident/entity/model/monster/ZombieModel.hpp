@@ -55,12 +55,18 @@ public:
      * @brief 设置攻击状态
      * @param aggressive 是否处于攻击状态
      */
-    void setAggressive(bool aggressive) { m_isAggressive = aggressive; }
+    void setAggressive(bool aggressive)
+    {
+        m_isAggressive = aggressive;
+    }
 
     /**
      * @brief 获取攻击状态
      */
-    [[nodiscard]] bool isAggressive() const { return m_isAggressive; }
+    [[nodiscard]] bool isAggressive() const
+    {
+        return m_isAggressive;
+    }
 
 private:
     void setupParts() override;

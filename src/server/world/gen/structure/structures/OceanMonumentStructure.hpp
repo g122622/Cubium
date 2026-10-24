@@ -53,7 +53,10 @@ class OceanMonumentStructure : public Structure {
 public:
     explicit OceanMonumentStructure(ResourceLocation id);
 
-    [[nodiscard]] const std::string& name() const override { return m_name; }
+    [[nodiscard]] const std::string& name() const override
+    {
+        return m_name;
+    }
 
     /**
      * @brief 获取结构关联的生物群系标签
@@ -67,7 +70,10 @@ public:
      *
      * 守卫者在完整结构边界框内生成（4 只守卫者）。
      */
-    [[nodiscard]] const SpawnOverrides* spawnOverrides() const override { return &m_spawnOverrides; }
+    [[nodiscard]] const SpawnOverrides* spawnOverrides() const override
+    {
+        return &m_spawnOverrides;
+    }
 
     /**
      * @brief 检查是否可以生成

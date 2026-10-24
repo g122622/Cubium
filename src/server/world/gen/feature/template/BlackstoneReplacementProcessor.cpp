@@ -228,7 +228,9 @@ std::optional<ProcessedBlockInfo> BlackstoneReplacementProcessor::process(const 
                     if (parsedValue) {
                         // 遍历目标方块的所有状态，找到具有目标属性值的状态
                         for (const auto& candidate : targetContainer.validStates()) {
-                            if (!candidate) continue;
+                            if (!candidate) {
+                                continue;
+                            }
                             auto targetValueIndex = candidate->getValueIndex(*targetFacingProp);
                             if (targetValueIndex.has_value() && *targetValueIndex == *parsedValue) {
                                 targetState = candidate.get();
@@ -250,7 +252,9 @@ std::optional<ProcessedBlockInfo> BlackstoneReplacementProcessor::process(const 
                     auto parsedValue = targetHalfProp->parseValue(valueStr);
                     if (parsedValue) {
                         for (const auto& candidate : targetContainer.validStates()) {
-                            if (!candidate) continue;
+                            if (!candidate) {
+                                continue;
+                            }
                             // 检查是否保持 FACING 值
                             auto targetFacingValueIndex =
                                 targetFacingProp ? candidate->getValueIndex(*targetFacingProp) : std::nullopt;
@@ -259,7 +263,9 @@ std::optional<ProcessedBlockInfo> BlackstoneReplacementProcessor::process(const 
                             bool facingMatches = (targetFacingProp == nullptr) ||
                                 (targetFacingValueIndex.has_value() && sourceFacingValueIndex.has_value() &&
                                     *targetFacingValueIndex == *sourceFacingValueIndex);
-                            if (!facingMatches) continue;
+                            if (!facingMatches) {
+                                continue;
+                            }
 
                             auto targetValueIndex = candidate->getValueIndex(*targetHalfProp);
                             if (targetValueIndex.has_value() && *targetValueIndex == *parsedValue) {
@@ -282,7 +288,9 @@ std::optional<ProcessedBlockInfo> BlackstoneReplacementProcessor::process(const 
                     auto parsedValue = targetTypeProp->parseValue(valueStr);
                     if (parsedValue) {
                         for (const auto& candidate : targetContainer.validStates()) {
-                            if (!candidate) continue;
+                            if (!candidate) {
+                                continue;
+                            }
                             auto targetValueIndex = candidate->getValueIndex(*targetTypeProp);
                             if (targetValueIndex.has_value() && *targetValueIndex == *parsedValue) {
                                 targetState = candidate.get();

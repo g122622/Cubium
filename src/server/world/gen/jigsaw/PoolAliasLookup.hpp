@@ -62,8 +62,9 @@ public:
      */
     explicit PoolAliasLookup(const PoolAliasBindings& bindings, math::IRandom& rng)
     {
-        bindings.forEachResolved(
-            rng, [this](const ResourceLocation& alias, const ResourceLocation& target) { m_map[alias] = target; });
+        bindings.forEachResolved(rng, [this](const ResourceLocation& alias, const ResourceLocation& target) {
+            m_map[alias] = target;
+        });
     }
 
     /**
@@ -83,7 +84,10 @@ public:
     /**
      * @brief 是否为空（无任何别名映射）
      */
-    [[nodiscard]] bool isEmpty() const noexcept { return m_map.empty(); }
+    [[nodiscard]] bool isEmpty() const noexcept
+    {
+        return m_map.empty();
+    }
 
 private:
     std::unordered_map<ResourceLocation, ResourceLocation> m_map;

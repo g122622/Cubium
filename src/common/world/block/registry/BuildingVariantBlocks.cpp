@@ -120,8 +120,6 @@ Block* BuildingVariantBlocks::RED_SANDSTONE_WALL = nullptr;
 Block* BuildingVariantBlocks::GRANITE_WALL = nullptr;
 Block* BuildingVariantBlocks::DIORITE_WALL = nullptr;
 Block* BuildingVariantBlocks::ANDESITE_WALL = nullptr;
-Block* BuildingVariantBlocks::QUARTZ_WALL = nullptr;
-Block* BuildingVariantBlocks::PURPUR_WALL = nullptr;
 
 // 栅栏
 Block* BuildingVariantBlocks::OAK_FENCE = nullptr;
@@ -201,6 +199,9 @@ void registerBuildingVariantBlocks()
 {
     auto& registry = BlockRegistry::instance();
 
+    // 硬度规则（原版）：楼梯、墙、台阶都沿用基方块硬度（BlockBehaviour 的
+    // SlabBlock/StairsBlock/WallBlock 构造时不会再叠加 0.5）。下面的数值已按此
+    // 逐条核对，差分能力 block_properties 负责守住。
     // ========== 楼梯 ==========
     // 橡木楼梯
     BuildingVariantBlocks::OAK_STAIRS =
@@ -387,7 +388,7 @@ void registerBuildingVariantBlocks()
     // 石头台阶
     BuildingVariantBlocks::STONE_SLAB =
         &registry.registerBlock<blocks::SlabBlock>(ResourceLocation("minecraft:stone_slab"),
-            BlockProperties(Material::ROCK).hardness(1.5f).resistance(6.0f).harvestTool(HarvestTool::Pickaxe));
+            BlockProperties(Material::ROCK).hardness(2.0f).resistance(6.0f).harvestTool(HarvestTool::Pickaxe));
 
     // 圆石台阶
     BuildingVariantBlocks::COBBLESTONE_SLAB =
@@ -447,7 +448,7 @@ void registerBuildingVariantBlocks()
     // 石英台阶
     BuildingVariantBlocks::QUARTZ_SLAB =
         &registry.registerBlock<blocks::SlabBlock>(ResourceLocation("minecraft:quartz_slab"),
-            BlockProperties(Material::ROCK).hardness(0.8f).resistance(0.8f).harvestTool(HarvestTool::Pickaxe));
+            BlockProperties(Material::ROCK).hardness(2.0f).resistance(0.8f).harvestTool(HarvestTool::Pickaxe));
 
     // 平滑石英台阶
     BuildingVariantBlocks::SMOOTH_QUARTZ_SLAB =
@@ -457,12 +458,12 @@ void registerBuildingVariantBlocks()
     // 紫珀台阶
     BuildingVariantBlocks::PURPUR_SLAB =
         &registry.registerBlock<blocks::SlabBlock>(ResourceLocation("minecraft:purpur_slab"),
-            BlockProperties(Material::ROCK).hardness(1.5f).resistance(6.0f).harvestTool(HarvestTool::Pickaxe));
+            BlockProperties(Material::ROCK).hardness(2.0f).resistance(6.0f).harvestTool(HarvestTool::Pickaxe));
 
     // 红砂岩台阶
     BuildingVariantBlocks::RED_SANDSTONE_SLAB =
         &registry.registerBlock<blocks::SlabBlock>(ResourceLocation("minecraft:red_sandstone_slab"),
-            BlockProperties(Material::ROCK).hardness(0.8f).resistance(0.8f).harvestTool(HarvestTool::Pickaxe));
+            BlockProperties(Material::ROCK).hardness(2.0f).resistance(0.8f).harvestTool(HarvestTool::Pickaxe));
 
     // 平滑红砂岩台阶
     BuildingVariantBlocks::SMOOTH_RED_SANDSTONE_SLAB =
@@ -492,19 +493,19 @@ void registerBuildingVariantBlocks()
     // 海晶台阶
     BuildingBlocks::PRISMARINE_SLAB =
         &registry.registerBlock<blocks::SlabBlock>(ResourceLocation("minecraft:prismarine_slab"),
-            BlockProperties(Material::ROCK).hardness(1.5f).resistance(6.0f).harvestTool(HarvestTool::Pickaxe));
+            BlockProperties(Material::ROCK).hardness(2.0f).resistance(6.0f).harvestTool(HarvestTool::Pickaxe));
     BuildingBlocks::PRISMARINE_BRICK_SLAB =
         &registry.registerBlock<blocks::SlabBlock>(ResourceLocation("minecraft:prismarine_brick_slab"),
-            BlockProperties(Material::ROCK).hardness(1.5f).resistance(6.0f).harvestTool(HarvestTool::Pickaxe));
+            BlockProperties(Material::ROCK).hardness(2.0f).resistance(6.0f).harvestTool(HarvestTool::Pickaxe));
     BuildingBlocks::DARK_PRISMARINE_SLAB =
         &registry.registerBlock<blocks::SlabBlock>(ResourceLocation("minecraft:dark_prismarine_slab"),
-            BlockProperties(Material::ROCK).hardness(1.5f).resistance(6.0f).harvestTool(HarvestTool::Pickaxe));
+            BlockProperties(Material::ROCK).hardness(2.0f).resistance(6.0f).harvestTool(HarvestTool::Pickaxe));
 
     // ========== 墙 ==========
     // 圆石墙
     BuildingVariantBlocks::COBBLESTONE_WALL =
         &registry.registerBlock<blocks::WallBlock>(ResourceLocation("minecraft:cobblestone_wall"),
-            BlockProperties(Material::ROCK).hardness(1.5f).resistance(6.0f).harvestTool(HarvestTool::Pickaxe));
+            BlockProperties(Material::ROCK).hardness(2.0f).resistance(6.0f).harvestTool(HarvestTool::Pickaxe));
 
     // 石砖墙
     BuildingVariantBlocks::STONE_BRICK_WALL =
@@ -551,15 +552,9 @@ void registerBuildingVariantBlocks()
         &registry.registerBlock<blocks::WallBlock>(ResourceLocation("minecraft:andesite_wall"),
             BlockProperties(Material::ROCK).hardness(1.5f).resistance(6.0f).harvestTool(HarvestTool::Pickaxe));
 
-    // 石英墙（vanilla quartz_wall，硬度 0.8、抗爆 0.8）
-    BuildingVariantBlocks::QUARTZ_WALL =
-        &registry.registerBlock<blocks::WallBlock>(ResourceLocation("minecraft:quartz_wall"),
-            BlockProperties(Material::ROCK).hardness(0.8f).resistance(0.8f).harvestTool(HarvestTool::Pickaxe));
-
-    // 紫珀墙（vanilla purpur_wall，硬度 1.5、抗爆 6.0）
-    BuildingVariantBlocks::PURPUR_WALL =
-        &registry.registerBlock<blocks::WallBlock>(ResourceLocation("minecraft:purpur_wall"),
-            BlockProperties(Material::ROCK).hardness(1.5f).resistance(6.0f).harvestTool(HarvestTool::Pickaxe));
+    // 注：vanilla 1.21.11 并没有 quartz_wall / purpur_wall 这两个方块
+    // （差分测试 tests/diff 与原版 jar 逐状态比对确认，原版独有 0 条、Cubium 多出 648 条）。
+    // 曾按「其他材质都有墙」推断补注册，属于凭空多出的方块，已移除。
 
     // ========== 栅栏 ==========
     // 橡木栅栏
@@ -586,7 +581,7 @@ void registerBuildingVariantBlocks()
     // 木活板门（所有木材类型）
     // 木活板门属性: 硬度3.0, 抗爆3.0, 可燃
     BlockProperties woodTrapdoorProps =
-        BlockProperties(Material::WOOD).hardness(3.0f).resistance(3.0f).flammable().ignitedByLava().noOcclusion();
+        BlockProperties(Material::WOOD).hardness(3.0f).resistance(3.0f).flammable().ignitedByLava();
 
     BuildingVariantBlocks::OAK_TRAPDOOR = &registry.registerBlock<blocks::TrapDoorBlock>(
         ResourceLocation("minecraft:oak_trapdoor"), woodTrapdoorProps, false);
@@ -602,47 +597,35 @@ void registerBuildingVariantBlocks()
         ResourceLocation("minecraft:dark_oak_trapdoor"), woodTrapdoorProps, false);
 
     // 下界木材活板门（不可燃）
-    BlockProperties netherWoodTrapdoorProps =
-        BlockProperties(Material::NETHER_WOOD).hardness(3.0f).resistance(3.0f).noOcclusion();
+    BlockProperties netherWoodTrapdoorProps = BlockProperties(Material::NETHER_WOOD).hardness(3.0f).resistance(3.0f);
     BuildingVariantBlocks::CRIMSON_TRAPDOOR = &registry.registerBlock<blocks::TrapDoorBlock>(
         ResourceLocation("minecraft:crimson_trapdoor"), netherWoodTrapdoorProps, false);
     BuildingVariantBlocks::WARPED_TRAPDOOR = &registry.registerBlock<blocks::TrapDoorBlock>(
         ResourceLocation("minecraft:warped_trapdoor"), netherWoodTrapdoorProps, false);
 
     // 铁活板门
-    BuildingVariantBlocks::IRON_TRAPDOOR = &registry.registerBlock<blocks::TrapDoorBlock>(
-        ResourceLocation("minecraft:iron_trapdoor"),
-        BlockProperties(Material::IRON).hardness(5.0f).resistance(5.0f).harvestTool(HarvestTool::Pickaxe).noOcclusion(),
-        true);
+    BuildingVariantBlocks::IRON_TRAPDOOR =
+        &registry.registerBlock<blocks::TrapDoorBlock>(ResourceLocation("minecraft:iron_trapdoor"),
+            BlockProperties(Material::IRON).hardness(5.0f).resistance(5.0f).harvestTool(HarvestTool::Pickaxe),
+            true);
 
     // ========== 门 ==========
     // 橡木门
     BuildingVariantBlocks::OAK_DOOR = &registry.registerBlock<blocks::DoorBlock>(ResourceLocation("minecraft:oak_door"),
-        BlockProperties(Material::WOOD)
-            .hardness(3.0f)
-            .resistance(3.0f)
-            .notSolid()
-            .flammable()
-            .ignitedByLava()
-            .noOcclusion(),
+        BlockProperties(Material::WOOD).hardness(3.0f).resistance(3.0f).notSolid().flammable().ignitedByLava(),
         false // 不是铁门
     );
 
     // 铁门
     BuildingVariantBlocks::IRON_DOOR =
         &registry.registerBlock<blocks::DoorBlock>(ResourceLocation("minecraft:iron_door"),
-            BlockProperties(Material::IRON).hardness(5.0f).resistance(5.0f).notSolid().noOcclusion(),
+            BlockProperties(Material::IRON).hardness(5.0f).resistance(5.0f).notSolid(),
             true // 是铁门
         );
 
     // 其他木门（所有木材类型）
-    BlockProperties woodDoorProps = BlockProperties(Material::WOOD)
-                                        .hardness(3.0f)
-                                        .resistance(3.0f)
-                                        .notSolid()
-                                        .flammable()
-                                        .ignitedByLava()
-                                        .noOcclusion();
+    BlockProperties woodDoorProps =
+        BlockProperties(Material::WOOD).hardness(3.0f).resistance(3.0f).notSolid().flammable().ignitedByLava();
 
     BuildingVariantBlocks::SPRUCE_DOOR =
         &registry.registerBlock<blocks::DoorBlock>(ResourceLocation("minecraft:spruce_door"), woodDoorProps, false);
@@ -657,7 +640,7 @@ void registerBuildingVariantBlocks()
 
     // 下界木材门（不可燃）
     BlockProperties netherWoodDoorProps =
-        BlockProperties(Material::NETHER_WOOD).hardness(3.0f).resistance(3.0f).notSolid().noOcclusion();
+        BlockProperties(Material::NETHER_WOOD).hardness(3.0f).resistance(3.0f).notSolid();
     BuildingVariantBlocks::CRIMSON_DOOR = &registry.registerBlock<blocks::DoorBlock>(
         ResourceLocation("minecraft:crimson_door"), netherWoodDoorProps, false);
     BuildingVariantBlocks::WARPED_DOOR = &registry.registerBlock<blocks::DoorBlock>(
@@ -692,7 +675,7 @@ void registerBuildingVariantBlocks()
         ResourceLocation("minecraft:warped_fence_gate"), netherWoodFenceGateProps);
 
     // ========== 染色玻璃板（16色）==========
-    BlockProperties stainedGlassPaneProps = BlockProperties(Material::GLASS).hardness(0.3f).notSolid().noOcclusion();
+    BlockProperties stainedGlassPaneProps = BlockProperties(Material::GLASS).hardness(0.3f).notSolid();
 
     BuildingVariantBlocks::WHITE_STAINED_GLASS_PANE = &registry.registerBlock<blocks::PaneBlock>(
         ResourceLocation("minecraft:white_stained_glass_pane"), stainedGlassPaneProps);
@@ -731,11 +714,13 @@ void registerBuildingVariantBlocks()
     // 刷怪笼 - 方块实体，生成生物
     BuildingVariantBlocks::SPAWNER =
         &registry.registerBlock<blocks::SpawnerBlock>(ResourceLocation("minecraft:spawner"),
-            BlockProperties(Material::ROCK).hardness(-1.0f).resistance(3600000.0f).noLootTable());
+            // 刷怪笼：硬度 5（原先写的 -1 让它在生存模式永远挖不动）。
+            BlockProperties(Material::ROCK).hardness(5.0f).resistance(5.0f).noLootTable());
 
     // 结构方块 - 创造模式专用，用于保存/加载结构
     BuildingVariantBlocks::STRUCTURE_BLOCK =
         &registry.registerBlock<blocks::StructureBlock>(ResourceLocation("minecraft:structure_block"),
+            // 刷怪笼：硬度 5（原先写的 -1 让它在生存模式永远挖不动）。
             BlockProperties(Material::ROCK).hardness(-1.0f).resistance(3600000.0f).noLootTable());
 
     // 结构空位 - 结构生成时不会替换现有方块
@@ -745,27 +730,31 @@ void registerBuildingVariantBlocks()
 
     // 拼图方块 - Jigsaw 结构生成系统核心
     BuildingVariantBlocks::JIGSAW = &registry.registerBlock<blocks::JigsawBlock>(ResourceLocation("minecraft:jigsaw"),
+        // 刷怪笼：硬度 5（原先写的 -1 让它在生存模式永远挖不动）。
         BlockProperties(Material::ROCK).hardness(-1.0f).resistance(3600000.0f).noLootTable());
 
     // 屏障 - 不可见的不可破坏方块
     BuildingVariantBlocks::BARRIER =
         &registry.registerBlock<blocks::BarrierBlock>(ResourceLocation("minecraft:barrier"),
-            BlockProperties(Material::BARRIER).hardness(-1.0f).resistance(3600000.0f).noOcclusion().noLootTable());
+            BlockProperties(Material::BARRIER).hardness(-1.0f).resistance(3600000.0f).noLootTable());
 
     // 命令方块 - 红石触发型，需要管理员权限
     BuildingVariantBlocks::COMMAND_BLOCK =
         &registry.registerBlock<blocks::CommandBlock>(ResourceLocation("minecraft:command_block"),
-            BlockProperties(Material::ROCK).hardness(-1.0f).resistance(3600000.0f).noOcclusion().noLootTable());
+            // 刷怪笼：硬度 5（原先写的 -1 让它在生存模式永远挖不动）。
+            BlockProperties(Material::ROCK).hardness(-1.0f).resistance(3600000.0f).noLootTable());
 
     // 重复命令方块 - 每tick自动执行，需要管理员权限
     BuildingVariantBlocks::REPEATING_COMMAND_BLOCK =
         &registry.registerBlock<blocks::RepeatingCommandBlock>(ResourceLocation("minecraft:repeating_command_block"),
-            BlockProperties(Material::ROCK).hardness(-1.0f).resistance(3600000.0f).noOcclusion().noLootTable());
+            // 刷怪笼：硬度 5（原先写的 -1 让它在生存模式永远挖不动）。
+            BlockProperties(Material::ROCK).hardness(-1.0f).resistance(3600000.0f).noLootTable());
 
     // 连锁命令方块 - 链式触发，需要管理员权限
     BuildingVariantBlocks::CHAIN_COMMAND_BLOCK =
         &registry.registerBlock<blocks::ChainCommandBlock>(ResourceLocation("minecraft:chain_command_block"),
-            BlockProperties(Material::ROCK).hardness(-1.0f).resistance(3600000.0f).noOcclusion().noLootTable());
+            // 刷怪笼：硬度 5（原先写的 -1 让它在生存模式永远挖不动）。
+            BlockProperties(Material::ROCK).hardness(-1.0f).resistance(3600000.0f).noLootTable());
 
     // ========== 1.21.5+ GameTest 框架调试方块 ==========
 
@@ -778,13 +767,12 @@ void registerBuildingVariantBlocks()
             .hardness(-1.0f)
             .resistance(3600000.0f)
             .noLootTable()
-            .noOcclusion()
-            .opacity(0));
+            .noOcclusion());
 
     // 测试方块 - GameTest 框架的调试方块（start/log/fail/accept 四模式）
     BuildingVariantBlocks::TEST_BLOCK =
         &registry.registerBlock<blocks::TestBlock>(ResourceLocation("minecraft:test_block"),
-            BlockProperties(Material::TEST_BLOCK).hardness(-1.0f).resistance(3600000.0f).noOcclusion().noLootTable());
+            BlockProperties(Material::TEST_BLOCK).hardness(-1.0f).resistance(3600000.0f).noLootTable());
 
     // 测试实例方块 - 标记测试实例结构位置，无遮挡
     BuildingVariantBlocks::TEST_INSTANCE_BLOCK =

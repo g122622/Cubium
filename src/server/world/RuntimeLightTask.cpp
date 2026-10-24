@@ -62,8 +62,9 @@ bool RuntimeLightTask::execute(const std::atomic<bool>& abortSignal)
         fmt::format("({}, {})", m_chunkX, m_chunkZ),
         "positions",
         m_positions.size(),
-        [flow = ::perfetto::Flow::ProcessScoped(ChunkPos(m_chunkX, m_chunkZ).toId())](
-            ::perfetto::EventContext ctx) { flow(ctx); });
+        [flow = ::perfetto::Flow::ProcessScoped(ChunkPos(m_chunkX, m_chunkZ).toId())](::perfetto::EventContext ctx) {
+            flow(ctx);
+        });
 
     // 任务可能被取消（关服/区块卸载），检查后安全跳过
     if (abortSignal.load(std::memory_order::acquire)) {

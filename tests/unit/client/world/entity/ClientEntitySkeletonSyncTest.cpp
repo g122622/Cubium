@@ -109,13 +109,22 @@ void setMobFlagsParam(ClientEntity& entity, i8 value)
 
 class ClientEntitySkeletonSyncTest : public ::testing::Test {
 protected:
-    static void SetUpTestSuite() { Items::initialize(); }
+    static void SetUpTestSuite()
+    {
+        Items::initialize();
+    }
+
     void SetUp() override
     {
         ensureMobFlagsParamAllocated();
         entity = std::make_unique<ClientEntity>(EntityInstanceId(1), "minecraft:skeleton");
     }
-    void TearDown() override { entity.reset(); }
+
+    void TearDown() override
+    {
+        entity.reset();
+    }
+
     std::unique_ptr<ClientEntity> entity;
 };
 
@@ -195,13 +204,22 @@ TEST_F(ClientEntitySkeletonSyncTest, SyncFromDataManager_ReadsCorrectParamId)
 
 class ClientEntityStraySyncTest : public ::testing::Test {
 protected:
-    static void SetUpTestSuite() { Items::initialize(); }
+    static void SetUpTestSuite()
+    {
+        Items::initialize();
+    }
+
     void SetUp() override
     {
         ensureMobFlagsParamAllocated();
         entity = std::make_unique<ClientEntity>(EntityInstanceId(1), "minecraft:stray");
     }
-    void TearDown() override { entity.reset(); }
+
+    void TearDown() override
+    {
+        entity.reset();
+    }
+
     std::unique_ptr<ClientEntity> entity;
 };
 
@@ -234,13 +252,22 @@ TEST_F(ClientEntityStraySyncTest, SyncFromDataManager_FlagCleared_KeepsAggressiv
 
 class ClientEntityBoggedSyncTest : public ::testing::Test {
 protected:
-    static void SetUpTestSuite() { Items::initialize(); }
+    static void SetUpTestSuite()
+    {
+        Items::initialize();
+    }
+
     void SetUp() override
     {
         ensureMobFlagsParamAllocated();
         entity = std::make_unique<ClientEntity>(EntityInstanceId(1), "minecraft:bogged");
     }
-    void TearDown() override { entity.reset(); }
+
+    void TearDown() override
+    {
+        entity.reset();
+    }
+
     std::unique_ptr<ClientEntity> entity;
 };
 
@@ -279,13 +306,22 @@ TEST_F(ClientEntityBoggedSyncTest, SyncFromDataManager_FlagCleared_KeepsAggressi
 
 class ClientEntityWitherSkeletonSyncTest : public ::testing::Test {
 protected:
-    static void SetUpTestSuite() { Items::initialize(); }
+    static void SetUpTestSuite()
+    {
+        Items::initialize();
+    }
+
     void SetUp() override
     {
         ensureMobFlagsParamAllocated();
         entity = std::make_unique<ClientEntity>(EntityInstanceId(1), "minecraft:wither_skeleton");
     }
-    void TearDown() override { entity.reset(); }
+
+    void TearDown() override
+    {
+        entity.reset();
+    }
+
     std::unique_ptr<ClientEntity> entity;
 };
 
@@ -320,8 +356,15 @@ TEST_F(ClientEntityWitherSkeletonSyncTest, SyncFromDataManager_FlagCleared_Keeps
 
 class ClientEntitySkeletonTypeIdNormalizeTest : public ::testing::Test {
 protected:
-    static void SetUpTestSuite() { Items::initialize(); }
-    void SetUp() override { ensureMobFlagsParamAllocated(); }
+    static void SetUpTestSuite()
+    {
+        Items::initialize();
+    }
+
+    void SetUp() override
+    {
+        ensureMobFlagsParamAllocated();
+    }
 };
 
 TEST_F(ClientEntitySkeletonTypeIdNormalizeTest, Skeleton_WithoutPrefix_SyncsAggressive)

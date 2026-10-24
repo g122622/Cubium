@@ -271,28 +271,43 @@ public:
     /**
      * @brief 获取绑定 ID
      */
-    [[nodiscard]] const std::string& id() const noexcept { return m_id; }
+    [[nodiscard]] const std::string& id() const noexcept
+    {
+        return m_id;
+    }
 
     /**
      * @brief 获取默认按键码
      */
-    [[nodiscard]] i32 defaultKey() const noexcept { return m_defaultKey; }
+    [[nodiscard]] i32 defaultKey() const noexcept
+    {
+        return m_defaultKey;
+    }
 
     /**
      * @brief 获取当前按键码
      */
-    [[nodiscard]] i32 key() const noexcept { return m_currentKey; }
+    [[nodiscard]] i32 key() const noexcept
+    {
+        return m_currentKey;
+    }
 
     /**
      * @brief 获取分类 ID
      */
-    [[nodiscard]] const std::string& category() const noexcept { return m_category; }
+    [[nodiscard]] const std::string& category() const noexcept
+    {
+        return m_category;
+    }
 
     /**
      * @brief 获取翻译键（用于 UI 显示）
      * @return 翻译键，如 "key.forward"
      */
-    [[nodiscard]] const std::string& translationKey() const noexcept { return m_id; }
+    [[nodiscard]] const std::string& translationKey() const noexcept
+    {
+        return m_id;
+    }
 
     // ========================================================================
     // 按键设置

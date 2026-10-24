@@ -19,19 +19,42 @@ namespace mc::test {
 class GameTestErrorContext {
 public:
     GameTestErrorContext() noexcept = default;
+
     GameTestErrorContext(BlockPos absolutePosition, BlockPos relativePosition, i32 tickCount) noexcept
         : m_absolutePosition(absolutePosition)
         , m_relativePosition(relativePosition)
         , m_tickCount(tickCount)
     {}
 
-    [[nodiscard]] const BlockPos& absolutePosition() const noexcept { return m_absolutePosition; }
-    [[nodiscard]] const BlockPos& relativePosition() const noexcept { return m_relativePosition; }
-    [[nodiscard]] i32 tickCount() const noexcept { return m_tickCount; }
+    [[nodiscard]] const BlockPos& absolutePosition() const noexcept
+    {
+        return m_absolutePosition;
+    }
 
-    void setAbsolutePosition(BlockPos pos) noexcept { m_absolutePosition = pos; }
-    void setRelativePosition(BlockPos pos) noexcept { m_relativePosition = pos; }
-    void setTickCount(i32 tick) noexcept { m_tickCount = tick; }
+    [[nodiscard]] const BlockPos& relativePosition() const noexcept
+    {
+        return m_relativePosition;
+    }
+
+    [[nodiscard]] i32 tickCount() const noexcept
+    {
+        return m_tickCount;
+    }
+
+    void setAbsolutePosition(BlockPos pos) noexcept
+    {
+        m_absolutePosition = pos;
+    }
+
+    void setRelativePosition(BlockPos pos) noexcept
+    {
+        m_relativePosition = pos;
+    }
+
+    void setTickCount(i32 tick) noexcept
+    {
+        m_tickCount = tick;
+    }
 
 private:
     BlockPos m_absolutePosition;

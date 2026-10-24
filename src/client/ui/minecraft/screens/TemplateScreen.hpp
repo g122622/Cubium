@@ -101,12 +101,30 @@ public:
     [[nodiscard]] kagero::widget::Widget* findWidget(const std::string& id);
     [[nodiscard]] const kagero::widget::Widget* findWidget(const std::string& id) const;
 
-    [[nodiscard]] bool isValid() const { return m_instance != nullptr; }
-    [[nodiscard]] kagero::tpl::runtime::TemplateInstance* instance() { return m_instance.get(); }
-    [[nodiscard]] const kagero::tpl::runtime::TemplateInstance* instance() const { return m_instance.get(); }
+    [[nodiscard]] bool isValid() const
+    {
+        return m_instance != nullptr;
+    }
 
-    [[nodiscard]] kagero::tpl::binder::BindingContext* bindingContext() { return m_context; }
-    [[nodiscard]] const kagero::tpl::binder::BindingContext* bindingContext() const { return m_context; }
+    [[nodiscard]] kagero::tpl::runtime::TemplateInstance* instance()
+    {
+        return m_instance.get();
+    }
+
+    [[nodiscard]] const kagero::tpl::runtime::TemplateInstance* instance() const
+    {
+        return m_instance.get();
+    }
+
+    [[nodiscard]] kagero::tpl::binder::BindingContext* bindingContext()
+    {
+        return m_context;
+    }
+
+    [[nodiscard]] const kagero::tpl::binder::BindingContext* bindingContext() const
+    {
+        return m_context;
+    }
 
 protected:
     bool loadTemplate(const std::string& source);

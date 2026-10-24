@@ -5,7 +5,7 @@
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permitted persons to whom the Software is
+ * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
  *
  * The above copyright notice and this permission notice shall be included in all
@@ -67,21 +67,24 @@ struct ScriptBlockRef {
 [[nodiscard]] inline void* wrapBlock(
     IScriptBindingContext& ctx, const mc::BlockState* state, const mc::BlockPos& pos, mc::IWorld* world)
 {
-    const u64 blockClassId = ScriptClassRegistry::instance().classIdByName("Block");
-    void* blockProto = ScriptClassRegistry::instance().protoByName("Block");
+    const u64 blockClassId = ctx.classRegistry().classIdByName("Block");
+    void* blockProto = ctx.classRegistry().protoByName("Block");
     if (blockClassId == 0 || blockProto == nullptr) {
         // Block 类未注册（绑定期未完成或引擎重建中），防御性返回 undefined。
         return ctx.createUndefined();
     }
     // 构造即交出所有权：由下方 wrap 的 destroy 回调在 JS GC 时释放。
     auto* ref = std::make_unique<ScriptBlockRef>(state, pos, world).release();
+
     return ScriptObjectRegistry::wrap(ctx,
         blockClassId,
         blockProto,
         ref,
         true, // owned：JS GC 时 delete ScriptBlockRef
         "Block",
-        [](void* p) { delete static_cast<ScriptBlockRef*>(p); });
+        [](void* p) {
+            delete static_cast<ScriptBlockRef*>(p);
+        });
 }
 
 /**
@@ -96,10 +99,11 @@ struct ScriptBlockRef {
  */
 [[nodiscard]] inline ScriptBlockRef* unwrapBlock(IScriptBindingContext& ctx, void* val)
 {
-    const u64 blockClassId = ScriptClassRegistry::instance().classIdByName("Block");
+    const u64 blockClassId = ctx.classRegistry().classIdByName("Block");
     if (blockClassId == 0) {
         return nullptr;
     }
+
     return static_cast<ScriptBlockRef*>(ScriptObjectRegistry::unwrap(ctx, val, blockClassId));
 }
 

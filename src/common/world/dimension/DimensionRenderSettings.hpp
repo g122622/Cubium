@@ -129,7 +129,10 @@ struct DimensionRenderSettings {
     /**
      * @brief 获取默认维度设置 (主世界)
      */
-    static DimensionRenderSettings getDefault() noexcept { return overworld(); }
+    static DimensionRenderSettings getDefault() noexcept
+    {
+        return overworld();
+    }
 };
 
 } // namespace mc::world

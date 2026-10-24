@@ -91,7 +91,9 @@ protected:
 
         // 计数 onChunkLoaded/callback 触发次数（m_chunkLoadedCallback 在 _drainPendingPostProcess
         // 中于 onChunkLoaded 之后调用，去重后同一区块只触发一次）。
-        m_manager->setChunkLoadedCallback([this](ChunkCoord, ChunkCoord) { ++m_chunkLoadedCallCount; });
+        m_manager->setChunkLoadedCallback([this](ChunkCoord, ChunkCoord) {
+            ++m_chunkLoadedCallCount;
+        });
 
         ASSERT_TRUE(m_world->initialize().success()) << "ServerWorld::initialize failed";
     }
@@ -135,7 +137,10 @@ protected:
         m_manager->_onTicketLevelChanged(x, z, 46, level);
     }
 
-    void drainUnloadForTest() { m_manager->_drainPendingUnloadFinishes(); }
+    void drainUnloadForTest()
+    {
+        m_manager->_drainPendingUnloadFinishes();
+    }
 };
 
 // ============================================================================

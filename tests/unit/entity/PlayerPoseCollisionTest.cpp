@@ -38,7 +38,10 @@ namespace {
 
 class PlayerPoseCollisionWorld : public mc::test::BaseTestWorld {
 public:
-    void setLowCeiling(bool enabled) { m_lowCeiling = enabled; }
+    void setLowCeiling(bool enabled)
+    {
+        m_lowCeiling = enabled;
+    }
 
     [[nodiscard]] bool hasBlockCollision(const AxisAlignedBB& box) const override
     {
@@ -59,6 +62,7 @@ public:
     {
         throw std::runtime_error("PlayerPoseCollisionWorld::tickManager not implemented");
     }
+
     [[nodiscard]] const world::tick::TickManager& tickManager() const override
     {
         throw std::runtime_error("PlayerPoseCollisionWorld::tickManager not implemented");

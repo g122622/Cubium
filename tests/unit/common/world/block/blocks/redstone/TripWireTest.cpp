@@ -59,7 +59,10 @@ namespace test {
  */
 class TripWireTestWorld final : public ::mc::test::BaseTestWorld {
 public:
-    TripWireTestWorld() { m_worldBorder.setSize(60000000.0); }
+    TripWireTestWorld()
+    {
+        m_worldBorder.setSize(60000000.0);
+    }
 
     // ========== 方块访问 ==========
 
@@ -82,11 +85,20 @@ public:
         return true;
     }
 
-    [[nodiscard]] u64 currentTick() const override { return m_currentTick; }
+    [[nodiscard]] u64 currentTick() const override
+    {
+        return m_currentTick;
+    }
 
-    [[nodiscard]] bool isClientSide() const override { return m_isClientSide; }
+    [[nodiscard]] bool isClientSide() const override
+    {
+        return m_isClientSide;
+    }
 
-    void setClientSide(bool isClient) { m_isClientSide = isClient; }
+    void setClientSide(bool isClient)
+    {
+        m_isClientSide = isClient;
+    }
 
     [[nodiscard]] world::tick::TickManager& tickManager() override
     {
@@ -109,9 +121,15 @@ public:
         }
     }
 
-    const BlockState* getBlockAt(const BlockPos& pos) const { return getBlockState(pos.x, pos.y, pos.z); }
+    const BlockState* getBlockAt(const BlockPos& pos) const
+    {
+        return getBlockState(pos.x, pos.y, pos.z);
+    }
 
-    void clearState() { m_blocks.clear(); }
+    void clearState()
+    {
+        m_blocks.clear();
+    }
 
 private:
     std::unordered_map<BlockPos, std::unique_ptr<BlockState>> m_blocks;
@@ -124,9 +142,15 @@ private:
  */
 class TripWireTest : public ::testing::Test {
 protected:
-    void SetUp() override { VanillaBlocks::initialize(); }
+    void SetUp() override
+    {
+        VanillaBlocks::initialize();
+    }
 
-    void TearDown() override { m_world.clearState(); }
+    void TearDown() override
+    {
+        m_world.clearState();
+    }
 
     TripWireTestWorld m_world;
 };

@@ -166,7 +166,10 @@ public:
     /**
      * @brief 已注册条目数量
      */
-    [[nodiscard]] size_t size() const { return m_byEntity.size(); }
+    [[nodiscard]] size_t size() const
+    {
+        return m_byEntity.size();
+    }
 
 private:
     struct Entry {

@@ -233,7 +233,9 @@ bool RabbitEntity::isBreedingItem(const ItemStack& itemStack) const
 {
     // 兔子用胡萝卜、金胡萝卜、蒲公英繁殖
     const Item* item = itemStack.getItem();
-    if (item == nullptr) return false;
+    if (item == nullptr) {
+        return false;
+    }
 
     // 检查胡萝卜和金胡萝卜
     if (item == Items::CARROT || item == Items::GOLDEN_CARROT) {
@@ -632,7 +634,9 @@ void RabbitEntity::registerGoals()
             2.2,  // nearSpeed - 近距离逃跑速度
             [this](const LivingEntity* entity) -> bool {
                 // 杀手兔不逃离
-                if (isKillerRabbit()) return false;
+                if (isKillerRabbit()) {
+                    return false;
+                }
                 // 检查是否是玩家
                 return dynamic_cast<const Player*>(entity) != nullptr;
             }));
@@ -644,7 +648,9 @@ void RabbitEntity::registerGoals()
             2.2,   // farSpeed
             2.2,   // nearSpeed
             [this](const LivingEntity* entity) -> bool {
-                if (isKillerRabbit()) return false;
+                if (isKillerRabbit()) {
+                    return false;
+                }
                 return entity->entityType() == entity::VanillaEntityTypeKeys::WOLF;
             }));
 
@@ -655,7 +661,9 @@ void RabbitEntity::registerGoals()
             2.2,  // farSpeed
             2.2,  // nearSpeed
             [this](const LivingEntity* entity) -> bool {
-                if (isKillerRabbit()) return false;
+                if (isKillerRabbit()) {
+                    return false;
+                }
                 // 检查是否是敌对生物
                 return dynamic_cast<const MonsterEntity*>(entity) != nullptr;
             }));
@@ -670,7 +678,9 @@ void RabbitEntity::registerGoals()
             1.0,
             [](const ItemStack& stack) -> bool {
                 const Item* item = stack.getItem();
-                if (item == nullptr) return false;
+                if (item == nullptr) {
+                    return false;
+                }
 
                 // 胡萝卜和金胡萝卜
                 if (item == Items::CARROT || item == Items::GOLDEN_CARROT) {

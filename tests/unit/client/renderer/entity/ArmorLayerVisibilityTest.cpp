@@ -48,7 +48,10 @@ enum class ArmorSlot : u8 {
  */
 class ArmorLayerVisibilityTest : public ::testing::Test {
 protected:
-    void SetUp() override { m_model = std::make_unique<BipedModel>(); }
+    void SetUp() override
+    {
+        m_model = std::make_unique<BipedModel>();
+    }
 
     /**
      * @brief 模拟 ArmorLayer::setModelSlotVisible 实现

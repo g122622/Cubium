@@ -59,7 +59,10 @@ public:
      *
      * 可投掷物品有固定的重力加速度 0.03
      */
-    [[nodiscard]] f32 getGravity() const override { return 0.03f; }
+    [[nodiscard]] f32 getGravity() const override
+    {
+        return 0.03f;
+    }
 
 protected:
     /**

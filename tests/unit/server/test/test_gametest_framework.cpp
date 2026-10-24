@@ -82,6 +82,7 @@ public:
     {
         return std::make_unique<mc::test::NullGameTestHelper>();
     }
+
     std::unique_ptr<mc::test::IGameTestHelperProvider> clone() const override
     {
         return std::make_unique<_TimeoutHelperProvider>();
@@ -95,17 +96,32 @@ public:
     {}
 
 protected:
-    bool hasStructureBlock() const override { return true; }
+    bool hasStructureBlock() const override
+    {
+        return true;
+    }
+
     void clearStructure() override {}
+
     void spawnStructure() override {}
-    mc::i32 _getLevelTick() const override { return 0; }
-    bool _isTestReady() override { return true; }
+
+    mc::i32 _getLevelTick() const override
+    {
+        return 0;
+    }
+
+    bool _isTestReady() override
+    {
+        return true;
+    }
 };
 
 std::shared_ptr<mc::test::NativeGameTestFunction> _timeoutFunction(const std::string& name)
 {
     return std::make_shared<mc::test::NativeGameTestFunction>(
-        "timeouts", name, "empty", mc::test::TestData{}, [](mc::test::IGameTestHelper&) { return mc::test::pass(); });
+        "timeouts", name, "empty", mc::test::TestData{}, [](mc::test::IGameTestHelper&) {
+            return mc::test::pass();
+        });
 }
 } // namespace
 
@@ -113,9 +129,10 @@ TEST(GameTestTimeout, WatchdogFiresWhileCallingThreadWaits)
 {
     std::promise<std::string> expired;
     auto result = expired.get_future();
-    mc::test::GameTestWatchdog watchdog(std::chrono::steady_clock::now() + std::chrono::milliseconds(30),
-        "tick",
-        [&](const std::string& phase) { expired.set_value(phase); });
+    mc::test::GameTestWatchdog watchdog(
+        std::chrono::steady_clock::now() + std::chrono::milliseconds(30), "tick", [&](const std::string& phase) {
+            expired.set_value(phase);
+        });
     ASSERT_EQ(result.wait_for(std::chrono::seconds(3)), std::future_status::ready);
     EXPECT_EQ(result.get(), "tick");
 }
@@ -124,9 +141,10 @@ TEST(GameTestTimeout, EarlierBatchDeadlineReplacesSuiteDeadline)
 {
     std::promise<std::string> expired;
     auto result = expired.get_future();
-    mc::test::GameTestWatchdog watchdog(std::chrono::steady_clock::now() + std::chrono::hours(1),
-        "suite",
-        [&](const std::string& phase) { expired.set_value(phase); });
+    mc::test::GameTestWatchdog watchdog(
+        std::chrono::steady_clock::now() + std::chrono::hours(1), "suite", [&](const std::string& phase) {
+            expired.set_value(phase);
+        });
     watchdog.arm(std::chrono::steady_clock::now() + std::chrono::milliseconds(30), "batch");
     ASSERT_EQ(result.wait_for(std::chrono::seconds(3)), std::future_status::ready);
     EXPECT_EQ(result.get(), "batch");
@@ -136,9 +154,10 @@ TEST(GameTestTimeout, FinishedTickDisarmsItsShortDeadline)
 {
     std::promise<std::string> expired;
     auto result = expired.get_future();
-    mc::test::GameTestWatchdog watchdog(std::chrono::steady_clock::now() + std::chrono::milliseconds(200),
-        "tick",
-        [&](const std::string& phase) { expired.set_value(phase); });
+    mc::test::GameTestWatchdog watchdog(
+        std::chrono::steady_clock::now() + std::chrono::milliseconds(200), "tick", [&](const std::string& phase) {
+            expired.set_value(phase);
+        });
     watchdog.arm(std::chrono::steady_clock::now() + std::chrono::milliseconds(500), "batch");
     EXPECT_EQ(result.wait_for(std::chrono::milliseconds(250)), std::future_status::timeout);
     ASSERT_EQ(result.wait_for(std::chrono::seconds(3)), std::future_status::ready);
@@ -149,9 +168,10 @@ TEST(GameTestTimeout, ExpiredTickCannotBeForgivenByNextBatch)
 {
     std::promise<std::string> expired;
     auto result = expired.get_future();
-    mc::test::GameTestWatchdog watchdog(std::chrono::steady_clock::now() - std::chrono::milliseconds(1),
-        "expired tick",
-        [&](const std::string& phase) { expired.set_value(phase); });
+    mc::test::GameTestWatchdog watchdog(
+        std::chrono::steady_clock::now() - std::chrono::milliseconds(1), "expired tick", [&](const std::string& phase) {
+            expired.set_value(phase);
+        });
     watchdog.arm(std::chrono::steady_clock::now() + std::chrono::hours(1), "next batch");
     ASSERT_EQ(result.wait_for(std::chrono::seconds(3)), std::future_status::ready);
     EXPECT_EQ(result.get(), "expired tick");
@@ -162,8 +182,9 @@ TEST(GameTestTimeout, DestructionCancelsOutstandingDeadline)
     bool fired = false;
     const auto started = std::chrono::steady_clock::now();
     {
-        mc::test::GameTestWatchdog watchdog(
-            started + std::chrono::hours(1), "suite", [&](const std::string&) { fired = true; });
+        mc::test::GameTestWatchdog watchdog(started + std::chrono::hours(1), "suite", [&](const std::string&) {
+            fired = true;
+        });
     }
     EXPECT_FALSE(fired);
     EXPECT_LT(std::chrono::steady_clock::now() - started, std::chrono::seconds(1));
@@ -376,7 +397,10 @@ TEST(GameTestFramework, SequenceThenSucceedCompletes)
 {
     mc::test::NullGameTestHelper helper;
     auto& seq = helper.startSequence();
-    seq.thenExecute([] { return mc::test::pass(); }).thenSucceed();
+    seq.thenExecute([] {
+           return mc::test::pass();
+       })
+        .thenSucceed();
     EXPECT_TRUE(_driveSequenceToCompletion(seq, 20));
     EXPECT_TRUE(seq.isComplete());
     EXPECT_TRUE(seq.isSucceeded());
@@ -399,7 +423,9 @@ TEST(GameTestFramework, SequenceThenFailReturnsError)
 {
     mc::test::NullGameTestHelper helper;
     auto& seq = helper.startSequence();
-    seq.thenExecute([] { return mc::test::pass(); })
+    seq.thenExecute([] {
+           return mc::test::pass();
+       })
         .thenFail(mc::test::GameTestError{mc::test::GameTestErrorType::FailConditionsMet, "intentional"});
     bool sawError = false;
     for (mc::i32 t = 0; t < 20 && !seq.isComplete(); ++t) {
@@ -416,7 +442,9 @@ TEST(GameTestFramework, SequenceStepErrorFailsSequence)
 {
     mc::test::NullGameTestHelper helper;
     auto& seq = helper.startSequence();
-    seq.thenExecute([] { return mc::test::fail(mc::test::GameTestErrorType::Assert, "step fail"); });
+    seq.thenExecute([] {
+        return mc::test::fail(mc::test::GameTestErrorType::Assert, "step fail");
+    });
     bool sawError = false;
     for (mc::i32 t = 0; t < 20 && !seq.isComplete(); ++t) {
         if (seq.tick(t).has_value()) {

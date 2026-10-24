@@ -206,10 +206,14 @@ Entity* CombatTracker::getBestAttacker() const
         // 那是裸指针，真凶析构即悬垂，dynamic_cast 读虚表指针时崩溃
         // （实测 SIGSEGV at address 0x38，栈顶 __dynamic_cast）。
         Entity* trueSource = _resolveEntity(entry.trueSourceId());
-        if (!trueSource) continue;
+        if (!trueSource) {
+            continue;
+        }
 
         LivingEntity* livingSource = dynamic_cast<LivingEntity*>(trueSource);
-        if (!livingSource) continue;
+        if (!livingSource) {
+            continue;
+        }
 
         // 用 damage()（本条目的实际伤害值）而非 getDamageAmount()——后者返回的是
         // **摔落距离**，仅供摔落死亡消息链路（_getBestCombatEntry）判定「摔落是否够重」，
@@ -270,7 +274,9 @@ std::string CombatTracker::getDeathMessage() const
         // 找到摔落伤害和攻击伤害
         for (const auto& entry : m_entries) {
             const DamageSource* source = entry.source();
-            if (!source) continue;
+            if (!source) {
+                continue;
+            }
 
             if (source->isFall()) {
                 if (entry.damage() > fallDamage) {
@@ -481,7 +487,9 @@ CombatEntry* CombatTracker::_getBestCombatEntry()
     // 从后往前找摔落或虚空伤害
     for (auto it = m_entries.rbegin(); it != m_entries.rend(); ++it) {
         const DamageSource* source = it->source();
-        if (!source) continue;
+        if (!source) {
+            continue;
+        }
 
         // 检查是否是摔落或虚空伤害
         bool isFallOrVoid = source->isFall() || source->type() == DamageType::OutOfWorld;

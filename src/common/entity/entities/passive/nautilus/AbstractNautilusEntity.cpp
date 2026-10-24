@@ -132,7 +132,9 @@ void AbstractNautilusEntity::createInventory()
     m_inventory = std::make_unique<blockentity::SimpleInventory>(getEquipmentSlotCount());
     // 菜单直接写槽位时不经过 setEquipment，需由库存变更回调回写装备同步数据，
     // 否则客户端鞍/铠甲外观与骑乘判定（isSaddled）不会随 GUI 操作更新。
-    m_inventory->setOnChanged([this]() { _onEquipmentInventoryChanged(); });
+    m_inventory->setOnChanged([this]() {
+        _onEquipmentInventoryChanged();
+    });
 }
 
 void AbstractNautilusEntity::_onEquipmentInventoryChanged()
@@ -773,7 +775,9 @@ void AbstractNautilusEntity::registerGoals()
         std::make_unique<entity::ai::goal::TemptGoal>(
             this,
             1.3,
-            [this](const ItemStack& stack) -> bool { return isTamingItem(stack) || isNautilusFood(stack); },
+            [this](const ItemStack& stack) -> bool {
+                return isTamingItem(stack) || isNautilusFood(stack);
+            },
             false));
 
     // 优先级 4: 近战攻击
@@ -800,8 +804,11 @@ void AbstractNautilusEntity::registerAttributes()
     // 鹦鹉螺基础属性
     attributes().setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 15.0f);
     attributes().setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 1.0f);
+    // 原版 Nautilus.createAttributes 自带 ATTACK_DAMAGE 3。
+    attributes().registerAttribute(*entity::attribute::Attributes::attackDamage());
     attributes().setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, 3.0f);
     attributes().setBaseValue(entity::attribute::Attributes::KNOCKBACK_RESISTANCE, 0.3f);
+    // 原版 Nautilus.createAttributes 显式写 ARMOR 0（默认值也是 0，这里写明以对齐出处）。
 }
 
 // ============================================================================

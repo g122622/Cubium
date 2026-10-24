@@ -40,12 +40,16 @@ public:
     {}
 
     [[nodiscard]] bool test(const IWorld& world, const BlockPos& pos) const override;
+
     [[nodiscard]] std::unique_ptr<BlockPredicate> clone() const override
     {
         return std::make_unique<TagMatchPredicate>(m_tagName);
     }
 
-    [[nodiscard]] const std::string& getTagName() const { return m_tagName; }
+    [[nodiscard]] const std::string& getTagName() const
+    {
+        return m_tagName;
+    }
 
 private:
     std::string m_tagName;

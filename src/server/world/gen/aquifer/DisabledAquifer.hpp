@@ -43,7 +43,10 @@ public:
 
     [[nodiscard]] const BlockState* computeSubstance(i32 blockX, i32 blockY, i32 blockZ, f64 densityValue) override;
 
-    [[nodiscard]] bool shouldScheduleFluidUpdate() const override { return false; }
+    [[nodiscard]] bool shouldScheduleFluidUpdate() const override
+    {
+        return false;
+    }
 
 private:
     FluidPicker m_globalFluidPicker;

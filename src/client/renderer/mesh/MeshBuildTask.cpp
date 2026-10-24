@@ -72,7 +72,9 @@ bool MeshBuildTask::execute(const std::atomic<bool>& abortSignal)
         "BuildMesh",
         "pos",
         fmt::format("({}, {})", m_chunkId.x, m_chunkId.z),
-        [flow = ::perfetto::Flow::ProcessScoped(chunkPos.toId())](::perfetto::EventContext ctx) { flow(ctx); });
+        [flow = ::perfetto::Flow::ProcessScoped(chunkPos.toId())](::perfetto::EventContext ctx) {
+            flow(ctx);
+        });
 
     // 从回收池取出带历史 capacity 的 MeshData，避免每次从 0 重新 reserve。
     // generateSplitMesh 内部的 clear()(只清 size)+ reserve()(capacity 足够时 no-op)会自动复用。

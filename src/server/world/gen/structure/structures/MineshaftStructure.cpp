@@ -169,13 +169,17 @@ std::unique_ptr<MineshaftPiece> addMineshaftPiece(MineshaftPiece* parent,
     MineshaftType type)
 {
     // 检查深度限制
-    if (depth > 8) return nullptr;
+    if (depth > 8) {
+        return nullptr;
+    }
 
     // 检查距离限制（防止无限扩展）
     if (parent) {
         i32 dx = std::abs(x - parent->minX());
         i32 dz = std::abs(z - parent->minZ());
-        if (dx > 80 || dz > 80) return nullptr;
+        if (dx > 80 || dz > 80) {
+            return nullptr;
+        }
     }
 
     // 创建新片段
@@ -459,7 +463,9 @@ void MineshaftCorridor::_generatePillars(
     if (m_direction == 0 || m_direction == 1) {
         // 南北方向：支撑柱在东西两侧
         i32 z = minZ() + (m_sectionCount / 2) * 5 + 2;
-        if (z > maxZ()) z = (minZ() + maxZ()) / 2;
+        if (z > maxZ()) {
+            z = (minZ() + maxZ()) / 2;
+        }
 
         // 西侧支撑柱
         if (chunkBounds.contains(minX(), minY() + 1, z)) {
@@ -472,7 +478,9 @@ void MineshaftCorridor::_generatePillars(
     } else {
         // 东西方向：支撑柱在南北两侧
         i32 x = minX() + (m_sectionCount / 2) * 5 + 2;
-        if (x > maxX()) x = (minX() + maxX()) / 2;
+        if (x > maxX()) {
+            x = (minX() + maxX()) / 2;
+        }
 
         // 北侧支撑柱
         if (chunkBounds.contains(x, minY() + 1, minZ())) {
@@ -515,7 +523,9 @@ void MineshaftCorridor::_generateRails(
 void MineshaftCorridor::_generateSpawner(
     IWorldWriter& world, i32 x, i32 y, i32 z, const StructureBoundingBox& chunkBounds)
 {
-    if (!chunkBounds.contains(x, y, z)) return;
+    if (!chunkBounds.contains(x, y, z)) {
+        return;
+    }
 
     const BlockState* centerState = VanillaBlocks::getState(VanillaBlocks::COBWEB);
     if (!centerState) {
@@ -545,7 +555,9 @@ void MineshaftCorridor::_generateSpawner(
 void MineshaftCorridor::_generateChestMinecart(
     IWorldWriter& world, i32 x, i32 y, i32 z, math::IRandom& /*rng*/, const StructureBoundingBox& chunkBounds)
 {
-    if (!chunkBounds.contains(x, y, z)) return;
+    if (!chunkBounds.contains(x, y, z)) {
+        return;
+    }
 
     const BlockState* railState = VanillaBlocks::getState(VanillaBlocks::RAIL);
     const BlockState* lootMarker = VanillaBlocks::getState(VanillaBlocks::GOLD_BLOCK);
@@ -567,7 +579,9 @@ void MineshaftCorridor::buildComponent(
     std::vector<std::unique_ptr<MineshaftPiece>>& pieces, math::IRandom& rng, i32 maxDepth)
 {
     const i32 depth = genDepth() + 1;
-    if (depth > maxDepth) return;
+    if (depth > maxDepth) {
+        return;
+    }
 
     i32 x, y, z;
 
@@ -651,7 +665,9 @@ void MineshaftCross::buildComponent(
     std::vector<std::unique_ptr<MineshaftPiece>>& pieces, math::IRandom& rng, i32 maxDepth)
 {
     const i32 depth = genDepth() + 1;
-    if (depth > maxDepth) return;
+    if (depth > maxDepth) {
+        return;
+    }
 
     // 交叉点可以向三个方向延伸（除了来的方向）
     for (i32 dir = 0; dir < 4; ++dir) {
@@ -661,7 +677,9 @@ void MineshaftCross::buildComponent(
             continue;
         }
 
-        if (rng.nextInt(3) != 0) continue; // 67% 概率跳过
+        if (rng.nextInt(3) != 0) {
+            continue; // 67% 概率跳过
+        }
 
         i32 x, y, z;
         switch (dir) {
@@ -771,7 +789,9 @@ void MineshaftStairs::buildComponent(
     std::vector<std::unique_ptr<MineshaftPiece>>& pieces, math::IRandom& rng, i32 maxDepth)
 {
     const i32 depth = genDepth() + 1;
-    if (depth > maxDepth) return;
+    if (depth > maxDepth) {
+        return;
+    }
 
     i32 x, y, z;
     i32 length = (m_direction == 0 || m_direction == 1) ? (maxZ() - minZ()) : (maxX() - minX());
@@ -845,7 +865,9 @@ std::unique_ptr<StructureStart> MineshaftStructure::generate(
     i32 surfaceY = generator.getHeight(baseX, baseZ, HeightmapType::WorldSurfaceWG);
     i32 minY = world::MIN_BUILD_HEIGHT + 10; // 最低高度（底部往上10格）
     i32 maxY = surfaceY - 20;                // 最高高度（地表下20格）
-    if (maxY < minY + 10) maxY = minY + 10;
+    if (maxY < minY + 10) {
+        maxY = minY + 10;
+    }
 
     i32 baseY = minY + rng.nextInt(maxY - minY);
 

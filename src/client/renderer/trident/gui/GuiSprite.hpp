@@ -50,21 +50,30 @@ struct GuiNinePatch {
      * @brief 检查九宫格是否有效
      * @return 如果所有值都为0（即不使用九宫格）返回false
      */
-    [[nodiscard]] bool isValid() const { return left > 0 || top > 0 || right > 0 || bottom > 0; }
+    [[nodiscard]] bool isValid() const
+    {
+        return left > 0 || top > 0 || right > 0 || bottom > 0;
+    }
 
     /**
      * @brief 获取中心区域宽度
      * @param textureWidth 纹理总宽度
      * @return 中心可拉伸区域宽度
      */
-    [[nodiscard]] i32 centerWidth(i32 textureWidth) const { return textureWidth - left - (textureWidth - right); }
+    [[nodiscard]] i32 centerWidth(i32 textureWidth) const
+    {
+        return textureWidth - left - (textureWidth - right);
+    }
 
     /**
      * @brief 获取中心区域高度
      * @param textureHeight 纹理总高度
      * @return 中心可拉伸区域高度
      */
-    [[nodiscard]] i32 centerHeight(i32 textureHeight) const { return textureHeight - top - (textureHeight - bottom); }
+    [[nodiscard]] i32 centerHeight(i32 textureHeight) const
+    {
+        return textureHeight - top - (textureHeight - bottom);
+    }
 };
 
 /**
@@ -135,7 +144,10 @@ struct GuiSprite {
      * @brief 检查精灵是否有效
      * @return 如果精灵有有效尺寸返回true
      */
-    [[nodiscard]] bool isValid() const { return width > 0 && height > 0; }
+    [[nodiscard]] bool isValid() const
+    {
+        return width > 0 && height > 0;
+    }
 
     /**
      * @brief 设置九宫格拉伸

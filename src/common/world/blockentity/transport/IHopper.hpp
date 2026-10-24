@@ -81,7 +81,10 @@ public:
      * @brief 获取漏斗输出方向
      * @return 输出方向（默认向下）
      */
-    [[nodiscard]] virtual Direction getOutputDirection() const { return Direction::Down; }
+    [[nodiscard]] virtual Direction getOutputDirection() const
+    {
+        return Direction::Down;
+    }
 
     /**
      * @brief 漏斗是否对齐网格
@@ -91,7 +94,10 @@ public:
      * 漏斗矿车返回 false。影响物品吸取逻辑：当 isGridAligned() 为 true
      * 且上方方块碰撞形状为完整方块时，漏斗不会吸取物品实体。
      */
-    [[nodiscard]] virtual bool isGridAligned() const { return true; }
+    [[nodiscard]] virtual bool isGridAligned() const
+    {
+        return true;
+    }
 
     /**
      * @brief 获取漏斗的物品背包
@@ -103,7 +109,10 @@ public:
      * 用于 pullItems/captureItem 中获取漏斗的背包指针，
      * 替代 dynamic_cast<IInventory*>(&hopper)（因 HopperEntity 不继承 IInventory）。
      */
-    [[nodiscard]] virtual IInventory* getHopperInventory() { return nullptr; }
+    [[nodiscard]] virtual IInventory* getHopperInventory()
+    {
+        return nullptr;
+    }
 
     // ========== 静态工具方法 ==========
 

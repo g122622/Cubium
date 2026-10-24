@@ -23,9 +23,15 @@ const char* rotationToString(mc::Rotation r) noexcept
 
 mc::Rotation rotationFromString(std::string_view s)
 {
-    if (s == "clockwise_90") return mc::Rotation::Clockwise90;
-    if (s == "180") return mc::Rotation::Clockwise180;
-    if (s == "counterclockwise_90") return mc::Rotation::CounterClockwise90;
+    if (s == "clockwise_90") {
+        return mc::Rotation::Clockwise90;
+    }
+    if (s == "180") {
+        return mc::Rotation::Clockwise180;
+    }
+    if (s == "counterclockwise_90") {
+        return mc::Rotation::CounterClockwise90;
+    }
     return mc::Rotation::None;
 }
 
@@ -57,23 +63,47 @@ void to_json(nlohmann::json& j, const TestData& d)
 
 void from_json(const nlohmann::json& j, TestData& d)
 {
-    if (j.contains("environment")) j.at("environment").get_to(d.m_environment);
-    if (j.contains("structure")) j.at("structure").get_to(d.m_structure);
-    if (j.contains("max_ticks")) j.at("max_ticks").get_to(d.m_maxTicks);
-    if (j.contains("setup_ticks")) j.at("setup_ticks").get_to(d.m_setupTicks);
-    if (j.contains("required")) j.at("required").get_to(d.m_required);
+    if (j.contains("environment")) {
+        j.at("environment").get_to(d.m_environment);
+    }
+    if (j.contains("structure")) {
+        j.at("structure").get_to(d.m_structure);
+    }
+    if (j.contains("max_ticks")) {
+        j.at("max_ticks").get_to(d.m_maxTicks);
+    }
+    if (j.contains("setup_ticks")) {
+        j.at("setup_ticks").get_to(d.m_setupTicks);
+    }
+    if (j.contains("required")) {
+        j.at("required").get_to(d.m_required);
+    }
     if (j.contains("rotation")) {
         std::string s;
         j.at("rotation").get_to(s);
         d.m_rotation = rotationFromString(s);
     }
-    if (j.contains("manual_only")) j.at("manual_only").get_to(d.m_manualOnly);
-    if (j.contains("max_attempts")) j.at("max_attempts").get_to(d.m_maxAttempts);
-    if (j.contains("required_successes")) j.at("required_successes").get_to(d.m_requiredSuccesses);
-    if (j.contains("sky_access")) j.at("sky_access").get_to(d.m_skyAccess);
-    if (j.contains("padding")) j.at("padding").get_to(d.m_padding);
-    if (j.contains("batch_name")) j.at("batch_name").get_to(d.m_batchName);
-    if (j.contains("load_spawn_chunks")) j.at("load_spawn_chunks").get_to(d.m_loadSpawnChunks);
+    if (j.contains("manual_only")) {
+        j.at("manual_only").get_to(d.m_manualOnly);
+    }
+    if (j.contains("max_attempts")) {
+        j.at("max_attempts").get_to(d.m_maxAttempts);
+    }
+    if (j.contains("required_successes")) {
+        j.at("required_successes").get_to(d.m_requiredSuccesses);
+    }
+    if (j.contains("sky_access")) {
+        j.at("sky_access").get_to(d.m_skyAccess);
+    }
+    if (j.contains("padding")) {
+        j.at("padding").get_to(d.m_padding);
+    }
+    if (j.contains("batch_name")) {
+        j.at("batch_name").get_to(d.m_batchName);
+    }
+    if (j.contains("load_spawn_chunks")) {
+        j.at("load_spawn_chunks").get_to(d.m_loadSpawnChunks);
+    }
 }
 
 } // namespace mc::test

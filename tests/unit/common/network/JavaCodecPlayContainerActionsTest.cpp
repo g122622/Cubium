@@ -43,65 +43,153 @@ namespace {
 
 class _ContainerTestMerchant : public world::village::trade::IMerchant {
 public:
-    _ContainerTestMerchant() { m_offers = std::make_unique<world::village::trade::MerchantOffers>(); }
+    _ContainerTestMerchant()
+    {
+        m_offers = std::make_unique<world::village::trade::MerchantOffers>();
+    }
 
     // IMerchant 接口实现
-    [[nodiscard]] world::village::trade::MerchantOffers& getOffers() override { return *m_offers; }
-    [[nodiscard]] const world::village::trade::MerchantOffers& getOffers() const override { return *m_offers; }
+    [[nodiscard]] world::village::trade::MerchantOffers& getOffers() override
+    {
+        return *m_offers;
+    }
+
+    [[nodiscard]] const world::village::trade::MerchantOffers& getOffers() const override
+    {
+        return *m_offers;
+    }
+
     void setOffers(world::village::trade::MerchantOffers offers) override
     {
         m_offers = std::make_unique<world::village::trade::MerchantOffers>(std::move(offers));
     }
+
     void overrideOffers(world::village::trade::MerchantOffers offers) override
     {
         m_offers = std::make_unique<world::village::trade::MerchantOffers>(std::move(offers));
     }
-    [[nodiscard]] bool hasOffers() const override { return m_offers != nullptr && !m_offers->empty(); }
-    [[nodiscard]] Player* getTradingPlayer() const override { return m_tradingPlayer; }
-    void startTrading(Player* player) override { m_tradingPlayer = player; }
-    void stopTrading() override { m_tradingPlayer = nullptr; }
-    [[nodiscard]] bool isTrading() const override { return m_tradingPlayer != nullptr; }
-    [[nodiscard]] i32 getExperience() const override { return m_experience; }
-    void setExperience(i32 exp) override { m_experience = exp; }
-    void addExperience(i32 amount) override { m_experience += amount; }
+
+    [[nodiscard]] bool hasOffers() const override
+    {
+        return m_offers != nullptr && !m_offers->empty();
+    }
+
+    [[nodiscard]] Player* getTradingPlayer() const override
+    {
+        return m_tradingPlayer;
+    }
+
+    void startTrading(Player* player) override
+    {
+        m_tradingPlayer = player;
+    }
+
+    void stopTrading() override
+    {
+        m_tradingPlayer = nullptr;
+    }
+
+    [[nodiscard]] bool isTrading() const override
+    {
+        return m_tradingPlayer != nullptr;
+    }
+
+    [[nodiscard]] i32 getExperience() const override
+    {
+        return m_experience;
+    }
+
+    void setExperience(i32 exp) override
+    {
+        m_experience = exp;
+    }
+
+    void addExperience(i32 amount) override
+    {
+        m_experience += amount;
+    }
+
     void restock() override
     {
         if (m_offers) {
             m_offers->restockAll();
         }
     }
+
     void notifyTrade(world::village::trade::MerchantOffer& offer) override
     {
         offer.increaseUses();
         m_lastTradeXp = offer.getXp();
         m_notifyTradeCount++;
     }
+
     void notifyTradeUpdated(const ItemStack& resultStack) override
     {
         m_lastResultStack = resultStack;
         m_notifyTradeUpdatedCount++;
     }
-    [[nodiscard]] i32 getVillagerXp() const override { return m_experience; }
-    void overrideXp(i32 xp) override { m_experience = xp; }
-    [[nodiscard]] bool showProgressBar() const override { return true; }
-    [[nodiscard]] bool canRestock() const override { return true; }
-    [[nodiscard]] bool isClientSide() const override { return false; }
+
+    [[nodiscard]] i32 getVillagerXp() const override
+    {
+        return m_experience;
+    }
+
+    void overrideXp(i32 xp) override
+    {
+        m_experience = xp;
+    }
+
+    [[nodiscard]] bool showProgressBar() const override
+    {
+        return true;
+    }
+
+    [[nodiscard]] bool canRestock() const override
+    {
+        return true;
+    }
+
+    [[nodiscard]] bool isClientSide() const override
+    {
+        return false;
+    }
+
     [[nodiscard]] bool stillValid(const Player& player) const override
     {
         (void)player;
         return true;
     }
-    [[nodiscard]] Entity* asEntity() override { return nullptr; }
-    [[nodiscard]] const Entity* asEntity() const override { return nullptr; }
+
+    [[nodiscard]] Entity* asEntity() override
+    {
+        return nullptr;
+    }
+
+    [[nodiscard]] const Entity* asEntity() const override
+    {
+        return nullptr;
+    }
 
     // 测试辅助
     void addTestOffer(std::unique_ptr<world::village::trade::MerchantOffer> offer)
     {
         m_offers->addOffer(std::move(offer));
     }
-    i32 getNotifyTradeCount() const { return m_notifyTradeCount; }
-    i32 getNotifyTradeUpdatedCount() const { return m_notifyTradeUpdatedCount; }
-    i32 getLastTradeXp() const { return m_lastTradeXp; }
+
+    i32 getNotifyTradeCount() const
+    {
+        return m_notifyTradeCount;
+    }
+
+    i32 getNotifyTradeUpdatedCount() const
+    {
+        return m_notifyTradeUpdatedCount;
+    }
+
+    i32 getLastTradeXp() const
+    {
+        return m_lastTradeXp;
+    }
 
 private:
     std::unique_ptr<world::village::trade::MerchantOffers> m_offers;
@@ -118,13 +206,19 @@ public:
     _ButtonRequestMenu(ContainerId id, PlayerInventory* inventory)
         : AbstractContainerMenu(id, inventory)
     {}
-    bool stillValid(const Player&) const override { return m_valid; }
+
+    bool stillValid(const Player&) const override
+    {
+        return m_valid;
+    }
+
     bool clickMenuButton(Player&, i32 button) override
     {
         ++m_calls;
         m_button = button;
         return true;
     }
+
     i32 m_calls = 0;
     i32 m_button = -1;
     bool m_valid = true;
@@ -137,14 +231,24 @@ public:
         , m_blockState(state)
     {}
 
-    const BlockState* getBlockState(i32, i32, i32) const override { return m_blockState; }
+    const BlockState* getBlockState(i32, i32, i32) const override
+    {
+        return m_blockState;
+    }
+
     bool setBlockState(i32, i32, i32, const BlockState* state, i32) override
     {
         m_blockState = state;
         return true;
     }
+
     void playEvent(i32, const BlockPos&, i32) override {}
-    BlockEntity* getBlockEntity(const BlockPos&) override { return m_beacon.get(); }
+
+    BlockEntity* getBlockEntity(const BlockPos&) override
+    {
+        return m_beacon.get();
+    }
+
     std::unique_ptr<blockentity::BeaconEntity> m_beacon;
     const BlockState* m_blockState;
 };
@@ -164,7 +268,9 @@ public:
         EXPECT_TRUE(m_playerEntityManager.registerExistingPlayerEntity(1, entityId, *m_world));
         m_playerManager->addPlayer(1, "00000000000000000000000000000001", "Player", nullptr);
         m_inventoryManager = std::make_unique<server::interaction::InventoryManager>(*m_playerManager);
-        m_inventoryManager->setInventoryResolver([this](PlayerId) { return &m_player->inventory(); });
+        m_inventoryManager->setInventoryResolver([this](PlayerId) {
+            return &m_player->inventory();
+        });
         containerManager().setInventoryManager(m_inventoryManager.get());
         containerManager().setMenuFactory(
             [this](ContainerId id, ContainerType type, const BlockPos& position, PlayerInventory*, PlayerId) {
@@ -198,7 +304,10 @@ public:
             });
     }
 
-    server::ServerWorld* getPlayerWorld(PlayerId) override { return m_world.get(); }
+    server::ServerWorld* getPlayerWorld(PlayerId) override
+    {
+        return m_world.get();
+    }
 
     std::unique_ptr<_ContainerTestMerchant> m_merchant;
     Player* m_player = nullptr;
@@ -227,7 +336,10 @@ protected:
         m_server.reset();
     }
 
-    void route(const PlayPacket& packet) { m_handler->route(1, IrPacket{protocol::ConnectionProtocol::Play, packet}); }
+    void route(const PlayPacket& packet)
+    {
+        m_handler->route(1, IrPacket{protocol::ConnectionProtocol::Play, packet});
+    }
 
     std::unique_ptr<_ContainerRequestServer> m_server;
     std::unique_ptr<server::net::ServerPlayHandler> m_handler;
@@ -248,8 +360,9 @@ TEST_F(NetworkTestBase, PlayRenameItemWire)
 TEST_F(ContainerRequestTest, RenameUpdatesAnvilOutputAndSendsCostData)
 {
     std::vector<std::pair<i32, i32>> properties;
-    m_server->containerManager().setOnContainerData(
-        [&](PlayerId, ContainerId, i32 property, i32 value) { properties.emplace_back(property, value); });
+    m_server->containerManager().setOnContainerData([&](PlayerId, ContainerId, i32 property, i32 value) {
+        properties.emplace_back(property, value);
+    });
     ASSERT_TRUE(m_server->containerManager().openContainer(1, ContainerType::Anvil, BlockPos(0, 0, 0)).success());
     auto* anvil = dynamic_cast<AnvilContainer*>(m_server->containerManager().getOpenMenu(1));
     ASSERT_NE(anvil, nullptr);
@@ -300,8 +413,12 @@ TEST_F(ContainerRequestTest, ClosingMenusReturnsInputToTheRealPlayerWithoutCopyi
     i32 diamonds = 0;
     for (i32 slot = 0; slot < m_server->m_player->inventory().getContainerSize(); ++slot) {
         const auto item = m_server->m_player->inventory().getItem(slot);
-        if (item.getItem() == Items::DIAMOND_SWORD) swords += item.getCount();
-        if (item.getItem() == Items::DIAMOND) diamonds += item.getCount();
+        if (item.getItem() == Items::DIAMOND_SWORD) {
+            swords += item.getCount();
+        }
+        if (item.getItem() == Items::DIAMOND) {
+            diamonds += item.getCount();
+        }
     }
     EXPECT_EQ(swords, 1);
     EXPECT_EQ(diamonds, 2);
@@ -320,7 +437,9 @@ TEST_F(ContainerRequestTest, PlayerInventoryCloseReturnsCraftingCellsAndKeepsMen
     i32 stones = 0;
     for (i32 slot = 0; slot < m_server->m_player->inventory().getContainerSize(); ++slot) {
         const auto item = m_server->m_player->inventory().getItem(slot);
-        if (item.getItem() == Items::STONE) stones += item.getCount();
+        if (item.getItem() == Items::STONE) {
+            stones += item.getCount();
+        }
     }
     EXPECT_EQ(stones, 3);
 }
@@ -328,8 +447,9 @@ TEST_F(ContainerRequestTest, PlayerInventoryCloseReturnsCraftingCellsAndKeepsMen
 TEST_F(ContainerRequestTest, InvalidMenuClosesOnTickAndCloseAllClearsInventoryMenu)
 {
     std::vector<ContainerId> closed;
-    m_server->containerManager().setOnContainerClose(
-        [&](PlayerId, ContainerId id, ContainerType, const BlockPos&) { closed.push_back(id); });
+    m_server->containerManager().setOnContainerClose([&](PlayerId, ContainerId id, ContainerType, const BlockPos&) {
+        closed.push_back(id);
+    });
     const auto opened = m_server->containerManager().openContainer(1, ContainerType::Anvil, BlockPos(0, 0, 0));
     ASSERT_TRUE(opened.success());
     m_server->m_world->m_blockState = &VanillaBlocks::AIR->defaultState();
@@ -547,8 +667,9 @@ TEST_F(ContainerRequestTest, LoomButtonsUseZeroBasedListAndPatternItemsAreReusab
 TEST_F(NetworkTestBase, LoomPatternTagsUseTheSameRegistryOrderAsButtons)
 {
     const auto tags = server::net::buildConfigurationUpdateTags();
-    const auto banner = std::find_if(
-        tags.begin(), tags.end(), [](const auto& entry) { return entry.registryKey == "minecraft:banner_pattern"; });
+    const auto banner = std::find_if(tags.begin(), tags.end(), [](const auto& entry) {
+        return entry.registryKey == "minecraft:banner_pattern";
+    });
     ASSERT_NE(banner, tags.end());
     ASSERT_EQ(banner->tags.size(), 11u);
     const auto& basic = banner->tags.front();
@@ -668,7 +789,9 @@ TEST_F(ContainerRequestTest, BundleSelectionUsesMenuSlotAndDoesNotPublishTransie
     auto* menu = m_server->containerManager().getPlayerInventoryMenu(1);
     menu->detectAndSendChanges();
     i32 notifications = 0;
-    menu->addListener([&](i32, ItemStack) { ++notifications; });
+    menu->addListener([&](i32, ItemStack) {
+        ++notifications;
+    });
     const auto before = toItemStackView(inventory.getItem(0));
     route(PlayPacket{BundleItemSelected{36, 1}});
     EXPECT_EQ(BundleItem::getSelectedItem(inventory.getItem(0)), 1);
@@ -724,7 +847,9 @@ TEST_F(ContainerRequestTest, BeaconRequiresPaymentFiltersEffectsAndSynchronizesP
     route(PlayPacket{SetBeacon{2, 18}});
     EXPECT_TRUE(menu->getSlot(0)->hasItem());
     i32 dropped = 0;
-    menu->setItemDropCallback([&](const ItemStack& stack, Player&, bool) { dropped += stack.getCount(); });
+    menu->setItemDropCallback([&](const ItemStack& stack, Player&, bool) {
+        dropped += stack.getCount();
+    });
     m_server->containerManager().closeContainer(1);
     EXPECT_EQ(dropped, 1);
 }
@@ -749,7 +874,9 @@ TEST_F(ContainerRequestTest, DetachedMenuReturnsCarriedAndInputToItsBoundInvento
             swords += stack.getCount();
             EXPECT_FALSE(stack.hasCustomName());
         }
-        if (stack.getItem() == Items::EMERALD) emeralds += stack.getCount();
+        if (stack.getItem() == Items::EMERALD) {
+            emeralds += stack.getCount();
+        }
     }
     EXPECT_EQ(swords, 1);
     EXPECT_EQ(emeralds, 3);
@@ -759,8 +886,9 @@ TEST_F(ContainerRequestTest, DetachedMenuDropsOverflowAndDeathItemsWithTheSuppli
 {
     auto& owner = *m_server->m_player;
     PlayerInventory boundInventory(&owner);
-    for (i32 i = 0; i < boundInventory.getContainerSize(); ++i)
+    for (i32 i = 0; i < boundInventory.getContainerSize(); ++i) {
         boundInventory.setItem(i, ItemStack(Items::STONE, 64));
+    }
     AnvilContainer menu(700, &boundInventory, BlockPos(0, 0, 0), m_server->m_world.get());
     menu.setCarriedItem(ItemStack(Items::EMERALD, 3));
     menu.getSlot(0)->set(ItemStack(Items::DIAMOND_SWORD, 1));
@@ -811,8 +939,9 @@ TEST_F(ContainerRequestTest, BeaconQuickMovePreservesCountsAtMainAndHotbarBounda
         const i32 target = source < 28 ? 28 : 1;
         EXPECT_EQ(menu->getSlot(target)->getItem().getCount(), 3) << source;
         i32 total = 0;
-        for (i32 slot = 0; slot < menu->getSlotCount(); ++slot)
+        for (i32 slot = 0; slot < menu->getSlotCount(); ++slot) {
             total += menu->getSlot(slot)->getItem().getCount();
+        }
         EXPECT_EQ(total, 3) << source;
     }
 }

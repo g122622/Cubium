@@ -62,8 +62,12 @@ std::vector<LayoutResult> FlexLayout::compute(const Rect& containerBounds,
     i32 availableMainSize = containerMainSize - containerConstraints.padding.horizontal();
     i32 availableCrossSize = containerCrossSize - containerConstraints.padding.vertical();
 
-    if (availableMainSize < 0) availableMainSize = 0;
-    if (availableCrossSize < 0) availableCrossSize = 0;
+    if (availableMainSize < 0) {
+        availableMainSize = 0;
+    }
+    if (availableCrossSize < 0) {
+        availableCrossSize = 0;
+    }
 
     // 创建主轴和交叉轴测量规格
     MeasureSpec mainSpec = MeasureSpec::MakeAtMost(availableMainSize);
@@ -135,7 +139,9 @@ std::vector<LayoutResult> FlexLayout::compute(const Rect& containerBounds,
     if (m_config.wrap == Wrap::WrapReverse && m_lines.size() > 1) {
         // 反向换行：从最后一行开始
         currentCrossOffset = availableCrossSize - totalCrossSize;
-        if (currentCrossOffset < 0) currentCrossOffset = 0;
+        if (currentCrossOffset < 0) {
+            currentCrossOffset = 0;
+        }
     }
 
     // 交叉轴整体对齐
@@ -331,7 +337,9 @@ void FlexLayout::_collectLines(const std::vector<WidgetLayoutAdaptor*>& children
         FlexLine line;
         for (size_t i = 0; i < children.size(); ++i) {
             auto* child = children[i];
-            if (!child || !child->constraints().isLayoutEnabled()) continue;
+            if (!child || !child->constraints().isLayoutEnabled()) {
+                continue;
+            }
 
             i32 mainSize = isHorizontal ? m_measuredSizes[i].width : m_measuredSizes[i].height;
             mainSize += child->constraints().margin.horizontal();
@@ -348,7 +356,9 @@ void FlexLayout::_collectLines(const std::vector<WidgetLayoutAdaptor*>& children
 
     for (size_t i = 0; i < children.size(); ++i) {
         auto* child = children[i];
-        if (!child || !child->constraints().isLayoutEnabled()) continue;
+        if (!child || !child->constraints().isLayoutEnabled()) {
+            continue;
+        }
 
         i32 itemMainSize = isHorizontal ? m_measuredSizes[i].width : m_measuredSizes[i].height;
         itemMainSize +=
@@ -380,14 +390,18 @@ void FlexLayout::_collectLines(const std::vector<WidgetLayoutAdaptor*>& children
 
 void FlexLayout::_distributeFreeSpace(FlexLine& line, i32 freeSpace, bool isHorizontal)
 {
-    if (freeSpace <= 0 || line.totalGrow <= 0.0f) return;
+    if (freeSpace <= 0 || line.totalGrow <= 0.0f) {
+        return;
+    }
 
     // 按grow比例分配剩余空间
     for (size_t i = 0; i < line.items.size(); ++i) {
         auto* child = line.items[i];
         size_t idx = line.indices[i];
 
-        if (child->flexItem().grow <= 0.0f) continue;
+        if (child->flexItem().grow <= 0.0f) {
+            continue;
+        }
 
         f32 ratio = child->flexItem().grow / line.totalGrow;
         i32 extra = static_cast<i32>(freeSpace * ratio);
@@ -402,14 +416,18 @@ void FlexLayout::_distributeFreeSpace(FlexLine& line, i32 freeSpace, bool isHori
 
 void FlexLayout::_shrinkSpace(FlexLine& line, i32 overflow, bool isHorizontal)
 {
-    if (overflow <= 0 || line.totalShrink <= 0.0f) return;
+    if (overflow <= 0 || line.totalShrink <= 0.0f) {
+        return;
+    }
 
     // 按shrink比例缩小
     for (size_t i = 0; i < line.items.size(); ++i) {
         auto* child = line.items[i];
         size_t idx = line.indices[i];
 
-        if (child->flexItem().shrink <= 0.0f) continue;
+        if (child->flexItem().shrink <= 0.0f) {
+            continue;
+        }
 
         f32 ratio = child->flexItem().shrink / line.totalShrink;
         i32 reduction = static_cast<i32>(overflow * ratio);
@@ -426,7 +444,9 @@ void FlexLayout::_shrinkSpace(FlexLine& line, i32 overflow, bool isHorizontal)
 
 void FlexLayout::_applyJustifyContent(FlexLine& line, i32 mainAxisSize, bool isHorizontal)
 {
-    if (line.items.empty()) return;
+    if (line.items.empty()) {
+        return;
+    }
 
     // 计算当前行的主轴总尺寸
     i32 lineMainSize = 0;
@@ -440,7 +460,9 @@ void FlexLayout::_applyJustifyContent(FlexLine& line, i32 mainAxisSize, bool isH
     lineMainSize += static_cast<i32>(line.items.size() - 1) * m_config.gap;
 
     i32 freeSpace = mainAxisSize - lineMainSize;
-    if (freeSpace < 0) freeSpace = 0;
+    if (freeSpace < 0) {
+        freeSpace = 0;
+    }
 
     i32 offset = 0;
     i32 extraGap = 0;

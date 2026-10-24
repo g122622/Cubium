@@ -98,20 +98,41 @@ public:
     /**
      * @brief 获取鼠标位置
      */
-    [[nodiscard]] f64 mouseX() const noexcept { return m_mouseX; }
-    [[nodiscard]] f64 mouseY() const noexcept { return m_mouseY; }
+    [[nodiscard]] f64 mouseX() const noexcept
+    {
+        return m_mouseX;
+    }
+
+    [[nodiscard]] f64 mouseY() const noexcept
+    {
+        return m_mouseY;
+    }
 
     /**
      * @brief 获取鼠标增量
      */
-    [[nodiscard]] f64 mouseDeltaX() const noexcept { return m_mouseDeltaX; }
-    [[nodiscard]] f64 mouseDeltaY() const noexcept { return m_mouseDeltaY; }
+    [[nodiscard]] f64 mouseDeltaX() const noexcept
+    {
+        return m_mouseDeltaX;
+    }
+
+    [[nodiscard]] f64 mouseDeltaY() const noexcept
+    {
+        return m_mouseDeltaY;
+    }
 
     /**
      * @brief 获取滚轮增量
      */
-    [[nodiscard]] f64 scrollDeltaX() const noexcept { return m_scrollDeltaX; }
-    [[nodiscard]] f64 scrollDeltaY() const noexcept { return m_scrollDeltaY; }
+    [[nodiscard]] f64 scrollDeltaX() const noexcept
+    {
+        return m_scrollDeltaX;
+    }
+
+    [[nodiscard]] f64 scrollDeltaY() const noexcept
+    {
+        return m_scrollDeltaY;
+    }
 
     /**
      * @brief 设置鼠标锁定模式
@@ -121,7 +142,10 @@ public:
     /**
      * @brief 检查鼠标是否锁定
      */
-    [[nodiscard]] bool isMouseLocked() const noexcept { return m_mouseLocked; }
+    [[nodiscard]] bool isMouseLocked() const noexcept
+    {
+        return m_mouseLocked;
+    }
 
     // ========== 字符输入 ==========
 
@@ -134,12 +158,18 @@ public:
      * @brief 设置字符输入回调
      * @param callback 回调函数
      */
-    void setCharCallback(CharCallback callback) { m_charCallback = std::move(callback); }
+    void setCharCallback(CharCallback callback)
+    {
+        m_charCallback = std::move(callback);
+    }
 
     /**
      * @brief 清除字符输入回调
      */
-    void clearCharCallback() { m_charCallback = nullptr; }
+    void clearCharCallback()
+    {
+        m_charCallback = nullptr;
+    }
 
     // ========== 键盘事件回调 ==========
 
@@ -156,12 +186,18 @@ public:
      * @brief 设置键盘事件回调
      * @param callback 回调函数
      */
-    void setKeyEventCallback(KeyEventCallback callback) { m_keyEventCallback = std::move(callback); }
+    void setKeyEventCallback(KeyEventCallback callback)
+    {
+        m_keyEventCallback = std::move(callback);
+    }
 
     /**
      * @brief 清除键盘事件回调
      */
-    void clearKeyEventCallback() { m_keyEventCallback = nullptr; }
+    void clearKeyEventCallback()
+    {
+        m_keyEventCallback = nullptr;
+    }
 
     /**
      * @brief 获取当前修饰键状态
@@ -170,7 +206,10 @@ public:
      * 返回最近一次键盘或鼠标事件中的修饰键状态。
      * 用于在轮询模式下获取点击时的修饰键状态。
      */
-    [[nodiscard]] i32 currentMods() const noexcept { return m_currentMods; }
+    [[nodiscard]] i32 currentMods() const noexcept
+    {
+        return m_currentMods;
+    }
 
     // 按键绑定
     using ActionCallback = std::function<void()>;

@@ -132,22 +132,25 @@ TEST_F(ExperienceUtilsTest, SplitExperience)
     xp_utils::splitExperience(5, result);
     EXPECT_EQ(result.size(), 3u); // 3个球
     i32 sum = 0;
-    for (i32 v : result)
+    for (i32 v : result) {
         sum += v;
+    }
     EXPECT_EQ(sum, 5);
 
     // 测试中等经验值
     xp_utils::splitExperience(100, result);
     sum = 0;
-    for (i32 v : result)
+    for (i32 v : result) {
         sum += v;
+    }
     EXPECT_EQ(sum, 100);
 
     // 测试大经验值
     xp_utils::splitExperience(5000, result);
     sum = 0;
-    for (i32 v : result)
+    for (i32 v : result) {
         sum += v;
+    }
     EXPECT_EQ(sum, 5000);
 
     // 验证每个分割值都是有效的
@@ -363,8 +366,9 @@ TEST_F(ExperienceIntegrationTest, SplitExperienceLargeValues)
     // 实际上每次取最大可分割值，会生成多个球
     xp_utils::splitExperience(xp_constants::ENDER_DRAGON_XP, result);
     i32 sum = 0;
-    for (i32 v : result)
+    for (i32 v : result) {
         sum += v;
+    }
     EXPECT_EQ(sum, xp_constants::ENDER_DRAGON_XP);
 
     // 验证球的数量合理 (末影龙12000经验大约分成12个球)
@@ -380,8 +384,9 @@ TEST_F(ExperienceIntegrationTest, SplitExperienceSmallValues)
     for (i32 xp_val = 1; xp_val <= 20; ++xp_val) {
         xp_utils::splitExperience(xp_val, result);
         i32 sum = 0;
-        for (i32 v : result)
+        for (i32 v : result) {
             sum += v;
+        }
         EXPECT_EQ(sum, xp_val);
     }
 }

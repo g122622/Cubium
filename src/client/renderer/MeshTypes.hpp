@@ -54,6 +54,7 @@ struct Vertex {
     u8 light = 255;                            // 光照 (R8_UNORM 编码，0-255)
 
     Vertex() = default;
+
     Vertex(VertexScalar px, VertexScalar py, VertexScalar pz, VertexScalar tu, VertexScalar tv, u32 col, u8 l)
         : x(px)
         , y(py)
@@ -129,11 +130,20 @@ struct MeshData {
         indices.reserve(indexCount);
     }
 
-    [[nodiscard]] bool empty() const { return vertices.empty(); }
+    [[nodiscard]] bool empty() const
+    {
+        return vertices.empty();
+    }
 
-    [[nodiscard]] size_t vertexCount() const { return vertices.size(); }
+    [[nodiscard]] size_t vertexCount() const
+    {
+        return vertices.size();
+    }
 
-    [[nodiscard]] size_t indexCount() const { return indices.size(); }
+    [[nodiscard]] size_t indexCount() const
+    {
+        return indices.size();
+    }
 
     // 添加一个面 (4个顶点 + 6个索引)
     void addFace(const std::array<Vertex, 4>& faceVertices, u16 baseIndex);
@@ -148,6 +158,7 @@ struct TextureRegion {
     f64 u1, v1; // 右下角
 
     TextureRegion() = default;
+
     TextureRegion(f64 u0_, f64 v0_, f64 u1_, f64 v1_)
         : u0(u0_)
         , v0(v0_)
@@ -171,10 +182,25 @@ public:
     [[nodiscard]] TextureRegion getRegion(u32 tileIndex) const;
 
     // 获取图集尺寸
-    [[nodiscard]] u32 textureWidth() const { return m_textureWidth; }
-    [[nodiscard]] u32 textureHeight() const { return m_textureHeight; }
-    [[nodiscard]] u32 tileSize() const { return m_tileSize; }
-    [[nodiscard]] u32 tilesPerRow() const { return m_tilesPerRow; }
+    [[nodiscard]] u32 textureWidth() const
+    {
+        return m_textureWidth;
+    }
+
+    [[nodiscard]] u32 textureHeight() const
+    {
+        return m_textureHeight;
+    }
+
+    [[nodiscard]] u32 tileSize() const
+    {
+        return m_tileSize;
+    }
+
+    [[nodiscard]] u32 tilesPerRow() const
+    {
+        return m_tilesPerRow;
+    }
 
 private:
     u32 m_textureWidth;

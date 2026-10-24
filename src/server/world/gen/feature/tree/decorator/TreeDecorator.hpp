@@ -42,6 +42,7 @@ namespace mc {
 namespace world::chunk {
 class ChunkPrimer;
 }
+
 using world::chunk::ChunkPrimer;
 
 namespace world {
@@ -77,7 +78,10 @@ public:
         std::vector<BlockPos> roots);
 
     /// 将装饰方块写入世界，后续条件读取写入后的实际状态。
-    void setBlock(const BlockPos& pos, const BlockState* state) const { m_setter(pos, state); }
+    void setBlock(const BlockPos& pos, const BlockState* state) const
+    {
+        m_setter(pos, state);
+    }
 
     /// MC TreeDecorator.Context.placeVine：放默认藤蔓并把 face 属性置 true。
     void placeVine(const BlockPos& pos, const BooleanProperty& face) const;
@@ -92,15 +96,41 @@ public:
      */
     [[nodiscard]] bool checkBlock(const BlockPos& pos, const std::function<bool(const BlockState&)>& predicate) const;
 
-    [[nodiscard]] WorldGenRegion& region() const noexcept { return m_region; }
+    [[nodiscard]] WorldGenRegion& region() const noexcept
+    {
+        return m_region;
+    }
 
     /// 供需要委派给其它 configured_feature 的装饰器使用（如 pale_moss 调用 pale_moss_patch）。
-    [[nodiscard]] ChunkPrimer* chunk() const noexcept { return m_chunk; }
-    [[nodiscard]] IChunkGenerator* generator() const noexcept { return m_generator; }
-    [[nodiscard]] math::IRandom& random() const noexcept { return m_random; }
-    [[nodiscard]] const std::vector<BlockPos>& logs() const noexcept { return m_logs; }
-    [[nodiscard]] const std::vector<BlockPos>& leaves() const noexcept { return m_leaves; }
-    [[nodiscard]] const std::vector<BlockPos>& roots() const noexcept { return m_roots; }
+    [[nodiscard]] ChunkPrimer* chunk() const noexcept
+    {
+        return m_chunk;
+    }
+
+    [[nodiscard]] IChunkGenerator* generator() const noexcept
+    {
+        return m_generator;
+    }
+
+    [[nodiscard]] math::IRandom& random() const noexcept
+    {
+        return m_random;
+    }
+
+    [[nodiscard]] const std::vector<BlockPos>& logs() const noexcept
+    {
+        return m_logs;
+    }
+
+    [[nodiscard]] const std::vector<BlockPos>& leaves() const noexcept
+    {
+        return m_leaves;
+    }
+
+    [[nodiscard]] const std::vector<BlockPos>& roots() const noexcept
+    {
+        return m_roots;
+    }
 
 private:
     WorldGenRegion& m_region;

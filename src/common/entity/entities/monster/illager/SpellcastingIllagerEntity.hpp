@@ -63,12 +63,30 @@ public:
     // classInfo 仅作父链遍历节点。
     static const entity::EntityClassInfo& classInfo();
 
-    [[nodiscard]] bool isSpellcasting() const noexcept { return m_spellTicks > 0; }
-    [[nodiscard]] i32 spellTicks() const noexcept { return m_spellTicks; }
-    [[nodiscard]] SpellType spellType() const noexcept { return m_activeSpell; }
+    [[nodiscard]] bool isSpellcasting() const noexcept
+    {
+        return m_spellTicks > 0;
+    }
 
-    void setSpellType(SpellType spellType) noexcept { m_activeSpell = spellType; }
-    void setSpellTicks(i32 ticks) noexcept { m_spellTicks = ticks; }
+    [[nodiscard]] i32 spellTicks() const noexcept
+    {
+        return m_spellTicks;
+    }
+
+    [[nodiscard]] SpellType spellType() const noexcept
+    {
+        return m_activeSpell;
+    }
+
+    void setSpellType(SpellType spellType) noexcept
+    {
+        m_activeSpell = spellType;
+    }
+
+    void setSpellTicks(i32 ticks) noexcept
+    {
+        m_spellTicks = ticks;
+    }
 
     void clearSpellcasting() noexcept
     {
@@ -91,7 +109,10 @@ public:
     [[nodiscard]] static Vector3 getSpellParticleColor(SpellType type) noexcept;
 
 protected:
-    [[nodiscard]] virtual const char* getSpellSoundId() const noexcept { return ""; }
+    [[nodiscard]] virtual const char* getSpellSoundId() const noexcept
+    {
+        return "";
+    }
 
 private:
     i32 m_spellTicks = 0;

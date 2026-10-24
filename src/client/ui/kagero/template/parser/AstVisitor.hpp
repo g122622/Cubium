@@ -85,24 +85,36 @@ public:
     /**
      * @brief 访问文档节点
      */
-    virtual void visitDocument(DocumentNode& node) { traverseChildren(node); }
+    virtual void visitDocument(DocumentNode& node)
+    {
+        traverseChildren(node);
+    }
 
     /**
      * @brief 访问元素节点
      *
      * 重写此方法处理元素节点，记得调用traverseChildren或手动遍历子节点
      */
-    virtual void visitElement(ElementNode& node) { traverseChildren(node); }
+    virtual void visitElement(ElementNode& node)
+    {
+        traverseChildren(node);
+    }
 
     /**
      * @brief 访问文本节点
      */
-    virtual void visitText(TextNode& node) { (void)node; }
+    virtual void visitText(TextNode& node)
+    {
+        (void)node;
+    }
 
     /**
      * @brief 访问注释节点
      */
-    virtual void visitComment(CommentNode& node) { (void)node; }
+    virtual void visitComment(CommentNode& node)
+    {
+        (void)node;
+    }
 
     // ========== 遍历控制 ==========
 
@@ -113,7 +125,9 @@ public:
     {
         for (auto& child : node.children) {
             visit(*child);
-            if (m_shouldStop) break;
+            if (m_shouldStop) {
+                break;
+            }
         }
     }
 
@@ -122,12 +136,18 @@ public:
      *
      * 设置此标志将停止后续遍历
      */
-    void stop() { m_shouldStop = true; }
+    void stop()
+    {
+        m_shouldStop = true;
+    }
 
     /**
      * @brief 检查是否应该停止
      */
-    [[nodiscard]] bool shouldStop() const { return m_shouldStop; }
+    [[nodiscard]] bool shouldStop() const
+    {
+        return m_shouldStop;
+    }
 
 private:
     bool m_shouldStop = false;
@@ -160,24 +180,45 @@ public:
         }
     }
 
-    virtual void visitDocument(const DocumentNode& node) { traverseChildren(node); }
+    virtual void visitDocument(const DocumentNode& node)
+    {
+        traverseChildren(node);
+    }
 
-    virtual void visitElement(const ElementNode& node) { traverseChildren(node); }
+    virtual void visitElement(const ElementNode& node)
+    {
+        traverseChildren(node);
+    }
 
-    virtual void visitText(const TextNode& node) { (void)node; }
+    virtual void visitText(const TextNode& node)
+    {
+        (void)node;
+    }
 
-    virtual void visitComment(const CommentNode& node) { (void)node; }
+    virtual void visitComment(const CommentNode& node)
+    {
+        (void)node;
+    }
 
     virtual void traverseChildren(const Node& node)
     {
         for (const auto& child : node.children) {
             visit(*child);
-            if (m_shouldStop) break;
+            if (m_shouldStop) {
+                break;
+            }
         }
     }
 
-    void stop() { m_shouldStop = true; }
-    [[nodiscard]] bool shouldStop() const { return m_shouldStop; }
+    void stop()
+    {
+        m_shouldStop = true;
+    }
+
+    [[nodiscard]] bool shouldStop() const
+    {
+        return m_shouldStop;
+    }
 
 private:
     bool m_shouldStop = false;

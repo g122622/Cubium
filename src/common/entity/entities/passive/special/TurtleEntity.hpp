@@ -97,12 +97,18 @@ public:
     /**
      * @brief 获取出生位置
      */
-    [[nodiscard]] const BlockPos& getHomePos() const { return m_homePos; }
+    [[nodiscard]] const BlockPos& getHomePos() const
+    {
+        return m_homePos;
+    }
 
     /**
      * @brief 检查是否有出生位置
      */
-    [[nodiscard]] bool hasHomePos() const { return m_hasHomePos; }
+    [[nodiscard]] bool hasHomePos() const
+    {
+        return m_hasHomePos;
+    }
 
     // ========== 产卵状态 ==========
 
@@ -141,22 +147,34 @@ public:
     /**
      * @brief 是否正在前往出生地
      */
-    [[nodiscard]] bool isGoingHome() const { return m_goingHome; }
+    [[nodiscard]] bool isGoingHome() const
+    {
+        return m_goingHome;
+    }
 
     /**
      * @brief 设置前往出生地状态
      */
-    void setGoingHome(bool going) { m_goingHome = going; }
+    void setGoingHome(bool going)
+    {
+        m_goingHome = going;
+    }
 
     /**
      * @brief 是否正在旅行（去海里）
      */
-    [[nodiscard]] bool isTravelling() const { return m_travelling; }
+    [[nodiscard]] bool isTravelling() const
+    {
+        return m_travelling;
+    }
 
     /**
      * @brief 设置旅行状态
      */
-    void setTravelling(bool travelling) { m_travelling = travelling; }
+    void setTravelling(bool travelling)
+    {
+        m_travelling = travelling;
+    }
 
     // ========== 水陆状态 ==========
 
@@ -168,7 +186,10 @@ public:
     /**
      * @brief 是否在陆地上
      */
-    [[nodiscard]] bool isOnLand() const { return !isInWater(); }
+    [[nodiscard]] bool isOnLand() const
+    {
+        return !isInWater();
+    }
 
     // ========== 繁殖 ==========
 
@@ -195,7 +216,10 @@ public:
     /**
      * @brief 获取眼睛高度
      */
-    [[nodiscard]] f32 eyeHeight() const override { return isChild() ? 0.2f : 0.4f; }
+    [[nodiscard]] f32 eyeHeight() const override
+    {
+        return isChild() ? 0.2f : 0.4f;
+    }
 
     /**
      * @brief 获取环境音效

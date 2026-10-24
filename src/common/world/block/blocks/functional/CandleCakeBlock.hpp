@@ -162,7 +162,10 @@ public:
     /**
      * @brief 获取关联的蜡烛方块
      */
-    [[nodiscard]] Block* getCandleBlock() const { return m_candleBlock; }
+    [[nodiscard]] Block* getCandleBlock() const
+    {
+        return m_candleBlock;
+    }
 
 private:
     /// 关联的蜡烛方块（食用蛋糕后放置此方块）

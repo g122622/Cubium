@@ -18,6 +18,7 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
+ *
  */
 
 #include "common/mod/bedrock/addon/modules/ScriptCustomComponentBinding.hpp"
@@ -98,7 +99,9 @@ static ScriptCallbackHolder extractCallback(IScriptBindingContext& ctx, void* ob
     if (ctx.isFunction(prop)) {
         holder = ScriptCallbackHolder(ctx, prop);
     }
+
     ctx.releaseValue(prop);
+
     return holder;
 }
 
@@ -110,6 +113,7 @@ bool registerBlockCustomComponentFromJS(const std::string& typeId, void* compone
 {
     if (!ctx.isObject(componentObj)) {
         spdlog::error("[BedrockAddon] registerBlockCustomComponent: component must be an object");
+
         return false;
     }
 
@@ -148,12 +152,14 @@ bool registerBlockCustomComponentFromJS(const std::string& typeId, void* compone
             if (event.entityId.has_value()) {
                 ctx->setPropertyInt64(eventObj, "entityId", static_cast<i64>(*event.entityId));
             }
+
             void* ret = cb->onStepOn.call(eventObj);
             if (ctx->isException(ret)) {
                 void* exc = ctx->getException();
                 spdlog::error("[BedrockAddon] JS callback threw: {}", ctx->getExceptionMessage(exc));
                 ctx->releaseValue(exc);
             }
+
             ctx->releaseValue(ret);
             ctx->releaseValue(eventObj);
         };
@@ -171,12 +177,14 @@ bool registerBlockCustomComponentFromJS(const std::string& typeId, void* compone
             if (event.entityId.has_value()) {
                 ctx->setPropertyInt64(eventObj, "entityId", static_cast<i64>(*event.entityId));
             }
+
             void* ret = cb->onStepOff.call(eventObj);
             if (ctx->isException(ret)) {
                 void* exc = ctx->getException();
                 spdlog::error("[BedrockAddon] JS callback threw: {}", ctx->getExceptionMessage(exc));
                 ctx->releaseValue(exc);
             }
+
             ctx->releaseValue(ret);
             ctx->releaseValue(eventObj);
         };
@@ -197,6 +205,7 @@ bool registerBlockCustomComponentFromJS(const std::string& typeId, void* compone
                 spdlog::error("[BedrockAddon] JS callback threw: {}", ctx->getExceptionMessage(exc));
                 ctx->releaseValue(exc);
             }
+
             ctx->releaseValue(ret);
             ctx->releaseValue(eventObj);
         };
@@ -214,12 +223,14 @@ bool registerBlockCustomComponentFromJS(const std::string& typeId, void* compone
             if (event.playerId.has_value()) {
                 ctx->setPropertyInt64(eventObj, "playerId", static_cast<i64>(*event.playerId));
             }
+
             void* ret = cb->onPlayerBreak.call(eventObj);
             if (ctx->isException(ret)) {
                 void* exc = ctx->getException();
                 spdlog::error("[BedrockAddon] JS callback threw: {}", ctx->getExceptionMessage(exc));
                 ctx->releaseValue(exc);
             }
+
             ctx->releaseValue(ret);
             ctx->releaseValue(eventObj);
         };
@@ -237,12 +248,14 @@ bool registerBlockCustomComponentFromJS(const std::string& typeId, void* compone
             if (event.playerId.has_value()) {
                 ctx->setPropertyInt64(eventObj, "playerId", static_cast<i64>(*event.playerId));
             }
+
             void* ret = cb->onPlayerInteract.call(eventObj);
             if (ctx->isException(ret)) {
                 void* exc = ctx->getException();
                 spdlog::error("[BedrockAddon] JS callback threw: {}", ctx->getExceptionMessage(exc));
                 ctx->releaseValue(exc);
             }
+
             ctx->releaseValue(ret);
             ctx->releaseValue(eventObj);
         };
@@ -261,6 +274,7 @@ bool registerBlockCustomComponentFromJS(const std::string& typeId, void* compone
             if (event.playerId.has_value()) {
                 ctx->setPropertyInt64(eventObj, "playerId", static_cast<i64>(*event.playerId));
             }
+
             ctx->setPropertyBool(eventObj, "cancel", event.cancel);
             void* ret = cb->onPlayerPlaceBefore.call(eventObj);
             if (ctx->isException(ret)) {
@@ -273,6 +287,7 @@ bool registerBlockCustomComponentFromJS(const std::string& typeId, void* compone
             if (cancelVal) {
                 event.cancel = *cancelVal;
             }
+
             ctx->releaseValue(ret);
             ctx->releaseValue(eventObj);
         };
@@ -290,6 +305,7 @@ bool registerBlockCustomComponentFromJS(const std::string& typeId, void* compone
             if (event.entityId.has_value()) {
                 ctx->setPropertyInt64(eventObj, "entityId", static_cast<i64>(*event.entityId));
             }
+
             ctx->setPropertyFloat(eventObj, "fallDistance", static_cast<f64>(event.fallDistance));
             void* ret = cb->onEntityFallOn.call(eventObj);
             if (ctx->isException(ret)) {
@@ -297,6 +313,7 @@ bool registerBlockCustomComponentFromJS(const std::string& typeId, void* compone
                 spdlog::error("[BedrockAddon] JS callback threw: {}", ctx->getExceptionMessage(exc));
                 ctx->releaseValue(exc);
             }
+
             ctx->releaseValue(ret);
             ctx->releaseValue(eventObj);
         };
@@ -317,6 +334,7 @@ bool registerBlockCustomComponentFromJS(const std::string& typeId, void* compone
                 spdlog::error("[BedrockAddon] JS callback threw: {}", ctx->getExceptionMessage(exc));
                 ctx->releaseValue(exc);
             }
+
             ctx->releaseValue(ret);
             ctx->releaseValue(eventObj);
         };
@@ -337,6 +355,7 @@ bool registerBlockCustomComponentFromJS(const std::string& typeId, void* compone
                 spdlog::error("[BedrockAddon] JS callback threw: {}", ctx->getExceptionMessage(exc));
                 ctx->releaseValue(exc);
             }
+
             ctx->releaseValue(ret);
             ctx->releaseValue(eventObj);
         };
@@ -358,6 +377,7 @@ bool registerBlockCustomComponentFromJS(const std::string& typeId, void* compone
                 spdlog::error("[BedrockAddon] JS callback threw: {}", ctx->getExceptionMessage(exc));
                 ctx->releaseValue(exc);
             }
+
             ctx->releaseValue(ret);
             ctx->releaseValue(eventObj);
         };
@@ -375,12 +395,14 @@ bool registerBlockCustomComponentFromJS(const std::string& typeId, void* compone
             if (event.entitySourceId.has_value()) {
                 ctx->setPropertyInt64(eventObj, "entityId", static_cast<i64>(*event.entitySourceId));
             }
+
             void* ret = cb->onBreak.call(eventObj);
             if (ctx->isException(ret)) {
                 void* exc = ctx->getException();
                 spdlog::error("[BedrockAddon] JS callback threw: {}", ctx->getExceptionMessage(exc));
                 ctx->releaseValue(exc);
             }
+
             ctx->releaseValue(ret);
             ctx->releaseValue(eventObj);
         };
@@ -401,6 +423,7 @@ bool registerBlockCustomComponentFromJS(const std::string& typeId, void* compone
                 spdlog::error("[BedrockAddon] JS callback threw: {}", ctx->getExceptionMessage(exc));
                 ctx->releaseValue(exc);
             }
+
             ctx->releaseValue(ret);
             ctx->releaseValue(eventObj);
         };
@@ -422,6 +445,7 @@ bool registerBlockCustomComponentFromJS(const std::string& typeId, void* compone
                 spdlog::error("[BedrockAddon] JS callback threw: {}", ctx->getExceptionMessage(exc));
                 ctx->releaseValue(exc);
             }
+
             ctx->releaseValue(ret);
             ctx->releaseValue(eventObj);
         };
@@ -429,6 +453,7 @@ bool registerBlockCustomComponentFromJS(const std::string& typeId, void* compone
 
     BlockComponentRegistry::instance().registerComponent(typeId, std::move(component));
     spdlog::info("[BedrockAddon] Registered block custom component for '{}'", typeId);
+
     return true;
 }
 
@@ -440,6 +465,7 @@ bool registerItemCustomComponentFromJS(const std::string& typeId, void* componen
 {
     if (!ctx.isObject(componentObj)) {
         spdlog::error("[BedrockAddon] registerItemCustomComponent: component must be an object");
+
         return false;
     }
 
@@ -473,6 +499,7 @@ bool registerItemCustomComponentFromJS(const std::string& typeId, void* componen
                 spdlog::error("[BedrockAddon] JS callback threw: {}", ctx->getExceptionMessage(exc));
                 ctx->releaseValue(exc);
             }
+
             ctx->releaseValue(ret);
             ctx->releaseValue(eventObj);
         };
@@ -495,6 +522,7 @@ bool registerItemCustomComponentFromJS(const std::string& typeId, void* componen
                 spdlog::error("[BedrockAddon] JS callback threw: {}", ctx->getExceptionMessage(exc));
                 ctx->releaseValue(exc);
             }
+
             ctx->releaseValue(ret);
             ctx->releaseValue(eventObj);
         };
@@ -514,6 +542,7 @@ bool registerItemCustomComponentFromJS(const std::string& typeId, void* componen
                 spdlog::error("[BedrockAddon] JS callback threw: {}", ctx->getExceptionMessage(exc));
                 ctx->releaseValue(exc);
             }
+
             ctx->releaseValue(ret);
             ctx->releaseValue(eventObj);
         };
@@ -535,6 +564,7 @@ bool registerItemCustomComponentFromJS(const std::string& typeId, void* componen
                 spdlog::error("[BedrockAddon] JS callback threw: {}", ctx->getExceptionMessage(exc));
                 ctx->releaseValue(exc);
             }
+
             ctx->releaseValue(ret);
             ctx->releaseValue(eventObj);
         };
@@ -561,6 +591,7 @@ bool registerItemCustomComponentFromJS(const std::string& typeId, void* componen
             if (dmgVal) {
                 event.durabilityDamage = *dmgVal;
             }
+
             ctx->releaseValue(ret);
             ctx->releaseValue(eventObj);
         };
@@ -580,6 +611,7 @@ bool registerItemCustomComponentFromJS(const std::string& typeId, void* componen
                 spdlog::error("[BedrockAddon] JS callback threw: {}", ctx->getExceptionMessage(exc));
                 ctx->releaseValue(exc);
             }
+
             ctx->releaseValue(ret);
             ctx->releaseValue(eventObj);
         };
@@ -598,6 +630,7 @@ bool registerItemCustomComponentFromJS(const std::string& typeId, void* componen
                 spdlog::error("[BedrockAddon] JS callback threw: {}", ctx->getExceptionMessage(exc));
                 ctx->releaseValue(exc);
             }
+
             ctx->releaseValue(ret);
             ctx->releaseValue(eventObj);
         };
@@ -605,6 +638,7 @@ bool registerItemCustomComponentFromJS(const std::string& typeId, void* componen
 
     ItemComponentRegistry::instance().registerComponent(typeId, std::move(component));
     spdlog::info("[BedrockAddon] Registered item custom component for '{}'", typeId);
+
     return true;
 }
 
@@ -612,7 +646,7 @@ bool registerItemCustomComponentFromJS(const std::string& typeId, void* componen
 // 导出注册函数 - 供MinecraftModuleFactory调用
 // ============================================================================
 
-void registerCustomComponentBindings(NativeModuleBuilder& builder)
+std::pair<ScriptValueHandle, ScriptValueHandle> registerCustomComponentBindings(NativeModuleBuilder& builder)
 {
     auto& ctx = builder.context();
 
@@ -637,9 +671,7 @@ void registerCustomComponentBindings(NativeModuleBuilder& builder)
 
             // 保留component对象引用
             void* componentObj = args[1];
-            cbCtx.retainValue(componentObj);
             bool success = registerBlockCustomComponentFromJS(*typeId, componentObj, cbCtx);
-            cbCtx.releaseValue(componentObj);
 
             if (!success) {
                 return cbCtx.throwTypeError(
@@ -649,7 +681,7 @@ void registerCustomComponentBindings(NativeModuleBuilder& builder)
             return cbCtx.createUndefined();
         },
         2);
-    builder.exportValue("blockComponentRegistry", blockRegObj);
+    ScriptValueHandle blockRegistry(ctx, blockRegObj);
     ctx.releaseValue(blockRegObj);
 
     // 注册 ItemComponentRegistry 全局对象
@@ -672,9 +704,7 @@ void registerCustomComponentBindings(NativeModuleBuilder& builder)
             }
 
             void* componentObj = args[1];
-            cbCtx.retainValue(componentObj);
             bool success = registerItemCustomComponentFromJS(*typeId, componentObj, cbCtx);
-            cbCtx.releaseValue(componentObj);
 
             if (!success) {
                 return cbCtx.throwTypeError(("Failed to register item custom component for '" + *typeId + "'").c_str());
@@ -683,10 +713,10 @@ void registerCustomComponentBindings(NativeModuleBuilder& builder)
             return cbCtx.createUndefined();
         },
         2);
-    builder.exportValue("itemComponentRegistry", itemRegObj);
+    ScriptValueHandle itemRegistry(ctx, itemRegObj);
     ctx.releaseValue(itemRegObj);
 
-    spdlog::info("[BedrockAddon] Registered custom component bindings for @minecraft/server");
+    return {std::move(blockRegistry), std::move(itemRegistry)};
 }
 
 } // namespace mc::mod::bedrock::addon

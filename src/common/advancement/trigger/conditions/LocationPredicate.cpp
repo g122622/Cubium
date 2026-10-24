@@ -97,9 +97,15 @@ bool LocationPredicate::test(const IWorld& world, f64 x, f64 y, f64 z) const
     }
 
     // 检查坐标范围
-    if (!m_x.test(x)) return false;
-    if (!m_y.test(y)) return false;
-    if (!m_z.test(z)) return false;
+    if (!m_x.test(x)) {
+        return false;
+    }
+    if (!m_y.test(y)) {
+        return false;
+    }
+    if (!m_z.test(z)) {
+        return false;
+    }
 
     // 检查维度
     if (m_dimension.has_value()) {

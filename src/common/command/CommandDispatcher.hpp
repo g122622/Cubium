@@ -165,7 +165,10 @@ public:
     /**
      * @brief 获取根节点
      */
-    [[nodiscard]] NodePtr getRoot() const noexcept { return m_root; }
+    [[nodiscard]] NodePtr getRoot() const noexcept
+    {
+        return m_root;
+    }
 
     /**
      * @brief 获取命令路径
@@ -280,7 +283,9 @@ public:
 private:
     std::string m_literal;
     CommandCallback<S> m_command;
-    RequirementPredicate<S> m_requirement = [](const S&) { return true; };
+    RequirementPredicate<S> m_requirement = [](const S&) {
+        return true;
+    };
     std::vector<NodePtr> m_children;
     NodePtr m_redirect;
 };
@@ -363,7 +368,9 @@ private:
     std::string m_name;
     std::shared_ptr<ArgumentCommandNode<S, T>> m_type;
     CommandCallback<S> m_command;
-    RequirementPredicate<S> m_requirement = [](const S&) { return true; };
+    RequirementPredicate<S> m_requirement = [](const S&) {
+        return true;
+    };
     std::shared_ptr<ISuggestionProvider<S>> m_customSuggestions;
     std::vector<NodePtr> m_children;
 };

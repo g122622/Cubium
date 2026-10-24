@@ -41,6 +41,7 @@ using namespace mc;
 class TestWidget : public Widget {
 public:
     TestWidget() = default;
+
     explicit TestWidget(std::string id)
         : Widget(std::move(id))
     {}
@@ -51,8 +52,15 @@ public:
         m_paintCalled = true;
     }
 
-    bool wasPaintCalled() const { return m_paintCalled; }
-    void resetFlags() { m_paintCalled = false; }
+    bool wasPaintCalled() const
+    {
+        return m_paintCalled;
+    }
+
+    void resetFlags()
+    {
+        m_paintCalled = false;
+    }
 
     // 拖拽开始/结束事件追踪
     bool onDragStart(i32 mouseX, i32 mouseY, i32 button, i32 mods) override
@@ -591,6 +599,7 @@ TEST(WidgetTest, VisualStyleProperties)
     EXPECT_EQ(mc::client::Colors::GREEN, widget.borderColor());
     EXPECT_EQ(6, widget.cornerRadius());
 }
+
 TEST(AnchorTest, AllAnchors)
 {
     EXPECT_EQ(0, static_cast<u8>(Anchor::TopLeft));

@@ -80,7 +80,10 @@ public:
         std::vector<std::string> macroParameters;
 
         /// 是否为宏函数（macroEntries 非空）
-        [[nodiscard]] bool isMacro() const noexcept { return !macroEntries.empty(); }
+        [[nodiscard]] bool isMacro() const noexcept
+        {
+            return !macroEntries.empty();
+        }
     };
 
     /**
@@ -165,7 +168,10 @@ public:
      * @brief 设置加载前是否清空已有函数
      * @param clear 是否清空（默认为 true）
      */
-    void setClearBeforeLoad(bool clear) { m_clearBeforeLoad = clear; }
+    void setClearBeforeLoad(bool clear)
+    {
+        m_clearBeforeLoad = clear;
+    }
 
     /**
      * @brief 将文件路径转换为函数 ID

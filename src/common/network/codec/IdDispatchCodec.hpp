@@ -96,7 +96,10 @@ public:
     /**
      * @brief 当前已登记包数
      */
-    [[nodiscard]] usize size() const noexcept { return m_entries.size(); }
+    [[nodiscard]] usize size() const noexcept
+    {
+        return m_entries.size();
+    }
 
     /**
      * @brief 编码：先 matches 定位 variant 当前备选项，再写 VarInt(id) + payload
@@ -148,7 +151,10 @@ public:
         return Error(ErrorCode::ProtocolError, "Unknown packet id " + std::to_string(id), "IdDispatchCodec::decode");
     }
 
-    [[nodiscard]] const std::vector<Entry>& entries() const noexcept { return m_entries; }
+    [[nodiscard]] const std::vector<Entry>& entries() const noexcept
+    {
+        return m_entries;
+    }
 
 private:
     std::vector<Entry> m_entries;

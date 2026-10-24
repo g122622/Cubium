@@ -105,7 +105,10 @@ TEST(JukeboxSongTest, SongEndPaddingIs20)
 
 class JukeboxSongsTest : public ::testing::Test {
 protected:
-    static void SetUpTestSuite() { JukeboxSongs::initialize(); }
+    static void SetUpTestSuite()
+    {
+        JukeboxSongs::initialize();
+    }
 };
 
 TEST_F(JukeboxSongsTest, Initialize_CanBeCalledMultipleTimes)
@@ -252,7 +255,11 @@ TEST_F(JukeboxSongsTest, GetSongBySoundEvent_Nonexistent_ReturnsNullptr)
 
 class MockSongChangedCallback {
 public:
-    void operator()() { callCount++; }
+    void operator()()
+    {
+        callCount++;
+    }
+
     int callCount = 0;
 };
 
@@ -262,7 +269,11 @@ protected:
     {
         pos_ = BlockPos(5, 64, 10);
         callback_ = std::make_shared<MockSongChangedCallback>();
-        player_ = std::make_unique<JukeboxSongPlayer>([cb = callback_]() { (*cb)(); }, pos_);
+        player_ = std::make_unique<JukeboxSongPlayer>(
+            [cb = callback_]() {
+                (*cb)();
+            },
+            pos_);
     }
 
     BlockPos pos_;

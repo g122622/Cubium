@@ -47,7 +47,10 @@ protected:
         Items::initialize();
     }
 
-    void TearDown() override { EnchantmentRegistry::clear(); }
+    void TearDown() override
+    {
+        EnchantmentRegistry::clear();
+    }
 };
 
 // ========== getDamageAfterMagicAbsorb 测试 ==========
@@ -103,7 +106,10 @@ protected:
         Items::initialize();
     }
 
-    void TearDown() override { EnchantmentRegistry::clear(); }
+    void TearDown() override
+    {
+        EnchantmentRegistry::clear();
+    }
 };
 
 // ========== 单物品保护附魔测试 ==========

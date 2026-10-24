@@ -83,8 +83,15 @@ public:
         return true;
     }
 
-    [[nodiscard]] i32 getHeight(i32, i32) const override { return world::MAX_BUILD_HEIGHT; }
-    [[nodiscard]] bool isWithinWorldBounds(i32, i32, i32) const override { return true; }
+    [[nodiscard]] i32 getHeight(i32, i32) const override
+    {
+        return world::MAX_BUILD_HEIGHT;
+    }
+
+    [[nodiscard]] bool isWithinWorldBounds(i32, i32, i32) const override
+    {
+        return true;
+    }
 
     [[nodiscard]] std::vector<Entity*> getEntitiesInAABB(const AxisAlignedBB& box, const Entity*) const override
     {
@@ -109,20 +116,42 @@ public:
         m_entities[pos] = std::move(entity);
     }
 
-    void setEntitiesInAabbResult(const std::vector<Entity*>& entities) { m_entitiesInAabb = entities; }
+    void setEntitiesInAabbResult(const std::vector<Entity*>& entities)
+    {
+        m_entitiesInAabb = entities;
+    }
 
-    void setDefaultState(const BlockState* state) { m_defaultState = state; }
+    void setDefaultState(const BlockState* state)
+    {
+        m_defaultState = state;
+    }
 
-    [[nodiscard]] i32 setBlockCalls() const { return m_setBlockCalls; }
-    [[nodiscard]] i32 setBlockStateCalls() const { return m_setBlockStateCalls; }
-    [[nodiscard]] const BlockState* lastSetBlockState() const { return m_lastSetBlockState; }
-    [[nodiscard]] i32 lastSetFlags() const { return m_lastSetFlags; }
+    [[nodiscard]] i32 setBlockCalls() const
+    {
+        return m_setBlockCalls;
+    }
+
+    [[nodiscard]] i32 setBlockStateCalls() const
+    {
+        return m_setBlockStateCalls;
+    }
+
+    [[nodiscard]] const BlockState* lastSetBlockState() const
+    {
+        return m_lastSetBlockState;
+    }
+
+    [[nodiscard]] i32 lastSetFlags() const
+    {
+        return m_lastSetFlags;
+    }
 
     // TickManager interface (stubbed)
     [[nodiscard]] world::tick::TickManager& tickManager() override
     {
         throw std::runtime_error("ShulkerBoxTestWorld::tickManager not implemented");
     }
+
     [[nodiscard]] const world::tick::TickManager& tickManager() const override
     {
         throw std::runtime_error("ShulkerBoxTestWorld::tickManager not implemented");

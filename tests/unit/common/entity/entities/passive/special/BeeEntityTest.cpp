@@ -89,13 +89,17 @@ public:
         return static_cast<EntityInstanceId>(m_spawnedEntities.size());
     }
 
-    [[nodiscard]] const std::vector<std::unique_ptr<Entity>>& spawnedEntities() const { return m_spawnedEntities; }
+    [[nodiscard]] const std::vector<std::unique_ptr<Entity>>& spawnedEntities() const
+    {
+        return m_spawnedEntities;
+    }
 
     // TickManager interface (stubbed for tests)
     [[nodiscard]] world::tick::TickManager& tickManager() override
     {
         throw std::runtime_error("BeeTestWorld::tickManager not implemented");
     }
+
     [[nodiscard]] const world::tick::TickManager& tickManager() const override
     {
         throw std::runtime_error("BeeTestWorld::tickManager not implemented");
@@ -162,7 +166,10 @@ public:
         }
     }
 
-    void removeBlockEntity(const BlockPos& pos) override { m_blockEntities.erase(pos); }
+    void removeBlockEntity(const BlockPos& pos) override
+    {
+        m_blockEntities.erase(pos);
+    }
 
     // 便利方法：直接添加拥有权的方块实体
     void addBlockEntity(const BlockPos& pos, std::unique_ptr<BlockEntity> entity)
@@ -181,26 +188,54 @@ public:
         // 测试中忽略声音播放
     }
 
-    [[nodiscard]] mc::world::chunk::IChunkManager* chunkManager() override { return &m_stubChunks; }
-    [[nodiscard]] const mc::world::chunk::IChunkManager* chunkManager() const override { return &m_stubChunks; }
+    [[nodiscard]] mc::world::chunk::IChunkManager* chunkManager() override
+    {
+        return &m_stubChunks;
+    }
+
+    [[nodiscard]] const mc::world::chunk::IChunkManager* chunkManager() const override
+    {
+        return &m_stubChunks;
+    }
+
     mc::test::StubChunkManager m_stubChunks{nullptr, true};
-    [[nodiscard]] u64 currentTick() const override { return m_currentTick; }
-    [[nodiscard]] Difficulty difficulty() const override { return Difficulty::Normal; }
-    [[nodiscard]] bool isClientSide() const override { return false; }
+
+    [[nodiscard]] u64 currentTick() const override
+    {
+        return m_currentTick;
+    }
+
+    [[nodiscard]] Difficulty difficulty() const override
+    {
+        return Difficulty::Normal;
+    }
+
+    [[nodiscard]] bool isClientSide() const override
+    {
+        return false;
+    }
 
     // TickManager interface (stubbed for tests)
     [[nodiscard]] world::tick::TickManager& tickManager() override
     {
         throw std::runtime_error("BeeHiveTestWorld::tickManager not implemented");
     }
+
     [[nodiscard]] const world::tick::TickManager& tickManager() const override
     {
         throw std::runtime_error("BeeHiveTestWorld::tickManager not implemented");
     }
 
     // GameRules 接口
-    [[nodiscard]] const world::gamerule::GameRules& getGameRules() const override { return m_gameRules; }
-    [[nodiscard]] world::gamerule::GameRules& getGameRules() override { return m_gameRules; }
+    [[nodiscard]] const world::gamerule::GameRules& getGameRules() const override
+    {
+        return m_gameRules;
+    }
+
+    [[nodiscard]] world::gamerule::GameRules& getGameRules() override
+    {
+        return m_gameRules;
+    }
 
     // 测试辅助方法
     void setBlockAt(const BlockPos& pos, const BlockState* state)
@@ -208,8 +243,15 @@ public:
         m_blocks[pos] = std::make_unique<BlockState>(*state);
     }
 
-    void incrementTick() { m_currentTick++; }
-    void setCurrentTick(u64 tick) { m_currentTick = tick; }
+    void incrementTick()
+    {
+        m_currentTick++;
+    }
+
+    void setCurrentTick(u64 tick)
+    {
+        m_currentTick = tick;
+    }
 
     void setBeehiveAt(const BlockPos& pos)
     {
@@ -295,7 +337,10 @@ public:
         }
     }
 
-    void removeBlockEntity(const BlockPos& pos) override { m_blockEntities.erase(pos); }
+    void removeBlockEntity(const BlockPos& pos) override
+    {
+        m_blockEntities.erase(pos);
+    }
 
     void addBlockEntity(const BlockPos& pos, std::unique_ptr<BlockEntity> entity)
     {
@@ -310,35 +355,84 @@ public:
 
     void playSound(const ResourceLocation&, sound::SoundCategory, const Vector3&, f32, f32) override {}
 
-    [[nodiscard]] mc::world::chunk::IChunkManager* chunkManager() override { return &m_stubChunks; }
-    [[nodiscard]] const mc::world::chunk::IChunkManager* chunkManager() const override { return &m_stubChunks; }
+    [[nodiscard]] mc::world::chunk::IChunkManager* chunkManager() override
+    {
+        return &m_stubChunks;
+    }
+
+    [[nodiscard]] const mc::world::chunk::IChunkManager* chunkManager() const override
+    {
+        return &m_stubChunks;
+    }
+
     mc::test::StubChunkManager m_stubChunks{nullptr, true};
-    [[nodiscard]] u64 currentTick() const override { return m_currentTick; }
-    [[nodiscard]] Difficulty difficulty() const override { return Difficulty::Normal; }
-    [[nodiscard]] bool isClientSide() const override { return false; }
+
+    [[nodiscard]] u64 currentTick() const override
+    {
+        return m_currentTick;
+    }
+
+    [[nodiscard]] Difficulty difficulty() const override
+    {
+        return Difficulty::Normal;
+    }
+
+    [[nodiscard]] bool isClientSide() const override
+    {
+        return false;
+    }
 
     // 天气/时间控制
-    [[nodiscard]] i64 dayTime() const override { return m_dayTime; }
-    void setDayTime(i64 time) { m_dayTime = time; }
+    [[nodiscard]] i64 dayTime() const override
+    {
+        return m_dayTime;
+    }
 
-    [[nodiscard]] bool isRaining() const override { return m_raining; }
-    void setRaining(bool raining) { m_raining = raining; }
+    void setDayTime(i64 time)
+    {
+        m_dayTime = time;
+    }
 
-    [[nodiscard]] bool isThundering() const override { return m_thundering; }
-    void setThundering(bool thundering) { m_thundering = thundering; }
+    [[nodiscard]] bool isRaining() const override
+    {
+        return m_raining;
+    }
+
+    void setRaining(bool raining)
+    {
+        m_raining = raining;
+    }
+
+    [[nodiscard]] bool isThundering() const override
+    {
+        return m_thundering;
+    }
+
+    void setThundering(bool thundering)
+    {
+        m_thundering = thundering;
+    }
 
     // TickManager 接口
     [[nodiscard]] world::tick::TickManager& tickManager() override
     {
         throw std::runtime_error("BeeWeatherTestWorld::tickManager not implemented");
     }
+
     [[nodiscard]] const world::tick::TickManager& tickManager() const override
     {
         throw std::runtime_error("BeeWeatherTestWorld::tickManager not implemented");
     }
 
-    [[nodiscard]] const world::gamerule::GameRules& getGameRules() const override { return m_gameRules; }
-    [[nodiscard]] world::gamerule::GameRules& getGameRules() override { return m_gameRules; }
+    [[nodiscard]] const world::gamerule::GameRules& getGameRules() const override
+    {
+        return m_gameRules;
+    }
+
+    [[nodiscard]] world::gamerule::GameRules& getGameRules() override
+    {
+        return m_gameRules;
+    }
 
     // 便利方法
     void setBlockAt(const BlockPos& pos, const BlockState* state)
@@ -363,8 +457,15 @@ public:
         }
     }
 
-    void incrementTick() { m_currentTick++; }
-    void setCurrentTick(u64 tick) { m_currentTick = tick; }
+    void incrementTick()
+    {
+        m_currentTick++;
+    }
+
+    void setCurrentTick(u64 tick)
+    {
+        m_currentTick = tick;
+    }
 
 private:
     std::unordered_map<BlockPos, std::unique_ptr<BlockState>> m_blocks;
@@ -844,8 +945,8 @@ TEST_F(BeeEntityTest, Attributes_HasFollowRange)
 {
     BeeEntity bee(EntityInstanceId(1), mc::test::testEcsRegistry());
 
-    // MC 1.16.5: 蜜蜂跟随范围为 48.0
-    EXPECT_DOUBLE_EQ(bee.getAttributeValue("generic.follow_range", 0.0), 48.0);
+    // 1.21.11 Bee 用 Mob.createMobAttributes 的默认跟随范围 16（不是旧版的 48）。
+    EXPECT_DOUBLE_EQ(bee.getAttributeValue("generic.follow_range", 0.0), 16.0);
 }
 
 TEST_F(BeeEntityTest, Attributes_FlyingSpeedIsSet)

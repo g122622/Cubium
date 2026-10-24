@@ -62,7 +62,10 @@ protected:
         m_entity->setHealth(m_entity->maxHealth());
     }
 
-    void TearDown() override { m_entity.reset(); }
+    void TearDown() override
+    {
+        m_entity.reset();
+    }
 };
 
 // ============================================================================

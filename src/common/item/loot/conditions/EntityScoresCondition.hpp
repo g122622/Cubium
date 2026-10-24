@@ -66,10 +66,21 @@ public:
 
     [[nodiscard]] bool test(LootContext& context) const override;
     [[nodiscard]] std::unique_ptr<LootCondition> clone() const noexcept override;
-    [[nodiscard]] std::string getType() const override { return "entity_scores"; }
 
-    [[nodiscard]] EntityPropertiesCondition::EntityTarget getTarget() const { return m_target; }
-    [[nodiscard]] const std::unordered_map<std::string, RandomValueRange>& getScores() const { return m_scores; }
+    [[nodiscard]] std::string getType() const override
+    {
+        return "entity_scores";
+    }
+
+    [[nodiscard]] EntityPropertiesCondition::EntityTarget getTarget() const
+    {
+        return m_target;
+    }
+
+    [[nodiscard]] const std::unordered_map<std::string, RandomValueRange>& getScores() const
+    {
+        return m_scores;
+    }
 
 private:
     EntityPropertiesCondition::EntityTarget m_target = EntityPropertiesCondition::EntityTarget::This;

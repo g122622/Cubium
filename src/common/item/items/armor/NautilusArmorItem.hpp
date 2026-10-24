@@ -70,19 +70,28 @@ public:
      * @brief 获取护甲值
      * @return 护甲值（由材质的 Body 槽位防御值提供，等价于 material.getDefense(ArmorSlot::Body)）
      */
-    [[nodiscard]] i32 getArmorValue() const { return m_armorValue; }
+    [[nodiscard]] i32 getArmorValue() const
+    {
+        return m_armorValue;
+    }
 
     /**
      * @brief 获取装备音效
      * @return 音效事件
      */
-    [[nodiscard]] sound::SoundEvent getEquipSound() const { return m_equipSound; }
+    [[nodiscard]] sound::SoundEvent getEquipSound() const
+    {
+        return m_equipSound;
+    }
 
     /**
      * @brief 获取盔甲材质
      * @return 盔甲材质引用
      */
-    [[nodiscard]] const armor::ArmorMaterial& getMaterial() const { return m_material; }
+    [[nodiscard]] const armor::ArmorMaterial& getMaterial() const
+    {
+        return m_material;
+    }
 
 private:
     i32 m_armorValue;

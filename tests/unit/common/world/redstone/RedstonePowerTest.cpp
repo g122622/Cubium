@@ -138,7 +138,9 @@ TEST_F(RedstonePowerTest, ComparatorInputCalculation)
     // 或使用 hasComparatorInputOverride 自定义
 
     auto calculateContainerSignal = [](i32 items, i32 slots, i32 maxStack) -> i32 {
-        if (items == 0) return 0;
+        if (items == 0) {
+            return 0;
+        }
 
         // 计算填充率
         f32 fillRatio = static_cast<f32>(items) / (slots * maxStack);
@@ -275,9 +277,13 @@ TEST_F(RedstonePowerTest, ComparatorModes)
     // 1. 比较模式（Compare）: 输出 = 输入A >= 输入B ? 输入A : 0
     // 2. 减法模式（Subtract）: 输出 = max(0, 输入A - 输入B)
 
-    auto compareMode = [](i32 inputA, i32 inputB) -> i32 { return inputA >= inputB ? inputA : 0; };
+    auto compareMode = [](i32 inputA, i32 inputB) -> i32 {
+        return inputA >= inputB ? inputA : 0;
+    };
 
-    auto subtractMode = [](i32 inputA, i32 inputB) -> i32 { return std::max(0, inputA - inputB); };
+    auto subtractMode = [](i32 inputA, i32 inputB) -> i32 {
+        return std::max(0, inputA - inputB);
+    };
 
     // 比较模式测试
     EXPECT_EQ(compareMode(10, 5), 10);  // A > B

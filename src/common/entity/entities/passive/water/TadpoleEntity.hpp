@@ -63,7 +63,11 @@ public:
 
     // ========== 成长 ==========
 
-    [[nodiscard]] i32 getAge() const noexcept { return m_age; }
+    [[nodiscard]] i32 getAge() const noexcept
+    {
+        return m_age;
+    }
+
     void setAge(i32 age);
 
     /// 距成年剩余 tick
@@ -79,7 +83,10 @@ public:
 
     void tick() override;
 
-    [[nodiscard]] f32 eyeHeight() const override { return 0.3f * 0.5f; }
+    [[nodiscard]] f32 eyeHeight() const override
+    {
+        return 0.3f * 0.5f;
+    }
 
     /**
      * @brief 蝌蚪死亡不掉落经验
@@ -87,12 +94,20 @@ public:
      * 覆盖 LivingEntity::shouldDropExperience 的 `!isChild()` 语义：蝌蚪永远处于幼体形态，
      * 但按 vanilla Tadpole.shouldDropExperience 恒返回 false，被玩家击杀也不掉经验球。
      */
-    [[nodiscard]] bool shouldDropExperience() const override { return false; }
+    [[nodiscard]] bool shouldDropExperience() const override
+    {
+        return false;
+    }
 
     // ========== 音效 ==========
 
     [[nodiscard]] std::optional<ResourceLocation> getFlopSound() const override;
-    [[nodiscard]] std::optional<ResourceLocation> getAmbientSound() const override { return std::nullopt; }
+
+    [[nodiscard]] std::optional<ResourceLocation> getAmbientSound() const override
+    {
+        return std::nullopt;
+    }
+
     [[nodiscard]] std::optional<ResourceLocation> getDeathSound() const override;
     [[nodiscard]] std::optional<ResourceLocation> getHurtSound(DamageSource& source) const override;
 
@@ -101,10 +116,16 @@ public:
     [[nodiscard]] ItemStack getBucketItemStack() const override;
 
     /// 蝌蚪总是"来自桶"语义（对齐 vanilla Tadpole.fromBucket = true）
-    [[nodiscard]] bool isFromBucket() const override { return true; }
+    [[nodiscard]] bool isFromBucket() const override
+    {
+        return true;
+    }
 
     /// 蝌蚪不参与消失（对齐 vanilla 覆写 setFromBucket 为空实现 + fromBucket 恒 true）
-    [[nodiscard]] bool preventDespawn() const override { return true; }
+    [[nodiscard]] bool preventDespawn() const override
+    {
+        return true;
+    }
 
 protected:
     void registerAttributes() override;

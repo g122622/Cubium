@@ -34,6 +34,7 @@ class Entity;
 class LivingEntity;
 class Item;
 class IInventory;
+
 namespace entity {
 class VillagerEntity;
 

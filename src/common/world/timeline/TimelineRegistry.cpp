@@ -64,8 +64,9 @@ const TimelineRegistry::Entry* TimelineRegistry::find(std::string_view name)
 {
     const std::string qualified = _qualifiedName(name);
     const auto& entries = _storage().entries;
-    const auto it = std::find_if(
-        entries.begin(), entries.end(), [&qualified](const Entry& entry) { return entry.name == qualified; });
+    const auto it = std::find_if(entries.begin(), entries.end(), [&qualified](const Entry& entry) {
+        return entry.name == qualified;
+    });
     return it == entries.end() ? nullptr : &*it;
 }
 

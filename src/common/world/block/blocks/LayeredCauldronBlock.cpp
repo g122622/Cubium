@@ -321,8 +321,12 @@ i32 LayeredCauldronBlock::getLevel(const BlockState& state)
 
 void LayeredCauldronBlock::setLevel(IWorld& world, const BlockPos& pos, const BlockState& state, i32 level)
 {
-    if (level < 1) level = 1;
-    if (level > 3) level = 3;
+    if (level < 1) {
+        level = 1;
+    }
+    if (level > 3) {
+        level = 3;
+    }
 
     i32 currentLevel = getLevel(state);
     if (currentLevel != level) {

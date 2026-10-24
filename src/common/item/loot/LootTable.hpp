@@ -99,7 +99,10 @@ public:
     /**
      * @brief 获取所有池
      */
-    [[nodiscard]] const std::vector<std::unique_ptr<LootPool>>& getPools() const { return m_pools; }
+    [[nodiscard]] const std::vector<std::unique_ptr<LootPool>>& getPools() const
+    {
+        return m_pools;
+    }
 
     /**
      * @brief 根据名称获取池
@@ -114,7 +117,10 @@ public:
     /**
      * @brief 获取池数量
      */
-    [[nodiscard]] size_t poolCount() const { return m_pools.size(); }
+    [[nodiscard]] size_t poolCount() const
+    {
+        return m_pools.size();
+    }
 
     // ========== 表级函数 ==========
 
@@ -128,7 +134,10 @@ public:
     /**
      * @brief 获取表级函数
      */
-    [[nodiscard]] const std::vector<std::unique_ptr<LootFunction>>& getFunctions() const { return m_functions; }
+    [[nodiscard]] const std::vector<std::unique_ptr<LootFunction>>& getFunctions() const
+    {
+        return m_functions;
+    }
 
     /**
      * @brief 应用所有表级函数到物品
@@ -140,24 +149,36 @@ public:
     /**
      * @brief 获取参数集
      */
-    [[nodiscard]] const LootParameterSet& getParameterSet() const { return m_paramSet; }
+    [[nodiscard]] const LootParameterSet& getParameterSet() const
+    {
+        return m_paramSet;
+    }
 
     /**
      * @brief 设置参数集
      */
-    void setParameterSet(const LootParameterSet& paramSet) { m_paramSet = paramSet; }
+    void setParameterSet(const LootParameterSet& paramSet)
+    {
+        m_paramSet = paramSet;
+    }
 
     // ========== 标识符 ==========
 
     /**
      * @brief 获取掉落表ID
      */
-    [[nodiscard]] const std::string& getId() const { return m_id; }
+    [[nodiscard]] const std::string& getId() const
+    {
+        return m_id;
+    }
 
     /**
      * @brief 设置掉落表ID
      */
-    void setId(const std::string& id) { m_id = id; }
+    void setId(const std::string& id)
+    {
+        m_id = id;
+    }
 
     // ========== 生成 ==========
 

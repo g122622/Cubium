@@ -123,27 +123,42 @@ public:
     /**
      * @brief 是否正在摇晃
      */
-    [[nodiscard]] bool isShaking() const noexcept { return m_shaking; }
+    [[nodiscard]] bool isShaking() const noexcept
+    {
+        return m_shaking;
+    }
 
     /**
      * @brief 获取摇晃已持续的 tick 数
      */
-    [[nodiscard]] i32 ticks() const noexcept { return m_ticks; }
+    [[nodiscard]] i32 ticks() const noexcept
+    {
+        return m_ticks;
+    }
 
     /**
      * @brief 获取敲击方向
      */
-    [[nodiscard]] Direction clickDirection() const noexcept { return m_clickDirection; }
+    [[nodiscard]] Direction clickDirection() const noexcept
+    {
+        return m_clickDirection;
+    }
 
     /**
      * @brief 是否正在共振
      */
-    [[nodiscard]] bool isResonating() const noexcept { return m_resonating; }
+    [[nodiscard]] bool isResonating() const noexcept
+    {
+        return m_resonating;
+    }
 
     /**
      * @brief 获取共振已持续的 tick 数
      */
-    [[nodiscard]] i32 resonationTicks() const noexcept { return m_resonationTicks; }
+    [[nodiscard]] i32 resonationTicks() const noexcept
+    {
+        return m_resonationTicks;
+    }
 
     // ========== Tick 更新 ==========
 

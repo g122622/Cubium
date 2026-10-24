@@ -122,7 +122,9 @@ bool CreeperEntity::ableToCauseSkullDrop() const
 void CreeperEntity::explode()
 {
     // 只在服务端爆炸
-    if (isDead()) return;
+    if (isDead()) {
+        return;
+    }
 
     IWorld* worldPtr = world();
     if (!worldPtr) {
@@ -332,7 +334,9 @@ void CreeperEntity::registerGoals()
             1.0,  // farSpeed - 远距离逃跑速度
             1.2,  // nearSpeed - 近距离逃跑速度（更快）
             [](const LivingEntity* entity) -> bool {
-                if (!entity) return false;
+                if (!entity) {
+                    return false;
+                }
                 // 检查是否为猫或豹猫
                 auto type = entity->entityType();
                 return type == entity::VanillaEntityTypeKeys::CAT || type == entity::VanillaEntityTypeKeys::OCELOT;
@@ -347,7 +351,9 @@ void CreeperEntity::registerGoals()
     // 优先级 6: 看向玩家
     m_goalSelector.addGoal(
         6, std::make_unique<entity::ai::goal::LookAtGoal>(this, 8.0f, 0.02f, [](const LivingEntity* entity) -> bool {
-            if (!entity) return false;
+            if (!entity) {
+                return false;
+            }
             // 只看向玩家
             return entity->entityType() == entity::VanillaEntityTypeKeys::PLAYER;
         }));
@@ -364,7 +370,9 @@ void CreeperEntity::registerGoals()
             0,    // chance - 每tick都检查
             [](const LivingEntity* entity) -> bool {
                 // 苦力怕只攻击玩家
-                if (!entity) return false;
+                if (!entity) {
+                    return false;
+                }
                 return entity->entityType() == entity::VanillaEntityTypeKeys::PLAYER;
             }));
 

@@ -26,8 +26,15 @@ public:
         : m_tracker(tracker)
     {}
 
-    void onTestStructureLoaded(BaseGameTestInstance& test) override { MC_UNUSED(test); }
-    void onTestStarted(BaseGameTestInstance& test) override { GlobalTestReporter::instance().onTestStarted(test); }
+    void onTestStructureLoaded(BaseGameTestInstance& test) override
+    {
+        MC_UNUSED(test);
+    }
+
+    void onTestStarted(BaseGameTestInstance& test) override
+    {
+        GlobalTestReporter::instance().onTestStarted(test);
+    }
 
     void onTestPassed(BaseGameTestInstance& test) override
     {
@@ -41,8 +48,15 @@ public:
         GlobalTestReporter::instance().onTestFailed(test);
     }
 
-    void onTestRetryStarted(BaseGameTestInstance& test) override { MC_UNUSED(test); }
-    void onTestRetryFinished(BaseGameTestInstance& test) override { MC_UNUSED(test); }
+    void onTestRetryStarted(BaseGameTestInstance& test) override
+    {
+        MC_UNUSED(test);
+    }
+
+    void onTestRetryFinished(BaseGameTestInstance& test) override
+    {
+        MC_UNUSED(test);
+    }
 
 private:
     MultipleTestTracker& m_tracker;

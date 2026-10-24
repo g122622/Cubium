@@ -73,22 +73,34 @@ public:
     /**
      * @brief 获取实体宽度
      */
-    [[nodiscard]] f32 width() const override { return 3.6f; }
+    [[nodiscard]] f32 width() const override
+    {
+        return 3.6f;
+    }
 
     /**
      * @brief 获取实体高度
      */
-    [[nodiscard]] f32 height() const override { return 12.0f; }
+    [[nodiscard]] f32 height() const override
+    {
+        return 12.0f;
+    }
 
     /**
      * @brief 获取眼睛高度
      */
-    [[nodiscard]] f32 eyeHeight() const override { return 10.44f; }
+    [[nodiscard]] f32 eyeHeight() const override
+    {
+        return 10.44f;
+    }
 
     /**
      * @brief 巨人不会燃烧
      */
-    [[nodiscard]] bool shouldBurnInDaylight() const override { return false; }
+    [[nodiscard]] bool shouldBurnInDaylight() const override
+    {
+        return false;
+    }
 
     // ========== 寻路权重 ==========
 

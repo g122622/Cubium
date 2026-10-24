@@ -56,7 +56,11 @@ public:
     void startExecuting() override;
     void resetTask() override;
     void tick() override;
-    [[nodiscard]] std::string getTypeName() const override { return "VillagerBreedGoal"; }
+
+    [[nodiscard]] std::string getTypeName() const override
+    {
+        return "VillagerBreedGoal";
+    }
 
 private:
     /**

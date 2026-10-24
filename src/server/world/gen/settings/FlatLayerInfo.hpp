@@ -56,16 +56,28 @@ public:
     {}
 
     /** 获取层高度 */
-    [[nodiscard]] i32 height() const { return m_height; }
+    [[nodiscard]] i32 height() const
+    {
+        return m_height;
+    }
 
     /** 获取方块状态 */
-    [[nodiscard]] const BlockState* blockState() const { return m_blockState; }
+    [[nodiscard]] const BlockState* blockState() const
+    {
+        return m_blockState;
+    }
 
     /** 设置层高度 */
-    void setHeight(i32 height) { m_height = height; }
+    void setHeight(i32 height)
+    {
+        m_height = height;
+    }
 
     /** 设置方块状态 */
-    void setBlockState(const BlockState* state) { m_blockState = state; }
+    void setBlockState(const BlockState* state)
+    {
+        m_blockState = state;
+    }
 
     /**
      * @brief 限制层高度不超过最大值，返回限制后的新 FlatLayerInfo

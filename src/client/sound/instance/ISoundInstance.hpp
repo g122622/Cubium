@@ -148,7 +148,10 @@ public:
     /**
      * @brief 获取位置向量
      */
-    [[nodiscard]] glm::vec3 getPosition() const { return glm::vec3(getX(), getY(), getZ()); }
+    [[nodiscard]] glm::vec3 getPosition() const
+    {
+        return glm::vec3(getX(), getY(), getZ());
+    }
 
     // ========================================================================
     // 循环和延迟
@@ -216,7 +219,10 @@ public:
      * 用于 TickableSound 的声音切换检查。
      * 如果返回 true，声音可以在音量为 0 时播放。
      */
-    [[nodiscard]] virtual bool canBeSilent() const { return false; }
+    [[nodiscard]] virtual bool canBeSilent() const
+    {
+        return false;
+    }
 
     // ========================================================================
     // 更新

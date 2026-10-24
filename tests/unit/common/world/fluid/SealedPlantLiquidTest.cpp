@@ -137,8 +137,16 @@ public:
         return &fluid::Fluids::EMPTY()->defaultState();
     }
 
-    [[nodiscard]] mc::world::chunk::IChunkManager* chunkManager() override { return &m_stubChunks; }
-    [[nodiscard]] const mc::world::chunk::IChunkManager* chunkManager() const override { return &m_stubChunks; }
+    [[nodiscard]] mc::world::chunk::IChunkManager* chunkManager() override
+    {
+        return &m_stubChunks;
+    }
+
+    [[nodiscard]] const mc::world::chunk::IChunkManager* chunkManager() const override
+    {
+        return &m_stubChunks;
+    }
+
     mc::test::StubChunkManager m_stubChunks{nullptr, true};
 
     [[nodiscard]] world::tick::TickManager& tickManager() override
@@ -154,7 +162,10 @@ public:
         return const_cast<SealedPlantTestWorld*>(this)->tickManager();
     }
 
-    [[nodiscard]] const loot::LootTableManager* lootTableManager() const override { return m_lootTableManager.get(); }
+    [[nodiscard]] const loot::LootTableManager* lootTableManager() const override
+    {
+        return m_lootTableManager.get();
+    }
 
     EntityInstanceId spawnEntity(std::unique_ptr<Entity> entity) override
     {
@@ -165,12 +176,25 @@ public:
         return m_entityManager.addEntity(std::move(entity));
     }
 
-    [[nodiscard]] Entity* getEntity(EntityInstanceId id) override { return m_entityManager.getEntity(id); }
-    [[nodiscard]] const Entity* getEntity(EntityInstanceId id) const override { return m_entityManager.getEntity(id); }
+    [[nodiscard]] Entity* getEntity(EntityInstanceId id) override
+    {
+        return m_entityManager.getEntity(id);
+    }
 
-    [[nodiscard]] size_t entityCount() const { return m_entityManager.entityCount(); }
+    [[nodiscard]] const Entity* getEntity(EntityInstanceId id) const override
+    {
+        return m_entityManager.getEntity(id);
+    }
 
-    void setBlockAt(const BlockPos& pos, const BlockState* state) { (void)setBlockState(pos.x, pos.y, pos.z, state); }
+    [[nodiscard]] size_t entityCount() const
+    {
+        return m_entityManager.entityCount();
+    }
+
+    void setBlockAt(const BlockPos& pos, const BlockState* state)
+    {
+        (void)setBlockState(pos.x, pos.y, pos.z, state);
+    }
 
 private:
     std::map<BlockPos, const BlockState*> m_blocks;

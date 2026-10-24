@@ -75,12 +75,18 @@ public:
     /**
      * @brief 箱子不是全局渲染器
      */
-    [[nodiscard]] bool isGlobalRenderer() const override { return false; }
+    [[nodiscard]] bool isGlobalRenderer() const override
+    {
+        return false;
+    }
 
     /**
      * @brief 箱子最大渲染距离（8格）
      */
-    [[nodiscard]] f64 getMaxRenderDistanceSquared() const override { return 64.0; }
+    [[nodiscard]] f64 getMaxRenderDistanceSquared() const override
+    {
+        return 64.0;
+    }
 
     /**
      * @brief 检查是否是圣诞节（12月24-26日）

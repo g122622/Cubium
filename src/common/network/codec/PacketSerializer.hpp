@@ -154,12 +154,36 @@ public:
     [[nodiscard]] Result<u64> readVarULong();
 
     // 缓冲区管理
-    const std::vector<u8>& buffer() const { return m_buffer; }
-    std::vector<u8>& buffer() { return m_buffer; }
-    const u8* data() const { return m_buffer.data(); }
-    u8* data() { return m_buffer.data(); }
-    size_t size() const { return m_buffer.size(); }
-    size_t remaining() const { return m_buffer.size() - m_readPos; }
+    const std::vector<u8>& buffer() const
+    {
+        return m_buffer;
+    }
+
+    std::vector<u8>& buffer()
+    {
+        return m_buffer;
+    }
+
+    const u8* data() const
+    {
+        return m_buffer.data();
+    }
+
+    u8* data()
+    {
+        return m_buffer.data();
+    }
+
+    size_t size() const
+    {
+        return m_buffer.size();
+    }
+
+    size_t remaining() const
+    {
+        return m_buffer.size() - m_readPos;
+    }
+
     void clear();
     void resetRead();
     void resize(size_t size);

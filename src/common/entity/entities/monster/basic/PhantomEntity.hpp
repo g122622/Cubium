@@ -104,7 +104,10 @@ public:
     /**
      * @brief 获取幻翼大小
      */
-    [[nodiscard]] i32 getPhantomSize() const { return m_phantomSize; }
+    [[nodiscard]] i32 getPhantomSize() const
+    {
+        return m_phantomSize;
+    }
 
     /**
      * @brief 设置幻翼大小
@@ -121,43 +124,64 @@ public:
     /**
      * @brief 获取当前攻击阶段
      */
-    [[nodiscard]] AttackPhase getAttackPhase() const { return m_attackPhase; }
+    [[nodiscard]] AttackPhase getAttackPhase() const
+    {
+        return m_attackPhase;
+    }
 
     /**
      * @brief 设置攻击阶段
      */
-    void setAttackPhase(AttackPhase phase) { m_attackPhase = phase; }
+    void setAttackPhase(AttackPhase phase)
+    {
+        m_attackPhase = phase;
+    }
 
     // ========== 环绕位置 ==========
 
     /**
      * @brief 获取环绕位置
      */
-    [[nodiscard]] BlockPos orbitPosition() const { return m_orbitPosition; }
+    [[nodiscard]] BlockPos orbitPosition() const
+    {
+        return m_orbitPosition;
+    }
 
     /**
      * @brief 设置环绕位置
      */
-    void setOrbitPosition(const BlockPos& pos) { m_orbitPosition = pos; }
+    void setOrbitPosition(const BlockPos& pos)
+    {
+        m_orbitPosition = pos;
+    }
 
     /**
      * @brief 获取环绕偏移（移动目标点）
      *
      * PhantomMovementController 根据此点控制飞行方向。
      */
-    [[nodiscard]] Vector3 orbitOffset() const { return m_orbitOffset; }
+    [[nodiscard]] Vector3 orbitOffset() const
+    {
+        return m_orbitOffset;
+    }
 
     /**
      * @brief 设置环绕偏移（移动目标点）
      */
-    void setOrbitOffset(const Vector3& offset) { m_orbitOffset = offset; }
+    void setOrbitOffset(const Vector3& offset)
+    {
+        m_orbitOffset = offset;
+    }
 
     // ========== 属性 ==========
 
     /**
      * @brief 获取生物类型（亡灵）
      */
-    [[nodiscard]] CreatureAttribute getCreatureAttribute() const override { return CreatureAttribute::Undead; }
+    [[nodiscard]] CreatureAttribute getCreatureAttribute() const override
+    {
+        return CreatureAttribute::Undead;
+    }
 
     /**
      * @brief 检查是否可以攻击指定类型的实体
@@ -170,7 +194,10 @@ public:
     /**
      * @brief 获取眼睛高度
      */
-    [[nodiscard]] f32 eyeHeight() const override { return height() * 0.35f; }
+    [[nodiscard]] f32 eyeHeight() const override
+    {
+        return height() * 0.35f;
+    }
 
     // ========== 翅膀拍打 ==========
 

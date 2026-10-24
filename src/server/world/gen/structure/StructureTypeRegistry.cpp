@@ -148,10 +148,18 @@ JigsawConfig buildJigsawConfig(const StructureDefinition& def)
 VillageType villageTypeFromId(const ResourceLocation& id)
 {
     const std::string& p = id.path();
-    if (p == "village_desert") return VillageType::Desert;
-    if (p == "village_savanna") return VillageType::Savanna;
-    if (p == "village_snowy") return VillageType::Snowy;
-    if (p == "village_taiga") return VillageType::Taiga;
+    if (p == "village_desert") {
+        return VillageType::Desert;
+    }
+    if (p == "village_savanna") {
+        return VillageType::Savanna;
+    }
+    if (p == "village_snowy") {
+        return VillageType::Snowy;
+    }
+    if (p == "village_taiga") {
+        return VillageType::Taiga;
+    }
     return VillageType::Plains; // village_plains 及未知
 }
 

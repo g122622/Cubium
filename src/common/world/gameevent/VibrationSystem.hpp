@@ -41,6 +41,7 @@ namespace nbt {
 namespace tags {
 struct compound_tag;
 } // namespace tags
+
 using CompoundTag = tags::compound_tag;
 } // namespace nbt
 
@@ -318,31 +319,62 @@ public:
         /**
          * @brief 设置当前正在传播的振动
          */
-        void setCurrentVibration(VibrationInfo info) { m_currentVibration = std::move(info); }
+        void setCurrentVibration(VibrationInfo info)
+        {
+            m_currentVibration = std::move(info);
+        }
 
         /**
          * @brief 清除当前振动
          */
-        void clearCurrentVibration() { m_currentVibration = std::nullopt; }
+        void clearCurrentVibration()
+        {
+            m_currentVibration = std::nullopt;
+        }
 
         /**
          * @brief 获取振动选择器
          */
-        [[nodiscard]] VibrationSelector& selectionStrategy() { return m_selectionStrategy; }
-        [[nodiscard]] const VibrationSelector& selectionStrategy() const { return m_selectionStrategy; }
+        [[nodiscard]] VibrationSelector& selectionStrategy()
+        {
+            return m_selectionStrategy;
+        }
+
+        [[nodiscard]] const VibrationSelector& selectionStrategy() const
+        {
+            return m_selectionStrategy;
+        }
 
         /**
          * @brief 获取/设置传播剩余时间（tick）
          */
-        [[nodiscard]] i32 travelTimeInTicks() const { return m_travelTimeInTicks; }
-        void setTravelTimeInTicks(i32 ticks) { m_travelTimeInTicks = ticks; }
-        void decrementTravelTime() { m_travelTimeInTicks = std::max(0, m_travelTimeInTicks - 1); }
+        [[nodiscard]] i32 travelTimeInTicks() const
+        {
+            return m_travelTimeInTicks;
+        }
+
+        void setTravelTimeInTicks(i32 ticks)
+        {
+            m_travelTimeInTicks = ticks;
+        }
+
+        void decrementTravelTime()
+        {
+            m_travelTimeInTicks = std::max(0, m_travelTimeInTicks - 1);
+        }
 
         /**
          * @brief 获取/设置是否需要重新加载振动粒子
          */
-        [[nodiscard]] bool shouldReloadVibrationParticle() const { return m_reloadVibrationParticle; }
-        void setReloadVibrationParticle(bool value) { m_reloadVibrationParticle = value; }
+        [[nodiscard]] bool shouldReloadVibrationParticle() const
+        {
+            return m_reloadVibrationParticle;
+        }
+
+        void setReloadVibrationParticle(bool value)
+        {
+            m_reloadVibrationParticle = value;
+        }
 
         // ========================================================================
         // 序列化
@@ -486,12 +518,18 @@ public:
          * 幽匿感测体需要此条件为 true，以确保振动到达时
          * 附近的区块已加载且在 tick。
          */
-        [[nodiscard]] virtual bool requiresAdjacentChunksToBeTicking() const { return false; }
+        [[nodiscard]] virtual bool requiresAdjacentChunksToBeTicking() const
+        {
+            return false;
+        }
 
         /**
          * @brief 是否可以触发规避振动成就
          */
-        [[nodiscard]] virtual bool canTriggerAvoidVibration() const { return false; }
+        [[nodiscard]] virtual bool canTriggerAvoidVibration() const
+        {
+            return false;
+        }
 
         /**
          * @brief 是否为幽匿尖啸体（而非感测体）
@@ -500,7 +538,10 @@ public:
          * 以便仅对尖啸体检查 SHRIEKING 结束标志。
          * 默认返回 false（感测体），尖啸体覆写为 true。
          */
-        [[nodiscard]] virtual bool isSculkShrieker() const { return false; }
+        [[nodiscard]] virtual bool isSculkShrieker() const
+        {
+            return false;
+        }
 
         /**
          * @brief 数据变化回调
@@ -532,19 +573,26 @@ public:
         {
             return m_system.getVibrationUser().getPositionSource();
         }
+
         [[nodiscard]] const PositionSource& getListenerSource() const override
         {
             return m_system.getVibrationUser().getPositionSource();
         }
 
-        [[nodiscard]] i32 getListenerRadius() const override { return m_system.getVibrationUser().getListenerRadius(); }
+        [[nodiscard]] i32 getListenerRadius() const override
+        {
+            return m_system.getVibrationUser().getListenerRadius();
+        }
 
         bool handleGameEvent(server::ServerWorld& world,
             const GameEvent& event,
             const GameEvent::Context& context,
             const Vector3d& pos) override;
 
-        [[nodiscard]] DeliveryMode getDeliveryMode() const override { return DeliveryMode::ByDistance; }
+        [[nodiscard]] DeliveryMode getDeliveryMode() const override
+        {
+            return DeliveryMode::ByDistance;
+        }
 
         /**
          * @brief 强制调度振动（跳过验证检查）
@@ -631,8 +679,15 @@ public:
     /**
      * @brief 获取振动监听器
      */
-    [[nodiscard]] Listener& getVibrationListener() { return m_listener; }
-    [[nodiscard]] const Listener& getVibrationListener() const { return m_listener; }
+    [[nodiscard]] Listener& getVibrationListener()
+    {
+        return m_listener;
+    }
+
+    [[nodiscard]] const Listener& getVibrationListener() const
+    {
+        return m_listener;
+    }
 
 private:
     Listener m_listener{*this};

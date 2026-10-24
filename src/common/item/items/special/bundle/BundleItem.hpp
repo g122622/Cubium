@@ -35,6 +35,7 @@ namespace mc {
 class Slot;
 class Player;
 class LivingEntity;
+
 namespace item::items {
 
 /**
@@ -74,7 +75,10 @@ public:
     /**
      * @brief 获取颜色
      */
-    [[nodiscard]] DyeColor getColor() const noexcept { return m_color; }
+    [[nodiscard]] DyeColor getColor() const noexcept
+    {
+        return m_color;
+    }
 
     // ========== Item 接口实现 ==========
 

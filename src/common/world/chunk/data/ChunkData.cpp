@@ -507,8 +507,12 @@ std::vector<u8> ChunkData::serialize() const
     data.push_back(static_cast<u8>(m_z & 0xFF));
 
     u8 flags = 0;
-    if (m_fullyGenerated) flags |= 0x01;
-    if (m_dirty) flags |= 0x02;
+    if (m_fullyGenerated) {
+        flags |= 0x01;
+    }
+    if (m_dirty) {
+        flags |= 0x02;
+    }
     data.push_back(flags);
 
     // 区块段掩码

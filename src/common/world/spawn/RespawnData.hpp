@@ -63,10 +63,16 @@ struct RespawnData {
     [[nodiscard]] static RespawnData of(DimensionId dimension, const BlockPos& pos, f32 yaw, f32 pitch);
 
     /** @brief 维度 ID */
-    [[nodiscard]] DimensionId dimension() const noexcept { return globalPos.getDimensionId(); }
+    [[nodiscard]] DimensionId dimension() const noexcept
+    {
+        return globalPos.getDimensionId();
+    }
 
     /** @brief 方块位置 */
-    [[nodiscard]] const BlockPos& pos() const noexcept { return globalPos.getPos(); }
+    [[nodiscard]] const BlockPos& pos() const noexcept
+    {
+        return globalPos.getPos();
+    }
 
     /**
      * @brief 编码为 NBT 复合标签
@@ -86,10 +92,17 @@ struct RespawnData {
     {
         return globalPos == other.globalPos && yaw == other.yaw && pitch == other.pitch;
     }
-    [[nodiscard]] bool operator!=(const RespawnData& other) const noexcept { return !(*this == other); }
+
+    [[nodiscard]] bool operator!=(const RespawnData& other) const noexcept
+    {
+        return !(*this == other);
+    }
 
     /** @brief 比较全局位置（忽略朝向）——用于"同一切重生点"判定 */
-    [[nodiscard]] bool isSamePosition(const RespawnData& other) const noexcept { return globalPos == other.globalPos; }
+    [[nodiscard]] bool isSamePosition(const RespawnData& other) const noexcept
+    {
+        return globalPos == other.globalPos;
+    }
 };
 
 namespace world::storage {

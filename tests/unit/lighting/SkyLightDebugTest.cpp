@@ -46,30 +46,66 @@ public:
         , m_maxBuildHeight(maxBuildHeight)
     {}
 
-    void setChunk(mc::ChunkData* chunk) { m_chunk = chunk; }
+    void setChunk(mc::ChunkData* chunk)
+    {
+        m_chunk = chunk;
+    }
 
     mc::IChunk* getChunkForLight(mc::ChunkCoord x, mc::ChunkCoord z) override
     {
-        if (m_chunk && m_chunk->x() == x && m_chunk->z() == z) return m_chunk;
+        if (m_chunk && m_chunk->x() == x && m_chunk->z() == z) {
+            return m_chunk;
+        }
         return nullptr;
     }
+
     const mc::IChunk* getChunkForLight(mc::ChunkCoord x, mc::ChunkCoord z) const override
     {
-        if (m_chunk && m_chunk->x() == x && m_chunk->z() == z) return m_chunk;
+        if (m_chunk && m_chunk->x() == x && m_chunk->z() == z) {
+            return m_chunk;
+        }
         return nullptr;
     }
+
     const mc::BlockState* getBlockStateForLight(const mc::BlockPos& pos) const override
     {
-        if (!m_chunk || pos.chunkX() != m_chunk->x() || pos.chunkZ() != m_chunk->z()) return nullptr;
+        if (!m_chunk || pos.chunkX() != m_chunk->x() || pos.chunkZ() != m_chunk->z()) {
+            return nullptr;
+        }
         return m_chunk->getBlockState(pos.x & 0xF, pos.y, pos.z & 0xF);
     }
-    mc::IWorld* getWorld() override { return nullptr; }
-    const mc::IWorld* getWorld() const override { return nullptr; }
+
+    mc::IWorld* getWorld() override
+    {
+        return nullptr;
+    }
+
+    const mc::IWorld* getWorld() const override
+    {
+        return nullptr;
+    }
+
     void markLightChanged(mc::LightType, const mc::SectionPos&) override {}
-    bool hasSkyLight() const override { return true; }
-    mc::i32 getMinBuildHeight() const override { return m_minBuildHeight; }
-    mc::i32 getMaxBuildHeight() const override { return m_maxBuildHeight; }
-    mc::i32 getSectionCount() const override { return (m_maxBuildHeight - m_minBuildHeight) >> 4; }
+
+    bool hasSkyLight() const override
+    {
+        return true;
+    }
+
+    mc::i32 getMinBuildHeight() const override
+    {
+        return m_minBuildHeight;
+    }
+
+    mc::i32 getMaxBuildHeight() const override
+    {
+        return m_maxBuildHeight;
+    }
+
+    mc::i32 getSectionCount() const override
+    {
+        return (m_maxBuildHeight - m_minBuildHeight) >> 4;
+    }
 
 private:
     mc::ChunkData* m_chunk = nullptr;

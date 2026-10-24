@@ -56,11 +56,25 @@ namespace {
  */
 class ShulkerTestWorld final : public mc::test::BaseTestWorld {
 public:
-    ShulkerTestWorld() { VanillaBlocks::initialize(); }
+    ShulkerTestWorld()
+    {
+        VanillaBlocks::initialize();
+    }
 
-    bool setBlockState(i32, i32, i32, const BlockState*) override { return false; }
-    [[nodiscard]] u64 currentTick() const override { return m_currentTick; }
-    [[nodiscard]] Difficulty difficulty() const override { return Difficulty::Normal; }
+    bool setBlockState(i32, i32, i32, const BlockState*) override
+    {
+        return false;
+    }
+
+    [[nodiscard]] u64 currentTick() const override
+    {
+        return m_currentTick;
+    }
+
+    [[nodiscard]] Difficulty difficulty() const override
+    {
+        return Difficulty::Normal;
+    }
 
     void playSound(const ResourceLocation&, sound::SoundCategory, const Vector3&, f32, f32) override {}
 
@@ -70,18 +84,25 @@ public:
         return EntityInstanceId(static_cast<u32>(m_spawnedEntities.size()));
     }
 
-    void advanceTick() { m_currentTick++; }
+    void advanceTick()
+    {
+        m_currentTick++;
+    }
 
     [[nodiscard]] world::tick::TickManager& tickManager() override
     {
         throw std::runtime_error("ShulkerTestWorld::tickManager not implemented");
     }
+
     [[nodiscard]] const world::tick::TickManager& tickManager() const override
     {
         throw std::runtime_error("ShulkerTestWorld::tickManager not implemented");
     }
 
-    [[nodiscard]] size_t spawnedEntityCount() const { return m_spawnedEntities.size(); }
+    [[nodiscard]] size_t spawnedEntityCount() const
+    {
+        return m_spawnedEntities.size();
+    }
 
     [[nodiscard]] const Entity* getSpawnedEntity(size_t index) const
     {
@@ -433,21 +454,43 @@ TEST(ShulkerNearestAttackGoalTest, DoesNotExecuteOnPeacefulDifficulty)
     // 构造一个可配置难度的测试世界
     class PeacefulTestWorld final : public mc::test::BaseTestWorld {
     public:
-        PeacefulTestWorld() { VanillaBlocks::initialize(); }
-        [[nodiscard]] Difficulty difficulty() const override { return Difficulty::Peaceful; }
-        [[nodiscard]] u64 currentTick() const override { return m_tick; }
+        PeacefulTestWorld()
+        {
+            VanillaBlocks::initialize();
+        }
+
+        [[nodiscard]] Difficulty difficulty() const override
+        {
+            return Difficulty::Peaceful;
+        }
+
+        [[nodiscard]] u64 currentTick() const override
+        {
+            return m_tick;
+        }
+
         void playSound(const ResourceLocation&, sound::SoundCategory, const Vector3&, f32, f32) override {}
+
         EntityInstanceId spawnEntity(std::unique_ptr<Entity> entity) override
         {
             m_entities.push_back(std::move(entity));
             return EntityInstanceId(static_cast<u32>(m_entities.size()));
         }
-        [[nodiscard]] world::tick::TickManager& tickManager() override { throw std::runtime_error("not implemented"); }
+
+        [[nodiscard]] world::tick::TickManager& tickManager() override
+        {
+            throw std::runtime_error("not implemented");
+        }
+
         [[nodiscard]] const world::tick::TickManager& tickManager() const override
         {
             throw std::runtime_error("not implemented");
         }
-        void advanceTick() { m_tick++; }
+
+        void advanceTick()
+        {
+            m_tick++;
+        }
 
     private:
         u64 m_tick = 0;
@@ -496,9 +539,21 @@ TEST(ShulkerDefenseAttackGoalTest, DoesNotExecuteWithoutWorld)
         ShulkerWithTeam(EntityInstanceId id)
             : ShulkerEntity(id, mc::test::testEcsRegistry())
         {}
-        void setTeam(scoreboard::Team* team) { m_team = team; }
-        [[nodiscard]] scoreboard::Team* getTeam() override { return m_team; }
-        [[nodiscard]] const scoreboard::Team* getTeam() const override { return m_team; }
+
+        void setTeam(scoreboard::Team* team)
+        {
+            m_team = team;
+        }
+
+        [[nodiscard]] scoreboard::Team* getTeam() override
+        {
+            return m_team;
+        }
+
+        [[nodiscard]] const scoreboard::Team* getTeam() const override
+        {
+            return m_team;
+        }
 
     private:
         scoreboard::Team* m_team = nullptr;
@@ -511,48 +566,106 @@ TEST(ShulkerDefenseAttackGoalTest, DoesNotExecuteWithoutWorld)
             : m_name(name)
         {}
 
-        [[nodiscard]] const std::string& getName() const noexcept override { return m_name; }
-        [[nodiscard]] const text::ITextComponent* getDisplayName() const noexcept override { return nullptr; }
+        [[nodiscard]] const std::string& getName() const noexcept override
+        {
+            return m_name;
+        }
+
+        [[nodiscard]] const text::ITextComponent* getDisplayName() const noexcept override
+        {
+            return nullptr;
+        }
+
         void setDisplayName(std::unique_ptr<text::ITextComponent>) override {}
+
         [[nodiscard]] const std::set<std::string>& getMembers() const noexcept override
         {
             static std::set<std::string> empty;
             return empty;
         }
-        bool addMember(const std::string&) override { return false; }
-        bool removeMember(const std::string&) override { return false; }
-        [[nodiscard]] bool hasMember(const std::string&) const override { return false; }
+
+        bool addMember(const std::string&) override
+        {
+            return false;
+        }
+
+        bool removeMember(const std::string&) override
+        {
+            return false;
+        }
+
+        [[nodiscard]] bool hasMember(const std::string&) const override
+        {
+            return false;
+        }
+
         void clearMembers() override {}
-        [[nodiscard]] text::TextFormatting getColor() const noexcept override { return text::TextFormatting::White; }
+
+        [[nodiscard]] text::TextFormatting getColor() const noexcept override
+        {
+            return text::TextFormatting::White;
+        }
+
         void setColor(text::TextFormatting) override {}
-        [[nodiscard]] const text::ITextComponent* getPrefix() const noexcept override { return nullptr; }
+
+        [[nodiscard]] const text::ITextComponent* getPrefix() const noexcept override
+        {
+            return nullptr;
+        }
+
         void setPrefix(std::unique_ptr<text::ITextComponent>) override {}
-        [[nodiscard]] const text::ITextComponent* getSuffix() const noexcept override { return nullptr; }
+
+        [[nodiscard]] const text::ITextComponent* getSuffix() const noexcept override
+        {
+            return nullptr;
+        }
+
         void setSuffix(std::unique_ptr<text::ITextComponent>) override {}
-        [[nodiscard]] bool getAllowFriendlyFire() const noexcept override { return false; }
+
+        [[nodiscard]] bool getAllowFriendlyFire() const noexcept override
+        {
+            return false;
+        }
+
         void setAllowFriendlyFire(bool) override {}
-        [[nodiscard]] bool canSeeFriendlyInvisibles() const noexcept override { return false; }
+
+        [[nodiscard]] bool canSeeFriendlyInvisibles() const noexcept override
+        {
+            return false;
+        }
+
         void setSeeFriendlyInvisibles(bool) override {}
+
         [[nodiscard]] scoreboard::TeamVisibility getNameTagVisibility() const noexcept override
         {
             return scoreboard::TeamVisibility::Always;
         }
+
         void setNameTagVisibility(scoreboard::TeamVisibility) override {}
+
         [[nodiscard]] scoreboard::TeamVisibility getDeathMessageVisibility() const noexcept override
         {
             return scoreboard::TeamVisibility::Always;
         }
+
         void setDeathMessageVisibility(scoreboard::TeamVisibility) override {}
+
         [[nodiscard]] scoreboard::TeamCollisionRule getCollisionRule() const noexcept override
         {
             return scoreboard::TeamCollisionRule::Always;
         }
+
         void setCollisionRule(scoreboard::TeamCollisionRule) override {}
+
         [[nodiscard]] std::unique_ptr<text::ITextComponent> formatName(const text::ITextComponent&) const override
         {
             return nullptr;
         }
-        [[nodiscard]] std::unique_ptr<text::ITextComponent> getFormattedDisplayName() const override { return nullptr; }
+
+        [[nodiscard]] std::unique_ptr<text::ITextComponent> getFormattedDisplayName() const override
+        {
+            return nullptr;
+        }
 
     private:
         std::string m_name;

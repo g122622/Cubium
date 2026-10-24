@@ -94,31 +94,46 @@ public:
      * @brief 获取结果物品
      * @return 结果物品堆
      */
-    [[nodiscard]] ItemStack getResultItem() const override { return m_result; }
+    [[nodiscard]] ItemStack getResultItem() const override
+    {
+        return m_result;
+    }
 
     /**
      * @brief 获取原料列表
      * @return 原料列表
      */
-    [[nodiscard]] const std::vector<Ingredient>& getIngredients() const override { return m_ingredients; }
+    [[nodiscard]] const std::vector<Ingredient>& getIngredients() const override
+    {
+        return m_ingredients;
+    }
 
     /**
      * @brief 获取配方分组
      * @return 分组名，如果无分组返回空字符串
      */
-    [[nodiscard]] const std::string& getGroup() const override { return m_group; }
+    [[nodiscard]] const std::string& getGroup() const override
+    {
+        return m_group;
+    }
 
     /**
      * @brief 获取配方ID
      * @return 配方ID
      */
-    [[nodiscard]] ResourceLocation getId() const override { return m_id; }
+    [[nodiscard]] ResourceLocation getId() const override
+    {
+        return m_id;
+    }
 
     /**
      * @brief 获取配方类型
      * @return RecipeType::ShapelessCrafting
      */
-    [[nodiscard]] RecipeType getType() const override { return RecipeType::ShapelessCrafting; }
+    [[nodiscard]] RecipeType getType() const override
+    {
+        return RecipeType::ShapelessCrafting;
+    }
 
     /**
      * @brief 检查配方是否适合给定尺寸的网格
@@ -141,7 +156,10 @@ public:
      *
      * 简单配方可以使用更高效的贪心匹配算法。
      */
-    [[nodiscard]] bool isSimple() const { return m_isSimple; }
+    [[nodiscard]] bool isSimple() const
+    {
+        return m_isSimple;
+    }
 
 private:
     /**

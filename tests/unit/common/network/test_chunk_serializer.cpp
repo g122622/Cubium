@@ -38,7 +38,10 @@ using namespace mc::network;
 
 class ChunkSerializerTest : public ::testing::Test {
 protected:
-    void SetUp() override { VanillaBlocks::initialize(); }
+    void SetUp() override
+    {
+        VanillaBlocks::initialize();
+    }
 };
 
 TEST_F(ChunkSerializerTest, SerializeEmptyChunk)
@@ -161,7 +164,10 @@ TEST_F(ChunkSerializerTest, SectionSize)
 
 class ChunkSerializerExtendedTest : public ::testing::Test {
 protected:
-    void SetUp() override { VanillaBlocks::initialize(); }
+    void SetUp() override
+    {
+        VanillaBlocks::initialize();
+    }
 };
 
 TEST_F(ChunkSerializerExtendedTest, SerializeDeserializeConsistency)
@@ -309,7 +315,10 @@ TEST_F(ChunkSerializerExtendedTest, ChunkSizeCalculation)
 
 class ChunkSerializerLightTest : public ::testing::Test {
 protected:
-    void SetUp() override { VanillaBlocks::initialize(); }
+    void SetUp() override
+    {
+        VanillaBlocks::initialize();
+    }
 };
 
 TEST_F(ChunkSerializerLightTest, SectionSerializationCarriesNoLightBytes)

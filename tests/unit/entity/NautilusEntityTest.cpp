@@ -75,8 +75,15 @@ struct ParticleRecord {
  */
 class NautilusTestWorld final : public mc::test::BaseTestWorld {
 public:
-    std::vector<ParticleRecord>& particles() { return m_particles; }
-    void clearParticles() { m_particles.clear(); }
+    std::vector<ParticleRecord>& particles()
+    {
+        return m_particles;
+    }
+
+    void clearParticles()
+    {
+        m_particles.clear();
+    }
 
     void addParticle(particle::ParticleTypeId type, const Vector3& pos, const Vector3& velocity) override
     {
@@ -89,20 +96,70 @@ public:
         m_particles.push_back({type, pos, velocity});
     }
 
-    [[nodiscard]] Entity* getEntity(EntityInstanceId) override { return nullptr; }
-    [[nodiscard]] const Entity* getEntity(EntityInstanceId) const override { return nullptr; }
-    EntityInstanceId spawnEntity(std::unique_ptr<Entity>) override { return EntityInstanceId(1); }
+    [[nodiscard]] Entity* getEntity(EntityInstanceId) override
+    {
+        return nullptr;
+    }
 
-    [[nodiscard]] u8 getSkyLight(i32, i32, i32) const override { return 15; }
-    [[nodiscard]] u8 getBlockLight(i32, i32, i32) const override { return 0; }
-    [[nodiscard]] u8 getSkyLight(const BlockPos&) const override { return 15; }
-    [[nodiscard]] u8 getBlockLight(const BlockPos&) const override { return 0; }
-    [[nodiscard]] bool canSeeSky(const BlockPos&) const override { return true; }
-    [[nodiscard]] f32 getBrightness(const BlockPos&) const override { return 1.0f; }
-    [[nodiscard]] u8 getLightSubtracted(const BlockPos&, u32) const override { return 15; }
-    [[nodiscard]] bool isRaining() const override { return false; }
-    [[nodiscard]] bool isThundering() const override { return false; }
-    [[nodiscard]] bool canRainAt(const BlockPos&) const override { return false; }
+    [[nodiscard]] const Entity* getEntity(EntityInstanceId) const override
+    {
+        return nullptr;
+    }
+
+    EntityInstanceId spawnEntity(std::unique_ptr<Entity>) override
+    {
+        return EntityInstanceId(1);
+    }
+
+    [[nodiscard]] u8 getSkyLight(i32, i32, i32) const override
+    {
+        return 15;
+    }
+
+    [[nodiscard]] u8 getBlockLight(i32, i32, i32) const override
+    {
+        return 0;
+    }
+
+    [[nodiscard]] u8 getSkyLight(const BlockPos&) const override
+    {
+        return 15;
+    }
+
+    [[nodiscard]] u8 getBlockLight(const BlockPos&) const override
+    {
+        return 0;
+    }
+
+    [[nodiscard]] bool canSeeSky(const BlockPos&) const override
+    {
+        return true;
+    }
+
+    [[nodiscard]] f32 getBrightness(const BlockPos&) const override
+    {
+        return 1.0f;
+    }
+
+    [[nodiscard]] u8 getLightSubtracted(const BlockPos&, u32) const override
+    {
+        return 15;
+    }
+
+    [[nodiscard]] bool isRaining() const override
+    {
+        return false;
+    }
+
+    [[nodiscard]] bool isThundering() const override
+    {
+        return false;
+    }
+
+    [[nodiscard]] bool canRainAt(const BlockPos&) const override
+    {
+        return false;
+    }
 
 private:
     std::vector<ParticleRecord> m_particles;
@@ -152,7 +209,10 @@ public:
 
 class NautilusNbtTest : public ::testing::Test {
 protected:
-    void SetUp() override { Items::initialize(); }
+    void SetUp() override
+    {
+        Items::initialize();
+    }
 };
 
 TEST_F(NautilusNbtTest, EmptyInventory_DoesNotWriteItemsKey)
@@ -472,7 +532,10 @@ TEST_F(NautilusBubbleTest, ParticleVelocity_BoundedBySpread)
 
 class NautilusEquipmentTest : public ::testing::Test {
 protected:
-    void SetUp() override { Items::initialize(); }
+    void SetUp() override
+    {
+        Items::initialize();
+    }
 };
 
 TEST_F(NautilusEquipmentTest, IsSaddled_FalseByDefault)

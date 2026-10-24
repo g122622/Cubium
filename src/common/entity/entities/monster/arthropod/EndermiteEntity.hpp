@@ -54,7 +54,10 @@ public:
 
     // 节肢生物归类（对齐 Java Endermite.getMobType()==ARTHROPOD）。基类默认 Undefined，未覆写会导致
     // 节肢杀手附魔无加成等失效。
-    [[nodiscard]] CreatureAttribute getCreatureAttribute() const override { return CreatureAttribute::Arthropod; }
+    [[nodiscard]] CreatureAttribute getCreatureAttribute() const override
+    {
+        return CreatureAttribute::Arthropod;
+    }
 
     // ========== 生命周期 ==========
 
@@ -89,7 +92,10 @@ public:
 
     // 节肢生物归类（对齐 Java Silverfish.getMobType()==ARTHROPOD）。基类默认 Undefined，未覆写会导致
     // 节肢杀手附魔无加成等失效。
-    [[nodiscard]] CreatureAttribute getCreatureAttribute() const override { return CreatureAttribute::Arthropod; }
+    [[nodiscard]] CreatureAttribute getCreatureAttribute() const override
+    {
+        return CreatureAttribute::Arthropod;
+    }
 
     // ========== 生命周期 ==========
 
@@ -109,7 +115,10 @@ public:
      * @brief 获取召唤同伴目标
      * @return 召唤同伴目标的指针
      */
-    [[nodiscard]] entity::ai::goal::SilverfishSummonOthersGoal* getSummonGoal() noexcept { return m_summonGoal; }
+    [[nodiscard]] entity::ai::goal::SilverfishSummonOthersGoal* getSummonGoal() noexcept
+    {
+        return m_summonGoal;
+    }
 
     // ========== 寻路权重 ==========
 

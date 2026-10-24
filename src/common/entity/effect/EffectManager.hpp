@@ -93,8 +93,15 @@ public:
     /**
      * @brief 获取所有效果
      */
-    [[nodiscard]] const std::vector<EffectInstance>& getAllEffects() const { return m_effects; }
-    [[nodiscard]] std::vector<EffectInstance>& getAllEffects() { return m_effects; }
+    [[nodiscard]] const std::vector<EffectInstance>& getAllEffects() const
+    {
+        return m_effects;
+    }
+
+    [[nodiscard]] std::vector<EffectInstance>& getAllEffects()
+    {
+        return m_effects;
+    }
 
     // ========== 更新 ==========
 
@@ -132,7 +139,10 @@ public:
     /**
      * @brief 获取效果数量
      */
-    [[nodiscard]] size_t getEffectCount() const { return m_effects.size(); }
+    [[nodiscard]] size_t getEffectCount() const
+    {
+        return m_effects.size();
+    }
 
     /**
      * @brief 检查是否有任何有益效果

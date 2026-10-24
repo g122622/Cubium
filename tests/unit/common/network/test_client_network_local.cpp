@@ -95,7 +95,9 @@ protected:
         Items::initialize();
 
         m_serverNetwork = std::make_unique<ServerNetwork>();
-        m_serverNetwork->onClientConnect([this](ServerClientConnection& conn) { _installServerSide(conn); });
+        m_serverNetwork->onClientConnect([this](ServerClientConnection& conn) {
+            _installServerSide(conn);
+        });
 
         std::unique_ptr<transport::ILocalTransport> clientSideTransport;
         m_serverConn = m_serverNetwork->createLocalClientSide(&clientSideTransport);

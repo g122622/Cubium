@@ -181,7 +181,9 @@ TEST_F(RuntimeLightConcurrencyTest, FlushQueueRoundTrip)
 
     // 用 setOnLightChanged 计数 flush 实际触发
     std::atomic<int> lightChangeCount{0};
-    m_world->setOnLightChanged([&lightChangeCount](LightType, const SectionPos&) { lightChangeCount.fetch_add(1); });
+    m_world->setOnLightChanged([&lightChangeCount](LightType, const SectionPos&) {
+        lightChangeCount.fetch_add(1);
+    });
 
     // 手动入队 3 个 dirty section（模拟 worker 完成）
     std::vector<std::pair<LightType, SectionPos>> dirty;
@@ -207,7 +209,9 @@ TEST_F(RuntimeLightConcurrencyTest, WorkerAsyncPropagationAndFlush)
     m_manager->initialize();
 
     std::atomic<int> lightChangeCount{0};
-    m_world->setOnLightChanged([&lightChangeCount](LightType, const SectionPos&) { lightChangeCount.fetch_add(1); });
+    m_world->setOnLightChanged([&lightChangeCount](LightType, const SectionPos&) {
+        lightChangeCount.fetch_add(1);
+    });
 
     ChunkData* chunk = m_manager->requestFullChunkSync(0, 0);
     ASSERT_NE(chunk, nullptr);

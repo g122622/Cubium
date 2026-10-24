@@ -164,7 +164,10 @@ public:
      * @param type 图案类型
      * @return 如果是底色图案返回 true
      */
-    [[nodiscard]] static bool isBase(BannerPatternType type) { return type == BannerPatternType::Base; }
+    [[nodiscard]] static bool isBase(BannerPatternType type)
+    {
+        return type == BannerPatternType::Base;
+    }
 };
 
 } // namespace blockentity

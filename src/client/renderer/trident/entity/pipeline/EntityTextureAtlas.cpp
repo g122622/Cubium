@@ -313,7 +313,9 @@ Result<EntityAtlasBuildResult> EntityTextureAtlas::build()
     // 计算图集尺寸
     // 使用简单的行布局
     u32 texturesPerRow = static_cast<u32>(std::sqrt(static_cast<f64>(m_textures.size())));
-    if (texturesPerRow == 0) texturesPerRow = 1;
+    if (texturesPerRow == 0) {
+        texturesPerRow = 1;
+    }
 
     u32 rowCount = static_cast<u32>((m_textures.size() + texturesPerRow - 1) / texturesPerRow);
 
@@ -323,8 +325,9 @@ Result<EntityAtlasBuildResult> EntityTextureAtlas::build()
     // 确保尺寸是2的幂次方（有利于GPU）
     auto nextPowerOf2 = [](u32 n) {
         u32 power = 1;
-        while (power < n)
+        while (power < n) {
             power *= 2;
+        }
         return power;
     };
 
@@ -334,7 +337,9 @@ Result<EntityAtlasBuildResult> EntityTextureAtlas::build()
     m_dynamicUsedHeight = 0;
     m_height = nextPowerOf2(m_dynamicOffsetY + DYNAMIC_RESERVE_HEIGHT);
     // 宽度至少能容纳一个纹理槽位
-    if (m_width < m_textureSize) m_width = m_textureSize;
+    if (m_width < m_textureSize) {
+        m_width = m_textureSize;
+    }
 
     spdlog::info("Building entity texture atlas: {}x{} ({} textures, dynamic reserve from Y={})",
         m_width,

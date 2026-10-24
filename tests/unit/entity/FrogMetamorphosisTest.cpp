@@ -86,7 +86,10 @@ public:
         m_playedSounds.push_back(soundEventId);
     }
 
-    [[nodiscard]] const std::vector<std::unique_ptr<Entity>>& spawnedEntities() const { return m_spawned; }
+    [[nodiscard]] const std::vector<std::unique_ptr<Entity>>& spawnedEntities() const
+    {
+        return m_spawned;
+    }
 
     [[nodiscard]] i32 countPlayed(const ResourceLocation& id) const
     {

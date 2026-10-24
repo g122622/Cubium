@@ -28,7 +28,10 @@ public:
     /**
      * @brief 标记在 `tick` 时刻触发。
      */
-    void trigger(i32 tick) noexcept { m_triggerTime = tick; }
+    void trigger(i32 tick) noexcept
+    {
+        m_triggerTime = tick;
+    }
 
     /**
      * @brief 断言当前 tick 已触发过。
@@ -45,7 +48,10 @@ public:
             {std::to_string(currentTick), std::to_string(m_triggerTime)}};
     }
 
-    [[nodiscard]] i32 triggerTime() const noexcept { return m_triggerTime; }
+    [[nodiscard]] i32 triggerTime() const noexcept
+    {
+        return m_triggerTime;
+    }
 
 private:
     i32 m_triggerTime = -1;

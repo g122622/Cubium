@@ -58,9 +58,15 @@ SculkTestWorld& sculkTestWorld()
 
 class SculkSensorBlockTest : public ::testing::Test {
 protected:
-    void SetUp() override { VanillaBlocks::initialize(); }
+    void SetUp() override
+    {
+        VanillaBlocks::initialize();
+    }
 
-    BlockProperties sculkProperties() const { return BlockProperties(Material::SCULK).noCollision().notSolid(); }
+    BlockProperties sculkProperties() const
+    {
+        return BlockProperties(Material::SCULK).noCollision().notSolid();
+    }
 };
 
 TEST_F(SculkSensorBlockTest, DefaultState_IsInactiveWithZeroPower)
@@ -157,9 +163,15 @@ TEST_F(SculkSensorBlockTest, GetActiveTicks_ReturnsCorrectValue)
 
 class CalibratedSculkSensorBlockTest : public ::testing::Test {
 protected:
-    void SetUp() override { VanillaBlocks::initialize(); }
+    void SetUp() override
+    {
+        VanillaBlocks::initialize();
+    }
 
-    BlockProperties sculkProperties() const { return BlockProperties(Material::SCULK).noCollision().notSolid(); }
+    BlockProperties sculkProperties() const
+    {
+        return BlockProperties(Material::SCULK).noCollision().notSolid();
+    }
 };
 
 TEST_F(CalibratedSculkSensorBlockTest, DefaultState_HasFacing)
@@ -305,9 +317,15 @@ TEST(VibrationSystemFrequencyTest, SculkSensorTendrilsClicking_Frequency9)
 
 class SculkShriekerBlockTest : public ::testing::Test {
 protected:
-    void SetUp() override { VanillaBlocks::initialize(); }
+    void SetUp() override
+    {
+        VanillaBlocks::initialize();
+    }
 
-    BlockProperties sculkProperties() const { return BlockProperties(Material::SCULK).noCollision().notSolid(); }
+    BlockProperties sculkProperties() const
+    {
+        return BlockProperties(Material::SCULK).noCollision().notSolid();
+    }
 };
 
 TEST_F(SculkShriekerBlockTest, DefaultState_NotShriekingNotSummonNotWaterlogged)

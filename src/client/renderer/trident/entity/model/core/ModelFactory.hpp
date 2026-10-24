@@ -89,14 +89,20 @@ public:
     /**
      * @brief 检查是否已初始化
      */
-    [[nodiscard]] static bool isInitialized() { return s_initialized; }
+    [[nodiscard]] static bool isInitialized()
+    {
+        return s_initialized;
+    }
 
     /**
      * @brief 标记为已初始化
      *
      * 由 initializeModelRegistration() 调用
      */
-    static void markInitialized() { s_initialized = true; }
+    static void markInitialized()
+    {
+        s_initialized = true;
+    }
 
     // 禁止拷贝和移动
     ModelFactory(const ModelFactory&) = delete;
@@ -127,9 +133,10 @@ private:
  * REGISTER_ENTITY_MODEL("minecraft:pig", PigModel);
  * @endcode
  */
-#define REGISTER_ENTITY_MODEL(typeId, ModelClass)                                  \
-    ::mc::client::renderer::entity::model::ModelFactory::instance().registerModel( \
-        typeId, []() { return std::make_unique<::mc::client::renderer::entity::model::ModelClass>(); })
+#define REGISTER_ENTITY_MODEL(typeId, ModelClass)                                                \
+    ::mc::client::renderer::entity::model::ModelFactory::instance().registerModel(typeId, []() { \
+        return std::make_unique<::mc::client::renderer::entity::model::ModelClass>();            \
+    })
 
 /**
  * @brief 便捷宏：注册带缩放参数的实体模型
@@ -139,8 +146,9 @@ private:
  * REGISTER_ENTITY_MODEL_WITH_SCALE("minecraft:cat", CatModel, 0.0f);
  * @endcode
  */
-#define REGISTER_ENTITY_MODEL_WITH_SCALE(typeId, ModelClass, scale)                \
-    ::mc::client::renderer::entity::model::ModelFactory::instance().registerModel( \
-        typeId, []() { return std::make_unique<::mc::client::renderer::entity::model::ModelClass>(scale); })
+#define REGISTER_ENTITY_MODEL_WITH_SCALE(typeId, ModelClass, scale)                              \
+    ::mc::client::renderer::entity::model::ModelFactory::instance().registerModel(typeId, []() { \
+        return std::make_unique<::mc::client::renderer::entity::model::ModelClass>(scale);       \
+    })
 
 } // namespace mc::client::renderer::entity::model

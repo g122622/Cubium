@@ -131,7 +131,9 @@ Result<void> DescriptorManager::initialize(TridentContext* context, u32 maxFrame
 
 void DescriptorManager::destroy()
 {
-    if (!m_initialized) return;
+    if (!m_initialized) {
+        return;
+    }
 
     _destroyDescriptorPool();
     _destroyPipelineLayout();

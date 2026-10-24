@@ -59,7 +59,10 @@ namespace {
  */
 class HarnessTestWorld final : public test::BaseTestWorld {
 public:
-    [[nodiscard]] bool isClientSide() const override { return false; }
+    [[nodiscard]] bool isClientSide() const override
+    {
+        return false;
+    }
 
     void playSound(const ResourceLocation& soundEventId,
         sound::SoundCategory category,
@@ -115,11 +118,21 @@ public:
         return nullptr;
     }
 
-    void setKnownEntities(std::vector<Entity*> entities) { m_knownEntities = std::move(entities); }
+    void setKnownEntities(std::vector<Entity*> entities)
+    {
+        m_knownEntities = std::move(entities);
+    }
 
     /// 世界中可见的玩家列表（供快乐恶魂 scanPlayerAbove 扫描）
-    [[nodiscard]] std::vector<Entity*> getPlayers() const override { return m_players; }
-    void setPlayers(std::vector<Entity*> players) { m_players = std::move(players); }
+    [[nodiscard]] std::vector<Entity*> getPlayers() const override
+    {
+        return m_players;
+    }
+
+    void setPlayers(std::vector<Entity*> players)
+    {
+        m_players = std::move(players);
+    }
 
     /// 该位置是否正在降水（供 continuousHeal 判定）
     [[nodiscard]] world::biome::BiomeClimate::Precipitation precipitationAt(const BlockPos& pos) const override
@@ -127,14 +140,31 @@ public:
         (void)pos;
         return m_precipitation;
     }
-    void setPrecipitation(world::biome::BiomeClimate::Precipitation precipitation) { m_precipitation = precipitation; }
 
-    [[nodiscard]] bool isInCloudLayer(f64, f64) const override { return m_inClouds; }
-    void setInCloudLayer(bool inClouds) { m_inClouds = inClouds; }
+    void setPrecipitation(world::biome::BiomeClimate::Precipitation precipitation)
+    {
+        m_precipitation = precipitation;
+    }
 
-    [[nodiscard]] const std::vector<ResourceLocation>& sounds() const { return m_playedSounds; }
+    [[nodiscard]] bool isInCloudLayer(f64, f64) const override
+    {
+        return m_inClouds;
+    }
 
-    [[nodiscard]] i32 gameEventCount() const { return static_cast<i32>(m_gameEvents.size()); }
+    void setInCloudLayer(bool inClouds)
+    {
+        m_inClouds = inClouds;
+    }
+
+    [[nodiscard]] const std::vector<ResourceLocation>& sounds() const
+    {
+        return m_playedSounds;
+    }
+
+    [[nodiscard]] i32 gameEventCount() const
+    {
+        return static_cast<i32>(m_gameEvents.size());
+    }
 
 private:
     std::vector<Entity*> m_knownEntities;
@@ -160,7 +190,10 @@ protected:
         }
     }
 
-    void SetUp() override { m_world = std::make_unique<HarnessTestWorld>(); }
+    void SetUp() override
+    {
+        m_world = std::make_unique<HarnessTestWorld>();
+    }
 
     [[nodiscard]] std::unique_ptr<HappyGhastEntity> makeGhast(EntityInstanceId id)
     {

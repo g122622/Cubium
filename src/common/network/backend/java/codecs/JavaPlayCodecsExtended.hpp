@@ -705,7 +705,9 @@ inline void writeOptionalComponentNbt(B& buf, const std::vector<u8>& nbt)
 [[nodiscard]] inline auto setTitleTextCodec()
 {
     return makeCodec<ir::play::SetTitleText>(
-        [](B& buf, const ir::play::SetTitleText& v) { writeComponentNbt(buf, v.text); },
+        [](B& buf, const ir::play::SetTitleText& v) {
+            writeComponentNbt(buf, v.text);
+        },
         [](B& buf) -> Result<ir::play::SetTitleText> {
             ir::play::SetTitleText v{};
             MC_TRY_ASSIGN(v.text, readComponentNbt(buf));
@@ -717,7 +719,9 @@ inline void writeOptionalComponentNbt(B& buf, const std::vector<u8>& nbt)
 [[nodiscard]] inline auto setSubtitleTextCodec()
 {
     return makeCodec<ir::play::SetSubtitleText>(
-        [](B& buf, const ir::play::SetSubtitleText& v) { writeComponentNbt(buf, v.text); },
+        [](B& buf, const ir::play::SetSubtitleText& v) {
+            writeComponentNbt(buf, v.text);
+        },
         [](B& buf) -> Result<ir::play::SetSubtitleText> {
             ir::play::SetSubtitleText v{};
             MC_TRY_ASSIGN(v.text, readComponentNbt(buf));
@@ -729,7 +733,9 @@ inline void writeOptionalComponentNbt(B& buf, const std::vector<u8>& nbt)
 [[nodiscard]] inline auto setActionBarTextCodec()
 {
     return makeCodec<ir::play::SetActionBarText>(
-        [](B& buf, const ir::play::SetActionBarText& v) { writeComponentNbt(buf, v.text); },
+        [](B& buf, const ir::play::SetActionBarText& v) {
+            writeComponentNbt(buf, v.text);
+        },
         [](B& buf) -> Result<ir::play::SetActionBarText> {
             ir::play::SetActionBarText v{};
             MC_TRY_ASSIGN(v.text, readComponentNbt(buf));
@@ -767,7 +773,9 @@ inline void writeOptionalComponentNbt(B& buf, const std::vector<u8>& nbt)
         []([[maybe_unused]] B& buf, [[maybe_unused]] const ir::play::PlayerCombatEnter& v) {
             // 无负载：vanilla STREAM_CODEC = StreamCodec.unit(INSTANCE)
         },
-        []([[maybe_unused]] B& buf) -> Result<ir::play::PlayerCombatEnter> { return ir::play::PlayerCombatEnter{}; });
+        []([[maybe_unused]] B& buf) -> Result<ir::play::PlayerCombatEnter> {
+            return ir::play::PlayerCombatEnter{};
+        });
 }
 
 /// PlayerCombatEnd（S→C，id=64）
@@ -775,7 +783,9 @@ inline void writeOptionalComponentNbt(B& buf, const std::vector<u8>& nbt)
 [[nodiscard]] inline auto playerCombatEndCodec()
 {
     return makeCodec<ir::play::PlayerCombatEnd>(
-        [](B& buf, const ir::play::PlayerCombatEnd& v) { buf.writeVarInt(v.duration); },
+        [](B& buf, const ir::play::PlayerCombatEnd& v) {
+            buf.writeVarInt(v.duration);
+        },
         [](B& buf) -> Result<ir::play::PlayerCombatEnd> {
             ir::play::PlayerCombatEnd v{};
             MC_TRY_ASSIGN(v.duration, buf.readVarInt());
@@ -822,7 +832,10 @@ inline void writeOptionalComponentNbt(B& buf, const std::vector<u8>& nbt)
 /// ClearTitles（S→C，id=14）
 [[nodiscard]] inline auto clearTitlesCodec()
 {
-    return makeCodec<ir::play::ClearTitles>([](B& buf, const ir::play::ClearTitles& v) { buf.writeBool(v.resetTimes); },
+    return makeCodec<ir::play::ClearTitles>(
+        [](B& buf, const ir::play::ClearTitles& v) {
+            buf.writeBool(v.resetTimes);
+        },
         [](B& buf) -> Result<ir::play::ClearTitles> {
             ir::play::ClearTitles v{};
             MC_TRY_ASSIGN(v.resetTimes, buf.readBool());
@@ -899,7 +912,10 @@ inline void writeOptionalComponentNbt(B& buf, const std::vector<u8>& nbt)
 /// SetBorderSize（S→C，id=88）
 [[nodiscard]] inline auto setBorderSizeCodec()
 {
-    return makeCodec<ir::play::SetBorderSize>([](B& buf, const ir::play::SetBorderSize& v) { buf.writeF64(v.size); },
+    return makeCodec<ir::play::SetBorderSize>(
+        [](B& buf, const ir::play::SetBorderSize& v) {
+            buf.writeF64(v.size);
+        },
         [](B& buf) -> Result<ir::play::SetBorderSize> {
             ir::play::SetBorderSize v{};
             MC_TRY_ASSIGN(v.size, buf.readF64());
@@ -911,7 +927,9 @@ inline void writeOptionalComponentNbt(B& buf, const std::vector<u8>& nbt)
 [[nodiscard]] inline auto setBorderWarningDelayCodec()
 {
     return makeCodec<ir::play::SetBorderWarningDelay>(
-        [](B& buf, const ir::play::SetBorderWarningDelay& v) { buf.writeVarInt(v.warningDelay); },
+        [](B& buf, const ir::play::SetBorderWarningDelay& v) {
+            buf.writeVarInt(v.warningDelay);
+        },
         [](B& buf) -> Result<ir::play::SetBorderWarningDelay> {
             ir::play::SetBorderWarningDelay v{};
             MC_TRY_ASSIGN(v.warningDelay, buf.readVarInt());
@@ -923,7 +941,9 @@ inline void writeOptionalComponentNbt(B& buf, const std::vector<u8>& nbt)
 [[nodiscard]] inline auto setBorderWarningDistanceCodec()
 {
     return makeCodec<ir::play::SetBorderWarningDistance>(
-        [](B& buf, const ir::play::SetBorderWarningDistance& v) { buf.writeVarInt(v.warningBlocks); },
+        [](B& buf, const ir::play::SetBorderWarningDistance& v) {
+            buf.writeVarInt(v.warningBlocks);
+        },
         [](B& buf) -> Result<ir::play::SetBorderWarningDistance> {
             ir::play::SetBorderWarningDistance v{};
             MC_TRY_ASSIGN(v.warningBlocks, buf.readVarInt());
@@ -1099,7 +1119,10 @@ inline void writeMapPatch(B& buf, const std::optional<ir::play::MapPatchWire>& p
 /// SetCamera（S→C，id=91）
 [[nodiscard]] inline auto setCameraCodec()
 {
-    return makeCodec<ir::play::SetCamera>([](B& buf, const ir::play::SetCamera& v) { buf.writeVarInt(v.cameraId); },
+    return makeCodec<ir::play::SetCamera>(
+        [](B& buf, const ir::play::SetCamera& v) {
+            buf.writeVarInt(v.cameraId);
+        },
         [](B& buf) -> Result<ir::play::SetCamera> {
             ir::play::SetCamera v{};
             MC_TRY_ASSIGN(v.cameraId, buf.readVarInt());
@@ -1586,7 +1609,9 @@ inline void writeExplosionParticleList(B& buf, const std::vector<ir::play::Explo
 [[nodiscard]] inline auto commandsCodec()
 {
     return makeCodec<ir::play::Commands>(
-        [](B& buf, const ir::play::Commands& v) { buf.writeBytes(v.payload.data(), v.payload.size()); },
+        [](B& buf, const ir::play::Commands& v) {
+            buf.writeBytes(v.payload.data(), v.payload.size());
+        },
         [](B& buf) -> Result<ir::play::Commands> {
             ir::play::Commands v{};
             // 包体无前缀，剩余字节即完整命令树二进制。
@@ -1704,7 +1729,9 @@ inline void writeExplosionParticleList(B& buf, const std::vector<ir::play::Explo
 [[nodiscard]] inline auto changeGameModeCodec()
 {
     return makeCodec<ir::play::ChangeGameMode>(
-        [](B& buf, const ir::play::ChangeGameMode& v) { buf.writeVarInt(v.mode); },
+        [](B& buf, const ir::play::ChangeGameMode& v) {
+            buf.writeVarInt(v.mode);
+        },
         [](B& buf) -> Result<ir::play::ChangeGameMode> {
             ir::play::ChangeGameMode v{};
             MC_TRY_ASSIGN(v.mode, buf.readVarInt());
@@ -1719,13 +1746,18 @@ inline void writeExplosionParticleList(B& buf, const std::vector<ir::play::Explo
 [[nodiscard]] inline auto playerLoadedCodec()
 {
     return makeCodec<ir::play::PlayerLoaded>([](B&, const ir::play::PlayerLoaded&) {},
-        [](B&) -> Result<ir::play::PlayerLoaded> { return ir::play::PlayerLoaded{}; });
+        [](B&) -> Result<ir::play::PlayerLoaded> {
+            return ir::play::PlayerLoaded{};
+        });
 }
 
 /** @brief 挥手请求：VarInt 主手/副手枚举。 */
 [[nodiscard]] inline auto swingCodec()
 {
-    return makeCodec<ir::play::Swing>([](B& buf, const ir::play::Swing& v) { buf.writeVarInt(v.hand); },
+    return makeCodec<ir::play::Swing>(
+        [](B& buf, const ir::play::Swing& v) {
+            buf.writeVarInt(v.hand);
+        },
         [](B& buf) -> Result<ir::play::Swing> {
             ir::play::Swing v{};
             MC_TRY_ASSIGN(v.hand, buf.readVarInt());
@@ -1740,7 +1772,9 @@ inline void writeExplosionParticleList(B& buf, const std::vector<ir::play::Explo
 [[nodiscard]] inline auto serverboundPlayerAbilitiesCodec()
 {
     return makeCodec<ir::play::ServerboundPlayerAbilities>(
-        [](B& buf, const ir::play::ServerboundPlayerAbilities& v) { buf.writeU8(v.flying ? 2 : 0); },
+        [](B& buf, const ir::play::ServerboundPlayerAbilities& v) {
+            buf.writeU8(v.flying ? 2 : 0);
+        },
         [](B& buf) -> Result<ir::play::ServerboundPlayerAbilities> {
             u8 flags = 0;
             MC_TRY_ASSIGN(flags, buf.readU8());
@@ -1752,7 +1786,9 @@ inline void writeExplosionParticleList(B& buf, const std::vector<ir::play::Explo
 [[nodiscard]] inline auto playClientInformationCodec()
 {
     return makeCodec<ir::play::ClientInformation>(
-        [](B& buf, const ir::play::ClientInformation& v) { clientInformationCodec().encode(buf, v.information); },
+        [](B& buf, const ir::play::ClientInformation& v) {
+            clientInformationCodec().encode(buf, v.information);
+        },
         [](B& buf) -> Result<ir::play::ClientInformation> {
             ir::play::ClientInformation v{};
             MC_TRY_ASSIGN(v.information, clientInformationCodec().decode(buf));
@@ -1764,7 +1800,9 @@ inline void writeExplosionParticleList(B& buf, const std::vector<ir::play::Explo
 [[nodiscard]] inline auto teleportToEntityCodec()
 {
     return makeCodec<ir::play::TeleportToEntity>(
-        [](B& buf, const ir::play::TeleportToEntity& v) { wire::writeUuid(buf, v.uuid); },
+        [](B& buf, const ir::play::TeleportToEntity& v) {
+            wire::writeUuid(buf, v.uuid);
+        },
         [](B& buf) -> Result<ir::play::TeleportToEntity> {
             ir::play::TeleportToEntity v{};
             MC_TRY_ASSIGN(v.uuid, wire::readUuid(buf));
@@ -1884,7 +1922,9 @@ inline void writeExplosionParticleList(B& buf, const std::vector<ir::play::Explo
 [[nodiscard]] inline auto clientCommandCodec()
 {
     return makeCodec<ir::play::ClientCommand>(
-        [](B& buf, const ir::play::ClientCommand& v) { buf.writeVarInt(v.action); },
+        [](B& buf, const ir::play::ClientCommand& v) {
+            buf.writeVarInt(v.action);
+        },
         [](B& buf) -> Result<ir::play::ClientCommand> {
             ir::play::ClientCommand v{};
             MC_TRY_ASSIGN(v.action, buf.readVarInt());
@@ -1898,7 +1938,10 @@ inline void writeExplosionParticleList(B& buf, const std::vector<ir::play::Explo
 /** @brief 重命名请求为一个 UTF-8 字符串；菜单负责过滤字符和名称长度。 */
 [[nodiscard]] inline auto renameItemCodec()
 {
-    return makeCodec<ir::play::RenameItem>([](B& buf, const ir::play::RenameItem& v) { buf.writeString(v.name); },
+    return makeCodec<ir::play::RenameItem>(
+        [](B& buf, const ir::play::RenameItem& v) {
+            buf.writeString(v.name);
+        },
         [](B& buf) -> Result<ir::play::RenameItem> {
             ir::play::RenameItem v{};
             MC_TRY_ASSIGN(v.name, buf.readString());
@@ -1948,7 +1991,10 @@ inline void writeExplosionParticleList(B& buf, const std::vector<ir::play::Explo
 /** @brief 报价选择为一个 VarInt 索引，范围由当前报价列表验证。 */
 [[nodiscard]] inline auto selectTradeCodec()
 {
-    return makeCodec<ir::play::SelectTrade>([](B& buf, const ir::play::SelectTrade& v) { buf.writeVarInt(v.index); },
+    return makeCodec<ir::play::SelectTrade>(
+        [](B& buf, const ir::play::SelectTrade& v) {
+            buf.writeVarInt(v.index);
+        },
         [](B& buf) -> Result<ir::play::SelectTrade> {
             ir::play::SelectTrade v{};
             MC_TRY_ASSIGN(v.index, buf.readVarInt());
@@ -2076,22 +2122,29 @@ inline void writeTradeCost(B& buf, const ir::play::TradeItemCost& cost)
         [](B& buf, const ir::play::EditBook& v) {
             buf.writeVarInt(v.slot);
             buf.writeVarInt(static_cast<i32>(v.pages.size()));
-            for (const auto& page : v.pages)
+            for (const auto& page : v.pages) {
                 buf.writeString(page);
+            }
             buf.writeBool(v.title.has_value());
-            if (v.title) buf.writeString(*v.title);
+            if (v.title) {
+                buf.writeString(*v.title);
+            }
         },
         [](B& buf) -> Result<ir::play::EditBook> {
             ir::play::EditBook v{};
             i32 count = 0;
             MC_TRY_ASSIGN(v.slot, buf.readVarInt());
             MC_TRY_ASSIGN(count, buf.readVarInt());
-            if (count < 0 || count > 100) return Error(ErrorCode::InvalidData, "Invalid book page count");
+            if (count < 0 || count > 100) {
+                return Error(ErrorCode::InvalidData, "Invalid book page count");
+            }
             for (i32 i = 0; i < count; ++i) {
                 std::string page;
                 MC_TRY_ASSIGN(page, buf.readString());
                 const auto length = util::text::utf16Length(page);
-                if (!length || *length > 1024) return Error(ErrorCode::InvalidData, "Invalid book page length");
+                if (!length || *length > 1024) {
+                    return Error(ErrorCode::InvalidData, "Invalid book page length");
+                }
                 v.pages.push_back(std::move(page));
             }
             bool hasTitle = false;
@@ -2100,20 +2153,28 @@ inline void writeTradeCost(B& buf, const ir::play::TradeItemCost& cost)
                 std::string title;
                 MC_TRY_ASSIGN(title, buf.readString());
                 const auto length = util::text::utf16Length(title);
-                if (!length || *length > 32) return Error(ErrorCode::InvalidData, "Invalid book title length");
+                if (!length || *length > 32) {
+                    return Error(ErrorCode::InvalidData, "Invalid book title length");
+                }
                 v.title = std::move(title);
             }
             return v;
         });
 }
+
 /** @brief 成书打开只携带手枚举。 */
 [[nodiscard]] inline auto openBookCodec()
 {
-    return makeCodec<ir::play::OpenBook>([](B& buf, const ir::play::OpenBook& v) { buf.writeVarInt(v.hand); },
+    return makeCodec<ir::play::OpenBook>(
+        [](B& buf, const ir::play::OpenBook& v) {
+            buf.writeVarInt(v.hand);
+        },
         [](B& buf) -> Result<ir::play::OpenBook> {
             ir::play::OpenBook v{};
             MC_TRY_ASSIGN(v.hand, buf.readVarInt());
-            if (v.hand < 0 || v.hand > 1) return Error(ErrorCode::InvalidData, "Invalid book hand");
+            if (v.hand < 0 || v.hand > 1) {
+                return Error(ErrorCode::InvalidData, "Invalid book hand");
+            }
             return v;
         });
 }
@@ -2130,10 +2191,13 @@ inline void writeTradeCost(B& buf, const ir::play::TradeItemCost& cost)
             ir::play::BundleItemSelected v{};
             MC_TRY_ASSIGN(v.slotId, buf.readVarInt());
             MC_TRY_ASSIGN(v.selectedItemIndex, buf.readVarInt());
-            if (v.selectedItemIndex < -1) return Error(ErrorCode::InvalidData, "Invalid selected bundle index");
+            if (v.selectedItemIndex < -1) {
+                return Error(ErrorCode::InvalidData, "Invalid selected bundle index");
+            }
             return v;
         });
 }
+
 /** @brief 两个 Optional<MobEffect>，每个为存在标志与纯 VarInt 注册 ID。 */
 [[nodiscard]] inline auto setBeaconCodec()
 {
@@ -2141,7 +2205,9 @@ inline void writeTradeCost(B& buf, const ir::play::TradeItemCost& cost)
         [](B& buf, const ir::play::SetBeacon& v) {
             for (const auto effect : {v.primary, v.secondary}) {
                 buf.writeBool(effect.has_value());
-                if (effect) buf.writeVarInt(*effect);
+                if (effect) {
+                    buf.writeVarInt(*effect);
+                }
             }
         },
         [](B& buf) -> Result<ir::play::SetBeacon> {
@@ -2152,13 +2218,16 @@ inline void writeTradeCost(B& buf, const ir::play::TradeItemCost& cost)
                 if (present) {
                     i32 id = 0;
                     MC_TRY_ASSIGN(id, buf.readVarInt());
-                    if (id < 0 || id >= 40) return Error(ErrorCode::InvalidData, "Invalid beacon effect holder");
+                    if (id < 0 || id >= 40) {
+                        return Error(ErrorCode::InvalidData, "Invalid beacon effect holder");
+                    }
                     *effect = id;
                 }
             }
             return v;
         });
 }
+
 /** @brief 绝对位置快照不含传送相对标志，速度为三个 Double。 */
 [[nodiscard]] inline auto entityPositionSyncCodec()
 {
@@ -2190,6 +2259,7 @@ inline void writeTradeCost(B& buf, const ir::play::TradeItemCost& cost)
             return v;
         });
 }
+
 /** @brief Either 标签的 true 分支为内置枚举，false 分支为 Component NBT。 */
 [[nodiscard]] inline auto serverLinksCodec()
 {
@@ -2199,10 +2269,11 @@ inline void writeTradeCost(B& buf, const ir::play::TradeItemCost& cost)
             for (const auto& entry : v.links) {
                 const auto* known = std::get_if<ir::play::KnownServerLink>(&entry.label);
                 buf.writeBool(known != nullptr);
-                if (known)
+                if (known) {
                     buf.writeVarInt(static_cast<i32>(*known));
-                else
+                } else {
                     writeComponentNbt(buf, std::get<std::vector<u8>>(entry.label));
+                }
                 buf.writeString(entry.url);
             }
         },
@@ -2210,8 +2281,9 @@ inline void writeTradeCost(B& buf, const ir::play::TradeItemCost& cost)
             ir::play::ServerLinks v{};
             i32 count = 0;
             MC_TRY_ASSIGN(count, buf.readVarInt());
-            if (count < 0 || static_cast<usize>(count) > buf.readableBytes() / 3)
+            if (count < 0 || static_cast<usize>(count) > buf.readableBytes() / 3) {
                 return Error(ErrorCode::InvalidData, "Invalid server link count");
+            }
             for (i32 i = 0; i < count; ++i) {
                 ir::play::ServerLink entry{};
                 bool known = false;
@@ -2219,7 +2291,9 @@ inline void writeTradeCost(B& buf, const ir::play::TradeItemCost& cost)
                 if (known) {
                     i32 id = 0;
                     MC_TRY_ASSIGN(id, buf.readVarInt());
-                    if (id < 0 || id > 9) return Error(ErrorCode::InvalidData, "Invalid server link label");
+                    if (id < 0 || id > 9) {
+                        return Error(ErrorCode::InvalidData, "Invalid server link label");
+                    }
                     entry.label = static_cast<ir::play::KnownServerLink>(id);
                 } else {
                     std::vector<u8> label;
@@ -2232,14 +2306,15 @@ inline void writeTradeCost(B& buf, const ir::play::TradeItemCost& cost)
             return v;
         });
 }
+
 /** @brief Holder 的零表示直接定义，其余为注册 ID 加一。 */
 [[nodiscard]] inline auto showDialogCodec()
 {
     return makeCodec<ir::play::ShowDialog>(
         [](B& buf, const ir::play::ShowDialog& v) {
-            if (const auto* id = std::get_if<i32>(&v.dialog))
+            if (const auto* id = std::get_if<i32>(&v.dialog)) {
                 buf.writeVarInt(*id + 1);
-            else {
+            } else {
                 buf.writeVarInt(0);
                 const auto& nbt = std::get<std::vector<u8>>(v.dialog);
                 buf.writeBytes(nbt.data(), nbt.size());
@@ -2248,19 +2323,27 @@ inline void writeTradeCost(B& buf, const ir::play::TradeItemCost& cost)
         [](B& buf) -> Result<ir::play::ShowDialog> {
             i32 id = 0;
             MC_TRY_ASSIGN(id, buf.readVarInt());
-            if (id < 0) return Error(ErrorCode::InvalidData, "Invalid dialog holder");
-            if (id > 0) return ir::play::ShowDialog{id - 1};
+            if (id < 0) {
+                return Error(ErrorCode::InvalidData, "Invalid dialog holder");
+            }
+            if (id > 0) {
+                return ir::play::ShowDialog{id - 1};
+            }
             const usize start = buf.readPosition();
             MC_TRY(buffer::nbt_io::readRootCompound(buf));
             return ir::play::ShowDialog{std::vector<u8>(buf.data() + start, buf.data() + buf.readPosition())};
         });
 }
+
 /** @brief 清除对话框为空负载。 */
 [[nodiscard]] inline auto clearDialogCodec()
 {
     return makeCodec<ir::play::ClearDialog>([](B&, const ir::play::ClearDialog&) {},
-        [](B&) -> Result<ir::play::ClearDialog> { return ir::play::ClearDialog{}; });
+        [](B&) -> Result<ir::play::ClearDialog> {
+            return ir::play::ClearDialog{};
+        });
 }
+
 /** @brief 导航点的标识 Either、RGB 三字节和类型专属负载。 */
 [[nodiscard]] inline auto waypointCodec()
 {
@@ -2269,10 +2352,11 @@ inline void writeTradeCost(B& buf, const ir::play::TradeItemCost& cost)
             buf.writeVarInt(static_cast<i32>(v.operation));
             const auto* uuid = std::get_if<std::array<u8, 16>>(&v.identifier);
             buf.writeBool(uuid != nullptr);
-            if (uuid)
+            if (uuid) {
                 buf.writeBytes(uuid->data(), uuid->size());
-            else
+            } else {
                 buf.writeString(std::get<std::string>(v.identifier));
+            }
             buf.writeString(v.style);
             buf.writeBool(v.color.has_value());
             if (v.color) {
@@ -2288,21 +2372,25 @@ inline void writeTradeCost(B& buf, const ir::play::TradeItemCost& cost)
             } else if (const auto* chunk = std::get_if<ir::play::WaypointChunk>(&v.position)) {
                 buf.writeVarInt(chunk->x);
                 buf.writeVarInt(chunk->z);
-            } else if (const auto* angle = std::get_if<f32>(&v.position))
+            } else if (const auto* angle = std::get_if<f32>(&v.position)) {
                 buf.writeF32(*angle);
+            }
         },
         [](B& buf) -> Result<ir::play::Waypoint> {
             ir::play::Waypoint v{};
             i32 operation = 0;
             MC_TRY_ASSIGN(operation, buf.readVarInt());
-            if (operation < 0 || operation > 2) return Error(ErrorCode::InvalidData, "Invalid waypoint operation");
+            if (operation < 0 || operation > 2) {
+                return Error(ErrorCode::InvalidData, "Invalid waypoint operation");
+            }
             v.operation = static_cast<ir::play::WaypointOperation>(operation);
             bool uuid = false;
             MC_TRY_ASSIGN(uuid, buf.readBool());
             if (uuid) {
                 std::array<u8, 16> id{};
-                for (auto& byte : id)
+                for (auto& byte : id) {
                     MC_TRY_ASSIGN(byte, buf.readU8());
+                }
                 v.identifier = id;
             } else {
                 std::string id;

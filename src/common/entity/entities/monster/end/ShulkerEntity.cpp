@@ -478,8 +478,9 @@ void ShulkerEntity::registerAttributes()
     MonsterEntity::registerAttributes();
 
     attributes().setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 30.0f);
-    attributes().setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.0f); // 不移动
-    attributes().setBaseValue(entity::attribute::Attributes::FOLLOW_RANGE, 18.0f);
+    // 原版 Shulker 只覆盖生命值，速度沿用 Monster 默认 0.7、跟随范围沿用 Mob 默认 16。
+    attributes().setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.7f);
+    attributes().setBaseValue(entity::attribute::Attributes::FOLLOW_RANGE, 16.0f);
 }
 
 std::optional<ResourceLocation> ShulkerEntity::getAmbientSound() const

@@ -135,6 +135,7 @@ public:
     {
         throw std::runtime_error("ShelfTestWorld::tickManager not implemented");
     }
+
     [[nodiscard]] const world::tick::TickManager& tickManager() const override
     {
         throw std::runtime_error("ShelfTestWorld::tickManager not implemented");
@@ -148,10 +149,25 @@ public:
         f32 pitch;
     };
 
-    [[nodiscard]] const std::vector<SoundRecord>& sounds() const { return m_sounds; }
-    [[nodiscard]] bool wasSoundPlayed() const { return !m_sounds.empty(); }
-    [[nodiscard]] const ResourceLocation& lastSoundId() const { return m_sounds.back().sound; }
-    void clearSounds() { m_sounds.clear(); }
+    [[nodiscard]] const std::vector<SoundRecord>& sounds() const
+    {
+        return m_sounds;
+    }
+
+    [[nodiscard]] bool wasSoundPlayed() const
+    {
+        return !m_sounds.empty();
+    }
+
+    [[nodiscard]] const ResourceLocation& lastSoundId() const
+    {
+        return m_sounds.back().sound;
+    }
+
+    void clearSounds()
+    {
+        m_sounds.clear();
+    }
 
 private:
     std::unordered_map<BlockPos, std::unique_ptr<BlockState>> m_blocks;

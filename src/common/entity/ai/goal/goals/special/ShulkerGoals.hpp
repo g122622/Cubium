@@ -71,7 +71,10 @@ public:
     void resetTask() override;
     void tick() override;
 
-    [[nodiscard]] std::string getTypeName() const override { return "ShulkerAttackGoal"; }
+    [[nodiscard]] std::string getTypeName() const override
+    {
+        return "ShulkerAttackGoal";
+    }
 
 private:
     ShulkerEntity* m_shulker;
@@ -112,7 +115,10 @@ public:
     void resetTask() override;
     void tick() override;
 
-    [[nodiscard]] std::string getTypeName() const override { return "ShulkerPeekGoal"; }
+    [[nodiscard]] std::string getTypeName() const override
+    {
+        return "ShulkerPeekGoal";
+    }
 
 private:
     ShulkerEntity* m_shulker;
@@ -142,7 +148,10 @@ public:
 
     [[nodiscard]] bool shouldExecute() override;
 
-    [[nodiscard]] std::string getTypeName() const override { return "ShulkerNearestAttackGoal"; }
+    [[nodiscard]] std::string getTypeName() const override
+    {
+        return "ShulkerNearestAttackGoal";
+    }
 };
 
 /**
@@ -163,7 +172,10 @@ public:
 
     [[nodiscard]] bool shouldExecute() override;
 
-    [[nodiscard]] std::string getTypeName() const override { return "ShulkerDefenseAttackGoal"; }
+    [[nodiscard]] std::string getTypeName() const override
+    {
+        return "ShulkerDefenseAttackGoal";
+    }
 };
 
 } // namespace entity::ai::goal

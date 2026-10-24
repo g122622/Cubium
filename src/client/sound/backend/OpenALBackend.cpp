@@ -978,13 +978,19 @@ Result<std::unique_ptr<IAudioSource>> OpenALBackend::createSource()
     m_activeSourceCount.fetch_add(1, std::memory_order::relaxed);
 
     // 创建源销毁回调，当源被销毁时递减活跃源计数
-    auto onDestroy = [this]() { m_activeSourceCount.fetch_sub(1, std::memory_order::relaxed); };
+    auto onDestroy = [this]() {
+        m_activeSourceCount.fetch_sub(1, std::memory_order::relaxed);
+    };
 
     // 创建缓冲区查找回调，供 OpenALSource 在流式播放 queue/unqueue 时
     // 在 AudioBufferId 与 OpenAL ALuint 句柄之间转换。
     // 回调内部加锁访问 m_buffers / m_alBufferToId，OpenALSource 调用时无需持锁。
-    auto lookupALBuffer = [this](AudioBufferId id) { return this->_lookupALBuffer(id); };
-    auto lookupBufferId = [this](ALuint alBuffer) { return this->_lookupBufferId(alBuffer); };
+    auto lookupALBuffer = [this](AudioBufferId id) {
+        return this->_lookupALBuffer(id);
+    };
+    auto lookupBufferId = [this](ALuint alBuffer) {
+        return this->_lookupBufferId(alBuffer);
+    };
 
     std::unique_ptr<IAudioSource> audioSource = std::make_unique<OpenALSource>(
         id, source, std::move(onDestroy), std::move(lookupALBuffer), std::move(lookupBufferId));

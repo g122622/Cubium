@@ -71,20 +71,30 @@ public:
     /**
      * @brief 获取允许的值（true和false）
      */
-    [[nodiscard]] const std::vector<bool>& allowedValues() const { return m_values; }
+    [[nodiscard]] const std::vector<bool>& allowedValues() const
+    {
+        return m_values;
+    }
 
     /**
      * @brief 将布尔值转换为字符串
      */
-    [[nodiscard]] std::string valueToString(const bool& value) const override { return value ? "true" : "false"; }
+    [[nodiscard]] std::string valueToString(const bool& value) const override
+    {
+        return value ? "true" : "false";
+    }
 
     /**
      * @brief 解析字符串为布尔值
      */
     [[nodiscard]] std::optional<bool> parse(std::string_view str) const override
     {
-        if (str == "true") return true;
-        if (str == "false") return false;
+        if (str == "true") {
+            return true;
+        }
+        if (str == "false") {
+            return false;
+        }
         return std::nullopt;
     }
 
@@ -99,7 +109,10 @@ public:
     /**
      * @brief 获取类型名称
      */
-    [[nodiscard]] const char* typeName() const override { return "BooleanProperty"; }
+    [[nodiscard]] const char* typeName() const override
+    {
+        return "BooleanProperty";
+    }
 
 private:
     explicit BooleanProperty(const std::string& name)

@@ -57,21 +57,41 @@ public:
 
     // ========== 火球攻击 ==========
 
-    [[nodiscard]] bool isCharging() const { return m_isCharging; }
-    void setCharging(bool charging) { m_isCharging = charging; }
+    [[nodiscard]] bool isCharging() const
+    {
+        return m_isCharging;
+    }
 
-    [[nodiscard]] i32 getAttackCooldown() const { return m_attackCooldown; }
-    void setAttackCooldown(i32 cooldown) { m_attackCooldown = cooldown; }
+    void setCharging(bool charging)
+    {
+        m_isCharging = charging;
+    }
+
+    [[nodiscard]] i32 getAttackCooldown() const
+    {
+        return m_attackCooldown;
+    }
+
+    void setAttackCooldown(i32 cooldown)
+    {
+        m_attackCooldown = cooldown;
+    }
 
     /**
      * @brief 获取火球爆炸威力
      */
-    [[nodiscard]] i32 getFireballStrength() const { return m_explosionPower; }
+    [[nodiscard]] i32 getFireballStrength() const
+    {
+        return m_explosionPower;
+    }
 
     /**
      * @brief 设置火球爆炸威力
      */
-    void setFireballStrength(i32 power) { m_explosionPower = power; }
+    void setFireballStrength(i32 power)
+    {
+        m_explosionPower = power;
+    }
 
     void shootFireball();
 
@@ -189,7 +209,10 @@ public:
 
     // ========== 火焰免疫 ==========
 
-    [[nodiscard]] bool isImmuneToFire() const override { return true; }
+    [[nodiscard]] bool isImmuneToFire() const override
+    {
+        return true;
+    }
 
     // ========== 攻击 ==========
 
@@ -251,14 +274,35 @@ public:
 
     // ========== 猪灵状态 ==========
 
-    [[nodiscard]] bool isImmuneToFire() const override { return m_immuneToFire; }
-    void setImmuneToFire(bool immune) { m_immuneToFire = immune; }
+    [[nodiscard]] bool isImmuneToFire() const override
+    {
+        return m_immuneToFire;
+    }
 
-    [[nodiscard]] bool isConverting() const { return m_converting; }
-    void setConverting(bool converting) { m_converting = converting; }
+    void setImmuneToFire(bool immune)
+    {
+        m_immuneToFire = immune;
+    }
 
-    [[nodiscard]] i32 getTimeInOverworld() const { return m_timeInOverworld; }
-    void setTimeInOverworld(i32 time) { m_timeInOverworld = time; }
+    [[nodiscard]] bool isConverting() const
+    {
+        return m_converting;
+    }
+
+    void setConverting(bool converting)
+    {
+        m_converting = converting;
+    }
+
+    [[nodiscard]] i32 getTimeInOverworld() const
+    {
+        return m_timeInOverworld;
+    }
+
+    void setTimeInOverworld(i32 time)
+    {
+        m_timeInOverworld = time;
+    }
 
 protected:
     void registerGoals() override;
@@ -286,8 +330,15 @@ public:
 
     // ========== 交易相关 ==========
 
-    [[nodiscard]] bool isBaby() const { return m_isBaby; }
-    [[nodiscard]] bool isChild() const override { return m_isBaby; }
+    [[nodiscard]] bool isBaby() const
+    {
+        return m_isBaby;
+    }
+
+    [[nodiscard]] bool isChild() const override
+    {
+        return m_isBaby;
+    }
 
     // 猪灵偏好武器（对齐 Java Piglin.getPreferredWeaponType）：成年猪灵偏好弩与金矛，幼年猪灵无偏好。
     [[nodiscard]] std::string getPreferredWeaponType() const override
@@ -296,7 +347,10 @@ public:
     }
 
     /// 对齐 vanilla Hoglin.shouldDropExperience 恒返回 true：幼年猪灵兽被击杀同样掉经验
-    [[nodiscard]] bool shouldDropExperience() const override { return true; }
+    [[nodiscard]] bool shouldDropExperience() const override
+    {
+        return true;
+    }
 
     void setBaby(bool baby)
     {
@@ -311,16 +365,36 @@ public:
     // ========== IRangedAttackMob 接口 ==========
 
     void attackEntityWithRangedAttack(LivingEntity* target, f32 charge) override;
-    [[nodiscard]] i32 getAttackInterval() const override { return 20; }
-    [[nodiscard]] bool canRangedAttack() const override { return true; }
+
+    [[nodiscard]] i32 getAttackInterval() const override
+    {
+        return 20;
+    }
+
+    [[nodiscard]] bool canRangedAttack() const override
+    {
+        return true;
+    }
 
     // ========== ICrossbowUser 接口 ==========
 
-    void setChargingCrossbow(bool charging) override { m_isChargingCrossbow = charging; }
-    [[nodiscard]] bool isChargingCrossbow() const override { return m_isChargingCrossbow; }
+    void setChargingCrossbow(bool charging) override
+    {
+        m_isChargingCrossbow = charging;
+    }
+
+    [[nodiscard]] bool isChargingCrossbow() const override
+    {
+        return m_isChargingCrossbow;
+    }
+
     void onCrossbowLoadComplete(::mc::ItemStack& crossbow) override;
     void shootCrossbow(::mc::LivingEntity* target, ::mc::ItemStack& crossbow, f32 charge) override;
-    [[nodiscard]] i32 getCrossbowChargeTime() const override { return 25; }
+
+    [[nodiscard]] i32 getCrossbowChargeTime() const override
+    {
+        return 25;
+    }
 
     // ========== IAngerable 接口 ==========
 
@@ -414,16 +488,40 @@ public:
 
     // 亡灵生物归类（对齐 Java ZombifiedPiglin.getMobType()==UNDEAD）。基类默认 Undefined，未覆写会导致
     // 亡灵杀手附魔无加成、瞬间治疗/伤害药水不反转、凋灵玫瑰不免疫、凋灵同族互伤等亡灵特性失效。
-    [[nodiscard]] CreatureAttribute getCreatureAttribute() const override { return CreatureAttribute::Undead; }
+    [[nodiscard]] CreatureAttribute getCreatureAttribute() const override
+    {
+        return CreatureAttribute::Undead;
+    }
 
-    [[nodiscard]] bool isImmuneToFire() const override { return m_immuneToFire; }
-    void setImmuneToFire(bool immune) { m_immuneToFire = immune; }
+    [[nodiscard]] bool isImmuneToFire() const override
+    {
+        return m_immuneToFire;
+    }
 
-    [[nodiscard]] bool isAngry() const { return m_angry; }
-    void setAngry(bool angry) { m_angry = angry; }
+    void setImmuneToFire(bool immune)
+    {
+        m_immuneToFire = immune;
+    }
 
-    [[nodiscard]] i32 getAngerTime() const { return m_angerTime; }
-    void setAngerTime(i32 time) { m_angerTime = time; }
+    [[nodiscard]] bool isAngry() const
+    {
+        return m_angry;
+    }
+
+    void setAngry(bool angry)
+    {
+        m_angry = angry;
+    }
+
+    [[nodiscard]] i32 getAngerTime() const
+    {
+        return m_angerTime;
+    }
+
+    void setAngerTime(i32 time)
+    {
+        m_angerTime = time;
+    }
 
     void tick() override;
 
@@ -452,11 +550,26 @@ public:
     HoglinEntity(EntityInstanceId id, ecs::EntityRegistry& registry);
     ~HoglinEntity() override = default;
 
-    [[nodiscard]] bool isImmuneToFire() const override { return m_immuneToFire; }
-    void setImmuneToFire(bool immune) { m_immuneToFire = immune; }
+    [[nodiscard]] bool isImmuneToFire() const override
+    {
+        return m_immuneToFire;
+    }
 
-    [[nodiscard]] bool isBaby() const { return m_isBaby; }
-    [[nodiscard]] bool isChild() const override { return m_isBaby; }
+    void setImmuneToFire(bool immune)
+    {
+        m_immuneToFire = immune;
+    }
+
+    [[nodiscard]] bool isBaby() const
+    {
+        return m_isBaby;
+    }
+
+    [[nodiscard]] bool isChild() const override
+    {
+        return m_isBaby;
+    }
+
     void setBaby(bool baby)
     {
         if (m_isBaby == baby) {
@@ -467,8 +580,15 @@ public:
         refreshDimensions();
     }
 
-    [[nodiscard]] bool isHuntable() const { return !m_isBaby; }
-    [[nodiscard]] i32 getFlingAnimationTicks() const override { return m_attackAnimationTicks; }
+    [[nodiscard]] bool isHuntable() const
+    {
+        return !m_isBaby;
+    }
+
+    [[nodiscard]] i32 getFlingAnimationTicks() const override
+    {
+        return m_attackAnimationTicks;
+    }
 
     void tick() override;
 
@@ -529,10 +649,21 @@ public:
 
     // 亡灵生物归类（对齐 Java Zoglin.getMobType()==UNDEAD）。基类默认 Undefined，未覆写会导致
     // 亡灵杀手附魔无加成、瞬间治疗/伤害药水不反转、凋灵玫瑰不免疫、凋灵同族互伤等亡灵特性失效。
-    [[nodiscard]] CreatureAttribute getCreatureAttribute() const override { return CreatureAttribute::Undead; }
+    [[nodiscard]] CreatureAttribute getCreatureAttribute() const override
+    {
+        return CreatureAttribute::Undead;
+    }
 
-    [[nodiscard]] bool isBaby() const { return m_isBaby; }
-    [[nodiscard]] bool isChild() const override { return m_isBaby; }
+    [[nodiscard]] bool isBaby() const
+    {
+        return m_isBaby;
+    }
+
+    [[nodiscard]] bool isChild() const override
+    {
+        return m_isBaby;
+    }
+
     void setBaby(bool baby)
     {
         if (m_isBaby == baby) {
@@ -542,7 +673,11 @@ public:
         m_isBaby = baby;
         refreshDimensions();
     }
-    [[nodiscard]] i32 getFlingAnimationTicks() const override { return m_attackAnimationTicks; }
+
+    [[nodiscard]] i32 getFlingAnimationTicks() const override
+    {
+        return m_attackAnimationTicks;
+    }
 
     /**
      * @brief 判断僵尸疣兽是否可以攻击指定类型的实体

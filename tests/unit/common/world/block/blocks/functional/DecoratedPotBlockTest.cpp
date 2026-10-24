@@ -134,14 +134,37 @@ public:
         return &fluid::Fluids::EMPTY()->defaultState();
     }
 
-    [[nodiscard]] mc::world::chunk::IChunkManager* chunkManager() override { return &m_stubChunks; }
-    [[nodiscard]] const mc::world::chunk::IChunkManager* chunkManager() const override { return &m_stubChunks; }
-    mc::test::StubChunkManager m_stubChunks{nullptr, true};
-    [[nodiscard]] u64 currentTick() const override { return m_currentTick; }
-    [[nodiscard]] bool isClientSide() const override { return m_isClientSide; }
+    [[nodiscard]] mc::world::chunk::IChunkManager* chunkManager() override
+    {
+        return &m_stubChunks;
+    }
 
-    [[nodiscard]] world::gamerule::GameRules& getGameRules() override { return m_gameRules; }
-    [[nodiscard]] const world::gamerule::GameRules& getGameRules() const override { return m_gameRules; }
+    [[nodiscard]] const mc::world::chunk::IChunkManager* chunkManager() const override
+    {
+        return &m_stubChunks;
+    }
+
+    mc::test::StubChunkManager m_stubChunks{nullptr, true};
+
+    [[nodiscard]] u64 currentTick() const override
+    {
+        return m_currentTick;
+    }
+
+    [[nodiscard]] bool isClientSide() const override
+    {
+        return m_isClientSide;
+    }
+
+    [[nodiscard]] world::gamerule::GameRules& getGameRules() override
+    {
+        return m_gameRules;
+    }
+
+    [[nodiscard]] const world::gamerule::GameRules& getGameRules() const override
+    {
+        return m_gameRules;
+    }
 
     [[nodiscard]] Entity* getEntity(EntityInstanceId id) override
     {
@@ -212,12 +235,22 @@ public:
         return dummy;
     }
 
-    void notifyBlockUpdate(const BlockPos& pos) override { MC_UNUSED(pos); }
+    void notifyBlockUpdate(const BlockPos& pos) override
+    {
+        MC_UNUSED(pos);
+    }
 
     // ========== 测试辅助方法 ==========
 
-    void setClientSide(bool clientSide) { m_isClientSide = clientSide; }
-    void setCurrentTick(u64 tick) { m_currentTick = tick; }
+    void setClientSide(bool clientSide)
+    {
+        m_isClientSide = clientSide;
+    }
+
+    void setCurrentTick(u64 tick)
+    {
+        m_currentTick = tick;
+    }
 
     void setBlockAt(const BlockPos& pos, const BlockState* state)
     {
@@ -228,15 +261,50 @@ public:
         }
     }
 
-    [[nodiscard]] bool wasSoundPlayed() const { return m_soundPlayed; }
-    [[nodiscard]] const ResourceLocation& lastSoundId() const { return m_lastSoundId; }
-    [[nodiscard]] f32 lastSoundPitch() const { return m_lastSoundPitch; }
-    [[nodiscard]] bool wasGameEventFired() const { return m_gameEventFired; }
-    [[nodiscard]] i32 gameEventCount() const { return m_gameEventCount; }
-    [[nodiscard]] i32 setBlockCallCount() const { return m_setBlockCallCount; }
-    [[nodiscard]] i32 lastSetBlockFlags() const { return m_lastSetBlockFlags; }
-    [[nodiscard]] const BlockPos& lastSetBlockPos() const { return m_lastSetBlockPos; }
-    [[nodiscard]] i32 spawnedEntityCount() const { return m_spawnedEntityCount; }
+    [[nodiscard]] bool wasSoundPlayed() const
+    {
+        return m_soundPlayed;
+    }
+
+    [[nodiscard]] const ResourceLocation& lastSoundId() const
+    {
+        return m_lastSoundId;
+    }
+
+    [[nodiscard]] f32 lastSoundPitch() const
+    {
+        return m_lastSoundPitch;
+    }
+
+    [[nodiscard]] bool wasGameEventFired() const
+    {
+        return m_gameEventFired;
+    }
+
+    [[nodiscard]] i32 gameEventCount() const
+    {
+        return m_gameEventCount;
+    }
+
+    [[nodiscard]] i32 setBlockCallCount() const
+    {
+        return m_setBlockCallCount;
+    }
+
+    [[nodiscard]] i32 lastSetBlockFlags() const
+    {
+        return m_lastSetBlockFlags;
+    }
+
+    [[nodiscard]] const BlockPos& lastSetBlockPos() const
+    {
+        return m_lastSetBlockPos;
+    }
+
+    [[nodiscard]] i32 spawnedEntityCount() const
+    {
+        return m_spawnedEntityCount;
+    }
 
     /// 返回第 index 个生成的物品实体所承载的物品堆（供断言掉落内容是否正确）
     [[nodiscard]] ItemStack spawnedItemStackAt(std::size_t index) const
@@ -313,7 +381,10 @@ protected:
             std::make_unique<DecoratedPotBlock>(BlockProperties(Material::DECORATION).hardness(1.0f).resistance(0.0f));
     }
 
-    void TearDown() override { m_world.clearState(); }
+    void TearDown() override
+    {
+        m_world.clearState();
+    }
 
     std::unique_ptr<DecoratedPotBlock> pot_;
     DecoratedPotTestWorld m_world;

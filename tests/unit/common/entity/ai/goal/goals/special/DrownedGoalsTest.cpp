@@ -46,7 +46,10 @@ protected:
         drowned = std::make_unique<DrownedEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
     }
 
-    void TearDown() override { drowned.reset(); }
+    void TearDown() override
+    {
+        drowned.reset();
+    }
 
     std::unique_ptr<DrownedEntity> drowned;
 };

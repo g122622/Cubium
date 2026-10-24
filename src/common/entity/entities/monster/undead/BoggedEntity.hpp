@@ -80,7 +80,10 @@ public:
      * 对应原版 Bogged.isSheared()（entityData.get(DATA_SHEARED)）。
      * 持久化到 NBT "sheared" 字段（对齐 addAdditionalSaveData/readAdditionalSaveData）。
      */
-    [[nodiscard]] bool isSheared() const { return m_sheared; }
+    [[nodiscard]] bool isSheared() const
+    {
+        return m_sheared;
+    }
 
     /**
      * @brief 设置蘑菇剪取状态
@@ -88,7 +91,10 @@ public:
      *
      * 对应原版 Bogged.setSheared(boolean)（entityData.set(DATA_SHEARED, ...)）。
      */
-    void setSheared(bool sheared) { m_sheared = sheared; }
+    void setSheared(bool sheared)
+    {
+        m_sheared = sheared;
+    }
 
     // ========== IShearable 接口实现 ==========
 
@@ -131,14 +137,20 @@ protected:
      *
      * 对应原版 Bogged.getHardAttackInterval() = 50。
      */
-    [[nodiscard]] i32 getHardAttackInterval() const override { return INCREASED_HARD_ATTACK_INTERVAL; }
+    [[nodiscard]] i32 getHardAttackInterval() const override
+    {
+        return INCREASED_HARD_ATTACK_INTERVAL;
+    }
 
     /**
      * @brief 非困难难度最小攻击间隔（70 ticks，比普通骷髅 40 慢）
      *
      * 对应原版 Bogged.getAttackInterval() = 70。
      */
-    [[nodiscard]] i32 getAttackInterval() const override { return INCREASED_NORMAL_ATTACK_INTERVAL; }
+    [[nodiscard]] i32 getAttackInterval() const override
+    {
+        return INCREASED_NORMAL_ATTACK_INTERVAL;
+    }
 
 private:
     bool m_sheared = false; ///< 蘑菇是否已被剪去（对齐 Java DATA_SHEARED）

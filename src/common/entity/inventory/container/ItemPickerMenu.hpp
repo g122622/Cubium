@@ -74,18 +74,31 @@ public:
 
     ItemStack quickMoveStack(i32 slotIndex, Player& player) override;
 
-    [[nodiscard]] bool stillValid(const Player& player) const override { return true; }
+    [[nodiscard]] bool stillValid(const Player& player) const override
+    {
+        return true;
+    }
 
     /**
      * @brief 创造物品池（供服务端 clone 取物 / 客户端调色板渲染）
      *
      * 若构造时未 loadPalette 则为空，需宿主自行 `setPaletteEntries` 或 `reloadPalette`。
      */
-    [[nodiscard]] const std::vector<CreativeInventoryEntry>& paletteEntries() const { return m_paletteEntries; }
-    void setPaletteEntries(std::vector<CreativeInventoryEntry> entries) { m_paletteEntries = std::move(entries); }
+    [[nodiscard]] const std::vector<CreativeInventoryEntry>& paletteEntries() const
+    {
+        return m_paletteEntries;
+    }
+
+    void setPaletteEntries(std::vector<CreativeInventoryEntry> entries)
+    {
+        m_paletteEntries = std::move(entries);
+    }
 
     /** @brief 重建创造物品池（创造模式打开时调用） */
-    void reloadPalette() { m_paletteEntries = buildCreativePaletteEntries(); }
+    void reloadPalette()
+    {
+        m_paletteEntries = buildCreativePaletteEntries();
+    }
 
     /**
      * @brief 槽位索引常量（41 槽玩家背包，无合成网格）

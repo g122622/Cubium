@@ -52,7 +52,10 @@ protected:
         dolphin = std::make_unique<DolphinEntity>(EntityInstanceId(0), mc::test::testEcsRegistry());
     }
 
-    void TearDown() override { dolphin.reset(); }
+    void TearDown() override
+    {
+        dolphin.reset();
+    }
 
     std::unique_ptr<DolphinEntity> dolphin;
 };

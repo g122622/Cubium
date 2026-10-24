@@ -62,7 +62,11 @@ public:
     using ArrowEntity::ArrowEntity;
     // 暴露 protected override 为 public，并提供限定名非虚调用入口（验证重写实现逻辑）。
     using ArrowEntity::doPostHurtEffects;
-    void callDoPostHurtEffectsDirect(LivingEntity& target) { ArrowEntity::doPostHurtEffects(target); }
+
+    void callDoPostHurtEffectsDirect(LivingEntity& target)
+    {
+        ArrowEntity::doPostHurtEffects(target);
+    }
 };
 
 class TestSpectralArrowEntity : public SpectralArrowEntity {

@@ -51,7 +51,10 @@ class CartographyInventory : public IInventory {
 public:
     static constexpr i32 SIZE = 3; // 地图 + 材料 + 结果
 
-    i32 getContainerSize() const override { return SIZE; }
+    i32 getContainerSize() const override
+    {
+        return SIZE;
+    }
 
     bool isEmpty() const override
     {
@@ -112,7 +115,10 @@ public:
         }
     }
 
-    void setChangeCallback(std::function<void()> callback) { m_changeCallback = std::move(callback); }
+    void setChangeCallback(std::function<void()> callback)
+    {
+        m_changeCallback = std::move(callback);
+    }
 
 private:
     std::array<ItemStack, SIZE> m_items;
@@ -132,9 +138,15 @@ public:
         : Slot(inventory, index, x, y)
     {}
 
-    bool mayPlace(const ItemStack& stack) const override { return item::items::FilledMapItem::isFilledMap(stack); }
+    bool mayPlace(const ItemStack& stack) const override
+    {
+        return item::items::FilledMapItem::isFilledMap(stack);
+    }
 
-    i32 getMaxStackSize() const override { return 1; }
+    i32 getMaxStackSize() const override
+    {
+        return 1;
+    }
 };
 
 /**
@@ -166,7 +178,10 @@ public:
         , m_player(player)
     {}
 
-    bool mayPlace(const ItemStack& /*stack*/) const override { return false; }
+    bool mayPlace(const ItemStack& /*stack*/) const override
+    {
+        return false;
+    }
 
     ItemStack onTake(Player& player, ItemStack stack) override
     {
@@ -193,7 +208,10 @@ public:
         return Slot::onTake(player, stack);
     }
 
-    i32 getMaxStackSize() const override { return 1; }
+    i32 getMaxStackSize() const override
+    {
+        return 1;
+    }
 
 private:
     Player& m_player;
@@ -221,7 +239,9 @@ void CartographyContainer::_initSlots(PlayerInventory* playerInventory)
 
     // 设置变化回调
     auto* cartInventory = static_cast<CartographyInventory*>(cartInv);
-    cartInventory->setChangeCallback([this, cartInv]() { this->slotsChanged(cartInv); });
+    cartInventory->setChangeCallback([this, cartInv]() {
+        this->slotsChanged(cartInv);
+    });
 
     // 制图台槽位
     addSlot(std::make_unique<CartographyMapSlot>(cartInv, SLOT_MAP, MAP_SLOT_X, MAP_SLOT_Y));

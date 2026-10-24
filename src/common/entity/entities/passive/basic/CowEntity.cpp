@@ -96,7 +96,9 @@ bool CowEntity::isBreedingItem(const ItemStack& itemStack) const
 {
     // 牛用小麦繁殖
     const Item* item = itemStack.getItem();
-    if (item == nullptr) return false;
+    if (item == nullptr) {
+        return false;
+    }
     return item == Items::WHEAT;
 }
 

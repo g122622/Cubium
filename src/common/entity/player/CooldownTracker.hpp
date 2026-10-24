@@ -151,19 +151,28 @@ public:
      * @brief 获取当前游戏 tick
      * @return 当前 tick
      */
-    [[nodiscard]] i64 currentTick() const { return m_ticks; }
+    [[nodiscard]] i64 currentTick() const
+    {
+        return m_ticks;
+    }
 
     /**
      * @brief 检查冷却追踪器是否为空
      * @return 如果没有任何冷却中的物品返回 true
      */
-    [[nodiscard]] bool isEmpty() const { return m_cooldowns.empty(); }
+    [[nodiscard]] bool isEmpty() const
+    {
+        return m_cooldowns.empty();
+    }
 
     /**
      * @brief 获取所有冷却中的物品数量
      * @return 冷却中的物品数量
      */
-    [[nodiscard]] size_t cooldownCount() const { return m_cooldowns.size(); }
+    [[nodiscard]] size_t cooldownCount() const
+    {
+        return m_cooldowns.size();
+    }
 
     /** @brief 设置冷却组变更监听器，duration=0 表示移除或到期。 */
     void setListener(std::function<void(const ResourceLocation&, i32)> listener);

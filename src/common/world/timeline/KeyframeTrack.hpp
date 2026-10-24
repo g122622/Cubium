@@ -48,8 +48,15 @@ public:
         , m_easingType(easingType)
     {}
 
-    const std::vector<Keyframe<T>>& keyframes() const noexcept { return m_keyframes; }
-    const EasingType& easingType() const noexcept { return m_easingType; }
+    const std::vector<Keyframe<T>>& keyframes() const noexcept
+    {
+        return m_keyframes;
+    }
+
+    const EasingType& easingType() const noexcept
+    {
+        return m_easingType;
+    }
 
     KeyframeTrackSampler<T> bakeSampler(std::optional<i32> periodTicks, attribute::LerpFunction<T> lerp) const
     {
@@ -75,7 +82,10 @@ public:
             return *this;
         }
 
-        KeyframeTrack<T> build() { return KeyframeTrack<T>(std::move(m_keyframes), m_easing); }
+        KeyframeTrack<T> build()
+        {
+            return KeyframeTrack<T>(std::move(m_keyframes), m_easing);
+        }
 
     private:
         std::vector<Keyframe<T>> m_keyframes;

@@ -69,14 +69,22 @@ class BoatFrictionTestWorld final : public mc::test::BaseTestWorld {
 public:
     BoatFrictionTestWorld() = default;
 
-    void addTestEntity(Entity* entity) { m_testEntities[entity->id()] = entity; }
-    void removeTestEntity(EntityInstanceId id) { m_testEntities.erase(id); }
+    void addTestEntity(Entity* entity)
+    {
+        m_testEntities[entity->id()] = entity;
+    }
+
+    void removeTestEntity(EntityInstanceId id)
+    {
+        m_testEntities.erase(id);
+    }
 
     [[nodiscard]] Entity* getEntity(EntityInstanceId id) override
     {
         auto it = m_testEntities.find(id);
         return it != m_testEntities.end() ? it->second : nullptr;
     }
+
     [[nodiscard]] const Entity* getEntity(EntityInstanceId id) const override
     {
         auto it = m_testEntities.find(id);
@@ -95,6 +103,7 @@ public:
     {
         throw std::runtime_error("BoatFrictionTestWorld::tickManager not implemented");
     }
+
     [[nodiscard]] const world::tick::TickManager& tickManager() const override
     {
         throw std::runtime_error("BoatFrictionTestWorld::tickManager not implemented");
@@ -113,9 +122,15 @@ protected:
         entity::VanillaEntities::registerAll();
     }
 
-    void SetUp() override { m_world = std::make_unique<BoatFrictionTestWorld>(); }
+    void SetUp() override
+    {
+        m_world = std::make_unique<BoatFrictionTestWorld>();
+    }
 
-    void TearDown() override { m_world.reset(); }
+    void TearDown() override
+    {
+        m_world.reset();
+    }
 
     std::unique_ptr<BoatFrictionTestWorld> m_world;
 };

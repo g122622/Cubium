@@ -61,7 +61,10 @@ public:
      * @param t 距离参数
      * @return 射线上的点 origin + direction * t
      */
-    [[nodiscard]] Vector3f at(f32 t) const noexcept { return origin + direction * t; }
+    [[nodiscard]] Vector3f at(f32 t) const noexcept
+    {
+        return origin + direction * t;
+    }
 
     /**
      * @brief 从pitch和yaw角度创建射线（角度制）

@@ -141,7 +141,12 @@ public:
     // ========== BlockEntity 接口 ==========
 
     void tick(IWorld& world) override;
-    [[nodiscard]] bool needsTick() const noexcept override { return true; }
+
+    [[nodiscard]] bool needsTick() const noexcept override
+    {
+        return true;
+    }
+
     bool load(const nlohmann::json& data) override;
     void save(nlohmann::json& data) const override;
     [[nodiscard]] std::unique_ptr<BlockEntity> clone() const override;
@@ -151,17 +156,32 @@ public:
      *
      * 参考 MC Java: BlockEntityType.OP_ONLY_CUSTOM_DATA 包含 TRIAL_SPAWNER
      */
-    [[nodiscard]] bool onlyOpsCanSetNbt() const noexcept override { return true; }
+    [[nodiscard]] bool onlyOpsCanSetNbt() const noexcept override
+    {
+        return true;
+    }
 
     // ========== 状态访问 ==========
 
-    [[nodiscard]] State getState() const noexcept { return m_state; }
+    [[nodiscard]] State getState() const noexcept
+    {
+        return m_state;
+    }
+
     void setState(State state);
 
-    [[nodiscard]] bool isOminous() const noexcept { return m_ominous; }
+    [[nodiscard]] bool isOminous() const noexcept
+    {
+        return m_ominous;
+    }
+
     void setOminous(bool ominous);
 
-    [[nodiscard]] const Config& getConfig() const noexcept { return m_config; }
+    [[nodiscard]] const Config& getConfig() const noexcept
+    {
+        return m_config;
+    }
+
     void setConfig(const Config& config);
 
     // ========== 玩家检测 ==========

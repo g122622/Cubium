@@ -103,8 +103,12 @@ public:
     [[nodiscard]] i64 getPoseTime() const;
     /// 是否处于坐下/站起动画过渡中（对齐 vanilla isInPoseTransition）
     [[nodiscard]] bool isInPoseTransition() const;
+
     /// 坐下/过渡中拒绝移动（对齐 vanilla refuseToMove）
-    [[nodiscard]] bool refuseToMove() const { return isCamelSitting() || isInPoseTransition(); }
+    [[nodiscard]] bool refuseToMove() const
+    {
+        return isCamelSitting() || isInPoseTransition();
+    }
 
     /// 是否有控制乘客（对齐 vanilla hasControllingPassenger，用于随机坐下前置条件）
     [[nodiscard]] bool hasControllingPassenger() const;
@@ -127,21 +131,35 @@ public:
 
     [[nodiscard]] bool isDashing() const;
     void setDashing(bool dashing);
-    [[nodiscard]] i32 dashCooldown() const { return m_dashCooldown; }
+
+    [[nodiscard]] i32 dashCooldown() const
+    {
+        return m_dashCooldown;
+    }
+
     /// 骑乘中触发冲刺（对齐 vanilla executeRidersJump）
     void executeDash(f32 jumpScale, Player& rider);
 
-    [[nodiscard]] f32 getAgeScaleValue() const { return isChild() ? BABY_SCALE : 1.0f; }
+    [[nodiscard]] f32 getAgeScaleValue() const
+    {
+        return isChild() ? BABY_SCALE : 1.0f;
+    }
 
     // ========== 骑乘 / 交互 ==========
 
     /// 骆驼恒为已驯服（对齐 vanilla Camel.isTamed）
-    [[nodiscard]] bool isTame() const { return true; }
+    [[nodiscard]] bool isTame() const
+    {
+        return true;
+    }
 
     /// 骑乘速度：MOVEMENT_SPEED +（玩家冲刺且冷却就绪时的 0.1 加成）
     [[nodiscard]] f32 getRiddenSpeed(Player& rider) const;
 
-    [[nodiscard]] bool canBeSprinted() const { return true; }
+    [[nodiscard]] bool canBeSprinted() const
+    {
+        return true;
+    }
 
     [[nodiscard]] ActionResultType interactMob(Player& player, Hand hand) override;
 
@@ -178,8 +196,15 @@ public:
     /// LAST_POSE_CHANGE_TICK（Long，默认 0；负值表示坐姿）
     static entity::DataParameter<i64> LAST_POSE_CHANGE_TICK_PARAM;
 
-    [[nodiscard]] static u16 getDashParamId() { return DASH_PARAM.id(); }
-    [[nodiscard]] static u16 getLastPoseTickParamId() { return LAST_POSE_CHANGE_TICK_PARAM.id(); }
+    [[nodiscard]] static u16 getDashParamId()
+    {
+        return DASH_PARAM.id();
+    }
+
+    [[nodiscard]] static u16 getLastPoseTickParamId()
+    {
+        return LAST_POSE_CHANGE_TICK_PARAM.id();
+    }
 
 protected:
     void registerGoals() override;

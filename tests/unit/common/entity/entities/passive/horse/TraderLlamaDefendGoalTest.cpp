@@ -68,6 +68,7 @@ public:
         const auto it = m_uuidEntities.find(uuid);
         return it != m_uuidEntities.end() ? it->second : nullptr;
     }
+
     [[nodiscard]] const Entity* getEntityByUuid(const std::string& uuid) const override
     {
         const auto it = m_uuidEntities.find(uuid);
@@ -79,7 +80,10 @@ public:
         return &VanillaBlocks::AIR->defaultState();
     }
 
-    [[nodiscard]] bool isWithinWorldBounds(i32, i32, i32) const override { return true; }
+    [[nodiscard]] bool isWithinWorldBounds(i32, i32, i32) const override
+    {
+        return true;
+    }
 
 private:
     std::unordered_map<std::string, Entity*> m_uuidEntities;
@@ -145,7 +149,10 @@ protected:
     }
 
     /// 把羊驼拴到流浪商人身上（对齐 Leashable.setLeashedTo 的 UUID 绑定语义）。
-    void leashLlamaToTrader() { m_llama->setLeashedToEntity(m_trader->uuid()); }
+    void leashLlamaToTrader()
+    {
+        m_llama->setLeashedToEntity(m_trader->uuid());
+    }
 
     /// 让流浪商人"受到"某实体攻击：推进时间后记录攻击者及其时间戳。
     void hurtTraderBy(LivingEntity* attacker)

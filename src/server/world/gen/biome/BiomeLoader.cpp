@@ -381,14 +381,30 @@ void applyEffects(Biome& biome, const nlohmann::json& jsonObj)
  */
 std::optional<entity::EntityClassification> parseSpawnerCategory(const std::string& name)
 {
-    if (name == "monster") return entity::EntityClassification::Monster;
-    if (name == "creature") return entity::EntityClassification::Creature;
-    if (name == "ambient") return entity::EntityClassification::Ambient;
-    if (name == "water_creature") return entity::EntityClassification::WaterCreature;
-    if (name == "water_ambient") return entity::EntityClassification::WaterAmbient;
-    if (name == "misc") return entity::EntityClassification::Misc;
-    if (name == "axolotls") return entity::EntityClassification::Axolotls;
-    if (name == "underground_water_creature") return entity::EntityClassification::UndergroundWaterCreature;
+    if (name == "monster") {
+        return entity::EntityClassification::Monster;
+    }
+    if (name == "creature") {
+        return entity::EntityClassification::Creature;
+    }
+    if (name == "ambient") {
+        return entity::EntityClassification::Ambient;
+    }
+    if (name == "water_creature") {
+        return entity::EntityClassification::WaterCreature;
+    }
+    if (name == "water_ambient") {
+        return entity::EntityClassification::WaterAmbient;
+    }
+    if (name == "misc") {
+        return entity::EntityClassification::Misc;
+    }
+    if (name == "axolotls") {
+        return entity::EntityClassification::Axolotls;
+    }
+    if (name == "underground_water_creature") {
+        return entity::EntityClassification::UndergroundWaterCreature;
+    }
     return std::nullopt;
 }
 

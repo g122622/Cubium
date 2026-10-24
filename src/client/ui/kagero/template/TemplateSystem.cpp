@@ -33,7 +33,9 @@ bool s_initialized = false;
 
 void initializeTemplateSystem()
 {
-    if (s_initialized) return;
+    if (s_initialized) {
+        return;
+    }
 
     // 初始化内置组件工厂
     bindings::BuiltinWidgets::instance().initialize();

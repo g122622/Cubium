@@ -127,8 +127,9 @@ void AbstractFishEntity::registerGoals()
 void AbstractFishEntity::registerAttributes()
 {
     WaterMobEntity::registerAttributes();
+    // 对齐原版 AbstractFish.createAttributes()：只设生命值，不设移动速度——
+    // 1.21 起原版鱼类沿用 LivingEntity 的默认移动速度 0.7（早期版本才是 0.3）。
     attributes().setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 3.0);
-    attributes().setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.3);
 }
 
 void AbstractFishEntity::updateSwimming()

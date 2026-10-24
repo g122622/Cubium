@@ -55,12 +55,18 @@ public:
     /**
      * @brief 获取失败测试的 testName 列表（按失败时间排序）。
      */
-    [[nodiscard]] const std::vector<std::string>& failedTestNames() const noexcept { return m_failedTestNames; }
+    [[nodiscard]] const std::vector<std::string>& failedTestNames() const noexcept
+    {
+        return m_failedTestNames;
+    }
 
     /**
      * @brief 获取失败测试的错误信息（与 failedTestNames 同序）。
      */
-    [[nodiscard]] const std::vector<std::string>& failureMessages() const noexcept { return m_failureMessages; }
+    [[nodiscard]] const std::vector<std::string>& failureMessages() const noexcept
+    {
+        return m_failureMessages;
+    }
 
     /**
      * @brief 清空收集结果（复用 collector 跑新一轮时用）。

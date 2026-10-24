@@ -114,13 +114,19 @@ public:
      * @brief 获取最小等级
      * @return 最小等级（通常为1）
      */
-    [[nodiscard]] virtual i32 minLevel() const noexcept { return 1; }
+    [[nodiscard]] virtual i32 minLevel() const noexcept
+    {
+        return 1;
+    }
 
     /**
      * @brief 获取最大等级
      * @return 最大等级
      */
-    [[nodiscard]] virtual i32 maxLevel() const noexcept { return 1; }
+    [[nodiscard]] virtual i32 maxLevel() const noexcept
+    {
+        return 1;
+    }
 
     // ========== 类型 ==========
 
@@ -134,7 +140,10 @@ public:
      * @brief 获取附魔稀有度
      * @return 稀有度
      */
-    [[nodiscard]] virtual EnchantmentRarity rarity() const noexcept { return EnchantmentRarity::Common; }
+    [[nodiscard]] virtual EnchantmentRarity rarity() const noexcept
+    {
+        return EnchantmentRarity::Common;
+    }
 
     /**
      * @brief 获取稀有度对应的权重
@@ -144,19 +153,28 @@ public:
      *
      * @return 权重值
      */
-    [[nodiscard]] i32 rarityWeight() const noexcept { return getRarityWeight(rarity()); }
+    [[nodiscard]] i32 rarityWeight() const noexcept
+    {
+        return getRarityWeight(rarity());
+    }
 
     /**
      * @brief 是否为宝藏附魔
      * @return 如果只能从箱子或交易获得返回true
      */
-    [[nodiscard]] virtual bool isTreasure() const noexcept { return false; }
+    [[nodiscard]] virtual bool isTreasure() const noexcept
+    {
+        return false;
+    }
 
     /**
      * @brief 是否为诅咒附魔
      * @return 如果是诅咒返回true
      */
-    [[nodiscard]] virtual bool isCurse() const noexcept { return false; }
+    [[nodiscard]] virtual bool isCurse() const noexcept
+    {
+        return false;
+    }
 
     // ========== 适用性 ==========
 
@@ -189,19 +207,28 @@ public:
      * @brief 检查是否可以出现在村民交易中
      * @return 如果可以出现在村民交易返回true
      */
-    [[nodiscard]] virtual bool canVillagerTrade() const noexcept { return !isTreasure(); }
+    [[nodiscard]] virtual bool canVillagerTrade() const noexcept
+    {
+        return !isTreasure();
+    }
 
     /**
      * @brief 检查是否可以生成在战利品箱中
      * @return 如果可以生成在战利品箱返回true
      */
-    [[nodiscard]] virtual bool canGenerateInLoot() const noexcept { return true; }
+    [[nodiscard]] virtual bool canGenerateInLoot() const noexcept
+    {
+        return true;
+    }
 
     /**
      * @brief 检查是否可以附在书上
      * @return 如果可以附在书上返回true
      */
-    [[nodiscard]] virtual bool isAllowedOnBooks() const noexcept { return true; }
+    [[nodiscard]] virtual bool isAllowedOnBooks() const noexcept
+    {
+        return true;
+    }
 
     /**
      * @brief 检查与另一个附魔的兼容性

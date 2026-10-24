@@ -39,7 +39,11 @@ public:
     {
         setSize(20, 10);
     }
-    void paint(PaintContext& ctx) override { (void)ctx; }
+
+    void paint(PaintContext& ctx) override
+    {
+        (void)ctx;
+    }
 };
 
 TEST(AnchorLayoutTest, LeftTopAnchor)

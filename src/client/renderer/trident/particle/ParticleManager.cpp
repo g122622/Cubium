@@ -386,8 +386,10 @@ void ParticleManager::clearPending()
 
 size_t ParticleManager::aliveParticleCount() const
 {
-    return static_cast<size_t>(std::count_if(
-        m_particles.begin(), m_particles.end(), [](const std::unique_ptr<Particle>& p) { return p && p->isAlive(); }));
+    return static_cast<size_t>(
+        std::count_if(m_particles.begin(), m_particles.end(), [](const std::unique_ptr<Particle>& p) {
+            return p && p->isAlive();
+        }));
 }
 
 void ParticleManager::tick(mc::client::ClientWorld* world)
@@ -419,7 +421,9 @@ void ParticleManager::tick(mc::client::ClientWorld* world)
     // 移除过期粒子
     m_particles.erase(std::remove_if(m_particles.begin(),
                           m_particles.end(),
-                          [](const std::unique_ptr<Particle>& p) { return !p || !p->isAlive(); }),
+                          [](const std::unique_ptr<Particle>& p) {
+                              return !p || !p->isAlive();
+                          }),
         m_particles.end());
 
     // 处理发射器粒子发射的新粒子

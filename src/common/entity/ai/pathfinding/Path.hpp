@@ -122,54 +122,84 @@ public:
     /**
      * @brief 获取路径长度
      */
-    [[nodiscard]] size_t length() const { return m_points.size(); }
+    [[nodiscard]] size_t length() const
+    {
+        return m_points.size();
+    }
 
     /**
      * @brief 检查路径是否为空
      */
-    [[nodiscard]] bool empty() const { return m_points.empty(); }
+    [[nodiscard]] bool empty() const
+    {
+        return m_points.empty();
+    }
 
     /**
      * @brief 获取路径终点
      * @return 终点路径点，如果路径为空返回nullptr
      */
-    [[nodiscard]] const PathPoint* getEnd() const { return m_points.empty() ? nullptr : &m_points.back(); }
+    [[nodiscard]] const PathPoint* getEnd() const
+    {
+        return m_points.empty() ? nullptr : &m_points.back();
+    }
 
     /**
      * @brief 获取路径起点
      * @return 起点路径点，如果路径为空返回nullptr
      */
-    [[nodiscard]] const PathPoint* getStart() const { return m_points.empty() ? nullptr : &m_points.front(); }
+    [[nodiscard]] const PathPoint* getStart() const
+    {
+        return m_points.empty() ? nullptr : &m_points.front();
+    }
 
     /**
      * @brief 获取目标位置
      */
-    [[nodiscard]] const BlockPos& getTarget() const { return m_target; }
+    [[nodiscard]] const BlockPos& getTarget() const
+    {
+        return m_target;
+    }
 
     /**
      * @brief 设置目标位置
      */
-    void setTarget(const BlockPos& target) { m_target = target; }
+    void setTarget(const BlockPos& target)
+    {
+        m_target = target;
+    }
 
     /**
      * @brief 检查是否到达目标
      */
-    [[nodiscard]] bool reachesTarget() const { return m_reachesTarget; }
+    [[nodiscard]] bool reachesTarget() const
+    {
+        return m_reachesTarget;
+    }
 
     /**
      * @brief 设置是否到达目标
      */
-    void setReachesTarget(bool reaches) { m_reachesTarget = reaches; }
+    void setReachesTarget(bool reaches)
+    {
+        m_reachesTarget = reaches;
+    }
 
     /**
      * @brief 获取到目标的距离
      */
-    [[nodiscard]] f32 getDistToTarget() const { return m_distToTarget; }
+    [[nodiscard]] f32 getDistToTarget() const
+    {
+        return m_distToTarget;
+    }
 
     /**
      * @brief 设置到目标的距离
      */
-    void setDistToTarget(f32 dist) { m_distToTarget = dist; }
+    void setDistToTarget(f32 dist)
+    {
+        m_distToTarget = dist;
+    }
 
     // ========== 路径点访问 ==========
 
@@ -189,7 +219,10 @@ public:
     /**
      * @brief 获取所有路径点
      */
-    [[nodiscard]] const std::vector<PathPoint>& getPoints() const { return m_points; }
+    [[nodiscard]] const std::vector<PathPoint>& getPoints() const
+    {
+        return m_points;
+    }
 
     // ========== 路径导航 ==========
 
@@ -208,7 +241,10 @@ public:
     /**
      * @brief 获取当前路径点索引
      */
-    [[nodiscard]] i32 getCurrentIndex() const { return m_currentIndex; }
+    [[nodiscard]] i32 getCurrentIndex() const
+    {
+        return m_currentIndex;
+    }
 
     /**
      * @brief 前进到下一个路径点
@@ -231,7 +267,10 @@ public:
     /**
      * @brief 重置路径进度
      */
-    void reset() { m_currentIndex = 0; }
+    void reset()
+    {
+        m_currentIndex = 0;
+    }
 
     /**
      * @brief 设置当前索引
@@ -281,12 +320,18 @@ public:
     /**
      * @brief 添加路径点（用于路径构建）
      */
-    void addPoint(const PathPoint& point) { m_points.push_back(point); }
+    void addPoint(const PathPoint& point)
+    {
+        m_points.push_back(point);
+    }
 
     /**
      * @brief 添加路径点（移动语义）
      */
-    void addPoint(PathPoint&& point) { m_points.push_back(std::move(point)); }
+    void addPoint(PathPoint&& point)
+    {
+        m_points.push_back(std::move(point));
+    }
 
     /**
      * @brief 从终点反向构建路径

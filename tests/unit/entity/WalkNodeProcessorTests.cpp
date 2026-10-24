@@ -72,13 +72,25 @@ public:
         return key;
     }
 
-    void setBlockStateId(i32 x, i32 y, i32 z, u32 stateId) { m_blockStates[makeKey(x, y, z)] = stateId; }
+    void setBlockStateId(i32 x, i32 y, i32 z, u32 stateId)
+    {
+        m_blockStates[makeKey(x, y, z)] = stateId;
+    }
 
-    void setWater(i32 x, i32 y, i32 z, bool water = true) { m_isWater[makeKey(x, y, z)] = water; }
+    void setWater(i32 x, i32 y, i32 z, bool water = true)
+    {
+        m_isWater[makeKey(x, y, z)] = water;
+    }
 
-    void setLava(i32 x, i32 y, i32 z, bool lava = true) { m_isLava[makeKey(x, y, z)] = lava; }
+    void setLava(i32 x, i32 y, i32 z, bool lava = true)
+    {
+        m_isLava[makeKey(x, y, z)] = lava;
+    }
 
-    void setWalkable(i32 x, i32 y, i32 z, bool walkable = true) { m_isWalkable[makeKey(x, y, z)] = walkable; }
+    void setWalkable(i32 x, i32 y, i32 z, bool walkable = true)
+    {
+        m_isWalkable[makeKey(x, y, z)] = walkable;
+    }
 
     // ========== Region 接口实现 ==========
 
@@ -88,9 +100,15 @@ public:
         return it != m_blockStates.end() ? it->second : 0; // 0 = 空气
     }
 
-    [[nodiscard]] bool isLoaded(i32 /*x*/, i32 /*z*/) const override { return m_globalLoaded; }
+    [[nodiscard]] bool isLoaded(i32 /*x*/, i32 /*z*/) const override
+    {
+        return m_globalLoaded;
+    }
 
-    [[nodiscard]] i32 getHeight(i32 /*x*/, i32 /*z*/) const override { return m_globalHeight; }
+    [[nodiscard]] i32 getHeight(i32 /*x*/, i32 /*z*/) const override
+    {
+        return m_globalHeight;
+    }
 
     [[nodiscard]] bool isWalkable(i32 x, i32 y, i32 z) const override
     {
@@ -648,7 +666,10 @@ TEST(PathNodeTypeCostTest, BlockAboveBigDripleafIsImpassable)
 
 class BigDripleafPathfindingTest : public ::testing::Test {
 protected:
-    void SetUp() override { VanillaBlocks::initialize(); }
+    void SetUp() override
+    {
+        VanillaBlocks::initialize();
+    }
 
     MockRegion m_region;
 };

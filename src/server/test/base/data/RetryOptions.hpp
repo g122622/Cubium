@@ -21,33 +21,57 @@ namespace mc::test {
 class RetryOptions {
 public:
     RetryOptions() noexcept = default;
+
     RetryOptions(i32 numberOfTries, bool haltOnFailure) noexcept
         : m_numberOfTries(numberOfTries)
         , m_haltOnFailure(haltOnFailure)
     {}
 
-    [[nodiscard]] i32 numberOfTries() const noexcept { return m_numberOfTries; }
-    [[nodiscard]] bool haltOnFailure() const noexcept { return m_haltOnFailure; }
+    [[nodiscard]] i32 numberOfTries() const noexcept
+    {
+        return m_numberOfTries;
+    }
 
-    void setNumberOfTries(i32 tries) noexcept { m_numberOfTries = tries; }
-    void setHaltOnFailure(bool halt) noexcept { m_haltOnFailure = halt; }
+    [[nodiscard]] bool haltOnFailure() const noexcept
+    {
+        return m_haltOnFailure;
+    }
+
+    void setNumberOfTries(i32 tries) noexcept
+    {
+        m_numberOfTries = tries;
+    }
+
+    void setHaltOnFailure(bool halt) noexcept
+    {
+        m_haltOnFailure = halt;
+    }
 
     /**
      * @brief 默认：只跑一次，失败即停。
      */
-    [[nodiscard]] static RetryOptions noRetries() noexcept { return RetryOptions{1, true}; }
+    [[nodiscard]] static RetryOptions noRetries() noexcept
+    {
+        return RetryOptions{1, true};
+    }
 
     /**
      * @brief 无限重试，失败不停（用于 `--verify` 旋转压测）。
      *
      * `numberOfTries` 取 `INT32_MAX` 作为"无限"的工程近似。
      */
-    [[nodiscard]] static RetryOptions unlimitedTries() noexcept { return RetryOptions{0x7FFFFFFF, false}; }
+    [[nodiscard]] static RetryOptions unlimitedTries() noexcept
+    {
+        return RetryOptions{0x7FFFFFFF, false};
+    }
 
     /**
      * @brief 已用 `used` 次尝试后是否还能再试。
      */
-    [[nodiscard]] bool hasTriesLeft(i32 used) const noexcept { return used < m_numberOfTries; }
+    [[nodiscard]] bool hasTriesLeft(i32 used) const noexcept
+    {
+        return used < m_numberOfTries;
+    }
 
 private:
     i32 m_numberOfTries = 1;

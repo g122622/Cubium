@@ -108,7 +108,10 @@ public:
      *
      * @return 默认颜色值
      */
-    [[nodiscard]] virtual u32 getDefaultColor() const { return DEFAULT_COLOR; }
+    [[nodiscard]] virtual u32 getDefaultColor() const
+    {
+        return DEFAULT_COLOR;
+    }
 
 private:
     /// 皮革盔甲的默认颜色（棕色）

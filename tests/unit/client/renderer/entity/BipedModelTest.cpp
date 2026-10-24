@@ -37,7 +37,10 @@ namespace {
  */
 class BipedModelAccessorTest : public ::testing::Test {
 protected:
-    void SetUp() override { m_model = std::make_unique<BipedModel>(); }
+    void SetUp() override
+    {
+        m_model = std::make_unique<BipedModel>();
+    }
 
     std::unique_ptr<BipedModel> m_model;
 };
@@ -114,7 +117,10 @@ TEST_F(BipedModelAccessorTest, GetArmForSideRightReturnsRightArm)
  */
 class BipedModelVisibilityTest : public ::testing::Test {
 protected:
-    void SetUp() override { m_model = std::make_unique<BipedModel>(); }
+    void SetUp() override
+    {
+        m_model = std::make_unique<BipedModel>();
+    }
 
     std::unique_ptr<BipedModel> m_model;
 };
@@ -224,7 +230,10 @@ TEST_F(BipedModelVisibilityTest, IndividualPartVisibilityCanBeToggled)
  */
 class BipedModelArmorSlotVisibilityTest : public ::testing::Test {
 protected:
-    void SetUp() override { m_model = std::make_unique<BipedModel>(); }
+    void SetUp() override
+    {
+        m_model = std::make_unique<BipedModel>();
+    }
 
     /**
      * @brief 设置头盔槽位可见性

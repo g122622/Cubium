@@ -176,7 +176,10 @@ public:
      * @brief 获取流体ID
      * @return 流体ID
      */
-    [[nodiscard]] u32 fluidId() const noexcept { return m_fluidId; }
+    [[nodiscard]] u32 fluidId() const noexcept
+    {
+        return m_fluidId;
+    }
 
     // ========== 流动方向 ==========
 
@@ -252,22 +255,34 @@ public:
     /**
      * @brief 获取流体资源位置
      */
-    [[nodiscard]] const ResourceLocation& fluidLocation() const noexcept { return m_fluidLocation; }
+    [[nodiscard]] const ResourceLocation& fluidLocation() const noexcept
+    {
+        return m_fluidLocation;
+    }
 
     /**
      * @brief 获取流体ID
      */
-    [[nodiscard]] u32 fluidId() const noexcept { return m_fluidId; }
+    [[nodiscard]] u32 fluidId() const noexcept
+    {
+        return m_fluidId;
+    }
 
     /**
      * @brief 获取状态容器
      */
-    [[nodiscard]] const StateContainer<Fluid, FluidState>& stateContainer() const noexcept { return *m_stateContainer; }
+    [[nodiscard]] const StateContainer<Fluid, FluidState>& stateContainer() const noexcept
+    {
+        return *m_stateContainer;
+    }
 
     /**
      * @brief 获取默认状态
      */
-    [[nodiscard]] const FluidState& defaultState() const noexcept { return *m_defaultState; }
+    [[nodiscard]] const FluidState& defaultState() const noexcept
+    {
+        return *m_defaultState;
+    }
 
     // ========== 虚方法 ==========
 
@@ -352,7 +367,10 @@ public:
     /**
      * @brief 是否执行随机tick
      */
-    [[nodiscard]] virtual bool ticksRandomly() const { return false; }
+    [[nodiscard]] virtual bool ticksRandomly() const
+    {
+        return false;
+    }
 
     /**
      * @brief 是否等效于指定流体
@@ -360,7 +378,10 @@ public:
      * @param other 其他流体
      * @return 是否等效
      */
-    [[nodiscard]] virtual bool isEquivalentTo(const Fluid& other) const noexcept { return this == &other; }
+    [[nodiscard]] virtual bool isEquivalentTo(const Fluid& other) const noexcept
+    {
+        return this == &other;
+    }
 
     /**
      * @brief 检查流体是否在指定标签中
@@ -375,7 +396,10 @@ public:
      *
      * EmptyFluid重写返回true，其他流体返回false。
      */
-    [[nodiscard]] virtual bool isEmpty() const { return false; }
+    [[nodiscard]] virtual bool isEmpty() const
+    {
+        return false;
+    }
 
     /**
      * @brief 检查是否可以被指定流体替换
@@ -404,7 +428,10 @@ public:
     /**
      * @brief 转换为字符串
      */
-    [[nodiscard]] virtual std::string toString() const { return m_fluidLocation.toString(); }
+    [[nodiscard]] virtual std::string toString() const
+    {
+        return m_fluidLocation.toString();
+    }
 
 protected:
     friend class FluidRegistry;

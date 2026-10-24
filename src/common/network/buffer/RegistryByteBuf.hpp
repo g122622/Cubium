@@ -78,10 +78,20 @@ public:
     /**
      * @brief 绑定/重绑定注册表（同一缓冲可在不同阶段复用）
      */
-    void bindRegistry(const RegistryAccess& registry) noexcept { m_registry = &registry; }
+    void bindRegistry(const RegistryAccess& registry) noexcept
+    {
+        m_registry = &registry;
+    }
 
-    [[nodiscard]] bool hasRegistry() const noexcept { return m_registry.has_value(); }
-    [[nodiscard]] const RegistryAccess& registry() const noexcept { return **m_registry; }
+    [[nodiscard]] bool hasRegistry() const noexcept
+    {
+        return m_registry.has_value();
+    }
+
+    [[nodiscard]] const RegistryAccess& registry() const noexcept
+    {
+        return **m_registry;
+    }
 
     // ============================================================================
     // 物品 holder（VarInt itemId，0 表示空）

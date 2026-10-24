@@ -107,7 +107,10 @@ public:
      *
      * @param callback 更新回调函数
      */
-    void setUpdateCallback(UpdateCallback callback) { m_updateCallback = std::move(callback); }
+    void setUpdateCallback(UpdateCallback callback)
+    {
+        m_updateCallback = std::move(callback);
+    }
 
     // ========== 任务调度 ==========
 
@@ -207,22 +210,34 @@ public:
      * 启用延迟更新后，每次 schedule 会把任务到期时间设为 now + delayMs。
      * 连续高频更新会被推迟到延迟结束后才执行，实现 trailing-edge debounce。
      */
-    void setBatchDelay(u32 delayMs) { m_batchDelayMs = delayMs; }
+    void setBatchDelay(u32 delayMs)
+    {
+        m_batchDelayMs = delayMs;
+    }
 
     /**
      * @brief 获取批量更新延迟（毫秒）
      */
-    [[nodiscard]] u32 batchDelay() const { return m_batchDelayMs; }
+    [[nodiscard]] u32 batchDelay() const
+    {
+        return m_batchDelayMs;
+    }
 
     /**
      * @brief 设置最大批量大小
      */
-    void setMaxBatchSize(u32 size) { m_maxBatchSize = size; }
+    void setMaxBatchSize(u32 size)
+    {
+        m_maxBatchSize = size;
+    }
 
     /**
      * @brief 获取最大批量大小
      */
-    [[nodiscard]] u32 maxBatchSize() const { return m_maxBatchSize; }
+    [[nodiscard]] u32 maxBatchSize() const
+    {
+        return m_maxBatchSize;
+    }
 
     /**
      * @brief 设置是否启用延迟更新
@@ -231,12 +246,18 @@ public:
      * executePending() / tick() 只执行到期任务。
      * 禁用后，所有任务立即执行（dueTimeMs 设为 0）。
      */
-    void setDeferredUpdate(bool enabled) { m_deferredUpdate = enabled; }
+    void setDeferredUpdate(bool enabled)
+    {
+        m_deferredUpdate = enabled;
+    }
 
     /**
      * @brief 是否启用延迟更新
      */
-    [[nodiscard]] bool deferredUpdate() const { return m_deferredUpdate; }
+    [[nodiscard]] bool deferredUpdate() const
+    {
+        return m_deferredUpdate;
+    }
 
     // ========== 状态查询 ==========
 
@@ -248,7 +269,10 @@ public:
     /**
      * @brief 检查是否有待处理任务
      */
-    [[nodiscard]] bool hasPending() const { return pendingCount() > 0; }
+    [[nodiscard]] bool hasPending() const
+    {
+        return pendingCount() > 0;
+    }
 
     /**
      * @brief 获取指定优先级的待处理任务数量（含未到期）
@@ -278,7 +302,10 @@ public:
      * 返回最近一次 tick(currentMs) 传入的时间戳。
      * 若从未调用过 tick()，返回 0。
      */
-    [[nodiscard]] u64 nowMs() const { return m_nowMs; }
+    [[nodiscard]] u64 nowMs() const
+    {
+        return m_nowMs;
+    }
 
 private:
     /**

@@ -78,10 +78,16 @@ public:
     [[nodiscard]] bool isClientSyncable(u32 javaRegistryId) const;
 
     /// 是否已建立映射。
-    [[nodiscard]] bool isInitialized() const noexcept { return m_initialized; }
+    [[nodiscard]] bool isInitialized() const noexcept
+    {
+        return m_initialized;
+    }
 
     /// 已映射到项目实现的属性数（诊断用）。
-    [[nodiscard]] size_t matchedCount() const noexcept { return m_internalToJava.size(); }
+    [[nodiscard]] size_t matchedCount() const noexcept
+    {
+        return m_internalToJava.size();
+    }
 
 private:
     bool m_initialized = false;

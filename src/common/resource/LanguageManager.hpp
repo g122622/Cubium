@@ -200,12 +200,18 @@ public:
     /**
      * @brief 获取当前语言代码
      */
-    [[nodiscard]] const std::string& currentLanguage() const noexcept { return m_currentLanguage; }
+    [[nodiscard]] const std::string& currentLanguage() const noexcept
+    {
+        return m_currentLanguage;
+    }
 
     /**
      * @brief 获取翻译条目数量
      */
-    [[nodiscard]] size_t translationCount() const noexcept { return m_translations.size(); }
+    [[nodiscard]] size_t translationCount() const noexcept
+    {
+        return m_translations.size();
+    }
 
     // ========================================================================
     // 语言发现
@@ -256,7 +262,10 @@ public:
      *
      * @param callback 回调函数
      */
-    void setOnLanguageChanged(std::function<void()> callback) { m_onLanguageChanged = std::move(callback); }
+    void setOnLanguageChanged(std::function<void()> callback)
+    {
+        m_onLanguageChanged = std::move(callback);
+    }
 
 private:
     /// 翻译映射表：翻译键 -> 翻译文本

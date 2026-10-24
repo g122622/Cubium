@@ -33,50 +33,88 @@ class TestParameters {
 public:
     TestParameters() noexcept = default;
 
-    [[nodiscard]] const BlockPos& testPos() const noexcept { return m_testPos; }
-    [[nodiscard]] bool stopOnFailure() const noexcept { return m_stopOnFailure; }
-    [[nodiscard]] bool stopOtherTestsOnFailure() const noexcept { return m_stopOtherTestsOnFailure; }
-    [[nodiscard]] i32 repeatCount() const noexcept { return m_repeatCount; }
-    [[nodiscard]] i32 testsPerRow() const noexcept { return m_testsPerRow; }
-    [[nodiscard]] i32 maxTestsPerBatch() const noexcept { return m_maxTestsPerBatch; }
-    [[nodiscard]] Rotation rotation() const noexcept { return m_rotation; }
-    [[nodiscard]] const std::vector<BaseGameTestFunction*>& testFunctions() const noexcept { return m_testFunctions; }
+    [[nodiscard]] const BlockPos& testPos() const noexcept
+    {
+        return m_testPos;
+    }
+
+    [[nodiscard]] bool stopOnFailure() const noexcept
+    {
+        return m_stopOnFailure;
+    }
+
+    [[nodiscard]] bool stopOtherTestsOnFailure() const noexcept
+    {
+        return m_stopOtherTestsOnFailure;
+    }
+
+    [[nodiscard]] i32 repeatCount() const noexcept
+    {
+        return m_repeatCount;
+    }
+
+    [[nodiscard]] i32 testsPerRow() const noexcept
+    {
+        return m_testsPerRow;
+    }
+
+    [[nodiscard]] i32 maxTestsPerBatch() const noexcept
+    {
+        return m_maxTestsPerBatch;
+    }
+
+    [[nodiscard]] Rotation rotation() const noexcept
+    {
+        return m_rotation;
+    }
+
+    [[nodiscard]] const std::vector<BaseGameTestFunction*>& testFunctions() const noexcept
+    {
+        return m_testFunctions;
+    }
 
     TestParameters& setTestPos(BlockPos pos) noexcept
     {
         m_testPos = pos;
         return *this;
     }
+
     TestParameters& setStopOnFailure(bool stop) noexcept
     {
         m_stopOnFailure = stop;
         return *this;
     }
+
     TestParameters& setStopOtherTestsOnFailure(bool stop) noexcept
     {
         m_stopOtherTestsOnFailure = stop;
         return *this;
     }
+
     TestParameters& setRepeatCount(i32 count) noexcept
     {
         m_repeatCount = count;
         return *this;
     }
+
     TestParameters& setTestsPerRow(i32 count) noexcept
     {
         m_testsPerRow = count;
         return *this;
     }
+
     TestParameters& setMaxTestsPerBatch(i32 count) noexcept
     {
         m_maxTestsPerBatch = count;
         return *this;
     }
+
     TestParameters& setRotation(Rotation rotation) noexcept
     {
         m_rotation = rotation;
         return *this;
     }
+
     TestParameters& setTestFunctions(std::vector<BaseGameTestFunction*> functions)
     {
         m_testFunctions = std::move(functions);

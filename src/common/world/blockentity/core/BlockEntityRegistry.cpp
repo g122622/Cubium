@@ -92,153 +92,210 @@ void BlockEntityRegistry::registerType(BlockEntityType type, Factory factory)
 void BlockEntityRegistry::registerBuiltinTypes()
 {
     // 注册活塞方块实体
-    registerType(BlockEntityType::Piston, [](const BlockPos& pos) { return std::make_unique<PistonBlockEntity>(pos); });
+    registerType(BlockEntityType::Piston, [](const BlockPos& pos) {
+        return std::make_unique<PistonBlockEntity>(pos);
+    });
 
     // 注册箱子方块实体
-    registerType(BlockEntityType::Chest, [](const BlockPos& pos) { return std::make_unique<ChestEntity>(pos); });
+    registerType(BlockEntityType::Chest, [](const BlockPos& pos) {
+        return std::make_unique<ChestEntity>(pos);
+    });
 
     // 注册陷阱箱方块实体
-    registerType(
-        BlockEntityType::TrappedChest, [](const BlockPos& pos) { return std::make_unique<TrappedChestEntity>(pos); });
+    registerType(BlockEntityType::TrappedChest, [](const BlockPos& pos) {
+        return std::make_unique<TrappedChestEntity>(pos);
+    });
 
     // 注册漏斗方块实体
-    registerType(BlockEntityType::Hopper, [](const BlockPos& pos) { return std::make_unique<HopperEntity>(pos); });
+    registerType(BlockEntityType::Hopper, [](const BlockPos& pos) {
+        return std::make_unique<HopperEntity>(pos);
+    });
 
     // 注册发射器方块实体
-    registerType(BlockEntityType::Dispenser,
-        [](const BlockPos& pos) { return std::make_unique<DispenserBlockEntity>(BlockEntityType::Dispenser, pos); });
+    registerType(BlockEntityType::Dispenser, [](const BlockPos& pos) {
+        return std::make_unique<DispenserBlockEntity>(BlockEntityType::Dispenser, pos);
+    });
 
     // 注册投掷器方块实体
-    registerType(
-        BlockEntityType::Dropper, [](const BlockPos& pos) { return std::make_unique<DropperBlockEntity>(pos); });
+    registerType(BlockEntityType::Dropper, [](const BlockPos& pos) {
+        return std::make_unique<DropperBlockEntity>(pos);
+    });
 
     // 注册熔炉方块实体
-    registerType(BlockEntityType::Furnace, [](const BlockPos& pos) { return std::make_unique<FurnaceEntity>(pos); });
+    registerType(BlockEntityType::Furnace, [](const BlockPos& pos) {
+        return std::make_unique<FurnaceEntity>(pos);
+    });
 
     // 注册高炉方块实体
-    registerType(
-        BlockEntityType::BlastFurnace, [](const BlockPos& pos) { return std::make_unique<BlastFurnaceEntity>(pos); });
+    registerType(BlockEntityType::BlastFurnace, [](const BlockPos& pos) {
+        return std::make_unique<BlastFurnaceEntity>(pos);
+    });
 
     // 注册烟熏炉方块实体
-    registerType(BlockEntityType::Smoker, [](const BlockPos& pos) { return std::make_unique<SmokerEntity>(pos); });
+    registerType(BlockEntityType::Smoker, [](const BlockPos& pos) {
+        return std::make_unique<SmokerEntity>(pos);
+    });
 
     // 注册附魔台方块实体
-    registerType(BlockEntityType::EnchantingTable,
-        [](const BlockPos& pos) { return std::make_unique<EnchantingTableEntity>(pos); });
+    registerType(BlockEntityType::EnchantingTable, [](const BlockPos& pos) {
+        return std::make_unique<EnchantingTableEntity>(pos);
+    });
 
     // 注册比较器方块实体
-    registerType(
-        BlockEntityType::Comparator, [](const BlockPos& pos) { return std::make_unique<ComparatorEntity>(pos); });
+    registerType(BlockEntityType::Comparator, [](const BlockPos& pos) {
+        return std::make_unique<ComparatorEntity>(pos);
+    });
 
     // 注册日光探测器方块实体
-    registerType(BlockEntityType::DaylightDetector,
-        [](const BlockPos& pos) { return std::make_unique<DaylightDetectorEntity>(pos); });
+    registerType(BlockEntityType::DaylightDetector, [](const BlockPos& pos) {
+        return std::make_unique<DaylightDetectorEntity>(pos);
+    });
 
     // 注册信标方块实体
-    registerType(BlockEntityType::Beacon, [](const BlockPos& pos) { return std::make_unique<BeaconEntity>(pos); });
+    registerType(BlockEntityType::Beacon, [](const BlockPos& pos) {
+        return std::make_unique<BeaconEntity>(pos);
+    });
 
     // 注册潮涌核心方块实体
-    registerType(BlockEntityType::Conduit, [](const BlockPos& pos) { return std::make_unique<ConduitEntity>(pos); });
+    registerType(BlockEntityType::Conduit, [](const BlockPos& pos) {
+        return std::make_unique<ConduitEntity>(pos);
+    });
 
     // 注册告示牌方块实体
-    registerType(BlockEntityType::Sign, [](const BlockPos& pos) { return std::make_unique<SignEntity>(pos); });
+    registerType(BlockEntityType::Sign, [](const BlockPos& pos) {
+        return std::make_unique<SignEntity>(pos);
+    });
 
     // 注册营火方块实体
-    registerType(BlockEntityType::Campfire,
-        [](const BlockPos& pos) { return std::make_unique<blockentity::CampfireBlockEntity>(pos); });
+    registerType(BlockEntityType::Campfire, [](const BlockPos& pos) {
+        return std::make_unique<blockentity::CampfireBlockEntity>(pos);
+    });
 
     // 注册末地折跃门方块实体
-    registerType(BlockEntityType::EndGateway,
-        [](const BlockPos& pos) { return std::make_unique<blockentity::EndGatewayEntity>(pos); });
+    registerType(BlockEntityType::EndGateway, [](const BlockPos& pos) {
+        return std::make_unique<blockentity::EndGatewayEntity>(pos);
+    });
 
     // 注册命令方块实体
-    registerType(BlockEntityType::CommandBlock,
-        [](const BlockPos& pos) { return std::make_unique<blockentity::CommandBlockEntity>(pos); });
+    registerType(BlockEntityType::CommandBlock, [](const BlockPos& pos) {
+        return std::make_unique<blockentity::CommandBlockEntity>(pos);
+    });
 
     // 注册结构方块实体
-    registerType(BlockEntityType::StructureBlock,
-        [](const BlockPos& pos) { return std::make_unique<blockentity::StructureBlockEntity>(pos); });
+    registerType(BlockEntityType::StructureBlock, [](const BlockPos& pos) {
+        return std::make_unique<blockentity::StructureBlockEntity>(pos);
+    });
 
     // 注册拼图方块实体
-    registerType(BlockEntityType::JigsawBlock,
-        [](const BlockPos& pos) { return std::make_unique<blockentity::JigsawBlockEntity>(pos); });
+    registerType(BlockEntityType::JigsawBlock, [](const BlockPos& pos) {
+        return std::make_unique<blockentity::JigsawBlockEntity>(pos);
+    });
 
     // 注册酿造台方块实体
-    registerType(BlockEntityType::BrewingStand,
-        [](const BlockPos& pos) { return std::make_unique<blockentity::BrewingStandEntity>(pos); });
+    registerType(BlockEntityType::BrewingStand, [](const BlockPos& pos) {
+        return std::make_unique<blockentity::BrewingStandEntity>(pos);
+    });
 
     // 注册木桶方块实体
-    registerType(BlockEntityType::Barrel, [](const BlockPos& pos) { return std::make_unique<BarrelEntity>(pos); });
+    registerType(BlockEntityType::Barrel, [](const BlockPos& pos) {
+        return std::make_unique<BarrelEntity>(pos);
+    });
 
     // 注册末影箱方块实体
-    registerType(
-        BlockEntityType::EnderChest, [](const BlockPos& pos) { return std::make_unique<EnderChestEntity>(pos); });
+    registerType(BlockEntityType::EnderChest, [](const BlockPos& pos) {
+        return std::make_unique<EnderChestEntity>(pos);
+    });
 
     // 注册潜影盒方块实体
-    registerType(
-        BlockEntityType::ShulkerBox, [](const BlockPos& pos) { return std::make_unique<ShulkerBoxEntity>(pos); });
+    registerType(BlockEntityType::ShulkerBox, [](const BlockPos& pos) {
+        return std::make_unique<ShulkerBoxEntity>(pos);
+    });
 
     // 注册讲台方块实体
-    registerType(BlockEntityType::Lectern, [](const BlockPos& pos) { return std::make_unique<LecternEntity>(pos); });
+    registerType(BlockEntityType::Lectern, [](const BlockPos& pos) {
+        return std::make_unique<LecternEntity>(pos);
+    });
 
     // 注册唱片机方块实体
-    registerType(BlockEntityType::Jukebox, [](const BlockPos& pos) { return std::make_unique<JukeboxEntity>(pos); });
+    registerType(BlockEntityType::Jukebox, [](const BlockPos& pos) {
+        return std::make_unique<JukeboxEntity>(pos);
+    });
 
     // 注册钟方块实体
-    registerType(BlockEntityType::Bell, [](const BlockPos& pos) { return std::make_unique<BellBlockEntity>(pos); });
+    registerType(BlockEntityType::Bell, [](const BlockPos& pos) {
+        return std::make_unique<BellBlockEntity>(pos);
+    });
 
     // 注册书架方块实体
-    registerType(BlockEntityType::Shelf, [](const BlockPos& pos) { return std::make_unique<ShelfBlockEntity>(pos); });
+    registerType(BlockEntityType::Shelf, [](const BlockPos& pos) {
+        return std::make_unique<ShelfBlockEntity>(pos);
+    });
 
     // 注册旗帜方块实体
-    registerType(BlockEntityType::Banner, [](const BlockPos& pos) { return std::make_unique<BannerEntity>(pos); });
+    registerType(BlockEntityType::Banner, [](const BlockPos& pos) {
+        return std::make_unique<BannerEntity>(pos);
+    });
 
     // 注册头颅方块实体
-    registerType(BlockEntityType::Skull,
-        [](const BlockPos& pos) { return std::make_unique<blockentity::SkullBlockEntity>(pos); });
+    registerType(BlockEntityType::Skull, [](const BlockPos& pos) {
+        return std::make_unique<blockentity::SkullBlockEntity>(pos);
+    });
 
     // 注册蜂巢方块实体
-    registerType(BlockEntityType::Beehive,
-        [](const BlockPos& pos) { return std::make_unique<blockentity::BeehiveBlockEntity>(pos); });
+    registerType(BlockEntityType::Beehive, [](const BlockPos& pos) {
+        return std::make_unique<blockentity::BeehiveBlockEntity>(pos);
+    });
 
     // 注册试炼密室方块实体
-    registerType(BlockEntityType::TrialSpawner,
-        [](const BlockPos& pos) { return std::make_unique<TrialSpawnerBlockEntity>(pos); });
-    registerType(BlockEntityType::Vault, [](const BlockPos& pos) { return std::make_unique<VaultBlockEntity>(pos); });
-    registerType(
-        BlockEntityType::Crafter, [](const BlockPos& pos) { return std::make_unique<CrafterBlockEntity>(pos); });
+    registerType(BlockEntityType::TrialSpawner, [](const BlockPos& pos) {
+        return std::make_unique<TrialSpawnerBlockEntity>(pos);
+    });
+    registerType(BlockEntityType::Vault, [](const BlockPos& pos) {
+        return std::make_unique<VaultBlockEntity>(pos);
+    });
+    registerType(BlockEntityType::Crafter, [](const BlockPos& pos) {
+        return std::make_unique<CrafterBlockEntity>(pos);
+    });
 
     // 注册刷怪笼方块实体
-    registerType(BlockEntityType::MobSpawner,
-        [](const BlockPos& pos) { return std::make_unique<blockentity::MobSpawnerBlockEntity>(pos); });
+    registerType(BlockEntityType::MobSpawner, [](const BlockPos& pos) {
+        return std::make_unique<blockentity::MobSpawnerBlockEntity>(pos);
+    });
 
     // 注册幽匿感测体方块实体
-    registerType(BlockEntityType::SculkSensor,
-        [](const BlockPos& pos) { return std::make_unique<blockentity::SculkSensorBlockEntity>(pos); });
+    registerType(BlockEntityType::SculkSensor, [](const BlockPos& pos) {
+        return std::make_unique<blockentity::SculkSensorBlockEntity>(pos);
+    });
 
     // 注册幽匿尖啸体方块实体
-    registerType(BlockEntityType::SculkShrieker,
-        [](const BlockPos& pos) { return std::make_unique<blockentity::SculkShriekerBlockEntity>(pos); });
+    registerType(BlockEntityType::SculkShrieker, [](const BlockPos& pos) {
+        return std::make_unique<blockentity::SculkShriekerBlockEntity>(pos);
+    });
 
     // 注册饰纹陶罐方块实体
-    registerType(BlockEntityType::DecoratedPot,
-        [](const BlockPos& pos) { return std::make_unique<blockentity::DecoratedPotBlockEntity>(pos); });
+    registerType(BlockEntityType::DecoratedPot, [](const BlockPos& pos) {
+        return std::make_unique<blockentity::DecoratedPotBlockEntity>(pos);
+    });
 
     // 注册铜傀儡雕像方块实体
-    registerType(BlockEntityType::CopperGolemStatue,
-        [](const BlockPos& pos) { return std::make_unique<blockentity::CopperGolemStatueBlockEntity>(pos); });
+    registerType(BlockEntityType::CopperGolemStatue, [](const BlockPos& pos) {
+        return std::make_unique<blockentity::CopperGolemStatueBlockEntity>(pos);
+    });
 
     // 注册可刷方块实体（可疑沙/可疑沙砾）
-    registerType(BlockEntityType::BrushableBlock,
-        [](const BlockPos& pos) { return std::make_unique<BrushableBlockEntity>(pos); });
+    registerType(BlockEntityType::BrushableBlock, [](const BlockPos& pos) {
+        return std::make_unique<BrushableBlockEntity>(pos);
+    });
 
     // 注册测试方块实体（GameTest 框架）
-    registerType(BlockEntityType::TestBlock,
-        [](const BlockPos& pos) { return std::make_unique<blockentity::TestBlockEntity>(pos); });
+    registerType(BlockEntityType::TestBlock, [](const BlockPos& pos) {
+        return std::make_unique<blockentity::TestBlockEntity>(pos);
+    });
 
     // 注册测试实例方块实体（GameTest 框架）
-    registerType(BlockEntityType::TestInstanceBlock,
-        [](const BlockPos& pos) { return std::make_unique<blockentity::TestInstanceBlockEntity>(pos); });
+    registerType(BlockEntityType::TestInstanceBlock, [](const BlockPos& pos) {
+        return std::make_unique<blockentity::TestInstanceBlockEntity>(pos);
+    });
 }
 
 std::unique_ptr<BlockEntity> BlockEntityRegistry::create(BlockEntityType type, const BlockPos& pos) const

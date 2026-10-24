@@ -79,14 +79,18 @@ namespace mc::network::backend::java::codecs {
 [[nodiscard]] inline auto statusRequestCodec()
 {
     return makeCodec<ir::status::StatusRequest>([](B&, const ir::status::StatusRequest&) {},
-        [](B&) -> Result<ir::status::StatusRequest> { return ir::status::StatusRequest{}; });
+        [](B&) -> Result<ir::status::StatusRequest> {
+            return ir::status::StatusRequest{};
+        });
 }
 
 /// StatusResponse（S→C，id=0）：Utf8(json)。
 [[nodiscard]] inline auto statusResponseCodec()
 {
     return makeCodec<ir::status::StatusResponse>(
-        [](B& buf, const ir::status::StatusResponse& v) { buf.writeString(v.json); },
+        [](B& buf, const ir::status::StatusResponse& v) {
+            buf.writeString(v.json);
+        },
         [](B& buf) -> Result<ir::status::StatusResponse> {
             ir::status::StatusResponse v{};
             MC_TRY_ASSIGN(v.json, buf.readString());
@@ -97,7 +101,10 @@ namespace mc::network::backend::java::codecs {
 /// PingRequest（C→S，id=1）：I64(payload)。
 [[nodiscard]] inline auto pingRequestCodec()
 {
-    return makeCodec<ir::status::PingRequest>([](B& buf, const ir::status::PingRequest& v) { buf.writeI64(v.payload); },
+    return makeCodec<ir::status::PingRequest>(
+        [](B& buf, const ir::status::PingRequest& v) {
+            buf.writeI64(v.payload);
+        },
         [](B& buf) -> Result<ir::status::PingRequest> {
             ir::status::PingRequest v{};
             MC_TRY_ASSIGN(v.payload, buf.readI64());
@@ -109,7 +116,9 @@ namespace mc::network::backend::java::codecs {
 [[nodiscard]] inline auto pingResponseCodec()
 {
     return makeCodec<ir::status::PingResponse>(
-        [](B& buf, const ir::status::PingResponse& v) { buf.writeI64(v.payload); },
+        [](B& buf, const ir::status::PingResponse& v) {
+            buf.writeI64(v.payload);
+        },
         [](B& buf) -> Result<ir::status::PingResponse> {
             ir::status::PingResponse v{};
             MC_TRY_ASSIGN(v.payload, buf.readI64());
@@ -266,7 +275,9 @@ inline void writeByteArray(B& buf, const u8* data, usize size)
 [[nodiscard]] inline auto loginCompressionCodec()
 {
     return makeCodec<ir::login::LoginCompression>(
-        [](B& buf, const ir::login::LoginCompression& v) { buf.writeVarInt(v.threshold); },
+        [](B& buf, const ir::login::LoginCompression& v) {
+            buf.writeVarInt(v.threshold);
+        },
         [](B& buf) -> Result<ir::login::LoginCompression> {
             ir::login::LoginCompression v{};
             MC_TRY_ASSIGN(v.threshold, buf.readVarInt());
@@ -280,7 +291,9 @@ inline void writeByteArray(B& buf, const u8* data, usize size)
 [[nodiscard]] inline auto loginAcknowledgedCodec()
 {
     return makeCodec<ir::login::LoginAcknowledged>([](B&, const ir::login::LoginAcknowledged&) {},
-        [](B&) -> Result<ir::login::LoginAcknowledged> { return ir::login::LoginAcknowledged{}; });
+        [](B&) -> Result<ir::login::LoginAcknowledged> {
+            return ir::login::LoginAcknowledged{};
+        });
 }
 
 /**
@@ -289,7 +302,9 @@ inline void writeByteArray(B& buf, const u8* data, usize size)
 [[nodiscard]] inline auto loginDisconnectCodec()
 {
     return makeCodec<ir::login::Disconnect>(
-        [](B& buf, const ir::login::Disconnect& v) { writeTextComponentNbt(buf, v.reason); },
+        [](B& buf, const ir::login::Disconnect& v) {
+            writeTextComponentNbt(buf, v.reason);
+        },
         [](B& buf) -> Result<ir::login::Disconnect> {
             ir::login::Disconnect v{};
             MC_TRY_ASSIGN(v.reason, readTextComponentNbt(buf));

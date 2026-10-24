@@ -170,7 +170,10 @@ public:
     /**
      * @brief 检查是否启用自动保存
      */
-    [[nodiscard]] bool isAutoSaveEnabled() const { return m_autoSave; }
+    [[nodiscard]] bool isAutoSaveEnabled() const
+    {
+        return m_autoSave;
+    }
 
     /**
      * @brief 触发自动保存（如果有变更且启用了自动保存）

@@ -151,7 +151,9 @@ Result<void> GuiRenderer::initialize(VkDevice device,
 
 void GuiRenderer::destroy()
 {
-    if (!m_initialized) return;
+    if (!m_initialized) {
+        return;
+    }
 
     VkDevice device = m_device;
 
@@ -282,7 +284,9 @@ void GuiRenderer::prepareFrame(VkCommandBuffer commandBuffer)
 
 void GuiRenderer::render(VkCommandBuffer commandBuffer)
 {
-    if (m_vertices.empty() || m_indices.empty()) return;
+    if (m_vertices.empty() || m_indices.empty()) {
+        return;
+    }
 
     // 上传顶点和索引数据（使用HOST_VISIBLE内存，可以在任何地方调用）
     _uploadBufferData(commandBuffer);
@@ -323,7 +327,9 @@ void GuiRenderer::render(VkCommandBuffer commandBuffer)
 
 f64 GuiRenderer::drawText(const std::string& text, f64 x, f64 y, u32 color, bool shadow)
 {
-    if (m_font == nullptr) return 0.0;
+    if (m_font == nullptr) {
+        return 0.0;
+    }
 
     m_fontRenderer.beginBatch();
     f64 width;
@@ -359,7 +365,9 @@ f64 GuiRenderer::drawTextCentered(const std::string& text, f64 x, f64 y, u32 col
 
 f64 GuiRenderer::getTextWidth(const std::string& text)
 {
-    if (m_font == nullptr) return 0.0;
+    if (m_font == nullptr) {
+        return 0.0;
+    }
     return m_fontRenderer.getTextWidth(text);
 }
 
@@ -702,6 +710,7 @@ Result<void> GuiRenderer::_createPipeline(VkRenderPass renderPass, VkSampleCount
 
     return {};
 }
+
 Result<void> GuiRenderer::_createDescriptors()
 {
     VkDevice device = m_device;
@@ -980,12 +989,16 @@ Result<void> GuiRenderer::_createFontTexture()
 
 void GuiRenderer::_updateFontTexture(VkCommandBuffer commandBuffer)
 {
-    if (m_font == nullptr || !m_font->isValid()) return;
+    if (m_font == nullptr || !m_font->isValid()) {
+        return;
+    }
 
     const u8* pixels = m_font->atlasPixels();
     u32 size = m_font->atlasSize();
 
-    if (pixels == nullptr || size == 0) return;
+    if (pixels == nullptr || size == 0) {
+        return;
+    }
 
     // 上传到暂存缓冲
     void* mapped = nullptr;
@@ -1127,7 +1140,9 @@ void GuiRenderer::_uploadBufferData(VkCommandBuffer commandBuffer)
 {
     (void)commandBuffer; // 不需要 command buffer，使用 HOST_VISIBLE 内存
 
-    if (m_vertices.empty() && m_indices.empty()) return;
+    if (m_vertices.empty() && m_indices.empty()) {
+        return;
+    }
 
     VkDeviceSize vertexSize = m_vertices.size() * sizeof(GuiVertex);
     VkDeviceSize indexSize = m_indices.size() * sizeof(u32);

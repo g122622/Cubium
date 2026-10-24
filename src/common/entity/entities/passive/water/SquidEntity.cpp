@@ -150,10 +150,12 @@ void SquidEntity::tick()
 
         // 平滑转向
         f32 angleDiff = m_targetSwimAngle - m_swimAngle;
-        while (angleDiff > 180.0f)
+        while (angleDiff > 180.0f) {
             angleDiff -= 360.0f;
-        while (angleDiff < -180.0f)
+        }
+        while (angleDiff < -180.0f) {
             angleDiff += 360.0f;
+        }
         m_swimAngle += angleDiff * 0.1f;
 
         // 游泳推进
@@ -193,9 +195,9 @@ void SquidEntity::registerAttributes()
     // 调用父类方法
     WaterMobEntity::registerAttributes();
 
-    // 鱿鱼的属性
+    // 鱿鱼只覆盖生命值；原版 Squid 不设移动速度，沿用 LivingEntity 默认的 0.7
+    // （水下推进由 WaterMoveControl / 随机游泳目标驱动）。
     attributes().setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 10.0);
-    attributes().setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.3);
 }
 
 // ========== 音效 ==========

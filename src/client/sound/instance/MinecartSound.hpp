@@ -60,7 +60,10 @@ public:
     /**
      * @brief 是否可以静音播放
      */
-    [[nodiscard]] bool canBeSilent() const override { return true; }
+    [[nodiscard]] bool canBeSilent() const override
+    {
+        return true;
+    }
 
 private:
     EntitySoundHandler* m_handler = nullptr;
@@ -101,7 +104,10 @@ public:
     /**
      * @brief 是否可以静音播放
      */
-    [[nodiscard]] bool canBeSilent() const override { return true; }
+    [[nodiscard]] bool canBeSilent() const override
+    {
+        return true;
+    }
 
 private:
     EntitySoundHandler* m_handler = nullptr;

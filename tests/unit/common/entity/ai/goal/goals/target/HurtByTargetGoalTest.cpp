@@ -40,9 +40,15 @@ namespace test {
 
 class HurtByTargetGoalTest : public ::testing::Test {
 protected:
-    void SetUp() override { pig = std::make_unique<PigEntity>(EntityInstanceId(1), mc::test::testEcsRegistry()); }
+    void SetUp() override
+    {
+        pig = std::make_unique<PigEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
+    }
 
-    void TearDown() override { pig.reset(); }
+    void TearDown() override
+    {
+        pig.reset();
+    }
 
     std::unique_ptr<PigEntity> pig;
 };
@@ -89,7 +95,9 @@ TEST_F(HurtByTargetGoalTest, SetAlertOthers_EnablesAlertAllies)
 TEST_F(HurtByTargetGoalTest, IgnoreDamagePredicate_CompilesWithLambda)
 {
     auto dolphinPredicate = [](const LivingEntity* attacker) -> bool {
-        if (!attacker) return false;
+        if (!attacker) {
+            return false;
+        }
         const entity::EntityType* type = attacker->entityType();
         return type == entity::VanillaEntityTypeKeys::GUARDIAN || type == entity::VanillaEntityTypeKeys::ELDER_GUARDIAN;
     };
@@ -145,7 +153,10 @@ TEST_F(HurtByTargetGoalTest, Combined_IgnoreDamageAndIgnoreAlert)
  */
 class HurtByTargetTestWorld : public mc::test::BaseTestWorld {
 public:
-    void setEntities(std::vector<Entity*> entities) { m_entities = std::move(entities); }
+    void setEntities(std::vector<Entity*> entities)
+    {
+        m_entities = std::move(entities);
+    }
 
     [[nodiscard]] std::vector<Entity*> getEntitiesInAABB(const AxisAlignedBB&, const Entity*) const override
     {
@@ -256,7 +267,9 @@ TEST_F(HurtByTargetBehaviorTest, ShouldExecute_IgnoreDamagePredicate_AllowsOther
 
     // 使用排除谓词只排除守卫者类型（攻击者是猪，不在排除范围内）
     auto ignoreGuardian = [](const LivingEntity* entity) -> bool {
-        if (!entity) return false;
+        if (!entity) {
+            return false;
+        }
         const entity::EntityType* type = entity->entityType();
         return type == entity::VanillaEntityTypeKeys::GUARDIAN || type == entity::VanillaEntityTypeKeys::ELDER_GUARDIAN;
     };

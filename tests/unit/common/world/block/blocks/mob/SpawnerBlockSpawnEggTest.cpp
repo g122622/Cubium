@@ -74,18 +74,45 @@ class SpawnerEggTestWorld final : public ::mc::test::BaseTestWorld {
 public:
     using IWorld::getBlockState;
 
-    void setSeed(u64 seed) { m_seed = seed; }
-    [[nodiscard]] u64 seed() const override { return m_seed; }
+    void setSeed(u64 seed)
+    {
+        m_seed = seed;
+    }
 
-    [[nodiscard]] u64 currentTick() const override { return m_currentTick; }
+    [[nodiscard]] u64 seed() const override
+    {
+        return m_seed;
+    }
 
-    [[nodiscard]] math::IRandom& getRandom() override { return m_rng; }
-    [[nodiscard]] const math::IRandom& getRandom() const override { return m_rng; }
+    [[nodiscard]] u64 currentTick() const override
+    {
+        return m_currentTick;
+    }
 
-    [[nodiscard]] Difficulty difficulty() const override { return m_difficulty; }
+    [[nodiscard]] math::IRandom& getRandom() override
+    {
+        return m_rng;
+    }
 
-    [[nodiscard]] bool isClientSide() const override { return m_clientSide; }
-    void setClientSide(bool clientSide) { m_clientSide = clientSide; }
+    [[nodiscard]] const math::IRandom& getRandom() const override
+    {
+        return m_rng;
+    }
+
+    [[nodiscard]] Difficulty difficulty() const override
+    {
+        return m_difficulty;
+    }
+
+    [[nodiscard]] bool isClientSide() const override
+    {
+        return m_clientSide;
+    }
+
+    void setClientSide(bool clientSide)
+    {
+        m_clientSide = clientSide;
+    }
 
     [[nodiscard]] BlockEntity* getBlockEntity(const BlockPos& pos) override
     {
@@ -138,6 +165,7 @@ public:
     {
         throw std::runtime_error("SpawnerEggTestWorld::tickManager not implemented");
     }
+
     [[nodiscard]] const world::tick::TickManager& tickManager() const override
     {
         throw std::runtime_error("SpawnerEggTestWorld::tickManager not implemented");
@@ -166,7 +194,9 @@ private:
 std::unique_ptr<item::SpawnEggItem> makeSpawnEgg(const std::string& entityName, u32 primaryColor, u32 secondaryColor)
 {
     auto entityType = entity::EntityType::Builder(
-        [](IWorld*, ecs::EntityRegistry& registry) -> std::unique_ptr<Entity> { return nullptr; },
+        [](IWorld*, ecs::EntityRegistry& registry) -> std::unique_ptr<Entity> {
+            return nullptr;
+        },
         entity::EntityClassification::Creature)
                           .size(0.9f, 0.9f)
                           .trackingRange(10)

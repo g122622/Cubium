@@ -56,7 +56,10 @@ struct BiomeFilterConfig : public IPlacementConfig {
     BiomeFilterConfig() = default;
 
     /// 回填 placed_feature id（PlacedFeatureLoader 在解析完整条链后调用）
-    void setPlacedFeatureId(ResourceLocation id) { placedFeatureId = std::move(id); }
+    void setPlacedFeatureId(ResourceLocation id)
+    {
+        placedFeatureId = std::move(id);
+    }
 };
 
 /**
@@ -72,7 +75,10 @@ public:
         const IPlacementConfig& config,
         const BlockPos& basePos) const override;
 
-    [[nodiscard]] const char* name() const noexcept override { return "biome_filter"; }
+    [[nodiscard]] const char* name() const noexcept override
+    {
+        return "biome_filter";
+    }
 };
 
 } // namespace mc

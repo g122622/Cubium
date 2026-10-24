@@ -63,7 +63,10 @@ public:
         : ProjectileEntity(id, mc::test::testEcsRegistry())
     {}
 
-    [[nodiscard]] std::string getTypeId() const override { return "minecraft:test_projectile"; }
+    [[nodiscard]] std::string getTypeId() const override
+    {
+        return "minecraft:test_projectile";
+    }
 };
 
 } // namespace
@@ -304,7 +307,11 @@ TEST(ProjectileShootInaccuracyTest, ShootFrom_WithNegativeInaccuracy_DoesNotCras
         explicit SimpleShooter(EntityInstanceId id)
             : Entity(id, nullptr, mc::test::testEcsRegistry())
         {}
-        [[nodiscard]] std::string getTypeId() const override { return "minecraft:test_shooter"; }
+
+        [[nodiscard]] std::string getTypeId() const override
+        {
+            return "minecraft:test_shooter";
+        }
     };
 
     SimpleShooter shooter(EntityInstanceId(1));

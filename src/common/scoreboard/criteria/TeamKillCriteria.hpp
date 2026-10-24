@@ -58,19 +58,36 @@ public:
      */
     TeamKillCriteria(TextFormatting color, Type type);
 
-    [[nodiscard]] const std::string& getName() const noexcept override { return m_name; }
-    [[nodiscard]] bool isReadOnly() const noexcept override { return false; }
-    [[nodiscard]] RenderType getDefaultRenderType() const noexcept override { return RenderType::Integer; }
+    [[nodiscard]] const std::string& getName() const noexcept override
+    {
+        return m_name;
+    }
+
+    [[nodiscard]] bool isReadOnly() const noexcept override
+    {
+        return false;
+    }
+
+    [[nodiscard]] RenderType getDefaultRenderType() const noexcept override
+    {
+        return RenderType::Integer;
+    }
 
     /**
      * @brief 获取队伍颜色
      */
-    [[nodiscard]] TextFormatting getColor() const noexcept { return m_color; }
+    [[nodiscard]] TextFormatting getColor() const noexcept
+    {
+        return m_color;
+    }
 
     /**
      * @brief 获取击杀类型
      */
-    [[nodiscard]] Type getType() const noexcept { return m_type; }
+    [[nodiscard]] Type getType() const noexcept
+    {
+        return m_type;
+    }
 
     /**
      * @brief 检查击杀是否匹配此判据

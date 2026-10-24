@@ -127,7 +127,10 @@ public:
      * @brief 检查是否可编辑
      * @return 如果可编辑返回 true
      */
-    [[nodiscard]] bool isEditable() const { return m_editable; }
+    [[nodiscard]] bool isEditable() const
+    {
+        return m_editable;
+    }
 
     /**
      * @brief 设置可编辑状态
@@ -144,7 +147,10 @@ public:
      *
      * @return 如果文本可编辑返回 true
      */
-    [[nodiscard]] bool hasEditableText() const { return !m_waxed; }
+    [[nodiscard]] bool hasEditableText() const
+    {
+        return !m_waxed;
+    }
 
     // ========== 编辑者追踪 ==========
     // 参考 MC Java 的 SignBlockEntity.playerWhoMayEdit 机制：
@@ -171,7 +177,10 @@ public:
      *
      * @return 编辑者 UUID，空字符串表示无编辑者
      */
-    [[nodiscard]] const std::string& getPlayerWhoMayEdit() const { return m_playerWhoMayEdit; }
+    [[nodiscard]] const std::string& getPlayerWhoMayEdit() const
+    {
+        return m_playerWhoMayEdit;
+    }
 
     /**
      * @brief 设置允许编辑的玩家
@@ -189,7 +198,10 @@ public:
      *
      * 便捷方法，等价于 setAllowedPlayerEditor("")。
      */
-    void clearAllowedPlayerEditor() { setAllowedPlayerEditor(""); }
+    void clearAllowedPlayerEditor()
+    {
+        setAllowedPlayerEditor("");
+    }
 
     /**
      * @brief 检查编辑者是否距离过远或已离线
@@ -209,7 +221,10 @@ public:
      * @brief 获取文本颜色
      * @return 文本颜色（DyeColor 值）
      */
-    [[nodiscard]] i32 getTextColor() const { return m_textColor; }
+    [[nodiscard]] i32 getTextColor() const
+    {
+        return m_textColor;
+    }
 
     /**
      * @brief 设置文本颜色
@@ -226,7 +241,10 @@ public:
      *
      * @return 如果已涂蜡返回 true
      */
-    [[nodiscard]] bool isWaxed() const { return m_waxed; }
+    [[nodiscard]] bool isWaxed() const
+    {
+        return m_waxed;
+    }
 
     /**
      * @brief 设置告示牌的涂蜡状态
@@ -242,7 +260,10 @@ public:
      * @brief 检查是否发光
      * @return 如果发光返回 true
      */
-    [[nodiscard]] bool isGlowing() const { return m_glowing; }
+    [[nodiscard]] bool isGlowing() const
+    {
+        return m_glowing;
+    }
 
     /**
      * @brief 设置发光状态
@@ -271,7 +292,10 @@ public:
      *
      * @return 始终返回 true
      */
-    [[nodiscard]] bool onlyOpsCanSetNbt() const noexcept override { return true; }
+    [[nodiscard]] bool onlyOpsCanSetNbt() const noexcept override
+    {
+        return true;
+    }
 
     // ========== Tick 更新 ==========
 
@@ -293,7 +317,10 @@ public:
      *
      * @return 如果有编辑者返回 true
      */
-    [[nodiscard]] bool needsTick() const noexcept override { return !m_playerWhoMayEdit.empty(); }
+    [[nodiscard]] bool needsTick() const noexcept override
+    {
+        return !m_playerWhoMayEdit.empty();
+    }
 
     // ========== 序列化 ==========
 

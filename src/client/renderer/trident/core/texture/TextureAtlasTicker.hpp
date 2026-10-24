@@ -88,19 +88,28 @@ public:
     /**
      * @brief 获取动画精灵数量
      */
-    mc::Size spriteCount() const noexcept { return m_sprites.size(); }
+    mc::Size spriteCount() const noexcept
+    {
+        return m_sprites.size();
+    }
 
     /**
      * @brief 检查是否有动画精灵
      */
-    bool empty() const noexcept { return m_sprites.empty(); }
+    bool empty() const noexcept
+    {
+        return m_sprites.empty();
+    }
 
     /**
      * @brief 按索引获取动画精灵
      * @param index 精灵索引
      * @return 精灵指针，索引越界返回nullptr
      */
-    AnimatedSprite* getSprite(mc::Size index) { return index < m_sprites.size() ? m_sprites[index].get() : nullptr; }
+    AnimatedSprite* getSprite(mc::Size index)
+    {
+        return index < m_sprites.size() ? m_sprites[index].get() : nullptr;
+    }
 
     /**
      * @brief 按索引获取动画精灵（const 版本）

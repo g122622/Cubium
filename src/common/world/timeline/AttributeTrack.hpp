@@ -64,7 +64,10 @@ public:
         , m_easing(std::move(easing))
     {}
 
-    [[nodiscard]] const attribute::AttributeModifier<Value, Argument>& modifier() const noexcept { return *m_modifier; }
+    [[nodiscard]] const attribute::AttributeModifier<Value, Argument>& modifier() const noexcept
+    {
+        return *m_modifier;
+    }
 
     /// 获取修改器的共享所有权，供采样器在轨道之外独立持有时使用
     [[nodiscard]] std::shared_ptr<const attribute::AttributeModifier<Value, Argument>> modifierPtr() const noexcept
@@ -72,10 +75,16 @@ public:
         return m_modifier;
     }
 
-    [[nodiscard]] const KeyframeTrack<Argument>& argumentTrack() const noexcept { return m_argumentTrack; }
+    [[nodiscard]] const KeyframeTrack<Argument>& argumentTrack() const noexcept
+    {
+        return m_argumentTrack;
+    }
 
     /// 轨道级缓动覆盖（空表示沿用关键帧轨道自带缓动）
-    [[nodiscard]] const std::optional<EasingType>& easingOverride() const noexcept { return m_easing; }
+    [[nodiscard]] const std::optional<EasingType>& easingOverride() const noexcept
+    {
+        return m_easing;
+    }
 
     /// 返回覆盖了轨道级缓动后的关键帧轨道（无覆盖时原样返回）
     [[nodiscard]] KeyframeTrack<Value> effectiveArgumentTrack() const

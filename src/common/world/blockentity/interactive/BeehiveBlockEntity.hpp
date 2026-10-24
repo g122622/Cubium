@@ -95,7 +95,10 @@ public:
          * @brief 递增停留时间
          * @return 是否已超过最少停留时间（可以释放）
          */
-        bool tick() { return ++ticksInHive > minTicksInHive; }
+        bool tick()
+        {
+            return ++ticksInHive > minTicksInHive;
+        }
     };
 
     /**
@@ -120,7 +123,10 @@ public:
      * @brief 检查是否需要tick
      * @return 有蜜蜂时返回true
      */
-    [[nodiscard]] bool needsTick() const noexcept override { return !m_bees.empty(); }
+    [[nodiscard]] bool needsTick() const noexcept override
+    {
+        return !m_bees.empty();
+    }
 
     /**
      * @brief 从JSON加载数据
@@ -165,27 +171,42 @@ public:
      * @brief 蜂巢是否已满
      * @return 蜜蜂数量是否达到上限（3只）
      */
-    [[nodiscard]] bool isFull() const { return static_cast<i32>(m_bees.size()) >= MAX_OCCUPANTS; }
+    [[nodiscard]] bool isFull() const
+    {
+        return static_cast<i32>(m_bees.size()) >= MAX_OCCUPANTS;
+    }
 
     /**
      * @brief 蜂巢是否为空
      */
-    [[nodiscard]] bool isEmpty() const { return m_bees.empty(); }
+    [[nodiscard]] bool isEmpty() const
+    {
+        return m_bees.empty();
+    }
 
     /**
      * @brief 获取蜜蜂数量
      */
-    [[nodiscard]] i32 getOccupantCount() const { return static_cast<i32>(m_bees.size()); }
+    [[nodiscard]] i32 getOccupantCount() const
+    {
+        return static_cast<i32>(m_bees.size());
+    }
 
     /**
      * @brief 获取保存的花朵位置
      */
-    [[nodiscard]] const BlockPos& getSavedFlowerPos() const { return m_savedFlowerPos; }
+    [[nodiscard]] const BlockPos& getSavedFlowerPos() const
+    {
+        return m_savedFlowerPos;
+    }
 
     /**
      * @brief 设置保存的花朵位置
      */
-    void setSavedFlowerPos(const BlockPos& pos) { m_savedFlowerPos = pos; }
+    void setSavedFlowerPos(const BlockPos& pos)
+    {
+        m_savedFlowerPos = pos;
+    }
 
     // ========== 环境检测 ==========
 

@@ -57,7 +57,10 @@ public:
         return m_height;
     }
 
-    [[nodiscard]] const char* name() const override { return "BlobFoliagePlacer"; }
+    [[nodiscard]] const char* name() const override
+    {
+        return "BlobFoliagePlacer";
+    }
 
     [[nodiscard]] std::unique_ptr<FoliagePlacer> clone() const override;
 

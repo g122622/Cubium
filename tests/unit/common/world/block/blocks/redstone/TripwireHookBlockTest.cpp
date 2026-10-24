@@ -37,7 +37,10 @@ using namespace mc::blocks;
 
 class TripwireHookBlockShapeTest : public ::testing::Test {
 protected:
-    void SetUp() override { block_ = std::make_unique<TripWireHookBlock>(BlockProperties(Material::AIR)); }
+    void SetUp() override
+    {
+        block_ = std::make_unique<TripWireHookBlock>(BlockProperties(Material::AIR));
+    }
 
     std::unique_ptr<TripWireHookBlock> block_;
 };
@@ -141,7 +144,10 @@ TEST_F(TripwireHookBlockShapeTest, AttachedDoesNotAffectShape)
 
 class TripwireHookBlockStateTest : public ::testing::Test {
 protected:
-    void SetUp() override { block_ = std::make_unique<TripWireHookBlock>(BlockProperties(Material::AIR)); }
+    void SetUp() override
+    {
+        block_ = std::make_unique<TripWireHookBlock>(BlockProperties(Material::AIR));
+    }
 
     std::unique_ptr<TripWireHookBlock> block_;
 };
@@ -224,7 +230,10 @@ TEST_F(TripwireHookBlockStateTest, WithConnected_ChangesState)
 
 class TripwireHookBlockPowerTest : public ::testing::Test {
 protected:
-    void SetUp() override { block_ = std::make_unique<TripWireHookBlock>(BlockProperties(Material::AIR)); }
+    void SetUp() override
+    {
+        block_ = std::make_unique<TripWireHookBlock>(BlockProperties(Material::AIR));
+    }
 
     std::unique_ptr<TripWireHookBlock> block_;
 };

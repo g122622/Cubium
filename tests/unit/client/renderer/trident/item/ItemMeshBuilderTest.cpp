@@ -99,7 +99,9 @@ bool hasNormalDirection(
     const std::vector<ModelVertex>& vertices, const std::vector<u32>& indices, float nx, float ny, float nz)
 {
     for (size_t i = 0; i < indices.size(); i += 3) {
-        if (indices[i] >= vertices.size()) continue;
+        if (indices[i] >= vertices.size()) {
+            continue;
+        }
         const auto& v = vertices[indices[i]];
         float dx = v.normal.x - nx;
         float dy = v.normal.y - ny;
@@ -186,10 +188,18 @@ TEST_F(FallbackMeshTest, BuildIconMeshUVCoordinatesCorrect)
     // 验证 UV 覆盖了 region 的范围
     bool hasU0 = false, hasU1 = false, hasV0 = false, hasV1 = false;
     for (const auto& v : vertices) {
-        if (std::abs(v.texCoord.x - 0.25f) < 0.001f) hasU0 = true;
-        if (std::abs(v.texCoord.x - 0.75f) < 0.001f) hasU1 = true;
-        if (std::abs(v.texCoord.y - 0.25f) < 0.001f) hasV0 = true;
-        if (std::abs(v.texCoord.y - 0.75f) < 0.001f) hasV1 = true;
+        if (std::abs(v.texCoord.x - 0.25f) < 0.001f) {
+            hasU0 = true;
+        }
+        if (std::abs(v.texCoord.x - 0.75f) < 0.001f) {
+            hasU1 = true;
+        }
+        if (std::abs(v.texCoord.y - 0.25f) < 0.001f) {
+            hasV0 = true;
+        }
+        if (std::abs(v.texCoord.y - 0.75f) < 0.001f) {
+            hasV1 = true;
+        }
     }
     EXPECT_TRUE(hasU0);
     EXPECT_TRUE(hasU1);
@@ -454,7 +464,10 @@ protected:
         ItemMeshBuilder::setItemTextureAtlas(nullptr);
     }
 
-    void TearDown() override { ItemMeshBuilder::setItemTextureAtlas(nullptr); }
+    void TearDown() override
+    {
+        ItemMeshBuilder::setItemTextureAtlas(nullptr);
+    }
 };
 
 mc::Item* FallbackCubeTest::s_testItem = nullptr;
@@ -544,10 +557,18 @@ TEST_F(FallbackCubeTest, FallbackCubeUVsCoverFullTextureRange)
     // 检查存在 u=0 和 u=1 的顶点
     bool hasU0 = false, hasU1 = false, hasV0 = false, hasV1 = false;
     for (const auto& v : vertices) {
-        if (std::abs(v.texCoord.x - 0.0f) < 0.001f) hasU0 = true;
-        if (std::abs(v.texCoord.x - 1.0f) < 0.001f) hasU1 = true;
-        if (std::abs(v.texCoord.y - 0.0f) < 0.001f) hasV0 = true;
-        if (std::abs(v.texCoord.y - 1.0f) < 0.001f) hasV1 = true;
+        if (std::abs(v.texCoord.x - 0.0f) < 0.001f) {
+            hasU0 = true;
+        }
+        if (std::abs(v.texCoord.x - 1.0f) < 0.001f) {
+            hasU1 = true;
+        }
+        if (std::abs(v.texCoord.y - 0.0f) < 0.001f) {
+            hasV0 = true;
+        }
+        if (std::abs(v.texCoord.y - 1.0f) < 0.001f) {
+            hasV1 = true;
+        }
     }
     EXPECT_TRUE(hasU0) << "No vertex with U=0 found";
     EXPECT_TRUE(hasU1) << "No vertex with U=1 found";

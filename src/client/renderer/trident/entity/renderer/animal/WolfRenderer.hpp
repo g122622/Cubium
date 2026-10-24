@@ -92,7 +92,10 @@ public:
      * 由 EntityRendererManager::_createModelForEntity 的 wolf 分支统一处理，
      * 不需要本渲染器实现 computeAnimationContext()。
      */
-    [[nodiscard]] bool supportsAnimation() const override { return true; }
+    [[nodiscard]] bool supportsAnimation() const override
+    {
+        return true;
+    }
 
     // ========== 层渲染支持 ==========
 
@@ -102,7 +105,10 @@ public:
      * 重写返回 true，使 EntityRendererManager 在渲染主模型后
      * 调用 renderLayersPipelineClient 分发到已注册的层。
      */
-    [[nodiscard]] bool supportsLayers() const override { return true; }
+    [[nodiscard]] bool supportsLayers() const override
+    {
+        return true;
+    }
 
     /**
      * @brief 渲染层（GPU管线路径，ClientEntity 版本）

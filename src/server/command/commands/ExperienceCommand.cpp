@@ -53,14 +53,18 @@ void ExperienceCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispa
     using namespace mc::command;
 
     auto experienceNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("experience");
-    experienceNode->setRequirement([](const ServerCommandSource& source) { return source.hasPermission(2); });
+    experienceNode->setRequirement([](const ServerCommandSource& source) {
+        return source.hasPermission(2);
+    });
     support::applyMetadata(experienceNode,
         support::makeMetadata(
             "Add, set, or query player experience.", "/experience <add|set|query> <player> ...", 2, {"xp"}, false));
 
     // /xp 是 /experience 的别名
     auto xpNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("xp");
-    xpNode->setRequirement([](const ServerCommandSource& source) { return source.hasPermission(2); });
+    xpNode->setRequirement([](const ServerCommandSource& source) {
+        return source.hasPermission(2);
+    });
     xpNode->setRedirect(experienceNode);
 
     // /experience add <player> <amount> [points|levels]
@@ -72,10 +76,16 @@ void ExperienceCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispa
         IntegerArgumentType::integer() // 移除最小值限制，允许负值
     );
     auto pointsNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("points");
-    pointsNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return addPoints(ctx); });
+    pointsNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return addPoints(ctx);
+    });
     auto levelsNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("levels");
-    levelsNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return addLevels(ctx); });
-    amountArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return addPoints(ctx); });
+    levelsNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return addLevels(ctx);
+    });
+    amountArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return addPoints(ctx);
+    });
     amountArg->addChild(pointsNode);
     amountArg->addChild(levelsNode);
     playerArg->addChild(amountArg);
@@ -88,10 +98,16 @@ void ExperienceCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispa
     auto setAmountArg =
         std::make_shared<ArgumentCommandNode<ServerCommandSource, i32>>("amount", IntegerArgumentType::integer(0));
     auto setPointsNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("points");
-    setPointsNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return setPoints(ctx); });
+    setPointsNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return setPoints(ctx);
+    });
     auto setLevelsNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("levels");
-    setLevelsNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return setLevels(ctx); });
-    setAmountArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return setPoints(ctx); });
+    setLevelsNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return setLevels(ctx);
+    });
+    setAmountArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return setPoints(ctx);
+    });
     setAmountArg->addChild(setPointsNode);
     setAmountArg->addChild(setLevelsNode);
     setPlayerArg->addChild(setAmountArg);
@@ -102,10 +118,16 @@ void ExperienceCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispa
     auto queryPlayerArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, EntitySelector>>(
         "player", EntityArgumentType::player());
     auto queryPointsNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("points");
-    queryPointsNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return queryPoints(ctx); });
+    queryPointsNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return queryPoints(ctx);
+    });
     auto queryLevelsNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("levels");
-    queryLevelsNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return queryLevels(ctx); });
-    queryPlayerArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return queryLevels(ctx); });
+    queryLevelsNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return queryLevels(ctx);
+    });
+    queryPlayerArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return queryLevels(ctx);
+    });
     queryPlayerArg->addChild(queryPointsNode);
     queryPlayerArg->addChild(queryLevelsNode);
     queryNode->addChild(queryPlayerArg);

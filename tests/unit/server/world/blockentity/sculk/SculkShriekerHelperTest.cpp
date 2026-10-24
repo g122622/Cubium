@@ -57,7 +57,10 @@ using namespace mc::server;
 
 class SculkShriekerBlockEntityShriekTest : public ::testing::Test {
 protected:
-    void SetUp() override { pos_ = BlockPos(10, 64, -20); }
+    void SetUp() override
+    {
+        pos_ = BlockPos(10, 64, -20);
+    }
 
     BlockPos pos_;
 };
@@ -168,7 +171,10 @@ TEST_F(SculkShriekerBlockEntityShriekTest, ShriekingFinishedNotPersistedAcrossLo
 
 class SculkShriekerBlockEntityWarningTest : public ::testing::Test {
 protected:
-    void SetUp() override { pos_ = BlockPos(0, 0, 0); }
+    void SetUp() override
+    {
+        pos_ = BlockPos(0, 0, 0);
+    }
 
     BlockPos pos_;
 };
@@ -746,7 +752,10 @@ TEST_F(SculkShriekerHelperTryGetPlayerTest, ItemEntityWithOwnerNotInWorldReturns
 
 class SculkShriekerBlockEntityScenarioTest : public ::testing::Test {
 protected:
-    void SetUp() override { pos_ = BlockPos(100, -60, 200); }
+    void SetUp() override
+    {
+        pos_ = BlockPos(100, -60, 200);
+    }
 
     BlockPos pos_;
 };

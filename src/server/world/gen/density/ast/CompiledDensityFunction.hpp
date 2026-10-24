@@ -310,15 +310,28 @@ public:
     [[nodiscard]] f64 evalInterpreter(i32 x, i32 y, i32 z) const;
 
     /// 测试/调试专用：JIT 是否编译成功（m_jitFn != nullptr）。用于断言 JIT 未意外回退。
-    [[nodiscard]] bool hasJitCompiled() const noexcept { return m_jitFn != nullptr; }
+    [[nodiscard]] bool hasJitCompiled() const noexcept
+    {
+        return m_jitFn != nullptr;
+    }
 
     /// 编译期记录的最小值（从原 DensityFunction 取，供 CompiledDensityFunctionAdapter::minValue 用）。
-    [[nodiscard]] f64 minValue() const { return m_minValue; }
+    [[nodiscard]] f64 minValue() const
+    {
+        return m_minValue;
+    }
+
     /// 编译期记录的最大值。
-    [[nodiscard]] f64 maxValue() const { return m_maxValue; }
+    [[nodiscard]] f64 maxValue() const
+    {
+        return m_maxValue;
+    }
 
     /// 是否含 MARKER/BEARDIFIER 指令（含则区块级 newInstance 必须递归替换，不含则可共享维度级）。
-    [[nodiscard]] bool hasMarkerOrBeardifier() const { return m_hasMarkerOrBeardifier; }
+    [[nodiscard]] bool hasMarkerOrBeardifier() const
+    {
+        return m_hasMarkerOrBeardifier;
+    }
 
     /// 区块级实例化（阶段5）：把 MARKER 占位替换为 per-chunk 缓存对象。
     /// 仅当 hasMarkerOrBeardifier() 为 true 时需要调用（否则直接 shared_from 持有维度级实例）。
@@ -329,14 +342,30 @@ public:
         ::mc::world::gen::density::NoiseChunk& chunk) const;
 
     // === 调试/阶段5 访问器 ===
-    [[nodiscard]] const std::vector<Op>& ops() const { return *m_ops; }
-    [[nodiscard]] u32 regCount() const { return m_regCount; }
-    [[nodiscard]] const std::vector<RuntimeObject>& objects() const { return m_objects; }
+    [[nodiscard]] const std::vector<Op>& ops() const
+    {
+        return *m_ops;
+    }
+
+    [[nodiscard]] u32 regCount() const
+    {
+        return m_regCount;
+    }
+
+    [[nodiscard]] const std::vector<RuntimeObject>& objects() const
+    {
+        return m_objects;
+    }
+
     [[nodiscard]] const std::vector<std::shared_ptr<CompiledDensityFunction>>& subEvaluators() const
     {
         return m_subEvaluators;
     }
-    [[nodiscard]] const std::vector<std::shared_ptr<CompiledSpline>>& splines() const { return m_splines; }
+
+    [[nodiscard]] const std::vector<std::shared_ptr<CompiledSpline>>& splines() const
+    {
+        return m_splines;
+    }
 
     /// JIT 编译本求值器的 Op 序列（维度级编译一次，区块级 newInstance 复用维度级 m_jitFn）。
     /// 由 BytecodeGen::compile（经 GenContext::compile）在维度级构造后显式调用；失败（asmjit

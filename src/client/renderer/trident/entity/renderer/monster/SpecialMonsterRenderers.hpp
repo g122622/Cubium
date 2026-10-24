@@ -46,7 +46,11 @@ namespace mc::client::renderer::entity::renderer::monster {
  */
 class WitherRenderer : public core::LivingRenderer<::mc::LivingEntity, model::monster::WitherModel> {
 public:
-    WitherRenderer() { m_shadowSize = 0.5f; }
+    WitherRenderer()
+    {
+        m_shadowSize = 0.5f;
+    }
+
     ~WitherRenderer() override = default;
 
     [[nodiscard]] ResourceLocation getEntityTexture(::mc::LivingEntity& entity) override
@@ -54,13 +58,17 @@ public:
         (void)entity;
         return ResourceLocation("minecraft", "textures/entity/wither/wither.png");
     }
+
     [[nodiscard]] ResourceLocation getEntityTexture(const ::mc::LivingEntity& entity) const override
     {
         (void)entity;
         return ResourceLocation("minecraft", "textures/entity/wither/wither.png");
     }
 
-    [[nodiscard]] bool isFullbright() const override { return true; }
+    [[nodiscard]] bool isFullbright() const override
+    {
+        return true;
+    }
 };
 
 /**
@@ -70,7 +78,11 @@ public:
  */
 class WitherArmorRenderer : public core::LivingRenderer<::mc::LivingEntity, model::monster::WitherModel> {
 public:
-    WitherArmorRenderer() { m_shadowSize = 0.5f; }
+    WitherArmorRenderer()
+    {
+        m_shadowSize = 0.5f;
+    }
+
     ~WitherArmorRenderer() override = default;
 
     [[nodiscard]] ResourceLocation getEntityTexture(::mc::LivingEntity& entity) override
@@ -78,13 +90,17 @@ public:
         (void)entity;
         return ResourceLocation("minecraft", "textures/entity/wither/wither_armor.png");
     }
+
     [[nodiscard]] ResourceLocation getEntityTexture(const ::mc::LivingEntity& entity) const override
     {
         (void)entity;
         return ResourceLocation("minecraft", "textures/entity/wither/wither_armor.png");
     }
 
-    [[nodiscard]] bool isFullbright() const override { return true; }
+    [[nodiscard]] bool isFullbright() const override
+    {
+        return true;
+    }
 };
 
 /**
@@ -92,7 +108,11 @@ public:
  */
 class SlimeRenderer : public core::LivingRenderer<::mc::LivingEntity, model::monster::SlimeModel> {
 public:
-    SlimeRenderer() { m_shadowSize = 0.25f; }
+    SlimeRenderer()
+    {
+        m_shadowSize = 0.25f;
+    }
+
     ~SlimeRenderer() override = default;
 
     [[nodiscard]] ResourceLocation getEntityTexture(::mc::LivingEntity& entity) override
@@ -100,6 +120,7 @@ public:
         (void)entity;
         return ResourceLocation("minecraft", "textures/entity/slime/slime.png");
     }
+
     [[nodiscard]] ResourceLocation getEntityTexture(const ::mc::LivingEntity& entity) const override
     {
         (void)entity;
@@ -112,7 +133,11 @@ public:
  */
 class GuardianRenderer : public core::LivingRenderer<::mc::LivingEntity, model::monster::GuardianModel> {
 public:
-    GuardianRenderer() { m_shadowSize = 0.5f; }
+    GuardianRenderer()
+    {
+        m_shadowSize = 0.5f;
+    }
+
     ~GuardianRenderer() override = default;
 
     [[nodiscard]] ResourceLocation getEntityTexture(::mc::LivingEntity& entity) override
@@ -120,6 +145,7 @@ public:
         (void)entity;
         return ResourceLocation("minecraft", "textures/entity/guardian.png");
     }
+
     [[nodiscard]] ResourceLocation getEntityTexture(const ::mc::LivingEntity& entity) const override
     {
         (void)entity;
@@ -132,7 +158,11 @@ public:
  */
 class ElderGuardianRenderer : public core::LivingRenderer<::mc::LivingEntity, model::monster::ElderGuardianModel> {
 public:
-    ElderGuardianRenderer() { m_shadowSize = 0.75f; }
+    ElderGuardianRenderer()
+    {
+        m_shadowSize = 0.75f;
+    }
+
     ~ElderGuardianRenderer() override = default;
 
     [[nodiscard]] ResourceLocation getEntityTexture(::mc::LivingEntity& entity) override
@@ -140,6 +170,7 @@ public:
         (void)entity;
         return ResourceLocation("minecraft", "textures/entity/guardian_elder.png");
     }
+
     [[nodiscard]] ResourceLocation getEntityTexture(const ::mc::LivingEntity& entity) const override
     {
         (void)entity;
@@ -152,7 +183,11 @@ public:
  */
 class ShulkerRenderer : public core::LivingRenderer<::mc::LivingEntity, model::monster::ShulkerModel> {
 public:
-    ShulkerRenderer() { m_shadowSize = 0.0f; }
+    ShulkerRenderer()
+    {
+        m_shadowSize = 0.0f;
+    }
+
     ~ShulkerRenderer() override = default;
 
     [[nodiscard]] ResourceLocation getEntityTexture(::mc::LivingEntity& entity) override
@@ -160,6 +195,7 @@ public:
         (void)entity;
         return ResourceLocation("minecraft", "textures/entity/shulker/shulker.png");
     }
+
     [[nodiscard]] ResourceLocation getEntityTexture(const ::mc::LivingEntity& entity) const override
     {
         (void)entity;
@@ -172,7 +208,11 @@ public:
  */
 class SilverfishRenderer : public core::LivingRenderer<::mc::LivingEntity, model::monster::SilverfishModel> {
 public:
-    SilverfishRenderer() { m_shadowSize = 0.0f; }
+    SilverfishRenderer()
+    {
+        m_shadowSize = 0.0f;
+    }
+
     ~SilverfishRenderer() override = default;
 
     [[nodiscard]] ResourceLocation getEntityTexture(::mc::LivingEntity& entity) override
@@ -180,6 +220,7 @@ public:
         (void)entity;
         return ResourceLocation("minecraft", "textures/entity/silverfish.png");
     }
+
     [[nodiscard]] ResourceLocation getEntityTexture(const ::mc::LivingEntity& entity) const override
     {
         (void)entity;
@@ -192,7 +233,11 @@ public:
  */
 class EndermiteRenderer : public core::LivingRenderer<::mc::LivingEntity, model::monster::EndermiteModel> {
 public:
-    EndermiteRenderer() { m_shadowSize = 0.0f; }
+    EndermiteRenderer()
+    {
+        m_shadowSize = 0.0f;
+    }
+
     ~EndermiteRenderer() override = default;
 
     [[nodiscard]] ResourceLocation getEntityTexture(::mc::LivingEntity& entity) override
@@ -200,6 +245,7 @@ public:
         (void)entity;
         return ResourceLocation("minecraft", "textures/entity/endermite.png");
     }
+
     [[nodiscard]] ResourceLocation getEntityTexture(const ::mc::LivingEntity& entity) const override
     {
         (void)entity;
@@ -212,7 +258,11 @@ public:
  */
 class IllagerRenderer : public core::LivingRenderer<::mc::LivingEntity, model::monster::IllagerModel> {
 public:
-    IllagerRenderer() { m_shadowSize = 0.5f; }
+    IllagerRenderer()
+    {
+        m_shadowSize = 0.5f;
+    }
+
     ~IllagerRenderer() override = default;
 
     [[nodiscard]] ResourceLocation getEntityTexture(::mc::LivingEntity& entity) override
@@ -220,6 +270,7 @@ public:
         (void)entity;
         return ResourceLocation("minecraft", "textures/entity/illager/pillager.png");
     }
+
     [[nodiscard]] ResourceLocation getEntityTexture(const ::mc::LivingEntity& entity) const override
     {
         (void)entity;
@@ -235,7 +286,11 @@ public:
  */
 class VexRenderer : public core::LivingRenderer<::mc::LivingEntity, model::monster::VexModel> {
 public:
-    VexRenderer() { m_shadowSize = 0.0f; }
+    VexRenderer()
+    {
+        m_shadowSize = 0.0f;
+    }
+
     ~VexRenderer() override = default;
 
     [[nodiscard]] ResourceLocation getEntityTexture(::mc::LivingEntity& entity) override
@@ -243,13 +298,17 @@ public:
         (void)entity;
         return ResourceLocation("minecraft", "textures/entity/illager/vex.png");
     }
+
     [[nodiscard]] ResourceLocation getEntityTexture(const ::mc::LivingEntity& entity) const override
     {
         (void)entity;
         return ResourceLocation("minecraft", "textures/entity/illager/vex.png");
     }
 
-    [[nodiscard]] bool isFullbright() const override { return true; }
+    [[nodiscard]] bool isFullbright() const override
+    {
+        return true;
+    }
 };
 
 /**
@@ -257,7 +316,11 @@ public:
  */
 class VindicatorRenderer : public core::LivingRenderer<::mc::LivingEntity, model::monster::IllagerModel> {
 public:
-    VindicatorRenderer() { m_shadowSize = 0.5f; }
+    VindicatorRenderer()
+    {
+        m_shadowSize = 0.5f;
+    }
+
     ~VindicatorRenderer() override = default;
 
     [[nodiscard]] ResourceLocation getEntityTexture(::mc::LivingEntity& entity) override
@@ -265,6 +328,7 @@ public:
         (void)entity;
         return ResourceLocation("minecraft", "textures/entity/illager/vindicator.png");
     }
+
     [[nodiscard]] ResourceLocation getEntityTexture(const ::mc::LivingEntity& entity) const override
     {
         (void)entity;
@@ -277,7 +341,11 @@ public:
  */
 class EvokerRenderer : public core::LivingRenderer<::mc::LivingEntity, model::monster::IllagerModel> {
 public:
-    EvokerRenderer() { m_shadowSize = 0.5f; }
+    EvokerRenderer()
+    {
+        m_shadowSize = 0.5f;
+    }
+
     ~EvokerRenderer() override = default;
 
     [[nodiscard]] ResourceLocation getEntityTexture(::mc::LivingEntity& entity) override
@@ -285,6 +353,7 @@ public:
         (void)entity;
         return ResourceLocation("minecraft", "textures/entity/illager/evoker.png");
     }
+
     [[nodiscard]] ResourceLocation getEntityTexture(const ::mc::LivingEntity& entity) const override
     {
         (void)entity;
@@ -297,7 +366,11 @@ public:
  */
 class PillagerRenderer : public core::LivingRenderer<::mc::LivingEntity, model::monster::IllagerModel> {
 public:
-    PillagerRenderer() { m_shadowSize = 0.5f; }
+    PillagerRenderer()
+    {
+        m_shadowSize = 0.5f;
+    }
+
     ~PillagerRenderer() override = default;
 
     [[nodiscard]] ResourceLocation getEntityTexture(::mc::LivingEntity& entity) override
@@ -305,6 +378,7 @@ public:
         (void)entity;
         return ResourceLocation("minecraft", "textures/entity/illager/pillager.png");
     }
+
     [[nodiscard]] ResourceLocation getEntityTexture(const ::mc::LivingEntity& entity) const override
     {
         (void)entity;
@@ -317,7 +391,11 @@ public:
  */
 class RavagerRenderer : public core::LivingRenderer<::mc::LivingEntity, model::monster::RavagerModel> {
 public:
-    RavagerRenderer() { m_shadowSize = 0.8f; }
+    RavagerRenderer()
+    {
+        m_shadowSize = 0.8f;
+    }
+
     ~RavagerRenderer() override = default;
 
     [[nodiscard]] ResourceLocation getEntityTexture(::mc::LivingEntity& entity) override
@@ -325,6 +403,7 @@ public:
         (void)entity;
         return ResourceLocation("minecraft", "textures/entity/illager/ravager.png");
     }
+
     [[nodiscard]] ResourceLocation getEntityTexture(const ::mc::LivingEntity& entity) const override
     {
         (void)entity;
@@ -340,7 +419,11 @@ public:
  */
 class WitchRenderer : public core::LivingRenderer<::mc::LivingEntity, model::monster::WitchModel> {
 public:
-    WitchRenderer() { m_shadowSize = 0.5f; }
+    WitchRenderer()
+    {
+        m_shadowSize = 0.5f;
+    }
+
     ~WitchRenderer() override = default;
 
     void render(Entity& entity, f64 partialTicks) override
@@ -356,6 +439,7 @@ public:
         (void)entity;
         return ResourceLocation("minecraft", "textures/entity/witch.png");
     }
+
     [[nodiscard]] ResourceLocation getEntityTexture(const ::mc::LivingEntity& entity) const override
     {
         (void)entity;
@@ -368,7 +452,11 @@ public:
  */
 class IronGolemRenderer : public core::LivingRenderer<::mc::LivingEntity, model::monster::IronGolemModel> {
 public:
-    IronGolemRenderer() { m_shadowSize = 0.7f; }
+    IronGolemRenderer()
+    {
+        m_shadowSize = 0.7f;
+    }
+
     ~IronGolemRenderer() override = default;
 
     [[nodiscard]] ResourceLocation getEntityTexture(::mc::LivingEntity& entity) override
@@ -376,6 +464,7 @@ public:
         (void)entity;
         return ResourceLocation("minecraft", "textures/entity/iron_golem/iron_golem.png");
     }
+
     [[nodiscard]] ResourceLocation getEntityTexture(const ::mc::LivingEntity& entity) const override
     {
         (void)entity;
@@ -388,7 +477,11 @@ public:
  */
 class SnowGolemRenderer : public core::LivingRenderer<::mc::LivingEntity, model::monster::SnowGolemModel> {
 public:
-    SnowGolemRenderer() { m_shadowSize = 0.0f; }
+    SnowGolemRenderer()
+    {
+        m_shadowSize = 0.0f;
+    }
+
     ~SnowGolemRenderer() override = default;
 
     [[nodiscard]] ResourceLocation getEntityTexture(::mc::LivingEntity& entity) override
@@ -396,6 +489,7 @@ public:
         (void)entity;
         return ResourceLocation("minecraft", "textures/entity/snow_golem.png");
     }
+
     [[nodiscard]] ResourceLocation getEntityTexture(const ::mc::LivingEntity& entity) const override
     {
         (void)entity;
@@ -419,13 +513,18 @@ public:
  */
 class CopperGolemRenderer : public core::LivingRenderer<::mc::LivingEntity, model::monster::CopperGolemModel> {
 public:
-    CopperGolemRenderer() { m_shadowSize = 0.5f; }
+    CopperGolemRenderer()
+    {
+        m_shadowSize = 0.5f;
+    }
+
     ~CopperGolemRenderer() override = default;
 
     [[nodiscard]] ResourceLocation getEntityTexture(::mc::LivingEntity& entity) override
     {
         return getCopperGolemTexture(entity);
     }
+
     [[nodiscard]] ResourceLocation getEntityTexture(const ::mc::LivingEntity& entity) const override
     {
         return getCopperGolemTexture(entity);
@@ -458,7 +557,11 @@ private:
  */
 class BeeRenderer : public core::LivingRenderer<::mc::LivingEntity, model::monster::BeeModel> {
 public:
-    BeeRenderer() { m_shadowSize = 0.0f; }
+    BeeRenderer()
+    {
+        m_shadowSize = 0.0f;
+    }
+
     ~BeeRenderer() override = default;
 
     [[nodiscard]] ResourceLocation getEntityTexture(::mc::LivingEntity& entity) override
@@ -466,6 +569,7 @@ public:
         (void)entity;
         return ResourceLocation("minecraft", "textures/entity/bee/bee.png");
     }
+
     [[nodiscard]] ResourceLocation getEntityTexture(const ::mc::LivingEntity& entity) const override
     {
         (void)entity;
@@ -478,7 +582,11 @@ public:
  */
 class BeeAngryRenderer : public core::LivingRenderer<::mc::LivingEntity, model::monster::BeeModel> {
 public:
-    BeeAngryRenderer() { m_shadowSize = 0.0f; }
+    BeeAngryRenderer()
+    {
+        m_shadowSize = 0.0f;
+    }
+
     ~BeeAngryRenderer() override = default;
 
     [[nodiscard]] ResourceLocation getEntityTexture(::mc::LivingEntity& entity) override
@@ -486,6 +594,7 @@ public:
         (void)entity;
         return ResourceLocation("minecraft", "textures/entity/bee/bee_angry.png");
     }
+
     [[nodiscard]] ResourceLocation getEntityTexture(const ::mc::LivingEntity& entity) const override
     {
         (void)entity;
@@ -498,7 +607,11 @@ public:
  */
 class FoxRenderer : public core::LivingRenderer<::mc::LivingEntity, model::monster::FoxModel> {
 public:
-    FoxRenderer() { m_shadowSize = 0.4f; }
+    FoxRenderer()
+    {
+        m_shadowSize = 0.4f;
+    }
+
     ~FoxRenderer() override = default;
 
     [[nodiscard]] ResourceLocation getEntityTexture(::mc::LivingEntity& entity) override
@@ -506,6 +619,7 @@ public:
         (void)entity;
         return ResourceLocation("minecraft", "textures/entity/fox/fox.png");
     }
+
     [[nodiscard]] ResourceLocation getEntityTexture(const ::mc::LivingEntity& entity) const override
     {
         (void)entity;
@@ -518,7 +632,11 @@ public:
  */
 class FoxSnowRenderer : public core::LivingRenderer<::mc::LivingEntity, model::monster::FoxModel> {
 public:
-    FoxSnowRenderer() { m_shadowSize = 0.4f; }
+    FoxSnowRenderer()
+    {
+        m_shadowSize = 0.4f;
+    }
+
     ~FoxSnowRenderer() override = default;
 
     [[nodiscard]] ResourceLocation getEntityTexture(::mc::LivingEntity& entity) override
@@ -526,6 +644,7 @@ public:
         (void)entity;
         return ResourceLocation("minecraft", "textures/entity/fox/snow_fox.png");
     }
+
     [[nodiscard]] ResourceLocation getEntityTexture(const ::mc::LivingEntity& entity) const override
     {
         (void)entity;
@@ -538,7 +657,11 @@ public:
  */
 class PandaRenderer : public core::LivingRenderer<::mc::LivingEntity, model::monster::PandaModel> {
 public:
-    PandaRenderer() { m_shadowSize = 0.5f; }
+    PandaRenderer()
+    {
+        m_shadowSize = 0.5f;
+    }
+
     ~PandaRenderer() override = default;
 
     [[nodiscard]] ResourceLocation getEntityTexture(::mc::LivingEntity& entity) override
@@ -546,6 +669,7 @@ public:
         (void)entity;
         return ResourceLocation("minecraft", "textures/entity/panda/panda.png");
     }
+
     [[nodiscard]] ResourceLocation getEntityTexture(const ::mc::LivingEntity& entity) const override
     {
         (void)entity;
@@ -558,7 +682,11 @@ public:
  */
 class ParrotRenderer : public core::LivingRenderer<::mc::LivingEntity, model::monster::ParrotModel> {
 public:
-    ParrotRenderer() { m_shadowSize = 0.0f; }
+    ParrotRenderer()
+    {
+        m_shadowSize = 0.0f;
+    }
+
     ~ParrotRenderer() override = default;
 
     [[nodiscard]] ResourceLocation getEntityTexture(::mc::LivingEntity& entity) override
@@ -566,6 +694,7 @@ public:
         (void)entity;
         return ResourceLocation("minecraft", "textures/entity/parrot/parrot_red_blue.png");
     }
+
     [[nodiscard]] ResourceLocation getEntityTexture(const ::mc::LivingEntity& entity) const override
     {
         (void)entity;
@@ -578,7 +707,11 @@ public:
  */
 class PhantomRenderer : public core::LivingRenderer<::mc::LivingEntity, model::monster::PhantomModel> {
 public:
-    PhantomRenderer() { m_shadowSize = 0.0f; }
+    PhantomRenderer()
+    {
+        m_shadowSize = 0.0f;
+    }
+
     ~PhantomRenderer() override = default;
 
     [[nodiscard]] ResourceLocation getEntityTexture(::mc::LivingEntity& entity) override
@@ -586,6 +719,7 @@ public:
         (void)entity;
         return ResourceLocation("minecraft", "textures/entity/phantom.png");
     }
+
     [[nodiscard]] ResourceLocation getEntityTexture(const ::mc::LivingEntity& entity) const override
     {
         (void)entity;
@@ -604,7 +738,11 @@ public:
  */
 class PolarBearRenderer : public core::LivingRenderer<::mc::LivingEntity, model::animal::PolarBearModel> {
 public:
-    PolarBearRenderer() { m_shadowSize = 0.7f; }
+    PolarBearRenderer()
+    {
+        m_shadowSize = 0.7f;
+    }
+
     ~PolarBearRenderer() override = default;
 
     [[nodiscard]] ResourceLocation getEntityTexture(::mc::LivingEntity& entity) override
@@ -612,6 +750,7 @@ public:
         (void)entity;
         return ResourceLocation("minecraft", "textures/entity/bear/polarbear.png");
     }
+
     [[nodiscard]] ResourceLocation getEntityTexture(const ::mc::LivingEntity& entity) const override
     {
         (void)entity;
@@ -627,7 +766,11 @@ public:
  */
 class WitherSkeletonRenderer : public core::LivingRenderer<::mc::LivingEntity, model::monster::SkeletonModel> {
 public:
-    WitherSkeletonRenderer() { m_shadowSize = 0.4f; }
+    WitherSkeletonRenderer()
+    {
+        m_shadowSize = 0.4f;
+    }
+
     ~WitherSkeletonRenderer() override = default;
 
     [[nodiscard]] ResourceLocation getEntityTexture(::mc::LivingEntity& entity) override
@@ -635,6 +778,7 @@ public:
         (void)entity;
         return ResourceLocation("minecraft", "textures/entity/skeleton/wither_skeleton.png");
     }
+
     [[nodiscard]] ResourceLocation getEntityTexture(const ::mc::LivingEntity& entity) const override
     {
         (void)entity;
@@ -650,7 +794,11 @@ public:
  */
 class IllusionerRenderer : public core::LivingRenderer<::mc::LivingEntity, model::monster::IllagerModel> {
 public:
-    IllusionerRenderer() { m_shadowSize = 0.5f; }
+    IllusionerRenderer()
+    {
+        m_shadowSize = 0.5f;
+    }
+
     ~IllusionerRenderer() override = default;
 
     [[nodiscard]] ResourceLocation getEntityTexture(::mc::LivingEntity& entity) override
@@ -658,6 +806,7 @@ public:
         (void)entity;
         return ResourceLocation("minecraft", "textures/entity/illager/illusioner.png");
     }
+
     [[nodiscard]] ResourceLocation getEntityTexture(const ::mc::LivingEntity& entity) const override
     {
         (void)entity;

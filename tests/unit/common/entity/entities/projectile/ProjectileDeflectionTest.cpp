@@ -54,12 +54,18 @@ public:
         : ProjectileEntity(id, mc::test::testEcsRegistry())
     {}
 
-    [[nodiscard]] std::string getTypeId() const override { return "minecraft:arrow"; }
+    [[nodiscard]] std::string getTypeId() const override
+    {
+        return "minecraft:arrow";
+    }
 
     int entityHitCount = 0;
 
 protected:
-    void onEntityHit(const RayTraceResult& /*result*/) override { ++entityHitCount; }
+    void onEntityHit(const RayTraceResult& /*result*/) override
+    {
+        ++entityHitCount;
+    }
 };
 
 /**
@@ -82,10 +88,25 @@ public:
         setTypeId("minecraft:breeze");
     }
 
-    [[nodiscard]] f32 width() const override { return 1.0f; }
-    [[nodiscard]] f32 height() const override { return 1.0f; }
-    [[nodiscard]] std::string getTypeId() const override { return "minecraft:breeze"; }
-    [[nodiscard]] bool canBeCollidedWith() const override { return true; }
+    [[nodiscard]] f32 width() const override
+    {
+        return 1.0f;
+    }
+
+    [[nodiscard]] f32 height() const override
+    {
+        return 1.0f;
+    }
+
+    [[nodiscard]] std::string getTypeId() const override
+    {
+        return "minecraft:breeze";
+    }
+
+    [[nodiscard]] bool canBeCollidedWith() const override
+    {
+        return true;
+    }
 };
 
 /**
@@ -99,10 +120,25 @@ public:
         setTypeId("minecraft:zombie");
     }
 
-    [[nodiscard]] f32 width() const override { return 0.6f; }
-    [[nodiscard]] f32 height() const override { return 1.8f; }
-    [[nodiscard]] std::string getTypeId() const override { return "minecraft:zombie"; }
-    [[nodiscard]] bool canBeCollidedWith() const override { return true; }
+    [[nodiscard]] f32 width() const override
+    {
+        return 0.6f;
+    }
+
+    [[nodiscard]] f32 height() const override
+    {
+        return 1.8f;
+    }
+
+    [[nodiscard]] std::string getTypeId() const override
+    {
+        return "minecraft:zombie";
+    }
+
+    [[nodiscard]] bool canBeCollidedWith() const override
+    {
+        return true;
+    }
 };
 
 /**
@@ -116,10 +152,25 @@ public:
         setTypeId("minecraft:custom_deflector");
     }
 
-    [[nodiscard]] f32 width() const override { return 1.0f; }
-    [[nodiscard]] f32 height() const override { return 1.0f; }
-    [[nodiscard]] std::string getTypeId() const override { return "minecraft:custom_deflector"; }
-    [[nodiscard]] bool canBeCollidedWith() const override { return true; }
+    [[nodiscard]] f32 width() const override
+    {
+        return 1.0f;
+    }
+
+    [[nodiscard]] f32 height() const override
+    {
+        return 1.0f;
+    }
+
+    [[nodiscard]] std::string getTypeId() const override
+    {
+        return "minecraft:custom_deflector";
+    }
+
+    [[nodiscard]] bool canBeCollidedWith() const override
+    {
+        return true;
+    }
 
     ProjectileDeflection customDeflection = ProjectileDeflection::None;
 
@@ -175,7 +226,10 @@ protected:
         }
     }
 
-    void TearDown() override { m_world.reset(); }
+    void TearDown() override
+    {
+        m_world.reset();
+    }
 
     std::unique_ptr<DeflectionTestWorld> m_world;
 };
@@ -440,7 +494,10 @@ TEST_F(ProjectileDeflectionTest, DeflectCallsOnDeflection)
             : ProjectileEntity(id, mc::test::testEcsRegistry())
         {}
 
-        [[nodiscard]] std::string getTypeId() const override { return "minecraft:arrow"; }
+        [[nodiscard]] std::string getTypeId() const override
+        {
+            return "minecraft:arrow";
+        }
 
         bool onDeflectionCalled = false;
         bool wasPlayerDeflect = false;

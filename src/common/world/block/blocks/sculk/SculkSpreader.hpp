@@ -53,15 +53,31 @@ class SculkSpreader;
 class ChargeCursor {
 public:
     ChargeCursor() = default;
+
     ChargeCursor(BlockPos pos, i32 charge)
         : m_pos(pos)
         , m_charge(charge)
     {}
 
-    [[nodiscard]] const BlockPos& pos() const noexcept { return m_pos; }
-    [[nodiscard]] i32 charge() const noexcept { return m_charge; }
-    [[nodiscard]] i32 decayDelay() const noexcept { return m_decayDelay; }
-    [[nodiscard]] const std::optional<std::vector<Direction>>& facingData() const noexcept { return m_facings; }
+    [[nodiscard]] const BlockPos& pos() const noexcept
+    {
+        return m_pos;
+    }
+
+    [[nodiscard]] i32 charge() const noexcept
+    {
+        return m_charge;
+    }
+
+    [[nodiscard]] i32 decayDelay() const noexcept
+    {
+        return m_decayDelay;
+    }
+
+    [[nodiscard]] const std::optional<std::vector<Direction>>& facingData() const noexcept
+    {
+        return m_facings;
+    }
 
     /// MC ChargeCursor.isPosUnreasonable：切比雪夫距离 > MAX_CURSOR_DISTANCE。
     [[nodiscard]] bool isPosUnreasonable(const BlockPos& origin) const noexcept;
@@ -142,12 +158,35 @@ public:
         , m_additionalDecayRate(additionalDecayRate)
     {}
 
-    [[nodiscard]] const BlockTag& replaceableBlocks() const noexcept { return m_replaceableBlocks; }
-    [[nodiscard]] i32 growthSpawnCost() const noexcept { return m_growthSpawnCost; }
-    [[nodiscard]] i32 noGrowthRadius() const noexcept { return m_noGrowthRadius; }
-    [[nodiscard]] i32 chargeDecayRate() const noexcept { return m_chargeDecayRate; }
-    [[nodiscard]] i32 additionalDecayRate() const noexcept { return m_additionalDecayRate; }
-    [[nodiscard]] bool isWorldGeneration() const noexcept { return m_worldGen; }
+    [[nodiscard]] const BlockTag& replaceableBlocks() const noexcept
+    {
+        return m_replaceableBlocks;
+    }
+
+    [[nodiscard]] i32 growthSpawnCost() const noexcept
+    {
+        return m_growthSpawnCost;
+    }
+
+    [[nodiscard]] i32 noGrowthRadius() const noexcept
+    {
+        return m_noGrowthRadius;
+    }
+
+    [[nodiscard]] i32 chargeDecayRate() const noexcept
+    {
+        return m_chargeDecayRate;
+    }
+
+    [[nodiscard]] i32 additionalDecayRate() const noexcept
+    {
+        return m_additionalDecayRate;
+    }
+
+    [[nodiscard]] bool isWorldGeneration() const noexcept
+    {
+        return m_worldGen;
+    }
 
     /// MC SculkSpreader.addCursors：在 pos 注入 amount 电荷（按 kMaxCharge 分批）。
     void addCursors(const BlockPos& pos, i32 amount);
@@ -156,9 +195,15 @@ public:
     void updateCursors(IWorld& world, const BlockPos& origin, math::IRandom& random, bool shouldUpdateBlocks);
 
     /// MC SculkSpreader.clear。
-    void clear() noexcept { m_cursors.clear(); }
+    void clear() noexcept
+    {
+        m_cursors.clear();
+    }
 
-    [[nodiscard]] const std::vector<ChargeCursor>& cursors() const noexcept { return m_cursors; }
+    [[nodiscard]] const std::vector<ChargeCursor>& cursors() const noexcept
+    {
+        return m_cursors;
+    }
 
 private:
     bool m_worldGen;

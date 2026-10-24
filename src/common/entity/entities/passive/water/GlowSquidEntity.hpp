@@ -109,7 +109,10 @@ public:
     /**
      * @brief 获取暗化状态 DataParameter ID（客户端同步用）
      */
-    [[nodiscard]] static u16 getDarkTicksRemainingParamId() { return DATA_DARK_TICKS_REMAINING_PARAM.id(); }
+    [[nodiscard]] static u16 getDarkTicksRemainingParamId()
+    {
+        return DATA_DARK_TICKS_REMAINING_PARAM.id();
+    }
 
     // ========== 声音重写 ==========
 

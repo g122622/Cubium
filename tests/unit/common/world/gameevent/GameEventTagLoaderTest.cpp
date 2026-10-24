@@ -37,7 +37,10 @@ using namespace mc::gameevent;
 
 class GameEventTagLoaderTest : public ::testing::Test {
 protected:
-    static void SetUpTestSuite() { GameEventTags::initialize(); }
+    static void SetUpTestSuite()
+    {
+        GameEventTags::initialize();
+    }
 };
 
 TEST_F(GameEventTagLoaderTest, BuiltinTagsInitialized)

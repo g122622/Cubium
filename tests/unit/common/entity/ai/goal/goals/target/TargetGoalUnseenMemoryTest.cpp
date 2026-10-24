@@ -42,7 +42,10 @@ namespace test {
  */
 class UnseenMemoryTestWorld : public mc::test::BaseTestWorld {
 public:
-    void setEntities(std::vector<Entity*> entities) { m_entities = std::move(entities); }
+    void setEntities(std::vector<Entity*> entities)
+    {
+        m_entities = std::move(entities);
+    }
 
     [[nodiscard]] std::vector<Entity*> getEntitiesInAABB(const AxisAlignedBB&, const Entity*) const override
     {
@@ -81,20 +84,34 @@ public:
     [[nodiscard]] bool shouldExecute() override
     {
         // 模拟：如果有目标就返回 true
-        if (m_target != nullptr) return true;
+        if (m_target != nullptr) {
+            return true;
+        }
         return false;
     }
 
-    void setCanSeeTarget(bool canSee) { m_canSeeTarget = canSee; }
+    void setCanSeeTarget(bool canSee)
+    {
+        m_canSeeTarget = canSee;
+    }
 
-    void setTarget(LivingEntity* target) { m_target = target; }
+    void setTarget(LivingEntity* target)
+    {
+        m_target = target;
+    }
 
     // 暴露 m_unseenMemoryTicks 用于直接测试
-    [[nodiscard]] i32 getUnseenMemoryTicks() const { return m_unseenMemoryTicks; }
+    [[nodiscard]] i32 getUnseenMemoryTicks() const
+    {
+        return m_unseenMemoryTicks;
+    }
 
 protected:
     // 重写基类 checkSight()，使用自定义实现以控制视线返回值
-    [[nodiscard]] bool checkSight() const override { return m_canSeeTarget; }
+    [[nodiscard]] bool checkSight() const override
+    {
+        return m_canSeeTarget;
+    }
 
 private:
     bool m_canSeeTarget;
@@ -190,7 +207,10 @@ public:
         : entity::ai::goal::HurtByTargetGoal(mob)
     {}
 
-    [[nodiscard]] i32 getUnseenMemoryTicks() const { return m_unseenMemoryTicks; }
+    [[nodiscard]] i32 getUnseenMemoryTicks() const
+    {
+        return m_unseenMemoryTicks;
+    }
 };
 
 TEST_F(TargetGoalUnseenMemoryTest, HurtByTargetGoal_SetsUnseenMemoryTicksTo300OnStart)

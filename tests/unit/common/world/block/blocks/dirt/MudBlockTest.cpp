@@ -52,7 +52,10 @@ public:
 
 class MudBlockTest : public ::testing::Test {
 protected:
-    void SetUp() override { VanillaBlocks::initialize(); }
+    void SetUp() override
+    {
+        VanillaBlocks::initialize();
+    }
 };
 
 TEST_F(MudBlockTest, MudIsRegistered)

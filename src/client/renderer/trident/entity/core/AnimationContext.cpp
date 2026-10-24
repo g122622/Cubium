@@ -89,16 +89,28 @@ bool AnimationContext::hasSignificantChange(const AnimationContext& other, f64 t
     }
 
     // 检查每个动画参数是否超过阈值
-    auto checkDiff = [threshold](f64 a, f64 b) { return std::abs(a - b) > threshold; };
+    auto checkDiff = [threshold](f64 a, f64 b) {
+        return std::abs(a - b) > threshold;
+    };
 
     // 主要动画参数
-    if (checkDiff(limbSwing, other.limbSwing)) return true;
-    if (checkDiff(limbSwingAmount, other.limbSwingAmount)) return true;
-    if (checkDiff(netHeadYaw, other.netHeadYaw)) return true;
-    if (checkDiff(headPitch, other.headPitch)) return true;
+    if (checkDiff(limbSwing, other.limbSwing)) {
+        return true;
+    }
+    if (checkDiff(limbSwingAmount, other.limbSwingAmount)) {
+        return true;
+    }
+    if (checkDiff(netHeadYaw, other.netHeadYaw)) {
+        return true;
+    }
+    if (checkDiff(headPitch, other.headPitch)) {
+        return true;
+    }
 
     // 缩放变化
-    if (checkDiff(scale, other.scale)) return true;
+    if (checkDiff(scale, other.scale)) {
+        return true;
+    }
 
     // 挥手进度
     if (checkDiff(static_cast<f64>(swingProgress), static_cast<f64>(other.swingProgress))) {
@@ -109,19 +121,29 @@ bool AnimationContext::hasSignificantChange(const AnimationContext& other, f64 t
     }
 
     // 河豚膨胀状态变化（立即更新网格）
-    if (puffState != other.puffState) return true;
+    if (puffState != other.puffState) {
+        return true;
+    }
 
     // 吃草动画计时器变化（立即更新网格）
-    if (eatAnimationTimer != other.eatAnimationTimer) return true;
+    if (eatAnimationTimer != other.eatAnimationTimer) {
+        return true;
+    }
 
     // 撞飞攻击动画计时器变化（立即更新网格）
-    if (attackAnimationTicks != other.attackAnimationTicks) return true;
+    if (attackAnimationTicks != other.attackAnimationTicks) {
+        return true;
+    }
 
     // 狼甩水动画进度变化（立即更新网格）
-    if (checkDiff(static_cast<f64>(wolfShakeAnim), static_cast<f64>(other.wolfShakeAnim))) return true;
+    if (checkDiff(static_cast<f64>(wolfShakeAnim), static_cast<f64>(other.wolfShakeAnim))) {
+        return true;
+    }
 
     // 狼湿润着色变化（立即更新网格）
-    if (checkDiff(static_cast<f64>(wolfWetShade), static_cast<f64>(other.wolfWetShade))) return true;
+    if (checkDiff(static_cast<f64>(wolfWetShade), static_cast<f64>(other.wolfWetShade))) {
+        return true;
+    }
 
     // 狼乞求角度变化
     if (checkDiff(static_cast<f64>(wolfInterestedAngle), static_cast<f64>(other.wolfInterestedAngle))) {
@@ -144,12 +166,24 @@ bool AnimationContext::hasSignificantChange(const AnimationContext& other, f64 t
     }
 
     // 布尔状态变化（立即更新）
-    if (isSitting != other.isSitting) return true;
-    if (isChild != other.isChild) return true;
-    if (isSneaking != other.isSneaking) return true;
-    if (isSwimming != other.isSwimming) return true;
-    if (isRiding != other.isRiding) return true;
-    if (isAngry != other.isAngry) return true;
+    if (isSitting != other.isSitting) {
+        return true;
+    }
+    if (isChild != other.isChild) {
+        return true;
+    }
+    if (isSneaking != other.isSneaking) {
+        return true;
+    }
+    if (isSwimming != other.isSwimming) {
+        return true;
+    }
+    if (isRiding != other.isRiding) {
+        return true;
+    }
+    if (isAngry != other.isAngry) {
+        return true;
+    }
 
     return false;
 }

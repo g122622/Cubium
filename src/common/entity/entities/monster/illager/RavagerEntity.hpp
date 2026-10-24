@@ -78,32 +78,50 @@ public:
     /**
      * @brief 是否正在攻击
      */
-    [[nodiscard]] bool isAttacking() const { return m_attackTick > 0; }
+    [[nodiscard]] bool isAttacking() const
+    {
+        return m_attackTick > 0;
+    }
 
     /**
      * @brief 获取攻击动画 tick
      */
-    [[nodiscard]] i32 getAttackTick() const { return m_attackTick; }
+    [[nodiscard]] i32 getAttackTick() const
+    {
+        return m_attackTick;
+    }
 
     /**
      * @brief 是否正在眩晕
      */
-    [[nodiscard]] bool isStunned() const { return m_stunTick > 0; }
+    [[nodiscard]] bool isStunned() const
+    {
+        return m_stunTick > 0;
+    }
 
     /**
      * @brief 获取眩晕 tick
      */
-    [[nodiscard]] i32 getStunTick() const { return m_stunTick; }
+    [[nodiscard]] i32 getStunTick() const
+    {
+        return m_stunTick;
+    }
 
     /**
      * @brief 是否正在咆哮
      */
-    [[nodiscard]] bool isRoaring() const { return m_roarTick > 0; }
+    [[nodiscard]] bool isRoaring() const
+    {
+        return m_roarTick > 0;
+    }
 
     /**
      * @brief 获取咆哮 tick
      */
-    [[nodiscard]] i32 getRoarTick() const { return m_roarTick; }
+    [[nodiscard]] i32 getRoarTick() const
+    {
+        return m_roarTick;
+    }
 
     /**
      * @brief 攻击目标实体
@@ -151,29 +169,44 @@ public:
     /**
      * @brief 是否可以破坏方块
      */
-    [[nodiscard]] bool canBreakBlocks() const { return m_canBreakBlocks; }
+    [[nodiscard]] bool canBreakBlocks() const
+    {
+        return m_canBreakBlocks;
+    }
 
     /**
      * @brief 设置是否可以破坏方块
      */
-    void setCanBreakBlocks(bool canBreak) { m_canBreakBlocks = canBreak; }
+    void setCanBreakBlocks(bool canBreak)
+    {
+        m_canBreakBlocks = canBreak;
+    }
 
     // ========== 属性 ==========
 
     /**
      * @brief 获取实体宽度
      */
-    [[nodiscard]] f32 width() const override { return 1.95f; }
+    [[nodiscard]] f32 width() const override
+    {
+        return 1.95f;
+    }
 
     /**
      * @brief 获取实体高度
      */
-    [[nodiscard]] f32 height() const override { return 2.2f; }
+    [[nodiscard]] f32 height() const override
+    {
+        return 2.2f;
+    }
 
     /**
      * @brief 获取眼睛高度
      */
-    [[nodiscard]] f32 eyeHeight() const override { return 2.05f; }
+    [[nodiscard]] f32 eyeHeight() const override
+    {
+        return 2.05f;
+    }
 
     // ========== 生命周期 ==========
 

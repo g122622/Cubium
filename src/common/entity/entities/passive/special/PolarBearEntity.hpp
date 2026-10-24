@@ -97,7 +97,10 @@ public:
     /**
      * @brief 是否正在站立
      */
-    [[nodiscard]] bool isStanding() const { return m_dataManager.get<bool>(DATA_STANDING_PARAM); }
+    [[nodiscard]] bool isStanding() const
+    {
+        return m_dataManager.get<bool>(DATA_STANDING_PARAM);
+    }
 
     /**
      * @brief 设置站立状态
@@ -108,7 +111,10 @@ public:
      * @brief 是否正在警告
      * 站立并张开前爪
      */
-    [[nodiscard]] bool isWarning() const { return m_warning; }
+    [[nodiscard]] bool isWarning() const
+    {
+        return m_warning;
+    }
 
     /**
      * @brief 设置警告状态
@@ -150,7 +156,10 @@ public:
      *
      * 用于客户端从元数据中读取站立状态。
      */
-    [[nodiscard]] static u16 getStandingParamId() { return DATA_STANDING_PARAM.id(); }
+    [[nodiscard]] static u16 getStandingParamId()
+    {
+        return DATA_STANDING_PARAM.id();
+    }
 
     /**
      * @brief 设置客户端站立动画值
@@ -160,7 +169,10 @@ public:
      *
      * @param animation 动画进度值 [0.0, STAND_ANIMATION_TICKS]
      */
-    void setClientSideStandAnimation(f32 animation) { m_clientSideStandAnimation = animation; }
+    void setClientSideStandAnimation(f32 animation)
+    {
+        m_clientSideStandAnimation = animation;
+    }
 
     // ========== 属性 ==========
 
@@ -168,13 +180,19 @@ public:
      * @brief 获取基础宽度
      * 北极熊的基础宽度为 1.4 格
      */
-    [[nodiscard]] f32 getBaseWidth() const override { return POLAR_BEAR_WIDTH; }
+    [[nodiscard]] f32 getBaseWidth() const override
+    {
+        return POLAR_BEAR_WIDTH;
+    }
 
     /**
      * @brief 获取基础高度
      * 北极熊的基础高度为 1.4 格（四足站立）
      */
-    [[nodiscard]] f32 getBaseHeight() const override { return POLAR_BEAR_HEIGHT; }
+    [[nodiscard]] f32 getBaseHeight() const override
+    {
+        return POLAR_BEAR_HEIGHT;
+    }
 
     /**
      * @brief 根据姿态和站立动画状态获取碰撞箱尺寸
@@ -198,7 +216,10 @@ public:
     /**
      * @brief 设置攻击目标 (IAngerable)
      */
-    void setAttackTarget(LivingEntity* target) override { MobEntity::setAttackTarget(target); }
+    void setAttackTarget(LivingEntity* target) override
+    {
+        MobEntity::setAttackTarget(target);
+    }
 
     /**
      * @brief 获取攻击目标 (IAngerable)
@@ -221,12 +242,18 @@ public:
     /**
      * @brief 获取复仇计时器 (IAngerable)
      */
-    [[nodiscard]] i32 getRevengeTimer() const override { return m_revengeTimer; }
+    [[nodiscard]] i32 getRevengeTimer() const override
+    {
+        return m_revengeTimer;
+    }
 
     /**
      * @brief 是否愤怒 (IAngerable)
      */
-    [[nodiscard]] bool isAngry() const override { return m_angerTime > 0; }
+    [[nodiscard]] bool isAngry() const override
+    {
+        return m_angerTime > 0;
+    }
 
     /**
      * @brief 设置愤怒状态 (IAngerable)
@@ -236,12 +263,18 @@ public:
     /**
      * @brief 获取愤怒时间 (IAngerable)
      */
-    [[nodiscard]] i32 getAngerTime() const override { return m_angerTime; }
+    [[nodiscard]] i32 getAngerTime() const override
+    {
+        return m_angerTime;
+    }
 
     /**
      * @brief 设置愤怒时间 (IAngerable)
      */
-    void setAngerTime(i32 time) override { m_angerTime = time; }
+    void setAngerTime(i32 time) override
+    {
+        m_angerTime = time;
+    }
 
     /**
      * @brief 更新愤怒计时器 (IAngerable)

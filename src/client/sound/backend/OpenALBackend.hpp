@@ -113,7 +113,11 @@ public:
     // 基本属性
     // ========================================================================
 
-    [[nodiscard]] AudioSourceId getId() const noexcept override { return m_id; }
+    [[nodiscard]] AudioSourceId getId() const noexcept override
+    {
+        return m_id;
+    }
+
     [[nodiscard]] AudioSourceState getState() const noexcept override;
 
     // ========================================================================
@@ -121,7 +125,11 @@ public:
     // ========================================================================
 
     void setBuffer(std::shared_ptr<IAudioBuffer> buffer) override;
-    [[nodiscard]] std::shared_ptr<IAudioBuffer> getBuffer() const noexcept override { return m_buffer; }
+
+    [[nodiscard]] std::shared_ptr<IAudioBuffer> getBuffer() const noexcept override
+    {
+        return m_buffer;
+    }
 
     // ========================================================================
     // 播放控制
@@ -191,12 +199,18 @@ public:
     /**
      * @brief 获取 OpenAL source 句柄
      */
-    [[nodiscard]] ALuint getALSource() const noexcept { return m_source; }
+    [[nodiscard]] ALuint getALSource() const noexcept
+    {
+        return m_source;
+    }
 
     /**
      * @brief 检查源是否有效
      */
-    [[nodiscard]] bool isValid() const noexcept { return m_source != 0; }
+    [[nodiscard]] bool isValid() const noexcept
+    {
+        return m_source != 0;
+    }
 
 private:
     /**
@@ -241,16 +255,38 @@ public:
     OpenALBuffer(OpenALBuffer&& other) noexcept;
     OpenALBuffer& operator=(OpenALBuffer&& other) noexcept;
 
-    [[nodiscard]] AudioBufferId getId() const noexcept override { return m_id; }
-    [[nodiscard]] const AudioFormat& getFormat() const noexcept override { return m_format; }
-    [[nodiscard]] f32 getDuration() const noexcept override { return m_duration; }
-    [[nodiscard]] size_t getSampleCount() const noexcept override { return m_sampleCount; }
-    [[nodiscard]] bool isValid() const noexcept override { return m_buffer != 0; }
+    [[nodiscard]] AudioBufferId getId() const noexcept override
+    {
+        return m_id;
+    }
+
+    [[nodiscard]] const AudioFormat& getFormat() const noexcept override
+    {
+        return m_format;
+    }
+
+    [[nodiscard]] f32 getDuration() const noexcept override
+    {
+        return m_duration;
+    }
+
+    [[nodiscard]] size_t getSampleCount() const noexcept override
+    {
+        return m_sampleCount;
+    }
+
+    [[nodiscard]] bool isValid() const noexcept override
+    {
+        return m_buffer != 0;
+    }
 
     /**
      * @brief 获取 OpenAL buffer 句柄
      */
-    [[nodiscard]] ALuint getALBuffer() const noexcept { return m_buffer; }
+    [[nodiscard]] ALuint getALBuffer() const noexcept
+    {
+        return m_buffer;
+    }
 
     /**
      * @brief 将音频格式转换为 OpenAL 格式
@@ -319,7 +355,11 @@ public:
 
     [[nodiscard]] Result<void> initialize() override;
     void shutdown() override;
-    [[nodiscard]] bool isInitialized() const noexcept override { return m_initialized; }
+
+    [[nodiscard]] bool isInitialized() const noexcept override
+    {
+        return m_initialized;
+    }
 
     // ========================================================================
     // 听者控制
@@ -353,7 +393,12 @@ public:
 
     [[nodiscard]] Result<std::unique_ptr<IAudioSource>> createSource() override;
     [[nodiscard]] u32 getAvailableSources() const noexcept override;
-    [[nodiscard]] u32 getMaxSources() const noexcept override { return m_maxSources; }
+
+    [[nodiscard]] u32 getMaxSources() const noexcept override
+    {
+        return m_maxSources;
+    }
+
     [[nodiscard]] u32 getActiveSourceCount() const noexcept override;
 
     // ========================================================================

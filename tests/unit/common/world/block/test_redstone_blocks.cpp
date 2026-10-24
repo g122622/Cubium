@@ -94,7 +94,10 @@ private:
      *
      * 使用显式工厂函数，避免 MSVC 将内联临时对象误判为声明语句。
      */
-    [[nodiscard]] static BlockProperties makeProperties() { return BlockProperties(Material::ROCK); }
+    [[nodiscard]] static BlockProperties makeProperties()
+    {
+        return BlockProperties(Material::ROCK);
+    }
 };
 
 class RedstoneBlockTestWorld final : public mc::test::BaseTestWorld {
@@ -138,21 +141,37 @@ public:
         m_playedSoundIds.push_back(soundEventId);
     }
 
-    void setBlockAt(const BlockPos& pos, const BlockState& state) { m_blocks.insert_or_assign(pos, state); }
+    void setBlockAt(const BlockPos& pos, const BlockState& state)
+    {
+        m_blocks.insert_or_assign(pos, state);
+    }
 
-    void clearBlockAt(const BlockPos& pos) { m_blocks.erase(pos); }
+    void clearBlockAt(const BlockPos& pos)
+    {
+        m_blocks.erase(pos);
+    }
 
-    [[nodiscard]] i32 setBlockCalls() const { return m_setBlockCalls; }
+    [[nodiscard]] i32 setBlockCalls() const
+    {
+        return m_setBlockCalls;
+    }
 
-    [[nodiscard]] const std::vector<ResourceLocation>& playedSoundIds() const { return m_playedSoundIds; }
+    [[nodiscard]] const std::vector<ResourceLocation>& playedSoundIds() const
+    {
+        return m_playedSoundIds;
+    }
 
-    void clearPlayedSounds() { m_playedSoundIds.clear(); }
+    void clearPlayedSounds()
+    {
+        m_playedSoundIds.clear();
+    }
 
     // TickManager interface (stubbed for tests)
     [[nodiscard]] world::tick::TickManager& tickManager() override
     {
         throw std::runtime_error("RedstoneBlockTestWorld::tickManager not implemented");
     }
+
     [[nodiscard]] const world::tick::TickManager& tickManager() const override
     {
         throw std::runtime_error("RedstoneBlockTestWorld::tickManager not implemented");
@@ -192,7 +211,10 @@ void setPowerSource(RedstoneBlockTestWorld& world, const BlockPos& pos)
 
 class RedstoneBlockTest : public ::testing::Test {
 protected:
-    void SetUp() override { VanillaBlocks::initialize(); }
+    void SetUp() override
+    {
+        VanillaBlocks::initialize();
+    }
 };
 
 TEST_F(RedstoneBlockTest, TorchNeighborChangedIgnoresRemovedPosition)

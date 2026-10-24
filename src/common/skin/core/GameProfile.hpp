@@ -68,7 +68,10 @@ struct GameProfileProperty {
     /**
      * @brief 检查是否有签名
      */
-    [[nodiscard]] bool hasSignature() const noexcept { return signature.has_value(); }
+    [[nodiscard]] bool hasSignature() const noexcept
+    {
+        return signature.has_value();
+    }
 };
 
 /**
@@ -109,29 +112,44 @@ public:
      * @brief 获取UUID
      * @return 16字节UUID数组
      */
-    [[nodiscard]] const std::array<u8, 16>& uuid() const noexcept { return m_uuid; }
+    [[nodiscard]] const std::array<u8, 16>& uuid() const noexcept
+    {
+        return m_uuid;
+    }
 
     /**
      * @brief 设置UUID
      */
-    void setUUID(const std::array<u8, 16>& uuid) { m_uuid = uuid; }
+    void setUUID(const std::array<u8, 16>& uuid)
+    {
+        m_uuid = uuid;
+    }
 
     /**
      * @brief 获取玩家名称
      */
-    [[nodiscard]] const std::string& name() const noexcept { return m_name; }
+    [[nodiscard]] const std::string& name() const noexcept
+    {
+        return m_name;
+    }
 
     /**
      * @brief 设置玩家名称
      */
-    void setName(const std::string& name) { m_name = name; }
+    void setName(const std::string& name)
+    {
+        m_name = name;
+    }
 
     // ========== 属性管理 ==========
 
     /**
      * @brief 获取所有属性
      */
-    [[nodiscard]] const std::vector<GameProfileProperty>& properties() const noexcept { return m_properties; }
+    [[nodiscard]] const std::vector<GameProfileProperty>& properties() const noexcept
+    {
+        return m_properties;
+    }
 
     /**
      * @brief 添加属性
@@ -164,7 +182,10 @@ public:
     /**
      * @brief 清除所有属性
      */
-    void clearProperties() noexcept { m_properties.clear(); }
+    void clearProperties() noexcept
+    {
+        m_properties.clear();
+    }
 
     // ========== UUID 工具 ==========
 
@@ -207,8 +228,15 @@ public:
     /**
      * @brief 相等比较（基于UUID）
      */
-    bool operator==(const GameProfile& other) const noexcept { return m_uuid == other.m_uuid; }
-    bool operator!=(const GameProfile& other) const noexcept { return m_uuid != other.m_uuid; }
+    bool operator==(const GameProfile& other) const noexcept
+    {
+        return m_uuid == other.m_uuid;
+    }
+
+    bool operator!=(const GameProfile& other) const noexcept
+    {
+        return m_uuid != other.m_uuid;
+    }
 
     // ========== JSON 序列化（用于 ItemStack NBT）==========
 

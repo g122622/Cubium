@@ -92,7 +92,10 @@ public:
         return it != m_uuidToEntity.end() ? it->second : nullptr;
     }
 
-    void playEvent(i32 eventId, const BlockPos& pos, i32 data) override { MC_UNUSED(eventId, pos, data); }
+    void playEvent(i32 eventId, const BlockPos& pos, i32 data) override
+    {
+        MC_UNUSED(eventId, pos, data);
+    }
 
     void playSound(const ResourceLocation&, sound::SoundCategory, const Vector3&, f32, f32) override {}
 
@@ -102,12 +105,16 @@ public:
     {
         throw std::runtime_error("SignEditTestWorld::tickManager not implemented");
     }
+
     [[nodiscard]] const world::tick::TickManager& tickManager() const override
     {
         throw std::runtime_error("SignEditTestWorld::tickManager not implemented");
     }
 
-    void registerPlayer(Player& player) { m_uuidToEntity[player.uuid()] = &player; }
+    void registerPlayer(Player& player)
+    {
+        m_uuidToEntity[player.uuid()] = &player;
+    }
 
 private:
     std::unordered_map<BlockPos, std::unique_ptr<BlockEntity>> m_blockEntities;

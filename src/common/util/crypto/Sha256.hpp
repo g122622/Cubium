@@ -236,28 +236,52 @@ private:
     // SHA-256 辅助函数
 
     /// 右旋转
-    [[nodiscard]] static constexpr u32 rotr(u32 x, std::size_t n) { return (x >> n) | (x << (32 - n)); }
+    [[nodiscard]] static constexpr u32 rotr(u32 x, std::size_t n)
+    {
+        return (x >> n) | (x << (32 - n));
+    }
 
     /// 右移位
-    [[nodiscard]] static constexpr u32 shr(u32 x, std::size_t n) { return x >> n; }
+    [[nodiscard]] static constexpr u32 shr(u32 x, std::size_t n)
+    {
+        return x >> n;
+    }
 
     /// 选择函数 (Ch)
-    [[nodiscard]] static constexpr u32 ch(u32 x, u32 y, u32 z) { return (x & y) ^ (~x & z); }
+    [[nodiscard]] static constexpr u32 ch(u32 x, u32 y, u32 z)
+    {
+        return (x & y) ^ (~x & z);
+    }
 
     /// 多数函数 (Maj)
-    [[nodiscard]] static constexpr u32 maj(u32 x, u32 y, u32 z) { return (x & y) ^ (x & z) ^ (y & z); }
+    [[nodiscard]] static constexpr u32 maj(u32 x, u32 y, u32 z)
+    {
+        return (x & y) ^ (x & z) ^ (y & z);
+    }
 
     /// 大 Sigma 0
-    [[nodiscard]] static constexpr u32 sigma0(u32 x) { return rotr(x, 2) ^ rotr(x, 13) ^ rotr(x, 22); }
+    [[nodiscard]] static constexpr u32 sigma0(u32 x)
+    {
+        return rotr(x, 2) ^ rotr(x, 13) ^ rotr(x, 22);
+    }
 
     /// 大 Sigma 1
-    [[nodiscard]] static constexpr u32 sigma1(u32 x) { return rotr(x, 6) ^ rotr(x, 11) ^ rotr(x, 25); }
+    [[nodiscard]] static constexpr u32 sigma1(u32 x)
+    {
+        return rotr(x, 6) ^ rotr(x, 11) ^ rotr(x, 25);
+    }
 
     /// 小 sigma 0
-    [[nodiscard]] static constexpr u32 gamma0(u32 x) { return rotr(x, 7) ^ rotr(x, 18) ^ shr(x, 3); }
+    [[nodiscard]] static constexpr u32 gamma0(u32 x)
+    {
+        return rotr(x, 7) ^ rotr(x, 18) ^ shr(x, 3);
+    }
 
     /// 小 sigma 1
-    [[nodiscard]] static constexpr u32 gamma1(u32 x) { return rotr(x, 17) ^ rotr(x, 19) ^ shr(x, 10); }
+    [[nodiscard]] static constexpr u32 gamma1(u32 x)
+    {
+        return rotr(x, 17) ^ rotr(x, 19) ^ shr(x, 10);
+    }
 };
 
 } // namespace crypto

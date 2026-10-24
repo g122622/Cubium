@@ -82,7 +82,10 @@ public:
         LootTableManager::registerTable("minecraft:blocks/test_block", std::move(table));
     }
 
-    [[nodiscard]] const loot::LootTable* getTestTable() const { return m_testTable; }
+    [[nodiscard]] const loot::LootTable* getTestTable() const
+    {
+        return m_testTable;
+    }
 
 private:
     loot::LootTable* m_testTable = nullptr;
@@ -129,7 +132,10 @@ public:
         return &fluid::Fluids::EMPTY()->defaultState();
     }
 
-    [[nodiscard]] Difficulty difficulty() const override { return Difficulty::Peaceful; }
+    [[nodiscard]] Difficulty difficulty() const override
+    {
+        return Difficulty::Peaceful;
+    }
 
     // ========== TickManager 接口 ==========
 
@@ -137,6 +143,7 @@ public:
     {
         throw std::runtime_error("WaterFluidTestWorld::tickManager not implemented");
     }
+
     [[nodiscard]] const world::tick::TickManager& tickManager() const override
     {
         throw std::runtime_error("WaterFluidTestWorld::tickManager not implemented");
@@ -156,23 +163,49 @@ public:
         return id;
     }
 
-    [[nodiscard]] Entity* getEntity(EntityInstanceId id) override { return m_entityManager.getEntity(id); }
-    [[nodiscard]] const Entity* getEntity(EntityInstanceId id) const override { return m_entityManager.getEntity(id); }
+    [[nodiscard]] Entity* getEntity(EntityInstanceId id) override
+    {
+        return m_entityManager.getEntity(id);
+    }
+
+    [[nodiscard]] const Entity* getEntity(EntityInstanceId id) const override
+    {
+        return m_entityManager.getEntity(id);
+    }
 
     // ========== 掉落表管理器 ==========
 
-    [[nodiscard]] const loot::LootTableManager* lootTableManager() const override { return m_lootTableManager.get(); }
+    [[nodiscard]] const loot::LootTableManager* lootTableManager() const override
+    {
+        return m_lootTableManager.get();
+    }
 
     // ========== 辅助方法 ==========
 
-    [[nodiscard]] EntityManager& entityManager() { return m_entityManager; }
-    [[nodiscard]] const EntityManager& entityManager() const { return m_entityManager; }
+    [[nodiscard]] EntityManager& entityManager()
+    {
+        return m_entityManager;
+    }
 
-    [[nodiscard]] size_t entityCount() const { return m_entityManager.entityCount(); }
+    [[nodiscard]] const EntityManager& entityManager() const
+    {
+        return m_entityManager;
+    }
 
-    void setLootTableManager(std::unique_ptr<MockLootTableManager> manager) { m_lootTableManager = std::move(manager); }
+    [[nodiscard]] size_t entityCount() const
+    {
+        return m_entityManager.entityCount();
+    }
 
-    void clearLootTableManager() { m_lootTableManager.reset(); }
+    void setLootTableManager(std::unique_ptr<MockLootTableManager> manager)
+    {
+        m_lootTableManager = std::move(manager);
+    }
+
+    void clearLootTableManager()
+    {
+        m_lootTableManager.reset();
+    }
 
 private:
     static i64 packPos(i32 x, i32 y, i32 z)
@@ -341,8 +374,9 @@ TEST(WaterFluidDropTest, LootTableGeneration)
     ASSERT_NE(context, nullptr);
 
     // 设置掉落表解析器
-    context->setLootTableResolver(
-        [&manager](const std::string& id) -> const loot::LootTable* { return manager->getTable(id); });
+    context->setLootTableResolver([&manager](const std::string& id) -> const loot::LootTable* {
+        return manager->getTable(id);
+    });
 
     // 生成掉落
     auto drops = table->generate(*context);

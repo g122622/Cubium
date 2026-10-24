@@ -82,9 +82,15 @@ public:
 
 class LandOnOwnersShoulderGoalTest : public ::testing::Test {
 protected:
-    void SetUp() override { parrot = std::make_unique<ParrotEntity>(EntityInstanceId(1), mc::test::testEcsRegistry()); }
+    void SetUp() override
+    {
+        parrot = std::make_unique<ParrotEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
+    }
 
-    void TearDown() override { parrot.reset(); }
+    void TearDown() override
+    {
+        parrot.reset();
+    }
 
     std::unique_ptr<ParrotEntity> parrot;
 };
@@ -154,7 +160,10 @@ protected:
         creature->setPositionForTest(0.0, 64.0, 0.0);
     }
 
-    void TearDown() override { creature.reset(); }
+    void TearDown() override
+    {
+        creature.reset();
+    }
 
     std::unique_ptr<TestFlyingCreature> creature;
 };
@@ -237,7 +246,10 @@ protected:
         mob->setPositionForTest(0.0, 64.0, 0.0);
     }
 
-    void TearDown() override { mob.reset(); }
+    void TearDown() override
+    {
+        mob.reset();
+    }
 
     std::unique_ptr<TestMob> mob;
 };
@@ -318,7 +330,10 @@ protected:
         parrot = std::make_unique<ParrotEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
     }
 
-    void TearDown() override { parrot.reset(); }
+    void TearDown() override
+    {
+        parrot.reset();
+    }
 
     std::unique_ptr<ParrotEntity> parrot;
 };

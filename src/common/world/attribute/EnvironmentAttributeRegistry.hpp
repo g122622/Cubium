@@ -152,8 +152,9 @@ public:
         entry.attribute = &attribute;
         entry.isSyncable = attribute.isSyncable();
         entry.isPositional = attribute.isPositional();
-        entry.allowModifier = [&type](
-                                  AttributeModifierOperation operation) { return type.isAllowedModifier(operation); };
+        entry.allowModifier = [&type](AttributeModifierOperation operation) {
+            return type.isAllowedModifier(operation);
+        };
         entry.applyJsonArgument = makeJsonArgumentApplier(attribute);
         return _insertAttribute(std::move(entry.name), entry);
     }

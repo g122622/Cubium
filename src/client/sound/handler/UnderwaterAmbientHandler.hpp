@@ -85,7 +85,10 @@ public:
     /**
      * @brief 检查玩家是否在水下
      */
-    [[nodiscard]] bool isUnderwater() const noexcept { return m_isUnderwater; }
+    [[nodiscard]] bool isUnderwater() const noexcept
+    {
+        return m_isUnderwater;
+    }
 
 private:
     /// 是否在水下

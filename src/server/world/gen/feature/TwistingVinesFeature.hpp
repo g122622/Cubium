@@ -70,8 +70,15 @@ public:
         math::IRandom& random,
         const BlockPos& pos) const override;
 
-    [[nodiscard]] const char* name() const override { return "twisting_vines"; }
-    [[nodiscard]] DecorationStage stage() const override { return DecorationStage::VegetalDecoration; }
+    [[nodiscard]] const char* name() const override
+    {
+        return "twisting_vines";
+    }
+
+    [[nodiscard]] DecorationStage stage() const override
+    {
+        return DecorationStage::VegetalDecoration;
+    }
 
 private:
     std::unique_ptr<TwistingVinesFeatureConfig> m_config;

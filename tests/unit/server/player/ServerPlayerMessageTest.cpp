@@ -55,7 +55,10 @@ protected:
         m_player = std::make_unique<ServerPlayer>(1, "TestPlayer", mc::test::testEcsRegistry());
     }
 
-    void TearDown() override { m_player.reset(); }
+    void TearDown() override
+    {
+        m_player.reset();
+    }
 
     std::unique_ptr<ServerPlayer> m_player;
 };

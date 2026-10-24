@@ -83,7 +83,10 @@ struct BannedPlayerEntry {
      * @brief 检查条目是否有效
      * @return true 如果 UUID 和名称都不为空
      */
-    [[nodiscard]] bool isValid() const { return !uuid.empty() && !name.empty(); }
+    [[nodiscard]] bool isValid() const
+    {
+        return !uuid.empty() && !name.empty();
+    }
 
     /**
      * @brief 检查封禁是否已过期
@@ -95,7 +98,10 @@ struct BannedPlayerEntry {
      * @brief 获取显示名称
      * @return 用于显示的名称
      */
-    [[nodiscard]] std::string getDisplayName() const { return name.empty() ? uuid : name; }
+    [[nodiscard]] std::string getDisplayName() const
+    {
+        return name.empty() ? uuid : name;
+    }
 };
 
 /**
@@ -266,7 +272,10 @@ public:
      * @brief 获取封禁列表文件路径
      * @return 文件路径
      */
-    [[nodiscard]] const std::filesystem::path& filePath() const { return m_filePath; }
+    [[nodiscard]] const std::filesystem::path& filePath() const
+    {
+        return m_filePath;
+    }
 
 private:
     /**

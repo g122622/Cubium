@@ -293,47 +293,74 @@ public:
     /**
      * @brief 检查背包纹理是否已加载
      */
-    [[nodiscard]] bool hasInventoryTexture() const { return m_inventoryEntry.loaded; }
+    [[nodiscard]] bool hasInventoryTexture() const
+    {
+        return m_inventoryEntry.loaded;
+    }
 
     /**
      * @brief 检查工作台纹理是否已加载
      */
-    [[nodiscard]] bool hasCraftingTableTexture() const { return m_craftingTableEntry.loaded; }
+    [[nodiscard]] bool hasCraftingTableTexture() const
+    {
+        return m_craftingTableEntry.loaded;
+    }
 
     /**
      * @brief 检查熔炉纹理是否已加载
      */
-    [[nodiscard]] bool hasFurnaceTexture() const { return m_furnaceEntry.loaded; }
+    [[nodiscard]] bool hasFurnaceTexture() const
+    {
+        return m_furnaceEntry.loaded;
+    }
 
     /**
      * @brief 获取背包纹理图集槽位ID
      */
-    [[nodiscard]] u8 atlasSlot() const { return m_inventoryEntry.atlasSlot; }
+    [[nodiscard]] u8 atlasSlot() const
+    {
+        return m_inventoryEntry.atlasSlot;
+    }
 
     /**
      * @brief 获取背包纹理图集槽位ID（向后兼容）
      */
-    [[nodiscard]] u8 inventoryAtlasSlot() const { return m_inventoryEntry.atlasSlot; }
+    [[nodiscard]] u8 inventoryAtlasSlot() const
+    {
+        return m_inventoryEntry.atlasSlot;
+    }
 
     /**
      * @brief 获取熔炉纹理图集槽位ID
      */
-    [[nodiscard]] u8 furnaceAtlasSlot() const { return m_furnaceEntry.atlasSlot; }
+    [[nodiscard]] u8 furnaceAtlasSlot() const
+    {
+        return m_furnaceEntry.atlasSlot;
+    }
 
     /**
      * @brief 获取背包纹理图集图像视图
      */
-    [[nodiscard]] VkImageView imageView() const { return m_inventoryEntry.imageView; }
+    [[nodiscard]] VkImageView imageView() const
+    {
+        return m_inventoryEntry.imageView;
+    }
 
     /**
      * @brief 获取背包纹理图集采样器
      */
-    [[nodiscard]] VkSampler sampler() const { return m_inventoryEntry.sampler; }
+    [[nodiscard]] VkSampler sampler() const
+    {
+        return m_inventoryEntry.sampler;
+    }
 
     /**
      * @brief 检查是否已初始化
      */
-    [[nodiscard]] bool isInitialized() const { return m_initialized; }
+    [[nodiscard]] bool isInitialized() const
+    {
+        return m_initialized;
+    }
 
 private:
     /**

@@ -47,7 +47,10 @@ protected:
         widget = std::make_unique<mc::client::ui::kagero::widget::RichTextWidget>("test", 0, 0, 200, 100);
     }
 
-    void TearDown() override { widget.reset(); }
+    void TearDown() override
+    {
+        widget.reset();
+    }
 
     std::unique_ptr<mc::client::ui::kagero::widget::RichTextWidget> widget;
 };
@@ -230,7 +233,9 @@ TEST_F(RichTextWidgetTest, ClickCallback)
 {
     bool callbackCalled = false;
 
-    widget->setOnClick([&callbackCalled](const mc::text::ClickEvent& /*event*/) { callbackCalled = true; });
+    widget->setOnClick([&callbackCalled](const mc::text::ClickEvent& /*event*/) {
+        callbackCalled = true;
+    });
 
     widget->setEventsEnabled(true);
 }

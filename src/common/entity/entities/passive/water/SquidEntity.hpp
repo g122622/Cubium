@@ -89,34 +89,52 @@ public:
     /**
      * @brief 是否在游泳
      */
-    [[nodiscard]] bool isSwimming() const { return m_swimming; }
+    [[nodiscard]] bool isSwimming() const
+    {
+        return m_swimming;
+    }
 
     /**
      * @brief 设置游泳状态
      */
-    void setSwimming(bool swimming) { m_swimming = swimming; }
+    void setSwimming(bool swimming)
+    {
+        m_swimming = swimming;
+    }
 
     /**
      * @brief 获取游泳方向
      */
-    [[nodiscard]] f32 getSwimAngle() const { return m_swimAngle; }
+    [[nodiscard]] f32 getSwimAngle() const
+    {
+        return m_swimAngle;
+    }
 
     /**
      * @brief 设置游泳方向
      */
-    void setSwimAngle(f32 angle) { m_swimAngle = angle; }
+    void setSwimAngle(f32 angle)
+    {
+        m_swimAngle = angle;
+    }
 
     // ========== 同步字段 id 访问器（测试/诊断用，抗字段 id 偏移） ==========
 
     /// DATA_BABY(id16) 由基类 AgeableEntity 提供（鱿鱼经 WaterMobEntity→AgeableEntity）。
-    [[nodiscard]] static u16 getBabyPlaceholderParamId() { return AgeableEntity::getBabyParamId(); }
+    [[nodiscard]] static u16 getBabyPlaceholderParamId()
+    {
+        return AgeableEntity::getBabyParamId();
+    }
 
     // ========== 喷墨 ==========
 
     /**
      * @brief 是否正在喷墨
      */
-    [[nodiscard]] bool isSprayingInk() const { return m_sprayingInk; }
+    [[nodiscard]] bool isSprayingInk() const
+    {
+        return m_sprayingInk;
+    }
 
     /**
      * @brief 喷墨
@@ -132,7 +150,10 @@ public:
      *
      * 子类可重写以提供不同的墨汁粒子（如发光鱿鱼返回 GlowSquidInk）。
      */
-    [[nodiscard]] virtual particle::ParticleTypeId getInkParticle() const { return particle::ParticleTypeId::SquidInk; }
+    [[nodiscard]] virtual particle::ParticleTypeId getInkParticle() const
+    {
+        return particle::ParticleTypeId::SquidInk;
+    }
 
     /**
      * @brief 获取喷墨音效
@@ -178,7 +199,10 @@ public:
     /**
      * @brief 获取眼睛高度
      */
-    [[nodiscard]] f32 eyeHeight() const override { return 0.4f; }
+    [[nodiscard]] f32 eyeHeight() const override
+    {
+        return 0.4f;
+    }
 
     // ========== 音效 ==========
 

@@ -524,7 +524,9 @@ Result<void> TridentPipeline::createFromDesc(
 
 void TridentPipeline::destroy()
 {
-    if (m_context == nullptr) return;
+    if (m_context == nullptr) {
+        return;
+    }
 
     for (auto& shader : m_shaders) {
         if (shader.module != VK_NULL_HANDLE) {
@@ -654,7 +656,9 @@ Result<void> TridentPipelineCache::create(TridentContext* context, const std::st
 
 void TridentPipelineCache::destroy()
 {
-    if (m_context == nullptr) return;
+    if (m_context == nullptr) {
+        return;
+    }
 
     // 保存缓存到文件
     if (!m_cachePath.empty() && m_cache != VK_NULL_HANDLE) {

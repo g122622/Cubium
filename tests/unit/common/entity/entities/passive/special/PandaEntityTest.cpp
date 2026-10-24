@@ -70,18 +70,38 @@ public:
     {}
 
     // 设置周围的熊猫实体（用于跳跃测试）
-    void setNearbyPandas(std::vector<Entity*> pandas) { m_nearbyPandas = std::move(pandas); }
+    void setNearbyPandas(std::vector<Entity*> pandas)
+    {
+        m_nearbyPandas = std::move(pandas);
+    }
 
     // 设置游戏规则 doMobLoot
-    void setDoMobLoot(bool value) { m_doMobLoot = value; }
+    void setDoMobLoot(bool value)
+    {
+        m_doMobLoot = value;
+    }
 
     // 天气（担忧熊猫在雷暴中坐下）
-    void setThundering(bool value) { m_thundering = value; }
-    [[nodiscard]] bool isThundering() const override { return m_thundering; }
+    void setThundering(bool value)
+    {
+        m_thundering = value;
+    }
+
+    [[nodiscard]] bool isThundering() const override
+    {
+        return m_thundering;
+    }
 
     // 获取游戏规则
-    [[nodiscard]] const world::gamerule::GameRules& getGameRules() const override { return m_gameRules; }
-    [[nodiscard]] world::gamerule::GameRules& getGameRules() override { return m_gameRules; }
+    [[nodiscard]] const world::gamerule::GameRules& getGameRules() const override
+    {
+        return m_gameRules;
+    }
+
+    [[nodiscard]] world::gamerule::GameRules& getGameRules() override
+    {
+        return m_gameRules;
+    }
 
     // 返回预设的实体列表
     [[nodiscard]] std::vector<Entity*> getEntitiesInAABB(const AxisAlignedBB&, const Entity*) const override
@@ -90,7 +110,10 @@ public:
     }
 
     // 服务端世界
-    [[nodiscard]] bool isClientSide() const override { return false; }
+    [[nodiscard]] bool isClientSide() const override
+    {
+        return false;
+    }
 
     // 生成实体（返回假ID）
     EntityInstanceId spawnEntity(std::unique_ptr<Entity> entity) override
@@ -124,13 +147,40 @@ public:
     }
 
     // 访问器
-    [[nodiscard]] i32 getParticleSpawnCount() const { return m_particleSpawnCount; }
-    [[nodiscard]] i32 getSoundPlayCount() const { return m_soundPlayCount; }
-    [[nodiscard]] i32 getSpawnedEntityCount() const { return static_cast<i32>(m_spawnedEntities.size()); }
-    [[nodiscard]] particle::ParticleTypeId getLastParticleType() const { return m_lastParticleType; }
-    [[nodiscard]] const ResourceLocation& getLastSoundId() const { return m_lastSoundId; }
-    [[nodiscard]] const Vector3& getLastParticlePosition() const { return m_lastParticlePos; }
-    [[nodiscard]] const std::vector<std::unique_ptr<Entity>>& getSpawnedEntities() const { return m_spawnedEntities; }
+    [[nodiscard]] i32 getParticleSpawnCount() const
+    {
+        return m_particleSpawnCount;
+    }
+
+    [[nodiscard]] i32 getSoundPlayCount() const
+    {
+        return m_soundPlayCount;
+    }
+
+    [[nodiscard]] i32 getSpawnedEntityCount() const
+    {
+        return static_cast<i32>(m_spawnedEntities.size());
+    }
+
+    [[nodiscard]] particle::ParticleTypeId getLastParticleType() const
+    {
+        return m_lastParticleType;
+    }
+
+    [[nodiscard]] const ResourceLocation& getLastSoundId() const
+    {
+        return m_lastSoundId;
+    }
+
+    [[nodiscard]] const Vector3& getLastParticlePosition() const
+    {
+        return m_lastParticlePos;
+    }
+
+    [[nodiscard]] const std::vector<std::unique_ptr<Entity>>& getSpawnedEntities() const
+    {
+        return m_spawnedEntities;
+    }
 
 private:
     world::gamerule::GameRules m_gameRules;
@@ -158,8 +208,15 @@ public:
     {}
 
     // 暴露 protected 方法用于测试
-    void testOnSneezeComplete() { _onSneezeComplete(); }
-    void testTick() { tick(); }
+    void testOnSneezeComplete()
+    {
+        _onSneezeComplete();
+    }
+
+    void testTick()
+    {
+        tick();
+    }
 };
 
 // ==================== PandaEntity 性格测试 ====================
@@ -1025,11 +1082,18 @@ public:
     {}
 
     using PandaEntity::tick;
-    void testTick() { tick(); }
+
+    void testTick()
+    {
+        tick();
+    }
 
     /// 直接驱动目标选择器一轮完整评估（绕过 MobEntity::tick 的错峰门控与其它 AI 副作用），
     /// 用于验证目标自身的 canContinueToUse 语义。
-    void testTickTargetSelector() { targetSelector().tick(); }
+    void testTickTargetSelector()
+    {
+        targetSelector().tick();
+    }
 };
 
 } // namespace
@@ -1188,7 +1252,9 @@ TEST(PandaPersonalityGoalTest, AvoidGoalOnlyForWorriedPanda)
     normal.setTypeId("minecraft:panda");
     normal.setPersonality(PandaEntity::Personality::Normal);
 
-    entity::ai::goal::PandaAvoidGoal goal(&normal, 8.0f, 2.0, 2.0, [](const LivingEntity*) -> bool { return true; });
+    entity::ai::goal::PandaAvoidGoal goal(&normal, 8.0f, 2.0, 2.0, [](const LivingEntity*) -> bool {
+        return true;
+    });
     // 非忧愁性格不逃避（对齐 vanilla PandaAvoidGoal.canUse 的 isWorried 门控）
     EXPECT_FALSE(goal.shouldExecute());
 }

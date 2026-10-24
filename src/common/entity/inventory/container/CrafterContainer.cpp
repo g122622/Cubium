@@ -80,7 +80,10 @@ public:
         return false;
     }
 
-    [[nodiscard]] bool isValid() const noexcept override { return true; }
+    [[nodiscard]] bool isValid() const noexcept override
+    {
+        return true;
+    }
 };
 
 } // anonymous namespace

@@ -74,6 +74,7 @@ bool RedstoneTorchBlock::shouldBeOff(IWorld& world, const BlockPos& pos, const B
     MC_UNUSED(state);
     return world::redstone::RedstonePower::getSignal(world, pos.down(), Direction::Down) > 0;
 }
+
 bool RedstoneTorchBlock::isLit(const BlockState& state)
 {
     return state.get(BlockStateProperties::LIT());
@@ -124,13 +125,16 @@ void RedstoneTorchBlock::neighborChanged(
 
     const BlockState* state = world.getBlockState(pos);
     // 邻居通知可能到达已移除或被替换的位置，仅更新仍属于本方块的状态。
-    if (state == nullptr || !state->is(this)) return;
+    if (state == nullptr || !state->is(this)) {
+        return;
+    }
     if (!Block::canSupportCenter(world, pos.down(), Direction::Up)) {
         world.setBlockState(pos, nullptr, world::BlockUpdateFlags::UPDATE_ALL);
         return;
     }
     updateState(world, pos, *state);
 }
+
 void RedstoneTorchBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random)
 {
     MC_UNUSED(random);
@@ -151,6 +155,7 @@ void RedstoneTorchBlock::tick(IWorld& world, const BlockPos& pos, BlockState& st
         world.setBlockState(pos, &newState, world::BlockUpdateFlags::UPDATE_ALL);
     }
 }
+
 i32 RedstoneTorchBlock::getWeakPower(
     const BlockState& state, IWorld& world, const BlockPos& pos, Direction side) const noexcept
 {

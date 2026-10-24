@@ -71,13 +71,21 @@ public:
         return &fluid::Fluids::EMPTY()->defaultState();
     }
 
-    [[nodiscard]] u64 currentTick() const override { return 0; }
-    [[nodiscard]] Difficulty difficulty() const override { return Difficulty::Normal; }
+    [[nodiscard]] u64 currentTick() const override
+    {
+        return 0;
+    }
+
+    [[nodiscard]] Difficulty difficulty() const override
+    {
+        return Difficulty::Normal;
+    }
 
     [[nodiscard]] world::tick::TickManager& tickManager() override
     {
         throw std::runtime_error("ContainsAnyLiquidTestWorld::tickManager not implemented");
     }
+
     [[nodiscard]] const world::tick::TickManager& tickManager() const override
     {
         throw std::runtime_error("ContainsAnyLiquidTestWorld::tickManager not implemented");
@@ -86,12 +94,18 @@ public:
     /**
      * @brief 标记指定位置有水
      */
-    void setWaterAt(i32 x, i32 y, i32 z) { m_waterPositions.emplace(x, y, z); }
+    void setWaterAt(i32 x, i32 y, i32 z)
+    {
+        m_waterPositions.emplace(x, y, z);
+    }
 
     /**
      * @brief 清除所有水标记
      */
-    void clearWater() { m_waterPositions.clear(); }
+    void clearWater()
+    {
+        m_waterPositions.clear();
+    }
 
 private:
     std::unordered_map<BlockPos, std::unique_ptr<BlockState>> m_blocks;

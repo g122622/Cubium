@@ -283,7 +283,10 @@ public:
      *
      * @return 如果愤怒时间 > 0 返回 true
      */
-    [[nodiscard]] bool isAngry() const override { return getAngerTime() > 0; }
+    [[nodiscard]] bool isAngry() const override
+    {
+        return getAngerTime() > 0;
+    }
 
     /**
      * @brief 获取愤怒时间（ticks）
@@ -308,7 +311,10 @@ public:
      *
      * @param time 愤怒时间（ticks）
      */
-    void setAngerTime(i32 time) override { m_dataManager.set(DATA_ANGER_TIME_PARAM, static_cast<i64>(time)); }
+    void setAngerTime(i32 time) override
+    {
+        m_dataManager.set(DATA_ANGER_TIME_PARAM, static_cast<i64>(time));
+    }
 
     /**
      * @brief 设置愤怒状态
@@ -326,7 +332,10 @@ public:
      *
      * 用于客户端从元数据中读取愤怒时间（ClientEntity::syncMetadataFromDataManager）。
      */
-    [[nodiscard]] static u16 getAngerTimeParamId() { return DATA_ANGER_TIME_PARAM.id(); }
+    [[nodiscard]] static u16 getAngerTimeParamId()
+    {
+        return DATA_ANGER_TIME_PARAM.id();
+    }
 
     // ========== 兴趣状态 ==========
 
@@ -338,7 +347,10 @@ public:
      *
      * @return 如果正在乞求食物返回true
      */
-    [[nodiscard]] bool isInterested() const { return m_dataManager.get<bool>(DATA_INTERESTED_PARAM); }
+    [[nodiscard]] bool isInterested() const
+    {
+        return m_dataManager.get<bool>(DATA_INTERESTED_PARAM);
+    }
 
     /**
      * @brief 设置感兴趣状态
@@ -348,14 +360,20 @@ public:
      *
      * @param interested 是否感兴趣
      */
-    void setInterested(bool interested) { m_dataManager.set(DATA_INTERESTED_PARAM, interested); }
+    void setInterested(bool interested)
+    {
+        m_dataManager.set(DATA_INTERESTED_PARAM, interested);
+    }
 
     /**
      * @brief 获取兴趣状态数据参数 ID
      *
      * 用于客户端从元数据中读取兴趣状态（ClientEntity::syncMetadataFromDataManager）。
      */
-    [[nodiscard]] static u16 getInterestedParamId() { return DATA_INTERESTED_PARAM.id(); }
+    [[nodiscard]] static u16 getInterestedParamId()
+    {
+        return DATA_INTERESTED_PARAM.id();
+    }
 
     // ========== 颈圈颜色 ==========
 
@@ -380,14 +398,20 @@ public:
      *
      * @param color 染料颜色
      */
-    void setCollarColor(DyeColor color) { m_dataManager.set(DATA_COLLAR_COLOR_PARAM, static_cast<i32>(color)); }
+    void setCollarColor(DyeColor color)
+    {
+        m_dataManager.set(DATA_COLLAR_COLOR_PARAM, static_cast<i32>(color));
+    }
 
     /**
      * @brief 获取颈圈颜色数据参数 ID
      *
      * 用于客户端从元数据中读取颈圈颜色（ClientEntity::syncMetadataFromDataManager）。
      */
-    [[nodiscard]] static u16 getCollarColorParamId() { return DATA_COLLAR_COLOR_PARAM.id(); }
+    [[nodiscard]] static u16 getCollarColorParamId()
+    {
+        return DATA_COLLAR_COLOR_PARAM.id();
+    }
 
     // ========== 水域行为 ==========
 
@@ -416,13 +440,19 @@ public:
      *
      * 参考: net.minecraft.world.entity.animal.wolf.Wolf.isWet
      */
-    [[nodiscard]] bool isWet() const { return m_isWet; }
+    [[nodiscard]] bool isWet() const
+    {
+        return m_isWet;
+    }
 
     /**
      * @brief 检查是否正在甩水
      * @return 如果甩水动画正在进行返回 true
      */
-    [[nodiscard]] bool isShaking() const { return m_isShaking; }
+    [[nodiscard]] bool isShaking() const
+    {
+        return m_isShaking;
+    }
 
     /**
      * @brief 获取甩水动画进度（插值）
@@ -456,7 +486,10 @@ public:
     /**
      * @brief 获取眼睛高度
      */
-    [[nodiscard]] f32 eyeHeight() const override { return isChild() ? 0.4f : 0.8f; }
+    [[nodiscard]] f32 eyeHeight() const override
+    {
+        return isChild() ? 0.4f : 0.8f;
+    }
 
 protected:
     // ========== AI 目标注册 ==========
@@ -481,8 +514,15 @@ protected:
 
     // ========== 尺寸 ==========
 
-    [[nodiscard]] f32 getBaseWidth() const override { return 0.6f; }
-    [[nodiscard]] f32 getBaseHeight() const override { return 0.85f; }
+    [[nodiscard]] f32 getBaseWidth() const override
+    {
+        return 0.6f;
+    }
+
+    [[nodiscard]] f32 getBaseHeight() const override
+    {
+        return 0.85f;
+    }
 
     // ========== 驯服回调 ==========
     void onTamed(bool tamed) override;
@@ -500,7 +540,10 @@ protected:
     /**
      * @brief 获取声音音量
      */
-    [[nodiscard]] f32 getSoundVolume() const override { return 0.4f; }
+    [[nodiscard]] f32 getSoundVolume() const override
+    {
+        return 0.4f;
+    }
 
     /**
      * @brief 播放脚步声音
@@ -533,10 +576,16 @@ protected:
     // 不应在生产代码中调用。
 
     /// 设置 isWet 标志（测试用）
-    void _setWetForTest(bool value) { m_isWet = value; }
+    void _setWetForTest(bool value)
+    {
+        m_isWet = value;
+    }
 
     /// 设置 isShaking 标志（测试用）
-    void _setShakingForTest(bool value) { m_isShaking = value; }
+    void _setShakingForTest(bool value)
+    {
+        m_isShaking = value;
+    }
 
     /// 设置 shakeAnim 和 shakeAnimO（测试用）
     void _setShakeAnimForTest(f32 anim, f32 animO)

@@ -74,7 +74,11 @@ class TestWorld final : public mc::test::BaseTestWorld {
 public:
     TestWorld() = default;
 
-    [[nodiscard]] world::tick::TickManager& tickManager() override { throw std::runtime_error("not implemented"); }
+    [[nodiscard]] world::tick::TickManager& tickManager() override
+    {
+        throw std::runtime_error("not implemented");
+    }
+
     [[nodiscard]] const world::tick::TickManager& tickManager() const override
     {
         throw std::runtime_error("not implemented");

@@ -875,7 +875,9 @@ TEST_F(ChunkLoadTicketManagerExtendedTest, LargeViewDistance)
     manager.setViewDistance(10); // 使用正常视距
 
     manager.updatePlayerPosition(1, 0, 0);
-    _awaitPropagation(manager, [&] { return manager.shouldChunkLoad(11, 0); });
+    _awaitPropagation(manager, [&] {
+        return manager.shouldChunkLoad(11, 0);
+    });
 
     // 距离 2 的区块应该加载 (23 + 2 = 25 < 34)
     EXPECT_TRUE(manager.shouldChunkLoad(2, 0));
@@ -896,7 +898,9 @@ TEST_F(ChunkLoadTicketManagerExtendedTest, NegativePlayerPosition)
     manager.setViewDistance(5);
 
     manager.updatePlayerPosition(1, -10, -20);
-    _awaitPropagation(manager, [&] { return manager.shouldChunkLoad(-16, -20); });
+    _awaitPropagation(manager, [&] {
+        return manager.shouldChunkLoad(-16, -20);
+    });
 
     EXPECT_TRUE(manager.shouldChunkLoad(-10, -20));
     EXPECT_TRUE(manager.shouldChunkLoad(-15, -20));  // 视距边缘 (距离5)
@@ -1077,7 +1081,9 @@ TEST_F(ChunkLoadTicketManagerExtendedTest, UnifiedPlayerSourcePropagation)
     manager.setViewDistance(5);
 
     manager.updatePlayerPosition(1, 0, 0);
-    _awaitPropagation(manager, [&] { return manager.distanceGraph().getLevel(6, 0) == 34; });
+    _awaitPropagation(manager, [&] {
+        return manager.distanceGraph().getLevel(6, 0) == 34;
+    });
 
     const ChunkDistanceGraph& graph = manager.distanceGraph();
     EXPECT_EQ(graph.getLevel(0, 0), viewDistanceToLevel(5));
@@ -1194,7 +1200,9 @@ TEST_F(ChunkLoadTicketManagerExtendedTest, ForcedTicketAndPlayerSourceUseSingleM
 
     manager.updatePlayerPosition(1, 0, 0);
     manager.forceChunk(0, 0, true);
-    _awaitPropagation(manager, [&] { return manager.distanceGraph().getLevel(6, 0) == viewDistanceToLevel(5) + 6; });
+    _awaitPropagation(manager, [&] {
+        return manager.distanceGraph().getLevel(6, 0) == viewDistanceToLevel(5) + 6;
+    });
 
     const ChunkDistanceGraph& graph = manager.distanceGraph();
     EXPECT_EQ(graph.getLevel(0, 0), viewDistanceToLevel(5));
@@ -1609,9 +1617,15 @@ TEST_F(ForcedChunkQueryTest, GetForcedChunksMultipleChunks)
     // 验证所有强制加载的区块都在列表中
     bool found00 = false, found1020 = false, foundMinus515 = false;
     for (const auto& pos : forcedChunks) {
-        if (pos.x == 0 && pos.z == 0) found00 = true;
-        if (pos.x == 10 && pos.z == 20) found1020 = true;
-        if (pos.x == -5 && pos.z == 15) foundMinus515 = true;
+        if (pos.x == 0 && pos.z == 0) {
+            found00 = true;
+        }
+        if (pos.x == 10 && pos.z == 20) {
+            found1020 = true;
+        }
+        if (pos.x == -5 && pos.z == 15) {
+            foundMinus515 = true;
+        }
     }
     EXPECT_TRUE(found00);
     EXPECT_TRUE(found1020);

@@ -140,7 +140,10 @@ public:
      * @brief 获取书架力量（0-15）
      * @return 书架力量
      */
-    [[nodiscard]] i32 getEnchantPower() const { return m_enchantPower; }
+    [[nodiscard]] i32 getEnchantPower() const
+    {
+        return m_enchantPower;
+    }
 
     /**
      * @brief 检查指定选项是否可用
@@ -166,7 +169,10 @@ public:
     bool enchantItem(Player& player, i32 optionIndex);
 
     /** @brief 将按钮选择交给附魔选项的费用与物品校验流程。 */
-    bool clickMenuButton(Player& player, i32 optionIndex) override { return enchantItem(player, optionIndex); }
+    bool clickMenuButton(Player& player, i32 optionIndex) override
+    {
+        return enchantItem(player, optionIndex);
+    }
 
     // ========== 容器接口 ==========
 

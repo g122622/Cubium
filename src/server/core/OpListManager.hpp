@@ -110,19 +110,28 @@ struct OpEntry {
      * @brief 检查条目是否有效
      * @return true 如果 UUID 和名称都不为空
      */
-    [[nodiscard]] bool isValid() const noexcept { return !uuid.empty() && !name.empty(); }
+    [[nodiscard]] bool isValid() const noexcept
+    {
+        return !uuid.empty() && !name.empty();
+    }
 
     /**
      * @brief 获取显示名称
      * @return 用于显示的名称
      */
-    [[nodiscard]] std::string getDisplayName() const { return name.empty() ? uuid : name; }
+    [[nodiscard]] std::string getDisplayName() const
+    {
+        return name.empty() ? uuid : name;
+    }
 
     /**
      * @brief 获取权限等级数值
      * @return 权限等级 (0-4)
      */
-    [[nodiscard]] i32 getLevelValue() const noexcept { return static_cast<i32>(level); }
+    [[nodiscard]] i32 getLevelValue() const noexcept
+    {
+        return static_cast<i32>(level);
+    }
 };
 
 /**
@@ -315,7 +324,10 @@ public:
      * @brief 获取 OP 列表文件路径
      * @return 文件路径
      */
-    [[nodiscard]] const std::filesystem::path& filePath() const { return m_filePath; }
+    [[nodiscard]] const std::filesystem::path& filePath() const
+    {
+        return m_filePath;
+    }
 
 private:
     mutable std::mutex m_mutex;

@@ -60,7 +60,9 @@ TurtleGoHomeGoal::TurtleGoHomeGoal(TurtleEntity* turtle, f64 speed)
 
 bool TurtleGoHomeGoal::shouldExecute()
 {
-    if (m_turtle == nullptr) return false;
+    if (m_turtle == nullptr) {
+        return false;
+    }
 
     // 幼年海龟不回家
     if (m_turtle->isChild()) {
@@ -94,7 +96,9 @@ bool TurtleGoHomeGoal::shouldExecute()
 
 bool TurtleGoHomeGoal::shouldContinueExecuting()
 {
-    if (m_turtle == nullptr || !m_turtle->hasHomePos()) return false;
+    if (m_turtle == nullptr || !m_turtle->hasHomePos()) {
+        return false;
+    }
 
     // 距离出生地 > 7 格 AND 未放弃 AND 未超时
     const BlockPos& homePos = m_turtle->getHomePos();
@@ -108,7 +112,9 @@ bool TurtleGoHomeGoal::shouldContinueExecuting()
 
 void TurtleGoHomeGoal::startExecuting()
 {
-    if (m_turtle == nullptr) return;
+    if (m_turtle == nullptr) {
+        return;
+    }
 
     m_turtle->setGoingHome(true);
     m_gaveUp = false;
@@ -132,7 +138,9 @@ void TurtleGoHomeGoal::resetTask()
 
 void TurtleGoHomeGoal::tick()
 {
-    if (m_turtle == nullptr || !m_turtle->hasHomePos()) return;
+    if (m_turtle == nullptr || !m_turtle->hasHomePos()) {
+        return;
+    }
 
     const BlockPos& homePos = m_turtle->getHomePos();
 
@@ -167,7 +175,9 @@ void TurtleGoHomeGoal::tick()
 
 bool TurtleGoHomeGoal::_tryFindPathToHome()
 {
-    if (m_turtle == nullptr || !m_turtle->hasHomePos()) return false;
+    if (m_turtle == nullptr || !m_turtle->hasHomePos()) {
+        return false;
+    }
 
     const BlockPos& homePos = m_turtle->getHomePos();
 
@@ -206,7 +216,9 @@ TurtleLayEggGoal::TurtleLayEggGoal(TurtleEntity* turtle, f64 speed)
 
 bool TurtleLayEggGoal::shouldExecute()
 {
-    if (m_turtle == nullptr) return false;
+    if (m_turtle == nullptr) {
+        return false;
+    }
 
     // 必须有蛋
     if (!m_turtle->hasEgg()) {
@@ -234,11 +246,17 @@ bool TurtleLayEggGoal::shouldExecute()
 
 bool TurtleLayEggGoal::shouldContinueExecuting()
 {
-    if (m_turtle == nullptr) return false;
+    if (m_turtle == nullptr) {
+        return false;
+    }
 
     // 继续执行条件
-    if (!m_turtle->hasEgg()) return false;
-    if (!m_turtle->hasHomePos()) return false;
+    if (!m_turtle->hasEgg()) {
+        return false;
+    }
+    if (!m_turtle->hasHomePos()) {
+        return false;
+    }
 
     const BlockPos& homePos = m_turtle->getHomePos();
     f64 dx = m_turtle->x() - (homePos.x + 0.5);
@@ -251,7 +269,9 @@ bool TurtleLayEggGoal::shouldContinueExecuting()
 
 void TurtleLayEggGoal::startExecuting()
 {
-    if (m_turtle == nullptr) return;
+    if (m_turtle == nullptr) {
+        return;
+    }
 
     m_timeoutCounter = 0;
 
@@ -275,7 +295,9 @@ void TurtleLayEggGoal::resetTask()
 
 void TurtleLayEggGoal::tick()
 {
-    if (m_turtle == nullptr || !m_foundTarget) return;
+    if (m_turtle == nullptr || !m_foundTarget) {
+        return;
+    }
 
     m_timeoutCounter++;
 
@@ -312,7 +334,9 @@ void TurtleLayEggGoal::tick()
 
 bool TurtleLayEggGoal::_shouldMoveTo(const BlockPos& pos)
 {
-    if (m_turtle == nullptr || m_turtle->world() == nullptr) return false;
+    if (m_turtle == nullptr || m_turtle->world() == nullptr) {
+        return false;
+    }
 
     IWorld* world = m_turtle->world();
 
@@ -333,7 +357,9 @@ bool TurtleLayEggGoal::_shouldMoveTo(const BlockPos& pos)
 
 bool TurtleLayEggGoal::_findLayEggPosition()
 {
-    if (m_turtle == nullptr || m_turtle->world() == nullptr) return false;
+    if (m_turtle == nullptr || m_turtle->world() == nullptr) {
+        return false;
+    }
 
     IWorld* world = m_turtle->world();
     BlockPos entityPos(static_cast<i32>(std::floor(m_turtle->x())),
@@ -372,7 +398,9 @@ TurtleTravelGoal::TurtleTravelGoal(TurtleEntity* turtle, f64 speed)
 
 bool TurtleTravelGoal::shouldExecute()
 {
-    if (m_turtle == nullptr) return false;
+    if (m_turtle == nullptr) {
+        return false;
+    }
 
     // 不在回家状态 AND 没有蛋 AND 在水中
     return !m_turtle->isGoingHome() && !m_turtle->hasEgg() && m_turtle->isInWater();
@@ -380,7 +408,9 @@ bool TurtleTravelGoal::shouldExecute()
 
 bool TurtleTravelGoal::shouldContinueExecuting()
 {
-    if (m_turtle == nullptr) return false;
+    if (m_turtle == nullptr) {
+        return false;
+    }
 
     auto* nav = m_turtle->navigator();
 
@@ -391,7 +421,9 @@ bool TurtleTravelGoal::shouldContinueExecuting()
 
 void TurtleTravelGoal::startExecuting()
 {
-    if (m_turtle == nullptr) return;
+    if (m_turtle == nullptr) {
+        return;
+    }
 
     // 设置随机旅行目标
     _setRandomTravelPos();
@@ -416,7 +448,9 @@ void TurtleTravelGoal::resetTask()
 
 void TurtleTravelGoal::tick()
 {
-    if (m_turtle == nullptr) return;
+    if (m_turtle == nullptr) {
+        return;
+    }
 
     auto* nav = m_turtle->navigator();
 
@@ -430,7 +464,9 @@ void TurtleTravelGoal::tick()
 
 void TurtleTravelGoal::_setRandomTravelPos()
 {
-    if (m_turtle == nullptr || m_turtle->world() == nullptr) return;
+    if (m_turtle == nullptr || m_turtle->world() == nullptr) {
+        return;
+    }
 
     mc::math::IRandom& rng = m_turtle->getRandom();
 
@@ -451,7 +487,9 @@ void TurtleTravelGoal::_setRandomTravelPos()
 
 bool TurtleTravelGoal::_tryFindPathToTravelPos()
 {
-    if (m_turtle == nullptr) return false;
+    if (m_turtle == nullptr) {
+        return false;
+    }
 
     // 使用 RandomPositionGenerator 找到通往旅行目标的路径
     Vector3 targetPos(
@@ -499,7 +537,9 @@ TurtleGoToWaterGoal::TurtleGoToWaterGoal(TurtleEntity* turtle, f64 speed)
 
 bool TurtleGoToWaterGoal::shouldExecute()
 {
-    if (m_turtle == nullptr) return false;
+    if (m_turtle == nullptr) {
+        return false;
+    }
 
     // 幼龟不在水中时触发
     if (m_turtle->isChild() && !m_turtle->isInWater()) {
@@ -516,7 +556,9 @@ bool TurtleGoToWaterGoal::shouldExecute()
 
 bool TurtleGoToWaterGoal::shouldContinueExecuting()
 {
-    if (m_turtle == nullptr) return false;
+    if (m_turtle == nullptr) {
+        return false;
+    }
 
     // 仍在陆地 AND 超时 <= 1200 AND 目标仍是水
     if (m_turtle->isInWater()) {
@@ -538,7 +580,9 @@ bool TurtleGoToWaterGoal::shouldContinueExecuting()
 
 void TurtleGoToWaterGoal::startExecuting()
 {
-    if (m_turtle == nullptr || !m_foundWater) return;
+    if (m_turtle == nullptr || !m_foundWater) {
+        return;
+    }
 
     m_timeoutCounter = 0;
     m_turtle->tryMoveTo(m_targetX, m_targetY, m_targetZ, m_speed);
@@ -555,7 +599,9 @@ void TurtleGoToWaterGoal::resetTask()
 
 void TurtleGoToWaterGoal::tick()
 {
-    if (m_turtle == nullptr) return;
+    if (m_turtle == nullptr) {
+        return;
+    }
 
     m_timeoutCounter++;
 
@@ -575,7 +621,9 @@ void TurtleGoToWaterGoal::tick()
 
 bool TurtleGoToWaterGoal::_findWater()
 {
-    if (m_turtle == nullptr || m_turtle->world() == nullptr) return false;
+    if (m_turtle == nullptr || m_turtle->world() == nullptr) {
+        return false;
+    }
 
     IWorld* world = m_turtle->world();
     BlockPos entityPos(static_cast<i32>(std::floor(m_turtle->x())),
@@ -673,7 +721,9 @@ TurtleWanderGoal::TurtleWanderGoal(TurtleEntity* turtle, f64 speed, i32 chance)
 
 bool TurtleWanderGoal::shouldExecute()
 {
-    if (m_turtle == nullptr) return false;
+    if (m_turtle == nullptr) {
+        return false;
+    }
 
     // 不在水中 AND 不在回家 AND 没有蛋
     if (m_turtle->isInWater()) {

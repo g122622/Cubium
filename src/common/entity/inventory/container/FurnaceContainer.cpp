@@ -223,12 +223,34 @@ void FurnaceContainer::_initTrackedInts()
     // tracked i32 绑定到菜单内独立存储成员，与实体解耦：
     // 服务端 syncProgressFromEntity 每 tick 把实体值刷进成员，detectAndSendChanges 检测变化下推；
     // 客户端 setTrackedInt 直接写成员（实体为 nullptr 时仍持久化）。
-    trackInt([this]() { return m_dataLitTime; }, [this](i32 v) { m_dataLitTime = v; });         // DATA_LIT_TIME = 0
-    trackInt([this]() { return m_dataLitDuration; }, [this](i32 v) { m_dataLitDuration = v; }); // DATA_LIT_DURATION = 1
-    trackInt([this]() { return m_dataCookingProgress; },
-        [this](i32 v) { m_dataCookingProgress = v; }); // DATA_COOKING_PROGRESS = 2
-    trackInt([this]() { return m_dataCookingTotalTime; },
-        [this](i32 v) { m_dataCookingTotalTime = v; }); // DATA_COOKING_TOTAL_TIME = 3
+    trackInt(
+        [this]() {
+            return m_dataLitTime;
+        },
+        [this](i32 v) {
+            m_dataLitTime = v;
+        }); // DATA_LIT_TIME = 0
+    trackInt(
+        [this]() {
+            return m_dataLitDuration;
+        },
+        [this](i32 v) {
+            m_dataLitDuration = v;
+        }); // DATA_LIT_DURATION = 1
+    trackInt(
+        [this]() {
+            return m_dataCookingProgress;
+        },
+        [this](i32 v) {
+            m_dataCookingProgress = v;
+        }); // DATA_COOKING_PROGRESS = 2
+    trackInt(
+        [this]() {
+            return m_dataCookingTotalTime;
+        },
+        [this](i32 v) {
+            m_dataCookingTotalTime = v;
+        }); // DATA_COOKING_TOTAL_TIME = 3
 }
 
 void FurnaceContainer::syncProgressFromEntity()

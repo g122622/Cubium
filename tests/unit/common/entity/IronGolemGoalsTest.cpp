@@ -48,7 +48,10 @@ protected:
         ironGolem = std::make_unique<IronGolemEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
     }
 
-    void TearDown() override { ironGolem.reset(); }
+    void TearDown() override
+    {
+        ironGolem.reset();
+    }
 
     std::unique_ptr<IronGolemEntity> ironGolem;
 };
@@ -190,7 +193,10 @@ protected:
         ironGolem = std::make_unique<IronGolemEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
     }
 
-    void TearDown() override { ironGolem.reset(); }
+    void TearDown() override
+    {
+        ironGolem.reset();
+    }
 
     std::unique_ptr<IronGolemEntity> ironGolem;
 };
@@ -278,7 +284,10 @@ protected:
         golem = std::make_unique<IronGolemEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
     }
 
-    void TearDown() override { golem.reset(); }
+    void TearDown() override
+    {
+        golem.reset();
+    }
 
     std::unique_ptr<IronGolemEntity> golem;
 };
@@ -322,7 +331,10 @@ namespace {
 /// vanilla 搜索半径 16 格。except 为铁傀儡自身（findClosestEntity 传入），此处忽略以简化。
 class IronGolemDefendVillageTestWorld final : public mc::test::BaseTestWorld {
 public:
-    void setNearbyVillagers(std::vector<mc::Entity*> villagers) { m_villagers = std::move(villagers); }
+    void setNearbyVillagers(std::vector<mc::Entity*> villagers)
+    {
+        m_villagers = std::move(villagers);
+    }
 
     [[nodiscard]] std::vector<mc::Entity*> getEntitiesInRange(const mc::Vector3&, f32, const mc::Entity*) const override
     {
@@ -360,7 +372,10 @@ protected:
         m_golem->targetSelector().setTickRate(1);
     }
 
-    void TearDown() override { m_golem.reset(); }
+    void TearDown() override
+    {
+        m_golem.reset();
+    }
 
     IronGolemDefendVillageTestWorld m_world;
     std::unique_ptr<mc::IronGolemEntity> m_golem;

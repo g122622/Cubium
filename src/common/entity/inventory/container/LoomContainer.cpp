@@ -118,7 +118,10 @@ void LoomContainer::_initSlots(PlayerInventory* playerInventory)
     for (i32 col = 0; col < 9; ++col) {
         addSlot(std::make_unique<Slot>(playerInventory, col, 8 + col * 18, 142));
     }
-    trackInt([this] { return getSelectedPatternIndex(); },
+    trackInt(
+        [this] {
+            return getSelectedPatternIndex();
+        },
         [this](i32 index) {
             m_selectedPattern = index >= 0 && index < static_cast<i32>(m_selectablePatterns.size())
                 ? static_cast<i32>(m_selectablePatterns[static_cast<std::size_t>(index)])
@@ -128,8 +131,12 @@ void LoomContainer::_initSlots(PlayerInventory* playerInventory)
 
 bool LoomContainer::stillValid(const Player& player) const
 {
-    if (!isWithinDistance(player, m_pos)) return false;
-    if (m_world == nullptr) return true;
+    if (!isWithinDistance(player, m_pos)) {
+        return false;
+    }
+    if (m_world == nullptr) {
+        return true;
+    }
     const auto* state = m_world->getBlockState(m_pos);
     return player.world() == m_world && state != nullptr && &state->getBlock() == VanillaBlocks::LOOM;
 }
@@ -242,7 +249,9 @@ void LoomContainer::_updateResult()
 
 bool LoomContainer::_isValidPattern(i32 patternIndex) const
 {
-    if (patternIndex <= 0 || patternIndex >= static_cast<i32>(blockentity::BannerPatternType::Count)) return false;
+    if (patternIndex <= 0 || patternIndex >= static_cast<i32>(blockentity::BannerPatternType::Count)) {
+        return false;
+    }
     return std::find(m_selectablePatterns.begin(),
                m_selectablePatterns.end(),
                static_cast<blockentity::BannerPatternType>(patternIndex)) != m_selectablePatterns.end();

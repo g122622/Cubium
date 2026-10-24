@@ -77,7 +77,10 @@ struct BannedIpEntry {
      * @brief 检查条目是否有效
      * @return true 如果 IP 不为空
      */
-    [[nodiscard]] bool isValid() const { return !ip.empty(); }
+    [[nodiscard]] bool isValid() const
+    {
+        return !ip.empty();
+    }
 
     /**
      * @brief 检查封禁是否已过期
@@ -89,7 +92,10 @@ struct BannedIpEntry {
      * @brief 获取显示名称
      * @return IP 地址
      */
-    [[nodiscard]] std::string getDisplayName() const { return ip; }
+    [[nodiscard]] std::string getDisplayName() const
+    {
+        return ip;
+    }
 };
 
 /**
@@ -237,7 +243,10 @@ public:
      * @brief 获取封禁列表文件路径
      * @return 文件路径
      */
-    [[nodiscard]] const std::filesystem::path& filePath() const { return m_filePath; }
+    [[nodiscard]] const std::filesystem::path& filePath() const
+    {
+        return m_filePath;
+    }
 
 private:
     /**

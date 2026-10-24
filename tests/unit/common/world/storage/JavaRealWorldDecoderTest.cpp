@@ -282,6 +282,7 @@ TEST_F(JavaRealWorldReaderFixture, BlockEntityPositionsMatchDecodedBlocks)
         ChunkCoord chunkZ;
         size_t expectedBlockEntities;
     };
+
     const Case cases[] = {
         {"r.0.0.mca", 8, 3, 8, 3, 19},
         {"r.0.0.mca", 8, 2, 8, 2, 18},
@@ -360,6 +361,7 @@ TEST_F(JavaRealWorldReaderFixture, UnfinishedStatusColumnReturnsEmpty)
         ChunkCoord chunkZ;
         const char* status;
     };
+
     const Case cases[] = {
         {"r.-1.0.mca", 19, 19, -13, 19, "minecraft:noise"},
         {"r.0.0.mca", 4, 18, 4, 18, "minecraft:features"},

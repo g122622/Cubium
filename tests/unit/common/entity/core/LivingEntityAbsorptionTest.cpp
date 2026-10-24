@@ -44,7 +44,10 @@ protected:
         m_living->setHealth(m_living->maxHealth());
     }
 
-    void TearDown() override { m_living.reset(); }
+    void TearDown() override
+    {
+        m_living.reset();
+    }
 
     std::unique_ptr<LivingEntity> m_living;
 };

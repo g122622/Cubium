@@ -86,8 +86,16 @@ public:
         return setBlockState(x, y, z, state);
     }
 
-    [[nodiscard]] mc::world::chunk::IChunkManager* chunkManager() override { return &m_stubChunks; }
-    [[nodiscard]] const mc::world::chunk::IChunkManager* chunkManager() const override { return &m_stubChunks; }
+    [[nodiscard]] mc::world::chunk::IChunkManager* chunkManager() override
+    {
+        return &m_stubChunks;
+    }
+
+    [[nodiscard]] const mc::world::chunk::IChunkManager* chunkManager() const override
+    {
+        return &m_stubChunks;
+    }
+
     mc::test::StubChunkManager m_stubChunks{nullptr, true};
 
     [[nodiscard]] world::tick::TickManager& tickManager() override
@@ -102,13 +110,30 @@ public:
         return *m_tickManagerPtr;
     }
 
-    void setRaining(bool raining) { m_isRaining = raining; }
-    void setThundering(bool thundering) { m_isThundering = thundering; }
+    void setRaining(bool raining)
+    {
+        m_isRaining = raining;
+    }
 
-    [[nodiscard]] bool isRaining() const override { return m_isRaining; }
-    [[nodiscard]] bool isThundering() const override { return m_isThundering; }
+    void setThundering(bool thundering)
+    {
+        m_isThundering = thundering;
+    }
 
-    void setBlockAt(const BlockPos& pos, const BlockState* state) { (void)setBlockState(pos.x, pos.y, pos.z, state); }
+    [[nodiscard]] bool isRaining() const override
+    {
+        return m_isRaining;
+    }
+
+    [[nodiscard]] bool isThundering() const override
+    {
+        return m_isThundering;
+    }
+
+    void setBlockAt(const BlockPos& pos, const BlockState* state)
+    {
+        (void)setBlockState(pos.x, pos.y, pos.z, state);
+    }
 
 private:
     std::map<BlockPos, const BlockState*> m_blocks;
@@ -154,10 +179,11 @@ TEST_F(LightningRodBlockTest, DefaultState_IsNotPowered)
     EXPECT_FALSE(state.get(BlockStateProperties::POWERED()));
 }
 
-TEST_F(LightningRodBlockTest, DefaultState_FacingNorth)
+TEST_F(LightningRodBlockTest, DefaultState_FacingUp)
 {
+    // 原版避雷针的默认朝向是 UP。
     const auto& state = lightningRod_->defaultState();
-    EXPECT_EQ(state.get(BlockStateProperties::FACING()), Direction::North);
+    EXPECT_EQ(state.get(BlockStateProperties::FACING()), Direction::Up);
 }
 
 TEST_F(LightningRodBlockTest, GetWeakPower_NotPowered_ReturnsZero)

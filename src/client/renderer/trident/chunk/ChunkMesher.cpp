@@ -94,7 +94,10 @@ public:
         t_meshPass = pass;
     }
 
-    ~MeshPassScope() { t_meshPass = m_prevPass; }
+    ~MeshPassScope()
+    {
+        t_meshPass = m_prevPass;
+    }
 
 private:
     MeshPass m_prevPass;

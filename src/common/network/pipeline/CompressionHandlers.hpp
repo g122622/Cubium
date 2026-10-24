@@ -44,7 +44,10 @@ public:
         : m_threshold(threshold)
     {}
 
-    [[nodiscard]] i32 threshold() const noexcept { return m_threshold; }
+    [[nodiscard]] i32 threshold() const noexcept
+    {
+        return m_threshold;
+    }
 
     /**
      * @brief 压缩一个包（packetID+payload）
@@ -70,7 +73,10 @@ public:
         : m_threshold(threshold)
     {}
 
-    [[nodiscard]] i32 threshold() const noexcept { return m_threshold; }
+    [[nodiscard]] i32 threshold() const noexcept
+    {
+        return m_threshold;
+    }
 
     /**
      * @brief 解压一个压缩层包

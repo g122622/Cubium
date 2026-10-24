@@ -40,11 +40,13 @@ namespace mc::world::gen::feature::predicate {
 class InsideWorldBoundsPredicate : public BlockPredicate {
 public:
     InsideWorldBoundsPredicate() = default;
+
     explicit InsideWorldBoundsPredicate(BlockPos offset) noexcept
         : m_offset(offset)
     {}
 
     [[nodiscard]] bool test(const IWorld& world, const BlockPos& pos) const override;
+
     [[nodiscard]] std::unique_ptr<BlockPredicate> clone() const override
     {
         return std::make_unique<InsideWorldBoundsPredicate>(m_offset);

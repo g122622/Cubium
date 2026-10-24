@@ -99,14 +99,20 @@ public:
         return true;
     }
 
-    [[nodiscard]] i32 getHeight(i32 /*x*/, i32 /*z*/) const override { return world::MAX_BUILD_HEIGHT; }
+    [[nodiscard]] i32 getHeight(i32 /*x*/, i32 /*z*/) const override
+    {
+        return world::MAX_BUILD_HEIGHT;
+    }
 
     [[nodiscard]] bool isWithinWorldBounds(i32, i32 y, i32) const override
     {
         return y >= world::MIN_BUILD_HEIGHT && y < world::MAX_BUILD_HEIGHT;
     }
 
-    void playEvent(i32 eventId, const BlockPos& pos, i32 data) override { m_events.push_back({eventId, pos, data}); }
+    void playEvent(i32 eventId, const BlockPos& pos, i32 data) override
+    {
+        m_events.push_back({eventId, pos, data});
+    }
 
     // ========== 实体管理 ==========
 
@@ -190,10 +196,20 @@ public:
 
     // ========== dragonFight 注入 ==========
 
-    [[nodiscard]] EndDragonFight* dragonFight() override { return m_fight; }
-    [[nodiscard]] const EndDragonFight* dragonFight() const override { return m_fight; }
+    [[nodiscard]] EndDragonFight* dragonFight() override
+    {
+        return m_fight;
+    }
 
-    void setDragonFight(EndDragonFight* fight) { m_fight = fight; }
+    [[nodiscard]] const EndDragonFight* dragonFight() const override
+    {
+        return m_fight;
+    }
+
+    void setDragonFight(EndDragonFight* fight)
+    {
+        m_fight = fight;
+    }
 
     // ========== 测试辅助 ==========
 
@@ -215,7 +231,10 @@ public:
         return crystal;
     }
 
-    [[nodiscard]] const std::vector<Vector3>& explosions() const { return m_explosions; }
+    [[nodiscard]] const std::vector<Vector3>& explosions() const
+    {
+        return m_explosions;
+    }
 
     [[nodiscard]] bool playedGrowlSound() const
     {
@@ -224,7 +243,10 @@ public:
         });
     }
 
-    [[nodiscard]] size_t explosionCount() const { return m_explosions.size(); }
+    [[nodiscard]] size_t explosionCount() const
+    {
+        return m_explosions.size();
+    }
 
     /// 获取 onSummonedEntity 调用记录（playerId, entity 指针）
     [[nodiscard]] const std::vector<std::pair<PlayerId, Entity*>>& summonedEntityCalls() const
@@ -259,6 +281,7 @@ private:
         BlockPos pos;
         i32 data;
     };
+
     std::vector<PlayEventCall> m_events;
     std::vector<Vector3> m_explosions;
     std::vector<std::pair<PlayerId, Entity*>> m_summonedEntityCalls;
@@ -816,16 +839,38 @@ TEST_F(EndDragonFightRespawnTest, SetRespawnStage_End_FiresSummonedEntityForEach
         {}
 
         void setPercent(f32 /*percent*/) override {}
+
         void setName(std::unique_ptr<text::ITextComponent> /*name*/) override {}
+
         void setVisible(bool /*visible*/) override {}
+
         void addPlayer(PlayerId /*playerId*/) override {}
+
         void removePlayer(PlayerId /*playerId*/) override {}
+
         void removeAllPlayers() override {}
+
         void replacePlayers(const std::set<PlayerId>& /*playerIds*/) override {}
-        [[nodiscard]] bool hasPlayers() const override { return !m_players.empty(); }
-        [[nodiscard]] const std::set<PlayerId>& getPlayers() const override { return m_players; }
-        [[nodiscard]] f32 percent() const override { return 0.0f; }
-        [[nodiscard]] bool visible() const override { return true; }
+
+        [[nodiscard]] bool hasPlayers() const override
+        {
+            return !m_players.empty();
+        }
+
+        [[nodiscard]] const std::set<PlayerId>& getPlayers() const override
+        {
+            return m_players;
+        }
+
+        [[nodiscard]] f32 percent() const override
+        {
+            return 0.0f;
+        }
+
+        [[nodiscard]] bool visible() const override
+        {
+            return true;
+        }
 
     private:
         std::set<PlayerId> m_players;

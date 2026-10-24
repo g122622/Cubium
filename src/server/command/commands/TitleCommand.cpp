@@ -133,7 +133,9 @@ i32 broadcastIrPacket(
 void TitleCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
 {
     auto titleNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("title");
-    titleNode->setRequirement([](const ServerCommandSource& source) { return source.hasPermission(2); });
+    titleNode->setRequirement([](const ServerCommandSource& source) {
+        return source.hasPermission(2);
+    });
     support::applyMetadata(titleNode,
         support::makeMetadata("Controls screen title display.",
             "/title <player> (clear|reset|title|subtitle|actionbar|times) ...",
@@ -147,31 +149,41 @@ void TitleCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher
 
     // clear 子命令
     auto clearNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("clear");
-    clearNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _clearTitle(ctx); });
+    clearNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _clearTitle(ctx);
+    });
 
     // reset 子命令
     auto resetNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("reset");
-    resetNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _resetTitle(ctx); });
+    resetNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _resetTitle(ctx);
+    });
 
     // title <json> 子命令
     auto titleTextNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("title");
     auto titleJsonNode = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
         "json", StringArgumentType::greedyString());
-    titleJsonNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _setTitle(ctx); });
+    titleJsonNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _setTitle(ctx);
+    });
     titleTextNode->addChild(titleJsonNode);
 
     // subtitle <json> 子命令
     auto subtitleNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("subtitle");
     auto subtitleJsonNode = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
         "json", StringArgumentType::greedyString());
-    subtitleJsonNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _setSubtitle(ctx); });
+    subtitleJsonNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _setSubtitle(ctx);
+    });
     subtitleNode->addChild(subtitleJsonNode);
 
     // actionbar <json> 子命令
     auto actionbarNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("actionbar");
     auto actionbarJsonNode = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
         "json", StringArgumentType::greedyString());
-    actionbarJsonNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _setActionbar(ctx); });
+    actionbarJsonNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _setActionbar(ctx);
+    });
     actionbarNode->addChild(actionbarJsonNode);
 
     // times <fadeIn> <stay> <fadeOut> 子命令
@@ -181,7 +193,9 @@ void TitleCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher
     auto stayNode = std::make_shared<ArgumentCommandNode<ServerCommandSource, i32>>("stay", TimeArgumentType::time());
     auto fadeOutNode =
         std::make_shared<ArgumentCommandNode<ServerCommandSource, i32>>("fadeOut", TimeArgumentType::time());
-    fadeOutNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _setTimes(ctx); });
+    fadeOutNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _setTimes(ctx);
+    });
 
     fadeInNode->addChild(stayNode);
     stayNode->addChild(fadeOutNode);

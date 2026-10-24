@@ -478,11 +478,21 @@ bool VineBlock::_canAttachTo(IBlockReader& world, const BlockPos& pos, Direction
 i32 VineBlock::_getConnectionCount(const BlockState& state) const
 {
     i32 count = 0;
-    if (state.get(BlockStateProperties::UP())) count++;
-    if (state.get(BlockStateProperties::NORTH())) count++;
-    if (state.get(BlockStateProperties::SOUTH())) count++;
-    if (state.get(BlockStateProperties::EAST())) count++;
-    if (state.get(BlockStateProperties::WEST())) count++;
+    if (state.get(BlockStateProperties::UP())) {
+        count++;
+    }
+    if (state.get(BlockStateProperties::NORTH())) {
+        count++;
+    }
+    if (state.get(BlockStateProperties::SOUTH())) {
+        count++;
+    }
+    if (state.get(BlockStateProperties::EAST())) {
+        count++;
+    }
+    if (state.get(BlockStateProperties::WEST())) {
+        count++;
+    }
     return count;
 }
 

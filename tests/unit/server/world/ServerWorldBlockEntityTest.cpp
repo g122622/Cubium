@@ -46,14 +46,27 @@ public:
         : BlockEntity(BlockEntityType::Chest, pos)
     {}
 
-    void tick(IWorld& world) override { MC_UNUSED(world); }
-    [[nodiscard]] bool needsTick() const noexcept override { return false; }
+    void tick(IWorld& world) override
+    {
+        MC_UNUSED(world);
+    }
+
+    [[nodiscard]] bool needsTick() const noexcept override
+    {
+        return false;
+    }
+
     bool load(const nlohmann::json& data) override
     {
         MC_UNUSED(data);
         return true;
     }
-    void save(nlohmann::json& data) const override { MC_UNUSED(data); }
+
+    void save(nlohmann::json& data) const override
+    {
+        MC_UNUSED(data);
+    }
+
     [[nodiscard]] std::unique_ptr<BlockEntity> clone() const override
     {
         return std::make_unique<TestBlockEntity>(getPos());

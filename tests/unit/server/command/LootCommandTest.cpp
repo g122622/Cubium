@@ -52,9 +52,15 @@ public:
     // 这样 source.world() 经 dimensionManager().getDimension() 返回 nullptr，
     // 命令走 "World not available" 分支返回 0，避免 BaseTestServer 默认实现
     // 抛 std::logic_error 进而在 noexcept 的 world() 中触发 std::terminate。
-    [[nodiscard]] ServerDimensionManager& dimensionManager() override { return m_dimensionManager; }
+    [[nodiscard]] ServerDimensionManager& dimensionManager() override
+    {
+        return m_dimensionManager;
+    }
 
-    [[nodiscard]] const ServerDimensionManager& dimensionManager() const override { return m_dimensionManager; }
+    [[nodiscard]] const ServerDimensionManager& dimensionManager() const override
+    {
+        return m_dimensionManager;
+    }
 
 private:
     // 真实 ServerDimensionManager（nullptr 构造：仅用于 getPlayerDimension 等 map 查询，不调
@@ -66,7 +72,10 @@ private:
 
 class LootCommandTest : public ::testing::Test {
 protected:
-    void SetUp() override { LootCommand::registerTo(m_server.commandRegistry().dispatcher()); }
+    void SetUp() override
+    {
+        LootCommand::registerTo(m_server.commandRegistry().dispatcher());
+    }
 
     LootTestServer m_server;
     ServerCommandSource m_console = ServerCommandSource::forConsole(&m_server);

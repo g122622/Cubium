@@ -48,10 +48,21 @@ public:
 
     [[nodiscard]] ItemStack apply(ItemStack stack, LootContext& context) const override;
     [[nodiscard]] std::unique_ptr<LootFunction> clone() const noexcept override;
-    [[nodiscard]] std::string getType() const override { return "set_loot_table"; }
 
-    [[nodiscard]] const std::string& getLootTableId() const { return m_lootTableId; }
-    [[nodiscard]] u64 getSeed() const { return m_seed; }
+    [[nodiscard]] std::string getType() const override
+    {
+        return "set_loot_table";
+    }
+
+    [[nodiscard]] const std::string& getLootTableId() const
+    {
+        return m_lootTableId;
+    }
+
+    [[nodiscard]] u64 getSeed() const
+    {
+        return m_seed;
+    }
 
 private:
     std::string m_lootTableId;

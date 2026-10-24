@@ -264,6 +264,7 @@ TEST(StreamCodecs, MemberCodecRoundTrip)
 TEST(StreamCodecs, UnitCodecRoundTrip)
 {
     struct Empty {};
+
     auto codec = unit<Empty>();
     B buf;
     Empty src;

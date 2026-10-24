@@ -82,7 +82,10 @@ public:
     /**
      * @brief 获取重力加速度
      */
-    f32 getGravity() const override { return 0.03f; }
+    f32 getGravity() const override
+    {
+        return 0.03f;
+    }
 
 protected:
     /**

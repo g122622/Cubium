@@ -76,7 +76,10 @@ public:
     /**
      * @brief 创建成功结果（不携带物品转换）
      */
-    [[nodiscard]] static BlockActionResult success() { return BlockActionResult(ActionResultType::Success); }
+    [[nodiscard]] static BlockActionResult success()
+    {
+        return BlockActionResult(ActionResultType::Success);
+    }
 
     /**
      * @brief 创建成功结果，携带转换后的手持物品
@@ -90,7 +93,10 @@ public:
     /**
      * @brief 创建消耗结果（不携带物品转换）
      */
-    [[nodiscard]] static BlockActionResult consume() { return BlockActionResult(ActionResultType::Consume); }
+    [[nodiscard]] static BlockActionResult consume()
+    {
+        return BlockActionResult(ActionResultType::Consume);
+    }
 
     /**
      * @brief 创建消耗结果，携带转换后的手持物品
@@ -104,12 +110,18 @@ public:
     /**
      * @brief 创建失败结果
      */
-    [[nodiscard]] static BlockActionResult fail() { return BlockActionResult(ActionResultType::Fail); }
+    [[nodiscard]] static BlockActionResult fail()
+    {
+        return BlockActionResult(ActionResultType::Fail);
+    }
 
     /**
      * @brief 创建传递结果
      */
-    [[nodiscard]] static BlockActionResult pass() { return BlockActionResult(ActionResultType::Pass); }
+    [[nodiscard]] static BlockActionResult pass()
+    {
+        return BlockActionResult(ActionResultType::Pass);
+    }
 
     /**
      * @brief 创建"请以空手语义重试"结果（对应 vanilla `InteractionResult.TRY_WITH_EMPTY_HAND`）
@@ -165,7 +177,10 @@ public:
     /**
      * @brief 获取结果类型
      */
-    [[nodiscard]] ActionResultType getType() const noexcept { return m_type; }
+    [[nodiscard]] ActionResultType getType() const noexcept
+    {
+        return m_type;
+    }
 
     /**
      * @brief 获取转换后的手持物品（如果存在）
@@ -183,22 +198,34 @@ public:
     /**
      * @brief 是否成功
      */
-    [[nodiscard]] bool isSuccess() const noexcept { return m_type == ActionResultType::Success; }
+    [[nodiscard]] bool isSuccess() const noexcept
+    {
+        return m_type == ActionResultType::Success;
+    }
 
     /**
      * @brief 是否消耗
      */
-    [[nodiscard]] bool isConsume() const noexcept { return m_type == ActionResultType::Consume; }
+    [[nodiscard]] bool isConsume() const noexcept
+    {
+        return m_type == ActionResultType::Consume;
+    }
 
     /**
      * @brief 是否失败
      */
-    [[nodiscard]] bool isFail() const noexcept { return m_type == ActionResultType::Fail; }
+    [[nodiscard]] bool isFail() const noexcept
+    {
+        return m_type == ActionResultType::Fail;
+    }
 
     /**
      * @brief 是否传递
      */
-    [[nodiscard]] bool isPass() const noexcept { return m_type == ActionResultType::Pass; }
+    [[nodiscard]] bool isPass() const noexcept
+    {
+        return m_type == ActionResultType::Pass;
+    }
 
     /**
      * @brief 是否成功或消耗（表示动作已处理）
@@ -206,7 +233,10 @@ public:
      * 等价于 `consumesAction()`：`Success` / `Consume` / `SuccessServer` / `SuccessServerWithoutItem`
      * 均表示动作已被处理，`TryEmptyHandInteraction` / `Fail` / `Pass` 不是。
      */
-    [[nodiscard]] bool isSuccessOrConsume() const noexcept { return consumesAction(); }
+    [[nodiscard]] bool isSuccessOrConsume() const noexcept
+    {
+        return consumesAction();
+    }
 
     /// @copydoc ActionResultType::consumesAction
     [[nodiscard]] bool consumesAction() const noexcept
@@ -236,7 +266,10 @@ public:
     /**
      * @brief 是否携带了物品转换信息
      */
-    [[nodiscard]] bool hasHeldItemTransformed() const noexcept { return m_heldItemTransformed.has_value(); }
+    [[nodiscard]] bool hasHeldItemTransformed() const noexcept
+    {
+        return m_heldItemTransformed.has_value();
+    }
 
     /**
      * @brief 与 `ActionResultType` 相等比较

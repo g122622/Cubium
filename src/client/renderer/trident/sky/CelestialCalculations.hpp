@@ -195,13 +195,19 @@ public:
      * @brief 获取星星生成种子
      * @return 星星位置随机种子
      */
-    [[nodiscard]] static constexpr i64 getStarSeed() { return 10842LL; }
+    [[nodiscard]] static constexpr i64 getStarSeed()
+    {
+        return 10842LL;
+    }
 
     /**
      * @brief 获取星星数量
      * @return 星星数量 (~1500)
      */
-    [[nodiscard]] static constexpr i32 getStarCount() { return 1500; }
+    [[nodiscard]] static constexpr i32 getStarCount()
+    {
+        return 1500;
+    }
 
 private:
     /// 主世界默认天空色 (#78A7FF)

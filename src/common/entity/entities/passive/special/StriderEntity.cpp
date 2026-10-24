@@ -474,7 +474,9 @@ void StriderEntity::registerGoals()
         1.4,
         [](const ItemStack& stack) -> bool {
             const Item* item = stack.getItem();
-            if (item == nullptr) return false;
+            if (item == nullptr) {
+                return false;
+            }
             // 检查是否为诡异菌或诡异菌钓竿
             // 注意：Items 可能在初始化期间为 nullptr
             if (Items::WARPED_FUNGUS != nullptr && item == Items::WARPED_FUNGUS) {

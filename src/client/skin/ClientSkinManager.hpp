@@ -80,14 +80,20 @@ public:
      *
      * 必须在 initialize() 之前调用。图集须已 build()。图集生命周期由 TridentEngine 管理。
      */
-    void setTextureAtlas(renderer::entity::pipeline::EntityTextureAtlas* atlas) { m_uploader.setTextureAtlas(atlas); }
+    void setTextureAtlas(renderer::entity::pipeline::EntityTextureAtlas* atlas)
+    {
+        m_uploader.setTextureAtlas(atlas);
+    }
 
     /**
      * @brief 注入玩家身份注册表（UUID↔entityId 映射）
      *
      * 必须在 getSkinRegionForEntity 被调用前注入。生命周期由 ClientApplicationSession 管理。
      */
-    void setIdentityRegistry(PlayerIdentityRegistry* registry) { m_identityRegistry = registry; }
+    void setIdentityRegistry(PlayerIdentityRegistry* registry)
+    {
+        m_identityRegistry = registry;
+    }
 
     /**
      * @brief 初始化客户端皮肤管理器

@@ -50,7 +50,10 @@ public:
      */
     [[nodiscard]] Result<void> init(const std::array<u8, crypto::kSharedSecretBytes>& key);
 
-    [[nodiscard]] bool isActive() const noexcept { return m_cipher.isValid(); }
+    [[nodiscard]] bool isActive() const noexcept
+    {
+        return m_cipher.isValid();
+    }
 
     /**
      * @brief 加密 input，输出等长密文
@@ -72,7 +75,10 @@ public:
 
     [[nodiscard]] Result<void> init(const std::array<u8, crypto::kSharedSecretBytes>& key);
 
-    [[nodiscard]] bool isActive() const noexcept { return m_cipher.isValid(); }
+    [[nodiscard]] bool isActive() const noexcept
+    {
+        return m_cipher.isValid();
+    }
 
     [[nodiscard]] Result<void> decode(const std::vector<u8>& input, std::vector<u8>& output);
 

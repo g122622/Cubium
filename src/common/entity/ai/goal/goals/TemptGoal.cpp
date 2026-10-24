@@ -56,7 +56,9 @@ TemptGoal::TemptGoal(CreatureEntity* creature, f64 speed, ItemPredicate itemPred
 
 bool TemptGoal::shouldExecute()
 {
-    if (!m_creature) return false;
+    if (!m_creature) {
+        return false;
+    }
 
     // 检查冷却
     if (m_delayTemptCounter > 0) {
@@ -71,10 +73,14 @@ bool TemptGoal::shouldExecute()
 
 bool TemptGoal::shouldContinueExecuting()
 {
-    if (!m_creature || !m_temptingPlayer) return false;
+    if (!m_creature || !m_temptingPlayer) {
+        return false;
+    }
 
     // 检查玩家是否存活
-    if (!m_temptingPlayer->isAlive()) return false;
+    if (!m_temptingPlayer->isAlive()) {
+        return false;
+    }
 
     // 检查玩家手持物品
     const ItemStack& mainHand = m_temptingPlayer->getHeldItem(Hand::MainHand);
@@ -125,7 +131,9 @@ bool TemptGoal::shouldContinueExecuting()
 
 void TemptGoal::startExecuting()
 {
-    if (!m_temptingPlayer) return;
+    if (!m_temptingPlayer) {
+        return;
+    }
 
     // 记录玩家初始位置和视角
     m_targetX = m_temptingPlayer->x();
@@ -152,7 +160,9 @@ void TemptGoal::resetTask()
 
 void TemptGoal::tick()
 {
-    if (!m_creature || !m_temptingPlayer) return;
+    if (!m_creature || !m_temptingPlayer) {
+        return;
+    }
 
     // 移除或析构的引用会自动失效；此处同时处理尚未移除的死亡目标。
     if (!m_temptingPlayer->isAlive()) {
@@ -195,7 +205,9 @@ bool TemptGoal::isScaredByPlayerMovement() const
 
 Player* TemptGoal::findTemptingPlayer()
 {
-    if (!m_creature || !m_creature->world()) return nullptr;
+    if (!m_creature || !m_creature->world()) {
+        return nullptr;
+    }
 
     // 搜索附近手持诱惑物品的玩家
     return EntityUtils::findClosestEntity<Player>(

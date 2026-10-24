@@ -92,19 +92,44 @@ public:
  */
 class ConstantInt final : public IntProvider {
 public:
-    static std::unique_ptr<ConstantInt> create(i32 value) { return std::make_unique<ConstantInt>(value); }
+    static std::unique_ptr<ConstantInt> create(i32 value)
+    {
+        return std::make_unique<ConstantInt>(value);
+    }
 
     explicit ConstantInt(i32 value)
         : m_value(value)
     {}
 
-    [[nodiscard]] i32 sample(math::IRandom& /*rng*/) const override { return m_value; }
-    [[nodiscard]] i32 getMinValue() const override { return m_value; }
-    [[nodiscard]] i32 getMaxValue() const override { return m_value; }
-    [[nodiscard]] const char* getTypeName() const override { return "constant"; }
-    [[nodiscard]] std::unique_ptr<IntProvider> clone() const override { return std::make_unique<ConstantInt>(m_value); }
+    [[nodiscard]] i32 sample(math::IRandom& /*rng*/) const override
+    {
+        return m_value;
+    }
 
-    [[nodiscard]] i32 getValue() const { return m_value; }
+    [[nodiscard]] i32 getMinValue() const override
+    {
+        return m_value;
+    }
+
+    [[nodiscard]] i32 getMaxValue() const override
+    {
+        return m_value;
+    }
+
+    [[nodiscard]] const char* getTypeName() const override
+    {
+        return "constant";
+    }
+
+    [[nodiscard]] std::unique_ptr<IntProvider> clone() const override
+    {
+        return std::make_unique<ConstantInt>(m_value);
+    }
+
+    [[nodiscard]] i32 getValue() const
+    {
+        return m_value;
+    }
 
 private:
     i32 m_value;
@@ -140,9 +165,21 @@ public:
         return m_min + rng.nextInt(m_max - m_min + 1);
     }
 
-    [[nodiscard]] i32 getMinValue() const override { return m_min; }
-    [[nodiscard]] i32 getMaxValue() const override { return m_max; }
-    [[nodiscard]] const char* getTypeName() const override { return "uniform"; }
+    [[nodiscard]] i32 getMinValue() const override
+    {
+        return m_min;
+    }
+
+    [[nodiscard]] i32 getMaxValue() const override
+    {
+        return m_max;
+    }
+
+    [[nodiscard]] const char* getTypeName() const override
+    {
+        return "uniform";
+    }
+
     [[nodiscard]] std::unique_ptr<IntProvider> clone() const override
     {
         return std::make_unique<UniformInt>(m_min, m_max);
@@ -187,9 +224,21 @@ public:
         return m_min + rng.nextInt(rng.nextInt(range) + 1);
     }
 
-    [[nodiscard]] i32 getMinValue() const override { return m_min; }
-    [[nodiscard]] i32 getMaxValue() const override { return m_max; }
-    [[nodiscard]] const char* getTypeName() const override { return "biased_to_bottom"; }
+    [[nodiscard]] i32 getMinValue() const override
+    {
+        return m_min;
+    }
+
+    [[nodiscard]] i32 getMaxValue() const override
+    {
+        return m_max;
+    }
+
+    [[nodiscard]] const char* getTypeName() const override
+    {
+        return "biased_to_bottom";
+    }
+
     [[nodiscard]] std::unique_ptr<IntProvider> clone() const override
     {
         return std::make_unique<BiasedToBottomInt>(m_min, m_max);
@@ -229,9 +278,21 @@ public:
         return std::clamp(m_source->sample(rng), m_min, m_max);
     }
 
-    [[nodiscard]] i32 getMinValue() const override { return m_min; }
-    [[nodiscard]] i32 getMaxValue() const override { return m_max; }
-    [[nodiscard]] const char* getTypeName() const override { return "clamped"; }
+    [[nodiscard]] i32 getMinValue() const override
+    {
+        return m_min;
+    }
+
+    [[nodiscard]] i32 getMaxValue() const override
+    {
+        return m_max;
+    }
+
+    [[nodiscard]] const char* getTypeName() const override
+    {
+        return "clamped";
+    }
+
     [[nodiscard]] std::unique_ptr<IntProvider> clone() const override
     {
         return std::make_unique<ClampedInt>(m_source ? m_source->clone() : nullptr, m_min, m_max);
@@ -277,12 +338,30 @@ public:
         return std::clamp(value, m_min, m_max);
     }
 
-    [[nodiscard]] i32 getMinValue() const override { return m_min; }
-    [[nodiscard]] i32 getMaxValue() const override { return m_max; }
-    [[nodiscard]] const char* getTypeName() const override { return "clamped_normal"; }
+    [[nodiscard]] i32 getMinValue() const override
+    {
+        return m_min;
+    }
 
-    [[nodiscard]] f64 getMean() const { return m_mean; }
-    [[nodiscard]] f64 getDeviation() const { return m_deviation; }
+    [[nodiscard]] i32 getMaxValue() const override
+    {
+        return m_max;
+    }
+
+    [[nodiscard]] const char* getTypeName() const override
+    {
+        return "clamped_normal";
+    }
+
+    [[nodiscard]] f64 getMean() const
+    {
+        return m_mean;
+    }
+
+    [[nodiscard]] f64 getDeviation() const
+    {
+        return m_deviation;
+    }
 
     [[nodiscard]] std::unique_ptr<IntProvider> clone() const override
     {
@@ -367,7 +446,10 @@ public:
         return maxVal;
     }
 
-    [[nodiscard]] const char* getTypeName() const override { return "weighted_list"; }
+    [[nodiscard]] const char* getTypeName() const override
+    {
+        return "weighted_list";
+    }
 
     [[nodiscard]] std::unique_ptr<IntProvider> clone() const override
     {

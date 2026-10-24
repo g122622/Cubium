@@ -92,16 +92,44 @@ public:
     // ITask 接口
     bool execute(const std::atomic<bool>& abortSignal) override;
     void onCancel() override;
-    util::TaskType type() const override { return util::TaskType::ChunkGenerate; }
-    std::string description() const override;
-    const char* traceCategory() const override { return "world.chunk_gen"; }
 
-    [[nodiscard]] ChunkCoord x() const noexcept { return m_x; }
-    [[nodiscard]] ChunkCoord z() const noexcept { return m_z; }
-    [[nodiscard]] const ChunkStatus& toStatus() const noexcept { return *m_toStatus; }
-    [[nodiscard]] i32 writeRadius() const noexcept { return m_writeRadius; }
+    util::TaskType type() const override
+    {
+        return util::TaskType::ChunkGenerate;
+    }
+
+    std::string description() const override;
+
+    const char* traceCategory() const override
+    {
+        return "world.chunk_gen";
+    }
+
+    [[nodiscard]] ChunkCoord x() const noexcept
+    {
+        return m_x;
+    }
+
+    [[nodiscard]] ChunkCoord z() const noexcept
+    {
+        return m_z;
+    }
+
+    [[nodiscard]] const ChunkStatus& toStatus() const noexcept
+    {
+        return *m_toStatus;
+    }
+
+    [[nodiscard]] i32 writeRadius() const noexcept
+    {
+        return m_writeRadius;
+    }
+
     /** @brief 是否已开始修改区块；读取和写入均须持有中心调度区域锁。 */
-    [[nodiscard]] bool hasStarted() const noexcept { return m_started; }
+    [[nodiscard]] bool hasStarted() const noexcept
+    {
+        return m_started;
+    }
 
 private:
     /**

@@ -34,6 +34,7 @@ using namespace mc;
 class EntityTexturePathTest : public ::testing::Test {
 protected:
     void SetUp() override {}
+
     void TearDown() override {}
 };
 

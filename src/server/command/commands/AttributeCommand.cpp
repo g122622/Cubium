@@ -150,7 +150,9 @@ std::string AttributeCommand::_getEntityDisplayName(LivingEntity* livingEntity)
 void AttributeCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
 {
     auto attributeNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("attribute");
-    attributeNode->setRequirement([](const ServerCommandSource& source) { return source.hasPermission(2); });
+    attributeNode->setRequirement([](const ServerCommandSource& source) {
+        return source.hasPermission(2);
+    });
     support::applyMetadata(attributeNode,
         support::makeMetadata("Gets, sets, or resets an entity attribute.",
             "/attribute <target> <attribute> (get|base|modifier)",
@@ -170,11 +172,15 @@ void AttributeCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispat
     // /attribute <target> <attribute> get [scale]
     // ============================================================================
     auto getNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("get");
-    getNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _getAttribute(ctx); });
+    getNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _getAttribute(ctx);
+    });
 
     auto getScaleArg =
         std::make_shared<ArgumentCommandNode<ServerCommandSource, f32>>("scale", FloatArgumentType::floatArg());
-    getScaleArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _getAttributeWithScale(ctx); });
+    getScaleArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _getAttributeWithScale(ctx);
+    });
 
     getNode->addChild(getScaleArg);
 
@@ -187,21 +193,29 @@ void AttributeCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispat
     auto baseSetNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("set");
     auto baseSetValueArg =
         std::make_shared<ArgumentCommandNode<ServerCommandSource, f32>>("value", FloatArgumentType::floatArg());
-    baseSetValueArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _setBaseValue(ctx); });
+    baseSetValueArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _setBaseValue(ctx);
+    });
     baseSetNode->addChild(baseSetValueArg);
 
     // /attribute <target> <attribute> base get [scale]
     auto baseGetNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("get");
-    baseGetNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _getBaseValue(ctx); });
+    baseGetNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _getBaseValue(ctx);
+    });
 
     auto baseGetScaleArg =
         std::make_shared<ArgumentCommandNode<ServerCommandSource, f32>>("scale", FloatArgumentType::floatArg());
-    baseGetScaleArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _getBaseValueWithScale(ctx); });
+    baseGetScaleArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _getBaseValueWithScale(ctx);
+    });
     baseGetNode->addChild(baseGetScaleArg);
 
     // /attribute <target> <attribute> base reset
     auto baseResetNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("reset");
-    baseResetNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _resetBaseValue(ctx); });
+    baseResetNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _resetBaseValue(ctx);
+    });
 
     baseNode->addChild(baseSetNode);
     baseNode->addChild(baseGetNode);
@@ -222,15 +236,19 @@ void AttributeCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispat
         std::make_shared<ArgumentCommandNode<ServerCommandSource, f32>>("value", FloatArgumentType::floatArg());
 
     auto addValueNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("add_value");
-    addValueNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _addModifierAddValue(ctx); });
+    addValueNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _addModifierAddValue(ctx);
+    });
 
     auto addMultipliedBaseNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("add_multiplied_base");
-    addMultipliedBaseNode->setCommand(
-        [](CommandContext<ServerCommandSource>& ctx) { return _addModifierMultiplyBase(ctx); });
+    addMultipliedBaseNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _addModifierMultiplyBase(ctx);
+    });
 
     auto addMultipliedTotalNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("add_multiplied_total");
-    addMultipliedTotalNode->setCommand(
-        [](CommandContext<ServerCommandSource>& ctx) { return _addModifierMultiplyTotal(ctx); });
+    addMultipliedTotalNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _addModifierMultiplyTotal(ctx);
+    });
 
     modifierValueArg->addChild(addValueNode);
     modifierValueArg->addChild(addMultipliedBaseNode);
@@ -243,7 +261,9 @@ void AttributeCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispat
 
     auto removeIdArg =
         std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>("id", StringArgumentType::string());
-    removeIdArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _removeModifier(ctx); });
+    removeIdArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _removeModifier(ctx);
+    });
     modifierRemoveNode->addChild(removeIdArg);
 
     // /attribute <target> <attribute> modifier value get <id> [scale]
@@ -253,12 +273,15 @@ void AttributeCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispat
 
     auto modifierValueGetIdArg =
         std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>("id", StringArgumentType::string());
-    modifierValueGetIdArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _getModifierValue(ctx); });
+    modifierValueGetIdArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _getModifierValue(ctx);
+    });
 
     auto modifierValueGetScaleArg =
         std::make_shared<ArgumentCommandNode<ServerCommandSource, f32>>("scale", FloatArgumentType::floatArg());
-    modifierValueGetScaleArg->setCommand(
-        [](CommandContext<ServerCommandSource>& ctx) { return _getModifierValueWithScale(ctx); });
+    modifierValueGetScaleArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _getModifierValueWithScale(ctx);
+    });
 
     modifierValueGetIdArg->addChild(modifierValueGetScaleArg);
     modifierValueGetNode->addChild(modifierValueGetIdArg);

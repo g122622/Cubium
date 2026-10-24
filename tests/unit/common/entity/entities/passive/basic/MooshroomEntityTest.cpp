@@ -86,8 +86,15 @@ public:
     }
 
     // 客户端/服务端模式控制
-    [[nodiscard]] bool isClientSide() const override { return m_isClientSide; }
-    void setClientSide(bool clientSide) { m_isClientSide = clientSide; }
+    [[nodiscard]] bool isClientSide() const override
+    {
+        return m_isClientSide;
+    }
+
+    void setClientSide(bool clientSide)
+    {
+        m_isClientSide = clientSide;
+    }
 
     EntityInstanceId spawnEntity(std::unique_ptr<Entity> entity) override
     {
@@ -100,6 +107,7 @@ public:
     {
         throw std::runtime_error("MooshroomTestWorld::tickManager not implemented");
     }
+
     [[nodiscard]] const world::tick::TickManager& tickManager() const override
     {
         throw std::runtime_error("MooshroomTestWorld::tickManager not implemented");
@@ -148,13 +156,35 @@ public:
     }
 
     // 测试辅助方法
-    [[nodiscard]] size_t particleCount() const { return m_particles.size(); }
-    [[nodiscard]] const std::vector<ParticleInfo>& particles() const { return m_particles; }
-    void clearParticles() { m_particles.clear(); }
+    [[nodiscard]] size_t particleCount() const
+    {
+        return m_particles.size();
+    }
 
-    [[nodiscard]] size_t soundCount() const { return m_sounds.size(); }
-    [[nodiscard]] const std::vector<SoundInfo>& sounds() const { return m_sounds; }
-    void clearSounds() { m_sounds.clear(); }
+    [[nodiscard]] const std::vector<ParticleInfo>& particles() const
+    {
+        return m_particles;
+    }
+
+    void clearParticles()
+    {
+        m_particles.clear();
+    }
+
+    [[nodiscard]] size_t soundCount() const
+    {
+        return m_sounds.size();
+    }
+
+    [[nodiscard]] const std::vector<SoundInfo>& sounds() const
+    {
+        return m_sounds;
+    }
+
+    void clearSounds()
+    {
+        m_sounds.clear();
+    }
 
 private:
     std::unordered_map<BlockPos, std::unique_ptr<BlockState>> m_blocks;

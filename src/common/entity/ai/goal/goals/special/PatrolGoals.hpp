@@ -77,7 +77,10 @@ public:
     void startExecuting() override;
     void tick() override;
 
-    [[nodiscard]] std::string getTypeName() const override { return "PatrolGoal"; }
+    [[nodiscard]] std::string getTypeName() const override
+    {
+        return "PatrolGoal";
+    }
 
     // MC 1.16.5 常量（公开以便测试）
     static constexpr f64 ARRIVAL_THRESHOLD = 10.0;          // 到达目标阈值（格）

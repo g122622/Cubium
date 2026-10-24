@@ -81,12 +81,18 @@ public:
     /**
      * @brief 获取物品组类型
      */
-    [[nodiscard]] Type getType() const { return m_type; }
+    [[nodiscard]] Type getType() const
+    {
+        return m_type;
+    }
 
     /**
      * @brief 获取物品组ID
      */
-    [[nodiscard]] const std::string& getId() const { return m_id; }
+    [[nodiscard]] const std::string& getId() const
+    {
+        return m_id;
+    }
 
     /**
      * @brief 获取物品组图标
@@ -111,7 +117,10 @@ public:
      * @brief 设置填充函数
      * @param fillFunc 填充函数
      */
-    void setFillFunction(std::function<void(std::vector<ItemStack>&)> fillFunc) { m_fillFunc = std::move(fillFunc); }
+    void setFillFunction(std::function<void(std::vector<ItemStack>&)> fillFunc)
+    {
+        m_fillFunc = std::move(fillFunc);
+    }
 
     /**
      * @brief 设置图标物品
@@ -122,12 +131,18 @@ public:
     /**
      * @brief 是否在第一列
      */
-    [[nodiscard]] bool isFirstColumn() const { return static_cast<i32>(m_type) <= 5; }
+    [[nodiscard]] bool isFirstColumn() const
+    {
+        return static_cast<i32>(m_type) <= 5;
+    }
 
     /**
      * @brief 获取标签页索引
      */
-    [[nodiscard]] i32 getTabIndex() const { return static_cast<i32>(m_type); }
+    [[nodiscard]] i32 getTabIndex() const
+    {
+        return static_cast<i32>(m_type);
+    }
 
 private:
     Type m_type;

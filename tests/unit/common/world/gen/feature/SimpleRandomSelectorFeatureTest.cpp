@@ -50,23 +50,54 @@ namespace {
 class StubGenerator : public IChunkGenerator {
 public:
     void generateStructureStarts(WorldGenRegion& /*region*/, ChunkPrimer& /*chunk*/) override {}
+
     void generateStructureReferences(WorldGenRegion& /*region*/, ChunkPrimer& /*chunk*/) override {}
+
     void generateBiomes(WorldGenRegion& /*region*/, ChunkPrimer& /*chunk*/) override {}
+
     void generateNoise(WorldGenRegion& /*region*/, ChunkPrimer& /*chunk*/) override {}
+
     void buildSurface(WorldGenRegion& /*region*/, ChunkPrimer& /*chunk*/) override {}
+
     void applyCarvers(WorldGenRegion& /*region*/, ChunkPrimer& /*chunk*/) override {}
+
     void placeFeatures(WorldGenRegion& /*region*/, ChunkPrimer& /*chunk*/) override {}
+
     i32 spawnInitialMobs(
         WorldGenRegion& /*region*/, ChunkPrimer& /*chunk*/, std::vector<SpawnedEntityData>& /*outEntities*/) override
     {
         return 0;
     }
-    [[nodiscard]] BiomeId getBiome(i32 /*x*/, i32 /*y*/, i32 /*z*/) const override { return 0; }
-    [[nodiscard]] BiomeId getNoiseBiome(i32 /*noiseX*/, i32 /*noiseY*/, i32 /*noiseZ*/) const override { return 0; }
-    [[nodiscard]] i32 getHeight(i32 /*x*/, i32 /*z*/, HeightmapType /*type*/) const override { return 64; }
-    [[nodiscard]] u64 seed() const override { return 0; }
-    [[nodiscard]] const DimensionSettings& settings() const override { return DimensionSettings::overworld(); }
-    [[nodiscard]] i32 seaLevel() const override { return 63; }
+
+    [[nodiscard]] BiomeId getBiome(i32 /*x*/, i32 /*y*/, i32 /*z*/) const override
+    {
+        return 0;
+    }
+
+    [[nodiscard]] BiomeId getNoiseBiome(i32 /*noiseX*/, i32 /*noiseY*/, i32 /*noiseZ*/) const override
+    {
+        return 0;
+    }
+
+    [[nodiscard]] i32 getHeight(i32 /*x*/, i32 /*z*/, HeightmapType /*type*/) const override
+    {
+        return 64;
+    }
+
+    [[nodiscard]] u64 seed() const override
+    {
+        return 0;
+    }
+
+    [[nodiscard]] const DimensionSettings& settings() const override
+    {
+        return DimensionSettings::overworld();
+    }
+
+    [[nodiscard]] i32 seaLevel() const override
+    {
+        return 63;
+    }
 };
 
 } // namespace
@@ -98,7 +129,10 @@ protected:
         m_ownedChunks.clear();
     }
 
-    ChunkPrimer& centerChunk() { return *m_ownedChunks[4]; }
+    ChunkPrimer& centerChunk()
+    {
+        return *m_ownedChunks[4];
+    }
 
     /// 构造一个内联 simple_block feature 对象（simple_state_provider 单一方块）。
     static nlohmann::json inlineSimpleBlock(const std::string& blockName)

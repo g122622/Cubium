@@ -73,7 +73,10 @@ public:
     void resetTask() override;
     void tick() override;
 
-    [[nodiscard]] std::string getTypeName() const override { return "BreezeShootGoal"; }
+    [[nodiscard]] std::string getTypeName() const override
+    {
+        return "BreezeShootGoal";
+    }
 
 private:
     BreezeEntity* m_breeze;
@@ -127,7 +130,10 @@ public:
     void resetTask() override;
     void tick() override;
 
-    [[nodiscard]] std::string getTypeName() const override { return "BreezeLongJumpGoal"; }
+    [[nodiscard]] std::string getTypeName() const override
+    {
+        return "BreezeLongJumpGoal";
+    }
 
 private:
     /**
@@ -214,7 +220,10 @@ public:
     void startExecuting() override;
     void resetTask() override;
 
-    [[nodiscard]] std::string getTypeName() const override { return "BreezeSlideGoal"; }
+    [[nodiscard]] std::string getTypeName() const override
+    {
+        return "BreezeSlideGoal";
+    }
 
 private:
     /**
@@ -281,7 +290,10 @@ public:
     [[nodiscard]] bool shouldContinueExecuting() override;
     void startExecuting() override;
 
-    [[nodiscard]] std::string getTypeName() const override { return "BreezeShootWhenStuckGoal"; }
+    [[nodiscard]] std::string getTypeName() const override
+    {
+        return "BreezeShootWhenStuckGoal";
+    }
 
 private:
     BreezeEntity* m_breeze;

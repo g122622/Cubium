@@ -95,20 +95,29 @@ public:
         m_hasGaussian = false;
     }
 
-    [[nodiscard]] u64 nextU64() override { return static_cast<u64>(nextLong()); }
+    [[nodiscard]] u64 nextU64() override
+    {
+        return static_cast<u64>(nextLong());
+    }
 
     using IRandom::nextDouble;
     using IRandom::nextFloat;
     using IRandom::nextInt;
 
     /// next(32)
-    [[nodiscard]] i32 nextInt() override { return nextBits(32); }
+    [[nodiscard]] i32 nextInt() override
+    {
+        return nextBits(32);
+    }
 
     /// BitRandomSource 默认的 nextInt(bound)：2 的幂走 next(31) 乘法，否则走 next(31) 拒绝采样
     [[nodiscard]] i32 nextInt(i32 bound) override;
 
     /// next(1) != 0
-    [[nodiscard]] bool nextBoolean() override { return nextBits(1) != 0; }
+    [[nodiscard]] bool nextBoolean() override
+    {
+        return nextBits(1) != 0;
+    }
 
     /// next(24) * 5.9604645E-8F
     [[nodiscard]] f32 nextFloat() override;
@@ -120,13 +129,19 @@ public:
     [[nodiscard]] i64 nextLong() override
     {
         // 保留低半部的符号扩展，并在加法后解释为有符号结果。
+        // TODO(random)：裸 nextLong() 与原版 WorldgenRandom 仍有逐位差异（装饰种子因此
+        // 偏移），见 tests/diff/README.md「未对齐项」。draw 路径（nextInt(bound)/
+        // nextFloat/nextDouble）已由 random_sequence harness 逐位对齐。
         const u64 hi = static_cast<u64>(nextBits(32));
         const u64 lo = static_cast<u64>(nextBits(32));
         return static_cast<i64>((hi << 32) + lo);
     }
 
     /// nextBits 直接转发给内层，以保留内层的状态推进语义（Legacy 只推进一次 LCG）
-    [[nodiscard]] i32 nextBits(i32 bits) override { return m_inner->nextBits(bits); }
+    [[nodiscard]] i32 nextBits(i32 bits) override
+    {
+        return m_inner->nextBits(bits);
+    }
 
     /**
      * @brief 消费指定数量的随机数

@@ -32,6 +32,7 @@
 
 namespace mc::client::renderer::entity {
 class EntityRendererManager;
+
 namespace pipeline {
 class EntityTextureAtlas;
 }

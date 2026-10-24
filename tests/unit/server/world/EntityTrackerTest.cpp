@@ -86,9 +86,15 @@ public:
 
 class EntityTrackerTest : public ::testing::Test {
 protected:
-    void SetUp() override { tracker = std::make_unique<EntityTracker>(); }
+    void SetUp() override
+    {
+        tracker = std::make_unique<EntityTracker>();
+    }
 
-    void TearDown() override { tracker.reset(); }
+    void TearDown() override
+    {
+        tracker.reset();
+    }
 
     std::unique_ptr<EntityTracker> tracker;
 };

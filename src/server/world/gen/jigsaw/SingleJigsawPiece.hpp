@@ -48,8 +48,15 @@ public:
         JigsawPlacementBehaviour behaviour = JigsawPlacementBehaviour::Rigid,
         const std::optional<ResourceLocation>& processorListId = std::nullopt);
 
-    const std::string& getTypeName() const override { return s_typeName; }
-    const std::string& getTemplateName() const { return m_templateName; }
+    const std::string& getTypeName() const override
+    {
+        return s_typeName;
+    }
+
+    const std::string& getTemplateName() const
+    {
+        return m_templateName;
+    }
 
     /**
      * @brief 获取处理器列表资源位置
@@ -57,9 +64,20 @@ public:
      * 模板池元素可通过 processors 字段引用一个已注册的处理器列表，
      * 如 "minecraft:mossify_10_percent"、"minecraft:street_plains" 等。
      */
-    const std::optional<ResourceLocation>& getProcessorListId() const { return m_processorListId; }
-    void setProcessorListId(const ResourceLocation& id) { m_processorListId = id; }
-    bool hasProcessors() const { return m_processorListId.has_value(); }
+    const std::optional<ResourceLocation>& getProcessorListId() const
+    {
+        return m_processorListId;
+    }
+
+    void setProcessorListId(const ResourceLocation& id)
+    {
+        m_processorListId = id;
+    }
+
+    bool hasProcessors() const
+    {
+        return m_processorListId.has_value();
+    }
 
     std::unique_ptr<JigsawPiece> clone() const override
     {
@@ -143,7 +161,11 @@ public:
         JigsawPlacementBehaviour behaviour = JigsawPlacementBehaviour::Rigid,
         const std::optional<ResourceLocation>& processorListId = std::nullopt);
 
-    const std::string& getTypeName() const override { return s_typeName; }
+    const std::string& getTypeName() const override
+    {
+        return s_typeName;
+    }
+
     std::unique_ptr<JigsawPiece> clone() const override
     {
         auto piece =
@@ -157,7 +179,11 @@ public:
         }
         return piece;
     }
-    bool isLegacy() const override { return true; }
+
+    bool isLegacy() const override
+    {
+        return true;
+    }
 
 private:
     static std::string s_typeName;

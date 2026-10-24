@@ -37,7 +37,10 @@ using namespace mc::gameevent;
 
 class VibrationSneakIgnoreTest : public ::testing::Test {
 protected:
-    static void SetUpTestSuite() { GameEventTags::initialize(); }
+    static void SetUpTestSuite()
+    {
+        GameEventTags::initialize();
+    }
 };
 
 // ============================================================================
@@ -347,15 +350,29 @@ TEST(VibrationSystemTest, User_CanTriggerAvoidVibration_DefaultFalse)
     // 此测试使用一个最小的 User 子类来验证默认行为
     class TestUser : public VibrationSystem::User {
     public:
-        [[nodiscard]] i32 getListenerRadius() const override { return 8; }
-        [[nodiscard]] PositionSource& getPositionSource() override { return m_source; }
-        [[nodiscard]] const PositionSource& getPositionSource() const override { return m_source; }
+        [[nodiscard]] i32 getListenerRadius() const override
+        {
+            return 8;
+        }
+
+        [[nodiscard]] PositionSource& getPositionSource() override
+        {
+            return m_source;
+        }
+
+        [[nodiscard]] const PositionSource& getPositionSource() const override
+        {
+            return m_source;
+        }
+
         [[nodiscard]] bool canReceiveVibration(
             server::ServerWorld&, const BlockPos&, const GameEvent&, const GameEvent::Context&) const override
         {
             return true;
         }
+
         void onReceiveVibration(server::ServerWorld&, const BlockPos&, const GameEvent&, const Entity*, f32) override {}
+
         void onDataChanged() override {}
 
     private:
@@ -371,15 +388,29 @@ TEST(VibrationSystemTest, User_RequiresAdjacentChunksToBeTicking_DefaultFalse)
     // 默认 requiresAdjacentChunksToBeTicking() 返回 false
     class TestUser : public VibrationSystem::User {
     public:
-        [[nodiscard]] i32 getListenerRadius() const override { return 8; }
-        [[nodiscard]] PositionSource& getPositionSource() override { return m_source; }
-        [[nodiscard]] const PositionSource& getPositionSource() const override { return m_source; }
+        [[nodiscard]] i32 getListenerRadius() const override
+        {
+            return 8;
+        }
+
+        [[nodiscard]] PositionSource& getPositionSource() override
+        {
+            return m_source;
+        }
+
+        [[nodiscard]] const PositionSource& getPositionSource() const override
+        {
+            return m_source;
+        }
+
         [[nodiscard]] bool canReceiveVibration(
             server::ServerWorld&, const BlockPos&, const GameEvent&, const GameEvent::Context&) const override
         {
             return true;
         }
+
         void onReceiveVibration(server::ServerWorld&, const BlockPos&, const GameEvent&, const Entity*, f32) override {}
+
         void onDataChanged() override {}
 
     private:

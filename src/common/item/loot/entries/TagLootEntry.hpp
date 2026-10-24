@@ -52,11 +52,22 @@ public:
      */
     TagLootEntry(const std::string& tagId, bool expand = false, i32 weight = 1, i32 quality = 0);
 
-    [[nodiscard]] LootEntryType getType() const override { return LootEntryType::Tag; }
+    [[nodiscard]] LootEntryType getType() const override
+    {
+        return LootEntryType::Tag;
+    }
+
     [[nodiscard]] std::unique_ptr<LootEntry> clone() const override;
 
-    [[nodiscard]] const std::string& getTagId() const { return m_tagId; }
-    [[nodiscard]] bool isExpand() const { return m_expand; }
+    [[nodiscard]] const std::string& getTagId() const
+    {
+        return m_tagId;
+    }
+
+    [[nodiscard]] bool isExpand() const
+    {
+        return m_expand;
+    }
 
     void expand(LootContext& context, std::function<void(LootEntry&)> consumer) const override;
 

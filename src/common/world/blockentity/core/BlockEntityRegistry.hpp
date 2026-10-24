@@ -141,7 +141,10 @@ public:
      * @brief 获取已注册类型数量
      * @return 类型数量
      */
-    [[nodiscard]] size_t typeCount() const { return m_factories.size(); }
+    [[nodiscard]] size_t typeCount() const
+    {
+        return m_factories.size();
+    }
 
 private:
     BlockEntityRegistry() = default;
@@ -167,8 +170,9 @@ class BlockEntityRegistrar {
 public:
     explicit BlockEntityRegistrar(BlockEntityType type)
     {
-        BlockEntityRegistry::instance().registerType(
-            type, [](const BlockPos& pos) { return std::make_unique<T>(pos); });
+        BlockEntityRegistry::instance().registerType(type, [](const BlockPos& pos) {
+            return std::make_unique<T>(pos);
+        });
     }
 };
 

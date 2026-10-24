@@ -61,7 +61,10 @@ public:
     /**
      * @brief 获取鱼类型名称
      */
-    [[nodiscard]] const std::string& getFishTypeName() const { return m_fishTypeName; }
+    [[nodiscard]] const std::string& getFishTypeName() const
+    {
+        return m_fishTypeName;
+    }
 
     /**
      * @brief 方块交互 - 放置水并生成鱼

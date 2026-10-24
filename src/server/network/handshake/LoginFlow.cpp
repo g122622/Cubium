@@ -317,7 +317,9 @@ void LoginFlow::setupInitialPlayerState(ServerPlayerData* player, GameMode gameM
 
     // 初始位置：共享出生数据经边界修正后，在 spawnRadius 范围内搜索无碰撞无液体的落点
     // （与死亡重生使用同一搜索器）。已有存档的玩家随后会被存档位置覆盖。
-    if (player == nullptr) return;
+    if (player == nullptr) {
+        return;
+    }
     auto* overworld = m_server.dimensionManager().getOverworld();
     MC_ASSERT_RELEASE(overworld != nullptr && overworld->world() != nullptr);
     const RespawnData spawn = overworld->world()->worldBorderAdjustedRespawnData();
@@ -340,7 +342,9 @@ void LoginFlow::sendInitialGameState(PlayerId playerId, f64 x, f64 y, f64 z, f32
     MC_TRACE_SCOPED_EVENT(
         TraceEvents.Server.Player, "LoginFlow::sendInitialGameState", "playerId", playerId, "x", x, "y", y, "z", z);
 
-    if (auto* world = m_server.getPlayerWorld(playerId)) world->waypointManager().clearReceiver(m_server, playerId);
+    if (auto* world = m_server.getPlayerWorld(playerId)) {
+        world->waypointManager().clearReceiver(m_server, playerId);
+    }
     // TeleportManager::requestTeleport() 内部已经发送过 TeleportPacket。
     // 这里不能重复发送，否则客户端会在登录阶段收到两个相同 teleportId 的传送包，
     // 紧接着回两次 TeleportConfirm，第二次会因为服务端已清除 waitingTeleportConfirm

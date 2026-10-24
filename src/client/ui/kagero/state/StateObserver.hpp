@@ -60,12 +60,18 @@ public:
     /**
      * @brief 添加观察者
      */
-    void addObserver(IStateObserver* observer) { m_observers.insert(observer); }
+    void addObserver(IStateObserver* observer)
+    {
+        m_observers.insert(observer);
+    }
 
     /**
      * @brief 移除观察者
      */
-    void removeObserver(IStateObserver* observer) { m_observers.erase(observer); }
+    void removeObserver(IStateObserver* observer)
+    {
+        m_observers.erase(observer);
+    }
 
     /**
      * @brief 通知所有观察者
@@ -80,12 +86,18 @@ public:
     /**
      * @brief 清除所有观察者
      */
-    void clear() { m_observers.clear(); }
+    void clear()
+    {
+        m_observers.clear();
+    }
 
     /**
      * @brief 获取观察者数量
      */
-    [[nodiscard]] Size count() const { return m_observers.size(); }
+    [[nodiscard]] Size count() const
+    {
+        return m_observers.size();
+    }
 
 private:
     std::unordered_set<IStateObserver*> m_observers;
@@ -187,7 +199,11 @@ public:
     using Callback = std::function<void()>;
 
     MultiStateObserver() = default;
-    ~MultiStateObserver() { clear(); }
+
+    ~MultiStateObserver()
+    {
+        clear();
+    }
 
     // 禁止拷贝
     MultiStateObserver(const MultiStateObserver&) = delete;
@@ -210,14 +226,18 @@ public:
             }
         });
         // 使用裸指针存储，析构时安全移除观察者
-        m_observerEntries.push_back(
-            {id, reactive, [](ObserverId id, void* ptr) { static_cast<Reactive<T>*>(ptr)->removeObserver(id); }});
+        m_observerEntries.push_back({id, reactive, [](ObserverId id, void* ptr) {
+                                         static_cast<Reactive<T>*>(ptr)->removeObserver(id);
+                                     }});
     }
 
     /**
      * @brief 设置回调
      */
-    void setCallback(Callback callback) { m_callback = std::move(callback); }
+    void setCallback(Callback callback)
+    {
+        m_callback = std::move(callback);
+    }
 
     /**
      * @brief 清除所有观察
@@ -277,7 +297,10 @@ public:
         });
     }
 
-    ~DebouncedObserver() { m_reactive.removeObserver(m_observerId); }
+    ~DebouncedObserver()
+    {
+        m_reactive.removeObserver(m_observerId);
+    }
 
     // 禁止拷贝
     DebouncedObserver(const DebouncedObserver&) = delete;
@@ -290,7 +313,9 @@ public:
      */
     void update()
     {
-        if (!m_hasPending) return;
+        if (!m_hasPending) {
+            return;
+        }
 
         auto now = std::chrono::steady_clock::now();
         auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(now - m_lastChangeTime);

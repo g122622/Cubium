@@ -78,7 +78,10 @@ struct RasterizerState {
      *
      * 剔除背面，顺时针为正面
      */
-    static RasterizerState defaults() { return RasterizerState{}; }
+    static RasterizerState defaults()
+    {
+        return RasterizerState{};
+    }
 
     /**
      * @brief 创建双面渲染状态
@@ -108,7 +111,10 @@ struct RasterizerState {
         return cullMode == other.cullMode && frontFace == other.frontFace && polygonMode == other.polygonMode;
     }
 
-    bool operator!=(const RasterizerState& other) const { return !(*this == other); }
+    bool operator!=(const RasterizerState& other) const
+    {
+        return !(*this == other);
+    }
 };
 
 } // namespace mc::client::renderer::api

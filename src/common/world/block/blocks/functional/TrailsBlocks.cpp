@@ -132,18 +132,19 @@ i32 ChiseledBookshelfBlock::getComparatorInputOverride(
 
     // 比较器输出 = 最后一个被占用的槽位索引 + 1
     i32 lastOccupied = -1;
-    if (state.get(BlockStateProperties::SLOT_5_OCCUPIED()))
+    if (state.get(BlockStateProperties::SLOT_5_OCCUPIED())) {
         lastOccupied = 5;
-    else if (state.get(BlockStateProperties::SLOT_4_OCCUPIED()))
+    } else if (state.get(BlockStateProperties::SLOT_4_OCCUPIED())) {
         lastOccupied = 4;
-    else if (state.get(BlockStateProperties::SLOT_3_OCCUPIED()))
+    } else if (state.get(BlockStateProperties::SLOT_3_OCCUPIED())) {
         lastOccupied = 3;
-    else if (state.get(BlockStateProperties::SLOT_2_OCCUPIED()))
+    } else if (state.get(BlockStateProperties::SLOT_2_OCCUPIED())) {
         lastOccupied = 2;
-    else if (state.get(BlockStateProperties::SLOT_1_OCCUPIED()))
+    } else if (state.get(BlockStateProperties::SLOT_1_OCCUPIED())) {
         lastOccupied = 1;
-    else if (state.get(BlockStateProperties::SLOT_0_OCCUPIED()))
+    } else if (state.get(BlockStateProperties::SLOT_0_OCCUPIED())) {
         lastOccupied = 0;
+    }
 
     return lastOccupied + 1;
 }

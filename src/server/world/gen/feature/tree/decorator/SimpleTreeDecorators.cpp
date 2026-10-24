@@ -492,8 +492,9 @@ void CreakingHeartDecorator::place(const TreeDecoratorContext& context) const
         bool enclosed = true;
         for (Direction dir : kAllDirs) {
             // 六个邻居的当前状态均须属于原木标签。
-            if (!context.checkBlock(
-                    candidate.offset(dir), [](const BlockState& st) { return BlockTags::LOGS().contains(st); })) {
+            if (!context.checkBlock(candidate.offset(dir), [](const BlockState& st) {
+                    return BlockTags::LOGS().contains(st);
+                })) {
                 enclosed = false;
                 break;
             }

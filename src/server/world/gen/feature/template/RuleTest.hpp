@@ -118,7 +118,11 @@ public:
         return true;
     }
 
-    [[nodiscard]] u32 getTypeId() const override { return static_cast<u32>(RuleTestType::AlwaysTruePos); }
+    [[nodiscard]] u32 getTypeId() const override
+    {
+        return static_cast<u32>(RuleTestType::AlwaysTruePos);
+    }
+
     [[nodiscard]] std::unique_ptr<PosRuleTest> clone() const override
     {
         return std::make_unique<AlwaysTruePosRuleTest>();
@@ -146,7 +150,11 @@ public:
         const BlockPos& seedPos,
         math::IRandom& rng) const override;
 
-    [[nodiscard]] u32 getTypeId() const override { return static_cast<u32>(RuleTestType::LinearPos); }
+    [[nodiscard]] u32 getTypeId() const override
+    {
+        return static_cast<u32>(RuleTestType::LinearPos);
+    }
+
     [[nodiscard]] std::unique_ptr<PosRuleTest> clone() const override
     {
         return std::make_unique<LinearPosRuleTest>(m_minDistance, m_maxDistance, m_minProbability, m_maxProbability);
@@ -181,7 +189,11 @@ public:
         const BlockPos& seedPos,
         math::IRandom& rng) const override;
 
-    [[nodiscard]] u32 getTypeId() const override { return static_cast<u32>(RuleTestType::AxisAlignedLinearPos); }
+    [[nodiscard]] u32 getTypeId() const override
+    {
+        return static_cast<u32>(RuleTestType::AxisAlignedLinearPos);
+    }
+
     [[nodiscard]] std::unique_ptr<PosRuleTest> clone() const override
     {
         return std::make_unique<AxisAlignedLinearPosTest>(
@@ -241,11 +253,30 @@ public:
         const BlockPos& seedPos,
         math::IRandom& rng) const;
 
-    [[nodiscard]] u32 outputStateId() const { return m_outputStateId; }
-    [[nodiscard]] const RuleTest* inputPredicate() const { return m_inputPredicate.get(); }
-    [[nodiscard]] const RuleTest* locationPredicate() const { return m_locationPredicate.get(); }
-    [[nodiscard]] const PosRuleTest* posPredicate() const { return m_posPredicate.get(); }
-    [[nodiscard]] const std::optional<nbt::tags::compound_tag>& outputNbt() const { return m_outputNbt; }
+    [[nodiscard]] u32 outputStateId() const
+    {
+        return m_outputStateId;
+    }
+
+    [[nodiscard]] const RuleTest* inputPredicate() const
+    {
+        return m_inputPredicate.get();
+    }
+
+    [[nodiscard]] const RuleTest* locationPredicate() const
+    {
+        return m_locationPredicate.get();
+    }
+
+    [[nodiscard]] const PosRuleTest* posPredicate() const
+    {
+        return m_posPredicate.get();
+    }
+
+    [[nodiscard]] const std::optional<nbt::tags::compound_tag>& outputNbt() const
+    {
+        return m_outputNbt;
+    }
 
     /**
      * @brief 深拷贝规则条目

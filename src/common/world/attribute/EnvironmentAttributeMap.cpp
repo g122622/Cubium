@@ -78,9 +78,10 @@ Result<void> EnvironmentAttributeMap::Builder::setFromJson(std::string_view name
     }
 
     const std::vector<EnvironmentAttributeEntry>& registered = EnvironmentAttributeRegistry::attributes();
-    const auto entryIt = std::find_if(registered.begin(),
-        registered.end(),
-        [attribute](const EnvironmentAttributeEntry& entry) { return entry.attribute == attribute; });
+    const auto entryIt =
+        std::find_if(registered.begin(), registered.end(), [attribute](const EnvironmentAttributeEntry& entry) {
+            return entry.attribute == attribute;
+        });
     MC_ASSERT_RELEASE_MSG(entryIt != registered.end(), "EnvironmentAttributeMap: attribute missing from registry");
     const EnvironmentAttributeEntry& entry = *entryIt;
 

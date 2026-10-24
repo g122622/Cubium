@@ -57,8 +57,8 @@ public:
      */
     [[nodiscard]] static i32 getBadOmenLevel(i32 damage);
 
-    /// 不祥之瓶的最大damage值（对应V级不祥之兆）
-    static constexpr i32 MAX_DAMAGE = 4;
+    /// 不祥之兆等级上限（对应物品的 ominous_bottle_amplifier 组件 0-4，即 I-V 级）
+    static constexpr i32 MAX_AMPLIFIER = 4;
 };
 
 } // namespace item

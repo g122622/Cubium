@@ -69,29 +69,44 @@ public:
     /**
      * @brief 设置关联实体
      */
-    void setEntity(LivingEntity* entity) { m_entity = entity; }
+    void setEntity(LivingEntity* entity)
+    {
+        m_entity = entity;
+    }
 
     /**
      * @brief 获取关联实体
      */
-    [[nodiscard]] LivingEntity* getEntity() const { return m_entity; }
+    [[nodiscard]] LivingEntity* getEntity() const
+    {
+        return m_entity;
+    }
 
     // ========== 配置 ==========
 
     /**
      * @brief 设置是否可以游泳
      */
-    void setCanSwim(bool canSwim) { m_canSwim = canSwim; }
+    void setCanSwim(bool canSwim)
+    {
+        m_canSwim = canSwim;
+    }
 
     /**
      * * @brief 设置是否可以开门
      */
-    void setCanOpenDoors(bool canOpenDoors) { m_canOpenDoors = canOpenDoors; }
+    void setCanOpenDoors(bool canOpenDoors)
+    {
+        m_canOpenDoors = canOpenDoors;
+    }
 
     /**
      * @brief 获取是否可以开门
      */
-    [[nodiscard]] bool canOpenDoors() const noexcept { return m_canOpenDoors; }
+    [[nodiscard]] bool canOpenDoors() const noexcept
+    {
+        return m_canOpenDoors;
+    }
 
     /**
      * @brief 设置是否可以通过门
@@ -100,27 +115,42 @@ public:
      * 当为 true 时，打开的门（DoorOpen）和打开/关闭的栅栏门（FenceGate）被视为可通行；
      * 当为 false 时，打开的门被转换为 Blocked，栅栏门不可通行。
      */
-    void setCanEnterDoors(bool canEnterDoors) { m_canEnterDoors = canEnterDoors; }
+    void setCanEnterDoors(bool canEnterDoors)
+    {
+        m_canEnterDoors = canEnterDoors;
+    }
 
     /**
      * @brief 获取是否可以通过门
      */
-    [[nodiscard]] bool canEnterDoors() const noexcept { return m_canEnterDoors; }
+    [[nodiscard]] bool canEnterDoors() const noexcept
+    {
+        return m_canEnterDoors;
+    }
 
     /**
      * @brief 设置是否可以爬墙
      */
-    void setCanClimb(bool canClimb) { m_canClimb = canClimb; }
+    void setCanClimb(bool canClimb)
+    {
+        m_canClimb = canClimb;
+    }
 
     /**
      * @brief 设置最大跌落距离
      */
-    void setMaxFallDistance(i32 distance) { m_maxFallDistance = distance; }
+    void setMaxFallDistance(i32 distance)
+    {
+        m_maxFallDistance = distance;
+    }
 
     /**
      * @brief 设置是否避免水
      */
-    void setAvoidWater(bool avoidWater) { m_avoidWater = avoidWater; }
+    void setAvoidWater(bool avoidWater)
+    {
+        m_avoidWater = avoidWater;
+    }
 
     /**
      * @brief 设置是否避免太阳
@@ -131,7 +161,10 @@ public:
      * 使实体只在阴影区域移动。如果实体当前已在阳光下，则保留完整路径。
      * 这对应 MC Java 版的 GroundPathNavigation.trimPath() 实现。
      */
-    void setAvoidSun(bool avoidSun) { m_avoidSun = avoidSun; }
+    void setAvoidSun(bool avoidSun)
+    {
+        m_avoidSun = avoidSun;
+    }
 
     // ========== 测试接口 ==========
 

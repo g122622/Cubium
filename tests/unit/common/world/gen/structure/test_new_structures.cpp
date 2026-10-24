@@ -59,7 +59,10 @@ using namespace mc::Biomes;
 
 class NewStructuresTest : public ::testing::Test {
 protected:
-    void SetUp() override { VanillaBlocks::initialize(); }
+    void SetUp() override
+    {
+        VanillaBlocks::initialize();
+    }
 };
 
 namespace {
@@ -102,7 +105,10 @@ public:
         return it != m_blocks.end() ? it->second : nullptr;
     }
 
-    [[nodiscard]] size_t spawnedEntityCount() const { return m_spawnedEntityCount; }
+    [[nodiscard]] size_t spawnedEntityCount() const
+    {
+        return m_spawnedEntityCount;
+    }
 
 private:
     [[nodiscard]] static i64 pack(i32 x, i32 y, i32 z)
@@ -137,22 +143,54 @@ public:
         : m_biome(biome)
     {}
 
-    [[nodiscard]] BiomeId getBiome(i32, i32, i32) const override { return m_biome; }
+    [[nodiscard]] BiomeId getBiome(i32, i32, i32) const override
+    {
+        return m_biome;
+    }
 
-    [[nodiscard]] BiomeId getNoiseBiome(i32, i32, i32) const override { return m_biome; }
-    [[nodiscard]] i32 getHeight(i32, i32, HeightmapType) const override { return 64; }
-    [[nodiscard]] u64 seed() const override { return 12345; }
-    [[nodiscard]] const DimensionSettings& settings() const override { return m_settings; }
-    [[nodiscard]] i32 seaLevel() const override { return m_settings.seaLevel; }
+    [[nodiscard]] BiomeId getNoiseBiome(i32, i32, i32) const override
+    {
+        return m_biome;
+    }
+
+    [[nodiscard]] i32 getHeight(i32, i32, HeightmapType) const override
+    {
+        return 64;
+    }
+
+    [[nodiscard]] u64 seed() const override
+    {
+        return 12345;
+    }
+
+    [[nodiscard]] const DimensionSettings& settings() const override
+    {
+        return m_settings;
+    }
+
+    [[nodiscard]] i32 seaLevel() const override
+    {
+        return m_settings.seaLevel;
+    }
 
     void generateStructureStarts(WorldGenRegion&, ChunkPrimer&) override {}
+
     void generateStructureReferences(WorldGenRegion&, ChunkPrimer&) override {}
+
     void generateBiomes(WorldGenRegion&, ChunkPrimer&) override {}
+
     void generateNoise(WorldGenRegion&, ChunkPrimer&) override {}
+
     void buildSurface(WorldGenRegion&, ChunkPrimer&) override {}
+
     void applyCarvers(WorldGenRegion&, ChunkPrimer&) override {}
+
     void placeFeatures(WorldGenRegion&, ChunkPrimer&) override {}
-    i32 spawnInitialMobs(WorldGenRegion&, ChunkPrimer&, std::vector<SpawnedEntityData>&) override { return 0; }
+
+    i32 spawnInitialMobs(WorldGenRegion&, ChunkPrimer&, std::vector<SpawnedEntityData>&) override
+    {
+        return 0;
+    }
 
 private:
     BiomeId m_biome;
@@ -172,21 +210,54 @@ public:
         m_settings.seaLevel = seaLevelVal;
     }
 
-    [[nodiscard]] BiomeId getBiome(i32, i32, i32) const override { return m_biome; }
-    [[nodiscard]] BiomeId getNoiseBiome(i32, i32, i32) const override { return m_biome; }
-    [[nodiscard]] i32 getHeight(i32, i32, HeightmapType) const override { return m_height; }
-    [[nodiscard]] u64 seed() const override { return 12345; }
-    [[nodiscard]] const DimensionSettings& settings() const override { return m_settings; }
-    [[nodiscard]] i32 seaLevel() const override { return m_seaLevel; }
+    [[nodiscard]] BiomeId getBiome(i32, i32, i32) const override
+    {
+        return m_biome;
+    }
+
+    [[nodiscard]] BiomeId getNoiseBiome(i32, i32, i32) const override
+    {
+        return m_biome;
+    }
+
+    [[nodiscard]] i32 getHeight(i32, i32, HeightmapType) const override
+    {
+        return m_height;
+    }
+
+    [[nodiscard]] u64 seed() const override
+    {
+        return 12345;
+    }
+
+    [[nodiscard]] const DimensionSettings& settings() const override
+    {
+        return m_settings;
+    }
+
+    [[nodiscard]] i32 seaLevel() const override
+    {
+        return m_seaLevel;
+    }
 
     void generateStructureStarts(WorldGenRegion&, ChunkPrimer&) override {}
+
     void generateStructureReferences(WorldGenRegion&, ChunkPrimer&) override {}
+
     void generateBiomes(WorldGenRegion&, ChunkPrimer&) override {}
+
     void generateNoise(WorldGenRegion&, ChunkPrimer&) override {}
+
     void buildSurface(WorldGenRegion&, ChunkPrimer&) override {}
+
     void applyCarvers(WorldGenRegion&, ChunkPrimer&) override {}
+
     void placeFeatures(WorldGenRegion&, ChunkPrimer&) override {}
-    i32 spawnInitialMobs(WorldGenRegion&, ChunkPrimer&, std::vector<SpawnedEntityData>&) override { return 0; }
+
+    i32 spawnInitialMobs(WorldGenRegion&, ChunkPrimer&, std::vector<SpawnedEntityData>&) override
+    {
+        return 0;
+    }
 
 private:
     BiomeId m_biome;
@@ -557,9 +628,15 @@ TEST_F(NewStructuresTest, StrongholdPieces_WeightInitialization)
     bool hasLibrary = false;
 
     for (const auto& weight : weights) {
-        if (weight.pieceType == StrongholdPieceTypes::STRAIGHT) hasStraight = true;
-        if (weight.pieceType == StrongholdPieceTypes::PORTAL_ROOM) hasPortalRoom = true;
-        if (weight.pieceType == StrongholdPieceTypes::LIBRARY) hasLibrary = true;
+        if (weight.pieceType == StrongholdPieceTypes::STRAIGHT) {
+            hasStraight = true;
+        }
+        if (weight.pieceType == StrongholdPieceTypes::PORTAL_ROOM) {
+            hasPortalRoom = true;
+        }
+        if (weight.pieceType == StrongholdPieceTypes::LIBRARY) {
+            hasLibrary = true;
+        }
     }
 
     EXPECT_TRUE(hasStraight);

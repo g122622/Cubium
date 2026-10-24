@@ -83,10 +83,21 @@ namespace {
 // 恶魂反弹火球测试世界：最小 IWorld 实现，记录 spawn 的实体（死亡掉落物等）。
 class GhastFireballTestWorld final : public mc::test::BaseTestWorld {
 public:
-    GhastFireballTestWorld() { VanillaBlocks::initialize(); }
+    GhastFireballTestWorld()
+    {
+        VanillaBlocks::initialize();
+    }
 
-    bool setBlockState(i32, i32, i32, const BlockState*) override { return false; }
-    [[nodiscard]] Difficulty difficulty() const override { return Difficulty::Normal; }
+    bool setBlockState(i32, i32, i32, const BlockState*) override
+    {
+        return false;
+    }
+
+    [[nodiscard]] Difficulty difficulty() const override
+    {
+        return Difficulty::Normal;
+    }
+
     void playSound(const ResourceLocation&, sound::SoundCategory, const Vector3&, f32, f32) override {}
 
     [[nodiscard]] const BlockState* getBlockState(i32, i32, i32) const override
@@ -100,7 +111,11 @@ public:
         return EntityInstanceId(static_cast<u32>(m_spawned.size()));
     }
 
-    [[nodiscard]] world::tick::TickManager& tickManager() override { throw std::runtime_error("not implemented"); }
+    [[nodiscard]] world::tick::TickManager& tickManager() override
+    {
+        throw std::runtime_error("not implemented");
+    }
+
     [[nodiscard]] const world::tick::TickManager& tickManager() const override
     {
         throw std::runtime_error("not implemented");

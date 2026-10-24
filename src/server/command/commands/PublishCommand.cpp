@@ -41,7 +41,9 @@ namespace command {
 void PublishCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
 {
     auto publishNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("publish");
-    publishNode->setRequirement([](const ServerCommandSource& source) { return source.hasPermission(4); });
+    publishNode->setRequirement([](const ServerCommandSource& source) {
+        return source.hasPermission(4);
+    });
     support::applyMetadata(publishNode,
         support::makeMetadata(
             "Opens the singleplayer world to the LAN.", "/publish [port] [allowCheats]", 4, {}, true));
@@ -51,13 +53,19 @@ void PublishCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatch
         std::make_shared<ArgumentCommandNode<ServerCommandSource, i32>>("port", IntegerArgumentType::integer(1, 65535));
     auto cheatsArg =
         std::make_shared<ArgumentCommandNode<ServerCommandSource, bool>>("allowCheats", BoolArgumentType::boolArg());
-    cheatsArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _publishToWorld(ctx); });
+    cheatsArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _publishToWorld(ctx);
+    });
     portArg->addChild(cheatsArg);
-    portArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _publishToWorld(ctx); });
+    portArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _publishToWorld(ctx);
+    });
     publishNode->addChild(portArg);
 
     // 默认参数
-    publishNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _publishToWorld(ctx); });
+    publishNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _publishToWorld(ctx);
+    });
 
     dispatcher.registerCommand(publishNode);
 }

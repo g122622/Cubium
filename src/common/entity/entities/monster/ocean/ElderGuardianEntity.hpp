@@ -69,19 +69,28 @@ public:
     /**
      * @brief 是否应该给予挖掘疲劳
      */
-    [[nodiscard]] bool shouldApplyMiningFatigue() const { return true; }
+    [[nodiscard]] bool shouldApplyMiningFatigue() const
+    {
+        return true;
+    }
 
     /**
      * @brief 获取挖掘疲劳范围
      */
-    [[nodiscard]] f32 getMiningFatigueRange() const { return MINING_FATIGUE_RANGE; }
+    [[nodiscard]] f32 getMiningFatigueRange() const
+    {
+        return MINING_FATIGUE_RANGE;
+    }
 
     // ========== 属性 ==========
 
     /**
      * @brief 获取眼睛高度
      */
-    [[nodiscard]] f32 eyeHeight() const override { return 1.0f; }
+    [[nodiscard]] f32 eyeHeight() const override
+    {
+        return 1.0f;
+    }
 
     // ========== 生命周期 ==========
 

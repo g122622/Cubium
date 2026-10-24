@@ -89,7 +89,10 @@ public:
     /**
      * @brief 检查是否已初始化
      */
-    [[nodiscard]] bool isInitialized() const noexcept { return m_initialized; }
+    [[nodiscard]] bool isInitialized() const noexcept
+    {
+        return m_initialized;
+    }
 
     /**
      * @brief 从数据管理器同步数据
@@ -99,7 +102,9 @@ public:
      */
     void syncFromDataManager()
     {
-        if (!m_initialized) return;
+        if (!m_initialized) {
+            return;
+        }
         saddledRaw = true;
         field_233611_b_ = 0;
         boostTimeRaw = m_manager->get(m_boostTimeParam);
@@ -217,7 +222,10 @@ public:
      * 加速期间：field_233611_b_ 从 0 递增到 boostTimeRaw（包含边界值）
      * 当 field_233611_b_ > boostTimeRaw 时，加速结束
      */
-    [[nodiscard]] bool isBoosting() const noexcept { return saddledRaw && field_233611_b_ <= boostTimeRaw; }
+    [[nodiscard]] bool isBoosting() const noexcept
+    {
+        return saddledRaw && field_233611_b_ <= boostTimeRaw;
+    }
 
     /**
      * @brief Tick更新

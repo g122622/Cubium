@@ -45,17 +45,23 @@ void KillCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
     using namespace mc::command;
 
     auto killNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("kill");
-    killNode->setRequirement([](const ServerCommandSource& source) { return source.hasPermission(2); });
+    killNode->setRequirement([](const ServerCommandSource& source) {
+        return source.hasPermission(2);
+    });
     support::applyMetadata(
         killNode, support::makeMetadata("Kill entities (players, mobs, etc.).", "/kill [<target>]", 2, {}, false));
 
     // /kill - 杀死自己
-    killNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _killSelf(ctx); });
+    killNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _killSelf(ctx);
+    });
 
     // /kill <target> - 杀死目标实体
     auto targetArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, EntitySelector>>(
         "target", EntityArgumentType::entities());
-    targetArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _killEntities(ctx); });
+    targetArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _killEntities(ctx);
+    });
     killNode->addChild(targetArg);
 
     dispatcher.registerCommand(killNode);

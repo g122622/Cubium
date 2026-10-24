@@ -86,17 +86,26 @@ public:
     /**
      * @brief 获取图标物品
      */
-    [[nodiscard]] const ItemStack& getIcon() const noexcept { return m_icon; }
+    [[nodiscard]] const ItemStack& getIcon() const noexcept
+    {
+        return m_icon;
+    }
 
     /**
      * @brief 获取标题
      */
-    [[nodiscard]] const text::ITextComponent& getTitle() const noexcept { return *m_title; }
+    [[nodiscard]] const text::ITextComponent& getTitle() const noexcept
+    {
+        return *m_title;
+    }
 
     /**
      * @brief 获取描述
      */
-    [[nodiscard]] const text::ITextComponent& getDescription() const noexcept { return *m_description; }
+    [[nodiscard]] const text::ITextComponent& getDescription() const noexcept
+    {
+        return *m_description;
+    }
 
     /**
      * @brief 获取标题的可修改引用（用于深拷贝）
@@ -106,49 +115,76 @@ public:
     /**
      * @brief 获取框架类型
      */
-    [[nodiscard]] AdvancementFrame getFrame() const noexcept { return m_frame; }
+    [[nodiscard]] AdvancementFrame getFrame() const noexcept
+    {
+        return m_frame;
+    }
 
     /**
      * @brief 是否显示Toast通知
      */
-    [[nodiscard]] bool shouldShowToast() const noexcept { return m_showToast; }
+    [[nodiscard]] bool shouldShowToast() const noexcept
+    {
+        return m_showToast;
+    }
 
     /**
      * @brief 是否在聊天中公告
      */
-    [[nodiscard]] bool shouldAnnounceToChat() const noexcept { return m_announceToChat; }
+    [[nodiscard]] bool shouldAnnounceToChat() const noexcept
+    {
+        return m_announceToChat;
+    }
 
     /**
      * @brief 是否隐藏
      */
-    [[nodiscard]] bool isHidden() const noexcept { return m_hidden; }
+    [[nodiscard]] bool isHidden() const noexcept
+    {
+        return m_hidden;
+    }
 
     /**
      * @brief 获取背景纹理
      */
-    [[nodiscard]] const std::optional<ResourceLocation>& getBackground() const noexcept { return m_background; }
+    [[nodiscard]] const std::optional<ResourceLocation>& getBackground() const noexcept
+    {
+        return m_background;
+    }
 
     // ========== UI布局坐标 ==========
 
     /**
      * @brief 获取X坐标（由AdvancementTreeNode计算）
      */
-    [[nodiscard]] f32 getX() const noexcept { return m_x; }
+    [[nodiscard]] f32 getX() const noexcept
+    {
+        return m_x;
+    }
 
     /**
      * @brief 获取Y坐标（由AdvancementTreeNode计算）
      */
-    [[nodiscard]] f32 getY() const noexcept { return m_y; }
+    [[nodiscard]] f32 getY() const noexcept
+    {
+        return m_y;
+    }
 
     /**
      * @brief 设置X坐标
      */
-    void setX(f32 x) noexcept { m_x = x; }
+    void setX(f32 x) noexcept
+    {
+        m_x = x;
+    }
 
     /**
      * @brief 设置Y坐标
      */
-    void setY(f32 y) noexcept { m_y = y; }
+    void setY(f32 y) noexcept
+    {
+        m_y = y;
+    }
 
     // ========== 序列化 ==========
 

@@ -187,36 +187,54 @@ public:
      * @param pos 检查位置
      * @return true 如果位置正在更新中
      */
-    [[nodiscard]] bool isUpdating(const BlockPos& pos) const { return m_context.isUpdating(pos); }
+    [[nodiscard]] bool isUpdating(const BlockPos& pos) const
+    {
+        return m_context.isUpdating(pos);
+    }
 
     /**
      * @brief 开始更新某个位置
      *
      * @param pos 更新位置
      */
-    void beginUpdate(const BlockPos& pos) { m_context.beginUpdate(pos); }
+    void beginUpdate(const BlockPos& pos)
+    {
+        m_context.beginUpdate(pos);
+    }
 
     /**
      * @brief 结束更新某个位置
      *
      * @param pos 更新位置
      */
-    void endUpdate(const BlockPos& pos) { m_context.endUpdate(pos); }
+    void endUpdate(const BlockPos& pos)
+    {
+        m_context.endUpdate(pos);
+    }
 
     /**
      * @brief 检查是否可以增加更新深度
      */
-    [[nodiscard]] bool canPushDepth() const { return m_context.canPushDepth(); }
+    [[nodiscard]] bool canPushDepth() const
+    {
+        return m_context.canPushDepth();
+    }
 
     /**
      * @brief 增加更新深度
      */
-    void pushDepth() { m_context.pushDepth(); }
+    void pushDepth()
+    {
+        m_context.pushDepth();
+    }
 
     /**
      * @brief 减少更新深度
      */
-    void popDepth() { m_context.popDepth(); }
+    void popDepth()
+    {
+        m_context.popDepth();
+    }
 
     // ========== 信号查询 ==========
 

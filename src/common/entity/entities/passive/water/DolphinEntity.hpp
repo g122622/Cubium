@@ -124,7 +124,10 @@ public:
     /**
      * @brief 获取宝藏位置
      */
-    [[nodiscard]] const BlockPos& getTreasurePos() const noexcept { return m_treasurePos; }
+    [[nodiscard]] const BlockPos& getTreasurePos() const noexcept
+    {
+        return m_treasurePos;
+    }
 
     /**
      * @brief 设置宝藏位置
@@ -134,7 +137,10 @@ public:
     /**
      * @brief 是否有宝藏目标
      */
-    [[nodiscard]] bool hasTreasureTarget() const noexcept { return m_hasTreasure; }
+    [[nodiscard]] bool hasTreasureTarget() const noexcept
+    {
+        return m_hasTreasure;
+    }
 
     /**
      * @brief 清除宝藏目标
@@ -144,7 +150,10 @@ public:
     /**
      * @brief 是否正在引导玩家
      */
-    [[nodiscard]] bool isGuidingPlayer() const noexcept { return m_guidingPlayer; }
+    [[nodiscard]] bool isGuidingPlayer() const noexcept
+    {
+        return m_guidingPlayer;
+    }
 
     /**
      * @brief 设置引导玩家状态
@@ -154,7 +163,10 @@ public:
     /**
      * @brief 获取被引导的玩家ID
      */
-    [[nodiscard]] u64 getGuidedPlayerId() const noexcept { return m_guidedPlayerId; }
+    [[nodiscard]] u64 getGuidedPlayerId() const noexcept
+    {
+        return m_guidedPlayerId;
+    }
 
     // ========== 鱼标记 ==========
 
@@ -163,7 +175,10 @@ public:
      *
      * 当玩家喂食鱼后设置为 true，海豚会引导玩家到宝藏。
      */
-    [[nodiscard]] bool hasGotFish() const noexcept { return m_gotFish; }
+    [[nodiscard]] bool hasGotFish() const noexcept
+    {
+        return m_gotFish;
+    }
 
     /**
      * @brief 设置得到鱼标记
@@ -183,7 +198,10 @@ public:
      *
      * vanilla Dolphin 起始 2400，离开水/雨时每 tick 递减 1，归零后受 dryout 伤害。
      */
-    [[nodiscard]] i32 getMoistnessLevel() const noexcept { return m_moistnessLevel; }
+    [[nodiscard]] i32 getMoistnessLevel() const noexcept
+    {
+        return m_moistnessLevel;
+    }
 
     /**
      * @brief 设置湿润度等级
@@ -197,7 +215,10 @@ public:
     }
 
     /// 湿润度同步数据参数 id（供测试校验元数据写入）
-    [[nodiscard]] static u16 getMoistnessLevelParamId() { return DATA_MOISTNESS_LEVEL_PARAM.id(); }
+    [[nodiscard]] static u16 getMoistnessLevelParamId()
+    {
+        return DATA_MOISTNESS_LEVEL_PARAM.id();
+    }
 
     // ========== 食物 ==========
 
@@ -237,23 +258,35 @@ public:
     /**
      * @brief 获取眼睛高度
      */
-    [[nodiscard]] f32 eyeHeight() const noexcept override { return 0.3f; }
+    [[nodiscard]] f32 eyeHeight() const noexcept override
+    {
+        return 0.3f;
+    }
 
     /**
      * @brief 获取实体宽度
      */
-    [[nodiscard]] f32 width() const noexcept override { return 0.9f; }
+    [[nodiscard]] f32 width() const noexcept override
+    {
+        return 0.9f;
+    }
 
     /**
      * @brief 获取实体高度
      */
-    [[nodiscard]] f32 height() const noexcept override { return 0.6f; }
+    [[nodiscard]] f32 height() const noexcept override
+    {
+        return 0.6f;
+    }
 
     /**
      * @brief 获取最大空气供应量
      * 海豚有 4800 tick (4分钟) 的空气储备
      */
-    [[nodiscard]] i32 maxAir() const noexcept override { return MAX_AIR; }
+    [[nodiscard]] i32 maxAir() const noexcept override
+    {
+        return MAX_AIR;
+    }
 
     // ========== 音效 ==========
 

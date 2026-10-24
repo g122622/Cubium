@@ -99,7 +99,10 @@ public:
     /**
      * @brief 获取关联的Widget
      */
-    [[nodiscard]] widget::Widget* getWidget() const { return m_widget; }
+    [[nodiscard]] widget::Widget* getWidget() const
+    {
+        return m_widget;
+    }
 
     /**
      * @brief 获取Widget ID
@@ -109,36 +112,62 @@ public:
     /**
      * @brief 检查Widget是否有效
      */
-    [[nodiscard]] bool isValid() const { return m_widget != nullptr; }
+    [[nodiscard]] bool isValid() const
+    {
+        return m_widget != nullptr;
+    }
 
     // ==================== 约束访问 ====================
 
     /**
      * @brief 获取布局约束（可修改）
      */
-    LayoutConstraints& constraints() { return m_constraints; }
+    LayoutConstraints& constraints()
+    {
+        return m_constraints;
+    }
 
     /**
      * @brief 获取布局约束（只读）
      */
-    [[nodiscard]] const LayoutConstraints& constraints() const { return m_constraints; }
+    [[nodiscard]] const LayoutConstraints& constraints() const
+    {
+        return m_constraints;
+    }
 
     /**
      * @brief 设置布局约束
      */
-    void setConstraints(const LayoutConstraints& constraints) { m_constraints = constraints; }
+    void setConstraints(const LayoutConstraints& constraints)
+    {
+        m_constraints = constraints;
+    }
 
     /**
      * @brief 获取Flex参数（快捷访问）
      */
-    FlexItem& flexItem() { return m_constraints.flex; }
-    [[nodiscard]] const FlexItem& flexItem() const { return m_constraints.flex; }
+    FlexItem& flexItem()
+    {
+        return m_constraints.flex;
+    }
+
+    [[nodiscard]] const FlexItem& flexItem() const
+    {
+        return m_constraints.flex;
+    }
 
     /**
      * @brief 获取Grid参数（快捷访问）
      */
-    GridItem& gridItem() { return m_constraints.grid; }
-    [[nodiscard]] const GridItem& gridItem() const { return m_constraints.grid; }
+    GridItem& gridItem()
+    {
+        return m_constraints.grid;
+    }
+
+    [[nodiscard]] const GridItem& gridItem() const
+    {
+        return m_constraints.grid;
+    }
 
     // ==================== 尺寸信息 ====================
 
@@ -182,17 +211,26 @@ public:
     /**
      * @brief 设置自定义测量函数
      */
-    void setMeasureFunc(MeasureFunc func) { m_measureFunc = std::move(func); }
+    void setMeasureFunc(MeasureFunc func)
+    {
+        m_measureFunc = std::move(func);
+    }
 
     /**
      * @brief 清除自定义测量函数
      */
-    void clearMeasureFunc() { m_measureFunc = nullptr; }
+    void clearMeasureFunc()
+    {
+        m_measureFunc = nullptr;
+    }
 
     /**
      * @brief 获取上次测量的尺寸
      */
-    [[nodiscard]] const Size& lastMeasuredSize() const { return m_lastMeasuredSize; }
+    [[nodiscard]] const Size& lastMeasuredSize() const
+    {
+        return m_lastMeasuredSize;
+    }
 
     // ==================== 布局接口 ====================
 
@@ -220,12 +258,18 @@ public:
     /**
      * @brief 检查是否需要重新布局
      */
-    [[nodiscard]] bool isLayoutDirty() const { return m_layoutDirty; }
+    [[nodiscard]] bool isLayoutDirty() const
+    {
+        return m_layoutDirty;
+    }
 
     /**
      * @brief 检查是否需要重新渲染
      */
-    [[nodiscard]] bool isRenderDirty() const { return m_renderDirty; }
+    [[nodiscard]] bool isRenderDirty() const
+    {
+        return m_renderDirty;
+    }
 
     /**
      * @brief 标记需要重新布局
@@ -237,13 +281,23 @@ public:
     /**
      * @brief 标记需要重新渲染
      */
-    void requestRender() { m_renderDirty = true; }
+    void requestRender()
+    {
+        m_renderDirty = true;
+    }
 
     /**
      * @brief 清除脏标记
      */
-    void clearLayoutDirty() { m_layoutDirty = false; }
-    void clearRenderDirty() { m_renderDirty = false; }
+    void clearLayoutDirty()
+    {
+        m_layoutDirty = false;
+    }
+
+    void clearRenderDirty()
+    {
+        m_renderDirty = false;
+    }
 
     // ==================== 子元素管理 ====================
 
@@ -278,12 +332,18 @@ public:
     /**
      * @brief 获取布局深度
      */
-    [[nodiscard]] i32 depth() const { return m_depth; }
+    [[nodiscard]] i32 depth() const
+    {
+        return m_depth;
+    }
 
     /**
      * @brief 设置布局深度
      */
-    void setDepth(i32 depth) { m_depth = depth; }
+    void setDepth(i32 depth)
+    {
+        m_depth = depth;
+    }
 
 private:
     /**
@@ -341,7 +401,10 @@ public:
     /**
      * @brief 获取容器接口
      */
-    [[nodiscard]] widget::IWidgetContainer* container() const { return m_container; }
+    [[nodiscard]] widget::IWidgetContainer* container() const
+    {
+        return m_container;
+    }
 
     /**
      * @brief 获取所有子元素的适配器

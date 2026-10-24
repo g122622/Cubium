@@ -72,7 +72,10 @@ struct SectionKey {
     /**
      * @brief 从区块坐标和Section Y创建
      */
-    static SectionKey fromChunk(i32 cx, i32 cz, i8 sy, DimensionId dim = 0) { return SectionKey(cx, cz, sy, dim); }
+    static SectionKey fromChunk(i32 cx, i32 cz, i8 sy, DimensionId dim = 0)
+    {
+        return SectionKey(cx, cz, sy, dim);
+    }
 
     /**
      * @brief 从方块坐标创建
@@ -96,12 +99,18 @@ struct SectionKey {
     /**
      * @brief 获取Section在世界中的最小Y坐标
      */
-    [[nodiscard]] i32 minY() const noexcept { return static_cast<i32>(sectionY) * CHUNK_SECTION_HEIGHT; }
+    [[nodiscard]] i32 minY() const noexcept
+    {
+        return static_cast<i32>(sectionY) * CHUNK_SECTION_HEIGHT;
+    }
 
     /**
      * @brief 获取Section在世界中的最大Y坐标
      */
-    [[nodiscard]] i32 maxY() const noexcept { return minY() + CHUNK_SECTION_HEIGHT - 1; }
+    [[nodiscard]] i32 maxY() const noexcept
+    {
+        return minY() + CHUNK_SECTION_HEIGHT - 1;
+    }
 
     /**
      * @brief 序列化为二进制（13字节）
@@ -178,13 +187,22 @@ struct SectionKey {
             dimension == other.dimension;
     }
 
-    bool operator!=(const SectionKey& other) const noexcept { return !(*this == other); }
+    bool operator!=(const SectionKey& other) const noexcept
+    {
+        return !(*this == other);
+    }
 
     bool operator<(const SectionKey& other) const noexcept
     {
-        if (dimension != other.dimension) return dimension < other.dimension;
-        if (chunkX != other.chunkX) return chunkX < other.chunkX;
-        if (chunkZ != other.chunkZ) return chunkZ < other.chunkZ;
+        if (dimension != other.dimension) {
+            return dimension < other.dimension;
+        }
+        if (chunkX != other.chunkX) {
+            return chunkX < other.chunkX;
+        }
+        if (chunkZ != other.chunkZ) {
+            return chunkZ < other.chunkZ;
+        }
         return sectionY < other.sectionY;
     }
 

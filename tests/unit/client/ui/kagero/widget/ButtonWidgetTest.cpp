@@ -60,7 +60,9 @@ TEST(ButtonWidgetTest, ConstructorWithParams)
 TEST(ButtonWidgetTest, ConstructorWithCallback)
 {
     bool clicked = false;
-    ButtonWidget button("btn_test", 10, 20, 100, 40, "Click Me", [&clicked](ButtonWidget&) { clicked = true; });
+    ButtonWidget button("btn_test", 10, 20, 100, 40, "Click Me", [&clicked](ButtonWidget&) {
+        clicked = true;
+    });
 
     EXPECT_EQ("btn_test", button.id());
     EXPECT_EQ("Click Me", button.text());
@@ -164,7 +166,9 @@ TEST(ButtonWidgetTest, GetTextColor)
 TEST(ButtonWidgetTest, ClickTriggersCallback)
 {
     int clickCount = 0;
-    ButtonWidget button("btn_test", 0, 0, 100, 40, "Test", [&clickCount](ButtonWidget&) { ++clickCount; });
+    ButtonWidget button("btn_test", 0, 0, 100, 40, "Test", [&clickCount](ButtonWidget&) {
+        ++clickCount;
+    });
 
     button.setActive(true);
     button.setVisible(true);
@@ -183,7 +187,9 @@ TEST(ButtonWidgetTest, ClickTriggersCallback)
 TEST(ButtonWidgetTest, ClickDisabledNoTrigger)
 {
     int clickCount = 0;
-    ButtonWidget button("btn_test", 0, 0, 100, 40, "Test", [&clickCount](ButtonWidget&) { ++clickCount; });
+    ButtonWidget button("btn_test", 0, 0, 100, 40, "Test", [&clickCount](ButtonWidget&) {
+        ++clickCount;
+    });
 
     button.setActive(false);
 
@@ -195,7 +201,9 @@ TEST(ButtonWidgetTest, ClickDisabledNoTrigger)
 TEST(ButtonWidgetTest, ClickInvisibleNoTrigger)
 {
     int clickCount = 0;
-    ButtonWidget button("btn_test", 0, 0, 100, 40, "Test", [&clickCount](ButtonWidget&) { ++clickCount; });
+    ButtonWidget button("btn_test", 0, 0, 100, 40, "Test", [&clickCount](ButtonWidget&) {
+        ++clickCount;
+    });
 
     button.setVisible(false);
 
@@ -282,7 +290,9 @@ TEST_F(UiSoundTest, ButtonClickPlaysSound)
         ++soundCallCount;
     });
 
-    ButtonWidget button("btn_test", 0, 0, 100, 40, "Test", [&clickCallCount](ButtonWidget&) { ++clickCallCount; });
+    ButtonWidget button("btn_test", 0, 0, 100, 40, "Test", [&clickCallCount](ButtonWidget&) {
+        ++clickCallCount;
+    });
 
     button.setActive(true);
     button.setVisible(true);
@@ -300,7 +310,9 @@ TEST_F(UiSoundTest, ButtonClickNoSoundWhenDisabled)
 {
     int soundCallCount = 0;
 
-    Widget::setUiSoundCallback([&](const std::string&) { ++soundCallCount; });
+    Widget::setUiSoundCallback([&](const std::string&) {
+        ++soundCallCount;
+    });
 
     ButtonWidget button("btn_test", 0, 0, 100, 40, "Test");
     button.setActive(false);
@@ -316,7 +328,9 @@ TEST_F(UiSoundTest, CustomButtonSound)
 {
     std::string lastSoundId;
 
-    Widget::setUiSoundCallback([&](const std::string& soundId) { lastSoundId = soundId; });
+    Widget::setUiSoundCallback([&](const std::string& soundId) {
+        lastSoundId = soundId;
+    });
 
     // 创建自定义按钮类，使用不同的音效
     class CustomSoundButton : public ButtonWidget {
@@ -324,7 +338,10 @@ TEST_F(UiSoundTest, CustomButtonSound)
         using ButtonWidget::ButtonWidget;
 
     protected:
-        void playClickSound() override { playUiSound("minecraft:block.wood.hit"); }
+        void playClickSound() override
+        {
+            playUiSound("minecraft:block.wood.hit");
+        }
     };
 
     CustomSoundButton button("custom_btn", 0, 0, 100, 40, "Custom");

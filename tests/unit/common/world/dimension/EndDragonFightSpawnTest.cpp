@@ -84,7 +84,10 @@ public:
         return true;
     }
 
-    [[nodiscard]] i32 getHeight(i32 /*x*/, i32 /*z*/) const override { return world::MAX_BUILD_HEIGHT; }
+    [[nodiscard]] i32 getHeight(i32 /*x*/, i32 /*z*/) const override
+    {
+        return world::MAX_BUILD_HEIGHT;
+    }
 
     [[nodiscard]] bool isWithinWorldBounds(i32, i32 y, i32) const override
     {
@@ -163,10 +166,16 @@ public:
     }
 
     /// 获取所有通过 spawnEntity 生成的末影龙实体指针
-    [[nodiscard]] const std::vector<Entity*>& spawnedDragons() const { return m_spawnedDragons; }
+    [[nodiscard]] const std::vector<Entity*>& spawnedDragons() const
+    {
+        return m_spawnedDragons;
+    }
 
     /// 总实体数（含注入的）
-    [[nodiscard]] size_t totalEntityCount() const { return m_entities.size(); }
+    [[nodiscard]] size_t totalEntityCount() const
+    {
+        return m_entities.size();
+    }
 
 private:
     // 区块坐标转换辅助（避免依赖 CoordConverter，使测试自包含）

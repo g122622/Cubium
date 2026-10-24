@@ -52,7 +52,10 @@ namespace {
 /// 青蛙卵测试世界：稀疏方块存储 + 可注入的流体查询 + 实体生成记录。
 class FrogspawnTestWorld final : public mc::test::BaseTestWorld {
 public:
-    FrogspawnTestWorld() { m_tickManager = std::make_unique<world::tick::TickManager>(*this); }
+    FrogspawnTestWorld()
+    {
+        m_tickManager = std::make_unique<world::tick::TickManager>(*this);
+    }
 
     [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override
     {
@@ -85,8 +88,15 @@ public:
         return fluid::Fluids::EMPTY() != nullptr ? &fluid::Fluids::EMPTY()->defaultState() : nullptr;
     }
 
-    [[nodiscard]] world::tick::TickManager& tickManager() override { return *m_tickManager; }
-    [[nodiscard]] const world::tick::TickManager& tickManager() const override { return *m_tickManager; }
+    [[nodiscard]] world::tick::TickManager& tickManager() override
+    {
+        return *m_tickManager;
+    }
+
+    [[nodiscard]] const world::tick::TickManager& tickManager() const override
+    {
+        return *m_tickManager;
+    }
 
     EntityInstanceId spawnEntity(std::unique_ptr<Entity> entity) override
     {
@@ -94,12 +104,21 @@ public:
         return EntityInstanceId(static_cast<u32>(m_spawned.size()));
     }
 
-    [[nodiscard]] const std::vector<const entity::EntityType*>& spawned() const { return m_spawned; }
+    [[nodiscard]] const std::vector<const entity::EntityType*>& spawned() const
+    {
+        return m_spawned;
+    }
 
-    void set(const BlockPos& pos, const BlockState& state) { setBlockState(pos.x, pos.y, pos.z, &state); }
+    void set(const BlockPos& pos, const BlockState& state)
+    {
+        setBlockState(pos.x, pos.y, pos.z, &state);
+    }
 
 private:
-    static i64 packPos(i32 x, i32 y, i32 z) { return (static_cast<i64>(x) << 42) ^ (static_cast<i64>(y) << 21) ^ z; }
+    static i64 packPos(i32 x, i32 y, i32 z)
+    {
+        return (static_cast<i64>(x) << 42) ^ (static_cast<i64>(y) << 21) ^ z;
+    }
 
     std::unique_ptr<world::tick::TickManager> m_tickManager;
     std::unordered_map<i64, std::unique_ptr<BlockState>> m_blocks;
@@ -116,20 +135,56 @@ public:
 
     void setSeed(u64) override {}
 
-    [[nodiscard]] i32 nextInt() override { return _take(); }
-    [[nodiscard]] i32 nextInt(i32 bound) override { return _take() % bound; }
+    [[nodiscard]] i32 nextInt() override
+    {
+        return _take();
+    }
+
+    [[nodiscard]] i32 nextInt(i32 bound) override
+    {
+        return _take() % bound;
+    }
+
     [[nodiscard]] i32 nextInt(i32 min, i32 max) override
     {
         MC_ASSERT_RELEASE(min <= max);
         return min + (_take() % (max - min + 1));
     }
-    [[nodiscard]] bool nextBoolean() override { return (_take() & 1) != 0; }
-    [[nodiscard]] f32 nextFloat() override { return static_cast<f32>(nextDouble()); }
-    [[nodiscard]] f32 nextFloat(f32 min, f32 max) override { return min + nextFloat() * (max - min); }
-    [[nodiscard]] f64 nextDouble() override { return static_cast<f64>(_take() % 1000) / 1000.0; }
-    [[nodiscard]] u32 nextU32() override { return static_cast<u32>(_take()); }
-    [[nodiscard]] u64 nextU64() override { return static_cast<u64>(_take()); }
-    math::PositionalRandomFactory forkPositional() override { return math::PositionalRandomFactory(0u); }
+
+    [[nodiscard]] bool nextBoolean() override
+    {
+        return (_take() & 1) != 0;
+    }
+
+    [[nodiscard]] f32 nextFloat() override
+    {
+        return static_cast<f32>(nextDouble());
+    }
+
+    [[nodiscard]] f32 nextFloat(f32 min, f32 max) override
+    {
+        return min + nextFloat() * (max - min);
+    }
+
+    [[nodiscard]] f64 nextDouble() override
+    {
+        return static_cast<f64>(_take() % 1000) / 1000.0;
+    }
+
+    [[nodiscard]] u32 nextU32() override
+    {
+        return static_cast<u32>(_take());
+    }
+
+    [[nodiscard]] u64 nextU64() override
+    {
+        return static_cast<u64>(_take());
+    }
+
+    math::PositionalRandomFactory forkPositional() override
+    {
+        return math::PositionalRandomFactory(0u);
+    }
 
 private:
     i32 _take()

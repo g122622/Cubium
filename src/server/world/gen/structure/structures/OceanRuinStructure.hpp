@@ -93,12 +93,30 @@ public:
      *
      * 必须在 generate 之前调用
      */
-    void setTemplateManager(feature::template_::TemplateManager* manager) { m_templateManager = manager; }
+    void setTemplateManager(feature::template_::TemplateManager* manager)
+    {
+        m_templateManager = manager;
+    }
 
-    [[nodiscard]] const std::string& templateName() const { return m_templateName; }
-    [[nodiscard]] f32 integrity() const { return m_integrity; }
-    [[nodiscard]] OceanRuinType ruinType() const { return m_type; }
-    [[nodiscard]] bool isLarge() const { return m_isLarge; }
+    [[nodiscard]] const std::string& templateName() const
+    {
+        return m_templateName;
+    }
+
+    [[nodiscard]] f32 integrity() const
+    {
+        return m_integrity;
+    }
+
+    [[nodiscard]] OceanRuinType ruinType() const
+    {
+        return m_type;
+    }
+
+    [[nodiscard]] bool isLarge() const
+    {
+        return m_isLarge;
+    }
 
 private:
     void _loadTemplate();
@@ -122,7 +140,10 @@ class OceanRuinStructure : public Structure {
 public:
     explicit OceanRuinStructure(ResourceLocation id);
 
-    [[nodiscard]] const std::string& name() const override { return m_name; }
+    [[nodiscard]] const std::string& name() const override
+    {
+        return m_name;
+    }
 
     /**
      * @brief 获取结构关联的生物群系标签
@@ -142,14 +163,23 @@ public:
     /**
      * @brief 设置模板管理器
      */
-    void setTemplateManager(feature::template_::TemplateManager* manager) { m_templateManager = manager; }
+    void setTemplateManager(feature::template_::TemplateManager* manager)
+    {
+        m_templateManager = manager;
+    }
 
     /**
      * @brief 设置配置
      */
-    void setConfig(const OceanRuinConfig& config) { m_config = config; }
+    void setConfig(const OceanRuinConfig& config)
+    {
+        m_config = config;
+    }
 
-    [[nodiscard]] const OceanRuinConfig& config() const { return m_config; }
+    [[nodiscard]] const OceanRuinConfig& config() const
+    {
+        return m_config;
+    }
 
     // 模板名称常量（公开供测试访问）
     static const std::vector<std::string> s_warmTemplates;

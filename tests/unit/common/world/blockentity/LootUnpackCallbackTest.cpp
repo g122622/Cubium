@@ -87,8 +87,15 @@ class LootCallbackTestWorld final : public mc::test::BaseTestWorld {
 public:
     using IWorld::getBlockState;
 
-    [[nodiscard]] const BlockState* getBlockState(i32, i32, i32) const override { return nullptr; }
-    [[nodiscard]] bool isWithinWorldBounds(i32, i32, i32) const override { return true; }
+    [[nodiscard]] const BlockState* getBlockState(i32, i32, i32) const override
+    {
+        return nullptr;
+    }
+
+    [[nodiscard]] bool isWithinWorldBounds(i32, i32, i32) const override
+    {
+        return true;
+    }
 
     [[nodiscard]] const loot::LootTableManager* lootTableManager() const override
     {
@@ -98,8 +105,15 @@ public:
         return m_customManager != nullptr ? m_customManager : &m_lootTableManager;
     }
 
-    void setLootTableManager(loot::LootTableManager* manager) { m_customManager = manager; }
-    void setNoLootTableManager() { m_noManager = true; }
+    void setLootTableManager(loot::LootTableManager* manager)
+    {
+        m_customManager = manager;
+    }
+
+    void setNoLootTableManager()
+    {
+        m_noManager = true;
+    }
 
 private:
     loot::LootTableManager m_lootTableManager;
@@ -464,7 +478,10 @@ TEST_F(DispenserLootCallbackTest, GetDispenseSlot_TriggersLootFill)
 
 class SimpleInventoryCallbackTest : public ::testing::Test {
 protected:
-    void SetUp() override { callbackCallCount_ = 0; }
+    void SetUp() override
+    {
+        callbackCallCount_ = 0;
+    }
 
     i32 callbackCallCount_ = 0;
 };
@@ -472,7 +489,9 @@ protected:
 TEST_F(SimpleInventoryCallbackTest, SetCallback_TriggeredOnAllAccessMethods)
 {
     SimpleInventory inv(5);
-    inv.setLootUnpackCallback([this]() { ++callbackCallCount_; });
+    inv.setLootUnpackCallback([this]() {
+        ++callbackCallCount_;
+    });
 
     // 初始调用次数为 0
     EXPECT_EQ(callbackCallCount_, 0);
@@ -522,7 +541,9 @@ TEST_F(SimpleInventoryCallbackTest, MoveConstructor_PreservesCallback)
 {
     SimpleInventory inv(3);
     i32 callCount = 0;
-    inv.setLootUnpackCallback([&callCount]() { ++callCount; });
+    inv.setLootUnpackCallback([&callCount]() {
+        ++callCount;
+    });
 
     // 移动构造
     SimpleInventory movedInv = std::move(inv);
@@ -536,7 +557,9 @@ TEST_F(SimpleInventoryCallbackTest, MoveAssignment_PreservesCallback)
 {
     SimpleInventory inv(3);
     i32 callCount = 0;
-    inv.setLootUnpackCallback([&callCount]() { ++callCount; });
+    inv.setLootUnpackCallback([&callCount]() {
+        ++callCount;
+    });
 
     SimpleInventory target(2);
     target = std::move(inv);

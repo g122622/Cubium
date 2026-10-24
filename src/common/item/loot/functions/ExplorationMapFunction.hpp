@@ -77,13 +77,36 @@ public:
 
     [[nodiscard]] ItemStack apply(ItemStack stack, LootContext& context) const override;
     [[nodiscard]] std::unique_ptr<LootFunction> clone() const noexcept override;
-    [[nodiscard]] std::string getType() const noexcept override { return "exploration_map"; }
 
-    [[nodiscard]] const ResourceLocation& getDestination() const { return m_destination; }
-    [[nodiscard]] world::map::DecorationType getDecoration() const { return m_decoration; }
-    [[nodiscard]] i8 getZoom() const { return m_zoom; }
-    [[nodiscard]] i32 getSearchRadius() const { return m_searchRadius; }
-    [[nodiscard]] bool shouldSearchSkipLoadedChunks() const { return m_searchSkipsLoadedChunks; }
+    [[nodiscard]] std::string getType() const noexcept override
+    {
+        return "exploration_map";
+    }
+
+    [[nodiscard]] const ResourceLocation& getDestination() const
+    {
+        return m_destination;
+    }
+
+    [[nodiscard]] world::map::DecorationType getDecoration() const
+    {
+        return m_decoration;
+    }
+
+    [[nodiscard]] i8 getZoom() const
+    {
+        return m_zoom;
+    }
+
+    [[nodiscard]] i32 getSearchRadius() const
+    {
+        return m_searchRadius;
+    }
+
+    [[nodiscard]] bool shouldSearchSkipLoadedChunks() const
+    {
+        return m_searchSkipsLoadedChunks;
+    }
 
     /**
      * @brief 解析结构标签资源位置

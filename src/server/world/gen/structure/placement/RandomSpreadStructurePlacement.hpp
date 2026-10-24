@@ -104,13 +104,22 @@ public:
     world::chunk::ChunkPos getPotentialStructureChunk(i64 worldSeed, i32 chunkX, i32 chunkZ) const;
 
     /// 获取网格间距
-    [[nodiscard]] i32 spacing() const { return m_spacing; }
+    [[nodiscard]] i32 spacing() const
+    {
+        return m_spacing;
+    }
 
     /// 获取最小间距
-    [[nodiscard]] i32 separation() const { return m_separation; }
+    [[nodiscard]] i32 separation() const
+    {
+        return m_separation;
+    }
 
     /// 获取分布类型
-    [[nodiscard]] RandomSpreadType spreadType() const { return m_spreadType; }
+    [[nodiscard]] RandomSpreadType spreadType() const
+    {
+        return m_spreadType;
+    }
 
 private:
     /// 网格间距（区块）

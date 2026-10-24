@@ -119,7 +119,10 @@ public:
     /**
      * @brief 检查是否已初始化
      */
-    [[nodiscard]] bool isInitialized() const { return m_initialized.load(); }
+    [[nodiscard]] bool isInitialized() const
+    {
+        return m_initialized.load();
+    }
 
     // ========== 玩家信息管理 ==========
 
@@ -200,15 +203,25 @@ public:
     /**
      * @brief 获取默认皮肤提供者
      */
-    [[nodiscard]] const DefaultSkinProvider& defaultSkinProvider() const { return *m_defaultSkinProvider; }
+    [[nodiscard]] const DefaultSkinProvider& defaultSkinProvider() const
+    {
+        return *m_defaultSkinProvider;
+    }
 
     // ========== 缓存访问 ==========
 
     /**
      * @brief 获取皮肤缓存
      */
-    [[nodiscard]] SkinCache& cache() { return *m_cache; }
-    [[nodiscard]] const SkinCache& cache() const { return *m_cache; }
+    [[nodiscard]] SkinCache& cache()
+    {
+        return *m_cache;
+    }
+
+    [[nodiscard]] const SkinCache& cache() const
+    {
+        return *m_cache;
+    }
 
     // ========== 资源包设置 ==========
 
@@ -253,14 +266,28 @@ public:
     /**
      * @brief 获取文件加载器（用于直接调用 load/loadAsync）
      */
-    [[nodiscard]] FileSkinLoader& fileLoader() { return *m_fileLoader; }
-    [[nodiscard]] const FileSkinLoader& fileLoader() const { return *m_fileLoader; }
+    [[nodiscard]] FileSkinLoader& fileLoader()
+    {
+        return *m_fileLoader;
+    }
+
+    [[nodiscard]] const FileSkinLoader& fileLoader() const
+    {
+        return *m_fileLoader;
+    }
 
     /**
      * @brief 获取 HTTP 加载器（用于直接调用 load/loadAsync）
      */
-    [[nodiscard]] HttpSkinLoader& httpLoader() { return *m_httpLoader; }
-    [[nodiscard]] const HttpSkinLoader& httpLoader() const { return *m_httpLoader; }
+    [[nodiscard]] HttpSkinLoader& httpLoader()
+    {
+        return *m_httpLoader;
+    }
+
+    [[nodiscard]] const HttpSkinLoader& httpLoader() const
+    {
+        return *m_httpLoader;
+    }
 
 private:
     /**

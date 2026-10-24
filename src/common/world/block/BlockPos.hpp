@@ -72,7 +72,10 @@ public:
     {}
 
     // 静态常量
-    static BlockPos zero() { return {0, 0, 0}; }
+    static BlockPos zero()
+    {
+        return {0, 0, 0};
+    }
 
     // 算术运算
     [[nodiscard]] BlockPos operator+(const BlockPos& other) const noexcept
@@ -85,7 +88,10 @@ public:
         return {x - other.x, y - other.y, z - other.z};
     }
 
-    [[nodiscard]] BlockPos operator*(i32 scalar) const noexcept { return {x * scalar, y * scalar, z * scalar}; }
+    [[nodiscard]] BlockPos operator*(i32 scalar) const noexcept
+    {
+        return {x * scalar, y * scalar, z * scalar};
+    }
 
     BlockPos& operator+=(const BlockPos& other) noexcept
     {
@@ -109,7 +115,10 @@ public:
         return x == other.x && y == other.y && z == other.z;
     }
 
-    [[nodiscard]] bool operator!=(const BlockPos& other) const noexcept { return !(*this == other); }
+    [[nodiscard]] bool operator!=(const BlockPos& other) const noexcept
+    {
+        return !(*this == other);
+    }
 
     // 排序支持
     [[nodiscard]] bool operator<(const BlockPos& other) const noexcept
@@ -174,12 +183,35 @@ public:
     }
 
     // 获取相邻方块
-    [[nodiscard]] BlockPos up(i32 offset = 1) const noexcept { return {x, y + offset, z}; }
-    [[nodiscard]] BlockPos down(i32 offset = 1) const noexcept { return {x, y - offset, z}; }
-    [[nodiscard]] BlockPos north(i32 offset = 1) const noexcept { return {x, y, z - offset}; }
-    [[nodiscard]] BlockPos south(i32 offset = 1) const noexcept { return {x, y, z + offset}; }
-    [[nodiscard]] BlockPos east(i32 offset = 1) const noexcept { return {x + offset, y, z}; }
-    [[nodiscard]] BlockPos west(i32 offset = 1) const noexcept { return {x - offset, y, z}; }
+    [[nodiscard]] BlockPos up(i32 offset = 1) const noexcept
+    {
+        return {x, y + offset, z};
+    }
+
+    [[nodiscard]] BlockPos down(i32 offset = 1) const noexcept
+    {
+        return {x, y - offset, z};
+    }
+
+    [[nodiscard]] BlockPos north(i32 offset = 1) const noexcept
+    {
+        return {x, y, z - offset};
+    }
+
+    [[nodiscard]] BlockPos south(i32 offset = 1) const noexcept
+    {
+        return {x, y, z + offset};
+    }
+
+    [[nodiscard]] BlockPos east(i32 offset = 1) const noexcept
+    {
+        return {x + offset, y, z};
+    }
+
+    [[nodiscard]] BlockPos west(i32 offset = 1) const noexcept
+    {
+        return {x - offset, y, z};
+    }
 
     // 根据朝向获取相邻方块
     [[nodiscard]] BlockPos offset(BlockFace face, i32 distance = 1) const noexcept
@@ -255,7 +287,10 @@ public:
      *
      * @return 打包后的 64 位整数
      */
-    [[nodiscard]] i64 asLong() const noexcept { return asLong(x, y, z); }
+    [[nodiscard]] i64 asLong() const noexcept
+    {
+        return asLong(x, y, z);
+    }
 
     /**
      * @brief 将三个整数坐标打包为 64 位整数
@@ -314,15 +349,32 @@ public:
     }
 
     // 区块坐标
-    [[nodiscard]] ChunkCoord chunkX() const noexcept { return math::toChunkCoord(x); }
-    [[nodiscard]] ChunkCoord chunkZ() const noexcept { return math::toChunkCoord(z); }
+    [[nodiscard]] ChunkCoord chunkX() const noexcept
+    {
+        return math::toChunkCoord(x);
+    }
+
+    [[nodiscard]] ChunkCoord chunkZ() const noexcept
+    {
+        return math::toChunkCoord(z);
+    }
 
     // 区块内坐标
-    [[nodiscard]] BlockCoord localX() const noexcept { return math::toLocalCoord(x); }
-    [[nodiscard]] BlockCoord localZ() const noexcept { return math::toLocalCoord(z); }
+    [[nodiscard]] BlockCoord localX() const noexcept
+    {
+        return math::toLocalCoord(x);
+    }
+
+    [[nodiscard]] BlockCoord localZ() const noexcept
+    {
+        return math::toLocalCoord(z);
+    }
 
     // 段坐标 (Y >> SECTION_SHIFT)，范围 [MIN_SECTION_Y, MAX_SECTION_Y]
-    [[nodiscard]] i32 sectionCoord() const noexcept { return y >> world::SECTION_SHIFT; }
+    [[nodiscard]] i32 sectionCoord() const noexcept
+    {
+        return y >> world::SECTION_SHIFT;
+    }
 
     // 转为字符串
     [[nodiscard]] std::string toString() const
@@ -430,7 +482,9 @@ public:
             for (i32 dz = -1; dz <= 1; ++dz) {
                 pos.z = z + dz;
                 for (i32 dx = -1; dx <= 1; ++dx) {
-                    if (dx == 0 && dy == 0 && dz == 0) continue;
+                    if (dx == 0 && dy == 0 && dz == 0) {
+                        continue;
+                    }
                     pos.x = x + dx;
                     if (!callback(pos)) {
                         return;
@@ -469,9 +523,11 @@ public:
     BlockPosMutable() noexcept
         : BlockPos()
     {}
+
     BlockPosMutable(BlockCoord x_, BlockCoord y_, BlockCoord z_) noexcept
         : BlockPos(x_, y_, z_)
     {}
+
     explicit BlockPosMutable(const BlockPos& pos) noexcept
         : BlockPos(pos)
     {}
@@ -580,7 +636,10 @@ public:
     /**
      * @brief 转换为不可变 BlockPos
      */
-    [[nodiscard]] BlockPos toImmutable() const noexcept { return BlockPos(x, y, z); }
+    [[nodiscard]] BlockPos toImmutable() const noexcept
+    {
+        return BlockPos(x, y, z);
+    }
 };
 
 } // namespace mc
@@ -589,6 +648,9 @@ public:
 namespace std {
 template <>
 struct hash<mc::BlockPos> {
-    size_t operator()(const mc::BlockPos& pos) const noexcept { return static_cast<size_t>(pos.toId()); }
+    size_t operator()(const mc::BlockPos& pos) const noexcept
+    {
+        return static_cast<size_t>(pos.toId());
+    }
 };
 } // namespace std

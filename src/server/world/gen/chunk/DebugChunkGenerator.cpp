@@ -91,14 +91,16 @@ void DebugChunkGenerator::initializeValidStates()
 
     // 先收集到临时 vector 中，按方块 ID 排序
     std::vector<std::pair<i32, const BlockState*>> tempStates;
-    registry.forEachBlockState(
-        [&tempStates](const BlockState& state) { tempStates.emplace_back(state.blockId(), &state); });
+    registry.forEachBlockState([&tempStates](const BlockState& state) {
+        tempStates.emplace_back(state.blockId(), &state);
+    });
 
     // 按方块 ID 排序，确保迭代顺序与注册顺序一致
     // MC 1.21.11: 同一方块的多个状态按 getPossibleStates() 的顺序排列，
     // 必须使用稳定排序以保持同一方块内状态的相对顺序
-    std::stable_sort(
-        tempStates.begin(), tempStates.end(), [](const auto& a, const auto& b) { return a.first < b.first; });
+    std::stable_sort(tempStates.begin(), tempStates.end(), [](const auto& a, const auto& b) {
+        return a.first < b.first;
+    });
 
     s_allValidStates.reserve(tempStates.size());
     for (const auto& [id, state] : tempStates) {

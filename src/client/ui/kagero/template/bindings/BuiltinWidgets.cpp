@@ -70,7 +70,9 @@ BuiltinWidgets::BuiltinWidgets()
 
 void BuiltinWidgets::initialize()
 {
-    if (m_initialized) return;
+    if (m_initialized) {
+        return;
+    }
 
     _registerScreenWidget();
     _registerContainerWidget();
@@ -500,10 +502,12 @@ void BuiltinWidgets::_registerImageWidget()
                 std::string hPart = sizeValue.substr(comma + 1);
                 // 去除空格
                 auto trim = [](std::string& s) {
-                    while (!s.empty() && std::isspace(static_cast<unsigned char>(s.back())))
+                    while (!s.empty() && std::isspace(static_cast<unsigned char>(s.back()))) {
                         s.pop_back();
-                    while (!s.empty() && std::isspace(static_cast<unsigned char>(s.front())))
+                    }
+                    while (!s.empty() && std::isspace(static_cast<unsigned char>(s.front()))) {
                         s.erase(s.begin());
+                    }
                 };
                 trim(wPart);
                 trim(hPart);
@@ -905,8 +909,9 @@ std::string colorToString(u32 color)
 Anchor parseAnchor(const std::string& value)
 {
     std::string lower = value;
-    std::transform(
-        lower.begin(), lower.end(), lower.begin(), [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+    std::transform(lower.begin(), lower.end(), lower.begin(), [](unsigned char c) {
+        return static_cast<char>(std::tolower(c));
+    });
 
     static const std::unordered_map<std::string, Anchor> anchors = {{"topleft", Anchor::TopLeft},
         {"topcenter", Anchor::TopCenter},
@@ -951,8 +956,9 @@ std::string anchorToString(Anchor anchor)
 bool parseBool(const std::string& value)
 {
     std::string lower = value;
-    std::transform(
-        lower.begin(), lower.end(), lower.begin(), [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+    std::transform(lower.begin(), lower.end(), lower.begin(), [](unsigned char c) {
+        return static_cast<char>(std::tolower(c));
+    });
 
     return lower == "true" || lower == "1" || lower == "yes" || lower == "on";
 }

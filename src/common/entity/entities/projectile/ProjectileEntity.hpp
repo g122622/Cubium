@@ -65,7 +65,10 @@ struct RayTraceResult {
     Direction face = Direction::None;
     mc::Entity* hitEntity = nullptr;
 
-    static RayTraceResult miss() { return RayTraceResult{}; }
+    static RayTraceResult miss()
+    {
+        return RayTraceResult{};
+    }
 
     static RayTraceResult block(const Vector3& pos, const BlockPos& blockPos, Direction hitFace = Direction::None)
     {
@@ -105,12 +108,26 @@ public:
 
     // ========== Entity 接口重写 ==========
 
-    [[nodiscard]] f32 width() const override { return 0.25f; }
-    [[nodiscard]] f32 height() const override { return 0.25f; }
-    [[nodiscard]] f32 eyeHeight() const override { return 0.125f; }
+    [[nodiscard]] f32 width() const override
+    {
+        return 0.25f;
+    }
+
+    [[nodiscard]] f32 height() const override
+    {
+        return 0.25f;
+    }
+
+    [[nodiscard]] f32 eyeHeight() const override
+    {
+        return 0.125f;
+    }
 
     // 无战利品表，覆写基类方法返回空字符串
-    [[nodiscard]] std::string getLootTableId() const override { return {}; }
+    [[nodiscard]] std::string getLootTableId() const override
+    {
+        return {};
+    }
 
     void tick() override;
 
@@ -272,7 +289,10 @@ public:
      *
      * @param wasPlayerDeflect 是否为玩家偏转
      */
-    virtual void onDeflection(bool wasPlayerDeflect) { (void)wasPlayerDeflect; }
+    virtual void onDeflection(bool wasPlayerDeflect)
+    {
+        (void)wasPlayerDeflect;
+    }
 
     // ========== 物理 ==========
 
@@ -280,19 +300,28 @@ public:
      * @brief 获取重力加速度
      * @return 每tick的重力加速度
      */
-    [[nodiscard]] virtual f32 getGravity() const { return 0.03f; }
+    [[nodiscard]] virtual f32 getGravity() const
+    {
+        return 0.03f;
+    }
 
     /**
      * @brief 获取空气阻力
      * @return 空气阻力系数（0-1）
      */
-    [[nodiscard]] virtual f32 getAirDrag() const { return 0.99f; }
+    [[nodiscard]] virtual f32 getAirDrag() const
+    {
+        return 0.99f;
+    }
 
     /**
      * @brief 获取水中阻力
      * @return 水中阻力系数（0-1）
      */
-    [[nodiscard]] virtual f32 getWaterDrag() const { return 0.8f; }
+    [[nodiscard]] virtual f32 getWaterDrag() const
+    {
+        return 0.8f;
+    }
 
 protected:
     /**

@@ -93,55 +93,132 @@ public:
         return true;
     }
 
-    [[nodiscard]] const fluid::FluidState* getFluidState(i32, i32, i32) const override { return nullptr; }
-    [[nodiscard]] i32 getHeight(i32, i32) const override { return 64; }
+    [[nodiscard]] const fluid::FluidState* getFluidState(i32, i32, i32) const override
+    {
+        return nullptr;
+    }
 
-    [[nodiscard]] u8 getBlockLight(i32 x, i32 y, i32 z) const override { return sampleLight(m_blockLight, x, y, z); }
+    [[nodiscard]] i32 getHeight(i32, i32) const override
+    {
+        return 64;
+    }
 
-    [[nodiscard]] u8 getSkyLight(i32 x, i32 y, i32 z) const override { return sampleLight(m_skyLight, x, y, z); }
+    [[nodiscard]] u8 getBlockLight(i32 x, i32 y, i32 z) const override
+    {
+        return sampleLight(m_blockLight, x, y, z);
+    }
 
-    [[nodiscard]] bool hasBlockCollision(const AxisAlignedBB&) const override { return false; }
-    [[nodiscard]] std::vector<AxisAlignedBB> getBlockCollisions(const AxisAlignedBB&) const override { return {}; }
+    [[nodiscard]] u8 getSkyLight(i32 x, i32 y, i32 z) const override
+    {
+        return sampleLight(m_skyLight, x, y, z);
+    }
+
+    [[nodiscard]] bool hasBlockCollision(const AxisAlignedBB&) const override
+    {
+        return false;
+    }
+
+    [[nodiscard]] std::vector<AxisAlignedBB> getBlockCollisions(const AxisAlignedBB&) const override
+    {
+        return {};
+    }
+
     [[nodiscard]] bool isWithinWorldBounds(i32, i32 y, i32) const override
     {
         return y >= mc::world::MIN_BUILD_HEIGHT && y < mc::world::MAX_BUILD_HEIGHT;
     }
-    [[nodiscard]] bool hasEntityCollision(const AxisAlignedBB&, const Entity*) const override { return false; }
+
+    [[nodiscard]] bool hasEntityCollision(const AxisAlignedBB&, const Entity*) const override
+    {
+        return false;
+    }
+
     [[nodiscard]] std::vector<AxisAlignedBB> getEntityCollisions(const AxisAlignedBB&, const Entity*) const override
     {
         return {};
     }
-    [[nodiscard]] PhysicsEngine* physicsEngine() override { return nullptr; }
-    [[nodiscard]] const PhysicsEngine* physicsEngine() const override { return nullptr; }
+
+    [[nodiscard]] PhysicsEngine* physicsEngine() override
+    {
+        return nullptr;
+    }
+
+    [[nodiscard]] const PhysicsEngine* physicsEngine() const override
+    {
+        return nullptr;
+    }
+
     [[nodiscard]] std::vector<Entity*> getEntitiesInAABB(const AxisAlignedBB&, const Entity*) const override
     {
         return {};
     }
+
     [[nodiscard]] std::vector<Entity*> getEntitiesInRange(const Vector3&, f32, const Entity*) const override
     {
         return {};
     }
-    [[nodiscard]] DimensionId dimension() const override { return 0; }
-    [[nodiscard]] u64 seed() const override { return m_seed; }
-    [[nodiscard]] u64 currentTick() const override { return 0; }
-    [[nodiscard]] i64 dayTime() const override { return 0; }
-    [[nodiscard]] bool isHardcore() const override { return false; }
-    [[nodiscard]] Difficulty difficulty() const override { return Difficulty::Easy; }
-    [[nodiscard]] bool isClientSide() const override { return false; }
 
-    void setSeed(u64 seed) { m_seed = seed; }
+    [[nodiscard]] DimensionId dimension() const override
+    {
+        return 0;
+    }
 
-    void setBlockAt(const BlockPos& pos, const BlockState* state) { (void)setBlockState(pos.x, pos.y, pos.z, state); }
+    [[nodiscard]] u64 seed() const override
+    {
+        return m_seed;
+    }
 
-    void setSkyLightAt(const BlockPos& pos, u8 light) { m_skyLight[pos] = light; }
+    [[nodiscard]] u64 currentTick() const override
+    {
+        return 0;
+    }
 
-    void setBlockLightAt(const BlockPos& pos, u8 light) { m_blockLight[pos] = light; }
+    [[nodiscard]] i64 dayTime() const override
+    {
+        return 0;
+    }
+
+    [[nodiscard]] bool isHardcore() const override
+    {
+        return false;
+    }
+
+    [[nodiscard]] Difficulty difficulty() const override
+    {
+        return Difficulty::Easy;
+    }
+
+    [[nodiscard]] bool isClientSide() const override
+    {
+        return false;
+    }
+
+    void setSeed(u64 seed)
+    {
+        m_seed = seed;
+    }
+
+    void setBlockAt(const BlockPos& pos, const BlockState* state)
+    {
+        (void)setBlockState(pos.x, pos.y, pos.z, state);
+    }
+
+    void setSkyLightAt(const BlockPos& pos, u8 light)
+    {
+        m_skyLight[pos] = light;
+    }
+
+    void setBlockLightAt(const BlockPos& pos, u8 light)
+    {
+        m_blockLight[pos] = light;
+    }
 
     // TickManager interface (stubbed for tests)
     [[nodiscard]] world::tick::TickManager& tickManager() override
     {
         throw std::runtime_error("VegetationTestWorld::tickManager not implemented");
     }
+
     [[nodiscard]] const world::tick::TickManager& tickManager() const override
     {
         throw std::runtime_error("VegetationTestWorld::tickManager not implemented");
@@ -152,17 +229,28 @@ public:
     {
         throw std::runtime_error("VegetationTestWorld::getRandom not implemented");
     }
+
     [[nodiscard]] const math::IRandom& getRandom() const override
     {
         throw std::runtime_error("VegetationTestWorld::getRandom not implemented");
     }
 
     // WorldBorder interface
-    [[nodiscard]] world::border::WorldBorder& worldBorder() override { return m_worldBorder; }
-    [[nodiscard]] const world::border::WorldBorder& worldBorder() const override { return m_worldBorder; }
+    [[nodiscard]] world::border::WorldBorder& worldBorder() override
+    {
+        return m_worldBorder;
+    }
+
+    [[nodiscard]] const world::border::WorldBorder& worldBorder() const override
+    {
+        return m_worldBorder;
+    }
 
 private:
-    [[nodiscard]] const BlockState* airState() const { return BlockRegistry::instance().airState(); }
+    [[nodiscard]] const BlockState* airState() const
+    {
+        return BlockRegistry::instance().airState();
+    }
 
     [[nodiscard]] static u8 sampleLight(const std::map<BlockPos, u8>& lights, i32 x, i32 y, i32 z)
     {
@@ -196,40 +284,70 @@ public:
         m_index = 0;
     }
 
-    [[nodiscard]] u64 nextU64() override { return static_cast<u64>(nextValue()); }
+    [[nodiscard]] u64 nextU64() override
+    {
+        return static_cast<u64>(nextValue());
+    }
 
-    [[nodiscard]] u32 nextU32() override { return static_cast<u32>(nextValue()); }
+    [[nodiscard]] u32 nextU32() override
+    {
+        return static_cast<u32>(nextValue());
+    }
 
-    [[nodiscard]] i32 nextInt(i32 bound) override { return nextValue() % bound; }
+    [[nodiscard]] i32 nextInt(i32 bound) override
+    {
+        return nextValue() % bound;
+    }
 
-    [[nodiscard]] i32 nextInt() override { return nextValue(); }
+    [[nodiscard]] i32 nextInt() override
+    {
+        return nextValue();
+    }
 
-    [[nodiscard]] i32 nextInt(i32 min, i32 max) override { return min + (nextValue() % (max - min + 1)); }
+    [[nodiscard]] i32 nextInt(i32 min, i32 max) override
+    {
+        return min + (nextValue() % (max - min + 1));
+    }
 
-    [[nodiscard]] bool nextBoolean() override { return (nextValue() & 1) != 0; }
+    [[nodiscard]] bool nextBoolean() override
+    {
+        return (nextValue() & 1) != 0;
+    }
 
     [[nodiscard]] f32 nextFloat() override
     {
         return static_cast<f32>(nextValue() & 0x00FFFFFF) / static_cast<f32>(1 << 24);
     }
 
-    [[nodiscard]] f32 nextFloat(f32 min, f32 max) override { return min + nextFloat() * (max - min); }
+    [[nodiscard]] f32 nextFloat(f32 min, f32 max) override
+    {
+        return min + nextFloat() * (max - min);
+    }
 
     [[nodiscard]] f64 nextDouble() override
     {
         return static_cast<f64>(nextValue() & 0x001FFFFFFFFFFFFF) / static_cast<f64>(1ULL << 53);
     }
 
-    [[nodiscard]] f64 nextDouble(f64 min, f64 max) override { return min + nextDouble() * (max - min); }
+    [[nodiscard]] f64 nextDouble(f64 min, f64 max) override
+    {
+        return min + nextDouble() * (max - min);
+    }
 
     [[nodiscard]] f32 nextGaussian(f32 mean, f32 stddev) override
     {
         return mean + stddev * static_cast<f32>(nextValue());
     }
 
-    [[nodiscard]] i64 nextLong() override { return static_cast<i64>(nextValue()); }
+    [[nodiscard]] i64 nextLong() override
+    {
+        return static_cast<i64>(nextValue());
+    }
 
-    [[nodiscard]] i64 nextLong(i64 bound) override { return static_cast<i64>(nextValue() % bound); }
+    [[nodiscard]] i64 nextLong(i64 bound) override
+    {
+        return static_cast<i64>(nextValue() % bound);
+    }
 
     [[nodiscard]] math::PositionalRandomFactory forkPositional() override
     {
@@ -266,7 +384,10 @@ public:
 
 class VegetationBlockTest : public ::testing::Test {
 protected:
-    void SetUp() override { VanillaBlocks::initialize(); }
+    void SetUp() override
+    {
+        VanillaBlocks::initialize();
+    }
 };
 
 TEST_F(VegetationBlockTest, SaplingCanSustainOnDirtLikeBlocks)
@@ -290,7 +411,10 @@ TEST_F(VegetationBlockTest, SaplingCanSustainOnDirtLikeBlocks)
 TEST_F(VegetationBlockTest, SaplingRandomTickAdvancesStageUnderLight)
 {
     bool treeCalled = false;
-    SaplingBlock sapling([&](IWorld&, const BlockPos&, math::IRandom&) { treeCalled = true; },
+    SaplingBlock sapling(
+        [&](IWorld&, const BlockPos&, math::IRandom&) {
+            treeCalled = true;
+        },
         BlockProperties(Material::REPLACEABLE_PLANT).noCollision().notSolid());
 
     VegetationTestWorld world;
@@ -314,7 +438,10 @@ TEST_F(VegetationBlockTest, SaplingRandomTickAdvancesStageUnderLight)
 TEST_F(VegetationBlockTest, SaplingGrowUsesWorldSeedAndPosition)
 {
     std::vector<u64> samples;
-    SaplingBlock sapling([&](IWorld&, const BlockPos&, math::IRandom& random) { samples.push_back(random.nextU64()); },
+    SaplingBlock sapling(
+        [&](IWorld&, const BlockPos&, math::IRandom& random) {
+            samples.push_back(random.nextU64());
+        },
         BlockProperties(Material::REPLACEABLE_PLANT).noCollision().notSolid());
 
     VegetationTestWorld worldA;

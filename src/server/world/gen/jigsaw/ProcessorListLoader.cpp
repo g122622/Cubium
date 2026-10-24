@@ -493,6 +493,7 @@ Result<size_t> ProcessorListLoader::loadFromDataPackRepository(const resource::D
 
     return loadedCount;
 }
+
 Result<size_t> ProcessorListLoader::loadFromResourcePack(const IResourcePack& pack)
 {
     size_t loadedCount = 0;

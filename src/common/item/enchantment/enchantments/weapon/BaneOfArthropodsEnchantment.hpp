@@ -52,7 +52,10 @@ public:
         : DamageEnchantment(Type::Arthropods)
     {}
 
-    [[nodiscard]] std::string id() const override { return "minecraft:bane_of_arthropods"; }
+    [[nodiscard]] std::string id() const override
+    {
+        return "minecraft:bane_of_arthropods";
+    }
 
     [[nodiscard]] std::string getNameKey(i32 level) const override
     {
@@ -60,7 +63,10 @@ public:
         return "enchantment.minecraft.bane_of_arthropods";
     }
 
-    [[nodiscard]] EnchantmentRarity rarity() const noexcept override { return EnchantmentRarity::Uncommon; }
+    [[nodiscard]] EnchantmentRarity rarity() const noexcept override
+    {
+        return EnchantmentRarity::Uncommon;
+    }
 
     /**
      * @brief 获取缓慢效果的持续时间（tick）

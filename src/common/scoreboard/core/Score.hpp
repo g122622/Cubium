@@ -74,7 +74,10 @@ public:
      *
      * @return 分数值
      */
-    [[nodiscard]] i32 getScorePoints() const noexcept { return m_score; }
+    [[nodiscard]] i32 getScorePoints() const noexcept
+    {
+        return m_score;
+    }
 
     /**
      * @brief 设置分数
@@ -103,7 +106,10 @@ public:
     /**
      * @brief 分数 +1
      */
-    void incrementScore() { addScore(1); }
+    void incrementScore()
+    {
+        addScore(1);
+    }
 
     /**
      * @brief 重置分数为 0
@@ -120,14 +126,20 @@ public:
      *
      * @return true 如果被锁定
      */
-    [[nodiscard]] bool isLocked() const noexcept { return m_locked; }
+    [[nodiscard]] bool isLocked() const noexcept
+    {
+        return m_locked;
+    }
 
     /**
      * @brief 设置锁定状态
      *
      * @param locked 锁定状态
      */
-    void setLocked(bool locked) noexcept { m_locked = locked; }
+    void setLocked(bool locked) noexcept
+    {
+        m_locked = locked;
+    }
 
     // ========== 信息获取 ==========
 
@@ -136,21 +148,30 @@ public:
      *
      * @return 玩家/实体名称
      */
-    [[nodiscard]] const std::string& getPlayerName() const noexcept { return m_playerName; }
+    [[nodiscard]] const std::string& getPlayerName() const noexcept
+    {
+        return m_playerName;
+    }
 
     /**
      * @brief 获取所属目标
      *
      * @return 目标引用
      */
-    [[nodiscard]] ScoreObjective& getObjective() const noexcept { return *m_objective; }
+    [[nodiscard]] ScoreObjective& getObjective() const noexcept
+    {
+        return *m_objective;
+    }
 
     /**
      * @brief 获取所属记分板
      *
      * @return 记分板引用
      */
-    [[nodiscard]] Scoreboard& getScoreboard() const noexcept { return m_scoreboard; }
+    [[nodiscard]] Scoreboard& getScoreboard() const noexcept
+    {
+        return m_scoreboard;
+    }
 
     // ========== 内部使用 ==========
 
@@ -159,17 +180,26 @@ public:
      *
      * 用于首次创建分数时强制发送更新包。
      */
-    void markForcedUpdate() noexcept { m_forceUpdate = true; }
+    void markForcedUpdate() noexcept
+    {
+        m_forceUpdate = true;
+    }
 
     /**
      * @brief 检查是否需要强制更新
      */
-    [[nodiscard]] bool needsForcedUpdate() const noexcept { return m_forceUpdate; }
+    [[nodiscard]] bool needsForcedUpdate() const noexcept
+    {
+        return m_forceUpdate;
+    }
 
     /**
      * @brief 清除强制更新标记
      */
-    void clearForcedUpdate() noexcept { m_forceUpdate = false; }
+    void clearForcedUpdate() noexcept
+    {
+        m_forceUpdate = false;
+    }
 
 private:
     Scoreboard& m_scoreboard;

@@ -202,7 +202,9 @@ inline Direction opposite(Direction dir)
 inline i32 xOffset(Direction dir)
 {
     const size_t idx = static_cast<size_t>(dir);
-    if (idx >= 6) return 0;
+    if (idx >= 6) {
+        return 0;
+    }
     const i32 offsets[] = {0, 0, 0, 0, -1, 1};
     return offsets[idx];
 }
@@ -214,7 +216,9 @@ inline i32 xOffset(Direction dir)
 inline i32 yOffset(Direction dir)
 {
     const size_t idx = static_cast<size_t>(dir);
-    if (idx >= 6) return 0;
+    if (idx >= 6) {
+        return 0;
+    }
     const i32 offsets[] = {-1, 1, 0, 0, 0, 0};
     return offsets[idx];
 }
@@ -226,7 +230,9 @@ inline i32 yOffset(Direction dir)
 inline i32 zOffset(Direction dir)
 {
     const size_t idx = static_cast<size_t>(dir);
-    if (idx >= 6) return 0;
+    if (idx >= 6) {
+        return 0;
+    }
     const i32 offsets[] = {0, 0, -1, 1, 0, 0};
     return offsets[idx];
 }
@@ -238,7 +244,9 @@ inline i32 zOffset(Direction dir)
 inline Axis getAxis(Direction dir)
 {
     const size_t idx = static_cast<size_t>(dir);
-    if (idx >= 6) return Axis::Y;
+    if (idx >= 6) {
+        return Axis::Y;
+    }
     const Axis axes[] = {
         Axis::Y,
         Axis::Y, // Down, Up
@@ -257,7 +265,9 @@ inline Axis getAxis(Direction dir)
 inline AxisDirection getAxisDirection(Direction dir)
 {
     const size_t idx = static_cast<size_t>(dir);
-    if (idx >= 6) return AxisDirection::Positive;
+    if (idx >= 6) {
+        return AxisDirection::Positive;
+    }
     const AxisDirection dirs[] = {
         AxisDirection::Negative,
         AxisDirection::Positive, // Down, Up
@@ -319,10 +329,18 @@ inline bool isVertical(Direction dir)
  */
 inline Direction rotateY(Direction dir)
 {
-    if (dir == Direction::North) return Direction::East;
-    if (dir == Direction::East) return Direction::South;
-    if (dir == Direction::South) return Direction::West;
-    if (dir == Direction::West) return Direction::North;
+    if (dir == Direction::North) {
+        return Direction::East;
+    }
+    if (dir == Direction::East) {
+        return Direction::South;
+    }
+    if (dir == Direction::South) {
+        return Direction::West;
+    }
+    if (dir == Direction::West) {
+        return Direction::North;
+    }
     return dir;
 }
 
@@ -331,10 +349,18 @@ inline Direction rotateY(Direction dir)
  */
 inline Direction rotateYCCW(Direction dir)
 {
-    if (dir == Direction::North) return Direction::West;
-    if (dir == Direction::West) return Direction::South;
-    if (dir == Direction::South) return Direction::East;
-    if (dir == Direction::East) return Direction::North;
+    if (dir == Direction::North) {
+        return Direction::West;
+    }
+    if (dir == Direction::West) {
+        return Direction::South;
+    }
+    if (dir == Direction::South) {
+        return Direction::East;
+    }
+    if (dir == Direction::East) {
+        return Direction::North;
+    }
     return dir;
 }
 
@@ -359,7 +385,9 @@ inline std::optional<Direction> fromName(std::string_view name)
 inline std::string toString(Direction dir)
 {
     const size_t idx = static_cast<size_t>(dir);
-    if (idx >= 6) return "none";
+    if (idx >= 6) {
+        return "none";
+    }
     const char* names[] = {"down", "up", "north", "south", "west", "east"};
     return names[idx];
 }
@@ -465,12 +493,24 @@ inline Direction fromDelta(i32 dx, i32 dy, i32 dz)
     if (dx < -1 || dx > 1 || dy < -1 || dy > 1 || dz < -1 || dz > 1) {
         return Direction::None;
     }
-    if (dy < 0 && dx == 0 && dz == 0) return Direction::Down;
-    if (dy > 0 && dx == 0 && dz == 0) return Direction::Up;
-    if (dz < 0 && dx == 0 && dy == 0) return Direction::North;
-    if (dz > 0 && dx == 0 && dy == 0) return Direction::South;
-    if (dx < 0 && dy == 0 && dz == 0) return Direction::West;
-    if (dx > 0 && dy == 0 && dz == 0) return Direction::East;
+    if (dy < 0 && dx == 0 && dz == 0) {
+        return Direction::Down;
+    }
+    if (dy > 0 && dx == 0 && dz == 0) {
+        return Direction::Up;
+    }
+    if (dz < 0 && dx == 0 && dy == 0) {
+        return Direction::North;
+    }
+    if (dz > 0 && dx == 0 && dy == 0) {
+        return Direction::South;
+    }
+    if (dx < 0 && dy == 0 && dz == 0) {
+        return Direction::West;
+    }
+    if (dx > 0 && dy == 0 && dz == 0) {
+        return Direction::East;
+    }
     return Direction::None;
 }
 
@@ -674,9 +714,15 @@ inline std::array<Axis, 3> all()
 
 inline std::optional<Axis> fromName(std::string_view name)
 {
-    if (name == "x") return Axis::X;
-    if (name == "y") return Axis::Y;
-    if (name == "z") return Axis::Z;
+    if (name == "x") {
+        return Axis::X;
+    }
+    if (name == "y") {
+        return Axis::Y;
+    }
+    if (name == "z") {
+        return Axis::Z;
+    }
     return std::nullopt;
 }
 
@@ -763,13 +809,21 @@ inline i32 cycle(AxisCycle cycle, i32 x, i32 y, i32 z, Axis axis)
             return (axis == Axis::X) ? x : (axis == Axis::Y) ? y : z;
         case AxisCycle::FORWARD:
             // X->Y, Y->Z, Z->X
-            if (axis == Axis::X) return z;
-            if (axis == Axis::Y) return x;
+            if (axis == Axis::X) {
+                return z;
+            }
+            if (axis == Axis::Y) {
+                return x;
+            }
             return y;
         case AxisCycle::BACKWARD:
             // X->Z, Y->X, Z->Y
-            if (axis == Axis::X) return y;
-            if (axis == Axis::Y) return z;
+            if (axis == Axis::X) {
+                return y;
+            }
+            if (axis == Axis::Y) {
+                return z;
+            }
             return x;
     }
     return 0;
@@ -875,13 +929,40 @@ namespace mc {
  * 允许使用 dir.getOpposite() 风格的调用
  */
 struct DirectionExt {
-    static Direction getOpposite(Direction dir) { return Directions::opposite(dir); }
-    static Axis getAxis(Direction dir) { return Directions::getAxis(dir); }
-    static AxisDirection getAxisDirection(Direction dir) { return Directions::getAxisDirection(dir); }
-    static i32 getStepX(Direction dir) { return Directions::xOffset(dir); }
-    static i32 getStepY(Direction dir) { return Directions::yOffset(dir); }
-    static i32 getStepZ(Direction dir) { return Directions::zOffset(dir); }
-    static size_t ordinal(Direction dir) { return static_cast<size_t>(dir); }
+    static Direction getOpposite(Direction dir)
+    {
+        return Directions::opposite(dir);
+    }
+
+    static Axis getAxis(Direction dir)
+    {
+        return Directions::getAxis(dir);
+    }
+
+    static AxisDirection getAxisDirection(Direction dir)
+    {
+        return Directions::getAxisDirection(dir);
+    }
+
+    static i32 getStepX(Direction dir)
+    {
+        return Directions::xOffset(dir);
+    }
+
+    static i32 getStepY(Direction dir)
+    {
+        return Directions::yOffset(dir);
+    }
+
+    static i32 getStepZ(Direction dir)
+    {
+        return Directions::zOffset(dir);
+    }
+
+    static size_t ordinal(Direction dir)
+    {
+        return static_cast<size_t>(dir);
+    }
 };
 
 } // namespace mc

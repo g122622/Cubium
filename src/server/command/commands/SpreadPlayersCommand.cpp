@@ -279,7 +279,9 @@ i32 spreadPlayersImpl(CommandContext<ServerCommandSource>& context, i32 maxHeigh
 void SpreadPlayersCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
 {
     auto spreadNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("spreadplayers");
-    spreadNode->setRequirement([](const ServerCommandSource& source) { return source.hasPermission(2); });
+    spreadNode->setRequirement([](const ServerCommandSource& source) {
+        return source.hasPermission(2);
+    });
     support::applyMetadata(spreadNode,
         support::makeMetadata("Spreads players to random locations within an area.",
             "/spreadplayers <center> <spreadDistance> <maxRange> <respectTeams> <targets>",

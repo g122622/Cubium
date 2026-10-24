@@ -38,14 +38,17 @@ ir::IrPacket wrapHandshake(ir::HandshakePacket p)
 {
     return ir::IrPacket{protocol::ConnectionProtocol::Handshaking, std::move(p)};
 }
+
 ir::IrPacket wrapLogin(protocol::ConnectionProtocol phase, ir::LoginPacket p)
 {
     return ir::IrPacket{phase, std::move(p)};
 }
+
 ir::IrPacket wrapConfig(ir::ConfigurationPacket p)
 {
     return ir::IrPacket{protocol::ConnectionProtocol::Configuration, std::move(p)};
 }
+
 ir::IrPacket wrapPlay(ir::PlayPacket p)
 {
     return ir::IrPacket{protocol::ConnectionProtocol::Play, std::move(p)};

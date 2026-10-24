@@ -117,14 +117,42 @@ public:
         return state != nullptr ? state->getFluidState() : &fluid::Fluids::EMPTY()->defaultState();
     }
 
-    [[nodiscard]] mc::world::chunk::IChunkManager* chunkManager() override { return &m_stubChunks; }
-    [[nodiscard]] const mc::world::chunk::IChunkManager* chunkManager() const override { return &m_stubChunks; }
+    [[nodiscard]] mc::world::chunk::IChunkManager* chunkManager() override
+    {
+        return &m_stubChunks;
+    }
+
+    [[nodiscard]] const mc::world::chunk::IChunkManager* chunkManager() const override
+    {
+        return &m_stubChunks;
+    }
+
     mc::test::StubChunkManager m_stubChunks{nullptr, true};
-    [[nodiscard]] u64 currentTick() const override { return m_currentTick; }
-    [[nodiscard]] bool isClientSide() const override { return m_isClientSide; }
-    [[nodiscard]] bool isRaining() const override { return false; }
-    [[nodiscard]] bool canRainAt(const BlockPos&) const override { return false; }
-    [[nodiscard]] bool isThundering() const override { return false; }
+
+    [[nodiscard]] u64 currentTick() const override
+    {
+        return m_currentTick;
+    }
+
+    [[nodiscard]] bool isClientSide() const override
+    {
+        return m_isClientSide;
+    }
+
+    [[nodiscard]] bool isRaining() const override
+    {
+        return false;
+    }
+
+    [[nodiscard]] bool canRainAt(const BlockPos&) const override
+    {
+        return false;
+    }
+
+    [[nodiscard]] bool isThundering() const override
+    {
+        return false;
+    }
 
     EntityInstanceId spawnEntity(std::unique_ptr<Entity> entity) override
     {
@@ -163,6 +191,7 @@ public:
         static world::tick::TickManager dummy(*static_cast<IWorld*>(nullptr));
         return dummy;
     }
+
     [[nodiscard]] const world::tick::TickManager& tickManager() const override
     {
         static world::tick::TickManager dummy(*const_cast<PumpkinCarveTestWorld*>(this));
@@ -170,9 +199,20 @@ public:
     }
 
     // 测试辅助方法
-    void setClientSide(bool clientSide) { m_isClientSide = clientSide; }
-    void incrementTick() { m_currentTick++; }
-    void setCurrentTick(u64 tick) { m_currentTick = tick; }
+    void setClientSide(bool clientSide)
+    {
+        m_isClientSide = clientSide;
+    }
+
+    void incrementTick()
+    {
+        m_currentTick++;
+    }
+
+    void setCurrentTick(u64 tick)
+    {
+        m_currentTick = tick;
+    }
 
     void setBlockAt(const BlockPos& pos, const BlockState* state)
     {
@@ -183,9 +223,15 @@ public:
         }
     }
 
-    void clearBlocks() { m_blocks.clear(); }
+    void clearBlocks()
+    {
+        m_blocks.clear();
+    }
 
-    [[nodiscard]] size_t spawnedEntityCount() const { return m_spawnedEntities.size(); }
+    [[nodiscard]] size_t spawnedEntityCount() const
+    {
+        return m_spawnedEntities.size();
+    }
 
     [[nodiscard]] Entity* getSpawnedEntity(size_t index) const
     {
@@ -201,13 +247,41 @@ public:
         m_spawnedEntityPtrs.clear();
     }
 
-    [[nodiscard]] bool wasSoundPlayed() const { return m_soundPlayed; }
-    [[nodiscard]] const ResourceLocation& lastSoundId() const { return m_lastSoundId; }
-    [[nodiscard]] const Vector3& lastSoundPos() const { return m_lastSoundPos; }
-    [[nodiscard]] f32 lastSoundVolume() const { return m_lastSoundVolume; }
-    [[nodiscard]] f32 lastSoundPitch() const { return m_lastSoundPitch; }
-    [[nodiscard]] i32 getLastEventId() const { return m_lastEventId; }
-    [[nodiscard]] i32 getEventCount() const { return m_eventCount; }
+    [[nodiscard]] bool wasSoundPlayed() const
+    {
+        return m_soundPlayed;
+    }
+
+    [[nodiscard]] const ResourceLocation& lastSoundId() const
+    {
+        return m_lastSoundId;
+    }
+
+    [[nodiscard]] const Vector3& lastSoundPos() const
+    {
+        return m_lastSoundPos;
+    }
+
+    [[nodiscard]] f32 lastSoundVolume() const
+    {
+        return m_lastSoundVolume;
+    }
+
+    [[nodiscard]] f32 lastSoundPitch() const
+    {
+        return m_lastSoundPitch;
+    }
+
+    [[nodiscard]] i32 getLastEventId() const
+    {
+        return m_lastEventId;
+    }
+
+    [[nodiscard]] i32 getEventCount() const
+    {
+        return m_eventCount;
+    }
+
     void resetEventCount()
     {
         m_eventCount = 0;

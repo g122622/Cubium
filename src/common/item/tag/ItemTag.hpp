@@ -74,7 +74,10 @@ public:
     /**
      * @brief 获取标签ID
      */
-    [[nodiscard]] const ResourceLocation& getId() const noexcept { return m_id; }
+    [[nodiscard]] const ResourceLocation& getId() const noexcept
+    {
+        return m_id;
+    }
 
     /**
      * @brief 添加物品到标签
@@ -105,7 +108,10 @@ public:
     /**
      * @brief 获取标签中的所有物品
      */
-    [[nodiscard]] const std::unordered_set<const Item*>& getItems() const noexcept { return m_items; }
+    [[nodiscard]] const std::unordered_set<const Item*>& getItems() const noexcept
+    {
+        return m_items;
+    }
 
     /**
      * @brief 获取标签中的所有物品（有序列表）
@@ -125,12 +131,18 @@ public:
      *
      * replace=true 表示该标签在数据包合并时应替换（而非追加）已有内容。
      */
-    [[nodiscard]] bool isReplace() const noexcept { return m_replace; }
+    [[nodiscard]] bool isReplace() const noexcept
+    {
+        return m_replace;
+    }
 
     /**
      * @brief 设置 replace 标志
      */
-    void setReplace(bool replace) noexcept { m_replace = replace; }
+    void setReplace(bool replace) noexcept
+    {
+        m_replace = replace;
+    }
 
 private:
     ResourceLocation m_id;

@@ -50,80 +50,143 @@ class TestData {
 public:
     TestData() = default;
 
-    [[nodiscard]] const std::string& environment() const noexcept { return m_environment; }
-    [[nodiscard]] const std::string& structure() const noexcept { return m_structure; }
-    [[nodiscard]] i32 maxTicks() const noexcept { return m_maxTicks; }
-    [[nodiscard]] i32 setupTicks() const noexcept { return m_setupTicks; }
-    [[nodiscard]] bool required() const noexcept { return m_required; }
-    [[nodiscard]] Rotation rotation() const noexcept { return m_rotation; }
-    [[nodiscard]] bool manualOnly() const noexcept { return m_manualOnly; }
-    [[nodiscard]] i32 maxAttempts() const noexcept { return m_maxAttempts; }
-    [[nodiscard]] i32 requiredSuccesses() const noexcept { return m_requiredSuccesses; }
-    [[nodiscard]] bool skyAccess() const noexcept { return m_skyAccess; }
-    [[nodiscard]] i32 padding() const noexcept { return m_padding; }
-    [[nodiscard]] const std::string& batchName() const noexcept { return m_batchName; }
-    [[nodiscard]] bool loadSpawnChunks() const noexcept { return m_loadSpawnChunks; }
+    [[nodiscard]] const std::string& environment() const noexcept
+    {
+        return m_environment;
+    }
+
+    [[nodiscard]] const std::string& structure() const noexcept
+    {
+        return m_structure;
+    }
+
+    [[nodiscard]] i32 maxTicks() const noexcept
+    {
+        return m_maxTicks;
+    }
+
+    [[nodiscard]] i32 setupTicks() const noexcept
+    {
+        return m_setupTicks;
+    }
+
+    [[nodiscard]] bool required() const noexcept
+    {
+        return m_required;
+    }
+
+    [[nodiscard]] Rotation rotation() const noexcept
+    {
+        return m_rotation;
+    }
+
+    [[nodiscard]] bool manualOnly() const noexcept
+    {
+        return m_manualOnly;
+    }
+
+    [[nodiscard]] i32 maxAttempts() const noexcept
+    {
+        return m_maxAttempts;
+    }
+
+    [[nodiscard]] i32 requiredSuccesses() const noexcept
+    {
+        return m_requiredSuccesses;
+    }
+
+    [[nodiscard]] bool skyAccess() const noexcept
+    {
+        return m_skyAccess;
+    }
+
+    [[nodiscard]] i32 padding() const noexcept
+    {
+        return m_padding;
+    }
+
+    [[nodiscard]] const std::string& batchName() const noexcept
+    {
+        return m_batchName;
+    }
+
+    [[nodiscard]] bool loadSpawnChunks() const noexcept
+    {
+        return m_loadSpawnChunks;
+    }
 
     TestData& setEnvironment(std::string environment)
     {
         m_environment = std::move(environment);
         return *this;
     }
+
     TestData& setStructure(std::string structure)
     {
         m_structure = std::move(structure);
         return *this;
     }
+
     TestData& setMaxTicks(i32 maxTicks) noexcept
     {
         m_maxTicks = maxTicks;
         return *this;
     }
+
     TestData& setSetupTicks(i32 setupTicks) noexcept
     {
         m_setupTicks = setupTicks;
         return *this;
     }
+
     TestData& setRequired(bool required) noexcept
     {
         m_required = required;
         return *this;
     }
+
     TestData& setRotation(Rotation rotation) noexcept
     {
         m_rotation = rotation;
         return *this;
     }
+
     TestData& setManualOnly(bool manualOnly) noexcept
     {
         m_manualOnly = manualOnly;
         return *this;
     }
+
     TestData& setMaxAttempts(i32 maxAttempts) noexcept
     {
         m_maxAttempts = maxAttempts;
         return *this;
     }
+
     TestData& setRequiredSuccesses(i32 requiredSuccesses) noexcept
     {
         m_requiredSuccesses = requiredSuccesses;
         return *this;
     }
+
     TestData& setSkyAccess(bool skyAccess) noexcept
     {
         m_skyAccess = skyAccess;
         return *this;
     }
+
     TestData& setPadding(i32 padding) noexcept
     {
         m_padding = padding;
         return *this;
     }
+
     TestData& setBatchName(std::string batchName)
     {
         m_batchName = std::move(batchName);
         return *this;
     }
+
     TestData& setLoadSpawnChunks(bool loadSpawnChunks) noexcept
     {
         m_loadSpawnChunks = loadSpawnChunks;
@@ -135,7 +198,10 @@ public:
      *
      * 对齐 Java `GameTestInfo.isFlaky()`。
      */
-    [[nodiscard]] bool isFlaky() const noexcept { return m_maxAttempts > 1; }
+    [[nodiscard]] bool isFlaky() const noexcept
+    {
+        return m_maxAttempts > 1;
+    }
 
 private:
     std::string m_environment = "default";

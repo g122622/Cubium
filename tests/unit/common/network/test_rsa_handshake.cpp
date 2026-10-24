@@ -36,6 +36,7 @@ namespace {
 // 生成一对密钥供多个测试复用（RSA keygen 较慢，避免每个 TEST 重复生成）。
 struct RsaFixture {
     RsaHandshake::KeyPair kp;
+
     static RsaFixture& instance()
     {
         static RsaFixture f = []() {

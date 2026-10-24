@@ -61,7 +61,10 @@ public:
     /**
      * @brief 获取标签ID
      */
-    [[nodiscard]] const ResourceLocation& getId() const { return m_id; }
+    [[nodiscard]] const ResourceLocation& getId() const
+    {
+        return m_id;
+    }
 
     /**
      * @brief 添加实体类型到标签
@@ -104,7 +107,10 @@ public:
     /**
      * @brief 获取标签中的所有实体类型ID
      */
-    [[nodiscard]] const std::unordered_set<ResourceLocation>& getEntityTypeIds() const { return m_entityTypeIds; }
+    [[nodiscard]] const std::unordered_set<ResourceLocation>& getEntityTypeIds() const
+    {
+        return m_entityTypeIds;
+    }
 
 private:
     ResourceLocation m_id;

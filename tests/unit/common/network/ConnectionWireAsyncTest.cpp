@@ -53,7 +53,10 @@ protected:
         m_peer.non_blocking(true);
     }
 
-    void TearDown() override { m_connection.reset(); }
+    void TearDown() override
+    {
+        m_connection.reset();
+    }
 
     std::vector<std::vector<u8>> _readFrames(usize count)
     {
@@ -64,23 +67,31 @@ protected:
         while (frames.size() < count && std::chrono::steady_clock::now() < deadline) {
             asio::error_code error;
             const auto received = m_peer.read_some(asio::buffer(bytes), error);
-            if (!error)
+            if (!error) {
                 pending.insert(pending.end(), bytes.begin(), bytes.begin() + received);
-            else if (error != asio::error::would_block && error != asio::error::try_again)
+            } else if (error != asio::error::would_block && error != asio::error::try_again) {
                 break;
+            }
             while (!pending.empty()) {
                 std::vector<u8> frame;
                 auto decoded = pipeline::VarintFraming::tryDecodeFrame(pending, frame);
-                if (!decoded.success() || !decoded.value()) break;
+                if (!decoded.success() || !decoded.value()) {
+                    break;
+                }
                 frames.push_back(std::move(frame));
             }
-            if (frames.size() < count) std::this_thread::sleep_for(1ms);
+            if (frames.size() < count) {
+                std::this_thread::sleep_for(1ms);
+            }
         }
         EXPECT_EQ(frames.size(), count);
         return frames;
     }
 
-    static ir::IrPacket _keepAlive(i64 id) { return {Phase::Play, ir::PlayPacket{ir::play::KeepAlive{id}}}; }
+    static ir::IrPacket _keepAlive(i64 id)
+    {
+        return {Phase::Play, ir::PlayPacket{ir::play::KeepAlive{id}}};
+    }
 
     asio::io_context m_context;
     asio::ip::tcp::socket m_peer{m_context};
@@ -103,8 +114,9 @@ TEST_F(ConnectionWireAsyncTest, EncodingIsQueuedAndPreservesPacketOrder)
     ASSERT_EQ(entered->get_future().wait_for(2s), std::future_status::ready);
     m_connection->setOutboundPhase(Phase::Play);
     const auto started = std::chrono::steady_clock::now();
-    for (i64 id = 0; id < 64; ++id)
+    for (i64 id = 0; id < 64; ++id) {
         EXPECT_TRUE(m_connection->send(_keepAlive(id)).success());
+    }
     EXPECT_LT(std::chrono::steady_clock::now() - started, 500ms);
     release->set_value();
     const auto frames = _readFrames(64);
@@ -205,15 +217,20 @@ TEST_F(ConnectionWireAsyncTest, EncryptionPreservesStreamStateAcrossQueuedPacket
                 std::vector<u8> frame;
                 auto decoded = pipeline::VarintFraming::tryDecodeFrame(pending, frame);
                 ASSERT_TRUE(decoded.success());
-                if (!decoded.value()) break;
+                if (!decoded.value()) {
+                    break;
+                }
                 buffer::RegistryByteBuf packet(frame.data(), frame.size());
                 auto value = tables()->playCb->decode(packet);
                 ASSERT_TRUE(value.success());
                 ids.push_back(std::get<ir::play::KeepAlive>(value.value()).id);
             }
-        } else if (error != asio::error::would_block && error != asio::error::try_again)
+        } else if (error != asio::error::would_block && error != asio::error::try_again) {
             break;
-        if (ids.size() < 2) std::this_thread::sleep_for(1ms);
+        }
+        if (ids.size() < 2) {
+            std::this_thread::sleep_for(1ms);
+        }
     }
     EXPECT_EQ(ids, (std::vector<i64>{11, 12}));
 }
@@ -221,8 +238,9 @@ TEST_F(ConnectionWireAsyncTest, EncryptionPreservesStreamStateAcrossQueuedPacket
 TEST_F(ConnectionWireAsyncTest, GracefulCloseDeliversEveryQueuedFrame)
 {
     m_connection->setOutboundPhase(Phase::Play);
-    for (i64 id = 0; id < 32; ++id)
+    for (i64 id = 0; id < 32; ++id) {
         ASSERT_TRUE(m_connection->send(_keepAlive(id)).success());
+    }
     m_connection->closeAfterFlush();
     EXPECT_FALSE(m_connection->send(_keepAlive(100)).success());
     EXPECT_EQ(_readFrames(32).size(), 32u);
@@ -232,7 +250,9 @@ TEST_F(ConnectionWireAsyncTest, GracefulCloseDeliversEveryQueuedFrame)
 TEST_F(ConnectionWireAsyncTest, InvalidFrameClosesSafelyInsideReceiveCallback)
 {
     std::promise<void> disconnected;
-    m_transport->onDisconnect([&] { disconnected.set_value(); });
+    m_transport->onDisconnect([&] {
+        disconnected.set_value();
+    });
     ASSERT_TRUE(m_transport->startReceiving().success());
     // 超过帧长度前缀上限，错误处理在网络执行器内主动关闭。
     const std::array<u8, 6> malformed{0x80, 0x80, 0x80, 0x80, 0x80, 0x80};
@@ -304,7 +324,9 @@ TEST_F(ConnectionWireAsyncTest, EncodedByteLimitDisconnectsSlowPeer)
                     ++index) {
                     auto result =
                         m_transport->send(bytes.data(), bytes.size(), transport::DeliveryHint::ReliableOrdered);
-                    if (!result.success()) return Result<void>::ok();
+                    if (!result.success()) {
+                        return Result<void>::ok();
+                    }
                 }
                 return Result<void>::ok();
             })

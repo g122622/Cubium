@@ -150,54 +150,84 @@ public:
      * @brief 获取天空光照空映射
      * @return 空映射数组，每个元素对应一个区块段是否为空
      */
-    [[nodiscard]] virtual const bool* getSkyEmptinessMap() const { return nullptr; }
+    [[nodiscard]] virtual const bool* getSkyEmptinessMap() const
+    {
+        return nullptr;
+    }
 
     /**
      * @brief 设置天空光照空映射
      */
-    virtual void setSkyEmptinessMap(const bool* map) { (void)map; }
+    virtual void setSkyEmptinessMap(const bool* map)
+    {
+        (void)map;
+    }
 
     /**
      * @brief 获取方块光照空映射
      */
-    [[nodiscard]] virtual const bool* getBlockEmptinessMap() const { return nullptr; }
+    [[nodiscard]] virtual const bool* getBlockEmptinessMap() const
+    {
+        return nullptr;
+    }
 
     /**
      * @brief 设置方块光照空映射
      */
-    virtual void setBlockEmptinessMap(const bool* map) { (void)map; }
+    virtual void setBlockEmptinessMap(const bool* map)
+    {
+        (void)map;
+    }
 
     /**
      * @brief 获取天空光照 Nibble 数组
      * @return Nibble 数组指针数组，索引为 [y - minLightSection]
      */
-    [[nodiscard]] virtual SWMRNibbleArray* const* getSkyNibbles() const { return nullptr; }
+    [[nodiscard]] virtual SWMRNibbleArray* const* getSkyNibbles() const
+    {
+        return nullptr;
+    }
 
     /**
      * @brief 设置天空光照 Nibble 数组
      */
-    virtual void setSkyNibbles(SWMRNibbleArray* const* nibbles) { (void)nibbles; }
+    virtual void setSkyNibbles(SWMRNibbleArray* const* nibbles)
+    {
+        (void)nibbles;
+    }
 
     /**
      * @brief 获取方块光照 Nibble 数组
      */
-    [[nodiscard]] virtual SWMRNibbleArray* const* getBlockNibbles() const { return nullptr; }
+    [[nodiscard]] virtual SWMRNibbleArray* const* getBlockNibbles() const
+    {
+        return nullptr;
+    }
 
     /**
      * @brief 设置方块光照 Nibble 数组
      */
-    virtual void setBlockNibbles(SWMRNibbleArray* const* nibbles) { (void)nibbles; }
+    virtual void setBlockNibbles(SWMRNibbleArray* const* nibbles)
+    {
+        (void)nibbles;
+    }
 
     /**
      * @brief 检查区块是否光照正确
      * 用于判断区块是否可以用于光照计算
      */
-    [[nodiscard]] virtual bool isLightCorrect() const { return true; }
+    [[nodiscard]] virtual bool isLightCorrect() const
+    {
+        return true;
+    }
 
     /**
      * @brief 设置区块光照正确状态
      */
-    virtual void setLightCorrect(bool correct) { (void)correct; }
+    virtual void setLightCorrect(bool correct)
+    {
+        (void)correct;
+    }
 
     // === 结构引用 ===
 

@@ -62,10 +62,21 @@ public:
      */
     [[nodiscard]] ItemStack apply(ItemStack stack, LootContext& context) const override;
     [[nodiscard]] std::unique_ptr<LootFunction> clone() const noexcept override;
-    [[nodiscard]] std::string getType() const noexcept override { return "set_enchantments"; }
 
-    [[nodiscard]] const std::vector<Entry>& getEnchantments() const { return m_enchantments; }
-    [[nodiscard]] bool isAdd() const { return m_add; }
+    [[nodiscard]] std::string getType() const noexcept override
+    {
+        return "set_enchantments";
+    }
+
+    [[nodiscard]] const std::vector<Entry>& getEnchantments() const
+    {
+        return m_enchantments;
+    }
+
+    [[nodiscard]] bool isAdd() const
+    {
+        return m_add;
+    }
 
 private:
     std::vector<Entry> m_enchantments;

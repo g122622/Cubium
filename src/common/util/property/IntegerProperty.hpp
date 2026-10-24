@@ -88,17 +88,26 @@ public:
     /**
      * @brief 获取最小值
      */
-    [[nodiscard]] i32 minValue() const noexcept { return m_min; }
+    [[nodiscard]] i32 minValue() const noexcept
+    {
+        return m_min;
+    }
 
     /**
      * @brief 获取最大值
      */
-    [[nodiscard]] i32 maxValue() const noexcept { return m_max; }
+    [[nodiscard]] i32 maxValue() const noexcept
+    {
+        return m_max;
+    }
 
     /**
      * @brief 将整数值转换为字符串
      */
-    [[nodiscard]] std::string valueToString(const i32& value) const override { return std::to_string(value); }
+    [[nodiscard]] std::string valueToString(const i32& value) const override
+    {
+        return std::to_string(value);
+    }
 
     /**
      * @brief 解析字符串为整数值
@@ -139,16 +148,23 @@ public:
      */
     [[nodiscard]] bool equals(const IProperty& other) const override
     {
-        if (!Property<i32>::equals(other)) return false;
+        if (!Property<i32>::equals(other)) {
+            return false;
+        }
         const auto* intOther = dynamic_cast<const IntegerProperty*>(&other);
-        if (!intOther) return false;
+        if (!intOther) {
+            return false;
+        }
         return m_min == intOther->m_min && m_max == intOther->m_max;
     }
 
     /**
      * @brief 获取类型名称
      */
-    [[nodiscard]] const char* typeName() const override { return "IntegerProperty"; }
+    [[nodiscard]] const char* typeName() const override
+    {
+        return "IntegerProperty";
+    }
 
 private:
     i32 m_min;

@@ -100,9 +100,10 @@ const void* EnvironmentAttributeRegistry::find(std::string_view name)
     const std::string qualified = name.starts_with("minecraft:") ? std::string(name) : "minecraft:" + std::string(name);
 
     const auto& attributes = _storage().attributes;
-    const auto it = std::find_if(attributes.begin(),
-        attributes.end(),
-        [&qualified](const EnvironmentAttributeEntry& entry) { return entry.name == qualified; });
+    const auto it =
+        std::find_if(attributes.begin(), attributes.end(), [&qualified](const EnvironmentAttributeEntry& entry) {
+            return entry.name == qualified;
+        });
     return it == attributes.end() ? nullptr : it->attribute;
 }
 

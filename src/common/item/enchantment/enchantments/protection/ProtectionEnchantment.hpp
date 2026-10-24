@@ -59,11 +59,20 @@ public:
 
     // ========== Enchantment 接口实现 ==========
 
-    [[nodiscard]] EnchantmentType type() const noexcept override { return EnchantmentType::Armor; }
+    [[nodiscard]] EnchantmentType type() const noexcept override
+    {
+        return EnchantmentType::Armor;
+    }
 
-    [[nodiscard]] i32 minLevel() const noexcept override { return 1; }
+    [[nodiscard]] i32 minLevel() const noexcept override
+    {
+        return 1;
+    }
 
-    [[nodiscard]] i32 maxLevel() const noexcept override { return 4; }
+    [[nodiscard]] i32 maxLevel() const noexcept override
+    {
+        return 4;
+    }
 
     [[nodiscard]] i32 getMinCost(i32 level) const override;
 
@@ -78,7 +87,10 @@ public:
     /**
      * @brief 获取保护类型
      */
-    [[nodiscard]] Type getProtectionType() const noexcept { return m_protectionType; }
+    [[nodiscard]] Type getProtectionType() const noexcept
+    {
+        return m_protectionType;
+    }
 
     /**
      * @brief 检查是否减少火焰伤害

@@ -39,6 +39,7 @@ namespace mc {
 // 前向声明
 class Entity;
 class BlockRaycastResult;
+
 namespace blocks {
 
 /**
@@ -80,6 +81,7 @@ public:
     }
 
     [[nodiscard]] const fluid::FluidState* getFluidState(const BlockState& state) const override;
+
     [[nodiscard]] bool isWaterlogged(const BlockState& state) const override
     {
         return state.get(BlockStateProperties::WATERLOGGED());

@@ -26,6 +26,7 @@
 #include "ArgumentType.hpp"
 #include "common/command/CommandContext.hpp"
 #include "common/command/StringReader.hpp"
+#include "common/command/arguments/GameModeArgument.hpp"
 #include "common/command/exceptions/CommandExceptions.hpp"
 #include "common/core/Types.hpp"
 #include "common/item/core/Item.hpp"
@@ -52,13 +53,21 @@ namespace command {
 class ItemInput {
 public:
     ItemInput() noexcept = default;
+
     explicit ItemInput(ItemId itemId, bool isAir = false) noexcept
         : m_itemId(itemId)
         , m_isAir(isAir)
     {}
 
-    [[nodiscard]] ItemId itemId() const noexcept { return m_itemId; }
-    [[nodiscard]] bool isValid() const noexcept { return m_itemId != 0; }
+    [[nodiscard]] ItemId itemId() const noexcept
+    {
+        return m_itemId;
+    }
+
+    [[nodiscard]] bool isValid() const noexcept
+    {
+        return m_itemId != 0;
+    }
 
     /**
      * @brief 是否为 air 物品输入
@@ -68,7 +77,10 @@ public:
      * 是普通物品（非空堆语义），故命令层须识别 isAir 并显式构造空堆清空槽位，
      * 而非塞入一个 air 物品堆。详见 [[replaceitem-air-clears-slot-via-iteminput-isair]]。
      */
-    [[nodiscard]] bool isAir() const noexcept { return m_isAir; }
+    [[nodiscard]] bool isAir() const noexcept
+    {
+        return m_isAir;
+    }
 
     /**
      * @brief 获取物品
@@ -76,7 +88,9 @@ public:
      */
     [[nodiscard]] const Item* getItem() const
     {
-        if (!isValid()) return nullptr;
+        if (!isValid()) {
+            return nullptr;
+        }
         return ItemRegistry::instance().getItem(m_itemId);
     }
 
@@ -106,39 +120,28 @@ public:
     {
         i32 start = reader.getCursor();
 
-        // 读取物品名称
-        std::string str = reader.readString();
-
-        // 解析命名空间
-        std::string namespace_;
-        std::string path;
-
-        size_t colonPos = str.find(':');
-        if (colonPos != std::string::npos) {
-            namespace_ = str.substr(0, colonPos);
-            path = str.substr(colonPos + 1);
-        } else {
-            namespace_ = "minecraft";
-            path = str;
-        }
+        // 读取物品名称：与原版一样走 Identifier 命令语法（不读引号、不认大写、单个冒号）。
+        const ResourceLocation location = readResourceLocationId(reader);
 
         // 查找物品
-        ResourceLocation location(namespace_, path);
         const Item* item = ItemRegistry::instance().getItem(location);
 
         if (item == nullptr) {
             reader.setCursor(start);
-            throw CommandException(CommandErrorType::Unknown, "Unknown item: " + str, start);
+            throw CommandException(CommandErrorType::Unknown, "Unknown item: " + location.toString(), start);
         }
 
         // air 物品特判：vanilla 中 minecraft:air 是空堆的同义物品，命令层用 air 清空槽位。
         // Cubium 的 air 是普通物品（itemId=1），须标记 m_isAir 供下游命令（ReplaceItem 等）
         // 识别后构造空堆清空，而非塞入 air 物品堆。
-        const bool isAir = (namespace_ == "minecraft" && path == "air");
+        const bool isAir = location.path() == "air";
         return ItemInput(item->itemId(), isAir);
     }
 
-    [[nodiscard]] std::string getTypeName() const noexcept override { return "item"; }
+    [[nodiscard]] std::string getTypeName() const noexcept override
+    {
+        return "item";
+    }
 
     [[nodiscard]] std::vector<std::string> getExamples() const noexcept override
     {
@@ -147,7 +150,10 @@ public:
 
     // ========== 静态工厂方法 ==========
 
-    static std::shared_ptr<ItemArgumentType> item() noexcept { return std::make_shared<ItemArgumentType>(); }
+    static std::shared_ptr<ItemArgumentType> item() noexcept
+    {
+        return std::make_shared<ItemArgumentType>();
+    }
 
     // ========== 静态获取方法 ==========
 
@@ -216,22 +222,40 @@ public:
     {}
 
     /** @brief 获取匹配模式 */
-    [[nodiscard]] Mode mode() const noexcept { return m_mode; }
+    [[nodiscard]] Mode mode() const noexcept
+    {
+        return m_mode;
+    }
 
     /** @brief 是否为通配符模式 */
-    [[nodiscard]] bool isAny() const noexcept { return m_mode == Mode::Any; }
+    [[nodiscard]] bool isAny() const noexcept
+    {
+        return m_mode == Mode::Any;
+    }
 
     /** @brief 是否为物品ID模式 */
-    [[nodiscard]] bool isItem() const noexcept { return m_mode == Mode::Item; }
+    [[nodiscard]] bool isItem() const noexcept
+    {
+        return m_mode == Mode::Item;
+    }
 
     /** @brief 是否为标签模式 */
-    [[nodiscard]] bool isTag() const noexcept { return m_mode == Mode::Tag; }
+    [[nodiscard]] bool isTag() const noexcept
+    {
+        return m_mode == Mode::Tag;
+    }
 
     /** @brief 获取物品ID（仅 Item 模式有效） */
-    [[nodiscard]] ItemId itemId() const noexcept { return m_itemId; }
+    [[nodiscard]] ItemId itemId() const noexcept
+    {
+        return m_itemId;
+    }
 
     /** @brief 获取标签ID（仅 Tag 模式有效） */
-    [[nodiscard]] const ResourceLocation& tagId() const noexcept { return m_tagId; }
+    [[nodiscard]] const ResourceLocation& tagId() const noexcept
+    {
+        return m_tagId;
+    }
 
     /**
      * @brief 获取物品指针（仅 Item 模式有效）
@@ -239,7 +263,9 @@ public:
      */
     [[nodiscard]] const Item* getItem() const
     {
-        if (m_mode != Mode::Item) return nullptr;
+        if (m_mode != Mode::Item) {
+            return nullptr;
+        }
         return ItemRegistry::instance().getItem(m_itemId);
     }
 
@@ -279,7 +305,10 @@ class ItemPredicateArgumentType : public ArgumentType<ItemPredicateInput> {
 public:
     [[nodiscard]] ItemPredicateInput parse(StringReader& reader) override;
 
-    [[nodiscard]] std::string getTypeName() const noexcept override { return "item_predicate"; }
+    [[nodiscard]] std::string getTypeName() const noexcept override
+    {
+        return "item_predicate";
+    }
 
     [[nodiscard]] std::vector<std::string> getExamples() const noexcept override
     {

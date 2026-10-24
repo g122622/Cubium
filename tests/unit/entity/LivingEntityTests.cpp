@@ -53,7 +53,10 @@ namespace {
 
 class GroundSupportWorld final : public mc::test::BaseTestWorld {
 public:
-    void setSupportEnabled(bool enabled) { m_supportEnabled = enabled; }
+    void setSupportEnabled(bool enabled)
+    {
+        m_supportEnabled = enabled;
+    }
 
     struct SoundRecord {
         ResourceLocation soundEventId;
@@ -63,8 +66,15 @@ public:
         f32 pitch;
     };
 
-    [[nodiscard]] bool hasSoundRecord() const { return m_lastSound.has_value(); }
-    [[nodiscard]] const SoundRecord& lastSound() const { return *m_lastSound; }
+    [[nodiscard]] bool hasSoundRecord() const
+    {
+        return m_lastSound.has_value();
+    }
+
+    [[nodiscard]] const SoundRecord& lastSound() const
+    {
+        return *m_lastSound;
+    }
 
     [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override
     {
@@ -108,6 +118,7 @@ public:
     {
         throw std::runtime_error("GroundSupportWorld::tickManager not implemented");
     }
+
     [[nodiscard]] const world::tick::TickManager& tickManager() const override
     {
         throw std::runtime_error("GroundSupportWorld::tickManager not implemented");
@@ -1061,25 +1072,43 @@ class MockRandomWorld final : public mc::test::BaseTestWorld {
 public:
     MockRandomWorld() = default;
 
-    void setInWater(bool inWater) { m_inWater = inWater; }
-    void setInLava(bool inLava) { m_inLava = inLava; }
+    void setInWater(bool inWater)
+    {
+        m_inWater = inWater;
+    }
+
+    void setInLava(bool inLava)
+    {
+        m_inLava = inLava;
+    }
 
     [[nodiscard]] const fluid::FluidState* getFluidState(i32 x, i32 y, i32 z) const override
     {
         // 返回空流体状态
         return &fluid::Fluids::EMPTY()->defaultState();
     }
-    [[nodiscard]] bool isWithinWorldBounds(i32, i32, i32) const override { return true; }
-    [[nodiscard]] Difficulty difficulty() const override { return Difficulty::Normal; }
+
+    [[nodiscard]] bool isWithinWorldBounds(i32, i32, i32) const override
+    {
+        return true;
+    }
+
+    [[nodiscard]] Difficulty difficulty() const override
+    {
+        return Difficulty::Normal;
+    }
 
     void playSound(const ResourceLocation&, sound::SoundCategory, const Vector3&, f32, f32) override {}
 
     [[nodiscard]] world::tick::TickManager& tickManager() override
     {
         static world::tick::TickManager* dummy = nullptr;
-        if (!dummy) throw std::runtime_error("MockRandomWorld::tickManager not implemented");
+        if (!dummy) {
+            throw std::runtime_error("MockRandomWorld::tickManager not implemented");
+        }
         return *dummy;
     }
+
     [[nodiscard]] const world::tick::TickManager& tickManager() const override
     {
         throw std::runtime_error("MockRandomWorld::tickManager not implemented");
@@ -1106,13 +1135,21 @@ public:
         registerAttributes();
         setHealth(maxHealth());
     }
-    [[nodiscard]] CreatureAttribute getCreatureAttribute() const override { return CreatureAttribute::Undead; }
+
+    [[nodiscard]] CreatureAttribute getCreatureAttribute() const override
+    {
+        return CreatureAttribute::Undead;
+    }
+
     // 显式声明为亡灵 typeId，使 canBreatheUnderwater 在两种标签状态下都稳定返回 true：
     // 标签未初始化走 getCreatureAttribute()==Undead 回退；标签已初始化走
     // CAN_BREATHE_UNDER_WATER 标签查询（minecraft:zombie 是标签成员）。否则测试桩 typeId
     // 为空串，组合跑时其他套件调 EntityTypeTags::initialize() 污染全局 s_initialized 后，
     // 走纯标签分支查询空串不在标签内，错误返回 false。
-    [[nodiscard]] std::string getTypeId() const override { return "minecraft:zombie"; }
+    [[nodiscard]] std::string getTypeId() const override
+    {
+        return "minecraft:zombie";
+    }
 };
 
 TEST(LivingEntityTest, CanBreatheUnderwater_Undead)

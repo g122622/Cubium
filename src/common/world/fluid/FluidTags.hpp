@@ -61,7 +61,10 @@ public:
     /**
      * @brief 获取标签ID
      */
-    [[nodiscard]] const ResourceLocation& id() const noexcept { return m_id; }
+    [[nodiscard]] const ResourceLocation& id() const noexcept
+    {
+        return m_id;
+    }
 
     /**
      * @brief 检查流体是否在此标签中
@@ -76,7 +79,10 @@ public:
      *
      * @param fluidId 流体资源位置
      */
-    void add(const ResourceLocation& fluidId) { m_fluids.insert(fluidId); }
+    void add(const ResourceLocation& fluidId)
+    {
+        m_fluids.insert(fluidId);
+    }
 
     /**
      * @brief 批量添加流体
@@ -93,7 +99,10 @@ public:
     /**
      * @brief 获取标签中的所有流体ID
      */
-    [[nodiscard]] const std::unordered_set<ResourceLocation>& fluids() const noexcept { return m_fluids; }
+    [[nodiscard]] const std::unordered_set<ResourceLocation>& fluids() const noexcept
+    {
+        return m_fluids;
+    }
 
     /**
      * @brief 清空标签中的所有流体
@@ -101,7 +110,10 @@ public:
      * 用于数据包加载的 replace 语义：当数据包标签指定 replace=true 时，
      * 先清空已有标签内容（含内置默认值），再追加新内容。
      */
-    void clear() { m_fluids.clear(); }
+    void clear()
+    {
+        m_fluids.clear();
+    }
 
 private:
     ResourceLocation m_id;

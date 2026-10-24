@@ -432,8 +432,9 @@ void ChunkPrimer::releaseGenOnlyData(const ChunkStatus& afterStatus)
         m_z,
         "afterStatus",
         afterStatus.name(),
-        [flow = ::perfetto::Flow::ProcessScoped(ChunkPos(m_x, m_z).toId())](
-            ::perfetto::EventContext ctx) { flow(ctx); });
+        [flow = ::perfetto::Flow::ProcessScoped(ChunkPos(m_x, m_z).toId())](::perfetto::EventContext ctx) {
+            flow(ctx);
+        });
 
     // CARVERS（含）之后释放 m_noiseChunk 和 m_carvingMask
     // 审计结论（NoiseChunkGenerator.cpp）：

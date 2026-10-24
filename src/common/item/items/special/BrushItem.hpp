@@ -186,7 +186,10 @@ public:
      * @brief 获取使用动作类型
      * @return UseAction::Brush
      */
-    [[nodiscard]] UseAction getUseAction(const ItemStack& /*stack*/) const override { return UseAction::Brush; }
+    [[nodiscard]] UseAction getUseAction(const ItemStack& /*stack*/) const override
+    {
+        return UseAction::Brush;
+    }
 
     /**
      * @brief 获取附魔能力值
@@ -195,7 +198,6 @@ public:
      *
      * @return 1
      */
-    [[nodiscard]] i32 getItemEnchantability() const override { return 1; }
 
 private:
     /**

@@ -169,37 +169,58 @@ public:
     /**
      * @brief 获取图像视图
      */
-    VkImageView imageView() const { return m_imageView; }
+    VkImageView imageView() const
+    {
+        return m_imageView;
+    }
 
     /**
      * @brief 获取采样器
      */
-    VkSampler sampler() const { return m_sampler; }
+    VkSampler sampler() const
+    {
+        return m_sampler;
+    }
 
     /**
      * @brief 检查是否有效
      */
-    [[nodiscard]] bool isValid() const { return m_image != VK_NULL_HANDLE; }
+    [[nodiscard]] bool isValid() const
+    {
+        return m_image != VK_NULL_HANDLE;
+    }
 
     /**
      * @brief 检查纹理数据是否已上传
      */
-    [[nodiscard]] bool isUploaded() const { return m_uploaded; }
+    [[nodiscard]] bool isUploaded() const
+    {
+        return m_uploaded;
+    }
 
     /**
      * @brief 获取图集宽度
      */
-    [[nodiscard]] u32 width() const { return m_width; }
+    [[nodiscard]] u32 width() const
+    {
+        return m_width;
+    }
 
     /**
      * @brief 获取图集高度
      */
-    [[nodiscard]] u32 height() const { return m_height; }
+    [[nodiscard]] u32 height() const
+    {
+        return m_height;
+    }
 
     /**
      * @brief 获取已加载的纹理数量
      */
-    [[nodiscard]] size_t textureCount() const { return m_regionsByItemId.size(); }
+    [[nodiscard]] size_t textureCount() const
+    {
+        return m_regionsByItemId.size();
+    }
 
     /**
      * @brief 上传纹理图集子区域数据

@@ -57,7 +57,10 @@ BlockItemUseContext makeContext(IWorld& world, const BlockPos& pos, Direction fa
 
 class JigsawBlockTest : public ::testing::Test {
 protected:
-    static void SetUpTestSuite() { VanillaBlocks::initialize(); }
+    static void SetUpTestSuite()
+    {
+        VanillaBlocks::initialize();
+    }
 
     JigsawTestWorld world;
     Block* jigsaw = VanillaBlocks::JIGSAW;

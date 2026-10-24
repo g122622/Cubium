@@ -47,7 +47,9 @@ namespace command {
 void TagCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
 {
     auto tagNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("tag");
-    tagNode->setRequirement([](const ServerCommandSource& source) { return source.hasPermission(2); });
+    tagNode->setRequirement([](const ServerCommandSource& source) {
+        return source.hasPermission(2);
+    });
     support::applyMetadata(
         tagNode, support::makeMetadata("Manages entity tags.", "/tag <targets> <add|remove|list> [tag]", 2, {}, true));
 
@@ -58,7 +60,9 @@ void TagCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
     auto addNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("add");
     auto tagArg =
         std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>("tag", StringArgumentType::string());
-    tagArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _addTag(ctx); });
+    tagArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _addTag(ctx);
+    });
     addNode->addChild(tagArg);
     targetsArg->addChild(addNode);
 
@@ -66,13 +70,17 @@ void TagCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
     auto removeNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("remove");
     auto removeTagArg =
         std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>("tag", StringArgumentType::string());
-    removeTagArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _removeTag(ctx); });
+    removeTagArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _removeTag(ctx);
+    });
     removeNode->addChild(removeTagArg);
     targetsArg->addChild(removeNode);
 
     // /tag <targets> list
     auto listNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("list");
-    listNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _listTags(ctx); });
+    listNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _listTags(ctx);
+    });
     targetsArg->addChild(listNode);
 
     tagNode->addChild(targetsArg);

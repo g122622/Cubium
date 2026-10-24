@@ -79,11 +79,21 @@ namespace {
  */
 [[nodiscard]] constexpr i32 getThreadSortIndex(std::string_view name) noexcept
 {
-    if (name == "MemoryTrace") return 1;
-    if (name == "ClientMainThread") return 2;
-    if (name == "IntegratedServerThread") return 3;
-    if (name == "AudioEngineWorker") return 4;
-    if (name == "ServerMainThread") return 5;
+    if (name == "MemoryTrace") {
+        return 1;
+    }
+    if (name == "ClientMainThread") {
+        return 2;
+    }
+    if (name == "IntegratedServerThread") {
+        return 3;
+    }
+    if (name == "AudioEngineWorker") {
+        return 4;
+    }
+    if (name == "ServerMainThread") {
+        return 5;
+    }
     return 100;
 }
 } // namespace

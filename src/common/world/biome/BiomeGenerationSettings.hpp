@@ -32,6 +32,7 @@ namespace mc {
 class ConfiguredCarverBase;
 class IChunkGenerator;
 class WorldGenRegion;
+
 namespace world::chunk {
 class ChunkPrimer;
 } // namespace world::chunk

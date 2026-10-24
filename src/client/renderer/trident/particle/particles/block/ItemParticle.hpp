@@ -100,7 +100,10 @@ public:
 
     void tick(mc::client::ClientWorld* world) override;
 
-    [[nodiscard]] ParticleRenderType getRenderType() const override { return ParticleRenderType::TERRAIN_SHEET; }
+    [[nodiscard]] ParticleRenderType getRenderType() const override
+    {
+        return ParticleRenderType::TERRAIN_SHEET;
+    }
 
     /**
      * @brief 获取纹理位置

@@ -50,7 +50,9 @@ GatherItemsGoal::GatherItemsGoal(VillagerEntity* villager)
 
 bool GatherItemsGoal::shouldExecute()
 {
-    if (!m_villager) return false;
+    if (!m_villager) {
+        return false;
+    }
 
     // 查找附近的物品
     _findNearbyItems();
@@ -59,14 +61,20 @@ bool GatherItemsGoal::shouldExecute()
 
 bool GatherItemsGoal::shouldContinueExecuting()
 {
-    if (!m_villager) return false;
+    if (!m_villager) {
+        return false;
+    }
 
     // 物品已被拾取或消失
-    if (m_targetItem == 0) return false;
+    if (m_targetItem == 0) {
+        return false;
+    }
 
     // 检查物品是否仍然有效
     Entity* entity = m_villager->world() ? m_villager->world()->getEntity(m_targetItem) : nullptr;
-    if (!entity) return false;
+    if (!entity) {
+        return false;
+    }
 
     ItemEntity* item = dynamic_cast<ItemEntity*>(entity);
     if (!item || !item->isAlive() || !item->canBePickedUp()) {
@@ -97,7 +105,9 @@ void GatherItemsGoal::resetTask()
 
 void GatherItemsGoal::tick()
 {
-    if (!m_villager || m_targetItem == 0) return;
+    if (!m_villager || m_targetItem == 0) {
+        return;
+    }
 
     // 移动到物品
     _moveToItem();
@@ -122,14 +132,20 @@ void GatherItemsGoal::_findNearbyItems()
         m_villager, // 排除自己（虽然村民不是 ItemEntity）
         [this](ItemEntity* itemEntity) {
             // 检查物品实体是否有效
-            if (!itemEntity || !itemEntity->isAlive()) return false;
+            if (!itemEntity || !itemEntity->isAlive()) {
+                return false;
+            }
 
             // 检查是否可以被拾取（拾取延迟等）
-            if (!itemEntity->canBePickedUp()) return false;
+            if (!itemEntity->canBePickedUp()) {
+                return false;
+            }
 
             // 检查村民是否想要这个物品
             const ItemStack& stack = itemEntity->getItemStack();
-            if (stack.isEmpty()) return false;
+            if (stack.isEmpty()) {
+                return false;
+            }
 
             // 使用 VillagerEntity::canPickUpItem 检查是否是村民可拾取的物品
             return m_villager->canPickUpItem(stack);
@@ -142,7 +158,9 @@ void GatherItemsGoal::_findNearbyItems()
 
 void GatherItemsGoal::_moveToItem()
 {
-    if (!m_villager || m_targetItem == 0) return;
+    if (!m_villager || m_targetItem == 0) {
+        return;
+    }
 
     // 从世界获取实体
     Entity* entity = m_villager->world()->getEntity(m_targetItem);
@@ -170,7 +188,9 @@ void GatherItemsGoal::_moveToItem()
 
 void GatherItemsGoal::_pickupItem()
 {
-    if (!m_villager || m_targetItem == 0) return;
+    if (!m_villager || m_targetItem == 0) {
+        return;
+    }
 
     // 从世界获取实体
     Entity* entity = m_villager->world()->getEntity(m_targetItem);

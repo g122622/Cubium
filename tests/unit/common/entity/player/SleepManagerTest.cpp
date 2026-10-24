@@ -104,7 +104,11 @@ TEST_F(SleepManagerTimeTest, RainSleepTimeDoesNotCrossMidnight)
 
 class SleepManagerNearBedTest : public ::testing::Test {
 protected:
-    void SetUp() override { bedPos = BlockPos(100, 64, 100); }
+    void SetUp() override
+    {
+        bedPos = BlockPos(100, 64, 100);
+    }
+
     BlockPos bedPos;
 };
 

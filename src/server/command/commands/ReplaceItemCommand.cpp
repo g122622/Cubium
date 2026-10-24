@@ -355,7 +355,9 @@ bool setNonPlayerEntitySlotItem(Entity& entity, const ItemSlot& slot, const Item
 void ReplaceItemCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
 {
     auto replaceitemNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("replaceitem");
-    replaceitemNode->setRequirement([](const ServerCommandSource& source) { return source.hasPermission(2); });
+    replaceitemNode->setRequirement([](const ServerCommandSource& source) {
+        return source.hasPermission(2);
+    });
     support::applyMetadata(replaceitemNode,
         support::makeMetadata("Replaces items in an inventory.",
             "/replaceitem <entity|block> <target> <slot> <item> [count]",
@@ -373,9 +375,13 @@ void ReplaceItemCommand::registerTo(CommandDispatcher<ServerCommandSource>& disp
         std::make_shared<ArgumentCommandNode<ServerCommandSource, ItemInput>>("item", ItemArgumentType::item());
     auto countArg =
         std::make_shared<ArgumentCommandNode<ServerCommandSource, i32>>("count", IntegerArgumentType::integer(1, 99));
-    countArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _replaceEntityItem(ctx); });
+    countArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _replaceEntityItem(ctx);
+    });
     itemArg->addChild(countArg);
-    itemArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _replaceEntityItem(ctx); });
+    itemArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _replaceEntityItem(ctx);
+    });
     slotArg->addChild(itemArg);
     targetsArg->addChild(slotArg);
     entityNode->addChild(targetsArg);
@@ -391,9 +397,13 @@ void ReplaceItemCommand::registerTo(CommandDispatcher<ServerCommandSource>& disp
         std::make_shared<ArgumentCommandNode<ServerCommandSource, ItemInput>>("item", ItemArgumentType::item());
     auto blockCountArg =
         std::make_shared<ArgumentCommandNode<ServerCommandSource, i32>>("count", IntegerArgumentType::integer(1, 99));
-    blockCountArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _replaceBlockItem(ctx); });
+    blockCountArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _replaceBlockItem(ctx);
+    });
     blockItemArg->addChild(blockCountArg);
-    blockItemArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _replaceBlockItem(ctx); });
+    blockItemArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _replaceBlockItem(ctx);
+    });
     blockSlotArg->addChild(blockItemArg);
     posArg->addChild(blockSlotArg);
     blockNode->addChild(posArg);

@@ -84,7 +84,10 @@ public:
      * 因此构造时传入空 generator，由 server 侧初始化阶段调用此方法
      * 注入真实的 TreeGenerator（捕获 TreeFeature 并调用其 place()）。
      */
-    void setTreeGenerator(TreeGenerator treeGenerator) { m_treeGenerator = std::move(treeGenerator); }
+    void setTreeGenerator(TreeGenerator treeGenerator)
+    {
+        m_treeGenerator = std::move(treeGenerator);
+    }
 
     // ========== 状态属性 ==========
 
@@ -112,7 +115,10 @@ public:
     /**
      * @brief 是否需要随机 tick
      */
-    [[nodiscard]] bool ticksRandomly() const noexcept override { return true; }
+    [[nodiscard]] bool ticksRandomly() const noexcept override
+    {
+        return true;
+    }
 
     /**
      * @brief 尝试生长

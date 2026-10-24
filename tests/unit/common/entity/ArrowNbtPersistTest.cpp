@@ -60,7 +60,10 @@ class ArrowSoundProbe final : public T {
 public:
     using T::T;
 
-    [[nodiscard]] ResourceLocation probeHitGroundSound() const { return this->resolveHitGroundSound(); }
+    [[nodiscard]] ResourceLocation probeHitGroundSound() const
+    {
+        return this->resolveHitGroundSound();
+    }
 };
 
 } // namespace

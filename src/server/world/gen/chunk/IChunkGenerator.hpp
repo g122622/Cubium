@@ -61,6 +61,7 @@ class WorldGenSpawner;
 namespace world::chunk {
 class ChunkStep;
 }
+
 using world::chunk::ChunkStep;
 
 namespace world::biome {
@@ -180,7 +181,10 @@ public:
     /**
      * @brief 获取生成高度（使用世界表面类型）
      */
-    [[nodiscard]] i32 getSpawnHeight(i32 x, i32 z) const { return getHeight(x, z, HeightmapType::WorldSurfaceWG); }
+    [[nodiscard]] i32 getSpawnHeight(i32 x, i32 z) const
+    {
+        return getHeight(x, z, HeightmapType::WorldSurfaceWG);
+    }
 
     /**
      * @brief 获取指定位置的基础列方块状态
@@ -202,7 +206,11 @@ public:
     [[nodiscard]] virtual u64 seed() const = 0;
     [[nodiscard]] virtual const DimensionSettings& settings() const = 0;
     [[nodiscard]] virtual i32 seaLevel() const = 0;
-    [[nodiscard]] virtual i32 getGroundHeight() const { return world::SEA_LEVEL + 1; }
+
+    [[nodiscard]] virtual i32 getGroundHeight() const
+    {
+        return world::SEA_LEVEL + 1;
+    }
 
     /**
      * @brief 获取生成深度
@@ -210,7 +218,10 @@ public:
      * 返回噪声生成器的总高度（maxY - minY）。
      * 主世界: 384, 下界: 128, 末地: 128。
      */
-    [[nodiscard]] virtual i32 getGenDepth() const { return world::CHUNK_HEIGHT; }
+    [[nodiscard]] virtual i32 getGenDepth() const
+    {
+        return world::CHUNK_HEIGHT;
+    }
 
     /**
      * @brief 获取最低 Y 坐标
@@ -218,7 +229,10 @@ public:
      * 返回噪声生成器的最低建筑高度。
      * 主世界: -64, 下界: 0, 末地: 0。
      */
-    [[nodiscard]] virtual i32 getMinY() const { return world::MIN_BUILD_HEIGHT; }
+    [[nodiscard]] virtual i32 getMinY() const
+    {
+        return world::MIN_BUILD_HEIGHT;
+    }
 
     /**
      * @brief 检查是否为调试世界生成器
@@ -228,7 +242,10 @@ public:
      *
      * @return true 如果是调试世界生成器
      */
-    [[nodiscard]] virtual bool isDebugGenerator() const { return false; }
+    [[nodiscard]] virtual bool isDebugGenerator() const
+    {
+        return false;
+    }
 
     // === 结构缓存 ===
 
@@ -244,8 +261,15 @@ public:
      *
      * @return 结构检查缓存指针，如果生成器不支持则返回 nullptr
      */
-    [[nodiscard]] virtual world::gen::structure::StructureCheck* structureCheck() { return nullptr; }
-    [[nodiscard]] virtual const world::gen::structure::StructureCheck* structureCheck() const { return nullptr; }
+    [[nodiscard]] virtual world::gen::structure::StructureCheck* structureCheck()
+    {
+        return nullptr;
+    }
+
+    [[nodiscard]] virtual const world::gen::structure::StructureCheck* structureCheck() const
+    {
+        return nullptr;
+    }
 
     /**
      * @brief 清理结构生成缓存
@@ -289,8 +313,15 @@ public:
      * @brief 获取生物群系源
      * @return 生物群系源指针
      */
-    [[nodiscard]] virtual world::biome::IBiomeSource* getBiomeSource() { return nullptr; }
-    [[nodiscard]] virtual const world::biome::IBiomeSource* getBiomeSource() const { return nullptr; }
+    [[nodiscard]] virtual world::biome::IBiomeSource* getBiomeSource()
+    {
+        return nullptr;
+    }
+
+    [[nodiscard]] virtual const world::biome::IBiomeSource* getBiomeSource() const
+    {
+        return nullptr;
+    }
 };
 
 /**
@@ -361,8 +392,15 @@ public:
     /**
      * @brief 获取主区块
      */
-    [[nodiscard]] IChunk* getMainChunk() { return m_chunks[static_cast<std::size_t>(_centerIndex())]; }
-    [[nodiscard]] const IChunk* getMainChunk() const { return m_chunks[static_cast<std::size_t>(_centerIndex())]; }
+    [[nodiscard]] IChunk* getMainChunk()
+    {
+        return m_chunks[static_cast<std::size_t>(_centerIndex())];
+    }
+
+    [[nodiscard]] const IChunk* getMainChunk() const
+    {
+        return m_chunks[static_cast<std::size_t>(_centerIndex())];
+    }
 
     /**
      * @brief 获取指定相对位置的区块（生成区域特有方法）
@@ -387,13 +425,40 @@ public:
     /**
      * @brief 获取主区块坐标
      */
-    [[nodiscard]] ChunkCoord mainX() const { return m_mainX; }
-    [[nodiscard]] ChunkCoord mainZ() const { return m_mainZ; }
-    [[nodiscard]] i32 chunkRadius() const { return m_chunkRadius; }
-    [[nodiscard]] ChunkCoord minChunkX() const { return m_mainX - m_chunkRadius; }
-    [[nodiscard]] ChunkCoord maxChunkX() const { return m_mainX + m_chunkRadius; }
-    [[nodiscard]] ChunkCoord minChunkZ() const { return m_mainZ - m_chunkRadius; }
-    [[nodiscard]] ChunkCoord maxChunkZ() const { return m_mainZ + m_chunkRadius; }
+    [[nodiscard]] ChunkCoord mainX() const
+    {
+        return m_mainX;
+    }
+
+    [[nodiscard]] ChunkCoord mainZ() const
+    {
+        return m_mainZ;
+    }
+
+    [[nodiscard]] i32 chunkRadius() const
+    {
+        return m_chunkRadius;
+    }
+
+    [[nodiscard]] ChunkCoord minChunkX() const
+    {
+        return m_mainX - m_chunkRadius;
+    }
+
+    [[nodiscard]] ChunkCoord maxChunkX() const
+    {
+        return m_mainX + m_chunkRadius;
+    }
+
+    [[nodiscard]] ChunkCoord minChunkZ() const
+    {
+        return m_mainZ - m_chunkRadius;
+    }
+
+    [[nodiscard]] ChunkCoord maxChunkZ() const
+    {
+        return m_mainZ + m_chunkRadius;
+    }
 
     // === IWorld 接口实现 ===
 
@@ -450,8 +515,15 @@ public:
      *
      * 只暴露生成区域内的区块，不触发加载。
      */
-    [[nodiscard]] world::chunk::IChunkManager* chunkManager() override { return &m_chunkManager; }
-    [[nodiscard]] const world::chunk::IChunkManager* chunkManager() const override { return &m_chunkManager; }
+    [[nodiscard]] world::chunk::IChunkManager* chunkManager() override
+    {
+        return &m_chunkManager;
+    }
+
+    [[nodiscard]] const world::chunk::IChunkManager* chunkManager() const override
+    {
+        return &m_chunkManager;
+    }
 
     /**
      * @brief 获取最高方块 Y 坐标
@@ -509,7 +581,10 @@ public:
     /**
      * @brief 获取维度 ID
      */
-    [[nodiscard]] DimensionId dimension() const override { return m_dimensionId; }
+    [[nodiscard]] DimensionId dimension() const override
+    {
+        return m_dimensionId;
+    }
 
     /**
      * @brief 获取最低建筑高度（维度感知）
@@ -517,7 +592,10 @@ public:
      * 基于 m_dimensionId 查询 DimensionType 获取维度特定的最低建筑高度。
      * 下界为 0，主世界和末地为 -64。
      */
-    [[nodiscard]] i32 getMinBuildHeight() const override { return DimensionType::fromId(m_dimensionId).minHeight(); }
+    [[nodiscard]] i32 getMinBuildHeight() const override
+    {
+        return DimensionType::fromId(m_dimensionId).minHeight();
+    }
 
     /**
      * @brief 获取最高建筑高度（维度感知）
@@ -525,43 +603,71 @@ public:
      * 基于 m_dimensionId 查询 DimensionType 获取维度特定的最高建筑高度。
      * 下界为 128，末地为 256，主世界为 320。
      */
-    [[nodiscard]] i32 getMaxBuildHeight() const override { return DimensionType::fromId(m_dimensionId).maxHeight(); }
+    [[nodiscard]] i32 getMaxBuildHeight() const override
+    {
+        return DimensionType::fromId(m_dimensionId).maxHeight();
+    }
 
     /**
      * @brief 获取世界种子
      */
-    [[nodiscard]] u64 seed() const override { return m_seed; }
+    [[nodiscard]] u64 seed() const override
+    {
+        return m_seed;
+    }
 
     /**
      * @brief 获取当前 tick
      */
-    [[nodiscard]] u64 currentTick() const override { return m_currentTick; }
+    [[nodiscard]] u64 currentTick() const override
+    {
+        return m_currentTick;
+    }
 
     /**
      * @brief 获取一天内的时间
      */
-    [[nodiscard]] i64 dayTime() const override { return m_dayTime; }
+    [[nodiscard]] i64 dayTime() const override
+    {
+        return m_dayTime;
+    }
 
     /**
      * @brief 是否客户端
      */
-    [[nodiscard]] bool isClientSide() const override { return false; }
+    [[nodiscard]] bool isClientSide() const override
+    {
+        return false;
+    }
 
     /**
      * @brief 是否困难模式
      */
-    [[nodiscard]] bool isHardcore() const override { return m_hardcore; }
+    [[nodiscard]] bool isHardcore() const override
+    {
+        return m_hardcore;
+    }
 
     /**
      * @brief 获取难度
      */
-    [[nodiscard]] Difficulty difficulty() const override { return m_difficulty; }
+    [[nodiscard]] Difficulty difficulty() const override
+    {
+        return m_difficulty;
+    }
 
     /**
      * @brief 获取物理引擎
      */
-    [[nodiscard]] PhysicsEngine* physicsEngine() override { return nullptr; }
-    [[nodiscard]] const PhysicsEngine* physicsEngine() const override { return nullptr; }
+    [[nodiscard]] PhysicsEngine* physicsEngine() override
+    {
+        return nullptr;
+    }
+
+    [[nodiscard]] const PhysicsEngine* physicsEngine() const override
+    {
+        return nullptr;
+    }
 
     /**
      * @brief 获取 Tick 管理器
@@ -572,15 +678,29 @@ public:
     /**
      * @brief 获取随机数生成器
      */
-    [[nodiscard]] math::IRandom& getRandom() override { return m_random; }
-    [[nodiscard]] const math::IRandom& getRandom() const override { return m_random; }
+    [[nodiscard]] math::IRandom& getRandom() override
+    {
+        return m_random;
+    }
+
+    [[nodiscard]] const math::IRandom& getRandom() const override
+    {
+        return m_random;
+    }
 
     /**
      * @brief 获取世界边界
      * @note 生成区域使用默认世界边界
      */
-    [[nodiscard]] world::border::WorldBorder& worldBorder() override { return m_worldBorder; }
-    [[nodiscard]] const world::border::WorldBorder& worldBorder() const override { return m_worldBorder; }
+    [[nodiscard]] world::border::WorldBorder& worldBorder() override
+    {
+        return m_worldBorder;
+    }
+
+    [[nodiscard]] const world::border::WorldBorder& worldBorder() const override
+    {
+        return m_worldBorder;
+    }
 
     // === 生成区域特有方法 ===
 
@@ -647,22 +767,34 @@ public:
     /**
      * @brief 设置当前 tick
      */
-    void setCurrentTick(u64 tick) { m_currentTick = tick; }
+    void setCurrentTick(u64 tick)
+    {
+        m_currentTick = tick;
+    }
 
     /**
      * @brief 设置一天内的时间
      */
-    void setDayTime(i64 dayTime) { m_dayTime = dayTime; }
+    void setDayTime(i64 dayTime)
+    {
+        m_dayTime = dayTime;
+    }
 
     /**
      * @brief 设置是否困难模式
      */
-    void setHardcore(bool hardcore) { m_hardcore = hardcore; }
+    void setHardcore(bool hardcore)
+    {
+        m_hardcore = hardcore;
+    }
 
     /**
      * @brief 设置难度
      */
-    void setDifficulty(Difficulty difficulty) { m_difficulty = difficulty; }
+    void setDifficulty(Difficulty difficulty)
+    {
+        m_difficulty = difficulty;
+    }
 
     // === 写入范围检查 ===
 
@@ -700,12 +832,18 @@ public:
      * 用于崩溃报告上下文追踪，在 placeFeatures 中每个 feature/structure 放置前后调用。
      * 生成完成后调用 clearCurrentlyGenerating() 清除。
      */
-    void setCurrentlyGenerating(std::string_view name) { m_currentlyGenerating = name; }
+    void setCurrentlyGenerating(std::string_view name)
+    {
+        m_currentlyGenerating = name;
+    }
 
     /**
      * @brief 清除当前正在生成的结构/特性名称
      */
-    void clearCurrentlyGenerating() { m_currentlyGenerating.clear(); }
+    void clearCurrentlyGenerating()
+    {
+        m_currentlyGenerating.clear();
+    }
 
     // ========================================================================
     // 生成期方块刻调度
@@ -737,14 +875,20 @@ public:
     /**
      * @brief 获取当前正在生成的结构/特性名称
      */
-    [[nodiscard]] const std::string& currentlyGenerating() const { return m_currentlyGenerating; }
+    [[nodiscard]] const std::string& currentlyGenerating() const
+    {
+        return m_currentlyGenerating;
+    }
 
     /**
      * @brief 获取当前生成步骤
      *
      * 返回构造时传入的 ChunkStep。如果使用无步骤构造函数，返回 nullptr。
      */
-    [[nodiscard]] const ChunkStep* generatingStep() const { return m_generatingStep; }
+    [[nodiscard]] const ChunkStep* generatingStep() const
+    {
+        return m_generatingStep;
+    }
 
     /**
      * @brief 获取区块写半径
@@ -812,9 +956,20 @@ public:
     i32 spawnInitialMobs(
         WorldGenRegion& region, ChunkPrimer& chunk, std::vector<SpawnedEntityData>& outEntities) override;
 
-    [[nodiscard]] u64 seed() const override { return m_seed; }
-    [[nodiscard]] const DimensionSettings& settings() const override { return m_settings; }
-    [[nodiscard]] i32 seaLevel() const override { return m_settings.seaLevel; }
+    [[nodiscard]] u64 seed() const override
+    {
+        return m_seed;
+    }
+
+    [[nodiscard]] const DimensionSettings& settings() const override
+    {
+        return m_settings;
+    }
+
+    [[nodiscard]] i32 seaLevel() const override
+    {
+        return m_settings.seaLevel;
+    }
 
 protected:
     u64 m_seed;

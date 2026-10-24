@@ -59,7 +59,10 @@ public:
      *
      * @return 染料颜色
      */
-    [[nodiscard]] DyeColor getBeaconColor() const override { return m_color; }
+    [[nodiscard]] DyeColor getBeaconColor() const override
+    {
+        return m_color;
+    }
 
     /**
      * @brief 获取信标光束颜色倍数

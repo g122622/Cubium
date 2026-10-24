@@ -52,8 +52,15 @@ public:
 
     // ========== Entity 接口重写 ==========
 
-    [[nodiscard]] f32 width() const override { return 0.5f; }
-    [[nodiscard]] f32 height() const override { return 0.5f; }
+    [[nodiscard]] f32 width() const override
+    {
+        return 0.5f;
+    }
+
+    [[nodiscard]] f32 height() const override
+    {
+        return 0.5f;
+    }
 
     void tick() override;
 
@@ -140,8 +147,15 @@ public:
     static entity::DataParameter<i8> DATA_LOYALTY_PARAM; ///< 忠诚附魔等级
     static entity::DataParameter<bool> DATA_FOIL_PARAM;  ///< 是否有附魔光泽
 
-    [[nodiscard]] static u16 getLoyaltyParamId() { return DATA_LOYALTY_PARAM.id(); }
-    [[nodiscard]] static u16 getFoilParamId() { return DATA_FOIL_PARAM.id(); }
+    [[nodiscard]] static u16 getLoyaltyParamId()
+    {
+        return DATA_LOYALTY_PARAM.id();
+    }
+
+    [[nodiscard]] static u16 getFoilParamId()
+    {
+        return DATA_FOIL_PARAM.id();
+    }
 
 protected:
     /**

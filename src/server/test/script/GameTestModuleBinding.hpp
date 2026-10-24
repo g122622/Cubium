@@ -61,8 +61,16 @@ public:
     GameTestModuleBinding() = default;
     ~GameTestModuleBinding() override = default;
 
-    [[nodiscard]] std::string name() const override { return "@minecraft/server-gametest"; }
-    [[nodiscard]] std::string uuid() const override { return "b9c4d8e1-2f3a-4b5c-9d6e-7f8a9b0c1d2e"; }
+    [[nodiscard]] std::string name() const override
+    {
+        return "@minecraft/server-gametest";
+    }
+
+    [[nodiscard]] std::string uuid() const override
+    {
+        return "b9c4d8e1-2f3a-4b5c-9d6e-7f8a9b0c1d2e";
+    }
+
     [[nodiscard]] std::vector<mc::mod::bedrock::addon::ModuleVersion> supportedVersions() const override;
     [[nodiscard]] std::vector<mc::mod::bedrock::addon::ModuleDependency> dependencies(
         const mc::mod::bedrock::addon::ModuleVersion& version) const override;
@@ -77,7 +85,10 @@ public:
      * 定时 resolve 的 Promise（实现 JS `await test.idle(n)`）。须在 `addModuleFactory` 后、
      * 插件加载前调用。
      */
-    void setScheduler(mc::mod::bedrock::addon::ScriptScheduler* scheduler) noexcept { m_scheduler = scheduler; }
+    void setScheduler(mc::mod::bedrock::addon::ScriptScheduler* scheduler) noexcept
+    {
+        m_scheduler = scheduler;
+    }
 
 private:
     mc::mod::bedrock::addon::ScriptScheduler* m_scheduler = nullptr;

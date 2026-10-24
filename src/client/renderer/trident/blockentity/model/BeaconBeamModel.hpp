@@ -64,18 +64,27 @@ public:
     /**
      * @brief 清除所有光束段
      */
-    void clearSegments() { m_segments.clear(); }
+    void clearSegments()
+    {
+        m_segments.clear();
+    }
 
     /**
      * @brief 添加光束段
      * @param segment 光束段
      */
-    void addSegment(const BeamSegment& segment) { m_segments.push_back(segment); }
+    void addSegment(const BeamSegment& segment)
+    {
+        m_segments.push_back(segment);
+    }
 
     /**
      * @brief 获取所有光束段
      */
-    [[nodiscard]] const std::vector<BeamSegment>& getSegments() const { return m_segments; }
+    [[nodiscard]] const std::vector<BeamSegment>& getSegments() const
+    {
+        return m_segments;
+    }
 
     // ========== 渲染 ==========
 

@@ -73,7 +73,10 @@ protected:
         }
     }
 
-    void TearDown() override { m_chunk.reset(); }
+    void TearDown() override
+    {
+        m_chunk.reset();
+    }
 
     /**
      * @brief 在指定位置填充实心方块
@@ -164,7 +167,9 @@ TEST_F(AmbientOcclusionCalculatorTest, Calculate_SurroundedBlock_LowBrightness)
     for (i32 dx = -1; dx <= 1; ++dx) {
         for (i32 dy = -1; dy <= 1; ++dy) {
             for (i32 dz = -1; dz <= 1; ++dz) {
-                if (dx == 0 && dy == 0 && dz == 0) continue; // 跳过中心
+                if (dx == 0 && dy == 0 && dz == 0) {
+                    continue; // 跳过中心
+                }
                 fillSolidBlock(cx + dx, cy + dy, cz + dz);
             }
         }

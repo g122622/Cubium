@@ -69,7 +69,10 @@ public:
         return m_spawned.back()->id();
     }
 
-    [[nodiscard]] const std::vector<std::unique_ptr<Entity>>& spawnedEntities() const { return m_spawned; }
+    [[nodiscard]] const std::vector<std::unique_ptr<Entity>>& spawnedEntities() const
+    {
+        return m_spawned;
+    }
 
 private:
     std::vector<std::unique_ptr<Entity>> m_spawned;

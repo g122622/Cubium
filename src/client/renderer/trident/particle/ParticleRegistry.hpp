@@ -267,7 +267,10 @@ public:
      *
      * @return 类型数量
      */
-    [[nodiscard]] Size typeCount() const { return m_types.size(); }
+    [[nodiscard]] Size typeCount() const
+    {
+        return m_types.size();
+    }
 
 private:
     ParticleRegistry();

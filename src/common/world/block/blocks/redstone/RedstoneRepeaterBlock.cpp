@@ -98,9 +98,12 @@ BlockState RedstoneRepeaterBlock::updatePostPlacement(const BlockState& state,
 {
     BlockState result =
         RedstoneDiodeBlock::updatePostPlacement(state, facing, facingState, world, currentPos, facingPos);
-    if (!result.is(this)) return result;
+    if (!result.is(this)) {
+        return result;
+    }
     return withLocked(result, isLocked(world, currentPos, result));
 }
+
 i32 RedstoneRepeaterBlock::getDelay(const BlockState& state) const
 {
     return getDelaySetting(state) * DELAY_MULTIPLIER;
@@ -130,6 +133,7 @@ bool RedstoneRepeaterBlock::shouldBePowered(IWorld& world, const BlockPos& pos, 
 {
     return getInputSignal(world, pos, state) > 0;
 }
+
 bool RedstoneRepeaterBlock::isLocked(IWorld& world, const BlockPos& pos, const BlockState& state) const
 {
     // 检查侧面是否有来自其他二极管的信号

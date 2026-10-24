@@ -30,6 +30,7 @@ namespace mc {
 
 // 前向声明
 class BlockState;
+
 namespace fluid {
 class FluidRegistry;
 }

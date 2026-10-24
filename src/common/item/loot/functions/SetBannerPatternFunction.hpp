@@ -47,10 +47,21 @@ public:
 
     [[nodiscard]] ItemStack apply(ItemStack stack, LootContext& context) const override;
     [[nodiscard]] std::unique_ptr<LootFunction> clone() const noexcept override;
-    [[nodiscard]] std::string getType() const noexcept override { return "set_banner_pattern"; }
 
-    [[nodiscard]] const nlohmann::json& getPatterns() const { return m_patterns; }
-    [[nodiscard]] bool isAppend() const { return m_append; }
+    [[nodiscard]] std::string getType() const noexcept override
+    {
+        return "set_banner_pattern";
+    }
+
+    [[nodiscard]] const nlohmann::json& getPatterns() const
+    {
+        return m_patterns;
+    }
+
+    [[nodiscard]] bool isAppend() const
+    {
+        return m_append;
+    }
 
 private:
     nlohmann::json m_patterns;

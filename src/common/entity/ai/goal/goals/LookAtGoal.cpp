@@ -62,7 +62,9 @@ LookAtGoal::LookAtGoal(MobEntity* mob, f32 maxDistance, f32 chance, EntityFilter
 
 bool LookAtGoal::shouldExecute()
 {
-    if (!m_mob) return false;
+    if (!m_mob) {
+        return false;
+    }
 
     // 检查概率
     math::IRandom& rng = m_mob->getRandom();
@@ -83,10 +85,14 @@ bool LookAtGoal::shouldExecute()
 
 bool LookAtGoal::shouldContinueExecuting()
 {
-    if (!m_lookTarget) return false;
+    if (!m_lookTarget) {
+        return false;
+    }
 
     // 检查目标是否存活
-    if (!m_lookTarget->isAlive()) return false;
+    if (!m_lookTarget->isAlive()) {
+        return false;
+    }
 
     // 使用距离平方比较
     f64 distSq = m_mob->distanceSqTo(*m_lookTarget);
@@ -102,7 +108,9 @@ bool LookAtGoal::shouldContinueExecuting()
 
 void LookAtGoal::startExecuting()
 {
-    if (!m_mob) return;
+    if (!m_mob) {
+        return;
+    }
 
     // 设置看向时间。对齐 vanilla LookAtPlayerGoal.start：
     // lookTime = adjustedTickDelay(40 + nextInt(40))，减半补偿半 tick 评估。
@@ -117,7 +125,9 @@ void LookAtGoal::resetTask()
 
 void LookAtGoal::tick()
 {
-    if (!m_mob || !m_lookTarget) return;
+    if (!m_mob || !m_lookTarget) {
+        return;
+    }
 
     // 移除或析构的引用会自动失效；此处同时处理尚未移除的死亡目标。
     if (!m_lookTarget->isAlive()) {
@@ -136,7 +146,9 @@ void LookAtGoal::tick()
 
 LivingEntity* LookAtGoal::findTarget()
 {
-    if (!m_mob || !m_mob->world()) return nullptr;
+    if (!m_mob || !m_mob->world()) {
+        return nullptr;
+    }
 
     // 查找最近的 LivingEntity
     // 使用 boundingBox.grow(maxDistance, 3.0D, maxDistance) 扩展范围
@@ -149,10 +161,14 @@ LivingEntity* LookAtGoal::findTarget()
         m_mob,
         [this, maxDistSq](LivingEntity* entity) {
             // 检查是否在最大距离内
-            if (m_mob->distanceSqTo(*entity) > maxDistSq) return false;
+            if (m_mob->distanceSqTo(*entity) > maxDistSq) {
+                return false;
+            }
 
             // 执行自定义过滤条件
-            if (m_filter && !m_filter(entity)) return false;
+            if (m_filter && !m_filter(entity)) {
+                return false;
+            }
 
             return true;
         });
@@ -169,7 +185,9 @@ LookRandomlyGoal::LookRandomlyGoal(MobEntity* mob)
 
 bool LookRandomlyGoal::shouldExecute()
 {
-    if (!m_mob) return false;
+    if (!m_mob) {
+        return false;
+    }
 
     // 默认概率执行 (2%)
     math::IRandom& rng = m_mob->getRandom();
@@ -184,7 +202,9 @@ bool LookRandomlyGoal::shouldContinueExecuting()
 
 void LookRandomlyGoal::startExecuting()
 {
-    if (!m_mob) return;
+    if (!m_mob) {
+        return;
+    }
 
     // 选择随机方向
     math::IRandom& rng = m_mob->getRandom();
@@ -204,7 +224,9 @@ void LookRandomlyGoal::resetTask()
 
 void LookRandomlyGoal::tick()
 {
-    if (!m_mob) return;
+    if (!m_mob) {
+        return;
+    }
 
     --m_idleTime;
 

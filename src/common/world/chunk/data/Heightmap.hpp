@@ -182,7 +182,10 @@ public:
      */
     [[nodiscard]] std::array<BlockCoord, SIZE> getData() const;
 
-    [[nodiscard]] HeightmapType getType() const { return m_type; }
+    [[nodiscard]] HeightmapType getType() const
+    {
+        return m_type;
+    }
 
     /**
      * @brief 按高度图类型判定方块是否计入该高度图

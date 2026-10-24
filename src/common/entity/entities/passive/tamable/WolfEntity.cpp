@@ -168,7 +168,9 @@ bool WolfEntity::isTameItem(const ItemStack& itemStack) const
 {
     // 狼用骨头驯服
     const Item* item = itemStack.getItem();
-    if (item == nullptr) return false;
+    if (item == nullptr) {
+        return false;
+    }
     return item == Items::BONE;
 }
 
@@ -176,7 +178,9 @@ bool WolfEntity::isBreedingItem(const ItemStack& itemStack) const
 {
     // 驯服后用肉类繁殖
     const Item* item = itemStack.getItem();
-    if (item == nullptr) return false;
+    if (item == nullptr) {
+        return false;
+    }
     return item == Items::PORKCHOP || item == Items::COOKED_PORKCHOP || item == Items::BEEF ||
         item == Items::COOKED_BEEF || item == Items::CHICKEN || item == Items::COOKED_CHICKEN ||
         item == Items::RABBIT || item == Items::COOKED_RABBIT || item == Items::MUTTON ||
@@ -869,7 +873,9 @@ void WolfEntity::registerGoals()
         std::make_unique<entity::ai::goal::AvoidEntityGoal>(
             this, 24.0f, 1.5, 1.5, [this](const LivingEntity* entity) -> bool {
                 // 只在未驯服时避开羊驼
-                if (isTamed()) return false;
+                if (isTamed()) {
+                    return false;
+                }
                 // 检查是否是羊驼
                 if (entity->entityType() != entity::VanillaEntityTypeKeys::LLAMA &&
                     entity->entityType() != entity::VanillaEntityTypeKeys::TRADER_LLAMA) {
@@ -877,7 +883,9 @@ void WolfEntity::registerGoals()
                 }
                 // 检查羊驼的强度
                 const LlamaEntity* llama = dynamic_cast<const LlamaEntity*>(entity);
-                if (!llama) return false;
+                if (!llama) {
+                    return false;
+                }
                 // 羊驼强度 >= 随机值(0-4) 时，狼会躲避
                 // 强度1: 20%概率吓跑，强度4: 80%概率吓跑
                 math::IRandom& rng = getRandom();
@@ -962,7 +970,9 @@ void WolfEntity::registerGoals()
             true, // checkSight
             0,    // chance (每tick检查)
             [](const LivingEntity* entity) -> bool {
-                if (!entity || !entity->isAlive()) return false;
+                if (!entity || !entity->isAlive()) {
+                    return false;
+                }
                 // 羊、兔子、狐狸
                 auto type = entity->entityType();
                 return type == entity::VanillaEntityTypeKeys::SHEEP || type == entity::VanillaEntityTypeKeys::RABBIT ||
@@ -978,7 +988,9 @@ void WolfEntity::registerGoals()
             [](const LivingEntity* entity) -> bool {
                 // TARGET_DRY_BABY: 幼体且不在水中
                 const TurtleEntity* turtle = dynamic_cast<const TurtleEntity*>(entity);
-                if (!turtle) return false;
+                if (!turtle) {
+                    return false;
+                }
                 return turtle->isChild() && !turtle->isInWater();
             }));
 
@@ -989,7 +1001,9 @@ void WolfEntity::registerGoals()
             false, // checkSight - 不需要视线检查，骷髅是敌对生物
             0,     // chance
             [](const LivingEntity* entity) -> bool {
-                if (!entity || !entity->isAlive()) return false;
+                if (!entity || !entity->isAlive()) {
+                    return false;
+                }
                 // 骷髅、流浪者、凋灵骷髅
                 auto type = entity->entityType();
                 return type == entity::VanillaEntityTypeKeys::SKELETON ||
@@ -1009,7 +1023,9 @@ void WolfEntity::registerAttributes()
     // 狼的属性
     attributes().setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 8.0); // 驯服前8血
     attributes().setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.3);
-    attributes().setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, 2.0); // 2点攻击力
+    // 原版 Wolf.createAttributes 自带 ATTACK_DAMAGE 4（不是 2）。
+    attributes().registerAttribute(*entity::attribute::Attributes::attackDamage());
+    attributes().setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, 4.0);
 
     // 驯服后会增加到20血，由 onTamed 处理
 }
@@ -1043,17 +1059,14 @@ void WolfEntity::registerData()
 void WolfEntity::onTamed(bool tamed)
 {
     if (tamed) {
-        // 驯服后增加生命值上限（从8血变为20血）
+        // 驯服后增加生命值上限（从8血变为20血）。攻击力不随驯服变化：原版
+        // Wolf.createAttributes 的 ATTACK_DAMAGE 就是 4（1.21 起驯服不再加压）。
         attributes().setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 20.0);
         setHealth(20.0f);
-
-        // 驯服后增加攻击力
-        attributes().setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, 4.0);
     } else {
         // 放弃驯服后恢复
         attributes().setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 8.0);
         setHealth(8.0f);
-        attributes().setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, 2.0);
     }
 }
 

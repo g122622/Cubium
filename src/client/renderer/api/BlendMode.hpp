@@ -81,7 +81,10 @@ struct BlendState {
     /**
      * @brief 创建禁用混合的状态
      */
-    static BlendState disabled() { return BlendState{}; }
+    static BlendState disabled()
+    {
+        return BlendState{};
+    }
 
     /**
      * @brief 创建标准 Alpha 混合状态
@@ -154,7 +157,10 @@ struct BlendState {
             alphaOp == other.alphaOp && colorWriteMask == other.colorWriteMask;
     }
 
-    bool operator!=(const BlendState& other) const { return !(*this == other); }
+    bool operator!=(const BlendState& other) const
+    {
+        return !(*this == other);
+    }
 };
 
 } // namespace mc::client::renderer::api

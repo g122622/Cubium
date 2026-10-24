@@ -59,8 +59,15 @@ public:
         return m_compiled->eval(blockX, blockY, blockZ);
     }
 
-    [[nodiscard]] f64 minValue() const override { return m_compiled->minValue(); }
-    [[nodiscard]] f64 maxValue() const override { return m_compiled->maxValue(); }
+    [[nodiscard]] f64 minValue() const override
+    {
+        return m_compiled->minValue();
+    }
+
+    [[nodiscard]] f64 maxValue() const override
+    {
+        return m_compiled->maxValue();
+    }
 
     [[nodiscard]] std::unique_ptr<DensityFunction> mapAll(Visitor& /*visitor*/) const override
     {
@@ -70,7 +77,10 @@ public:
     }
 
     /// 被包装的编译产物。
-    [[nodiscard]] const std::shared_ptr<CompiledDensityFunction>& compiled() const { return m_compiled; }
+    [[nodiscard]] const std::shared_ptr<CompiledDensityFunction>& compiled() const
+    {
+        return m_compiled;
+    }
 
 private:
     std::shared_ptr<CompiledDensityFunction> m_compiled;

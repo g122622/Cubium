@@ -204,7 +204,10 @@ public:
      *
      * @param callback 进度回调函数
      */
-    void setProgressCallback(ProgressCallback callback) { m_progressCallback = std::move(callback); }
+    void setProgressCallback(ProgressCallback callback)
+    {
+        m_progressCallback = std::move(callback);
+    }
 
     // ========================================================================
     // 统计信息
@@ -213,12 +216,18 @@ public:
     /**
      * @brief 获取上次加载的错误数量
      */
-    [[nodiscard]] size_t getErrorCount() const { return m_errorCount; }
+    [[nodiscard]] size_t getErrorCount() const
+    {
+        return m_errorCount;
+    }
 
     /**
      * @brief 获取上次加载的警告数量
      */
-    [[nodiscard]] size_t getWarningCount() const { return m_warningCount; }
+    [[nodiscard]] size_t getWarningCount() const
+    {
+        return m_warningCount;
+    }
 
     // ========================================================================
     // 访问器
@@ -227,22 +236,34 @@ public:
     /**
      * @brief 获取资源包列表
      */
-    [[nodiscard]] PackRepository& getResourcePacks() noexcept { return m_resourcePacks; }
+    [[nodiscard]] PackRepository& getResourcePacks() noexcept
+    {
+        return m_resourcePacks;
+    }
 
     /**
      * @brief 获取资源包列表（const版本）
      */
-    [[nodiscard]] const PackRepository& getResourcePacks() const noexcept { return m_resourcePacks; }
+    [[nodiscard]] const PackRepository& getResourcePacks() const noexcept
+    {
+        return m_resourcePacks;
+    }
 
     /**
      * @brief 获取声音注册表
      */
-    [[nodiscard]] SoundRegistry& getRegistry() noexcept { return m_registry; }
+    [[nodiscard]] SoundRegistry& getRegistry() noexcept
+    {
+        return m_registry;
+    }
 
     /**
      * @brief 获取声音注册表（const版本）
      */
-    [[nodiscard]] const SoundRegistry& getRegistry() const noexcept { return m_registry; }
+    [[nodiscard]] const SoundRegistry& getRegistry() const noexcept
+    {
+        return m_registry;
+    }
 
 private:
     /**

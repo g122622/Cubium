@@ -125,7 +125,10 @@ public:
     /**
      * @brief 获取膨胀状态 DataParameter ID（客户端同步用）
      */
-    [[nodiscard]] static u16 getPuffStateParamId() { return DATA_PUFF_STATE_PARAM.id(); }
+    [[nodiscard]] static u16 getPuffStateParamId()
+    {
+        return DATA_PUFF_STATE_PARAM.id();
+    }
 
     /**
      * @brief 获取膨胀尺寸缩放因子
@@ -141,7 +144,10 @@ public:
     /**
      * @brief 是否完全膨胀
      */
-    [[nodiscard]] bool isFullyPuffed() const { return m_puffState == PuffState::FullyPuffed; }
+    [[nodiscard]] bool isFullyPuffed() const
+    {
+        return m_puffState == PuffState::FullyPuffed;
+    }
 
     // ========== 中毒 ==========
 
@@ -150,7 +156,10 @@ public:
      *
      * 在膨胀状态（非 Deflated）时会使接触者中毒。
      */
-    [[nodiscard]] bool canPoison() const { return m_puffState != PuffState::Deflated; }
+    [[nodiscard]] bool canPoison() const
+    {
+        return m_puffState != PuffState::Deflated;
+    }
 
     // ========== 膨胀计时器 ==========
 
@@ -171,19 +180,28 @@ public:
     /**
      * @brief 获取膨胀计时器值
      */
-    [[nodiscard]] i32 puffTimer() const { return m_puffTimer; }
+    [[nodiscard]] i32 puffTimer() const
+    {
+        return m_puffTimer;
+    }
 
     /**
      * @brief 获取收缩计时器值
      */
-    [[nodiscard]] i32 deflateTimer() const { return m_deflateTimer; }
+    [[nodiscard]] i32 deflateTimer() const
+    {
+        return m_deflateTimer;
+    }
 
     // ========== 属性 ==========
 
     /**
      * @brief 获取眼睛高度
      */
-    [[nodiscard]] f32 eyeHeight() const override { return 0.15f; }
+    [[nodiscard]] f32 eyeHeight() const override
+    {
+        return 0.15f;
+    }
 
     /**
      * @brief 获取动态尺寸

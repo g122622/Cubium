@@ -210,7 +210,10 @@ public:
     [[nodiscard]] ResourceLocation getEntityTexture(::mc::LivingEntity& entity) override;
     [[nodiscard]] ResourceLocation getEntityTexture(const ::mc::LivingEntity& entity) const override;
 
-    [[nodiscard]] bool isFullbright() const override { return true; }
+    [[nodiscard]] bool isFullbright() const override
+    {
+        return true;
+    }
 
 private:
     void _setupLayers();

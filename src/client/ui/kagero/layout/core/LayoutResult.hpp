@@ -78,40 +78,62 @@ struct LayoutResult {
     /**
      * @brief 检查布局结果是否有效
      */
-    [[nodiscard]] bool isValid() const { return bounds.width >= 0 && bounds.height >= 0; }
+    [[nodiscard]] bool isValid() const
+    {
+        return bounds.width >= 0 && bounds.height >= 0;
+    }
 
     /**
      * @brief 获取中心X坐标
      */
-    [[nodiscard]] i32 centerX() const { return bounds.centerX(); }
+    [[nodiscard]] i32 centerX() const
+    {
+        return bounds.centerX();
+    }
 
     /**
      * @brief 获取中心Y坐标
      */
-    [[nodiscard]] i32 centerY() const { return bounds.centerY(); }
+    [[nodiscard]] i32 centerY() const
+    {
+        return bounds.centerY();
+    }
 
     /**
      * @brief 获取右边界
      */
-    [[nodiscard]] i32 right() const { return bounds.right(); }
+    [[nodiscard]] i32 right() const
+    {
+        return bounds.right();
+    }
 
     /**
      * @brief 获取下边界
      */
-    [[nodiscard]] i32 bottom() const { return bounds.bottom(); }
+    [[nodiscard]] i32 bottom() const
+    {
+        return bounds.bottom();
+    }
 
     /**
      * @brief 检查点是否在布局区域内
      */
-    [[nodiscard]] bool contains(i32 x, i32 y) const { return bounds.contains(x, y); }
+    [[nodiscard]] bool contains(i32 x, i32 y) const
+    {
+        return bounds.contains(x, y);
+    }
 
     /**
      * @brief 合并两个布局结果（取并集）
      */
     [[nodiscard]] LayoutResult merged(const LayoutResult& other) const
     {
-        if (!isValid()) return other;
-        if (!other.isValid()) return *this;
+        if (!isValid()) {
+            return other;
+        }
+        if (!other.isValid()) {
+            return *this;
+        }
 
         i32 newX = std::min(bounds.x, other.bounds.x);
         i32 newY = std::min(bounds.y, other.bounds.y);
@@ -147,52 +169,82 @@ public:
     /**
      * @brief 获取可用宽度
      */
-    [[nodiscard]] i32 availableWidth() const { return m_availableWidth; }
+    [[nodiscard]] i32 availableWidth() const
+    {
+        return m_availableWidth;
+    }
 
     /**
      * @brief 获取可用高度
      */
-    [[nodiscard]] i32 availableHeight() const { return m_availableHeight; }
+    [[nodiscard]] i32 availableHeight() const
+    {
+        return m_availableHeight;
+    }
 
     /**
      * @brief 获取宽度测量规格
      */
-    [[nodiscard]] MeasureSpec widthSpec() const { return m_widthSpec; }
+    [[nodiscard]] MeasureSpec widthSpec() const
+    {
+        return m_widthSpec;
+    }
 
     /**
      * @brief 获取高度测量规格
      */
-    [[nodiscard]] MeasureSpec heightSpec() const { return m_heightSpec; }
+    [[nodiscard]] MeasureSpec heightSpec() const
+    {
+        return m_heightSpec;
+    }
 
     /**
      * @brief 设置可用宽度
      */
-    void setAvailableWidth(i32 width) { m_availableWidth = width; }
+    void setAvailableWidth(i32 width)
+    {
+        m_availableWidth = width;
+    }
 
     /**
      * @brief 设置可用高度
      */
-    void setAvailableHeight(i32 height) { m_availableHeight = height; }
+    void setAvailableHeight(i32 height)
+    {
+        m_availableHeight = height;
+    }
 
     /**
      * @brief 设置宽度测量规格
      */
-    void setWidthSpec(const MeasureSpec& spec) { m_widthSpec = spec; }
+    void setWidthSpec(const MeasureSpec& spec)
+    {
+        m_widthSpec = spec;
+    }
 
     /**
      * @brief 设置高度测量规格
      */
-    void setHeightSpec(const MeasureSpec& spec) { m_heightSpec = spec; }
+    void setHeightSpec(const MeasureSpec& spec)
+    {
+        m_heightSpec = spec;
+    }
 
     /**
      * @brief 获取布局深度
      */
-    [[nodiscard]] i32 depth() const { return m_depth; }
+    [[nodiscard]] i32 depth() const
+    {
+        return m_depth;
+    }
 
     /**
      * @brief 设置布局深度
      */
-    void setDepth(i32 depth) { m_depth = depth; }
+    void setDepth(i32 depth)
+    {
+        m_depth = depth;
+    }
 
     /**
      * @brief 创建子上下文
@@ -213,7 +265,10 @@ public:
     /**
      * @brief 检查是否有效
      */
-    [[nodiscard]] bool isValid() const { return m_availableWidth >= 0 && m_availableHeight >= 0; }
+    [[nodiscard]] bool isValid() const
+    {
+        return m_availableWidth >= 0 && m_availableHeight >= 0;
+    }
 
 private:
     i32 m_availableWidth = 0;

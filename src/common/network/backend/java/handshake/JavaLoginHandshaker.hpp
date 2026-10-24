@@ -100,6 +100,7 @@ public:
         std::vector<u8> serverPrivateKeyDer; // PKCS8，handleKey 时解密用
         std::vector<u8> verifyToken;         // 原始 verify token，校验用
     };
+
     [[nodiscard]] static Result<ServerEncryptionStart> buildHelloBound(bool shouldAuthenticate);
 
     /**
@@ -112,6 +113,7 @@ public:
         ir::IrPacket keyPacket;
         std::array<u8, crypto::kSharedSecretBytes> sharedSecret;
     };
+
     [[nodiscard]] static Result<ClientEncryptionResponse> handleHelloBound(const ir::login::HelloBound& helloBound);
 
     /**

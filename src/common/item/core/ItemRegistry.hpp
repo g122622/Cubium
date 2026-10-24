@@ -156,12 +156,18 @@ public:
     /**
      * @brief 获取物品数量
      */
-    [[nodiscard]] Size itemCount() const { return m_items.size(); }
+    [[nodiscard]] Size itemCount() const
+    {
+        return m_items.size();
+    }
 
     /**
      * @brief 获取空气物品（表示空物品）
      */
-    [[nodiscard]] Item* airItem() const { return m_airItem; }
+    [[nodiscard]] Item* airItem() const
+    {
+        return m_airItem;
+    }
 
     /**
      * @brief 检查物品ID是否存在
@@ -174,7 +180,10 @@ public:
     /**
      * @brief 检查资源位置是否存在
      */
-    [[nodiscard]] bool hasItem(const ResourceLocation& id) const { return m_items.find(id) != m_items.end(); }
+    [[nodiscard]] bool hasItem(const ResourceLocation& id) const
+    {
+        return m_items.find(id) != m_items.end();
+    }
 
 private:
     ItemRegistry();

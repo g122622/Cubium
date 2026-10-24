@@ -364,6 +364,7 @@ Result<void> AtlasHandle::uploadRegionsBatch(const std::vector<RegionUpload>& re
         renderer::api::StagingHandle handle;
         const RegionUpload* desc;
     };
+
     std::vector<StagedRegion> staged;
     staged.reserve(regions.size());
 
@@ -450,6 +451,7 @@ Result<void> AtlasHandle::uploadRegionsBatchAsync(
         renderer::api::StagingHandle handle;
         const RegionUpload* desc;
     };
+
     std::vector<StagedRegion> staged;
     staged.reserve(regions.size());
 

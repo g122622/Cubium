@@ -78,7 +78,9 @@ void BuriedTreasurePiece::generate(IWorldWriter& world,
     // 在周围放置沙子/石头作为保护
     for (i32 dx = -1; dx <= 1; ++dx) {
         for (i32 dz = -1; dz <= 1; ++dz) {
-            if (dx == 0 && dz == 0) continue; // 跳过中心
+            if (dx == 0 && dz == 0) {
+                continue; // 跳过中心
+            }
 
             i32 x = centerX + dx;
             i32 y = centerY - 1;

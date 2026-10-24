@@ -100,22 +100,34 @@ public:
     /**
      * @brief 获取方块外观缓存
      */
-    [[nodiscard]] BlockModelCache* modelCache() const { return m_modelCache; }
+    [[nodiscard]] BlockModelCache* modelCache() const
+    {
+        return m_modelCache;
+    }
 
     /**
      * @brief 获取纹理图集
      */
-    [[nodiscard]] TridentTextureAtlas* textureAtlas() const { return m_textureAtlas; }
+    [[nodiscard]] TridentTextureAtlas* textureAtlas() const
+    {
+        return m_textureAtlas;
+    }
 
     /**
      * @brief 设置模型缓存
      */
-    void setModelCache(BlockModelCache* cache) { m_modelCache = cache; }
+    void setModelCache(BlockModelCache* cache)
+    {
+        m_modelCache = cache;
+    }
 
     /**
      * @brief 设置纹理图集
      */
-    void setTextureAtlas(TridentTextureAtlas* atlas) { m_textureAtlas = atlas; }
+    void setTextureAtlas(TridentTextureAtlas* atlas)
+    {
+        m_textureAtlas = atlas;
+    }
 
 private:
     BlockModelCache* m_modelCache = nullptr;

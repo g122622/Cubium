@@ -53,10 +53,26 @@ public:
     void tick();
 
     [[nodiscard]] bool isComplete() const noexcept;
-    [[nodiscard]] std::size_t totalTestCount() const noexcept { return m_totalTestCount; }
-    [[nodiscard]] std::size_t passedCount() const noexcept { return m_passedCount; }
-    [[nodiscard]] std::size_t failedCount() const noexcept { return m_failedCount; }
-    [[nodiscard]] std::size_t failedRequiredCount() const noexcept { return m_failedRequiredCount; }
+
+    [[nodiscard]] std::size_t totalTestCount() const noexcept
+    {
+        return m_totalTestCount;
+    }
+
+    [[nodiscard]] std::size_t passedCount() const noexcept
+    {
+        return m_passedCount;
+    }
+
+    [[nodiscard]] std::size_t failedCount() const noexcept
+    {
+        return m_failedCount;
+    }
+
+    [[nodiscard]] std::size_t failedRequiredCount() const noexcept
+    {
+        return m_failedRequiredCount;
+    }
 
 protected:
     [[nodiscard]] virtual std::unique_ptr<BaseGameTestInstance> _createGameTestInstance(
@@ -90,8 +106,15 @@ protected:
         return mc::test::pass();
     }
 
-    GameTestTicker& _ticker() noexcept { return m_ticker; }
-    const TestParameters& _params() const noexcept { return m_params; }
+    GameTestTicker& _ticker() noexcept
+    {
+        return m_ticker;
+    }
+
+    const TestParameters& _params() const noexcept
+    {
+        return m_params;
+    }
 
     /**
      * @brief 子类在 _runTest 中调用，把实例纳入批次跟踪（runner 持所有权，ticker 持裸指针）。

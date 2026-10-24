@@ -208,7 +208,10 @@ public:
      *
      * @return true 如果已调用 initialize() 且后端就绪
      */
-    [[nodiscard]] bool isInitialized() const noexcept { return m_initialized; }
+    [[nodiscard]] bool isInitialized() const noexcept
+    {
+        return m_initialized;
+    }
 
     /**
      * @brief 运行时启用/禁用追踪
@@ -217,14 +220,20 @@ public:
      *
      * @param enabled 是否启用
      */
-    void setEnabled(bool enabled) noexcept { m_enabled = enabled; }
+    void setEnabled(bool enabled) noexcept
+    {
+        m_enabled = enabled;
+    }
 
     /**
      * @brief 获取当前配置
      *
      * @return const TraceConfig& 配置的常量引用
      */
-    [[nodiscard]] const TraceConfig& config() const noexcept { return m_config; }
+    [[nodiscard]] const TraceConfig& config() const noexcept
+    {
+        return m_config;
+    }
 
     /**
      * @brief 注册进程内存采样回调
@@ -239,7 +248,10 @@ public:
      *
      * @param sampler 返回 {工作集MB, 提交量MB} 的回调；传空则停用内存采样
      */
-    void setMemorySampler(std::function<std::pair<i64, i64>()> sampler) { m_memorySampler = std::move(sampler); }
+    void setMemorySampler(std::function<std::pair<i64, i64>()> sampler)
+    {
+        m_memorySampler = std::move(sampler);
+    }
 
     /** @brief 独立启动已有内存采样线程，无须初始化或启动追踪后端。 */
     void startMemorySampling();
@@ -333,24 +345,50 @@ public:
     }
 
     void initialize(const TraceConfig& = {}) noexcept {}
+
     void shutdown() noexcept {}
+
     void startTracing() noexcept {}
+
     void stopTracing() noexcept {}
+
     void flush() noexcept {}
+
     void setOutputPath(const std::string&) noexcept {}
 
-    [[nodiscard]] bool isEnabled() const noexcept { return false; }
-    [[nodiscard]] bool isInitialized() const noexcept { return false; }
+    [[nodiscard]] bool isEnabled() const noexcept
+    {
+        return false;
+    }
+
+    [[nodiscard]] bool isInitialized() const noexcept
+    {
+        return false;
+    }
+
     void setEnabled(bool) noexcept {}
 
-    [[nodiscard]] TraceConfig config() const noexcept { return {}; }
+    [[nodiscard]] TraceConfig config() const noexcept
+    {
+        return {};
+    }
+
     void setProcessName(const std::string&) noexcept {}
+
     void setThreadName(const std::string&) noexcept {}
+
     void setThreadName(const std::string&, i32) noexcept {}
+
     void setMemorySampler(std::function<std::pair<i64, i64>()>) noexcept {}
+
     void startMemorySampling() noexcept {}
+
     void stopMemorySampling() noexcept {}
-    [[nodiscard]] std::optional<ProcessMemorySample> latestMemorySample() const noexcept { return std::nullopt; }
+
+    [[nodiscard]] std::optional<ProcessMemorySample> latestMemorySample() const noexcept
+    {
+        return std::nullopt;
+    }
 
 private:
     ProfilerManager() = default;

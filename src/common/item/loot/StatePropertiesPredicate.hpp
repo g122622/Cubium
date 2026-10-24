@@ -79,7 +79,10 @@ public:
         /**
          * @brief 获取属性名称
          */
-        [[nodiscard]] const std::string& propertyName() const { return m_propertyName; }
+        [[nodiscard]] const std::string& propertyName() const
+        {
+            return m_propertyName;
+        }
 
         /**
          * @brief 序列化为 JSON 格式
@@ -120,7 +123,10 @@ public:
         [[nodiscard]] std::string toJson() const override;
         [[nodiscard]] std::unique_ptr<Matcher> clone() const override;
 
-        [[nodiscard]] const std::string& value() const { return m_value; }
+        [[nodiscard]] const std::string& value() const
+        {
+            return m_value;
+        }
 
     protected:
         [[nodiscard]] bool matchExact(const BlockState& state, const IProperty* property) const override;
@@ -147,8 +153,15 @@ public:
         [[nodiscard]] std::string toJson() const override;
         [[nodiscard]] std::unique_ptr<Matcher> clone() const override;
 
-        [[nodiscard]] const std::optional<std::string>& minValue() const { return m_min; }
-        [[nodiscard]] const std::optional<std::string>& maxValue() const { return m_max; }
+        [[nodiscard]] const std::optional<std::string>& minValue() const
+        {
+            return m_min;
+        }
+
+        [[nodiscard]] const std::optional<std::string>& maxValue() const
+        {
+            return m_max;
+        }
 
     protected:
         [[nodiscard]] bool matchExact(const BlockState& state, const IProperty* property) const override;
@@ -205,12 +218,18 @@ public:
      * @brief 检查是否为空谓词
      * @return 如果没有任何匹配器返回 true
      */
-    [[nodiscard]] bool isEmpty() const { return m_matchers.empty(); }
+    [[nodiscard]] bool isEmpty() const
+    {
+        return m_matchers.empty();
+    }
 
     /**
      * @brief 获取匹配器数量
      */
-    [[nodiscard]] size_t matcherCount() const { return m_matchers.size(); }
+    [[nodiscard]] size_t matcherCount() const
+    {
+        return m_matchers.size();
+    }
 
     /**
      * @brief 添加精确匹配器
@@ -236,7 +255,10 @@ public:
     /**
      * @brief 获取匹配器列表
      */
-    [[nodiscard]] const std::vector<std::unique_ptr<Matcher>>& matchers() const { return m_matchers; }
+    [[nodiscard]] const std::vector<std::unique_ptr<Matcher>>& matchers() const
+    {
+        return m_matchers;
+    }
 
     /**
      * @brief 序列化为 JSON 格式

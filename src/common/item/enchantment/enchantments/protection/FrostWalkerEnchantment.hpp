@@ -55,7 +55,10 @@ class FrostWalkerEnchantment : public Enchantment {
 public:
     FrostWalkerEnchantment() = default;
 
-    [[nodiscard]] std::string id() const override { return "minecraft:frost_walker"; }
+    [[nodiscard]] std::string id() const override
+    {
+        return "minecraft:frost_walker";
+    }
 
     [[nodiscard]] std::string getNameKey(i32 level) const override
     {
@@ -63,22 +66,40 @@ public:
         return "enchantment.minecraft.frost_walker";
     }
 
-    [[nodiscard]] EnchantmentType type() const override { return EnchantmentType::ArmorFeet; }
+    [[nodiscard]] EnchantmentType type() const override
+    {
+        return EnchantmentType::ArmorFeet;
+    }
 
-    [[nodiscard]] i32 minLevel() const noexcept override { return 1; }
+    [[nodiscard]] i32 minLevel() const noexcept override
+    {
+        return 1;
+    }
 
-    [[nodiscard]] i32 maxLevel() const noexcept override { return 2; }
+    [[nodiscard]] i32 maxLevel() const noexcept override
+    {
+        return 2;
+    }
 
-    [[nodiscard]] EnchantmentRarity rarity() const noexcept override { return EnchantmentRarity::Rare; }
+    [[nodiscard]] EnchantmentRarity rarity() const noexcept override
+    {
+        return EnchantmentRarity::Rare;
+    }
 
     [[nodiscard]] bool isTreasure() const noexcept override
     {
         return true; // 只能从箱子或交易获得
     }
 
-    [[nodiscard]] i32 getMinCost(i32 level) const override { return 10 + (level - 1) * 10; }
+    [[nodiscard]] i32 getMinCost(i32 level) const override
+    {
+        return 10 + (level - 1) * 10;
+    }
 
-    [[nodiscard]] i32 getMaxCost(i32 level) const override { return getMinCost(level) + 15; }
+    [[nodiscard]] i32 getMaxCost(i32 level) const override
+    {
+        return getMinCost(level) + 15;
+    }
 
     /**
      * @brief 获取冰霜半径

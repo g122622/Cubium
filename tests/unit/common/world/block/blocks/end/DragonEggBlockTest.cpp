@@ -39,7 +39,10 @@ using namespace mc::blocks;
 
 class DragonEggBlockTest : public ::testing::Test {
 protected:
-    static void SetUpTestSuite() { VanillaBlocks::initialize(); }
+    static void SetUpTestSuite()
+    {
+        VanillaBlocks::initialize();
+    }
 };
 
 // ============================================================================

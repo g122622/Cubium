@@ -58,7 +58,10 @@ public:
 
     [[nodiscard]] bool shouldExecute() override;
 
-    [[nodiscard]] std::string getTypeName() const override { return "FishSwimGoal"; }
+    [[nodiscard]] std::string getTypeName() const override
+    {
+        return "FishSwimGoal";
+    }
 
 private:
     AbstractFishEntity* m_fish;

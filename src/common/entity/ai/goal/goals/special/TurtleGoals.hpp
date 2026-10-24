@@ -63,7 +63,10 @@ public:
     void resetTask() override;
     void tick() override;
 
-    [[nodiscard]] std::string getTypeName() const override { return "TurtleGoHomeGoal"; }
+    [[nodiscard]] std::string getTypeName() const override
+    {
+        return "TurtleGoHomeGoal";
+    }
 
 private:
     /**
@@ -104,7 +107,10 @@ public:
     void resetTask() override;
     void tick() override;
 
-    [[nodiscard]] std::string getTypeName() const override { return "TurtleLayEggGoal"; }
+    [[nodiscard]] std::string getTypeName() const override
+    {
+        return "TurtleLayEggGoal";
+    }
 
 private:
     /**
@@ -151,7 +157,10 @@ public:
     void resetTask() override;
     void tick() override;
 
-    [[nodiscard]] std::string getTypeName() const override { return "TurtleTravelGoal"; }
+    [[nodiscard]] std::string getTypeName() const override
+    {
+        return "TurtleTravelGoal";
+    }
 
 private:
     /**
@@ -194,7 +203,10 @@ public:
     void resetTask() override;
     void tick() override;
 
-    [[nodiscard]] std::string getTypeName() const override { return "TurtleGoToWaterGoal"; }
+    [[nodiscard]] std::string getTypeName() const override
+    {
+        return "TurtleGoToWaterGoal";
+    }
 
 private:
     /**
@@ -231,7 +243,11 @@ public:
     TurtleMateGoal(TurtleEntity* turtle, f64 speed);
 
     [[nodiscard]] bool shouldExecute() override;
-    [[nodiscard]] std::string getTypeName() const override { return "TurtleMateGoal"; }
+
+    [[nodiscard]] std::string getTypeName() const override
+    {
+        return "TurtleMateGoal";
+    }
 
 private:
     TurtleEntity* m_turtle;
@@ -252,7 +268,11 @@ public:
     TurtlePanicGoal(TurtleEntity* turtle, f64 speed);
 
     [[nodiscard]] bool shouldExecute() override;
-    [[nodiscard]] std::string getTypeName() const override { return "TurtlePanicGoal"; }
+
+    [[nodiscard]] std::string getTypeName() const override
+    {
+        return "TurtlePanicGoal";
+    }
 
 private:
     TurtleEntity* m_turtle;
@@ -279,7 +299,10 @@ public:
      */
     static bool isSeagrass(const ItemStack& stack);
 
-    [[nodiscard]] std::string getTypeName() const override { return "TurtleTemptGoal"; }
+    [[nodiscard]] std::string getTypeName() const override
+    {
+        return "TurtleTemptGoal";
+    }
 };
 
 /**
@@ -298,7 +321,11 @@ public:
     TurtleWanderGoal(TurtleEntity* turtle, f64 speed, i32 chance);
 
     [[nodiscard]] bool shouldExecute() override;
-    [[nodiscard]] std::string getTypeName() const noexcept override { return "TurtleWanderGoal"; }
+
+    [[nodiscard]] std::string getTypeName() const noexcept override
+    {
+        return "TurtleWanderGoal";
+    }
 
 private:
     TurtleEntity* m_turtle;

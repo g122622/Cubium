@@ -31,11 +31,20 @@ using namespace mc::client;
 
 class ClientEntityAnimationTest : public ::testing::Test {
 protected:
-    static void SetUpTestSuite() { Items::initialize(); }
+    static void SetUpTestSuite()
+    {
+        Items::initialize();
+    }
 
-    void SetUp() override { entity = std::make_unique<ClientEntity>(EntityInstanceId(1), "test_entity"); }
+    void SetUp() override
+    {
+        entity = std::make_unique<ClientEntity>(EntityInstanceId(1), "test_entity");
+    }
 
-    void TearDown() override { entity.reset(); }
+    void TearDown() override
+    {
+        entity.reset();
+    }
 
     std::unique_ptr<ClientEntity> entity;
 };

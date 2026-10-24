@@ -67,45 +67,113 @@ public:
     }
 
     // IWorld 接口实现 - 委托到 ClientWorld
-    bool setBlockState(i32, i32, i32, const BlockState*) override { return false; }
+    bool setBlockState(i32, i32, i32, const BlockState*) override
+    {
+        return false;
+    }
+
     [[nodiscard]] const fluid::FluidState* getFluidState(i32, i32, i32) const override
     {
         // 射线检测桩：无方块流体处返回空流体默认状态（走 fluidId 路径，EMPTY()->defaultState()）。
         return &fluid::Fluids::EMPTY()->defaultState();
     }
-    [[nodiscard]] i32 getHeight(i32 x, i32 z) const override { return m_world.getHeight(x, z); }
-    [[nodiscard]] u8 getBlockLight(i32 x, i32 y, i32 z) const override { return m_world.getBlockLight(x, y, z); }
-    [[nodiscard]] u8 getSkyLight(i32 x, i32 y, i32 z) const override { return m_world.getSkyLight(x, y, z); }
-    [[nodiscard]] bool hasBlockCollision(const AxisAlignedBB&) const override { return false; }
-    [[nodiscard]] std::vector<AxisAlignedBB> getBlockCollisions(const AxisAlignedBB&) const override { return {}; }
-    [[nodiscard]] bool hasEntityCollision(const AxisAlignedBB&, const Entity*) const override { return false; }
+
+    [[nodiscard]] i32 getHeight(i32 x, i32 z) const override
+    {
+        return m_world.getHeight(x, z);
+    }
+
+    [[nodiscard]] u8 getBlockLight(i32 x, i32 y, i32 z) const override
+    {
+        return m_world.getBlockLight(x, y, z);
+    }
+
+    [[nodiscard]] u8 getSkyLight(i32 x, i32 y, i32 z) const override
+    {
+        return m_world.getSkyLight(x, y, z);
+    }
+
+    [[nodiscard]] bool hasBlockCollision(const AxisAlignedBB&) const override
+    {
+        return false;
+    }
+
+    [[nodiscard]] std::vector<AxisAlignedBB> getBlockCollisions(const AxisAlignedBB&) const override
+    {
+        return {};
+    }
+
+    [[nodiscard]] bool hasEntityCollision(const AxisAlignedBB&, const Entity*) const override
+    {
+        return false;
+    }
+
     [[nodiscard]] std::vector<AxisAlignedBB> getEntityCollisions(const AxisAlignedBB&, const Entity*) const override
     {
         return {};
     }
-    [[nodiscard]] PhysicsEngine* physicsEngine() override { return nullptr; }
-    [[nodiscard]] const PhysicsEngine* physicsEngine() const override { return nullptr; }
+
+    [[nodiscard]] PhysicsEngine* physicsEngine() override
+    {
+        return nullptr;
+    }
+
+    [[nodiscard]] const PhysicsEngine* physicsEngine() const override
+    {
+        return nullptr;
+    }
+
     [[nodiscard]] std::vector<Entity*> getEntitiesInAABB(const AxisAlignedBB&, const Entity*) const override
     {
         return {};
     }
+
     [[nodiscard]] std::vector<Entity*> getEntitiesInRange(const Vector3&, f32, const Entity*) const override
     {
         return {};
     }
-    [[nodiscard]] DimensionId dimension() const override { return m_world.dimensionId(); }
-    [[nodiscard]] u64 seed() const override { return m_world.seed(); }
-    [[nodiscard]] u64 currentTick() const override { return 0; }
-    [[nodiscard]] i64 dayTime() const override { return 0; }
-    [[nodiscard]] bool isHardcore() const override { return false; }
-    [[nodiscard]] Difficulty difficulty() const override { return Difficulty::Normal; }
-    [[nodiscard]] bool isClientSide() const override { return true; }
+
+    [[nodiscard]] DimensionId dimension() const override
+    {
+        return m_world.dimensionId();
+    }
+
+    [[nodiscard]] u64 seed() const override
+    {
+        return m_world.seed();
+    }
+
+    [[nodiscard]] u64 currentTick() const override
+    {
+        return 0;
+    }
+
+    [[nodiscard]] i64 dayTime() const override
+    {
+        return 0;
+    }
+
+    [[nodiscard]] bool isHardcore() const override
+    {
+        return false;
+    }
+
+    [[nodiscard]] Difficulty difficulty() const override
+    {
+        return Difficulty::Normal;
+    }
+
+    [[nodiscard]] bool isClientSide() const override
+    {
+        return true;
+    }
 
     // tickManager 不适用于只读的客户端世界适配器
     [[nodiscard]] world::tick::TickManager& tickManager() override
     {
         MC_ASSERT_RELEASE_MSG(false, "ClientWorldBlockReader does not support tickManager");
     }
+
     [[nodiscard]] const world::tick::TickManager& tickManager() const override
     {
         MC_ASSERT_RELEASE_MSG(false, "ClientWorldBlockReader does not support tickManager");
@@ -116,14 +184,22 @@ public:
     {
         MC_ASSERT_RELEASE_MSG(false, "ClientWorldBlockReader does not support getRandom");
     }
+
     [[nodiscard]] const math::IRandom& getRandom() const override
     {
         MC_ASSERT_RELEASE_MSG(false, "ClientWorldBlockReader does not support getRandom");
     }
 
     // WorldBorder 接口
-    [[nodiscard]] world::border::WorldBorder& worldBorder() override { return m_worldBorder; }
-    [[nodiscard]] const world::border::WorldBorder& worldBorder() const override { return m_worldBorder; }
+    [[nodiscard]] world::border::WorldBorder& worldBorder() override
+    {
+        return m_worldBorder;
+    }
+
+    [[nodiscard]] const world::border::WorldBorder& worldBorder() const override
+    {
+        return m_worldBorder;
+    }
 
 private:
     const ClientWorld& m_world;

@@ -74,7 +74,10 @@ public:
     // 若后期 vanilla 此层有同步字段须补 registerData+ClassRegisterGuard，当前仅占位 classInfo。
     static const entity::EntityClassInfo& classInfo();
 
-    [[nodiscard]] sound::SoundCategory getSoundCategory() const override { return sound::SoundCategory::Hostile; }
+    [[nodiscard]] sound::SoundCategory getSoundCategory() const override
+    {
+        return sound::SoundCategory::Hostile;
+    }
 
     /**
      * @brief 怪物恒可掉落经验
@@ -82,7 +85,10 @@ public:
      * 对齐 vanilla Monster.shouldDropExperience 恒返回 true：基类的 `!isChild()` 会让幼年
      * 敌对生物（僵尸幼体、苦力怕幼体等）不掉经验，与原版不符。
      */
-    [[nodiscard]] bool shouldDropExperience() const override { return true; }
+    [[nodiscard]] bool shouldDropExperience() const override
+    {
+        return true;
+    }
 
     // 禁止拷贝
     MonsterEntity(const MonsterEntity&) = delete;
@@ -145,12 +151,18 @@ public:
     /**
      * @brief 是否在和平模式下消失
      */
-    [[nodiscard]] bool isDespawnPeaceful() const override { return true; }
+    [[nodiscard]] bool isDespawnPeaceful() const override
+    {
+        return true;
+    }
 
     /**
      * @brief 是否可以掉落战利品
      */
-    [[nodiscard]] bool canDropLoot() const { return true; }
+    [[nodiscard]] bool canDropLoot() const
+    {
+        return true;
+    }
 
     // ========== 光照敏感 ==========
 
@@ -158,13 +170,19 @@ public:
      * @brief 检查是否应该在阳光下燃烧
      * @return 如果应该在阳光下燃烧返回true
      */
-    [[nodiscard]] virtual bool shouldBurnInDaylight() const { return m_burnsInDaylight; }
+    [[nodiscard]] virtual bool shouldBurnInDaylight() const
+    {
+        return m_burnsInDaylight;
+    }
 
     /**
      * @brief 设置是否在阳光下燃烧
      * @param burn 是否燃烧
      */
-    void setBurnsInDaylight(bool burn) { m_burnsInDaylight = burn; }
+    void setBurnsInDaylight(bool burn)
+    {
+        m_burnsInDaylight = burn;
+    }
 
     // ========== 路径权重 ==========
 

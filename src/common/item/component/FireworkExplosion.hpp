@@ -77,7 +77,10 @@ struct FireworkExplosion {
      *
      * 用于 FireworkStarFadeRecipe 在物品未携带组件时的兜底初始值。
      */
-    [[nodiscard]] static FireworkExplosion defaultExplosion() noexcept { return FireworkExplosion{}; }
+    [[nodiscard]] static FireworkExplosion defaultExplosion() noexcept
+    {
+        return FireworkExplosion{};
+    }
 
     /**
      * @brief 仅替换渐变色列表（vanilla FireworkExplosion.withFadeColors）
@@ -97,7 +100,10 @@ struct FireworkExplosion {
             hasTrail == other.hasTrail && hasTwinkle == other.hasTwinkle;
     }
 
-    [[nodiscard]] bool operator!=(const FireworkExplosion& other) const noexcept { return !(*this == other); }
+    [[nodiscard]] bool operator!=(const FireworkExplosion& other) const noexcept
+    {
+        return !(*this == other);
+    }
 };
 
 } // namespace component

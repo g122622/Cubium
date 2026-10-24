@@ -171,6 +171,7 @@ public:
         MC_ASSERT_RELEASE(m_storage != nullptr);
         return *m_storage;
     }
+
     [[nodiscard]] const world::storage::SingleLevelStorageManager& storage() const
     {
         MC_ASSERT_RELEASE(m_storage != nullptr);
@@ -180,7 +181,10 @@ public:
     /**
      * @brief 检查存储服务是否已打开
      */
-    [[nodiscard]] bool isStorageOpen() const { return m_storage != nullptr && m_storage->isOpen(); }
+    [[nodiscard]] bool isStorageOpen() const
+    {
+        return m_storage != nullptr && m_storage->isOpen();
+    }
 
     void setSharedStorage(world::storage::SingleLevelStorageManager* storage);
 
@@ -194,19 +198,45 @@ public:
      * destroy 包。未设置时实体销毁只能依赖 EntityTracker::tick 下一轮补发，
      * 存在 ID 复用风险下会漏发（现 ID 已不复用，此处主动发送以消除时序窗口）。
      */
-    void setServer(IServer* server) { m_server = server; }
-    [[nodiscard]] IServer* server() noexcept { return m_server; }
-    [[nodiscard]] const IServer* server() const noexcept { return m_server; }
+    void setServer(IServer* server)
+    {
+        m_server = server;
+    }
+
+    [[nodiscard]] IServer* server() noexcept
+    {
+        return m_server;
+    }
+
+    [[nodiscard]] const IServer* server() const noexcept
+    {
+        return m_server;
+    }
 
     // 配置
     void setConfig(const ServerWorldConfig& config);
-    [[nodiscard]] const ServerWorldConfig& config() const { return m_config; }
+
+    [[nodiscard]] const ServerWorldConfig& config() const
+    {
+        return m_config;
+    }
 
     // ========== 时间管理（设置外部 TimeManager） ==========
 
-    void setTimeManager(core::TimeManager* timeManager) { m_timeManager = timeManager; }
-    [[nodiscard]] core::TimeManager* timeManager() { return m_timeManager; }
-    [[nodiscard]] const core::TimeManager* timeManager() const { return m_timeManager; }
+    void setTimeManager(core::TimeManager* timeManager)
+    {
+        m_timeManager = timeManager;
+    }
+
+    [[nodiscard]] core::TimeManager* timeManager()
+    {
+        return m_timeManager;
+    }
+
+    [[nodiscard]] const core::TimeManager* timeManager() const
+    {
+        return m_timeManager;
+    }
 
     // ========== 难度管理（设置外部难度回调） ==========
 
@@ -218,7 +248,10 @@ public:
      *
      * @param callback 难度获取回调函数
      */
-    void setDifficultyCallback(std::function<Difficulty()> callback) { m_difficultyCallback = std::move(callback); }
+    void setDifficultyCallback(std::function<Difficulty()> callback)
+    {
+        m_difficultyCallback = std::move(callback);
+    }
 
     // ========== 方块操作 ==========
 
@@ -345,8 +378,15 @@ public:
 
     // ========== 区块管理器 ==========
 
-    [[nodiscard]] ServerChunkManager* chunkManager() override { return m_chunkManager.get(); }
-    [[nodiscard]] const ServerChunkManager* chunkManager() const override { return m_chunkManager.get(); }
+    [[nodiscard]] ServerChunkManager* chunkManager() override
+    {
+        return m_chunkManager.get();
+    }
+
+    [[nodiscard]] const ServerChunkManager* chunkManager() const override
+    {
+        return m_chunkManager.get();
+    }
 
     /**
      * @brief 把本维度所有已加载且被修改过的区块落盘
@@ -369,9 +409,20 @@ public:
 
     // ========== 天气管理 ==========
 
-    [[nodiscard]] WeatherManager* weatherManager() { return m_weatherManager.get(); }
-    [[nodiscard]] const WeatherManager* weatherManager() const { return m_weatherManager.get(); }
-    void setWeatherManager(std::unique_ptr<WeatherManager> manager) { m_weatherManager = std::move(manager); }
+    [[nodiscard]] WeatherManager* weatherManager()
+    {
+        return m_weatherManager.get();
+    }
+
+    [[nodiscard]] const WeatherManager* weatherManager() const
+    {
+        return m_weatherManager.get();
+    }
+
+    void setWeatherManager(std::unique_ptr<WeatherManager> manager)
+    {
+        m_weatherManager = std::move(manager);
+    }
 
     // ========== 时间管理（委托给外部 TimeManager） ==========
 
@@ -429,18 +480,38 @@ public:
     [[nodiscard]] f64 getClosestPlayerDistanceSq(const Vector3& pos) const override;
     [[nodiscard]] bool anyPlayerCloseEnoughTo(const BlockPos& pos, i32 radius) const override;
 
-    [[nodiscard]] DimensionId dimension() const noexcept override { return m_config.dimension; }
-    [[nodiscard]] bool isUltraWarm() const noexcept override { return getDimensionType().ultraWarm(); }
+    [[nodiscard]] DimensionId dimension() const noexcept override
+    {
+        return m_config.dimension;
+    }
+
+    [[nodiscard]] bool isUltraWarm() const noexcept override
+    {
+        return getDimensionType().ultraWarm();
+    }
 
     /**
      * @brief 指定位置的 CREAKING_ACTIVE 环境属性（维度 + 群系 + 时间线驱动）
      */
     [[nodiscard]] bool isCreakingActive(const BlockPos& pos) const override;
     [[nodiscard]] DimensionType getDimensionType() const;
-    [[nodiscard]] u64 seed() const noexcept override { return m_config.seed; }
-    [[nodiscard]] bool isHardcore() const noexcept override { return false; }
+
+    [[nodiscard]] u64 seed() const noexcept override
+    {
+        return m_config.seed;
+    }
+
+    [[nodiscard]] bool isHardcore() const noexcept override
+    {
+        return false;
+    }
+
     [[nodiscard]] Difficulty difficulty() const override;
-    [[nodiscard]] bool isClientSide() const noexcept override { return false; }
+
+    [[nodiscard]] bool isClientSide() const noexcept override
+    {
+        return false;
+    }
 
     /**
      * @brief 是否允许 PvP（读取 PVP 游戏规则）
@@ -454,8 +525,15 @@ public:
 
     // ========== 随机数生成器 ==========
 
-    [[nodiscard]] math::IRandom& getRandom() noexcept override { return m_random; }
-    [[nodiscard]] const math::IRandom& getRandom() const noexcept override { return m_random; }
+    [[nodiscard]] math::IRandom& getRandom() noexcept override
+    {
+        return m_random;
+    }
+
+    [[nodiscard]] const math::IRandom& getRandom() const noexcept override
+    {
+        return m_random;
+    }
 
     // ========== 游戏规则 ==========
 
@@ -464,30 +542,57 @@ public:
      *
      * @return GameRules 常引用
      */
-    [[nodiscard]] const world::gamerule::GameRules& getGameRules() const noexcept override { return m_gameRules; }
+    [[nodiscard]] const world::gamerule::GameRules& getGameRules() const noexcept override
+    {
+        return m_gameRules;
+    }
 
     /**
      * @brief 获取游戏规则管理器（可变）
      *
      * @return GameRules 引用
      */
-    [[nodiscard]] world::gamerule::GameRules& getGameRules() noexcept override { return m_gameRules; }
+    [[nodiscard]] world::gamerule::GameRules& getGameRules() noexcept override
+    {
+        return m_gameRules;
+    }
 
     // ========== 游戏事件分发 ==========
 
     /**
      * @brief 获取游戏事件分发器
      */
-    [[nodiscard]] gameevent::GameEventDispatcher& gameEventDispatcher() { return *m_gameEventDispatcher; }
-    [[nodiscard]] const gameevent::GameEventDispatcher& gameEventDispatcher() const { return *m_gameEventDispatcher; }
+    [[nodiscard]] gameevent::GameEventDispatcher& gameEventDispatcher()
+    {
+        return *m_gameEventDispatcher;
+    }
+
+    [[nodiscard]] const gameevent::GameEventDispatcher& gameEventDispatcher() const
+    {
+        return *m_gameEventDispatcher;
+    }
 
     // ========== 类型转换 ==========
 
-    [[nodiscard]] ServerWorld* asServerWorld() noexcept override { return this; }
-    [[nodiscard]] const ServerWorld* asServerWorld() const noexcept override { return this; }
+    [[nodiscard]] ServerWorld* asServerWorld() noexcept override
+    {
+        return this;
+    }
 
-    [[nodiscard]] ecs::EntityRegistry* entityRegistry() noexcept override { return &m_entityRegistry; }
-    [[nodiscard]] const ecs::EntityRegistry* entityRegistry() const noexcept override { return &m_entityRegistry; }
+    [[nodiscard]] const ServerWorld* asServerWorld() const noexcept override
+    {
+        return this;
+    }
+
+    [[nodiscard]] ecs::EntityRegistry* entityRegistry() noexcept override
+    {
+        return &m_entityRegistry;
+    }
+
+    [[nodiscard]] const ecs::EntityRegistry* entityRegistry() const noexcept override
+    {
+        return &m_entityRegistry;
+    }
 
     // ========== 按需特征放置 ==========
 
@@ -575,6 +680,7 @@ public:
 
         m_onOpenContainer = std::move(callback);
     }
+
     [[nodiscard]] bool openContainer(ContainerType type, const BlockPos& pos, Player& player) override;
 
     /// 实体容器打开回调类型（村民交易、箱子船等）：返回 true 表示已成功打开。
@@ -611,7 +717,10 @@ public:
     using ParticleBroadcastCallback = std::function<void(
         particle::ParticleTypeId type, const Vector3& pos, const Vector3& velocity, const Vector3& offset, u32 count)>;
 
-    void setOnBroadcastParticle(ParticleBroadcastCallback callback) { m_onBroadcastParticle = std::move(callback); }
+    void setOnBroadcastParticle(ParticleBroadcastCallback callback)
+    {
+        m_onBroadcastParticle = std::move(callback);
+    }
 
     /**
      * @brief 振动粒子广播回调类型
@@ -699,7 +808,10 @@ public:
      */
     using EntityStatusCallback = std::function<void(EntityInstanceId entityId, u8 status)>;
 
-    void setOnBroadcastEntityStatus(EntityStatusCallback callback) { m_onBroadcastEntityStatus = std::move(callback); }
+    void setOnBroadcastEntityStatus(EntityStatusCallback callback)
+    {
+        m_onBroadcastEntityStatus = std::move(callback);
+    }
 
     // ========== 实体动画广播回调 ==========
 
@@ -750,7 +862,10 @@ public:
      */
     using WorldEventCallback = std::function<void(i32 eventId, i32 x, i32 y, i32 z, i32 data)>;
 
-    void setOnBroadcastWorldEvent(WorldEventCallback callback) { m_onBroadcastWorldEvent = std::move(callback); }
+    void setOnBroadcastWorldEvent(WorldEventCallback callback)
+    {
+        m_onBroadcastWorldEvent = std::move(callback);
+    }
 
     /**
      * @brief 全局世界事件广播回调类型
@@ -776,7 +891,10 @@ public:
      */
     using BlockEventCallback = std::function<void(i32 x, i32 y, i32 z, u8 paramA, u8 paramB, u32 blockId)>;
 
-    void setOnBroadcastBlockEvent(BlockEventCallback callback) { m_onBroadcastBlockEvent = std::move(callback); }
+    void setOnBroadcastBlockEvent(BlockEventCallback callback)
+    {
+        m_onBroadcastBlockEvent = std::move(callback);
+    }
 
     // ========== 方块实体数据广播回调 ==========
 
@@ -834,7 +952,10 @@ public:
         const std::vector<BlockPos>& affectedBlocks,
         const std::unordered_map<u64, Vector3>& playerKnockback)>;
 
-    void setOnBroadcastExplosion(ExplosionBroadcastCallback callback) { m_onBroadcastExplosion = std::move(callback); }
+    void setOnBroadcastExplosion(ExplosionBroadcastCallback callback)
+    {
+        m_onBroadcastExplosion = std::move(callback);
+    }
 
     // ========== 命令执行回调 ==========
 
@@ -857,7 +978,10 @@ public:
         const Vector2f& rotation,
         Player* player)>;
 
-    void setOnExecuteCommand(CommandExecuteCallback callback) { m_onExecuteCommand = std::move(callback); }
+    void setOnExecuteCommand(CommandExecuteCallback callback)
+    {
+        m_onExecuteCommand = std::move(callback);
+    }
 
     // ========== IWorld 接口实现 ==========
 
@@ -1028,7 +1152,10 @@ public:
      *
      * @param lootTableManager 掉落表管理器指针（非拥有）
      */
-    void setLootTableManager(const loot::LootTableManager* lootTableManager) { m_lootTableManager = lootTableManager; }
+    void setLootTableManager(const loot::LootTableManager* lootTableManager)
+    {
+        m_lootTableManager = lootTableManager;
+    }
 
     /**
      * @brief 获取战利品表管理器（IWorld 接口实现）
@@ -1045,8 +1172,15 @@ public:
 
     // ========== 物理引擎 ==========
 
-    [[nodiscard]] PhysicsEngine* physicsEngine() noexcept override { return m_physicsEngine.get(); }
-    [[nodiscard]] const PhysicsEngine* physicsEngine() const noexcept override { return m_physicsEngine.get(); }
+    [[nodiscard]] PhysicsEngine* physicsEngine() noexcept override
+    {
+        return m_physicsEngine.get();
+    }
+
+    [[nodiscard]] const PhysicsEngine* physicsEngine() const noexcept override
+    {
+        return m_physicsEngine.get();
+    }
 
     // ========== 碰撞缓存 ==========
 
@@ -1055,8 +1189,15 @@ public:
      *
      * 提供直接访问碰撞缓存的接口，用于需要手动操作碰撞缓存的场景。
      */
-    [[nodiscard]] physics::CollisionCache* collisionCache() noexcept { return m_collisionCache.get(); }
-    [[nodiscard]] const physics::CollisionCache* collisionCache() const noexcept { return m_collisionCache.get(); }
+    [[nodiscard]] physics::CollisionCache* collisionCache() noexcept
+    {
+        return m_collisionCache.get();
+    }
+
+    [[nodiscard]] const physics::CollisionCache* collisionCache() const noexcept
+    {
+        return m_collisionCache.get();
+    }
 
     // ========== ICollisionWorld 接口实现 ==========
 
@@ -1096,17 +1237,41 @@ public:
     [[nodiscard]] Entity* getEntityByUuid(const std::string& uuid) override;
     [[nodiscard]] const Entity* getEntityByUuid(const std::string& uuid) const override;
 
-    [[nodiscard]] EntityManager& entityManager() noexcept { return m_entityManager; }
-    [[nodiscard]] const EntityManager& entityManager() const noexcept { return m_entityManager; }
+    [[nodiscard]] EntityManager& entityManager() noexcept
+    {
+        return m_entityManager;
+    }
+
+    [[nodiscard]] const EntityManager& entityManager() const noexcept
+    {
+        return m_entityManager;
+    }
 
     /** @brief 本维度导航点同步门面。 */
-    [[nodiscard]] WaypointManager& waypointManager() noexcept { return m_waypointManager; }
+    [[nodiscard]] WaypointManager& waypointManager() noexcept
+    {
+        return m_waypointManager;
+    }
 
-    [[nodiscard]] EntityTracker& entityTracker() noexcept { return m_entityTracker; }
-    [[nodiscard]] const EntityTracker& entityTracker() const noexcept { return m_entityTracker; }
+    [[nodiscard]] EntityTracker& entityTracker() noexcept
+    {
+        return m_entityTracker;
+    }
 
-    [[nodiscard]] server::ItemPickupManager& itemPickupManager() noexcept { return m_itemPickupManager; }
-    [[nodiscard]] const server::ItemPickupManager& itemPickupManager() const noexcept { return m_itemPickupManager; }
+    [[nodiscard]] const EntityTracker& entityTracker() const noexcept
+    {
+        return m_entityTracker;
+    }
+
+    [[nodiscard]] server::ItemPickupManager& itemPickupManager() noexcept
+    {
+        return m_itemPickupManager;
+    }
+
+    [[nodiscard]] const server::ItemPickupManager& itemPickupManager() const noexcept
+    {
+        return m_itemPickupManager;
+    }
 
     // ========== 区块生成实体 ==========
 
@@ -1138,8 +1303,15 @@ public:
 
     // ========== Tick管理 ==========
 
-    [[nodiscard]] world::tick::TickManager& tickManager() noexcept override { return *m_tickManager; }
-    [[nodiscard]] const world::tick::TickManager& tickManager() const noexcept override { return *m_tickManager; }
+    [[nodiscard]] world::tick::TickManager& tickManager() noexcept override
+    {
+        return *m_tickManager;
+    }
+
+    [[nodiscard]] const world::tick::TickManager& tickManager() const noexcept override
+    {
+        return *m_tickManager;
+    }
 
     // ========== StarLightLightingProvider 接口实现 ==========
 
@@ -1221,9 +1393,20 @@ public:
 
     // ========== 光照管理 ==========
 
-    [[nodiscard]] WorldLightManager* lightManager() noexcept { return m_lightManager.get(); }
-    [[nodiscard]] const WorldLightManager* lightManager() const noexcept { return m_lightManager.get(); }
-    void setLightManager(std::unique_ptr<WorldLightManager> manager) { m_lightManager = std::move(manager); }
+    [[nodiscard]] WorldLightManager* lightManager() noexcept
+    {
+        return m_lightManager.get();
+    }
+
+    [[nodiscard]] const WorldLightManager* lightManager() const noexcept
+    {
+        return m_lightManager.get();
+    }
+
+    void setLightManager(std::unique_ptr<WorldLightManager> manager)
+    {
+        m_lightManager = std::move(manager);
+    }
 
     // ========== 区块管理器设置 ==========
 
@@ -1262,12 +1445,18 @@ public:
     /**
      * @brief 获取原始出生数据（未做世界边界修正）
      */
-    [[nodiscard]] const RespawnData& respawnData() const noexcept { return m_respawnData.get(); }
+    [[nodiscard]] const RespawnData& respawnData() const noexcept
+    {
+        return m_respawnData.get();
+    }
 
     /**
      * @brief 设置原始出生数据
      */
-    void setRespawnData(const RespawnData& data) noexcept { m_respawnData.set(data); }
+    void setRespawnData(const RespawnData& data) noexcept
+    {
+        m_respawnData.set(data);
+    }
 
     /**
      * @brief 获取出生位置的脚部坐标（方块中心，X/Z +0.5，Y 为方块上表面）
@@ -1311,8 +1500,15 @@ public:
      *
      * @return 世界边界对象
      */
-    [[nodiscard]] world::border::WorldBorder& worldBorder() noexcept override { return m_worldBorder; }
-    [[nodiscard]] const world::border::WorldBorder& worldBorder() const noexcept override { return m_worldBorder; }
+    [[nodiscard]] world::border::WorldBorder& worldBorder() noexcept override
+    {
+        return m_worldBorder;
+    }
+
+    [[nodiscard]] const world::border::WorldBorder& worldBorder() const noexcept override
+    {
+        return m_worldBorder;
+    }
 
     // ========== 方块交互权限 ==========
 
@@ -1333,6 +1529,7 @@ public:
     {
         return m_villageManager.get();
     }
+
     [[nodiscard]] const ::mc::world::village::VillageManager* villageManager() const noexcept override
     {
         return m_villageManager.get();
@@ -1344,6 +1541,7 @@ public:
     {
         return m_raidManager.get();
     }
+
     [[nodiscard]] const ::mc::world::village::raid::RaidManager* raidManager() const noexcept override
     {
         return m_raidManager.get();
@@ -1359,12 +1557,23 @@ public:
      *
      * @return EndDragonFight指针，如果非末地维度返回nullptr
      */
-    [[nodiscard]] EndDragonFight* dragonFight() noexcept override { return m_dragonFight.get(); }
-    [[nodiscard]] const EndDragonFight* dragonFight() const noexcept override { return m_dragonFight.get(); }
+    [[nodiscard]] EndDragonFight* dragonFight() noexcept override
+    {
+        return m_dragonFight.get();
+    }
+
+    [[nodiscard]] const EndDragonFight* dragonFight() const noexcept override
+    {
+        return m_dragonFight.get();
+    }
 
     // ========== 地图数据管理 ==========
 
-    [[nodiscard]] world::map::MapDataManager* mapDataManager() noexcept override { return m_mapDataManager.get(); }
+    [[nodiscard]] world::map::MapDataManager* mapDataManager() noexcept override
+    {
+        return m_mapDataManager.get();
+    }
+
     [[nodiscard]] const world::map::MapDataManager* mapDataManager() const noexcept override
     {
         return m_mapDataManager.get();
