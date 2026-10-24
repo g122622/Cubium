@@ -1,6 +1,9 @@
 # src/server/CMakeLists.txt
 # 服务端可执行文件
 
+# 命令实现源清单与 mc_benchmark 共用，避免两处清单漂移导致链接期 undefined symbol。
+include(${CMAKE_SOURCE_DIR}/cmake/ServerCommandSources.cmake)
+
 # ===========================================================================
 # mc_gen - world/gen 实现 OBJECT 库
 #
@@ -412,85 +415,8 @@ add_executable(minecraft-server
     command/support/FunctionSuggestionProvider.cpp
     command/support/SpreadAlgorithm.cpp
     command/data/DataAccessor.cpp
-    command/commands/GameModeCommand.cpp
-    command/commands/DifficultyCommand.cpp
-    command/commands/DefaultGameModeCommand.cpp
-    command/commands/TimeCommand.cpp
-    command/commands/KickCommand.cpp
-    command/commands/KillCommand.cpp
-    command/commands/ListCommand.cpp
-    command/commands/HelpCommand.cpp
-    command/commands/SeedCommand.cpp
-    command/commands/TeleportCommand.cpp
-    command/commands/GiveCommand.cpp
-    command/commands/ClearCommand.cpp
-    command/commands/WeatherCommand.cpp
-    command/commands/ExperienceCommand.cpp
-    command/commands/SayCommand.cpp
-    command/commands/StopCommand.cpp
-    command/commands/SetIdleTimeoutCommand.cpp
-    command/commands/DebugConfigCommand.cpp
-    command/commands/SummonCommand.cpp
-    command/commands/SetBlockCommand.cpp
-    command/commands/FillCommand.cpp
-    command/commands/ExecuteCommand.cpp
-    command/commands/OpCommand.cpp
-    command/commands/DeOpCommand.cpp
-    command/commands/BanCommand.cpp
-    command/commands/BanIpCommand.cpp
-    command/commands/BanListCommand.cpp
-    command/commands/PardonCommand.cpp
-    command/commands/PardonIpCommand.cpp
-    command/commands/WhitelistCommand.cpp
-    command/commands/SaveAllCommand.cpp
-    command/commands/SaveOnCommand.cpp
-    command/commands/SaveOffCommand.cpp
-    command/commands/SpawnPointCommand.cpp
-    command/commands/SetWorldSpawnCommand.cpp
-    command/commands/MessageCommand.cpp
-    command/commands/TellRawCommand.cpp
-    command/commands/TitleCommand.cpp
-    command/commands/DialogCommand.cpp
-    command/commands/PlaySoundCommand.cpp
-    command/commands/StopSoundCommand.cpp
-    command/commands/EffectCommand.cpp
-    command/commands/EnchantCommand.cpp
-    command/commands/MeCommand.cpp
-    command/commands/ParticleCommand.cpp
-    command/commands/LocateCommand.cpp
-    command/commands/LocateBiomeCommand.cpp
-    command/commands/AttributeCommand.cpp
-    command/commands/CloneCommand.cpp
-    command/commands/DataCommand.cpp
-    command/commands/FunctionCommand.cpp
-    command/commands/ScheduleCommand.cpp
-    command/commands/SpreadPlayersCommand.cpp
-    command/commands/WorldBorderCommand.cpp
-    command/commands/ScoreboardCommand.cpp
-    command/commands/BossBarCommand.cpp
-    command/commands/TagCommand.cpp
-    command/commands/TeamCommand.cpp
-    command/commands/AdvancementCommand.cpp
-    command/commands/DataPackCommand.cpp
-    command/commands/ForceLoadCommand.cpp
-    command/commands/GameRuleCommand.cpp
-    command/commands/VersionCommand.cpp
-    command/commands/JfrCommand.cpp
-    command/commands/PerfCommand.cpp
-    command/commands/TeamMsgCommand.cpp
-    command/commands/ReturnCommand.cpp
-    command/commands/StopwatchCommand.cpp
-    command/commands/RotateCommand.cpp
-    command/commands/RideCommand.cpp
-    command/commands/DamageCommand.cpp
-    command/commands/DebugCommand.cpp
-    command/commands/LootCommand.cpp
-    command/commands/PublishCommand.cpp
-    command/commands/RecipeCommand.cpp
-    command/commands/ReloadCommand.cpp
-    command/commands/ReplaceItemCommand.cpp
-    command/commands/SpectateCommand.cpp
-    command/commands/TriggerCommand.cpp
+    # 命令实现全量（清单见 cmake/ServerCommandSources.cmake，与 mc_benchmark 共用）
+    ${MC_SERVER_COMMAND_SOURCES}
     # 菜单系统
     menu/CraftingMenu.cpp
     # Boss栏系统

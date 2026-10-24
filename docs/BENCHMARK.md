@@ -11,7 +11,7 @@ cmake --build --preset macos-relwithdebinfo -- -j{核心数-2} mc_benchmark
 ./scripts/configure.sh build
 ```
 
-依赖说明：`vcpkg.json` 中的 `benchmark` port 首次配置会多编译一个库；`mc_benchmark` 链接 `mc_gen/mc_server_storage/mc_common/mc_bedrock_addon` 并直接编译一批 server 源文件（源闭包参照 mc_tests 的登记方式），因此构建时间与 mc_tests 同量级。
+依赖说明：`vcpkg.json` 中的 `benchmark` port 首次配置会多编译一个库；`mc_benchmark` 链接 `mc_gen/mc_server_storage/mc_common/mc_bedrock_addon` 并直接编译一批 server 源文件（源闭包参照 mc_tests 的登记方式），因此构建时间与 mc_tests 同量级。其中命令实现清单由 `cmake/ServerCommandSources.cmake` 与 minecraft-server/client/mc_tests 共用，新增命令时只改该文件，避免某个 target 漏登记而在链接期报 `undefined symbol: ...Command::registerTo`。
 
 ## 运行
 

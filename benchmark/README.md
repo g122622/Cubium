@@ -9,7 +9,8 @@ benchmark/
 ├── main.cpp                          # 入口：flag 解析（--benchmark_trace / --benchmark_out 注入）+ 时间戳归档目录
 ├── MemoryProfiler.hpp/.cpp           # MemoryManager 实现（全局 operator new/delete 钩子统计内存指标）
 ├── PerfettoProfilerAdapter.hpp/.cpp  # ProfilerManager 适配器（每用例/每重复一个 .perfetto-trace，默认不注册）
-├── CMakeLists.txt                    # mc_benchmark 目标（源闭包参照 mc_tests 的登记方式）
+├── CMakeLists.txt                    # mc_benchmark 目标（源闭包参照 mc_tests 的登记方式；命令实现清单与
+│                                     # minecraft-server/client/mc_tests 共用 cmake/ServerCommandSources.cmake）
 ├── cases/
 │   ├── ChunkStorageBenchmark.cpp     # 原生段紧凑数组批次捕获与直接恢复
 │   ├── ChunkGenerationBenchmark.cpp  # 区块生成吞吐（生产级生成系统，线程数×批量多档）

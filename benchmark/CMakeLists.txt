@@ -1,3 +1,6 @@
+# 命令实现源清单与 minecraft-server 共用，见 cmake/ServerCommandSources.cmake。
+include(${CMAKE_SOURCE_DIR}/cmake/ServerCommandSources.cmake)
+
 add_executable(mc_benchmark
     main.cpp
     MemoryProfiler.hpp
@@ -72,76 +75,8 @@ target_sources(mc_benchmark
         ${CMAKE_SOURCE_DIR}/src/server/stats/Stat.cpp
         ${CMAKE_SOURCE_DIR}/src/server/stats/StatRegistry.cpp
         ${CMAKE_SOURCE_DIR}/src/server/stats/StatisticsManager.cpp
-        # 命令实现全量（CommandRegistry::registerBuiltinCommands 引用全部 registerTo）
-        ${CMAKE_SOURCE_DIR}/src/server/command/commands/GameModeCommand.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/command/commands/DifficultyCommand.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/command/commands/DefaultGameModeCommand.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/command/commands/TimeCommand.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/command/commands/KickCommand.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/command/commands/KillCommand.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/command/commands/ListCommand.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/command/commands/HelpCommand.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/command/commands/SeedCommand.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/command/commands/TeleportCommand.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/command/commands/GiveCommand.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/command/commands/ClearCommand.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/command/commands/WeatherCommand.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/command/commands/ExperienceCommand.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/command/commands/SayCommand.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/command/commands/StopCommand.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/command/commands/SetIdleTimeoutCommand.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/command/commands/DebugConfigCommand.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/command/commands/SummonCommand.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/command/commands/SetBlockCommand.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/command/commands/FillCommand.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/command/commands/ExecuteCommand.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/command/commands/OpCommand.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/command/commands/DeOpCommand.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/command/commands/BanCommand.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/command/commands/BanIpCommand.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/command/commands/BanListCommand.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/command/commands/PardonCommand.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/command/commands/PardonIpCommand.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/command/commands/WhitelistCommand.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/command/commands/SaveAllCommand.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/command/commands/SaveOnCommand.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/command/commands/SaveOffCommand.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/command/commands/SpawnPointCommand.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/command/commands/SetWorldSpawnCommand.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/command/commands/MessageCommand.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/command/commands/TellRawCommand.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/command/commands/TitleCommand.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/command/commands/DialogCommand.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/command/commands/PlaySoundCommand.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/command/commands/StopSoundCommand.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/command/commands/EffectCommand.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/command/commands/EnchantCommand.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/command/commands/MeCommand.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/command/commands/ParticleCommand.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/command/commands/LocateCommand.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/command/commands/LocateBiomeCommand.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/command/commands/AttributeCommand.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/command/commands/CloneCommand.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/command/commands/DataCommand.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/command/commands/FunctionCommand.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/command/commands/ScheduleCommand.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/command/commands/SpreadPlayersCommand.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/command/commands/WorldBorderCommand.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/command/commands/ScoreboardCommand.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/command/commands/BossBarCommand.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/command/commands/TagCommand.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/command/commands/TeamCommand.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/command/commands/AdvancementCommand.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/command/commands/DataPackCommand.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/command/commands/ForceLoadCommand.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/command/commands/GameRuleCommand.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/command/commands/LootCommand.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/command/commands/PublishCommand.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/command/commands/RecipeCommand.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/command/commands/ReloadCommand.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/command/commands/ReplaceItemCommand.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/command/commands/SpectateCommand.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/command/commands/TriggerCommand.cpp
+        # 命令实现全量（清单见 cmake/ServerCommandSources.cmake，与 minecraft-server 共用）
+        ${MC_SERVER_COMMAND_SOURCES_ABS}
         # 自然生成（ServerWorld::tick 引用）
         ${CMAKE_SOURCE_DIR}/src/server/world/spawn/NaturalSpawner.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/spawn/SpawnConditions.cpp
