@@ -90,6 +90,7 @@
 #include "common/world/border/WorldBorder.hpp"                  // WorldBorder JS 类读 IWorld::worldBorder() 各 getter
 #include "common/world/gamerule/GameRules.hpp"                  // Dimension.getGameRule 经 IWorld::getGameRules 取值
 
+#include <atomic>
 #include <optional>
 #include <unordered_map>
 #include <vector>
@@ -3059,10 +3060,7 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
     // 构造函数支持官方基岩 API：new ItemStack(typeId: string, amount?: number)，按 typeId 查 Item 构造
     // owned 拷贝（JS GC 时 delete），与 Container.getItem/Equippable.getEquipment 的 wrap 范式一致。
     u64 itemStackClassId = ScriptObjectRegistry::allocateClassId(ctx);
-    // TODO: 定位 ItemStack 解包失败根因后移除本诊断输出。
-    spdlog::warn("[DIAG3] ItemStack allocateClassId={} hasProto={}",
-        itemStackClassId,
-        ctx.classRegistry().proto(itemStackClassId) != nullptr);
+
     void* itemStackProto = builder.exportClass("ItemStack",
         itemStackClassId,
         [](IScriptBindingContext& ctx, void* /*thisVal*/, i32 argc, void** args) -> void* {
@@ -3102,6 +3100,15 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
                 delete static_cast<mc::ItemStack*>(p);
             });
         });
+    // TODO: 定位 ItemStack 解包失败根因后移除本诊断输出。
+    {
+        const void* selfOpaque = ctx.getOpaque(itemStackProto, itemStackClassId);
+        static std::atomic<i32> s_diagProto{0};
+        if (s_diagProto.fetch_add(1) < 7) {
+            spdlog::warn(
+                "[DIAG4] ItemStack classId={} protoObjectHasOpaque={}", itemStackClassId, selfOpaque != nullptr);
+        }
+    }
     ctx.classRegistry().registerClass(itemStackClassId, itemStackProto, "ItemStack");
     registerItemPropertyBindings(ctx, itemStackProto);
 

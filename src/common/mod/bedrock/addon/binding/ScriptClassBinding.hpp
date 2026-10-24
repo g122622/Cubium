@@ -210,6 +210,9 @@ public:
 private:
     IScriptBindingContext& m_ctx;
     std::string m_moduleName;
+    // 模块是否已 finalize。必须每实例初始化：Builder 常在栈上创建（如 createModule 内局部变量），
+    // 未写入成员即析构时，默认成员初始化器正是"未初始化"的唯一防线；一旦变成不确定值，
+    // 后续 exportClass 会被误判为已 finalize 并返回 undefined 原型。
     bool m_finalized = false;
 };
 
