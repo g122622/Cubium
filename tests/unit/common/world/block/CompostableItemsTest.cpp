@@ -45,7 +45,7 @@ protected:
         // 初始化物品系统
         Items::ensureInitialized();
         // 初始化可堆肥物品注册表
-        CompostableItems::ensureInitialized();
+        CompostableItems::initialize();
     }
 };
 

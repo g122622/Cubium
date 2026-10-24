@@ -418,7 +418,7 @@ protected:
     static void SetUpTestSuite()
     {
         Items::ensureInitialized();
-        CompostableItems::ensureInitialized();
+        CompostableItems::initialize();
     }
 
     void SetUp() override
@@ -1104,7 +1104,7 @@ protected:
     static void SetUpTestSuite()
     {
         Items::ensureInitialized();
-        CompostableItems::ensureInitialized();
+        CompostableItems::initialize();
     }
 
     void SetUp() override
