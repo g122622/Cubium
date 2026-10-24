@@ -236,11 +236,16 @@ void PistonBlockEntity::clearPistonBlockEntity(IWorld& world)
         m_lastProgress = m_progress;
     }
 
-    // 移除方块实体可能立即销毁自身，先保存完成写回所需的值。
+    // 移除方块实体可能立即销毁自身（removeBlockEntity 会释放 unique_ptr 持有的 this），
+    // 因此先把后续写回所需的全部值取出；rm 之后不得再访问任何成员，
+    // 包括 getMotionDirection() 这类只读成员的函数。
     const BlockPos pos = m_pos;
     const BlockState* pistonState = m_pistonState;
     const bool retractingSource = m_shouldRenderHead && !m_extending;
+    const Direction motionDirection = getMotionDirection();
+
     world.removeBlockEntity(pos);
+
     if (retractingSource) {
         world.setBlockState(pos, nullptr, world::BlockUpdateFlags::UPDATE_ALL);
         return;
@@ -249,7 +254,7 @@ void PistonBlockEntity::clearPistonBlockEntity(IWorld& world)
         // 先按推动方向计算落地状态（面向方块按推动轴旋转，如釉面陶瓦顺时针 90°），
         // 再在目标位置做邻居形状更新。
         // 旋转结果可能是当前方块自身的状态，必须先拷贝：后续赋值会失效借用的迭代器。
-        const BlockState movedState = pistonState->getBlock().getStateForMovement(*pistonState, getMotionDirection());
+        const BlockState movedState = pistonState->getBlock().getStateForMovement(*pistonState, motionDirection);
         BlockState updatedState = Block::updateFromNeighbourShapes(movedState, world, pos);
         world.setBlockState(
             pos, &updatedState, world::BlockUpdateFlags::UPDATE_ALL | world::BlockUpdateFlags::UPDATE_MOVE_BY_PISTON);
