@@ -296,7 +296,7 @@ function obsidianResistsTntExplosion(test: Test): void {
     test.setBlockType("minecraft:tnt", { x: 3, y: 1, z: 2 });
 
     // spawn SimulatedPlayer（生存模式），手持打火石点燃 TNT。
-    const player = test.spawnSimulatedPlayer({ x: 1, y: 1, z: 1 }, "igniter", GameMode.Survival);
+    const player = test.spawnSimulatedPlayer({ x: 1, y: 1, z: 1 }, "igniter", GameMode.survival);
     const flintAndSteel = new ItemStack("minecraft:flint_and_steel", 1);
 
     const used = player.useItemOnBlock(

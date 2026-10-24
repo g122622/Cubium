@@ -160,7 +160,7 @@ function flintAndSteelIgnitesPortal(test: Test): void {
     buildMinXAxisPortalFrame(test);
 
     // spawn SimulatedPlayer（生存模式，验证耐久消耗），手持 1 个 flint_and_steel。
-    const player = test.spawnSimulatedPlayer({ x: 1, y: 1, z: 1 }, "igniter", GameMode.Survival);
+    const player = test.spawnSimulatedPlayer({ x: 1, y: 1, z: 1 }, "igniter", GameMode.survival);
     const flintAndSteel = new ItemStack("minecraft:flint_and_steel", 1);
 
     // 对底框黑曜石 (3,0,3) 顶面使用打火石。
@@ -201,7 +201,7 @@ function flintAndSteelDurabilityCost(test: Test): void {
     buildMinXAxisPortalFrame(test);
 
     // spawn SimulatedPlayer（生存模式），手持 1 个 flint_and_steel（耐久满 0）。
-    const player = test.spawnSimulatedPlayer({ x: 1, y: 1, z: 1 }, "igniter", GameMode.Survival);
+    const player = test.spawnSimulatedPlayer({ x: 1, y: 1, z: 1 }, "igniter", GameMode.survival);
     const flintAndSteel = new ItemStack("minecraft:flint_and_steel", 1);
 
     // 对底框黑曜石 (3,0,3) 顶面使用打火石。
@@ -251,7 +251,7 @@ function fireChargeIgnitesPortal(test: Test): void {
     buildMinXAxisPortalFrame(test);
 
     // spawn SimulatedPlayer（生存模式），手持 1 个 fire_charge。
-    const player = test.spawnSimulatedPlayer({ x: 1, y: 1, z: 1 }, "igniter", GameMode.Survival);
+    const player = test.spawnSimulatedPlayer({ x: 1, y: 1, z: 1 }, "igniter", GameMode.survival);
     const fireCharge = new ItemStack("minecraft:fire_charge", 1);
 
     // 对底框黑曜石 (3,0,3) 顶面使用火焰弹。
@@ -290,7 +290,7 @@ function fireChargeConsumed(test: Test): void {
     buildMinXAxisPortalFrame(test);
 
     // spawn SimulatedPlayer（生存模式），手持 1 个 fire_charge。
-    const player = test.spawnSimulatedPlayer({ x: 1, y: 1, z: 1 }, "igniter", GameMode.Survival);
+    const player = test.spawnSimulatedPlayer({ x: 1, y: 1, z: 1 }, "igniter", GameMode.survival);
     const fireCharge = new ItemStack("minecraft:fire_charge", 1);
 
     // 对底框黑曜石 (3,0,3) 顶面使用火焰弹。
