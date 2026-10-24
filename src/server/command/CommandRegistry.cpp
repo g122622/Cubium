@@ -87,6 +87,7 @@
 #include "commands/VersionCommand.hpp"
 #include "commands/JfrCommand.hpp"
 #include "commands/PerfCommand.hpp"
+#include "commands/ReturnCommand.hpp"
 #include "commands/TeamMsgCommand.hpp"
 #include "commands/TitleCommand.hpp"
 #include "commands/TriggerCommand.hpp"
@@ -225,6 +226,7 @@ void CommandRegistry::registerDefaults()
     JfrCommand::registerTo(m_dispatcher);
     PerfCommand::registerTo(m_dispatcher);
     TeamMsgCommand::registerTo(m_dispatcher);
+    ReturnCommand::registerTo(m_dispatcher);
     m_defaultsRegistered = true;
 
     spdlog::info("[CommandRegistry] Registered {} default commands", getCommandNames().size());

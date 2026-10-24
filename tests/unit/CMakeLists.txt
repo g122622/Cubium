@@ -2048,6 +2048,7 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/server/command/commands/JfrCommand.cpp
         ${CMAKE_SOURCE_DIR}/src/server/command/commands/PerfCommand.cpp
         ${CMAKE_SOURCE_DIR}/src/server/command/commands/TeamMsgCommand.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/command/commands/ReturnCommand.cpp
         # P3 命令
         ${CMAKE_SOURCE_DIR}/src/server/command/commands/AdvancementCommand.cpp
         ${CMAKE_SOURCE_DIR}/src/server/command/commands/BossBarCommand.cpp

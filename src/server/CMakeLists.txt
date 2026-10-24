@@ -478,6 +478,7 @@ add_executable(minecraft-server
     command/commands/JfrCommand.cpp
     command/commands/PerfCommand.cpp
     command/commands/TeamMsgCommand.cpp
+    command/commands/ReturnCommand.cpp
     command/commands/LootCommand.cpp
     command/commands/PublishCommand.cpp
     command/commands/RecipeCommand.cpp

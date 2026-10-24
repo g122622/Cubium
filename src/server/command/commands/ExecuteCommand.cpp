@@ -87,7 +87,7 @@ Block* parseBlockId(const std::string& input)
 
 // ========== 嵌套命令执行 ==========
 
-i32 ExecuteCommand::_executeNestedCommand(ServerCommandSource& source, const std::string& command)
+i32 ExecuteCommand::executeNestedCommand(ServerCommandSource& source, const std::string& command)
 {
     if (command.empty()) {
         source.sendError("commands.execute.failed.emptyCommand");
@@ -242,7 +242,7 @@ i32 ExecuteCommand::_executeRun(CommandContext<ServerCommandSource>& context)
     auto& source = context.getSource();
     std::string command = context.getArgument<std::string>("command");
 
-    return _executeNestedCommand(source, command);
+    return executeNestedCommand(source, command);
 }
 
 i32 ExecuteCommand::_executeAs(CommandContext<ServerCommandSource>& context)
@@ -270,7 +270,7 @@ i32 ExecuteCommand::_executeAs(CommandContext<ServerCommandSource>& context)
         ServerCommandSource modifiedSource = source.withEntity(*entity);
 
         // 执行嵌套命令
-        totalResult += _executeNestedCommand(modifiedSource, command);
+        totalResult += executeNestedCommand(modifiedSource, command);
     }
 
     return totalResult;
@@ -304,7 +304,7 @@ i32 ExecuteCommand::_executeAt(CommandContext<ServerCommandSource>& context)
         modifiedSource = modifiedSource.withDimension(entity->dimension());
 
         // 执行嵌套命令
-        totalResult += _executeNestedCommand(modifiedSource, command);
+        totalResult += executeNestedCommand(modifiedSource, command);
     }
 
     return totalResult;
@@ -319,7 +319,7 @@ i32 ExecuteCommand::_executePositioned(CommandContext<ServerCommandSource>& cont
     // 创建修改位置的命令源
     ServerCommandSource modifiedSource = source.withPosition(position);
 
-    return _executeNestedCommand(modifiedSource, command);
+    return executeNestedCommand(modifiedSource, command);
 }
 
 i32 ExecuteCommand::_executeIn(CommandContext<ServerCommandSource>& context)
@@ -357,7 +357,7 @@ i32 ExecuteCommand::_executeIn(CommandContext<ServerCommandSource>& context)
         }
     }
 
-    return _executeNestedCommand(modifiedSource, command);
+    return executeNestedCommand(modifiedSource, command);
 }
 
 i32 ExecuteCommand::_executeIfBlock(CommandContext<ServerCommandSource>& context)
@@ -394,7 +394,7 @@ i32 ExecuteCommand::_executeIfBlock(CommandContext<ServerCommandSource>& context
     }
 
     // 条件满足，执行嵌套命令
-    return _executeNestedCommand(source, command);
+    return executeNestedCommand(source, command);
 }
 
 i32 ExecuteCommand::_executeUnlessBlock(CommandContext<ServerCommandSource>& context)
@@ -431,7 +431,7 @@ i32 ExecuteCommand::_executeUnlessBlock(CommandContext<ServerCommandSource>& con
     }
 
     // 条件不满足，执行嵌套命令
-    return _executeNestedCommand(source, command);
+    return executeNestedCommand(source, command);
 }
 
 } // namespace command

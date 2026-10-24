@@ -39,7 +39,6 @@ export const KNOWN_MISSING_COMMANDS = [
     "item",
     "place",
     "random",
-    "return",
     "ride",
     "rotate",
     "stopwatch",
