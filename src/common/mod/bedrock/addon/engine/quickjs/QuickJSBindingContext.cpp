@@ -587,6 +587,26 @@ void* QuickJSBindingContext::getOpaque(void* obj, u64 classId) const
 
         return JS_GetAnyOpaque(val, &anyClassId);
     }
+    {
+        // TODO: 定位 ItemStack 解包失败根因后移除本诊断输出。
+        static std::atomic<i32> s_diag8{0};
+        if (classId == 366 && s_diag8.fetch_add(1) < 6) {
+            JSClassID cid = 0;
+            const void* anyOpaque = JS_GetAnyOpaque(val, &cid);
+            JSValue proto = JS_GetPrototype(m_ctx, val);
+            const bool protoIsObject = JS_IsObject(proto);
+            const JSClassID protoClass = JS_IsObject(proto) ? JS_GetClassID(proto) : 0;
+            const JSClassID objClass = JS_GetClassID(val);
+            JS_FreeValue(m_ctx, proto);
+            spdlog::warn("[DIAG8] objClass={} getAnyOpaque={} protoIsObject={} protoClass={} isArray={} isObject={}",
+                static_cast<u64>(objClass),
+                anyOpaque != nullptr,
+                protoIsObject,
+                static_cast<u64>(protoClass),
+                JS_IsArray(val),
+                JS_IsObject(val));
+        }
+    }
 
     if (JS_GetClassID(val) == static_cast<JSClassID>(classId)) {
         return JS_GetOpaque(val, static_cast<JSClassID>(classId));
