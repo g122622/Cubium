@@ -135,18 +135,6 @@ void RegistryBootstrap::initializeAll(bool registerEntities)
     }
     spdlog::info("Vanilla blocks initialized");
 
-    // 从数据包加载方块标签（追加到或替换内置默认值）。
-    // 必须在 VanillaBlocks::initialize()（内部调用 BlockTags::initialize()）之后。
-    {
-        MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Initialization, "RegistryBootstrap::initializeAll::BlockTagLoader");
-        auto blockTagResult = BlockTagLoader::loadFromDataPackRepository(m_dataPackList);
-        if (blockTagResult.failed()) {
-            spdlog::error("Failed to load block tags from data packs: {}", blockTagResult.error().toString());
-        } else {
-            spdlog::info("Loaded {} block tags from data packs", blockTagResult.value());
-        }
-    }
-
     // 从数据包加载流体标签（追加到或替换内置默认值）。
     // 必须在流体注册表初始化（FluidTags::initialize 随 BaseBlocks 一并完成）之后。
     {
@@ -215,6 +203,19 @@ void RegistryBootstrap::initializeAll(bool registerEntities)
         BlockItemRegistry::instance().initializeVanillaBlockItems();
     }
     spdlog::info("Block items initialized");
+
+    // 从数据包加载方块标签（追加到或替换内置默认值），必须在方块与方块物品都注册完成后：
+    // 原版标签（数据包 tags/block/*.json）按物品 id 引用方块物品，加载碰到 null 物品会整条跳过
+    // 并留下"该标签里没有这个物品"的永久空洞；标签表是一次性构建的，之后再补也不会回填。
+    {
+        MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Initialization, "RegistryBootstrap::initializeAll::BlockTagLoader");
+        auto blockTagResult = BlockTagLoader::loadFromDataPackRepository(m_dataPackList);
+        if (blockTagResult.failed()) {
+            spdlog::error("Failed to load block tags from data packs: {}", blockTagResult.error().toString());
+        } else {
+            spdlog::info("Loaded {} block tags from data packs", blockTagResult.value());
+        }
+    }
 
     // 初始化物品标签（必须在所有物品注册后）
     {

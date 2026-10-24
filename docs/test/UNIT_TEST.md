@@ -133,6 +133,13 @@ ctest --build-config RelWithDebInfo --timeout 60 -j8
 
 CI 侧另有全局兜底：`.github/workflows/ci.yml` 中 Linux/asan/tsan job 用 `ctest --output-on-failure --timeout 300 -j$(nproc)`，`--timeout` 是 CTest 进程级兜底，与单用例 `TIMEOUT` 取较小者生效。
 
+## 并发运行下的注册表初始化
+
+CI 的 `unit-tests` job 每个分片用 `ctest -j2` 跑，同一分片内**两个用例进程并行**。`Items::initialize()` 等注册表初始化是一次性的进程级动作，但注册表是**跨进程共享的全局状态**（各自独立进程，互不影响），真正需要小心的是**同一进程内多线程**同时初始化：
+
+- 测试夹具里请调用 `Items::ensureInitialized()` 而不是 `Items::initialize()`。前者用互斥量把「检查 `s_initialized`」与「完整注册」这两步包在一起；后者只判标志位，两个线程同时进入时会交错执行——后进入者可能在先进入者「物品已登记」与「物品标签已初始化」之间插入注册，使 `ItemTags` 留下登记了 null 物品的条目（日志表现为 `ItemTag::add(): Attempted to add null item to tag ...`），随后任何读取这些标签的用例（村民交易、繁殖食物判定等）都会在 `MC_ASSERT_RELEASE(item != nullptr)` 处崩溃。
+- 游戏进程的正常启动路径（`RegistryBootstrap`）只调用一次，直接用 `Items::initialize()` 即可。
+
 ## 测试崩溃时查看完整调用栈
 
 `mc_tests` 在 `main` 中安装了 `mc::assert::CrashHandler`（参考 `src/client/main.cpp`、`src/server/main.cpp`），崩溃（SEH 访问违例、除零、栈溢出、纯虚调用、`std::terminate`、`MC_ASSERT_RELEASE` 触发的 `abort`）时输出调用栈和寄存器到 stderr。

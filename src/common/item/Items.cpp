@@ -119,6 +119,7 @@
 #include "common/world/blockentity/interactive/DecoratedPotPattern.hpp"
 #include "common/world/fluid/FluidRegistry.hpp"
 #include <memory>
+#include <mutex>
 #include <optional>
 #include <string>
 #include <utility>
@@ -1641,6 +1642,15 @@ void Items::initialize()
     _applyVanillaRarities();
 
     s_initialized = true;
+}
+
+void Items::ensureInitialized()
+{
+    // 检查与初始化必须原子：注册表与 s_initialized 都是进程级共享状态，
+    // 并发进入时会看到"部分已注册"的中间态（见头文件说明）。
+    static std::mutex s_initializeMutex;
+    const std::lock_guard<std::mutex> lock(s_initializeMutex);
+    initialize();
 }
 
 /**
