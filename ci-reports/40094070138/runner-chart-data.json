@@ -1,0 +1,3584 @@
+{
+  "errors": [],
+  "missing": {
+    "benchmark": "未运行"
+  },
+  "rows": [
+    {
+      "info": {
+        "artifact": "pococc-test-diagnostics-1",
+        "build": {
+          "CMAKE_BUILD_TYPE": "RelWithDebInfo",
+          "CMAKE_CONFIGURATION_TYPES": "Debug;Release;RelWithDebInfo",
+          "CMAKE_CXX_COMPILER": "/usr/lib/llvm-22/bin/clang++",
+          "CMAKE_CXX_FLAGS": "-fsanitize=address,undefined -fno-sanitize-recover=all -fno-omit-frame-pointer",
+          "CMAKE_CXX_FLAGS_RELEASE": "-O3 -DNDEBUG",
+          "CMAKE_CXX_FLAGS_RELWITHDEBINFO": "-O2 -g -DNDEBUG",
+          "CMAKE_C_FLAGS": "-fsanitize=address,undefined -fno-sanitize-recover=all -fno-omit-frame-pointer",
+          "CMAKE_C_FLAGS_RELEASE": "-O3 -DNDEBUG",
+          "CMAKE_EXE_LINKER_FLAGS": "-fsanitize=address,undefined",
+          "CMAKE_EXE_LINKER_FLAGS_RELEASE": "",
+          "CMAKE_GENERATOR": "Ninja Multi-Config",
+          "CMAKE_LINKER": "/usr/lib/llvm-22/bin/ld.lld",
+          "CMAKE_MODULE_LINKER_FLAGS": "",
+          "CMAKE_MODULE_LINKER_FLAGS_RELEASE": "",
+          "CMAKE_SHARED_LINKER_FLAGS": "-fsanitize=address,undefined",
+          "CMAKE_SHARED_LINKER_FLAGS_RELEASE": "",
+          "MC_ENABLE_MEMORY": "OFF",
+          "MC_ENABLE_NATIVE_ARCH": "OFF",
+          "MC_ENABLE_SANITIZERS": "ON",
+          "MC_ENABLE_TRACING": "ON",
+          "MC_ENABLE_TRACY": "OFF",
+          "VCPKG_TARGET_TRIPLET": "x64-linux"
+        },
+        "captured_at": "2026-10-24T12:39:04.263576+00:00",
+        "cpu": {
+          "logical_cpus": 4,
+          "model": "AMD EPYC 9V45 96-Core Processor"
+        },
+        "disk": {
+          "free_bytes": 62839443456,
+          "total_bytes": 154894188544
+        },
+        "job": "build",
+        "memory_bytes": 16766414848,
+        "runner": {
+          "environment": "github-hosted",
+          "image_os": "ubuntu24",
+          "image_version": "20261023.334.3"
+        },
+        "schema_version": 1,
+        "system": {
+          "architecture": "x86_64",
+          "kernel": "6.17.0-1022-azure",
+          "libc": "glibc 2.39",
+          "os": "Ubuntu 24.04.5 LTS"
+        },
+        "tools": {
+          "ccache": {
+            "description": "ccache version 4.9.1",
+            "name": "ccache",
+            "path": "/usr/bin/ccache",
+            "status": "ok",
+            "version": "4.9.1"
+          },
+          "cmake": {
+            "description": "cmake version 3.31.6",
+            "name": "cmake",
+            "path": "/usr/local/bin/cmake",
+            "status": "ok",
+            "version": "3.31.6"
+          },
+          "compiler": {
+            "description": "Ubuntu clang version 22.1.8 (++20260714014902+ca7933e47d3a-1~exp1~20260714135019.80)",
+            "name": "clang++",
+            "path": "/usr/lib/llvm-22/bin/clang++",
+            "status": "ok",
+            "version": "22.1.8"
+          },
+          "linker": {
+            "description": "Ubuntu LLD 22.1.8 (compatible with GNU linkers)",
+            "name": "ld.lld",
+            "path": "/usr/lib/llvm-22/bin/ld.lld",
+            "status": "ok",
+            "version": "22.1.8"
+          },
+          "ninja": {
+            "description": "1.13.2",
+            "name": "ninja",
+            "path": "/usr/local/bin/ninja",
+            "status": "ok",
+            "version": "1.13.2"
+          },
+          "node": {
+            "description": "v22.23.3",
+            "name": "node",
+            "path": "/usr/local/bin/node",
+            "status": "ok",
+            "version": "22.23.3"
+          },
+          "npm": {
+            "description": "10.9.9",
+            "name": "npm",
+            "path": "/usr/local/bin/npm",
+            "status": "ok",
+            "version": "10.9.9"
+          },
+          "python": {
+            "path": "/usr/bin/python3",
+            "status": "ok",
+            "version": "3.12.3"
+          }
+        },
+        "vcpkg_baseline": "39a6cc0e44641977a7ccdfdb01a14eaf832aa330"
+      },
+      "key": "build",
+      "label": "测试构建"
+    },
+    {
+      "info": {
+        "artifact": "pococc-e2e-test-results",
+        "build": {},
+        "captured_at": "2026-10-24T12:46:27.816153+00:00",
+        "cpu": {
+          "logical_cpus": 4,
+          "model": "AMD EPYC 7763 64-Core Processor"
+        },
+        "disk": {
+          "free_bytes": 86246273024,
+          "total_bytes": 154894188544
+        },
+        "job": "e2e-tests",
+        "memory_bytes": 16766414848,
+        "runner": {
+          "environment": "github-hosted",
+          "image_os": "ubuntu24",
+          "image_version": "20261012.334.1"
+        },
+        "schema_version": 1,
+        "system": {
+          "architecture": "x86_64",
+          "kernel": "6.17.0-1022-azure",
+          "libc": "glibc 2.39",
+          "os": "Ubuntu 24.04.5 LTS"
+        },
+        "tools": {
+          "node": {
+            "description": "v22.23.3",
+            "name": "node",
+            "path": "/opt/hostedtoolcache/node/22.23.3/x64/bin/node",
+            "status": "ok",
+            "version": "22.23.3"
+          },
+          "npm": {
+            "description": "10.9.9",
+            "name": "npm",
+            "path": "/opt/hostedtoolcache/node/22.23.3/x64/bin/npm",
+            "status": "ok",
+            "version": "10.9.9"
+          },
+          "python": {
+            "path": "/usr/bin/python3",
+            "status": "ok",
+            "version": "3.12.3"
+          }
+        },
+        "vcpkg_baseline": ""
+      },
+      "key": "e2e-tests",
+      "label": "端到端"
+    },
+    {
+      "info": {
+        "artifact": "pococc-fuzz-results",
+        "build": {
+          "CMAKE_BUILD_TYPE": "RelWithDebInfo",
+          "CMAKE_CONFIGURATION_TYPES": "Debug;Release;RelWithDebInfo",
+          "CMAKE_CXX_COMPILER": "/usr/lib/llvm-22/bin/clang++",
+          "CMAKE_CXX_FLAGS": "",
+          "CMAKE_CXX_FLAGS_RELEASE": "-O3 -DNDEBUG",
+          "CMAKE_CXX_FLAGS_RELWITHDEBINFO": "-O2 -g -DNDEBUG",
+          "CMAKE_C_FLAGS": "",
+          "CMAKE_C_FLAGS_RELEASE": "-O3 -DNDEBUG",
+          "CMAKE_EXE_LINKER_FLAGS": "",
+          "CMAKE_EXE_LINKER_FLAGS_RELEASE": "",
+          "CMAKE_GENERATOR": "Ninja Multi-Config",
+          "CMAKE_LINKER": "/usr/lib/llvm-22/bin/ld.lld",
+          "CMAKE_MODULE_LINKER_FLAGS": "",
+          "CMAKE_MODULE_LINKER_FLAGS_RELEASE": "",
+          "CMAKE_SHARED_LINKER_FLAGS": "",
+          "CMAKE_SHARED_LINKER_FLAGS_RELEASE": "",
+          "MC_ENABLE_MEMORY": "OFF",
+          "MC_ENABLE_NATIVE_ARCH": "OFF",
+          "MC_ENABLE_SANITIZERS": "OFF",
+          "MC_ENABLE_TRACING": "ON",
+          "MC_ENABLE_TRACY": "OFF",
+          "MC_FUZZ_ASAN": "ON",
+          "VCPKG_TARGET_TRIPLET": "x64-linux"
+        },
+        "captured_at": "2026-10-24T13:19:07.032894+00:00",
+        "cpu": {
+          "logical_cpus": 4,
+          "model": "AMD EPYC 9V45 96-Core Processor"
+        },
+        "disk": {
+          "free_bytes": 74903715840,
+          "total_bytes": 154894188544
+        },
+        "job": "fuzz",
+        "memory_bytes": 16766414848,
+        "runner": {
+          "environment": "github-hosted",
+          "image_os": "ubuntu24",
+          "image_version": "20261023.334.3"
+        },
+        "schema_version": 1,
+        "system": {
+          "architecture": "x86_64",
+          "kernel": "6.17.0-1022-azure",
+          "libc": "glibc 2.39",
+          "os": "Ubuntu 24.04.5 LTS"
+        },
+        "tools": {
+          "ccache": {
+            "description": "ccache version 4.9.1",
+            "name": "ccache",
+            "path": "/usr/bin/ccache",
+            "status": "ok",
+            "version": "4.9.1"
+          },
+          "cmake": {
+            "description": "cmake version 3.31.6",
+            "name": "cmake",
+            "path": "/usr/local/bin/cmake",
+            "status": "ok",
+            "version": "3.31.6"
+          },
+          "compiler": {
+            "description": "Ubuntu clang version 22.1.8 (++20260714014902+ca7933e47d3a-1~exp1~20260714135019.80)",
+            "name": "clang++",
+            "path": "/usr/lib/llvm-22/bin/clang++",
+            "status": "ok",
+            "version": "22.1.8"
+          },
+          "linker": {
+            "description": "Ubuntu LLD 22.1.8 (compatible with GNU linkers)",
+            "name": "ld.lld",
+            "path": "/usr/lib/llvm-22/bin/ld.lld",
+            "status": "ok",
+            "version": "22.1.8"
+          },
+          "ninja": {
+            "description": "1.13.2",
+            "name": "ninja",
+            "path": "/usr/local/bin/ninja",
+            "status": "ok",
+            "version": "1.13.2"
+          },
+          "python": {
+            "path": "/usr/bin/python3",
+            "status": "ok",
+            "version": "3.12.3"
+          }
+        },
+        "vcpkg_baseline": "39a6cc0e44641977a7ccdfdb01a14eaf832aa330"
+      },
+      "key": "fuzz/pococc-fuzz-results",
+      "label": "Fuzz"
+    },
+    {
+      "info": {
+        "artifact": "pococc-integrated-test-results-0",
+        "build": {},
+        "captured_at": "2026-10-24T12:43:16.933091+00:00",
+        "cpu": {
+          "logical_cpus": 4,
+          "model": "AMD EPYC 7763 64-Core Processor"
+        },
+        "disk": {
+          "free_bytes": 87162482688,
+          "total_bytes": 154894188544
+        },
+        "job": "integrated-tests",
+        "memory_bytes": 16766414848,
+        "runner": {
+          "environment": "github-hosted",
+          "image_os": "ubuntu24",
+          "image_version": "20261012.334.1"
+        },
+        "schema_version": 1,
+        "system": {
+          "architecture": "x86_64",
+          "kernel": "6.17.0-1022-azure",
+          "libc": "glibc 2.39",
+          "os": "Ubuntu 24.04.5 LTS"
+        },
+        "tools": {
+          "node": {
+            "description": "v22.23.3",
+            "name": "node",
+            "path": "/opt/hostedtoolcache/node/22.23.3/x64/bin/node",
+            "status": "ok",
+            "version": "22.23.3"
+          },
+          "npm": {
+            "description": "10.9.9",
+            "name": "npm",
+            "path": "/opt/hostedtoolcache/node/22.23.3/x64/bin/npm",
+            "status": "ok",
+            "version": "10.9.9"
+          },
+          "python": {
+            "path": "/usr/bin/python3",
+            "status": "ok",
+            "version": "3.12.3"
+          }
+        },
+        "vcpkg_baseline": ""
+      },
+      "key": "integrated-tests/pococc-integrated-test-results-0",
+      "label": "GameTest [0]"
+    },
+    {
+      "info": {
+        "artifact": "pococc-integrated-test-results-1",
+        "build": {},
+        "captured_at": "2026-10-24T12:42:27.291699+00:00",
+        "cpu": {
+          "logical_cpus": 4,
+          "model": "AMD EPYC 7763 64-Core Processor"
+        },
+        "disk": {
+          "free_bytes": 87162380288,
+          "total_bytes": 154894188544
+        },
+        "job": "integrated-tests",
+        "memory_bytes": 16766414848,
+        "runner": {
+          "environment": "github-hosted",
+          "image_os": "ubuntu24",
+          "image_version": "20261012.334.1"
+        },
+        "schema_version": 1,
+        "system": {
+          "architecture": "x86_64",
+          "kernel": "6.17.0-1022-azure",
+          "libc": "glibc 2.39",
+          "os": "Ubuntu 24.04.5 LTS"
+        },
+        "tools": {
+          "node": {
+            "description": "v22.23.3",
+            "name": "node",
+            "path": "/opt/hostedtoolcache/node/22.23.3/x64/bin/node",
+            "status": "ok",
+            "version": "22.23.3"
+          },
+          "npm": {
+            "description": "10.9.9",
+            "name": "npm",
+            "path": "/opt/hostedtoolcache/node/22.23.3/x64/bin/npm",
+            "status": "ok",
+            "version": "10.9.9"
+          },
+          "python": {
+            "path": "/usr/bin/python3",
+            "status": "ok",
+            "version": "3.12.3"
+          }
+        },
+        "vcpkg_baseline": ""
+      },
+      "key": "integrated-tests/pococc-integrated-test-results-1",
+      "label": "GameTest [1]"
+    },
+    {
+      "info": {
+        "artifact": "pococc-integrated-test-results-2",
+        "build": {},
+        "captured_at": "2026-10-24T12:43:12.597001+00:00",
+        "cpu": {
+          "logical_cpus": 4,
+          "model": "Intel(R) Xeon(R) Platinum 8370C CPU @ 2.80GHz"
+        },
+        "disk": {
+          "free_bytes": 87162519552,
+          "total_bytes": 154894188544
+        },
+        "job": "integrated-tests",
+        "memory_bytes": 16765378560,
+        "runner": {
+          "environment": "github-hosted",
+          "image_os": "ubuntu24",
+          "image_version": "20261012.334.1"
+        },
+        "schema_version": 1,
+        "system": {
+          "architecture": "x86_64",
+          "kernel": "6.17.0-1022-azure",
+          "libc": "glibc 2.39",
+          "os": "Ubuntu 24.04.5 LTS"
+        },
+        "tools": {
+          "node": {
+            "description": "v22.23.3",
+            "name": "node",
+            "path": "/opt/hostedtoolcache/node/22.23.3/x64/bin/node",
+            "status": "ok",
+            "version": "22.23.3"
+          },
+          "npm": {
+            "description": "10.9.9",
+            "name": "npm",
+            "path": "/opt/hostedtoolcache/node/22.23.3/x64/bin/npm",
+            "status": "ok",
+            "version": "10.9.9"
+          },
+          "python": {
+            "path": "/usr/bin/python3",
+            "status": "ok",
+            "version": "3.12.3"
+          }
+        },
+        "vcpkg_baseline": ""
+      },
+      "key": "integrated-tests/pococc-integrated-test-results-2",
+      "label": "GameTest [2]"
+    },
+    {
+      "info": {
+        "artifact": "pococc-integrated-test-results-3",
+        "build": {},
+        "captured_at": "2026-10-24T12:43:47.534734+00:00",
+        "cpu": {
+          "logical_cpus": 4,
+          "model": "AMD EPYC 7763 64-Core Processor"
+        },
+        "disk": {
+          "free_bytes": 86777700352,
+          "total_bytes": 154894188544
+        },
+        "job": "integrated-tests",
+        "memory_bytes": 16766414848,
+        "runner": {
+          "environment": "github-hosted",
+          "image_os": "ubuntu24",
+          "image_version": "20261023.334.3"
+        },
+        "schema_version": 1,
+        "system": {
+          "architecture": "x86_64",
+          "kernel": "6.17.0-1022-azure",
+          "libc": "glibc 2.39",
+          "os": "Ubuntu 24.04.5 LTS"
+        },
+        "tools": {
+          "node": {
+            "description": "v22.23.3",
+            "name": "node",
+            "path": "/opt/hostedtoolcache/node/22.23.3/x64/bin/node",
+            "status": "ok",
+            "version": "22.23.3"
+          },
+          "npm": {
+            "description": "10.9.9",
+            "name": "npm",
+            "path": "/opt/hostedtoolcache/node/22.23.3/x64/bin/npm",
+            "status": "ok",
+            "version": "10.9.9"
+          },
+          "python": {
+            "path": "/usr/bin/python3",
+            "status": "ok",
+            "version": "3.12.3"
+          }
+        },
+        "vcpkg_baseline": ""
+      },
+      "key": "integrated-tests/pococc-integrated-test-results-3",
+      "label": "GameTest [3]"
+    },
+    {
+      "info": {
+        "artifact": "pococc-integrated-test-results-4",
+        "build": {},
+        "captured_at": "2026-10-24T12:42:34.029989+00:00",
+        "cpu": {
+          "logical_cpus": 4,
+          "model": "AMD EPYC 7763 64-Core Processor"
+        },
+        "disk": {
+          "free_bytes": 87162597376,
+          "total_bytes": 154894188544
+        },
+        "job": "integrated-tests",
+        "memory_bytes": 16766410752,
+        "runner": {
+          "environment": "github-hosted",
+          "image_os": "ubuntu24",
+          "image_version": "20261012.334.1"
+        },
+        "schema_version": 1,
+        "system": {
+          "architecture": "x86_64",
+          "kernel": "6.17.0-1022-azure",
+          "libc": "glibc 2.39",
+          "os": "Ubuntu 24.04.5 LTS"
+        },
+        "tools": {
+          "node": {
+            "description": "v22.23.3",
+            "name": "node",
+            "path": "/opt/hostedtoolcache/node/22.23.3/x64/bin/node",
+            "status": "ok",
+            "version": "22.23.3"
+          },
+          "npm": {
+            "description": "10.9.9",
+            "name": "npm",
+            "path": "/opt/hostedtoolcache/node/22.23.3/x64/bin/npm",
+            "status": "ok",
+            "version": "10.9.9"
+          },
+          "python": {
+            "path": "/usr/bin/python3",
+            "status": "ok",
+            "version": "3.12.3"
+          }
+        },
+        "vcpkg_baseline": ""
+      },
+      "key": "integrated-tests/pococc-integrated-test-results-4",
+      "label": "GameTest [4]"
+    },
+    {
+      "info": {
+        "artifact": "pococc-integrated-test-results-5",
+        "build": {},
+        "captured_at": "2026-10-24T12:42:32.859126+00:00",
+        "cpu": {
+          "logical_cpus": 4,
+          "model": "Intel(R) Xeon(R) 6973P-C"
+        },
+        "disk": {
+          "free_bytes": 86777872384,
+          "total_bytes": 154894188544
+        },
+        "job": "integrated-tests",
+        "memory_bytes": 16765374464,
+        "runner": {
+          "environment": "github-hosted",
+          "image_os": "ubuntu24",
+          "image_version": "20261023.334.3"
+        },
+        "schema_version": 1,
+        "system": {
+          "architecture": "x86_64",
+          "kernel": "6.17.0-1022-azure",
+          "libc": "glibc 2.39",
+          "os": "Ubuntu 24.04.5 LTS"
+        },
+        "tools": {
+          "node": {
+            "description": "v22.23.3",
+            "name": "node",
+            "path": "/opt/hostedtoolcache/node/22.23.3/x64/bin/node",
+            "status": "ok",
+            "version": "22.23.3"
+          },
+          "npm": {
+            "description": "10.9.9",
+            "name": "npm",
+            "path": "/opt/hostedtoolcache/node/22.23.3/x64/bin/npm",
+            "status": "ok",
+            "version": "10.9.9"
+          },
+          "python": {
+            "path": "/usr/bin/python3",
+            "status": "ok",
+            "version": "3.12.3"
+          }
+        },
+        "vcpkg_baseline": ""
+      },
+      "key": "integrated-tests/pococc-integrated-test-results-5",
+      "label": "GameTest [5]"
+    },
+    {
+      "info": {
+        "artifact": "pococc-integrated-test-results-6",
+        "build": {},
+        "captured_at": "2026-10-24T12:42:44.993045+00:00",
+        "cpu": {
+          "logical_cpus": 4,
+          "model": "INTEL(R) XEON(R) PLATINUM 8573C"
+        },
+        "disk": {
+          "free_bytes": 86777876480,
+          "total_bytes": 154894188544
+        },
+        "job": "integrated-tests",
+        "memory_bytes": 16765370368,
+        "runner": {
+          "environment": "github-hosted",
+          "image_os": "ubuntu24",
+          "image_version": "20261023.334.3"
+        },
+        "schema_version": 1,
+        "system": {
+          "architecture": "x86_64",
+          "kernel": "6.17.0-1022-azure",
+          "libc": "glibc 2.39",
+          "os": "Ubuntu 24.04.5 LTS"
+        },
+        "tools": {
+          "node": {
+            "description": "v22.23.3",
+            "name": "node",
+            "path": "/opt/hostedtoolcache/node/22.23.3/x64/bin/node",
+            "status": "ok",
+            "version": "22.23.3"
+          },
+          "npm": {
+            "description": "10.9.9",
+            "name": "npm",
+            "path": "/opt/hostedtoolcache/node/22.23.3/x64/bin/npm",
+            "status": "ok",
+            "version": "10.9.9"
+          },
+          "python": {
+            "path": "/usr/bin/python3",
+            "status": "ok",
+            "version": "3.12.3"
+          }
+        },
+        "vcpkg_baseline": ""
+      },
+      "key": "integrated-tests/pococc-integrated-test-results-6",
+      "label": "GameTest [6]"
+    },
+    {
+      "info": {
+        "artifact": "pococc-integrated-test-results-7",
+        "build": {},
+        "captured_at": "2026-10-24T12:42:47.644372+00:00",
+        "cpu": {
+          "logical_cpus": 4,
+          "model": "AMD EPYC 7763 64-Core Processor"
+        },
+        "disk": {
+          "free_bytes": 87162531840,
+          "total_bytes": 154894188544
+        },
+        "job": "integrated-tests",
+        "memory_bytes": 16766410752,
+        "runner": {
+          "environment": "github-hosted",
+          "image_os": "ubuntu24",
+          "image_version": "20261012.334.1"
+        },
+        "schema_version": 1,
+        "system": {
+          "architecture": "x86_64",
+          "kernel": "6.17.0-1022-azure",
+          "libc": "glibc 2.39",
+          "os": "Ubuntu 24.04.5 LTS"
+        },
+        "tools": {
+          "node": {
+            "description": "v22.23.3",
+            "name": "node",
+            "path": "/opt/hostedtoolcache/node/22.23.3/x64/bin/node",
+            "status": "ok",
+            "version": "22.23.3"
+          },
+          "npm": {
+            "description": "10.9.9",
+            "name": "npm",
+            "path": "/opt/hostedtoolcache/node/22.23.3/x64/bin/npm",
+            "status": "ok",
+            "version": "10.9.9"
+          },
+          "python": {
+            "path": "/usr/bin/python3",
+            "status": "ok",
+            "version": "3.12.3"
+          }
+        },
+        "vcpkg_baseline": ""
+      },
+      "key": "integrated-tests/pococc-integrated-test-results-7",
+      "label": "GameTest [7]"
+    },
+    {
+      "info": {
+        "artifact": "pococc-integrated-test-results-8",
+        "build": {},
+        "captured_at": "2026-10-24T12:42:51.366037+00:00",
+        "cpu": {
+          "logical_cpus": 4,
+          "model": "AMD EPYC 7763 64-Core Processor"
+        },
+        "disk": {
+          "free_bytes": 86777806848,
+          "total_bytes": 154894188544
+        },
+        "job": "integrated-tests",
+        "memory_bytes": 16766414848,
+        "runner": {
+          "environment": "github-hosted",
+          "image_os": "ubuntu24",
+          "image_version": "20261023.334.3"
+        },
+        "schema_version": 1,
+        "system": {
+          "architecture": "x86_64",
+          "kernel": "6.17.0-1022-azure",
+          "libc": "glibc 2.39",
+          "os": "Ubuntu 24.04.5 LTS"
+        },
+        "tools": {
+          "node": {
+            "description": "v22.23.3",
+            "name": "node",
+            "path": "/opt/hostedtoolcache/node/22.23.3/x64/bin/node",
+            "status": "ok",
+            "version": "22.23.3"
+          },
+          "npm": {
+            "description": "10.9.9",
+            "name": "npm",
+            "path": "/opt/hostedtoolcache/node/22.23.3/x64/bin/npm",
+            "status": "ok",
+            "version": "10.9.9"
+          },
+          "python": {
+            "path": "/usr/bin/python3",
+            "status": "ok",
+            "version": "3.12.3"
+          }
+        },
+        "vcpkg_baseline": ""
+      },
+      "key": "integrated-tests/pococc-integrated-test-results-8",
+      "label": "GameTest [8]"
+    },
+    {
+      "info": {
+        "artifact": "pococc-integrated-test-results-9",
+        "build": {},
+        "captured_at": "2026-10-24T12:43:06.000028+00:00",
+        "cpu": {
+          "logical_cpus": 4,
+          "model": "INTEL(R) XEON(R) PLATINUM 8573C"
+        },
+        "disk": {
+          "free_bytes": 87161237504,
+          "total_bytes": 154894188544
+        },
+        "job": "integrated-tests",
+        "memory_bytes": 16765378560,
+        "runner": {
+          "environment": "github-hosted",
+          "image_os": "ubuntu24",
+          "image_version": "20261012.334.1"
+        },
+        "schema_version": 1,
+        "system": {
+          "architecture": "x86_64",
+          "kernel": "6.17.0-1022-azure",
+          "libc": "glibc 2.39",
+          "os": "Ubuntu 24.04.5 LTS"
+        },
+        "tools": {
+          "node": {
+            "description": "v22.23.3",
+            "name": "node",
+            "path": "/opt/hostedtoolcache/node/22.23.3/x64/bin/node",
+            "status": "ok",
+            "version": "22.23.3"
+          },
+          "npm": {
+            "description": "10.9.9",
+            "name": "npm",
+            "path": "/opt/hostedtoolcache/node/22.23.3/x64/bin/npm",
+            "status": "ok",
+            "version": "10.9.9"
+          },
+          "python": {
+            "path": "/usr/bin/python3",
+            "status": "ok",
+            "version": "3.12.3"
+          }
+        },
+        "vcpkg_baseline": ""
+      },
+      "key": "integrated-tests/pococc-integrated-test-results-9",
+      "label": "GameTest [9]"
+    },
+    {
+      "info": {
+        "artifact": "pococc-prepare-results",
+        "build": {
+          "CMAKE_BUILD_TYPE": "Release",
+          "CMAKE_CXX_COMPILER": "/usr/lib/llvm-22/bin/clang++",
+          "CMAKE_CXX_FLAGS": "",
+          "CMAKE_CXX_FLAGS_RELEASE": "-O3 -DNDEBUG",
+          "CMAKE_CXX_FLAGS_RELWITHDEBINFO": "-O2 -g -DNDEBUG",
+          "CMAKE_EXE_LINKER_FLAGS": "",
+          "CMAKE_EXE_LINKER_FLAGS_RELEASE": "",
+          "CMAKE_GENERATOR": "Ninja",
+          "CMAKE_LINKER": "/usr/lib/llvm-22/bin/ld.lld",
+          "CMAKE_MODULE_LINKER_FLAGS": "",
+          "CMAKE_MODULE_LINKER_FLAGS_RELEASE": "",
+          "CMAKE_SHARED_LINKER_FLAGS": "",
+          "CMAKE_SHARED_LINKER_FLAGS_RELEASE": ""
+        },
+        "captured_at": "2026-10-24T12:30:35.015698+00:00",
+        "cpu": {
+          "logical_cpus": 4,
+          "model": "AMD EPYC 7763 64-Core Processor"
+        },
+        "disk": {
+          "free_bytes": 90376237056,
+          "total_bytes": 154894188544
+        },
+        "job": "prepare",
+        "memory_bytes": 16766414848,
+        "runner": {
+          "environment": "github-hosted",
+          "image_os": "ubuntu24",
+          "image_version": "20261023.334.3"
+        },
+        "schema_version": 1,
+        "system": {
+          "architecture": "x86_64",
+          "kernel": "6.17.0-1022-azure",
+          "libc": "glibc 2.39",
+          "os": "Ubuntu 24.04.5 LTS"
+        },
+        "tools": {
+          "cmake": {
+            "description": "cmake version 3.31.6",
+            "name": "cmake",
+            "path": "/usr/local/bin/cmake",
+            "status": "ok",
+            "version": "3.31.6"
+          },
+          "compiler": {
+            "description": "Ubuntu clang version 22.1.8 (++20260714014902+ca7933e47d3a-1~exp1~20260714135019.80)",
+            "name": "clang++",
+            "path": "/usr/lib/llvm-22/bin/clang++",
+            "status": "ok",
+            "version": "22.1.8"
+          },
+          "ninja": {
+            "description": "1.13.2",
+            "name": "ninja",
+            "path": "/usr/local/bin/ninja",
+            "status": "ok",
+            "version": "1.13.2"
+          },
+          "python": {
+            "path": "/usr/bin/python3",
+            "status": "ok",
+            "version": "3.12.3"
+          }
+        },
+        "vcpkg_baseline": ""
+      },
+      "key": "prepare",
+      "label": "工具准备"
+    },
+    {
+      "info": {
+        "artifact": "pococc-release-diagnostics-1",
+        "build": {
+          "CMAKE_BUILD_TYPE": "Release",
+          "CMAKE_CONFIGURATION_TYPES": "Debug;Release;RelWithDebInfo",
+          "CMAKE_CXX_COMPILER": "/usr/lib/llvm-22/bin/clang++",
+          "CMAKE_CXX_FLAGS": "",
+          "CMAKE_CXX_FLAGS_RELEASE": "-O2 -DNDEBUG -g0",
+          "CMAKE_CXX_FLAGS_RELWITHDEBINFO": "-O2 -g -DNDEBUG",
+          "CMAKE_C_FLAGS": "",
+          "CMAKE_C_FLAGS_RELEASE": "-O2 -DNDEBUG -g0",
+          "CMAKE_EXE_LINKER_FLAGS": "",
+          "CMAKE_EXE_LINKER_FLAGS_RELEASE": "-Wl,--strip-all",
+          "CMAKE_GENERATOR": "Ninja Multi-Config",
+          "CMAKE_LINKER": "/usr/lib/llvm-22/bin/ld.lld",
+          "CMAKE_MODULE_LINKER_FLAGS": "",
+          "CMAKE_MODULE_LINKER_FLAGS_RELEASE": "",
+          "CMAKE_SHARED_LINKER_FLAGS": "",
+          "CMAKE_SHARED_LINKER_FLAGS_RELEASE": "-Wl,--strip-all",
+          "MC_ENABLE_MEMORY": "OFF",
+          "MC_ENABLE_NATIVE_ARCH": "OFF",
+          "MC_ENABLE_SANITIZERS": "OFF",
+          "MC_ENABLE_TRACING": "OFF",
+          "MC_ENABLE_TRACY": "OFF",
+          "VCPKG_TARGET_TRIPLET": "x64-linux"
+        },
+        "captured_at": "2026-10-24T12:46:30.827266+00:00",
+        "cpu": {
+          "logical_cpus": 4,
+          "model": "AMD EPYC 7763 64-Core Processor"
+        },
+        "disk": {
+          "free_bytes": 85382053888,
+          "total_bytes": 154894188544
+        },
+        "job": "release-build",
+        "memory_bytes": 16766414848,
+        "runner": {
+          "environment": "github-hosted",
+          "image_os": "ubuntu24",
+          "image_version": "20261023.334.3"
+        },
+        "schema_version": 1,
+        "system": {
+          "architecture": "x86_64",
+          "kernel": "6.17.0-1022-azure",
+          "libc": "glibc 2.39",
+          "os": "Ubuntu 24.04.5 LTS"
+        },
+        "tools": {
+          "ccache": {
+            "description": "ccache version 4.9.1",
+            "name": "ccache",
+            "path": "/usr/bin/ccache",
+            "status": "ok",
+            "version": "4.9.1"
+          },
+          "cmake": {
+            "description": "cmake version 3.31.6",
+            "name": "cmake",
+            "path": "/usr/local/bin/cmake",
+            "status": "ok",
+            "version": "3.31.6"
+          },
+          "compiler": {
+            "description": "Ubuntu clang version 22.1.8 (++20260714014902+ca7933e47d3a-1~exp1~20260714135019.80)",
+            "name": "clang++",
+            "path": "/usr/lib/llvm-22/bin/clang++",
+            "status": "ok",
+            "version": "22.1.8"
+          },
+          "linker": {
+            "description": "Ubuntu LLD 22.1.8 (compatible with GNU linkers)",
+            "name": "ld.lld",
+            "path": "/usr/lib/llvm-22/bin/ld.lld",
+            "status": "ok",
+            "version": "22.1.8"
+          },
+          "ninja": {
+            "description": "1.13.2",
+            "name": "ninja",
+            "path": "/usr/local/bin/ninja",
+            "status": "ok",
+            "version": "1.13.2"
+          },
+          "node": {
+            "description": "v22.23.3",
+            "name": "node",
+            "path": "/usr/local/bin/node",
+            "status": "ok",
+            "version": "22.23.3"
+          },
+          "npm": {
+            "description": "10.9.9",
+            "name": "npm",
+            "path": "/usr/local/bin/npm",
+            "status": "ok",
+            "version": "10.9.9"
+          },
+          "python": {
+            "path": "/usr/bin/python3",
+            "status": "ok",
+            "version": "3.12.3"
+          }
+        },
+        "vcpkg_baseline": "39a6cc0e44641977a7ccdfdb01a14eaf832aa330"
+      },
+      "key": "release-build",
+      "label": "发布构建"
+    },
+    {
+      "info": {
+        "artifact": "report",
+        "build": {},
+        "captured_at": "2026-10-24T13:20:09.774745+00:00",
+        "cpu": {
+          "logical_cpus": 4,
+          "model": "AMD EPYC 9V74 80-Core Processor"
+        },
+        "disk": {
+          "free_bytes": 90980392960,
+          "total_bytes": 154894188544
+        },
+        "job": "report",
+        "memory_bytes": 16766406656,
+        "runner": {
+          "environment": "github-hosted",
+          "image_os": "ubuntu24",
+          "image_version": "20261012.334.1"
+        },
+        "schema_version": 1,
+        "system": {
+          "architecture": "x86_64",
+          "kernel": "6.17.0-1022-azure",
+          "libc": "glibc 2.39",
+          "os": "Ubuntu 24.04.5 LTS"
+        },
+        "tools": {
+          "gh": {
+            "description": "gh version 2.102.0 (2026-09-30)",
+            "name": "gh",
+            "path": "/usr/bin/gh",
+            "status": "ok",
+            "version": "2.102.0"
+          },
+          "python": {
+            "path": "/usr/bin/python3",
+            "status": "ok",
+            "version": "3.12.3"
+          }
+        },
+        "vcpkg_baseline": ""
+      },
+      "key": "report",
+      "label": "汇总"
+    },
+    {
+      "info": {
+        "artifact": "pococc-unit-test-results-0",
+        "build": {},
+        "captured_at": "2026-10-24T12:52:09.004245+00:00",
+        "cpu": {
+          "logical_cpus": 4,
+          "model": "AMD EPYC 7763 64-Core Processor"
+        },
+        "disk": {
+          "free_bytes": 87280553984,
+          "total_bytes": 154894188544
+        },
+        "job": "unit-tests",
+        "memory_bytes": 16766414848,
+        "runner": {
+          "environment": "github-hosted",
+          "image_os": "ubuntu24",
+          "image_version": "20261012.334.1"
+        },
+        "schema_version": 1,
+        "system": {
+          "architecture": "x86_64",
+          "kernel": "6.17.0-1022-azure",
+          "libc": "glibc 2.39",
+          "os": "Ubuntu 24.04.5 LTS"
+        },
+        "tools": {
+          "ctest": {
+            "description": "ctest version 3.31.6",
+            "name": "ctest",
+            "path": "/usr/local/bin/ctest",
+            "status": "ok",
+            "version": "3.31.6"
+          },
+          "python": {
+            "path": "/usr/bin/python3",
+            "status": "ok",
+            "version": "3.12.3"
+          }
+        },
+        "vcpkg_baseline": ""
+      },
+      "key": "unit-tests/pococc-unit-test-results-0",
+      "label": "单元测试 [0]"
+    },
+    {
+      "info": {
+        "artifact": "pococc-unit-test-results-1",
+        "build": {},
+        "captured_at": "2026-10-24T12:58:07.298506+00:00",
+        "cpu": {
+          "logical_cpus": 4,
+          "model": "INTEL(R) XEON(R) PLATINUM 8573C"
+        },
+        "disk": {
+          "free_bytes": 86883684352,
+          "total_bytes": 154894188544
+        },
+        "job": "unit-tests",
+        "memory_bytes": 16765374464,
+        "runner": {
+          "environment": "github-hosted",
+          "image_os": "ubuntu24",
+          "image_version": "20261023.334.3"
+        },
+        "schema_version": 1,
+        "system": {
+          "architecture": "x86_64",
+          "kernel": "6.17.0-1022-azure",
+          "libc": "glibc 2.39",
+          "os": "Ubuntu 24.04.5 LTS"
+        },
+        "tools": {
+          "ctest": {
+            "description": "ctest version 3.31.6",
+            "name": "ctest",
+            "path": "/usr/local/bin/ctest",
+            "status": "ok",
+            "version": "3.31.6"
+          },
+          "python": {
+            "path": "/usr/bin/python3",
+            "status": "ok",
+            "version": "3.12.3"
+          }
+        },
+        "vcpkg_baseline": ""
+      },
+      "key": "unit-tests/pococc-unit-test-results-1",
+      "label": "单元测试 [1]"
+    },
+    {
+      "info": {
+        "artifact": "pococc-unit-test-results-10",
+        "build": {},
+        "captured_at": "2026-10-24T12:51:45.164001+00:00",
+        "cpu": {
+          "logical_cpus": 4,
+          "model": "AMD EPYC 7763 64-Core Processor"
+        },
+        "disk": {
+          "free_bytes": 87280664576,
+          "total_bytes": 154894188544
+        },
+        "job": "unit-tests",
+        "memory_bytes": 16766414848,
+        "runner": {
+          "environment": "github-hosted",
+          "image_os": "ubuntu24",
+          "image_version": "20261012.334.1"
+        },
+        "schema_version": 1,
+        "system": {
+          "architecture": "x86_64",
+          "kernel": "6.17.0-1022-azure",
+          "libc": "glibc 2.39",
+          "os": "Ubuntu 24.04.5 LTS"
+        },
+        "tools": {
+          "ctest": {
+            "description": "ctest version 3.31.6",
+            "name": "ctest",
+            "path": "/usr/local/bin/ctest",
+            "status": "ok",
+            "version": "3.31.6"
+          },
+          "python": {
+            "path": "/usr/bin/python3",
+            "status": "ok",
+            "version": "3.12.3"
+          }
+        },
+        "vcpkg_baseline": ""
+      },
+      "key": "unit-tests/pococc-unit-test-results-10",
+      "label": "单元测试 [10]"
+    },
+    {
+      "info": {
+        "artifact": "pococc-unit-test-results-11",
+        "build": {},
+        "captured_at": "2026-10-24T12:54:21.412676+00:00",
+        "cpu": {
+          "logical_cpus": 4,
+          "model": "AMD EPYC 7763 64-Core Processor"
+        },
+        "disk": {
+          "free_bytes": 87280750592,
+          "total_bytes": 154894188544
+        },
+        "job": "unit-tests",
+        "memory_bytes": 16766414848,
+        "runner": {
+          "environment": "github-hosted",
+          "image_os": "ubuntu24",
+          "image_version": "20261012.334.1"
+        },
+        "schema_version": 1,
+        "system": {
+          "architecture": "x86_64",
+          "kernel": "6.17.0-1022-azure",
+          "libc": "glibc 2.39",
+          "os": "Ubuntu 24.04.5 LTS"
+        },
+        "tools": {
+          "ctest": {
+            "description": "ctest version 3.31.6",
+            "name": "ctest",
+            "path": "/usr/local/bin/ctest",
+            "status": "ok",
+            "version": "3.31.6"
+          },
+          "python": {
+            "path": "/usr/bin/python3",
+            "status": "ok",
+            "version": "3.12.3"
+          }
+        },
+        "vcpkg_baseline": ""
+      },
+      "key": "unit-tests/pococc-unit-test-results-11",
+      "label": "单元测试 [11]"
+    },
+    {
+      "info": {
+        "artifact": "pococc-unit-test-results-12",
+        "build": {},
+        "captured_at": "2026-10-24T12:53:57.415329+00:00",
+        "cpu": {
+          "logical_cpus": 4,
+          "model": "AMD EPYC 9V45 96-Core Processor"
+        },
+        "disk": {
+          "free_bytes": 87268073472,
+          "total_bytes": 154894188544
+        },
+        "job": "unit-tests",
+        "memory_bytes": 16766414848,
+        "runner": {
+          "environment": "github-hosted",
+          "image_os": "ubuntu24",
+          "image_version": "20261012.334.1"
+        },
+        "schema_version": 1,
+        "system": {
+          "architecture": "x86_64",
+          "kernel": "6.17.0-1022-azure",
+          "libc": "glibc 2.39",
+          "os": "Ubuntu 24.04.5 LTS"
+        },
+        "tools": {
+          "ctest": {
+            "description": "ctest version 3.31.6",
+            "name": "ctest",
+            "path": "/usr/local/bin/ctest",
+            "status": "ok",
+            "version": "3.31.6"
+          },
+          "python": {
+            "path": "/usr/bin/python3",
+            "status": "ok",
+            "version": "3.12.3"
+          }
+        },
+        "vcpkg_baseline": ""
+      },
+      "key": "unit-tests/pococc-unit-test-results-12",
+      "label": "单元测试 [12]"
+    },
+    {
+      "info": {
+        "artifact": "pococc-unit-test-results-13",
+        "build": {},
+        "captured_at": "2026-10-24T12:53:10.810494+00:00",
+        "cpu": {
+          "logical_cpus": 4,
+          "model": "AMD EPYC 7763 64-Core Processor"
+        },
+        "disk": {
+          "free_bytes": 87280680960,
+          "total_bytes": 154894188544
+        },
+        "job": "unit-tests",
+        "memory_bytes": 16766414848,
+        "runner": {
+          "environment": "github-hosted",
+          "image_os": "ubuntu24",
+          "image_version": "20261012.334.1"
+        },
+        "schema_version": 1,
+        "system": {
+          "architecture": "x86_64",
+          "kernel": "6.17.0-1022-azure",
+          "libc": "glibc 2.39",
+          "os": "Ubuntu 24.04.5 LTS"
+        },
+        "tools": {
+          "ctest": {
+            "description": "ctest version 3.31.6",
+            "name": "ctest",
+            "path": "/usr/local/bin/ctest",
+            "status": "ok",
+            "version": "3.31.6"
+          },
+          "python": {
+            "path": "/usr/bin/python3",
+            "status": "ok",
+            "version": "3.12.3"
+          }
+        },
+        "vcpkg_baseline": ""
+      },
+      "key": "unit-tests/pococc-unit-test-results-13",
+      "label": "单元测试 [13]"
+    },
+    {
+      "info": {
+        "artifact": "pococc-unit-test-results-14",
+        "build": {},
+        "captured_at": "2026-10-24T12:54:25.482522+00:00",
+        "cpu": {
+          "logical_cpus": 4,
+          "model": "AMD EPYC 7763 64-Core Processor"
+        },
+        "disk": {
+          "free_bytes": 87280504832,
+          "total_bytes": 154894188544
+        },
+        "job": "unit-tests",
+        "memory_bytes": 16766414848,
+        "runner": {
+          "environment": "github-hosted",
+          "image_os": "ubuntu24",
+          "image_version": "20261012.334.1"
+        },
+        "schema_version": 1,
+        "system": {
+          "architecture": "x86_64",
+          "kernel": "6.17.0-1022-azure",
+          "libc": "glibc 2.39",
+          "os": "Ubuntu 24.04.5 LTS"
+        },
+        "tools": {
+          "ctest": {
+            "description": "ctest version 3.31.6",
+            "name": "ctest",
+            "path": "/usr/local/bin/ctest",
+            "status": "ok",
+            "version": "3.31.6"
+          },
+          "python": {
+            "path": "/usr/bin/python3",
+            "status": "ok",
+            "version": "3.12.3"
+          }
+        },
+        "vcpkg_baseline": ""
+      },
+      "key": "unit-tests/pococc-unit-test-results-14",
+      "label": "单元测试 [14]"
+    },
+    {
+      "info": {
+        "artifact": "pococc-unit-test-results-15",
+        "build": {},
+        "captured_at": "2026-10-24T12:57:25.120937+00:00",
+        "cpu": {
+          "logical_cpus": 4,
+          "model": "AMD EPYC 7763 64-Core Processor"
+        },
+        "disk": {
+          "free_bytes": 86883524608,
+          "total_bytes": 154894188544
+        },
+        "job": "unit-tests",
+        "memory_bytes": 16766406656,
+        "runner": {
+          "environment": "github-hosted",
+          "image_os": "ubuntu24",
+          "image_version": "20261023.334.3"
+        },
+        "schema_version": 1,
+        "system": {
+          "architecture": "x86_64",
+          "kernel": "6.17.0-1022-azure",
+          "libc": "glibc 2.39",
+          "os": "Ubuntu 24.04.5 LTS"
+        },
+        "tools": {
+          "ctest": {
+            "description": "ctest version 3.31.6",
+            "name": "ctest",
+            "path": "/usr/local/bin/ctest",
+            "status": "ok",
+            "version": "3.31.6"
+          },
+          "python": {
+            "path": "/usr/bin/python3",
+            "status": "ok",
+            "version": "3.12.3"
+          }
+        },
+        "vcpkg_baseline": ""
+      },
+      "key": "unit-tests/pococc-unit-test-results-15",
+      "label": "单元测试 [15]"
+    },
+    {
+      "info": {
+        "artifact": "pococc-unit-test-results-16",
+        "build": {},
+        "captured_at": "2026-10-24T12:52:31.601928+00:00",
+        "cpu": {
+          "logical_cpus": 4,
+          "model": "AMD EPYC 7763 64-Core Processor"
+        },
+        "disk": {
+          "free_bytes": 87280140288,
+          "total_bytes": 154894188544
+        },
+        "job": "unit-tests",
+        "memory_bytes": 16766414848,
+        "runner": {
+          "environment": "github-hosted",
+          "image_os": "ubuntu24",
+          "image_version": "20261012.334.1"
+        },
+        "schema_version": 1,
+        "system": {
+          "architecture": "x86_64",
+          "kernel": "6.17.0-1022-azure",
+          "libc": "glibc 2.39",
+          "os": "Ubuntu 24.04.5 LTS"
+        },
+        "tools": {
+          "ctest": {
+            "description": "ctest version 3.31.6",
+            "name": "ctest",
+            "path": "/usr/local/bin/ctest",
+            "status": "ok",
+            "version": "3.31.6"
+          },
+          "python": {
+            "path": "/usr/bin/python3",
+            "status": "ok",
+            "version": "3.12.3"
+          }
+        },
+        "vcpkg_baseline": ""
+      },
+      "key": "unit-tests/pococc-unit-test-results-16",
+      "label": "单元测试 [16]"
+    },
+    {
+      "info": {
+        "artifact": "pococc-unit-test-results-17",
+        "build": {},
+        "captured_at": "2026-10-24T12:56:52.886383+00:00",
+        "cpu": {
+          "logical_cpus": 4,
+          "model": "AMD EPYC 7763 64-Core Processor"
+        },
+        "disk": {
+          "free_bytes": 86882263040,
+          "total_bytes": 154894188544
+        },
+        "job": "unit-tests",
+        "memory_bytes": 16766414848,
+        "runner": {
+          "environment": "github-hosted",
+          "image_os": "ubuntu24",
+          "image_version": "20261023.334.3"
+        },
+        "schema_version": 1,
+        "system": {
+          "architecture": "x86_64",
+          "kernel": "6.17.0-1022-azure",
+          "libc": "glibc 2.39",
+          "os": "Ubuntu 24.04.5 LTS"
+        },
+        "tools": {
+          "ctest": {
+            "description": "ctest version 3.31.6",
+            "name": "ctest",
+            "path": "/usr/local/bin/ctest",
+            "status": "ok",
+            "version": "3.31.6"
+          },
+          "python": {
+            "path": "/usr/bin/python3",
+            "status": "ok",
+            "version": "3.12.3"
+          }
+        },
+        "vcpkg_baseline": ""
+      },
+      "key": "unit-tests/pococc-unit-test-results-17",
+      "label": "单元测试 [17]"
+    },
+    {
+      "info": {
+        "artifact": "pococc-unit-test-results-18",
+        "build": {},
+        "captured_at": "2026-10-24T12:50:21.558171+00:00",
+        "cpu": {
+          "logical_cpus": 4,
+          "model": "AMD EPYC 9V45 96-Core Processor"
+        },
+        "disk": {
+          "free_bytes": 87280680960,
+          "total_bytes": 154894188544
+        },
+        "job": "unit-tests",
+        "memory_bytes": 16766414848,
+        "runner": {
+          "environment": "github-hosted",
+          "image_os": "ubuntu24",
+          "image_version": "20261012.334.1"
+        },
+        "schema_version": 1,
+        "system": {
+          "architecture": "x86_64",
+          "kernel": "6.17.0-1022-azure",
+          "libc": "glibc 2.39",
+          "os": "Ubuntu 24.04.5 LTS"
+        },
+        "tools": {
+          "ctest": {
+            "description": "ctest version 3.31.6",
+            "name": "ctest",
+            "path": "/usr/local/bin/ctest",
+            "status": "ok",
+            "version": "3.31.6"
+          },
+          "python": {
+            "path": "/usr/bin/python3",
+            "status": "ok",
+            "version": "3.12.3"
+          }
+        },
+        "vcpkg_baseline": ""
+      },
+      "key": "unit-tests/pococc-unit-test-results-18",
+      "label": "单元测试 [18]"
+    },
+    {
+      "info": {
+        "artifact": "pococc-unit-test-results-19",
+        "build": {},
+        "captured_at": "2026-10-24T12:49:24.066132+00:00",
+        "cpu": {
+          "logical_cpus": 4,
+          "model": "AMD EPYC 9V45 96-Core Processor"
+        },
+        "disk": {
+          "free_bytes": 87266398208,
+          "total_bytes": 154894188544
+        },
+        "job": "unit-tests",
+        "memory_bytes": 16766414848,
+        "runner": {
+          "environment": "github-hosted",
+          "image_os": "ubuntu24",
+          "image_version": "20261012.334.1"
+        },
+        "schema_version": 1,
+        "system": {
+          "architecture": "x86_64",
+          "kernel": "6.17.0-1022-azure",
+          "libc": "glibc 2.39",
+          "os": "Ubuntu 24.04.5 LTS"
+        },
+        "tools": {
+          "ctest": {
+            "description": "ctest version 3.31.6",
+            "name": "ctest",
+            "path": "/usr/local/bin/ctest",
+            "status": "ok",
+            "version": "3.31.6"
+          },
+          "python": {
+            "path": "/usr/bin/python3",
+            "status": "ok",
+            "version": "3.12.3"
+          }
+        },
+        "vcpkg_baseline": ""
+      },
+      "key": "unit-tests/pococc-unit-test-results-19",
+      "label": "单元测试 [19]"
+    },
+    {
+      "info": {
+        "artifact": "pococc-unit-test-results-2",
+        "build": {},
+        "captured_at": "2026-10-24T12:53:06.412673+00:00",
+        "cpu": {
+          "logical_cpus": 4,
+          "model": "AMD EPYC 7763 64-Core Processor"
+        },
+        "disk": {
+          "free_bytes": 87280754688,
+          "total_bytes": 154894188544
+        },
+        "job": "unit-tests",
+        "memory_bytes": 16766414848,
+        "runner": {
+          "environment": "github-hosted",
+          "image_os": "ubuntu24",
+          "image_version": "20261012.334.1"
+        },
+        "schema_version": 1,
+        "system": {
+          "architecture": "x86_64",
+          "kernel": "6.17.0-1022-azure",
+          "libc": "glibc 2.39",
+          "os": "Ubuntu 24.04.5 LTS"
+        },
+        "tools": {
+          "ctest": {
+            "description": "ctest version 3.31.6",
+            "name": "ctest",
+            "path": "/usr/local/bin/ctest",
+            "status": "ok",
+            "version": "3.31.6"
+          },
+          "python": {
+            "path": "/usr/bin/python3",
+            "status": "ok",
+            "version": "3.12.3"
+          }
+        },
+        "vcpkg_baseline": ""
+      },
+      "key": "unit-tests/pococc-unit-test-results-2",
+      "label": "单元测试 [2]"
+    },
+    {
+      "info": {
+        "artifact": "pococc-unit-test-results-3",
+        "build": {},
+        "captured_at": "2026-10-24T12:54:45.760343+00:00",
+        "cpu": {
+          "logical_cpus": 4,
+          "model": "AMD EPYC 7763 64-Core Processor"
+        },
+        "disk": {
+          "free_bytes": 87265861632,
+          "total_bytes": 154894188544
+        },
+        "job": "unit-tests",
+        "memory_bytes": 16766414848,
+        "runner": {
+          "environment": "github-hosted",
+          "image_os": "ubuntu24",
+          "image_version": "20261012.334.1"
+        },
+        "schema_version": 1,
+        "system": {
+          "architecture": "x86_64",
+          "kernel": "6.17.0-1022-azure",
+          "libc": "glibc 2.39",
+          "os": "Ubuntu 24.04.5 LTS"
+        },
+        "tools": {
+          "ctest": {
+            "description": "ctest version 3.31.6",
+            "name": "ctest",
+            "path": "/usr/local/bin/ctest",
+            "status": "ok",
+            "version": "3.31.6"
+          },
+          "python": {
+            "path": "/usr/bin/python3",
+            "status": "ok",
+            "version": "3.12.3"
+          }
+        },
+        "vcpkg_baseline": ""
+      },
+      "key": "unit-tests/pococc-unit-test-results-3",
+      "label": "单元测试 [3]"
+    },
+    {
+      "info": {
+        "artifact": "pococc-unit-test-results-4",
+        "build": {},
+        "captured_at": "2026-10-24T12:53:07.859076+00:00",
+        "cpu": {
+          "logical_cpus": 4,
+          "model": "AMD EPYC 7763 64-Core Processor"
+        },
+        "disk": {
+          "free_bytes": 87281344512,
+          "total_bytes": 154894188544
+        },
+        "job": "unit-tests",
+        "memory_bytes": 16766414848,
+        "runner": {
+          "environment": "github-hosted",
+          "image_os": "ubuntu24",
+          "image_version": "20261012.334.1"
+        },
+        "schema_version": 1,
+        "system": {
+          "architecture": "x86_64",
+          "kernel": "6.17.0-1022-azure",
+          "libc": "glibc 2.39",
+          "os": "Ubuntu 24.04.5 LTS"
+        },
+        "tools": {
+          "ctest": {
+            "description": "ctest version 3.31.6",
+            "name": "ctest",
+            "path": "/usr/local/bin/ctest",
+            "status": "ok",
+            "version": "3.31.6"
+          },
+          "python": {
+            "path": "/usr/bin/python3",
+            "status": "ok",
+            "version": "3.12.3"
+          }
+        },
+        "vcpkg_baseline": ""
+      },
+      "key": "unit-tests/pococc-unit-test-results-4",
+      "label": "单元测试 [4]"
+    },
+    {
+      "info": {
+        "artifact": "pococc-unit-test-results-5",
+        "build": {},
+        "captured_at": "2026-10-24T12:54:02.762915+00:00",
+        "cpu": {
+          "logical_cpus": 4,
+          "model": "AMD EPYC 7763 64-Core Processor"
+        },
+        "disk": {
+          "free_bytes": 87279599616,
+          "total_bytes": 154894188544
+        },
+        "job": "unit-tests",
+        "memory_bytes": 16766414848,
+        "runner": {
+          "environment": "github-hosted",
+          "image_os": "ubuntu24",
+          "image_version": "20261012.334.1"
+        },
+        "schema_version": 1,
+        "system": {
+          "architecture": "x86_64",
+          "kernel": "6.17.0-1022-azure",
+          "libc": "glibc 2.39",
+          "os": "Ubuntu 24.04.5 LTS"
+        },
+        "tools": {
+          "ctest": {
+            "description": "ctest version 3.31.6",
+            "name": "ctest",
+            "path": "/usr/local/bin/ctest",
+            "status": "ok",
+            "version": "3.31.6"
+          },
+          "python": {
+            "path": "/usr/bin/python3",
+            "status": "ok",
+            "version": "3.12.3"
+          }
+        },
+        "vcpkg_baseline": ""
+      },
+      "key": "unit-tests/pococc-unit-test-results-5",
+      "label": "单元测试 [5]"
+    },
+    {
+      "info": {
+        "artifact": "pococc-unit-test-results-6",
+        "build": {},
+        "captured_at": "2026-10-24T12:52:46.969043+00:00",
+        "cpu": {
+          "logical_cpus": 4,
+          "model": "AMD EPYC 7763 64-Core Processor"
+        },
+        "disk": {
+          "free_bytes": 87280771072,
+          "total_bytes": 154894188544
+        },
+        "job": "unit-tests",
+        "memory_bytes": 16766414848,
+        "runner": {
+          "environment": "github-hosted",
+          "image_os": "ubuntu24",
+          "image_version": "20261012.334.1"
+        },
+        "schema_version": 1,
+        "system": {
+          "architecture": "x86_64",
+          "kernel": "6.17.0-1022-azure",
+          "libc": "glibc 2.39",
+          "os": "Ubuntu 24.04.5 LTS"
+        },
+        "tools": {
+          "ctest": {
+            "description": "ctest version 3.31.6",
+            "name": "ctest",
+            "path": "/usr/local/bin/ctest",
+            "status": "ok",
+            "version": "3.31.6"
+          },
+          "python": {
+            "path": "/usr/bin/python3",
+            "status": "ok",
+            "version": "3.12.3"
+          }
+        },
+        "vcpkg_baseline": ""
+      },
+      "key": "unit-tests/pococc-unit-test-results-6",
+      "label": "单元测试 [6]"
+    },
+    {
+      "info": {
+        "artifact": "pococc-unit-test-results-7",
+        "build": {},
+        "captured_at": "2026-10-24T12:52:08.799401+00:00",
+        "cpu": {
+          "logical_cpus": 4,
+          "model": "AMD EPYC 9V74 80-Core Processor"
+        },
+        "disk": {
+          "free_bytes": 86896308224,
+          "total_bytes": 154894188544
+        },
+        "job": "unit-tests",
+        "memory_bytes": 16766414848,
+        "runner": {
+          "environment": "github-hosted",
+          "image_os": "ubuntu24",
+          "image_version": "20261023.334.3"
+        },
+        "schema_version": 1,
+        "system": {
+          "architecture": "x86_64",
+          "kernel": "6.17.0-1022-azure",
+          "libc": "glibc 2.39",
+          "os": "Ubuntu 24.04.5 LTS"
+        },
+        "tools": {
+          "ctest": {
+            "description": "ctest version 3.31.6",
+            "name": "ctest",
+            "path": "/usr/local/bin/ctest",
+            "status": "ok",
+            "version": "3.31.6"
+          },
+          "python": {
+            "path": "/usr/bin/python3",
+            "status": "ok",
+            "version": "3.12.3"
+          }
+        },
+        "vcpkg_baseline": ""
+      },
+      "key": "unit-tests/pococc-unit-test-results-7",
+      "label": "单元测试 [7]"
+    },
+    {
+      "info": {
+        "artifact": "pococc-unit-test-results-8",
+        "build": {},
+        "captured_at": "2026-10-24T12:52:08.762815+00:00",
+        "cpu": {
+          "logical_cpus": 4,
+          "model": "INTEL(R) XEON(R) PLATINUM 8573C"
+        },
+        "disk": {
+          "free_bytes": 86896386048,
+          "total_bytes": 154894188544
+        },
+        "job": "unit-tests",
+        "memory_bytes": 16765378560,
+        "runner": {
+          "environment": "github-hosted",
+          "image_os": "ubuntu24",
+          "image_version": "20261023.334.3"
+        },
+        "schema_version": 1,
+        "system": {
+          "architecture": "x86_64",
+          "kernel": "6.17.0-1022-azure",
+          "libc": "glibc 2.39",
+          "os": "Ubuntu 24.04.5 LTS"
+        },
+        "tools": {
+          "ctest": {
+            "description": "ctest version 3.31.6",
+            "name": "ctest",
+            "path": "/usr/local/bin/ctest",
+            "status": "ok",
+            "version": "3.31.6"
+          },
+          "python": {
+            "path": "/usr/bin/python3",
+            "status": "ok",
+            "version": "3.12.3"
+          }
+        },
+        "vcpkg_baseline": ""
+      },
+      "key": "unit-tests/pococc-unit-test-results-8",
+      "label": "单元测试 [8]"
+    },
+    {
+      "info": {
+        "artifact": "pococc-unit-test-results-9",
+        "build": {},
+        "captured_at": "2026-10-24T12:52:01.296177+00:00",
+        "cpu": {
+          "logical_cpus": 4,
+          "model": "INTEL(R) XEON(R) PLATINUM 8573C"
+        },
+        "disk": {
+          "free_bytes": 87279443968,
+          "total_bytes": 154894188544
+        },
+        "job": "unit-tests",
+        "memory_bytes": 16765378560,
+        "runner": {
+          "environment": "github-hosted",
+          "image_os": "ubuntu24",
+          "image_version": "20261012.334.1"
+        },
+        "schema_version": 1,
+        "system": {
+          "architecture": "x86_64",
+          "kernel": "6.17.0-1022-azure",
+          "libc": "glibc 2.39",
+          "os": "Ubuntu 24.04.5 LTS"
+        },
+        "tools": {
+          "ctest": {
+            "description": "ctest version 3.31.6",
+            "name": "ctest",
+            "path": "/usr/local/bin/ctest",
+            "status": "ok",
+            "version": "3.31.6"
+          },
+          "python": {
+            "path": "/usr/bin/python3",
+            "status": "ok",
+            "version": "3.12.3"
+          }
+        },
+        "vcpkg_baseline": ""
+      },
+      "key": "unit-tests/pococc-unit-test-results-9",
+      "label": "单元测试 [9]"
+    },
+    {
+      "info": {
+        "artifact": "pococc-worker-report-fuzz-1-1",
+        "build": {},
+        "captured_at": "2026-10-24T12:33:40.298139+00:00",
+        "cpu": {
+          "logical_cpus": 4,
+          "model": "AMD EPYC 9V45 96-Core Processor"
+        },
+        "disk": {
+          "free_bytes": 90371866624,
+          "total_bytes": 154894188544
+        },
+        "job": "workers",
+        "memory_bytes": 16766414848,
+        "runner": {
+          "environment": "github-hosted",
+          "image_os": "ubuntu24",
+          "image_version": "20261023.334.3",
+          "pool": "fuzz",
+          "worker": 1
+        },
+        "schema_version": 1,
+        "system": {
+          "architecture": "x86_64",
+          "kernel": "6.17.0-1022-azure",
+          "libc": "glibc 2.39",
+          "os": "Ubuntu 24.04.5 LTS"
+        },
+        "tools": {
+          "compiler": {
+            "description": "Ubuntu clang version 22.1.8 (++20260714014902+ca7933e47d3a-1~exp1~20260714135019.80)",
+            "name": "clang++",
+            "path": "/usr/lib/llvm-22/bin/clang++",
+            "status": "ok",
+            "version": "22.1.8"
+          },
+          "python": {
+            "path": "/usr/bin/python3",
+            "status": "ok",
+            "version": "3.12.3"
+          }
+        },
+        "vcpkg_baseline": ""
+      },
+      "key": "workers/pococc-worker-report-fuzz-1-1",
+      "label": "fuzz worker 1"
+    },
+    {
+      "info": {
+        "artifact": "pococc-worker-report-fuzz-2-1",
+        "build": {},
+        "captured_at": "2026-10-24T12:35:27.430286+00:00",
+        "cpu": {
+          "logical_cpus": 4,
+          "model": "AMD EPYC 9V45 96-Core Processor"
+        },
+        "disk": {
+          "free_bytes": 90371997696,
+          "total_bytes": 154894188544
+        },
+        "job": "workers",
+        "memory_bytes": 16766414848,
+        "runner": {
+          "environment": "github-hosted",
+          "image_os": "ubuntu24",
+          "image_version": "20261023.334.3",
+          "pool": "fuzz",
+          "worker": 2
+        },
+        "schema_version": 1,
+        "system": {
+          "architecture": "x86_64",
+          "kernel": "6.17.0-1022-azure",
+          "libc": "glibc 2.39",
+          "os": "Ubuntu 24.04.5 LTS"
+        },
+        "tools": {
+          "compiler": {
+            "description": "Ubuntu clang version 22.1.8 (++20260714014902+ca7933e47d3a-1~exp1~20260714135019.80)",
+            "name": "clang++",
+            "path": "/usr/lib/llvm-22/bin/clang++",
+            "status": "ok",
+            "version": "22.1.8"
+          },
+          "python": {
+            "path": "/usr/bin/python3",
+            "status": "ok",
+            "version": "3.12.3"
+          }
+        },
+        "vcpkg_baseline": ""
+      },
+      "key": "workers/pococc-worker-report-fuzz-2-1",
+      "label": "fuzz worker 2"
+    },
+    {
+      "info": {
+        "artifact": "pococc-worker-report-fuzz-3-1",
+        "build": {},
+        "captured_at": "2026-10-24T12:33:40.126250+00:00",
+        "cpu": {
+          "logical_cpus": 4,
+          "model": "AMD EPYC 7763 64-Core Processor"
+        },
+        "disk": {
+          "free_bytes": 90370609152,
+          "total_bytes": 154894188544
+        },
+        "job": "workers",
+        "memory_bytes": 16766406656,
+        "runner": {
+          "environment": "github-hosted",
+          "image_os": "ubuntu24",
+          "image_version": "20261023.334.3",
+          "pool": "fuzz",
+          "worker": 3
+        },
+        "schema_version": 1,
+        "system": {
+          "architecture": "x86_64",
+          "kernel": "6.17.0-1022-azure",
+          "libc": "glibc 2.39",
+          "os": "Ubuntu 24.04.5 LTS"
+        },
+        "tools": {
+          "compiler": {
+            "description": "Ubuntu clang version 22.1.8 (++20260714014902+ca7933e47d3a-1~exp1~20260714135019.80)",
+            "name": "clang++",
+            "path": "/usr/lib/llvm-22/bin/clang++",
+            "status": "ok",
+            "version": "22.1.8"
+          },
+          "python": {
+            "path": "/usr/bin/python3",
+            "status": "ok",
+            "version": "3.12.3"
+          }
+        },
+        "vcpkg_baseline": ""
+      },
+      "key": "workers/pococc-worker-report-fuzz-3-1",
+      "label": "fuzz worker 3"
+    },
+    {
+      "info": {
+        "artifact": "pococc-worker-report-fuzz-4-1",
+        "build": {},
+        "captured_at": "2026-10-24T12:35:24.317132+00:00",
+        "cpu": {
+          "logical_cpus": 4,
+          "model": "Intel(R) Xeon(R) Platinum 8370C CPU @ 2.80GHz"
+        },
+        "disk": {
+          "free_bytes": 90371936256,
+          "total_bytes": 154894188544
+        },
+        "job": "workers",
+        "memory_bytes": 16765370368,
+        "runner": {
+          "environment": "github-hosted",
+          "image_os": "ubuntu24",
+          "image_version": "20261023.334.3",
+          "pool": "fuzz",
+          "worker": 4
+        },
+        "schema_version": 1,
+        "system": {
+          "architecture": "x86_64",
+          "kernel": "6.17.0-1022-azure",
+          "libc": "glibc 2.39",
+          "os": "Ubuntu 24.04.5 LTS"
+        },
+        "tools": {
+          "compiler": {
+            "description": "Ubuntu clang version 22.1.8 (++20260714014902+ca7933e47d3a-1~exp1~20260714135019.80)",
+            "name": "clang++",
+            "path": "/usr/lib/llvm-22/bin/clang++",
+            "status": "ok",
+            "version": "22.1.8"
+          },
+          "python": {
+            "path": "/usr/bin/python3",
+            "status": "ok",
+            "version": "3.12.3"
+          }
+        },
+        "vcpkg_baseline": ""
+      },
+      "key": "workers/pococc-worker-report-fuzz-4-1",
+      "label": "fuzz worker 4"
+    },
+    {
+      "info": {
+        "artifact": "pococc-worker-report-fuzz-5-1",
+        "build": {},
+        "captured_at": "2026-10-24T12:33:41.628145+00:00",
+        "cpu": {
+          "logical_cpus": 4,
+          "model": "AMD EPYC 7763 64-Core Processor"
+        },
+        "disk": {
+          "free_bytes": 90633064448,
+          "total_bytes": 154894188544
+        },
+        "job": "workers",
+        "memory_bytes": 16766414848,
+        "runner": {
+          "environment": "github-hosted",
+          "image_os": "ubuntu24",
+          "image_version": "20261012.334.1",
+          "pool": "fuzz",
+          "worker": 5
+        },
+        "schema_version": 1,
+        "system": {
+          "architecture": "x86_64",
+          "kernel": "6.17.0-1022-azure",
+          "libc": "glibc 2.39",
+          "os": "Ubuntu 24.04.5 LTS"
+        },
+        "tools": {
+          "compiler": {
+            "description": "Ubuntu clang version 22.1.8 (++20260714014902+ca7933e47d3a-1~exp1~20260714135019.80)",
+            "name": "clang++",
+            "path": "/usr/lib/llvm-22/bin/clang++",
+            "status": "ok",
+            "version": "22.1.8"
+          },
+          "python": {
+            "path": "/usr/bin/python3",
+            "status": "ok",
+            "version": "3.12.3"
+          }
+        },
+        "vcpkg_baseline": ""
+      },
+      "key": "workers/pococc-worker-report-fuzz-5-1",
+      "label": "fuzz worker 5"
+    },
+    {
+      "info": {
+        "artifact": "pococc-worker-report-fuzz-6-1",
+        "build": {},
+        "captured_at": "2026-10-24T12:35:26.205483+00:00",
+        "cpu": {
+          "logical_cpus": 4,
+          "model": "AMD EPYC 7763 64-Core Processor"
+        },
+        "disk": {
+          "free_bytes": 90367332352,
+          "total_bytes": 154894188544
+        },
+        "job": "workers",
+        "memory_bytes": 16766414848,
+        "runner": {
+          "environment": "github-hosted",
+          "image_os": "ubuntu24",
+          "image_version": "20261023.334.3",
+          "pool": "fuzz",
+          "worker": 6
+        },
+        "schema_version": 1,
+        "system": {
+          "architecture": "x86_64",
+          "kernel": "6.17.0-1022-azure",
+          "libc": "glibc 2.39",
+          "os": "Ubuntu 24.04.5 LTS"
+        },
+        "tools": {
+          "compiler": {
+            "description": "Ubuntu clang version 22.1.8 (++20260714014902+ca7933e47d3a-1~exp1~20260714135019.80)",
+            "name": "clang++",
+            "path": "/usr/lib/llvm-22/bin/clang++",
+            "status": "ok",
+            "version": "22.1.8"
+          },
+          "python": {
+            "path": "/usr/bin/python3",
+            "status": "ok",
+            "version": "3.12.3"
+          }
+        },
+        "vcpkg_baseline": ""
+      },
+      "key": "workers/pococc-worker-report-fuzz-6-1",
+      "label": "fuzz worker 6"
+    },
+    {
+      "info": {
+        "artifact": "pococc-worker-report-release-1-1",
+        "build": {},
+        "captured_at": "2026-10-24T12:47:47.394753+00:00",
+        "cpu": {
+          "logical_cpus": 4,
+          "model": "AMD EPYC 9V74 80-Core Processor"
+        },
+        "disk": {
+          "free_bytes": 90372587520,
+          "total_bytes": 154894188544
+        },
+        "job": "workers",
+        "memory_bytes": 16766414848,
+        "runner": {
+          "environment": "github-hosted",
+          "image_os": "ubuntu24",
+          "image_version": "20261023.334.3",
+          "pool": "release",
+          "worker": 1
+        },
+        "schema_version": 1,
+        "system": {
+          "architecture": "x86_64",
+          "kernel": "6.17.0-1022-azure",
+          "libc": "glibc 2.39",
+          "os": "Ubuntu 24.04.5 LTS"
+        },
+        "tools": {
+          "compiler": {
+            "description": "Ubuntu clang version 22.1.8 (++20260714014902+ca7933e47d3a-1~exp1~20260714135019.80)",
+            "name": "clang++",
+            "path": "/usr/lib/llvm-22/bin/clang++",
+            "status": "ok",
+            "version": "22.1.8"
+          },
+          "python": {
+            "path": "/usr/bin/python3",
+            "status": "ok",
+            "version": "3.12.3"
+          }
+        },
+        "vcpkg_baseline": ""
+      },
+      "key": "workers/pococc-worker-report-release-1-1",
+      "label": "release worker 1"
+    },
+    {
+      "info": {
+        "artifact": "pococc-worker-report-release-2-1",
+        "build": {},
+        "captured_at": "2026-10-24T12:47:22.765756+00:00",
+        "cpu": {
+          "logical_cpus": 4,
+          "model": "AMD EPYC 7763 64-Core Processor"
+        },
+        "disk": {
+          "free_bytes": 90633818112,
+          "total_bytes": 154894188544
+        },
+        "job": "workers",
+        "memory_bytes": 16766414848,
+        "runner": {
+          "environment": "github-hosted",
+          "image_os": "ubuntu24",
+          "image_version": "20261012.334.1",
+          "pool": "release",
+          "worker": 2
+        },
+        "schema_version": 1,
+        "system": {
+          "architecture": "x86_64",
+          "kernel": "6.17.0-1022-azure",
+          "libc": "glibc 2.39",
+          "os": "Ubuntu 24.04.5 LTS"
+        },
+        "tools": {
+          "compiler": {
+            "description": "Ubuntu clang version 22.1.8 (++20260714014902+ca7933e47d3a-1~exp1~20260714135019.80)",
+            "name": "clang++",
+            "path": "/usr/lib/llvm-22/bin/clang++",
+            "status": "ok",
+            "version": "22.1.8"
+          },
+          "python": {
+            "path": "/usr/bin/python3",
+            "status": "ok",
+            "version": "3.12.3"
+          }
+        },
+        "vcpkg_baseline": ""
+      },
+      "key": "workers/pococc-worker-report-release-2-1",
+      "label": "release worker 2"
+    },
+    {
+      "info": {
+        "artifact": "pococc-worker-report-release-3-1",
+        "build": {},
+        "captured_at": "2026-10-24T12:47:29.247851+00:00",
+        "cpu": {
+          "logical_cpus": 4,
+          "model": "AMD EPYC 7763 64-Core Processor"
+        },
+        "disk": {
+          "free_bytes": 90373001216,
+          "total_bytes": 154894188544
+        },
+        "job": "workers",
+        "memory_bytes": 16766414848,
+        "runner": {
+          "environment": "github-hosted",
+          "image_os": "ubuntu24",
+          "image_version": "20261023.334.3",
+          "pool": "release",
+          "worker": 3
+        },
+        "schema_version": 1,
+        "system": {
+          "architecture": "x86_64",
+          "kernel": "6.17.0-1022-azure",
+          "libc": "glibc 2.39",
+          "os": "Ubuntu 24.04.5 LTS"
+        },
+        "tools": {
+          "compiler": {
+            "description": "Ubuntu clang version 22.1.8 (++20260714014902+ca7933e47d3a-1~exp1~20260714135019.80)",
+            "name": "clang++",
+            "path": "/usr/lib/llvm-22/bin/clang++",
+            "status": "ok",
+            "version": "22.1.8"
+          },
+          "python": {
+            "path": "/usr/bin/python3",
+            "status": "ok",
+            "version": "3.12.3"
+          }
+        },
+        "vcpkg_baseline": ""
+      },
+      "key": "workers/pococc-worker-report-release-3-1",
+      "label": "release worker 3"
+    },
+    {
+      "info": {
+        "artifact": "pococc-worker-report-release-4-1",
+        "build": {},
+        "captured_at": "2026-10-24T12:47:28.888371+00:00",
+        "cpu": {
+          "logical_cpus": 4,
+          "model": "AMD EPYC 9V45 96-Core Processor"
+        },
+        "disk": {
+          "free_bytes": 90633179136,
+          "total_bytes": 154894188544
+        },
+        "job": "workers",
+        "memory_bytes": 16766414848,
+        "runner": {
+          "environment": "github-hosted",
+          "image_os": "ubuntu24",
+          "image_version": "20261012.334.1",
+          "pool": "release",
+          "worker": 4
+        },
+        "schema_version": 1,
+        "system": {
+          "architecture": "x86_64",
+          "kernel": "6.17.0-1022-azure",
+          "libc": "glibc 2.39",
+          "os": "Ubuntu 24.04.5 LTS"
+        },
+        "tools": {
+          "compiler": {
+            "description": "Ubuntu clang version 22.1.8 (++20260714014902+ca7933e47d3a-1~exp1~20260714135019.80)",
+            "name": "clang++",
+            "path": "/usr/lib/llvm-22/bin/clang++",
+            "status": "ok",
+            "version": "22.1.8"
+          },
+          "python": {
+            "path": "/usr/bin/python3",
+            "status": "ok",
+            "version": "3.12.3"
+          }
+        },
+        "vcpkg_baseline": ""
+      },
+      "key": "workers/pococc-worker-report-release-4-1",
+      "label": "release worker 4"
+    },
+    {
+      "info": {
+        "artifact": "pococc-worker-report-test-1-1",
+        "build": {},
+        "captured_at": "2026-10-24T12:39:34.487805+00:00",
+        "cpu": {
+          "logical_cpus": 4,
+          "model": "AMD EPYC 9V74 80-Core Processor"
+        },
+        "disk": {
+          "free_bytes": 90371567616,
+          "total_bytes": 154894188544
+        },
+        "job": "workers",
+        "memory_bytes": 16766414848,
+        "runner": {
+          "environment": "github-hosted",
+          "image_os": "ubuntu24",
+          "image_version": "20261023.334.3",
+          "pool": "test",
+          "worker": 1
+        },
+        "schema_version": 1,
+        "system": {
+          "architecture": "x86_64",
+          "kernel": "6.17.0-1022-azure",
+          "libc": "glibc 2.39",
+          "os": "Ubuntu 24.04.5 LTS"
+        },
+        "tools": {
+          "compiler": {
+            "description": "Ubuntu clang version 22.1.8 (++20260714014902+ca7933e47d3a-1~exp1~20260714135019.80)",
+            "name": "clang++",
+            "path": "/usr/lib/llvm-22/bin/clang++",
+            "status": "ok",
+            "version": "22.1.8"
+          },
+          "python": {
+            "path": "/usr/bin/python3",
+            "status": "ok",
+            "version": "3.12.3"
+          }
+        },
+        "vcpkg_baseline": ""
+      },
+      "key": "workers/pococc-worker-report-test-1-1",
+      "label": "test worker 1"
+    },
+    {
+      "info": {
+        "artifact": "pococc-worker-report-test-10-1",
+        "build": {},
+        "captured_at": "2026-10-24T12:39:39.435526+00:00",
+        "cpu": {
+          "logical_cpus": 4,
+          "model": "AMD EPYC 7763 64-Core Processor"
+        },
+        "disk": {
+          "free_bytes": 90371702784,
+          "total_bytes": 154894188544
+        },
+        "job": "workers",
+        "memory_bytes": 16766414848,
+        "runner": {
+          "environment": "github-hosted",
+          "image_os": "ubuntu24",
+          "image_version": "20261023.334.3",
+          "pool": "test",
+          "worker": 10
+        },
+        "schema_version": 1,
+        "system": {
+          "architecture": "x86_64",
+          "kernel": "6.17.0-1022-azure",
+          "libc": "glibc 2.39",
+          "os": "Ubuntu 24.04.5 LTS"
+        },
+        "tools": {
+          "compiler": {
+            "description": "Ubuntu clang version 22.1.8 (++20260714014902+ca7933e47d3a-1~exp1~20260714135019.80)",
+            "name": "clang++",
+            "path": "/usr/lib/llvm-22/bin/clang++",
+            "status": "ok",
+            "version": "22.1.8"
+          },
+          "python": {
+            "path": "/usr/bin/python3",
+            "status": "ok",
+            "version": "3.12.3"
+          }
+        },
+        "vcpkg_baseline": ""
+      },
+      "key": "workers/pococc-worker-report-test-10-1",
+      "label": "test worker 10"
+    },
+    {
+      "info": {
+        "artifact": "pococc-worker-report-test-11-1",
+        "build": {},
+        "captured_at": "2026-10-24T12:39:25.364507+00:00",
+        "cpu": {
+          "logical_cpus": 4,
+          "model": "AMD EPYC 7763 64-Core Processor"
+        },
+        "disk": {
+          "free_bytes": 90632691712,
+          "total_bytes": 154894188544
+        },
+        "job": "workers",
+        "memory_bytes": 16766414848,
+        "runner": {
+          "environment": "github-hosted",
+          "image_os": "ubuntu24",
+          "image_version": "20261012.334.1",
+          "pool": "test",
+          "worker": 11
+        },
+        "schema_version": 1,
+        "system": {
+          "architecture": "x86_64",
+          "kernel": "6.17.0-1022-azure",
+          "libc": "glibc 2.39",
+          "os": "Ubuntu 24.04.5 LTS"
+        },
+        "tools": {
+          "compiler": {
+            "description": "Ubuntu clang version 22.1.8 (++20260714014902+ca7933e47d3a-1~exp1~20260714135019.80)",
+            "name": "clang++",
+            "path": "/usr/lib/llvm-22/bin/clang++",
+            "status": "ok",
+            "version": "22.1.8"
+          },
+          "python": {
+            "path": "/usr/bin/python3",
+            "status": "ok",
+            "version": "3.12.3"
+          }
+        },
+        "vcpkg_baseline": ""
+      },
+      "key": "workers/pococc-worker-report-test-11-1",
+      "label": "test worker 11"
+    },
+    {
+      "info": {
+        "artifact": "pococc-worker-report-test-12-1",
+        "build": {},
+        "captured_at": "2026-10-24T12:39:35.096374+00:00",
+        "cpu": {
+          "logical_cpus": 4,
+          "model": "AMD EPYC 9V74 80-Core Processor"
+        },
+        "disk": {
+          "free_bytes": 90632658944,
+          "total_bytes": 154894188544
+        },
+        "job": "workers",
+        "memory_bytes": 16766406656,
+        "runner": {
+          "environment": "github-hosted",
+          "image_os": "ubuntu24",
+          "image_version": "20261012.334.1",
+          "pool": "test",
+          "worker": 12
+        },
+        "schema_version": 1,
+        "system": {
+          "architecture": "x86_64",
+          "kernel": "6.17.0-1022-azure",
+          "libc": "glibc 2.39",
+          "os": "Ubuntu 24.04.5 LTS"
+        },
+        "tools": {
+          "compiler": {
+            "description": "Ubuntu clang version 22.1.8 (++20260714014902+ca7933e47d3a-1~exp1~20260714135019.80)",
+            "name": "clang++",
+            "path": "/usr/lib/llvm-22/bin/clang++",
+            "status": "ok",
+            "version": "22.1.8"
+          },
+          "python": {
+            "path": "/usr/bin/python3",
+            "status": "ok",
+            "version": "3.12.3"
+          }
+        },
+        "vcpkg_baseline": ""
+      },
+      "key": "workers/pococc-worker-report-test-12-1",
+      "label": "test worker 12"
+    },
+    {
+      "info": {
+        "artifact": "pococc-worker-report-test-13-1",
+        "build": {},
+        "captured_at": "2026-10-24T12:39:21.997491+00:00",
+        "cpu": {
+          "logical_cpus": 4,
+          "model": "AMD EPYC 7763 64-Core Processor"
+        },
+        "disk": {
+          "free_bytes": 90632642560,
+          "total_bytes": 154894188544
+        },
+        "job": "workers",
+        "memory_bytes": 16766414848,
+        "runner": {
+          "environment": "github-hosted",
+          "image_os": "ubuntu24",
+          "image_version": "20261012.334.1",
+          "pool": "test",
+          "worker": 13
+        },
+        "schema_version": 1,
+        "system": {
+          "architecture": "x86_64",
+          "kernel": "6.17.0-1022-azure",
+          "libc": "glibc 2.39",
+          "os": "Ubuntu 24.04.5 LTS"
+        },
+        "tools": {
+          "compiler": {
+            "description": "Ubuntu clang version 22.1.8 (++20260714014902+ca7933e47d3a-1~exp1~20260714135019.80)",
+            "name": "clang++",
+            "path": "/usr/lib/llvm-22/bin/clang++",
+            "status": "ok",
+            "version": "22.1.8"
+          },
+          "python": {
+            "path": "/usr/bin/python3",
+            "status": "ok",
+            "version": "3.12.3"
+          }
+        },
+        "vcpkg_baseline": ""
+      },
+      "key": "workers/pococc-worker-report-test-13-1",
+      "label": "test worker 13"
+    },
+    {
+      "info": {
+        "artifact": "pococc-worker-report-test-14-1",
+        "build": {},
+        "captured_at": "2026-10-24T12:39:20.374338+00:00",
+        "cpu": {
+          "logical_cpus": 4,
+          "model": "AMD EPYC 7763 64-Core Processor"
+        },
+        "disk": {
+          "free_bytes": 90371731456,
+          "total_bytes": 154894188544
+        },
+        "job": "workers",
+        "memory_bytes": 16766414848,
+        "runner": {
+          "environment": "github-hosted",
+          "image_os": "ubuntu24",
+          "image_version": "20261023.334.3",
+          "pool": "test",
+          "worker": 14
+        },
+        "schema_version": 1,
+        "system": {
+          "architecture": "x86_64",
+          "kernel": "6.17.0-1022-azure",
+          "libc": "glibc 2.39",
+          "os": "Ubuntu 24.04.5 LTS"
+        },
+        "tools": {
+          "compiler": {
+            "description": "Ubuntu clang version 22.1.8 (++20260714014902+ca7933e47d3a-1~exp1~20260714135019.80)",
+            "name": "clang++",
+            "path": "/usr/lib/llvm-22/bin/clang++",
+            "status": "ok",
+            "version": "22.1.8"
+          },
+          "python": {
+            "path": "/usr/bin/python3",
+            "status": "ok",
+            "version": "3.12.3"
+          }
+        },
+        "vcpkg_baseline": ""
+      },
+      "key": "workers/pococc-worker-report-test-14-1",
+      "label": "test worker 14"
+    },
+    {
+      "info": {
+        "artifact": "pococc-worker-report-test-15-1",
+        "build": {},
+        "captured_at": "2026-10-24T12:39:23.638187+00:00",
+        "cpu": {
+          "logical_cpus": 4,
+          "model": "AMD EPYC 9V45 96-Core Processor"
+        },
+        "disk": {
+          "free_bytes": 90371604480,
+          "total_bytes": 154894188544
+        },
+        "job": "workers",
+        "memory_bytes": 16766406656,
+        "runner": {
+          "environment": "github-hosted",
+          "image_os": "ubuntu24",
+          "image_version": "20261023.334.3",
+          "pool": "test",
+          "worker": 15
+        },
+        "schema_version": 1,
+        "system": {
+          "architecture": "x86_64",
+          "kernel": "6.17.0-1022-azure",
+          "libc": "glibc 2.39",
+          "os": "Ubuntu 24.04.5 LTS"
+        },
+        "tools": {
+          "compiler": {
+            "description": "Ubuntu clang version 22.1.8 (++20260714014902+ca7933e47d3a-1~exp1~20260714135019.80)",
+            "name": "clang++",
+            "path": "/usr/lib/llvm-22/bin/clang++",
+            "status": "ok",
+            "version": "22.1.8"
+          },
+          "python": {
+            "path": "/usr/bin/python3",
+            "status": "ok",
+            "version": "3.12.3"
+          }
+        },
+        "vcpkg_baseline": ""
+      },
+      "key": "workers/pococc-worker-report-test-15-1",
+      "label": "test worker 15"
+    },
+    {
+      "info": {
+        "artifact": "pococc-worker-report-test-16-1",
+        "build": {},
+        "captured_at": "2026-10-24T12:39:30.229148+00:00",
+        "cpu": {
+          "logical_cpus": 4,
+          "model": "INTEL(R) XEON(R) PLATINUM 8573C"
+        },
+        "disk": {
+          "free_bytes": 90371645440,
+          "total_bytes": 154894188544
+        },
+        "job": "workers",
+        "memory_bytes": 16765378560,
+        "runner": {
+          "environment": "github-hosted",
+          "image_os": "ubuntu24",
+          "image_version": "20261023.334.3",
+          "pool": "test",
+          "worker": 16
+        },
+        "schema_version": 1,
+        "system": {
+          "architecture": "x86_64",
+          "kernel": "6.17.0-1022-azure",
+          "libc": "glibc 2.39",
+          "os": "Ubuntu 24.04.5 LTS"
+        },
+        "tools": {
+          "compiler": {
+            "description": "Ubuntu clang version 22.1.8 (++20260714014902+ca7933e47d3a-1~exp1~20260714135019.80)",
+            "name": "clang++",
+            "path": "/usr/lib/llvm-22/bin/clang++",
+            "status": "ok",
+            "version": "22.1.8"
+          },
+          "python": {
+            "path": "/usr/bin/python3",
+            "status": "ok",
+            "version": "3.12.3"
+          }
+        },
+        "vcpkg_baseline": ""
+      },
+      "key": "workers/pococc-worker-report-test-16-1",
+      "label": "test worker 16"
+    },
+    {
+      "info": {
+        "artifact": "pococc-worker-report-test-17-1",
+        "build": {},
+        "captured_at": "2026-10-24T12:39:32.588079+00:00",
+        "cpu": {
+          "logical_cpus": 4,
+          "model": "AMD EPYC 9V45 96-Core Processor"
+        },
+        "disk": {
+          "free_bytes": 90632556544,
+          "total_bytes": 154894188544
+        },
+        "job": "workers",
+        "memory_bytes": 16766406656,
+        "runner": {
+          "environment": "github-hosted",
+          "image_os": "ubuntu24",
+          "image_version": "20261012.334.1",
+          "pool": "test",
+          "worker": 17
+        },
+        "schema_version": 1,
+        "system": {
+          "architecture": "x86_64",
+          "kernel": "6.17.0-1022-azure",
+          "libc": "glibc 2.39",
+          "os": "Ubuntu 24.04.5 LTS"
+        },
+        "tools": {
+          "compiler": {
+            "description": "Ubuntu clang version 22.1.8 (++20260714014902+ca7933e47d3a-1~exp1~20260714135019.80)",
+            "name": "clang++",
+            "path": "/usr/lib/llvm-22/bin/clang++",
+            "status": "ok",
+            "version": "22.1.8"
+          },
+          "python": {
+            "path": "/usr/bin/python3",
+            "status": "ok",
+            "version": "3.12.3"
+          }
+        },
+        "vcpkg_baseline": ""
+      },
+      "key": "workers/pococc-worker-report-test-17-1",
+      "label": "test worker 17"
+    },
+    {
+      "info": {
+        "artifact": "pococc-worker-report-test-18-1",
+        "build": {},
+        "captured_at": "2026-10-24T12:39:25.913113+00:00",
+        "cpu": {
+          "logical_cpus": 4,
+          "model": "AMD EPYC 9V45 96-Core Processor"
+        },
+        "disk": {
+          "free_bytes": 90371657728,
+          "total_bytes": 154894188544
+        },
+        "job": "workers",
+        "memory_bytes": 16766414848,
+        "runner": {
+          "environment": "github-hosted",
+          "image_os": "ubuntu24",
+          "image_version": "20261023.334.3",
+          "pool": "test",
+          "worker": 18
+        },
+        "schema_version": 1,
+        "system": {
+          "architecture": "x86_64",
+          "kernel": "6.17.0-1022-azure",
+          "libc": "glibc 2.39",
+          "os": "Ubuntu 24.04.5 LTS"
+        },
+        "tools": {
+          "compiler": {
+            "description": "Ubuntu clang version 22.1.8 (++20260714014902+ca7933e47d3a-1~exp1~20260714135019.80)",
+            "name": "clang++",
+            "path": "/usr/lib/llvm-22/bin/clang++",
+            "status": "ok",
+            "version": "22.1.8"
+          },
+          "python": {
+            "path": "/usr/bin/python3",
+            "status": "ok",
+            "version": "3.12.3"
+          }
+        },
+        "vcpkg_baseline": ""
+      },
+      "key": "workers/pococc-worker-report-test-18-1",
+      "label": "test worker 18"
+    },
+    {
+      "info": {
+        "artifact": "pococc-worker-report-test-19-1",
+        "build": {},
+        "captured_at": "2026-10-24T12:39:30.060678+00:00",
+        "cpu": {
+          "logical_cpus": 4,
+          "model": "AMD EPYC 7763 64-Core Processor"
+        },
+        "disk": {
+          "free_bytes": 90631491584,
+          "total_bytes": 154894188544
+        },
+        "job": "workers",
+        "memory_bytes": 16766414848,
+        "runner": {
+          "environment": "github-hosted",
+          "image_os": "ubuntu24",
+          "image_version": "20261012.334.1",
+          "pool": "test",
+          "worker": 19
+        },
+        "schema_version": 1,
+        "system": {
+          "architecture": "x86_64",
+          "kernel": "6.17.0-1022-azure",
+          "libc": "glibc 2.39",
+          "os": "Ubuntu 24.04.5 LTS"
+        },
+        "tools": {
+          "compiler": {
+            "description": "Ubuntu clang version 22.1.8 (++20260714014902+ca7933e47d3a-1~exp1~20260714135019.80)",
+            "name": "clang++",
+            "path": "/usr/lib/llvm-22/bin/clang++",
+            "status": "ok",
+            "version": "22.1.8"
+          },
+          "python": {
+            "path": "/usr/bin/python3",
+            "status": "ok",
+            "version": "3.12.3"
+          }
+        },
+        "vcpkg_baseline": ""
+      },
+      "key": "workers/pococc-worker-report-test-19-1",
+      "label": "test worker 19"
+    },
+    {
+      "info": {
+        "artifact": "pococc-worker-report-test-2-1",
+        "build": {},
+        "captured_at": "2026-10-24T12:39:47.370137+00:00",
+        "cpu": {
+          "logical_cpus": 4,
+          "model": "AMD EPYC 9V74 80-Core Processor"
+        },
+        "disk": {
+          "free_bytes": 90371485696,
+          "total_bytes": 154894188544
+        },
+        "job": "workers",
+        "memory_bytes": 16766414848,
+        "runner": {
+          "environment": "github-hosted",
+          "image_os": "ubuntu24",
+          "image_version": "20261023.334.3",
+          "pool": "test",
+          "worker": 2
+        },
+        "schema_version": 1,
+        "system": {
+          "architecture": "x86_64",
+          "kernel": "6.17.0-1022-azure",
+          "libc": "glibc 2.39",
+          "os": "Ubuntu 24.04.5 LTS"
+        },
+        "tools": {
+          "compiler": {
+            "description": "Ubuntu clang version 22.1.8 (++20260714014902+ca7933e47d3a-1~exp1~20260714135019.80)",
+            "name": "clang++",
+            "path": "/usr/lib/llvm-22/bin/clang++",
+            "status": "ok",
+            "version": "22.1.8"
+          },
+          "python": {
+            "path": "/usr/bin/python3",
+            "status": "ok",
+            "version": "3.12.3"
+          }
+        },
+        "vcpkg_baseline": ""
+      },
+      "key": "workers/pococc-worker-report-test-2-1",
+      "label": "test worker 2"
+    },
+    {
+      "info": {
+        "artifact": "pococc-worker-report-test-20-1",
+        "build": {},
+        "captured_at": "2026-10-24T12:39:32.395455+00:00",
+        "cpu": {
+          "logical_cpus": 4,
+          "model": "INTEL(R) XEON(R) PLATINUM 8573C"
+        },
+        "disk": {
+          "free_bytes": 90632613888,
+          "total_bytes": 154894188544
+        },
+        "job": "workers",
+        "memory_bytes": 16765378560,
+        "runner": {
+          "environment": "github-hosted",
+          "image_os": "ubuntu24",
+          "image_version": "20261012.334.1",
+          "pool": "test",
+          "worker": 20
+        },
+        "schema_version": 1,
+        "system": {
+          "architecture": "x86_64",
+          "kernel": "6.17.0-1022-azure",
+          "libc": "glibc 2.39",
+          "os": "Ubuntu 24.04.5 LTS"
+        },
+        "tools": {
+          "compiler": {
+            "description": "Ubuntu clang version 22.1.8 (++20260714014902+ca7933e47d3a-1~exp1~20260714135019.80)",
+            "name": "clang++",
+            "path": "/usr/lib/llvm-22/bin/clang++",
+            "status": "ok",
+            "version": "22.1.8"
+          },
+          "python": {
+            "path": "/usr/bin/python3",
+            "status": "ok",
+            "version": "3.12.3"
+          }
+        },
+        "vcpkg_baseline": ""
+      },
+      "key": "workers/pococc-worker-report-test-20-1",
+      "label": "test worker 20"
+    },
+    {
+      "info": {
+        "artifact": "pococc-worker-report-test-21-1",
+        "build": {},
+        "captured_at": "2026-10-24T12:39:31.804555+00:00",
+        "cpu": {
+          "logical_cpus": 4,
+          "model": "INTEL(R) XEON(R) PLATINUM 8573C"
+        },
+        "disk": {
+          "free_bytes": 90371686400,
+          "total_bytes": 154894188544
+        },
+        "job": "workers",
+        "memory_bytes": 16765378560,
+        "runner": {
+          "environment": "github-hosted",
+          "image_os": "ubuntu24",
+          "image_version": "20261023.334.3",
+          "pool": "test",
+          "worker": 21
+        },
+        "schema_version": 1,
+        "system": {
+          "architecture": "x86_64",
+          "kernel": "6.17.0-1022-azure",
+          "libc": "glibc 2.39",
+          "os": "Ubuntu 24.04.5 LTS"
+        },
+        "tools": {
+          "compiler": {
+            "description": "Ubuntu clang version 22.1.8 (++20260714014902+ca7933e47d3a-1~exp1~20260714135019.80)",
+            "name": "clang++",
+            "path": "/usr/lib/llvm-22/bin/clang++",
+            "status": "ok",
+            "version": "22.1.8"
+          },
+          "python": {
+            "path": "/usr/bin/python3",
+            "status": "ok",
+            "version": "3.12.3"
+          }
+        },
+        "vcpkg_baseline": ""
+      },
+      "key": "workers/pococc-worker-report-test-21-1",
+      "label": "test worker 21"
+    },
+    {
+      "info": {
+        "artifact": "pococc-worker-report-test-22-1",
+        "build": {},
+        "captured_at": "2026-10-24T12:39:22.364033+00:00",
+        "cpu": {
+          "logical_cpus": 4,
+          "model": "AMD EPYC 9V45 96-Core Processor"
+        },
+        "disk": {
+          "free_bytes": 90371604480,
+          "total_bytes": 154894188544
+        },
+        "job": "workers",
+        "memory_bytes": 16766414848,
+        "runner": {
+          "environment": "github-hosted",
+          "image_os": "ubuntu24",
+          "image_version": "20261023.334.3",
+          "pool": "test",
+          "worker": 22
+        },
+        "schema_version": 1,
+        "system": {
+          "architecture": "x86_64",
+          "kernel": "6.17.0-1022-azure",
+          "libc": "glibc 2.39",
+          "os": "Ubuntu 24.04.5 LTS"
+        },
+        "tools": {
+          "compiler": {
+            "description": "Ubuntu clang version 22.1.8 (++20260714014902+ca7933e47d3a-1~exp1~20260714135019.80)",
+            "name": "clang++",
+            "path": "/usr/lib/llvm-22/bin/clang++",
+            "status": "ok",
+            "version": "22.1.8"
+          },
+          "python": {
+            "path": "/usr/bin/python3",
+            "status": "ok",
+            "version": "3.12.3"
+          }
+        },
+        "vcpkg_baseline": ""
+      },
+      "key": "workers/pococc-worker-report-test-22-1",
+      "label": "test worker 22"
+    },
+    {
+      "info": {
+        "artifact": "pococc-worker-report-test-23-1",
+        "build": {},
+        "captured_at": "2026-10-24T12:39:21.719178+00:00",
+        "cpu": {
+          "logical_cpus": 4,
+          "model": "AMD EPYC 7763 64-Core Processor"
+        },
+        "disk": {
+          "free_bytes": 90371809280,
+          "total_bytes": 154894188544
+        },
+        "job": "workers",
+        "memory_bytes": 16766414848,
+        "runner": {
+          "environment": "github-hosted",
+          "image_os": "ubuntu24",
+          "image_version": "20261023.334.3",
+          "pool": "test",
+          "worker": 23
+        },
+        "schema_version": 1,
+        "system": {
+          "architecture": "x86_64",
+          "kernel": "6.17.0-1022-azure",
+          "libc": "glibc 2.39",
+          "os": "Ubuntu 24.04.5 LTS"
+        },
+        "tools": {
+          "compiler": {
+            "description": "Ubuntu clang version 22.1.8 (++20260714014902+ca7933e47d3a-1~exp1~20260714135019.80)",
+            "name": "clang++",
+            "path": "/usr/lib/llvm-22/bin/clang++",
+            "status": "ok",
+            "version": "22.1.8"
+          },
+          "python": {
+            "path": "/usr/bin/python3",
+            "status": "ok",
+            "version": "3.12.3"
+          }
+        },
+        "vcpkg_baseline": ""
+      },
+      "key": "workers/pococc-worker-report-test-23-1",
+      "label": "test worker 23"
+    },
+    {
+      "info": {
+        "artifact": "pococc-worker-report-test-24-1",
+        "build": {},
+        "captured_at": "2026-10-24T12:39:29.932695+00:00",
+        "cpu": {
+          "logical_cpus": 4,
+          "model": "AMD EPYC 9V74 80-Core Processor"
+        },
+        "disk": {
+          "free_bytes": 90371637248,
+          "total_bytes": 154894188544
+        },
+        "job": "workers",
+        "memory_bytes": 16766414848,
+        "runner": {
+          "environment": "github-hosted",
+          "image_os": "ubuntu24",
+          "image_version": "20261023.334.3",
+          "pool": "test",
+          "worker": 24
+        },
+        "schema_version": 1,
+        "system": {
+          "architecture": "x86_64",
+          "kernel": "6.17.0-1022-azure",
+          "libc": "glibc 2.39",
+          "os": "Ubuntu 24.04.5 LTS"
+        },
+        "tools": {
+          "compiler": {
+            "description": "Ubuntu clang version 22.1.8 (++20260714014902+ca7933e47d3a-1~exp1~20260714135019.80)",
+            "name": "clang++",
+            "path": "/usr/lib/llvm-22/bin/clang++",
+            "status": "ok",
+            "version": "22.1.8"
+          },
+          "python": {
+            "path": "/usr/bin/python3",
+            "status": "ok",
+            "version": "3.12.3"
+          }
+        },
+        "vcpkg_baseline": ""
+      },
+      "key": "workers/pococc-worker-report-test-24-1",
+      "label": "test worker 24"
+    },
+    {
+      "info": {
+        "artifact": "pococc-worker-report-test-3-1",
+        "build": {},
+        "captured_at": "2026-10-24T12:39:31.872844+00:00",
+        "cpu": {
+          "logical_cpus": 4,
+          "model": "AMD EPYC 9V74 80-Core Processor"
+        },
+        "disk": {
+          "free_bytes": 90371547136,
+          "total_bytes": 154894188544
+        },
+        "job": "workers",
+        "memory_bytes": 16766414848,
+        "runner": {
+          "environment": "github-hosted",
+          "image_os": "ubuntu24",
+          "image_version": "20261023.334.3",
+          "pool": "test",
+          "worker": 3
+        },
+        "schema_version": 1,
+        "system": {
+          "architecture": "x86_64",
+          "kernel": "6.17.0-1022-azure",
+          "libc": "glibc 2.39",
+          "os": "Ubuntu 24.04.5 LTS"
+        },
+        "tools": {
+          "compiler": {
+            "description": "Ubuntu clang version 22.1.8 (++20260714014902+ca7933e47d3a-1~exp1~20260714135019.80)",
+            "name": "clang++",
+            "path": "/usr/lib/llvm-22/bin/clang++",
+            "status": "ok",
+            "version": "22.1.8"
+          },
+          "python": {
+            "path": "/usr/bin/python3",
+            "status": "ok",
+            "version": "3.12.3"
+          }
+        },
+        "vcpkg_baseline": ""
+      },
+      "key": "workers/pococc-worker-report-test-3-1",
+      "label": "test worker 3"
+    },
+    {
+      "info": {
+        "artifact": "pococc-worker-report-test-4-1",
+        "build": {},
+        "captured_at": "2026-10-24T12:39:23.084793+00:00",
+        "cpu": {
+          "logical_cpus": 4,
+          "model": "Intel(R) Xeon(R) Platinum 8370C CPU @ 2.80GHz"
+        },
+        "disk": {
+          "free_bytes": 90632601600,
+          "total_bytes": 154894188544
+        },
+        "job": "workers",
+        "memory_bytes": 16765370368,
+        "runner": {
+          "environment": "github-hosted",
+          "image_os": "ubuntu24",
+          "image_version": "20261012.334.1",
+          "pool": "test",
+          "worker": 4
+        },
+        "schema_version": 1,
+        "system": {
+          "architecture": "x86_64",
+          "kernel": "6.17.0-1022-azure",
+          "libc": "glibc 2.39",
+          "os": "Ubuntu 24.04.5 LTS"
+        },
+        "tools": {
+          "compiler": {
+            "description": "Ubuntu clang version 22.1.8 (++20260714014902+ca7933e47d3a-1~exp1~20260714135019.80)",
+            "name": "clang++",
+            "path": "/usr/lib/llvm-22/bin/clang++",
+            "status": "ok",
+            "version": "22.1.8"
+          },
+          "python": {
+            "path": "/usr/bin/python3",
+            "status": "ok",
+            "version": "3.12.3"
+          }
+        },
+        "vcpkg_baseline": ""
+      },
+      "key": "workers/pococc-worker-report-test-4-1",
+      "label": "test worker 4"
+    },
+    {
+      "info": {
+        "artifact": "pococc-worker-report-test-5-1",
+        "build": {},
+        "captured_at": "2026-10-24T12:39:22.678877+00:00",
+        "cpu": {
+          "logical_cpus": 4,
+          "model": "AMD EPYC 7763 64-Core Processor"
+        },
+        "disk": {
+          "free_bytes": 90632634368,
+          "total_bytes": 154894188544
+        },
+        "job": "workers",
+        "memory_bytes": 16766414848,
+        "runner": {
+          "environment": "github-hosted",
+          "image_os": "ubuntu24",
+          "image_version": "20261012.334.1",
+          "pool": "test",
+          "worker": 5
+        },
+        "schema_version": 1,
+        "system": {
+          "architecture": "x86_64",
+          "kernel": "6.17.0-1022-azure",
+          "libc": "glibc 2.39",
+          "os": "Ubuntu 24.04.5 LTS"
+        },
+        "tools": {
+          "compiler": {
+            "description": "Ubuntu clang version 22.1.8 (++20260714014902+ca7933e47d3a-1~exp1~20260714135019.80)",
+            "name": "clang++",
+            "path": "/usr/lib/llvm-22/bin/clang++",
+            "status": "ok",
+            "version": "22.1.8"
+          },
+          "python": {
+            "path": "/usr/bin/python3",
+            "status": "ok",
+            "version": "3.12.3"
+          }
+        },
+        "vcpkg_baseline": ""
+      },
+      "key": "workers/pococc-worker-report-test-5-1",
+      "label": "test worker 5"
+    },
+    {
+      "info": {
+        "artifact": "pococc-worker-report-test-6-1",
+        "build": {},
+        "captured_at": "2026-10-24T12:39:33.308178+00:00",
+        "cpu": {
+          "logical_cpus": 4,
+          "model": "INTEL(R) XEON(R) PLATINUM 8573C"
+        },
+        "disk": {
+          "free_bytes": 90371686400,
+          "total_bytes": 154894188544
+        },
+        "job": "workers",
+        "memory_bytes": 16765378560,
+        "runner": {
+          "environment": "github-hosted",
+          "image_os": "ubuntu24",
+          "image_version": "20261023.334.3",
+          "pool": "test",
+          "worker": 6
+        },
+        "schema_version": 1,
+        "system": {
+          "architecture": "x86_64",
+          "kernel": "6.17.0-1022-azure",
+          "libc": "glibc 2.39",
+          "os": "Ubuntu 24.04.5 LTS"
+        },
+        "tools": {
+          "compiler": {
+            "description": "Ubuntu clang version 22.1.8 (++20260714014902+ca7933e47d3a-1~exp1~20260714135019.80)",
+            "name": "clang++",
+            "path": "/usr/lib/llvm-22/bin/clang++",
+            "status": "ok",
+            "version": "22.1.8"
+          },
+          "python": {
+            "path": "/usr/bin/python3",
+            "status": "ok",
+            "version": "3.12.3"
+          }
+        },
+        "vcpkg_baseline": ""
+      },
+      "key": "workers/pococc-worker-report-test-6-1",
+      "label": "test worker 6"
+    },
+    {
+      "info": {
+        "artifact": "pococc-worker-report-test-7-1",
+        "build": {},
+        "captured_at": "2026-10-24T12:39:27.342150+00:00",
+        "cpu": {
+          "logical_cpus": 4,
+          "model": "AMD EPYC 9V45 96-Core Processor"
+        },
+        "disk": {
+          "free_bytes": 90371604480,
+          "total_bytes": 154894188544
+        },
+        "job": "workers",
+        "memory_bytes": 16766418944,
+        "runner": {
+          "environment": "github-hosted",
+          "image_os": "ubuntu24",
+          "image_version": "20261023.334.3",
+          "pool": "test",
+          "worker": 7
+        },
+        "schema_version": 1,
+        "system": {
+          "architecture": "x86_64",
+          "kernel": "6.17.0-1022-azure",
+          "libc": "glibc 2.39",
+          "os": "Ubuntu 24.04.5 LTS"
+        },
+        "tools": {
+          "compiler": {
+            "description": "Ubuntu clang version 22.1.8 (++20260714014902+ca7933e47d3a-1~exp1~20260714135019.80)",
+            "name": "clang++",
+            "path": "/usr/lib/llvm-22/bin/clang++",
+            "status": "ok",
+            "version": "22.1.8"
+          },
+          "python": {
+            "path": "/usr/bin/python3",
+            "status": "ok",
+            "version": "3.12.3"
+          }
+        },
+        "vcpkg_baseline": ""
+      },
+      "key": "workers/pococc-worker-report-test-7-1",
+      "label": "test worker 7"
+    },
+    {
+      "info": {
+        "artifact": "pococc-worker-report-test-8-1",
+        "build": {},
+        "captured_at": "2026-10-24T12:39:25.820319+00:00",
+        "cpu": {
+          "logical_cpus": 4,
+          "model": "AMD EPYC 7763 64-Core Processor"
+        },
+        "disk": {
+          "free_bytes": 90634182656,
+          "total_bytes": 154894188544
+        },
+        "job": "workers",
+        "memory_bytes": 16766414848,
+        "runner": {
+          "environment": "github-hosted",
+          "image_os": "ubuntu24",
+          "image_version": "20261012.334.1",
+          "pool": "test",
+          "worker": 8
+        },
+        "schema_version": 1,
+        "system": {
+          "architecture": "x86_64",
+          "kernel": "6.17.0-1022-azure",
+          "libc": "glibc 2.39",
+          "os": "Ubuntu 24.04.5 LTS"
+        },
+        "tools": {
+          "compiler": {
+            "description": "Ubuntu clang version 22.1.8 (++20260714014902+ca7933e47d3a-1~exp1~20260714135019.80)",
+            "name": "clang++",
+            "path": "/usr/lib/llvm-22/bin/clang++",
+            "status": "ok",
+            "version": "22.1.8"
+          },
+          "python": {
+            "path": "/usr/bin/python3",
+            "status": "ok",
+            "version": "3.12.3"
+          }
+        },
+        "vcpkg_baseline": ""
+      },
+      "key": "workers/pococc-worker-report-test-8-1",
+      "label": "test worker 8"
+    },
+    {
+      "info": {
+        "artifact": "pococc-worker-report-test-9-1",
+        "build": {},
+        "captured_at": "2026-10-24T12:39:28.745206+00:00",
+        "cpu": {
+          "logical_cpus": 4,
+          "model": "AMD EPYC 9V45 96-Core Processor"
+        },
+        "disk": {
+          "free_bytes": 90371751936,
+          "total_bytes": 154894188544
+        },
+        "job": "workers",
+        "memory_bytes": 16766410752,
+        "runner": {
+          "environment": "github-hosted",
+          "image_os": "ubuntu24",
+          "image_version": "20261023.334.3",
+          "pool": "test",
+          "worker": 9
+        },
+        "schema_version": 1,
+        "system": {
+          "architecture": "x86_64",
+          "kernel": "6.17.0-1022-azure",
+          "libc": "glibc 2.39",
+          "os": "Ubuntu 24.04.5 LTS"
+        },
+        "tools": {
+          "compiler": {
+            "description": "Ubuntu clang version 22.1.8 (++20260714014902+ca7933e47d3a-1~exp1~20260714135019.80)",
+            "name": "clang++",
+            "path": "/usr/lib/llvm-22/bin/clang++",
+            "status": "ok",
+            "version": "22.1.8"
+          },
+          "python": {
+            "path": "/usr/bin/python3",
+            "status": "ok",
+            "version": "3.12.3"
+          }
+        },
+        "vcpkg_baseline": ""
+      },
+      "key": "workers/pococc-worker-report-test-9-1",
+      "label": "test worker 9"
+    }
+  ],
+  "snapshots": 71
+}
