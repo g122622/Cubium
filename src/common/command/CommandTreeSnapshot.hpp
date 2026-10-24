@@ -291,6 +291,7 @@ template <typename NodeT>
         {"rotation", 29},
         {"item_slot", 34},
         {"resource_location", 36},
+        {"identifier", 36},
         {"function", 37},
         {"dimension", 41},
         {"gamemode", 42},

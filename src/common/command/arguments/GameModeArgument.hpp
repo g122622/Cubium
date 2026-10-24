@@ -248,6 +248,27 @@ public:
     }
 };
 
+/**
+ * @brief 资源位置参数（原版 {@code ResourceLocationArgument.id()} / {@code identifier}）
+ *
+ * 与原版 {@link ResourceLocationArgumentType} 解析同一套语法，但类型名是原版命令树里的
+ * `identifier`。两者分开是因为原版把 `resource_location` 留给了「注册表里的资源」，
+ * 而 `identifier`（如 /bossbar 的 id、/stopwatch 的 id）只要求语法合法。
+ */
+class IdentifierArgumentType : public ArgumentType<ResourceLocation> {
+public:
+    [[nodiscard]] ResourceLocation parse(StringReader& reader) override { return readResourceLocationId(reader); }
+
+    [[nodiscard]] std::string getTypeName() const override { return "identifier"; }
+
+    [[nodiscard]] std::vector<std::string> getExamples() const override
+    {
+        return {"minecraft:stone", "minecraft:custom_name", "foo"};
+    }
+
+    static std::shared_ptr<IdentifierArgumentType> identifier() { return std::make_shared<IdentifierArgumentType>(); }
+};
+
 // ========== 坐标参数异常 ==========
 
 /**

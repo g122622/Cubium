@@ -479,6 +479,9 @@ add_executable(minecraft-server
     command/commands/PerfCommand.cpp
     command/commands/TeamMsgCommand.cpp
     command/commands/ReturnCommand.cpp
+    command/commands/StopwatchCommand.cpp
+    command/commands/RotateCommand.cpp
+    command/commands/RideCommand.cpp
     command/commands/LootCommand.cpp
     command/commands/PublishCommand.cpp
     command/commands/RecipeCommand.cpp

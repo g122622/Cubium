@@ -29,7 +29,7 @@
  * 条目会在每次运行摘要里单独点名，不会静默消失。
  *
  * 别名（`w`/`tm`/`tell` → `msg`，`xp` → `experience`）在原版里是独立注册的节点；
- * Cubium 已有 `w`/`tell`/`xp`，缺的只有 `tm`（列在下面）。
+ * 这些均已在 Cubium 注册。
  */
 export const KNOWN_MISSING_COMMANDS = [
     "damage",
@@ -39,9 +39,6 @@ export const KNOWN_MISSING_COMMANDS = [
     "item",
     "place",
     "random",
-    "ride",
-    "rotate",
-    "stopwatch",
     "test",
     "tick",
     "transfer",

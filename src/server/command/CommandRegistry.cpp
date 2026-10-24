@@ -88,6 +88,9 @@
 #include "commands/JfrCommand.hpp"
 #include "commands/PerfCommand.hpp"
 #include "commands/ReturnCommand.hpp"
+#include "commands/StopwatchCommand.hpp"
+#include "commands/RotateCommand.hpp"
+#include "commands/RideCommand.hpp"
 #include "commands/TeamMsgCommand.hpp"
 #include "commands/TitleCommand.hpp"
 #include "commands/TriggerCommand.hpp"
@@ -227,6 +230,9 @@ void CommandRegistry::registerDefaults()
     PerfCommand::registerTo(m_dispatcher);
     TeamMsgCommand::registerTo(m_dispatcher);
     ReturnCommand::registerTo(m_dispatcher);
+    StopwatchCommand::registerTo(m_dispatcher);
+    RotateCommand::registerTo(m_dispatcher);
+    RideCommand::registerTo(m_dispatcher);
     m_defaultsRegistered = true;
 
     spdlog::info("[CommandRegistry] Registered {} default commands", getCommandNames().size());
