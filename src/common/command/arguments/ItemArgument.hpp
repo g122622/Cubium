@@ -24,6 +24,7 @@
 #pragma once
 
 #include "ArgumentType.hpp"
+#include "common/command/arguments/GameModeArgument.hpp"
 #include "common/command/CommandContext.hpp"
 #include "common/command/StringReader.hpp"
 #include "common/command/exceptions/CommandExceptions.hpp"
@@ -106,35 +107,21 @@ public:
     {
         i32 start = reader.getCursor();
 
-        // 读取物品名称
-        std::string str = reader.readString();
-
-        // 解析命名空间
-        std::string namespace_;
-        std::string path;
-
-        size_t colonPos = str.find(':');
-        if (colonPos != std::string::npos) {
-            namespace_ = str.substr(0, colonPos);
-            path = str.substr(colonPos + 1);
-        } else {
-            namespace_ = "minecraft";
-            path = str;
-        }
+        // 读取物品名称：与原版一样走 Identifier 命令语法（不读引号、不认大写、单个冒号）。
+        const ResourceLocation location = readResourceLocationId(reader);
 
         // 查找物品
-        ResourceLocation location(namespace_, path);
         const Item* item = ItemRegistry::instance().getItem(location);
 
         if (item == nullptr) {
             reader.setCursor(start);
-            throw CommandException(CommandErrorType::Unknown, "Unknown item: " + str, start);
+            throw CommandException(CommandErrorType::Unknown, "Unknown item: " + location.toString(), start);
         }
 
         // air 物品特判：vanilla 中 minecraft:air 是空堆的同义物品，命令层用 air 清空槽位。
         // Cubium 的 air 是普通物品（itemId=1），须标记 m_isAir 供下游命令（ReplaceItem 等）
         // 识别后构造空堆清空，而非塞入 air 物品堆。
-        const bool isAir = (namespace_ == "minecraft" && path == "air");
+        const bool isAir = location.path() == "air";
         return ItemInput(item->itemId(), isAir);
     }
 

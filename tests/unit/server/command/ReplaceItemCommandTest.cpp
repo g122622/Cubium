@@ -224,9 +224,12 @@ TEST_F(ReplaceItemCommandTest, ItemSlot_CursorSlotAndHorseChestOverlap)
 
 TEST_F(ReplaceItemCommandTest, ItemSlot_NumericSlot499IsCursor)
 {
-    // 数字 499 也应识别为光标/马匹箱子槽位
+    // 原版没有纯数字槽位写法；499 只能通过 player.cursor / horse.chest 这两个名字得到。
     StringReader reader("499");
-    auto slot = ItemSlotArgumentType::itemSlot()->parse(reader);
+    EXPECT_THROW(ItemSlotArgumentType::itemSlot()->parse(reader), CommandException);
+
+    StringReader named("player.cursor");
+    auto slot = ItemSlotArgumentType::itemSlot()->parse(named);
     EXPECT_EQ(slot.slotIndex(), 499);
     EXPECT_TRUE(slot.isCursorSlot());
     EXPECT_TRUE(slot.isHorseChestSlot());
@@ -244,10 +247,10 @@ TEST_F(ReplaceItemCommandTest, ItemSlot_EquipmentSlots)
     } equipmentSlots[] = {
         {"weapon.mainhand", 98},
         {"weapon.offhand", 99},
-        {"armor.head", 100},
-        {"armor.chest", 101},
-        {"armor.legs", 102},
-        {"armor.feet", 103},
+        {"armor.head", 103},
+        {"armor.chest", 102},
+        {"armor.legs", 101},
+        {"armor.feet", 100},
         {"armor.body", 105},
         {"saddle", 106},
     };
@@ -281,10 +284,13 @@ TEST_F(ReplaceItemCommandTest, ItemSlot_PlayerInventorySlots)
     EXPECT_EQ(slot.slotIndex(), 4);
     EXPECT_TRUE(slot.isPlayerInventorySlot());
 
-    // 纯数字 0-40
+    // 原版没有纯数字槽位写法；背包槽位只用 inventory.N 这类名字
     StringReader reader2("20");
-    auto slot2 = ItemSlotArgumentType::itemSlot()->parse(reader2);
-    EXPECT_EQ(slot2.slotIndex(), 20);
+    EXPECT_THROW(ItemSlotArgumentType::itemSlot()->parse(reader2), CommandException);
+
+    StringReader reader3("inventory.20");
+    auto slot2 = ItemSlotArgumentType::itemSlot()->parse(reader3);
+    EXPECT_EQ(slot2.slotIndex(), 29);
     EXPECT_TRUE(slot2.isPlayerInventorySlot());
 }
 
@@ -373,8 +379,8 @@ TEST_F(ReplaceItemEntityTargetTest, HorseSaddleSlot_AcceptsSaddle)
     Entity* entity = spawnTestEntity(m_server, *entity::VanillaEntityTypeKeys::HORSE, 0.0f, 0.0f);
     ASSERT_NE(entity, nullptr);
 
-    // slot 500 = 马匹库存第 0 槽（鞍槽）
-    EXPECT_EQ(runCommand("replaceitem entity @e[type=minecraft:horse,limit=1] 500 minecraft:saddle"), 1);
+    // 原版里 500 不是合法槽位名，用 horse.0（马匹库存第 0 槽 = 鞍槽）
+    EXPECT_EQ(runCommand("replaceitem entity @e[type=minecraft:horse,limit=1] horse.0 minecraft:saddle"), 1);
 
     auto* horse = dynamic_cast<AbstractHorseEntity*>(entity);
     ASSERT_NE(horse, nullptr);
@@ -388,7 +394,8 @@ TEST_F(ReplaceItemEntityTargetTest, HorseSaddleSlot_RejectsNonSaddle)
     ASSERT_NE(entity, nullptr);
 
     // 鞍槽只接受鞍：普通物品写入失败，命令报错返回 0。
-    EXPECT_EQ(runCommand("replaceitem entity @e[type=minecraft:horse,limit=1] 500 minecraft:stone"), 0);
+    // 原版没有数字槽位写法；horse.0 是马匹鞍槽，放石头应失败（命令返回 0 条成功）。
+    EXPECT_EQ(runCommand("replaceitem entity @e[type=minecraft:horse,limit=1] horse.0 minecraft:stone"), 0);
 
     auto* horse = dynamic_cast<AbstractHorseEntity*>(entity);
     ASSERT_NE(horse, nullptr);
@@ -400,7 +407,7 @@ TEST_F(ReplaceItemEntityTargetTest, HorseInventorySlot_OutOfRangeFails)
     spawnTestEntity(m_server, *entity::VanillaEntityTypeKeys::HORSE, 0.0f, 0.0f);
 
     // 普通马库存大小为 2（鞍 + 马铠），514 超出：无任何实体命中槽位。
-    EXPECT_EQ(runCommand("replaceitem entity @e[type=minecraft:horse,limit=1] 514 minecraft:saddle"), 0);
+    EXPECT_EQ(runCommand("replaceitem entity @e[type=minecraft:horse,limit=1] horse.14 minecraft:saddle"), 0);
 }
 
 TEST_F(ReplaceItemEntityTargetTest, NonPlayerEntity_EquipmentSlot_IsWritten)
@@ -408,8 +415,8 @@ TEST_F(ReplaceItemEntityTargetTest, NonPlayerEntity_EquipmentSlot_IsWritten)
     Entity* entity = spawnTestEntity(m_server, *entity::VanillaEntityTypeKeys::ZOMBIE, 0.0f, 0.0f);
     ASSERT_NE(entity, nullptr);
 
-    // slot 100 = armor.head：对齐 LivingEntity.getSlot → createEquipmentSlotAccess
-    EXPECT_EQ(runCommand("replaceitem entity @e[type=minecraft:zombie,limit=1] 100 minecraft:iron_helmet"), 1);
+    // 原版 SlotArgument 里 head=103（feet=100）：走命名写法 armor.head。
+    EXPECT_EQ(runCommand("replaceitem entity @e[type=minecraft:zombie,limit=1] armor.head minecraft:iron_helmet"), 1);
 
     auto* living = dynamic_cast<LivingEntity*>(entity);
     ASSERT_NE(living, nullptr);
@@ -418,7 +425,7 @@ TEST_F(ReplaceItemEntityTargetTest, NonPlayerEntity_EquipmentSlot_IsWritten)
 
 TEST_F(ReplaceItemEntityTargetTest, NoMatchingEntity_ReturnsZero)
 {
-    EXPECT_EQ(runCommand("replaceitem entity @e[type=minecraft:horse] 500 minecraft:saddle"), 0);
+    EXPECT_EQ(runCommand("replaceitem entity @e[type=minecraft:horse] horse.0 minecraft:saddle"), 0);
 }
 
 } // namespace command

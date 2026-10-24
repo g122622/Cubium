@@ -66,10 +66,7 @@ NbtPath NbtPathArgumentType::parse(StringReader& reader)
         }
     }
 
-    if (nodes.empty()) {
-        throw CommandException(CommandErrorType::InvalidNbtPath, "Empty NBT path", start);
-    }
-
+    // 原版对空输入（含只有空白的输入）不报错，返回一个没有节点的路径。
     std::string rawText(reader.getString().substr(start, reader.getCursor() - start));
     return NbtPath(std::move(rawText), std::move(nodes));
 }
@@ -210,22 +207,17 @@ std::string NbtPathArgumentType::_readNbtUnquotedKey(StringReader& reader)
 
 std::string NbtPathArgumentType::_parseKeyName(StringReader& reader)
 {
-    // 键名可以包含字母、数字、下划线、点等
-    // 但不能以数字开头
-    i32 start = reader.getCursor();
-
-    // 支持的字符：a-z, A-Z, 0-9, _, ., -, +
-    // 但在路径中，点是分隔符，所以不应该出现在键名中
+    // 原版未引用的键名读取：贪婪读到 `.`、`[`、`{`、空白或结尾为止。
+    // 冒号、`*` 等字符在原版里都算键名的一部分（`*` 即「匹配任意键」），不能提前截断。
+    const i32 start = reader.getCursor();
     std::string result;
-
     while (reader.canRead()) {
-        char c = reader.peek();
-        if (std::isalnum(static_cast<unsigned char>(c)) || c == '_' || c == '-' || c == '+') {
-            result += c;
-            reader.skip();
-        } else {
+        const char c = reader.peek();
+        if (c == '.' || c == '[' || c == '{' || reader.isWhitespace(c)) {
             break;
         }
+        result += c;
+        reader.skip();
     }
 
     if (result.empty()) {

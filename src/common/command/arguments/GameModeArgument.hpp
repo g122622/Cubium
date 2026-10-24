@@ -63,26 +63,36 @@ namespace command {
  */
 class GameModeArgumentType : public ArgumentType<GameMode> {
 public:
+    /**
+     * @brief 解析游戏模式名（原版 GameModeArgument 语义）
+     *
+     * 只认 `survival` / `creative` / `adventure` / `spectator` 四个全名——1.13 起
+     * `s`/`c`/`a`/`sp` 与数字简写都已从原版移除，`/gamemode s` 在原版里是语法错误。
+     * 大小写也不同：原版按名字精确匹配，不转小写。不可识别时游标停在已读到的位置
+     * （读完了整个单词），与 brigadier 的报错位置一致。
+     */
     [[nodiscard]] GameMode parse(StringReader& reader) override
     {
         i32 start = reader.getCursor();
         std::string name = reader.readUnquotedString();
 
-        // 转换为小写进行比较
-        std::string lower = _toLower(name);
-
-        if (lower == "survival" || lower == "s" || lower == "0") {
+        if (name == "survival") {
             return GameMode::Survival;
-        } else if (lower == "creative" || lower == "c" || lower == "1") {
+        }
+        if (name == "creative") {
             return GameMode::Creative;
-        } else if (lower == "adventure" || lower == "a" || lower == "2") {
+        }
+        if (name == "adventure") {
             return GameMode::Adventure;
-        } else if (lower == "spectator" || lower == "sp" || lower == "3") {
+        }
+        if (name == "spectator") {
             return GameMode::Spectator;
         }
 
+        // 与 brigadier 一致：报错位置是「读完整个单词」处，游标本身停留在起点。
+        const i32 end = start + static_cast<i32>(name.size());
         reader.setCursor(start);
-        throw CommandException(CommandErrorType::Unknown, "Invalid game mode: " + name, start);
+        throw CommandException(CommandErrorType::Unknown, "Unknown game mode: " + name, end);
     }
 
     [[nodiscard]] std::string getTypeName() const override { return "gamemode"; }
@@ -139,23 +149,81 @@ private:
  *
  * 解析资源位置，格式：namespace:path 或 path（默认命名空间）
  */
+/**
+ * @brief 按原版坐标语法读取一个数字（{@code WorldCoordinate.parseDouble(reader, false)}）
+ *
+ * 原版实现（用原版 jar 反编译 + 实测确认）：
+ *
+ * <pre>
+ *   末尾已读尽          → SyntaxException「Expected a coordinate」，游标停在起点
+ *   下一个字符是空格    → 0.0，游标不动（` 5s` 因此是 0，且单位读成空串）
+ *   其它                → readDouble()：可选 '-'、数字、至多一个小数点，遇字母/`+` 即停
+ * </pre>
+ *
+ * 所以 `1e3` 读成 1（`e3` 留在原地当单位），`0x10` 读成 0（`x10` 留在原地）。
+ * 所有数值参数（坐标、时间）都走这一个读取器。
+ *
+ * @param reader 读取器
+ * @param out 读到的值
+ * @return 是否读到；游标已读尽时返回 false（调用方此时应整体失败）
+ */
+inline bool readWorldCoordinateDouble(StringReader& reader, f64& out)
+{
+    if (!reader.canRead()) {
+        return false;
+    }
+    if (reader.peek() == ' ') {
+        out = 0.0;
+        return true;
+    }
+    out = reader.readDouble();
+    return true;
+}
+
+/**
+ * @brief 按命令语法读取资源位置（原版 {@code Identifier.read(StringReader)}）
+ *
+ * 贪婪读取 `[a-z0-9_.-]`、`/` 与单个 `:`,遇到第二个 `:` 报错、遇到其它字符立刻停。
+ * 命令里所有「方块 / 物品 / 实体 / 维度 / 结构」的 id 都走这一个语法——
+ * 之前各处用 `readString()`（会吃掉引号与大写），与原版在 `"stone"`、`Minecraft:Stone`
+ * 这类输入上分叉。
+ *
+ * @param reader 读取器
+ * @return 解析出的 id（无命名空间时默认 minecraft）
+ * @throws CommandException 遇到第二个 `:` 时
+ */
+inline ResourceLocation readResourceLocationId(StringReader& reader)
+{
+    const i32 start = reader.getCursor();
+    std::string text;
+    while (reader.canRead()) {
+        const char c = reader.peek();
+        if ((c >= 'a' && c <= 'z') || (c >= '0' && c <= '9') || c == '_' || c == '-' || c == '.' || c == '/') {
+            text.push_back(c);
+        } else if (c == ':' && text.find(':') == std::string::npos) {
+            text.push_back(c);
+        } else if (c == ':') {
+            // 第二个冒号：原版直接报错（SyntaxException in command argument parser）。
+            reader.setCursor(start);
+            throw CommandException(CommandErrorType::Unknown, "Invalid resource location: " + text, start);
+        } else {
+            break;
+        }
+        reader.skip();
+    }
+
+    const size_t colonPos = text.find(':');
+    if (colonPos != std::string::npos) {
+        return ResourceLocation(text.substr(0, colonPos), text.substr(colonPos + 1));
+    }
+    // 空 id 是允许的（原版读出 `minecraft:`），调用方随后会在注册表里查不到而报错。
+    return ResourceLocation("minecraft", text);
+}
+
 class ResourceLocationArgumentType : public ArgumentType<ResourceLocation> {
 public:
-    [[nodiscard]] ResourceLocation parse(StringReader& reader) override
-    {
-        std::string str = reader.readString();
-
-        // 解析命名空间
-        size_t colonPos = str.find(':');
-        if (colonPos != std::string::npos) {
-            std::string namespace_ = str.substr(0, colonPos);
-            std::string path = str.substr(colonPos + 1);
-            return ResourceLocation(namespace_, path);
-        } else {
-            // 默认命名空间
-            return ResourceLocation("minecraft", str);
-        }
-    }
+    /// 解析资源位置（见 {@link readResourceLocationId}）。
+    [[nodiscard]] ResourceLocation parse(StringReader& reader) override { return readResourceLocationId(reader); }
 
     [[nodiscard]] std::string getTypeName() const override { return "resource_location"; }
 

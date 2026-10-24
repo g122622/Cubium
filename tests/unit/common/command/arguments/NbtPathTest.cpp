@@ -231,12 +231,14 @@ TEST_F(NbtPathTest, ParseComplexPathWithFilter)
 
 // ========== 错误处理测试 ==========
 
-TEST_F(NbtPathTest, EmptyPathThrowsError)
+// 原版对空输入不报错：返回一个没有任何节点的路径（调用方随后读到空匹配）。
+TEST_F(NbtPathTest, EmptyPathIsAccepted)
 {
     StringReader reader("");
     NbtPathArgumentType argType;
 
-    EXPECT_THROW(argType.parse(reader), CommandException);
+    const NbtPath path = argType.parse(reader);
+    EXPECT_EQ(path.toString(), "");
 }
 
 TEST_F(NbtPathTest, InvalidPathThrowsError)

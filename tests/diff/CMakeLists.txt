@@ -26,7 +26,7 @@
 #   源文件：实现该能力的 .cpp
 #   宏名：写入基类的 MC_DIFF_PROBE_DOMAIN，供 runner_main.cpp 选择能力
 # ---------------------------------------------------------------------------
-set(MC_DIFF_PROBE_SUFFIXES text_encode item_summary item_components entity_shape enchantment_table block_properties mob_category entity_attributes block_state_names random_sequence)
+set(MC_DIFF_PROBE_SUFFIXES text_encode item_summary item_components entity_shape enchantment_table block_properties mob_category entity_attributes block_state_names random_sequence command_argument)
 set(MC_DIFF_PROBE_SOURCES
     probes/text_encode.cpp
     probes/item_summary.cpp
@@ -38,8 +38,9 @@ set(MC_DIFF_PROBE_SOURCES
     probes/entity_attributes.cpp
     probes/block_state_names.cpp
     probes/random_sequence.cpp
+    probes/command_argument.cpp
 )
-set(MC_DIFF_PROBE_DOMAINS text_encode item_summary item_components entity_shape enchantment_table block_properties mob_category entity_attributes block_state_names random_sequence)
+set(MC_DIFF_PROBE_DOMAINS text_encode item_summary item_components entity_shape enchantment_table block_properties mob_category entity_attributes block_state_names random_sequence command_argument)
 
 function(mc_add_diff_probe targetSuffix source domain)
     set(targetName "diff_${targetSuffix}")

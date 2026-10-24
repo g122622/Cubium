@@ -141,7 +141,7 @@ harness 决定。`runner.ts` 负责按 `key` 对齐两侧输出、规范化、�
 
 ## 当前状态
 
-九个能力全部对齐（`node tests/diff/harness/runner.ts run all` 退出码 0）：
+十个能力全部对齐（`node tests/diff/harness/runner.ts run all` 退出码 0）：
 
 | harness | 参照实现 | 单元 | 结果 | 已知缺口 |
 |---|---|---|---|---|
@@ -155,6 +155,7 @@ harness 决定。`runner.ts` 负责按 `key` 对齐两侧输出、规范化、�
 | `entity_attributes` | 参考表 + 原版 jar `EntityAttributesOracle` | 73 | 全部一致 | 2 个实体类型未对齐（盔甲架、凋灵） |
 | `block_state_names` | 原版 jar `BlockStateNamesOracle` | 1166 | 全部一致 | — |
 | `random_sequence` | 原版 jar `RandomSequenceOracle` | 24 | 全部一致 | — |
+| `command_argument` | 原版 jar `CommandArgumentOracle` | 157 | 全部一致 | — |
 
 第一次跑通就查出并修掉的实打实的错误（都是手抄数据/公式出错）：
 
@@ -204,6 +205,28 @@ harness 决定。`runner.ts` 负责按 `key` 对齐两侧输出、规范化、�
 - `LegacyRandomSource.nextDouble()` 用的是 java.util.Random 的 53 位公式（f64 乘数），
   Cubium 误用了 BitRandomSource 的 next(26)/next(27) + f32 组合；
 - `IRandom::nextBits(32)` 取的是 nextU64() 的高 32 位，原版 `next(32)` 取低 32 位。
+
+`command_argument` 首轮跑出 54 个不一致，逐条对齐后挖出了这些真问题：
+
+- **数值参数的「读完再校验」语义**：brigadier 的整数/浮点参数先把整段单词读完再解析，
+  `1a` 读成 1（原地留下 `a`）、`1.0` 与 `1.5.5` 整体失败、`2147483648` 溢出报错、`+1` 非法；
+  Cubium 之前是「读到第一个非数字就停」，于是 `1.0` 被静默接受、` 1` 却被接受（原版拒绝）；
+- **坐标读取（`WorldCoordinate.parseDouble`）**：可选 `-`、数字、至多一个小数点，遇到字母
+  立即停（`1e3` → 1，`e3` 留给单位）；前导空格不报错而是 **0 且游标不动**；游标已读尽才报错。
+  `/time set 1.5d` 之前多解析了一位小数之外还漏掉了单位；
+- **游戏模式**：原版 1.13 起只认 `survival`/`creative`/`adventure`/`spectator` 全名且大小写
+  敏感；Cubium 还接受 `s`/`c`/`a`/`sp`/`0`/`1` 并转小写，`/gamemode s` 在原版里是语法错误；
+- **物品栏槽位**：原版只认名字表，没有纯数字写法；且护甲号是 head=103、chest=102、
+  legs=101、feet=100（与枚举顺序一致），Cubium 之前是反的——`/replaceitem ... armor.head`
+  实际会写到脚上；
+- **资源位置**：原版按 `Identifier.read` 贪婪读 `[a-z0-9_.-]`/`/` 与 **一个** `:`，不读引号、
+  不认大写、第二个 `:` 直接报错；Cubium 用 `readString()`，`"stone"` 读成 `stone`、
+  `a:b:c` 被静默接受；
+- **时间单位**：单位区分大小写、`+1` 非法、`-1` 合法（最小值由命令自己指定）；
+- **NBT 路径**：空输入在原版里是合法的空路径（不报错）；未引用键名要读到 `.`/`[`/`{`/空白
+  才停，`*`（匹配任意键）此前根本解析不了。
+
+这一批修复顺带改正了一个**真实玩法 bug**：`ReplaceItem` 的护甲槽号翻转。
 
 ### 已知缺口清单
 
@@ -276,7 +299,7 @@ harness 决定。`runner.ts` 负责按 `key` 对齐两侧输出、规范化、�
 按「只读、无状态、易对齐」排序：
 
 1. **方块状态 → NBT / 数字 ID 编解码** —— 直接落在存档与网络协议的 1:1 对齐上；
-2. **命令解析树** —— 从原版导出 command tree，对同一批输入比解析结果；
-3. **随机数序列** —— 先锁死 `RandomSource` 的位级等价，后面世界生成的差分才可能成立；
-4. **实体 / 附魔缺失项** —— 补齐 `KNOWN_MISSING` 里那 3 个附魔与 32 个实体类型，
+2. **命令解析树** —— 从原版导出 command tree（字面量/参数/重定向），与 `/help` 看到的
+   树逐节点比对；`command_argument` 已经把参数层对齐了；
+3. **实体 / 附魔缺失项** —— 补齐 `KNOWN_MISSING` 里那 3 个附魔与 32 个实体类型，
    清单随之删条目。

@@ -26,6 +26,7 @@
 #include "common/command/exceptions/CommandExceptions.hpp"
 #include "common/core/Types.hpp"
 #include <cstddef>
+#include <limits>
 #include <string>
 #include <string_view>
 
@@ -202,33 +203,41 @@ public:
     }
 
     /**
-     * @brief 读取整数
+     * @brief 读取整数（brigadier StringReader.readInt 的语义）
+     *
+     * 与原版逐条一致：不接受前导空白；'+' 不非法（会作为单词的一部分留给调用方）；
+     * 数字部分按 i32 相乘自然回绕（`2147483648` 读成 -2147483648），不报溢出；
+     * 读不到数字时游标回到起点再报错。
      */
     [[nodiscard]] i32 readInt()
     {
         i32 start = m_cursor;
-        skipWhitespace();
-
+        // i32 乘法本身会回绕，直接按位运算与 Java 的 `result * 10 + c` 一致。
         bool negative = false;
         if (canRead() && peek() == '-') {
+            skip();
+            if (!canRead()) {
+                setCursor(start);
+                throw CommandException(CommandErrorType::IntegerExpected, "Expected integer", start);
+            }
             negative = true;
-            skip();
         }
-
-        i32 result = 0;
-        bool hasDigits = false;
-
-        while (canRead() && isDigit(peek())) {
-            result = result * 10 + (peek() - '0');
-            skip();
-            hasDigits = true;
+        if (canRead() && isDigit(peek())) {
+            const i32 digitsStart = m_cursor;
+            while (canRead() && isDigit(peek())) {
+                skip();
+            }
+            const std::string digits(m_input.substr(static_cast<size_t>(digitsStart),
+                static_cast<size_t>(m_cursor - digitsStart)));
+            i32 result = 0;
+            for (char c : digits) {
+                result = static_cast<i32>(static_cast<u32>(result) * 10u + static_cast<u32>(c - '0'));
+            }
+            return negative ? -result : result;
         }
-
-        if (!hasDigits) {
-            throw CommandException(CommandErrorType::IntegerExpected, "Expected integer", start);
-        }
-
-        return negative ? -result : result;
+        setCursor(start);
+        throw CommandException(
+            CommandErrorType::IntegerExpected, "Expected integer at position " + std::to_string(start), start);
     }
 
     /**
@@ -252,48 +261,55 @@ public:
     }
 
     /**
-     * @brief 读取浮点数
+     * @brief 读取浮点数（brigadier StringReader.readDouble 的语义）
+     *
+     * 与整数共用同一套数字语法：可选的 '-'、小数、可选的多位小数；不接受 '+'、
+     * 前导空白或指数（`1e3` 只读成 1，`e3` 留给调用方当单位/后缀）。
+     * 读不到数字时游标回到起点再报错。
      */
     [[nodiscard]] f64 readDouble()
     {
         i32 start = m_cursor;
-        skipWhitespace();
-
         bool negative = false;
         if (canRead() && peek() == '-') {
-            negative = true;
             skip();
+            if (!canRead()) {
+                setCursor(start);
+                throw CommandException(CommandErrorType::FloatExpected, "Expected float at position " + std::to_string(start), start);
+            }
+            negative = true;
         }
-
         f64 result = 0.0;
+        f64 decimalPlace = 0.1;
         bool hasDigits = false;
         bool hasDecimal = false;
-        f64 decimalPlace = 0.1;
-
-        while (canRead() && (isDigit(peek()) || peek() == '.')) {
-            if (peek() == '.') {
+        while (canRead()) {
+            const char c = peek();
+            if (c == '.') {
                 if (hasDecimal) {
-                    break; // 第二个小数点，停止
+                    break;
                 }
                 hasDecimal = true;
                 skip();
                 continue;
             }
-
+            if (!isDigit(c)) {
+                break;
+            }
             if (hasDecimal) {
-                result += (peek() - '0') * decimalPlace;
+                result += static_cast<f64>(c - '0') * decimalPlace;
                 decimalPlace *= 0.1;
             } else {
-                result = result * 10.0 + (peek() - '0');
+                result = result * 10.0 + static_cast<f64>(c - '0');
             }
-            skip();
             hasDigits = true;
+            skip();
         }
-
         if (!hasDigits) {
-            throw CommandException(CommandErrorType::FloatExpected, "Expected float", start);
+            setCursor(start);
+            throw CommandException(
+                CommandErrorType::FloatExpected, "Expected float at position " + std::to_string(start), start);
         }
-
         return negative ? -result : result;
     }
 
@@ -325,6 +341,9 @@ public:
     // ========== 辅助方法 ==========
 
     [[nodiscard]] static bool isDigit(char c) { return c >= '0' && c <= '9'; }
+
+    /// brigadier {@code StringReader.isAllowedNumber}：数字或小数点。
+    [[nodiscard]] static bool isAllowedNumber(char c) { return (c >= '0' && c <= '9') || c == '.'; }
 
     [[nodiscard]] static bool isLetter(char c) { return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z'); }
 

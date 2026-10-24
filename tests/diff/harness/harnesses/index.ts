@@ -131,6 +131,12 @@ const JAVA_HARNESSES: ReadonlyArray<() => JavaHarness> = [
         key: "unit",
     }),
     () => ({
+        name: "command_argument",
+        oracle: "CommandArgumentOracle",
+        input: (unit: string) => ({ unit }),
+        key: "unit",
+    }),
+    () => ({
         name: "item_components",
         oracle: "ItemComponentsOracle",
         input: (unit: string) => ({ item: unit }),

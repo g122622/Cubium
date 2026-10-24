@@ -30,6 +30,7 @@
 #include <vector>
 
 #include "ArgumentType.hpp"
+#include "common/command/arguments/GameModeArgument.hpp"
 #include "common/command/StringReader.hpp"
 #include "common/command/exceptions/CommandExceptions.hpp"
 #include "common/core/Types.hpp"
@@ -91,7 +92,9 @@ public:
     {
         i32 start = reader.getCursor();
 
-        // 读取方块 ID 部分（可能包含命名空间和属性）
+        // 读取整个方块状态文本（id 与 `[属性=值,...]`）。原版这一步用
+        // BlockStateParser.parseForBlock 一次读完块名和属性列表；这里先把整段文本读回来，
+        // 下面再按 `[` / `]` 拆开——块名部分随后按 Identifier 规则严格校验。
         std::string blockIdStr = reader.readString();
 
         // 解析方块 ID 和属性
