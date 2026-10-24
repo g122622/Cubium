@@ -12,9 +12,13 @@
 import type { CaseDefinition } from "../case.ts";
 import { expectDeepEq, expectEq, expectTrue } from "../assert/expect.ts";
 import { biomeIdAt, biomeNameOfId, blockNameAt, layersBelowSurface } from "../assert/surface.ts";
+import { waitForBlockReadable } from "./shared.ts";
 
 /** 超平坦默认层（bedrock 1 / dirt 2 / grass_block 1），两侧应当一致。 */
 const EXPECTED_LAYERS = ["grass_block", "dirt", "dirt", "bedrock"];
+
+/** 等待区块接缝两侧列送达的上限（服务器按 tick 逐批推送，视距内最远列需要若干 tick）。 */
+const BOUNDARY_WAIT_TIMEOUT_MS = 20_000;
 
 export const chunkSyncCases: readonly CaseDefinition[] = [
     {
@@ -80,6 +84,25 @@ export const chunkSyncCases: readonly CaseDefinition[] = [
         async run({ bot, surfaceY, spawnX, spawnZ }): Promise<Record<string, unknown>> {
             // 取出生列所在区块的两侧边界：x 从 chunkX*16-1 到 chunkX*16，跨越区块接缝。
             const chunkBoundaryX = Math.floor(spawnX / 16) * 16;
+            // 区块按 tick 逐批推送，而 runner 的 waitForAreaLoaded 只保证出生点 ±3 格
+            // （整段落在出生点自身区块内），接缝另一侧的区块可能尚未送达；出生点由
+            // spawnRadius 随机偏移，接缝落在 -X 侧还是 +X 侧每次都不同，不显式等待会随机假失败。
+            await waitForBlockReadable(
+                bot,
+                chunkBoundaryX - 1,
+                surfaceY,
+                spawnZ,
+                "区块接缝左侧列送达",
+                BOUNDARY_WAIT_TIMEOUT_MS,
+            );
+            await waitForBlockReadable(
+                bot,
+                chunkBoundaryX,
+                surfaceY,
+                spawnZ,
+                "区块接缝右侧列送达",
+                BOUNDARY_WAIT_TIMEOUT_MS,
+            );
             const left = layersBelowSurface(bot, chunkBoundaryX - 1, spawnZ, surfaceY, 4);
             const right = layersBelowSurface(bot, chunkBoundaryX, spawnZ, surfaceY, 4);
             expectDeepEq(left, EXPECTED_LAYERS, `区块边界左侧列 (${chunkBoundaryX - 1},${spawnZ}) 分层不符`);

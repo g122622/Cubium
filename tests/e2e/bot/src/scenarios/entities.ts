@@ -30,7 +30,7 @@ const TELEPORT_ATTEMPTS = 6;
 const TELEPORT_INTERVAL_MS = 700;
 
 /** 一次实体快照：id → 实体对象。 */
-type EntityTable = Record<number, { id: number; position: { x: number; y: number; z: number } }>;
+type EntityTable = Record<number, { id: number; name?: string; position: { x: number; y: number; z: number } }>;
 
 function entityTable(bot: Bot): EntityTable {
     return bot.entities as unknown as EntityTable;
@@ -63,13 +63,18 @@ export const entityCases: readonly CaseDefinition[] = [
             await typed.tossStack(item);
 
             // 服务端为掉落物分配实体 id 后会下发 add_entity（也可能是 spawn_entity，
-            // nmp 会归一化为同一个 'entity' 事件）。
-            await waitForCondition(() => newEntityIds(bot, before).length > 0, {
-                timeoutMs: ENTITY_TIMEOUT_MS,
-                pollMs: 50,
-                what: "世界里出现新的掉落物实体",
-                describe: () => `实体总数仍为 ${Object.keys(entityTable(bot)).length}（丢弃包可能被丢弃）`,
-            });
+            // nmp 会归一化为同一个 'entity' 事件）。只认 entity.name === 'item'：同一批
+            // 区块送达时可能先冒出别的实体（如成组自然生成的蝙蝠），否则用例会因它们而假通过。
+            await waitForCondition(
+                () => newEntityIds(bot, before).some((id) => entityTable(bot)[id]?.name === "item"),
+                {
+                    timeoutMs: ENTITY_TIMEOUT_MS,
+                    pollMs: 50,
+                    what: "世界里出现新的掉落物实体（entity.name === 'item'）",
+                    describe: () =>
+                        `实体总数仍为 ${Object.keys(entityTable(bot)).length}（丢弃包可能被丢弃）`,
+                },
+            );
 
             // 本地槽位被 tossStack 清空；服务端是否同步另说，这里只记录丢弃确实发生了。
             expectTrue(!inventoryHas(bot, "stone"), "丢弃后本地物品栏不应还有石头");
@@ -97,17 +102,22 @@ export const entityCases: readonly CaseDefinition[] = [
             let droppedId = -1;
             await waitForCondition(
                 () => {
-                    const ids = newEntityIds(bot, before);
-                    if (ids.length === 0) {
+                    // 必须按 entity.name === 'item' 认掉落物：同一批区块送达时可能先冒出别的实体
+                    // （例如成组自然生成的蝙蝠），取 newEntityIds()[0] 会选中它们，随后把玩家
+                    // 传送到错误坐标，拾取永远不会发生（表现为"拾取未生效"的假失败）。
+                    const itemIds = newEntityIds(bot, before).filter(
+                        (id) => entityTable(bot)[id]?.name === "item",
+                    );
+                    if (itemIds.length === 0) {
                         return false;
                     }
-                    droppedId = ids[0];
+                    droppedId = itemIds[0];
                     return true;
                 },
                 {
                     timeoutMs: ENTITY_TIMEOUT_MS,
                     pollMs: 50,
-                    what: "掉落物实体出现（用于定位它的坐标）",
+                    what: "掉落物实体出现（按 entity.name === 'item' 定位，用于取它的坐标）",
                 },
             );
 
