@@ -578,13 +578,6 @@ void* QuickJSBindingContext::getOpaque(void* obj, u64 classId) const
     }
 
     if (JS_GetClassID(val) == static_cast<JSClassID>(classId)) {
-        // TODO: 定位 ItemStack 解包失败根因后移除本诊断输出。
-        static std::atomic<i32> s_diagIdCheck{0};
-        if (classId >= 360 && classId <= 370 && s_diagIdCheck.fetch_add(1) < 6) {
-            spdlog::warn("[DIAG2] getOpaque id-path classId={} opaque={}",
-                classId,
-                JS_GetOpaque(val, static_cast<JSClassID>(classId)) != nullptr);
-        }
         return JS_GetOpaque(val, static_cast<JSClassID>(classId));
     }
 
@@ -758,7 +751,14 @@ void* QuickJSBindingContext::createClassProto(u64 classId)
     // 调用方按"owned 句柄"契约 releaseValue 会让 refcount 提前归零释放对象，
     // 致 class_proto[classId] 悬垂——后续 GC 遍历 gc_obj_list 访问该悬垂对象即崩。
     // 故此处 Dup 出一份独立引用供句柄持有：根 1 份 + 句柄 1 份，调用方 release 句柄时根仍保活。
-    JS_SetClassProto(m_ctx, static_cast<JSClassID>(classId), proto);
+    // TODO: 定位 ItemStack 解包失败根因后移除本诊断输出。
+    if (classId >= 360 && classId <= 370) {
+        spdlog::warn("[DIAG6] createClassProto classId={} setproto_rc={}",
+            classId,
+            JS_SetClassProto(m_ctx, static_cast<JSClassID>(classId), proto));
+    } else {
+        JS_SetClassProto(m_ctx, static_cast<JSClassID>(classId), proto);
+    }
     void* handle = wrapValue(JS_DupValue(m_ctx, proto));
 
     // 句柄所有权归本上下文（借用语义，调用方不得 releaseValue）：
