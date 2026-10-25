@@ -71,6 +71,11 @@ constexpr std::array<HeightmapType, 5> _FINAL_HEIGHTMAP_TYPES = {
 // 网络上用 INT16_MIN 标记"该列无方块"（与磁盘格式 ChunkData::serialize 一致）。
 constexpr i16 _HEIGHTMAP_NETWORK_SENTINEL = INT16_MIN;
 
+// 生物群系缓冲区上限：合法数据是 每列 u32（含调色板项与索引），一列最多 4*256 字节，
+// 上限取 4*256*CHUNK_SECTIONS 留一倍余量。不设上限时，一个被篡改的长度前缀就能让
+// deserializeChunk 直接按 4GiB 分配（fuzz_chunk_wire 曾因此 OOM）。
+constexpr u32 _MAX_BIOME_DATA_BYTES = 4 * 256 * static_cast<u32>(mc::world::CHUNK_SECTIONS) * 2;
+
 // 把高度图原始值（Y+1 或 NO_BLOCK_SENTINEL）转为网络 i16
 [[nodiscard]] i16 _encodeHeightmapValue(BlockCoord raw)
 {
@@ -234,6 +239,9 @@ Result<std::unique_ptr<ChunkData>> ChunkSerializer::deserializeChunk(
     }
 
     const u32 biomeDataSize = biomeSizeResult.value();
+    if (biomeDataSize > _MAX_BIOME_DATA_BYTES) {
+        return Error(ErrorCode::InvalidData, "Biome data size exceeds limit");
+    }
     if (biomeDataSize > 0) {
         MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Network, "ChunkSerializer::deserializeChunk.biomes");
 
