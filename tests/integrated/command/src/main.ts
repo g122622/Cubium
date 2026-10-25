@@ -24,7 +24,6 @@ import { registerTriggerTests } from "./tests/player/TriggerTests.js";
 import { registerTagTests } from "./tests/player/TagTests.js";
 import { registerDifficultyTests } from "./tests/world/DifficultyTests.js";
 import { registerAttributeTests } from "./tests/player/AttributeTests.js";
-import { registerReplaceItemTests } from "./tests/player/ReplaceItemTests.js";
 import { registerScoreboardTests } from "./tests/player/ScoreboardTests.js";
 import { registerTeamTests } from "./tests/player/TeamTests.js";
 import { registerBossBarTests } from "./tests/player/BossBarTests.js";
@@ -54,7 +53,8 @@ registerTriggerTests();
 registerTagTests();
 registerDifficultyTests();
 registerAttributeTests();
-registerReplaceItemTests();
+// TODO: /replaceitem 已不在原版 1.21.11 命令树内（默认不注册），恢复命令后重新启用本组测试。
+// registerReplaceItemTests();
 registerScoreboardTests();
 registerTeamTests();
 registerBossBarTests();
