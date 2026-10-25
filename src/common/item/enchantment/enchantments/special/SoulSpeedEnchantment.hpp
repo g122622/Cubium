@@ -55,7 +55,10 @@ namespace enchant {
  */
 class SoulSpeedEnchantment : public Enchantment {
 public:
-    SoulSpeedEnchantment() = default;
+    SoulSpeedEnchantment()
+    {
+        setAnvilCost(8);
+    }
 
     [[nodiscard]] std::string id() const override
     {

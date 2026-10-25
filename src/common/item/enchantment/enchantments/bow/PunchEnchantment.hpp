@@ -42,7 +42,10 @@ namespace enchant {
  */
 class PunchEnchantment : public Enchantment {
 public:
-    PunchEnchantment() = default;
+    PunchEnchantment()
+    {
+        setAnvilCost(4);
+    }
 
     [[nodiscard]] std::string id() const override
     {

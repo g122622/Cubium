@@ -51,7 +51,9 @@ class FireProtectionEnchantment : public ProtectionEnchantment {
 public:
     FireProtectionEnchantment() noexcept
         : ProtectionEnchantment(Type::Fire)
-    {}
+    {
+        setAnvilCost(2);
+    }
 
     [[nodiscard]] std::string id() const noexcept override
     {

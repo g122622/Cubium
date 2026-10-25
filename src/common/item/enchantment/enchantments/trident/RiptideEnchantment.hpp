@@ -44,7 +44,10 @@ namespace enchant {
  */
 class RiptideEnchantment : public Enchantment {
 public:
-    RiptideEnchantment() = default;
+    RiptideEnchantment()
+    {
+        setAnvilCost(4);
+    }
 
     [[nodiscard]] std::string id() const override
     {

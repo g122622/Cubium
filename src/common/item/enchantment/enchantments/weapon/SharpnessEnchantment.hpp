@@ -46,7 +46,9 @@ class SharpnessEnchantment : public DamageEnchantment {
 public:
     SharpnessEnchantment()
         : DamageEnchantment(Type::All)
-    {}
+    {
+        setAnvilCost(1);
+    }
 
     [[nodiscard]] std::string id() const override
     {

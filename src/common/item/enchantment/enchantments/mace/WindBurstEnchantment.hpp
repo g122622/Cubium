@@ -58,7 +58,10 @@ public:
     /// 附魔ID
     static constexpr const char* ENCHANTMENT_ID = "minecraft:wind_burst";
 
-    WindBurstEnchantment() = default;
+    WindBurstEnchantment() noexcept
+    {
+        setAnvilCost(4);
+    }
 
     [[nodiscard]] std::string id() const override
     {

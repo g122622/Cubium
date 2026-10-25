@@ -44,7 +44,10 @@ namespace enchant {
  */
 class MultishotEnchantment : public Enchantment {
 public:
-    MultishotEnchantment() = default;
+    MultishotEnchantment()
+    {
+        setAnvilCost(4);
+    }
 
     [[nodiscard]] std::string id() const override
     {

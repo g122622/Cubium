@@ -43,7 +43,10 @@ namespace enchant {
  */
 class EfficiencyEnchantment : public Enchantment {
 public:
-    EfficiencyEnchantment() = default;
+    EfficiencyEnchantment()
+    {
+        setAnvilCost(1);
+    }
 
     [[nodiscard]] std::string id() const override
     {

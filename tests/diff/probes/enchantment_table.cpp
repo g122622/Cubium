@@ -101,7 +101,9 @@ std::string runLine(std::string_view inputLine)
             {"maxCost", enchantment->getMaxCost(level)}});
     }
 
-    return json{{"enchantment", requested}, {"minLevel", minLevel}, {"maxLevel", maxLevel}, {"costs", std::move(costs)}}
+    // 权重与铁砧代价：附魔台的加权随机与铁砧合并的扣级都直接读这两个值。
+    return json{{"enchantment", requested}, {"minLevel", minLevel}, {"maxLevel", maxLevel},
+        {"weight", enchantment->rarityWeight()}, {"anvilCost", enchantment->anvilCost()}, {"costs", std::move(costs)}}
         .dump();
 }
 

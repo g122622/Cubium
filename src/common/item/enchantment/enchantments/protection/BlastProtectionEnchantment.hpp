@@ -51,7 +51,9 @@ class BlastProtectionEnchantment : public ProtectionEnchantment {
 public:
     BlastProtectionEnchantment()
         : ProtectionEnchantment(Type::Explosion)
-    {}
+    {
+        setAnvilCost(4);
+    }
 
     [[nodiscard]] std::string id() const override
     {

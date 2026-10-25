@@ -53,7 +53,10 @@ namespace enchant {
  */
 class FrostWalkerEnchantment : public Enchantment {
 public:
-    FrostWalkerEnchantment() = default;
+    FrostWalkerEnchantment()
+    {
+        setAnvilCost(4);
+    }
 
     [[nodiscard]] std::string id() const override
     {

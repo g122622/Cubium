@@ -53,7 +53,10 @@ namespace enchant {
  */
 class SilkTouchEnchantment : public Enchantment {
 public:
-    SilkTouchEnchantment() = default;
+    SilkTouchEnchantment()
+    {
+        setAnvilCost(8);
+    }
 
     // ========== Enchantment 接口实现 ==========
 

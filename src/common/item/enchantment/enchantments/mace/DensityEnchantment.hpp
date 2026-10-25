@@ -56,7 +56,10 @@ public:
     /// 附魔ID
     static constexpr const char* ENCHANTMENT_ID = "minecraft:density";
 
-    DensityEnchantment() = default;
+    DensityEnchantment() noexcept
+    {
+        setAnvilCost(2);
+    }
 
     [[nodiscard]] std::string id() const override
     {
@@ -86,7 +89,7 @@ public:
 
     [[nodiscard]] EnchantmentRarity rarity() const noexcept override
     {
-        return EnchantmentRarity::Common;
+        return EnchantmentRarity::Uncommon;
     }
 
     [[nodiscard]] i32 getMinCost(i32 level) const override

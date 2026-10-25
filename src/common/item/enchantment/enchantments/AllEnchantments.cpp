@@ -41,6 +41,7 @@
 #include "common/item/enchantment/enchantments/protection/AquaAffinityEnchantment.hpp"
 #include "common/item/enchantment/enchantments/protection/BlastProtectionEnchantment.hpp"
 #include "common/item/enchantment/enchantments/protection/DepthStriderEnchantment.hpp"
+#include "common/item/enchantment/enchantments/protection/SwiftSneakEnchantment.hpp"
 #include "common/item/enchantment/enchantments/protection/FeatherFallingEnchantment.hpp"
 #include "common/item/enchantment/enchantments/protection/FireProtectionEnchantment.hpp"
 #include "common/item/enchantment/enchantments/protection/FrostWalkerEnchantment.hpp"
@@ -63,6 +64,7 @@
 #include "common/item/enchantment/enchantments/weapon/LootingEnchantment.hpp"
 #include "common/item/enchantment/enchantments/weapon/SharpnessEnchantment.hpp"
 #include "common/item/enchantment/enchantments/weapon/SmiteEnchantment.hpp"
+#include "common/item/enchantment/enchantments/weapon/LungeEnchantment.hpp"
 #include "common/item/enchantment/enchantments/weapon/SweepingEnchantment.hpp"
 #include <memory>
 
@@ -142,6 +144,7 @@ void AllEnchantments::registerAll()
     EnchantmentRegistry::registerEnchantment(std::make_unique<AquaAffinityEnchantment>());
     EnchantmentRegistry::registerEnchantment(std::make_unique<DepthStriderEnchantment>());
     EnchantmentRegistry::registerEnchantment(std::make_unique<FrostWalkerEnchantment>());
+    EnchantmentRegistry::registerEnchantment(std::make_unique<SwiftSneakEnchantment>());
 
     // 武器类
     EnchantmentRegistry::registerEnchantment(std::make_unique<SharpnessEnchantment>());
@@ -151,6 +154,7 @@ void AllEnchantments::registerAll()
     EnchantmentRegistry::registerEnchantment(std::make_unique<FireAspectEnchantment>());
     EnchantmentRegistry::registerEnchantment(std::make_unique<LootingEnchantment>());
     EnchantmentRegistry::registerEnchantment(std::make_unique<SweepingEnchantment>());
+    EnchantmentRegistry::registerEnchantment(std::make_unique<LungeEnchantment>());
 
     // 工具类
     EnchantmentRegistry::registerEnchantment(std::make_unique<EfficiencyEnchantment>());

@@ -42,7 +42,10 @@ namespace enchant {
  */
 class LuckOfTheSeaEnchantment : public Enchantment {
 public:
-    LuckOfTheSeaEnchantment() noexcept = default;
+    LuckOfTheSeaEnchantment() noexcept
+    {
+        setAnvilCost(4);
+    }
 
     [[nodiscard]] std::string id() const override
     {

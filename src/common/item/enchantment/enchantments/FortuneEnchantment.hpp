@@ -50,7 +50,10 @@ namespace enchant {
  */
 class FortuneEnchantment : public Enchantment {
 public:
-    FortuneEnchantment() = default;
+    FortuneEnchantment()
+    {
+        setAnvilCost(4);
+    }
 
     // ========== Enchantment 接口实现 ==========
 

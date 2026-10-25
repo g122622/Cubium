@@ -47,7 +47,9 @@ class SmiteEnchantment : public DamageEnchantment {
 public:
     SmiteEnchantment()
         : DamageEnchantment(Type::Undead)
-    {}
+    {
+        setAnvilCost(2);
+    }
 
     [[nodiscard]] std::string id() const override
     {

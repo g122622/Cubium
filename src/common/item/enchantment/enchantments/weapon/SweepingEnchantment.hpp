@@ -32,7 +32,7 @@ namespace item {
 namespace enchant {
 
 /**
- * @brief 横扫之刃附魔
+ * @brief 横扫之刃附魔（原版注册名 sweeping_edge）
  *
  * 增加横扫攻击的伤害。
  *
@@ -44,17 +44,20 @@ namespace enchant {
  */
 class SweepingEnchantment : public Enchantment {
 public:
-    SweepingEnchantment() = default;
+    SweepingEnchantment()
+    {
+        setAnvilCost(4);
+    }
 
     [[nodiscard]] std::string id() const override
     {
-        return "minecraft:sweeping";
+        return "minecraft:sweeping_edge";
     }
 
     [[nodiscard]] std::string getNameKey(i32 level) const override
     {
         (void)level;
-        return "enchantment.minecraft.sweeping";
+        return "enchantment.minecraft.sweeping_edge";
     }
 
     [[nodiscard]] EnchantmentType type() const override

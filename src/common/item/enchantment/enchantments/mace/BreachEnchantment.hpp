@@ -56,7 +56,10 @@ public:
     /// 附魔ID
     static constexpr const char* ENCHANTMENT_ID = "minecraft:breach";
 
-    BreachEnchantment() = default;
+    BreachEnchantment() noexcept
+    {
+        setAnvilCost(4);
+    }
 
     [[nodiscard]] std::string id() const override
     {
@@ -86,7 +89,7 @@ public:
 
     [[nodiscard]] EnchantmentRarity rarity() const noexcept override
     {
-        return EnchantmentRarity::Uncommon;
+        return EnchantmentRarity::Rare;
     }
 
     [[nodiscard]] i32 getMinCost(i32 level) const override

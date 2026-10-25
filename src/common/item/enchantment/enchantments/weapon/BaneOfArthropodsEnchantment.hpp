@@ -50,7 +50,9 @@ class BaneOfArthropodsEnchantment : public DamageEnchantment {
 public:
     BaneOfArthropodsEnchantment()
         : DamageEnchantment(Type::Arthropods)
-    {}
+    {
+        setAnvilCost(2);
+    }
 
     [[nodiscard]] std::string id() const override
     {

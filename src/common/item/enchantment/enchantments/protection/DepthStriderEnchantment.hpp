@@ -43,7 +43,10 @@ namespace enchant {
  */
 class DepthStriderEnchantment : public Enchantment {
 public:
-    DepthStriderEnchantment() = default;
+    DepthStriderEnchantment()
+    {
+        setAnvilCost(4);
+    }
 
     [[nodiscard]] std::string id() const override
     {

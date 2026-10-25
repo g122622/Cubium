@@ -44,7 +44,10 @@ namespace enchant {
  */
 class QuickChargeEnchantment : public Enchantment {
 public:
-    QuickChargeEnchantment() = default;
+    QuickChargeEnchantment()
+    {
+        setAnvilCost(2);
+    }
 
     [[nodiscard]] std::string id() const override
     {
