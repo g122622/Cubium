@@ -87,17 +87,15 @@ void GameModeCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatc
     using namespace mc::command;
 
     auto modeArg =
-        std::make_shared<ArgumentCommandNode<ServerCommandSource, GameMode>>("mode", GameModeArgumentType::gameMode());
+        std::make_shared<ArgumentCommandNode<ServerCommandSource, GameMode>>("gamemode", GameModeArgumentType::gameMode());
 
     modeArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
         return _setGameModeSelf(ctx);
     });
 
     auto targetArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, EntitySelector>>(
-        "target", EntityArgumentType::players());
-    targetArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return _setGameModeOthers(ctx);
-    });
+        "target", EntityArgumentType::entities());
+    targetArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _setGameModeOthers(ctx); });
 
     modeArg->addChild(targetArg);
 
@@ -130,7 +128,7 @@ i32 GameModeCommand::_setGameModeSelf(CommandContext<ServerCommandSource>& conte
         return 0;
     }
 
-    const GameMode mode = context.getArgument<GameMode>("mode");
+    const GameMode mode = context.getArgument<GameMode>("gamemode");
     const PlayerId playerId = source.playerId();
     if (playerId == 0 || !setGameModeOnPlayer(source, playerId, mode)) {
         source.sendMessage("Failed to change game mode");
@@ -155,7 +153,7 @@ i32 GameModeCommand::_setGameModeOthers(CommandContext<ServerCommandSource>& con
     auto* server = source.server();
     MC_ASSERT_RELEASE(server != nullptr);
 
-    const GameMode mode = context.getArgument<GameMode>("mode");
+    const GameMode mode = context.getArgument<GameMode>("gamemode");
     const EntitySelector selector = context.getArgument<EntitySelector>("target");
     const auto playerIds = support::resolvePlayerIds(source, selector);
 

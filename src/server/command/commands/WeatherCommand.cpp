@@ -110,21 +110,15 @@ void WeatherCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatch
         return _setThunder(ctx);
     });
 
-    auto queryNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("query");
-    queryNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return _query(ctx);
-    });
-
     auto weatherNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("weather");
     weatherNode->setRequirement([](const ServerCommandSource& source) {
         return source.hasPermission(2);
     });
     support::applyMetadata(weatherNode,
-        support::makeMetadata("Change or query the weather.", "/weather <clear|rain|thunder|query> [duration]", 2));
+        support::makeMetadata("Sets the weather.", "/weather <clear|rain|thunder> [duration]", 2));
     weatherNode->addChild(clearNode);
     weatherNode->addChild(rainNode);
     weatherNode->addChild(thunderNode);
-    weatherNode->addChild(queryNode);
 
     dispatcher.registerCommand(weatherNode);
 }
@@ -173,41 +167,6 @@ i32 WeatherCommand::_setThunder(CommandContext<ServerCommandSource>& context)
     i32 duration = context.getArgument<i32>("duration");
     weatherManager->setThunder(duration);
     source.sendMessage(buildWeatherMessage("thunder", duration));
-
-    return 1;
-}
-
-i32 WeatherCommand::_query(CommandContext<ServerCommandSource>& context)
-{
-    auto& source = context.getSource();
-    auto* weatherMgr = getWeatherManager(source);
-    if (weatherMgr == nullptr) {
-        source.sendMessage("Weather manager not available");
-        return 0;
-    }
-
-    auto type = static_cast<i32>(weatherMgr->weatherType());
-    f32 rainStrength = weatherMgr->rainStrength();
-    f32 thunderStrength = weatherMgr->thunderStrength();
-
-    std::string typeStr;
-    switch (type) {
-        case 1:
-            typeStr = "rain";
-            break;
-        case 2:
-            typeStr = "thunder";
-            break;
-        default:
-            typeStr = "clear";
-            break;
-    }
-
-    std::ostringstream ss;
-    ss << "The weather is " << typeStr;
-    ss << " (rain strength: " << rainStrength;
-    ss << ", thunder strength: " << thunderStrength << ")";
-    source.sendMessage(ss.str());
 
     return 1;
 }

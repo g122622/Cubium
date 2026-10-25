@@ -113,10 +113,8 @@ void StopSoundCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispat
 
     // /stopsound <player> - 停止所有声音
     auto playerNode = std::make_shared<ArgumentCommandNode<ServerCommandSource, EntitySelector>>(
-        "player", EntityArgumentType::players());
-    playerNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return _stopAllSounds(ctx);
-    });
+        "targets", EntityArgumentType::players());
+    playerNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _stopAllSounds(ctx); });
 
     // /stopsound <player> * [<sound>] - 通配符：停止所有类别的声音
     auto wildcardNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("*");
@@ -124,7 +122,7 @@ void StopSoundCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispat
         return _stopSounds(ctx, std::nullopt, std::nullopt);
     });
     auto wildcardSoundNode = std::make_shared<ArgumentCommandNode<ServerCommandSource, ResourceLocation>>(
-        "sound", ResourceLocationArgumentType::resourceLocation());
+        "sound", IdentifierArgumentType::identifier());
     wildcardSoundNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
         const ResourceLocation& soundId = ctx.getArgument<ResourceLocation>("sound");
         return _stopSounds(ctx, std::nullopt, soundId);
@@ -146,7 +144,7 @@ void StopSoundCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispat
 
         // /stopsound <player> <source> <sound> - 停止特定声音
         auto soundNode = std::make_shared<ArgumentCommandNode<ServerCommandSource, ResourceLocation>>(
-            "sound", ResourceLocationArgumentType::resourceLocation());
+            "sound", IdentifierArgumentType::identifier());
         soundNode->setCommand([category](CommandContext<ServerCommandSource>& ctx) {
             const ResourceLocation& soundId = ctx.getArgument<ResourceLocation>("sound");
             return _stopSounds(ctx, category, soundId);
@@ -163,7 +161,7 @@ void StopSoundCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispat
 i32 StopSoundCommand::_stopAllSounds(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
-    const auto& selector = context.getArgument<EntitySelector>("player");
+    const auto& selector = context.getArgument<EntitySelector>("targets");
     auto playerIds = support::resolvePlayerIds(source, selector);
 
     if (playerIds.empty()) {
@@ -187,7 +185,7 @@ i32 StopSoundCommand::_stopSounds(CommandContext<ServerCommandSource>& context,
     std::optional<ResourceLocation> soundId)
 {
     auto& source = context.getSource();
-    const auto& selector = context.getArgument<EntitySelector>("player");
+    const auto& selector = context.getArgument<EntitySelector>("targets");
     auto playerIds = support::resolvePlayerIds(source, selector);
 
     if (playerIds.empty()) {

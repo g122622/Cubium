@@ -92,32 +92,30 @@ void TimeCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
 
     auto dayNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("day");
     dayNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        ctx.setArgument("value", DAY_TIME);
+        ctx.setArgument("time", DAY_TIME);
         return _setTime(ctx);
     });
 
     auto noonNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("noon");
     noonNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        ctx.setArgument("value", NOON_TIME);
+        ctx.setArgument("time", NOON_TIME);
         return _setTime(ctx);
     });
 
     auto nightNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("night");
     nightNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        ctx.setArgument("value", NIGHT_TIME);
+        ctx.setArgument("time", NIGHT_TIME);
         return _setTime(ctx);
     });
 
     auto midnightNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("midnight");
     midnightNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        ctx.setArgument("value", MIDNIGHT_TIME);
+        ctx.setArgument("time", MIDNIGHT_TIME);
         return _setTime(ctx);
     });
 
-    auto setArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, i32>>("value", TimeArgumentType::time());
-    setArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return _setTime(ctx);
-    });
+    auto setArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, i32>>("time", TimeArgumentType::time());
+    setArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _setTime(ctx); });
 
     setValueNode->addChild(dayNode);
     setValueNode->addChild(noonNode);
@@ -126,19 +124,22 @@ void TimeCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
     setValueNode->addChild(setArg);
 
     auto addValueNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("add");
-    auto addArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, i32>>("value", TimeArgumentType::time());
-    addArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return _addTime(ctx);
-    });
+    auto addArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, i32>>("time", TimeArgumentType::time());
+    addArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _addTime(ctx); });
     addValueNode->addChild(addArg);
 
+    // /time query <day|daytime|gametime>：原版是三个字面量子节点，不是字符串参数。
     auto queryNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("query");
-    auto queryArg =
-        std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>("type", StringArgumentType::word());
-    queryArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return _queryTime(ctx);
-    });
-    queryNode->addChild(queryArg);
+    for (const char* name : {"day", "daytime", "gametime"}) {
+        auto queryNodeChild = std::make_shared<LiteralCommandNode<ServerCommandSource>>(name);
+        // 字面量子节点没有参数可读，把查询类型写进上下文，_queryTime 从 "type" 取。
+        const std::string typeName = name;
+        queryNodeChild->setCommand([typeName](CommandContext<ServerCommandSource>& ctx) {
+            ctx.setArgument("type", typeName);
+            return _queryTime(ctx);
+        });
+        queryNode->addChild(queryNodeChild);
+    }
 
     auto timeNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("time");
     timeNode->setRequirement([](const ServerCommandSource& source) {
@@ -159,7 +160,7 @@ i32 TimeCommand::_setTime(CommandContext<ServerCommandSource>& context)
     auto* server = source.server();
     MC_ASSERT_RELEASE(server != nullptr);
 
-    const i32 value = context.getArgument<i32>("value");
+    const i32 value = context.getArgument<i32>("time");
     return setTimeValue(source, value);
 }
 
@@ -169,7 +170,7 @@ i32 TimeCommand::_addTime(CommandContext<ServerCommandSource>& context)
     auto* server = source.server();
     MC_ASSERT_RELEASE(server != nullptr);
 
-    const i32 value = context.getArgument<i32>("value");
+    const i32 value = context.getArgument<i32>("time");
     server->timeManager().addDayTime(value);
     const i32 updatedDayTime = normalizedDayTime(server->timeManager());
 

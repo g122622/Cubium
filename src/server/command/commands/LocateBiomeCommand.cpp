@@ -27,6 +27,7 @@
 #include "common/command/CommandDispatcher.hpp"
 #include "common/command/CommandNode.hpp"
 #include "common/command/arguments/ArgumentType.hpp"
+#include "common/command/arguments/ResourceOrTagArgumentType.hpp"
 #include "common/core/Types.hpp"
 #include "common/util/math/Vector3.hpp"
 #include "common/util/math/random/Random.hpp"
@@ -59,7 +60,7 @@ i32 LocateBiomeCommand::locateBiome(CommandContext<ServerCommandSource>& context
         return 0;
     }
 
-    const std::string biomeName = context.getArgument<std::string>("biome");
+    const std::string biomeName = context.getArgument<ParsedResourceOrTag>("biome").toString();
     const Vector3d& playerPos = source.position();
 
     // 解析生物群系

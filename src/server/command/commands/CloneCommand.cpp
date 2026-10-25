@@ -28,6 +28,7 @@
 #include "common/command/CommandNode.hpp"
 #include "common/command/arguments/ArgumentType.hpp"
 #include "common/command/arguments/BlockStateArgument.hpp"
+#include "common/command/arguments/DimensionArgument.hpp"
 #include "common/command/arguments/GameModeArgument.hpp"
 #include "common/command/coordinates/Coordinates.hpp"
 #include "common/core/Types.hpp"
@@ -44,6 +45,7 @@
 #include "server/world/ServerWorld.hpp"
 
 #include <algorithm>
+#include <cmath>
 #include <deque>
 #include <memory>
 #include <sstream>
@@ -370,6 +372,7 @@ void CloneCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher
             false));
 
     // /clone <begin> <end> <destination>
+    // 原版 /clone 的三个坐标都是 BlockPosArgument（命令树里是 block_pos），不是 Vec3。
     auto beginArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, Coordinates::Ptr>>(
         "begin", BlockPosArgumentType::blockPos());
 
@@ -471,12 +474,23 @@ void CloneCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher
     filterArg->addChild(filteredNormalNode);
     filteredNode->addChild(filterArg);
 
+    // ============ from <sourceDimension> 前缀（原版可跨维度克隆）============
+    // 原版的写法是 /clone [from <sourceDimension>] <begin> <end> <destination> ...：
+    // 有 from 时复制源区域来自另一个维度。Cubium 当前只支持同维度克隆，跨维度时在
+    // 执行阶段明确报错，而不是把参数丢掉让命令静默变成「同维度」。
+    auto fromNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("from");
+    auto fromDimArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, DimensionId>>(
+        "sourceDimension", DimensionArgumentType::dimension());
+    fromNode->addChild(fromDimArg);
+
     // 构建命令树
     destArg->addChild(replaceNode);
     destArg->addChild(maskedNode);
     destArg->addChild(filteredNode);
     endArg->addChild(destArg);
     beginArg->addChild(endArg);
+    fromDimArg->addChild(beginArg);
+    cloneNode->addChild(fromNode);
     cloneNode->addChild(beginArg);
 
     dispatcher.registerCommand(cloneNode);
@@ -496,13 +510,22 @@ i32 CloneCommand::_doCloneStatic(
     CommandContext<ServerCommandSource>& context, FilterMode filterMode, CloneMode cloneMode)
 {
     auto& source = context.getSource();
-    Vector3i begin = BlockPosArgumentType::getBlockPos(context, "begin", source);
-    Vector3i end = BlockPosArgumentType::getBlockPos(context, "end", source);
-    Vector3i dest = BlockPosArgumentType::getBlockPos(context, "destination", source);
+    if (context.hasArgument("sourceDimension")) {
+        const DimensionId fromDimension = DimensionArgumentType::getDimension(context, "sourceDimension");
+        const DimensionId here = source.world() != nullptr ? source.world()->dimension() : DimensionId(0);
+        if (fromDimension != here) {
+            source.sendError("Cross-dimension cloning is not supported");
+            return 0;
+        }
+    }
+    // 原版 begin/end/destination 都是 BlockPosArgument（整数方块坐标）。
+    const Vector3i begin = BlockPosArgumentType::getBlockPos(context, "begin", source);
+    const Vector3i end = BlockPosArgumentType::getBlockPos(context, "end", source);
+    const Vector3i dest = BlockPosArgumentType::getBlockPos(context, "destination", source);
 
-    BlockPos beginPos(begin.x, begin.y, begin.z);
-    BlockPos endPos(end.x, end.y, end.z);
-    BlockPos destPos(dest.x, dest.y, dest.z);
+    const BlockPos beginPos(begin.x, begin.y, begin.z);
+    const BlockPos endPos(end.x, end.y, end.z);
+    const BlockPos destPos(dest.x, dest.y, dest.z);
 
     return executeClone(context, beginPos, endPos, destPos, filterMode, cloneMode);
 }
@@ -510,14 +533,23 @@ i32 CloneCommand::_doCloneStatic(
 i32 CloneCommand::_doCloneFilteredStatic(CommandContext<ServerCommandSource>& context, CloneMode cloneMode)
 {
     auto& source = context.getSource();
-    Vector3i begin = BlockPosArgumentType::getBlockPos(context, "begin", source);
-    Vector3i end = BlockPosArgumentType::getBlockPos(context, "end", source);
-    Vector3i dest = BlockPosArgumentType::getBlockPos(context, "destination", source);
+    if (context.hasArgument("sourceDimension")) {
+        const DimensionId fromDimension = DimensionArgumentType::getDimension(context, "sourceDimension");
+        const DimensionId here = source.world() != nullptr ? source.world()->dimension() : DimensionId(0);
+        if (fromDimension != here) {
+            source.sendError("Cross-dimension cloning is not supported");
+            return 0;
+        }
+    }
+    // 原版 begin/end/destination 都是 BlockPosArgument（整数方块坐标）。
+    const Vector3i begin = BlockPosArgumentType::getBlockPos(context, "begin", source);
+    const Vector3i end = BlockPosArgumentType::getBlockPos(context, "end", source);
+    const Vector3i dest = BlockPosArgumentType::getBlockPos(context, "destination", source);
     BlockStateInput filterInput = context.getArgument<BlockStateInput>("filter");
 
-    BlockPos beginPos(begin.x, begin.y, begin.z);
-    BlockPos endPos(end.x, end.y, end.z);
-    BlockPos destPos(dest.x, dest.y, dest.z);
+    const BlockPos beginPos(begin.x, begin.y, begin.z);
+    const BlockPos endPos(end.x, end.y, end.z);
+    const BlockPos destPos(dest.x, dest.y, dest.z);
 
     return executeClone(context, beginPos, endPos, destPos, FilterMode::Filtered, cloneMode, &filterInput);
 }

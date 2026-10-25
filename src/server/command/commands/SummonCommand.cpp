@@ -65,17 +65,14 @@ void SummonCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatche
 
     // /summon <entity> - 在执行者位置生成
     auto entityArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, ResourceLocation>>(
-        "entity", ResourceLocationArgumentType::resourceLocation());
-    entityArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return _summonEntity(ctx);
-    });
+        "entity", ResourceEntityArgumentType::entity());
+    entityArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _summonEntity(ctx); });
 
     // /summon <entity> <pos> - 在指定位置生成
-    auto posArg =
-        std::make_shared<ArgumentCommandNode<ServerCommandSource, Coordinates::Ptr>>("pos", Vec3ArgumentType::vec3());
-    posArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return _summonEntityAtPosition(ctx);
-    });
+    // 原版位置参数是 Vec3Argument（不做方块中心偏移）：整数坐标就放在整数位置。
+    auto posArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, Coordinates::Ptr>>(
+        "pos", Vec3ArgumentType::vec3NoCenter());
+    posArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _summonEntityAtPosition(ctx); });
 
     entityArg->addChild(posArg);
     summonNode->addChild(entityArg);

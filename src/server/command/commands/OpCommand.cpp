@@ -26,6 +26,7 @@
 #include "common/command/CommandContext.hpp"
 #include "common/command/CommandDispatcher.hpp"
 #include "common/command/CommandNode.hpp"
+#include "common/command/arguments/GameModeArgument.hpp"
 #include "common/command/arguments/EntityArgument.hpp"
 #include "common/core/Types.hpp"
 #include "common/entity/entities/player/Player.hpp"
@@ -59,11 +60,9 @@ void OpCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
         opNode, support::makeMetadata("Grants operator status to a player.", "/op <player>", 3, {}, false));
 
     // /op <player>
-    auto playerArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, EntitySelector>>(
-        "player", EntityArgumentType::player());
-    playerArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return _opPlayer(ctx);
-    });
+    auto playerArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
+        "targets", GameProfileArgumentType::gameProfile());
+    playerArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _opPlayer(ctx); });
 
     opNode->addChild(playerArg);
     dispatcher.registerCommand(opNode);
@@ -72,7 +71,7 @@ void OpCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
 i32 OpCommand::_opPlayer(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
-    EntitySelector selector = context.getArgument<EntitySelector>("player");
+    const EntitySelector selector = support::gameProfileSelector(context.getArgument<std::string>("targets"));
 
     // 解析目标玩家
     std::vector<PlayerId> playerIds = support::resolvePlayerIds(source, selector);

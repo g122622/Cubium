@@ -595,7 +595,7 @@ TEST_F(ZombieEntityTest, DoMobSpawningGameruleDisablesReinforcement)
     m_zombie->setAttributeBaseValue(entity::attribute::Attributes::ZOMBIE_SPAWN_REINFORCEMENTS, 1.0);
 
     // 设置 doMobSpawning 为 false
-    m_world->getGameRules().setBoolean(world::gamerule::GameRuleKeys::DO_MOB_SPAWNING, false);
+    m_world->getGameRules().setBoolean(world::gamerule::GameRuleKeys::SPAWN_MOBS, false);
 
     // trySummonReinforcements 应该因为 doMobSpawning = false 而直接返回
     // 记录当前生成数量
@@ -604,7 +604,7 @@ TEST_F(ZombieEntityTest, DoMobSpawningGameruleDisablesReinforcement)
     EXPECT_EQ(m_world->spawnedEntityCount(), countBefore) << "doMobSpawning=false 时不应该生成增援实体";
 
     // 恢复
-    m_world->getGameRules().setBoolean(world::gamerule::GameRuleKeys::DO_MOB_SPAWNING, true);
+    m_world->getGameRules().setBoolean(world::gamerule::GameRuleKeys::SPAWN_MOBS, true);
 }
 
 // ============================================================================

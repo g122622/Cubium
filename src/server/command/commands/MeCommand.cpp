@@ -27,6 +27,7 @@
 #include "common/command/CommandDispatcher.hpp"
 #include "common/command/CommandNode.hpp"
 #include "common/command/arguments/ArgumentType.hpp"
+#include "common/command/arguments/GameModeArgument.hpp"
 #include "common/core/Types.hpp"
 #include "server/command/ServerCommandSource.hpp"
 #include "server/command/support/CommandMetadata.hpp"
@@ -46,11 +47,9 @@ void MeCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
     support::applyMetadata(
         meNode, support::makeMetadata("Displays a message about yourself in chat.", "/me <action>", 0, {}, true));
 
-    auto actionArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
-        "action", StringArgumentType::greedyString());
-    actionArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return _performAction(ctx);
-    });
+    auto actionArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, ComponentTextPtr>>(
+        "action", MessageComponentArgumentType::message());
+    actionArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _performAction(ctx); });
     meNode->addChild(actionArg);
 
     dispatcher.registerCommand(meNode);
@@ -60,7 +59,7 @@ i32 MeCommand::_performAction(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
 
-    const std::string action = context.getArgument<std::string>("action");
+    const std::string action = context.getArgument<ComponentTextPtr>("action")->text;
     const std::string& name = source.name();
 
     // 广播 "* playername action" 格式的消息（原 IServer::broadcastServerMessage

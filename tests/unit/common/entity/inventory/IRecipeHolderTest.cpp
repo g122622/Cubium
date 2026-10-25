@@ -81,7 +81,7 @@ public:
      */
     void setLimitedCrafting(bool enabled)
     {
-        m_gameRules.setBoolean(GameRuleKeys::DO_LIMITED_CRAFTING, enabled, nullptr);
+        m_gameRules.setBoolean(GameRuleKeys::LIMITED_CRAFTING, enabled, nullptr);
     }
 
 private:

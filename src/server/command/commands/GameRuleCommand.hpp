@@ -58,26 +58,14 @@ public:
 
 private:
     /**
-     * @brief 从当前字面量节点读取规则值类名（"boolean"/"integer"）
-     * @param context 命令上下文
-     * @return 类名字符串
-     * @throws CommandException 当前节点缺失时
+     * @brief 查询指定规则（原版 /gamerule <rule>，规则名来自已注册的字面量节点）
      */
-    static std::string _requireValueClassName(const CommandContext<ServerCommandSource>& context);
+    static i32 _executeQueryRule(CommandContext<ServerCommandSource>& context, const std::string& ruleName);
 
     /**
-     * @brief 执行查询规则
-     * @param context 命令上下文
-     * @return 命令结果
+     * @brief 设置指定规则（原版 /gamerule <rule> value <v>）
      */
-    static i32 _executeQuery(CommandContext<ServerCommandSource>& context);
-
-    /**
-     * @brief 执行设置规则
-     * @param context 命令上下文
-     * @return 命令结果
-     */
-    static i32 _executeSet(CommandContext<ServerCommandSource>& context);
+    static i32 _executeSetRule(CommandContext<ServerCommandSource>& context, const std::string& ruleName);
 
     /**
      * @brief 获取所有规则名称

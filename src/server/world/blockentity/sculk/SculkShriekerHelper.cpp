@@ -171,7 +171,7 @@ bool SculkShriekerHelper::_canRespond(ServerWorld& world, const BlockPos& pos)
     }
 
     // 条件3: 游戏规则允许监守者生成
-    if (!world.getGameRules().getBoolean(world::gamerule::GameRuleKeys::DO_WARDEN_SPAWNING)) {
+    if (!world.getGameRules().getBoolean(world::gamerule::GameRuleKeys::SPAWN_WARDENS)) {
         return false;
     }
 

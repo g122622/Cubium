@@ -112,7 +112,7 @@ WanderingTraderSpawner::WanderingTraderSpawner()
 
 void WanderingTraderSpawner::tick(server::ServerWorld& world)
 {
-    if (!world.getGameRules().getBoolean(world::gamerule::GameRuleKeys::DO_TRADER_SPAWNING)) {
+    if (!world.getGameRules().getBoolean(world::gamerule::GameRuleKeys::SPAWN_WANDERING_TRADERS)) {
         return;
     }
 

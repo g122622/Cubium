@@ -28,6 +28,7 @@
 #include "common/command/CommandNode.hpp"
 #include "common/command/arguments/ArgumentType.hpp"
 #include "common/command/arguments/EntityArgument.hpp"
+#include "common/command/arguments/GameModeArgument.hpp"
 #include "common/core/Types.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/inventory/PlayerInventory.hpp"
@@ -60,14 +61,12 @@ void EnchantCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatch
 
     // /enchant <player>
     auto playerNode = std::make_shared<ArgumentCommandNode<ServerCommandSource, EntitySelector>>(
-        "player", EntityArgumentType::player());
+        "targets", EntityArgumentType::players());
 
-    // /enchant <player> <enchantment>
-    auto enchantmentNode = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
-        "enchantment", StringArgumentType::word());
-    enchantmentNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return _enchantItem(ctx);
-    });
+    // /enchant <targets> <enchantment>：原版是 ResourceArgument.enchantment()（注册表资源，类型名 resource）。
+    auto enchantmentNode = std::make_shared<ArgumentCommandNode<ServerCommandSource, ResourceLocation>>(
+        "enchantment", EnchantmentResourceArgumentType::enchantment());
+    enchantmentNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _enchantItem(ctx); });
 
     // /enchant <player> <enchantment> <level>
     auto levelNode = std::make_shared<ArgumentCommandNode<ServerCommandSource, i32>>(
@@ -86,7 +85,7 @@ i32 EnchantCommand::_enchantItem(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
 
-    const auto& selector = context.getArgument<EntitySelector>("player");
+    const auto& selector = context.getArgument<EntitySelector>("targets");
     auto playerIds = support::resolvePlayerIds(source, selector);
 
     if (playerIds.empty()) {
@@ -94,7 +93,7 @@ i32 EnchantCommand::_enchantItem(CommandContext<ServerCommandSource>& context)
         return 0;
     }
 
-    const std::string& enchantmentName = context.getArgument<std::string>("enchantment");
+    const std::string enchantmentName = context.getArgument<ResourceLocation>("enchantment").toString();
     i32 level = 1;
 
     if (context.hasArgument("level")) {

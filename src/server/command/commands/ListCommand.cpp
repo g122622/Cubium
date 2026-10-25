@@ -33,6 +33,8 @@
 #include "server/core/PlayerManager.hpp"
 
 #include <cstddef>
+#include <utility>
+#include <vector>
 #include <memory>
 #include <sstream>
 
@@ -51,6 +53,11 @@ void ListCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
     listNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
         return _listPlayers(ctx);
     });
+
+    // /list uuids：原版把每个在线玩家的 UUID 也列出来。
+    auto uuidsNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("uuids");
+    uuidsNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _listPlayerUuids(ctx); });
+    listNode->addChild(uuidsNode);
 
     dispatcher.registerCommand(listNode);
 }
@@ -72,6 +79,28 @@ i32 ListCommand::_listPlayers(CommandContext<ServerCommandSource>& context)
     source.sendMessage(ss.str());
 
     return static_cast<i32>(playerCount);
+}
+
+i32 ListCommand::_listPlayerUuids(CommandContext<ServerCommandSource>& context)
+{
+    auto& source = context.getSource();
+    std::vector<std::pair<std::string, std::string>> players;
+
+    if (auto* server = source.server()) {
+        server->playerManager().forEachPlayer([&players](auto& data) {
+            players.emplace_back(data.username, data.uuid);
+            return true;
+        });
+    }
+
+    std::ostringstream ss;
+    ss << "There are " << players.size() << " of a max of " << players.size() << " players online:";
+    for (const auto& [name, uuid] : players) {
+        ss << " " << name << " (" << uuid << ")";
+    }
+    source.sendMessage(ss.str());
+
+    return static_cast<i32>(players.size());
 }
 
 } // namespace command

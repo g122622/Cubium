@@ -28,6 +28,7 @@
 #include "common/command/CommandNode.hpp"
 #include "common/command/arguments/ArgumentType.hpp"
 #include "common/command/arguments/EntityArgument.hpp"
+#include "common/command/arguments/GameModeArgument.hpp"
 #include "common/core/Types.hpp"
 #include "common/entity/attribute/AttributeMap.hpp"
 #include "common/entity/attribute/AttributeModifier.hpp"
@@ -165,8 +166,9 @@ void AttributeCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispat
         "target", EntityArgumentType::entity());
 
     // /attribute <target> <attribute>
-    auto attributeArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
-        "attribute", StringArgumentType::string());
+    // 原版是 ResourceArgument.attribute()（注册表资源，类型名 resource）。
+    auto attributeArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, ResourceLocation>>(
+        "attribute", AttributeResourceArgumentType::attribute());
 
     // ============================================================================
     // /attribute <target> <attribute> get [scale]
@@ -308,7 +310,7 @@ void AttributeCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispat
 i32 AttributeCommand::_getAttribute(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
-    const std::string attrName = _normalizeAttributeName(context.getArgument<std::string>("attribute"));
+    const std::string attrName = _normalizeAttributeName(context.getArgument<ResourceLocation>("attribute").toString());
 
     LivingEntity* livingEntity = nullptr;
     entity::attribute::AttributeMap* attrMap = nullptr;
@@ -329,7 +331,7 @@ i32 AttributeCommand::_getAttribute(CommandContext<ServerCommandSource>& context
 i32 AttributeCommand::_getAttributeWithScale(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
-    const std::string attrName = _normalizeAttributeName(context.getArgument<std::string>("attribute"));
+    const std::string attrName = _normalizeAttributeName(context.getArgument<ResourceLocation>("attribute").toString());
     f32 scale = context.getArgument<f32>("scale");
 
     LivingEntity* livingEntity = nullptr;
@@ -355,7 +357,7 @@ i32 AttributeCommand::_getAttributeWithScale(CommandContext<ServerCommandSource>
 i32 AttributeCommand::_getBaseValue(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
-    const std::string attrName = _normalizeAttributeName(context.getArgument<std::string>("attribute"));
+    const std::string attrName = _normalizeAttributeName(context.getArgument<ResourceLocation>("attribute").toString());
 
     LivingEntity* livingEntity = nullptr;
     entity::attribute::AttributeMap* attrMap = nullptr;
@@ -376,7 +378,7 @@ i32 AttributeCommand::_getBaseValue(CommandContext<ServerCommandSource>& context
 i32 AttributeCommand::_getBaseValueWithScale(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
-    const std::string attrName = _normalizeAttributeName(context.getArgument<std::string>("attribute"));
+    const std::string attrName = _normalizeAttributeName(context.getArgument<ResourceLocation>("attribute").toString());
     f32 scale = context.getArgument<f32>("scale");
 
     LivingEntity* livingEntity = nullptr;
@@ -402,7 +404,7 @@ i32 AttributeCommand::_getBaseValueWithScale(CommandContext<ServerCommandSource>
 i32 AttributeCommand::_setBaseValue(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
-    const std::string attrName = _normalizeAttributeName(context.getArgument<std::string>("attribute"));
+    const std::string attrName = _normalizeAttributeName(context.getArgument<ResourceLocation>("attribute").toString());
     f32 value = context.getArgument<f32>("value");
 
     LivingEntity* livingEntity = nullptr;
@@ -436,7 +438,7 @@ i32 AttributeCommand::_setBaseValue(CommandContext<ServerCommandSource>& context
 i32 AttributeCommand::_resetBaseValue(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
-    const std::string attrName = _normalizeAttributeName(context.getArgument<std::string>("attribute"));
+    const std::string attrName = _normalizeAttributeName(context.getArgument<ResourceLocation>("attribute").toString());
 
     LivingEntity* livingEntity = nullptr;
     entity::attribute::AttributeMap* attrMap = nullptr;
@@ -480,7 +482,7 @@ i32 AttributeCommand::_addModifierImpl(
     CommandContext<ServerCommandSource>& context, entity::attribute::Operation operation)
 {
     auto& source = context.getSource();
-    const std::string attrName = _normalizeAttributeName(context.getArgument<std::string>("attribute"));
+    const std::string attrName = _normalizeAttributeName(context.getArgument<ResourceLocation>("attribute").toString());
     const std::string modifierId = context.getArgument<std::string>("id");
     f32 value = context.getArgument<f32>("value");
 
@@ -524,7 +526,7 @@ i32 AttributeCommand::_addModifierImpl(
 i32 AttributeCommand::_removeModifier(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
-    const std::string attrName = _normalizeAttributeName(context.getArgument<std::string>("attribute"));
+    const std::string attrName = _normalizeAttributeName(context.getArgument<ResourceLocation>("attribute").toString());
     const std::string modifierId = context.getArgument<std::string>("id");
 
     LivingEntity* livingEntity = nullptr;
@@ -554,7 +556,7 @@ i32 AttributeCommand::_removeModifier(CommandContext<ServerCommandSource>& conte
 i32 AttributeCommand::_getModifierValue(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
-    const std::string attrName = _normalizeAttributeName(context.getArgument<std::string>("attribute"));
+    const std::string attrName = _normalizeAttributeName(context.getArgument<ResourceLocation>("attribute").toString());
     const std::string modifierId = context.getArgument<std::string>("id");
 
     LivingEntity* livingEntity = nullptr;
@@ -583,7 +585,7 @@ i32 AttributeCommand::_getModifierValue(CommandContext<ServerCommandSource>& con
 i32 AttributeCommand::_getModifierValueWithScale(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
-    const std::string attrName = _normalizeAttributeName(context.getArgument<std::string>("attribute"));
+    const std::string attrName = _normalizeAttributeName(context.getArgument<ResourceLocation>("attribute").toString());
     const std::string modifierId = context.getArgument<std::string>("id");
     f32 scale = context.getArgument<f32>("scale");
 

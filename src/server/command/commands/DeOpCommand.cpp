@@ -26,6 +26,7 @@
 #include "common/command/CommandContext.hpp"
 #include "common/command/CommandDispatcher.hpp"
 #include "common/command/CommandNode.hpp"
+#include "common/command/arguments/GameModeArgument.hpp"
 #include "common/command/arguments/EntityArgument.hpp"
 #include "common/core/Types.hpp"
 #include "common/entity/entities/player/Player.hpp"
@@ -59,11 +60,9 @@ void DeOpCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
         deopNode, support::makeMetadata("Revokes operator status from a player.", "/deop <player>", 3, {}, false));
 
     // /deop <player>
-    auto playerArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, EntitySelector>>(
-        "player", EntityArgumentType::player());
-    playerArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return _deopPlayer(ctx);
-    });
+    auto playerArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
+        "targets", GameProfileArgumentType::gameProfile());
+    playerArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _deopPlayer(ctx); });
 
     deopNode->addChild(playerArg);
     dispatcher.registerCommand(deopNode);
@@ -72,7 +71,7 @@ void DeOpCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
 i32 DeOpCommand::_deopPlayer(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
-    EntitySelector selector = context.getArgument<EntitySelector>("player");
+    const EntitySelector selector = support::gameProfileSelector(context.getArgument<std::string>("targets"));
 
     // 解析目标玩家
     std::vector<PlayerId> playerIds = support::resolvePlayerIds(source, selector);

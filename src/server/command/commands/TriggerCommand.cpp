@@ -27,6 +27,7 @@
 #include "common/command/CommandDispatcher.hpp"
 #include "common/command/CommandNode.hpp"
 #include "common/command/arguments/ArgumentType.hpp"
+#include "common/command/arguments/GameModeArgument.hpp"
 #include "common/core/Types.hpp"
 #include "common/scoreboard/core/Score.hpp"
 #include "common/scoreboard/core/ScoreCriteria.hpp"
@@ -140,10 +141,8 @@ void TriggerCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatch
 
     // /trigger <objective>
     auto objectiveArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
-        "objective", StringArgumentType::string());
-    objectiveArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return _trigger(ctx);
-    });
+        "objective", ObjectiveNameArgumentType::objective());
+    objectiveArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _trigger(ctx); });
 
     // /trigger <objective> add <value>
     auto addNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("add");

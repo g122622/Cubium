@@ -76,7 +76,7 @@ public:
     FallingBlockTestWorld()
     {
         // 初始化游戏规则
-        m_gameRules.setBoolean(world::gamerule::GameRuleKeys::DO_ENTITY_DROPS, true, nullptr);
+        m_gameRules.setBoolean(world::gamerule::GameRuleKeys::ENTITY_DROPS, true, nullptr);
     }
 
     // ========== 方块访问 ==========
@@ -634,8 +634,8 @@ TEST_F(FallingBlockEntityTest, GameRuleDoEntityDropsAffectsItemDrop)
     ASSERT_NE(sandState, nullptr);
 
     // 设置游戏规则为不掉落
-    m_world.getGameRules().setBoolean(world::gamerule::GameRuleKeys::DO_ENTITY_DROPS, false, nullptr);
-    EXPECT_FALSE(m_world.getGameRules().getBoolean(world::gamerule::GameRuleKeys::DO_ENTITY_DROPS));
+    m_world.getGameRules().setBoolean(world::gamerule::GameRuleKeys::ENTITY_DROPS, false, nullptr);
+    EXPECT_FALSE(m_world.getGameRules().getBoolean(world::gamerule::GameRuleKeys::ENTITY_DROPS));
 
     auto entity = std::make_unique<FallingBlockEntity>(mc::test::testEcsRegistry());
     entity->setWorld(&m_world);

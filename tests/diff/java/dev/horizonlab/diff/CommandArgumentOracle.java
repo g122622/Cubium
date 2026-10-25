@@ -132,6 +132,8 @@ public final class CommandArgumentOracle {
         // NBT 路径
         {"nbt_path", "a"}, {"nbt_path", "a.b"}, {"nbt_path", "a.b[0]"}, {"nbt_path", "a[0].b"}, {"nbt_path", ""},
         {"nbt_path", "a..b"}, {"nbt_path", "{x:1}.a"}, {"nbt_path", "a[-1]"}, {"nbt_path", "*"},
+        {"nbt_path", "a:b"}, {"nbt_path", "Steve:Inventory"}, {"nbt_path", "a:b.c"},
+        {"nbt_path", "{k:1}"}, {"nbt_path", "{k:1}.a[0]"},
         {"nbt_path", "a[]"}, {"nbt_path", "  a"},
         // 坐标读取的补充档位
         {"double", "~"}, {"double", "~5"}, {"double", "~-5"}, {"double", "^"}, {"double", "^1"}, {"double", "-0"},

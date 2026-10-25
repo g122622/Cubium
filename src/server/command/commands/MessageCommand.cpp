@@ -28,6 +28,7 @@
 #include "common/command/CommandNode.hpp"
 #include "common/command/arguments/ArgumentType.hpp"
 #include "common/command/arguments/EntityArgument.hpp"
+#include "common/command/arguments/GameModeArgument.hpp"
 #include "common/core/Types.hpp"
 #include "common/network/ir/IrPacket.hpp"
 #include "common/network/ir/packets/play/PlayPacketsExtended.hpp"
@@ -65,13 +66,11 @@ void MessageCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatch
 
     // /msg <player> <message>
     auto playerNode = std::make_shared<ArgumentCommandNode<ServerCommandSource, EntitySelector>>(
-        "player", EntityArgumentType::player());
+        "targets", EntityArgumentType::player());
 
-    auto messageNode = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
-        "message", StringArgumentType::greedyString());
-    messageNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return _sendMessage(ctx);
-    });
+    auto messageNode = std::make_shared<ArgumentCommandNode<ServerCommandSource, ComponentTextPtr>>(
+        "message", MessageComponentArgumentType::message());
+    messageNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _sendMessage(ctx); });
 
     playerNode->addChild(messageNode);
     msgNode->addChild(playerNode);
@@ -85,7 +84,7 @@ i32 MessageCommand::_sendMessage(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
 
-    const auto& selector = context.getArgument<EntitySelector>("player");
+    const auto& selector = context.getArgument<EntitySelector>("targets");
     auto playerIds = support::resolvePlayerIds(source, selector);
 
     if (playerIds.empty()) {
@@ -93,7 +92,7 @@ i32 MessageCommand::_sendMessage(CommandContext<ServerCommandSource>& context)
         return 0;
     }
 
-    const std::string& message = context.getArgument<std::string>("message");
+    const std::string message = context.getArgument<ComponentTextPtr>("message")->text;
     auto* server = source.server();
     if (server == nullptr) {
         source.sendError("Server not available");

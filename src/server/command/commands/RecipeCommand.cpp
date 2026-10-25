@@ -27,6 +27,7 @@
 #include "common/command/CommandDispatcher.hpp"
 #include "common/command/CommandNode.hpp"
 #include "common/command/arguments/ArgumentType.hpp"
+#include "common/command/arguments/GameModeArgument.hpp"
 #include "common/command/arguments/EntityArgument.hpp"
 #include "common/core/Types.hpp"
 #include "common/item/crafting/RecipeManager.hpp"
@@ -57,42 +58,30 @@ void RecipeCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatche
         support::makeMetadata(
             "Gives or takes recipes from players.", "/recipe <give|take> <targets> <recipe|*>", 2, {}, true));
 
-    auto targetsArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, EntitySelector>>(
-        "targets", EntityArgumentType::players());
-
-    // /recipe give <targets> <recipe|*>
+    // 原版：/recipe <give|take> <targets> <recipe|*>，先给字面量再收 targets。
     auto giveNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("give");
-    auto giveRecipeArg =
-        std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>("recipe", StringArgumentType::string());
-    giveRecipeArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return _giveRecipe(ctx);
-    });
-    giveNode->addChild(giveRecipeArg);
-
-    auto giveAllNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("*");
-    giveAllNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return _giveRecipe(ctx);
-    });
-    giveNode->addChild(giveAllNode);
-    targetsArg->addChild(giveNode);
-
-    // /recipe take <targets> <recipe|*>
     auto takeNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("take");
-    auto takeRecipeArg =
-        std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>("recipe", StringArgumentType::string());
-    takeRecipeArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return _takeRecipe(ctx);
-    });
-    takeNode->addChild(takeRecipeArg);
+    const auto addTargets = [](CommandNode<ServerCommandSource>& verbNode, bool give) {
+        auto targetsArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, EntitySelector>>(
+            "targets", EntityArgumentType::players());
+        auto recipeArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, ResourceLocation>>(
+            "recipe", RecipeIdArgumentType::recipe());
+        recipeArg->setCommand([give](CommandContext<ServerCommandSource>& ctx) {
+            return give ? _giveRecipe(ctx) : _takeRecipe(ctx);
+        });
+        auto allNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("*");
+        allNode->setCommand([give](CommandContext<ServerCommandSource>& ctx) {
+            return give ? _giveRecipe(ctx) : _takeRecipe(ctx);
+        });
+        targetsArg->addChild(recipeArg);
+        targetsArg->addChild(allNode);
+        verbNode.addChild(targetsArg);
+    };
+    addTargets(*giveNode, true);
+    addTargets(*takeNode, false);
 
-    auto takeAllNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("*");
-    takeAllNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return _takeRecipe(ctx);
-    });
-    takeNode->addChild(takeAllNode);
-    targetsArg->addChild(takeNode);
-
-    recipeNode->addChild(targetsArg);
+    recipeNode->addChild(giveNode);
+    recipeNode->addChild(takeNode);
     dispatcher.registerCommand(recipeNode);
 }
 
@@ -103,7 +92,7 @@ i32 RecipeCommand::_giveRecipe(CommandContext<ServerCommandSource>& context)
 
     std::string recipeStr = "*";
     if (context.hasArgument("recipe")) {
-        recipeStr = context.getArgument<std::string>("recipe");
+        recipeStr = context.getArgument<ResourceLocation>("recipe").toString();
     }
 
     auto playerIds = support::resolvePlayerIds(source, selector);
@@ -178,7 +167,7 @@ i32 RecipeCommand::_takeRecipe(CommandContext<ServerCommandSource>& context)
 
     std::string recipeStr = "*";
     if (context.hasArgument("recipe")) {
-        recipeStr = context.getArgument<std::string>("recipe");
+        recipeStr = context.getArgument<ResourceLocation>("recipe").toString();
     }
 
     auto playerIds = support::resolvePlayerIds(source, selector);

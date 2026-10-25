@@ -27,6 +27,7 @@
 #include "common/command/CommandDispatcher.hpp"
 #include "common/command/CommandNode.hpp"
 #include "common/command/arguments/ArgumentType.hpp"
+#include "common/command/arguments/GameModeArgument.hpp"
 #include "common/core/Types.hpp"
 #include "server/command/ServerCommandSource.hpp"
 #include "server/command/support/CommandMetadata.hpp"
@@ -44,11 +45,10 @@ void SayCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
     });
     support::applyMetadata(sayNode, support::makeMetadata("Broadcast a server message.", "/say <message>", 2));
 
-    auto messageArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
-        "message", StringArgumentType::greedyString());
-    messageArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return _say(ctx);
-    });
+    // 原版 /say 的 message 是 ComponentArgument（只有 message 类型，没有 component 变体）。
+    auto messageArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, ComponentTextPtr>>(
+        "message", MessageComponentArgumentType::message());
+    messageArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _say(ctx); });
     sayNode->addChild(messageArg);
 
     dispatcher.registerCommand(sayNode);
@@ -58,7 +58,7 @@ i32 SayCommand::_say(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
 
-    const std::string message = context.getArgument<std::string>("message");
+    const std::string message = context.getArgument<ComponentTextPtr>("message")->text;
     // 系统消息仅记日志（原 IServer::broadcastServerMessage 实现即只 spdlog，不发包）。
     // 批5b 已从 IServer 删除该纯虚，命令直接打日志。
     spdlog::info("[System] [{}] {}", source.name(), message);

@@ -83,10 +83,11 @@ public:
         return static_cast<size_t>(m_cursor) + static_cast<size_t>(length) <= m_input.length();
     }
 
-    [[nodiscard]] char peek() const noexcept
-    {
-        return canRead() ? m_input[static_cast<size_t>(m_cursor)] : '\0';
-    }
+    /// 游标是否已停在末尾（brigadier 的 `canRead()` / `getRemainingLength() == 0`）。
+    /// 本类的 {@link canRead} 语义是「还能再读 length 个字符」，游标在末尾时仍为 true。
+    [[nodiscard]] bool atEnd() const noexcept { return m_cursor >= getTotalLength(); }
+
+    [[nodiscard]] char peek() const noexcept { return canRead() ? m_input[static_cast<size_t>(m_cursor)] : '\0'; }
 
     [[nodiscard]] char peek(i32 offset) const noexcept
     {
@@ -207,6 +208,33 @@ public:
             return readQuotedString();
         }
         return readUnquotedString();
+    }
+
+    /**
+     * @brief 读取一个「词」（brigadier StringReader.getString 的语义）
+     *
+     * 本文件的 {@link readUnquotedString} 读的是「到空白为止的整段」（与原版 getUnquotedString
+     * 不同），命令参数普遍依赖这一行为；原版 getString 则是「带引号读引号串，否则读到 `"`
+     * 或空白」。message / component 这类词参数需要原版语义：`say {"text":"hi"}` 只取到
+     * `{"text"` 为止。
+     */
+    [[nodiscard]] std::string readWord()
+    {
+        if (!canRead()) {
+            return "";
+        }
+
+        if (peek() == SYNTAX_QUOTE) {
+            return readQuotedString();
+        }
+
+        const i32 start = m_cursor;
+        while (canRead() && !isWhitespace(peek()) && peek() != SYNTAX_QUOTE) {
+            skip();
+        }
+        const size_t startIndex = static_cast<size_t>(start);
+        const size_t endIndex = static_cast<size_t>(m_cursor);
+        return std::string(m_input.substr(startIndex, endIndex - startIndex));
     }
 
     // ========== 数字读取 ==========

@@ -317,7 +317,7 @@ void CommandBlock::executeChain(IWorld& world, const BlockPos& pos, Direction fa
     Direction currentFacing = facing;
 
     // 链长度上限由 maxCommandChainLength 游戏规则决定（默认 65536）。
-    i32 remaining = world.getGameRules().getInt(world::gamerule::GameRuleKeys::MAX_COMMAND_CHAIN_LENGTH);
+    i32 remaining = world.getGameRules().getInt(world::gamerule::GameRuleKeys::MAX_COMMAND_SEQUENCE_LENGTH);
     while (remaining-- > 0) {
         currentPos = currentPos.offset(currentFacing);
 

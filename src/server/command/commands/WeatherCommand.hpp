@@ -39,7 +39,8 @@ namespace command {
  * - /weather clear [duration] - 设置晴天
  * - /weather rain [duration] - 设置降雨
  * - /weather thunder [duration] - 设置雷暴
- * - /weather query - 查询当前天气
+ *
+ * 原版没有 /weather query（查询天气走 /weather 之外的信息），这里保持一致。
  *
  * 权限等级：2
  *
@@ -58,7 +59,6 @@ private:
     /// 设置雷暴
     static i32 _setThunder(CommandContext<ServerCommandSource>& context);
     /// 查询当前天气
-    static i32 _query(CommandContext<ServerCommandSource>& context);
 };
 
 } // namespace command

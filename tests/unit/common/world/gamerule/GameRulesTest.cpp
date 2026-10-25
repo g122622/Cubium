@@ -39,10 +39,10 @@ using namespace mc::world::gamerule;
 
 TEST(GameRuleKeyTest, Construction)
 {
-    BooleanGameRuleKey key("mobGriefing", GameRuleCategory::Mobs);
-    EXPECT_EQ(key.getName(), "mobGriefing");
+    BooleanGameRuleKey key("mob_griefing", GameRuleCategory::Mobs);
+    EXPECT_EQ(key.getName(), "mob_griefing");
     EXPECT_EQ(key.getCategory(), GameRuleCategory::Mobs);
-    EXPECT_EQ(key.getTranslationKey(), "gamerule.mobGriefing");
+    EXPECT_EQ(key.getTranslationKey(), "gamerule.mob_griefing");
 }
 
 TEST(GameRuleKeyTest, Equality)
@@ -208,10 +208,10 @@ TEST(GameRulesTest, HasKnownRule)
 {
     GameRules rules;
 
-    EXPECT_TRUE(GameRules::hasRule("mobGriefing"));
-    EXPECT_TRUE(GameRules::hasRule("naturalRegeneration"));
-    EXPECT_TRUE(GameRules::hasRule("randomTickSpeed"));
-    EXPECT_TRUE(GameRules::hasRule("doDaylightCycle"));
+    EXPECT_TRUE(GameRules::hasRule("mob_griefing"));
+    EXPECT_TRUE(GameRules::hasRule("natural_health_regeneration"));
+    EXPECT_TRUE(GameRules::hasRule("random_tick_speed"));
+    EXPECT_TRUE(GameRules::hasRule("advance_time"));
 }
 
 TEST(GameRulesTest, HasUnknownRule)
@@ -222,10 +222,10 @@ TEST(GameRulesTest, HasUnknownRule)
 
 TEST(GameRulesTest, GetRuleType)
 {
-    EXPECT_EQ(GameRules::getRuleType("mobGriefing"), GameRuleValueType::Boolean);
-    EXPECT_EQ(GameRules::getRuleType("naturalRegeneration"), GameRuleValueType::Boolean);
-    EXPECT_EQ(GameRules::getRuleType("randomTickSpeed"), GameRuleValueType::Integer);
-    EXPECT_EQ(GameRules::getRuleType("maxEntityCramming"), GameRuleValueType::Integer);
+    EXPECT_EQ(GameRules::getRuleType("mob_griefing"), GameRuleValueType::Boolean);
+    EXPECT_EQ(GameRules::getRuleType("natural_health_regeneration"), GameRuleValueType::Boolean);
+    EXPECT_EQ(GameRules::getRuleType("random_tick_speed"), GameRuleValueType::Integer);
+    EXPECT_EQ(GameRules::getRuleType("max_entity_cramming"), GameRuleValueType::Integer);
 }
 
 TEST(GameRulesTest, GetRuleNames)
@@ -239,12 +239,8 @@ TEST(GameRulesTest, GetRuleNames)
     bool hasMobGriefing = false;
     bool hasRandomTickSpeed = false;
     for (const auto& name : names) {
-        if (name == "mobGriefing") {
-            hasMobGriefing = true;
-        }
-        if (name == "randomTickSpeed") {
-            hasRandomTickSpeed = true;
-        }
+        if (name == "mob_griefing") hasMobGriefing = true;
+        if (name == "random_tick_speed") hasRandomTickSpeed = true;
     }
     EXPECT_TRUE(hasMobGriefing);
     EXPECT_TRUE(hasRandomTickSpeed);
@@ -256,12 +252,12 @@ TEST(GameRulesTest, BooleanRuleDefaultValues)
 
     // Test known default values (from MC 1.16.5)
     EXPECT_TRUE(rules.getBoolean(GameRuleKeys::MOB_GRIEFING));
-    EXPECT_TRUE(rules.getBoolean(GameRuleKeys::NATURAL_REGENERATION));
-    EXPECT_TRUE(rules.getBoolean(GameRuleKeys::DO_DAYLIGHT_CYCLE));
-    EXPECT_TRUE(rules.getBoolean(GameRuleKeys::DO_WEATHER_CYCLE));
+    EXPECT_TRUE(rules.getBoolean(GameRuleKeys::NATURAL_HEALTH_REGENERATION));
+    EXPECT_TRUE(rules.getBoolean(GameRuleKeys::ADVANCE_TIME));
+    EXPECT_TRUE(rules.getBoolean(GameRuleKeys::ADVANCE_WEATHER));
     EXPECT_FALSE(rules.getBoolean(GameRuleKeys::KEEP_INVENTORY)); // Default false in 1.16.5
-    EXPECT_TRUE(rules.getBoolean(GameRuleKeys::DO_MOB_SPAWNING)); // Default true in 1.16.5
-    EXPECT_TRUE(rules.getBoolean(GameRuleKeys::DO_TILE_DROPS));   // Default true in 1.16.5
+    EXPECT_TRUE(rules.getBoolean(GameRuleKeys::SPAWN_MOBS)); // Default true in 1.16.5
+    EXPECT_TRUE(rules.getBoolean(GameRuleKeys::BLOCK_DROPS));   // Default true in 1.16.5
 }
 
 TEST(GameRulesTest, CommandBlocksWork_RegisteredWithVanillaDefault)
@@ -273,7 +269,7 @@ TEST(GameRulesTest, CommandBlocksWork_RegisteredWithVanillaDefault)
 
     bool found = false;
     for (const auto& name : GameRules::getRuleNames()) {
-        if (name == "commandBlocksWork") {
+        if (name == "command_blocks_work") {
             found = true;
         }
     }
@@ -286,8 +282,8 @@ TEST(GameRulesTest, IntegerRuleDefaultValues)
 
     EXPECT_EQ(rules.getInt(GameRuleKeys::RANDOM_TICK_SPEED), 3);
     EXPECT_EQ(rules.getInt(GameRuleKeys::MAX_ENTITY_CRAMMING), 24);
-    EXPECT_EQ(rules.getInt(GameRuleKeys::SPAWN_RADIUS), 10);
-    EXPECT_EQ(rules.getInt(GameRuleKeys::MAX_COMMAND_CHAIN_LENGTH), 65536);
+    EXPECT_EQ(rules.getInt(GameRuleKeys::RESPAWN_RADIUS), 10);
+    EXPECT_EQ(rules.getInt(GameRuleKeys::MAX_COMMAND_SEQUENCE_LENGTH), 65536);
 }
 
 TEST(GameRulesTest, SetBooleanRule)
@@ -322,23 +318,23 @@ TEST(GameRulesTest, SetTypedFromString)
     GameRules rules;
 
     // Boolean from string
-    EXPECT_TRUE(rules.setTypedFromString("mobGriefing", std::string(GameRuleClassNames::BOOLEAN), "false", nullptr));
+    EXPECT_TRUE(rules.setTypedFromString("mob_griefing", std::string(GameRuleClassNames::BOOLEAN), "false", nullptr));
     EXPECT_FALSE(rules.getBoolean(GameRuleKeys::MOB_GRIEFING));
 
-    EXPECT_TRUE(rules.setTypedFromString("mobGriefing", std::string(GameRuleClassNames::BOOLEAN), "true", nullptr));
+    EXPECT_TRUE(rules.setTypedFromString("mob_griefing", std::string(GameRuleClassNames::BOOLEAN), "true", nullptr));
     EXPECT_TRUE(rules.getBoolean(GameRuleKeys::MOB_GRIEFING));
 
     // Integer from string
-    EXPECT_TRUE(rules.setTypedFromString("randomTickSpeed", std::string(GameRuleClassNames::INTEGER), "50", nullptr));
+    EXPECT_TRUE(rules.setTypedFromString("random_tick_speed", std::string(GameRuleClassNames::INTEGER), "50", nullptr));
     EXPECT_EQ(rules.getInt(GameRuleKeys::RANDOM_TICK_SPEED), 50);
 
     // Invalid boolean value - only "true"/"false"/"1"/"0" are valid
     EXPECT_FALSE(rules.setTypedFromString(
-        "mobGriefing", std::string(GameRuleClassNames::BOOLEAN), "yes", nullptr)); // "yes" is not valid
+        "mob_griefing", std::string(GameRuleClassNames::BOOLEAN), "yes", nullptr)); // "yes" is not valid
 
     // Invalid integer value
     EXPECT_FALSE(
-        rules.setTypedFromString("randomTickSpeed", std::string(GameRuleClassNames::INTEGER), "not_a_number", nullptr));
+        rules.setTypedFromString("random_tick_speed", std::string(GameRuleClassNames::INTEGER), "not_a_number", nullptr));
 
     // Unknown rule
     EXPECT_FALSE(rules.setTypedFromString("unknownRule", std::string(GameRuleClassNames::INTEGER), "value", nullptr));
@@ -352,7 +348,7 @@ TEST(GameRulesTest, WriteAndReadNBT)
     original.setBoolean(GameRuleKeys::MOB_GRIEFING, false, nullptr);
     original.setBoolean(GameRuleKeys::KEEP_INVENTORY, true, nullptr);
     original.setInt(GameRuleKeys::RANDOM_TICK_SPEED, 100, nullptr);
-    original.setInt(GameRuleKeys::SPAWN_RADIUS, 5, nullptr);
+    original.setInt(GameRuleKeys::RESPAWN_RADIUS, 5, nullptr);
 
     // Write to NBT
     auto nbt = original.write();
@@ -366,10 +362,10 @@ TEST(GameRulesTest, WriteAndReadNBT)
     EXPECT_FALSE(loaded.getBoolean(GameRuleKeys::MOB_GRIEFING));
     EXPECT_TRUE(loaded.getBoolean(GameRuleKeys::KEEP_INVENTORY));
     EXPECT_EQ(loaded.getInt(GameRuleKeys::RANDOM_TICK_SPEED), 100);
-    EXPECT_EQ(loaded.getInt(GameRuleKeys::SPAWN_RADIUS), 5);
+    EXPECT_EQ(loaded.getInt(GameRuleKeys::RESPAWN_RADIUS), 5);
 
     // Default values should be preserved
-    EXPECT_TRUE(loaded.getBoolean(GameRuleKeys::NATURAL_REGENERATION));
+    EXPECT_TRUE(loaded.getBoolean(GameRuleKeys::NATURAL_HEALTH_REGENERATION));
     EXPECT_EQ(loaded.getInt(GameRuleKeys::MAX_ENTITY_CRAMMING), 24);
 }
 
@@ -389,7 +385,7 @@ TEST(GameRulesTest, Categories)
 {
     // Verify that all keys have correct categories
     EXPECT_EQ(GameRuleKeys::MOB_GRIEFING.getCategory(), GameRuleCategory::Mobs);
-    EXPECT_EQ(GameRuleKeys::NATURAL_REGENERATION.getCategory(), GameRuleCategory::Player);
+    EXPECT_EQ(GameRuleKeys::NATURAL_HEALTH_REGENERATION.getCategory(), GameRuleCategory::Player);
     EXPECT_EQ(GameRuleKeys::RANDOM_TICK_SPEED.getCategory(), GameRuleCategory::Updates);
     EXPECT_EQ(GameRuleKeys::COMMAND_BLOCK_OUTPUT.getCategory(), GameRuleCategory::Chat);
 }
@@ -440,7 +436,7 @@ TEST(GameRulesIntegrationTest, AllKeysWorkWithGameRules)
 
     // All predefined keys should work
     rules.getBoolean(GameRuleKeys::MOB_GRIEFING);
-    rules.getBoolean(GameRuleKeys::NATURAL_REGENERATION);
+    rules.getBoolean(GameRuleKeys::NATURAL_HEALTH_REGENERATION);
     rules.getInt(GameRuleKeys::RANDOM_TICK_SPEED);
     rules.getInt(GameRuleKeys::MAX_ENTITY_CRAMMING);
     rules.getBoolean(GameRuleKeys::TNT_EXPLODES);
@@ -468,19 +464,19 @@ TEST(GameRulesTest, TntExplodes_CanReset)
 {
     GameRules rules;
     rules.setBoolean(GameRuleKeys::TNT_EXPLODES, false);
-    rules.reset("tntExplodes");
+    rules.reset("tnt_explodes");
     EXPECT_TRUE(rules.getBoolean(GameRuleKeys::TNT_EXPLODES)); // default is true
 }
 
 TEST(GameRulesTest, TntExplodes_RuleExists)
 {
-    EXPECT_TRUE(GameRules::hasRule("tntExplodes"));
-    EXPECT_EQ(GameRules::getRuleType("tntExplodes"), GameRuleValueType::Boolean);
+    EXPECT_TRUE(GameRules::hasRule("tnt_explodes"));
+    EXPECT_EQ(GameRules::getRuleType("tnt_explodes"), GameRuleValueType::Boolean);
 }
 
 TEST(GameRulesTest, TntExplodes_CategoryIsMisc)
 {
-    BooleanGameRuleKey key("tntExplodes", GameRuleCategory::Misc);
+    BooleanGameRuleKey key("tnt_explodes", GameRuleCategory::Misc);
     EXPECT_EQ(key.getCategory(), GameRuleCategory::Misc);
 }
 

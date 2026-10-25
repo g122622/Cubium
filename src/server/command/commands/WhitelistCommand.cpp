@@ -26,6 +26,7 @@
 #include "common/command/CommandContext.hpp"
 #include "common/command/CommandDispatcher.hpp"
 #include "common/command/CommandNode.hpp"
+#include "common/command/arguments/GameModeArgument.hpp"
 #include "common/command/ICommandSource.hpp"
 #include "common/command/arguments/EntityArgument.hpp"
 #include "common/core/Types.hpp"
@@ -80,20 +81,16 @@ void WhitelistCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispat
 
     // /whitelist add <player>
     auto addNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("add");
-    auto addPlayerArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, EntitySelector>>(
-        "player", EntityArgumentType::player());
-    addPlayerArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return _whitelistAdd(ctx);
-    });
+    auto addPlayerArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
+        "targets", GameProfileArgumentType::gameProfile());
+    addPlayerArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _whitelistAdd(ctx); });
     addNode->addChild(addPlayerArg);
 
     // /whitelist remove <player>
     auto removeNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("remove");
-    auto removePlayerArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, EntitySelector>>(
-        "player", EntityArgumentType::player());
-    removePlayerArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return _whitelistRemove(ctx);
-    });
+    auto removePlayerArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
+        "targets", GameProfileArgumentType::gameProfile());
+    removePlayerArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _whitelistRemove(ctx); });
     removeNode->addChild(removePlayerArg);
 
     // /whitelist reload
@@ -206,7 +203,7 @@ i32 WhitelistCommand::_whitelistAdd(CommandContext<ServerCommandSource>& context
         return 0;
     }
 
-    EntitySelector selector = context.getArgument<EntitySelector>("player");
+    const EntitySelector selector = support::gameProfileSelector(context.getArgument<std::string>("targets"));
 
     // 获取玩家名
     std::string playerName;
@@ -285,7 +282,7 @@ i32 WhitelistCommand::_whitelistRemove(CommandContext<ServerCommandSource>& cont
         return 0;
     }
 
-    EntitySelector selector = context.getArgument<EntitySelector>("player");
+    const EntitySelector selector = support::gameProfileSelector(context.getArgument<std::string>("targets"));
 
     // 获取玩家名
     std::string playerName;

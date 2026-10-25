@@ -131,10 +131,8 @@ void SpawnPointCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispa
 
     // /spawnpoint <targets> <pos>
     auto posNode =
-        std::make_shared<ArgumentCommandNode<ServerCommandSource, Coordinates::Ptr>>("pos", Vec3ArgumentType::vec3());
-    posNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return _setPlayerSpawnPointAtPosition(ctx);
-    });
+        std::make_shared<ArgumentCommandNode<ServerCommandSource, Coordinates::Ptr>>("pos", BlockPosArgumentType::blockPos());
+    posNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _setPlayerSpawnPointAtPosition(ctx); });
 
     // /spawnpoint <targets> <pos> <rotation>
     auto rotationNode = std::make_shared<ArgumentCommandNode<ServerCommandSource, Coordinates::Ptr>>(
@@ -196,7 +194,10 @@ i32 SpawnPointCommand::_setPlayerSpawnPointAtPosition(CommandContext<ServerComma
         return 0;
     }
 
-    const Vector3d pos = Vec3ArgumentType::getVec3(context, "pos", source);
+    const Vector3d pos = [&] {
+        const Vector3i p = BlockPosArgumentType::getBlockPos(context, "pos", source);
+        return Vector3d(static_cast<f64>(p.x), static_cast<f64>(p.y), static_cast<f64>(p.z));
+    }();
     return _applySpawnPoint(context, playerIds, pos, Vector2f(0.0f, 0.0f));
 }
 
@@ -210,7 +211,10 @@ i32 SpawnPointCommand::_setPlayerSpawnPointAtRotation(CommandContext<ServerComma
         return 0;
     }
 
-    const Vector3d pos = Vec3ArgumentType::getVec3(context, "pos", source);
+    const Vector3d pos = [&] {
+        const Vector3i p = BlockPosArgumentType::getBlockPos(context, "pos", source);
+        return Vector3d(static_cast<f64>(p.x), static_cast<f64>(p.y), static_cast<f64>(p.z));
+    }();
     const Vector2f rotation = RotationArgumentType::getRotation(context, "rotation", source);
     return _applySpawnPoint(context, playerIds, pos, rotation);
 }

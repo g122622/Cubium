@@ -45,6 +45,11 @@ class SummonCommand {
 public:
     static void registerTo(CommandDispatcher<ServerCommandSource>& dispatcher);
 
+    /**
+     * @brief 在命令源当前位置生成实体（原版 /execute ... summon 复用同一逻辑）
+     */
+    static i32 summonAtSource(CommandContext<ServerCommandSource>& context) { return _summonEntity(context); }
+
 private:
     static i32 _summonEntity(CommandContext<ServerCommandSource>& context);
     static i32 _summonEntityAtPosition(CommandContext<ServerCommandSource>& context);

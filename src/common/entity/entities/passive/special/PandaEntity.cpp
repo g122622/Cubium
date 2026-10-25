@@ -818,7 +818,7 @@ void PandaEntity::_onSneezeComplete()
     // 4. 1/700概率掉落粘液球（需要游戏规则 doMobLoot）
     if (!m_world->isClientSide()) {
         const auto& gameRules = m_world->getGameRules();
-        if (gameRules.getBoolean(world::gamerule::GameRuleKeys::DO_MOB_LOOT)) {
+        if (gameRules.getBoolean(world::gamerule::GameRuleKeys::MOB_DROPS)) {
             math::IRandom& rng = getRandom();
             if (rng.nextInt(700) == 0) {
                 // 使用 ItemDropHelper 在熊猫位置掉落粘液球

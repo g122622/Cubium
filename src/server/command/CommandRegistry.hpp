@@ -115,6 +115,13 @@ public:
      */
     void registerDefaults();
 
+    /**
+     * @brief 是否注册原版已移除的兼容命令（debugconfig / publish / replaceitem）
+     *
+     * 默认关闭：命令树要与原版一致。需在首次访问注册表之前设置。
+     */
+    void setRegisterCompatCommands(bool enabled) noexcept { m_registerCompatCommands = enabled; }
+
     // ========== 命令查询 ==========
 
     /**
@@ -137,6 +144,7 @@ public:
 private:
     Dispatcher m_dispatcher;
     bool m_defaultsRegistered = false;
+    bool m_registerCompatCommands = false;
 };
 
 } // namespace command

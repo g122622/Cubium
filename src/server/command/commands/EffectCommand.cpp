@@ -91,7 +91,7 @@ void EffectCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatche
     auto giveNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("give");
 
     auto playerNode = std::make_shared<ArgumentCommandNode<ServerCommandSource, EntitySelector>>(
-        "player", EntityArgumentType::players());
+        "targets", EntityArgumentType::entities());
 
     // 效果类型节点 - 使用字符串参数
     auto effectNameNode =
@@ -131,10 +131,8 @@ void EffectCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatche
     auto clearNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("clear");
 
     auto clearPlayerNode = std::make_shared<ArgumentCommandNode<ServerCommandSource, EntitySelector>>(
-        "player", EntityArgumentType::players());
-    clearPlayerNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return _clearAllEffects(ctx);
-    });
+        "targets", EntityArgumentType::entities());
+    clearPlayerNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _clearAllEffects(ctx); });
 
     auto clearEffectNode =
         std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>("effect", StringArgumentType::word());
@@ -154,7 +152,7 @@ i32 EffectCommand::_giveEffect(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
 
-    const auto& selector = context.getArgument<EntitySelector>("player");
+    const auto& selector = context.getArgument<EntitySelector>("targets");
     auto playerIds = support::resolvePlayerIds(source, selector);
 
     if (playerIds.empty()) {
@@ -218,7 +216,7 @@ i32 EffectCommand::_clearAllEffects(CommandContext<ServerCommandSource>& context
 {
     auto& source = context.getSource();
 
-    const auto& selector = context.getArgument<EntitySelector>("player");
+    const auto& selector = context.getArgument<EntitySelector>("targets");
     auto playerIds = support::resolvePlayerIds(source, selector);
 
     if (playerIds.empty()) {
@@ -248,7 +246,7 @@ i32 EffectCommand::_clearSpecificEffect(CommandContext<ServerCommandSource>& con
 {
     auto& source = context.getSource();
 
-    const auto& selector = context.getArgument<EntitySelector>("player");
+    const auto& selector = context.getArgument<EntitySelector>("targets");
     auto playerIds = support::resolvePlayerIds(source, selector);
 
     if (playerIds.empty()) {

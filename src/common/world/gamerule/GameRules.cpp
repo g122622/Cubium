@@ -100,57 +100,56 @@ struct RuleRegistry {
 
     void registerBooleanRules()
     {
+        // 规则名、默认值与原版 1.21.11 的 GameRules 一致（规则名是带命名空间的注册表项
+        // `minecraft:<name>`，命令树里以短名出现，/gamerule 两种写法都接受）。
         // 玩家相关
-        registerBoolean("keepInventory", GameRuleCategory::Player, false);
+        registerBoolean("advance_time", GameRuleCategory::Updates, true);
+        registerBoolean("advance_weather", GameRuleCategory::Updates, true);
+        registerBoolean("allow_entering_nether_using_portals", GameRuleCategory::Player, true);
+        registerBoolean("block_drops", GameRuleCategory::Drops, true);
+        registerBoolean("block_explosion_drop_decay", GameRuleCategory::Drops, true);
+        registerBoolean("command_blocks_work", GameRuleCategory::Misc, true);
+        registerBoolean("command_block_output", GameRuleCategory::Chat, true);
+        registerBoolean("drowning_damage", GameRuleCategory::Player, true);
+        registerBoolean("elytra_movement_check", GameRuleCategory::Player, true);
+        registerBoolean("ender_pearls_vanish_on_death", GameRuleCategory::Player, true);
+        registerBoolean("entity_drops", GameRuleCategory::Drops, true);
+        registerBoolean("fall_damage", GameRuleCategory::Player, true);
+        registerBoolean("fire_damage", GameRuleCategory::Player, true);
+        registerBoolean("forgive_dead_players", GameRuleCategory::Mobs, true);
+        registerBoolean("freeze_damage", GameRuleCategory::Player, true);
+        registerBoolean("global_sound_events", GameRuleCategory::Misc, true);
+        registerBoolean("immediate_respawn", GameRuleCategory::Player, false);
+        registerBoolean("keep_inventory", GameRuleCategory::Player, false);
+        registerBoolean("lava_source_conversion", GameRuleCategory::Updates, true);
+        registerBoolean("limited_crafting", GameRuleCategory::Player, false);
         registerBoolean("locator_bar", GameRuleCategory::Player, true);
-        registerBoolean("naturalRegeneration", GameRuleCategory::Player, true);
-        registerBoolean("spectatorsGenerateChunks", GameRuleCategory::Player, true);
-        registerBoolean("disableElytraMovementCheck", GameRuleCategory::Player, false);
-        registerBoolean("doImmediateRespawn", GameRuleCategory::Player, false);
-        registerBoolean("drowningDamage", GameRuleCategory::Player, true);
-        registerBoolean("fallDamage", GameRuleCategory::Player, true);
-        registerBoolean("fireDamage", GameRuleCategory::Player, true);
-        registerBoolean("freezeDamage", GameRuleCategory::Player, true);
-        registerBoolean("doLimitedCrafting", GameRuleCategory::Player, false);
+        registerBoolean("log_admin_commands", GameRuleCategory::Chat, true);
+        registerBoolean("mob_drops", GameRuleCategory::Drops, true);
+        registerBoolean("mob_explosion_drop_decay", GameRuleCategory::Mobs, true);
+        registerBoolean("mob_griefing", GameRuleCategory::Mobs, true);
+        registerBoolean("natural_health_regeneration", GameRuleCategory::Player, true);
+        registerBoolean("player_movement_check", GameRuleCategory::Player, true);
+        registerBoolean("projectiles_can_break_blocks", GameRuleCategory::Drops, true);
         registerBoolean("pvp", GameRuleCategory::Player, true);
-
-        // 生物相关
-        registerBoolean("mobGriefing", GameRuleCategory::Mobs, true);
-        registerBoolean("disableRaids", GameRuleCategory::Mobs, false);
-        registerBoolean("forgiveDeadPlayers", GameRuleCategory::Mobs, true);
-        registerBoolean("universalAnger", GameRuleCategory::Mobs, false);
-
-        // 生成相关
-        registerBoolean("doMobSpawning", GameRuleCategory::Spawning, true);
-        registerBoolean("doInsomnia", GameRuleCategory::Spawning, true);
-        registerBoolean("doPatrolSpawning", GameRuleCategory::Spawning, true);
-        registerBoolean("doTraderSpawning", GameRuleCategory::Spawning, true);
-        registerBoolean("doWardenSpawning", GameRuleCategory::Spawning, true);
-
-        // 掉落相关
-        registerBoolean("doMobLoot", GameRuleCategory::Drops, true);
-        registerBoolean("doTileDrops", GameRuleCategory::Drops, true);
-        registerBoolean("doEntityDrops", GameRuleCategory::Drops, true);
-        registerBoolean("projectilesCanBreakBlocks", GameRuleCategory::Drops, true);
-
-        // 更新相关
-        registerBoolean("doFireTick", GameRuleCategory::Updates, true);
-        registerBoolean("doDaylightCycle", GameRuleCategory::Updates, true);
-        registerBoolean("doWeatherCycle", GameRuleCategory::Updates, true);
-
-        // 聊天相关
-        registerBoolean("commandBlockOutput", GameRuleCategory::Chat, true);
-        registerBoolean("logAdminCommands", GameRuleCategory::Chat, true);
-        registerBoolean("showDeathMessages", GameRuleCategory::Chat, true);
-        registerBoolean("sendCommandFeedback", GameRuleCategory::Chat, true);
-        registerBoolean("announceAdvancements", GameRuleCategory::Chat, true);
-
-        // 杂项
-        registerBoolean("reducedDebugInfo", GameRuleCategory::Misc, false);
-        registerBoolean("commandBlocksWork", GameRuleCategory::Misc, true);
-        registerBoolean("tntExplodes", GameRuleCategory::Misc, true);
-        registerBoolean("spawnerBlocksWork", GameRuleCategory::Misc, true);
-        registerBoolean("globalSoundEvents", GameRuleCategory::Misc, true);
+        registerBoolean("raids", GameRuleCategory::Mobs, true);
+        registerBoolean("reduced_debug_info", GameRuleCategory::Misc, false);
+        registerBoolean("send_command_feedback", GameRuleCategory::Chat, true);
+        registerBoolean("show_advancement_messages", GameRuleCategory::Chat, true);
+        registerBoolean("show_death_messages", GameRuleCategory::Chat, true);
+        registerBoolean("spawner_blocks_work", GameRuleCategory::Misc, true);
+        registerBoolean("spawn_mobs", GameRuleCategory::Spawning, true);
+        registerBoolean("spawn_monsters", GameRuleCategory::Spawning, true);
+        registerBoolean("spawn_patrols", GameRuleCategory::Spawning, true);
+        registerBoolean("spawn_phantoms", GameRuleCategory::Spawning, true);
+        registerBoolean("spawn_wandering_traders", GameRuleCategory::Spawning, true);
+        registerBoolean("spawn_wardens", GameRuleCategory::Spawning, true);
+        registerBoolean("spectators_generate_chunks", GameRuleCategory::Player, true);
+        registerBoolean("spread_vines", GameRuleCategory::Updates, true);
+        registerBoolean("tnt_explodes", GameRuleCategory::Misc, true);
+        registerBoolean("tnt_explosion_drop_decay", GameRuleCategory::Misc, false);
+        registerBoolean("universal_anger", GameRuleCategory::Mobs, false);
+        registerBoolean("water_source_conversion", GameRuleCategory::Updates, true);
     }
 
     // 默认值与取值范围取自 vanilla GameRules：未给出上界的规则上界为 INT_MAX。
@@ -159,20 +158,25 @@ struct RuleRegistry {
     void registerIntegerRules()
     {
         // 玩家相关
-        registerInteger("spawnRadius", GameRuleCategory::Player, 10, 0, INT32_MAX);
-        registerInteger("playersNetherPortalDefaultDelay", GameRuleCategory::Player, 80, 0, INT32_MAX);
-        registerInteger("playersNetherPortalCreativeDelay", GameRuleCategory::Player, 0, 0, INT32_MAX);
+        registerInteger("respawn_radius", GameRuleCategory::Player, 10, 0, INT32_MAX);
+        registerInteger("players_nether_portal_default_delay", GameRuleCategory::Player, 80, 0, INT32_MAX);
+        registerInteger("players_nether_portal_creative_delay", GameRuleCategory::Player, 0, 0, INT32_MAX);
+        registerInteger("players_sleeping_percentage", GameRuleCategory::Player, 100, 0, 100);
 
         // 生物相关
-        registerInteger("maxEntityCramming", GameRuleCategory::Mobs, 24, 0, INT32_MAX);
+        registerInteger("max_entity_cramming", GameRuleCategory::Mobs, 24, 0, INT32_MAX);
 
         // 更新相关
-        registerInteger("randomTickSpeed", GameRuleCategory::Updates, 3, 0, INT32_MAX);
-        registerInteger("snowAccumulationHeight", GameRuleCategory::Updates, 1, 0, 8);
+        registerInteger("random_tick_speed", GameRuleCategory::Updates, 3, 0, INT32_MAX);
+        registerInteger("max_snow_accumulation_height", GameRuleCategory::Updates, 1, 0, 8);
         registerInteger("fire_spread_radius_around_player", GameRuleCategory::Updates, 128, -1, INT32_MAX);
 
+        // 命令相关
+        registerInteger("max_block_modifications", GameRuleCategory::Misc, 32768, 1, INT32_MAX);
+        registerInteger("max_command_forks", GameRuleCategory::Misc, 65536, 0, INT32_MAX);
+        registerInteger("max_command_sequence_length", GameRuleCategory::Misc, 65536, 0, INT32_MAX);
+
         // 杂项
-        registerInteger("maxCommandChainLength", GameRuleCategory::Misc, 65536, 0, INT32_MAX);
         registerInteger("max_minecart_speed", GameRuleCategory::Misc, 8, 1, 1000);
     }
 
@@ -208,67 +212,80 @@ RuleRegistry& getRegistry()
 namespace GameRuleKeys {
 
 // 玩家相关
-const BooleanGameRuleKey KEEP_INVENTORY("keepInventory", GameRuleCategory::Player);
+const BooleanGameRuleKey KEEP_INVENTORY("keep_inventory", GameRuleCategory::Player);
 const BooleanGameRuleKey LOCATOR_BAR("locator_bar", GameRuleCategory::Player);
-const BooleanGameRuleKey NATURAL_REGENERATION("naturalRegeneration", GameRuleCategory::Player);
-const IntegerGameRuleKey SPAWN_RADIUS("spawnRadius", GameRuleCategory::Player);
+const BooleanGameRuleKey NATURAL_HEALTH_REGENERATION("natural_health_regeneration", GameRuleCategory::Player);
+const IntegerGameRuleKey RESPAWN_RADIUS("respawn_radius", GameRuleCategory::Player);
 const IntegerGameRuleKey PLAYERS_NETHER_PORTAL_DEFAULT_DELAY(
-    "playersNetherPortalDefaultDelay", GameRuleCategory::Player);
+    "players_nether_portal_default_delay", GameRuleCategory::Player);
 const IntegerGameRuleKey PLAYERS_NETHER_PORTAL_CREATIVE_DELAY(
-    "playersNetherPortalCreativeDelay", GameRuleCategory::Player);
-const BooleanGameRuleKey SPECTATORS_GENERATE_CHUNKS("spectatorsGenerateChunks", GameRuleCategory::Player);
-const BooleanGameRuleKey DISABLE_ELYTRA_MOVEMENT_CHECK("disableElytraMovementCheck", GameRuleCategory::Player);
-const BooleanGameRuleKey DO_IMMEDIATE_RESPAWN("doImmediateRespawn", GameRuleCategory::Player);
-const BooleanGameRuleKey DROWNING_DAMAGE("drowningDamage", GameRuleCategory::Player);
-const BooleanGameRuleKey FALL_DAMAGE("fallDamage", GameRuleCategory::Player);
-const BooleanGameRuleKey FIRE_DAMAGE("fireDamage", GameRuleCategory::Player);
-const BooleanGameRuleKey FREEZE_DAMAGE("freezeDamage", GameRuleCategory::Player);
-const BooleanGameRuleKey DO_LIMITED_CRAFTING("doLimitedCrafting", GameRuleCategory::Player);
+    "players_nether_portal_creative_delay", GameRuleCategory::Player);
+const IntegerGameRuleKey PLAYERS_SLEEPING_PERCENTAGE("players_sleeping_percentage", GameRuleCategory::Player);
+const BooleanGameRuleKey SPECTATORS_GENERATE_CHUNKS("spectators_generate_chunks", GameRuleCategory::Player);
+const BooleanGameRuleKey ELYTRA_MOVEMENT_CHECK("elytra_movement_check", GameRuleCategory::Player);
+const BooleanGameRuleKey IMMEDIATE_RESPAWN("immediate_respawn", GameRuleCategory::Player);
+const BooleanGameRuleKey DROWNING_DAMAGE("drowning_damage", GameRuleCategory::Player);
+const BooleanGameRuleKey FALL_DAMAGE("fall_damage", GameRuleCategory::Player);
+const BooleanGameRuleKey FIRE_DAMAGE("fire_damage", GameRuleCategory::Player);
+const BooleanGameRuleKey FREEZE_DAMAGE("freeze_damage", GameRuleCategory::Player);
+const BooleanGameRuleKey LIMITED_CRAFTING("limited_crafting", GameRuleCategory::Player);
+const BooleanGameRuleKey ALLOW_ENTERING_NETHER_USING_PORTALS(
+    "allow_entering_nether_using_portals", GameRuleCategory::Player);
+const BooleanGameRuleKey ENDER_PEARLS_VANISH_ON_DEATH("ender_pearls_vanish_on_death", GameRuleCategory::Player);
+const BooleanGameRuleKey PLAYER_MOVEMENT_CHECK("player_movement_check", GameRuleCategory::Player);
 const BooleanGameRuleKey PVP("pvp", GameRuleCategory::Player);
 
 // 生物相关
-const BooleanGameRuleKey MOB_GRIEFING("mobGriefing", GameRuleCategory::Mobs);
-const IntegerGameRuleKey MAX_ENTITY_CRAMMING("maxEntityCramming", GameRuleCategory::Mobs);
-const BooleanGameRuleKey DISABLE_RAIDS("disableRaids", GameRuleCategory::Mobs);
-const BooleanGameRuleKey FORGIVE_DEAD_PLAYERS("forgiveDeadPlayers", GameRuleCategory::Mobs);
-const BooleanGameRuleKey UNIVERSAL_ANGER("universalAnger", GameRuleCategory::Mobs);
+const BooleanGameRuleKey MOB_GRIEFING("mob_griefing", GameRuleCategory::Mobs);
+const BooleanGameRuleKey MOB_EXPLOSION_DROP_DECAY("mob_explosion_drop_decay", GameRuleCategory::Mobs);
+const IntegerGameRuleKey MAX_ENTITY_CRAMMING("max_entity_cramming", GameRuleCategory::Mobs);
+const BooleanGameRuleKey RAIDS("raids", GameRuleCategory::Mobs);
+const BooleanGameRuleKey FORGIVE_DEAD_PLAYERS("forgive_dead_players", GameRuleCategory::Mobs);
+const BooleanGameRuleKey UNIVERSAL_ANGER("universal_anger", GameRuleCategory::Mobs);
 
 // 生成相关
-const BooleanGameRuleKey DO_MOB_SPAWNING("doMobSpawning", GameRuleCategory::Spawning);
-const BooleanGameRuleKey DO_INSOMNIA("doInsomnia", GameRuleCategory::Spawning);
-const BooleanGameRuleKey DO_PATROL_SPAWNING("doPatrolSpawning", GameRuleCategory::Spawning);
-const BooleanGameRuleKey DO_TRADER_SPAWNING("doTraderSpawning", GameRuleCategory::Spawning);
-const BooleanGameRuleKey DO_WARDEN_SPAWNING("doWardenSpawning", GameRuleCategory::Spawning);
+const BooleanGameRuleKey SPAWN_MOBS("spawn_mobs", GameRuleCategory::Spawning);
+const BooleanGameRuleKey SPAWN_MONSTERS("spawn_monsters", GameRuleCategory::Spawning);
+const BooleanGameRuleKey SPAWN_PHANTOMS("spawn_phantoms", GameRuleCategory::Spawning);
+const BooleanGameRuleKey SPAWN_PATROLS("spawn_patrols", GameRuleCategory::Spawning);
+const BooleanGameRuleKey SPAWN_WANDERING_TRADERS("spawn_wandering_traders", GameRuleCategory::Spawning);
+const BooleanGameRuleKey SPAWN_WARDENS("spawn_wardens", GameRuleCategory::Spawning);
 
 // 掉落相关
-const BooleanGameRuleKey DO_MOB_LOOT("doMobLoot", GameRuleCategory::Drops);
-const BooleanGameRuleKey DO_TILE_DROPS("doTileDrops", GameRuleCategory::Drops);
-const BooleanGameRuleKey DO_ENTITY_DROPS("doEntityDrops", GameRuleCategory::Drops);
-const BooleanGameRuleKey PROJECTILES_CAN_BREAK_BLOCKS("projectilesCanBreakBlocks", GameRuleCategory::Drops);
+const BooleanGameRuleKey MOB_DROPS("mob_drops", GameRuleCategory::Drops);
+const BooleanGameRuleKey BLOCK_DROPS("block_drops", GameRuleCategory::Drops);
+const BooleanGameRuleKey ENTITY_DROPS("entity_drops", GameRuleCategory::Drops);
+const BooleanGameRuleKey BLOCK_EXPLOSION_DROP_DECAY("block_explosion_drop_decay", GameRuleCategory::Drops);
+const BooleanGameRuleKey PROJECTILES_CAN_BREAK_BLOCKS("projectiles_can_break_blocks", GameRuleCategory::Drops);
 
 // 更新相关
-const BooleanGameRuleKey DO_FIRE_TICK("doFireTick", GameRuleCategory::Updates);
-const BooleanGameRuleKey DO_DAYLIGHT_CYCLE("doDaylightCycle", GameRuleCategory::Updates);
-const IntegerGameRuleKey RANDOM_TICK_SPEED("randomTickSpeed", GameRuleCategory::Updates);
-const BooleanGameRuleKey DO_WEATHER_CYCLE("doWeatherCycle", GameRuleCategory::Updates);
-const IntegerGameRuleKey MAX_SNOW_ACCUMULATION_HEIGHT("snowAccumulationHeight", GameRuleCategory::Updates);
+const BooleanGameRuleKey ADVANCE_TIME("advance_time", GameRuleCategory::Updates);
+const BooleanGameRuleKey ADVANCE_WEATHER("advance_weather", GameRuleCategory::Updates);
+const IntegerGameRuleKey RANDOM_TICK_SPEED("random_tick_speed", GameRuleCategory::Updates);
+const IntegerGameRuleKey MAX_SNOW_ACCUMULATION_HEIGHT("max_snow_accumulation_height", GameRuleCategory::Updates);
 const IntegerGameRuleKey FIRE_SPREAD_RADIUS_AROUND_PLAYER(
     "fire_spread_radius_around_player", GameRuleCategory::Updates);
+const BooleanGameRuleKey LAVA_SOURCE_CONVERSION("lava_source_conversion", GameRuleCategory::Updates);
+const BooleanGameRuleKey WATER_SOURCE_CONVERSION("water_source_conversion", GameRuleCategory::Updates);
+const BooleanGameRuleKey SPREAD_VINES("spread_vines", GameRuleCategory::Updates);
 
 // 聊天相关
-const BooleanGameRuleKey COMMAND_BLOCK_OUTPUT("commandBlockOutput", GameRuleCategory::Chat);
-const BooleanGameRuleKey LOG_ADMIN_COMMANDS("logAdminCommands", GameRuleCategory::Chat);
-const BooleanGameRuleKey SHOW_DEATH_MESSAGES("showDeathMessages", GameRuleCategory::Chat);
-const BooleanGameRuleKey SEND_COMMAND_FEEDBACK("sendCommandFeedback", GameRuleCategory::Chat);
-const BooleanGameRuleKey ANNOUNCE_ADVANCEMENTS("announceAdvancements", GameRuleCategory::Chat);
+const BooleanGameRuleKey COMMAND_BLOCK_OUTPUT("command_block_output", GameRuleCategory::Chat);
+const BooleanGameRuleKey LOG_ADMIN_COMMANDS("log_admin_commands", GameRuleCategory::Chat);
+const BooleanGameRuleKey SHOW_DEATH_MESSAGES("show_death_messages", GameRuleCategory::Chat);
+const BooleanGameRuleKey SEND_COMMAND_FEEDBACK("send_command_feedback", GameRuleCategory::Chat);
+const BooleanGameRuleKey SHOW_ADVANCEMENT_MESSAGES("show_advancement_messages", GameRuleCategory::Chat);
 
 // 杂项
-const BooleanGameRuleKey REDUCED_DEBUG_INFO("reducedDebugInfo", GameRuleCategory::Misc);
-const BooleanGameRuleKey COMMAND_BLOCKS_WORK("commandBlocksWork", GameRuleCategory::Misc);
-const BooleanGameRuleKey TNT_EXPLODES("tntExplodes", GameRuleCategory::Misc);
-const BooleanGameRuleKey SPAWNER_BLOCKS_WORK("spawnerBlocksWork", GameRuleCategory::Misc);
-const BooleanGameRuleKey GLOBAL_SOUND_EVENTS("globalSoundEvents", GameRuleCategory::Misc);
-const IntegerGameRuleKey MAX_COMMAND_CHAIN_LENGTH("maxCommandChainLength", GameRuleCategory::Misc);
+const BooleanGameRuleKey REDUCED_DEBUG_INFO("reduced_debug_info", GameRuleCategory::Misc);
+const BooleanGameRuleKey COMMAND_BLOCKS_WORK("command_blocks_work", GameRuleCategory::Misc);
+const BooleanGameRuleKey TNT_EXPLODES("tnt_explodes", GameRuleCategory::Misc);
+const BooleanGameRuleKey TNT_EXPLOSION_DROP_DECAY("tnt_explosion_drop_decay", GameRuleCategory::Misc);
+const BooleanGameRuleKey SPAWNER_BLOCKS_WORK("spawner_blocks_work", GameRuleCategory::Misc);
+const BooleanGameRuleKey GLOBAL_SOUND_EVENTS("global_sound_events", GameRuleCategory::Misc);
+const IntegerGameRuleKey MAX_COMMAND_SEQUENCE_LENGTH("max_command_sequence_length", GameRuleCategory::Misc);
+const IntegerGameRuleKey MAX_COMMAND_FORKS("max_command_forks", GameRuleCategory::Misc);
+const IntegerGameRuleKey MAX_BLOCK_MODIFICATIONS("max_block_modifications", GameRuleCategory::Misc);
 const IntegerGameRuleKey MAX_MINECART_SPEED("max_minecart_speed", GameRuleCategory::Misc);
 
 } // namespace GameRuleKeys

@@ -52,6 +52,11 @@ private:
     static i32 _getScore(CommandContext<ServerCommandSource>& context);
     static i32 _enableTrigger(CommandContext<ServerCommandSource>& context);
     static i32 _listPlayers(CommandContext<ServerCommandSource>& context);
+    static i32 _listAllPlayers(CommandContext<ServerCommandSource>& context);
+    static i32 _modifyObjectiveDisplayName(CommandContext<ServerCommandSource>& context);
+    static i32 _setDisplaySlot(CommandContext<ServerCommandSource>& context);
+    static i32 _displayPlayerScore(CommandContext<ServerCommandSource>& context);
+    static i32 _operateScore(CommandContext<ServerCommandSource>& context);
 };
 
 } // namespace command

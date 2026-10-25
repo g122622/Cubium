@@ -529,7 +529,7 @@ void CopperGolemEntity::turnToStatue()
     //   - clearLeash() 仅清除拴绳状态（不掉落物品），对应 MC Java 的 removeLeash()。
     // 这里采用显式 if/else 分支以 1:1 对应 MC 原版控制流，便于源码对照与未来维护。
     if (isLeashed()) {
-        if (w->getGameRules().getBoolean(world::gamerule::GameRuleKeys::DO_ENTITY_DROPS)) {
+        if (w->getGameRules().getBoolean(world::gamerule::GameRuleKeys::ENTITY_DROPS)) {
             dropLeash();
         } else {
             clearLeash();

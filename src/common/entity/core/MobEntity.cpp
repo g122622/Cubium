@@ -1313,7 +1313,7 @@ void MobEntity::dropLeash()
     clearLeash();
 
     // 掉落拴绳物品
-    if (m_world != nullptr && m_world->getGameRules().getBoolean(world::gamerule::GameRuleKeys::DO_ENTITY_DROPS)) {
+    if (m_world != nullptr && m_world->getGameRules().getBoolean(world::gamerule::GameRuleKeys::ENTITY_DROPS)) {
         if (Items::LEAD != nullptr) {
             ItemStack stack(*Items::LEAD, 1);
             math::IRandom& rng = m_world->getRandom();

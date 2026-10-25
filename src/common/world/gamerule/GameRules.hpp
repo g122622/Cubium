@@ -85,46 +85,68 @@ inline constexpr std::string_view INTEGER = "integer";
 
 namespace GameRuleKeys {
 
+// 规则名与原版 1.21.11 的注册表项一致（`minecraft:<name>` 的短名）。
+// 常量标识符保留 Cubium 的命名习惯（大写下划线），只有名字字符串对齐原版。
+
 // ============================================================================
 // 玩家相关 (Player)
 // ============================================================================
 
 /// 玩家死亡后是否保留物品栏
 extern const BooleanGameRuleKey KEEP_INVENTORY;
-/** @brief 是否启用玩家导航条。 */
+
+/// 是否显示定位栏
 extern const BooleanGameRuleKey LOCATOR_BAR;
 
-/// 玩家是否自然恢复生命值
-extern const BooleanGameRuleKey NATURAL_REGENERATION;
+/// 自然生命恢复
+extern const BooleanGameRuleKey NATURAL_HEALTH_REGENERATION;
 
-/// 玩家重生半径
-extern const IntegerGameRuleKey SPAWN_RADIUS;
+/// 重生半径
+extern const IntegerGameRuleKey RESPAWN_RADIUS;
 
-/// 旁观者是否生成区块
+/// 下界传送门默认冷却
+extern const IntegerGameRuleKey PLAYERS_NETHER_PORTAL_DEFAULT_DELAY;
+
+/// 下界传送门创造模式冷却
+extern const IntegerGameRuleKey PLAYERS_NETHER_PORTAL_CREATIVE_DELAY;
+
+/// 睡眠跳过夜晚所需玩家百分比
+extern const IntegerGameRuleKey PLAYERS_SLEEPING_PERCENTAGE;
+
+/// 旁观者是否加载区块
 extern const BooleanGameRuleKey SPECTATORS_GENERATE_CHUNKS;
 
-/// 是否禁用鞘翅移动检查
-extern const BooleanGameRuleKey DISABLE_ELYTRA_MOVEMENT_CHECK;
+/// 鞘翅移动距离校验
+extern const BooleanGameRuleKey ELYTRA_MOVEMENT_CHECK;
 
-/// 是否立即重生
-extern const BooleanGameRuleKey DO_IMMEDIATE_RESPAWN;
+/// 死亡后是否立即重生
+extern const BooleanGameRuleKey IMMEDIATE_RESPAWN;
 
-/// 是否溺水受伤
+/// 溺水伤害
 extern const BooleanGameRuleKey DROWNING_DAMAGE;
 
-/// 是否摔落受伤
+/// 摔落伤害
 extern const BooleanGameRuleKey FALL_DAMAGE;
 
-/// 是否火焰受伤
+/// 火焰伤害
 extern const BooleanGameRuleKey FIRE_DAMAGE;
 
-/// 是否冰冻受伤
+/// 冰冻伤害
 extern const BooleanGameRuleKey FREEZE_DAMAGE;
 
 /// 是否限制合成
-extern const BooleanGameRuleKey DO_LIMITED_CRAFTING;
+extern const BooleanGameRuleKey LIMITED_CRAFTING;
 
-/// 是否允许玩家对玩家造成伤害
+/// 是否允许通过下界传送门
+extern const BooleanGameRuleKey ALLOW_ENTERING_NETHER_USING_PORTALS;
+
+/// 末影珍珠是否在死亡时消失
+extern const BooleanGameRuleKey ENDER_PEARLS_VANISH_ON_DEATH;
+
+/// 玩家移动距离校验
+extern const BooleanGameRuleKey PLAYER_MOVEMENT_CHECK;
+
+/// 玩家对战
 extern const BooleanGameRuleKey PVP;
 
 // ============================================================================
@@ -134,11 +156,14 @@ extern const BooleanGameRuleKey PVP;
 /// 生物是否能破坏方块
 extern const BooleanGameRuleKey MOB_GRIEFING;
 
+/// 生物爆炸是否衰减掉落
+extern const BooleanGameRuleKey MOB_EXPLOSION_DROP_DECAY;
+
 /// 实体挤压上限
 extern const IntegerGameRuleKey MAX_ENTITY_CRAMMING;
 
-/// 是否禁用袭击
-extern const BooleanGameRuleKey DISABLE_RAIDS;
+/// 是否允许袭击
+extern const BooleanGameRuleKey RAIDS;
 
 /// 中立生物是否原谅死亡玩家
 extern const BooleanGameRuleKey FORGIVE_DEAD_PLAYERS;
@@ -151,71 +176,75 @@ extern const BooleanGameRuleKey UNIVERSAL_ANGER;
 // ============================================================================
 
 /// 是否生成生物
-extern const BooleanGameRuleKey DO_MOB_SPAWNING;
+extern const BooleanGameRuleKey SPAWN_MOBS;
+
+/// 是否生成怪物
+extern const BooleanGameRuleKey SPAWN_MONSTERS;
 
 /// 是否生成幻翼
-extern const BooleanGameRuleKey DO_INSOMNIA;
+extern const BooleanGameRuleKey SPAWN_PHANTOMS;
 
 /// 是否生成巡逻队
-extern const BooleanGameRuleKey DO_PATROL_SPAWNING;
+extern const BooleanGameRuleKey SPAWN_PATROLS;
 
 /// 是否生成流浪商人
-extern const BooleanGameRuleKey DO_TRADER_SPAWNING;
+extern const BooleanGameRuleKey SPAWN_WANDERING_TRADERS;
 
 /// 是否生成监守者
-extern const BooleanGameRuleKey DO_WARDEN_SPAWNING;
+extern const BooleanGameRuleKey SPAWN_WARDENS;
 
 // ============================================================================
 // 掉落相关 (Drops)
 // ============================================================================
 
 /// 生物是否掉落物品
-extern const BooleanGameRuleKey DO_MOB_LOOT;
+extern const BooleanGameRuleKey MOB_DROPS;
 
 /// 方块是否掉落物品
-extern const BooleanGameRuleKey DO_TILE_DROPS;
+extern const BooleanGameRuleKey BLOCK_DROPS;
 
 /// 实体是否掉落物品（矿车等）
-extern const BooleanGameRuleKey DO_ENTITY_DROPS;
+extern const BooleanGameRuleKey ENTITY_DROPS;
 
-/// 投射物是否可以破坏方块（如箭矢破坏陶罐、紫颂花等）
-/// 参考 MC Java 的 projectilesCanBreakBlocks 游戏规则，默认 true
+/// 方块爆炸是否衰减掉落
+extern const BooleanGameRuleKey BLOCK_EXPLOSION_DROP_DECAY;
+
+/// 投射物是否可以破坏方块（如箭矢破坏陶罐、紫颂花等），默认 true
 extern const BooleanGameRuleKey PROJECTILES_CAN_BREAK_BLOCKS;
 
 // ============================================================================
 // 更新相关 (Updates)
 // ============================================================================
 
-/// 火焰是否蔓延
-extern const BooleanGameRuleKey DO_FIRE_TICK;
+/// 是否推进时间（昼夜）
+extern const BooleanGameRuleKey ADVANCE_TIME;
 
-/// 日照循环是否进行
-extern const BooleanGameRuleKey DO_DAYLIGHT_CYCLE;
+/// 是否推进天气
+extern const BooleanGameRuleKey ADVANCE_WEATHER;
 
 /// 随机刻速度（影响作物生长、火焰蔓延等）
 extern const IntegerGameRuleKey RANDOM_TICK_SPEED;
 
-/// 天气循环是否进行
-extern const BooleanGameRuleKey DO_WEATHER_CYCLE;
-
-/// 雪层最大堆积高度（0=不允许堆积，1-8=最大雪层数）
+/// 积雪最大高度
 extern const IntegerGameRuleKey MAX_SNOW_ACCUMULATION_HEIGHT;
 
-/// 火焰蔓延的玩家半径门控（-1=不限制，其余=仅当该半径（含）内存在非旁观者玩家时火焰才 tick）
-/// 参考: net.minecraft.world.level.gamerules.GameRules.FIRE_SPREAD_RADIUS_AROUND_PLAYER
+/// 火焰蔓延半径（原版以 -1 表示不蔓延）
 extern const IntegerGameRuleKey FIRE_SPREAD_RADIUS_AROUND_PLAYER;
 
-/// 下界传送门默认权重延迟（tick）
-extern const IntegerGameRuleKey PLAYERS_NETHER_PORTAL_DEFAULT_DELAY;
+/// 岩浆是否生成新岩浆源
+extern const BooleanGameRuleKey LAVA_SOURCE_CONVERSION;
 
-/// 下界传送门创造模式权重延迟（tick）
-extern const IntegerGameRuleKey PLAYERS_NETHER_PORTAL_CREATIVE_DELAY;
+/// 水是否生成新水源
+extern const BooleanGameRuleKey WATER_SOURCE_CONVERSION;
+
+/// 藤蔓是否蔓延
+extern const BooleanGameRuleKey SPREAD_VINES;
 
 // ============================================================================
 // 聊天相关 (Chat)
 // ============================================================================
 
-/// 命令方块是否输出到聊天
+/// 命令方块是否输出
 extern const BooleanGameRuleKey COMMAND_BLOCK_OUTPUT;
 
 /// 是否记录管理员命令
@@ -227,34 +256,41 @@ extern const BooleanGameRuleKey SHOW_DEATH_MESSAGES;
 /// 是否发送命令反馈
 extern const BooleanGameRuleKey SEND_COMMAND_FEEDBACK;
 
-/// 是否公布成就
-extern const BooleanGameRuleKey ANNOUNCE_ADVANCEMENTS;
+/// 是否显示进度消息
+extern const BooleanGameRuleKey SHOW_ADVANCEMENT_MESSAGES;
 
 // ============================================================================
 // 杂项 (Misc)
 // ============================================================================
 
-/// 是否减少调试信息
+/// 是否显示简化调试信息
 extern const BooleanGameRuleKey REDUCED_DEBUG_INFO;
 
-/// 命令方块是否可用（关闭时命令方块不再执行命令，编辑也仅保存不执行）
+/// 命令方块是否工作
 extern const BooleanGameRuleKey COMMAND_BLOCKS_WORK;
 
-/// TNT 是否允许爆炸（控制 TNT 方块点燃、TNT 实体爆炸、TNT 矿车引爆等）
+/// TNT 是否爆炸
 extern const BooleanGameRuleKey TNT_EXPLODES;
 
-/// 刷怪笼是否工作（刷怪蛋右键刷怪笼设置实体类型、刷怪笼生成生物）
+/// TNT 爆炸是否衰减掉落
+extern const BooleanGameRuleKey TNT_EXPLOSION_DROP_DECAY;
+
+/// 刷怪笼是否工作
 extern const BooleanGameRuleKey SPAWNER_BLOCKS_WORK;
 
-/// 全局声音事件（globalLevelEvent 门控）
-/// 参考: net.minecraft.world.level.gamerule.GameRules.RULE_GLOBAL_SOUND_EVENTS
+/// 是否向所有人广播声音事件
 extern const BooleanGameRuleKey GLOBAL_SOUND_EVENTS;
 
-/// 最大命令链长度
-extern const IntegerGameRuleKey MAX_COMMAND_CHAIN_LENGTH;
+/// 命令序列最大长度
+extern const IntegerGameRuleKey MAX_COMMAND_SEQUENCE_LENGTH;
 
-/// 矿车最大速度（默认8，实际速度 = 规则值 / 20.0 方块/刻，水中减半）
-/// 范围 [1, 1000]，对应 max_minecart_speed 游戏规则
+/// 命令分支最多数量
+extern const IntegerGameRuleKey MAX_COMMAND_FORKS;
+
+/// 单条命令最多修改方块数
+extern const IntegerGameRuleKey MAX_BLOCK_MODIFICATIONS;
+
+/// 矿车最大速度
 extern const IntegerGameRuleKey MAX_MINECART_SPEED;
 
 } // namespace GameRuleKeys
@@ -345,7 +381,7 @@ public:
      * m_integerRules），命中返回字符串表示（bool→"true"/"false"，i32→十进制串）；
      * 未命中则回退注册表默认值；规则不存在返回空串。
      *
-     * @param ruleName 规则名（如 "mobGriefing"、"randomTickSpeed"）
+     * @param ruleName 规则名（如 "mob_griefing"、"random_tick_speed"）
      * @return 当前值字符串表示；规则不存在返回空串
      */
     [[nodiscard]] std::string getValueAsString(const std::string& ruleName) const;
@@ -390,7 +426,7 @@ public:
      * @brief 按规则值类名从字符串设置规则值
      *
      * 对应 vanilla GameRuleType.deserialize：规则名与值的类名必须同时匹配（例如
-     * "randomTickSpeed" 只接受 boolean=false 的查询、不接受 boolean=true 的设置）。
+     * "random_tick_speed" 只接受 boolean=false 的查询、不接受 boolean=true 的设置）。
      * 整型值超出规则注册的 [min, max] 时视为无效值。
      *
      * @param ruleName 规则名称
@@ -415,9 +451,9 @@ public:
      * 输出格式：
      * @code
      * {
-     *     "mobGriefing": "true",
-     *     "naturalRegeneration": "true",
-     *     "randomTickSpeed": "3",
+     *     "mob_griefing": "true",
+     *     "natural_health_regeneration": "true",
+     *     "random_tick_speed": "3",
      *     ...
      * }
      * @endcode

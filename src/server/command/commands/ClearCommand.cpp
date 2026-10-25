@@ -208,10 +208,8 @@ void ClearCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher
     });
 
     auto playerArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, EntitySelector>>(
-        "player", EntityArgumentType::players());
-    playerArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return _clearPlayer(ctx);
-    });
+        "targets", EntityArgumentType::entities());
+    playerArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _clearPlayer(ctx); });
 
     auto itemArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, ItemPredicateInput>>(
         "item", ItemPredicateArgumentType::itemPredicate());
@@ -253,7 +251,7 @@ i32 ClearCommand::_clearSelf(CommandContext<ServerCommandSource>& context)
 i32 ClearCommand::_clearPlayer(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
-    EntitySelector selector = context.getArgument<EntitySelector>("player");
+    EntitySelector selector = context.getArgument<EntitySelector>("targets");
 
     const std::vector<PlayerId> targetPlayerIds = support::resolvePlayerIds(source, selector);
     if (targetPlayerIds.empty()) {
@@ -271,7 +269,7 @@ i32 ClearCommand::_clearPlayer(CommandContext<ServerCommandSource>& context)
 i32 ClearCommand::_clearPlayerItem(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
-    EntitySelector selector = context.getArgument<EntitySelector>("player");
+    EntitySelector selector = context.getArgument<EntitySelector>("targets");
 
     const std::vector<PlayerId> targetPlayerIds = support::resolvePlayerIds(source, selector);
     if (targetPlayerIds.empty()) {
@@ -290,7 +288,7 @@ i32 ClearCommand::_clearPlayerItem(CommandContext<ServerCommandSource>& context)
 i32 ClearCommand::_clearPlayerItemCount(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
-    EntitySelector selector = context.getArgument<EntitySelector>("player");
+    EntitySelector selector = context.getArgument<EntitySelector>("targets");
 
     const std::vector<PlayerId> targetPlayerIds = support::resolvePlayerIds(source, selector);
     if (targetPlayerIds.empty()) {

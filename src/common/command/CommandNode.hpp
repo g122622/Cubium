@@ -111,21 +111,17 @@ public:
 
     [[nodiscard]] virtual NodeType getType() const noexcept = 0;
     [[nodiscard]] virtual std::string getName() const noexcept = 0;
+    [[nodiscard]] virtual std::string getTypeName() const { return getName(); }
+    [[nodiscard]] virtual std::vector<std::string> getExamples() const { return {}; }
+    [[nodiscard]] virtual nlohmann::json getMetadata() const { return nlohmann::json::object(); }
 
-    [[nodiscard]] virtual std::string getTypeName() const
-    {
-        return getName();
-    }
-
-    [[nodiscard]] virtual std::vector<std::string> getExamples() const
-    {
-        return {};
-    }
-
-    [[nodiscard]] virtual nlohmann::json getMetadata() const
-    {
-        return nlohmann::json::object();
-    }
+    /**
+     * @brief 是否在命令树快照 / 网络下发中隐藏本节点（含其子树）
+     *
+     * 只用于纯实现脚手架：它们参与解析，但不属于原版协议里的命令树。
+     */
+    [[nodiscard]] bool isTreeHidden() const noexcept { return m_treeHidden; }
+    void setTreeHidden(bool hidden) noexcept { m_treeHidden = hidden; }
 
     virtual void parse(StringReader& reader, CommandContext<S>& context) const = 0;
 
@@ -174,6 +170,27 @@ public:
     {
         m_command = std::move(command);
     }
+
+    /**
+     * @brief 转发节点：命令就是「把同一份上下文交给父节点的命令」
+     *
+     * 原版 /execute 在每个修改器末端挂一个 ForwardingCommand（`parent.execute(context)`）。
+     * 这里照搬这一层：输入在 run 处被占位参数挂起（字段有剩余），执行器先跑转发的父命令，
+     * 再跑自己那一层，于是整条链按「外层先、内层后」的顺序执行完。
+     */
+    void setForwardParent(std::shared_ptr<CommandNode<S>> parent) noexcept
+    {
+        m_forwardParent = std::move(parent);
+        std::weak_ptr<CommandNode<S>> weakParent = m_forwardParent;
+        m_command = [weakParent](CommandContext<S>& context) -> i32 {
+            if (auto parentNode = weakParent.lock(); parentNode && parentNode->hasCommand()) {
+                return parentNode->getCommand()(context);
+            }
+            return 0;
+        };
+    }
+
+    [[nodiscard]] std::shared_ptr<CommandNode<S>> getForwardParent() const noexcept { return m_forwardParent; }
 
     /**
      * @brief 检查是否携带自定义建议提供器
@@ -319,6 +336,8 @@ protected:
     RedirectModifier m_redirectModifier = RedirectModifier::None;
     std::string m_usageText;
     Metadata m_metadataInfo;
+    std::shared_ptr<CommandNode<S>> m_forwardParent;
+    bool m_treeHidden = false;
 };
 
 /**
@@ -422,6 +441,7 @@ public:
     ArgumentCommandNode(const std::string& name, std::shared_ptr<ArgumentType<T>> argumentType)
         : m_name(name)
         , m_parser([this](std::string_view input, i32& cursor, CommandException& error) -> T {
+            const i32 start = cursor;
             StringReader reader(input);
             reader.setCursor(cursor);
             try {
@@ -430,9 +450,11 @@ public:
                 return result;
             }
             catch (const CommandException& e) {
+                // 失败时把游标还原到起点并抛出：上层 parse 用它定位错误；把 cursor 置 -1 会让
+                // setCursor(-1) 写出负数游标，之后的 getRemaining() 取到整段输入。
                 error = e;
-                cursor = -1;
-                return T{};
+                reader.setCursor(start);
+                throw;
             }
         })
         , m_argumentType(std::move(argumentType))
@@ -468,6 +490,11 @@ public:
         const i32 start = reader.getCursor();
         i32 cursor = start;
         T result = parse(reader.getString(), cursor);
+        if (cursor == start) {
+            // 一个字符都没读走：参数值由节点自己的 dispatch 阶段提供（/execute 的 run →
+            // forward <command> 就是这种转发节点），这里只留下尚未消费的剩余文本。
+            return;
+        }
         reader.setCursor(cursor);
         context.setArgument(m_name, result, start);
     }

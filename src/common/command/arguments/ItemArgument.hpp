@@ -138,10 +138,7 @@ public:
         return ItemInput(item->itemId(), isAir);
     }
 
-    [[nodiscard]] std::string getTypeName() const noexcept override
-    {
-        return "item";
-    }
+    [[nodiscard]] std::string getTypeName() const noexcept override { return "item_stack"; }
 
     [[nodiscard]] std::vector<std::string> getExamples() const noexcept override
     {
@@ -150,10 +147,10 @@ public:
 
     // ========== 静态工厂方法 ==========
 
-    static std::shared_ptr<ItemArgumentType> item() noexcept
-    {
-        return std::make_shared<ItemArgumentType>();
-    }
+    /// 原版 ItemArgument 在命令树里的注册名是 item_stack（/give），沿用 item 的解析。
+    static std::shared_ptr<ItemArgumentType> itemStack() { return std::make_shared<ItemArgumentType>(); }
+
+    static std::shared_ptr<ItemArgumentType> item() noexcept { return std::make_shared<ItemArgumentType>(); }
 
     // ========== 静态获取方法 ==========
 

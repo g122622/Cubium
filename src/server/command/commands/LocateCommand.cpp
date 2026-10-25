@@ -28,6 +28,7 @@
 #include "common/command/CommandDispatcher.hpp"
 #include "common/command/CommandNode.hpp"
 #include "common/command/arguments/ArgumentType.hpp"
+#include "common/command/arguments/ResourceOrTagArgumentType.hpp"
 #include "common/core/Types.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/math/Vector3.hpp"
@@ -58,22 +59,31 @@ void LocateCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatche
     // 原版 1.19+：/locate structure <structure> | /locate biome <biome> | /locate poi <poi>。
     // 此前 Cubium 用的是 /locate <structure> 与独立的 /locatebiome，两者都与原版不同。
     auto structureNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("structure");
-    auto structureArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
-        "structure", StringArgumentType::string());
-    structureArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return _locateStructure(ctx);
-    });
+    // 原版：structure 是 ResourceOrTagKeyArgument（可写 #minecraft:village），biome 是 ResourceOrTagArgument。
+    auto structureArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, ParsedResourceOrTag>>(
+        "structure", ResourceOrTagKeyArgumentType::resourceOrTagKey());
+    structureArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _locateStructure(ctx); });
     structureNode->addChild(structureArg);
     locateNode->addChild(structureNode);
 
     auto biomeNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("biome");
-    auto biomeArg =
-        std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>("biome", StringArgumentType::string());
-    biomeArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return LocateBiomeCommand::locateBiome(ctx);
-    });
+    auto biomeArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, ParsedResourceOrTag>>(
+        "biome", ResourceOrTagArgumentType::resourceOrTag());
+    biomeArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return LocateBiomeCommand::locateBiome(ctx); });
     biomeNode->addChild(biomeArg);
     locateNode->addChild(biomeNode);
+
+    // /locate poi <poi>：POI 注册表尚未实现，但节点必须与原版命令树一致（参数类型
+    // ResourceOrTagArgument，命令树里是 resource_or_tag）。
+    auto poiNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("poi");
+    auto poiArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, ParsedResourceOrTag>>(
+        "poi", ResourceOrTagArgumentType::resourceOrTag());
+    poiArg->setCommand([](CommandContext<ServerCommandSource>& context) {
+        context.getSource().sendError("commands.locate.poi.notImplemented");
+        return 0;
+    });
+    poiNode->addChild(poiArg);
+    locateNode->addChild(poiNode);
 
     dispatcher.registerCommand(locateNode);
 }
@@ -87,7 +97,7 @@ i32 LocateCommand::_locateStructure(CommandContext<ServerCommandSource>& context
         return 0;
     }
 
-    const std::string structureName = context.getArgument<std::string>("structure");
+    const std::string structureName = context.getArgument<ParsedResourceOrTag>("structure").toString();
     const Vector3d& playerPos = source.position();
 
     // 将用户输入规范化为 ResourceLocation

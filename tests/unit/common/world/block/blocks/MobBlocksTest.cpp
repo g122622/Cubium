@@ -930,7 +930,7 @@ TEST_F(InfestedBlockSpawnAfterBreakTest, SpawnAfterBreak_SilverfishPositionCorre
 TEST_F(InfestedBlockSpawnAfterBreakTest, SpawnAfterBreak_DoTileDropsFalse_DoesNotSpawn)
 {
     // 设置 doTileDrops 游戏规则为 false
-    world_.getGameRules().setBoolean(world::gamerule::GameRuleKeys::DO_TILE_DROPS, false, nullptr);
+    world_.getGameRules().setBoolean(world::gamerule::GameRuleKeys::BLOCK_DROPS, false, nullptr);
 
     // 设置被感染方块
     BlockPos pos(5, 10, 5);
@@ -948,7 +948,7 @@ TEST_F(InfestedBlockSpawnAfterBreakTest, SpawnAfterBreak_DoTileDropsFalse_DoesNo
 TEST_F(InfestedBlockSpawnAfterBreakTest, SpawnAfterBreak_DoTileDropsTrue_SpawnsSilverfish)
 {
     // 确保 doTileDrops 游戏规则为 true（默认值）
-    world_.getGameRules().setBoolean(world::gamerule::GameRuleKeys::DO_TILE_DROPS, true, nullptr);
+    world_.getGameRules().setBoolean(world::gamerule::GameRuleKeys::BLOCK_DROPS, true, nullptr);
 
     // 设置被感染方块
     BlockPos pos(5, 10, 5);

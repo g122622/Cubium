@@ -120,18 +120,13 @@ public:
         return "";
     }
 
-    [[nodiscard]] std::string getTypeName() const override
-    {
-        switch (m_type) {
-            case StringType::SingleWord:
-                return "word";
-            case StringType::QuotablePhrase:
-                return "phrase";
-            case StringType::GreedyPhrase:
-                return "greedy_string";
-        }
-        return "string";
-    }
+    /**
+     * @brief 参数类型名（对齐原版 brigadier:string）
+     *
+     * 原版三种字符串模式共用一个参数类型（brigadier:string），模式的区别在
+     * properties 里（quote / greedy 两个布尔）。这里同样只输出 `string`。
+     */
+    [[nodiscard]] std::string getTypeName() const override { return "string"; }
 
     [[nodiscard]] std::vector<std::string> getExamples() const override
     {
@@ -148,7 +143,10 @@ public:
 
     [[nodiscard]] nlohmann::json serializeMetadata() const override
     {
-        return nlohmann::json{{"mode", getTypeName()}};
+        // 原版 brigadier:string 的 properties：quote（是否允许引号包裹）与 greedy（是否读到末尾）。
+        return nlohmann::json{
+            {"quote", m_type != StringType::SingleWord},
+            {"greedy", m_type == StringType::GreedyPhrase}};
     }
 
     // ========== 静态工厂方法 ==========
@@ -232,14 +230,15 @@ public:
                 CommandErrorType::IntegerExpected, "Expected integer at position " + std::to_string(start), start);
         }
 
+        // 与 brigadier 一致：越界时报错位置是「读到的位置」，且游标回到起点。
         const i32 end = reader.getCursor();
         if (number < m_min) {
             reader.setCursor(start);
-            throw CommandException(CommandErrorType::IntegerTooLow, "Integer too low", start);
+            throw CommandException(CommandErrorType::IntegerTooLow, "Integer too low", end);
         }
         if (number > m_max) {
             reader.setCursor(start);
-            throw CommandException(CommandErrorType::IntegerTooHigh, "Integer too high", start);
+            throw CommandException(CommandErrorType::IntegerTooHigh, "Integer too high", end);
         }
         return static_cast<i32>(number);
     }
@@ -412,6 +411,68 @@ public:
 private:
     f32 m_min;
     f32 m_max;
+};
+
+// ========== 双精度浮点参数 ==========
+
+/**
+ * @brief 双精度浮点参数类型（brigadier DoubleArgumentType）
+ *
+ * 与 {@link FloatArgumentType} 同一套解析语义，只是不截成 f32；原版 /worldborder 的距离、
+ * /title times 的秒数等都是双精度，类型名在协议里是 `double`。
+ */
+class DoubleArgumentType : public ArgumentType<f64> {
+public:
+    explicit DoubleArgumentType(f64 min = -DBL_MAX, f64 max = DBL_MAX)
+        : m_min(min)
+        , m_max(max)
+    {}
+
+    [[nodiscard]] f64 parse(StringReader& reader) override
+    {
+        const i32 start = reader.getCursor();
+        const std::string number = readNumberWord(reader);
+        if (number.empty() || number.find('.') != number.rfind('.')) {
+            reader.setCursor(start);
+            throw CommandException(CommandErrorType::FloatExpected, "Expected double at position " + std::to_string(start), start);
+        }
+        reader.setCursor(start);
+
+        const f64 value = reader.readDouble();
+        if (value < m_min) {
+            reader.setCursor(start);
+            throw CommandException(CommandErrorType::FloatTooLow, "Double too low", start);
+        }
+        if (value > m_max) {
+            reader.setCursor(start);
+            throw CommandException(CommandErrorType::FloatTooHigh, "Double too high", start);
+        }
+        return value;
+    }
+
+    [[nodiscard]] std::string getTypeName() const override { return "double"; }
+
+    [[nodiscard]] std::vector<std::string> getExamples() const override { return {"0", "1.5", "-2.5"}; }
+
+    [[nodiscard]] nlohmann::json serializeMetadata() const override
+    {
+        return nlohmann::json{{"min", m_min}, {"max", m_max}};
+    }
+
+    static std::shared_ptr<DoubleArgumentType> doubleArg() { return std::make_shared<DoubleArgumentType>(); }
+
+    static std::shared_ptr<DoubleArgumentType> doubleArg(f64 min) { return std::make_shared<DoubleArgumentType>(min, DBL_MAX); }
+
+    static std::shared_ptr<DoubleArgumentType> doubleArg(f64 min, f64 max)
+    {
+        return std::make_shared<DoubleArgumentType>(min, max);
+    }
+
+    static f64 getDouble(StringReader& reader) { return reader.readDouble(); }
+
+private:
+    f64 m_min;
+    f64 m_max;
 };
 
 // ========== 布尔参数 ==========

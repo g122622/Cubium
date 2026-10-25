@@ -34,6 +34,7 @@
 #include "server/command/support/CommandMetadata.hpp"
 #include "server/network/handshake/RegistryDataBuilder.hpp"
 #include <filesystem>
+#include <fstream>
 #include <memory>
 #include <sstream>
 #include <string>
@@ -70,11 +71,28 @@ void DataPackCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatc
     disableNode->addChild(disableNameArg);
     datapackNode->addChild(disableNode);
 
-    // /datapack list
+    // /datapack create <id> [description]
+    // 原版 create 会新建一个空数据包；这里在数据包目录下建出 pack.mcmeta 与空的 data/，
+    // 并把它加入列表（默认启用）。id 只允许字母数字、下划线和连字符，避免路径穿越。
+    auto createNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("create");
+    auto createIdArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
+        "id", StringArgumentType::string());
+    createIdArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _createDataPack(ctx); });
+    createNode->addChild(createIdArg);
+    datapackNode->addChild(createNode);
+
+    // /datapack list [available|enabled]
     auto listNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("list");
-    listNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return _listDataPacks(ctx);
-    });
+    listNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _listDataPacks(ctx); });
+    for (const char* filter : {"available", "enabled"}) {
+        auto filterNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>(filter);
+        const std::string filterName = filter;
+        filterNode->setCommand([filterName](CommandContext<ServerCommandSource>& ctx) {
+            ctx.setArgument("filter", filterName);
+            return _listDataPacks(ctx);
+        });
+        listNode->addChild(filterNode);
+    }
     datapackNode->addChild(listNode);
 
     dispatcher.registerCommand(datapackNode);
@@ -158,9 +176,58 @@ i32 DataPackCommand::_disableDataPack(CommandContext<ServerCommandSource>& conte
     return 0;
 }
 
+i32 DataPackCommand::_createDataPack(CommandContext<ServerCommandSource>& context)
+{
+    auto& source = context.getSource();
+    const std::string id = context.getArgument<std::string>("id");
+
+    for (const char c : id) {
+        const bool ok = (c >= 'a' && c <= 'z') || (c >= '0' && c <= '9') || c == '_' || c == '-';
+        if (!ok) {
+            source.sendError("Invalid data pack id: " + id + " (only [a-z0-9_-] are allowed)");
+            return 0;
+        }
+    }
+
+    auto* server = source.server();
+    if (!server) {
+        source.sendError("Failed to create data pack: server not available");
+        return 0;
+    }
+
+    std::error_code ec;
+    const std::filesystem::path dir = std::filesystem::path("datapacks") / id;
+    if (std::filesystem::exists(dir, ec)) {
+        source.sendError("A data pack with id '" + id + "' already exists");
+        return 0;
+    }
+
+    std::filesystem::create_directories(dir / "data", ec);
+    if (ec) {
+        source.sendError("Failed to create data pack '" + id + "': " + ec.message());
+        return 0;
+    }
+
+    // 原版新建的包是一个标准的 pack.mcmeta（pack_format 1，description 为 "id"）。
+    std::ofstream meta(dir / "pack.mcmeta", std::ios::trunc);
+    meta << "{\"pack\":{\"pack_format\":1,\"description\":\"" << id << "\"}}" << char(10);
+    meta.close();
+
+    auto& dataPacks = server->dataPackList();
+    const auto added = dataPacks.addPack(dir, true, 0);
+    if (!added.success()) {
+        source.sendError("Failed to create data pack '" + id + "'");
+        return 0;
+    }
+    server::net::setRegistryDatapackSource(dataPacks);
+    source.sendMessage("Created empty data pack '" + id + "'");
+    return 1;
+}
+
 i32 DataPackCommand::_listDataPacks(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
+    const std::string filter = context.getArgumentOr<std::string>("filter", "all");
 
     auto* server = source.server();
     if (!server) {
@@ -191,6 +258,8 @@ i32 DataPackCommand::_listDataPacks(CommandContext<ServerCommandSource>& context
             }
             enabledList << packName;
             ++enabledCount;
+        } else if (filter == "enabled") {
+            continue;
         } else {
             if (disabledCount > 0) {
                 disabledList << ", ";
@@ -200,8 +269,16 @@ i32 DataPackCommand::_listDataPacks(CommandContext<ServerCommandSource>& context
         }
     }
 
-    source.sendMessage("Enabled data packs (" + std::to_string(enabledCount) + "): " + enabledList.str());
-    source.sendMessage("Disabled data packs (" + std::to_string(disabledCount) + "): " + disabledList.str());
+    if (filter == "available") {
+        // 原版 available = 所有可用的包（含已启用）。
+        source.sendMessage("Enabled data packs (" + std::to_string(enabledCount) + "): " + enabledList.str());
+        source.sendMessage("Disabled data packs (" + std::to_string(disabledCount) + "): " + disabledList.str());
+    } else if (filter == "enabled") {
+        source.sendMessage("Enabled data packs (" + std::to_string(enabledCount) + "): " + enabledList.str());
+    } else {
+        source.sendMessage("Enabled data packs (" + std::to_string(enabledCount) + "): " + enabledList.str());
+        source.sendMessage("Disabled data packs (" + std::to_string(disabledCount) + "): " + disabledList.str());
+    }
     return 1;
 }
 

@@ -37,6 +37,7 @@
 #include <functional>
 #include <future>
 #include <memory>
+#include <optional>
 #include <set>
 #include <string>
 #include <string_view>
@@ -397,41 +398,80 @@ ParseResults<S> CommandDispatcher<S>::parseNodes(
 {
     std::unordered_set<const CommandNode<S>*> redirectStack;
 
+    // 候选选择（对齐 brigadier 的 CommandDispatcher.parseNodes）：
+    //  - 成功：整条输入吃完、末端节点可执行，取剩余最短者；
+    //  - 失败：取「已读字符数 - 错误游标」最小者，用于报最贴切的错误。
+    // Cubium 多了「转发节点」一类末端（/execute 的 run → command）：它自己不执行，
+    // 命令在祖先节点上。这类候选在输入吃完时同样可执行，所以按同一个口径参与比较。
+    struct Candidate {
+        ParseResults<S> results;
+        NodePtr leaf;
+    };
+
     std::function<ParseResults<S>(StringReader&, NodePtr, std::unique_ptr<CommandContext<S>>)> parseRecursive;
     parseRecursive = [&](StringReader& currentReader,
                          NodePtr currentNode,
                          std::unique_ptr<CommandContext<S>> currentContext) -> ParseResults<S> {
         currentReader.skipWhitespace();
         currentContext->setCurrentNode(currentNode);
-
-        if (!currentReader.canRead()) {
-            return ParseResults<S>(std::move(currentContext), currentReader.getRemaining());
+        const i32 start = currentReader.getCursor();
+        if (currentReader.atEnd()) {
+            // brigadier 把这种结果标成「成功、但不构成派发」（isCommand = 带命令或重定向）。
+            // `list extra`：list 带命令，整段读完的同时还留着 "extra"，若一律按成功返回，上层
+            // 会把 list 当成末端执行并忽略剩余文本。这里只让「可派发」的末端保持成功，
+            // 其它节点交还给上层按失败候选比较。
+            if (currentNode->hasCommand() || currentNode->hasRedirect() || currentNode->getType() == NodeType::Root) {
+                return ParseResults<S>(std::move(currentContext), currentReader.getRemaining());
+            }
+            return ParseResults<S>(
+                CommandException(CommandErrorType::DispatcherUnknownArgument,
+                    "Unknown argument", currentReader.getCursor())
+                    .withInput(currentContext->getInput()),
+                currentReader.getCursor());
         }
 
-        ParseResults<S> bestSuccess;
-        bool hasBestSuccess = false;
-        ParseResults<S> bestFailure;
-        bool hasBestFailure = false;
+        std::optional<Candidate> bestSuccess;
+        std::optional<Candidate> bestFailure;
+        i32 bestFailureRank = 0;
 
-        auto considerResult = [&](ParseResults<S>&& candidate) {
+
+        // 末端可执行的命令：节点自己有命令就用它，否则沿转发链找最近的祖先。
+        auto commandOf = [](NodePtr leaf) -> std::shared_ptr<CommandNode<S>> {
+            while (leaf && !leaf->hasCommand() && leaf->getForwardParent()) {
+                leaf = leaf->getForwardParent();
+            }
+            return leaf && leaf->hasCommand() ? leaf : nullptr;
+        };
+
+        auto consider = [&](ParseResults<S>&& candidate, NodePtr leaf) {
             if (candidate.isSuccess()) {
-                const auto* candidateContext = candidate.getContext();
-                const auto candidateNode = candidateContext ? candidateContext->getCurrentNode() : nullptr;
-                if (candidate.getRemaining().empty() && (!candidateNode || !candidateNode->hasCommand())) {
+                auto* ctx = candidate.getContext();
+                const auto tail = ctx ? ctx->getCurrentNode() : nullptr;
+                const bool tailHasCommand = tail && commandOf(tail);
+                // 还剩文本、末端节点本身又不是可执行节点（命令挂在祖先上）：这一跳没有解释掉
+                // 剩余文本，不能算成功候选（`say <message>` 的 message 参数读走右引号后还留着
+                // 文本，命令在 say 上，此时应继续交给 say 的其它候选比较）。
+                // 注意末端的 tail 是转发节点时，剩余文本本就交给链尾解释（/execute run）。
+                if (!candidate.getRemaining().empty() && (!tail || !tail->hasCommand())) {
                     return;
                 }
-                if (!hasBestSuccess || candidate.getRemaining().size() < bestSuccess.getRemaining().size()) {
-                    bestSuccess = std::move(candidate);
-                    hasBestSuccess = true;
+                if (!bestSuccess || candidate.getRemaining().size() < bestSuccess->results.getRemaining().size()) {
+                    bestSuccess = Candidate{std::move(candidate), std::move(leaf)};
                 }
                 return;
             }
 
-            if (!hasBestFailure || candidate.getErrorCursor() > bestFailure.getErrorCursor()) {
-                bestFailure = std::move(candidate);
-                hasBestFailure = true;
+            // 失败候选按「错误位置 - 已读字符数」比较：错误位置越靠后（这一跳读得越深），
+            // 描述越贴合；与起点远近无关。
+            const i32 consumed = currentReader.getCursor() - start;
+            const i32 rank = candidate.getErrorCursor() - consumed;
+            if (!bestFailure || rank > bestFailureRank) {
+                bestFailureRank = rank;
+                bestFailure = Candidate{std::move(candidate), nullptr};
             }
         };
+
+        bool permissionDenied = false;
 
         auto tryChild = [&](const std::string& childName) {
             auto child = currentNode->getChild(childName);
@@ -439,18 +479,22 @@ ParseResults<S> CommandDispatcher<S>::parseNodes(
                 return;
             }
             if (!child->canUse(currentContext->getSource())) {
-                // 权限不足但输入精确匹配该字面量节点时，记录友好失败候选。
-                // 否则该节点被静默跳过，bestFailure 会落到其它字面量在当前 token 上抛出的
-                // 误导性 Expected literal 'X'（如 /tp 无权限时报 Expected literal 'help'）。
-                // 仅 Literal + 精确匹配才触发；参数节点或不匹配的输入仍走 Unknown command。
+                // 输入精确匹配了该字面量但权限不足：与 brigadier 一致，直接返回 PermissionDenied，
+                // 不再继续尝试其它候选（否则其它字面量的 Expected literal 会盖掉这个更贴切的错误）。
+                // 本轮已有一处同样拒绝过时不再重复（`tp` 重定向到 `teleport`，两者会是同一个错误）。
                 if (child->getType() == NodeType::Literal) {
-                    StringReader probe = currentReader; // 拷贝，不推进原 reader
-                    std::string token = probe.readUnquotedString();
-                    if (token == childName) {
+                    StringReader probe = currentReader;
+                    if (probe.readUnquotedString() == childName) {
                         const i32 deniedCursor = probe.getCursor();
-                        CommandException denied(
-                            CommandErrorType::PermissionDenied, "commands.permission.denied", deniedCursor);
-                        considerResult(ParseResults<S>(denied.withInput(currentContext->getInput()), deniedCursor));
+                        if (!permissionDenied) {
+                            permissionDenied = true;
+                            consider(ParseResults<S>(
+                                         CommandException(CommandErrorType::PermissionDenied,
+                                             "commands.permission.denied", deniedCursor)
+                                             .withInput(currentContext->getInput()),
+                                         deniedCursor),
+                                nullptr);
+                        }
                     }
                 }
                 return;
@@ -467,38 +511,60 @@ ParseResults<S> CommandDispatcher<S>::parseNodes(
                 if (child->hasRedirect()) {
                     auto redirectTarget = child->getRedirect();
                     if (redirectTarget && redirectStack.insert(redirectTarget.get()).second) {
-                        considerResult(parseRecursive(childReader, redirectTarget, std::move(childContext)));
+                        // 重定向目标同样受权限约束（/tp 只是 /teleport 的别名，原版在派发时
+                        // 按目标节点的 requirement 过滤）。
+                        if (!redirectTarget->canUse(childContext->getSource())) {
+                            redirectStack.erase(redirectTarget.get());
+                            if (!permissionDenied) {
+                                permissionDenied = true;
+                                const i32 deniedCursor = childReader.getCursor();
+                                consider(ParseResults<S>(
+                                             CommandException(CommandErrorType::PermissionDenied,
+                                                 "commands.permission.denied", deniedCursor)
+                                                 .withInput(currentContext->getInput()),
+                                             deniedCursor),
+                                    nullptr);
+                            }
+                            return;
+                        }
+                        consider(parseRecursive(childReader, redirectTarget, std::move(childContext)), child);
                         redirectStack.erase(redirectTarget.get());
                     } else {
-                        considerResult(parseRecursive(childReader, child, std::move(childContext)));
+                        consider(parseRecursive(childReader, child, std::move(childContext)), child);
                     }
                 } else {
-                    considerResult(parseRecursive(childReader, child, std::move(childContext)));
+                    consider(parseRecursive(childReader, child, std::move(childContext)), child);
                 }
             }
             catch (const CommandException& e) {
-                considerResult(ParseResults<S>(e.withInput(currentContext->getInput()), e.cursor()));
+                consider(ParseResults<S>(e.withInput(currentContext->getInput()), e.cursor()), nullptr);
             }
         };
 
         for (const auto& childName : currentNode->getLiterals()) {
             tryChild(childName);
         }
-
         for (const auto& childName : currentNode->getArguments()) {
             tryChild(childName);
         }
 
-        if (hasBestSuccess) {
-            return std::move(bestSuccess);
+        if (permissionDenied) {
+            // 本轮有节点因权限被拒：与 brigadier 一致直接返回该错误，不再落到更模糊的候选。
+            return std::move(bestFailure->results);
         }
 
-        if (currentNode->hasCommand()) {
+        if (bestSuccess) {
+            return std::move(bestSuccess->results);
+        }
+
+        // 没有可接受的成功候选、本节点却有命令时（`list extra` 之上层层回退的场景）：
+        // 只有输入已读完或本节点可重定向才算成功，否则交给下面的失败候选。
+        if (currentNode->hasCommand() && (currentReader.atEnd() || currentNode->hasRedirect())) {
             return ParseResults<S>(std::move(currentContext), currentReader.getRemaining());
         }
 
-        if (hasBestFailure) {
-            return std::move(bestFailure);
+        if (bestFailure) {
+            return std::move(bestFailure->results);
         }
 
         return ParseResults<S>(
@@ -516,6 +582,9 @@ ParseResults<S> CommandDispatcher<S>::parseNodes(
 template <typename S>
 Result<CommandResult> CommandDispatcher<S>::execute(ParseResults<S>& parse)
 {
+    {
+        auto ex = parse.getException();
+    }
     if (const auto exception = parse.getException(); exception.has_value()) {
         return Error(ErrorCode::InvalidArgument, exception->message());
     }
@@ -523,6 +592,24 @@ Result<CommandResult> CommandDispatcher<S>::execute(ParseResults<S>& parse)
     auto* context = parse.getContext();
     if (!context) {
         return Error(ErrorCode::Unknown, "No command context");
+    }
+
+    // 「待解释」的中间结果（/execute 的 run 把游标交还给 dispatcher 继续派发 command）：
+    // 末端节点自己不执行，命令由链上的转发祖先执行。
+    if (context->isPendingHandOff()) {
+        auto command = context->getCurrentNode();
+        while (command && !command->hasCommand() && command->getForwardParent()) {
+            command = command->getForwardParent();
+        }
+        if (command && command->hasCommand()) {
+            try {
+                i32 result = command->getCommand()(*context);
+                return CommandResult::success(result);
+            }
+            catch (const CommandException& e) {
+                return Error(ErrorCode::Unknown, e.message());
+            }
+        }
     }
 
     auto node = context->getCurrentNode();
@@ -752,7 +839,7 @@ std::vector<std::string> CommandDispatcher<S>::getPath(NodePtr node) const
 template <typename S>
 void CommandDispatcher<S>::findAmbiguities(
     std::function<void(NodePtr, NodePtr, const std::set<std::string>&)> callback) const
-{
+    {
     if (!callback) {
         return;
     }

@@ -38,6 +38,7 @@
 #include "common/command/CommandNode.hpp"
 #include "common/command/ICommandSource.hpp"
 #include "common/command/arguments/ArgumentType.hpp"
+#include "common/command/arguments/GameModeArgument.hpp"
 #include "common/core/Types.hpp"
 #include "common/util/DateTimeUtils.hpp"
 #include "server/command/ServerCommandSource.hpp"
@@ -73,18 +74,14 @@ void BanCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
         banNode, support::makeMetadata("Bans a player from the server.", "/ban <player> [reason]", 3, {}, false));
 
     // /ban <player>
-    auto playerArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, EntitySelector>>(
-        "player", EntityArgumentType::player());
-    playerArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return _banPlayer(ctx);
-    });
+    auto playerArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
+        "targets", GameProfileArgumentType::gameProfile());
+    playerArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _banPlayer(ctx); });
 
     // /ban <player> <reason>
-    auto reasonArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
-        "reason", StringArgumentType::greedyString());
-    reasonArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return _banPlayer(ctx);
-    });
+    auto reasonArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, ComponentTextPtr>>(
+        "reason", MessageComponentArgumentType::message());
+    reasonArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _banPlayer(ctx); });
 
     playerArg->addChild(reasonArg);
     banNode->addChild(playerArg);
@@ -94,12 +91,12 @@ void BanCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
 i32 BanCommand::_banPlayer(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
-    EntitySelector selector = context.getArgument<EntitySelector>("player");
+    const EntitySelector selector = support::gameProfileSelector(context.getArgument<std::string>("targets"));
 
     // 获取可选原因
     std::string reason = "Banned by an operator";
     if (context.hasArgument("reason")) {
-        reason = context.getArgument<std::string>("reason");
+        reason = context.getArgument<ComponentTextPtr>("reason")->text;
     }
 
     // 获取封禁者名称

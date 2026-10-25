@@ -166,7 +166,7 @@ void MovementHandler::handlePlayerMovePacket(PlayerId playerId, const mc::networ
             // 对齐 Java shouldCheckPlayerMovement：elytra 时受 DISABLE_ELYTRA_MOVEMENT_CHECK 开关控制。
             // GameRules 经所在 ServerWorld 取（MinecraftServer 不持有 GameRules，由世界承载）。
             const bool disableElytraCheck = world != nullptr &&
-                world->getGameRules().getBoolean(world::gamerule::GameRuleKeys::DISABLE_ELYTRA_MOVEMENT_CHECK);
+                world->getGameRules().getBoolean(world::gamerule::GameRuleKeys::ELYTRA_MOVEMENT_CHECK);
             // 仅显式压测运行豁免速度阈值；传送确认、坐标合法性等检查仍正常执行。
             const bool checkQuickly = !FLAGS_stress_skip_movement_speed_check && (!elytra || !disableElytraCheck);
             if (checkQuickly) {

@@ -51,34 +51,28 @@ void WorldBorderCommand::registerTo(CommandDispatcher<ServerCommandSource>& disp
         support::makeMetadata(
             "Controls the world border.", "/worldborder <set|center|damage|warning|get|add>", 2, {}, true));
 
-    // /worldborder set <size> [time]
+    // /worldborder set <distance> [time]
     auto setNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("set");
-    auto setSizeArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, f32>>(
-        "size", FloatArgumentType::floatArg(1.0f, static_cast<f32>(world::border::WorldBorder::MAX_SIZE)));
+    auto setSizeArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, f64>>(
+        "distance", DoubleArgumentType::doubleArg(1.0, world::border::WorldBorder::MAX_SIZE));
+    setSizeArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _setBorder(ctx); });
     auto setTimeArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, i32>>("time", TimeArgumentType::time());
     setTimeArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
         return _setBorder(ctx);
     });
     setSizeArg->addChild(setTimeArg);
-    // 默认时间为 0（立即）
-    setSizeArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return _setBorder(ctx);
-    });
     setNode->addChild(setSizeArg);
     borderNode->addChild(setNode);
 
-    // /worldborder center <x> <z>
+    // /worldborder center <pos>：原版是一个 Vec2Argument（水平面 x/z），参数名 "pos"。
     auto centerNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("center");
-    auto xArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, f32>>("x", FloatArgumentType::floatArg());
-    auto zArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, f32>>("z", FloatArgumentType::floatArg());
-    zArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return _setCenter(ctx);
-    });
-    xArg->addChild(zArg);
-    centerNode->addChild(xArg);
+    auto centerArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, Coordinates::Ptr>>(
+        "pos", Vec2ArgumentType::vec2());
+    centerArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _setCenter(ctx); });
+    centerNode->addChild(centerArg);
     borderNode->addChild(centerNode);
 
-    // /worldborder damage <amount|buffer> <value>
+    // /worldborder damage amount <damagePerBlock>
     auto damageNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("damage");
     auto amountNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("amount");
     auto amountArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, f32>>(
@@ -89,17 +83,16 @@ void WorldBorderCommand::registerTo(CommandDispatcher<ServerCommandSource>& disp
     amountNode->addChild(amountArg);
     damageNode->addChild(amountNode);
 
+    // /worldborder damage buffer <distance>
     auto bufferNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("buffer");
-    auto bufferArg =
-        std::make_shared<ArgumentCommandNode<ServerCommandSource, f32>>("distance", FloatArgumentType::floatArg(0.0f));
-    bufferArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return _setDamageBuffer(ctx);
-    });
+    auto bufferArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, f32>>(
+        "distance", FloatArgumentType::floatArg(0.0f));
+    bufferArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _setDamageBuffer(ctx); });
     bufferNode->addChild(bufferArg);
     damageNode->addChild(bufferNode);
     borderNode->addChild(damageNode);
 
-    // /worldborder warning <time|distance> <value>
+    // /worldborder warning time <seconds>
     auto warningNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("warning");
     auto timeNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("time");
     auto warnTimeArg =
@@ -110,6 +103,7 @@ void WorldBorderCommand::registerTo(CommandDispatcher<ServerCommandSource>& disp
     timeNode->addChild(warnTimeArg);
     warningNode->addChild(timeNode);
 
+    // /worldborder warning distance <blocks>
     auto distanceNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("distance");
     auto warnDistArg =
         std::make_shared<ArgumentCommandNode<ServerCommandSource, i32>>("blocks", IntegerArgumentType::integer(0));
@@ -130,16 +124,13 @@ void WorldBorderCommand::registerTo(CommandDispatcher<ServerCommandSource>& disp
     // /worldborder add <distance> [time]
     auto addNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("add");
     auto addDistArg =
-        std::make_shared<ArgumentCommandNode<ServerCommandSource, f32>>("distance", FloatArgumentType::floatArg());
+        std::make_shared<ArgumentCommandNode<ServerCommandSource, f64>>("distance", DoubleArgumentType::doubleArg());
+    addDistArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _addBorder(ctx); });
     auto addTimeArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, i32>>("time", TimeArgumentType::time());
     addTimeArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
         return _addBorder(ctx);
     });
     addDistArg->addChild(addTimeArg);
-    // 默认时间为 0（立即）
-    addDistArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return _addBorder(ctx);
-    });
     addNode->addChild(addDistArg);
     borderNode->addChild(addNode);
 
@@ -157,7 +148,7 @@ i32 WorldBorderCommand::_setBorder(CommandContext<ServerCommandSource>& context)
     }
 
     auto& border = world->worldBorder();
-    const f32 size = context.getArgument<f32>("size");
+    const f32 size = static_cast<f32>(context.getArgument<f64>("distance"));
 
     // 检查是否有时间参数（渐变）
     if (context.hasArgument("time")) {
@@ -211,10 +202,11 @@ i32 WorldBorderCommand::_setCenter(CommandContext<ServerCommandSource>& context)
     }
 
     auto& border = world->worldBorder();
-    const f32 x = context.getArgument<f32>("x");
-    const f32 z = context.getArgument<f32>("z");
+    const Vector2d center = Vec2ArgumentType::getVec2(context, "pos", source);
+    const f64 x = center.x;
+    const f64 z = center.y;
 
-    border.setCenter(static_cast<f64>(x), static_cast<f64>(z));
+    border.setCenter(x, z);
 
     std::ostringstream ss;
     ss << "World border center set to " << x << ", " << z;
@@ -322,9 +314,9 @@ i32 WorldBorderCommand::_addBorder(CommandContext<ServerCommandSource>& context)
     }
 
     auto& border = world->worldBorder();
-    const f32 distance = context.getArgument<f32>("distance");
+    const f64 distance = context.getArgument<f64>("distance");
 
-    f64 newSize = border.getSize() + static_cast<f64>(distance);
+    f64 newSize = border.getSize() + distance;
     // 限制最大值
     newSize = std::min(newSize, world::border::WorldBorder::MAX_SIZE);
     newSize = std::max(newSize, 1.0);

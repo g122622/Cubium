@@ -95,9 +95,12 @@ void ScheduleCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatc
     scheduleNode->addChild(functionNode);
 
     // /schedule clear <function>
+    // 原版 clear 的名字参数是普通字符串（命令树里是 function:string）；`*` 在原版是一条
+    // 重定向节点、不出现在快照里，这里不单独建模（名字参数已能表达清空语义）。
     auto clearNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("clear");
-    auto clearNameArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, FunctionArgumentResult>>(
-        "function", FunctionArgumentType::functions());
+
+    auto clearNameArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
+        "function", StringArgumentType::string());
     clearNameArg->setCustomSuggestions(std::make_shared<FunctionSuggestionProvider>());
     clearNameArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
         return _clearSchedule(ctx);
@@ -172,7 +175,6 @@ i32 ScheduleCommand::_scheduleFunction(CommandContext<ServerCommandSource>& cont
 i32 ScheduleCommand::_clearSchedule(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
-    auto funcResult = FunctionArgumentType::getFunctionResult(context, "function");
 
     auto* server = source.server();
     if (server == nullptr) {
@@ -182,8 +184,8 @@ i32 ScheduleCommand::_clearSchedule(CommandContext<ServerCommandSource>& context
 
     auto& timerQueue = server->functionTimerQueue();
 
-    // 使用函数 ID 作为事件名
-    std::string eventId = funcResult.id().toString();
+    // 使用参数里的名字作为事件名（原版 schedule 用函数名做事件 id）。
+    std::string eventId = context.getArgument<std::string>("function");
 
     i32 removedCount = timerQueue.remove(eventId);
 
@@ -192,7 +194,7 @@ i32 ScheduleCommand::_clearSchedule(CommandContext<ServerCommandSource>& context
     }
 
     std::ostringstream ss;
-    ss << "Cleared " << removedCount << " scheduled function(s) for '" << funcResult.id().toString() << "'";
+    ss << "Cleared " << removedCount << " scheduled function(s) for '" << eventId << "'";
     source.sendMessage(ss.str());
 
     return removedCount;

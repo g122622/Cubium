@@ -377,7 +377,7 @@ void MinecraftServer::tick()
         auto* overworld = m_dimensionManager ? m_dimensionManager->getOverworld() : nullptr;
         if (overworld && overworld->world()) {
             daylightCycleEnabled =
-                overworld->world()->getGameRules().getBoolean(world::gamerule::GameRuleKeys::DO_DAYLIGHT_CYCLE);
+                overworld->world()->getGameRules().getBoolean(world::gamerule::GameRuleKeys::ADVANCE_TIME);
         }
 
         // 更新 TimeManager 的日光周期状态

@@ -78,7 +78,7 @@ std::vector<ItemStack> BlockDropHandler::generateDrops(IWorld& world,
     // /setblock destroy（SetBlockCommand）。vanilla 同样在 dropResources 最底层守卫，
     // 故三处调用方均自动遵守。注：经验掉落（handleBlockBreakExperience）不受 doTileDrops
     // 影响（wiki 明示 doTileDrops 只控物品不控经验），故不在经验路径加守卫。
-    if (!world.getGameRules().getBoolean(world::gamerule::GameRuleKeys::DO_TILE_DROPS)) {
+    if (!world.getGameRules().getBoolean(world::gamerule::GameRuleKeys::BLOCK_DROPS)) {
         return drops;
     }
 

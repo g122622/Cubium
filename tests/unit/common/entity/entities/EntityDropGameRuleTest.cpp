@@ -42,7 +42,7 @@ protected:
  */
 TEST_F(EntityDropGameRuleTest, DoEntityDrops_DefaultIsTrue)
 {
-    EXPECT_TRUE(rules.getBoolean(GameRuleKeys::DO_ENTITY_DROPS)) << "DO_ENTITY_DROPS should default to true";
+    EXPECT_TRUE(rules.getBoolean(GameRuleKeys::ENTITY_DROPS)) << "DO_ENTITY_DROPS should default to true";
 }
 
 /**
@@ -52,8 +52,8 @@ TEST_F(EntityDropGameRuleTest, DoEntityDrops_DefaultIsTrue)
  */
 TEST_F(EntityDropGameRuleTest, DoEntityDrops_CanBeSetToFalse)
 {
-    rules.setBoolean(GameRuleKeys::DO_ENTITY_DROPS, false, nullptr);
-    EXPECT_FALSE(rules.getBoolean(GameRuleKeys::DO_ENTITY_DROPS))
+    rules.setBoolean(GameRuleKeys::ENTITY_DROPS, false, nullptr);
+    EXPECT_FALSE(rules.getBoolean(GameRuleKeys::ENTITY_DROPS))
         << "DO_ENTITY_DROPS should be false after setBoolean(false)";
 }
 
@@ -62,11 +62,11 @@ TEST_F(EntityDropGameRuleTest, DoEntityDrops_CanBeSetToFalse)
  */
 TEST_F(EntityDropGameRuleTest, DoEntityDrops_CanBeRestoredToTrue)
 {
-    rules.setBoolean(GameRuleKeys::DO_ENTITY_DROPS, false, nullptr);
-    EXPECT_FALSE(rules.getBoolean(GameRuleKeys::DO_ENTITY_DROPS));
+    rules.setBoolean(GameRuleKeys::ENTITY_DROPS, false, nullptr);
+    EXPECT_FALSE(rules.getBoolean(GameRuleKeys::ENTITY_DROPS));
 
-    rules.setBoolean(GameRuleKeys::DO_ENTITY_DROPS, true, nullptr);
-    EXPECT_TRUE(rules.getBoolean(GameRuleKeys::DO_ENTITY_DROPS))
+    rules.setBoolean(GameRuleKeys::ENTITY_DROPS, true, nullptr);
+    EXPECT_TRUE(rules.getBoolean(GameRuleKeys::ENTITY_DROPS))
         << "DO_ENTITY_DROPS should be true after setBoolean(true)";
 }
 
@@ -75,7 +75,7 @@ TEST_F(EntityDropGameRuleTest, DoEntityDrops_CanBeRestoredToTrue)
  */
 TEST_F(EntityDropGameRuleTest, DoEntityDrops_HasCorrectName)
 {
-    EXPECT_EQ(GameRuleKeys::DO_ENTITY_DROPS.getName(), "doEntityDrops")
+    EXPECT_EQ(GameRuleKeys::ENTITY_DROPS.getName(), "entity_drops")
         << "DO_ENTITY_DROPS key name should be 'doEntityDrops'";
 }
 
@@ -84,7 +84,7 @@ TEST_F(EntityDropGameRuleTest, DoEntityDrops_HasCorrectName)
  */
 TEST_F(EntityDropGameRuleTest, DoEntityDrops_BelongsToDropsCategory)
 {
-    EXPECT_EQ(GameRuleKeys::DO_ENTITY_DROPS.getCategory(), GameRuleCategory::Drops)
+    EXPECT_EQ(GameRuleKeys::ENTITY_DROPS.getCategory(), GameRuleCategory::Drops)
         << "DO_ENTITY_DROPS should belong to Drops category";
 }
 
@@ -97,7 +97,7 @@ TEST_F(EntityDropGameRuleTest, DoEntityDrops_BelongsToDropsCategory)
  */
 TEST_F(EntityDropGameRuleTest, DoMobLoot_DefaultIsTrue)
 {
-    EXPECT_TRUE(rules.getBoolean(GameRuleKeys::DO_MOB_LOOT)) << "DO_MOB_LOOT should default to true";
+    EXPECT_TRUE(rules.getBoolean(GameRuleKeys::MOB_DROPS)) << "DO_MOB_LOOT should default to true";
 }
 
 /**
@@ -105,7 +105,7 @@ TEST_F(EntityDropGameRuleTest, DoMobLoot_DefaultIsTrue)
  */
 TEST_F(EntityDropGameRuleTest, DoTileDrops_DefaultIsTrue)
 {
-    EXPECT_TRUE(rules.getBoolean(GameRuleKeys::DO_TILE_DROPS)) << "DO_TILE_DROPS should default to true";
+    EXPECT_TRUE(rules.getBoolean(GameRuleKeys::BLOCK_DROPS)) << "DO_TILE_DROPS should default to true";
 }
 
 // ============================================================================
@@ -119,13 +119,13 @@ TEST_F(EntityDropGameRuleTest, DoTileDrops_DefaultIsTrue)
  */
 TEST_F(EntityDropGameRuleTest, EntityDrops_IndependentFromMobLoot)
 {
-    rules.setBoolean(GameRuleKeys::DO_ENTITY_DROPS, false, nullptr);
-    EXPECT_TRUE(rules.getBoolean(GameRuleKeys::DO_MOB_LOOT))
+    rules.setBoolean(GameRuleKeys::ENTITY_DROPS, false, nullptr);
+    EXPECT_TRUE(rules.getBoolean(GameRuleKeys::MOB_DROPS))
         << "Setting DO_ENTITY_DROPS=false should not affect DO_MOB_LOOT";
 
-    rules.setBoolean(GameRuleKeys::DO_ENTITY_DROPS, true, nullptr);
-    rules.setBoolean(GameRuleKeys::DO_MOB_LOOT, false, nullptr);
-    EXPECT_TRUE(rules.getBoolean(GameRuleKeys::DO_ENTITY_DROPS))
+    rules.setBoolean(GameRuleKeys::ENTITY_DROPS, true, nullptr);
+    rules.setBoolean(GameRuleKeys::MOB_DROPS, false, nullptr);
+    EXPECT_TRUE(rules.getBoolean(GameRuleKeys::ENTITY_DROPS))
         << "Setting DO_MOB_LOOT=false should not affect DO_ENTITY_DROPS";
 }
 
@@ -134,13 +134,13 @@ TEST_F(EntityDropGameRuleTest, EntityDrops_IndependentFromMobLoot)
  */
 TEST_F(EntityDropGameRuleTest, EntityDrops_IndependentFromTileDrops)
 {
-    rules.setBoolean(GameRuleKeys::DO_ENTITY_DROPS, false, nullptr);
-    EXPECT_TRUE(rules.getBoolean(GameRuleKeys::DO_TILE_DROPS))
+    rules.setBoolean(GameRuleKeys::ENTITY_DROPS, false, nullptr);
+    EXPECT_TRUE(rules.getBoolean(GameRuleKeys::BLOCK_DROPS))
         << "Setting DO_ENTITY_DROPS=false should not affect DO_TILE_DROPS";
 
-    rules.setBoolean(GameRuleKeys::DO_ENTITY_DROPS, true, nullptr);
-    rules.setBoolean(GameRuleKeys::DO_TILE_DROPS, false, nullptr);
-    EXPECT_TRUE(rules.getBoolean(GameRuleKeys::DO_ENTITY_DROPS))
+    rules.setBoolean(GameRuleKeys::ENTITY_DROPS, true, nullptr);
+    rules.setBoolean(GameRuleKeys::BLOCK_DROPS, false, nullptr);
+    EXPECT_TRUE(rules.getBoolean(GameRuleKeys::ENTITY_DROPS))
         << "Setting DO_TILE_DROPS=false should not affect DO_ENTITY_DROPS";
 }
 
@@ -154,8 +154,8 @@ TEST_F(EntityDropGameRuleTest, EntityDrops_IndependentFromTileDrops)
 TEST_F(EntityDropGameRuleTest, DoEntityDrops_NbtRoundTrip)
 {
     // 设置为 false
-    rules.setBoolean(GameRuleKeys::DO_ENTITY_DROPS, false, nullptr);
-    EXPECT_FALSE(rules.getBoolean(GameRuleKeys::DO_ENTITY_DROPS));
+    rules.setBoolean(GameRuleKeys::ENTITY_DROPS, false, nullptr);
+    EXPECT_FALSE(rules.getBoolean(GameRuleKeys::ENTITY_DROPS));
 
     // 序列化
     auto nbt = rules.write();
@@ -163,14 +163,14 @@ TEST_F(EntityDropGameRuleTest, DoEntityDrops_NbtRoundTrip)
 
     // 反序列化到新对象
     GameRules loadedRules(*nbt);
-    EXPECT_FALSE(loadedRules.getBoolean(GameRuleKeys::DO_ENTITY_DROPS))
+    EXPECT_FALSE(loadedRules.getBoolean(GameRuleKeys::ENTITY_DROPS))
         << "DO_ENTITY_DROPS should persist as false after NBT round-trip";
 
     // 设置为 true 并测试
-    rules.setBoolean(GameRuleKeys::DO_ENTITY_DROPS, true, nullptr);
+    rules.setBoolean(GameRuleKeys::ENTITY_DROPS, true, nullptr);
     auto nbt2 = rules.write();
     GameRules loadedRules2(*nbt2);
-    EXPECT_TRUE(loadedRules2.getBoolean(GameRuleKeys::DO_ENTITY_DROPS))
+    EXPECT_TRUE(loadedRules2.getBoolean(GameRuleKeys::ENTITY_DROPS))
         << "DO_ENTITY_DROPS should persist as true after NBT round-trip";
 }
 
@@ -184,12 +184,12 @@ TEST_F(EntityDropGameRuleTest, DoEntityDrops_NbtRoundTrip)
 TEST_F(EntityDropGameRuleTest, DoEntityDrops_ResetToDefault)
 {
     // 设置为 false
-    rules.setBoolean(GameRuleKeys::DO_ENTITY_DROPS, false, nullptr);
-    EXPECT_FALSE(rules.getBoolean(GameRuleKeys::DO_ENTITY_DROPS));
+    rules.setBoolean(GameRuleKeys::ENTITY_DROPS, false, nullptr);
+    EXPECT_FALSE(rules.getBoolean(GameRuleKeys::ENTITY_DROPS));
 
     // 重置
-    rules.reset("doEntityDrops", nullptr);
-    EXPECT_TRUE(rules.getBoolean(GameRuleKeys::DO_ENTITY_DROPS))
+    rules.reset("entity_drops", nullptr);
+    EXPECT_TRUE(rules.getBoolean(GameRuleKeys::ENTITY_DROPS))
         << "DO_ENTITY_DROPS should be reset to default value (true)";
 }
 
@@ -202,11 +202,11 @@ TEST_F(EntityDropGameRuleTest, DoEntityDrops_ResetToDefault)
  */
 TEST_F(EntityDropGameRuleTest, HasRule_RecognizesDoEntityDrops)
 {
-    EXPECT_TRUE(GameRules::hasRule("doEntityDrops")) << "GameRules::hasRule should recognize 'doEntityDrops'";
+    EXPECT_TRUE(GameRules::hasRule("entity_drops")) << "GameRules::hasRule should recognize 'doEntityDrops'";
 
-    EXPECT_TRUE(GameRules::hasRule("doMobLoot")) << "GameRules::hasRule should recognize 'doMobLoot'";
+    EXPECT_TRUE(GameRules::hasRule("mob_drops")) << "GameRules::hasRule should recognize 'doMobLoot'";
 
-    EXPECT_TRUE(GameRules::hasRule("doTileDrops")) << "GameRules::hasRule should recognize 'doTileDrops'";
+    EXPECT_TRUE(GameRules::hasRule("block_drops")) << "GameRules::hasRule should recognize 'doTileDrops'";
 }
 
 /**
@@ -214,15 +214,15 @@ TEST_F(EntityDropGameRuleTest, HasRule_RecognizesDoEntityDrops)
  */
 TEST_F(EntityDropGameRuleTest, GetRuleType_ReturnsBoolean)
 {
-    auto type = GameRules::getRuleType("doEntityDrops");
+    auto type = GameRules::getRuleType("entity_drops");
     ASSERT_TRUE(type.has_value());
     EXPECT_EQ(type.value(), GameRuleValueType::Boolean);
 
-    auto mobLootType = GameRules::getRuleType("doMobLoot");
+    auto mobLootType = GameRules::getRuleType("mob_drops");
     ASSERT_TRUE(mobLootType.has_value());
     EXPECT_EQ(mobLootType.value(), GameRuleValueType::Boolean);
 
-    auto tileDropsType = GameRules::getRuleType("doTileDrops");
+    auto tileDropsType = GameRules::getRuleType("block_drops");
     ASSERT_TRUE(tileDropsType.has_value());
     EXPECT_EQ(tileDropsType.value(), GameRuleValueType::Boolean);
 }

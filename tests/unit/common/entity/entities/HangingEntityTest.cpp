@@ -327,7 +327,7 @@ class HangingEntityHurtTestWorld : public mc::test::BaseTestWorld {
 public:
     HangingEntityHurtTestWorld()
     {
-        m_gameRules.setBoolean(world::gamerule::GameRuleKeys::DO_ENTITY_DROPS, true, nullptr);
+        m_gameRules.setBoolean(world::gamerule::GameRuleKeys::ENTITY_DROPS, true, nullptr);
     }
 
     EntityInstanceId spawnEntity(std::unique_ptr<Entity> entity) override
@@ -586,7 +586,7 @@ class ItemFrameComparatorTestWorld : public mc::test::BaseTestWorld {
 public:
     ItemFrameComparatorTestWorld()
     {
-        m_gameRules.setBoolean(world::gamerule::GameRuleKeys::DO_ENTITY_DROPS, true, nullptr);
+        m_gameRules.setBoolean(world::gamerule::GameRuleKeys::ENTITY_DROPS, true, nullptr);
     }
 
     EntityInstanceId spawnEntity(std::unique_ptr<Entity> entity) override

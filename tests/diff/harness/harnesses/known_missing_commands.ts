@@ -24,7 +24,8 @@
 /*
  * known_missing_commands.ts — 原版服务端存在、Cubium 尚未注册的根命令。
  *
- * 清单来自 command_tree harness 第一次运行的结果（原版 89 条 vs Cubium 74 条）。
+ * 清单来自 command_tree harness 的运行结果（原版 89 条 vs Cubium 80 条）：
+ * 下面 9 条尚未实现，其余 80 条已逐字一致。
  * 每实现一条就从这里删一条 —— 这些是**实现缺口**，不是参照数据缺失；留在这里的
  * 条目会在每次运行摘要里单独点名，不会静默消失。
  *

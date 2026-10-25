@@ -119,7 +119,7 @@ void FunctionCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatc
     // with storage <id> [path]
     auto withStorageNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("storage");
     auto withStorageIdArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, ResourceLocation>>(
-        "id", ResourceLocationArgumentType::resourceLocation());
+        "id", IdentifierArgumentType::identifier());
     auto withStoragePathArg =
         std::make_shared<ArgumentCommandNode<ServerCommandSource, NbtPath>>("path", NbtPathArgumentType::nbtPath());
     withStoragePathArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {

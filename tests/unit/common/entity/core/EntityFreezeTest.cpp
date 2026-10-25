@@ -415,7 +415,7 @@ TEST_F(FreezeDamageGameRuleTest, CanBeSetBackToTrue)
 
 TEST_F(FreezeDamageGameRuleTest, RuleKeyName)
 {
-    EXPECT_EQ(world::gamerule::GameRuleKeys::FREEZE_DAMAGE.getName(), "freezeDamage");
+    EXPECT_EQ(world::gamerule::GameRuleKeys::FREEZE_DAMAGE.getName(), "freeze_damage");
 }
 
 TEST_F(FreezeDamageGameRuleTest, RuleKeyCategory)
@@ -425,12 +425,12 @@ TEST_F(FreezeDamageGameRuleTest, RuleKeyCategory)
 
 TEST_F(FreezeDamageGameRuleTest, RuleIsBoolean)
 {
-    EXPECT_EQ(world::gamerule::GameRules::getRuleType("freezeDamage"), world::gamerule::GameRuleValueType::Boolean);
+    EXPECT_EQ(world::gamerule::GameRules::getRuleType("freeze_damage"), world::gamerule::GameRuleValueType::Boolean);
 }
 
 TEST_F(FreezeDamageGameRuleTest, RuleHasCorrectEntry)
 {
-    EXPECT_TRUE(world::gamerule::GameRules::hasRule("freezeDamage"));
+    EXPECT_TRUE(world::gamerule::GameRules::hasRule("freeze_damage"));
 }
 
 // ============================================================================

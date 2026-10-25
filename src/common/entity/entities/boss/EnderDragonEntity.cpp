@@ -785,7 +785,7 @@ void EnderDragonEntity::_onDeathUpdate()
     //     }
     if (worldPtr != nullptr && m_deathTicks > 150 && m_deathTicks % 5 == 0) {
         const auto& gameRules = worldPtr->getGameRules();
-        if (gameRules.getBoolean(world::gamerule::GameRuleKeys::DO_MOB_LOOT)) {
+        if (gameRules.getBoolean(world::gamerule::GameRuleKeys::MOB_DROPS)) {
             const i32 xpDropAmount = static_cast<i32>(std::floor(static_cast<f32>(totalXP) * 0.08f));
             _dropExperienceAmount(xpDropAmount);
         }
@@ -834,7 +834,7 @@ void EnderDragonEntity::_onDeathUpdate()
     if (m_deathTicks == DEATH_DURATION) {
         if (worldPtr != nullptr) {
             const auto& gameRules = worldPtr->getGameRules();
-            if (gameRules.getBoolean(world::gamerule::GameRuleKeys::DO_MOB_LOOT)) {
+            if (gameRules.getBoolean(world::gamerule::GameRuleKeys::MOB_DROPS)) {
                 const i32 xpFinalDrop = static_cast<i32>(std::floor(static_cast<f32>(totalXP) * 0.2f));
                 _dropExperienceAmount(xpFinalDrop);
             }

@@ -87,7 +87,6 @@ private:
      * @param context 命令上下文
      * @return 完成成就的玩家数量
      */
-    static i32 _testAdvancement(CommandContext<ServerCommandSource>& context);
 };
 
 } // namespace command

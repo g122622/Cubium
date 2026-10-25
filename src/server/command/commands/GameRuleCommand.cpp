@@ -56,57 +56,72 @@ void GameRuleCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatc
         return source.hasPermission(2);
     });
 
-    // vanilla 规则名为字面量（GameRules.getAvailableRules() 进规则名补全），此处保持字符串参数；
-    // 其下按规则值类名分派两个字面量子节点，各自再带一个字面量 "value" 子节点：
-    //
-    //   /gamerule <rule> boolean [value]   — 布尔规则：无 value=查询，有 value=设置
-    //   /gamerule <rule> integer [value]   — 整型规则：无 value=查询，有 value=设置
-    //
-    // 类名与规则类型不匹配时，vanilla 在查询路径上报「no game rule named <rule>」，
-    // 在设置路径上报「is of wrong type」，二者由下方 execute 区分。
-    auto ruleArg =
-        std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>("rule", StringArgumentType::string());
-    ruleArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return _executeQuery(ctx);
-    });
-
-    for (const std::string_view classType :
-        {world::gamerule::GameRuleClassNames::BOOLEAN, world::gamerule::GameRuleClassNames::INTEGER}) {
-        auto classArg = std::make_shared<LiteralCommandNode<ServerCommandSource>>(std::string(classType));
-        classArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-            return _executeQuery(ctx);
+    // 原版把每条规则注册成独立的字面量节点（`/gamerule keepInventory`），其下：
+    //   boolean 规则 → value:bool      （查询）
+    //   integer 规则 → value:integer   （查询）
+    //   value(value)                   （设置：字面量 value + 值参数）
+    // 规则名清单与类型来自 GameRules 注册表。
+    // 每条规则注册两份：短名（`keep_inventory`）与带命名空间的完整名
+    // （`minecraft:keep_inventory`）——原版的注册表键两种写法都能解析出来。
+    const auto addRuleNode = [&queryNode](const std::string& literal, const std::string& ruleName, bool isBoolean) {
+        auto ruleNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>(literal);
+        ruleNode->setCommand([ruleName](CommandContext<ServerCommandSource>& ctx) {
+            return _executeQueryRule(ctx, ruleName);
         });
 
-        auto valueArg = std::make_shared<LiteralCommandNode<ServerCommandSource>>("value");
-        valueArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-            return _executeSet(ctx);
-        });
+        // 原版只有一个 value 参数（GameRule.argument()）：单独执行它表示查询，
+        // 再跟一个值（同名参数）表示设置。
+        if (isBoolean) {
+            auto queryArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, bool>>(
+                "value", BoolArgumentType::boolArg());
+            queryArg->setCommand([ruleName](CommandContext<ServerCommandSource>& ctx) {
+                return _executeQueryRule(ctx, ruleName);
+            });
+            auto setArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, bool>>(
+                "value", BoolArgumentType::boolArg());
+            setArg->setCommand([ruleName](CommandContext<ServerCommandSource>& ctx) {
+                return _executeSetRule(ctx, ruleName);
+            });
+            queryArg->addChild(setArg);
+            ruleNode->addChild(queryArg);
+        } else {
+            auto queryArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, i32>>(
+                "value", IntegerArgumentType::integer());
+            queryArg->setCommand([ruleName](CommandContext<ServerCommandSource>& ctx) {
+                return _executeQueryRule(ctx, ruleName);
+            });
+            auto setArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, i32>>(
+                "value", IntegerArgumentType::integer());
+            setArg->setCommand([ruleName](CommandContext<ServerCommandSource>& ctx) {
+                return _executeSetRule(ctx, ruleName);
+            });
+            queryArg->addChild(setArg);
+            ruleNode->addChild(queryArg);
+        }
+        queryNode->addChild(ruleNode);
+    };
 
-        classArg->addChild(valueArg);
-        ruleArg->addChild(classArg);
+    for (const std::string& ruleName : world::gamerule::GameRules::getRuleNames()) {
+        const auto ruleClass = world::gamerule::GameRules::getRuleClass(ruleName);
+        if (!ruleClass) {
+            continue;
+        }
+        const bool isBoolean = *ruleClass == world::gamerule::GameRuleClassNames::BOOLEAN;
+        // max_minecart_speed 在原版里受 FeatureFlag 门控，默认世界（DEDICATED、不开实验性
+        // 数据包）的命令树里没有它——规则值照常保留，只是不注册命令节点。
+        if (ruleName == "max_minecart_speed") {
+            continue;
+        }
+        addRuleNode(ruleName, ruleName, isBoolean);
+        addRuleNode("minecraft:" + ruleName, ruleName, isBoolean);
     }
-
-    queryNode->addChild(ruleArg);
 
     dispatcher.registerCommand(queryNode);
 }
 
-std::string GameRuleCommand::_requireValueClassName(const CommandContext<ServerCommandSource>& context)
-{
-    // 字面量节点不写入参数表，只能从当前节点（"boolean"/"integer"）取类名
-    const auto node = context.getCurrentNode();
-    if (!node) {
-        throw CommandException(CommandErrorType::DispatcherUnknownArgument, "Missing game rule value type");
-    }
-    return node->getName();
-}
-
-i32 GameRuleCommand::_executeQuery(CommandContext<ServerCommandSource>& context)
+i32 GameRuleCommand::_executeQueryRule(CommandContext<ServerCommandSource>& context, const std::string& ruleName)
 {
     auto& source = context.getSource();
-    std::string ruleName = context.getArgument<std::string>("rule");
-
-    // 获取世界
     server::ServerWorld* world = source.world();
     if (!world) {
         source.sendError("No world available");
@@ -114,43 +129,22 @@ i32 GameRuleCommand::_executeQuery(CommandContext<ServerCommandSource>& context)
     }
 
     const auto& gameRules = world->getGameRules();
-
-    // 查询路径要求 类名 与 规则值的真实类名 一致，否则视为「不存在该规则」——
-    // 例如 /gamerule randomTickSpeed boolean 查询一个整型规则。
-    const std::string className = _requireValueClassName(context);
-    const auto ruleClass = world::gamerule::GameRules::getRuleClass(ruleName);
-    if (!ruleClass || *ruleClass != className) {
-        source.sendError("Can't find a game rule named " + ruleName);
-        return 0;
-    }
-
-    // 按规则名字符串查询当前值（GameRuleKey 通过名称判等，分类不参与取值）
-    std::string valueStr;
-    if (className == world::gamerule::GameRuleClassNames::BOOLEAN) {
-        const world::gamerule::BooleanGameRuleKey key(ruleName, world::gamerule::GameRuleCategory::Misc);
-        valueStr = gameRules.getBoolean(key) ? "true" : "false";
-    } else {
-        const world::gamerule::IntegerGameRuleKey key(ruleName, world::gamerule::GameRuleCategory::Misc);
-        valueStr = std::to_string(gameRules.getInt(key));
-    }
+    const std::string valueStr = gameRules.getValueAsString(ruleName);
 
     // vanilla getValueMessage 仅在值非默认时追加 "(default: ...)"
     const std::string defaultStr = gameRules.getDefaultValueAsString(ruleName);
+    std::string message = valueStr;
     if (valueStr != defaultStr) {
-        valueStr += fmt::format(" (default: {})", defaultStr);
+        message += fmt::format(" (default: {})", defaultStr);
     }
 
-    source.sendMessage("Game rule " + ruleName + " is currently set to: " + valueStr);
+    source.sendMessage("Game rule " + ruleName + " is currently set to: " + message);
     return 1;
 }
 
-i32 GameRuleCommand::_executeSet(CommandContext<ServerCommandSource>& context)
+i32 GameRuleCommand::_executeSetRule(CommandContext<ServerCommandSource>& context, const std::string& ruleName)
 {
     auto& source = context.getSource();
-    std::string ruleName = context.getArgument<std::string>("rule");
-    std::string valueStr = context.getArgument<std::string>("value");
-
-    // 获取世界
     server::ServerWorld* world = source.world();
     if (!world) {
         source.sendError("No world available");
@@ -158,30 +152,25 @@ i32 GameRuleCommand::_executeSet(CommandContext<ServerCommandSource>& context)
     }
 
     auto& gameRules = world->getGameRules();
-
-    // 设置路径要求 类名 与 规则值的真实类名 一致。
-    // vanilla 在规则存在但类名不符时报「is of wrong type」，规则不存在则落入通用错误。
-    const std::string className = _requireValueClassName(context);
     const auto ruleClass = world::gamerule::GameRules::getRuleClass(ruleName);
     if (!ruleClass) {
         source.sendError("Can't find a game rule named " + ruleName);
         return 0;
     }
-    if (*ruleClass != className) {
-        source.sendError("The game rule " + ruleName + " is of wrong type");
-        return 0;
+
+    // 值参数的类型与规则类别一致（注册时已按类别区分），这里按类型取值再走统一的字符串写入。
+    std::string valueStr;
+    if (*ruleClass == world::gamerule::GameRuleClassNames::BOOLEAN) {
+        valueStr = context.getArgument<bool>("value") ? "true" : "false";
+    } else {
+        valueStr = std::to_string(context.getArgument<i32>("value"));
     }
 
-    // 尝试设置规则值。ServerCommandSource 只持有 IServer*，而 GameRuleValue::set 的变更监听器
-    // 形参是 MinecraftServer*；当前没有任何规则注册变更监听器，故此处不传 server。
-    // TODO: 待 ServerCommandSource 暴露 MinecraftServer 入口（或 IServer 增加规则变更通知）后，
-    // 在此传入 server，让依赖变更通知的规则（如同步给客户端）在 /gamerule 修改后立即生效。
-    if (!gameRules.setTypedFromString(ruleName, className, valueStr, nullptr)) {
+    if (!gameRules.setTypedFromString(ruleName, std::string(*ruleClass), valueStr, nullptr)) {
         source.sendError("Invalid value for game rule " + ruleName + ": " + valueStr);
         return 0;
     }
 
-    // 回读实际生效值作为反馈，避免把解析失败的原始输入回显给玩家。
     const std::string displayValue = gameRules.getValueAsString(ruleName);
     source.sendMessage("Game rule " + ruleName + " has been updated to " + displayValue);
     spdlog::info("Game rule '{}' changed to '{}' by {}", ruleName, displayValue, source.name());

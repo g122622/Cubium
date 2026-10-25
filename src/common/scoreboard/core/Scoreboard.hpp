@@ -231,6 +231,11 @@ public:
      */
     [[nodiscard]] std::vector<std::string> getPlayerObjectives(const std::string& playerName) const;
 
+    /**
+     * @brief 列出被任一目标记录过分数的全部名字（/scoreboard players list 无参形式用）。
+     */
+    [[nodiscard]] std::vector<std::string> getTrackedPlayerNames() const;
+
     // ========== 显示槽位 ==========
 
     /**

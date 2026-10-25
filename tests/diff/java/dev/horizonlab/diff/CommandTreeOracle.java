@@ -27,6 +27,7 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import com.mojang.brigadier.arguments.ArgumentType;
 import com.mojang.brigadier.tree.ArgumentCommandNode;
 import com.mojang.brigadier.tree.CommandNode;
 import java.io.IOException;
@@ -38,6 +39,9 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import net.minecraft.commands.CommandBuildContext;
+import net.minecraft.commands.synchronization.ArgumentTypeInfo;
+import net.minecraft.commands.synchronization.ArgumentTypeInfos;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.world.flag.FeatureFlags;
@@ -141,29 +145,34 @@ public final class CommandTreeOracle {
         return result;
     }
 
-    /** 字面量输出名字；参数输出 `名字:类型名`（类型名与原版 ArgumentType 类名同源）。 */
+    /**
+     * 字面量输出名字；参数输出 `名字:类型名`。
+     *
+     * <p>类型名取原版 {@code COMMAND_ARGUMENT_TYPE} 注册表里的 Identifier 路径
+     * （{@code minecraft:entity}、{@code brigadier:integer}……），这是原版协议真正使用的
+     * 词汇；Cubium 侧的 {@code ArgumentType::getTypeName()} 也按同一套命名。
+     */
     private static String signature(CommandNode<CommandSourceStack> node) {
         if (node instanceof ArgumentCommandNode<CommandSourceStack, ?> argument) {
-            return node.getName() + ":" + typeName(argument.getType().getClass().getSimpleName());
+            return node.getName() + ":" + typeName(argument.getType());
         }
         return node.getName();
     }
 
-    /** {@code GameModeArgument} → {@code gamemode}；{@code IntegerArgumentType} → {@code integer}。 */
-    private static String typeName(String simpleName) {
-        String name = simpleName.endsWith("Argument") ? simpleName.substring(0, simpleName.length() - "Argument".length()) : simpleName;
-        StringBuilder result = new StringBuilder();
-        for (int i = 0; i < name.length(); ++i) {
-            char c = name.charAt(i);
-            if (Character.isUpperCase(c)) {
-                if (i > 0) {
-                    result.append('_');
-                }
-                result.append(Character.toLowerCase(c));
-            } else {
-                result.append(c);
+    /**
+     * 参数类型 → 注册表里的类型名（如 {@code entity}、{@code integer}）。
+     *
+     * <p>先用 {@code ArgumentTypeInfos.byClass} 按实现类精确定位参数类型信息，再反查
+     * 注册表键；注册表里 brigadier 的四种基础类型是 {@code brigadier:integer} 等，
+     * 取路径后与 Cubium 的类型名同形（integer/float/double/bool/string）。
+     */
+    private static String typeName(ArgumentType<?> type) {
+        ArgumentTypeInfo<?, ?> info = ArgumentTypeInfos.byClass(type);
+        for (var entry : BuiltInRegistries.COMMAND_ARGUMENT_TYPE.entrySet()) {
+            if (entry.getValue() == info) {
+                return entry.getKey().identifier().getPath();
             }
         }
-        return result.toString();
+        return "unknown";
     }
 }

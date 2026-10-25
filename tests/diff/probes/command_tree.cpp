@@ -38,7 +38,6 @@
  * 没有、或参数名/类型不同，玩家与数据包立刻能感觉到。
  */
 #include <algorithm>
-#include <cstdio>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -76,6 +75,10 @@ std::vector<std::string> childSignatures(const mc::command::CommandNode<mc::comm
     }
     std::vector<std::pair<std::string, const mc::command::CommandNode<mc::command::ServerCommandSource>*>> children;
     for (const auto& entry : node->getChildren()) {
+        // 纯实现脚手架（/execute 链上的 run 等）不属于协议命令树，与命令树快照同样跳过。
+        if (entry.second && entry.second->isTreeHidden()) {
+            continue;
+        }
         children.emplace_back(entry.first, entry.second.get());
     }
     std::sort(children.begin(), children.end(), [](const auto& a, const auto& b) {
@@ -95,6 +98,9 @@ std::string describeTree(const NodePtr& root)
 {
     std::vector<std::pair<std::string, const mc::command::CommandNode<mc::command::ServerCommandSource>*>> children;
     for (const auto& entry : root->getChildren()) {
+        if (entry.second && entry.second->isTreeHidden()) {
+            continue;
+        }
         children.emplace_back(entry.first, entry.second.get());
     }
     std::sort(children.begin(), children.end(), [](const auto& a, const auto& b) {
