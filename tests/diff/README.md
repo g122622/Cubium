@@ -25,6 +25,7 @@ tests/diff/
 │   ├── runner_main.cpp          # 所有 probe 共用的 main（命令行、IO、错误处理）
 │   ├── text_encode.cpp          # 方块状态的文本表示
 │   ├── block_state_ids.cpp      # 方块状态的全局 ID（协议 / 存档编号）
+│   ├── biome_climate.cpp        # 生物群系温度 / 降水 / 颜色
 │   ├── item_summary.cpp         # 堆叠上限 / 食物属性
 │   ├── item_components.cpp      # 耐久 / 稀有度 / 附魔能力
 │   ├── entity_shape.cpp         # 实体尺寸 / 分类
@@ -142,7 +143,7 @@ harness 决定。`runner.ts` 负责按 `key` 对齐两侧输出、规范化、�
 
 ## 当前状态
 
-十二个能力已接入，`node tests/diff/harness/runner.ts run all` 退出码 0（全部一致）：
+十三个能力已接入，`node tests/diff/harness/runner.ts run all` 退出码 0（全部一致）：
 
 | harness | 参照实现 | 单元 | 结果 | 已知缺口 |
 |---|---|---|---|---|
@@ -150,12 +151,13 @@ harness 决定。`runner.ts` 负责按 `key` 对齐两侧输出、规范化、�
 | `item_summary` | 原版 jar `ItemSummaryOracle` | 1124 | 全部一致 | 381 个物品未注册 |
 | `item_components` | 原版 jar `ItemComponentsOracle` | 1124 | 全部一致 | 381 个物品未注册 |
 | `entity_shape` | 原版 jar `EntityShapeOracle` | 125 | 全部一致 | 32 个实体类型未注册 |
-| `enchantment_table` | 原版 jar `EnchantmentExport` | 40 | 全部一致 | 3 个附魔未实现 |
+| `enchantment_table` | 原版 jar `EnchantmentExport` | 43 | 全部一致 | — |
 | `block_properties` | 原版 jar `BlockPropertiesOracle` | 1166 | 全部一致 | — |
 | `mob_category` | 原版 jar `MobCategoryOracle` | 8 | 全部一致 | — |
 | `entity_attributes` | 参考表 + 原版 jar `EntityAttributesOracle` | 73 | 全部一致 | 2 个实体类型未对齐（盔甲架、凋灵） |
 | `block_state_names` | 原版 jar `BlockStateNamesOracle` | 1166 | 全部一致 | — |
 | `block_state_ids` | 原版 jar `BlockStateIdsOracle` | 1166 | 全部一致 | — |
+| `biome_climate` | 原版 jar `BiomeClimateOracle` | 65 | 全部一致 | — |
 | `random_sequence` | 原版 jar `RandomSequenceOracle` | 24 | 全部一致 | — |
 | `command_argument` | 原版 jar `CommandArgumentOracle` | 162 | 全部一致 | — |
 | `command_tree` | 原版 jar `CommandTreeOracle` | 1（全部根命令）| 全部一致 | 9 条命令未实现（见下） |
@@ -230,6 +232,25 @@ harness 决定。`runner.ts` 负责按 `key` 对齐两侧输出、规范化、�
   才停，`*`（匹配任意键）此前根本解析不了。
 
 这一批修复顺带改正了一个**真实玩法 bug**：`ReplaceItem` 的护甲槽号翻转。
+
+### `biome_climate`：首轮只有 9/65 一致
+
+挖出的问题分三类：
+
+- **海洋温度**：1.18 起原版把所有海洋的 `temperature` 统一成 0.5（冷/暖只体现在水体颜色），
+  Cubium 还留着 1.16 的 0.3 / 0.6 / 0.8；`deep_frozen_ocean` 写的是 0.0，原版是 0.5、
+  由 FROZEN 修饰器把派生温度压到冰点；`snowy_plains` 是 0.0（不是 -0.5）；
+  `sparse_jungle`（Cubium 旧名 `jungle_edge`）是 0.95（不是 0.8）；
+- **雾色 / 天空色**：1.21.11 把这两项挪进 `EnvironmentAttributeMap`，属性默认值就是 0，
+  群系 JSON 里显式写了才是覆盖色。Cubium 的 `BiomeEffects` 默认值还是 1.20 的浅蓝常量，
+  于是「没覆盖」的群系全都多了一组并不存在的颜色。默认值改成 0，并按原版 JSON 逐条补齐
+  55 个群系的 `water_color` / `water_fog_color` / `fog_color` / `sky_color`；
+- **群系名**：`Biome::m_name` 沿用 1.16.5 旧名（`mountains`、`giant_tree_taiga`……），
+  1.18 起原版改成 `windswept_hills`、`old_growth_pine_taiga`。probe 按
+  `JavaBiomeRegistryIdMap` 的同一张别名表归一化后再比对；
+- 顺带修掉几处手抄错的颜色：冷水海洋 `#3D57E6`→`#3D57D6`、暖水海洋水下雾
+  `#041F33`、沼泽水下雾 `#232817`→`#232317`、樱桃林水色改 `#5DB7EF`、
+  红树林沼泽用的是另一套色（`#3A7A6A` / `#4D7A60` + 树叶 `#8DB127`）。
 
 ### 命令树：已对齐
 

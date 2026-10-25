@@ -154,6 +154,12 @@ const JAVA_HARNESSES: ReadonlyArray<() => JavaHarness> = [
         key: "unit",
     }),
     () => ({
+        name: "biome_climate",
+        oracle: "BiomeClimateOracle",
+        input: (unit: string) => ({ biome: unit }),
+        key: "biome",
+    }),
+    () => ({
         name: "item_components",
         oracle: "ItemComponentsOracle",
         input: (unit: string) => ({ item: unit }),
