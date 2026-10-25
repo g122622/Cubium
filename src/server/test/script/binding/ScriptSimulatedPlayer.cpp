@@ -44,11 +44,13 @@
 #include "server/test/script/context/ScriptBindingRegistry.hpp"
 #include "server/test/simulated/SimulatedPlayer.hpp"
 
+#include <atomic>
 #include <cctype>
 #include <memory>
 #include <optional>
 #include <string>
 #include <string_view>
+#include <spdlog/spdlog.h>
 
 namespace mc::test {
 
@@ -117,6 +119,17 @@ mc::Entity* _unwrapEntity(mc::mod::bedrock::addon::IScriptBindingContext& ctx, v
 mc::ItemStack* _unwrapItemStack(mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* val)
 {
     const u64 classId = ctx.classRegistry().classIdByName("ItemStack");
+    // TODO: 定位 ItemStack 解包失败根因后移除本诊断输出。
+    {
+        static std::atomic<i32> s_diagC{0};
+        if (s_diagC.fetch_add(1) < 40) {
+            spdlog::warn("[DIAGC] classId={} isObject={} isUndefined={} packId={}",
+                classId,
+                ctx.isObject(val),
+                ctx.isUndefined(val),
+                ctx.packId());
+        }
+    }
 
     return static_cast<mc::ItemStack*>(mc::mod::bedrock::addon::ScriptObjectRegistry::unwrap(ctx, val, classId));
 }
