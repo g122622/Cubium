@@ -29,6 +29,7 @@
 #include "common/mod/bedrock/addon/binding/ScriptHandleRegistry.hpp"
 
 #include <algorithm>
+#include <atomic>
 #include <cstddef>
 #include <cstring>
 #include <optional>
@@ -576,6 +577,21 @@ void QuickJSBindingContext::setOpaque(void* obj, void* data, u64 classId)
 void* QuickJSBindingContext::getOpaque(void* obj, u64 classId) const
 {
     JSValue val = unwrapValue(obj);
+    {
+        // TODO: 定位 ItemStack 解包失败根因后移除本诊断输出。
+        if (packId() == "a1c1c000-0004-4a75-91b7-4cdf0a03c007") {
+            static std::atomic<i32> s_diagB{0};
+            if (s_diagB.fetch_add(1) < 10) {
+                JSClassID cid = 0;
+                const void* anyOpaque = JS_GetAnyOpaque(val, &cid);
+                spdlog::warn("[DIAGB] requested={} objClass={} anyOpaque={} isObject={}",
+                    classId,
+                    static_cast<u64>(JS_GetClassID(val)),
+                    anyOpaque != nullptr,
+                    JS_IsObject(val));
+            }
+        }
+    }
     // classId=0 在抽象层语义为"不检查类型，取任意 opaque"（ScriptObjectRegistry::unwrap 默认值）。
     // 但 QuickJS 的 JS_GetOpaque 要求 p->class_id 精确等于传入 class_id，class_id=0 只能取
     // class_id=0 的对象，对实际 class_id!=0 的包装对象一律返回 NULL。故 classId=0 时改用
