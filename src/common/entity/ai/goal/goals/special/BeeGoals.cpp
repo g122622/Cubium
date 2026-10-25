@@ -444,7 +444,7 @@ bool BeePollinateGoal::_isFlower(const BlockPos& pos) const
     }
 
     // 检查是否是高花朵
-    if (BlockTags::TALL_FLOWERS().contains(*state)) {
+    if (BlockTags::FLOWERS().contains(*state)) {
         // 向日葵只有上半部分吸引蜜蜂，下半部分不吸引
         if (state->is(block_registry::VegetationBlocks::SUNFLOWER)) {
             auto half = state->get(BlockStateProperties::DOUBLE_BLOCK_HALF());
@@ -903,8 +903,8 @@ bool BeeFindFlowerGoal::canBeeStart()
         return false;
     }
 
-    // 检查是否是花朵
-    if (!BlockTags::SMALL_FLOWERS().contains(*state) && !BlockTags::TALL_FLOWERS().contains(*state)) {
+    // 检查是否是花朵（#flowers 已包含 #small_flowers，无需再单独判断）
+    if (!BlockTags::FLOWERS().contains(*state)) {
         return false;
     }
 

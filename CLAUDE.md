@@ -33,6 +33,18 @@ cmake --build --preset macos-relwithdebinfo -- -j{当前机器核心数减去2}
 
 如果仍然对于构建过程存在疑难问题，可参考`docs/BUILD.md`
 
+### 判断构建是否真的结束（不要被重定向日志骗了）
+
+**不要把构建日志重定向到文件后再 `tail` 它来判断进度。** 重定向的 stdout 在进程退出前不会落到文件（缓冲），而且 ninja 打印 `Linking CXX executable ...` 这一行是在**链接开始时**，链接结束后不再有任何输出。两个因素叠加，看起来就像「卡在 Linking 且 CPU 为 0」。
+
+正确的判据（任选其一，必要时组合）：
+
+1. **后台任务输出里的完成标记**：`cmake --build ... > /tmp/x.log 2>&1; echo exit=$?` 中 `echo exit=$?` 的输出会进到后台任务自己的输出文件，看到 `exit=0` 才是真的结束了；
+2. **产物 mtime**：`stat -c '%y' build/bin/RelWithDebInfo/mc_tests.exe`，若 mtime 晚于本次构建启动时刻，说明链接已完成；
+3. **幂等验证**：再跑一次同样的 `cmake --build`，若输出 `ninja: no work to do.` 就说明上一次已经完整结束、依赖图已闭合。
+
+排查「是否真的卡死」的标准动作：`tasklist` 查 `ninja.exe` / `clang++.exe` / `lld-link.exe` / 目标 exe 是否还在；都不在 = 没有进程在等，就是已经结束。
+
 ## 运行
 
 ```bash

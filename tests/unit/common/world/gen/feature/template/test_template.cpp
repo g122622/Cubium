@@ -1635,13 +1635,14 @@ TEST_F(TemplateTest, ProcessorChain_Integration)
 // TagMatchRuleTest 测试（template 命名空间版本，复用 mc::TagMatchRuleTest）
 // ============================================================================
 
-TEST_F(RuleTestTest, TagMatchRuleTest_MatchesStoneTag)
+TEST_F(RuleTestTest, TagMatchRuleTest_MatchesBaseStoneOverworldTag)
 {
     // BlockTags::initialize() 已在 VanillaBlocks::initialize() 中调用
-    TagMatchRuleTest test(ResourceLocation("minecraft", "stone"));
+    // 原版 1.21.11 没有 `stone` 标签，石头类方块归在 #base_stone_overworld。
+    TagMatchRuleTest test(ResourceLocation("minecraft", "base_stone_overworld"));
     math::Random rng(12345);
 
-    // 应该匹配 stone 标签中的方块
+    // 应该匹配 base_stone_overworld 标签中的方块
     EXPECT_TRUE(test.test(*VanillaBlocks::getState(VanillaBlocks::STONE), rng));
     EXPECT_TRUE(test.test(*VanillaBlocks::getState(VanillaBlocks::GRANITE), rng));
     EXPECT_TRUE(test.test(*VanillaBlocks::getState(VanillaBlocks::DIORITE), rng));

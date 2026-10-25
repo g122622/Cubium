@@ -25,6 +25,7 @@
 
 #include "ItemTag.hpp"
 #include "common/resource/ResourceLocation.hpp"
+#include <cstddef>
 #include <functional>
 #include <memory>
 #include <string>
@@ -39,6 +40,23 @@ namespace item::tag {
  *
  * 负责集中管理 ItemTag 的创建、查询和遍历。
  */
+/**
+ * @brief 原版物品标签表的一项（生成文件 VanillaItemTags.gen.cpp 提供）。
+ *
+ * 成员已展开全部 #tag 引用，等价原版 Tag#getValues()。
+ */
+struct VanillaItemTagEntry {
+    const char* name;          ///< 标签名（无 minecraft: 前缀）
+    std::size_t count;         ///< 成员个数
+    const char* const* values; ///< 成员物品名（无 minecraft: 前缀）
+};
+
+/**
+ * @brief 取原版物品标签表（静态存储，进程内指针恒定）。
+ * @param count 输出表项数
+ */
+const VanillaItemTagEntry* vanillaItemTagTable(std::size_t& count) noexcept;
+
 class ItemTags {
 public:
     // ========== 内置物品标签 ==========
@@ -83,14 +101,6 @@ public:
      * 掉落的羊毛物品不会触发振动信号。
      */
     static ItemTag& DAMPENS_VIBRATIONS();
-
-    /**
-     * @brief 防火物品标签
-     *
-     * 包含所有防火物品（下界合金锭、下界合金碎片、远古残骸、下界星等）。
-     * 掉落的防火物品实体免疫火焰和岩浆伤害。
-     */
-    static ItemTag& FIRE_RESISTANT();
 
     /**
      * @brief 陶片物品标签

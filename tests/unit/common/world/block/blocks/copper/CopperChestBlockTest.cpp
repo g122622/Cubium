@@ -690,15 +690,9 @@ TEST_F(CopperChestBlockTestFixture, Tag_CopperChestsContainsAllVariants)
 
 TEST_F(CopperChestBlockTestFixture, Tag_CopperTagContainsAllVariants)
 {
-    // copper 标签应包含全部 8 个铜箱子变体
-    EXPECT_TRUE(BlockTags::COPPER().contains(VanillaBlocks::COPPER_CHEST->defaultState()));
-    EXPECT_TRUE(BlockTags::COPPER().contains(VanillaBlocks::EXPOSED_COPPER_CHEST->defaultState()));
-    EXPECT_TRUE(BlockTags::COPPER().contains(VanillaBlocks::WEATHERED_COPPER_CHEST->defaultState()));
-    EXPECT_TRUE(BlockTags::COPPER().contains(VanillaBlocks::OXIDIZED_COPPER_CHEST->defaultState()));
-    EXPECT_TRUE(BlockTags::COPPER().contains(VanillaBlocks::WAXED_COPPER_CHEST->defaultState()));
-    EXPECT_TRUE(BlockTags::COPPER().contains(VanillaBlocks::WAXED_EXPOSED_COPPER_CHEST->defaultState()));
-    EXPECT_TRUE(BlockTags::COPPER().contains(VanillaBlocks::WAXED_WEATHERED_COPPER_CHEST->defaultState()));
-    EXPECT_TRUE(BlockTags::COPPER().contains(VanillaBlocks::WAXED_OXIDIZED_COPPER_CHEST->defaultState()));
+    // 原版 #minecraft:copper 只含 8 个铜块本体，铜箱子不在其中。
+    EXPECT_FALSE(BlockTags::COPPER().contains(VanillaBlocks::COPPER_CHEST->defaultState()));
+    EXPECT_FALSE(BlockTags::COPPER().contains(VanillaBlocks::WAXED_OXIDIZED_COPPER_CHEST->defaultState()));
 }
 
 TEST_F(CopperChestBlockTestFixture, Tag_CopperChestsDoesNotContainNormalChest)

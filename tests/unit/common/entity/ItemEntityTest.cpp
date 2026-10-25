@@ -340,13 +340,14 @@ TEST_F(ItemEntityWorldTest, CanBeHurtBy_NetheriteItemCanBeHurtByGenericDamage)
     EXPECT_TRUE(stack.canBeHurtBy(genericDamage));
 }
 
-TEST_F(ItemEntityWorldTest, CanBeHurtBy_NetherStarCannotBeHurtByFire)
+TEST_F(ItemEntityWorldTest, CanBeHurtBy_NetherStarCannotBeHurtByExplosion)
 {
+    // 下界之星的原版 DAMAGE_RESISTANT 是 #minecraft:is_explosion，不是火焰。
     Item* netherStar = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "nether_star"));
     ASSERT_NE(netherStar, nullptr);
     ItemStack stack(*netherStar, 1);
-    auto fireDamage = DamageSources::inFire();
-    EXPECT_FALSE(stack.canBeHurtBy(fireDamage));
+    EXPECT_FALSE(stack.canBeHurtBy(DamageSources::explosion()));
+    EXPECT_TRUE(stack.canBeHurtBy(DamageSources::inFire()));
 }
 
 TEST_F(ItemEntityWorldTest, CanBeHurtBy_EmptyStackReturnsFalse)
@@ -377,24 +378,17 @@ TEST_F(ItemEntityWorldTest, IsImmuneToFire_NetheriteItemImmune)
     EXPECT_TRUE(entity.isImmuneToFire());
 }
 
-TEST_F(ItemEntityWorldTest, IsImmuneToFire_NetherStarImmune)
+TEST_F(ItemEntityWorldTest, IsImmuneToFire_NetherStarNotImmuneToFire)
 {
+    // 下界之星免疫爆炸而非火焰（原版 #minecraft:is_explosion）。
     Item* netherStar = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "nether_star"));
     ASSERT_NE(netherStar, nullptr);
     ItemEntity entity(EntityInstanceId(1), ItemStack(*netherStar, 1), 0.0f, 0.0f, 0.0f, mc::test::testEcsRegistry());
-    EXPECT_TRUE(entity.isImmuneToFire());
-}
-
-TEST_F(ItemEntityWorldTest, IsImmuneToFire_AncientDebrisImmune)
-{
-    Item* debris = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "ancient_debris"));
-    ASSERT_NE(debris, nullptr);
-    ItemEntity entity(EntityInstanceId(1), ItemStack(*debris, 1), 0.0f, 0.0f, 0.0f, mc::test::testEcsRegistry());
-    EXPECT_TRUE(entity.isImmuneToFire());
+    EXPECT_FALSE(entity.isImmuneToFire());
 }
 
 // ============================================================================
-// FIRE_RESISTANT / 下界合金物品 hurt 测试
+// DAMAGE_RESISTANT / 下界合金物品 hurt 测试
 // ============================================================================
 
 TEST_F(ItemEntityWorldTest, Hurt_FireResistantItemNotHurtByFire)

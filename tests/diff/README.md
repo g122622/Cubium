@@ -27,6 +27,8 @@ tests/diff/
 │   ├── block_state_ids.cpp      # 方块状态的全局 ID（协议 / 存档编号）
 │   ├── biome_climate.cpp        # 生物群系温度 / 降水 / 颜色
 │   ├── damage_type.cpp          # 伤害类型缩放 / 体力消耗 / 附加效果
+│   ├── block_tags.cpp           # 方块标签展开后的成员
+│   ├── item_tags.cpp            # 物品标签展开后的成员
 │   ├── item_summary.cpp         # 堆叠上限 / 食物属性
 │   ├── item_components.cpp      # 耐久 / 稀有度 / 附魔能力
 │   ├── entity_shape.cpp         # 实体尺寸 / 分类
@@ -144,7 +146,7 @@ harness 决定。`runner.ts` 负责按 `key` 对齐两侧输出、规范化、�
 
 ## 当前状态
 
-十四个能力已接入，`node tests/diff/harness/runner.ts run all` 退出码 0（全部一致）：
+十六个能力已接入，`node tests/diff/harness/runner.ts run all` 退出码 0（全部一致）：
 
 | harness | 参照实现 | 单元 | 结果 | 已知缺口 |
 |---|---|---|---|---|
@@ -160,6 +162,8 @@ harness 决定。`runner.ts` 负责按 `key` 对齐两侧输出、规范化、�
 | `block_state_ids` | 原版 jar `BlockStateIdsOracle` | 1166 | 全部一致 | — |
 | `biome_climate` | 原版 jar `BiomeClimateOracle` | 65 | 全部一致 | — |
 | `damage_type` | 原版 jar `DamageTypeOracle` | 50 | 全部一致 | — |
+| `block_tags` | 原版 jar `BlockTagOracle` | 204 | 全部一致 | — |
+| `item_tags` | 原版 jar `ItemTagOracle` | 198 | 全部一致 | 300 条成员引用了未注册物品 |
 | `random_sequence` | 原版 jar `RandomSequenceOracle` | 24 | 全部一致 | — |
 | `command_argument` | 原版 jar `CommandArgumentOracle` | 162 | 全部一致 | — |
 | `command_tree` | 原版 jar `CommandTreeOracle` | 1（全部根命令）| 全部一致 | 9 条命令未实现（见下） |
@@ -234,6 +238,29 @@ harness 决定。`runner.ts` 负责按 `key` 对齐两侧输出、规范化、�
   才停，`*`（匹配任意键）此前根本解析不了。
 
 这一批修复顺带改正了一个**真实玩法 bug**：`ReplaceItem` 的护甲槽号翻转。
+
+### 标签改成数据驱动
+
+`block_tags` / `item_tags` 首轮分别只有 100/204 与 164/198 一致。原因是标签表是**手写**的：
+原版方块标签 200 个、物品标签 198 个，靠 `tags[x] = std::make_unique<BlockTag>(...)` 一条条
+抄，和 `data/minecraft/tags/**` 之间必然漂移——首轮查出方块侧 82 个标签完全缺失、22 个标签
+成员不全（`logs` 少 4 个、`sculk_replaceable` 少 20 个），另外 6 个标签
+（`dripstone_replaceable` / `non_flammable_wood` / `powder_snow_walkable_moved` / `stone` /
+`tall_flowers` / `valid_sweet_berry_bush_ground`）在 1.21.11 里根本不存在。
+
+现在两张表都由原版数据包生成（`VanillaBlockTags.gen.cpp` / `VanillaItemTags.gen.cpp`），
+`#tag` 引用在生成期展开——这正是原版 `Tag#getValues()` 的口径；运行期再展开一层会让
+「少写了一层引用」变得不可见。手写的 500 多行 `add(...)` 全部删除。
+
+顺带按原版改了三处主调者：
+
+- 滴石改用原版的 `#dripstone_replaceable_blocks`；
+- 蜜蜂采蜜的「高花朵」判断改用 `#flowers`（原版 `#flowers` 已包含 `#small_flowers`）；
+- 甜浆果丛可种植地面改用原版 `VegetationBlock.mayPlaceOn` 的语义：`#dirt` 或耕地。
+
+`item_tags` 的差异全部来自 381 个尚未注册的物品，逐条列进 `known_missing_items.ts` 既写不全
+也读不出重点；`java-oracle.ts` 因此新增 `memberGaps` 选项，按成员名从**原版一侧**剔除并报告
+条数（probe 多出来的成员永远算差异）。
 
 ### `biome_climate`：首轮只有 9/65 一致
 

@@ -57,7 +57,7 @@ bool ConfiguredBlockBlobFeature::place(WorldGenRegion& region,
         const bool empty = (belowState == nullptr) || belowState->isAir();
         if (!empty) {
             const bool dirtOrStone = (belowState != nullptr) &&
-                (BlockTags::DIRT().contains(*belowState) || BlockTags::STONE().contains(*belowState));
+                (BlockTags::DIRT().contains(*belowState) || BlockTags::BASE_STONE_OVERWORLD().contains(*belowState));
             if (dirtOrStone) {
                 break;
             }

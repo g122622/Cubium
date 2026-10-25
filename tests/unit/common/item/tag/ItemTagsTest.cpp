@@ -351,107 +351,62 @@ TEST_F(ItemTagsTest, DampensVibrationsContains32Items)
 }
 
 // ============================================================================
-// FIRE_RESISTANT 标签测试 - 下界合金物品
+// 伤害免疫（原版 DAMAGE_RESISTANT 组件）测试 - 下界合金系与下界之星
 // ============================================================================
 
-TEST_F(ItemTagsTest, FireResistantContainsNetheriteIngot)
+namespace {
+
+DamageResistantTag resistantTagOf(const char* name)
 {
-    Item* item = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "netherite_ingot"));
-    ASSERT_NE(item, nullptr);
-    EXPECT_TRUE(item->isIn(item::tag::ItemTags::FIRE_RESISTANT()));
+    Item* item = ItemRegistry::instance().getItem(ResourceLocation("minecraft", name));
+    EXPECT_NE(item, nullptr) << "Item not found: " << name;
+    return item == nullptr ? DamageResistantTag::None : item->damageResistantTag();
 }
 
-TEST_F(ItemTagsTest, FireResistantContainsNetheriteScrap)
-{
-    Item* item = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "netherite_scrap"));
-    ASSERT_NE(item, nullptr);
-    EXPECT_TRUE(item->isIn(item::tag::ItemTags::FIRE_RESISTANT()));
-}
+} // namespace
 
-TEST_F(ItemTagsTest, FireResistantContainsAncientDebris)
+TEST_F(ItemTagsTest, DamageResistantNetheriteSeriesIsFire)
 {
-    Item* item = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "ancient_debris"));
-    ASSERT_NE(item, nullptr);
-    EXPECT_TRUE(item->isIn(item::tag::ItemTags::FIRE_RESISTANT()));
-}
-
-TEST_F(ItemTagsTest, FireResistantContainsNetherStar)
-{
-    Item* item = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "nether_star"));
-    ASSERT_NE(item, nullptr);
-    EXPECT_TRUE(item->isIn(item::tag::ItemTags::FIRE_RESISTANT()));
-}
-
-TEST_F(ItemTagsTest, FireResistantContainsNetheriteBlock)
-{
-    Item* item = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "netherite_block"));
-    ASSERT_NE(item, nullptr);
-    EXPECT_TRUE(item->isIn(item::tag::ItemTags::FIRE_RESISTANT()));
-}
-
-TEST_F(ItemTagsTest, FireResistantContainsNetheriteTools)
-{
-    // 所有下界合金工具都应在防火标签中
-    const char* toolNames[] = {
-        "netherite_sword", "netherite_shovel", "netherite_pickaxe", "netherite_axe", "netherite_hoe"};
-    for (const char* name : toolNames) {
-        Item* item = ItemRegistry::instance().getItem(ResourceLocation("minecraft", name));
-        ASSERT_NE(item, nullptr) << "Item not found: " << name;
-        EXPECT_TRUE(item->isIn(item::tag::ItemTags::FIRE_RESISTANT())) << "Not fire resistant: " << name;
+    // 下界合金系（含远古残骸）都免疫 #minecraft:is_fire。
+    // 注：ancient_debris 物品在 Cubium 尚未注册（已知缺口），故不列入。
+    const char* names[] = {"netherite_ingot",
+        "netherite_scrap",
+        "netherite_block",
+        "netherite_sword",
+        "netherite_shovel",
+        "netherite_pickaxe",
+        "netherite_axe",
+        "netherite_hoe",
+        "netherite_helmet",
+        "netherite_chestplate",
+        "netherite_leggings",
+        "netherite_boots",
+        "netherite_horse_armor",
+        "netherite_nautilus_armor",
+        "netherite_spear"};
+    for (const char* name : names) {
+        EXPECT_EQ(resistantTagOf(name), DamageResistantTag::IsFire) << name;
     }
 }
 
-TEST_F(ItemTagsTest, FireResistantContainsNetheriteArmor)
+TEST_F(ItemTagsTest, DamageResistantNetherStarIsExplosion)
 {
-    // 所有下界合金盔甲都应在防火标签中
-    const char* armorNames[] = {"netherite_helmet", "netherite_chestplate", "netherite_leggings", "netherite_boots"};
-    for (const char* name : armorNames) {
-        Item* item = ItemRegistry::instance().getItem(ResourceLocation("minecraft", name));
-        ASSERT_NE(item, nullptr) << "Item not found: " << name;
-        EXPECT_TRUE(item->isIn(item::tag::ItemTags::FIRE_RESISTANT())) << "Not fire resistant: " << name;
+    // 下界之星免疫的是 #minecraft:is_explosion，不是火焰。
+    EXPECT_EQ(resistantTagOf("nether_star"), DamageResistantTag::IsExplosion);
+}
+
+TEST_F(ItemTagsTest, DamageResistantSkipsOtherMaterials)
+{
+    const char* names[] = {"iron_ingot",
+        "diamond",
+        "gold_ingot",
+        "iron_sword",
+        "diamond_sword",
+        "copper_nautilus_armor",
+        "iron_nautilus_armor"};
+    for (const char* name : names) {
+        EXPECT_EQ(resistantTagOf(name), DamageResistantTag::None) << name;
     }
-}
-
-TEST_F(ItemTagsTest, FireResistantContainsNetheriteAnimalArmor)
-{
-    // 下界合金马铠与下界合金鹦鹉螺铠甲均应在防火标签中
-    const char* armorNames[] = {"netherite_horse_armor", "netherite_nautilus_armor"};
-    for (const char* name : armorNames) {
-        Item* item = ItemRegistry::instance().getItem(ResourceLocation("minecraft", name));
-        ASSERT_NE(item, nullptr) << "Item not found: " << name;
-        EXPECT_TRUE(item->isIn(item::tag::ItemTags::FIRE_RESISTANT())) << "Not fire resistant: " << name;
-    }
-}
-
-TEST_F(ItemTagsTest, FireResistantDoesNotContainNonNetheriteNautilusArmor)
-{
-    // 非下界合金的鹦鹉螺铠甲不应在防火标签中
-    const char* armorNames[] = {
-        "copper_nautilus_armor", "iron_nautilus_armor", "golden_nautilus_armor", "diamond_nautilus_armor"};
-    for (const char* name : armorNames) {
-        Item* item = ItemRegistry::instance().getItem(ResourceLocation("minecraft", name));
-        ASSERT_NE(item, nullptr) << "Item not found: " << name;
-        EXPECT_FALSE(item->isIn(item::tag::ItemTags::FIRE_RESISTANT())) << "Should not be fire resistant: " << name;
-    }
-}
-
-TEST_F(ItemTagsTest, FireResistantDoesNotContainIronItems)
-{
-    Item* ironIngot = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "iron_ingot"));
-    ASSERT_NE(ironIngot, nullptr);
-    EXPECT_FALSE(ironIngot->isIn(item::tag::ItemTags::FIRE_RESISTANT()));
-}
-
-TEST_F(ItemTagsTest, FireResistantDoesNotContainDiamondItems)
-{
-    Item* diamond = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "diamond"));
-    ASSERT_NE(diamond, nullptr);
-    EXPECT_FALSE(diamond->isIn(item::tag::ItemTags::FIRE_RESISTANT()));
-}
-
-TEST_F(ItemTagsTest, FireResistantTagIdIsCorrect)
-{
-    EXPECT_EQ(item::tag::ItemTags::FIRE_RESISTANT().getId(), ResourceLocation("minecraft", "fire_resistant"));
 }
 
 // ============================================================================

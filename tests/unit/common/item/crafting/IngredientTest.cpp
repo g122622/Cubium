@@ -286,10 +286,10 @@ TEST_F(IngredientTest, FromTag_ResolvedTag_GetAllMatchingItems)
 
 TEST_F(IngredientTest, FromTag_CarpetsTag)
 {
-    Ingredient ing = Ingredient::fromTag("minecraft:carpets");
+    Ingredient ing = Ingredient::fromTag("minecraft:wool_carpets");
 
     EXPECT_TRUE(ing.hasTag());
-    EXPECT_EQ(ing.getTag(), "minecraft:carpets");
+    EXPECT_EQ(ing.getTag(), "minecraft:wool_carpets");
 
     Item* whiteCarpet = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "white_carpet"));
     ASSERT_NE(whiteCarpet, nullptr);
@@ -451,7 +451,7 @@ TEST_F(IngredientTest, Merge_SingleIngredient)
 TEST_F(IngredientTest, Merge_TwoTagIngredients)
 {
     Ingredient flowers = Ingredient::fromTag("minecraft:flowers");
-    Ingredient carpets = Ingredient::fromTag("minecraft:carpets");
+    Ingredient carpets = Ingredient::fromTag("minecraft:wool_carpets");
 
     Ingredient merged = Ingredient::merge({flowers, carpets});
 
@@ -548,7 +548,7 @@ TEST_F(IngredientTest, TagIngredients_SameTag_AreEqual)
 TEST_F(IngredientTest, TagIngredients_DifferentTag_AreNotEqual)
 {
     Ingredient ing1 = Ingredient::fromTag("minecraft:flowers");
-    Ingredient ing2 = Ingredient::fromTag("minecraft:carpets");
+    Ingredient ing2 = Ingredient::fromTag("minecraft:wool_carpets");
 
     EXPECT_FALSE(ing1 == ing2);
 }

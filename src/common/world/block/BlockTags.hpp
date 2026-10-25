@@ -25,6 +25,7 @@
 
 #include "common/core/Types.hpp"
 #include "common/resource/ResourceLocation.hpp"
+#include <cstddef>
 #include <functional>
 #include <memory>
 #include <unordered_map>
@@ -169,6 +170,23 @@ private:
 /**
  * @brief 内置方块标签集合
  */
+/**
+ * @brief 原版方块标签表的一项（生成文件 VanillaBlockTags.gen.cpp 提供）。
+ *
+ * 成员已展开全部 `#tag` 引用，等价原版 `Tag#getValues()`。
+ */
+struct VanillaBlockTagEntry {
+    const char* name;                   ///< 标签名（无 minecraft: 前缀）
+    std::size_t count;                  ///< 成员个数
+    const char* const* values;          ///< 成员方块名（无 minecraft: 前缀）
+};
+
+/**
+ * @brief 取原版方块标签表（静态存储，进程内指针恒定）。
+ * @param count 输出表项数
+ */
+const VanillaBlockTagEntry* vanillaBlockTagTable(size_t& count) noexcept;
+
 class BlockTags {
 public:
     // ========== 原木标签 ==========
@@ -213,9 +231,6 @@ public:
 
     /// 沙子标签
     static BlockTag& SAND();
-
-    /// 石头标签
-    static BlockTag& STONE();
 
     /// 陶瓦标签（原色陶瓦 + 16 色陶瓦）
     /// 运行时消费场景：DryVegetationBlock 判定干草类是否可放置在陶瓦上。
@@ -333,9 +348,6 @@ public:
     /// 蘑菇在这些方块上放置时不受光照限制
     static BlockTag& MUSHROOM_GROW_BLOCK();
 
-    /// 甜浆果丛可种植标签（草方块、泥土、粗糙泥土、灰化土、耕地）
-    static BlockTag& VALID_SWEET_BERRY_BUSH_GROUND();
-
     // ========== 珊瑚和水下骨粉标签 ==========
 
     /// 珊瑚标签（珊瑚植物与珊瑚扇，包括死的和活的）
@@ -383,11 +395,6 @@ public:
     /// 小花朵标签（蒲公英、虞美人等）
     /// 蜜蜂可以采集这些花朵
     static BlockTag& SMALL_FLOWERS();
-
-    /// 高花朵标签（向日葵、丁香等）
-    /// 蜜蜂可以采集这些花朵
-    /// 注意: MC 1.21.2+ 已移除 tall_flowers 标签，高花朵直接包含在 FLOWERS 标签中
-    static BlockTag& TALL_FLOWERS();
 
     /// 花朵标签（所有花朵，包含小花朵、高花朵和其他花类方块）
     /// MC 1.21.11: BlockTags.FLOWERS
@@ -463,9 +470,6 @@ public:
     /// 杜鹃可生长方块标签（#dirt + #sand + #terracotta + 雪块 + 细雪）
     static BlockTag& AZALEA_GROWS_ON();
 
-    /// 可被滴水石块替换的方块标签（DripstoneUtils 依赖）
-    static BlockTag& DRIPSTONE_REPLACEABLE();
-
     /// 水晶声音方块标签（紫水晶块、紫水晶母岩）
     static BlockTag& CRYSTAL_SOUND_BLOCKS();
 
@@ -482,6 +486,9 @@ public:
 
     /// 苔藓可替换方块标签
     static BlockTag& MOSS_REPLACEABLE();
+
+    /// 滴石可替换方块标签（#base_stone_overworld；滴石从其上生长）
+    static BlockTag& DRIPSTONE_REPLACEABLE_BLOCKS();
 
     /// 繁茂洞穴地面可替换方块标签（黏土、石头、沙砾、泥土等）
     static BlockTag& LUSH_GROUND_REPLACEABLE();
@@ -521,9 +528,6 @@ public:
 
     /// 雪标签（雪、雪块、细雪）
     static BlockTag& SNOW();
-
-    /// 细雪可放置标签
-    static BlockTag& POWDER_SNOW_WALKABLE_MOVED();
 
     // ========== 摔落伤害重置标签 ==========
 
@@ -716,12 +720,6 @@ public:
     /// 包含所有木活板门 + 铁活板门 + 铜活板门（含氧化和涂蜡变种）。
     /// 参考: net.minecraft.tags.BlockTags.TRAPDOORS
     static BlockTag& TRAPDOORS();
-
-    /// 不可燃木材方块标签（所有不可燃烧的木材方块）
-    /// 包含绯红木和诡异木系列的所有方块（原木、菌柄、木板、台阶、楼梯、
-    /// 栅栏、栅栏门、门、活板门、按钮、压力板、告示牌等）。
-    /// 参考: net.minecraft.tags.BlockTags.NON_FLAMMABLE_WOOD
-    static BlockTag& NON_FLAMMABLE_WOOD();
 
     /**
      * @brief 初始化所有内置标签

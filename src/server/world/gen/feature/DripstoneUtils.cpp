@@ -92,7 +92,7 @@ bool DripstoneUtils::isDripstoneBase(const BlockState* state)
     if (state == nullptr) {
         return false;
     }
-    return state->is(VanillaBlocks::DRIPSTONE_BLOCK) || BlockTags::DRIPSTONE_REPLACEABLE().contains(*state);
+    return state->is(VanillaBlocks::DRIPSTONE_BLOCK) || BlockTags::DRIPSTONE_REPLACEABLE_BLOCKS().contains(*state);
 }
 
 bool DripstoneUtils::isEmptyOrWater(const BlockState* state)
@@ -152,7 +152,7 @@ void DripstoneUtils::growPointedDripstone(
 bool DripstoneUtils::placeDripstoneBlockIfPossible(IWorld& world, const BlockPos& pos)
 {
     const BlockState* state = world.getBlockState(pos);
-    if (state != nullptr && BlockTags::DRIPSTONE_REPLACEABLE().contains(*state)) {
+    if (state != nullptr && BlockTags::DRIPSTONE_REPLACEABLE_BLOCKS().contains(*state)) {
         world.setBlockState(pos.x, pos.y, pos.z, &VanillaBlocks::DRIPSTONE_BLOCK->defaultState());
         return true;
     }

@@ -86,6 +86,14 @@ export interface JavaOracleOptions {
      */
     readonly oracleMissing?: readonly string[];
     /**
+     * 成员级缺口：输出里某个数组字段中、被测实现明确尚未注册的成员。
+     *
+     * 标签这类能力比的是「展开后的集合」，未实现方块/物品会在好几个标签里反复出现；
+     * 把它们逐条写进 oracleMissing 既写不全也读不出重点。这里按成员名剔除，
+     * 并在摘要里报告被剔除了多少条（有成员级缺口才算通过，空数组不算「一致」）。
+     */
+    readonly memberGaps?: { readonly field: string; readonly missing: readonly string[] };
+    /**
      * 传给 oracle `run` 的额外参数（原样追加在输入/输出路径之后）。命令树这类
      * 「注册会互相影响」的能力需要它：跳过原版有、项目尚未注册的命令，才能让其余
      * 命令在同一套注册状态下比对。
@@ -212,50 +220,71 @@ export function runJavaOracle(options: JavaOracleOptions): JavaOracleOutcome {
     // 6. 比对。复用 runner.ts 的比对语义（只比 oracle 声明过的字段、按 key 对齐）。
     const expectedLines = fs.readFileSync(oracleOutput, "utf8").split(/\r?\n/).filter(Boolean);
     const actualLines = fs.readFileSync(probeOutput, "utf8").split(/\r?\n/).filter(Boolean);
-    const differences = compareLines(expectedLines, actualLines, options.key, options.normalise);
+    const finish = (differences: ReturnType<typeof compareLines>) => {
+        const elapsedSeconds = Number(process.hrtime.bigint() - started) / 1e9;
+        const reportPath = path.join(workDir, "report.json");
+        fs.writeFileSync(
+            reportPath,
+            `${JSON.stringify(
+                {
+                    harness: options.domain,
+                    oracle: options.oracle,
+                    ok: differences.length === 0,
+                    units: units.length,
+                    differenceCount: differences.length,
+                    differences: differences.slice(0, 200),
+                    elapsedSeconds: Number(elapsedSeconds.toFixed(3)),
+                },
+                null,
+                2,
+            )}\n`,
+        );
 
-    const elapsedSeconds = Number(process.hrtime.bigint() - started) / 1e9;
-    const reportPath = path.join(workDir, "report.json");
-    fs.writeFileSync(
-        reportPath,
-        `${JSON.stringify(
-            {
-                harness: options.domain,
-                oracle: options.oracle,
-                ok: differences.length === 0,
-                units: units.length,
-                differenceCount: differences.length,
-                differences: differences.slice(0, 200),
-                elapsedSeconds: Number(elapsedSeconds.toFixed(3)),
-            },
-            null,
-            2,
-        )}\n`,
-    );
-
-    const result: HarnessResult = {
-        harness: options.domain,
-        domain: options.domain,
-        units: units.length,
-        matched: units.length - new Set(differences.map((d) => d.key)).size,
-        differences,
-        elapsedSeconds,
-        reportPath,
+        const result: HarnessResult = {
+            harness: options.domain,
+            domain: options.domain,
+            units: units.length,
+            matched: units.length - new Set(differences.map((d) => d.key)).size,
+            differences,
+            elapsedSeconds,
+            reportPath,
+        };
+        console.log(render(result, options.samples ?? 5));
+        if (units.length !== enumerated.length) {
+            const dropped = enumerated.filter((unit) => exempt.has(unit));
+            // 只报条数和前几项：缺口清单可能有上百条，全打出来会把摘要淹掉。
+            const sample = dropped.slice(0, 3).join("、");
+            const more = dropped.length > 3 ? " 等" : "";
+            console.log(`  另有 ${dropped.length} 个单元属于已知缺口（原版有、本项目尚未实现），未计入：${sample}${more}`);
+        }
+        return {
+            oracle: options.oracle,
+            result,
+            exitCode: differences.length === 0 ? 0 : 1,
+            oracleOutputPath: oracleOutput,
+        };
     };
-    console.log(render(result, options.samples ?? 5));
-    if (units.length !== enumerated.length) {
-        const dropped = enumerated.filter((unit) => exempt.has(unit));
-        // 只报条数和前几项：缺口清单可能有上百条，全打出来会把摘要淹掉。
-        const sample = dropped.slice(0, 3).join("、");
-        const more = dropped.length > 3 ? " 等" : "";
-        console.log(`  另有 ${dropped.length} 个单元属于已知缺口（原版有、本项目尚未实现），未计入：${sample}${more}`);
+    if (options.memberGaps !== undefined) {
+        const { field, missing } = options.memberGaps;
+        const exemptMembers = new Set(missing);
+        let dropped = 0;
+        // 只从原版一侧剔除：probe 多出来的成员永远算差异。
+        const expected = expectedLines.map((line) => {
+            const parsed = JSON.parse(line) as Record<string, unknown>;
+            const values = parsed[field];
+            if (!Array.isArray(values)) {
+                return line;
+            }
+            const kept = values.filter((value) => !exemptMembers.has(String(value)));
+            dropped += values.length - kept.length;
+            return JSON.stringify({ ...parsed, [field]: kept });
+        });
+        if (dropped > 0) {
+            console.log(`  另有 ${dropped} 个成员属于已知缺口（原版有、本项目尚未实现），未计入比对`);
+        }
+        return finish(compareLines(expected, actualLines, options.key, options.normalise));
     }
-    return {
-        oracle: options.oracle,
-        result,
-        exitCode: differences.length === 0 ? 0 : 1,
-        oracleOutputPath: oracleOutput,
-    };
+    return finish(compareLines(expectedLines, actualLines, options.key, options.normalise));
 }
 
 /**

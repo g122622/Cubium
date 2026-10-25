@@ -154,6 +154,20 @@ const JAVA_HARNESSES: ReadonlyArray<() => JavaHarness> = [
         key: "unit",
     }),
     () => ({
+        name: "block_tags",
+        oracle: "BlockTagOracle",
+        input: (unit: string) => ({ tag: unit }),
+        key: "tag",
+    }),
+    () => ({
+        name: "item_tags",
+        oracle: "ItemTagOracle",
+        input: (unit: string) => ({ tag: unit }),
+        key: "tag",
+        // 标签成员里的未实现物品：与 item_summary 共用同一份缺口清单。
+        memberGaps: { field: "values", missing: itemsKnownMissing },
+    }),
+    () => ({
         name: "damage_type",
         oracle: "DamageTypeOracle",
         input: (unit: string) => ({ damageType: unit }),

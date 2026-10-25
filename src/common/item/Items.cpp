@@ -1662,6 +1662,44 @@ void Items::ensureInitialized()
  * 即视为 common、附魔能力查不到即视为 0。放在所有 _register*() 之后执行，覆盖注册
  * 时写的值。
  */
+namespace {
+/**
+ * 原版 DAMAGE_RESISTANT 组件的名单（1.21.11 `BuiltInRegistries.ITEM` 里
+ * `components().get(DataComponents.DAMAGE_RESISTANT)` 非空的物品）。
+ *
+ * 下界合金系（含马铠、鹦鹉螺铠甲与长矛）是 `#minecraft:is_fire`；
+ * 下界之星是 `#minecraft:is_explosion`。
+ */
+DamageResistantTag vanillaDamageResistant(std::string_view name)
+{
+    static constexpr std::string_view kIsFire[] = {"minecraft:ancient_debris",
+        "minecraft:netherite_axe",
+        "minecraft:netherite_block",
+        "minecraft:netherite_boots",
+        "minecraft:netherite_chestplate",
+        "minecraft:netherite_helmet",
+        "minecraft:netherite_hoe",
+        "minecraft:netherite_horse_armor",
+        "minecraft:netherite_ingot",
+        "minecraft:netherite_leggings",
+        "minecraft:netherite_nautilus_armor",
+        "minecraft:netherite_pickaxe",
+        "minecraft:netherite_scrap",
+        "minecraft:netherite_shovel",
+        "minecraft:netherite_spear",
+        "minecraft:netherite_sword"};
+    for (const auto& entry : kIsFire) {
+        if (entry == name) {
+            return DamageResistantTag::IsFire;
+        }
+    }
+    if (name == "minecraft:nether_star") {
+        return DamageResistantTag::IsExplosion;
+    }
+    return DamageResistantTag::None;
+}
+} // namespace
+
 void Items::_applyVanillaRarities()
 {
     auto& registry = ItemRegistry::instance();
@@ -1672,6 +1710,7 @@ void Items::_applyVanillaRarities()
         const std::optional<ItemRarity> rarity = vanillaItemRarity(name);
         item.setRarity(rarity.value_or(ItemRarity::Common));
         item.setEnchantable(vanillaItemEnchantable(name));
+        item.setDamageResistant(vanillaDamageResistant(name));
     });
 }
 

@@ -282,12 +282,14 @@ TEST_F(CactusFlowerBlockTest, IsNotSolidAndNoCollision)
 
 TEST_F(CactusFlowerBlockTest, IsInSmallFlowersTag)
 {
-    EXPECT_TRUE(BlockTags::SMALL_FLOWERS().contains(ResourceLocation("minecraft", "cactus_flower")));
+    // 原版 small_flowers 不含仙人掌花（它只在 items 侧的 #flowers 里额外出现）。
+    EXPECT_FALSE(BlockTags::SMALL_FLOWERS().contains(ResourceLocation("minecraft", "cactus_flower")));
 }
 
 TEST_F(CactusFlowerBlockTest, IsInReplaceableByTreesTag)
 {
-    EXPECT_TRUE(BlockTags::REPLACEABLE_BY_TREES().contains(ResourceLocation("minecraft", "cactus_flower")));
+    // 原版 replaceable_by_trees 不含仙人掌花。
+    EXPECT_FALSE(BlockTags::REPLACEABLE_BY_TREES().contains(ResourceLocation("minecraft", "cactus_flower")));
 }
 
 // ============================================================================

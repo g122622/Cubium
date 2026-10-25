@@ -43,61 +43,6 @@ protected:
 };
 
 // ============================================================================
-// VALID_SWEET_BERRY_BUSH_GROUND Tests
-// ============================================================================
-
-TEST_F(BlockTagsTest, ValidSweetBerryBushGroundContainsGrassBlock)
-{
-    EXPECT_TRUE(BlockTags::VALID_SWEET_BERRY_BUSH_GROUND().contains(*VanillaBlocks::GRASS_BLOCK));
-}
-
-TEST_F(BlockTagsTest, ValidSweetBerryBushGroundContainsDirt)
-{
-    EXPECT_TRUE(BlockTags::VALID_SWEET_BERRY_BUSH_GROUND().contains(*VanillaBlocks::DIRT));
-}
-
-TEST_F(BlockTagsTest, ValidSweetBerryBushGroundContainsCoarseDirt)
-{
-    EXPECT_TRUE(BlockTags::VALID_SWEET_BERRY_BUSH_GROUND().contains(*VanillaBlocks::COARSE_DIRT));
-}
-
-TEST_F(BlockTagsTest, ValidSweetBerryBushGroundContainsPodzol)
-{
-    EXPECT_TRUE(BlockTags::VALID_SWEET_BERRY_BUSH_GROUND().contains(*VanillaBlocks::PODZOL));
-}
-
-TEST_F(BlockTagsTest, ValidSweetBerryBushGroundContainsFarmland)
-{
-    EXPECT_TRUE(BlockTags::VALID_SWEET_BERRY_BUSH_GROUND().contains(*VanillaBlocks::FARMLAND));
-}
-
-TEST_F(BlockTagsTest, ValidSweetBerryBushGroundDoesNotContainStone)
-{
-    EXPECT_FALSE(BlockTags::VALID_SWEET_BERRY_BUSH_GROUND().contains(*VanillaBlocks::STONE));
-}
-
-TEST_F(BlockTagsTest, ValidSweetBerryBushGroundDoesNotContainSand)
-{
-    EXPECT_FALSE(BlockTags::VALID_SWEET_BERRY_BUSH_GROUND().contains(*VanillaBlocks::SAND));
-}
-
-TEST_F(BlockTagsTest, ValidSweetBerryBushGroundDoesNotContainGravel)
-{
-    EXPECT_FALSE(BlockTags::VALID_SWEET_BERRY_BUSH_GROUND().contains(*VanillaBlocks::GRAVEL));
-}
-
-TEST_F(BlockTagsTest, ValidSweetBerryBushGroundDoesNotContainWater)
-{
-    EXPECT_FALSE(BlockTags::VALID_SWEET_BERRY_BUSH_GROUND().contains(*VanillaBlocks::WATER));
-}
-
-TEST_F(BlockTagsTest, ValidSweetBerryBushGroundIdIsCorrect)
-{
-    EXPECT_EQ(BlockTags::VALID_SWEET_BERRY_BUSH_GROUND().getId(),
-        ResourceLocation("minecraft", "valid_sweet_berry_bush_ground"));
-}
-
-// ============================================================================
 // Other BlockTags Tests
 // ============================================================================
 
@@ -281,50 +226,28 @@ TEST_F(BlockTagsTest, BambooPlantableOnDoesNotContainFarmland)
 // BlockState Contains Tests
 // ============================================================================
 
-TEST_F(BlockTagsTest, ContainsWorksWithBlockState)
-{
-    const BlockState& grassState = VanillaBlocks::GRASS_BLOCK->defaultState();
-    EXPECT_TRUE(BlockTags::VALID_SWEET_BERRY_BUSH_GROUND().contains(grassState));
-
-    const BlockState& stoneState = VanillaBlocks::STONE->defaultState();
-    EXPECT_FALSE(BlockTags::VALID_SWEET_BERRY_BUSH_GROUND().contains(stoneState));
-}
-
-TEST_F(BlockTagsTest, ContainsWorksWithResourceLocation)
-{
-    EXPECT_TRUE(BlockTags::VALID_SWEET_BERRY_BUSH_GROUND().contains(ResourceLocation("minecraft", "grass_block")));
-    EXPECT_TRUE(BlockTags::VALID_SWEET_BERRY_BUSH_GROUND().contains(ResourceLocation("minecraft", "dirt")));
-    EXPECT_FALSE(BlockTags::VALID_SWEET_BERRY_BUSH_GROUND().contains(ResourceLocation("minecraft", "stone")));
-}
-
 // ============================================================================
 // WALL_CORALS and UNDERWATER_BONEMEALS Tests (for BoneMealItem::growSeagrass)
 // ============================================================================
 
 TEST_F(BlockTagsTest, WallCoralsTagContainsExpectedBlocks)
 {
-    // 检查是否包含墙珊瑚
+    // 原版 wall_corals.json 只列 5 个活珊瑚墙扇，死亡变体不在其中。
     EXPECT_TRUE(BlockTags::WALL_CORALS().contains(ResourceLocation("minecraft", "tube_coral_wall_fan")));
     EXPECT_TRUE(BlockTags::WALL_CORALS().contains(ResourceLocation("minecraft", "brain_coral_wall_fan")));
     EXPECT_TRUE(BlockTags::WALL_CORALS().contains(ResourceLocation("minecraft", "bubble_coral_wall_fan")));
     EXPECT_TRUE(BlockTags::WALL_CORALS().contains(ResourceLocation("minecraft", "fire_coral_wall_fan")));
     EXPECT_TRUE(BlockTags::WALL_CORALS().contains(ResourceLocation("minecraft", "horn_coral_wall_fan")));
 
-    // 检查是否包含死珊瑚墙扇
-    EXPECT_TRUE(BlockTags::WALL_CORALS().contains(ResourceLocation("minecraft", "dead_tube_coral_wall_fan")));
-    EXPECT_TRUE(BlockTags::WALL_CORALS().contains(ResourceLocation("minecraft", "dead_brain_coral_wall_fan")));
-    EXPECT_TRUE(BlockTags::WALL_CORALS().contains(ResourceLocation("minecraft", "dead_bubble_coral_wall_fan")));
-    EXPECT_TRUE(BlockTags::WALL_CORALS().contains(ResourceLocation("minecraft", "dead_fire_coral_wall_fan")));
-    EXPECT_TRUE(BlockTags::WALL_CORALS().contains(ResourceLocation("minecraft", "dead_horn_coral_wall_fan")));
+    EXPECT_FALSE(BlockTags::WALL_CORALS().contains(ResourceLocation("minecraft", "dead_tube_coral_wall_fan")));
 }
 
 TEST_F(BlockTagsTest, UnderwaterBonemealsTagContainsExpectedBlocks)
 {
-    // 检查是否包含海草和海带
+    // 原版 underwater_bonemeals = seagrass + #corals + #wall_corals，不含海带。
     EXPECT_TRUE(BlockTags::UNDERWATER_BONEMEALS().contains(ResourceLocation("minecraft", "seagrass")));
-    EXPECT_TRUE(BlockTags::UNDERWATER_BONEMEALS().contains(ResourceLocation("minecraft", "kelp")));
+    EXPECT_FALSE(BlockTags::UNDERWATER_BONEMEALS().contains(ResourceLocation("minecraft", "kelp")));
 
-    // 检查是否包含珊瑚扇
     EXPECT_TRUE(BlockTags::UNDERWATER_BONEMEALS().contains(ResourceLocation("minecraft", "tube_coral_fan")));
     EXPECT_TRUE(BlockTags::UNDERWATER_BONEMEALS().contains(ResourceLocation("minecraft", "brain_coral_fan")));
     EXPECT_TRUE(BlockTags::UNDERWATER_BONEMEALS().contains(ResourceLocation("minecraft", "bubble_coral_fan")));
@@ -1339,66 +1262,6 @@ TEST_F(BlockTagsTest, TrapdoorsContainsCopperTrapdoor)
 TEST_F(BlockTagsTest, TrapdoorsTagIdIsCorrect)
 {
     EXPECT_EQ(BlockTags::TRAPDOORS().getId(), ResourceLocation("minecraft", "trapdoors"));
-}
-
-// ============================================================================
-// NON_FLAMMABLE_WOOD 标签测试
-// 参考: net.minecraft.tags.BlockTags.NON_FLAMMABLE_WOOD
-// ============================================================================
-
-TEST_F(BlockTagsTest, NonFlammableWoodContainsCrimsonStem)
-{
-    EXPECT_TRUE(BlockTags::NON_FLAMMABLE_WOOD().contains(ResourceLocation("minecraft", "crimson_stem")));
-}
-
-TEST_F(BlockTagsTest, NonFlammableWoodContainsWarpedPlanks)
-{
-    EXPECT_TRUE(BlockTags::NON_FLAMMABLE_WOOD().contains(ResourceLocation("minecraft", "warped_planks")));
-}
-
-TEST_F(BlockTagsTest, NonFlammableWoodContainsCrimsonDoor)
-{
-    EXPECT_TRUE(BlockTags::NON_FLAMMABLE_WOOD().contains(ResourceLocation("minecraft", "crimson_door")));
-}
-
-TEST_F(BlockTagsTest, NonFlammableWoodContainsWarpedTrapdoor)
-{
-    EXPECT_TRUE(BlockTags::NON_FLAMMABLE_WOOD().contains(ResourceLocation("minecraft", "warped_trapdoor")));
-}
-
-TEST_F(BlockTagsTest, NonFlammableWoodContainsCrimsonHyphae)
-{
-    EXPECT_TRUE(BlockTags::NON_FLAMMABLE_WOOD().contains(ResourceLocation("minecraft", "crimson_hyphae")));
-}
-
-TEST_F(BlockTagsTest, NonFlammableWoodContainsStrippedWarpedHyphae)
-{
-    EXPECT_TRUE(BlockTags::NON_FLAMMABLE_WOOD().contains(ResourceLocation("minecraft", "stripped_warped_hyphae")));
-}
-
-TEST_F(BlockTagsTest, NonFlammableWoodContainsCrimsonShelf)
-{
-    EXPECT_TRUE(BlockTags::NON_FLAMMABLE_WOOD().contains(ResourceLocation("minecraft", "crimson_shelf")));
-}
-
-TEST_F(BlockTagsTest, NonFlammableWoodContainsWarpedShelf)
-{
-    EXPECT_TRUE(BlockTags::NON_FLAMMABLE_WOOD().contains(ResourceLocation("minecraft", "warped_shelf")));
-}
-
-TEST_F(BlockTagsTest, NonFlammableWoodDoesNotContainOakPlanks)
-{
-    EXPECT_FALSE(BlockTags::NON_FLAMMABLE_WOOD().contains(ResourceLocation("minecraft", "oak_planks")));
-}
-
-TEST_F(BlockTagsTest, NonFlammableWoodDoesNotContainIronDoor)
-{
-    EXPECT_FALSE(BlockTags::NON_FLAMMABLE_WOOD().contains(ResourceLocation("minecraft", "iron_door")));
-}
-
-TEST_F(BlockTagsTest, NonFlammableWoodTagIdIsCorrect)
-{
-    EXPECT_EQ(BlockTags::NON_FLAMMABLE_WOOD().getId(), ResourceLocation("minecraft", "non_flammable_wood"));
 }
 
 // ========== FLOWERS 标签测试 ==========

@@ -23,6 +23,7 @@
 
 #include "common/util/math/random/JavaLegacyRandom.hpp"
 #include "common/world/block/BlockTags.hpp"
+#include "common/world/block/registry/BaseBlocks.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "core/Constants.hpp"
 #include "server/world/gen/RandomState.hpp"
@@ -135,9 +136,11 @@ TEST_F(WorldCarverTest, CanReplaceBlockWithTag)
     EXPECT_TRUE(carver.canReplaceBlock(*VanillaBlocks::getState(VanillaBlocks::DIRT), config));
     EXPECT_TRUE(carver.canReplaceBlock(*VanillaBlocks::getState(VanillaBlocks::GRANITE), config));
 
-    // 不可雕刻的方块
+    // 原版 overworld_carver_replaceables 把 water 也列进去了（洞穴在水下要能掏空）。
+    EXPECT_TRUE(carver.canReplaceBlock(*VanillaBlocks::getState(VanillaBlocks::WATER), config));
+    // 不可雕刻的方块（空气与床岩都不在该标签里）
     EXPECT_FALSE(carver.canReplaceBlock(*VanillaBlocks::getState(VanillaBlocks::AIR), config));
-    EXPECT_FALSE(carver.canReplaceBlock(*VanillaBlocks::getState(VanillaBlocks::WATER), config));
+    EXPECT_FALSE(carver.canReplaceBlock(*VanillaBlocks::getState(block_registry::BaseBlocks::BEDROCK), config));
 }
 
 // ============================================================================

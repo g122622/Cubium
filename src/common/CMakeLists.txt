@@ -571,6 +571,7 @@ add_library(mc_common STATIC
     item/tag/ItemTag.cpp
     item/tag/ItemTagLoader.cpp
     item/tag/ItemTags.cpp
+    item/tag/VanillaItemTags.gen.cpp
 
     # Item System - Instrument（乐器注册表与乐器标签，乐器定义由服务端数据包加载）
     item/instrument/InstrumentDefinition.cpp
@@ -791,6 +792,7 @@ add_library(mc_common STATIC
     world/block/FireInfoRegistry.cpp
     world/block/BlockSoundType.cpp
     world/block/BlockTags.cpp
+    world/block/VanillaBlockTags.gen.cpp
     world/block/BlockTagLoader.cpp
     world/block/SupportType.cpp
     world/block/state/pattern/BlockInWorld.cpp

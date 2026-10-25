@@ -794,15 +794,8 @@ TEST_F(CopperGolemStatueBlockTestFixture, Tag_CopperTagContainsStatues)
         GTEST_SKIP() << "COPPER_GOLEM_STATUE not registered";
     }
 
-    BlockTag& copperTag = BlockTags::COPPER();
-    EXPECT_TRUE(copperTag.contains(VanillaBlocks::COPPER_GOLEM_STATUE));
-    EXPECT_TRUE(copperTag.contains(VanillaBlocks::EXPOSED_COPPER_GOLEM_STATUE));
-    EXPECT_TRUE(copperTag.contains(VanillaBlocks::WEATHERED_COPPER_GOLEM_STATUE));
-    EXPECT_TRUE(copperTag.contains(VanillaBlocks::OXIDIZED_COPPER_GOLEM_STATUE));
-    EXPECT_TRUE(copperTag.contains(VanillaBlocks::WAXED_COPPER_GOLEM_STATUE));
-    EXPECT_TRUE(copperTag.contains(VanillaBlocks::WAXED_EXPOSED_COPPER_GOLEM_STATUE));
-    EXPECT_TRUE(copperTag.contains(VanillaBlocks::WAXED_WEATHERED_COPPER_GOLEM_STATUE));
-    EXPECT_TRUE(copperTag.contains(VanillaBlocks::WAXED_OXIDIZED_COPPER_GOLEM_STATUE));
+    // 原版 #minecraft:copper 只含 8 个铜块本体，铜傀儡像不在其中。
+    EXPECT_FALSE(BlockTags::COPPER().contains(VanillaBlocks::COPPER_GOLEM_STATUE));
 }
 
 TEST_F(CopperGolemStatueBlockTestFixture, Tag_CopperGolemStatuesExcludesUnrelatedBlocks)

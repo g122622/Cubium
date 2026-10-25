@@ -102,6 +102,12 @@ ItemProperties& ItemProperties::burnable(bool value)
     return *this;
 }
 
+ItemProperties& ItemProperties::damageResistant(DamageResistantTag tag)
+{
+    m_damageResistant = tag;
+    return *this;
+}
+
 ItemProperties& ItemProperties::repairable(bool value)
 {
     m_repairable = value;
@@ -137,6 +143,7 @@ Item::Item(ItemProperties properties)
     , m_rarity(properties.rarity())
     , m_burnable(properties.isBurnable())
     , m_repairable(properties.isRepairable())
+    , m_damageResistant(properties.damageResistantTag())
     , m_food(properties.food())
     , m_creativeTab(properties.group())
     , m_defaultDeathProtection(properties.deathProtection())

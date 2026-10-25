@@ -89,6 +89,18 @@ class ItemAttributeModifiers;
 // ============================================================================
 
 /**
+ * @brief 物品免疫的伤害类型族（原版 `DAMAGE_RESISTANT` 数据组件的载荷）
+ *
+ * 原版组件携带一个伤害类型标签；vanilla 只用到其中两个：
+ * 下界合金系是 `#minecraft:is_fire`，下界之星是 `#minecraft:is_explosion`。
+ */
+enum class DamageResistantTag : u8 {
+    None,       ///< 不免疫任何伤害
+    IsFire,     ///< #minecraft:is_fire（下界合金系）
+    IsExplosion ///< #minecraft:is_explosion（下界之星）
+};
+
+/**
  * @brief 物品属性构建器
  *
  * 用于构建物品属性的流畅接口。
@@ -152,6 +164,15 @@ public:
     ItemProperties& repairable(bool value = true);
 
     /**
+     * @brief 标记物品免受某一族伤害（原版 {@code Item.Properties#fireResistant()}）
+     *
+     * 原版实现是给物品挂 {@code DAMAGE_RESISTANT} 数据组件，载荷是伤害类型标签：
+     * 下界合金系用 {@code #minecraft:is_fire}（火焰、岩浆、营火……），下界之星用
+     * {@code #minecraft:is_explosion}。落进标签的伤害不扣耐久、不掉落物。
+     */
+    ItemProperties& damageResistant(DamageResistantTag tag);
+
+    /**
      * @brief 设置食物属性
      * @param food 食物属性指针
      * @note 设置后物品将被视为食物
@@ -203,6 +224,12 @@ public:
         return m_repairable;
     }
 
+    /// 免受哪一族伤害（原版 DAMAGE_RESISTANT 组件）；None 表示不免疫。
+    [[nodiscard]] DamageResistantTag damageResistantTag() const
+    {
+        return m_damageResistant;
+    }
+
     [[nodiscard]] const item::food::Food* food() const
     {
         return m_food;
@@ -227,6 +254,7 @@ private:
     ItemRarity m_rarity = ItemRarity::Common;
     bool m_burnable = false;
     bool m_repairable = true;
+    DamageResistantTag m_damageResistant = DamageResistantTag::None;
     const item::food::Food* m_food = nullptr;
     const ItemGroup* m_creativeTab = nullptr;
     std::optional<item::component::DeathProtectionPayload> m_deathProtection;
@@ -395,6 +423,16 @@ public:
     }
 
     /**
+     * @brief 免受哪一族伤害（原版 DAMAGE_RESISTANT 组件）
+     *
+     * 下界合金系物品是 {@code IsFire}，下界之星是 {@code IsExplosion}。
+     */
+    [[nodiscard]] DamageResistantTag damageResistantTag() const
+    {
+        return m_damageResistant;
+    }
+
+    /**
      * @brief 附魔能力（对齐 vanilla ENCHANTABLE 组件的值）
      *
      * 附魔台按它决定每个槽位能给出的等级上限；0 表示不可附魔。
@@ -413,6 +451,16 @@ public:
     void setEnchantable(i32 enchantable)
     {
         m_enchantable = enchantable;
+    }
+
+    /**
+     * @brief 设置伤害免疫族（原版 DAMAGE_RESISTANT 组件）
+     *
+     * 只应在注册阶段由 Items::initialize() 按原版数据统一套用。
+     */
+    void setDamageResistant(DamageResistantTag tag)
+    {
+        m_damageResistant = tag;
     }
 
     /**
@@ -981,6 +1029,7 @@ protected:
     i32 m_enchantable = 0;
     bool m_burnable = false;
     bool m_repairable = true;
+    DamageResistantTag m_damageResistant = DamageResistantTag::None;
 
     // 新增成员变量
     const item::food::Food* m_food = nullptr;                                        ///< 食物属性（非食物为nullptr）

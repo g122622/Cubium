@@ -29,6 +29,7 @@
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/damage/DamageSource.hpp"
+#include "common/entity/damage/tag/DamageTypeTags.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/item/component/DataComponentMap.hpp"
 #include "common/item/component/DataComponentPatchNbt.hpp"
@@ -415,14 +416,20 @@ bool ItemStack::isDamageable() const
 
 bool ItemStack::canBeHurtBy(const DamageSource& source) const
 {
-    // 防火物品不会被火焰伤害源摧毁
     if (isEmpty()) {
         return false;
     }
-    if (m_item->isIn(item::tag::ItemTags::FIRE_RESISTANT()) && source.isFire()) {
-        return false;
+    // 原版 ItemStack#canBeHurtBy：物品带 DAMAGE_RESISTANT 组件且伤害类型落在
+    // 组件的标签里时免疫（下界合金系是 #is_fire，下界之星是 #is_explosion）。
+    switch (m_item->damageResistantTag()) {
+        case DamageResistantTag::IsFire:
+            return !DamageTypeTags::IS_FIRE().contains(source.type());
+        case DamageResistantTag::IsExplosion:
+            return !DamageTypeTags::IS_EXPLOSION().contains(source.type());
+        case DamageResistantTag::None:
+        default:
+            return true;
     }
-    return true;
 }
 
 bool ItemStack::isDamaged() const

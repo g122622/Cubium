@@ -34,6 +34,7 @@
 #include "common/item/Items.hpp"
 #include "common/item/context/BlockItemUseContext.hpp"
 #include "common/item/core/ActionResult.hpp"
+#include "common/world/block/registry/NaturalBlocks.hpp"
 #include "common/item/core/BlockActionResult.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/physics/PhysicsConstants.hpp"
@@ -258,8 +259,8 @@ bool SweetBerryBushBlock::canSustain(const BlockState& groundState, IWorld& worl
     MC_UNUSED(world);
     MC_UNUSED(groundPos);
 
-    // 甜浆果丛可以种在草地、泥土、砂土、灰化土、耕地上
-    return BlockTags::VALID_SWEET_BERRY_BUSH_GROUND().contains(groundState);
+    // 原版 VegetationBlock.mayPlaceOn：#dirt 或耕地。
+    return BlockTags::DIRT().contains(groundState) || groundState.is(block_registry::NaturalBlocks::FARMLAND);
 }
 
 void SweetBerryBushBlock::initShapes()

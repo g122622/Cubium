@@ -308,22 +308,22 @@ TEST_F(WolfAndNautilusArmorTest, ItemTags_PiglinLoved_ContainsGoldenNautilusArmo
 
 TEST_F(WolfAndNautilusArmorTest, ItemTags_FireResistant_ContainsNetheriteNautilusArmor)
 {
-    // FIRE_RESISTANT 标签应包含 netherite_nautilus_armor（与下界合金马铠机制一致）
+    // 下界合金鹦鹉螺铠甲应带 #minecraft:is_fire 的伤害免疫（与下界合金马铠一致）
     ASSERT_NE(Items::NETHERITE_NAUTILUS_ARMOR, nullptr);
-    EXPECT_TRUE(ItemTags::FIRE_RESISTANT().contains(Items::NETHERITE_NAUTILUS_ARMOR));
+    EXPECT_EQ(Items::NETHERITE_NAUTILUS_ARMOR->damageResistantTag(), DamageResistantTag::IsFire);
 }
 
 TEST_F(WolfAndNautilusArmorTest, ItemTags_FireResistant_DoesNotContainNonNetheriteNautilusArmor)
 {
-    // 非下界合金鹦鹉螺铠甲不应在 FIRE_RESISTANT 标签中
-    ASSERT_NE(Items::COPPER_NAUTILUS_ARMOR, nullptr);
-    EXPECT_FALSE(ItemTags::FIRE_RESISTANT().contains(Items::COPPER_NAUTILUS_ARMOR));
-    ASSERT_NE(Items::IRON_NAUTILUS_ARMOR, nullptr);
-    EXPECT_FALSE(ItemTags::FIRE_RESISTANT().contains(Items::IRON_NAUTILUS_ARMOR));
-    ASSERT_NE(Items::GOLDEN_NAUTILUS_ARMOR, nullptr);
-    EXPECT_FALSE(ItemTags::FIRE_RESISTANT().contains(Items::GOLDEN_NAUTILUS_ARMOR));
-    ASSERT_NE(Items::DIAMOND_NAUTILUS_ARMOR, nullptr);
-    EXPECT_FALSE(ItemTags::FIRE_RESISTANT().contains(Items::DIAMOND_NAUTILUS_ARMOR));
+    // 非下界合金鹦鹉螺铠甲不带伤害免疫
+    const Item* others[] = {Items::COPPER_NAUTILUS_ARMOR,
+        Items::IRON_NAUTILUS_ARMOR,
+        Items::GOLDEN_NAUTILUS_ARMOR,
+        Items::DIAMOND_NAUTILUS_ARMOR};
+    for (const Item* item : others) {
+        ASSERT_NE(item, nullptr);
+        EXPECT_EQ(item->damageResistantTag(), DamageResistantTag::None);
+    }
 }
 
 TEST_F(WolfAndNautilusArmorTest, NetheriteNautilusArmorItem_StackCannotBeHurtByFire)
