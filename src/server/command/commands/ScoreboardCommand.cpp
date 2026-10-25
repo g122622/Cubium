@@ -275,7 +275,8 @@ void ScoreboardCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispa
 i32 ScoreboardCommand::_addObjective(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
-    const std::string name = context.getArgument<std::string>("name");
+    // 参数节点名与命令树里的登记名必须一致（objective/criteria），否则运行时取不到值。
+    const std::string name = context.getArgument<std::string>("objective");
     const std::string criteria = context.getArgument<std::string>("criteria");
 
     // 获取记分板
@@ -334,7 +335,7 @@ i32 ScoreboardCommand::_addObjective(CommandContext<ServerCommandSource>& contex
 i32 ScoreboardCommand::_removeObjective(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
-    const std::string name = context.getArgument<std::string>("name");
+    const std::string name = context.getArgument<std::string>("objective");
 
     // 获取记分板
     auto* scoreboard = getScoreboard(source);
