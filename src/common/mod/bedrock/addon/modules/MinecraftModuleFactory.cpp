@@ -90,6 +90,7 @@
 #include "common/world/border/WorldBorder.hpp"                  // WorldBorder JS 类读 IWorld::worldBorder() 各 getter
 #include "common/world/gamerule/GameRules.hpp"                  // Dimension.getGameRule 经 IWorld::getGameRules 取值
 
+#include <atomic>
 #include <optional>
 #include <unordered_map>
 #include <vector>
@@ -117,7 +118,14 @@ namespace {
 /// 注：本 TU 跨多个回调共享，故用静态局部；引擎重建后 classId 变化，每次仍回查注册表校正。
 u64 resolveItemStackClassId(IScriptBindingContext& ctx)
 {
-    return ctx.classRegistry().classIdByName("ItemStack");
+    const u64 resolved = ctx.classRegistry().classIdByName("ItemStack");
+    // TODO: 定位 ItemStack 解包失败根因后移除本诊断输出。
+    static std::atomic<i32> s_diagA{0};
+    if (s_diagA.fetch_add(1) < 20) {
+        spdlog::warn("[DIAGA] resolveItemStackClassId={} packId={}", resolved, ctx.packId());
+    }
+
+    return resolved;
 }
 
 } // namespace
