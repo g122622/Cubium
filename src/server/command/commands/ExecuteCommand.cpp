@@ -63,34 +63,6 @@ namespace command {
 namespace {
 
 /**
- * @brief 解析方块ID
- */
-Block* parseBlockId(const std::string& input)
-{
-    auto& registry = BlockRegistry::instance();
-
-    std::string namespace_;
-    std::string path;
-    size_t colonPos = input.find(':');
-    if (colonPos != std::string::npos) {
-        namespace_ = input.substr(0, colonPos);
-        path = input.substr(colonPos + 1);
-    } else {
-        namespace_ = "minecraft";
-        path = input;
-    }
-
-    // 去除状态属性部分
-    size_t bracketPos = path.find('[');
-    if (bracketPos != std::string::npos) {
-        path = path.substr(0, bracketPos);
-    }
-
-    ResourceLocation location(namespace_, path);
-    return registry.getBlock(location);
-}
-
-/**
  * @brief 给修改器的每个末端参数（含其下挂的字面量）接上 run 节点
  *
  * 原版把「下一个修改器 / run」挂在参数节点下；Cubium 的修改器字面量之间不再互连，
