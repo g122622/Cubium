@@ -159,4 +159,95 @@ bool DamageSource::isCreativePlayer() const
     return asPlayer->isCreative(); // 对齐 vanilla player.getAbilities().instabuild
 }
 
+
+// ============================================================================
+// 伤害类型的 exhaustion / effects（数据包 damage_type/*.json）
+//
+// 与 damageScaling 同样属于「把数据包字段固化进硬编码枚举」，值直接取自
+// MC 1.21.11 的 data/minecraft/damage_type/*.json，改数据包时须同步改这里。
+// ============================================================================
+
+f32 damageExhaustion(DamageType type) noexcept
+{
+    switch (type) {
+        case DamageType::Arrow:
+        case DamageType::BadRespawnPoint:
+        case DamageType::Cactus:
+        case DamageType::Campfire:
+        case DamageType::Dryout:
+        case DamageType::Explosion:
+        case DamageType::FallingAnvil:
+        case DamageType::FallingBlock:
+        case DamageType::FallingStalactite:
+        case DamageType::Fireball:
+        case DamageType::Fireworks:
+        case DamageType::HotFloor:
+        case DamageType::InFire:
+        case DamageType::Lava:
+        case DamageType::LightningBolt:
+        case DamageType::MaceSmash:
+        case DamageType::MobAttack:
+        case DamageType::MobAttackNoAggro:
+        case DamageType::MobProjectile:
+        case DamageType::PlayerAttack:
+        case DamageType::ExplosionPlayer:
+        case DamageType::Spear:
+        case DamageType::Spit:
+        case DamageType::Sting:
+        case DamageType::SweetBerryBush:
+        case DamageType::Thorns:
+        case DamageType::Thrown:
+        case DamageType::Trident:
+        case DamageType::UnattributedFireball:
+        case DamageType::WindBurst:
+        case DamageType::WitherSkull:
+            return 0.1f;
+        default:
+            return 0.0f;
+    }
+}
+
+DamageEffects damageEffects(DamageType type) noexcept
+{
+    switch (type) {
+        case DamageType::Campfire:
+        case DamageType::Fireball:
+        case DamageType::HotFloor:
+        case DamageType::InFire:
+        case DamageType::Lava:
+        case DamageType::OnFire:
+        case DamageType::UnattributedFireball:
+            return DamageEffects::Burning;
+        case DamageType::Freeze:
+            return DamageEffects::Freezing;
+        case DamageType::SweetBerryBush:
+            return DamageEffects::Poking;
+        case DamageType::Thorns:
+            return DamageEffects::Thorns;
+        case DamageType::Drown:
+            return DamageEffects::Drowning;
+        default:
+            return DamageEffects::Hurt;
+    }
+}
+
+const char* damageEffectsName(DamageEffects effects) noexcept
+{
+    switch (effects) {
+        case DamageEffects::Burning:
+            return "burning";
+        case DamageEffects::Freezing:
+            return "freezing";
+        case DamageEffects::Poking:
+            return "poking";
+        case DamageEffects::Thorns:
+            return "thorns";
+        case DamageEffects::Drowning:
+            return "drowning";
+        case DamageEffects::Hurt:
+        default:
+            return "hurt";
+    }
+}
+
 } // namespace mc

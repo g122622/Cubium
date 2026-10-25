@@ -26,6 +26,7 @@ tests/diff/
 │   ├── text_encode.cpp          # 方块状态的文本表示
 │   ├── block_state_ids.cpp      # 方块状态的全局 ID（协议 / 存档编号）
 │   ├── biome_climate.cpp        # 生物群系温度 / 降水 / 颜色
+│   ├── damage_type.cpp          # 伤害类型缩放 / 体力消耗 / 附加效果
 │   ├── item_summary.cpp         # 堆叠上限 / 食物属性
 │   ├── item_components.cpp      # 耐久 / 稀有度 / 附魔能力
 │   ├── entity_shape.cpp         # 实体尺寸 / 分类
@@ -143,7 +144,7 @@ harness 决定。`runner.ts` 负责按 `key` 对齐两侧输出、规范化、�
 
 ## 当前状态
 
-十三个能力已接入，`node tests/diff/harness/runner.ts run all` 退出码 0（全部一致）：
+十四个能力已接入，`node tests/diff/harness/runner.ts run all` 退出码 0（全部一致）：
 
 | harness | 参照实现 | 单元 | 结果 | 已知缺口 |
 |---|---|---|---|---|
@@ -158,6 +159,7 @@ harness 决定。`runner.ts` 负责按 `key` 对齐两侧输出、规范化、�
 | `block_state_names` | 原版 jar `BlockStateNamesOracle` | 1166 | 全部一致 | — |
 | `block_state_ids` | 原版 jar `BlockStateIdsOracle` | 1166 | 全部一致 | — |
 | `biome_climate` | 原版 jar `BiomeClimateOracle` | 65 | 全部一致 | — |
+| `damage_type` | 原版 jar `DamageTypeOracle` | 50 | 全部一致 | — |
 | `random_sequence` | 原版 jar `RandomSequenceOracle` | 24 | 全部一致 | — |
 | `command_argument` | 原版 jar `CommandArgumentOracle` | 162 | 全部一致 | — |
 | `command_tree` | 原版 jar `CommandTreeOracle` | 1（全部根命令）| 全部一致 | 9 条命令未实现（见下） |
