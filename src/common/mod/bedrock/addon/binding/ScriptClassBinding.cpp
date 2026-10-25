@@ -6,6 +6,7 @@
 #include "common/mod/bedrock/addon/binding/IScriptBindingContext.hpp"
 #include "common/mod/bedrock/addon/binding/ScriptHandleRegistry.hpp"
 
+#include <atomic>
 #include <memory>
 #include <string>
 #include <utility>
@@ -72,6 +73,18 @@ void* ScriptObjectRegistry::unwrap(IScriptBindingContext& ctx, void* val, u64 cl
         return nullptr;
     }
     auto* data = static_cast<ObjectData*>(opaque);
+    // TODO: 定位 ItemStack 解包失败根因后移除本诊断输出。
+    if (data->ptr == nullptr && ctx.isObject(val)) {
+        static std::atomic<i32> s_diagH{0};
+        if (s_diagH.fetch_add(1) < 12) {
+            spdlog::warn("[DIAGH] classId={} typeName={} owned={} packId={}",
+                classId,
+                data->typeName ? data->typeName : "null",
+                data->owned,
+                ctx.packId());
+        }
+    }
+
     return data->ptr;
 }
 
