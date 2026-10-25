@@ -130,14 +130,14 @@ mc::ItemStack* _unwrapItemStack(mc::mod::bedrock::addon::IScriptBindingContext& 
 
     // TODO: 定位 ItemStack 解包失败根因后移除本诊断输出。
     {
-        static std::atomic<i32> s_diagF{0};
-        if (s_diagF.fetch_add(1) < 12) {
-            const auto ids = ctx.classRegistry().classIdsByName("ItemStack");
-            std::string joined;
-            for (u64 id : ids) {
-                joined += std::to_string(id) + ",";
-            }
-            spdlog::warn("[DIAGF] packId={} candidateIds={} isObject={}", ctx.packId(), joined, ctx.isObject(val));
+        static std::atomic<i32> s_diagG{0};
+        if (s_diagG.fetch_add(1) < 12) {
+            const void* anyOpaque = ctx.getOpaque(val, 0);
+            spdlog::warn("[DIAGG] packId={} hasAnyOpaque={} isObject={} isUndefined={}",
+                ctx.packId(),
+                anyOpaque != nullptr,
+                ctx.isObject(val),
+                ctx.isUndefined(val));
         }
     }
 
