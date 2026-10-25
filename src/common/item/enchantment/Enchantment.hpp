@@ -159,6 +159,23 @@ public:
     }
 
     /**
+     * @brief 铁砧合并代价（原版 {@code Enchantment#getAnvilCost()}）
+     *
+     * 两条同名附魔在铁砧上合并时，每级额外扣的等级数乘以本值。原版数据包里的
+     * {@code anvil_cost} 字段，默认 1；各附魔在构造时覆盖。
+     */
+    [[nodiscard]] virtual i32 anvilCost() const noexcept
+    {
+        return m_anvilCost;
+    }
+
+    /// 子类构造时设定铁砧代价（原版 anvil_cost）。
+    void setAnvilCost(i32 cost) noexcept
+    {
+        m_anvilCost = cost;
+    }
+
+    /**
      * @brief 是否为宝藏附魔
      * @return 如果只能从箱子或交易获得返回true
      */
@@ -404,6 +421,10 @@ protected:
      * @return 如果类型兼容返回true
      */
     [[nodiscard]] bool isTypeCompatibleWith(const Enchantment& other) const;
+
+private:
+    /// 铁砧合并代价（原版 anvil_cost），默认 1。
+    i32 m_anvilCost = 1;
 };
 
 } // namespace enchant

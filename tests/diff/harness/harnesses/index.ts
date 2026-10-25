@@ -126,6 +126,12 @@ const JAVA_HARNESSES: ReadonlyArray<() => JavaHarness> = [
         key: "block",
     }),
     () => ({
+        name: "block_state_ids",
+        oracle: "BlockStateIdsOracle",
+        input: (unit: string) => ({ block: unit }),
+        key: "block",
+    }),
+    () => ({
         name: "random_sequence",
         oracle: "RandomSequenceOracle",
         input: (unit: string) => ({ unit }),

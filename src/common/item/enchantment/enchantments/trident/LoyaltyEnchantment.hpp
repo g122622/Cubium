@@ -43,7 +43,10 @@ namespace enchant {
  */
 class LoyaltyEnchantment : public Enchantment {
 public:
-    LoyaltyEnchantment() = default;
+    LoyaltyEnchantment()
+    {
+        setAnvilCost(2);
+    }
 
     [[nodiscard]] std::string id() const override
     {

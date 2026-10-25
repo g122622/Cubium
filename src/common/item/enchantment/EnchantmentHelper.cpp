@@ -231,7 +231,7 @@ bool EnchantmentHelper::hasChanneling(const ItemStack& stack)
 
 f32 EnchantmentHelper::getSweepingDamageRatio(const ItemStack& stack)
 {
-    i32 level = getEnchantmentLevel(stack, "minecraft:sweeping");
+    i32 level = getEnchantmentLevel(stack, "minecraft:sweeping_edge");
     if (level <= 0) {
         return 0.0f;
     }

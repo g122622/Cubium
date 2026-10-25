@@ -46,7 +46,10 @@ namespace enchant {
  */
 class KnockbackEnchantment : public Enchantment {
 public:
-    KnockbackEnchantment() = default;
+    KnockbackEnchantment()
+    {
+        setAnvilCost(2);
+    }
 
     [[nodiscard]] std::string id() const override
     {

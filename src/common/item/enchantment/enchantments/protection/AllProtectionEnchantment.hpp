@@ -46,7 +46,9 @@ class AllProtectionEnchantment : public ProtectionEnchantment {
 public:
     AllProtectionEnchantment()
         : ProtectionEnchantment(Type::All)
-    {}
+    {
+        setAnvilCost(1);
+    }
 
     [[nodiscard]] std::string id() const override
     {

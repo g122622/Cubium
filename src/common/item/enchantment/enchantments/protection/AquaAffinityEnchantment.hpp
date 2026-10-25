@@ -42,7 +42,10 @@ namespace enchant {
  */
 class AquaAffinityEnchantment : public Enchantment {
 public:
-    AquaAffinityEnchantment() = default;
+    AquaAffinityEnchantment()
+    {
+        setAnvilCost(4);
+    }
 
     [[nodiscard]] std::string id() const noexcept override
     {

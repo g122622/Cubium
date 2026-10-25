@@ -40,11 +40,7 @@ import type { HarnessSpec } from "../runner.ts";
  * 这是**实现缺口**，不是参照数据缺失：清单显式列出、每次运行输出条数；补齐实现后
  * 必须删掉对应条目，否则会出现「豁免了原版也有的项」的假一致。
  */
-export const KNOWN_MISSING: readonly string[] = [
-    "minecraft:lunge",
-    "minecraft:sweeping_edge",
-    "minecraft:swift_sneak",
-];
+export const KNOWN_MISSING: readonly string[] = [];
 
 export function createEnchantmentTableHarness(): HarnessSpec {
     return {

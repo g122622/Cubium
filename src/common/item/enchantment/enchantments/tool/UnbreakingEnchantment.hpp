@@ -44,7 +44,10 @@ namespace enchant {
  */
 class UnbreakingEnchantment : public Enchantment {
 public:
-    UnbreakingEnchantment() noexcept = default;
+    UnbreakingEnchantment() noexcept
+    {
+        setAnvilCost(2);
+    }
 
     [[nodiscard]] std::string id() const override
     {

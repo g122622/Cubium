@@ -44,7 +44,10 @@ namespace enchant {
  */
 class VanishingCurseEnchantment : public Enchantment {
 public:
-    VanishingCurseEnchantment() = default;
+    VanishingCurseEnchantment()
+    {
+        setAnvilCost(8);
+    }
 
     [[nodiscard]] std::string id() const noexcept override
     {

@@ -46,7 +46,9 @@ class FeatherFallingEnchantment : public ProtectionEnchantment {
 public:
     FeatherFallingEnchantment()
         : ProtectionEnchantment(Type::Fall)
-    {}
+    {
+        setAnvilCost(2);
+    }
 
     [[nodiscard]] std::string id() const override
     {

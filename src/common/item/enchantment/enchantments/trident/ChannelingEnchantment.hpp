@@ -43,7 +43,10 @@ namespace enchant {
  */
 class ChannelingEnchantment : public Enchantment {
 public:
-    ChannelingEnchantment() = default;
+    ChannelingEnchantment()
+    {
+        setAnvilCost(8);
+    }
 
     [[nodiscard]] std::string id() const override
     {

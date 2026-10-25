@@ -42,7 +42,10 @@ namespace enchant {
  */
 class PowerEnchantment : public Enchantment {
 public:
-    PowerEnchantment() = default;
+    PowerEnchantment()
+    {
+        setAnvilCost(1);
+    }
 
     [[nodiscard]] std::string id() const noexcept override
     {

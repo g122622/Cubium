@@ -36,6 +36,7 @@
 #include "protection/AquaAffinityEnchantment.hpp"
 #include "protection/BlastProtectionEnchantment.hpp"
 #include "protection/DepthStriderEnchantment.hpp"
+#include "protection/SwiftSneakEnchantment.hpp"
 #include "protection/FeatherFallingEnchantment.hpp"
 #include "protection/FireProtectionEnchantment.hpp"
 #include "protection/FrostWalkerEnchantment.hpp"
@@ -52,6 +53,7 @@
 #include "weapon/LootingEnchantment.hpp"
 #include "weapon/SharpnessEnchantment.hpp"
 #include "weapon/SmiteEnchantment.hpp"
+#include "weapon/LungeEnchantment.hpp"
 #include "weapon/SweepingEnchantment.hpp"
 
 // 工具类附魔

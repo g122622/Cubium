@@ -44,7 +44,10 @@ namespace enchant {
  */
 class InfinityEnchantment : public Enchantment {
 public:
-    InfinityEnchantment() = default;
+    InfinityEnchantment()
+    {
+        setAnvilCost(8);
+    }
 
     [[nodiscard]] std::string id() const override
     {

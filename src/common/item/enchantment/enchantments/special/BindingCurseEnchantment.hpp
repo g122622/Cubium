@@ -43,7 +43,10 @@ namespace enchant {
  */
 class BindingCurseEnchantment : public Enchantment {
 public:
-    BindingCurseEnchantment() = default;
+    BindingCurseEnchantment()
+    {
+        setAnvilCost(8);
+    }
 
     [[nodiscard]] std::string id() const override
     {

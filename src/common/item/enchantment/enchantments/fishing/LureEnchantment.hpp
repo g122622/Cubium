@@ -42,7 +42,10 @@ namespace enchant {
  */
 class LureEnchantment : public Enchantment {
 public:
-    LureEnchantment() = default;
+    LureEnchantment()
+    {
+        setAnvilCost(4);
+    }
 
     [[nodiscard]] std::string id() const override
     {

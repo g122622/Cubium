@@ -132,6 +132,10 @@ public final class EnchantmentExport {
             costs.add(cost);
         }
         result.add("costs", costs);
+        // 权重 / 铁砧代价：附魔台抽取概率与铁砧合并代价直接依赖这两个字段。
+        // 槽位组（EquipmentSlotGroup）在 Cubium 尚未建模，先不导出，避免产生无实现方的假差异。
+        result.addProperty("weight", enchantment.getWeight());
+        result.addProperty("anvilCost", enchantment.getAnvilCost());
         return result;
     }
 }
