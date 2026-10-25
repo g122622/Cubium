@@ -28,6 +28,7 @@
 #include "common/command/CommandNode.hpp"
 #include "common/command/arguments/ArgumentType.hpp"
 #include "common/command/arguments/EntityArgument.hpp"
+#include "common/command/arguments/GameModeArgument.hpp"
 #include "common/core/Types.hpp"
 #include "common/util/assert/AssertMacros.hpp"
 #include "server/application/IServer.hpp"
@@ -59,16 +60,12 @@ void KickCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
         support::makeMetadata("Disconnect players from the server.", "/kick <targets> [reason]", 3, {}, true));
 
     auto targetsArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, EntitySelector>>(
-        "targets", EntityArgumentType::players());
-    targetsArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return _kickPlayers(ctx);
-    });
+        "targets", EntityArgumentType::entities());
+    targetsArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _kickPlayers(ctx); });
 
-    auto reasonArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
-        "reason", StringArgumentType::greedyString());
-    reasonArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return _kickPlayers(ctx);
-    });
+    auto reasonArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, ComponentTextPtr>>(
+        "reason", MessageComponentArgumentType::message());
+    reasonArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _kickPlayers(ctx); });
 
     targetsArg->addChild(reasonArg);
     kickNode->addChild(targetsArg);
@@ -91,7 +88,8 @@ i32 KickCommand::_kickPlayers(CommandContext<ServerCommandSource>& context)
     const EntitySelector selector = context.getArgument<EntitySelector>("targets");
     const auto playerIds = support::resolvePlayerIds(source, selector);
     const std::string reason =
-        context.hasArgument("reason") ? context.getArgument<std::string>("reason") : std::string(DEFAULT_KICK_REASON);
+        context.hasArgument("reason") ? context.getArgument<ComponentTextPtr>("reason")->text
+                                                                 : std::string(DEFAULT_KICK_REASON);
 
     i32 kickedCount = 0;
     for (const PlayerId playerId : playerIds) {

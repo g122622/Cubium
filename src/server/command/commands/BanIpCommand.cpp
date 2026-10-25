@@ -34,6 +34,7 @@
 #include "common/command/CommandDispatcher.hpp"
 #include "common/command/CommandNode.hpp"
 #include "common/command/arguments/ArgumentType.hpp"
+#include "common/command/arguments/GameModeArgument.hpp"
 #include "common/core/Types.hpp"
 #include "common/util/DateTimeUtils.hpp"
 #include "server/command/ServerCommandSource.hpp"
@@ -91,11 +92,9 @@ void BanIpCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher
     });
 
     // /ban-ip <target> <reason>
-    auto reasonArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
-        "reason", StringArgumentType::greedyString());
-    reasonArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return _banIp(ctx);
-    });
+    auto reasonArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, ComponentTextPtr>>(
+        "reason", MessageComponentArgumentType::message());
+    reasonArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _banIp(ctx); });
 
     targetArg->addChild(reasonArg);
     banIpNode->addChild(targetArg);
@@ -110,7 +109,7 @@ i32 BanIpCommand::_banIp(CommandContext<ServerCommandSource>& context)
     // 获取可选原因
     std::string reason = "Banned by an operator";
     if (context.hasArgument("reason")) {
-        reason = context.getArgument<std::string>("reason");
+        reason = context.getArgument<ComponentTextPtr>("reason")->text;
     }
 
     // 获取封禁者名称

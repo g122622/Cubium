@@ -71,7 +71,7 @@ void ExperienceCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispa
     // 注意：amount 参数允许负值（原版 MC 支持）
     auto addNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("add");
     auto playerArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, EntitySelector>>(
-        "player", EntityArgumentType::players());
+        "target", EntityArgumentType::entities());
     auto amountArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, i32>>("amount",
         IntegerArgumentType::integer() // 移除最小值限制，允许负值
     );
@@ -94,7 +94,7 @@ void ExperienceCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispa
     // /experience set <player> <amount> [points|levels]
     auto setNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("set");
     auto setPlayerArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, EntitySelector>>(
-        "player", EntityArgumentType::players());
+        "target", EntityArgumentType::entities());
     auto setAmountArg =
         std::make_shared<ArgumentCommandNode<ServerCommandSource, i32>>("amount", IntegerArgumentType::integer(0));
     auto setPointsNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("points");
@@ -116,7 +116,7 @@ void ExperienceCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispa
     // /experience query <player> [points|levels]
     auto queryNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("query");
     auto queryPlayerArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, EntitySelector>>(
-        "player", EntityArgumentType::player());
+        "target", EntityArgumentType::player());
     auto queryPointsNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("points");
     queryPointsNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
         return queryPoints(ctx);
@@ -209,7 +209,7 @@ std::string getPlayerName(ServerCommandSource& source, PlayerId playerId, Player
 i32 ExperienceCommand::addPoints(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
-    EntitySelector selector = context.getArgument<EntitySelector>("player");
+    EntitySelector selector = context.getArgument<EntitySelector>("target");
     i32 amount = context.getArgument<i32>("amount");
 
     // 解析目标玩家集合（多目标，players() 参数）。
@@ -248,7 +248,7 @@ i32 ExperienceCommand::addPoints(CommandContext<ServerCommandSource>& context)
 i32 ExperienceCommand::addLevels(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
-    EntitySelector selector = context.getArgument<EntitySelector>("player");
+    EntitySelector selector = context.getArgument<EntitySelector>("target");
     i32 amount = context.getArgument<i32>("amount");
 
     // 解析目标玩家集合（多目标，players() 参数）。
@@ -287,7 +287,7 @@ i32 ExperienceCommand::addLevels(CommandContext<ServerCommandSource>& context)
 i32 ExperienceCommand::setPoints(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
-    EntitySelector selector = context.getArgument<EntitySelector>("player");
+    EntitySelector selector = context.getArgument<EntitySelector>("target");
     i32 amount = context.getArgument<i32>("amount");
 
     // 解析目标玩家集合（多目标，players() 参数）。
@@ -327,7 +327,7 @@ i32 ExperienceCommand::setPoints(CommandContext<ServerCommandSource>& context)
 i32 ExperienceCommand::setLevels(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
-    EntitySelector selector = context.getArgument<EntitySelector>("player");
+    EntitySelector selector = context.getArgument<EntitySelector>("target");
     i32 amount = context.getArgument<i32>("amount");
 
     // 解析目标玩家集合（多目标，players() 参数）。
@@ -366,7 +366,7 @@ i32 ExperienceCommand::setLevels(CommandContext<ServerCommandSource>& context)
 i32 ExperienceCommand::queryPoints(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
-    EntitySelector selector = context.getArgument<EntitySelector>("player");
+    EntitySelector selector = context.getArgument<EntitySelector>("target");
 
     // 解析目标玩家
     PlayerId playerId = resolveFirstPlayer(source, selector);
@@ -395,7 +395,7 @@ i32 ExperienceCommand::queryPoints(CommandContext<ServerCommandSource>& context)
 i32 ExperienceCommand::queryLevels(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
-    EntitySelector selector = context.getArgument<EntitySelector>("player");
+    EntitySelector selector = context.getArgument<EntitySelector>("target");
 
     // 解析目标玩家
     PlayerId playerId = resolveFirstPlayer(source, selector);

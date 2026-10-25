@@ -235,13 +235,11 @@ void GiveCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
 
     // /give <targets> <item> [count]
     auto targetsArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, EntitySelector>>(
-        "targets", EntityArgumentType::players());
+        "targets", EntityArgumentType::entities());
 
     auto itemArg =
-        std::make_shared<ArgumentCommandNode<ServerCommandSource, ItemInput>>("item", ItemArgumentType::item());
-    itemArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return _giveItem(ctx);
-    });
+        std::make_shared<ArgumentCommandNode<ServerCommandSource, ItemInput>>("item", ItemArgumentType::itemStack());
+    itemArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _giveItem(ctx); });
 
     auto countArg =
         std::make_shared<ArgumentCommandNode<ServerCommandSource, i32>>("count", IntegerArgumentType::integer(1, 64));

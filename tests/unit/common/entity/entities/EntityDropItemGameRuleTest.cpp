@@ -47,7 +47,7 @@ public:
     EntityDropTestWorld()
     {
         // DO_ENTITY_DROPS 默认为 true
-        m_gameRules.setBoolean(world::gamerule::GameRuleKeys::DO_ENTITY_DROPS, true, nullptr);
+        m_gameRules.setBoolean(world::gamerule::GameRuleKeys::ENTITY_DROPS, true, nullptr);
     }
 
     // ========== 方块访问 ==========
@@ -184,7 +184,7 @@ protected:
 TEST_F(EntityDropItemGameRuleTest, Boat_DropItem_WhenEntityDropsEnabled_SpawnsItem)
 {
     // DO_ENTITY_DROPS 默认为 true
-    ASSERT_TRUE(m_world.getGameRules().getBoolean(world::gamerule::GameRuleKeys::DO_ENTITY_DROPS));
+    ASSERT_TRUE(m_world.getGameRules().getBoolean(world::gamerule::GameRuleKeys::ENTITY_DROPS));
 
     entity::BoatEntity boat(entity::BoatEntity::Type::OAK, mc::test::testEcsRegistry());
     boat.setWorld(&m_world);
@@ -202,8 +202,8 @@ TEST_F(EntityDropItemGameRuleTest, Boat_DropItem_WhenEntityDropsEnabled_SpawnsIt
  */
 TEST_F(EntityDropItemGameRuleTest, Boat_DropItem_WhenEntityDropsDisabled_NoItemSpawned)
 {
-    m_world.getGameRules().setBoolean(world::gamerule::GameRuleKeys::DO_ENTITY_DROPS, false, nullptr);
-    ASSERT_FALSE(m_world.getGameRules().getBoolean(world::gamerule::GameRuleKeys::DO_ENTITY_DROPS));
+    m_world.getGameRules().setBoolean(world::gamerule::GameRuleKeys::ENTITY_DROPS, false, nullptr);
+    ASSERT_FALSE(m_world.getGameRules().getBoolean(world::gamerule::GameRuleKeys::ENTITY_DROPS));
 
     entity::BoatEntity boat(entity::BoatEntity::Type::OAK, mc::test::testEcsRegistry());
     boat.setWorld(&m_world);
@@ -241,7 +241,7 @@ TEST_F(EntityDropItemGameRuleTest, Boat_DropItem_OnClientSide_NoItemSpawned)
  */
 TEST_F(EntityDropItemGameRuleTest, RideableMinecart_DropItem_WhenEntityDropsEnabled_SpawnsItem)
 {
-    ASSERT_TRUE(m_world.getGameRules().getBoolean(world::gamerule::GameRuleKeys::DO_ENTITY_DROPS));
+    ASSERT_TRUE(m_world.getGameRules().getBoolean(world::gamerule::GameRuleKeys::ENTITY_DROPS));
 
     entity::RideableMinecartEntity minecart(EntityInstanceId(1), mc::test::testEcsRegistry());
     minecart.setWorld(&m_world);
@@ -259,7 +259,7 @@ TEST_F(EntityDropItemGameRuleTest, RideableMinecart_DropItem_WhenEntityDropsEnab
  */
 TEST_F(EntityDropItemGameRuleTest, RideableMinecart_DropItem_WhenEntityDropsDisabled_NoItemAndRemoved)
 {
-    m_world.getGameRules().setBoolean(world::gamerule::GameRuleKeys::DO_ENTITY_DROPS, false, nullptr);
+    m_world.getGameRules().setBoolean(world::gamerule::GameRuleKeys::ENTITY_DROPS, false, nullptr);
 
     entity::RideableMinecartEntity minecart(EntityInstanceId(1), mc::test::testEcsRegistry());
     minecart.setWorld(&m_world);
@@ -283,7 +283,7 @@ TEST_F(EntityDropItemGameRuleTest, RideableMinecart_DropItem_WhenEntityDropsDisa
  */
 TEST_F(EntityDropItemGameRuleTest, ChestMinecart_DropItem_WhenEntityDropsEnabled_DropsContentsAndCart)
 {
-    ASSERT_TRUE(m_world.getGameRules().getBoolean(world::gamerule::GameRuleKeys::DO_ENTITY_DROPS));
+    ASSERT_TRUE(m_world.getGameRules().getBoolean(world::gamerule::GameRuleKeys::ENTITY_DROPS));
 
     entity::ChestMinecartEntity minecart(EntityInstanceId(1), mc::test::testEcsRegistry());
     minecart.setWorld(&m_world);
@@ -308,7 +308,7 @@ TEST_F(EntityDropItemGameRuleTest, ChestMinecart_DropItem_WhenEntityDropsEnabled
  */
 TEST_F(EntityDropItemGameRuleTest, ChestMinecart_DropItem_WhenEntityDropsDisabled_NoDrops)
 {
-    m_world.getGameRules().setBoolean(world::gamerule::GameRuleKeys::DO_ENTITY_DROPS, false, nullptr);
+    m_world.getGameRules().setBoolean(world::gamerule::GameRuleKeys::ENTITY_DROPS, false, nullptr);
 
     entity::ChestMinecartEntity minecart(EntityInstanceId(1), mc::test::testEcsRegistry());
     minecart.setWorld(&m_world);
@@ -338,7 +338,7 @@ TEST_F(EntityDropItemGameRuleTest, ChestMinecart_DropItem_WhenEntityDropsDisable
  */
 TEST_F(EntityDropItemGameRuleTest, HopperMinecart_DropItem_WhenEntityDropsEnabled_DropsContentsAndCart)
 {
-    ASSERT_TRUE(m_world.getGameRules().getBoolean(world::gamerule::GameRuleKeys::DO_ENTITY_DROPS));
+    ASSERT_TRUE(m_world.getGameRules().getBoolean(world::gamerule::GameRuleKeys::ENTITY_DROPS));
 
     entity::HopperMinecartEntity minecart(EntityInstanceId(1), mc::test::testEcsRegistry());
     minecart.setWorld(&m_world);
@@ -363,7 +363,7 @@ TEST_F(EntityDropItemGameRuleTest, HopperMinecart_DropItem_WhenEntityDropsEnable
  */
 TEST_F(EntityDropItemGameRuleTest, HopperMinecart_DropItem_WhenEntityDropsDisabled_NoDrops)
 {
-    m_world.getGameRules().setBoolean(world::gamerule::GameRuleKeys::DO_ENTITY_DROPS, false, nullptr);
+    m_world.getGameRules().setBoolean(world::gamerule::GameRuleKeys::ENTITY_DROPS, false, nullptr);
 
     entity::HopperMinecartEntity minecart(EntityInstanceId(1), mc::test::testEcsRegistry());
     minecart.setWorld(&m_world);
@@ -393,7 +393,7 @@ TEST_F(EntityDropItemGameRuleTest, HopperMinecart_DropItem_WhenEntityDropsDisabl
  */
 TEST_F(EntityDropItemGameRuleTest, Painting_DropItem_WhenEntityDropsEnabled_SpawnsItem)
 {
-    ASSERT_TRUE(m_world.getGameRules().getBoolean(world::gamerule::GameRuleKeys::DO_ENTITY_DROPS));
+    ASSERT_TRUE(m_world.getGameRules().getBoolean(world::gamerule::GameRuleKeys::ENTITY_DROPS));
 
     entity::PaintingEntity painting{mc::test::testEcsRegistry()};
     painting.setWorld(&m_world);
@@ -411,7 +411,7 @@ TEST_F(EntityDropItemGameRuleTest, Painting_DropItem_WhenEntityDropsEnabled_Spaw
  */
 TEST_F(EntityDropItemGameRuleTest, Painting_DropItem_WhenEntityDropsDisabled_NoItemSpawned)
 {
-    m_world.getGameRules().setBoolean(world::gamerule::GameRuleKeys::DO_ENTITY_DROPS, false, nullptr);
+    m_world.getGameRules().setBoolean(world::gamerule::GameRuleKeys::ENTITY_DROPS, false, nullptr);
 
     entity::PaintingEntity painting{mc::test::testEcsRegistry()};
     painting.setWorld(&m_world);
@@ -433,7 +433,7 @@ TEST_F(EntityDropItemGameRuleTest, Painting_DropItem_WhenEntityDropsDisabled_NoI
  */
 TEST_F(EntityDropItemGameRuleTest, ItemFrame_DropItem_WhenEntityDropsEnabled_DropsFrameAndContent)
 {
-    ASSERT_TRUE(m_world.getGameRules().getBoolean(world::gamerule::GameRuleKeys::DO_ENTITY_DROPS));
+    ASSERT_TRUE(m_world.getGameRules().getBoolean(world::gamerule::GameRuleKeys::ENTITY_DROPS));
 
     entity::ItemFrameEntity itemFrame{mc::test::testEcsRegistry()};
     itemFrame.setWorld(&m_world);
@@ -457,7 +457,7 @@ TEST_F(EntityDropItemGameRuleTest, ItemFrame_DropItem_WhenEntityDropsEnabled_Dro
  */
 TEST_F(EntityDropItemGameRuleTest, ItemFrame_DropItem_WhenEntityDropsEnabled_EmptyFrame_DropsFrameOnly)
 {
-    ASSERT_TRUE(m_world.getGameRules().getBoolean(world::gamerule::GameRuleKeys::DO_ENTITY_DROPS));
+    ASSERT_TRUE(m_world.getGameRules().getBoolean(world::gamerule::GameRuleKeys::ENTITY_DROPS));
 
     entity::ItemFrameEntity itemFrame{mc::test::testEcsRegistry()};
     itemFrame.setWorld(&m_world);
@@ -479,7 +479,7 @@ TEST_F(EntityDropItemGameRuleTest, ItemFrame_DropItem_WhenEntityDropsEnabled_Emp
  */
 TEST_F(EntityDropItemGameRuleTest, ItemFrame_DropItem_WhenEntityDropsDisabled_NoItemsSpawned)
 {
-    m_world.getGameRules().setBoolean(world::gamerule::GameRuleKeys::DO_ENTITY_DROPS, false, nullptr);
+    m_world.getGameRules().setBoolean(world::gamerule::GameRuleKeys::ENTITY_DROPS, false, nullptr);
 
     entity::ItemFrameEntity itemFrame{mc::test::testEcsRegistry()};
     itemFrame.setWorld(&m_world);
@@ -505,7 +505,7 @@ TEST_F(EntityDropItemGameRuleTest, ItemFrame_DropItem_WhenEntityDropsDisabled_No
  */
 TEST_F(EntityDropItemGameRuleTest, ItemFrame_DropItem_WhenEntityDropsDisabled_StillClearsDisplayedItem)
 {
-    m_world.getGameRules().setBoolean(world::gamerule::GameRuleKeys::DO_ENTITY_DROPS, false, nullptr);
+    m_world.getGameRules().setBoolean(world::gamerule::GameRuleKeys::ENTITY_DROPS, false, nullptr);
 
     entity::ItemFrameEntity itemFrame{mc::test::testEcsRegistry()};
     itemFrame.setWorld(&m_world);
@@ -532,7 +532,7 @@ TEST_F(EntityDropItemGameRuleTest, ItemFrame_DropItem_WhenEntityDropsDisabled_St
  */
 TEST_F(EntityDropItemGameRuleTest, LeashKnot_DropItem_WhenEntityDropsEnabled_SpawnsItem)
 {
-    ASSERT_TRUE(m_world.getGameRules().getBoolean(world::gamerule::GameRuleKeys::DO_ENTITY_DROPS));
+    ASSERT_TRUE(m_world.getGameRules().getBoolean(world::gamerule::GameRuleKeys::ENTITY_DROPS));
 
     entity::LeashKnotEntity leashKnot{mc::test::testEcsRegistry()};
     leashKnot.setWorld(&m_world);
@@ -550,7 +550,7 @@ TEST_F(EntityDropItemGameRuleTest, LeashKnot_DropItem_WhenEntityDropsEnabled_Spa
  */
 TEST_F(EntityDropItemGameRuleTest, LeashKnot_DropItem_WhenEntityDropsDisabled_NoItemSpawned)
 {
-    m_world.getGameRules().setBoolean(world::gamerule::GameRuleKeys::DO_ENTITY_DROPS, false, nullptr);
+    m_world.getGameRules().setBoolean(world::gamerule::GameRuleKeys::ENTITY_DROPS, false, nullptr);
 
     entity::LeashKnotEntity leashKnot{mc::test::testEcsRegistry()};
     leashKnot.setWorld(&m_world);
@@ -573,7 +573,7 @@ TEST_F(EntityDropItemGameRuleTest, LeashKnot_DropItem_WhenEntityDropsDisabled_No
 TEST_F(EntityDropItemGameRuleTest, EntityDropsToggle_FromFalseToTrue_DropsResume)
 {
     // 先设置为 false
-    m_world.getGameRules().setBoolean(world::gamerule::GameRuleKeys::DO_ENTITY_DROPS, false, nullptr);
+    m_world.getGameRules().setBoolean(world::gamerule::GameRuleKeys::ENTITY_DROPS, false, nullptr);
 
     entity::BoatEntity boat1(entity::BoatEntity::Type::OAK, mc::test::testEcsRegistry());
     boat1.setWorld(&m_world);
@@ -582,7 +582,7 @@ TEST_F(EntityDropItemGameRuleTest, EntityDropsToggle_FromFalseToTrue_DropsResume
     EXPECT_EQ(m_world.spawnedEntityCount(), 0u) << "No drops when DO_ENTITY_DROPS is false";
 
     // 切换回 true
-    m_world.getGameRules().setBoolean(world::gamerule::GameRuleKeys::DO_ENTITY_DROPS, true, nullptr);
+    m_world.getGameRules().setBoolean(world::gamerule::GameRuleKeys::ENTITY_DROPS, true, nullptr);
     m_world.clearSpawnedEntities();
 
     entity::BoatEntity boat2(entity::BoatEntity::Type::OAK, mc::test::testEcsRegistry());

@@ -895,7 +895,7 @@ void BoatEntity::dropItem()
 
     // 检查游戏规则 doEntityDrops：当该规则为 false 时，船被摧毁不产生掉落物品
     // 参考 VehicleEntity.destroy() 中的 ENTITY_DROPS 检查
-    if (!worldPtr->getGameRules().getBoolean(world::gamerule::GameRuleKeys::DO_ENTITY_DROPS)) {
+    if (!worldPtr->getGameRules().getBoolean(world::gamerule::GameRuleKeys::ENTITY_DROPS)) {
         return;
     }
 

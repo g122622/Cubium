@@ -159,6 +159,11 @@ void CommandRegistry::registerDefaults()
         return;
     }
 
+    // 兼容层：原版 1.21.11 已移除 debugconfig / publish / replaceitem 这三个根命令。
+    // 默认不注册——命令树必须与原版一致（差分 harness 直接比对快照，多一个根命令就是差异）；
+    // 需要兼容旧地图/服务器配置时由宿主显式打开（见 setRegisterCompatCommands）。
+    const bool registerCompatCommands = m_registerCompatCommands;
+
     GameModeCommand::registerTo(m_dispatcher);
     DifficultyCommand::registerTo(m_dispatcher);
     DefaultGameModeCommand::registerTo(m_dispatcher);
@@ -176,7 +181,9 @@ void CommandRegistry::registerDefaults()
     SayCommand::registerTo(m_dispatcher);
     StopCommand::registerTo(m_dispatcher);
     SetIdleTimeoutCommand::registerTo(m_dispatcher);
-    DebugConfigCommand::registerTo(m_dispatcher);
+    if (registerCompatCommands) {
+        DebugConfigCommand::registerTo(m_dispatcher);
+    }
     SummonCommand::registerTo(m_dispatcher);
     SetBlockCommand::registerTo(m_dispatcher);
     FillCommand::registerTo(m_dispatcher);
@@ -220,10 +227,14 @@ void CommandRegistry::registerDefaults()
     DataPackCommand::registerTo(m_dispatcher);
     ForceLoadCommand::registerTo(m_dispatcher);
     LootCommand::registerTo(m_dispatcher);
-    PublishCommand::registerTo(m_dispatcher);
+    if (registerCompatCommands) {
+        PublishCommand::registerTo(m_dispatcher);
+    }
     RecipeCommand::registerTo(m_dispatcher);
     ReloadCommand::registerTo(m_dispatcher);
-    ReplaceItemCommand::registerTo(m_dispatcher);
+    if (registerCompatCommands) {
+        ReplaceItemCommand::registerTo(m_dispatcher);
+    }
     SpectateCommand::registerTo(m_dispatcher);
     TriggerCommand::registerTo(m_dispatcher);
     GameRuleCommand::registerTo(m_dispatcher);

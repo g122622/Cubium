@@ -134,7 +134,7 @@ class GameRuleKey {
 public:
     /**
      * @brief 构造规则键
-     * @param name 规则名称（如 "mobGriefing"）
+     * @param name 规则名称（如 "mob_griefing"）
      * @param category 规则分类
      */
     GameRuleKey(std::string name, GameRuleCategory category)

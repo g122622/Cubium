@@ -1246,7 +1246,7 @@ TEST_F(EnderDragonEntityTest, DeathUpdate_NoXpDropWhenDoMobLootFalse)
 
     // 关闭 doMobLoot
     auto& gameRules = m_world->getGameRules();
-    gameRules.setBoolean(world::gamerule::GameRuleKeys::DO_MOB_LOOT, false);
+    gameRules.setBoolean(world::gamerule::GameRuleKeys::MOB_DROPS, false);
 
     // 推进 200 tick，触发完整的死亡流程
     for (i32 i = 0; i < 200; ++i) {
@@ -1273,7 +1273,7 @@ TEST_F(EnderDragonEntityTest, DeathUpdate_XpDropEnabledByDefault)
 
     // 确认默认值为 true
     const auto& gameRules = m_world->getGameRules();
-    EXPECT_TRUE(gameRules.getBoolean(world::gamerule::GameRuleKeys::DO_MOB_LOOT));
+    EXPECT_TRUE(gameRules.getBoolean(world::gamerule::GameRuleKeys::MOB_DROPS));
 
     for (i32 i = 0; i < 200; ++i) {
         dragon.tick();

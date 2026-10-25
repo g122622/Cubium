@@ -56,7 +56,7 @@ bool IRecipeHolder::canUseRecipe(IWorld& world, Player& player, const crafting::
     if (recipe != nullptr && !recipe->isDynamic()) {
         // 检查有限合成规则和配方解锁状态
         // 如果开启了有限合成（doLimitedCrafting=true），玩家只能使用已解锁的配方
-        if (world.getGameRules().getBoolean(world::gamerule::GameRuleKeys::DO_LIMITED_CRAFTING)) {
+        if (world.getGameRules().getBoolean(world::gamerule::GameRuleKeys::LIMITED_CRAFTING)) {
             auto* recipeBook = player.getRecipeBook();
             if (recipeBook == nullptr || !recipeBook->isUnlocked(recipe->getId())) {
                 return false;

@@ -72,13 +72,8 @@ public:
 private:
     // ========== 子命令执行 ==========
 
-    static i32 _executeAs(CommandContext<ServerCommandSource>& context);
-    static i32 _executeAt(CommandContext<ServerCommandSource>& context);
-    static i32 _executeIn(CommandContext<ServerCommandSource>& context);
-    static i32 _executePositioned(CommandContext<ServerCommandSource>& context);
+    static i32 _executeForwarded(CommandContext<ServerCommandSource>& context);
     static i32 _executeRun(CommandContext<ServerCommandSource>& context);
-    static i32 _executeIfBlock(CommandContext<ServerCommandSource>& context);
-    static i32 _executeUnlessBlock(CommandContext<ServerCommandSource>& context);
 };
 
 } // namespace command

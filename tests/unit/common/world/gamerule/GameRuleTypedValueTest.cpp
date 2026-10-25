@@ -37,9 +37,9 @@ namespace {
 /// 判定规则名在当前版本 vanilla 中是否存在（含 1.21.11 新增规则）
 bool _isKnownRuleName(const std::string& name)
 {
-    return name == "playersNetherPortalDefaultDelay" || name == "playersNetherPortalCreativeDelay" ||
-        name == "fire_spread_radius_around_player" || name == "snowAccumulationHeight" || name == "randomTickSpeed" ||
-        name == "max_minecart_speed" || name == "spawnRadius";
+    return name == "players_nether_portal_default_delay" || name == "players_nether_portal_creative_delay" ||
+        name == "fire_spread_radius_around_player" || name == "max_snow_accumulation_height" || name == "random_tick_speed" ||
+        name == "max_minecart_speed" || name == "respawn_radius";
 }
 
 } // namespace
@@ -52,8 +52,8 @@ TEST(GameRuleTypedValueTest, VanillaRuleNamesAreExact)
 {
     EXPECT_EQ(GameRuleKeys::LOCATOR_BAR.getName(), "locator_bar");
     EXPECT_EQ(GameRuleKeys::MAX_MINECART_SPEED.getName(), "max_minecart_speed");
-    EXPECT_EQ(GameRuleKeys::PLAYERS_NETHER_PORTAL_DEFAULT_DELAY.getName(), "playersNetherPortalDefaultDelay");
-    EXPECT_EQ(GameRuleKeys::PLAYERS_NETHER_PORTAL_CREATIVE_DELAY.getName(), "playersNetherPortalCreativeDelay");
+    EXPECT_EQ(GameRuleKeys::PLAYERS_NETHER_PORTAL_DEFAULT_DELAY.getName(), "players_nether_portal_default_delay");
+    EXPECT_EQ(GameRuleKeys::PLAYERS_NETHER_PORTAL_CREATIVE_DELAY.getName(), "players_nether_portal_creative_delay");
     EXPECT_EQ(GameRuleKeys::FIRE_SPREAD_RADIUS_AROUND_PLAYER.getName(), "fire_spread_radius_around_player");
 }
 
@@ -168,10 +168,10 @@ TEST(GameRuleTypedValueTest, ClassNameMustMatchRuleType)
     rules.setInt(GameRuleKeys::RANDOM_TICK_SPEED, 3, nullptr);
 
     // 布尔规则不接受 integer 类名，反之亦然
-    EXPECT_FALSE(rules.setTypedFromString("mobGriefing", std::string(GameRuleClassNames::INTEGER), "0", nullptr));
+    EXPECT_FALSE(rules.setTypedFromString("mob_griefing", std::string(GameRuleClassNames::INTEGER), "0", nullptr));
     EXPECT_TRUE(rules.getBoolean(GameRuleKeys::MOB_GRIEFING));
 
-    EXPECT_FALSE(rules.setTypedFromString("randomTickSpeed", std::string(GameRuleClassNames::BOOLEAN), "1", nullptr));
+    EXPECT_FALSE(rules.setTypedFromString("random_tick_speed", std::string(GameRuleClassNames::BOOLEAN), "1", nullptr));
     EXPECT_EQ(rules.getInt(GameRuleKeys::RANDOM_TICK_SPEED), 3);
 
     // 不存在的规则
@@ -186,12 +186,12 @@ TEST(GameRuleTypedValueTest, IntegerValueMustBeCompleteDecimal)
     // std::stoi 会静默接受这些输入，此处必须拒绝且不污染既有值
     for (const char* invalid : {"1.5", "3abc", "", " ", "+3", "0x10"}) {
         EXPECT_FALSE(
-            rules.setTypedFromString("randomTickSpeed", std::string(GameRuleClassNames::INTEGER), invalid, nullptr))
+            rules.setTypedFromString("random_tick_speed", std::string(GameRuleClassNames::INTEGER), invalid, nullptr))
             << invalid;
         EXPECT_EQ(rules.getInt(GameRuleKeys::RANDOM_TICK_SPEED), 3) << invalid;
     }
 
-    EXPECT_TRUE(rules.setTypedFromString("randomTickSpeed", std::string(GameRuleClassNames::INTEGER), "0007", nullptr));
+    EXPECT_TRUE(rules.setTypedFromString("random_tick_speed", std::string(GameRuleClassNames::INTEGER), "0007", nullptr));
     EXPECT_EQ(rules.getInt(GameRuleKeys::RANDOM_TICK_SPEED), 7);
 }
 
@@ -200,18 +200,18 @@ TEST(GameRuleTypedValueTest, BooleanValueAcceptsCanonicalForms)
     GameRules rules;
 
     for (const char* truthy : {"true", "TRUE", "1"}) {
-        EXPECT_TRUE(rules.setTypedFromString("mobGriefing", std::string(GameRuleClassNames::BOOLEAN), truthy, nullptr));
+        EXPECT_TRUE(rules.setTypedFromString("mob_griefing", std::string(GameRuleClassNames::BOOLEAN), truthy, nullptr));
         EXPECT_TRUE(rules.getBoolean(GameRuleKeys::MOB_GRIEFING)) << truthy;
     }
 
     for (const char* falsy : {"false", "FALSE", "0"}) {
-        EXPECT_TRUE(rules.setTypedFromString("mobGriefing", std::string(GameRuleClassNames::BOOLEAN), falsy, nullptr));
+        EXPECT_TRUE(rules.setTypedFromString("mob_griefing", std::string(GameRuleClassNames::BOOLEAN), falsy, nullptr));
         EXPECT_FALSE(rules.getBoolean(GameRuleKeys::MOB_GRIEFING)) << falsy;
     }
 
     // 非法布尔值不得把既有值改为 false
     rules.setBoolean(GameRuleKeys::MOB_GRIEFING, true, nullptr);
-    EXPECT_FALSE(rules.setTypedFromString("mobGriefing", std::string(GameRuleClassNames::BOOLEAN), "yes", nullptr));
+    EXPECT_FALSE(rules.setTypedFromString("mob_griefing", std::string(GameRuleClassNames::BOOLEAN), "yes", nullptr));
     EXPECT_TRUE(rules.getBoolean(GameRuleKeys::MOB_GRIEFING));
 }
 
@@ -219,12 +219,12 @@ TEST(GameRuleTypedValueTest, QueryStringIncludesDefaultWhenChanged)
 {
     GameRules rules;
 
-    const std::string defaultValue = GameRules::getDefaultValueAsString("randomTickSpeed");
+    const std::string defaultValue = GameRules::getDefaultValueAsString("random_tick_speed");
     EXPECT_EQ(defaultValue, "3");
 
     rules.setInt(GameRuleKeys::RANDOM_TICK_SPEED, 10, nullptr);
-    EXPECT_EQ(rules.getValueAsString("randomTickSpeed"), "10");
-    EXPECT_EQ(rules.reset("randomTickSpeed"), true);
+    EXPECT_EQ(rules.getValueAsString("random_tick_speed"), "10");
+    EXPECT_EQ(rules.reset("random_tick_speed"), true);
     EXPECT_EQ(rules.getInt(GameRuleKeys::RANDOM_TICK_SPEED), 3);
 }
 
@@ -232,6 +232,7 @@ TEST(GameRuleTypedValueTest, RuleClassLookup)
 {
     EXPECT_EQ(GameRules::getRuleClass("fire_spread_radius_around_player"),
         std::optional<std::string_view>(GameRuleClassNames::INTEGER));
-    EXPECT_EQ(GameRules::getRuleClass("doFireTick"), std::optional<std::string_view>(GameRuleClassNames::BOOLEAN));
+    // 原版已用数值规则取代 doFireTick 开关，布尔分支改用 tnt_explodes 验证。
+    EXPECT_EQ(GameRules::getRuleClass("tnt_explodes"), std::optional<std::string_view>(GameRuleClassNames::BOOLEAN));
     EXPECT_FALSE(GameRules::getRuleClass("noSuchRule").has_value());
 }

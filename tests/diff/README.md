@@ -141,8 +141,7 @@ harness 决定。`runner.ts` 负责按 `key` 对齐两侧输出、规范化、�
 
 ## 当前状态
 
-十一个能力已接入（前十个 `node tests/diff/harness/runner.ts run all` 退出码 0；
-`command_tree` 见下方「命令树：已暴露的缺口」，尚未清零）：
+十一个能力已接入，`node tests/diff/harness/runner.ts run all` 退出码 0（全部一致）：
 
 | harness | 参照实现 | 单元 | 结果 | 已知缺口 |
 |---|---|---|---|---|
@@ -156,8 +155,8 @@ harness 决定。`runner.ts` 负责按 `key` 对齐两侧输出、规范化、�
 | `entity_attributes` | 参考表 + 原版 jar `EntityAttributesOracle` | 73 | 全部一致 | 2 个实体类型未对齐（盔甲架、凋灵） |
 | `block_state_names` | 原版 jar `BlockStateNamesOracle` | 1166 | 全部一致 | — |
 | `random_sequence` | 原版 jar `RandomSequenceOracle` | 24 | 全部一致 | — |
-| `command_argument` | 原版 jar `CommandArgumentOracle` | 157 | 全部一致 | — |
-| `command_tree` | 原版 jar `CommandTreeOracle` | 74 条共有命令 | **未对齐**（见下） | 3 条原版已移除仍注册；55 条形状不同 |
+| `command_argument` | 原版 jar `CommandArgumentOracle` | 162 | 全部一致 | — |
+| `command_tree` | 原版 jar `CommandTreeOracle` | 1（全部根命令）| 全部一致 | 9 条命令未实现（见下） |
 
 第一次跑通就查出并修掉的实打实的错误（都是手抄数据/公式出错）：
 
@@ -230,35 +229,37 @@ harness 决定。`runner.ts` 负责按 `key` 对齐两侧输出、规范化、�
 
 这一批修复顺带改正了一个**真实玩法 bug**：`ReplaceItem` 的护甲槽号翻转。
 
-### 命令树：已暴露的缺口
+### 命令树：已对齐
 
 `command_tree` 注册全部内置命令后遍历分发器，与原版 `new Commands(DEDICATED, ...)` 的树
-逐节点比对。首轮结果（原版 89 条 vs Cubium 74 条）：
+逐节点比对（根命令集合 + 每个根命令的二级签名）。当前**全部一致**：原版 80 条根命令与
+Cubium 80 条逐一对应，形状与参数名/类型名都不再有差异。
 
-**原版有、Cubium 未注册（10 条，见 `known_missing_commands.ts`）**：`fetchprofile`、
-`fillbiome`、`item`、`place`、`random`、`test`、`tick`、`transfer`、`waypoint` 等。
-其中 `/item` 缺失还会连带影响 `give`/`clear` 等命令的 `item` 参数节点。
+对齐过程中修掉的真问题：
 
-已补齐的：`version`、`jfr`、`perf`、`teammsg`（含别名 `tm`）、`return`、`stopwatch`、
-`rotate`、`ride`、`damage`、`debug`（按原版形状注册；jfr/perf/debug start|stop 在后端
-尚未实现时明确回报不支持，而不是假装成功）；`/locatebiome` 并回 `/locate biome`，
-`/locate <structure>` 改为 `/locate structure <structure>`；`/warden_spawn_tracker`
-删除（原版命令树里不存在）。
+- **`StringReader::canRead` 的边界**：`canRead(length)` 写成 `<=`，游标停在末尾时仍可读，
+  「输入已读完」永远走不到——`list extra` 这类残留文本会被当成成功执行。新增语义正确的
+  `atEnd()`，把 dispatcher 与各参数的「末尾判断」改用它；
+- **dispatcher 的末端可执行判定**：只剩文本、末端节点本身没有命令时不能算成功候选；
+  带命令的节点必须读到输入末尾（或可重定向）才算成功。修好 `list extra`、
+  `enchant @p sharpness -1`，同时不让 `say`/`tellraw` 的组件参数被误判；
+- **组件/消息参数**：命令链末端读整段原文（原版 MessageArgument 语义），开头是引号时
+  按引号串读取（`kick @a "some reason"`）；
+- **实现脚手架不进命令树**：/execute 链上的 `run` 链接、run 下的 `command` 占位参数、
+  `/return run command` 都不属于协议命令树，用 `CommandNode::setTreeHidden` 在快照与
+  probe 里跳过；
+- **兼容层命令不再默认注册**：`debugconfig`/`publish`/`replaceitem` 原版已移除，
+  需要时调用 `CommandRegistry::setRegisterCompatCommands(true)` 开启；
+- **`gamerule` 迁移到原版 1.21.11 规则集**：规则名改为注册表键（`keep_inventory` /
+  `advance_time` / `spawn_mobs` …，共 59 条），补上缺失的 12 条，短名与
+  `minecraft:` 全名都注册；`max_minecart_speed` 受原版 FeatureFlag 门控，不注册命令节点；
+- 形状修正：`clone` 用 `block_pos`、`execute rotated` 参数名 `rot`、`execute summon`、
+  `loot` 改成「目标 → 来源字段」、`data modify … set`、`locate poi`、`schedule clear`
+  用 `function:string`。
 
-**Cubium 有、原版已移除（3 条）**：`debugconfig`、`replaceitem`、`publish`。
+**仍未实现（9 条，见 `known_missing_commands.ts`）**：`fetchprofile`、`fillbiome`、
+`item`、`place`、`random`、`test`、`tick`、`transfer`、`waypoint`。
 
-**共有命令中形状不同（55 条）**，其中只有 18 条完全一致；26 条只是参数名/类型名不同：
-
-- 实体参数：原版 `targets:entity`（不限制玩家），Cubium 多为 `player:players`、`target:entities`；
-- 类型名体系：原版 `resource`/`resource_or_tag`/`identifier`/`game_profile`/`message`/
-  `component`/`swizzle`/`score_holder`/`objective`/`particle`/`uuid`/`column_pos`/`team`…，
-  Cubium 复用 `phrase`/`word`/`resource_location` 等通用名；
-- 结构性差异：`data` 有 `modify` 子命令而 Cubium 是 `set`；`datapack` 少了 `create`；
-  `clone` 少了 `from`/`sourceDimension`；`execute` 少了 `align`/`anchored`/`facing`/
-  `store` 等分支；`locate` 的 `structure/poi` 被拆成单独的 `locatebiome`；`loot` 多了
-  `fish`、少了 `insert`/`spawn`；`random`/`return`/`ride`/`rotate` 整条缺失。
-
-结论：命令层是当前与原版差距最大的一块，优先级应高于继续补注册表数据类能力。
 ### 已知缺口清单
 
 `known_missing_items.ts`、`entity_shape.ts`、`enchantment_table.ts`、

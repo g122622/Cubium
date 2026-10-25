@@ -285,7 +285,7 @@ void FallingBlockEntity::_handleLanding()
         // 掉落物品
         if (m_shouldDropItem) {
             // 检查游戏规则 doEntityDrops
-            if (worldPtr->getGameRules().getBoolean(world::gamerule::GameRuleKeys::DO_ENTITY_DROPS)) {
+            if (worldPtr->getGameRules().getBoolean(world::gamerule::GameRuleKeys::ENTITY_DROPS)) {
                 _dropItem(worldPtr, landingPos);
             }
         }

@@ -25,7 +25,10 @@
 
 #include "ExecuteCommand.hpp"
 #include "common/command/CommandNode.hpp"
+#include "common/command/arguments/GameModeArgument.hpp"
+#include "ExecuteCommand.hpp"
 #include "common/command/arguments/ArgumentType.hpp"
+#include "server/command/CommandRegistry.hpp"
 #include "server/command/support/CommandMetadata.hpp"
 
 #include <memory>
@@ -51,11 +54,18 @@ void ReturnCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatche
     returnNode->addChild(valueArg);
 
     auto runNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("run");
+    // 原版给 run 挂上一个「占位」命令：调用方（如 /execute if function）只要看到 run 节点
+    // 被选中，就知道这是一条转发命令，转而执行 run 的兄弟子节点。节点链的实际执行放到
+    // _returnRun 里，按解析好的 token 直接调用兄弟节点的命令，而不是把原始文本再解析一遍。
+    runNode->setCommand([](CommandContext<ServerCommandSource>&) -> i32 {
+        throw CommandException(CommandErrorType::Unknown, "commands.return.forward");
+    });
     auto runArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
         "command", StringArgumentType::greedyString());
-    runArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return _returnRun(ctx);
-    });
+    runArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _returnRun(ctx); });
+    // 原版的 /return run 是一条 ForwardNode（重定向到根），树上不带 command 子节点；
+    // 这里的 command 参数只为本实现复用一次派发，不算协议里的命令树。
+    runArg->setTreeHidden(true);
     runNode->addChild(runArg);
     returnNode->addChild(runNode);
 
@@ -77,8 +87,34 @@ i32 ReturnCommand::_returnValue(CommandContext<ServerCommandSource>& context)
 i32 ReturnCommand::_returnRun(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
-    // 与 /execute run 共用同一套嵌套执行路径（CommandRegistry::execute 返回命令结果）。
-    return ExecuteCommand::executeNestedCommand(source, context.getArgument<std::string>("command"));
+    const std::string& command = context.getArgument<std::string>("command");
+
+    // 原版 ForwardingCommand：命令文本先按命令语法解析一次，执行时由转发节点接管——run 节点
+    // 本身只有占位命令，真正的执行挂在它的兄弟子节点上（例如 /return run execute as @s run ...）。
+    if (command.empty()) {
+        // 原版这里是一条 dispatchCommand 的转发命令：run 后面没内容时实体本就存在，
+        // 只是没有可执行命令，结果按失败返回而不是报错。
+        return ExecuteCommand::executeNestedCommand(source, "");
+    }
+    const std::string fullCommand = command[0] == '/' ? command : "/" + command;
+    auto& registry = CommandRegistry::getGlobal();
+    auto parseResult = registry.dispatcher().parse(fullCommand, source);
+    if (!parseResult.isSuccess()) {
+        const auto& error = parseResult.getError();
+        throw CommandException(error.has_value() ? error->type() : CommandErrorType::Unknown,
+            error.has_value() ? error->message() : "Invalid command: " + command,
+            error.has_value() ? error->cursor() : 0);
+    }
+    if (parseResult.getContext() == nullptr) {
+        source.sendError("commands.return.failed.notFound");
+        return 0;
+    }
+    auto result = registry.dispatcher().execute(parseResult);
+    if (result.failed()) {
+        source.sendError(result.error().message());
+        return 0;
+    }
+    return result.value().result();
 }
 
 i32 ReturnCommand::_returnFail(CommandContext<ServerCommandSource>& context)

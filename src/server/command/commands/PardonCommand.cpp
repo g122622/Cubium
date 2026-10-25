@@ -26,6 +26,7 @@
 #include "common/command/CommandContext.hpp"
 #include "common/command/CommandDispatcher.hpp"
 #include "common/command/CommandNode.hpp"
+#include "common/command/arguments/GameModeArgument.hpp"
 #include "common/command/arguments/EntityArgument.hpp"
 #include "common/core/Types.hpp"
 #include "server/application/IServer.hpp"
@@ -55,11 +56,9 @@ void PardonCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatche
         pardonNode, support::makeMetadata("Removes a player from the ban list.", "/pardon <player>", 3, {}, false));
 
     // /pardon <player>
-    auto playerArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, EntitySelector>>(
-        "player", EntityArgumentType::player());
-    playerArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return _pardonPlayer(ctx);
-    });
+    auto playerArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
+        "targets", GameProfileArgumentType::gameProfile());
+    playerArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _pardonPlayer(ctx); });
 
     pardonNode->addChild(playerArg);
     dispatcher.registerCommand(pardonNode);
@@ -68,7 +67,7 @@ void PardonCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatche
 i32 PardonCommand::_pardonPlayer(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
-    EntitySelector selector = context.getArgument<EntitySelector>("player");
+    const EntitySelector selector = support::gameProfileSelector(context.getArgument<std::string>("targets"));
 
     // 获取玩家名
     std::string playerName;

@@ -55,6 +55,18 @@ namespace command::support {
 [[nodiscard]] std::vector<PlayerId> resolvePlayerIds(const ServerCommandSource& source, const EntitySelector& selector);
 
 /**
+ * @brief 把原版 game_profile 参数的文本（一个玩家名，或逗号分隔的多个玩家名）转成选择器。
+ *
+ * 原版的 /ban、/op、/pardon、/whitelist 收的是玩家名而不是实体选择器，因此命令树里这些
+ * 参数的类型是 `game_profile`。执行阶段仍按名字解析：在线玩家用真实 UUID，离线玩家用
+ * 原版离线 UUID 算法——这里只把名字装进选择器，后续沿用既有的解析路径。
+ *
+ * @param text 参数文本，如 "Steve" 或 "Alex,Steve"
+ * @return 以名字限定的选择器（多个名字时只取第一个，与各命令「一次一个玩家」的语义一致）
+ */
+[[nodiscard]] EntitySelector gameProfileSelector(const std::string& text);
+
+/**
  * @brief 通过 PlayerId 获取玩家名称。
  *
  * 查找 PlayerManager 中对应 PlayerId 的 ServerPlayerData，返回其 username。

@@ -144,7 +144,7 @@ void PlaySoundCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispat
 
     // /playsound <sound>
     auto soundNode = std::make_shared<ArgumentCommandNode<ServerCommandSource, ResourceLocation>>(
-        "sound", ResourceLocationArgumentType::resourceLocation());
+        "sound", IdentifierArgumentType::identifier());
 
     // 声源子节点
     auto createSourceNode = [](const char* name) {

@@ -43,7 +43,6 @@ public:
 
 private:
     static i32 _startSpectating(CommandContext<ServerCommandSource>& context);
-    static i32 _stopSpectating(CommandContext<ServerCommandSource>& context);
 };
 
 } // namespace command

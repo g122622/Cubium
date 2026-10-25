@@ -27,6 +27,7 @@
 #include "common/command/CommandDispatcher.hpp"
 #include "common/command/CommandNode.hpp"
 #include "common/command/arguments/ArgumentType.hpp"
+#include "common/command/arguments/GameModeArgument.hpp"
 #include "common/command/arguments/EntityArgument.hpp"
 #include "common/core/Types.hpp"
 #include "common/entity/entities/player/Player.hpp" // Player::setPosition/setRotation/teleportToDimension（实体旁路传送）
@@ -62,9 +63,7 @@ namespace {
  */
 [[nodiscard]] Vector3d readTargetPosition(CommandContext<ServerCommandSource>& context)
 {
-    return Vector3d(static_cast<f64>(context.getArgument<f32>("x")),
-        static_cast<f64>(context.getArgument<f32>("y")),
-        static_cast<f64>(context.getArgument<f32>("z")));
+    return Vec3ArgumentType::getVec3(context, "location", context.getSource());
 }
 
 /**
@@ -245,68 +244,49 @@ void TeleportCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatc
 {
     using namespace mc::command;
 
-    auto tpNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("tp");
-    tpNode->setRequirement([](const ServerCommandSource& source) {
-        return source.hasPermission(2);
-    });
-    support::applyMetadata(tpNode,
-        support::makeMetadata("Teleport entities.",
-            "/tp <destination>|<x> <y> <z>|<targets> <destination>|<targets> <x> <y> <z>",
+    // 原版注册顺序：teleport 是根节点，tp 重定向到它（1.21 起 /tp 只是 /teleport 的别名）。
+    auto teleportNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("teleport");
+    teleportNode->setRequirement([](const ServerCommandSource& source) { return source.hasPermission(2); });
+    support::applyMetadata(teleportNode,
+        support::makeMetadata("Teleports entities to a location.",
+            "/teleport <targets> <location> | <targets> <destination> | <location> | <destination>",
             2,
-            {"teleport"},
+            {"tp"},
             true));
 
-    auto teleportNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("teleport");
-    teleportNode->setRequirement([](const ServerCommandSource& source) {
-        return source.hasPermission(2);
-    });
-    teleportNode->setRedirect(tpNode);
+    auto tpNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("tp");
+    tpNode->setRedirect(teleportNode);
 
-    auto selfDestinationArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, EntitySelector>>(
-        "target", EntityArgumentType::player());
-    selfDestinationArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return _teleportToEntity(ctx);
-    });
-
-    auto selfXArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, f32>>("x", FloatArgumentType::floatArg());
-    auto selfYArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, f32>>("y", FloatArgumentType::floatArg());
-    auto selfZArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, f32>>("z", FloatArgumentType::floatArg());
-    selfZArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return _teleportToPosition(ctx);
-    });
-    selfYArg->addChild(selfZArg);
-    selfXArg->addChild(selfYArg);
-
+    // /teleport <targets> <location>：位置是一个 Vec3Argument。
     auto targetsArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, EntitySelector>>(
-        "targets", EntityArgumentType::players());
+        "targets", EntityArgumentType::entities());
+    auto locationArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, Coordinates::Ptr>>(
+        "location", Vec3ArgumentType::vec3NoCenter());
+    locationArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _teleportTargetToPosition(ctx); });
+    targetsArg->addChild(locationArg);
 
+    // /teleport <targets> <destination>
     auto destinationArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, EntitySelector>>(
-        "destination", EntityArgumentType::player());
-    destinationArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return _teleportTargetToEntity(ctx);
-    });
-
-    auto targetXArg =
-        std::make_shared<ArgumentCommandNode<ServerCommandSource, f32>>("x", FloatArgumentType::floatArg());
-    auto targetYArg =
-        std::make_shared<ArgumentCommandNode<ServerCommandSource, f32>>("y", FloatArgumentType::floatArg());
-    auto targetZArg =
-        std::make_shared<ArgumentCommandNode<ServerCommandSource, f32>>("z", FloatArgumentType::floatArg());
-    targetZArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return _teleportTargetToPosition(ctx);
-    });
-    targetYArg->addChild(targetZArg);
-    targetXArg->addChild(targetYArg);
-
+        "destination", EntityArgumentType::entities());
+    destinationArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _teleportTargetToEntity(ctx); });
     targetsArg->addChild(destinationArg);
-    targetsArg->addChild(targetXArg);
 
-    tpNode->addChild(selfDestinationArg);
-    tpNode->addChild(selfXArg);
-    tpNode->addChild(targetsArg);
+    // /teleport <location>（把执行者送到坐标）
+    auto selfLocationArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, Coordinates::Ptr>>(
+        "location", Vec3ArgumentType::vec3NoCenter());
+    selfLocationArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _teleportToPosition(ctx); });
 
-    dispatcher.registerCommand(tpNode);
+    // /teleport <destination>（把执行者送到目标实体）
+    auto selfDestinationArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, EntitySelector>>(
+        "destination", EntityArgumentType::entities());
+    selfDestinationArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _teleportToEntity(ctx); });
+
+    teleportNode->addChild(targetsArg);
+    teleportNode->addChild(selfLocationArg);
+    teleportNode->addChild(selfDestinationArg);
+
     dispatcher.registerCommand(teleportNode);
+    dispatcher.registerCommand(tpNode);
 }
 
 /**
@@ -326,7 +306,7 @@ i32 TeleportCommand::_teleportToEntity(CommandContext<ServerCommandSource>& cont
         return 0;
     }
 
-    const EntitySelector selector = context.getArgument<EntitySelector>("target");
+    const EntitySelector selector = context.getArgument<EntitySelector>("destination");
     DestinationInfo destination;
     if (!tryResolveDestinationPlayer(source, selector, destination)) {
         source.sendError("No matching destination player was found");

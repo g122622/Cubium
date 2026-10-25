@@ -204,22 +204,20 @@ TEST_F(TellRawCommandTest, JsonParsing_TranslationComponent)
 
 // ========== 多目标测试 ==========
 
-TEST_F(TellRawCommandTest, TellRawToMultiplePlayersNotSupported)
+TEST_F(TellRawCommandTest, TellRawToMultiplePlayersSupported)
 {
     // 添加多个测试玩家
     m_server.addTestPlayer(1, "Player1");
     m_server.addTestPlayer(2, "Player2");
     m_server.addTestPlayer(3, "Player3");
 
-    // tellraw 使用 EntityArgumentType::player() 只允许单个玩家
-    // 使用 @a 应该返回错误，因为只允许一个玩家
+    // 原版 /tellraw <targets> 用的是多目标实体参数（entities），@a 是合法的；
+    // 这里只验证解析与执行路径都不会因为多目标而失败。
     const std::string jsonMessage = R"({"text":"Broadcast message"})";
     const auto result = m_server.commandRegistry().execute("tellraw @a " + jsonMessage, m_console);
 
-    // tellraw 只允许单个玩家，@a 选择多个玩家应该失败
-    EXPECT_FALSE(result.success());
+    EXPECT_TRUE(result.success()) << (result.success() ? "" : result.error().message());
 }
-
 TEST_F(TellRawCommandTest, TellRawToSinglePlayer)
 {
     // 添加测试玩家

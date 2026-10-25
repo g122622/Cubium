@@ -67,7 +67,7 @@ public:
         Items::ensureInitialized();
         VanillaBlocks::initialize();
         // DO_ENTITY_DROPS 默认 true，clearLeash/dropLeash 会查询此规则
-        m_gameRules.setBoolean(world::gamerule::GameRuleKeys::DO_ENTITY_DROPS, true, nullptr);
+        m_gameRules.setBoolean(world::gamerule::GameRuleKeys::ENTITY_DROPS, true, nullptr);
     }
 
     // ========== EntityInstanceId 查找 ==========

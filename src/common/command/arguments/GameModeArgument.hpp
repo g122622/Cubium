@@ -12,9 +12,9 @@
  * copies or substantial portions of the Software.
  *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR FOR ANY CLAIM, DAMAGES OR OTHER
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
@@ -36,6 +36,7 @@
 // 此前靠调用点的传递性 include 偶然成立，一旦某个调用点的包含链变化即编译失败，故显式引入。
 #include "common/entity/core/Entity.hpp"
 #include "common/resource/ResourceLocation.hpp"
+#include "common/scoreboard/core/ScoreCriteriaRenderType.hpp"
 #include "common/util/math/Vector2.hpp"
 #include "common/util/math/Vector3.hpp"
 #include <algorithm>
@@ -175,7 +176,7 @@ private:
  */
 inline bool readWorldCoordinateDouble(StringReader& reader, f64& out)
 {
-    if (!reader.canRead()) {
+    if (reader.atEnd()) {
         return false;
     }
     if (reader.peek() == ' ') {
@@ -234,10 +235,9 @@ public:
         return readResourceLocationId(reader);
     }
 
-    [[nodiscard]] std::string getTypeName() const override
-    {
-        return "resource_location";
-    }
+    // 注意与下面的 IdentifierArgumentType 区分：原版命令树里 ResourceArgument 的注册名是
+    // `resource`（注册表资源，如 attribute/enchantment/sound），不是 `resource_location`。
+    [[nodiscard]] std::string getTypeName() const override { return "resource"; }
 
     [[nodiscard]] std::vector<std::string> getExamples() const override
     {
@@ -274,10 +274,7 @@ public:
         return readResourceLocationId(reader);
     }
 
-    [[nodiscard]] std::string getTypeName() const override
-    {
-        return "identifier";
-    }
+    [[nodiscard]] std::string getTypeName() const override { return "resource_location"; }
 
     [[nodiscard]] std::vector<std::string> getExamples() const override
     {
@@ -287,6 +284,492 @@ public:
     static std::shared_ptr<IdentifierArgumentType> identifier()
     {
         return std::make_shared<IdentifierArgumentType>();
+    }
+};
+
+/**
+ * @brief 实体类型参数（原版 {@code ResourceArgument.entity()}，命令树里叫 {@code resource}）
+ *
+ * 与 {@link ResourceLocationArgumentType} 同一套语法；单独一个类只是为了在命令树/协议里
+ * 能区分「这个资源名指向实体类型」的用法（/summon）。
+ */
+class ResourceEntityArgumentType : public ArgumentType<ResourceLocation> {
+public:
+    [[nodiscard]] ResourceLocation parse(StringReader& reader) override { return readResourceLocationId(reader); }
+
+    [[nodiscard]] std::string getTypeName() const override { return "resource"; }
+
+    [[nodiscard]] std::vector<std::string> getExamples() const override
+    {
+        return {"minecraft:zombie", "zombie", "minecraft:pig"};
+    }
+
+    static std::shared_ptr<ResourceEntityArgumentType> entity() { return std::make_shared<ResourceEntityArgumentType>(); }
+};
+
+/**
+ * @brief 附魔类型参数（原版 {@code ResourceArgument.enchantment()}，命令树里同 {@link ResourceEntityArgumentType}
+ *        一样叫 {@code resource}）。
+ */
+class EnchantmentResourceArgumentType : public ArgumentType<ResourceLocation> {
+public:
+    [[nodiscard]] ResourceLocation parse(StringReader& reader) override { return readResourceLocationId(reader); }
+
+    [[nodiscard]] std::string getTypeName() const override { return "resource"; }
+
+    [[nodiscard]] std::vector<std::string> getExamples() const override { return {"minecraft:sharpness", "sharpness"}; }
+
+    static std::shared_ptr<EnchantmentResourceArgumentType> enchantment()
+    {
+        return std::make_shared<EnchantmentResourceArgumentType>();
+    }
+};
+
+/**
+ * @brief 属性类型参数（原版 {@code ResourceArgument.attribute()}，命令树里叫 {@code resource}）。
+ */
+class AttributeResourceArgumentType : public ArgumentType<ResourceLocation> {
+public:
+    [[nodiscard]] ResourceLocation parse(StringReader& reader) override { return readResourceLocationId(reader); }
+
+    [[nodiscard]] std::string getTypeName() const override { return "resource"; }
+
+    [[nodiscard]] std::vector<std::string> getExamples() const override { return {"minecraft:generic.max_health"}; }
+
+    static std::shared_ptr<AttributeResourceArgumentType> attribute()
+    {
+        return std::make_shared<AttributeResourceArgumentType>();
+    }
+};
+
+/**
+ * @brief 粒子类型参数（原版 {@code ResourceArgument.particle()}，命令树里叫 {@code resource}）。
+ */
+class ParticleResourceArgumentType : public ArgumentType<ResourceLocation> {
+public:
+    [[nodiscard]] ResourceLocation parse(StringReader& reader) override { return readResourceLocationId(reader); }
+
+    // 原版注册名就是 particle（ParticleArgument 的注册表项），不是 resource。
+    [[nodiscard]] std::string getTypeName() const override { return "particle"; }
+
+    [[nodiscard]] std::vector<std::string> getExamples() const override
+    {
+        return {"minecraft:flame", "flame", "minecraft:heart"};
+    }
+
+    static std::shared_ptr<ParticleResourceArgumentType> particle()
+    {
+        return std::make_shared<ParticleResourceArgumentType>();
+    }
+};
+
+/**
+ * @brief 聊天组件参数（原版 {@code ComponentArgument}，命令树里叫 {@code component}）
+ *
+ * 输入一段 JSON（支持 SNBT 的组件写法由调用方另行处理）。这里只读整段剩余文本：
+ * 组件是最后一个参数，原版子解析器同样会读掉后续全部内容。
+ */
+struct ComponentText {
+    std::string text;
+};
+
+/// 参数节点持有的组件值：原版 ArgumentCommandNode 要求可默认构造的值类型，用指针最省事。
+using ComponentTextPtr = std::shared_ptr<ComponentText>;
+
+class ComponentArgumentType : public ArgumentType<ComponentTextPtr> {
+public:
+    [[nodiscard]] ComponentTextPtr parse(StringReader& reader) override
+    {
+        // 组件是命令链末端：原版 MessageArgument 用「剩余原文」构建组件，读走整段；
+        // 但开头是引号时仍按引号串读取（`kick @a "some reason"` 的值不含引号）。
+        std::string text = reader.canRead() && reader.peek() == '"' ? reader.readQuotedString() : reader.getRemaining();
+        reader.setCursor(reader.getTotalLength());
+        return std::make_shared<ComponentText>(ComponentText{std::move(text)});
+    }
+
+    [[nodiscard]] std::string getTypeName() const override { return "component"; }
+
+    [[nodiscard]] std::vector<std::string> getExamples() const override
+    {
+        return {"{\"text\":\"hello\"}", "\"hello\"", "[{\"text\":\"a\"}]"};
+    }
+
+    static std::shared_ptr<ComponentArgumentType> component() { return std::make_shared<ComponentArgumentType>(); }
+};
+
+/**
+ * @brief 玩家档案参数（原版 {@code GameProfileArgument}，命令树里叫 {@code game_profile}）
+ *
+ * 原版这里接受的是「玩家名列表」而不是实体选择器：/ban、/op、/pardon、/whitelist 面对的是
+ * 离线玩家，选择器语法不适用。这里返回逗号分隔的玩家名原样文本，由调用方逐个查找。
+ */
+class GameProfileArgumentType : public ArgumentType<std::string> {
+public:
+    [[nodiscard]] std::string parse(StringReader& reader) override
+    {
+        const i32 start = reader.getCursor();
+        std::string result;
+        while (reader.canRead()) {
+            const char c = reader.peek();
+            if (reader.isWhitespace(c)) {
+                break;
+            }
+            if (c == ',') {
+                // 原版允许多个玩家名逗号分隔，中间允许空格。
+                result.push_back(c);
+                reader.skip();
+                reader.skipWhitespace();
+                continue;
+            }
+            result.push_back(c);
+            reader.skip();
+        }
+        if (result.empty()) {
+            throw CommandException(
+                CommandErrorType::Unknown, "Expected player name at position " + std::to_string(start), start);
+        }
+        return result;
+    }
+
+    [[nodiscard]] std::string getTypeName() const override { return "game_profile"; }
+
+    [[nodiscard]] std::vector<std::string> getExamples() const override { return {"Steve", "Alex,Steve"}; }
+
+    static std::shared_ptr<GameProfileArgumentType> gameProfile() { return std::make_shared<GameProfileArgumentType>(); }
+};
+
+/**
+ * @brief 聊天消息参数（原版 {@code MessageArgument}，命令树里叫 {@code message}）
+ *
+ * 与 {@link ComponentArgumentType} 读法相同（整段剩余文本），区别只在类型名：/say、/msg、
+ * /teammsg 在协议里是 `message`，/tellraw、/title、/kick 的 reason 是 `component`。
+ */
+class MessageComponentArgumentType : public ArgumentType<ComponentTextPtr> {
+public:
+    [[nodiscard]] ComponentTextPtr parse(StringReader& reader) override
+    {
+        std::string text = reader.canRead() && reader.peek() == '"' ? reader.readQuotedString() : reader.getRemaining();
+        reader.setCursor(reader.getTotalLength());
+        return std::make_shared<ComponentText>(ComponentText{std::move(text)});
+    }
+
+    [[nodiscard]] std::string getTypeName() const override { return "message"; }
+
+    [[nodiscard]] std::vector<std::string> getExamples() const override { return {"hello", "{\"text\":\"hi\"}"}; }
+
+    static std::shared_ptr<MessageComponentArgumentType> message()
+    {
+        return std::make_shared<MessageComponentArgumentType>();
+    }
+};
+
+/**
+ * @brief 队伍名参数（原版 {@code TeamArgument}，命令树里叫 {@code team}）
+ */
+class TeamNameArgumentType : public ArgumentType<std::string> {
+public:
+    [[nodiscard]] std::string parse(StringReader& reader) override
+    {
+        const i32 start = reader.getCursor();
+        std::string result;
+        while (reader.canRead()) {
+            const char c = reader.peek();
+            // 队伍名里不能有空白；其余字符（含中文、括号等）原版都直接收下。
+            if (reader.isWhitespace(c)) {
+                break;
+            }
+            result.push_back(c);
+            reader.skip();
+        }
+        if (result.empty()) {
+            throw CommandException(
+                CommandErrorType::Unknown, "Expected team name at position " + std::to_string(start), start);
+        }
+        return result;
+    }
+
+    [[nodiscard]] std::string getTypeName() const override { return "team"; }
+
+    [[nodiscard]] std::vector<std::string> getExamples() const override { return {"red", "team-1"}; }
+
+    static std::shared_ptr<TeamNameArgumentType> team() { return std::make_shared<TeamNameArgumentType>(); }
+};
+
+/**
+ * @brief 记分持有者名参数（原版 {@code ScoreHolderArgument}，命令树里叫 {@code score_holder}）
+ *
+ * 与 {@link GameProfileArgumentType} 同样收「名字」而不是选择器，读法一致。
+ */
+class ScoreHolderArgumentType : public ArgumentType<std::string> {
+public:
+    [[nodiscard]] std::string parse(StringReader& reader) override
+    {
+        const i32 start = reader.getCursor();
+        std::string result;
+        while (reader.canRead()) {
+            const char c = reader.peek();
+            if (reader.isWhitespace(c)) {
+                break;
+            }
+            if (c == ',') {
+                result.push_back(c);
+                reader.skip();
+                reader.skipWhitespace();
+                continue;
+            }
+            result.push_back(c);
+            reader.skip();
+        }
+        if (result.empty()) {
+            throw CommandException(
+                CommandErrorType::Unknown, "Expected score holder at position " + std::to_string(start), start);
+        }
+        return result;
+    }
+
+    [[nodiscard]] std::string getTypeName() const override { return "score_holder"; }
+
+    [[nodiscard]] std::vector<std::string> getExamples() const override { return {"Steve", "*"}; }
+
+    static std::shared_ptr<ScoreHolderArgumentType> scoreHolder() { return std::make_shared<ScoreHolderArgumentType>(); }
+};
+
+/**
+ * @brief 进度参数（原版 {@code ResourceArgument.advancement()}，命令树里叫 {@code resource}）。
+ */
+class AdvancementResourceArgumentType : public ArgumentType<ResourceLocation> {
+public:
+    [[nodiscard]] ResourceLocation parse(StringReader& reader) override { return readResourceLocationId(reader); }
+
+    [[nodiscard]] std::string getTypeName() const override { return "resource"; }
+
+    [[nodiscard]] std::vector<std::string> getExamples() const override
+    {
+        return {"minecraft:story/mine_stone", "story/root"};
+    }
+
+    static std::shared_ptr<AdvancementResourceArgumentType> advancement()
+    {
+        return std::make_shared<AdvancementResourceArgumentType>();
+    }
+};
+
+/**
+ * @brief 记分项名参数（原版 {@code ObjectiveArgument}，命令树里叫 {@code objective}）
+ */
+class ObjectiveNameArgumentType : public ArgumentType<std::string> {
+public:
+    [[nodiscard]] std::string parse(StringReader& reader) override
+    {
+        const i32 start = reader.getCursor();
+        std::string result;
+        while (reader.canRead() && !reader.isWhitespace(reader.peek())) {
+            result.push_back(reader.peek());
+            reader.skip();
+        }
+        if (result.empty()) {
+            throw CommandException(
+                CommandErrorType::Unknown, "Expected objective name at position " + std::to_string(start), start);
+        }
+        return result;
+    }
+
+    [[nodiscard]] std::string getTypeName() const override { return "objective"; }
+
+    [[nodiscard]] std::vector<std::string> getExamples() const override { return {"obj", "my_objective"}; }
+
+    static std::shared_ptr<ObjectiveNameArgumentType> objective()
+    {
+        return std::make_shared<ObjectiveNameArgumentType>();
+    }
+};
+
+/**
+ * @brief 战利品表参数（原版 {@code ResourceArgument} 注册 loot_table，命令树里叫 {@code resource}）。
+ */
+class LootTableResourceArgumentType : public ArgumentType<ResourceLocation> {
+public:
+    [[nodiscard]] ResourceLocation parse(StringReader& reader) override { return readResourceLocationId(reader); }
+
+    [[nodiscard]] std::string getTypeName() const override { return "resource"; }
+
+    [[nodiscard]] std::vector<std::string> getExamples() const override
+    {
+        return {"minecraft:chests/simple_dungeon", "chests/village/village_weaponsmith"};
+    }
+
+    static std::shared_ptr<LootTableResourceArgumentType> lootTable()
+    {
+        return std::make_shared<LootTableResourceArgumentType>();
+    }
+};
+
+/**
+ * @brief 配方 id 参数（原版 {@code ResourceArgument} 注册 recipe，命令树里叫 {@code resource}）。
+ */
+class RecipeIdArgumentType : public ArgumentType<ResourceLocation> {
+public:
+    [[nodiscard]] ResourceLocation parse(StringReader& reader) override { return readResourceLocationId(reader); }
+
+    [[nodiscard]] std::string getTypeName() const override { return "resource"; }
+
+    [[nodiscard]] std::vector<std::string> getExamples() const override
+    {
+        return {"minecraft:crafting_table", "minecraft:stick"};
+    }
+
+    static std::shared_ptr<RecipeIdArgumentType> recipe() { return std::make_shared<RecipeIdArgumentType>(); }
+};
+
+/**
+ * @brief 坐标轴组合参数（原版 {@code SwizzleArgument}，命令树里叫 {@code swizzle}）
+ *
+ * 只接受不重复的 x/y/z 组合：x、z、y、xz、xy、yz、xyz。
+ */
+class SwizzleArgumentType : public ArgumentType<std::string> {
+public:
+    [[nodiscard]] std::string parse(StringReader& reader) override
+    {
+        const i32 start = reader.getCursor();
+        std::string result;
+        while (reader.canRead()) {
+            const char c = reader.peek();
+            if (c != 'x' && c != 'y' && c != 'z') {
+                break;
+            }
+            if (result.find(c) != std::string::npos) {
+                reader.setCursor(start);
+                throw CommandException(CommandErrorType::Unknown, "Duplicate axis", start);
+            }
+            result.push_back(c);
+            reader.skip();
+        }
+        if (result.empty() || result.size() > 3) {
+            reader.setCursor(start);
+            throw CommandException(
+                CommandErrorType::Unknown, "Expected swizzle at position " + std::to_string(start), start);
+        }
+        return result;
+    }
+
+    [[nodiscard]] std::string getTypeName() const override { return "swizzle"; }
+
+    [[nodiscard]] std::vector<std::string> getExamples() const override { return {"x", "xy", "xyz"}; }
+
+    static std::shared_ptr<SwizzleArgumentType> swizzle() { return std::make_shared<SwizzleArgumentType>(); }
+};
+
+/**
+ * @brief 锚点参数（原版 {@code EntityAnchorArgument}，命令树里叫 {@code entity_anchor}）
+ *
+ * 取值为 eyes / feet，原版按小写精确匹配。
+ */
+class EntityAnchorArgumentType : public ArgumentType<std::string> {
+public:
+    [[nodiscard]] std::string parse(StringReader& reader) override
+    {
+        const i32 start = reader.getCursor();
+        std::string result;
+        while (reader.canRead()) {
+            const char c = reader.peek();
+            if (!((c >= 'a' && c <= 'z') || c == '_')) {
+                break;
+            }
+            result.push_back(c);
+            reader.skip();
+        }
+        if (result != "eyes" && result != "feet") {
+            reader.setCursor(start);
+            throw CommandException(
+                CommandErrorType::Unknown, "Expected 'eyes' or 'feet' at position " + std::to_string(start), start);
+        }
+        return result;
+    }
+
+    [[nodiscard]] std::string getTypeName() const override { return "entity_anchor"; }
+
+    [[nodiscard]] std::vector<std::string> getExamples() const override { return {"eyes", "feet"}; }
+
+    static std::shared_ptr<EntityAnchorArgumentType> entityAnchor()
+    {
+        return std::make_shared<EntityAnchorArgumentType>();
+    }
+};
+
+/**
+ * @brief 记分板显示槽位参数（原版 setdisplay 的 slot；命令树里该位置是字面量子节点）。
+ */
+class DisplaySlotArgumentType : public ArgumentType<std::string> {
+public:
+    [[nodiscard]] std::string parse(StringReader& reader) override
+    {
+        const i32 start = reader.getCursor();
+        std::string current;
+        while (reader.canRead() && !reader.isWhitespace(reader.peek())) {
+            current.push_back(reader.peek());
+            reader.skip();
+        }
+        if (current.empty() || !isKnownDisplaySlot(current)) {
+            reader.setCursor(start);
+            throw CommandException(CommandErrorType::Unknown, "Unknown display slot '" + current + "'", start);
+        }
+        return current;
+    }
+
+    [[nodiscard]] std::string getTypeName() const override { return "objective_criteria"; }
+
+    [[nodiscard]] std::vector<std::string> getExamples() const override
+    {
+        return {"list", "sidebar", "below_name", "sidebar.team.red"};
+    }
+
+    static std::shared_ptr<DisplaySlotArgumentType> displaySlot() { return std::make_shared<DisplaySlotArgumentType>(); }
+
+    /// 槽位名 → DisplaySlot；不认识的名字映射到 List，调用方应先用 isKnownDisplaySlot 校验。
+    static scoreboard::DisplaySlot toDisplaySlot(const std::string& name)
+    {
+        if (name == "below_name") {
+            return scoreboard::DisplaySlot::BelowName;
+        }
+        if (name == "sidebar" || name.rfind("sidebar.team.", 0) == 0) {
+            return scoreboard::DisplaySlot::Sidebar;
+        }
+        return scoreboard::DisplaySlot::List;
+    }
+
+    static bool isKnownDisplaySlot(const std::string& name)
+    {
+        return name == "list" || name == "sidebar" || name == "below_name" || name.rfind("sidebar.team.", 0) == 0;
+    }
+};
+
+/**
+ * @brief 记分板运算参数（原版 {@code OperationArgument}：=、+=、-=、*=、/=、%=、<、>、><）
+ */
+class ScoreOperationArgumentType : public ArgumentType<std::string> {
+public:
+    [[nodiscard]] std::string parse(StringReader& reader) override
+    {
+        static const char* const kOperations[] = {"+=", "-=", "*=", "/=", "%=", "><", "<", ">", "="};
+        const i32 start = reader.getCursor();
+        for (const char* op : kOperations) {
+            const size_t len = std::char_traits<char>::length(op);
+            if (reader.canRead(static_cast<i32>(len)) && reader.getString().substr(static_cast<size_t>(static_cast<size_t>(start)), len) == op) {
+                reader.skip(static_cast<i32>(len));
+                return op;
+            }
+        }
+        throw CommandException(
+            CommandErrorType::Unknown, "Expected operation at position " + std::to_string(start), start);
+    }
+
+    [[nodiscard]] std::string getTypeName() const override { return "operation"; }
+
+    [[nodiscard]] std::vector<std::string> getExamples() const override { return {"=", "+=", "><"}; }
+
+    static std::shared_ptr<ScoreOperationArgumentType> operation()
+    {
+        return std::make_shared<ScoreOperationArgumentType>();
     }
 };
 
@@ -713,6 +1196,56 @@ private:
 };
 
 /**
+ * @brief 列坐标参数（原版 {@code ColumnPosArgument}，命令树里叫 {@code column_pos}）
+ *
+ * 两个方块坐标分量（x/z），y 分量固定为 0；/forceload 用它把坐标取整到区块。
+ * 返回与 BlockPos 相同的 Coordinates::Ptr，读取用 getColumnPos。
+ */
+class ColumnPosArgumentType : public ArgumentType<Coordinates::Ptr> {
+public:
+    [[nodiscard]] Coordinates::Ptr parse(StringReader& reader) override
+    {
+        const i32 start = reader.getCursor();
+        WorldCoordinate x = _parseCoordinate(reader, start);
+        reader.skipWhitespace();
+        WorldCoordinate z = _parseCoordinate(reader, start);
+        return std::make_shared<WorldCoordinates>(x, WorldCoordinate(true, 0.0), z);
+    }
+
+    [[nodiscard]] std::string getTypeName() const override { return "column_pos"; }
+
+    [[nodiscard]] std::vector<std::string> getExamples() const override { return {"0 0", "~ ~", "~1 ~-2"}; }
+
+    static std::shared_ptr<ColumnPosArgumentType> columnPos() { return std::make_shared<ColumnPosArgumentType>(); }
+
+    template <typename S>
+    static Vector3i getColumnPos(CommandContext<S>& context, const std::string& name, const S& source)
+    {
+        auto coords = context.template getArgument<Coordinates::Ptr>(name);
+        return coords->getBlockPos(_getAnchorPosition(source), source.rotation());
+    }
+
+private:
+    static WorldCoordinate _parseCoordinate(StringReader& reader, i32 start)
+    {
+        bool relative = false;
+        if (reader.canRead() && reader.peek() == '~') {
+            relative = true;
+            reader.skip();
+        } else if (reader.canRead() && reader.peek() == LocalCoordinates::PREFIX) {
+            reader.setCursor(start);
+            throw createMixedCoordinateTypeError();
+        }
+        if (!reader.canRead() || _isWhitespace(reader.peek())) {
+            return WorldCoordinate(relative, 0.0);
+        }
+        return WorldCoordinate(relative, reader.readDouble());
+    }
+
+    static bool _isWhitespace(char c) { return c == ' ' || c == '\t' || c == '\n' || c == '\r'; }
+};
+
+/**
  * @brief 方块旋转参数类型（yaw, pitch）
  *
  * 支持 ~ 前缀表示相对角度偏移。
@@ -724,13 +1257,9 @@ class RotationArgumentType : public ArgumentType<Coordinates::Ptr> {
 public:
     [[nodiscard]] Coordinates::Ptr parse(StringReader& reader) override
     {
-        // 第一个参数是 yaw（对应 y 分量），第二个参数是 pitch（对应 x 分量）
-        // MC Java 的 RotationArgument 构造 WorldCoordinates(yawCoord, pitchCoord, relative(0))
-        // 即 WorldCoordinates.x = yaw, WorldCoordinates.y = pitch
         WorldCoordinate yawCoord = _parseAngle(reader);
         reader.skipWhitespace();
         WorldCoordinate pitchCoord = _parseAngle(reader);
-        // z 分量填充为相对 0
         return std::make_shared<WorldCoordinates>(yawCoord, pitchCoord, WorldCoordinate(true, 0.0));
     }
 
@@ -739,10 +1268,7 @@ public:
         return "rotation";
     }
 
-    [[nodiscard]] std::vector<std::string> getExamples() const override
-    {
-        return {"0 0", "~ ~", "90 -45"};
-    }
+    [[nodiscard]] std::vector<std::string> getExamples() const override { return {"0 0", "~ ~", "0.1 -0.5"}; }
 
     static std::shared_ptr<RotationArgumentType> rotation()
     {

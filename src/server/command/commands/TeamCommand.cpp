@@ -28,6 +28,7 @@
 #include "common/command/CommandNode.hpp"
 #include "common/command/arguments/ArgumentType.hpp"
 #include "common/command/arguments/EntityArgument.hpp"
+#include "common/command/arguments/GameModeArgument.hpp"
 #include "common/core/Types.hpp"
 #include "common/resource/LanguageManager.hpp"
 #include "common/scoreboard/core/ScorePlayerTeam.hpp"
@@ -125,6 +126,7 @@ void TeamCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
 
     // /team add <team> [displayName]
     auto addNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("add");
+    // 原版 /team add 的队伍名是普通 string（新建队伍时用），其余子命令才用 TeamArgument。
     auto teamNameArg =
         std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>("team", StringArgumentType::string());
     auto displayNameArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
@@ -142,20 +144,18 @@ void TeamCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
     // /team remove <team>
     auto removeNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("remove");
     auto removeTeamArg =
-        std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>("team", StringArgumentType::string());
-    removeTeamArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return _removeTeam(ctx);
-    });
+        std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
+            "team", TeamNameArgumentType::team());
+    removeTeamArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _removeTeam(ctx); });
     removeNode->addChild(removeTeamArg);
     teamNode->addChild(removeNode);
 
     // /team list [team]
     auto listNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("list");
     auto listTeamArg =
-        std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>("team", StringArgumentType::string());
-    listTeamArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return _listTeams(ctx);
-    });
+        std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
+            "team", TeamNameArgumentType::team());
+    listTeamArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _listTeams(ctx); });
     listNode->addChild(listTeamArg);
     listNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
         return _listTeams(ctx);
@@ -165,40 +165,38 @@ void TeamCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
     // /team empty <team>
     auto emptyNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("empty");
     auto emptyTeamArg =
-        std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>("team", StringArgumentType::string());
-    emptyTeamArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return _emptyTeam(ctx);
-    });
+        std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
+            "team", TeamNameArgumentType::team());
+    emptyTeamArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _emptyTeam(ctx); });
     emptyNode->addChild(emptyTeamArg);
     teamNode->addChild(emptyNode);
 
     // /team join <team> <members>
     auto joinNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("join");
     auto joinTeamArg =
-        std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>("team", StringArgumentType::string());
+        std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
+            "team", TeamNameArgumentType::team());
     auto membersArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, EntitySelector>>(
-        "members", EntityArgumentType::entities());
-    membersArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return _joinTeam(ctx);
-    });
+        "members", EntityArgumentType::players());
+    membersArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _joinTeam(ctx); });
     joinTeamArg->addChild(membersArg);
     joinNode->addChild(joinTeamArg);
     teamNode->addChild(joinNode);
 
     // /team leave <members>
     auto leaveNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("leave");
-    auto leaveMembersArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, EntitySelector>>(
-        "members", EntityArgumentType::entities());
-    leaveMembersArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return _leaveTeam(ctx);
-    });
+    // 原版 /team leave 的 members 是 ScoreHolderArgument（score_holder，只收名字）。
+    auto leaveMembersArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
+        "members", ScoreHolderArgumentType::scoreHolder());
+    leaveMembersArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _leaveTeam(ctx); });
     leaveNode->addChild(leaveMembersArg);
     teamNode->addChild(leaveNode);
 
     // /team modify <team> <option> <value>
     auto modifyNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("modify");
     auto modifyTeamArg =
-        std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>("team", StringArgumentType::string());
+        std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
+            "team", TeamNameArgumentType::team());
 
     auto displayNameNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("displayName");
     auto displayNameValueArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
@@ -437,7 +435,7 @@ i32 TeamCommand::_joinTeam(CommandContext<ServerCommandSource>& context)
     }
 
     const std::string teamName = context.getArgument<std::string>("team");
-    const EntitySelector& selector = context.getArgument<EntitySelector>("members");
+    const EntitySelector selector = support::gameProfileSelector(context.getArgument<std::string>("members"));
 
     auto* team = _findTeam(source, *scoreboard, teamName);
     if (team == nullptr) {
@@ -477,7 +475,7 @@ i32 TeamCommand::_leaveTeam(CommandContext<ServerCommandSource>& context)
         return 0;
     }
 
-    const EntitySelector& selector = context.getArgument<EntitySelector>("members");
+    const EntitySelector selector = support::gameProfileSelector(context.getArgument<std::string>("members"));
     const auto playerIds = support::resolvePlayerIds(source, selector);
     if (playerIds.empty()) {
         source.sendError("No entities matched the selector");

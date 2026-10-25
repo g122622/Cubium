@@ -302,6 +302,18 @@ std::vector<std::string> Scoreboard::getPlayerObjectives(const std::string& play
     return result;
 }
 
+std::vector<std::string> Scoreboard::getTrackedPlayerNames() const
+{
+    std::vector<std::string> result;
+    result.reserve(m_playerScores.size());
+    for (const auto& [playerName, scores] : m_playerScores) {
+        if (!scores.empty()) {
+            result.push_back(playerName);
+        }
+    }
+    return result;
+}
+
 // ========== 显示槽位 ==========
 
 void Scoreboard::setObjectiveInDisplaySlot(DisplaySlot slot, ScoreObjective* objective)

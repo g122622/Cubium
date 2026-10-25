@@ -1203,7 +1203,7 @@ bool LivingEntity::shouldDropLoot(IWorld& world) const
     // Cubium 用 isChild() 等价 vanilla isBaby()（Entity::isChild 虚函数，AgeableEntity 等
     // 子类 override 返回幼体状态）。MOB_DROPS 即 doMobLoot gamerule（默认 true）。
     // 幼体生物（isChild）死亡不掉落战利品物品，对齐 vanilla。
-    return !isChild() && world.getGameRules().getBoolean(world::gamerule::GameRuleKeys::DO_MOB_LOOT);
+    return !isChild() && world.getGameRules().getBoolean(world::gamerule::GameRuleKeys::MOB_DROPS);
 }
 
 bool LivingEntity::shouldDropExperienceOnDeath(IWorld& world) const
@@ -1221,7 +1221,7 @@ bool LivingEntity::shouldDropExperienceOnDeath(IWorld& world) const
         return true;
     }
     return m_lastHurtByPlayerMemoryTime > 0 && shouldDropExperience() &&
-        world.getGameRules().getBoolean(world::gamerule::GameRuleKeys::DO_MOB_LOOT);
+        world.getGameRules().getBoolean(world::gamerule::GameRuleKeys::MOB_DROPS);
 }
 
 void LivingEntity::dropFromLootTable(DamageSource& cause, bool recentlyHitByPlayer)

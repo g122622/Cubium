@@ -250,7 +250,7 @@ void PaintingEntity::dropItem()
     }
 
     // 检查游戏规则 doEntityDrops：当该规则为 false 时，画被破坏不产生掉落物品
-    if (!m_world->getGameRules().getBoolean(world::gamerule::GameRuleKeys::DO_ENTITY_DROPS)) {
+    if (!m_world->getGameRules().getBoolean(world::gamerule::GameRuleKeys::ENTITY_DROPS)) {
         return;
     }
 
@@ -328,7 +328,7 @@ ActionResultType ItemFrameEntity::processInitialInteract(Player& player, Hand ha
             }
         } else if (player.isSneaking()) {
             // 潜行+右键有物品的展示框：取出物品
-            if (m_world->getGameRules().getBoolean(world::gamerule::GameRuleKeys::DO_ENTITY_DROPS)) {
+            if (m_world->getGameRules().getBoolean(world::gamerule::GameRuleKeys::ENTITY_DROPS)) {
                 math::IRandom& rng = m_world->getRandom();
                 ItemDropHelper::spawnItemEntity(m_world, m_displayedItem, x(), y(), z(), rng);
             }
@@ -357,7 +357,7 @@ void ItemFrameEntity::dropItem()
 {
     // 检查游戏规则 doEntityDrops
     // 当 doEntityDrops 为 false 时不掉落任何物品，当为 true 时掉落物品展示框和内含物品
-    if (m_world != nullptr && m_world->getGameRules().getBoolean(world::gamerule::GameRuleKeys::DO_ENTITY_DROPS)) {
+    if (m_world != nullptr && m_world->getGameRules().getBoolean(world::gamerule::GameRuleKeys::ENTITY_DROPS)) {
         // 掉落物品展示框本身
         if (Items::ITEM_FRAME != nullptr) {
             ItemStack frameStack(*Items::ITEM_FRAME, 1);
@@ -630,7 +630,7 @@ void LeashKnotEntity::dropItem()
     }
 
     // 检查游戏规则 doEntityDrops：当该规则为 false 时，拴绳结被破坏不产生掉落物品
-    if (!m_world->getGameRules().getBoolean(world::gamerule::GameRuleKeys::DO_ENTITY_DROPS)) {
+    if (!m_world->getGameRules().getBoolean(world::gamerule::GameRuleKeys::ENTITY_DROPS)) {
         return;
     }
 

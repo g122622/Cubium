@@ -562,7 +562,7 @@ TEST_F(ProjectileMayBreakTest, GameRuleDefaultIsTrue)
 TEST_F(ProjectileMayBreakTest, GameRuleKeyProperties)
 {
     // 验证游戏规则键属性
-    EXPECT_EQ(world::gamerule::GameRuleKeys::PROJECTILES_CAN_BREAK_BLOCKS.getName(), "projectilesCanBreakBlocks");
+    EXPECT_EQ(world::gamerule::GameRuleKeys::PROJECTILES_CAN_BREAK_BLOCKS.getName(), "projectiles_can_break_blocks");
     EXPECT_EQ(world::gamerule::GameRuleKeys::PROJECTILES_CAN_BREAK_BLOCKS.getCategory(),
         world::gamerule::GameRuleCategory::Drops);
 }

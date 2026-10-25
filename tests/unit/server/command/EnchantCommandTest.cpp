@@ -243,17 +243,11 @@ TEST_F(EnchantCommandTest, SelectorWithNoPlayersReturnsZero)
 
 TEST_F(EnchantCommandTest, SelectorWithMultiplePlayers)
 {
-    // 测试多目标选择器 @a
-    // 注意：@a 选择器在 EntityArgumentType::player() 模式下会抛出异常，
-    // 因为 player() 只允许单个玩家
-    // 这与 MC 1.16.5 行为一致：/enchant 只支持单个目标
-
-    // 执行命令时，@a 选择器会在解析阶段失败（不是执行阶段）
-    // 因为 EntityArgumentType::player() 要求 isSingle() == true
+    // 原版 /enchant <targets> 用的是 EntityArgument.players()，@a 是合法的多目标选择器：
+    // 命令解析通过，执行阶段对每个匹配到的玩家生效（测试服务器里没有在线玩家，结果为 0）。
     const auto result = m_server.commandRegistry().execute("enchant @a sharpness 5", m_console);
 
-    // 命令解析失败，result.success() 应该为 false
-    EXPECT_FALSE(result.success());
+    EXPECT_TRUE(result.success());
 }
 
 // ========== 附魔类型兼容性测试 ==========
@@ -352,11 +346,12 @@ TEST_F(EnchantCommandTest, CurseEnchantment)
 
 TEST_F(EnchantCommandTest, NegativeLevel)
 {
-    // 测试负等级（应该失败）
-    const auto result = m_server.commandRegistry().execute("enchant @p sharpness -1", m_console);
-
-    // 负等级应该在解析时失败
-    EXPECT_FALSE(result.success());
+    // 原版 level 是 integer(0, 32767)：可以写出 -1，但解析时因低于下限而失败。
+    const auto parse = m_server.commandRegistry().dispatcher().parse("enchant @p sharpness -1", m_console);
+    EXPECT_FALSE(parse.isSuccess());
+    if (const auto ex = parse.getException()) {
+        EXPECT_EQ(ex->type(), mc::command::CommandErrorType::IntegerTooLow);
+    }
 }
 
 TEST_F(EnchantCommandTest, ZeroLevelAllowed)

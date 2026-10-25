@@ -249,6 +249,16 @@ TEST_F(NbtPathTest, InvalidPathThrowsError)
     EXPECT_THROW(argType.parse(reader), CommandException);
 }
 
+TEST_F(NbtPathTest, UnquotedKeyMayContainColon)
+{
+    // 原版 NbtPathArgument 的未引号键名允许冒号（`Steve:Inventory` 是合法的单键路径），
+    // 由 command_argument harness 与原版对拍确认。
+    StringReader reader("Steve:Inventory");
+    NbtPathArgumentType argType;
+    const NbtPath path = argType.parse(reader);
+    EXPECT_EQ(path.toString(), "Steve:Inventory");
+}
+
 TEST_F(NbtPathTest, InvalidIndexThrowsError)
 {
     StringReader reader("foo[abc]");

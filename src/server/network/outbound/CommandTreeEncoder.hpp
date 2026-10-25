@@ -77,6 +77,7 @@ namespace command_tree_detail {
 enum : i32 {
     kArgBool = 0,
     kArgFloat = 1,
+    kArgDouble = 2,
     kArgInteger = 3,
     kArgString = 5,
     kArgEntity = 6,
@@ -122,6 +123,15 @@ enum : i32 {
         return defaultValue;
     }
     return j.at(key).get<bool>();
+}
+
+/// 读 JSON 字段为浮点（f64），缺失返回 defaultValue。
+[[nodiscard]] inline f64 jsonDouble(const nlohmann::json& j, const char* key, f64 defaultValue)
+{
+    if (!j.is_object() || !j.contains(key) || !j.at(key).is_number()) {
+        return defaultValue;
+    }
+    return j.at(key).get<f64>();
 }
 
 /// 读 JSON 字段为整数（i32），缺失返回 defaultValue。
@@ -176,6 +186,26 @@ enum : i32 {
             return {};
         }
 
+        case kArgDouble: {
+            // brigadier:double：byte numFlags(bit0=hasMin,bit1=hasMax); 有 min→f64; 有 max→f64。
+            // "has" 判据同 vanilla DoubleArgumentInfo（min != -Double.MAX_VALUE / max != Double.MAX_VALUE）。
+            const f64 kDefaultMin = -std::numeric_limits<f64>::max();
+            const f64 kDefaultMax = std::numeric_limits<f64>::max();
+            const f64 minVal = jsonDouble(props, "min", kDefaultMin);
+            const f64 maxVal = jsonDouble(props, "max", kDefaultMax);
+            const bool hasMin = minVal != kDefaultMin;
+            const bool hasMax = maxVal != kDefaultMax;
+            const u8 numFlags = static_cast<u8>((hasMin ? 0x01 : 0) | (hasMax ? 0x02 : 0));
+            buf.writeU8(numFlags);
+            if (hasMin) {
+                buf.writeF64(minVal);
+            }
+            if (hasMax) {
+                buf.writeF64(maxVal);
+            }
+            return {};
+        }
+
         case kArgInteger: {
             // brigadier:integer：byte numFlags(bit0=hasMin,bit1=hasMax); 有 min→i32; 有 max→i32。
             // vanilla IntegerArgumentInfo.serializeToNetwork 的 "has" 判据是 min != Integer.MIN_VALUE /
@@ -202,22 +232,16 @@ enum : i32 {
 
         case kArgString: {
             // brigadier:string：VarInt StringType 序数（0=SingleWord,1=QuotablePhrase,2=GreedyPhrase）。
-            // typeName 直接对应：word→0, phrase→1, greedy_string→2。
+            // 参数类型名统一是 `string`，模式由 properties 的 quote/greedy 决定
+            // （原版 brigadier:string 的 properties 就是这两个布尔）。
             i32 mode = 1; // 默认 QuotablePhrase
-            if (typeName == "word") {
-                mode = 0;
-            } else if (typeName == "phrase") {
-                mode = 1;
-            } else if (typeName == "greedy_string") {
-                mode = 2;
-            } else if (props.is_object() && props.contains("mode") && props.at("mode").is_string()) {
-                const auto& modeStr = props.at("mode").get<std::string>();
-                if (modeStr == "word" || modeStr == "single_word") {
-                    mode = 0;
-                } else if (modeStr == "phrase" || modeStr == "quotable_phrase") {
-                    mode = 1;
-                } else if (modeStr == "greedy_string" || modeStr == "greedy_phrase") {
+            if (props.is_object()) {
+                const bool greedy = jsonBool(props, "greedy", false);
+                const bool quote = jsonBool(props, "quote", true);
+                if (greedy) {
                     mode = 2;
+                } else if (!quote) {
+                    mode = 0;
                 }
             }
             buf.writeVarInt(mode);

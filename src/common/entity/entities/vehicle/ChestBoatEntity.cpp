@@ -158,7 +158,7 @@ void ChestBoatEntity::dropItem()
     }
 
     // 检查游戏规则 doEntityDrops
-    if (!worldPtr->getGameRules().getBoolean(world::gamerule::GameRuleKeys::DO_ENTITY_DROPS)) {
+    if (!worldPtr->getGameRules().getBoolean(world::gamerule::GameRuleKeys::ENTITY_DROPS)) {
         return;
     }
 
@@ -544,7 +544,7 @@ void ChestBoatEntity::dropInventoryContents()
     }
 
     // 受 doEntityDrops 游戏规则控制
-    if (!worldPtr->getGameRules().getBoolean(world::gamerule::GameRuleKeys::DO_ENTITY_DROPS)) {
+    if (!worldPtr->getGameRules().getBoolean(world::gamerule::GameRuleKeys::ENTITY_DROPS)) {
         return;
     }
 

@@ -28,6 +28,7 @@
 #include "common/command/CommandNode.hpp"
 #include "common/command/arguments/ArgumentType.hpp"
 #include "common/command/arguments/EntityArgument.hpp"
+#include "common/command/arguments/GameModeArgument.hpp"
 #include "common/core/Types.hpp"
 #include "common/network/ir/IrPacket.hpp"
 #include "common/network/ir/packets/play/PlayPacketsExtended.hpp"
@@ -62,13 +63,12 @@ void TellRawCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatch
 
     // /tellraw <player> <json>
     auto playerNode = std::make_shared<ArgumentCommandNode<ServerCommandSource, EntitySelector>>(
-        "player", EntityArgumentType::player());
+        "targets", EntityArgumentType::players());
 
-    auto jsonNode = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
-        "json", StringArgumentType::greedyString());
-    jsonNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return _sendRawMessage(ctx);
-    });
+    // 原版 /tellraw 的 message 参数类型是 component。
+    auto jsonNode = std::make_shared<ArgumentCommandNode<ServerCommandSource, ComponentTextPtr>>(
+        "message", ComponentArgumentType::component());
+    jsonNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _sendRawMessage(ctx); });
 
     playerNode->addChild(jsonNode);
     tellrawNode->addChild(playerNode);
@@ -79,7 +79,7 @@ i32 TellRawCommand::_sendRawMessage(CommandContext<ServerCommandSource>& context
 {
     auto& source = context.getSource();
 
-    const auto& selector = context.getArgument<EntitySelector>("player");
+    const auto& selector = context.getArgument<EntitySelector>("targets");
     auto playerIds = support::resolvePlayerIds(source, selector);
 
     if (playerIds.empty()) {
@@ -87,7 +87,7 @@ i32 TellRawCommand::_sendRawMessage(CommandContext<ServerCommandSource>& context
         return 0;
     }
 
-    const std::string& jsonMessage = context.getArgument<std::string>("json");
+    const std::string jsonMessage = context.getArgument<ComponentTextPtr>("message")->text;
     auto* server = source.server();
     auto& playerManager = server->playerManager();
     i32 successCount = 0;

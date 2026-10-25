@@ -341,18 +341,20 @@ TEST(CommandTreeEncoder, ArgumentEntityFlags)
 // string mode：word→VarInt(0), phrase→VarInt(1), greedy_string→VarInt(2)。
 TEST(CommandTreeEncoder, ArgumentStringMode)
 {
+    // 参数类型名统一是 string，模式由 properties 的 quote/greedy 决定（原版同样如此）。
     const struct Case {
         std::string typeName;
+        nlohmann::json props;
         i32 expectedMode;
     } cases[] = {
-        {"word", 0},
-        {"phrase", 1},
-        {"greedy_string", 2},
+        {"word", nlohmann::json{{"quote", false}, {"greedy", false}}, 0},
+        {"phrase", nlohmann::json{{"quote", true}, {"greedy", false}}, 1},
+        {"greedy_string", nlohmann::json{{"quote", true}, {"greedy", true}}, 2},
     };
 
     for (const auto& c : cases) {
         CommandTreeSnapshot snap;
-        snap.nodes = {makeRoot({1}), makeArgument("n", c.typeName, 5, {}, {}, true)};
+        snap.nodes = {makeRoot({1}), makeArgument("n", c.typeName, 5, c.props, {}, true)};
         auto r = encodeCommandTree(snap);
         ASSERT_TRUE(r.success()) << c.typeName << ": " << r.error().toString();
         // node1: flags=0x06, childCount=0, name "n"(VarInt(1)+"n"), numericId=5, modeVarInt

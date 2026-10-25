@@ -57,6 +57,14 @@
 
 namespace mc::command::support {
 
+EntitySelector gameProfileSelector(const std::string& text)
+{
+    EntitySelector selector;
+    // 多个名字时只取第一个（原版这些命令对每个档案单独执行，这里保持一次一个的语义）。
+    selector.setUsername(text.substr(0, text.find(',')));
+    return selector;
+}
+
 namespace {
 
 /**

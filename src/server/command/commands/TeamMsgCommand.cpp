@@ -25,6 +25,7 @@
 
 #include "common/command/CommandNode.hpp"
 #include "common/command/arguments/ArgumentType.hpp"
+#include "common/command/arguments/GameModeArgument.hpp"
 #include "common/scoreboard/core/ScorePlayerTeam.hpp"
 #include "common/util/text/ComponentNbtSerialization.hpp"
 #include "server/application/IServer.hpp"
@@ -64,11 +65,9 @@ std::string _teamName(scoreboard::ScorePlayerTeam& team)
 
 void TeamMsgCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
 {
-    auto messageArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
-        "message", StringArgumentType::greedyString());
-    messageArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return _sendTeamMessage(ctx);
-    });
+    auto messageArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, ComponentTextPtr>>(
+        "message", MessageComponentArgumentType::message());
+    messageArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _sendTeamMessage(ctx); });
 
     auto teamMsgNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("teammsg");
     teamMsgNode->setRequirement([](const ServerCommandSource& source) {
@@ -95,7 +94,7 @@ i32 TeamMsgCommand::_sendTeamMessage(CommandContext<ServerCommandSource>& contex
         return 0;
     }
 
-    const std::string& message = context.getArgument<std::string>("message");
+    const std::string message = context.getArgument<ComponentTextPtr>("message")->text;
     const std::string senderName = source.name();
 
     auto& scoreboard = server->scoreboard();

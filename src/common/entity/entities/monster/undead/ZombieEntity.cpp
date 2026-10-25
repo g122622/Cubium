@@ -276,7 +276,7 @@ bool ZombieEntity::canSummonReinforcements() const
 void ZombieEntity::_trySpawnReinforcement(IWorld& world, LivingEntity& target)
 {
     // 检查 doMobSpawning 游戏规则
-    if (!world.getGameRules().getBoolean(world::gamerule::GameRuleKeys::DO_MOB_SPAWNING)) {
+    if (!world.getGameRules().getBoolean(world::gamerule::GameRuleKeys::SPAWN_MOBS)) {
         return;
     }
 

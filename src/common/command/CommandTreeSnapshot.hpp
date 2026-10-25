@@ -244,12 +244,13 @@ template <typename NodeT>
     }
 
     const std::string typeName = node.getTypeName();
-    if (typeName == "player" || typeName == "players") {
-        return CommandTreeSuggestionKind::PlayerNames;
-    }
-
-    if (typeName == "entity" || typeName == "entities") {
-        return CommandTreeSuggestionKind::EntityNames;
+    if (typeName == "entity") {
+        // 原版只有一种 entity 参数类型，是否限玩家由 metadata 的 playersOnly 决定：
+        // 限玩家时补全玩家名，否则补全实体名。
+        const nlohmann::json metadata = node.getMetadata();
+        const bool playersOnly = metadata.contains("playersOnly") && metadata.at("playersOnly").is_boolean()
+            && metadata.at("playersOnly").template get<bool>();
+        return playersOnly ? CommandTreeSuggestionKind::PlayerNames : CommandTreeSuggestionKind::EntityNames;
     }
 
     if (typeName == "item" || typeName == "item_predicate") {
@@ -270,35 +271,58 @@ template <typename NodeT>
 /// nullopt，编码器据此报错。本项目命令注册实际用到的 typeName 全在此表内（enum 不使用）。
 [[nodiscard]] inline std::optional<i32> argumentNetworkIdForTypeName(std::string_view typeName)
 {
+    // 键按 ArgumentTypeInfos.bootstrap 的注册顺序排列，注释即注册名。
     static const std::unordered_map<std::string_view, i32> kMap = {
-        {"bool", 0},
-        {"float", 1},
-        {"integer", 3},
+        {"bool", 0},           // brigadier:bool
+        {"float", 1},          // brigadier:float
+        {"double", 2},         // brigadier:double
+        {"integer", 3},        // brigadier:integer
+        {"long", 4},           // brigadier:long
+        {"string", 5},         // brigadier:string（word/phrase/greedy_string 是旧类型名，一并兼容）
         {"word", 5},
         {"phrase", 5},
         {"greedy_string", 5},
-        {"string", 5},
-        {"entity", 6},
+        {"entity", 6},         // minecraft:entity（entities/player/players 是旧类型名）
         {"entities", 6},
         {"player", 6},
         {"players", 6},
-        {"block_pos", 8},
-        {"vec3", 10},
-        {"vec2", 11},
-        {"block_state", 12},
-        {"item", 14},
-        {"item_predicate", 15},
-        {"nbt_compound", 21},
-        {"nbt_tag", 22},
-        {"nbt_path", 23},
-        {"rotation", 29},
-        {"item_slot", 34},
-        {"resource_location", 36},
-        {"identifier", 36},
-        {"function", 37},
-        {"dimension", 41},
-        {"gamemode", 42},
-        {"time", 43},
+        {"game_profile", 7},   // minecraft:game_profile
+        {"block_pos", 8},      // minecraft:block_pos
+        {"column_pos", 9},     // minecraft:column_pos
+        {"vec3", 10},          // minecraft:vec3
+        {"vec2", 11},          // minecraft:vec2
+        {"block_state", 12},   // minecraft:block_state
+        {"nbt_compound", 21},  // minecraft:nbt_compound_tag（旧名一并兼容）
+        {"nbt_compound_tag", 21},
+        {"nbt_tag", 22},       // minecraft:nbt_tag
+        {"nbt_path", 23},      // minecraft:nbt_path
+        {"item", 14},          // minecraft:item_stack（旧名一并兼容）
+        {"item_stack", 14},
+        // 原版枚举型参数在 1.21.11 仍是注册表里的参数类型（ArgumentTypeInfos 有 numeric id），
+        // 只是 payload 为空；这里补齐编号，编码器按 SingletonArgumentInfo 写空 payload。
+        {"objective_criteria", 25},  // minecraft:objective_criteria
+        {"operation", 26},           // minecraft:operation
+        {"item_predicate", 15},// minecraft:item_predicate
+        {"particle", 16},      // minecraft:particle
+        {"component", 17},     // minecraft:component
+        {"message", 39},       // minecraft:message
+        {"resource", 18},      // minecraft:resource
+        {"resource_or_tag", 19},      // minecraft:resource_or_tag
+        {"resource_or_tag_key", 20},  // minecraft:resource_or_tag_key
+        {"resource_key", 24},  // minecraft:resource_key
+        {"rotation", 29},      // minecraft:rotation
+        {"item_slot", 34},     // minecraft:item_slot
+        {"objective", 32},     // minecraft:objective
+        {"team", 35},          // minecraft:team
+        {"score_holder", 31},  // minecraft:score_holder
+        {"swizzle", 30},       // minecraft:swizzle
+        {"entity_anchor", 27}, // minecraft:entity_anchor
+        {"resource_location", 36}, // minecraft:resource_location
+        {"identifier", 36},    // 旧类型名，指向同一个 id
+        {"function", 37},      // minecraft:function
+        {"dimension", 41},     // minecraft:dimension
+        {"gamemode", 42},      // minecraft:gamemode
+        {"time", 43},          // minecraft:time
     };
     auto it = kMap.find(typeName);
     if (it == kMap.end()) {
@@ -334,6 +358,12 @@ template <typename S>
         pending.pop();
 
         if (!node) {
+            continue;
+        }
+
+        // 纯实现脚手架（/execute 链上的 run 等）参与解析，但不属于协议里的命令树：
+        // 整棵子树跳过，子节点也就不会被枚举。
+        if (node->isTreeHidden()) {
             continue;
         }
 
@@ -376,7 +406,7 @@ template <typename S>
             return;
         }
         const auto visitChild = [&](const std::string& name) {
-            if (auto child = node->getChild(name)) {
+            if (auto child = node->getChild(name); child && !child->isTreeHidden()) {
                 currentPath.push_back(child->getName());
                 self(self, child);
                 currentPath.pop_back();
@@ -413,23 +443,24 @@ template <typename S>
         snapshotNode.examples = node->getExamples();
         snapshotNode.executable = node->hasCommand();
         snapshotNode.redirectModifier = node->getRedirectModifier();
-        if (node->hasRedirect()) {
+        if (node->hasRedirect() && node->getRedirect() && !node->getRedirect()->isTreeHidden()) {
             auto redirectIt = nodeIds.find(node->getRedirect().get());
             if (redirectIt != nodeIds.end()) {
                 snapshotNode.redirect = redirectIt->second;
             }
         }
 
+        // 隐藏节点没有进入 nodeIds，枚举子节点时一并跳过（否则 nodeIds.at 抛异常）。
         for (const auto& childName : node->getLiterals()) {
             auto child = node->getChild(childName);
-            if (child) {
+            if (child && !child->isTreeHidden()) {
                 snapshotNode.children.push_back(nodeIds.at(child.get()));
             }
         }
 
         for (const auto& childName : node->getArguments()) {
             auto child = node->getChild(childName);
-            if (child) {
+            if (child && !child->isTreeHidden()) {
                 snapshotNode.children.push_back(nodeIds.at(child.get()));
             }
         }

@@ -84,7 +84,7 @@ EntitySelector EntityArgumentType::_parseSelector(StringReader& reader, i32 star
 {
     reader.skip();
 
-    if (!reader.canRead()) {
+    if (reader.atEnd()) {
         throw CommandException(CommandErrorType::EntitySelectorInvalid, "Missing selector type", start);
     }
 

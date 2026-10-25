@@ -71,7 +71,7 @@ public:
     {
         Items::ensureInitialized();
         VanillaBlocks::initialize();
-        m_gameRules.setBoolean(world::gamerule::GameRuleKeys::DO_ENTITY_DROPS, true, nullptr);
+        m_gameRules.setBoolean(world::gamerule::GameRuleKeys::ENTITY_DROPS, true, nullptr);
     }
 
     [[nodiscard]] Difficulty difficulty() const override
@@ -518,7 +518,7 @@ public:
     {
         Items::ensureInitialized();
         VanillaBlocks::initialize();
-        m_gameRules.setBoolean(world::gamerule::GameRuleKeys::DO_ENTITY_DROPS, true, nullptr);
+        m_gameRules.setBoolean(world::gamerule::GameRuleKeys::ENTITY_DROPS, true, nullptr);
     }
 
     [[nodiscard]] Difficulty difficulty() const override

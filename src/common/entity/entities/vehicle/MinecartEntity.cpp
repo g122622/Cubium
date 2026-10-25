@@ -967,7 +967,7 @@ void AbstractMinecartEntity::dropItem(DamageSource* source)
 
     // 检查游戏规则 doEntityDrops：当该规则为 false 时，矿车被摧毁不产生掉落物品
     // 参考 VehicleEntity.destroy() 中的 ENTITY_DROPS 检查
-    if (!worldPtr->getGameRules().getBoolean(world::gamerule::GameRuleKeys::DO_ENTITY_DROPS)) {
+    if (!worldPtr->getGameRules().getBoolean(world::gamerule::GameRuleKeys::ENTITY_DROPS)) {
         remove();
         return;
     }
@@ -1184,7 +1184,7 @@ void ChestMinecartEntity::dropItem(DamageSource* source)
 
     // 容器内容物掉落也受 doEntityDrops 游戏规则控制
     // 参考 ContainerEntity.chestVehicleDestroyed() 中的 ENTITY_DROPS 检查
-    bool doEntityDrops = worldPtr->getGameRules().getBoolean(world::gamerule::GameRuleKeys::DO_ENTITY_DROPS);
+    bool doEntityDrops = worldPtr->getGameRules().getBoolean(world::gamerule::GameRuleKeys::ENTITY_DROPS);
 
     if (doEntityDrops && c->m_inventory) {
         // 掉落所有库存物品
@@ -1404,7 +1404,7 @@ void FurnaceMinecartEntity::dropItem(DamageSource* source)
     // 参考 MC 1.16.5 FurnaceMinecartEntity.killMinecart()：
     //   非爆炸销毁时额外掉落熔炉方块（MC 1.21.11 MinecartFurnace 已移除此行为，仅掉落 FURNACE_MINECART 物品）
     bool isExplosion = (source != nullptr && source->isExplosion());
-    bool doEntityDrops = worldPtr->getGameRules().getBoolean(world::gamerule::GameRuleKeys::DO_ENTITY_DROPS);
+    bool doEntityDrops = worldPtr->getGameRules().getBoolean(world::gamerule::GameRuleKeys::ENTITY_DROPS);
 
     if (!isExplosion && doEntityDrops) {
         // 通过 BlockItemRegistry 获取熔炉方块物品并掉落
@@ -1588,7 +1588,7 @@ void TNTMinecartEntity::dropItem(DamageSource* source)
         if (!isExplosion) {
             IWorld* worldPtr = world();
             if (worldPtr && !worldPtr->isClientSide()) {
-                if (worldPtr->getGameRules().getBoolean(world::gamerule::GameRuleKeys::DO_ENTITY_DROPS)) {
+                if (worldPtr->getGameRules().getBoolean(world::gamerule::GameRuleKeys::ENTITY_DROPS)) {
                     // 通过 BlockItemRegistry 获取 TNT 方块物品
                     const BlockItem* tntBlockItem = BlockItemRegistry::instance().getBlockItem(*VanillaBlocks::TNT);
                     if (tntBlockItem != nullptr) {
@@ -1914,7 +1914,7 @@ void HopperMinecartEntity::dropItem(DamageSource* source)
 
     // 容器内容物掉落受 doEntityDrops 游戏规则控制
     // 参考 ContainerEntity.chestVehicleDestroyed() 中的 ENTITY_DROPS 检查
-    bool doEntityDrops = worldPtr->getGameRules().getBoolean(world::gamerule::GameRuleKeys::DO_ENTITY_DROPS);
+    bool doEntityDrops = worldPtr->getGameRules().getBoolean(world::gamerule::GameRuleKeys::ENTITY_DROPS);
 
     if (doEntityDrops && c->m_inventory) {
         // 掉落所有库存物品

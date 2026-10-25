@@ -58,10 +58,8 @@ void KillCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
 
     // /kill <target> - 杀死目标实体
     auto targetArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, EntitySelector>>(
-        "target", EntityArgumentType::entities());
-    targetArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return _killEntities(ctx);
-    });
+        "targets", EntityArgumentType::entities());
+    targetArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _killEntities(ctx); });
     killNode->addChild(targetArg);
 
     dispatcher.registerCommand(killNode);
@@ -106,7 +104,7 @@ i32 KillCommand::_killSelf(CommandContext<ServerCommandSource>& context)
 i32 KillCommand::_killEntities(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
-    EntitySelector selector = context.getArgument<EntitySelector>("target");
+    EntitySelector selector = context.getArgument<EntitySelector>("targets");
 
     // 使用 EntityResolver 解析实体选择器，支持非玩家实体
     auto entities = support::EntityResolver::resolve(source, selector);

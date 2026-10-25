@@ -831,20 +831,14 @@ public:
 
     [[nodiscard]] EntitySelector parse(StringReader& reader) override;
 
-    [[nodiscard]] std::string getTypeName() const override
-    {
-        switch (m_mode) {
-            case Mode::SingleEntity:
-                return "entity";
-            case Mode::MultipleEntities:
-                return "entities";
-            case Mode::SinglePlayer:
-                return "player";
-            case Mode::MultiplePlayers:
-                return "players";
-        }
-        return "entity";
-    }
+    /**
+     * @brief 参数类型名（对齐原版命令树）
+     *
+     * 原版只有一种 `minecraft:entity` 参数类型，单/多目标与「是否限玩家」由 flags
+     * 字节区分（bit0=single、bit1=playersOnly），类型名不随模式变化。因此这里同样
+     * 只输出 `entity`；模式差异体现在 {@link serializeMetadata} 的 flags 上。
+     */
+    [[nodiscard]] std::string getTypeName() const override { return "entity"; }
 
     [[nodiscard]] std::vector<std::string> getExamples() const override
     {

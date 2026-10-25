@@ -1410,7 +1410,7 @@ void ServerWorld::tick()
             // 对齐 vanilla ServerLevel.tickThunder：闪电落点按区域难度判定是否生成陷阱骷髅马，
             // 生成时闪电只作视觉效果（不再伤害/点燃）。
             bool skeletonTrap = false;
-            if (m_gameRules.getBoolean(world::gamerule::GameRuleKeys::DO_MOB_SPAWNING)) {
+            if (m_gameRules.getBoolean(world::gamerule::GameRuleKeys::SPAWN_MOBS)) {
                 const f64 difficulty =
                     static_cast<f64>(entity::combat::DifficultyInstance::at(*this, pos).getEffectiveDifficulty()) *
                     static_cast<f64>(mc::weather::WeatherConstants::SKELETON_HORSE_TRAP_CHANCE);
@@ -1605,7 +1605,7 @@ void ServerWorld::tickEnvironment(i32 randomTickSpeed)
         return;
     }
 
-    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Tick, "ServerWorld::tickEnvironment", "randomTickSpeed", randomTickSpeed);
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Tick, "ServerWorld::tickEnvironment", "random_tick_speed", randomTickSpeed);
 
     // 遍历玩家模拟距离内的区块执行随机刻
     // 注意用 forEachTickingChunk 而非 forEachLoadedChunk：随机刻会改变世界状态（作物生长、
@@ -2967,7 +2967,9 @@ bool ServerWorld::isPvpAllowed() const
 
 bool ServerWorld::doFireTick() const
 {
-    return m_gameRules.getBoolean(world::gamerule::GameRuleKeys::DO_FIRE_TICK);
+    // 原版没有 doFireTick 开关了：蔓延范围由 fire_spread_radius_around_player 决定，
+    // -1 表示不蔓延。这里按「半径 > 0」判断是否蔓延。
+    return m_gameRules.getInt(world::gamerule::GameRuleKeys::FIRE_SPREAD_RADIUS_AROUND_PLAYER) > 0;
 }
 
 i32 ServerWorld::getMinBuildHeight() const noexcept

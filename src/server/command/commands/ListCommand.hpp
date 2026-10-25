@@ -46,6 +46,7 @@ public:
 
 private:
     static i32 _listPlayers(CommandContext<ServerCommandSource>& context);
+    static i32 _listPlayerUuids(CommandContext<ServerCommandSource>& context);
 };
 
 } // namespace command

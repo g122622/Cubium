@@ -606,6 +606,8 @@ TEST_F(CommandDispatcherTest, UnknownCommandWhenNoLiteralMatches)
 }
 
 // 权限满足时正常解析，确认友好提示改动不影响正常路径。
+// 输入必须能被完整解释：这里的 tp 只有字面量、没有参数，`tp 100 1000 1000` 在原版里
+// 必然报 Unknown argument（与权限无关），不能用来验证「权限够就成功」。
 TEST_F(CommandDispatcherTest, SucceedsWithPermission)
 {
     CommandDispatcher<int> dispatcher;
@@ -626,9 +628,15 @@ TEST_F(CommandDispatcherTest, SucceedsWithPermission)
     dispatcher.registerCommand(helpNode);
 
     int source = 2; // 权限满足
-    auto result = dispatcher.parse("tp 100 1000 1000", source);
+    auto result = dispatcher.parse("tp", source);
 
     EXPECT_TRUE(result.isSuccess());
+
+    // 同一条命令在权限不足时应报 PermissionDenied。
+    int denied = 0;
+    auto deniedResult = dispatcher.parse("tp", denied);
+    ASSERT_TRUE(deniedResult.getException().has_value());
+    EXPECT_EQ(deniedResult.getException()->type(), CommandErrorType::PermissionDenied);
 }
 
 TEST_F(CommandDispatcherTest, ExecuteRedirectAlias)

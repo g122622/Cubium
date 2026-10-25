@@ -180,7 +180,7 @@ void ServerDimension::tick()
         // 注：难度门控（和平不刷怪）仍由 NaturalSpawner::tick 内 allowsMobSpawning 检查，此处仅补 doMobSpawning。
         // hostile 维度开关同时被下方 VillageSiege 复用，故声明在 if 外。
         bool hostile = (id() == DimensionManager::OVERWORLD || id() == DimensionManager::NETHER);
-        if (m_world->getGameRules().getBoolean(world::gamerule::GameRuleKeys::DO_MOB_SPAWNING)) {
+        if (m_world->getGameRules().getBoolean(world::gamerule::GameRuleKeys::SPAWN_MOBS)) {
             bool passive = (id() == DimensionManager::OVERWORLD);
             m_naturalSpawner->tick(*m_world, hostile, passive);
         }

@@ -44,6 +44,7 @@ public:
 private:
     static i32 _enableDataPack(CommandContext<ServerCommandSource>& context);
     static i32 _disableDataPack(CommandContext<ServerCommandSource>& context);
+    static i32 _createDataPack(CommandContext<ServerCommandSource>& context);
     static i32 _listDataPacks(CommandContext<ServerCommandSource>& context);
 };
 

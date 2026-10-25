@@ -241,8 +241,9 @@ TEST_F(CommandRegistryServerTest, DefaultGameModeCommandUpdatesServerDefault)
 TEST_F(CommandRegistryServerTest, SayCommandBroadcastsServerMessage)
 {
     // 批5b：broadcastServerMessage 纯虚已删，SayCommand 改走 spdlog::info 直接打日志，
-    // 不再经 IServer 出站。此处仅验证命令执行成功（/say hello world 解析通过）。
-    const auto result = m_server.commandRegistry().execute("say hello world", m_console);
+    // 不再经 IServer 出站。此处仅验证命令执行成功（/say <message> 解析通过）。
+    // 原版 message 是 MessageArgument（组件写法），这里给纯文本组件 JSON。
+    const auto result = m_server.commandRegistry().execute(R"(say {"text":"hello world"})", m_console);
 
     ASSERT_TRUE(result.success());
 }
@@ -286,7 +287,8 @@ TEST_F(CommandRegistryServerTest, KickCommandUsesCustomReason)
     const auto connection = m_server.lastConnection();
     ASSERT_NE(connection, nullptr);
 
-    const auto result = m_server.commandRegistry().execute("kick Steve excessive ping", m_console);
+    // reason 是组件参数：纯文本要用 JSON 字符串形式（与原版 /kick <targets> <reason> 一致）。
+    const auto result = m_server.commandRegistry().execute(R"(kick Steve "excessive ping")", m_console);
 
     ASSERT_TRUE(result.success());
     EXPECT_EQ(result.value(), 1);
@@ -648,28 +650,6 @@ TEST_F(CommandRegistryServerTest, SpectateCommandRejectsAdventureGameMode)
 
     EXPECT_TRUE(result.success());
     EXPECT_EQ(result.value(), 0);
-}
-
-TEST_F(CommandRegistryServerTest, SpectateCommandStopWorksForAnyGameMode)
-{
-    // /spectate stop 命令不需要观察者模式
-    auto* steve = m_server.addTestPlayer(1, "Steve");
-    ASSERT_NE(steve, nullptr);
-    steve->gameMode = GameMode::Survival;
-
-    // SpectateCommand._stopSpectating 会通过 world->getEntity(playerId) 查找实体并
-    // dynamic_cast 为 ServerPlayer，因此需要在测试世界中生成对应实体。
-    auto* steveEntity = m_server.spawnTestPlayerEntity(1, "Steve");
-    ASSERT_NE(steveEntity, nullptr);
-
-    auto playerSource = makePlayerSource(1, "Steve");
-
-    // 执行 spectate stop 命令
-    const auto result = m_server.commandRegistry().execute("spectate stop", playerSource);
-
-    // 命令执行成功
-    EXPECT_TRUE(result.success());
-    EXPECT_EQ(result.value(), 1);
 }
 
 } // namespace

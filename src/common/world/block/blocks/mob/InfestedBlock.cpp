@@ -65,7 +65,7 @@ void InfestedBlock::spawnAfterBreak(
     }
 
     // 检查游戏规则 doTileDrops：为 false 时不生成蠹虫
-    if (!world.getGameRules().getBoolean(world::gamerule::GameRuleKeys::DO_TILE_DROPS)) {
+    if (!world.getGameRules().getBoolean(world::gamerule::GameRuleKeys::BLOCK_DROPS)) {
         return;
     }
 

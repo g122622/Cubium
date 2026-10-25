@@ -157,12 +157,7 @@ private:
 class NbtCompoundArgumentType : public ArgumentType<std::shared_ptr<nbt::tags::compound_tag>> {
 public:
     [[nodiscard]] std::shared_ptr<nbt::tags::compound_tag> parse(StringReader& reader) override;
-
-    [[nodiscard]] std::string getTypeName() const override
-    {
-        return "nbt_compound";
-    }
-
+    [[nodiscard]] std::string getTypeName() const override { return "nbt_compound_tag"; }
     [[nodiscard]] std::vector<std::string> getExamples() const override
     {
         return {"{}", "{foo:bar}", "{foo:1,bar:\"hello\"}"};

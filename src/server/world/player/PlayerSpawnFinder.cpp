@@ -97,7 +97,7 @@ std::optional<Vector3> PlayerSpawnFinder::findSpawn(ServerWorld& world, const Bl
         return fixupSpawnHeight(world, suggestedPos);
     }
 
-    i32 radius = std::max(0, world.getGameRules().getInt(world::gamerule::GameRuleKeys::SPAWN_RADIUS));
+    i32 radius = std::max(0, world.getGameRules().getInt(world::gamerule::GameRuleKeys::RESPAWN_RADIUS));
 
     // 半径不得超出世界边界：取建议位置到最近边界的距离，边界距离不足 1 时强制为 1。
     const i32 borderDistance =

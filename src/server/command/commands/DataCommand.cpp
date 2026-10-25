@@ -122,7 +122,7 @@ void DataCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
     // /data get storage <id> [<path>] [<scale>]
     auto getStorageNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("storage");
     auto getStorageIdArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, ResourceLocation>>(
-        "id", ResourceLocationArgumentType::resourceLocation());
+        "id", IdentifierArgumentType::identifier());
     auto getStoragePathArg =
         std::make_shared<ArgumentCommandNode<ServerCommandSource, NbtPath>>("path", NbtPathArgumentType::nbtPath());
     auto getStorageScaleArg =
@@ -144,8 +144,11 @@ void DataCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
 
     dataNode->addChild(getNode);
 
-    // ========== /data set 子命令 ==========
-    auto setNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("set");
+    // ========== /data modify ... set 子命令 ==========
+    // 原版 1.13 起没有 /data set，写入走 `/data modify <target> <path> set <value>`。
+    // 这里按原版形状注册 modify → {block,entity,storage} → 字段 → set(value)，
+    // 下面是各目标共用的 "set" 字段节点（值由各自的 _set* 处理）。
+    auto modifyNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("modify");
 
     // /data set block <pos> <path> <value>
     auto setBlockNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("block");
@@ -156,13 +159,13 @@ void DataCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
     auto setBlockValueArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::shared_ptr<nbt::tags::tag>>>(
         "value", NbtTagArgumentType::nbtTag());
 
-    setBlockValueArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return _setBlock(ctx);
-    });
-    setBlockPathArg->addChild(setBlockValueArg);
+    auto setBlockSetNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("set");
+    setBlockSetNode->addChild(setBlockValueArg);
+    setBlockValueArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _setBlock(ctx); });
+    setBlockPathArg->addChild(setBlockSetNode);
     setBlockPosArg->addChild(setBlockPathArg);
     setBlockNode->addChild(setBlockPosArg);
-    setNode->addChild(setBlockNode);
+    modifyNode->addChild(setBlockNode);
 
     // /data set entity <target> <path> <value>
     auto setEntityNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("entity");
@@ -174,33 +177,33 @@ void DataCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
         std::make_shared<ArgumentCommandNode<ServerCommandSource, std::shared_ptr<nbt::tags::tag>>>(
             "value", NbtTagArgumentType::nbtTag());
 
-    setEntityValueArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return _setEntity(ctx);
-    });
-    setEntityPathArg->addChild(setEntityValueArg);
+    auto setEntitySetNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("set");
+    setEntitySetNode->addChild(setEntityValueArg);
+    setEntityValueArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _setEntity(ctx); });
+    setEntityPathArg->addChild(setEntitySetNode);
     setEntityTargetArg->addChild(setEntityPathArg);
     setEntityNode->addChild(setEntityTargetArg);
-    setNode->addChild(setEntityNode);
+    modifyNode->addChild(setEntityNode);
 
     // /data set storage <id> <path> <value>
     auto setStorageNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("storage");
     auto setStorageIdArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, ResourceLocation>>(
-        "id", ResourceLocationArgumentType::resourceLocation());
+        "id", IdentifierArgumentType::identifier());
     auto setStoragePathArg =
         std::make_shared<ArgumentCommandNode<ServerCommandSource, NbtPath>>("path", NbtPathArgumentType::nbtPath());
     auto setStorageValueArg =
         std::make_shared<ArgumentCommandNode<ServerCommandSource, std::shared_ptr<nbt::tags::tag>>>(
             "value", NbtTagArgumentType::nbtTag());
 
-    setStorageValueArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return _setStorage(ctx);
-    });
-    setStoragePathArg->addChild(setStorageValueArg);
+    auto setStorageSetNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("set");
+    setStorageSetNode->addChild(setStorageValueArg);
+    setStorageValueArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _setStorage(ctx); });
+    setStoragePathArg->addChild(setStorageSetNode);
     setStorageIdArg->addChild(setStoragePathArg);
     setStorageNode->addChild(setStorageIdArg);
-    setNode->addChild(setStorageNode);
+    modifyNode->addChild(setStorageNode);
 
-    dataNode->addChild(setNode);
+    dataNode->addChild(modifyNode);
 
     // ========== /data merge 子命令 ==========
     auto mergeNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("merge");
@@ -238,7 +241,7 @@ void DataCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
     // /data merge storage <id> <nbt>
     auto mergeStorageNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("storage");
     auto mergeStorageIdArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, ResourceLocation>>(
-        "id", ResourceLocationArgumentType::resourceLocation());
+        "id", IdentifierArgumentType::identifier());
     auto mergeStorageNbtArg =
         std::make_shared<ArgumentCommandNode<ServerCommandSource, std::shared_ptr<nbt::tags::compound_tag>>>(
             "nbt", NbtCompoundArgumentType::nbtCompound());
@@ -286,7 +289,7 @@ void DataCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
     // /data remove storage <id> <path>
     auto removeStorageNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("storage");
     auto removeStorageIdArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, ResourceLocation>>(
-        "id", ResourceLocationArgumentType::resourceLocation());
+        "id", IdentifierArgumentType::identifier());
     auto removeStoragePathArg =
         std::make_shared<ArgumentCommandNode<ServerCommandSource, NbtPath>>("path", NbtPathArgumentType::nbtPath());
 

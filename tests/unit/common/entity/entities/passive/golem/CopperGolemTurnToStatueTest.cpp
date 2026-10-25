@@ -93,7 +93,7 @@ public:
     {
         m_tickManagerPtr = std::make_unique<world::tick::TickManager>(*this);
         // 默认开启 DO_ENTITY_DROPS，便于测试掉落场景
-        m_gameRules.setBoolean(world::gamerule::GameRuleKeys::DO_ENTITY_DROPS, true, nullptr);
+        m_gameRules.setBoolean(world::gamerule::GameRuleKeys::ENTITY_DROPS, true, nullptr);
     }
 
     bool setBlockState(i32 x, i32 y, i32 z, const BlockState* state) override
@@ -236,7 +236,7 @@ public:
     /// 显式启用/禁用 DO_ENTITY_DROPS 规则
     void setDoEntityDrops(bool enabled)
     {
-        m_gameRules.setBoolean(world::gamerule::GameRuleKeys::DO_ENTITY_DROPS, enabled, nullptr);
+        m_gameRules.setBoolean(world::gamerule::GameRuleKeys::ENTITY_DROPS, enabled, nullptr);
     }
 
 private:

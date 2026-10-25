@@ -141,8 +141,8 @@ TEST(InfestedBlockSpawnTest, SpawnAfterBreak_OverrideExists)
 TEST(InfestedBlockSpawnTest, GameRuleKeys_DoTileDrops_ExistsAndValid)
 {
     // 验证 DO_TILE_DROPS 游戏规则键已正确定义
-    const auto& key = world::gamerule::GameRuleKeys::DO_TILE_DROPS;
-    EXPECT_EQ(key.getName(), "doTileDrops");
+    const auto& key = world::gamerule::GameRuleKeys::BLOCK_DROPS;
+    EXPECT_EQ(key.getName(), "block_drops");
 }
 
 // ============================================================================

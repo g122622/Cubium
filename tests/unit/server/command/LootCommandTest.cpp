@@ -31,6 +31,9 @@
 
 #include <gtest/gtest.h>
 
+#include <algorithm>
+#include <vector>
+
 #include "common/BaseTestServer.hpp"
 #include "common/world/dimension/DimensionManager.hpp"
 #include "server/command/ServerCommandSource.hpp"
@@ -127,31 +130,43 @@ TEST_F(LootCommandTest, LootSourceNodesExist)
     const auto& registry = m_server.commandRegistry();
     const auto snapshot = registry.getCommandTreeSnapshot();
 
-    // 检查 loot 子命令节点存在
-    bool foundLoot = false;
-    bool foundFish = false;
-    bool foundKill = false;
-    bool foundMine = false;
+    // 原版 1.21 的 /loot 形状是 loot → {give,spawn,insert,replace} → <目标字段> → 来源：
+    // 来源里只有 `loot` 可以直接接 loot 表（loot_table 参数），fish/mine 以 pos 参数开头、
+    // kill 以 target 参数开头，都不是字面量子命令。
+    bool foundLootSource = false;
+    bool foundFishPos = false;
+    bool foundKillTarget = false;
+    bool foundMinePos = false;
+    auto collectUnder = [&](const std::string& parentName, std::vector<std::string>& out) {
+        // 找出 parentName 节点，再收集它的子节点名字（只按快照里的一层）。
+        for (const auto& node : snapshot.nodes) {
+            if (node.name != parentName) {
+                continue;
+            }
+            for (const auto childId : node.children) {
+                out.push_back(snapshot.nodes[childId].name);
+            }
+        }
+    };
 
-    for (const auto& node : snapshot.nodes) {
-        if (node.name == "loot" && node.type == NodeType::Literal) {
-            foundLoot = true;
-        }
-        if (node.name == "fish" && node.type == NodeType::Literal) {
-            foundFish = true;
-        }
-        if (node.name == "kill" && node.type == NodeType::Literal) {
-            foundKill = true;
-        }
-        if (node.name == "mine" && node.type == NodeType::Literal) {
-            foundMine = true;
-        }
-    }
+    // 目标 give → players → …
+    std::vector<std::string> giveChildren;
+    std::vector<std::string> playersChildren;
+    collectUnder("give", giveChildren);
+    collectUnder("players", playersChildren);
+    foundLootSource = std::any_of(playersChildren.begin(), playersChildren.end(),
+        [](const std::string& n) { return n == "loot_table"; });
+    foundFishPos =
+        std::any_of(playersChildren.begin(), playersChildren.end(), [](const std::string& n) { return n == "pos"; });
+    foundKillTarget =
+        std::any_of(playersChildren.begin(), playersChildren.end(), [](const std::string& n) { return n == "target"; });
+    foundMinePos =
+        std::any_of(playersChildren.begin(), playersChildren.end(), [](const std::string& n) { return n == "pos"; });
 
-    EXPECT_TRUE(foundLoot) << "loot source subcommand should exist";
-    EXPECT_TRUE(foundFish) << "fish source subcommand should exist";
-    EXPECT_TRUE(foundKill) << "kill source subcommand should exist";
-    EXPECT_TRUE(foundMine) << "mine source subcommand should exist";
+    EXPECT_TRUE(foundLootSource) << "give should accept a loot_table source";
+    EXPECT_TRUE(foundFishPos) << "give should accept a fish pos source";
+    EXPECT_TRUE(foundKillTarget) << "give should accept a kill target source";
+    EXPECT_TRUE(foundMinePos) << "give should accept a mine pos source";
 }
 
 TEST_F(LootCommandTest, TargetNodesExist)

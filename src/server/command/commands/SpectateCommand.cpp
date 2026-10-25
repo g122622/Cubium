@@ -68,18 +68,7 @@ void SpectateCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatc
     });
     spectateNode->addChild(targetArg);
 
-    // /spectate stop [player]
-    auto stopNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("stop");
-    auto stopPlayerArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, EntitySelector>>(
-        "player", EntityArgumentType::player());
-    stopPlayerArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return _stopSpectating(ctx);
-    });
-    stopNode->addChild(stopPlayerArg);
-    stopNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return _stopSpectating(ctx);
-    });
-    spectateNode->addChild(stopNode);
+    // 原版没有 /spectate stop：要停止旁观，旁观者重新执行 /spectate 或退出旁观模式。
 
     dispatcher.registerCommand(spectateNode);
 }
@@ -166,69 +155,6 @@ i32 SpectateCommand::_startSpectating(CommandContext<ServerCommandSource>& conte
 
     std::ostringstream ss;
     ss << playerData->username << " is now spectating " << targetEntity->id();
-    source.sendMessage(ss.str());
-
-    return 1;
-}
-
-i32 SpectateCommand::_stopSpectating(CommandContext<ServerCommandSource>& context)
-{
-    auto& source = context.getSource();
-
-    // 获取玩家（命令发送者或指定玩家）
-    PlayerId spectatorId;
-    if (context.hasArgument("player")) {
-        const EntitySelector& playerSelector = context.getArgument<EntitySelector>("player");
-        auto playerIds = support::resolvePlayerIds(source, playerSelector);
-        if (playerIds.empty()) {
-            source.sendError("No player matched the player selector");
-            return 0;
-        }
-        spectatorId = playerIds[0];
-    } else {
-        if (!source.isPlayer()) {
-            source.sendError("Only players can use this command");
-            return 0;
-        }
-        spectatorId = source.playerId();
-    }
-
-    auto* playerData = source.server()->playerManager().getPlayer(spectatorId);
-    if (playerData == nullptr) {
-        source.sendError("Player not found");
-        return 0;
-    }
-
-    // 获取 ServerPlayer 实体
-    auto* world = source.world();
-    if (world == nullptr) {
-        source.sendError("World not available");
-        return 0;
-    }
-
-    auto* serverWorld = dynamic_cast<server::ServerWorld*>(world);
-    if (serverWorld == nullptr) {
-        source.sendError("Server world not available");
-        return 0;
-    }
-
-    Entity* spectatorEntity = serverWorld->getEntity(static_cast<EntityInstanceId>(spectatorId));
-    if (spectatorEntity == nullptr) {
-        source.sendError("Player entity not found");
-        return 0;
-    }
-
-    auto* serverPlayer = dynamic_cast<ServerPlayer*>(spectatorEntity);
-    if (serverPlayer == nullptr) {
-        source.sendError("Player is not a server player");
-        return 0;
-    }
-
-    // 重置旁观目标
-    serverPlayer->resetCamera();
-
-    std::ostringstream ss;
-    ss << playerData->username << " is no longer spectating";
     source.sendMessage(ss.str());
 
     return 1;

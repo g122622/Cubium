@@ -57,11 +57,10 @@ void ParticleCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatc
     support::applyMetadata(particleNode,
         support::makeMetadata("Creates particles at a position.", "/particle <name> [<pos>]", 2, {}, true));
 
+    // 原版是 ResourceArgument.particle()（注册表资源，类型名 resource）。
     auto nameArg =
-        std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>("name", StringArgumentType::string());
-    nameArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return _spawnParticle(ctx);
-    });
+        std::make_shared<ArgumentCommandNode<ServerCommandSource, ResourceLocation>>("name", ParticleResourceArgumentType::particle());
+    nameArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _spawnParticle(ctx); });
 
     auto posArg =
         std::make_shared<ArgumentCommandNode<ServerCommandSource, Coordinates::Ptr>>("pos", Vec3ArgumentType::vec3());
@@ -78,7 +77,7 @@ i32 ParticleCommand::_spawnParticle(CommandContext<ServerCommandSource>& context
 {
     auto& source = context.getSource();
 
-    const std::string name = context.getArgument<std::string>("name");
+    const std::string name = context.getArgument<ResourceLocation>("name").toString();
     Vector3d pos = source.position();
 
     // 如果提供了位置参数，使用它
