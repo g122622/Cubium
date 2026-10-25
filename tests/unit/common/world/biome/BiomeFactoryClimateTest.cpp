@@ -129,9 +129,11 @@ TEST_F(BiomeFactoryClimateTest, SwampClimate)
     EXPECT_TRUE(biome.hasPrecipitation());
     EXPECT_EQ(biome.climate().temperatureModifier, TempMod::None);
     // Swamp has special water colors and Swamp grass color modifier
-    EXPECT_EQ(biome.effects().waterColor(), BiomeEffects::SWAMP_WATER_COLOR);
-    EXPECT_EQ(biome.effects().waterFogColor(), BiomeEffects::SWAMP_WATER_FOG_COLOR);
-    EXPECT_EQ(biome.effects().fogColor(), BiomeEffects::SWAMP_FOG_COLOR);
+    // 原版 swamp.json：water_color #617b64、water_fog_color #232317；
+    // 没有 fog_color（1.21.11 的雾属性默认是 0）。
+    EXPECT_EQ(biome.effects().waterColor(), 0x617B64u);
+    EXPECT_EQ(biome.effects().waterFogColor(), 0x232317u);
+    EXPECT_EQ(biome.effects().fogColor(), 0u);
     EXPECT_EQ(biome.effects().grassColorModifier(), GCM::Swamp);
 }
 
@@ -156,7 +158,8 @@ TEST_F(BiomeFactoryClimateTest, BeachClimate)
 TEST_F(BiomeFactoryClimateTest, SnowyPlainsClimate)
 {
     const auto& biome = BiomeRegistry::instance().get(Biomes::SnowyPlains);
-    EXPECT_FLOAT_EQ(biome.climate().temperature, -0.5f);
+    // 原版 snowy_plains.json：temperature=0.0（-0.5 是 1.16 雪原的旧值）。
+    EXPECT_FLOAT_EQ(biome.climate().temperature, 0.0f);
     EXPECT_FLOAT_EQ(biome.climate().humidity, 0.5f);
     EXPECT_TRUE(biome.hasPrecipitation());
     EXPECT_EQ(biome.climate().temperatureModifier, TempMod::None);
@@ -196,35 +199,36 @@ TEST_F(BiomeFactoryClimateTest, JungleClimate)
 TEST_F(BiomeFactoryClimateTest, WarmOceanClimate)
 {
     const auto& biome = BiomeRegistry::instance().get(Biomes::WarmOcean);
-    EXPECT_FLOAT_EQ(biome.climate().temperature, 0.8f);
+    // 原版 1.18+ 所有海洋的 temperature 统一是 0.5，温度差异体现在水体颜色上。
+    EXPECT_FLOAT_EQ(biome.climate().temperature, 0.5f);
     EXPECT_FLOAT_EQ(biome.climate().humidity, 0.5f);
     EXPECT_TRUE(biome.hasPrecipitation());
     EXPECT_EQ(biome.climate().temperatureModifier, TempMod::None);
     // Warm ocean has special water colors
-    EXPECT_EQ(biome.effects().waterColor(), BiomeEffects::WARM_OCEAN_WATER_COLOR);
-    EXPECT_EQ(biome.effects().waterFogColor(), BiomeEffects::WARM_OCEAN_WATER_FOG_COLOR);
+    EXPECT_EQ(biome.effects().waterColor(), 0x43D5EEu);
+    EXPECT_EQ(biome.effects().waterFogColor(), 0x041F33u);
 }
 
 TEST_F(BiomeFactoryClimateTest, LukewarmOceanClimate)
 {
     const auto& biome = BiomeRegistry::instance().get(Biomes::LukewarmOcean);
-    EXPECT_FLOAT_EQ(biome.climate().temperature, 0.6f);
+    EXPECT_FLOAT_EQ(biome.climate().temperature, 0.5f);
     EXPECT_FLOAT_EQ(biome.climate().humidity, 0.5f);
     EXPECT_TRUE(biome.hasPrecipitation());
     EXPECT_EQ(biome.climate().temperatureModifier, TempMod::None);
-    EXPECT_EQ(biome.effects().waterColor(), BiomeEffects::LUKEWARM_OCEAN_WATER_COLOR);
-    EXPECT_EQ(biome.effects().waterFogColor(), BiomeEffects::LUKEWARM_OCEAN_WATER_FOG_COLOR);
+    EXPECT_EQ(biome.effects().waterColor(), 0x45ADF2u);
+    EXPECT_EQ(biome.effects().waterFogColor(), 0x041633u);
 }
 
 TEST_F(BiomeFactoryClimateTest, ColdOceanClimate)
 {
     const auto& biome = BiomeRegistry::instance().get(Biomes::ColdOcean);
-    EXPECT_FLOAT_EQ(biome.climate().temperature, 0.3f);
+    EXPECT_FLOAT_EQ(biome.climate().temperature, 0.5f);
     EXPECT_FLOAT_EQ(biome.climate().humidity, 0.5f);
     EXPECT_TRUE(biome.hasPrecipitation());
     EXPECT_EQ(biome.climate().temperatureModifier, TempMod::None);
-    EXPECT_EQ(biome.effects().waterColor(), BiomeEffects::COLD_OCEAN_WATER_COLOR);
-    EXPECT_EQ(biome.effects().waterFogColor(), BiomeEffects::COLD_OCEAN_WATER_FOG_COLOR);
+    EXPECT_EQ(biome.effects().waterColor(), 0x3D57D6u);
+    EXPECT_EQ(biome.effects().waterFogColor(), 0x050533u);
 }
 
 TEST_F(BiomeFactoryClimateTest, ErodedBadlandsClimate)
@@ -352,7 +356,8 @@ TEST_F(BiomeFactoryClimateTest, FrozenRiverClimate)
 TEST_F(BiomeFactoryClimateTest, DeepFrozenOceanClimate)
 {
     const auto& biome = BiomeRegistry::instance().get(Biomes::DeepFrozenOcean);
-    EXPECT_FLOAT_EQ(biome.climate().temperature, 0.0f);
+    // 原版 deep_frozen_ocean.json：temperature=0.5（FROZEN 修饰器负责把派生温度压到冰点）。
+    EXPECT_FLOAT_EQ(biome.climate().temperature, 0.5f);
     EXPECT_FLOAT_EQ(biome.climate().humidity, 0.5f);
     // MC 1.21.11: hasPrecipitation should be true (snow)
     EXPECT_TRUE(biome.hasPrecipitation());
@@ -403,9 +408,8 @@ TEST_F(BiomeFactoryClimateTest, TaigaClimate)
 TEST_F(BiomeFactoryClimateTest, JungleEdgeClimate)
 {
     const auto& biome = BiomeRegistry::instance().get(Biomes::JungleEdge);
-    // MC 1.21.11: temperature should be 0.8
-    // Current code has temperature=0.95
-    EXPECT_FLOAT_EQ(biome.climate().temperature, 0.8f);
+    // JungleEdge 即原版 1.18+ 的 sparse_jungle，temperature=0.95。
+    EXPECT_FLOAT_EQ(biome.climate().temperature, 0.95f);
     EXPECT_FLOAT_EQ(biome.climate().humidity, 0.8f);
     EXPECT_TRUE(biome.hasPrecipitation());
     EXPECT_EQ(biome.climate().temperatureModifier, TempMod::None);
@@ -423,9 +427,8 @@ TEST_F(BiomeFactoryClimateTest, SnowyTaigaClimate)
     EXPECT_FLOAT_EQ(biome.climate().humidity, 0.4f);
     EXPECT_TRUE(biome.hasPrecipitation());
     EXPECT_EQ(biome.climate().temperatureModifier, TempMod::None);
-    // MC 1.21.11: waterColor should be 0x3D57E6 (4020182)
-    // Current code uses default water color
-    EXPECT_EQ(biome.effects().waterColor(), 0x3D57E6u);
+    // 原版 snowy_taiga.json：water_color #3d57d6（不是冻洋的 #3938c9）。
+    EXPECT_EQ(biome.effects().waterColor(), 0x3D57D6u);
 }
 
 // ============================================================================
@@ -606,8 +609,9 @@ TEST_F(BiomeFactoryClimateTest, MangroveSwampClimate)
     EXPECT_TRUE(biome.hasPrecipitation());
     EXPECT_EQ(biome.climate().temperatureModifier, TempMod::None);
     // Mangrove swamp has special water colors and Swamp grass color modifier
-    EXPECT_EQ(biome.effects().waterColor(), 0x3A7F3Eu);
-    EXPECT_EQ(biome.effects().waterFogColor(), 0x4E6D51u);
+    // 原版 mangrove_swamp.json：water_color #3a7a6a、water_fog_color #4d7a60。
+    EXPECT_EQ(biome.effects().waterColor(), 0x3A7A6Au);
+    EXPECT_EQ(biome.effects().waterFogColor(), 0x4D7A60u);
     EXPECT_EQ(biome.effects().grassColorModifier(), GCM::Swamp);
 }
 
@@ -644,23 +648,23 @@ TEST_F(BiomeFactoryClimateTest, PaleGardenClimate)
 TEST_F(BiomeFactoryClimateTest, DeepLukewarmOceanClimate)
 {
     const auto& biome = BiomeRegistry::instance().get(Biomes::DeepLukewarmOcean);
-    EXPECT_FLOAT_EQ(biome.climate().temperature, 0.6f);
+    EXPECT_FLOAT_EQ(biome.climate().temperature, 0.5f);
     EXPECT_FLOAT_EQ(biome.climate().humidity, 0.5f);
     EXPECT_TRUE(biome.hasPrecipitation());
     EXPECT_EQ(biome.climate().temperatureModifier, TempMod::None);
-    EXPECT_EQ(biome.effects().waterColor(), BiomeEffects::LUKEWARM_OCEAN_WATER_COLOR);
-    EXPECT_EQ(biome.effects().waterFogColor(), BiomeEffects::LUKEWARM_OCEAN_WATER_FOG_COLOR);
+    EXPECT_EQ(biome.effects().waterColor(), 0x45ADF2u);
+    EXPECT_EQ(biome.effects().waterFogColor(), 0x041633u);
 }
 
 TEST_F(BiomeFactoryClimateTest, DeepColdOceanClimate)
 {
     const auto& biome = BiomeRegistry::instance().get(Biomes::DeepColdOcean);
-    EXPECT_FLOAT_EQ(biome.climate().temperature, 0.3f);
+    EXPECT_FLOAT_EQ(biome.climate().temperature, 0.5f);
     EXPECT_FLOAT_EQ(biome.climate().humidity, 0.5f);
     EXPECT_TRUE(biome.hasPrecipitation());
     EXPECT_EQ(biome.climate().temperatureModifier, TempMod::None);
-    EXPECT_EQ(biome.effects().waterColor(), BiomeEffects::COLD_OCEAN_WATER_COLOR);
-    EXPECT_EQ(biome.effects().waterFogColor(), BiomeEffects::COLD_OCEAN_WATER_FOG_COLOR);
+    EXPECT_EQ(biome.effects().waterColor(), 0x3D57D6u);
+    EXPECT_EQ(biome.effects().waterFogColor(), 0x050533u);
 }
 
 // ============================================================================
@@ -738,7 +742,8 @@ TEST_F(BiomeFactoryClimateTest, TheEndClimate)
     EXPECT_FLOAT_EQ(biome.climate().humidity, 0.5f);
     EXPECT_FALSE(biome.hasPrecipitation());
     EXPECT_EQ(biome.climate().temperatureModifier, TempMod::None);
-    EXPECT_EQ(biome.effects().fogColor(), 10518688u);
+    // the_end.json 没写 fog_color，原版属性默认值是 0。
+    EXPECT_EQ(biome.effects().fogColor(), 0u);
 }
 
 TEST_F(BiomeFactoryClimateTest, SmallEndIslandsClimate)
@@ -902,15 +907,15 @@ TEST_F(BiomeFactoryClimateTest, DefaultWaterColors)
 TEST_F(BiomeFactoryClimateTest, SwampWaterColors)
 {
     const auto& biome = BiomeRegistry::instance().get(Biomes::Swamp);
-    EXPECT_EQ(biome.effects().waterColor(), BiomeEffects::SWAMP_WATER_COLOR);
-    EXPECT_EQ(biome.effects().waterFogColor(), BiomeEffects::SWAMP_WATER_FOG_COLOR);
+    EXPECT_EQ(biome.effects().waterColor(), 0x617B64u);
+    EXPECT_EQ(biome.effects().waterFogColor(), 0x232317u);
 }
 
 TEST_F(BiomeFactoryClimateTest, CherryGroveWaterColor)
 {
     const auto& biome = BiomeRegistry::instance().get(Biomes::CherryGrove);
-    // Cherry grove has a unique water color: 0x5D93DF
-    EXPECT_EQ(biome.effects().waterColor(), 0x5D93DFu);
+    // 原版 cherry_grove.json：water_color #5db7ef（水下雾也是同色）。
+    EXPECT_EQ(biome.effects().waterColor(), 0x5DB7EFu);
 }
 
 } // namespace

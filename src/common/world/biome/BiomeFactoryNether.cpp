@@ -62,7 +62,8 @@ Biome createNetherWastes()
     biome.setClimate(BiomeClimate(false, 2.0f, BiomeClimate::TemperatureModifier::None, 0.0f, 0.0f, 0.0f, 0.0f));
 
     // 视觉效果：雾颜色 3344392 (暗红色)
-    biome.setEffects(BiomeEffects::Builder().fogColor(3344392).waterColor(4159204).waterFogColor(329011).build());
+    biome.setEffects(BiomeEffects::Builder().fogColor(3344392).waterColor(4159204).waterFogColor(329011).skyColor(0x000000)
+            .build());
 
     biome.setGenerationSettings(BiomeGenerationSettings{});
     biome.setSpawnInfo(world::spawn::MobSpawnInfo::createNetherWastes());
@@ -102,7 +103,8 @@ Biome createSoulSandValley()
     biome.setClimate(BiomeClimate(false, 2.0f, BiomeClimate::TemperatureModifier::None, 0.0f, 0.0f, 0.0f, 0.0f));
 
     // 视觉效果：雾颜色 1787717 (蓝灰色)
-    biome.setEffects(BiomeEffects::Builder().fogColor(1787717).waterColor(4159204).waterFogColor(329011).build());
+    biome.setEffects(BiomeEffects::Builder().fogColor(1787717).waterColor(4159204).waterFogColor(329011).skyColor(0x000000)
+            .build());
 
     biome.setGenerationSettings(BiomeGenerationSettings{});
     biome.setSpawnInfo(world::spawn::MobSpawnInfo::createSoulSandValley());
@@ -142,7 +144,8 @@ Biome createCrimsonForest()
     biome.setClimate(BiomeClimate(false, 2.0f, BiomeClimate::TemperatureModifier::None, 0.0f, 0.0f, 0.0f, 0.0f));
 
     // 视觉效果：雾颜色 3343107 (暗红色)
-    biome.setEffects(BiomeEffects::Builder().fogColor(3343107).waterColor(4159204).waterFogColor(329011).build());
+    biome.setEffects(BiomeEffects::Builder().fogColor(3343107).waterColor(4159204).waterFogColor(329011).skyColor(0x000000)
+            .build());
 
     biome.setGenerationSettings(BiomeGenerationSettings{});
     biome.setSpawnInfo(world::spawn::MobSpawnInfo::createCrimsonForest());
@@ -182,7 +185,8 @@ Biome createWarpedForest()
     biome.setClimate(BiomeClimate(false, 2.0f, BiomeClimate::TemperatureModifier::None, 0.0f, 0.0f, 0.0f, 0.0f));
 
     // 视觉效果：雾颜色 1705242 (青色)
-    biome.setEffects(BiomeEffects::Builder().fogColor(1705242).waterColor(4159204).waterFogColor(329011).build());
+    biome.setEffects(BiomeEffects::Builder().fogColor(1705242).waterColor(4159204).waterFogColor(329011).skyColor(0x000000)
+            .build());
 
     biome.setGenerationSettings(BiomeGenerationSettings{});
     biome.setSpawnInfo(world::spawn::MobSpawnInfo::createWarpedForest());
@@ -224,7 +228,8 @@ Biome createBasaltDeltas()
     biome.setClimate(BiomeClimate(false, 2.0f, BiomeClimate::TemperatureModifier::None, 0.0f, 0.0f, 0.0f, 0.0f));
 
     // 视觉效果：雾颜色 6840176 (深灰蓝)
-    biome.setEffects(BiomeEffects::Builder().fogColor(6840176).waterColor(4341314).waterFogColor(4341314).build());
+    biome.setEffects(BiomeEffects::Builder().fogColor(6840176).waterColor(0x3F76E4).waterFogColor(0x050533).skyColor(0x000000)
+            .build());
 
     biome.setGenerationSettings(BiomeGenerationSettings{});
     biome.setSpawnInfo(world::spawn::MobSpawnInfo::createBasaltDeltas());

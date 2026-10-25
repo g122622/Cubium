@@ -291,7 +291,7 @@ TEST_F(BiomeRegistryTest, CreateWarmOcean)
     EXPECT_EQ(biome.name(), "warm_ocean");
     EXPECT_FLOAT_EQ(biome.depth(), -1.0f);
     EXPECT_FLOAT_EQ(biome.scale(), 0.1f);
-    EXPECT_FLOAT_EQ(biome.climate().temperature, 0.8f);
+    EXPECT_FLOAT_EQ(biome.climate().temperature, 0.5f);
 }
 
 TEST_F(BiomeRegistryTest, CreateLukewarmOcean)
@@ -300,7 +300,7 @@ TEST_F(BiomeRegistryTest, CreateLukewarmOcean)
     EXPECT_EQ(biome.id(), Biomes::LukewarmOcean);
     EXPECT_EQ(biome.name(), "lukewarm_ocean");
     EXPECT_FLOAT_EQ(biome.depth(), -1.0f);
-    EXPECT_FLOAT_EQ(biome.climate().temperature, 0.6f);
+    EXPECT_FLOAT_EQ(biome.climate().temperature, 0.5f);
 }
 
 TEST_F(BiomeRegistryTest, CreateColdOcean)
@@ -309,7 +309,7 @@ TEST_F(BiomeRegistryTest, CreateColdOcean)
     EXPECT_EQ(biome.id(), Biomes::ColdOcean);
     EXPECT_EQ(biome.name(), "cold_ocean");
     EXPECT_FLOAT_EQ(biome.depth(), -1.0f);
-    EXPECT_FLOAT_EQ(biome.climate().temperature, 0.3f);
+    EXPECT_FLOAT_EQ(biome.climate().temperature, 0.5f);
 }
 
 TEST_F(BiomeRegistryTest, CreateDeepWarmOcean)

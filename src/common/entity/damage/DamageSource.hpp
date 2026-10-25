@@ -141,6 +141,39 @@ enum class DamageScaling : u8 {
 DamageScaling damageScaling(DamageType type) noexcept;
 
 /**
+ * @brief 伤害类型的附加效果（数据包 `effects` 字段）
+ *
+ * 数据包没写 effects 时原版取 hurt；写了的只有 burning（着火）、freezing（冰冻）、
+ * poking（甜浆果丛扎人）、thorns（荆棘反伤）与 drowning（溺水）。
+ */
+enum class DamageEffects : u8 {
+    Hurt, ///< 默认：普通受击音效（数据包没写 effects 时的取值）
+    Burning,
+    Freezing,
+    Poking,
+    Thorns,
+    Drowning, ///< 溺水专用音效
+};
+
+/**
+ * @brief 查询伤害类型的体力消耗系数（原版数据包 `exhaustion`）
+ *
+ * 玩家受到该类伤害时，每点伤害扣 `exhaustion × 伤害量` 的饱和度。
+ * 原版 1.21.11 只有 0.0 与 0.1 两种取值。
+ */
+[[nodiscard]] f32 damageExhaustion(DamageType type) noexcept;
+
+/**
+ * @brief 查询伤害类型的附加效果（原版数据包 `effects`）
+ */
+[[nodiscard]] DamageEffects damageEffects(DamageType type) noexcept;
+
+/**
+ * @brief 附加效果的序列化名（`hurt` / `burning` / …）
+ */
+[[nodiscard]] const char* damageEffectsName(DamageEffects effects) noexcept;
+
+/**
  * @brief 伤害来源基类
  *
  * 定义伤害的来源和类型，用于计算伤害、死亡消息等。

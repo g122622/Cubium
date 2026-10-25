@@ -63,6 +63,13 @@ Biome createPlains()
     sounds.setMoodSound(MoodSoundAmbience::defaultCaveMood());
     biome.setAmbientSounds(sounds);
 
+    // 原版 data/minecraft/worldgen/biome/plains.json 的颜色。
+    biome.setEffects(BiomeEffects::Builder()
+            .waterColor(0x3F76E4)
+            .waterFogColor(0x050533)
+            .fogColor(0x000000)
+            .skyColor(0x78A7FF)
+            .build());
     return biome;
 }
 
@@ -85,6 +92,13 @@ Biome createDesert()
     sounds.setMoodSound(MoodSoundAmbience::defaultCaveMood());
     biome.setAmbientSounds(sounds);
 
+    // 原版 data/minecraft/worldgen/biome/desert.json 的颜色。
+    biome.setEffects(BiomeEffects::Builder()
+            .waterColor(0x3F76E4)
+            .waterFogColor(0x050533)
+            .fogColor(0x000000)
+            .skyColor(0x6EB1FF)
+            .build());
     return biome;
 }
 
@@ -106,6 +120,13 @@ Biome createMountains()
     sounds.setMoodSound(MoodSoundAmbience::defaultCaveMood());
     biome.setAmbientSounds(sounds);
 
+    // 原版 data/minecraft/worldgen/biome/mountains.json 的颜色。
+    biome.setEffects(BiomeEffects::Builder()
+            .waterColor(0x3F76E4)
+            .waterFogColor(0x050533)
+            .fogColor(0x000000)
+            .skyColor(0x7DA2FF)
+            .build());
     return biome;
 }
 
@@ -127,6 +148,13 @@ Biome createForest()
     sounds.setMoodSound(MoodSoundAmbience::defaultCaveMood());
     biome.setAmbientSounds(sounds);
 
+    // 原版 data/minecraft/worldgen/biome/forest.json 的颜色。
+    biome.setEffects(BiomeEffects::Builder()
+            .waterColor(0x3F76E4)
+            .waterFogColor(0x050533)
+            .fogColor(0x000000)
+            .skyColor(0x79A6FF)
+            .build());
     return biome;
 }
 
@@ -143,6 +171,13 @@ Biome createOcean()
     biome.setGenerationSettings(BiomeGenerationSettings{});
     // 海洋生物生成信息
     biome.setSpawnInfo(world::spawn::MobSpawnInfo::createOcean());
+    // 原版 data/minecraft/worldgen/biome/ocean.json 的颜色。
+    biome.setEffects(BiomeEffects::Builder()
+            .waterColor(0x3F76E4)
+            .waterFogColor(0x050533)
+            .fogColor(0x000000)
+            .skyColor(0x7BA4FF)
+            .build());
     return biome;
 }
 
@@ -158,6 +193,13 @@ Biome createDeepOcean()
     biome.setUnderWaterBlock(getBlockState(VanillaBlocks::GRAVEL));
     biome.setGenerationSettings(BiomeGenerationSettings{});
     biome.setSpawnInfo(world::spawn::MobSpawnInfo::createDeepOcean());
+    // 原版 data/minecraft/worldgen/biome/deep_ocean.json 的颜色。
+    biome.setEffects(BiomeEffects::Builder()
+            .waterColor(0x3F76E4)
+            .waterFogColor(0x050533)
+            .fogColor(0x000000)
+            .skyColor(0x7BA4FF)
+            .build());
     return biome;
 }
 
@@ -179,6 +221,13 @@ Biome createTaiga()
     sounds.setMoodSound(MoodSoundAmbience::defaultCaveMood());
     biome.setAmbientSounds(sounds);
 
+    // 原版 data/minecraft/worldgen/biome/taiga.json 的颜色。
+    biome.setEffects(BiomeEffects::Builder()
+            .waterColor(0x3F76E4)
+            .waterFogColor(0x050533)
+            .fogColor(0x000000)
+            .skyColor(0x7DA3FF)
+            .build());
     return biome;
 }
 
@@ -197,7 +246,10 @@ Biome createSnowyTaiga()
     biome.setGenerationSettings(BiomeGenerationSettings{});
     biome.setSpawnInfo(world::spawn::MobSpawnInfo::createSnowy());
     // 雪地针叶林水体颜色
-    biome.setEffects(BiomeEffects::Builder().waterColor(0x3D57E6).build());
+    biome.setEffects(BiomeEffects::Builder().waterColor(0x3D57D6).waterFogColor(0x050533)
+            .fogColor(0x000000)
+            .skyColor(0x839EFF)
+            .build());
     return biome;
 }
 
@@ -219,6 +271,13 @@ Biome createJungle()
     sounds.setMoodSound(MoodSoundAmbience::defaultCaveMood());
     biome.setAmbientSounds(sounds);
 
+    // 原版 data/minecraft/worldgen/biome/jungle.json 的颜色。
+    biome.setEffects(BiomeEffects::Builder()
+            .waterColor(0x3F76E4)
+            .waterFogColor(0x050533)
+            .fogColor(0x000000)
+            .skyColor(0x77A8FF)
+            .build());
     return biome;
 }
 
@@ -241,6 +300,13 @@ Biome createSavanna()
     sounds.setMoodSound(MoodSoundAmbience::defaultCaveMood());
     biome.setAmbientSounds(sounds);
 
+    // 原版 data/minecraft/worldgen/biome/savanna.json 的颜色。
+    biome.setEffects(BiomeEffects::Builder()
+            .waterColor(0x3F76E4)
+            .waterFogColor(0x050533)
+            .fogColor(0x000000)
+            .skyColor(0x6EB1FF)
+            .build());
     return biome;
 }
 
@@ -257,6 +323,13 @@ Biome createShatteredSavanna()
     biome.setClimate(BiomeClimate(false, 2.0f, BiomeClimate::TemperatureModifier::None, 0.0f, 0.0f, 0.0f, 0.0f));
     biome.setGenerationSettings(BiomeGenerationSettings{});
     biome.setSpawnInfo(world::spawn::MobSpawnInfo::createShatteredSavanna());
+    // 原版 data/minecraft/worldgen/biome/shattered_savanna.json 的颜色。
+    biome.setEffects(BiomeEffects::Builder()
+            .waterColor(0x3F76E4)
+            .waterFogColor(0x050533)
+            .fogColor(0x000000)
+            .skyColor(0x6EB1FF)
+            .build());
     return biome;
 }
 
@@ -273,6 +346,13 @@ Biome createSavannaPlateau()
     biome.setClimate(BiomeClimate(false, 2.0f, BiomeClimate::TemperatureModifier::None, 0.0f, 0.0f, 0.0f, 0.0f));
     biome.setGenerationSettings(BiomeGenerationSettings{});
     biome.setSpawnInfo(world::spawn::MobSpawnInfo::createSavannaPlateau());
+    // 原版 data/minecraft/worldgen/biome/savanna_plateau.json 的颜色。
+    biome.setEffects(BiomeEffects::Builder()
+            .waterColor(0x3F76E4)
+            .waterFogColor(0x050533)
+            .fogColor(0x000000)
+            .skyColor(0x6EB1FF)
+            .build());
     return biome;
 }
 
@@ -294,6 +374,10 @@ Biome createBadlands()
             .grassColor(BiomeEffects::BADLANDS_GRASS_COLOR)
             .foliageColor(BiomeEffects::BADLANDS_FOLIAGE_COLOR)
             .grassColorModifier(GrassColorModifier::Badlands)
+            .waterColor(0x3F76E4)
+            .waterFogColor(0x050533)
+            .fogColor(0x000000)
+            .skyColor(0x6EB1FF)
             .build());
     return biome;
 }
@@ -316,6 +400,10 @@ Biome createErodedBadlands()
             .grassColor(BiomeEffects::BADLANDS_GRASS_COLOR)
             .foliageColor(BiomeEffects::BADLANDS_FOLIAGE_COLOR)
             .grassColorModifier(GrassColorModifier::Badlands)
+            .waterColor(0x3F76E4)
+            .waterFogColor(0x050533)
+            .fogColor(0x000000)
+            .skyColor(0x6EB1FF)
             .build());
     return biome;
 }
@@ -360,6 +448,10 @@ Biome createWoodedBadlandsPlateau()
             .grassColor(BiomeEffects::BADLANDS_GRASS_COLOR)
             .foliageColor(BiomeEffects::BADLANDS_FOLIAGE_COLOR)
             .grassColorModifier(GrassColorModifier::Badlands)
+            .waterColor(0x3F76E4)
+            .waterFogColor(0x050533)
+            .fogColor(0x000000)
+            .skyColor(0x6EB1FF)
             .build());
     return biome;
 }
@@ -375,6 +467,13 @@ Biome createBeach()
     biome.setSubSurfaceBlock(getBlockState(VanillaBlocks::SAND));
     biome.setUnderWaterBlock(getBlockState(VanillaBlocks::SAND));
     biome.setGenerationSettings(BiomeGenerationSettings{});
+    // 原版 data/minecraft/worldgen/biome/beach.json 的颜色。
+    biome.setEffects(BiomeEffects::Builder()
+            .waterColor(0x3F76E4)
+            .waterFogColor(0x050533)
+            .fogColor(0x000000)
+            .skyColor(0x78A7FF)
+            .build());
     return biome;
 }
 
@@ -389,6 +488,13 @@ Biome createStoneShore()
     biome.setSubSurfaceBlock(getBlockState(VanillaBlocks::STONE));
     biome.setUnderWaterBlock(getBlockState(VanillaBlocks::STONE));
     biome.setGenerationSettings(BiomeGenerationSettings{});
+    // 原版 data/minecraft/worldgen/biome/stone_shore.json 的颜色。
+    biome.setEffects(BiomeEffects::Builder()
+            .waterColor(0x3F76E4)
+            .waterFogColor(0x050533)
+            .fogColor(0x000000)
+            .skyColor(0x7DA2FF)
+            .build());
     return biome;
 }
 
@@ -404,6 +510,13 @@ Biome createSnowyBeach()
     biome.setSubSurfaceBlock(getBlockState(VanillaBlocks::SAND));
     biome.setUnderWaterBlock(getBlockState(VanillaBlocks::SAND));
     biome.setGenerationSettings(BiomeGenerationSettings{});
+    // 原版 data/minecraft/worldgen/biome/snowy_beach.json 的颜色。
+    biome.setEffects(BiomeEffects::Builder()
+            .waterColor(0x3D57D6)
+            .waterFogColor(0x050533)
+            .fogColor(0x000000)
+            .skyColor(0x7FA1FF)
+            .build());
     return biome;
 }
 
@@ -426,6 +539,10 @@ Biome createSwamp()
             .waterFogColor(BiomeEffects::SWAMP_WATER_FOG_COLOR)
             .fogColor(BiomeEffects::SWAMP_FOG_COLOR)
             .grassColorModifier(GrassColorModifier::Swamp)
+            .waterColor(0x617B64)
+            .waterFogColor(0x232317)
+            .fogColor(0x000000)
+            .skyColor(0x78A7FF)
             .build());
 
     // 主世界默认洞穴心境音效
@@ -448,6 +565,13 @@ Biome createRiver()
     biome.setUnderWaterBlock(getBlockState(VanillaBlocks::GRAVEL));
     biome.setGenerationSettings(BiomeGenerationSettings{});
     biome.setSpawnInfo(world::spawn::MobSpawnInfo::createRiver());
+    // 原版 data/minecraft/worldgen/biome/river.json 的颜色。
+    biome.setEffects(BiomeEffects::Builder()
+            .waterColor(0x3F76E4)
+            .waterFogColor(0x050533)
+            .fogColor(0x000000)
+            .skyColor(0x7BA4FF)
+            .build());
     return biome;
 }
 
@@ -478,6 +602,13 @@ Biome createBirchForest()
     biome.setUnderWaterBlock(getBlockState(VanillaBlocks::GRAVEL));
     biome.setGenerationSettings(BiomeGenerationSettings{});
     biome.setSpawnInfo(world::spawn::MobSpawnInfo::createBirchForest());
+    // 原版 data/minecraft/worldgen/biome/birch_forest.json 的颜色。
+    biome.setEffects(BiomeEffects::Builder()
+            .waterColor(0x3F76E4)
+            .waterFogColor(0x050533)
+            .fogColor(0x000000)
+            .skyColor(0x7AA5FF)
+            .build());
     return biome;
 }
 
@@ -499,6 +630,10 @@ Biome createDarkForest()
             .grassColor(BiomeEffects::DARK_FOREST_GRASS_COLOR)
             .grassColorModifier(GrassColorModifier::DarkForest)
             .dryFoliageColor(0x7B6B4D)
+            .waterColor(0x3F76E4)
+            .waterFogColor(0x050533)
+            .fogColor(0x000000)
+            .skyColor(0x79A6FF)
             .build());
 
     // 主世界默认洞穴心境音效
@@ -515,7 +650,7 @@ Biome createSnowyPlains()
     Biome biome(Biomes::SnowyPlains, "snowy_plains");
     biome.setDepth(0.125f);
     biome.setScale(0.05f);
-    biome.setTemperature(-0.5f);
+    biome.setTemperature(0.0f);
     biome.setHumidity(0.5f);
     biome.setHasPrecipitation(true);
     biome.setSurfaceBlock(getBlockState(VanillaBlocks::SNOW));
@@ -529,6 +664,13 @@ Biome createSnowyPlains()
     sounds.setMoodSound(MoodSoundAmbience::defaultCaveMood());
     biome.setAmbientSounds(sounds);
 
+    // 原版 data/minecraft/worldgen/biome/snowy_plains.json 的颜色。
+    biome.setEffects(BiomeEffects::Builder()
+            .waterColor(0x3F76E4)
+            .waterFogColor(0x050533)
+            .fogColor(0x000000)
+            .skyColor(0x7FA1FF)
+            .build());
     return biome;
 }
 
@@ -550,6 +692,13 @@ Biome createGiantTreeTaiga()
     sounds.setMoodSound(MoodSoundAmbience::defaultCaveMood());
     biome.setAmbientSounds(sounds);
 
+    // 原版 data/minecraft/worldgen/biome/giant_tree_taiga.json 的颜色。
+    biome.setEffects(BiomeEffects::Builder()
+            .waterColor(0x3F76E4)
+            .waterFogColor(0x050533)
+            .fogColor(0x000000)
+            .skyColor(0x7CA3FF)
+            .build());
     return biome;
 }
 
@@ -565,6 +714,13 @@ Biome createWoodedMountains()
     biome.setUnderWaterBlock(getBlockState(VanillaBlocks::GRAVEL));
     biome.setGenerationSettings(BiomeGenerationSettings{});
     biome.setSpawnInfo(world::spawn::MobSpawnInfo::createMountains());
+    // 原版 data/minecraft/worldgen/biome/wooded_mountains.json 的颜色。
+    biome.setEffects(BiomeEffects::Builder()
+            .waterColor(0x3F76E4)
+            .waterFogColor(0x050533)
+            .fogColor(0x000000)
+            .skyColor(0x7DA2FF)
+            .build());
     return biome;
 }
 
@@ -601,6 +757,10 @@ Biome createFrozenOcean()
     biome.setEffects(BiomeEffects::Builder()
             .waterColor(BiomeEffects::FROZEN_OCEAN_WATER_COLOR)
             .waterFogColor(BiomeEffects::DEFAULT_WATER_FOG_COLOR)
+            .waterColor(0x3938C9)
+            .waterFogColor(0x050533)
+            .fogColor(0x000000)
+            .skyColor(0x7FA1FF)
             .build());
     return biome;
 }
@@ -622,6 +782,10 @@ Biome createFrozenRiver()
     biome.setEffects(BiomeEffects::Builder()
             .waterColor(BiomeEffects::FROZEN_OCEAN_WATER_COLOR)
             .waterFogColor(BiomeEffects::DEFAULT_WATER_FOG_COLOR)
+            .waterColor(0x3938C9)
+            .waterFogColor(0x050533)
+            .fogColor(0x000000)
+            .skyColor(0x7FA1FF)
             .build());
     return biome;
 }
@@ -655,6 +819,13 @@ Biome createIceSpikes()
     biome.setUnderWaterBlock(getBlockState(VanillaBlocks::GRAVEL));
     biome.setGenerationSettings(BiomeGenerationSettings{});
     biome.setSpawnInfo(world::spawn::MobSpawnInfo::createSnowy());
+    // 原版 data/minecraft/worldgen/biome/ice_spikes.json 的颜色。
+    biome.setEffects(BiomeEffects::Builder()
+            .waterColor(0x3F76E4)
+            .waterFogColor(0x050533)
+            .fogColor(0x000000)
+            .skyColor(0x7FA1FF)
+            .build());
     return biome;
 }
 
@@ -664,18 +835,22 @@ Biome createDeepFrozenOcean()
     Biome biome(Biomes::DeepFrozenOcean, "deep_frozen_ocean");
     biome.setDepth(-1.8f);
     biome.setScale(0.1f);
-    biome.setTemperature(0.0f);
+    biome.setTemperature(0.5f);
     biome.setHumidity(0.5f);
     biome.setSurfaceBlock(getBlockState(VanillaBlocks::ICE));
     biome.setSubSurfaceBlock(getBlockState(VanillaBlocks::GRAVEL));
     biome.setUnderWaterBlock(getBlockState(VanillaBlocks::GRAVEL));
-    biome.setClimate(BiomeClimate(true, 0.0f, BiomeClimate::TemperatureModifier::Frozen, 0.5f, 0.5f, 0.0f, 0.0f));
+    biome.setClimate(BiomeClimate(true, 0.5f, BiomeClimate::TemperatureModifier::Frozen, 0.5f, 0.5f, 0.0f, 0.0f));
     biome.setGenerationSettings(BiomeGenerationSettings{});
     biome.setSpawnInfo(world::spawn::MobSpawnInfo::createFrozenOcean());
     // 与冻洋相同的水体颜色
     biome.setEffects(BiomeEffects::Builder()
             .waterColor(BiomeEffects::FROZEN_OCEAN_WATER_COLOR)
             .waterFogColor(BiomeEffects::DEFAULT_WATER_FOG_COLOR)
+            .waterColor(0x3938C9)
+            .waterFogColor(0x050533)
+            .fogColor(0x000000)
+            .skyColor(0x7BA4FF)
             .build());
     return biome;
 }
@@ -690,7 +865,7 @@ Biome createWarmOcean()
     Biome biome(Biomes::WarmOcean, "warm_ocean");
     biome.setDepth(-1.0f);
     biome.setScale(0.1f);
-    biome.setTemperature(0.8f);
+    biome.setTemperature(0.5f);
     biome.setHumidity(0.5f);
     biome.setSurfaceBlock(getBlockState(VanillaBlocks::SAND));
     biome.setSubSurfaceBlock(getBlockState(VanillaBlocks::SAND));
@@ -701,6 +876,10 @@ Biome createWarmOcean()
     biome.setEffects(BiomeEffects::Builder()
             .waterColor(BiomeEffects::WARM_OCEAN_WATER_COLOR)
             .waterFogColor(BiomeEffects::WARM_OCEAN_WATER_FOG_COLOR)
+            .waterColor(0x43D5EE)
+            .waterFogColor(0x041F33)
+            .fogColor(0x000000)
+            .skyColor(0x7BA4FF)
             .build());
     return biome;
 }
@@ -711,7 +890,7 @@ Biome createLukewarmOcean()
     Biome biome(Biomes::LukewarmOcean, "lukewarm_ocean");
     biome.setDepth(-1.0f);
     biome.setScale(0.1f);
-    biome.setTemperature(0.6f);
+    biome.setTemperature(0.5f);
     biome.setHumidity(0.5f);
     biome.setSurfaceBlock(getBlockState(VanillaBlocks::SAND));
     biome.setSubSurfaceBlock(getBlockState(VanillaBlocks::GRAVEL));
@@ -722,6 +901,10 @@ Biome createLukewarmOcean()
     biome.setEffects(BiomeEffects::Builder()
             .waterColor(BiomeEffects::LUKEWARM_OCEAN_WATER_COLOR)
             .waterFogColor(BiomeEffects::LUKEWARM_OCEAN_WATER_FOG_COLOR)
+            .waterColor(0x45ADF2)
+            .waterFogColor(0x041633)
+            .fogColor(0x000000)
+            .skyColor(0x7BA4FF)
             .build());
     return biome;
 }
@@ -732,7 +915,7 @@ Biome createColdOcean()
     Biome biome(Biomes::ColdOcean, "cold_ocean");
     biome.setDepth(-1.0f);
     biome.setScale(0.1f);
-    biome.setTemperature(0.3f);
+    biome.setTemperature(0.5f);
     biome.setHumidity(0.5f);
     biome.setSurfaceBlock(getBlockState(VanillaBlocks::GRAVEL));
     biome.setSubSurfaceBlock(getBlockState(VanillaBlocks::GRAVEL));
@@ -743,6 +926,10 @@ Biome createColdOcean()
     biome.setEffects(BiomeEffects::Builder()
             .waterColor(BiomeEffects::COLD_OCEAN_WATER_COLOR)
             .waterFogColor(BiomeEffects::COLD_OCEAN_WATER_FOG_COLOR)
+            .waterColor(0x3D57D6)
+            .waterFogColor(0x050533)
+            .fogColor(0x000000)
+            .skyColor(0x7BA4FF)
             .build());
     return biome;
 }
@@ -774,7 +961,7 @@ Biome createDeepLukewarmOcean()
     Biome biome(Biomes::DeepLukewarmOcean, "deep_lukewarm_ocean");
     biome.setDepth(-1.8f);
     biome.setScale(0.1f);
-    biome.setTemperature(0.6f);
+    biome.setTemperature(0.5f);
     biome.setHumidity(0.5f);
     biome.setSurfaceBlock(getBlockState(VanillaBlocks::SAND));
     biome.setSubSurfaceBlock(getBlockState(VanillaBlocks::GRAVEL));
@@ -786,6 +973,10 @@ Biome createDeepLukewarmOcean()
     biome.setEffects(BiomeEffects::Builder()
             .waterColor(BiomeEffects::LUKEWARM_OCEAN_WATER_COLOR)
             .waterFogColor(BiomeEffects::LUKEWARM_OCEAN_WATER_FOG_COLOR)
+            .waterColor(0x45ADF2)
+            .waterFogColor(0x041633)
+            .fogColor(0x000000)
+            .skyColor(0x7BA4FF)
             .build());
     return biome;
 }
@@ -796,7 +987,7 @@ Biome createDeepColdOcean()
     Biome biome(Biomes::DeepColdOcean, "deep_cold_ocean");
     biome.setDepth(-1.8f);
     biome.setScale(0.1f);
-    biome.setTemperature(0.3f);
+    biome.setTemperature(0.5f);
     biome.setHumidity(0.5f);
     biome.setSurfaceBlock(getBlockState(VanillaBlocks::GRAVEL));
     biome.setSubSurfaceBlock(getBlockState(VanillaBlocks::GRAVEL));
@@ -807,6 +998,10 @@ Biome createDeepColdOcean()
     biome.setEffects(BiomeEffects::Builder()
             .waterColor(BiomeEffects::COLD_OCEAN_WATER_COLOR)
             .waterFogColor(BiomeEffects::COLD_OCEAN_WATER_FOG_COLOR)
+            .waterColor(0x3D57D6)
+            .waterFogColor(0x050533)
+            .fogColor(0x000000)
+            .skyColor(0x7BA4FF)
             .build());
     return biome;
 }
@@ -832,13 +1027,20 @@ Biome createJungleEdge()
     Biome biome(Biomes::JungleEdge, "jungle_edge");
     biome.setDepth(0.1f);
     biome.setScale(0.2f);
-    biome.setTemperature(0.8f);
+    biome.setTemperature(0.95f);
     biome.setHumidity(0.8f);
     biome.setSurfaceBlock(getBlockState(VanillaBlocks::GRASS_BLOCK));
     biome.setSubSurfaceBlock(getBlockState(VanillaBlocks::DIRT));
     biome.setUnderWaterBlock(getBlockState(VanillaBlocks::GRAVEL));
     biome.setGenerationSettings(BiomeGenerationSettings{});
     biome.setSpawnInfo(world::spawn::MobSpawnInfo::createSparseJungle());
+    // 原版 data/minecraft/worldgen/biome/jungle_edge.json 的颜色。
+    biome.setEffects(BiomeEffects::Builder()
+            .waterColor(0x3F76E4)
+            .waterFogColor(0x050533)
+            .fogColor(0x000000)
+            .skyColor(0x77A8FF)
+            .build());
     return biome;
 }
 
@@ -854,6 +1056,13 @@ Biome createBambooJungle()
     biome.setUnderWaterBlock(getBlockState(VanillaBlocks::GRAVEL));
     biome.setGenerationSettings(BiomeGenerationSettings{});
     biome.setSpawnInfo(world::spawn::MobSpawnInfo::createBambooJungle());
+    // 原版 data/minecraft/worldgen/biome/bamboo_jungle.json 的颜色。
+    biome.setEffects(BiomeEffects::Builder()
+            .waterColor(0x3F76E4)
+            .waterFogColor(0x050533)
+            .fogColor(0x000000)
+            .skyColor(0x77A8FF)
+            .build());
     return biome;
 }
 
@@ -884,6 +1093,13 @@ Biome createBirchForestHills()
     biome.setUnderWaterBlock(getBlockState(VanillaBlocks::GRAVEL));
     biome.setGenerationSettings(BiomeGenerationSettings{});
     biome.setSpawnInfo(world::spawn::MobSpawnInfo::createBirchForest());
+    // 原版 data/minecraft/worldgen/biome/birch_forest_hills.json 的颜色。
+    biome.setEffects(BiomeEffects::Builder()
+            .waterColor(0x3F76E4)
+            .waterFogColor(0x050533)
+            .fogColor(0x000000)
+            .skyColor(0x7AA5FF)
+            .build());
     return biome;
 }
 
@@ -899,6 +1115,13 @@ Biome createFlowerForest()
     biome.setUnderWaterBlock(getBlockState(VanillaBlocks::GRAVEL));
     biome.setGenerationSettings(BiomeGenerationSettings{});
     biome.setSpawnInfo(world::spawn::MobSpawnInfo::createFlowerForest());
+    // 原版 data/minecraft/worldgen/biome/flower_forest.json 的颜色。
+    biome.setEffects(BiomeEffects::Builder()
+            .waterColor(0x3F76E4)
+            .waterFogColor(0x050533)
+            .fogColor(0x000000)
+            .skyColor(0x79A6FF)
+            .build());
     return biome;
 }
 
@@ -915,6 +1138,13 @@ Biome createTallBirchForest()
     biome.setUnderWaterBlock(getBlockState(VanillaBlocks::GRAVEL));
     biome.setGenerationSettings(BiomeGenerationSettings{});
     biome.setSpawnInfo(world::spawn::MobSpawnInfo::createBirchForest());
+    // 原版 data/minecraft/worldgen/biome/old_growth_birch_forest.json 的颜色。
+    biome.setEffects(BiomeEffects::Builder()
+            .waterColor(0x3F76E4)
+            .waterFogColor(0x050533)
+            .fogColor(0x000000)
+            .skyColor(0x7AA5FF)
+            .build());
     return biome;
 }
 
@@ -962,6 +1192,13 @@ Biome createMushroomFields()
     biome.setClimate(BiomeClimate(true, 0.9f, BiomeClimate::TemperatureModifier::None, 1.0f, 1.0f, 0.0f, 0.0f));
     biome.setGenerationSettings(BiomeGenerationSettings{});
     biome.setSpawnInfo(world::spawn::MobSpawnInfo::createMushroomFields());
+    // 原版 data/minecraft/worldgen/biome/mushroom_fields.json 的颜色。
+    biome.setEffects(BiomeEffects::Builder()
+            .waterColor(0x3F76E4)
+            .waterFogColor(0x050533)
+            .fogColor(0x000000)
+            .skyColor(0x77A8FF)
+            .build());
     return biome;
 }
 
@@ -1025,6 +1262,13 @@ Biome createGiantSpruceTaiga()
     biome.setUnderWaterBlock(getBlockState(VanillaBlocks::GRAVEL));
     biome.setGenerationSettings(BiomeGenerationSettings{});
     biome.setSpawnInfo(world::spawn::MobSpawnInfo::createTaiga());
+    // 原版 data/minecraft/worldgen/biome/giant_spruce_taiga.json 的颜色。
+    biome.setEffects(BiomeEffects::Builder()
+            .waterColor(0x3F76E4)
+            .waterFogColor(0x050533)
+            .fogColor(0x000000)
+            .skyColor(0x7DA3FF)
+            .build());
     return biome;
 }
 
@@ -1059,6 +1303,13 @@ Biome createSunflowerPlains()
     biome.setUnderWaterBlock(getBlockState(VanillaBlocks::GRAVEL));
     biome.setGenerationSettings(BiomeGenerationSettings{});
     biome.setSpawnInfo(world::spawn::MobSpawnInfo::createPlains());
+    // 原版 data/minecraft/worldgen/biome/sunflower_plains.json 的颜色。
+    biome.setEffects(BiomeEffects::Builder()
+            .waterColor(0x3F76E4)
+            .waterFogColor(0x050533)
+            .fogColor(0x000000)
+            .skyColor(0x78A7FF)
+            .build());
     return biome;
 }
 
@@ -1090,6 +1341,13 @@ Biome createGravellyMountains()
     biome.setUnderWaterBlock(getBlockState(VanillaBlocks::STONE));
     biome.setGenerationSettings(BiomeGenerationSettings{});
     biome.setSpawnInfo(world::spawn::MobSpawnInfo::createMountains());
+    // 原版 data/minecraft/worldgen/biome/gravelly_mountains.json 的颜色。
+    biome.setEffects(BiomeEffects::Builder()
+            .waterColor(0x3F76E4)
+            .waterFogColor(0x050533)
+            .fogColor(0x000000)
+            .skyColor(0x7DA2FF)
+            .build());
     return biome;
 }
 

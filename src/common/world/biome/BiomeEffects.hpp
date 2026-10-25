@@ -141,8 +141,11 @@ public:
 
     static constexpr u32 DEFAULT_WATER_COLOR = 0x3F76E4;     ///< 默认水体颜色 (蓝色)
     static constexpr u32 DEFAULT_WATER_FOG_COLOR = 0x050533; ///< 默认水下雾颜色 (深蓝)
-    static constexpr u32 DEFAULT_FOG_COLOR = 0xC0D8FF;       ///< 默认雾颜色 (浅蓝)
-    static constexpr u32 DEFAULT_SKY_COLOR = 0x78A7FF;       ///< 默认天空颜色 (蓝色)
+    /// 雾色 / 天空色默认值。原版 1.21.11 把这两项挪进了 EnvironmentAttributeMap，
+    /// 属性的 defaultValue 就是 0（客户端再按维度与时间叠加昼夜渐变）；
+    /// 群系 JSON 里显式写了的才是覆盖色，因此这里也用 0 表示「未覆盖」。
+    static constexpr u32 DEFAULT_FOG_COLOR = 0x000000;       ///< 默认雾颜色（未覆盖）
+    static constexpr u32 DEFAULT_SKY_COLOR = 0x000000;       ///< 默认天空颜色（未覆盖）
 
     // 特殊生物群系颜色常量
     static constexpr u32 SWAMP_WATER_COLOR = 0x617B64;     ///< 沼泽水体颜色
