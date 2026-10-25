@@ -77,10 +77,25 @@ void GameRuleCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatc
             return _executeQuery(ctx);
         });
 
-        auto valueArg = std::make_shared<LiteralCommandNode<ServerCommandSource>>("value");
-        valueArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-            return _executeSet(ctx);
-        });
+        // 取值节点必须真的解析参数：只挂一个字面量 "value" 时，
+        // `/gamerule <rule> integer 4096` 会在分发阶段直接报 Unknown argument。
+        // 也只有这样写回的值才与规则真实类名（boolean/integer）一并可用。
+        std::shared_ptr<CommandNode<ServerCommandSource>> valueArg;
+        if (classType == world::gamerule::GameRuleClassNames::BOOLEAN) {
+            auto literal =
+                std::make_shared<ArgumentCommandNode<ServerCommandSource, bool>>("value", BoolArgumentType::bool());
+            literal->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+                return _executeSet(ctx);
+            });
+            valueArg = literal;
+        } else {
+            auto literal = std::make_shared<ArgumentCommandNode<ServerCommandSource, i32>>(
+                "value", IntegerArgumentType::integer());
+            literal->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+                return _executeSet(ctx);
+            });
+            valueArg = literal;
+        }
 
         classArg->addChild(valueArg);
         ruleArg->addChild(classArg);
@@ -148,7 +163,14 @@ i32 GameRuleCommand::_executeSet(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
     std::string ruleName = context.getArgument<std::string>("rule");
-    std::string valueStr = context.getArgument<std::string>("value");
+    // 取值按规则类名取：布尔规则是 bool 参数、整型规则是 i32 参数（见 registerCommand 的节点构造）。
+    std::string valueStr;
+    const std::string className = _requireValueClassName(context);
+    if (className == world::gamerule::GameRuleClassNames::BOOLEAN) {
+        valueStr = context.getArgument<bool>("value") ? "true" : "false";
+    } else {
+        valueStr = std::to_string(context.getArgument<i32>("value"));
+    }
 
     // 获取世界
     server::ServerWorld* world = source.world();
@@ -161,7 +183,6 @@ i32 GameRuleCommand::_executeSet(CommandContext<ServerCommandSource>& context)
 
     // 设置路径要求 类名 与 规则值的真实类名 一致。
     // vanilla 在规则存在但类名不符时报「is of wrong type」，规则不存在则落入通用错误。
-    const std::string className = _requireValueClassName(context);
     const auto ruleClass = world::gamerule::GameRules::getRuleClass(ruleName);
     if (!ruleClass) {
         source.sendError("Can't find a game rule named " + ruleName);
