@@ -144,18 +144,20 @@ void TeamCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
     // /team remove <team>
     auto removeNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("remove");
     auto removeTeamArg =
-        std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
-            "team", TeamNameArgumentType::team());
-    removeTeamArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _removeTeam(ctx); });
+        std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>("team", TeamNameArgumentType::team());
+    removeTeamArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _removeTeam(ctx);
+    });
     removeNode->addChild(removeTeamArg);
     teamNode->addChild(removeNode);
 
     // /team list [team]
     auto listNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("list");
     auto listTeamArg =
-        std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
-            "team", TeamNameArgumentType::team());
-    listTeamArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _listTeams(ctx); });
+        std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>("team", TeamNameArgumentType::team());
+    listTeamArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _listTeams(ctx);
+    });
     listNode->addChild(listTeamArg);
     listNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
         return _listTeams(ctx);
@@ -165,20 +167,24 @@ void TeamCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
     // /team empty <team>
     auto emptyNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("empty");
     auto emptyTeamArg =
-        std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
-            "team", TeamNameArgumentType::team());
-    emptyTeamArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _emptyTeam(ctx); });
+        std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>("team", TeamNameArgumentType::team());
+    emptyTeamArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _emptyTeam(ctx);
+    });
     emptyNode->addChild(emptyTeamArg);
     teamNode->addChild(emptyNode);
 
     // /team join <team> <members>
     auto joinNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("join");
     auto joinTeamArg =
-        std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
-            "team", TeamNameArgumentType::team());
-    auto membersArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, EntitySelector>>(
-        "members", EntityArgumentType::players());
-    membersArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _joinTeam(ctx); });
+        std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>("team", TeamNameArgumentType::team());
+    // 原版 /team join 的 members 是 ScoreHolderArgument（只收名字），与 _joinTeam 读取 string 一致；
+    // 若登记成 EntitySelector，getArgument<std::string> 会抛 bad any_cast。
+    auto membersArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
+        "members", ScoreHolderArgumentType::scoreHolder());
+    membersArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _joinTeam(ctx);
+    });
     joinTeamArg->addChild(membersArg);
     joinNode->addChild(joinTeamArg);
     teamNode->addChild(joinNode);
@@ -188,15 +194,16 @@ void TeamCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
     // 原版 /team leave 的 members 是 ScoreHolderArgument（score_holder，只收名字）。
     auto leaveMembersArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
         "members", ScoreHolderArgumentType::scoreHolder());
-    leaveMembersArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _leaveTeam(ctx); });
+    leaveMembersArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _leaveTeam(ctx);
+    });
     leaveNode->addChild(leaveMembersArg);
     teamNode->addChild(leaveNode);
 
     // /team modify <team> <option> <value>
     auto modifyNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("modify");
     auto modifyTeamArg =
-        std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
-            "team", TeamNameArgumentType::team());
+        std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>("team", TeamNameArgumentType::team());
 
     auto displayNameNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("displayName");
     auto displayNameValueArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
