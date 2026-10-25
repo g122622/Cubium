@@ -29,7 +29,7 @@
 // 关键约束：
 // 1. GameTest 默认批次为白天（tod=6000），getEyeblossomOpen 返回 False（白天应闭合）。
 // 2. randomTick 触发概率性（ticksRandomly=true），默认 randomTickSpeed=3 时单格每 tick 命中概率
-//    仅 3/4096≈0.073%，短时间命中概率极低。测试开头用 SimulatedPlayer.chat("/gamerule randomTickSpeed integer 1000")
+//    仅 3/4096≈0.073%，短时间命中概率极低。测试开头用 SimulatedPlayer.chat("/gamerule random_tick_speed 1000")
 //    调高 randomTickSpeed，使单格每 tick 命中概率≈24.4%，约 5 tick 内确定性命中。
 // 3. 读 typeId 验证状态切换：open_eyeblossom → closed_eyeblossom（白天应闭合）。
 // 4. 测试运行时间短（约 100 tick），tod 推进有限，不会从白天推进到夜晚。
@@ -58,7 +58,7 @@ import { pollUntilSucceed } from "../../utils/test/poll.js";
 // glass_pit 结构尺寸 7×5×7（helper 相对坐标 x,z∈[0,6], y∈[0,4]）。
 // 眼眸花放 (3,2,1)（glass_pit 内部 air 腔 helper y=2），下方 (3,1,1) 是 glass_pit 玻璃底支撑。
 const EYEBLOSSOM_POS = { x: 3, y: 2, z: 1 };
-// SimulatedPlayer 生成位置（air 区域，用于执行 /gamerule randomTickSpeed integer 1000）。
+// SimulatedPlayer 生成位置（air 区域，用于执行 /gamerule random_tick_speed 1000）。
 const PLAYER_POS = { x: 1, y: 2, z: 1 };
 
 // 调高 randomTickSpeed 使眼眸花方块在数 tick 内被随机刻确定性命中。
@@ -74,7 +74,7 @@ function getTypeId(test: Test, pos: { x: number; y: number; z: number }): string
 // 调高 randomTickSpeed（SimulatedPlayer 执行 /gamerule）。不 assert chat 返回值。
 function raiseRandomTickSpeed(test: Test): void {
     const player = test.spawnSimulatedPlayer(PLAYER_POS, "farmer");
-    player.chat(`/gamerule randomTickSpeed integer ${HIGH_RANDOM_TICK_SPEED}`);
+    player.chat(`/gamerule random_tick_speed ${HIGH_RANDOM_TICK_SPEED}`);
 }
 
 // 场景 1：白天放 open_eyeblossom + 调高 randomTickSpeed → randomTick 触发 tryChangingState

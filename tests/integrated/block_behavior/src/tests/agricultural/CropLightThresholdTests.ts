@@ -20,7 +20,7 @@
 // 单格每 tick 被选中概率仅 3/4096≈0.073%，短时间命中概率极低——age 不变多半因没被 tick 到，
 // 而非门槛拦截，无法有效验证门槛。
 //
-// 解决：测试开头用 SimulatedPlayer.chat("/gamerule randomTickSpeed integer 1000") 调高随机刻速度
+// 解决：测试开头用 SimulatedPlayer.chat("/gamerule random_tick_speed 1000") 调高随机刻速度
 // （与 WeatherSkyDarkeningTests.ts 用 chat 执行 /weather 同范式）。GameRuleCommand.cpp 需 OP≥2，
 // SimulatedPlayer 创造模式权限等级2满足（SimulatedPlayer.cpp:187 isCreative()?2:0）。GameRules.cpp:118
 // randomTickSpeed 默认3，registerInteger 经 setFromString 改值。
@@ -90,7 +90,7 @@
 //   CROP_GROWTH_LIGHT_THRESHOLD(9) 的精确区分。
 //
 // ============================ 跨服务端对比 ============================
-// - /gamerule randomTickSpeed integer、SimulatedPlayer.chat、BlockPermutation.resolve、getState("age") 在
+// - /gamerule random_tick_speed、SimulatedPlayer.chat、BlockPermutation.resolve、getState("age") 在
 //   Cubium 侧可用。基岩 BDS SimulatedPlayer.chat 是发消息语义（void，不执行命令），故本组用 chat
 //   执行 /gamerule 的测试基岩侧无法跑（one-sided，同 WeatherSkyDarkeningTests.ts）。
 // - blockLight/skyLight 是 Cubium 专有（基岩 Block 无此属性），黑暗环境断言仅 Cubium 侧判定。
@@ -163,10 +163,10 @@ function cropDoesNotGrowInDark(test: Test): void {
     // 不 assert chat 返回值：Cubium chat 返回 int，基岩 chat 返回 void 语义不同，基岩侧 one-sided。
     const player = test.spawnSimulatedPlayer({ x: 1, y: 1, z: 1 }, "farmer");
     const dimension = test.getDimension() as any;
-    const previousSpeed = dimension.getGameRule("randomTickSpeed");
-    (test as any).runOnFinish(() => player.chat(`/gamerule randomTickSpeed integer ${previousSpeed}`));
-    player.chat(`/gamerule randomTickSpeed integer ${HIGH_RANDOM_TICK_SPEED}`);
-    test.assert(String(dimension.getGameRule("randomTickSpeed")) === HIGH_RANDOM_TICK_SPEED,
+    const previousSpeed = dimension.getGameRule("random_tick_speed");
+    (test as any).runOnFinish(() => player.chat(`/gamerule random_tick_speed ${previousSpeed}`));
+    player.chat(`/gamerule random_tick_speed ${HIGH_RANDOM_TICK_SPEED}`);
+    test.assert(String(dimension.getGameRule("random_tick_speed")) === HIGH_RANDOM_TICK_SPEED,
         "randomTickSpeed should be raised for the isolated crop test");
 
     pollUntilSucceed(
@@ -215,10 +215,10 @@ function cropGrowsInLight(test: Test): void {
 
     const player = test.spawnSimulatedPlayer({ x: 1, y: 1, z: 1 }, "farmer");
     const dimension = test.getDimension() as any;
-    const previousSpeed = dimension.getGameRule("randomTickSpeed");
-    (test as any).runOnFinish(() => player.chat(`/gamerule randomTickSpeed integer ${previousSpeed}`));
-    player.chat(`/gamerule randomTickSpeed integer ${HIGH_RANDOM_TICK_SPEED}`);
-    test.assert(String(dimension.getGameRule("randomTickSpeed")) === HIGH_RANDOM_TICK_SPEED,
+    const previousSpeed = dimension.getGameRule("random_tick_speed");
+    (test as any).runOnFinish(() => player.chat(`/gamerule random_tick_speed ${previousSpeed}`));
+    player.chat(`/gamerule random_tick_speed ${HIGH_RANDOM_TICK_SPEED}`);
+    test.assert(String(dimension.getGameRule("random_tick_speed")) === HIGH_RANDOM_TICK_SPEED,
         "randomTickSpeed should be raised for the isolated crop test");
 
     pollUntilSucceed(

@@ -20,7 +20,7 @@
 // ============================ 确定性方案：调高 randomTickSpeed ============================
 // 冰融化由随机刻驱动（同雪融化、作物光照门槛、草蔓延、铜氧化测试，见记忆
 // randomtick-threshold-test-via-gamerule-speedup）。默认 randomTickSpeed=3 时冰格每 tick 被选中
-// 概率仅 3/4096≈0.073%，短时间命中概率极低。测试开头用 SimulatedPlayer.chat("/gamerule randomTickSpeed integer 1000")
+// 概率仅 3/4096≈0.073%，短时间命中概率极低。测试开头用 SimulatedPlayer.chat("/gamerule random_tick_speed 1000")
 // 调高使冰格每 tick 命中概率≈24.4%，数 tick 内必然命中。
 //
 // 冰融化无概率门限：randomTick 命中 + blockLight>=11 即融化变水。speed=1000 下命中期望≈24.4%/tick，
@@ -78,7 +78,7 @@
 //   与冰融化（冰→水）不同，且依赖生物群系温度系统，属另一测试主题，不在本融化测试范围。
 //
 // ============================ 跨服务端对比 ============================
-// - /gamerule randomTickSpeed integer、SimulatedPlayer.chat、blockLight 在 Cubium 侧可用。基岩 BDS
+// - /gamerule random_tick_speed、SimulatedPlayer.chat、blockLight 在 Cubium 侧可用。基岩 BDS
 //   SimulatedPlayer.chat 是发消息语义（void，不执行命令），本组用 chat 执行 /gamerule 的测试基岩侧
 //   无法跑（one-sided，同 SnowMeltTests.ts、WeatherSkyDarkeningTests.ts）。
 // - blockLight/skyLight 是 Cubium 专有（基岩 Block 无此属性），亮/暗环境守卫仅 Cubium 侧判定。
@@ -116,7 +116,7 @@ function getTypeId(test: Test, pos: { x: number; y: number; z: number }): string
 // 玩家放 air 区域 (1,2,1)（运行时 air 区域 y∈[2,4]），避免卡在 stone 地板层。
 function raiseRandomTickSpeed(test: Test): void {
     const player = test.spawnSimulatedPlayer({ x: 1, y: 2, z: 1 }, "farmer");
-    player.chat(`/gamerule randomTickSpeed integer ${HIGH_RANDOM_TICK_SPEED}`);
+    player.chat(`/gamerule random_tick_speed ${HIGH_RANDOM_TICK_SPEED}`);
 }
 
 // 方块光照不低于11时冰融化变水源（wiki 储水：亮度>11的光使冰融化变水，主世界变水源）。

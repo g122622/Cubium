@@ -111,7 +111,7 @@ function countZombies(test: Test): number {
 //   2. 创造玩家执行 /difficulty hard（canZombieReinforce 要求 Hard）。
 //   3. 创造玩家执行 /attribute @e[type=zombie,limit=1,sort=nearest] zombie.spawn_reinforcements base set 1.0
 //      （强制增援属性 1.0，概率门必通过）。
-//   4. 创造玩家执行 /gamerule doMobSpawning boolean true（_trySpawnReinforcement 查此规则，显式确认）。
+//   4. 创造玩家执行 /gamerule spawn_mobs true（_trySpawnReinforcement 查此规则，显式确认）。
 //   5. 切 Survival（attackEntity 造伤害链路）。
 //   6. 循环 attackEntity（玩家攻击冷却约 12.5 tick，每 20 tick 攻击一次保证满冷却；每次 hurt 触发
 //      一次 trySummonReinforcements，属性 1.0 概率门必通过，几何合法即生成增援）。
@@ -151,7 +151,7 @@ function zombieSummonsReinforcementOnHurtHard(test: Test): void {
     //    limit=1 规避"多实体"错误，即便有自然生成残留也只取最近者）。
     player.chat("/attribute @e[type=zombie,limit=1,sort=nearest] zombie.spawn_reinforcements base set 1.0");
     // 3. 确认 doMobSpawning true（_trySpawnReinforcement 查此规则，GameTestServer 默认 true，显式确认）。
-    player.chat("/gamerule doMobSpawning boolean true");
+    player.chat("/gamerule spawn_mobs true");
 
     // 4. 切 Survival（attackEntity 造伤害链路；命令已在创造下执行生效）。
     player.chat("/gamemode survival");

@@ -252,7 +252,7 @@ function nyliumDecaysWhenCovered(test: Test): void {
 
     // 调高 randomTickSpeed 使菌岩格在数 tick 内被随机刻确定性命中。
     const player = test.spawnSimulatedPlayer({ x: 1, y: 2, z: 1 }, "farmer");
-    player.chat(`/gamerule randomTickSpeed integer ${HIGH_RANDOM_TICK_SPEED}`);
+    player.chat(`/gamerule random_tick_speed ${HIGH_RANDOM_TICK_SPEED}`);
 
     pollUntilSucceed(
         test,

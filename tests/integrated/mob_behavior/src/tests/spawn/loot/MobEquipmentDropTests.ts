@@ -169,9 +169,9 @@ function mobDefaultChanceEquipmentNotDroppedWithoutPlayer(test: Test): void {
 // （同 gametest-world-state-gamerule 隔离范式，见 MobDeathLootTests mob_loot_solo 注释）。
 function mobEquipmentDropsBlockedByDoMobLootFalse(test: Test): void {
   const player = test.spawnSimulatedPlayer({ x: 3, y: 2, z: 3 }, "op");
-  player.chat("/gamerule doMobLoot boolean false");
+  player.chat("/gamerule do_mob_loot false");
   test.runOnFinish(() => {
-    player.chat("/gamerule doMobLoot boolean true");
+    player.chat("/gamerule do_mob_loot true");
   });
 
   const zombie = test.spawn("minecraft:zombie", { x: 4, y: 2, z: 4 });

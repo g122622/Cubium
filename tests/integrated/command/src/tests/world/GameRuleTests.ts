@@ -1,22 +1,21 @@
 // /gamerule 命令 GameTest：设置/查询游戏规则。
 //
 // 覆盖 wiki 命令章节核心行为：
-//   - /gamerule <规则> <类名>：查询规则当前值（<类名> 为 boolean / integer）
-//   - /gamerule <规则> <类名> <值>：设置规则值
-//   （命令树对齐 vanilla：规则值类名是字面量子节点，类名与规则实际类型不符时报错）
+//   - /gamerule <规则>：查询规则当前值
+//   - /gamerule <规则> <值>：设置规则值
+//   （命令树对齐 vanilla 1.21.11：规则名是注册表键，值参数按规则类型解析 bool / i32）
 //
 // 设计要点：
-//   1. GameRuleCommand 经 world->getGameRules().setTypedFromString(ruleName, className, value, nullptr)
-//      作用于 ServerWorld 全局规则表（非占位），与玩家无关，对 SimulatedPlayer 完全生效。
+//   1. GameRuleCommand 作用于 ServerWorld 全局规则表（非占位），与玩家无关，对 SimulatedPlayer 完全生效。
 //      此前脚本侧无 gamerule 读取绑定，/gamerule <规则> 查询消息经 source.sendMessage
 //      不经脚本可读通道，无法端到端断言。本次补全 Dimension.getGameRule(name)（经新增
 //      GameRules::getValueAsString 按名取值）脚本读取绑定，解锁端到端测试。
 //   2. getGameRule 返回字符串：布尔规则 "true"/"false"，整数规则十进制串，规则不存在返空串。
-//   3. 规则名是 camelCase（"mobGriefing"/"doMobSpawning"/"doDaylightCycle"/"randomTickSpeed"），
-//      非 kebab-case，对齐 GameRuleKey::getName 注册名。
+//   3. 规则名是原版注册表键（"do_mob_loot"/"spawn_mobs"/"advance_time"/"random_tick_speed"），
+//      不是旧的 camelCase 写法。
 //   4. 世界级状态污染防护：GameTest 共享单一 ServerWorld，gamerule 跨测试/跨批次持久化。
 //      测试临时改 gamerule 后须 runOnFinish 恢复默认值，避免污染同次全量跑里依赖该规则的
-//      其他包测试（如 mob_behavior 的 spawner 测试依赖 doMobSpawning=true）。
+//      其他包测试（如 mob_behavior 的 spawner 测试依赖 spawn_mobs=true）。
 //   5. cmd_arena 9×7×9：内部空气腔 x,z∈[1,7]，y∈[1,5]。玩家初始 (5,1,5)。
 //
 // 注：chat 执行命令仅 Cubium 端有效，命令类测试 Cubium one-sided。
@@ -32,50 +31,50 @@ const PLAYER_POS = { x: 5, y: 1, z: 5 };
 const DO_MOB_SPAWNING_DEFAULT = "true";
 const RANDOM_TICK_SPEED_DEFAULT = "3";
 
-// /gamerule doMobSpawning boolean false 设置布尔规则为 false，断言 getGameRule 返 "false"。
+// /gamerule spawn_mobs false 设置布尔规则为 false，断言 getGameRule 返 "false"。
 // runOnFinish 恢复 "true"，防污染 mob_behavior spawner 类测试。
-// Ref: vanilla GameRuleCommand（规则名后接布尔/整型类名字面量）
+// Ref: vanilla GameRuleCommand（规则名后直接跟值）
 function gameruleSetBoolean(test: Test): void {
     const player = test.spawnSimulatedPlayer(PLAYER_POS, "op");
     const dim = asDim(player.dimension);
 
-    player.chat("/gamerule doMobSpawning boolean false");
+    player.chat("/gamerule spawn_mobs false");
 
-    const val = dim.getGameRule("doMobSpawning");
-    test.assert(val === "false", `expected doMobSpawning="false", got "${val}"`);
+    const val = dim.getGameRule("spawn_mobs");
+    test.assert(val === "false", `expected spawn_mobs="false", got "${val}"`);
 
     test.runOnFinish(() => {
-        player.chat(`/gamerule doMobSpawning boolean ${DO_MOB_SPAWNING_DEFAULT}`);
+        player.chat(`/gamerule spawn_mobs ${DO_MOB_SPAWNING_DEFAULT}`);
     });
     test.succeed();
 }
 
-// /gamerule randomTickSpeed integer 100 设置整数规则为 100，断言 getGameRule 返 "100"。
+// /gamerule random_tick_speed 100 设置整数规则为 100，断言 getGameRule 返 "100"。
 // runOnFinish 恢复 "3"。
-// Ref: vanilla GameRuleCommand（整数规则走 integer 类名字面量）
+// Ref: vanilla GameRuleCommand（整数规则的值按整数解析）
 function gameruleSetInteger(test: Test): void {
     const player = test.spawnSimulatedPlayer(PLAYER_POS, "op");
     const dim = asDim(player.dimension);
 
-    player.chat("/gamerule randomTickSpeed integer 100");
+    player.chat("/gamerule random_tick_speed 100");
 
-    const val = dim.getGameRule("randomTickSpeed");
-    test.assert(val === "100", `expected randomTickSpeed="100", got "${val}"`);
+    const val = dim.getGameRule("random_tick_speed");
+    test.assert(val === "100", `expected random_tick_speed="100", got "${val}"`);
 
     test.runOnFinish(() => {
-        player.chat(`/gamerule randomTickSpeed integer ${RANDOM_TICK_SPEED_DEFAULT}`);
+        player.chat(`/gamerule random_tick_speed ${RANDOM_TICK_SPEED_DEFAULT}`);
     });
     test.succeed();
 }
 
-// 未显式设置的规则读默认值：doDaylightCycle 默认 "true"（不修改，仅读取断言）。
+// 未显式设置的规则读默认值：advance_time 默认 "true"（不修改，仅读取断言）。
 // 验证 getValueAsString 回退注册表默认值路径（规则已注册但实例未显式设值）。
 function gameruleReadsDefault(test: Test): void {
     const player = test.spawnSimulatedPlayer(PLAYER_POS, "op");
     const dim = asDim(player.dimension);
 
-    const val = dim.getGameRule("doDaylightCycle");
-    test.assert(val === "true", `expected doDaylightCycle default="true", got "${val}"`);
+    const val = dim.getGameRule("advance_time");
+    test.assert(val === "true", `expected advance_time default="true", got "${val}"`);
     test.succeed();
 }
 
@@ -85,11 +84,11 @@ function gameruleToggleBack(test: Test): void {
     const player = test.spawnSimulatedPlayer(PLAYER_POS, "op");
     const dim = asDim(player.dimension);
 
-    player.chat("/gamerule doMobSpawning boolean false");
-    test.assert(dim.getGameRule("doMobSpawning") === "false", "after set false should be false");
+    player.chat("/gamerule spawn_mobs false");
+    test.assert(dim.getGameRule("spawn_mobs") === "false", "after set false should be false");
 
-    player.chat("/gamerule doMobSpawning boolean true");
-    test.assert(dim.getGameRule("doMobSpawning") === "true", "after set true should be true");
+    player.chat("/gamerule spawn_mobs true");
+    test.assert(dim.getGameRule("spawn_mobs") === "true", "after set true should be true");
 
     // 未改默认值，无需 runOnFinish 恢复（已是 true）。
     test.succeed();
@@ -107,7 +106,7 @@ function gameruleUnknownReturnsEmpty(test: Test): void {
 
 export function registerGameRuleTests(): void {
     // 改世界级 gamerule 的测试用独占 batch 串行（同批 name 隔离 default 批并行 tick）：
-    // amethyst/mushroom/grass 等测试先 /gamerule randomTickSpeed integer 1000 再轮询蔓延，
+    // amethyst/mushroom/grass 等测试先 /gamerule random_tick_speed 1000 再轮询蔓延，
     // 若本组 gamerule_set_integer 与其并行，runOnFinish 恢复 "3" 会把它们的 1000 覆盖
     // 致蔓延超时（全量跑 amethyst_bud_grows_to_next_stage / mushroom_spreads_in_dark 假失败）。
     GameTest.register("CommandTests", "gamerule_set_boolean", gameruleSetBoolean)

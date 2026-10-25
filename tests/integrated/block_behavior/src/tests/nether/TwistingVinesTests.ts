@@ -118,7 +118,7 @@ function twistingVinesGrowsUpwardViaRandomTick(test: Test): void {
     );
 
     const player = test.spawnSimulatedPlayer({ x: 1, y: 2, z: 1 }, "farmer");
-    player.chat(`/gamerule randomTickSpeed integer ${HIGH_RANDOM_TICK_SPEED}`);
+    player.chat(`/gamerule random_tick_speed ${HIGH_RANDOM_TICK_SPEED}`);
 
     pollUntilSucceed(
         test,
@@ -155,7 +155,7 @@ function weepingVinesGrowsDownwardViaRandomTick(test: Test): void {
     );
 
     const player = test.spawnSimulatedPlayer({ x: 1, y: 2, z: 1 }, "farmer");
-    player.chat(`/gamerule randomTickSpeed integer ${HIGH_RANDOM_TICK_SPEED}`);
+    player.chat(`/gamerule random_tick_speed ${HIGH_RANDOM_TICK_SPEED}`);
 
     pollUntilSucceed(
         test,

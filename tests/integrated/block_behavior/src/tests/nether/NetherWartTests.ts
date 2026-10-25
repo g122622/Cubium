@@ -22,7 +22,7 @@
 // ============================ randomTick 生长链路 ============================
 // BaseGameTestInstance::tick（src/server/test/facade/BaseGameTestInstance.cpp:52）每 tick 驱动世界 randomTick。
 // NetherWartBlock::randomTick（:105-116）：age=0 时 10% 概率 → age=1。
-// 调高 randomTickSpeed（SimulatedPlayer.chat("/gamerule randomTickSpeed integer 1000")）使下界疣格每 tick 命中
+// 调高 randomTickSpeed（SimulatedPlayer.chat("/gamerule random_tick_speed 1000")）使下界疣格每 tick 命中
 // 概率≈24.4%，20 tick 内至少命中一次概率≈99.5%。
 // 生长判定：age 从 0 增长到 >=1（10% 概率/次，speed=1000 时每 tick 命中概率高）。
 //
@@ -53,7 +53,7 @@
 // - age 状态属性两端一致（age 0-3）。
 // - 骨粉无效行为两端一致（NetherWartBlock 不实现 IGrowable，骨粉 dynamic_cast 返 nullptr → Fail）。
 // - randomTick 10% 生长行为两端一致（wiki 明文）。
-// - /gamerule randomTickSpeed integer Cubium 侧可用，基岩侧 chat 执行命令 one-sided。
+// - /gamerule random_tick_speed Cubium 侧可用，基岩侧 chat 执行命令 one-sided。
 //
 // Ref: docs\minecraft-wiki-source\minecraft_wiki\tech_下界疣.txt#用途#种植（:45-50 骨粉无效+10%生长）
 // Ref: NetherWartBlock.cpp:105-116（randomTick 10% 生长）、:88-103（isValidPosition 灵魂沙/灵魂土）
@@ -127,7 +127,7 @@ function netherWartGrowsViaRandomTick(test: Test): void {
     test.assert(getWartAge(test) === 0, `nether_wart age should be 0 before, got ${getWartAge(test)}`);
 
     const player = test.spawnSimulatedPlayer({ x: 1, y: 2, z: 1 }, "farmer");
-    player.chat(`/gamerule randomTickSpeed integer ${HIGH_RANDOM_TICK_SPEED}`);
+    player.chat(`/gamerule random_tick_speed ${HIGH_RANDOM_TICK_SPEED}`);
 
     pollUntilSucceed(
         test,

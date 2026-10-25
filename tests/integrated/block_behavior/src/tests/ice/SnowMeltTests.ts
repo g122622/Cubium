@@ -18,7 +18,7 @@
 // ============================ 确定性方案：调高 randomTickSpeed ============================
 // 雪融化由随机刻驱动（同作物光照门槛、草蔓延、铜氧化、紫晶芽、蘑菇蔓延测试，见记忆
 // randomtick-threshold-test-via-gamerule-speedup）。默认 randomTickSpeed=3 时雪层格每 tick 被选中
-// 概率仅 3/4096≈0.073%，短时间命中概率极低。测试开头用 SimulatedPlayer.chat("/gamerule randomTickSpeed integer 1000")
+// 概率仅 3/4096≈0.073%，短时间命中概率极低。测试开头用 SimulatedPlayer.chat("/gamerule random_tick_speed 1000")
 // 调高使雪层格每 tick 命中概率≈24.4%，数 tick 内必然命中。
 //
 // 雪融化无概率门限：randomTick 命中 + blockLight>=12 即融化变 air。speed=1000 下命中期望≈24.4%/tick，
@@ -70,7 +70,7 @@
 //   多层雪 JE 直接变 air / BE 逐层递减不一致，不为多层雪写测试。
 //
 // ============================ 跨服务端对比 ============================
-// - /gamerule randomTickSpeed integer、SimulatedPlayer.chat、blockLight 在 Cubium 侧可用。基岩 BDS
+// - /gamerule random_tick_speed、SimulatedPlayer.chat、blockLight 在 Cubium 侧可用。基岩 BDS
 //   SimulatedPlayer.chat 是发消息语义（void，不执行命令），本组用 chat 执行 /gamerule 的测试基岩侧
 //   无法跑（one-sided，同 WeatherSkyDarkeningTests.ts、GrassSpreadTests.ts）。
 // - blockLight/skyLight 是 Cubium 专有（基岩 Block 无此属性），亮/暗环境守卫仅 Cubium 侧判定。
@@ -108,7 +108,7 @@ function getTypeId(test: Test, pos: { x: number; y: number; z: number }): string
 // 玩家放 air 区域 (1,2,1)（运行时 air 区域 y∈[2,4]），避免卡在 stone 地板层。
 function raiseRandomTickSpeed(test: Test): void {
     const player = test.spawnSimulatedPlayer({ x: 1, y: 2, z: 1 }, "farmer");
-    player.chat(`/gamerule randomTickSpeed integer ${HIGH_RANDOM_TICK_SPEED}`);
+    player.chat(`/gamerule random_tick_speed ${HIGH_RANDOM_TICK_SPEED}`);
 }
 
 // 方块光照不低于12时雪层融化变空气（wiki 融化：方块亮度>=12融化，直接变air）。

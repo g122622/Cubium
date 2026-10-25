@@ -225,9 +225,9 @@ function spawnerNoSpawnWhenLit(test: Test): void {
 // 刷怪箱不受 doMobSpawning gamerule 影响（wiki tech_刷怪箱.txt：刷怪箱生成不检查 doMobSpawning）。
 //
 // Cubium _serverTick/_spawnEntities 全程不读 doMobSpawning（仅 NaturalSpawner/VillageSiege/Raid 查），
-// 故 /gamerule doMobSpawning boolean false 后刷怪箱仍正常生成。这与 Java 一致（Java BaseSpawner 不查此规则）。
+// 故 /gamerule spawn_mobs false 后刷怪箱仍正常生成。这与 Java 一致（Java BaseSpawner 不查此规则）。
 //
-// 布局：spawner_chamber + 刷怪箱设僵尸类型 + 创造玩家 chat("/gamerule doMobSpawning boolean false") +
+// 布局：spawner_chamber + 刷怪箱设僵尸类型 + 创造玩家 chat("/gamerule spawn_mobs false") +
 // 玩家 16 格内激活。pollUntilSucceed 断言 zombie>=1（关闭规则后仍生成）。
 //
 // 注：chat 执行命令仅 Cubium 端有效（基岩 BDS chat 是发消息语义），本测试 Cubium one-sided。
@@ -241,7 +241,7 @@ function spawnerIgnoresDoMobSpawningGamerule(test: Test): void {
         SPAWNER_POS,
     );
 
-    player.chat("/gamerule doMobSpawning boolean false");
+    player.chat("/gamerule spawn_mobs false");
     // doMobSpawning 是世界级游戏规则，GameTest 全程共享单一 ServerWorld，规则跨测试/跨批次持久化、
     // 框架不自动重置（见 GameTestHelper 析构仅清实体不清 gamerule）。本测试设 false 后若不恢复，会
     // 污染后续所有依赖自然生成的测试（NaturalSpawner 修复遵守 doMobSpawning 后，false 会全局关停
@@ -249,7 +249,7 @@ function spawnerIgnoresDoMobSpawningGamerule(test: Test): void {
     // BaseGameTestInstance.cpp:147-151,163-167）时恢复 true。runOnFinish 早于 GameTestHelper 析构
     // （批次结束才 clear 实例），此时 player 实体仍存活，chat 可调。
     test.runOnFinish(() => {
-        player.chat("/gamerule doMobSpawning boolean true");
+        player.chat("/gamerule spawn_mobs true");
     });
 
     // 关闭 doMobSpawning 后，刷怪箱仍应生成（不查此规则）。

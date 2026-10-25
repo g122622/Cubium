@@ -172,11 +172,11 @@ function sweetBerryBushDamagesMovingEntity(test: Test): void {
 function sweetBerryBushSpareAge0(test: Test): void {
   // 隔离随机生长，保证整个碰撞观察窗口内灌木始终保持幼苗状态。
   const dimension = asDim(test.getDimension());
-  const previousSpeed = dimension.getGameRule("randomTickSpeed");
+  const previousSpeed = dimension.getGameRule("random_tick_speed");
   const player = test.spawnSimulatedPlayer({ x: 2, y: 2, z: 2 }, "observer");
-  const restoreRandomTicks = () => player.chat(`/gamerule randomTickSpeed integer ${previousSpeed}`);
+  const restoreRandomTicks = () => player.chat(`/gamerule random_tick_speed ${previousSpeed}`);
   (test as Test & { runOnFinish(callback: () => void): void }).runOnFinish(restoreRandomTicks);
-  player.chat("/gamerule randomTickSpeed integer 0");
+  player.chat("/gamerule random_tick_speed 0");
   // 主角同 damages_moving_entity 用鸡。AGE=0 灌木仅减速不伤血，全程应保持满血 4。
   const chickenType = "chicken";
 

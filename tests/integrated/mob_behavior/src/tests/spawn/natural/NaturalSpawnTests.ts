@@ -181,10 +181,10 @@ function naturalSpawnNoMonsterWhenLit(test: Test): void {
         "glowstone support must not be reported as air");
 
     // 关停 tick 路径，隔离单点入口的光照门槛判定（见上方注释）。
-    const previousSpawning = (test.getDimension() as any).getGameRule("doMobSpawning");
-    player.chat("/gamerule doMobSpawning boolean false");
+    const previousSpawning = (test.getDimension() as any).getGameRule("spawn_mobs");
+    player.chat("/gamerule spawn_mobs false");
     test.runOnFinish(() => {
-        player.chat(`/gamerule doMobSpawning boolean ${previousSpawning}`);
+        player.chat(`/gamerule spawn_mobs ${previousSpawning}`);
     });
 
     let checkedSpawnAttempts = 0;
@@ -254,7 +254,7 @@ function naturalSpawnAnimalOnGrassDaytime(test: Test): void {
 // 结构内距玩家 25-128 格处合规生成怪物（dark_cavern 41 格长，玩家 x=30，结构内 x∈[0,5] 距玩家 25-30
 // 格恰在门控内，tick 路径在此区域合规生成怪物）。countAny 查询整个结构（41×7×9）会捕获到 tick 路径
 // 合规生成的怪物，致 monsters>0 假失败。本测试要验证的是【单点入口 spawnNaturalAt 的距离门控】，
-// 故用 chat("/gamerule doMobSpawning boolean false") 关停 tick 路径（NaturalSpawner 遵守 doMobSpawning，
+// 故用 chat("/gamerule spawn_mobs false") 关停 tick 路径（NaturalSpawner 遵守 doMobSpawning，
 // 对齐 vanilla ServerChunkCache.tickChunks:376），仅留单点入口路径做距离门控判定。
 //
 // doMobSpawning 是世界级规则，GameTest 共享单一 ServerWorld 不自动重置。本测试设 false 须用
@@ -270,9 +270,9 @@ function naturalSpawnDistanceGateUnder24(test: Test): void {
     const player = test.spawnSimulatedPlayer({ x: 30, y: 2, z: 4 }, "observer");
 
     // 关停 tick 路径，隔离单点入口的距离门控判定（见上方注释）。
-    player.chat("/gamerule doMobSpawning boolean false");
+    player.chat("/gamerule spawn_mobs false");
     test.runOnFinish(() => {
-        player.chat("/gamerule doMobSpawning boolean true");
+        player.chat("/gamerule spawn_mobs true");
     });
 
     pollUntilSucceed(test, () => {

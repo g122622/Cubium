@@ -20,7 +20,7 @@
 // ============================ 确定性方案：调高 randomTickSpeed ============================
 // 蘑菇蔓延由随机刻驱动（同作物/草/铜/紫晶芽测试，见记忆 randomtick-threshold-test-via-gamerule-speedup）。
 // 默认 randomTickSpeed=3 时蘑菇格每 tick 被选中概率仅 3/4096≈0.073%。测试开头用
-// SimulatedPlayer.chat("/gamerule randomTickSpeed integer 1000") 调高使蘑菇格每 tick 命中概率≈24.4%。
+// SimulatedPlayer.chat("/gamerule random_tick_speed 1000") 调高使蘑菇格每 tick 命中概率≈24.4%。
 //
 // 黑暗蔓延：每次 randomTick 命中后 1/25 门限 × 命中可蔓延 air 目标（3×2×3=18格中4个目标位，每个
 // 1/18）≈ 4%×4/18 ≈ 0.89%/命中。speed=1000 时蔓延期望≈0.22%/tick，200 tick 内蔓延概率≈35%。
@@ -67,7 +67,7 @@
 //   TODO: 待核实 Cubium 蘑菇 updatePostPlacement 光照弹出实现后补充。
 //
 // ============================ 跨服务端对比 ============================
-// - /gamerule randomTickSpeed integer、SimulatedPlayer.chat、blockLight/skyLight 在 Cubium 侧可用。基岩 BDS
+// - /gamerule random_tick_speed、SimulatedPlayer.chat、blockLight/skyLight 在 Cubium 侧可用。基岩 BDS
 //   SimulatedPlayer.chat 是发消息语义（void，不执行命令），本组用 chat 执行 /gamerule 的测试基岩侧
 //   无法跑（one-sided，同 WeatherSkyDarkeningTests.ts）。blockLight/skyLight Cubium 专有，黑暗/亮环境
 //   守卫仅 Cubium 侧判定。
@@ -129,7 +129,7 @@ function placeMushroomAndSupports(test: Test): void {
 // 玩家放 air 区域 (1,2,1)（运行时 air 区域 y∈[2,4]），避免卡在 stone 地板层。
 function raiseRandomTickSpeed(test: Test): void {
     const player = test.spawnSimulatedPlayer({ x: 1, y: 2, z: 1 }, "farmer");
-    player.chat(`/gamerule randomTickSpeed integer ${HIGH_RANDOM_TICK_SPEED}`);
+    player.chat(`/gamerule random_tick_speed ${HIGH_RANDOM_TICK_SPEED}`);
 }
 
 // 统计4个蔓延目标中有多少已变 brown_mushroom（蔓延成功数）。
@@ -149,11 +149,11 @@ function countSpreadMushrooms(test: Test): number {
 function mushroomSpreadsInDark(test: Test): void {
     placeMushroomAndSupports(test);
     const dimension = asDim(test.getDimension());
-    const previousSpeed = dimension.getGameRule("randomTickSpeed");
+    const previousSpeed = dimension.getGameRule("random_tick_speed");
     const player = test.spawnSimulatedPlayer({ x: 1, y: 2, z: 1 }, "farmer");
-    const restoreRandomTicks = () => player.chat(`/gamerule randomTickSpeed integer ${previousSpeed}`);
+    const restoreRandomTicks = () => player.chat(`/gamerule random_tick_speed ${previousSpeed}`);
     (test as Test & { runOnFinish(callback: () => void): void }).runOnFinish(restoreRandomTicks);
-    player.chat("/gamerule randomTickSpeed integer 10000");
+    player.chat("/gamerule random_tick_speed 10000");
 
     // 随机游走可以落在下层地板或斜邻位置，观察整个合法邻域，排除原始蘑菇。
     const countNewMushrooms = () => {

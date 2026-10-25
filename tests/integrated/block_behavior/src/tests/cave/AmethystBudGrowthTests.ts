@@ -15,7 +15,7 @@
 // ============================ 确定性方案：调高 randomTickSpeed ============================
 // 紫晶芽生长由随机刻驱动（同作物光照门槛、草蔓延、铜氧化测试，见记忆
 // randomtick-threshold-test-via-gamerule-speedup）。默认 randomTickSpeed=3 时母岩格每 tick 被选中
-// 概率仅 3/4096≈0.073%，生长无从验证。测试开头用 SimulatedPlayer.chat("/gamerule randomTickSpeed integer 1000")
+// 概率仅 3/4096≈0.073%，生长无从验证。测试开头用 SimulatedPlayer.chat("/gamerule random_tick_speed 1000")
 // 调高使母岩格每 tick 命中概率≈24.4%。
 //
 // 母岩生成小芽：每次 randomTick 命中后 1/5 门限 × 6/6（6方向均 air 可生长）≈ 20%/命中。
@@ -58,7 +58,7 @@
 // - 母岩被活塞移动破坏：需活塞推动 + 母岩破坏判定，活塞机制复杂且与红石测试重叠，跳过。
 //
 // ============================ 跨服务端对比 ============================
-// - /gamerule randomTickSpeed integer、SimulatedPlayer.chat 在 Cubium 侧可用。基岩 BDS SimulatedPlayer.chat 是
+// - /gamerule random_tick_speed、SimulatedPlayer.chat 在 Cubium 侧可用。基岩 BDS SimulatedPlayer.chat 是
 //   发消息语义（void，不执行命令），本组用 chat 执行 /gamerule 的测试基岩侧无法跑（one-sided，同
 //   WeatherSkyDarkeningTests.ts）。
 // - 紫晶芽 typeId（small/medium/large_amethyst_bud、amethyst_cluster、budding_amethyst）两端一致，
@@ -105,9 +105,9 @@ function getTypeId(test: Test, pos: { x: number; y: number; z: number }): string
 // 玩家放 air 区域 (1,2,1)（运行时 air 区域 y∈[2,4]），避免卡在 stone 地板层。
 function raiseRandomTickSpeed(test: Test): void {
     const player = test.spawnSimulatedPlayer({ x: 1, y: 2, z: 1 }, "farmer");
-    const previousSpeed = (test.getDimension() as any).getGameRule("randomTickSpeed");
-    (test as any).runOnFinish(() => player.chat(`/gamerule randomTickSpeed integer ${previousSpeed}`));
-    player.chat(`/gamerule randomTickSpeed integer ${HIGH_RANDOM_TICK_SPEED}`);
+    const previousSpeed = (test.getDimension() as any).getGameRule("random_tick_speed");
+    (test as any).runOnFinish(() => player.chat(`/gamerule random_tick_speed ${previousSpeed}`));
+    player.chat(`/gamerule random_tick_speed ${HIGH_RANDOM_TICK_SPEED}`);
 }
 
 // 统计母岩6个 air 邻居中有多少已变 small_amethyst_bud（小芽生成数）。

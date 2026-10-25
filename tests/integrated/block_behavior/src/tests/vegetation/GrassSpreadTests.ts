@@ -25,7 +25,7 @@
 // 草蔓延由随机刻驱动。与作物光照门槛测试同源（见 CropLightThresholdTests.ts 与记忆
 // randomtick-threshold-test-via-gamerule-speedup）。默认 randomTickSpeed=3 时草方块格每 tick 被选中
 // 概率仅 3/4096≈0.073%，短时间命中概率极低，蔓延无从验证。测试开头用
-// SimulatedPlayer.chat("/gamerule randomTickSpeed integer 1000") 调高使草方块每 tick 命中概率≈24.4%，
+// SimulatedPlayer.chat("/gamerule random_tick_speed 1000") 调高使草方块每 tick 命中概率≈24.4%，
 // 120 tick 内至少命中一次概率≈100%。草方块命中后每次向4个随机位置尝试蔓延，3×5×3=45 格范围内单格
 // 命中概率 4/45≈8.9%/次，多次命中后周围泥土被蔓延概率→1。
 //
@@ -68,7 +68,7 @@
 //   「光照≥9 蔓延」已由测试1覆盖，跳过。
 //
 // ============================ 跨服务端对比 ============================
-// - /gamerule randomTickSpeed integer、SimulatedPlayer.chat、BlockPermutation 在 Cubium 侧可用。基岩 BDS
+// - /gamerule random_tick_speed、SimulatedPlayer.chat、BlockPermutation 在 Cubium 侧可用。基岩 BDS
 //   SimulatedPlayer.chat 是发消息语义（void，不执行命令），本组用 chat 执行 /gamerule 的测试基岩侧无法跑
 //   （one-sided，同 WeatherSkyDarkeningTests.ts）。
 // - blockLight/skyLight 是 Cubium 专有（基岩 Block 无此属性），黑暗环境断言仅 Cubium 侧判定。
@@ -130,7 +130,7 @@ function placeGrassAndDirt(test: Test): void {
 // 调高 randomTickSpeed（SimulatedPlayer 创造模式权限2 执行 /gamerule）。不 assert chat 返回值。
 function raiseRandomTickSpeed(test: Test): void {
     const player = test.spawnSimulatedPlayer({ x: 1, y: 1, z: 1 }, "farmer");
-    player.chat(`/gamerule randomTickSpeed integer ${HIGH_RANDOM_TICK_SPEED}`);
+    player.chat(`/gamerule random_tick_speed ${HIGH_RANDOM_TICK_SPEED}`);
 }
 
 // 光照≥9 时草方块向周围泥土蔓延（wiki 扩散：草上方光照≥9 才蔓延）。

@@ -91,12 +91,12 @@ function furnaceLitEmitsThirteen(test: Test): void {
 // RedstoneOreBlock::getLightLevel 返回 LIT?9:0。
 function redstoneOreLitEmitsNine(test: Test): void {
     // 点亮状态的发光测试独占批次，观察期间禁用会熄灭矿石的随机刻。
-    const previousSpeed = asDim(test.getDimension()).getGameRule("randomTickSpeed");
+    const previousSpeed = asDim(test.getDimension()).getGameRule("random_tick_speed");
     const player = test.spawnSimulatedPlayer({ x: 1, y: 2, z: 1 }, "observer");
     (test as Test & { runOnFinish(callback: () => void): void }).runOnFinish(() => {
-        player.chat(`/gamerule randomTickSpeed integer ${previousSpeed}`);
+        player.chat(`/gamerule random_tick_speed ${previousSpeed}`);
     });
-    player.chat("/gamerule randomTickSpeed integer 0");
+    player.chat("/gamerule random_tick_speed 0");
     assertEmission(
         test,
         () => test.setBlockWithStates("minecraft:redstone_ore", PLACE, "lit=true"),
