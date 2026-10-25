@@ -4,12 +4,15 @@
 #include "common/mod/bedrock/addon/binding/ScriptClassBinding.hpp"
 #include "common/core/Types.hpp"
 #include "common/mod/bedrock/addon/binding/IScriptBindingContext.hpp"
+#include "common/mod/bedrock/addon/binding/ScriptClassRegistry.hpp"
 #include "common/mod/bedrock/addon/binding/ScriptHandleRegistry.hpp"
 
-#include <atomic>
+#include <algorithm>
 #include <memory>
 #include <string>
+#include <string_view>
 #include <utility>
+#include <vector>
 #include <spdlog/spdlog.h>
 
 namespace mc::mod::bedrock::addon {
@@ -66,30 +69,42 @@ void* ScriptObjectRegistry::wrap(IScriptBindingContext& ctx,
     return obj;
 }
 
+namespace {
+/// 校验 opaque 登记的类型名是否属于目标 classId：同一类型在注册表里可能对应多个 classId
+/// （各作用域/各批次分别登记），只要类型名命中其中任何一个即视为同类型。
+bool _matchesRegisteredType(ScriptClassRegistry& registry, const ScriptObjectRegistry::ObjectData& data, u64 classId)
+{
+    if (data.typeName == nullptr) {
+        return false;
+    }
+
+    const std::vector<u64> sameTypeClassIds = registry.classIdsByName(data.typeName);
+
+    return std::any_of(sameTypeClassIds.begin(), sameTypeClassIds.end(), [classId](u64 candidate) {
+        return candidate == classId;
+    });
+}
+} // namespace
+
 void* ScriptObjectRegistry::unwrap(IScriptBindingContext& ctx, void* val, u64 classId)
 {
     void* opaque = ctx.getOpaque(val, classId);
-    // 句柄可能登记在别的作用域下（同一 classId 的子作用域，或同类型但不同 classId 的历史登记），
-    // 按 classId 取不到时退回"取任意对象上的 opaque"：ObjectData 自带类型名，据此校验真实类型，
-    // 避免把类型不符的对象误当成目标类型。
     if (!opaque) {
-        opaque = ctx.getOpaque(val, 0);
-    }
-    if (!opaque) {
-        return nullptr;
+        // 按 classId 取不到不等于不是本类型：同一逻辑对象可能因原型/类在不同作用域或不同批次被
+        // 重新登记而换了 classId（GameTest 里每个行为包各装一遍 @minecraft/server 即如此）。
+        // 退回取对象自身的 opaque，再用登记时写入的类型名核对，类型不符一律按失败处理，
+        // 不把无关对象误当成目标类型的实例。
+        void* fallback = ctx.getOpaque(val, 0);
+        if (fallback == nullptr) {
+            return nullptr;
+        }
+        auto* candidate = static_cast<ObjectData*>(fallback);
+        if (!_matchesRegisteredType(ctx.classRegistry(), *candidate, classId)) {
+            return nullptr;
+        }
+        opaque = fallback;
     }
     auto* data = static_cast<ObjectData*>(opaque);
-
-    // TODO: 定位 ItemStack 解包失败根因后移除本诊断输出。
-    {
-        static std::atomic<i32> s_diagI{0};
-        if (s_diagI.fetch_add(1) < 15) {
-            spdlog::warn("[DIAGI] classId={} typeName={} packId={}",
-                classId,
-                data->typeName ? data->typeName : "null",
-                ctx.packId());
-        }
-    }
 
     return data->ptr;
 }
