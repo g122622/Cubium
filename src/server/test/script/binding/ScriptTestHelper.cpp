@@ -49,6 +49,7 @@
 #include "server/world/ServerWorld.hpp"          // ServerWorld（asServerWorld 取 NaturalSpawner 单点入口）
 #include "server/world/spawn/NaturalSpawner.hpp" // NaturalSpawner::spawnCategoryForPosition（单点生成入口）
 
+#include <atomic>
 #include <cctype>
 #include <sstream>
 #include <string>
@@ -182,6 +183,17 @@ const mc::BlockState* _unwrapBlockPermutation(mc::mod::bedrock::addon::IScriptBi
 mc::ItemStack* _unwrapItemStack(mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* val)
 {
     const u64 classId = ctx.classRegistry().classIdByName("ItemStack");
+    // TODO: 定位 ItemStack 解包失败根因后移除本诊断输出。
+    {
+        static std::atomic<i32> s_diagD{0};
+        if (s_diagD.fetch_add(1) < 40) {
+            spdlog::warn("[DIAGD] classId={} isObject={} isUndefined={} packId={}",
+                classId,
+                ctx.isObject(val),
+                ctx.isUndefined(val),
+                ctx.packId());
+        }
+    }
 
     return static_cast<mc::ItemStack*>(mc::mod::bedrock::addon::ScriptObjectRegistry::unwrap(ctx, val, classId));
 }
