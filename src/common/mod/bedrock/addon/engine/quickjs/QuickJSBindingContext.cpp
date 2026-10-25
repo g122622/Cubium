@@ -579,6 +579,25 @@ void* QuickJSBindingContext::getOpaque(void* obj, u64 classId) const
     JSValue val = unwrapValue(obj);
     {
         // TODO: 定位 ItemStack 解包失败根因后移除本诊断输出。
+        if (packId() == "a1c1c000-0004-4a75-91b7-4cdf0a03c007" && classId >= 200 && classId <= 260) {
+            static std::atomic<i32> s_diagE{0};
+            if (s_diagE.fetch_add(1) < 8) {
+                JSClassID cid = 0;
+                const void* anyOpaque = JS_GetAnyOpaque(val, &cid);
+                JSValue proto = JS_GetPrototype(m_ctx, val);
+                const JSClassID protoClass = JS_IsObject(proto) ? JS_GetClassID(proto) : 0;
+                JS_FreeValue(m_ctx, proto);
+                spdlog::warn("[DIAGE] requested={} objClass={} anyOpaque={} protoClass={} isObject={}",
+                    classId,
+                    static_cast<u64>(JS_GetClassID(val)),
+                    anyOpaque != nullptr,
+                    static_cast<u64>(protoClass),
+                    JS_IsObject(val));
+            }
+        }
+    }
+    {
+        // TODO: 定位 ItemStack 解包失败根因后移除本诊断输出。
         if (packId() == "a1c1c000-0004-4a75-91b7-4cdf0a03c007") {
             static std::atomic<i32> s_diagB{0};
             if (s_diagB.fetch_add(1) < 10) {
