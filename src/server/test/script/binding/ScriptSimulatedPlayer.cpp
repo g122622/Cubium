@@ -44,11 +44,13 @@
 #include "server/test/script/context/ScriptBindingRegistry.hpp"
 #include "server/test/simulated/SimulatedPlayer.hpp"
 
+#include <atomic>
 #include <cctype>
 #include <memory>
 #include <optional>
 #include <string>
 #include <string_view>
+#include <spdlog/spdlog.h>
 
 namespace mc::test {
 
@@ -123,6 +125,19 @@ mc::ItemStack* _unwrapItemStack(mc::mod::bedrock::addon::IScriptBindingContext& 
             static_cast<mc::ItemStack*>(mc::mod::bedrock::addon::ScriptObjectRegistry::unwrap(ctx, val, classId));
         if (stack != nullptr) {
             return stack;
+        }
+    }
+
+    // TODO: 定位 ItemStack 解包失败根因后移除本诊断输出。
+    {
+        static std::atomic<i32> s_diagF{0};
+        if (s_diagF.fetch_add(1) < 12) {
+            const auto ids = ctx.classRegistry().classIdsByName("ItemStack");
+            std::string joined;
+            for (u64 id : ids) {
+                joined += std::to_string(id) + ",";
+            }
+            spdlog::warn("[DIAGF] packId={} candidateIds={} isObject={}", ctx.packId(), joined, ctx.isObject(val));
         }
     }
 
