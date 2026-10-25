@@ -69,18 +69,24 @@ void* ScriptObjectRegistry::wrap(IScriptBindingContext& ctx,
 void* ScriptObjectRegistry::unwrap(IScriptBindingContext& ctx, void* val, u64 classId)
 {
     void* opaque = ctx.getOpaque(val, classId);
+    // 句柄可能登记在别的作用域下（同一 classId 的子作用域，或同类型但不同 classId 的历史登记），
+    // 按 classId 取不到时退回"取任意对象上的 opaque"：ObjectData 自带类型名，据此校验真实类型，
+    // 避免把类型不符的对象误当成目标类型。
+    if (!opaque) {
+        opaque = ctx.getOpaque(val, 0);
+    }
     if (!opaque) {
         return nullptr;
     }
     auto* data = static_cast<ObjectData*>(opaque);
+
     // TODO: 定位 ItemStack 解包失败根因后移除本诊断输出。
-    if (data->ptr == nullptr && ctx.isObject(val)) {
-        static std::atomic<i32> s_diagH{0};
-        if (s_diagH.fetch_add(1) < 12) {
-            spdlog::warn("[DIAGH] classId={} typeName={} owned={} packId={}",
+    {
+        static std::atomic<i32> s_diagI{0};
+        if (s_diagI.fetch_add(1) < 15) {
+            spdlog::warn("[DIAGI] classId={} typeName={} packId={}",
                 classId,
                 data->typeName ? data->typeName : "null",
-                data->owned,
                 ctx.packId());
         }
     }
