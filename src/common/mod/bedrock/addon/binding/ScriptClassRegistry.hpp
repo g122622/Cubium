@@ -28,6 +28,7 @@
 #include <string>
 #include <string_view>
 #include <unordered_map>
+#include <vector>
 
 namespace mc::mod::bedrock::addon {
 
@@ -73,6 +74,17 @@ public:
     [[nodiscard]] u64 classIdByName(std::string_view name) const noexcept;
 
     /**
+     * @brief 按类名取全部 classId（同一上下文内同名类可能登记多次）。
+     *
+     * 上下文内每个插件各自执行一次模组工厂（例如每个 GameTest 行为包都会装一遍
+     * `@minecraft/server`），同名类因此会分多次 `registerClass` 落到不同 classId 上。名索引只保留
+     * 最后一次登记，按名解开对象时若只用最后那个就会漏掉其它批次包装出的对象。
+     *
+     * 顺序：首次 off 的项为最近一次登记（与 `classIdByName` 一致），其后为更早的登记。
+     */
+    [[nodiscard]] std::vector<u64> classIdsByName(std::string_view name) const;
+
+    /**
      * @brief 清空所有条目（脚本引擎重建/测试隔离用）。
      */
     void clear() noexcept;
@@ -85,6 +97,8 @@ private:
 
     std::unordered_map<u64, Entry> m_byId;
     std::unordered_map<std::string, u64> m_idByName;
+    /// 同名类的全部 classId，最近登记在前。与 m_byId/m_idByName 同步维护。
+    std::unordered_map<std::string, std::vector<u64>> m_idsByName;
 };
 
 } // namespace mc::mod::bedrock::addon

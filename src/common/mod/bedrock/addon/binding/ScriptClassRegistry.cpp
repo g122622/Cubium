@@ -23,6 +23,8 @@
 
 #include "common/mod/bedrock/addon/binding/ScriptClassRegistry.hpp"
 
+#include <algorithm>
+
 namespace mc::mod::bedrock::addon {
 
 void ScriptClassRegistry::registerClass(u64 classId, void* proto, std::string_view name) noexcept
@@ -31,6 +33,12 @@ void ScriptClassRegistry::registerClass(u64 classId, void* proto, std::string_vi
     entry.proto = proto;
     entry.name = std::string(name);
     m_idByName[entry.name] = classId;
+
+    // 同名类的历史登记保留：同一上下文内每个插件各装一遍模组工厂，同名类会落到不同 classId，
+    // 按名解开旧批次包装出的对象时仍需要它们。
+    auto& ids = m_idsByName[entry.name];
+    ids.erase(std::remove(ids.begin(), ids.end(), classId), ids.end());
+    ids.insert(ids.begin(), classId);
 }
 
 void* ScriptClassRegistry::proto(u64 classId) const noexcept
@@ -51,6 +59,16 @@ void* ScriptClassRegistry::protoByName(std::string_view name) const noexcept
     }
 
     return proto(it->second);
+}
+
+std::vector<u64> ScriptClassRegistry::classIdsByName(std::string_view name) const
+{
+    auto it = m_idsByName.find(std::string(name));
+    if (it == m_idsByName.end()) {
+        return {};
+    }
+
+    return it->second;
 }
 
 u64 ScriptClassRegistry::classIdByName(std::string_view name) const noexcept
@@ -75,6 +93,14 @@ void ScriptClassRegistry::unregisterClass(u64 classId) noexcept
     if (nameIt != m_idByName.end() && nameIt->second == classId) {
         m_idByName.erase(nameIt);
     }
+    auto idsIt = m_idsByName.find(it->second.name);
+    if (idsIt != m_idsByName.end()) {
+        auto& ids = idsIt->second;
+        ids.erase(std::remove(ids.begin(), ids.end(), classId), ids.end());
+        if (ids.empty()) {
+            m_idsByName.erase(idsIt);
+        }
+    }
 
     m_byId.erase(it);
 }
@@ -83,6 +109,7 @@ void ScriptClassRegistry::clear() noexcept
 {
     m_byId.clear();
     m_idByName.clear();
+    m_idsByName.clear();
 }
 
 } // namespace mc::mod::bedrock::addon

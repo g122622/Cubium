@@ -322,6 +322,25 @@ public:
     }
 
     /**
+     * @brief 从JS对象获取C++指针，兼容同名类的历史登记。
+     *
+     * 同一上下文内每个插件都会各自执行一次模组工厂（例如每个 GameTest 行为包都装一遍
+     * `@minecraft/server`），同名类因此分多次登记到不同 classId 上。按名解参时若只接受本批次
+     * 的 classId，其它批次包装出的同名对象会被判为类型不符；本重载对全部同名 classId 依次尝试。
+     */
+    [[nodiscard]] T* unwrapAnyOf(void* thisVal, std::string_view className) const
+    {
+        for (u64 classId : m_ctx.classRegistry().classIdsByName(className)) {
+            void* ptr = ScriptObjectRegistry::unwrap(m_ctx, thisVal, classId);
+            if (ptr != nullptr) {
+                return static_cast<T*>(ptr);
+            }
+        }
+
+        return nullptr;
+    }
+
+    /**
      * @brief 将C++对象包装为JS值
      *
      * @param obj C++对象指针

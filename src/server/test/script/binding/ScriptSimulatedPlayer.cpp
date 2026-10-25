@@ -44,13 +44,11 @@
 #include "server/test/script/context/ScriptBindingRegistry.hpp"
 #include "server/test/simulated/SimulatedPlayer.hpp"
 
-#include <atomic>
 #include <cctype>
 #include <memory>
 #include <optional>
 #include <string>
 #include <string_view>
-#include <spdlog/spdlog.h>
 
 namespace mc::test {
 
@@ -116,22 +114,19 @@ mc::Entity* _unwrapEntity(mc::mod::bedrock::addon::IScriptBindingContext& ctx, v
 }
 
 // 从 JS ItemStack 对象 unwrap 出 mc::ItemStack*（@minecraft/server 注册，opaque 持 mc::ItemStack*）。
+// 同一上下文内每个插件都会各自执行一次 @minecraft/server 模组工厂，同名类分多次登记到不同
+// classId；按名解参必须遍历全部同名 classId，否则其它批次包装出的 ItemStack 会被判为类型不符。
 mc::ItemStack* _unwrapItemStack(mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* val)
 {
-    const u64 classId = ctx.classRegistry().classIdByName("ItemStack");
-    // TODO: 定位 ItemStack 解包失败根因后移除本诊断输出。
-    {
-        static std::atomic<i32> s_diagC{0};
-        if (s_diagC.fetch_add(1) < 40) {
-            spdlog::warn("[DIAGC] classId={} isObject={} isUndefined={} packId={}",
-                classId,
-                ctx.isObject(val),
-                ctx.isUndefined(val),
-                ctx.packId());
+    for (u64 classId : ctx.classRegistry().classIdsByName("ItemStack")) {
+        auto* stack =
+            static_cast<mc::ItemStack*>(mc::mod::bedrock::addon::ScriptObjectRegistry::unwrap(ctx, val, classId));
+        if (stack != nullptr) {
+            return stack;
         }
     }
 
-    return static_cast<mc::ItemStack*>(mc::mod::bedrock::addon::ScriptObjectRegistry::unwrap(ctx, val, classId));
+    return nullptr;
 }
 
 // 统一 stub：抛对齐基岩 GameTestErrorType::MethodNotImplemented 的 GameTestError JS 实例。

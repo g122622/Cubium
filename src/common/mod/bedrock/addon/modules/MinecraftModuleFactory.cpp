@@ -90,7 +90,6 @@
 #include "common/world/border/WorldBorder.hpp"                  // WorldBorder JS 类读 IWorld::worldBorder() 各 getter
 #include "common/world/gamerule/GameRules.hpp"                  // Dimension.getGameRule 经 IWorld::getGameRules 取值
 
-#include <atomic>
 #include <optional>
 #include <unordered_map>
 #include <vector>
@@ -118,14 +117,22 @@ namespace {
 /// 注：本 TU 跨多个回调共享，故用静态局部；引擎重建后 classId 变化，每次仍回查注册表校正。
 u64 resolveItemStackClassId(IScriptBindingContext& ctx)
 {
-    const u64 resolved = ctx.classRegistry().classIdByName("ItemStack");
-    // TODO: 定位 ItemStack 解包失败根因后移除本诊断输出。
-    static std::atomic<i32> s_diagA{0};
-    if (s_diagA.fetch_add(1) < 20) {
-        spdlog::warn("[DIAGA] resolveItemStackClassId={} packId={}", resolved, ctx.packId());
+    return ctx.classRegistry().classIdByName("ItemStack");
+}
+
+/// 按类名解开 ItemStack 入参，兼容同一上下文内同名类的多次登记。
+/// 每个插件都会各自执行一次本模组工厂，同名类会分多次落到不同 classId；只用 classIdByName 的
+/// 最后一次登记会漏掉其它批次包装出的对象（表现为 "first arg must be an ItemStack"）。
+mc::ItemStack* resolveItemStackArgument(IScriptBindingContext& ctx, void* value)
+{
+    for (u64 classId : ctx.classRegistry().classIdsByName("ItemStack")) {
+        auto* stack = static_cast<mc::ItemStack*>(ScriptObjectRegistry::unwrap(ctx, value, classId));
+        if (stack != nullptr) {
+            return stack;
+        }
     }
 
-    return resolved;
+    return nullptr;
 }
 
 } // namespace
@@ -2555,10 +2562,8 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
 
                 return ctx.createBoolean(true);
             }
-            // ItemStack 入参：按 classId unwrap（非拥有，仅拷贝写入装备数组）。复用 Container.setItem
-            // 的 unwrap 范式（resolveItemStackClassId + ScriptObjectRegistry::unwrap）。
-            const u64 isClassId = resolveItemStackClassId(ctx);
-            auto* stack = static_cast<mc::ItemStack*>(ScriptObjectRegistry::unwrap(ctx, itemArg, isClassId));
+            // ItemStack 入参：按类名遍历全部同名 classId 解包（非拥有，仅拷贝写入装备数组）。
+            auto* stack = resolveItemStackArgument(ctx, itemArg);
             if (stack == nullptr) {
                 return ctx.throwTypeError(
                     "EquippableComponent.setEquipment: argument must be an ItemStack, undefined, or null");
@@ -3452,9 +3457,7 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
             if (!slot || *slot < 0 || *slot >= inv->getContainerSize()) {
                 return ctx.createUndefined();
             }
-            // unwrap 入参 ItemStack（按 classId 校验类型）。
-            const u64 isClassId = resolveItemStackClassId(ctx);
-            auto* stack = static_cast<mc::ItemStack*>(ScriptObjectRegistry::unwrap(ctx, args[1], isClassId));
+            auto* stack = resolveItemStackArgument(ctx, args[1]);
             if (stack == nullptr) {
                 return ctx.throwTypeError("Container.setItem: argument must be an ItemStack");
             }
@@ -3471,9 +3474,7 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
             if (inv == nullptr || argc < 1) {
                 return ctx.createUndefined();
             }
-
-            const u64 isClassId = resolveItemStackClassId(ctx);
-            auto* stack = static_cast<mc::ItemStack*>(ScriptObjectRegistry::unwrap(ctx, args[0], isClassId));
+            auto* stack = resolveItemStackArgument(ctx, args[0]);
             if (stack == nullptr) {
                 return ctx.throwTypeError("Container.addItem: argument must be an ItemStack");
             }
