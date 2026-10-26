@@ -33,6 +33,7 @@
 #include "server/application/IServer.hpp"
 #include "server/command/ServerCommandSource.hpp"
 #include "server/command/support/CommandMetadata.hpp"
+#include "server/command/support/CommandSuggestionProviders.hpp"
 #include "server/command/support/PlayerResolver.hpp"
 #include "server/core/ConnectionManager.hpp"
 #include "server/core/OpListManager.hpp"
@@ -62,6 +63,7 @@ void OpCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
     // /op <player>
     auto playerArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
         "targets", GameProfileArgumentType::gameProfile());
+    playerArg->setCustomSuggestions(std::make_shared<ServerSuggestionProvider<ServerCommandSource>>());
     playerArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
         return _opPlayer(ctx);
     });

@@ -36,6 +36,7 @@
 #include "server/application/IServer.hpp"
 #include "server/command/ServerCommandSource.hpp"
 #include "server/command/support/CommandMetadata.hpp"
+#include "server/command/support/CommandSuggestionProviders.hpp"
 #include "server/scoreboard/ServerScoreboard.hpp"
 #include <memory>
 #include <sstream>
@@ -142,6 +143,7 @@ void TriggerCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatch
     // /trigger <objective>
     auto objectiveArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
         "objective", ObjectiveNameArgumentType::objective());
+    objectiveArg->setCustomSuggestions(std::make_shared<ServerSuggestionProvider<ServerCommandSource>>());
     objectiveArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
         return _trigger(ctx);
     });

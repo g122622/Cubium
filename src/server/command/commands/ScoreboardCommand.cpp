@@ -38,6 +38,7 @@
 #include "server/application/IServer.hpp"
 #include "server/command/ServerCommandSource.hpp"
 #include "server/command/support/CommandMetadata.hpp"
+#include "server/command/support/CommandSuggestionProviders.hpp"
 #include "server/scoreboard/ServerScoreboard.hpp"
 #include <algorithm>
 #include <cstddef>
@@ -152,6 +153,7 @@ void ScoreboardCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispa
     auto setPlayersNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("set");
     auto setTargetArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
         "targets", ScoreHolderArgumentType::scoreHolder(true));
+    setTargetArg->setCustomSuggestions(std::make_shared<ServerSuggestionProvider<ServerCommandSource>>());
     auto setObjectiveArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
         "objective", ObjectiveNameArgumentType::objective());
     auto scoreArg =
@@ -167,6 +169,7 @@ void ScoreboardCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispa
     auto addPlayersNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("add");
     auto addTargetArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
         "targets", ScoreHolderArgumentType::scoreHolder(true));
+    addTargetArg->setCustomSuggestions(std::make_shared<ServerSuggestionProvider<ServerCommandSource>>());
     auto addObjectiveArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
         "objective", ObjectiveNameArgumentType::objective());
     auto addScoreArg =
@@ -182,6 +185,7 @@ void ScoreboardCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispa
     auto removePlayersNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("remove");
     auto removeTargetArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
         "targets", ScoreHolderArgumentType::scoreHolder(true));
+    removeTargetArg->setCustomSuggestions(std::make_shared<ServerSuggestionProvider<ServerCommandSource>>());
     auto removeObjectiveArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
         "objective", ObjectiveNameArgumentType::objective());
     auto removeScoreArg =
@@ -197,6 +201,7 @@ void ScoreboardCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispa
     auto displayPlayersNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("display");
     auto displayTargetArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
         "targets", ScoreHolderArgumentType::scoreHolder(true));
+    displayTargetArg->setCustomSuggestions(std::make_shared<ServerSuggestionProvider<ServerCommandSource>>());
     auto displayObjectiveArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
         "objective", ObjectiveNameArgumentType::objective());
     displayObjectiveArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
@@ -209,12 +214,14 @@ void ScoreboardCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispa
     auto operationPlayersNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("operation");
     auto operationTargetArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
         "targets", ScoreHolderArgumentType::scoreHolder(true));
+    operationTargetArg->setCustomSuggestions(std::make_shared<ServerSuggestionProvider<ServerCommandSource>>());
     auto operationObjectiveArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
         "objective", ObjectiveNameArgumentType::objective());
     auto operationArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
         "operation", ScoreOperationArgumentType::operation());
     auto operationSourceArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
         "source", ScoreHolderArgumentType::scoreHolder(true));
+    operationSourceArg->setCustomSuggestions(std::make_shared<ServerSuggestionProvider<ServerCommandSource>>());
     auto operationSourceObjectiveArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
         "sourceObjective", ObjectiveNameArgumentType::objective());
     operationSourceObjectiveArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
@@ -230,6 +237,7 @@ void ScoreboardCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispa
     auto resetPlayersNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("reset");
     auto resetTargetArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
         "targets", ScoreHolderArgumentType::scoreHolder(true));
+    resetTargetArg->setCustomSuggestions(std::make_shared<ServerSuggestionProvider<ServerCommandSource>>());
     resetTargetArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
         return _resetScore(ctx);
     });
@@ -239,6 +247,7 @@ void ScoreboardCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispa
     auto getPlayersNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("get");
     auto getTargetArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
         "targets", ScoreHolderArgumentType::scoreHolder(true));
+    getTargetArg->setCustomSuggestions(std::make_shared<ServerSuggestionProvider<ServerCommandSource>>());
     auto getObjectiveArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
         "objective", ObjectiveNameArgumentType::objective());
     getObjectiveArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
@@ -252,8 +261,10 @@ void ScoreboardCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispa
     auto enablePlayersNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("enable");
     auto enableTargetArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
         "targets", ScoreHolderArgumentType::scoreHolder(true));
+    enableTargetArg->setCustomSuggestions(std::make_shared<ServerSuggestionProvider<ServerCommandSource>>());
     auto enableObjectiveArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
         "objective", ObjectiveNameArgumentType::objective());
+    enableObjectiveArg->setCustomSuggestions(std::make_shared<ServerSuggestionProvider<ServerCommandSource>>());
     enableObjectiveArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
         return _enableTrigger(ctx);
     });
@@ -264,6 +275,7 @@ void ScoreboardCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispa
     auto listPlayersNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("list");
     auto listTargetArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
         "targets", ScoreHolderArgumentType::scoreHolder(true));
+    listTargetArg->setCustomSuggestions(std::make_shared<ServerSuggestionProvider<ServerCommandSource>>());
     listTargetArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
         return _listPlayers(ctx);
     });

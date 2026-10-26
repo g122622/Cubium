@@ -32,6 +32,7 @@
 #include "server/application/IServer.hpp"
 #include "server/command/ServerCommandSource.hpp"
 #include "server/command/support/CommandMetadata.hpp"
+#include "server/command/support/CommandSuggestionProviders.hpp"
 #include "server/command/support/PlayerResolver.hpp"
 #include "server/core/BannedPlayerList.hpp"
 #include "server/core/PlayerManager.hpp"
@@ -58,6 +59,7 @@ void PardonCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatche
     // /pardon <player>
     auto playerArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
         "targets", GameProfileArgumentType::gameProfile());
+    playerArg->setCustomSuggestions(std::make_shared<ServerSuggestionProvider<ServerCommandSource>>());
     playerArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
         return _pardonPlayer(ctx);
     });

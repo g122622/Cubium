@@ -39,6 +39,7 @@
 #include "server/bossbar/CustomServerBossInfoManager.hpp"
 #include "server/command/ServerCommandSource.hpp"
 #include "server/command/support/CommandMetadata.hpp"
+#include "server/command/support/CommandSuggestionProviders.hpp"
 #include "server/command/support/PlayerResolver.hpp"
 #include "server/core/PlayerManager.hpp"
 #include "server/player/ServerPlayer.hpp"
@@ -113,6 +114,7 @@ void BossBarCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatch
     auto addNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("add");
     auto addIdArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, ResourceLocation>>(
         "id", IdentifierArgumentType::identifier());
+    // 原版 /bossbar add 的 id 没有 .suggests（只有 remove/set 有），此处不标记。
     auto addNameArg =
         std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>("name", StringArgumentType::string());
     addNameArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
@@ -126,6 +128,7 @@ void BossBarCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatch
     auto removeNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("remove");
     auto removeIdArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, ResourceLocation>>(
         "id", IdentifierArgumentType::identifier());
+    removeIdArg->setCustomSuggestions(std::make_shared<ServerSuggestionProvider<ServerCommandSource>>());
     removeIdArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
         return _removeBossBar(ctx);
     });
@@ -143,6 +146,7 @@ void BossBarCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatch
     auto setNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("set");
     auto setIdArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, ResourceLocation>>(
         "id", IdentifierArgumentType::identifier());
+    setIdArg->setCustomSuggestions(std::make_shared<ServerSuggestionProvider<ServerCommandSource>>());
 
     // /bossbar set <id> name <name>
     auto setNameNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("name");
@@ -221,6 +225,7 @@ void BossBarCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatch
     auto getNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("get");
     auto getIdArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, ResourceLocation>>(
         "id", IdentifierArgumentType::identifier());
+    getIdArg->setCustomSuggestions(std::make_shared<ServerSuggestionProvider<ServerCommandSource>>());
 
     auto getValueNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("value");
     getValueNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {

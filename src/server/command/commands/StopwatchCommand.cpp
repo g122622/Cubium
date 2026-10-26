@@ -29,6 +29,7 @@
 #include "common/world/IWorld.hpp"
 #include "server/application/IServer.hpp"
 #include "server/command/support/CommandMetadata.hpp"
+#include "server/command/support/CommandSuggestionProviders.hpp"
 #include "server/world/ServerWorld.hpp"
 
 #include <memory>
@@ -68,28 +69,46 @@ void StopwatchCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispat
         support::makeMetadata("Manages stopwatches.", "/stopwatch <create|query|remove|restart> <id>", 2, {}, true));
 
     // 四个子命令的参数节点结构完全相同，只是处理函数不同；依次构建。
-    const auto addSubcommand = [&stopwatchNode](const char* name, auto handler) {
+    // suggestIds 对应原版 StopwatchCommand 的 .suggests(SUGGEST_STOPWATCHES)：query /
+    // restart / remove 声明了补全，create 没有。这个差异会体现在命令树里参数节点的
+    // 建议提供器标识上，因此逐个传入，不能统一标记。
+    const auto addSubcommand = [&stopwatchNode](const char* name, auto handler, bool suggestIds) {
         auto subNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>(name);
         auto idArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, ResourceLocation>>(
             "id", IdentifierArgumentType::identifier());
+        if (suggestIds) {
+            idArg->setCustomSuggestions(std::make_shared<ServerSuggestionProvider<ServerCommandSource>>());
+        }
         idArg->setCommand([handler](CommandContext<ServerCommandSource>& ctx) {
             return handler(ctx);
         });
         subNode->addChild(idArg);
         stopwatchNode->addChild(subNode);
     };
-    addSubcommand("create", [](CommandContext<ServerCommandSource>& ctx) {
-        return _create(ctx);
-    });
-    addSubcommand("query", [](CommandContext<ServerCommandSource>& ctx) {
-        return _query(ctx);
-    });
-    addSubcommand("remove", [](CommandContext<ServerCommandSource>& ctx) {
-        return _remove(ctx);
-    });
-    addSubcommand("restart", [](CommandContext<ServerCommandSource>& ctx) {
-        return _restart(ctx);
-    });
+    addSubcommand(
+        "create",
+        [](CommandContext<ServerCommandSource>& ctx) {
+            return _create(ctx);
+        },
+        false);
+    addSubcommand(
+        "query",
+        [](CommandContext<ServerCommandSource>& ctx) {
+            return _query(ctx);
+        },
+        true);
+    addSubcommand(
+        "remove",
+        [](CommandContext<ServerCommandSource>& ctx) {
+            return _remove(ctx);
+        },
+        true);
+    addSubcommand(
+        "restart",
+        [](CommandContext<ServerCommandSource>& ctx) {
+            return _restart(ctx);
+        },
+        true);
 
     dispatcher.registerCommand(stopwatchNode);
 }

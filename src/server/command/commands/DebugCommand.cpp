@@ -26,6 +26,7 @@
 #include "common/command/CommandNode.hpp"
 #include "common/command/arguments/FunctionArgument.hpp"
 #include "server/command/support/CommandMetadata.hpp"
+#include "server/command/support/CommandSuggestionProviders.hpp"
 
 #include <memory>
 
@@ -54,6 +55,7 @@ void DebugCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher
     auto functionNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("function");
     auto nameArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, FunctionArgumentResult>>(
         "name", FunctionArgumentType::functions());
+    nameArg->setCustomSuggestions(std::make_shared<ServerSuggestionProvider<ServerCommandSource>>());
     nameArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
         return _function(ctx);
     });

@@ -38,6 +38,7 @@
 #include "server/application/IServer.hpp"
 #include "server/command/ServerCommandSource.hpp"
 #include "server/command/support/CommandMetadata.hpp"
+#include "server/command/support/CommandSuggestionProviders.hpp"
 #include "server/command/support/PlayerResolver.hpp"
 #include "server/scoreboard/ServerScoreboard.hpp"
 #include <memory>
@@ -182,6 +183,7 @@ void TeamCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
     // 若登记成 EntitySelector，getArgument<std::string> 会抛 bad any_cast。
     auto membersArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
         "members", ScoreHolderArgumentType::scoreHolder(true));
+    membersArg->setCustomSuggestions(std::make_shared<ServerSuggestionProvider<ServerCommandSource>>());
     membersArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
         return _joinTeam(ctx);
     });
@@ -194,6 +196,7 @@ void TeamCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
     // 原版 /team leave 的 members 是 ScoreHolderArgument（score_holder，只收名字）。
     auto leaveMembersArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
         "members", ScoreHolderArgumentType::scoreHolder(true));
+    leaveMembersArg->setCustomSuggestions(std::make_shared<ServerSuggestionProvider<ServerCommandSource>>());
     leaveMembersArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
         return _leaveTeam(ctx);
     });

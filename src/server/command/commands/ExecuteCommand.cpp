@@ -49,6 +49,7 @@
 #include "server/command/CommandRegistry.hpp"
 #include "server/command/ServerCommandSource.hpp"
 #include "server/command/support/CommandMetadata.hpp"
+#include "server/command/support/CommandSuggestionProviders.hpp"
 #include "server/command/support/EntityResolver.hpp"
 #include "server/dimension/ServerDimensionManager.hpp"
 #include "server/world/ServerWorld.hpp"
@@ -177,7 +178,8 @@ void ExecuteCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatch
     auto inNode = modifier("in");
     auto inDimArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, DimensionId>>(
         "dimension", DimensionArgumentType::dimension());
-    inDimArg->setCustomSuggestions(std::make_shared<DimensionSuggestionProvider<ServerCommandSource>>());
+    // 原版 execute in 的 dimension 参数没有 .suggests()，命令树里不带建议提供器标识
+    // （声明了会让客户端写 minecraft:ask_server，与原版不一致）。
     inNode->addChild(inDimArg);
 
     // ========== on <attacker|controller|leasher|origin|owner|passengers|target|vehicle> <entity> ==========
@@ -245,6 +247,7 @@ void ExecuteCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatch
     auto summonNode = child("summon");
     auto summonEntityArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, ResourceLocation>>(
         "entity", ResourceEntityArgumentType::entity());
+    summonEntityArg->setCustomSuggestions(std::make_shared<ServerSuggestionProvider<ServerCommandSource>>());
     summonEntityArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
         return SummonCommand::summonAtSource(ctx);
     });

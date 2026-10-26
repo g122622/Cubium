@@ -30,6 +30,7 @@ import com.google.gson.JsonParser;
 import com.mojang.brigadier.arguments.ArgumentType;
 import com.mojang.brigadier.tree.ArgumentCommandNode;
 import com.mojang.brigadier.tree.CommandNode;
+import com.mojang.brigadier.tree.RootCommandNode;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -45,6 +46,9 @@ import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.protocol.game.ClientboundCommandsPacket;
+import net.minecraft.commands.synchronization.SuggestionProviders;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.flag.FeatureFlags;
 import io.netty.buffer.Unpooled;
 
@@ -114,6 +118,12 @@ public final class CommandTreeOracle {
         JsonObject result = new JsonObject();
         result.add("tree", GSON.toJsonTree(lines));
         result.add("arguments", arguments);
+        // 整棵树按原版 ClientboundCommandsPacket 编码后的字节数。
+        // 逐节点的 typeId/payload 只能发现「某个参数写错了」，发现不了节点顺序、节点计数、
+        // 重定向下标等结构级偏差；总字节数可以对这类偏差做一次总量校验。
+        JsonObject wire = new JsonObject();
+        wire.addProperty("byteLength", encodeTree(root).readableBytes());
+        result.add("wire", wire);
         StringBuilder text = new StringBuilder();
         for (String line : Files.readAllLines(input, StandardCharsets.UTF_8)) {
             if (!line.isBlank()) {
@@ -121,6 +131,44 @@ public final class CommandTreeOracle {
             }
         }
         Files.writeString(output, text, StandardCharsets.UTF_8);
+    }
+
+    /**
+     * 把整棵命令树按原版 clientbound/minecraft:commands 的格式编码，返回承载它的缓冲。
+     *
+     * <p>用官方 {@code ClientboundCommandsPacket} 的构造函数 + STREAM_CODEC，与真实下发给
+     * 客户端的字节完全同源，不自己拼字节。{@code NodeInspector} 的三个回调与专用服务器一致：
+     * 建议提供器取 {@code SuggestionProviders.getName}（未注册的 provider 会回退成 ask_server），
+     * 可执行性取 {@code CommandNode.canUse} 之外的 {@code getCommand() != null}，
+     * 受限性取 {@code requires} 判定——这里默认 false，因为原版专用服务器的 inspector
+     * 对非受限命令同样返回 false。
+     */
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    private static FriendlyByteBuf encodeTree(CommandNode<CommandSourceStack> root) {
+        ClientboundCommandsPacket.NodeInspector<CommandSourceStack> inspector =
+                new ClientboundCommandsPacket.NodeInspector<>() {
+                    @Override
+                    public Identifier suggestionId(ArgumentCommandNode<CommandSourceStack, ?> node) {
+                        return node.getCustomSuggestions() == null
+                                ? null
+                                : SuggestionProviders.getName(node.getCustomSuggestions());
+                    }
+
+                    @Override
+                    public boolean isExecutable(CommandNode<CommandSourceStack> node) {
+                        return node.getCommand() != null;
+                    }
+
+                    @Override
+                    public boolean isRestricted(CommandNode<CommandSourceStack> node) {
+                        // TODO: 原版专用服务器对受限命令会返回 true；这里恒为 false，
+                        //  若后续引入 requires 细分，需在此处补上判定。
+                        return false;
+                    }
+                };
+        FriendlyByteBuf buffer = new FriendlyByteBuf(Unpooled.buffer());
+        ClientboundCommandsPacket.STREAM_CODEC.encode(buffer, new ClientboundCommandsPacket((RootCommandNode) root, (ClientboundCommandsPacket.NodeInspector) inspector));
+        return buffer;
     }
 
     /**

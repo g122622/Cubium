@@ -32,6 +32,7 @@
 #include "server/application/IServer.hpp"
 #include "server/command/ServerCommandSource.hpp"
 #include "server/command/support/CommandMetadata.hpp"
+#include "server/command/support/CommandSuggestionProviders.hpp"
 #include "server/network/handshake/RegistryDataBuilder.hpp"
 #include <filesystem>
 #include <fstream>
@@ -55,6 +56,7 @@ void DataPackCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatc
     auto enableNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("enable");
     auto enableNameArg =
         std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>("name", StringArgumentType::string());
+    enableNameArg->setCustomSuggestions(std::make_shared<ServerSuggestionProvider<ServerCommandSource>>());
     enableNameArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
         return _enableDataPack(ctx);
     });
@@ -65,6 +67,7 @@ void DataPackCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatc
     auto disableNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("disable");
     auto disableNameArg =
         std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>("name", StringArgumentType::string());
+    disableNameArg->setCustomSuggestions(std::make_shared<ServerSuggestionProvider<ServerCommandSource>>());
     disableNameArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
         return _disableDataPack(ctx);
     });

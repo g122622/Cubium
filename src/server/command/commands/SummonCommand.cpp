@@ -45,6 +45,7 @@
 #include "common/world/WorldConstants.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "server/command/ServerCommandSource.hpp"
+#include "server/command/support/CommandSuggestionProviders.hpp"
 
 #include <cmath>
 #include <memory>
@@ -66,6 +67,7 @@ void SummonCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatche
     // /summon <entity> - 在执行者位置生成
     auto entityArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, ResourceLocation>>(
         "entity", ResourceEntityArgumentType::entity());
+    entityArg->setCustomSuggestions(std::make_shared<ServerSuggestionProvider<ServerCommandSource>>());
     entityArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
         return _summonEntity(ctx);
     });
