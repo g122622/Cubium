@@ -2218,6 +2218,7 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/liquid/CherryLeavesDripParticle.cpp
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/liquid/FallingNectarParticle.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/spawn/MobSpawnInfo.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/world/spawn/MobSpawnInfoJson.cpp
         # ${CMAKE_SOURCE_DIR}/src/common/world/BlockID.cpp  # 已移除 - 使用新的方块系统
         ${CMAKE_SOURCE_DIR}/src/common/entity/entities/player/Player.cpp
         ${CMAKE_SOURCE_DIR}/src/common/entity/player/SleepManager.cpp

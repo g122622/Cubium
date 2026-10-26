@@ -29,6 +29,7 @@
 // creature_spawn_probability，也把工厂方法设的 0.07 丢回默认 0.1。本测试验证
 // 该字段被正确解析并落到 spawnInfo.getCreatureSpawnProbability()。
 
+#include "common/entity/registry/VanillaEntities.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/world/biome/BiomeIds.hpp"
 #include "common/world/biome/BiomeRegistry.hpp"
@@ -50,6 +51,9 @@ protected:
         // BiomeRegistry::initialize 通过 BiomeFactory 构造全部默认 Biome，
         // snowy_plains 的 MobSpawnInfo.creatureSpawnProbability 默认被工厂设为 0.07f。
         BiomeRegistry::instance().initialize();
+        // 生成条目里的实体类型必须已注册：解码与原版 Codec 一样按资源名解析实体类型，
+        // 未注册的类型会让整份群系加载失败。
+        entity::VanillaEntities::registerAll();
     }
 };
 
@@ -140,14 +144,11 @@ TEST_F(BiomeLoaderSpawnTest, InvalidSpawnEntrySkipped)
 
     nlohmann::json j = makeBiomeJson(0.1f, spawners);
     auto result = BiomeLoader::loadFromJson(j, ResourceLocation("minecraft", "plains"));
-    ASSERT_TRUE(result.success());
 
-    const auto& biome = BiomeRegistry::instance().getMutable(Biomes::Plains);
-    const auto& creatureSpawns = biome.spawnInfo().getCreatureSpawns();
-
-    // 只有 pig 这一条合法条目应被保留
-    ASSERT_EQ(creatureSpawns.size(), 1u);
-    EXPECT_EQ(creatureSpawns[0].entityTypeId, "minecraft:pig");
+    // 原版对整个 spawners 做 Codec 解码：任一条目非法即整份群系加载失败，
+    // 不会「跳过坏条目、保留好条目」。
+    ASSERT_FALSE(result.success());
+    EXPECT_EQ(BiomeRegistry::instance().getMutable(Biomes::Plains).spawnInfo().getCreatureSpawns().size(), 0u);
 }
 
 // 合法的多分类 spawn 条目应全部解析。

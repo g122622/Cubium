@@ -152,7 +152,7 @@ harness 决定。`runner.ts` 负责按 `key` 对齐两侧输出、规范化、�
 
 ## 当前状态
 
-二十个能力已接入，`node tests/diff/harness/runner.ts run all` 退出码 0（全部一致）：
+二十一个能力已接入，`node tests/diff/harness/runner.ts run all` 退出码 0（全部一致）：
 
 | harness | 参照实现 | 单元 | 结果 | 已知缺口 |
 |---|---|---|---|---|
@@ -177,6 +177,7 @@ harness 决定。`runner.ts` 负责按 `key` 对齐两侧输出、规范化、�
 | `loot_table_block` | 原版 jar `LootTableBlockOracle` | 1324 | 全部一致 | — |
 | `loot_table_entity` | 原版 jar `LootTableEntityOracle` | 1324 | 全部一致 | 2 张表的实体类型建不出来（`creaking`、`mannequin`） |
 | `advancement` | 原版 jar `AdvancementOracle` | 1584 | 全部一致 | — |
+| `biome_spawns` | 原版 jar `BiomeSpawnsOracle` | 65 | 全部一致 | — |
 
 第一次跑通就查出并修掉的实打实的错误（都是手抄数据/公式出错）：
 
@@ -349,6 +350,27 @@ harness 决定。`runner.ts` 负责按 `key` 对齐两侧输出、规范化、�
   （装饰陶罐的 `pot_decorations`、不祥旗帜的 `banner_patterns` + `item_name` + `rarity` +
   `tooltip_display`）。`banner_patterns` 的 JSON 用图案 ID 与染料名，此前没有 JSON 解码
   路径（只有 NBT 往返），现补齐 `BannerPatternLayers`。
+
+### 生物群系生成：65 个全部对齐
+
+`biome_spawns` 把数据包 `worldgen/biome/*.json` 的 `spawners` / `creature_spawn_probability` /
+`spawn_costs` 解码成 `MobSpawnInfo`，与原版 `Biome#getMobSettings()` 逐字段比对：每个
+`MobCategory` 的生成条目（生物类型、权重、成组数量）、每区块上限、动物生成概率、
+带生成成本的实体。
+
+对齐过程中修掉的真问题：
+
+- **生成条目的实体类型必须能解析**：原版 `MobSpawnSettings.SpawnerData.CODEC` 用
+  `BuiltInRegistries.ENTITY_TYPE.byNameCodec()`，未注册的类型直接解码失败、整份群系作废。
+  此前跳过坏条目并保留其余；`BiomeLoader::loadFromJson` 现在与其它字段一样，失败即整体失败；
+- **`creature_spawn_probability` 的缺省值是 Codec 字段默认值 0.1**，不是「工厂方法的设定」：
+  `deep_dark`、`the_void` 在数据包里只有空 `spawners`，原版取 0.1，Cubium 的
+  `MobSpawnInfo::createEmpty()` 却给了 0；`snowy_taiga` 同样错用了雪原的 0.07
+  （数据包里只有 `snowy_plains`、`ice_spikes` 写了 0.07）；
+- **`spawn_costs` 之前只在「两项都为正」时生效**：原版 `charge` 缺省 0、`energy_budget`
+  缺省 1，且只要求非负，零值也保留；
+- **解码逻辑上移到 common**：`BiomeLoader` 与探针共用 `MobSpawnInfoJson`，探针测的就是
+  服务端真正跑的那段代码。
 
 ### 命令树：已对齐
 

@@ -59,6 +59,50 @@ import {
  * 目前为空：曾走 minecraft-data 的两条能力（附魔、食物饱和度）都已改接原版 jar。
  * 保留这个数组是因为它仍是「无 Java oracle 时」的回退通道。
  */
+/**
+ * biome_spawns 的规范化：每个分类的生成条目按 (type, weight, minCount, maxCount) 排序。
+ *
+ * 原版把 spawners 存成 WeightedList，`unwrap()` 的顺序与数据包书写顺序无关；集合语义下
+ * 条目的先后没有意义，比对前统一排序。其余字段原样保留。
+ */
+function canonicalSpawnCategories(value: unknown): unknown {
+    if (value === null || typeof value !== "object") {
+        return value;
+    }
+    const record = value as Record<string, unknown>;
+    if (record["categories"] === undefined || record["categories"] === null) {
+        return value;
+    }
+    // float 字段按「f32 位模式」比对：JSON 解析后是 double，用 Math.fround 还原成两侧共有的值，
+    // 避免 0.1 与 0.10000000149011612 这种写法差异被当成不一致。
+    const probability = typeof record["creature_spawn_probability"] === "number"
+        ? Math.fround(record["creature_spawn_probability"] as number)
+        : record["creature_spawn_probability"];
+    const categories = record["categories"] as Record<string, unknown>;
+    const sortedCategories: Record<string, unknown> = {};
+    for (const name of Object.keys(categories).sort()) {
+        const category = categories[name] as Record<string, unknown>;
+        const spawns = Array.isArray(category["spawns"]) ? [...category["spawns"]] : [];
+        spawns.sort((left, right) => {
+            const fields = (entry: unknown): unknown[] => {
+                const spawn = entry as Record<string, unknown>;
+                return [spawn["type"], spawn["weight"], spawn["minCount"], spawn["maxCount"]];
+            };
+            const a = fields(left);
+            const b = fields(right);
+            for (let index = 0; index < a.length; index++) {
+                if (a[index] === b[index]) {
+                    continue;
+                }
+                return (a[index] as never) < (b[index] as never) ? -1 : 1;
+            }
+            return 0;
+        });
+        sortedCategories[name] = { ...category, spawns };
+    }
+    return { ...record, categories: sortedCategories, creature_spawn_probability: probability };
+}
+
 const DATA_SPECS: ReadonlyArray<() => HarnessSpec> = [];
 
 /** 已登记、使用原版 Java oracle 的能力：oracle 类名 + 单元来源。 */
@@ -190,6 +234,15 @@ const JAVA_HARNESSES: ReadonlyArray<() => JavaHarness> = [
         oracle: "AdvancementOracle",
         input: (unit: string) => ({ advancement: unit }),
         key: "advancement",
+    }),
+    () => ({
+        name: "biome_spawns",
+        oracle: "BiomeSpawnsOracle",
+        input: (unit: string) => ({ biome: unit }),
+        key: "biome",
+        // 生成条目与分类都是集合，原版 Java 侧的权重顺序与数据包书写顺序不同，比对前按
+        // (type, weight, minCount, maxCount) 排序；分类名同样排序。
+        normalise: (value: unknown) => canonicalSpawnCategories(value),
     }),
     () => ({
         name: "loot_table",

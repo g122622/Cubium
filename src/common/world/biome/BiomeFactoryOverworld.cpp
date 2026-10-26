@@ -244,7 +244,9 @@ Biome createSnowyTaiga()
     biome.setSubSurfaceBlock(getBlockState(VanillaBlocks::DIRT));
     biome.setUnderWaterBlock(getBlockState(VanillaBlocks::GRAVEL));
     biome.setGenerationSettings(BiomeGenerationSettings{});
-    biome.setSpawnInfo(world::spawn::MobSpawnInfo::createSnowy());
+    // 雪地针叶林沿用 `MobSpawnInfo` 的通用默认生成表；data/minecraft/worldgen/biome/snowy_taiga.json
+    // 只写了 spawners，没有覆盖 creature_spawn_probability（原版取字段默认值 0.1）。
+    biome.setSpawnInfo(world::spawn::MobSpawnInfo{});
     // 雪地针叶林水体颜色
     biome.setEffects(BiomeEffects::Builder().waterColor(0x3D57D6).waterFogColor(0x050533)
             .fogColor(0x000000)

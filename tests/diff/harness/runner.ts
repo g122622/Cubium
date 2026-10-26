@@ -281,7 +281,8 @@ const DEFAULT_INPUT = (key: string) => (unit: string) => ({ [key]: unit });
  * 需要读数据包目录的能力：战利品表、进度（advancement）、配方这类内容都是数据包 JSON，
  * 探针通过 `MC_DIFF_VANILLA_DATAPACK` 拿到与 Java oracle 完全相同的目录。
  */
-const DATAPACK_DOMAINS: readonly string[] = ["loot_table", "loot_table_block", "loot_table_entity", "advancement"];
+const DATAPACK_DOMAINS: readonly string[] =
+    ["loot_table", "loot_table_block", "loot_table_entity", "advancement", "biome_spawns"];
 
 /**
  * 探针运行时的额外环境变量。

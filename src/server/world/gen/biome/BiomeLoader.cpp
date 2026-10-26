@@ -40,6 +40,7 @@
 #include "common/world/biome/BiomeRegistry.hpp"
 #include "common/world/gen/feature/DecorationStage.hpp"
 #include "common/world/spawn/MobSpawnInfo.hpp"
+#include "common/world/spawn/MobSpawnInfoJson.hpp"
 #include "server/world/gen/carver/ConfiguredCarverRegistry.hpp"
 #include "server/world/gen/feature/vegetation/FlowerFeature.hpp"
 #include "server/world/gen/placement/PlacedFeature.hpp"
@@ -373,206 +374,53 @@ void applyEffects(Biome& biome, const nlohmann::json& jsonObj)
 // spawners 解析
 // ============================================================================
 
-/**
- * @brief 数据包 spawner category 名 → EntityClassification
- *
- * 数据包 spawners 对象的 key（monster/creature/ambient/water_creature/water_ambient/misc/
- * axolotls/underground_water_creature）映射到项目的 EntityClassification。
- */
-std::optional<entity::EntityClassification> parseSpawnerCategory(const std::string& name)
-{
-    if (name == "monster") {
-        return entity::EntityClassification::Monster;
-    }
-    if (name == "creature") {
-        return entity::EntityClassification::Creature;
-    }
-    if (name == "ambient") {
-        return entity::EntityClassification::Ambient;
-    }
-    if (name == "water_creature") {
-        return entity::EntityClassification::WaterCreature;
-    }
-    if (name == "water_ambient") {
-        return entity::EntityClassification::WaterAmbient;
-    }
-    if (name == "misc") {
-        return entity::EntityClassification::Misc;
-    }
-    if (name == "axolotls") {
-        return entity::EntityClassification::Axolotls;
-    }
-    if (name == "underground_water_creature") {
-        return entity::EntityClassification::UndergroundWaterCreature;
-    }
-    return std::nullopt;
-}
-
-/**
- * @brief 解析顶层 creature_spawn_probability 字段
- *
- * 数据包顶层字段，范围 [0,1]。若缺省则返回 BiomeFactory 工厂方法设定的默认概率，
- * 保留 createSnowy(0.07) 等设定；非法值 warn 后回退到默认概率。
- */
-f32 resolveCreatureSpawnProbability(const Biome& biome, const nlohmann::json& jsonObj)
-{
-    const f32 defaultProb = biome.spawnInfo().getCreatureSpawnProbability();
-    if (!jsonObj.contains("creature_spawn_probability") || !jsonObj["creature_spawn_probability"].is_number()) {
-        return defaultProb;
-    }
-    const f64 prob = jsonObj["creature_spawn_probability"].get<f64>();
-    if (prob < 0.0 || prob > 1.0) {
-        spdlog::warn("creature_spawn_probability {} out of [0,1], using default {}", prob, defaultProb);
-        return defaultProb;
-    }
-    return static_cast<f32>(prob);
-}
-
-/**
- * @brief 解析单个 spawner 条目 JSON 为 SpawnEntry
- *
- * JSON 格式: { "type": "minecraft:zombie", "weight": 100, "minCount": 4, "maxCount": 4 }
- * 校验：weight>0、minCount<=maxCount、minCount>=0、type 非空。不合法条目返回 nullopt。
- */
-std::optional<world::spawn::SpawnEntry> parseSpawnEntry(const nlohmann::json& entryJson)
-{
-    if (!entryJson.is_object()) {
-        return std::nullopt;
-    }
-    auto typeStr = readString(entryJson, "type");
-    if (!typeStr) {
-        return std::nullopt;
-    }
-    // weight/minCount/maxCount 字段（1.21.11 使用 minCount/maxCount）
-    i32 weight = 0;
-    i32 minCount = 1;
-    i32 maxCount = 4;
-    if (entryJson.contains("weight") && entryJson["weight"].is_number_integer()) {
-        weight = entryJson["weight"].get<i32>();
-    }
-    if (entryJson.contains("minCount") && entryJson["minCount"].is_number_integer()) {
-        minCount = entryJson["minCount"].get<i32>();
-    }
-    if (entryJson.contains("maxCount") && entryJson["maxCount"].is_number_integer()) {
-        maxCount = entryJson["maxCount"].get<i32>();
-    }
-
-    // 校验：权重必须为正、最小数量非负、最小数量不大于最大数量。
-    if (weight <= 0) {
-        spdlog::warn("spawner entry '{}' has non-positive weight {}, skipping", *typeStr, weight);
-        return std::nullopt;
-    }
-    if (minCount < 0) {
-        spdlog::warn("spawner entry '{}' has negative minCount {}, skipping", *typeStr, minCount);
-        return std::nullopt;
-    }
-    if (minCount > maxCount) {
-        spdlog::warn("spawner entry '{}' has minCount {} > maxCount {}, skipping", *typeStr, minCount, maxCount);
-        return std::nullopt;
-    }
-
-    return world::spawn::SpawnEntry(*typeStr, weight, minCount, maxCount);
-}
-
-void applySpawners(Biome& biome, const nlohmann::json& jsonObj)
-{
-    if (!jsonObj.contains("spawners") || !jsonObj["spawners"].is_object()) {
-        return; // spawners 可选
-    }
-    const auto& spawnersJson = jsonObj["spawners"];
-
-    // 用全新的 MobSpawnInfo 覆盖 BiomeFactory 构造的默认值（避免重复条目）。
-    // 保留默认 maxInstances（与 MobSpawnInfo 工厂方法的 DEFAULT_MAX_* 常量一致）。
-    world::spawn::MobSpawnInfo newInfo;
-    newInfo.setMaxMonsterInstances(world::spawn::MobSpawnInfo::DEFAULT_MAX_MONSTERS);
-    newInfo.setMaxCreatureInstances(world::spawn::MobSpawnInfo::DEFAULT_MAX_CREATURES);
-    newInfo.setMaxAmbientInstances(world::spawn::MobSpawnInfo::DEFAULT_MAX_AMBIENT);
-    newInfo.setMaxAxolotlInstances(world::spawn::MobSpawnInfo::DEFAULT_MAX_AXOLOTLS);
-    newInfo.setMaxUndergroundWaterCreatureInstances(
-        world::spawn::MobSpawnInfo::DEFAULT_MAX_UNDERGROUND_WATER_CREATURES);
-    newInfo.setMaxWaterCreatureInstances(world::spawn::MobSpawnInfo::DEFAULT_MAX_WATER_CREATURES);
-    newInfo.setMaxWaterAmbientInstances(world::spawn::MobSpawnInfo::DEFAULT_MAX_WATER_AMBIENT);
-
-    // 动物生成概率：保留 BiomeFactory 工厂方法（如 createSnowy 的 0.07）的设定作为默认值，
-    // 避免用全新 MobSpawnInfo 的默认 0.1 覆盖掉工厂方法的设定；数据包顶层
-    // creature_spawn_probability 字段（若存在）覆盖默认值。
-    newInfo.setCreatureSpawnProbability(resolveCreatureSpawnProbability(biome, jsonObj));
-
-    for (const auto& [categoryName, entriesJson] : spawnersJson.items()) {
-        if (!entriesJson.is_array()) {
-            continue;
-        }
-        auto category = parseSpawnerCategory(categoryName);
-        if (!category) {
-            spdlog::warn("Unknown spawner category '{}' in biome JSON, skipping", categoryName);
-            continue;
-        }
-        for (const auto& entryJson : entriesJson) {
-            auto entry = parseSpawnEntry(entryJson);
-            if (!entry) {
-                spdlog::warn("Invalid spawner entry in category '{}', skipping", categoryName);
-                continue;
-            }
-            // 使用 MobSpawnInfo 的分类添加方法
-            switch (*category) {
-                case entity::EntityClassification::Monster:
-                    newInfo.addMonsterSpawn(*entry);
-                    break;
-                case entity::EntityClassification::Creature:
-                    newInfo.addCreatureSpawn(*entry);
-                    break;
-                case entity::EntityClassification::Ambient:
-                    newInfo.addAmbientSpawn(*entry);
-                    break;
-                case entity::EntityClassification::Axolotls:
-                    newInfo.addAxolotlSpawn(*entry);
-                    break;
-                case entity::EntityClassification::UndergroundWaterCreature:
-                    newInfo.addUndergroundWaterCreatureSpawn(*entry);
-                    break;
-                case entity::EntityClassification::WaterCreature:
-                    newInfo.addWaterCreatureSpawn(*entry);
-                    break;
-                case entity::EntityClassification::WaterAmbient:
-                    newInfo.addWaterAmbientSpawn(*entry);
-                    break;
-                case entity::EntityClassification::Misc:
-                    newInfo.addMiscSpawn(*entry);
-                    break;
-            }
-        }
-    }
-    biome.setSpawnInfo(std::move(newInfo));
-}
 
 // ============================================================================
 // spawn_costs 解析
 // ============================================================================
 
-void applySpawnCosts(Biome& biome, const nlohmann::json& jsonObj)
+/**
+ * @brief 用数据包的 spawners / creature_spawn_probability 重建生成信息
+ *
+ * 不做部分合并：`spawners` 出现时整体替换（`BiomeFactory` 的默认生成表随之作废）。
+ * 动物生成概率缺省时保留工厂方法的设定（雪原等少数群系不是默认的 0.1）。
+ * 解码失败（未知分类 / 未注册实体 / 非法数量）与原版一样视为**该群系加载失败**：整份
+ * JSON 都会回滚（`loadFromJson` 在调用前保存了原始 `MobSpawnInfo`），不保留半套数据。
+ */
+Result<void> applySpawners(Biome& biome, const nlohmann::json& jsonObj)
 {
-    if (!jsonObj.contains("spawn_costs") || !jsonObj["spawn_costs"].is_object()) {
-        return; // spawn_costs 可选（多数 biome 为空对象 {}）
+    if (!jsonObj.contains("spawners") && !jsonObj.contains("creature_spawn_probability")) {
+        return {}; // 两个字段都可选
     }
-    const auto& costsJson = jsonObj["spawn_costs"];
-    auto& spawnInfo = biome.spawnInfo();
+    std::optional<nlohmann::json> probability;
+    if (jsonObj.contains("creature_spawn_probability")) {
+        probability = jsonObj["creature_spawn_probability"];
+    }
+    const nlohmann::json spawners = jsonObj.contains("spawners") ? jsonObj["spawners"] : nlohmann::json();
+    auto result = world::spawn::mobSpawnInfoFromJson(
+        spawners, probability, biome.spawnInfo().getCreatureSpawnProbability());
+    if (result.failed()) {
+        return Error(ErrorCode::InvalidData, "biome '" + biome.name() + "': " + result.error().message());
+    }
+    biome.setSpawnInfo(std::move(result).value());
+    return {};
+}
 
-    for (const auto& [entityId, costJson] : costsJson.items()) {
-        if (!costJson.is_object()) {
-            continue;
-        }
-        f64 charge = 0.0;
-        f64 budget = 0.0;
-        if (costJson.contains("charge") && costJson["charge"].is_number()) {
-            charge = costJson["charge"].get<f64>();
-        }
-        if (costJson.contains("energy_budget") && costJson["energy_budget"].is_number()) {
-            budget = costJson["energy_budget"].get<f64>();
-        }
-        if (charge > 0.0 && budget > 0.0) {
-            spawnInfo.setSpawnCost(entityId, world::spawn::SpawnCosts(budget, charge));
-        }
+/**
+ * @brief 把 `spawn_costs` 并入群系的生成信息
+ *
+ * 与原版一样是同一个 `MobSpawnSettings` 的一部分：解码失败同样视为该群系加载失败。
+ */
+Result<void> applySpawnCosts(Biome& biome, const nlohmann::json& jsonObj)
+{
+    if (!jsonObj.contains("spawn_costs")) {
+        return {}; // spawn_costs 可选（多数 biome 为空对象 {}）
     }
+    auto result = world::spawn::applySpawnCosts(biome.spawnInfo(), jsonObj["spawn_costs"]);
+    if (result.failed()) {
+        return Error(ErrorCode::InvalidData, "biome '" + biome.name() + "': " + result.error().message());
+    }
+    return {};
 }
 
 // ============================================================================
@@ -812,13 +660,14 @@ Result<void> BiomeLoader::loadFromJson(const nlohmann::json& jsonObj, const Reso
     applyClimate(biome, jsonObj);
     applyEffects(biome, jsonObj);
     applyAttributes(biome, jsonObj);
-    applySpawners(biome, jsonObj);
-    applySpawnCosts(biome, jsonObj);
-
-    // creature_spawn_probability 是顶层字段，独立于 spawners。当数据包未提供 spawners 时，
-    // applySpawners 会提前返回而不重建 MobSpawnInfo，此时仍需把该字段应用到现有 spawnInfo。
-    if (!jsonObj.contains("spawners") || !jsonObj["spawners"].is_object()) {
-        biome.spawnInfo().setCreatureSpawnProbability(resolveCreatureSpawnProbability(biome, jsonObj));
+    // 生成表是整体替换：解码失败时整份群系加载失败，不保留「部分字段已覆盖」的半套数据。
+    auto spawnerResult = applySpawners(biome, jsonObj);
+    if (spawnerResult.failed()) {
+        return spawnerResult.error();
+    }
+    auto costResult = applySpawnCosts(biome, jsonObj);
+    if (costResult.failed()) {
+        return costResult.error();
     }
 
     // 生成设置覆盖：先清空 BiomeFactory 可能设置的旧数据，再从 JSON 填充

@@ -766,6 +766,7 @@ add_library(mc_common STATIC
     # World - Spawn
     world/spawn/EntitySpawnPlacementRegistry.cpp
     world/spawn/MobSpawnInfo.cpp
+    world/spawn/MobSpawnInfoJson.cpp
     world/spawn/SlimeChunkChecker.cpp
 
     # World - Block Entity

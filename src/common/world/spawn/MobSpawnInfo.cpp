@@ -727,9 +727,11 @@ MobSpawnInfo MobSpawnInfo::createFrozenRiver()
 MobSpawnInfo MobSpawnInfo::createEmpty()
 {
     // 空生成信息：没有生物自然生成的生物群系（虚空、深暗之域）。
+    // 概率沿用原版 `MobSpawnSettings.CODEC` 的字段默认值 0.1——数据包里这两个群系只写了
+    // 空的 spawners，没有覆盖 creature_spawn_probability。
     MobSpawnInfo info;
     _setDefaultMaxInstances(info);
-    info.m_creatureSpawnProbability = 0.0f;
+    info.m_creatureSpawnProbability = 0.1f;
     return info;
 }
 
