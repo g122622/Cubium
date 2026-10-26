@@ -237,7 +237,10 @@ public:
 
     // 注意与下面的 IdentifierArgumentType 区分：原版命令树里 ResourceArgument 的注册名是
     // `resource`（注册表资源，如 attribute/enchantment/sound），不是 `resource_location`。
-    [[nodiscard]] std::string getTypeName() const override { return "resource"; }
+    [[nodiscard]] std::string getTypeName() const override
+    {
+        return "resource";
+    }
 
     [[nodiscard]] std::vector<std::string> getExamples() const override
     {
@@ -274,7 +277,10 @@ public:
         return readResourceLocationId(reader);
     }
 
-    [[nodiscard]] std::string getTypeName() const override { return "resource_location"; }
+    [[nodiscard]] std::string getTypeName() const override
+    {
+        return "resource_location";
+    }
 
     [[nodiscard]] std::vector<std::string> getExamples() const override
     {
@@ -295,16 +301,25 @@ public:
  */
 class ResourceEntityArgumentType : public ArgumentType<ResourceLocation> {
 public:
-    [[nodiscard]] ResourceLocation parse(StringReader& reader) override { return readResourceLocationId(reader); }
+    [[nodiscard]] ResourceLocation parse(StringReader& reader) override
+    {
+        return readResourceLocationId(reader);
+    }
 
-    [[nodiscard]] std::string getTypeName() const override { return "resource"; }
+    [[nodiscard]] std::string getTypeName() const override
+    {
+        return "resource";
+    }
 
     [[nodiscard]] std::vector<std::string> getExamples() const override
     {
         return {"minecraft:zombie", "zombie", "minecraft:pig"};
     }
 
-    static std::shared_ptr<ResourceEntityArgumentType> entity() { return std::make_shared<ResourceEntityArgumentType>(); }
+    static std::shared_ptr<ResourceEntityArgumentType> entity()
+    {
+        return std::make_shared<ResourceEntityArgumentType>();
+    }
 };
 
 /**
@@ -313,11 +328,20 @@ public:
  */
 class EnchantmentResourceArgumentType : public ArgumentType<ResourceLocation> {
 public:
-    [[nodiscard]] ResourceLocation parse(StringReader& reader) override { return readResourceLocationId(reader); }
+    [[nodiscard]] ResourceLocation parse(StringReader& reader) override
+    {
+        return readResourceLocationId(reader);
+    }
 
-    [[nodiscard]] std::string getTypeName() const override { return "resource"; }
+    [[nodiscard]] std::string getTypeName() const override
+    {
+        return "resource";
+    }
 
-    [[nodiscard]] std::vector<std::string> getExamples() const override { return {"minecraft:sharpness", "sharpness"}; }
+    [[nodiscard]] std::vector<std::string> getExamples() const override
+    {
+        return {"minecraft:sharpness", "sharpness"};
+    }
 
     static std::shared_ptr<EnchantmentResourceArgumentType> enchantment()
     {
@@ -330,11 +354,20 @@ public:
  */
 class AttributeResourceArgumentType : public ArgumentType<ResourceLocation> {
 public:
-    [[nodiscard]] ResourceLocation parse(StringReader& reader) override { return readResourceLocationId(reader); }
+    [[nodiscard]] ResourceLocation parse(StringReader& reader) override
+    {
+        return readResourceLocationId(reader);
+    }
 
-    [[nodiscard]] std::string getTypeName() const override { return "resource"; }
+    [[nodiscard]] std::string getTypeName() const override
+    {
+        return "resource";
+    }
 
-    [[nodiscard]] std::vector<std::string> getExamples() const override { return {"minecraft:generic.max_health"}; }
+    [[nodiscard]] std::vector<std::string> getExamples() const override
+    {
+        return {"minecraft:generic.max_health"};
+    }
 
     static std::shared_ptr<AttributeResourceArgumentType> attribute()
     {
@@ -347,10 +380,16 @@ public:
  */
 class ParticleResourceArgumentType : public ArgumentType<ResourceLocation> {
 public:
-    [[nodiscard]] ResourceLocation parse(StringReader& reader) override { return readResourceLocationId(reader); }
+    [[nodiscard]] ResourceLocation parse(StringReader& reader) override
+    {
+        return readResourceLocationId(reader);
+    }
 
     // 原版注册名就是 particle（ParticleArgument 的注册表项），不是 resource。
-    [[nodiscard]] std::string getTypeName() const override { return "particle"; }
+    [[nodiscard]] std::string getTypeName() const override
+    {
+        return "particle";
+    }
 
     [[nodiscard]] std::vector<std::string> getExamples() const override
     {
@@ -387,21 +426,29 @@ public:
         return std::make_shared<ComponentText>(ComponentText{std::move(text)});
     }
 
-    [[nodiscard]] std::string getTypeName() const override { return "component"; }
+    [[nodiscard]] std::string getTypeName() const override
+    {
+        return "component";
+    }
 
     [[nodiscard]] std::vector<std::string> getExamples() const override
     {
         return {"{\"text\":\"hello\"}", "\"hello\"", "[{\"text\":\"a\"}]"};
     }
 
-    static std::shared_ptr<ComponentArgumentType> component() { return std::make_shared<ComponentArgumentType>(); }
+    static std::shared_ptr<ComponentArgumentType> component()
+    {
+        return std::make_shared<ComponentArgumentType>();
+    }
 };
 
 /**
  * @brief 玩家档案参数（原版 {@code GameProfileArgument}，命令树里叫 {@code game_profile}）
  *
- * 原版这里接受的是「玩家名列表」而不是实体选择器：/ban、/op、/pardon、/whitelist 面对的是
- * 离线玩家，选择器语法不适用。这里返回逗号分隔的玩家名原样文本，由调用方逐个查找。
+ * 原版 GameProfileArgument.getGameProfiles 先走 EntitySelectorParser 的 SELECTOR 解析器，
+ * 因此 `@s` / `@a` 这类实体选择器同样合法（/team join <team> @s 即依赖这一点），名字列表
+ * 只是它的另一条分支。这里把原始文本原样交回调用方，由 PlayerResolver::gameProfileSelector
+ * 区分为「实体选择器」还是「名字」。
  */
 class GameProfileArgumentType : public ArgumentType<std::string> {
 public:
@@ -409,6 +456,14 @@ public:
     {
         const i32 start = reader.getCursor();
         std::string result;
+        // 实体选择器以 '@' 开头时可能含方括号与空格（`@a[distance=..5]`），须整体读取。
+        if (reader.canRead() && reader.peek() == '@') {
+            while (reader.canRead() && !reader.isWhitespace(reader.peek())) {
+                result.push_back(reader.peek());
+                reader.skip();
+            }
+            return result;
+        }
         while (reader.canRead()) {
             const char c = reader.peek();
             if (reader.isWhitespace(c)) {
@@ -431,11 +486,20 @@ public:
         return result;
     }
 
-    [[nodiscard]] std::string getTypeName() const override { return "game_profile"; }
+    [[nodiscard]] std::string getTypeName() const override
+    {
+        return "game_profile";
+    }
 
-    [[nodiscard]] std::vector<std::string> getExamples() const override { return {"Steve", "Alex,Steve"}; }
+    [[nodiscard]] std::vector<std::string> getExamples() const override
+    {
+        return {"Steve", "Alex,Steve"};
+    }
 
-    static std::shared_ptr<GameProfileArgumentType> gameProfile() { return std::make_shared<GameProfileArgumentType>(); }
+    static std::shared_ptr<GameProfileArgumentType> gameProfile()
+    {
+        return std::make_shared<GameProfileArgumentType>();
+    }
 };
 
 /**
@@ -453,9 +517,15 @@ public:
         return std::make_shared<ComponentText>(ComponentText{std::move(text)});
     }
 
-    [[nodiscard]] std::string getTypeName() const override { return "message"; }
+    [[nodiscard]] std::string getTypeName() const override
+    {
+        return "message";
+    }
 
-    [[nodiscard]] std::vector<std::string> getExamples() const override { return {"hello", "{\"text\":\"hi\"}"}; }
+    [[nodiscard]] std::vector<std::string> getExamples() const override
+    {
+        return {"hello", "{\"text\":\"hi\"}"};
+    }
 
     static std::shared_ptr<MessageComponentArgumentType> message()
     {
@@ -488,11 +558,20 @@ public:
         return result;
     }
 
-    [[nodiscard]] std::string getTypeName() const override { return "team"; }
+    [[nodiscard]] std::string getTypeName() const override
+    {
+        return "team";
+    }
 
-    [[nodiscard]] std::vector<std::string> getExamples() const override { return {"red", "team-1"}; }
+    [[nodiscard]] std::vector<std::string> getExamples() const override
+    {
+        return {"red", "team-1"};
+    }
 
-    static std::shared_ptr<TeamNameArgumentType> team() { return std::make_shared<TeamNameArgumentType>(); }
+    static std::shared_ptr<TeamNameArgumentType> team()
+    {
+        return std::make_shared<TeamNameArgumentType>();
+    }
 };
 
 /**
@@ -527,11 +606,20 @@ public:
         return result;
     }
 
-    [[nodiscard]] std::string getTypeName() const override { return "score_holder"; }
+    [[nodiscard]] std::string getTypeName() const override
+    {
+        return "score_holder";
+    }
 
-    [[nodiscard]] std::vector<std::string> getExamples() const override { return {"Steve", "*"}; }
+    [[nodiscard]] std::vector<std::string> getExamples() const override
+    {
+        return {"Steve", "*"};
+    }
 
-    static std::shared_ptr<ScoreHolderArgumentType> scoreHolder() { return std::make_shared<ScoreHolderArgumentType>(); }
+    static std::shared_ptr<ScoreHolderArgumentType> scoreHolder()
+    {
+        return std::make_shared<ScoreHolderArgumentType>();
+    }
 };
 
 /**
@@ -539,9 +627,15 @@ public:
  */
 class AdvancementResourceArgumentType : public ArgumentType<ResourceLocation> {
 public:
-    [[nodiscard]] ResourceLocation parse(StringReader& reader) override { return readResourceLocationId(reader); }
+    [[nodiscard]] ResourceLocation parse(StringReader& reader) override
+    {
+        return readResourceLocationId(reader);
+    }
 
-    [[nodiscard]] std::string getTypeName() const override { return "resource"; }
+    [[nodiscard]] std::string getTypeName() const override
+    {
+        return "resource";
+    }
 
     [[nodiscard]] std::vector<std::string> getExamples() const override
     {
@@ -574,9 +668,15 @@ public:
         return result;
     }
 
-    [[nodiscard]] std::string getTypeName() const override { return "objective"; }
+    [[nodiscard]] std::string getTypeName() const override
+    {
+        return "objective";
+    }
 
-    [[nodiscard]] std::vector<std::string> getExamples() const override { return {"obj", "my_objective"}; }
+    [[nodiscard]] std::vector<std::string> getExamples() const override
+    {
+        return {"obj", "my_objective"};
+    }
 
     static std::shared_ptr<ObjectiveNameArgumentType> objective()
     {
@@ -589,9 +689,15 @@ public:
  */
 class LootTableResourceArgumentType : public ArgumentType<ResourceLocation> {
 public:
-    [[nodiscard]] ResourceLocation parse(StringReader& reader) override { return readResourceLocationId(reader); }
+    [[nodiscard]] ResourceLocation parse(StringReader& reader) override
+    {
+        return readResourceLocationId(reader);
+    }
 
-    [[nodiscard]] std::string getTypeName() const override { return "resource"; }
+    [[nodiscard]] std::string getTypeName() const override
+    {
+        return "resource";
+    }
 
     [[nodiscard]] std::vector<std::string> getExamples() const override
     {
@@ -609,16 +715,25 @@ public:
  */
 class RecipeIdArgumentType : public ArgumentType<ResourceLocation> {
 public:
-    [[nodiscard]] ResourceLocation parse(StringReader& reader) override { return readResourceLocationId(reader); }
+    [[nodiscard]] ResourceLocation parse(StringReader& reader) override
+    {
+        return readResourceLocationId(reader);
+    }
 
-    [[nodiscard]] std::string getTypeName() const override { return "resource"; }
+    [[nodiscard]] std::string getTypeName() const override
+    {
+        return "resource";
+    }
 
     [[nodiscard]] std::vector<std::string> getExamples() const override
     {
         return {"minecraft:crafting_table", "minecraft:stick"};
     }
 
-    static std::shared_ptr<RecipeIdArgumentType> recipe() { return std::make_shared<RecipeIdArgumentType>(); }
+    static std::shared_ptr<RecipeIdArgumentType> recipe()
+    {
+        return std::make_shared<RecipeIdArgumentType>();
+    }
 };
 
 /**
@@ -652,11 +767,20 @@ public:
         return result;
     }
 
-    [[nodiscard]] std::string getTypeName() const override { return "swizzle"; }
+    [[nodiscard]] std::string getTypeName() const override
+    {
+        return "swizzle";
+    }
 
-    [[nodiscard]] std::vector<std::string> getExamples() const override { return {"x", "xy", "xyz"}; }
+    [[nodiscard]] std::vector<std::string> getExamples() const override
+    {
+        return {"x", "xy", "xyz"};
+    }
 
-    static std::shared_ptr<SwizzleArgumentType> swizzle() { return std::make_shared<SwizzleArgumentType>(); }
+    static std::shared_ptr<SwizzleArgumentType> swizzle()
+    {
+        return std::make_shared<SwizzleArgumentType>();
+    }
 };
 
 /**
@@ -686,9 +810,15 @@ public:
         return result;
     }
 
-    [[nodiscard]] std::string getTypeName() const override { return "entity_anchor"; }
+    [[nodiscard]] std::string getTypeName() const override
+    {
+        return "entity_anchor";
+    }
 
-    [[nodiscard]] std::vector<std::string> getExamples() const override { return {"eyes", "feet"}; }
+    [[nodiscard]] std::vector<std::string> getExamples() const override
+    {
+        return {"eyes", "feet"};
+    }
 
     static std::shared_ptr<EntityAnchorArgumentType> entityAnchor()
     {
@@ -716,14 +846,20 @@ public:
         return current;
     }
 
-    [[nodiscard]] std::string getTypeName() const override { return "objective_criteria"; }
+    [[nodiscard]] std::string getTypeName() const override
+    {
+        return "objective_criteria";
+    }
 
     [[nodiscard]] std::vector<std::string> getExamples() const override
     {
         return {"list", "sidebar", "below_name", "sidebar.team.red"};
     }
 
-    static std::shared_ptr<DisplaySlotArgumentType> displaySlot() { return std::make_shared<DisplaySlotArgumentType>(); }
+    static std::shared_ptr<DisplaySlotArgumentType> displaySlot()
+    {
+        return std::make_shared<DisplaySlotArgumentType>();
+    }
 
     /// 槽位名 → DisplaySlot；不认识的名字映射到 List，调用方应先用 isKnownDisplaySlot 校验。
     static scoreboard::DisplaySlot toDisplaySlot(const std::string& name)
@@ -754,7 +890,8 @@ public:
         const i32 start = reader.getCursor();
         for (const char* op : kOperations) {
             const size_t len = std::char_traits<char>::length(op);
-            if (reader.canRead(static_cast<i32>(len)) && reader.getString().substr(static_cast<size_t>(static_cast<size_t>(start)), len) == op) {
+            if (reader.canRead(static_cast<i32>(len)) &&
+                reader.getString().substr(static_cast<size_t>(static_cast<size_t>(start)), len) == op) {
                 reader.skip(static_cast<i32>(len));
                 return op;
             }
@@ -763,9 +900,15 @@ public:
             CommandErrorType::Unknown, "Expected operation at position " + std::to_string(start), start);
     }
 
-    [[nodiscard]] std::string getTypeName() const override { return "operation"; }
+    [[nodiscard]] std::string getTypeName() const override
+    {
+        return "operation";
+    }
 
-    [[nodiscard]] std::vector<std::string> getExamples() const override { return {"=", "+=", "><"}; }
+    [[nodiscard]] std::vector<std::string> getExamples() const override
+    {
+        return {"=", "+=", "><"};
+    }
 
     static std::shared_ptr<ScoreOperationArgumentType> operation()
     {
@@ -1212,11 +1355,20 @@ public:
         return std::make_shared<WorldCoordinates>(x, WorldCoordinate(true, 0.0), z);
     }
 
-    [[nodiscard]] std::string getTypeName() const override { return "column_pos"; }
+    [[nodiscard]] std::string getTypeName() const override
+    {
+        return "column_pos";
+    }
 
-    [[nodiscard]] std::vector<std::string> getExamples() const override { return {"0 0", "~ ~", "~1 ~-2"}; }
+    [[nodiscard]] std::vector<std::string> getExamples() const override
+    {
+        return {"0 0", "~ ~", "~1 ~-2"};
+    }
 
-    static std::shared_ptr<ColumnPosArgumentType> columnPos() { return std::make_shared<ColumnPosArgumentType>(); }
+    static std::shared_ptr<ColumnPosArgumentType> columnPos()
+    {
+        return std::make_shared<ColumnPosArgumentType>();
+    }
 
     template <typename S>
     static Vector3i getColumnPos(CommandContext<S>& context, const std::string& name, const S& source)
@@ -1242,7 +1394,10 @@ private:
         return WorldCoordinate(relative, reader.readDouble());
     }
 
-    static bool _isWhitespace(char c) { return c == ' ' || c == '\t' || c == '\n' || c == '\r'; }
+    static bool _isWhitespace(char c)
+    {
+        return c == ' ' || c == '\t' || c == '\n' || c == '\r';
+    }
 };
 
 /**
@@ -1268,7 +1423,10 @@ public:
         return "rotation";
     }
 
-    [[nodiscard]] std::vector<std::string> getExamples() const override { return {"0 0", "~ ~", "0.1 -0.5"}; }
+    [[nodiscard]] std::vector<std::string> getExamples() const override
+    {
+        return {"0 0", "~ ~", "0.1 -0.5"};
+    }
 
     static std::shared_ptr<RotationArgumentType> rotation()
     {

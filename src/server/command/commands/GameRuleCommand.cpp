@@ -69,34 +69,24 @@ void GameRuleCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatc
             return _executeQueryRule(ctx, ruleName);
         });
 
-        // 原版只有一个 value 参数（GameRule.argument()）：单独执行它表示查询，
-        // 再跟一个值（同名参数）表示设置。
+        // 原版结构（GameRuleCommand.buildRuleArguments）：规则字面量节点自身执行查询，
+        // 其下只有一个 value 参数节点执行设置。此前这里在 value 之下又挂了一个同名 value
+        // 参数节点，结果 `/gamerule <rule> false` 的布尔值被外层 value 先吃掉并按查询执行，
+        // 设置分支永远不触发。
         if (isBoolean) {
-            auto queryArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, bool>>(
-                "value", BoolArgumentType::boolArg());
-            queryArg->setCommand([ruleName](CommandContext<ServerCommandSource>& ctx) {
-                return _executeQueryRule(ctx, ruleName);
-            });
-            auto setArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, bool>>(
-                "value", BoolArgumentType::boolArg());
-            setArg->setCommand([ruleName](CommandContext<ServerCommandSource>& ctx) {
+            auto valueArg =
+                std::make_shared<ArgumentCommandNode<ServerCommandSource, bool>>("value", BoolArgumentType::boolArg());
+            valueArg->setCommand([ruleName](CommandContext<ServerCommandSource>& ctx) {
                 return _executeSetRule(ctx, ruleName);
             });
-            queryArg->addChild(setArg);
-            ruleNode->addChild(queryArg);
+            ruleNode->addChild(valueArg);
         } else {
-            auto queryArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, i32>>(
+            auto valueArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, i32>>(
                 "value", IntegerArgumentType::integer());
-            queryArg->setCommand([ruleName](CommandContext<ServerCommandSource>& ctx) {
-                return _executeQueryRule(ctx, ruleName);
-            });
-            auto setArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, i32>>(
-                "value", IntegerArgumentType::integer());
-            setArg->setCommand([ruleName](CommandContext<ServerCommandSource>& ctx) {
+            valueArg->setCommand([ruleName](CommandContext<ServerCommandSource>& ctx) {
                 return _executeSetRule(ctx, ruleName);
             });
-            queryArg->addChild(setArg);
-            ruleNode->addChild(queryArg);
+            ruleNode->addChild(valueArg);
         }
         queryNode->addChild(ruleNode);
     };
