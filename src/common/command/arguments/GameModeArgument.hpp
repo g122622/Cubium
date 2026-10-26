@@ -229,6 +229,10 @@ inline ResourceLocation readResourceLocationId(StringReader& reader)
 
 class ResourceLocationArgumentType : public ArgumentType<ResourceLocation> {
 public:
+    explicit ResourceLocationArgumentType(std::string registryKey = "minecraft:resource")
+        : m_registryKey(std::move(registryKey))
+    {}
+
     /// 解析资源位置（见 {@link readResourceLocationId}）。
     [[nodiscard]] ResourceLocation parse(StringReader& reader) override
     {
@@ -242,6 +246,25 @@ public:
         return "resource";
     }
 
+    /**
+     * @brief 网络序列化元数据
+     *
+     * 原版 ResourceArgument.Info.serializeToNetwork 写的是注册表键
+     * （`writeResourceKey(registryKey)`），客户端据此知道该参数要在哪个注册表里取值。
+     * 此前这里不输出任何字段，编码器因此写出空负载，客户端读到空的 ResourceKey，
+     * 参数类型信息与补全全部错乱。
+     */
+    [[nodiscard]] nlohmann::json serializeMetadata() const override
+    {
+        return nlohmann::json{{"registry", m_registryKey}};
+    }
+
+    /// 该参数绑定的注册表键（如 minecraft:attribute）。
+    [[nodiscard]] const std::string& registryKey() const noexcept
+    {
+        return m_registryKey;
+    }
+
     [[nodiscard]] std::vector<std::string> getExamples() const override
     {
         return {"minecraft:stone", "stone", "minecraft:diamond_sword"};
@@ -249,9 +272,10 @@ public:
 
     // ========== 静态工厂方法 ==========
 
-    static std::shared_ptr<ResourceLocationArgumentType> resourceLocation()
+    static std::shared_ptr<ResourceLocationArgumentType> resourceLocation(
+        std::string registryKey = "minecraft:resource")
     {
-        return std::make_shared<ResourceLocationArgumentType>();
+        return std::make_shared<ResourceLocationArgumentType>(std::move(registryKey));
     }
 
     // ========== 静态获取方法 ==========
@@ -261,6 +285,10 @@ public:
     {
         return context.template getArgument<ResourceLocation>(name);
     }
+
+private:
+    /// 该参数所属的注册表键，参与网络序列化。
+    std::string m_registryKey;
 };
 
 /**
@@ -311,6 +339,12 @@ public:
         return "resource";
     }
 
+    /// 网络序列化：原版 ResourceArgument.Info 写注册表键，客户端据此定位取值注册表。
+    [[nodiscard]] nlohmann::json serializeMetadata() const override
+    {
+        return nlohmann::json{{"registry", "minecraft:entity_type"}};
+    }
+
     [[nodiscard]] std::vector<std::string> getExamples() const override
     {
         return {"minecraft:zombie", "zombie", "minecraft:pig"};
@@ -338,6 +372,12 @@ public:
         return "resource";
     }
 
+    /// 网络序列化：原版 ResourceArgument.Info 写注册表键，客户端据此定位取值注册表。
+    [[nodiscard]] nlohmann::json serializeMetadata() const override
+    {
+        return nlohmann::json{{"registry", "minecraft:enchantment"}};
+    }
+
     [[nodiscard]] std::vector<std::string> getExamples() const override
     {
         return {"minecraft:sharpness", "sharpness"};
@@ -362,6 +402,12 @@ public:
     [[nodiscard]] std::string getTypeName() const override
     {
         return "resource";
+    }
+
+    /// 网络序列化：原版 ResourceArgument.Info 写注册表键，客户端据此定位取值注册表。
+    [[nodiscard]] nlohmann::json serializeMetadata() const override
+    {
+        return nlohmann::json{{"registry", "minecraft:attribute"}};
     }
 
     [[nodiscard]] std::vector<std::string> getExamples() const override
@@ -563,6 +609,8 @@ public:
         return "team";
     }
 
+    // 原版 TeamArgument 没有自定义 ArgumentTypeInfo，注册在 ArgumentTypeInfos 里用的是
+    // SingletonArgumentInfo.contextFree，网络 payload 为空（不写任何字节）。
     [[nodiscard]] std::vector<std::string> getExamples() const override
     {
         return {"red", "team-1"};
@@ -611,15 +659,28 @@ public:
         return "score_holder";
     }
 
+    /// 网络序列化：原版 ScoreHolderArgument.Info 写 byte flags(bit0=multiple)。
+    [[nodiscard]] nlohmann::json serializeMetadata() const override
+    {
+        return nlohmann::json{{"multiple", m_multiple}};
+    }
+
     [[nodiscard]] std::vector<std::string> getExamples() const override
     {
         return {"Steve", "*"};
     }
 
-    static std::shared_ptr<ScoreHolderArgumentType> scoreHolder()
+    static std::shared_ptr<ScoreHolderArgumentType> scoreHolder(bool multiple = false)
     {
-        return std::make_shared<ScoreHolderArgumentType>();
+        auto result = std::make_shared<ScoreHolderArgumentType>();
+        result->m_multiple = multiple;
+        return result;
     }
+
+private:
+    /// 原版 ScoreHolderArgument.Info 的 multiple 标志（bit0）：true 表示可一次给多个持有者。
+    /// 它参与网络序列化，命令树里 `/scoreboard players *` 一类节点据此区分单/多目标。
+    bool m_multiple = false;
 };
 
 /**
@@ -635,6 +696,12 @@ public:
     [[nodiscard]] std::string getTypeName() const override
     {
         return "resource";
+    }
+
+    /// 网络序列化：原版 ResourceArgument.Info 写注册表键，客户端据此定位取值注册表。
+    [[nodiscard]] nlohmann::json serializeMetadata() const override
+    {
+        return nlohmann::json{{"registry", "minecraft:advancement"}};
     }
 
     [[nodiscard]] std::vector<std::string> getExamples() const override
@@ -699,6 +766,12 @@ public:
         return "resource";
     }
 
+    /// 网络序列化：原版 ResourceArgument.Info 写注册表键，客户端据此定位取值注册表。
+    [[nodiscard]] nlohmann::json serializeMetadata() const override
+    {
+        return nlohmann::json{{"registry", "minecraft:loot_table"}};
+    }
+
     [[nodiscard]] std::vector<std::string> getExamples() const override
     {
         return {"minecraft:chests/simple_dungeon", "chests/village/village_weaponsmith"};
@@ -723,6 +796,12 @@ public:
     [[nodiscard]] std::string getTypeName() const override
     {
         return "resource";
+    }
+
+    /// 网络序列化：原版 ResourceArgument.Info 写注册表键，客户端据此定位取值注册表。
+    [[nodiscard]] nlohmann::json serializeMetadata() const override
+    {
+        return nlohmann::json{{"registry", "minecraft:recipe"}};
     }
 
     [[nodiscard]] std::vector<std::string> getExamples() const override

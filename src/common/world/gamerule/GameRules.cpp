@@ -161,7 +161,10 @@ struct RuleRegistry {
         registerInteger("respawn_radius", GameRuleCategory::Player, 10, 0, INT32_MAX);
         registerInteger("players_nether_portal_default_delay", GameRuleCategory::Player, 80, 0, INT32_MAX);
         registerInteger("players_nether_portal_creative_delay", GameRuleCategory::Player, 0, 0, INT32_MAX);
-        registerInteger("players_sleeping_percentage", GameRuleCategory::Player, 100, 0, 100);
+        // 原版只有下限 0（GameRules.PLAYERS_SLEEPING_PERCENTAGE = registerInteger(..., 100, 0)），
+        // 上限是 Integer.MAX_VALUE。此前这里多设了上限 100，命令树的 integer 参数会因此
+        // 带上 max 边界，与客户端收到的参数定义不一致。
+        registerInteger("players_sleeping_percentage", GameRuleCategory::Player, 100, 0, INT32_MAX);
 
         // 生物相关
         registerInteger("max_entity_cramming", GameRuleCategory::Mobs, 24, 0, INT32_MAX);
@@ -517,6 +520,17 @@ std::optional<std::string_view> GameRules::getRuleClass(const std::string& ruleN
         return GameRuleClassNames::INTEGER;
     }
     return std::nullopt;
+}
+
+std::pair<i32, i32> GameRules::getIntRange(const std::string& ruleName)
+{
+    const auto& registry = getRegistry();
+    const auto it = registry.integerTypes.find(ruleName);
+    if (it == registry.integerTypes.end()) {
+        // 非整数规则（或规则不存在）：按无界处理，命令树据此注册不带边界的 integer 参数。
+        return {IntegerGameRuleType::UNBOUNDED_MIN, IntegerGameRuleType::UNBOUNDED_MAX};
+    }
+    return {it->second.getMinValue(), it->second.getMaxValue()};
 }
 
 // ============================================================================

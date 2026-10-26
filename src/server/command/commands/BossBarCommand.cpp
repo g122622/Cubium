@@ -207,7 +207,7 @@ void BossBarCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatch
     // /bossbar set <id> players <targets>
     auto setPlayersNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("players");
     auto setPlayersArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, EntitySelector>>(
-        "targets", EntityArgumentType::entities());
+        "targets", EntityArgumentType::players());
     setPlayersArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
         return _setPlayers(ctx);
     });

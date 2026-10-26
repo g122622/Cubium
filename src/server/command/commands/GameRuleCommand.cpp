@@ -81,8 +81,12 @@ void GameRuleCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatc
             });
             ruleNode->addChild(valueArg);
         } else {
+            // 整数规则在原版里都带 [min, max] 约束，命令树据此注册带边界的 integer 参数
+            // （客户端用它做补全与校验，网络负载里也会写出边界字节）。此前统一用无界
+            // integer()，命令树与客户端拿到的序列化参数都与原版不一致。
+            const auto [minValue, maxValue] = world::gamerule::GameRules::getIntRange(ruleName);
             auto valueArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, i32>>(
-                "value", IntegerArgumentType::integer());
+                "value", IntegerArgumentType::integer(minValue, maxValue));
             valueArg->setCommand([ruleName](CommandContext<ServerCommandSource>& ctx) {
                 return _executeSetRule(ctx, ruleName);
             });

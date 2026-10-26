@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2026 Guo Yi
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -60,7 +60,7 @@ void KickCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
         support::makeMetadata("Disconnect players from the server.", "/kick <targets> [reason]", 3, {}, true));
 
     auto targetsArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, EntitySelector>>(
-        "targets", EntityArgumentType::entities());
+        "targets", EntityArgumentType::players());
     targetsArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
         return _kickPlayers(ctx);
     });

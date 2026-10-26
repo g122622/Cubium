@@ -208,7 +208,7 @@ void ClearCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher
     });
 
     auto playerArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, EntitySelector>>(
-        "targets", EntityArgumentType::entities());
+        "targets", EntityArgumentType::players());
     playerArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
         return _clearPlayer(ctx);
     });

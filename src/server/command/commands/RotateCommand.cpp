@@ -78,7 +78,7 @@ void RotateCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatche
         rotateNode, support::makeMetadata("Rotates entities.", "/rotate <target> <rotation>", 2, {}, true));
 
     auto targetArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, EntitySelector>>(
-        "target", EntityArgumentType::entities());
+        "target", EntityArgumentType::entity());
     rotateNode->addChild(targetArg);
 
     // /rotate <target> <rotation>

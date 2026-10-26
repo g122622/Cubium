@@ -124,7 +124,7 @@ void SpawnPointCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispa
 
     // /spawnpoint <targets>
     auto targetsNode = std::make_shared<ArgumentCommandNode<ServerCommandSource, EntitySelector>>(
-        "targets", EntityArgumentType::player());
+        "targets", EntityArgumentType::players());
     targetsNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
         return _setPlayerSpawnPoint(ctx);
     });

@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2026 Guo Yi
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -94,7 +94,7 @@ void GameModeCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatc
     });
 
     auto targetArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, EntitySelector>>(
-        "target", EntityArgumentType::entities());
+        "target", EntityArgumentType::players());
     targetArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
         return _setGameModeOthers(ctx);
     });

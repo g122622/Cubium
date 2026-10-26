@@ -304,7 +304,7 @@ void SpreadPlayersCommand::registerTo(CommandDispatcher<ServerCommandSource>& di
         std::make_shared<ArgumentCommandNode<ServerCommandSource, bool>>("respectTeams", BoolArgumentType::boolArg());
 
     auto targetsArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, EntitySelector>>(
-        "targets", EntityArgumentType::players());
+        "targets", EntityArgumentType::entities());
     targetsArg->setCommand([](CommandContext<ServerCommandSource>& ctx) -> i32 {
         auto* world = ctx.getSource().world();
         i32 maxHeight = (world != nullptr) ? world->getMaxBuildHeight() : world::MAX_BUILD_HEIGHT;
@@ -325,7 +325,7 @@ void SpreadPlayersCommand::registerTo(CommandDispatcher<ServerCommandSource>& di
         std::make_shared<ArgumentCommandNode<ServerCommandSource, bool>>("respectTeams", BoolArgumentType::boolArg());
 
     auto targetsUnderArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, EntitySelector>>(
-        "targets", EntityArgumentType::players());
+        "targets", EntityArgumentType::entities());
     targetsUnderArg->setCommand([](CommandContext<ServerCommandSource>& ctx) -> i32 {
         i32 maxHeight = ctx.getArgument<i32>("maxHeight");
         return spreadPlayersImpl(ctx, maxHeight);

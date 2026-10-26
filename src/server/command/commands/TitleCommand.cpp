@@ -146,7 +146,7 @@ void TitleCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher
 
     // /title <player>
     auto playerNode = std::make_shared<ArgumentCommandNode<ServerCommandSource, EntitySelector>>(
-        "targets", EntityArgumentType::entities());
+        "targets", EntityArgumentType::players());
 
     // clear 子命令
     auto clearNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("clear");

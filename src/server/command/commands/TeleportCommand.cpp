@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2026 Guo Yi
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -271,7 +271,7 @@ void TeleportCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatc
 
     // /teleport <targets> <destination>
     auto destinationArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, EntitySelector>>(
-        "destination", EntityArgumentType::entities());
+        "destination", EntityArgumentType::entity());
     destinationArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
         return _teleportTargetToEntity(ctx);
     });
@@ -286,7 +286,7 @@ void TeleportCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatc
 
     // /teleport <destination>（把执行者送到目标实体）
     auto selfDestinationArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, EntitySelector>>(
-        "destination", EntityArgumentType::entities());
+        "destination", EntityArgumentType::entity());
     selfDestinationArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
         return _teleportToEntity(ctx);
     });

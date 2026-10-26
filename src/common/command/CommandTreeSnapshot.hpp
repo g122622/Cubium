@@ -300,29 +300,43 @@ template <typename NodeT>
         {"item_stack", 14},
         // 原版枚举型参数在 1.21.11 仍是注册表里的参数类型（ArgumentTypeInfos 有 numeric id），
         // 只是 payload 为空；这里补齐编号，编码器按 SingletonArgumentInfo 写空 payload。
+        // 编号一律照抄 ArgumentTypeInfos.bootstrap 的注册顺序（0 基），不可凭直觉填写：
+        // 客户端按同一张表反序列化，编号错一个不会立刻报错，但会让该节点多/少读 payload，
+        // 使后续所有节点的游标整体错位（表现为读取 identifier 得到乱码，或报
+        // "Non [a-z0-9/._-] character in path of location"）。
         {"objective_criteria", 25},  // minecraft:objective_criteria
         {"operation", 26},           // minecraft:operation
         {"item_predicate", 15},      // minecraft:item_predicate
-        {"particle", 16},            // minecraft:particle
-        {"component", 17},           // minecraft:component
-        {"message", 39},             // minecraft:message
-        {"resource", 18},            // minecraft:resource
-        {"resource_or_tag", 19},     // minecraft:resource_or_tag
-        {"resource_or_tag_key", 20}, // minecraft:resource_or_tag_key
-        {"resource_key", 24},        // minecraft:resource_key
+        {"particle", 27},            // minecraft:particle
+        {"component", 18},           // minecraft:component
+        {"style", 19},               // minecraft:style
+        {"message", 20},             // minecraft:message
+        {"resource", 46},            // minecraft:resource
+        {"resource_or_tag", 44},     // minecraft:resource_or_tag
+        {"resource_or_tag_key", 45}, // minecraft:resource_or_tag_key
+        {"resource_key", 47},        // minecraft:resource_key
+        {"resource_selector", 48},   // minecraft:resource_selector
         {"rotation", 29},            // minecraft:rotation
+        {"angle", 28},               // minecraft:angle
         {"item_slot", 34},           // minecraft:item_slot
-        {"objective", 32},           // minecraft:objective
-        {"team", 35},                // minecraft:team
+        {"item_slots", 35},          // minecraft:item_slots
+        {"objective", 24},           // minecraft:objective
+        {"team", 33},                // minecraft:team
         {"score_holder", 31},        // minecraft:score_holder
-        {"swizzle", 30},             // minecraft:swizzle
-        {"entity_anchor", 27},       // minecraft:entity_anchor
+        {"scoreboard_slot", 30},     // minecraft:scoreboard_slot
+        {"swizzle", 32},             // minecraft:swizzle
+        {"entity_anchor", 38},       // minecraft:entity_anchor
         {"resource_location", 36},   // minecraft:resource_location
         {"identifier", 36},          // 旧类型名，指向同一个 id
         {"function", 37},            // minecraft:function
         {"dimension", 41},           // minecraft:dimension
         {"gamemode", 42},            // minecraft:gamemode
         {"time", 43},                // minecraft:time
+        {"int_range", 39},           // minecraft:int_range
+        {"float_range", 40},         // minecraft:float_range
+        {"heightmap", 51},           // minecraft:heightmap
+        {"loot_table", 52},          // minecraft:loot_table
+        {"uuid", 54},                // minecraft:uuid
     };
     auto it = kMap.find(typeName);
     if (it == kMap.end()) {

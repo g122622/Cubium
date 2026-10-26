@@ -64,7 +64,7 @@ void DialogCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatche
             "Shows or clears data driven dialogs.", "/dialog (show <targets> <id|JSON>|clear <targets>)", 2, {}, true));
     auto show = std::make_shared<LiteralCommandNode<ServerCommandSource>>("show");
     auto targets = std::make_shared<ArgumentCommandNode<ServerCommandSource, EntitySelector>>(
-        "targets", EntityArgumentType::entities());
+        "targets", EntityArgumentType::players());
     auto dialog = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
         "dialog", StringArgumentType::greedyString());
     dialog->setCommand(_show);
@@ -73,7 +73,7 @@ void DialogCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatche
     root->addChild(show);
     auto clear = std::make_shared<LiteralCommandNode<ServerCommandSource>>("clear");
     auto clearTargets = std::make_shared<ArgumentCommandNode<ServerCommandSource, EntitySelector>>(
-        "targets", EntityArgumentType::entities());
+        "targets", EntityArgumentType::players());
     clearTargets->setCommand(_clear);
     clear->addChild(clearTargets);
     root->addChild(clear);

@@ -151,7 +151,7 @@ void ScoreboardCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispa
     // /scoreboard players set <target> <objective> <score>
     auto setPlayersNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("set");
     auto setTargetArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
-        "targets", ScoreHolderArgumentType::scoreHolder());
+        "targets", ScoreHolderArgumentType::scoreHolder(true));
     auto setObjectiveArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
         "objective", ObjectiveNameArgumentType::objective());
     auto scoreArg =
@@ -166,11 +166,11 @@ void ScoreboardCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispa
     // /scoreboard players add <target> <objective> <score>
     auto addPlayersNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("add");
     auto addTargetArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
-        "targets", ScoreHolderArgumentType::scoreHolder());
+        "targets", ScoreHolderArgumentType::scoreHolder(true));
     auto addObjectiveArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
         "objective", ObjectiveNameArgumentType::objective());
     auto addScoreArg =
-        std::make_shared<ArgumentCommandNode<ServerCommandSource, i32>>("score", IntegerArgumentType::integer());
+        std::make_shared<ArgumentCommandNode<ServerCommandSource, i32>>("score", IntegerArgumentType::integer(0));
     addScoreArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
         return _addScore(ctx);
     });
@@ -181,11 +181,11 @@ void ScoreboardCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispa
     // /scoreboard players remove <target> <objective> <score>
     auto removePlayersNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("remove");
     auto removeTargetArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
-        "targets", ScoreHolderArgumentType::scoreHolder());
+        "targets", ScoreHolderArgumentType::scoreHolder(true));
     auto removeObjectiveArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
         "objective", ObjectiveNameArgumentType::objective());
     auto removeScoreArg =
-        std::make_shared<ArgumentCommandNode<ServerCommandSource, i32>>("score", IntegerArgumentType::integer());
+        std::make_shared<ArgumentCommandNode<ServerCommandSource, i32>>("score", IntegerArgumentType::integer(0));
     removeScoreArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
         return _removeScore(ctx);
     });
@@ -196,7 +196,7 @@ void ScoreboardCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispa
     // /scoreboard players display <targets> <objective>
     auto displayPlayersNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("display");
     auto displayTargetArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
-        "targets", ScoreHolderArgumentType::scoreHolder());
+        "targets", ScoreHolderArgumentType::scoreHolder(true));
     auto displayObjectiveArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
         "objective", ObjectiveNameArgumentType::objective());
     displayObjectiveArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
@@ -208,13 +208,13 @@ void ScoreboardCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispa
     // /scoreboard players operation <targets> <objective> <op> <source> <sourceObjective>
     auto operationPlayersNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("operation");
     auto operationTargetArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
-        "targets", ScoreHolderArgumentType::scoreHolder());
+        "targets", ScoreHolderArgumentType::scoreHolder(true));
     auto operationObjectiveArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
         "objective", ObjectiveNameArgumentType::objective());
     auto operationArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
         "operation", ScoreOperationArgumentType::operation());
     auto operationSourceArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
-        "source", ScoreHolderArgumentType::scoreHolder());
+        "source", ScoreHolderArgumentType::scoreHolder(true));
     auto operationSourceObjectiveArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
         "sourceObjective", ObjectiveNameArgumentType::objective());
     operationSourceObjectiveArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
@@ -229,7 +229,7 @@ void ScoreboardCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispa
     // /scoreboard players reset <target> [objective]
     auto resetPlayersNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("reset");
     auto resetTargetArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
-        "targets", ScoreHolderArgumentType::scoreHolder());
+        "targets", ScoreHolderArgumentType::scoreHolder(true));
     resetTargetArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
         return _resetScore(ctx);
     });
@@ -238,7 +238,7 @@ void ScoreboardCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispa
     // /scoreboard players get <target> <objective>
     auto getPlayersNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("get");
     auto getTargetArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
-        "targets", ScoreHolderArgumentType::scoreHolder());
+        "targets", ScoreHolderArgumentType::scoreHolder(true));
     auto getObjectiveArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
         "objective", ObjectiveNameArgumentType::objective());
     getObjectiveArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
@@ -251,7 +251,7 @@ void ScoreboardCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispa
     // 用于启用 trigger 类型目标，让玩家可以再次使用 /trigger 命令
     auto enablePlayersNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("enable");
     auto enableTargetArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
-        "targets", ScoreHolderArgumentType::scoreHolder());
+        "targets", ScoreHolderArgumentType::scoreHolder(true));
     auto enableObjectiveArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
         "objective", ObjectiveNameArgumentType::objective());
     enableObjectiveArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
@@ -263,7 +263,7 @@ void ScoreboardCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispa
     // /scoreboard players list [target]
     auto listPlayersNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("list");
     auto listTargetArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
-        "targets", ScoreHolderArgumentType::scoreHolder());
+        "targets", ScoreHolderArgumentType::scoreHolder(true));
     listTargetArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
         return _listPlayers(ctx);
     });

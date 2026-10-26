@@ -108,15 +108,33 @@ public:
         return "resource_or_tag";
     }
 
+    /**
+     * @brief 网络序列化元数据
+     *
+     * 原版 ResourceOrTagArgument.Info.serializeToNetwork 写的是注册表键
+     * （`writeResourceKey(registryKey)`），客户端据此知道该参数对应哪个注册表。
+     * 此前不输出任何字段，编码器写出空负载，客户端读到的注册表键是空的。
+     */
+    [[nodiscard]] nlohmann::json serializeMetadata() const override
+    {
+        return nlohmann::json{{"registry", m_registryKey}};
+    }
+
     [[nodiscard]] std::vector<std::string> getExamples() const override
     {
         return {"minecraft:plains", "#minecraft:is_forest", "plains"};
     }
 
-    static std::shared_ptr<ResourceOrTagArgumentType> resourceOrTag()
+    static std::shared_ptr<ResourceOrTagArgumentType> resourceOrTag(std::string registryKey = "minecraft:biome")
     {
-        return std::make_shared<ResourceOrTagArgumentType>();
+        auto result = std::make_shared<ResourceOrTagArgumentType>();
+        result->m_registryKey = std::move(registryKey);
+        return result;
     }
+
+private:
+    /// 该参数所属的注册表键，参与网络序列化。
+    std::string m_registryKey = "minecraft:biome";
 };
 
 /// /locate structure 等：resource_or_tag_key（键侧）。
@@ -132,15 +150,28 @@ public:
         return "resource_or_tag_key";
     }
 
+    /// 网络序列化：原版 ResourceOrTagKeyArgument.Info 同样只写注册表键。
+    [[nodiscard]] nlohmann::json serializeMetadata() const override
+    {
+        return nlohmann::json{{"registry", m_registryKey}};
+    }
+
     [[nodiscard]] std::vector<std::string> getExamples() const override
     {
         return {"minecraft:village", "#minecraft:village", "village"};
     }
 
-    static std::shared_ptr<ResourceOrTagKeyArgumentType> resourceOrTagKey()
+    static std::shared_ptr<ResourceOrTagKeyArgumentType> resourceOrTagKey(
+        std::string registryKey = "minecraft:structure")
     {
-        return std::make_shared<ResourceOrTagKeyArgumentType>();
+        auto result = std::make_shared<ResourceOrTagKeyArgumentType>();
+        result->m_registryKey = std::move(registryKey);
+        return result;
     }
+
+private:
+    /// 该参数所属的注册表键，参与网络序列化。
+    std::string m_registryKey = "minecraft:structure";
 };
 
 } // namespace command

@@ -61,7 +61,7 @@ void LocateCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatche
     auto structureNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("structure");
     // 原版：structure 是 ResourceOrTagKeyArgument（可写 #minecraft:village），biome 是 ResourceOrTagArgument。
     auto structureArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, ParsedResourceOrTag>>(
-        "structure", ResourceOrTagKeyArgumentType::resourceOrTagKey());
+        "structure", ResourceOrTagKeyArgumentType::resourceOrTagKey("minecraft:worldgen/structure"));
     structureArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
         return _locateStructure(ctx);
     });
@@ -70,7 +70,7 @@ void LocateCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatche
 
     auto biomeNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("biome");
     auto biomeArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, ParsedResourceOrTag>>(
-        "biome", ResourceOrTagArgumentType::resourceOrTag());
+        "biome", ResourceOrTagArgumentType::resourceOrTag("minecraft:worldgen/biome"));
     biomeArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
         return LocateBiomeCommand::locateBiome(ctx);
     });
@@ -81,7 +81,7 @@ void LocateCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatche
     // ResourceOrTagArgument，命令树里是 resource_or_tag）。
     auto poiNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("poi");
     auto poiArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, ParsedResourceOrTag>>(
-        "poi", ResourceOrTagArgumentType::resourceOrTag());
+        "poi", ResourceOrTagArgumentType::resourceOrTag("minecraft:point_of_interest_type"));
     poiArg->setCommand([](CommandContext<ServerCommandSource>& context) {
         context.getSource().sendError("commands.locate.poi.notImplemented");
         return 0;

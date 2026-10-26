@@ -195,7 +195,7 @@ void AdvancementCommand::registerTo(CommandDispatcher<ServerCommandSource>& disp
 
     // /advancement grant <targets> everything
     auto targetsArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, EntitySelector>>(
-        "targets", EntityArgumentType::entities());
+        "targets", EntityArgumentType::players());
 
     auto everythingNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("everything");
     everythingNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
@@ -250,7 +250,7 @@ void AdvancementCommand::registerTo(CommandDispatcher<ServerCommandSource>& disp
     auto revokeNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("revoke");
 
     auto revokeTargetsArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, EntitySelector>>(
-        "targets", EntityArgumentType::entities());
+        "targets", EntityArgumentType::players());
 
     auto revokeEverythingNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("everything");
     revokeEverythingNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {

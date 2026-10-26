@@ -61,7 +61,7 @@ void EnchantCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatch
 
     // /enchant <player>
     auto playerNode = std::make_shared<ArgumentCommandNode<ServerCommandSource, EntitySelector>>(
-        "targets", EntityArgumentType::players());
+        "targets", EntityArgumentType::entities());
 
     // /enchant <targets> <enchantment>：原版是 ResourceArgument.enchantment()（注册表资源，类型名 resource）。
     auto enchantmentNode = std::make_shared<ArgumentCommandNode<ServerCommandSource, ResourceLocation>>(
@@ -72,7 +72,7 @@ void EnchantCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatch
 
     // /enchant <player> <enchantment> <level>
     auto levelNode = std::make_shared<ArgumentCommandNode<ServerCommandSource, i32>>(
-        "level", IntegerArgumentType::integer(0, 32767));
+        "level", IntegerArgumentType::integer(0));
     levelNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
         return _enchantItem(ctx);
     });
