@@ -337,6 +337,7 @@ add_executable(minecraft-server
     # 世界模块
     world/ServerWorld.cpp
     world/ChunkTaskScheduler.cpp
+    world/scheduling/AreaTaskScheduler.cpp
     world/ChunkProgressionTask.cpp
     world/ChunkLightingProvider.cpp
     world/ServerChunkManager.cpp

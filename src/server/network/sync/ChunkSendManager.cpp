@@ -70,7 +70,7 @@ void ChunkSendManager::sendChunkToPlayers(
         }
 
         // 取 ServerCompute 池；启动早期/测试环境未注入时为 nullptr，走同步 fallback。
-        util::UniversalWorkerPool* executor = m_chunkManager.radiusAwareExecutor();
+        util::UniversalWorkerPool* executor = m_chunkManager.computeExecutor();
         if (executor == nullptr) {
             auto result = world::chunk::VanillaChunkWire::buildLevelChunkWithLightIR(*chunk);
             if (result.success()) {
@@ -104,12 +104,8 @@ void ChunkSendManager::sendChunkToPlayers(
             },
             "server_chunk_build_ir");
 
-        executor->submit(std::move(task),
-            /*callback=*/nullptr,
-            /*centerX=*/x,
-            /*centerZ=*/z,
-            /*writeRadius=*/0,
-            util::TaskPriority::Normal);
+        m_chunkManager.areaTasks().submit(
+            std::move(task), nullptr, ChunkPos(x, z), 0, util::TaskPriority::Normal, nullptr);
     } else {
         // 区块未加载，触发异步加载
         // 注意：玩家列表需要复制到回调中

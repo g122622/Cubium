@@ -1605,7 +1605,8 @@ void ServerWorld::tickEnvironment(i32 randomTickSpeed)
         return;
     }
 
-    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Tick, "ServerWorld::tickEnvironment", "random_tick_speed", randomTickSpeed);
+    MC_TRACE_SCOPED_EVENT(
+        TraceEvents.Server.Tick, "ServerWorld::tickEnvironment", "random_tick_speed", randomTickSpeed);
 
     // 遍历玩家模拟距离内的区块执行随机刻
     // 注意用 forEachTickingChunk 而非 forEachLoadedChunk：随机刻会改变世界状态（作物生长、
@@ -2786,7 +2787,7 @@ void ServerWorld::enqueueChunkLoadLight(ChunkCoord x, ChunkCoord z)
     MC_ASSERT_RELEASE(m_chunkManager != nullptr);
     m_chunkManager->addLightTicket(x, z);
 
-    util::UniversalWorkerPool* executor = m_chunkManager->radiusAwareExecutor();
+    util::UniversalWorkerPool* executor = m_chunkManager->computeExecutor();
     if (executor == nullptr) {
         // 启动早期/测试环境：主线程同步执行（无 worker 池）。
         RuntimeLightingProvider provider(*this, x, z);
@@ -2795,7 +2796,8 @@ void ServerWorld::enqueueChunkLoadLight(ChunkCoord x, ChunkCoord z)
     }
 
     auto task = std::make_unique<ChunkLoadLightTask>(*this, x, z);
-    executor->submit(std::move(task), /*callback=*/nullptr, x, z, /*writeRadius=*/2);
+    m_chunkManager->areaTasks().submit(
+        std::move(task), nullptr, ChunkPos(x, z), 2, util::TaskPriority::Normal, nullptr);
 }
 
 void ServerWorld::_enqueueChunkSend(ChunkCoord x, ChunkCoord z)

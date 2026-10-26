@@ -255,7 +255,9 @@ void ServerChunkManager::shutdown()
     // 任务在回调中走失败路径。waitForCompletion 可能因 onChunkGenComplete 的自重调度短暂波动，
     // 但取消已使所有 holder 的 abortSignal 失效，新调度产生的任务也会立刻检测到取消
     // （holder 已 cancelActiveWork），最终队列收敛为空。
-    if (util::UniversalWorkerPool* pool = radiusAwareExecutor(); pool != nullptr && pool->isRunning()) {
+    m_areaTasks.shutdown();
+
+    if (util::UniversalWorkerPool* pool = computeExecutor(); pool != nullptr && pool->isRunning()) {
         MC_TRACE_SCOPED_EVENT(
             TraceEvents.Server.Initialization, "ServerChunkManager::shutdown::WaitForWorkerCompletion");
         pool->waitForCompletion();
@@ -751,7 +753,7 @@ void ServerChunkManager::_scheduleGeneration(SingleChunkLifecycleManager& lifecy
         scheduler->schedule(lifecycleManager.x(), lifecycleManager.z(), lifecycleManager);
         return;
     }
-    if (auto* pool = radiusAwareExecutor(); pool != nullptr && pool->isRunning()) {
+    if (auto* pool = computeExecutor(); pool != nullptr && pool->isRunning()) {
         m_lastGenerationActivityMs.store(util::TimeUtils::getCurrentTimeMs(), std::memory_order::release);
         auto holder = _findLifecycleManagerShared(lifecycleManager.x(), lifecycleManager.z());
         MC_ASSERT_RELEASE(holder.get() == &lifecycleManager);
@@ -786,7 +788,7 @@ void ServerChunkManager::_notifyStorageReady(SingleChunkLifecycleManager& lifecy
     if (scheduler == nullptr) {
         return;
     }
-    if (auto* pool = radiusAwareExecutor(); pool != nullptr && pool->isRunning()) {
+    if (auto* pool = computeExecutor(); pool != nullptr && pool->isRunning()) {
         auto holder = _findLifecycleManagerShared(lifecycleManager.x(), lifecycleManager.z());
         MC_ASSERT_RELEASE(holder.get() == &lifecycleManager);
         auto task = std::make_unique<util::FunctionTask>(
@@ -923,7 +925,7 @@ void ServerChunkManager::_onTicketLevelChanged(ChunkCoord x, ChunkCoord z, i32 o
     }
     // 撤销需求不以可卸载为前提；共享邻居及未完成的显式请求仍参与目标汇总。
     if (newLevel > previousLevel) {
-        if (auto* pool = radiusAwareExecutor(); pool != nullptr && pool->isRunning()) {
+        if (auto* pool = computeExecutor(); pool != nullptr && pool->isRunning()) {
             auto task = std::make_unique<util::FunctionTask>(
                 util::TaskType::ChunkGenerate,
                 "Reconcile chunk generation demand",
@@ -2010,8 +2012,8 @@ size_t ServerChunkManager::lifecycleManagerCount() const
 
 size_t ServerChunkManager::pendingTaskCount() const
 {
-    const util::UniversalWorkerPool* pool = radiusAwareExecutor();
-    return pool != nullptr ? pool->pendingTaskCount() : 0;
+    const util::UniversalWorkerPool* pool = computeExecutor();
+    return m_areaTasks.waitingTaskCount() + (pool != nullptr ? pool->pendingTaskCount() : 0);
 }
 
 void ServerChunkManager::_debugDumpStuckHolders()

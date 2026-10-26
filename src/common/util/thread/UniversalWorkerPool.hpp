@@ -36,7 +36,6 @@
 #include <string>
 #include <thread>
 #include <unordered_map>
-#include <unordered_set>
 #include <vector>
 
 namespace mc::util {
@@ -51,7 +50,6 @@ namespace mc::util {
  * 特性：
  * - 优先级队列调度（数值越小优先级越高）
  * - 协作取消机制（通过 atomic<bool> 取消令牌）
- * - 区域互斥（对齐 Moonrise 区域锁执行器，见带坐标的 submit 重载）
  * - Perfetto追踪集成
  * - 线程命名（用于调试；rankBase 决定 profiler 中线程排序分组）
  *
@@ -142,54 +140,6 @@ public:
         TaskPriority priority = TaskPriority::Normal,
         std::shared_ptr<std::atomic<bool>> abortSignal = nullptr);
 
-    /**
-     * @brief 提交带区域互斥的任务（对齐 Moonrise 区域锁执行器）
-     *
-     * 任务携带一个矩形写入区域 `[centerX-writeRadius, centerX+writeRadius] ×
-     * [centerZ-writeRadius, centerZ+writeRadius]`。调度器保证：同一时刻不存在
-     * 两个写入区域**重叠**的区域互斥任务同时执行。区域不重叠的任务可并行执行。
-     *
-     * 用途：FEATURES/LIGHT/SPAWN/FULL 等会写方块的状态通过此重载提交，
-     * 避免并发生成时同一区块被两个任务同时写入。writeRadius 来源为
-     * `ChunkStep::blockStateWriteRadius()`（FEATURES=1，LIGHT=2，其他≤0）。
-     *
-     * writeRadius ≤ 0 的任务视作仅写中心区块（writeRadius=0），区域为单个区块。
-     * 无区域互斥需求的任务应使用无坐标的 submit 重载（可完全并行）。
-     *
-     * 任务对象的所有权语义与无坐标重载一致：提交后归任务池所有，执行完毕（含完成回调）即被
-     * 销毁，调用方不得保留裸指针在提交后访问它。
-     *
-     * @param task 任务对象
-     * @param callback 完成回调（可为空）
-     * @param centerX 写入区域中心 X 坐标（区块坐标）
-     * @param centerZ 写入区域中心 Z 坐标（区块坐标）
-     * @param writeRadius 写入半径（切比雪夫距离），≥0
-     * @param priority 优先级
-     * @param abortSignal 取消令牌（可为空）
-     * @return 任务ID
-     */
-    u64 submit(std::unique_ptr<ITask> task,
-        TaskCallback callback,
-        ChunkCoord centerX,
-        ChunkCoord centerZ,
-        i32 writeRadius,
-        TaskPriority priority = TaskPriority::Normal,
-        std::shared_ptr<std::atomic<bool>> abortSignal = nullptr);
-
-    /**
-     * @brief 查询某写入区域是否可立即执行（无冲突）
-     *
-     * 检查 `[centerX±writeRadius, centerZ±writeRadius]` 是否与任何正在执行的
-     * 区域互斥任务重叠。无重叠返回 true。
-     *
-     * 注意：返回值仅反映调用瞬间的状态，调用者仍需通过带坐标的 submit 提交，
-     * 调度器会在执行前再次检查（TOCTOU 由内部锁保护）。
-     *
-     * TODO: 目前只有单元测试调用，尚无生产调用方。计划供区块生成调度器在提交前预检查
-     * （无冲突时可直接内联执行、省去一次入队出队），届时须保持与本方法一致的判定语义。
-     */
-    [[nodiscard]] bool canExecuteNow(ChunkCoord centerX, ChunkCoord centerZ, i32 writeRadius) const;
-
     // ============================================================================
     // 任务管理
     // ============================================================================
@@ -242,10 +192,10 @@ public:
     }
 
     /**
-     * @brief 诊断：转储工作线程池状态（运行区域、队列任务区域分布）
+     * @brief 诊断：转储排队与运行任务数量
      *
      * 用于死锁诊断：当 pendingTaskCount > 0 但 runningTaskCount == 0 时，
-     * 转储 m_runningRegions 和队列中任务的区域信息，判断是否区域互斥活锁。
+     * 转储队列与运行数量，检查线程池推进状态。
      */
     void debugDumpState();
 
@@ -253,7 +203,7 @@ public:
      * @brief 诊断：转储每个 worker 当前正在执行的任务（描述与已执行时长）
      *
      * 用于死锁定位：当 runningTaskCount > 0 但 pending 冻结时，转储各 worker 的执行任务，
-     * 判断是否卡在 execute（生成器死循环/死锁）还是 onChunkGenComplete（调度锁等待）。
+     * 定位长时间未完成的任务。
      */
     void debugDumpRunningTasks();
 
@@ -264,22 +214,15 @@ private:
     struct InternalTask {
         u64 id;
         TaskPriority priority;
-        u64 timestamp;
         std::shared_ptr<ITask> task;
         TaskCallback callback;
         std::shared_ptr<std::atomic<bool>> abortSignal;
-
-        // 区域互斥信息（hasArea=false 时表示无区域互斥，可完全并行）
-        bool hasArea = false;
-        ChunkCoord areaCenterX = 0;
-        ChunkCoord areaCenterZ = 0;
-        i32 areaWriteRadius = 0;
     };
 
     /**
      * @brief 任务比较器（用于优先队列）
      *
-     * 优先级小的在前，同优先级时间早的在前。
+     * 优先级小的在前，同优先级提交 ID 小的在前。
      */
     struct TaskComparator {
         bool operator()(const std::shared_ptr<InternalTask>& a, const std::shared_ptr<InternalTask>& b) const
@@ -287,72 +230,35 @@ private:
             if (a->priority != b->priority) {
                 return static_cast<i8>(a->priority) > static_cast<i8>(b->priority);
             }
-            return a->timestamp > b->timestamp;
+            return a->id > b->id;
         }
     };
 
     /**
      * @brief 工作线程函数
      */
-    void workerThread(i32 workerId);
+    void _workerThread(i32 workerId);
 
     /**
      * @brief 执行任务
      */
-    void executeTask(std::shared_ptr<InternalTask> task);
+    void _executeTask(std::shared_ptr<InternalTask> task);
+
+    /** @brief 在锁外取消任务并通知失败，隔离收尾异常。 */
+    void _cancelTask(const std::shared_ptr<InternalTask>& task);
+
+    /** @brief 在锁外调用完成回调，隔离回调异常。 */
+    void _callback(const std::shared_ptr<InternalTask>& task, bool success);
 
     /**
      * @brief 获取最优线程数
      */
-    [[nodiscard]] static i32 getOptimalThreadCount();
+    [[nodiscard]] static i32 _getOptimalThreadCount();
 
     /**
      * @brief 检查任务是否已被取消
      */
-    [[nodiscard]] static bool isTaskCancelled(const InternalTask& task);
-
-    // ============================================================================
-    // 区域互斥（对齐 Moonrise 区域锁执行器）
-    // ============================================================================
-
-    /**
-     * @brief 将区块坐标打包为 64 位键（内部使用，不依赖 chunk 模块）
-     *
-     * 高 32 位为 X（转 u32），低 32 位为 Z（转 u32）。
-     */
-    [[nodiscard]] static u64 packChunkKey(ChunkCoord x, ChunkCoord z) noexcept;
-
-    /**
-     * @brief 检查任务的写入区域是否与正在执行的区域互斥任务冲突
-     *
-     * 调用者必须持有 m_runningRegionsMutex。
-     *
-     * @param task 待检查的任务（必须有区域信息）
-     * @return true 表示冲突（不能执行），false 表示无冲突（可以执行）
-     */
-    [[nodiscard]] bool hasAreaConflictLocked(const InternalTask& task) const;
-
-    /**
-     * @brief 标记任务的写入区域为正在执行（加入 m_runningRegions）
-     *
-     * 调用者必须持有 m_runningRegionsMutex。
-     */
-    void markAreaRunningLocked(const InternalTask& task);
-
-    /**
-     * @brief 清除任务的写入区域标记（从 m_runningRegions 移除）
-     *
-     * 调用者必须持有 m_runningRegionsMutex。
-     */
-    void unmarkAreaRunningLocked(const InternalTask& task);
-
-    /**
-     * @brief 计算任务写入区域覆盖的所有区块键
-     *
-     * @param task 有区域信息的任务
-     * @return 区块键集合（(2*writeRadius+1)² 个）
-     */
-    [[nodiscard]] static std::vector<u64> computeAreaKeys(const InternalTask& task);
+    [[nodiscard]] static bool _isTaskCancelled(const InternalTask& task);
 
     /**
      * @brief 结清一次未完成任务计数
@@ -373,7 +279,7 @@ private:
      * fast-path:m_outstandingTaskCount≠0 时必然非空闲,直接返回不抢锁(任务执行期间高频调用,
      * 避免无谓锁竞争);仅计数归零才抢锁做权威判定。与 m_completionMutex 锁序固定。
      */
-    void notifyIfIdle();
+    void _notifyIfIdle();
 
     // ============================================================================
     // 成员变量
@@ -394,14 +300,14 @@ private:
     // 任务ID生成
     std::atomic<u64> m_nextTaskId{1};
 
-    // 正在执行的任务数量（统计用途；回调执行期间不计入）
+    // 正在执行的任务数量（包含回调）
     std::atomic<size_t> m_runningTaskCount{0};
 
     // 未完成任务数量：自 submit() 入队起算，到"任务回调执行完毕"或"任务被丢弃
     // （取消 / 裁剪 / 关闭清空队列）"为止。waitForCompletion() 以此为完成谓词。
     //
     // 不能用 pendingTaskCount()==0 && runningTaskCount()==0 做谓词，存在两个提前返回窗口：
-    //   1) m_runningTaskCount 在回调**之前**递减（回调可能尚未执行完）；
+    //   1) 排队任务取消后，收尾回调可能仍未结束；
     //   2) worker "出队"与"标记运行"之间，队列已空且运行数为 0，但任务其实还没跑。
     std::atomic<size_t> m_outstandingTaskCount{0};
 
@@ -410,10 +316,6 @@ private:
     struct RunningTaskInfo {
         std::string description;
         std::chrono::steady_clock::time_point startTime;
-        bool hasArea = false;
-        ChunkCoord areaCenterX = 0;
-        ChunkCoord areaCenterZ = 0;
-        i32 areaWriteRadius = 0;
     };
 
     std::mutex m_runningTaskMutex;
@@ -426,25 +328,6 @@ private:
     // 等待完成的条件变量
     std::mutex m_completionMutex;
     std::condition_variable m_completionCondition;
-
-    // ============================================================================
-    // 区域互斥状态（对齐 Moonrise 区域锁执行器）
-    // ============================================================================
-
-    // 正在执行的区域互斥任务所占据的区块键集合。
-    // 任务开始执行时把其写入区域（(2*writeRadius+1)² 个区块键）全部加入，
-    // 执行完成时移除。无区域互斥的任务（hasArea=false）不参与此集合。
-    //
-    // 冲突判定：新任务的任一区块键已在集合中 → 冲突，必须等待。
-    // 这保证两个写入区域重叠的任务不会同时执行（方块写入互斥），
-    // 而区域不重叠的任务可完全并行。
-    std::unordered_set<u64> m_runningRegions;
-    mutable std::mutex m_runningRegionsMutex;
-
-    // 区域任务释放（或关闭）时通知等待冲突的工作线程重试。
-    // 谓词为"m_stop 已置位 或 本任务写入区域不再冲突"，谓词求值与区域标记的清除均在
-    // m_runningRegionsMutex 下进行，通知亦持该锁发出，故不存在丢失唤醒。
-    std::condition_variable m_areaReleasedCondition;
 };
 
 } // namespace mc::util

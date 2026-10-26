@@ -248,7 +248,7 @@ TEST_F(BaseChunkGeneratorTest, ChunkStep_FeaturesWriteRadius)
 TEST_F(BaseChunkGeneratorTest, ChunkStep_LightWriteRadius)
 {
     // LIGHT 步骤的写入半径应为 2：光照在 LIGHT 阶段于 worker 线程执行，
-    // 经 WorldLightManager::lightChunk 写半径2邻居的 nibble，走 m_radiusAwareExecutor（5×5 写区互斥）。
+    // 经 WorldLightManager::lightChunk 写半径2邻居的 nibble，走世界区域调度器（5×5 写区互斥）。
     //
     // neighbourReadRadius：ChunkStep::neighbourReadRadius() 返回 accumulatedRadius()，
     // 即所有前序步骤累积依赖的最大半径（对齐 Moonrise 的 neighbourReadRadius =

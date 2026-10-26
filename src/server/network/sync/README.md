@@ -94,7 +94,7 @@ src/server/network/sync/
 主线程通过 `processPendingSends()` 处理。
 
 主路径经 `tryToGetChunkSharedInMem` 拷贝 `shared_ptr<ChunkData>` 捕获保活——worker 在途期间即使主线程
-卸载区块，引用计数维持存活，防 UAF。任务以 `submit(writeRadius=0)` 提交，与
+卸载区块，引用计数维持存活，防 UAF。任务经世界 `AreaTaskScheduler` 以半径 0 提交，与
 `RuntimeLightTask(writeRadius=2)` 区域互斥串行，保证 serialize 读 `ChunkSection` nibble 不与光照写竞争。
 
 ### 2. 回调未设置会静默不发
