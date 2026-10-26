@@ -510,7 +510,14 @@ bool SimulatedPlayer::useItemOnBlock(
             mc::BlockActionResult blockResult =
                 block->useItemOn(handStack, *state, world, worldPos, *this, mc::Hand::MainHand, hitResult);
             if (!blockResult.consumesAction() && blockResult.isTryEmptyHandInteraction()) {
-                blockResult = block->useWithoutItem(*state, world, worldPos, *this, hitResult);
+                // 空手回退只在真正空手时发生：vanilla 的 useWithoutItem 就是"没有手持物参与的
+                // 交互"，手持物品时方块返回 TRY_WITH_EMPTY_HAND 的含义是"我不处理这件物品"，
+                // 此时应继续交给 Item::useOn，而不是替玩家做空手交互。此前无条件回退，导致
+                // 手持木棍右键空花盆被当成空手交互（FlowerPotBlock::useWithoutItem 对空花盆返回
+                // Consume），useItemOnBlock 错误地返回 true，花盆用例因此失败。
+                if (handStack.isEmpty()) {
+                    blockResult = block->useWithoutItem(*state, world, worldPos, *this, hitResult);
+                }
             }
             // 方块侧交互消费动作即短路返回，不再 fallback Item.useOn（避免双重消耗——如 ComposterBlock
             // 堆肥成功时内部已 shrink 手持物作用于选中槽）。
