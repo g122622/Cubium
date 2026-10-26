@@ -527,6 +527,7 @@ add_library(mc_common STATIC
     item/component/DataComponentType.cpp
     item/component/DataComponentPayloadCodec.cpp
     item/component/DataComponentPatchNbt.cpp
+    item/component/BannerPatternLayers.cpp
     item/component/DataComponentPatchWire.cpp
     item/component/FireworkExplosion.cpp
     item/component/DeathProtection.cpp
@@ -1460,6 +1461,7 @@ add_library(mc_common STATIC
     advancement/trigger/impl/ChanneledLightningTrigger.cpp
     advancement/trigger/impl/AvoidVibrationTrigger.cpp
     advancement/trigger/impl/AnyBlockUseTrigger.cpp
+    advancement/trigger/impl/GenericTriggers.cpp
 
     # Scoreboard System - Core
     scoreboard/core/Scoreboard.cpp

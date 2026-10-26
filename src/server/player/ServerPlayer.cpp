@@ -1369,21 +1369,38 @@ void ServerPlayer::triggerDistance(const ResourceLocation& triggerId, const Vect
     if (m_advancements == nullptr) {
         return;
     }
-    auto* triggerById = advancement::CriterionTriggers::instance().getTrigger(triggerId);
-    auto* trigger = dynamic_cast<advancement::DistanceTrigger*>(triggerById);
+    auto* trigger = advancement::CriterionTriggers::instance().getTrigger(triggerId);
     if (trigger == nullptr) {
         return;
     }
-    // 三个 DistanceTrigger 子类（fall_from_height / nether_travel / ride_entity_in_lava）共享
-    // 同一实例类型，按传入 ID 精确定位（dynamic_cast 校验确为距离触发器）。
-
+    // 三个距离触发器（fall_from_height / nether_travel / ride_entity_in_lava）条件结构相同、
+    // 实例类型各自独立：按传入 ID 找到触发器后，用该触发器自己的实例类型派发，条件比对逻辑共用。
+    const std::string id = triggerId.toString();
     advancement::CriterionContext context;
     context.entity = this;
     context.world = Entity::world();
-    trigger->advancement::AbstractCriterionTrigger<advancement::DistanceTriggerInstance>::trigger(
-        *m_advancements, [&context, &startPos, &endPos](const advancement::DistanceTriggerInstance& instance) {
-            return instance.test(context, startPos, endPos);
-        });
+    const auto matches = [&context, &startPos, &endPos](const auto& instance) {
+        return instance.test(context, startPos, endPos);
+    };
+    if (id == advancement::DistanceTrigger::TRIGGER_ID) {
+        auto* typed = dynamic_cast<advancement::DistanceTrigger*>(trigger);
+        if (typed != nullptr) {
+            typed->advancement::AbstractCriterionTrigger<advancement::DistanceTriggerInstance>::trigger(
+                *m_advancements, matches);
+        }
+    } else if (id == advancement::NetherTravelTrigger::TRIGGER_ID) {
+        auto* typed = dynamic_cast<advancement::NetherTravelTrigger*>(trigger);
+        if (typed != nullptr) {
+            typed->advancement::AbstractCriterionTrigger<advancement::NetherTravelTriggerInstance>::trigger(
+                *m_advancements, matches);
+        }
+    } else if (id == advancement::RideEntityInLavaTrigger::TRIGGER_ID) {
+        auto* typed = dynamic_cast<advancement::RideEntityInLavaTrigger*>(trigger);
+        if (typed != nullptr) {
+            typed->advancement::AbstractCriterionTrigger<advancement::RideEntityInLavaTriggerInstance>::trigger(
+                *m_advancements, matches);
+        }
+    }
 }
 
 void ServerPlayer::triggerFallAfterExplosion(

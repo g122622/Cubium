@@ -370,4 +370,52 @@ Result<std::shared_ptr<ICriterionInstance>> ThrownItemPickedUpByEntityTrigger::f
     return instance;
 }
 
+// ========== ThrownItemPickedUpByPlayerTriggerInstance ==========
+
+bool ThrownItemPickedUpByPlayerTriggerInstance::test(const ItemStack& item, const Entity* picker) const
+{
+    // 与 thrown_item_picked_up_by_entity 同一套匹配规则；拾取者是玩家由事件派发点保证
+    if (!m_item.test(item)) {
+        return false;
+    }
+    if (m_entity.isAny()) {
+        return true;
+    }
+    return picker != nullptr && m_entity.test(*picker);
+}
+
+Result<void> ThrownItemPickedUpByPlayerTriggerInstance::fromJson(const nlohmann::json& json)
+{
+    if (json.is_null()) {
+        return {};
+    }
+    if (json.contains("item")) {
+        auto result = ItemPredicate::fromJson(json["item"]);
+        if (result.failed()) {
+            return result.error();
+        }
+        m_item = result.value();
+    }
+    if (json.contains("entity")) {
+        auto entityResult = EntityPredicate::fromJson(json["entity"]);
+        if (entityResult.failed()) {
+            return entityResult.error();
+        }
+        m_entity = entityResult.value();
+    }
+    return {};
+}
+
+nlohmann::json ThrownItemPickedUpByPlayerTriggerInstance::conditionsToJson() const
+{
+    nlohmann::json result = nlohmann::json::object();
+    if (!m_item.isAny()) {
+        result["item"] = m_item.toJson();
+    }
+    if (!m_entity.isAny()) {
+        result["entity"] = m_entity.toJson();
+    }
+    return result.empty() ? nlohmann::json(nullptr) : result;
+}
+
 } // namespace mc::advancement

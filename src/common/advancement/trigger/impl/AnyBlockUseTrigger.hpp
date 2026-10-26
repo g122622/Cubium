@@ -61,10 +61,10 @@ public:
  * @brief 物品作用于方块触发器（对齐 vanilla ItemUsedOnLocationTrigger）
  *
  * 玩家手持物品对某方块完成交互时触发（点燃 TNT、用药水喂食幼崽、给铜块打蜡等）。
- * 条件为 location（ContextAwarePredicate：location_check / block_state_property），
- * 数据包 adventure/lighten_up 等 10 处依赖它。
+ * 条件为 location（ContextAwarePredicate：location_check / block_state_property）。
+ * 与 default_block_use 是同一触发点上的两个独立触发器，实例类型相同。
  */
-class ItemUsedOnBlockTrigger : public AbstractCriterionTrigger<AnyBlockUseTriggerInstance> {
+class ItemUsedOnBlockTrigger : public AnyBlockUseTrigger {
 public:
     static constexpr const char* TRIGGER_ID = "minecraft:item_used_on_block";
 
@@ -72,8 +72,6 @@ public:
     {
         return ResourceLocation(TRIGGER_ID);
     }
-
-    [[nodiscard]] Result<std::shared_ptr<ICriterionInstance>> fromJson(const nlohmann::json& json) override;
 };
 
 /**

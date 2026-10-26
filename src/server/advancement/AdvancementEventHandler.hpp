@@ -624,11 +624,13 @@ private:
         // 获取位置
         mc::Vector3 pos = serverPlayer->position();
 
-        // 触发检测 - SleptInBedTrigger 继承自 LocationTrigger
-        trigger->AbstractCriterionTrigger<mc::advancement::LocationTriggerInstance>::trigger(
-            *advancements, [world, &pos](const mc::advancement::LocationTriggerInstance& instance) {
-                return instance.test(*world, pos.x, pos.y, pos.z);
-            });
+        // 条件只有 player：位置就在玩家上下文里（vanilla SleptInBedTrigger 的空 TriggerInstance）
+        mc::advancement::CriterionContext context;
+        context.entity = serverPlayer;
+        context.world = world;
+        trigger->AbstractCriterionTrigger<mc::advancement::PlayerContextTriggerInstance>::trigger(
+            *advancements,
+            [&context](const mc::advancement::PlayerContextTriggerInstance& instance) { return instance.test(context); });
     }
 
     /**
@@ -673,8 +675,10 @@ private:
             return;
         }
 
-        // 获取位置
-        mc::Vector3 pos = serverPlayer->position();
+        // hero_of_the_village / voluntary_exile 都是 vanilla PlayerTrigger：条件只有 player
+        mc::advancement::CriterionContext context;
+        context.entity = serverPlayer;
+        context.world = world;
 
         // 根据效果类型触发相应的触发器
         mc::entity::effect::EffectType effectType = e.effect->type();
@@ -684,9 +688,10 @@ private:
             auto* trigger =
                 mc::advancement::CriterionTriggers::instance().getTrigger<mc::advancement::HeroOfTheVillageTrigger>();
             if (trigger != nullptr) {
-                trigger->AbstractCriterionTrigger<mc::advancement::LocationTriggerInstance>::trigger(
-                    *advancements, [world, &pos](const mc::advancement::LocationTriggerInstance& instance) {
-                        return instance.test(*world, pos.x, pos.y, pos.z);
+                trigger->AbstractCriterionTrigger<mc::advancement::PlayerContextTriggerInstance>::trigger(
+                    *advancements,
+                    [&context](const mc::advancement::PlayerContextTriggerInstance& instance) {
+                        return instance.test(context);
                     });
             }
         }
@@ -695,9 +700,10 @@ private:
             auto* trigger =
                 mc::advancement::CriterionTriggers::instance().getTrigger<mc::advancement::VoluntaryExileTrigger>();
             if (trigger != nullptr) {
-                trigger->AbstractCriterionTrigger<mc::advancement::LocationTriggerInstance>::trigger(
-                    *advancements, [world, &pos](const mc::advancement::LocationTriggerInstance& instance) {
-                        return instance.test(*world, pos.x, pos.y, pos.z);
+                trigger->AbstractCriterionTrigger<mc::advancement::PlayerContextTriggerInstance>::trigger(
+                    *advancements,
+                    [&context](const mc::advancement::PlayerContextTriggerInstance& instance) {
+                        return instance.test(context);
                     });
             }
         }
@@ -735,11 +741,13 @@ private:
             return;
         }
 
-        // 触发检测
-        trigger->AbstractCriterionTrigger<mc::advancement::LocationTriggerInstance>::trigger(
-            *advancements, [world, &e](const mc::advancement::LocationTriggerInstance& instance) {
-                return instance.test(*world, e.position.x, e.position.y, e.position.z);
-            });
+        // 触发检测（条件只有 player：位置来自玩家上下文）
+        mc::advancement::CriterionContext context;
+        context.entity = serverPlayer;
+        context.world = world;
+        trigger->AbstractCriterionTrigger<mc::advancement::PlayerContextTriggerInstance>::trigger(
+            *advancements,
+            [&context](const mc::advancement::PlayerContextTriggerInstance& instance) { return instance.test(context); });
     }
 
     /**
@@ -774,11 +782,13 @@ private:
             return;
         }
 
-        // 触发检测
-        trigger->AbstractCriterionTrigger<mc::advancement::LocationTriggerInstance>::trigger(
-            *advancements, [world, &e](const mc::advancement::LocationTriggerInstance& instance) {
-                return instance.test(*world, e.position.x, e.position.y, e.position.z);
-            });
+        // 触发检测（条件只有 player：位置来自玩家上下文）
+        mc::advancement::CriterionContext context;
+        context.entity = serverPlayer;
+        context.world = world;
+        trigger->AbstractCriterionTrigger<mc::advancement::PlayerContextTriggerInstance>::trigger(
+            *advancements,
+            [&context](const mc::advancement::PlayerContextTriggerInstance& instance) { return instance.test(context); });
     }
 
     /**
@@ -887,6 +897,21 @@ private:
             *advancements, [&e, picker](const mc::advancement::ThrownItemPickedUpByEntityTriggerInstance& instance) {
                 return instance.test(e.item, picker);
             });
+
+        // thrown_item_picked_up_by_player：拾取者为玩家时另派发一条
+        // （vanilla PickedUpItemTrigger 的两个实例共用同一事件派发点）。
+        if (const auto* pickerPlayer = dynamic_cast<const mc::Player*>(picker); pickerPlayer != nullptr) {
+            auto* byPlayerTrigger = mc::advancement::CriterionTriggers::instance()
+                                        .getTrigger<mc::advancement::ThrownItemPickedUpByPlayerTrigger>();
+            if (byPlayerTrigger != nullptr) {
+                byPlayerTrigger
+                    ->AbstractCriterionTrigger<mc::advancement::ThrownItemPickedUpByPlayerTriggerInstance>::trigger(
+                        *advancements,
+                        [&e, pickerPlayer](const mc::advancement::ThrownItemPickedUpByPlayerTriggerInstance& instance) {
+                            return instance.test(e.item, pickerPlayer);
+                        });
+            }
+        }
     }
 
     /**

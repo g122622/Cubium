@@ -22,7 +22,7 @@
 #include "common/advancement/AdvancementLoader.hpp"
 #include "common/TempDirHelper.hpp"
 #include "common/advancement/AdvancementManager.hpp"
-#include "common/advancement/trigger/impl/ImpossibleTrigger.hpp"
+#include "common/advancement/trigger/impl/GenericTriggers.hpp"
 #include "common/resource/repository/DataPackRepository.hpp"
 #include <gtest/gtest.h>
 
@@ -304,7 +304,7 @@ TEST_F(AdvancementLoaderTest, LoadFromDirectory_MixedSuccessAndFailure)
 TEST_F(AdvancementLoaderTest, ClearBeforeLoad_DefaultClears)
 {
     // 先注册一个成就
-    auto trigger = std::make_shared<ImpossibleTriggerInstance>();
+    auto trigger = std::make_shared<PlayerContextTriggerInstance>();
     auto adv = std::make_shared<Advancement>(
         Advancement::Builder(ResourceLocation("minecraft", "pre_existing")).criterion("test", trigger).build().value());
     AdvancementManager::instance().registerAdvancement(adv);
@@ -330,7 +330,7 @@ TEST_F(AdvancementLoaderTest, ClearBeforeLoad_DefaultClears)
 TEST_F(AdvancementLoaderTest, ClearBeforeLoad_FalsePreserves)
 {
     // 先注册一个成就
-    auto trigger = std::make_shared<ImpossibleTriggerInstance>();
+    auto trigger = std::make_shared<PlayerContextTriggerInstance>();
     auto adv = std::make_shared<Advancement>(
         Advancement::Builder(ResourceLocation("minecraft", "pre_existing")).criterion("test", trigger).build().value());
     AdvancementManager::instance().registerAdvancement(adv);
@@ -489,7 +489,7 @@ TEST_F(AdvancementLoaderTest, LoadFromDataPackRepository_DuplicateIdSecondFails)
 TEST_F(AdvancementLoaderTest, LoadFromDataPackRepository_ClearBeforeLoad)
 {
     // 先注册一个预存在的成就
-    auto trigger = std::make_shared<ImpossibleTriggerInstance>();
+    auto trigger = std::make_shared<PlayerContextTriggerInstance>();
     auto adv = std::make_shared<Advancement>(
         Advancement::Builder(ResourceLocation("minecraft", "pre_existing")).criterion("test", trigger).build().value());
     AdvancementManager::instance().registerAdvancement(adv);

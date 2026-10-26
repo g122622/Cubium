@@ -1288,12 +1288,6 @@ void LightningStrikeTrigger::trigger(ServerPlayer& player, const Entity& lightni
     MC_UNUSED(bystander);
 }
 
-// ========== DistanceTrigger ==========
-
-DistanceTrigger::DistanceTrigger(const char* triggerId)
-    : m_triggerId(triggerId != nullptr ? triggerId : TRIGGER_ID)
-{}
-
 bool DistanceTriggerInstance::test(const Vector3& startPos, const Vector3& endPos) const
 {
     // 对齐 vanilla DistanceTrigger.TriggerInstance.matches：
@@ -1373,19 +1367,182 @@ nlohmann::json DistanceTriggerInstance::conditionsToJson() const
     return json;
 }
 
-Result<std::shared_ptr<ICriterionInstance>> DistanceTrigger::fromJson(const nlohmann::json& json)
-{
-    auto instance = std::make_shared<DistanceTriggerInstance>();
-    auto result = instance->fromJson(json);
-    if (result.failed()) {
-        return result.error();
-    }
-    return instance;
-}
-
 void DistanceTrigger::trigger(ServerPlayer& player, const Vector3& startPos, const Vector3& endPos)
 {
     // 实际派发由 Player::triggerDistance → ServerPlayer 实现经模板方法与具体实例判定完成
+    MC_UNUSED(player);
+    MC_UNUSED(startPos);
+    MC_UNUSED(endPos);
+}
+
+// ========== NetherTravelTriggerInstance ==========
+
+bool NetherTravelTriggerInstance::test(const Vector3& startPos, const Vector3& endPos) const
+{
+    // 对齐 vanilla DistanceTrigger.TriggerInstance.matches：先起点位置谓词，再起止点距离
+    if (m_startPosition.has_value() && !m_startPosition->testPosition(startPos.x, startPos.y, startPos.z)) {
+        return false;
+    }
+    if (m_distance.has_value()
+        && !m_distance->test(startPos.x, startPos.y, startPos.z, endPos.x, endPos.y, endPos.z)) {
+        return false;
+    }
+    return true;
+}
+
+bool NetherTravelTriggerInstance::test(
+    const CriterionContext& context, const Vector3& startPos, const Vector3& endPos) const
+{
+    if (m_startPosition.has_value()) {
+        if (!m_startPosition->testPosition(startPos.x, startPos.y, startPos.z)) {
+            return false;
+        }
+        if (context.world != nullptr && !m_startPosition->test(*context.world, startPos.x, startPos.y, startPos.z)) {
+            return false;
+        }
+    }
+    if (!m_playerContext.test(context)) {
+        return false;
+    }
+    if (m_distance.has_value()
+        && !m_distance->test(startPos.x, startPos.y, startPos.z, endPos.x, endPos.y, endPos.z)) {
+        return false;
+    }
+    return true;
+}
+
+Result<void> NetherTravelTriggerInstance::fromJson(const nlohmann::json& json)
+{
+    if (json.is_null()) {
+        return {};
+    }
+    if (json.contains("player")) {
+        auto result = ContextAwarePredicate::fromJson(json["player"]);
+        if (result.failed()) {
+            return result.error();
+        }
+        m_playerContext = std::move(result.value());
+    }
+    if (json.contains("start_position")) {
+        auto result = LocationPredicate::fromJson(json["start_position"]);
+        if (result.failed()) {
+            return result.error();
+        }
+        m_startPosition = result.value();
+    }
+    if (json.contains("distance")) {
+        auto result = DistancePredicate::fromJson(json["distance"]);
+        if (result.failed()) {
+            return result.error();
+        }
+        m_distance = result.value();
+    }
+    return {};
+}
+
+nlohmann::json NetherTravelTriggerInstance::conditionsToJson() const
+{
+    nlohmann::json json = nlohmann::json::object();
+    if (!m_playerContext.isAny()) {
+        json["player"] = m_playerContext.toJson();
+    }
+    if (m_startPosition.has_value()) {
+        json["start_position"] = m_startPosition->toJson();
+    }
+    if (m_distance.has_value() && !m_distance->isAny()) {
+        json["distance"] = m_distance->toJson();
+    }
+    return json;
+}
+
+void NetherTravelTrigger::trigger(ServerPlayer& player, const Vector3& startPos, const Vector3& endPos)
+{
+    MC_UNUSED(player);
+    MC_UNUSED(startPos);
+    MC_UNUSED(endPos);
+}
+
+// ========== RideEntityInLavaTriggerInstance ==========
+
+bool RideEntityInLavaTriggerInstance::test(const Vector3& startPos, const Vector3& endPos) const
+{
+    if (m_startPosition.has_value() && !m_startPosition->testPosition(startPos.x, startPos.y, startPos.z)) {
+        return false;
+    }
+    if (m_distance.has_value()
+        && !m_distance->test(startPos.x, startPos.y, startPos.z, endPos.x, endPos.y, endPos.z)) {
+        return false;
+    }
+    return true;
+}
+
+bool RideEntityInLavaTriggerInstance::test(
+    const CriterionContext& context, const Vector3& startPos, const Vector3& endPos) const
+{
+    if (m_startPosition.has_value()) {
+        if (!m_startPosition->testPosition(startPos.x, startPos.y, startPos.z)) {
+            return false;
+        }
+        if (context.world != nullptr && !m_startPosition->test(*context.world, startPos.x, startPos.y, startPos.z)) {
+            return false;
+        }
+    }
+    if (!m_playerContext.test(context)) {
+        return false;
+    }
+    if (m_distance.has_value()
+        && !m_distance->test(startPos.x, startPos.y, startPos.z, endPos.x, endPos.y, endPos.z)) {
+        return false;
+    }
+    return true;
+}
+
+Result<void> RideEntityInLavaTriggerInstance::fromJson(const nlohmann::json& json)
+{
+    if (json.is_null()) {
+        return {};
+    }
+    if (json.contains("player")) {
+        auto result = ContextAwarePredicate::fromJson(json["player"]);
+        if (result.failed()) {
+            return result.error();
+        }
+        m_playerContext = std::move(result.value());
+    }
+    if (json.contains("start_position")) {
+        auto result = LocationPredicate::fromJson(json["start_position"]);
+        if (result.failed()) {
+            return result.error();
+        }
+        m_startPosition = result.value();
+    }
+    if (json.contains("distance")) {
+        auto result = DistancePredicate::fromJson(json["distance"]);
+        if (result.failed()) {
+            return result.error();
+        }
+        m_distance = result.value();
+    }
+    return {};
+}
+
+nlohmann::json RideEntityInLavaTriggerInstance::conditionsToJson() const
+{
+    nlohmann::json json = nlohmann::json::object();
+    if (!m_playerContext.isAny()) {
+        json["player"] = m_playerContext.toJson();
+    }
+    if (m_startPosition.has_value()) {
+        json["start_position"] = m_startPosition->toJson();
+    }
+    if (m_distance.has_value() && !m_distance->isAny()) {
+        json["distance"] = m_distance->toJson();
+    }
+    return json;
+}
+
+void RideEntityInLavaTrigger::trigger(ServerPlayer& player, const Vector3& startPos, const Vector3& endPos)
+{
     MC_UNUSED(player);
     MC_UNUSED(startPos);
     MC_UNUSED(endPos);
@@ -1495,6 +1652,86 @@ void FallAfterExplosionTrigger::trigger(ServerPlayer& player,
     MC_UNUSED(startPos);
     MC_UNUSED(endPos);
     MC_UNUSED(cause);
+}
+
+// ========== LevitationTrigger ==========
+
+bool LevitationTriggerInstance::test(const Vector3& startPos, const Vector3& endPos, i32 duration) const
+{
+    if (!m_duration.test(duration)) {
+        return false;
+    }
+    if (m_distance.has_value()
+        && !m_distance->test(startPos.x, startPos.y, startPos.z, endPos.x, endPos.y, endPos.z)) {
+        return false;
+    }
+    return true;
+}
+
+bool LevitationTriggerInstance::test(
+    const CriterionContext& context, const Vector3& startPos, const Vector3& endPos, i32 duration) const
+{
+    return m_playerContext.test(context) && test(startPos, endPos, duration);
+}
+
+Result<void> LevitationTriggerInstance::fromJson(const nlohmann::json& json)
+{
+    if (json.is_null()) {
+        return {};
+    }
+    if (json.contains("player")) {
+        auto result = ContextAwarePredicate::fromJson(json["player"]);
+        if (result.failed()) {
+            return result.error();
+        }
+        m_playerContext = std::move(result.value());
+    }
+    if (json.contains("distance")) {
+        auto result = DistancePredicate::fromJson(json["distance"]);
+        if (result.failed()) {
+            return result.error();
+        }
+        m_distance = result.value();
+    }
+    if (json.contains("duration")) {
+        m_duration = IntBounds::fromJson(json["duration"]);
+    }
+    return {};
+}
+
+nlohmann::json LevitationTriggerInstance::conditionsToJson() const
+{
+    nlohmann::json json = nlohmann::json::object();
+    if (!m_playerContext.isAny()) {
+        json["player"] = m_playerContext.toJson();
+    }
+    if (m_distance.has_value() && !m_distance->isAny()) {
+        json["distance"] = m_distance->toJson();
+    }
+    if (!m_duration.isUnbounded()) {
+        json["duration"] = m_duration.toJson();
+    }
+    return json;
+}
+
+Result<std::shared_ptr<ICriterionInstance>> LevitationTrigger::fromJson(const nlohmann::json& json)
+{
+    auto instance = std::make_shared<LevitationTriggerInstance>();
+    auto result = instance->fromJson(json);
+    if (result.failed()) {
+        return result.error();
+    }
+    return instance;
+}
+
+void LevitationTrigger::trigger(
+    ServerPlayer& player, const Vector3& startPos, const Vector3& endPos, i32 duration)
+{
+    // 实际派发由飘浮效果结束时的事件侧经模板方法与具体实例判定完成
+    MC_UNUSED(player);
+    MC_UNUSED(startPos);
+    MC_UNUSED(endPos);
+    MC_UNUSED(duration);
 }
 
 } // namespace mc::advancement

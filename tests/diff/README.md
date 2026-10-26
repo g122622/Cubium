@@ -152,7 +152,7 @@ harness 决定。`runner.ts` 负责按 `key` 对齐两侧输出、规范化、�
 
 ## 当前状态
 
-十九个能力已接入，`node tests/diff/harness/runner.ts run all` 退出码 0（全部一致）：
+二十个能力已接入，`node tests/diff/harness/runner.ts run all` 退出码 0（全部一致）：
 
 | harness | 参照实现 | 单元 | 结果 | 已知缺口 |
 |---|---|---|---|---|
@@ -176,6 +176,7 @@ harness 决定。`runner.ts` 负责按 `key` 对齐两侧输出、规范化、�
 | `loot_table` | 原版 jar `LootTableOracle` | 1324 | 全部一致 | — |
 | `loot_table_block` | 原版 jar `LootTableBlockOracle` | 1324 | 全部一致 | — |
 | `loot_table_entity` | 原版 jar `LootTableEntityOracle` | 1324 | 全部一致 | 2 张表的实体类型建不出来（`creaking`、`mannequin`） |
+| `advancement` | 原版 jar `AdvancementOracle` | 1584 | 全部一致 | — |
 
 第一次跑通就查出并修掉的实打实的错误（都是手抄数据/公式出错）：
 
@@ -318,6 +319,36 @@ harness 决定。`runner.ts` 负责按 `key` 对齐两侧输出、规范化、�
   {this_entity, origin, damage_source}、`FISHING` = {origin, tool}、`SELECTOR` =
   {origin, this_entity}。此前缺键只打警告，现在与原版 `LootParams.Builder#create`
   一样是硬校验。
+
+### 进度定义：1584 个全部对齐
+
+`advancement` 把数据包里每一个进度（`data/<ns>/advancement/<path>.json`）解析成结构化摘要：
+父进度、显示信息（图标物品 + 数量 + 组件、标题/描述文本、框架、背景纹理、toast/公告/隐藏）、
+条件（名称 → 触发器 ID）、需求矩阵、奖励（经验 / 战利品表 / 配方 / 函数），与原版
+`ReloadableServerResources` 加载出的 `AdvancementHolder` 逐一比对。
+
+对齐过程中修掉的真问题：
+
+- **`Criterion` 的触发器 ID 来自数据包字面量**：此前从实例类型反推（`ICriterionInstance::getId()`），
+  而多个触发器共用同一实例类型，`slept_in_bed` / `hero_of_the_village` / `voluntary_exile` /
+  `location` 全被读成 `minecraft:location`；`tick` / `impossible` 等无玩家谓词的触发器被读成
+  `impossible`。更糟的是**未注册**的触发器被静默替换成 `impossible` 实例：`kill_mob_near_sculk_catalyst`、
+  `construct_beacon`、`shot_crossbow`、`spear_mobs`、`target_hit`、`allay_drop_item_on_block`、
+  `crafter_recipe_crafted`、`levitation`、`thrown_item_picked_up_by_player` 这 9 个根本没有注册，
+  数据包里 1584 个条件共 2700 余条全部退化成 `impossible`。现在 ID 取自数据包，实例按触发器
+  自己的 Codec 字段解码（新增 `GenericTriggers`），`ImpossibleTrigger` 一并删除；
+- **同一条件结构不能共用实例类型**：`fall_from_height` / `nether_travel` / `ride_entity_in_lava`
+  曾共用 `DistanceTriggerInstance`，三个触发器的条件 ID 因此统一变成 `fall_from_height`。拆成
+  三个独立实例类型，`ServerPlayer::triggerDistance` 按触发器 ID 分派到各自的模板方法；
+- **`item_used_on_block` 与 `default_block_use` 是两个触发器**：此前 `ItemUsedOnBlockTrigger`
+  继承 `AnyBlockUseTrigger`，ID 被基类覆盖，11 个进度的条件因此对不上；
+- **背景是 `ClientAsset.ResourceTexture`**：数据包里的 `background` 是资源 ID
+  （`minecraft:gui/advancements/backgrounds/stone`），纹理路径按约定补全为
+  `minecraft:textures/gui/advancements/backgrounds/stone.png`；
+- **图标是完整的 `ItemStack`**：`{"id", "count", "components"}`，3 个进度的图标带组件
+  （装饰陶罐的 `pot_decorations`、不祥旗帜的 `banner_patterns` + `item_name` + `rarity` +
+  `tooltip_display`）。`banner_patterns` 的 JSON 用图案 ID 与染料名，此前没有 JSON 解码
+  路径（只有 NBT 往返），现补齐 `BannerPatternLayers`。
 
 ### 命令树：已对齐
 

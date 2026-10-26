@@ -23,6 +23,8 @@
 
 #include "common/item/component/DataComponentPatchNbt.hpp"
 
+#include "common/item/component/BannerPatternLayers.hpp"
+
 #include "common/core/Types.hpp"
 #include "common/item/component/DataComponentMap.hpp"
 #include "common/item/component/DataComponentPayloadCodec.hpp"
@@ -265,6 +267,17 @@ bool jsonToComponentPayload(DataComponentType type, const nlohmann::json& json, 
     switch (type) {
         case DataComponentType::Instrument:
             return _readInstrument(json, out);
+        case DataComponentType::BannerPatterns: {
+            // [{"pattern": "<图案 ID>", "color": "<染料颜色>"}, ...]：JSON 里的资源名
+            // 与内部 (图案枚举, 颜色索引) 不是同一套字面量，需先翻译。
+            std::vector<BannerPatternLayer> layers;
+            if (!readBannerPatternLayers(json, layers)) {
+                return false;
+            }
+            out = DataComponentPayload{std::in_place_index<ComponentPayloadIndex::Json>,
+                writeBannerPatternLayers(layers)};
+            return true;
+        }
         case DataComponentType::ItemModel:
             return _readResourceId(json, out);
         case DataComponentType::Enchantments:

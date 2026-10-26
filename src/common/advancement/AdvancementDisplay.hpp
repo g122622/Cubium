@@ -41,6 +41,17 @@ class ITextComponent;
 namespace mc::advancement {
 
 /**
+ * @brief 背景纹理（对齐 vanilla `ClientAsset.ResourceTexture`）
+ *
+ * `id` 是数据包里写的资源标识（`minecraft:gui/advancements/backgrounds/stone`），
+ * `texturePath` 是按约定补全后的纹理路径（`minecraft:textures/gui/advancements/backgrounds/stone.png`）。
+ */
+struct BackgroundTexture {
+    ResourceLocation id;
+    ResourceLocation texturePath;
+};
+
+/**
  * @brief 成就显示信息
  *
  * 定义成就在UI中的显示方式，包括图标、标题、描述、框架类型等。
@@ -71,7 +82,7 @@ public:
         bool showToast,
         bool announceToChat,
         bool hidden,
-        std::optional<ResourceLocation> background = std::nullopt);
+        std::optional<BackgroundTexture> background = std::nullopt);
 
     // 移动构造和赋值
     AdvancementDisplay(AdvancementDisplay&&) noexcept = default;
@@ -147,7 +158,7 @@ public:
     /**
      * @brief 获取背景纹理
      */
-    [[nodiscard]] const std::optional<ResourceLocation>& getBackground() const noexcept
+    [[nodiscard]] const std::optional<BackgroundTexture>& getBackground() const noexcept
     {
         return m_background;
     }
@@ -208,7 +219,7 @@ private:
     bool m_showToast = true;
     bool m_announceToChat = true;
     bool m_hidden = false;
-    std::optional<ResourceLocation> m_background;
+    std::optional<BackgroundTexture> m_background;
 
     // UI布局坐标
     f32 m_x = 0.0f;

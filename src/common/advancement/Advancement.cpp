@@ -208,7 +208,9 @@ Advancement::Builder& Advancement::Builder::rewards(AdvancementRewards r)
 Advancement::Builder& Advancement::Builder::criterion(
     const std::string& name, std::shared_ptr<ICriterionInstance> instance)
 {
-    m_criteria[name] = Criterion(name, std::move(instance));
+    // 触发器 ID 由实例类型决定（构造期代码按实例类型选择，数据包解析走 Criterion::fromJson）
+    const ResourceLocation triggerId = instance->getId();
+    m_criteria[name] = Criterion(name, triggerId, std::move(instance));
     return *this;
 }
 

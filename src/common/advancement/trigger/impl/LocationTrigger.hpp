@@ -26,6 +26,7 @@
 #include "common/advancement/trigger/CriterionTrigger.hpp"
 #include "common/advancement/trigger/conditions/CriterionContext.hpp"
 #include "common/advancement/trigger/conditions/LocationPredicate.hpp"
+#include "common/advancement/trigger/impl/GenericTriggers.hpp"
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
 #include "common/resource/ResourceLocation.hpp"
@@ -40,10 +41,9 @@ class LocationTriggerInstance;
 /**
  * @brief 位置触发器
  *
- * 当玩家位于特定位置时触发。
- * 也用于 slept_in_bed, hero_of_the_village, voluntary_exile 等。
+ * 玩家进入新方块位置 / 切换维度时派发，条件只有 player（位置就在玩家上下文里）。
  */
-class LocationTrigger : public AbstractCriterionTrigger<LocationTriggerInstance> {
+class LocationTrigger : public AbstractCriterionTrigger<PlayerContextTriggerInstance> {
 public:
     /**
      * @brief 触发器ID
@@ -57,11 +57,6 @@ public:
     {
         return ResourceLocation(TRIGGER_ID);
     }
-
-    /**
-     * @brief 从JSON反序列化实例
-     */
-    [[nodiscard]] Result<std::shared_ptr<ICriterionInstance>> fromJson(const nlohmann::json& json) override;
 
     /**
      * @brief 触发检测
@@ -145,10 +140,10 @@ private:
 /**
  * @brief 睡觉触发器
  *
- * 当玩家在床上睡觉时触发。
- * 继承 LocationTrigger 但使用不同的触发器ID。
+ * 玩家在床上入睡时触发。条件只有 player（vanilla SleptInBedTrigger：空 TriggerInstance，
+ * 位置信息在上下文里）。
  */
-class SleptInBedTrigger : public LocationTrigger {
+class SleptInBedTrigger : public AbstractCriterionTrigger<PlayerContextTriggerInstance> {
 public:
     static constexpr const char* TRIGGER_ID = "minecraft:slept_in_bed";
 
@@ -161,9 +156,9 @@ public:
 /**
  * @brief 村庄英雄触发器
  *
- * 当玩家在村庄获得"村庄英雄"效果时触发。
+ * 玩家获得「村庄英雄」效果时触发（vanilla PlayerTrigger）。
  */
-class HeroOfTheVillageTrigger : public LocationTrigger {
+class HeroOfTheVillageTrigger : public AbstractCriterionTrigger<PlayerContextTriggerInstance> {
 public:
     static constexpr const char* TRIGGER_ID = "minecraft:hero_of_the_village";
 
@@ -176,9 +171,9 @@ public:
 /**
  * @brief 自愿流放触发器
  *
- * 当玩家获得"不祥之兆"效果时触发。
+ * 玩家获得「不祥之兆」效果时触发（vanilla PlayerTrigger）。
  */
-class VoluntaryExileTrigger : public LocationTrigger {
+class VoluntaryExileTrigger : public AbstractCriterionTrigger<PlayerContextTriggerInstance> {
 public:
     static constexpr const char* TRIGGER_ID = "minecraft:voluntary_exile";
 

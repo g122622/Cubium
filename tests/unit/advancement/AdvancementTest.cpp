@@ -27,15 +27,17 @@
 #include "common/advancement/AdvancementList.hpp"
 #include "common/advancement/AdvancementManager.hpp"
 #include "common/advancement/AdvancementProgress.hpp"
+#include "common/advancement/Criterion.hpp"
 #include "common/advancement/trigger/CriterionTrigger.hpp"
 #include "common/advancement/trigger/CriterionTriggers.hpp"
 #include "common/advancement/trigger/conditions/ItemPredicate.hpp"
-#include "common/advancement/trigger/impl/ImpossibleTrigger.hpp"
+#include "common/advancement/trigger/impl/GenericTriggers.hpp"
 #include "common/advancement/trigger/impl/InventoryChangedTrigger.hpp"
 #include "common/advancement/trigger/impl/TickTrigger.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/text/StringTextComponent.hpp"
+#include <typeinfo>
 #include <vector>
 #include <nlohmann/json.hpp>
 
@@ -193,7 +195,7 @@ TEST_F(AdvancementTest, AdvancementProgressGrantRevoke)
 {
     // 创建带条件的成就
     Advancement::Builder builder(ResourceLocation("minecraft:test/progress"));
-    auto trigger = std::make_shared<ImpossibleTriggerInstance>();
+    auto trigger = std::make_shared<PlayerContextTriggerInstance>();
     builder.criterion("criterion1", trigger);
     builder.criterion("criterion2", trigger);
 
@@ -232,7 +234,7 @@ TEST_F(AdvancementTest, AdvancementProgressRequirements)
 {
     // 创建带需求的成就（OR关系）
     Advancement::Builder builder(ResourceLocation("minecraft:test/requirements"));
-    auto trigger = std::make_shared<ImpossibleTriggerInstance>();
+    auto trigger = std::make_shared<PlayerContextTriggerInstance>();
     builder.criterion("a", trigger);
     builder.criterion("b", trigger);
     builder.requirements({{"a", "b"}}); // OR: 任一满足
@@ -256,7 +258,7 @@ TEST_F(AdvancementTest, AdvancementProgressRequirements)
 TEST_F(AdvancementTest, AdvancementProgressSerialization)
 {
     Advancement::Builder builder(ResourceLocation("minecraft:test/serialization"));
-    auto trigger = std::make_shared<ImpossibleTriggerInstance>();
+    auto trigger = std::make_shared<PlayerContextTriggerInstance>();
     builder.criterion("criterion1", trigger);
     builder.criterion("criterion2", trigger);
 
@@ -435,7 +437,7 @@ TEST_F(AdvancementTest, AdvancementProgressRoundTripWithDateTimeString)
 {
     // 完整往返测试：授予条件 → 序列化 → 反序列化 → 验证
     Advancement::Builder builder(ResourceLocation("minecraft:test/datetime_roundtrip"));
-    auto trigger = std::make_shared<ImpossibleTriggerInstance>();
+    auto trigger = std::make_shared<PlayerContextTriggerInstance>();
     builder.criterion("enter_nether", trigger);
     builder.criterion("find_fortress", trigger);
 
@@ -523,16 +525,18 @@ TEST_F(AdvancementTest, ManagerHierarchy)
 
 // ========== CriterionTrigger 测试 ==========
 
-TEST_F(AdvancementTest, ImpossibleTrigger)
+TEST_F(AdvancementTest, UnregisteredTriggerFallsBackToPlayerContext)
 {
-    auto* trigger = CriterionTriggers::instance().getTrigger(ResourceLocation(ImpossibleTrigger::TRIGGER_ID));
-    ASSERT_NE(trigger, nullptr);
+    // 构建期未注册的触发器：按「只有 player 谓词」的实例承载，ID 保留数据包字面量
+    EXPECT_EQ(CriterionTriggers::instance().getTrigger(ResourceLocation("minecraft:impossible")), nullptr);
 
-    // Impossible 触发器不能从 JSON 创建实例
-    nlohmann::json conditions = {};
-    auto result = trigger->fromJson(conditions);
+    const nlohmann::json criterionJson = {{"trigger", "minecraft:impossible"}};
+    auto result = Criterion::fromJson("done", criterionJson);
     ASSERT_TRUE(result.success());
-    EXPECT_NE(result.value(), nullptr);
+    const Criterion& criterion = result.value();
+    EXPECT_EQ(criterion.getTrigger().toString(), "minecraft:impossible");
+    ASSERT_NE(criterion.getTriggerInstance(), nullptr);
+    EXPECT_EQ(typeid(*criterion.getTriggerInstance()), typeid(PlayerContextTriggerInstance));
 }
 
 TEST_F(AdvancementTest, TickTrigger)

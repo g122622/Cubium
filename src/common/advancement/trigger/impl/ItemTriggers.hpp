@@ -41,6 +41,7 @@ class ItemDurabilityTriggerInstance;
 class EnchantedItemTriggerInstance;
 class FilledBucketTriggerInstance;
 class ThrownItemPickedUpByEntityTriggerInstance;
+class ThrownItemPickedUpByPlayerTriggerInstance;
 
 /**
  * @brief 消耗物品触发器
@@ -240,6 +241,42 @@ public:
      * 对齐 vanilla PickedUpItemTrigger.TriggerInstance#matches：item 条件不满足即失败；
      * entity 条件存在时还要求拾取者匹配该实体谓词，picker 为空视为不匹配。
      */
+    [[nodiscard]] bool test(const ItemStack& item, const class Entity* picker) const;
+
+    Result<void> fromJson(const nlohmann::json& json);
+    [[nodiscard]] nlohmann::json conditionsToJson() const;
+
+private:
+    ItemPredicate m_item;
+    EntityPredicate m_entity;
+};
+
+/**
+ * @brief 投掷物被玩家拾取触发器（对齐 vanilla PickedUpItemTrigger.THROWN_ITEM_PICKED_UP_BY_PLAYER）
+ *
+ * 玩家投掷的物品被另一个玩家拾取时触发。条件：item（被拾取的物品）+ entity（拾取者）。
+ * 与 `thrown_item_picked_up_by_entity` 的区别是拾取者必须是玩家——事件派发时就已限定，
+ * 这里的条件结构与前者完全一致。
+ */
+class ThrownItemPickedUpByPlayerTrigger
+    : public AbstractCriterionTrigger<ThrownItemPickedUpByPlayerTriggerInstance> {
+public:
+    static constexpr const char* TRIGGER_ID = "minecraft:thrown_item_picked_up_by_player";
+
+    [[nodiscard]] ResourceLocation getId() const override
+    {
+        return ResourceLocation(TRIGGER_ID);
+    }
+};
+
+/**
+ * @brief 投掷物被玩家拾取触发器实例（条件结构同 ThrownItemPickedUpByEntityTriggerInstance）
+ */
+class ThrownItemPickedUpByPlayerTriggerInstance
+    : public CriterionInstance<ThrownItemPickedUpByPlayerTriggerInstance> {
+public:
+    static constexpr const char* TRIGGER_ID = "minecraft:thrown_item_picked_up_by_player";
+
     [[nodiscard]] bool test(const ItemStack& item, const class Entity* picker) const;
 
     Result<void> fromJson(const nlohmann::json& json);

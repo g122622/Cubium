@@ -27,7 +27,7 @@
 #include "common/advancement/AdvancementManager.hpp"
 #include "common/advancement/AdvancementProgress.hpp"
 #include "common/advancement/trigger/CriterionTriggers.hpp"
-#include "common/advancement/trigger/impl/ImpossibleTrigger.hpp"
+#include "common/advancement/trigger/impl/GenericTriggers.hpp"
 #include "common/advancement/trigger/impl/TickTrigger.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/text/StringTextComponent.hpp"
@@ -108,7 +108,7 @@ protected:
     }
 
     /**
-     * @brief 创建不可触发成就（使用 ImpossibleTrigger）
+     * @brief 创建不可触发成就（触发器未注册，条件恒不可能满足）
      */
     Advancement::Ptr createImpossibleAdvancement(const std::string& id, const std::vector<std::string>& criterionNames)
     {
@@ -124,7 +124,7 @@ protected:
         builder.display(std::move(display));
 
         for (const auto& name : criterionNames) {
-            auto trigger = std::make_shared<ImpossibleTriggerInstance>();
+            auto trigger = std::make_shared<PlayerContextTriggerInstance>();
             builder.criterion(name, trigger);
         }
 

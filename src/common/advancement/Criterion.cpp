@@ -26,7 +26,7 @@
 #include "common/core/Result.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "trigger/CriterionTriggers.hpp"
-#include "trigger/impl/ImpossibleTrigger.hpp"
+#include "trigger/impl/GenericTriggers.hpp"
 #include <memory>
 #include <string>
 #include <utility>
@@ -34,8 +34,9 @@
 
 namespace mc::advancement {
 
-Criterion::Criterion(std::string name, std::shared_ptr<ICriterionInstance> triggerInstance)
+Criterion::Criterion(std::string name, ResourceLocation trigger, std::shared_ptr<ICriterionInstance> triggerInstance)
     : m_name(std::move(name))
+    , m_trigger(std::move(trigger))
     , m_triggerInstance(std::move(triggerInstance))
 {}
 
@@ -55,8 +56,16 @@ Result<Criterion> Criterion::fromJson(const std::string& name, const nlohmann::j
     auto& triggers = CriterionTriggers::instance();
     auto trigger = triggers.getTrigger(ResourceLocation(triggerId));
     if (!trigger) {
-        // 如果触发器未注册，返回impossible实例
-        return Criterion(name, std::make_shared<ImpossibleTriggerInstance>());
+        // 构建期未注册的触发器按「只有 player 谓词」的实例承载：ID 取自数据包字面量，
+        // 条件按 vanilla 的 player 字段解码。原版在构建期注册表里找不到触发器时会直接
+        // 加载失败，这里放宽只是为了后续新增触发器时不必连带改动探针。
+        auto instance = std::make_shared<PlayerContextTriggerInstance>();
+        const nlohmann::json conditions = json.contains("conditions") ? json["conditions"] : nlohmann::json();
+        auto parsed = instance->fromJson(conditions);
+        if (parsed.failed()) {
+            return parsed.error();
+        }
+        return Criterion(name, ResourceLocation(triggerId), std::move(instance));
     }
 
     // 条件实例只关心 conditions 内的字段（对齐 vanilla：条件实例的 codec 描述的是 conditions 对象），
@@ -67,7 +76,7 @@ Result<Criterion> Criterion::fromJson(const std::string& name, const nlohmann::j
         return instanceResult.error();
     }
 
-    return Criterion(name, std::move(instanceResult.value()));
+    return Criterion(name, ResourceLocation(triggerId), std::move(instanceResult.value()));
 }
 
 nlohmann::json Criterion::toJson() const

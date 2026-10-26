@@ -27,7 +27,6 @@
 #include "common/advancement/AdvancementManager.hpp"
 #include "common/advancement/AdvancementVisibilityEvaluator.hpp"
 #include "common/advancement/trigger/CriterionTriggers.hpp"
-#include "common/advancement/trigger/impl/ImpossibleTrigger.hpp"
 #include "common/advancement/trigger/impl/TickTrigger.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/text/StringTextComponent.hpp"

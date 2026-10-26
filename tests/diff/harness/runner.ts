@@ -278,13 +278,16 @@ const DEFAULT_INPUT = (key: string) => (unit: string) => ({ [key]: unit });
  * 改为把同一批输入交给 Java 主类并读其输出，本函数不变）。
  */
 /**
+ * 需要读数据包目录的能力：战利品表、进度（advancement）、配方这类内容都是数据包 JSON，
+ * 探针通过 `MC_DIFF_VANILLA_DATAPACK` 拿到与 Java oracle 完全相同的目录。
+ */
+const DATAPACK_DOMAINS: readonly string[] = ["loot_table", "loot_table_block", "loot_table_entity", "advancement"];
+
+/**
  * 探针运行时的额外环境变量。
- *
- * 战利品 / 进阶 / 配方这类能力读的是数据包目录而不是编译期常量，探针通过
- * `MC_DIFF_VANILLA_DATAPACK` 拿到与 Java oracle 完全相同的目录。
  */
 function probeEnvironment(domain: string): NodeJS.ProcessEnv {
-    if (domain.startsWith("loot_table")) {
+    if (DATAPACK_DOMAINS.includes(domain)) {
         return { MC_DIFF_VANILLA_DATAPACK: vanillaDataPackDir() };
     }
     return {};

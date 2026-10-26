@@ -61,7 +61,10 @@ class PlayerInteractTriggerInstance;
 class StartRidingTriggerInstance;
 class LightningStrikeTriggerInstance;
 class DistanceTriggerInstance;
+class NetherTravelTriggerInstance;
+class RideEntityInLavaTriggerInstance;
 class FallAfterExplosionTriggerInstance;
+class LevitationTriggerInstance;
 
 /**
  * @brief 驯服动物触发器
@@ -729,52 +732,58 @@ private:
 /**
  * @brief 距离触发器（对齐 vanilla DistanceTrigger）
  *
- * 同一套条件结构服务三个触发器 ID：
+ * 同一套条件结构服务三个触发器 ID，三个都是独立的类、各自的 ID：
  *  - fall_from_height：玩家落地时对比"开始下落位置"与当前位置；
  *  - ride_entity_in_lava：在载具上身处熔岩时对比进入熔岩位置与当前位置；
  *  - nether_travel：从下界返回主世界时对比进入下界位置与当前位置。
  *
  * 条件：player（ContextAwarePredicate）/ start_position（LocationPredicate）/ distance
  * （DistancePredicate，absX/absY/absZ/x/y/z/horizontal 等）。
+ *
+ * 必须有真正的实例类型：`ICriterionInstance::getId()` 取的是实例类型上的 TRIGGER_ID，
+ * 实例类型共用一个类，触发器 ID 就会在条件解析后统一变成 fall_from_height。
  */
+class DistanceTriggerInstance;
+
 class DistanceTrigger : public AbstractCriterionTrigger<DistanceTriggerInstance> {
 public:
     static constexpr const char* TRIGGER_ID = "minecraft:fall_from_height";
 
-    explicit DistanceTrigger(const char* triggerId = TRIGGER_ID);
-
     [[nodiscard]] ResourceLocation getId() const override
     {
-        return ResourceLocation(m_triggerId);
+        return ResourceLocation(TRIGGER_ID);
     }
-
-    [[nodiscard]] Result<std::shared_ptr<ICriterionInstance>> fromJson(const nlohmann::json& json) override;
 
     /// 触发（起点位置 + 当前位置）
     void trigger(class ServerPlayer& player, const Vector3& startPos, const Vector3& endPos);
-
-private:
-    std::string m_triggerId;
 };
 
-/// nether_travel 触发器（与 DistanceTrigger 同条件结构，仅 ID 不同）
-class NetherTravelTrigger : public DistanceTrigger {
+/// nether_travel 触发器（与 DistanceTrigger 同条件结构，独立实例类型）
+class NetherTravelTrigger : public AbstractCriterionTrigger<NetherTravelTriggerInstance> {
 public:
     static constexpr const char* TRIGGER_ID = "minecraft:nether_travel";
 
-    NetherTravelTrigger()
-        : DistanceTrigger(TRIGGER_ID)
-    {}
+    [[nodiscard]] ResourceLocation getId() const override
+    {
+        return ResourceLocation(TRIGGER_ID);
+    }
+
+    /// 触发（进入下界位置 + 回到主世界后的位置）
+    void trigger(class ServerPlayer& player, const Vector3& startPos, const Vector3& endPos);
 };
 
-/// ride_entity_in_lava 触发器
-class RideEntityInLavaTrigger : public DistanceTrigger {
+/// ride_entity_in_lava 触发器（与 DistanceTrigger 同条件结构，独立实例类型）
+class RideEntityInLavaTrigger : public AbstractCriterionTrigger<RideEntityInLavaTriggerInstance> {
 public:
     static constexpr const char* TRIGGER_ID = "minecraft:ride_entity_in_lava";
 
-    RideEntityInLavaTrigger()
-        : DistanceTrigger(TRIGGER_ID)
-    {}
+    [[nodiscard]] ResourceLocation getId() const override
+    {
+        return ResourceLocation(TRIGGER_ID);
+    }
+
+    /// 触发（进入熔岩位置 + 当前位置）
+    void trigger(class ServerPlayer& player, const Vector3& startPos, const Vector3& endPos);
 };
 
 /**
@@ -782,9 +791,51 @@ public:
  */
 class DistanceTriggerInstance : public CriterionInstance<DistanceTriggerInstance> {
 public:
-    static constexpr const char* TRIGGER_ID = "minecraft:fall_from_height";
+    static constexpr const char* TRIGGER_ID = DistanceTrigger::TRIGGER_ID;
 
     DistanceTriggerInstance() = default;
+
+    [[nodiscard]] bool test(const Vector3& startPos, const Vector3& endPos) const;
+
+    /// 携带上下文判定（player 条件为 ContextAwarePredicate 条件列表）
+    [[nodiscard]] bool test(const CriterionContext& context, const Vector3& startPos, const Vector3& endPos) const;
+
+    Result<void> fromJson(const nlohmann::json& json);
+    [[nodiscard]] nlohmann::json conditionsToJson() const;
+
+private:
+    ContextAwarePredicate m_playerContext;
+    std::optional<LocationPredicate> m_startPosition;
+    std::optional<DistancePredicate> m_distance;
+};
+
+/// nether_travel 触发器实例（条件结构与 DistanceTriggerInstance 相同）
+class NetherTravelTriggerInstance : public CriterionInstance<NetherTravelTriggerInstance> {
+public:
+    static constexpr const char* TRIGGER_ID = NetherTravelTrigger::TRIGGER_ID;
+
+    NetherTravelTriggerInstance() = default;
+
+    [[nodiscard]] bool test(const Vector3& startPos, const Vector3& endPos) const;
+
+    /// 携带上下文判定（player 条件为 ContextAwarePredicate 条件列表）
+    [[nodiscard]] bool test(const CriterionContext& context, const Vector3& startPos, const Vector3& endPos) const;
+
+    Result<void> fromJson(const nlohmann::json& json);
+    [[nodiscard]] nlohmann::json conditionsToJson() const;
+
+private:
+    ContextAwarePredicate m_playerContext;
+    std::optional<LocationPredicate> m_startPosition;
+    std::optional<DistancePredicate> m_distance;
+};
+
+/// ride_entity_in_lava 触发器实例（条件结构与 DistanceTriggerInstance 相同）
+class RideEntityInLavaTriggerInstance : public CriterionInstance<RideEntityInLavaTriggerInstance> {
+public:
+    static constexpr const char* TRIGGER_ID = RideEntityInLavaTrigger::TRIGGER_ID;
+
+    RideEntityInLavaTriggerInstance() = default;
 
     [[nodiscard]] bool test(const Vector3& startPos, const Vector3& endPos) const;
 
@@ -846,6 +897,51 @@ private:
     std::optional<LocationPredicate> m_startPosition;
     std::optional<DistancePredicate> m_distance;
     ContextAwarePredicate m_causeContext;
+};
+
+/**
+ * @brief 飘浮触发器（对齐 vanilla LevitationTrigger）
+ *
+ * 飘浮效果结束（或离开飘浮状态）时按飘浮位移与持续 tick 数判定。
+ * 条件：player / distance / duration。
+ */
+class LevitationTrigger : public AbstractCriterionTrigger<LevitationTriggerInstance> {
+public:
+    static constexpr const char* TRIGGER_ID = "minecraft:levitation";
+
+    [[nodiscard]] ResourceLocation getId() const override
+    {
+        return ResourceLocation(TRIGGER_ID);
+    }
+
+    [[nodiscard]] Result<std::shared_ptr<ICriterionInstance>> fromJson(const nlohmann::json& json) override;
+
+    /// 触发（起点位置 + 当前位置 + 飘浮持续 tick 数）
+    void trigger(class ServerPlayer& player, const Vector3& startPos, const Vector3& endPos, i32 duration);
+};
+
+/**
+ * @brief 飘浮触发器实例
+ */
+class LevitationTriggerInstance : public CriterionInstance<LevitationTriggerInstance> {
+public:
+    static constexpr const char* TRIGGER_ID = "minecraft:levitation";
+
+    LevitationTriggerInstance() = default;
+
+    [[nodiscard]] bool test(const Vector3& startPos, const Vector3& endPos, i32 duration) const;
+
+    /// 携带上下文判定（player 条件为 ContextAwarePredicate 条件列表）
+    [[nodiscard]] bool test(
+        const CriterionContext& context, const Vector3& startPos, const Vector3& endPos, i32 duration) const;
+
+    Result<void> fromJson(const nlohmann::json& json);
+    [[nodiscard]] nlohmann::json conditionsToJson() const;
+
+private:
+    ContextAwarePredicate m_playerContext;
+    std::optional<DistancePredicate> m_distance;
+    IntBounds m_duration;
 };
 
 } // namespace advancement

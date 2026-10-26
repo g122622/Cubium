@@ -485,6 +485,7 @@ TEST_F(PlayerHurtEntityTriggerTest, FallFromHeight_DistanceYCondition)
     auto instance =
         std::dynamic_pointer_cast<advancement::DistanceTriggerInstance>(criterion.value().getTriggerInstance());
     ASSERT_NE(instance, nullptr);
+    EXPECT_EQ(criterion.value().getTrigger().toString(), "minecraft:fall_from_height");
 
     // 从 y=320 落到 y=-70：垂直位移 -390，|y| = 390 ≥ 379
     EXPECT_TRUE(instance->test(Vector3(0.0f, 320.0f, 0.0f), Vector3(0.0f, -70.0f, 0.0f)));
@@ -504,8 +505,9 @@ TEST_F(PlayerHurtEntityTriggerTest, RideEntityInLava_HorizontalDistance)
     auto criterion = advancement::Criterion::fromJson("ride_strider_lava", json);
     ASSERT_TRUE(criterion.success());
     auto instance =
-        std::dynamic_pointer_cast<advancement::DistanceTriggerInstance>(criterion.value().getTriggerInstance());
+        std::dynamic_pointer_cast<advancement::RideEntityInLavaTriggerInstance>(criterion.value().getTriggerInstance());
     ASSERT_NE(instance, nullptr);
+    EXPECT_EQ(criterion.value().getTrigger().toString(), "minecraft:ride_entity_in_lava");
 
     EXPECT_TRUE(instance->test(Vector3(0.0f, 40.0f, 0.0f), Vector3(60.0f, 40.0f, 0.0f)));
     EXPECT_FALSE(instance->test(Vector3(0.0f, 40.0f, 0.0f), Vector3(10.0f, 40.0f, 0.0f)));
@@ -513,13 +515,20 @@ TEST_F(PlayerHurtEntityTriggerTest, RideEntityInLava_HorizontalDistance)
 
 TEST_F(PlayerHurtEntityTriggerTest, DistanceTrigger_SubclassIds)
 {
-    // 三个子类共享实例结构但 ID 不同，注册表须各自独立
+    // 三个触发器条件结构相同但 ID 与实例类型各自独立
     advancement::NetherTravelTrigger nether;
     advancement::RideEntityInLavaTrigger lava;
     advancement::DistanceTrigger fall;
     EXPECT_EQ(nether.getId().toString(), "minecraft:nether_travel");
     EXPECT_EQ(lava.getId().toString(), "minecraft:ride_entity_in_lava");
     EXPECT_EQ(fall.getId().toString(), "minecraft:fall_from_height");
+
+    // 从数据包解析出的条件，ID 必须原样保留（不能退化成实例类型的默认 ID）
+    for (const char* id : {"minecraft:fall_from_height", "minecraft:nether_travel", "minecraft:ride_entity_in_lava"}) {
+        auto parsed = advancement::Criterion::fromJson("distance", nlohmann::json{{"trigger", id}});
+        ASSERT_TRUE(parsed.success());
+        EXPECT_EQ(parsed.value().getTrigger().toString(), id);
+    }
 }
 
 TEST_F(PlayerHurtEntityTriggerTest, FallAfterExplosion_DistanceAndCause)

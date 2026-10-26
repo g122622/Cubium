@@ -73,16 +73,4 @@ nlohmann::json AnyBlockUseTriggerInstance::conditionsToJson() const
     return nlohmann::json{{"location", m_locationContext.toJson()}};
 }
 
-// ========== ItemUsedOnBlockTrigger ==========
-
-Result<std::shared_ptr<ICriterionInstance>> ItemUsedOnBlockTrigger::fromJson(const nlohmann::json& json)
-{
-    auto instance = std::make_shared<AnyBlockUseTriggerInstance>();
-    auto result = instance->fromJson(json);
-    if (result.failed()) {
-        return result.error();
-    }
-    return instance;
-}
-
 } // namespace mc::advancement

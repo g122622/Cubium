@@ -186,6 +186,12 @@ const JAVA_HARNESSES: ReadonlyArray<() => JavaHarness> = [
         key: "biome",
     }),
     () => ({
+        name: "advancement",
+        oracle: "AdvancementOracle",
+        input: (unit: string) => ({ advancement: unit }),
+        key: "advancement",
+    }),
+    () => ({
         name: "loot_table",
         oracle: "LootTableOracle",
         input: (unit: string) => lootTableInput(unit),

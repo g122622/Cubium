@@ -2397,6 +2397,7 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/common/advancement/trigger/impl/EntityTriggers.cpp
         ${CMAKE_SOURCE_DIR}/src/common/advancement/trigger/impl/EffectTriggers.cpp
         ${CMAKE_SOURCE_DIR}/src/common/advancement/trigger/impl/AvoidVibrationTrigger.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/advancement/trigger/impl/GenericTriggers.cpp
         ${CMAKE_SOURCE_DIR}/src/server/advancement/PlayerAdvancements.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/drop/BlockDropHandler.cpp
         # 天体计算

@@ -30,7 +30,7 @@
 #include "impl/ChanneledLightningTrigger.hpp"
 #include "impl/EffectTriggers.hpp"
 #include "impl/EntityTriggers.hpp"
-#include "impl/ImpossibleTrigger.hpp"
+#include "impl/GenericTriggers.hpp"
 #include "impl/InventoryChangedTrigger.hpp"
 #include "impl/ItemTriggers.hpp"
 #include "impl/LocationTrigger.hpp"
@@ -92,7 +92,6 @@ void CriterionTriggers::clear() noexcept
 void CriterionTriggers::registerBuiltinTriggers()
 {
     // 注册基础触发器
-    registerTrigger(std::make_unique<ImpossibleTrigger>());
     registerTrigger(std::make_unique<InventoryChangedTrigger>());
     registerTrigger(std::make_unique<TickTrigger>());
     registerTrigger(std::make_unique<RecipeUnlockedTrigger>());
@@ -146,9 +145,20 @@ void CriterionTriggers::registerBuiltinTriggers()
     registerTrigger(std::make_unique<EnchantedItemTrigger>());
     registerTrigger(std::make_unique<FilledBucketTrigger>());
     registerTrigger(std::make_unique<ThrownItemPickedUpByEntityTrigger>());
+    registerTrigger(std::make_unique<ThrownItemPickedUpByPlayerTrigger>());
 
     // 注册振动相关触发器
     registerTrigger(std::make_unique<AvoidVibrationTrigger>());
+
+    // 注册仅带简单谓词的触发器（条件字段逐一对应 vanilla Codec）
+    registerTrigger(std::make_unique<KillMobNearSculkCatalystTrigger>());
+    registerTrigger(std::make_unique<ConstructBeaconTrigger>());
+    registerTrigger(std::make_unique<ShotCrossbowTrigger>());
+    registerTrigger(std::make_unique<SpearMobsTrigger>());
+    registerTrigger(std::make_unique<TargetHitTrigger>());
+    registerTrigger(std::make_unique<AllayDropItemOnBlockTrigger>());
+    registerTrigger(std::make_unique<CrafterRecipeCraftedTrigger>());
+    registerTrigger(std::make_unique<LevitationTrigger>());
 
     spdlog::info("Registered {} builtin triggers", m_triggers.size());
 }

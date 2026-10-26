@@ -50,7 +50,7 @@ public:
      * @param name 条件名称
      * @param triggerInstance 触发器实例
      */
-    Criterion(std::string name, std::shared_ptr<ICriterionInstance> triggerInstance);
+    Criterion(std::string name, ResourceLocation trigger, std::shared_ptr<ICriterionInstance> triggerInstance);
 
     /**
      * @brief 获取条件名称
@@ -73,7 +73,7 @@ public:
      */
     [[nodiscard]] ResourceLocation getTrigger() const noexcept
     {
-        return m_triggerInstance ? m_triggerInstance->getId() : ResourceLocation();
+        return m_trigger;
     }
 
     /**
@@ -91,6 +91,13 @@ public:
 
 private:
     std::string m_name;
+    /// 触发器 ID：取自数据包字面量。
+    ///
+    /// 实例类型只知道自己的默认 ID（`LocationTriggerInstance` 恒为 `minecraft:location`），
+    /// 而多个触发器共用同一实例类型（slept_in_bed / hero_of_the_village 都是玩家上下文实例），
+    /// 从实例反推会互相串味。原版 `Criterion#trigger()` 拿的也是注册表键，与数据包里的
+    /// 触发器 ID 一致。
+    ResourceLocation m_trigger;
     std::shared_ptr<ICriterionInstance> m_triggerInstance;
 };
 
