@@ -17,7 +17,7 @@
 // 测试可测性限制（脚本无法读取 ItemEntity itemType，只能数 item 实体数）：
 //   - 无法断言"掉落的是钻石剑"，只能断言区域 item 实体数。
 //   - 故用【保整掉落多件 + 计数】做正向断言，用【默认概率门控对照】验证 recentlyHitByPlayer 分支，
-//     用【doMobLoot 守卫】做干净负向。
+//     用【mob_drops 守卫】做干净负向。
 //   - 绑定诅咒排除分支（hasBindingCurse → continue）：脚本无法给 ItemStack 附魔（ItemStack JS 仅
 //     getEnchantments 只读，无 addEnchantment），无法构造绑定诅咒装备做集成测试。该分支由 C++ 逻辑保证
 //     （EnchantmentHelper::hasBindingCurse 已单测覆盖），此处不写集成测试（TODO）。
@@ -70,7 +70,7 @@ function equipGuaranteedDrop(test: Test, mob: any, slotStr: string, itemId: stri
 // 保整掉落多件装备：mob 死亡后区域 item 实体数 ≥ 装备件数（确定性正向）。
 //
 // zombie 穿 6 件保整装备（4 护甲 + 主手钻石剑 + 副手盾），test.kill 虚空伤害致死 → die →
-// dropAllDeathLoot → shouldDropLoot 守卫通过（doMobLoot=true 且非幼体）→ dropCustomDeathLoot：
+// dropAllDeathLoot → shouldDropLoot 守卫通过（mob_drops=true 且非幼体）→ dropCustomDeathLoot：
 // 6 件装备 f=2.0 保整，isPreserved=true，recentlyHitByPlayer||isPreserved 恒 true，nextFloat()<2.0 恒成立
 // → 6 件全掉落 + setEquipment(slot, EMPTY) 清空。dropFromLootTable 另掉 rotten_flesh uniform[0,2]（0-2 件）。
 // 故区域 item 数 = 6（装备）+ 0~2（rotten_flesh）= 6~8，断言 ≥6 确定性成立。
@@ -156,27 +156,27 @@ function mobDefaultChanceEquipmentNotDroppedWithoutPlayer(test: Test): void {
   });
 }
 
-// doMobLoot=false 时装备掉落被守卫拦截（shouldDropLoot 守卫负向，确定性 item==0）。
+// mob_drops=false 时装备掉落被守卫拦截（shouldDropLoot 守卫负向，确定性 item==0）。
 //
 // 对齐 vanilla：dropCustomDeathLoot 在 LivingEntity.dropAllDeathLoot 的 shouldDropLoot 守卫【内】
-// （!isChild() && doMobLoot）。doMobLoot=false 时守卫返 false，dropCustomDeathLoot 不调，6 件保整装备
+// （!isChild() && mob_drops）。mob_drops=false 时守卫返 false，dropCustomDeathLoot 不调，6 件保整装备
 // 不掉；dropFromLootTable 同在守卫内也不调，rotten_flesh 不掉。故区域 item==0（确定性，无 rotten_flesh 干扰）。
 //
 // 区别于 mobDeathDropsDisabledWhenDoMobLootFalse（MobDeathLootTests，验证 cow 物品掉落守卫）：本测试
 // 专门验证【装备掉落】也在同一守卫内——确认 dropCustomDeathLoot 被守卫包住（而非在守卫外）。
 //
-// 【并行污染隔离】doMobLoot 世界级单例状态，独占 batch 串行 + runOnFinish 恢复 true
+// 【并行污染隔离】mob_drops 世界级单例状态，独占 batch 串行 + runOnFinish 恢复 true
 // （同 gametest-world-state-gamerule 隔离范式，见 MobDeathLootTests mob_loot_solo 注释）。
 function mobEquipmentDropsBlockedByDoMobLootFalse(test: Test): void {
   const player = test.spawnSimulatedPlayer({ x: 3, y: 2, z: 3 }, "op");
-  player.chat("/gamerule do_mob_loot false");
+  player.chat("/gamerule mob_drops false");
   test.runOnFinish(() => {
-    player.chat("/gamerule do_mob_loot true");
+    player.chat("/gamerule mob_drops true");
   });
 
   const zombie = test.spawn("minecraft:zombie", { x: 4, y: 2, z: 4 });
 
-  // 穿 6 件保整装备（保整在 doMobLoot=true 时必掉，doMobLoot=false 时被守卫拦截 → 验证守卫包住装备掉落）。
+  // 穿 6 件保整装备（保整在 mob_drops=true 时必掉，mob_drops=false 时被守卫拦截 → 验证守卫包住装备掉落）。
   test.runAtTickTime(1, () => {
     equipGuaranteedDrop(test, zombie, "Head", "minecraft:diamond_helmet");
     equipGuaranteedDrop(test, zombie, "Chest", "minecraft:diamond_chestplate");
@@ -186,7 +186,7 @@ function mobEquipmentDropsBlockedByDoMobLootFalse(test: Test): void {
     equipGuaranteedDrop(test, zombie, "Offhand", "minecraft:shield");
   });
 
-  // tick 10 等 doMobLoot=false 命令生效后杀死。
+  // tick 10 等 mob_drops=false 命令生效后杀死。
   test.runAtTickTime(10, () => {
     (test as any).kill(zombie);
   });
@@ -197,7 +197,7 @@ function mobEquipmentDropsBlockedByDoMobLootFalse(test: Test): void {
     interval: 5,
     maxTick: 50,
     onTimeout: () => test.assert(false,
-      `mob equipment should not drop when doMobLoot=false, got ${countItems(test)} items`),
+      `mob equipment should not drop when mob_drops=false, got ${countItems(test)} items`),
   });
 }
 
@@ -210,8 +210,8 @@ export function registerMobEquipmentDropTests(): void {
     .structureName("gametests:glass_pit")
     .maxTicks(80);
 
-  // doMobLoot 世界级状态，独占 batch 串行避免污染同批依赖 mob 掉落的测试 + runOnFinish 恢复 true。
-  GameTest.register("MobBehaviorTests", "mob_equipment_drops_blocked_by_do_mob_loot_false", mobEquipmentDropsBlockedByDoMobLootFalse)
+  // mob_drops 世界级状态，独占 batch 串行避免污染同批依赖 mob 掉落的测试 + runOnFinish 恢复 true。
+  GameTest.register("MobBehaviorTests", "mob_equipment_drops_blocked_by_mob_drops_false", mobEquipmentDropsBlockedByDoMobLootFalse)
     .structureName("gametests:glass_pit")
     .batch("mob_loot_solo")
     .maxTicks(80);

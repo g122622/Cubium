@@ -13,9 +13,9 @@
 //      ServerWorld override 委托 WeatherManager::isRaining 检查强度阈值），解锁端到端测试。
 //      测试用 pollUntilSucceed 轮询 isRaining()，等强度渐变到阈值后断言（maxTick 200 足够覆盖
 //      20 tick 渐变 + 余量）。
-//   3. 自然天气循环干扰防护：doWeatherCycle 默认 true 时 WeatherManager 会随机触发降雨，干扰
-//      命令设置的天气断言。测试开头 /gamerule do_weather_cycle false 关自然循环，确保天气仅由命令控制。
-//      doWeatherCycle 是世界级状态，runOnFinish 恢复 true 防污染。
+//   3. 自然天气循环干扰防护：advance_weather 默认 true 时 WeatherManager 会随机触发降雨，干扰
+//      命令设置的天气断言。测试开头 /gamerule advance_weather false 关自然循环，确保天气仅由命令控制。
+//      advance_weather 是世界级状态，runOnFinish 恢复 true 防污染。
 //   4. cmd_arena 9×7×9：内部空气腔 x,z∈[1,7]，y∈[1,5]。玩家初始 (5,1,5)。
 //
 // 注：chat 执行命令仅 Cubium 端有效，命令类测试 Cubium one-sided。
@@ -29,13 +29,13 @@ import { asDim } from "../../utils/script/cubiumExtensions.js";
 const PLAYER_POS = { x: 5, y: 1, z: 5 };
 
 // /weather rain 设置降雨，等强度渐变后断言 isRaining()=true。
-// 关 doWeatherCycle 隔离自然循环；runOnFinish 恢复 doWeatherCycle + clear。
+// 关 advance_weather 隔离自然循环；runOnFinish 恢复 advance_weather + clear。
 // Ref: wiki commands/weather.txt（weather rain）
 function weatherRain(test: Test): void {
     const player = test.spawnSimulatedPlayer(PLAYER_POS, "op");
     const dim = asDim(player.dimension);
 
-    player.chat("/gamerule do_weather_cycle false");
+    player.chat("/gamerule advance_weather false");
     player.chat("/weather rain");
 
     pollUntilSucceed(
@@ -49,7 +49,7 @@ function weatherRain(test: Test): void {
 
     test.runOnFinish(() => {
         player.chat("/weather clear");
-        player.chat("/gamerule do_weather_cycle true");
+        player.chat("/gamerule advance_weather true");
     });
 }
 
@@ -60,7 +60,7 @@ function weatherThunder(test: Test): void {
     const player = test.spawnSimulatedPlayer(PLAYER_POS, "op");
     const dim = asDim(player.dimension);
 
-    player.chat("/gamerule do_weather_cycle false");
+    player.chat("/gamerule advance_weather false");
     player.chat("/weather thunder");
 
     pollUntilSucceed(
@@ -74,7 +74,7 @@ function weatherThunder(test: Test): void {
 
     test.runOnFinish(() => {
         player.chat("/weather clear");
-        player.chat("/gamerule do_weather_cycle true");
+        player.chat("/gamerule advance_weather true");
     });
 }
 
@@ -86,7 +86,7 @@ function weatherClear(test: Test): void {
     const player = test.spawnSimulatedPlayer(PLAYER_POS, "op");
     const dim = asDim(player.dimension);
 
-    player.chat("/gamerule do_weather_cycle false");
+    player.chat("/gamerule advance_weather false");
     player.chat("/weather rain");
 
     // 阶段1：等雨强度到阈值（isRaining=true），onReady 里 clear（仅一次，避免重复调用）。
@@ -113,7 +113,7 @@ function weatherClear(test: Test): void {
     );
 
     test.runOnFinish(() => {
-        player.chat("/gamerule do_weather_cycle true");
+        player.chat("/gamerule advance_weather true");
     });
 }
 

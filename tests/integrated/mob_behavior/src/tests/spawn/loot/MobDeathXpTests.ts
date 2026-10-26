@@ -2,10 +2,10 @@
 //
 // 覆盖 LivingEntity.dropExperience 经验掉落守卫（对齐 MC Java 1.21.11
 // LivingEntity.java:1498-1506）。修复前 Cubium MobEntity::dropExperience 不查守卫直接掉落经验球，
-// 致两种偏差：(1) 非玩家击杀（test.kill 虚空伤害无玩家来源）的普通生物仍掉经验球；(2) doMobLoot=false
+// 致两种偏差：(1) 非玩家击杀（test.kill 虚空伤害无玩家来源）的普通生物仍掉经验球；(2) mob_drops=false
 // 时仍掉经验球。vanilla 守卫：!wasExperienceConsumed && (isAlwaysExperienceDropper ||
-// (lastHurtByPlayerMemoryTime>0 && shouldDropExperience && doMobLoot))——普通生物需被玩家伤害过
-// （100 tick 记忆窗口内死亡）且 doMobLoot=true 才掉经验。
+// (lastHurtByPlayerMemoryTime>0 && shouldDropExperience && mob_drops))——普通生物需被玩家伤害过
+// （100 tick 记忆窗口内死亡）且 mob_drops=true 才掉经验。
 //
 // 本次补齐：LivingEntity 加 m_lastHurtByPlayerMemoryTime 字段（受玩家伤害设 100，每 tick 递减）+
 // shouldDropExperience/isAlwaysExperienceDropper/wasExperienceConsumed/skipDropExperience 虚函数 +
@@ -22,8 +22,8 @@
 //   2. 非玩家击杀不掉经验（负向）：直接 test.kill zombie（无前置玩家伤害，lastHurtByPlayerMemoryTime=0），
 //      守卫拒绝 → 不掉经验球。**断言区域 experience_orb==0**——无玩家吸收，经验球若生成会留存区域，
 //      计数稳定 0 验证守卫拦截（修复前会掉，回归测试）。
-//   3. doMobLoot=false 不掉经验：玩家伤害 + test.kill，但 doMobLoot=false 守卫拦截 → 不掉经验球。
-//      断言 getTotalXp 不增加（玩家无经验球可吸收）。doMobLoot 世界级单例状态，独占 batch + runOnFinish 恢复。
+//   3. mob_drops=false 不掉经验：玩家伤害 + test.kill，但 mob_drops=false 守卫拦截 → 不掉经验球。
+//      断言 getTotalXp 不增加（玩家无经验球可吸收）。mob_drops 世界级单例状态，独占 batch + runOnFinish 恢复。
 //   4. 经验球实体类型 "minecraft:experience_orb"（区别于 item 实体 "minecraft:item"）。
 //   5. zombie 经验值 5（m_experienceValue=5），玩家击杀时掉 5 点经验球，玩家吸收后 getTotalXp 增 5。
 //
@@ -130,24 +130,24 @@ function mobDropsNoXpWhenKilledWithoutPlayer(test: Test): void {
   });
 }
 
-// doMobLoot=false 时玩家击杀的普通生物不掉落经验球（doMobLoot 守卫）。
+// mob_drops=false 时玩家击杀的普通生物不掉落经验球（mob_drops 守卫）。
 //
-// 对齐 vanilla dropExperience 守卫含 doMobLoot 条件：doMobLoot=false 时即使被玩家伤害过
+// 对齐 vanilla dropExperience 守卫含 mob_drops 条件：mob_drops=false 时即使被玩家伤害过
 // （lastHurtByPlayerMemoryTime>0）也不掉经验。Survival 玩家 attackEntity zombie 1 次 + test.kill，
-// 但 doMobLoot=false → shouldDropExperienceOnDeath 中 doMobLoot 条件不满足 → 守卫拒绝 → 不掉经验球
+// 但 mob_drops=false → shouldDropExperienceOnDeath 中 mob_drops 条件不满足 → 守卫拒绝 → 不掉经验球
 // → 玩家无经验球可吸收 → getTotalXp 不增加。
 //
-// 【并行污染隔离】doMobLoot 是世界级单例状态，GameTest 共享单一 ServerWorld 跨测试持久化不自动重置，
+// 【并行污染隔离】mob_drops 是世界级单例状态，GameTest 共享单一 ServerWorld 跨测试持久化不自动重置，
 // 设 false 会污染同批依赖 mob 经验/物品掉落的测试。故独占 batch（mob_xp_loot_solo）串行执行 +
 // runOnFinish 恢复 true（同 gametest-world-state-gamerule 隔离范式）。
-// Ref: LivingEntity.cpp shouldDropExperienceOnDeath（doMobLoot 条件）
+// Ref: LivingEntity.cpp shouldDropExperienceOnDeath（mob_drops 条件）
 function mobDropsNoXpWhenDoMobLootFalse(test: Test): void {
-  // 创造玩家执行管理命令（permLevel=4 ≥2）。doMobLoot 默认 true，显式设 false。
+  // 创造玩家执行管理命令（permLevel=4 ≥2）。mob_drops 默认 true，显式设 false。
   const player = test.spawnSimulatedPlayer({ x: 4, y: 2, z: 3 }, "op");
-  player.chat("/gamerule do_mob_loot false");
-  // runOnFinish 恢复 true 防污染后续批次（doMobLoot 世界级跨测试持久化）。
+  player.chat("/gamerule mob_drops false");
+  // runOnFinish 恢复 true 防污染后续批次（mob_drops 世界级跨测试持久化）。
   test.runOnFinish(() => {
-    player.chat("/gamerule do_mob_loot true");
+    player.chat("/gamerule mob_drops true");
   });
 
   // 切 Survival 执行 attackEntity 造伤害（命令已在创造下生效）。
@@ -156,7 +156,7 @@ function mobDropsNoXpWhenDoMobLootFalse(test: Test): void {
   const zombie = test.spawn("minecraft:zombie", { x: 3, y: 2, z: 3 });
   const xpBefore = (player as any).getTotalXp() as number;
 
-  // tick 15 等 doMobLoot=false + gamemode survival 命令生效（chat 命令队列有 tick 延迟）后攻击+杀死。
+  // tick 15 等 mob_drops=false + gamemode survival 命令生效（chat 命令队列有 tick 延迟）后攻击+杀死。
   test.runAtTickTime(15, () => {
     player.attackEntity(zombie);
   });
@@ -164,13 +164,13 @@ function mobDropsNoXpWhenDoMobLootFalse(test: Test): void {
     (test as any).kill(zombie);
   });
 
-  // 轮询断言玩家 getTotalXp 未增加（doMobLoot=false 守卫拦截经验掉落，无经验球可吸收）。
+  // 轮询断言玩家 getTotalXp 未增加（mob_drops=false 守卫拦截经验掉落，无经验球可吸收）。
   // 用负向轮询：等待足够时间确认经验始终不增。pollUntilSucceed 条件"不增"在 maxTick 内恒成立即 succeed。
   pollUntilSucceed(test, () => (player as any).getTotalXp() as number === xpBefore, {
     startTick: 35,
     maxTick: 70,
     onTimeout: () => test.assert(false,
-      `mob killed by player should drop no xp when doMobLoot=false (got ${xpBefore} -> ${(player as any).getTotalXp()})`),
+      `mob killed by player should drop no xp when mob_drops=false (got ${xpBefore} -> ${(player as any).getTotalXp()})`),
   });
 }
 
@@ -185,9 +185,9 @@ export function registerMobDeathXpTests(): void {
     .structureName("gametests:glass_pit")
     .maxTicks(80);
 
-  // doMobLoot 是世界级状态，独占 batch 串行避免污染同批依赖 mob 经验/物品掉落的测试 + runOnFinish 恢复 true
+  // mob_drops 是世界级状态，独占 batch 串行避免污染同批依赖 mob 经验/物品掉落的测试 + runOnFinish 恢复 true
   //（见 mobDropsNoXpWhenDoMobLootFalse 注释的并行污染隔离说明）。
-  GameTest.register("MobBehaviorTests", "mob_drops_no_xp_when_do_mob_loot_false", mobDropsNoXpWhenDoMobLootFalse)
+  GameTest.register("MobBehaviorTests", "mob_drops_no_xp_when_mob_drops_false", mobDropsNoXpWhenDoMobLootFalse)
     .structureName("gametests:glass_pit")
     .batch("mob_xp_loot_solo")
     .maxTicks(90);

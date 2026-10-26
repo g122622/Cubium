@@ -11,7 +11,7 @@
 //      不经脚本可读通道，无法端到端断言。本次补全 Dimension.getGameRule(name)（经新增
 //      GameRules::getValueAsString 按名取值）脚本读取绑定，解锁端到端测试。
 //   2. getGameRule 返回字符串：布尔规则 "true"/"false"，整数规则十进制串，规则不存在返空串。
-//   3. 规则名是原版注册表键（"do_mob_loot"/"spawn_mobs"/"advance_time"/"random_tick_speed"），
+//   3. 规则名是原版注册表键（"mob_drops"/"spawn_mobs"/"advance_time"/"random_tick_speed"），
 //      不是旧的 camelCase 写法。
 //   4. 世界级状态污染防护：GameTest 共享单一 ServerWorld，gamerule 跨测试/跨批次持久化。
 //      测试临时改 gamerule 后须 runOnFinish 恢复默认值，避免污染同次全量跑里依赖该规则的

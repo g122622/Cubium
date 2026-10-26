@@ -4,7 +4,7 @@
 // LivingEntity.java:1484-1493）。修复前 Cubium 普通生物死亡仅掉经验（LivingEntity::die 只调
 // dropExperience），物品掉落链路（dropFromLootTable）整体缺失，致 cow 不掉皮革/牛肉、zombie
 // 不掉腐肉。本次补齐 dropAllDeathLoot → dropFromLootTable（entity 参数集 LootContext +
-// getLootTableId 取表 generate + spawnItemAtEntity 掉落），并加 doMobLoot gamerule 守卫
+// getLootTableId 取表 generate + spawnItemAtEntity 掉落），并加 mob_drops gamerule 守卫
 // （shouldDropLoot = !isChild() && getBoolean(DO_MOB_LOOT)，对齐 vanilla shouldDropLoot）。
 //
 // 设计要点：
@@ -21,12 +21,12 @@
 //      需 killed_by_player 条件（test.kill 用虚空伤害无玩家来源，killed_by_player=false 不掉）。
 //      故单只 zombie test.kill 有约 25% 概率不掉任何 item（rotten_flesh 取 0）。为降低 flaky，
 //      spawn 5 只 zombie 同时 test.kill，5 只 rotten_flesh 全 0 的概率 ≈ 0.25^5 ≈ 0.1%，可接受。
-//   6. doMobLoot 守卫测试：doMobLoot=false 时 shouldDropLoot 返 false，dropFromLootTable 不调，
-//      cow 死亡不掉任何 item（beef 也不掉）。确定性负向断言（item==0）。doMobLoot 是世界级单例
+//   6. mob_drops 守卫测试：mob_drops=false 时 shouldDropLoot 返 false，dropFromLootTable 不调，
+//      cow 死亡不掉任何 item（beef 也不掉）。确定性负向断言（item==0）。mob_drops 是世界级单例
 //      状态，独占 batch 串行 + runOnFinish 恢复 true（同 gametest-world-state-gamerule 隔离范式）。
 //
-// 注：经验掉落（dropExperience）受 doMobLoot 守卫（vanilla dropExperience 内部查 MOB_DROPS，
-// LivingEntity.java:1499-1503；Cubium 已对齐，见 MobDeathXpTests），故 doMobLoot=false 时经验球也不掉。
+// 注：经验掉落（dropExperience）受 mob_drops 守卫（vanilla dropExperience 内部查 MOB_DROPS，
+// LivingEntity.java:1499-1503；Cubium 已对齐，见 MobDeathXpTests），故 mob_drops=false 时经验球也不掉。
 // 但本测试只断言 item 实体（type:"minecraft:item"），经验球是 type:"minecraft:experience_orb"
 // 不计入 item 计数，故经验掉落是否受守卫均不影响本测试的 item 断言。
 //
@@ -122,44 +122,44 @@ function zombieDropsItemsOnDeath(test: Test): void {
   });
 }
 
-// doMobLoot=false 时生物死亡不掉落物品（doMobLoot gamerule 守卫）。
+// mob_drops=false 时生物死亡不掉落物品（mob_drops gamerule 守卫）。
 //
 // 对齐 vanilla shouldDropLoot = !isBaby() && level.getGameRules().get(MOB_DROPS)：
-// doMobLoot=false 时 shouldDropLoot 返 false，dropAllDeathLoot 跳过 dropFromLootTable，
+// mob_drops=false 时 shouldDropLoot 返 false，dropAllDeathLoot 跳过 dropFromLootTable，
 // cow 死亡不掉任何 item（即使 beef 必掉也被守卫拦截）。确定性负向断言（item==0）。
 //
-// 经验掉落也受 doMobLoot 守卫（vanilla dropExperience 内部查 MOB_DROPS，Cubium 已对齐，
-// 见 MobDeathXpTests），doMobLoot=false 时经验球不掉。但本测试只断言 item 实体，经验球是
+// 经验掉落也受 mob_drops 守卫（vanilla dropExperience 内部查 MOB_DROPS，Cubium 已对齐，
+// 见 MobDeathXpTests），mob_drops=false 时经验球不掉。但本测试只断言 item 实体，经验球是
 // type:"minecraft:experience_orb" 不计入 type:"item"，故经验掉落是否受守卫均不影响 item 断言。
 //
-// 【并行污染隔离】doMobLoot 是世界级单例状态，GameTest 共享单一 ServerWorld 跨测试持久化不自动
+// 【并行污染隔离】mob_drops 是世界级单例状态，GameTest 共享单一 ServerWorld 跨测试持久化不自动
 // 重置，设 false 会污染同批依赖 mob 掉落的测试（cow_drops/zombie_drops 的 item 断言）。故独占
 // batch（mob_loot_solo）串行执行 + runOnFinish 恢复 true（同 gametest-world-state-gamerule 隔离）。
-// Ref: LivingEntity.cpp shouldDropLoot（doMobLoot 守卫）、LivingEntity.java:567-569（vanilla 守卫）
+// Ref: LivingEntity.cpp shouldDropLoot（mob_drops 守卫）、LivingEntity.java:567-569（vanilla 守卫）
 function mobDeathDropsDisabledWhenDoMobLootFalse(test: Test): void {
-  // 创造玩家执行管理命令（permLevel=4 ≥2）。doMobLoot 默认 true，显式设 false。
+  // 创造玩家执行管理命令（permLevel=4 ≥2）。mob_drops 默认 true，显式设 false。
   const player = test.spawnSimulatedPlayer({ x: 3, y: 2, z: 3 }, "op");
-  player.chat("/gamerule do_mob_loot false");
-  // runOnFinish 恢复 true 防污染后续批次（doMobLoot 世界级跨测试持久化）。
+  player.chat("/gamerule mob_drops false");
+  // runOnFinish 恢复 true 防污染后续批次（mob_drops 世界级跨测试持久化）。
   test.runOnFinish(() => {
-    player.chat("/gamerule do_mob_loot true");
+    player.chat("/gamerule mob_drops true");
   });
 
   const cow = test.spawn("minecraft:cow", { x: 4, y: 2, z: 4 });
 
-  // tick 10 等 doMobLoot=false 命令生效（chat 命令队列有 tick 延迟）后杀死 cow。
+  // tick 10 等 mob_drops=false 命令生效（chat 命令队列有 tick 延迟）后杀死 cow。
   test.runAtTickTime(10, () => {
     (test as any).kill(cow);
   });
 
-  // 轮询断言区域无 item 实体（doMobLoot=false 守卫拦截掉落，beef 也不掉）。
-  // startTick=15 给 doMobLoot 生效 + test.kill(tick10) + die 链路留时序余量。
+  // 轮询断言区域无 item 实体（mob_drops=false 守卫拦截掉落，beef 也不掉）。
+  // startTick=15 给 mob_drops 生效 + test.kill(tick10) + die 链路留时序余量。
   pollUntilSucceed(test, () => countItems(test) === 0, {
     startTick: 15,
     interval: 5,
     maxTick: 50,
     onTimeout: () => test.assert(false,
-      `cow death should drop no items when doMobLoot=false, got ${countItems(test)} items`),
+      `cow death should drop no items when mob_drops=false, got ${countItems(test)} items`),
   });
 }
 
@@ -172,9 +172,9 @@ export function registerMobDeathLootTests(): void {
     .structureName("gametests:glass_pit")
     .maxTicks(80);
 
-  // doMobLoot 是世界级状态，独占 batch 串行避免污染同批依赖 mob 掉落的测试 + runOnFinish 恢复 true
+  // mob_drops 是世界级状态，独占 batch 串行避免污染同批依赖 mob 掉落的测试 + runOnFinish 恢复 true
   //（见 mobDeathDropsDisabledWhenDoMobLootFalse 注释的并行污染隔离说明）。
-  GameTest.register("MobBehaviorTests", "mob_death_drops_disabled_when_do_mob_loot_false", mobDeathDropsDisabledWhenDoMobLootFalse)
+  GameTest.register("MobBehaviorTests", "mob_death_drops_disabled_when_mob_drops_false", mobDeathDropsDisabledWhenDoMobLootFalse)
     .structureName("gametests:glass_pit")
     .batch("mob_loot_solo")
     .maxTicks(80);

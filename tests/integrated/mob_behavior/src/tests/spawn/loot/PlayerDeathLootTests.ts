@@ -22,9 +22,9 @@
 //      确保死亡真实掉落（创造模式被 kill 会 respawn 不掉落）。
 //   3. 区域限定 getEntities({type:"item", location, volume})：批内并行 tick + 不清场，全维度查询跨测试
 //      污染。glass_pit 7×5×7 区域限定排除。
-//   4. 关键差异（Player vs Mob 装备掉落）：Player.dropEquipment 在 shouldDropLoot（doMobLoot）守卫
-//      之外，只受 keepInventory 守卫约束——故 doMobLoot=false 时玩家库存仍掉落（与 mob 装备掉落
-//      受 doMobLoot 守卫不同）。测试 3 专门覆盖此差异。
+//   4. 关键差异（Player vs Mob 装备掉落）：Player.dropEquipment 在 shouldDropLoot（mob_drops）守卫
+//      之外，只受 keepInventory 守卫约束——故 mob_drops=false 时玩家库存仍掉落（与 mob 装备掉落
+//      受 mob_drops 守卫不同）。测试 3 专门覆盖此差异。
 //   5. keepInventory 是世界级单例状态，独占 batch 串行 + runOnFinish 恢复 false 避免污染同批测试
 //      （同 gametest-world-state-gamerule 隔离范式）。
 //   6. 无法读取 item 实体的 itemType（Cubium 脚本未绑定 minecraft:item 组件），只能断言区域 item
@@ -149,31 +149,31 @@ function playerInventoryKeptWithKeepInventory(test: Test): void {
   });
 }
 
-// doMobLoot=false 时玩家库存仍掉落（Player.dropEquipment 在 doMobLoot 守卫之外，与 mob 不同）。
+// mob_drops=false 时玩家库存仍掉落（Player.dropEquipment 在 mob_drops 守卫之外，与 mob 不同）。
 //
-// 关键差异验证：mob 装备掉落在 dropCustomDeathLoot 内（受 shouldDropLoot=doMobLoot 守卫），doMobLoot=false
+// 关键差异验证：mob 装备掉落在 dropCustomDeathLoot 内（受 shouldDropLoot=mob_drops 守卫），mob_drops=false
 // 时不掉；而 Player.dropEquipment 在 dropAllDeathLoot 的 shouldDropLoot 守卫**之外**（LivingEntity.cpp:558），
-// 只受 keepInventory 守卫约束——故 doMobLoot=false 时玩家库存仍掉落。对齐 vanilla：Player.dropEquipment
-// 不查 doMobLoot，仅查 keepInventory（Player.java:561）。
+// 只受 keepInventory 守卫约束——故 mob_drops=false 时玩家库存仍掉落。对齐 vanilla：Player.dropEquipment
+// 不查 mob_drops，仅查 keepInventory（Player.java:561）。
 //
-// doMobLoot=false + keepInventory=false（默认）：玩家死亡 dropEquipment 守卫通过（keepInventory=false）→
-// 掉落库存。区域 item≥1（doMobLoot 不影响玩家库存掉落）。此测试确认玩家掉落链路与 mob 掉落受不同
+// mob_drops=false + keepInventory=false（默认）：玩家死亡 dropEquipment 守卫通过（keepInventory=false）→
+// 掉落库存。区域 item≥1（mob_drops 不影响玩家库存掉落）。此测试确认玩家掉落链路与 mob 掉落受不同
 // 守卫约束，防止未来误把 Player.dropEquipment 移入 shouldDropLoot 守卫内。
 //
-// 【并行污染隔离】doMobLoot 是世界级单例状态，独占 batch（player_domobloot_solo）串行 + runOnFinish
-// 恢复 true（同 mob_death_drops_disabled_when_do_mob_loot_false 隔离范式）。
+// 【并行污染隔离】mob_drops 是世界级单例状态，独占 batch（player_domobloot_solo）串行 + runOnFinish
+// 恢复 true（同 mob_death_drops_disabled_when_mob_drops_false 隔离范式）。
 // Ref: LivingEntity.cpp dropAllDeathLoot（dropEquipment 在 shouldDropLoot 守卫之外）、Player.java:561
 function playerInventoryDropsEvenWhenDoMobLootFalse(test: Test): void {
   const player = test.spawnSimulatedPlayer({ x: 1, y: 2, z: 3 }, "victim", 0 as any);
 
-  // doMobLoot 默认 true，显式设 false。Survival 玩家 chat permLevel=4 可执行。
-  player.chat("/gamerule do_mob_loot false");
-  // runOnFinish 恢复 true 防污染后续批次（doMobLoot 世界级跨测试持久化）。
+  // mob_drops 默认 true，显式设 false。Survival 玩家 chat permLevel=4 可执行。
+  player.chat("/gamerule mob_drops false");
+  // runOnFinish 恢复 true 防污染后续批次（mob_drops 世界级跨测试持久化）。
   test.runOnFinish(() => {
-    player.chat("/gamerule do_mob_loot true");
+    player.chat("/gamerule mob_drops true");
   });
 
-  // tick 1 放主手物品，tick 10 杀死（留 doMobLoot=false 命令生效 tick 延迟）。
+  // tick 1 放主手物品，tick 10 杀死（留 mob_drops=false 命令生效 tick 延迟）。
   test.runAtTickTime(1, () => {
     putItemInMainHand(player, "minecraft:cobblestone", 64);
   });
@@ -182,14 +182,14 @@ function playerInventoryDropsEvenWhenDoMobLootFalse(test: Test): void {
     (test as any).kill(player);
   });
 
-  // 轮询断言区域 item≥1（doMobLoot=false 不影响玩家库存掉落，dropEquipment 在守卫之外）。
-  // startTick=15 给 doMobLoot 生效 + test.kill(tick10) + die 链路留余量。
+  // 轮询断言区域 item≥1（mob_drops=false 不影响玩家库存掉落，dropEquipment 在守卫之外）。
+  // startTick=15 给 mob_drops 生效 + test.kill(tick10) + die 链路留余量。
   pollUntilSucceed(test, () => countItems(test) >= 1, {
     startTick: 15,
     interval: 5,
     maxTick: 60,
     onTimeout: () => test.assert(false,
-      `player inventory should drop even when doMobLoot=false (dropEquipment outside guard), `
+      `player inventory should drop even when mob_drops=false (dropEquipment outside guard), `
       + `got ${countItems(test)} items`),
   });
 }
@@ -205,8 +205,8 @@ export function registerPlayerDeathLootTests(): void {
     .batch("player_keepinv_solo")
     .maxTicks(80);
 
-  // doMobLoot 是世界级状态，独占 batch 串行避免污染同批 mob 掉落测试 + runOnFinish 恢复 true。
-  GameTest.register("MobBehaviorTests", "player_inventory_drops_even_when_do_mob_loot_false", playerInventoryDropsEvenWhenDoMobLootFalse)
+  // mob_drops 是世界级状态，独占 batch 串行避免污染同批 mob 掉落测试 + runOnFinish 恢复 true。
+  GameTest.register("MobBehaviorTests", "player_inventory_drops_even_when_mob_drops_false", playerInventoryDropsEvenWhenDoMobLootFalse)
     .structureName("gametests:glass_pit")
     .batch("player_domobloot_solo")
     .maxTicks(80);
