@@ -44,6 +44,7 @@
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/core/EntityClassRegistry.hpp"
 #include "common/entity/core/EntityDataManager.hpp"
+#include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/core/EntitySize.hpp"
 #include "common/entity/core/EntityType.hpp"
 #include "common/entity/core/LivingEntity.hpp"
@@ -148,6 +149,7 @@ std::unique_ptr<AnimalEntity> OcelotEntity::spawnBaby(AnimalEntity& /*partner*/)
 
     // 创建一个新的豹猫实体，不需要继承父母特征
     auto baby = std::make_unique<OcelotEntity>(0, *registry);
+    baby->setTypeId(entity::EntityTypeKeys::OCELOT); // 工厂绕过补救：直接构造缺 typeId
 
     // 设置为幼体
     baby->setChild(true);

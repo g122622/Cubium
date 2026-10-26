@@ -36,6 +36,7 @@
 #include "common/entity/ai/goal/goals/special/FoxGoals.hpp"
 #include "common/entity/ai/goal/goals/target/TargetGoals.hpp"
 #include "common/entity/attribute/Attributes.hpp"
+#include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/damage/DamageSource.hpp"
 #include "common/entity/entities/item/ItemEntity.hpp"
 #include "common/entity/entities/passive/special/TurtleEntity.hpp"
@@ -428,6 +429,7 @@ std::unique_ptr<AnimalEntity> FoxEntity::spawnBaby(AnimalEntity& partner)
     }
 
     auto baby = std::make_unique<FoxEntity>(0, *registry);
+    baby->setTypeId(entity::EntityTypeKeys::FOX); // 工厂绕过补救：直接构造缺 typeId
 
     // 设置为幼体
     baby->setChild(true);

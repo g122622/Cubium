@@ -190,6 +190,7 @@ std::unique_ptr<AnimalEntity> LlamaEntity::spawnBaby(AnimalEntity& partner)
     math::Random rng(ticksExisted());
 
     auto baby = std::make_unique<LlamaEntity>(0, *registry);
+    baby->setTypeId(entity::EntityTypeKeys::LLAMA); // 工厂绕过补救：直接构造缺 typeId
     baby->setChild(true);
     baby->setPosition(x(), y(), z());
 

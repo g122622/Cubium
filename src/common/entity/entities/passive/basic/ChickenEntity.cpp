@@ -301,6 +301,7 @@ std::unique_ptr<AnimalEntity> ChickenEntity::spawnBaby(AnimalEntity& partner)
 
     // 创建小鸡
     auto baby = std::make_unique<ChickenEntity>(0, *registry);
+    baby->setTypeId(entity::EntityTypeKeys::CHICKEN); // 工厂绕过补救：直接构造缺 typeId
 
     // 对齐 vanilla Chicken.getBreedOffspring：一半概率继承本鸡变种，另一半取配偶变种。
     const auto* partnerChicken = dynamic_cast<const ChickenEntity*>(&partner);

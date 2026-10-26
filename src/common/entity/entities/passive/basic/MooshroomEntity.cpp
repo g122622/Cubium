@@ -327,6 +327,7 @@ std::unique_ptr<AnimalEntity> MooshroomEntity::spawnBaby(AnimalEntity& partner)
 
     // 创建幼年哞菇
     auto baby = std::make_unique<MooshroomEntity>(0, *registry);
+    baby->setTypeId(entity::EntityTypeKeys::MOOSHROOM); // 工厂绕过补救：直接构造缺 typeId
 
     // 设置为幼体
     baby->setChild(true);
