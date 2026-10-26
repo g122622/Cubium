@@ -58,7 +58,14 @@ UniversalWorkerPool::UniversalWorkerPool(i32 threadCount, std::string name, i32 
 
 UniversalWorkerPool::~UniversalWorkerPool()
 {
-    shutdown();
+    try {
+        shutdown();
+    }
+    catch (...) {
+        // 线程回收失败时禁止继续销毁线程池，保持析构的终止语义。
+        spdlog::critical("[UniversalWorkerPool] Shutdown failed during destruction");
+        std::terminate();
+    }
 }
 
 i32 UniversalWorkerPool::_getOptimalThreadCount()
@@ -354,7 +361,7 @@ void UniversalWorkerPool::_workerThread(i32 workerId)
     }
 }
 
-void UniversalWorkerPool::_executeTask(std::shared_ptr<InternalTask> task)
+void UniversalWorkerPool::_executeTask(const std::shared_ptr<InternalTask>& task)
 {
     if (_isTaskCancelled(*task)) {
         _cancelTask(task);

@@ -242,7 +242,7 @@ private:
     /**
      * @brief 执行任务
      */
-    void _executeTask(std::shared_ptr<InternalTask> task);
+    void _executeTask(const std::shared_ptr<InternalTask>& task);
 
     /** @brief 在锁外取消任务并通知失败，隔离收尾异常。 */
     void _cancelTask(const std::shared_ptr<InternalTask>& task);

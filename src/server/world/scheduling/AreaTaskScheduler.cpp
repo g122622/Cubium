@@ -14,7 +14,7 @@
 namespace mc::server {
 
 struct AreaTaskScheduler::State : std::enable_shared_from_this<State> {
-    enum class Phase { Waiting, Scheduled, Running, Finished };
+    enum class Phase : u8 { Waiting, Scheduled, Running, Finished };
 
     struct Task {
         u64 id;
@@ -190,13 +190,14 @@ struct AreaTaskScheduler::State : std::enable_shared_from_this<State> {
         task->phase = Phase::Running;
         for (const u64 key : task->keys) {
             auto& position = positions.at(key);
-            MC_ASSERT_RELEASE(!position.running && *position.tasks.begin() == task);
+            MC_ASSERT_RELEASE(position.running == nullptr);
+            MC_ASSERT_RELEASE(*position.tasks.begin() == task);
             position.running = task;
         }
         return true;
     }
 
-    void _dispatch(std::vector<Dispatch> ready)
+    void _dispatch(const std::vector<Dispatch>& ready)
     {
         for (const auto& dispatch : ready) {
             util::UniversalWorkerPool* pool;
@@ -242,7 +243,7 @@ struct AreaTaskScheduler::State : std::enable_shared_from_this<State> {
             --outstanding;
             completion.notify_all();
         }
-        _dispatch(std::move(ready));
+        _dispatch(ready);
     }
 
     bool _cancelPending(bool stop, u64 taskId)
@@ -278,7 +279,7 @@ struct AreaTaskScheduler::State : std::enable_shared_from_this<State> {
             --outstanding;
             completion.notify_all();
         }
-        _dispatch(std::move(ready));
+        _dispatch(ready);
         return !cancelled.empty();
     }
 
@@ -298,13 +299,22 @@ AreaTaskScheduler::AreaTaskScheduler(util::UniversalWorkerPool* executor)
 
 AreaTaskScheduler::~AreaTaskScheduler()
 {
-    shutdown();
+    try {
+        shutdown();
+    }
+    catch (...) {
+        // 关闭失败时不能继续销毁仍可能被任务访问的世界，保持析构的终止语义。
+        spdlog::critical("[AreaTaskScheduler] Shutdown failed during destruction");
+        std::terminate();
+    }
 }
 
 void AreaTaskScheduler::setExecutor(util::UniversalWorkerPool* executor)
 {
     std::lock_guard lock(m_state->mutex);
-    MC_ASSERT_RELEASE(m_state->executor == executor || m_state->outstanding == 0);
+    if (m_state->executor != executor) {
+        MC_ASSERT_RELEASE(m_state->outstanding == 0);
+    }
     m_state->executor = executor;
 }
 
@@ -348,7 +358,7 @@ u64 AreaTaskScheduler::submit(std::unique_ptr<util::ITask> body,
         State::_callback(task, false);
         return 0;
     }
-    m_state->_dispatch(std::move(ready));
+    m_state->_dispatch(ready);
     return task->id;
 }
 
