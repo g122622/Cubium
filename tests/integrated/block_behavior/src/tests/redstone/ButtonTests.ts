@@ -193,12 +193,16 @@ const WALL_FACING_CASES: WallFacingCase[] = [
 ];
 
 // 放支撑 + 按钮 + 被充能红石灯。
-// 顺序：先放支撑 (3,2,2) stone（按钮 South 侧），再放按钮 (3,2,1)，再放红石灯 (4,2,1)。
+// 顺序：先放支撑 (3,2,2) stone（按钮 South 侧），再放按钮 (3,2,1)，再放红石灯 (3,2,0)。
 // 先支撑后按钮，避免按钮 updatePostPlacement 检测支撑缺失而自毁。
+//
+// 灯必须紧贴按钮、且在按钮的输出方向上：按钮 Wall+North 只向 North（z-1）输出 15 级弱信号，
+// South（z+1）是支撑面。原先把灯放在 (3,2,3)，中间正好隔着支撑方块 (3,2,2)，
+// 按钮的弱信号传不到灯，红石灯永远不亮——这是测试布局写错，不是按钮逻辑缺陷。
 function placeButtonSetup(test: Test, buttonType: string): void {
     test.setBlockType("minecraft:stone", { x: 3, y: 2, z: 2 }); // 支撑（按钮 South 侧 z+1）
     test.setBlockType(buttonType, { x: 3, y: 2, z: 1 }); // 按钮（Wall+North，支撑在 South）
-    test.setBlockType("minecraft:redstone_lamp", { x: 3, y: 2, z: 3 }); // 红石灯（按钮 North 侧=输出方向）
+    test.setBlockType("minecraft:redstone_lamp", { x: 3, y: 2, z: 0 }); // 红石灯（按钮 North 侧=输出方向）
 }
 
 // 场景 1：石按钮按压 → POWERED 翻 true + 毗邻红石灯亮（充能毗邻）。
@@ -217,13 +221,13 @@ function stoneButtonPowersWhenPressed(test: Test): void {
     // 轮询断言 powered===true 且 lampLit===true（press 同步触发，pollUntilSucceed 留余量）。
     pollUntilSucceed(
         test,
-        () => getButtonPowered(test, 3, 2, 1) === true && getLampLit(test, 3, 2, 3) === true,
+        () => getButtonPowered(test, 3, 2, 1) === true && getLampLit(test, 3, 2, 0) === true,
         {
             startTick: 2,
             interval: 4,
             maxTick: 30,
             onTimeout: () => {
-                test.assert(false, `stone button: powered=${getButtonPowered(test, 3, 2, 1)}, lampLit=${getLampLit(test, 3, 2, 3)} (expected both true after press)`);
+                test.assert(false, `stone button: powered=${getButtonPowered(test, 3, 2, 1)}, lampLit=${getLampLit(test, 3, 2, 0)} (expected both true after press)`);
             },
         },
     );
@@ -239,13 +243,13 @@ function woodButtonPowersWhenPressed(test: Test): void {
 
     pollUntilSucceed(
         test,
-        () => getButtonPowered(test, 3, 2, 1) === true && getLampLit(test, 3, 2, 3) === true,
+        () => getButtonPowered(test, 3, 2, 1) === true && getLampLit(test, 3, 2, 0) === true,
         {
             startTick: 2,
             interval: 4,
             maxTick: 30,
             onTimeout: () => {
-                test.assert(false, `wood button: powered=${getButtonPowered(test, 3, 2, 1)}, lampLit=${getLampLit(test, 3, 2, 3)} (expected both true after press)`);
+                test.assert(false, `wood button: powered=${getButtonPowered(test, 3, 2, 1)}, lampLit=${getLampLit(test, 3, 2, 0)} (expected both true after press)`);
             },
         },
     );
@@ -273,14 +277,14 @@ function stoneButtonUnpressesAfterTwentyTicks(test: Test): void {
     // tick 15（弹起前，20gt 窗口内）：断言仍在脉冲（powered=true、灯亮），证明按压生效。
     test.runAtTickTime(15, () => {
         const powered = getButtonPowered(test, 3, 2, 1);
-        const lampLit = getLampLit(test, 3, 2, 3);
+        const lampLit = getLampLit(test, 3, 2, 0);
         test.assert(powered === true && lampLit === true, `stone button should be powered at tick 15 (within 20gt pulse), got powered=${powered}, lampLit=${lampLit}`);
     });
 
     // tick 30（弹起 tick 22 + 灯断电延迟 4tick + 余量）：断言脉冲结束（powered=false、灯已延迟熄灭）。
     test.runAtTickTime(30, () => {
         const powered = getButtonPowered(test, 3, 2, 1);
-        const lampLit = getLampLit(test, 3, 2, 3);
+        const lampLit = getLampLit(test, 3, 2, 0);
         test.assert(powered === false && lampLit === false, `stone button should unpress after 20 ticks (lamp extinguishes after 4tick delay), got powered=${powered}, lampLit=${lampLit}`);
         test.succeed();
     });
