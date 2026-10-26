@@ -161,7 +161,9 @@ void DataCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
 
     auto setBlockSetNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("set");
     setBlockSetNode->addChild(setBlockValueArg);
-    setBlockValueArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _setBlock(ctx); });
+    setBlockValueArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _setBlock(ctx);
+    });
     setBlockPathArg->addChild(setBlockSetNode);
     setBlockPosArg->addChild(setBlockPathArg);
     setBlockNode->addChild(setBlockPosArg);
@@ -179,7 +181,9 @@ void DataCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
 
     auto setEntitySetNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("set");
     setEntitySetNode->addChild(setEntityValueArg);
-    setEntityValueArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _setEntity(ctx); });
+    setEntityValueArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _setEntity(ctx);
+    });
     setEntityPathArg->addChild(setEntitySetNode);
     setEntityTargetArg->addChild(setEntityPathArg);
     setEntityNode->addChild(setEntityTargetArg);
@@ -197,7 +201,9 @@ void DataCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
 
     auto setStorageSetNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("set");
     setStorageSetNode->addChild(setStorageValueArg);
-    setStorageValueArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _setStorage(ctx); });
+    setStorageValueArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _setStorage(ctx);
+    });
     setStoragePathArg->addChild(setStorageSetNode);
     setStorageIdArg->addChild(setStoragePathArg);
     setStorageNode->addChild(setStorageIdArg);

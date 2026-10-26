@@ -75,15 +75,19 @@ void DataPackCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatc
     // 原版 create 会新建一个空数据包；这里在数据包目录下建出 pack.mcmeta 与空的 data/，
     // 并把它加入列表（默认启用）。id 只允许字母数字、下划线和连字符，避免路径穿越。
     auto createNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("create");
-    auto createIdArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
-        "id", StringArgumentType::string());
-    createIdArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _createDataPack(ctx); });
+    auto createIdArg =
+        std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>("id", StringArgumentType::string());
+    createIdArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _createDataPack(ctx);
+    });
     createNode->addChild(createIdArg);
     datapackNode->addChild(createNode);
 
     // /datapack list [available|enabled]
     auto listNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("list");
-    listNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _listDataPacks(ctx); });
+    listNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _listDataPacks(ctx);
+    });
     for (const char* filter : {"available", "enabled"}) {
         auto filterNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>(filter);
         const std::string filterName = filter;

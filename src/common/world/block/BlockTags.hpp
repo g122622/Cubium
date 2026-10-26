@@ -176,9 +176,9 @@ private:
  * 成员已展开全部 `#tag` 引用，等价原版 `Tag#getValues()`。
  */
 struct VanillaBlockTagEntry {
-    const char* name;                   ///< 标签名（无 minecraft: 前缀）
-    std::size_t count;                  ///< 成员个数
-    const char* const* values;          ///< 成员方块名（无 minecraft: 前缀）
+    const char* name;          ///< 标签名（无 minecraft: 前缀）
+    std::size_t count;         ///< 成员个数
+    const char* const* values; ///< 成员方块名（无 minecraft: 前缀）
 };
 
 /**

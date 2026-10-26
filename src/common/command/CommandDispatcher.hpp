@@ -424,8 +424,8 @@ ParseResults<S> CommandDispatcher<S>::parseNodes(
                 return ParseResults<S>(std::move(currentContext), currentReader.getRemaining());
             }
             return ParseResults<S>(
-                CommandException(CommandErrorType::DispatcherUnknownArgument,
-                    "Unknown argument", currentReader.getCursor())
+                CommandException(
+                    CommandErrorType::DispatcherUnknownArgument, "Unknown argument", currentReader.getCursor())
                     .withInput(currentContext->getInput()),
                 currentReader.getCursor());
         }
@@ -433,7 +433,6 @@ ParseResults<S> CommandDispatcher<S>::parseNodes(
         std::optional<Candidate> bestSuccess;
         std::optional<Candidate> bestFailure;
         i32 bestFailureRank = 0;
-
 
         // 末端可执行的命令：节点自己有命令就用它，否则沿转发链找最近的祖先。
         auto commandOf = [](NodePtr leaf) -> std::shared_ptr<CommandNode<S>> {
@@ -488,10 +487,10 @@ ParseResults<S> CommandDispatcher<S>::parseNodes(
                         const i32 deniedCursor = probe.getCursor();
                         if (!permissionDenied) {
                             permissionDenied = true;
-                            consider(ParseResults<S>(
-                                         CommandException(CommandErrorType::PermissionDenied,
-                                             "commands.permission.denied", deniedCursor)
-                                             .withInput(currentContext->getInput()),
+                            consider(ParseResults<S>(CommandException(CommandErrorType::PermissionDenied,
+                                                         "commands.permission.denied",
+                                                         deniedCursor)
+                                                         .withInput(currentContext->getInput()),
                                          deniedCursor),
                                 nullptr);
                         }
@@ -518,10 +517,10 @@ ParseResults<S> CommandDispatcher<S>::parseNodes(
                             if (!permissionDenied) {
                                 permissionDenied = true;
                                 const i32 deniedCursor = childReader.getCursor();
-                                consider(ParseResults<S>(
-                                             CommandException(CommandErrorType::PermissionDenied,
-                                                 "commands.permission.denied", deniedCursor)
-                                                 .withInput(currentContext->getInput()),
+                                consider(ParseResults<S>(CommandException(CommandErrorType::PermissionDenied,
+                                                             "commands.permission.denied",
+                                                             deniedCursor)
+                                                             .withInput(currentContext->getInput()),
                                              deniedCursor),
                                     nullptr);
                             }
@@ -839,7 +838,7 @@ std::vector<std::string> CommandDispatcher<S>::getPath(NodePtr node) const
 template <typename S>
 void CommandDispatcher<S>::findAmbiguities(
     std::function<void(NodePtr, NodePtr, const std::set<std::string>&)> callback) const
-    {
+{
     if (!callback) {
         return;
     }

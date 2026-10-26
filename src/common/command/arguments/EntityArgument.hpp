@@ -838,7 +838,10 @@ public:
      * 字节区分（bit0=single、bit1=playersOnly），类型名不随模式变化。因此这里同样
      * 只输出 `entity`；模式差异体现在 {@link serializeMetadata} 的 flags 上。
      */
-    [[nodiscard]] std::string getTypeName() const override { return "entity"; }
+    [[nodiscard]] std::string getTypeName() const override
+    {
+        return "entity";
+    }
 
     [[nodiscard]] std::vector<std::string> getExamples() const override
     {

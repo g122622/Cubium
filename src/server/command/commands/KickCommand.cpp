@@ -61,11 +61,15 @@ void KickCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
 
     auto targetsArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, EntitySelector>>(
         "targets", EntityArgumentType::entities());
-    targetsArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _kickPlayers(ctx); });
+    targetsArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _kickPlayers(ctx);
+    });
 
     auto reasonArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, ComponentTextPtr>>(
         "reason", MessageComponentArgumentType::message());
-    reasonArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _kickPlayers(ctx); });
+    reasonArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _kickPlayers(ctx);
+    });
 
     targetsArg->addChild(reasonArg);
     kickNode->addChild(targetsArg);
@@ -87,9 +91,8 @@ i32 KickCommand::_kickPlayers(CommandContext<ServerCommandSource>& context)
 
     const EntitySelector selector = context.getArgument<EntitySelector>("targets");
     const auto playerIds = support::resolvePlayerIds(source, selector);
-    const std::string reason =
-        context.hasArgument("reason") ? context.getArgument<ComponentTextPtr>("reason")->text
-                                                                 : std::string(DEFAULT_KICK_REASON);
+    const std::string reason = context.hasArgument("reason") ? context.getArgument<ComponentTextPtr>("reason")->text
+                                                             : std::string(DEFAULT_KICK_REASON);
 
     i32 kickedCount = 0;
     for (const PlayerId playerId : playerIds) {

@@ -842,8 +842,9 @@ void Player::tick()
     // 只有生存模式和冒险模式才处理饥饿
     if (m_gameMode == GameMode::Survival || m_gameMode == GameMode::Adventure) {
         // 从世界获取游戏规则 naturalRegeneration
-        bool naturalRegeneration =
-            m_world ? m_world->getGameRules().getBoolean(world::gamerule::GameRuleKeys::NATURAL_HEALTH_REGENERATION) : true;
+        bool naturalRegeneration = m_world
+            ? m_world->getGameRules().getBoolean(world::gamerule::GameRuleKeys::NATURAL_HEALTH_REGENERATION)
+            : true;
         // 从世界获取难度，如果没有世界则默认为 Normal
         Difficulty difficulty = m_world ? m_world->difficulty() : Difficulty::Normal;
         m_foodStats.tick(*this, difficulty, naturalRegeneration);

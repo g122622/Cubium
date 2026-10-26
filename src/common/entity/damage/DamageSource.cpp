@@ -159,7 +159,6 @@ bool DamageSource::isCreativePlayer() const
     return asPlayer->isCreative(); // 对齐 vanilla player.getAbilities().instabuild
 }
 
-
 // ============================================================================
 // 伤害类型的 exhaustion / effects（数据包 damage_type/*.json）
 //

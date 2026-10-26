@@ -153,6 +153,11 @@ function main() {
             }
         } else {
             // 格式化模式：batch 跑 -i（原地改写）
+            // -i 不回报哪些文件被改写，故改写前后比对 mtime/size 统计 Changed
+            const stats = batch.map(rel => {
+                const st = fs.statSync(path.join(PROJECT_ROOT, rel));
+                return { mtimeMs: st.mtimeMs, size: st.size };
+            });
             const absBatch = batch.map(f => path.join(PROJECT_ROOT, f));
             const r = spawnSync(clangFormat, ['-i', '--style=file', ...absBatch], {
                 encoding: 'utf8',
@@ -163,6 +168,13 @@ function main() {
                 totalErrors++;
                 console.error(`\nBatch error: ${(r.stderr || '').slice(0, 200)}`);
             }
+            batch.forEach((rel, k) => {
+                const st = fs.statSync(path.join(PROJECT_ROOT, rel));
+                if (st.mtimeMs !== stats[k].mtimeMs || st.size !== stats[k].size) {
+                    changedFiles.push(rel);
+                    totalChanged++;
+                }
+            });
             totalProcessed += batch.length;
             process.stderr.write(`\r\x1b[2K[ Progress ] ${totalProcessed}/${files.length}`);
         }
@@ -174,10 +186,10 @@ function main() {
     console.log(`  Total: ${files.length}  Processed: ${totalProcessed}  Changed: ${totalChanged}  Errors: ${totalErrors}`);
     console.log('==========================================');
 
-    if (CHECK_MODE && changedFiles.length > 0) {
-        console.log('\nFiles needing format:');
+    if (changedFiles.length > 0) {
+        console.log(CHECK_MODE ? '\nFiles needing format:' : '\nFiles reformatted:');
         changedFiles.forEach(f => console.log(`  - ${f}`));
-        process.exit(1);  // CI 模式：有文件需格式化则返回非 0
+        if (CHECK_MODE) process.exit(1);  // CI 模式：有文件需格式化则返回非 0
     }
 
     if (!CHECK_MODE) {

@@ -118,7 +118,9 @@ i32 ExecuteCommand::executeNestedCommand(ServerCommandSource& source, const std:
 void ExecuteCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
 {
     auto executeNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("execute");
-    executeNode->setRequirement([](const ServerCommandSource& source) { return source.hasPermission(2); });
+    executeNode->setRequirement([](const ServerCommandSource& source) {
+        return source.hasPermission(2);
+    });
     support::applyMetadata(executeNode,
         support::makeMetadata("Executes a command.",
             "/execute as|at|in|on|positioned|rotated|align|anchored|facing|if|unless|store|run ...",
@@ -203,8 +205,8 @@ void ExecuteCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatch
     // 的坐标（不抛异常），所以 `vector<arg>` 迭代器会把 `as` / `over` 交给 pos 的 parse，
     // 它按 readUnquotedString 吃掉一个 token 后因坐标不合法把游标还原，随后又退回「空坐标」，
     // dispatcher 便不再尝试后面的字面量子节点。字面量先注册能保证 `as` / `over` 优先匹配。
-    positionedNode->addChild(std::make_shared<ArgumentCommandNode<ServerCommandSource, Coordinates::Ptr>>(
-        "pos", Vec3ArgumentType::vec3()));
+    positionedNode->addChild(
+        std::make_shared<ArgumentCommandNode<ServerCommandSource, Coordinates::Ptr>>("pos", Vec3ArgumentType::vec3()));
 
     // ========== rotated <rotation> | rotated as <targets> ==========
     auto rotatedNode = modifier("rotated");
@@ -218,8 +220,8 @@ void ExecuteCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatch
 
     // ========== align <axes>（x / y / z / xy / xz / yz / xyz）==========
     auto alignNode = modifier("align");
-    alignNode->addChild(
-        std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>("axes", SwizzleArgumentType::swizzle()));
+    alignNode->addChild(std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
+        "axes", SwizzleArgumentType::swizzle()));
 
     // ========== anchored <eyes|feet> ==========
     auto anchoredNode = modifier("anchored");
@@ -228,8 +230,8 @@ void ExecuteCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatch
 
     // ========== facing <pos> | facing entity <targets> [eyes|feet] ==========
     auto facingNode = modifier("facing");
-    facingNode->addChild(std::make_shared<ArgumentCommandNode<ServerCommandSource, Coordinates::Ptr>>(
-        "pos", Vec3ArgumentType::vec3()));
+    facingNode->addChild(
+        std::make_shared<ArgumentCommandNode<ServerCommandSource, Coordinates::Ptr>>("pos", Vec3ArgumentType::vec3()));
     auto facingEntityNode = child("entity");
     auto facingTargetsArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, EntitySelector>>(
         "targets", EntityArgumentType::entities());
@@ -243,7 +245,9 @@ void ExecuteCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatch
     auto summonNode = child("summon");
     auto summonEntityArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, ResourceLocation>>(
         "entity", ResourceEntityArgumentType::entity());
-    summonEntityArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return SummonCommand::summonAtSource(ctx); });
+    summonEntityArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return SummonCommand::summonAtSource(ctx);
+    });
     summonNode->addChild(summonEntityArg);
     executeNode->addChild(summonNode);
 
@@ -295,8 +299,8 @@ void ExecuteCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatch
     }
 
     // run 节点在 parse 时才读取这两张表，注册结束后统一回填（表里存的是 shared_ptr，生命周期随命令树）。
-    ExecuteRunNode::setModifiers(std::vector<std::shared_ptr<CommandNode<ServerCommandSource>>>(
-        modifiers.begin(), modifiers.end()));
+    ExecuteRunNode::setModifiers(
+        std::vector<std::shared_ptr<CommandNode<ServerCommandSource>>>(modifiers.begin(), modifiers.end()));
     ExecuteRunNode::setTopLevelRun(runNode);
 
     dispatcher.registerCommand(executeNode);
@@ -322,8 +326,8 @@ namespace {
  * as/at 对多个目标时原版会逐目标执行；这里按第一个匹配目标折叠，与 Cubium 既有的
  * EntityResolver 语义一致（多目标展开留给后续批次）。
  */
-ServerCommandSource applyChain(ServerCommandSource source, const EntitySelector& selector, const std::string& verb,
-    bool& matched)
+ServerCommandSource applyChain(
+    ServerCommandSource source, const EntitySelector& selector, const std::string& verb, bool& matched)
 {
     matched = false;
     if (verb == "as") {
@@ -382,8 +386,8 @@ i32 ExecuteCommand::_executeForwarded(CommandContext<ServerCommandSource>& conte
 
         if (verb == "as" || verb == "at") {
             bool matched = false;
-            target = applyChain(
-                target, context.getArgumentOr<EntitySelector>("targets", EntitySelector()), verb, matched);
+            target =
+                applyChain(target, context.getArgumentOr<EntitySelector>("targets", EntitySelector()), verb, matched);
             if (!matched) {
                 // 原版：选择器没选中任何实体时链中断，命令不执行、返回 0。
                 return 0;
@@ -415,13 +419,14 @@ i32 ExecuteCommand::_executeForwarded(CommandContext<ServerCommandSource>& conte
             auto coords = context.getArgumentOr<Coordinates::Ptr>("rot", nullptr);
             if (coords) {
                 const Vector3d rotated = coords->getPosition(target.position(), target.rotation());
-                target = target.withRotation(
-                    Vector2f(static_cast<f32>(rotated.x), static_cast<f32>(rotated.y)));
+                target = target.withRotation(Vector2f(static_cast<f32>(rotated.x), static_cast<f32>(rotated.y)));
             }
         } else if (verb == "align") {
             const std::string axes = context.getArgumentOr<std::string>("axes", "");
             const Vector3d& pos = target.position();
-            auto pick = [&axes](char axis) { return axes.find(axis) != std::string::npos; };
+            auto pick = [&axes](char axis) {
+                return axes.find(axis) != std::string::npos;
+            };
             target = target.withPosition(Vector3d(pick('x') ? std::floor(pos.x) : pos.x,
                 pick('y') ? std::floor(pos.y) : pos.y,
                 pick('z') ? std::floor(pos.z) : pos.z));

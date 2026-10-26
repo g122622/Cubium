@@ -132,7 +132,9 @@ void EffectCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatche
 
     auto clearPlayerNode = std::make_shared<ArgumentCommandNode<ServerCommandSource, EntitySelector>>(
         "targets", EntityArgumentType::entities());
-    clearPlayerNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _clearAllEffects(ctx); });
+    clearPlayerNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _clearAllEffects(ctx);
+    });
 
     auto clearEffectNode =
         std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>("effect", StringArgumentType::word());

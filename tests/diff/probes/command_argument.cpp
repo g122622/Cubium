@@ -218,8 +218,23 @@ std::vector<Case> cases()
     // NBT 路径
     // 注意：原版对 "a[" 会抛未捕获的 StringIndexOutOfBoundsException（brigadier peek 越过末尾），
     // 属于原版缺陷，不复刻，也不列入用例。
-    add("nbt_path", {"a", "a.b", "a.b[0]", "a[0].b", "", "a..b", "{x:1}.a", "a[-1]", "*", "a[]", "  a",
-            "a:b", "Steve:Inventory", "a:b.c", "{k:1}", "{k:1}.a[0]"});
+    add("nbt_path",
+        {"a",
+            "a.b",
+            "a.b[0]",
+            "a[0].b",
+            "",
+            "a..b",
+            "{x:1}.a",
+            "a[-1]",
+            "*",
+            "a[]",
+            "  a",
+            "a:b",
+            "Steve:Inventory",
+            "a:b.c",
+            "{k:1}",
+            "{k:1}.a[0]"});
 
     // 坐标读取的补充档位：相对坐标的前缀、负数、前导零、指数。
     add("double", {"~", "~5", "~-5", "^", "^1", "-0", "007", "1.5e2"});

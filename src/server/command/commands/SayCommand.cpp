@@ -48,7 +48,9 @@ void SayCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
     // 原版 /say 的 message 是 ComponentArgument（只有 message 类型，没有 component 变体）。
     auto messageArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, ComponentTextPtr>>(
         "message", MessageComponentArgumentType::message());
-    messageArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _say(ctx); });
+    messageArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _say(ctx);
+    });
     sayNode->addChild(messageArg);
 
     dispatcher.registerCommand(sayNode);

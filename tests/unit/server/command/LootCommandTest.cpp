@@ -154,14 +154,18 @@ TEST_F(LootCommandTest, LootSourceNodesExist)
     std::vector<std::string> playersChildren;
     collectUnder("give", giveChildren);
     collectUnder("players", playersChildren);
-    foundLootSource = std::any_of(playersChildren.begin(), playersChildren.end(),
-        [](const std::string& n) { return n == "loot_table"; });
-    foundFishPos =
-        std::any_of(playersChildren.begin(), playersChildren.end(), [](const std::string& n) { return n == "pos"; });
-    foundKillTarget =
-        std::any_of(playersChildren.begin(), playersChildren.end(), [](const std::string& n) { return n == "target"; });
-    foundMinePos =
-        std::any_of(playersChildren.begin(), playersChildren.end(), [](const std::string& n) { return n == "pos"; });
+    foundLootSource = std::any_of(playersChildren.begin(), playersChildren.end(), [](const std::string& n) {
+        return n == "loot_table";
+    });
+    foundFishPos = std::any_of(playersChildren.begin(), playersChildren.end(), [](const std::string& n) {
+        return n == "pos";
+    });
+    foundKillTarget = std::any_of(playersChildren.begin(), playersChildren.end(), [](const std::string& n) {
+        return n == "target";
+    });
+    foundMinePos = std::any_of(playersChildren.begin(), playersChildren.end(), [](const std::string& n) {
+        return n == "pos";
+    });
 
     EXPECT_TRUE(foundLootSource) << "give should accept a loot_table source";
     EXPECT_TRUE(foundFishPos) << "give should accept a fish pos source";

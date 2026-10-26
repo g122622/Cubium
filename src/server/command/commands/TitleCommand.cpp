@@ -164,21 +164,27 @@ void TitleCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher
     auto titleTextNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("title");
     auto titleJsonNode = std::make_shared<ArgumentCommandNode<ServerCommandSource, ComponentTextPtr>>(
         "message", ComponentArgumentType::component());
-    titleJsonNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _setTitle(ctx); });
+    titleJsonNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _setTitle(ctx);
+    });
     titleTextNode->addChild(titleJsonNode);
 
     // subtitle <json> 子命令
     auto subtitleNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("subtitle");
     auto subtitleJsonNode = std::make_shared<ArgumentCommandNode<ServerCommandSource, ComponentTextPtr>>(
         "message", ComponentArgumentType::component());
-    subtitleJsonNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _setSubtitle(ctx); });
+    subtitleJsonNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _setSubtitle(ctx);
+    });
     subtitleNode->addChild(subtitleJsonNode);
 
     // actionbar <json> 子命令
     auto actionbarNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("actionbar");
     auto actionbarJsonNode = std::make_shared<ArgumentCommandNode<ServerCommandSource, ComponentTextPtr>>(
         "message", ComponentArgumentType::component());
-    actionbarJsonNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _setActionbar(ctx); });
+    actionbarJsonNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _setActionbar(ctx);
+    });
     actionbarNode->addChild(actionbarJsonNode);
 
     // times <fadeIn> <stay> <fadeOut> 子命令

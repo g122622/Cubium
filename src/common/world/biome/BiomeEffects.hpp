@@ -144,8 +144,8 @@ public:
     /// 雾色 / 天空色默认值。原版 1.21.11 把这两项挪进了 EnvironmentAttributeMap，
     /// 属性的 defaultValue 就是 0（客户端再按维度与时间叠加昼夜渐变）；
     /// 群系 JSON 里显式写了的才是覆盖色，因此这里也用 0 表示「未覆盖」。
-    static constexpr u32 DEFAULT_FOG_COLOR = 0x000000;       ///< 默认雾颜色（未覆盖）
-    static constexpr u32 DEFAULT_SKY_COLOR = 0x000000;       ///< 默认天空颜色（未覆盖）
+    static constexpr u32 DEFAULT_FOG_COLOR = 0x000000; ///< 默认雾颜色（未覆盖）
+    static constexpr u32 DEFAULT_SKY_COLOR = 0x000000; ///< 默认天空颜色（未覆盖）
 
     // 特殊生物群系颜色常量
     static constexpr u32 SWAMP_WATER_COLOR = 0x617B64;     ///< 沼泽水体颜色

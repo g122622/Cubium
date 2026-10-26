@@ -76,12 +76,16 @@ void BanCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
     // /ban <player>
     auto playerArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
         "targets", GameProfileArgumentType::gameProfile());
-    playerArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _banPlayer(ctx); });
+    playerArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _banPlayer(ctx);
+    });
 
     // /ban <player> <reason>
     auto reasonArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, ComponentTextPtr>>(
         "reason", MessageComponentArgumentType::message());
-    reasonArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _banPlayer(ctx); });
+    reasonArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _banPlayer(ctx);
+    });
 
     playerArg->addChild(reasonArg);
     banNode->addChild(playerArg);

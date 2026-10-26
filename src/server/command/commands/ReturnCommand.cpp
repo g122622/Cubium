@@ -25,9 +25,8 @@
 
 #include "ExecuteCommand.hpp"
 #include "common/command/CommandNode.hpp"
-#include "common/command/arguments/GameModeArgument.hpp"
-#include "ExecuteCommand.hpp"
 #include "common/command/arguments/ArgumentType.hpp"
+#include "common/command/arguments/GameModeArgument.hpp"
 #include "server/command/CommandRegistry.hpp"
 #include "server/command/support/CommandMetadata.hpp"
 
@@ -62,7 +61,9 @@ void ReturnCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatche
     });
     auto runArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
         "command", StringArgumentType::greedyString());
-    runArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _returnRun(ctx); });
+    runArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _returnRun(ctx);
+    });
     // 原版的 /return run 是一条 ForwardNode（重定向到根），树上不带 command 子节点；
     // 这里的 command 参数只为本实现复用一次派发，不算协议里的命令树。
     runArg->setTreeHidden(true);

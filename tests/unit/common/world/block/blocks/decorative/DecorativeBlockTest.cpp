@@ -507,7 +507,8 @@ protected:
     void SetUp() override
     {
         // 确保 VanillaBlocks、Items、BlockItemRegistry 已按正确顺序初始化
-        // 顺序：VanillaBlocks::initialize() → Items::ensureInitialized() → BlockItemRegistry::initializeVanillaBlockItems()
+        // 顺序：VanillaBlocks::initialize() → Items::ensureInitialized() →
+        // BlockItemRegistry::initializeVanillaBlockItems()
         VanillaBlocks::initialize();
         Items::ensureInitialized();
         BlockItemRegistry::instance().initializeVanillaBlockItems();

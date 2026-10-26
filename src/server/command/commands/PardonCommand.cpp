@@ -26,8 +26,8 @@
 #include "common/command/CommandContext.hpp"
 #include "common/command/CommandDispatcher.hpp"
 #include "common/command/CommandNode.hpp"
-#include "common/command/arguments/GameModeArgument.hpp"
 #include "common/command/arguments/EntityArgument.hpp"
+#include "common/command/arguments/GameModeArgument.hpp"
 #include "common/core/Types.hpp"
 #include "server/application/IServer.hpp"
 #include "server/command/ServerCommandSource.hpp"
@@ -58,7 +58,9 @@ void PardonCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatche
     // /pardon <player>
     auto playerArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
         "targets", GameProfileArgumentType::gameProfile());
-    playerArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _pardonPlayer(ctx); });
+    playerArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _pardonPlayer(ctx);
+    });
 
     pardonNode->addChild(playerArg);
     dispatcher.registerCommand(pardonNode);

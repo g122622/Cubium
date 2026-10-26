@@ -53,7 +53,10 @@ public:
         , m_index(index)
     {}
 
-    [[nodiscard]] i32 index() const noexcept { return m_index; }
+    [[nodiscard]] i32 index() const noexcept
+    {
+        return m_index;
+    }
 
     void parse(StringReader& reader, CommandContext<ServerCommandSource>& context) const override
     {
@@ -64,7 +67,6 @@ public:
 private:
     i32 m_index;
 };
-
 
 /**
  * @brief /execute run 下的 command 占位节点（名字对齐原版，但不读输入）
@@ -79,7 +81,10 @@ public:
         : ArgumentCommandNode<ServerCommandSource, std::string>("command", StringArgumentType::greedyString())
     {}
 
-    [[nodiscard]] std::string getTypeName() const override { return "string"; }
+    [[nodiscard]] std::string getTypeName() const override
+    {
+        return "string";
+    }
 
     void parse(StringReader& reader, CommandContext<ServerCommandSource>& context) const override
     {
@@ -109,10 +114,25 @@ public:
         , m_slot(std::move(slot))
     {}
 
-    [[nodiscard]] NodeType getType() const noexcept override { return NodeType::Argument; }
-    [[nodiscard]] std::string getName() const noexcept override { return m_slot; }
-    [[nodiscard]] std::string getTypeName() const override { return m_prototype.getTypeName(); }
-    [[nodiscard]] nlohmann::json getMetadata() const override { return m_prototype.getMetadata(); }
+    [[nodiscard]] NodeType getType() const noexcept override
+    {
+        return NodeType::Argument;
+    }
+
+    [[nodiscard]] std::string getName() const noexcept override
+    {
+        return m_slot;
+    }
+
+    [[nodiscard]] std::string getTypeName() const override
+    {
+        return m_prototype.getTypeName();
+    }
+
+    [[nodiscard]] nlohmann::json getMetadata() const override
+    {
+        return m_prototype.getMetadata();
+    }
 
     void parse(StringReader& reader, CommandContext<S>& context) const override
     {

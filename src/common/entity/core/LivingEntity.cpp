@@ -296,6 +296,28 @@ bool LivingEntity::hurt(DamageSource& source, f32 amount)
     if (amount > 0.0f && canBlockDamageSource(source) && _isWithinShieldBlockingAngle(source)) {
         blockedAmount = amount;
         amount = 0.0f;
+        // 格挡成功的全部副作用（对齐 vanilla LivingEntity.applyItemBlocking）：
+        //   1. 扣盾牌耐久（BlocksAttacks.hurtBlockingItem → damageItem）；
+        //   2. 破盾（Player.blockUsingItem:727-730：攻击者 getSecondsToDisableBlocking > 0
+        //      时禁用盾牌 round(seconds*20) tick，斧头 5.0 秒 = 100 tick）；
+        //   3. 回调攻击者 blockedByItem（仅近战等非投射物直接来源，vanilla LivingEntity.java:1306）。
+        // 这些副作用原先写在 actuallyHurt 里，但格挡时 amount 已在本次调用里归零，actuallyHurt
+        // 根本不会被走到，于是盾牌既不消耗耐久也永不破盾——三个盾牌 GameTest 因此全红。
+        damageShield(blockedAmount);
+
+        Entity* directEntity = source.directSource();
+        if (directEntity != nullptr && directEntity != this) {
+            auto* directLiving = dynamic_cast<LivingEntity*>(directEntity);
+            if (directLiving != nullptr) {
+                // 破盾不对 IS_PROJECTILE 门控：投射物来源的 getSecondsToDisableBlocking 为 0，
+                // 天然不破盾（对齐 vanilla blockUsingItem 内破盾与 blockedByItem 回调分离）。
+                onShieldDisabled(*directLiving);
+                // 回调攻击者则须排除投射物（箭矢格挡不应触发射击者的"被格挡"行为）。
+                if (!source.is(DamageTypeTags::IS_PROJECTILE())) {
+                    directLiving->blockedByItem(*this);
+                }
+            }
+        }
     }
     m_lastBlockedDamage = blockedAmount;
     const bool blocked = blockedAmount > 0.0f;
@@ -537,44 +559,9 @@ void LivingEntity::actuallyHurt(DamageSource& source, f32 amount)
     }
 
     // 1. 盾牌格挡检查（子类可重写）
-    // 方向校验（对齐 vanilla BlocksAttacks.resolveBlockedDamage）：来袭方向与头部水平朝向夹角
-    // 超过盾牌水平阻挡角（默认 90°，背面来的攻击挡不住）时不再格挡，伤害照常结算。
-    if (canBlockDamageSource(source) && _isWithinShieldBlockingAngle(source)) {
-        damageShield(amount);
-
-        // 破盾判定（对齐 MC Java 1.21.11 Player.blockUsingItem:727-730 破盾分支）：
-        // 受害者举盾格挡时，取直接来源（攻击者）的 getSecondsToDisableBlocking，若 >0 则受害者
-        // 盾牌被禁用 round(seconds*20) tick（斧头 5.0 秒 = 100 tick）。破盾独立于 IS_PROJECTILE
-        // 门控——投射物攻击者（箭矢等）getSecondsToDisableBlocking 返回 0 天然不破盾，故此处
-        // 不需 IS_PROJECTILE 门控（对齐 vanilla blockUsingItem 内破盾与 blockedByItem 回调分离）。
-        // onShieldDisabled 基类空实现，Player 重写执行 setItemCooldown + stopActiveHand + 破盾音效。
-        Entity* directEntityForDisable = source.directSource();
-        if (directEntityForDisable != nullptr && directEntityForDisable != this) {
-            LivingEntity* disableAttacker = dynamic_cast<LivingEntity*>(directEntityForDisable);
-            if (disableAttacker != nullptr) {
-                onShieldDisabled(*disableAttacker);
-            }
-        }
-
-        // 格挡成功时回调攻击者（对齐 MC Java 1.21.11 LivingEntity.applyItemBlocking →
-        // blockUsingItem → attacker.blockedByItem(victim)）。vanilla 条件（LivingEntity.java:1306）：
-        //   f > 0.0F && !source.is(IS_PROJECTILE) && directEntity instanceof LivingEntity
-        // 即仅近战等直接来源（directSource 是 LivingEntity 且非 IS_PROJECTILE 投射物）才回调,
-        // 让攻击者执行"被格挡"特殊行为（如 Ravager 50% 眩晕→咆哮）。投射物格挡不回调攻击者。
-        // 此前用 getTrueSource()（射击者）且缺 !source.is(IS_PROJECTILE) 门控，致箭矢格挡错误回调
-        // 射击者。改为 directSource()（直接来源：近战=攻击者，箭=箭矢）+ IS_PROJECTILE 门控对齐 vanilla。
-        // 注：IS_PROJECTILE 成员={Arrow,Trident,MobProjectile,Fireball,WitherSkull,Thrown,WindBurst}。
-        if (!source.is(DamageTypeTags::IS_PROJECTILE())) {
-            Entity* directEntity = source.directSource();
-            if (directEntity != nullptr && directEntity != this) {
-                LivingEntity* attacker = dynamic_cast<LivingEntity*>(directEntity);
-                if (attacker != nullptr) {
-                    attacker->blockedByItem(*this);
-                }
-            }
-        }
-        return; // 格挡成功，不造成伤害
-    }
+    // 真正被扣下的伤害在 LivingEntity::hurt 里判定（那里 amount 会被归零并跳过伤害结算），
+    // 走到这里说明伤害未被盾牌挡下，不该再做格挡处理——否则同一伤害会被扣两次盾牌耐久。
+    // 故此处不再重复判定，格挡的全部副作用见 hurt 中的 _applyItemBlocking。
 
     // 1.5 冰冻额外伤害：冻结额外伤害标签中的实体（烈焰人、岩浆怪、炽足兽）受到5倍冰冻伤害
     if (source.isFreezing() && EntityTypeTags::FREEZE_HURTS_EXTRA_TYPES().contains(getTypeId())) {

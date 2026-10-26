@@ -33,10 +33,10 @@
 #include "server/core/PlayerManager.hpp"
 
 #include <cstddef>
-#include <utility>
-#include <vector>
 #include <memory>
 #include <sstream>
+#include <utility>
+#include <vector>
 
 namespace mc {
 namespace command {
@@ -56,7 +56,9 @@ void ListCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
 
     // /list uuids：原版把每个在线玩家的 UUID 也列出来。
     auto uuidsNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("uuids");
-    uuidsNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _listPlayerUuids(ctx); });
+    uuidsNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _listPlayerUuids(ctx);
+    });
     listNode->addChild(uuidsNode);
 
     dispatcher.registerCommand(listNode);

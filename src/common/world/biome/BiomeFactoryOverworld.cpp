@@ -246,7 +246,9 @@ Biome createSnowyTaiga()
     biome.setGenerationSettings(BiomeGenerationSettings{});
     biome.setSpawnInfo(world::spawn::MobSpawnInfo::createSnowy());
     // 雪地针叶林水体颜色
-    biome.setEffects(BiomeEffects::Builder().waterColor(0x3D57D6).waterFogColor(0x050533)
+    biome.setEffects(BiomeEffects::Builder()
+            .waterColor(0x3D57D6)
+            .waterFogColor(0x050533)
             .fogColor(0x000000)
             .skyColor(0x839EFF)
             .build());

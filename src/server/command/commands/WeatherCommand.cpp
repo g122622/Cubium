@@ -114,8 +114,8 @@ void WeatherCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatch
     weatherNode->setRequirement([](const ServerCommandSource& source) {
         return source.hasPermission(2);
     });
-    support::applyMetadata(weatherNode,
-        support::makeMetadata("Sets the weather.", "/weather <clear|rain|thunder> [duration]", 2));
+    support::applyMetadata(
+        weatherNode, support::makeMetadata("Sets the weather.", "/weather <clear|rain|thunder> [duration]", 2));
     weatherNode->addChild(clearNode);
     weatherNode->addChild(rainNode);
     weatherNode->addChild(thunderNode);

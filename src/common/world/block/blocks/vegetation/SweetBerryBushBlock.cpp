@@ -34,7 +34,6 @@
 #include "common/item/Items.hpp"
 #include "common/item/context/BlockItemUseContext.hpp"
 #include "common/item/core/ActionResult.hpp"
-#include "common/world/block/registry/NaturalBlocks.hpp"
 #include "common/item/core/BlockActionResult.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/physics/PhysicsConstants.hpp"
@@ -50,6 +49,7 @@
 #include "common/world/block/BlockTags.hpp"
 #include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/block/blocks/agricultural/BushBlock.hpp"
+#include "common/world/block/registry/NaturalBlocks.hpp"
 
 #include <algorithm>
 #include <cmath>

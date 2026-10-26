@@ -59,7 +59,9 @@ void KillCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
     // /kill <target> - 杀死目标实体
     auto targetArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, EntitySelector>>(
         "targets", EntityArgumentType::entities());
-    targetArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _killEntities(ctx); });
+    targetArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _killEntities(ctx);
+    });
     killNode->addChild(targetArg);
 
     dispatcher.registerCommand(killNode);

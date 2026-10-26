@@ -209,7 +209,9 @@ void ClearCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher
 
     auto playerArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, EntitySelector>>(
         "targets", EntityArgumentType::entities());
-    playerArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _clearPlayer(ctx); });
+    playerArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _clearPlayer(ctx);
+    });
 
     auto itemArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, ItemPredicateInput>>(
         "item", ItemPredicateArgumentType::itemPredicate());

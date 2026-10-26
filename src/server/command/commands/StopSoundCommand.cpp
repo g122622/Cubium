@@ -114,7 +114,9 @@ void StopSoundCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispat
     // /stopsound <player> - 停止所有声音
     auto playerNode = std::make_shared<ArgumentCommandNode<ServerCommandSource, EntitySelector>>(
         "targets", EntityArgumentType::players());
-    playerNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _stopAllSounds(ctx); });
+    playerNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _stopAllSounds(ctx);
+    });
 
     // /stopsound <player> * [<sound>] - 通配符：停止所有类别的声音
     auto wildcardNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("*");

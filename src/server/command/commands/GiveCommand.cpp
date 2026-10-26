@@ -239,7 +239,9 @@ void GiveCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
 
     auto itemArg =
         std::make_shared<ArgumentCommandNode<ServerCommandSource, ItemInput>>("item", ItemArgumentType::itemStack());
-    itemArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _giveItem(ctx); });
+    itemArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _giveItem(ctx);
+    });
 
     auto countArg =
         std::make_shared<ArgumentCommandNode<ServerCommandSource, i32>>("count", IntegerArgumentType::integer(1, 64));

@@ -86,8 +86,8 @@ void GameModeCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatc
 {
     using namespace mc::command;
 
-    auto modeArg =
-        std::make_shared<ArgumentCommandNode<ServerCommandSource, GameMode>>("gamemode", GameModeArgumentType::gameMode());
+    auto modeArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, GameMode>>(
+        "gamemode", GameModeArgumentType::gameMode());
 
     modeArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
         return _setGameModeSelf(ctx);
@@ -95,7 +95,9 @@ void GameModeCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatc
 
     auto targetArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, EntitySelector>>(
         "target", EntityArgumentType::entities());
-    targetArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _setGameModeOthers(ctx); });
+    targetArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _setGameModeOthers(ctx);
+    });
 
     modeArg->addChild(targetArg);
 

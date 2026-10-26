@@ -68,7 +68,9 @@ void TellRawCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatch
     // 原版 /tellraw 的 message 参数类型是 component。
     auto jsonNode = std::make_shared<ArgumentCommandNode<ServerCommandSource, ComponentTextPtr>>(
         "message", ComponentArgumentType::component());
-    jsonNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _sendRawMessage(ctx); });
+    jsonNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _sendRawMessage(ctx);
+    });
 
     playerNode->addChild(jsonNode);
     tellrawNode->addChild(playerNode);

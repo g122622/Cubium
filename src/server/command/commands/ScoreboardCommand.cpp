@@ -32,18 +32,17 @@
 #include "common/scoreboard/core/Score.hpp"
 #include "common/scoreboard/core/ScoreCriteria.hpp"
 #include "common/scoreboard/core/ScoreObjective.hpp"
+#include "common/scoreboard/core/Scoreboard.hpp"
 #include "common/scoreboard/criteria/TriggerCriteria.hpp"
 #include "common/util/text/StringTextComponent.hpp"
 #include "server/application/IServer.hpp"
 #include "server/command/ServerCommandSource.hpp"
 #include "server/command/support/CommandMetadata.hpp"
-#include "common/scoreboard/core/Scoreboard.hpp"
 #include "server/scoreboard/ServerScoreboard.hpp"
 #include <algorithm>
 #include <cstddef>
-#include <set>
-#include <utility>
 #include <memory>
+#include <set>
 #include <sstream>
 #include <string>
 #include <utility>
@@ -79,8 +78,7 @@ void ScoreboardCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispa
 
     // /scoreboard objectives add <name> <criteria> [displayName]
     auto addObjectivesNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("add");
-    auto objNameArg =
-        std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
+    auto objNameArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
         "objective", ObjectiveNameArgumentType::objective());
     auto criteriaArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
         "criteria", StringArgumentType::string());
@@ -90,16 +88,19 @@ void ScoreboardCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispa
     objNameArg->addChild(criteriaArg);
     auto displayNameArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, ComponentTextPtr>>(
         "displayName", ComponentArgumentType::component());
-    displayNameArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _addObjective(ctx); });
+    displayNameArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _addObjective(ctx);
+    });
     criteriaArg->addChild(displayNameArg);
     addObjectivesNode->addChild(objNameArg);
 
     // /scoreboard objectives remove <name>
     auto removeObjectivesNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("remove");
-    auto removeNameArg =
-        std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
+    auto removeNameArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
         "objective", ObjectiveNameArgumentType::objective());
-    removeNameArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _removeObjective(ctx); });
+    removeNameArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _removeObjective(ctx);
+    });
     removeObjectivesNode->addChild(removeNameArg);
 
     // /scoreboard objectives modify <objective> displayName <displayName>
@@ -109,7 +110,9 @@ void ScoreboardCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispa
     auto displayNameNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("displayName");
     auto modifyDisplayNameArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, ComponentTextPtr>>(
         "displayName", ComponentArgumentType::component());
-    modifyDisplayNameArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _modifyObjectiveDisplayName(ctx); });
+    modifyDisplayNameArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _modifyObjectiveDisplayName(ctx);
+    });
     displayNameNode->addChild(modifyDisplayNameArg);
     modifyNameArg->addChild(displayNameNode);
     modifyObjectivesNode->addChild(modifyNameArg);
@@ -119,10 +122,14 @@ void ScoreboardCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispa
     auto setdisplayNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("setdisplay");
     auto setdisplaySlotArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
         "slot", DisplaySlotArgumentType::displaySlot());
-    setdisplaySlotArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _setDisplaySlot(ctx); });
+    setdisplaySlotArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _setDisplaySlot(ctx);
+    });
     auto setdisplayObjectiveArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
         "objective", ObjectiveNameArgumentType::objective());
-    setdisplayObjectiveArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _setDisplaySlot(ctx); });
+    setdisplayObjectiveArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _setDisplaySlot(ctx);
+    });
     setdisplaySlotArg->addChild(setdisplayObjectiveArg);
     setdisplayNode->addChild(setdisplaySlotArg);
     objectivesNode->addChild(setdisplayNode);
@@ -143,8 +150,7 @@ void ScoreboardCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispa
 
     // /scoreboard players set <target> <objective> <score>
     auto setPlayersNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("set");
-    auto setTargetArg =
-        std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
+    auto setTargetArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
         "targets", ScoreHolderArgumentType::scoreHolder());
     auto setObjectiveArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
         "objective", ObjectiveNameArgumentType::objective());
@@ -159,8 +165,7 @@ void ScoreboardCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispa
 
     // /scoreboard players add <target> <objective> <score>
     auto addPlayersNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("add");
-    auto addTargetArg =
-        std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
+    auto addTargetArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
         "targets", ScoreHolderArgumentType::scoreHolder());
     auto addObjectiveArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
         "objective", ObjectiveNameArgumentType::objective());
@@ -175,8 +180,7 @@ void ScoreboardCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispa
 
     // /scoreboard players remove <target> <objective> <score>
     auto removePlayersNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("remove");
-    auto removeTargetArg =
-        std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
+    auto removeTargetArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
         "targets", ScoreHolderArgumentType::scoreHolder());
     auto removeObjectiveArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
         "objective", ObjectiveNameArgumentType::objective());
@@ -195,7 +199,9 @@ void ScoreboardCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispa
         "targets", ScoreHolderArgumentType::scoreHolder());
     auto displayObjectiveArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
         "objective", ObjectiveNameArgumentType::objective());
-    displayObjectiveArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _displayPlayerScore(ctx); });
+    displayObjectiveArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _displayPlayerScore(ctx);
+    });
     displayTargetArg->addChild(displayObjectiveArg);
     displayPlayersNode->addChild(displayTargetArg);
 
@@ -211,7 +217,9 @@ void ScoreboardCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispa
         "source", ScoreHolderArgumentType::scoreHolder());
     auto operationSourceObjectiveArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
         "sourceObjective", ObjectiveNameArgumentType::objective());
-    operationSourceObjectiveArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _operateScore(ctx); });
+    operationSourceObjectiveArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _operateScore(ctx);
+    });
     operationSourceArg->addChild(operationSourceObjectiveArg);
     operationArg->addChild(operationSourceArg);
     operationObjectiveArg->addChild(operationArg);
@@ -220,43 +228,49 @@ void ScoreboardCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispa
 
     // /scoreboard players reset <target> [objective]
     auto resetPlayersNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("reset");
-    auto resetTargetArg =
-        std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
+    auto resetTargetArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
         "targets", ScoreHolderArgumentType::scoreHolder());
-    resetTargetArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _resetScore(ctx); });
+    resetTargetArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _resetScore(ctx);
+    });
     resetPlayersNode->addChild(resetTargetArg);
 
     // /scoreboard players get <target> <objective>
     auto getPlayersNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("get");
-    auto getTargetArg =
-        std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
+    auto getTargetArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
         "targets", ScoreHolderArgumentType::scoreHolder());
     auto getObjectiveArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
         "objective", ObjectiveNameArgumentType::objective());
-    getObjectiveArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _getScore(ctx); });
+    getObjectiveArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _getScore(ctx);
+    });
     getTargetArg->addChild(getObjectiveArg);
     getPlayersNode->addChild(getTargetArg);
 
     // /scoreboard players enable <target> <objective>
     // 用于启用 trigger 类型目标，让玩家可以再次使用 /trigger 命令
     auto enablePlayersNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("enable");
-    auto enableTargetArg =
-        std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
+    auto enableTargetArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
         "targets", ScoreHolderArgumentType::scoreHolder());
     auto enableObjectiveArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
         "objective", ObjectiveNameArgumentType::objective());
-    enableObjectiveArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _enableTrigger(ctx); });
+    enableObjectiveArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _enableTrigger(ctx);
+    });
     enableTargetArg->addChild(enableObjectiveArg);
     enablePlayersNode->addChild(enableTargetArg);
 
     // /scoreboard players list [target]
     auto listPlayersNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("list");
-    auto listTargetArg =
-        std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
+    auto listTargetArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
         "targets", ScoreHolderArgumentType::scoreHolder());
-    listTargetArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _listPlayers(ctx); });
+    listTargetArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _listPlayers(ctx);
+    });
     listPlayersNode->addChild(listTargetArg);
-    listPlayersNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _listAllPlayers(ctx); });
+    listPlayersNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _listAllPlayers(ctx);
+    });
 
     playersNode->addChild(setPlayersNode);
     playersNode->addChild(addPlayersNode);
@@ -776,7 +790,8 @@ i32 ScoreboardCommand::_displayPlayerScore(CommandContext<ServerCommandSource>& 
         source.sendMessage("Could not get score for " + targets + " on " + objectiveName);
         return 0;
     }
-    source.sendMessage("Set display of " + targets + " on " + objectiveName + " to " + std::to_string(score->getScorePoints()));
+    source.sendMessage(
+        "Set display of " + targets + " on " + objectiveName + " to " + std::to_string(score->getScorePoints()));
     return score->getScorePoints();
 }
 

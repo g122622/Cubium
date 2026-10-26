@@ -67,7 +67,9 @@ void TeamMsgCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatch
 {
     auto messageArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, ComponentTextPtr>>(
         "message", MessageComponentArgumentType::message());
-    messageArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _sendTeamMessage(ctx); });
+    messageArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _sendTeamMessage(ctx);
+    });
 
     auto teamMsgNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("teammsg");
     teamMsgNode->setRequirement([](const ServerCommandSource& source) {

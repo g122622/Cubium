@@ -75,7 +75,9 @@ void writeList(FILE* out)
 {
     ensureTags();
     std::vector<std::string> names;
-    ItemTags::forEachTag([&names](ItemTag& tag) { names.push_back(qualifiedTagName(tag)); });
+    ItemTags::forEachTag([&names](ItemTag& tag) {
+        names.push_back(qualifiedTagName(tag));
+    });
     std::sort(names.begin(), names.end());
     names.erase(std::unique(names.begin(), names.end()), names.end());
     for (const auto& name : names) {

@@ -26,9 +26,9 @@
 #include "common/command/CommandContext.hpp"
 #include "common/command/CommandDispatcher.hpp"
 #include "common/command/CommandNode.hpp"
-#include "common/command/arguments/GameModeArgument.hpp"
 #include "common/command/ICommandSource.hpp"
 #include "common/command/arguments/EntityArgument.hpp"
+#include "common/command/arguments/GameModeArgument.hpp"
 #include "common/core/Types.hpp"
 #include "common/util/UuidUtils.hpp"
 #include "server/application/IServer.hpp"
@@ -83,14 +83,18 @@ void WhitelistCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispat
     auto addNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("add");
     auto addPlayerArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
         "targets", GameProfileArgumentType::gameProfile());
-    addPlayerArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _whitelistAdd(ctx); });
+    addPlayerArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _whitelistAdd(ctx);
+    });
     addNode->addChild(addPlayerArg);
 
     // /whitelist remove <player>
     auto removeNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("remove");
     auto removePlayerArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
         "targets", GameProfileArgumentType::gameProfile());
-    removePlayerArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _whitelistRemove(ctx); });
+    removePlayerArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _whitelistRemove(ctx);
+    });
     removeNode->addChild(removePlayerArg);
 
     // /whitelist reload

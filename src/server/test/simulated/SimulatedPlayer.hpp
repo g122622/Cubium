@@ -215,6 +215,24 @@ public:
     [[nodiscard]] i32 chat(const std::string& command);
 
     /**
+     * @brief 取该模拟玩家所在队伍
+     *
+     * ServerPlayer::getTeam 经 server()->scoreboard() 取队伍，而 SimulatedPlayer 常常不在
+     * 玩家管理器里注册（GameTest 里由实体层直接创建），此时队伍查询会访问到无效的记分板。
+     * 模拟玩家不参与队伍系统，这里恒返回 nullptr（等价"不在任何队伍"，与 vanilla 中未入队
+     * 玩家一致，canHarmPlayer 因此直接放行）。
+     */
+    [[nodiscard]] mc::scoreboard::Team* getTeam() override
+    {
+        return nullptr;
+    }
+
+    [[nodiscard]] const mc::scoreboard::Team* getTeam() const override
+    {
+        return nullptr;
+    }
+
+    /**
      * @brief 重生玩家（重置生命 / 饥饿 / 经验，对齐基岩 SimulatedPlayer::respawn）。
      *
      * 调 Player::respawn()（非虚，仅重置状态）。不传送——完整流程需先 determineRespawnPosition，

@@ -142,7 +142,9 @@ void TriggerCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatch
     // /trigger <objective>
     auto objectiveArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
         "objective", ObjectiveNameArgumentType::objective());
-    objectiveArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _trigger(ctx); });
+    objectiveArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _trigger(ctx);
+    });
 
     // /trigger <objective> add <value>
     auto addNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("add");

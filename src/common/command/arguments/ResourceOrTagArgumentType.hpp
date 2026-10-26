@@ -54,11 +54,21 @@ public:
         , m_tag(tag)
     {}
 
-    [[nodiscard]] const ResourceLocation& id() const noexcept { return m_id; }
-    [[nodiscard]] bool isTag() const noexcept { return m_tag; }
+    [[nodiscard]] const ResourceLocation& id() const noexcept
+    {
+        return m_id;
+    }
+
+    [[nodiscard]] bool isTag() const noexcept
+    {
+        return m_tag;
+    }
 
     /// 原样文本（标签带 `#`），用于直接按键查找。
-    [[nodiscard]] std::string toString() const { return (m_tag ? "#" : "") + m_id.toString(); }
+    [[nodiscard]] std::string toString() const
+    {
+        return (m_tag ? "#" : "") + m_id.toString();
+    }
 
 private:
     ResourceLocation m_id;
@@ -88,9 +98,15 @@ private:
 /// /locate biome、/execute if biome 等：resource_or_tag（值侧）。
 class ResourceOrTagArgumentType : public ArgumentType<ParsedResourceOrTag> {
 public:
-    [[nodiscard]] ParsedResourceOrTag parse(StringReader& reader) override { return readResourceOrTag(reader); }
+    [[nodiscard]] ParsedResourceOrTag parse(StringReader& reader) override
+    {
+        return readResourceOrTag(reader);
+    }
 
-    [[nodiscard]] std::string getTypeName() const override { return "resource_or_tag"; }
+    [[nodiscard]] std::string getTypeName() const override
+    {
+        return "resource_or_tag";
+    }
 
     [[nodiscard]] std::vector<std::string> getExamples() const override
     {
@@ -106,9 +122,15 @@ public:
 /// /locate structure 等：resource_or_tag_key（键侧）。
 class ResourceOrTagKeyArgumentType : public ArgumentType<ParsedResourceOrTag> {
 public:
-    [[nodiscard]] ParsedResourceOrTag parse(StringReader& reader) override { return readResourceOrTag(reader); }
+    [[nodiscard]] ParsedResourceOrTag parse(StringReader& reader) override
+    {
+        return readResourceOrTag(reader);
+    }
 
-    [[nodiscard]] std::string getTypeName() const override { return "resource_or_tag_key"; }
+    [[nodiscard]] std::string getTypeName() const override
+    {
+        return "resource_or_tag_key";
+    }
 
     [[nodiscard]] std::vector<std::string> getExamples() const override
     {

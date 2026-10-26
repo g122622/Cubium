@@ -62,14 +62,18 @@ void LocateCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatche
     // 原版：structure 是 ResourceOrTagKeyArgument（可写 #minecraft:village），biome 是 ResourceOrTagArgument。
     auto structureArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, ParsedResourceOrTag>>(
         "structure", ResourceOrTagKeyArgumentType::resourceOrTagKey());
-    structureArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _locateStructure(ctx); });
+    structureArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _locateStructure(ctx);
+    });
     structureNode->addChild(structureArg);
     locateNode->addChild(structureNode);
 
     auto biomeNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("biome");
     auto biomeArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, ParsedResourceOrTag>>(
         "biome", ResourceOrTagArgumentType::resourceOrTag());
-    biomeArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return LocateBiomeCommand::locateBiome(ctx); });
+    biomeArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return LocateBiomeCommand::locateBiome(ctx);
+    });
     biomeNode->addChild(biomeArg);
     locateNode->addChild(biomeNode);
 
