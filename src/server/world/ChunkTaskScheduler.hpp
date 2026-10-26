@@ -42,6 +42,7 @@ namespace mc::server {
 class ServerChunkManager;
 class ServerWorld;
 class ChunkProgressionTask;
+class AreaTaskScheduler;
 
 /**
  * @brief 区块生成调度核心（对齐 Moonrise ChunkTaskScheduler）
@@ -57,11 +58,9 @@ class ChunkProgressionTask;
  *
  * 区域锁（ReentrantAreaLock）保证 schedule/checkNeighbour/onChunkGenComplete 的原子性：
  *   - schedule/checkNeighbour 持有 `[x±accessRadius, z±accessRadius]` 的锁
- *   - onChunkGenComplete 持有 `2 * maxAccessRadius` 的锁（覆盖邻居的邻居）
+ *   - onChunkGenComplete 持有 `maxAccessRadius` 的锁；重调度在解锁后进行
  *
- * 执行器选择：
- *   - parallelCapable 状态（blockStateWriteRadius <= 0 且无邻居写）：提交到并行池
- *   - 其他状态：提交到区域互斥池（带 writeRadius）
+ * 任务通过所属世界的 AreaTaskScheduler 保证执行区域互斥，复用外部计算池。
  */
 class ChunkTaskScheduler {
 public:
@@ -70,16 +69,13 @@ public:
      *
      * @param manager 所属 ServerChunkManager（用于执行步骤、存档、holder 管理）
      * @param world 所属 ServerWorld（用于 WorldGenRegion 种子等信息）
-     * @param parallelGenExecutor 并行执行器（无区域互斥，EMPTY~INITIALIZE_LIGHT 等）
-     * @param radiusAwareExecutor 区域互斥执行器（FEATURES/LIGHT/SPAWN/FULL 等写方块状态）
-     *
-     * 两个执行器可为同一个 UniversalWorkerPool（区域互斥由 submit 的 writeRadius 重载保证）。
-     * 也可为 nullptr（同步降级：在线执行任务）。
+     * @param computeExecutor 外部计算池，nullptr 时在线执行。
+     * @param areaTasks 所属世界的区域依赖调度器，与光照及序列化共用。
      */
     ChunkTaskScheduler(ServerChunkManager& manager,
         ServerWorld* world,
-        util::UniversalWorkerPool* parallelGenExecutor,
-        util::UniversalWorkerPool* radiusAwareExecutor);
+        util::UniversalWorkerPool* computeExecutor,
+        AreaTaskScheduler& areaTasks);
 
     /**
      * @brief 主调度入口：把 (x, z) 推进到 targetStatus（一次一步）
@@ -112,7 +108,7 @@ public:
     /**
      * @brief 任务完成回调：由 ChunkProgressionTask 完成时调用
      *
-     * 持有 `2 * maxAccessRadius` 的锁，推进 holder.currentGenStatus（Cubium ChunkPrimer 累积式，
+     * 持有 `maxAccessRadius` 的锁，推进 holder.currentGenStatus（Cubium ChunkPrimer 累积式，
      * primer 是同一对象，无需重存），通知 waitingNeighbours 重新调度。
      *
      * @param holder 完成任务的生命周期管理器
@@ -231,21 +227,10 @@ public:
         return m_shuttingDown.load(std::memory_order::acquire);
     }
 
-    /**
-     * @brief 就地更新两个执行器（运行期注入线程池）
-     *
-     * ServerChunkManager::setWorkerPool 在调度器**已存在**时调用本方法就地替换执行器指针，而不是
-     * 重建整个 ChunkTaskScheduler。这样调度器对象的地址自创建起稳定到 ServerChunkManager 析构，
-     * 使 ensureTaskScheduler() 的调用方（_scheduleGeneration）可以在释放 m_taskSchedulerMutex 之后
-     * 继续安全使用其返回的裸指针——否则再次注入线程池会销毁该对象，裸指针立即悬垂。
-     *
-     * 两个指针是原子的：selectExecutor 由提交任务的线程调用，可能与主线程的注入并发，
-     * 普通指针会构成数据竞争。每次提交只读取一次，代价可忽略。
-     */
-    void setExecutors(util::UniversalWorkerPool* parallelGenExecutor, util::UniversalWorkerPool* radiusAwareExecutor)
+    /** @brief 就地更新计算池，保持调度器及区域依赖实例地址稳定。 */
+    void setExecutor(util::UniversalWorkerPool* executor)
     {
-        m_parallelGenExecutor.store(parallelGenExecutor, std::memory_order::release);
-        m_radiusAwareExecutor.store(radiusAwareExecutor, std::memory_order::release);
+        m_computeExecutor.store(executor, std::memory_order::release);
     }
 
     /**
@@ -270,13 +255,6 @@ public:
     static void resetThreadLocalContext();
 
 private:
-    /**
-     * @brief 选择执行器：parallelCapable 状态走并行池，其他走区域互斥池
-     *
-     * 返回 nullptr 时调用方应在线执行任务（无 worker 池的同步降级模式）。
-     */
-    [[nodiscard]] util::UniversalWorkerPool* selectExecutor(const mc::world::chunk::ChunkStatus& status);
-
     /**
      * @brief 提交任务到执行器（无 worker 池时在线执行）
      *
@@ -327,7 +305,7 @@ private:
      *
      * 对齐 Moonrise：邻居是可变 ChunkPrimer（与中心同类型），WorldGenRegion 通过它读写邻居
      * （FEATURES writeRadius=1 写邻居、STRUCTURE_REFERENCES 读邻居结构起点）。并发安全由
-     * ReentrantAreaLock 覆盖 [center±writeRadius] 保证（等价 Moonrise AreaDependentQueue）。
+     * AreaTaskScheduler 对 [center±writeRadius] 的执行依赖保证。
      */
     [[nodiscard]] StaticChunkCache2D<std::shared_ptr<mc::world::chunk::SingleChunkLifecycleManager>>
     buildNeighbourCache(ChunkCoord x, ChunkCoord z, const mc::world::chunk::ChunkStep& step);
@@ -457,9 +435,9 @@ private:
 
     ServerChunkManager& m_manager;
     ServerWorld* m_world;
-    /// 执行器指针为原子：见 setExecutors() 的说明（注入线程池与提交任务可能并发）。
-    std::atomic<util::UniversalWorkerPool*> m_parallelGenExecutor;
-    std::atomic<util::UniversalWorkerPool*> m_radiusAwareExecutor;
+    /// 执行器指针允许装配线程与提交线程并发读取。
+    std::atomic<util::UniversalWorkerPool*> m_computeExecutor;
+    AreaTaskScheduler& m_areaTasks;
     util::ReentrantAreaLock m_schedulingLockArea;
     std::atomic<bool> m_shuttingDown{false};
 };

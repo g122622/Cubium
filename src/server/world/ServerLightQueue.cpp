@@ -98,7 +98,7 @@ void ServerLightQueue::drainAndProcess(ServerWorld& world)
 
     // executor 未注入（启动早期/测试环境）：fallback 主线程同步经 TLS 引擎传播。
     // 构造 RuntimeLightingProvider 拿 5×5 keepalive，与 worker 路径同构。
-    util::UniversalWorkerPool* executor = (cm != nullptr) ? cm->radiusAwareExecutor() : nullptr;
+    util::UniversalWorkerPool* executor = (cm != nullptr) ? cm->computeExecutor() : nullptr;
     if (executor == nullptr) {
         const std::vector<bool> changedSections; // 运行时方块变更不改段空状态
         for (auto& [chunkKey, task] : tasks) {
@@ -143,7 +143,8 @@ void ServerLightQueue::drainAndProcess(ServerWorld& world)
 
         auto taskPtr =
             std::make_unique<RuntimeLightTask>(world, chunkX, chunkZ, _positionsFromLongs(task.changedPositionLongs));
-        executor->submit(std::move(taskPtr), /*callback=*/nullptr, chunkX, chunkZ, /*writeRadius=*/2);
+        cm->areaTasks().submit(
+            std::move(taskPtr), nullptr, ChunkPos(chunkX, chunkZ), 2, util::TaskPriority::Normal, nullptr);
     }
 }
 

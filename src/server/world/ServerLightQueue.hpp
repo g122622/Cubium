@@ -42,7 +42,7 @@ class ServerWorld;
  * tick 时按区块分组提交 worker 任务（RuntimeLightTask）异步传播，
  * 避免每次方块变更都触发一次完整的 setupCaches/destroyCaches。
  *
- * ③-2b：传播统一经 UniversalWorkerPool 区域互斥池（writeRadius=2），与区块加载
+ * ③-2b：传播统一经 世界 AreaTaskScheduler（writeRadius=2），与区块加载
  * 光照、LIGHT 生成阶段同池同 writeRadius，重叠 5×5 区域串行 → 可安全删 m_mutex。
  */
 class ServerLightQueue {
@@ -65,7 +65,7 @@ public:
      * @brief 排空队列并提交 worker 异步传播
      *
      * 主线程 tick 调用：对每个待处理区块构造 RuntimeLightTask，经
-     * ServerChunkManager::radiusAwareExecutor() 提交到区域互斥池（writeRadius=2），
+     * ServerChunkManager::areaTasks() 提交到区域互斥池（writeRadius=2），
      * worker 线程执行传播，完成后 dirty section 入 ServerWorld flush 队列，
      * 主线程下一 tick flush visible。实现 Moonrise "compute on worker, flush on main"。
      *

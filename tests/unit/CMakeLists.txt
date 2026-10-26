@@ -1602,7 +1602,7 @@ add_executable(mc_tests
     # UniversalWorkerPool 测试
     common/util/thread/UniversalWorkerPoolTest.cpp
     # UniversalWorkerPool 区域互斥测试（对齐 Moonrise 区域锁执行器）
-    common/util/thread/UniversalWorkerPoolAreaMutexTest.cpp
+    server/world/scheduling/AreaTaskSchedulerTest.cpp
     # ReentrantAreaLock 区域锁测试
     common/util/concurrent/ReentrantAreaLockTest.cpp
     # LockSupport park/unpark 原语测试
@@ -1853,6 +1853,7 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/server/core/OpListManager.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/ServerWorld.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/ChunkTaskScheduler.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/world/scheduling/AreaTaskScheduler.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/ChunkProgressionTask.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/ChunkLightingProvider.cpp
         ${CMAKE_SOURCE_DIR}/src/common/util/thread/UniversalWorkerPool.cpp

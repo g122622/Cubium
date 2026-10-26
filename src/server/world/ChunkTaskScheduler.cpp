@@ -36,6 +36,7 @@
 #include "server/world/StaticChunkCache2D.hpp"
 #include "server/world/gen/chunk/ChunkPrimer.hpp"
 #include "server/world/gen/chunk/IChunkGenerator.hpp"
+#include "server/world/scheduling/AreaTaskScheduler.hpp"
 #include <algorithm>
 #include <atomic>
 #include <cstddef>
@@ -63,12 +64,12 @@ using mc::world::chunk::SingleChunkLifecycleManager;
 
 ChunkTaskScheduler::ChunkTaskScheduler(ServerChunkManager& manager,
     ServerWorld* world,
-    util::UniversalWorkerPool* parallelGenExecutor,
-    util::UniversalWorkerPool* radiusAwareExecutor)
+    util::UniversalWorkerPool* computeExecutor,
+    AreaTaskScheduler& areaTasks)
     : m_manager(manager)
     , m_world(world)
-    , m_parallelGenExecutor(parallelGenExecutor)
-    , m_radiusAwareExecutor(radiusAwareExecutor)
+    , m_computeExecutor(computeExecutor)
+    , m_areaTasks(areaTasks)
     , m_schedulingLockArea(
           6) // coordinateShift=6：对齐 Moonrise getChunkSystemLockShift()=max(regionChunkShift,SECTION_SHIFT)=6，每
              // section 覆盖 64×64 区块。2*maxAccessRadius(22) 的锁从 shift=0 的 2025 sections 降到 1~4 sections，消除
@@ -86,19 +87,6 @@ i32 ChunkTaskScheduler::getMaxAccessRadius()
 {
     // 最大访问半径 = FULL 的 accumulatedRadius（当前为 11）
     return getAccessRadius(ChunkStatuses::FULL);
-}
-
-util::UniversalWorkerPool* ChunkTaskScheduler::selectExecutor(const ChunkStatus& status)
-{
-    const ChunkPyramid& pyramid = ChunkPyramid::generationPyramid();
-    const ChunkStep& step = pyramid.getStepTo(status);
-    // writeRadius <= 0 的状态不写方块状态（或只写中心），可完全并行；
-    // writeRadius > 0 的状态（FEATURES=1, LIGHT=2）走区域互斥池。
-    const i32 writeRadius = step.blockStateWriteRadius();
-    if (writeRadius <= 0) {
-        return m_parallelGenExecutor.load(std::memory_order::acquire);
-    }
-    return m_radiusAwareExecutor.load(std::memory_order::acquire);
 }
 
 SingleChunkLifecycleManager& ChunkTaskScheduler::getOrCreateHolder(ChunkCoord x, ChunkCoord z)
@@ -279,7 +267,8 @@ void ChunkTaskScheduler::submitTask(std::unique_ptr<ChunkProgressionTask> task,
     std::shared_ptr<std::atomic<bool>> abortSignal,
     std::shared_ptr<SingleChunkLifecycleManager> holder)
 {
-    util::UniversalWorkerPool* pool = selectExecutor(status);
+    util::UniversalWorkerPool* pool = m_computeExecutor.load(std::memory_order::acquire);
+    MC_UNUSED(status);
     const ChunkCoord centerX = x;
     const ChunkCoord centerZ = z;
 
@@ -334,10 +323,9 @@ void ChunkTaskScheduler::submitTask(std::unique_ptr<ChunkProgressionTask> task,
         return;
     }
 
-    pool->submit(std::move(task),
+    m_areaTasks.submit(std::move(task),
         std::move(callback),
-        centerX,
-        centerZ,
+        ChunkPos(centerX, centerZ),
         writeRadius,
         util::TaskPriority::Normal,
         std::move(abortSignal));

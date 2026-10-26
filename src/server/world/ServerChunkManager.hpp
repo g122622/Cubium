@@ -38,6 +38,7 @@
 #include "common/world/chunk/load/ChunkLoadTicketManager.hpp"
 #include "server/world/gen/chunk/IChunkGenerator.hpp"
 #include "server/world/gen/structure/Structure.hpp"
+#include "server/world/scheduling/AreaTaskScheduler.hpp"
 #include <atomic>
 #include <cstddef>
 #include <deque>
@@ -179,24 +180,22 @@ public:
     /**
      * @brief 注入外部计算线程池
      *
-     * 同时创建/重建区块生成调度器 ChunkTaskScheduler，把同一 worker 池同时作为
-     * parallelGenExecutor 和 radiusAwareExecutor（区域互斥由 submit 的 writeRadius
-     * 重载保证，无需两个独立池）。
+     * 世界区域调度器复用该计算池，区块生成调度器保持地址稳定。
      *
      * @param workerPool 由服务器统一持有的工作线程池
      */
     void setWorkerPool(util::UniversalWorkerPool* workerPool)
     {
         std::lock_guard<std::mutex> lock(m_taskSchedulerMutex);
+        m_areaTasks.setExecutor(workerPool);
         m_workerPool.store(workerPool, std::memory_order::release);
-        // 调度器持有 worker 池指针。同一池既用于 parallelCapable 状态（无区域互斥 submit），
-        // 也用于写方块状态（带 writeRadius 的区域互斥 submit）。
+        // 区域依赖属于世界；通用计算池只执行已就绪任务。
         if (m_taskScheduler == nullptr) {
-            m_taskScheduler = std::make_unique<ChunkTaskScheduler>(*this, m_world, workerPool, workerPool);
+            m_taskScheduler = std::make_unique<ChunkTaskScheduler>(*this, m_world, workerPool, m_areaTasks);
         } else {
             // 已存在则**就地更新执行器**，绝不重建。重建会销毁旧对象，而 ensureTaskScheduler()
             // 的调用方可能正持有其裸指针（_scheduleGeneration 在释放本锁后继续使用该指针）。
-            m_taskScheduler->setExecutors(workerPool, workerPool);
+            m_taskScheduler->setExecutor(workerPool);
         }
     }
 
@@ -220,7 +219,7 @@ public:
      * 会各建一个调度器并泄漏其中一个。返回裸指针——所有权仍归本管理器。
      *
      * 返回的指针在 ServerChunkManager 生命周期内**地址稳定**：setWorkerPool 对已存在的调度器
-     * 只调用 setExecutors() 就地更新执行器，不再重建对象，因此调用方可以安全地在释放
+     * 只调用 setExecutor() 就地更新执行器，不再重建对象，因此调用方可以安全地在释放
      * m_taskSchedulerMutex 之后继续使用该指针（见 _scheduleGeneration）。
      *
      * @return 调度器指针（恒非空）
@@ -231,26 +230,26 @@ public:
         if (m_taskScheduler == nullptr) {
             // worker 池可能为 nullptr，ChunkTaskScheduler 会在线执行任务（submitTask 降级）。
             auto* pool = m_workerPool.load(std::memory_order::acquire);
-            m_taskScheduler = std::make_unique<ChunkTaskScheduler>(*this, m_world, pool, pool);
+            m_taskScheduler = std::make_unique<ChunkTaskScheduler>(*this, m_world, pool, m_areaTasks);
         }
         return m_taskScheduler.get();
     }
 
-    /**
-     * @brief 获取区域互斥执行器（worker 池）
-     *
-     * 返回注入的 UniversalWorkerPool，供运行时光照等需要 writeRadius>0 区域互斥的
-     * worker 任务提交（RuntimeLightTask 经 submit(writeRadius=2) 串行化重叠区域
-     * nibble 写）。启动早期或测试环境未注入时返回 nullptr，调用方应 fallback 同步路径。
-     */
-    [[nodiscard]] util::UniversalWorkerPool* radiusAwareExecutor() noexcept
+    /** @brief 获取通用计算池，仅用于不需要区域依赖的任务。 */
+    [[nodiscard]] util::UniversalWorkerPool* computeExecutor() noexcept
     {
         return m_workerPool.load(std::memory_order::acquire);
     }
 
-    [[nodiscard]] const util::UniversalWorkerPool* radiusAwareExecutor() const noexcept
+    [[nodiscard]] const util::UniversalWorkerPool* computeExecutor() const noexcept
     {
         return m_workerPool.load(std::memory_order::acquire);
+    }
+
+    /** @brief 本世界共享的区域调度入口，供生成、光照及序列化任务使用。 */
+    [[nodiscard]] AreaTaskScheduler& areaTasks() noexcept
+    {
+        return m_areaTasks;
     }
 
     /**
@@ -1309,6 +1308,7 @@ private:
      *  ChunkTaskScheduler ← _scheduleGeneration ← _onChunkLoadComplete）。
      */
     std::unique_ptr<ChunkTaskScheduler> m_taskScheduler;
+    AreaTaskScheduler m_areaTasks{nullptr};
 
     /// 保护 m_taskScheduler 的惰性创建。仅覆盖"检查并创建"这一小段，不覆盖 schedule 调用，
     /// 故不会与调度锁形成嵌套。
@@ -1316,7 +1316,7 @@ private:
 
     mc::world::chunk::ChunkLoadTicketManager m_ticketManager;
     sync::ChunkSendManager* m_chunkSendManager = nullptr;
-    /// 注入的计算线程池。为原子：setWorkerPool 在装配期写入，而 radiusAwareExecutor() 会在
+    /// 注入的计算线程池。为原子：setWorkerPool 在装配期写入，而 computeExecutor() 会在
     /// 运行期被光照队列/区块发送/区块管理器从多个线程读取（如 ServerLightQueue::submit）。
     std::atomic<util::UniversalWorkerPool*> m_workerPool{nullptr};
 

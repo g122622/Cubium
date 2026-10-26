@@ -52,7 +52,7 @@ namespace mc::util {
 
 UniversalWorkerPool::UniversalWorkerPool(i32 threadCount, std::string name, i32 rankBase)
     : m_poolName(std::move(name))
-    , m_threadCount(threadCount > 0 ? threadCount : getOptimalThreadCount())
+    , m_threadCount(threadCount > 0 ? threadCount : _getOptimalThreadCount())
     , m_rankBase(rankBase)
 {}
 
@@ -61,7 +61,7 @@ UniversalWorkerPool::~UniversalWorkerPool()
     shutdown();
 }
 
-i32 UniversalWorkerPool::getOptimalThreadCount()
+i32 UniversalWorkerPool::_getOptimalThreadCount()
 {
     // 使用硬件并发数 - 1，至少 1 个，最多 114514 个
     const u32 hardwareConcurrency = std::thread::hardware_concurrency();
@@ -83,7 +83,7 @@ void UniversalWorkerPool::start()
     // 创建工作线程
     m_workers.reserve(m_threadCount);
     for (i32 i = 0; i < m_threadCount; ++i) {
-        m_workers.emplace_back(&UniversalWorkerPool::workerThread, this, i);
+        m_workers.emplace_back(&UniversalWorkerPool::_workerThread, this, i);
     }
 
     spdlog::info("[UniversalWorkerPool] Started {} worker threads (name: {})", m_threadCount, m_poolName);
@@ -92,53 +92,29 @@ void UniversalWorkerPool::start()
 void UniversalWorkerPool::shutdown()
 {
     if (!m_running.exchange(false, std::memory_order::acq_rel)) {
-        return; // 已经停止
+        return;
     }
-
-    // 置停止位并唤醒所有等待的线程：两个条件变量的谓词都在各自互斥量下求值，故此处
-    // "持锁置位 + 持锁通知"，与等待方的"谓词求值 + 原子释放锁并阻塞"串行化，杜绝关闭期
-    // 通知丢失导致 worker 永久阻塞（进而 join 永久挂起）。
-    // 同时取出队列中所有不会再被执行的任务，放到 lock 外逐一结清。
-    std::vector<std::shared_ptr<InternalTask>> droppedTasks;
+    std::vector<std::shared_ptr<InternalTask>> dropped;
     {
-        std::lock_guard<std::mutex> queueLock(m_queueMutex);
+        std::lock_guard lock(m_queueMutex);
         m_stop.store(true, std::memory_order::release);
         while (!m_taskQueue.empty()) {
-            droppedTasks.push_back(m_taskQueue.top());
+            dropped.push_back(m_taskQueue.top());
             m_taskQueue.pop();
         }
-        m_condition.notify_all();
     }
-    {
-        // 唤醒等待区域释放的 worker（其谓词含 m_stop，见 workerThread 的冲突重试分支）
-        std::lock_guard<std::mutex> areaLock(m_runningRegionsMutex);
-        m_areaReleasedCondition.notify_all();
-    }
-
-    // 结清被丢弃的任务必须在 join 之前完成：其他线程可能正阻塞等待这些任务的结果（例如等待同一区块
-    // 保存完成的加载任务），若留到 join 之后再处理，等待方永远收不到通知，而它的 worker 不响应停止位，
-    // join 将永久挂起。onCancel 在锁外调用：它可能向其他池提交任务，持 m_queueMutex 回调有重入风险。
-    for (auto& task : droppedTasks) {
-        // 未执行即丢弃：未完成任务计数必须同步递减，否则 waitForCompletion 永不复位
+    m_condition.notify_all();
+    // 先通知取消，再等待 worker；运行任务可能依赖这些通知才能结束。
+    for (const auto& task : dropped) {
+        _cancelTask(task);
         _releaseOutstandingTask();
-        if (!task || !task->task) {
-            continue;
-        }
-        task->task->onCancel();
-        if (task->callback) {
-            task->callback(false, task->task.get()); // 通知失败
-        }
     }
-    droppedTasks.clear();
-
-    // 等待所有线程结束
+    dropped.clear();
+    _notifyIfIdle();
     for (auto& worker : m_workers) {
-        if (worker.joinable()) {
-            worker.join();
-        }
+        worker.join();
     }
     m_workers.clear();
-
     spdlog::info("[UniversalWorkerPool] Shutdown complete (name: {})", m_poolName);
 }
 
@@ -157,191 +133,114 @@ u64 UniversalWorkerPool::submit(std::unique_ptr<ITask> task,
         }
         return 0;
     }
-
-    if (!m_running.load(std::memory_order::acquire)) {
-        // 池未启动即提交：任务被丢弃。必须在日志中暴露，否则调用方（尤其是提交时不带 callback
-        // 的存储任务）会永远等不到结果而无从排查。
-        spdlog::warn("UniversalWorkerPool[{}]: task submitted before pool start; task dropped", m_poolName);
-        if (callback) {
-            callback(false, nullptr);
-        }
-        return 0;
-    }
-
-    const u64 taskId = m_nextTaskId.fetch_add(1, std::memory_order::relaxed);
-    const u64 timestamp = static_cast<u64>(std::chrono::steady_clock::now().time_since_epoch().count());
-
-    auto internalTask = std::make_unique<InternalTask>();
-    internalTask->id = taskId;
-    internalTask->priority = priority;
-    internalTask->timestamp = timestamp;
-    internalTask->task = std::move(task);
-    internalTask->callback = std::move(callback);
-    internalTask->abortSignal = std::move(abortSignal);
-
+    auto internal = std::make_shared<InternalTask>();
+    internal->task = std::move(task);
+    internal->callback = std::move(callback);
+    internal->priority = priority;
+    internal->abortSignal = std::move(abortSignal);
     {
-        std::lock_guard<std::mutex> lock(m_queueMutex);
-        // 与入队同锁递增：waitForCompletion 的完成谓词从任务入队那一刻起就必须为"未完成"
-        m_outstandingTaskCount.fetch_add(1, std::memory_order::relaxed);
-        m_taskQueue.push(std::move(internalTask));
-    }
-
-    m_condition.notify_one();
-    return taskId;
-}
-
-u64 UniversalWorkerPool::submit(std::unique_ptr<ITask> task,
-    TaskCallback callback,
-    ChunkCoord centerX,
-    ChunkCoord centerZ,
-    i32 writeRadius,
-    TaskPriority priority,
-    std::shared_ptr<std::atomic<bool>> abortSignal)
-{
-    if (!task) {
-        if (callback) {
-            callback(false, nullptr);
-        }
-        return 0;
-    }
-
-    if (!m_running.load(std::memory_order::acquire)) {
-        // 池未启动即提交：任务被丢弃。必须在日志中暴露，否则调用方（尤其是提交时不带 callback
-        // 的存储任务）会永远等不到结果而无从排查。
-        spdlog::warn("UniversalWorkerPool[{}]: task submitted before pool start; task dropped", m_poolName);
-        if (callback) {
-            callback(false, nullptr);
-        }
-        return 0;
-    }
-
-    const u64 taskId = m_nextTaskId.fetch_add(1, std::memory_order::relaxed);
-    const u64 timestamp = static_cast<u64>(std::chrono::steady_clock::now().time_since_epoch().count());
-
-    auto internalTask = std::make_unique<InternalTask>();
-    internalTask->id = taskId;
-    internalTask->priority = priority;
-    internalTask->timestamp = timestamp;
-    internalTask->task = std::move(task);
-    internalTask->callback = std::move(callback);
-    internalTask->abortSignal = std::move(abortSignal);
-    internalTask->hasArea = true;
-    internalTask->areaCenterX = centerX;
-    internalTask->areaCenterZ = centerZ;
-    internalTask->areaWriteRadius = writeRadius < 0 ? 0 : writeRadius;
-
-    {
-        std::lock_guard<std::mutex> lock(m_queueMutex);
-        // 与入队同锁递增：waitForCompletion 的完成谓词从任务入队那一刻起就必须为"未完成"
-        m_outstandingTaskCount.fetch_add(1, std::memory_order::relaxed);
-        m_taskQueue.push(std::move(internalTask));
-    }
-
-    m_condition.notify_one();
-    return taskId;
-}
-
-bool UniversalWorkerPool::canExecuteNow(ChunkCoord centerX, ChunkCoord centerZ, i32 writeRadius) const
-{
-    if (writeRadius < 0) {
-        writeRadius = 0;
-    }
-    std::lock_guard<std::mutex> lock(m_runningRegionsMutex);
-    const i32 r = writeRadius;
-    for (i32 dx = -r; dx <= r; ++dx) {
-        for (i32 dz = -r; dz <= r; ++dz) {
-            if (m_runningRegions.count(packChunkKey(centerX + dx, centerZ + dz)) > 0) {
-                return false;
-            }
+        std::lock_guard lock(m_queueMutex);
+        // 接纳任务与关闭清队列互斥，不能在 shutdown 排空后再提交。
+        if (m_running.load(std::memory_order::acquire) && !m_stop.load(std::memory_order::acquire)) {
+            internal->id = m_nextTaskId.fetch_add(1, std::memory_order::relaxed);
+            m_outstandingTaskCount.fetch_add(1, std::memory_order::relaxed);
+            m_taskQueue.push(internal);
+            m_condition.notify_one();
+            return internal->id;
         }
     }
-    return true;
+    spdlog::warn("UniversalWorkerPool[{}]: task submitted while pool is stopped; task dropped", m_poolName);
+    if (internal->callback) {
+        internal->callback(false, nullptr);
+    }
+    return 0;
 }
-
-// ============================================================================
-// 任务管理
-// ============================================================================
 
 bool UniversalWorkerPool::cancel(u64 taskId)
 {
-    bool found = false;
-    std::vector<std::shared_ptr<InternalTask>> temp;
-
+    std::shared_ptr<InternalTask> cancelled;
     {
-        std::lock_guard<std::mutex> lock(m_queueMutex);
-
-        // 遍历队列查找任务
+        std::lock_guard lock(m_queueMutex);
+        std::vector<std::shared_ptr<InternalTask>> retained;
         while (!m_taskQueue.empty()) {
             auto task = m_taskQueue.top();
             m_taskQueue.pop();
-
-            if (task && task->id == taskId) {
-                // 找到任务，设置取消标志
+            if (task->id == taskId) {
+                cancelled = task;
                 if (task->abortSignal) {
                     task->abortSignal->store(true, std::memory_order::release);
                 }
-                // 未执行即丢弃：未完成任务计数必须同步递减，否则 waitForCompletion 永不复位
-                _releaseOutstandingTask();
-                if (task->callback) {
-                    task->callback(false, task->task.get());
-                }
-                found = true;
-                // 不放回队列
             } else {
-                temp.push_back(std::move(task));
-            }
-        }
-
-        // 放回队列
-        for (auto& task : temp) {
-            m_taskQueue.push(std::move(task));
-        }
-    }
-
-    // 取消可能使队列排空,唤醒等待方(同 notifyIfIdle 的 lost-wakeup 修复理由)。
-    if (found) {
-        notifyIfIdle();
-    }
-    return found;
-}
-
-void UniversalWorkerPool::pruneCancelledTasks()
-{
-    bool removedAny = false;
-    {
-        std::lock_guard<std::mutex> lock(m_queueMutex);
-
-        if (m_taskQueue.empty()) {
-            return;
-        }
-
-        std::vector<std::shared_ptr<InternalTask>> retained;
-        retained.reserve(m_taskQueue.size());
-
-        while (!m_taskQueue.empty()) {
-            auto task = m_taskQueue.top();
-            m_taskQueue.pop();
-
-            if (task && !isTaskCancelled(*task)) {
                 retained.push_back(std::move(task));
-            } else if (task) {
-                // 未执行即丢弃：未完成任务计数必须同步递减，否则 waitForCompletion 永不复位
-                _releaseOutstandingTask();
-                if (task->callback) {
-                    task->callback(false, task->task.get()); // 通知取消
-                }
-                removedAny = true;
             }
         }
-
         for (auto& task : retained) {
             m_taskQueue.push(std::move(task));
         }
     }
+    if (!cancelled) {
+        return false;
+    }
+    _cancelTask(cancelled);
+    _releaseOutstandingTask();
+    _notifyIfIdle();
+    return true;
+}
 
-    // 裁剪可能使队列排空,唤醒等待方(同 notifyIfIdle 的 lost-wakeup 修复理由)。
-    if (removedAny) {
-        notifyIfIdle();
+void UniversalWorkerPool::pruneCancelledTasks()
+{
+    std::vector<std::shared_ptr<InternalTask>> cancelled;
+    {
+        std::lock_guard lock(m_queueMutex);
+        std::vector<std::shared_ptr<InternalTask>> retained;
+        while (!m_taskQueue.empty()) {
+            auto task = m_taskQueue.top();
+            m_taskQueue.pop();
+            if (_isTaskCancelled(*task)) {
+                cancelled.push_back(std::move(task));
+            } else {
+                retained.push_back(std::move(task));
+            }
+        }
+        for (auto& task : retained) {
+            m_taskQueue.push(std::move(task));
+        }
+    }
+    for (const auto& task : cancelled) {
+        _cancelTask(task);
+        _releaseOutstandingTask();
+    }
+    _notifyIfIdle();
+}
+
+void UniversalWorkerPool::_cancelTask(const std::shared_ptr<InternalTask>& task)
+{
+    try {
+        task->task->onCancel();
+    }
+    catch (const std::exception& e) {
+        spdlog::error("[UniversalWorkerPool] Cancellation threw: {}", e.what());
+    }
+    catch (...) {
+        spdlog::error("[UniversalWorkerPool] Cancellation threw an unknown exception");
+    }
+    _callback(task, false);
+}
+
+void UniversalWorkerPool::_callback(const std::shared_ptr<InternalTask>& task, bool success)
+{
+    if (!task->callback) {
+        return;
+    }
+    try {
+        MC_TRACE_SCOPED_EVENT(TraceEvents.WorkerPool.Generic, "TaskCallback", "description", task->task->description());
+        task->callback(success, task->task.get());
+    }
+    catch (const std::exception& e) {
+        spdlog::error("[UniversalWorkerPool] Callback threw: {}", e.what());
+    }
+    catch (...) {
+        spdlog::error("[UniversalWorkerPool] Callback threw an unknown exception");
     }
 }
 
@@ -365,7 +264,7 @@ void UniversalWorkerPool::_releaseOutstandingTask()
     MC_ASSERT_RELEASE_MSG(before > 0, "UniversalWorkerPool: outstanding task count underflow");
 }
 
-void UniversalWorkerPool::notifyIfIdle()
+void UniversalWorkerPool::_notifyIfIdle()
 {
     // fast-path:仍有未完成任务则必非空闲,直接返回不抢锁(任务执行期间 worker 高频调用此点,
     // 避免无谓的 m_completionMutex 竞争)。
@@ -397,51 +296,7 @@ size_t UniversalWorkerPool::runningTaskCount() const
 
 void UniversalWorkerPool::debugDumpState()
 {
-    size_t queueSize = 0;
-    size_t areaTaskCount = 0;
-    size_t cancelledCount = 0;
-    size_t nonAreaCount = 0;
-    std::unordered_map<i32, size_t> writeRadiusHistogram;
-    {
-        std::lock_guard<std::mutex> lock(m_queueMutex);
-        // 优先队列不支持遍历，用临时 vector 取出再放回
-        std::vector<std::shared_ptr<InternalTask>> tmp;
-        tmp.reserve(m_taskQueue.size());
-        while (!m_taskQueue.empty()) {
-            auto t = m_taskQueue.top();
-            m_taskQueue.pop();
-            tmp.push_back(t);
-            ++queueSize;
-            if (t->hasArea) {
-                ++areaTaskCount;
-                writeRadiusHistogram[t->areaWriteRadius]++;
-            } else {
-                ++nonAreaCount;
-            }
-            if (t->abortSignal && t->abortSignal->load(std::memory_order::acquire)) {
-                ++cancelledCount;
-            }
-        }
-        for (auto& t : tmp) {
-            m_taskQueue.push(t);
-        }
-    }
-    size_t runningRegionsCount = 0;
-    {
-        std::lock_guard<std::mutex> lock(m_runningRegionsMutex);
-        runningRegionsCount = m_runningRegions.size();
-    }
-    spdlog::info("[workerPool-debug] queueSize={}, areaTaskCount={}, nonAreaCount={}, cancelledInQueue={}, "
-                 "runningRegions={}, runningTaskCount={}",
-        queueSize,
-        areaTaskCount,
-        nonAreaCount,
-        cancelledCount,
-        runningRegionsCount,
-        m_runningTaskCount.load(std::memory_order::acquire));
-    for (const auto& [wr, cnt] : writeRadiusHistogram) {
-        spdlog::info("[workerPool-debug]   writeRadius={} count={}", wr, cnt);
-    }
+    spdlog::info("[workerPool-debug] pending={} running={}", pendingTaskCount(), runningTaskCount());
 }
 
 void UniversalWorkerPool::debugDumpRunningTasks()
@@ -460,14 +315,7 @@ void UniversalWorkerPool::debugDumpRunningTasks()
     }
     for (const auto& [wid, info] : snapshot) {
         const auto elapsedMs = std::chrono::duration_cast<std::chrono::milliseconds>(now - info.startTime).count();
-        spdlog::info("[workerPool-running] worker={} elapsedMs={} hasArea={} area=({},{},r={}) desc={}",
-            wid,
-            elapsedMs,
-            info.hasArea,
-            info.areaCenterX,
-            info.areaCenterZ,
-            info.areaWriteRadius,
-            info.description);
+        spdlog::info("[workerPool-running] worker={} elapsedMs={} desc={}", wid, elapsedMs, info.description);
     }
 }
 
@@ -475,171 +323,45 @@ void UniversalWorkerPool::debugDumpRunningTasks()
 // 工作线程
 // ============================================================================
 
-void UniversalWorkerPool::workerThread(i32 workerId)
+void UniversalWorkerPool::_workerThread(i32 workerId)
 {
-    // 设置线程名称
-    std::string threadName = m_poolName + "-" + std::to_string(workerId);
-    // sibling_order_rank = rankBase + workerId，让 worker-0 排最前（根 track thread_ordering=EXPLICIT 生效）。
-    // rankBase 由构造方显式传入（ServerCompute=100、ServerIO=200、ClientCompute=300 等），
-    // 使 UI 中各组 worker 分块排列、组内按 workerId 升序；每组间隔 100，避免线程数 >10 时跨组相交。
-    const i32 rankBase = m_rankBase;
-    mc::profiler::ProfilerManager::instance().setThreadName(threadName, rankBase + workerId);
-
+    const std::string threadName = m_poolName + "-" + std::to_string(workerId);
+    mc::profiler::ProfilerManager::instance().setThreadName(threadName, m_rankBase + workerId);
     while (true) {
-        std::shared_ptr<InternalTask> taskCopy;
-
+        std::shared_ptr<InternalTask> task;
         {
-            std::unique_lock<std::mutex> lock(m_queueMutex);
-
-            // 等待任务或停止信号
+            std::unique_lock lock(m_queueMutex);
             m_condition.wait(lock, [this] {
                 return !m_taskQueue.empty() || m_stop.load(std::memory_order::acquire);
             });
-
-            if (m_taskQueue.empty() && m_stop.load(std::memory_order::acquire)) {
+            if (m_stop.load(std::memory_order::acquire)) {
                 return;
             }
-
-            if (!m_taskQueue.empty()) {
-                taskCopy = m_taskQueue.top();
-                m_taskQueue.pop();
-            }
+            task = m_taskQueue.top();
+            m_taskQueue.pop();
         }
-
-        // 执行任务
-        if (taskCopy) {
-            // 取消检查：被取消的任务（abortSignal=true）在入队期间被 cancelActiveWork 标记，
-            // 必须尽快走取消路径（onCancel → callback(false)）清理依赖图（cancelGeneration/clearGenerationTask/
-            // releaseNeighbourRefCounts），绝不能进入冲突重试循环（否则永远无法到达 executeTask 的取消检查，
-            // m_generationTask 永不清除 → isSafeToUnload 永假 → holder 永久卡住 → 测试挂起）。
-            if (isTaskCancelled(*taskCopy)) {
-                executeTask(std::move(taskCopy)); // executeTask 开头检测取消 → onCancel + callback(false)
-                notifyIfIdle();
-                continue;
-            }
-
-            // 区域互斥任务：执行前检查写入区域是否与正在执行的区域任务冲突。
-            // 冲突时把任务放回队列，等待某个区域任务释放后重试。
-            if (taskCopy->hasArea) {
-                bool conflict = false;
-                {
-                    std::lock_guard<std::mutex> areaLock(m_runningRegionsMutex);
-                    conflict = hasAreaConflictLocked(*taskCopy);
-                    if (!conflict) {
-                        // 无冲突：立即标记区域为正在执行
-                        markAreaRunningLocked(*taskCopy);
-                    }
-                }
-
-                if (conflict) {
-                    // 放回队列：本任务留在队列中，其他空闲 worker 也可取走执行
-                    {
-                        std::lock_guard<std::mutex> lock(m_queueMutex);
-                        m_taskQueue.push(taskCopy); // 保留 shared_ptr，不 move
-                    }
-                    // 通知一个工作线程重试（可能是自己，也可能是其他线程）
-                    m_condition.notify_one();
-
-                    // 等待直到本任务的写入区域不再与在执行的区域任务冲突。
-                    // 无丢失唤醒的依据：谓词在 m_runningRegionsMutex 下求值，而区域标记的清除
-                    // （unmarkAreaRunningLocked）同样持该锁、并在锁内 notify_all，因此"谓词求值"
-                    // 与"状态变更 + 通知"无法交叠——要么本线程看到新状态不进入等待，要么本线程
-                    // 已登记在条件变量上并被唤醒。谓词含 m_stop：shutdown 置位后持锁 notify_all
-                    // （见 shutdown），保证关闭时等待中的 worker 必定被唤醒并退出，不会永久滞留。
-                    {
-                        std::unique_lock<std::mutex> areaLock(m_runningRegionsMutex);
-                        m_areaReleasedCondition.wait(areaLock, [this, &taskCopy] {
-                            return m_stop.load(std::memory_order::acquire) || !hasAreaConflictLocked(*taskCopy);
-                        });
-                    }
-                    if (m_stop.load(std::memory_order::acquire)) {
-                        // 关闭中：任务保留在队列里，由 shutdown 统一以失败回调清理，不再执行
-                        return;
-                    }
-                    continue;
-                }
-
-                // 无冲突且已标记区域：执行任务
-                // 保存区域信息（executeTask 会 move taskCopy，之后无法访问）
-                const ChunkCoord areaX = taskCopy->areaCenterX;
-                const ChunkCoord areaZ = taskCopy->areaCenterZ;
-                const i32 areaR = taskCopy->areaWriteRadius;
-
-                {
-                    std::lock_guard<std::mutex> rlock(m_runningTaskMutex);
-                    auto& info = m_runningTaskInfo[workerId];
-                    info.description = taskCopy->task ? taskCopy->task->description() : std::string();
-                    info.startTime = std::chrono::steady_clock::now();
-                    info.hasArea = true;
-                    info.areaCenterX = areaX;
-                    info.areaCenterZ = areaZ;
-                    info.areaWriteRadius = areaR;
-                }
-                executeTask(std::move(taskCopy));
-                {
-                    std::lock_guard<std::mutex> rlock(m_runningTaskMutex);
-                    m_runningTaskInfo.erase(workerId);
-                }
-
-                // 执行完成：清除区域标记并通知等待冲突的工作线程。
-                // 通知持锁进行：与等待方"谓词求值 + 原子释放锁并阻塞"串行化，避免通知落在
-                // 无人阻塞的窗口里被丢弃（与 notifyIfIdle 的丢失唤醒修复同一理由）。
-                {
-                    std::lock_guard<std::mutex> areaLock(m_runningRegionsMutex);
-                    InternalTask tmp;
-                    tmp.areaCenterX = areaX;
-                    tmp.areaCenterZ = areaZ;
-                    tmp.areaWriteRadius = areaR;
-                    unmarkAreaRunningLocked(tmp);
-                    m_areaReleasedCondition.notify_all();
-                }
-            } else {
-                // 无区域互斥任务：直接执行
-                {
-                    std::lock_guard<std::mutex> rlock(m_runningTaskMutex);
-                    auto& info = m_runningTaskInfo[workerId];
-                    info.description = taskCopy->task ? taskCopy->task->description() : std::string();
-                    info.startTime = std::chrono::steady_clock::now();
-                    info.hasArea = false;
-                    info.areaCenterX = 0;
-                    info.areaCenterZ = 0;
-                    info.areaWriteRadius = 0;
-                }
-                executeTask(std::move(taskCopy));
-                {
-                    std::lock_guard<std::mutex> rlock(m_runningTaskMutex);
-                    m_runningTaskInfo.erase(workerId);
-                }
-            }
+        {
+            std::lock_guard lock(m_runningTaskMutex);
+            m_runningTaskInfo[workerId] = {task->task->description(), std::chrono::steady_clock::now()};
         }
-
-        // 检查是否所有任务都完成了
-        notifyIfIdle();
+        _executeTask(task);
+        {
+            std::lock_guard lock(m_runningTaskMutex);
+            m_runningTaskInfo.erase(workerId);
+        }
+        _releaseOutstandingTask();
+        _notifyIfIdle();
     }
 }
 
-void UniversalWorkerPool::executeTask(std::shared_ptr<InternalTask> task)
+void UniversalWorkerPool::_executeTask(std::shared_ptr<InternalTask> task)
 {
-    if (!task || !task->task) {
-        return;
-    }
-
-    // 检查取消
-    if (isTaskCancelled(*task)) {
-        task->task->onCancel();
-        if (task->callback) {
-            task->callback(false, task->task.get());
-        }
-        // 取消路径不进入 running 状态，但任务自 submit() 起就被计入未完成计数，
-        // 必须在这里结清，否则 waitForCompletion() 永远不会返回。
-        _releaseOutstandingTask();
+    if (_isTaskCancelled(*task)) {
+        _cancelTask(task);
         return;
     }
 
     m_runningTaskCount.fetch_add(1, std::memory_order::relaxed);
-
-    // 保存原始任务指针用于回调
-    ITask* taskPtr = task->task.get();
 
     bool success = false;
 
@@ -672,105 +394,21 @@ void UniversalWorkerPool::executeTask(std::shared_ptr<InternalTask> task)
         success = false;
     }
 
-    // 执行后取消检查：仅在任务未成功完成时才走取消路径。
-    // 若 execute 返回 true（成功），任务已在 execute 内调用 onChunkGenComplete 完成状态推进、
-    // 清除 m_generationTask 并可能自重调度新任务。此时即使 abortSignal 在执行期间被 cancelActiveWork
-    // 置位，也不应调用 onCancel——否则会取消自重调度的新任务（m_generationTask 已被新任务覆盖），
-    // 导致状态机错乱（新任务被误取消、依赖图被错误清理）。取消语义只在任务尚未完成时生效。
-    if (!success && isTaskCancelled(*task)) {
-        task->task->onCancel();
-        success = false;
+    // 成功完成的任务只通知成功，执行期间置位的令牌不反转已完成结果。
+    if (!success && _isTaskCancelled(*task)) {
+        _cancelTask(task);
+    } else {
+        _callback(task, success);
     }
-
-    // 回调
-    if (task->callback) {
-        try {
-            MC_TRACE_SCOPED_EVENT(
-                TraceEvents.WorkerPool.Generic, "TaskCallback", "description", task->task->description());
-            task->callback(success, taskPtr);
-        }
-        catch (const std::exception& e) {
-            spdlog::error("[UniversalWorkerPool] Callback threw exception: {}", e.what());
-        }
-        catch (...) {
-            spdlog::error("[UniversalWorkerPool] Callback threw unknown exception");
-        }
-    }
-
-    // 计数必须在回调**之后**递减：
-    // - m_runningTaskCount 用于统计与 notifyIfIdle 快路径，回调执行期间该任务对等待方而言仍是"未完成"；
-    // - m_outstandingTaskCount 是 waitForCompletion 的完成谓词，只有在回调跑完后归零，等待方返回时
-    //   才保证所有回调都已执行完（否则会出现"waitForCompletion 返回但回调计数少 1"）。
-    // 用 release 递减、等待方以 acquire 读取，确保回调内的写入对等待方可见。
     m_runningTaskCount.fetch_sub(1, std::memory_order::relaxed);
-    _releaseOutstandingTask();
 }
 
-bool UniversalWorkerPool::isTaskCancelled(const InternalTask& task)
+bool UniversalWorkerPool::_isTaskCancelled(const InternalTask& task)
 {
     if (!task.abortSignal) {
         return false;
     }
     return task.abortSignal->load(std::memory_order::acquire);
-}
-
-// ============================================================================
-// 区域互斥（对齐 Moonrise 区域锁执行器）
-// ============================================================================
-
-u64 UniversalWorkerPool::packChunkKey(ChunkCoord x, ChunkCoord z) noexcept
-{
-    // 高 32 位 X，低 32 位 Z（都转为 u32 以保留位模式）
-    return (static_cast<u64>(static_cast<u32>(x)) << 32) | static_cast<u64>(static_cast<u32>(z));
-}
-
-bool UniversalWorkerPool::hasAreaConflictLocked(const InternalTask& task) const
-{
-    // 调用者必须持有 m_runningRegionsMutex
-    const i32 r = task.areaWriteRadius;
-    for (i32 dx = -r; dx <= r; ++dx) {
-        for (i32 dz = -r; dz <= r; ++dz) {
-            if (m_runningRegions.count(packChunkKey(task.areaCenterX + dx, task.areaCenterZ + dz)) > 0) {
-                return true;
-            }
-        }
-    }
-    return false;
-}
-
-void UniversalWorkerPool::markAreaRunningLocked(const InternalTask& task)
-{
-    // 调用者必须持有 m_runningRegionsMutex
-    const i32 r = task.areaWriteRadius;
-    for (i32 dx = -r; dx <= r; ++dx) {
-        for (i32 dz = -r; dz <= r; ++dz) {
-            m_runningRegions.insert(packChunkKey(task.areaCenterX + dx, task.areaCenterZ + dz));
-        }
-    }
-}
-
-void UniversalWorkerPool::unmarkAreaRunningLocked(const InternalTask& task)
-{
-    // 调用者必须持有 m_runningRegionsMutex
-    const i32 r = task.areaWriteRadius;
-    for (i32 dx = -r; dx <= r; ++dx) {
-        for (i32 dz = -r; dz <= r; ++dz) {
-            m_runningRegions.erase(packChunkKey(task.areaCenterX + dx, task.areaCenterZ + dz));
-        }
-    }
-}
-
-std::vector<u64> UniversalWorkerPool::computeAreaKeys(const InternalTask& task)
-{
-    const i32 r = task.areaWriteRadius;
-    std::vector<u64> keys;
-    keys.reserve(static_cast<size_t>((2 * r + 1) * (2 * r + 1)));
-    for (i32 dx = -r; dx <= r; ++dx) {
-        for (i32 dz = -r; dz <= r; ++dz) {
-            keys.push_back(packChunkKey(task.areaCenterX + dx, task.areaCenterZ + dz));
-        }
-    }
-    return keys;
 }
 
 } // namespace mc::util
