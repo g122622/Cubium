@@ -543,7 +543,8 @@ inline bool isFacingAngle(Direction dir, f32 yaw)
  *
  * 对应 MC Java 1.21.11 `Direction.toYRot()`，用于命令方块/命令方块矿车等
  * 无实体朝向的命令源执行 `^` 局部坐标命令时构造 CommandSourceStack 的 rotation。
- * MC 约定：0=南，90=东，180=北，270（即 -90）=西（与 isFacingAngle 一致）。
+ * 视线单位向量为 (-sin yaw, 0, cos yaw)，故 yaw=0 朝南、90 朝西、180 朝北、270 朝东
+ * （与 fromYRot 互逆，见其注释）。
  *
  * @param dir 水平方向（DOWN/UP 返回 0，命令方块 facing 不会是垂直方向）
  * @return 偏航角（度）
@@ -556,9 +557,9 @@ inline f32 toYRot(Direction dir)
         case Direction::South:
             return 0.0f;
         case Direction::West:
-            return 270.0f;
-        case Direction::East:
             return 90.0f;
+        case Direction::East:
+            return 270.0f;
         default:
             // DOWN/UP：vanilla 命令方块 facing 不会是垂直方向，返回 0 作兜底
             return 0.0f;
@@ -680,9 +681,13 @@ inline i32 mirrorRotation(i32 rotation, Mirror mirror, i32 max = 16)
  * @brief 由偏航角取水平方向
  *
  * 对应 MC 1.21.11 `Direction.fromYRot(double)`：
- *   from2DDataValue(floor(yaw / 90 + 0.5) & 3)，其中 2D 数据值按 South=0、East=1、North=2、West=3
- * 循环（与 toYRot 互逆，yaw 增大时由南→东→北→西旋转）。例如 yaw=0→South、90→East、
- * 180→North、270（-90）→West。
+ *   from2DDataValue(floor(yaw / 90 + 0.5) & 3)，其中 2D 数据值按 South=0、West=1、North=2、East=3
+ * 循环（MC 的 2D 数据值是 Direction 枚举值的 (数据值 >> 1)，North=2→1… 即 South/Up/North/Down 之外
+ * 的 West、East 分别落在 1 与 3）。视线单位向量为 (-sin yaw, 0, cos yaw)，因此 yaw=0 朝南、
+ * yaw=90 朝西、yaw=180 朝北、yaw=270 朝东。
+ *
+ * 注意：旧实现把 1/3 当成 East/West，使 yaw=90 得 East、yaw=270 得 West——与视线方向正好相反，
+ * 会让熔炉、织布机、切石机、中继器、按钮等所有「按玩家朝向决定 facing」的方块朝向整体翻转。
  * 非有限输入（NaN / ±inf）在强转整数时结果未定义，与原版对非法输入未做约定的状态一致；
  * 调用方须保证 yaw 为有限值（实体偏航角恒为有限值）。
  *
@@ -691,10 +696,11 @@ inline i32 mirrorRotation(i32 rotation, Mirror mirror, i32 max = 16)
  */
 inline Direction fromYRot(f64 yaw)
 {
-    // MC: (this.data2d & 3) * 90，其中 data2d 为 South=0、East=1、North=2、West=3；
+    // MC: Direction.from2DDataValue 取 2D 数据值，与 3D 枚举值的对应关系为：
+    // 2D 的 South=0、West=1、North=2、East=3（2D 数据值是 3D 枚举值的一半取整）。
     // 结合 Direction 的 3D 值布局（Down=0、Up=1、North=2、South=3、West=4、East=5），
-    // 2D 数据值 d 对应 3D 值：d=0→3、d=1→5、d=2→2、d=3→4。
-    static constexpr i32 TWO_D_TO_THREE_D[4] = {3, 5, 2, 4};
+    // 2D 数据值 d 对应 3D 值：d=0→3(South)、d=1→4(West)、d=2→2(North)、d=3→5(East)。
+    static constexpr i32 TWO_D_TO_THREE_D[4] = {3, 4, 2, 5};
     const i32 data = static_cast<i32>(std::floor(yaw / 90.0 + 0.5)) & 3;
     const i32 value = TWO_D_TO_THREE_D[data];
     return static_cast<Direction>(value);
