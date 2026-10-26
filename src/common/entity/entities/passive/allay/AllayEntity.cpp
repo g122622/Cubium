@@ -21,30 +21,39 @@
  *
  */
 
-#include "common/item/loot/conditions/RandomChanceWithLuckCondition.hpp"
-#include "common/core/Types.hpp"
-#include "common/item/loot/conditions/LootCondition.hpp"
-#include "common/item/loot/context/LootContext.hpp"
-#include <memory>
+#include "AllayEntity.hpp"
+#include "common/entity/attribute/Attributes.hpp"
 
 namespace mc {
-namespace loot {
+namespace entity {
 
-RandomChanceWithLuckCondition::RandomChanceWithLuckCondition(f32 baseChance, f32 luckCoefficient)
-    : m_baseChance(baseChance)
-    , m_luckCoefficient(luckCoefficient)
-{}
-
-bool RandomChanceWithLuckCondition::test(LootContext& context) const
+std::unique_ptr<Entity> AllayEntity::create(IWorld* /*world*/, ecs::EntityRegistry& registry)
 {
-    f32 chance = m_baseChance + context.getLuck() * m_luckCoefficient;
-    return context.getRandom().nextFloat() < chance;
+    // 临时 ID 0：实际 ID 由 EntityManager 分配。
+    return std::make_unique<AllayEntity>(EntityInstanceId(0), registry);
 }
 
-std::unique_ptr<LootCondition> RandomChanceWithLuckCondition::clone() const noexcept
+AllayEntity::AllayEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
+    : AnimalEntity(id, registry)
 {
-    return std::make_unique<RandomChanceWithLuckCondition>(m_baseChance, m_luckCoefficient);
+    // 飞行生物不受重力影响（原版 Allay 通过 MoveControl + 飞行移动实现悬浮）。
+    setNoGravity(true);
 }
 
-} // namespace loot
+std::unique_ptr<AnimalEntity> AllayEntity::spawnBaby(AnimalEntity& /*partner*/)
+{
+    // 原版悦灵不可繁殖（Animal 的繁殖路径对悦灵并不适用），因此没有幼体。
+    return nullptr;
+}
+
+void AllayEntity::registerAttributes()
+{
+    AnimalEntity::registerAttributes();
+
+    // 对齐原版 `Allay#createAttributes()`：MAX_HEALTH = 20，FLYING_SPEED = 0.1。
+    attributes().setBaseValue(attribute::Attributes::MAX_HEALTH, 20.0);
+    attributes().setBaseValue(attribute::Attributes::MOVEMENT_SPEED, 0.1);
+}
+
+} // namespace entity
 } // namespace mc

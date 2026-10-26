@@ -36,7 +36,7 @@ SetBannerPatternFunction::SetBannerPatternFunction(nlohmann::json patterns, bool
     , m_append(append)
 {}
 
-ItemStack SetBannerPatternFunction::apply(ItemStack stack, LootContext& context) const
+ItemStack SetBannerPatternFunction::run(ItemStack stack, LootContext& context) const
 {
     MC_UNUSED(context);
     if (stack.isEmpty() || !m_patterns.is_array()) {

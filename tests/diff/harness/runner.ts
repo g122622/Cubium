@@ -37,11 +37,12 @@
  * 退出码：0 全部一致；1 存在差异；2 环境问题（缺 probe、构建失败）。
  */
 
-import { execFileSync } from "node:child_process";
+import { execFileSync, spawnSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 
+import { vanillaDataPackDir } from "./oracle-env.ts";
 import { REPO_ROOT } from "./vanilla.ts";
 
 /** 一处单元级差异。 */
@@ -105,13 +106,15 @@ export function probeExecutable(domain: string, buildDir?: string): string {
 }
 
 /** 运行子命令；失败时把 stdout/stderr 带进异常，便于一眼看到原因。 */
-function run(command: string[], args: string[]): string {
+function run(command: string[], args: string[], env?: NodeJS.ProcessEnv): string {
     try {
         return execFileSync(command[0], args, {
             cwd: REPO_ROOT,
             encoding: "utf8",
             stdio: ["ignore", "pipe", "pipe"],
             maxBuffer: 1024 * 1024 * 1024,
+            // 额外的环境变量（如探针要读的数据包目录）只在宿主环境上叠加，不覆盖。
+            env: env === undefined ? process.env : { ...process.env, ...env },
         });
     } catch (error) {
         const failure = error as { status?: number; stdout?: string; stderr?: string; message?: string };
@@ -274,6 +277,54 @@ const DEFAULT_INPUT = (key: string) => (unit: string) => ({ [key]: unit });
  * 参照输出由各 harness 自己准备好（目前来自 minecraft-data；将来接 Java oracle 时，
  * 改为把同一批输入交给 Java 主类并读其输出，本函数不变）。
  */
+/**
+ * 探针运行时的额外环境变量。
+ *
+ * 战利品 / 进阶 / 配方这类能力读的是数据包目录而不是编译期常量，探针通过
+ * `MC_DIFF_VANILLA_DATAPACK` 拿到与 Java oracle 完全相同的目录。
+ */
+function probeEnvironment(domain: string): NodeJS.ProcessEnv {
+    if (domain.startsWith("loot_table")) {
+        return { MC_DIFF_VANILLA_DATAPACK: vanillaDataPackDir() };
+    }
+    return {};
+}
+
+/**
+ * 跑探针的 `run` 子命令。
+ *
+ * 与 {@link run} 的区别：探针把诊断信息（数据包里的加载失败等）写 stderr、
+ * 退出码用于区分「有表没加载」这类非零状态，但 stdout 文件仍然完整。
+ * 直接按失败处理会让所有差异变成「探针整个跑挂了」，掩盖真正的原因；
+ * 所以这里保留输出、只在没有任何输出时才算失败。
+ */
+function runProbe(domain: string, executable: string, inputsPath: string, outputsPath: string): void {
+    const result = spawnSync(executable, ["run", inputsPath, outputsPath], {
+        encoding: "utf8",
+        env: { ...process.env, ...probeEnvironment(domain) },
+        maxBuffer: 64 * 1024 * 1024,
+    });
+    if (result.error !== undefined && result.error !== null) {
+        throw new Error(`探针 ${executable} 启动失败：${result.error.message}`);
+    }
+    const produced = fs.existsSync(outputsPath);
+    if (result.status !== 0) {
+        const detail = `exit=${String(result.status)}
+stderr:
+${(result.stderr ?? "").slice(-8000)}`;
+        if (!produced) {
+            throw new Error(`探针 ${executable} 运行失败（${detail}）`);
+        }
+        // 有输出就继续比对，把探针自身的诊断一并带出来。
+        console.warn(`[${domain}] 探针退出码非零（${detail}）`);
+    }
+    const stderrText = (result.stderr ?? "").trim();
+    if (stderrText.length > 0) {
+        console.warn(`[${domain}] 探针 stderr：
+${stderrText}`);
+    }
+}
+
 export function runHarness(options: HarnessOptions): HarnessResult {
     const started = process.hrtime.bigint();
     const executable = probeExecutable(options.domain, options.buildDir);
@@ -285,7 +336,7 @@ export function runHarness(options: HarnessOptions): HarnessResult {
     fs.writeFileSync(inputsPath, options.units.map((unit) => JSON.stringify(inputPayload(unit))).join("\n") + "\n");
 
     const outputsPath = path.join(outDir, "probe_outputs.jsonl");
-    run([executable], ["run", inputsPath, outputsPath]);
+    runProbe(options.domain, executable, inputsPath, outputsPath);
     const probeOutputs = readLines(outputsPath);
 
     const differences = compareByKey(options.oracleOutputs, probeOutputs, options.key, options.compareTransform);

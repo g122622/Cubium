@@ -57,17 +57,21 @@ void LootEntry::addFunction(std::unique_ptr<LootFunction> function)
     m_functions.push_back(std::move(function));
 }
 
-ItemStack LootEntry::applyFunctions(ItemStack stack, LootContext& context) const
+ConsumerPtr LootEntry::decorate(ConsumerPtr consumer, LootContext& context) const
 {
-    for (const auto& func : m_functions) {
-        if (func && func->testConditions(context)) {
-            stack = func->apply(std::move(stack), context);
-            if (stack.isEmpty()) {
-                break; // 函数可以返回空堆来取消掉落
-            }
-        }
+    if (m_functions.empty()) {
+        return consumer;
     }
-    return stack;
+    // 对齐原版 `LootItemFunction#decorate`：本层函数对每个经过的堆执行一次，
+    // 变换后的空堆照样交付，不在这一层过滤。
+    const auto& functions = m_functions;
+    return makeConsumer([&functions, consumer = std::move(consumer), &context](const ItemStack& received) {
+        ItemStack stack = received;
+        for (const auto& func : functions) {
+            stack = func->apply(std::move(stack), context);
+        }
+        consumer->accept(stack);
+    });
 }
 
 } // namespace loot

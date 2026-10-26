@@ -38,6 +38,10 @@ import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
+
+/** 仓库根（tests/diff/harness → tests/diff → tests → 根）。 */
+const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../..");
 
 /** 反混淆 jar（优先）。含 net.minecraft.* 的可读类名。 */
 const MERGED_CANDIDATES = [
@@ -109,6 +113,31 @@ export function prepareOracle(cacheDir: string): OracleEnvironment {
     })();
 
     return { minecraftJar, librariesDir, classesDir: path.join(cacheDir, "classes") };
+}
+
+/**
+ * 原版数据包目录（含 `data/` 与 `pack.mcmeta` 的那一层）。
+ *
+ * 战利品、进阶、配方这类「资源」不在 jar 的类文件里，而是数据包 JSON；
+ * 探针按目录直接读取，因此两侧都必须指向**同一份**目录。
+ */
+export function vanillaDataPackDir(): string {
+    const explicit = process.env.MC_VANILLA_DATAPACK;
+    if (explicit !== undefined && explicit.length > 0) {
+        return explicit;
+    }
+    const candidates = [
+        path.join(REPO_ROOT, "tests/diff/harness/datapacks/Vanilla"),
+        path.resolve(os.homedir(), "minecraft_reborn", "datapacks", "Vanilla"),
+    ];
+    for (const candidate of candidates) {
+        if (fs.existsSync(path.join(candidate, "pack.mcmeta"))) {
+            return candidate;
+        }
+    }
+    throw new Error(
+        "找不到原版数据包目录。请设置 MC_DIFF_VANILLA_DATAPACK 指向含 pack.mcmeta 的 Vanilla 数据包目录。",
+    );
 }
 
 /** 收集依赖库 jar，拼成 Java 的 classpath（Windows 用分号，其余用冒号）。 */

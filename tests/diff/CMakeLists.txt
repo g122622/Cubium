@@ -26,7 +26,7 @@
 #   源文件：实现该能力的 .cpp
 #   宏名：写入基类的 MC_DIFF_PROBE_DOMAIN，供 runner_main.cpp 选择能力
 # ---------------------------------------------------------------------------
-set(MC_DIFF_PROBE_SUFFIXES text_encode block_state_ids item_summary item_components entity_shape enchantment_table block_properties mob_category entity_attributes block_state_names random_sequence command_argument command_tree biome_climate damage_type block_tags item_tags)
+set(MC_DIFF_PROBE_SUFFIXES text_encode block_state_ids item_summary item_components entity_shape enchantment_table block_properties mob_category entity_attributes block_state_names random_sequence command_argument command_tree biome_climate damage_type block_tags item_tags loot_table loot_table_block loot_table_entity)
 set(MC_DIFF_PROBE_SOURCES
     probes/text_encode.cpp
     probes/block_state_ids.cpp
@@ -45,8 +45,11 @@ set(MC_DIFF_PROBE_SOURCES
     probes/damage_type.cpp
     probes/block_tags.cpp
     probes/item_tags.cpp
+    probes/loot_table.cpp
+    probes/loot_table_block.cpp
+    probes/loot_table_entity.cpp
 )
-set(MC_DIFF_PROBE_DOMAINS text_encode block_state_ids item_summary item_components entity_shape enchantment_table block_properties mob_category entity_attributes block_state_names random_sequence command_argument command_tree biome_climate damage_type block_tags item_tags)
+set(MC_DIFF_PROBE_DOMAINS text_encode block_state_ids item_summary item_components entity_shape enchantment_table block_properties mob_category entity_attributes block_state_names random_sequence command_argument command_tree biome_climate damage_type block_tags item_tags loot_table loot_table_block loot_table_entity)
 
 function(mc_add_diff_probe targetSuffix source domain)
     set(targetName "diff_${targetSuffix}")
@@ -206,6 +209,16 @@ function(mc_add_diff_probe targetSuffix source domain)
         mc_offset_allocator
         nlohmann_json::nlohmann_json
     )
+
+    # 战利品表要按资源名解析「乐器标签」（`set_instrument` 函数），乐器与乐器标签的
+    # 数据包加载器在 src/server/item/instrument 下。那里只有这两个加载器，不牵出
+    # 服务端其它子系统，因此只给战利品探针单独补上，避免所有探针都链接服务端。
+    if(targetSuffix MATCHES "^loot_table")
+        target_sources(${targetName} PRIVATE
+            ${CMAKE_SOURCE_DIR}/src/server/item/instrument/InstrumentLoader.cpp
+            ${CMAKE_SOURCE_DIR}/src/server/item/instrument/InstrumentTagLoader.cpp
+        )
+    endif()
 
     if(WIN32)
         target_link_libraries(${targetName} PRIVATE ws2_32)

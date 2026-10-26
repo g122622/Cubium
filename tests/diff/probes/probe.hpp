@@ -66,6 +66,15 @@ using ListFn = void (*)(FILE* out);
 using RunLineFn = std::string (*)(std::string_view inputLine);
 
 /**
+ * @brief 进程退出前的清理回调（可选）。
+ *
+ * 持有全局状态的探针必须在 `main` 返回前显式释放这些状态。交给静态析构会因
+ * 「构造/析构顺序」问题在退出阶段访问已销毁的单例（表现为 0xC0000005），
+ * 编排层会把成功的运行误判成环境问题。
+ */
+using ShutdownFn = void (*)();
+
+/**
  * @brief 一个能力领域的探针实现。
  */
 struct Probe {
@@ -75,6 +84,8 @@ struct Probe {
     ListFn list;
     /** 执行一行输入。 */
     RunLineFn runLine;
+    /** 退出前清理；nullptr 表示无需清理。 */
+    ShutdownFn shutdown = nullptr;
 };
 
 /**
@@ -85,11 +96,24 @@ struct Probe {
  *
  * 宏不自己开 namespace：各 probe 源文件在 `namespace mc::diff` 内调用它。
  */
-#define MC_DIFF_DEFINE_PROBE(domainName, listFunc, runLineFunc)       \
-    const Probe& currentProbe()                                       \
-    {                                                                 \
-        static const Probe probe{#domainName, listFunc, runLineFunc}; \
-        return probe;                                                 \
+#define MC_DIFF_DEFINE_PROBE(domainName, listFunc, runLineFunc)             \
+    const Probe& currentProbe()                                             \
+    {                                                                       \
+        static const Probe probe{#domainName, listFunc, runLineFunc, nullptr}; \
+        return probe;                                                       \
+    }
+
+/**
+ * @brief 同上，但带退出清理回调。
+ *
+ * 适用于持有实体、世界等需要显式释放的探针；`shutdownFunc` 在 `main` 的每条
+ * 退出路径上都会被调用一次。
+ */
+#define MC_DIFF_DEFINE_PROBE_WITH_SHUTDOWN(domainName, listFunc, runLineFunc, shutdownFunc) \
+    const Probe& currentProbe()                                                           \
+    {                                                                                     \
+        static const Probe probe{#domainName, listFunc, runLineFunc, shutdownFunc};       \
+        return probe;                                                                     \
     }
 
 } // namespace mc::diff

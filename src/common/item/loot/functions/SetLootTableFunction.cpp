@@ -39,7 +39,7 @@ SetLootTableFunction::SetLootTableFunction(const std::string& lootTableId, u64 s
     , m_seed(seed)
 {}
 
-ItemStack SetLootTableFunction::apply(ItemStack stack, LootContext& context) const
+ItemStack SetLootTableFunction::run(ItemStack stack, LootContext& context) const
 {
     MC_UNUSED(context);
 

@@ -27,6 +27,7 @@
 #include "common/item/loot/entries/LootEntry.hpp"
 #include <functional>
 #include <memory>
+#include <vector>
 
 namespace mc {
 namespace loot {
@@ -47,16 +48,19 @@ std::unique_ptr<LootEntry> EmptyLootEntry::clone() const
     return entry;
 }
 
-void EmptyLootEntry::expand(LootContext& /*context*/, std::function<void(LootEntry&)> consumer) const
+bool EmptyLootEntry::expand(LootContext& context, const std::function<void(const LootEntry&)>& consumer) const
 {
-    // 空条目仍然可以被选择，但不生成任何物品
-    consumer(*const_cast<EmptyLootEntry*>(this));
+    // 空条目仍然可以被抽中（占权重），只是不产出物品。
+    if (!testConditions(context)) {
+        return false;
+    }
+    consumer(*this);
+    return true;
 }
 
-bool EmptyLootEntry::generate(std::function<void(const ItemStack&)> /*consumer*/, LootContext& /*context*/) const
+void EmptyLootEntry::generate(ConsumerPtr /*consumer*/, LootContext& /*context*/) const
 {
-    // 空条目不生成物品，但返回true表示"成功"（可用于条件判断）
-    return true;
+    // 空条目不生成任何物品（原版 `EmptyLootItem#createItemStack` 是空实现）。
 }
 
 } // namespace loot

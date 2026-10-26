@@ -38,7 +38,7 @@ SetInstrumentFunction::SetInstrumentFunction(ResourceLocation instrumentTagId)
     : m_instrumentTagId(std::move(instrumentTagId))
 {}
 
-ItemStack SetInstrumentFunction::apply(ItemStack stack, LootContext& context) const
+ItemStack SetInstrumentFunction::run(ItemStack stack, LootContext& context) const
 {
     if (stack.isEmpty()) {
         return stack;

@@ -88,8 +88,28 @@ Result<EnchantmentPredicate> EnchantmentPredicate::fromJson(const nlohmann::json
     IntBounds levels;
 
     if (json.is_object()) {
-        if (json.contains("enchantment")) {
-            enchantment = ResourceLocation(json["enchantment"].get<std::string>());
+        // 原版字段名是 `enchantments`（HolderSet<Enchantment>），值可以是单个字符串
+        // 也可以是一个数组。数据包里 `match_tool` 的附魔谓词全部用这个名字；
+        // 早期只认 `enchantment`，导致所有精准采集/时运判定都落空。
+        // `minecraft:enchantments` 是 DataComponentMatchers 的组件键名（见
+        // ItemPredicate::fromJson 的 `predicates` 分支），这里同样接受，两条路径共用同一解析。
+        const nlohmann::json* names = nullptr;
+        if (json.contains("enchantments")) {
+            names = &json["enchantments"];
+        } else if (json.contains("minecraft:enchantments")) {
+            names = &json["minecraft:enchantments"];
+        } else if (json.contains("enchantment")) {
+            names = &json["enchantment"];
+        }
+        if (names != nullptr) {
+            if (names->is_string()) {
+                enchantment = ResourceLocation(names->get<std::string>());
+            } else if (names->is_array() && !names->empty() && (*names)[0].is_string()) {
+                // 多附魔写法：原版是 HolderSet<Enchantment>，语义为「包含其中任意一个」。
+                // TODO(item-predicate-multi-enchantment): 本项目的 EnchantmentPredicate 只
+                //   建模单个附魔，多元素写法当前只取第一个；数据包目前未使用多元素写法。
+                enchantment = ResourceLocation((*names)[0].get<std::string>());
+            }
         }
         if (json.contains("levels")) {
             levels = IntBounds::fromJson(json["levels"]);

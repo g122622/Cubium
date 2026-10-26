@@ -38,7 +38,7 @@ ModifyContentsFunction::ModifyContentsFunction(std::string component, std::uniqu
     , m_modifier(std::move(modifier))
 {}
 
-ItemStack ModifyContentsFunction::apply(ItemStack stack, LootContext& context) const
+ItemStack ModifyContentsFunction::run(ItemStack stack, LootContext& context) const
 {
     if (stack.isEmpty() || m_modifier == nullptr) {
         return stack;

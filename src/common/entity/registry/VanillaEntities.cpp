@@ -79,6 +79,7 @@
 #include "common/entity/entities/passive/golem/CopperGolemEntity.hpp"
 #include "common/entity/entities/passive/golem/IronGolemEntity.hpp"
 #include "common/entity/entities/passive/golem/SnowGolemEntity.hpp"
+#include "common/entity/entities/passive/allay/AllayEntity.hpp"
 #include "common/entity/entities/passive/happyghast/HappyGhastEntity.hpp"
 #include "common/entity/entities/passive/horse/DonkeyEntity.hpp"
 #include "common/entity/entities/passive/horse/HorseEntity.hpp"
@@ -207,6 +208,15 @@ void VanillaEntities::doRegisterAll()
     registry.registerType(EntityTypeKeys::CHICKEN,
         EntityType::Builder(&ChickenEntity::create, EntityClassification::Creature)
             .size(0.4f, 0.7f)
+            .trackingRange(10)
+            .updateInterval(3)
+            .canSummon(true)
+            .build());
+
+    // 悦灵
+    registry.registerType(EntityTypeKeys::ALLAY,
+        EntityType::Builder(&AllayEntity::create, EntityClassification::Creature)
+            .size(0.35f, 0.6f)
             .trackingRange(10)
             .updateInterval(3)
             .canSummon(true)

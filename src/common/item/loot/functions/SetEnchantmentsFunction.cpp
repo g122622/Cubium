@@ -39,7 +39,7 @@ SetEnchantmentsFunction::SetEnchantmentsFunction(std::vector<Entry> enchantments
     , m_add(add)
 {}
 
-ItemStack SetEnchantmentsFunction::apply(ItemStack stack, LootContext& context) const
+ItemStack SetEnchantmentsFunction::run(ItemStack stack, LootContext& context) const
 {
     if (stack.isEmpty()) {
         return stack;

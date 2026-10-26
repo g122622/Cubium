@@ -37,7 +37,7 @@ SetNameFunction::SetNameFunction(const std::string& name, bool replace)
     , m_replace(replace)
 {}
 
-ItemStack SetNameFunction::apply(ItemStack stack, LootContext& context) const
+ItemStack SetNameFunction::run(ItemStack stack, LootContext& context) const
 {
     MC_UNUSED(context);
 

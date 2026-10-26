@@ -413,6 +413,8 @@ struct PlayerView {
                     loot::LootContextBuilder(*world)
                         .withRandom(rng)
                         .withParameter(loot::LootParams::THIS_ENTITY, entity)
+                        .withOwnedValue(
+                            loot::LootParams::ORIGIN, Vector3(static_cast<f32>(pos.x), static_cast<f32>(pos.y), static_cast<f32>(pos.z)))
                         .withOwnedValue(loot::LootParams::BLOCK_POS,
                             BlockPos(static_cast<i32>(pos.x), static_cast<i32>(pos.y), static_cast<i32>(pos.z)))
                         .withPredicateResolver([&predicateManager = server->predicateManager()](

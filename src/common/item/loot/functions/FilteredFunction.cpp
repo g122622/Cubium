@@ -39,7 +39,7 @@ FilteredFunction::FilteredFunction(advancement::ItemPredicate filter,
     , m_onFail(std::move(onFail))
 {}
 
-ItemStack FilteredFunction::apply(ItemStack stack, LootContext& context) const
+ItemStack FilteredFunction::run(ItemStack stack, LootContext& context) const
 {
     // vanilla：谓词命中走 on_pass，否则走 on_fail；子函数同样先检查自身条件
     const auto& selected = m_filter.test(stack) ? m_onPass : m_onFail;

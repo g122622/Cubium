@@ -32,6 +32,7 @@
 #include "common/world/blockentity/ContainerBlockEntity.hpp"
 #include <functional>
 #include <memory>
+#include <vector>
 #include <string>
 #include <utility>
 
@@ -59,19 +60,19 @@ std::unique_ptr<LootEntry> DynamicLootEntry::clone() const
     return entry;
 }
 
-void DynamicLootEntry::expand(LootContext& /*context*/, std::function<void(LootEntry&)> consumer) const
+bool DynamicLootEntry::expand(LootContext& context, const std::function<void(const LootEntry&)>& consumer) const
 {
-    // 动态条目不展开，自身作为候选条目
-    consumer(*const_cast<DynamicLootEntry*>(this));
-}
-
-bool DynamicLootEntry::generate(std::function<void(const ItemStack&)> consumer, LootContext& context) const
-{
-    // 检查条件
+    // 动态条目本身就是一个候选，条件只在此判定一次（`generate` 不再重复判定）。
     if (!testConditions(context)) {
         return false;
     }
+    consumer(*this);
+    return true;
+}
 
+void DynamicLootEntry::generate(ConsumerPtr consumer, LootContext& context) const
+{
+    // 条件已在 `expand` 阶段判定过，这里不再重复判定。
     // 目前仅支持 minecraft:contents（从容器方块实体中读取物品）
     if (m_name == "minecraft:contents" || m_name == "contents") {
         // 从上下文获取方块实体
@@ -81,27 +82,24 @@ bool DynamicLootEntry::generate(std::function<void(const ItemStack&)> consumer, 
             if (containerEntity) {
                 IInventory* inventory = containerEntity->getInventory();
                 if (inventory) {
-                    bool anyItems = false;
+                    // 原版 `DynamicLoot` 把被条目函数装饰过的回调交给 `addDynamicDrops`，
+                    // 由上下文逐个投喂物品堆；本项目把这段遍历放在这里，语义相同。
+                    const auto decorated = decorate(std::move(consumer), context);
                     for (i32 i = 0; i < inventory->getContainerSize(); ++i) {
                         ItemStack stack = inventory->getItem(i);
                         if (!stack.isEmpty()) {
-                            stack = applyFunctions(std::move(stack), context);
-                            if (!stack.isEmpty()) {
-                                consumer(stack);
-                                anyItems = true;
-                            }
+                            decorated->accept(stack);
                         }
                     }
-                    return anyItems;
+                    return;
                 }
             }
         }
-        // 无方块实体或非容器，返回 false
-        return false;
+        // 无方块实体或非容器：不生成任何物品
+        return;
     }
 
-    // 未知动态名称，不生成物品
-    return false;
+    // 未知动态名称：不生成物品
 }
 
 } // namespace loot

@@ -33,10 +33,33 @@
 
 #include "Random.hpp"
 #include "common/core/Types.hpp"
+#include <cmath>
 #include <memory>
 
 namespace mc {
 namespace math {
+
+/**
+ * @brief 对齐 Java 的 `(int) floatValue`：向零截断，超出 int32 范围时饱和。
+ *
+ * C++ 的 `static_cast<i32>(f32)` 对越界值是未定义行为，clamp 成 `INT_MIN` 之类的
+ * 结果；Java 规范则明确规定饱和到 `Integer.MIN_VALUE` / `Integer.MAX_VALUE`。
+ * 战利品表的数量提供器里出现过负的 `min`（`{"min": -1.0, "max": 1.0}`），
+ * 截断方向差一位就会让产出数量整体偏移。
+ */
+[[nodiscard]] inline i32 javaFloatToInt(f32 value)
+{
+    if (std::isnan(value)) {
+        return 0;
+    }
+    if (value >= 2147483647.0f) {
+        return 2147483647;
+    }
+    if (value <= -2147483648.0f) {
+        return -2147483648;
+    }
+    return static_cast<i32>(value);
+}
 
 /**
  * @brief 随机范围接口
@@ -134,9 +157,9 @@ public:
     [[nodiscard]] i32 generateInt(math::IRandom& random) const override
     {
         if (m_min == m_max) {
-            return static_cast<i32>(m_min);
+            return javaFloatToInt(m_min);
         }
-        return random.nextInt(static_cast<i32>(m_min), static_cast<i32>(m_max));
+        return random.nextInt(javaFloatToInt(m_min), javaFloatToInt(m_max));
     }
 
     /**

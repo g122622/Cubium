@@ -32,6 +32,7 @@
 #include "common/core/Types.hpp"
 #include "common/entity/inventory/PlayerInventory.hpp"
 #include "common/entity/utils/ItemDropHelper.hpp"
+#include "common/item/loot/LootCallbackInvoker.hpp"
 #include "common/item/loot/LootTable.hpp"
 #include "common/item/loot/LootTableManager.hpp"
 #include "common/item/loot/context/LootContextBuilder.hpp"

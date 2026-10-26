@@ -313,6 +313,7 @@ void CatRelaxOnOwnerGoal::_giveMorningGift()
             auto context = loot::LootContextBuilder(*m_cat->world())
                                .withRandom(m_cat->getRandom())
                                .withParameter(loot::LootParams::THIS_ENTITY, static_cast<Entity*>(m_cat))
+                               .withOwnedValue(loot::LootParams::ORIGIN, m_cat->position())
                                .withOwnedValue(loot::LootParams::BLOCK_POS, catPos)
                                .withLootTableResolver([ltm](const std::string& id) -> const loot::LootTable* {
                                    return ltm->getTable(id);

@@ -39,6 +39,7 @@
 #include <vector>
 
 namespace mc {
+
 namespace loot {
 
 /**
@@ -64,6 +65,8 @@ namespace loot {
  * auto drops = table.generate(*context);
  * @endcode
  */
+class LootTable;
+
 class LootTable {
 public:
     /**
@@ -140,9 +143,13 @@ public:
     }
 
     /**
-     * @brief 应用所有表级函数到物品
+     * @brief 用表级函数**装饰**一个消费回调
+     *
+     * 对齐原版 `LootTable#getRandomItemsRaw` 里的 `LootItemFunction#decorate`：装饰后的
+     * 回调收到一个堆就套一遍表级函数链，再把结果——**包括变换后的空堆**——交给下游。
+     * 原版不在这一层过滤空堆，过滤会让下游少收到一次。
      */
-    [[nodiscard]] ItemStack applyFunctions(ItemStack stack, LootContext& context) const;
+    [[nodiscard]] ConsumerPtr decorate(ConsumerPtr consumer, LootContext& context) const;
 
     // ========== 参数集 ==========
 
@@ -183,20 +190,27 @@ public:
     // ========== 生成 ==========
 
     /**
-     * @brief 生成掉落物
+     * @brief 生成掉落物并收集（原版 `getRandomItems` 口径）
+     *
+     * 按原版 `createStackSplitter` 的口径把产出合并成物品列表：空堆丢掉，同物品按
+     * 最大堆叠数合并。只关心「最终进了哪些物品」的调用方用它；要逐个拿到未合并的
+     * 堆时用带 consumer 的重载。
      *
      * @param context 掉落上下文
-     * @return 生成的物品列表
+     * @return 生成的物品列表（已按最大堆叠数合并）
      */
     [[nodiscard]] std::vector<ItemStack> generate(LootContext& context) const;
 
     /**
-     * @brief 生成掉落物到消费者
+     * @brief 生成掉落物，产出直接交给 `consumer`（同步执行，不做合并）
+     *
+     * 同步执行，不做任何过滤与合并：每个产出的堆（包括变换后的空堆）原样交给
+     * `consumer`。需要合并后的物品列表时用不带 consumer 的重载。
      *
      * @param consumer 接收物品的回调
      * @param context 掉落上下文
      */
-    void generate(std::function<void(const ItemStack&)> consumer, LootContext& context) const;
+    void generate(ConsumerPtr consumer, LootContext& context) const;
 
     /**
      * @brief 递归生成（处理嵌套掉落表）
@@ -204,7 +218,7 @@ public:
      * @param consumer 接收物品的回调
      * @param context 掉落上下文
      */
-    void recursiveGenerate(std::function<void(const ItemStack&)> consumer, LootContext& context) const;
+    void recursiveGenerate(ConsumerPtr consumer, LootContext& context) const;
 
     // ========== 序列化 ==========
 

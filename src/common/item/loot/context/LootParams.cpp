@@ -49,9 +49,6 @@ const LootParameter<ItemStack> TOOL("tool");
 const LootParameter<BlockEntity> BLOCK_ENTITY("block_entity");
 
 // 附魔等级参数
-const LootParameter<i32> FORTUNE_LEVEL("fortune_level");
-const LootParameter<i32> SILK_TOUCH_LEVEL("silk_touch_level");
-const LootParameter<i32> LOOTING_MODIFIER("looting_modifier");
 
 // 爆炸相关参数
 const LootParameter<f32> EXPLOSION_RADIUS("explosion_radius");

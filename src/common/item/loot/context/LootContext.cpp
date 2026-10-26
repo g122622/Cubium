@@ -39,10 +39,8 @@ LootContext::LootContext(IWorld& world, math::IRandom& random)
 
 const LootTable* LootContext::getLootTable(const std::string& id) const noexcept
 {
-    if (m_lootTableResolver) {
-        return m_lootTableResolver(id);
-    }
-    return nullptr;
+    const LootTable* r = m_lootTableResolver ? m_lootTableResolver(id) : nullptr;
+    return r;
 }
 
 bool LootContext::pushLootTable(const LootTable* table) noexcept

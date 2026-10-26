@@ -29,6 +29,7 @@
 #include "common/item/loot/context/LootContext.hpp"
 #include <functional>
 #include <memory>
+#include <vector>
 
 namespace mc {
 namespace loot {
@@ -54,9 +55,9 @@ public:
 
     [[nodiscard]] std::unique_ptr<LootEntry> clone() const override;
 
-    void expand(LootContext& context, std::function<void(LootEntry&)> consumer) const override;
+    bool expand(LootContext& context, const std::function<void(const LootEntry&)>& consumer) const override;
 
-    bool generate(std::function<void(const ItemStack&)> consumer, LootContext& context) const override;
+    void generate(ConsumerPtr consumer, LootContext& context) const override;
 };
 
 } // namespace loot

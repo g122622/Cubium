@@ -39,7 +39,7 @@ EnchantWithLevelsFunction::EnchantWithLevelsFunction(const RandomValueRange& lev
     , m_treasure(treasure)
 {}
 
-ItemStack EnchantWithLevelsFunction::apply(ItemStack stack, LootContext& context) const
+ItemStack EnchantWithLevelsFunction::run(ItemStack stack, LootContext& context) const
 {
     if (stack.isEmpty()) {
         return stack;

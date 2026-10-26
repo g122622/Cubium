@@ -457,6 +457,7 @@ void SnifferEntity::dropSeed()
     auto context = loot::LootContextBuilder(*m_world)
                        .withRandom(getRandom())
                        .withParameter(loot::LootParams::THIS_ENTITY, static_cast<Entity*>(this))
+                       .withOwnedValue(loot::LootParams::ORIGIN, position())
                        .withOwnedValue(loot::LootParams::BLOCK_POS, dropPos)
                        .withLootTableResolver([lootTables](const std::string& id) -> const loot::LootTable* {
                            return lootTables->getTable(id);

@@ -62,25 +62,34 @@ void AlternativesLootEntry::addChild(std::unique_ptr<LootEntry> child)
     m_children.push_back(std::move(child));
 }
 
-void AlternativesLootEntry::expand(LootContext& /*context*/, std::function<void(LootEntry&)> consumer) const
+bool AlternativesLootEntry::expand(LootContext& context, const std::function<void(const LootEntry&)>& consumer) const
 {
-    consumer(*const_cast<AlternativesLootEntry*>(this));
-}
-
-bool AlternativesLootEntry::generate(std::function<void(const ItemStack&)> consumer, LootContext& context) const
-{
-    // 检查条件
+    // 对齐原版 `AlternativesEntry#compose`：
+    //   逐个尝试子条目，**第一个展开成功的**把候选交给消费者，后面的不再尝试。
+    //   「展开成功」= 子条目自身的条件通过（由子条目的 expand 判定）。
+    // 若全部失败，本条目不产生候选。
     if (!testConditions(context)) {
         return false;
     }
 
-    // 尝试每个子条目，直到一个成功
     for (const auto& child : m_children) {
-        if (child->generate(consumer, context)) {
+        if (child->expand(context, consumer)) {
             return true;
         }
     }
     return false;
+}
+
+void AlternativesLootEntry::generate(ConsumerPtr consumer, LootContext& context) const
+{
+    // 本条目作为候选被抽中时，`expand` 已经决定由哪个子条目出货；这里按同一规则
+    // 重新展开一次并让第一个成功者生成。条件不在这里重复判定——重复判定会让带随机
+    // 数的条件被评估两次，随机数序列与原版错位。
+    for (const auto& child : m_children) {
+        if (child->expand(context, [&context, next = consumer](const LootEntry& selected) { selected.generate(next, context); })) {
+            return;
+        }
+    }
 }
 
 } // namespace loot

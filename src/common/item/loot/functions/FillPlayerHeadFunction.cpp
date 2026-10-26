@@ -41,7 +41,7 @@ FillPlayerHeadFunction::FillPlayerHeadFunction(CopyNameFunction::Source source)
     : m_source(source)
 {}
 
-ItemStack FillPlayerHeadFunction::apply(ItemStack stack, LootContext& context) const
+ItemStack FillPlayerHeadFunction::run(ItemStack stack, LootContext& context) const
 {
     if (stack.isEmpty()) {
         return stack;

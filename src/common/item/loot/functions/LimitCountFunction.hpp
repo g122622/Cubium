@@ -49,7 +49,7 @@ public:
      */
     explicit LimitCountFunction(i32 min, i32 max);
 
-    [[nodiscard]] ItemStack apply(ItemStack stack, LootContext& context) const override;
+    [[nodiscard]] ItemStack run(ItemStack stack, LootContext& context) const override;
     [[nodiscard]] std::unique_ptr<LootFunction> clone() const noexcept override;
 
     [[nodiscard]] std::string getType() const override

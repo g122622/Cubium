@@ -38,7 +38,7 @@ SetDamageFunction::SetDamageFunction(const RandomValueRange& durability, bool ad
     , m_add(add)
 {}
 
-ItemStack SetDamageFunction::apply(ItemStack stack, LootContext& context) const
+ItemStack SetDamageFunction::run(ItemStack stack, LootContext& context) const
 {
     if (stack.isEmpty() || !stack.isDamageable()) {
         return stack;

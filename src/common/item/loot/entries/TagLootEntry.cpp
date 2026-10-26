@@ -30,6 +30,7 @@
 #include <functional>
 #include <iterator>
 #include <memory>
+#include <vector>
 #include <string>
 #include <utility>
 
@@ -58,47 +59,31 @@ std::unique_ptr<LootEntry> TagLootEntry::clone() const
     return entry;
 }
 
-void TagLootEntry::expand(LootContext& /*context*/, std::function<void(LootEntry&)> consumer) const
+bool TagLootEntry::expand(LootContext& context, const std::function<void(const LootEntry&)>& consumer) const
 {
-    consumer(*const_cast<TagLootEntry*>(this));
-}
-
-bool TagLootEntry::generate(std::function<void(const ItemStack&)> consumer, LootContext& context) const
-{
-    // 检查条件
+    // 对齐原版 `LootPoolSingletonContainer#expand`：条件通过才成为候选，
+    // 并且条件只在这里判定一次（`generate` 不再重复判定）。
     if (!testConditions(context)) {
         return false;
     }
+    consumer(*this);
+    return true;
+}
 
-    // 查找标签
+void TagLootEntry::generate(ConsumerPtr consumer, LootContext& context) const
+{
+    // 条件已在 `expand` 阶段判定过，这里不再重复判定。
     auto* tag = item::tag::ItemTags::getTag(m_tagId);
     if (!tag || tag->getItems().empty()) {
-        // 标签不存在或为空，不生成物品
-        return false;
+        return;
     }
 
-    const auto& items = tag->getItems();
-    if (m_expand) {
-        bool anyGenerated = false;
-        for (const Item* item : items) {
-            ItemStack stack(*item, 1);
-            stack = applyFunctions(std::move(stack), context);
-            if (!stack.isEmpty()) {
-                consumer(stack);
-                anyGenerated = true;
-            }
-        }
-        return anyGenerated;
+    // 对齐原版 `TagEntry#createItemStack`：标签里的**全部**物品逐个产出
+    // （不是随机挑一个），每个都交给被条目函数装饰过的下游回调。
+    const auto decorated = decorate(std::move(consumer), context);
+    for (const Item* item : tag->getItems()) {
+        decorated->accept(ItemStack(*item, 1));
     }
-
-    auto it = items.begin();
-    std::advance(it, context.getRandom().nextInt(static_cast<i32>(items.size())));
-    ItemStack stack(**it, 1);
-    stack = applyFunctions(std::move(stack), context);
-    if (!stack.isEmpty()) {
-        consumer(stack);
-    }
-    return true;
 }
 
 } // namespace loot

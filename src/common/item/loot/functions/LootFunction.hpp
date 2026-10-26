@@ -23,6 +23,7 @@
 
 #pragma once
 
+#include "common/item/core/ItemStack.hpp"
 #include "common/item/loot/conditions/LootCondition.hpp"
 #include "common/item/loot/context/LootContext.hpp"
 #include <functional>
@@ -31,19 +32,16 @@
 #include <vector>
 
 namespace mc {
-
-// Forward declarations
-class ItemStack;
-
 namespace loot {
 
 /**
  * @brief 掉落函数基类
  *
  * 掉落函数用于修改生成的物品堆，如设置数量、应用附魔加成等。
- * 参考: net.minecraft.loot.functions.ILootFunction
+ * 参考: net.minecraft.world.level.storage.loot.functions.LootItemFunction
  *
- * 函数在条件检查之后、物品返回之前执行。
+ * 每个函数自带一组 `conditions`（数据包里的 `conditions` 字段）。条件不满足时
+ * 函数原样返回堆，这与原版 `LootItemConditionalFunction#apply` 一致。
  * 多个函数按顺序执行，前一个函数的输出作为后一个函数的输入。
  */
 class LootFunction {
@@ -53,13 +51,29 @@ public:
     /**
      * @brief 应用函数到物品堆
      *
-     * 修改或替换物品堆。
+     * 对齐原版 `LootItemConditionalFunction#apply`：先判定本函数自身的
+     * `conditions`，不满足时**原样返回**（函数不生效，也不打断后续函数）。
+     *
+     * 调用方只按顺序调用即可，不要在外层再判一次条件——那会让条件被评估两次，
+     * 带随机数的条件会多消耗一次随机数。
      *
      * @param stack 原始物品堆（可被修改）
      * @param context 掉落上下文
      * @return 修改后的物品堆（可以返回空堆表示不生成物品）
      */
-    virtual ItemStack apply(ItemStack stack, LootContext& context) const = 0;
+    ItemStack apply(ItemStack stack, LootContext& context) const
+    {
+        return testConditions(context) ? run(std::move(stack), context) : stack;
+    }
+
+    /**
+     * @brief 函数主体的实际变换（子类实现，不再判定条件）
+     *
+     * @param stack 原始物品堆
+     * @param context 掉落上下文
+     * @return 修改后的物品堆
+     */
+    virtual ItemStack run(ItemStack stack, LootContext& context) const = 0;
 
     /**
      * @brief 创建函数副本

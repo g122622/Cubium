@@ -27,6 +27,7 @@
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/core/EquipmentSlot.hpp"
 #include "common/entity/core/LivingEntity.hpp"
+#include "common/entity/ecs/components/EquipmentComponent.hpp"
 #include "common/item/Items.hpp"
 #include "common/item/core/Item.hpp"
 #include "common/item/enchantment/Enchantment.hpp"
@@ -52,6 +53,23 @@ i32 EnchantmentHelper::getEnchantmentLevel(const ItemStack& stack, const std::st
         return 0;
     }
     return stack.getEnchantmentLevel(enchantmentId);
+}
+
+i32 EnchantmentHelper::getEnchantmentLevel(const LivingEntity& entity, const std::string& enchantmentId)
+{
+    // 原版：for (EquipmentSlot slot : EquipmentSlot.VALUES) level = max(level, get(slot));
+    // TODO(enchantment-slots): 原版按附魔自身的 `definition.slots()` 过滤槽位；附魔定义
+    // 目前不携带槽位表，这里退化为「遍历全部槽位取最大值」——主手上的附魔结果相同，
+    // 只在副手/护甲上另有一把同名附魔时才会高估。
+    const auto* component = entity.tryGetComponent<ecs::EquipmentComponent>();
+    if (component == nullptr) {
+        return 0;
+    }
+    i32 best = 0;
+    for (const auto& stack : component->m_equipment) {
+        best = std::max(best, getEnchantmentLevel(stack, enchantmentId));
+    }
+    return best;
 }
 
 i32 EnchantmentHelper::getEnchantmentLevel(const ItemStack& stack, const Enchantment* enchantment)

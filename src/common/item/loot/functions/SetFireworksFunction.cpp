@@ -38,7 +38,7 @@ SetFireworksFunction::SetFireworksFunction(
     , m_flightDuration(flightDuration)
 {}
 
-ItemStack SetFireworksFunction::apply(ItemStack stack, LootContext& context) const
+ItemStack SetFireworksFunction::run(ItemStack stack, LootContext& context) const
 {
     MC_UNUSED(context);
     if (stack.isEmpty()) {

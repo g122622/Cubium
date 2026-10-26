@@ -119,7 +119,7 @@ CopyComponentsFunction::CopyComponentsFunction(Source source,
     , m_exclude(std::move(exclude))
 {}
 
-ItemStack CopyComponentsFunction::apply(ItemStack stack, LootContext& context) const
+ItemStack CopyComponentsFunction::run(ItemStack stack, LootContext& context) const
 {
     if (stack.isEmpty()) {
         return stack;

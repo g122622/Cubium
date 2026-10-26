@@ -469,8 +469,10 @@ void ChestBoatEntity::unpackLootTable(Player* player)
         builder.withRandom(rng);
     }
 
-    // 设置位置参数（使用实体位置转换为 BlockPos）
-    // 当前项目使用 BLOCK_POS 代替 ORIGIN
+    // 位置参数：原版 `chest` 参数集的必需键是 ORIGIN（世界坐标），
+    // 船体内部仍按 BLOCK_POS 传一份取整后的方块坐标，供按方块定位的函数使用。
+    const Vector3 entityOrigin = position();
+    builder.withOwnedValue(loot::LootParams::ORIGIN, entityOrigin);
     BlockPos entityPos(
         static_cast<i32>(std::floor(x())), static_cast<i32>(std::floor(y())), static_cast<i32>(std::floor(z())));
     builder.withOwnedValue(loot::LootParams::BLOCK_POS, entityPos);

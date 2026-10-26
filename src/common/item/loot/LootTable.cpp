@@ -83,17 +83,21 @@ void LootTable::addFunction(std::unique_ptr<LootFunction> function)
     }
 }
 
-ItemStack LootTable::applyFunctions(ItemStack stack, LootContext& context) const
+ConsumerPtr LootTable::decorate(ConsumerPtr consumer, LootContext& context) const
 {
-    for (const auto& func : m_functions) {
-        if (func->testConditions(context)) {
-            stack = func->apply(stack, context);
-            if (stack.isEmpty()) {
-                return stack;
-            }
-        }
+    if (m_functions.empty()) {
+        return consumer;
     }
-    return stack;
+    // 对齐原版 `LootItemFunction#decorate`：本层函数对每个经过的堆执行一次，
+    // 变换后的空堆照样交付，不在这一层过滤。
+    const auto& functions = m_functions;
+    return makeConsumer([&functions, consumer = std::move(consumer), &context](const ItemStack& received) {
+        ItemStack stack = received;
+        for (const auto& func : functions) {
+            stack = func->apply(std::move(stack), context);
+        }
+        consumer->accept(stack);
+    });
 }
 
 std::vector<ItemStack> LootTable::generate(LootContext& context) const
@@ -101,10 +105,7 @@ std::vector<ItemStack> LootTable::generate(LootContext& context) const
     std::vector<ItemStack> items;
 
     // 处理物品堆叠
-    auto consumer = [&items](const ItemStack& stack) {
-        // spdlog::info("LootTable::generate received item stack: {} x{}",
-        //     stack.getItem() ? stack.getItem()->itemLocation().toString() : "null",
-        //     stack.getCount());
+    auto collected = [&items](const ItemStack& stack) {
         if (!stack.isEmpty()) {
             // 尝试合并到现有堆
             for (auto& existing : items) {
@@ -129,17 +130,16 @@ std::vector<ItemStack> LootTable::generate(LootContext& context) const
         }
     };
 
-    recursiveGenerate(consumer, context);
-    // spdlog::info("Generated {} item stacks from loot table '{}'", items.size(), m_id);
+    generate(makeConsumer(collected), context);
     return items;
 }
 
-void LootTable::generate(std::function<void(const ItemStack&)> consumer, LootContext& context) const
+void LootTable::generate(ConsumerPtr consumer, LootContext& context) const
 {
-    recursiveGenerate(consumer, context);
+    recursiveGenerate(std::move(consumer), context);
 }
 
-void LootTable::recursiveGenerate(std::function<void(const ItemStack&)> consumer, LootContext& context) const
+void LootTable::recursiveGenerate(ConsumerPtr consumer, LootContext& context) const
 {
     // 参数集校验：检查必需参数是否已提供
     if (m_paramSet.getType() != LootParameterSet::Type::Empty &&
@@ -158,20 +158,9 @@ void LootTable::recursiveGenerate(std::function<void(const ItemStack&)> consumer
         return;
     }
 
-    // 如果有表级函数，包装 consumer 以应用函数
-    std::function<void(const ItemStack&)> tableConsumer;
-    if (m_functions.empty()) {
-        tableConsumer = consumer;
-    } else {
-        tableConsumer = [this, &consumer, &context](const ItemStack& stack) {
-            if (!stack.isEmpty()) {
-                ItemStack result = applyFunctions(stack, context);
-                if (!result.isEmpty()) {
-                    consumer(result);
-                }
-            }
-        };
-    }
+    // 对齐原版 `LootTable#getRandomItemsRaw`：表级函数通过 `decorate` 挂到 consumer 上，
+    // 对每个产出的堆都执行一次。
+    const auto tableConsumer = decorate(consumer, context);
 
     // 执行所有池
     for (auto& pool : m_pools) {

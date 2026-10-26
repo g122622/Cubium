@@ -29,6 +29,7 @@
 #include "common/item/loot/entries/LootEntry.hpp"
 #include <functional>
 #include <memory>
+#include <vector>
 #include <string>
 #include <utility>
 
@@ -68,39 +69,28 @@ std::unique_ptr<LootEntry> TableLootEntry::clone() const
     return entry;
 }
 
-void TableLootEntry::expand(LootContext& /*context*/, std::function<void(LootEntry&)> consumer) const
+bool TableLootEntry::expand(LootContext& context, const std::function<void(const LootEntry&)>& consumer) const
 {
-    consumer(*const_cast<TableLootEntry*>(this));
-}
-
-bool TableLootEntry::generate(std::function<void(const ItemStack&)> consumer, LootContext& context) const
-{
-    // 检查条件
+    // 对齐原版 `LootPoolSingletonContainer#expand`：条件通过才成为候选，
+    // 并且条件只在这里判定一次（`generate` 不再重复判定）。
     if (!testConditions(context)) {
         return false;
     }
+    consumer(*this);
+    return true;
+}
 
-    // 内联表：直接生成，复用 LootTable::generate 内部的循环检测
-    if (m_inlineTable) {
-        auto items = m_inlineTable->generate(context);
-        for (const auto& item : items) {
-            consumer(item);
-        }
-        return !items.empty();
+void TableLootEntry::generate(ConsumerPtr consumer, LootContext& context) const
+{
+    // 条件已在 `expand` 阶段判定过，这里不再重复判定。
+    const LootTable* table = m_inlineTable ? m_inlineTable.get() : context.getLootTable(m_tableId);
+    if (table == nullptr) {
+        return;
     }
 
-    // 外部引用：通过解析器查找掉落表
-    const LootTable* table = context.getLootTable(m_tableId);
-    if (!table) {
-        return false;
-    }
-
-    auto items = table->generate(context);
-    for (const auto& item : items) {
-        consumer(item);
-    }
-
-    return !items.empty();
+    // 对齐原版 `NestedLootTable#createItemStack`：用 `getRandomItemsRaw` 直接投喂，
+    // 不做同物品合并、也不做堆拆分（那些是「放进容器」时才有的行为）。
+    table->generate(consumer, context);
 }
 
 } // namespace loot

@@ -46,7 +46,7 @@ void SetStewEffectFunction::addEffect(const std::string& effectId, const RandomV
     m_effects.push_back({effectId, duration});
 }
 
-ItemStack SetStewEffectFunction::apply(ItemStack stack, LootContext& context) const
+ItemStack SetStewEffectFunction::run(ItemStack stack, LootContext& context) const
 {
     if (stack.isEmpty() || m_effects.empty()) {
         return stack;

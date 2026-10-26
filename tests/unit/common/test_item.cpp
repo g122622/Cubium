@@ -464,6 +464,11 @@ TEST_F(ItemStackTest, SetCount)
 
     stack.setCount(0);
     EXPECT_TRUE(stack.isEmpty());
+    // 对齐原版：数量归零不丢物品类型，再加回到非零就恢复成非空堆。
+    EXPECT_EQ(m_diamond, stack.getItem());
+    stack.grow(4);
+    EXPECT_FALSE(stack.isEmpty());
+    EXPECT_EQ(4, stack.getCount());
 }
 
 TEST_F(ItemStackTest, GrowAndShrink)

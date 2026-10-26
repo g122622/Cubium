@@ -56,13 +56,15 @@ TEST_F(LootParameterSetValidationTest, IsAllowed_RequiredParam)
 TEST_F(LootParameterSetValidationTest, IsAllowed_OptionalParam)
 {
     auto paramSet = LootParameterSets::block();
-    // block() 可选参数：ORIGIN, TOOL, THIS_ENTITY, BLOCK_ENTITY, FORTUNE_LEVEL, SILK_TOUCH_LEVEL
+    // block() 可选参数：ORIGIN, TOOL, THIS_ENTITY, BLOCK_ENTITY, EXPLOSION_RADIUS, BLOCK_POS
+    // 对齐原版 `LootContextParamSets.BLOCK`：没有 fortune_level / silk_touch_level 这两个键，
+    // 时运与精准采集由 `match_tool` / `table_bonus` / `apply_bonus` 直接读工具上的附魔。
     EXPECT_TRUE(paramSet.isAllowed(LootParams::ORIGIN.getId()));
     EXPECT_TRUE(paramSet.isAllowed(LootParams::TOOL.getId()));
     EXPECT_TRUE(paramSet.isAllowed(LootParams::THIS_ENTITY.getId()));
     EXPECT_TRUE(paramSet.isAllowed(LootParams::BLOCK_ENTITY.getId()));
-    EXPECT_TRUE(paramSet.isAllowed(LootParams::FORTUNE_LEVEL.getId()));
-    EXPECT_TRUE(paramSet.isAllowed(LootParams::SILK_TOUCH_LEVEL.getId()));
+    EXPECT_TRUE(paramSet.isAllowed(LootParams::EXPLOSION_RADIUS.getId()));
+    EXPECT_TRUE(paramSet.isAllowed(LootParams::BLOCK_POS.getId()));
 }
 
 TEST_F(LootParameterSetValidationTest, IsAllowed_OriginInEntityAndBlockSets)
@@ -96,10 +98,12 @@ TEST_F(LootParameterSetValidationTest, IsAllowed_EmptySet)
 
 TEST_F(LootParameterSetValidationTest, Validate_BlockSet_AllRequiredProvided)
 {
+    // 1.21.11 BLOCK 的必需键是 {BLOCK_STATE, ORIGIN, TOOL}。
     auto paramSet = LootParameterSets::block();
     std::vector<std::string> provided = {
         LootParams::BLOCK_STATE.getId(),
-        LootParams::BLOCK_POS.getId(),
+        LootParams::ORIGIN.getId(),
+        LootParams::TOOL.getId(),
     };
     EXPECT_TRUE(paramSet.validate(provided));
 }
@@ -127,19 +131,22 @@ TEST_F(LootParameterSetValidationTest, Validate_BlockSet_WithOptionalParams)
     auto paramSet = LootParameterSets::block();
     std::vector<std::string> provided = {
         LootParams::BLOCK_STATE.getId(),
-        LootParams::BLOCK_POS.getId(),
+        LootParams::ORIGIN.getId(),
         LootParams::TOOL.getId(),
         LootParams::THIS_ENTITY.getId(),
-        LootParams::FORTUNE_LEVEL.getId(),
+        LootParams::BLOCK_POS.getId(),
     };
     EXPECT_TRUE(paramSet.validate(provided));
 }
 
 TEST_F(LootParameterSetValidationTest, Validate_EntitySet_AllRequired)
 {
+    // 1.21.11 ENTITY 的必需键是 {THIS_ENTITY, ORIGIN, DAMAGE_SOURCE}。
     auto paramSet = LootParameterSets::entity();
     std::vector<std::string> provided = {
         LootParams::THIS_ENTITY.getId(),
+        LootParams::ORIGIN.getId(),
+        LootParams::DAMAGE_SOURCE.getId(),
     };
     EXPECT_TRUE(paramSet.validate(provided));
 }
@@ -153,9 +160,10 @@ TEST_F(LootParameterSetValidationTest, Validate_EntitySet_MissingRequired)
 
 TEST_F(LootParameterSetValidationTest, Validate_FishingSet_AllRequired)
 {
+    // 1.21.11 FISHING 的必需键是 {ORIGIN, TOOL}。
     auto paramSet = LootParameterSets::fishing();
     std::vector<std::string> provided = {
-        LootParams::BLOCK_POS.getId(),
+        LootParams::ORIGIN.getId(),
         LootParams::TOOL.getId(),
     };
     EXPECT_TRUE(paramSet.validate(provided));
@@ -163,10 +171,11 @@ TEST_F(LootParameterSetValidationTest, Validate_FishingSet_AllRequired)
 
 TEST_F(LootParameterSetValidationTest, Validate_SelectorSet_AllRequired)
 {
+    // 1.21.11 SELECTOR 的必需键是 {ORIGIN, THIS_ENTITY}。
     auto paramSet = LootParameterSets::selector();
     std::vector<std::string> provided = {
         LootParams::THIS_ENTITY.getId(),
-        LootParams::BLOCK_POS.getId(),
+        LootParams::ORIGIN.getId(),
     };
     EXPECT_TRUE(paramSet.validate(provided));
 }
@@ -185,7 +194,7 @@ TEST_F(LootParameterSetValidationTest, Validate_SelectorSet_MissingOneRequired)
 TEST_F(LootParameterSetValidationTest, ValidateDetailed_BlockSet_MissingAndUnexpected)
 {
     auto paramSet = LootParameterSets::block();
-    // 提供 BLOCK_STATE（必需）但缺少 BLOCK_POS（必需），且有 KILLER_PLAYER（不允许）
+    // 提供 BLOCK_STATE（必需）但缺少 ORIGIN / TOOL（必需），且有 KILLER_PLAYER（不允许）
     std::vector<std::string> provided = {
         LootParams::BLOCK_STATE.getId(),
         LootParams::KILLER_PLAYER.getId(),
@@ -196,8 +205,9 @@ TEST_F(LootParameterSetValidationTest, ValidateDetailed_BlockSet_MissingAndUnexp
     bool result = paramSet.validate(provided, missingParams, unexpectedParams);
 
     EXPECT_FALSE(result);
-    ASSERT_EQ(missingParams.size(), 1u);
-    EXPECT_EQ(missingParams[0], LootParams::BLOCK_POS.getId());
+    ASSERT_EQ(missingParams.size(), 2u);
+    EXPECT_EQ(missingParams[0], LootParams::ORIGIN.getId());
+    EXPECT_EQ(missingParams[1], LootParams::TOOL.getId());
     ASSERT_EQ(unexpectedParams.size(), 1u);
     EXPECT_EQ(unexpectedParams[0], LootParams::KILLER_PLAYER.getId());
 }
@@ -214,8 +224,10 @@ TEST_F(LootParameterSetValidationTest, ValidateDetailed_BlockSet_OnlyMissing)
     bool result = paramSet.validate(provided, missingParams, unexpectedParams);
 
     EXPECT_FALSE(result);
-    ASSERT_EQ(missingParams.size(), 1u);
+    ASSERT_EQ(missingParams.size(), 3u);
     EXPECT_EQ(missingParams[0], LootParams::BLOCK_STATE.getId());
+    EXPECT_EQ(missingParams[1], LootParams::ORIGIN.getId());
+    EXPECT_EQ(missingParams[2], LootParams::TOOL.getId());
     EXPECT_TRUE(unexpectedParams.empty());
 }
 
@@ -225,6 +237,8 @@ TEST_F(LootParameterSetValidationTest, ValidateDetailed_BlockSet_OnlyUnexpected)
     std::vector<std::string> provided = {
         LootParams::BLOCK_STATE.getId(),
         LootParams::BLOCK_POS.getId(),
+        LootParams::ORIGIN.getId(),
+        LootParams::TOOL.getId(),
         LootParams::DAMAGE_SOURCE.getId(),
     };
 
@@ -244,6 +258,7 @@ TEST_F(LootParameterSetValidationTest, ValidateDetailed_BlockSet_AllValid)
     std::vector<std::string> provided = {
         LootParams::BLOCK_STATE.getId(),
         LootParams::BLOCK_POS.getId(),
+        LootParams::ORIGIN.getId(),
         LootParams::TOOL.getId(),
     };
 
@@ -262,36 +277,43 @@ TEST_F(LootParameterSetValidationTest, GetRequiredParams_BlockSet)
 {
     auto paramSet = LootParameterSets::block();
     const auto& required = paramSet.getRequiredParams();
-    EXPECT_EQ(required.size(), 2u);
-    // 验证包含 BLOCK_STATE 和 BLOCK_POS
+    EXPECT_EQ(required.size(), 3u);
+    // 验证包含 BLOCK_STATE、ORIGIN 与 TOOL（1.21.11 BLOCK 的必需键）
     bool hasBlockState = false;
-    bool hasBlockPos = false;
+    bool hasOrigin = false;
+    bool hasTool = false;
     for (const auto& param : required) {
         if (param == LootParams::BLOCK_STATE.getId()) {
             hasBlockState = true;
         }
-        if (param == LootParams::BLOCK_POS.getId()) {
-            hasBlockPos = true;
+        if (param == LootParams::ORIGIN.getId()) {
+            hasOrigin = true;
+        }
+        if (param == LootParams::TOOL.getId()) {
+            hasTool = true;
         }
     }
     EXPECT_TRUE(hasBlockState);
-    EXPECT_TRUE(hasBlockPos);
+    EXPECT_TRUE(hasOrigin);
+    EXPECT_TRUE(hasTool);
 }
 
 TEST_F(LootParameterSetValidationTest, GetOptionalParams_BlockSet)
 {
     auto paramSet = LootParameterSets::block();
     const auto& optional = paramSet.getOptionalParams();
-    // ORIGIN, TOOL, THIS_ENTITY, BLOCK_ENTITY, FORTUNE_LEVEL, SILK_TOUCH_LEVEL
-    EXPECT_EQ(optional.size(), 6u);
+    // THIS_ENTITY, BLOCK_ENTITY, EXPLOSION_RADIUS, BLOCK_POS
+    EXPECT_EQ(optional.size(), 4u);
 }
 
 TEST_F(LootParameterSetValidationTest, GetRequiredParams_EntitySet)
 {
     auto paramSet = LootParameterSets::entity();
     const auto& required = paramSet.getRequiredParams();
-    EXPECT_EQ(required.size(), 1u);
+    ASSERT_EQ(required.size(), 3u);
     EXPECT_EQ(required[0], LootParams::THIS_ENTITY.getId());
+    EXPECT_EQ(required[1], LootParams::ORIGIN.getId());
+    EXPECT_EQ(required[2], LootParams::DAMAGE_SOURCE.getId());
 }
 
 TEST_F(LootParameterSetValidationTest, GetRequiredParams_EmptySet)
@@ -409,10 +431,10 @@ TEST_F(LootContextBuilderValidationTest, BlockSet_WithOptionalParams_ReturnsVali
                        .withRandom(rng)
                        .withParameter(LootParams::BLOCK_STATE, const_cast<BlockState*>(state))
                        .withParameter(LootParams::BLOCK_POS, &pos)
-                       .withOwnedValue(LootParams::FORTUNE_LEVEL, 3)
+                       .withOwnedValue(LootParams::EXPLOSION_RADIUS, 2.0f)
                        .build(LootParameterSets::block());
     ASSERT_NE(context, nullptr);
-    EXPECT_TRUE(context->has(LootParams::FORTUNE_LEVEL));
+    EXPECT_TRUE(context->has(LootParams::EXPLOSION_RADIUS));
 }
 
 TEST_F(LootContextBuilderValidationTest, SelectorSet_MissingRequiredParams_StillReturnsContext)

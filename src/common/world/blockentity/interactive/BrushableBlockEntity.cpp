@@ -239,7 +239,10 @@ void BrushableBlockEntity::unpackLootTable(IWorld& world, LivingEntity& entity, 
         builder.withSeed(static_cast<u64>(m_lootTableSeed));
     }
 
-    // 位置参数
+    // 位置参数：原版 `archaeology` 参数集要求 ORIGIN，BLOCK_POS 是本项目额外的取整坐标。
+    const Vector3 lootOrigin(
+        static_cast<f32>(m_pos.x) + 0.5f, static_cast<f32>(m_pos.y) + 0.5f, static_cast<f32>(m_pos.z) + 0.5f);
+    builder.withOwnedValue(loot::LootParams::ORIGIN, lootOrigin);
     BlockPos lootPos = m_pos;
     builder.withParameter(loot::LootParams::BLOCK_POS, &lootPos);
 

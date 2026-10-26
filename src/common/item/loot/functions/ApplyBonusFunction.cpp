@@ -41,44 +41,41 @@ ApplyBonusFunction::ApplyBonusFunction(BonusType bonusType, i32 bonusMultiplier,
     , m_probability(probability)
 {}
 
-ItemStack ApplyBonusFunction::apply(ItemStack stack, LootContext& context) const
+ItemStack ApplyBonusFunction::run(ItemStack stack, LootContext& context) const
 {
     if (stack.isEmpty()) {
         return stack;
     }
 
-    // 从上下文获取工具
-    auto* tool = context.get<ItemStack>(LootParams::TOOL);
-    if (!tool || tool->isEmpty()) {
+    // 对齐原版 `ApplyBonusCount#run`：
+    //   ItemStack tool = ctx.getOptionalParameter(TOOL);
+    //   if (tool != null) { int level = getItemEnchantmentLevel(...); setCount(formula(...)); }
+    // 判的是 **null**（键不存在），不是 `isEmpty`。方块参数集把 tool 列为必需键，
+    // 所以「空手挖掘」时工具是空栈而非缺失——此时原版仍会调用公式，
+    // 公式里的 `nextInt(mult * fortune + 1)` 照样消耗一次随机数。
+    const ItemStack* tool = context.get<ItemStack>(LootParams::TOOL);
+    if (tool == nullptr) {
         return stack;
     }
 
-    // 获取时运等级
-    i32 fortuneLevel = 0;
-    auto* fortuneParam = context.get<i32>(LootParams::FORTUNE_LEVEL);
-    if (fortuneParam) {
-        fortuneLevel = *fortuneParam;
-    } else {
-        // 尝试从工具获取时运等级
-        fortuneLevel = item::enchant::EnchantmentHelper::getFortuneLevel(*tool);
-    }
+    // 原版从工具上读附魔等级（`EnchantmentHelper#getItemEnchantmentLevel`）。
+    const i32 fortuneLevel = item::enchant::EnchantmentHelper::getFortuneLevel(*tool);
 
     // 根据加成类型计算新数量
-    i32 baseCount = stack.getCount();
-    i32 newCount = baseCount;
+    const i32 baseCount = stack.getCount();
     switch (m_bonusType) {
         case BonusType::OreDrops:
-            newCount = calculateOreDrops(baseCount, fortuneLevel, context.getRandom());
+            stack.setCount(calculateOreDrops(baseCount, fortuneLevel, context.getRandom()));
             break;
         case BonusType::Uniform:
-            newCount = calculateUniformBonus(baseCount, fortuneLevel, m_bonusMultiplier, context.getRandom());
+            stack.setCount(calculateUniformBonus(baseCount, fortuneLevel, m_bonusMultiplier, context.getRandom()));
             break;
         case BonusType::Binomial:
-            newCount = calculateBinomialBonus(baseCount, fortuneLevel, m_extra, m_probability, context.getRandom());
+            stack.setCount(
+                calculateBinomialBonus(baseCount, fortuneLevel, m_extra, m_probability, context.getRandom()));
             break;
     }
 
-    stack.setCount(newCount);
     return stack;
 }
 
@@ -120,14 +117,11 @@ i32 ApplyBonusFunction::calculateOreDrops(i32 baseCount, i32 fortuneLevel, math:
 i32 ApplyBonusFunction::calculateUniformBonus(
     i32 baseCount, i32 fortuneLevel, i32 bonusMultiplier, math::IRandom& random)
 {
-    // MC 1.16.5 UniformBonusCountFormula:
-    // count + random.nextInt(bonusMultiplier * fortune + 1)
-    if (fortuneLevel <= 0) {
-        return baseCount;
-    }
-
-    i32 bonus = random.nextInt(bonusMultiplier * fortuneLevel + 1);
-    return baseCount + bonus;
+    // 原版 `UniformBonusCount#calculateNewCount`：
+    //   return count + random.nextInt(bonusMultiplier * fortune + 1);
+    // 注意**没有**「fortune == 0 就直接返回」的短路：此时 `nextInt(1)` 返回 0，
+    // 但依然消耗一次随机数。加短路会让后续抽取与原版错位。
+    return baseCount + random.nextInt(bonusMultiplier * fortuneLevel + 1);
 }
 
 i32 ApplyBonusFunction::calculateBinomialBonus(

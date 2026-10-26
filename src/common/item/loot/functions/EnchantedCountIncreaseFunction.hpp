@@ -34,32 +34,35 @@ namespace mc {
 namespace loot {
 
 /**
- * @brief Looting enchant bonus function
+ * @brief 按攻击者附魔等级增加掉落数量（minecraft:enchanted_count_increase）
  *
- * Increases drop count based on looting enchantment level.
- * See: net.minecraft.loot.functions.LootingEnchantBonus
- *
- * Formula: count + random(0, lootingLevel) * lootingMultiplier
- * Or using random range: count + random(min, max) per looting level
- *
- * Used for mob drops (e.g. rotten flesh, bones, etc.).
+ * 对齐原版 `EnchantedCountIncreaseFunction`：
+ * - 从上下文的 `ATTACKING_ENTITY` 读**指定附魔**在该实体装备上的等级；
+ * - 等级为 0 时**原样返回、不消耗随机数**（原版在这里就 return 了）；
+ * - 否则 `grow(round(level * count.getFloat(ctx)))`，`limit > 0` 时再截断。
  */
 class EnchantedCountIncreaseFunction : public LootFunction {
 public:
     /**
-     * @brief Construct looting bonus function
-     * @param count Extra count range
-     * @param limit Maximum count limit (0 means unlimited)
+     * @brief 构造
+     * @param enchantmentId 参与计算的附魔 ID（数据包通常是 minecraft:looting）
+     * @param count 每级附魔增加的随机数量范围
+     * @param limit 掉落数量上限（0 表示不限）
      */
     explicit EnchantedCountIncreaseFunction(
-        const RandomValueRange& count = RandomValueRange(0.0f, 1.0f), i32 limit = 0);
+        std::string enchantmentId, const RandomValueRange& count = RandomValueRange(0.0f, 1.0f), i32 limit = 0);
 
-    [[nodiscard]] ItemStack apply(ItemStack stack, LootContext& context) const override;
+    [[nodiscard]] ItemStack run(ItemStack stack, LootContext& context) const override;
     [[nodiscard]] std::unique_ptr<LootFunction> clone() const noexcept override;
 
     [[nodiscard]] std::string getType() const override
     {
         return "enchanted_count_increase";
+    }
+
+    [[nodiscard]] const std::string& getEnchantmentId() const
+    {
+        return m_enchantmentId;
     }
 
     [[nodiscard]] const RandomValueRange& getCount() const
@@ -73,6 +76,7 @@ public:
     }
 
 private:
+    std::string m_enchantmentId;
     RandomValueRange m_count;
     i32 m_limit; // 0 means unlimited
 };

@@ -181,10 +181,14 @@ public:
         return m_functions;
     }
 
-    /**
-     * @brief 应用所有池级函数到物品
+/**
+     * @brief 用条目级函数**装饰**一个消费回调
+     *
+     * 对齐原版 `LootPool#addRandomItems` 里的 `LootItemFunction#decorate`：装饰后的回调
+     * 每收到一个堆就套一遍池级函数链，再把结果交给下游回调。空堆同样交付——原版不在
+     * 这里过滤，过滤会让表级函数少执行一次。
      */
-    [[nodiscard]] ItemStack applyFunctions(ItemStack stack, LootContext& context) const;
+    [[nodiscard]] ConsumerPtr decorate(ConsumerPtr consumer, LootContext& context) const;
 
     // ========== 生成 ==========
 
@@ -194,13 +198,13 @@ public:
      * @param consumer 接收物品的回调
      * @param context 掉落上下文
      */
-    void generate(std::function<void(const ItemStack&)> consumer, LootContext& context) const;
+    void generate(ConsumerPtr consumer, LootContext& context) const;
 
 private:
     /**
      * @brief 执行一次掷骰
      */
-    void _generateRoll(std::function<void(const ItemStack&)> consumer, LootContext& context) const;
+    void _generateRoll(const ConsumerPtr& consumer, LootContext& context) const;
 
 private:
     std::string m_name;

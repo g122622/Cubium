@@ -50,7 +50,7 @@ public:
      */
     explicit EnchantWithLevelsFunction(const RandomValueRange& levels, bool treasure = false) noexcept;
 
-    [[nodiscard]] ItemStack apply(ItemStack stack, LootContext& context) const override;
+    [[nodiscard]] ItemStack run(ItemStack stack, LootContext& context) const override;
     [[nodiscard]] std::unique_ptr<LootFunction> clone() const noexcept override;
 
     [[nodiscard]] std::string getType() const noexcept override

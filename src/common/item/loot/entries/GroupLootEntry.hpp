@@ -53,9 +53,9 @@ public:
 
     void addChild(std::unique_ptr<LootEntry> child);
 
-    void expand(LootContext& context, std::function<void(LootEntry&)> consumer) const override;
+    bool expand(LootContext& context, const std::function<void(const LootEntry&)>& consumer) const override;
 
-    bool generate(std::function<void(const ItemStack&)> consumer, LootContext& context) const override;
+    void generate(ConsumerPtr consumer, LootContext& context) const override;
 
 private:
     std::vector<std::unique_ptr<LootEntry>> m_children;

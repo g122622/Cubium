@@ -73,7 +73,7 @@ void CopyCustomDataFunction::addOperation(
     m_operations.emplace_back(sourcePath, targetPath, operation);
 }
 
-ItemStack CopyCustomDataFunction::apply(ItemStack stack, LootContext& context) const
+ItemStack CopyCustomDataFunction::run(ItemStack stack, LootContext& context) const
 {
     if (stack.isEmpty() || m_operations.empty()) {
         return stack;

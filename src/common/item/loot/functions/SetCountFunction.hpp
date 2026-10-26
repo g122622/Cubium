@@ -69,7 +69,7 @@ public:
      * @param context 掉落上下文
      * @return 修改后的物品堆
      */
-    [[nodiscard]] ItemStack apply(ItemStack stack, LootContext& context) const override;
+    [[nodiscard]] ItemStack run(ItemStack stack, LootContext& context) const override;
 
     /**
      * @brief 创建函数副本

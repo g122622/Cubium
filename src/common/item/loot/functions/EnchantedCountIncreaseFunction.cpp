@@ -23,8 +23,12 @@
 
 #include "EnchantedCountIncreaseFunction.hpp"
 #include "common/core/Types.hpp"
+#include "common/entity/core/Entity.hpp"
+#include "common/entity/core/LivingEntity.hpp"
 #include "common/item/core/ItemStack.hpp"
+#include "common/item/enchantment/EnchantmentHelper.hpp"
 #include "common/item/loot/context/LootContext.hpp"
+#include "common/item/loot/context/LootParams.hpp"
 #include "common/item/loot/functions/LootFunction.hpp"
 #include "common/util/math/MathUtils.hpp"
 #include "common/util/math/random/RandomRanges.hpp"
@@ -33,25 +37,31 @@
 namespace mc {
 namespace loot {
 
-EnchantedCountIncreaseFunction::EnchantedCountIncreaseFunction(const RandomValueRange& count, i32 limit)
-    : m_count(count)
+EnchantedCountIncreaseFunction::EnchantedCountIncreaseFunction(
+    std::string enchantmentId, const RandomValueRange& count, i32 limit)
+    : m_enchantmentId(std::move(enchantmentId))
+    , m_count(count)
     , m_limit(limit)
 {}
 
-ItemStack EnchantedCountIncreaseFunction::apply(ItemStack stack, LootContext& context) const
+ItemStack EnchantedCountIncreaseFunction::run(ItemStack stack, LootContext& context) const
 {
-    if (stack.isEmpty()) {
+    // 对齐原版：等级取自 ATTACKING_ENTITY 的装备（`EnchantmentHelper#getEnchantmentLevel`）。
+    // 没有攻击者、不是生物、或附魔等级为 0 时**直接返回且不消耗随机数**——原版在这里
+    // 已经 return，随机数的消耗时机因此与「先抽数再判断」完全不同。
+    i32 enchantmentLevel = 0;
+    if (auto* attacker = context.get<Entity>(LootParams::KILLER_ENTITY); attacker != nullptr) {
+        if (auto* living = dynamic_cast<LivingEntity*>(attacker); living != nullptr) {
+            enchantmentLevel =
+                item::enchant::EnchantmentHelper::getEnchantmentLevel(*living, m_enchantmentId);
+        }
+    }
+    if (enchantmentLevel <= 0) {
         return stack;
     }
 
-    // 获取掠夺附魔等级
-    i32 lootingLevel = context.getLootingModifier();
-    if (lootingLevel <= 0) {
-        return stack;
-    }
-
-    // 计算掠夺附魔加成
-    f32 bonus = static_cast<f32>(lootingLevel) * m_count.generateFloat(context.getRandom());
+    // 计算加成：round(level * count.getFloat(ctx))
+    const f32 bonus = static_cast<f32>(enchantmentLevel) * m_count.generateFloat(context.getRandom());
     stack.grow(math::roundTo<i32>(bonus));
 
     // 检查限制
@@ -64,7 +74,7 @@ ItemStack EnchantedCountIncreaseFunction::apply(ItemStack stack, LootContext& co
 
 std::unique_ptr<LootFunction> EnchantedCountIncreaseFunction::clone() const noexcept
 {
-    auto func = std::make_unique<EnchantedCountIncreaseFunction>(m_count, m_limit);
+    auto func = std::make_unique<EnchantedCountIncreaseFunction>(m_enchantmentId, m_count, m_limit);
     for (const auto& cond : m_conditions) {
         func->addCondition(cond->clone());
     }

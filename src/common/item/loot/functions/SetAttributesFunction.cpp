@@ -42,7 +42,7 @@ void SetAttributesFunction::addModifier(const Modifier& modifier)
     m_modifiers.push_back(modifier);
 }
 
-ItemStack SetAttributesFunction::apply(ItemStack stack, LootContext& context) const
+ItemStack SetAttributesFunction::run(ItemStack stack, LootContext& context) const
 {
     if (stack.isEmpty() || m_modifiers.empty()) {
         return stack;

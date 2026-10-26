@@ -51,7 +51,7 @@ Result<std::unique_ptr<SetCustomDataFunction>> SetCustomDataFunction::create(con
     return std::make_unique<SetCustomDataFunction>(nbtString, nbt::nbtToJson(*parsedTag));
 }
 
-ItemStack SetCustomDataFunction::apply(ItemStack stack, LootContext& context) const
+ItemStack SetCustomDataFunction::run(ItemStack stack, LootContext& context) const
 {
     MC_UNUSED(context);
 

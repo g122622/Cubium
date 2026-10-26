@@ -42,17 +42,16 @@
 #include "common/item/loot/conditions/EntityPropertiesCondition.hpp"
 #include "common/item/loot/conditions/EntityScoresCondition.hpp"
 #include "common/item/loot/conditions/FishingOpenWaterCondition.hpp"
-#include "common/item/loot/conditions/FortuneCondition.hpp"
 #include "common/item/loot/conditions/KilledByPlayerCondition.hpp"
 #include "common/item/loot/conditions/LocationCheckCondition.hpp"
 #include "common/item/loot/conditions/LootCondition.hpp"
 #include "common/item/loot/conditions/MatchToolCondition.hpp"
 #include "common/item/loot/conditions/NotCondition.hpp"
+#include "common/item/loot/conditions/AndCondition.hpp"
 #include "common/item/loot/conditions/OrCondition.hpp"
 #include "common/item/loot/conditions/RandomChanceCondition.hpp"
-#include "common/item/loot/conditions/RandomChanceWithLuckCondition.hpp"
+#include "common/item/loot/conditions/RandomChanceWithEnchantedBonusCondition.hpp"
 #include "common/item/loot/conditions/ReferenceCondition.hpp"
-#include "common/item/loot/conditions/SilkTouchCondition.hpp"
 #include "common/item/loot/conditions/SurvivesExplosionCondition.hpp"
 #include "common/item/loot/conditions/TableBonusCondition.hpp"
 #include "common/item/loot/conditions/TimeCheckCondition.hpp"
@@ -344,17 +343,13 @@ Result<std::unique_ptr<LootCondition>> LootSerializers::parseCondition(const nlo
     std::string conditionType = json["condition"].get<std::string>();
 
     // 根据 condition 类型分发
-    if (conditionType == "minecraft:silk_touch" || conditionType == "silk_touch") {
-        return _parseSilkTouchCondition(json);
-    } else if (conditionType == "minecraft:table_bonus" || conditionType == "table_bonus") {
+    if (conditionType == "minecraft:table_bonus" || conditionType == "table_bonus") {
         return _parseTableBonusCondition(json);
-    } else if (conditionType == "minecraft:fortune" || conditionType == "fortune") {
-        return _parseFortuneCondition(json);
     } else if (conditionType == "minecraft:random_chance" || conditionType == "random_chance") {
         return _parseRandomChanceCondition(json);
-    } else if (conditionType == "minecraft:random_chance_with_looting" ||
-        conditionType == "random_chance_with_looting") {
-        return _parseRandomChanceWithLootingCondition(json);
+    } else if (conditionType == "minecraft:random_chance_with_enchanted_bonus" ||
+        conditionType == "random_chance_with_enchanted_bonus") {
+        return _parseRandomChanceWithEnchantedBonusCondition(json);
     } else if (conditionType == "minecraft:inverted" || conditionType == "inverted") {
         return _parseInvertedCondition(json);
     } else if (conditionType == "minecraft:alternative" || conditionType == "alternative") {
@@ -379,6 +374,10 @@ Result<std::unique_ptr<LootCondition>> LootSerializers::parseCondition(const nlo
         return _parseTimeCheckCondition(json);
     } else if (conditionType == "minecraft:damage_source_properties" || conditionType == "damage_source_properties") {
         return _parseDamageSourcePropertiesCondition(json);
+    } else if (conditionType == "minecraft:any_of" || conditionType == "any_of") {
+        return _parseAnyOfCondition(json);
+    } else if (conditionType == "minecraft:all_of" || conditionType == "all_of") {
+        return _parseAllOfCondition(json);
     } else if (conditionType == "minecraft:reference" || conditionType == "reference") {
         return _parseReferenceCondition(json);
     } else if (conditionType == "minecraft:fishing_hook_in_open_water" ||
@@ -492,21 +491,6 @@ nlohmann::json LootSerializers::toJson(const StatePropertiesPredicate& predicate
 // 条件解析辅助方法
 // ============================================================================
 
-Result<std::unique_ptr<LootCondition>> LootSerializers::_parseSilkTouchCondition(const nlohmann::json& /*json*/)
-{
-    // 精准采集条件没有额外参数
-    return castToBase<SilkTouchCondition, LootCondition>(std::make_unique<SilkTouchCondition>());
-}
-
-Result<std::unique_ptr<LootCondition>> LootSerializers::_parseFortuneCondition(const nlohmann::json& json)
-{
-    i32 minLevel = 0;
-    if (json.contains("min_level") && json["min_level"].is_number_integer()) {
-        minLevel = json["min_level"].get<i32>();
-    }
-    return castToBase<FortuneCondition, LootCondition>(std::make_unique<FortuneCondition>(minLevel));
-}
-
 Result<std::unique_ptr<LootCondition>> LootSerializers::_parseTableBonusCondition(const nlohmann::json& json)
 {
     // 解析附魔ID
@@ -556,31 +540,46 @@ Result<std::unique_ptr<LootCondition>> LootSerializers::_parseRandomChanceCondit
     return castToBase<RandomChanceCondition, LootCondition>(std::make_unique<RandomChanceCondition>(chance));
 }
 
-Result<std::unique_ptr<LootCondition>> LootSerializers::_parseRandomChanceWithLootingCondition(
+Result<std::unique_ptr<LootCondition>> LootSerializers::_parseRandomChanceWithEnchantedBonusCondition(
     const nlohmann::json& json)
 {
-    if (!json.contains("chance")) {
-        return Error(ErrorCode::InvalidData, "random_chance_with_looting condition missing 'chance' field");
+    // 原版字段：unenchanted_chance（f32）、enchanted_chance（LevelBasedValue）、enchantment。
+    // enchanted_chance 目前支持两种写法：纯数字（常量）与
+    // {"type": "minecraft:linear", "base": ..., "per_level_above_first": ...}。
+    if (!json.contains("unenchanted_chance") || !json["unenchanted_chance"].is_number()) {
+        return Error(ErrorCode::InvalidData, "random_chance_with_enchanted_bonus missing 'unenchanted_chance'");
     }
-
-    f32 baseChance = 0.0f;
-    if (json["chance"].is_number_float()) {
-        baseChance = json["chance"].get<f32>();
-    } else if (json["chance"].is_number_integer()) {
-        baseChance = static_cast<f32>(json["chance"].get<i32>());
+    if (!json.contains("enchantment") || !json["enchantment"].is_string()) {
+        return Error(ErrorCode::InvalidData, "random_chance_with_enchanted_bonus missing 'enchantment'");
     }
+    const f32 unenchantedChance = json["unenchanted_chance"].get<f32>();
+    const std::string enchantmentId = json["enchantment"].get<std::string>();
 
-    f32 lootingMultiplier = 0.0f;
-    if (json.contains("looting_multiplier")) {
-        if (json["looting_multiplier"].is_number_float()) {
-            lootingMultiplier = json["looting_multiplier"].get<f32>();
-        } else if (json["looting_multiplier"].is_number_integer()) {
-            lootingMultiplier = static_cast<f32>(json["looting_multiplier"].get<i32>());
+    f32 enchantedBase = unenchantedChance;
+    f32 perLevelAboveFirst = 0.0f;
+    if (json.contains("enchanted_chance")) {
+        const auto& enchanted = json["enchanted_chance"];
+        if (enchanted.is_number()) {
+            enchantedBase = enchanted.get<f32>();
+        } else if (enchanted.is_object()) {
+            if (enchanted.contains("base") && enchanted["base"].is_number()) {
+                enchantedBase = enchanted["base"].get<f32>();
+            }
+            if (enchanted.contains("per_level_above_first") && enchanted["per_level_above_first"].is_number()) {
+                perLevelAboveFirst = enchanted["per_level_above_first"].get<f32>();
+            }
+            const std::string type = enchanted.value("type", "minecraft:linear");
+            if (type != "minecraft:linear" && type != "linear") {
+                // TODO(loot-level-based-value): 原版 LevelBasedValue 还有 clamped / fraction /
+                //   levels_squared / exponent / lookup 几种形态，数据包目前只用到 linear。
+                return Error(ErrorCode::InvalidData, "unsupported enchanted_chance type: " + type);
+            }
         }
     }
 
-    return castToBase<RandomChanceWithLuckCondition, LootCondition>(
-        std::make_unique<RandomChanceWithLuckCondition>(baseChance, lootingMultiplier));
+    return castToBase<RandomChanceWithEnchantedBonusCondition, LootCondition>(
+        std::make_unique<RandomChanceWithEnchantedBonusCondition>(
+            unenchantedChance, enchantedBase, perLevelAboveFirst, enchantmentId));
 }
 
 Result<std::unique_ptr<LootCondition>> LootSerializers::_parseInvertedCondition(const nlohmann::json& json)
@@ -670,8 +669,9 @@ Result<std::unique_ptr<LootCondition>> LootSerializers::_parseMatchToolCondition
     const auto& predicate = json["predicate"];
     auto predResult = advancement::ItemPredicate::fromJson(predicate);
     if (!predResult.success()) {
-        // 解析失败时回退到匹配任意工具的条件
-        return castToBase<MatchToolCondition, LootCondition>(std::make_unique<MatchToolCondition>());
+        // 谓词解析失败必须让整张表加载失败：回退成「匹配任意工具」会把
+        // 「精准采集才掉本方块」静默改成「任何工具都掉」，语义完全变了。
+        return predResult.error();
     }
 
     return castToBase<MatchToolCondition, LootCondition>(
@@ -815,6 +815,32 @@ Result<std::unique_ptr<LootCondition>> LootSerializers::_parseDamageSourceProper
         std::make_unique<DamageSourcePropertiesCondition>(std::move(predicate)));
 }
 
+Result<std::unique_ptr<LootCondition>> LootSerializers::_parseAnyOfCondition(const nlohmann::json& json)
+{
+    // 原版 AnyOfCondition：terms 里任一条件满足即通过。
+    if (!json.contains("terms") || !json["terms"].is_array()) {
+        return Error(ErrorCode::InvalidData, "any_of condition missing 'terms' array");
+    }
+    auto terms = parseConditions(json["terms"]);
+    if (!terms.success()) {
+        return terms.error();
+    }
+    return castToBase<OrCondition, LootCondition>(std::make_unique<OrCondition>(std::move(terms.value())));
+}
+
+Result<std::unique_ptr<LootCondition>> LootSerializers::_parseAllOfCondition(const nlohmann::json& json)
+{
+    // 原版 AllOfCondition：terms 里全部条件满足才通过。
+    if (!json.contains("terms") || !json["terms"].is_array()) {
+        return Error(ErrorCode::InvalidData, "all_of condition missing 'terms' array");
+    }
+    auto terms = parseConditions(json["terms"]);
+    if (!terms.success()) {
+        return terms.error();
+    }
+    return castToBase<AndCondition, LootCondition>(std::make_unique<AndCondition>(std::move(terms.value())));
+}
+
 Result<std::unique_ptr<LootCondition>> LootSerializers::_parseReferenceCondition(const nlohmann::json& json)
 {
     // minecraft:reference 条件引用一个命名谓词
@@ -843,6 +869,33 @@ Result<std::unique_ptr<LootFunction>> LootSerializers::parseFunction(const nlohm
 
     std::string functionType = json["function"].get<std::string>();
 
+    // 函数级 `conditions` 是原版 LootItemConditionalFunction 的通用字段：
+    // 条件不满足时函数**不生效**（不是「函数不生效则物品消失」）。
+    // 原版把它放在 `commonFields` 里，由每个条件型函数共享；本项目在分发前统一取出并
+    // 挂到函数对象上，语义与原版一致。
+    //
+    // 注意必须在分发**之前**取：`set_count` 等函数的专属字段解析可能先行失败，
+    // 但条件字段的解析错误同样要让整张表加载失败。
+    auto functionConditions = parseConditions(json.contains("conditions") ? json["conditions"] : nlohmann::json());
+    if (!functionConditions.success()) {
+        return functionConditions.error();
+    }
+
+    auto parsed = _parseFunctionByType(functionType, json);
+    if (!parsed.success()) {
+        return parsed;
+    }
+
+    auto function = parsed.value();
+    for (auto& condition : functionConditions.value()) {
+        function->addCondition(std::move(condition));
+    }
+    return function;
+}
+
+Result<std::unique_ptr<LootFunction>> LootSerializers::_parseFunctionByType(
+    const std::string& functionType, const nlohmann::json& json)
+{
     // 根据 function 类型分发（函数名对齐原版 1.21.11 LootItemFunctions 注册名）
     if (functionType == "minecraft:set_count" || functionType == "set_count") {
         return _parseSetCountFunction(json);
@@ -1006,17 +1059,23 @@ Result<std::unique_ptr<LootFunction>> LootSerializers::_parseApplyBonusFunction(
     i32 extra = 1;
     f32 probability = 1.0f;
 
-    // 解析公式类型
-    if (json.contains("formula") && json["formula"].is_string()) {
-        std::string formula = json["formula"].get<std::string>();
-
-        if (formula == "minecraft:uniform" || formula == "uniform") {
-            bonusType = ApplyBonusFunction::BonusType::Uniform;
-        } else if (formula == "minecraft:binomial_with_bonus_count" || formula == "binomial_with_bonus_count") {
-            bonusType = ApplyBonusFunction::BonusType::Binomial;
-        } else if (formula == "minecraft:ore_drops" || formula == "ore_drops") {
-            bonusType = ApplyBonusFunction::BonusType::OreDrops;
-        }
+    // 解析公式类型。原版的三个公式注册名是：
+    //   minecraft:uniform_bonus_count、minecraft:binomial_with_bonus_count、minecraft:ore_drops
+    // 早先把第一个写成 `minecraft:uniform`（那不是公式名），于是 `uniform_bonus_count`
+    // 落到默认的 OreDrops——OreDrops 是**倍乘**语义（count * k），数量会成倍偏大。
+    // 未知公式必须报错，不能静默退化成某个默认公式。
+    if (!json.contains("formula") || !json["formula"].is_string()) {
+        return Error(ErrorCode::InvalidData, "apply_bonus function missing 'formula'");
+    }
+    const std::string formula = json["formula"].get<std::string>();
+    if (formula == "minecraft:uniform_bonus_count" || formula == "uniform_bonus_count") {
+        bonusType = ApplyBonusFunction::BonusType::Uniform;
+    } else if (formula == "minecraft:binomial_with_bonus_count" || formula == "binomial_with_bonus_count") {
+        bonusType = ApplyBonusFunction::BonusType::Binomial;
+    } else if (formula == "minecraft:ore_drops" || formula == "ore_drops") {
+        bonusType = ApplyBonusFunction::BonusType::OreDrops;
+    } else {
+        return Error(ErrorCode::InvalidData, "Unknown apply_bonus formula: " + formula);
     }
 
     // 解析参数
@@ -1044,10 +1103,19 @@ Result<std::unique_ptr<LootFunction>> LootSerializers::_parseApplyBonusFunction(
 
 Result<std::unique_ptr<LootFunction>> LootSerializers::_parseEnchantedCountIncreaseFunction(const nlohmann::json& json)
 {
+    // `enchantment` 是必填字段：原版据此决定从攻击者身上读哪个附魔的等级。
+    // 早先忽略它、固定读掠夺等级，遇到其它附魔的写法就会算错。
+    if (!json.contains("enchantment") || !json["enchantment"].is_string()) {
+        return Error(ErrorCode::InvalidData, "enchanted_count_increase missing 'enchantment'");
+    }
+    const std::string enchantmentId = json["enchantment"].get<std::string>();
+
     RandomValueRange count(0.0f, 1.0f);
     i32 limit = 0;
 
     if (json.contains("count")) {
+        // `count` 是 NumberProvider，数据包里常写成浮点（`"min": 0.0, "max": 1.0`），
+        // 不能只收整型。
         auto countResult = parseRandomValueRange(json["count"]);
         if (!countResult.success()) {
             return countResult.error();
@@ -1055,12 +1123,13 @@ Result<std::unique_ptr<LootFunction>> LootSerializers::_parseEnchantedCountIncre
         count = countResult.value();
     }
 
-    if (json.contains("limit") && json["limit"].is_number_integer()) {
-        limit = json["limit"].get<i32>();
+    if (json.contains("limit") && json["limit"].is_number()) {
+        limit = json["limit"].is_number_integer() ? json["limit"].get<i32>()
+                                                  : static_cast<i32>(json["limit"].get<f64>());
     }
 
     return castToBase<EnchantedCountIncreaseFunction, LootFunction>(
-        std::make_unique<EnchantedCountIncreaseFunction>(count, limit));
+        std::make_unique<EnchantedCountIncreaseFunction>(enchantmentId, count, limit));
 }
 
 Result<std::unique_ptr<LootFunction>> LootSerializers::_parseSetDamageFunction(const nlohmann::json& json)
@@ -1132,20 +1201,27 @@ Result<std::unique_ptr<LootFunction>> LootSerializers::_parseLimitCountFunction(
     i32 min = -1;
     i32 max = -1;
 
+    // 原版 `limit` 的类型是 IntRange，其 min/max 是 NumberProvider，
+    // 数据包里普遍写成浮点（如 `"max": 4.0`）。早先只认整型，
+    // 浮点写法会被**静默丢弃**——最大值 4 的 glowstone 因此一直是 5。
+    const auto toInt = [](const nlohmann::json& value) -> i32 {
+        return value.is_number_integer() ? value.get<i32>() : static_cast<i32>(value.get<f64>());
+    };
+
     if (json.contains("limit")) {
         const auto& limit = json["limit"];
 
-        if (limit.is_number_integer()) {
-            // 固定值
-            i32 value = limit.get<i32>();
+        if (limit.is_number()) {
+            // 精确定值
+            const i32 value = toInt(limit);
             min = value;
             max = value;
         } else if (limit.is_object()) {
-            if (limit.contains("min") && limit["min"].is_number_integer()) {
-                min = limit["min"].get<i32>();
+            if (limit.contains("min") && limit["min"].is_number()) {
+                min = toInt(limit["min"]);
             }
-            if (limit.contains("max") && limit["max"].is_number_integer()) {
-                max = limit["max"].get<i32>();
+            if (limit.contains("max") && limit["max"].is_number()) {
+                max = toInt(limit["max"]);
             }
         }
     }
@@ -2416,10 +2492,12 @@ Result<void> LootSerializers::_parseEntryBase(LootEntry& entry, const nlohmann::
     // 解析条件
     if (json.contains("conditions") && json["conditions"].is_array()) {
         for (const auto& condJson : json["conditions"]) {
+            // 条件解析失败必须让整张表加载失败：静默跳过等于悄悄改掉掉落语义。
             auto condResult = parseCondition(condJson);
-            if (condResult.success()) {
-                entry.addCondition(condResult.value());
+            if (!condResult.success()) {
+                return condResult.error();
             }
+            entry.addCondition(condResult.value());
         }
     }
 
@@ -2444,10 +2522,19 @@ Result<std::unique_ptr<LootEntry>> LootSerializers::_parseEmptyEntry(const nlohm
     // 解析条件
     if (json.contains("conditions") && json["conditions"].is_array()) {
         for (const auto& condJson : json["conditions"]) {
+
+            // 条件解析失败必须让整张表加载失败。
+
             auto condResult = parseCondition(condJson);
-            if (condResult.success()) {
-                entry->addCondition(condResult.value());
+
+            if (!condResult.success()) {
+
+                return condResult.error();
+
             }
+
+            entry->addCondition(condResult.value());
+
         }
     }
 
@@ -2492,10 +2579,19 @@ Result<std::unique_ptr<LootEntry>> LootSerializers::_parseItemEntry(const nlohma
     // 解析条件
     if (json.contains("conditions") && json["conditions"].is_array()) {
         for (const auto& condJson : json["conditions"]) {
+
+            // 条件解析失败必须让整张表加载失败。
+
             auto condResult = parseCondition(condJson);
-            if (condResult.success()) {
-                entry->addCondition(condResult.value());
+
+            if (!condResult.success()) {
+
+                return condResult.error();
+
             }
+
+            entry->addCondition(condResult.value());
+
         }
     }
 
@@ -2622,10 +2718,19 @@ Result<std::unique_ptr<LootEntry>> LootSerializers::_parseAlternativesEntry(cons
     // 解析条件
     if (json.contains("conditions") && json["conditions"].is_array()) {
         for (const auto& condJson : json["conditions"]) {
+
+            // 条件解析失败必须让整张表加载失败。
+
             auto condResult = parseCondition(condJson);
-            if (condResult.success()) {
-                entry->addCondition(condResult.value());
+
+            if (!condResult.success()) {
+
+                return condResult.error();
+
             }
+
+            entry->addCondition(condResult.value());
+
         }
     }
 
@@ -2657,10 +2762,19 @@ Result<std::unique_ptr<LootEntry>> LootSerializers::_parseSequenceEntry(const nl
     // 解析条件
     if (json.contains("conditions") && json["conditions"].is_array()) {
         for (const auto& condJson : json["conditions"]) {
+
+            // 条件解析失败必须让整张表加载失败。
+
             auto condResult = parseCondition(condJson);
-            if (condResult.success()) {
-                entry->addCondition(condResult.value());
+
+            if (!condResult.success()) {
+
+                return condResult.error();
+
             }
+
+            entry->addCondition(condResult.value());
+
         }
     }
 
@@ -2692,10 +2806,19 @@ Result<std::unique_ptr<LootEntry>> LootSerializers::_parseGroupEntry(const nlohm
     // 解析条件
     if (json.contains("conditions") && json["conditions"].is_array()) {
         for (const auto& condJson : json["conditions"]) {
+
+            // 条件解析失败必须让整张表加载失败。
+
             auto condResult = parseCondition(condJson);
-            if (condResult.success()) {
-                entry->addCondition(condResult.value());
+
+            if (!condResult.success()) {
+
+                return condResult.error();
+
             }
+
+            entry->addCondition(condResult.value());
+
         }
     }
 
@@ -2757,10 +2880,19 @@ Result<std::unique_ptr<LootPool>> LootSerializers::parsePool(const nlohmann::jso
     // 解析池级条件
     if (json.contains("conditions") && json["conditions"].is_array()) {
         for (const auto& condJson : json["conditions"]) {
+
+            // 条件解析失败必须让整张表加载失败。
+
             auto condResult = parseCondition(condJson);
-            if (condResult.success()) {
-                pool->addCondition(condResult.value());
+
+            if (!condResult.success()) {
+
+                return condResult.error();
+
             }
+
+            pool->addCondition(condResult.value());
+
         }
     }
 

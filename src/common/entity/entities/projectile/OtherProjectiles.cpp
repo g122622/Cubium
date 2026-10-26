@@ -627,6 +627,7 @@ i32 FishingBobberEntity::_spawnCatchItems()
                        .withLuck(totalLuck)
                        .withParameter(loot::LootParams::THIS_ENTITY, static_cast<Entity*>(this))
                        .withParameter(loot::LootParams::KILLER_ENTITY, static_cast<Entity*>(angler))
+                       .withOwnedValue(loot::LootParams::ORIGIN, position())
                        .withOwnedValue(loot::LootParams::IS_IN_OPEN_WATER, bobber->m_inOpenWater)
                        .withLootTableResolver([this](const std::string& id) -> const loot::LootTable* {
                            return m_world->lootTableManager() ? m_world->lootTableManager()->getTable(id) : nullptr;

@@ -65,12 +65,6 @@ LootContextBuilder& LootContextBuilder::withLuck(f32 luck)
     return *this;
 }
 
-LootContextBuilder& LootContextBuilder::withLootingModifier(i32 level)
-{
-    m_lootingModifier = level;
-    return *this;
-}
-
 std::unique_ptr<LootContext> LootContextBuilder::build(const LootParameterSet& paramSet)
 {
     // 创建随机数生成器
@@ -90,10 +84,6 @@ std::unique_ptr<LootContext> LootContextBuilder::build(const LootParameterSet& p
 
     // 设置幸运值
     context->setLuck(m_luck);
-    context->setLootingModifier(m_lootingModifier);
-    if (m_lootingModifier != 0) {
-        context->setOwnedValue(LootParams::LOOTING_MODIFIER, m_lootingModifier);
-    }
 
     // 复制参数
     for (const auto& [id, value] : m_params) {

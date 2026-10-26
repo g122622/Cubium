@@ -71,11 +71,6 @@ public:
     LootContextBuilder& withLuck(f32 luck);
 
     /**
-     * @brief 设置掠夺附魔等级
-     */
-    LootContextBuilder& withLootingModifier(i32 level);
-
-    /**
      * @brief 设置参数
      */
     template <typename T>
@@ -151,7 +146,6 @@ private:
     u64 m_seed = 0;
     bool m_hasSeed = false;
     f32 m_luck = 0.0f;
-    i32 m_lootingModifier = 0;
     std::unordered_map<std::string, void*> m_params;
     std::vector<std::shared_ptr<void>> m_ownedValues; // 拥有所有权的值存储
     LootTableResolver m_lootTableResolver;

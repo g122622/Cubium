@@ -60,7 +60,7 @@ ExplorationMapFunction::ExplorationMapFunction(const ResourceLocation& destinati
     MC_ASSERT_RELEASE_MSG(searchRadius >= 0, "exploration_map: search_radius must be non-negative");
 }
 
-ItemStack ExplorationMapFunction::apply(ItemStack stack, LootContext& context) const
+ItemStack ExplorationMapFunction::run(ItemStack stack, LootContext& context) const
 {
     if (stack.isEmpty()) {
         return stack;

@@ -41,7 +41,7 @@ ToggleTooltipsFunction::ToggleTooltipsFunction(std::vector<std::pair<item::compo
     : m_toggles(std::move(toggles))
 {}
 
-ItemStack ToggleTooltipsFunction::apply(ItemStack stack, LootContext& context) const
+ItemStack ToggleTooltipsFunction::run(ItemStack stack, LootContext& context) const
 {
     MC_UNUSED(context);
     if (stack.isEmpty()) {

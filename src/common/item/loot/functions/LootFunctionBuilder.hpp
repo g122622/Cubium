@@ -92,7 +92,7 @@ public:
      * @brief Create an enchanted count increase function
      */
     [[nodiscard]] static std::unique_ptr<LootFunction> enchantedCountIncrease(
-        const RandomValueRange& count = RandomValueRange(0.0f, 1.0f), i32 limit = 0);
+        std::string enchantmentId, const RandomValueRange& count, i32 limit = 0);
 
     /**
      * @brief Create a set damage function

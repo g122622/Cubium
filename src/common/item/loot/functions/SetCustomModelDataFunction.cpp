@@ -73,7 +73,7 @@ SetCustomModelDataFunction::SetCustomModelDataFunction(std::optional<FloatListOp
     , m_colors(std::move(colors))
 {}
 
-ItemStack SetCustomModelDataFunction::apply(ItemStack stack, LootContext& context) const
+ItemStack SetCustomModelDataFunction::run(ItemStack stack, LootContext& context) const
 {
     if (stack.isEmpty()) {
         return stack;

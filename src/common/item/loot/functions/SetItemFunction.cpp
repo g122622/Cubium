@@ -36,7 +36,7 @@ SetItemFunction::SetItemFunction(ResourceLocation itemId)
     : m_itemId(std::move(itemId))
 {}
 
-ItemStack SetItemFunction::apply(ItemStack stack, LootContext& context) const
+ItemStack SetItemFunction::run(ItemStack stack, LootContext& context) const
 {
     MC_UNUSED(context);
     const Item* item = ItemRegistry::instance().getItem(m_itemId);

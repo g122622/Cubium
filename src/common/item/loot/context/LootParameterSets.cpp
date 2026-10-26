@@ -31,6 +31,15 @@ namespace loot {
 // ============================================================================
 // LootParameterSets - 预定义参数集合
 // ============================================================================
+//
+// 全部对齐 MC 1.21.11 `LootContextParamSets`：必需键集合即数据包 JSON 里
+// `"type"` 所声明参数集的必需键。原版在 `LootParams.Builder#create(ContextKeySet)`
+// 里对必需键做硬校验，缺键直接抛异常——这里保持同样的语义，否则「某张表要求
+// 哪些参数」这件事在两侧会得到不同答案。
+//
+// 少数本项目独有的键（BLOCK_POS）
+// 仍然登记为**可选**：原版不存在对应上下文键（时运/掠夺从工具与攻击者的附魔读），
+// 而本项目的调用方仍在传它们。
 
 namespace LootParameterSets {
 
@@ -41,65 +50,70 @@ LootParameterSet empty()
 
 LootParameterSet block()
 {
+    // 1.21.11 BLOCK: required {BLOCK_STATE, ORIGIN, TOOL}, optional {THIS_ENTITY, BLOCK_ENTITY, EXPLOSION_RADIUS}
     LootParameterSet set(LootParameterSet::Type::Block);
     set.addRequired(LootParams::BLOCK_STATE);
-    set.addRequired(LootParams::BLOCK_POS);
-    // ORIGIN（掉落来源世界坐标）以可选参数加入：vanilla 的 block 参数集用 ORIGIN 而非 BLOCK_POS，
-    // 本项目保留 BLOCK_POS 兼容现有调用方，同时以可选 ORIGIN 支持探险地图等按坐标搜索结构的函数。
-    set.addOptional(LootParams::ORIGIN);
-    set.addOptional(LootParams::TOOL);
+    set.addRequired(LootParams::ORIGIN);
+    set.addRequired(LootParams::TOOL);
     set.addOptional(LootParams::THIS_ENTITY);
     set.addOptional(LootParams::BLOCK_ENTITY);
-    set.addOptional(LootParams::FORTUNE_LEVEL);
-    set.addOptional(LootParams::SILK_TOUCH_LEVEL);
+    set.addOptional(LootParams::EXPLOSION_RADIUS);
+    set.addOptional(LootParams::BLOCK_POS);
     return set;
 }
 
 LootParameterSet chest()
 {
+    // 1.21.11 CHEST: required {ORIGIN}, optional {THIS_ENTITY}
     LootParameterSet set(LootParameterSet::Type::Chest);
-    set.addRequired(LootParams::BLOCK_POS);
+    set.addRequired(LootParams::ORIGIN);
     set.addOptional(LootParams::THIS_ENTITY);
+    set.addOptional(LootParams::BLOCK_POS);
     set.addOptional(LootParams::BLOCK_ENTITY);
     return set;
 }
 
 LootParameterSet entity()
 {
+    // 1.21.11 ENTITY:
+    //   required {THIS_ENTITY, ORIGIN, DAMAGE_SOURCE}
+    //   optional {ATTACKING_ENTITY, DIRECT_ATTACKING_ENTITY, LAST_DAMAGE_PLAYER}
     LootParameterSet set(LootParameterSet::Type::Entity);
     set.addRequired(LootParams::THIS_ENTITY);
-    // ORIGIN（实体掉落来源位置）作为可选参数（vanilla entity 参数集要求 ORIGIN）。
-    set.addOptional(LootParams::ORIGIN);
+    set.addRequired(LootParams::ORIGIN);
+    set.addRequired(LootParams::DAMAGE_SOURCE);
     set.addOptional(LootParams::KILLER_ENTITY);
-    set.addOptional(LootParams::KILLER_PLAYER);
     set.addOptional(LootParams::DIRECT_KILLER);
-    set.addOptional(LootParams::DAMAGE_SOURCE);
-    set.addOptional(LootParams::LOOTING_MODIFIER);
+    set.addOptional(LootParams::KILLER_PLAYER);
     return set;
 }
 
 LootParameterSet fishing()
 {
+    // 1.21.11 FISHING: required {ORIGIN, TOOL}, optional {THIS_ENTITY}
     LootParameterSet set(LootParameterSet::Type::Fishing);
-    set.addRequired(LootParams::BLOCK_POS);
+    set.addRequired(LootParams::ORIGIN);
     set.addRequired(LootParams::TOOL);
     set.addOptional(LootParams::THIS_ENTITY);
     set.addOptional(LootParams::IS_IN_OPEN_WATER);
-    set.addOptional(LootParams::LOOTING_MODIFIER);
+    set.addOptional(LootParams::BLOCK_POS);
     return set;
 }
 
 LootParameterSet gift()
 {
+    // 1.21.11 GIFT: required {ORIGIN, THIS_ENTITY}
     LootParameterSet set(LootParameterSet::Type::Gift);
-    set.addRequired(LootParams::BLOCK_POS);
-    set.addOptional(LootParams::THIS_ENTITY);
+    set.addRequired(LootParams::ORIGIN);
+    set.addRequired(LootParams::THIS_ENTITY);
     set.addOptional(LootParams::KILLER_PLAYER);
+    set.addOptional(LootParams::BLOCK_POS);
     return set;
 }
 
 LootParameterSet barter()
 {
+    // 1.21.11 PIGLIN_BARTER: required {THIS_ENTITY}
     LootParameterSet set(LootParameterSet::Type::Barter);
     set.addRequired(LootParams::THIS_ENTITY);
     set.addOptional(LootParams::KILLER_PLAYER);
@@ -113,22 +127,22 @@ LootParameterSet generic()
 
 LootParameterSet selector()
 {
+    // 1.21.11 SELECTOR: required {ORIGIN, THIS_ENTITY}
     LootParameterSet set(LootParameterSet::Type::Selector);
+    set.addRequired(LootParams::ORIGIN);
     set.addRequired(LootParams::THIS_ENTITY);
-    set.addRequired(LootParams::BLOCK_POS);
+    set.addOptional(LootParams::BLOCK_POS);
     return set;
 }
 
 LootParameterSet archaeology()
 {
-    // 对齐 MC 1.21.11 LootContextParamSets.ARCHAEOLOGY：
-    //   required = {ORIGIN}, optional = {THIS_ENTITY, TOOL}
-    // 本项目使用 BLOCK_POS 代替 ORIGIN（项目约定，见 ChestBoatEntity.cpp:441）。
-    // 此外还将 BLOCK_ENTITY、LUCK 设为可选参数，方便考古战利品表函数引用。
+    // 1.21.11 ARCHAEOLOGY: required {ORIGIN, THIS_ENTITY, TOOL}
     LootParameterSet set(LootParameterSet::Type::Archaeology);
-    set.addRequired(LootParams::BLOCK_POS);
-    set.addOptional(LootParams::THIS_ENTITY);
-    set.addOptional(LootParams::TOOL);
+    set.addRequired(LootParams::ORIGIN);
+    set.addRequired(LootParams::THIS_ENTITY);
+    set.addRequired(LootParams::TOOL);
+    set.addOptional(LootParams::BLOCK_POS);
     set.addOptional(LootParams::BLOCK_ENTITY);
     set.addOptional(LootParams::LUCK);
     return set;

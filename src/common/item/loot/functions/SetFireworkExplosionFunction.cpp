@@ -43,7 +43,7 @@ SetFireworkExplosionFunction::SetFireworkExplosionFunction(std::optional<item::c
     , m_twinkle(twinkle)
 {}
 
-ItemStack SetFireworkExplosionFunction::apply(ItemStack stack, LootContext& context) const
+ItemStack SetFireworkExplosionFunction::run(ItemStack stack, LootContext& context) const
 {
     MC_UNUSED(context);
     if (stack.isEmpty()) {

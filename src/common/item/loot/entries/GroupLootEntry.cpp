@@ -62,26 +62,26 @@ void GroupLootEntry::addChild(std::unique_ptr<LootEntry> child)
     m_children.push_back(std::move(child));
 }
 
-void GroupLootEntry::expand(LootContext& /*context*/, std::function<void(LootEntry&)> consumer) const
+bool GroupLootEntry::expand(LootContext& context, const std::function<void(const LootEntry&)>& consumer) const
 {
-    consumer(*const_cast<GroupLootEntry*>(this));
-}
-
-bool GroupLootEntry::generate(std::function<void(const ItemStack&)> consumer, LootContext& context) const
-{
-    // 检查条件
+    // 对齐原版 `EntryGroup#compose`：所有子条目都展开，且**无论子条目成败都返回 true**
+    // （空组恒真）。组的条件不满足时整体不参与（原版 `CompositeEntryBase#expand` 先 canRun）。
     if (!testConditions(context)) {
         return false;
     }
 
-    // 执行所有子条目
-    bool anySuccess = false;
-    for (auto& child : m_children) {
-        if (child->generate(consumer, context)) {
-            anySuccess = true;
-        }
+    for (const auto& child : m_children) {
+        child->expand(context, consumer);
     }
-    return anySuccess;
+    return true;
+}
+
+void GroupLootEntry::generate(ConsumerPtr consumer, LootContext& context) const
+{
+    // 每个子条目都按自己的规则重新展开并生成（条件不在此重复判定）。
+    for (const auto& child : m_children) {
+        child->expand(context, [&context, next = consumer](const LootEntry& selected) { selected.generate(next, context); });
+    }
 }
 
 } // namespace loot

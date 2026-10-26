@@ -42,7 +42,7 @@ SetWrittenBookPagesFunction::SetWrittenBookPagesFunction(nlohmann::json pages, L
     , m_mode(mode)
 {}
 
-ItemStack SetWrittenBookPagesFunction::apply(ItemStack stack, LootContext& context) const
+ItemStack SetWrittenBookPagesFunction::run(ItemStack stack, LootContext& context) const
 {
     MC_UNUSED(context);
     if (stack.isEmpty() || !m_pages.is_array()) {

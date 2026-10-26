@@ -35,7 +35,7 @@ SetOminousBottleAmplifierFunction::SetOminousBottleAmplifierFunction(RandomValue
     : m_amplifier(amplifier)
 {}
 
-ItemStack SetOminousBottleAmplifierFunction::apply(ItemStack stack, LootContext& context) const
+ItemStack SetOminousBottleAmplifierFunction::run(ItemStack stack, LootContext& context) const
 {
     if (stack.isEmpty()) {
         return stack;

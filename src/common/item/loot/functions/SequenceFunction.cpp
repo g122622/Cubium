@@ -35,7 +35,7 @@ SequenceFunction::SequenceFunction(std::vector<std::unique_ptr<LootFunction>> fu
     : m_functions(std::move(functions))
 {}
 
-ItemStack SequenceFunction::apply(ItemStack stack, LootContext& context) const
+ItemStack SequenceFunction::run(ItemStack stack, LootContext& context) const
 {
     for (const auto& function : m_functions) {
         if (function == nullptr || !function->testConditions(context)) {

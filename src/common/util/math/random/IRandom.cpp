@@ -47,23 +47,28 @@ i32 IRandom::nextInt(i32 bound)
 {
     MC_ASSERT_RELEASE(bound > 0);
 
-    // MC 风格的无偏差随机数生成
-    // 参考 MC Random.nextInt(i32)
-    u32 r = nextU32();
-    u32 m = static_cast<u32>(bound);
-    u32 u = r % m;
+    // MC 风格的无偏差随机数生成（Lemire 的拒绝采样形式）
+    // 参考 MC `XoroshiroRandomSource#nextInt(int)`：
+    //   i = toUnsignedLong(nextInt()); j = i * bound; k = j & 0xFFFFFFFF;
+    //   if (k < bound) { 阈值 = remainderUnsigned(~bound + 1, bound) = (2^32 - bound) % bound;
+    //                     while (k < 阈值) 重新抽取; }
+    //   return (i32)(j >> 32);
+    // 早先写成 `u = r % m` 的取模形式，分布虽无偏但**消耗随机数的方式与原版不同**
+    // （阈值不同 → 拒绝次数不同），会让所有依赖 `nextInt` 的抽取与原版错位。
+    const u64 i = static_cast<u64>(nextU32());
+    const u64 m = static_cast<u64>(static_cast<u32>(bound));
+    u64 j = i * m;
+    u64 k = j & 0xFFFFFFFFULL;
 
-    // 如果 r % bound 产生的结果有偏差，则重新采样
-    // 这是因为 2^32 不是 bound 的倍数
-    if (r - u > std::numeric_limits<u32>::max() - m + 1) {
-        // 需要重新采样
-        do {
-            r = nextU32();
-        } while (r >= std::numeric_limits<u32>::max() - (std::numeric_limits<u32>::max() % m));
-        u = r % m;
+    if (k < m) {
+        const u64 threshold = ((1ULL << 32) - m) % m;
+        while (k < threshold) {
+            j = static_cast<u64>(nextU32()) * m;
+            k = j & 0xFFFFFFFFULL;
+        }
     }
 
-    return static_cast<i32>(u);
+    return static_cast<i32>(j >> 32);
 }
 
 i32 IRandom::nextInt(i32 min, i32 max)

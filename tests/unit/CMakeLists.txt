@@ -2351,10 +2351,8 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/common/item/loot/LootTable.cpp
         ${CMAKE_SOURCE_DIR}/src/common/item/loot/LootTableManager.cpp
         ${CMAKE_SOURCE_DIR}/src/common/item/loot/LootSerializers.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/item/loot/conditions/SilkTouchCondition.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/item/loot/conditions/FortuneCondition.cpp
         ${CMAKE_SOURCE_DIR}/src/common/item/loot/conditions/RandomChanceCondition.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/item/loot/conditions/RandomChanceWithLuckCondition.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/item/loot/conditions/RandomChanceWithEnchantedBonusCondition.cpp
         ${CMAKE_SOURCE_DIR}/src/common/item/loot/conditions/NotCondition.cpp
         ${CMAKE_SOURCE_DIR}/src/common/item/loot/conditions/AndCondition.cpp
         ${CMAKE_SOURCE_DIR}/src/common/item/loot/conditions/OrCondition.cpp

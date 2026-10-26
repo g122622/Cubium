@@ -63,9 +63,6 @@ extern const LootParameter<ItemStack> TOOL;           // 使用的工具
 extern const LootParameter<BlockEntity> BLOCK_ENTITY; // 方块实体
 
 // 附魔等级参数
-extern const LootParameter<i32> FORTUNE_LEVEL;    // 时运附魔等级
-extern const LootParameter<i32> SILK_TOUCH_LEVEL; // 精准采集附魔等级
-extern const LootParameter<i32> LOOTING_MODIFIER; // 掠夺附魔等级修正
 
 // 爆炸相关参数
 extern const LootParameter<f32> EXPLOSION_RADIUS; // 爆炸半径

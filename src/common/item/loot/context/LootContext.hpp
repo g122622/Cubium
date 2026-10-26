@@ -179,22 +179,6 @@ public:
         m_luck = luck;
     }
 
-    /**
-     * @brief 获取掠夺附魔等级
-     */
-    [[nodiscard]] i32 getLootingModifier() const noexcept
-    {
-        return m_lootingModifier;
-    }
-
-    /**
-     * @brief 设置掠夺附魔等级
-     */
-    void setLootingModifier(i32 level) noexcept
-    {
-        m_lootingModifier = level;
-    }
-
     // ========== 谓词访问 ==========
 
     /**
@@ -262,7 +246,6 @@ private:
     IWorld& m_world;
     math::IRandom& m_random;
     f32 m_luck = 0.0f;
-    i32 m_lootingModifier = 0;
     std::unordered_map<std::string, void*> m_params;
     std::vector<std::shared_ptr<void>> m_ownedValues; // 拥有所有权的值存储
     LootTableResolver m_lootTableResolver;

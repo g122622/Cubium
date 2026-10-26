@@ -205,17 +205,14 @@ ItemStack& ItemStack::operator=(const ItemStack& other)
 
 void ItemStack::setCount(i32 count)
 {
-    m_count = count;
-    if (m_count <= 0) {
-        m_count = 0;
-        m_item = nullptr;
-        m_damage = 0;
-    }
+    // 对齐原版 `ItemStack#setCount`：数量限制到 `[0, getMaxStackSize()]`，物品类型
+    // 不因数量归零而丢失（`isEmpty()` 只看数量）。
+    m_count = std::clamp(count, 0, getMaxStackSize());
 }
 
 i32 ItemStack::getMaxStackSize() const
 {
-    if (isEmpty()) {
+    if (m_item == nullptr) {
         return 0;
     }
     // 如果有耐久度，堆叠数为1

@@ -42,7 +42,7 @@ CopyStateFunction::CopyStateFunction(const std::string& blockId, const std::vect
     , m_properties(properties)
 {}
 
-ItemStack CopyStateFunction::apply(ItemStack stack, LootContext& context) const
+ItemStack CopyStateFunction::run(ItemStack stack, LootContext& context) const
 {
     if (stack.isEmpty()) {
         return stack;

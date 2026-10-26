@@ -39,6 +39,12 @@ import { runSpec } from "../runner.ts";
 import { KNOWN_MISSING as enchantmentKnownMissing } from "./enchantment_table.ts";
 import { KNOWN_MISSING as entityKnownMissing, createEntityShapeHarness } from "./entity_shape.ts";
 import { createItemSummaryHarness } from "./item_summary.ts";
+import {
+    ENTITY_ORACLE_MISSING,
+    lootTableBlockInput,
+    lootTableEntityInput,
+    lootTableInput,
+} from "./loot_context.ts";
 import { KNOWN_MISSING as itemsKnownMissing } from "./known_missing_items.ts";
 import { KNOWN_MISSING_COMMANDS } from "./known_missing_commands.ts";
 import { KNOWN_MISSING as entityAttributesKnownMissing } from "./known_missing_entity_attributes.ts";
@@ -178,6 +184,25 @@ const JAVA_HARNESSES: ReadonlyArray<() => JavaHarness> = [
         oracle: "BiomeClimateOracle",
         input: (unit: string) => ({ biome: unit }),
         key: "biome",
+    }),
+    () => ({
+        name: "loot_table",
+        oracle: "LootTableOracle",
+        input: (unit: string) => lootTableInput(unit),
+        key: "table",
+    }),
+    () => ({
+        name: "loot_table_block",
+        oracle: "LootTableBlockOracle",
+        input: (unit: string) => lootTableBlockInput(unit),
+        key: "table",
+    }),
+    () => ({
+        name: "loot_table_entity",
+        oracle: "LootTableEntityOracle",
+        input: (unit: string) => lootTableEntityInput(unit),
+        key: "table",
+        oracleMissing: ENTITY_ORACLE_MISSING,
     }),
     () => ({
         name: "item_components",

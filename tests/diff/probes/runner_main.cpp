@@ -135,25 +135,32 @@ int main(int argc, char** argv)
 
     // 探针内部可能抛异常（JSON 解析、方块查找）。异常逃出 main 会触发 std::terminate，
     // 编排层只能看到进程被杀、拿不到原因；这里统一转成一个可读的错误与退出码 1。
+    //
+    // 退出码统一在 `status` 里，最后**先**跑探针的清理回调再返回：持有实体的探针
+    // 如果等到静态析构才释放，实体会在注册表单例被销毁之后才析构，退出阶段崩溃。
+    int status = 2;
     try {
         if (argc >= 2 && std::string_view(argv[1]) == "list") {
-            return runList(probe);
-        }
-        if (argc == 4 && std::string_view(argv[1]) == "run") {
-            return runInput(probe, argv[2], argv[3]);
+            status = runList(probe);
+        } else if (argc == 4 && std::string_view(argv[1]) == "run") {
+            status = runInput(probe, argv[2], argv[3]);
+        } else {
+            std::fprintf(stderr,
+                "usage: diff_%.*s list\n"
+                "       diff_%.*s run <input.jsonl> <output.jsonl>\n",
+                static_cast<int>(probe.domain.size()),
+                probe.domain.data(),
+                static_cast<int>(probe.domain.size()),
+                probe.domain.data());
         }
     }
     catch (const std::exception& error) {
         std::fprintf(stderr, "diff probe: %s\n", error.what());
-        return 1;
+        status = 1;
     }
 
-    std::fprintf(stderr,
-        "usage: diff_%.*s list\n"
-        "       diff_%.*s run <input.jsonl> <output.jsonl>\n",
-        static_cast<int>(probe.domain.size()),
-        probe.domain.data(),
-        static_cast<int>(probe.domain.size()),
-        probe.domain.data());
-    return 2;
+    if (probe.shutdown != nullptr) {
+        probe.shutdown();
+    }
+    return status;
 }

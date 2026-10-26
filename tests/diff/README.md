@@ -32,7 +32,12 @@ tests/diff/
 │   ├── item_summary.cpp         # 堆叠上限 / 食物属性
 │   ├── item_components.cpp      # 耐久 / 稀有度 / 附魔能力
 │   ├── entity_shape.cpp         # 实体尺寸 / 分类
-│   └── enchantment_table.cpp    # 附魔等级与附魔台代价
+│   ├── enchantment_table.cpp    # 附魔等级与附魔台代价
+│   ├── loot_table.cpp           # 战利品表掷骰（最小上下文：origin / 中性方块 / 空工具）
+│   ├── loot_table_block.cpp     # 战利品表掷骰（挖掘上下文：方块状态 + 时运工具）
+│   ├── loot_table_entity.cpp    # 战利品表掷骰（击杀上下文：this_entity + 攻击者 + 掠夺）
+│   ├── loot_world.hpp           # 战利品探针共用的空世界 / 掷骰入口
+│   └── loot_probe_common.hpp    # 战利品探针共用的样本循环与摘要
 ├── java/dev/horizonlab/diff/    # 原版 Java oracle（直接调 1.21.11 服务端 jar）
 │   ├── DataPackRegistries.java  # 像服务端一样加载原版数据包（数据驱动注册表）
 │   ├── *Oracle.java / *Export.java
@@ -44,6 +49,7 @@ tests/diff/
     ├── test_text_encode_parity.ts   # 手写 harness（方块状态全集 + 摘要）
     └── harnesses/               # 声明式 harness 与注册表
         ├── index.ts             # 注册表 + run all / run <name>
+        ├── loot_context.ts      # 战利品三个探针的上下文模板与已知缺口
         └── known_missing_items.ts   # 物品侧已知缺口清单
 ```
 
@@ -146,7 +152,7 @@ harness 决定。`runner.ts` 负责按 `key` 对齐两侧输出、规范化、�
 
 ## 当前状态
 
-十六个能力已接入，`node tests/diff/harness/runner.ts run all` 退出码 0（全部一致）：
+十九个能力已接入，`node tests/diff/harness/runner.ts run all` 退出码 0（全部一致）：
 
 | harness | 参照实现 | 单元 | 结果 | 已知缺口 |
 |---|---|---|---|---|
@@ -167,6 +173,9 @@ harness 决定。`runner.ts` 负责按 `key` 对齐两侧输出、规范化、�
 | `random_sequence` | 原版 jar `RandomSequenceOracle` | 24 | 全部一致 | — |
 | `command_argument` | 原版 jar `CommandArgumentOracle` | 162 | 全部一致 | — |
 | `command_tree` | 原版 jar `CommandTreeOracle` | 1（全部根命令）| 全部一致 | 9 条命令未实现（见下） |
+| `loot_table` | 原版 jar `LootTableOracle` | 1324 | 全部一致 | — |
+| `loot_table_block` | 原版 jar `LootTableBlockOracle` | 1324 | 全部一致 | — |
+| `loot_table_entity` | 原版 jar `LootTableEntityOracle` | 1324 | 全部一致 | 2 张表的实体类型建不出来（`creaking`、`mannequin`） |
 
 第一次跑通就查出并修掉的实打实的错误（都是手抄数据/公式出错）：
 
@@ -280,6 +289,35 @@ harness 决定。`runner.ts` 负责按 `key` 对齐两侧输出、规范化、�
 - 顺带修掉几处手抄错的颜色：冷水海洋 `#3D57E6`→`#3D57D6`、暖水海洋水下雾
   `#041F33`、沼泽水下雾 `#232817`→`#232317`、樱桃林水色改 `#5DB7EF`、
   红树林沼泽用的是另一套色（`#3A7A6A` / `#4D7A60` + 树叶 `#8DB127`）。
+
+### 战利品表：三个上下文全部对齐
+
+`loot_table` / `loot_table_block` / `loot_table_entity` 各自用同一批单元（数据包里
+1324 张表），区别只在上下文：最小上下文（`origin` + 中性方块状态 + 空工具）、挖掘
+上下文（方块状态 + 时运工具）、击杀上下文（`this_entity` + 攻击者 + 掠夺等级 + 着火）。
+每个单元从固定种子出发掷 4 次、每次先推进 `sample × SAMPLE_STRIDE` 次
+（对齐 `LootRoll.randomForSample`）。
+
+对齐过程中修掉的真问题：
+
+- **条件只在 `expand` 阶段判定**：原版 `LootPoolEntryContainer#expand` 先用条件筛
+  候选，`createItemStack` 不再判定。此前在 `generate` 里再判一次，带随机数的条件
+  （`random_chance`、`table_bonus`）因此多消耗一次随机数，后续抽取全部错位；
+- **空堆不在任何一层过滤**：条目 / 池 / 表三层的 `decorate` 对空堆照样执行函数链，
+  丢弃发生在收集端 `createStackSplitter`。此前在条目层提前过滤，导致池级、表级函数
+  与 `enchanted_count_increase` 的随机数消耗与原版错位（`bogged` 的第一个样本
+  整堆丢失就是这么暴露的）；
+- **`ItemStack` 的数量语义**：`setCount` 只改数量、不丢物品类型，`isEmpty()` 只看数量。
+  `set_count` 把数量设成 0 之后，`enchanted_count_increase` 仍能在原物品上把数量加
+  回来——原版正是如此。此前数量归零会清空 `m_item`，链式函数因此产出空堆；
+- **`set_count` 不做空堆早退**：原版 `SetItemCountFunction#run` 对空堆同样量产数量；
+- **掠夺等级来自装备**：原版没有「掠夺等级」上下文键，`enchanted_count_increase` 与
+  `random_chance_with_enchanted_bonus` 都从 `ATTACKING_ENTITY` 的装备读附魔。
+  探针与 oracle 都把掠夺附魔真实写到攻击者主手上；
+- **参数集必需键对齐**：`BLOCK` = {block_state, origin, tool}、`ENTITY` =
+  {this_entity, origin, damage_source}、`FISHING` = {origin, tool}、`SELECTOR` =
+  {origin, this_entity}。此前缺键只打警告，现在与原版 `LootParams.Builder#create`
+  一样是硬校验。
 
 ### 命令树：已对齐
 

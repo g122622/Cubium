@@ -31,7 +31,7 @@
 namespace mc {
 namespace loot {
 
-ItemStack DiscardItemFunction::apply(ItemStack stack, LootContext& context) const
+ItemStack DiscardItemFunction::run(ItemStack stack, LootContext& context) const
 {
     MC_UNUSED(stack);
     MC_UNUSED(context);

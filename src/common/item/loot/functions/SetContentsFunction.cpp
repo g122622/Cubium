@@ -46,7 +46,7 @@ void SetContentsFunction::addEntry(std::unique_ptr<LootEntry> entry)
     }
 }
 
-ItemStack SetContentsFunction::apply(ItemStack stack, LootContext& context) const
+ItemStack SetContentsFunction::run(ItemStack stack, LootContext& context) const
 {
     if (stack.isEmpty() || m_entries.empty()) {
         return stack;
@@ -55,33 +55,36 @@ ItemStack SetContentsFunction::apply(ItemStack stack, LootContext& context) cons
     // 收集生成的物品
     std::vector<ItemStack> generatedItems;
 
-    // 遍历所有条目，展开并生成物品
+    // 对齐原版 `SetContainerContents#run`：先对每个条目 `expand`，再让**每个候选**
+    // 各自 `createItemStack`（这里的 `generate`）——不是在条目层直接生成。
+    // 组合条目（alternatives / group）因此会按展开规则产出，而不是被当成单一分支。
     for (const auto& entry : m_entries) {
         if (!entry) {
             continue;
         }
 
-        // 使用 generate() 方法生成物品
-        entry->generate(
-            [&generatedItems](const ItemStack& item) {
-                if (!item.isEmpty()) {
-                    // 如果物品数量超过最大堆叠数，需要拆分成多个堆
-                    if (item.getCount() <= item.getMaxStackSize()) {
-                        generatedItems.push_back(item);
-                    } else {
-                        // 拆分超限堆叠
-                        i32 remaining = item.getCount();
-                        while (remaining > 0) {
-                            ItemStack splitItem = item.copy();
-                            i32 splitCount = std::min(remaining, splitItem.getMaxStackSize());
-                            splitItem.setCount(splitCount);
-                            remaining -= splitCount;
-                            generatedItems.push_back(std::move(splitItem));
+        entry->expand(context, [&generatedItems, &context](const LootEntry& selected) {
+            selected.generate(
+                makeConsumer([&generatedItems](const ItemStack& item) {
+                    if (!item.isEmpty()) {
+                        // 如果物品数量超过最大堆叠数，需要拆分成多个堆
+                        if (item.getCount() <= item.getMaxStackSize()) {
+                            generatedItems.push_back(item);
+                        } else {
+                            // 拆分超限堆叠
+                            i32 remaining = item.getCount();
+                            while (remaining > 0) {
+                                ItemStack splitItem = item.copy();
+                                const i32 splitCount = std::min(remaining, splitItem.getMaxStackSize());
+                                splitItem.setCount(splitCount);
+                                remaining -= splitCount;
+                                generatedItems.push_back(std::move(splitItem));
+                            }
                         }
                     }
-                }
-            },
-            context);
+                }),
+                context);
+        });
     }
 
     // 如果没有生成任何物品，直接返回原堆

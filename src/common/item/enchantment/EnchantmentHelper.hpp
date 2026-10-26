@@ -187,6 +187,15 @@ public:
     [[nodiscard]] static i32 getLootingLevel(const ItemStack& stack);
 
     /**
+     * @brief 读取攻击者身上的指定附魔等级（对齐原版 `EnchantmentHelper#getEnchantmentLevel(Holder, LivingEntity)`）
+     *
+     * 原版遍历 `EquipmentSlot.VALUES`，取每个槽位上该附魔的等级（含按附魔定义的槽位过滤），
+     * 最后返回**最大值**。本项目目前让每个槽位都为同一物品提供等级（即主手物品），因此
+     * 等价于读主手——形态与原版一致，差别只在尚未实现的槽位过滤上。
+     */
+    [[nodiscard]] static i32 getEnchantmentLevel(const LivingEntity& entity, const std::string& enchantmentId);
+
+    /**
      * @brief 获取效率等级
      *
      * @param stack 物品堆

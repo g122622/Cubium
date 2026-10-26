@@ -301,18 +301,21 @@ public:
     /**
      * @brief 是否为空物品堆
      *
-     * 空堆的条件：
-     * - item为nullptr
-     * - count为0或负数
+     * 对齐原版 `ItemStack#isEmpty`：**只看数量**。数量为 0 的堆仍记着物品类型，
+     * 因此 `grow` 能把它重新变成非空——原版「`set_count` 设成 0、再由
+     * `enchanted_count_increase` 加回来」这类函数链依赖这一点。
+     *
+     * `getItem()` 对数量为 0 的堆返回物品类型本身（原版 `getItem()` 同样如此）；
+     * 只有从未设置过物品的默认堆才没有类型。
      */
     [[nodiscard]] bool isEmpty() const
     {
-        return m_item == nullptr || m_count <= 0;
+        return m_count <= 0;
     }
 
     /**
      * @brief 获取物品
-     * @return 物品指针，空堆返回nullptr
+     * @return 物品指针；从未设置过物品的默认堆返回 nullptr
      */
     [[nodiscard]] const Item* getItem() const
     {

@@ -164,9 +164,12 @@ i32 Xoroshiro128ppRandom::nextInt(i32 bound)
     u64 k = j & 0xFFFFFFFFULL; // 低 32 位
 
     if (k < static_cast<u64>(bound)) {
-        // Integer.remainderUnsigned(~bound + 1, bound) = (-bound) % bound as unsigned
-        // ~bound + 1 = -bound (two's complement)
-        const u64 threshold = (static_cast<u64>(-static_cast<i64>(bound))) % static_cast<u64>(bound);
+        // Java: Integer.remainderUnsigned(~bound + 1, bound)
+        //   ~bound + 1 = -bound（32 位补码），**必须在 32 位无符号域上取余**，
+        //   即 (2^32 - bound) % bound。早先写成 64 位 (-bound as long) % bound，
+        //   bound 不整除 2^64 时阈值算错（如 bound=9：正解 4，错解 7），
+        //   拒绝采样次数因此与原版不同，随机序列随之错位。
+        const u64 threshold = (static_cast<u64>((1ULL << 32) - static_cast<u64>(bound))) % static_cast<u64>(bound);
         while (k < threshold) {
             j = static_cast<u64>(static_cast<u32>(nextLong())) * static_cast<u64>(bound);
             k = j & 0xFFFFFFFFULL;

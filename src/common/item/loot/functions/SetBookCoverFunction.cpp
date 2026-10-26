@@ -40,7 +40,7 @@ SetBookCoverFunction::SetBookCoverFunction(
     , m_generation(generation)
 {}
 
-ItemStack SetBookCoverFunction::apply(ItemStack stack, LootContext& context) const
+ItemStack SetBookCoverFunction::run(ItemStack stack, LootContext& context) const
 {
     MC_UNUSED(context);
     if (stack.isEmpty()) {

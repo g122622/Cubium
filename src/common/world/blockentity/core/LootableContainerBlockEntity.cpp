@@ -358,7 +358,10 @@ bool LootableContainerBlockEntity::fillWithLootFromTable(loot::LootTableManager&
         builder.withRandom(rng);
     }
 
-    // 设置位置参数
+    // 设置位置参数：原版 `chest` 参数集要求 ORIGIN，BLOCK_POS 是本项目额外的取整坐标。
+    const Vector3 lootOrigin(
+        static_cast<f32>(m_pos.x) + 0.5f, static_cast<f32>(m_pos.y) + 0.5f, static_cast<f32>(m_pos.z) + 0.5f);
+    builder.withOwnedValue(loot::LootParams::ORIGIN, lootOrigin);
     BlockPos lootPos = m_pos;
     builder.withParameter(loot::LootParams::BLOCK_POS, &lootPos);
 

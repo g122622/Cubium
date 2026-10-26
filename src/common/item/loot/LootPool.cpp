@@ -28,6 +28,7 @@
 #include "common/item/loot/context/LootContext.hpp"
 #include "common/item/loot/entries/LootEntry.hpp"
 #include "common/item/loot/functions/LootFunction.hpp"
+#include "common/util/math/MathUtils.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/util/math/random/RandomRanges.hpp"
 #include "entries/ItemLootEntry.hpp"
@@ -75,17 +76,21 @@ void LootPool::addFunction(std::unique_ptr<LootFunction> function)
     m_functions.push_back(std::move(function));
 }
 
-ItemStack LootPool::applyFunctions(ItemStack stack, LootContext& context) const
+ConsumerPtr LootPool::decorate(ConsumerPtr consumer, LootContext& context) const
 {
-    for (const auto& func : m_functions) {
-        if (func->testConditions(context)) {
-            stack = func->apply(stack, context);
-            if (stack.isEmpty()) {
-                return stack;
-            }
-        }
+    if (m_functions.empty()) {
+        return consumer;
     }
-    return stack;
+    // 对齐原版 `LootItemFunction#decorate`：本层函数对每个经过的堆执行一次，
+    // 变换后的空堆照样交付，不在这一层过滤。
+    const auto& functions = m_functions;
+    return makeConsumer([&functions, consumer = std::move(consumer), &context](const ItemStack& received) {
+        ItemStack stack = received;
+        for (const auto& func : functions) {
+            stack = func->apply(std::move(stack), context);
+        }
+        consumer->accept(stack);
+    });
 }
 
 std::unique_ptr<LootPool> LootPool::clone() const
@@ -104,7 +109,7 @@ std::unique_ptr<LootPool> LootPool::clone() const
     return pool;
 }
 
-void LootPool::generate(std::function<void(const ItemStack&)> consumer, LootContext& context) const
+void LootPool::generate(ConsumerPtr consumer, LootContext& context) const
 {
     // 检查池级条件
     const bool conditionsPassed = testConditions(context);
@@ -114,66 +119,54 @@ void LootPool::generate(std::function<void(const ItemStack&)> consumer, LootCont
         return;
     }
 
-    // 计算掷骰次数 = 基础次数 + 幸运值加成
+    // 计算掷骰次数 = 基础次数 + floor(加成次数 × 幸运值)
+    // 对齐原版 `LootPool#addRandomItems`：加成部分先乘幸运值再 `Mth.floor`，不是先转整数再乘。
     math::IRandom& random = context.getRandom();
-    i32 rollCount =
-        m_rolls.generateInt(random) + static_cast<i32>(m_bonusRolls.generateFloat(random) * context.getLuck());
-    // spdlog::info("LootPool::generate pool='{}' rollCount={} luck={}", m_name, rollCount, context.getLuck());
+    const i32 rollCount = m_rolls.generateInt(random) +
+        math::floorTo<i32>(m_bonusRolls.generateFloat(random) * context.getLuck());
 
-    // 如果有池级函数，包装 consumer 以应用函数
-    std::function<void(const ItemStack&)> poolConsumer;
-    if (m_functions.empty()) {
-        poolConsumer = consumer;
-    } else {
-        poolConsumer = [this, &consumer, &context](const ItemStack& stack) {
-            if (!stack.isEmpty()) {
-                ItemStack result = applyFunctions(stack, context);
-                if (!result.isEmpty()) {
-                    consumer(result);
-                }
-            }
-        };
-    }
-
+    // 对齐原版：池级函数通过 `decorate` 挂到 consumer 上，**对每个产出的堆都执行一次**
+    // （包括变换后成为空堆的那些），因此这里不预先过滤空堆。
+    const auto poolConsumer = decorate(std::move(consumer), context);
     // 执行每次掷骰
     for (i32 i = 0; i < rollCount; ++i) {
         _generateRoll(poolConsumer, context);
     }
 }
 
-void LootPool::_generateRoll(std::function<void(const ItemStack&)> consumer, LootContext& context) const
+void LootPool::_generateRoll(const ConsumerPtr& consumer, LootContext& context) const
 {
     if (m_entries.empty()) {
         // spdlog::info("LootPool::generateRoll pool='{}' skipped because there are no entries", m_name);
         return;
     }
 
-    // 收集所有有效条目及其权重
+    // 收集所有有效条目及其权重。
+    //
+    // 对齐原版 LootPool#addRandomItem：先用 `expand` 把组合条目展开成候选，
+    // **再**按权重抽签。组合条目（alternatives / group / sequence）内部的条件
+    // 在这一步就决定它是否成为候选——条件不满足的分支既不占权重也不消耗随机数。
+    // 若改成「先按权重选中、再判定条件」，alternatives 这类表会给出完全不同的结果。
     struct WeightedEntry {
-        LootEntry* entry;
+        const LootEntry* entry;
         i32 weight;
     };
 
     std::vector<WeightedEntry> weightedEntries;
     i32 totalWeight = 0;
 
-    for (auto& entry : m_entries) {
-        i32 effectiveWeight = entry->getEffectiveWeight(context.getLuck());
-        // spdlog::info("LootPool::generateRoll pool='{}' entryType='{}' effectiveWeight={}",
-        //     m_name,
-        //     static_cast<i32>(entry->getType()),
-        //     effectiveWeight);
-        if (effectiveWeight > 0) {
-            weightedEntries.push_back({entry.get(), effectiveWeight});
-            totalWeight += effectiveWeight;
-        }
+    for (const auto& entry : m_entries) {
+        entry->expand(context, [&context, &weightedEntries, &totalWeight](const LootEntry& candidate) {
+            i32 effectiveWeight = candidate.getEffectiveWeight(context.getLuck());
+            if (effectiveWeight > 0) {
+                weightedEntries.push_back({&candidate, effectiveWeight});
+                totalWeight += effectiveWeight;
+            }
+        });
     }
 
     if (weightedEntries.empty() || totalWeight <= 0) {
-        spdlog::warn("LootPool::generateRoll pool='{}' found no weighted entries: weightedEntryCount={} totalWeight={}",
-            m_name,
-            weightedEntries.size(),
-            totalWeight);
+        // 原版在这种情况下静默跳过（没有可抽的条目不是错误：条件被上下文筛空很常见）。
         return;
     }
 

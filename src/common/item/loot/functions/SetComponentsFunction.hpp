@@ -51,7 +51,7 @@ public:
      */
     explicit SetComponentsFunction(std::shared_ptr<const item::component::DataComponentPatch> patch);
 
-    [[nodiscard]] ItemStack apply(ItemStack stack, LootContext& context) const override;
+    [[nodiscard]] ItemStack run(ItemStack stack, LootContext& context) const override;
     [[nodiscard]] std::unique_ptr<LootFunction> clone() const noexcept override;
 
     [[nodiscard]] std::string getType() const noexcept override

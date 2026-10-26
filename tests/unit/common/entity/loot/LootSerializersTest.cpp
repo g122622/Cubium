@@ -311,15 +311,18 @@ TEST_F(LootSerializersTest, ParseCondition_RandomChance)
     EXPECT_EQ("random_chance", condition->getType());
 }
 
-TEST_F(LootSerializersTest, ParseCondition_SilkTouch)
+TEST_F(LootSerializersTest, ParseCondition_PrecisionToolUsesMatchTool)
 {
-    nlohmann::json json = {{"condition", "minecraft:silk_touch"}};
+    // 原版没有 `silk_touch` 条件：精准采集靠 `match_tool` 的 `predicates.enchantments`
+    // 表达。这里验证同一条路径能解析。
+    nlohmann::json json = {{"condition", "minecraft:match_tool"},
+        {"predicates", {{"enchantments", {{{"enchantment", "minecraft:silk_touch"}, {"levels", {{"min", 1}}}}}}}}};
 
     auto result = LootSerializers::parseCondition(json);
     ASSERT_TRUE(result.success());
 
     auto condition = result.value();
-    EXPECT_EQ("silk_touch", condition->getType());
+    EXPECT_EQ("match_tool", condition->getType());
 }
 
 TEST_F(LootSerializersTest, ParseCondition_Inverted)
@@ -539,8 +542,11 @@ TEST_F(LootSerializersTest, ParseFunction_SetCount)
 
 TEST_F(LootSerializersTest, ParseFunction_LootingEnchant)
 {
-    nlohmann::json json = {
-        {"function", "minecraft:enchanted_count_increase"}, {"count", {{"min", 0}, {"max", 1}}}, {"limit", 3}};
+    // 原版 `enchanted_count_increase` 必须指明附魔（数据包里的 `enchantment` 字段）。
+    nlohmann::json json = {{"function", "minecraft:enchanted_count_increase"},
+        {"count", {{"min", 0}, {"max", 1}}},
+        {"limit", 3},
+        {"enchantment", "minecraft:looting"}};
 
     auto result = LootSerializers::parseFunction(json);
     ASSERT_TRUE(result.success());
@@ -1706,7 +1712,7 @@ TEST_F(LootSerializersTest, RoundTrip_TableWithConditions)
     auto pool = std::make_unique<LootPool>(RandomValueRange(1.0f));
 
     auto entry = std::make_unique<ItemLootEntry>("minecraft:diamond", RandomValueRange(1.0f), 1, 0);
-    entry->addCondition(std::make_unique<SilkTouchCondition>());
+    entry->addCondition(std::make_unique<TableBonusCondition>("minecraft:fortune", std::vector<f32>{0.1f, 0.2f}));
     pool->addEntry(std::move(entry));
 
     originalTable->addPool(std::move(pool));
@@ -1724,7 +1730,7 @@ TEST_F(LootSerializersTest, RoundTrip_TableWithConditions)
 
     const auto& parsedEntry = parsedTable->getPools()[0]->getEntries()[0];
     EXPECT_EQ(1u, parsedEntry->getConditions().size());
-    EXPECT_EQ("silk_touch", parsedEntry->getConditions()[0]->getType());
+    EXPECT_EQ("table_bonus", parsedEntry->getConditions()[0]->getType());
 }
 
 // ============================================================================

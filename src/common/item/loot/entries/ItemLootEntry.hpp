@@ -30,6 +30,7 @@
 #include "common/util/math/random/RandomRanges.hpp"
 #include <functional>
 #include <memory>
+#include <vector>
 #include <string>
 
 namespace mc {
@@ -69,9 +70,9 @@ public:
         return m_count;
     }
 
-    void expand(LootContext& context, std::function<void(LootEntry&)> consumer) const override;
+    bool expand(LootContext& context, const std::function<void(const LootEntry&)>& consumer) const override;
 
-    bool generate(std::function<void(const ItemStack&)> consumer, LootContext& context) const override;
+    void generate(ConsumerPtr consumer, LootContext& context) const override;
 
     /**
      * @brief 设置数量范围

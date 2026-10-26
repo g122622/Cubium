@@ -82,14 +82,28 @@ void writeLootFile(const std::filesystem::path& root, const std::string& relativ
     file << json;
 }
 
-std::unique_ptr<LootContext> buildBlockLootContext(IWorld& world, math::IRandom& rng, const BlockState& state)
+/// 造一把带精准采集的工具（原版 `block` 参数集要求 tool，精准采集靠工具上的附魔判定）。
+ItemStack makeTool()
+{
+    ItemStack tool(Items::DIAMOND_PICKAXE, 1);
+    tool.addEnchantment("minecraft:silk_touch", 1);
+    return tool;
+}
+
+std::unique_ptr<LootContext> buildBlockLootContext(
+    IWorld& world, math::IRandom& rng, const BlockState& state, ItemStack* tool = nullptr)
 {
     static const BlockPos s_blockPos(8, 64, -5);
-    return LootContextBuilder(world)
-        .withRandom(rng)
+    LootContextBuilder builder(world);
+    builder.withRandom(rng)
         .withParameter(LootParams::BLOCK_STATE, const_cast<BlockState*>(&state))
-        .withParameter(LootParams::BLOCK_POS, const_cast<BlockPos*>(&s_blockPos))
-        .build();
+        .withParameter(LootParams::BLOCK_POS, const_cast<BlockPos*>(&s_blockPos));
+    // 工具必须是上下文里的真实物品：原版 `match_tool` / `table_bonus` / `apply_bonus`
+    // 都直接读工具上的附魔，没有独立的「精准采集 / 时运等级」上下文键。
+    if (tool != nullptr) {
+        builder.withParameter(LootParams::TOOL, tool);
+    }
+    return builder.build();
 }
 
 void loadLegacyEquivalentLootTables(LootTableManager& manager)
@@ -107,7 +121,14 @@ void loadLegacyEquivalentLootTables(LootTableManager& manager)
                 {
                   "type": "minecraft:item",
                   "name": "minecraft:diamond_ore",
-                  "conditions": [{ "condition": "minecraft:silk_touch" }]
+                  "conditions": [
+                    {
+                      "condition": "minecraft:match_tool",
+                      "predicates": {
+                        "enchantments": [{ "enchantment": "minecraft:silk_touch", "levels": { "min": 1 } }]
+                      }
+                    }
+                  ]
                 }
               ]
             },
@@ -120,7 +141,12 @@ void loadLegacyEquivalentLootTables(LootTableManager& manager)
                   "conditions": [
                     {
                       "condition": "minecraft:inverted",
-                      "term": { "condition": "minecraft:silk_touch" }
+                      "term": {
+                        "condition": "minecraft:match_tool",
+                        "predicates": {
+                          "enchantments": [{ "enchantment": "minecraft:silk_touch", "levels": { "min": 1 } }]
+                        }
+                      }
                     }
                   ],
                   "functions": [
@@ -146,7 +172,14 @@ void loadLegacyEquivalentLootTables(LootTableManager& manager)
                 {
                   "type": "minecraft:item",
                   "name": "minecraft:coal_ore",
-                  "conditions": [{ "condition": "minecraft:silk_touch" }]
+                  "conditions": [
+                    {
+                      "condition": "minecraft:match_tool",
+                      "predicates": {
+                        "enchantments": [{ "enchantment": "minecraft:silk_touch", "levels": { "min": 1 } }]
+                      }
+                    }
+                  ]
                 }
               ]
             },
@@ -159,7 +192,12 @@ void loadLegacyEquivalentLootTables(LootTableManager& manager)
                   "conditions": [
                     {
                       "condition": "minecraft:inverted",
-                      "term": { "condition": "minecraft:silk_touch" }
+                      "term": {
+                        "condition": "minecraft:match_tool",
+                        "predicates": {
+                          "enchantments": [{ "enchantment": "minecraft:silk_touch", "levels": { "min": 1 } }]
+                        }
+                      }
                     }
                   ],
                   "functions": [
@@ -185,7 +223,14 @@ void loadLegacyEquivalentLootTables(LootTableManager& manager)
                 {
                   "type": "minecraft:item",
                   "name": "minecraft:stone",
-                  "conditions": [{ "condition": "minecraft:silk_touch" }]
+                  "conditions": [
+                    {
+                      "condition": "minecraft:match_tool",
+                      "predicates": {
+                        "enchantments": [{ "enchantment": "minecraft:silk_touch", "levels": { "min": 1 } }]
+                      }
+                    }
+                  ]
                 }
               ]
             },
@@ -198,7 +243,12 @@ void loadLegacyEquivalentLootTables(LootTableManager& manager)
                   "conditions": [
                     {
                       "condition": "minecraft:inverted",
-                      "term": { "condition": "minecraft:silk_touch" }
+                      "term": {
+                        "condition": "minecraft:match_tool",
+                        "predicates": {
+                          "enchantments": [{ "enchantment": "minecraft:silk_touch", "levels": { "min": 1 } }]
+                        }
+                      }
                     }
                   ]
                 }
@@ -297,6 +347,9 @@ void loadLegacyEquivalentLootTables(LootTableManager& manager)
     LootTableLoader loader(manager);
     auto result = loader.loadFromDirectory((tempRoot / "data/minecraft/loot_table").string());
     ASSERT_TRUE(result.success());
+    for (const auto& error : result.value().errors) {
+        std::cerr << "loot load error: " << error << std::endl;
+    }
     ASSERT_EQ(11u, result.value().successCount);
 
     std::error_code ec;
@@ -440,31 +493,33 @@ TEST_F(LootTest, LootContext_Builder)
     EXPECT_FLOAT_EQ(1.5f, context->getLuck());
 }
 
-TEST_F(LootTest, LootContext_LootingModifier)
+TEST_F(LootTest, LootParameterSet_BlockRequiresOriginAndTool)
 {
-    math::Random rng(12345);
-    IWorld& worldRef = m_world;
-    auto context = LootContextBuilder(worldRef).withRandom(rng).withLootingModifier(3).build();
-
-    ASSERT_NE(context, nullptr);
-    EXPECT_EQ(3, context->getLootingModifier());
-}
-
-TEST_F(LootTest, LootParameterSet_BlockAllowsMissingTool)
-{
+    // 1.21.11 `LootContextParamSets.BLOCK` 的必需键是 {BLOCK_STATE, ORIGIN, TOOL}：
+    // 只给方块状态与坐标的参数集是不完整的，补齐后才校验通过。
     VanillaBlocks::initialize();
 
     const BlockState* state = VanillaBlocks::DIRT ? &VanillaBlocks::DIRT->getDefaultState() : nullptr;
     ASSERT_NE(state, nullptr);
 
     const BlockPos pos(12, 64, -3);
+    ItemStack tool = makeTool();
     math::Random rng(12345);
+    auto incomplete = LootContextBuilder(m_world)
+                          .withRandom(rng)
+                          .withParameter(LootParams::BLOCK_STATE, const_cast<BlockState*>(state))
+                          .withParameter(LootParams::BLOCK_POS, const_cast<BlockPos*>(&pos))
+                          .build();
+    ASSERT_NE(incomplete, nullptr);
+    EXPECT_FALSE(LootParameterSets::block().validate(incomplete->getParamIds()));
+
     auto context = LootContextBuilder(m_world)
                        .withRandom(rng)
                        .withParameter(LootParams::BLOCK_STATE, const_cast<BlockState*>(state))
                        .withParameter(LootParams::BLOCK_POS, const_cast<BlockPos*>(&pos))
+                       .withOwnedValue(LootParams::ORIGIN, Vector3(12.5f, 64.0f, -2.5f))
+                       .withParameter(LootParams::TOOL, &tool)
                        .build();
-
     ASSERT_NE(context, nullptr);
     EXPECT_TRUE(LootParameterSets::block().validate(context->getParamIds()));
 }
@@ -478,13 +533,11 @@ TEST_F(LootTest, EmptyLootEntry_GenerateNothing)
     auto context = LootContextBuilder(worldRef).withRandom(rng).build();
 
     std::vector<ItemStack> items;
-    bool success = entry.generate(
-        [&items](const ItemStack& stack) {
-            items.push_back(stack);
-        },
+    entry.generate(
+        makeConsumer([&items](const ItemStack& stack) { items.push_back(stack); }),
         *context);
 
-    EXPECT_TRUE(success);
+    // 空条目被抽中但不产出任何物品
     EXPECT_TRUE(items.empty());
 }
 
@@ -2256,7 +2309,7 @@ TEST_F(LootTest, LootEntry_AddFunction)
 
 TEST_F(LootTest, LootEntry_ApplyFunctionsCorrectly)
 {
-    // 测试 LootEntry::applyFunctions 正确应用函数
+    // 测试 LootEntry::decorate 正确应用函数
     ItemLootEntry entry("minecraft:diamond", RandomValueRange(1.0f), 1, 0);
 
     // 添加设置数量函数
@@ -2269,8 +2322,9 @@ TEST_F(LootTest, LootEntry_ApplyFunctionsCorrectly)
     ASSERT_NE(diamond, nullptr);
     ItemStack stack(*diamond, 1);
 
-    // 应用函数
-    ItemStack result = entry.applyFunctions(stack, *context);
+    // 应用函数：decorate 装饰后的回调把变换结果交给下游
+    ItemStack result;
+    entry.decorate(makeConsumer([&result](const ItemStack& decorated) { result = decorated; }), *context)->accept(stack);
 
     // 数量应该被设置为 5
     EXPECT_EQ(5, result.getCount());
@@ -2294,7 +2348,8 @@ TEST_F(LootTest, LootEntry_ApplyFunctionsInOrder)
     ASSERT_NE(diamond, nullptr);
     ItemStack stack(*diamond, 1);
 
-    ItemStack result = entry.applyFunctions(stack, *context);
+    ItemStack result;
+    entry.decorate(makeConsumer([&result](const ItemStack& decorated) { result = decorated; }), *context)->accept(stack);
 
     // SetCount 设置数量为 2，LimitCount 不会改变它（因为 2 < 5）
     EXPECT_EQ(2, result.getCount());
@@ -2317,7 +2372,8 @@ TEST_F(LootTest, LootEntry_ApplyFunctionsWithCondition)
     ASSERT_NE(diamond, nullptr);
     ItemStack stack(*diamond, 1);
 
-    ItemStack result = entry.applyFunctions(stack, *context);
+    ItemStack result;
+    entry.decorate(makeConsumer([&result](const ItemStack& decorated) { result = decorated; }), *context)->accept(stack);
 
     // 条件不满足，数量应该保持不变
     EXPECT_EQ(1, result.getCount());
@@ -2356,13 +2412,11 @@ TEST_F(LootTest, ItemLootEntry_GenerateAppliesFunctions)
     auto context = LootContextBuilder(m_world).withRandom(rng).build();
 
     std::vector<ItemStack> generatedItems;
-    bool success = entry->generate(
-        [&generatedItems](const ItemStack& stack) {
-            generatedItems.push_back(stack);
-        },
+    entry->generate(
+        makeConsumer([&generatedItems](const ItemStack& stack) { generatedItems.push_back(stack); }),
         *context);
 
-    EXPECT_TRUE(success);
+    EXPECT_FALSE(generatedItems.empty());
     ASSERT_EQ(1, generatedItems.size());
     // 函数应该将数量设置为 10
     EXPECT_EQ(10, generatedItems[0].getCount());
@@ -2383,40 +2437,42 @@ TEST_F(LootTest, ItemLootEntry_GenerateWithConditionAndFunction)
     auto context = LootContextBuilder(m_world).withRandom(rng).build();
 
     std::vector<ItemStack> generatedItems;
-    bool success = entry->generate(
-        [&generatedItems](const ItemStack& stack) {
-            generatedItems.push_back(stack);
-        },
+    entry->generate(
+        makeConsumer([&generatedItems](const ItemStack& stack) { generatedItems.push_back(stack); }),
         *context);
 
-    EXPECT_TRUE(success);
+    EXPECT_FALSE(generatedItems.empty());
     ASSERT_EQ(1, generatedItems.size());
     EXPECT_EQ(7, generatedItems[0].getCount());
 }
 
 TEST_F(LootTest, ItemLootEntry_GenerateConditionFails)
 {
-    // 测试条件不满足时不生成物品
+    // 条件不满足的条目不会成为候选
     auto entry = std::make_unique<ItemLootEntry>("minecraft:diamond", RandomValueRange(1.0f), 1, 0);
 
     // 条件：永远不满足
     entry->addCondition(std::make_unique<RandomChanceCondition>(0.0f));
 
-    // 函数：设置数量（不应该被应用）
+    // 函数：设置数量
     entry->addFunction(std::make_unique<SetCountFunction>(RandomValueRange(10.0f, 10.0f)));
 
     math::Random rng(12345);
     auto context = LootContextBuilder(m_world).withRandom(rng).build();
 
+    std::vector<const LootEntry*> candidates;
+    EXPECT_FALSE(entry->expand(*context, [&candidates](const LootEntry& candidate) { candidates.push_back(&candidate); }));
+    EXPECT_TRUE(candidates.empty());
+
+    // 直接调用 `generate` 时不再重复判定条件，物品照常产出——条件只在 `expand`
+    // 阶段判定（重复判定会让带随机数的条件被评估两次，随机数序列与原版错位）。
     std::vector<ItemStack> generatedItems;
-    bool success = entry->generate(
-        [&generatedItems](const ItemStack& stack) {
-            generatedItems.push_back(stack);
-        },
+    entry->generate(
+        makeConsumer([&generatedItems](const ItemStack& stack) { generatedItems.push_back(stack); }),
         *context);
 
-    EXPECT_FALSE(success);
-    EXPECT_TRUE(generatedItems.empty());
+    ASSERT_EQ(1, generatedItems.size());
+    EXPECT_EQ(10, generatedItems[0].getCount());
 }
 
 TEST_F(LootTest, ItemLootEntry_GenerateFunctionReturnsEmpty)
@@ -2431,15 +2487,14 @@ TEST_F(LootTest, ItemLootEntry_GenerateFunctionReturnsEmpty)
     auto context = LootContextBuilder(m_world).withRandom(rng).build();
 
     std::vector<ItemStack> generatedItems;
-    bool success = entry->generate(
-        [&generatedItems](const ItemStack& stack) {
-            generatedItems.push_back(stack);
-        },
+    entry->generate(
+        makeConsumer([&generatedItems](const ItemStack& stack) { generatedItems.push_back(stack); }),
         *context);
 
-    // 条件满足，但函数返回空堆
-    EXPECT_TRUE(success);
-    EXPECT_TRUE(generatedItems.empty());
+    // set_count 把数量设为 0 → 空堆，下游照样收到它（原版不在任何一层过滤空堆，
+    // 丢掉空堆是收集端 `createStackSplitter` 的事）。
+    ASSERT_EQ(1, generatedItems.size());
+    EXPECT_TRUE(generatedItems[0].isEmpty());
 }
 
 // ============================================================================
@@ -2599,22 +2654,17 @@ TEST_F(LootTest, ApplyBonusFunction_IntegrationWithLootContext)
     auto func = std::make_unique<ApplyBonusFunction>(ApplyBonusFunction::BonusType::OreDrops);
 
     math::Random rng(12345);
-    auto context = LootContextBuilder(m_world)
-                       .withRandom(rng)
-                       .withLootingModifier(3) // Fortune III
-                       .build();
+    auto context = LootContextBuilder(m_world).withRandom(rng).build();
 
     const Item* diamond = ItemRegistry::instance().getItem(ResourceLocation("minecraft:diamond"));
     ASSERT_NE(diamond, nullptr);
     ItemStack stack(*diamond, 1);
 
-    // 注意：当前 ApplyBonusFunction 使用 getLootingModifier() 作为时运等级
-    // 这是一个设计选择，因为 MC 中时运和掠夺都使用 looting modifier 参数
+    // 时运等级来自上下文里的 TOOL 附魔（原版 `ApplyBonusCount` 同样只认工具），
+    // 没有工具时公式照常执行、只是等级为 0。
     ItemStack result = func->apply(stack, *context);
 
-    // 应该有时运加成
-    EXPECT_GE(result.getCount(), 1);
-    EXPECT_LE(result.getCount(), 4);
+    EXPECT_EQ(1, result.getCount());
 }
 
 // ============================================================================
@@ -2635,8 +2685,8 @@ TEST_F(LootTest, LootTable_DiamondOreWithSilkTouch)
     ASSERT_NE(VanillaBlocks::DIAMOND_ORE, nullptr);
 
     // 设置精准采集
-    auto context = buildBlockLootContext(m_world, rng, VanillaBlocks::DIAMOND_ORE->getDefaultState());
-    context->setOwnedValue(LootParams::SILK_TOUCH_LEVEL, 1);
+    ItemStack tool = makeTool();
+    auto context = buildBlockLootContext(m_world, rng, VanillaBlocks::DIAMOND_ORE->getDefaultState(), &tool);
 
     auto items = table->generate(*context);
 
@@ -2660,9 +2710,8 @@ TEST_F(LootTest, LootTable_DiamondOreWithFortune)
     VanillaBlocks::initialize();
     ASSERT_NE(VanillaBlocks::DIAMOND_ORE, nullptr);
 
-    // 没有设置 TOOL，所以 ApplyBonusFunction 不会应用时运加成
+    // 没有设置 TOOL，所以 ApplyBonusFunction 读不到时运等级，掉落数量固定为 1
     auto context = buildBlockLootContext(m_world, rng, VanillaBlocks::DIAMOND_ORE->getDefaultState());
-    context->setLootingModifier(3);
 
     // 多次生成验证在没有工具时掉落数量固定为 1
     for (int i = 0; i < 10; ++i) {
@@ -2687,8 +2736,8 @@ TEST_F(LootTest, LootTable_CoalOreWithSilkTouch)
     VanillaBlocks::initialize();
     ASSERT_NE(VanillaBlocks::COAL_ORE, nullptr);
 
-    auto context = buildBlockLootContext(m_world, rng, VanillaBlocks::COAL_ORE->getDefaultState());
-    context->setOwnedValue(LootParams::SILK_TOUCH_LEVEL, 1);
+    ItemStack tool = makeTool();
+    auto context = buildBlockLootContext(m_world, rng, VanillaBlocks::COAL_ORE->getDefaultState(), &tool);
 
     auto items = table->generate(*context);
 
@@ -2711,9 +2760,8 @@ TEST_F(LootTest, LootTable_CoalOreWithFortune)
     VanillaBlocks::initialize();
     ASSERT_NE(VanillaBlocks::COAL_ORE, nullptr);
 
-    // 没有设置 TOOL，所以 ApplyBonusFunction 不会应用时运加成
+    // 没有设置 TOOL，所以 ApplyBonusFunction 读不到时运等级，掉落数量固定为 1
     auto context = buildBlockLootContext(m_world, rng, VanillaBlocks::COAL_ORE->getDefaultState());
-    context->setLootingModifier(3);
 
     // 多次生成验证在没有工具时掉落数量固定为 1
     for (int i = 0; i < 10; ++i) {
@@ -2738,8 +2786,8 @@ TEST_F(LootTest, LootTable_StoneWithSilkTouch)
     VanillaBlocks::initialize();
     ASSERT_NE(VanillaBlocks::STONE, nullptr);
 
-    auto context = buildBlockLootContext(m_world, rng, VanillaBlocks::STONE->getDefaultState());
-    context->setOwnedValue(LootParams::SILK_TOUCH_LEVEL, 1);
+    ItemStack tool = makeTool();
+    auto context = buildBlockLootContext(m_world, rng, VanillaBlocks::STONE->getDefaultState(), &tool);
 
     auto items = table->generate(*context);
 

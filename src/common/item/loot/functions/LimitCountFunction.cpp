@@ -37,14 +37,12 @@ LimitCountFunction::LimitCountFunction(i32 min, i32 max)
     , m_max(max)
 {}
 
-ItemStack LimitCountFunction::apply(ItemStack stack, LootContext& context) const
+ItemStack LimitCountFunction::run(ItemStack stack, LootContext& context) const
 {
     MC_UNUSED(context);
 
-    if (stack.isEmpty()) {
-        return stack;
-    }
-
+    // 空堆数量为 0，`[min, max]` 抬升同样生效——原版 `SetItemCountFunction#run`
+    // 一类的函数不看空堆，这里保持一致。
     i32 count = stack.getCount();
 
     if (m_min >= 0 && count < m_min) {

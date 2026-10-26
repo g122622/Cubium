@@ -43,7 +43,7 @@ EnchantRandomlyFunction::EnchantRandomlyFunction(const std::vector<std::string>&
     , m_treasure(treasure)
 {}
 
-ItemStack EnchantRandomlyFunction::apply(ItemStack stack, LootContext& context) const
+ItemStack EnchantRandomlyFunction::run(ItemStack stack, LootContext& context) const
 {
     if (stack.isEmpty()) {
         return stack;

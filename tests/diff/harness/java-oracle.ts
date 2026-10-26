@@ -32,7 +32,7 @@ import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 
-import { oracleClasspath, prepareOracle } from "./oracle-env.ts";
+import { oracleClasspath, prepareOracle, vanillaDataPackDir } from "./oracle-env.ts";
 import { REPO_ROOT } from "./vanilla.ts";
 import type { HarnessResult } from "./runner.ts";
 import { probeExecutable, resolveBuildDir, render } from "./runner.ts";
@@ -52,14 +52,38 @@ function exec(command: string, args: string[], options: ExecOptions = {}): strin
             encoding: "utf8",
             stdio: ["ignore", "pipe", "pipe"],
             maxBuffer: 1024 * 1024 * 1024,
+            // 原版 oracle 与 C++ 探针必须读同一份数据包：两侧拿到同一个
+            // `MC_DIFF_VANILLA_DATAPACK`，否则「jar 内置包」与本地数据包之间的
+            // 细微版本差会变成假差异。其余 oracle 不读它，拿不到目录时保持原环境。
+            env: oracleEnvironment(),
         });
     } catch (error) {
-        const failure = error as { status?: number; stdout?: string; stderr?: string };
+        const failure = error as {
+            status?: number;
+            stdout?: string;
+            stderr?: string;
+            code?: string;
+            message?: string;
+        };
+        // 进程根本没起来（ENOENT / EACCES）时 stdout/stderr 都是空的，只打出命令
+        // 本身无法定位；这里把错误码与 message 一并带上。
         throw new Error(
-            `命令失败（${failure.status ?? "?"}）：${command} ${args.join(" ")}\n` +
+            `命令失败（${failure.status ?? failure.code ?? "?"}）：${command} ${args.join(" ")}\n` +
+                `${failure.message ?? ""}\n` +
                 `${(failure.stdout ?? "").slice(-3000)}\n${(failure.stderr ?? "").slice(-3000)}`,
         );
     }
+}
+
+/** 子进程环境：在原进程环境上叠加数据包目录（不可用时保持原样）。 */
+function oracleEnvironment(): NodeJS.ProcessEnv {
+    let dataPack: string;
+    try {
+        dataPack = vanillaDataPackDir();
+    } catch {
+        return process.env;
+    }
+    return { ...process.env, MC_DIFF_VANILLA_DATAPACK: dataPack };
 }
 
 export interface JavaOracleOptions {
@@ -138,10 +162,25 @@ function listUnits(javaClass: string, classpathWithClasses: string, workDir: str
  */
 function oracleSources(oracle: string): string[] {
     const directory = path.join(ORACLE_SOURCE_DIR, ...ORACLE_PACKAGE.split("."));
-    const shared = path.join(directory, "DataPackRegistries.java");
     const sources = [path.join(directory, `${oracle}.java`)];
-    if (oracle !== "DataPackRegistries" && fs.existsSync(shared)) {
-        sources.push(shared);
+    // 同目录下的共享辅助类：oracle 自己不是它们时一并编译。
+    // 早期只有 DataPackRegistries，战利品表又引出了 LootRoll / LootServerData / LootLevel；
+    // LootTableBlockOracle / LootTableEntityOracle 复用 LootTableOracle.origin，也要一并编进来。
+    const shared = [
+        "DataPackRegistries.java",
+        "LootRoll.java",
+        "LootServerData.java",
+        "LootLevel.java",
+        "LootTableOracle.java",
+    ];
+    for (const name of shared) {
+        if (name === `${oracle}.java`) {
+            continue;
+        }
+        const candidate = path.join(directory, name);
+        if (fs.existsSync(candidate)) {
+            sources.push(candidate);
+        }
     }
     return sources;
 }

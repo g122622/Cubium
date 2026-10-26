@@ -37,7 +37,7 @@ FunctionReferenceFunction::FunctionReferenceFunction(std::string name, const Loo
     , m_target(target)
 {}
 
-ItemStack FunctionReferenceFunction::apply(ItemStack stack, LootContext& context) const
+ItemStack FunctionReferenceFunction::run(ItemStack stack, LootContext& context) const
 {
     // 目标函数自身的条件由被引用函数在注册时保留，这里直接应用（与 vanilla 一致）
     return m_target->apply(std::move(stack), context);

@@ -46,7 +46,7 @@ public:
      */
     explicit SetLootTableFunction(const std::string& lootTableId, u64 seed = 0);
 
-    [[nodiscard]] ItemStack apply(ItemStack stack, LootContext& context) const override;
+    [[nodiscard]] ItemStack run(ItemStack stack, LootContext& context) const override;
     [[nodiscard]] std::unique_ptr<LootFunction> clone() const noexcept override;
 
     [[nodiscard]] std::string getType() const override

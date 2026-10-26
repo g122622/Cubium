@@ -75,26 +75,31 @@ void SequenceLootEntry::addChild(std::unique_ptr<LootEntry> child)
 // 重写方法
 // ============================================================================
 
-void SequenceLootEntry::expand(LootContext& /*context*/, std::function<void(LootEntry&)> consumer) const
+bool SequenceLootEntry::expand(LootContext& context, const std::function<void(const LootEntry&)>& consumer) const
 {
-    // 序列条目直接将自身添加到候选列表
-    consumer(*const_cast<SequenceLootEntry*>(this));
-}
-
-bool SequenceLootEntry::generate(std::function<void(const ItemStack&)> consumer, LootContext& context) const
-{
-    // 检查条件
+    // 对齐原版 `SequentialEntry#compose`：依次展开，**任一子条目展开失败则整条序列
+    // 不成立**。注意原版在这种情况下不会回滚已经交给消费者的候选（`and` 的语义是
+    // 「前者先展开、后者返回假」，前者产生的候选仍会进入池），这里保持一致。
     if (!testConditions(context)) {
         return false;
     }
 
-    // 按顺序执行所有子条目，直到一个失败
     for (const auto& child : m_children) {
-        if (!child->generate(consumer, context)) {
+        if (!child->expand(context, consumer)) {
             return false;
         }
     }
     return true;
+}
+
+void SequenceLootEntry::generate(ConsumerPtr consumer, LootContext& context) const
+{
+    // 逐个子条目重新展开并生成；条件不在此重复判定（理由同 alternatives）。
+    for (const auto& child : m_children) {
+        if (!child->expand(context, [&context, next = consumer](const LootEntry& selected) { selected.generate(next, context); })) {
+            return;
+        }
+    }
 }
 
 } // namespace loot

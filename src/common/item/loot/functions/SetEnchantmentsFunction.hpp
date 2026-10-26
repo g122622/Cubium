@@ -60,7 +60,7 @@ public:
      *
      * 默认取 Entry::level；earlier 版本解析器对 default 参数的支持见 _parseEnchantRandomly。
      */
-    [[nodiscard]] ItemStack apply(ItemStack stack, LootContext& context) const override;
+    [[nodiscard]] ItemStack run(ItemStack stack, LootContext& context) const override;
     [[nodiscard]] std::unique_ptr<LootFunction> clone() const noexcept override;
 
     [[nodiscard]] std::string getType() const noexcept override

@@ -38,7 +38,7 @@ SetLoreFunction::SetLoreFunction(const std::vector<std::string>& lore, bool repl
     , m_replace(replace)
 {}
 
-ItemStack SetLoreFunction::apply(ItemStack stack, LootContext& context) const
+ItemStack SetLoreFunction::run(ItemStack stack, LootContext& context) const
 {
     MC_UNUSED(context);
 

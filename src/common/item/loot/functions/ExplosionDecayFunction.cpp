@@ -34,29 +34,28 @@
 namespace mc {
 namespace loot {
 
-ItemStack ExplosionDecayFunction::apply(ItemStack stack, LootContext& context) const
+ItemStack ExplosionDecayFunction::run(ItemStack stack, LootContext& context) const
 {
-    if (stack.isEmpty()) {
+    // 对齐原版 `ApplyExplosionDecay#run`：
+    //   Float f = ctx.getOptionalParameter(EXPLOSION_RADIUS);
+    //   if (f != null) { ...每个物品按 1/f 的概率保留... }
+    // **没有爆炸半径时函数整体不生效**（既不消耗随机数、也不改动数量）。
+    // 早先的实现把缺省半径当成 1.0 再跑一遍二项分布，虽然数量不变，
+    // 却会额外消耗 count 次随机数，导致后续所有抽取与原版错位。
+    const f32* radiusParam = context.get<f32>(LootParams::EXPLOSION_RADIUS);
+    if (radiusParam == nullptr || stack.isEmpty()) {
         return stack;
     }
 
-    // 获取爆炸半径参数，如果没有则默认为 1.0（100% 保留）
-    f32 explosionRadius = 1.0f;
-    auto* radiusParam = context.get<f32>(LootParams::EXPLOSION_RADIUS);
-    if (radiusParam != nullptr && *radiusParam > 0.0f) {
-        explosionRadius = *radiusParam;
+    const f32 keepChance = 1.0f / *radiusParam;
+    const i32 count = stack.getCount();
+    i32 kept = 0;
+    for (i32 i = 0; i < count; ++i) {
+        if (context.getRandom().nextFloat() <= keepChance) {
+            ++kept;
+        }
     }
-
-    // 使用二项分布计算保留数量
-    f32 keepChance = math::clamp(1.0f / explosionRadius, 0.0f, 1.0f);
-    BinomialRange binomial(stack.getCount(), keepChance);
-    i32 keptCount = binomial.generateInt(context.getRandom());
-
-    if (keptCount <= 0) {
-        return ItemStack();
-    }
-
-    stack.setCount(keptCount);
+    stack.setCount(kept);
     return stack;
 }
 

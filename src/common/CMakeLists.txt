@@ -162,6 +162,7 @@ add_library(mc_common STATIC
     entity/entities/passive/special/SnifferEntity.cpp
     # Entity - Passive Animals (happy ghast)
     entity/entities/passive/happyghast/HappyGhastEntity.cpp
+    entity/entities/passive/allay/AllayEntity.cpp
     # Entity - Passive Animals (water)
     entity/entities/passive/water/WaterMobEntity.cpp
     entity/entities/passive/water/AgeableWaterCreatureEntity.cpp
@@ -287,10 +288,8 @@ add_library(mc_common STATIC
     # Entity - Movement
     entity/movement/AutoJump.cpp
     # Item - Loot System
-    item/loot/conditions/SilkTouchCondition.cpp
-    item/loot/conditions/FortuneCondition.cpp
     item/loot/conditions/RandomChanceCondition.cpp
-    item/loot/conditions/RandomChanceWithLuckCondition.cpp
+    item/loot/conditions/RandomChanceWithEnchantedBonusCondition.cpp
     item/loot/conditions/NotCondition.cpp
     item/loot/conditions/AndCondition.cpp
     item/loot/conditions/OrCondition.cpp
@@ -325,6 +324,7 @@ add_library(mc_common STATIC
     item/loot/entries/GroupLootEntry.cpp
     item/loot/entries/LootEntryBuilder.cpp
     item/loot/StatePropertiesPredicate.cpp
+    item/loot/LootCallbackInvoker.cpp
     item/loot/LootPool.cpp
     item/loot/LootTable.cpp
     item/loot/LootTableManager.cpp

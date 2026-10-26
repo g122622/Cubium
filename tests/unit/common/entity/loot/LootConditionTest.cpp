@@ -172,24 +172,6 @@ TEST_F(LootConditionsTest, OrCondition_OneTrue)
     EXPECT_TRUE(condition->test(*LootContextBuilder(m_world).withRandom(random).build()));
 }
 
-TEST_F(LootConditionsTest, FortuneCondition_GetLevel)
-{
-    // FortuneCondition::getFortuneLevel 从 LootContext 的 FORTUNE_LEVEL 参数获取
-    math::Random random(12345);
-
-    auto context = LootContextBuilder(m_world).withRandom(random).build();
-
-    // 使用 setOwnedValue 设置时运等级
-    context->setOwnedValue(LootParams::FORTUNE_LEVEL, 3);
-
-    EXPECT_EQ(FortuneCondition::getFortuneLevel(*context), 3);
-
-    // 测试默认值（未设置时返回 0）
-    auto context2 = LootContextBuilder(m_world).withRandom(random).build();
-
-    EXPECT_EQ(FortuneCondition::getFortuneLevel(*context2), 0);
-}
-
 TEST_F(LootConditionsTest, FortuneCondition_ApplyBonus)
 {
     math::Random random(12345);
@@ -222,34 +204,26 @@ TEST_F(LootConditionsTest, FortuneCondition_ApplyBonus)
 
 TEST(LootConditionBuilderTest, FactoryMethods)
 {
-    auto silkTouch = LootConditionBuilder::silkTouch();
-    EXPECT_NE(silkTouch, nullptr);
-    EXPECT_EQ(silkTouch->getType(), "silk_touch");
-
-    auto fortune = LootConditionBuilder::fortune(2);
-    EXPECT_NE(fortune, nullptr);
-    EXPECT_EQ(fortune->getType(), "fortune");
-
     auto randomChance = LootConditionBuilder::randomChance(0.5f);
     EXPECT_NE(randomChance, nullptr);
     EXPECT_EQ(randomChance->getType(), "random_chance");
 
-    auto notCondition = LootConditionBuilder::not_(LootConditionBuilder::silkTouch());
+    auto notCondition = LootConditionBuilder::not_(LootConditionBuilder::randomChance(0.5f));
     EXPECT_NE(notCondition, nullptr);
     EXPECT_EQ(notCondition->getType(), "inverted");
 
     // and_ 和 or_ 测试需要单独测试，因为 unique_ptr 不能放入初始化列表
     std::vector<std::unique_ptr<LootCondition>> andConditions;
     andConditions.push_back(LootConditionBuilder::randomChance(0.5f));
-    andConditions.push_back(LootConditionBuilder::fortune(1));
+    andConditions.push_back(LootConditionBuilder::randomChance(0.25f));
     // and_() 返回 AndCondition，其 type 为 "and"（OrCondition 为 "or"）。
     auto andCondition = LootConditionBuilder::and_(std::move(andConditions));
     EXPECT_NE(andCondition, nullptr);
     EXPECT_EQ(andCondition->getType(), "and");
 
     std::vector<std::unique_ptr<LootCondition>> orConditions;
-    orConditions.push_back(LootConditionBuilder::silkTouch());
-    orConditions.push_back(LootConditionBuilder::fortune(3));
+    orConditions.push_back(LootConditionBuilder::randomChance(0.5f));
+    orConditions.push_back(LootConditionBuilder::randomChance(0.25f));
     auto orCondition = LootConditionBuilder::or_(std::move(orConditions));
     EXPECT_NE(orCondition, nullptr);
     EXPECT_EQ(orCondition->getType(), "or");
@@ -352,13 +326,15 @@ TEST_F(LootEntryConditionTest, PoolWithEntryCondition)
 
 TEST_F(LootConditionsTest, ClonePreservesState)
 {
-    FortuneCondition original(2);
+    TableBonusCondition original("minecraft:fortune", {0.1f, 0.2f});
     auto cloned = original.clone();
 
-    EXPECT_EQ(cloned->getType(), "fortune");
+    EXPECT_EQ(cloned->getType(), "table_bonus");
 
-    auto* fortuneClone = dynamic_cast<FortuneCondition*>(cloned.get());
-    ASSERT_NE(fortuneClone, nullptr);
+    auto* bonusClone = dynamic_cast<TableBonusCondition*>(cloned.get());
+    ASSERT_NE(bonusClone, nullptr);
+    EXPECT_EQ(bonusClone->getEnchantmentId(), "minecraft:fortune");
+    EXPECT_EQ(bonusClone->getChances().size(), 2u);
 }
 
 TEST_F(LootConditionsTest, NotConditionWithNullCondition)

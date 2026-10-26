@@ -35,7 +35,7 @@ SetPotionFunction::SetPotionFunction(ResourceLocation potionId)
     : m_potionId(std::move(potionId))
 {}
 
-ItemStack SetPotionFunction::apply(ItemStack stack, LootContext& context) const
+ItemStack SetPotionFunction::run(ItemStack stack, LootContext& context) const
 {
     MC_UNUSED(context);
     if (stack.isEmpty()) {

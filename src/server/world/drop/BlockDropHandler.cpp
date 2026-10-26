@@ -33,6 +33,7 @@
 #include "common/item/core/Item.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/item/enchantment/EnchantmentHelper.hpp"
+#include "common/item/loot/LootCallbackInvoker.hpp"
 #include "common/item/loot/LootTable.hpp"
 #include "common/item/loot/LootTableManager.hpp"
 #include "common/item/loot/conditions/LootCondition.hpp"
@@ -101,15 +102,14 @@ std::vector<ItemStack> BlockDropHandler::generateDrops(IWorld& world,
         if (context) {
             spdlog::info(
                 "BlockDropHandler::generateDrops built loot context for block='{}': hasBlockState={} hasBlockPos={} "
-                "hasTool={} hasThisEntity={} hasExplosionRadius={} luck={} lootingModifier={}",
+                "hasTool={} hasThisEntity={} hasExplosionRadius={} luck={}",
                 block.blockLocation().toString(),
                 context->has(loot::LootParams::BLOCK_STATE),
                 context->has(loot::LootParams::BLOCK_POS),
                 context->has(loot::LootParams::TOOL),
                 context->has(loot::LootParams::THIS_ENTITY),
                 context->has(loot::LootParams::EXPLOSION_RADIUS),
-                context->getLuck(),
-                context->getLootingModifier());
+                context->getLuck());
             // 设置掉落表解析器
             context->setLootTableResolver([&lootTableManager](const std::string& id) -> const loot::LootTable* {
                 return lootTableManager.getTable(id);
@@ -259,22 +259,13 @@ std::unique_ptr<loot::LootContext> BlockDropHandler::buildLootContext(IWorld& wo
     contextBuilder.withParameter(loot::LootParams::BLOCK_STATE, const_cast<BlockState*>(&state));
     contextBuilder.withParameter(loot::LootParams::BLOCK_POS, const_cast<BlockPos*>(&pos));
 
-    // 设置工具参数
-    if (tool && !tool->isEmpty()) {
+    // 设置工具参数。
+    // 时运 / 精准采集**不再作为独立上下文键**传递：原版的 `match_tool`、`table_bonus`
+    // 与 `apply_bonus` 都直接读工具上的附魔（`EnchantmentHelper#getItemEnchantmentLevel`），
+    // 没有 fortune_level / silk_touch_level 这两个键。把工具本身传进去即可。
+    // 注意「空手挖掘」时工具是空栈而非缺失——原版 `block` 参数集把 tool 列为必需键。
+    if (tool != nullptr) {
         contextBuilder.withParameter(loot::LootParams::TOOL, const_cast<ItemStack*>(tool));
-
-        // 设置时运等级
-        i32 fortuneLevel = getFortuneLevel(tool);
-        if (fortuneLevel > 0) {
-            contextBuilder.withLootingModifier(fortuneLevel);
-            contextBuilder.withOwnedValue(loot::LootParams::FORTUNE_LEVEL, fortuneLevel);
-        }
-
-        // 设置精准采集等级
-        i32 silkTouchLevel = hasSilkTouch(tool) ? 1 : 0;
-        if (silkTouchLevel > 0) {
-            contextBuilder.withOwnedValue(loot::LootParams::SILK_TOUCH_LEVEL, silkTouchLevel);
-        }
     }
 
     // 设置玩家参数

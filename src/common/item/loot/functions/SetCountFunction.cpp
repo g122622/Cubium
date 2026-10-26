@@ -44,13 +44,12 @@ SetCountFunction::SetCountFunction(
     , m_add(add)
 {}
 
-ItemStack SetCountFunction::apply(ItemStack stack, LootContext& context) const
+ItemStack SetCountFunction::run(ItemStack stack, LootContext& context) const
 {
-    // 空物品堆直接返回
-    if (stack.isEmpty()) {
-        return stack;
-    }
-
+    // 对齐原版 `SetItemCountFunction#run`：不做空堆早退，数量照常生成并写回。
+    // `setCount` 对空堆同样生效，因此「先把数量设成 0、随后被别的函数加回来」这种
+    // 链式组合与原版一致（随机数的消耗时机也一致）。
+    //
     // 生成随机数量（binomial 等非均匀分布由提供器生成）
     const i32 newCount =
         m_provider != nullptr ? m_provider->generateInt(context.getRandom()) : m_count.generateInt(context.getRandom());

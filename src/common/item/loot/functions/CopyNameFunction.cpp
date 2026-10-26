@@ -40,7 +40,7 @@ CopyNameFunction::CopyNameFunction(Source source)
     : m_source(source)
 {}
 
-ItemStack CopyNameFunction::apply(ItemStack stack, LootContext& context) const
+ItemStack CopyNameFunction::run(ItemStack stack, LootContext& context) const
 {
     if (stack.isEmpty()) {
         return stack;

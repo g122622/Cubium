@@ -251,6 +251,7 @@ constexpr const char* SHEEP = "minecraft:sheep";
 constexpr const char* CHICKEN = "minecraft:chicken";
 constexpr const char* RABBIT = "minecraft:rabbit";
 constexpr const char* MOOSHROOM = "minecraft:mooshroom";
+constexpr const char* ALLAY = "minecraft:allay";
 
 // 可驯服动物
 constexpr const char* WOLF = "minecraft:wolf";

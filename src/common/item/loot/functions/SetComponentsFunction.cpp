@@ -35,7 +35,7 @@ SetComponentsFunction::SetComponentsFunction(std::shared_ptr<const item::compone
     : m_patch(std::move(patch))
 {}
 
-ItemStack SetComponentsFunction::apply(ItemStack stack, LootContext& context) const
+ItemStack SetComponentsFunction::run(ItemStack stack, LootContext& context) const
 {
     MC_UNUSED(context);
     if (stack.isEmpty()) {

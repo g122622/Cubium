@@ -71,9 +71,10 @@ std::unique_ptr<LootFunction> LootFunctionBuilder::applyBonus(
     return std::make_unique<ApplyBonusFunction>(bonusType, bonusMultiplier, extra, probability);
 }
 
-std::unique_ptr<LootFunction> LootFunctionBuilder::enchantedCountIncrease(const RandomValueRange& count, i32 limit)
+std::unique_ptr<LootFunction> LootFunctionBuilder::enchantedCountIncrease(
+    std::string enchantmentId, const RandomValueRange& count, i32 limit)
 {
-    return std::make_unique<EnchantedCountIncreaseFunction>(count, limit);
+    return std::make_unique<EnchantedCountIncreaseFunction>(std::move(enchantmentId), count, limit);
 }
 
 std::unique_ptr<LootFunction> LootFunctionBuilder::setDamage(const RandomValueRange& durability, bool add)

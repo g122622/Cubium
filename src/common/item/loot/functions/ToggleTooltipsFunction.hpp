@@ -48,7 +48,7 @@ class ToggleTooltipsFunction : public LootFunction {
 public:
     explicit ToggleTooltipsFunction(std::vector<std::pair<item::component::DataComponentType, bool>> toggles);
 
-    [[nodiscard]] ItemStack apply(ItemStack stack, LootContext& context) const override;
+    [[nodiscard]] ItemStack run(ItemStack stack, LootContext& context) const override;
     [[nodiscard]] std::unique_ptr<LootFunction> clone() const noexcept override;
 
     [[nodiscard]] std::string getType() const noexcept override

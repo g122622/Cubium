@@ -26,6 +26,7 @@
 #include "common/core/Types.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/item/loot/conditions/LootConditions.hpp"
+#include "common/item/loot/LootConsumer.hpp"
 #include "common/item/loot/context/LootContext.hpp"
 #include "common/item/loot/functions/LootFunction.hpp"
 #include "common/item/loot/functions/LootFunctions.hpp"
@@ -160,35 +161,52 @@ public:
         return m_functions;
     }
 
-    /**
-     * @brief 应用所有函数到物品堆
+/**
+     * @brief 用条目级函数**装饰**一个消费回调
      *
-     * @param stack 原始物品堆
+     * 对齐原版 `LootItemFunction#decorate`——`LootPoolSingletonContainer$EntryBase#createItemStack`
+     * 走的就是它：装饰后的回调每收到一个堆，就用条目自己的函数链变换它，再把结果交给
+     * 下游回调。**空堆也照样变换、照样交付**：原版不做任何过滤，空堆要到
+     * `createStackSplitter` 才被丢掉。提前过滤会让后续函数少执行一次，消耗随机数的
+     * 函数（`enchanted_count_increase`、`apply_bonus`……）因此与原版错位。
+     *
+     * @param consumer 下游回调
      * @param context 掉落上下文
-     * @return 修改后的物品堆
      */
-    [[nodiscard]] ItemStack applyFunctions(ItemStack stack, LootContext& context) const;
+    [[nodiscard]] ConsumerPtr decorate(ConsumerPtr consumer, LootContext& context) const;
 
     /**
      * @brief 扩展条目（生成候选列表）
      *
-     * 将条目添加到候选列表中，用于加权随机选择。
+     * 对齐原版 `LootPoolEntryContainer#expand`：**在池的掷骰阶段**就把组合条目
+     * （alternatives / group / sequence）展开成候选条目，并用条目自身的条件过滤。
+     * 条件不满足的条目不会进入候选，因此既不占权重也不影响随机数消耗。
+     *
+     * 这与「先按权重选中条目、再判定条件」有本质区别：原版是前者。两种顺序在
+     * `alternatives` 上会给出完全不同的结果（前者只让条件满足的分支参与抽签）。
+     *
+     * 条目一旦成为候选，`generate` 不再重新判定条件——否则带随机数的条件会被
+     * 评估两次，随机数序列与原版错位。
      *
      * @param context 掉落上下文
      * @param consumer 接收候选条目的回调
+     * @return 是否至少展开出一个候选
      */
-    virtual void expand(LootContext& context, std::function<void(LootEntry&)> consumer) const = 0;
+    virtual bool expand(LootContext& context, const std::function<void(const LootEntry&)>& consumer) const = 0;
 
     /**
      * @brief 生成物品
      *
      * 执行条目的生成逻辑，将生成的物品传递给消费者。
      *
+     * **不再重新判定条目条件**：原版在 `expand` 阶段已经用条件筛过候选，
+     * `createItemStack` 只负责生成物品。重复判定会让带随机数的条件
+     * （`random_chance` / `table_bonus`）多消耗一次随机数，使后续抽取错位。
+     *
      * @param consumer 接收物品的回调
      * @param context 掉落上下文
-     * @return 是否成功生成（用于条件判断）
      */
-    virtual bool generate(std::function<void(const ItemStack&)> consumer, LootContext& context) const = 0;
+    virtual void generate(ConsumerPtr consumer, LootContext& context) const = 0;
 
 protected:
     LootEntry() = default;

@@ -34,8 +34,10 @@
 namespace mc {
 namespace loot {
 
-ItemStack FurnaceSmeltFunction::apply(ItemStack stack, LootContext& context) const
+ItemStack FurnaceSmeltFunction::run(ItemStack stack, LootContext& context) const
 {
+    // 空堆没有可熔炼的物品，配方查找必然落空；原版 `FurnaceSmeltFunction#run`
+    // 会照常查一次配方再原样返回，结果相同。
     if (stack.isEmpty()) {
         return stack;
     }

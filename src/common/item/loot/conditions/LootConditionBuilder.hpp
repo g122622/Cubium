@@ -41,10 +41,8 @@ namespace mc {
 namespace loot {
 
 // Forward-declared condition classes (headers included in .cpp)
-class SilkTouchCondition;
-class FortuneCondition;
 class RandomChanceCondition;
-class RandomChanceWithLuckCondition;
+class RandomChanceWithEnchantedBonusCondition;
 class NotCondition;
 class AndCondition;
 class OrCondition;
@@ -69,12 +67,8 @@ class TableBonusCondition;
  *
  * 示例:
  * @code
- * auto condition = LootConditionBuilder::silkTouch();
- * auto notSilkTouch = LootConditionBuilder::not_(LootConditionBuilder::silkTouch());
- * auto orCondition = LootConditionBuilder::or_({
- *     LootConditionBuilder::silkTouch(),
- *     LootConditionBuilder::toolType(HarvestTool::Pickaxe)
- * });
+ * auto condition = LootConditionBuilder::randomChance(0.5f);
+ * auto inverted = LootConditionBuilder::not_(LootConditionBuilder::randomChance(0.5f));
  * @endcode
  */
 class LootConditionBuilder {
@@ -82,28 +76,10 @@ public:
     // ========== 静态工厂方法 ==========
 
     /**
-     * @brief 创建精准采集条件
-     */
-    [[nodiscard]] static std::unique_ptr<LootCondition> silkTouch();
-
-    /**
-     * @brief 创建时运条件
-     * @param minLevel 最小时运等级
-     */
-    [[nodiscard]] static std::unique_ptr<LootCondition> fortune(i32 minLevel = 0);
-
-    /**
      * @brief 创建随机概率条件
      * @param chance 概率值 (0.0 - 1.0)
      */
     [[nodiscard]] static std::unique_ptr<LootCondition> randomChance(f32 chance);
-
-    /**
-     * @brief 创建受幸运影响的随机概率条件
-     * @param baseChance 基础概率
-     * @param luckCoefficient 幸运系数
-     */
-    [[nodiscard]] static std::unique_ptr<LootCondition> randomChanceWithLuck(f32 baseChance, f32 luckCoefficient);
 
     /**
      * @brief 创建取反条件

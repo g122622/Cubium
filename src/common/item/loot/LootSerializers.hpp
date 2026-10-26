@@ -208,6 +208,14 @@ public:
     static Result<std::unique_ptr<LootFunction>> parseFunction(const nlohmann::json& json);
 
     /**
+     * @brief 按 `function` 字段分发到各函数的专属解析器
+     *
+     * 不含函数级的 `conditions` 通用字段——那部分由 {@link parseFunction} 统一处理。
+     */
+    static Result<std::unique_ptr<LootFunction>> _parseFunctionByType(
+        const std::string& functionType, const nlohmann::json& json);
+
+    /**
      * @brief 从 JSON 数组解析函数列表
      */
     static Result<std::vector<std::unique_ptr<LootFunction>>> parseFunctions(const nlohmann::json& json);
@@ -286,10 +294,9 @@ private:
     // 条件解析辅助方法
     // ========================================================================
 
-    static Result<std::unique_ptr<LootCondition>> _parseSilkTouchCondition(const nlohmann::json& json);
-    static Result<std::unique_ptr<LootCondition>> _parseFortuneCondition(const nlohmann::json& json);
     static Result<std::unique_ptr<LootCondition>> _parseRandomChanceCondition(const nlohmann::json& json);
-    static Result<std::unique_ptr<LootCondition>> _parseRandomChanceWithLootingCondition(const nlohmann::json& json);
+    static Result<std::unique_ptr<LootCondition>> _parseRandomChanceWithEnchantedBonusCondition(
+        const nlohmann::json& json);
     static Result<std::unique_ptr<LootCondition>> _parseInvertedCondition(const nlohmann::json& json);
     static Result<std::unique_ptr<LootCondition>> _parseAlternativeCondition(const nlohmann::json& json);
     static Result<std::unique_ptr<LootCondition>> _parseBlockStatePropertyCondition(const nlohmann::json& json);
@@ -303,6 +310,20 @@ private:
     static Result<std::unique_ptr<LootCondition>> _parseTimeCheckCondition(const nlohmann::json& json);
     static Result<std::unique_ptr<LootCondition>> _parseDamageSourcePropertiesCondition(const nlohmann::json& json);
     static Result<std::unique_ptr<LootCondition>> _parseReferenceCondition(const nlohmann::json& json);
+
+    /**
+     * @brief 解析 `minecraft:any_of` 复合条件
+     *
+     * 字段 `terms` 是条件数组，任一满足即通过（原版 AnyOfCondition）。
+     */
+    static Result<std::unique_ptr<LootCondition>> _parseAnyOfCondition(const nlohmann::json& json);
+
+    /**
+     * @brief 解析 `minecraft:all_of` 复合条件
+     *
+     * 字段 `terms` 是条件数组，全部满足才通过（原版 AllOfCondition）。
+     */
+    static Result<std::unique_ptr<LootCondition>> _parseAllOfCondition(const nlohmann::json& json);
     static Result<std::unique_ptr<LootCondition>> _parseTableBonusCondition(const nlohmann::json& json);
 
     // ========================================================================
