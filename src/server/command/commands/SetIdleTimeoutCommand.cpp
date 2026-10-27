@@ -47,7 +47,7 @@ void SetIdleTimeoutCommand::registerTo(CommandDispatcher<ServerCommandSource>& d
         timeoutNode, support::makeMetadata("Set the player idle timeout in minutes.", "/setidletimeout <minutes>", 3));
 
     auto minutesArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, i32>>(
-        "minutes", IntegerArgumentType::integer(0, 1440));
+        "minutes", IntegerArgumentType::integer(0));
     minutesArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
         return _setTimeout(ctx);
     });

@@ -248,8 +248,8 @@ template <typename NodeT>
         // 原版只有一种 entity 参数类型，是否限玩家由 metadata 的 playersOnly 决定：
         // 限玩家时补全玩家名，否则补全实体名。
         const nlohmann::json metadata = node.getMetadata();
-        const bool playersOnly = metadata.contains("playersOnly") && metadata.at("playersOnly").is_boolean()
-            && metadata.at("playersOnly").template get<bool>();
+        const bool playersOnly = metadata.contains("playersOnly") && metadata.at("playersOnly").is_boolean() &&
+            metadata.at("playersOnly").template get<bool>();
         return playersOnly ? CommandTreeSuggestionKind::PlayerNames : CommandTreeSuggestionKind::EntityNames;
     }
 
@@ -273,56 +273,70 @@ template <typename NodeT>
 {
     // 键按 ArgumentTypeInfos.bootstrap 的注册顺序排列，注释即注册名。
     static const std::unordered_map<std::string_view, i32> kMap = {
-        {"bool", 0},           // brigadier:bool
-        {"float", 1},          // brigadier:float
-        {"double", 2},         // brigadier:double
-        {"integer", 3},        // brigadier:integer
-        {"long", 4},           // brigadier:long
-        {"string", 5},         // brigadier:string（word/phrase/greedy_string 是旧类型名，一并兼容）
+        {"bool", 0},    // brigadier:bool
+        {"float", 1},   // brigadier:float
+        {"double", 2},  // brigadier:double
+        {"integer", 3}, // brigadier:integer
+        {"long", 4},    // brigadier:long
+        {"string", 5},  // brigadier:string（word/phrase/greedy_string 是旧类型名，一并兼容）
         {"word", 5},
         {"phrase", 5},
         {"greedy_string", 5},
-        {"entity", 6},         // minecraft:entity（entities/player/players 是旧类型名）
+        {"entity", 6}, // minecraft:entity（entities/player/players 是旧类型名）
         {"entities", 6},
         {"player", 6},
         {"players", 6},
-        {"game_profile", 7},   // minecraft:game_profile
-        {"block_pos", 8},      // minecraft:block_pos
-        {"column_pos", 9},     // minecraft:column_pos
-        {"vec3", 10},          // minecraft:vec3
-        {"vec2", 11},          // minecraft:vec2
-        {"block_state", 12},   // minecraft:block_state
-        {"nbt_compound", 21},  // minecraft:nbt_compound_tag（旧名一并兼容）
+        {"game_profile", 7},  // minecraft:game_profile
+        {"block_pos", 8},     // minecraft:block_pos
+        {"column_pos", 9},    // minecraft:column_pos
+        {"vec3", 10},         // minecraft:vec3
+        {"vec2", 11},         // minecraft:vec2
+        {"block_state", 12},  // minecraft:block_state
+        {"nbt_compound", 21}, // minecraft:nbt_compound_tag（旧名一并兼容）
         {"nbt_compound_tag", 21},
-        {"nbt_tag", 22},       // minecraft:nbt_tag
-        {"nbt_path", 23},      // minecraft:nbt_path
-        {"item", 14},          // minecraft:item_stack（旧名一并兼容）
+        {"nbt_tag", 22},  // minecraft:nbt_tag
+        {"nbt_path", 23}, // minecraft:nbt_path
+        {"item", 14},     // minecraft:item_stack（旧名一并兼容）
         {"item_stack", 14},
         // 原版枚举型参数在 1.21.11 仍是注册表里的参数类型（ArgumentTypeInfos 有 numeric id），
         // 只是 payload 为空；这里补齐编号，编码器按 SingletonArgumentInfo 写空 payload。
+        // 编号一律照抄 ArgumentTypeInfos.bootstrap 的注册顺序（0 基），不可凭直觉填写：
+        // 客户端按同一张表反序列化，编号错一个不会立刻报错，但会让该节点多/少读 payload，
+        // 使后续所有节点的游标整体错位（表现为读取 identifier 得到乱码，或报
+        // "Non [a-z0-9/._-] character in path of location"）。
         {"objective_criteria", 25},  // minecraft:objective_criteria
         {"operation", 26},           // minecraft:operation
-        {"item_predicate", 15},// minecraft:item_predicate
-        {"particle", 16},      // minecraft:particle
-        {"component", 17},     // minecraft:component
-        {"message", 39},       // minecraft:message
-        {"resource", 18},      // minecraft:resource
-        {"resource_or_tag", 19},      // minecraft:resource_or_tag
-        {"resource_or_tag_key", 20},  // minecraft:resource_or_tag_key
-        {"resource_key", 24},  // minecraft:resource_key
-        {"rotation", 29},      // minecraft:rotation
-        {"item_slot", 34},     // minecraft:item_slot
-        {"objective", 32},     // minecraft:objective
-        {"team", 35},          // minecraft:team
-        {"score_holder", 31},  // minecraft:score_holder
-        {"swizzle", 30},       // minecraft:swizzle
-        {"entity_anchor", 27}, // minecraft:entity_anchor
-        {"resource_location", 36}, // minecraft:resource_location
-        {"identifier", 36},    // 旧类型名，指向同一个 id
-        {"function", 37},      // minecraft:function
-        {"dimension", 41},     // minecraft:dimension
-        {"gamemode", 42},      // minecraft:gamemode
-        {"time", 43},          // minecraft:time
+        {"item_predicate", 15},      // minecraft:item_predicate
+        {"particle", 27},            // minecraft:particle
+        {"component", 18},           // minecraft:component
+        {"style", 19},               // minecraft:style
+        {"message", 20},             // minecraft:message
+        {"resource", 46},            // minecraft:resource
+        {"resource_or_tag", 44},     // minecraft:resource_or_tag
+        {"resource_or_tag_key", 45}, // minecraft:resource_or_tag_key
+        {"resource_key", 47},        // minecraft:resource_key
+        {"resource_selector", 48},   // minecraft:resource_selector
+        {"rotation", 29},            // minecraft:rotation
+        {"angle", 28},               // minecraft:angle
+        {"item_slot", 34},           // minecraft:item_slot
+        {"item_slots", 35},          // minecraft:item_slots
+        {"objective", 24},           // minecraft:objective
+        {"team", 33},                // minecraft:team
+        {"score_holder", 31},        // minecraft:score_holder
+        {"scoreboard_slot", 30},     // minecraft:scoreboard_slot
+        {"swizzle", 32},             // minecraft:swizzle
+        {"entity_anchor", 38},       // minecraft:entity_anchor
+        {"resource_location", 36},   // minecraft:resource_location
+        {"identifier", 36},          // 旧类型名，指向同一个 id
+        {"function", 37},            // minecraft:function
+        {"dimension", 41},           // minecraft:dimension
+        {"gamemode", 42},            // minecraft:gamemode
+        {"time", 43},                // minecraft:time
+        {"int_range", 39},           // minecraft:int_range
+        {"float_range", 40},         // minecraft:float_range
+        {"heightmap", 51},           // minecraft:heightmap
+        {"loot_table", 52},          // minecraft:loot_table
+        {"uuid", 54},                // minecraft:uuid
     };
     auto it = kMap.find(typeName);
     if (it == kMap.end()) {

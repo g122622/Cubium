@@ -102,8 +102,12 @@ std::string runLine(std::string_view inputLine)
     }
 
     // 权重与铁砧代价：附魔台的加权随机与铁砧合并的扣级都直接读这两个值。
-    return json{{"enchantment", requested}, {"minLevel", minLevel}, {"maxLevel", maxLevel},
-        {"weight", enchantment->rarityWeight()}, {"anvilCost", enchantment->anvilCost()}, {"costs", std::move(costs)}}
+    return json{{"enchantment", requested},
+        {"minLevel", minLevel},
+        {"maxLevel", maxLevel},
+        {"weight", enchantment->rarityWeight()},
+        {"anvilCost", enchantment->anvilCost()},
+        {"costs", std::move(costs)}}
         .dump();
 }
 

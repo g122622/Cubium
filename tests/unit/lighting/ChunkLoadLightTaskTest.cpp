@@ -137,7 +137,7 @@ protected:
 // enqueue 后 lightCorrect 应回 true 且方块光 nibble 传播生效。
 TEST_F(ChunkLoadLightTaskTest, FallbackPathRelightsChunkOnMainThread)
 {
-    // 无 worker 池：radiusAwareExecutor() 返回 nullptr → fallback 同步路径
+    // 无 worker 池：computeExecutor() 返回 nullptr → fallback 同步路径
     m_manager->initialize();
 
     ChunkData* chunk = m_manager->requestFullChunkSync(0, 0);

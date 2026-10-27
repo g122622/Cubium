@@ -111,17 +111,36 @@ public:
 
     [[nodiscard]] virtual NodeType getType() const noexcept = 0;
     [[nodiscard]] virtual std::string getName() const noexcept = 0;
-    [[nodiscard]] virtual std::string getTypeName() const { return getName(); }
-    [[nodiscard]] virtual std::vector<std::string> getExamples() const { return {}; }
-    [[nodiscard]] virtual nlohmann::json getMetadata() const { return nlohmann::json::object(); }
+
+    [[nodiscard]] virtual std::string getTypeName() const
+    {
+        return getName();
+    }
+
+    [[nodiscard]] virtual std::vector<std::string> getExamples() const
+    {
+        return {};
+    }
+
+    [[nodiscard]] virtual nlohmann::json getMetadata() const
+    {
+        return nlohmann::json::object();
+    }
 
     /**
      * @brief 是否在命令树快照 / 网络下发中隐藏本节点（含其子树）
      *
      * 只用于纯实现脚手架：它们参与解析，但不属于原版协议里的命令树。
      */
-    [[nodiscard]] bool isTreeHidden() const noexcept { return m_treeHidden; }
-    void setTreeHidden(bool hidden) noexcept { m_treeHidden = hidden; }
+    [[nodiscard]] bool isTreeHidden() const noexcept
+    {
+        return m_treeHidden;
+    }
+
+    void setTreeHidden(bool hidden) noexcept
+    {
+        m_treeHidden = hidden;
+    }
 
     virtual void parse(StringReader& reader, CommandContext<S>& context) const = 0;
 
@@ -190,7 +209,10 @@ public:
         };
     }
 
-    [[nodiscard]] std::shared_ptr<CommandNode<S>> getForwardParent() const noexcept { return m_forwardParent; }
+    [[nodiscard]] std::shared_ptr<CommandNode<S>> getForwardParent() const noexcept
+    {
+        return m_forwardParent;
+    }
 
     /**
      * @brief 检查是否携带自定义建议提供器

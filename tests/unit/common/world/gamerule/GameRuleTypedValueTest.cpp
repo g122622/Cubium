@@ -38,8 +38,8 @@ namespace {
 bool _isKnownRuleName(const std::string& name)
 {
     return name == "players_nether_portal_default_delay" || name == "players_nether_portal_creative_delay" ||
-        name == "fire_spread_radius_around_player" || name == "max_snow_accumulation_height" || name == "random_tick_speed" ||
-        name == "max_minecart_speed" || name == "respawn_radius";
+        name == "fire_spread_radius_around_player" || name == "max_snow_accumulation_height" ||
+        name == "random_tick_speed" || name == "max_minecart_speed" || name == "respawn_radius";
 }
 
 } // namespace
@@ -191,7 +191,8 @@ TEST(GameRuleTypedValueTest, IntegerValueMustBeCompleteDecimal)
         EXPECT_EQ(rules.getInt(GameRuleKeys::RANDOM_TICK_SPEED), 3) << invalid;
     }
 
-    EXPECT_TRUE(rules.setTypedFromString("random_tick_speed", std::string(GameRuleClassNames::INTEGER), "0007", nullptr));
+    EXPECT_TRUE(
+        rules.setTypedFromString("random_tick_speed", std::string(GameRuleClassNames::INTEGER), "0007", nullptr));
     EXPECT_EQ(rules.getInt(GameRuleKeys::RANDOM_TICK_SPEED), 7);
 }
 
@@ -200,7 +201,8 @@ TEST(GameRuleTypedValueTest, BooleanValueAcceptsCanonicalForms)
     GameRules rules;
 
     for (const char* truthy : {"true", "TRUE", "1"}) {
-        EXPECT_TRUE(rules.setTypedFromString("mob_griefing", std::string(GameRuleClassNames::BOOLEAN), truthy, nullptr));
+        EXPECT_TRUE(
+            rules.setTypedFromString("mob_griefing", std::string(GameRuleClassNames::BOOLEAN), truthy, nullptr));
         EXPECT_TRUE(rules.getBoolean(GameRuleKeys::MOB_GRIEFING)) << truthy;
     }
 

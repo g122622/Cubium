@@ -406,6 +406,7 @@ std::unique_ptr<AnimalEntity> GoatEntity::spawnBaby(AnimalEntity& partner)
         return nullptr;
     }
     auto baby = std::make_unique<GoatEntity>(0, *registry);
+    baby->setTypeId(entity::EntityTypeKeys::GOAT); // 工厂绕过补救：直接构造缺 typeId
 
     // 对齐 vanilla Goat.getBreedOffspring：是否尖叫取自双亲之一，另有 2% 概率自然尖叫。
     const auto* partnerGoat = dynamic_cast<const GoatEntity*>(&partner);

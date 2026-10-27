@@ -38,6 +38,7 @@
  * 没有、或参数名/类型不同，玩家与数据包立刻能感觉到。
  */
 #include <algorithm>
+#include <functional>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -46,7 +47,9 @@
 
 #include "common/command/CommandDispatcher.hpp"
 #include "common/command/CommandNode.hpp"
+#include "common/command/CommandTreeSnapshot.hpp"
 #include "server/command/CommandRegistry.hpp"
+#include "server/network/outbound/CommandTreeEncoder.hpp"
 
 #include "probe.hpp"
 
@@ -140,6 +143,40 @@ void writeList(FILE* out)
     std::fputc('\n', out);
 }
 
+/** 字节序列转小写十六进制串，便于放进 JSON 做逐字节比对。 */
+std::string toHex(const std::vector<u8>& bytes)
+{
+    static constexpr char kDigits[] = "0123456789abcdef";
+    std::string result;
+    result.reserve(bytes.size() * 2);
+    for (const u8 byte : bytes) {
+        result.push_back(kDigits[byte >> 4]);
+        result.push_back(kDigits[byte & 0x0F]);
+    }
+    return result;
+}
+
+/**
+ * 一条参数节点的网络编码记录。
+ *
+ * 直接复用真实编码器（encodeSingleArgumentNode），因此这里产出的字节与客户端实际收到的
+ * 完全一致——数值 id、properties 载荷、建议提供器任一写错都会体现为字节差异。
+ */
+void recordArgument(
+    const mc::command::CommandTreeNodeSnapshot& snapshotNode, const std::string& path, nlohmann::json& out)
+{
+    // typeId 单独报，payload 只报 properties 部分（不含类型 id），两侧口径一致。
+    const auto encoded = mc::server::net::command_tree_detail::encodeArgumentPropertiesOnly(snapshotNode);
+    if (!encoded.success()) {
+        out[path] = nlohmann::json{
+            {"typeId", snapshotNode.argumentNetworkId.value_or(-1)}, {"error", encoded.error().toString()}};
+        return;
+    }
+    out[path] = nlohmann::json{{"typeId", snapshotNode.argumentNetworkId.value_or(-1)},
+        {"payload", toHex(encoded.value())},
+        {"suggestions", snapshotNode.suggestionProviderId.value_or("")}};
+}
+
 std::string runLine(std::string_view)
 {
     // CommandRegistry 的构造函数会注册全部内置命令；探针不执行任何命令，只遍历。
@@ -152,7 +189,53 @@ std::string runLine(std::string_view)
     }
     std::sort(lines.begin(), lines.end());
 
-    return json{{"tree", lines}}.dump();
+    // 除命令树的形状之外，还要把「客户端真正解码的东西」比出来：
+    // clientbound/minecraft:commands 是二进制命令树，每个参数节点的网络编码是
+    //   VarInt(参数类型数值 id) + 类型特定 properties 载荷 [+ VarInt 长度 + 建议提供器 Identifier]
+    // 客户端按同一张 ArgumentTypeInfos 注册表逐字节读取。形状（名字/类型名）完全一致、
+    // 但数值 id 写错时，客户端会按错误类型去读 payload，游标立刻错位，整棵树解不出来，
+    // 表现为 "Failed to decode packet 'clientbound/minecraft:commands'" 并直接断开连接。
+    // 这类错误只看名字与类型名是发现不了的，必须比字节。
+    //
+    // 键用「从根到该参数节点的路径」（如 `/team add <team>`），两侧都按同一条路径对齐，
+    // 不依赖各自内部的节点编号——编号本身是遍历顺序的副产物，不适合当比对键。
+    nlohmann::json arguments = nlohmann::json::object();
+
+    const auto snapshot = mc::command::buildCommandTreeSnapshot(registry.dispatcher());
+    if (!snapshot.nodes.empty()) {
+        // 快照节点按 BFS 编号，children 存的是编号；这里从根回溯出每个参数节点的路径，
+        // 用「路径」而不是「编号」做比对键（编号是遍历产物，两侧不保证一致）。
+        std::function<void(u32, std::string)> walk = [&](u32 index, std::string path) {
+            const auto& node = snapshot.nodes[index];
+            if (node.type == mc::command::NodeType::Argument) {
+                recordArgument(node, path, arguments);
+            }
+            for (const u32 childIndex : node.children) {
+                if (childIndex >= snapshot.nodes.size()) {
+                    continue;
+                }
+                const auto& child = snapshot.nodes[childIndex];
+                std::string childPath = path + " " + child.name;
+                if (child.type == mc::command::NodeType::Argument) {
+                    childPath += ":" + child.typeName;
+                }
+                walk(childIndex, childPath);
+            }
+        };
+        walk(0, "");
+    }
+
+    // 整棵树的编码结果也要能成功产出（未知类型名会在这里暴露），并给出字节总数，
+    // 让「某处 payload 多写/少写一个字节」这类错位在两侧同样可见。
+    const auto whole = mc::server::net::encodeCommandTree(snapshot);
+    nlohmann::json wire = nlohmann::json::object();
+    if (whole.success()) {
+        wire["byteLength"] = whole.value().size();
+    } else {
+        wire["error"] = whole.error().toString();
+    }
+
+    return json{{"tree", lines}, {"arguments", arguments}, {"wire", wire}}.dump();
 }
 
 } // namespace

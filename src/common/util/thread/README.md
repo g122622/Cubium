@@ -22,27 +22,6 @@ UniversalWorkerPool
                 └── ChunkGenerateTask、StorageTask 等（具体实现）
 ```
 
-## 区域互斥（对齐 Moonrise 区域锁执行器）
-
-`UniversalWorkerPool` 提供两套 `submit` 重载：
-
-- **无坐标 `submit`**：任务可完全并行，不参与区域互斥。用于 EMPTY~INITIALIZE_LIGHT 等 parallelCapable 状态。
-- **带坐标 `submit(task, callback, centerX, centerZ, writeRadius, ...)`**：任务携带矩形写入区域
-  `[centerX±writeRadius, centerZ±writeRadius]`，调度器保证同一时刻不存在两个写入区域**重叠**的区域互斥任务同时执行。
-  用于 FEATURES/LIGHT/SPAWN/FULL 等会写方块的状态。`writeRadius` 来源为 `ChunkStep::blockStateWriteRadius()`（FEATURES=1，LIGHT=2，其他≤0）。
-
-区域互斥机制：
-- 任务开始执行前检查 `m_runningRegions`（正在执行的区域互斥任务占据的区块键集合）。
-- 若新任务写入区域的任一区块键已在 `m_runningRegions` 中 → 冲突，任务放回队列（其他空闲 worker 也可取走），本 worker 在 `m_areaReleasedCondition` 上按谓词等待，直到自己的写入区域不再冲突、或 `m_stop` 置位（关闭）。
-- 无冲突 → 标记区域所有区块键为正在执行 → 执行 → 完成后在 `m_runningRegionsMutex` 内清除标记并 `notify_all`。
-- 无坐标任务不进入 `m_runningRegions`，不受区域互斥约束，可与任何区域任务并行。
-
-等待无丢失唤醒：谓词求值（`hasAreaConflictLocked`）与区域标记清除（`unmarkAreaRunningLocked`）都在 `m_runningRegionsMutex` 下完成，且清除后持锁 `notify_all`；`shutdown` 同样持该锁通知。故不存在"通知落在无人阻塞的窗口被丢弃"的可能，等待路径无需超时兜底。
-
-`canExecuteNow(centerX, centerZ, writeRadius)`：查询某写入区域是否可立即执行（无冲突），用于调度器在提交前预检查。
-
-区块键打包：`packChunkKey(x, z)` = `(u32)x << 32 | (u32)z`，不依赖 chunk 模块，保持 `common/util` 层级独立。
-
 ## 上下游外部依赖关系
 
 ### 上游依赖
@@ -151,9 +130,9 @@ pool.submit(task, [self](bool success, ITask* task) {
 
 `TaskPriority::Critical = -3` 优先级最高，`TaskPriority::Background = 3` 优先级最低，不是数值越大越优先。
 
-### 6. unique_ptr 不能用于优先队列
+### 6. 职责边界
 
-任务使用 `shared_ptr<ITask>` 而非 `unique_ptr`，因为 `std::priority_queue` 要求元素可复制。
+通用池只处理普通任务的执行、优先级与取消。服务端世界通过 `AreaTaskScheduler` 管理区块区域依赖，只有就绪任务才提交计算池。IO 和客户端 mesh 池不维护区块区域状态。
 
 ### 7. `waitForCompletion()` 的完成语义包含任务回调
 

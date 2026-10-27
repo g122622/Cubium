@@ -218,6 +218,7 @@ TEST_F(TellRawCommandTest, TellRawToMultiplePlayersSupported)
 
     EXPECT_TRUE(result.success()) << (result.success() ? "" : result.error().message());
 }
+
 TEST_F(TellRawCommandTest, TellRawToSinglePlayer)
 {
     // 添加测试玩家

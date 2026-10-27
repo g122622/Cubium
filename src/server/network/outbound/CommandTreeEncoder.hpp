@@ -81,6 +81,11 @@ enum : i32 {
     kArgInteger = 3,
     kArgString = 5,
     kArgEntity = 6,
+    kArgScoreHolder = 31,
+    kArgTeam = 33,
+    kArgResourceOrTag = 44,
+    kArgResourceOrTagKey = 45,
+    kArgResource = 46,
     kArgTime = 43,
 };
 
@@ -256,6 +261,38 @@ enum : i32 {
             return {};
         }
 
+        case kArgScoreHolder: {
+            // minecraft:score_holder：byte flags(bit0=multiple)。
+            const u8 flags = static_cast<u8>(jsonBool(props, "multiple", false) ? 0x01 : 0);
+            buf.writeU8(flags);
+            return {};
+        }
+
+        case kArgResourceOrTag:
+        case kArgResourceOrTagKey: {
+            // minecraft:resource_or_tag / resource_or_tag_key：同样只写注册表键。
+            const std::string registryKey =
+                (props.is_object() && props.contains("registry") && props.at("registry").is_string())
+                ? props.at("registry").get<std::string>()
+                : std::string("minecraft:resource");
+            buf.writeString(registryKey);
+            return {};
+        }
+
+        case kArgResource: {
+            // minecraft:resource：writeResourceKey(registryKey)。
+            // 原版 ResourceArgument.Info.serializeToNetwork 只写一个 ResourceKey：
+            // 先试本会话的注册表（匹配则写 VarInt 序号），否则写完整 ResourceLocation
+            // （VarInt 长度 + UTF-8 字节）。客户端据此在正确的注册表里补全。
+            // Cubium 没有会话级注册表序号，统一写完整 ResourceLocation，客户端走回退分支。
+            const std::string registryKey =
+                (props.is_object() && props.contains("registry") && props.at("registry").is_string())
+                ? props.at("registry").get<std::string>()
+                : std::string("minecraft:resource");
+            buf.writeString(registryKey);
+            return {};
+        }
+
         case kArgTime: {
             // minecraft:time：i32 min（即使 min=0 也写）。
             buf.writeI32(jsonInt(props, "min", 0));
@@ -324,6 +361,69 @@ enum : i32 {
         }
     }
     return {};
+}
+
+} // namespace command_tree_detail
+
+namespace command_tree_detail {
+
+/**
+ * @brief 只编码参数节点的 properties 部分（不含类型数值 id，也不含建议提供器）
+ *
+ * 差分测试用它与原版 `ArgumentTypeInfo.serializeToNetwork` 的输出逐字节比对：
+ * 类型 id 单独比对，负载单独比对，任何一侧写多/写少字节都能立刻定位到具体是
+ * id 错还是 payload 错。
+ *
+ * @param node 参数节点快照（type 必须是 Argument）
+ * @return properties 字节；类型名没有数值 id 时返回 Error
+ */
+[[nodiscard]] inline mc::Result<std::vector<u8>> encodeArgumentPropertiesOnly(
+    const mc::command::CommandTreeNodeSnapshot& node)
+{
+    if (!node.argumentNetworkId.has_value()) {
+        return mc::Error(mc::ErrorCode::InvalidData,
+            "Command tree argument node has unmapped typeName '" + node.typeName + "'",
+            "CommandTreeEncoder.encodeArgumentPropertiesOnly");
+    }
+    mc::network::buffer::ByteBuf buf;
+    auto propsResult = writeArgumentProperties(buf, *node.argumentNetworkId, node.argumentProperties, node.typeName);
+    if (!propsResult.success()) {
+        return propsResult.error();
+    }
+    return buf.takeBytes();
+}
+
+/**
+ * @brief 单独编码一个参数节点的 serializeCap 部分
+ *
+ * 即 ARGUMENT 节点 stub 里的 `VarInt(类型数值 id) + properties + [建议提供器]`，
+ * 不含 flags / children / redirect / 名字。差分测试用它把每个参数节点的网络字节
+ * 单独取出来与原版逐字节比对：数值 id 或 payload 写错时，客户端会按错误的类型去读，
+ * 游标立刻错位，整棵树解不出来。
+ *
+ * @param node 参数节点快照（type 必须是 Argument）
+ * @return 编码后的字节；类型名没有数值 id 时返回 Error
+ */
+[[nodiscard]] inline mc::Result<std::vector<u8>> encodeSingleArgumentNode(
+    const mc::command::CommandTreeNodeSnapshot& node)
+{
+    if (!node.argumentNetworkId.has_value()) {
+        return mc::Error(mc::ErrorCode::InvalidData,
+            "Command tree argument node has unmapped typeName '" + node.typeName + "'",
+            "CommandTreeEncoder.encodeSingleArgumentNode");
+    }
+    mc::network::buffer::ByteBuf buf;
+    const i32 networkId = *node.argumentNetworkId;
+    buf.writeVarInt(networkId);
+    auto propsResult = writeArgumentProperties(buf, networkId, node.argumentProperties, node.typeName);
+    if (!propsResult.success()) {
+        return propsResult.error();
+    }
+    // 建议提供器仅在 flags&0x10 时写，与 writeNode 保持一致。
+    if (node.suggestionProviderId.has_value()) {
+        buf.writeString(*node.suggestionProviderId);
+    }
+    return buf.takeBytes();
 }
 
 } // namespace command_tree_detail

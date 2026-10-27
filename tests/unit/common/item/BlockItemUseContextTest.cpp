@@ -87,6 +87,35 @@ int indexOf(const std::vector<Direction>& dirs, Direction target)
 } // namespace
 
 // ============================================================================
+// horizontalDirection / getNearestLookingDirection：
+//   yaw 按 MC 约定 0=南、90=西、180=北、270=东（视线单位向量 (-sin yaw, 0, cos yaw)），
+//   与 Direction.fromYRot 的 2D 数据值互逆。放置朝向相关方格（熔炉/织布机/切石机等）
+//   依赖这两项，任何一侧的符号错误都会让方块朝向整体翻转。
+// ============================================================================
+
+TEST(BlockItemUseContextTest, HorizontalDirection_FollowsViewVector)
+{
+    // yaw=0 朝 +Z（南）看，yaw=90 朝 -X（西）看，yaw=180 朝 -Z（北），yaw=270 朝 +X（东）。
+    EXPECT_EQ(makeContext(0.0f, 0.0f, Direction::Up).horizontalDirection(), Direction::South);
+    EXPECT_EQ(makeContext(90.0f, 0.0f, Direction::Up).horizontalDirection(), Direction::West);
+    EXPECT_EQ(makeContext(180.0f, 0.0f, Direction::Up).horizontalDirection(), Direction::North);
+    EXPECT_EQ(makeContext(270.0f, 0.0f, Direction::Up).horizontalDirection(), Direction::East);
+}
+
+TEST(BlockItemUseContextTest, NearestLookingDirection_HorizontalMatchesViewVector)
+{
+    EXPECT_EQ(makeContext(0.0f, 0.0f, Direction::Up).getNearestLookingDirection(), Direction::South);
+    EXPECT_EQ(makeContext(90.0f, 0.0f, Direction::Up).getNearestLookingDirection(), Direction::West);
+    EXPECT_EQ(makeContext(180.0f, 0.0f, Direction::Up).getNearestLookingDirection(), Direction::North);
+    EXPECT_EQ(makeContext(270.0f, 0.0f, Direction::Up).getNearestLookingDirection(), Direction::East);
+}
+
+TEST(BlockItemUseContextTest, NearestLookingDirection_LookingDownIsDown)
+{
+    EXPECT_EQ(makeContext(0.0f, 80.0f, Direction::Up).getNearestLookingDirection(), Direction::Down);
+}
+
+// ============================================================================
 // playerPitch 透传测试
 // ============================================================================
 

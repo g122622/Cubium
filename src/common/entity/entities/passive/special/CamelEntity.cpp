@@ -321,6 +321,7 @@ std::unique_ptr<AnimalEntity> CamelEntity::spawnBaby(AnimalEntity& /*partner*/)
         return nullptr;
     }
     auto baby = std::make_unique<CamelEntity>(0, *registry);
+    baby->setTypeId(entity::EntityTypeKeys::CAMEL); // 工厂绕过补救：直接构造缺 typeId
     baby->setChild(true);
     baby->setPosition(x(), y(), z());
     return baby;

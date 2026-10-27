@@ -54,8 +54,10 @@ void WorldBorderCommand::registerTo(CommandDispatcher<ServerCommandSource>& disp
     // /worldborder set <distance> [time]
     auto setNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("set");
     auto setSizeArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, f64>>(
-        "distance", DoubleArgumentType::doubleArg(1.0, world::border::WorldBorder::MAX_SIZE));
-    setSizeArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _setBorder(ctx); });
+        "distance", DoubleArgumentType::doubleArg(-59999968.0, 59999968.0));
+    setSizeArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _setBorder(ctx);
+    });
     auto setTimeArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, i32>>("time", TimeArgumentType::time());
     setTimeArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
         return _setBorder(ctx);
@@ -66,9 +68,11 @@ void WorldBorderCommand::registerTo(CommandDispatcher<ServerCommandSource>& disp
 
     // /worldborder center <pos>：原版是一个 Vec2Argument（水平面 x/z），参数名 "pos"。
     auto centerNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("center");
-    auto centerArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, Coordinates::Ptr>>(
-        "pos", Vec2ArgumentType::vec2());
-    centerArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _setCenter(ctx); });
+    auto centerArg =
+        std::make_shared<ArgumentCommandNode<ServerCommandSource, Coordinates::Ptr>>("pos", Vec2ArgumentType::vec2());
+    centerArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _setCenter(ctx);
+    });
     centerNode->addChild(centerArg);
     borderNode->addChild(centerNode);
 
@@ -85,9 +89,11 @@ void WorldBorderCommand::registerTo(CommandDispatcher<ServerCommandSource>& disp
 
     // /worldborder damage buffer <distance>
     auto bufferNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("buffer");
-    auto bufferArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, f32>>(
-        "distance", FloatArgumentType::floatArg(0.0f));
-    bufferArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _setDamageBuffer(ctx); });
+    auto bufferArg =
+        std::make_shared<ArgumentCommandNode<ServerCommandSource, f32>>("distance", FloatArgumentType::floatArg(0.0f));
+    bufferArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _setDamageBuffer(ctx);
+    });
     bufferNode->addChild(bufferArg);
     damageNode->addChild(bufferNode);
     borderNode->addChild(damageNode);
@@ -124,8 +130,11 @@ void WorldBorderCommand::registerTo(CommandDispatcher<ServerCommandSource>& disp
     // /worldborder add <distance> [time]
     auto addNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("add");
     auto addDistArg =
-        std::make_shared<ArgumentCommandNode<ServerCommandSource, f64>>("distance", DoubleArgumentType::doubleArg());
-    addDistArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _addBorder(ctx); });
+        std::make_shared<ArgumentCommandNode<ServerCommandSource, f64>>(
+            "distance", DoubleArgumentType::doubleArg(-59999968.0, 59999968.0));
+    addDistArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _addBorder(ctx);
+    });
     auto addTimeArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, i32>>("time", TimeArgumentType::time());
     addTimeArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
         return _addBorder(ctx);

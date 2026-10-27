@@ -100,7 +100,7 @@ void ScheduleCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatc
     auto clearNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("clear");
 
     auto clearNameArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
-        "function", StringArgumentType::string());
+        "function", StringArgumentType::greedyString());
     clearNameArg->setCustomSuggestions(std::make_shared<FunctionSuggestionProvider>());
     clearNameArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
         return _clearSchedule(ctx);

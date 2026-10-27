@@ -504,6 +504,19 @@ public:
     [[nodiscard]] static std::optional<std::string_view> getRuleClass(const std::string& ruleName);
 
     /**
+     * @brief 获取整数规则的取值范围
+     *
+     * 原版每条整数规则都带 [min, max] 约束（GameRules.registerInteger 的第三、四个参数），
+     * 该约束会进入命令树：`/gamerule <rule> <value>` 的 value 是
+     * brigadier:integer(min,max)，客户端据此做参数补全与校验。命令注册必须用同一组边界，
+     * 否则命令树与客户端收到的网络负载都与原版不符。
+     *
+     * @param ruleName 规则名称
+     * @return [min, max]；规则不存在或不是整数规则时返回无界 [INT32_MIN, INT32_MAX]
+     */
+    [[nodiscard]] static std::pair<i32, i32> getIntRange(const std::string& ruleName);
+
+    /**
      * @brief 获取规则默认值的字符串表示
      *
      * 供 /gamerule 查询反馈拼接 "(default: ...)"（vanilla getValueMessage 在当前值

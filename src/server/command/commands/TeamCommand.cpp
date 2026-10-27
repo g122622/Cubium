@@ -38,6 +38,7 @@
 #include "server/application/IServer.hpp"
 #include "server/command/ServerCommandSource.hpp"
 #include "server/command/support/CommandMetadata.hpp"
+#include "server/command/support/CommandSuggestionProviders.hpp"
 #include "server/command/support/PlayerResolver.hpp"
 #include "server/scoreboard/ServerScoreboard.hpp"
 #include <memory>
@@ -128,7 +129,7 @@ void TeamCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
     auto addNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("add");
     // 原版 /team add 的队伍名是普通 string（新建队伍时用），其余子命令才用 TeamArgument。
     auto teamNameArg =
-        std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>("team", StringArgumentType::string());
+        std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>("team", StringArgumentType::word());
     auto displayNameArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
         "displayName", StringArgumentType::greedyString());
     displayNameArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
@@ -181,7 +182,8 @@ void TeamCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
     // 原版 /team join 的 members 是 ScoreHolderArgument（只收名字），与 _joinTeam 读取 string 一致；
     // 若登记成 EntitySelector，getArgument<std::string> 会抛 bad any_cast。
     auto membersArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
-        "members", ScoreHolderArgumentType::scoreHolder());
+        "members", ScoreHolderArgumentType::scoreHolder(true));
+    membersArg->setCustomSuggestions(std::make_shared<ServerSuggestionProvider<ServerCommandSource>>());
     membersArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
         return _joinTeam(ctx);
     });
@@ -193,7 +195,8 @@ void TeamCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
     auto leaveNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("leave");
     // 原版 /team leave 的 members 是 ScoreHolderArgument（score_holder，只收名字）。
     auto leaveMembersArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
-        "members", ScoreHolderArgumentType::scoreHolder());
+        "members", ScoreHolderArgumentType::scoreHolder(true));
+    leaveMembersArg->setCustomSuggestions(std::make_shared<ServerSuggestionProvider<ServerCommandSource>>());
     leaveMembersArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
         return _leaveTeam(ctx);
     });
@@ -216,7 +219,7 @@ void TeamCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
 
     auto colorNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("color");
     auto colorArg =
-        std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>("color", StringArgumentType::string());
+        std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>("color", StringArgumentType::word());
     colorArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
         return _modifyTeam(ctx);
     });

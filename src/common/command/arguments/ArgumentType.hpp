@@ -126,7 +126,10 @@ public:
      * 原版三种字符串模式共用一个参数类型（brigadier:string），模式的区别在
      * properties 里（quote / greedy 两个布尔）。这里同样只输出 `string`。
      */
-    [[nodiscard]] std::string getTypeName() const override { return "string"; }
+    [[nodiscard]] std::string getTypeName() const override
+    {
+        return "string";
+    }
 
     [[nodiscard]] std::vector<std::string> getExamples() const override
     {
@@ -145,8 +148,7 @@ public:
     {
         // 原版 brigadier:string 的 properties：quote（是否允许引号包裹）与 greedy（是否读到末尾）。
         return nlohmann::json{
-            {"quote", m_type != StringType::SingleWord},
-            {"greedy", m_type == StringType::GreedyPhrase}};
+            {"quote", m_type != StringType::SingleWord}, {"greedy", m_type == StringType::GreedyPhrase}};
     }
 
     // ========== 静态工厂方法 ==========
@@ -434,7 +436,8 @@ public:
         const std::string number = readNumberWord(reader);
         if (number.empty() || number.find('.') != number.rfind('.')) {
             reader.setCursor(start);
-            throw CommandException(CommandErrorType::FloatExpected, "Expected double at position " + std::to_string(start), start);
+            throw CommandException(
+                CommandErrorType::FloatExpected, "Expected double at position " + std::to_string(start), start);
         }
         reader.setCursor(start);
 
@@ -450,25 +453,40 @@ public:
         return value;
     }
 
-    [[nodiscard]] std::string getTypeName() const override { return "double"; }
+    [[nodiscard]] std::string getTypeName() const override
+    {
+        return "double";
+    }
 
-    [[nodiscard]] std::vector<std::string> getExamples() const override { return {"0", "1.5", "-2.5"}; }
+    [[nodiscard]] std::vector<std::string> getExamples() const override
+    {
+        return {"0", "1.5", "-2.5"};
+    }
 
     [[nodiscard]] nlohmann::json serializeMetadata() const override
     {
         return nlohmann::json{{"min", m_min}, {"max", m_max}};
     }
 
-    static std::shared_ptr<DoubleArgumentType> doubleArg() { return std::make_shared<DoubleArgumentType>(); }
+    static std::shared_ptr<DoubleArgumentType> doubleArg()
+    {
+        return std::make_shared<DoubleArgumentType>();
+    }
 
-    static std::shared_ptr<DoubleArgumentType> doubleArg(f64 min) { return std::make_shared<DoubleArgumentType>(min, DBL_MAX); }
+    static std::shared_ptr<DoubleArgumentType> doubleArg(f64 min)
+    {
+        return std::make_shared<DoubleArgumentType>(min, DBL_MAX);
+    }
 
     static std::shared_ptr<DoubleArgumentType> doubleArg(f64 min, f64 max)
     {
         return std::make_shared<DoubleArgumentType>(min, max);
     }
 
-    static f64 getDouble(StringReader& reader) { return reader.readDouble(); }
+    static f64 getDouble(StringReader& reader)
+    {
+        return reader.readDouble();
+    }
 
 private:
     f64 m_min;

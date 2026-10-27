@@ -239,8 +239,12 @@ TEST(GameRulesTest, GetRuleNames)
     bool hasMobGriefing = false;
     bool hasRandomTickSpeed = false;
     for (const auto& name : names) {
-        if (name == "mob_griefing") hasMobGriefing = true;
-        if (name == "random_tick_speed") hasRandomTickSpeed = true;
+        if (name == "mob_griefing") {
+            hasMobGriefing = true;
+        }
+        if (name == "random_tick_speed") {
+            hasRandomTickSpeed = true;
+        }
     }
     EXPECT_TRUE(hasMobGriefing);
     EXPECT_TRUE(hasRandomTickSpeed);
@@ -256,8 +260,8 @@ TEST(GameRulesTest, BooleanRuleDefaultValues)
     EXPECT_TRUE(rules.getBoolean(GameRuleKeys::ADVANCE_TIME));
     EXPECT_TRUE(rules.getBoolean(GameRuleKeys::ADVANCE_WEATHER));
     EXPECT_FALSE(rules.getBoolean(GameRuleKeys::KEEP_INVENTORY)); // Default false in 1.16.5
-    EXPECT_TRUE(rules.getBoolean(GameRuleKeys::SPAWN_MOBS)); // Default true in 1.16.5
-    EXPECT_TRUE(rules.getBoolean(GameRuleKeys::BLOCK_DROPS));   // Default true in 1.16.5
+    EXPECT_TRUE(rules.getBoolean(GameRuleKeys::SPAWN_MOBS));      // Default true in 1.16.5
+    EXPECT_TRUE(rules.getBoolean(GameRuleKeys::BLOCK_DROPS));     // Default true in 1.16.5
 }
 
 TEST(GameRulesTest, CommandBlocksWork_RegisteredWithVanillaDefault)
@@ -333,8 +337,8 @@ TEST(GameRulesTest, SetTypedFromString)
         "mob_griefing", std::string(GameRuleClassNames::BOOLEAN), "yes", nullptr)); // "yes" is not valid
 
     // Invalid integer value
-    EXPECT_FALSE(
-        rules.setTypedFromString("random_tick_speed", std::string(GameRuleClassNames::INTEGER), "not_a_number", nullptr));
+    EXPECT_FALSE(rules.setTypedFromString(
+        "random_tick_speed", std::string(GameRuleClassNames::INTEGER), "not_a_number", nullptr));
 
     // Unknown rule
     EXPECT_FALSE(rules.setTypedFromString("unknownRule", std::string(GameRuleClassNames::INTEGER), "value", nullptr));

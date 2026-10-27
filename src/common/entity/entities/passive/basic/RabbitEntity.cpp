@@ -48,6 +48,7 @@
 #include "common/entity/attribute/AttributeModifier.hpp"
 #include "common/entity/attribute/Attributes.hpp"
 #include "common/entity/core/AgeableEntity.hpp"
+#include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/core/MobEntity.hpp"
 #include "common/entity/entities/monster/MonsterEntity.hpp"
 #include "common/entity/entities/passive/tamable/WolfEntity.hpp"
@@ -261,6 +262,7 @@ std::unique_ptr<AnimalEntity> RabbitEntity::spawnBaby(AnimalEntity& partner)
     }
 
     auto baby = std::make_unique<RabbitEntity>(0, *registry);
+    baby->setTypeId(entity::EntityTypeKeys::RABBIT); // 工厂绕过补救：直接构造缺 typeId
 
     // 设置为幼体
     baby->setChild(true);

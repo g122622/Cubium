@@ -49,7 +49,9 @@ void MeCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
 
     auto actionArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, ComponentTextPtr>>(
         "action", MessageComponentArgumentType::message());
-    actionArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _performAction(ctx); });
+    actionArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _performAction(ctx);
+    });
     meNode->addChild(actionArg);
 
     dispatcher.registerCommand(meNode);

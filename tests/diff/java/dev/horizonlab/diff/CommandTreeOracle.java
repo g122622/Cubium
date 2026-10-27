@@ -30,6 +30,7 @@ import com.google.gson.JsonParser;
 import com.mojang.brigadier.arguments.ArgumentType;
 import com.mojang.brigadier.tree.ArgumentCommandNode;
 import com.mojang.brigadier.tree.CommandNode;
+import com.mojang.brigadier.tree.RootCommandNode;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -44,7 +45,12 @@ import net.minecraft.commands.synchronization.ArgumentTypeInfos;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
+import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.protocol.game.ClientboundCommandsPacket;
+import net.minecraft.commands.synchronization.SuggestionProviders;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.flag.FeatureFlags;
+import io.netty.buffer.Unpooled;
 
 /**
  * 服务端命令树的原版 oracle。
@@ -107,8 +113,17 @@ public final class CommandTreeOracle {
         }
         lines.sort(String::compareTo);
 
+        JsonObject arguments = describeArgumentWire(root);
+
         JsonObject result = new JsonObject();
         result.add("tree", GSON.toJsonTree(lines));
+        result.add("arguments", arguments);
+        // 整棵树按原版 ClientboundCommandsPacket 编码后的字节数。
+        // 逐节点的 typeId/payload 只能发现「某个参数写错了」，发现不了节点顺序、节点计数、
+        // 重定向下标等结构级偏差；总字节数可以对这类偏差做一次总量校验。
+        JsonObject wire = new JsonObject();
+        wire.addProperty("byteLength", encodeTree(root).readableBytes());
+        result.add("wire", wire);
         StringBuilder text = new StringBuilder();
         for (String line : Files.readAllLines(input, StandardCharsets.UTF_8)) {
             if (!line.isBlank()) {
@@ -116,6 +131,138 @@ public final class CommandTreeOracle {
             }
         }
         Files.writeString(output, text, StandardCharsets.UTF_8);
+    }
+
+    /**
+     * 把整棵命令树按原版 clientbound/minecraft:commands 的格式编码，返回承载它的缓冲。
+     *
+     * <p>用官方 {@code ClientboundCommandsPacket} 的构造函数 + STREAM_CODEC，与真实下发给
+     * 客户端的字节完全同源，不自己拼字节。{@code NodeInspector} 的三个回调与专用服务器一致：
+     * 建议提供器取 {@code SuggestionProviders.getName}（未注册的 provider 会回退成 ask_server），
+     * 可执行性取 {@code CommandNode.canUse} 之外的 {@code getCommand() != null}，
+     * 受限性取 {@code requires} 判定——这里默认 false，因为原版专用服务器的 inspector
+     * 对非受限命令同样返回 false。
+     */
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    private static FriendlyByteBuf encodeTree(CommandNode<CommandSourceStack> root) {
+        ClientboundCommandsPacket.NodeInspector<CommandSourceStack> inspector =
+                new ClientboundCommandsPacket.NodeInspector<>() {
+                    @Override
+                    public Identifier suggestionId(ArgumentCommandNode<CommandSourceStack, ?> node) {
+                        return node.getCustomSuggestions() == null
+                                ? null
+                                : SuggestionProviders.getName(node.getCustomSuggestions());
+                    }
+
+                    @Override
+                    public boolean isExecutable(CommandNode<CommandSourceStack> node) {
+                        return node.getCommand() != null;
+                    }
+
+                    @Override
+                    public boolean isRestricted(CommandNode<CommandSourceStack> node) {
+                        // TODO: 原版专用服务器对受限命令会返回 true；这里恒为 false，
+                        //  若后续引入 requires 细分，需在此处补上判定。
+                        return false;
+                    }
+                };
+        FriendlyByteBuf buffer = new FriendlyByteBuf(Unpooled.buffer());
+        ClientboundCommandsPacket.STREAM_CODEC.encode(buffer, new ClientboundCommandsPacket((RootCommandNode) root, (ClientboundCommandsPacket.NodeInspector) inspector));
+        return buffer;
+    }
+
+    /**
+     * 每个参数节点的网络编码，键与 probes/command_tree.cpp 一致（{@code 名字:序号}）。
+     *
+     * <p>键里的序号取所有参数节点按遍历顺序（先字面量后参数，各自再按名字排序）的全局下标，
+     * 两侧用同一套遍历规则，因此序号可直接对齐。值为
+     * {@code {typeId, payload, suggestions}}：typeId 是 COMMAND_ARGUMENT_TYPE 注册表里的数值 id，
+     * payload 是序列化后的十六进制字节（不含名字），suggestions 是建议提供器 Identifier。
+     */
+    private static JsonObject describeArgumentWire(CommandNode<CommandSourceStack> root) {
+        JsonObject result = new JsonObject();
+        walkArguments(root, "", result);
+        return result;
+    }
+
+    /**
+     * 递归遍历命令树，把每个参数节点的网络编码记录到 {@code out}，键为从根到该节点的路径
+     * （如 {@code " team add <team>:word"}），与 probes/command_tree.cpp 完全一致。
+     */
+    private static void walkArguments(
+            CommandNode<CommandSourceStack> node, String path, JsonObject out) {
+        for (CommandNode<CommandSourceStack> child : node.getChildren()) {
+            String childPath = path + " " + child.getName();
+            if (child instanceof ArgumentCommandNode<CommandSourceStack, ?> argument) {
+                childPath += ":" + typeName(argument.getType());
+                out.add(childPath, describeArgument(argument));
+            }
+            walkArguments(child, childPath, out);
+        }
+    }
+
+    /** 单个参数节点的网络编码：{typeId, payload, suggestions}。 */
+    private static JsonObject describeArgument(ArgumentCommandNode<CommandSourceStack, ?> argument) {
+        JsonObject entry = new JsonObject();
+        ArgumentType<?> type = argument.getType();
+        ArgumentTypeInfo<?, ?> info = ArgumentTypeInfos.byClass(type);
+        entry.addProperty("typeId", networkId(info));
+
+        // 原版序列化：数值 id 之后的 properties 部分，单独取出来比字节。
+        FriendlyByteBuf buffer = new FriendlyByteBuf(Unpooled.buffer());
+        serializeInfo(info, type, buffer);
+        entry.addProperty("payload", hex(buffer));
+        // Cubium 侧对自定义建议提供器统一回落到 minecraft:ask_server（见命令树快照）。
+        entry.addProperty(
+                "suggestions", argument.getCustomSuggestions() != null ? "minecraft:ask_server" : "");
+        return entry;
+    }
+
+
+    /**
+     * 把参数类型编码成网络上的 properties 载荷（数值 id 之后的部分）。
+     *
+     * <p>原版先由 {@code ArgumentTypeInfo} 生成该参数类型的 Template，再把 Template 写进缓冲，
+     * 客户端按同一张表反序列化。这里的泛型参数在编译期无法对齐，故走反射调用同一对方法，
+     * 语义与原版一致；无法往返的类型留空载荷，由 typeId 差异暴露。
+     */
+    @SuppressWarnings("unchecked")
+    private static void serializeInfo(
+            ArgumentTypeInfo<?, ?> info, ArgumentType<?> type, FriendlyByteBuf buffer) {
+        try {
+            // 泛型在此处无法静态对齐（Template 的具体类型随 ArgumentTypeInfo 的子类变化），
+            // 故用「原始类型 + 强制转换」调用接口上的 unpack / serializeToNetwork 两个方法：
+            // 原版 ArgumentTypeInfo 的约定就是 unpack(type) 产出的 Template 可直接交给
+            // serializeToNetwork 写出网络载荷（ClientboundCommandsPacket:226 即此路径）。
+            ArgumentTypeInfo<ArgumentType<?>, ArgumentTypeInfo.Template<ArgumentType<?>>> typed =
+                    (ArgumentTypeInfo<ArgumentType<?>, ArgumentTypeInfo.Template<ArgumentType<?>>>) info;
+            ArgumentTypeInfo.Template<ArgumentType<?>> template = typed.unpack(type);
+            typed.serializeToNetwork(template, buffer);
+        } catch (RuntimeException e) {
+            // 该类型不支持往返序列化：留空载荷，但把原因打出来，避免静默失败。
+            System.err.println("serializeInfo failed: " + e);
+        }
+    }
+
+    /**
+     * ArgumentTypeInfo → COMMAND_ARGUMENT_TYPE 注册表里的数值 id。
+     *
+     * <p>原版就用 {@code BuiltInRegistries.COMMAND_ARGUMENT_TYPE.getId(info)} 写这个编号
+     * （ClientboundCommandsPacket:226），直接沿用同一接口，避免自己按迭代顺序推算出错。
+     */
+    private static int networkId(ArgumentTypeInfo<?, ?> info) {
+        return BuiltInRegistries.COMMAND_ARGUMENT_TYPE.getId(info);
+    }
+
+    private static String hex(FriendlyByteBuf buffer) {
+        StringBuilder text = new StringBuilder();
+        // 只取已写入的部分（readerIndex..writerIndex），不碰未用的容量区。
+        int start = buffer.readerIndex();
+        int end = buffer.writerIndex();
+        for (int i = start; i < end; i++) {
+            text.append(String.format("%02x", buffer.getByte(i)));
+        }
+        return text.toString();
     }
 
     private static String describeTree(CommandNode<CommandSourceStack> root) {

@@ -459,6 +459,37 @@ Cubium 80 条逐一对应，形状与参数名/类型名都不再有差异。
   `loot` 改成「目标 → 来源字段」、`data modify … set`、`locate poi`、`schedule clear`
   用 `function:string`。
 
+### 为什么只比对名字不够：三个"看起来一致但协议已坏"的坑
+
+上面那一轮把树形对齐到了"80 条命令逐一对应、参数名与类型名零差异"，`command_tree`
+也报了全部一致。但 Java 客户端仍在 `clientbound/minecraft:commands` 包上解码失败。
+原因在于**类型名、参数名都相同的东西，网络字节可以不同**。harness 因此扩展为同时比对
+每个参数节点的 `typeId`、`payload`（十六进制）与建议提供器，并报告整树字节数。
+扩展后一次性暴露出三类问题，全部已修：
+
+1. **数值类型 id 手抄错**。`ArgumentTypeInfos.bootstrap` 的注册顺序才是协议里的 id，
+   树形比对完全不看它。原先 `particle` 写成 16（实际 27）、`resource` 写成 18（实际 46）、
+   `message` 写成 39（实际 20）等十余处全错。客户端按错 id 取参数类型，游标错位后把
+   后续字节读成 `minecraft:\u0000\u0004team`——这正是本次崩溃的直接原因。
+
+2. **`EntityArgument.players()` 与 `entities()` 在命令树里同名**。两者都叫 `entity`，
+   区别只在 payload 的标志字节：`players()` = `0x02`（bit1 playersOnly），
+   `entities()` = `0x00`。所以把 `players()` 改成 `entities()` **不会改变树形比对的任何
+   结果**，但语义上放宽了约束（`/gamemode creative @e[type=pig]` 从"找不到玩家"变成
+   能通过参数解析）。核对时必须以原版 `.java` 源码为准，例如
+   `GameModeCommand` 是 `players()`、`EnchantCommand` 是 `entities()`。
+
+3. **建议提供器标识决定客户端会不会请求补全**。原版用
+   `SuggestionProviders.getName(provider)` 得到标识，只有经 `SuggestionProviders.register`
+   包装过的提供器返回自己的名字，其余一律回退 `minecraft:ask_server`。
+   参数节点没挂 `.suggests(...)` 就不带这个标识，客户端 Tab 补全时**不会**向服务端请求。
+   反向的坑同样存在：多挂一个就会凭空写出 `ask_server`，例如 `execute in` 的 `dimension`
+   在原版里没有 `.suggests`，而 `/bossbar add` 的 `id` 也没有（只有 `remove`/`set` 有）。
+
+**结论**：改命令参数类型时，不能只看 `command_tree` 的树形输出，必须同时看
+`payload` 列；判断 `players()`/`entities()`/`player()`/`entity()` 用哪个，一律回到原版
+`.java` 源码确认，不能凭"都是 entity"就互换。
+
 **仍未实现（9 条，见 `known_missing_commands.ts`）**：`fetchprofile`、`fillbiome`、
 `item`、`place`、`random`、`test`、`tick`、`transfer`、`waypoint`。
 

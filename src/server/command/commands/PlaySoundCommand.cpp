@@ -40,6 +40,7 @@
 #include "server/application/IServer.hpp"
 #include "server/command/ServerCommandSource.hpp"
 #include "server/command/support/CommandMetadata.hpp"
+#include "server/command/support/CommandSuggestionProviders.hpp"
 #include "server/command/support/PlayerResolver.hpp"
 #include "server/core/ConnectionManager.hpp"
 #include "server/core/PlayerManager.hpp"
@@ -145,6 +146,7 @@ void PlaySoundCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispat
     // /playsound <sound>
     auto soundNode = std::make_shared<ArgumentCommandNode<ServerCommandSource, ResourceLocation>>(
         "sound", IdentifierArgumentType::identifier());
+    soundNode->setCustomSuggestions(std::make_shared<ServerSuggestionProvider<ServerCommandSource>>());
 
     // 声源子节点
     auto createSourceNode = [](const char* name) {

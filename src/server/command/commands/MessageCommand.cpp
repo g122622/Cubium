@@ -66,11 +66,13 @@ void MessageCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatch
 
     // /msg <player> <message>
     auto playerNode = std::make_shared<ArgumentCommandNode<ServerCommandSource, EntitySelector>>(
-        "targets", EntityArgumentType::player());
+        "targets", EntityArgumentType::players());
 
     auto messageNode = std::make_shared<ArgumentCommandNode<ServerCommandSource, ComponentTextPtr>>(
         "message", MessageComponentArgumentType::message());
-    messageNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _sendMessage(ctx); });
+    messageNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _sendMessage(ctx);
+    });
 
     playerNode->addChild(messageNode);
     msgNode->addChild(playerNode);

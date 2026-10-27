@@ -263,7 +263,7 @@ const ChunkPyramid& ChunkPyramid::generationPyramid()
         // === LIGHT ===
         // directDeps = [INITIALIZE_LIGHT, INITIALIZE_LIGHT]
         // blockStateWriteRadius=2：光照在 LIGHT 阶段于 worker 线程执行（_executeStepTask
-        // LIGHT 分支经 WorldLightManager::lightChunk 写半径2邻居的 nibble），走 m_radiusAwareExecutor
+        // LIGHT 分支经 WorldLightManager::lightChunk 写半径2邻居的 nibble），走世界区域调度器
         // （5×5 写区互斥）保证并发光照任务不重叠写 nibble。neighbourReadRadius 仍由 accumulatedRadius
         // 决定为 1（半径2邻居经 ChunkLightingProvider::getChunkForLight fallback 到 ServerWorld::getChunkForLight）。
         {

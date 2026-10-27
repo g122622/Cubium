@@ -120,7 +120,10 @@ public:
      *
      * 默认关闭：命令树要与原版一致。需在首次访问注册表之前设置。
      */
-    void setRegisterCompatCommands(bool enabled) noexcept { m_registerCompatCommands = enabled; }
+    void setRegisterCompatCommands(bool enabled) noexcept
+    {
+        m_registerCompatCommands = enabled;
+    }
 
     // ========== 命令查询 ==========
 

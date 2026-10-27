@@ -37,6 +37,7 @@
 #include "server/application/IServer.hpp"
 #include "server/command/ServerCommandSource.hpp"
 #include "server/command/support/CommandMetadata.hpp"
+#include "server/command/support/CommandSuggestionProviders.hpp"
 #include "server/command/support/PlayerResolver.hpp"
 #include "server/core/ConnectionManager.hpp"
 #include <memory>
@@ -114,7 +115,9 @@ void StopSoundCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispat
     // /stopsound <player> - 停止所有声音
     auto playerNode = std::make_shared<ArgumentCommandNode<ServerCommandSource, EntitySelector>>(
         "targets", EntityArgumentType::players());
-    playerNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _stopAllSounds(ctx); });
+    playerNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _stopAllSounds(ctx);
+    });
 
     // /stopsound <player> * [<sound>] - 通配符：停止所有类别的声音
     auto wildcardNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("*");
@@ -123,6 +126,7 @@ void StopSoundCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispat
     });
     auto wildcardSoundNode = std::make_shared<ArgumentCommandNode<ServerCommandSource, ResourceLocation>>(
         "sound", IdentifierArgumentType::identifier());
+    wildcardSoundNode->setCustomSuggestions(std::make_shared<ServerSuggestionProvider<ServerCommandSource>>());
     wildcardSoundNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
         const ResourceLocation& soundId = ctx.getArgument<ResourceLocation>("sound");
         return _stopSounds(ctx, std::nullopt, soundId);
@@ -145,6 +149,7 @@ void StopSoundCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispat
         // /stopsound <player> <source> <sound> - 停止特定声音
         auto soundNode = std::make_shared<ArgumentCommandNode<ServerCommandSource, ResourceLocation>>(
             "sound", IdentifierArgumentType::identifier());
+        soundNode->setCustomSuggestions(std::make_shared<ServerSuggestionProvider<ServerCommandSource>>());
         soundNode->setCommand([category](CommandContext<ServerCommandSource>& ctx) {
             const ResourceLocation& soundId = ctx.getArgument<ResourceLocation>("sound");
             return _stopSounds(ctx, category, soundId);

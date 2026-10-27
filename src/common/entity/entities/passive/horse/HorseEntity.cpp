@@ -22,6 +22,7 @@
  */
 
 #include "HorseEntity.hpp"
+#include "common/entity/core/EntityRegistry.hpp"
 
 #include "DonkeyEntity.hpp"
 #include "MuleEntity.hpp"
@@ -148,6 +149,7 @@ std::unique_ptr<AnimalEntity> HorseEntity::spawnBaby(AnimalEntity& partner)
 
     // 马 + 马 = 马
     auto baby = std::make_unique<HorseEntity>(0, *registry);
+    baby->setTypeId(entity::EntityTypeKeys::HORSE); // 工厂绕过补救：直接构造缺 typeId
     baby->setChild(true);
     baby->setPosition(x(), y(), z());
 

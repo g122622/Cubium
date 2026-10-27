@@ -31,6 +31,7 @@
 #include "server/application/IServer.hpp"
 #include "server/command/ServerCommandSource.hpp"
 #include "server/command/support/CommandMetadata.hpp"
+#include "server/command/support/CommandSuggestionProviders.hpp"
 #include "server/core/BannedIpList.hpp"
 
 #include <memory>
@@ -70,7 +71,8 @@ void PardonIpCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatc
 
     // /pardon-ip <target>
     auto targetArg =
-        std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>("target", StringArgumentType::string());
+        std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>("target", StringArgumentType::word());
+    targetArg->setCustomSuggestions(std::make_shared<ServerSuggestionProvider<ServerCommandSource>>());
     targetArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
         return _pardonIp(ctx);
     });

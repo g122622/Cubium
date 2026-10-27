@@ -115,7 +115,9 @@ void TimeCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
     });
 
     auto setArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, i32>>("time", TimeArgumentType::time());
-    setArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _setTime(ctx); });
+    setArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _setTime(ctx);
+    });
 
     setValueNode->addChild(dayNode);
     setValueNode->addChild(noonNode);
@@ -125,7 +127,9 @@ void TimeCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
 
     auto addValueNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("add");
     auto addArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, i32>>("time", TimeArgumentType::time());
-    addArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _addTime(ctx); });
+    addArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _addTime(ctx);
+    });
     addValueNode->addChild(addArg);
 
     // /time query <day|daytime|gametime>：原版是三个字面量子节点，不是字符串参数。

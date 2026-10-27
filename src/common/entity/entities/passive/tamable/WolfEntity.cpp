@@ -43,6 +43,7 @@
 #include "common/entity/core/DataParameter.hpp"
 #include "common/entity/core/EntityClassRegistry.hpp"
 #include "common/entity/core/EntityDataManager.hpp"
+#include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/damage/tag/DamageTypeTags.hpp"
 #include "common/entity/entities/effect/EffectEntities.hpp"
@@ -500,6 +501,7 @@ std::unique_ptr<AnimalEntity> WolfEntity::spawnBaby(AnimalEntity& /*partner*/)
 
     // 创建小狼
     auto baby = std::make_unique<WolfEntity>(0, *registry);
+    baby->setTypeId(entity::EntityTypeKeys::WOLF); // 工厂绕过补救：直接构造缺 typeId
 
     // 设置为幼体
     baby->setChild(true);

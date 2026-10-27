@@ -108,6 +108,7 @@ std::unique_ptr<AnimalEntity> PigEntity::spawnBaby(AnimalEntity& /*partner*/)
 
     // 创建小猪
     auto baby = std::make_unique<PigEntity>(0, *registry);
+    baby->setTypeId(entity::EntityTypeKeys::PIG); // 工厂绕过补救：直接构造缺 typeId
 
     // 设置为幼体
     baby->setChild(true);

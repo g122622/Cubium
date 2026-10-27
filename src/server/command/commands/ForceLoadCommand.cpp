@@ -80,11 +80,13 @@ void ForceLoadCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispat
 
     // /forceload add <from> [to]
     auto addNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("add");
-    auto posArg =
-        std::make_shared<ArgumentCommandNode<ServerCommandSource, Coordinates::Ptr>>("from", ColumnPosArgumentType::columnPos());
-    auto toArg =
-        std::make_shared<ArgumentCommandNode<ServerCommandSource, Coordinates::Ptr>>("to", ColumnPosArgumentType::columnPos());
-    toArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _addForceLoad(ctx); });
+    auto posArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, Coordinates::Ptr>>(
+        "from", ColumnPosArgumentType::columnPos());
+    auto toArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, Coordinates::Ptr>>(
+        "to", ColumnPosArgumentType::columnPos());
+    toArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _addForceLoad(ctx);
+    });
     posArg->addChild(toArg);
     posArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
         return _addForceLoad(ctx);
@@ -94,11 +96,13 @@ void ForceLoadCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispat
 
     // /forceload remove <pos> [to]
     auto removeNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("remove");
-    auto removePosArg =
-        std::make_shared<ArgumentCommandNode<ServerCommandSource, Coordinates::Ptr>>("from", ColumnPosArgumentType::columnPos());
-    auto removeToArg =
-        std::make_shared<ArgumentCommandNode<ServerCommandSource, Coordinates::Ptr>>("to", ColumnPosArgumentType::columnPos());
-    removeToArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _removeForceLoad(ctx); });
+    auto removePosArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, Coordinates::Ptr>>(
+        "from", ColumnPosArgumentType::columnPos());
+    auto removeToArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, Coordinates::Ptr>>(
+        "to", ColumnPosArgumentType::columnPos());
+    removeToArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _removeForceLoad(ctx);
+    });
     removePosArg->addChild(removeToArg);
     removePosArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
         return _removeForceLoad(ctx);
@@ -116,9 +120,11 @@ void ForceLoadCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispat
 
     // /forceload query [<pos>]
     auto queryNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("query");
-    auto queryPosArg =
-        std::make_shared<ArgumentCommandNode<ServerCommandSource, Coordinates::Ptr>>("pos", ColumnPosArgumentType::columnPos());
-    queryPosArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _queryForceLoad(ctx); });
+    auto queryPosArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, Coordinates::Ptr>>(
+        "pos", ColumnPosArgumentType::columnPos());
+    queryPosArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _queryForceLoad(ctx);
+    });
     queryNode->addChild(queryPosArg);
     // /forceload query (without position - list all)
     queryNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
@@ -152,8 +158,7 @@ i32 ForceLoadCommand::_addForceLoad(CommandContext<ServerCommandSource>& context
         return 0;
     }
 
-    const Vector3d pos = Vec3ToColumn(
-        context, context.hasArgument("from") ? "from" : "pos", source);
+    const Vector3d pos = Vec3ToColumn(context, context.hasArgument("from") ? "from" : "pos", source);
 
     // 转换为区块坐标（使用 BlockPos 的 chunkX/chunkZ 方法）
     BlockPos blockPos(static_cast<BlockCoord>(pos.x), static_cast<BlockCoord>(pos.y), static_cast<BlockCoord>(pos.z));
@@ -251,8 +256,7 @@ i32 ForceLoadCommand::_removeForceLoad(CommandContext<ServerCommandSource>& cont
         return 0;
     }
 
-    const Vector3d pos = Vec3ToColumn(
-        context, context.hasArgument("from") ? "from" : "pos", source);
+    const Vector3d pos = Vec3ToColumn(context, context.hasArgument("from") ? "from" : "pos", source);
 
     // 转换为区块坐标
     BlockPos blockPos(static_cast<BlockCoord>(pos.x), static_cast<BlockCoord>(pos.y), static_cast<BlockCoord>(pos.z));
@@ -338,8 +342,7 @@ i32 ForceLoadCommand::_queryForceLoad(CommandContext<ServerCommandSource>& conte
         return 0;
     }
 
-    const Vector3d pos = Vec3ToColumn(
-        context, context.hasArgument("from") ? "from" : "pos", source);
+    const Vector3d pos = Vec3ToColumn(context, context.hasArgument("from") ? "from" : "pos", source);
 
     // 转换为区块坐标
     BlockPos blockPos(static_cast<BlockCoord>(pos.x), static_cast<BlockCoord>(pos.y), static_cast<BlockCoord>(pos.z));

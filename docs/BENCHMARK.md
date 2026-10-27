@@ -62,7 +62,7 @@ nightly 的 benchmark 在独立 runner 上执行 `release-build` 的产物，未
 
 ### ChunkGeneration（区块生成系统吞吐）
 
-测生产级并行生成系统：`ServerChunkManager` → `ChunkTaskScheduler`（区域锁调度）→ `UniversalWorkerPool` → 逐状态推进到 FULL。
+测生产级并行生成系统：`ServerChunkManager` → `ChunkTaskScheduler`（区域锁调度）→ 世界 `AreaTaskScheduler` → `UniversalWorkerPool` → 逐状态推进到 FULL。
 
 - 参数矩阵：`threads`（内部线程池大小 1/2/4/8）× `batch`（每迭代 n×n 区块批，8/16/32）
 - 口径：提交一批 FULL 请求，主线程 `tick()` 泵送驱动至全部完成；报告 `chunks_per_second`
@@ -180,6 +180,34 @@ python benchmark/scripts/plot_paletted_container.py \
 
 同机纯 CPU 探针（与项目无关的固定总工作量依赖链负载）并行加速：4 线程 3.81×、8 线程 **6.69×**、16 线程 10.12×——本机同构并行上限本身就不足 8×，而生成管线只拿到 4.2×。
 
+### 世界区域调度器复测（Windows / 2026-10-26）
+
+同一台 i7-14700KF（28 逻辑核），RelWithDebInfo，Perfetto 编译开启但不录制 trace，Tracy 和 sanitizer 关闭。每次计时生成 16×16=256 个 FULL 区块，每档 3 次重复取中位数；四档墙钟 CV 为 0.60%～0.97%。存储临时目录设在工作区内，MemoryManager 保持默认启用。
+
+```powershell
+./build/bin/RelWithDebInfo/mc_benchmark.exe --benchmark_filter='^ChunkGeneration/(1|2|4|8)/16$' --benchmark_min_time=1x --benchmark_repetitions=3 --benchmark_report_aggregates_only=true
+```
+
+原始 JSON、命令和机器信息归档在 `benchmark_results/2026-10-26_17-36-59_area-scheduler/`，分别为 `results.json`、`run.json`、`comparison.json`；控制台记录为 `console.log`。
+
+| threads | 旧墙钟 ms | 本次墙钟 ms | 墙钟耗时变化 | 本次墙钟吞吐 chunks/s | 墙钟吞吐变化 |
+|---|---|---|---|---|---|
+| 1 | 9687 | 10389.9 | +7.3% | 24.6 | -6.8% |
+| 2 | 7411 | 5335.6 | -28.0% | 48.0 | +38.9% |
+| 4 | 3875 | 2824.9 | -27.1% | 90.6 | +37.2% |
+| 8 | 2322 | 1748.2 | -24.7% | 146.4 | +32.8% |
+
+**吞吐口径修正**：此用例没有注册 `UseRealTime()`，google/benchmark 1.9.5 的 `kIsIterationInvariantRate` 默认以计时主线程的 CPU 时间归一化。因此原表 `chunks/s` 和 JSON 的 `chunks_per_second` 并非墙钟吞吐；上表统一用 `256 / 墙钟秒数`，旧墙钟吞吐也从旧表耗时重算。原框架计数另列，避免混用。
+
+| threads | 旧框架 chunks_per_second | 本次框架 chunks_per_second | 变化 |
+|---|---|---|---|
+| 1 | 27.2 | 24.8 | -8.9% |
+| 2 | 35.9 | 48.3 | +34.6% |
+| 4 | 71.9 | 92.0 | +28.0% |
+| 8 | 122.3 | 150.3 | +22.9% |
+
+8 线程相对各自单线程的墙钟加速比从 4.17× 变为 5.94×。多线程档耗时减少约 25%～28%，单线程耗时增加 7.3%，存在单线程退步。旧数据为文档历史基线，并非同一版本的隔离 A/B；不能把全部差异归因于本次区域队列重构。后续仍需分别测量依赖调度开销、调度锁持有时间和等待时间。
+
 ### 与 macOS 参考值的差距分解
 
 122.3（本机 8 线程）vs 1056.3（macOS 8 线程）= **8.6×** 的总差距，其中：
@@ -191,12 +219,12 @@ python benchmark/scripts/plot_paletted_container.py \
 
 **进程 CPU 口径**（临时开启 `->MeasureProcessCPUTime()` 实测的 进程总 CPU / 墙钟）：1.94（threads=1）→ 2.77（2）→ 4.18（4）→ **6.28（8）**。google/benchmark 默认只统计主线程 CPU，实测主线程 cpu/wall 恒为 0.83~0.98（本用例主线程在忙轮询泵送）。即 8 线程档位约 6.3 个核在烧、worker 利用率仅约 66%：**不是"worker 没活干"，而是存在停等/串行化**。
 
-### 结构性限制（按影响排序，均带证据）
+### 结构性限制与已修复项（历史排序）
 
 | # | 限制 | 位置 |
 |---|---|---|
-| a | 区域互斥任务**头部阻塞停等**：FEATURES(writeRadius=1)、LIGHT(writeRadius=2) 走区域互斥池；worker 取到冲突任务后只把它放回队列并 `notify_one`，随后**自己在条件变量上等待自己那片区域释放**，而不是去取其他可运行任务。密集 n×n 批次下 3×3 / 5×5 写入区域高度重叠 | `UniversalWorkerPool.cpp` 冲突分支（`m_areaReleasedCondition.wait`） |
-| b | 调度区域锁过粗：`onChunkGenComplete` 持 `2*maxAccessRadius=22`（45×45 区块）的 `ReentrantAreaLock`，而基准批次是密集 8×8~32×32，整个批次落在同一覆盖范围 → 每次状态完成事件都被同一把锁串行化（该项目自身的 Perfetto 剖析中，该锁曾是自耗时 #1 热点） | `ChunkTaskScheduler.cpp`、`src/server/world/README.md` 的调度器说明 |
+| a | 区域写入存在必要串行化：FEATURES 半径 1、LIGHT 半径 2。区域依赖由每世界的 AreaTaskScheduler 管理，冲突任务留在等待队列，全部坐标就绪后才提交计算池；worker 不再因区域冲突停等 | `server/world/scheduling/AreaTaskScheduler.cpp` |
+| b | 调度锁仍按 64×64 区块分段：完成回调半径为 maxAccessRadius=11，解锁后的重调度半径为 22；原点附近 8×8、16×16 批次完成回调竞争相同分段，32×32 批次重新调度同样竞争相同分段。历史 #1 热点对应旧实现，需要按当前版本复测 | `ChunkTaskScheduler.cpp` |
 | c | 主线程串行工作与区块数成正比，并被基准的**忙轮询泵送**放大：`tick()` 每次都跑 `_incrementInhabitedTime()`（遍历**全部已加载区块**）+ `_drainPendingPostProcess()`（onChunkLoaded/实体生成/后处理）+ 周期性 `_checkChunkUnloading()` | `ServerChunkManager::tick()` |
 | d | 全局互斥点随任务数放大：单任务队列互斥 + 每个任务两次 `m_runningTaskMutex` + `m_runningTaskInfo` 哈希表增删（每任务两次堆分配） | `UniversalWorkerPool.cpp` 执行路径 |
 
@@ -207,17 +235,17 @@ macOS 表中 threads=8 的 20.4× **超过 8 个 worker**，纯 CPU 并行不可
 ### 后续待办（TODO）
 
 1. TODO: 在 macOS 上给 `ChunkGeneration` 加 `->MeasureProcessCPUTime()` 复测单线程档位，确认口径差异（预期其 CPU/墙钟 ≈1.0，而非本机的 1.94）。零风险，优先级最高。
-2. TODO: 给 `ChunkGeneration` 增加「稀疏批次」参数（区块间隔 ≥5）与密集批次对比：若稀疏批明显更快，即坐实 (a)(b) 的区域锁/停等结论。
+2. TODO: 给 `ChunkGeneration` 增加「稀疏批次」参数（按写区半径及 64×64 调度分段分别设置间隔）与密集批次对比：同时记录生成区块总数，区分必要写区串行化与调度锁竞争。
 3. TODO: 用 CPU affinity 把基准绑到 8 个 P-core 复测，剥离 E-core/超线程影响（无需改代码）。
 4. TODO: 用已能正确归档的 `.perfetto-trace`（每用例/每重复一个文件，需传 `--benchmark_trace`）在 ui.perfetto.dev 查看 worker 线程的 park/阻塞分布，与 (a)(d) 对照。
-5. TODO: 结构性优化（需评估后再动）：`_incrementInhabitedTime` 改为仅有玩家追踪时遍历；区域互斥任务冲突时改为跳过并取下一个可运行任务而非自等；评估按实际访问半径收紧 `onChunkGenComplete` 的区域锁半径。
+5. TODO: 结构性优化（需评估后再动）：`_incrementInhabitedTime` 改为仅有玩家追踪时遍历；评估按实际访问半径收紧 `onChunkGenComplete` 的区域锁半径。
 
 ## 指标解读
 
 ### 时间与吞吐
 
 - `Time`：每迭代墙钟时间（默认毫秒，`--benchmark_min_time` 控制自动迭代总量）
-- `chunks_per_second` / `blocks_per_second`：User Counter 吞吐（`kIsIterationInvariantRate`，自动迭代下统计正确）
+- `chunks_per_second` / `blocks_per_second`：User Counter 速率（`kIsIterationInvariantRate`）；默认使用计时线程 CPU 时间，注册 `UseRealTime()` 后才使用墙钟时间。系统墙钟吞吐可从 JSON 的 `real_time` 与每迭代工作量另算。
 - `Repetitions(5)` 用例输出 `_mean/_median/_stddev/_cv` 聚合行；`_cv`（变异系数）< 5% 视为稳定
 
 ### 内存指标（MemoryProfiler）

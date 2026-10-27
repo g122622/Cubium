@@ -26,6 +26,7 @@
 #include "common/core/Types.hpp"
 #include "common/entity/ai/goal/goals/BreedGoal.hpp"
 #include "common/entity/core/Entity.hpp"
+#include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/damage/DamageSource.hpp"
 #include "common/entity/entities/passive/basic/AnimalEntity.hpp"
 #include "common/entity/entities/passive/nautilus/AbstractNautilusEntity.hpp"
@@ -83,6 +84,7 @@ std::unique_ptr<AnimalEntity> NautilusEntity::spawnBaby(AnimalEntity& /*partner*
 
     // 对应 MC 1.21.11 Nautilus.getBreedOffspring()
     auto baby = std::make_unique<NautilusEntity>(0, *registry);
+    baby->setTypeId(entity::EntityTypeKeys::NAUTILUS); // 工厂绕过补救：直接构造缺 typeId
 
     // 设置为幼体
     baby->setChild(true);

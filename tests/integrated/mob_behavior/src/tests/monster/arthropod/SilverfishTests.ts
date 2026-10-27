@@ -65,7 +65,7 @@ function silverfishAttacksPlayer(test: Test): void {
 // 破坏虫蚀方块时生成蠹虫（wiki tech_虫蚀方块.txt#破坏：破坏虫蚀方块会生成蠹虫，精准采集除外）。
 //
 // C++ 链路：InfestedBlock::spawnAfterBreak（InfestedBlock.cpp:56-104）——
-//   检查 doTileDrops（true 放行）+ silk touch（tool 非空且附魔才跳过）+ isClientSide（服务端生成），
+//   检查 block_drops（true 放行）+ silk touch（tool 非空且附魔才跳过）+ isClientSide（服务端生成），
 //   满足则 make_unique<SilverfishEntity> + setPosition + finalizeSpawn(Event) + spawnEntity。
 //   不查光照/难度/玩家距离——破坏即生成（对齐 Java InfestedBlock.spawnAfterBreak）。
 //

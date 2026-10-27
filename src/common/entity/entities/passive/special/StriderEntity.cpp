@@ -31,6 +31,7 @@
 #include "common/entity/ai/goal/goals/TemptGoal.hpp"
 #include "common/entity/ai/goal/goals/special/MoveToLavaGoal.hpp"
 #include "common/entity/attribute/Attributes.hpp"
+#include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/core/MobEntity.hpp"
 #include "common/entity/damage/DamageSource.hpp"
 #include "common/entity/entities/player/Player.hpp"
@@ -201,6 +202,7 @@ std::unique_ptr<AnimalEntity> StriderEntity::spawnBaby(AnimalEntity& /*partner*/
 
     // 创建小炽足兽
     auto baby = std::make_unique<StriderEntity>(0, *registry);
+    baby->setTypeId(entity::EntityTypeKeys::STRIDER); // 工厂绕过补救：直接构造缺 typeId
     baby->setChild(true);
     baby->setPosition(x(), y(), z());
     return baby;

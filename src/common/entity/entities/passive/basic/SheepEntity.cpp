@@ -33,6 +33,7 @@
 #include "common/entity/ai/goal/goals/TemptGoal.hpp"
 #include "common/entity/attribute/Attributes.hpp"
 #include "common/entity/core/AgeableEntity.hpp"
+#include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/damage/DamageSource.hpp"
 #include "common/item/Items.hpp"
 #include "common/item/core/ItemStack.hpp"
@@ -144,6 +145,7 @@ std::unique_ptr<AnimalEntity> SheepEntity::spawnBaby(AnimalEntity& partner)
 
     // 创建小羊
     auto baby = std::make_unique<SheepEntity>(0, *registry);
+    baby->setTypeId(entity::EntityTypeKeys::SHEEP); // 工厂绕过补救：直接构造缺 typeId
 
     // 设置为幼体
     baby->setChild(true);

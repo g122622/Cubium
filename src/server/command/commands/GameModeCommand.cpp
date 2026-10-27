@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2026 Guo Yi
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -86,16 +86,18 @@ void GameModeCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatc
 {
     using namespace mc::command;
 
-    auto modeArg =
-        std::make_shared<ArgumentCommandNode<ServerCommandSource, GameMode>>("gamemode", GameModeArgumentType::gameMode());
+    auto modeArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, GameMode>>(
+        "gamemode", GameModeArgumentType::gameMode());
 
     modeArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
         return _setGameModeSelf(ctx);
     });
 
     auto targetArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, EntitySelector>>(
-        "target", EntityArgumentType::entities());
-    targetArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _setGameModeOthers(ctx); });
+        "target", EntityArgumentType::players());
+    targetArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _setGameModeOthers(ctx);
+    });
 
     modeArg->addChild(targetArg);
 

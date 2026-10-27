@@ -50,7 +50,7 @@ void DamageCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatche
     auto targetArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, EntitySelector>>(
         "target", EntityArgumentType::entity());
     auto amountArg =
-        std::make_shared<ArgumentCommandNode<ServerCommandSource, f32>>("amount", FloatArgumentType::floatArg());
+        std::make_shared<ArgumentCommandNode<ServerCommandSource, f32>>("amount", FloatArgumentType::floatArg(0.0f));
     amountArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
         return _damage(ctx);
     });

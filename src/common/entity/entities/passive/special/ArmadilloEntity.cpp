@@ -501,6 +501,7 @@ std::unique_ptr<AnimalEntity> ArmadilloEntity::spawnBaby(AnimalEntity& /*partner
         return nullptr;
     }
     auto baby = std::make_unique<ArmadilloEntity>(0, *registry);
+    baby->setTypeId(entity::EntityTypeKeys::ARMADILLO); // 工厂绕过补救：直接构造缺 typeId
     baby->setChild(true);
     baby->setPosition(x(), y(), z());
     return baby;

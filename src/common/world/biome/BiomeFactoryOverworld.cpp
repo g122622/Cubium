@@ -248,7 +248,9 @@ Biome createSnowyTaiga()
     // 只写了 spawners，没有覆盖 creature_spawn_probability（原版取字段默认值 0.1）。
     biome.setSpawnInfo(world::spawn::MobSpawnInfo{});
     // 雪地针叶林水体颜色
-    biome.setEffects(BiomeEffects::Builder().waterColor(0x3D57D6).waterFogColor(0x050533)
+    biome.setEffects(BiomeEffects::Builder()
+            .waterColor(0x3D57D6)
+            .waterFogColor(0x050533)
             .fogColor(0x000000)
             .skyColor(0x839EFF)
             .build());

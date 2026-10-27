@@ -69,34 +69,28 @@ void GameRuleCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatc
             return _executeQueryRule(ctx, ruleName);
         });
 
-        // 原版只有一个 value 参数（GameRule.argument()）：单独执行它表示查询，
-        // 再跟一个值（同名参数）表示设置。
+        // 原版结构（GameRuleCommand.buildRuleArguments）：规则字面量节点自身执行查询，
+        // 其下只有一个 value 参数节点执行设置。此前这里在 value 之下又挂了一个同名 value
+        // 参数节点，结果 `/gamerule <rule> false` 的布尔值被外层 value 先吃掉并按查询执行，
+        // 设置分支永远不触发。
         if (isBoolean) {
-            auto queryArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, bool>>(
-                "value", BoolArgumentType::boolArg());
-            queryArg->setCommand([ruleName](CommandContext<ServerCommandSource>& ctx) {
-                return _executeQueryRule(ctx, ruleName);
-            });
-            auto setArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, bool>>(
-                "value", BoolArgumentType::boolArg());
-            setArg->setCommand([ruleName](CommandContext<ServerCommandSource>& ctx) {
+            auto valueArg =
+                std::make_shared<ArgumentCommandNode<ServerCommandSource, bool>>("value", BoolArgumentType::boolArg());
+            valueArg->setCommand([ruleName](CommandContext<ServerCommandSource>& ctx) {
                 return _executeSetRule(ctx, ruleName);
             });
-            queryArg->addChild(setArg);
-            ruleNode->addChild(queryArg);
+            ruleNode->addChild(valueArg);
         } else {
-            auto queryArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, i32>>(
-                "value", IntegerArgumentType::integer());
-            queryArg->setCommand([ruleName](CommandContext<ServerCommandSource>& ctx) {
-                return _executeQueryRule(ctx, ruleName);
-            });
-            auto setArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, i32>>(
-                "value", IntegerArgumentType::integer());
-            setArg->setCommand([ruleName](CommandContext<ServerCommandSource>& ctx) {
+            // 整数规则在原版里都带 [min, max] 约束，命令树据此注册带边界的 integer 参数
+            // （客户端用它做补全与校验，网络负载里也会写出边界字节）。此前统一用无界
+            // integer()，命令树与客户端拿到的序列化参数都与原版不一致。
+            const auto [minValue, maxValue] = world::gamerule::GameRules::getIntRange(ruleName);
+            auto valueArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, i32>>(
+                "value", IntegerArgumentType::integer(minValue, maxValue));
+            valueArg->setCommand([ruleName](CommandContext<ServerCommandSource>& ctx) {
                 return _executeSetRule(ctx, ruleName);
             });
-            queryArg->addChild(setArg);
-            ruleNode->addChild(queryArg);
+            ruleNode->addChild(valueArg);
         }
         queryNode->addChild(ruleNode);
     };

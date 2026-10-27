@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2026 Guo Yi
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -25,6 +25,7 @@
 
 #include "common/advancement/AdvancementManager.hpp"
 #include "common/advancement/trigger/conditions/NBTPredicate.hpp"
+#include "common/command/StringReader.hpp"
 #include "common/command/arguments/EntityArgument.hpp"
 #include "common/core/Types.hpp"
 #include "common/entity/entities/player/Player.hpp"
@@ -60,6 +61,17 @@ namespace mc::command::support {
 EntitySelector gameProfileSelector(const std::string& text)
 {
     EntitySelector selector;
+    // 原版 GameProfileArgument 先尝试实体选择器解析（`@s` / `@a` / `@a[tag=x]`），失败才按名字列表。
+    // /team join <team> @s 完全依赖这条路径；此前一律 setUsername("@s")，导致按用户名查不到玩家。
+    if (!text.empty() && text.front() == '@') {
+        try {
+            mc::command::StringReader reader(text);
+            return mc::command::EntityArgumentType::entity()->parse(reader);
+        }
+        catch (const mc::command::CommandException&) {
+            // 选择器语法不合法：原样交给按用户名查找，交由调用方报「找不到玩家」。
+        }
+    }
     // 多个名字时只取第一个（原版这些命令对每个档案单独执行，这里保持一次一个的语义）。
     selector.setUsername(text.substr(0, text.find(',')));
     return selector;

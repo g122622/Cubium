@@ -61,15 +61,19 @@ void LocateCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatche
     auto structureNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("structure");
     // 原版：structure 是 ResourceOrTagKeyArgument（可写 #minecraft:village），biome 是 ResourceOrTagArgument。
     auto structureArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, ParsedResourceOrTag>>(
-        "structure", ResourceOrTagKeyArgumentType::resourceOrTagKey());
-    structureArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _locateStructure(ctx); });
+        "structure", ResourceOrTagKeyArgumentType::resourceOrTagKey("minecraft:worldgen/structure"));
+    structureArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _locateStructure(ctx);
+    });
     structureNode->addChild(structureArg);
     locateNode->addChild(structureNode);
 
     auto biomeNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("biome");
     auto biomeArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, ParsedResourceOrTag>>(
-        "biome", ResourceOrTagArgumentType::resourceOrTag());
-    biomeArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return LocateBiomeCommand::locateBiome(ctx); });
+        "biome", ResourceOrTagArgumentType::resourceOrTag("minecraft:worldgen/biome"));
+    biomeArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return LocateBiomeCommand::locateBiome(ctx);
+    });
     biomeNode->addChild(biomeArg);
     locateNode->addChild(biomeNode);
 
@@ -77,7 +81,7 @@ void LocateCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatche
     // ResourceOrTagArgument，命令树里是 resource_or_tag）。
     auto poiNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("poi");
     auto poiArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, ParsedResourceOrTag>>(
-        "poi", ResourceOrTagArgumentType::resourceOrTag());
+        "poi", ResourceOrTagArgumentType::resourceOrTag("minecraft:point_of_interest_type"));
     poiArg->setCommand([](CommandContext<ServerCommandSource>& context) {
         context.getSource().sendError("commands.locate.poi.notImplemented");
         return 0;

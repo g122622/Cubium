@@ -99,7 +99,9 @@ std::vector<advancement::AdvancementPtr> collectAdvancements(
             if (target) {
                 std::function<void(advancement::AdvancementPtr)> collectChildren;
                 collectChildren = [&](advancement::AdvancementPtr adv) {
-                    if (visited.count(adv) > 0) return;
+                    if (visited.count(adv) > 0) {
+                        return;
+                    }
                     visited.insert(adv);
                     result.push_back(adv);
                     for (const auto& child : adv->getChildren()) {
@@ -181,7 +183,9 @@ server::PlayerAdvancements* getPlayerAdvancements(server::IServer* server, Playe
 void AdvancementCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
 {
     auto advancementNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("advancement");
-    advancementNode->setRequirement([](const ServerCommandSource& source) { return source.hasPermission(2); });
+    advancementNode->setRequirement([](const ServerCommandSource& source) {
+        return source.hasPermission(2);
+    });
     support::applyMetadata(advancementNode,
         support::makeMetadata(
             "Grants, revokes, or tests advancements.", "/advancement <grant|revoke|test> <targets> ...", 2, {}, true));
@@ -191,42 +195,47 @@ void AdvancementCommand::registerTo(CommandDispatcher<ServerCommandSource>& disp
 
     // /advancement grant <targets> everything
     auto targetsArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, EntitySelector>>(
-        "targets", EntityArgumentType::entities());
+        "targets", EntityArgumentType::players());
 
     auto everythingNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("everything");
-    everythingNode->setCommand(
-        [](CommandContext<ServerCommandSource>& ctx) { return _grantAdvancement(ctx, GrantMode::Everything); });
+    everythingNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _grantAdvancement(ctx, GrantMode::Everything);
+    });
 
     // /advancement grant <targets> only <advancement>
     auto onlyNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("only");
     auto advancementArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, ResourceLocation>>(
         "advancement", AdvancementResourceArgumentType::advancement());
-    advancementArg->setCommand(
-        [=](CommandContext<ServerCommandSource>& ctx) { return _grantAdvancement(ctx, GrantMode::Only); });
+    advancementArg->setCommand([=](CommandContext<ServerCommandSource>& ctx) {
+        return _grantAdvancement(ctx, GrantMode::Only);
+    });
     onlyNode->addChild(advancementArg);
 
     // /advancement grant <targets> from <advancement>
     auto fromNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("from");
     auto fromArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, ResourceLocation>>(
         "advancement", AdvancementResourceArgumentType::advancement());
-    fromArg->setCommand(
-        [=](CommandContext<ServerCommandSource>& ctx) { return _grantAdvancement(ctx, GrantMode::From); });
+    fromArg->setCommand([=](CommandContext<ServerCommandSource>& ctx) {
+        return _grantAdvancement(ctx, GrantMode::From);
+    });
     fromNode->addChild(fromArg);
 
     // /advancement grant <targets> through <advancement>
     auto throughNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("through");
     auto throughArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, ResourceLocation>>(
         "advancement", AdvancementResourceArgumentType::advancement());
-    throughArg->setCommand(
-        [=](CommandContext<ServerCommandSource>& ctx) { return _grantAdvancement(ctx, GrantMode::Through); });
+    throughArg->setCommand([=](CommandContext<ServerCommandSource>& ctx) {
+        return _grantAdvancement(ctx, GrantMode::Through);
+    });
     throughNode->addChild(throughArg);
 
     // /advancement grant <targets> until <advancement>
     auto untilNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("until");
     auto untilArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, ResourceLocation>>(
         "advancement", AdvancementResourceArgumentType::advancement());
-    untilArg->setCommand(
-        [=](CommandContext<ServerCommandSource>& ctx) { return _grantAdvancement(ctx, GrantMode::Until); });
+    untilArg->setCommand([=](CommandContext<ServerCommandSource>& ctx) {
+        return _grantAdvancement(ctx, GrantMode::Until);
+    });
     untilNode->addChild(untilArg);
 
     // 组合 grant 节点
@@ -241,42 +250,47 @@ void AdvancementCommand::registerTo(CommandDispatcher<ServerCommandSource>& disp
     auto revokeNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("revoke");
 
     auto revokeTargetsArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, EntitySelector>>(
-        "targets", EntityArgumentType::entities());
+        "targets", EntityArgumentType::players());
 
     auto revokeEverythingNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("everything");
-    revokeEverythingNode->setCommand(
-        [](CommandContext<ServerCommandSource>& ctx) { return _revokeAdvancement(ctx, GrantMode::Everything); });
+    revokeEverythingNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _revokeAdvancement(ctx, GrantMode::Everything);
+    });
 
     // /advancement revoke <targets> only <advancement>
     auto revokeOnlyNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("only");
     auto revokeOnlyArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, ResourceLocation>>(
         "advancement", AdvancementResourceArgumentType::advancement());
-    revokeOnlyArg->setCommand(
-        [=](CommandContext<ServerCommandSource>& ctx) { return _revokeAdvancement(ctx, GrantMode::Only); });
+    revokeOnlyArg->setCommand([=](CommandContext<ServerCommandSource>& ctx) {
+        return _revokeAdvancement(ctx, GrantMode::Only);
+    });
     revokeOnlyNode->addChild(revokeOnlyArg);
 
     // /advancement revoke <targets> from <advancement>
     auto revokeFromNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("from");
     auto revokeFromArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, ResourceLocation>>(
         "advancement", AdvancementResourceArgumentType::advancement());
-    revokeFromArg->setCommand(
-        [=](CommandContext<ServerCommandSource>& ctx) { return _revokeAdvancement(ctx, GrantMode::From); });
+    revokeFromArg->setCommand([=](CommandContext<ServerCommandSource>& ctx) {
+        return _revokeAdvancement(ctx, GrantMode::From);
+    });
     revokeFromNode->addChild(revokeFromArg);
 
     // /advancement revoke <targets> through <advancement>
     auto revokeThroughNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("through");
     auto revokeThroughArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, ResourceLocation>>(
         "advancement", AdvancementResourceArgumentType::advancement());
-    revokeThroughArg->setCommand(
-        [=](CommandContext<ServerCommandSource>& ctx) { return _revokeAdvancement(ctx, GrantMode::Through); });
+    revokeThroughArg->setCommand([=](CommandContext<ServerCommandSource>& ctx) {
+        return _revokeAdvancement(ctx, GrantMode::Through);
+    });
     revokeThroughNode->addChild(revokeThroughArg);
 
     // /advancement revoke <targets> until <advancement>
     auto revokeUntilNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("until");
     auto revokeUntilArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, ResourceLocation>>(
         "advancement", AdvancementResourceArgumentType::advancement());
-    revokeUntilArg->setCommand(
-        [=](CommandContext<ServerCommandSource>& ctx) { return _revokeAdvancement(ctx, GrantMode::Until); });
+    revokeUntilArg->setCommand([=](CommandContext<ServerCommandSource>& ctx) {
+        return _revokeAdvancement(ctx, GrantMode::Until);
+    });
     revokeUntilNode->addChild(revokeUntilArg);
 
     // 组合 revoke 节点

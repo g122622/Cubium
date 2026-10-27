@@ -223,12 +223,21 @@ public:
         m_chainNodes[static_cast<size_t>(index)] = std::move(node);
     }
 
-    [[nodiscard]] size_t getChainSize() const noexcept { return m_chainNodes.size(); }
+    [[nodiscard]] size_t getChainSize() const noexcept
+    {
+        return m_chainNodes.size();
+    }
 
     /// 链路节点表（与参数表分开存，避免同名的 "modifier"/"command" 参数改写链路本身）。
-    void setChainNodes(std::vector<NodePtr> nodes) { m_chainNodes = std::move(nodes); }
+    void setChainNodes(std::vector<NodePtr> nodes)
+    {
+        m_chainNodes = std::move(nodes);
+    }
 
-    [[nodiscard]] const std::vector<NodePtr>& getChainNodes() const noexcept { return m_chainNodes; }
+    [[nodiscard]] const std::vector<NodePtr>& getChainNodes() const noexcept
+    {
+        return m_chainNodes;
+    }
 
     [[nodiscard]] NodePtr getNode(i32 index) const
     {
@@ -272,9 +281,15 @@ public:
     // ========== 回调来源 ==========
 
     /// 解析器每走一步记下「这条候选路径最后读到的节点回调」，执行时只认匹配本路径的那个。
-    void setCallbackProvenance(const CommandCallback<S>& callback) { m_callbackProvenance = callback; }
+    void setCallbackProvenance(const CommandCallback<S>& callback)
+    {
+        m_callbackProvenance = callback;
+    }
 
-    [[nodiscard]] const CommandCallback<S>& getCallbackProvenance() const noexcept { return m_callbackProvenance; }
+    [[nodiscard]] const CommandCallback<S>& getCallbackProvenance() const noexcept
+    {
+        return m_callbackProvenance;
+    }
 
     // ========== 解析/执行协作 ==========
 
@@ -285,8 +300,15 @@ public:
      * 让 dispatcher 继续派发它下面的 command 节点；这一步产生的「输入用完」只是一个
      * 待解释的中间状态，不能算作完整的解析结果。
      */
-    void setPendingHandOff() noexcept { m_pendingHandOff = true; }
-    [[nodiscard]] bool isPendingHandOff() const noexcept { return m_pendingHandOff; }
+    void setPendingHandOff() noexcept
+    {
+        m_pendingHandOff = true;
+    }
+
+    [[nodiscard]] bool isPendingHandOff() const noexcept
+    {
+        return m_pendingHandOff;
+    }
 
     // ========== 子上下文 ==========
 
@@ -363,9 +385,15 @@ public:
         return m_context.get();
     }
 
-    [[nodiscard]] const std::optional<CommandException>& getError() const noexcept { return m_error; }
+    [[nodiscard]] const std::optional<CommandException>& getError() const noexcept
+    {
+        return m_error;
+    }
 
-    [[nodiscard]] i32 getErrorCursor() const noexcept { return m_errorCursor; }
+    [[nodiscard]] i32 getErrorCursor() const noexcept
+    {
+        return m_errorCursor;
+    }
 
     /**
      * @brief 解析后尚未消费的剩余文本
@@ -373,7 +401,10 @@ public:
      * dispatcher 用它比较成功候选（剩余越短越贴近完整命令）；非空表示这条命令没有被
      * 整个解释掉（`list extra` 的 "extra"）。
      */
-    [[nodiscard]] std::string_view getRemaining() const noexcept { return m_remaining; }
+    [[nodiscard]] std::string_view getRemaining() const noexcept
+    {
+        return m_remaining;
+    }
 
     /**
      * @brief 获取异常（如果有）
@@ -381,7 +412,10 @@ public:
      * 与 brigadier 一致：只看解析错误。剩余文本是否算错误由 parseNodes 决定——它只会
      * 把「输入用完」的结果当成成功候选，所以这里不再额外检查 remaining。
      */
-    [[nodiscard]] std::optional<CommandException> getException() const { return m_error; }
+    [[nodiscard]] std::optional<CommandException> getException() const
+    {
+        return m_error;
+    }
 
 private:
     std::unique_ptr<CommandContext<S>> m_context;
@@ -390,7 +424,6 @@ private:
     std::string m_remaining;
     std::optional<CommandException> m_error;
     i32 m_errorCursor = -1;
-
 };
 
 } // namespace mc::command

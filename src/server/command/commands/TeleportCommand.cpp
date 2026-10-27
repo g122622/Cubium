@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2026 Guo Yi
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -27,8 +27,8 @@
 #include "common/command/CommandDispatcher.hpp"
 #include "common/command/CommandNode.hpp"
 #include "common/command/arguments/ArgumentType.hpp"
-#include "common/command/arguments/GameModeArgument.hpp"
 #include "common/command/arguments/EntityArgument.hpp"
+#include "common/command/arguments/GameModeArgument.hpp"
 #include "common/core/Types.hpp"
 #include "common/entity/entities/player/Player.hpp" // Player::setPosition/setRotation/teleportToDimension（实体旁路传送）
 #include "common/util/assert/AssertMacros.hpp"
@@ -246,7 +246,9 @@ void TeleportCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatc
 
     // 原版注册顺序：teleport 是根节点，tp 重定向到它（1.21 起 /tp 只是 /teleport 的别名）。
     auto teleportNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("teleport");
-    teleportNode->setRequirement([](const ServerCommandSource& source) { return source.hasPermission(2); });
+    teleportNode->setRequirement([](const ServerCommandSource& source) {
+        return source.hasPermission(2);
+    });
     support::applyMetadata(teleportNode,
         support::makeMetadata("Teleports entities to a location.",
             "/teleport <targets> <location> | <targets> <destination> | <location> | <destination>",
@@ -262,24 +264,32 @@ void TeleportCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatc
         "targets", EntityArgumentType::entities());
     auto locationArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, Coordinates::Ptr>>(
         "location", Vec3ArgumentType::vec3NoCenter());
-    locationArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _teleportTargetToPosition(ctx); });
+    locationArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _teleportTargetToPosition(ctx);
+    });
     targetsArg->addChild(locationArg);
 
     // /teleport <targets> <destination>
     auto destinationArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, EntitySelector>>(
-        "destination", EntityArgumentType::entities());
-    destinationArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _teleportTargetToEntity(ctx); });
+        "destination", EntityArgumentType::entity());
+    destinationArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _teleportTargetToEntity(ctx);
+    });
     targetsArg->addChild(destinationArg);
 
     // /teleport <location>（把执行者送到坐标）
     auto selfLocationArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, Coordinates::Ptr>>(
         "location", Vec3ArgumentType::vec3NoCenter());
-    selfLocationArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _teleportToPosition(ctx); });
+    selfLocationArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _teleportToPosition(ctx);
+    });
 
     // /teleport <destination>（把执行者送到目标实体）
     auto selfDestinationArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, EntitySelector>>(
-        "destination", EntityArgumentType::entities());
-    selfDestinationArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _teleportToEntity(ctx); });
+        "destination", EntityArgumentType::entity());
+    selfDestinationArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _teleportToEntity(ctx);
+    });
 
     teleportNode->addChild(targetsArg);
     teleportNode->addChild(selfLocationArg);

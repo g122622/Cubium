@@ -799,7 +799,11 @@ Result<BlockUseResult> BlockInteractionManager::handleBlockUse(
 
     // ④ 空手交互（对齐 vanilla useWithoutItem）。仅当 useItemOn 返回 TRY_WITH_EMPTY_HAND
     //    且为主线时回退（vanilla `interactionhand == MAIN_HAND`）；返回 Pass/Fail 不回退。
-    if (hand == Hand::MainHand && itemOn.has_value() &&
+    //    还必须真正空手：手持物品时方块返回 TRY_WITH_EMPTY_HAND 意为"我不处理这件物品"，
+    //    vanilla 此时直接落到 Item::useOn，不会替玩家做一次空手交互。此前缺 heldItemEmpty
+    //    门控，手持木棍右键空花盆会被当作空手交互（FlowerPotBlock::useWithoutItem 对空花盆
+    //    返回 Consume），方块的"不处理"被误报成一次成功的右键。
+    if (hand == Hand::MainHand && heldItemEmpty && itemOn.has_value() &&
         itemOn->actionResult == ActionResultType::TryEmptyHandInteraction) {
         const auto withoutItem =
             _dispatchBlockUse(playerId, *world, pos, hand, hitPos, face, /*withItem=*/false, nullptr);

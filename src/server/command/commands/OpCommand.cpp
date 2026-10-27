@@ -26,13 +26,14 @@
 #include "common/command/CommandContext.hpp"
 #include "common/command/CommandDispatcher.hpp"
 #include "common/command/CommandNode.hpp"
-#include "common/command/arguments/GameModeArgument.hpp"
 #include "common/command/arguments/EntityArgument.hpp"
+#include "common/command/arguments/GameModeArgument.hpp"
 #include "common/core/Types.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "server/application/IServer.hpp"
 #include "server/command/ServerCommandSource.hpp"
 #include "server/command/support/CommandMetadata.hpp"
+#include "server/command/support/CommandSuggestionProviders.hpp"
 #include "server/command/support/PlayerResolver.hpp"
 #include "server/core/ConnectionManager.hpp"
 #include "server/core/OpListManager.hpp"
@@ -62,7 +63,10 @@ void OpCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
     // /op <player>
     auto playerArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
         "targets", GameProfileArgumentType::gameProfile());
-    playerArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _opPlayer(ctx); });
+    playerArg->setCustomSuggestions(std::make_shared<ServerSuggestionProvider<ServerCommandSource>>());
+    playerArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _opPlayer(ctx);
+    });
 
     opNode->addChild(playerArg);
     dispatcher.registerCommand(opNode);

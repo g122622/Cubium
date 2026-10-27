@@ -96,7 +96,10 @@ public:
         // 命令树，由 ExecuteCommand 注册处标记隐藏；run 节点本身照常出现在快照里。
     }
 
-    [[nodiscard]] i32 chain() const noexcept { return m_chain; }
+    [[nodiscard]] i32 chain() const noexcept
+    {
+        return m_chain;
+    }
 
     /// 注册阶段登记全部修改器节点，parse 时按「字面量 → 索引」继续解析。
     static void setModifiers(std::vector<std::shared_ptr<CommandNode<ServerCommandSource>>> modifiers)
@@ -109,7 +112,10 @@ public:
     }
 
     /// /execute 下那个不带前置修改器的 run（`execute run <command>`）。
-    static void setTopLevelRun(const std::shared_ptr<ExecuteRunNode>& run) { s_topLevelRun = run; }
+    static void setTopLevelRun(const std::shared_ptr<ExecuteRunNode>& run)
+    {
+        s_topLevelRun = run;
+    }
 
     void parse(StringReader& reader, CommandContext<ServerCommandSource>& context) const override
     {
@@ -218,7 +224,10 @@ private:
         return modifier.getChild(name);
     }
 
-    [[nodiscard]] static bool hasSegment(const CommandNode<ServerCommandSource>& modifier) { return true; }
+    [[nodiscard]] static bool hasSegment(const CommandNode<ServerCommandSource>& modifier)
+    {
+        return true;
+    }
 
     /**
      * @brief 在修改器下拼出「一条走到底的末端参数子树」，缓存为 commandSegment<n>
@@ -270,7 +279,8 @@ private:
         return head;
     }
 
-    static std::shared_ptr<CommandNode<ServerCommandSource>> firstArgumentChild(const CommandNode<ServerCommandSource>& node)
+    static std::shared_ptr<CommandNode<ServerCommandSource>> firstArgumentChild(
+        const CommandNode<ServerCommandSource>& node)
     {
         for (const auto& name : node.getArguments()) {
             if (auto child = node.getChild(name)) {

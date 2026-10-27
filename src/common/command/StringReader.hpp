@@ -85,9 +85,15 @@ public:
 
     /// 游标是否已停在末尾（brigadier 的 `canRead()` / `getRemainingLength() == 0`）。
     /// 本类的 {@link canRead} 语义是「还能再读 length 个字符」，游标在末尾时仍为 true。
-    [[nodiscard]] bool atEnd() const noexcept { return m_cursor >= getTotalLength(); }
+    [[nodiscard]] bool atEnd() const noexcept
+    {
+        return m_cursor >= getTotalLength();
+    }
 
-    [[nodiscard]] char peek() const noexcept { return canRead() ? m_input[static_cast<size_t>(m_cursor)] : '\0'; }
+    [[nodiscard]] char peek() const noexcept
+    {
+        return canRead() ? m_input[static_cast<size_t>(m_cursor)] : '\0';
+    }
 
     [[nodiscard]] char peek(i32 offset) const noexcept
     {

@@ -61,7 +61,11 @@ Biome createTheEnd()
     biome.setClimate(BiomeClimate(false, 0.5f, BiomeClimate::TemperatureModifier::None, 0.5f, 0.5f, 0.0f, 0.0f));
 
     // 视觉效果：雾颜色 10518688 (暗紫色)
-    biome.setEffects(BiomeEffects::Builder().fogColor(0x000000).waterColor(4159204).waterFogColor(329011).skyColor(0x000000)
+    biome.setEffects(BiomeEffects::Builder()
+            .fogColor(0x000000)
+            .waterColor(4159204)
+            .waterFogColor(329011)
+            .skyColor(0x000000)
             .build());
 
     // 环境音效：默认洞穴心境音效
@@ -86,7 +90,11 @@ Biome createSmallEndIslands()
     biome.setSubSurfaceBlock(getBlockState(VanillaBlocks::END_STONE));
     biome.setClimate(BiomeClimate(false, 0.5f, BiomeClimate::TemperatureModifier::None, 0.5f, 0.5f, 0.0f, 0.0f));
 
-    biome.setEffects(BiomeEffects::Builder().fogColor(0x000000).waterColor(4159204).waterFogColor(329011).skyColor(0x000000)
+    biome.setEffects(BiomeEffects::Builder()
+            .fogColor(0x000000)
+            .waterColor(4159204)
+            .waterFogColor(329011)
+            .skyColor(0x000000)
             .build());
 
     // 环境音效：默认洞穴心境音效
@@ -111,7 +119,11 @@ Biome createEndMidlands()
     biome.setSubSurfaceBlock(getBlockState(VanillaBlocks::END_STONE));
     biome.setClimate(BiomeClimate(false, 0.5f, BiomeClimate::TemperatureModifier::None, 0.5f, 0.5f, 0.0f, 0.0f));
 
-    biome.setEffects(BiomeEffects::Builder().fogColor(0x000000).waterColor(4159204).waterFogColor(329011).skyColor(0x000000)
+    biome.setEffects(BiomeEffects::Builder()
+            .fogColor(0x000000)
+            .waterColor(4159204)
+            .waterFogColor(329011)
+            .skyColor(0x000000)
             .build());
 
     // 环境音效：默认洞穴心境音效
@@ -136,7 +148,11 @@ Biome createEndHighlands()
     biome.setSubSurfaceBlock(getBlockState(VanillaBlocks::END_STONE));
     biome.setClimate(BiomeClimate(false, 0.5f, BiomeClimate::TemperatureModifier::None, 0.5f, 0.5f, 0.0f, 0.0f));
 
-    biome.setEffects(BiomeEffects::Builder().fogColor(0x000000).waterColor(4159204).waterFogColor(329011).skyColor(0x000000)
+    biome.setEffects(BiomeEffects::Builder()
+            .fogColor(0x000000)
+            .waterColor(4159204)
+            .waterFogColor(329011)
+            .skyColor(0x000000)
             .build());
 
     // 环境音效：默认洞穴心境音效
@@ -161,7 +177,11 @@ Biome createEndBarrens()
     biome.setSubSurfaceBlock(getBlockState(VanillaBlocks::END_STONE));
     biome.setClimate(BiomeClimate(false, 0.5f, BiomeClimate::TemperatureModifier::None, 0.5f, 0.5f, 0.0f, 0.0f));
 
-    biome.setEffects(BiomeEffects::Builder().fogColor(0x000000).waterColor(4159204).waterFogColor(329011).skyColor(0x000000)
+    biome.setEffects(BiomeEffects::Builder()
+            .fogColor(0x000000)
+            .waterColor(4159204)
+            .waterFogColor(329011)
+            .skyColor(0x000000)
             .build());
 
     // 环境音效：默认洞穴心境音效

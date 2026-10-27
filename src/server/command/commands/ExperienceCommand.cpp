@@ -71,9 +71,9 @@ void ExperienceCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispa
     // 注意：amount 参数允许负值（原版 MC 支持）
     auto addNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("add");
     auto playerArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, EntitySelector>>(
-        "target", EntityArgumentType::entities());
+        "target", EntityArgumentType::players());
     auto amountArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, i32>>("amount",
-        IntegerArgumentType::integer() // 移除最小值限制，允许负值
+        IntegerArgumentType::integer() // 原版 add 的 amount 无边界（允许负值扣经验）
     );
     auto pointsNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("points");
     pointsNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
@@ -94,7 +94,7 @@ void ExperienceCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispa
     // /experience set <player> <amount> [points|levels]
     auto setNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("set");
     auto setPlayerArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, EntitySelector>>(
-        "target", EntityArgumentType::entities());
+        "target", EntityArgumentType::players());
     auto setAmountArg =
         std::make_shared<ArgumentCommandNode<ServerCommandSource, i32>>("amount", IntegerArgumentType::integer(0));
     auto setPointsNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("points");

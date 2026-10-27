@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2026 Guo Yi
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -60,12 +60,16 @@ void KickCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
         support::makeMetadata("Disconnect players from the server.", "/kick <targets> [reason]", 3, {}, true));
 
     auto targetsArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, EntitySelector>>(
-        "targets", EntityArgumentType::entities());
-    targetsArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _kickPlayers(ctx); });
+        "targets", EntityArgumentType::players());
+    targetsArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _kickPlayers(ctx);
+    });
 
     auto reasonArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, ComponentTextPtr>>(
         "reason", MessageComponentArgumentType::message());
-    reasonArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _kickPlayers(ctx); });
+    reasonArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _kickPlayers(ctx);
+    });
 
     targetsArg->addChild(reasonArg);
     kickNode->addChild(targetsArg);
@@ -87,9 +91,8 @@ i32 KickCommand::_kickPlayers(CommandContext<ServerCommandSource>& context)
 
     const EntitySelector selector = context.getArgument<EntitySelector>("targets");
     const auto playerIds = support::resolvePlayerIds(source, selector);
-    const std::string reason =
-        context.hasArgument("reason") ? context.getArgument<ComponentTextPtr>("reason")->text
-                                                                 : std::string(DEFAULT_KICK_REASON);
+    const std::string reason = context.hasArgument("reason") ? context.getArgument<ComponentTextPtr>("reason")->text
+                                                             : std::string(DEFAULT_KICK_REASON);
 
     i32 kickedCount = 0;
     for (const PlayerId playerId : playerIds) {

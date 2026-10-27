@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2026 Guo Yi
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -74,7 +74,7 @@ void HelpCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
     });
 
     auto commandArg =
-        std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>("command", StringArgumentType::word());
+        std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>("command", StringArgumentType::greedyString());
     commandArg->setCommand([&dispatcher](CommandContext<ServerCommandSource>& ctx) {
         return _showCommandHelp(ctx, dispatcher);
     });

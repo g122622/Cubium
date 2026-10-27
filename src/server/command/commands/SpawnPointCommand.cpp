@@ -124,15 +124,17 @@ void SpawnPointCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispa
 
     // /spawnpoint <targets>
     auto targetsNode = std::make_shared<ArgumentCommandNode<ServerCommandSource, EntitySelector>>(
-        "targets", EntityArgumentType::player());
+        "targets", EntityArgumentType::players());
     targetsNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
         return _setPlayerSpawnPoint(ctx);
     });
 
     // /spawnpoint <targets> <pos>
-    auto posNode =
-        std::make_shared<ArgumentCommandNode<ServerCommandSource, Coordinates::Ptr>>("pos", BlockPosArgumentType::blockPos());
-    posNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _setPlayerSpawnPointAtPosition(ctx); });
+    auto posNode = std::make_shared<ArgumentCommandNode<ServerCommandSource, Coordinates::Ptr>>(
+        "pos", BlockPosArgumentType::blockPos());
+    posNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _setPlayerSpawnPointAtPosition(ctx);
+    });
 
     // /spawnpoint <targets> <pos> <rotation>
     auto rotationNode = std::make_shared<ArgumentCommandNode<ServerCommandSource, Coordinates::Ptr>>(

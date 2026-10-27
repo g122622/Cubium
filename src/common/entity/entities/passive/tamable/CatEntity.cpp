@@ -41,6 +41,7 @@
 #include "common/entity/core/DataParameter.hpp"
 #include "common/entity/core/EntityClassRegistry.hpp"
 #include "common/entity/core/EntityDataManager.hpp"
+#include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/core/MobEntity.hpp"
 #include "common/entity/entities/passive/basic/RabbitEntity.hpp"
@@ -220,6 +221,7 @@ std::unique_ptr<AnimalEntity> CatEntity::spawnBaby(AnimalEntity& /*partner*/)
 
     // 创建小猫
     auto baby = std::make_unique<CatEntity>(0, *registry);
+    baby->setTypeId(entity::EntityTypeKeys::CAT); // 工厂绕过补救：直接构造缺 typeId
 
     // 设置为幼体
     baby->setChild(true);
