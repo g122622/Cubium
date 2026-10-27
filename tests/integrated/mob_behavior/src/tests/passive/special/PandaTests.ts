@@ -55,6 +55,12 @@ function pandaBreedsWhenFedBamboo(test: Test): void {
   const panda1 = test.spawn(pandaType, { x: 4, y: 2, z: 4 });
   const panda2 = test.spawn(pandaType, { x: 4, y: 2, z: 6 });
 
+  // 熊猫繁殖的先决条件：vanilla Panda.PandaBreedGoal.canUse 在 super.canUse() 通过后
+  // 还要求 canFindBamboo()——以熊猫自身为中心、水平 8 格 / 垂直 3 格内存在竹子方块，
+  // 否则拒绝繁殖（并把 unhappyCounter 置 32、冷却 600 tick）。grass_pen 结构里没有竹子，
+  // 故这里显式摆一株竹子，满足该前置条件。
+  test.setBlockType("minecraft:bamboo", { x: 4, y: 2, z: 5 });
+
   // 创造玩家持竹子：创造模式喂食不消耗竹子（同一根竹子喂两头熊猫）。
   const player = test.spawnSimulatedPlayer({ x: 2, y: 2, z: 4 }, "breeder");
   const bamboo = new ItemStack("minecraft:bamboo", 1);
