@@ -784,14 +784,19 @@ void ExperienceBottleEntity::onImpact(const RayTraceResult& result)
     math::IRandom& rng = m_world->getRandom();
     const i32 experience = 3 + rng.nextInt(5) + rng.nextInt(5);
 
-    // 经验球从命中点沿反方向（命中方块时为命中面法线反向，命中实体时为速度反向）散开
+    // 经验球从命中点散开。方向语义对齐 vanilla ThrownExperienceBottle.onHit：
+    //   - 命中方块：传命中面的**外法线** getDirection().getUnitVec3()，是朝外不是朝内。
+    //     此前这里取了反（-xOffset/-yOffset/-zOffset），于是向下扔、撞到地板顶面（face=Up）
+    //     时方向变成 (0,-1,0)，经验球被生成在地板方块内部（origin.y = 6 - 0.25 = 5.75），
+    //     随即被方块位置吞掉，表现为「经验瓶爆开但查不到任何 experience_orb」。
+    //   - 命中实体：传 getDeltaMovement().scale(-1.0)，即速度反向（这一支本来就是反的）。
     Vector3 origin(x(), y(), z());
     Vector3 direction(0.0f, 0.0f, 0.0f);
     if (result.type == RayTraceResultType::Block) {
         origin = Vector3(result.hitPosition.x, result.hitPosition.y, result.hitPosition.z);
-        direction = Vector3(static_cast<f32>(-Directions::xOffset(result.face)),
-            static_cast<f32>(-Directions::yOffset(result.face)),
-            static_cast<f32>(-Directions::zOffset(result.face)));
+        direction = Vector3(static_cast<f32>(Directions::xOffset(result.face)),
+            static_cast<f32>(Directions::yOffset(result.face)),
+            static_cast<f32>(Directions::zOffset(result.face)));
     } else if (result.type == RayTraceResultType::Entity) {
         origin = Vector3(result.hitPosition.x, result.hitPosition.y, result.hitPosition.z);
         const Vector3 velocity = this->velocity();
