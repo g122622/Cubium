@@ -97,6 +97,29 @@ Ingredient Ingredient::fromStacks(std::vector<ItemStack> stacks)
 
 Ingredient Ingredient::merge(const std::vector<Ingredient>& parts)
 {
+    // 原版 `Ingredient.of` / `fromValues` 只保留标签引用：#minecraft:planks 写成原料时
+    // 语义就是「标签里的全部物品」，展开成快照会让后来补齐的物品看不见。
+    for (const Ingredient& part : parts) {
+        if (!part.hasTag()) {
+            continue;
+        }
+        Ingredient result = part;
+        // 标签身份只能保留一个：保留第一个标签的引用（成员随后补齐时仍然可见），
+        // 其余部分的候选物品落成显式列表。
+        for (const Ingredient& other : parts) {
+            if (&other == &part) {
+                continue;
+            }
+            for (const Item* item : other.getAllMatchingItems()) {
+                if (item != nullptr) {
+                    result.m_matchingStacks.emplace_back(*item, 1);
+                }
+            }
+        }
+        result._updateSimple();
+        return result;
+    }
+
     Ingredient result;
     std::set<ItemId> addedIds; // 去重
 
@@ -124,16 +147,17 @@ bool Ingredient::test(const ItemStack& stack) const
         return false;
     }
 
-    // 标签匹配
+    const Item* stackItem = stack.getItem();
+
+    // 标签与显式物品可以并存（`["#minecraft:planks", "minecraft:oak_planks"]`）：
+    // 任一来源匹配即可，与原版 `Ingredient#test` 遍历全部候选物品的口径一致。
     if (m_hasTag) {
         _resolveTagIfNeeded();
-        const Item* stackItem = stack.getItem();
         for (const Item* taggedItem : m_tagItems) {
             if (taggedItem == stackItem) {
                 return true;
             }
         }
-        return false;
     }
 
     // 物品列表匹配（只比较物品类型，不检查 NBT 数据）
@@ -161,7 +185,7 @@ bool Ingredient::test(const Item* item) const
         return false;
     }
 
-    // 标签匹配
+    // 标签与显式物品任一匹配即可（见 test(const ItemStack&)）
     if (m_hasTag) {
         _resolveTagIfNeeded();
         for (const Item* taggedItem : m_tagItems) {
@@ -169,7 +193,6 @@ bool Ingredient::test(const Item* item) const
                 return true;
             }
         }
-        return false;
     }
 
     // 物品列表匹配
@@ -203,21 +226,22 @@ bool Ingredient::hasNoMatchingItems() const
 std::vector<const Item*> Ingredient::getAllMatchingItems() const
 {
     std::vector<const Item*> items;
+    std::set<ItemId> seen;
 
-    // 添加显式物品列表中的物品
-    for (const ItemStack& stack : m_matchingStacks) {
-        if (stack.getItem() != nullptr) {
-            items.push_back(stack.getItem());
-        }
-    }
-
-    // 如果有标签，解析并添加标签中的物品
+    // 同一条配方里标签与显式物品可以同时出现（`["#minecraft:planks", "minecraft:oak_planks"]`），
+    // 合并成一个原料：候选物品是标签成员与显式物品的并集，重复的只保留一份。
     if (m_hasTag) {
         _resolveTagIfNeeded();
         for (const Item* item : m_tagItems) {
-            if (item != nullptr) {
+            if (item != nullptr && seen.insert(item->itemId()).second) {
                 items.push_back(item);
             }
+        }
+    }
+    for (const ItemStack& stack : m_matchingStacks) {
+        const Item* item = stack.getItem();
+        if (item != nullptr && seen.insert(item->itemId()).second) {
+            items.push_back(item);
         }
     }
 

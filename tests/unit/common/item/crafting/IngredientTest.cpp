@@ -28,6 +28,7 @@
 #include "item/core/ItemStack.hpp"
 #include "item/items/block/BlockItemRegistry.hpp"
 #include "item/tag/ItemTags.hpp"
+#include <algorithm>
 #include <gtest/gtest.h>
 
 using namespace mc;
@@ -450,23 +451,40 @@ TEST_F(IngredientTest, Merge_SingleIngredient)
 
 TEST_F(IngredientTest, Merge_TwoTagIngredients)
 {
+    // 多个标签合并成一个原料：原料只能带一个标签身份，成员取各标签的并集
+    // （与原版 `Ingredient.of(values)` 收下全部候选物品的口径一致）。
+    // 注意用 `wool_carpets`：单独的 `carpets` 标签只有嵌套引用，内置快照里是空的。
     Ingredient flowers = Ingredient::fromTag("minecraft:flowers");
     Ingredient carpets = Ingredient::fromTag("minecraft:wool_carpets");
 
     Ingredient merged = Ingredient::merge({flowers, carpets});
 
-    // 应该匹配花朵
     Item* dandelion = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "dandelion"));
     ASSERT_NE(dandelion, nullptr);
     EXPECT_TRUE(merged.test(*dandelion));
 
-    // 应该匹配地毯
     Item* whiteCarpet = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "white_carpet"));
     ASSERT_NE(whiteCarpet, nullptr);
     EXPECT_TRUE(merged.test(*whiteCarpet));
 
-    // 合并后不应该是标签类型（标签被展开为物品列表）
-    EXPECT_FALSE(merged.hasTag());
+    const auto items = merged.getAllMatchingItems();
+    EXPECT_NE(std::find(items.begin(), items.end(), dandelion), items.end());
+    EXPECT_NE(std::find(items.begin(), items.end(), whiteCarpet), items.end());
+}
+
+TEST_F(IngredientTest, Merge_TagWithExplicitItem)
+{
+    // 标签 + 显式物品：保留标签引用，显式物品作为追加候选，两者都能匹配。
+    Item* stone = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "stone"));
+    ASSERT_NE(stone, nullptr);
+    Ingredient merged = Ingredient::merge({Ingredient::fromTag("minecraft:flowers"), Ingredient::fromItem(*stone)});
+
+    EXPECT_TRUE(merged.hasTag());
+    EXPECT_TRUE(merged.test(*stone));
+
+    auto* dandelion = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "dandelion"));
+    ASSERT_NE(dandelion, nullptr);
+    EXPECT_TRUE(merged.test(*dandelion));
 }
 
 // ========== getAllMatchingItems 测试 ==========

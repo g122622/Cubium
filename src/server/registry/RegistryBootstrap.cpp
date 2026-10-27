@@ -217,16 +217,11 @@ void RegistryBootstrap::initializeAll(bool registerEntities)
         }
     }
 
-    // 初始化物品标签（必须在所有物品注册后）
+    // 物品标签（必须在所有物品注册后）：数据包是标签表的唯一来源，与方块标签一致。
+    // 内置标签表只是原版数据的快照，启动时清空后由数据包重新构建，避免两份来源。
     {
         MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Initialization, "RegistryBootstrap::initializeAll::ItemTags");
-        mc::item::tag::ItemTags::initialize();
-    }
-    spdlog::info("Item tags initialized");
-
-    // 从数据包加载物品标签（追加到或替换内置默认值）
-    {
-        MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Initialization, "RegistryBootstrap::initializeAll::ItemTagLoader");
+        mc::item::tag::ItemTags::clear();
         auto dataPackLoadResult = mc::item::tag::ItemTagLoader::loadFromDataPackRepository(m_dataPackList);
         if (dataPackLoadResult.failed()) {
             spdlog::error("Failed to load item tags from data packs: {}", dataPackLoadResult.error().toString());

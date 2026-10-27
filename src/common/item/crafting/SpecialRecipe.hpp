@@ -66,6 +66,29 @@ public:
     // ========== IRecipe 接口实现 ==========
 
     /**
+     * @brief 获取配方的序列化器 ID
+     * @return 数据包 JSON 里 `type` 字段的取值（如 `minecraft:crafting_special_mapextending`）
+     *
+     * 与 {@link getType} 不同：`getType()` 回答「属于哪一类配方」（特殊配方统一是
+     * `RecipeType::Special`），而配方表本身由序列化器决定——原版的配方注册表就挂在
+     * `RecipeSerializer` 上，不同特殊配方的 `type` 互不相同，配方书、标签、
+     * 网络同步都要用到它。装载器（`RecipeSerializers::parseSpecialRecipe`）会写入
+     * 数据包里的 `type`；未经装载器直接构造的实例保留该 `type` 的缺省值。
+     */
+    [[nodiscard]] const std::string& getSerializerId() const
+    {
+        return m_serializerId;
+    }
+
+    /**
+     * @brief 设置序列化器 ID（仅供配方装载器使用）
+     */
+    void setSerializerId(std::string serializerId)
+    {
+        m_serializerId = std::move(serializerId);
+    }
+
+    /**
      * @brief 获取配方ID
      */
     [[nodiscard]] ResourceLocation getId() const override
@@ -146,6 +169,7 @@ public:
 
 protected:
     ResourceLocation m_id;
+    std::string m_serializerId = "minecraft:crafting_special_unknown";
 };
 
 } // namespace crafting

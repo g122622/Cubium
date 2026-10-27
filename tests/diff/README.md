@@ -152,7 +152,7 @@ harness 决定。`runner.ts` 负责按 `key` 对齐两侧输出、规范化、�
 
 ## 当前状态
 
-二十一个能力已接入，`node tests/diff/harness/runner.ts run all` 退出码 0（全部一致）：
+二十二个能力已接入，`node tests/diff/harness/runner.ts run all` 退出码 0（全部一致）：
 
 | harness | 参照实现 | 单元 | 结果 | 已知缺口 |
 |---|---|---|---|---|
@@ -178,6 +178,7 @@ harness 决定。`runner.ts` 负责按 `key` 对齐两侧输出、规范化、�
 | `loot_table_entity` | 原版 jar `LootTableEntityOracle` | 1324 | 全部一致 | 2 张表的实体类型建不出来（`creaking`、`mannequin`） |
 | `advancement` | 原版 jar `AdvancementOracle` | 1584 | 全部一致 | — |
 | `biome_spawns` | 原版 jar `BiomeSpawnsOracle` | 65 | 全部一致 | — |
+| `recipe` | 原版 jar `RecipeOracle` | 1470 | 全部一致 | — |
 
 第一次跑通就查出并修掉的实打实的错误（都是手抄数据/公式出错）：
 
@@ -371,6 +372,42 @@ harness 决定。`runner.ts` 负责按 `key` 对齐两侧输出、规范化、�
   缺省 1，且只要求非负，零值也保留；
 - **解码逻辑上移到 common**：`BiomeLoader` 与探针共用 `MobSpawnInfoJson`，探针测的就是
   服务端真正跑的那段代码。
+
+### 配方：全部一致
+
+`recipe` 把数据包 `recipe/*.json` 交给服务端的 `RecipeLoader::loadRecipeJson`，再从
+`RecipeManager` 按 ID 取回做结构化摘要，与原版 `RecipeManager#getRecipe` 的结果比对：
+序列化器 ID（原版配方注册表的键）、分组、每个原料的候选物品集合（标签展开成成员，
+与原版 `Recipe#placementInfo().ingredients()` 同口径）、有序配方的宽高、结果物品与数量
+（原版侧跑一次真实 `assemble`）、烹饪时间/经验。
+
+对齐过程中修掉的真问题：
+
+- **物品标签带嵌套引用时整张标签表是空的**：`logs_that_burn` 在数据包里写的是
+  `#minecraft:acacia_logs` 等引用，但生成的内置标签快照把这些引用展开时只认物品名，
+  引用成员全部丢失——`charcoal`、`campfire` 等配方的原料只剩一半，`cherry_planks` /
+  `mangrove_planks` / `pale_oak_planks` 甚至因为原料全空而加载失败。标签现在保留
+  `#tag` 引用（原版 `TagEntry` 的语义），由 `ItemTags::linkAndExpand` 统一展开成传递
+  闭包；展开在遍历中写入自身集合会导致迭代器失效，`ItemTag::forEachItem` 先复制成员；
+- **数据包是物品标签的唯一来源**：服务端启动时此前先初始化内置快照、再把数据包标签
+  追加进去，两份来源互相覆盖，`replace` 语义还会错误地清掉内置成员。现在启动时清空标签
+  表后只从数据包构建（与方块标签一致）；探针同样只读数据包；
+- **有序配方的原料表含空格占位**：`Ingredient::EMPTY` 被塞进原料列表，`placementInfo`
+  比原版多出空槽（`acacia_boat` 6 个原料 vs 原版 5 个），装配时也会把空槽当成「该格必须为空」。
+  现在与 `ShapedRecipePattern#ingredients` 一样只收 pattern 里实际用到的符号；
+- **标签 + 显式物品并存的原料匹配不到显式物品**：`["#minecraft:planks", "minecraft:oak_planks"]`
+  解析成「保留标签引用 + 追加显式物品」，但 `Ingredient::test` 在标签分支里提前 return，
+  显式物品永远匹配不上；`getAllMatchingItems` 同样只返回标签成员；
+- **特殊配方的类型**：数据包里每个特殊配方都有自己的序列化器 ID
+  （`crafting_special_armordye`、`crafting_decorated_pot`……），Cubium 一律返回
+  `minecraft:special`。`SpecialRecipe::getSerializerId` 由装载器按数据包写入；地图扩展的
+  放置信息（3×3 外圈纸、正中已填充地图）由 `RecipeSerializers::placementIngredients` 给出；
+- **纹饰配方的合成结果**：原版对「底材原料的首个物品 + 添加物原料的首个物品」真的合成一次，
+  匹配不上时结果为空；Cubium 此前直接返回底材副本。`SmithingTrimRecipe::assemble` 现在
+  在底材为空时返回空（TRIM 组件的写入仍是 TODO，见源码）；
+- **樱桃 / 红树 / 苍白橡木的原木在物品里缺失**：`BlockItemRegistry` 注册这三组原木时
+  用的方块指针在建表阶段还是空指针；现在与其它树种同一路径注册后，相关标签与配方才能
+  正常展开。
 
 ### 命令树：已对齐
 

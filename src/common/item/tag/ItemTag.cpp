@@ -75,9 +75,15 @@ void ItemTag::addAll(const std::vector<const Item*>& items)
     }
 }
 
+void ItemTag::addNestedTag(const ResourceLocation& tagId)
+{
+    m_nestedTags.push_back(tagId);
+}
+
 void ItemTag::clear()
 {
     m_items.clear();
+    m_nestedTags.clear();
 }
 
 } // namespace item::tag

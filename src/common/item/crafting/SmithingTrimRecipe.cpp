@@ -75,17 +75,24 @@ ItemStack SmithingTrimRecipe::assemble(const IInventory& inventory) const
     // 若 base 已有相同 trim 则返回 EMPTY（去重），否则返回 base 副本并写入 TRIM 组件；
     // addition 无法解析为 TrimMaterial 时返回 EMPTY。
     //
+    // 与地图扩展同口径：数据包只声明配方存在，材料匹配由配方的原料表（模板 / 可纹饰盔甲
+    // 标签 / 纹饰材料标签）负责，这里只算结果。
+    //
     // TODO: 纹饰系统（TrimMaterial/TrimPattern 注册表、ArmorTrim、TRIM 数据组件）未实现，
-    // 当前暂返回 base 副本（不加纹饰），待纹饰系统接入后补全 TRIM 组件写入与去重逻辑。
-    if (inventory.getContainerSize() > SLOT_BASE) {
-        const ItemStack& baseStack = inventory.getItem(SLOT_BASE);
-        if (!baseStack.isEmpty()) {
-            ItemStack result = baseStack.copy();
-            result.setCount(1);
-            return result;
-        }
+    // 当前不写入 TRIM 组件、也不做「已有相同纹饰」的去重（原版此时返回空），待纹饰系统
+    // 接入后补全；在此之前合成结果就是底材的副本，数量为 1。
+    if (inventory.getContainerSize() <= SLOT_ADDITION) {
+        return ItemStack::EMPTY;
     }
-    return ItemStack::EMPTY;
+    const ItemStack& baseStack = inventory.getItem(SLOT_BASE);
+    if (baseStack.isEmpty()) {
+        return ItemStack::EMPTY;
+    }
+
+    // 纹饰色/图案的写入依赖 TRIM 组件（见 TODO），此处只产出底材的副本。
+    ItemStack result = baseStack.copy();
+    result.setCount(1);
+    return result;
 }
 
 std::vector<ItemStack> SmithingTrimRecipe::getRemainingItems(const IInventory& inventory) const

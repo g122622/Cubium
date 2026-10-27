@@ -26,12 +26,17 @@
 #include "common/item/tag/ItemTag.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/assert/AssertMacros.hpp"
+#include <nlohmann/json.hpp>
+#include <algorithm>
 #include <functional>
 #include <memory>
 #include <mutex>
 #include <string>
+#include <string_view>
 #include <unordered_map>
 #include <utility>
+#include <vector>
+#include <spdlog/spdlog.h>
 
 namespace mc {
 namespace item::tag {
@@ -584,16 +589,19 @@ void ItemTags::initialize()
         return;
     }
 
-    // 全部标签来自原版数据包（data/minecraft/tags/item 下的标签 JSON），成员已在
-    // 生成期展开 #tag 引用，等价原版 Tag#getValues() 的口径。以前这里逐个手写
-    // item->add(...)，与数据包之间会悄悄漂移。
+    // 全部标签来自原版数据包（data/minecraft/tags/item 下的标签 JSON），成员与数据包
+    // 逐条对应：`#tag` 成员保留为嵌套引用，其余解析成物品。引用展开与缺失成员判定
+    // 由 linkAndExpand 统一处理。
     std::size_t entryCount = 0;
     const VanillaItemTagEntry* table = vanillaItemTagTable(entryCount);
     for (std::size_t i = 0; i < entryCount; ++i) {
         const VanillaItemTagEntry& entry = table[i];
         auto tag = std::make_unique<ItemTag>(ResourceLocation("minecraft", entry.name), false);
         for (std::size_t k = 0; k < entry.count; ++k) {
-            if (const Item* item = ItemRegistry::instance().getItem(ResourceLocation("minecraft", entry.values[k]));
+            const std::string_view value = entry.values[k];
+            if (!value.empty() && value.front() == '#') {
+                tag->addNestedTag(ResourceLocation("minecraft", std::string(value.substr(1))));
+            } else if (const Item* item = ItemRegistry::instance().getItem(ResourceLocation("minecraft", std::string(value)));
                 item != nullptr) {
                 tag->add(item);
             }
@@ -602,6 +610,185 @@ void ItemTags::initialize()
     }
 
     s_initialized = true;
+
+    // 初始化不接管错误结算：调用方（服务端注册引导、客户端引导、单测）各自决定
+    // 「标签表有洞」算不算致命。
+    if (auto linked = linkAndExpand(); linked.failed()) {
+        spdlog::error("ItemTags: {}", linked.error().message());
+    }
+}
+
+void ItemTags::clear()
+{
+    tags().clear();
+}
+
+Result<nlohmann::json> ItemTags::mergeTagVersions(
+    const std::vector<std::string>& versions, const ResourceLocation& location)
+{
+    nlohmann::json merged;
+    merged["values"] = nlohmann::json::array();
+    bool replace = false;
+    // versions 按优先级从高到低排列，合并顺序是从低到高。
+    for (auto it = versions.rbegin(); it != versions.rend(); ++it) {
+        auto compiled = compileTagJson(*it, location);
+        if (compiled.failed()) {
+            return compiled.error();
+        }
+        const nlohmann::json& contents = compiled.value();
+        if (contents.value("replace", false)) {
+            merged["values"] = nlohmann::json::array();
+            replace = true;
+        }
+        for (const auto& value : contents["values"]) {
+            merged["values"].push_back(value);
+        }
+    }
+    merged["replace"] = replace;
+    return merged;
+}
+
+Result<nlohmann::json> ItemTags::compileTagJson(const std::string& json, const ResourceLocation& location)
+{
+    nlohmann::json parsed;
+    try {
+        parsed = nlohmann::json::parse(json);
+    }
+    catch (const nlohmann::json::parse_error& error) {
+        return Error(ErrorCode::InvalidData,
+            "Failed to parse item tag '" + location.toString() + "': " + std::string(error.what()));
+    }
+
+    if (!parsed.contains("values") || !parsed["values"].is_array()) {
+        return Error(ErrorCode::InvalidData, "Item tag '" + location.toString() + "' is missing a 'values' array");
+    }
+
+    nlohmann::json compiled;
+    compiled["replace"] = parsed.contains("replace") && parsed["replace"].is_boolean() && parsed["replace"].get<bool>();
+    compiled["values"] = nlohmann::json::array();
+    for (const auto& value : parsed["values"]) {
+        if (value.is_string()) {
+            compiled["values"].push_back(value);
+            continue;
+        }
+        if (value.is_object() && value.contains("id") && value["id"].is_string()) {
+            nlohmann::json member;
+            member["id"] = value["id"];
+            member["required"] = !(value.contains("required") && value["required"].is_boolean()) ||
+                value["required"].get<bool>();
+            compiled["values"].push_back(std::move(member));
+            continue;
+        }
+        spdlog::warn("ItemTags: tag '{}' has a value that is neither an item id nor an object with 'id', skipping",
+            location.toString());
+    }
+    return compiled;
+}
+
+Result<void> ItemTags::applyTagJson(const nlohmann::json& contents, const ResourceLocation& location)
+{
+    ItemTag* existing = getTag(location);
+    if (existing == nullptr) {
+        static_cast<void>(registerTag(location));
+        existing = getTag(location);
+    }
+    if (existing == nullptr) {
+        return Error(ErrorCode::InvalidState, "Could not register item tag '" + location.toString() + "'");
+    }
+    return writeTagJson(contents, *existing);
+}
+
+Result<void> ItemTags::applyTagJson(const nlohmann::json& contents, ItemTag& tag)
+{
+    return writeTagJson(contents, tag);
+}
+
+Result<void> ItemTags::writeTagJson(const nlohmann::json& contents, ItemTag& tag)
+{
+    if (contents.value("replace", false)) {
+        tag.clear();
+    }
+
+    for (const auto& value : contents["values"]) {
+        const std::string id = value.is_string() ? value.get<std::string>() : value["id"].get<std::string>();
+        const bool required = !value.is_object() || value.value("required", true);
+        if (id.empty()) {
+            continue;
+        }
+        if (id.front() == '#') {
+            const std::string ref = id.substr(1);
+            tag.addNestedTag(ref.find(':') == std::string::npos ? ResourceLocation("minecraft", ref)
+                                                                : ResourceLocation::parse(ref));
+            continue;
+        }
+        const Item* item = ItemRegistry::instance().getItem(ResourceLocation::parse(id));
+        if (item == nullptr) {
+            if (required) {
+                return Error(ErrorCode::NotFound,
+                    "Item tag '" + tag.getId().toString() + "' references unknown item '" + id + "'");
+            }
+            continue;
+        }
+        tag.add(item);
+    }
+    return {};
+}
+
+Result<void> ItemTags::linkAndExpand()
+{
+    // 第一遍：引用不存在的标签。
+    for (const auto& [id, tag] : tags()) {
+        for (const auto& nested : tag->getNestedTags()) {
+            if (tags().find(nested) == tags().end()) {
+                return Error(ErrorCode::NotFound,
+                    "Tag '" + id.toString() + "' references unknown tag '" + nested.toString() + "'");
+            }
+        }
+    }
+
+    // 第二遍：算展开后的成员集合（不动标签本身）。深度优先、按路径检测环——
+    // 引用自己的标签是空操作（自身的物品已经在集合里），不算环。
+    std::unordered_map<const ItemTag*, std::unordered_set<const Item*>> expanded;
+    std::unordered_set<const ItemTag*> visiting;
+    const auto expand = [&](const auto& self, ItemTag* tag) -> Result<void> {
+        if (expanded.contains(tag)) {
+            return {};
+        }
+        if (visiting.contains(tag)) {
+            // 引用自己在路径上（含直接自引用）：自身物品已在集合里，当作空展开。
+            return {};
+        }
+        visiting.insert(tag);
+        std::unordered_set<const Item*> members = tag->getItems();
+        for (const auto& nested : tag->getNestedTags()) {
+            ItemTag* source = tags().at(nested).get();
+            if (auto result = self(self, source); result.failed()) {
+                return result.error();
+            }
+            if (visiting.contains(source)) {
+                // 被引用方正在展开（环）：它的成员尚未确定，但已有物品已经计入。
+                continue;
+            }
+            const auto& sourceMembers = expanded.at(source);
+            members.insert(sourceMembers.begin(), sourceMembers.end());
+        }
+        visiting.erase(tag);
+        expanded[tag] = std::move(members);
+        return {};
+    };
+
+    for (auto& [unused, tag] : tags()) {
+        if (auto result = expand(expand, tag.get()); result.failed()) {
+            return result.error();
+        }
+    }
+
+    // 第三遍：把展开结果并回标签，清掉已消费的引用（重复调用不会重复展开）。
+    for (auto& [unused, tag] : tags()) {
+        tag->addAll(std::vector<const Item*>(expanded.at(tag.get()).begin(), expanded.at(tag.get()).end()));
+        tag->clearNestedTags();
+    }
+    return {};
 }
 
 } // namespace item::tag

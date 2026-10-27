@@ -172,6 +172,18 @@ public:
     [[nodiscard]] std::vector<const SmithingRecipe*> getAllSmithingRecipes() const;
 
     /**
+     * @brief 按 ID 获取锻造升级配方（`smithing_transform`）
+     * @return 配方指针，不存在返回 nullptr
+     */
+    [[nodiscard]] const SmithingTransformRecipe* getSmithingTransformRecipe(const ResourceLocation& id) const;
+
+    /**
+     * @brief 按 ID 获取盔甲纹饰配方（`smithing_trim`）
+     * @return 配方指针，不存在返回 nullptr
+     */
+    [[nodiscard]] const SmithingTrimRecipe* getSmithingTrimRecipe(const ResourceLocation& id) const;
+
+    /**
      * @brief 根据输入物品查找切石机配方
      * @param input 输入物品
      * @return 匹配的切石机配方列表

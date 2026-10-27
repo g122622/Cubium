@@ -35,6 +35,7 @@
 #include "item/crafting/SmithingRecipe.hpp"
 #include "item/crafting/SmithingTransformRecipe.hpp"
 #include "item/crafting/SmithingTrimRecipe.hpp"
+#include "item/crafting/SpecialRecipe.hpp"
 #include "item/crafting/StonecuttingRecipe.hpp"
 #include "item/crafting/TransmuteRecipe.hpp"
 #include <memory>
@@ -192,6 +193,25 @@ public:
      */
     static Result<std::unique_ptr<CraftingRecipe>> parseSpecialRecipe(
         const ResourceLocation& id, const nlohmann::json& json);
+
+    /**
+     * @brief 特殊配方的放置信息：按槽位排列的候选原料
+     *
+     * 对应原版 `Recipe#placementInfo`。没有固定网格布局的特殊配方（修复、染色、复制……）
+     * 返回空表；地图扩展是 3×3 —— 外围一圈纸、正中一张已填充地图。
+     *
+     * 地图扩展的原料只取决于配方类本身，不读数据包，因此由调用方传入物品 ID：
+     * 服务端物品表与差分探针物品表并不相同（探针只注册数据包用得到的物品），
+     * 数据包里的 `minecraft:filled_map` / `minecraft:paper` 名字是两边唯一的共同语言。
+     *
+     * @param recipe 特殊配方
+     * @param mapFilledItem 已填充地图的物品 ID（`minecraft:filled_map`）
+     * @param mapEmptyItem 纸的物品 ID（`minecraft:paper`）
+     * @return 按行优先排列的槽位原料；物品未注册时返回空表
+     */
+    [[nodiscard]] static std::vector<Ingredient> placementIngredients(const SpecialRecipe& recipe,
+        const ResourceLocation& mapFilledItem,
+        const ResourceLocation& mapEmptyItem);
 
     /**
      * @brief 从JSON解析熔炼类配方

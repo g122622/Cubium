@@ -209,6 +209,20 @@ bool RecipeManager::registerSmithingTrimRecipe(std::unique_ptr<SmithingTrimRecip
     return true;
 }
 
+const SmithingTransformRecipe* RecipeManager::getSmithingTransformRecipe(const ResourceLocation& id) const
+{
+    std::lock_guard<std::mutex> lock(m_mutex);
+    const auto it = m_smithingTransformRecipesById.find(id);
+    return it != m_smithingTransformRecipesById.end() ? it->second.get() : nullptr;
+}
+
+const SmithingTrimRecipe* RecipeManager::getSmithingTrimRecipe(const ResourceLocation& id) const
+{
+    std::lock_guard<std::mutex> lock(m_mutex);
+    const auto it = m_smithingTrimRecipesById.find(id);
+    return it != m_smithingTrimRecipesById.end() ? it->second.get() : nullptr;
+}
+
 const CraftingRecipe* RecipeManager::getRecipe(const ResourceLocation& id) const
 {
     std::lock_guard<std::mutex> lock(m_mutex);

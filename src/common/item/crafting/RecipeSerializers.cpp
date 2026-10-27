@@ -233,8 +233,14 @@ Result<std::unique_ptr<ShapedRecipe>> RecipeSerializers::parseShapedRecipe(
         group = json["group"].get<std::string>();
     }
 
-    return std::make_unique<ShapedRecipe>(
-        id, width, height, std::move(ingredientsResult.value()), resultStack.value(), group);
+    // 原料表按原版 `ShapedRecipePattern#ingredients` 的布局：逐格扫描 pattern，空格
+    // 跳过（不占原料槽，原版 `Ingredient#EMPTY` 在 placementInfo 里也不出现）。配方
+    // 的匹配不看原槽位（空格永不匹配），所以这里不保留占位元素；装配、配方书与
+    // 邻接表因此面对的是一致的「非空原料序列」。
+    auto ingredients = std::move(ingredientsResult.value());
+    ingredients.erase(std::remove(ingredients.begin(), ingredients.end(), Ingredient::EMPTY), ingredients.end());
+
+    return std::make_unique<ShapedRecipe>(id, width, height, std::move(ingredients), resultStack.value(), group);
 }
 
 Result<std::unique_ptr<ShapelessRecipe>> RecipeSerializers::parseShapelessRecipe(
@@ -628,19 +634,18 @@ Result<std::vector<Ingredient>> RecipeSerializers::_parsePatternIngredients(
         }
     }
 
-    // 按行列顺序解析原料
+    // 按行列顺序解析原料：只收录 pattern 里实际用到的符号，空格不产生原料
+    // （原版 `ShapedRecipePattern#ingredients` 同样跳过空格）。
     for (const std::string& row : pattern) {
         for (char c : row) {
             if (c == ' ') {
-                // 空格表示空槽位
-                ingredients.push_back(Ingredient::EMPTY);
-            } else {
-                auto it = keyMap.find(c);
-                if (it == keyMap.end()) {
-                    return Error(ErrorCode::ResourceParseError, "Pattern uses undefined key: " + std::string(1, c));
-                }
-                ingredients.push_back(it->second);
+                continue;
             }
+            auto it = keyMap.find(c);
+            if (it == keyMap.end()) {
+                return Error(ErrorCode::ResourceParseError, "Pattern uses undefined key: " + std::string(1, c));
+            }
+            ingredients.push_back(it->second);
         }
     }
 
@@ -804,6 +809,32 @@ Result<std::unique_ptr<SmithingTransformRecipe>> RecipeSerializers::parseSmithin
 }
 
 // ============================================================================
+// 特殊配方的放置信息（放置槽位与候选原料）
+// ============================================================================
+
+std::vector<Ingredient> RecipeSerializers::placementIngredients(
+    const SpecialRecipe& recipe, const ResourceLocation& mapFilledItem, const ResourceLocation& mapEmptyItem)
+{
+    const auto* special = dynamic_cast<const MapExtendingRecipe*>(&recipe);
+    if (special == nullptr) {
+        // 其余特殊配方没有固定网格布局（修复、染色、复制……）。
+        return {};
+    }
+    // 原版 `MapExtendingRecipe#placementInfo`：3×3，外围一圈纸、正中一张已填充地图。
+    std::vector<Ingredient> ingredients;
+    ingredients.reserve(static_cast<size_t>(MAX_RECIPE_WIDTH * MAX_RECIPE_HEIGHT));
+    for (i32 slot = 0; slot < MAX_RECIPE_WIDTH * MAX_RECIPE_HEIGHT; ++slot) {
+        const bool centre = slot == (MAX_RECIPE_HEIGHT / 2) * MAX_RECIPE_WIDTH + MAX_RECIPE_WIDTH / 2;
+        const Item* item = ItemRegistry::instance().getItem(centre ? mapFilledItem : mapEmptyItem);
+        if (item == nullptr) {
+            return {};
+        }
+        ingredients.push_back(Ingredient::fromItem(*item));
+    }
+    return ingredients;
+}
+
+// ============================================================================
 // 盔甲纹饰配方解析（smithing_trim，MC 1.21+）
 // ============================================================================
 
@@ -933,8 +964,14 @@ Result<std::unique_ptr<CraftingRecipe>> RecipeSerializers::parseSpecialRecipe(
         return Error(ErrorCode::ResourceParseError, "Unknown special recipe type: " + type);
     }
 
-    // 特殊配方的 JSON 无原料/结果字段，不解析其他内容，直接按 type 创建实例
-    return it->second(id);
+    // 特殊配方的 JSON 无原料/结果字段，不解析其他内容，直接按 type 创建实例。
+    // 序列化器 ID 以数据包为准（原版配方注册表的键就是它），不属于配方的解析内容，
+    // 因此不走构造函数、在此统一赋值。
+    auto recipe = it->second(id);
+    if (auto* special = dynamic_cast<SpecialRecipe*>(recipe.get()); special != nullptr) {
+        special->setSerializerId(type);
+    }
+    return recipe;
 }
 
 // ============================================================================

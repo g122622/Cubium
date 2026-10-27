@@ -526,6 +526,8 @@ void BlockItemRegistry::initializeVanillaBlockItems()
     registerSimpleBlock(VanillaBlocks::RESIN_BRICK_WALL, "resin_brick_wall");
 
     // 樱花原木与木材 (1.20+)
+    // 原木/木材的方块与物品同名，物品 ID 直接取方块位置（与 registerSimpleBlock 不同，
+    // 后者用传入的名字而不是方块位置）。
     registerSimpleBlock(VanillaBlocks::CHERRY_LOG, "cherry_log");
     registerSimpleBlock(VanillaBlocks::CHERRY_WOOD, "cherry_wood");
     registerSimpleBlock(VanillaBlocks::STRIPPED_CHERRY_LOG, "stripped_cherry_log");

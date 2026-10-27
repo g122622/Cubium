@@ -29,6 +29,7 @@
 
 #include <cstddef>
 #include <memory>
+#include <optional>
 #include <string>
 
 namespace mc {
@@ -63,17 +64,10 @@ namespace item::tag {
  * - replace=true 时：清空已有标签内容，仅使用当前数据包的内容
  * - 数据包优先级从低到高遍历
  *
- * 两阶段加载：
- * loadFromDataPackRepository() 和 loadFromResourcePack() 使用两阶段加载，
- * 确保 # 标签引用在所有标签都已注册后解析：
- * 1. 第一阶段：解析所有 JSON 文件，收集原始条目数据（不解析 # 引用），
- *    并将尚不存在的标签注册为空标签到 ItemTags
- * 2. 第二阶段：按依赖顺序递归解析 # 标签引用并填充标签内容。
- *    当标签 A 引用 #B 时，先递归解析 B 再解析 A，确保引用的标签内容已填充。
- *    使用 resolved/resolving 集合检测循环依赖。
- *
- * loadFromJson() 是单次使用的便捷方法，直接解析引用。
- * 由于它不经过两阶段加载，标签引用只能解析到已经在 ItemTags 中注册的标签。
+ * 加载分三步：先把全部标签文件编译成规范化 JSON（`ItemTags::mergeTagVersions`）、
+ * 注册进标签表并写入物品与 `#` 引用（`ItemTags::applyTagJson`），最后由
+ * `ItemTags::linkAndExpand` 统一展开引用。引用目标先于引用方存在，结果与文件
+ * 遍历顺序无关，环引用在展开阶段检出。
  */
 class ItemTagLoader {
 public:
@@ -107,16 +101,16 @@ public:
     /**
      * @brief 从 JSON 字符串加载单个物品标签
      *
-     * 直接解析 JSON 内容并解析 # 标签引用。
-     * 由于不经过两阶段加载，标签引用只能解析到已经在 ItemTags 中注册的标签。
-     * 适用于测试或单标签解析场景。
+     * 解析 JSON 内容并把物品与 `#` 标签引用写到调用方给的标签上；引用展开由调用方
+     * 在相关标签全部载入后经 `ItemTags::linkAndExpand` 完成。适用于测试或单标签解析场景。
      *
      * @param json JSON 内容
      * @param location 标签资源位置
+     * @param base 已有标签（数据包合并语义：`replace` 为假时追加到它上面）；为空时新建
      * @return 解析的标签，或错误信息
      */
-    [[nodiscard]] static Result<std::unique_ptr<ItemTag>> loadFromJson(
-        const std::string& json, const ResourceLocation& location);
+    [[nodiscard]] static Result<ItemTag> loadFromJson(
+        const std::string& json, const ResourceLocation& location, std::optional<ItemTag> base = std::nullopt);
 };
 
 } // namespace item::tag

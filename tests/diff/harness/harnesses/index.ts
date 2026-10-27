@@ -245,6 +245,12 @@ const JAVA_HARNESSES: ReadonlyArray<() => JavaHarness> = [
         normalise: (value: unknown) => canonicalSpawnCategories(value),
     }),
     () => ({
+        name: "recipe",
+        oracle: "RecipeOracle",
+        input: (unit: string) => ({ recipe: unit }),
+        key: "recipe",
+    }),
+    () => ({
         name: "loot_table",
         oracle: "LootTableOracle",
         input: (unit: string) => lootTableInput(unit),

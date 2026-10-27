@@ -35,10 +35,14 @@
 #include <cstdio>
 #include <cstdlib>
 #include <filesystem>
+#include <fstream>
+#include <iterator>
 #include <stdexcept>
 #include <string>
+#include <unordered_map>
 #include <vector>
 
+#include <nlohmann/json.hpp>
 #include <spdlog/spdlog.h>
 
 #include "common/entity/registry/VanillaEntities.hpp"
@@ -47,10 +51,13 @@
 #include "common/item/enchantment/EnchantmentRegistry.hpp"
 #include "common/item/items/block/BlockItemRegistry.hpp"
 #include "common/item/tag/ItemTags.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include "common/world/block/BlockTags.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 
 namespace mc::diff::datapack {
+
+inline void loadDataPackItemTags(const std::filesystem::path& itemTagDirectory);
 
 /// 数据包根目录（含 `data/` 的那一层）。由 harness 通过环境变量传入。
 [[nodiscard]] inline std::filesystem::path root()
@@ -60,22 +67,6 @@ namespace mc::diff::datapack {
         throw std::runtime_error("MC_DIFF_VANILLA_DATAPACK 未设置：需要指向原版数据包根目录（含 data/ 的那一层）");
     }
     return std::filesystem::path(path);
-}
-
-/**
- * @brief 按 `RegistryBootstrap` 的顺序初始化静态注册表
- *
- * 顺序有意义：方块标签引用方块、物品标签引用物品、方块物品引用方块与物品。
- */
-inline void initializeRegistries()
-{
-    VanillaBlocks::initialize();
-    BlockTags::initialize();
-    Items::initialize();
-    item::tag::ItemTags::initialize();
-    item::enchant::EnchantmentRegistry::initialize();
-    BlockItemRegistry::instance().initializeVanillaBlockItems();
-    entity::VanillaEntities::registerAll();
 }
 
 /**
@@ -96,6 +87,61 @@ inline void initializeRegistries()
     }
     std::sort(files.begin(), files.end());
     return files;
+}
+
+/**
+ * @brief 按 `RegistryBootstrap` 的顺序初始化静态注册表，并载入数据包标签
+ *
+ * 顺序有意义：方块物品要在物品注册后建立、物品标签要引用已注册的物品。
+ * 物品标签来自数据包 `data/minecraft/tags/item/*.json`——原版的标签表就来自数据包。
+ */
+inline void initializeRegistries()
+{
+    VanillaBlocks::initialize();
+    BlockTags::initialize();
+    Items::initialize();
+    item::enchant::EnchantmentRegistry::initialize();
+    BlockItemRegistry::instance().initializeVanillaBlockItems();
+    entity::VanillaEntities::registerAll();
+    // 数据包是物品标签的唯一来源（与服务端启动流程一致），不启用内置快照。
+    loadDataPackItemTags(root() / "data" / "minecraft" / "tags" / "item");
+}
+
+/**
+ * @brief 载入数据包物品标签目录（`<pack>/data/minecraft/tags/item`）
+ *
+ * 与服务端 `ItemTagLoader` 走同一套合并 / 应用 / 展开逻辑：文件里的 `#tag` 引用、
+ * `{id, required}` 对象、`replace` 语义都与运行时一致。
+ */
+inline void loadDataPackItemTags(const std::filesystem::path& itemTagDirectory)
+{
+    std::unordered_map<ResourceLocation, nlohmann::json> compiled;
+    for (const auto& file : jsonFiles(itemTagDirectory)) {
+        std::ifstream stream(file);
+        std::string contents((std::istreambuf_iterator<char>(stream)), std::istreambuf_iterator<char>());
+        const std::string relative = std::filesystem::relative(file, itemTagDirectory).generic_string();
+        const ResourceLocation location("minecraft:" + relative.substr(0, relative.size() - 5));
+        auto tagJson = item::tag::ItemTags::compileTagJson(contents, location);
+        if (tagJson.failed()) {
+            std::fprintf(stderr, "item tags: %s\n", tagJson.error().message().c_str());
+            continue;
+        }
+        compiled[location] = std::move(tagJson).value();
+    }
+
+    for (const auto& [location, unused] : compiled) {
+        if (item::tag::ItemTags::getTag(location) == nullptr) {
+            item::tag::ItemTags::registerTag(location);
+        }
+    }
+    for (const auto& [location, contents] : compiled) {
+        if (auto applied = item::tag::ItemTags::applyTagJson(contents, location); applied.failed()) {
+            std::fprintf(stderr, "item tags: %s\n", applied.error().message().c_str());
+        }
+    }
+    if (auto linked = item::tag::ItemTags::linkAndExpand(); linked.failed()) {
+        std::fprintf(stderr, "item tags: %s\n", linked.error().message().c_str());
+    }
 }
 
 } // namespace mc::diff::datapack

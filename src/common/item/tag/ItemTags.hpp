@@ -24,8 +24,10 @@
 #pragma once
 
 #include "ItemTag.hpp"
+#include "common/core/Result.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include <cstddef>
+#include <nlohmann/json_fwd.hpp>
 #include <functional>
 #include <memory>
 #include <string>
@@ -43,12 +45,12 @@ namespace item::tag {
 /**
  * @brief 原版物品标签表的一项（生成文件 VanillaItemTags.gen.cpp 提供）。
  *
- * 成员已展开全部 #tag 引用，等价原版 Tag#getValues()。
+ * 成员与原版数据包逐条对应：以 `#` 开头的是嵌套标签引用，其余是物品名。
  */
 struct VanillaItemTagEntry {
     const char* name;          ///< 标签名（无 minecraft: 前缀）
     std::size_t count;         ///< 成员个数
-    const char* const* values; ///< 成员物品名（无 minecraft: 前缀）
+    const char* const* values; ///< 成员（物品名，或 `#` 开头的嵌套标签名，均无 minecraft: 前缀）
 };
 
 /**
@@ -471,10 +473,85 @@ public:
     /**
      * @brief 初始化所有内置物品标签
      *
-     * 必须在 ItemRegistry 初始化之后调用。
-     * 注册所有花朵物品到 FLOWERS 标签。
+     * 必须在 ItemRegistry 初始化之后调用。标签的生成表按原版数据包导出，嵌套引用
+     * （`#minecraft:logs` → `#minecraft:oak_logs` 等）以 `#` 开头的成员原样保留，
+     * 由 {@link linkAndExpand} 展开——原版标签的成员集合本来就是传递闭包。
      */
     static void initialize();
+
+    /**
+     * @brief 清空标签表
+     *
+     * 数据包是标签表的唯一来源：服务端启动时在载入数据包标签之前清空内置快照。
+     */
+    static void clear();
+
+    /**
+     * @brief 把标签 JSON 编译成「同一标签的多数据包合并结果」
+     *
+     * 多数据包语义：`versions` 按数据包优先级从高到低排列，合并时从低到高遍历——
+     * 默认追加成员，`replace` 为真的版本丢弃此前合并的内容。结果仍是标签 JSON
+     * （`replace` + `values`），供 {@link applyTagJson} 写入标签表。
+     *
+     * 内置标签与数据包标签共用这一份编译逻辑，避免两处对「追加 / replace」的理解漂移。
+     *
+     * @param versions 同一标签在各数据包里的 JSON 文本（优先级从高到低）
+     * @param location 标签资源位置（仅用于错误信息）
+     * @return 合并后的标签 JSON
+     */
+    [[nodiscard]] static Result<nlohmann::json> mergeTagVersions(
+        const std::vector<std::string>& versions, const ResourceLocation& location);
+
+    /**
+     * @brief 解析一份标签 JSON（物品名、`#tag` 引用、`{id, required}` 对象）
+     *
+     * @param json 标签 JSON
+     * @param location 标签资源位置
+     * @return 含 `replace` 与 `values` 的规范化 JSON；结构非法时返回错误
+     */
+    [[nodiscard]] static Result<nlohmann::json> compileTagJson(
+        const std::string& json, const ResourceLocation& location);
+
+    /**
+     * @brief 把编译后的标签内容写入标签表
+     *
+     * `replace` 为真时先清空标签；成员是物品的直接加入，`#tag` 成员记为嵌套引用
+     * （由 {@link linkAndExpand} 展开）。未知物品按原版 `required` 语义处理：必需成员
+     * 记警告并跳过，`required: false` 静默跳过。
+     *
+     * @param contents {@link compileTagJson} / {@link mergeTagVersions} 的结果
+     * @param location 标签资源位置
+     * @return 成功，或未注册的必需物品 / 未知标签引用的错误
+     */
+    [[nodiscard]] static Result<void> applyTagJson(const nlohmann::json& contents, const ResourceLocation& location);
+
+    /**
+     * @brief 把编译后的标签内容写入给定标签（不经过标签表）
+     *
+     * 用于尚未注册进表的临时标签（`ItemTagLoader::loadFromJson`）。
+     *
+     * @param contents {@link compileTagJson} / {@link mergeTagVersions} 的结果
+     * @param tag 目标标签
+     * @return 成功，或未注册的必需物品的错误
+     */
+    [[nodiscard]] static Result<void> applyTagJson(const nlohmann::json& contents, ItemTag& tag);
+
+    /**
+     * @brief 把嵌套引用展开成传递闭包
+     *
+     * 原版标签的成员是传递闭包：`#minecraft:logs` 引用 `#minecraft:oak_logs` 等，展开后
+     * 包含全部子标签的物品。这里按「被引用方先展开」的顺序把子标签物品并入引用方；
+     * 引用不存在的标签、圈形引用返回错误（与 `DataPack::reload` 同一口径：标签表有
+     * 结构性错误时重载失败）。
+     *
+     * 依赖顺序即展开后的成员数从小到大：被引用方的成员集合包含在引用方里，因此不会
+     * 更大；仍想引用一个尚未展开、成员数又不小于自己的标签，只可能是环。
+     *
+     * `initialize` 末尾会调用一次；数据包标签加载（含 replace 清空）之后必须再调用一次。
+     *
+     * @return 成功，或首个未知引用 / 环引用的错误
+     */
+    [[nodiscard]] static Result<void> linkAndExpand();
 
     /**
      * @brief 检查物品标签系统是否已初始化
@@ -518,6 +595,9 @@ public:
 
 private:
     ItemTags() = delete;
+
+    /// `applyTagJson` 的共同实现：`replace` 清空后逐条写入物品与引用。
+    [[nodiscard]] static Result<void> writeTagJson(const nlohmann::json& contents, ItemTag& tag);
 
     static std::unordered_map<ResourceLocation, std::unique_ptr<ItemTag>>& tags();
     static bool s_initialized;

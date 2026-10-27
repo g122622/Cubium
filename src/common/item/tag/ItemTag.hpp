@@ -114,12 +114,52 @@ public:
     }
 
     /**
+     * @brief 按顺序探测候选物品（遍历中允许向标签写入，一次分配）
+     *
+     * 标签的成员集合在遍历过程中可能被写入（例如把引用标签的成员并入引用方），
+     * 遍历并发的 `unordered_set` 迭代器会失效。本函数在一开始把成员复制进内部
+     * 缓冲区，回调拿到的指针在回调期间始终有效。
+     */
+    template <typename F>
+    void forEachItem(F&& callback) const
+    {
+        const std::vector<const Item*> buffer(m_items.begin(), m_items.end());
+        for (const Item* item : buffer) {
+            callback(item);
+        }
+    }
+
+    /**
      * @brief 获取标签中的所有物品（有序列表）
      */
     [[nodiscard]] std::vector<const Item*> getItemsList() const;
 
     /**
-     * @brief 清空标签中的所有物品
+     * @brief 添加嵌套标签引用（数据包里的 `#tag` 成员）
+     *
+     * 原版标签的成员是传递闭包：引用另一个标签等于引用它的全部成员。引用在
+     * {@link ItemTags::linkAndExpand} 里统一展开；展开前 {@link getItems} 只含直接物品。
+     */
+    void addNestedTag(const ResourceLocation& tagId);
+
+    /**
+     * @brief 获取嵌套标签引用（尚未展开）
+     */
+    [[nodiscard]] const std::vector<ResourceLocation>& getNestedTags() const noexcept
+    {
+        return m_nestedTags;
+    }
+
+    /**
+     * @brief 清空嵌套引用（展开完成后调用，引用已并入成员集合）
+     */
+    void clearNestedTags()
+    {
+        m_nestedTags.clear();
+    }
+
+    /**
+     * @brief 清空标签中的所有物品与嵌套引用
      *
      * 用于数据包加载的 replace 语义：当数据包标签指定 replace=true 时，
      * 先清空已有标签内容，再追加新内容。
@@ -147,7 +187,8 @@ public:
 private:
     ResourceLocation m_id;
     std::unordered_set<const Item*> m_items;
-    bool m_replace = false; ///< 数据包 replace 语义标志
+    std::vector<ResourceLocation> m_nestedTags; ///< 尚未展开的 `#tag` 引用
+    bool m_replace = false;                     ///< 数据包 replace 语义标志
 };
 
 } // namespace item::tag

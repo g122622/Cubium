@@ -23,8 +23,10 @@
 
 #include "item/crafting/RecipeLoader.hpp"
 #include "common/core/Result.hpp"
+#include "common/item/Items.hpp"
 #include "common/item/crafting/RecipeManager.hpp"
 #include "common/item/crafting/RecipeSerializers.hpp"
+#include "common/item/tag/ItemTags.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "resource/repository/DataPackRepository.hpp"
 #include <cstddef>
