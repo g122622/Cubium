@@ -799,11 +799,17 @@ Result<BlockUseResult> BlockInteractionManager::handleBlockUse(
 
     // ④ 空手交互（对齐 vanilla useWithoutItem）。仅当 useItemOn 返回 TRY_WITH_EMPTY_HAND
     //    且为主线时回退（vanilla `interactionhand == MAIN_HAND`）；返回 Pass/Fail 不回退。
-    //    还必须真正空手：手持物品时方块返回 TRY_WITH_EMPTY_HAND 意为"我不处理这件物品"，
-    //    vanilla 此时直接落到 Item::useOn，不会替玩家做一次空手交互。此前缺 heldItemEmpty
-    //    门控，手持木棍右键空花盆会被当作空手交互（FlowerPotBlock::useWithoutItem 对空花盆
-    //    返回 Consume），方块的"不处理"被误报成一次成功的右键。
-    if (hand == Hand::MainHand && heldItemEmpty && itemOn.has_value() &&
+    //
+    //    注意这里**不能**追加「手必须为空」的条件：原版 ServerPlayerGameMode.useItemOn
+    //    的判据只有 `interactionresult instanceof TRY_WITH_EMPTY_HAND && hand == MAIN_HAND`
+    //    （见原版 :333-386），与手上有没有物品无关。方块返回 TRY_WITH_EMPTY_HAND 的语义是
+    //    「这件物品我不处理，请走空手分支」，因此手持非空物品同样要回退：
+    //    - 日光探测器 DaylightDetectorBlock 只实现 useWithoutItem，手持木棍右键要能切换反相；
+    //    - 花盆 FlowerPotBlock.useItemOn 对非可盆栽物品返回 TRY_WITH_EMPTY_HAND，
+    //      其 useWithoutItem 对空花盆返回 CONSUME（consumesAction 为真），
+    //      故原版手持木棍右键空花盆同样返回 true。
+    //    两个用例都依赖这一路径，此前加 heldItemEmpty 门控把它们一起打断了。
+    if (hand == Hand::MainHand && itemOn.has_value() &&
         itemOn->actionResult == ActionResultType::TryEmptyHandInteraction) {
         const auto withoutItem =
             _dispatchBlockUse(playerId, *world, pos, hand, hitPos, face, /*withItem=*/false, nullptr);

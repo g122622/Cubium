@@ -122,3 +122,8 @@ MaxEmptyLinesToKeep: 1
 ReflowComments: true
 SeparateDefinitionBlocks: Always
 ShortNamespaceLines: 1
+
+# 文件末尾空行，让文件以恰好一个换行符结尾
+InsertNewlineAtEOF: true
+KeepEmptyLines:
+  AtEndOfFile: false   # 移除文件末尾多余的空行

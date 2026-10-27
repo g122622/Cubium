@@ -19,6 +19,7 @@ import { vec3 } from "../assert/surface.ts";
 import { delay, waitForCondition } from "../bot/wait.ts";
 // 槽位常量与交互助手统一来自 shared.ts（本文件此前自带一份副本，见该文件的说明）。
 import {
+    clearSlot,
     INV_GRID_SLOT_START,
     INV_HOTBAR_SLOT_0,
     INV_RESULT_SLOT,
@@ -67,6 +68,9 @@ async function placeAndOpenCraftingTable(
     expectTrue(tableBlock !== null, "放置后的工作台不可读");
 
     const typed = bot as unknown as { openBlock(block: unknown): Promise<unknown> };
+    // 创造模式放置不消耗手持物品，放完方块手上仍有方块；方块容器只在空手时
+    // 走 useWithoutItem 打开（对齐原版）。必须先清手，否则右键只是再放一个方块。
+ clearSlot(bot, INV_HOTBAR_SLOT_0);
     const window = await typed.openBlock(tableBlock);
     expectTrue(window !== undefined && window !== null, "打开工作台失败");
     return window as { slots: ({ name?: string } | null)[] };

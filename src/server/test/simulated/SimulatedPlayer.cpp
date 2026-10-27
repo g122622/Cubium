@@ -510,14 +510,13 @@ bool SimulatedPlayer::useItemOnBlock(
             mc::BlockActionResult blockResult =
                 block->useItemOn(handStack, *state, world, worldPos, *this, mc::Hand::MainHand, hitResult);
             if (!blockResult.consumesAction() && blockResult.isTryEmptyHandInteraction()) {
-                // 空手回退只在真正空手时发生：vanilla 的 useWithoutItem 就是"没有手持物参与的
-                // 交互"，手持物品时方块返回 TRY_WITH_EMPTY_HAND 的含义是"我不处理这件物品"，
-                // 此时应继续交给 Item::useOn，而不是替玩家做空手交互。此前无条件回退，导致
-                // 手持木棍右键空花盆被当成空手交互（FlowerPotBlock::useWithoutItem 对空花盆返回
-                // Consume），useItemOnBlock 错误地返回 true，花盆用例因此失败。
-                if (handStack.isEmpty()) {
-                    blockResult = block->useWithoutItem(*state, world, worldPos, *this, hitResult);
-                }
+                // 回退到 useWithoutItem 的条件与原版 ServerPlayerGameMode.useItemOn 一致：
+                // 只要方块返回 TryEmptyHandInteraction 就回退，**不看手上有没有物品**。
+                // 方块的语义是「这件物品我不处理，请走空手分支」——日光探测器
+                // （DaylightDetectorBlock 只实现 useWithoutItem）手持木棍右键要能切换反相，
+                // 花盆对非可盆栽物品返回 TRY_WITH_EMPTY_HAND 后由其 useWithoutItem 消费。
+                // 此处若加 handStack.isEmpty() 门控，这两类用例都会失败。
+                blockResult = block->useWithoutItem(*state, world, worldPos, *this, hitResult);
             }
             // 方块侧交互消费动作即短路返回，不再 fallback Item.useOn（避免双重消耗——如 ComposterBlock
             // 堆肥成功时内部已 shrink 手持物作用于选中槽）。

@@ -102,19 +102,42 @@ public:
     }
 
     /// 注册阶段登记全部修改器节点，parse 时按「字面量 → 索引」继续解析。
-    static void setModifiers(std::vector<std::shared_ptr<CommandNode<ServerCommandSource>>> modifiers)
+    ///
+    /// 表里存 weak_ptr 而非 shared_ptr：这些节点本来就由 CommandRegistry 的命令树持有，
+    /// 静态表若也持 shared_ptr，就会让整棵 /execute 子树的生命周期脱离命令树——
+    /// 命令树析构后节点仍被静态表钉住，而节点之间又通过父子 shared_ptr 互相指向，
+    /// 形成成环的 Indirect leak（LeakSanitizer 会在进程退出时报 81 个分配泄漏）。
+    /// weak_ptr 只做观察，节点随命令树正常释放。
+    static void setModifiers(const std::vector<std::shared_ptr<CommandNode<ServerCommandSource>>>& modifiers)
     {
         s_modifierIndices.clear();
+        s_modifiers.clear();
+        s_modifiers.reserve(modifiers.size());
         for (size_t i = 0; i < modifiers.size(); ++i) {
             s_modifierIndices[modifiers[i]->getName()] = static_cast<i32>(i);
+            s_modifiers.push_back(modifiers[i]);
         }
-        s_modifiers = std::move(modifiers);
     }
 
     /// /execute 下那个不带前置修改器的 run（`execute run <command>`）。
+    ///
+    /// TODO: 目前只有写入、没有任何读取方——顶层 run 的解析走的是 m_chain == kTopLevel
+    ///   分支（见 currentChain / parse），并不需要回到节点本身。保留这个入口是为了后续
+    ///   需要「从静态上下文找回顶层 run 节点」时（例如补全要读取它的子节点）直接可用；
+    ///   若确定永不需要，可连同 s_topLevelRun 一起删除。
+    ///   这里存 weak_ptr 而非 shared_ptr：避免静态表把整棵 /execute 子树钉住形成泄漏。
     static void setTopLevelRun(const std::shared_ptr<ExecuteRunNode>& run)
     {
         s_topLevelRun = run;
+    }
+
+    /// 取第 index 个修改器节点；命令树已析构（或索引越界）时返回 nullptr。
+    [[nodiscard]] static std::shared_ptr<CommandNode<ServerCommandSource>> modifierAt(size_t index)
+    {
+        if (index >= s_modifiers.size()) {
+            return nullptr;
+        }
+        return s_modifiers[index].lock();
     }
 
     void parse(StringReader& reader, CommandContext<ServerCommandSource>& context) const override
@@ -138,10 +161,11 @@ public:
             }
 
             const i32 index = modifierIndex(token);
+            // 命令树可能在 parse 期间已被析构（优雅关服竞态），lock 失败按「无此修改器」处理。
+            const std::shared_ptr<CommandNode<ServerCommandSource>> modifierNode =
+                index < 0 ? nullptr : modifierAt(static_cast<size_t>(index));
             const std::shared_ptr<CommandNode<ServerCommandSource>> segmentNode =
-                index < 0 || static_cast<size_t>(index) >= s_modifiers.size()
-                ? nullptr
-                : segmentFor(*s_modifiers[static_cast<size_t>(index)], std::to_string(index));
+                modifierNode == nullptr ? nullptr : segmentFor(*modifierNode, std::to_string(index));
             if (!segmentNode) {
                 reader.setCursor(tokenStart);
                 reader.skipWhitespace();
@@ -208,7 +232,8 @@ private:
         if (m_chain == kTopLevel || static_cast<size_t>(m_chain) >= s_modifiers.size()) {
             return {};
         }
-        return s_modifiers[static_cast<size_t>(m_chain)]->getName();
+        const auto node = modifierAt(static_cast<size_t>(m_chain));
+        return node != nullptr ? node->getName() : std::string();
     }
 
     /// 该修改器的末端参数子树（首次使用时按需拼并缓存）。
@@ -299,9 +324,9 @@ private:
     i32 m_chain;
     CommandCallback<ServerCommandSource> m_command;
 
-    static inline std::vector<std::shared_ptr<CommandNode<ServerCommandSource>>> s_modifiers;
+    static inline std::vector<std::weak_ptr<CommandNode<ServerCommandSource>>> s_modifiers;
     static inline std::unordered_map<std::string, i32> s_modifierIndices;
-    static inline std::shared_ptr<ExecuteRunNode> s_topLevelRun;
+    static inline std::weak_ptr<ExecuteRunNode> s_topLevelRun;
 };
 
 } // namespace command

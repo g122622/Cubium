@@ -24,6 +24,7 @@ import { blockNameAt, vec3 } from "../assert/surface.ts";
 import { delay, waitForCondition } from "../bot/wait.ts";
 // 槽位常量与交互助手统一来自 shared.ts（本文件此前自带一份副本，见该文件的说明）。
 import {
+    clearSlot,
     INV_HOTBAR_SLOT_0,
     INV_MAIN_SLOT_0,
     containerSyncCount,
@@ -200,6 +201,9 @@ export const inventoryCases: readonly CaseDefinition[] = [
             expectTrue(chestBlock !== null, "放置后的箱子不可读");
 
             // openContainer 内部会等 windowOpen，而 windowOpen 要等窗口内容到达才触发。
+            // 创造模式放置不消耗手持物品，放完方块手上仍有方块；而方块容器只在空手时
+            // 走 useWithoutItem 打开（对齐原版）。必须先清手，否则右键只是再放一个方块。
+ clearSlot(bot, INV_HOTBAR_SLOT_0);
             const chest = await bot.openContainer(chestBlock as never);
             expectTrue(chest !== undefined && chest !== null, "打开容器失败");
 
@@ -239,6 +243,9 @@ export const inventoryCases: readonly CaseDefinition[] = [
 
             const chestBlock = bot.blockAt(vec3(x, surfaceY + 1, z));
             expectTrue(chestBlock !== null, "放置后的箱子不可读");
+            // 创造模式放置不消耗手持物品，放完方块手上仍有方块；而方块容器只在空手时
+            // 走 useWithoutItem 打开（对齐原版）。必须先清手，否则右键只是再放一个方块。
+ clearSlot(bot, INV_HOTBAR_SLOT_0);
             const chest = await bot.openContainer(chestBlock as never);
 
             // 往背包里放一块石头（此时箱子已打开，但它改的是玩家背包那一份数据）。

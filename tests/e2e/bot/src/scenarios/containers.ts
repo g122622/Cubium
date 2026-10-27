@@ -24,6 +24,7 @@ import { expectEq, expectTrue } from "../assert/expect.ts";
 import { blockNameAt, vec3 } from "../assert/surface.ts";
 import { delay, waitForCondition } from "../bot/wait.ts";
 import {
+    clearSlot,
     INV_HOTBAR_SLOT_0,
     runCommand,
     setSlot,
@@ -107,6 +108,9 @@ async function placeAndOpenBlockContainer(
     expectTrue(placed !== null, `放置后的 ${itemName} 不可读`);
     expectEq(blockNameAt(bot, x, blockY, z), itemName, `放置后 (${x},${blockY},${z}) 应为 ${itemName}`);
 
+    // 创造模式放置不消耗手持物品，放完方块手上仍有方块；而方块容器只在空手时
+    // 走 useWithoutItem 打开（对齐原版）。必须先清手，否则右键只是再放一个方块。
+ clearSlot(bot, INV_HOTBAR_SLOT_0);
     const window = await openContainerTimed(bot, placed as never);
     return { window, blockX: x, blockY };
 }
@@ -256,6 +260,9 @@ export const containerCases: readonly CaseDefinition[] = [
             // 重新打开窗口时服务端必须下发全量内容，它是权威状态，两侧都成立。
             await bot.closeWindow(window as never);
             await delay(300);
+            // 创造模式放置不消耗手持物品，放完方块手上仍有方块；而方块容器只在空手时
+            // 走 useWithoutItem 打开（对齐原版）。必须先清手，否则右键只是再放一个方块。
+ clearSlot(bot, INV_HOTBAR_SLOT_0);
             const reopened = await openContainerTimed(bot, bot.blockAt(vec3(spawnX + 2, blockY, spawnZ + 2)) as never);
             expectEq(
                 slotItemName(reopened, 0),

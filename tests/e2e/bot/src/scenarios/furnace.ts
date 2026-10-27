@@ -16,7 +16,7 @@ import { expectEq, expectTrue } from "../assert/expect.ts";
 import { vec3 } from "../assert/surface.ts";
 import { delay, waitForCondition } from "../bot/wait.ts";
 // 槽位常量与交互助手统一来自 shared.ts（本文件此前自带一份副本，见该文件的说明）。
-import { INV_HOTBAR_SLOT_0, setSlot, slotItemName } from "./shared.ts";
+import { clearSlot, INV_HOTBAR_SLOT_0, setSlot, slotItemName } from "./shared.ts";
 
 /**
  * 熔炉窗口的槽位号，即 1.21.11 FurnaceMenu 布局：
@@ -55,6 +55,9 @@ async function placeAndOpenFurnace(
     expectTrue(furnaceBlock !== null, "放置后的熔炉不可读");
 
     const typed = bot as unknown as { openBlock(block: unknown): Promise<unknown> };
+    // 创造模式放置不消耗手持物品，放完方块手上仍有方块；方块容器只在空手时
+    // 走 useWithoutItem 打开（对齐原版）。必须先清手，否则右键只是再放一个方块。
+ clearSlot(bot, INV_HOTBAR_SLOT_0);
     const window = await typed.openBlock(furnaceBlock);
     expectTrue(window !== undefined && window !== null, "打开熔炉失败");
     return window as { slots: ({ name?: string } | null)[] };

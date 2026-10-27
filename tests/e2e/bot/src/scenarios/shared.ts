@@ -80,6 +80,26 @@ export async function setSlot(bot: Bot, slot: number, itemName: string, count: n
     return true;
 }
 
+/**
+ * 清空玩家背包的指定菜单槽位（创造模式下发空物品）。
+ *
+ * 用例需要在「放置方块后打开该方块容器」时调用：创造模式放置**不消耗**手持物品
+ * （原版 ServerPlayerGameMode 的 isCreative 分支不扣减，本项目同样如此），所以放完箱子
+ * 手上仍然残留箱子。方块容器的打开走 `Block::useWithoutItem`，而 useWithoutItem 只在
+ * 「主手为空」时才被派发（对齐原版 ServerGameMode.useItemOn 的 flag1 门控）——
+ * 手上还握着方块时右键箱子只会再放一个箱子，永远不会打开窗口。
+ *
+ * 这不是服务端缺陷，是对齐原版的行为；用例必须显式清手。
+ */
+export async function clearSlot(bot: Bot, slot: number): Promise<void> {
+    // 传 null 让 mineflayer 的 creative 插件写出「空槽」的 set_creative_mode_slot；
+    // 传 new Item(-1, 0) 会得到一个 name=unknown 的伪物品，服务端仍视该槽为非空。
+    const typed = bot as unknown as {
+        creative: { setInventorySlot(slot: number, item: unknown): Promise<void> };
+    };
+    await typed.creative.setInventorySlot(slot, null);
+}
+
 /** 等某个背包槽位变成指定物品。 */
 export async function waitForSlot(bot: Bot, slot: number, itemName: string, what: string): Promise<void> {
     await waitForCondition(() => slotItemName(bot.inventory, slot) === itemName, {

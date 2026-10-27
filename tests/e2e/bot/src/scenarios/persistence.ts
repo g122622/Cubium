@@ -19,6 +19,7 @@ import { expectEq, expectTrue } from "../assert/expect.ts";
 import { blockNameAt, vec3 } from "../assert/surface.ts";
 import { delay, waitForCondition } from "../bot/wait.ts";
 import {
+    clearSlot,
     INV_HOTBAR_SLOT_0,
     runCommand,
     setSlot,
@@ -140,6 +141,8 @@ export const persistenceCases: readonly CaseDefinition[] = [
             const chestBlock = bot.blockAt(vec3(x, chestY, z));
             expectTrue(chestBlock !== null, "放置后的箱子不可读");
 
+            // 创造模式放置不消耗手持物品，方块容器只在空手时打开（对齐原版），故先清手。
+ await clearSlot(bot, INV_HOTBAR_SLOT_0);
             const chest = (await bot.openContainer(chestBlock as never)) as unknown as {
                 slots: ({ name?: string } | null)[];
             };
@@ -171,6 +174,8 @@ export const persistenceCases: readonly CaseDefinition[] = [
             // 3) 重新打开箱子核对内容
             const reloadedChestBlock = reloaded.blockAt(vec3(x, chestY, z));
             expectTrue(reloadedChestBlock !== null, "重启后箱子方块不可读");
+            // 创造模式放置不消耗手持物品，方块容器只在空手时打开（对齐原版），故先清手。
+ await clearSlot(reloaded, INV_HOTBAR_SLOT_0);
             const reloadedChest = (await reloaded.openContainer(reloadedChestBlock as never)) as unknown as {
                 slots: ({ name?: string } | null)[];
             };

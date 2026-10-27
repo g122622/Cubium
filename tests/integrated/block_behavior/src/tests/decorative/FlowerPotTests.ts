@@ -128,13 +128,16 @@ function flowerPotIgnoresNonFlowerItem(test: Test): void {
     const farmer = test.spawnSimulatedPlayer({ x: 1, y: 2, z: 1 }, "farmer");
     const stick = new ItemStack("minecraft:stick", 1);
 
-    // 对空花盆 useItemOnBlock 木棍 → dynamic_cast<BlockItem> nullptr → Pass → fallback（木棍无 onItemUse）→ false。
+    // 对空花盆 useItemOnBlock 木棍：原版 FlowerPotBlock.useItemOn 对「非可盆栽物品」返回
+    // TRY_WITH_EMPTY_HAND，ServerPlayerGameMode 随即回退调用 useWithoutItem；该实现对空花盆
+    // 返回 CONSUME（属于 Success，consumesAction 为真），因此原版整体返回 true ——
+    // 花盆内容确实没有变化，但这次交互是被消费掉的。
     const used = farmer.useItemOnBlock(
         stick as unknown as Parameters<typeof farmer.useItemOnBlock>[0],
         { x: 3, y: 2, z: 1 },
         Direction.Up,
     );
-    test.assert(!used, `useItemOnBlock should return false for non-flower item (stick), got ${used}`);
+    test.assert(used, `useItemOnBlock should return true for non-flower item (stick), got ${used}`);
 
     // 判定：花盆仍为空 flower_pot（木棍非可盆栽植物，未触发放花）。
     test.assert(getBlockTypeId(test, 3, 2, 1) === "minecraft:flower_pot", `pot should remain empty flower_pot for non-flower item, got ${getBlockTypeId(test, 3, 2, 1)}`);

@@ -20,7 +20,7 @@ import type { CaseDefinition } from "../case.ts";
 import { expectEq, expectTrue } from "../assert/expect.ts";
 import { blockNameAt, vec3 } from "../assert/surface.ts";
 import { delay, waitForCondition } from "../bot/wait.ts";
-import { INV_HOTBAR_SLOT_0, setSlot } from "./shared.ts";
+import { clearSlot, INV_HOTBAR_SLOT_0, setSlot } from "./shared.ts";
 
 /** 箱子菜单的等待上限。 */
 const OPEN_TIMEOUT_MS = 15_000;
@@ -78,6 +78,9 @@ export const blockEventCases: readonly CaseDefinition[] = [
             // 打开箱子。服务端应在此刻把 openCount 置 1 并广播 BlockEvent(1, 1)。
             const chestBlock = bot.blockAt(vec3(x, surfaceY + 1, z));
             expectTrue(chestBlock !== null, "放置后的箱子不可读");
+            // 创造模式放置不消耗手持物品，放完方块手上仍有方块；而方块容器只在空手时
+            // 走 useWithoutItem 打开（对齐原版）。必须先清手，否则右键只是再放一个方块。
+ clearSlot(bot, INV_HOTBAR_SLOT_0);
             const window = await openContainerTimed(bot, chestBlock as never);
 
             await waitForCondition(() => observerTrace.count("block_action") > before, {
