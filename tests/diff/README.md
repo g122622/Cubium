@@ -36,6 +36,17 @@ tests/diff/
 │   ├── loot_table.cpp           # 战利品表掷骰（最小上下文：origin / 中性方块 / 空工具）
 │   ├── loot_table_block.cpp     # 战利品表掷骰（挖掘上下文：方块状态 + 时运工具）
 │   ├── loot_table_entity.cpp    # 战利品表掷骰（击杀上下文：this_entity + 攻击者 + 掠夺）
+│   ├── vanilla_datapack.hpp     # 探针共用：定位原版数据包、初始化注册表、载入数据包标签
+│   ├── mob_category.cpp         # 生物分类的每区块上限 / 生成参数
+│   ├── block_properties.cpp     # 硬度 / 亮度 / 滑度 / 是否流体
+│   ├── block_state_names.cpp    # 方块状态名全集
+│   ├── entity_attributes.cpp    # 生物属性默认值
+│   ├── random_sequence.cpp      # Xoroshiro / JavaLegacy 随机数接口序列
+│   ├── command_argument.cpp     # 命令参数解析
+│   ├── command_tree.cpp         # 命令分发器树
+│   ├── advancement.cpp          # 进度定义
+│   ├── biome_spawns.cpp         # 生物群系自然生成配置
+│   ├── recipe.cpp               # 配方表（类型 / 原料 / 结果 / 烹饪）
 │   ├── loot_world.hpp           # 战利品探针共用的空世界 / 掷骰入口
 │   └── loot_probe_common.hpp    # 战利品探针共用的样本循环与摘要
 ├── java/dev/horizonlab/diff/    # 原版 Java oracle（直接调 1.21.11 服务端 jar）
@@ -142,8 +153,16 @@ harness 决定。`runner.ts` 负责按 `key` 对齐两侧输出、规范化、�
    set(MC_DIFF_PROBE_DOMAINS  text_encode encode_nbt)
    ```
 
-3. 在 `harness/` 下写 `test_<domain>_parity.ts`，参照实现放在 `<domain>.ts` 或
-   `vanilla.ts` 里，调用 `runHarness()` 并自行决定退出码。
+3. 在 `java/dev/horizonlab/diff/` 写 `<Domain>Oracle.java`（`list` / `run` 两个子命令），
+   在 `harness/harnesses/index.ts` 的 `JAVA_HARNESSES` 里登记 oracle 类名、输入模板与
+   比对键。`.java` 由 `java-oracle.ts` 在运行前编译，不需要额外构建步骤。
+
+   读数据包的能力（战利品表、进度、群系生成、配方）：把域名加进 `runner.ts` 的
+   `DATAPACK_DOMAINS`，探针就能从 `MC_DIFF_VANILLA_DATAPACK` 拿到与 oracle 同一个
+   数据包目录；探针共用的注册表初始化与数据包标签加载在 `probes/vanilla_datapack.hpp`。
+
+   原版有、本项目尚未实现的单元登记进 `oracleMissing`（整条单元）或
+   `memberGaps`（只从原版一侧剔除某些成员），报告里会单独说明条数。
 
 **确定性是硬要求**：同一输入必须永远产出同一输出。涉及无序容器、随机数、时间、
 地址的，probe 必须在写出前自行收敛（排序、固定种子、去掉地址），否则差分没有意义。
@@ -261,8 +280,11 @@ harness 决定。`runner.ts` 负责按 `key` 对齐两侧输出、规范化、�
 `tall_flowers` / `valid_sweet_berry_bush_ground`）在 1.21.11 里根本不存在。
 
 现在两张表都由原版数据包生成（`VanillaBlockTags.gen.cpp` / `VanillaItemTags.gen.cpp`），
-`#tag` 引用在生成期展开——这正是原版 `Tag#getValues()` 的口径；运行期再展开一层会让
-「少写了一层引用」变得不可见。手写的 500 多行 `add(...)` 全部删除。
+`#tag` 引用保留为引用（与原版 `TagEntry` 一致），由 `linkAndExpand` 在运行期展开成传递
+闭包。做 `recipe` 时发现物品侧在生成期展开了一层：`logs_that_burn` 写的是
+`#minecraft:acacia_logs` 等引用，生成器只认物品名，引用成员全部丢失，`cherry_planks`
+等配方因此原料为空、加载失败。运行期统一展开后，标签成员就是原版 `Tag#getValues()`
+的传递闭包。手写的 500 多行 `add(...)` 在更早一轮已全部删除。
 
 顺带按原版改了三处主调者：
 
