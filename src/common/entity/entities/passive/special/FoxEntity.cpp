@@ -638,12 +638,20 @@ void FoxEntity::registerGoals()
     m_goalSelector.addGoal(8, std::make_unique<entity::ai::goal::FollowParentGoal>(this, 1.25));
 
     // 优先级 9: 村庄漫步
-    // 简化实现：使用随机行走
-    m_goalSelector.addGoal(9, std::make_unique<entity::ai::goal::RandomWalkingGoal>(this, 1.0, 32));
+    // 对齐 vanilla Fox.registerGoals 的 addGoal(9, new FoxStrollThroughVillageGoal(32, 200))：
+    // 这是**只在村庄内**生效的漫步。项目尚未实现村庄检测（无 VillageManager / POI 查询），
+    // 此前用无限制的 RandomWalkingGoal(1.0, 32) 顶替，导致狐狸在任何地形都会持续漫游
+    // 32 格，迅速离开出生点，把优先级更低的采食行为（FoxEatBerriesGoal，优先级 10）
+    // 彻底饿死——fox_eats_sweet_berries_from_bush 里狐狸生成后跑到 20 格外、
+    // searchRange=12 覆盖不到浆果丛，从而从不采食。
+    //
+    // TODO: 实现村庄检测后改回原版的 FoxStrollThroughVillageGoal(32, 200)，
+    //   即「仅在村庄内且距上次成功漫步不超过 200 tick 时」才漫步。
+    //   在那之前不注册该行为：宁可不漫步，也不要让一个语义错误的无限漫步抢占其他 AI。
 
     // 优先级 10: 吃浆果
-    m_goalSelector.addGoal(10, std::make_unique<entity::ai::goal::FoxEatBerriesGoal>(this, 1.2, 12, 2));
-
+    // 垂直搜索范围对齐 vanilla Fox.registerGoals 的 FoxEatBerriesGoal(1.2F, 12, 1)（第 3 参为 1）。
+    m_goalSelector.addGoal(10, std::make_unique<entity::ai::goal::FoxEatBerriesGoal>(this, 1.2, 12, 1));
     // 优先级 10: 跳跃攻击（备用）
     m_goalSelector.addGoal(10, std::make_unique<entity::ai::goal::LeapAtTargetGoal>(this, 0.4f));
 
