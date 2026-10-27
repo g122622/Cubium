@@ -3432,6 +3432,18 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
                 return ctx.createUndefined();
             }
             // getItem 返回 owned 拷贝（ItemStack(inv->getItem(slot))），JS GC 时经 destroy 回调 delete。
+            //
+            // 空槽必须返回 undefined，不能返回一个 count=0 但仍带物品类型的 ItemStack。
+            // C++ 侧 ItemStack::isEmpty() 只看 m_count<=0，getItem() 仍返回物品类型——这是
+            // 为对齐原版 set_count=0 / enchanted_count_increase 的「可 grow 回来」语义而
+            // 刻意保留的。但脚本层 ItemStack 是面向模组的 API：官方 Container.getItem
+            // 对空槽返回 undefined，模组据此判断槽位是否为空。若把 count=0 的堆交给脚本，
+            // itemStack.typeId 仍是有值的字符串，于是 `getItem(0)?.typeId ?? ""` 得到物品
+            // id 而非 ""——表现为「物品明明已经消耗掉了，脚本却认为还拿在手里」
+            // （golden_apple_self_eaten_applies_regen 等消耗类用例因此失败）。
+            if (inv->getItem(*slot).isEmpty()) {
+                return ctx.createUndefined();
+            }
             const u64 isClassId = resolveItemStackClassId(ctx);
             void* isProto = ctx.classRegistry().proto(isClassId);
             if (isProto == nullptr) {
