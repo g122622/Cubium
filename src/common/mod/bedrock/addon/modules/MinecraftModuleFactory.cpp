@@ -3548,16 +3548,20 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
     builder.exportConst("GameModeSpectator", 3);
 
     // --- GameMode 枚举对象（@minecraft/server）---
-    // 官方 GameMode 是字符串枚举（adventure="adventure"...survival="survival"），非数字。
-    // 导出为只读对象，各键值均为自身字符串名（对齐 Direction 枚举对象导出模式）。
-    // 接收 JS GameMode 字符串时绑定层用 gameModeFromApiString 转 mc::GameMode
-    // （见 ScriptTestHelper::spawnSimulatedPlayer 等）。
+    // 官方 GameMode 是**字符串枚举**，键名与值都是全小写：
+    //   adventure='adventure'、creative='creative'、survival='survival'、spectator='spectator'
+    // （见 @minecraft/server 的 index.d.ts `export enum GameMode`）。
+    // 此前键名与值都写成首字母大写（Adventure/Survival/...），于是测试里写的
+    // `GameMode.survival` 取到 undefined，spawnSimulatedPlayer 的第 3 个参数变成
+    // undefined，绑定层既判定不出字符串也判定不出数字，静默落回默认的 Creative——
+    // 表现为「测试显式声明生存模式，实际却跑在创造模式」（火焰弹/末影之眼不被消耗等）。
+    // 绑定层 gameModeFromApiString / spawnSimulatedPlayer 均按小写识别。
     {
         void* gameModeObj = ctx.createObject();
-        ctx.setPropertyString(gameModeObj, "Adventure", "Adventure");
-        ctx.setPropertyString(gameModeObj, "Creative", "Creative");
-        ctx.setPropertyString(gameModeObj, "Spectator", "Spectator");
-        ctx.setPropertyString(gameModeObj, "Survival", "Survival");
+        ctx.setPropertyString(gameModeObj, "adventure", "adventure");
+        ctx.setPropertyString(gameModeObj, "creative", "creative");
+        ctx.setPropertyString(gameModeObj, "spectator", "spectator");
+        ctx.setPropertyString(gameModeObj, "survival", "survival");
         builder.exportValue("GameMode", gameModeObj);
         ctx.releaseValue(gameModeObj);
     }

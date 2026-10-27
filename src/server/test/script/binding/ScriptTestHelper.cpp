@@ -636,14 +636,29 @@ u64 registerTestClassBinding(mc::mod::bedrock::addon::NativeModuleBuilder& build
                 // 优先按字符串枚举值解析；若传数字则按数字解析（向后兼容旧测试）。
                 if (ctx.isString(args[gameModeIdx])) {
                     auto gmStr = ctx.toString(args[gameModeIdx]);
-                    if (gmStr == "Survival") {
-                        gameMode = mc::GameMode::Survival;
-                    } else if (gmStr == "Creative") {
-                        gameMode = mc::GameMode::Creative;
-                    } else if (gmStr == "Adventure") {
-                        gameMode = mc::GameMode::Adventure;
-                    } else if (gmStr == "Spectator") {
-                        gameMode = mc::GameMode::Spectator;
+                    if (gmStr) {
+                        // 官方 GameMode 是字符串枚举，成员值**全小写**
+                        // （@minecraft/server 的 index.d.ts：adventure='adventure'、creative='creative'、
+                        // survival='survival'、spectator='spectator'）。此前这里只比对首字母大写的
+                        // "Survival"/"Creative"/...，而所有测试写的是 GameMode.survival 这类小写值，
+                        // 于是任何模式都匹配不上、静默落到默认的 Creative——表现为
+                        // 「测试显式要求生存模式，实际却是创造模式」（火焰弹/末影之眼不被消耗等）。
+                        // 这里按大小写不敏感比较，两种写法都能识别。
+                        std::string normalized = *gmStr;
+                        for (char& ch : normalized) {
+                            ch = static_cast<char>(std::tolower(static_cast<unsigned char>(ch)));
+                        }
+                        if (normalized == "survival") {
+                            gameMode = mc::GameMode::Survival;
+                        } else if (normalized == "creative") {
+                            gameMode = mc::GameMode::Creative;
+                        } else if (normalized == "adventure") {
+                            gameMode = mc::GameMode::Adventure;
+                        } else if (normalized == "spectator") {
+                            gameMode = mc::GameMode::Spectator;
+                        } else {
+                            return ctx.throwTypeError("gameMode must be one of survival/creative/adventure/spectator");
+                        }
                     }
                 } else if (ctx.isNumber(args[gameModeIdx])) {
                     auto gm = ctx.toInt32(args[gameModeIdx]);
