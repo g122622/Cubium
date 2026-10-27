@@ -283,21 +283,24 @@ void GhastEntity::registerGoals()
     m_goalSelector.addGoal(7, std::make_unique<entity::ai::goal::GhastFireballAttackGoal>(this));
 
     // 目标选择器：攻击最近的玩家
-    // 条件：玩家与恶魂的Y坐标差不超过4格
+    // 目标筛选对齐 vanilla Ghast.registerGoals 的
+    // new NearestAttackableTargetGoal<>(this, Player.class, 10, true, false,
+    //     (target, level) -> Math.abs(target.getY() - this.getY()) <= 4.0)：
+    // 要求视线可达（对应 mustSee=true）且与目标 Y 差不超过 4 格。
     m_targetSelector.addGoal(1,
         std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<Player>>(this,
             true, // checkSight - 需要视线检查
             10,   // chance - 每10tick检查一次
-            [](const LivingEntity* /*entity*/) -> bool {
-                // Y坐标检查主要影响目标选择，在目标选择器中检查可能不太准确
-                return true;
+            [this](const LivingEntity* target) -> bool {
+                if (target == nullptr) {
+                    return false;
+                }
+                return std::abs(target->y() - y()) <= 4.0;
             }));
 }
 
 void GhastEntity::registerAttributes()
 {
-    MonsterEntity::registerAttributes();
-
     // 对齐原版 Ghast.createAttributes：生命值 10、追踪范围 100、飞行速度 0.06；
     // 它不覆盖移动速度，沿用 LivingEntity 默认的 0.7（飞行由 GhastMoveControl 驱动）。
     attributes().setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 10.0);
