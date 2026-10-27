@@ -224,7 +224,8 @@ void RegistryBootstrap::initializeAll(bool registerEntities)
         mc::item::tag::ItemTags::clear();
         auto dataPackLoadResult = mc::item::tag::ItemTagLoader::loadFromDataPackRepository(m_dataPackList);
         if (dataPackLoadResult.failed()) {
-            spdlog::error("Failed to load item tags from data packs: {}", dataPackLoadResult.error().toString());
+            // 与原版重载同一口径：标签表有洞（未知引用 / 未注册的必需物品）就是失败。
+            spdlog::error("Failed to load item tags from data packs: {}", dataPackLoadResult.error().message());
         } else {
             spdlog::info("Loaded {} item tags from data packs", dataPackLoadResult.value());
         }

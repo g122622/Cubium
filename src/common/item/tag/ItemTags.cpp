@@ -611,8 +611,8 @@ void ItemTags::initialize()
 
     s_initialized = true;
 
-    // 初始化不接管错误结算：调用方（服务端注册引导、客户端引导、单测）各自决定
-    // 「标签表有洞」算不算致命。
+    // 展开引用。内置表里缺失的物品（方块物品稍后才建立）是预期内的：不接管错误结算，
+    // 缺口留在标签上，由 takePendingErrors 交给调用方判定。
     if (auto linked = linkAndExpand(); linked.failed()) {
         spdlog::error("ItemTags: {}", linked.error().message());
     }
@@ -705,13 +705,32 @@ Result<void> ItemTags::applyTagJson(const nlohmann::json& contents, ItemTag& tag
 
 Result<void> ItemTags::writeTagJson(const nlohmann::json& contents, ItemTag& tag)
 {
+    // 与 TagLoader 一致：有未注册的必需成员时整条标签不写入（`replace` 也不会清空
+    // 已有内容）。缺口记在标签上，由 `linkAndExpand` / `takePendingErrors` 判定。
+    std::vector<std::string> missing;
+    for (const auto& value : contents["values"]) {
+        const bool required = !value.is_object() || value.value("required", true);
+        const std::string id = value.is_string() ? value.get<std::string>() : value["id"].get<std::string>();
+        if (!required || id.empty() || id.front() == '#') {
+            continue;
+        }
+        if (ItemRegistry::instance().getItem(ResourceLocation::parse(id)) == nullptr) {
+            missing.push_back(id);
+        }
+    }
+    if (!missing.empty()) {
+        for (auto& id : missing) {
+            tag.addMissingItem(id);
+        }
+        return {};
+    }
+
     if (contents.value("replace", false)) {
         tag.clear();
     }
 
     for (const auto& value : contents["values"]) {
         const std::string id = value.is_string() ? value.get<std::string>() : value["id"].get<std::string>();
-        const bool required = !value.is_object() || value.value("required", true);
         if (id.empty()) {
             continue;
         }
@@ -721,27 +740,23 @@ Result<void> ItemTags::writeTagJson(const nlohmann::json& contents, ItemTag& tag
                                                                 : ResourceLocation::parse(ref));
             continue;
         }
-        const Item* item = ItemRegistry::instance().getItem(ResourceLocation::parse(id));
-        if (item == nullptr) {
-            if (required) {
-                return Error(ErrorCode::NotFound,
-                    "Item tag '" + tag.getId().toString() + "' references unknown item '" + id + "'");
-            }
-            continue;
+        // 非必需且未注册的成员直接跳过（原版 required=false 的语义）。
+        if (const Item* item = ItemRegistry::instance().getItem(ResourceLocation::parse(id)); item != nullptr) {
+            tag.add(item);
         }
-        tag.add(item);
     }
     return {};
 }
 
 Result<void> ItemTags::linkAndExpand()
 {
-    // 第一遍：引用不存在的标签。
+    // 第一遍：引用不存在的标签。未注册的必需成员不在这里判定——内置表初始化时方块
+    // 物品还没建立，那些缺口是预期内的，交给 `takePendingErrors`。
     for (const auto& [id, tag] : tags()) {
         for (const auto& nested : tag->getNestedTags()) {
             if (tags().find(nested) == tags().end()) {
                 return Error(ErrorCode::NotFound,
-                    "Tag '" + id.toString() + "' references unknown tag '" + nested.toString() + "'");
+                    "Item tag '" + id.toString() + "' references unknown tag '" + nested.toString() + "'");
             }
         }
     }
@@ -787,8 +802,19 @@ Result<void> ItemTags::linkAndExpand()
     for (auto& [unused, tag] : tags()) {
         tag->addAll(std::vector<const Item*>(expanded.at(tag.get()).begin(), expanded.at(tag.get()).end()));
         tag->clearNestedTags();
+        static_cast<void>(tag->takeMissingItems());
     }
     return {};
+}
+
+void ItemTags::takePendingErrors(std::vector<std::string>& errors)
+{
+    for (auto& [id, tag] : tags()) {
+        const auto missing = tag->takeMissingItems();
+        if (!missing.empty()) {
+            errors.push_back("Item tag '" + id.toString() + "' references unknown item '" + missing.front() + "'");
+        }
+    }
 }
 
 } // namespace item::tag

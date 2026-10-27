@@ -63,8 +63,12 @@ ResourceLocation extractTagLocation(
     return ResourceLocation(tagName);
 }
 
-/// 全部标签编译完成后再统一应用：先把引用目标注册成空标签，再逐条落内容。
-void applyAll(const std::unordered_map<ResourceLocation, nlohmann::json>& compiled)
+/// 标签内容（`replace` + `values`）与「展开成传递闭包」的完整流程。
+///
+/// 先把引用目标注册成空标签，再逐条落内容，最后统一展开；展开后取回本次写入留下的
+/// 缺口（未注册的必需物品、未知引用）。与 `TagLoader.loadTagsForExistingRegistries`
+/// 一致：标签表有任何洞就是错误，不把带洞的表当成合法结果。
+Result<void> applyAll(const std::unordered_map<ResourceLocation, nlohmann::json>& compiled)
 {
     for (const auto& [location, unused] : compiled) {
         if (ItemTags::getTag(location) == nullptr) {
@@ -72,11 +76,31 @@ void applyAll(const std::unordered_map<ResourceLocation, nlohmann::json>& compil
         }
     }
     for (const auto& [location, contents] : compiled) {
-        static_cast<void>(ItemTags::applyTagJson(contents, location));
+        if (auto applied = ItemTags::applyTagJson(contents, location); applied.failed()) {
+            return applied.error();
+        }
+    }
+    // 先取缺口再展开：展开会把所有标签（含 `replace` 之外的旧标签）的缺口记录清掉。
+    std::vector<std::string> errors;
+    for (const auto& [location, unused] : compiled) {
+        if (ItemTag* tag = ItemTags::getTag(location); tag != nullptr) {
+            const auto missing = tag->takeMissingItems();
+            if (!missing.empty()) {
+                errors.push_back(
+                    "Item tag '" + location.toString() + "' references unknown item '" + missing.front() + "'");
+            }
+        }
     }
     if (auto linked = ItemTags::linkAndExpand(); linked.failed()) {
-        spdlog::error("ItemTagLoader: {}", linked.error().message());
+        return linked.error();
     }
+    if (!errors.empty()) {
+        for (const auto& error : errors) {
+            spdlog::error("ItemTagLoader: {}", error);
+        }
+        return Error(ErrorCode::NotFound, errors.front());
+    }
+    return {};
 }
 
 } // namespace
@@ -118,7 +142,9 @@ Result<size_t> ItemTagLoader::loadFromDataPackRepository(const resource::DataPac
     }
 
     const size_t loadedCount = compiled.size();
-    applyAll(compiled);
+    if (auto applied = applyAll(compiled); applied.failed()) {
+        return applied.error();
+    }
     if (loadedCount > 0) {
         spdlog::info("ItemTagLoader: loaded {} item tags from datapacks", loadedCount);
     }
@@ -160,7 +186,9 @@ Result<size_t> ItemTagLoader::loadFromResourcePack(const resource::IResourcePack
     }
 
     const size_t loadedCount = compiled.size();
-    applyAll(compiled);
+    if (auto applied = applyAll(compiled); applied.failed()) {
+        return applied.error();
+    }
     return loadedCount;
 }
 
@@ -174,6 +202,11 @@ Result<ItemTag> ItemTagLoader::loadFromJson(
     ItemTag tag = base.has_value() ? std::move(*base) : ItemTag(location, false);
     if (auto applied = ItemTags::applyTagJson(compiledTag.value(), tag); applied.failed()) {
         return applied.error();
+    }
+    // 独立解析是「整份载入」的语义：未注册的必需成员在展开阶段判定为错误。
+    if (!tag.getMissingItems().empty()) {
+        return Error(ErrorCode::NotFound,
+            "Item tag '" + location.toString() + "' references unknown item '" + tag.getMissingItems().front() + "'");
     }
     // 独立解析的标签不进标签表，直接在结果上展开引用（引用的标签必须已注册）。
     if (!tag.getNestedTags().empty()) {

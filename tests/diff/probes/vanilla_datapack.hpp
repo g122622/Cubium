@@ -134,6 +134,8 @@ inline void loadDataPackItemTags(const std::filesystem::path& itemTagDirectory)
             item::tag::ItemTags::registerTag(location);
         }
     }
+    // 探针只注册数据包用得到的物品：未注册的必需成员在这里是预期内的缺口，记一条
+    // 错误（与原版重载失败同一口径）后继续——否则所有依赖标签的探针都会停摆。
     for (const auto& [location, contents] : compiled) {
         if (auto applied = item::tag::ItemTags::applyTagJson(contents, location); applied.failed()) {
             std::fprintf(stderr, "item tags: %s\n", applied.error().message().c_str());

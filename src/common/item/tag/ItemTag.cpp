@@ -84,6 +84,7 @@ void ItemTag::clear()
 {
     m_items.clear();
     m_nestedTags.clear();
+    m_missingItems.clear();
 }
 
 } // namespace item::tag

@@ -516,12 +516,13 @@ public:
      * @brief 把编译后的标签内容写入标签表
      *
      * `replace` 为真时先清空标签；成员是物品的直接加入，`#tag` 成员记为嵌套引用
-     * （由 {@link linkAndExpand} 展开）。未知物品按原版 `required` 语义处理：必需成员
-     * 记警告并跳过，`required: false` 静默跳过。
+     * （由 {@link linkAndExpand} 展开）。`required: false` 的未注册物品静默跳过；
+     * 必需成员未注册时（与 `TagLoader` 一致）整个标签不写入，内容记为待判定缺口，
+     * 由载入方调用 {@link takePendingErrors} 取走并判定。
      *
      * @param contents {@link compileTagJson} / {@link mergeTagVersions} 的结果
      * @param location 标签资源位置
-     * @return 成功，或未注册的必需物品 / 未知标签引用的错误
+     * @return 成功，或标签表不可用
      */
     [[nodiscard]] static Result<void> applyTagJson(const nlohmann::json& contents, const ResourceLocation& location);
 
@@ -541,8 +542,9 @@ public:
      *
      * 原版标签的成员是传递闭包：`#minecraft:logs` 引用 `#minecraft:oak_logs` 等，展开后
      * 包含全部子标签的物品。这里按「被引用方先展开」的顺序把子标签物品并入引用方；
-     * 引用不存在的标签、圈形引用返回错误（与 `DataPack::reload` 同一口径：标签表有
-     * 结构性错误时重载失败）。
+     * 引用不存在的标签、圈形引用返回错误（与 `TagLoader.loadTagsForExistingRegistries`
+     * 同一口径：标签表有结构性错误时重载失败）。未注册的必需成员不计入这里——
+     * 它们由 `applyTagJson` 记在标签上，载入方在展开后用 {@link takePendingErrors} 判定。
      *
      * 依赖顺序即展开后的成员数从小到大：被引用方的成员集合包含在引用方里，因此不会
      * 更大；仍想引用一个尚未展开、成员数又不小于自己的标签，只可能是环。
@@ -552,6 +554,16 @@ public:
      * @return 成功，或首个未知引用 / 环引用的错误
      */
     [[nodiscard]] static Result<void> linkAndExpand();
+
+    /**
+     * @brief 取回并清空尚未消费的标签缺口
+     *
+     * `initialize` 时内置标签可能引用尚未注册的方块物品（方块物品在物品注册之后才建立），
+     * 这些缺口在那里不是错误：调用方在数据包重载后取出，判定重载本身是否完整。
+     *
+     * @param errors 输出：每条缺口的描述（含标签 ID 与成员名）
+     */
+    static void takePendingErrors(std::vector<std::string>& errors);
 
     /**
      * @brief 检查物品标签系统是否已初始化

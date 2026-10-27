@@ -25,7 +25,9 @@
 
 #include "common/core/Types.hpp"
 #include "common/resource/ResourceLocation.hpp"
+#include <string>
 #include <unordered_set>
+#include <utility>
 #include <vector>
 
 namespace mc {
@@ -159,6 +161,37 @@ public:
     }
 
     /**
+     * @brief 记录一次「必需成员未注册」的标签缺口
+     *
+     * 与 `TagLoader` 一致：只要标签里有未注册的必需成员，整条标签内容都不写入
+     * （`replace` 也不会清空已有内容），缺口由调用方统一判定为错误。
+     *
+     * @param itemId 未注册物品的资源名
+     */
+    void addMissingItem(std::string itemId)
+    {
+        m_missingItems.push_back(std::move(itemId));
+    }
+
+    /**
+     * @brief 获取未注册的必需物品名（数据包加载时收集；首次记录之后只增不减）
+     */
+    [[nodiscard]] const std::vector<std::string>& getMissingItems() const noexcept
+    {
+        return m_missingItems;
+    }
+
+    /**
+     * @brief 取走并清空缺口记录
+     */
+    [[nodiscard]] std::vector<std::string> takeMissingItems()
+    {
+        std::vector<std::string> taken = std::move(m_missingItems);
+        m_missingItems.clear();
+        return taken;
+    }
+
+    /**
      * @brief 清空标签中的所有物品与嵌套引用
      *
      * 用于数据包加载的 replace 语义：当数据包标签指定 replace=true 时，
@@ -188,6 +221,7 @@ private:
     ResourceLocation m_id;
     std::unordered_set<const Item*> m_items;
     std::vector<ResourceLocation> m_nestedTags; ///< 尚未展开的 `#tag` 引用
+    std::vector<std::string> m_missingItems;    ///< 未注册的必需物品名
     bool m_replace = false;                     ///< 数据包 replace 语义标志
 };
 

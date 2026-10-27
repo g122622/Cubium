@@ -434,6 +434,35 @@ TEST_F(ItemTagLoaderTest, LoadFromResourcePackAppendSemantics)
     EXPECT_TRUE(tag->contains(item("emerald")));
 }
 
+TEST_F(ItemTagLoaderTest, LoadFromResourcePackUnknownRequiredItemFails)
+{
+    // 原版 TagLoader.loadTagsForExistingRegistries：标签里有未注册的必需物品时整次重载失败。
+    auto pack = std::make_unique<InMemoryResourcePack>("unknown_item_pack");
+    pack->addServerDataResource(
+        "minecraft/tags/item/test_unknown_required_tag.json", R"({ "values": ["minecraft:not_yet_implemented_item"] })");
+
+    auto result = item::tag::ItemTagLoader::loadFromResourcePack(*pack);
+    EXPECT_FALSE(result.success());
+    // 带洞的标签整条不写入：表里只剩一个空占位（与原版「该标签的成员全部未知」一致）。
+    const auto* tag = item::tag::ItemTags::getTag(ResourceLocation("minecraft", "test_unknown_required_tag"));
+    ASSERT_NE(tag, nullptr);
+    EXPECT_TRUE(tag->getItems().empty());
+}
+
+TEST_F(ItemTagLoaderTest, LoadFromResourcePackUnknownTagReferenceFails)
+{
+    auto pack = std::make_unique<InMemoryResourcePack>("unknown_tag_pack");
+    pack->addServerDataResource(
+        "minecraft/tags/item/test_dangling_ref.json", R"({ "values": ["#minecraft:does_not_exist"] })");
+
+    auto result = item::tag::ItemTagLoader::loadFromResourcePack(*pack);
+    EXPECT_FALSE(result.success());
+
+    // 悬空引用留在表里会让之后的每次载入都失败：清掉这个夹具标签，不污染后续用例。
+    auto& tag = item::tag::ItemTags::registerTag(ResourceLocation("minecraft", "test_dangling_ref"));
+    tag.clear();
+}
+
 TEST_F(ItemTagLoaderTest, LoadFromResourcePackRequiredFalse)
 {
     auto pack = std::make_unique<InMemoryResourcePack>("required_pack");
