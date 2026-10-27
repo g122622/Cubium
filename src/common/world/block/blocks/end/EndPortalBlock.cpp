@@ -24,6 +24,7 @@
 #include "EndPortalBlock.hpp"
 #include "common/core/Types.hpp"
 #include "common/entity/core/Entity.hpp"
+#include "common/entity/entities/player/Player.hpp"
 #include "common/physics/collision/CollisionShape.hpp"
 #include "common/util/assert/AssertMacros.hpp"
 #include "common/world/IWorld.hpp"
@@ -51,6 +52,20 @@ void EndPortalBlock::onEntityCollision(
     MC_UNUSED(state);
     MC_UNUSED(world);
     MC_UNUSED(pos);
+
+    // 只处理玩家：末地传送门对玩家是即时传送，非玩家实体不跨维度。
+    // 原版 EndPortalBlock.entityInside 只做 setAsInsidePortal 标记，真正的跨维度由
+    // Entity 的传送计时在后续 tick 经 onPortalTriggered 完成；本项目末地门采用即时
+    // 传送实现，因此必须在这一层显式限定「只有玩家会传送」，否则
+    // ServerWorld::transferEntityToDimension 会把猪等非玩家实体也搬走，
+    // 与下界门（非玩家实体的 onPortalTriggered 基类实现返回 false、不跨维度）
+    // 的既定语义分岔（non_player_entity_does_not_cross_end_portal 因此失败）。
+    if (entity.isRemoved() || !entity.isAlive()) {
+        return;
+    }
+    if (dynamic_cast<Player*>(&entity) == nullptr) {
+        return;
+    }
 
     // 检查传送冷却
     if (!entity.canTeleport()) {
