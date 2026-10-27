@@ -42,10 +42,10 @@
 #include <nlohmann/json.hpp>
 
 #include "common/entity/core/Entity.hpp"
-#include "common/entity/core/LivingEntity.hpp"
-#include "common/entity/entities/player/Player.hpp"
 #include "common/entity/core/EntityType.hpp"
+#include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/damage/DamageSource.hpp"
+#include "common/entity/entities/player/Player.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/item/loot/LootCallbackInvoker.hpp"
 
@@ -90,9 +90,8 @@ std::string runLine(std::string_view inputLine)
     }
 
     // 没指定类型就用一个固定实体（猪）：entity 参数集的掉落表只关心「有没有实体」。
-    std::unique_ptr<Entity> thisEntity = input.contains("entity")
-        ? createNamed(input, "entity")
-        : lootworld::createEntity(*env.world, "minecraft:pig");
+    std::unique_ptr<Entity> thisEntity =
+        input.contains("entity") ? createNamed(input, "entity") : lootworld::createEntity(*env.world, "minecraft:pig");
     if (thisEntity == nullptr) {
         // 实体类型没注册（或注册表为空）：与「表不存在」区分开，方便定位是数据包问题
         // 还是实体类型缺失。

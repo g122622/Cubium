@@ -274,8 +274,8 @@ bool jsonToComponentPayload(DataComponentType type, const nlohmann::json& json, 
             if (!readBannerPatternLayers(json, layers)) {
                 return false;
             }
-            out = DataComponentPayload{std::in_place_index<ComponentPayloadIndex::Json>,
-                writeBannerPatternLayers(layers)};
+            out = DataComponentPayload{
+                std::in_place_index<ComponentPayloadIndex::Json>, writeBannerPatternLayers(layers)};
             return true;
         }
         case DataComponentType::ItemModel:

@@ -47,6 +47,7 @@
 #include <nlohmann/json.hpp>
 
 #include "common/entity/inventory/CraftingInventory.hpp"
+#include "common/item/core/ItemStack.hpp"
 #include "common/item/crafting/IRecipe.hpp"
 #include "common/item/crafting/Ingredient.hpp"
 #include "common/item/crafting/RecipeLoader.hpp"
@@ -60,7 +61,6 @@
 #include "common/item/crafting/SpecialRecipe.hpp"
 #include "common/item/crafting/StonecuttingRecipe.hpp"
 #include "common/item/crafting/TransmuteRecipe.hpp"
-#include "common/item/core/ItemStack.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "vanilla_datapack.hpp"
 
@@ -69,9 +69,9 @@
 namespace mc::diff {
 namespace {
 
-using nlohmann::json;
 using crafting::CraftingRecipe;
 using crafting::Ingredient;
+using nlohmann::json;
 
 /// 输入目录里成功加载的配方 ID（排序去重）
 std::vector<std::string>& loadedIds()
@@ -128,9 +128,8 @@ std::vector<std::string>& loadedIds()
     result["recipe"] = recipe.getId().toString();
     result["type"] = recipe.getSerializerId();
     result["group"] = "";
-    result["ingredients"] =
-        summariseIngredients(crafting::RecipeSerializers::placementIngredients(recipe,
-            ResourceLocation("minecraft:filled_map"), ResourceLocation("minecraft:paper")));
+    result["ingredients"] = summariseIngredients(crafting::RecipeSerializers::placementIngredients(
+        recipe, ResourceLocation("minecraft:filled_map"), ResourceLocation("minecraft:paper")));
     // 没有固定网格布局的特殊配方（修复、染色、复制……）：原版这里只给类型。
     if (result["ingredients"].empty()) {
         return result;
@@ -306,7 +305,8 @@ std::string runLine(std::string_view inputLine)
     if (const crafting::SmeltingRecipe* recipe = findSmelting(recipeId); recipe != nullptr) {
         return summariseCooking(recipe).dump();
     }
-    if (const crafting::StonecuttingRecipe* recipe = crafting::RecipeManager::instance().getStonecuttingRecipe(recipeId);
+    if (const crafting::StonecuttingRecipe* recipe =
+            crafting::RecipeManager::instance().getStonecuttingRecipe(recipeId);
         recipe != nullptr) {
         return summariseStonecutting(recipe).dump();
     }

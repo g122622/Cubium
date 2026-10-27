@@ -320,8 +320,7 @@ nlohmann::json CrafterRecipeCraftedTriggerInstance::conditionsToJson() const
     return out.empty() ? nlohmann::json(nullptr) : out;
 }
 
-bool CrafterRecipeCraftedTriggerInstance::test(
-    const ResourceLocation& recipeId, const CriterionContext& context) const
+bool CrafterRecipeCraftedTriggerInstance::test(const ResourceLocation& recipeId, const CriterionContext& context) const
 {
     if (!m_player.test(context)) {
         return false;

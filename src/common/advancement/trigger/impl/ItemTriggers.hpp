@@ -258,8 +258,7 @@ private:
  * 与 `thrown_item_picked_up_by_entity` 的区别是拾取者必须是玩家——事件派发时就已限定，
  * 这里的条件结构与前者完全一致。
  */
-class ThrownItemPickedUpByPlayerTrigger
-    : public AbstractCriterionTrigger<ThrownItemPickedUpByPlayerTriggerInstance> {
+class ThrownItemPickedUpByPlayerTrigger : public AbstractCriterionTrigger<ThrownItemPickedUpByPlayerTriggerInstance> {
 public:
     static constexpr const char* TRIGGER_ID = "minecraft:thrown_item_picked_up_by_player";
 
@@ -272,8 +271,7 @@ public:
 /**
  * @brief 投掷物被玩家拾取触发器实例（条件结构同 ThrownItemPickedUpByEntityTriggerInstance）
  */
-class ThrownItemPickedUpByPlayerTriggerInstance
-    : public CriterionInstance<ThrownItemPickedUpByPlayerTriggerInstance> {
+class ThrownItemPickedUpByPlayerTriggerInstance : public CriterionInstance<ThrownItemPickedUpByPlayerTriggerInstance> {
 public:
     static constexpr const char* TRIGGER_ID = "minecraft:thrown_item_picked_up_by_player";
 

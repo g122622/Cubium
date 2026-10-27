@@ -181,7 +181,7 @@ public:
         return m_functions;
     }
 
-/**
+    /**
      * @brief 用条目级函数**装饰**一个消费回调
      *
      * 对齐原版 `LootPool#addRandomItems` 里的 `LootItemFunction#decorate`：装饰后的回调

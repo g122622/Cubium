@@ -228,7 +228,7 @@ TEST_F(ItemTagLoaderTest, LinkAndExpandResolvesNestedReferences)
     auto linked = item::tag::ItemTags::linkAndExpand();
     ASSERT_TRUE(linked.success());
     EXPECT_TRUE(tag.contains(item("diamond")));
-    EXPECT_TRUE(tag.contains(item("emerald"))); // 来自 nested_ref_target_test
+    EXPECT_TRUE(tag.contains(item("emerald")));   // 来自 nested_ref_target_test
     EXPECT_TRUE(tag.contains(item("dandelion"))); // 来自 flowers
     // 引用已并入成员集合，不保留待展开的引用
     EXPECT_TRUE(tag.getNestedTags().empty());
@@ -240,9 +240,9 @@ TEST_F(ItemTagLoaderTest, LinkAndExpandResolvesNestedReferences)
 
 TEST_F(ItemTagLoaderTest, LoadFromJsonObjectFormatRequiredTrue)
 {
-    auto result = item::tag::ItemTagLoader::loadFromJson(
-        R"({ "values": [{"id": "minecraft:diamond", "required": true}] })",
-        ResourceLocation("minecraft", "obj_required"));
+    auto result =
+        item::tag::ItemTagLoader::loadFromJson(R"({ "values": [{"id": "minecraft:diamond", "required": true}] })",
+            ResourceLocation("minecraft", "obj_required"));
     ASSERT_TRUE(result.success());
     EXPECT_TRUE(result.value().contains(item("diamond")));
 }
@@ -438,8 +438,8 @@ TEST_F(ItemTagLoaderTest, LoadFromResourcePackUnknownRequiredItemFails)
 {
     // 原版 TagLoader.loadTagsForExistingRegistries：标签里有未注册的必需物品时整次重载失败。
     auto pack = std::make_unique<InMemoryResourcePack>("unknown_item_pack");
-    pack->addServerDataResource(
-        "minecraft/tags/item/test_unknown_required_tag.json", R"({ "values": ["minecraft:not_yet_implemented_item"] })");
+    pack->addServerDataResource("minecraft/tags/item/test_unknown_required_tag.json",
+        R"({ "values": ["minecraft:not_yet_implemented_item"] })");
 
     auto result = item::tag::ItemTagLoader::loadFromResourcePack(*pack);
     EXPECT_FALSE(result.success());

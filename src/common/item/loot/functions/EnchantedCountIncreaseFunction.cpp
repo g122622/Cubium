@@ -52,8 +52,7 @@ ItemStack EnchantedCountIncreaseFunction::run(ItemStack stack, LootContext& cont
     i32 enchantmentLevel = 0;
     if (auto* attacker = context.get<Entity>(LootParams::KILLER_ENTITY); attacker != nullptr) {
         if (auto* living = dynamic_cast<LivingEntity*>(attacker); living != nullptr) {
-            enchantmentLevel =
-                item::enchant::EnchantmentHelper::getEnchantmentLevel(*living, m_enchantmentId);
+            enchantmentLevel = item::enchant::EnchantmentHelper::getEnchantmentLevel(*living, m_enchantmentId);
         }
     }
     if (enchantmentLevel <= 0) {

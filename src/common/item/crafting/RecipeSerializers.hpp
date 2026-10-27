@@ -209,9 +209,8 @@ public:
      * @param mapEmptyItem 纸的物品 ID（`minecraft:paper`）
      * @return 按行优先排列的槽位原料；物品未注册时返回空表
      */
-    [[nodiscard]] static std::vector<Ingredient> placementIngredients(const SpecialRecipe& recipe,
-        const ResourceLocation& mapFilledItem,
-        const ResourceLocation& mapEmptyItem);
+    [[nodiscard]] static std::vector<Ingredient> placementIngredients(
+        const SpecialRecipe& recipe, const ResourceLocation& mapFilledItem, const ResourceLocation& mapEmptyItem);
 
     /**
      * @brief 从JSON解析熔炼类配方

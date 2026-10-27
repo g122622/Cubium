@@ -96,7 +96,9 @@ void SequenceLootEntry::generate(ConsumerPtr consumer, LootContext& context) con
 {
     // 逐个子条目重新展开并生成；条件不在此重复判定（理由同 alternatives）。
     for (const auto& child : m_children) {
-        if (!child->expand(context, [&context, next = consumer](const LootEntry& selected) { selected.generate(next, context); })) {
+        if (!child->expand(context, [&context, next = consumer](const LootEntry& selected) {
+                selected.generate(next, context);
+            })) {
             return;
         }
     }

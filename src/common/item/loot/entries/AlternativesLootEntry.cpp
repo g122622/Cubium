@@ -86,7 +86,9 @@ void AlternativesLootEntry::generate(ConsumerPtr consumer, LootContext& context)
     // 重新展开一次并让第一个成功者生成。条件不在这里重复判定——重复判定会让带随机
     // 数的条件被评估两次，随机数序列与原版错位。
     for (const auto& child : m_children) {
-        if (child->expand(context, [&context, next = consumer](const LootEntry& selected) { selected.generate(next, context); })) {
+        if (child->expand(context, [&context, next = consumer](const LootEntry& selected) {
+                selected.generate(next, context);
+            })) {
             return;
         }
     }

@@ -43,10 +43,10 @@
 #include <cstdio>
 #include <cstdlib>
 #include <exception>
-#include <stdexcept>
 #include <filesystem>
 #include <map>
 #include <memory>
+#include <stdexcept>
 #include <string>
 #include <string_view>
 #include <utility>
@@ -58,25 +58,25 @@
 #include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/registry/VanillaEntities.hpp"
 #include "common/item/Items.hpp"
-#include "common/item/items/block/BlockItemRegistry.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/item/enchantment/EnchantmentRegistry.hpp"
+#include "common/item/items/block/BlockItemRegistry.hpp"
+#include "common/item/loot/LootCallbackInvoker.hpp"
 #include "common/item/loot/LootPredicateLoader.hpp"
 #include "common/item/loot/LootPredicateManager.hpp"
-#include "common/item/loot/LootCallbackInvoker.hpp"
 #include "common/item/loot/LootTable.hpp"
 #include "common/item/loot/LootTableLoader.hpp"
 #include "common/item/loot/LootTableManager.hpp"
 #include "common/item/loot/context/LootContext.hpp"
 #include "common/item/loot/context/LootContextBuilder.hpp"
 #include "common/item/loot/context/LootParams.hpp"
-#include "server/item/instrument/InstrumentLoader.hpp"
-#include "server/item/instrument/InstrumentTagLoader.hpp"
 #include "common/item/tag/ItemTags.hpp"
-#include "common/util/math/random/Xoroshiro128ppRandom.hpp"
 #include "common/resource/repository/DataPackRepository.hpp"
+#include "common/util/math/random/Xoroshiro128ppRandom.hpp"
 #include "common/world/block/BlockTags.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
+#include "server/item/instrument/InstrumentLoader.hpp"
+#include "server/item/instrument/InstrumentTagLoader.hpp"
 
 #include "loot_world.hpp"
 #include "probe.hpp"
@@ -148,7 +148,6 @@ inline LootEnv& environment()
         BlockItemRegistry::instance().initializeVanillaBlockItems();
         // 实体探针要用 this_entity / attacking_entity 构造上下文。
         entity::VanillaEntities::registerAll();
-
 
         const auto root = dataPackRoot();
 
@@ -279,9 +278,10 @@ inline void releaseEnvironment()
  * 项校验并跳过不合格的样本，两侧结果口径才一致。
  */
 template <typename PrepareContext>
-[[nodiscard]] json rollSamples(
-    const loot::LootTable& table, lootworld::NullWorld& world,
-    const loot::LootParameterSet& paramSet, PrepareContext&& prepare)
+[[nodiscard]] json rollSamples(const loot::LootTable& table,
+    lootworld::NullWorld& world,
+    const loot::LootParameterSet& paramSet,
+    PrepareContext&& prepare)
 {
     json samples = json::array();
     for (int sample = 0; sample < ROLL_SAMPLES; ++sample) {

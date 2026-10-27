@@ -374,7 +374,6 @@ void applyEffects(Biome& biome, const nlohmann::json& jsonObj)
 // spawners 解析
 // ============================================================================
 
-
 // ============================================================================
 // spawn_costs 解析
 // ============================================================================
@@ -397,8 +396,8 @@ Result<void> applySpawners(Biome& biome, const nlohmann::json& jsonObj)
         probability = jsonObj["creature_spawn_probability"];
     }
     const nlohmann::json spawners = jsonObj.contains("spawners") ? jsonObj["spawners"] : nlohmann::json();
-    auto result = world::spawn::mobSpawnInfoFromJson(
-        spawners, probability, biome.spawnInfo().getCreatureSpawnProbability());
+    auto result =
+        world::spawn::mobSpawnInfoFromJson(spawners, probability, biome.spawnInfo().getCreatureSpawnProbability());
     if (result.failed()) {
         return Error(ErrorCode::InvalidData, "biome '" + biome.name() + "': " + result.error().message());
     }

@@ -64,25 +64,24 @@ ItemStack SetContentsFunction::run(ItemStack stack, LootContext& context) const
         }
 
         entry->expand(context, [&generatedItems, &context](const LootEntry& selected) {
-            selected.generate(
-                makeConsumer([&generatedItems](const ItemStack& item) {
-                    if (!item.isEmpty()) {
-                        // 如果物品数量超过最大堆叠数，需要拆分成多个堆
-                        if (item.getCount() <= item.getMaxStackSize()) {
-                            generatedItems.push_back(item);
-                        } else {
-                            // 拆分超限堆叠
-                            i32 remaining = item.getCount();
-                            while (remaining > 0) {
-                                ItemStack splitItem = item.copy();
-                                const i32 splitCount = std::min(remaining, splitItem.getMaxStackSize());
-                                splitItem.setCount(splitCount);
-                                remaining -= splitCount;
-                                generatedItems.push_back(std::move(splitItem));
-                            }
+            selected.generate(makeConsumer([&generatedItems](const ItemStack& item) {
+                if (!item.isEmpty()) {
+                    // 如果物品数量超过最大堆叠数，需要拆分成多个堆
+                    if (item.getCount() <= item.getMaxStackSize()) {
+                        generatedItems.push_back(item);
+                    } else {
+                        // 拆分超限堆叠
+                        i32 remaining = item.getCount();
+                        while (remaining > 0) {
+                            ItemStack splitItem = item.copy();
+                            const i32 splitCount = std::min(remaining, splitItem.getMaxStackSize());
+                            splitItem.setCount(splitCount);
+                            remaining -= splitCount;
+                            generatedItems.push_back(std::move(splitItem));
                         }
                     }
-                }),
+                }
+            }),
                 context);
         });
     }

@@ -64,8 +64,7 @@ namespace loot {
  * @param enchantmentId 附魔 ID
  * @param fallbackItemId 主手为空时用来承载附魔的物品 ID
  */
-void equipLooting(
-    Entity& attacker,
+void equipLooting(Entity& attacker,
     i32 level,
     const std::string& enchantmentId = "minecraft:looting",
     const std::string& fallbackItemId = "minecraft:diamond_sword");

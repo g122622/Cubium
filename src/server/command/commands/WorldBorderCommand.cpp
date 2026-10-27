@@ -129,9 +129,8 @@ void WorldBorderCommand::registerTo(CommandDispatcher<ServerCommandSource>& disp
 
     // /worldborder add <distance> [time]
     auto addNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("add");
-    auto addDistArg =
-        std::make_shared<ArgumentCommandNode<ServerCommandSource, f64>>(
-            "distance", DoubleArgumentType::doubleArg(-59999968.0, 59999968.0));
+    auto addDistArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, f64>>(
+        "distance", DoubleArgumentType::doubleArg(-59999968.0, 59999968.0));
     addDistArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
         return _addBorder(ctx);
     });

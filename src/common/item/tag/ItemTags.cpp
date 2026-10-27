@@ -26,7 +26,6 @@
 #include "common/item/tag/ItemTag.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/assert/AssertMacros.hpp"
-#include <nlohmann/json.hpp>
 #include <algorithm>
 #include <functional>
 #include <memory>
@@ -36,6 +35,7 @@
 #include <unordered_map>
 #include <utility>
 #include <vector>
+#include <nlohmann/json.hpp>
 #include <spdlog/spdlog.h>
 
 namespace mc {
@@ -601,7 +601,8 @@ void ItemTags::initialize()
             const std::string_view value = entry.values[k];
             if (!value.empty() && value.front() == '#') {
                 tag->addNestedTag(ResourceLocation("minecraft", std::string(value.substr(1))));
-            } else if (const Item* item = ItemRegistry::instance().getItem(ResourceLocation("minecraft", std::string(value)));
+            } else if (const Item* item =
+                           ItemRegistry::instance().getItem(ResourceLocation("minecraft", std::string(value)));
                 item != nullptr) {
                 tag->add(item);
             }
@@ -674,8 +675,8 @@ Result<nlohmann::json> ItemTags::compileTagJson(const std::string& json, const R
         if (value.is_object() && value.contains("id") && value["id"].is_string()) {
             nlohmann::json member;
             member["id"] = value["id"];
-            member["required"] = !(value.contains("required") && value["required"].is_boolean()) ||
-                value["required"].get<bool>();
+            member["required"] =
+                !(value.contains("required") && value["required"].is_boolean()) || value["required"].get<bool>();
             compiled["values"].push_back(std::move(member));
             continue;
         }
@@ -736,8 +737,8 @@ Result<void> ItemTags::writeTagJson(const nlohmann::json& contents, ItemTag& tag
         }
         if (id.front() == '#') {
             const std::string ref = id.substr(1);
-            tag.addNestedTag(ref.find(':') == std::string::npos ? ResourceLocation("minecraft", ref)
-                                                                : ResourceLocation::parse(ref));
+            tag.addNestedTag(
+                ref.find(':') == std::string::npos ? ResourceLocation("minecraft", ref) : ResourceLocation::parse(ref));
             continue;
         }
         // 非必需且未注册的成员直接跳过（原版 required=false 的语义）。

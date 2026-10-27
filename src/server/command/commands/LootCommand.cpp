@@ -208,8 +208,8 @@ loot::LootContextBuilder createBaseContextBuilder(ServerCommandSource& source)
     // ORIGIN：原版 `chest` / `fishing` / `entity` 参数集都把 ORIGIN 列为必需键，
     // 命令没有显式的掉落位置，就以命令源的位置代替（原版 loot 命令同样如此）。
     const auto sourcePos = source.position();
-    builder.withOwnedValue(
-        loot::LootParams::ORIGIN, Vector3(static_cast<f32>(sourcePos.x), static_cast<f32>(sourcePos.y), static_cast<f32>(sourcePos.z)));
+    builder.withOwnedValue(loot::LootParams::ORIGIN,
+        Vector3(static_cast<f32>(sourcePos.x), static_cast<f32>(sourcePos.y), static_cast<f32>(sourcePos.z)));
 
     return builder;
 }
@@ -247,7 +247,9 @@ std::vector<ItemStack> generateFromFish(
     auto builder = createBaseContextBuilder(source);
     builder.withOwnedValue(loot::LootParams::TOOL, tool);
     builder.withOwnedValue(loot::LootParams::ORIGIN,
-        Vector3(static_cast<f32>(fishPos.x) + 0.5f, static_cast<f32>(fishPos.y) + 0.5f, static_cast<f32>(fishPos.z) + 0.5f));
+        Vector3(static_cast<f32>(fishPos.x) + 0.5f,
+            static_cast<f32>(fishPos.y) + 0.5f,
+            static_cast<f32>(fishPos.z) + 0.5f));
     auto context = builder.build(loot::LootParameterSets::fishing());
     auto* world = source.world();
     if (world == nullptr) {

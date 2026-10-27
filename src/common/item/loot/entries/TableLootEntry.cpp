@@ -29,9 +29,9 @@
 #include "common/item/loot/entries/LootEntry.hpp"
 #include <functional>
 #include <memory>
-#include <vector>
 #include <string>
 #include <utility>
+#include <vector>
 
 namespace mc {
 namespace loot {

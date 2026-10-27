@@ -32,9 +32,9 @@
 #include "common/util/math/random/RandomRanges.hpp"
 #include <functional>
 #include <memory>
-#include <vector>
 #include <string>
 #include <utility>
+#include <vector>
 #include <spdlog/spdlog.h>
 
 namespace mc {

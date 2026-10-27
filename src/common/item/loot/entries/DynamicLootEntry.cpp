@@ -32,9 +32,9 @@
 #include "common/world/blockentity/ContainerBlockEntity.hpp"
 #include <functional>
 #include <memory>
-#include <vector>
 #include <string>
 #include <utility>
+#include <vector>
 
 namespace mc {
 namespace loot {

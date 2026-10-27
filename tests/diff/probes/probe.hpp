@@ -96,11 +96,11 @@ struct Probe {
  *
  * 宏不自己开 namespace：各 probe 源文件在 `namespace mc::diff` 内调用它。
  */
-#define MC_DIFF_DEFINE_PROBE(domainName, listFunc, runLineFunc)             \
-    const Probe& currentProbe()                                             \
-    {                                                                       \
+#define MC_DIFF_DEFINE_PROBE(domainName, listFunc, runLineFunc)                \
+    const Probe& currentProbe()                                                \
+    {                                                                          \
         static const Probe probe{#domainName, listFunc, runLineFunc, nullptr}; \
-        return probe;                                                       \
+        return probe;                                                          \
     }
 
 /**
@@ -110,10 +110,10 @@ struct Probe {
  * 退出路径上都会被调用一次。
  */
 #define MC_DIFF_DEFINE_PROBE_WITH_SHUTDOWN(domainName, listFunc, runLineFunc, shutdownFunc) \
-    const Probe& currentProbe()                                                           \
-    {                                                                                     \
-        static const Probe probe{#domainName, listFunc, runLineFunc, shutdownFunc};       \
-        return probe;                                                                     \
+    const Probe& currentProbe()                                                             \
+    {                                                                                       \
+        static const Probe probe{#domainName, listFunc, runLineFunc, shutdownFunc};         \
+        return probe;                                                                       \
     }
 
 } // namespace mc::diff

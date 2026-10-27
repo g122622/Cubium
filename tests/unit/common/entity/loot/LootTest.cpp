@@ -533,8 +533,9 @@ TEST_F(LootTest, EmptyLootEntry_GenerateNothing)
     auto context = LootContextBuilder(worldRef).withRandom(rng).build();
 
     std::vector<ItemStack> items;
-    entry.generate(
-        makeConsumer([&items](const ItemStack& stack) { items.push_back(stack); }),
+    entry.generate(makeConsumer([&items](const ItemStack& stack) {
+        items.push_back(stack);
+    }),
         *context);
 
     // 空条目被抽中但不产出任何物品
@@ -2324,7 +2325,12 @@ TEST_F(LootTest, LootEntry_ApplyFunctionsCorrectly)
 
     // 应用函数：decorate 装饰后的回调把变换结果交给下游
     ItemStack result;
-    entry.decorate(makeConsumer([&result](const ItemStack& decorated) { result = decorated; }), *context)->accept(stack);
+    entry
+        .decorate(makeConsumer([&result](const ItemStack& decorated) {
+            result = decorated;
+        }),
+            *context)
+        ->accept(stack);
 
     // 数量应该被设置为 5
     EXPECT_EQ(5, result.getCount());
@@ -2349,7 +2355,12 @@ TEST_F(LootTest, LootEntry_ApplyFunctionsInOrder)
     ItemStack stack(*diamond, 1);
 
     ItemStack result;
-    entry.decorate(makeConsumer([&result](const ItemStack& decorated) { result = decorated; }), *context)->accept(stack);
+    entry
+        .decorate(makeConsumer([&result](const ItemStack& decorated) {
+            result = decorated;
+        }),
+            *context)
+        ->accept(stack);
 
     // SetCount 设置数量为 2，LimitCount 不会改变它（因为 2 < 5）
     EXPECT_EQ(2, result.getCount());
@@ -2373,7 +2384,12 @@ TEST_F(LootTest, LootEntry_ApplyFunctionsWithCondition)
     ItemStack stack(*diamond, 1);
 
     ItemStack result;
-    entry.decorate(makeConsumer([&result](const ItemStack& decorated) { result = decorated; }), *context)->accept(stack);
+    entry
+        .decorate(makeConsumer([&result](const ItemStack& decorated) {
+            result = decorated;
+        }),
+            *context)
+        ->accept(stack);
 
     // 条件不满足，数量应该保持不变
     EXPECT_EQ(1, result.getCount());
@@ -2412,8 +2428,9 @@ TEST_F(LootTest, ItemLootEntry_GenerateAppliesFunctions)
     auto context = LootContextBuilder(m_world).withRandom(rng).build();
 
     std::vector<ItemStack> generatedItems;
-    entry->generate(
-        makeConsumer([&generatedItems](const ItemStack& stack) { generatedItems.push_back(stack); }),
+    entry->generate(makeConsumer([&generatedItems](const ItemStack& stack) {
+        generatedItems.push_back(stack);
+    }),
         *context);
 
     EXPECT_FALSE(generatedItems.empty());
@@ -2437,8 +2454,9 @@ TEST_F(LootTest, ItemLootEntry_GenerateWithConditionAndFunction)
     auto context = LootContextBuilder(m_world).withRandom(rng).build();
 
     std::vector<ItemStack> generatedItems;
-    entry->generate(
-        makeConsumer([&generatedItems](const ItemStack& stack) { generatedItems.push_back(stack); }),
+    entry->generate(makeConsumer([&generatedItems](const ItemStack& stack) {
+        generatedItems.push_back(stack);
+    }),
         *context);
 
     EXPECT_FALSE(generatedItems.empty());
@@ -2461,14 +2479,17 @@ TEST_F(LootTest, ItemLootEntry_GenerateConditionFails)
     auto context = LootContextBuilder(m_world).withRandom(rng).build();
 
     std::vector<const LootEntry*> candidates;
-    EXPECT_FALSE(entry->expand(*context, [&candidates](const LootEntry& candidate) { candidates.push_back(&candidate); }));
+    EXPECT_FALSE(entry->expand(*context, [&candidates](const LootEntry& candidate) {
+        candidates.push_back(&candidate);
+    }));
     EXPECT_TRUE(candidates.empty());
 
     // 直接调用 `generate` 时不再重复判定条件，物品照常产出——条件只在 `expand`
     // 阶段判定（重复判定会让带随机数的条件被评估两次，随机数序列与原版错位）。
     std::vector<ItemStack> generatedItems;
-    entry->generate(
-        makeConsumer([&generatedItems](const ItemStack& stack) { generatedItems.push_back(stack); }),
+    entry->generate(makeConsumer([&generatedItems](const ItemStack& stack) {
+        generatedItems.push_back(stack);
+    }),
         *context);
 
     ASSERT_EQ(1, generatedItems.size());
@@ -2487,8 +2508,9 @@ TEST_F(LootTest, ItemLootEntry_GenerateFunctionReturnsEmpty)
     auto context = LootContextBuilder(m_world).withRandom(rng).build();
 
     std::vector<ItemStack> generatedItems;
-    entry->generate(
-        makeConsumer([&generatedItems](const ItemStack& stack) { generatedItems.push_back(stack); }),
+    entry->generate(makeConsumer([&generatedItems](const ItemStack& stack) {
+        generatedItems.push_back(stack);
+    }),
         *context);
 
     // set_count 把数量设为 0 → 空堆，下游照样收到它（原版不在任何一层过滤空堆，

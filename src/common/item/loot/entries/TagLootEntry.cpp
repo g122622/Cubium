@@ -30,9 +30,9 @@
 #include <functional>
 #include <iterator>
 #include <memory>
-#include <vector>
 #include <string>
 #include <utility>
+#include <vector>
 
 namespace mc {
 namespace loot {

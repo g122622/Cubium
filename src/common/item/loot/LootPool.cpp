@@ -122,8 +122,8 @@ void LootPool::generate(ConsumerPtr consumer, LootContext& context) const
     // 计算掷骰次数 = 基础次数 + floor(加成次数 × 幸运值)
     // 对齐原版 `LootPool#addRandomItems`：加成部分先乘幸运值再 `Mth.floor`，不是先转整数再乘。
     math::IRandom& random = context.getRandom();
-    const i32 rollCount = m_rolls.generateInt(random) +
-        math::floorTo<i32>(m_bonusRolls.generateFloat(random) * context.getLuck());
+    const i32 rollCount =
+        m_rolls.generateInt(random) + math::floorTo<i32>(m_bonusRolls.generateFloat(random) * context.getLuck());
 
     // 对齐原版：池级函数通过 `decorate` 挂到 consumer 上，**对每个产出的堆都执行一次**
     // （包括变换后成为空堆的那些），因此这里不预先过滤空堆。

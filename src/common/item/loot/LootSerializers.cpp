@@ -37,6 +37,7 @@
 #include "common/item/enchantment/EnchantmentRegistry.hpp"
 #include "common/item/loot/LootPool.hpp"
 #include "common/item/loot/LootTable.hpp"
+#include "common/item/loot/conditions/AndCondition.hpp"
 #include "common/item/loot/conditions/BlockStateCondition.hpp"
 #include "common/item/loot/conditions/DamageSourcePropertiesCondition.hpp"
 #include "common/item/loot/conditions/EntityPropertiesCondition.hpp"
@@ -47,7 +48,6 @@
 #include "common/item/loot/conditions/LootCondition.hpp"
 #include "common/item/loot/conditions/MatchToolCondition.hpp"
 #include "common/item/loot/conditions/NotCondition.hpp"
-#include "common/item/loot/conditions/AndCondition.hpp"
 #include "common/item/loot/conditions/OrCondition.hpp"
 #include "common/item/loot/conditions/RandomChanceCondition.hpp"
 #include "common/item/loot/conditions/RandomChanceWithEnchantedBonusCondition.hpp"
@@ -1124,8 +1124,8 @@ Result<std::unique_ptr<LootFunction>> LootSerializers::_parseEnchantedCountIncre
     }
 
     if (json.contains("limit") && json["limit"].is_number()) {
-        limit = json["limit"].is_number_integer() ? json["limit"].get<i32>()
-                                                  : static_cast<i32>(json["limit"].get<f64>());
+        limit =
+            json["limit"].is_number_integer() ? json["limit"].get<i32>() : static_cast<i32>(json["limit"].get<f64>());
     }
 
     return castToBase<EnchantedCountIncreaseFunction, LootFunction>(
@@ -2530,11 +2530,9 @@ Result<std::unique_ptr<LootEntry>> LootSerializers::_parseEmptyEntry(const nlohm
             if (!condResult.success()) {
 
                 return condResult.error();
-
             }
 
             entry->addCondition(condResult.value());
-
         }
     }
 
@@ -2587,11 +2585,9 @@ Result<std::unique_ptr<LootEntry>> LootSerializers::_parseItemEntry(const nlohma
             if (!condResult.success()) {
 
                 return condResult.error();
-
             }
 
             entry->addCondition(condResult.value());
-
         }
     }
 
@@ -2726,11 +2722,9 @@ Result<std::unique_ptr<LootEntry>> LootSerializers::_parseAlternativesEntry(cons
             if (!condResult.success()) {
 
                 return condResult.error();
-
             }
 
             entry->addCondition(condResult.value());
-
         }
     }
 
@@ -2770,11 +2764,9 @@ Result<std::unique_ptr<LootEntry>> LootSerializers::_parseSequenceEntry(const nl
             if (!condResult.success()) {
 
                 return condResult.error();
-
             }
 
             entry->addCondition(condResult.value());
-
         }
     }
 
@@ -2814,11 +2806,9 @@ Result<std::unique_ptr<LootEntry>> LootSerializers::_parseGroupEntry(const nlohm
             if (!condResult.success()) {
 
                 return condResult.error();
-
             }
 
             entry->addCondition(condResult.value());
-
         }
     }
 
@@ -2888,11 +2878,9 @@ Result<std::unique_ptr<LootPool>> LootSerializers::parsePool(const nlohmann::jso
             if (!condResult.success()) {
 
                 return condResult.error();
-
             }
 
             pool->addCondition(condResult.value());
-
         }
     }
 

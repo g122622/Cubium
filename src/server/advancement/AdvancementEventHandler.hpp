@@ -629,8 +629,9 @@ private:
         context.entity = serverPlayer;
         context.world = world;
         trigger->AbstractCriterionTrigger<mc::advancement::PlayerContextTriggerInstance>::trigger(
-            *advancements,
-            [&context](const mc::advancement::PlayerContextTriggerInstance& instance) { return instance.test(context); });
+            *advancements, [&context](const mc::advancement::PlayerContextTriggerInstance& instance) {
+                return instance.test(context);
+            });
     }
 
     /**
@@ -689,8 +690,7 @@ private:
                 mc::advancement::CriterionTriggers::instance().getTrigger<mc::advancement::HeroOfTheVillageTrigger>();
             if (trigger != nullptr) {
                 trigger->AbstractCriterionTrigger<mc::advancement::PlayerContextTriggerInstance>::trigger(
-                    *advancements,
-                    [&context](const mc::advancement::PlayerContextTriggerInstance& instance) {
+                    *advancements, [&context](const mc::advancement::PlayerContextTriggerInstance& instance) {
                         return instance.test(context);
                     });
             }
@@ -701,8 +701,7 @@ private:
                 mc::advancement::CriterionTriggers::instance().getTrigger<mc::advancement::VoluntaryExileTrigger>();
             if (trigger != nullptr) {
                 trigger->AbstractCriterionTrigger<mc::advancement::PlayerContextTriggerInstance>::trigger(
-                    *advancements,
-                    [&context](const mc::advancement::PlayerContextTriggerInstance& instance) {
+                    *advancements, [&context](const mc::advancement::PlayerContextTriggerInstance& instance) {
                         return instance.test(context);
                     });
             }
@@ -746,8 +745,9 @@ private:
         context.entity = serverPlayer;
         context.world = world;
         trigger->AbstractCriterionTrigger<mc::advancement::PlayerContextTriggerInstance>::trigger(
-            *advancements,
-            [&context](const mc::advancement::PlayerContextTriggerInstance& instance) { return instance.test(context); });
+            *advancements, [&context](const mc::advancement::PlayerContextTriggerInstance& instance) {
+                return instance.test(context);
+            });
     }
 
     /**
@@ -787,8 +787,9 @@ private:
         context.entity = serverPlayer;
         context.world = world;
         trigger->AbstractCriterionTrigger<mc::advancement::PlayerContextTriggerInstance>::trigger(
-            *advancements,
-            [&context](const mc::advancement::PlayerContextTriggerInstance& instance) { return instance.test(context); });
+            *advancements, [&context](const mc::advancement::PlayerContextTriggerInstance& instance) {
+                return instance.test(context);
+            });
     }
 
     /**

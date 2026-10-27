@@ -27,12 +27,12 @@
 #include "common/core/Result.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include <cstddef>
-#include <nlohmann/json_fwd.hpp>
 #include <functional>
 #include <memory>
 #include <string>
 #include <unordered_map>
 #include <vector>
+#include <nlohmann/json_fwd.hpp>
 
 namespace mc {
 namespace item::tag {

@@ -52,6 +52,7 @@
 
 #include <nlohmann/json.hpp>
 
+#include "biome_name_mapping.hpp"
 #include "common/core/Result.hpp"
 #include "common/entity/core/EntityClassification.hpp"
 #include "common/entity/core/EntityRegistry.hpp"
@@ -59,7 +60,6 @@
 #include "common/world/biome/BiomeRegistry.hpp"
 #include "common/world/spawn/MobSpawnInfo.hpp"
 #include "common/world/spawn/MobSpawnInfoJson.hpp"
-#include "biome_name_mapping.hpp"
 #include "vanilla_datapack.hpp"
 
 #include "probe.hpp"
@@ -67,8 +67,8 @@
 namespace mc::diff {
 namespace {
 
-using nlohmann::json;
 using entity::EntityClassification;
+using nlohmann::json;
 using world::spawn::MobSpawnInfo;
 using world::spawn::SpawnEntry;
 
@@ -178,8 +178,7 @@ void loadAll()
             probability = contents["creature_spawn_probability"];
         }
         const json spawners = contents.contains("spawners") ? contents["spawners"] : json();
-        auto parsed =
-            world::spawn::mobSpawnInfoFromJson(spawners, probability, DEFAULT_CREATURE_SPAWN_PROBABILITY);
+        auto parsed = world::spawn::mobSpawnInfoFromJson(spawners, probability, DEFAULT_CREATURE_SPAWN_PROBABILITY);
         if (parsed.failed()) {
             std::fprintf(stderr, "biome_spawns: %s: %s\n", name.c_str(), parsed.error().message().c_str());
             continue;
@@ -213,8 +212,8 @@ std::string runLine(std::string_view inputLine)
     const json input = json::parse(inputLine);
     const std::string id = input.at("biome").get<std::string>();
 
-    const auto found = std::lower_bound(
-        biomes().begin(), biomes().end(), id, [](const auto& entry, const std::string& value) {
+    const auto found =
+        std::lower_bound(biomes().begin(), biomes().end(), id, [](const auto& entry, const std::string& value) {
             return entry.first < value;
         });
     if (found == biomes().end() || found->first != id) {

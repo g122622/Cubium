@@ -70,6 +70,7 @@ template <class Callable>
 
         std::decay_t<Callable> m_target;
     };
+
     return std::make_shared<Wrapped>(std::forward<Callable>(callable));
 }
 

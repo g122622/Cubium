@@ -25,8 +25,8 @@
 
 #include "common/core/Types.hpp"
 #include "common/item/core/ItemStack.hpp"
-#include "common/item/loot/conditions/LootConditions.hpp"
 #include "common/item/loot/LootConsumer.hpp"
+#include "common/item/loot/conditions/LootConditions.hpp"
 #include "common/item/loot/context/LootContext.hpp"
 #include "common/item/loot/functions/LootFunction.hpp"
 #include "common/item/loot/functions/LootFunctions.hpp"
@@ -161,7 +161,7 @@ public:
         return m_functions;
     }
 
-/**
+    /**
      * @brief 用条目级函数**装饰**一个消费回调
      *
      * 对齐原版 `LootItemFunction#decorate`——`LootPoolSingletonContainer$EntryBase#createItemStack`

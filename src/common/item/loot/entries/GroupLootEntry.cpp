@@ -80,7 +80,9 @@ void GroupLootEntry::generate(ConsumerPtr consumer, LootContext& context) const
 {
     // 每个子条目都按自己的规则重新展开并生成（条件不在此重复判定）。
     for (const auto& child : m_children) {
-        child->expand(context, [&context, next = consumer](const LootEntry& selected) { selected.generate(next, context); });
+        child->expand(context, [&context, next = consumer](const LootEntry& selected) {
+            selected.generate(next, context);
+        });
     }
 }
 

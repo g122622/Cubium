@@ -73,8 +73,8 @@ void HelpCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
         return _showHelp(ctx, dispatcher);
     });
 
-    auto commandArg =
-        std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>("command", StringArgumentType::greedyString());
+    auto commandArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
+        "command", StringArgumentType::greedyString());
     commandArg->setCommand([&dispatcher](CommandContext<ServerCommandSource>& ctx) {
         return _showCommandHelp(ctx, dispatcher);
     });

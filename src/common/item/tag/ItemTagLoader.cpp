@@ -216,7 +216,9 @@ Result<ItemTag> ItemTagLoader::loadFromJson(
                 return Error(ErrorCode::NotFound,
                     "Item tag '" + location.toString() + "' references unknown tag '" + nested.toString() + "'");
             }
-            source->forEachItem([&tag](const Item* item) { tag.add(item); });
+            source->forEachItem([&tag](const Item* item) {
+                tag.add(item);
+            });
         }
     }
     return tag;

@@ -71,8 +71,8 @@ void EnchantCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatch
     });
 
     // /enchant <player> <enchantment> <level>
-    auto levelNode = std::make_shared<ArgumentCommandNode<ServerCommandSource, i32>>(
-        "level", IntegerArgumentType::integer(0));
+    auto levelNode =
+        std::make_shared<ArgumentCommandNode<ServerCommandSource, i32>>("level", IntegerArgumentType::integer(0));
     levelNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
         return _enchantItem(ctx);
     });

@@ -1383,8 +1383,7 @@ bool NetherTravelTriggerInstance::test(const Vector3& startPos, const Vector3& e
     if (m_startPosition.has_value() && !m_startPosition->testPosition(startPos.x, startPos.y, startPos.z)) {
         return false;
     }
-    if (m_distance.has_value()
-        && !m_distance->test(startPos.x, startPos.y, startPos.z, endPos.x, endPos.y, endPos.z)) {
+    if (m_distance.has_value() && !m_distance->test(startPos.x, startPos.y, startPos.z, endPos.x, endPos.y, endPos.z)) {
         return false;
     }
     return true;
@@ -1404,8 +1403,7 @@ bool NetherTravelTriggerInstance::test(
     if (!m_playerContext.test(context)) {
         return false;
     }
-    if (m_distance.has_value()
-        && !m_distance->test(startPos.x, startPos.y, startPos.z, endPos.x, endPos.y, endPos.z)) {
+    if (m_distance.has_value() && !m_distance->test(startPos.x, startPos.y, startPos.z, endPos.x, endPos.y, endPos.z)) {
         return false;
     }
     return true;
@@ -1469,8 +1467,7 @@ bool RideEntityInLavaTriggerInstance::test(const Vector3& startPos, const Vector
     if (m_startPosition.has_value() && !m_startPosition->testPosition(startPos.x, startPos.y, startPos.z)) {
         return false;
     }
-    if (m_distance.has_value()
-        && !m_distance->test(startPos.x, startPos.y, startPos.z, endPos.x, endPos.y, endPos.z)) {
+    if (m_distance.has_value() && !m_distance->test(startPos.x, startPos.y, startPos.z, endPos.x, endPos.y, endPos.z)) {
         return false;
     }
     return true;
@@ -1490,8 +1487,7 @@ bool RideEntityInLavaTriggerInstance::test(
     if (!m_playerContext.test(context)) {
         return false;
     }
-    if (m_distance.has_value()
-        && !m_distance->test(startPos.x, startPos.y, startPos.z, endPos.x, endPos.y, endPos.z)) {
+    if (m_distance.has_value() && !m_distance->test(startPos.x, startPos.y, startPos.z, endPos.x, endPos.y, endPos.z)) {
         return false;
     }
     return true;
@@ -1661,8 +1657,7 @@ bool LevitationTriggerInstance::test(const Vector3& startPos, const Vector3& end
     if (!m_duration.test(duration)) {
         return false;
     }
-    if (m_distance.has_value()
-        && !m_distance->test(startPos.x, startPos.y, startPos.z, endPos.x, endPos.y, endPos.z)) {
+    if (m_distance.has_value() && !m_distance->test(startPos.x, startPos.y, startPos.z, endPos.x, endPos.y, endPos.z)) {
         return false;
     }
     return true;
@@ -1724,8 +1719,7 @@ Result<std::shared_ptr<ICriterionInstance>> LevitationTrigger::fromJson(const nl
     return instance;
 }
 
-void LevitationTrigger::trigger(
-    ServerPlayer& player, const Vector3& startPos, const Vector3& endPos, i32 duration)
+void LevitationTrigger::trigger(ServerPlayer& player, const Vector3& startPos, const Vector3& endPos, i32 duration)
 {
     // 实际派发由飘浮效果结束时的事件侧经模板方法与具体实例判定完成
     MC_UNUSED(player);

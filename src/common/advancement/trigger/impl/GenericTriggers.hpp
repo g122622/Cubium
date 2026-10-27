@@ -176,7 +176,8 @@ public:
     [[nodiscard]] nlohmann::json conditionsToJson() const;
 
     /// 信号强度是否落在范围内，且投射物/玩家上下文匹配
-    [[nodiscard]] bool test(i32 signalStrength, const CriterionContext& player, const CriterionContext& projectile) const;
+    [[nodiscard]] bool test(
+        i32 signalStrength, const CriterionContext& player, const CriterionContext& projectile) const;
 
     /// 投射物上下文（供事件侧判定 projectile 子条件）
     [[nodiscard]] const ContextAwarePredicate& projectile() const noexcept
@@ -213,7 +214,8 @@ public:
     [[nodiscard]] nlohmann::json conditionsToJson() const;
 
     /// 落点上下文与物品是否同时满足条件，且玩家上下文匹配
-    [[nodiscard]] bool test(const mc::ItemStack& dropped, const CriterionContext& location, const CriterionContext& player) const;
+    [[nodiscard]] bool test(
+        const mc::ItemStack& dropped, const CriterionContext& location, const CriterionContext& player) const;
 
 private:
     ContextAwarePredicate m_player;
@@ -268,8 +270,7 @@ public:
  * 条件：`{"player": ContextAwarePredicate}`。触发时机由事件侧判定（击杀点 8 格内存在
  * 幽匿催发体），实例只负责玩家上下文比对。
  */
-class KillMobNearSculkCatalystTriggerInstance
-    : public CriterionInstance<KillMobNearSculkCatalystTriggerInstance> {
+class KillMobNearSculkCatalystTriggerInstance : public CriterionInstance<KillMobNearSculkCatalystTriggerInstance> {
 public:
     static constexpr const char* TRIGGER_ID = "minecraft:kill_mob_near_sculk_catalyst";
 
