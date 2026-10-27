@@ -139,64 +139,83 @@ src/common/item/crafting/
    - 延迟解析后 `isSimple` 会自动更新，因此 `m_isSimple` 为 `mutable`
 
 5. **ItemRegistry 依赖**
-   - JSON 解析时如果物品未在 ItemRegistry 中注册，会返回空 Ingredient 或错误
+   - JSON 解析时如果物品未在 ItemRegistry 中注册，整条配方加载失败（不再降级成空
+     Ingredient——那会让配方匹配空网格并凭空产出结果）
    - 确保在加载配方前完成物品注册
 
-6. **线程安全**
+6. **原料表与 `placementInfo` 同口径**
+   - 有序配方的原料表只收 pattern 里实际出现的符号，空格不占槽位——与原版
+     `ShapedRecipePattern#ingredients` 一致；空格占位会让装配、配方书与 `placementInfo`
+     多出「该格必须为空」的槽位；
+   - 标签与显式物品可以并存（`["#minecraft:planks", "minecraft:oak_planks"]`）：
+     标签保持引用，显式物品作为追加候选，`test()` 对两者都匹配；
+   - 多个标签合并成一个原料时只保留第一个标签的引用，其余标签的成员落成显式候选——
+     原版 `Ingredient.of` 收下全部候选物品，而不展开成员的实现会让后来补齐的物品看不见；
+   - 标签成员是数据包里的传递闭包（`ItemTags::linkAndExpand`），不要在别处假设
+     `ItemTag::getItems()` 含有嵌套引用的成员：展开前它只含直接物品。
+
+7. **特殊配方的序列化器 ID**
+   - 配方表按序列化器 ID 索引（原版 `RecipeSerializer` 注册表的键），特殊配方各自不同
+     （`crafting_special_armordye`、`crafting_decorated_pot`……），不是统一的
+     `minecraft:special`；`SpecialRecipe::getSerializerId()` 由装载器按数据包写入；
+   - 带固定布局的特殊配方（地图扩展）由 `RecipeSerializers::placementIngredients` 给出
+     逐槽原料，其余没有布局。
+
+8. **线程安全**
    - `RecipeManager` 的所有公共方法都是线程安全的
    - 但 `RecipeLoader` 不是线程安全的，不要在多线程中共享实例
 
-7. **配方匹配顺序**
+9. **配方匹配顺序**
    - `findMatchingRecipe()` 先检查有序配方，再检查无序配方
    - 如果有多个配方匹配，返回第一个找到的
 
-8. **特殊配方的动态特性**
+10. **特殊配方的动态特性**
    - 特殊配方的 `isDynamic()` 返回 true，不会出现在配方书中
    - `assemble()` 返回的结果可能每次不同（如染色、修复）
    - `ServerRecipeBook::add()` 自动过滤动态配方，不会将其加入解锁列表
    - `RecipeBook::isBookRecipe()` 对动态配方返回 false（即使被手动 unlock）
    - `ServerRecipeBook::isDynamicRecipe()` 静态方法用于判断配方是否为动态配方
 
-9. **熔炼配方继承关系**
+11. **熔炼配方继承关系**
    - `BlastingRecipe`（高炉）继承 `SmeltingRecipe`，烹饪时间 100 tick
    - `SmokingRecipe`（烟熏炉）继承 `SmeltingRecipe`，烹饪时间 100 tick
    - `CampfireCookingRecipe`（营火）继承 `SmeltingRecipe`，烹饪时间 600 tick
 
-10. **配方书状态同步**
+12. **配方书状态同步**
     - `ServerRecipeBook::consumeNewRecipes()` 会清空新配方列表
     - 客户端同步后需要正确处理状态更新
 
-11. **NBT 数据解析**
+13. **NBT 数据解析**
     - RecipeSerializers 支持 Mojangson 字符串和 JSON 对象两种 NBT 格式
     - 结果物品的 NBT 数据通过 `ItemStack::mergeTag()` 合并
 
-12. **锻造台配方的 NBT 复制**
+14. **锻造台配方的 NBT 复制**
     - `SmithingRecipe` 会复制基础装备的 NBT 数据到结果物品
     - 附魔、耐久度等属性会被保留
 
-13. **Ingredient::isSimple 语义**
+15. **Ingredient::isSimple 语义**
     - `isSimple()` 返回 `true` 表示原料不包含可损坏物品，用于配方书优化
     - 包含可损坏物品（如工具）的 Ingredient 返回 `false`
     - 未解析的标签 Ingredient 返回 `false`（保守策略，无法确定标签内容）
     - 解析后为空的标签也返回 `false`
 
-14. **Ingredient::getAllMatchingItems vs getMatchingStacks**
+16. **Ingredient::getAllMatchingItems vs getMatchingStacks**
     - `getMatchingStacks()` 仅返回显式指定的物品堆，不包含标签解析后的物品
     - `getAllMatchingItems()` 返回包含标签解析物品的完整列表（延迟解析）
     - 需要完整物品列表时（如 `merge()`）应使用 `getAllMatchingItems()`
 
-15. **MC 1.21+ 配方 JSON 格式兼容**
+17. **MC 1.21+ 配方 JSON 格式兼容**
     - **字符串 ingredient**：MC 1.21+ 中 `ingredient` 字段支持直接使用字符串（如 `"minecraft:raw_iron"`），而非必须为对象（如 `{"item": "minecraft:raw_iron"}`）。`RecipeSerializers::parseIngredient()` 现在同时支持字符串、对象和数组三种格式。
     - **result 中的 id 字段**：MC 1.21+ 中 `result` 使用 `"id"` 替代 `"item"`。`RecipeSerializers::parseResult()` 同时支持两种字段名，当两者同时存在时 `"item"` 优先（向后兼容）。
     - **key 中的字符串 ingredient**：MC 1.21+ 中 `crafting_shaped` 配方的 `key` 值也支持字符串格式。
     - **ingredients 中的字符串元素**：MC 1.21+ 中 `crafting_shapeless` 配方的 `ingredients` 数组元素支持字符串格式。
 
-16. **MC 1.21+ 数据包目录命名**
+18. **MC 1.21+ 数据包目录命名**
     - MC 1.21+ 数据包使用单数目录名 `recipe/`，旧版使用复数 `recipes/`。
     - `RecipeLoader` 的路径过滤和 `pathToRecipeId()` 同时支持两种目录名，确保兼容性。
     - 测试用例覆盖：`RecipeFormatTest` 测试了所有 MC 1.21+ 格式的解析正确性。
 
-17. **MC 1.21+ 物品转化配方（TransmuteRecipe）**
+19. **MC 1.21+ 物品转化配方（TransmuteRecipe）**
     - 转化配方接受两个输入（input + material），输出指定物品，并保留 input 的 NBT 数据。
     - 典型用例：收纳袋染色（bundle + dye → colored_bundle，保留 BundleContents）。
     - JSON 格式：`"type": "minecraft:crafting_transmute"`，包含 `input`、`material`、`result` 字段。
