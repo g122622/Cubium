@@ -728,99 +728,122 @@ i32 ExecuteCommand::_executeForwarded(CommandContext<ServerCommandSource>& conte
         return 0;
     }
 
-    ServerCommandSource target = source;
-    size_t begin = 0;
-    while (begin < marker.chain.size()) {
-        size_t end = marker.chain.find('|', begin);
-        if (end == std::string::npos) {
-            end = marker.chain.size();
-        }
-        const std::string verb = marker.chain.substr(begin, end - begin);
-        begin = end + 1;
+    // 从 begin 位置开始把剩余链跑在 target 上，返回嵌套命令的结果累加。
+    //
+    // `as` 是多路分叉：选择器命中 n 个实体就各跑一次剩余链（对齐 vanilla
+    // RedirectModifier.Fork），累加各自结果。此前的线性 while 只取 entities.front()，
+    // `execute as @e[type=cow] run kill @s` 于是只杀掉第一只牛。
+    std::function<i32(ServerCommandSource, size_t)> runChain = [&](ServerCommandSource target, size_t begin) -> i32 {
+        i32 total = 0;
+        while (begin < marker.chain.size()) {
+            size_t end = marker.chain.find('|', begin);
+            if (end == std::string::npos) {
+                end = marker.chain.size();
+            }
+            const std::string verb = marker.chain.substr(begin, end - begin);
+            begin = end + 1;
 
-        if (verb == "as" || verb == "at") {
-            bool matched = false;
-            target =
-                applyChain(target, context.getArgumentOr<EntitySelector>("targets", EntitySelector()), verb, matched);
-            if (!matched) {
-                // 原版：选择器没选中任何实体时链中断，命令不执行、返回 0。
-                return 0;
-            }
-        } else if (verb == "in") {
-            const DimensionId targetDimId = context.getArgumentOr<DimensionId>("dimension", source.dimensionId());
-            auto* server = target.server();
-            if (server == nullptr) {
-                target.sendError("commands.execute.failed.noServer");
-                return 0;
-            }
-            if (!server->dimensionManager().hasDimension(targetDimId)) {
-                target.sendError("commands.execute.in.invalidDimension");
-                return 0;
-            }
-            ServerCommandSource modified = target.withDimension(targetDimId);
-            if (target.dimensionId() != targetDimId) {
-                const DimensionType sourceDimType = DimensionType::fromId(target.dimensionId());
-                const DimensionType dimType = DimensionType::fromId(targetDimId);
-                if (sourceDimType.coordinateScale() != dimType.coordinateScale()) {
-                    modified = modified.withPosition(
-                        DimensionType::transformPosition(target.position(), sourceDimType, dimType));
-                }
-            }
-            target = modified;
-        } else if (verb == "positioned") {
-            target = target.withPosition(Vec3ArgumentType::getVec3(context, "pos", target));
-        } else if (verb == "rotated") {
-            auto coords = context.getArgumentOr<Coordinates::Ptr>("rot", nullptr);
-            if (coords) {
-                const Vector3d rotated = coords->getPosition(target.position(), target.rotation());
-                target = target.withRotation(Vector2f(static_cast<f32>(rotated.x), static_cast<f32>(rotated.y)));
-            }
-        } else if (verb == "align") {
-            const std::string axes = context.getArgumentOr<std::string>("axes", "");
-            const Vector3d& pos = target.position();
-            auto pick = [&axes](char axis) {
-                return axes.find(axis) != std::string::npos;
-            };
-            target = target.withPosition(Vector3d(pick('x') ? std::floor(pos.x) : pos.x,
-                pick('y') ? std::floor(pos.y) : pos.y,
-                pick('z') ? std::floor(pos.z) : pos.z));
-        } else if (verb == "anchored") {
-            const std::string anchor = context.getArgumentOr<std::string>("anchor", "feet");
-            target = target.withAnchor(anchor == "eyes" ? EntityAnchorType::Eyes : EntityAnchorType::Feet);
-        } else if (verb == "facing") {
-            Vector3d from = target.position();
-            Vector3d to = from;
-            if (context.hasArgument("pos")) {
-                to = Vec3ArgumentType::getVec3(context, "pos", target);
-            } else {
+            if (verb == "as") {
                 auto entities = support::EntityResolver::resolve(
                     target, context.getArgumentOr<EntitySelector>("targets", EntitySelector()));
-                if (!entities.empty() && entities.front() != nullptr) {
-                    Entity* entity = entities.front();
-                    to = Vector3d(static_cast<f64>(entity->position().x),
-                        static_cast<f64>(entity->position().y),
-                        static_cast<f64>(entity->position().z));
+                // 选择器没选中任何实体时链中断（对齐 vanilla：不执行、贡献 0）。
+                if (entities.empty()) {
+                    return total;
+                }
+                for (Entity* entity : entities) {
+                    if (entity == nullptr) {
+                        continue;
+                    }
+                    total += runChain(target.withEntity(*entity), begin);
+                }
+                return total;
+            }
+
+            if (verb == "at") {
+                bool matched = false;
+                target = applyChain(
+                    target, context.getArgumentOr<EntitySelector>("targets", EntitySelector()), verb, matched);
+                if (!matched) {
+                    return total;
+                }
+            } else if (verb == "in") {
+                const DimensionId targetDimId = context.getArgumentOr<DimensionId>("dimension", source.dimensionId());
+                auto* server = target.server();
+                if (server == nullptr) {
+                    target.sendError("commands.execute.failed.noServer");
+                    return total;
+                }
+                if (!server->dimensionManager().hasDimension(targetDimId)) {
+                    target.sendError("commands.execute.in.invalidDimension");
+                    return total;
+                }
+                ServerCommandSource modified = target.withDimension(targetDimId);
+                if (target.dimensionId() != targetDimId) {
+                    const DimensionType sourceDimType = DimensionType::fromId(target.dimensionId());
+                    const DimensionType dimType = DimensionType::fromId(targetDimId);
+                    if (sourceDimType.coordinateScale() != dimType.coordinateScale()) {
+                        modified = modified.withPosition(
+                            DimensionType::transformPosition(target.position(), sourceDimType, dimType));
+                    }
+                }
+                target = modified;
+            } else if (verb == "positioned") {
+                target = target.withPosition(Vec3ArgumentType::getVec3(context, "pos", target));
+            } else if (verb == "rotated") {
+                auto coords = context.getArgumentOr<Coordinates::Ptr>("rot", nullptr);
+                if (coords) {
+                    const Vector3d rotated = coords->getPosition(target.position(), target.rotation());
+                    target = target.withRotation(Vector2f(static_cast<f32>(rotated.x), static_cast<f32>(rotated.y)));
+                }
+            } else if (verb == "align") {
+                const std::string axes = context.getArgumentOr<std::string>("axes", "");
+                const Vector3d& pos = target.position();
+                auto pick = [&axes](char axis) {
+                    return axes.find(axis) != std::string::npos;
+                };
+                target = target.withPosition(Vector3d(pick('x') ? std::floor(pos.x) : pos.x,
+                    pick('y') ? std::floor(pos.y) : pos.y,
+                    pick('z') ? std::floor(pos.z) : pos.z));
+            } else if (verb == "anchored") {
+                const std::string anchor = context.getArgumentOr<std::string>("anchor", "feet");
+                target = target.withAnchor(anchor == "eyes" ? EntityAnchorType::Eyes : EntityAnchorType::Feet);
+            } else if (verb == "facing") {
+                Vector3d from = target.position();
+                Vector3d to = from;
+                if (context.hasArgument("pos")) {
+                    to = Vec3ArgumentType::getVec3(context, "pos", target);
+                } else {
+                    auto entities = support::EntityResolver::resolve(
+                        target, context.getArgumentOr<EntitySelector>("targets", EntitySelector()));
+                    if (!entities.empty() && entities.front() != nullptr) {
+                        Entity* entity = entities.front();
+                        to = Vector3d(static_cast<f64>(entity->position().x),
+                            static_cast<f64>(entity->position().y),
+                            static_cast<f64>(entity->position().z));
+                    }
+                }
+                const f64 dx = to.x - from.x;
+                const f64 dy = to.y - from.y;
+                const f64 dz = to.z - from.z;
+                const f64 horizontal = std::sqrt(dx * dx + dz * dz);
+                const f32 yaw = static_cast<f32>(std::atan2(dz, dx) * 180.0 / 3.14159265358979323846 - 90.0);
+                const f32 pitch = static_cast<f32>(-std::atan2(dy, horizontal) * 180.0 / 3.14159265358979323846);
+                target = target.withRotation(Vector2f(yaw, pitch));
+            } else if (verb == "if" || verb == "unless") {
+                // 条件不成立时整条链中断、嵌套命令不执行、返回 0（对齐 vanilla
+                // ExecuteCommand 的条件失败语义）。unless 即 if 取反。
+                const bool conditionMet = _evaluateBlockCondition(target, context);
+                if (conditionMet == (verb == "unless")) {
+                    return total;
                 }
             }
-            const f64 dx = to.x - from.x;
-            const f64 dy = to.y - from.y;
-            const f64 dz = to.z - from.z;
-            const f64 horizontal = std::sqrt(dx * dx + dz * dz);
-            const f32 yaw = static_cast<f32>(std::atan2(dz, dx) * 180.0 / 3.14159265358979323846 - 90.0);
-            const f32 pitch = static_cast<f32>(-std::atan2(dy, horizontal) * 180.0 / 3.14159265358979323846);
-            target = target.withRotation(Vector2f(yaw, pitch));
-        } else if (verb == "if" || verb == "unless") {
-            // 条件不成立时整条链中断、嵌套命令不执行、返回 0（对齐 vanilla
-            // ExecuteCommand 的条件失败语义）。unless 即 if 取反。
-            const bool conditionMet = _evaluateBlockCondition(target, context);
-            if (conditionMet == (verb == "unless")) {
-                return 0;
-            }
+            // on / store 等：执行链已能解析，语义留待后续批次。
         }
-        // on / store 等：执行链已能解析，语义留待后续批次。
-    }
 
-    return executeNestedCommand(target, command);
+        return total + executeNestedCommand(target, command);
+    };
+
+    return runChain(source, 0);
 }
 
 bool ExecuteCommand::_evaluateBlockCondition(
