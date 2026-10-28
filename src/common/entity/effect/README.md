@@ -54,7 +54,8 @@ EffectType ←── EffectInstance ←── EffectManager
 ### 2. 持续时间的特殊值
 - `duration > 0`：正常倒计时
 - `duration == 0`：已过期
-- `duration < 0`：永久效果（如信标效果）
+- `duration == -1`：永久效果
+- 其他负值：已过期，不能当作永久效果
 
 ### 3. 瞬间效果的 tick 处理
 瞬间治疗、瞬间伤害、饱和效果在 `EffectManager::addEffect()` 中立即执行效果逻辑后丢弃，不保存到效果列表。这与 MC 原版行为一致：`InstantenousMobEffect.shouldApplyEffectTickThisTick()` 在 duration >= 1 时返回 true，效果在第一个 tick 触发一次后过期。
@@ -65,14 +66,13 @@ EffectType ←── EffectInstance ←── EffectManager
 效果使用固定 UUID 来标识属性修改器，在 `apply()` 时添加，`remove()` 时移除。同一个效果不能重复叠加属性修改器。
 
 ### 5. 效果合并规则
-当添加同名效果时，根据持续时间和等级决定合并策略：
-- 新效果等级更高 → 覆盖（移除旧属性修改器，应用新属性修改器）
-- 等级相同且新效果持续时间更长 → 合并持续时间（属性修改器不变）
-- 否则 → 忽略（不修改现有效果和属性修改器）
+更强且更短的效果把旧活动字段压入隐藏链；较弱但更长的效果进入或更新隐藏链。
+活动与隐藏效果同时倒计时，活动归零后恢复隐藏节点。只有隐藏链改变时，合并返回 false，
+不刷新网络；活动字段或显示标志改变时才返回 true。恢复隐藏效果必须重建属性修改器并记录刷新。
 
-注意：`EffectManager::addEffect()` 在合并时，只有当新效果的 amplifier 严格大于现有效果时，
-才会先调用 `remove()` 移除旧属性修改器，再调用 `apply()` 应用新属性修改器。
-同级延长时间不会重新应用属性修改器，更弱的效果会被完全忽略。
+普通 C++ 值复制深复制完整隐藏链；`copyDetails()` 只复制类型和活动字段，不携带隐藏链及属性应用状态。
+`withScaledDuration()` 使用后者，保留零和无限时长，其他值缩放后向下取整且至少为 1。
+构造时 amplifier 限制在 0..255；相等比较不包含隐藏链和属性应用状态。
 
 ### 6. 属性修改器映射
 效果到属性修改器的映射定义在 `EffectAttributeModifiers` 中：
@@ -118,7 +118,7 @@ EffectType ←── EffectInstance ←── EffectManager
 
 ### 9. endsWithin() 的语义陷阱
 `EffectInstance::endsWithin(maxDuration)` 在以下情况返回 **false**：
-- 永久效果（`duration < 0`）：即使 maxDuration 很大也返回 false，永久效果不应被"刷新"
+- 永久效果（`duration == -1`）：即使 maxDuration 很大也返回 false，永久效果不应被"刷新"
 - 已过期效果（`duration == 0`）：返回 true（0 <= maxDuration），但通常此时效果已被移除
 
 典型用途：美西螈的 `applySupportingEffects()` 使用 `endsWithin(2399)` 判断玩家现有的再生效果是否需要刷新——如果现有再生效果剩余时间超过 2399 tick（即已达上限 2400），则不刷新。

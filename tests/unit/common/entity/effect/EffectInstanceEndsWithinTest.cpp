@@ -33,7 +33,7 @@ using namespace mc::entity::effect;
  *
  * 测试效果实例的到期查询功能，覆盖各种边界场景。
  * endsWithin(maxDuration) 当效果的剩余持续时间 <= maxDuration 时返回 true，
- * 永久效果（duration < 0）始终返回 false。
+ * 永久效果（duration == -1）始终返回 false。
  */
 class EffectInstanceEndsWithinTest : public ::testing::Test {
 protected:
@@ -81,16 +81,9 @@ TEST_F(EffectInstanceEndsWithinTest, ZeroThreshold_AlwaysFalseForPositiveDuratio
 
 TEST_F(EffectInstanceEndsWithinTest, ExpiredEffect_EndsWithinZero)
 {
-    // 过期效果（duration = 0）：endsWithin(0) 返回 true
-    // 因为 0 <= 0，效果确实在 0 tick 内结束
-    // 注意：实际运行中过期效果会被 EffectManager 移除，
-    // 这里只测试 endsWithin 的语义正确性
-    EffectInstance effect(EffectType::Regeneration, 600);
-    // 手动将 duration tick 到 0 来测试
-    // 由于没有 setter，我们通过逻辑推理验证：
-    // duration=0 时，endsWithin(any_non_negative) 都应返回 true
-    // 这里我们验证 endsWithin(0) 对非零 duration 返回 false
-    EXPECT_FALSE(effect.endsWithin(0)); // 600 > 0，不在 0 tick 内结束
+    EffectInstance effect(EffectType::Regeneration, 0);
+    EXPECT_TRUE(effect.endsWithin(0));
+    EXPECT_FALSE(effect.endsWithin(-1));
 }
 
 TEST_F(EffectInstanceEndsWithinTest, NormalEffect_EndsWithinZero_ReturnsFalse)
@@ -110,12 +103,14 @@ TEST_F(EffectInstanceEndsWithinTest, PermanentEffect_NegativeDuration_ReturnsFal
     EXPECT_FALSE(effect.endsWithin(2400));
 }
 
-TEST_F(EffectInstanceEndsWithinTest, PermanentEffect_NegativeDuration_AnyThreshold)
+TEST_F(EffectInstanceEndsWithinTest, OtherNegativeDurationIsExpiredAndFinite)
 {
-    // 永久效果使用更大的负值也返回 false
     EffectInstance effect(EffectType::Regeneration, -100);
-    EXPECT_FALSE(effect.endsWithin(0));
-    EXPECT_FALSE(effect.endsWithin(1000));
+    EXPECT_FALSE(effect.isPermanent());
+    EXPECT_TRUE(effect.isExpired());
+    EXPECT_TRUE(effect.endsWithin(0));
+    EXPECT_TRUE(effect.endsWithin(-100));
+    EXPECT_FALSE(effect.endsWithin(-101));
 }
 
 // ============================================================================

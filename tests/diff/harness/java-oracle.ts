@@ -34,6 +34,7 @@ import path from "node:path";
 
 import { oracleClasspath, prepareOracle, vanillaDataPackDir } from "./oracle-env.ts";
 import { REPO_ROOT } from "./vanilla.ts";
+import { projectDeclaredFields } from "./comparison.ts";
 import type { HarnessResult } from "./runner.ts";
 import { probeExecutable, resolveBuildDir, render } from "./runner.ts";
 
@@ -359,37 +360,12 @@ function compareLines(
             differences.push({ key: unit, expected: "<absent in oracle>", actual: probeValue });
         } else if (probeValue === undefined) {
             differences.push({ key: unit, expected: oracleValue, actual: "<absent in probe>" });
-        } else if (JSON.stringify(project(oracleValue, oracleValue)) !== JSON.stringify(project(oracleValue, probeValue))) {
+        } else if (
+            JSON.stringify(projectDeclaredFields(oracleValue, oracleValue)) !==
+            JSON.stringify(projectDeclaredFields(oracleValue, probeValue))
+        ) {
             differences.push({ key: unit, expected: oracleValue, actual: probeValue });
         }
     }
     return differences;
-}
-
-/**
- * 只保留 oracle 声明过的字段（同 runner.ts 的 project），并递归到数组内部。
- *
- * 数组按模板长度逐项投影：oracle 给几项就比几项（附魔代价只给两端），
- * 但每项仍是「模板里的每个字段都必须对上」。早先这里只投影对象、数组整段
- * 原样比较，导致对象内部的键序差异被当成不一致。
- */
-function project(template: unknown, actual: unknown): unknown {
-    if (Array.isArray(template)) {
-        if (!Array.isArray(actual)) {
-            return actual;
-        }
-        return template.map((item, index) => project(item, actual[index]));
-    }
-    if (template !== null && typeof template === "object") {
-        if (actual === null || typeof actual !== "object" || Array.isArray(actual)) {
-            return actual;
-        }
-        const source = actual as Record<string, unknown>;
-        const result: Record<string, unknown> = {};
-        for (const [field, expected] of Object.entries(template as Record<string, unknown>)) {
-            result[field] = project(expected, source[field]);
-        }
-        return result;
-    }
-    return actual;
 }

@@ -25,11 +25,12 @@
 
 #include "EffectType.hpp"
 #include "common/core/Types.hpp"
+#include <functional>
 #include <memory>
 #include <optional>
 #include <utility>
 
-// Forward declaration
+// 前向声明
 namespace mc {
 namespace nbt {
 namespace tags {
@@ -117,12 +118,10 @@ public:
         return m_showIcon;
     }
 
-    /// 被覆盖的旧效果（vanilla MobEffectInstance.hiddenEffect）。当同类型更强效果施加时，
-    /// 旧效果被"隐藏"保留于此，新效果结束后恢复。wire codec 透传（递归 optional Details）。
-    /// 返回 nullptr 表示无隐藏效果。本字段在 wire 上以 Bool(present)+递归 Details 编码。
-    [[nodiscard]] const EffectInstance* hiddenEffect() const noexcept
+    /// 被覆盖的旧效果；保留共享身份以支持外部持有同一隐藏节点。
+    [[nodiscard]] const std::shared_ptr<EffectInstance>& hiddenEffect() const noexcept
     {
-        return m_hiddenEffect ? m_hiddenEffect.get() : nullptr;
+        return m_hiddenEffect;
     }
 
     void setHiddenEffect(std::shared_ptr<EffectInstance> effect)
@@ -143,7 +142,7 @@ public:
      */
     [[nodiscard]] bool isExpired() const noexcept
     {
-        return m_duration == 0;
+        return !isPermanent() && m_duration <= 0;
     }
 
     /**
@@ -151,7 +150,7 @@ public:
      */
     [[nodiscard]] bool isPermanent() const noexcept
     {
-        return m_duration < 0;
+        return m_duration == -1;
     }
 
     /**
@@ -159,13 +158,42 @@ public:
      * @param maxDuration 最大剩余tick数
      * @return 如果效果的剩余持续时间 <= maxDuration 则返回 true
      *
-     * 永久效果（duration < 0）始终返回 false。
+     * 永久效果（duration == -1）始终返回 false。
      * 用于判断是否需要刷新效果（如美西螈的再生效果上限检查）。
      */
     [[nodiscard]] bool endsWithin(i32 maxDuration) const noexcept
     {
-        return m_duration >= 0 && m_duration <= maxDuration;
+        return !isPermanent() && m_duration <= maxDuration;
     }
+
+    /** @brief 复制活动字段，不携带隐藏链及属性应用状态。普通值复制仍保留完整隐藏链。 */
+    [[nodiscard]] EffectInstance copyDetails() const;
+
+    /** @brief 按单精度系数缩放时长，零和无限保持原值；返回的实例不携带隐藏链。 */
+    [[nodiscard]] EffectInstance withScaledDuration(f32 factor) const;
+
+    /** @brief 映射有限非零时长；回调可返回数值或 Result，失败及副作用由调用方处理。 */
+    template <typename Mapper>
+    auto mapDuration(Mapper&& mapper) const -> std::invoke_result_t<Mapper, i32>
+    {
+        using Output = std::invoke_result_t<Mapper, i32>;
+        if (isPermanent() || m_duration == 0) {
+            return Output(m_duration);
+        }
+        return std::invoke(std::forward<Mapper>(mapper), m_duration);
+    }
+
+    /** @brief 时长推进结果，恢复隐藏效果时需要刷新属性和网络状态。 */
+    struct DurationTick {
+        bool active;
+        bool downgraded;
+    };
+
+    /** @brief 推进整条隐藏链的时长并恢复到期活动效果，不执行效果自身行为。 */
+    DurationTick advanceDuration();
+
+    /** @brief 比较活动字段；隐藏链和属性应用状态不参与相等判定。 */
+    [[nodiscard]] bool operator==(const EffectInstance& other) const noexcept;
 
     /**
      * @brief 检查属性修改器是否已应用
@@ -180,9 +208,9 @@ public:
     /**
      * @brief 更新效果（每tick调用）
      * @param entity 受影响的实体
-     * @return 是否仍然有效（true = 继续，false = 移除）
+     * @return 活动状态及是否恢复了隐藏效果
      */
-    bool tick(LivingEntity& entity);
+    DurationTick tick(LivingEntity& entity);
 
     /**
      * @brief 合并另一个效果
@@ -280,6 +308,15 @@ public:
     [[nodiscard]] static EffectInstance fromNbt(const nbt::tags::compound_tag& tag);
 
 private:
+    /** @brief 复制活动字段，保留当前类型、隐藏链和属性应用状态。 */
+    void _setDetailsFrom(const EffectInstance& other);
+
+    /** @brief 递归倒计隐藏链，保留零和无限时长。 */
+    void _tickDownDuration();
+
+    /** @brief 比较时长，永久效果长于任意有限效果。 */
+    [[nodiscard]] bool _isShorterThan(const EffectInstance& other) const noexcept;
+
     /**
      * @brief 执行效果的具体逻辑
      */
@@ -293,7 +330,7 @@ private:
     bool m_visible;
     bool m_showIcon;
     bool m_applied = false; // 是否已应用属性修改
-    /// 被覆盖的旧效果（vanilla hiddenEffect，递归）。shared_ptr 对 incomplete type 析构安全。
+    /// 被覆盖的旧效果链。
     std::shared_ptr<EffectInstance> m_hiddenEffect;
 };
 

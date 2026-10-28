@@ -62,7 +62,7 @@ inline void writeHiddenEffectDetails(
     buf.writeBool(inst.isAmbient());
     buf.writeBool(inst.isVisible()); // showParticles
     buf.writeBool(inst.showIcon());
-    const ::mc::entity::effect::EffectInstance* hidden = inst.hiddenEffect();
+    const auto& hidden = inst.hiddenEffect();
     if (hidden != nullptr) {
         buf.writeBool(true);
         writeHiddenEffectDetails(buf, *hidden); // 递归
@@ -112,7 +112,7 @@ inline void writeMobEffectInstance(
     buf.writeBool(inst.isAmbient());
     buf.writeBool(inst.isVisible()); // showParticles
     buf.writeBool(inst.showIcon());
-    const ::mc::entity::effect::EffectInstance* hidden = inst.hiddenEffect();
+    const auto& hidden = inst.hiddenEffect();
     if (hidden != nullptr) {
         buf.writeBool(true);
         detail::writeHiddenEffectDetails(buf, *hidden);

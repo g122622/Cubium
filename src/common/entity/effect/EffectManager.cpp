@@ -81,8 +81,7 @@ bool EffectManager::addEffect(EffectInstance effect, LivingEntity& entity)
         bool merged = existing.merge(effect);
 
         if (merged && needsReapply && !existing.isApplied()) {
-            // merge() 在 amplifier 变化时将 m_applied 设为 false
-            // 此时需要用新的 amplifier 重新应用属性修改器
+            // 旧修改器已在合并前移除，使用新的等级重新应用。
             existing.apply(entity);
         }
 
@@ -168,10 +167,13 @@ void EffectManager::tick(LivingEntity& entity)
 {
     // 从后向前遍历，以便安全移除过期效果
     for (i32 i = static_cast<i32>(m_effects.size()) - 1; i >= 0; --i) {
-        if (!m_effects[i].tick(entity)) {
-            // 效果过期，移除并记录（对齐 vanilla onEffectsRemoved → RemoveMobEffect）。
+        const auto result = m_effects[i].tick(entity);
+        if (!result.active) {
+            // 效果过期，移除并记录。
             _recordChange(m_effects[i].type(), false, false);
             m_effects.erase(m_effects.begin() + i);
+        } else if (result.downgraded) {
+            _recordChange(m_effects[i].type(), true, false);
         }
     }
 }

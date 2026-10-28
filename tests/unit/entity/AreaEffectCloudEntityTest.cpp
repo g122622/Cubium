@@ -485,34 +485,34 @@ class LingeringPotionDurationTest : public ::testing::Test {};
 
 TEST_F(LingeringPotionDurationTest, DurationDividedByFour)
 {
-    // 效果在区域效果云中持续时间为原持续时间的 1/4
-    // 例如：8:00 的药水（9600 tick）在效果云中为 2400 tick
-
-    // 模拟 8 分钟速度药水
-    i32 originalDuration = 9600; // 8 分钟 = 9600 tick
-    i32 cloudDuration = originalDuration / 4;
-
-    EXPECT_EQ(cloudDuration, 2400);
+    const effect::EffectInstance original(effect::EffectType::Speed, 9600, 2, true, false, false);
+    const auto scaled = original.withScaledDuration(0.25F);
+    EXPECT_EQ(scaled.duration(), 2400);
+    EXPECT_EQ(scaled.amplifier(), 2);
+    EXPECT_TRUE(scaled.isAmbient());
+    EXPECT_FALSE(scaled.isVisible());
+    EXPECT_FALSE(scaled.showIcon());
+    EXPECT_EQ(original.duration(), 9600);
 }
 
 TEST_F(LingeringPotionDurationTest, DurationDividedByFour_MinimumDuration)
 {
-    // 即使原持续时间很短，效果云中也至少有一些持续时间
-    i32 originalDuration = 100; // 5 秒
-    i32 cloudDuration = originalDuration / 4;
-
-    EXPECT_EQ(cloudDuration, 25); // 25 tick = 1.25 秒
+    const effect::EffectInstance original(effect::EffectType::Speed, 3, 0, false, true, true);
+    EXPECT_EQ(original.withScaledDuration(0.25F).duration(), 1);
 }
 
 TEST_F(LingeringPotionDurationTest, DurationDividedByFour_InstantEffect)
 {
-    // 瞬间效果（瞬间治疗/瞬间伤害）持续时间为 1 tick
-    // 在效果云中，瞬间效果会被特殊处理（使用 affectEntity 方法）
-    // 这里只测试除法逻辑
-    i32 originalDuration = 1; // 瞬间效果
-    i32 cloudDuration = originalDuration / 4;
+    const effect::EffectInstance original(effect::EffectType::InstantHealth, 1, 0, false, true, true);
+    EXPECT_EQ(original.withScaledDuration(0.25F).duration(), 1);
+}
 
-    EXPECT_EQ(cloudDuration, 0); // 会被截断为 0
+TEST_F(LingeringPotionDurationTest, ZeroAndInfiniteDurationsArePreserved)
+{
+    const effect::EffectInstance infinite(effect::EffectType::Speed, -1, 0, false, true, true);
+    const effect::EffectInstance expired(effect::EffectType::Speed, 0, 0, false, true, true);
+    EXPECT_EQ(infinite.withScaledDuration(0.25F).duration(), -1);
+    EXPECT_EQ(expired.withScaledDuration(0.25F).duration(), 0);
 }
 
 // ============================================================================
