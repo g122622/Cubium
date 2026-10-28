@@ -173,6 +173,14 @@ function ravagerRoarDamagesNearbyEntities(test: Test): void {
   const shield = new ItemStack("minecraft:shield", 1);
   player.setItem(shield as unknown as Parameters<typeof player.setItem>[0], 0, true);
 
+  // 举盾前先转向劫掠兽：LivingEntity::_isWithinShieldBlockingAngle 会用
+  // Player::blockingSourceAngle 比较「攻击来源方向」与玩家朝向的夹角，
+  // 超出 DEFAULT_SHIELD_HORIZONTAL_BLOCKING_ANGLE 就不算格挡成功。
+  // 劫掠兽在玩家西侧（玩家 x=4、劫掠兽 x=2），不转向的话来源落在正后方，
+  // canBlock 为 true 却 inAngle 为 false，格挡永远不成立——
+  // 后续「格挡→blockedByItem→眩晕→咆哮」整条链都走不到。
+  player.lookAtLocation({ x: 2.5, y: 2, z: 3.5 });
+
   // tick 0 举盾：useItem→ShieldItem::onItemRightClick→setActiveHand(MainHand) 进入持续格挡状态。
   // 必须先 setItem 放盾主手再 useItem（onItemRightClick 内部读 getHeldItem(MainHand)，空手则 setActiveHand 早返回）。
   // useItem 是 Cubium 扩展绑定（基岩官方 SimulatedPlayer.useItem），as any 绕过 TS 类型。
@@ -183,6 +191,13 @@ function ravagerRoarDamagesNearbyEntities(test: Test): void {
   // startTick=40 留劫掠兽选目标+首次攻击+眩晕+咆哮时序（首次攻击≈tick 20，50% 眩晕后 40+10=50 tick 咆哮）。
   // maxTick=900 吸收 50% 眩晕非确定性（最坏连续 7 次不眩晕≈140 tick + 第 8 次眩晕 60 tick）。
   pollUntilSucceed(test, () => {
+    // 每步重新朝向劫掠兽：玩家连续被击中/击退后朝向可能偏出盾牌的水平格挡角，
+    // 一旦偏出，后续每次攻击都判不中角度（canBlock=true 但 inAngle=false），
+    // 眩晕链再也起不来。每步校正一次即可稳定。
+    player.lookAtLocation({ x: 2.5, y: 2, z: 3.5 });
+    // 同时重举盾：useItem 设的一次性格挡会在若干 tick 后自行结束，
+    // 必须每步重新置位，否则后半程玩家其实裸奔（isUsingItem=false）。
+    (player as any).useItem(shield as unknown as Parameters<typeof player.setItem>[0]);
     const sheeps = test.getDimension().getEntities({
       type: sheepType,
       location: test.worldLocation(PIT_FROM),
@@ -194,7 +209,9 @@ function ravagerRoarDamagesNearbyEntities(test: Test): void {
     return (health as any).currentValue < 8;
   }, {
     startTick: 40,
-    interval: 10,
+    // 每 tick 校正一次朝向：极兽的攻击冷却 20 tick，若校正滞后一个 10 tick 的轮询周期，
+    // 格挡判定的时刻，朝向就可能已经偏出格挡角，这次 50% 的眩晕抽签根本没走到。
+    interval: 1,
     maxTick: 900,
     onTimeout: () => {
       const sheeps = test.getDimension().getEntities({

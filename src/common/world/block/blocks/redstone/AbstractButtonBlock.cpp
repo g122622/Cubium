@@ -324,10 +324,19 @@ i32 AbstractButtonBlock::getWeakPower(
 {
     MC_UNUSED(world);
     MC_UNUSED(pos);
+    MC_UNUSED(side);
 
-    // 按钮是非导体信号源：仅向附着面相反方向（输出方向）提供强度 15 的弱信号，
-    // 其他方向以及 off 状态一律为 0。
-    if (!isPowered(state) || !_isSignalSide(state, side)) {
+    // 对齐 vanilla 1.21.11 ButtonBlock.getSignal：按下即输出 15，**不区分方向**。
+    //
+    // 这里曾经加了「仅向附着面相反方向供电」的方向限制，导致红石线永远取不到按钮信号：
+    // SignalGetter.getBestNeighborSignal 查询邻居时传的是「从查询点指向邻居」的方向
+    // （RedstonePower::getRedstonePowerFromNeighbors 也是这么传的），与按钮的
+    // getOutputDirection 并不是同一个朝向，判等必然失败。表现就是按钮按下后
+    // powered=true、命令方块也收到了 neighborChanged，但红石线功率恒为 0。
+    //
+    // 方向限制属于**强信号**的语义（vanilla getDirectSignal 才比较
+    // getConnectedDirection(state) == side），弱信号不该有。
+    if (!isPowered(state)) {
         return 0;
     }
     return BUTTON_SIGNAL_POWER;
@@ -338,11 +347,13 @@ i32 AbstractButtonBlock::getStrongPower(
 {
     MC_UNUSED(world);
     MC_UNUSED(pos);
-    MC_UNUSED(state);
-    MC_UNUSED(side);
 
-    // 按钮不提供强信号，不能充能相邻导体
-    return 0;
+    // 对齐 vanilla 1.21.11 ButtonBlock.getDirectSignal：只有「输出方向」能拿到强信号，
+    // 用于强充能附着面反向的导体。其余方向为 0。
+    if (!isPowered(state) || !_isSignalSide(state, side)) {
+        return 0;
+    }
+    return BUTTON_SIGNAL_POWER;
 }
 
 const CollisionShape& AbstractButtonBlock::getShape(const BlockState& state) const

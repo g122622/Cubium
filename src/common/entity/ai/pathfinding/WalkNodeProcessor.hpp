@@ -191,7 +191,11 @@ private:
      */
     [[nodiscard]] bool _isBigDripleaf(i32 x, i32 y, i32 z) const;
 
+protected:
+    /// 关联实体。派生类（如 FlyingNodeProcessor）需要读它的寻路惩罚表，故放 protected。
     LivingEntity* m_entity = nullptr;
+
+private:
     bool m_canSwim = false;
     bool m_canOpenDoors = false;
     bool m_canEnterDoors = true;

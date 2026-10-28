@@ -73,7 +73,9 @@ bool MeleeAttackGoal::shouldExecute()
 
     // 尝试获取路径
     if (m_creature->navigator()) {
-        if (m_creature->navigator()->moveTo(*target, 0)) {
+        // 速度用构造时传入的 m_speed（对齐 vanilla MeleeAttackGoal 的 speedModifier）。
+        // 此前硬编码为 0，速度为 0 的寻路请求语义无效。
+        if (m_creature->navigator()->moveTo(*target, m_speed)) {
             return true;
         }
     }

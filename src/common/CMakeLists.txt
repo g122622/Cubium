@@ -489,6 +489,7 @@ add_library(mc_common STATIC
     entity/ai/pathfinding/Region.cpp
     entity/ai/pathfinding/WorldRegion.cpp
     entity/ai/pathfinding/WalkNodeProcessor.cpp
+    entity/ai/pathfinding/FlyingNodeProcessor.cpp
     entity/ai/pathfinding/RavagerNodeProcessor.cpp
     entity/ai/pathfinding/PathFinder.cpp
     entity/ai/pathfinding/PathNavigator.cpp

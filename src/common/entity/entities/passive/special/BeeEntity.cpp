@@ -31,6 +31,8 @@
 #include "common/entity/ai/goal/goals/SwimGoal.hpp"
 #include "common/entity/ai/goal/goals/TemptGoal.hpp"
 #include "common/entity/ai/goal/goals/special/BeeGoals.hpp"
+#include "common/entity/ai/pathfinding/FlyingNodeProcessor.hpp"
+#include "common/entity/ai/pathfinding/PathFinder.hpp"
 #include "common/entity/ai/pathfinding/PathNavigator.hpp"
 #include "common/entity/ai/pathfinding/PathNodeType.hpp"
 #include "common/entity/ai/util/RandomPositionGenerator.hpp"
@@ -105,6 +107,20 @@ BeeEntity::BeeEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
     // 对齐 vanilla Bee 构造：飞行移动控制器 FlyingMoveControl(this, 20, true)
     // （最大俯仰变化 20 度/tick，无目标时原地悬停不落重力）。
     m_moveController = std::make_unique<entity::ai::controller::FlyingMovementController>(this, 20, true);
+
+    // 对齐 vanilla Bee.createNavigation() → FlyingPathNavigation:
+    // 蜜蜂用**飞行寻路**而不是地面寻路。MobEntity 构造给的默认寻路器是
+    // WalkNodeProcessor（8 方向水平 + 跳跃/跌落，要求踩在方块上），飞行实体用它
+    // 时贴不到目标高度：BreedGoal 里两只蜜蜂的 distanceSq 会一路变大而不是靠近，
+    // 繁殖永远等不到"足够近"，蜜蜂类 AI（跟随、返巢、求爱）集体失效。
+    // 这里换成 FlyingNodeProcessor（26 方向立体移动，不要求地面支撑）。
+    {
+        auto nodeProcessor = std::make_unique<entity::ai::pathfinding::FlyingNodeProcessor>();
+        auto pathFinder = std::make_unique<entity::ai::pathfinding::PathFinder>(std::move(nodeProcessor));
+        auto navigator = std::make_unique<entity::ai::pathfinding::PathNavigator>(std::move(pathFinder));
+        navigator->setEntity(this);
+        m_navigator = std::move(navigator);
+    }
 
     // 对齐 vanilla Bee 构造的寻路代价：DANGER_FIRE / WATER / COCOA / FENCE 不可通行，
     // WATER_BORDER 代价 16。

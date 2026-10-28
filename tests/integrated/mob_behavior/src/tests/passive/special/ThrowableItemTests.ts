@@ -314,9 +314,14 @@ function experienceBottleSpawnsOrbsTest(test: Test): void {
   const bottle = new ItemStack(EXPERIENCE_BOTTLE, 1);
   player.setItem(bottle as unknown as Parameters<typeof player.setItem>[0], 0, true);
 
-  // 朝正下方看（target 在玩家正下方），使经验瓶垂直下落 1 tick 撞脚下地板。
-  // 不用水平投掷：经验瓶水平飞出结构覆盖的 chunk 进未加载区块，raytrace 永远 miss，onImpact 不触发。
-  (player as any).lookAtLocation({ x: 1, y: 0, z: 3 });
+  // 落点必须离玩家足够远：经验球与玩家的距离要稳定大于 ExperienceOrbEntity 的
+  // PICKUP_DISTANCE(=1.0)，否则它生成当 tick 就被玩家吸入并 remove()，
+  // 「世界里能看到 experience_orb」的断言必然为 0。
+  // 此前朝向正下方、让经验瓶撞脚下地板：实测玩家在 creeper_pit 里站的高度是 y=6
+  // （不是 spawn 参数里的 y=2），经验瓶在 (2.9, 6, 3.5) 就爆开，经验球紧贴玩家，
+  // 一生成即被拾取——这不是生成缺陷（诊断已确认 onImpact 触发、spawnEntity 返回有效 id）。
+  // 落点也不能太远：水平甩出结构所在 chunk 会让 raytrace 落空、onImpact 不触发。
+  (player as any).lookAtLocation({ x: 6, y: 1, z: 3 });
 
   // tick 5 useItem(经验瓶) → 投掷生成 experience_bottle → 落地生成 experience_orb。
   test.runAtTickTime(5, () => {

@@ -155,14 +155,22 @@ bool LadderBlock::isValidPosition(const BlockState& state, IBlockReader& world, 
     // SupportType.FULL 支撑（该面投影覆盖整个 1×1）。据此可精确区分"面完整但不可遮挡"（如玻璃，
     // 可挂梯子）与"面不完整"（如台阶、雪层，不可挂梯子）。
     const Direction facing = state.get(BlockStateProperties::HORIZONTAL_FACING());
-    const BlockPos attachPos = pos.offset(facing);
+    // 支撑方块在梯子的**背面**：vanilla LadderBlock.canSurvive 用
+    // `pos.relative(direction.getOpposite())` 取附着位置，再用 facing 找支撑面。
+    // 此处方向必须取 opposite(facing)：facing=east 的梯子背面是 west，支撑方块在
+    // x-1 一侧。此前错写成 pos.offset(facing)（取 facing 方向前方的格子），等于把
+    // 「背后有没有东西撑着」判成了「面前有没有东西挡着」，移除真正的背面支撑时梯子
+    // 不会自毁（ladder_breaks_when_attached_block_removed 因此失败）。
+    const Direction back = Directions::opposite(facing);
+    const BlockPos attachPos = pos.offset(back);
     const BlockState* attachState = world.getBlockState(attachPos);
 
     if (attachState == nullptr) {
         return false;
     }
 
-    return attachState->isFaceSturdy(world, attachPos, Directions::opposite(facing), SupportType::Full);
+    // 支撑方块须在「朝向梯子」的那个面上提供完整支撑（即 facing 面）。
+    return attachState->isFaceSturdy(world, attachPos, facing, SupportType::Full);
 }
 
 BlockState LadderBlock::updatePostPlacement(const BlockState& state,
@@ -180,9 +188,14 @@ BlockState LadderBlock::updatePostPlacement(const BlockState& state,
         waterloggable::scheduleWaterTick(world, currentPos);
     }
 
-    // 仅当变化方向为梯子的 FACING（即所倚靠的方块本身发生变化）时重新检查存活
+    // 仅当变化发生在梯子的**背面**（即所倚靠的方块本身发生变化）时重新检查存活。
+    // vanilla LadderBlock.updateShape 的判据是 `direction.getOpposite() == FACING`，
+    // 即变化方向 == opposite(FACING)。此处 facing 参数表示「变化发生在梯子的哪一侧」，
+    // 支撑方块位于背面（facing=east 的梯子，支撑在 west），故必须比较 opposite(ladderFacing)，
+    // 而此前写成 facing == ladderFacing，两者恒不相等，梯子永远不会自毁。
     const Direction ladderFacing = state.get(BlockStateProperties::HORIZONTAL_FACING());
-    if (facing == ladderFacing && !isValidPosition(state, static_cast<IBlockReader&>(world), currentPos)) {
+    if (facing == Directions::opposite(ladderFacing) &&
+        !isValidPosition(state, static_cast<IBlockReader&>(world), currentPos)) {
         return VanillaBlocks::AIR->defaultState();
     }
 

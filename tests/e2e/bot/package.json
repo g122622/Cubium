@@ -8,6 +8,7 @@
     "node": ">=22"
   },
   "scripts": {
+    "postinstall": "node tools/patch-mineflayer.ts",
     "test": "node run.ts",
     "regress": "node run.ts --mode=regress",
     "refresh": "node run.ts --mode=refresh",

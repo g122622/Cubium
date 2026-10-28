@@ -92,11 +92,32 @@ void GhastMovementController::tick()
     // 检查飞行路径是否安全（避免碰撞）
     i32 stepsToCheck = static_cast<i32>(std::ceil(distance));
     if (_isPathSafe(direction, stepsToCheck)) {
-        // 路径安全，添加速度
+        // 路径安全，添加加速度。
+        //
+        // 对齐 vanilla Ghast.travel → travelFlying(vec, 0.02F) 的速度收敛行为：
+        // 原版每 tick 对速度施加阻尼（等效于速度趋近一个有限终速）。此前这里只做
+        // velocity += direction * 0.1 而没有任何阻尼/上限，速度会无限累积：实测恶魂
+        // 从 ghast_arena 内的 (3,2,3) 一路加速飞出到 (84.9,-9.7,52.8)，既撞不到
+        // 竞技场墙壁的约束效果，也离玩家越来越远，永远看不到目标、
+        // 于是从不发射火球（ghast_shoots_fireball_at_player 失败）。
+        //
+        // 这里按 travelFlying 的终速给出硬上限：每 tick 最大位移约 0.1 格（与加速度同量级），
+        // 既保留原版的「缓慢漂浮」手感，又不让速度无界增长。
+        constexpr f32 kMaxSpeed = 0.1f;
         Vector3 velocity = _host()->velocity();
         velocity.x += direction.x * 0.1f;
         velocity.y += direction.y * 0.1f;
         velocity.z += direction.z * 0.1f;
+
+        // 钳制到终速上限（原版 travelFlying 的阻尼等价效果）。
+        const f32 speed = std::sqrt(velocity.x * velocity.x + velocity.y * velocity.y + velocity.z * velocity.z);
+        if (speed > kMaxSpeed) {
+            const f32 scale = kMaxSpeed / speed;
+            velocity.x *= scale;
+            velocity.y *= scale;
+            velocity.z *= scale;
+        }
+
         _host()->setVelocity(velocity);
     } else {
         // 路径不安全，停止移动
