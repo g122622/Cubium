@@ -47,6 +47,7 @@ tests/diff/
 │   ├── advancement.cpp          # 进度定义
 │   ├── biome_spawns.cpp         # 生物群系自然生成配置
 │   ├── spawn_placement.cpp      # 实体放置类型、高度图与受控方块柱中的位置判定
+│   ├── spawn_rules.cpp          # 生成谓词、位置检查与后续随机抽样
 │   ├── recipe.cpp               # 配方表（类型 / 原料 / 结果 / 烹饪）
 │   ├── loot_world.hpp           # 战利品探针共用的空世界 / 掷骰入口
 │   └── loot_probe_common.hpp    # 战利品探针共用的样本循环与摘要
@@ -200,6 +201,7 @@ harness 决定。`runner.ts` 负责按 `key` 对齐两侧输出、规范化、�
 | `advancement` | 原版 jar `AdvancementOracle` | 1584 | 全部一致 | — |
 | `biome_spawns` | 原版 jar `BiomeSpawnsOracle` | 65 | 全部一致 | — |
 | `spawn_placement` | 原版 jar `SpawnPlacementOracle` | 157 种实体 × 332 场景 | 全部一致 | — |
+| `spawn_rules` | 原版 jar `SpawnRulesOracle` | 157 种实体 / 168,876 个场景 | 全部一致 | — |
 | `recipe` | 原版 jar `RecipeOracle` | 1470 | 18 个纹饰配方结果存在差异 | 装配输入选取待核对 |
 
 第一次跑通就查出并修掉的实打实的错误（都是手抄数据/公式出错）：
@@ -410,8 +412,24 @@ harness 决定。`runner.ts` 负责按 `key` 对齐两侧输出、规范化、�
 没有实体豁免。Java 世界只提供用例明确给出的数据，意外访问其他能力直接失败。
 
 该能力不调用生成谓词，因此不覆盖光照、难度、生成原因和随机数消耗；这些属于
-Horizon `checkSpawnRules` 与后续 `nextInt(1000)` 对应的另一层验证。
+`spawn_rules` 中 Horizon `checkSpawnRules` 与后续 `nextInt(1000)` 对应的验证。
 公共探针入口使用完整 JSON 行读取，允许一条输入携带超过 4095 字节的共同场景集。
+
+### 生成谓词：结果与随机数消耗一起比较
+
+`spawn_rules` 沿用 Horizon 的受控 `ServerLevel`：从共同输入设置方块柱、光照、雷雨、
+海平面、世界种子、群系、地表史莱姆环境属性和附近玩家，直接运行 1.21.11 的
+`SpawnPlacements.checkSpawnRules`，随后记录同一随机源的 `nextInt(1000)`。
+位置检查独立运行，即使位置不合格也比较谓词，防止前置拒绝掩盖分支或随机消耗差异。
+
+覆盖全部 157 种实体、19 种原因、三种维度的光照门槛、四种难度、多个海平面边界与
+玩家 5 格距离边界。普通实体各 1,068 个场景；史莱姆与僵尸各追加 600 个区块坐标和世界种子
+场景，总计 168,876 个。原版世界使用显式环境属性值，群系标签在两侧都来自同一个数据包。
+输出完整比较 `positionOk`、`rulesOk`、`nextRandom`，不设置实体或字段豁免。
+
+生产代码将 82 个注册谓词与位置检查分开，运行期世界和生成区域共用读取逻辑。区块首次
+生成额外传入生成器的实际海平面；地表史莱姆读环境属性，区块史莱姆复用 JavaLegacyRandom，
+其种子计算保留 Java 在提升为 long 之前的 int 回绕。
 
 ### 配方：定义与装配结果
 

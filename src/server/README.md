@@ -1,6 +1,6 @@
 # Server Module
 
-Cubium 服务端模块，实现了完整的 Minecraft 1.16.5 服务端逻辑。
+Cubium 服务端模块，承接 Minecraft Java 1.21.11 的世界模拟、网络连接和游戏逻辑。
 
 ## 目录结构
 
@@ -39,7 +39,6 @@ server/
 │   │   └── ItemPickupManager.hpp/cpp
 │   ├── spawn/            # 自然生成
 │   │   ├── NaturalSpawner.hpp/cpp
-│   │   └── SpawnConditions.hpp/cpp
 │   └── weather/          # 天气系统
 │       └── WeatherManager.hpp/cpp
 ├── network/              # 网络层（按连接生命周期分层，详见 network/README.md）

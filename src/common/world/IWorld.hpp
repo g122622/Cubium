@@ -148,6 +148,16 @@ class IWorld : public IWorldWriter {
 public:
     virtual ~IWorld() = default;
 
+    /**
+     * @brief 获取海平面；运行中的世界读取区块生成器的实际设置。
+     *
+     * 无生成器的内置维度视图使用该维度的标准值。
+     */
+    [[nodiscard]] virtual i32 seaLevel() const
+    {
+        return dimension() == -1 ? 32 : dimension() == 1 ? 0 : world::SEA_LEVEL;
+    }
+
     // IWorldWriter 的 setBlockState 方法已提供基础写入能力
     // IWorld 额外提供读取能力
 

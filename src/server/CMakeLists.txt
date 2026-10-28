@@ -355,7 +355,6 @@ add_executable(minecraft-server
     world/time/GameTime.cpp
     world/drop/BlockDropHandler.cpp
     world/spawn/NaturalSpawner.cpp
-    world/spawn/SpawnConditions.cpp
     world/spawn/DespawnManager.cpp
     world/spawn/VillageSiege.cpp
     world/spawn/WanderingTraderSpawner.cpp

@@ -39,6 +39,7 @@
 #include "common/world/chunk/data/ChunkData.hpp"
 #include "common/world/gamerule/GameRules.hpp"
 #include "common/world/spawn/EntitySpawnPlacementRegistry.hpp"
+#include "common/world/spawn/IWorldSpawnAdapter.hpp"
 #include "server/world/ServerWorld.hpp"
 #include <spdlog/spdlog.h>
 
@@ -47,60 +48,6 @@ namespace mc::server::spawn {
 namespace {
 
 /// 把服务端世界包装为生成放置检查所需的只读视图。
-class TraderSpawnWorldAdapter final : public world::spawn::ISpawnWorldReader {
-public:
-    explicit TraderSpawnWorldAdapter(server::ServerWorld& world)
-        : m_world(world)
-    {}
-
-    [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override
-    {
-        return m_world.getBlockState(x, y, z);
-    }
-
-    [[nodiscard]] bool isWithinWorldBorder(i32 x, i32 y, i32 z) const override
-    {
-        return m_world.worldBorder().isWithinBounds(BlockPos(x, y, z));
-    }
-
-    [[nodiscard]] i32 getHeight(HeightmapType type, i32 x, i32 z) const override
-    {
-        const ChunkData* chunk =
-            m_world.chunkManager()->tryToGetChunkInMem(world::toChunkCoord(x), world::toChunkCoord(z));
-        return chunk != nullptr ? chunk->getTopBlockY(type, world::toLocalCoord(x), world::toLocalCoord(z)) : -1;
-    }
-
-    [[nodiscard]] BiomeId getBiome(i32 x, i32 y, i32 z) const override
-    {
-        const ChunkData* chunk =
-            m_world.chunkManager()->tryToGetChunkInMem(world::toChunkCoord(x), world::toChunkCoord(z));
-        return chunk != nullptr ? chunk->getBiomeAtBlock(world::toLocalCoord(x), y, world::toLocalCoord(z))
-                                : Biomes::Plains;
-    }
-
-    [[nodiscard]] u64 seed() const override
-    {
-        return m_world.seed();
-    }
-
-    [[nodiscard]] Difficulty difficulty() const override
-    {
-        return m_world.difficulty();
-    }
-
-    [[nodiscard]] i64 dayTime() const override
-    {
-        return m_world.dayTime();
-    }
-
-    [[nodiscard]] i32 getMaxLocalRawBrightness(i32 x, i32 y, i32 z) const override
-    {
-        return m_world.getMaxLocalRawBrightness(BlockPos(x, y, z));
-    }
-
-private:
-    server::ServerWorld& m_world;
-};
 
 } // namespace
 
@@ -224,7 +171,7 @@ bool WanderingTraderSpawner::trySpawn(server::ServerWorld& world)
 std::optional<BlockPos> WanderingTraderSpawner::_findSpawnPositionNear(
     server::ServerWorld& world, const BlockPos& center, i32 radius)
 {
-    TraderSpawnWorldAdapter adapter(world);
+    world::spawn::IWorldSpawnAdapter adapter(world);
     for (i32 attempt = 0; attempt < SPAWN_ATTEMPTS; ++attempt) {
         const i32 x = center.x + world.getRandom().nextInt(radius * 2) - radius;
         const i32 z = center.z + world.getRandom().nextInt(radius * 2) - radius;

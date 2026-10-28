@@ -47,6 +47,7 @@ import {
 } from "./loot_context.ts";
 import { KNOWN_MISSING as itemsKnownMissing } from "./known_missing_items.ts";
 import { KNOWN_MISSING_COMMANDS } from "./known_missing_commands.ts";
+import { spawnRulesInput } from "./spawn_rules.ts";
 import { spawnPlacementInput } from "./spawn_placement.ts";
 import { KNOWN_MISSING as entityAttributesKnownMissing } from "./known_missing_entity_attributes.ts";
 import {
@@ -250,6 +251,12 @@ const JAVA_HARNESSES: ReadonlyArray<() => JavaHarness> = [
         oracle: "RecipeOracle",
         input: (unit: string) => ({ recipe: unit }),
         key: "recipe",
+    }),
+    () => ({
+        name: "spawn_rules",
+        oracle: "SpawnRulesOracle",
+        input: spawnRulesInput,
+        key: "entity",
     }),
     () => ({
         name: "spawn_placement",

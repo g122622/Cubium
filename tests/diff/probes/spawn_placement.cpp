@@ -38,9 +38,9 @@ namespace {
 using nlohmann::json;
 using namespace world::spawn;
 
-class _Column final : public ISpawnWorldReader {
+class _columnWorld final : public ISpawnWorldReader {
 public:
-    explicit _Column(const json& scenario)
+    explicit _columnWorld(const json& scenario)
         : m_below(_parse(scenario.at("below").get<std::string>()))
         , m_at(_parse(scenario.at("at").get<std::string>()))
         , m_above(_parse(scenario.at("above").get<std::string>()))
@@ -78,14 +78,14 @@ public:
         return Difficulty::Normal;
     }
 
-    i64 dayTime() const override
+    SpawnEnvironment environment(const Vector3i&) const override
     {
-        return 0;
+        return SpawnEnvironment{0, 0, 0, false, 63, 0, 0, 7, 0};
     }
 
-    i32 getMaxLocalRawBrightness(i32, i32, i32) const override
+    bool hasNearbyPlayer(const Vector3d&, f64) const override
     {
-        return 0;
+        return false;
     }
 
 private:
@@ -126,7 +126,7 @@ std::string _runLine(std::string_view line)
                                                             : "no_restrictions";
     json cases = json::array();
     for (const auto& scenario : input.at("cases")) {
-        _Column world(scenario);
+        _columnWorld world(scenario);
         cases.push_back(json{{"name", scenario.at("name")},
             {"positionOk",
                 EntitySpawnPlacementRegistry::canSpawnAtLocation(

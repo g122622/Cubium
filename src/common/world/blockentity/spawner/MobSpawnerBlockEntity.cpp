@@ -48,6 +48,7 @@
 #include "common/world/chunk/data/Heightmap.hpp"
 #include "common/world/lighting/InternalLightUtils.hpp"
 #include "common/world/spawn/EntitySpawnPlacementRegistry.hpp"
+#include "common/world/spawn/IWorldSpawnAdapter.hpp"
 #include <cmath>
 #include <memory>
 #include <string>
@@ -574,78 +575,8 @@ bool MobSpawnerBlockEntity::_isValidSpawnPosition(
     // EntitySpawnPlacementRegistry::canSpawnEntity() 会根据实体类型注册的
     // PlacementType（OnGround/InWater/InLava/NoRestrictions）和自定义谓词进行检查。
     // 需要创建一个适配器将 IWorld 转换为 ISpawnWorldReader。
-    class SpawnerWorldAdapter final : public world::spawn::ISpawnWorldReader {
-    public:
-        explicit SpawnerWorldAdapter(IWorld& world)
-            : m_world(world)
-        {}
 
-        [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override
-        {
-            return m_world.getBlockState(BlockPos(x, y, z));
-        }
-
-        [[nodiscard]] bool isWithinWorldBorder(i32 x, i32 y, i32 z) const override
-        {
-            return m_world.worldBorder().isWithinBounds(BlockPos(x, y, z));
-        }
-
-        [[nodiscard]] i32 getHeight(world::chunk::HeightmapType type, i32 x, i32 z) const override
-        {
-            const ChunkCoord chunkX = world::toChunkCoord(x);
-            const ChunkCoord chunkZ = world::toChunkCoord(z);
-            const ChunkData* chunk = m_world.chunkManager()->tryToGetChunkInMem(chunkX, chunkZ);
-            if (chunk == nullptr) {
-                return m_world.getHeight(x, z);
-            }
-            const i32 localX = world::toLocalCoord(x);
-            const i32 localZ = world::toLocalCoord(z);
-            return chunk->getTopBlockY(type, localX, localZ);
-        }
-
-        [[nodiscard]] BiomeId getBiome(i32 x, i32 y, i32 z) const override
-        {
-            const ChunkCoord chunkX = world::toChunkCoord(x);
-            const ChunkCoord chunkZ = world::toChunkCoord(z);
-            const ChunkData* chunk = m_world.chunkManager()->tryToGetChunkInMem(chunkX, chunkZ);
-            if (chunk == nullptr) {
-                return Biomes::Plains;
-            }
-            const i32 localX = world::toLocalCoord(x);
-            const i32 localZ = world::toLocalCoord(z);
-            return chunk->getBiomeAtBlock(localX, y, localZ);
-        }
-
-        [[nodiscard]] u64 seed() const override
-        {
-            return m_world.seed();
-        }
-
-        [[nodiscard]] Difficulty difficulty() const override
-        {
-            return m_world.difficulty();
-        }
-
-        [[nodiscard]] i64 dayTime() const override
-        {
-            return m_world.dayTime();
-        }
-
-        [[nodiscard]] i32 getMaxLocalRawBrightness(i32 x, i32 y, i32 z) const override
-        {
-            return m_world.getMaxLocalRawBrightness(BlockPos(x, y, z));
-        }
-
-        [[nodiscard]] i32 getRawSkyLight(i32 x, i32 y, i32 z) const override
-        {
-            return m_world.getSkyLight(BlockPos(x, y, z));
-        }
-
-    private:
-        IWorld& m_world;
-    };
-
-    SpawnerWorldAdapter adapter(world);
+    world::spawn::IWorldSpawnAdapter adapter(world);
     // 刷怪笼生成使用 SpawnReason::Spawner
     math::Random rng(world.seed() ^ world.getGameTime());
     if (!world::spawn::EntitySpawnPlacementRegistry::canSpawnEntity(entityType.name(),
@@ -662,7 +593,7 @@ bool MobSpawnerBlockEntity::_isValidSpawnPosition(
     //   difficulty != PEACEFUL && (ignoresLightRequirements(reason) || isDarkEnoughToSpawn(...))
     // EntitySpawnReason.ignoresLightRequirements(SPAWNER)=false（仅 TRIAL_SPAWNER 忽略光照），
     // 故普通刷怪笼生成的怪物仍需通过完整两阶段的 isDarkEnoughToSpawn——该判定已整体下沉到
-    // _canMonsterSpawnInLightPredicate（上方 canSpawnEntity 调用），此处不再重复补做天空光随机门。
+    // 光照门槛在实体谓词中按生成原因判定，不在刷怪笼层重复执行。
     // 注：仅注册了光照谓词的实体受此门控（如 Monster）；BAT 等未注册谓词的实体不受光照限制，
     // 与原版 SpawnPlacements 只执行实体类型自身谓词的口径一致。
 

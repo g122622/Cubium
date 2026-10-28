@@ -22,100 +22,28 @@
  */
 
 #pragma once
-
-#include "common/core/Types.hpp"
-#include "common/world/IWorld.hpp"
-#include "common/world/WorldConstants.hpp"
-#include "common/world/biome/BiomeIds.hpp"
-#include "common/world/biome/Biomes.hpp"
-#include "common/world/chunk/data/ChunkData.hpp"
-#include "common/world/chunk/data/Heightmap.hpp"
-#include "common/world/lighting/InternalLightUtils.hpp"
 #include "common/world/spawn/EntitySpawnPlacementRegistry.hpp"
 
 namespace mc {
-namespace world {
-namespace spawn {
+class IWorld;
 
-/**
- * @brief IWorld 到 ISpawnWorldReader 的适配器
- *
- * 将 IWorld 接口适配为 ISpawnWorldReader，供 EntitySpawnPlacementRegistry
- * 使用生成放置规则检查。适用于刷怪笼、增援生成等需要验证生成位置的场景。
- *
- * 使用方式：
- * @code
- * IWorldSpawnAdapter adapter(world);
- * bool canSpawn = EntitySpawnPlacementRegistry::canSpawnEntity(
- *     "minecraft:zombie", adapter, SpawnReason::Reinforcement, pos, rng);
- * @endcode
- */
-class IWorldSpawnAdapter final : public ISpawnWorldReader {
+namespace world::spawn {
+
+/** @brief 生成检查使用的实时世界视图；生成区域补充高度图、群系与生成器海平面。 */
+class IWorldSpawnAdapter : public ISpawnWorldReader {
 public:
-    explicit IWorldSpawnAdapter(IWorld& world)
-        : m_world(world)
-    {}
-
-    [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override
-    {
-        return m_world.getBlockState(BlockPos(x, y, z));
-    }
-
-    [[nodiscard]] bool isWithinWorldBorder(i32 x, i32 y, i32 z) const override
-    {
-        return m_world.worldBorder().isWithinBounds(BlockPos(x, y, z));
-    }
-
-    [[nodiscard]] i32 getHeight(chunk::HeightmapType type, i32 x, i32 z) const override
-    {
-        const ChunkCoord chunkX = toChunkCoord(x);
-        const ChunkCoord chunkZ = toChunkCoord(z);
-        const ChunkData* chunk = m_world.chunkManager()->tryToGetChunkInMem(chunkX, chunkZ);
-        if (chunk == nullptr) {
-            return m_world.getHeight(x, z);
-        }
-        const i32 localX = toLocalCoord(x);
-        const i32 localZ = toLocalCoord(z);
-        return chunk->getTopBlockY(type, localX, localZ);
-    }
-
-    [[nodiscard]] BiomeId getBiome(i32 x, i32 y, i32 z) const override
-    {
-        const ChunkCoord chunkX = toChunkCoord(x);
-        const ChunkCoord chunkZ = toChunkCoord(z);
-        const ChunkData* chunk = m_world.chunkManager()->tryToGetChunkInMem(chunkX, chunkZ);
-        if (chunk == nullptr) {
-            return Biomes::Plains;
-        }
-        const i32 localX = toLocalCoord(x);
-        const i32 localZ = toLocalCoord(z);
-        return chunk->getBiomeAtBlock(localX, y, localZ);
-    }
-
-    [[nodiscard]] u64 seed() const override
-    {
-        return m_world.seed();
-    }
-
-    [[nodiscard]] Difficulty difficulty() const override
-    {
-        return m_world.difficulty();
-    }
-
-    [[nodiscard]] i64 dayTime() const override
-    {
-        return m_world.dayTime();
-    }
-
-    [[nodiscard]] i32 getMaxLocalRawBrightness(i32 x, i32 y, i32 z) const override
-    {
-        return m_world.getMaxLocalRawBrightness(BlockPos(x, y, z));
-    }
+    explicit IWorldSpawnAdapter(IWorld& world);
+    [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override;
+    [[nodiscard]] bool isWithinWorldBorder(i32 x, i32 y, i32 z) const override;
+    [[nodiscard]] i32 getHeight(HeightmapType type, i32 x, i32 z) const override;
+    [[nodiscard]] BiomeId getBiome(i32 x, i32 y, i32 z) const override;
+    [[nodiscard]] u64 seed() const override;
+    [[nodiscard]] Difficulty difficulty() const override;
+    [[nodiscard]] SpawnEnvironment environment(const Vector3i& pos) const override;
+    [[nodiscard]] bool hasNearbyPlayer(const Vector3d& center, f64 distance) const override;
 
 private:
     IWorld& m_world;
 };
-
-} // namespace spawn
-} // namespace world
+} // namespace world::spawn
 } // namespace mc

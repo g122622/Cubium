@@ -54,7 +54,7 @@ namespace test {
  * 允许精确控制每个 ISpawnWorldReader 参数：
  * - seed: 世界种子（影响史莱姆区块判断）
  * - difficulty: 游戏难度（和平难度拒绝史莱姆生成）
- * - dayTime: 游戏时间（影响月相和光照）
+ * - surfaceSlimeChance: 地表史莱姆环境属性概率
  * - biomeId: 指定位置的生物群系
  * - maxBrightness: 指定位置的最大原始亮度
  * - m_blocks: 生成位置附近的显式方块状态
@@ -69,8 +69,8 @@ public:
     u64 m_seed = 0;
     /// 游戏难度
     Difficulty m_difficulty = Difficulty::Normal;
-    /// 游戏日时间（ticks）
-    i64 m_dayTime = 0;
+    /// 地表史莱姆环境属性概率
+    f32 m_surfaceSlimeChance = 0.5f;
     /// 返回的生物群系ID
     BiomeId m_biomeId = Biomes::Plains;
     /// 返回的最大原始亮度
@@ -130,14 +130,14 @@ public:
         return m_difficulty;
     }
 
-    [[nodiscard]] i64 dayTime() const override
+    [[nodiscard]] SpawnEnvironment environment(const Vector3i&) const override
     {
-        return m_dayTime;
+        return SpawnEnvironment{0, m_maxBrightness, 0, false, 63, 0, 0, 7, m_surfaceSlimeChance};
     }
 
-    [[nodiscard]] i32 getMaxLocalRawBrightness(i32, i32, i32) const override
+    [[nodiscard]] bool hasNearbyPlayer(const Vector3d&, f64) const override
     {
-        return m_maxBrightness;
+        return false;
     }
 
 private:
@@ -205,9 +205,9 @@ TEST_F(CanSlimeSpawnTest, PeacefulDifficultyRejectsSurface)
     // 和平难度下，地表沼泽也应拒绝生成
     MockSpawnWorld world;
     world.m_difficulty = Difficulty::Peaceful;
-    world.m_biomeId = Biomes::Swamp; // 沼泽允许地表史莱姆
-    world.m_dayTime = 0;             // 满月
-    world.m_maxBrightness = 0;       // 黑暗
+    world.m_biomeId = Biomes::Swamp;   // 沼泽允许地表史莱姆
+    world.m_surfaceSlimeChance = 0.5f; // 满月
+    world.m_maxBrightness = 0;         // 黑暗
     world.setupOnGroundBlocks(60);
 
     Vector3i pos(0, 60, 0); // Y 在 (50, 70) 范围内
@@ -360,9 +360,9 @@ TEST_F(CanSlimeSpawnTest, SurfacePathRequiresSwampBiome)
     MockSpawnWorld world;
     world.m_difficulty = Difficulty::Normal;
     world.m_seed = 0;
-    world.m_biomeId = Biomes::Plains; // 非沼泽
-    world.m_dayTime = 0;              // 满月
-    world.m_maxBrightness = 0;        // 黑暗
+    world.m_biomeId = Biomes::Plains;  // 非沼泽
+    world.m_surfaceSlimeChance = 0.5f; // 满月
+    world.m_maxBrightness = 0;         // 黑暗
     world.setupOnGroundBlocks(60);
 
     Vector3i pos(0, 60, 0); // Y 在 (50, 70) 范围
@@ -386,8 +386,8 @@ TEST_F(CanSlimeSpawnTest, SurfacePathSwampBiomeCanSpawn)
     world.m_difficulty = Difficulty::Normal;
     world.m_seed = 0;
     world.m_biomeId = Biomes::Swamp;
-    world.m_dayTime = 0;       // 满月（月相0），spawnChance = 0.5
-    world.m_maxBrightness = 0; // 黑暗，光照检查总是通过
+    world.m_surfaceSlimeChance = 0.5f; // 满月（月相0），spawnChance = 0.5
+    world.m_maxBrightness = 0;         // 黑暗，光照检查总是通过
     world.setupOnGroundBlocks(60);
 
     Vector3i pos(0, 60, 0); // Y 在 (50, 70) 范围内
@@ -414,7 +414,7 @@ TEST_F(CanSlimeSpawnTest, SurfacePathMangroveSwampCanSpawn)
     world.m_difficulty = Difficulty::Normal;
     world.m_seed = 0;
     world.m_biomeId = Biomes::MangroveSwamp;
-    world.m_dayTime = 0; // 满月
+    world.m_surfaceSlimeChance = 0.5f; // 满月
     world.m_maxBrightness = 0;
     world.setupOnGroundBlocks(60);
 
@@ -442,14 +442,8 @@ TEST_F(CanSlimeSpawnTest, SurfacePathNewMoonRejects)
     world.m_maxBrightness = 0;
     world.setupOnGroundBlocks(60);
 
-    // 月相4 = 新月，spawnChance = 0.0
-    // dayTime 需要对8取模为4：dayTime / DAY_LENGTH_TICKS % 8 == 4
-    // DAY_LENGTH_TICKS = 24000, 所以 dayTime = 4 * 24000 = 96000
-    const i64 dayTimeForNewMoon = 4 * 24000;
-    world.m_dayTime = dayTimeForNewMoon;
-
-    // 验证月相确实是新月
-    ASSERT_EQ(InternalLightUtils::getMoonPhase(dayTimeForNewMoon), 4);
+    // 环境属性显式禁用地表生成。
+    world.m_surfaceSlimeChance = 0.0f;
 
     Vector3i pos(0, 60, 0);
     math::Random random(12345);
@@ -472,7 +466,7 @@ TEST_F(CanSlimeSpawnTest, SurfacePathRejectsY50OrBelow)
     world.m_difficulty = Difficulty::Normal;
     world.m_seed = 0;
     world.m_biomeId = Biomes::Swamp;
-    world.m_dayTime = 0; // 满月
+    world.m_surfaceSlimeChance = 0.5f; // 满月
     world.m_maxBrightness = 0;
     world.setupOnGroundBlocks(50);
 
@@ -497,7 +491,7 @@ TEST_F(CanSlimeSpawnTest, SurfacePathRejectsY70OrAbove)
     world.m_difficulty = Difficulty::Normal;
     world.m_seed = 0;
     world.m_biomeId = Biomes::Swamp;
-    world.m_dayTime = 0;
+    world.m_surfaceSlimeChance = 0.5f;
     world.m_maxBrightness = 0;
     world.setupOnGroundBlocks(70);
 
@@ -522,7 +516,7 @@ TEST_F(CanSlimeSpawnTest, SurfacePathAcceptsYBetween50And70)
     world.m_difficulty = Difficulty::Normal;
     world.m_seed = 0;
     world.m_biomeId = Biomes::Swamp;
-    world.m_dayTime = 0;
+    world.m_surfaceSlimeChance = 0.5f;
     world.m_maxBrightness = 0;
     world.setupOnGroundBlocks(60);
 
@@ -548,8 +542,8 @@ TEST_F(CanSlimeSpawnTest, SurfacePathLightLevelCheck)
     world.m_difficulty = Difficulty::Normal;
     world.m_seed = 0;
     world.m_biomeId = Biomes::Swamp;
-    world.m_dayTime = 0;        // 满月
-    world.m_maxBrightness = 15; // 最大亮度
+    world.m_surfaceSlimeChance = 0.5f; // 满月
+    world.m_maxBrightness = 15;        // 最大亮度
     world.setupOnGroundBlocks(60);
 
     Vector3i pos(0, 60, 0);
@@ -574,7 +568,7 @@ TEST_F(CanSlimeSpawnTest, SurfacePathLowBrightnessCanSpawn)
     world.m_difficulty = Difficulty::Normal;
     world.m_seed = 0;
     world.m_biomeId = Biomes::Swamp;
-    world.m_dayTime = 0; // 满月
+    world.m_surfaceSlimeChance = 0.5f; // 满月
     world.m_maxBrightness = 0;
     world.setupOnGroundBlocks(60);
 
@@ -603,7 +597,7 @@ TEST_F(CanSlimeSpawnTest, SurfacePathMediumBrightnessReducesChance)
     world.m_difficulty = Difficulty::Normal;
     world.m_seed = 0;
     world.m_biomeId = Biomes::Swamp;
-    world.m_dayTime = 0;
+    world.m_surfaceSlimeChance = 0.5f;
     world.m_maxBrightness = 7;
     world.setupOnGroundBlocks(60);
 
@@ -699,11 +693,8 @@ TEST_F(CanSlimeSpawnTest, QuarterMoonSurfaceSpawnRate)
     world.m_maxBrightness = 0;
     world.setupOnGroundBlocks(60);
 
-    // 月相2：dayTime = 2 * 24000 = 48000
-    const i64 dayTimeForQuarterMoon = 2 * 24000;
-    world.m_dayTime = dayTimeForQuarterMoon;
-
-    ASSERT_EQ(InternalLightUtils::getMoonPhase(dayTimeForQuarterMoon), 2);
+    // 环境属性直接提供地表生成概率。
+    world.m_surfaceSlimeChance = 0.25f;
 
     Vector3i pos(0, 60, 0);
     i32 successCount = 0;
@@ -767,7 +758,7 @@ TEST_F(CanSlimeSpawnTest, EasyDifficultyAllowsSlime)
     world.m_difficulty = Difficulty::Easy;
     world.m_seed = 0;
     world.m_biomeId = Biomes::Swamp;
-    world.m_dayTime = 0; // 满月
+    world.m_surfaceSlimeChance = 0.5f; // 满月
     world.m_maxBrightness = 0;
     world.setupOnGroundBlocks(60);
 
@@ -791,7 +782,7 @@ TEST_F(CanSlimeSpawnTest, HardDifficultyAllowsSlime)
     world.m_difficulty = Difficulty::Hard;
     world.m_seed = 0;
     world.m_biomeId = Biomes::Swamp;
-    world.m_dayTime = 0;
+    world.m_surfaceSlimeChance = 0.5f;
     world.m_maxBrightness = 0;
     world.setupOnGroundBlocks(60);
 

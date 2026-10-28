@@ -379,7 +379,6 @@ add_executable(mc_tests
     # EnderCrystalEntity 治愈末影龙测试
     common/entity/entities/effect/EnderCrystalHealTest.cpp
     # MonsterEntity 生成位置检查测试
-    common/entity/entities/monster/MonsterSpawnTest.cpp
     # EntityType::isAllowedInPeaceful()（NotInPeaceful 标志位）逐实体标注正确性测试
     common/entity/EntityPeacefulFlagTest.cpp
     # LivingEntity 箭矢计数和发光效果测试
@@ -1876,7 +1875,6 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/server/world/spawn/DespawnManager.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/spawn/VillageSiege.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/spawn/WanderingTraderSpawner.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/world/spawn/SpawnConditions.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/weather/WeatherManager.cpp
         # 结构定位算法门面：ServerWorld::findNearestStructure/findNearestMapStructure 委托，
         # mc_tests 编译 ServerWorld.cpp 故须登记（与 server/CMakeLists.txt 一致）。

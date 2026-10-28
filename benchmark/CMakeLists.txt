@@ -80,7 +80,6 @@ target_sources(mc_benchmark
         ${MC_SERVER_COMMAND_SOURCES_ABS}
         # 自然生成（ServerWorld::tick 引用）
         ${CMAKE_SOURCE_DIR}/src/server/world/spawn/NaturalSpawner.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/world/spawn/SpawnConditions.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/spawn/DespawnManager.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/spawn/VillageSiege.cpp
     ${CMAKE_SOURCE_DIR}/src/server/world/spawn/WanderingTraderSpawner.cpp
