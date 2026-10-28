@@ -63,6 +63,7 @@ tests/diff/
     └── harnesses/               # 声明式 harness 与注册表
         ├── index.ts             # 注册表 + run all / run <name>
         ├── loot_context.ts      # 战利品三个探针的上下文模板与已知缺口
+        ├── recipe.ts            # 导出配方夹具，生成两侧共用的锻造三槽输入
         └── known_missing_items.ts   # 物品侧已知缺口清单
 ```
 
@@ -202,7 +203,7 @@ harness 决定。`runner.ts` 负责按 `key` 对齐两侧输出、规范化、�
 | `biome_spawns` | 原版 jar `BiomeSpawnsOracle` | 65 | 全部一致 | — |
 | `spawn_placement` | 原版 jar `SpawnPlacementOracle` | 157 种实体 × 332 场景 | 全部一致 | — |
 | `spawn_rules` | 原版 jar `SpawnRulesOracle` | 157 种实体 / 168,876 个场景 | 全部一致 | — |
-| `recipe` | 原版 jar `RecipeOracle` | 1470 | 18 个纹饰配方结果存在差异 | 装配输入选取待核对 |
+| `recipe` | 原版 jar `RecipeOracle` | 1470 | 全部一致 | — |
 
 第一次跑通就查出并修掉的实打实的错误（都是手抄数据/公式出错）：
 
@@ -439,6 +440,12 @@ harness 决定。`runner.ts` 负责按 `key` 对齐两侧输出、规范化、�
 与原版 `Recipe#placementInfo().ingredients()` 同口径）、有序配方的宽高、结果物品与数量
 （原版侧跑一次真实 `assemble`）、烹饪时间/经验。
 
+锻造配方沿用 Horizon 的两阶段方法：先由 oracle 导出原料并选取资源 ID 最小的候选，
+再把同一份具体三槽输入写进共同 JSONL。30 个锻造配方比较输入、`matches` 和两侧实际
+`assemble` 的结果物品/数量，避免标签成员迭代顺序影响样本。原版直接复用已加载资源的
+注册表，无需构造世界；异常直接失败，不再转成空结果。结果摘要尚不比较数据组件，
+纹饰组件的写入仍由业务源码中的 TODO 跟踪。
+
 对齐过程中修掉的真问题：
 
 - **物品标签带嵌套引用时整张标签表是空的**：`logs_that_burn` 在数据包里写的是
@@ -460,9 +467,8 @@ harness 决定。`runner.ts` 负责按 `key` 对齐两侧输出、规范化、�
   （`crafting_special_armordye`、`crafting_decorated_pot`……），Cubium 一律返回
   `minecraft:special`。`SpecialRecipe::getSerializerId` 由装载器按数据包写入；地图扩展的
   放置信息（3×3 外圈纸、正中已填充地图）由 `RecipeSerializers::placementIngredients` 给出；
-- **纹饰配方的合成结果**：原版对「底材原料的首个物品 + 添加物原料的首个物品」真的合成一次，
-  匹配不上时结果为空；Cubium 此前直接返回底材副本。`SmithingTrimRecipe::assemble` 现在
-  在底材为空时返回空（TRIM 组件的写入仍是 TODO，见源码）；
+- **纹饰配方的样本必须相同**：此前 Java 取标签首个物品为皮革靴，C++ 则可能取到钻石胸甲，
+  导致 18 个结果差异。现在三槽输入由同一份夹具给定，匹配失败时两侧都输出空结果；
 - **樱桃 / 红树 / 苍白橡木的原木在物品里缺失**：`BlockItemRegistry` 注册这三组原木时
   用的方块指针在建表阶段还是空指针；现在与其它树种同一路径注册后，相关标签与配方才能
   正常展开。
