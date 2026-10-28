@@ -83,6 +83,13 @@ std::optional<entity::effect::EffectType> tryParseEffectType(std::string_view na
         return static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
     });
 
+    // 剥掉命名空间：表里存的是裸名（speed/slowness/...），而 ResourceLocation 参数
+    // 解析出来的永远是带前缀的完整 id（minecraft:speed）。不剥的话 /effect give
+    // 会稳定报 Unknown effect——所有 effect 用例因此全红。
+    if (const auto colon = lowerName.rfind(':'); colon != std::string::npos) {
+        lowerName.erase(0, colon + 1);
+    }
+
     auto it = s_effectNameMap.find(lowerName);
     if (it != s_effectNameMap.end()) {
         return it->second;
