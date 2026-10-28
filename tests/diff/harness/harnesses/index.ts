@@ -33,16 +33,23 @@
  *   - minecraft-data（回退）：原版 jar 不可用时的离线数据源，覆盖字段更少。
  */
 
-import { runJavaOracle } from "../java-oracle.ts";
+import { execFileSync } from "node:child_process";
+import fs from "node:fs";
+import path from "node:path";
+
+import { compileOracle, runJavaOracle } from "../java-oracle.ts";
+import { vanillaDataPackDir } from "../oracle-env.ts";
 import type { HarnessSpec } from "../runner.ts";
-import { runSpec } from "../runner.ts";
+import { resolveBuildDir, runSpec } from "../runner.ts";
 import { KNOWN_MISSING as enchantmentKnownMissing } from "./enchantment_table.ts";
 import { KNOWN_MISSING as entityKnownMissing, createEntityShapeHarness } from "./entity_shape.ts";
 import { createItemSummaryHarness } from "./item_summary.ts";
 import {
     ENTITY_ORACLE_MISSING,
+    ENTITY_SCENARIOS,
     lootTableBlockInput,
     lootTableEntityInput,
+    lootTableEntityUnit,
     lootTableInput,
 } from "./loot_context.ts";
 import { KNOWN_MISSING as itemsKnownMissing } from "./known_missing_items.ts";
@@ -280,13 +287,48 @@ const JAVA_HARNESSES: ReadonlyArray<() => JavaHarness> = [
         input: (unit: string) => lootTableBlockInput(unit),
         key: "table",
     }),
-    () => ({
-        name: "loot_table_entity",
-        oracle: "LootTableEntityOracle",
-        input: (unit: string) => lootTableEntityInput(unit),
-        key: "table",
-        oracleMissing: ENTITY_ORACLE_MISSING,
-    }),
+    () => {
+        // 单元键是「表 ID#场景」：oracle 枚举表，这里按场景展开成多行，
+        // 保证每张表都在全部场景下各掷一次。
+        const tables = (): string[] => {
+            const directory = path.join(resolveBuildDir(), "diff/loot_table_entity/java");
+            fs.mkdirSync(directory, { recursive: true });
+            // classes 目录排在前面：oracle 自己编出来的类只在那里。
+            const { classesDir, classpath } = compileOracle("LootTableEntityOracle", directory);
+            const classpathWithClasses = `${classesDir}${path.delimiter}${classpath}`;
+            const unitsPath = path.join(directory, "tables.txt");
+            fs.rmSync(unitsPath, { force: true });
+            execFileSync("java", ["-cp", classpathWithClasses, "dev.horizonlab.diff.LootTableEntityOracle", "list", unitsPath], {
+                cwd: directory,
+                env: { ...process.env, MC_DIFF_VANILLA_DATAPACK: vanillaDataPackDir() },
+                stdio: ["ignore", "pipe", "pipe"],
+            });
+            const unitKeys: string[] = [];
+            for (const table of fs.readFileSync(unitsPath, "utf8").split(/\r?\n/).filter(Boolean)) {
+                if (ENTITY_ORACLE_MISSING.includes(table)) {
+                    continue;
+                }
+                for (const scenario of ENTITY_SCENARIOS) {
+                    unitKeys.push(lootTableEntityUnit(table, scenario.name));
+                }
+            }
+            return unitKeys;
+        };
+        const scenarioOf = (unit: string): { table: string; scenario: string } => {
+            const hash = unit.lastIndexOf("#");
+            return { table: unit.slice(0, hash), scenario: unit.slice(hash + 1) };
+        };
+        return {
+            name: "loot_table_entity",
+            oracle: "LootTableEntityOracle",
+            units: tables,
+            input: (unit: string) => {
+                const { table, scenario } = scenarioOf(unit);
+                return lootTableEntityInput(table, scenario);
+            },
+            key: "table",
+        };
+    },
     () => ({
         name: "item_components",
         oracle: "ItemComponentsOracle",

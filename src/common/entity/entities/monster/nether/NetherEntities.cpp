@@ -937,6 +937,10 @@ HoglinEntity::HoglinEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
     setBurnsInDaylight(false);
     registerAttributes();
 
+    // 猪灵兽本体不免疫火焰（免疫的是僵尸化后的僵尸猪灵）：被烧死的掉落才会经
+    // `furnace_smelt` 变成熟猪排。成员默认值曾误设为 true，导致被烧死时不出熟肉。
+    m_immuneToFire = false;
+
     // 补调 registerGoals：MonsterEntity 构造只调基类版（vtable 指向 MonsterEntity），派生 override
     // 永不执行，须在派生类构造显式调用。Hoglin 的 registerGoals 加专属近战 / 避排斥方块 / 激怒目标。
     // registerAttributes 已在上方调用。

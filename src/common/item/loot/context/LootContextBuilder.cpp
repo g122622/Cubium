@@ -105,6 +105,11 @@ std::unique_ptr<LootContext> LootContextBuilder::build(const LootParameterSet& p
         context->setPredicateResolver(std::move(m_predicateResolver));
     }
 
+    // 设置附魔标签解析器
+    if (m_enchantmentTagResolver) {
+        context->setEnchantmentTagResolver(std::move(m_enchantmentTagResolver));
+    }
+
     // 参数验证：检查必需参数和不允许的参数
     // Empty 和 Generic 类型的参数集没有必需参数也没有可选参数限制，跳过验证
     if (paramSet.getType() != LootParameterSet::Type::Empty && paramSet.getType() != LootParameterSet::Type::Generic) {

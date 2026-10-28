@@ -31,6 +31,7 @@
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
 #include "common/resource/ResourceLocation.hpp"
+#include <functional>
 #include <memory>
 #include <optional>
 #include <string>
@@ -94,6 +95,19 @@ public:
     [[nodiscard]] bool test(const Entity& entity) const;
 
     /**
+     * @brief 检查实体是否匹配（装备槽位的附魔标签可解析）
+     *
+     * 装备谓词里的 `#enchantment_tag`（如 `#minecraft:smelts_loot`）要靠解析器判定；
+     * 不提供时标签写法按「不匹配」处理。
+     *
+     * @param entity 实体
+     * @param enchantmentTagResolver 附魔标签名 → 成员附魔 ID；未知标签返回空
+     * @return 是否匹配
+     */
+    [[nodiscard]] bool test(const Entity& entity,
+        const std::function<std::vector<std::string>(const ResourceLocation&)>& enchantmentTagResolver) const;
+
+    /**
      * @brief 检查实体是否匹配（带世界和参考位置）
      *
      * 用于距离检查等需要参考位置的条件。
@@ -106,6 +120,23 @@ public:
      * @return 是否匹配
      */
     [[nodiscard]] bool test(const IWorld& world, f64 x, f64 y, f64 z, const Entity& entity) const;
+
+    /**
+     * @brief 检查实体是否匹配（带世界与参考位置，装备槽位的附魔标签可解析）
+     * @param world 世界
+     * @param x 参考位置 X
+     * @param y 参考位置 Y
+     * @param z 参考位置 Z
+     * @param entity 实体
+     * @param enchantmentTagResolver 附魔标签名 → 成员附魔 ID；未知标签返回空
+     * @return 是否匹配
+     */
+    [[nodiscard]] bool test(const IWorld& world,
+        f64 x,
+        f64 y,
+        f64 z,
+        const Entity& entity,
+        const std::function<std::vector<std::string>(const ResourceLocation&)>& enchantmentTagResolver) const;
 
     /**
      * @brief 检查实体是否匹配（带伤害源）

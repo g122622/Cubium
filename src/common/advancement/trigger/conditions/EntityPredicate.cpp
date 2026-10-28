@@ -41,6 +41,7 @@
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/assert/AssertAll.hpp"
 #include "common/world/IWorld.hpp"
+#include <functional>
 #include <string>
 #include <nlohmann/json_fwd.hpp>
 
@@ -56,6 +57,14 @@ void EntityPredicate::_updateIsAny()
 }
 
 bool EntityPredicate::test(const Entity& entity) const
+{
+    return test(entity, [](const ResourceLocation&) {
+        return std::vector<std::string>{};
+    });
+}
+
+bool EntityPredicate::test(const Entity& entity,
+    const std::function<std::vector<std::string>(const ResourceLocation&)>& enchantmentTagResolver) const
 {
     if (m_isAny) {
         return true;
@@ -85,7 +94,7 @@ bool EntityPredicate::test(const Entity& entity) const
     }
 
     // 5. 检查装备
-    if (!m_equipment.test(entity)) {
+    if (!m_equipment.test(entity, enchantmentTagResolver)) {
         return false;
     }
 
@@ -180,9 +189,10 @@ bool EntityPredicate::_testTypeSpecific(const Entity& entity, const EntityTypeSp
     }
 
     if (typeId == "minecraft:raider") {
-        // 对齐 vanilla Raider.isCaptain = 巡逻队长 && 头戴不祥旗帜。
-        // Cubium 尚未实现不祥旗帜（Ominous Banner）物品组件，故以巡逻队长标记近似；
-        // TODO(ominous-banner): 旗帜图案组件落地后改为"队长 && 头戴不祥旗帜"的精确判定。
+        // 原版 Raider.isCaptain() 的唯一判据是「头戴不祥旗帜」（Raid.getOminousBannerInstance），
+        // 不是巡逻标记——巡逻队长没戴旗帜时同样不是袭击队长。
+        // TODO(ominous-banner): 不祥旗帜的物品/图案组件尚未实现，这里暂以巡逻队长标记近似；
+        //   旗帜落地后改为检查头盔槽是否为不祥旗帜，与 oracle 走同一条物品路径。
         const auto* raider = dynamic_cast<const AbstractRaiderEntity*>(&entity);
         if (raider == nullptr) {
             return false;
@@ -206,6 +216,18 @@ bool EntityPredicate::_testComponent(const Entity& entity, const EntityComponent
 }
 
 bool EntityPredicate::test(const IWorld& world, f64 x, f64 y, f64 z, const Entity& entity) const
+{
+    return test(world, x, y, z, entity, [](const ResourceLocation&) {
+        return std::vector<std::string>{};
+    });
+}
+
+bool EntityPredicate::test(const IWorld& world,
+    f64 x,
+    f64 y,
+    f64 z,
+    const Entity& entity,
+    const std::function<std::vector<std::string>(const ResourceLocation&)>& enchantmentTagResolver) const
 {
     if (m_isAny) {
         return true;
@@ -249,7 +271,7 @@ bool EntityPredicate::test(const IWorld& world, f64 x, f64 y, f64 z, const Entit
     }
 
     // 7. 检查装备
-    if (!m_equipment.test(entity)) {
+    if (!m_equipment.test(entity, enchantmentTagResolver)) {
         return false;
     }
 

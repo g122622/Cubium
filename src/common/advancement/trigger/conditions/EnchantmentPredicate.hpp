@@ -12,13 +12,12 @@
  * copies or substantial portions of the Software.
  *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO ANY WARRANTY OF ANY KIND, WHETHER
- * EXPRESS OR IMPLIED, INCLUDING STATUTORY OR OTHERWISE, IMPLIED WARRANTIES OF
- * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO
- * EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES
- * OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
- * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
- * IN THE SOFTWARE.
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
  *
  */
 
@@ -28,6 +27,7 @@
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
 #include "common/resource/ResourceLocation.hpp"
+#include <functional>
 #include <optional>
 #include <nlohmann/json.hpp>
 #include <nlohmann/json_fwd.hpp>
@@ -60,10 +60,28 @@ public:
 
     /**
      * @brief 检查附魔容器中是否存在匹配的附魔
+     *
+     * 等价于传一个「永远解析不到成员」的标签解析器：`#tag` 形式的谓词在这里
+     * 无法判断，一律不匹配。需要完整语义的调用方请用带 tagResolver 的重载。
+     *
      * @param enchantments 附魔容器
      * @return 是否匹配
      */
     [[nodiscard]] bool test(const item::enchant::EnchantmentContainer& enchantments) const;
+
+    /**
+     * @brief 检查附魔容器中是否存在匹配的附魔（支持附魔标签）
+     *
+     * 原版的 `enchantments` 字段是 `HolderSet<Enchantment>`，既可以写具体附魔，
+     * 也可以写 `#minecraft:smelts_loot` 这样的标签。此前只解析具体附魔，标签写法
+     * 被当成一个普通 ID 去查等级，恒不匹配——「烧死的动物掉熟肉」因此永远不触发。
+     *
+     * @param enchantments 附魔容器（物品上的附魔）
+     * @param tagResolver 标签名 → 成员附魔 ID；标签未知时返回空
+     * @return 是否匹配
+     */
+    [[nodiscard]] bool test(const item::enchant::EnchantmentContainer& enchantments,
+        const std::function<std::vector<std::string>(const ResourceLocation&)>& tagResolver) const;
 
     /**
      * @brief 检查是否匹配任意附魔
@@ -72,6 +90,8 @@ public:
 
     /**
      * @brief 从JSON解析
+     *
+     * `#name` 形式的取值解析成附魔标签，其余按附魔 ID 解析。
      */
     static Result<EnchantmentPredicate> fromJson(const nlohmann::json& json);
 
@@ -82,9 +102,16 @@ public:
 
     // ========== Getters ==========
 
+    /// 具体附魔 ID（与 `getEnchantmentTag` 二选一）。
     [[nodiscard]] const std::optional<ResourceLocation>& getEnchantment() const noexcept
     {
         return m_enchantment;
+    }
+
+    /// 附魔标签（原版 `HolderSet` 的 `#tag` 写法）。
+    [[nodiscard]] const std::optional<ResourceLocation>& getEnchantmentTag() const noexcept
+    {
+        return m_enchantmentTag;
     }
 
     [[nodiscard]] const IntBounds& getLevels() const noexcept
@@ -93,8 +120,13 @@ public:
     }
 
 private:
-    std::optional<ResourceLocation> m_enchantment; ///< 附魔ID
-    IntBounds m_levels;                            ///< 附魔等级范围
+    /// 容器里是否有属于「具体附魔」或「附魔标签」的条目；返回首个命中的等级。
+    [[nodiscard]] std::optional<i32> _findLevel(const item::enchant::EnchantmentContainer& enchantments,
+        const std::function<std::vector<std::string>(const ResourceLocation&)>& tagResolver) const;
+
+    std::optional<ResourceLocation> m_enchantment;    ///< 附魔 ID
+    std::optional<ResourceLocation> m_enchantmentTag; ///< 附魔标签
+    IntBounds m_levels;                               ///< 附魔等级范围
 };
 
 } // namespace mc::advancement

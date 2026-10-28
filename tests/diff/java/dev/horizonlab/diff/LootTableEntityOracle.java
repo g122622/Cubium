@@ -72,16 +72,34 @@ public final class LootTableEntityOracle {
         System.exit(2);
     }
 
+    /**
+     * 原版建不出实例的被击杀实体：玩家没有可供 {@code EntityType#create} 使用的工厂
+     * （服务端由登录流程构造 ServerPlayer，必须挂在真实服务端上），因此以玩家为
+     * this_entity 的表两侧都无从比较，直接跳过而不是伪造一个半初始化的玩家。
+     */
+    private static final java.util.Set<String> UNSPAWNABLE_VICTIMS = java.util.Set.of("minecraft:player");
+
     private static void run(Path input, Path output) throws IOException {
         ServerLevel level = LootLevel.get().level;
+        // 键是「表#场景」，表名从键里取；场景只改上下文，不改表。
+        // 单元里的玩家表在 oracle 侧无法构造上下文：输出 `missing` 会让它变成差异，
+        // 所以由 harness 侧用参考表剔除（见 loot_context.ts 的 ENTITY_ORACLE_MISSING）。
         LootRoll.run(input, output, "table", (table, request, result) -> {
-            Entity victim = spawn(request.has("entity") ? request.get("entity").getAsString() : "minecraft:pig", level);
+            String victimId = request.has("entity") ? request.get("entity").getAsString() : "minecraft:pig";
+            if (UNSPAWNABLE_VICTIMS.contains(victimId)) {
+                result.addProperty("missing", true);
+                return;
+            }
+            Entity victim = spawn(victimId, level);
             if (victim == null) {
                 result.addProperty("missing", true);
                 return;
             }
             Entity attacker = request.has("attacker") ? spawn(request.get("attacker").getAsString(), level) : null;
             equipLooting(attacker, request.has("looting") ? request.get("looting").getAsInt() : 0);
+            if (request.has("attackerCaptain") && request.get("attackerCaptain").getAsBoolean()) {
+                wearOminousBanner(attacker);
+            }
             if (request.has("onFire") && request.get("onFire").getAsBoolean()) {
                 victim.setRemainingFireTicks(100);
             }
@@ -93,6 +111,19 @@ public final class LootTableEntityOracle {
                 .withOptionalParameter(LootContextParams.ATTACKING_ENTITY, attacker)
                 .create(table.getParamSet())));
         });
+    }
+
+    /**
+     * 让袭击者成为队长：原版 {@code Raider.isCaptain()} 的唯一判据就是「头戴不祥旗帜」，
+     * 这里写入的正是 {@code Raid.getOminousBannerInstance} 生成的那一份。
+     */
+    private static void wearOminousBanner(Entity attacker) {
+        if (!(attacker instanceof net.minecraft.world.entity.raid.Raider raider)) {
+            return;
+        }
+        var banner = net.minecraft.world.entity.raid.Raid.getOminousBannerInstance(
+                LootServerData.get().registryAccess().lookupOrThrow(net.minecraft.core.registries.Registries.BANNER_PATTERN));
+        raider.setItemSlot(net.minecraft.world.entity.EquipmentSlot.HEAD, banner);
     }
 
     /** 按名字生成实体；位置固定在 (0.5, 64, 0.5)，与 C++ 探针一致。 */

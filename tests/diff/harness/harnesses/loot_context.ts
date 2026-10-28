@@ -52,14 +52,43 @@ export const BLOCK_CONTEXT = {
 export const ENTITY_ORACLE_MISSING: readonly string[] = [
     "minecraft:entities/creaking",
     "minecraft:entities/mannequin",
+    // 玩家没有可供原版 `EntityType#create` 使用的工厂（服务端由登录流程构造并挂在真实
+    // 服务端上），oracle 侧建不出 this_entity，两侧都无从比较。
+    "minecraft:entities/player",
 ];
 
-/** 实体探针使用的固定击杀者与掠夺等级。 */
-export const ENTITY_CONTEXT = {
-    attacker: "minecraft:zombie",
-    looting: 3,
-    onFire: false,
-} as const;
+/**
+ * 实体探针的输入场景。
+ *
+ * 同一张表在多组场景下各掷一次：只掷一组时，「条件被误判为真」与「条件被误判为假」
+ * 最多只能暴露一半。而「掠食者是队长」「被击杀者着火」「击杀者是玩家」这些判据在
+ * 实体刚建出来时全部为假——不构造正向场景，谓词即使永远返回 false 也看不出来。
+ *
+ *   - default  ：击杀者是僵尸、被击杀者未着火（最初的形态）；
+ *   - player   ：击杀者是玩家（`killed_by_player`、装备类条件走玩家分支）；
+ *   - on_fire  ：被击杀者着火（`flags.is_on_fire`、燃烧掉落）；
+ *   - captain  ：击杀者是袭击队长（`type_specific: raider.is_captain`）。
+ *
+ * 队长的判定依据是「头戴不祥旗帜」：两侧都在实体创建后把一份真正的不祥旗帜写进
+ * 头盔槽，而不是伪造一个布尔标志。
+ */
+export interface EntityScenario {
+    readonly name: string;
+    readonly attacker?: string;
+    readonly looting?: number;
+    readonly onFire?: boolean;
+    readonly attackerCaptain?: boolean;
+}
+
+export const ENTITY_SCENARIOS: readonly EntityScenario[] = [
+    { name: "default", attacker: "minecraft:zombie", looting: 3, onFire: false },
+    { name: "player", attacker: "minecraft:player", looting: 3, onFire: false },
+    { name: "on_fire", attacker: "minecraft:zombie", looting: 3, onFire: true },
+    { name: "captain", attacker: "minecraft:pillager", looting: 3, onFire: false, attackerCaptain: true },
+];
+
+/** 单元 → 该表的全部场景名。 */
+export const ENTITY_SCENARIO_NAMES: readonly string[] = ENTITY_SCENARIOS.map((scenario) => scenario.name);
 
 /** 单元 → `loot_table` 探针输入。 */
 export function lootTableInput(unit: string): unknown {
@@ -82,13 +111,31 @@ export function lootTableBlockInput(unit: string): unknown {
     };
 }
 
-/** 单元 → 实体探针输入。 */
-export function lootTableEntityInput(unit: string): unknown {
+/**
+ * 单元 → 实体探针输入。
+ *
+ * 每张表按 {@link ENTITY_SCENARIOS} 展开成多行；场景名进 `scene` 字段，用来把同一张表
+ * 的多组结果区分开（比对按 `table` 对齐，因此每一行都是独立的单元键）。
+ */
+export function lootTableEntityInput(unit: string, scenarioName: string): unknown {
+    const scenario = ENTITY_SCENARIOS.find((candidate) => candidate.name === scenarioName);
+    if (scenario === undefined) {
+        throw new Error(`Unknown loot entity scenario: ${scenarioName}`);
+    }
     const path = unit.startsWith("minecraft:") ? unit.slice("minecraft:".length) : unit;
     const entityName = path.startsWith("entities/") ? path.slice("entities/".length) : path;
+    // 显式展开字段而不是整体展开 scenario：`name` 只在场景内有意义，不能混进输入。
     return {
-        table: unit,
+        table: lootTableEntityUnit(unit, scenario.name),
         entity: `minecraft:${entityName}`,
-        ...ENTITY_CONTEXT,
+        ...(scenario.attacker === undefined ? {} : { attacker: scenario.attacker }),
+        ...(scenario.looting === undefined ? {} : { looting: scenario.looting }),
+        ...(scenario.onFire === undefined ? {} : { onFire: scenario.onFire }),
+        ...(scenario.attackerCaptain === undefined ? {} : { attackerCaptain: scenario.attackerCaptain }),
     };
+}
+
+/** 单元键：表 ID + 场景名（两侧按同一个键对齐）。 */
+export function lootTableEntityUnit(unit: string, scenarioName: string): string {
+    return `${unit}#${scenarioName}`;
 }

@@ -36,9 +36,12 @@ bool EntityFlagsPredicate::test(const Entity& entity) const
         return true;
     }
 
-    // 检查是否燃烧
+    // 检查是否燃烧。原版 Entity.isOnFire() = 火焰计时器 > 0，**不**过滤火焰免疫：
+    // 免疫实体（僵尸猪灵、炽足兽、岩浆怪……）在计时器为正时同样算「着火」，
+    // 被烧死的岩浆怪仍然掉岩浆膏靠的就是这一点。若在这里排除免疫实体，
+    // 所有「着火才生效」的掉落与进度条件挂到免疫实体上都会静默失效。
     if (m_isOnFire.has_value()) {
-        if (entity.isOnFire() != m_isOnFire.value()) {
+        if ((entity.getRemainingFireTicks() > 0) != m_isOnFire.value()) {
             return false;
         }
     }
